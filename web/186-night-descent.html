@@ -7,7 +7,7 @@
 <meta name="description" content="第一人稱登山車下坡：雨夜港城的濕亮山路、柳杉林的晨霧、高嶺的雪夜。自己拿捏煞車與轉向，聽著花鼓棘輪聲一路滑到山腳。">
 <meta name="theme-color" content="#08090a">
 <link rel="icon" href="../favicon.svg">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js"}}</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"}}</script>
 <style>
 :root{
   --ink:#efe8dc;
@@ -206,14 +206,14 @@ body.loading #load{display:block}
 <div id="err">這件作品需要 WebGL 與網路連線（載入 Three.js）。<br>請改用較新的瀏覽器開啟。</div>
 
 <script type="module">
-let THREE;
+let THREE, THREE_VENDOR = false;
 {
   // CDN 太慢（9 秒）或失敗就改用站內的 vendor 模組；vendor 也載不到時再等 CDN
   const cdn = import('three');
   const vendor = () => import('../vendor/three-0.186.0/three.module.js');
   try { THREE = await Promise.race([cdn, new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), 9000))]); }
   catch (e) {
-    try { THREE = await vendor(); }
+    try { THREE = await vendor(); THREE_VENDOR = true; }
     catch (e2) { try { THREE = await cdn; } catch (e3) { document.getElementById('err').style.display = 'grid'; throw e3; } }
   }
 }
@@ -1496,6 +1496,7 @@ function buildWorld(si) {
     group.add(pts); W_.glows = pts;
   }
 
+  setHandVariant(S.id);
   // 光源設定
   const night = S.id !== 'cedar';
   hemi.intensity = S.id === 'harbor' ? 0.45 : S.id === 'cedar' ? 1.1 : 1.2;
@@ -1860,7 +1861,7 @@ const bars = {};
   down.position.copy(PIVOT); cock.add(down);
 
   // 手套與前臂（手部座標：x 沿握把向外、y 上、z 朝騎士）
-  bars.fingers = [];
+  bars.fingers = []; bars.handGroups = [];
   const gripR = 0.0165;
   const capsBetween = (p0, p1, r, mat) => {
     const a = new THREE.Vector3(...p0), b = new THREE.Vector3(...p1), d = b.clone().sub(a), len = d.length();
@@ -1871,6 +1872,7 @@ const bars = {};
   };
   for (const sx of [-1, 1]) {
     const hand = new THREE.Group(); hand.position.set(sx * 0.322, 0.043, -0.026); hand.rotation.y = sx * -0.13; steerG.add(hand);
+    bars.handGroups.push({ hand, sx });
     const X = v => sx * v;
     // 手背：從手腕斜向前方的指節
     const back = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), CM.glove);
@@ -2192,6 +2194,57 @@ const audio = (() => {
   };
 })();
 
+/* ───────── Blender 建模的雙手（assets/186/hands.glb）─────────
+   港城夜雨用裸手（對應參考影片），杉林與雪地戴手套；載不到時保留上面程式拼出的手 */
+const glbHands = { ok: false, bare: [], glove: [], pull: [] };
+function setHandVariant(id) {
+  if (!glbHands.ok) return;
+  const glove = id !== 'harbor';
+  for (const m of glbHands.bare) m.visible = !glove;
+  for (const m of glbHands.glove) m.visible = glove;
+}
+async function loadHands() {
+  if (THREE_VENDOR || QS.has('prochands')) return;
+  try {
+    const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+    const gltf = await new GLTFLoader().loadAsync('../assets/186/hands.glb');
+    const skin = old => new THREE.MeshPhysicalMaterial({ map: old.map, normalMap: old.normalMap, normalScale: old.normalScale.clone().multiplyScalar(1.2),
+      roughness: 0.56, specularIntensity: 0.5, sheen: 0.15, sheenColor: new THREE.Color(0.9, 0.5, 0.38), sheenRoughness: 0.5 });
+    const cloth = (old, rough, sheenC) => new THREE.MeshPhysicalMaterial({ map: old.map, normalMap: old.normalMap, normalScale: old.normalScale.clone(),
+      roughness: rough, sheen: 0.4, sheenColor: new THREE.Color(sheenC), sheenRoughness: 0.6 });
+    const nail = new THREE.MeshPhysicalMaterial({ color: 0xc89484, roughness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.35 });
+    const found = {};
+    gltf.scene.traverse(o => { if (o.isMesh || o.isGroup) found[o.name] = o; });
+    const conv = o => {
+      const meshes = o.isMesh ? [o] : o.children.filter(c => c.isMesh);
+      for (const m of meshes) {
+        const mats = Array.isArray(m.material) ? m.material : [m.material];
+        const nm = mats.map(mt => /nail/.test(mt.name) ? nail : /bare/.test(o.name) ? skin(mt) : /glove/.test(o.name) ? cloth(mt, 0.78, 0x5c5f57) : cloth(mt, 0.9, 0x26302a));
+        m.material = Array.isArray(m.material) ? nm : nm[0];
+        m.frustumCulled = false;
+        if (m.morphTargetDictionary && 'pull' in m.morphTargetDictionary) glbHands.pull.push(m);
+      }
+      return meshes;
+    };
+    for (const { hand, sx } of bars.handGroups) {
+      const side = sx > 0 ? 'R' : 'L';
+      const parts = { bare: found['Hand' + side + '_bare'], glove: found['Hand' + side + '_glove'], sleeve: found['Sleeve' + side] };
+      if (!parts.bare || !parts.glove || !parts.sleeve) throw new Error('hands.glb 缺少物件');
+      for (const c of hand.children) c.visible = false;
+      for (const k of ['bare', 'glove', 'sleeve']) {
+        const o = parts[k]; o.position.set(0, 0, 0); o.rotation.set(0, 0, 0); o.scale.set(1, 1, 1);
+        const ms = conv(o); hand.add(o);
+        if (k !== 'sleeve') glbHands[k].push(...ms);
+      }
+    }
+    glbHands.ok = true;
+    setHandVariant(STAGES[SI].id);
+  } catch (e) {
+    for (const { hand } of bars.handGroups) for (const c of hand.children) c.visible = !glbHands.bare.includes(c) && !glbHands.glove.includes(c);
+    console.warn('手部模型載入失敗，改用程式建模的手', e);
+  }
+}
+
 /* ───────── 騎士投在路面的影子（貼花） ───────── */
 const shadowTex = (() => {
   const c = document.createElement('canvas'); c.width = 64; c.height = 128;
@@ -2246,7 +2299,7 @@ function updateShadows(p, dapple) {
 
 /* ───────── 相機 ───────── */
 const bikeQ = new THREE.Quaternion(), tmpV = new THREE.Vector3(), tmpV2 = new THREE.Vector3();
-let basePitch = -0.35, projScale = 800;
+let basePitch = -0.35, projScale = 800, cockTilt = 1;
 function resize() {
   const w = innerWidth, h = innerHeight, asp = w / h;
   renderer.setSize(w, h, false);
@@ -2254,9 +2307,12 @@ function resize() {
   let vf = 2 * Math.atan(Math.tan(hf / 2) / asp) * 180 / Math.PI;
   vf = clamp(vf, 58, 104);
   camera.fov = vf; camera.aspect = asp; camera.updateProjectionMatrix();
-  cockCam.fov = vf; cockCam.aspect = asp; cockCam.updateProjectionMatrix();
+  // 直式螢幕：車頭用較窄的水平視角，雙手會延伸到畫面兩側（和參考影片一樣），場景仍用寬視角
+  const cockH = lerp(76, 58, clamp((1.1 - asp) / 0.65, 0, 1)) * Math.PI / 180;
+  cockCam.fov = clamp(2 * Math.atan(Math.tan(cockH / 2) / asp) * 180 / Math.PI, 40, 104); cockCam.aspect = asp; cockCam.updateProjectionMatrix();
   const portrait = clamp((1.2 - asp) / 0.7, 0, 1);
   basePitch = -lerp(20, 24, portrait) * Math.PI / 180;
+  cockTilt = lerp(1, 0.62, portrait);
   const pw = Math.floor(w * DPR), ph = Math.floor(h * DPR);
   rtScene.setSize(pw, ph);
   rtB[0].setSize(pw >> 1, ph >> 1); rtB[1].setSize(pw >> 1, ph >> 1); rtB[2].setSize(pw >> 2, ph >> 2); rtB[3].setSize(pw >> 2, ph >> 2); rtB[4].setSize(pw >> 3, ph >> 3); rtB[5].setSize(pw >> 3, ph >> 3);
@@ -2310,7 +2366,7 @@ function updateCamera(dt, time) {
   camera.rotation.set(basePitch + Math.atan(p.g) + bump * 1.5 + crashPitch - ST.dive * 0.035 + (Math.random() - 0.5) * sh * 0.04, -yaw + (Math.random() - 0.5) * sh * 0.03, -ST.lean * 0.85 + crashRoll + (Math.random() - 0.5) * sh * 0.03, 'YXZ');
   camera.updateMatrixWorld();
   // 車頭
-  cockCam.rotation.set(basePitch + bump * 0.4, 0, 0);
+  cockCam.rotation.set(basePitch * cockTilt + bump * 0.4, 0, 0);
   const vib = Math.min(1, v / 10) * rough;
   cock.position.set((Math.random() - 0.5) * 0.0016 * vib, bump * 0.5 + (Math.random() - 0.5) * 0.0022 * vib - drop * 0.3 - ST.dive * 0.03, 0);
   // 車身比頭壓得更低：把手相對視線再多傾一點
@@ -2321,6 +2377,7 @@ function updateCamera(dt, time) {
   bars.wheel.rotation.x -= v / 0.39 * dt;
   for (const L of bars.levers) L.piv.rotation.y = L.sx * ST.brake * 0.22;
   for (const f of bars.fingers) f.idx.rotation.x = ST.brake * 0.35;
+  for (const m of glbHands.pull) m.morphTargetInfluences[m.morphTargetDictionary.pull] = ST.brake * 0.85;
   // 焦點（放射模糊中心）
   const fp = road.at(ST.s + 60);
   focusV.set(fp.x, fp.y + 1.2, fp.z).project(camera);
@@ -2343,7 +2400,7 @@ function updateCamera(dt, time) {
       tmpV.set(c.l.x - camera.position.x, c.l.y - camera.position.y, c.l.z - camera.position.z);
       const d2 = tmpV.lengthSq(); tmpV.normalize().applyQuaternion(invQ);
       cockKey.position.copy(tmpV).multiplyScalar(5); cockKey.target.position.set(0, -0.5, -0.5);
-      cockKey.intensity = clamp(90 / d2, 0.02, 3.2) * (S.id === 'harbor' ? 1 : 0.4);
+      cockKey.intensity = clamp(90 / d2, 0.55, 3.2) * (S.id === 'harbor' ? 1 : 0.4);
       cockKey.color.set(0xffb56a);
     } else cockKey.intensity = 0;
   }
@@ -2550,10 +2607,11 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && (ST
 /* ───────── 開始 ───────── */
 resize();
 const startSi = clamp(parseInt(QS.get('stage') || '1', 10) - 1, 0, 2);
+const handsReady = loadHands();
 await selectStage(startSi, true);
 if (QS.has('ride')) startRide();
 if (SHOT) document.body.classList.add('shot');
-window.__fw = { ST, get road() { return road; }, get world() { return world; }, get quality() { return { mode: qMode, level: qLevel, ema: fmon.ema, dpr: DPR }; }, applyQuality, get analyser() { return audio.tap(); }, selectStage, startRide, toTitle, setS: s => { ST.s = s; } };
+window.__fw = { ST, hands: glbHands, bars, get road() { return road; }, get world() { return world; }, get quality() { return { mode: qMode, level: qLevel, ema: fmon.ema, dpr: DPR }; }, applyQuality, get analyser() { return audio.tap(); }, selectStage, startRide, toTitle, setS: s => { ST.s = s; } };
 requestAnimationFrame(t => { last = t; frame(t); });
 </script>
 </body>

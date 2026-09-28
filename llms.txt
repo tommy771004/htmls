@@ -144,7 +144,7 @@
 - [172 台北上空 · SKYHAWK 172](https://htmls-ruddy.vercel.app/web/172-taipei-skyhawk.html)：在真實衛星影像、地形與十萬棟 OpenStreetMap 建物重建的台北盆地駕駛 Cessna 172S；依 POH 校準的六自由度飛行力學、自動駕駛、駕駛艙六大儀表、PAPI 與進場燈，四個任務（松山起降、信義區、淡水河口）與四個時段、三種天氣；影像與地形圖磚需連線
 - [173 北境航記 · NORÐ](https://htmls-ruddy.vercel.app/web/173-nord-voyage.html)：維京長船 3D 峽灣之旅；1.6 公里航道、懸崖、針葉林與五道瀑布，十二支船槳入水產生泡沫、漣漪和水花；水面反射、折射與深度透明，程序化木石 PBR 材質，鍵盤與觸控掌舵、槳速及三種燈光。單檔 HTML，Three.js 從 CDN 載入。
 - [183 冰帶 · RIME RIBBON](https://htmls-ruddy.vercel.app/web/183-rime-ribbon.html)：莫比烏斯冰帶上的 3D 太空單車漂移；冰帶沿三葉結半扭接回自己，一圈後翻到背面紫冰、兩圈回到起點。捲浪冰管、翻滾段、甩尾蓄力加速、跳躍迴旋、金環連擊、隕石與加速門，多層視差冰脈著色器與 WebAudio 音效，鍵盤與觸控操作。單檔 HTML，Three.js 從 CDN 載入。
-- [186 下坡 · FREEWHEEL](https://htmls-ruddy.vercel.app/web/186-night-descent.html)：第一人稱登山車下坡遊戲，依 AI 生成的夜騎影片製作。雨夜港城的濕亮柏油與山下燈海、柳杉林側光與雲海、雪夜車轍與頭燈三條程序生成山路；煞車與轉向共用摩擦圓，過彎太快會衝出路外；里程樁分段計時、把手碼錶、WebAudio 花鼓棘輪聲，鍵盤與觸控。
+- [186 下坡 · FREEWHEEL](https://htmls-ruddy.vercel.app/web/186-night-descent.html)：第一人稱登山車下坡遊戲，依 AI 生成的夜騎影片製作。雨夜港城的濕亮柏油與山下燈海、柳杉林側光與雲海、雪夜車轍與頭燈三條程序生成山路；煞車與轉向共用摩擦圓，過彎太快會衝出路外；里程樁分段計時、把手碼錶、路燈投影、WebAudio 花鼓棘輪聲，畫質依幀率自動調整，鍵盤與觸控。
 
 ### 品牌頁面
 
