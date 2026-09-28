@@ -443,7 +443,14 @@ def build(root, Z):
   arms = [(.12, .3, .34, .62, .72), (-.1, .3, .62, .56, .76), (-.35, .3, 1.0, .52, .79), (-.56, .3, 1.28, .54, .82),
           (-.8, .3, 1.46, .6, .84), (-1.2, .3, 1.5, .7, .85), (-1.75, .3, 1.5, .72, .85), (-2.1, .3, 1.46, .72, .84), (-2.3, .3, 1.38, .72, .82)]
   for s, sd in ((1, 'L'), (-1, 'R')):
-    rows = [quad_ring(x, zi, zo, yb - (.1 if x > -.9 else 0), yt, bev=.05, drop=(.12 if x > -1.0 else .04)) for x, zi, zo, yb, yt in arms]
+    # the arm is a shell riding above the side pod: its underside stays clear of the pod (open, dark gap between them)
+    def arm_ring(x, zi, zo, yb, yt):
+      r = quad_ring(x, zi, zo, yb, yt, bev=.05, drop=(.12 if x > -1.0 else .04))
+      if x > -1.3:
+        ybo, ybi = (.64, .5) if x > -1.0 else (.62, .52)
+        r[0] = (x, ybi, zi); r[1] = (x, ybo, zo)
+      return r
+    rows = [arm_ring(*a) for a in arms]
     loft(f'rbody__arm_{sd}', mirror(rows, s), 'white', lv=2, parent=R, creases={0: 1, 1: 1, 2: .95, 3: .95, 4: .85, 5: .95})
     # blue band across the rear of the deck (PULSE band)
     bp = [(-1.02, .3), (-1.5, 1.46), (-2.26, 1.4), (-2.26, .3)]
@@ -453,7 +460,7 @@ def build(root, Z):
     def fring(x, yb, yt, zi, zo):
       ym, zm = (yb + yt) / 2, (zi + zo) / 2
       return [(x, yb, zi), (x, yb, zm), (x, yb, zo), (x, ym, zo), (x, yt, zo), (x, yt, zm), (x, yt, zi), (x, ym, zi)]
-    fr = [(-.46, .06, .26, 1.1, 1.4), (-.54, .03, .5, 1.0, 1.5), (-.7, .03, .78, .96, 1.54), (-1.0, .03, .86, .95, 1.55),
+    fr = [(-.46, .06, .26, 1.14, 1.42), (-.54, .03, .5, 1.07, 1.5), (-.7, .03, .78, 1.03, 1.54), (-1.0, .03, .86, 1.0, 1.55),
           (-1.5, .03, .86, .95, 1.55), (-2.0, .06, .86, .95, 1.55), (-2.12, .12, .85, 1.5, 1.6), (-2.3, .3, .83, 1.5, 1.585), (-2.46, .5, .8, 1.5, 1.565)]
     fender = loft(f'rbody__fender_{sd}', mirror([fring(*r) for r in fr], s), 'white', lv=0, parent=R, creases={0: .95, 1: .95, 2: .95, 3: .95, 4: .95, 5: .95, 6: .95, 7: .95})
     subsurf(fender, 2); apply_all(fender)
@@ -464,7 +471,7 @@ def build(root, Z):
     box = bpy.context.active_object; box.scale = (.9, .57, .72); box.location = P(-2.28, .33, s * 1.235)
     boolean_cut(fender, box); bpy.data.objects.remove(box, do_unlink=True)
     # blue lower band on the pillar and the tail (the "Jupiter" / skirt stripe)
-    bb = [(-.5, .05, .17, 1.06, 1.44), (-.56, .02, .2, .98, 1.52), (-.7, .02, .2, .95, 1.555), (-1.1, .02, .2, .95, 1.555), (-1.28, .02, .2, .96, 1.54)]
+    bb = [(-.5, .05, .17, 1.1, 1.46), (-.56, .02, .2, 1.05, 1.52), (-.7, .02, .2, 1.02, 1.555), (-1.1, .02, .2, .985, 1.555), (-1.28, .02, .2, .96, 1.54)]
     loft(f'rbody__foot_{sd}', mirror([fring(x, yb, yt, zi - .006, zo + .006) for x, yb, yt, zi, zo in bb], s), A, lv=2, parent=R, creases={0: .95, 1: .95, 2: .95, 3: .95, 4: .95, 5: .95, 6: .95, 7: .95})
     zmax = max(abs(v.co.y) for v in fender.data.vertices if -1.25 < v.co.x < -.62 and .3 < v.co.z < .7)
     slab(f'rbody__panel_{sd}', [(-.66, .24), (-1.22, .24), (-1.22, .74), (-.74, .76), (-.62, .5)], .024, 'white', z=s * (zmax + .004), bevel=.008, parent=R)
@@ -488,6 +495,8 @@ def build(root, Z):
     slab(f'nose__intake_{sd}', [(.72, .43), (.42, .45), (.42, .52), (.62, .5)], .03, 'black', z=s * .325, parent=R)
     slab(f'nose__intakelip_{sd}', [(.74, .42), (.4, .44), (.4, .455), (.74, .435)], .034, 'lblue', z=s * .325, parent=R)
     flat(f'rbody__vent_{sd}', [(-1.96, s * .3), (-2.03, s * .3), (-2.08, s * 1.02), (-2.01, s * 1.02)], .012, 'black', y=.876, parent=R)
+    # dark chassis side seen through the gap between the side pod and the arm above it (radiator bay)
+    slab(f'rbody__bay_{sd}', [(.3, .1), (-1.2, .1), (-1.2, .66), (-.2, .66), (.3, .62)], .02, 'carbon', z=s * .35, parent=R)
     # ---------------- front suspension ----------------
     rods = []
     zc = s * (FZ - .17)

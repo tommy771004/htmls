@@ -101,6 +101,7 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid 
 .tab h3{margin:18px 0 8px;font-size:13px;font-weight:600;color:var(--ink)}
 .tab h3 small{font-weight:400;color:var(--faint);margin-left:6px;font-size:11.5px}
 .note{margin:0;color:var(--muted);font-size:12.5px}
+.note.slow{margin-top:14px;padding:9px 11px;border-radius:7px;background:var(--surface-2)}
 .note b{color:var(--ink);font-family:var(--mono)}
 
 .phase{display:flex;gap:6px;align-items:center;margin-bottom:12px;font-size:12.5px}
@@ -230,6 +231,27 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid 
   .panel-toggle{padding:8px 10px;white-space:nowrap}
   #panel{left:8px;right:8px;bottom:8px;height:78vh}
 }
+@media (max-height:540px) and (min-width:761px){
+  #top{left:10px;top:8px;gap:6px}
+  .brand{padding:6px 12px 6px 4px;gap:10px}
+  #wordmark{height:18px}
+  .titles h1{font-size:15px}
+  .titles p{display:none}
+  #crumbs{font-size:12px}
+  #console{left:10px;bottom:10px;padding:8px 10px;gap:4px 10px}
+  #screen{width:118px;height:118px}
+  .screenwrap{padding:4px}
+  .controls{flex-direction:row;gap:10px}
+  .dpad{grid-template:repeat(3,30px)/repeat(3,30px)}
+  .ab{flex-direction:column-reverse;gap:8px}
+  .round{width:38px;height:38px}.round.a{margin:0}
+  .hint{display:none}
+  #clockbar{left:auto;right:10px;bottom:10px;transform:none;gap:6px;padding:6px;flex-wrap:nowrap;max-width:none}
+  #meters{display:none}
+  .icon{width:32px;height:32px}
+  #speeds button{padding:6px 8px}
+  #panel{top:10px;bottom:10px;left:auto;right:10px;width:360px;height:auto}
+}
 @media (prefers-reduced-motion:reduce){
   .tab-ink,#speeds .ink,.switch input::after{transition:none}
 }
@@ -272,7 +294,7 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid 
     <button id="btnClock" class="icon" aria-label="前進一個時鐘週期" title="前進一個時鐘週期（,）"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 14h4V6h6v8h6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <button id="btnInstr" class="icon" aria-label="前進一條指令" title="前進一條指令（/）"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M1.5 14h2.5V6h3.5v8h3V6h3.5v8h4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
-  <div id="speeds" role="radiogroup" aria-label="時鐘速度">
+  <div id="speeds" role="radiogroup" aria-label="時鐘速度" title="慢速時只有時鐘變慢；遊戲用的 30 Hz 計時訊號仍照真實時間走">
     <button role="radio" data-s="0" aria-checked="true">全速</button>
     <button role="radio" data-s="1" aria-checked="false">60<span class="u"> Hz</span></button>
     <button role="radio" data-s="2" aria-checked="false">4<span class="u"> Hz</span></button>
@@ -298,7 +320,7 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid 
   </div>
 
   <section class="tab" id="tab-state" role="tabpanel">
-    <p class="lede">下面每個數字都是直接讀取閘的輸出，沒有另存一份 JavaScript 狀態。</p>
+    <p class="lede">暫存器、旗標、堆疊與輸出都直接讀自閘的輸出；原始碼行號則由組譯器的對照表換算。</p>
     <div class="phase"><span id="phFetch">取指</span><span id="phExec">執行</span><span class="clk">CLK <i id="clkBit"></i></span></div>
     <div class="reg-grid" id="regGrid"></div>
     <div class="instr"><span class="kk">IR 解碼</span><code id="disasm">—</code><span class="src" id="srcLine"></span></div>
@@ -306,6 +328,7 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid 
     <ol class="stack" id="stackList"></ol>
     <h3>板上輸出</h3>
     <div class="outs"><span>LED <b class="bits" id="ledBits"></b></span><span>聲音 <b id="sndVal">0</b></span><span>亂數 LFSR <b id="rngVal">0</b></span><span>計時 <b id="tickVal">0</b></span></div>
+    <p class="note slow" id="slowNote" hidden>時鐘變慢了，牆上的時間沒有：遊戲靠 30 Hz 的計時訊號決定節奏，所以慢速時每一步之間會跳過很多計時。</p>
     <h3>這台機器</h3>
     <dl class="facts" id="facts"></dl>
   </section>
@@ -343,7 +366,7 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid 
 </aside>
 
 <div id="tip" role="tooltip" hidden></div>
-<div id="err" hidden>這件作品需要 WebGL 與網路（載入 Three.js）。請改用較新的瀏覽器開啟。</div>
+<div id="err" hidden>這件作品需要 WebGL，並要透過網頁伺服器開啟（載入站內的 Three.js）。</div>
 <noscript><p class="noscript">NAND-8：一台只用 2 輸入 NAND 閘蓋出來的 8 位元電腦，含 CPU、256 bytes RAM、1K×16 ROM、組譯器、小作業系統與貪食蛇。需要開啟 JavaScript 才能執行。</p></noscript>
 
 <script>// ===== NAND-8 core: netlist builder, gate simulator, machine, assembler, reference model =====
@@ -1827,16 +1850,9 @@ font:
   .db 0x44, 0x40, 0x40   ; !
 </script>
 <script type="module">let THREE;
-{
-  // CDN 太慢或失敗就改用站內 vendor 模組
-  const cdn = import('three');
-  const vendor = () => import('../vendor/three-0.186.0/three.module.js');
-  try { THREE = await Promise.race([cdn, new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), 9000))]); }
-  catch (e) {
-    try { THREE = await vendor(); }
-    catch (e2) { try { THREE = await cdn; } catch (e3) { document.getElementById('err').hidden = false; throw e3; } }
-  }
-}
+// 先用站內的 Three.js，載不到（例如單獨下載這個檔案）才改走 CDN
+try { THREE = await import('../vendor/three-0.186.0/three.module.js'); }
+catch (e) { try { THREE = await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js'); } catch (e2) { document.getElementById('err').hidden = false; throw e2; } }
 const K = window.NAND8;
 const $ = id => document.getElementById(id);
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
@@ -2745,8 +2761,9 @@ const speedInk = document.createElement('span'); speedInk.className = 'ink'; $('
 function setSpeed(i) {
   speed = i; speedBtns.forEach((b, k) => b.setAttribute('aria-checked', k === i));
   const b = speedBtns[i]; speedInk.style.width = b.offsetWidth + 'px'; speedInk.style.transform = `translateX(${b.offsetLeft}px)`;
-  if (SPEEDS[i].full) M.sync();
+  if (SPEEDS[i].full) { M.sync(); if (live.on) syncRef(); }
   waveAcc = edgeAcc = 0; resetMeters();
+  $('slowNote').hidden = SPEEDS[i].full;
 }
 speedBtns.forEach((b, i) => b.onclick = () => { setSpeed(i); pendingEdge = false; if (paused) pause(false); });
 $('btnClose').onclick = () => { $('panel').classList.remove('open'); $('btnPanel').setAttribute('aria-expanded', false); $('btnPanel').focus(); };
