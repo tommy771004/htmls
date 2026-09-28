@@ -504,6 +504,10 @@ def build(root, Z):
     slab(f'nose__intake_{sd}', [(.72, .43), (.42, .45), (.42, .52), (.62, .5)], .03, 'black', z=s * .325, parent=R)
     slab(f'nose__intakelip_{sd}', [(.74, .42), (.4, .44), (.4, .455), (.74, .435)], .034, 'lblue', z=s * .325, parent=R)
     flat(f'rbody__vent_{sd}', [(-1.96, s * .3), (-2.03, s * .3), (-2.08, s * 1.02), (-2.01, s * 1.02)], .012, 'black', y=.876, parent=R)
+    # radiator inlet: a wide, low slot between the pod's inner side and the tub, just above the floor, under a white lip plate
+    slab(f'pods__inlet_duct_{sd}', [(.3, .075), (-.25, .075), (-.25, .235), (.3, .235)], .17, 'black', z=s * .46, parent=R)
+    flat(f'pods__inlet_lip_{sd}', [(.36, s * .345), (-.25, s * .345), (-.25, s * .57), (.36, s * .57)], .022, 'white', y=.25, bevel=.006, parent=R)
+    flat(f'pods__inlet_sill_{sd}', [(.33, s * .35), (.18, s * .35), (.18, s * .565), (.33, s * .565)], .016, 'white', y=.068, bevel=.004, parent=R)
     # dark chassis side seen through the gap between the side pod and the arm above it (radiator bay)
     slab(f'rbody__bay_{sd}', [(.3, .1), (-1.2, .1), (-1.2, .66), (-.2, .66), (.3, .62)], .02, 'carbon', z=s * .35, parent=R)
     # ---------------- front suspension ----------------
@@ -526,7 +530,13 @@ def build(root, Z):
     zu = s * (RZ - .3)
     rods += truss((RX, RR + .09, zu), (RX + .26, .52, s * .32), (RX - .22, .52, s * .32), .05, .018)
     rods += truss((RX, RR - .09, zu), (RX + .22, .26, s * .32), (RX - .2, .26, s * .32), .048, .017)
-    rods.append(arm_tube('drive', (RX, RR, zu), (RX, RR + .02, s * .3), (0, 0, 0), .03, .03, 'grey'))
+    # drive shaft integrated into the arm: a black aerofoil beam wraps it, with a window mid-span where the shaft shows;
+    # thin rails above and below tie the two ends together
+    rods.append(arm_tube('drive', (RX, RR, zu), (RX, RR + .02, s * .3), (0, 0, 0), .024, .024, 'silver'))
+    for z0, z1 in ((zu, s * .76), (s * .5, s * .3)):
+      rods.append(arm_tube('shroud', (RX, RR + .02 * (1 - abs(z0) / .97), z0), (RX, RR + .02 * (1 - abs(z1) / .97), z1), (0, 0, 0), .085, .045, 'black', n=4, seg=10))
+    for dy in (.052, -.048):
+      rods.append(arm_tube('rail', (RX, RR + dy, zu), (RX, RR + dy + .02, s * .3), (0, 0, 0), .075, .01, 'black', n=4, seg=8))
     rods.append(arm_tube('push', (RX + .04, RR - .08, zu), (RX - .1, .6, s * .34), (0, 0, 0), .012, .012, 'silver'))
     rods.append(cyl('rup', .09, .12, 'grey', loc=(RX, RR, s * (RZ - .31)), axis='z', verts=20))
     join(f'rwheels__susp_{sd}', rods, parent=R)
