@@ -928,6 +928,39 @@ def build_ogre(R):
     loft(f'horns_{sd}', mirror(rings, s) if s < 0 else rings, 'white', lv=1, parent=R)
     web = [[(x, y - .015, z - .014), (x, y - .015, z + .014), (x, 1.0, z + .014), (x, 1.0, z - .014)] for x, y, z in Hn[:2]]
     loft(f'horns__fin_{sd}', mirror(web, s), D, lv=0, parent=R)
+    # ======== aero mode (エアロモード, promo still): parts named "__aero" appear only in aero mode ========
+    # rear: two long faceted booster nacelles per side riding on the pod humps — white V-collar round a dark intake,
+    # violet body with a white spine stripe, faceted red tail block with a dark nozzle; the outer one carries a tall swept fin
+    def hexr(x, zc, w, yb, yt):
+      h = yt - yb
+      return [(x, yb, zc - .55 * w), (x, yb, zc + .55 * w), (x, yb + .55 * h, zc + w), (x, yt, zc + .62 * w), (x, yt, zc - .62 * w), (x, yb + .55 * h, zc - w)]
+    for k, zc in enumerate((.64, 1.3)):
+      nb = loft(f'boosters__aero_{sd}{k}', mirror([hexr(x, zc, w, yb, yt) for x, w, yb, yt in
+               [(-.98, .17, 1.0, 1.3), (-1.4, .17, 1.0, 1.32), (-1.9, .17, 1.0, 1.33), (-2.34, .17, 1.0, 1.34)]], s), D, lv=0, parent=R)
+      # white collar: the lower edge juts forward, so from the side the front reads as a V
+      col2 = loft(f'boosters__aero_col_{sd}{k}', mirror([[(x + dx * (1 - (y - 1.0) / .38), y, z) for x, y, z in hexr(-1.0, zc, w, 1.0, yt)] for dx, w, yt in
+               [(.2, .2, 1.37), (.02, .2, 1.37), (-.04, .18, 1.34)]], s), 'white', lv=0, parent=R)
+      hx = [(zc - .155, 1.22), (zc - .09, 1.32), (zc + .09, 1.32), (zc + .155, 1.22), (zc + .07, 1.04), (zc - .07, 1.04)]   # big opening: the collar reads as a thin white frame
+      cut = mesh_from('cut', [(-.6, y, s * z) for z, y in hx] + [(-.97, y, s * z) for z, y in hx],
+                      [tuple(range(6))[::-1], tuple(range(6, 12))] + [(j, (j + 1) % 6, 6 + (j + 1) % 6, 6 + j) for j in range(6)], 'black', smooth=False)
+      boolean_cut(col2, cut); bpy.data.objects.remove(cut, do_unlink=True)
+      mesh_from(f'boosters__aero_in_{sd}{k}', [(-.95, y, s * z) for z, y in hx], [tuple(range(6))], 'black', smooth=False, parent=R)
+      # white stripe along the spine, red faceted tail block, dark hex nozzle
+      flat(f'boosters__aero_st_{sd}{k}', [(-1.15, s * (zc - .045)), (-2.2, s * (zc - .045)), (-2.2, s * (zc + .045)), (-1.15, s * (zc + .045))], .012, 'white', y=1.335, parent=R)
+      loft(f'boosters__aero_tail_{sd}{k}', mirror([hexr(x, zc, w, yb, yt) for x, w, yb, yt in [(-2.3, .185, .99, 1.36), (-2.56, .19, .98, 1.37), (-2.7, .15, 1.02, 1.32)]], s), 'red', lv=0, parent=R)
+      nz = [(zc - .09, 1.17), (zc - .05, 1.25), (zc + .05, 1.25), (zc + .09, 1.17), (zc + .05, 1.08), (zc - .05, 1.08)]
+      mesh_from(f'boosters__aero_noz_{sd}{k}', [(-2.705, y, s * z) for z, y in nz], [tuple(range(6))], 'black', smooth=False, parent=R)
+      if k == 1:
+        slab(f'boosters__aero_fin_{sd}', [(-1.95, 1.3), (-2.42, 1.3), (-2.8, 1.98), (-2.66, 2.0), (-2.2, 1.52)], .04, D, z=s * (zc + .02), bevel=.008, parent=R)
+    # front: a boat-shaped cowl enclosing both front wheels — pointed dark prow low at the front, white deck, violet flanks, red pin line
+    fc = [(2.52, .02, .06, .1), (2.3, .12, .06, .3), (2.02, .19, .08, .5), (1.6, .215, .1, .58), (1.0, .215, .1, .6), (.6, .2, .12, .58), (.42, .16, .16, .52)]
+    cw = loft(f'fpods__aero_{sd}', mirror([hexr(x, OFZ, w, yb, yt) for x, w, yb, yt in fc], s), D, lv=0, parent=R)
+    bvl = cw.modifiers.new('bv', 'BEVEL'); bvl.width = .012; bvl.segments = 2; bvl.limit_method = 'ANGLE'; apply_all(cw)
+    cw.data.materials.append(M('white'))
+    for pl in cw.data.polygons:
+      if pl.normal.z > .5 and pl.center.x < 2.2: pl.material_index = 1      # blender z = page y: upward-facing deck
+    skin_strip(f'fpods__aero_pin_{sd}', [(2.2, .3), (1.6, .43), (.5, .45)], [(2.2, .33), (1.6, .46), (.5, .48)], s, 'red', cw, off=.004, parent=R, n=24, m=1)
+    text_up(f'fpods__aero_five_{sd}', '5', AB, .26, 'teal', (1.2, .607, s * OFZ), yaw=math.radians(90), parent=R)
     # ---------------- front fender pods: white wedges right ahead of the front wheels (pointed keel, red check on the flank) ----------------
     def tear(x, yb, yt, hw):
       h = yt - yb
