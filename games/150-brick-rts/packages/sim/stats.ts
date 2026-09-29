@@ -25,13 +25,15 @@ export const combatRules={provenance:'design_default',
   spearman:{hp:45,damage:4,range:50,cooldown:30,sight:350,attack:'melee',armor:[0,0],classes:['infantry','spear'],bonus:{cavalry:12}},
   skirmisher:{hp:30,damage:2,range:200,cooldown:30,sight:400,attack:'pierce',armor:[0,3],classes:['archer','skirmisher'],bonus:{archer:4,spear:3}},
   knight:{hp:100,damage:10,range:50,cooldown:18,sight:350,attack:'melee',armor:[2,2],classes:['cavalry'],bonus:{}},
- } as Record<'villager'|'militia'|'archer'|'scout'|'monk'|'sheep'|'deer'|'boar'|'spearman'|'skirmisher'|'knight',UnitStats>,
+  // Battering ram: strikes buildings only (+40 against them), all but immune to arrows, slow.
+  ram:{hp:175,damage:2,range:50,cooldown:60,sight:0,attack:'melee',armor:[0,120],classes:['siege'],bonus:{building:40}},
+ } as Record<'villager'|'militia'|'archer'|'scout'|'monk'|'sheep'|'deer'|'boar'|'spearman'|'skirmisher'|'knight'|'ram',UnitStats>,
  // Structures shrug off arrows: [melee, pierce] armor of every building.
  buildingArmor:[0,2] as [number,number],
- buildings:{'town-center':400,house:150,barracks:300,farm:100,'lumber-camp':200,'mining-camp':200,mill:200,stable:300,'archery-range':300,monastery:350,blacksmith:300},
+ buildings:{'town-center':400,house:150,barracks:300,farm:100,'lumber-camp':200,'mining-camp':200,mill:200,stable:300,'archery-range':300,monastery:350,blacksmith:300,'watch-tower':250,'siege-workshop':300},
  corpseTicks:40,hitFlashTicks:6,
  // Movement per tick; every value divides the 50-unit node spacing, so a unit always lands exactly on its node.
- speed:{villager:5,militia:5,archer:5,scout:10,monk:5,sheep:5,deer:10,boar:5,spearman:5,skirmisher:5,knight:10},
+ speed:{villager:5,militia:5,archer:5,scout:10,monk:5,sheep:5,deer:10,boar:5,spearman:5,skirmisher:5,knight:10,ram:2},
 };
 // Monastery technology effects that touch unit stats (reference values, see aoe2-rules-research.md).
 export const religionBonus={sanctityHp:15} as const;

@@ -162,7 +162,7 @@ function placePond(seed:number,size:number,taken:Set<number>,centres:{x:number;y
  if(!spots.length)return [];let n=(seed^0x9e3779b9)>>>0||1;n^=n<<13;n^=n>>>17;n^=n<<5;n>>>=0;
  const t0=spots[n%spots.length],out:number[]=[];for(let dy=0;dy<R.size;dy++)for(let dx=0;dx<R.size;dx++)out.push(t0+dy*size+dx);return out;
 }
-export const buildingKinds=new Set(['house','town-center','barracks','farm','lumber-camp','mining-camp','mill','stable','archery-range','monastery','blacksmith']);
+export const buildingKinds=new Set(['house','town-center','barracks','farm','lumber-camp','mining-camp','mill','stable','archery-range','monastery','blacksmith','watch-tower','siege-workshop']);
 export function isBuilding(o:Obstacle){return buildingKinds.has(o.kind);}
 function bounds(o:Obstacle):[number,number,number,number]{return obstacleBounds(o,navigationRules.radius);}
 // Slab intersection includes contact: center-lines cannot clip expanded footprints.

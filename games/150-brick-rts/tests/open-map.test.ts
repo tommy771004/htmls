@@ -40,9 +40,9 @@ test('the match map is deterministic and survives save/load and replay',()=>{
 });
 
 test('the incrementally updated navigation table equals a full rebuild after trees fall and buildings rise',()=>{
- // Blue's town centre is kept standing (fixture) so the idle blue lasts the whole 9000 ticks.
+ // Blue's town centre is kept standing and silent (fixture) so the idle blue lasts the whole 9000 ticks.
  const s=createState(260925,'open','ai'),blueTc=s.buildings.find(b=>b.player===0&&b.kind==='town-center')!;let checks=0;
- for(let i=0;i<9000&&!s.outcome;i++){tick(s);blueTc.hp=blueTc.maxHp;if(i%1500===1499){assert.deepEqual(currentGraph(s.map),fullGraph(s.map),`tick ${s.tick}`);checks++;}}
+ for(let i=0;i<9000&&!s.outcome;i++){tick(s);blueTc.hp=blueTc.maxHp;s.volleys[blueTc.id]=1;if(i%1500===1499){assert.deepEqual(currentGraph(s.map),fullGraph(s.map),`tick ${s.tick}`);checks++;}}
  assert.ok(checks>=5);assert.ok(s.map.navigationRevision>10,'the map changed many times');
 });
 

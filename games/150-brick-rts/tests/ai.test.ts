@@ -45,8 +45,8 @@ test('computer opponent builds an economy with drop-off camps, ages up to an arc
   if(!seen.age2&&s.ages[1]>=2)seen.age2=s.tick;
   if(!seen.firstBlueLoss&&s.units.filter(u=>u.player===0&&!isAnimal(u.kind)).length<3)seen.firstBlueLoss=s.tick;};
  // Blue is idle and red's straggling soldiers may raze its town centre early (around tick 7000 on this seed, before
- // red needs farms): the town centre is kept standing (fixture) until red has shown its whole economy, then released.
- while(s.tick<20000&&!s.outcome&&!milestones.every(k=>seen[k])){tick(s);blueTc.hp=blueTc.maxHp;watch();}
+ // red needs farms): the town centre is kept standing and silent (fixture: it neither falls nor shoots) until red has shown its whole economy, then released.
+ while(s.tick<20000&&!s.outcome&&!milestones.every(k=>seen[k])){tick(s);blueTc.hp=blueTc.maxHp;s.volleys[blueTc.id]=1;watch();}
  for(const k of milestones)assert.ok(seen[k]>0,`red reached ${k}`);
  while(s.tick<40000&&!s.outcome){tick(s);watch();}
  assert.ok(seen.firstBlueLoss>=aiRules.firstWaveTick,`no blue losses before the first wave is due (first at ${seen.firstBlueLoss})`);
@@ -89,9 +89,9 @@ test('the computer concedes once it has no town centre and no soldiers (it canno
 
 test('in the third age the computer builds a monastery; its monks store relics and convert intruders near its base',()=>{
  // Blue is idle, and red's richer early food (sheep, deer) now lets it conquer blue around tick 10000, before the
- // third age: blue's town centre is kept standing (fixture) so the match lasts long enough to watch red's monks.
+ // third age: blue's town centre is kept standing and silent (fixture: it neither falls nor shoots) so the match lasts long enough to watch red's monks.
  const s=createState(260925,'open','ai'),blueTc=s.buildings.find(b=>b.player===0&&b.kind==='town-center')!;
- while(s.tick<20000&&!s.outcome&&!s.relics.some(r=>r.monastery!==null&&s.buildings.find(b=>b.id===r.monastery)?.player===1)){tick(s);blueTc.hp=blueTc.maxHp;}
+ while(s.tick<20000&&!s.outcome&&!s.relics.some(r=>r.monastery!==null&&s.buildings.find(b=>b.id===r.monastery)?.player===1)){tick(s);blueTc.hp=blueTc.maxHp;s.volleys[blueTc.id]=1;}
  assert.ok(s.ages[1]>=3,'third age');assert.ok(s.buildings.some(b=>b.player===1&&b.kind==='monastery'&&b.complete),'monastery');
  assert.ok(s.relics.some(r=>r.monastery!==null),'a relic stored by a red monk');
  // An intruder next to red's town centre; red's soldiers are kept off the field (fixture) so only the monk responds.
@@ -100,9 +100,9 @@ test('in the third age the computer builds a monastery; its monks store relics a
  const monk=s.units.find(u=>u.player===1&&u.kind==='monk')!;s.faith[monk.id]=-1e6;
  s.units=s.units.filter(u=>!(u.player===1&&['militia','archer','spearman','skirmisher','knight'].includes(u.kind)));
  const tc=s.buildings.find(b=>b.player===1&&b.kind==='town-center')!,box=obstacleBounds(s.map.obstacles.find(o=>o.id===tc.id)!);
- // Any free node 50-200 beyond the town centre's footprint (red's own buildings may cover the side below its gate).
+ // A free node near red's base but beyond its town centre's arrows (defenseRules range 300), so only the monk acts.
  const gap=(p:{x:number;y:number})=>Math.max(box[0]-p.x,p.x-box[2],box[1]-p.y,p.y-box[3]);
- const spot=[...Array(nodeTotal(s.map)).keys()].map(n=>({...position(s.map,n),n})).find(p=>!s.map.blocked.includes(p.n)&&!s.units.some(u=>u.node===p.n)&&gap(p)>50&&gap(p)<200)!;
+ const spot=[...Array(nodeTotal(s.map)).keys()].map(n=>({...position(s.map,n),n})).find(p=>!s.map.blocked.includes(p.n)&&!s.units.some(u=>u.node===p.n)&&gap(p)>350&&gap(p)<450)!;
  s.units.push({...structuredClone(s.units.find(u=>u.kind==='villager')!),id:s.nextUnitId++,player:0,kind:'villager',hp:25,x:spot.x,y:spot.y,node:spot.n,next:null,path:[],goal:null,target:null,navigation:'idle'});
  const intruder=s.nextUnitId-1;let converted=false,targeted=false;
  for(let i=0;i<1200&&!converted&&s.units.some(u=>u.id===intruder);i++){s.units=s.units.filter(u=>!(u.player===1&&['militia','archer','spearman','skirmisher','knight'].includes(u.kind)));tick(s);targeted||=Object.values(s.rites).some(r=>r.kind==='convert'&&r.target===intruder);converted=s.units.find(u=>u.id===intruder)?.player===1;}

@@ -53,7 +53,7 @@ test('a blacksmith built by command survives save/load and replays to the same s
 });
 
 test('an upgrade reaches units already in the field: a hurt militia keeps its wound and gains the new health',()=>{
- const s=createState(260925);const m=spawn(s,0,'militia',800,700);m.hp=30;s.techs[0].push('man-at-arms');
+ const s=createState(260925);const m=spawn(s,0,'militia',600,1000);m.hp=30;s.techs[0].push('man-at-arms');
  // Research completes through production: the same health rule as Loom and Sanctity.
  s.techs[0].pop();const tc=s.buildings.find(b=>b.kind==='town-center'&&b.player===0)!;s.ages[0]=2;
  s.buildings.push({...structuredClone(tc),id:'building-test',kind:'barracks',queue:[{id:99,entryId:'man-at-arms',reservationId:'0:test',work:399,required:400}]});

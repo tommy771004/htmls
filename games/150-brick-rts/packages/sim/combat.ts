@@ -107,6 +107,8 @@ export function stepCombat(s:CombatState){
   routeTo(s,u,nodes);a.repath=REPATH;
  }
  // Conquest: a player with no units and no buildings is defeated; the last one standing wins.
- if(!s.outcome){const alive=[0,1].filter(p=>s.units.some(u=>u.player===p&&!isAnimal(u.kind))||s.buildings.some(b=>b.player===p));
+ if(!s.outcome){// Units inside a town centre or tower count too (they come out when it falls, defense.ts).
+  const inside=(p:number)=>Object.values((s as {garrison?:Record<string,{units:{unit:Unit}[]}>}).garrison??{}).some(g=>g.units.some(e=>e.unit.player===p));
+  const alive=[0,1].filter(p=>s.units.some(u=>u.player===p&&!isAnimal(u.kind))||s.buildings.some(b=>b.player===p)||inside(p));
   if(alive.length<2)s.outcome={winner:alive.length===1?alive[0]:null,defeated:[0,1].filter(p=>!alive.includes(p)),tick:s.tick};}
 }

@@ -4,7 +4,7 @@ import {rules,validateRules} from '../packages/content/rules.ts';
 import {createState,submit,tick,replay,hash,serialize,deserialize,rulesetHash,nextRandom} from '../packages/sim/sim.ts';
 import type {Command,MoveCommand} from '../packages/sim/sim.ts';
 const copy=()=>structuredClone(rules);
-const command=(sequence=1,targetTick=1):MoveCommand=>({protocolVersion:1,rulesetHash,playerId:0,sequence,targetTick,commandType:'move',payload:{unitIds:[1],x:1150,y:900}});
+const command=(sequence=1,targetTick=1):MoveCommand=>({protocolVersion:1,rulesetHash,playerId:0,sequence,targetTick,commandType:'move',payload:{unitIds:[1],x:1150,y:1250}});// clear of red's town-centre arrows
 test('design defaults accepted; unknown reference version rejected for exact verification',()=>{assert.deepEqual(validateRules(rules),[]);assert.match(validateRules(rules,true).join(),/版本/);});
 test('duplicate IDs, dangling dependencies, negative costs and cyclic technology fail',()=>{
  let r=copy();r.entries.push({...r.entries[0]});assert.match(validateRules(r).join(),/重複 ID/);

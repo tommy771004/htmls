@@ -15,6 +15,9 @@ export const obstacleFootprints={
  'archery-range':{x:-15,y:-15,width:300,depth:300},
  monastery:{x:-15,y:-15,width:300,depth:300},
  blacksmith:{x:-15,y:-15,width:300,depth:300},
+ 'siege-workshop':{x:-15,y:-15,width:300,depth:300},
+ // Watch tower: one tile.
+ 'watch-tower':{x:0,y:0,width:100,depth:100},
  tree:{x:-20,y:-20,width:100,depth:100},
  rock:{x:0,y:0,width:65,depth:70},
  gold:{x:0,y:0,width:65,depth:70},
