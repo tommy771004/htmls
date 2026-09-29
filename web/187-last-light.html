@@ -518,7 +518,7 @@ void main(){
     }
     if(hA>0.){
       float tt=dist+tB;
-      hc=mix(hc,hazeCol(Rp),fogF(tt,0.,.0031));
+      hc=mix(hc*.85,hazeCol(Rp),fogF(tt,1.,.0026)*.8); // 霧量和直接看到的物件一致，倒影才不會比本體淡
       hA*=1.-smoothstep(260.,540.,tt);
       skyR=mix(skyR,hc,hA*.9);
     }
