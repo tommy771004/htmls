@@ -267,6 +267,7 @@
 - [164 Model Y 積木說明書 · 真實零件模型](https://htmls-ruddy.vercel.app/web/164-model-y-bricks.html)：用 LEGO 現行零件拼出的 1:30 特斯拉 Model Y（116 片、25 步），可逐步翻閱的 3D 說明書；程式對照 LDraw 真實網格驗證接點、碰撞、每一步的組裝路徑與重心，附 LDraw 模型、PDF 說明書、零件清單與 BrickLink 查價；需透過網站伺服器開啟。
 - [169 港上疊樓 · HARBOUR STACK](https://htmls-ruddy.vercel.app/web/169-harbour-stack.html)：蓋在海上樁柱間、越加越高的小樓，全程式建模；鏡面相機做真實水面倒影，漁船留尾跡、落雨起漣漪；黃昏／白日／落雨／深夜四種天候，環繞、上岸走甲板、駕船出海三種模式與六個視角；Three.js 與 bloom 從 CDN 載入。
 - [187 暮港 · LAST LIGHT](https://htmls-ruddy.vercel.app/web/187-last-light.html)：第一人稱坐在小木船上漂過傍晚港灣、朝低垂的夕陽前進。自訂水面著色器：多層 Gerstner 波浪、與天空同源的菲涅耳反射、夕陽長條倒影與閃光，岸邊房舍與泊船也有解析式倒影，小船隨浪起伏；木棧道、泊船、燈塔、遠山剪影與暖色薄霧，燈火隨天色漸暗逐盞亮起，船上油燈點亮，昏星與星空浮現，海鷗飛過；拖曳環顧，WebAudio 合成水聲與遠處鐘聲；Three.js 從 CDN 載入。
+- [193 借來的房間 · BORROWED ROOMS](https://htmls-ruddy.vercel.app/web/193-borrowed-rooms.html)：AI 想像自己的家：沒住過任何地方，只讀過人寫下的家，於是把最常被寫到的東西借來拼成一間。很多人寫過的是實體，很少人寫到的只剩線稿；每件標出借自哪類文字與一句示意句。一天的陽光走過屋子，入夜燈一盞盞亮起，貓跟著光換位置；藍曬圖底座、剖切外牆、全部線稿模式。使用站內 Three.js
 
 ## Optional
 
