@@ -126,6 +126,10 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as CANNON from '../vendor/cannon-es-0.20.0/cannon-es.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const BASE = '../assets/191/';
 const $ = (id) => document.getElementById(id);
@@ -213,6 +217,28 @@ function canvasTex(draw, size = 512, repeatM = 1.2) {
   t.repeat.set(1 / repeatM, 1 / repeatM);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 4;
+  t.userData.canvas = c;
+  return t;
+}
+// 由貼圖的明暗推出法線貼圖（暗處視為凹）：材質表面的細紋、磚縫、洞石孔、布紋都靠這張
+function normalFrom(src, strength) {
+  const c0 = src.userData.canvas, s = c0.width;
+  const d = c0.getContext('2d').getImageData(0, 0, s, s).data;
+  const L = new Float32Array(s * s);
+  for (let i = 0; i < s * s; i++) L[i] = (d[i * 4] * 0.3 + d[i * 4 + 1] * 0.59 + d[i * 4 + 2] * 0.11) / 255;
+  const c = document.createElement('canvas'); c.width = c.height = s;
+  const g = c.getContext('2d'), im = g.createImageData(s, s), o = im.data;
+  const at = (x, y) => L[((y + s) % s) * s + ((x + s) % s)];
+  for (let y = 0; y < s; y++) for (let x = 0; x < s; x++) {
+    const dx = (at(x + 1, y) - at(x - 1, y)) * strength, dy = (at(x, y + 1) - at(x, y - 1)) * strength;
+    const n = Math.hypot(dx, dy, 1), k = (y * s + x) * 4;
+    o[k] = (-dx / n * 0.5 + 0.5) * 255; o[k + 1] = (dy / n * 0.5 + 0.5) * 255; o[k + 2] = (1 / n * 0.5 + 0.5) * 255; o[k + 3] = 255;
+  }
+  g.putImageData(im, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.copy(src.repeat);
+  t.anisotropy = 4;
   return t;
 }
 let seed = 7;
@@ -241,32 +267,50 @@ const TEX = {
     for (let i = 0; i < 160; i++) { g.fillStyle = `rgba(${160 + rnd() * 40},${154 + rnd() * 30},${146 + rnd() * 20},${0.04 + rnd() * 0.06})`; g.beginPath(); g.arc(rnd() * s, rnd() * s, 8 + rnd() * 40, 0, 7); g.fill(); }
     g.filter = 'none';
   }, 512, 1.6),
+  plaster: () => canvasTex((g, s) => {
+    g.fillStyle = '#f6f4f0'; g.fillRect(0, 0, s, s);
+    for (let i = 0; i < 9000; i++) { const v = 200 + rnd() * 55; g.fillStyle = `rgba(${v},${v},${v},0.18)`; g.fillRect(rnd() * s, rnd() * s, 1 + rnd() * 2, 1 + rnd() * 2); }
+    g.filter = 'blur(1px)'; g.drawImage(g.canvas, 0, 0); g.filter = 'none';
+  }, 256, 0.6),
+  wood: () => canvasTex((g, s) => {
+    g.fillStyle = '#f3ede4'; g.fillRect(0, 0, s, s);
+    for (let y = 0; y < s; y += 1) { const w = Math.sin(y * 0.11 + Math.sin(y * 0.013) * 6) * 0.5 + 0.5; g.fillStyle = `rgba(120,95,70,${0.04 + w * 0.08})`; g.fillRect(0, y, s, 1); }
+    for (let i = 0; i < 60; i++) { g.fillStyle = 'rgba(110,85,60,0.12)'; g.fillRect(rnd() * s, rnd() * s, 20 + rnd() * 60, 1); }
+  }, 512, 0.8),
   weave: () => canvasTex((g, s) => {
     g.fillStyle = '#f4f1ec'; g.fillRect(0, 0, s, s);
     for (let y = 0; y < s; y += 2) { g.fillStyle = `rgba(90,80,70,${0.03 + rnd() * 0.05})`; g.fillRect(0, y, s, 1); }
     for (let x = 0; x < s; x += 2) { g.fillStyle = `rgba(90,80,70,${0.02 + rnd() * 0.04})`; g.fillRect(x, 0, 1, s); }
   }, 256, 0.25),
 };
-const texCache = {};
+const texCache = {}, nrmCache = {};
 const tex = (k) => (texCache[k] ??= TEX[k]());
+const NSTR = { trav: 5, vein: 1.2, hair: 2, tile: 7, cement: 3, weave: 4, plaster: 2.2, wood: 3 };
+const ntex = (k) => (nrmCache[k] ??= normalFrom(tex(k), NSTR[k] || 3));
 const ROLE = {
-  plaster: { r: 0.93 }, cement: { r: 0.86, map: 'cement' }, floor: { r: 0.42, map: 'tile' }, travertine: { r: 0.62, map: 'trav' },
+  plaster: { r: 0.93, nmap: 'plaster', ns: 0.35 }, cement: { r: 0.86, map: 'cement', ns: 0.5 }, floor: { r: 0.38, map: 'tile', ns: 0.6 }, travertine: { r: 0.62, map: 'trav', ns: 0.8 },
   stone: { r: 0.34, map: 'vein' }, steel: { r: 0.3, m: 1, map: 'hair' }, lacquer: { r: 0.46 }, greige: { r: 0.5 },
-  fabric: { r: 1, map: 'weave' }, fabric_warm: { r: 1, map: 'weave' }, fabric_grey: { r: 1, map: 'weave' }, black: { r: 0.16 },
+  fabric: { r: 1, map: 'weave', sheen: 1 }, fabric_warm: { r: 1, map: 'weave', sheen: 1, double: true }, fabric_grey: { r: 1, map: 'weave', sheen: 1, double: true }, black: { r: 0.16 },
   metal_dark: { r: 0.42, m: 0.7 }, mirror: { r: 0.04, m: 1 }, glass: { r: 0.06, glass: true }, shutter: { r: 0.55 }, lamp: { r: 0.95 },
-  glow: { emit: 0xfff0d6, k: 2.0 }, emit: { emit: 0xffe2bb, k: 2.4 }, plant: { r: 0.8 }, wood: { r: 0.6 }, rug: { r: 1, map: 'weave' },
-  ceramic: { r: 0.3 }, paper: { r: 0.9 }, rattan: { r: 0.9, map: 'weave' }, skin: { r: 0.62 }, cloth: { r: 0.95 }, denim: { r: 0.95, map: 'weave' },
+  glow: { emit: 0xfff0d6, k: 2.0 }, emit: { emit: 0xffe2bb, k: 2.4 }, plant: { r: 0.7, double: true }, wood: { r: 0.6, map: 'wood' }, rug: { r: 1, map: 'weave', sheen: 1 },
+  ceramic: { r: 0.3 }, paper: { r: 0.9 }, rattan: { r: 0.9, map: 'weave' }, skin: { r: 0.52, skin: true }, cloth: { r: 0.85, sheen: 0.8 }, denim: { r: 0.9, sheen: 0.6 },
+  shoe: { r: 0.32 }, button: { r: 0.35, m: 0.4 }, nail: { r: 0.35 }, eye: { r: 0.12 }, hair: { r: 0.5, double: true }, lip: { r: 0.45 },
 };
 const matCache = {};
 function roleMat(role) {
   if (matCache[role]) return matCache[role];
   const R = ROLE[role] || { r: 0.8 };
-  const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: R.r ?? 0.8, metalness: R.m ?? 0 });
+  // 布料用有絨光的物理材質；皮膚加一點透光感的紅色背光（sheen）；其他用標準材質
+  const m = (R.sheen || R.skin)
+    ? new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: R.r ?? 0.8, metalness: 0, sheen: R.sheen || 0.35, sheenRoughness: R.skin ? 0.45 : 0.8, sheenColor: new THREE.Color(R.skin ? 0xffb8a0 : 0xffffff).multiplyScalar(R.skin ? 0.25 : 0.55) })
+    : new THREE.MeshStandardMaterial({ vertexColors: true, roughness: R.r ?? 0.8, metalness: R.m ?? 0 });
   if (R.map) m.map = tex(R.map);
+  const nk = R.nmap || R.map;
+  if (nk && (R.ns ?? 1) > 0) { m.normalMap = ntex(nk); const s = R.ns ?? 0.7; m.normalScale.set(s, s); }
   if (R.emit) { m.emissive = new THREE.Color(R.emit); m.emissiveIntensity = R.k; }
   if (R.glass) { m.transparent = true; m.opacity = 0.22; m.depthWrite = false; }
   if (role === 'mirror') m.envMapIntensity = 1.6;
-  if (['plaster', 'cement', 'lacquer'].includes(role)) m.side = THREE.DoubleSide;
+  if (['plaster', 'cement', 'lacquer'].includes(role) || R.double) m.side = THREE.DoubleSide;
   return (matCache[role] = m);
 }
 // 白模型：去掉底色與貼圖，只留烘焙在頂點色裡的環境光遮蔽（取頂點色最亮的通道當明暗）
@@ -299,8 +343,7 @@ for (const s of OBJ.static_boxes) {
 
 // ════════════ 載入模型 ════════════
 const nodes = {}, meshesOf = {}, pickable = [], bodies = [], kinematic = {};
-let mixer, action;
-const hosts = [];
+const hosts = [], personMeshes = [];
 const gltf = await new GLTFLoader().loadAsync(BASE + 'scene.glb').catch((e) => { fail('模型載入失敗。<small>請透過 HTTP 伺服器開啟此頁。</small>'); throw e; });
 scene.add(gltf.scene);
 const topId = (o) => { while (o && o.parent && !REC[o.name]) o = o.parent; return o && REC[o.name] ? o.name : null; };
@@ -361,22 +404,91 @@ for (const rec of kin) {
   world.addBody(body);
   kinematic[rec.id] = { rec, node, body, open: 0, target: 0, rest: { p: node.position.clone(), q: node.quaternion.clone() } };
 }
-// 房門中心（主持人走近時自動打開）
+// 房門與廚房抽屜的中心（主持人走近時打開）
+const drawerList = Object.values(kinematic).filter((k) => /^drawer_/.test(k.rec.id)).map((k) => {
+  const bx = new THREE.Box3().setFromObject(k.node); const c = bx.getCenter(new THREE.Vector3()); k.cx = c.x; k.cz = c.z; return k;
+});
 const doorsList = Object.values(kinematic).filter((k) => k.rec.kind === 'door' && /^door_/.test(k.rec.id)).map((k) => {
   const bx = new THREE.Box3().setFromObject(k.node); const c = bx.getCenter(new THREE.Vector3()); k.cx = c.x; k.cz = c.z; return k;
 });
-if (gltf.animations.length) {
-  mixer = new THREE.AnimationMixer(gltf.scene);
-  action = mixer.clipAction(gltf.animations[0]);
-  action.play();
-}
-for (const pid of ['host_a', 'host_b']) {
-  const root = nodes[pid + '_root'];
-  if (!root) continue;
+// ── 主持人：people.glb 是兩副蒙皮骨架（骨頭靜止旋轉為單位，直接改 bone.rotation）──
+const ROUTE = OBJ.animation;
+const clock = { t: 0, paused: false };
+const people = await new GLTFLoader().loadAsync(BASE + 'people.glb').catch(() => null);
+for (const [pid, rigName] of [['host_a', 'HostA_Rig'], ['host_b', 'HostB_Rig']]) {
+  const rig = people && people.scene.getObjectByName(rigName);
+  if (!rig) continue;
+  const root = new THREE.Group();
+  root.rotation.order = 'YXZ';
+  root.add(rig);
+  scene.add(root);
+  rig.traverse((o) => {
+    if (o.isMesh) {
+      o.userData.role = o.material.name;
+      o.userData.person = pid;
+      o.material = roleMat(o.material.name);
+      o.castShadow = true;
+      o.receiveShadow = true;
+      o.frustumCulled = false;
+      personMeshes.push(o);
+    }
+  });
+  const bones = {};
+  rig.traverse((o) => { if (o.isBone) bones[o.name] = o; });
   const body = new CANNON.Body({ mass: 0, type: CANNON.Body.KINEMATIC });
-  body.addShape(new CANNON.Cylinder(0.2, 0.2, 1.6, 12), new CANNON.Vec3(0, 0.8, 0));
+  body.addShape(new CANNON.Cylinder(0.17, 0.17, 1.6, 12), new CANNON.Vec3(0, 0.8, 0));
   world.addBody(body);
-  hosts.push({ root, body });
+  hosts.push({ pid, root, bones, body, dist: 0, prev: null, phase: pid === 'host_a' ? 0 : 1.3, hgt: ROUTE.height[pid], opened: [] });
+}
+// 與 build_scene.py 的 host_pose()／walk_rot() 相同
+function hostPose(pid, t) {
+  const path = ROUTE.stations[pid];
+  if (t >= path[path.length - 1][1]) return { pos: path[path.length - 1][0], moving: false };
+  let k = 0;
+  for (let i = 0; i < path.length; i++) if (path[i][1] <= t + 1e-6) k = i;
+  const [p0, t0] = path[k], [p1, t1] = path[k + 1];
+  let u = (t - t0) / Math.max(1e-6, t1 - t0);
+  u = u * u * (3 - 2 * u);
+  return { pos: [p0[0] + (p1[0] - p0[0]) * u, p0[1] + (p1[1] - p0[1]) * u], moving: Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) > 0.05 };
+}
+function walkRot(t, dist, moving, hgt, phase) {
+  const cyc = dist / (0.62 * hgt / 1.7) * Math.PI + phase;
+  const amp = moving ? 1 : 0;
+  const talk = moving ? 0 : Math.sin(t * 2.1 + phase) * 0.5 + 0.5;
+  const sw = Math.sin(cyc) * 0.42 * amp;
+  return {
+    thighL: [-sw, 0, 0], thighR: [sw, 0, 0],
+    shinL: [Math.max(0, Math.sin(cyc + 1.2)) * 0.62 * amp, 0, 0], shinR: [Math.max(0, Math.sin(cyc + 1.2 + Math.PI)) * 0.62 * amp, 0, 0],
+    upL: [sw * 0.7 - talk * 0.15, 0, 0.06], upR: [-sw * 0.7 - talk * 0.75, 0, -0.06 - talk * 0.18],
+    foreL: [-0.18 - talk * 0.25, 0, 0], foreR: [-0.2 - talk * 1.0 * (0.6 + 0.4 * Math.sin(t * 4.3 + phase)), 0, 0],
+    torso: [0.02, Math.sin(cyc) * 0.07 * amp, 0], head: [0.05 * Math.sin(t * 0.9 + phase), 0.25 * Math.sin(t * 0.37 + phase) * (1 - amp), 0],
+    hips: [0, -Math.sin(cyc) * 0.05 * amp, 0],
+  };
+}
+function lookAt(pid, t) {
+  const ls = ROUTE.look[pid];
+  let th = ls[0][1];
+  for (const [tt, a] of ls) if (tt <= t + 1e-6) th = a;
+  th = THREE.MathUtils.degToRad(th);
+  return Math.atan2(Math.cos(th), -Math.sin(th));
+}
+const angLerp = (a, b, k) => a + (((b - a + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * k;
+function poseHosts(t, dt, jump) {
+  for (const h of hosts) {
+    const { pos, moving } = hostPose(h.pid, t);
+    if (jump || !h.prev) { h.prev = pos; h.dist = 0; }
+    const vx = pos[0] - h.prev[0], vy = pos[1] - h.prev[1];
+    h.dist += Math.hypot(vx, vy);
+    h.prev = pos;
+    const want = moving && Math.hypot(vx, vy) > 1e-5 ? Math.atan2(vx, -vy) : lookAt(h.pid, t);
+    h.root.rotation.y = jump ? want : angLerp(h.root.rotation.y, want, Math.min(1, dt * 7));
+    h.root.position.set(pos[0], 0, -pos[1]);
+    for (const [name, r] of Object.entries(walkRot(t, h.dist, moving, h.hgt, h.phase))) {
+      const b = h.bones[name];
+      if (b) b.rotation.set(r[0], r[1], r[2]);
+    }
+    h.moving = moving;
+  }
 }
 loadingEl.hidden = true;
 
@@ -403,6 +515,7 @@ function flyTo(eye, at, cut) {
   tween.from = { p: camera.position.clone(), t: controls.target.clone() };
   tween.to = { p: eye, t: at };
   tween.t = 0;
+  tween.start = performance.now();
   controls.minDistance = cut ? 3 : 0.3;
   controls.maxDistance = cut ? 36 : 6;
 }
@@ -428,11 +541,11 @@ const MATNAME = { ceramic: '陶瓷', glass: '玻璃', travertine: '洞石', stee
 function renderTab(tab) {
   document.querySelectorAll('[role=tab]').forEach((t) => { const on = t.dataset.tab === tab; t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; if (on) panel.setAttribute('aria-labelledby', t.id); });
   if (tab === 'overview') {
-    panel.innerHTML = `<div class="eyebrow">RECONSTRUCTED FROM VIDEO</div><h2>影中屋</h2><p class="sub">從上下兩集室內設計導覽影片重建的 4 房住宅。物品可以推倒，抽屜、滑門與門可以打開，兩位主持人沿著影片裡的動線逛完每個房間。</p>
+    panel.innerHTML = `<div class="eyebrow">RECONSTRUCTED FROM VIDEO</div><h2>影中屋</h2><p class="sub">從上下兩集室內設計導覽影片重建的 4 房住宅。物品可以推倒，抽屜、滑門與門可以打開；兩位主持人是有骨架的蒙皮人物，沿著影片裡的動線逛完每個房間，停下來講解時會比手勢、順手拉開抽屜。</p>
       <div class="stats"><div><strong>${Math.round(areaM2)}</strong><small>m²</small><p>室內面積</p></div><div><strong>${dyn.length}</strong><small>件</small><p>可推倒的物品</p></div><div><strong>${kin.length}</strong><small>處</small><p>抽屜與門</p></div><div><strong>${fmt(CAM.rms_all, 1)}</strong><small>px</small><p>投影回影片的誤差</p></div></div>
       <div class="section-heading">空間<span>SPACES</span></div>
       ${AREAS.filter((a) => a.id !== 'all').map((a) => `<button class="room" data-go="${a.id}" aria-pressed="${state.area === a.id}"><span>${a.name}<small>${a.size}</small></span><span>${a.en}</span></button>`).join('')}
-      <div class="source">參考影片：甘丹設計 · 42 坪微侘寂奶油風 <a href="https://www.youtube.com/watch?v=bdNTTHSXfAg" target="_blank" rel="noopener">上集 ↗</a><a href="https://www.youtube.com/watch?v=I631HRwPMPw" target="_blank" rel="noopener">下集 ↗</a><br>空間與家具設計屬原設計者。公共區尺寸由上集畫面標點解算；四個房間依影片中的平面圖配置、尺寸為目測。Pi3X、SAM3、GVHMR、Kimodo 未執行。<br><a href="${BASE}scene.blend" download>scene.blend</a><a href="${BASE}scene.glb" download>scene.glb</a><a href="${BASE}objects.json" download>objects.json</a></div>`;
+      <div class="source">參考影片：甘丹設計 · 42 坪微侘寂奶油風 <a href="https://www.youtube.com/watch?v=bdNTTHSXfAg" target="_blank" rel="noopener">上集 ↗</a><a href="https://www.youtube.com/watch?v=I631HRwPMPw" target="_blank" rel="noopener">下集 ↗</a><br>空間與家具設計屬原設計者。公共區尺寸由上集畫面標點解算；四個房間依影片中的平面圖配置、尺寸為目測。人物的臉、髮型與衣著，以及家具的縫線、垂墜等細部，是依影片印象補做的推測，不是量測。Pi3X、SAM3、GVHMR、Kimodo 未執行。<br><a href="${BASE}scene.blend" download>scene.blend</a><a href="${BASE}scene.glb" download>scene.glb</a><a href="${BASE}objects.json" download>objects.json</a></div>`;
   } else if (tab === 'items') {
     const items = OBJ.objects.filter((o) => GROUPS.includes(o.group));
     panel.innerHTML = `<div class="eyebrow">OBJECTS</div><h2>物件</h2><p class="sub">點選物件，鏡頭會移過去並顯示尺寸與質量。</p>` + GROUPS.map((g) => {
@@ -499,7 +612,7 @@ $('mobileInfo').addEventListener('click', () => { const on = document.body.class
 $('white').addEventListener('click', () => {
   state.white = !state.white;
   $('white').setAttribute('aria-pressed', state.white);
-  for (const list of Object.values(meshesOf)) for (const m of list) if (!m.userData.flash) m.material = state.white ? whiteMat(m.userData.role) : roleMat(m.userData.role);
+  for (const list of [...Object.values(meshesOf), personMeshes]) for (const m of list) if (!m.userData.flash) m.material = state.white ? whiteMat(m.userData.role) : roleMat(m.userData.role);
 });
 const labelsEl = $('labels');
 labelsEl.innerHTML = AREAS.filter((a) => a.c).map((a) => `<span class="room-label" data-l="${a.id}">${a.name}</span>`).join('');
@@ -715,9 +828,9 @@ controls.addEventListener('start', stopTour);
 // ── 時間軸：人物動線 ──
 const playBtn = $('play'), prog = $('progress'), tOut = $('timeValue');
 let speed = 1;
-playBtn.addEventListener('click', () => { if (!action) return; action.paused = !action.paused; playBtn.textContent = action.paused ? '播放' : '暫停'; playBtn.setAttribute('aria-label', action.paused ? '播放人物走動' : '暫停人物走動'); });
+playBtn.addEventListener('click', () => { clock.paused = !clock.paused; playBtn.textContent = clock.paused ? '播放' : '暫停'; playBtn.setAttribute('aria-label', clock.paused ? '播放人物走動' : '暫停人物走動'); });
 $('speed').addEventListener('change', (e) => { speed = +e.target.value; });
-prog.addEventListener('input', () => { if (!action) return; action.time = +prog.value / 10; mixer.update(0); });
+prog.addEventListener('input', () => { clock.t = +prog.value / 10; poseHosts(clock.t, 0, true); });
 
 // ── 鍵盤 ──
 addEventListener('keydown', (e) => {
@@ -728,9 +841,24 @@ addEventListener('keydown', (e) => {
 });
 
 // ════════════ 主迴圈 ════════════
+// 桌機（寬 900 以上）加 GTAO 螢幕空間環境光遮蔽，補足小物件與牆角的接觸陰影；?fx=0 可關掉
+let composer = null, gtao = null;
+if (innerWidth > 900 && new URLSearchParams(location.search).get('fx') !== '0') {
+  try {
+    composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    gtao = new GTAOPass(scene, camera, stage.clientWidth, stage.clientHeight);
+    gtao.updateGtaoMaterial({ radius: 0.35, distanceExponent: 1.4, thickness: 1.2, scale: 1.0, samples: 12 });
+    gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 5, rings: 2, samples: 16 });
+    gtao.blendIntensity = 0.85;
+    composer.addPass(gtao);
+    composer.addPass(new OutputPass());
+  } catch (e) { composer = null; }
+}
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
   renderer.setSize(w, h, false);
+  if (composer) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); }
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
 }
@@ -739,8 +867,9 @@ resize();
 setArea('all', true);
 renderTab('overview');
 $('total').textContent = ' / ' + bodies.length;
-if (action) { const dur = gltf.animations[0].duration; prog.max = Math.round(dur * 10); $('dur').textContent = Math.round(dur); }
-if (new URLSearchParams(location.search).has('debug')) window.__dbg = { bodies, CANNON, camera, nodes, kinematic, state, THREE, world, setArea };
+prog.max = Math.round(ROUTE.duration * 10); $('dur').textContent = Math.round(ROUTE.duration);
+poseHosts(0, 0, true);
+if (new URLSearchParams(location.search).has('debug')) window.__dbg = { bodies, CANNON, camera, nodes, kinematic, state, THREE, world, setArea, hosts };
 
 const timer = new THREE.Timer();
 timer.connect(document);
@@ -752,7 +881,7 @@ renderer.setAnimationLoop(() => {
   const rawDt = timer.getDelta();
   const dt = Math.min(rawDt, 1 / 20);
   if (tween.t < 1 && tween.to) {
-    tween.t = Math.min(1, tween.t + Math.min(rawDt, 0.25) / 0.9);
+    tween.t = Math.min(1, (performance.now() - tween.start) / 900);
     const k = ease(tween.t);
     camera.position.lerpVectors(tween.from.p, tween.to.p, k);
     controls.target.lerpVectors(tween.from.t, tween.to.t, k);
@@ -764,15 +893,33 @@ renderer.setAnimationLoop(() => {
     if (tourT > 1.2 && step.act && !tourDone) { step.act(); tourDone = true; }
     if (tourT > 4.2) { tourT = 0; tourDone = false; tourI++; if (tourI >= TOUR.length) stopTour(); else setArea(TOUR[tourI].area); }
   }
-  if (mixer) {
-    mixer.update(action.paused ? 0 : dt * speed);
-    if (!action.paused) prog.value = Math.round(action.time * 10);
-    tOut.textContent = fmt(action.time, 1) + ' s';
+  if (hosts.length) {
+    if (!clock.paused) {
+      const nt = (clock.t + dt * speed) % ROUTE.duration;
+      poseHosts(nt, dt, nt < clock.t);
+      clock.t = nt;
+      prog.value = Math.round(clock.t * 10);
+    }
+    tOut.textContent = fmt(clock.t, 1) + ' s';
   }
   for (const h of hosts) {
     h.root.getWorldPosition(tmpV);
     for (const k of doorsList) if (k.target < 0.5 && Math.hypot(tmpV.x - k.cx, tmpV.z - k.cz) < 1.05) k.target = 1;
-    h.body.velocity.set((tmpV.x - h.body.position.x) / Math.max(dt, 1e-3), 0, (tmpV.z - h.body.position.z) / Math.max(dt, 1e-3));
+    // 停下來講解時，順手拉開身邊的抽屜；走開後關回去
+    if (!h.moving) {
+      if (!h.opened.length) {
+        let best = null, bd = 0.75;
+        for (const k of drawerList) { const d = Math.hypot(tmpV.x - k.cx, tmpV.z - k.cz); if (/2$/.test(k.rec.id) && d < bd) { bd = d; best = k; } }
+        if (best && best.target < 0.5) { best.target = 1; h.opened.push(best); }
+      }
+    } else if (h.opened.length) {
+      h.opened = h.opened.filter((k) => { if (Math.hypot(tmpV.x - k.cx, tmpV.z - k.cz) > 1.1) { k.target = 0; return false; } return true; });
+    }
+    // 拖時間軸會讓人瞬移：跳太遠時不給速度，也暫時不參與碰撞，免得把東西撞飛
+    const jumpD = Math.hypot(tmpV.x - h.body.position.x, tmpV.z - h.body.position.z);
+    h.body.collisionResponse = jumpD < 0.3;
+    if (jumpD < 0.3) h.body.velocity.set((tmpV.x - h.body.position.x) / Math.max(dt, 1e-3), 0, (tmpV.z - h.body.position.z) / Math.max(dt, 1e-3));
+    else h.body.velocity.set(0, 0, 0);
     h.body.position.set(tmpV.x, 0, tmpV.z);
   }
   for (const k of Object.values(kinematic)) {
@@ -825,7 +972,7 @@ renderer.setAnimationLoop(() => {
     $('standing').textContent = standing;
     $('stageText').textContent = `件物品站著 · 倒下 ${bodies.length - standing} · 打開 ${open}`;
   }
-  renderer.render(scene, camera);
+  if (composer) composer.render(); else renderer.render(scene, camera);
 });
 </script>
 </body>

@@ -90,6 +90,7 @@ class Obj:
         self.roles = []
         self.boxes = []      # 靜態碰撞盒（平面座標 min/max）
         self.smooth = meta.pop('smooth', False)
+        self.orient = []     # (面, 內部參考點)：開放面片的法線要朝外，否則只算正面的通道（例如 GTAO 的深度）會看不到
         OBJS.append(self)
 
     def mi(self, role):
@@ -165,7 +166,9 @@ def grid_box(o, x0, x1, y0, y1, z0, z1, role, color=None, step=0.25, var=0.0, co
         quad(O, Y, Z, n(dy), n(dz), True)
     if '+x' not in skip:
         quad(O + X, Y, Z, n(dy), n(dz), False)
-    o.paint(made, faces_of(made), role, color, var, smooth=False)
+    fs = faces_of(made)
+    o.paint(made, fs, role, color, var, smooth=False)
+    o.orient.append((fs, Vector(((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2))))
     if collide:
         o.collide(x0, x1, y0, y1, z0, z1)
 
@@ -308,6 +311,150 @@ def leaf_pts(cx, cy, L, Wd, along='y', n=16):
         else:
             out.append((cx + t * L / 2, cy + s * Wd))
     return out
+
+
+
+# ════════════════════════ 細部零件（軟包、垂墜、縫線） ════════════════════════
+def rbox(o, x0, x1, y0, y1, z0, z1, r, role, color=None, n=(6, 6, 4), bulge=0.0, var=0.0, sag=0.0, collide=False):
+    """圓角軟包：立方體細分後把每個點推到「縮小的方塊＋半徑 r」的表面；bulge 讓頂面鼓起、sag 讓頂面中央微凹（坐過的痕跡）"""
+    hx, hy, hz = (x1 - x0) / 2, (y1 - y0) / 2, (z1 - z0) / 2
+    cx, cy, cz = (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2
+    r = min(r, hx * .98, hy * .98, hz * .98)
+    bm = o.bm
+    tmp = bmesh.new()
+    bmesh.ops.create_cube(tmp, size=2.0)
+    bmesh.ops.subdivide_edges(tmp, edges=tmp.edges[:], cuts=max(n), use_grid_fill=True)
+    made = []
+    vmap = {}
+    for v in tmp.verts:
+        q = Vector((v.co.x * hx, v.co.y * hy, v.co.z * hz))
+        c = Vector((max(-(hx - r), min(hx - r, q.x)), max(-(hy - r), min(hy - r, q.y)), max(-(hz - r), min(hz - r, q.z))))
+        d = q - c
+        p = c + (d.normalized() * r if d.length > 1e-9 else Vector((0, 0, r)))
+        if v.co.z > 0.2:
+            u, w = p.x / hx, p.y / hy
+            k = max(0.0, 1 - u * u) * max(0.0, 1 - w * w)
+            p.z += bulge * k * v.co.z - sag * k * k * v.co.z
+        nv = bm.verts.new((cx + p.x, cy + p.y, cz + p.z))
+        vmap[v] = nv
+        made.append(nv)
+    fs = [bm.faces.new([vmap[v] for v in f.verts]) for f in tmp.faces]
+    tmp.free()
+    o.paint(made, fs, role, color, var, smooth=True)
+    if collide:
+        o.collide(x0, x1, y0, y1, z0, z1)
+    return made
+
+
+def piping(o, x0, x1, y0, y1, z, r, role, color=None, rad=0.004):
+    """沿圓角矩形走一圈的滾邊"""
+    pts = [(x, y, z) for x, y in rrect_pts(x0, y0, x1, y1, r, 4)]
+    pts.append(pts[0])
+    tube(o, pts, rad, role, color, seg=6)
+
+
+def drape(o, x0, x1, y0, y1, z_top, over, sides, role, color, step=0.035, fold=0.018, var=0.04, seed=0.0):
+    """被子／毯子：頂面平鋪在矩形上，往 sides（'-x','+x','-y','+y' 的組合）垂下 over 公尺，垂下的部分有褶"""
+    ex0 = x0 - (over if '-x' in sides else 0.0)
+    ex1 = x1 + (over if '+x' in sides else 0.0)
+    ey0 = y0 - (over if '-y' in sides else 0.0)
+    ey1 = y1 + (over if '+y' in sides else 0.0)
+    nx = max(2, int((ex1 - ex0) / step))
+    ny = max(2, int((ey1 - ey0) / step))
+    bm = o.bm
+    grid = []
+    for i in range(nx + 1):
+        row = []
+        for j in range(ny + 1):
+            px = ex0 + (ex1 - ex0) * i / nx
+            py = ey0 + (ey1 - ey0) * j / ny
+            dx = max(0.0, x0 - px, px - x1)
+            dy = max(0.0, y0 - py, py - y1)
+            d = max(dx, dy)
+            qx = min(max(px, x0), x1)
+            qy = min(max(py, y0), y1)
+            # 邊緣是一段圓弧過渡，再直直垂下
+            rr = 0.035
+            if d < rr * 1.5708:
+                ang = d / rr
+                out, down = rr * math.sin(ang), rr * (1 - math.cos(ang))
+            else:
+                out, down = rr, rr + (d - rr * 1.5708)
+            ox = (1 if px > x1 else -1 if px < x0 else 0) * (out + d * 0.04 if d > 0 else 0)
+            oy = (1 if py > y1 else -1 if py < y0 else 0) * (out + d * 0.04 if d > 0 else 0)
+            z = z_top - down
+            # 褶：沿邊緣方向的波紋，越往下越深；頂面只有細小起伏
+            along = qy if dx >= dy else qx
+            fz = noise.noise(Vector((px * 3.1 + seed, py * 3.1, 0.3))) * 0.006
+            ff = math.sin(along * 21 + noise.noise(Vector((along * 2 + seed, 1.7, 0))) * 3) * fold * min(1.0, d / 0.18)
+            if dx >= dy and dx > 0:
+                ox += ff * (1 if px > x1 else -1)
+            elif dy > 0:
+                oy += ff * (1 if py > y1 else -1)
+            row.append(bm.verts.new((qx + ox, qy + oy, z + fz)))
+        grid.append(row)
+    fs = []
+    for i in range(nx):
+        for j in range(ny):
+            fs.append(bm.faces.new((grid[i][j], grid[i + 1][j], grid[i + 1][j + 1], grid[i][j + 1])))
+    made = [v for row in grid for v in row]
+    o.paint(made, fs, role, color, var, smooth=True)
+    o.orient.append((fs, Vector(((x0 + x1) / 2, (y0 + y1) / 2, z_top - 0.6))))
+    return made
+
+
+def shell_chair(o, cx, cy, face, seat_col='#A9A49D', leg_col='#2F2C29'):
+    """餐椅：彎曲的一體殼背＋軟墊座＋四支微外斜的細腳；face 為椅子面向的方向（弧度，0 = +x）"""
+    ca, sa = math.cos(face), math.sin(face)
+    P2 = lambda u, v: (cx + u * ca - v * sa, cy + u * sa + v * ca)  # u 朝前、v 朝左
+    for (u, v) in ((0.17, 0.17), (0.17, -0.17), (-0.17, 0.17), (-0.17, -0.17)):
+        a = P2(u * 1.12, v * 1.12)
+        b_ = P2(u * 0.92, v * 0.92)
+        tube(o, [(a[0], a[1], 0.0), (b_[0], b_[1], 0.43)], [0.009, 0.012], 'metal_dark', leg_col, seg=8)
+    x_ = [P2(u, v) for u, v in ((0.2, 0.2), (0.2, -0.2), (-0.2, -0.2), (-0.2, 0.2))]
+    xs = [p[0] for p in x_]
+    ys = [p[1] for p in x_]
+    rbox(o, min(xs), max(xs), min(ys), max(ys), 0.425, 0.485, 0.03, 'fabric_grey', seat_col, n=(5, 5, 3), bulge=0.012, var=0.03)
+    # 殼背：沿椅背弧線的截面往上擠出，越往上越往後、越寬
+    secs = []
+    for k in range(7):
+        t = k / 6
+        z = 0.47 + t * 0.34
+        back = -0.2 - t * 0.06
+        wid = 0.21 + t * 0.04
+        ring = []
+        for m in range(13):
+            a = -1.15 + 2.3 * m / 12
+            ring.append((math.sin(a) * wid, back + (1 - math.cos(a)) * 0.09 * 0.0 - math.cos(a) * 0.06 + 0.06))
+        inner = [(u * 0.93, v + 0.035) for u, v in reversed(ring)]
+        sec = [(P2(v, u)[0], P2(v, u)[1], z) for u, v in ring + inner]
+        secs.append(sec)
+    verts = []
+    bm = o.bm
+    rings = [[bm.verts.new(p) for p in sec] for sec in secs]
+    fs = []
+    n = len(secs[0])
+    for k in range(len(rings) - 1):
+        for i in range(n):
+            j = (i + 1) % n
+            fs.append(bm.faces.new((rings[k][i], rings[k][j], rings[k + 1][j], rings[k + 1][i])))
+    fs.append(bm.faces.new(rings[0][::-1]))
+    fs.append(bm.faces.new(rings[-1]))
+    verts = [v for r in rings for v in r]
+    o.paint(verts, fs, 'fabric_grey', seat_col, 0.03, smooth=True)
+
+
+def plate(o, x, y, z, w, h, n_axis, role='lacquer', color='#EFECE6'):
+    """牆上的開關／插座面板：n_axis 為牆的法線方向（'+x','-x','+y','-y'）"""
+    t = 0.008
+    if n_axis in ('+y', '-y'):
+        s = 1 if n_axis == '+y' else -1
+        box(o, x - w / 2, x + w / 2, y, y + s * t, z - h / 2, z + h / 2, role, color=color, bevel=0.002, seg=1)
+        box(o, x - w / 4, x + w / 4, y + s * t, y + s * (t + 0.002), z - h / 5, z + h / 5, role, color='#E2DED6')
+    else:
+        s = 1 if n_axis == '+x' else -1
+        box(o, x, x + s * t, y - w / 2, y + w / 2, z - h / 2, z + h / 2, role, color=color, bevel=0.002, seg=1)
+        box(o, x + s * t, x + s * (t + 0.002), y - w / 4, y + w / 4, z - h / 5, z + h / 5, role, color='#E2DED6')
 
 
 # ════════════════════════ 房體 ════════════════════════
@@ -459,7 +606,35 @@ def build_kitchen():
     box(kc, x0, K['upper_x0'], 0.0, 0.36, K['upper_z1'], H, 'lacquer', color='#E9E5DE')
     box(kc, K['upper_x0'], K['upper_x1'], 0.0, 0.36, K['upper_z1'], DINING_Z, 'lacquer', color='#E9E5DE')
     box(kc, tall, x1, 0.0, K['d'], 0.0, DINING_Z, 'lacquer', color='#E6E2DA', collide=True)
-    box(kc, tall + 0.002, x1 - 0.002, K['d'], K['d'] + 0.01, 1.3, 1.5, 'black', color='#AAA49B')
+    # 高櫃：左半是冰箱（兩扇門、垂直把手），右半是電器櫃
+    fx = (tall + x1) / 2
+    box(kc, fx - 0.003, fx + 0.003, K['d'], K['d'] + 0.004, 0.05, DINING_Z - 0.05, 'black', color='#8C867D')
+    box(kc, tall + 0.01, fx - 0.01, K['d'], K['d'] + 0.004, 1.2, 1.206, 'black', color='#8C867D')
+    tube(kc, [(fx - 0.05, K['d'] + 0.03, 0.95), (fx - 0.05, K['d'] + 0.03, 1.6)], 0.009, 'steel', seg=8)
+    for zz in (0.95, 1.6):
+        tube(kc, [(fx - 0.05, K['d'] + 0.004, zz), (fx - 0.05, K['d'] + 0.03, zz)], 0.006, 'steel', seg=6)
+    box(kc, fx + 0.08, x1 - 0.06, K['d'], K['d'] + 0.006, 0.85, 1.45, 'black', color='#1F1E1D', bevel=0.004, seg=1)
+    box(kc, fx + 0.1, x1 - 0.08, K['d'] + 0.006, K['d'] + 0.009, 1.38, 1.42, 'glow', color='#FFE9C8')
+    # 水槽（下嵌、深色內膽）與鵝頸龍頭
+    sx0, sx1 = tall - 0.72, tall - 0.18
+    box(kc, sx0, sx1, 0.14, K['d'] - 0.1, K['h'] - 0.001, K['h'] + 0.0005, 'black', color='#34322F')
+    box(kc, sx0 + 0.02, sx1 - 0.02, 0.16, K['d'] - 0.12, K['h'] - 0.2, K['h'] - 0.0015, 'steel', color='#9A9994')
+    cyl(kc, (sx0 + sx1) / 2, (0.16 + K['d'] - 0.12) / 2, K['h'] - 0.2, K['h'] - 0.198, 0.035, 'black', color='#2A2927', seg=16)
+    fxx = (sx0 + sx1) / 2
+    cyl(kc, fxx, 0.1, K['h'], K['h'] + 0.02, 0.026, 'steel', seg=16)
+    tube(kc, [(fxx, 0.1, K['h'] + 0.02), (fxx, 0.1, K['h'] + 0.3), (fxx, 0.14, K['h'] + 0.37), (fxx, 0.22, K['h'] + 0.36), (fxx, 0.27, K['h'] + 0.29)], 0.012, 'steel', seg=10)
+    tube(kc, [(fxx + 0.05, 0.1, K['h'] + 0.12), (fxx + 0.12, 0.1, K['h'] + 0.14)], 0.006, 'steel', seg=6)
+    # 電陶爐：黑玻璃面與兩圈爐位
+    cx0 = x0 + 0.72
+    box(kc, cx0, cx0 + 0.6, 0.06, 0.56, K['h'], K['h'] + 0.006, 'black', color='#161617', bevel=0.004, seg=1)
+    for (dx, rr) in ((0.16, 0.1), (0.44, 0.08)):
+        for r2 in (rr, rr * 0.62):
+            pts = [(cx0 + dx + math.cos(a) * r2, 0.31 + math.sin(a) * r2, K['h'] + 0.0075) for a in np.linspace(0, TAU, 33)]
+            tube(kc, pts, 0.0018, 'glow', color='#8E7F6C', seg=4)
+    box(kc, cx0 + 0.22, cx0 + 0.38, 0.07, 0.11, K['h'] + 0.0062, K['h'] + 0.0068, 'glow', color='#9E9384')
+    # 抽屜上緣的 J 型把手溝（深色內凹線）
+    for ri, zz in enumerate((0.34, 0.58, K['h'] - 0.06)):
+        box(kc, x0 + 0.02, tall - 0.02, K['d'] - 0.019, K['d'] - 0.004, zz - 0.004, zz + 0.016, 'black', color='#4A4640')
     # 抽屜：兩欄三層，面板 + 盒身，往北拉出 42 cm
     drawers = []
     cols = [(x0 + 0.02, (x0 + tall) / 2 - 0.004), ((x0 + tall) / 2 + 0.004, tall - 0.02)]
@@ -470,7 +645,6 @@ def build_kitchen():
                     axis=[0, 1, 0], travel=0.42, smooth=False)
             yf = K['d'] - 0.02
             box(o, a, b, yf, yf + 0.02, z0, z1, 'lacquer', color='#EDE9E2', bevel=0.002, seg=1)
-            box(o, (a + b) / 2 - 0.12, (a + b) / 2 + 0.12, yf + 0.02, yf + 0.028, z1 - 0.035, z1 - 0.02, 'black', color='#8A857D')
             box(o, a + 0.02, b - 0.02, yf - 0.46, yf, z0 + 0.01, z0 + 0.022, 'lacquer', color='#D9D4CB')
             box(o, a + 0.02, a + 0.032, yf - 0.46, yf, z0 + 0.01, z1 - 0.04, 'lacquer', color='#D9D4CB')
             box(o, b - 0.032, b - 0.02, yf - 0.46, yf, z0 + 0.01, z1 - 0.04, 'lacquer', color='#D9D4CB')
@@ -554,25 +728,28 @@ def build_living():
             z += 0.075
     box(wn, wx0 - 0.02, wx1 + 0.02, D - 0.04, D, wz1 - 0.01, wz1 + 0.02, 'shutter')
     wn.collide(wx0, wx1, D - 0.04, D, 0, wz1)
-    # 沙發（模組化布沙發）
+    # 沙發（模組化布沙發）：凹入的踢腳座、底座、三個鼓起的坐墊與靠墊、兩側扶手，墊子邊緣有滾邊
     sf = Obj('sofa', '模組沙發', group='客廳', smooth=True)
     x0, x1, y0, y1 = S['x0'], W - 0.02, S['y0'], S['y1']
     seat = S['seat']
-    box(sf, x0 + 0.05, x1, y0, y1, 0.04, seat - 0.12, 'fabric', bevel=0.05, seg=3, collide=True)
-    box(sf, x1 - 0.24, x1, y0, y1, 0.04, S['back'] - 0.1, 'fabric', bevel=0.08, seg=3, collide=True)
+    FC = '#ECE6DC'
+    box(sf, x0 + 0.1, x1 - 0.04, y0 + 0.06, y1 - 0.06, 0.0, 0.05, 'black', color='#403B35')
+    rbox(sf, x0 + 0.04, x1, y0, y1, 0.05, seat - 0.13, 0.04, 'fabric', FC, n=(8, 8, 3), var=0.02)
+    rbox(sf, x1 - 0.24, x1, y0 + 0.02, y1 - 0.02, seat - 0.14, S['back'] - 0.08, 0.06, 'fabric', FC, n=(4, 10, 6), var=0.02)
     n = 3
-    L = (y1 - y0 - 0.02) / n
+    L = (y1 - y0 - 0.44) / n
     for k in range(n):
-        a = y0 + 0.01 + k * L
-        box(sf, x0, x1 - 0.22, a + 0.005, a + L - 0.005, seat - 0.13, seat, 'fabric', bevel=0.06, seg=3, var=0.02)
-        box(sf, x1 - 0.42, x1 - 0.2, a + 0.01, a + L - 0.01, seat - 0.02, S['back'], 'fabric', bevel=0.08, seg=3, var=0.02, rot=0.0)
-    box(sf, x0 + 0.02, x1, y0 - 0.02, y0 + 0.2, 0.04, seat + 0.2, 'fabric', bevel=0.09, seg=3)
-    box(sf, x0 + 0.02, x1, y1 - 0.2, y1 + 0.02, 0.04, seat + 0.2, 'fabric', bevel=0.09, seg=3)
+        a = y0 + 0.22 + k * L
+        rbox(sf, x0, x1 - 0.22, a + 0.006, a + L - 0.006, seat - 0.14, seat, 0.05, 'fabric', FC, n=(8, 8, 4), bulge=0.018, sag=0.012, var=0.02)
+        piping(sf, x0 + 0.01, x1 - 0.23, a + 0.016, a + L - 0.016, seat - 0.035, 0.045, 'fabric', '#DDD5C8')
+        rbox(sf, x1 - 0.46, x1 - 0.2, a + 0.012, a + L - 0.012, seat - 0.03, S['back'] + 0.02, 0.07, 'fabric', FC, n=(5, 8, 8), bulge=0.0, var=0.025)
+    for (ya, yb) in ((y0, y0 + 0.22), (y1 - 0.22, y1)):
+        rbox(sf, x0 + 0.02, x1, ya, yb, 0.05, seat + 0.2, 0.08, 'fabric', FC, n=(8, 4, 6), bulge=0.01, var=0.02)
+        piping(sf, x0 + 0.03, x1 - 0.01, ya + 0.01, yb - 0.01, seat + 0.14, 0.07, 'fabric', '#DDD5C8')
     sf.collide(x0, x1, y0, y1, 0, seat)
     sf.collide(x1 - 0.42, x1, y0, y1, 0, S['back'])
-    # 蓋毯
-    box(sf, x0 - 0.01, x0 + 0.6, y0 + 0.6, y0 + 1.15, seat, seat + 0.025, 'fabric_warm', bevel=0.01, seg=2, var=0.05)
-    box(sf, x0 - 0.02, x0 + 0.01, y0 + 0.6, y0 + 1.15, seat - 0.3, seat + 0.02, 'fabric_warm', bevel=0.005, seg=1)
+    # 搭在坐墊前緣的蓋毯
+    drape(sf, x0 + 0.02, x0 + 0.55, y0 + 0.62, y0 + 1.2, seat + 0.012, 0.26, ('-x',), 'fabric_warm', '#D8C8B2', step=0.03, fold=0.022, seed=1.3)
     # 圓地毯
     rg = Obj('rug', '圓形地毯', group='客廳')
     cyl(rg, P['rug']['x'], P['rug']['y'], 0.0, 0.012, P['rug']['r'], 'rug', seg=64, var=0.03)
@@ -644,8 +821,7 @@ def build_props(shelf_tops):
     for k, (dy, col) in enumerate(((0.35, '#D9CBB6'), (0.85, '#EFEAE2'), (2.55, '#CDBFA9'), (3.1, '#E8E1D6'))):
         o = dyn('pillow_%d' % k, '抱枕 %d' % (k + 1), '客廳', 'foam', 'box', 0.9)
         yy = S['y0'] + dy
-        ell(o, W - 0.53, yy, S['seat'] + 0.225, 0.08, 0.22, 0.22, 'fabric_warm', color=col, seg=18, rings=10,
-            rfn=lambda a, h: 1 - 0.18 * abs(math.sin(a * 2)) * (1 - abs(h)))
+        pillow_shape(o, W - 0.53, yy, S['seat'] + 0.01, 0.075, 0.22, 0.43, col)
         out.append(o)
     # 蛋形矮凳、邊几與植物、藤籃、立燈
     ox, oy = P['props']['ottoman']
@@ -686,13 +862,8 @@ def build_props(shelf_tops):
     # 餐椅兩張、長凳
     for k, cx in enumerate((T['x0'] + 0.35, T['x0'] + 0.95)):
         o = dyn('chair_%d' % k, '餐椅 %d' % (k + 1), '餐廳', 'wood', 'box', 0.08, '鋼腳＋泡棉座墊')
-        cy = T['y0'] - 0.3
-        for (dx, dy) in ((-0.2, -0.18), (0.2, -0.18), (-0.2, 0.18), (0.2, 0.18)):
-            tube(o, [(cx + dx, cy + dy, 0.0), (cx + dx * 0.9, cy + dy * 0.9, 0.44)], 0.01, 'metal_dark', seg=6)
-        box(o, cx - 0.23, cx + 0.23, cy - 0.22, cy + 0.22, 0.42, 0.47, 'fabric_grey', bevel=0.03, seg=3)
-        pts = [(cx + math.sin(a) * 0.26, cy - 0.2 - math.cos(a) * 0.07) for a in np.linspace(-1.1, 1.1, 12)]
-        inner = [(x, y + 0.05) for x, y in reversed(pts)]
-        prism(o, pts + inner, 0.5, 0.78, 'fabric_grey', smooth=True)
+        cy = T['y0'] - 0.24
+        shell_chair(o, cx, cy, math.pi / 2)
         o.meta['mass_override'] = 6.5
         out.append(o)
     o = dyn('bench', '軟墊長凳', '餐廳', 'wood', 'box', 0.2, '木框＋泡棉＋布套')
@@ -792,7 +963,7 @@ def zebra(o, x0, x1, y, z0, z1, along='x', depth=0.012):
         k += 1
 
 
-def drape(o, x0, x1, y, z0, z1, amp=0.03, n=10, role='fabric_warm', color='#E9DECB'):
+def curtain(o, x0, x1, y, z0, z1, amp=0.03, n=10, role='fabric_warm', color='#E9DECB'):
     """垂墜窗簾：波浪截面沿 x 擠出"""
     pts_f, pts_b = [], []
     steps = max(8, int((x1 - x0) / 0.04))
@@ -805,24 +976,35 @@ def drape(o, x0, x1, y, z0, z1, amp=0.03, n=10, role='fabric_warm', color='#E9DE
 
 
 def bed(o, x0, x1, y0, y1, head, base_h=0.3, colors=('#E7E1D7', '#EFEAE2', '#DCCFBC'), drawers_side=None, group='', oid=''):
-    """床：床座＋床墊＋被子，head 為床頭方向 '+x' / '-x' / '+y' / '-y'；drawers_side 給抽屜所在的一側"""
-    base, mat, duv = colors
-    box(o, x0, x1, y0, y1, 0.0, 0.08, 'black', color='#3B3834', collide=True)
+    """床：凹入踢腳＋床座＋有滾邊的圓角床墊＋垂到床側的被子（褶皺）＋床尾摺好的蓋毯；head 為床頭方向"""
+    base, matc, duv = colors
+    box(o, x0 + 0.03, x1 - 0.03, y0 + 0.03, y1 - 0.03, 0.0, 0.08, 'black', color='#3B3834', collide=True)
     box(o, x0 + 0.01, x1 - 0.01, y0 + 0.01, y1 - 0.01, 0.08, base_h, 'lacquer', color=base, bevel=0.01, collide=True)
-    box(o, x0 + 0.03, x1 - 0.03, y0 + 0.03, y1 - 0.03, base_h, base_h + 0.22, 'fabric', color=mat, bevel=0.05, seg=3, collide=True)
-    # 被子蓋住床尾三分之二
+    mt = base_h + 0.22
+    rbox(o, x0 + 0.03, x1 - 0.03, y0 + 0.03, y1 - 0.03, base_h, mt, 0.05, 'fabric', matc, n=(10, 8, 3), bulge=0.008, var=0.015)
+    piping(o, x0 + 0.035, x1 - 0.035, y0 + 0.035, y1 - 0.035, mt - 0.012, 0.04, 'fabric', '#E1DBD1', rad=0.0045)
+    piping(o, x0 + 0.035, x1 - 0.035, y0 + 0.035, y1 - 0.035, base_h + 0.012, 0.04, 'fabric', '#E1DBD1', rad=0.0045)
+    o.collide(x0, x1, y0, y1, base_h, mt)
+    dz = mt + 0.03
+    sides = {'+x': ('-x', '+y', '-y'), '-x': ('+x', '+y', '-y'), '+y': ('-y', '+x', '-x'), '-y': ('+y', '+x', '-x')}[head]
     if head in ('+x', '-x'):
         L = x1 - x0
-        a, c = (x0 - 0.02, x1 - L * 0.32) if head == '+x' else (x0 + L * 0.32, x1 + 0.02)
-        box(o, a, c, y0 - 0.03, y1 + 0.03, base_h + 0.16, base_h + 0.27, 'fabric_warm', color=duv, bevel=0.05, seg=3, var=0.04)
-        box(o, a, c, y0 - 0.04, y0 - 0.02, base_h - 0.05, base_h + 0.25, 'fabric_warm', color=duv, bevel=0.01, seg=1)
-        box(o, a, c, y1 + 0.02, y1 + 0.04, base_h - 0.05, base_h + 0.25, 'fabric_warm', color=duv, bevel=0.01, seg=1)
+        a, c = (x0 + 0.02, x1 - L * 0.3) if head == '+x' else (x0 + L * 0.3, x1 - 0.02)
+        drape(o, a, c, y0 + 0.02, y1 - 0.02, dz, 0.26, sides, 'fabric_warm', duv, step=0.035, fold=0.02, seed=x0)
+        # 被子往床頭反摺的一道
+        fa, fc = (c - 0.24, c) if head == '+x' else (a, a + 0.24)
+        rbox(o, fa, fc, y0 + 0.01, y1 - 0.01, dz - 0.005, dz + 0.035, 0.02, 'fabric_warm', duv, n=(4, 10, 2), var=0.03)
+        # 床尾摺好的蓋毯
+        ta, tc = (a + 0.12, a + 0.52) if head == '+x' else (c - 0.52, c - 0.12)
+        drape(o, ta, tc, y0 - 0.005, y1 + 0.005, dz + 0.02, 0.12, ('+y', '-y'), 'fabric_grey', '#B7AEA2', step=0.03, fold=0.01, seed=y0)
     else:
         L = y1 - y0
-        a, c = (y0 - 0.02, y1 - L * 0.32) if head == '+y' else (y0 + L * 0.32, y1 + 0.02)
-        box(o, x0 - 0.03, x1 + 0.03, a, c, base_h + 0.16, base_h + 0.27, 'fabric_warm', color=duv, bevel=0.05, seg=3, var=0.04)
-        box(o, x0 - 0.04, x0 - 0.02, a, c, base_h - 0.05, base_h + 0.25, 'fabric_warm', color=duv, bevel=0.01, seg=1)
-        box(o, x1 + 0.02, x1 + 0.04, a, c, base_h - 0.05, base_h + 0.25, 'fabric_warm', color=duv, bevel=0.01, seg=1)
+        a, c = (y0 + 0.02, y1 - L * 0.3) if head == '+y' else (y0 + L * 0.3, y1 - 0.02)
+        drape(o, x0 + 0.02, x1 - 0.02, a, c, dz, 0.26, sides, 'fabric_warm', duv, step=0.035, fold=0.02, seed=y0)
+        fa, fc = (c - 0.24, c) if head == '+y' else (a, a + 0.24)
+        rbox(o, x0 + 0.01, x1 - 0.01, fa, fc, dz - 0.005, dz + 0.035, 0.02, 'fabric_warm', duv, n=(10, 4, 2), var=0.03)
+        ta, tc = (a + 0.12, a + 0.52) if head == '+y' else (c - 0.52, c - 0.12)
+        drape(o, x0 - 0.005, x1 + 0.005, ta, tc, dz + 0.02, 0.12, ('+x', '-x'), 'fabric_grey', '#B7AEA2', step=0.03, fold=0.01, seed=x0)
 
 
 def bed_drawers(prefix, label, group, x0, x1, y, z0, z1, n, side):
@@ -870,9 +1052,22 @@ def pillow(oid, label, group, x, y, z, along='y', col='#EDE7DE', size=(0.5, 0.14
     o = dyn(oid, label, group, 'foam', 'box', 0.9)
     w, t, h = size
     rx, ry = (t / 2, w / 2) if along == 'y' else (w / 2, t / 2)
-    ell(o, x, y, z + h / 2, rx, ry, h / 2, 'fabric_warm', color=col, seg=16, rings=10,
-        rfn=lambda a, hh: 1 - 0.16 * abs(math.sin(a * 2)) * (1 - abs(hh)))
+    pillow_shape(o, x, y, z, rx, ry, h, col)
     return o
+
+
+def pillow_shape(o, x, y, z, rx, ry, h, col):
+    """抱枕：圓角軟包，中間飽滿、四角收薄，四邊一圈滾邊"""
+    made = rbox(o, x - rx, x + rx, y - ry, y + ry, z, z + h, min(rx, ry) * 0.9, 'fabric_warm', col, n=(6, 8, 6), var=0.03)
+    thin = min(rx, ry)
+    for v in made:
+        u = (v.co.x - x) / rx if rx > ry else (v.co.y - y) / ry
+        w = (v.co.z - z - h / 2) / (h / 2)
+        k = (1 - 0.45 * abs(u) ** 3) * (1 - 0.45 * abs(w) ** 3)
+        if rx < ry:
+            v.co.x = x + (v.co.x - x) * k
+        else:
+            v.co.y = y + (v.co.y - y) * k
 
 
 def side_table(oid, label, group, x, y, col='#E3DCD0', h=0.5):
@@ -1104,8 +1299,8 @@ def build_wing():
     # 窗簾
     cu = Obj('sister_curtain', '妹妹房窗簾', group=grp)
     cx = x0 + kw / 2
-    drape(cu, cx - 1.35, cx - 0.9, D - 0.14, 0.02, H - 0.06)
-    drape(cu, cx + 0.9, cx + 1.35, D - 0.14, 0.02, H - 0.06)
+    curtain(cu, cx - 1.35, cx - 0.9, D - 0.14, 0.02, H - 0.06)
+    curtain(cu, cx + 0.9, cx + 1.35, D - 0.14, 0.02, H - 0.06)
     pr3 = [pillow('sister_pillow_0', '妹妹房枕頭 1', grp, x0 + 0.25, y0r + 3.4, 0.52, 'y', col='#F0E7DE'),
            pillow('sister_pillow_1', '妹妹房枕頭 2', grp, x0 + 0.25, y0r + 4.1, 0.52, 'y', col='#E8CFC4'),
            plush('sister_plush', '妹妹房玩偶', grp, x0 + 0.6, y0r + 3.75, 0.55, s=1.3, col='#EAD9D0')]
@@ -1208,8 +1403,8 @@ def build_wing():
     box(cv, sx + 0.1, east - 0.45, M['y1'] - 0.47, M['y1'] - 0.45, H - 0.2, H - 0.18, 'emit')
     box(cv, east - 0.47, east - 0.45, M['y0'] + 0.1, M['y1'] - 0.45, H - 0.2, H - 0.18, 'emit')
     cu = Obj('master_curtain', '主臥窗簾', group=grp)
-    drape(cu, mw['x0'] - 0.45, mw['x0'] - 0.05, M['y0'] + 0.18, 0.02, H - 0.1)
-    drape(cu, mw['x1'] + 0.05, mw['x1'] + 0.45, M['y0'] + 0.18, 0.02, H - 0.1)
+    curtain(cu, mw['x0'] - 0.45, mw['x0'] - 0.05, M['y0'] + 0.18, 0.02, H - 0.1)
+    curtain(cu, mw['x1'] + 0.05, mw['x1'] + 0.45, M['y0'] + 0.18, 0.02, H - 0.1)
     prm += [pillow('master_pillow_0', '主臥枕頭 1', grp, east - 0.3, by_ - 0.45, 0.52, 'y'),
             pillow('master_pillow_1', '主臥枕頭 2', grp, east - 0.3, by_ + 0.45, 0.52, 'y'),
             pillow('master_pillow_2', '主臥抱枕', grp, east - 0.5, by_, 0.52, 'y', col='#C9A391', size=(0.42, 0.12, 0.28))]
@@ -1223,56 +1418,87 @@ def build_wing():
     o = dyn('master_books', '長低櫃上的書', grp, 'paper', 'box', 1.0)
     box(o, sx + 1.4, sx + 1.7, M['y0'] + 0.1, M['y0'] + 0.32, 0.48, 0.53, 'paper', color='#D9CFBF', bevel=0.003, seg=1)
     prm.append(o)
+
+    # ── 收邊：踢腳板、門框、開關插座面板、線型出風口 ──
+    trim_all(kdoor, mdoor, bdoor, y0r, east, M)
     return doors, drawers
 
 
-# ════════════════════════ 主持人代理人偶（非動作捕捉） ════════════════════════
-def build_people():
-    """兩位主持人的代理人偶：分段剛性身體 + 程序化步態。位置取自分鏡的腳點反投影（有解出相機的機位）或畫面目測"""
-    specs = [
-        ('host_a', '主持人 A（黑色長大衣）', 1.74, {'coat': '#2A2826', 'pants': '#1E1D1C', 'top': '#2A2826', 'hair': '#3A2E26'}),
-        ('host_b', '主持人 B（丹寧背心）', 1.62, {'coat': '#3C5270', 'pants': '#1D1D1F', 'top': '#2B2D33', 'hair': '#1C1916'}),
+def trim_all(kdoor, mdoor, bdoor, y0r, east, M):
+    t = WT
+    tr = Obj('trim', '收邊（踢腳板、門框、面板）', group='房體')
+    BH, BT, BC = 0.07, 0.012, '#E1DAD0'
+    dz = P['entry_door']
+    kw, kx = P['wing']['kid_w'], P['wing']['kid_x0']
+    # 每個空間的四面牆與開口（開口處不做踢腳板）：(x0, y0, x1, y1, {邊: [(a0, a1)]})
+    rooms = [
+        (0, 0, W, D, {'-y': [(dz['x0'], dz['x1'])], '+y': [(WIN['x0'], WIN['x1'])], '+x': [(C['y0'], C['y1'])]}),
+        (W + t, C['y0'], east, C['y1'], {'-x': [(C['y0'], C['y1'])], '+y': list(kdoor), '-y': [mdoor]}),
+        (M['x0'], M['y0'], east, M['y1'], {'+y': [mdoor]}),
     ]
-    people = []
-    for pid, label, hgt, col in specs:
-        s = hgt / 1.7
-        parts = {}
+    for k, x0 in enumerate(kx):
+        rooms.append((x0, y0r, x0 + kw, D, {'-y': [kdoor[k]]}))
 
-        def part(name, parent, pivot):
-            ob = Obj('%s_%s' % (pid, name), label if name == 'root' else '%s·%s' % (label, name), kind='person', group='人物', smooth=True)
-            ob.meta.update(parent=parent and '%s_%s' % (pid, parent), pivot=[p * s for p in pivot], person=pid)
-            parts[name] = ob
-            return ob
+    def run(a, b_, gaps):
+        segs, s = [], a
+        for g0, g1 in sorted(gaps):
+            if g1 <= a or g0 >= b_:
+                continue
+            if g0 > s:
+                segs.append((s, g0))
+            s = max(s, g1)
+        if s < b_:
+            segs.append((s, b_))
+        return segs
 
-        root = part('root', None, (0, 0, 0))
-        box(root, -0.001, 0.001, -0.001, 0.001, 0, 0.001, 'cloth', color=col['pants'])
-        pel = part('pelvis', 'root', (0, 0, 0.95))
-        ell(pel, 0, 0, 0.95 * s, 0.17 * s, 0.11 * s, 0.1 * s, 'cloth', color=col['pants'], seg=16, rings=8)
-        tor = part('torso', 'pelvis', (0, 0, 1.0))
-        lathe(tor, [(0.15, 0.0), (0.17, 0.12), (0.19, 0.34), (0.2, 0.44), (0.12, 0.5), (0.05, 0.52), (0.001, 0.52)], 0, 0, 1.0 * s, 'denim' if pid == 'host_b' else 'cloth',
-              color=col['coat'], seg=16, sx=s, sy=0.62 * s)
-        if pid == 'host_a':
-            lathe(tor, [(0.001, -0.62), (0.26, -0.62), (0.22, -0.3), (0.19, 0.0), (0.001, 0.0)], 0, 0, 1.0 * s, 'cloth', color=col['coat'], seg=16, sx=s, sy=0.7 * s)
-        hd = part('head', 'torso', (0, 0, 1.55))
-        tube(hd, [(0, 0, 1.49 * s), (0, 0, 1.56 * s)], 0.045 * s, 'skin', seg=10)
-        ell(hd, 0, 0.01 * s, 1.64 * s, 0.085 * s, 0.1 * s, 0.11 * s, 'skin', seg=18, rings=10)
-        if pid == 'host_a':
-            ell(hd, 0, -0.01 * s, 1.7 * s, 0.1 * s, 0.11 * s, 0.07 * s, 'cloth', color=col['hair'], seg=16, rings=8)
-        else:
-            ell(hd, 0, -0.02 * s, 1.66 * s, 0.1 * s, 0.11 * s, 0.13 * s, 'cloth', color=col['hair'], seg=16, rings=8)
-        for side, sx_ in (('l', -1), ('r', 1)):
-            ua = part('uparm_' + side, 'torso', (sx_ * 0.2, 0, 1.44))
-            tube(ua, [(sx_ * 0.2 * s, 0, 1.44 * s), (sx_ * 0.22 * s, 0, 1.15 * s)], [0.055 * s, 0.045 * s], 'cloth', color=col['top'] if pid == 'host_b' else col['coat'], seg=10)
-            fa = part('forearm_' + side, 'uparm_' + side, (sx_ * 0.22, 0, 1.15))
-            tube(fa, [(sx_ * 0.22 * s, 0, 1.15 * s), (sx_ * 0.22 * s, 0.02 * s, 0.9 * s)], [0.045 * s, 0.035 * s], 'cloth', color=col['top'] if pid == 'host_b' else col['coat'], seg=10)
-            ell(fa, sx_ * 0.22 * s, 0.02 * s, 0.85 * s, 0.03 * s, 0.045 * s, 0.06 * s, 'skin', seg=10, rings=6)
-            th = part('thigh_' + side, 'pelvis', (sx_ * 0.09, 0, 0.92))
-            tube(th, [(sx_ * 0.09 * s, 0, 0.92 * s), (sx_ * 0.09 * s, 0, 0.5 * s)], [0.085 * s, 0.065 * s], 'cloth', color=col['pants'], seg=10)
-            sn = part('shin_' + side, 'thigh_' + side, (sx_ * 0.09, 0, 0.5))
-            tube(sn, [(sx_ * 0.09 * s, 0, 0.5 * s), (sx_ * 0.09 * s, 0, 0.08 * s)], [0.07 * s, 0.06 * s], 'cloth', color=col['pants'], seg=10)
-            box(sn, sx_ * 0.09 * s - 0.05, sx_ * 0.09 * s + 0.05, -0.05, 0.17, 0.0, 0.08 * s, 'black', color='#161514', bevel=0.02, seg=2)
-        people.append((pid, label, hgt, parts))
-    return people
+    for (x0, y0, x1, y1, gaps) in rooms:
+        for (a, c) in run(x0, x1, gaps.get('-y', [])):
+            box(tr, a, c, y0, y0 + BT, 0, BH, 'lacquer', BC)
+        for (a, c) in run(x0, x1, gaps.get('+y', [])):
+            box(tr, a, c, y1 - BT, y1, 0, BH, 'lacquer', BC)
+        for (a, c) in run(y0, y1, gaps.get('-x', [])):
+            box(tr, x0, x0 + BT, a, c, 0, BH, 'lacquer', BC)
+        for (a, c) in run(y0, y1, gaps.get('+x', [])):
+            box(tr, x1 - BT, x1, a, c, 0, BH, 'lacquer', BC)
+
+    # 門框：開口兩面各一圈（兩側立框＋上框）
+    FC, FW, FT = '#E4DED5', 0.055, 0.012
+
+    def frame_y(a0, a1, yface, s, h=2.1):
+        box(tr, a0 - FW, a0, yface, yface + s * FT, 0, h + FW, 'lacquer', FC, bevel=0.003, seg=1)
+        box(tr, a1, a1 + FW, yface, yface + s * FT, 0, h + FW, 'lacquer', FC, bevel=0.003, seg=1)
+        box(tr, a0 - FW, a1 + FW, yface, yface + s * FT, h, h + FW, 'lacquer', FC, bevel=0.003, seg=1)
+        box(tr, a0, a1, min(yface, yface - s * 0.14), max(yface, yface - s * 0.14), h - 0.004, h, 'lacquer', FC)
+        box(tr, a0 - 0.004, a0, min(yface, yface - s * 0.14), max(yface, yface - s * 0.14), 0, h, 'lacquer', FC)
+        box(tr, a1, a1 + 0.004, min(yface, yface - s * 0.14), max(yface, yface - s * 0.14), 0, h, 'lacquer', FC)
+
+    for (a0, a1) in kdoor:
+        frame_y(a0, a1, C['y1'], -1)
+        frame_y(a0, a1, y0r, 1)
+    frame_y(mdoor[0], mdoor[1], C['y0'], 1)
+    frame_y(mdoor[0], mdoor[1], M['y1'], -1)
+    frame_y(bdoor[0], bdoor[1], M['bath_y1'] + 0.1, 1, h=2.05)
+    frame_y(dz['x0'], dz['x1'], 0.0, 1, h=dz['h'])
+
+    # 開關（1.15 m）與插座（0.3 m）
+    for (a0, a1) in kdoor:
+        plate(tr, a1 + 0.16, y0r, 1.15, 0.08, 0.12, '+y')
+        plate(tr, a0 + 0.4, D, 0.3, 0.08, 0.08, '-y')
+    plate(tr, mdoor[0] - 0.16, M['y1'], 1.15, 0.08, 0.12, '-y')
+    plate(tr, dz['x1'] + 0.16, 0.0, 1.15, 0.08, 0.12, '+y')
+    plate(tr, W, C['y0'] - 0.25, 1.15, 0.08, 0.12, '-x')
+    plate(tr, 0.0, TW['plat_y0'] - 0.2, 0.3, 0.08, 0.08, '+x')
+    plate(tr, W, 6.0, 0.3, 0.08, 0.08, '-x')
+    plate(tr, 1.3, 0.0, 1.15, 0.12, 0.12, '+y', color='#E9E6E0')  # 對講機旁的空調控制面板
+    # 線型出風口：客廳電視牆側的降板、每間小孩房衣櫃上方
+    ac = Obj('ac_slots', '線型出風口', group='房體')
+    zb = 2.53
+    box(ac, 0.58, 0.64, TW['plat_y0'] + 0.2, TW['plat_y1'] - 0.2, zb - 0.002, zb, 'black', color='#2B2927')
+    for sgn in range(6):
+        yy = TW['plat_y0'] + 0.25 + sgn * (TW['plat_y1'] - TW['plat_y0'] - 0.5) / 5
+        box(ac, 0.58, 0.64, yy, yy + 0.004, zb - 0.003, zb - 0.002, 'lacquer', color='#D8D2C8')
+    for x0 in kx:
+        box(ac, x0 + 0.4, x0 + kw - 0.4, y0r + 2.66, y0r + 2.72, 2.379, 2.381, 'black', color='#2B2927')
 
 
 # ════════════════════════ 物件實體化 ════════════════════════
@@ -1289,6 +1515,10 @@ def uv_box(bm):
 def realize(o):
     bm = o.bm
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    for fs, ref in o.orient:
+        for f in fs:
+            if f.is_valid and f.normal.dot(f.calc_center_median() - ref) < 0:
+                f.normal_flip()
     uv_box(bm)
     me = bpy.data.meshes.new(o.id)
     bm.to_mesh(me)
@@ -1362,7 +1592,6 @@ def main():
     wing_doors, wing_drawers = build_wing()
     room_doors = wing_doors
     drawers = drawers + wing_drawers
-    people = build_people()
 
     obs = [realize(o) for o in OBJS]
     bpy.context.view_layer.update()
@@ -1393,8 +1622,8 @@ def main():
             o.ob.matrix_world = mw
     bpy.context.view_layer.update()
 
-    records = make_records(people)
-    anim = animate_people(people)
+    records = make_records()
+    anim = host_route()
     # 網頁用 glb：只有網格與人偶動畫
     for o in bpy.context.view_layer.objects:
         o.select_set(o.type == 'MESH')
@@ -1412,7 +1641,7 @@ def main():
     print('blend', os.path.getsize(blend) // 1024, 'KB')
 
 
-def make_records(people):
+def make_records():
     err = CAMS['objects']
     fitted = {'shell': ['room.w', 'room.d', 'ceiling'], 'window': ['x0', 'x1', 'z0', 'z1'], 'tv': ['tv_yc', 'tv_zc', 'tv_w'],
               'tv_platform': ['plat_y0', 'plat_y1', 'plat_z0', 'plat_z1', 'plat_d'], 'sofa': ['x0', 'y1', 'seat'],
@@ -1492,7 +1721,7 @@ def stations():
          ((bro_door, y0r + 0.6), 51.0), ((bro_door, cy), 52.5), ((m_door, cy), 55.0), ((m_door, 3.1), 56.5), ((10.6, 2.3), 58.0), ((10.6, 2.3), 64.0),
          ((m_door, 3.1), 65.5), ((m_door, cy), 67.0), ((sis_door, cy), 68.5), ((sis_door, y0r + 0.6), 70.0), ((kx[2] + 1.2, y0r + 1.6), 72.0), ((kx[2] + 1.2, y0r + 1.6), 77.0),
          ((sis_door, y0r + 0.6), 79.0), ((sis_door, cy), 80.5), ((3.4, cy), 85.0), ((1.2, 3.1), 87.5), ((0.95, 0.55), 90.0)]
-    Bp = [((1.3, 0.75), 0.0), ((1.3, 1.2), 5.0), ((1.3, 1.2), 15.0), ((1.2, 3.35), 17.5), ((2.6, 4.8), 20.0), (tuple(b_live), 23.5), (tuple(b_live), 32.0),
+    Bp = [((1.3, 0.75), 0.0), ((1.6, 0.86), 1.5), ((3.2, 0.86), 4.5), ((3.2, 0.86), 13.0), ((1.5, 0.86), 15.2), ((1.2, 3.35), 17.5), ((2.6, 4.8), 20.0), (tuple(b_live), 23.5), (tuple(b_live), 32.0),
           ((3.4, cy + 0.3), 37.0), ((bro_door + 0.2, cy + 0.2), 40.0), ((bro_door + 0.1, y0r + 0.7), 41.5), ((kx[0] + 2.0, y0r + 1.1), 43.5), ((kx[0] + 2.0, y0r + 1.1), 49.5),
           ((bro_door + 0.1, y0r + 0.7), 51.5), ((bro_door, cy + 0.2), 53.0), ((m_door + 0.2, cy), 55.5), ((m_door, 3.0), 57.0), ((11.4, 2.7), 58.5), ((11.4, 2.7), 64.0),
           ((m_door, 3.0), 66.0), ((m_door + 0.3, cy), 67.5), ((sis_door + 0.2, cy + 0.2), 69.0), ((sis_door + 0.1, y0r + 0.7), 70.5), ((kx[2] + 1.9, y0r + 1.2), 72.5), ((kx[2] + 1.9, y0r + 1.2), 77.5),
@@ -1500,65 +1729,107 @@ def stations():
     return {'host_a': A, 'host_b': Bp}
 
 
-def animate_people(people):
+LOOK = {  # 停下時面向的方向（度，0 = 東、90 = 北），依時間生效
+    'host_a': [(0, 90), (7.0, 0.0), (19, 90), (23, 70), (42, 60), (58, 0), (72, 60), (85, 270)],
+    'host_b': [(0, 90), (5.0, 270), (20, 90), (23.5, 110), (43, 120), (58, 180), (72, 120), (85, 270)],
+}
+HEIGHT = {'host_a': 1.74, 'host_b': 1.62}
+
+
+def host_route():
+    """主持人動線：站位、停下時的朝向與身高（網頁與 .blend 用同一份）"""
+    return {'fps': 24, 'duration': 90.0, 'stations': stations(), 'look': LOOK, 'height': HEIGHT}
+
+
+def host_pose(pid, t, st):
+    """回傳 (位置, 朝向角 β, 是否在走, 走過的距離)；β 是繞 z 軸的角度，靜止時角色面向 -y"""
+    path = st[pid]
+    if t >= path[-1][1]:
+        pos, moving = path[-1][0], False
+    else:
+        k = max(i for i in range(len(path)) if path[i][1] <= t + 1e-6)
+        (p0, t0), (p1, t1) = path[k], path[k + 1]
+        u = (t - t0) / max(1e-6, t1 - t0)
+        u = u * u * (3 - 2 * u)
+        pos = (p0[0] + (p1[0] - p0[0]) * u, p0[1] + (p1[1] - p0[1]) * u)
+        moving = math.hypot(p1[0] - p0[0], p1[1] - p0[1]) > 0.05
+    return pos, moving
+
+
+def keyframe_hosts(route):
+    """.blend：匯入 people.glb，沿同一條動線替骨架打關鍵影格（與網頁的走路週期相同）"""
     sc = bpy.context.scene
-    fps = 24
-    sc.render.fps = fps
-    ST = stations()
-    look = {'host_a': [(0, 90), (7.0, 0.0), (19, 90), (23, 70), (42, 60), (58, 0), (72, 60), (85, 270)],
-            'host_b': [(0, 90), (5.0, 20), (20, 90), (23.5, 110), (43, 120), (58, 180), (72, 120), (85, 270)]}
-    total = 90.0
-    for pid, label, hgt, parts in people:
-        path = ST[pid]
-        root = parts['root'].ob
+    path = os.path.join(HERE, 'people.glb')
+    if not os.path.exists(path):
+        print('people.glb missing, skip hosts')
+        return
+    before = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=path)
+    new = [o for o in bpy.data.objects if o not in before]
+    col = bpy.data.collections.new('主持人')
+    sc.collection.children.link(col)
+    for o in new:
+        for c in list(o.users_collection):
+            c.objects.unlink(o)
+        col.objects.link(o)
+    fps = route['fps']
+    st = route['stations']
+    for pid, rig_name in (('host_a', 'HostA_Rig'), ('host_b', 'HostB_Rig')):
+        rig = bpy.data.objects.get(rig_name)
+        if not rig:
+            continue
+        root = bpy.data.objects.new(pid + '_root', None)
+        col.objects.link(root)
+        rig.parent = root
+        rig.location = (0, 0, 0)
+        rig.rotation_euler = (0, 0, 0)
+        hgt = HEIGHT[pid]
         phase = 0.0 if pid == 'host_a' else 1.3
-        prev = None
-        dist = 0.0
-        for fi in range(0, int(total * fps) + 1, 2):
+        rest = {pb.name: pb.bone.matrix_local.to_3x3() for pb in rig.pose.bones}
+        for pb in rig.pose.bones:
+            pb.rotation_mode = 'QUATERNION'
+        prev, dist = None, 0.0
+        for fi in range(0, int(route['duration'] * fps) + 1, 2):
             t = fi / fps
-            k = max(i for i in range(len(path)) if path[i][1] <= t + 1e-6) if t < path[-1][1] else len(path) - 1
-            if k >= len(path) - 1:
-                pos = path[-1][0]
-                moving = False
-            else:
-                (p0, t0), (p1, t1) = path[k], path[k + 1]
-                u = (t - t0) / max(1e-6, t1 - t0)
-                u = u * u * (3 - 2 * u)
-                pos = (p0[0] + (p1[0] - p0[0]) * u, p0[1] + (p1[1] - p0[1]) * u)
-                moving = math.hypot(p1[0] - p0[0], p1[1] - p0[1]) > 0.05
+            pos, moving = host_pose(pid, t, st)
             if prev is not None:
                 dist += math.hypot(pos[0] - prev[0], pos[1] - prev[1])
             vx, vy = (pos[0] - prev[0], pos[1] - prev[1]) if prev else (0, 0)
             prev = pos
             if moving and math.hypot(vx, vy) > 1e-4:
-                yaw = math.atan2(vy, vx) - math.pi / 2
+                beta = math.atan2(vx, -vy)
             else:
-                ls = look[pid]
-                j = max(i for i in range(len(ls)) if ls[i][0] <= t + 1e-6)
-                yaw = math.radians(ls[j][1]) - math.pi / 2
+                ls = LOOK[pid]
+                th = math.radians(ls[max(i for i in range(len(ls)) if ls[i][0] <= t + 1e-6)][1])
+                beta = math.atan2(math.cos(th), -math.sin(th))
             root.location = (pos[0], pos[1], 0)
-            root.rotation_euler = (0, 0, yaw)
+            root.rotation_euler = (0, 0, beta)
             root.keyframe_insert('location', frame=fi + 1)
             root.keyframe_insert('rotation_euler', frame=fi + 1)
-            cyc = dist / (0.62 * hgt / 1.7) * math.pi + phase
-            amp = 1.0 if moving else 0.0
-            talk = 0.0 if moving else math.sin(t * 2.1 + phase) * 0.5 + 0.5
-            sw = math.sin(cyc) * 0.42 * amp
-            rots = {
-                'thigh_l': (sw, 0, 0), 'thigh_r': (-sw, 0, 0),
-                'shin_l': (-max(0, math.sin(cyc + 1.2)) * 0.6 * amp, 0, 0), 'shin_r': (-max(0, math.sin(cyc + 1.2 + math.pi)) * 0.6 * amp, 0, 0),
-                'uparm_l': (-sw * 0.8 + talk * 0.25, 0.08, 0), 'uparm_r': (sw * 0.8 - talk * 0.9, -0.08 - talk * 0.2, 0),
-                'forearm_l': (-0.15 - talk * 0.3, 0, 0), 'forearm_r': (-0.2 - talk * 1.1 * (0.6 + 0.4 * math.sin(t * 4.3 + phase)), 0, 0),
-                'torso': (0.03, 0, math.sin(cyc) * 0.06 * amp), 'head': (0.05 * math.sin(t * 0.9 + phase), 0, 0.25 * math.sin(t * 0.37 + phase) * (1 - amp)),
-                'pelvis': (0, 0, -math.sin(cyc) * 0.05 * amp),
-            }
-            for name, e in rots.items():
-                ob = parts[name].ob
-                ob.rotation_euler = e
-                ob.keyframe_insert('rotation_euler', frame=fi + 1)
-            parts['pelvis'].ob.location.z = parts['pelvis'].ob.location.z
-    sc.frame_start, sc.frame_end = 1, int(total * fps) + 1
-    return {'fps': fps, 'duration': total, 'stations': ST}
+            for name, (rx, ry, rz) in walk_rot(t, dist, moving, hgt, phase).items():
+                pb = rig.pose.bones.get(name)
+                if not pb:
+                    continue
+                R = (Matrix.Rotation(rz, 3, 'Y') @ Matrix.Rotation(ry, 3, 'Z') @ Matrix.Rotation(rx, 3, 'X'))  # three 的 x/y/z → Blender 的 x/z/y
+                Rl = rest[name].inverted() @ R @ rest[name]
+                pb.rotation_quaternion = Rl.to_quaternion()
+                pb.keyframe_insert('rotation_quaternion', frame=fi + 1)
+
+
+def walk_rot(t, dist, moving, hgt, phase):
+    """three 座標的關節角（弧度）：x = 前後擺、y = 扭轉、z = 側舉；網頁版 walkPose() 與此相同"""
+    cyc = dist / (0.62 * hgt / 1.7) * math.pi + phase
+    amp = 1.0 if moving else 0.0
+    talk = 0.0 if moving else math.sin(t * 2.1 + phase) * 0.5 + 0.5
+    sw = math.sin(cyc) * 0.42 * amp
+    return {
+        'thighL': (-sw, 0, 0), 'thighR': (sw, 0, 0),
+        'shinL': (max(0, math.sin(cyc + 1.2)) * 0.62 * amp, 0, 0), 'shinR': (max(0, math.sin(cyc + 1.2 + math.pi)) * 0.62 * amp, 0, 0),
+        'upL': (sw * 0.7 - talk * 0.15, 0, 0.06), 'upR': (-sw * 0.7 - talk * 0.75, 0, -0.06 - talk * 0.18),
+        'foreL': (-0.18 - talk * 0.25, 0, 0), 'foreR': (-0.2 - talk * 1.0 * (0.6 + 0.4 * math.sin(t * 4.3 + phase)), 0, 0),
+        'torso': (0.02, math.sin(cyc) * 0.07 * amp, 0), 'head': (0.05 * math.sin(t * 0.9 + phase), 0.25 * math.sin(t * 0.37 + phase) * (1 - amp), 0),
+        'hips': (0, -math.sin(cyc) * 0.05 * amp, 0),
+    }
 
 
 def setup_blend(records, drawers, doors):
@@ -1629,7 +1900,7 @@ def setup_blend(records, drawers, doors):
     sweeps = [(130, 175, (0.1, TW['niche_y0'] - 0.3, 1.55), (0.1, TW['niche_y1'] + 0.4, 1.55)),
               (185, 235, (0.3, TW['plat_y0'] - 0.2, 0.9), (0.3, TW['plat_y1'] + 0.1, 0.9)),
               (245, 280, (I['x1'] + 0.2, I['y1'] - 0.25, I['h'] + 0.5), (I['x0'] - 0.1, I['y1'] - 0.25, I['h'] + 0.5)),
-              (290, 315, (lamp.x - 0.5, lamp.y, 1.0), (lamp.x + 0.25, lamp.y, 1.0)),
+              (290, 320, (lamp.x + 0.2, lamp.y + 0.12, 1.1), (lamp.x - 0.8, lamp.y - 0.5, 1.1)),
               (325, 350, (2.9, 5.7, 0.5), (2.9, 7.0, 0.5))]
     # 每段之間把推桿升到天花板上方再移過去，避免一格之內橫越房間把東西甩飛
     keys = [(1, (0.1, TW['niche_y0'] - 0.3, 4.5))]
@@ -1660,6 +1931,8 @@ def setup_blend(records, drawers, doors):
         ob['title'] = fr['title']
     sc.render.resolution_x, sc.render.resolution_y = 1280, 720
     sc.camera = bpy.data.objects.get('cam_f112')
+    keyframe_hosts(host_route())
+    sc.frame_end = max(sc.frame_end, int(host_route()['duration'] * host_route()['fps']) + 1)
     sc.frame_set(1)
 
 
