@@ -4,7 +4,8 @@
 - **放牧**：開局 4 隻羊屬於你；曠野外圍還有沒主人的羊，派任何單位走過去就歸你，對手的單位靠近、你的單位離開時會被搶走。選取自己的羊可以右鍵地面趕到別處。村民右鍵自己的羊就宰羊、採集、送回，吃完自動換下一隻。
 - **狩獵**：村民右鍵鹿或野豬。鹿受擊會逃，村民會追；野豬會反擊，單獨一名村民會被打死，要多派幾名。死掉的動物留下屍體（羊 100、鹿 140、野豬 340 食物），慢慢腐壞。
 - **捕魚**：曠野中間有池塘，岸邊的魚由村民站在岸上採集，送回城鎮中心或磨坊。漁船與碼頭還沒有。
-- **電腦**一次把 3 隻羊趕到城鎮中心旁宰殺、也會獵鹿，第二時代起改種田；這輪順便修正它放不下採礦場時就不蓋磨坊的錯誤。
+- **電腦**一次把 3 隻羊趕到城鎮中心旁宰殺、也會獵鹿，第二時代起改種田。這輪也修正它兩個舊錯誤：放不下採礦場時就不再考慮磨坊；建築間距太小，會把自己的單位圍死。
+- 在自己建築 4 格內的羊不會被搶。
 
 數值查核見 docs/aoe2-rules-research.md（野豬 340 有二手來源，其餘未查證）。State／snapshot 為 v23，v22 存檔無法讀取；詳見 docs/first-use-023.md。
 
@@ -117,7 +118,7 @@ PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:build     
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:production     # prompt 19 首次使用流程：生產村民、人口上限、集結點、升時代、兵營與近戰民兵（兵營沒有弓手）
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:combat         # prompt 19 首次使用流程：造兵、偵查、攻擊、攻城、勝利、再開一局
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:full           # prompt 19 完整路徑：設定、建立對局、採集、送返、造房、造軍營、升時代、造兵、偵查、攻擊、撤退、勝敗、再開局
-PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:match          # prompt 19 完整對局（非除錯模式、對電腦）：開局、造兵、進軍、攻城、勝負畫面、再開一局
+PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:match          # prompt 19 完整對局（非除錯模式、對電腦）：開局、造兵、進軍、攻城、勝負畫面、再開一局（突襲被擋下時，軍隊全滅後投降）
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:hud            # prompt 19 首次進站（非除錯模式）：全畫面配置、資源列、頭像、指令格、小地圖、選單、手機觸控；產生 thumbs/150.jpg
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:feudal         # 第二時代的軍事建築：從選單讀取實際打出的存檔，兵營沒有弓手，馬廄訓練斥候，靶場訓練弓手
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:monastery      # 第三時代：研究聖潔、斥候打傷紅方村民後由僧侶轉化並治療、撿起記得的聖物送回修道院

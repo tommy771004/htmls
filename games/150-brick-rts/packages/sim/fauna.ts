@@ -13,7 +13,8 @@ export const animalRules={provenance:'design_default',
  food:{sheep:100,deer:140,boar:340},carcass:{sheep:'livestock',deer:'hunt',boar:'hunt'},
  // A sheep belongs to the only player with a unit (other than an animal) within captureRange; with both sides near it
  // keeps its owner. An owned sheep lets its owner see a little ground round it (visionRules.sheepRadius).
- captureRange:200,
+ // A sheep within holdRange of one of its owner's buildings cannot be taken.
+ captureRange:200,holdRange:400,
  // A struck deer runs fleeDistance away from the hunter; a struck boar charges its attacker (combatRules.units.boar).
  fleeDistance:350,boarLeash:700,
  // Villager hunting: damage per strike, ticks between strikes, reach (Chebyshev, to the animal's centre).

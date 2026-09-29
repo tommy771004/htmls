@@ -21,7 +21,7 @@ import type {ReligionState} from './religion.ts';
 // thinkTicks: one decision pass per second at 20 Hz. firstWaveTick: no attack wave before 4 minutes.
 export const aiRules={provenance:'design_default',player:1,thinkTicks:20,thinkOffset:7,villagerTarget:12,
  gatherWeights:{food:4,wood:3,gold:2,stone:0},houseMargin:2,barracksAtVillagers:3,ageUpAtVillagers:9,
- waveSize:5,firstWaveTick:4800,herdRadius:450,penSize:3,wildFoodWorkers:6,wildRange:650,engageRange:500,defendRadius:700,baseMargin:50,siteRange:900,siteStep:20,halfMargin:100,spill:100,sourceMargin:100,campDistance:350,campWorkers:2,monkTarget:2} as const;
+ waveSize:5,firstWaveTick:4800,herdRadius:450,penSize:3,wildFoodWorkers:6,wildRange:650,engageRange:500,defendRadius:700,baseMargin:110,laneGap:110,siteRange:900,siteStep:20,halfMargin:100,spill:100,sourceMargin:100,campDistance:350,campWorkers:2,monkTarget:2} as const;
 export type AIState=ReligionState&ProductionState&{tick:number;ages:number[];vision:PlayerVision[]};
 export type Order=(commandType:'hunt'|'move'|'gather'|'build'|'construct'|'train'|'attack'|'resign'|'convert'|'relic'|'deposit',payload:Record<string,unknown>)=>boolean;
 type Box=number[];
@@ -130,6 +130,8 @@ function pickBuilder(s:AIState,villagers:Unit[],idle:(u:Unit)=>boolean,near:{x:n
  // Otherwise the nearest villager that is not already building.
  return villagers.filter(u=>s.works[u.id]?.kind!=='build').sort((a,b)=>dist(a,near)-dist(b,near)||a.id-b.id)[0];
 }
+// laneGap/baseMargin: at least a unit's width of open nodes between two buildings (50 left none: units could be
+// sealed inside the base).
 // Sites: anywhere on the own half, nearest to the town centre first, keeping a margin around the town centre
 // and other own buildings (drop-off ring and gates stay open). Same placement rule as a human's order.
 // near: centre of the search (default the town centre); camps search round the resource they serve.
@@ -150,7 +152,7 @@ function place(s:AIState,order:Order,kind:BuildKind,villagers:Unit[],idle:(u:Uni
   // Buildings that train soldiers keep a buffer from the centre line so fresh soldiers do not start inside enemy sight;
   // houses and farms may reach a little past it (the 16x16 map leaves little room once a base grows).
   const margin=kind==='barracks'||kind==='archery-range'||kind==='monastery'?aiRules.halfMargin:-aiRules.spill,ownHalf=Math.min(side(box[0],box[1]),side(box[2],box[1]),side(box[0],box[3]),side(box[2],box[3]))>=margin;
-  if(!ownHalf||dist(mid,c)>aiRules.siteRange||gap(box,tcBox)<(kind==='farm'?50:aiRules.baseMargin)||(kind!=='farm'&&(others.some(o=>gap(box,o)<50)||sources.some(o=>gap(box,o)<aiRules.sourceMargin))))continue;sites.push({x,y,d:dist(mid,c)});}
+  if(!ownHalf||dist(mid,c)>aiRules.siteRange||gap(box,tcBox)<(kind==='farm'?50:aiRules.baseMargin)||(kind!=='farm'&&(others.some(o=>gap(box,o)<aiRules.laneGap)||sources.some(o=>gap(box,o)<aiRules.sourceMargin))))continue;sites.push({x,y,d:dist(mid,c)});}
  sites.sort((a,b)=>a.d-b.d||a.y-b.y||a.x-b.x);
  for(const site of sites){if(placementProblem(input,kind,site.x,site.y))continue;
   const builder=worker??pickBuilder(s,villagers,idle,site);if(!builder)return false;

@@ -36,15 +36,17 @@ test('every map starts with each side\'s own sheep and wild deer (and on the mat
  assert.ok(open.map.resources.some(r=>r.kind==='fish'),'the open map has a pond with shore fish');
 });
 
-test('a sheep changes hands when only the other side is near it; with both sides near it keeps its owner',()=>{
+test('a sheep changes hands when only the other side is near it; with both sides near, or by its owner\'s buildings, it stays',()=>{
  const s=createState(260925);tick(s);const sheep=animals(s,'sheep').find(u=>u.player===0)!;
  // Red's villager stands next to the sheep while blue's villagers are still there: blue keeps it.
  spawn(s,1,'villager',sheep.x+100,sheep.y+100);tick(s);assert.equal(sheep.player,0);
- // Blue's villagers walk away north; once none is within reach, red's villager takes the sheep.
- order(s,'move',{unitIds:[1,2,3],x:400,y:250});run(s,400,t=>sheep.player===1);
+ // Blue's villagers walk away north: by blue's town centre the sheep still stays blue's.
+ order(s,'move',{unitIds:[1,2,3],x:400,y:250});run(s,400);assert.equal(sheep.player,0);
+ // Driven away from blue's buildings to where a red villager waits, it changes hands.
+ spawn(s,1,'villager',950,1250);order(s,'move',{unitIds:[sheep.id],x:900,y:1200});run(s,600,t=>sheep.player===1);
  assert.equal(sheep.player,1);assert.equal(huntProblem(s,1,sheep.id),null);
  // A stolen sheep can no longer be hunted by blue.
- assert.throws(()=>order(s,'hunt',{unitIds:[1],animalId:sheep.id}),/屬於對手/);
+ assert.throws(()=>order(s,'hunt',{unitIds:[1],animalId:sheep.id}),/(屬於對手|找不到)/);
 });
 
 test('villagers hunt a sheep, gather its carcass and bring the food home; the ledger balances',()=>{

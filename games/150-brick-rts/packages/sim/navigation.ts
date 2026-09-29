@@ -80,9 +80,12 @@ function generateCandidate(seed:number,layout:MapLayout):MapData{
 // Animals stand on the free nodes nearest to a spot (Manhattan, lowest node id on ties), never on a spawn point or
 // another animal; a spot with too little room gets fewer animals.
 // owner: the starting flock by a town centre already belongs to that player (as in the reference); others are wild.
-function flock(map:MapData,kind:AnimalKind,x:number,y:number,count:number,within=200,owner?:number){
+// open: only nodes with at least that many unblocked nodes in the 5x5 block round them (no corridors or pockets, where
+// an animal would stand in the only way through).
+function flock(map:MapData,kind:AnimalKind,x:number,y:number,count:number,within=200,owner?:number,open=0){
  const closed=blockedTable(map),taken=new Set([...map.starts.flat(),...(map.scouts??[]),...(map.animals??[])].map(p=>nodeAt(map,p)));
- const nodes=nodesNear(map,[x,y,x,y],within).filter(n=>!closed[n]&&!taken.has(n)).map(n=>({n,d:Math.abs(position(map,n).x-x)+Math.abs(position(map,n).y-y)})).sort((a,b)=>a.d-b.d||a.n-b.n);
+ const roomy=(n:number)=>!open||nodesNear(map,[position(map,n).x,position(map,n).y,position(map,n).x,position(map,n).y],100).filter(m=>!closed[m]).length>=open;
+ const nodes=nodesNear(map,[x,y,x,y],within).filter(n=>!closed[n]&&!taken.has(n)&&roomy(n)).map(n=>({n,d:Math.abs(position(map,n).x-x)+Math.abs(position(map,n).y-y)})).sort((a,b)=>a.d-b.d||a.n-b.n);
  for(const {n} of nodes.slice(0,count))(map.animals??=[]).push({kind,...position(map,n),...(owner===undefined?{}:{owner})});
 }
 // Open-land match map (design_default, loosely after the reference's random_placement idea; no reference numbers).
@@ -146,7 +149,7 @@ function generateOpen(seed:number):MapData{
  map.animals=[];for(const {kind,x,y,base} of animals)kind==='livestock'?flock(map,'sheep',x,y,R.animals.sheep,200,base):flock(map,'deer',x,y,R.animals.deer);
  // Each base also gets a boar and a pair of sheep farther out, placed the same way for both (turned to the base's
  // own direction away from the map centre).
- centres.forEach(c=>{const away=Math.atan2(c.y-mid,c.x-mid);for(const [kind,d,turn,count] of [['boar',R.animals.boarDistance,.9,1],['sheep',R.animals.farSheepDistance,-1.1,2]] as const)flock(map,kind,Math.min(world-150,Math.max(150,Math.round(c.x+Math.cos(away+turn)*d))),Math.min(world-150,Math.max(150,Math.round(c.y+Math.sin(away+turn)*d))),count,250);});
+ centres.forEach(c=>{const away=Math.atan2(c.y-mid,c.x-mid);for(const [kind,d,turn,count] of [['boar',R.animals.boarDistance,.9,1],['sheep',R.animals.farSheepDistance,-1.1,2]] as const)flock(map,kind,Math.min(world-150,Math.max(150,Math.round(c.x+Math.cos(away+turn)*d))),Math.min(world-150,Math.max(150,Math.round(c.y+Math.sin(away+turn)*d))),count,300,undefined,25);});
  return map;
 }
 // The first 3x3 block of empty tiles (with an empty ring round it) that lies about as far from both town centres,

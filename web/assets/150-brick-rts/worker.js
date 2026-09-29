@@ -205,9 +205,10 @@ function generateCandidate(seed, layout) {
   for (const x of [500, 1e3]) flock(map, "deer", x + 25, 1025, 4);
   return map;
 }
-function flock(map, kind, x, y, count, within = 200, owner) {
+function flock(map, kind, x, y, count, within = 200, owner, open = 0) {
   const closed = blockedTable(map), taken = new Set([...map.starts.flat(), ...map.scouts ?? [], ...map.animals ?? []].map((p) => nodeAt(map, p)));
-  const nodes = nodesNear(map, [x, y, x, y], within).filter((n) => !closed[n] && !taken.has(n)).map((n) => ({ n, d: Math.abs(position(map, n).x - x) + Math.abs(position(map, n).y - y) })).sort((a, b) => a.d - b.d || a.n - b.n);
+  const roomy = (n) => !open || nodesNear(map, [position(map, n).x, position(map, n).y, position(map, n).x, position(map, n).y], 100).filter((m) => !closed[m]).length >= open;
+  const nodes = nodesNear(map, [x, y, x, y], within).filter((n) => !closed[n] && !taken.has(n) && roomy(n)).map((n) => ({ n, d: Math.abs(position(map, n).x - x) + Math.abs(position(map, n).y - y) })).sort((a, b) => a.d - b.d || a.n - b.n);
   for (const { n } of nodes.slice(0, count)) (map.animals ??= []).push({ kind, ...position(map, n), ...owner === void 0 ? {} : { owner } });
 }
 var openMapRules = {
@@ -350,7 +351,7 @@ function generateOpen(seed) {
   for (const { kind, x, y, base } of animals) kind === "livestock" ? flock(map, "sheep", x, y, R.animals.sheep, 200, base) : flock(map, "deer", x, y, R.animals.deer);
   centres.forEach((c) => {
     const away = Math.atan2(c.y - mid, c.x - mid);
-    for (const [kind, d, turn, count] of [["boar", R.animals.boarDistance, 0.9, 1], ["sheep", R.animals.farSheepDistance, -1.1, 2]]) flock(map, kind, Math.min(world - 150, Math.max(150, Math.round(c.x + Math.cos(away + turn) * d))), Math.min(world - 150, Math.max(150, Math.round(c.y + Math.sin(away + turn) * d))), count, 250);
+    for (const [kind, d, turn, count] of [["boar", R.animals.boarDistance, 0.9, 1], ["sheep", R.animals.farSheepDistance, -1.1, 2]]) flock(map, kind, Math.min(world - 150, Math.max(150, Math.round(c.x + Math.cos(away + turn) * d))), Math.min(world - 150, Math.max(150, Math.round(c.y + Math.sin(away + turn) * d))), count, 300, void 0, 25);
   });
   return map;
 }
@@ -755,7 +756,9 @@ var animalRules = {
   carcass: { sheep: "livestock", deer: "hunt", boar: "hunt" },
   // A sheep belongs to the only player with a unit (other than an animal) within captureRange; with both sides near it
   // keeps its owner. An owned sheep lets its owner see a little ground round it (visionRules.sheepRadius).
+  // A sheep within holdRange of one of its owner's buildings cannot be taken.
   captureRange: 200,
+  holdRange: 400,
   // A struck deer runs fleeDistance away from the hunter; a struck boar charges its attacker (combatRules.units.boar).
   fleeDistance: 350,
   boarLeash: 700,
@@ -1283,7 +1286,6 @@ function stepCombat(s) {
     if (!sight || s.attacks[u.id] || s.works[u.id] || u.next !== null || u.path.length || busy.has(u.id)) continue;
     const seen2 = new Set(s.vision[u.player].visible);
     let best = null, dist2 = Infinity;
-    if (isAnimal(u.kind)) continue;
     for (const e of s.units) if (e.player !== u.player && !isAnimal(e.kind) && seen2.has(tileAt(e.x, e.y, s.map.size))) {
       const d = reach(u, e);
       if (d <= sight && (d < dist2 || d === dist2 && best && e.id < best.id)) {
@@ -1694,6 +1696,11 @@ function claimSheep(s) {
     const near = /* @__PURE__ */ new Set();
     for (const u of s.units) if (!isAnimal(u.kind) && u.player !== GAIA && reach(u, sheep) <= animalRules.captureRange) near.add(u.player);
     if (near.size !== 1 || near.has(sheep.player)) continue;
+    if (sheep.player !== GAIA && s.buildings.some((b) => {
+      if (b.player !== sheep.player) return false;
+      const o = s.map.obstacles.find((o2) => o2.id === b.id);
+      return !!o && reach(sheep, obstacleBounds(o)) <= animalRules.holdRange;
+    })) continue;
     sheep.player = [...near][0];
     halt(s, sheep);
   }
@@ -2230,7 +2237,8 @@ var aiRules = {
   wildRange: 650,
   engageRange: 500,
   defendRadius: 700,
-  baseMargin: 50,
+  baseMargin: 110,
+  laneGap: 110,
   siteRange: 900,
   siteStep: 20,
   halfMargin: 100,
@@ -2408,7 +2416,7 @@ function place(s, order, kind, villagers, idle, tcBox, own, worker, near) {
   for (let x = lo(c.x, x0); x <= hi(c.x, x1); x += aiRules.siteStep) for (let y = lo(c.y, y0); y <= hi(c.y, y1); y += aiRules.siteStep) {
     const box = [x + x0, y + y0, x + x1, y + y1], mid = centre(box);
     const margin = kind === "barracks" || kind === "archery-range" || kind === "monastery" ? aiRules.halfMargin : -aiRules.spill, ownHalf = Math.min(side(box[0], box[1]), side(box[2], box[1]), side(box[0], box[3]), side(box[2], box[3])) >= margin;
-    if (!ownHalf || dist(mid, c) > aiRules.siteRange || gap2(box, tcBox) < (kind === "farm" ? 50 : aiRules.baseMargin) || kind !== "farm" && (others.some((o) => gap2(box, o) < 50) || sources.some((o) => gap2(box, o) < aiRules.sourceMargin))) continue;
+    if (!ownHalf || dist(mid, c) > aiRules.siteRange || gap2(box, tcBox) < (kind === "farm" ? 50 : aiRules.baseMargin) || kind !== "farm" && (others.some((o) => gap2(box, o) < aiRules.laneGap) || sources.some((o) => gap2(box, o) < aiRules.sourceMargin))) continue;
     sites.push({ x, y, d: dist(mid, c) });
   }
   sites.sort((a, b) => a.d - b.d || a.y - b.y || a.x - b.x);

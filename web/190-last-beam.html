@@ -350,6 +350,54 @@ renderer.toneMappingExposure = 1.02;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 const MAXANISO = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 
+/* ---------- Blender 模型（assets/190/*.glb，建模腳本在同一資料夾）----------
+   直接開檔或載不到時退回下面的程式建模；網址加 ?proc 可強制使用程式建模 */
+const QS = new URLSearchParams(location.search);
+let GLB = null;
+if (/^https?:$/.test(location.protocol) && !QS.has('proc')) {
+  try {
+    $('loadNote').textContent = '正在把機具與工人吊進工地…';
+    const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+    const L = new GLTFLoader();
+    const job = Promise.all(['workers', 'machines'].map(n => L.loadAsync('../assets/190/' + n + '.glb')));
+    const [w, m] = await Promise.race([job, new Promise((_, rej) => setTimeout(() => rej(new Error('模型載入逾時')), 25000))]);
+    GLB = { w, m };
+  } catch (e) { GLB = null; console.warn('Blender 模型載入失敗，改用程式建模', e); }
+}
+const _GC = {};
+/* 把 glb 裡的一個物件轉成單一幾何（頂點色 = 烘焙好的 AO × 顏色）；roles 依材質名稱替調色盤部位上色 */
+function glbGeo(name, roles) {
+  if (!GLB) return null;
+  const key = name + (roles ? JSON.stringify(roles) : '');
+  if (_GC[key]) return _GC[key];
+  const root = GLB.w.scene.getObjectByName(name) || GLB.m.scene.getObjectByName(name);
+  if (!root) return null;
+  root.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(root.matrixWorld).invert(), mt = new THREE.Matrix4(), rc = new THREE.Color(), parts = [];
+  root.traverse(o => {
+    if (!o.isMesh) return;
+    let g = o.geometry; if (!g.index) g = g.clone(); 
+    const n = g.attributes.position.count, ca = g.attributes.color, role = roles && roles[o.material.name];
+    if (role !== undefined) rc.set(role);
+    const col = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      let r = ca ? ca.getX(i) : 1, gg = ca ? ca.getY(i) : 1, b = ca ? ca.getZ(i) : 1;
+      if (role !== undefined) { r *= rc.r; gg *= rc.g; b *= rc.b; }
+      col[i * 3] = r; col[i * 3 + 1] = gg; col[i * 3 + 2] = b;
+    }
+    const out = new THREE.BufferGeometry();
+    out.setAttribute('position', g.attributes.position.clone());
+    out.setAttribute('normal', g.attributes.normal.clone());
+    out.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(n * 2), 2));
+    out.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    if (g.index) out.setIndex(g.index.clone());
+    out.applyMatrix4(mt.multiplyMatrices(inv, o.matrixWorld));
+    parts.push(out);
+  });
+  const allIdx = parts.every(p => p.index);
+  return (_GC[key] = mergeGeometries(allIdx ? parts : parts.map(p => p.index ? p.toNonIndexed() : p), false));
+}
+
 const scene = new THREE.Scene();
 const FOGC = new THREE.Color(0xc4d1d9);
 scene.fog = new THREE.Fog(FOGC, 110, 640);
@@ -541,6 +589,7 @@ const MATS = {
   fac2: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .8, map: TEX.fac[2] }),
   hoard0: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .7, map: TEX.hoard[0] }),
   hoard1: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .7, map: TEX.hoard[1] }),
+  glb: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .62, metalness: .12 }),
 };
 const GEO = {};
 const addGeo = (k, g) => (GEO[k] || (GEO[k] = [])).push(g);
@@ -597,6 +646,13 @@ function L(k, color, x1, y1, z1, x2, y2, z2, t) {
   _m.compose(_v.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2), _q, _s);
   g.applyMatrix4(XF.clone().multiply(_m));
   addGeo(k, g);
+}
+/* 在目前的變換下放一個 Blender 模型（併進世界的靜態幾何） */
+function placeGLB(name, roles, x = 0, y = 0, z = 0, ry = 0) {
+  const g = glbGeo(name, roles); if (!g) return false;
+  _m.makeRotationY(ry).setPosition(x, y, z);
+  addGeo('glb', g.clone().applyMatrix4(XF.clone().multiply(_m)));
+  return true;
 }
 function flushWorld() {
   for (const k in GEO) {
@@ -799,7 +855,7 @@ function reel(x, z) { C('wood', K.wood, x, .8, z, .8, .8, .12, 14, { rx: Math.PI
 /* ---------- 車輛（靜態掩體） ---------- */
 function wheel(x, y, z, r, w) { C('flat', K.rub, x, y, z, r, r, w, 14, { rz: Math.PI / 2 }); C('metal', 0x8c8f91, x + (x > 0 ? w / 2 : -w / 2), y, z, r * .5, r * .5, .03, 10, { rz: Math.PI / 2 }); }
 function cab(x, y, z, w, h, d, color) { B('metal', color, x, y, z, w, h * .45, d); B('glass', K.glass, x, y + h * .45, z, w * .96, h * .5, d * .96); B('metal', color, x, y + h * .95, z, w, h * .08, d); }
-function excavator(x, z, ry, swing = .6) {
+function excavatorP(x, z, ry, swing = .6) {
   pushX(x, 0, z, ry);
   for (const s of [-1, 1]) { B('flat', K.rub, s * 1.25, 0, 0, .7, .85, 4.6); for (let i = 0; i < 5; i++) C('flat', K.blk, s * 1.25, .42, -1.8 + i * .9, .28, .28, .72, 8, { rz: Math.PI / 2 }); }
   B('metal', K.blk, 0, .55, 0, 1.8, .45, 3.2);
@@ -814,7 +870,7 @@ function excavator(x, z, ry, swing = .6) {
   addCol(...colBoxLocal(0, 0, 0, 3.2, 2.2, 4.6));
   popX();
 }
-function bulldozer(x, z, ry) {
+function bulldozerP(x, z, ry) {
   pushX(x, 0, z, ry);
   for (const s of [-1, 1]) B('flat', K.rub, s * 1.2, 0, 0, .65, .9, 3.8);
   B('metal', K.yel, 0, .6, .3, 1.9, 1.2, 2.6); B('metal', K.yel, 0, .6, -1.2, 2.2, 1.4, 1.2);
@@ -826,7 +882,7 @@ function bulldozer(x, z, ry) {
   addCol(...colBoxLocal(0, 0, .3, 3.4, 1.9, 4.8));
   popX();
 }
-function dumpTruck(x, z, ry, color = K.yel) {
+function dumpTruckP(x, z, ry, color = K.yel) {
   pushX(x, 0, z, ry);
   B('metal', K.blk, 0, .8, 0, 1.2, .35, 7);
   for (const zz of [2.4, -1.4, -2.7]) for (const s of [-1, 1]) wheel(s * 1.1, .55, zz, .55, .45);
@@ -836,7 +892,7 @@ function dumpTruck(x, z, ry, color = K.yel) {
   addCol(...colBoxLocal(0, 0, -.1, 2.4, 2.7, 7.2));
   popX();
 }
-function mixer(x, z, ry) {
+function mixerP(x, z, ry) {
   pushX(x, 0, z, ry);
   B('metal', K.blk, 0, .8, 0, 1.2, .35, 7);
   for (const zz of [2.4, -1.4, -2.7]) for (const s of [-1, 1]) wheel(s * 1.1, .55, zz, .55, .45);
@@ -848,7 +904,7 @@ function mixer(x, z, ry) {
   addCol(...colBoxLocal(0, 0, 0, 2.5, 3.4, 7.2));
   popX();
 }
-function loader(x, z, ry) {
+function loaderP(x, z, ry) {
   pushX(x, 0, z, ry);
   for (const zz of [1.2, -1.3]) for (const s of [-1, 1]) wheel(s * 1.05, .75, zz, .75, .6);
   B('metal', K.yel, 0, .7, -1.3, 1.7, 1.2, 2.2); B('metal', K.yel, 0, .7, .7, 1.4, .8, 1.8);
@@ -858,7 +914,7 @@ function loader(x, z, ry) {
   addCol(...colBoxLocal(0, 0, .4, 2.7, 2.2, 5.4));
   popX();
 }
-function pickup(x, z, ry, color = K.wht) {
+function pickupP(x, z, ry, color = K.wht) {
   pushX(x, 0, z, ry);
   for (const zz of [1.5, -1.5]) for (const s of [-1, 1]) wheel(s * .82, .4, zz, .4, .3);
   B('metal', color, 0, .45, 0, 1.85, .7, 5.2); cab(0, 1.15, .6, 1.8, 1, 2, color);
@@ -867,7 +923,7 @@ function pickup(x, z, ry, color = K.wht) {
   addCol(...colBoxLocal(0, 0, 0, 1.9, 1.7, 5.2));
   popX();
 }
-function forklift(x, z, ry) {
+function forkliftP(x, z, ry) {
   pushX(x, 0, z, ry);
   wheel(.6, .3, .6, .3, .25); wheel(-.6, .3, .6, .3, .25); wheel(.55, .25, -.7, .25, .2); wheel(-.55, .25, -.7, .25, .2);
   B('metal', K.org, 0, .25, 0, 1.1, 1, 2); B('metal', K.blk, 0, 1.25, -.1, .9, .06, 1.2);
@@ -877,6 +933,19 @@ function forklift(x, z, ry) {
   addCol(...colBoxLocal(0, 0, .2, 1.2, 2.3, 2.6));
   popX();
 }
+
+/* Blender 版車輛：外形換成 glb，碰撞盒維持與程式版相同 */
+function excavator(x, z, ry, swing = .6) {
+  if (!GLB) return excavatorP(x, z, ry, swing);
+  pushX(x, 0, z, ry); placeGLB('V_exc_base'); pushX(0, 1, 0, swing); placeGLB('V_exc_upper'); popX();
+  addCol(...colBoxLocal(0, 0, 0, 3.2, 2.2, 4.6)); popX();
+}
+function bulldozer(x, z, ry) { if (!GLB) return bulldozerP(x, z, ry); pushX(x, 0, z, ry); placeGLB('V_dozer'); addCol(...colBoxLocal(0, 0, .3, 3.4, 1.9, 4.8)); popX(); }
+function dumpTruck(x, z, ry, color = K.yel) { if (!GLB) return dumpTruckP(x, z, ry, color); pushX(x, 0, z, ry); placeGLB('V_dump', { paint: color }); addCol(...colBoxLocal(0, 0, -.1, 2.4, 2.7, 7.2)); popX(); }
+function mixer(x, z, ry) { if (!GLB) return mixerP(x, z, ry); pushX(x, 0, z, ry); placeGLB('V_mixer'); addCol(...colBoxLocal(0, 0, 0, 2.5, 3.4, 7.2)); popX(); }
+function loader(x, z, ry) { if (!GLB) return loaderP(x, z, ry); pushX(x, 0, z, ry); placeGLB('V_loader'); addCol(...colBoxLocal(0, 0, .4, 2.7, 2.2, 5.4)); popX(); }
+function pickup(x, z, ry, color = K.wht) { if (!GLB) return pickupP(x, z, ry, color); pushX(x, 0, z, ry); placeGLB('V_pickup', { paint: color }); addCol(...colBoxLocal(0, 0, 0, 1.9, 1.7, 5.2)); popX(); }
+function forklift(x, z, ry) { if (!GLB) return forkliftP(x, z, ry); pushX(x, 0, z, ry); placeGLB('V_forklift'); addCol(...colBoxLocal(0, 0, .2, 1.2, 2.3, 2.6)); popX(); }
 
 /* ---------- 建築骨架（可以爬樓梯上頂樓） ---------- */
 function stairsFlight(x0, z0, z1, xs, dir, y0, fh) {
@@ -1197,7 +1266,7 @@ const GUNMAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .
 
 /* 安全帽：0 級是毛帽，1 白、2 橘、3 黑色附面罩 */
 const HAT_COL = [0x3b3a45, 0xf1efe8, 0xf08a1c, 0x26282b];
-const HATGEO = HAT_COL.map((c, lv) => {
+const HATGEO = GLB ? [0, 1, 2, 3].map(lv => glbGeo('HAT_' + lv)) : HAT_COL.map((c, lv) => {
   const b = new MB();
   if (lv === 0) { b.dome(c, 0, 0, 0, .128, .95); b.box(0x55546a, 0, .01, 0, .26, .04, .26); }
   else {
@@ -1208,22 +1277,26 @@ const HATGEO = HAT_COL.map((c, lv) => {
   return b.build();
 });
 const VEST_COL = [0, 0x6d7355, 0x3d4a5c, 0x1f2124];
-const ARMORGEO = VEST_COL.map((c, lv) => lv ? new MB().box(c, 0, .3, 0, .47, .36, .3).box(lv === 3 ? 0xf4b400 : 0xaaa9a0, 0, .44, .151, .3, .05, .02).box(c, 0, .5, 0, .46, .06, .22).build() : null);
+const ARMORGEO = GLB ? [null, glbGeo('ARM_1'), glbGeo('ARM_2'), glbGeo('ARM_3')] : VEST_COL.map((c, lv) => lv ? new MB().box(c, 0, .3, 0, .47, .36, .3).box(lv === 3 ? 0xf4b400 : 0xaaa9a0, 0, .44, .151, .3, .05, .02).box(c, 0, .5, 0, .46, .06, .22).build() : null);
 
 const PALETTES = {
   vis: [0xd9ea2b, 0xff7a1a, 0xf3d21a, 0xa9d63a, 0xff9447],
   shirt: [0x2f3e4f, 0x5b5e63, 0x7a4e36, 0x344a3c, 0x4b3a5c, 0x8a8f94, 0x263238],
   pants: [0x283347, 0x3b3f45, 0x4a4036, 0x2d3a2e, 0x1f2328, 0x5b5044],
   skin: [0xd9a47f, 0xb57e5a, 0x8a5a3c, 0xe8bf9c, 0x6e452e, 0xc99069],
-  glove: [0xe0b33a, 0x3c3f44, 0xd8d3c4, 0x9a6b3c]
+  glove: [0xe0b33a, 0x3c3f44, 0xd8d3c4, 0x9a6b3c],
+  hair: [0x2a211a, 0x1b1b1d, 0x5a4330, 0x7a746c, 0x3b2a20]
 };
 function makeWorker(pal) {
   const root = new THREE.Group();
   const mk = (geo, parent) => { const m = new THREE.Mesh(geo, CHMAT); m.castShadow = true; parent.add(m); return m; };
+  // Blender 版：每個部位是一塊平滑網格，調色盤只改衣服、背心、褲子、皮膚、手套與頭髮
+  const roles = GLB && { shirt: pal.shirt, vis: pal.vis, pants: pal.pants, skin: pal.skin, glove: pal.glove, hair: pal.hair };
+  const P = (name, fb) => GLB ? glbGeo(name, roles) : fb();
   const hips = new THREE.Group(); hips.position.y = .94; root.add(hips);
-  mk(new MB().box(pal.pants, 0, 0, 0, .34, .2, .22).box(0x2a2522, 0, .07, 0, .36, .05, .235).build(), hips);
+  mk(GLB ? P('W_pelvis') : new MB().box(pal.pants, 0, 0, 0, .34, .2, .22).box(0x2a2522, 0, .07, 0, .36, .05, .235).build(), hips);
   const torso = new THREE.Group(); torso.position.y = .08; hips.add(torso);
-  mk(new MB().box(pal.shirt, 0, .27, 0, .42, .52, .24)
+  mk(GLB ? P('W_torso') : new MB().box(pal.shirt, 0, .27, 0, .42, .52, .24)
     .box(pal.vis, 0, .29, 0, .445, .38, .262)
     .box(0xe2e6ea, 0, .19, 0, .45, .045, .268).box(0xe2e6ea, 0, .35, 0, .45, .045, .268)
     .box(pal.shirt, 0, .5, 0, .44, .09, .25)
@@ -1231,20 +1304,20 @@ function makeWorker(pal) {
     .build(), torso);
   const armor = mk(ARMORGEO[1], torso); armor.visible = false;
   const head = new THREE.Group(); head.position.y = .56; torso.add(head);
-  mk(new MB().box(pal.skin, 0, .12, .005, .21, .24, .22).box(0x1c1f22, 0, .15, .118, .2, .045, .012).box(pal.skin, 0, -.01, 0, .1, .08, .1).box(pal.skin, 0, .09, .125, .04, .05, .02).build(), head);
+  mk(GLB ? P('W_head') : new MB().box(pal.skin, 0, .12, .005, .21, .24, .22).box(0x1c1f22, 0, .15, .118, .2, .045, .012).box(pal.skin, 0, -.01, 0, .1, .08, .1).box(pal.skin, 0, .09, .125, .04, .05, .02).build(), head);
   const hat = mk(HATGEO[0], head); hat.position.y = .22;
   const arm = side => {
     const sh = new THREE.Group(); sh.position.set(side * .27, .45, 0); torso.add(sh);
-    mk(new MB().box(pal.shirt, 0, -.14, 0, .13, .3, .13).box(pal.vis, 0, -.03, 0, .135, .08, .135).build(), sh);
+    mk(GLB ? P('W_up' + (side > 0 ? 'L' : 'R')) : new MB().box(pal.shirt, 0, -.14, 0, .13, .3, .13).box(pal.vis, 0, -.03, 0, .135, .08, .135).build(), sh);
     const el = new THREE.Group(); el.position.y = -.29; sh.add(el);
-    mk(new MB().box(pal.shirt, 0, -.12, 0, .115, .26, .115).box(pal.glove, 0, -.28, 0, .125, .11, .125).build(), el);
+    mk(GLB ? P('W_fore' + (side > 0 ? 'L' : 'R')) : new MB().box(pal.shirt, 0, -.12, 0, .115, .26, .115).box(pal.glove, 0, -.28, 0, .125, .11, .125).build(), el);
     return { sh, el };
   };
   const leg = side => {
     const hp = new THREE.Group(); hp.position.set(side * .1, -.05, 0); hips.add(hp);
-    mk(new MB().box(pal.pants, 0, -.22, 0, .16, .44, .17).build(), hp);
+    mk(GLB ? P('W_thigh' + (side > 0 ? 'L' : 'R')) : new MB().box(pal.pants, 0, -.22, 0, .16, .44, .17).build(), hp);
     const kn = new THREE.Group(); kn.position.y = -.44; hp.add(kn);
-    mk(new MB().box(pal.pants, 0, -.19, 0, .15, .38, .16).box(0x3a2b1e, 0, -.4, .04, .17, .12, .28).box(0x9c8a5a, 0, -.44, .04, .175, .03, .285).build(), kn);
+    mk(GLB ? P('W_shin' + (side > 0 ? 'L' : 'R')) : new MB().box(pal.pants, 0, -.19, 0, .15, .38, .16).box(0x3a2b1e, 0, -.4, .04, .17, .12, .28).box(0x9c8a5a, 0, -.44, .04, .175, .03, .285).build(), kn);
     return { hp, kn };
   };
   const armL = arm(1), armR = arm(-1), legL = leg(1), legR = leg(-1);
@@ -1263,7 +1336,7 @@ const WPN = {
   s686: { name: 'S686', cal: '12', mag: 2, dmg: 12, head: 1.5, int: .28, auto: false, reload: 2.4, hip: .07, ads: .055, move: .01, bloom: 0, recoil: .045, range: 30, pellets: 9, snd: 'sg', tier: 2, zoom: 1.2, muzzle: .72 },
 };
 const CAL = { '556': '5.56', '762': '7.62', '12': '12 GAUGE', '45': '.45 ACP' };
-const GUNGEO = {
+const GUNGEO = GLB ? { m416: glbGeo('G_m416'), ump: glbGeo('G_ump'), kar98: glbGeo('G_kar98'), s686: glbGeo('G_s686') } : {
   m416: new MB().box(0x2b2d2f, 0, 0, .1, .07, .11, .42).box(0x3a3d3f, 0, .01, .42, .08, .09, .24).cyl(0x151618, 0, .02, .64, .017, .017, .24, 8, Math.PI / 2)
     .box(0x1f2123, 0, .075, .16, .03, .025, .52).box(0x151618, 0, .1, .12, .045, .05, .09).box(0x2b2d2f, 0, -.11, .19, .055, .2, .08, .28)
     .box(0x2b2d2f, 0, -.09, -.03, .05, .15, .06, -.3).box(0x3a3d3f, 0, -.01, -.22, .06, .11, .26).build(),
@@ -1303,14 +1376,19 @@ const ITEMGEO = {};
   const ammo = (c) => pad(new MB()).box(c, 0, .08, 0, .26, .14, .16).box(0x222222, 0, .155, 0, .2, .012, .1).box(0xe8e2d0, .131, .08, 0, .002, .06, .1).build();
   ITEMGEO.a556 = ammo(0x4f6b3a); ITEMGEO.a762 = ammo(0x7a5a2c); ITEMGEO.a12 = ammo(0xa33a2c); ITEMGEO.a45 = ammo(0x3a5474);
   for (let lv = 1; lv <= 3; lv++) {
-    const b = pad(new MB()); const g = HATGEO[lv].clone(); g.translate(0, .02, 0); b.g.push(g); ITEMGEO['helm' + lv] = b.build();
-    const v = pad(new MB()); const a = ARMORGEO[lv].clone(); a.rotateX(-Math.PI / 2); a.translate(0, .17, -.3); v.g.push(a); ITEMGEO['vest' + lv] = v.build();
+    const b = pad(new MB()); const g = HATGEO[lv].clone(); g.translate(0, GLB ? .042 : .02, 0); b.g.push(g); ITEMGEO['helm' + lv] = b.build();
+    const v = pad(new MB()); const a = ARMORGEO[lv].clone(); if (GLB) a.translate(0, -.13, 0); else { a.rotateX(-Math.PI / 2); a.translate(0, .17, .3); } v.g.push(a); ITEMGEO['vest' + lv] = v.build();
   }
   ITEMGEO.bandage = pad(new MB()).cyl(0xf2eee6, -.06, .06, 0, .05, .05, .1, 10, 0, 0, Math.PI / 2).cyl(0xf2eee6, .07, .06, .02, .05, .05, .1, 10, 0, 0, Math.PI / 2).build();
   ITEMGEO.firstaid = pad(new MB()).box(0xf2eee6, 0, .05, 0, .3, .09, .22).box(0xd0342c, 0, .1, 0, .16, .01, .05).box(0xd0342c, 0, .1, 0, .05, .01, .16).build();
   ITEMGEO.medkit = pad(new MB()).box(0xd0342c, 0, .1, 0, .5, .18, .3).box(0xf2eee6, 0, .19, 0, .26, .01, .08).box(0xf2eee6, 0, .19, 0, .08, .01, .22).box(0x333333, 0, .2, 0, .16, .03, .03).build();
   ITEMGEO.drink = pad(new MB()).cyl(0xf4b400, -.05, .07, 0, .035, .035, .13, 10).cyl(0x1a1a1a, .05, .07, .02, .035, .035, .13, 10).build();
   ITEMGEO.frag = pad(new MB()).ball(0x4d5a3a, 0, .07, 0, .055).box(0x8a8f94, 0, .13, .02, .02, .03, .07).build();
+  if (GLB) {
+    const gi = n => { const b = pad(new MB()); b.g.push(glbGeo(n).clone()); return b.build(); };
+    for (const c of ['556', '762', '12', '45']) ITEMGEO['a' + c] = gi('I_a' + c);
+    for (const n of ['bandage', 'firstaid', 'medkit', 'drink', 'frag']) ITEMGEO[n] = gi('I_' + n);
+  }
 }
 const ITEMINST = {};
 for (const t in ITEMGEO) { const im = new THREE.InstancedMesh(ITEMGEO[t], ITEMMAT, 96); im.count = 0; im.frustumCulled = false; im.castShadow = true; scene.add(im); ITEMINST[t] = im; }
@@ -1404,7 +1482,7 @@ const HELI = new THREE.Group();
   b.box(0x9ba4a9, 0, -1.6, 0, .3, .3, .3);
   const bm = new MB();
   bm.box(0xa84a32, 0, 0, 0, .5, .06, 16).box(0xa84a32, 0, .25, 0, .06, .44, 16).box(0xa84a32, 0, .5, 0, .5, .06, 16);
-  const body = new THREE.Mesh(b.build(), GUNMAT); body.castShadow = true; HELI.add(body);
+  const body = new THREE.Mesh(GLB ? glbGeo('H_body') : b.build(), GUNMAT); body.castShadow = true; HELI.add(body);
   const beam = new THREE.Mesh(bm.build(), GUNMAT); beam.position.y = beamY; beam.castShadow = true; HELI.add(beam);
   for (const z of [-6, 6]) {
     const pts = [new THREE.Vector3(0, -1.3, z * .25), new THREE.Vector3(0, beamY + .55, z)];
@@ -1413,10 +1491,10 @@ const HELI = new THREE.Group();
   }
   HELI.userData.rotors = [];
   for (const [y, z] of [[1.55, 5.2], [3, -5.4]]) {
-    const r = new THREE.Group(); r.position.set(0, y + .3, z);
+    const r = new THREE.Group(); r.position.set(0, GLB ? (z > 0 ? 2.02 : 3.42) : y + .3, z);
     const rb = new MB().cyl(0x2c2d2f, 0, 0, 0, .25, .3, .4, 10);
     for (let i = 0; i < 3; i++) rb.box(0x202224, Math.cos(i * TAU / 3) * 4.6, .15, Math.sin(i * TAU / 3) * 4.6, 9.2, .05, .38, 0, -i * TAU / 3, 0);
-    const rm = new THREE.Mesh(rb.build(), GUNMAT); r.add(rm);
+    const rm = new THREE.Mesh(GLB ? glbGeo('H_rotor') : rb.build(), GUNMAT); r.add(rm);
     const disc = new THREE.Mesh(new THREE.CircleGeometry(9.2, 32), new THREE.MeshBasicMaterial({ color: 0x222222, transparent: true, opacity: .12, depthWrite: false, side: THREE.DoubleSide }));
     disc.rotation.x = -Math.PI / 2; disc.position.y = .15; r.add(disc);
     HELI.add(r); HELI.userData.rotors.push(r);
@@ -1484,8 +1562,8 @@ const G = 18;
 class Char {
   constructor(name, isPlayer) {
     this.name = name; this.isPlayer = isPlayer;
-    const pal = isPlayer ? { vis: 0xf3d21a, shirt: 0x1f3a3d, pants: 0x283347, skin: 0xd9a47f, glove: 0xe0b33a }
-      : { vis: pick(PALETTES.vis), shirt: pick(PALETTES.shirt), pants: pick(PALETTES.pants), skin: pick(PALETTES.skin), glove: pick(PALETTES.glove) };
+    const pal = isPlayer ? { vis: 0xf3d21a, shirt: 0x1f3a3d, pants: 0x283347, skin: 0xd9a47f, glove: 0xe0b33a, hair: 0x2a211a }
+      : { vis: pick(PALETTES.vis), shirt: pick(PALETTES.shirt), pants: pick(PALETTES.pants), skin: pick(PALETTES.skin), glove: pick(PALETTES.glove), hair: pick(PALETTES.hair) };
     this.m = makeWorker(pal); scene.add(this.m.root);
     this.chute = makeChute();
     this.p = new THREE.Vector3(); this.v = new THREE.Vector3();
@@ -1700,7 +1778,7 @@ function itemLabel(it) {
 
 /* ---------- 手雷 ---------- */
 const NADES = [];
-const nadeGeo = new MB().ball(0x4d5a3a, 0, 0, 0, .06).box(0x8a8f94, 0, .06, .02, .02, .03, .07).build();
+const nadeGeo = GLB ? glbGeo('I_frag').clone().translate(0, -.06, 0) : new MB().ball(0x4d5a3a, 0, 0, 0, .06).box(0x8a8f94, 0, .06, .02, .02, .03, .07).build();
 function throwFrag(ch, dir) {
   if (ch.frags <= 0 || ch.st !== 'ground') return;
   ch.frags--;
@@ -2906,7 +2984,7 @@ function fxUpdate(dt) {
 /* ============================================================
    主迴圈
    ============================================================ */
-let last = performance.now(), mmT = 0, fpsAcc = 0, fpsN = 0, lowFps = 0;
+let HOLD = false, last = performance.now(), mmT = 0, fpsAcc = 0, fpsN = 0, lowFps = 0;
 function update(dt) {
   T += dt;
   heliUpdate(dt);
@@ -2931,7 +3009,7 @@ function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(.05, (now - last) / 1000); last = now;
   const running = STATE !== 'menu' && !PAUSED && !(PL.endShown);
-  if (running) update(dt);
+  if (running && !HOLD) update(dt);
   else if (STATE === 'menu') { HELI.userData.rotors.forEach((r, i) => r.rotation.y += dt * (i ? -22 : 22)); }
   if (running || STATE === 'menu') {
     for (const c of CHARS) animate(c, dt);
@@ -2978,7 +3056,7 @@ $('restart1').addEventListener('click', () => { newGame(); requestLock(); });
 $('sens').addEventListener('input', e => { IN.sens = +e.target.value; $('sensV').textContent = IN.sens.toFixed(2); });
 $('vol').addEventListener('input', e => { AU.vol = +e.target.value; $('volV').textContent = Math.round(AU.vol * 100); if (AU.master) AU.master.gain.value = AU.vol; });
 // 自動化測試用的掛鉤（headless 快轉、跳過直升機），遊戲本身不會用到
-window.LASTBEAM = { sim(sec) { for (let i = 0; i < sec * 30; i++) update(1 / 30); }, get state() { return STATE; }, get T() { return T; }, chars: CHARS, zone: ZONE, loot: LOOT, newGame, skipTo(s) { if (s === 'ground' && STATE === 'heli') { playerJump(); const p = PLAYER.p; p.set(rnd(-40, 40), 1, rnd(-40, 40)); PLAYER.st = 'ground'; BOTS.forEach(b => { if (b.ch.st === 'beam') { b.ch.st = 'fall'; botLand(b); } }); } } };
+window.LASTBEAM = { pl: PL, hold(v) { HOLD = v; }, glb: !!GLB, sim(sec) { for (let i = 0; i < sec * 30; i++) update(1 / 30); }, get state() { return STATE; }, get T() { return T; }, chars: CHARS, zone: ZONE, loot: LOOT, newGame, skipTo(s) { if (s === 'ground' && STATE === 'heli') { playerJump(); const p = PLAYER.p; p.set(rnd(-40, 40), 1, rnd(-40, 40)); PLAYER.st = 'ground'; BOTS.forEach(b => { if (b.ch.st === 'beam') { b.ch.st = 'fall'; botLand(b); } }); } } };
 requestAnimationFrame(frame);
 </script>
 </body>

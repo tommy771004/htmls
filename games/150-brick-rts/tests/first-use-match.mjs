@@ -89,6 +89,9 @@ try{
   else{if(!busy)sweep++;const w=waypoints[sweep%waypoints.length];m=await minimapAt(w.x,w.z);const n=await act(()=>page.mouse.click(m.x,m.y,{button:'right'}));if(n!==last){note('搜索',n);last=n;}}
   if(rounds%15===0)await page.screenshot({path:out+'match-battle.png'});
  }
+ // The computer now eats sheep and deer early and can field enough militia to beat this four-militia rush; a player
+ // whose army is gone concedes (two presses in the menu), which still ends the match on the result screen.
+ if(await page.locator('#result').isHidden()&&await text('selected')==='未選取'){await page.keyboard.press('F10');await page.locator('#resign').click();await page.locator('#resign').click();note('投降','軍隊覆沒後投降');}
  await page.locator('#result').waitFor({state:'visible',timeout:5000});
  const result=await text('result-title');note('對局結果',`${result}｜${await text('result-detail')}`);assert.match(result,/勝利|戰敗/);
  await page.screenshot({path:out+'match-result.png'});

@@ -4,9 +4,11 @@ import {cancelMovement,commandMove,routeTo} from './movement.ts';
 import type {Unit} from './movement.ts';
 import {harvestMapResource} from './navigation.ts';
 import {combatRules} from './stats.ts';
+import {obstacleBounds} from '../content/footprints.ts';
 import {animalRules,isAnimal,GAIA} from './fauna.ts';
 // Animal behaviour, once per tick after combat (values in fauna.ts, design_default):
-// - a sheep belongs to the only player with a unit within captureRange (found, or taken from the other side);
+// - a sheep belongs to the only player with a unit within captureRange (found, or taken from the other side), except
+//   that one within holdRange of its owner's buildings stays its owner's;
 // - a struck deer runs fleeDistance away from whoever struck it;
 // - a struck boar charges the first unit that struck it, then whoever else is hunting it, up to boarLeash away;
 // - a carcass slowly spoils, worked or not (one food per decayTicks).
@@ -16,6 +18,8 @@ export function claimSheep(s:CombatState){
  for(const sheep of s.units){if(sheep.kind!=='sheep')continue;
   const near=new Set<number>();for(const u of s.units)if(!isAnimal(u.kind)&&u.player!==GAIA&&reach(u,sheep)<=animalRules.captureRange)near.add(u.player);
   if(near.size!==1||near.has(sheep.player))continue;
+  // A sheep by its owner's buildings stays (the starting flock is not lost to the first scout riding past).
+  if(sheep.player!==GAIA&&s.buildings.some(b=>{if(b.player!==sheep.player)return false;const o=s.map.obstacles.find(o=>o.id===b.id);return !!o&&reach(sheep,obstacleBounds(o))<=animalRules.holdRange;}))continue;
   // Changing hands stops the sheep where it is (the old owner's order no longer applies).
   sheep.player=[...near][0];halt(s,sheep);}
 }
