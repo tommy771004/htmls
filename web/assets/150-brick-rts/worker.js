@@ -530,7 +530,7 @@ function validateStartingResources(map) {
         }
         return { id: resource.id, remaining: resource.remaining, distance, approach: approach2 };
       }).filter((n) => n.distance <= startingResourceRules.maxApproachDistance);
-      const available = nodes.reduce((sum, n) => sum + n.remaining, 0), nearestDistance = nodes.length ? Math.min(...nodes.map((n) => n.distance)) : null;
+      const available = nodes.reduce((sum2, n) => sum2 + n.remaining, 0), nearestDistance = nodes.length ? Math.min(...nodes.map((n) => n.distance)) : null;
       if (available < minimum) errors.push(`\u73A9\u5BB6 ${player} \u8D77\u59CB ${kind} \u53EF\u9054\u5BB9\u91CF\u4E0D\u8DB3\uFF1A${available}/${minimum}`);
       return { kind, minimum, available, nearestDistance, nodes };
     });
@@ -661,10 +661,42 @@ var rules = {
   reference: { game: "Age of Empires II: Definitive Edition", version: null, build: null, contentPacks: [], verificationStatus: "unverified", sourceEvidence: [] },
   coverage: { contentDenominator: null, exactReferenceCoveragePercent: null },
   settings: { tickHz: 20, populationCap: 40, mapSize: 16, speed: 1, mode: "command-sandbox", seed: 260925, platform: "desktop browser", provenance: "design_default" },
-  entries: [entry("villager", "unit", "\u6751\u6C11", 50, 0, 0, 0, [], 1), entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 200, 0, 100), entry("house", "building", "\u6C11\u5C45", 0, 30), entry("barracks", "building", "\u5175\u71DF", 0, 150), entry("farm", "building", "\u8FB2\u7530", 0, 60), entry("lumber-camp", "building", "\u4F10\u6728\u5834", 0, 100), entry("mining-camp", "building", "\u63A1\u7926\u5834", 0, 100), entry("mill", "building", "\u78E8\u574A", 0, 100), entry("stable", "building", "\u99AC\u5EC4", 0, 175, 0, 0, ["age-2", "barracks"]), entry("archery-range", "building", "\u9776\u5834", 0, 175, 0, 0, ["age-2", "barracks"]), entry("monastery", "building", "\u4FEE\u9053\u9662", 0, 175, 0, 0, ["age-3"]), entry("militia", "unit", "\u8FD1\u6230\u6C11\u5175", 60, 0, 20, 0, ["barracks"], 1), entry("archer", "unit", "\u5F13\u624B", 0, 40, 30, 0, ["age-2"], 1), entry("ram", "unit", "\u653B\u57CE\u69CC", 0, 160, 75, 0, ["age-3"], 3), entry("scout", "unit", "\u65A5\u5019", 80, 0, 0, 0, ["stable"], 1), entry("monk", "unit", "\u50E7\u4FB6", 0, 0, 100, 0, ["monastery"], 1), entry("redemption", "technology", "\u6551\u8D16", 0, 0, 475, 0, ["monastery", "age-3"]), entry("atonement", "technology", "\u8D16\u7F6A", 0, 0, 325, 0, ["monastery", "age-3"]), entry("sanctity", "technology", "\u8056\u6F54", 0, 0, 175, 0, ["monastery", "age-3"]), entry("heresy", "technology", "\u7570\u7AEF", 0, 0, 1e3, 0, ["monastery", "age-3"]), entry("illumination", "technology", "\u555F\u8499", 0, 0, 120, 0, ["monastery", "age-4"]), entry("block-printing", "technology", "\u6D3B\u5B57\u5370\u5237", 0, 0, 200, 0, ["monastery", "age-4"]), entry("theocracy", "technology", "\u795E\u6B0A\u653F\u6CBB", 0, 0, 200, 0, ["monastery", "age-4"]), entry("faith", "technology", "\u4FE1\u4EF0", 550, 0, 750, 0, ["monastery", "age-4"]), entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300), entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]), entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"])],
+  entries: [entry("villager", "unit", "\u6751\u6C11", 50, 0, 0, 0, [], 1), entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 200, 0, 100), entry("house", "building", "\u6C11\u5C45", 0, 30), entry("barracks", "building", "\u5175\u71DF", 0, 150), entry("farm", "building", "\u8FB2\u7530", 0, 60), entry("lumber-camp", "building", "\u4F10\u6728\u5834", 0, 100), entry("mining-camp", "building", "\u63A1\u7926\u5834", 0, 100), entry("mill", "building", "\u78E8\u574A", 0, 100), entry("stable", "building", "\u99AC\u5EC4", 0, 175, 0, 0, ["age-2", "barracks"]), entry("archery-range", "building", "\u9776\u5834", 0, 175, 0, 0, ["age-2", "barracks"]), entry("monastery", "building", "\u4FEE\u9053\u9662", 0, 175, 0, 0, ["age-3"]), entry("militia", "unit", "\u8FD1\u6230\u6C11\u5175", 60, 0, 20, 0, ["barracks"], 1), entry("archer", "unit", "\u5F13\u624B", 0, 40, 30, 0, ["age-2"], 1), entry("ram", "unit", "\u653B\u57CE\u69CC", 0, 160, 75, 0, ["age-3"], 3), entry("scout", "unit", "\u65A5\u5019", 80, 0, 0, 0, ["stable"], 1), entry("monk", "unit", "\u50E7\u4FB6", 0, 0, 100, 0, ["monastery"], 1), entry("redemption", "technology", "\u6551\u8D16", 0, 0, 475, 0, ["monastery", "age-3"]), entry("atonement", "technology", "\u8D16\u7F6A", 0, 0, 325, 0, ["monastery", "age-3"]), entry("sanctity", "technology", "\u8056\u6F54", 0, 0, 175, 0, ["monastery", "age-3"]), entry("heresy", "technology", "\u7570\u7AEF", 0, 0, 1e3, 0, ["monastery", "age-3"]), entry("illumination", "technology", "\u555F\u8499", 0, 0, 120, 0, ["monastery", "age-4"]), entry("block-printing", "technology", "\u6D3B\u5B57\u5370\u5237", 0, 0, 200, 0, ["monastery", "age-4"]), entry("theocracy", "technology", "\u795E\u6B0A\u653F\u6CBB", 0, 0, 200, 0, ["monastery", "age-4"]), entry("faith", "technology", "\u4FE1\u4EF0", 550, 0, 750, 0, ["monastery", "age-4"]), entry("loom", "technology", "\u7E54\u5E03\u6A5F", 0, 0, 50), entry("wheelbarrow", "technology", "\u624B\u63A8\u8ECA", 175, 50, 0, 0, ["age-2"]), entry("hand-cart", "technology", "\u624B\u62C9\u8ECA", 300, 200, 0, 0, ["age-3", "wheelbarrow"]), entry("double-bit-axe", "technology", "\u96D9\u5203\u65A7", 100, 50, 0, 0, ["age-2"]), entry("bow-saw", "technology", "\u5F13\u92F8", 150, 100, 0, 0, ["age-3", "double-bit-axe"]), entry("two-man-saw", "technology", "\u96D9\u4EBA\u92F8", 300, 200, 0, 0, ["age-4", "bow-saw"]), entry("gold-mining", "technology", "\u63A1\u91D1\u8853", 100, 75, 0, 0, ["age-2"]), entry("gold-shaft-mining", "technology", "\u8C4E\u4E95\u63A1\u91D1", 200, 100, 0, 0, ["age-3", "gold-mining"]), entry("stone-mining", "technology", "\u63A1\u77F3\u8853", 100, 75, 0, 0, ["age-2"]), entry("stone-shaft-mining", "technology", "\u8C4E\u4E95\u63A1\u77F3", 200, 100, 0, 0, ["age-3", "stone-mining"]), entry("horse-collar", "technology", "\u99AC\u8EDB", 75, 75, 0, 0, ["age-2"]), entry("heavy-plow", "technology", "\u91CD\u7281", 125, 125, 0, 0, ["age-3", "horse-collar"]), entry("crop-rotation", "technology", "\u8F2A\u8015", 250, 250, 0, 0, ["age-4", "heavy-plow"]), entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300), entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]), entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"])],
   // Which building produces each unit/technology (design_default). null = defined but not producible yet.
-  production: { villager: "town-center", militia: "barracks", archer: "archery-range", ram: null, scout: "stable", monk: "monastery", redemption: "monastery", atonement: "monastery", sanctity: "monastery", heresy: "monastery", illumination: "monastery", "block-printing": "monastery", theocracy: "monastery", faith: "monastery", "age-2": "town-center", "age-3": "town-center", "age-4": "town-center" },
-  civilizations: [{ id: "blue-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "age-2", "age-3", "age-4"], unavailable: [] }, { id: "red-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "age-2", "age-3", "age-4"], unavailable: [] }]
+  production: {
+    villager: "town-center",
+    militia: "barracks",
+    archer: "archery-range",
+    ram: null,
+    scout: "stable",
+    monk: "monastery",
+    redemption: "monastery",
+    atonement: "monastery",
+    sanctity: "monastery",
+    heresy: "monastery",
+    illumination: "monastery",
+    "block-printing": "monastery",
+    theocracy: "monastery",
+    faith: "monastery",
+    "double-bit-axe": "lumber-camp",
+    "bow-saw": "lumber-camp",
+    "two-man-saw": "lumber-camp",
+    "gold-mining": "mining-camp",
+    "gold-shaft-mining": "mining-camp",
+    "stone-mining": "mining-camp",
+    "stone-shaft-mining": "mining-camp",
+    "horse-collar": "mill",
+    "heavy-plow": "mill",
+    "crop-rotation": "mill",
+    "age-2": "town-center",
+    "age-3": "town-center",
+    "age-4": "town-center",
+    // After the ages, so the town centre's age-up keeps its tile and hotkey.
+    loom: "town-center",
+    wheelbarrow: "town-center",
+    "hand-cart": "town-center"
+  },
+  civilizations: [{ id: "blue-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "loom", "wheelbarrow", "hand-cart", "double-bit-axe", "bow-saw", "two-man-saw", "gold-mining", "gold-shaft-mining", "stone-mining", "stone-shaft-mining", "horse-collar", "heavy-plow", "crop-rotation", "age-2", "age-3", "age-4"], unavailable: [] }, { id: "red-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "loom", "wheelbarrow", "hand-cart", "double-bit-axe", "bow-saw", "two-man-saw", "gold-mining", "gold-shaft-mining", "stone-mining", "stone-shaft-mining", "horse-collar", "heavy-plow", "crop-rotation", "age-2", "age-3", "age-4"], unavailable: [] }]
 };
 
 // packages/sim/economy.ts
@@ -716,6 +748,26 @@ function forfeitReservation(account, id) {
   r.status = "forfeited";
 }
 
+// packages/sim/tech.ts
+var techRules = {
+  provenance: "reference effects (aoe2-rules-research.md); carry rounding design_default",
+  // Gather rate in percent of the base rate, per yield: each researched entry adds its share.
+  gather: { wood: { "double-bit-axe": 20, "bow-saw": 20, "two-man-saw": 10 }, gold: { "gold-mining": 15, "gold-shaft-mining": 15 }, stone: { "stone-mining": 15, "stone-shaft-mining": 15 }, food: {} },
+  // Villager carry capacity: base economyRules.carryCapacity (10), 12 with Wheelbarrow, 15 with Hand Cart as well;
+  // Heavy Plow adds 1 for farmers.
+  carry: { wheelbarrow: 2, "hand-cart": 3 },
+  farmerCarry: { "heavy-plow": 1 },
+  // Food in each farm built (or reseeded) after the research.
+  farmFood: { "horse-collar": 75, "heavy-plow": 125, "crop-rotation": 175 },
+  // Villager hit points (Loom).
+  villagerHp: { loom: 15 }
+};
+var sum = (table, techs) => techs.reduce((t, id) => t + (table[id] ?? 0), 0);
+var gatherRate = (techs, resource) => 100 + sum(techRules.gather[resource] ?? {}, techs);
+var carryOf = (techs, base, farming = false) => base + sum(techRules.carry, techs) + (farming ? sum(techRules.farmerCarry, techs) : 0);
+var farmFoodOf = (techs, base) => base + sum(techRules.farmFood, techs);
+var villagerHpBonus = (techs) => sum(techRules.villagerHp, techs);
+
 // packages/sim/stats.ts
 var combatRules = {
   provenance: "design_default",
@@ -742,7 +794,7 @@ var combatRules = {
 };
 var religionBonus = { sanctityHp: 15 };
 function maxHpOf(kind, techs) {
-  return combatRules.units[kind].hp + (kind === "monk" && techs.includes("sanctity") ? religionBonus.sanctityHp : 0);
+  return combatRules.units[kind].hp + (kind === "monk" && techs.includes("sanctity") ? religionBonus.sanctityHp : 0) + (kind === "villager" ? villagerHpBonus(techs) : 0);
 }
 
 // packages/sim/fauna.ts
@@ -1079,7 +1131,7 @@ function placementProblem(input, kind, x, y) {
   if (new Set(tiles.map((t) => input.tiles[t].height)).size > 1) return "\u5730\u9762\u9AD8\u5EA6\u4E0D\u4E00\u81F4";
   if (input.obstacles.some((o) => (o.kind === "farm" ? [obstacleBounds(o)] : obstacleRects(o)).some((r2) => overlap(r2, box)))) return "\u8207\u5EFA\u7BC9\u6216\u8CC7\u6E90\u91CD\u758A";
   const r = navigationRules.radius;
-  if (input.units.some((u) => u.x >= box[0] - r && u.x <= box[2] + r && u.y >= box[1] - r && u.y <= box[3] + r)) return "\u6709\u55AE\u4F4D\u7AD9\u5728\u9810\u5B9A\u5730\u4E0A";
+  if (kind !== "farm" && input.units.some((u) => u.x >= box[0] - r && u.x <= box[2] + r && u.y >= box[1] - r && u.y <= box[3] + r)) return "\u6709\u55AE\u4F4D\u7AD9\u5728\u9810\u5B9A\u5730\u4E0A";
   return null;
 }
 function authoritativeProblem(s, player, kind, x, y) {
@@ -1092,7 +1144,7 @@ function authoritativeProblem(s, player, kind, x, y) {
 }
 var farmResourceId = (buildingId) => `resource-${buildingId}`;
 function openFarm(s, b) {
-  const capacity = terrainRules.resourceCapacity.farm;
+  const capacity = farmFoodOf(s.techs?.[b.player] ?? [], terrainRules.resourceCapacity.farm);
   s.map.resources.push({ id: farmResourceId(b.id), kind: "farm", x: b.x, y: b.y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: b.id, depletedAt: null });
   s.map.tiles[tileAt(b.x, b.y, s.map.size)].resourceRefs.push(farmResourceId(b.id));
 }
@@ -1527,6 +1579,11 @@ function commandBuild(s, unitIds, buildingId) {
 }
 function stepBuilder(s, u, w) {
   const b = s.buildings.find((b2) => b2.id === w.buildingId);
+  if (b?.complete && b.kind === "farm" && s.map.resources.some((r) => r.id === farmResourceId(b.id) && r.collectible) && !s.units.some((v) => v !== u && s.works[v.id]?.resourceId === farmResourceId(b.id))) {
+    const g = { kind: "gather", resourceId: farmResourceId(b.id), phase: "toSource", progress: 0, retries: 0 };
+    s.works[u.id] = g;
+    return goToSource(s, u, g);
+  }
   if (!b || b.complete) return stopWork(s, u);
   if (!buildSlots(s.map, b).includes(u.node)) {
     if (++w.retries > 3) return stopWork(s, u);
@@ -1672,16 +1729,33 @@ function stepWork(s) {
     w.phase = "gathering";
     w.retries = 0;
     u.navigation = "idle";
-    if (++w.progress < ticksFor(resource, kind)) continue;
-    w.progress = 0;
+    w.progress += gatherRate(s.techs[u.player], kind);
+    if (w.progress < ticksFor(resource, kind) * 100) continue;
+    w.progress -= ticksFor(resource, kind) * 100;
     const got = harvestMapResource(s.map, w.resourceId, 1, s.tick).amount;
-    if (resource.kind === "farm" && resource.status === "depleted") s.buildings = s.buildings.filter((b) => farmResourceId(b.id) !== resource.id);
+    let reseeded = null;
+    if (resource.kind === "farm" && resource.status === "depleted") {
+      const old = s.buildings.find((b) => farmResourceId(b.id) === resource.id);
+      s.buildings = s.buildings.filter((b) => b !== old);
+      if (old && s.reseed[u.player]) {
+        try {
+          reseeded = placeBuilding(s, u.player, "farm", old.x, old.y, `${u.player}:reseed:${s.nextBuildingId}`).id;
+        } catch {
+        }
+      }
+    }
     if (got > 0) {
       const c = s.cargo[u.id] ?? (s.cargo[u.id] = { resource: kind, amount: 0 });
       c.amount += got;
       s.accounts[u.player].ledger.extracted[kind] += got;
     }
-    if ((s.cargo[u.id]?.amount ?? 0) >= economyRules.carryCapacity) goToDropoff(s, u, w);
+    if (reseeded) {
+      const b = { kind: "build", buildingId: reseeded, phase: "toSite", retries: 0 };
+      s.works[u.id] = b;
+      goToSite(s, u, b);
+      continue;
+    }
+    if ((s.cargo[u.id]?.amount ?? 0) >= carryOf(s.techs[u.player], economyRules.carryCapacity, resource.kind === "farm")) goToDropoff(s, u, w);
   }
 }
 
@@ -1784,7 +1858,8 @@ function trainBlocker(i, entryId) {
   for (const req of e.requires) {
     const need = entryOf(req);
     if (need?.kind === "building" && !i.ownBuildings.some((v) => v.kind === req && v.complete)) return `\u9700\u8981\u5B8C\u5DE5\u7684${need.name}`;
-    if (need?.kind === "technology" && i.age < ageOf(req)) return `\u9700\u8981${need.name}`;
+    if (need?.kind === "technology" && ageOf(req) && i.age < ageOf(req)) return `\u9700\u8981${need.name}`;
+    if (need?.kind === "technology" && !ageOf(req) && !i.techs.includes(req)) return `\u9700\u8981\u5148\u7814\u7A76\u300C${need.name}\u300D`;
   }
   const age = ageOf(entryId);
   if (age || e.kind === "technology") {
@@ -1857,10 +1932,9 @@ function stepProduction(s) {
     if (entryOf(item.entryId)?.kind === "technology") {
       commitReservation(s.accounts[b.player], item.reservationId);
       b.queue.shift();
+      const before = [...s.techs[b.player]];
       s.techs[b.player].push(item.entryId);
-      if (item.entryId === "sanctity") {
-        for (const u2 of s.units) if (u2.player === b.player && u2.kind === "monk") u2.hp += religionBonus.sanctityHp;
-      }
+      for (const u2 of s.units) if (u2.player === b.player && u2.kind in combatRules.units) u2.hp += maxHpOf(u2.kind, s.techs[b.player]) - maxHpOf(u2.kind, before);
       continue;
     }
     const node = exitNode(s, b);
@@ -1868,7 +1942,7 @@ function stepProduction(s) {
     commitReservation(s.accounts[b.player], item.reservationId);
     b.queue.shift();
     const p = position(s.map, node), u = makeUnit(s.map, s.nextUnitId++, b.player, p.x, p.y, unitKindOf[item.entryId]);
-    if (u.kind === "monk" && s.techs[b.player].includes("sanctity")) u.hp += religionBonus.sanctityHp;
+    u.hp = maxHpOf(u.kind, s.techs[b.player]);
     s.units.push(u);
     if (b.rally && nearest(s.map, b.rally, false) >= 0) commandMove(s, [u.id], b.rally);
   }
@@ -2246,7 +2320,8 @@ var aiRules = {
   sourceMargin: 100,
   campDistance: 350,
   campWorkers: 2,
-  monkTarget: 2
+  monkTarget: 2,
+  research: { "town-center": ["loom", "wheelbarrow", "hand-cart"], "lumber-camp": ["double-bit-axe", "bow-saw", "two-man-saw"], "mining-camp": ["gold-mining", "gold-shaft-mining"], mill: ["horse-collar", "heavy-plow", "crop-rotation"] }
 };
 var gap2 = (a, b) => Math.max(a[0] - b[2], b[0] - a[2], a[1] - b[3], b[1] - a[3], 0);
 var centre = (b) => ({ x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2 });
@@ -2313,6 +2388,11 @@ function stepAI(s, order) {
   for (const b of own.filter((b2) => b2.complete && b2.queue.length < 2)) {
     const pick = savingForCastle && b.kind !== "monastery" ? null : b.kind === "barracks" && !savingForAge ? "militia" : b.kind === "archery-range" ? "archer" : b.kind === "monastery" && monks.length + queued("monk") < aiRules.monkTarget ? "monk" : null;
     if (pick && !trainable(s, P, b, pick)) order("train", { buildingId: b.id, entryId: pick });
+  }
+  if (!savingForAge && !savingForCastle) for (const b of own.filter((b2) => b2.complete && !b2.queue.length)) {
+    if (b.kind === "town-center" && villagers.length + queued("villager") < aiRules.villagerTarget) continue;
+    const next = aiRules.research[b.kind]?.find((id) => !trainable(s, P, b, id));
+    if (next) order("train", { buildingId: b.id, entryId: next });
   }
   const monastery = own.find((b) => b.kind === "monastery" && b.complete), home = tcBox ? centre(tcBox) : null, fetching = new Set(Object.values(s.rites).filter((r) => r.kind === "relic").map((r) => r.target));
   for (const m of monks) {
@@ -2493,12 +2573,12 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, religion: religionRules, animals: animalRules, simulationVersion: 23 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, religion: religionRules, animals: animalRules, tech: techRules, simulationVersion: 24 });
 function createState(seed, layout = "meadow", opponent = "idle") {
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) throw Error("seed \u5FC5\u9808\u70BA uint32");
   if (opponent !== "ai" && opponent !== "idle") throw Error("\u672A\u77E5\u7684\u5C0D\u624B\u8A2D\u5B9A");
   const map = makeMap(seed, layout);
-  const state = { buildings: [], nextBuildingId: 1, ages: [1, 1], nextUnitId: 5, nextQueueId: 1, attacks: {}, corpses: [], outcome: null, rites: {}, faith: {}, techs: [[], []], relics: layout === "open" ? placeRelics(map, seed) : [], relicMemory: [[], []], relicVictory: null, beasts: {}, version: 23, opponent, works: {}, cargo: {}, layout, vision: createVision(), accounts: [createAccount(3), createAccount(opponent === "ai" ? 3 : 1)], transactions: [], map, pathJobs: [], nextJobId: 1, navigationSeen: 0, seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [...map.starts[0].map((p, i) => makeUnit(map, 1 + i, 0, p.x, p.y)), makeUnit(map, 4, 1, map.starts[1][0].x, map.starts[1][0].y)], queue: [], log: [] };
+  const state = { buildings: [], nextBuildingId: 1, ages: [1, 1], nextUnitId: 5, nextQueueId: 1, attacks: {}, corpses: [], outcome: null, rites: {}, faith: {}, techs: [[], []], relics: layout === "open" ? placeRelics(map, seed) : [], relicMemory: [[], []], relicVictory: null, beasts: {}, reseed: [true, true], version: 24, opponent, works: {}, cargo: {}, layout, vision: createVision(), accounts: [createAccount(3), createAccount(opponent === "ai" ? 3 : 1)], transactions: [], map, pathJobs: [], nextJobId: 1, navigationSeen: 0, seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [...map.starts[0].map((p, i) => makeUnit(map, 1 + i, 0, p.x, p.y)), makeUnit(map, 4, 1, map.starts[1][0].x, map.starts[1][0].y)], queue: [], log: [] };
   if (opponent === "ai") {
     state.units.push(...map.starts[1].slice(1).map((p, i) => makeUnit(map, 5 + i, 1, p.x, p.y)));
     state.nextUnitId = 5 + map.starts[1].length - 1;
@@ -2598,6 +2678,8 @@ function submit(state, c, record = true) {
     if (!Number.isSafeInteger(c.payload.animalId)) throw Error("\u627E\u4E0D\u5230\u9019\u96BB\u52D5\u7269");
     const problem = huntProblem(state, c.playerId, c.payload.animalId);
     if (problem) throw Error(problem);
+  } else if (c.commandType === "reseed") {
+    if (typeof c.payload.enabled !== "boolean") throw Error("\u81EA\u52D5\u88DC\u7A2E\u8A2D\u5B9A\u7121\u6548");
   } else if (c.commandType === "resign") {
   } else if (c.commandType === "reserve") {
     if (!rules.entries.some((e) => e.id === c.payload.entryId)) throw Error("\u672A\u77E5\u9810\u7559\u5167\u5BB9");
@@ -2620,6 +2702,10 @@ function tick(s) {
       const ids = c.payload.unitIds.filter((id) => s.units.some((u) => u.id === id && u.player === c.playerId));
       if (!ids.length) continue;
       c.payload.unitIds = ids;
+    }
+    if (c.commandType === "reseed") {
+      s.reseed[c.playerId] = c.payload.enabled;
+      continue;
     }
     if (c.commandType === "resign") {
       if (!s.outcome) s.outcome = { winner: 1 - c.playerId, defeated: [c.playerId], tick: s.tick, reason: "resign" };
@@ -2756,13 +2842,13 @@ function replay(seed, commands, ticks, layout = "meadow", opponent = "idle") {
 }
 function serialize(s) {
   if (s.tick > 1e5 || s.log.length > 1e4) throw Error("\u5DF2\u8D85\u904E\u6B64\u968E\u6BB5\u6C99\u76D2\u5B58\u6A94\u5BB9\u91CF\uFF08100000 ticks / 10000 \u6307\u4EE4\uFF09");
-  return JSON.stringify({ format: "brick-sandbox-23", rulesetHash, state: s, checksum: hash(s) });
+  return JSON.stringify({ format: "brick-sandbox-24", rulesetHash, state: s, checksum: hash(s) });
 }
 function deserialize(raw) {
   const v = JSON.parse(raw);
-  if (!v || v.format !== "brick-sandbox-23" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
+  if (!v || v.format !== "brick-sandbox-24" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
   const s = v.state;
-  if (s.version !== 23 || s.opponent !== "ai" && s.opponent !== "idle" || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
+  if (s.version !== 24 || s.opponent !== "ai" && s.opponent !== "idle" || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
   const rebuilt = replay(s.seed, s.log, s.tick, s.layout, s.opponent);
   if (hash(rebuilt) !== hash(s)) throw Error("\u5B58\u6A94\u72C0\u614B\u7121\u6CD5\u7531\u547D\u4EE4\u91CD\u5EFA");
   return structuredClone(s);
@@ -2782,6 +2868,7 @@ function createService() {
       if (!op || typeof op.kind !== "string") throw Error("\u7F3A\u5C11 operation");
       let accepted, commands, snapshot, replayMatches;
       switch (op.kind) {
+        case "reseed":
         case "hunt":
         case "convert":
         case "heal":
@@ -2801,7 +2888,7 @@ function createService() {
           if (state.log.length >= 1e4) throw Error("\u5DF2\u9054\u6C99\u76D2 10000 \u6307\u4EE4\u4E0A\u9650\uFF0C\u8ACB\u5132\u5B58\u6216\u91CD\u5EFA");
           {
             const envelope = { acceptedTick: state.tick, protocolVersion: 1, rulesetHash, playerId: 0, sequence: state.sequence[0] + 1, targetTick: state.tick + 1 };
-            const command = op.kind === "hunt" ? { ...envelope, commandType: "hunt", payload: { unitIds: op.unitIds, animalId: op.animalId } } : op.kind === "convert" || op.kind === "heal" ? { ...envelope, commandType: op.kind, payload: op.buildingId !== void 0 ? { unitIds: op.unitIds, buildingId: op.buildingId } : { unitIds: op.unitIds, targetId: op.targetId } } : op.kind === "relic" ? { ...envelope, commandType: "relic", payload: { unitIds: op.unitIds, relicId: op.relicId } } : op.kind === "deposit" ? { ...envelope, commandType: "deposit", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "resign" ? { ...envelope, commandType: "resign", payload: {} } : op.kind === "attack" ? { ...envelope, commandType: "attack", payload: { unitIds: op.unitIds, target: op.target } } : op.kind === "move" ? { ...envelope, commandType: "move", payload: { unitIds: op.unitIds, x: op.x, y: op.y } } : op.kind === "gather" ? { ...envelope, commandType: "gather", payload: { unitIds: op.unitIds, resourceId: op.resourceId } } : op.kind === "build" ? { ...envelope, commandType: "build", payload: { unitIds: op.unitIds, kind: op.building, x: op.x, y: op.y } } : op.kind === "construct" ? { ...envelope, commandType: "construct", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "cancelBuild" ? { ...envelope, commandType: "cancelBuild", payload: { buildingId: op.buildingId } } : op.kind === "train" ? { ...envelope, commandType: "train", payload: { buildingId: op.buildingId, entryId: op.entryId } } : op.kind === "cancelTrain" ? { ...envelope, commandType: "cancelTrain", payload: { buildingId: op.buildingId, itemId: op.itemId } } : op.kind === "rally" ? { ...envelope, commandType: "rally", payload: { buildingId: op.buildingId, x: op.x, y: op.y } } : { ...envelope, commandType: "stop", payload: { unitIds: op.unitIds } };
+            const command = op.kind === "reseed" ? { ...envelope, commandType: "reseed", payload: { enabled: op.enabled } } : op.kind === "hunt" ? { ...envelope, commandType: "hunt", payload: { unitIds: op.unitIds, animalId: op.animalId } } : op.kind === "convert" || op.kind === "heal" ? { ...envelope, commandType: op.kind, payload: op.buildingId !== void 0 ? { unitIds: op.unitIds, buildingId: op.buildingId } : { unitIds: op.unitIds, targetId: op.targetId } } : op.kind === "relic" ? { ...envelope, commandType: "relic", payload: { unitIds: op.unitIds, relicId: op.relicId } } : op.kind === "deposit" ? { ...envelope, commandType: "deposit", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "resign" ? { ...envelope, commandType: "resign", payload: {} } : op.kind === "attack" ? { ...envelope, commandType: "attack", payload: { unitIds: op.unitIds, target: op.target } } : op.kind === "move" ? { ...envelope, commandType: "move", payload: { unitIds: op.unitIds, x: op.x, y: op.y } } : op.kind === "gather" ? { ...envelope, commandType: "gather", payload: { unitIds: op.unitIds, resourceId: op.resourceId } } : op.kind === "build" ? { ...envelope, commandType: "build", payload: { unitIds: op.unitIds, kind: op.building, x: op.x, y: op.y } } : op.kind === "construct" ? { ...envelope, commandType: "construct", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "cancelBuild" ? { ...envelope, commandType: "cancelBuild", payload: { buildingId: op.buildingId } } : op.kind === "train" ? { ...envelope, commandType: "train", payload: { buildingId: op.buildingId, entryId: op.entryId } } : op.kind === "cancelTrain" ? { ...envelope, commandType: "cancelTrain", payload: { buildingId: op.buildingId, itemId: op.itemId } } : op.kind === "rally" ? { ...envelope, commandType: "rally", payload: { buildingId: op.buildingId, x: op.x, y: op.y } } : { ...envelope, commandType: "stop", payload: { unitIds: op.unitIds } };
             submit(state, command);
             accepted = command;
           }
@@ -2846,7 +2933,7 @@ function createService() {
         const rite = state.rites[u.id], beast = state.beasts[u.id], action = fight && fight.firedTick >= 0 && state.tick - fight.firedTick < 10 || u.kind === "boar" && beast && beast.cooldown > combatRules.units.boar.cooldown - 10 || w?.kind === "gather" && w.phase === "hunting" && w.progress > animalRules.hunt.cooldown - 10 ? 1 : u.hitTick >= 0 && state.tick - u.hitTick < combatRules.hitFlashTicks ? 2 : 0;
         positions.set([u.id, u.player, u.x, u.y, target?.x ?? -1, target?.y ?? -1, navigationStates.indexOf(u.navigation), w ? workPhases.indexOf(w.phase) : 0, c ? resources.indexOf(c.resource) : -1, c?.amount ?? 0, w?.kind === "gather" ? resources.indexOf(w.prey !== void 0 ? "food" : resourceDefinitions[state.map.resources.find((r) => r.id === w.resourceId)?.kind ?? "berries"].yield) : -1, unitKinds.indexOf(u.kind), u.hp, maxHpOf(u.kind, state.techs[u.player]), action, rite?.kind === "convert" ? 1 : rite?.kind === "heal" ? 2 : 0, own && u.kind === "monk" ? Math.floor(faithOf(state, u.id) * 100) : -1, carrying(state, u.id) ? 1 : 0], i * STRIDE);
       });
-      const account = state.accounts[0], economy = { stock: { ...account.stock }, populationUsed: account.populationUsed, populationReserved: account.populationReserved, populationCap: account.populationCap, age: state.ages[0], techs: [...state.techs[0]] };
+      const account = state.accounts[0], economy = { stock: { ...account.stock }, populationUsed: account.populationUsed, populationReserved: account.populationReserved, populationCap: account.populationCap, age: state.ages[0], techs: [...state.techs[0]], reseed: state.reseed[0] };
       return { protocol: 1, id: req.id, ok: true, seed: state.seed, layout: state.layout, size: state.map.size, opponent: state.opponent, terrain: state.map.tiles.map(({ terrainType, height, walkClass, buildability }) => ({ terrainType, height, walkClass, buildability })), tick: state.tick, stateHash: hash(state), positions: positions.buffer, economy, corpses: state.corpses.filter((c) => c.player === 0 || state.vision[0].visible.includes(tileAt(c.x, c.y, state.map.size))).map((c) => ({ ...c })), outcome: state.outcome ? { ...state.outcome } : null, buildings: state.buildings.filter((b) => b.player === 0).map(({ id, kind, x, y, work, required, complete, queue, rally, hp, maxHp: maxHp2 }) => ({ id, kind, x, y, work, required, complete, hp, maxHp: maxHp2, queue: queue.map(({ id: id2, entryId, work: work2, required: required2 }) => ({ id: id2, entryId, work: work2, required: required2 })), rally, relics: state.relics.filter((r) => r.monastery === id).length })), relicSpots: state.relicMemory[0].map((r) => ({ ...r })), relicsHeld: [0, 1].map((p) => state.relics.filter((r) => r.monastery !== null && state.buildings.find((b) => b.id === r.monastery)?.player === p).length), relicTotal: state.relics.length, relicVictory: state.relicVictory ? { ...state.relicVictory } : null, transactions: state.transactions.filter((t) => t.playerId === 0).slice(-5).map(({ sequence, tick: tick2, ok, error }) => ({ sequence, tick: tick2, ok, ...error ? { error } : {} })), ...projectVision(state.vision[0], state.map.size), accepted, commands, snapshot, replayMatches };
     } catch (error) {
       return { protocol: 1, id: Number.isSafeInteger(req?.id) ? req.id : 0, ok: false, tick: state.tick, message: error.message, entityId: ["hunt", "attack", "move", "stop", "gather", "build", "construct", "convert", "heal", "relic", "deposit"].includes(req?.operation?.kind) ? req.operation.unitIds?.[0] : void 0 };

@@ -16,11 +16,12 @@ import {terrainRules} from '../../packages/sim/terrain.ts';
 import {economyRules} from '../../packages/sim/economy.ts';
 import type {BuildKind} from '../../packages/sim/buildings.ts';
 import {isAnimal,animalRules} from '../../packages/sim/fauna.ts';
+import {carryOf,techEffectText,farmFoodOf} from '../../packages/sim/tech.ts';
 const el=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 // ?debug=1 shows the engineering drawer (step, hash, coordinates, fog and rules tools) and starts paused;
 // a normal visit is only the game screen and the match starts running as soon as the simulation connects.
 const debug=new URLSearchParams(location.search).has('debug');el('debug').hidden=!debug;
-let state:View={seed:rules.settings.seed,layout:debug?'meadow':'open',size:debug?16:32,opponent:debug?'idle':'ai',terrain:[],tick:0,units:[],corpses:[],outcome:null,economy:{stock:{food:0,wood:0,gold:0,stone:0},populationUsed:0,populationReserved:0,populationCap:0,age:1,techs:[]},buildings:[],transactions:[],fog:[],known:[],resources:[],stateHash:'—',relicSpots:[],relicsHeld:[0,0],relicTotal:0,relicVictory:null};
+let state:View={seed:rules.settings.seed,layout:debug?'meadow':'open',size:debug?16:32,opponent:debug?'idle':'ai',terrain:[],tick:0,units:[],corpses:[],outcome:null,economy:{stock:{food:0,wood:0,gold:0,stone:0},populationUsed:0,populationReserved:0,populationCap:0,age:1,techs:[],reseed:true},buildings:[],transactions:[],fog:[],known:[],resources:[],stateHash:'—',relicSpots:[],relicsHeld:[0,0],relicTotal:0,relicVictory:null};
 const resourceNames:Record<string,string>={food:'食物',wood:'木材',gold:'黃金',stone:'石頭'};
 const workLabel:Record<string,string>={toSource:'前往採集',gathering:'採集中',toDropoff:'送返城鎮中心',toSite:'前往工地',building:'施工中',hunting:'狩獵中'};
 const buildingNames:Record<string,string>={house:'住宅',barracks:'兵營',farm:'農田','lumber-camp':'伐木場','mining-camp':'採礦場',mill:'磨坊',stable:'馬廄','archery-range':'靶場',monastery:'修道院','town-center':'城鎮中心'};
@@ -144,7 +145,7 @@ function renderSelection(){const chosen=chosenUnits(),b=state.buildings.find(v=>
   const facts=`${u.faith??''}|攻擊 ${stats.damage}|${stats.range<=50?'近戰':`射程 ${stats.range/100} 格`}|${u.cargo?`${u.cargo.resource}:${u.cargo.amount}`:''}`;const box=el('unit-facts');
   if(box.dataset.key!==facts){box.dataset.key=facts;box.replaceChildren();const add=(text:string,icon?:string)=>{const s=document.createElement('span');if(icon){const i=document.createElement('img');i.alt=resourceNames[icon];setImg(i,icon);s.append(i);}s.append(text);box.append(s);return s;};
    if(isAnimal(u.kind)){add(`食物 ${animalRules.food[u.kind]}`,'food');add(u.kind==='sheep'?'右鍵地面可趕到別處':u.kind==='boar'?'會反擊獵人':'受驚會逃跑');}
-   else if(u.kind==='monk'){add(`轉化射程 ${religionRules.convertRange/100} 格`);add(`信仰 ${u.faith??100}%`);}else{add(`攻擊 ${stats.damage}`);add(stats.range<=50?'近戰':`射程 ${stats.range/100} 格`);}if(u.cargo)add(`${u.cargo.amount}/${economyRules.carryCapacity}`,u.cargo.resource);}
+   else if(u.kind==='monk'){add(`轉化射程 ${religionRules.convertRange/100} 格`);add(`信仰 ${u.faith??100}%`);}else{add(`攻擊 ${stats.damage}`);add(stats.range<=50?'近戰':`射程 ${stats.range/100} 格`);}if(u.cargo)add(`${u.cargo.amount}/${carryOf(state.economy.techs,economyRules.carryCapacity)}`,u.cargo.resource);}
   el('unit-status').textContent=doing(u);}
  if(!b&&chosen.length>1){const counts=new Map<string,number>();for(const u of chosen)counts.set(u.kind,(counts.get(u.kind)??0)+1);
   el('group-summary').textContent=`已選取 ${chosen.length} 名 · `+[...counts].map(([k,n])=>`${unitNames[k]} ×${n}`).join(' · ');
@@ -201,7 +202,7 @@ async function construct(buildingId:string){const unitIds=villagersIn(selected);
 // Production tiles: rebuilt only when the building or its queue changes, so a click is never lost.
 let productionKey='',queueKey='';
 // What each monastery technology does (reference effects; see aoe2-rules-research.md).
-const techEffects:Record<string,string>={redemption:'僧侶可以轉化敵方建築（城鎮中心、修道院、農田除外），必須站在旁邊',atonement:'僧侶可以轉化敵方僧侶',sanctity:'僧侶生命 +15',heresy:'被敵方轉化的己方單位改為死亡',illumination:'轉化後信仰恢復速度加倍',
+const techEffects:Record<string,string>={...techEffectText,redemption:'僧侶可以轉化敵方建築（城鎮中心、修道院、農田除外），必須站在旁邊',atonement:'僧侶可以轉化敵方僧侶',sanctity:'僧侶生命 +15',heresy:'被敵方轉化的己方單位改為死亡',illumination:'轉化後信仰恢復速度加倍',
  'block-printing':'轉化射程 +3（本作 +1.2 格）',theocracy:'一群僧侶轉化成功後，只有一名需要恢復信仰',faith:'己方單位更難被轉化（第 6 次才可能成功，最遲第 14 次）'};
 const trainKeys=['Q','W','E','R','T','A','D','Z','X','C'];
 // Ages show the town centre of that age; other technologies their own brick emblem (tech-icons.ts).
@@ -211,9 +212,12 @@ function renderProduction(b:View['buildings'][number]){
  const entries=Object.entries(rules.production).filter(([,p])=>p===b.kind).map(([id])=>id),box=el('production');
  const key=b.id+':'+entries.join();if(key!==productionKey){productionKey=key;box.replaceChildren(...entries.map((id,i)=>{const btn=document.createElement('button');btn.className='tile';btn.dataset.train=id;btn.dataset.key=trainKeys[i];btn.onclick=()=>void train(b.id,id);
   const img=document.createElement('img');img.alt='';img.dataset.icon=entryIcon(id);setImg(img,img.dataset.icon);const label=document.createElement('span');label.className='label';label.textContent=entryName(id);const kbd=document.createElement('kbd');kbd.textContent=trainKeys[i];btn.append(img,label,kbd);
-  if(ageOf(id)){const roman=document.createElement('span');roman.className='roman';roman.textContent=['','I','II','III','IV'][ageOf(id)];btn.append(roman);}return btn;}));}
+  if(ageOf(id)){const roman=document.createElement('span');roman.className='roman';roman.textContent=['','I','II','III','IV'][ageOf(id)];btn.append(roman);}return btn;}));
+  // The mill also holds the automatic reseeding switch (a farm that runs out is laid again by its farmer).
+  if(b.kind==='mill'){const btn=document.createElement('button'),k=trainKeys[entries.length];btn.className='tile';btn.id='reseed';btn.dataset.key=k;btn.onclick=()=>void toggleReseed();const img=document.createElement('img');img.alt='';img.dataset.icon='farm';setImg(img,'farm');const label=document.createElement('span');label.className='label';label.textContent='自動補種';const kbd=document.createElement('kbd');kbd.textContent=k;btn.append(img,label,kbd);box.append(btn);}}
+ {const t=box.querySelector<HTMLButtonElement>('#reseed');if(t){const on=state.economy.reseed;t.hidden=!b.complete;t.disabled=!connected||graphicsFailed;t.setAttribute('aria-pressed',String(on));t.dataset.tip=`自動補種：${on?'開':'關'}`;t.setAttribute('aria-label',t.dataset.tip);}}
  const reasons:string[]=[];
- for(const btn of Array.from(box.querySelectorAll<HTMLButtonElement>('button'))){const id=btn.dataset.train!,why=trainBlocker(trainInput(b),id);
+ for(const btn of Array.from(box.querySelectorAll<HTMLButtonElement>('button[data-train]'))){const id=btn.dataset.train!,why=trainBlocker(trainInput(b),id);
   // A researched age leaves the grid, as in the original; its label still says why.
   btn.hidden=!b.complete||why==='已研究';btn.disabled=!connected||graphicsFailed||!!why;btn.setAttribute('aria-label',`${entryName(id)}（${costText(id)}）${why?`：${why}`:''}`);if(why&&why!=='已研究')reasons.push(`${entryName(id)}：${why}`);}
  el('production-reason').textContent=b.complete?reasons.join('　'):'';
@@ -221,18 +225,18 @@ function renderProduction(b:View['buildings'][number]){
   if(i===0){const bar=document.createElement('div');bar.className='q-bar';bar.append(document.createElement('i'));row.append(bar);}return row;}));}
  for(const label of Array.from(el('queue').querySelectorAll<HTMLElement>('span[data-item]'))){const q=b.queue.find(q=>q.id===Number(label.dataset.item));if(!q)continue;const first=b.queue[0]===q;label.textContent=`${entryName(q.entryId)} · ${first?(q.work>=q.required?'完成，等待出口空位':`${Math.floor(q.work*100/q.required)}%`):'排隊中'}`;
   const fill=label.parentElement!.querySelector<HTMLElement>('.q-bar i');if(fill)fill.style.width=`${Math.min(100,q.work*100/q.required)}%`;}
- el('rally-hint').textContent=b.complete&&entries.some(id=>!/^age-/.test(id))?`集結點：${b.rally?`(${(b.rally.x/100).toFixed(1)}, ${(b.rally.y/100).toFixed(1)})`:'未設定'}（右鍵地面設定）`:'';
+ el('rally-hint').textContent=b.complete&&entries.some(id=>entryOf(id)?.kind==='unit')?`集結點：${b.rally?`(${(b.rally.x/100).toFixed(1)}, ${(b.rally.y/100).toFixed(1)})`:'未設定'}（右鍵地面設定）`:'';
 }
 // Command note over the battlefield's lower-left corner: the hovered tile's card, otherwise why tiles are disabled.
 let tipTile:HTMLButtonElement|null=null;
 function tileCard(btn:HTMLButtonElement){const card=document.createDocumentFragment(),line=(cls:string,text:string)=>{const p=document.createElement('span');p.className=cls;p.textContent=text;p.style.display='block';card.append(p);};
  const id=btn.dataset.train??btn.dataset.build;const title=document.createElement('strong');card.append(title);
- if(!id){title.textContent=`${btn.dataset.tip}（${btn.dataset.key??(btn.id==='stop'?'S':'Del')}）`;line('meta',btn.id==='stop'?'所選單位在下一個節點停下，並放下目前的工作。':'拆除地基；費用全額退回。');return card;}
+ if(!id){title.textContent=`${btn.dataset.tip}（${btn.dataset.key??(btn.id==='stop'?'S':'Del')}）`;line('meta',btn.id==='reseed'?`農田耗盡時，農夫立刻在原地重建（扣木材 ${costOf('farm').wood}），完工後繼續耕作；木材不足時就不補種。按一下切換。`:btn.id==='stop'?'所選單位在下一個節點停下，並放下目前的工作。':'拆除地基；費用全額退回。');return card;}
  const e=entryOf(id)!,why=btn.dataset.train?trainBlocker(trainInput(state.buildings.find(v=>v.id===selectedBuilding)!),id):buildBlocker(id as BuildKind);
  title.textContent=`${btn.dataset.build?buildingNames[id]:entryName(id)}（${btn.dataset.key}）`;const cost=document.createElement('span');cost.className='cost';
  for(const r of resources)if(e.cost[r]>0){const s=document.createElement('span'),i=document.createElement('img');i.alt=resourceNames[r];setImg(i,r);s.append(i,String(e.cost[r]));if(state.economy.stock[r]<e.cost[r])s.style.color='#f3b19f';cost.append(s);}
  card.append(cost);const housing=buildingRules.capacity[id as keyof typeof buildingRules.capacity];
- line('meta',[`${e.time} 秒`,e.population?`人口 ${e.population}`:'',housing?`提供人口 ${housing}`:'',id==='farm'?`完工後可耕作 ${terrainRules.resourceCapacity.farm} 食物，可以走上去`:'',({'lumber-camp':'村民可在此送交木材','mining-camp':'村民可在此送交黃金與石頭',mill:'村民可在此送交食物',monastery:'訓練僧侶：轉化敵方單位、治療己方單位；存放聖物（每個每分鐘 30 黃金）',...techEffects} as Record<string,string>)[id]??''].filter(Boolean).join(' · '));if(why)line('why',why);return card;}
+ line('meta',[`${e.time} 秒`,e.population?`人口 ${e.population}`:'',housing?`提供人口 ${housing}`:'',id==='farm'?`完工後可耕作 ${farmFoodOf(state.economy.techs,terrainRules.resourceCapacity.farm)} 食物，可以走上去；建造的村民會接著耕作`:'',({'lumber-camp':'村民可在此送交木材','mining-camp':'村民可在此送交黃金與石頭',mill:'村民可在此送交食物',monastery:'訓練僧侶：轉化敵方單位、治療己方單位；存放聖物（每個每分鐘 30 黃金）',...techEffects} as Record<string,string>)[id]??''].filter(Boolean).join(' · '));if(why)line('why',why);return card;}
 function renderNote(){const box=el('cmd-note'),tip=el('tip'),build=el('build-reason'),prod=el('production-reason');
  const live=tipTile&&!tipTile.hidden&&tipTile.isConnected?tipTile:null;tip.hidden=!live;if(live)tip.replaceChildren(tileCard(live));
  build.hidden=!!live||!!selectedBuilding||!villagersIn(selected).length||!build.textContent;prod.hidden=!!live||!selectedBuilding||!prod.textContent;box.hidden=tip.hidden&&build.hidden&&prod.hidden;}
@@ -241,6 +245,7 @@ function tileAtPoint(x:number,y:number){return Array.from(el('commands').querySe
 el('commands').addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;const t=tileAtPoint(e.clientX,e.clientY);if(t!==tipTile){tipTile=t;renderNote();}});
 el('commands').addEventListener('pointerleave',()=>{tipTile=null;renderNote();});
 el('commands').addEventListener('focusin',e=>{tipTile=(e.target as HTMLElement).closest('button.tile');renderNote();});el('commands').addEventListener('focusout',()=>{tipTile=null;renderNote();});
+async function toggleReseed(){const on=!state.economy.reseed;try{await client.request({kind:'reseed',enabled:on});audio.play('order');notice(`自動補種已${on?'開啟':'關閉'}。`);}catch(e){notice(reason(e));}}
 async function train(buildingId:string,entryId:string){try{await client.request({kind:'train',buildingId,entryId});audio.play('order');notice(`${entryName(entryId)}將在 tick ${state.tick+1} 加入佇列並扣除 ${costText(entryId)}。${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
 async function cancelTrain(buildingId:string,itemId:number){try{const q=state.buildings.find(b=>b.id===buildingId)?.queue.find(q=>q.id===itemId);await client.request({kind:'cancelTrain',buildingId,itemId});notice(`已取消${q?entryName(q.entryId):'項目'}，全額退回。`);}catch(e){notice(reason(e));}}
 async function rally(buildingId:string,x:number,y:number){const to=openPoint(x,y);scene?.setMarker('rally',to.x/100,to.y/100);try{await client.request({kind:'rally',buildingId,x:to.x,y:to.y});notice(`集結點設在 (${(to.x/100).toFixed(1)}, ${(to.y/100).toFixed(1)})。`);}catch(e){notice(reason(e));}}
@@ -285,7 +290,7 @@ canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('pointermove',e=>{if(!placing||!scene)return;const g=scene.pickGround(e.clientX,e.clientY);if(g.x===undefined||g.y===undefined){scene.setGhost(null);return;}
  preview=placeAt(placing,g.x,g.y);scene.setGhost({kind:placing,x:preview.x,y:preview.y,ok:!preview.problem});renderBuild();renderNote();});
 function orderAtGround(x:number,y:number){
- if(selectedBuilding&&!selected.size){const b=state.buildings.find(b=>b.id===selectedBuilding);if(b?.complete&&Object.values(rules.production).includes(b.kind))void rally(b.id,x,y);else notice('這棟建築沒有集結點。');return;}
+ if(selectedBuilding&&!selected.size){const b=state.buildings.find(b=>b.id===selectedBuilding);if(b?.complete&&Object.entries(rules.production).some(([id,p])=>p===b.kind&&entryOf(id)?.kind==='unit'))void rally(b.id,x,y);else notice('這棟建築沒有集結點。');return;}
  void move(x,y);}
 canvas.addEventListener('pointerdown',e=>{if(!scene||graphicsFailed||!e.isPrimary)return;canvas.focus({preventScroll:true});
  if(placing){e.preventDefault();if(e.button!==0){stopPlacing('已取消放置。');return;}const g=scene.pickGround(e.clientX,e.clientY);if(g.x===undefined||g.y===undefined)return;

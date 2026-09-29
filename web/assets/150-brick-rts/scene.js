@@ -201,7 +201,30 @@ var techIcons = {
   // Theocracy: a stepped tower (one monk rests for the group).
   theocracy: [{ x: 0.1, y: 0, z: 0.1, w: 0.6, d: 0.6, h: 0.35, color: stone }, { x: 0.2, y: 0.35, z: 0.2, w: 0.4, d: 0.4, h: 0.3, color: stone }, { x: 0.28, y: 0.65, z: 0.28, w: 0.24, d: 0.24, h: 0.25, color: team }, { x: 0.35, y: 0.9, z: 0.35, w: 0.1, d: 0.1, h: 0.14, color: gold }],
   // Faith: a bell (one's own units hold firm).
-  faith: [{ x: 0.1, y: 0.86, z: 0.3, w: 0.6, d: 0.1, h: 0.1, color: wood }, { x: 0.2, y: 0.2, z: 0.2, w: 0.4, d: 0.3, h: 0.5, color: "#b8964a" }, { x: 0.12, y: 0.1, z: 0.15, w: 0.56, d: 0.4, h: 0.12, color: "#b8964a" }, { x: 0.35, y: 0.7, z: 0.3, w: 0.1, d: 0.1, h: 0.16, color: wood }, { x: 0.36, y: 0, z: 0.3, w: 0.08, d: 0.08, h: 0.1, color: "#6e5438" }]
+  faith: [{ x: 0.1, y: 0.86, z: 0.3, w: 0.6, d: 0.1, h: 0.1, color: wood }, { x: 0.2, y: 0.2, z: 0.2, w: 0.4, d: 0.3, h: 0.5, color: "#b8964a" }, { x: 0.12, y: 0.1, z: 0.15, w: 0.56, d: 0.4, h: 0.12, color: "#b8964a" }, { x: 0.35, y: 0.7, z: 0.3, w: 0.1, d: 0.1, h: 0.16, color: wood }, { x: 0.36, y: 0, z: 0.3, w: 0.08, d: 0.08, h: 0.1, color: "#6e5438" }],
+  // Economic technologies (town centre, lumber camp, mining camp, mill).
+  // Loom: a frame with coloured threads (villagers +15 hit points).
+  loom: [{ x: 0.05, y: 0, z: 0.3, w: 0.1, d: 0.1, h: 0.8, color: wood }, { x: 0.75, y: 0, z: 0.3, w: 0.1, d: 0.1, h: 0.8, color: wood }, { x: 0.05, y: 0.72, z: 0.3, w: 0.8, d: 0.1, h: 0.08, color: wood }, { x: 0.15, y: 0.15, z: 0.32, w: 0.6, d: 0.06, h: 0.5, color: "#c9b27a" }, { x: 0.2, y: 0.25, z: 0.36, w: 0.5, d: 0.04, h: 0.08, color: team }, { x: 0.2, y: 0.45, z: 0.36, w: 0.5, d: 0.04, h: 0.08, color: "#b25441" }],
+  // Wheelbarrow: a tray on one wheel with two handles (villagers carry more).
+  wheelbarrow: [{ x: 0.2, y: 0.25, z: 0.2, w: 0.5, d: 0.45, h: 0.25, color: wood }, { x: 0.05, y: 0.1, z: 0.3, w: 0.14, d: 0.25, h: 0.14, color: "#5c4a36" }, { x: 0.7, y: 0.3, z: 0.25, w: 0.25, d: 0.06, h: 0.06, color: wood }, { x: 0.7, y: 0.3, z: 0.55, w: 0.25, d: 0.06, h: 0.06, color: wood }, { x: 0.3, y: 0.5, z: 0.25, w: 0.3, d: 0.35, h: 0.08, color: "#c9b27a" }],
+  // Hand Cart: a bigger box on two wheels.
+  "hand-cart": [{ x: 0.1, y: 0.25, z: 0.15, w: 0.7, d: 0.6, h: 0.3, color: wood }, { x: 0.2, y: 0, z: 0.05, w: 0.25, d: 0.1, h: 0.25, color: "#5c4a36" }, { x: 0.2, y: 0, z: 0.7, w: 0.25, d: 0.1, h: 0.25, color: "#5c4a36" }, { x: 0.2, y: 0.55, z: 0.25, w: 0.5, d: 0.4, h: 0.12, color: "#c9b27a" }, { x: 0.8, y: 0.35, z: 0.4, w: 0.2, d: 0.1, h: 0.06, color: wood }],
+  // Double-Bit Axe: a handle with a blade on both sides.
+  "double-bit-axe": [{ x: 0.4, y: 0, z: 0.4, w: 0.08, d: 0.08, h: 0.85, color: wood }, { x: 0.15, y: 0.6, z: 0.38, w: 0.25, d: 0.12, h: 0.22, color: "#aab0a3" }, { x: 0.48, y: 0.6, z: 0.38, w: 0.25, d: 0.12, h: 0.22, color: "#aab0a3" }],
+  // Bow Saw: a curved frame with a blade.
+  "bow-saw": [{ x: 0.05, y: 0.1, z: 0.4, w: 0.8, d: 0.08, h: 0.05, color: "#c6cfca" }, { x: 0.05, y: 0.1, z: 0.4, w: 0.08, d: 0.08, h: 0.45, color: wood }, { x: 0.77, y: 0.1, z: 0.4, w: 0.08, d: 0.08, h: 0.45, color: wood }, { x: 0.1, y: 0.52, z: 0.4, w: 0.7, d: 0.08, h: 0.08, color: wood }],
+  // Two-Man Saw: a long blade with a handle at each end.
+  "two-man-saw": [{ x: 0.12, y: 0.3, z: 0.4, w: 0.76, d: 0.06, h: 0.12, color: "#c6cfca" }, { x: 0, y: 0.2, z: 0.38, w: 0.12, d: 0.1, h: 0.35, color: wood }, { x: 0.88, y: 0.2, z: 0.38, w: 0.12, d: 0.1, h: 0.35, color: wood }],
+  // Gold Mining: a pick over a gold nugget; Gold Shaft Mining: a shaft frame over it.
+  "gold-mining": [{ x: 0.2, y: 0, z: 0.25, w: 0.5, d: 0.45, h: 0.25, color: "#dec36f" }, { x: 0.42, y: 0.25, z: 0.42, w: 0.07, d: 0.07, h: 0.6, color: wood }, { x: 0.2, y: 0.8, z: 0.42, w: 0.5, d: 0.07, h: 0.07, color: "#aab0a3" }],
+  "gold-shaft-mining": [{ x: 0.2, y: 0, z: 0.25, w: 0.5, d: 0.45, h: 0.25, color: "#dec36f" }, { x: 0.1, y: 0, z: 0.15, w: 0.08, d: 0.08, h: 0.85, color: wood }, { x: 0.72, y: 0, z: 0.15, w: 0.08, d: 0.08, h: 0.85, color: wood }, { x: 0.1, y: 0.85, z: 0.15, w: 0.7, d: 0.08, h: 0.08, color: wood }, { x: 0.42, y: 0.4, z: 0.18, w: 0.04, d: 0.04, h: 0.45, color: "#80674f" }],
+  // Stone Mining and Stone Shaft Mining: the same with a stone block.
+  "stone-mining": [{ x: 0.2, y: 0, z: 0.25, w: 0.5, d: 0.45, h: 0.25, color: stone }, { x: 0.42, y: 0.25, z: 0.42, w: 0.07, d: 0.07, h: 0.6, color: wood }, { x: 0.2, y: 0.8, z: 0.42, w: 0.5, d: 0.07, h: 0.07, color: "#aab0a3" }],
+  "stone-shaft-mining": [{ x: 0.2, y: 0, z: 0.25, w: 0.5, d: 0.45, h: 0.25, color: stone }, { x: 0.1, y: 0, z: 0.15, w: 0.08, d: 0.08, h: 0.85, color: wood }, { x: 0.72, y: 0, z: 0.15, w: 0.08, d: 0.08, h: 0.85, color: wood }, { x: 0.1, y: 0.85, z: 0.15, w: 0.7, d: 0.08, h: 0.08, color: wood }, { x: 0.42, y: 0.4, z: 0.18, w: 0.04, d: 0.04, h: 0.45, color: "#80674f" }],
+  // Horse Collar: a padded U; Heavy Plow: a plough blade on a beam; Crop Rotation: three fields of different crops.
+  "horse-collar": [{ x: 0.15, y: 0, z: 0.4, w: 0.14, d: 0.14, h: 0.7, color: "#7a5c40" }, { x: 0.61, y: 0, z: 0.4, w: 0.14, d: 0.14, h: 0.7, color: "#7a5c40" }, { x: 0.15, y: 0.6, z: 0.4, w: 0.6, d: 0.14, h: 0.16, color: "#7a5c40" }, { x: 0.25, y: 0.1, z: 0.42, w: 0.4, d: 0.1, h: 0.08, color: gold }],
+  "heavy-plow": [{ x: 0.05, y: 0.35, z: 0.4, w: 0.8, d: 0.1, h: 0.1, color: wood }, { x: 0.6, y: 0, z: 0.35, w: 0.25, d: 0.2, h: 0.35, color: "#aab0a3" }, { x: 0.05, y: 0.45, z: 0.4, w: 0.08, d: 0.1, h: 0.3, color: wood }],
+  "crop-rotation": [{ x: 0, y: 0, z: 0.05, w: 0.9, d: 0.25, h: 0.12, color: "#9bb65a" }, { x: 0, y: 0, z: 0.33, w: 0.9, d: 0.25, h: 0.12, color: "#d9c26a" }, { x: 0, y: 0, z: 0.61, w: 0.9, d: 0.25, h: 0.12, color: "#806b49" }, { x: 0.1, y: 0.12, z: 0.1, w: 0.7, d: 0.15, h: 0.1, color: "#7e985f" }]
 };
 
 // apps/web/unit-rig.ts

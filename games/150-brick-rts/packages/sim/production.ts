@@ -5,7 +5,7 @@ import {position,navigationRules,nearest,blockedTable,nodesNear} from './navigat
 import {makeUnit,commandMove} from './movement.ts';
 import type {UnitKind,MovementState} from './movement.ts';
 import type {Building,BuildingState} from './buildings.ts';
-import {religionBonus} from './stats.ts';
+import {combatRules,maxHpOf} from './stats.ts';
 // Training and research queues (design_default). Cost and population are reserved when an item is queued,
 // committed when it finishes, refunded in full when it is cancelled. Only the first item advances.
 export const productionRules={provenance:'design_default',queueLimit:5} as const;
@@ -24,7 +24,9 @@ export function trainBlocker(i:TrainInput,entryId:string):string|null{
  for(const req of e.requires){
   const need=entryOf(req);
   if(need?.kind==='building'&&!i.ownBuildings.some(v=>v.kind===req&&v.complete))return `需要完工的${need.name}`;
-  if(need?.kind==='technology'&&i.age<ageOf(req))return `需要${need.name}`;
+  if(need?.kind==='technology'&&ageOf(req)&&i.age<ageOf(req))return `需要${need.name}`;
+  // A technology that follows another (Bow Saw after Double-Bit Axe) needs it researched first.
+  if(need?.kind==='technology'&&!ageOf(req)&&!i.techs.includes(req))return `需要先研究「${need.name}」`;
  }
  const age=ageOf(entryId);
  if(age||e.kind==='technology'){if(age?i.age>=age:i.techs.includes(entryId))return '已研究';if(i.ownBuildings.some(v=>v.queue.some(q=>q.entryId===entryId)))return '已在研究中';}
@@ -71,12 +73,13 @@ export function stepProduction(s:ProductionState){
    const own=new Set(s.buildings.filter(v=>v.player===b.player).map(v=>v.id));for(const o of s.map.obstacles)if(o.id&&own.has(o.id))o.age=age;continue;}
   // Other technologies are recorded for the player; their effects read s.techs (religion.ts), Sanctity also
   // raises the hit points of monks already in the field.
-  if(entryOf(item.entryId)?.kind==='technology'){commitReservation(s.accounts[b.player],item.reservationId);b.queue.shift();s.techs[b.player].push(item.entryId);
-   if(item.entryId==='sanctity')for(const u of s.units)if(u.player===b.player&&u.kind==='monk')u.hp+=religionBonus.sanctityHp;continue;}
+  // Units already in the field gain whatever health the research adds (Sanctity for monks, Loom for villagers).
+  if(entryOf(item.entryId)?.kind==='technology'){commitReservation(s.accounts[b.player],item.reservationId);b.queue.shift();const before=[...s.techs[b.player]];s.techs[b.player].push(item.entryId);
+   for(const u of s.units)if(u.player===b.player&&u.kind in combatRules.units)u.hp+=maxHpOf(u.kind as keyof typeof combatRules.units,s.techs[b.player])-maxHpOf(u.kind as keyof typeof combatRules.units,before);continue;}
   // A blocked exit keeps the finished unit waiting at 100% until a ring node frees up.
   const node=exitNode(s,b);if(node<0)continue;
   commitReservation(s.accounts[b.player],item.reservationId);b.queue.shift();
-  const p=position(s.map,node),u=makeUnit(s.map,s.nextUnitId++,b.player,p.x,p.y,unitKindOf[item.entryId]);if(u.kind==='monk'&&s.techs[b.player].includes('sanctity'))u.hp+=religionBonus.sanctityHp;s.units.push(u);
+  const p=position(s.map,node),u=makeUnit(s.map,s.nextUnitId++,b.player,p.x,p.y,unitKindOf[item.entryId]);u.hp=maxHpOf(u.kind as keyof typeof combatRules.units,s.techs[b.player]);s.units.push(u);
   // A rally point later covered by a building (or otherwise unstandable) is skipped, never an error.
   if(b.rally&&nearest(s.map,b.rally,false)>=0)commandMove(s,[u.id],b.rally);
  }

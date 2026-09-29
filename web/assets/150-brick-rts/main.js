@@ -295,10 +295,42 @@ var rules = {
   reference: { game: "Age of Empires II: Definitive Edition", version: null, build: null, contentPacks: [], verificationStatus: "unverified", sourceEvidence: [] },
   coverage: { contentDenominator: null, exactReferenceCoveragePercent: null },
   settings: { tickHz: 20, populationCap: 40, mapSize: 16, speed: 1, mode: "command-sandbox", seed: 260925, platform: "desktop browser", provenance: "design_default" },
-  entries: [entry("villager", "unit", "\u6751\u6C11", 50, 0, 0, 0, [], 1), entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 200, 0, 100), entry("house", "building", "\u6C11\u5C45", 0, 30), entry("barracks", "building", "\u5175\u71DF", 0, 150), entry("farm", "building", "\u8FB2\u7530", 0, 60), entry("lumber-camp", "building", "\u4F10\u6728\u5834", 0, 100), entry("mining-camp", "building", "\u63A1\u7926\u5834", 0, 100), entry("mill", "building", "\u78E8\u574A", 0, 100), entry("stable", "building", "\u99AC\u5EC4", 0, 175, 0, 0, ["age-2", "barracks"]), entry("archery-range", "building", "\u9776\u5834", 0, 175, 0, 0, ["age-2", "barracks"]), entry("monastery", "building", "\u4FEE\u9053\u9662", 0, 175, 0, 0, ["age-3"]), entry("militia", "unit", "\u8FD1\u6230\u6C11\u5175", 60, 0, 20, 0, ["barracks"], 1), entry("archer", "unit", "\u5F13\u624B", 0, 40, 30, 0, ["age-2"], 1), entry("ram", "unit", "\u653B\u57CE\u69CC", 0, 160, 75, 0, ["age-3"], 3), entry("scout", "unit", "\u65A5\u5019", 80, 0, 0, 0, ["stable"], 1), entry("monk", "unit", "\u50E7\u4FB6", 0, 0, 100, 0, ["monastery"], 1), entry("redemption", "technology", "\u6551\u8D16", 0, 0, 475, 0, ["monastery", "age-3"]), entry("atonement", "technology", "\u8D16\u7F6A", 0, 0, 325, 0, ["monastery", "age-3"]), entry("sanctity", "technology", "\u8056\u6F54", 0, 0, 175, 0, ["monastery", "age-3"]), entry("heresy", "technology", "\u7570\u7AEF", 0, 0, 1e3, 0, ["monastery", "age-3"]), entry("illumination", "technology", "\u555F\u8499", 0, 0, 120, 0, ["monastery", "age-4"]), entry("block-printing", "technology", "\u6D3B\u5B57\u5370\u5237", 0, 0, 200, 0, ["monastery", "age-4"]), entry("theocracy", "technology", "\u795E\u6B0A\u653F\u6CBB", 0, 0, 200, 0, ["monastery", "age-4"]), entry("faith", "technology", "\u4FE1\u4EF0", 550, 0, 750, 0, ["monastery", "age-4"]), entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300), entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]), entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"])],
+  entries: [entry("villager", "unit", "\u6751\u6C11", 50, 0, 0, 0, [], 1), entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 200, 0, 100), entry("house", "building", "\u6C11\u5C45", 0, 30), entry("barracks", "building", "\u5175\u71DF", 0, 150), entry("farm", "building", "\u8FB2\u7530", 0, 60), entry("lumber-camp", "building", "\u4F10\u6728\u5834", 0, 100), entry("mining-camp", "building", "\u63A1\u7926\u5834", 0, 100), entry("mill", "building", "\u78E8\u574A", 0, 100), entry("stable", "building", "\u99AC\u5EC4", 0, 175, 0, 0, ["age-2", "barracks"]), entry("archery-range", "building", "\u9776\u5834", 0, 175, 0, 0, ["age-2", "barracks"]), entry("monastery", "building", "\u4FEE\u9053\u9662", 0, 175, 0, 0, ["age-3"]), entry("militia", "unit", "\u8FD1\u6230\u6C11\u5175", 60, 0, 20, 0, ["barracks"], 1), entry("archer", "unit", "\u5F13\u624B", 0, 40, 30, 0, ["age-2"], 1), entry("ram", "unit", "\u653B\u57CE\u69CC", 0, 160, 75, 0, ["age-3"], 3), entry("scout", "unit", "\u65A5\u5019", 80, 0, 0, 0, ["stable"], 1), entry("monk", "unit", "\u50E7\u4FB6", 0, 0, 100, 0, ["monastery"], 1), entry("redemption", "technology", "\u6551\u8D16", 0, 0, 475, 0, ["monastery", "age-3"]), entry("atonement", "technology", "\u8D16\u7F6A", 0, 0, 325, 0, ["monastery", "age-3"]), entry("sanctity", "technology", "\u8056\u6F54", 0, 0, 175, 0, ["monastery", "age-3"]), entry("heresy", "technology", "\u7570\u7AEF", 0, 0, 1e3, 0, ["monastery", "age-3"]), entry("illumination", "technology", "\u555F\u8499", 0, 0, 120, 0, ["monastery", "age-4"]), entry("block-printing", "technology", "\u6D3B\u5B57\u5370\u5237", 0, 0, 200, 0, ["monastery", "age-4"]), entry("theocracy", "technology", "\u795E\u6B0A\u653F\u6CBB", 0, 0, 200, 0, ["monastery", "age-4"]), entry("faith", "technology", "\u4FE1\u4EF0", 550, 0, 750, 0, ["monastery", "age-4"]), entry("loom", "technology", "\u7E54\u5E03\u6A5F", 0, 0, 50), entry("wheelbarrow", "technology", "\u624B\u63A8\u8ECA", 175, 50, 0, 0, ["age-2"]), entry("hand-cart", "technology", "\u624B\u62C9\u8ECA", 300, 200, 0, 0, ["age-3", "wheelbarrow"]), entry("double-bit-axe", "technology", "\u96D9\u5203\u65A7", 100, 50, 0, 0, ["age-2"]), entry("bow-saw", "technology", "\u5F13\u92F8", 150, 100, 0, 0, ["age-3", "double-bit-axe"]), entry("two-man-saw", "technology", "\u96D9\u4EBA\u92F8", 300, 200, 0, 0, ["age-4", "bow-saw"]), entry("gold-mining", "technology", "\u63A1\u91D1\u8853", 100, 75, 0, 0, ["age-2"]), entry("gold-shaft-mining", "technology", "\u8C4E\u4E95\u63A1\u91D1", 200, 100, 0, 0, ["age-3", "gold-mining"]), entry("stone-mining", "technology", "\u63A1\u77F3\u8853", 100, 75, 0, 0, ["age-2"]), entry("stone-shaft-mining", "technology", "\u8C4E\u4E95\u63A1\u77F3", 200, 100, 0, 0, ["age-3", "stone-mining"]), entry("horse-collar", "technology", "\u99AC\u8EDB", 75, 75, 0, 0, ["age-2"]), entry("heavy-plow", "technology", "\u91CD\u7281", 125, 125, 0, 0, ["age-3", "horse-collar"]), entry("crop-rotation", "technology", "\u8F2A\u8015", 250, 250, 0, 0, ["age-4", "heavy-plow"]), entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300), entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]), entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"])],
   // Which building produces each unit/technology (design_default). null = defined but not producible yet.
-  production: { villager: "town-center", militia: "barracks", archer: "archery-range", ram: null, scout: "stable", monk: "monastery", redemption: "monastery", atonement: "monastery", sanctity: "monastery", heresy: "monastery", illumination: "monastery", "block-printing": "monastery", theocracy: "monastery", faith: "monastery", "age-2": "town-center", "age-3": "town-center", "age-4": "town-center" },
-  civilizations: [{ id: "blue-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "age-2", "age-3", "age-4"], unavailable: [] }, { id: "red-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "age-2", "age-3", "age-4"], unavailable: [] }]
+  production: {
+    villager: "town-center",
+    militia: "barracks",
+    archer: "archery-range",
+    ram: null,
+    scout: "stable",
+    monk: "monastery",
+    redemption: "monastery",
+    atonement: "monastery",
+    sanctity: "monastery",
+    heresy: "monastery",
+    illumination: "monastery",
+    "block-printing": "monastery",
+    theocracy: "monastery",
+    faith: "monastery",
+    "double-bit-axe": "lumber-camp",
+    "bow-saw": "lumber-camp",
+    "two-man-saw": "lumber-camp",
+    "gold-mining": "mining-camp",
+    "gold-shaft-mining": "mining-camp",
+    "stone-mining": "mining-camp",
+    "stone-shaft-mining": "mining-camp",
+    "horse-collar": "mill",
+    "heavy-plow": "mill",
+    "crop-rotation": "mill",
+    "age-2": "town-center",
+    "age-3": "town-center",
+    "age-4": "town-center",
+    // After the ages, so the town centre's age-up keeps its tile and hotkey.
+    loom: "town-center",
+    wheelbarrow: "town-center",
+    "hand-cart": "town-center"
+  },
+  civilizations: [{ id: "blue-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "loom", "wheelbarrow", "hand-cart", "double-bit-axe", "bow-saw", "two-man-saw", "gold-mining", "gold-shaft-mining", "stone-mining", "stone-shaft-mining", "horse-collar", "heavy-plow", "crop-rotation", "age-2", "age-3", "age-4"], unavailable: [] }, { id: "red-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "loom", "wheelbarrow", "hand-cart", "double-bit-axe", "bow-saw", "two-man-saw", "gold-mining", "gold-shaft-mining", "stone-mining", "stone-shaft-mining", "horse-collar", "heavy-plow", "crop-rotation", "age-2", "age-3", "age-4"], unavailable: [] }]
 };
 function validateRules(value, exact = false) {
   const errors = [];
@@ -584,7 +616,30 @@ var techIcons = {
   // Theocracy: a stepped tower (one monk rests for the group).
   theocracy: [{ x: 0.1, y: 0, z: 0.1, w: 0.6, d: 0.6, h: 0.35, color: stone }, { x: 0.2, y: 0.35, z: 0.2, w: 0.4, d: 0.4, h: 0.3, color: stone }, { x: 0.28, y: 0.65, z: 0.28, w: 0.24, d: 0.24, h: 0.25, color: team }, { x: 0.35, y: 0.9, z: 0.35, w: 0.1, d: 0.1, h: 0.14, color: gold }],
   // Faith: a bell (one's own units hold firm).
-  faith: [{ x: 0.1, y: 0.86, z: 0.3, w: 0.6, d: 0.1, h: 0.1, color: wood }, { x: 0.2, y: 0.2, z: 0.2, w: 0.4, d: 0.3, h: 0.5, color: "#b8964a" }, { x: 0.12, y: 0.1, z: 0.15, w: 0.56, d: 0.4, h: 0.12, color: "#b8964a" }, { x: 0.35, y: 0.7, z: 0.3, w: 0.1, d: 0.1, h: 0.16, color: wood }, { x: 0.36, y: 0, z: 0.3, w: 0.08, d: 0.08, h: 0.1, color: "#6e5438" }]
+  faith: [{ x: 0.1, y: 0.86, z: 0.3, w: 0.6, d: 0.1, h: 0.1, color: wood }, { x: 0.2, y: 0.2, z: 0.2, w: 0.4, d: 0.3, h: 0.5, color: "#b8964a" }, { x: 0.12, y: 0.1, z: 0.15, w: 0.56, d: 0.4, h: 0.12, color: "#b8964a" }, { x: 0.35, y: 0.7, z: 0.3, w: 0.1, d: 0.1, h: 0.16, color: wood }, { x: 0.36, y: 0, z: 0.3, w: 0.08, d: 0.08, h: 0.1, color: "#6e5438" }],
+  // Economic technologies (town centre, lumber camp, mining camp, mill).
+  // Loom: a frame with coloured threads (villagers +15 hit points).
+  loom: [{ x: 0.05, y: 0, z: 0.3, w: 0.1, d: 0.1, h: 0.8, color: wood }, { x: 0.75, y: 0, z: 0.3, w: 0.1, d: 0.1, h: 0.8, color: wood }, { x: 0.05, y: 0.72, z: 0.3, w: 0.8, d: 0.1, h: 0.08, color: wood }, { x: 0.15, y: 0.15, z: 0.32, w: 0.6, d: 0.06, h: 0.5, color: "#c9b27a" }, { x: 0.2, y: 0.25, z: 0.36, w: 0.5, d: 0.04, h: 0.08, color: team }, { x: 0.2, y: 0.45, z: 0.36, w: 0.5, d: 0.04, h: 0.08, color: "#b25441" }],
+  // Wheelbarrow: a tray on one wheel with two handles (villagers carry more).
+  wheelbarrow: [{ x: 0.2, y: 0.25, z: 0.2, w: 0.5, d: 0.45, h: 0.25, color: wood }, { x: 0.05, y: 0.1, z: 0.3, w: 0.14, d: 0.25, h: 0.14, color: "#5c4a36" }, { x: 0.7, y: 0.3, z: 0.25, w: 0.25, d: 0.06, h: 0.06, color: wood }, { x: 0.7, y: 0.3, z: 0.55, w: 0.25, d: 0.06, h: 0.06, color: wood }, { x: 0.3, y: 0.5, z: 0.25, w: 0.3, d: 0.35, h: 0.08, color: "#c9b27a" }],
+  // Hand Cart: a bigger box on two wheels.
+  "hand-cart": [{ x: 0.1, y: 0.25, z: 0.15, w: 0.7, d: 0.6, h: 0.3, color: wood }, { x: 0.2, y: 0, z: 0.05, w: 0.25, d: 0.1, h: 0.25, color: "#5c4a36" }, { x: 0.2, y: 0, z: 0.7, w: 0.25, d: 0.1, h: 0.25, color: "#5c4a36" }, { x: 0.2, y: 0.55, z: 0.25, w: 0.5, d: 0.4, h: 0.12, color: "#c9b27a" }, { x: 0.8, y: 0.35, z: 0.4, w: 0.2, d: 0.1, h: 0.06, color: wood }],
+  // Double-Bit Axe: a handle with a blade on both sides.
+  "double-bit-axe": [{ x: 0.4, y: 0, z: 0.4, w: 0.08, d: 0.08, h: 0.85, color: wood }, { x: 0.15, y: 0.6, z: 0.38, w: 0.25, d: 0.12, h: 0.22, color: "#aab0a3" }, { x: 0.48, y: 0.6, z: 0.38, w: 0.25, d: 0.12, h: 0.22, color: "#aab0a3" }],
+  // Bow Saw: a curved frame with a blade.
+  "bow-saw": [{ x: 0.05, y: 0.1, z: 0.4, w: 0.8, d: 0.08, h: 0.05, color: "#c6cfca" }, { x: 0.05, y: 0.1, z: 0.4, w: 0.08, d: 0.08, h: 0.45, color: wood }, { x: 0.77, y: 0.1, z: 0.4, w: 0.08, d: 0.08, h: 0.45, color: wood }, { x: 0.1, y: 0.52, z: 0.4, w: 0.7, d: 0.08, h: 0.08, color: wood }],
+  // Two-Man Saw: a long blade with a handle at each end.
+  "two-man-saw": [{ x: 0.12, y: 0.3, z: 0.4, w: 0.76, d: 0.06, h: 0.12, color: "#c6cfca" }, { x: 0, y: 0.2, z: 0.38, w: 0.12, d: 0.1, h: 0.35, color: wood }, { x: 0.88, y: 0.2, z: 0.38, w: 0.12, d: 0.1, h: 0.35, color: wood }],
+  // Gold Mining: a pick over a gold nugget; Gold Shaft Mining: a shaft frame over it.
+  "gold-mining": [{ x: 0.2, y: 0, z: 0.25, w: 0.5, d: 0.45, h: 0.25, color: "#dec36f" }, { x: 0.42, y: 0.25, z: 0.42, w: 0.07, d: 0.07, h: 0.6, color: wood }, { x: 0.2, y: 0.8, z: 0.42, w: 0.5, d: 0.07, h: 0.07, color: "#aab0a3" }],
+  "gold-shaft-mining": [{ x: 0.2, y: 0, z: 0.25, w: 0.5, d: 0.45, h: 0.25, color: "#dec36f" }, { x: 0.1, y: 0, z: 0.15, w: 0.08, d: 0.08, h: 0.85, color: wood }, { x: 0.72, y: 0, z: 0.15, w: 0.08, d: 0.08, h: 0.85, color: wood }, { x: 0.1, y: 0.85, z: 0.15, w: 0.7, d: 0.08, h: 0.08, color: wood }, { x: 0.42, y: 0.4, z: 0.18, w: 0.04, d: 0.04, h: 0.45, color: "#80674f" }],
+  // Stone Mining and Stone Shaft Mining: the same with a stone block.
+  "stone-mining": [{ x: 0.2, y: 0, z: 0.25, w: 0.5, d: 0.45, h: 0.25, color: stone }, { x: 0.42, y: 0.25, z: 0.42, w: 0.07, d: 0.07, h: 0.6, color: wood }, { x: 0.2, y: 0.8, z: 0.42, w: 0.5, d: 0.07, h: 0.07, color: "#aab0a3" }],
+  "stone-shaft-mining": [{ x: 0.2, y: 0, z: 0.25, w: 0.5, d: 0.45, h: 0.25, color: stone }, { x: 0.1, y: 0, z: 0.15, w: 0.08, d: 0.08, h: 0.85, color: wood }, { x: 0.72, y: 0, z: 0.15, w: 0.08, d: 0.08, h: 0.85, color: wood }, { x: 0.1, y: 0.85, z: 0.15, w: 0.7, d: 0.08, h: 0.08, color: wood }, { x: 0.42, y: 0.4, z: 0.18, w: 0.04, d: 0.04, h: 0.45, color: "#80674f" }],
+  // Horse Collar: a padded U; Heavy Plow: a plough blade on a beam; Crop Rotation: three fields of different crops.
+  "horse-collar": [{ x: 0.15, y: 0, z: 0.4, w: 0.14, d: 0.14, h: 0.7, color: "#7a5c40" }, { x: 0.61, y: 0, z: 0.4, w: 0.14, d: 0.14, h: 0.7, color: "#7a5c40" }, { x: 0.15, y: 0.6, z: 0.4, w: 0.6, d: 0.14, h: 0.16, color: "#7a5c40" }, { x: 0.25, y: 0.1, z: 0.42, w: 0.4, d: 0.1, h: 0.08, color: gold }],
+  "heavy-plow": [{ x: 0.05, y: 0.35, z: 0.4, w: 0.8, d: 0.1, h: 0.1, color: wood }, { x: 0.6, y: 0, z: 0.35, w: 0.25, d: 0.2, h: 0.35, color: "#aab0a3" }, { x: 0.05, y: 0.45, z: 0.4, w: 0.08, d: 0.1, h: 0.3, color: wood }],
+  "crop-rotation": [{ x: 0, y: 0, z: 0.05, w: 0.9, d: 0.25, h: 0.12, color: "#9bb65a" }, { x: 0, y: 0, z: 0.33, w: 0.9, d: 0.25, h: 0.12, color: "#d9c26a" }, { x: 0, y: 0, z: 0.61, w: 0.9, d: 0.25, h: 0.12, color: "#806b49" }, { x: 0.1, y: 0.12, z: 0.1, w: 0.7, d: 0.15, h: 0.1, color: "#7e985f" }]
 };
 
 // apps/web/unit-rig.ts
@@ -1588,7 +1643,7 @@ function validateStartingResources(map) {
         }
         return { id: resource.id, remaining: resource.remaining, distance, approach: approach2 };
       }).filter((n) => n.distance <= startingResourceRules.maxApproachDistance);
-      const available = nodes.reduce((sum, n) => sum + n.remaining, 0), nearestDistance = nodes.length ? Math.min(...nodes.map((n) => n.distance)) : null;
+      const available = nodes.reduce((sum2, n) => sum2 + n.remaining, 0), nearestDistance = nodes.length ? Math.min(...nodes.map((n) => n.distance)) : null;
       if (available < minimum) errors.push(`\u73A9\u5BB6 ${player} \u8D77\u59CB ${kind} \u53EF\u9054\u5BB9\u91CF\u4E0D\u8DB3\uFF1A${available}/${minimum}`);
       return { kind, minimum, available, nearestDistance, nodes };
     });
@@ -2426,6 +2481,39 @@ var economyRules = {
   dropoffReach: 50
 };
 
+// packages/sim/tech.ts
+var techRules = {
+  provenance: "reference effects (aoe2-rules-research.md); carry rounding design_default",
+  // Gather rate in percent of the base rate, per yield: each researched entry adds its share.
+  gather: { wood: { "double-bit-axe": 20, "bow-saw": 20, "two-man-saw": 10 }, gold: { "gold-mining": 15, "gold-shaft-mining": 15 }, stone: { "stone-mining": 15, "stone-shaft-mining": 15 }, food: {} },
+  // Villager carry capacity: base economyRules.carryCapacity (10), 12 with Wheelbarrow, 15 with Hand Cart as well;
+  // Heavy Plow adds 1 for farmers.
+  carry: { wheelbarrow: 2, "hand-cart": 3 },
+  farmerCarry: { "heavy-plow": 1 },
+  // Food in each farm built (or reseeded) after the research.
+  farmFood: { "horse-collar": 75, "heavy-plow": 125, "crop-rotation": 175 },
+  // Villager hit points (Loom).
+  villagerHp: { loom: 15 }
+};
+var sum = (table, techs) => techs.reduce((t, id) => t + (table[id] ?? 0), 0);
+var carryOf = (techs, base, farming = false) => base + sum(techRules.carry, techs) + (farming ? sum(techRules.farmerCarry, techs) : 0);
+var farmFoodOf = (techs, base) => base + sum(techRules.farmFood, techs);
+var techEffectText = {
+  loom: "\u6751\u6C11\u751F\u547D +15",
+  "wheelbarrow": "\u6751\u6C11\u651C\u5E36\u91CF 10 \u2192 12",
+  "hand-cart": "\u6751\u6C11\u651C\u5E36\u91CF\u518D +3\uFF08\u5171 15\uFF09",
+  "double-bit-axe": "\u4F10\u6728\u901F\u5EA6 +20%",
+  "bow-saw": "\u4F10\u6728\u901F\u5EA6\u518D +20%",
+  "two-man-saw": "\u4F10\u6728\u901F\u5EA6\u518D +10%",
+  "gold-mining": "\u63A1\u91D1\u901F\u5EA6 +15%",
+  "gold-shaft-mining": "\u63A1\u91D1\u901F\u5EA6\u518D +15%",
+  "stone-mining": "\u63A1\u77F3\u901F\u5EA6 +15%",
+  "stone-shaft-mining": "\u63A1\u77F3\u901F\u5EA6\u518D +15%",
+  "horse-collar": "\u4E4B\u5F8C\u5EFA\u7684\u8FB2\u7530\u98DF\u7269 +75",
+  "heavy-plow": "\u4E4B\u5F8C\u5EFA\u7684\u8FB2\u7530\u98DF\u7269 +125\uFF1B\u8FB2\u592B\u651C\u5E36\u91CF +1",
+  "crop-rotation": "\u4E4B\u5F8C\u5EFA\u7684\u8FB2\u7530\u98DF\u7269 +175"
+};
+
 // packages/sim/stats.ts
 var combatRules = {
   provenance: "design_default",
@@ -2476,7 +2564,7 @@ function placementProblem(input, kind, x, y) {
   if (new Set(tiles.map((t) => input.tiles[t].height)).size > 1) return "\u5730\u9762\u9AD8\u5EA6\u4E0D\u4E00\u81F4";
   if (input.obstacles.some((o) => (o.kind === "farm" ? [obstacleBounds(o)] : obstacleRects(o)).some((r2) => overlap(r2, box2)))) return "\u8207\u5EFA\u7BC9\u6216\u8CC7\u6E90\u91CD\u758A";
   const r = navigationRules.radius;
-  if (input.units.some((u) => u.x >= box2[0] - r && u.x <= box2[2] + r && u.y >= box2[1] - r && u.y <= box2[3] + r)) return "\u6709\u55AE\u4F4D\u7AD9\u5728\u9810\u5B9A\u5730\u4E0A";
+  if (kind !== "farm" && input.units.some((u) => u.x >= box2[0] - r && u.x <= box2[2] + r && u.y >= box2[1] - r && u.y <= box2[3] + r)) return "\u6709\u55AE\u4F4D\u7AD9\u5728\u9810\u5B9A\u5730\u4E0A";
   return null;
 }
 function buildRequirement(age, kind, own) {
@@ -2511,7 +2599,8 @@ function trainBlocker(i, entryId) {
   for (const req of e.requires) {
     const need = entryOf(req);
     if (need?.kind === "building" && !i.ownBuildings.some((v) => v.kind === req && v.complete)) return `\u9700\u8981\u5B8C\u5DE5\u7684${need.name}`;
-    if (need?.kind === "technology" && i.age < ageOf(req)) return `\u9700\u8981${need.name}`;
+    if (need?.kind === "technology" && ageOf(req) && i.age < ageOf(req)) return `\u9700\u8981${need.name}`;
+    if (need?.kind === "technology" && !ageOf(req) && !i.techs.includes(req)) return `\u9700\u8981\u5148\u7814\u7A76\u300C${need.name}\u300D`;
   }
   const age = ageOf(entryId);
   if (age || e.kind === "technology") {
@@ -2572,7 +2661,8 @@ var aiRules = {
   sourceMargin: 100,
   campDistance: 350,
   campWorkers: 2,
-  monkTarget: 2
+  monkTarget: 2,
+  research: { "town-center": ["loom", "wheelbarrow", "hand-cart"], "lumber-camp": ["double-bit-axe", "bow-saw", "two-man-saw"], "mining-camp": ["gold-mining", "gold-shaft-mining"], mill: ["horse-collar", "heavy-plow", "crop-rotation"] }
 };
 
 // packages/sim/sim.ts
@@ -2588,7 +2678,7 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, religion: religionRules, animals: animalRules, simulationVersion: 23 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, religion: religionRules, animals: animalRules, tech: techRules, simulationVersion: 24 });
 
 // packages/sim/protocol.ts
 var UNIT_STRIDE = 18;
@@ -2693,7 +2783,7 @@ var SimulationClient = class {
 var el = (id) => document.getElementById(id);
 var debug = new URLSearchParams(location.search).has("debug");
 el("debug").hidden = !debug;
-var state = { seed: rules.settings.seed, layout: debug ? "meadow" : "open", size: debug ? 16 : 32, opponent: debug ? "idle" : "ai", terrain: [], tick: 0, units: [], corpses: [], outcome: null, economy: { stock: { food: 0, wood: 0, gold: 0, stone: 0 }, populationUsed: 0, populationReserved: 0, populationCap: 0, age: 1, techs: [] }, buildings: [], transactions: [], fog: [], known: [], resources: [], stateHash: "\u2014", relicSpots: [], relicsHeld: [0, 0], relicTotal: 0, relicVictory: null };
+var state = { seed: rules.settings.seed, layout: debug ? "meadow" : "open", size: debug ? 16 : 32, opponent: debug ? "idle" : "ai", terrain: [], tick: 0, units: [], corpses: [], outcome: null, economy: { stock: { food: 0, wood: 0, gold: 0, stone: 0 }, populationUsed: 0, populationReserved: 0, populationCap: 0, age: 1, techs: [], reseed: true }, buildings: [], transactions: [], fog: [], known: [], resources: [], stateHash: "\u2014", relicSpots: [], relicsHeld: [0, 0], relicTotal: 0, relicVictory: null };
 var resourceNames = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
 var workLabel = { toSource: "\u524D\u5F80\u63A1\u96C6", gathering: "\u63A1\u96C6\u4E2D", toDropoff: "\u9001\u8FD4\u57CE\u93AE\u4E2D\u5FC3", toSite: "\u524D\u5F80\u5DE5\u5730", building: "\u65BD\u5DE5\u4E2D", hunting: "\u72E9\u7375\u4E2D" };
 var buildingNames2 = { house: "\u4F4F\u5B85", barracks: "\u5175\u71DF", farm: "\u8FB2\u7530", "lumber-camp": "\u4F10\u6728\u5834", "mining-camp": "\u63A1\u7926\u5834", mill: "\u78E8\u574A", stable: "\u99AC\u5EC4", "archery-range": "\u9776\u5834", monastery: "\u4FEE\u9053\u9662", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
@@ -3048,7 +3138,7 @@ function renderSelection() {
         add(`\u653B\u64CA ${stats.damage}`);
         add(stats.range <= 50 ? "\u8FD1\u6230" : `\u5C04\u7A0B ${stats.range / 100} \u683C`);
       }
-      if (u.cargo) add(`${u.cargo.amount}/${economyRules.carryCapacity}`, u.cargo.resource);
+      if (u.cargo) add(`${u.cargo.amount}/${carryOf(state.economy.techs, economyRules.carryCapacity)}`, u.cargo.resource);
     }
     el("unit-status").textContent = doing(u);
   }
@@ -3264,6 +3354,7 @@ async function construct(buildingId) {
 var productionKey = "";
 var queueKey = "";
 var techEffects = {
+  ...techEffectText,
   redemption: "\u50E7\u4FB6\u53EF\u4EE5\u8F49\u5316\u6575\u65B9\u5EFA\u7BC9\uFF08\u57CE\u93AE\u4E2D\u5FC3\u3001\u4FEE\u9053\u9662\u3001\u8FB2\u7530\u9664\u5916\uFF09\uFF0C\u5FC5\u9808\u7AD9\u5728\u65C1\u908A",
   atonement: "\u50E7\u4FB6\u53EF\u4EE5\u8F49\u5316\u6575\u65B9\u50E7\u4FB6",
   sanctity: "\u50E7\u4FB6\u751F\u547D +15",
@@ -3308,9 +3399,38 @@ function renderProduction(b) {
       }
       return btn;
     }));
+    if (b.kind === "mill") {
+      const btn = document.createElement("button"), k = trainKeys[entries.length];
+      btn.className = "tile";
+      btn.id = "reseed";
+      btn.dataset.key = k;
+      btn.onclick = () => void toggleReseed();
+      const img = document.createElement("img");
+      img.alt = "";
+      img.dataset.icon = "farm";
+      setImg(img, "farm");
+      const label = document.createElement("span");
+      label.className = "label";
+      label.textContent = "\u81EA\u52D5\u88DC\u7A2E";
+      const kbd = document.createElement("kbd");
+      kbd.textContent = k;
+      btn.append(img, label, kbd);
+      box2.append(btn);
+    }
+  }
+  {
+    const t = box2.querySelector("#reseed");
+    if (t) {
+      const on = state.economy.reseed;
+      t.hidden = !b.complete;
+      t.disabled = !connected || graphicsFailed;
+      t.setAttribute("aria-pressed", String(on));
+      t.dataset.tip = `\u81EA\u52D5\u88DC\u7A2E\uFF1A${on ? "\u958B" : "\u95DC"}`;
+      t.setAttribute("aria-label", t.dataset.tip);
+    }
   }
   const reasons = [];
-  for (const btn of Array.from(box2.querySelectorAll("button"))) {
+  for (const btn of Array.from(box2.querySelectorAll("button[data-train]"))) {
     const id = btn.dataset.train, why = trainBlocker(trainInput(b), id);
     btn.hidden = !b.complete || why === "\u5DF2\u7814\u7A76";
     btn.disabled = !connected || graphicsFailed || !!why;
@@ -3348,7 +3468,7 @@ function renderProduction(b) {
     const fill = label.parentElement.querySelector(".q-bar i");
     if (fill) fill.style.width = `${Math.min(100, q.work * 100 / q.required)}%`;
   }
-  el("rally-hint").textContent = b.complete && entries.some((id) => !/^age-/.test(id)) ? `\u96C6\u7D50\u9EDE\uFF1A${b.rally ? `(${(b.rally.x / 100).toFixed(1)}, ${(b.rally.y / 100).toFixed(1)})` : "\u672A\u8A2D\u5B9A"}\uFF08\u53F3\u9375\u5730\u9762\u8A2D\u5B9A\uFF09` : "";
+  el("rally-hint").textContent = b.complete && entries.some((id) => entryOf2(id)?.kind === "unit") ? `\u96C6\u7D50\u9EDE\uFF1A${b.rally ? `(${(b.rally.x / 100).toFixed(1)}, ${(b.rally.y / 100).toFixed(1)})` : "\u672A\u8A2D\u5B9A"}\uFF08\u53F3\u9375\u5730\u9762\u8A2D\u5B9A\uFF09` : "";
 }
 var tipTile = null;
 function tileCard(btn) {
@@ -3364,7 +3484,7 @@ function tileCard(btn) {
   card.append(title);
   if (!id) {
     title.textContent = `${btn.dataset.tip}\uFF08${btn.dataset.key ?? (btn.id === "stop" ? "S" : "Del")}\uFF09`;
-    line("meta", btn.id === "stop" ? "\u6240\u9078\u55AE\u4F4D\u5728\u4E0B\u4E00\u500B\u7BC0\u9EDE\u505C\u4E0B\uFF0C\u4E26\u653E\u4E0B\u76EE\u524D\u7684\u5DE5\u4F5C\u3002" : "\u62C6\u9664\u5730\u57FA\uFF1B\u8CBB\u7528\u5168\u984D\u9000\u56DE\u3002");
+    line("meta", btn.id === "reseed" ? `\u8FB2\u7530\u8017\u76E1\u6642\uFF0C\u8FB2\u592B\u7ACB\u523B\u5728\u539F\u5730\u91CD\u5EFA\uFF08\u6263\u6728\u6750 ${costOf("farm").wood}\uFF09\uFF0C\u5B8C\u5DE5\u5F8C\u7E7C\u7E8C\u8015\u4F5C\uFF1B\u6728\u6750\u4E0D\u8DB3\u6642\u5C31\u4E0D\u88DC\u7A2E\u3002\u6309\u4E00\u4E0B\u5207\u63DB\u3002` : btn.id === "stop" ? "\u6240\u9078\u55AE\u4F4D\u5728\u4E0B\u4E00\u500B\u7BC0\u9EDE\u505C\u4E0B\uFF0C\u4E26\u653E\u4E0B\u76EE\u524D\u7684\u5DE5\u4F5C\u3002" : "\u62C6\u9664\u5730\u57FA\uFF1B\u8CBB\u7528\u5168\u984D\u9000\u56DE\u3002");
     return card;
   }
   const e = entryOf2(id), why = btn.dataset.train ? trainBlocker(trainInput(state.buildings.find((v) => v.id === selectedBuilding)), id) : buildBlocker(id);
@@ -3381,7 +3501,7 @@ function tileCard(btn) {
   }
   card.append(cost);
   const housing = buildingRules.capacity[id];
-  line("meta", [`${e.time} \u79D2`, e.population ? `\u4EBA\u53E3 ${e.population}` : "", housing ? `\u63D0\u4F9B\u4EBA\u53E3 ${housing}` : "", id === "farm" ? `\u5B8C\u5DE5\u5F8C\u53EF\u8015\u4F5C ${terrainRules.resourceCapacity.farm} \u98DF\u7269\uFF0C\u53EF\u4EE5\u8D70\u4E0A\u53BB` : "", { "lumber-camp": "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u6728\u6750", "mining-camp": "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u9EC3\u91D1\u8207\u77F3\u982D", mill: "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u98DF\u7269", monastery: "\u8A13\u7DF4\u50E7\u4FB6\uFF1A\u8F49\u5316\u6575\u65B9\u55AE\u4F4D\u3001\u6CBB\u7642\u5DF1\u65B9\u55AE\u4F4D\uFF1B\u5B58\u653E\u8056\u7269\uFF08\u6BCF\u500B\u6BCF\u5206\u9418 30 \u9EC3\u91D1\uFF09", ...techEffects }[id] ?? ""].filter(Boolean).join(" \xB7 "));
+  line("meta", [`${e.time} \u79D2`, e.population ? `\u4EBA\u53E3 ${e.population}` : "", housing ? `\u63D0\u4F9B\u4EBA\u53E3 ${housing}` : "", id === "farm" ? `\u5B8C\u5DE5\u5F8C\u53EF\u8015\u4F5C ${farmFoodOf(state.economy.techs, terrainRules.resourceCapacity.farm)} \u98DF\u7269\uFF0C\u53EF\u4EE5\u8D70\u4E0A\u53BB\uFF1B\u5EFA\u9020\u7684\u6751\u6C11\u6703\u63A5\u8457\u8015\u4F5C` : "", { "lumber-camp": "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u6728\u6750", "mining-camp": "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u9EC3\u91D1\u8207\u77F3\u982D", mill: "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u98DF\u7269", monastery: "\u8A13\u7DF4\u50E7\u4FB6\uFF1A\u8F49\u5316\u6575\u65B9\u55AE\u4F4D\u3001\u6CBB\u7642\u5DF1\u65B9\u55AE\u4F4D\uFF1B\u5B58\u653E\u8056\u7269\uFF08\u6BCF\u500B\u6BCF\u5206\u9418 30 \u9EC3\u91D1\uFF09", ...techEffects }[id] ?? ""].filter(Boolean).join(" \xB7 "));
   if (why) line("why", why);
   return card;
 }
@@ -3421,6 +3541,16 @@ el("commands").addEventListener("focusout", () => {
   tipTile = null;
   renderNote();
 });
+async function toggleReseed() {
+  const on = !state.economy.reseed;
+  try {
+    await client.request({ kind: "reseed", enabled: on });
+    audio.play("order");
+    notice(`\u81EA\u52D5\u88DC\u7A2E\u5DF2${on ? "\u958B\u555F" : "\u95DC\u9589"}\u3002`);
+  } catch (e) {
+    notice(reason(e));
+  }
+}
 async function train(buildingId, entryId) {
   try {
     await client.request({ kind: "train", buildingId, entryId });
@@ -3623,7 +3753,7 @@ canvas.addEventListener("pointermove", (e) => {
 function orderAtGround(x, y) {
   if (selectedBuilding && !selected.size) {
     const b = state.buildings.find((b2) => b2.id === selectedBuilding);
-    if (b?.complete && Object.values(rules.production).includes(b.kind)) void rally(b.id, x, y);
+    if (b?.complete && Object.entries(rules.production).some(([id, p]) => p === b.kind && entryOf2(id)?.kind === "unit")) void rally(b.id, x, y);
     else notice("\u9019\u68DF\u5EFA\u7BC9\u6C92\u6709\u96C6\u7D50\u9EDE\u3002");
     return;
   }

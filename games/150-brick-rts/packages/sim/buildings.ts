@@ -7,6 +7,7 @@ import type {MapData,Obstacle} from './navigation.ts';
 import type {Unit} from './movement.ts';
 import {tileAt,terrainRules,sizeOfTiles} from './terrain.ts';
 import {combatRules} from './stats.ts';
+import {farmFoodOf} from './tech.ts';
 import type {Tile} from './terrain.ts';
 // Player buildings (design_default engineering rules, not reference-game values).
 export type BuildKind='house'|'barracks'|'farm'|'lumber-camp'|'mining-camp'|'mill'|'stable'|'archery-range'|'monastery';
@@ -35,7 +36,8 @@ export function placementProblem(input:{tiles:Pick<Tile,'buildability'|'height'>
  // A farm has no blocking rectangle but still occupies its whole extent.
  if(input.obstacles.some(o=>(o.kind==='farm'?[obstacleBounds(o)]:obstacleRects(o)).some(r=>overlap(r,box))))return '與建築或資源重疊';
  // Inclusive, like navigation: a unit centre on the edge of the radius-expanded footprint counts as blocked.
- const r=navigationRules.radius;if(input.units.some(u=>u.x>=box[0]-r&&u.x<=box[2]+r&&u.y>=box[1]-r&&u.y<=box[3]+r))return '有單位站在預定地上';
+// A farm is walkable: units standing there stay (a farmer reseeding stands on the old field).
+ const r=navigationRules.radius;if(kind!=='farm'&&input.units.some(u=>u.x>=box[0]-r&&u.x<=box[2]+r&&u.y>=box[1]-r&&u.y<=box[3]+r))return '有單位站在預定地上';
  return null;
 }
 export function authoritativeProblem(s:BuildingState,player:number,kind:BuildKind,x:number,y:number){
@@ -49,7 +51,8 @@ export function authoritativeProblem(s:BuildingState,player:number,kind:BuildKin
 }
 // A finished farm becomes a food source only its owner may work (resource id = farmResourceId).
 export const farmResourceId=(buildingId:string)=>`resource-${buildingId}`;
-function openFarm(s:BuildingState,b:Building){const capacity=terrainRules.resourceCapacity.farm;s.map.resources.push({id:farmResourceId(b.id),kind:'farm',x:b.x,y:b.y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId:b.id,depletedAt:null});s.map.tiles[tileAt(b.x,b.y,s.map.size)].resourceRefs.push(farmResourceId(b.id));}
+// Its food: the base plus the owner's farming technologies at completion (Horse Collar, Heavy Plow, Crop Rotation).
+function openFarm(s:BuildingState,b:Building){const capacity=farmFoodOf((s as {techs?:string[][]}).techs?.[b.player]??[],terrainRules.resourceCapacity.farm);s.map.resources.push({id:farmResourceId(b.id),kind:'farm',x:b.x,y:b.y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId:b.id,depletedAt:null});s.map.tiles[tileAt(b.x,b.y,s.map.size)].resourceRefs.push(farmResourceId(b.id));}
 // Removing a farm (destroyed, cancelled or worked out) closes its food source.
 export function closeFarm(s:BuildingState,buildingId:string,tick:number){const r=s.map.resources.find(r=>r.id===farmResourceId(buildingId));if(!r||r.status==='depleted')return;r.collectible=false;r.status='depleted';r.obstacleId=null;r.depletedAt=tick;}
 export function farmOwner(s:BuildingState,resourceId:string){return s.buildings.find(b=>farmResourceId(b.id)===resourceId)?.player??null;}

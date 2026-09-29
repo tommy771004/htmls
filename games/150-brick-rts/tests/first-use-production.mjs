@@ -64,7 +64,7 @@ await runUntil(()=>{const m=/木材 (\d+)/.exec(document.querySelector('#stock')
 await page.locator('#build-farm').click();p=await centre(farmBox);await page.mouse.move(p.x,p.y);note('放置農田',await act(()=>page.mouse.click(p.x,p.y)));assert.match(await text('notice'),/前往建造農田/);
 // Farm: 20 s of work (400 ticks) plus the walk; then select the field to see that it stands finished.
 const laid=Number(await text('tick'));await runUntil(t=>Number(document.querySelector('#tick').textContent)>=t+700,150000,laid);
-p=await centre(farmBox);await page.mouse.click(p.x,p.y);note('農田',`${await text('building-title')} ${await text('building-status')}`);assert.match(await text('building-status'),/剩餘食物 250\/250/,'a finished field shows its food');await page.keyboard.press('Escape');
+p=await centre(farmBox);await page.mouse.click(p.x,p.y);note('農田',`${await text('building-title')} ${await text('building-status')}`);assert.match(await text('building-status'),/剩餘食物 \d+\/250/,'a finished field shows its food (its builder is already farming it)');await page.keyboard.press('Escape');
 await page.locator('[data-unit="1"]').click();p=await centre(farmBox);note('村民 1 耕田',await act(()=>page.mouse.click(p.x,p.y,{button:'right'})));
 await runUntil(()=>{const m=/食物 (\d+)/.exec(document.querySelector('#stock').textContent);return m&&+m[1]>=60;},240000);note('食物達 60',await text('stock'));
 p=await centre(barracksBox);await page.mouse.click(p.x,p.y);assert.equal(await text('building-title'),'兵營');

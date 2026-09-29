@@ -627,6 +627,336 @@
       "testEvidence": [
         "tests/foundation.test.ts (data validation only)"
       ],
+      "id": "loom",
+      "kind": "technology",
+      "name": "織布機",
+      "cost": {
+        "food": 0,
+        "wood": 0,
+        "gold": 50,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "wheelbarrow",
+      "kind": "technology",
+      "name": "手推車",
+      "cost": {
+        "food": 175,
+        "wood": 50,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "hand-cart",
+      "kind": "technology",
+      "name": "手拉車",
+      "cost": {
+        "food": 300,
+        "wood": 200,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "age-3",
+        "wheelbarrow"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "double-bit-axe",
+      "kind": "technology",
+      "name": "雙刃斧",
+      "cost": {
+        "food": 100,
+        "wood": 50,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "bow-saw",
+      "kind": "technology",
+      "name": "弓鋸",
+      "cost": {
+        "food": 150,
+        "wood": 100,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "age-3",
+        "double-bit-axe"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "two-man-saw",
+      "kind": "technology",
+      "name": "雙人鋸",
+      "cost": {
+        "food": 300,
+        "wood": 200,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "age-4",
+        "bow-saw"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "gold-mining",
+      "kind": "technology",
+      "name": "採金術",
+      "cost": {
+        "food": 100,
+        "wood": 75,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "gold-shaft-mining",
+      "kind": "technology",
+      "name": "豎井採金",
+      "cost": {
+        "food": 200,
+        "wood": 100,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "age-3",
+        "gold-mining"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "stone-mining",
+      "kind": "technology",
+      "name": "採石術",
+      "cost": {
+        "food": 100,
+        "wood": 75,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "stone-shaft-mining",
+      "kind": "technology",
+      "name": "豎井採石",
+      "cost": {
+        "food": 200,
+        "wood": 100,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "age-3",
+        "stone-mining"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "horse-collar",
+      "kind": "technology",
+      "name": "馬軛",
+      "cost": {
+        "food": 75,
+        "wood": 75,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "heavy-plow",
+      "kind": "technology",
+      "name": "重犁",
+      "cost": {
+        "food": 125,
+        "wood": 125,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "age-3",
+        "horse-collar"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "crop-rotation",
+      "kind": "technology",
+      "name": "輪耕",
+      "cost": {
+        "food": 250,
+        "wood": 250,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "age-4",
+        "heavy-plow"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
       "id": "age-2",
       "kind": "technology",
       "name": "第二時代",
@@ -707,9 +1037,22 @@
     "block-printing": "monastery",
     "theocracy": "monastery",
     "faith": "monastery",
+    "double-bit-axe": "lumber-camp",
+    "bow-saw": "lumber-camp",
+    "two-man-saw": "lumber-camp",
+    "gold-mining": "mining-camp",
+    "gold-shaft-mining": "mining-camp",
+    "stone-mining": "mining-camp",
+    "stone-shaft-mining": "mining-camp",
+    "horse-collar": "mill",
+    "heavy-plow": "mill",
+    "crop-rotation": "mill",
     "age-2": "town-center",
     "age-3": "town-center",
-    "age-4": "town-center"
+    "age-4": "town-center",
+    "loom": "town-center",
+    "wheelbarrow": "town-center",
+    "hand-cart": "town-center"
   },
   "civilizations": [
     {
@@ -739,6 +1082,19 @@
         "block-printing",
         "theocracy",
         "faith",
+        "loom",
+        "wheelbarrow",
+        "hand-cart",
+        "double-bit-axe",
+        "bow-saw",
+        "two-man-saw",
+        "gold-mining",
+        "gold-shaft-mining",
+        "stone-mining",
+        "stone-shaft-mining",
+        "horse-collar",
+        "heavy-plow",
+        "crop-rotation",
         "age-2",
         "age-3",
         "age-4"
@@ -772,6 +1128,19 @@
         "block-printing",
         "theocracy",
         "faith",
+        "loom",
+        "wheelbarrow",
+        "hand-cart",
+        "double-bit-axe",
+        "bow-saw",
+        "two-man-saw",
+        "gold-mining",
+        "gold-shaft-mining",
+        "stone-mining",
+        "stone-shaft-mining",
+        "horse-collar",
+        "heavy-plow",
+        "crop-rotation",
         "age-2",
         "age-3",
         "age-4"

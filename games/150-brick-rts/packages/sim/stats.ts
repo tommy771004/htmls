@@ -1,6 +1,7 @@
-// Combat numbers (design_default engineering values, not reference-game data). No imports: shared by
+// Combat numbers (design_default engineering values, not reference-game data). Only the leaf tech.ts is imported: shared by
 // movement (unit hp), buildings (structure hp) and combat. range/sight are in simulation units
 // (Chebyshev distance to the target's centre, or to a building's footprint edge); cooldown in ticks.
+import {villagerHpBonus} from './tech.ts';
 export const combatRules={provenance:'design_default',
  units:{
   villager:{hp:25,damage:1,range:50,cooldown:30,sight:0},
@@ -24,6 +25,6 @@ export const combatRules={provenance:'design_default',
 } as const;
 // Monastery technology effects that touch unit stats (reference values, see aoe2-rules-research.md).
 export const religionBonus={sanctityHp:15} as const;
-// A unit's full health: the base value, plus Sanctity for its owner's monks.
-export function maxHpOf(kind:keyof typeof combatRules.units,techs:readonly string[]){return combatRules.units[kind].hp+(kind==='monk'&&techs.includes('sanctity')?religionBonus.sanctityHp:0);}
+// A unit's full health: the base value, plus Sanctity for its owner's monks and Loom for its villagers.
+export function maxHpOf(kind:keyof typeof combatRules.units,techs:readonly string[]){return combatRules.units[kind].hp+(kind==='monk'&&techs.includes('sanctity')?religionBonus.sanctityHp:0)+(kind==='villager'?villagerHpBonus(techs):0);}
 export type CombatUnitKind=keyof typeof combatRules.units;

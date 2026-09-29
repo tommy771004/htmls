@@ -21,7 +21,8 @@ import type {ReligionState} from './religion.ts';
 // thinkTicks: one decision pass per second at 20 Hz. firstWaveTick: no attack wave before 4 minutes.
 export const aiRules={provenance:'design_default',player:1,thinkTicks:20,thinkOffset:7,villagerTarget:12,
  gatherWeights:{food:4,wood:3,gold:2,stone:0},houseMargin:2,barracksAtVillagers:3,ageUpAtVillagers:9,
- waveSize:5,firstWaveTick:4800,herdRadius:450,penSize:3,wildFoodWorkers:6,wildRange:650,engageRange:500,defendRadius:700,baseMargin:110,laneGap:110,siteRange:900,siteStep:20,halfMargin:100,spill:100,sourceMargin:100,campDistance:350,campWorkers:2,monkTarget:2} as const;
+ waveSize:5,firstWaveTick:4800,herdRadius:450,penSize:3,wildFoodWorkers:6,wildRange:650,engageRange:500,defendRadius:700,baseMargin:110,laneGap:110,siteRange:900,siteStep:20,halfMargin:100,spill:100,sourceMargin:100,campDistance:350,campWorkers:2,monkTarget:2,
+ research:{'town-center':['loom','wheelbarrow','hand-cart'],'lumber-camp':['double-bit-axe','bow-saw','two-man-saw'],'mining-camp':['gold-mining','gold-shaft-mining'],mill:['horse-collar','heavy-plow','crop-rotation']}} as const;
 export type AIState=ReligionState&ProductionState&{tick:number;ages:number[];vision:PlayerVision[]};
 export type Order=(commandType:'hunt'|'move'|'gather'|'build'|'construct'|'train'|'attack'|'resign'|'convert'|'relic'|'deposit',payload:Record<string,unknown>)=>boolean;
 type Box=number[];
@@ -82,6 +83,11 @@ export function stepAI(s:AIState,order:Order){
  for(const b of own.filter(b=>b.complete&&b.queue.length<2)){
   const pick=savingForCastle&&b.kind!=='monastery'?null:b.kind==='barracks'&&!savingForAge?'militia':b.kind==='archery-range'?'archer':b.kind==='monastery'&&monks.length+queued('monk')<aiRules.monkTarget?'monk':null;
   if(pick&&!trainable(s,P,b,pick))order('train',{buildingId:b.id,entryId:pick});}
+ // Economic technologies, in the reference's usual order, whenever nothing is being saved for an age: the gather
+ // upgrades at the camps and the mill, Loom and the carts at an idle town centre once the villagers are complete.
+ if(!savingForAge&&!savingForCastle)for(const b of own.filter(b=>b.complete&&!b.queue.length)){
+  if(b.kind==='town-center'&&villagers.length+queued('villager')<aiRules.villagerTarget)continue;
+  const next=(aiRules.research as Record<string,readonly string[]>)[b.kind]?.find(id=>!trainable(s,P,b,id));if(next)order('train',{buildingId:b.id,entryId:next});}
  // Monks: a carried relic goes to the monastery; with full faith a monk converts the nearest enemy unit that comes
  // near the town centre; otherwise idle monks fetch relics red has seen (one monk per relic). Healing is automatic.
  const monastery=own.find(b=>b.kind==='monastery'&&b.complete),home=tcBox?centre(tcBox):null,fetching=new Set(Object.values(s.rites).filter(r=>r.kind==='relic').map(r=>r.target));

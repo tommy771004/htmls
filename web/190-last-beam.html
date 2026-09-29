@@ -137,6 +137,8 @@ button{font:inherit;color:inherit}
 #dmgdir{position:absolute;left:50%;top:50%;width:0;height:0}
 #dmgdir i{position:absolute;left:-60px;top:-150px;width:120px;height:26px;border-radius:50% 50% 0 0/100% 100% 0 0;border-top:5px solid rgba(224,48,43,.85);opacity:0;transform-origin:60px 150px;transition:opacity .6s}
 
+#rdot{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px;border-radius:50%;background:#ff3b30;box-shadow:0 0 6px 2px rgba(255,59,48,.55);opacity:0;transition:opacity .08s}
+#rdot.on{opacity:1}
 #scope{position:absolute;inset:0;opacity:0;transition:opacity .08s;background:radial-gradient(circle at 50% 50%,transparent 0 calc(min(40vw,40vh)),#050505 calc(min(40vw,40vh) + 1px))}
 #scope.on{opacity:1}
 #scope::before,#scope::after{content:"";position:absolute;background:#050505}
@@ -258,6 +260,7 @@ body.touch #meds div,body.touch #guns .slot,body.touch #guns .frag{pointer-event
   <div id="zonetint"></div>
   <div id="vign"></div>
   <div id="scope"><i></i></div>
+  <div id="rdot"></div>
   <div id="floats"></div>
   <div id="compass"><div id="compStrip"></div><i></i></div>
   <div id="alti" class="hide"><div class="bar"><i id="altiFill"></i><em id="altiOpen"></em><b id="altiMark"></b></div><span id="altiNum">0</span><small id="altiSpd">0 km/h</small></div>
@@ -275,7 +278,7 @@ body.touch #meds div,body.touch #guns .slot,body.touch #guns .frag{pointer-event
   <div id="cross"><i class="u"></i><i class="d"></i><i class="l"></i><i class="r"></i><i class="c"></i></div>
   <div id="hit"><i></i><i></i><i></i><i></i></div>
   <div id="dmgdir"><i></i></div>
-  <div id="prompt" class="plate hide"><kbd>E</kbd><span id="promptT"></span></div>
+  <div id="prompt" class="plate hide"><kbd>F</kbd><span id="promptT"></span></div>
   <div id="cast" class="hide"><span id="castT"></span><div><i id="castBar"></i></div></div>
   <div id="banner"></div>
   <div id="elim"><div class="multi"></div><div class="card"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#e0302b" d="M16 3c-6.6 0-11 4.3-11 10.2 0 3.6 1.7 6.4 4.3 8v3.3c0 .9.7 1.5 1.5 1.5h1.2v2.5h2.2V26h3.6v2.5H20V26h1.2c.8 0 1.5-.6 1.5-1.5v-3.3c2.6-1.6 4.3-4.4 4.3-8C27 7.3 22.6 3 16 3zm-4.6 15.3a2.9 2.9 0 1 1 0-5.8 2.9 2.9 0 0 1 0 5.8zm9.2 0a2.9 2.9 0 1 1 0-5.8 2.9 2.9 0 0 1 0 5.8z"/></svg><div><small>淘汰</small><b class="who">—</b></div></div><div class="tags"></div></div>
@@ -306,9 +309,11 @@ body.touch #meds div,body.touch #guns .slot,body.touch #guns .frag{pointer-event
     <div class="keys" id="keysDesk">
       <kbd>滑鼠</kbd><span>環顧・左鍵開火・右鍵瞄準（KAR98K 開 4 倍鏡）</span>
       <kbd>W A S D</kbd><span>移動・跳傘時操控方向</span>
-      <kbd>F</kbd><span>跳出直升機・提早開傘</span>
-      <kbd>Shift / Space / C</kbd><span>衝刺・跳躍・蹲下</span>
-      <kbd>E / R</kbd><span>撿起・裝填</span>
+      <kbd>F</kbd><span>跳出直升機・提早開傘・撿起・開關門</span>
+      <kbd>Shift / Space</kbd><span>衝刺・跳躍（前方有矮牆會翻過去）</span>
+      <kbd>C / Z</kbd><span>蹲下・趴下</span>
+      <kbd>Q / E</kbd><span>左右探頭</span>
+      <kbd>R</kbd><span>裝填</span>
       <kbd>1 2 / 滾輪 / X</kbd><span>換槍・收槍</span>
       <kbd>5 6 7 8</kbd><span>繃帶・急救包・醫療箱・能量飲料</span>
       <kbd>G / M</kbd><span>丟手雷・大地圖</span>
@@ -614,6 +619,20 @@ function hoardTex(kind) {
   const t = tex(c, false); return t;
 }
 TEX.hoard = [hoardTex(0), hoardTex(1)];
+{ // 紅磚：512px = 2m，一皮 6.5cm、磚長 21.5cm，每塊顏色略有不同
+  const c = mkCanvas(512, 512), g = c.getContext('2d');
+  g.fillStyle = '#b8b0a4'; g.fillRect(0, 0, 512, 512);
+  const bh = 17, bw = 55;
+  for (let r = 0; r < 512 / bh + 1; r++) for (let k = -1; k < 512 / bw + 1; k++) {
+    const x = k * bw + (r % 2) * bw / 2, y = r * bh;
+    const t = rnd(), cc = [150 + rnd(40) | 0, 64 + rnd(28) | 0, 44 + rnd(20) | 0];
+    if (t < .08) { cc[0] -= 40; cc[1] -= 20; cc[2] -= 12; }
+    g.fillStyle = `rgb(${cc})`; g.fillRect(x + 1.5, y + 1.5, bw - 3, bh - 3);
+    g.fillStyle = 'rgba(255,255,255,.06)'; g.fillRect(x + 1.5, y + 1.5, bw - 3, 3);
+  }
+  speckle(g, 512, 512, 3000, ['rgba(40,20,10,.25)', 'rgba(255,235,210,.12)'], 1, 2);
+  TEX.brick = tex(c);
+}
 
 /* ---------- 世界建造器：同材質的幾何合併成一個 mesh ---------- */
 const MATS = {
@@ -629,9 +648,15 @@ const MATS = {
   hoard0: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .7, map: TEX.hoard[0] }),
   hoard1: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .7, map: TEX.hoard[1] }),
   glb: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .62, metalness: .12 }),
+  brick: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .92, map: TEX.brick }),
 };
 const GEO = {};
-const addGeo = (k, g) => (GEO[k] || (GEO[k] = [])).push(g);
+let GEO_T = GEO;
+const addGeo = (k, g) => (GEO_T[k] || (GEO_T[k] = [])).push(g);
+/* 把一組幾何依材質合併成網格，加到 parent（給會動的塔吊用） */
+function meshesFrom(map, parent) {
+  for (const k in map) { const m = new THREE.Mesh(mergeGeometries(map[k], false), MATS[k]); m.castShadow = true; m.receiveShadow = true; parent.add(m); map[k].forEach(g => g.dispose()); }
+}
 let XF = new THREE.Matrix4();
 const XS = [];
 const _m = new THREE.Matrix4(), _e = new THREE.Euler(), _q = new THREE.Quaternion(), _v = new THREE.Vector3(), _v2 = new THREE.Vector3(), _s = new THREE.Vector3(1, 1, 1);
@@ -726,6 +751,7 @@ function colsNear(x0, z0, x1, z1, out) {
   }
   return out;
 }
+let RB_MAX = 0;
 function rayBox(c, ox, oy, oz, ix, iy, iz) {
   let t1 = (c.x0 - ox) * ix, t2 = (c.x1 - ox) * ix;
   let tmin = Math.min(t1, t2), tmax = Math.max(t1, t2);
@@ -734,12 +760,45 @@ function rayBox(c, ox, oy, oz, ix, iy, iz) {
   t1 = (c.z0 - oz) * iz; t2 = (c.z1 - oz) * iz;
   tmin = Math.max(tmin, Math.min(t1, t2)); tmax = Math.min(tmax, Math.max(t1, t2));
   if (tmax < 0 || tmin > tmax) return Infinity;
+  RB_MAX = tmax;
+  if (c.cone) return rayCone(c, ox, oy, oz, 1 / ix, 1 / iy, 1 / iz, Math.max(0, tmin), tmax);
   return tmin > 0 ? tmin : 0;
+}
+/* 圓錐（沙堆、碎石堆）：表面高度 = h ×（1 − 離中心距離 / r） */
+function coneH(c, x, z, rad = 0) {
+  const d = Math.max(0, Math.hypot(x - c.cone.x, z - c.cone.z) - rad * .7);
+  return d >= c.cone.r ? 0 : c.cone.h * (1 - d / c.cone.r);
+}
+function rayCone(c, ox, oy, oz, dx, dy, dz, t0, t1) {
+  const N = 14, st = (t1 - t0) / N;
+  let prev = t0;
+  for (let i = 0; i <= N; i++) {
+    const t = t0 + st * i, y = oy + dy * t;
+    if (y <= coneH(c, ox + dx * t, oz + dz * t)) {
+      if (i === 0) return t0;
+      let a = prev, b = t;
+      for (let k = 0; k < 6; k++) { const m = (a + b) / 2; if (oy + dy * m <= coneH(c, ox + dx * m, oz + dz * m)) b = m; else a = m; }
+      return b;
+    }
+    prev = t;
+  }
+  return Infinity;
+}
+/* 最近一次 raycast 打到的東西（給彈孔、火花的方向用） */
+const RAYHIT = { c: null };
+function hitNormal(px, py, pz, out) {
+  const c = RAYHIT.c;
+  if (!c) return out.set(0, 1, 0);
+  if (c.cone) { const dx = px - c.cone.x, dz = pz - c.cone.z, d = Math.hypot(dx, dz) || 1; return out.set(dx / d * c.cone.h / c.cone.r, 1, dz / d * c.cone.h / c.cone.r).normalize(); }
+  const f = [px - c.x0, c.x1 - px, py - c.y0, c.y1 - py, pz - c.z0, c.z1 - pz];
+  let k = 0; for (let i = 1; i < 6; i++) if (f[i] < f[k]) k = i;
+  return out.set(k === 0 ? -1 : k === 1 ? 1 : 0, k === 2 ? -1 : k === 3 ? 1 : 0, k === 4 ? -1 : k === 5 ? 1 : 0);
 }
 /* 射線對世界（含地面）；方向需為單位向量，回傳距離 */
 function raycast(ox, oy, oz, dx, dy, dz, maxT) {
   STAMP++;
   let best = maxT;
+  RAYHIT.c = null;
   if (dy < -1e-6) { const tg = -oy / dy; if (tg >= 0 && tg < best) best = tg; }
   const ix = 1 / dx, iy = 1 / dy, iz = 1 / dz;
   const G1 = GMIN + GN * GRID;
@@ -760,7 +819,7 @@ function raycast(ox, oy, oz, dx, dy, dz, maxT) {
     const cell = CELLS[cz * GN + cx];
     for (let n = 0; n < cell.length; n++) {
       const c = cell[n]; if (c.s === STAMP) continue; c.s = STAMP;
-      const t = rayBox(c, ox, oy, oz, ix, iy, iz); if (t < best) best = t;
+      const t = rayBox(c, ox, oy, oz, ix, iy, iz); if (t < best) { best = t; RAYHIT.c = c; }
     }
     const tn = Math.min(tMaxX, tMaxZ);
     if (best <= tn) break;
@@ -782,6 +841,17 @@ function resolveBody(p, r, h, vel, allowStep) {
   for (let pass = 0; pass < 2; pass++) for (let n = 0; n < NEAR.length; n++) {
     const c = NEAR[n];
     if (p.x + r <= c.x0 || p.x - r >= c.x1 || p.z + r <= c.z0 || p.z - r >= c.z1 || p.y + h <= c.y0 || p.y >= c.y1) continue;
+    if (c.cone) {
+      // 沙堆：坡不陡就走上去，太陡就沿半徑推開
+      const hs = coneH(c, p.x, p.z, r);
+      if (p.y >= hs) continue;
+      if (hs - p.y <= .55 && vel.y <= .5) { p.y = hs; if (vel.y < 0) vel.y = 0; continue; }
+      const dx = p.x - c.cone.x, dz = p.z - c.cone.z, d = Math.hypot(dx, dz) || 1e-3;
+      const need = c.cone.r * (1 - (p.y + .5) / c.cone.h) + r * .7;
+      if (d < need) { p.x = c.cone.x + dx / d * need; p.z = c.cone.z + dz / d * need; }
+      continue;
+    }
+    if (c.door && c.door.moving) continue;
     const up = c.y1 - p.y;
     if (allowStep && up <= 0.55 && vel.y <= 0.5) { p.y = c.y1; if (vel.y < 0) vel.y = 0; continue; }
     const px = Math.min(p.x + r - c.x0, c.x1 - (p.x - r)), pz = Math.min(p.z + r - c.z0, c.z1 - (p.z - r));
@@ -797,13 +867,14 @@ function groundBelow(x, y, z, r) {
   for (let n = 0; n < NEAR.length; n++) {
     const c = NEAR[n];
     if (x + r <= c.x0 || x - r >= c.x1 || z + r <= c.z0 || z - r >= c.z1) continue;
+    if (c.cone) { const hs = coneH(c, x, z, r); if (hs <= y + .08 && hs > g) g = hs; continue; }
     if (c.y1 <= y + 0.06 && c.y1 > g) g = c.y1;
   }
   return g;
 }
 function pointBlocked(x, y, z, r) {
   colsNear(x - r, z - r, x + r, z + r, NEAR);
-  for (const c of NEAR) if (x + r > c.x0 && x - r < c.x1 && z + r > c.z0 && z - r < c.z1 && y + 1.6 > c.y0 && y + .3 < c.y1) return true;
+  for (const c of NEAR) if (x + r > c.x0 && x - r < c.x1 && z + r > c.z0 && z - r < c.z1 && y + 1.6 > c.y0 && y + .3 < (c.cone ? coneH(c, x, z) : c.y1)) return true;
   return false;
 }
 
@@ -840,7 +911,7 @@ function drum(x, z, color) { C('metal', color, x, .45, z, .3, .3, .9, 10, { col:
 function pallet(x, z, ry, load) {
   pushX(x, 0, z, ry);
   B('wood', K.wood, 0, 0, 0, 1.2, .14, 1, { col: 1 });
-  if (load === 'brick') { B('flat', K.brick, 0, .14, 0, 1.1, .9, .9, { col: 1, us: .3 }); B('flat', 0xdad6cc, 0, 1.04, 0, 1.12, .02, .92); }
+  if (load === 'brick') { B('brick', 0xf4ece6, 0, .14, 0, 1.1, .9, .9, { col: 1, us: 1 }); B('flat', 0xdad6cc, 0, 1.04, 0, 1.12, .02, .92); }
   else if (load === 'bags') { for (let i = 0; i < 4; i++) B('flat', i % 2 ? 0xd9d3c4 : 0xcfc8b6, 0, .14 + i * .16, 0, 1.08, .15, .86, { col: 1 }); }
   else if (load === 'block') { B('conc', K.concL, 0, .14, 0, 1.1, .8, .9, { col: 1, us: .8 }); }
   popX();
@@ -856,6 +927,18 @@ function colBoxLocal(x, y, z, w, h, d) {
   const a = _v.set(x - w / 2, y, z - d / 2).applyMatrix4(XF).clone(), b = _v2.set(x + w / 2, y + h, z + d / 2).applyMatrix4(XF);
   return [Math.min(a.x, b.x), Math.min(a.y, b.y), Math.min(a.z, b.z), Math.max(a.x, b.x), Math.max(a.y, b.y), Math.max(a.z, b.z), 1];
 }
+function colOBB(x, y, z, w, h, d, slices = 1, ry = 0) {
+  const cs = Math.cos(ry), sn = Math.sin(ry);
+  for (let i = 0; i < slices; i++) {
+    const za = -d / 2 + d * i / slices, zb = za + d / slices;
+    let x0 = Infinity, y0 = Infinity, z0 = Infinity, x1 = -Infinity, y1 = -Infinity, z1 = -Infinity;
+    for (const lx of [-w / 2, w / 2]) for (const ly of [0, h]) for (const lz of [za, zb]) {
+      _v.set(x + lx * cs + lz * sn, y + ly, z - lx * sn + lz * cs).applyMatrix4(XF);
+      x0 = Math.min(x0, _v.x); y0 = Math.min(y0, _v.y); z0 = Math.min(z0, _v.z); x1 = Math.max(x1, _v.x); y1 = Math.max(y1, _v.y); z1 = Math.max(z1, _v.z);
+    }
+    addCol(x0, y0, z0, x1, y1, z1, 1);
+  }
+}
 function pipeStack(x, z, ry) {
   pushX(x, 0, z, ry);
   for (let i = 0; i < 3; i++) C('conc', K.concL, (i - 1) * 1.25, .6, 0, .6, .6, 2.4, 14, { rx: Math.PI / 2 });
@@ -863,19 +946,70 @@ function pipeStack(x, z, ry) {
   addCol(...colBoxLocal(0, 0, 0, 3.7, 2.2, 2.4)); popX();
 }
 function sandPile(x, z, r, h, color) {
-  C('flat', color, x, h / 2, z, r * .12, r, h, 9);
-  addCol(x - r * .78, 0, z - r * .78, x + r * .78, h * .34, z + r * .78, 1);
-  addCol(x - r * .5, 0, z - r * .5, x + r * .5, h * .66, z + r * .5, 1);
-  addCol(x - r * .24, 0, z - r * .24, x + r * .24, h * .95, z + r * .24, 1);
+  // 截頂圓錐 + 表面起伏；碰撞用真正的圓錐面，可以直接走上去
+  const g = C('flat', color, x, h / 2, z, r * .12, r, h, 18);
+  const pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i++) { const px = pos.getX(i), py = pos.getY(i), pz = pos.getZ(i); if (py > .05 && py < h - .05) { const k = 1 + Math.sin(px * 3.1 + pz * 2.3) * .04 + Math.sin(px * 7 - pz * 5) * .02; pos.setXYZ(i, x + (px - x) * k, py, z + (pz - z) * k); } }
+  g.computeVertexNormals();
+  const c = addCol(x - r, 0, z - r, x + r, h, z + r, 1); c.cone = { x, z, r, h };
 }
 function skip(x, z, ry, color = K.yel) {
   pushX(x, 0, z, ry);
   B('metal', color, 0, .15, 0, 3.6, .15, 1.8); B('metal', color, 0, .15, .85, 3.6, 1.25, .1); B('metal', color, 0, .15, -.85, 3.6, 1.25, .1);
   B('metal', color, 1.75, .15, 0, .1, 1.25, 1.8); B('metal', color, -1.75, .15, 0, .1, 1.25, 1.8);
   B('flat', K.dirtD, 0, .3, 0, 3.4, .7, 1.6); B('flat', K.wood, .6, 1, .1, 1.8, .12, .2, { rz: .3 });
-  addCol(...colBoxLocal(0, 0, 0, 3.7, 1.4, 1.9)); popX();
+  addCol(...colBoxLocal(0, 0, 0, 3.7, 1.0, 1.9)); addCol(...colBoxLocal(0, 0, .85, 3.6, 1.4, .12)); addCol(...colBoxLocal(0, 0, -.85, 3.6, 1.4, .12)); addCol(...colBoxLocal(1.75, 0, 0, .12, 1.4, 1.8)); addCol(...colBoxLocal(-1.75, 0, 0, .12, 1.4, 1.8));
+  popX();
 }
-function toilet(x, z, ry) { pushX(x, 0, z, ry); B('flat', K.blu, 0, 0, 0, 1.15, 2.3, 1.15, { col: 1 }); B('flat', 0xd8dde0, 0, 2.3, 0, 1.2, .1, 1.2); B('flat', 0x2e5577, 0, .1, .58, .8, 1.9, .03); popX(); }
+/* 門：lx/ly/lz 是目前變換下的鉸鏈位置，closed/open 是門板從鉸鏈伸出的方向（區域座標） */
+const DOORLIST = [];
+function makeDoor(lx, ly, lz, w, h, color, closed, open, win) {
+  const hinge = new THREE.Vector3(lx, ly, lz).applyMatrix4(XF);
+  const dc = new THREE.Vector3(...closed).transformDirection(XF), dO = new THREE.Vector3(...open).transformDirection(XF);
+  const a0 = Math.atan2(-dc.z, dc.x), a1 = a0 + angDiff(a0, Math.atan2(-dO.z, dO.x));
+  const b = new MB().box(color, w / 2, h / 2, 0, w, h, .05).box(0x1c1c1c, w - .09, h * .47, .045, .025, .14, .035).box(0x1c1c1c, w - .09, h * .47, -.045, .025, .14, .035)
+    .box(0x8a8f94, .02, h * .2, 0, .03, .12, .06).box(0x8a8f94, .02, h * .8, 0, .03, .12, .06);
+  if (win) b.box(0x4f6878, w / 2, h * .72, .027, w * .5, h * .22, .01).box(0x4f6878, w / 2, h * .72, -.027, w * .5, h * .22, .01);
+  else for (let i = 0; i < 4; i++) b.box(0x1c2733, w / 2, h - .12 - i * .05, .027, w * .6, .015, .01);
+  const g = new THREE.Group(); g.position.copy(hinge); g.rotation.y = a0;
+  const m = new THREE.Mesh(b.build(), MATS.flat); m.castShadow = m.receiveShadow = true; g.add(m); scene.add(g);
+  const mid = hinge.clone().addScaledVector(dc, w / 2);
+  const c = { x0: 0, y0: hinge.y, z0: 0, x1: 0, y1: hinge.y + h, z1: 0, s: 0, k: 0 };
+  const d = { g, a0, a1, ang: 0, target: 0, moving: false, cx: mid.x, cz: mid.z, y: hinge.y, w, hinge, col: c };
+  c.door = d; COLS.push(c);
+  for (let i = cellOf(hinge.x - w - .2); i <= cellOf(hinge.x + w + .2); i++) for (let j = cellOf(hinge.z - w - .2); j <= cellOf(hinge.z + w + .2); j++) CELLS[j * GN + i].push(c);
+  doorCol(d); DOORLIST.push(d);
+  return d;
+}
+function doorCol(d) {
+  const a = d.a0 + (d.a1 - d.a0) * d.ang, ex = d.hinge.x + Math.cos(a) * d.w, ez = d.hinge.z - Math.sin(a) * d.w;
+  Object.assign(d.col, { x0: Math.min(d.hinge.x, ex) - .03, x1: Math.max(d.hinge.x, ex) + .03, z0: Math.min(d.hinge.z, ez) - .03, z1: Math.max(d.hinge.z, ez) + .03 });
+  d.g.rotation.y = a;
+}
+function updateDoors(dt) {
+  for (const d of DOORLIST) {
+    if (!d.moving) continue;
+    const dir = Math.sign(d.target - d.ang);
+    d.ang = clamp(d.ang + dir * dt * 2.6, 0, 1);
+    if (d.ang === d.target) d.moving = false;
+    doorCol(d);
+  }
+}
+function toilet(x, z, ry) {
+  // 流動廁所：四面牆、屋頂、馬桶，前面是一扇可以開關的門，可以躲進去
+  pushX(x, 0, z, ry);
+  const W = 1.15, D = 1.15, H = 2.3, t = .05;
+  B('flat', 0x2f5f86, 0, 0, 0, W, .1, D, { col: 1 });
+  B('flat', 0xd8dde0, 0, H, 0, W + .06, .1, D + .06, { col: 1 });
+  B('flat', K.blu, 0, .1, -D / 2 + t / 2, W, H - .1, t, { col: 1 });
+  B('flat', K.blu, W / 2 - t / 2, .1, 0, t, H - .1, D, { col: 1 }); B('flat', K.blu, -W / 2 + t / 2, .1, 0, t, H - .1, D, { col: 1 });
+  B('flat', K.blu, 0, 2.06, D / 2 - t / 2, W, .24, t, { col: 1 });
+  B('flat', 0xe6e6e2, 0, .1, -.28, .45, .42, .45, { col: 1 }); B('flat', 0x2a2a2a, 0, .52, -.28, .4, .03, .36); B('flat', 0xe6e6e2, 0, .52, -.48, .45, .35, .06);
+  B('flat', 0x9aa0a4, .45, 1.1, -.2, .1, .3, .12);
+  makeDoor(-W / 2 + .05, .1, D / 2 + .01, W - .1, 1.95, 0x2e5577, [1, 0, 0], [0, 0, 1], false);
+  if (Math.random() < .5) S(0, .12, .15);
+  popX();
+}
 function lightTower(x, z, ry) {
   pushX(x, 0, z, ry);
   B('metal', K.yel, 0, .35, 0, 2.2, .9, 1.2, { col: 1 }); C('flat', K.rub, .8, .35, .65, .35, .35, .2, 10, { rx: Math.PI / 2 }); C('flat', K.rub, .8, .35, -.65, .35, .35, .2, 10, { rx: Math.PI / 2 });
@@ -974,17 +1108,62 @@ function forkliftP(x, z, ry) {
 }
 
 /* Blender 版車輛：外形換成 glb，碰撞盒維持與程式版相同 */
+function track2(half, w, L, h) { colOBB(half, 0, 0, w, h, L); colOBB(-half, 0, 0, w, h, L); }
+function wheels(pos, r, w) { for (const [x, z] of pos) colOBB(x, 0, z, w, r * 2, r * 1.7); }
 function excavator(x, z, ry, swing = .6) {
   if (!GLB) return excavatorP(x, z, ry, swing);
-  pushX(x, 0, z, ry); placeGLB('V_exc_base'); pushX(0, 1, 0, swing); placeGLB('V_exc_upper'); popX();
-  addCol(...colBoxLocal(0, 0, 0, 3.2, 2.2, 4.6)); popX();
+  pushX(x, 0, z, ry); placeGLB('V_exc_base'); pushX(0, 1, 0, swing); placeGLB('V_exc_upper');
+  colOBB(0, -.05, -.35, 2.5, 1.2, 3.0, 3); colOBB(0, 0, -1.9, 2.5, 1.25, .6); colOBB(.72, 1.1, .55, 1.0, 1.65, 1.35, 2);
+  colOBB(-.3, 1.0, 1.6, .5, 1.6, 1.2, 2); colOBB(-.3, .65, 6.65, 1.1, .9, .9, 2);
+  popX();
+  track2(1.25, .62, 4.6, .85); colOBB(0, .25, 0, 1.9, .75, 1.7);
+  popX();
 }
-function bulldozer(x, z, ry) { if (!GLB) return bulldozerP(x, z, ry); pushX(x, 0, z, ry); placeGLB('V_dozer'); addCol(...colBoxLocal(0, 0, .3, 3.4, 1.9, 4.8)); popX(); }
-function dumpTruck(x, z, ry, color = K.yel) { if (!GLB) return dumpTruckP(x, z, ry, color); pushX(x, 0, z, ry); placeGLB('V_dump', { paint: color }); addCol(...colBoxLocal(0, 0, -.1, 2.4, 2.7, 7.2)); popX(); }
-function mixer(x, z, ry) { if (!GLB) return mixerP(x, z, ry); pushX(x, 0, z, ry); placeGLB('V_mixer'); addCol(...colBoxLocal(0, 0, 0, 2.5, 3.4, 7.2)); popX(); }
-function loader(x, z, ry) { if (!GLB) return loaderP(x, z, ry); pushX(x, 0, z, ry); placeGLB('V_loader'); addCol(...colBoxLocal(0, 0, .4, 2.7, 2.2, 5.4)); popX(); }
-function pickup(x, z, ry, color = K.wht) { if (!GLB) return pickupP(x, z, ry, color); pushX(x, 0, z, ry); placeGLB('V_pickup', { paint: color }); addCol(...colBoxLocal(0, 0, 0, 1.9, 1.7, 5.2)); popX(); }
-function forklift(x, z, ry) { if (!GLB) return forkliftP(x, z, ry); pushX(x, 0, z, ry); placeGLB('V_forklift'); addCol(...colBoxLocal(0, 0, .2, 1.2, 2.3, 2.6)); popX(); }
+function bulldozer(x, z, ry) {
+  if (!GLB) return bulldozerP(x, z, ry);
+  pushX(x, 0, z, ry); placeGLB('V_dozer');
+  track2(1.2, .65, 3.8, .9); colOBB(0, .45, .6, 1.8, 1.25, 2.3); colOBB(0, .4, -1.35, 2.2, 1.15, 1.1); colOBB(0, 1.9, -1.15, 1.8, 1.55, 1.3); colOBB(0, .1, 2.78, 3.44, 1.4, .35);
+  popX();
+}
+function truckBase(front) {
+  wheels([[1.02, 2.4], [-1.02, 2.4], [1.02, -1.4], [-1.02, -1.4], [1.02, -2.65], [-1.02, -2.65]], .55, .45);
+  colOBB(0, .7, -.1, 1.15, .4, 7.0, 2); colOBB(0, 1.05, 2.6, 2.3, 1.95, 1.7); colOBB(0, .55, 3.5, 2.36, .35, .2);
+}
+function dumpTruck(x, z, ry, color = K.yel) {
+  if (!GLB) return dumpTruckP(x, z, ry, color);
+  pushX(x, 0, z, ry); placeGLB('V_dump', { paint: color }); truckBase();
+  colOBB(0, 1.25, -1.3, 2.4, .2, 4.6, 2); colOBB(1.16, 1.3, -1.3, .1, 1.3, 4.6, 2); colOBB(-1.16, 1.3, -1.3, .1, 1.3, 4.6, 2); colOBB(0, 1.3, -3.56, 2.4, 1.3, .12); colOBB(0, 1.3, .95, 2.4, 1.75, .14);
+  colOBB(0, 1.4, -1.3, 2.2, 1.1, 4.3, 2);
+  popX();
+}
+function mixer(x, z, ry) {
+  if (!GLB) return mixerP(x, z, ry);
+  pushX(x, 0, z, ry); placeGLB('V_mixer'); truckBase();
+  colOBB(0, 1.1, -.7, 2.2, 2.4, 3.4, 3); colOBB(0, 1.6, -2.75, 1.0, 1.7, .6);
+  popX();
+}
+function loader(x, z, ry) {
+  if (!GLB) return loaderP(x, z, ry);
+  pushX(x, 0, z, ry); placeGLB('V_loader');
+  wheels([[1.05, 1.2], [-1.05, 1.2], [1.05, -1.3], [-1.05, -1.3]], .75, .6);
+  colOBB(0, .6, .9, 1.3, .75, 1.6); colOBB(0, .5, -1.35, 1.75, 1.3, 2.2); colOBB(0, 1.8, -.25, 1.5, 1.55, 1.4); colOBB(0, 0, 3.05, 2.6, .95, .6);
+  popX();
+}
+function pickup(x, z, ry, color = K.wht) {
+  if (!GLB) return pickupP(x, z, ry, color);
+  pushX(x, 0, z, ry); placeGLB('V_pickup', { paint: color });
+  wheels([[.82, 1.55], [-.82, 1.55], [.82, -1.55], [-.82, -1.55]], .4, .3);
+  colOBB(0, .35, 0, 1.85, .65, 5.2, 2); colOBB(0, 1.0, .45, 1.75, .95, 1.9); colOBB(.88, 1.0, -1.55, .1, .45, 2.0); colOBB(-.88, 1.0, -1.55, .1, .45, 2.0); colOBB(0, 1.0, -2.55, 1.84, .45, .1); colOBB(0, .9, 2.0, 1.8, .2, 1.3);
+  popX();
+}
+function forklift(x, z, ry) {
+  if (!GLB) return forkliftP(x, z, ry);
+  pushX(x, 0, z, ry); placeGLB('V_forklift');
+  colOBB(0, 0, -.05, 1.1, 1.15, 2.0); colOBB(0, 0, 1.12, .8, 2.8, .15); colOBB(0, 0, 1.65, .7, .1, 1.0);
+  for (const sx of [-.45, .45]) for (const zz of [.5, -.63]) colOBB(sx, 1.0, zz, .07, 1.2, .07);
+  colOBB(0, 2.18, -.1, 1.0, .06, 1.3);
+  popX();
+}
 
 /* ---------- 建築骨架（可以爬樓梯上頂樓） ---------- */
 function stairsFlight(x0, z0, z1, xs, dir, y0, fh) {
@@ -1026,13 +1205,14 @@ function frameBuilding(o) {
       if (top || kind < .45) return false;
       const w = alongX ? len - .5 : th, d = alongX ? th : len - .5;
       if (kind < .75) {
-        B('flat', K.brick, cx, y, cz, w, 1.05, d, { col: 1, us: 1 });
-        B('flat', K.brick, cx, y + 2.3, cz, w, fh - 2.6 - (f === 0 ? .12 : 0), d, { col: 1, us: 1 });
+        B('brick', 0xf4ece6, cx, y, cz, w, 1.05, d, { col: 1, us: 2 });
+        B('brick', 0xf4ece6, cx, y + 2.3, cz, w, fh - 2.6 - (f === 0 ? .12 : 0), d, { col: 1, us: 2 });
+        B('conc', K.concL, cx, y + 1.05, cz, alongX ? w * .62 : th + .06, .06, alongX ? th + .06 : d * .62); B('conc', K.concL, cx, y + 2.2, cz, alongX ? w * .62 : th + .04, .12, alongX ? th + .04 : d * .62);
         const pw = (len - .5) * .22;
-        if (alongX) { B('flat', K.brick, ax + .25 + pw / 2, y + 1.05, cz, pw, 1.25, th, { col: 1, us: 1 }); B('flat', K.brick, bx - .25 - pw / 2, y + 1.05, cz, pw, 1.25, th, { col: 1, us: 1 }); }
-        else { B('flat', K.brick, cx, y + 1.05, az + .25 + pw / 2, th, 1.25, pw, { col: 1, us: 1 }); B('flat', K.brick, cx, y + 1.05, bz - .25 - pw / 2, th, 1.25, pw, { col: 1, us: 1 }); }
+        if (alongX) { B('brick', 0xf4ece6, ax + .25 + pw / 2, y + 1.05, cz, pw, 1.25, th, { col: 1, us: 2 }); B('brick', 0xf4ece6, bx - .25 - pw / 2, y + 1.05, cz, pw, 1.25, th, { col: 1, us: 2 }); }
+        else { B('brick', 0xf4ece6, cx, y + 1.05, az + .25 + pw / 2, th, 1.25, pw, { col: 1, us: 2 }); B('brick', 0xf4ece6, cx, y + 1.05, bz - .25 - pw / 2, th, 1.25, pw, { col: 1, us: 2 }); }
       } else {
-        B('flat', K.brick, cx, y, cz, w, 1.1, d, { col: 1, us: 1 });
+        B('brick', 0xf4ece6, cx, y, cz, w, 1.1, d, { col: 1, us: 2 });
       }
       return true;
     };
@@ -1077,7 +1257,7 @@ function frameBuilding(o) {
 
 function scaffold(xa, xb, z, floors, fh) {
   const zz = [z + .35, z + 1.6];
-  for (let x = xa; x <= xb + .01; x += 2.4) for (const q of zz) B('metal', K.galv, x, 0, q, .06, floors * fh + 1.2, .06);
+  for (let x = xa; x <= xb + .01; x += 2.4) for (const q of zz) B('metal', K.galv, x, 0, q, .06, floors * fh + 1.2, .06, { col: 1 });
   for (let f = 1; f <= floors; f++) {
     const y = f * fh;
     B('wood', K.ply, (xa + xb) / 2, y - .08, (zz[0] + zz[1]) / 2, xb - xa, .08, 1.25, { col: 1 });
@@ -1097,8 +1277,12 @@ function towerCrane(x, z, h, jib, ry, loadY) {
     B('metal', K.yel, 0, y, -m, 2 * m, .08, .08); B('metal', K.yel, 0, y, m, 2 * m, .08, .08); B('metal', K.yel, -m, y, 0, .08, .08, 2 * m); B('metal', K.yel, m, y, 0, .08, .08, 2 * m);
     L('metal', K.yel, -m, y, -m, m, y + 2, -m, .06); L('metal', K.yel, m, y, m, -m, y + 2, m, .06); L('metal', K.yel, -m, y, m, -m, y + 2, -m, .06); L('metal', K.yel, m, y, -m, m, y + 2, m, .06);
   }
-  addCol(...colBoxLocal(0, 1, 0, 2 * m + .1, h - 1, 2 * m + .1));
-  B('metal', K.yel, 0, h, 0, 2.6, 1.2, 2.6); B('metal', K.wht, 1.4, h - .2, 1.2, 1.6, 1.6, 1.5); B('glass', K.glass, 1.4, h + .2, 1.96, 1.4, .9, .02);
+  for (const a of [-m, m]) for (const b of [-m, m]) addCol(...colBoxLocal(a, 1, b, t + .04, h - 1, t + .04));
+  B('metal', K.yel, 0, h, 0, 2.6, 1.2, 2.6);
+  // ↓ 迴轉部分（駕駛室、塔頭、吊臂、平衡臂）與吊鉤另外建成會動的網格
+  const grp = new THREE.Group(); grp.position.set(0, 0, 0).applyMatrix4(XF); grp.rotation.y = ry; scene.add(grp);
+  const saveXF = XF; XF = new THREE.Matrix4(); GEO_T = {};
+  B('metal', K.wht, 1.4, h - .2, 1.2, 1.6, 1.6, 1.5); B('glass', K.glass, 1.4, h + .2, 1.96, 1.4, .9, .02); B('metal', K.yel, 0, h + 1.2, 0, 2.2, .3, 2.2);
   const y0 = h + 1.2;
   L('metal', K.yel, -m, y0, -m, 0, y0 + 6, 0, .14); L('metal', K.yel, m, y0, -m, 0, y0 + 6, 0, .14); L('metal', K.yel, -m, y0, m, 0, y0 + 6, 0, .14); L('metal', K.yel, m, y0, m, 0, y0 + 6, 0, .14);
   // 吊臂（三角桁架）
@@ -1111,14 +1295,36 @@ function towerCrane(x, z, h, jib, ry, loadY) {
   for (const s of [-jz, jz]) B('metal', K.yel, -7, y0, s, 14, .14, .14);
   for (let i = 0; i < 4; i++) B('conc', K.concL, -10.5 + i * 1.1, y0 - 1.6, 0, 1, 2, 1.8);
   B('flat', K.blk, -4, y0 + .1, 0, 1.4, .9, 1.2);
-  // 吊車小車與吊鉤上的鋼梁
-  const tx = jib * .62;
-  B('metal', K.galv, tx, y0 - .3, 0, 1, .3, 1.2);
-  L('metal', K.blk, tx, y0 - .3, 0, tx, loadY + 1.4, 0, .04);
-  B('metal', K.red, tx, loadY + 1, 0, .4, .5, .3);
-  L('metal', K.blk, tx, loadY + 1, 0, tx - 2.5, loadY + .3, 0, .03); L('metal', K.blk, tx, loadY + 1, 0, tx + 2.5, loadY + .3, 0, .03);
-  B('metal', K.steel, tx, loadY, 0, 7, .06, .3); B('metal', K.steel, tx, loadY + .06, 0, 7, .26, .05); B('metal', K.steel, tx, loadY + .32, 0, 7, .06, .3);
+  meshesFrom(GEO_T, grp);
+  // 吊車小車（沿吊臂來回）與吊鉤（像單擺一樣晃）
+  const trolley = new THREE.Group(); trolley.position.set(jib * .62, y0 - .3, 0); grp.add(trolley);
+  const hook = new THREE.Group(); trolley.add(hook);
+  GEO_T = {};
+  B('metal', K.galv, 0, 0, 0, 1, .3, 1.2); C('metal', K.blk, 0, -.05, .45, .12, .12, .1, 8, { rx: Math.PI / 2 }); C('metal', K.blk, 0, -.05, -.45, .12, .12, .1, 8, { rx: Math.PI / 2 });
+  meshesFrom(GEO_T, trolley);
+  GEO_T = {};
+  const dy = loadY - (y0 - .3);
+  L('metal', K.blk, -.08, 0, 0, -.08, dy + 1.4, 0, .035); L('metal', K.blk, .08, 0, 0, .08, dy + 1.4, 0, .035);
+  B('metal', K.red, 0, dy + 1, 0, .4, .5, .3); C('metal', K.yel, 0, dy + .95, 0, .1, .1, .12, 8);
+  L('metal', K.blk, 0, dy + 1, 0, -2.5, dy + .3, 0, .03); L('metal', K.blk, 0, dy + 1, 0, 2.5, dy + .3, 0, .03);
+  B('metal', K.steel, 0, dy, 0, 7, .06, .3); B('metal', K.steel, 0, dy + .06, 0, 7, .26, .05); B('metal', K.steel, 0, dy + .32, 0, 7, .06, .3);
+  meshesFrom(GEO_T, hook);
+  GEO_T = GEO; XF = saveXF;
+  CRANES.push({ grp, trolley, hook, ry, t0: jib * .3, t1: jib * .86, ph: srand() * TAU, amp: sr(.5, 1.1) });
   popX();
+}
+const CRANES = [];
+function updateCranes(dt) {
+  for (const c of CRANES) {
+    const a = T + c.ph * 40;
+    c.grp.rotation.y = c.ry + Math.sin(a * .03 + c.ph) * c.amp;
+    const k = (Math.sin(a * .045 + c.ph * 2) + 1) / 2;
+    c.trolley.position.x = lerp(c.t0, c.t1, k);
+    // 迴轉與小車加減速讓吊鉤擺動，加上風
+    c.hook.rotation.z = Math.sin(a * .9 + c.ph) * .035 + Math.cos(a * .045 + c.ph * 2) * .05;
+    c.hook.rotation.x = Math.sin(a * .7 + c.ph * 3) * .03 + Math.cos(a * .03 + c.ph) * .04;
+    c.hook.rotation.y = Math.sin(a * .12 + c.ph) * .4;
+  }
 }
 
 function container(x, z, ry, color, open, y = 0) {
@@ -1130,10 +1336,27 @@ function container(x, z, ry, color, open, y = 0) {
   B('metal', color, 0, .12, W2 / 2 - t / 2, L6, H - .22, t, { col: 1 }); B('metal', color, 0, .12, -W2 / 2 + t / 2, L6, H - .22, t, { col: 1 });
   B('metal', color, -L6 / 2 + t / 2, .12, 0, t, H - .22, W2, { col: 1 });
   for (let i = 0; i < 14; i++) { B('metal', color, -2.8 + i * .43, .2, W2 / 2 + .02, .12, H - .4, .04); B('metal', color, -2.8 + i * .43, .2, -W2 / 2 - .02, .12, H - .4, .04); }
-  if (open) {
+  if (open === true) {
     B('metal', color, L6 / 2 + .55, .12, W2 / 2 + .5, .06, H - .22, 1.1, { ry: .2 }); B('metal', color, L6 / 2 + .55, .12, -W2 / 2 - .5, .06, H - .22, 1.1, { ry: -.2 });
     B('wood', K.wood, -1.5, .12, .7, 2.2, .85, .8, { col: 1 }); B('metal', K.red, -2.2, .97, .7, .6, .35, .4);
     S(.5, .14, 0); S(-1.8, .14, -.5); S(-.6, .97, .7);
+  } else if (open === 'door' && y === 0) {
+    // 工地辦公室：端牆開門洞、門可開關；裡面有辦公桌、置物櫃、圖桌與飲水機
+    const ex = L6 / 2 - t / 2;
+    B('metal', color, ex, .12, -(W2 / 2 + .5) / 2 - .0, t, H - .22, W2 / 2 - .5, { col: 1 });
+    B('metal', color, ex, .12, (W2 / 2 + .5) / 2, t, H - .22, W2 / 2 - .5, { col: 1 });
+    B('metal', color, ex, 2.22, 0, t, H - .32 - 2.1 + .12, 1.0, { col: 1 });
+    B('flat', 0xd8d3c4, -.5, .121, 0, L6 - .3, .01, W2 - .2);
+    makeDoor(ex + .02, .12, -.5, 1.0, 2.1, 0xd9d4c8, [0, 0, 1], [1, 0, 0], true);
+    B('wood', 0xc9b48a, -1.5, .12, .82, 1.5, .76, .7, { col: 1 }); B('flat', 0x222222, -1.7, .88, .9, .45, .3, .04); B('flat', 0x333333, -1.7, .88, .95, .12, .05, .1);
+    B('flat', 0xeeeeee, -1.2, .88, .72, .3, .02, .22); B('flat', 0x3a3d40, -1.5, .12, .25, .45, .45, .45); B('flat', 0x3a3d40, -1.5, .57, .05, .45, .5, .06);
+    B('metal', 0x8a939a, -2.62, .12, -.78, .55, 1.9, .55, { col: 1 }); B('flat', 0x222222, -2.62, 1.2, -.505, .02, .15, .01); B('flat', 0x222222, -2.62, 1.6, -.505, .4, .01, .005);
+    B('wood', 0xb8a47c, -.2, .12, -.8, 1.3, .9, .72, { col: 1 }); B('flat', 0xe8ecf2, -.2, 1.02, -.8, 1.1, .01, .6); B('flat', 0x3d6a8e, -.35, 1.03, -.75, .5, .005, .35);
+    for (let i = 0; i < 3; i++) C('flat', 0xe8ecf2, -.2 + (i - 1) * .32, 1.07, -1.05, .035, .035, .7, 8, { rz: Math.PI / 2 });
+    C('flat', 0xdfe6ea, 1.95, .6, -.85, .16, .16, .95, 12, { col: 1 }); C('flat', 0x6fa8d6, 1.95, 1.25, -.85, .14, .12, .35, 12);
+    B('flat', 0xf4f4f0, -1.3, 1.1, -1.17, 1.4, .8, .02); B('flat', 0xc03a2b, -1.6, 1.3, -1.16, .3, .02, .01); B('flat', 0x3d6a8e, -1.0, 1.2, -1.16, .5, .3, .01);
+    B('glass', K.glass, -.5, 1, W2 / 2 + .05, 1.4, .9, .03); B('glass', K.glass, -.5, 1, -W2 / 2 - .05, 1.4, .9, .03);
+    S(-1.5, .9, .75); S(.8, .14, .3); S(-.2, 1.03, -.7);
   } else {
     B('metal', color, L6 / 2 - t / 2, .12, 0, t, H - .22, W2, { col: 1 });
     B('glass', K.glass, 0, 1, W2 / 2 + .05, 1.4, .9, .03); B('glass', K.glass, 0, 1, -W2 / 2 - .05, 1.4, .9, .03);
@@ -1201,7 +1424,7 @@ function buildSite() {
   LABELS.push({ x: 30, z: 8, t: '履帶吊' });
 
   // 辦公貨櫃區（西南）
-  container(-86, 50, 0, K.blu, true); container(-86, 58, 0, K.grn, true); container(-86, 66, 0, 0x8f3b2c, false);
+  container(-86, 50, 0, K.blu, true); container(-86, 58, 0, K.grn, true); container(-86, 66, 0, 0x8f3b2c, 'door');
   container(-86, 50, 0, K.wht, false, 2.6); container(-86, 58, 0, K.wht, false, 2.6);
   // 貨櫃外梯（上到二層貨櫃屋頂）
   for (let i = 0; i < 18; i++) B('metal', K.galv, -91.8 + i * .28, (i + 1) * .289 - .08, 45.9, .3, .08, 1.1, { col: 1 });
@@ -1209,7 +1432,7 @@ function buildSite() {
   B('metal', K.galv, -86.8, 5.2 - .08, 47.6, 1.6, .08, 2.4, { col: 1 });
   addCol(-92, 0, 45.2, -86.4, 6.2, 45.3, 1);
   for (let i = 0; i < 3; i++) S(-86 + sr(-2, 2), 5.22, 50 + i * 4 + sr(-.6, .6));
-  container(-66, 88, Math.PI / 2, K.org, true); container(-58, 88, Math.PI / 2, K.blu, false);
+  container(-66, 88, Math.PI / 2, K.org, true); container(-58, 88, Math.PI / 2, K.blu, 'door');
   for (let i = 0; i < 5; i++) toilet(-70 + i * 1.4, 40, Math.PI);
   pickup(-62, 58, 0); pickup(-56, 60, .0, 0x4a5b6a); pickup(-50, 57, Math.PI, K.red);
   LABELS.push({ x: -80, z: 58, t: '辦公貨櫃' });
@@ -1262,6 +1485,78 @@ function buildSite() {
   for (let i = 0; i < 46; i++) {
     const x = sr(-112, 112), z = sr(-112, 112);
     if (!pointBlocked(x, 0, z, .8)) S(x, groundBelow(x, 3, z, .2) + .02, z);
+  }
+}
+
+/* ---------- 隨風擺動的草叢、行道樹與旗子（頂點著色器） ---------- */
+const WINDMAT_T = { value: 0 };
+function windify(mat, amp, base) {
+  mat.onBeforeCompile = sh => {
+    sh.uniforms.uWind = WINDMAT_T;
+    sh.vertexShader = 'uniform float uWind;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+      vec4 wpw = modelMatrix * instanceMatrix * vec4(position, 1.0);
+      float hh = max(position.y - ${base.toFixed(2)}, 0.0);
+      float sw = sin(uWind * 1.7 + wpw.x * .31 + wpw.z * .23) * .6 + sin(uWind * 3.3 + wpw.x * .9 - wpw.z * .5) * .25 + sin(uWind * .45 + wpw.z * .05) * .5;
+      transformed.x += sw * hh * ${amp.toFixed(3)};
+      transformed.z += sw * hh * ${(amp * .55).toFixed(3)};`);
+  };
+  return mat;
+}
+function buildFoliage() {
+  // 草叢：三片交叉的草葉貼圖
+  const gc = mkCanvas(128, 128), g = gc.getContext('2d');
+  for (let i = 0; i < 34; i++) {
+    const x = rnd(10, 118), h = rnd(55, 122), lean = rnd(-18, 18), w = rnd(2, 4.5);
+    g.strokeStyle = pick(['#6f7a3a', '#8a8f45', '#a09a55', '#5f6d33', '#b5a764', '#7b7f3c']); g.lineWidth = w; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(x, 128); g.quadraticCurveTo(x + lean * .3, 128 - h * .6, x + lean, 128 - h); g.stroke();
+  }
+  const gt = tex(gc, false);
+  const quads = [0, 1, 2].map(i => { const q = new THREE.PlaneGeometry(.7, .55); q.translate(0, .275, 0); q.rotateY(i * Math.PI / 3); return q; });
+  const gg = mergeGeometries(quads);
+  const gmat = windify(new THREE.MeshLambertMaterial({ map: gt, alphaTest: .42, side: THREE.DoubleSide }), .22, 0);
+  const pts = [];
+  const ok = (x, z) => {
+    if (Math.abs(x) > 121 || Math.abs(z) > 121) return false;
+    for (const p of PADS) if (x > p.x0 && x < p.x1 && z > p.z0 && z < p.z1) return false;
+    return !pointBlocked(x, 0, z, .3);
+  };
+  for (let i = 0; i < 9000 && pts.length < 1700; i++) {
+    let x, z;
+    const r = srand();
+    if (r < .45) { const e = sr(-121, 121), d = 121 - Math.pow(srand(), 1.6) * 7, sd = (srand() * 4) | 0; [x, z] = sd === 0 ? [e, d] : sd === 1 ? [e, -d] : sd === 2 ? [d, e] : [-d, e]; }
+    else { x = sr(-118, 118); z = sr(-118, 118); if (srand() < .6) continue; }
+    if (ok(x, z)) pts.push([x, z, groundBelow(x, 2, z, .1)]);
+  }
+  const im = new THREE.InstancedMesh(gg, gmat, pts.length);
+  const col = new THREE.Color();
+  pts.forEach(([x, z, y], i) => { const sc = sr(.6, 1.4); _qq.setFromAxisAngle(_yy, srand() * TAU); _mm.compose(_pp.set(x, y, z), _qq, _ss.set(sc, sc * sr(.8, 1.3), sc)); im.setMatrixAt(i, _mm); im.setColorAt(i, col.setHSL(sr(.14, .2), sr(.25, .45), sr(.55, .8))); });
+  im.receiveShadow = true; scene.add(im);
+  // 行道樹：圍籬外人行道上，樹冠隨風擺
+  const tb = new MB().cyl(0x5a4332, 0, 1.6, 0, .12, .18, 3.2, 8);
+  for (const [x, y, z, r, c] of [[0, 4.2, 0, 1.6, 0x4f6b35], [.8, 3.6, .3, 1.1, 0x5a7a3c], [-.7, 3.8, -.4, 1.2, 0x46612f], [.1, 5.1, -.2, 1.1, 0x5f8040], [-.3, 3.3, .8, .9, 0x4b6a33]]) tb.put(new THREE.IcosahedronGeometry(r, 1), c, x, y, z);
+  const tg = mergeGeometries(tb.g.map(q => q.index ? q.toNonIndexed() : q)); tb.g.forEach(q => q.dispose());
+  tg.computeVertexNormals();
+  const trees = [], E = SITE + 2;
+  for (let i = -E + 6; i < E - 4; i += 11) for (const sgn of [-1, 1]) { trees.push([i + sr(-1.5, 1.5), sgn * (E + 3.8)]); trees.push([sgn * (E + 3.8), i + sr(-1.5, 1.5)]); }
+  const tm = new THREE.InstancedMesh(tg, windify(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .9, flatShading: true }), .025, 2.6), trees.length);
+  trees.forEach(([x, z], i) => { const sc = sr(.85, 1.25); _qq.setFromAxisAngle(_yy, srand() * TAU); _mm.compose(_pp.set(x, .15, z), _qq, _ss.set(sc, sc, sc)); tm.setMatrixAt(i, _mm); });
+  tm.castShadow = true; tm.receiveShadow = true; scene.add(tm);
+  // 旗子：辦公貨櫃區與大門口
+  const fc = mkCanvas(256, 160), f2 = fc.getContext('2d');
+  f2.fillStyle = '#e8671d'; f2.fillRect(0, 0, 256, 160); f2.fillStyle = '#f4f1ea'; f2.fillRect(0, 56, 256, 48);
+  f2.fillStyle = '#1a1a1a'; f2.font = '700 34px "DIN Condensed","Arial Narrow",sans-serif'; f2.fillText('CANARY YARD', 22, 92);
+  const fgeo = new THREE.PlaneGeometry(1.6, 1, 16, 6); fgeo.translate(.8, 0, 0);
+  const fmat = new THREE.MeshStandardMaterial({ map: tex(fc, false), side: THREE.DoubleSide, roughness: .85 });
+  fmat.onBeforeCompile = sh => {
+    sh.uniforms.uWind = WINDMAT_T;
+    sh.vertexShader = 'uniform float uWind;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+      float k = position.x / 1.6;
+      transformed.z += sin(position.x * 3.8 - uWind * 7.0) * .16 * k + sin(position.x * 7.0 - uWind * 11.0 + position.y * 2.0) * .04 * k;
+      transformed.y -= k * k * .12;`);
+  };
+  for (const [x, z] of [[-79, 43], [-75, 43], [-71, 43], [-8, 116], [8, 116]]) {
+    B('metal', K.galv, x, 0, z, .08, 7, .08);
+    const fl = new THREE.Mesh(fgeo, fmat); fl.position.set(x + .04, 6.4, z); fl.rotation.y = Math.PI * .15; fl.castShadow = true; scene.add(fl);
   }
 }
 
@@ -1535,6 +1830,60 @@ const floatsEl = $('floats');
 for (let i = 0; i < 10; i++) { const s = document.createElement('span'); floatsEl.appendChild(s); FX.floats.push({ el: s, t: 9, p: new THREE.Vector3() }); }
 let floatI = 0;
 function dmgNumber(p, n, head) { const f = FX.floats[floatI++ % FX.floats.length]; f.p.copy(p); f.t = 0; f.el.textContent = Math.round(n); f.el.className = head ? 'hs' : ''; }
+/* 彈孔：打在牆、機具、地面上的小黑洞，沿法線貼上 */
+const HOLETEX = (() => {
+  const c = mkCanvas(64, 64), g = c.getContext('2d');
+  let gr = g.createRadialGradient(32, 32, 0, 32, 32, 30); gr.addColorStop(0, 'rgba(10,10,10,1)'); gr.addColorStop(.22, 'rgba(25,22,20,.95)'); gr.addColorStop(.35, 'rgba(60,55,50,.55)'); gr.addColorStop(1, 'rgba(90,85,80,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  g.strokeStyle = 'rgba(30,28,26,.5)'; g.lineWidth = 1.2;
+  for (let i = 0; i < 6; i++) { const a = rnd(TAU); g.beginPath(); g.moveTo(32 + Math.cos(a) * 7, 32 + Math.sin(a) * 7); g.lineTo(32 + Math.cos(a) * rnd(14, 24), 32 + Math.sin(a) * rnd(14, 24)); g.stroke(); }
+  return tex(c, false);
+})();
+const HOLES = [], holeGeo = new THREE.PlaneGeometry(1, 1);
+for (let i = 0; i < 90; i++) { const m = new THREE.Mesh(holeGeo, new THREE.MeshBasicMaterial({ map: HOLETEX, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 })); m.visible = false; scene.add(m); HOLES.push(m); }
+let holeI = 0;
+const _hn = new THREE.Vector3(), _ht = new THREE.Vector3();
+function bulletHole(p, n, size) {
+  const m = HOLES[holeI++ % HOLES.length];
+  m.position.copy(p).addScaledVector(n, .006); _ht.copy(p).add(n); m.lookAt(_ht); m.rotateZ(rnd(TAU));
+  m.scale.setScalar(size * rnd(.8, 1.2)); m.visible = true;
+}
+/* 彈殼：從拋殼口往右上方彈出，落地會彈跳、叮一聲 */
+const CASEMAX = 60, CASES = [];
+const caseMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(.0055, .0055, .028, 6).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xc8a24a, metalness: .8, roughness: .35 }), CASEMAX);
+caseMesh.count = 0; caseMesh.frustumCulled = false; caseMesh.castShadow = false; scene.add(caseMesh);
+const _cq = new THREE.Quaternion(), _ce = new THREE.Euler(), _cm = new THREE.Matrix4(), _c1 = new THREE.Vector3(1, 1, 1);
+function ejectCase(ch, w) {
+  if (w.pellets > 1 || camera.position.distanceTo(ch.p) > 35) return;
+  muzzleWorld(ch, _t1);
+  const fx = Math.sin(ch.yaw), fz = Math.cos(ch.yaw), rx = -Math.cos(ch.yaw), rz = Math.sin(ch.yaw);
+  _t1.addScaledVector(_t2.set(fx, 0, fz), -(w.muzzle - .12));
+  if (CASES.length >= CASEMAX) CASES.shift();
+  const sp = rnd(1.6, 2.6);
+  CASES.push({ p: _t1.clone().addScaledVector(_t3.set(rx, 0, rz), .05), v: new THREE.Vector3(rx * sp + fx * rnd(-.4, .4) + ch.v.x * .8, rnd(1.5, 2.6), rz * sp + fz * rnd(-.4, .4) + ch.v.z * .8),
+    r: new THREE.Vector3(rnd(TAU), rnd(TAU), 0), w: new THREE.Vector3(rnd(-25, 25), rnd(-25, 25), 0), t: 0, floor: null, bounced: 0, mine: ch.isPlayer, big: w.cal === '762' });
+}
+function updateCases(dt) {
+  let n = 0;
+  for (let i = CASES.length - 1; i >= 0; i--) {
+    const c = CASES[i]; c.t += dt;
+    if (c.t > 6) { CASES.splice(i, 1); continue; }
+    if (c.floor == null) c.floor = groundBelow(c.p.x, c.p.y, c.p.z, .02);
+    if (c.bounced < 4) {
+      c.v.y -= G * dt; c.p.addScaledVector(c.v, dt); c.r.addScaledVector(c.w, dt);
+      if (c.p.y < c.floor + .006) {
+        c.p.y = c.floor + .006; c.v.y = Math.abs(c.v.y) * .32; c.v.x *= .45; c.v.z *= .45; c.w.multiplyScalar(.5); c.bounced++;
+        if (c.bounced === 1 && c.mine && AU.ctx) tone(AU.ctx.currentTime, out(c.p, .07), 'triangle', rnd(3200, 4200), 2800, .001, .5, .06);
+        if (c.bounced >= 4) { c.r.x = Math.PI / 2 * (Math.random() < .5 ? 1 : -1) * 0; c.p.y = c.floor + .006; }
+      }
+    }
+    _cq.setFromEuler(_ce.set(c.bounced >= 4 ? 0 : c.r.x, c.r.y, 0));
+    _cm.compose(c.p, _cq, c.big ? _c1.set(1.1, 1.1, 1.5) : _c1.set(1, 1, 1));
+    caseMesh.setMatrixAt(n++, _cm);
+  }
+  caseMesh.count = n; caseMesh.instanceMatrix.needsUpdate = true;
+}
+
 const boomMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), new THREE.MeshBasicMaterial({ color: 0xffc46b, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
 boomMesh.visible = false; scene.add(boomMesh);
 let boomT = 9;
@@ -1666,6 +2015,7 @@ class Char {
     this.m = makeWorker(pal); scene.add(this.m.root);
     this.chute = makeChute();
     this.p = new THREE.Vector3(); this.v = new THREE.Vector3();
+    this.seed = Math.random();
     this.reset();
   }
   reset() {
@@ -1673,7 +2023,7 @@ class Char {
       hp: 100, boost: 0, helm: 0, vest: 0, guns: [null, null], slot: 0, ammo: { '556': 0, '762': 0, '12': 0, '45': 0 }, meds: [0, 0, 0, 0], frags: 0,
       alive: true, st: 'beam', crouch: false, onGround: false, kills: 0, dmg: 0, cast: null, reloadT: 0, nextShot: 0, aim: false,
       phase: 0, speed: 0, yaw: 0, pitch: 0, deadT: 0, lastHitBy: null, lastHitT: -99, bloom: 0, flashT: 9, sprint: false, fallT: 0,
-      chuteT: 0, agl: 0, flare: 0, tilt: 0, tiltV: 0, bank: 0, prevYaw: 0, landT: 0, dive: false, chuteLand: null, rank: 0, holster: false, killedBy: null, killedWith: '', survived: 0, prevVy: 0, stepAcc: 0, deathYaw: 0
+      chuteT: 0, prone: false, proneK: 0, lean: 0, leanK: 0, vault: null, obst: false, visY: null, lookYaw: null, lastFireT: -9, pickT: 0, hitT: 0, agl: 0, flare: 0, tilt: 0, tiltV: 0, bank: 0, prevYaw: 0, landT: 0, dive: false, chuteLand: null, rank: 0, holster: false, killedBy: null, killedWith: '', survived: 0, prevVy: 0, stepAcc: 0, deathYaw: 0
     });
     this.p.set(0, 0, 0); this.v.set(0, 0, 0);
     const m = this.m;
@@ -1683,9 +2033,13 @@ class Char {
   }
   get gun() { return this.holster ? null : this.guns[this.slot]; }
   get w() { const g = this.gun; return g ? WPN[g.id] : null; }
-  bodyH() { return this.st === 'ground' && this.crouch ? 1.25 : 1.8; }
-  eye(out) { return out.set(this.p.x, this.p.y + this.bodyH() - .2, this.p.z); }
-  chest(out) { return out.set(this.p.x, this.p.y + this.bodyH() * .62, this.p.z); }
+  bodyH() { return this.st !== 'ground' ? 1.8 : this.prone ? .6 : this.crouch ? 1.25 : 1.8; }
+  eye(out) {
+    if (this.st === 'ground' && this.prone) return out.set(this.p.x + Math.sin(this.yaw) * .75, this.p.y + .42, this.p.z + Math.cos(this.yaw) * .75);
+    const l = this.leanK || 0;
+    return out.set(this.p.x - Math.cos(this.yaw) * l * .32, this.p.y + this.bodyH() - .2 - Math.abs(l) * .05, this.p.z + Math.sin(this.yaw) * l * .32);
+  }
+  chest(out) { return this.st === 'ground' && this.prone ? out.set(this.p.x, this.p.y + .25, this.p.z) : out.set(this.p.x, this.p.y + this.bodyH() * .62, this.p.z); }
   gear() {
     this.m.hat.geometry = HATGEO[this.helm];
     this.m.armor.visible = this.vest > 0; if (this.vest) this.m.armor.geometry = ARMORGEO[this.vest];
@@ -1694,8 +2048,20 @@ class Char {
 
 /* 射線對角色：頭部球體 + 身體方塊 */
 function rayChar(c, ox, oy, oz, dx, dy, dz, maxT) {
+  if (c.st === 'ground' && c.prone) {
+    const fx = Math.sin(c.yaw), fz = Math.cos(c.yaw), cx = c.p.x + fx * .05, cz = c.p.z + fz * .05;
+    const ex = Math.abs(fx) * .95 + Math.abs(fz) * .3, ez = Math.abs(fz) * .95 + Math.abs(fx) * .3;
+    let best = maxT, head = false;
+    const hx = c.p.x + fx * .9, hz = c.p.z + fz * .9, hy = c.p.y + .3;
+    const lx = ox - hx, ly = oy - hy, lz = oz - hz, b = lx * dx + ly * dy + lz * dz, disc = b * b - (lx * lx + ly * ly + lz * lz - .16 * .16);
+    if (disc > 0) { const t = -b - Math.sqrt(disc); if (t > 0 && t < best) { best = t; head = true; } }
+    const t = rayBox({ x0: cx - ex, x1: cx + ex, z0: cz - ez, z1: cz + ez, y0: c.p.y, y1: c.p.y + .4 }, ox, oy, oz, 1 / dx, 1 / dy, 1 / dz);
+    if (t < best) { best = t; head = false; }
+    return best < maxT ? { t: best, head } : null;
+  }
   const h = c.bodyH(), air = c.st === 'fall';
-  const hx = c.p.x + Math.sin(c.yaw) * (air ? .9 : .02), hz = c.p.z + Math.cos(c.yaw) * (air ? .9 : .02), hy = air ? c.p.y + .3 : c.p.y + h - .13;
+  const ln = (c.leanK || 0) * .32;
+  const hx = c.p.x + Math.sin(c.yaw) * (air ? .9 : .02) - Math.cos(c.yaw) * ln, hz = c.p.z + Math.cos(c.yaw) * (air ? .9 : .02) + Math.sin(c.yaw) * ln, hy = air ? c.p.y + .3 : c.p.y + h - .13 - Math.abs(ln) * .15;
   let best = maxT, head = false;
   const lx = ox - hx, ly = oy - hy, lz = oz - hz, b = lx * dx + ly * dy + lz * dz, cc = lx * lx + ly * ly + lz * lz - .16 * .16, disc = b * b - cc;
   if (disc > 0) { const t = -b - Math.sqrt(disc); if (t > 0 && t < best) { best = t; head = true; } }
@@ -1734,7 +2100,7 @@ function muzzleWorld(ch, out) {
 const _mz = new THREE.Vector3(), _pd = new THREE.Vector3(), _hp = new THREE.Vector3();
 function fire(ch, o, dir, spread) {
   const g = ch.gun, w = WPN[g.id];
-  g.mag--; ch.nextShot = T + w.int; ch.flashT = 0; ch.bloom = Math.min(ch.bloom + w.bloom, .06);
+  g.mag--; ch.nextShot = T + w.int; ch.flashT = 0; ch.lastFireT = T; ch.bloom = Math.min(ch.bloom + w.bloom, .06);
   if (ch.cast) ch.cast = null;
   muzzleWorld(ch, _mz);
   for (let i = 0; i < w.pellets; i++) {
@@ -1751,10 +2117,13 @@ function fire(ch, o, dir, spread) {
       burst(_hp.x, _hp.y, _hp.z, 5, 0x9a1414, 2.4, .35, .06, 9);
     } else if (hit.t < maxT - .01) {
       const low = _hp.y < .12;
+      hitNormal(_hp.x, _hp.y, _hp.z, _hn);
+      bulletHole(_hp, _hn, low ? .16 : w.pellets > 1 ? .06 : .085);
       burst(_hp.x, _hp.y + .02, _hp.z, low ? 5 : 4, low ? 0x8c7355 : 0xb9b4aa, low ? 2.2 : 3, .45, .07, 7);
       if (!low && Math.random() < .5) burst(_hp.x, _hp.y, _hp.z, 2, 0xffd78a, 5, .12, .03, 0);
     }
   }
+  ejectCase(ch, w);
   sfxShot(w.snd, ch);
   for (const b of BOTS) if (b.ch !== ch && b.ch.alive && b.ch.st === 'ground') {
     const d = b.ch.p.distanceTo(ch.p);
@@ -1773,6 +2142,7 @@ function damage(v, dmg, att, wname, head, pt) {
   if (att && att.isPlayer && v !== att) { hitMarker(head, dead); if (pt) dmgNumber(pt, d, head); sfxHit(head); }
   if (v.isPlayer) playerHurt(att, d, wname);
   if (v.brain && att && att !== v) v.brain.hurt(att);
+  if (wname !== '安全區') { v.hitT = .3; v.hitSide = Math.random() < .5 ? -1 : 1; }
   if (pt && wname !== '安全區') { const gy = groundBelow(v.p.x, v.p.y + .3, v.p.z, .2); if (v.p.y - gy < 1) bloodDecal(v.p.x + rnd(-.3, .3), gy, v.p.z + rnd(-.3, .3), .5 + d / 60); }
   if (dead) kill(v, att, wname, head);
 }
@@ -1781,6 +2151,8 @@ function kill(v, att, wname, head) {
   v.alive = false; v.hp = 0; v.deadT = 0; v.cast = null; v.chute.visible = false;
   v.rank = aliveCount() + 1; v.killedBy = att; v.killedWith = wname; v.survived = T;
   v.deathYaw = v.yaw;
+  v.deathDir = -1; v.deathRoll = rnd(-.35, .35); v.deathArms = rnd(-.3, .5);
+  if (att && att !== v) { const toA = Math.atan2(att.p.x - v.p.x, att.p.z - v.p.z); v.deathDir = Math.abs(angDiff(v.yaw, toA)) < Math.PI / 2 ? -1 : 1; }
   if (v.st !== 'ground') { v.st = 'ground'; v.m.root.rotation.x = 0; }
   if (att && att !== v) att.kills++;
   dropAll(v);
@@ -1864,6 +2236,7 @@ function pickupItem(ch, it) {
   } else if (I.kind === 'med') ch.meds[I.m] += it.n || 1;
   else if (I.kind === 'frag') ch.frags += it.n || 1;
   removeItem(it);
+  ch.pickT = .5;
   if (ch.isPlayer) { sfxPick(); uiDirty = true; }
   return true;
 }
@@ -1897,7 +2270,7 @@ function updateNades(dt) {
       const h = dt / steps, nx = n.p.x + n.v.x * h, ny = n.p.y + n.v.y * h, nz = n.p.z + n.v.z * h;
       colsNear(nx - .2, nz - .2, nx + .2, nz + .2, NEAR);
       let hit = null;
-      for (const c of NEAR) if (nx > c.x0 && nx < c.x1 && ny > c.y0 && ny < c.y1 && nz > c.z0 && nz < c.z1) { hit = c; break; }
+      for (const c of NEAR) if (nx > c.x0 && nx < c.x1 && ny > c.y0 && ny < (c.cone ? coneH(c, nx, nz) : c.y1) && nz > c.z0 && nz < c.z1) { hit = c; break; }
       if (hit) {
         if (n.p.x <= hit.x0 || n.p.x >= hit.x1) n.v.x *= -.4;
         else if (n.p.z <= hit.z0 || n.p.z >= hit.z1) n.v.z *= -.4;
@@ -1927,12 +2300,44 @@ function explode(p, owner) {
   if (PLAYER) { const d = PLAYER.p.distanceTo(p); if (d < 25) camShake = Math.max(camShake, (1 - d / 25) * .8); }
 }
 
+/* ---------- 翻越矮牆與機具 ---------- */
+function tryVault(ch, dx, dz) {
+  const l = Math.hypot(dx, dz); if (l < .1 || ch.prone) return false;
+  dx /= l; dz /= l;
+  const y = ch.p.y;
+  const tk = raycast(ch.p.x, y + .35, ch.p.z, dx, 0, dz, 1.1);
+  if (tk >= 1.1) return false;
+  if (raycast(ch.p.x, y + 1.75, ch.p.z, dx, 0, dz, tk + 1.3) < tk + 1.3) return false;
+  const ox = ch.p.x + dx * (tk + .18), oz = ch.p.z + dz * (tk + .18);
+  const top = groundBelow(ox, y + 1.55, oz, .08);
+  if (top - y < .42 || top - y > 1.5) return false;
+  for (const d of [tk + .75, tk + 1.1, tk + 1.5, tk + .45]) {
+    const lx = ch.p.x + dx * d, lz = ch.p.z + dz * d, ly = groundBelow(lx, top + .1, lz, .28);
+    if (ly > top + .05 || pointBlocked(lx, ly, lz, .28)) continue;
+    ch.vault = { t: 0, dur: .38 + (top - y) * .22, ax: ch.p.x, ay: y, az: ch.p.z, bx: lx, by: ly, bz: lz, top, yaw: Math.atan2(dx, dz) };
+    ch.crouch = false; ch.cast = null; ch.reloadT = 0; ch.v.set(dx * 2.5, 0, dz * 2.5);
+    if (ch.isPlayer) sfxVault();
+    return true;
+  }
+  return false;
+}
+function stepVault(ch, dt) {
+  const V = ch.vault; V.t += dt;
+  const k = Math.min(1, V.t / V.dur), e = k * k * (3 - 2 * k);
+  ch.p.x = lerp(V.ax, V.bx, e); ch.p.z = lerp(V.az, V.bz, e);
+  ch.p.y = Math.max(lerp(V.ay, V.by, e), 0) + Math.sin(k * Math.PI) * Math.max(.2, V.top + .12 - Math.min(V.ay, V.by)) * (k < .5 ? 1 : 1);
+  ch.p.y = Math.max(ch.p.y, k > .2 && k < .8 ? V.top + .05 : ch.p.y);
+  ch.yaw += angDiff(ch.yaw, V.yaw) * Math.min(1, dt * 12);
+  ch.speed = 2.5; ch.onGround = false;
+  if (k >= 1) { ch.p.y = V.by; ch.vault = null; ch.onGround = true; ch.landT = .18; ch.v.multiplyScalar(.6); }
+}
+
 /* ---------- 身體物理：地面行走 ---------- */
 const _vel = new THREE.Vector3();
 function stepGround(ch, dt, wx, wz, speed, jump) {
   const k = 1 - Math.exp(-dt * (ch.onGround ? 14 : 2.5));
   ch.v.x += (wx * speed - ch.v.x) * k; ch.v.z += (wz * speed - ch.v.z) * k;
-  if (jump && ch.onGround) { ch.v.y = 5.4; ch.onGround = false; if (ch.crouch) ch.crouch = false; }
+  if (jump && ch.onGround && !ch.prone) { ch.v.y = 5.4; ch.onGround = false; if (ch.crouch) ch.crouch = false; }
   ch.v.y -= G * dt;
   const h = ch.bodyH();
   const n = Math.max(1, Math.ceil(Math.hypot(ch.v.x, ch.v.y, ch.v.z) * dt / .22));
@@ -1945,7 +2350,7 @@ function stepGround(ch, dt, wx, wz, speed, jump) {
   ch.p.x = clamp(ch.p.x, -SITE - 1, SITE + 1); ch.p.z = clamp(ch.p.z, -SITE - 1, SITE + 1);
   const gb = groundBelow(ch.p.x, ch.p.y, ch.p.z, .28);
   const was = ch.onGround;
-  if (ch.p.y <= gb + .001) { ch.p.y = gb; if (!was && ch.prevVy < -11.5 && ch.isPlayer) damage(ch, (-ch.prevVy - 11.5) * 7, null, '墜落', false); ch.v.y = 0; ch.onGround = true; }
+  if (ch.p.y <= gb + .001) { ch.p.y = gb; if (!was && ch.prevVy < -4.5) ch.landT = Math.max(ch.landT, clamp(-ch.prevVy / 32, .14, .4)); if (!was && ch.prevVy < -11.5 && ch.isPlayer) damage(ch, (-ch.prevVy - 11.5) * 7, null, '墜落', false); ch.v.y = 0; ch.onGround = true; }
   else if (was && ch.v.y <= 0 && ch.p.y - gb < .42) { ch.p.y = gb; ch.v.y = 0; ch.onGround = true; }
   else ch.onGround = false;
   ch.speed = Math.hypot(ch.v.x, ch.v.z);
@@ -1973,7 +2378,7 @@ function stepAir(ch, dt, fx, fz, fwd, fall) {
 }
 
 /* ---------- 動畫 ---------- */
-const _av = new THREE.Vector3();
+const _av = new THREE.Vector3(), _av2 = new THREE.Vector3();
 /* 讓身體繞 (0, hc, 0) 轉，而不是繞腳底轉：自由落體趴平時身體留在原位 */
 function pivotRoot(obj, p, hc) {
   _av.set(0, hc, 0).applyEuler(obj.rotation);
@@ -1985,12 +2390,19 @@ function animate(ch, dt) {
   const set = (o, x, y, z) => { o.rotation.x += (x - o.rotation.x) * ease; o.rotation.y += ((y || 0) - o.rotation.y) * ease; o.rotation.z += ((z || 0) - o.rotation.z) * ease; };
   if (!ch.alive) {
     ch.deadT += dt;
-    const k = Math.min(1, ch.deadT / .55);
-    r.rotation.set(-Math.PI / 2 * (k * k), ch.deathYaw, 0);
-    r.position.copy(ch.p); r.position.y += .12 * k;
-    m.hips.position.y = .94; m.hips.rotation.set(0, 0, 0);
-    m.gun.visible = false; m.back.visible = false; m.flash.visible = false;
-    m.armL.sh.rotation.set(-.4 * k, 0, .5 * k); m.armR.sh.rotation.set(-.4 * k, 0, -.5 * k);
+    const t = ch.deadT, dir = ch.deathDir || -1;
+    const buckle = Math.min(1, t / .2), f = clamp((t - .1) / .5, 0, 1), f2 = f * f;
+    const settle = t > .6 ? Math.exp(-(t - .6) * 9) * Math.sin((t - .6) * 22) * .04 : 0;   // 著地時彈一下
+    r.rotation.set(dir * (Math.PI / 2 * f2 + settle), ch.deathYaw, (ch.deathRoll || 0) * f2);
+    r.position.copy(ch.p); r.position.y += .12 * f2;
+    m.hips.position.y = .94 - .3 * buckle * (1 - f2); m.hips.rotation.set(0, 0, 0);
+    m.gun.visible = false; m.back.visible = false; m.flash.visible = false; m.gunG.position.copy(_gp);
+    const k = f2, ar = ch.deathArms || 0;
+    m.legL.hp.rotation.set(-.55 * buckle * (1 - k) - .15 * k, 0, .12 * k); m.legR.hp.rotation.set(-.35 * buckle * (1 - k) + .1 * k, 0, -.2 * k);
+    m.legL.kn.rotation.set(1.1 * buckle * (1 - k) + .25 * k, 0, 0); m.legR.kn.rotation.set(.9 * buckle * (1 - k) + .5 * k, 0, 0);
+    m.armL.sh.rotation.set(-dir * .5 * k, 0, (.5 + ar) * k); m.armR.sh.rotation.set(-dir * .3 * k, 0, -(.7 - ar) * k);
+    m.armL.el.rotation.set(-.4 * k, 0, 0); m.armR.el.rotation.set(-.9 * k, 0, 0);
+    m.torso.rotation.set(-.2 * buckle * (1 - k), 0, 0); m.head.rotation.set(dir * .3 * k, (ch.deathRoll || 0) * 1.5 * k, 0);
     return;
   }
   // 轉向時的側傾（自由落體繞身體長軸、傘下繞前後軸）
@@ -2007,8 +2419,21 @@ function animate(ch, dt) {
     ch.tilt += ch.tiltV * dt;
     hc = lerp(.95, 2.4, Math.min(1, ch.chuteT / .8));
   } else { ch.tilt += (0 - ch.tilt) * ease; ch.tiltV = 0; }
-  r.rotation.set(ch.tilt, ch.yaw, 0);
-  pivotRoot(r, ch.p, hc);
+  ch.leanK += ((ch.st === 'ground' ? ch.lean || 0 : 0) - ch.leanK) * Math.min(1, dt * 10);
+  ch.proneK += ((ch.st === 'ground' && ch.prone ? 1 : 0) - ch.proneK) * Math.min(1, dt * 4.5);
+  // 上下台階時畫面上的身體平滑跟上，不會一格一格跳
+  if (ch.st === 'ground' && ch.onGround && !ch.vault && ch.visY != null && Math.abs(ch.p.y - ch.visY) < .8) ch.visY += (ch.p.y - ch.visY) * Math.min(1, dt * 14);
+  else ch.visY = ch.p.y;
+  if (ch.st === 'ground' && ch.proneK > .002) {
+    // 趴下：以腳為軸往前倒，身體往後挪讓胸口落在原位
+    const k = ch.proneK;
+    r.rotation.set(k * Math.PI / 2 * .98, ch.yaw, 0);
+    r.position.set(ch.p.x - Math.sin(ch.yaw) * .85 * k, ch.visY + .12 * k, ch.p.z - Math.cos(ch.yaw) * .85 * k);
+  } else {
+    r.rotation.set(ch.tilt, ch.yaw, 0);
+    _av2.set(ch.p.x, ch.visY, ch.p.z);
+    pivotRoot(r, _av2, hc);
+  }
   let hipsY = .94;
   if (ch.st === 'fall') {
     const f = Math.sin(T * 7 + ch.p.x) * .06, g2 = Math.sin(T * 5.3 + ch.p.z) * .05;
@@ -2034,38 +2459,15 @@ function animate(ch, dt) {
       set(m.legL.hp, -.35 + sw, 0, .06); set(m.legR.hp, -.2 - sw, 0, -.06); set(m.legL.kn, .45); set(m.legR.kn, .35);
       set(m.torso, .05); set(m.head, .25);
     } else {
-      set(m.hips, 0, 0, 0);
-      set(m.armL.sh, 0, 0, .15); set(m.armR.sh, 0, 0, -.15); set(m.armL.el, 0); set(m.armR.el, 0); set(m.legL.hp, 0); set(m.legR.hp, 0); set(m.legL.kn, 0); set(m.legR.kn, 0);
-      set(m.torso, 0); set(m.head, 0);
+      // 站在晃動的鋼梁上：微微張手保持平衡，身體隨風擺，偶爾往下看、往旁邊看
+      const sd = ch.seed, wb = Math.sin(T * 1.3 + sd * 9), wb2 = Math.sin(T * .8 + sd * 4);
+      set(m.hips, 0, 0, wb * .04);
+      set(m.armL.sh, -.1, 0, .32 + wb * .12); set(m.armR.sh, -.1, 0, -.32 + wb * .12); set(m.armL.el, -.35); set(m.armR.el, -.35);
+      set(m.legL.hp, -.05, 0, .06); set(m.legR.hp, -.05, 0, -.06); set(m.legL.kn, .12 + Math.max(0, wb) * .1); set(m.legR.kn, .12 + Math.max(0, -wb) * .1);
+      set(m.torso, .05, 0, -wb * .05); set(m.head, .35 + wb2 * .25, Math.sin(T * .4 + sd * 3) * .8, 0);
     }
   } else {
-    set(m.hips, 0, 0, 0);
-    const s = ch.speed;
-    ch.phase += s * dt * 3.3;
-    const amp = Math.min(1, s / 4.5) * (s > 5.5 ? .95 : .62);
-    const sn = Math.sin(ch.phase);
-    if (ch.crouch) {
-      hipsY = .6;
-      set(m.legL.hp, -1.25 - sn * amp * .4); set(m.legR.hp, -1.0 + sn * amp * .4); set(m.legL.kn, 1.9); set(m.legR.kn, 1.55);
-    } else if (!ch.onGround) {
-      set(m.legL.hp, -.6); set(m.legR.hp, .1); set(m.legL.kn, 1.0); set(m.legR.kn, .5);
-    } else {
-      hipsY = .94 - Math.abs(Math.cos(ch.phase)) * .04 * amp;
-      set(m.legL.hp, -sn * amp); set(m.legR.hp, sn * amp);
-      set(m.legL.kn, Math.max(0, sn) * amp * 1.5 + .05); set(m.legR.kn, Math.max(0, -sn) * amp * 1.5 + .05);
-    }
-    const armed = !!ch.gun;
-    const tp = clamp(ch.pitch, -1.1, 1.1);
-    if (ch.cast) {
-      set(m.armR.sh, -.9, 0, .3); set(m.armR.el, -1.2); set(m.armL.sh, -.9, 0, -.3); set(m.armL.el, -1.2);
-    } else if (armed && !(ch.sprint && !ch.aim)) {
-      const rl = ch.reloadT > 0 ? Math.sin(T * 12) * .15 : 0;
-      set(m.armR.sh, -1.35, 0, .12); set(m.armR.el, -.45); set(m.armL.sh, -1.5 + rl, 0, -.55); set(m.armL.el, -.25 + rl);
-    } else {
-      set(m.armL.sh, sn * amp * .9, 0, .08); set(m.armR.sh, -sn * amp * .9, 0, -.08); set(m.armL.el, -.35 - amp * .3); set(m.armR.el, -.35 - amp * .3);
-    }
-    set(m.torso, armed && !(ch.sprint && !ch.aim) ? -tp * .75 : (ch.sprint ? .18 : 0));
-    set(m.head, armed ? -tp * .25 : -tp * .6);
+    hipsY = groundPose(ch, m, dt, yr, set);
   }
   // 著陸緩衝：落地後 0.45 秒屈膝蹲下再站起
   if (ch.landT > 0 && ch.st === 'ground') {
@@ -2081,7 +2483,7 @@ function animate(ch, dt) {
   const onGround = ch.st === 'ground';
   m.gun.visible = !!g && onGround;
   if (g && m.gun.geometry !== GUNGEO[g.id]) m.gun.geometry = GUNGEO[g.id];
-  if (g && ch.sprint && !ch.aim) { m.gunG.rotation.set(.9, .5, 0); } else m.gunG.rotation.set(0, 0, 0);
+  if (!onGround) { m.gunG.rotation.set(0, 0, 0); m.gunG.position.copy(_gp); }
   const other = ch.guns[ch.holster ? ch.slot : 1 - ch.slot] || (ch.holster ? ch.guns[1 - ch.slot] : null);
   m.back.visible = !!other && onGround || (ch.st !== 'ground' && !!ch.guns[0]);
   const bg = other || ch.guns[0];
@@ -2131,6 +2533,159 @@ function animate(ch, dt) {
     if (fade > 0) c.scale.set(1 - fade * .9, .22 * (1 - fade), 1 - fade * .9);
     if (ch.chuteT > 2.1) c.visible = false;
   }
+}
+
+/* ---------- 地面動作：依移動方向邁步、骨盆與肩膀反向扭轉、重心起伏、呼吸與重心轉移、
+   低姿持槍／舉槍瞄準、後座力、換彈匣、補血、撿東西、受擊與落地緩衝 ---------- */
+const _gp = new THREE.Vector3(-.08, .34, .16);
+function groundPose(ch, m, dt, yr, set) {
+  const e2 = 1 - Math.exp(-dt * 22);
+  const S2 = (o, x, y, z) => { o.rotation.x += (x - o.rotation.x) * e2; o.rotation.y += ((y || 0) - o.rotation.y) * e2; o.rotation.z += ((z || 0) - o.rotation.z) * e2; };
+  const s = ch.speed, sd = ch.seed;
+  const fx = Math.sin(ch.yaw), fz = Math.cos(ch.yaw);
+  // 速度換到身體座標：vf 往前、vl 往左（角色的左手邊是 +x）
+  const vf = ch.v.x * fx + ch.v.z * fz, vl = ch.v.x * fz - ch.v.z * fx, mv = Math.hypot(vf, vl);
+  const dF = mv > .25 ? vf / mv : 1, dL = mv > .25 ? vl / mv : 0;
+  const runK = clamp((s - 3.2) / 3, 0, 1);
+  const turnStep = s < .6 && Math.abs(yr) > 1.4 && ch.onGround ? 1.3 : 0;  // 原地轉身也要踏步
+  const stride = ch.crouch ? .5 : lerp(.72, 1.15, runK);
+  ch.phase += (s + turnStep) * dt * Math.PI / stride;
+  const amp = clamp((s + turnStep) / 4, 0, 1) * (ch.crouch ? .45 : lerp(.55, .92, runK));
+  const moving = amp > .03, ph = ch.phase, sL = Math.sin(ph), cL = Math.cos(ph);
+  const breathe = Math.sin(T * 1.7 + sd * 7), idleW = Math.sin(T * .33 + sd * 11);
+  const armed = !!ch.gun, w = armed ? WPN[ch.gun.id] : null;
+  const firing = armed && T - (ch.lastFireT || -9) < 1.6;
+  const aimPose = armed && (ch.aim || firing) && !ch.cast;
+  const sprintArm = armed && ch.sprint && !aimPose;
+  const tp = clamp(ch.pitch, -1.1, 1.1);
+  const rk = armed ? Math.max(0, 1 - ch.flashT / (w.scope || w.pellets > 1 ? .22 : .1)) * (w.recoil > .03 ? 1.6 : 1) : 0;  // 後座力
+  const pick = ch.pickT > 0 ? Math.sin(Math.min(1, ch.pickT / .5) * Math.PI) : 0;
+  const hit = ch.hitT > 0 ? ch.hitT / .3 : 0;
+  ch.pickT = Math.max(0, (ch.pickT || 0) - dt); ch.hitT = Math.max(0, (ch.hitT || 0) - dt);
+  const kneel = ch.cast && ch.cast.m !== 3 && s < .5 && !ch.prone;   // 用急救包、醫療箱、繃帶時跪下處理
+  let hipsY = .94, hipX = 0;
+  if (ch.vault) {
+    // 翻越：身體前傾、一手撐在障礙上，雙腿收起側甩過去
+    const k = Math.min(1, ch.vault.t / ch.vault.dur), sk = Math.sin(k * Math.PI);
+    S2(m.hips, 0, 0, .45 * sk); S2(m.torso, .55 * sk + .1, 0, -.2 * sk); set(m.head, -.3, 0, 0);
+    S2(m.legL.hp, -1.3 * sk, 0, .45 * sk); S2(m.legL.kn, 1.7 * sk + .1); S2(m.legR.hp, -.9 * sk, 0, .25 * sk); S2(m.legR.kn, 1.3 * sk + .1);
+    S2(m.armR.sh, -1.05, 0, .1); S2(m.armR.el, -.08); S2(m.armL.sh, -.5, 0, .5); S2(m.armL.el, -.6);
+    m.gunG.rotation.set(.9, .6, 0); m.gunG.position.copy(_gp);
+    return .94 - .12 * sk;
+  }
+  if (ch.proneK > .5) {
+    // 趴姿：胸口撐起、手肘著地舉槍；移動時匍匐，雙腿輪流像蛙腿一樣收
+    const crawl = s > .15 ? 1 : 0;
+    ch.phase += s * dt * Math.PI / .42;
+    const c1 = Math.sin(ch.phase) * crawl, cL = Math.max(0, c1), cR = Math.max(0, -c1);
+    S2(m.hips, 0, 0, c1 * .12);
+    S2(m.legL.hp, -.15 * cL, .9 * cL, .12 + .55 * cL); S2(m.legL.kn, .05 + 1.4 * cL);
+    S2(m.legR.hp, -.15 * cR, -.9 * cR, -.12 - .55 * cR); S2(m.legR.kn, .05 + 1.4 * cR);
+    S2(m.torso, armed ? -.5 : -.3, 0, -c1 * .1);
+    set(m.head, -1.0 - (armed ? tp * .3 : 0) + (armed ? .45 : .2), 0, 0);
+    if (armed && !ch.cast) {
+      S2(m.armR.sh, -2.55 + c1 * .15, 0, .28); S2(m.armR.el, -.55); S2(m.armL.sh, -2.7 - c1 * .15, 0, -.42); S2(m.armL.el, -.75);
+      m.gunG.rotation.x += ((-1.07 - tp * .8 - rk * .1) - m.gunG.rotation.x) * e2; m.gunG.rotation.y *= 1 - e2; m.gunG.rotation.z *= 1 - e2;
+    } else {
+      S2(m.armR.sh, -2.85 + c1 * .35, 0, .3); S2(m.armR.el, -.35 - cR * .5); S2(m.armL.sh, -2.85 - c1 * .35, 0, -.3); S2(m.armL.el, -.35 - cL * .5);
+    }
+    m.gunG.position.set(_gp.x, _gp.y, _gp.z - rk * .04);
+    return .94;
+  }
+
+  // ── 腿 ──
+  const leg = (L, sg) => {
+    const sw = sL * sg * amp, lift = Math.max(0, cL * sg);
+    let hx = -sw * dF, hz = sw * dL * .85, kn = .05 + lift * amp * (1.05 + runK * .95) + Math.max(0, sw) * .12;
+    if (!moving) { const wgt = Math.max(0, idleW * sg); kn = .04 + wgt * .16; hz = -idleW * .035; hx = -wgt * .06; }
+    if (ch.crouch) { hx += sg > 0 ? -1.2 : -.95; kn += sg > 0 ? 1.75 : 1.5; }
+    if (!ch.onGround) { hx = sg > 0 ? -.75 : .15; kn = sg > 0 ? 1.2 : .55; hz = 0; }
+    if (kneel) { hx = sg > 0 ? -1.45 : .05; kn = sg > 0 ? 1.5 : 1.62; hz = sg * .08; }
+    S2(L.hp, hx, 0, hz * (sg > 0 ? 1 : 1) + sg * .03); S2(L.kn, kn);
+  };
+  leg(m.legL, 1); leg(m.legR, -1);
+
+  // ── 骨盆：上下起伏、隨步伐扭轉與側傾、轉彎時往內倒 ──
+  const bob = (ch.crouch ? .02 : .03 + runK * .035) * amp;
+  hipsY = (ch.crouch ? .6 : .94) - bob * (1 - Math.cos(2 * ph)) * .5 - (kneel ? .42 : 0) - pick * .28;
+  if (!moving) hipX = idleW * .018;
+  const twist = sL * amp * .16 * (Math.abs(dF) > .3 ? Math.sign(dF) : 0);
+  const roll = sL * amp * .05 + clamp(-yr * s * .012, -.16, .16) - (!moving ? idleW * .03 : 0);
+  S2(m.hips, 0, twist, roll);
+  m.hips.position.x += (hipX - m.hips.position.x) * e2;
+
+  // ── 上身：肩膀反向扭轉、跑步前傾、呼吸、瞄準時跟著俯仰 ──
+  let tx = runK * .2 * Math.max(0, dF) + breathe * .015 + (1 - Math.cos(2 * ph)) * .018 * amp;
+  if (aimPose) tx = -tp * .75;
+  else if (armed) tx += -tp * .35 + .04;
+  tx += pick * .75 + (kneel ? .18 : 0) - hit * .3 - rk * .06;
+  const ty = aimPose ? -twist : -twist * (armed ? 1 : 1.35);
+  const tz = hit * (ch.hitSide || 1) * .14 - roll * .5 + (ch.leanK || 0) * .4;
+  S2(m.torso, tx, ty, tz);
+
+  // ── 頭：抵銷上身晃動、看向目標；瞄準時歪頭貼腮 ──
+  const look = clamp(angDiff(ch.yaw, ch.lookYaw != null ? ch.lookYaw : ch.yaw), -1.1, 1.1);
+  let glance = 0;
+  if (!moving && !aimPose && !ch.isPlayer) glance = Math.sin(T * .27 + sd * 5) * .6 * (Math.sin(T * .11 + sd) > .2 ? 1 : 0);
+  let hx2 = aimPose ? -tp * .2 + .1 : -tp * .55 - tx * .5 + pick * .35 - hit * .25;
+  if (ch.reloadT > 0 && w) hx2 += Math.sin((1 - ch.reloadT / w.reload) * Math.PI) * .35;
+  set(m.head, hx2, (aimPose ? 0 : look * .75 - ty) + glance, (aimPose ? .13 : 0) - (ch.leanK || 0) * .22);
+
+  // ── 手臂與槍 ──
+  const gG = m.gunG;
+  let gx = 0, gy = 0, gz = 0, px = 0, py = 0, pz = 0;
+  if (ch.cast) {
+    const t = ch.cast.t, M = ch.cast.m;
+    if (M === 3) {         // 能量飲料：右手舉到嘴邊、仰頭
+      const k = Math.min(1, t / .5);
+      S2(m.armR.sh, -1.2 * k - .1, 0, .35); S2(m.armR.el, -2.1 * k); S2(m.armL.sh, .05, 0, .1); S2(m.armL.el, -.3);
+      m.head.rotation.x -= .35 * k * (t > .6 ? 1 : 0);
+    } else {               // 纏繃帶／包紮：雙手在身前繞圈
+      const c1 = Math.sin(t * 7), c2 = Math.cos(t * 7);
+      S2(m.armR.sh, -.95 + c1 * .18, 0, .3 + c2 * .1); S2(m.armR.el, -1.35 + c2 * .2);
+      S2(m.armL.sh, -.8 - c1 * .15, 0, -.3 - c2 * .1); S2(m.armL.el, -1.25 - c2 * .2);
+    }
+  } else if (pick > .05) {
+    S2(m.armR.sh, -.95 * pick - .1, 0, .15); S2(m.armR.el, -.15); S2(m.armL.sh, -.2, 0, .2); S2(m.armL.el, -.6);
+    if (armed) { gx = .5; }
+  } else if (ch.obst && armed && !sprintArm) {  // 槍口頂到牆：槍往上收在胸前
+    S2(m.armR.sh, -.95, 0, .2); S2(m.armR.el, -1.55); S2(m.armL.sh, -1.25, 0, -.4); S2(m.armL.el, -1.45);
+    gx = -1.2; py = .05; pz = -.1;
+  } else if (sprintArm) {  // 衝刺：槍斜抱在胸前，手臂隨步伐擺
+    const pump = sL * amp * .25;
+    S2(m.armR.sh, -.55 - pump, 0, .2); S2(m.armR.el, -1.35); S2(m.armL.sh, -1.0 + pump, 0, -.35); S2(m.armL.el, -1.45);
+    gx = .55; gy = .95; gz = .35; py = -.05; px = .05;
+  } else if (aimPose) {    // 舉槍瞄準
+    const rl = ch.reloadT > 0 && w ? 1 - ch.reloadT / w.reload : -1;
+    let lsx = -1.5, lel = -.25, lsz = -.55;
+    if (rl >= 0) ({ lsx, lel } = reloadArm(rl));
+    S2(m.armR.sh, -1.35 + rk * .18, 0, .12); S2(m.armR.el, -.45 - rk * .1); S2(m.armL.sh, lsx, 0, lsz); S2(m.armL.el, lel);
+    if (rl >= 0) { gz = Math.sin(rl * Math.PI) * .45; gx = Math.sin(rl * Math.PI) * .2; }
+    gx -= rk * .14; pz = -rk * .05; py = rk * .01;
+  } else if (armed) {      // 低姿持槍：槍口朝前下方，走路時隨步伐晃
+    const rl = ch.reloadT > 0 && w ? 1 - ch.reloadT / w.reload : -1;
+    let lsx = -1.05, lel = -.8, lsz = -.5;
+    if (rl >= 0) ({ lsx, lel } = reloadArm(rl));
+    S2(m.armR.sh, -.8 + breathe * .02, 0, .16); S2(m.armR.el, -.95); S2(m.armL.sh, lsx + breathe * .02, 0, lsz); S2(m.armL.el, lel);
+    gx = .42 + (rl >= 0 ? Math.sin(rl * Math.PI) * .15 : 0); gz = (rl >= 0 ? Math.sin(rl * Math.PI) * .45 : 0) + sL * amp * .05;
+    py = -.07 + Math.sin(2 * ph) * .012 * amp; pz = -.02;
+  } else {                 // 空手：手臂與腳反向擺，跑越快手肘彎越多
+    const aw = moving ? amp * (1.05 + runK * .35) : 0;
+    const il = !moving ? breathe * .025 : 0;
+    const bL = sL * aw * Math.max(.3, Math.abs(dF)), bR = -bL;
+    S2(m.armL.sh, bL + il, 0, .09 + runK * .12 + (!moving ? .04 : 0)); S2(m.armR.sh, bR + il, 0, -.09 - runK * .12 - (!moving ? .04 : 0));
+    S2(m.armL.el, -.22 - runK * 1.05 - Math.max(0, -bL) * .5); S2(m.armR.el, -.22 - runK * 1.05 - Math.max(0, -bR) * .5);
+  }
+  gG.rotation.x += (gx - gG.rotation.x) * e2; gG.rotation.y += (gy - gG.rotation.y) * e2; gG.rotation.z += (gz - gG.rotation.z) * e2;
+  gG.position.set(_gp.x + px, _gp.y + py, _gp.z + pz);
+  return hipsY;
+}
+/* 換彈匣時左手的路徑：伸向彈匣 → 抽出換新 → 回到護木（最後拍一下） */
+function reloadArm(r) {
+  if (r < .28) { const k = r / .28; return { lsx: lerp(-1.5, -.55, k), lel: lerp(-.25, -1.25, k) }; }
+  if (r < .58) { const k = (r - .28) / .3; return { lsx: -.55 + Math.sin(k * Math.PI * 2) * .12, lel: -1.25 - Math.sin(k * Math.PI) * .25 }; }
+  if (r < .85) { const k = (r - .58) / .27; return { lsx: lerp(-.55, -1.5, k), lel: lerp(-1.25, -.25, k) }; }
+  const k = (r - .85) / .15; return { lsx: -1.5 + Math.sin(k * Math.PI) * .15, lel: -.25 };
 }
 
 /* ---------- 安全區 ---------- */
@@ -2411,6 +2966,7 @@ function botUpdate(b, dt) {
     if (ch.st === 'ground') { b.lootUntil = T + rnd(40, 95); b.think = 0; }
     return;
   }
+  if (ch.vault) { stepVault(ch, dt); return; }
   b.think -= dt;
   if (b.think <= 0) { b.think = .22 + rnd(.1); botThink(b); }
   b.idleT -= dt; b.detourT -= dt;
@@ -2433,11 +2989,11 @@ function botUpdate(b, dt) {
       tx = ch.p.x + px * b.strafe * 3 + (d < pref * .6 ? -dx / d * 2 : 0); tz = ch.p.z + pz * b.strafe * 3 + (d < pref * .6 ? -dz / d * 2 : 0);
       speed = b.strafe ? 3.6 : 0;
       b.crouchT -= dt;
-      if (b.crouchT <= 0) { ch.crouch = Math.random() < (ch.gun && ch.gun.id === 'kar98' ? .7 : .25); b.crouchT = rnd(1.5, 4); }
+      if (b.crouchT <= 0) { const sn = ch.gun && ch.gun.id === 'kar98', far = d > 45; ch.prone = sn && far && Math.random() < .45; ch.crouch = !ch.prone && Math.random() < (sn ? .7 : .25); b.crouchT = rnd(2, 5); }
     }
     b.engageT += dt;
   } else {
-    ch.crouch = false;
+    ch.crouch = false; ch.prone = false;
     if (b.goal && !(ch.cast)) { tx = b.gx; tz = b.gz; }
     if (b.goal === 'zone' || b.goal === 'flee') { speed = 6.2; ch.sprint = true; }
     if (b.heardT > T - 3 && !b.vis) face = Math.atan2(b.hx - ch.p.x, b.hz - ch.p.z);
@@ -2456,6 +3012,8 @@ function botUpdate(b, dt) {
     if (a !== null) { wx = Math.sin(a); wz = Math.cos(a); if (face === null) face = a; }
   }
   if (face !== null) ch.yaw += angDiff(ch.yaw, face) * Math.min(1, dt * (b.vis ? 8 : 5));
+  ch.lookYaw = e && e.alive && T - b.lastSeenT < 3 ? Math.atan2(e.p.x - ch.p.x, e.p.z - ch.p.z) : face;
+  ch.aim = !!(e && e.alive && b.vis && ch.gun);
   // 卡住偵測
   b.stuckT += dt;
   if (b.stuckT > 1.2) {
@@ -2463,7 +3021,9 @@ function botUpdate(b, dt) {
     if ((wx || wz) && moved < .5) { b.detourA = (Math.random() < .5 ? 1 : -1) * rnd(1, 2.2); b.detourT = rnd(1, 2); b.jumpReq = true; if (b.item) { b.item.claim = null; b.item = null; } }
     b.sx = ch.p.x; b.sz = ch.p.z; b.stuckT = 0;
   }
-  const spd = ch.crouch ? Math.min(speed, 2.4) : ch.cast ? 1.5 : speed;
+  const spd = ch.prone ? Math.min(speed, 1.1) : ch.crouch ? Math.min(speed, 2.4) : ch.cast ? 1.5 : speed;
+  if (wx || wz) for (const d of DOORLIST) if (!d.target && Math.abs(d.y - ch.p.y) < 1.2 && Math.hypot(d.cx - ch.p.x, d.cz - ch.p.z) < 1.5) toggleDoor(d);
+  if (b.jumpReq && (wx || wz) && tryVault(ch, wx, wz)) { b.jumpReq = false; return; }
   stepGround(ch, dt, wx, wz, spd * (ch.boost > 60 ? 1.06 : 1), b.jumpReq);
   b.jumpReq = false;
   // 開火
@@ -2580,13 +3140,15 @@ function sfxBoom(p) {
 function sfxAlarm() { if (!AU.ctx) return; const t = AU.ctx.currentTime, o = out(null, .18); for (let i = 0; i < 3; i++) { tone(t + i * .32, o, 'square', 880, 880, .01, .4, .12); tone(t + i * .32 + .15, o, 'square', 660, 660, .01, .4, .12); } }
 function sfxHurt() { if (!AU.ctx) return; const t = AU.ctx.currentTime, o = out(null, .5); tone(t, o, 'sine', 140, 60, .002, .8, .15); noiseHit(t, o, 'lowpass', 700, .002, .4, .1); }
 function sfxChute() { if (!AU.ctx) return; const t = AU.ctx.currentTime, o = out(null, .6); noiseHit(t, o, 'bandpass', 500, .02, 1, .5, .8); noiseHit(t + .1, o, 'lowpass', 300, .01, .8, .3); }
+function sfxDoor(d) { if (!AU.ctx) return; const t = AU.ctx.currentTime, o = out(_t1.set(d.cx, d.y + 1, d.cz), .5 / (1 + camera.position.distanceTo(_t1) / 6)); tone(t, o, 'sawtooth', d.target ? 180 : 140, d.target ? 120 : 200, .02, .08, .35); noiseHit(t + (d.target ? .35 : .5), o, 'lowpass', 500, .005, .7, .12); }
+function sfxVault() { if (!AU.ctx) return; const t = AU.ctx.currentTime, o = out(null, .35); noiseHit(t, o, 'lowpass', 700, .01, .6, .15); noiseHit(t + .22, o, 'bandpass', 1200, .005, .4, .08, 2); }
 function sfxPunch() { if (!AU.ctx) return; noiseHit(AU.ctx.currentTime, out(null, .4), 'lowpass', 900, .002, .8, .08); }
 
 /* ============================================================
    玩家、輸入、鏡頭
    ============================================================ */
 let PLAYER = null, camShake = 0, uiDirty = true;
-const IN = { k: {}, lmb: false, rmb: false, lmbEdge: false, jumpEdge: false, mx: 0, my: 0, locked: false, noLock: false, sens: 1, tAim: false, tMove: [0, 0], map: false };
+const IN = { lmx: 0, lmy: 0, tLean: 0, k: {}, lmb: false, rmb: false, lmbEdge: false, jumpEdge: false, mx: 0, my: 0, locked: false, noLock: false, sens: 1, tAim: false, tMove: [0, 0], map: false };
 const PL = { yaw: 0, pitch: -.25, recoilAcc: 0, lastShot: -9, aimK: 0, near: null, orbit: 0, fov: 72, scoped: false, deadT: 0, endShown: false, fPressed: false };
 
 const lookDir = (out, yaw = PL.yaw, pitch = PL.pitch) => out.set(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
@@ -2608,7 +3170,7 @@ function playerFire() {
   _t2.copy(camera.position).addScaledVector(_lk, startT);
   const aim = traceShot(ch, _t2, _lk, 900);
   _ap.copy(_t2).addScaledVector(_lk, aim.t);
-  if (PL.scoped) _so.copy(camera.position); else { _so.y -= .12; _so.x += -Math.cos(PL.yaw) * .12; _so.z += Math.sin(PL.yaw) * .12; }
+  if (PL.scoped || PL.fp) _so.copy(camera.position); else { _so.y -= .12; _so.x += -Math.cos(PL.yaw) * .12; _so.z += Math.sin(PL.yaw) * .12; }
   _sd.copy(_ap).sub(_so).normalize();
   fire(ch, _so, _sd, playerSpread(ch));
   const kick = w.recoil * rnd(.85, 1.15) * (ch.crouch ? .8 : 1) * (ch.aim ? .85 : 1);
@@ -2633,6 +3195,17 @@ function nearestItem() {
   }
   return best;
 }
+function nearestDoor(ch) {
+  let best = null, bd = 2.2;
+  for (const d of DOORLIST) { const dist = Math.hypot(d.cx - ch.p.x, d.cz - ch.p.z); if (dist < bd && Math.abs(d.y - ch.p.y) < 1.5) { bd = dist; best = d; } }
+  return best ? { door: best, dist: bd } : null;
+}
+function toggleDoor(d) { d.target = d.target ? 0 : 1; d.moving = true; sfxDoor(d); }
+function interact() {
+  const d = nearestDoor(PLAYER);
+  if (d && (!PL.near || d.dist < Math.hypot(PL.near.x - PLAYER.p.x, PL.near.z - PLAYER.p.z))) { toggleDoor(d.door); return; }
+  tryPickup();
+}
 function tryPickup() {
   const it = PL.near; if (!it || !PLAYER.alive || PLAYER.st !== 'ground') return;
   const I = ITEMS[it.t];
@@ -2656,7 +3229,7 @@ function playerUpdate(dt) {
   const ch = PLAYER;
   const w = ch.w, zoom = ch.aim && w ? w.zoom : 1;
   const k = .0021 * IN.sens / Math.max(1, zoom * .75);
-  PL.yaw -= IN.mx * k; PL.pitch -= IN.my * k; IN.mx = IN.my = 0;
+  PL.yaw -= IN.mx * k; PL.pitch -= IN.my * k; IN.mx = IN.my = 0; IN.lmx *= .5; IN.lmy *= .5;
   PL.pitch = clamp(PL.pitch, -1.4, ch.st === 'ground' ? 1.3 : .7);
   if (!ch.alive) return;
   if (T - PL.lastShot > .12 && PL.recoilAcc > 0) { const d = Math.min(PL.recoilAcc, dt * (.2 + PL.recoilAcc * 5)); PL.pitch -= d * .7; PL.recoilAcc -= d; }
@@ -2684,10 +3257,17 @@ function playerUpdate(dt) {
     return;
   }
   // 地面
+  if (ch.vault) { stepVault(ch, dt); ch.pitch = PL.pitch; ch.lookYaw = PL.yaw; IN.jumpEdge = false; IN.lmbEdge = false; PL.near = null; return; }
   ch.aim = (IN.rmb || IN.tAim) && !ch.cast;
-  ch.sprint = !!(K.ShiftLeft || K.ShiftRight) && f > 0 && !ch.aim && !ch.cast && !IN.lmb && ch.reloadT <= 0;
+  ch.sprint = !!(K.ShiftLeft || K.ShiftRight) && f > 0 && !ch.aim && !ch.cast && !IN.lmb && ch.reloadT <= 0 && !ch.prone;
   if (ch.sprint && ch.crouch) ch.crouch = false;
-  let speed = ch.crouch ? 2.4 : ch.sprint ? 6.4 : ch.aim ? 3.1 : 4.7;
+  ch.lean = ch.sprint || ch.prone ? 0 : (K.KeyE ? 1 : 0) - (K.KeyQ ? 1 : 0) + IN.tLean;
+  let speed = ch.prone ? 1.1 : ch.crouch ? 2.4 : ch.sprint ? 6.4 : ch.aim ? 3.1 : 4.7;
+  // 按空白鍵：前面有矮牆就翻過去，趴著就先起身
+  if (IN.jumpEdge && ch.onGround && !ch.cast) {
+    if (ch.prone) { ch.prone = false; ch.crouch = true; IN.jumpEdge = false; }
+    else if (tryVault(ch, (f || s) ? fx * f + rx * s : fx, (f || s) ? fz * f + rz * s : fz)) { IN.jumpEdge = false; return; }
+  }
   if (ch.cast) speed *= .45;
   if (ch.boost > 60) speed *= 1.06;
   const wx = fx * f + rx * s, wz = fz * f + rz * s;
@@ -2698,7 +3278,10 @@ function playerUpdate(dt) {
   const moving = Math.hypot(wx, wz) > .1;
   if (ch.gun || ch.aim || IN.lmb) ch.yaw += angDiff(ch.yaw, PL.yaw) * Math.min(1, dt * 16);
   else if (moving) ch.yaw += angDiff(ch.yaw, Math.atan2(wx, wz)) * Math.min(1, dt * 10);
-  ch.pitch = PL.pitch;
+  ch.pitch = PL.pitch; ch.lookYaw = PL.yaw;
+  // 槍口頂到牆：把槍舉高收回（仍可開槍，子彈從肩膀打出）
+  ch.obst = false;
+  if (ch.gun && !PL.scoped && !ch.prone) { ch.eye(_t1); lookDir(_lk); ch.obst = raycast(_t1.x, _t1.y - .15, _t1.z, _lk.x, _lk.y, _lk.z, .95) < .72; }
   if (ch.reloadT > 0) { ch.reloadT -= dt; if (ch.reloadT <= 0) { finishReload(ch); uiDirty = true; } }
   if (ch.cast) { ch.cast.t += dt; if (ch.cast.t >= ch.cast.dur) { finishCast(ch); uiDirty = true; } }
   ch.bloom = Math.max(0, ch.bloom - dt * .05);
@@ -2718,7 +3301,7 @@ function updateCamera(dt) {
   const ch = PLAYER;
   lookDir(_lk);
   let fov = 72;
-  PL.scoped = false;
+  PL.scoped = false; PL.fp = false;
   ch.m.root.visible = true;
   if (STATE === 'menu') {
     PL.orbit += dt * .05;
@@ -2748,19 +3331,29 @@ function updateCamera(dt) {
       ch.eye(_cp).addScaledVector(_lk, .2);
       fov = 72 / w.zoom;
       ch.m.root.visible = false;
+    } else if (ch.aim && w && !w.scope && PL.aimK > .55 && !ch.obst && !ch.vault) {
+      // 其他槍：切到第一人稱，從紅點或機械瞄具看出去
+      PL.fp = true;
+      ch.eye(_cp).addScaledVector(_lk, .02);
+      fov = 72 / w.zoom;
+      ch.m.root.visible = false;
     } else {
-      const pivY = ch.p.y + (ch.crouch ? 1.22 : 1.62);
+      const vy = ch.visY != null ? ch.visY : ch.p.y;
+      const pivY = vy + lerp(ch.crouch ? 1.22 : 1.62, .62, ch.proneK);
       const rx = -Math.cos(PL.yaw), rz = Math.sin(PL.yaw);
       const narrow = clamp(camera.aspect / 1.2, .45, 1);
-      const side = lerp(.62, .72, PL.aimK) * narrow, dist = lerp(3.2, 1.9, PL.aimK) * (narrow < 1 ? 1.2 : 1);
+      const side = lerp(.62, .72, PL.aimK) * narrow + ch.leanK * .42, dist = lerp(3.2, 1.9, PL.aimK) * (narrow < 1 ? 1.2 : 1) * lerp(1, .85, ch.proneK);
       _cs.set(ch.p.x, pivY, ch.p.z);
       // 先往肩膀偏移，再往後拉，兩段都做碰撞
-      let t = raycast(_cs.x, _cs.y, _cs.z, rx, 0, rz, side + .2);
-      const sd = Math.max(0, Math.min(side, t - .2));
+      const sg = side < 0 ? -1 : 1;
+      let t = raycast(_cs.x, _cs.y, _cs.z, rx * sg, 0, rz * sg, Math.abs(side) + .2);
+      const sd = sg * Math.max(0, Math.min(Math.abs(side), t - .2));
       _cs.x += rx * sd; _cs.z += rz * sd;
       _cd.copy(_lk).negate(); _cd.y += .05; _cd.normalize();
       t = raycast(_cs.x, _cs.y, _cs.z, _cd.x, _cd.y, _cd.z, dist + .25);
-      const dd = Math.max(.3, Math.min(dist, t - .25));
+      const want = Math.max(.3, Math.min(dist, t - .25));
+      PL.camD = PL.camD == null || want < PL.camD ? want : PL.camD + (want - PL.camD) * Math.min(1, dt * 4);
+      const dd = PL.camD;
       _cp.copy(_cs).addScaledVector(_cd, dd);
       if (dd < .6) ch.m.root.visible = false;
       fov = lerp(72, w ? 72 / Math.min(w.zoom, 1.6) : 60, PL.aimK);
@@ -2768,10 +3361,42 @@ function updateCamera(dt) {
   }
   if (camShake > .001) { _cp.x += rnd(-1, 1) * camShake * .15; _cp.y += rnd(-1, 1) * camShake * .15; camShake *= Math.exp(-dt * 7); }
   camera.position.copy(_cp);
-  camera.rotation.set(PL.pitch, PL.yaw + Math.PI, 0);
-  setNear(ch.st === 'ground' ? (PL.scoped ? .08 : .1) : clamp((ch.p.y - 10) * .012, .1, 1.2));
+  camera.rotation.set(PL.pitch, PL.yaw + Math.PI, ch.alive && ch.st === 'ground' ? -ch.leanK * .07 : 0);
+  setNear(ch.st === 'ground' ? (PL.scoped ? .08 : PL.fp ? .03 : .1) : clamp((ch.p.y - 10) * .012, .1, 1.2));
   PL.fov += (fov - PL.fov) * (1 - Math.exp(-dt * 14));
   if (Math.abs(camera.fov - PL.fov) > .01) { camera.fov = PL.scoped ? fov : PL.fov; camera.updateProjectionMatrix(); }
+  updateViewModel(dt, PL.fp && ch.alive && !!ch.gun);
+}
+
+/* ---------- 第一人稱瞄準的手與槍（掛在鏡頭上） ---------- */
+scene.add(camera);
+const VM = new THREE.Group(); VM.visible = false; camera.add(VM);
+const VMK = new THREE.Group(); VM.add(VMK);
+const VMGUN = new THREE.Mesh(GUNGEO.m416, GUNMAT); VMGUN.rotation.y = Math.PI; VMK.add(VMGUN);
+const VMFLASH = new THREE.Mesh(FLASHGEO, FLASHMAT); VMFLASH.visible = false; VMGUN.add(VMFLASH);
+/* 準星高度 y、準星位置 z、眼睛到準星的距離、左手握的位置 */
+const SIGHT = { m416: { y: .1, z: .16, d: .23, fore: .42, dot: true }, ump: { y: .082, z: .02, d: .3, fore: .28, dot: false }, s686: { y: .047, z: .1, d: .3, fore: .3, dot: false }, kar98: { y: .1, z: -.1, d: .2, fore: .4, dot: false } };
+const VMHANDS = {};
+function vmHands(fore) {
+  if (VMHANDS[fore]) return VMHANDS[fore];
+  const gl = 0xe0b33a, sl = 0x1f3a3d;
+  const g = new MB().box(gl, 0, -.085, .0, .065, .1, .085, -.3).box(gl, .0, -.05, .045, .05, .03, .06, -.3).box(sl, .025, -.17, -.12, .085, .085, .25, .75)
+    .box(gl, 0, -.038, fore, .07, .06, .1).box(gl, -.03, -.02, fore - .04, .03, .05, .05).box(sl, -.1, -.1, fore - .2, .085, .085, .32, .35, .55).build();
+  return (VMHANDS[fore] = new THREE.Mesh(g, CHMAT));
+}
+let vmHand = null;
+function updateViewModel(dt, on) {
+  VM.visible = on; $('rdot').classList.toggle('on', on && PLAYER.gun && SIGHT[PLAYER.gun.id].dot);
+  if (!on) return;
+  const ch = PLAYER, id = ch.gun.id, S0 = SIGHT[id], w = WPN[id];
+  if (VMGUN.geometry !== GUNGEO[id]) VMGUN.geometry = GUNGEO[id];
+  const h = vmHands(S0.fore); if (vmHand !== h) { if (vmHand) VMGUN.remove(vmHand); VMGUN.add(h); vmHand = h; }
+  VMGUN.position.set(0, -S0.y, S0.z - S0.d);
+  const rk = Math.max(0, 1 - ch.flashT / (w.recoil > .03 ? .2 : .09));
+  PL.swX = (PL.swX || 0) * Math.exp(-dt * 8) + (IN.lmx || 0) * -.00012; PL.swY = (PL.swY || 0) * Math.exp(-dt * 8) + (IN.lmy || 0) * .00012;
+  VM.position.set(clamp(PL.swX, -.02, .02) + Math.sin(T * 1.4) * .0012, clamp(PL.swY, -.02, .02) + Math.sin(T * 2.1) * .0009 - ch.speed * Math.abs(Math.sin(ch.phase)) * .002, rk * .035);
+  VMK.rotation.x = rk * (w.recoil > .03 ? .09 : .035);
+  VMFLASH.visible = ch.flashT < .045; if (VMFLASH.visible) { VMFLASH.position.z = w.muzzle; VMFLASH.rotation.z = rnd(TAU); }
 }
 
 /* ---------- 輸入 ---------- */
@@ -2788,16 +3413,16 @@ addEventListener('keydown', e => {
   if (!active()) return;
   const ch = PLAYER;
   switch (e.code) {
-    case 'KeyF': playerAction(); break;
+    case 'KeyF': if (STATE === 'heli' || ch.st !== 'ground') playerAction(); else interact(); break;
     case 'Space': IN.jumpEdge = true; break;
-    case 'KeyE': tryPickup(); break;
+    case 'KeyZ': if (ch.st === 'ground' && !ch.vault) { ch.prone = !ch.prone; if (ch.prone) ch.crouch = false; } break;
     case 'KeyR': if (reload(ch)) uiDirty = true; break;
     case 'Digit1': switchSlot(ch, 0); uiDirty = true; break;
     case 'Digit2': switchSlot(ch, 1); uiDirty = true; break;
     case 'KeyX': switchSlot(ch, ch.holster ? ch.slot : -1); uiDirty = true; break;
     case 'Digit5': case 'Digit6': case 'Digit7': case 'Digit8': useMed(+e.code.slice(5) - 5); break;
     case 'KeyG': if (ch.st === 'ground' && ch.frags > 0) { lookDir(_lk); _lk.y += .12; throwFrag(ch, _lk.normalize()); } break;
-    case 'KeyC': case 'ControlLeft': if (ch.st === 'ground') ch.crouch = !ch.crouch; break;
+    case 'KeyC': case 'ControlLeft': if (ch.st === 'ground') { if (ch.prone) { ch.prone = false; ch.crouch = true; } else ch.crouch = !ch.crouch; } break;
     case 'KeyM': case 'Tab': IN.map = !IN.map; $('bigmap').classList.toggle('hide', !IN.map); break;
   }
 });
@@ -2821,7 +3446,7 @@ addEventListener('mouseup', e => { if (e.button === 0) IN.lmb = false; if (e.but
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('mousemove', e => {
   if (!active()) return;
-  if (IN.locked || (IN.noLock && e.buttons)) { IN.mx += e.movementX || 0; IN.my += e.movementY || 0; }
+  if (IN.locked || (IN.noLock && e.buttons)) { IN.mx += e.movementX || 0; IN.my += e.movementY || 0; IN.lmx = e.movementX || 0; IN.lmy = e.movementY || 0; }
 });
 canvas.addEventListener('wheel', e => { if (!active() || !PLAYER.guns[0] || !PLAYER.guns[1]) return; switchSlot(PLAYER, 1 - PLAYER.slot); uiDirty = true; }, { passive: true });
 document.addEventListener('pointerlockchange', () => {
@@ -2868,9 +3493,9 @@ if (TOUCH) {
   btn('tFire', () => { IN.lmb = true; IN.lmbEdge = true; }, () => { IN.lmb = false; });
   btn('tAim', () => { IN.tAim = !IN.tAim; $('tAim').classList.toggle('on', IN.tAim); });
   btn('tJump', () => { IN.jumpEdge = true; });
-  btn('tCrouch', () => { if (PLAYER.st === 'ground') PLAYER.crouch = !PLAYER.crouch; $('tCrouch').classList.toggle('on', PLAYER.crouch); });
+  btn('tCrouch', () => { const P = PLAYER; if (P.st !== 'ground') return; if (P.prone) { P.prone = false; } else if (P.crouch) { P.crouch = false; P.prone = true; } else P.crouch = true; $('tCrouch').textContent = P.prone ? '趴' : '蹲'; $('tCrouch').classList.toggle('on', P.crouch || P.prone); });
   btn('tReload', () => { reload(PLAYER); uiDirty = true; });
-  btn('tUse', () => tryPickup());
+  btn('tUse', () => interact());
   btn('tSwap', () => { if (PLAYER.guns[0] && PLAYER.guns[1]) switchSlot(PLAYER, 1 - PLAYER.slot); else if (PLAYER.guns[0]) switchSlot(PLAYER, PLAYER.holster ? 0 : -1); uiDirty = true; });
   btn('tFrag', () => { if (PLAYER.st === 'ground' && PLAYER.frags > 0) { lookDir(_lk); _lk.y += .12; throwFrag(PLAYER, _lk.normalize()); } });
   btn('tMap', () => { IN.map = !IN.map; $('bigmap').classList.toggle('hide', !IN.map); });
@@ -2955,12 +3580,17 @@ function updateHUD(dt) {
   else cast.classList.add('hide');
   // 撿取提示
   const pr = $('prompt');
-  if (PL.near && ch.st === 'ground' && ch.alive) { const [a, b] = itemLabel(PL.near); pr.classList.remove('hide'); const tx = a + (b ? ' · ' + b : ''); if (HC.prompt !== tx) { HC.prompt = tx; $('promptT').innerHTML = a + (b ? ' <small>' + b + '</small>' : ''); } pr.firstElementChild.textContent = TOUCH ? '撿' : 'E'; }
+  const nd = ch.alive && ch.st === 'ground' ? nearestDoor(ch) : null;
+  if (nd && (!PL.near || nd.dist < Math.hypot(PL.near.x - ch.p.x, PL.near.z - ch.p.z))) {
+    pr.classList.remove('hide'); const tx = nd.door.target ? '關門' : '開門';
+    if (HC.prompt !== tx) { HC.prompt = tx; $('promptT').textContent = tx; }
+    pr.firstElementChild.textContent = TOUCH ? '門' : 'F';
+  } else if (PL.near && ch.st === 'ground' && ch.alive) { const [a, b] = itemLabel(PL.near); pr.classList.remove('hide'); const tx = a + (b ? ' · ' + b : ''); if (HC.prompt !== tx) { HC.prompt = tx; $('promptT').innerHTML = a + (b ? ' <small>' + b + '</small>' : ''); } pr.firstElementChild.textContent = TOUCH ? '撿' : 'F'; }
   else pr.classList.add('hide');
-  if (TOUCH) $('tUse').style.opacity = PL.near ? 1 : .35;
+  if (TOUCH) $('tUse').style.opacity = PL.near || nd ? 1 : .35;
   // 準星
   const cr = $('cross');
-  const showCross = ch.alive && ch.st === 'ground' && !PL.scoped && !IN.map;
+  const showCross = ch.alive && ch.st === 'ground' && !PL.scoped && !PL.fp && !IN.map;
   setS(cr, 'display', showCross ? '' : 'none');
   if (showCross) {
     const sp = playerSpread(ch), focal = innerHeight / 2 / Math.tan(camera.fov * Math.PI / 360);
@@ -3098,6 +3728,8 @@ function drawBigMap() {
    遊戲流程
    ============================================================ */
 function newGame() {
+  CASES.length = 0; HOLES.forEach(h => h.visible = false);
+  for (const d of DOORLIST) { d.ang = 0; d.target = 0; d.moving = false; doorCol(d); }
   for (const n of NADES) scene.remove(n.m); NADES.length = 0;
   FX.parts.length = 0; FX.decals.forEach(d => d.visible = false); FX.tracers.forEach(t => t.m.visible = false);
   scatterLoot();
@@ -3170,6 +3802,19 @@ function showEnd(won) {
 }
 
 /* ---------- 共通：補血飲料、腳步 ---------- */
+function separateChars() {
+  for (let i = 0; i < CHARS.length; i++) {
+    const a = CHARS[i]; if (!a.alive || a.st === 'beam') continue;
+    for (let j = i + 1; j < CHARS.length; j++) {
+      const b = CHARS[j]; if (!b.alive || b.st === 'beam') continue;
+      if (Math.abs(a.p.y - b.p.y) > (a.st === 'ground' && b.st === 'ground' ? 1.5 : 1.8)) continue;
+      const dx = b.p.x - a.p.x, dz = b.p.z - a.p.z, d2 = dx * dx + dz * dz, R = (a.prone || b.prone) ? .7 : .58;
+      if (d2 >= R * R) continue;
+      const d = Math.sqrt(d2) || 1e-3, push = (R - d) / 2, nx = d2 > 1e-6 ? dx / d : 1, nz = d2 > 1e-6 ? dz / d : 0;
+      a.p.x -= nx * push; a.p.z -= nz * push; b.p.x += nx * push; b.p.z += nz * push;
+    }
+  }
+}
 function commonUpdate(ch, dt) {
   if (!ch.alive) return;
   if (ch.boost > 0) { ch.boost = Math.max(0, ch.boost - dt * 1.1); if (ch.hp < 100) ch.hp = Math.min(100, ch.hp + dt * (ch.boost > 60 ? 1.5 : .9)); }
@@ -3248,6 +3893,8 @@ function update(dt) {
   zoneUpdate(dt);
   playerUpdate(dt);
   for (const b of BOTS) botUpdate(b, dt);
+  separateChars();
+  updateDoors(dt);
   for (const c of CHARS) commonUpdate(c, dt);
   updateNades(dt);
   if (STATE === 'dead' || STATE === 'won') { PL.deadT += dt; if (PL.deadT > (STATE === 'won' ? 1.2 : 3) && !PL.endShown) showEnd(STATE === 'won'); }
@@ -3267,10 +3914,10 @@ function frame(now) {
   const dt = Math.min(.05, (now - last) / 1000); last = now;
   const running = STATE !== 'menu' && !PAUSED && !(PL.endShown);
   if (running && !HOLD) update(dt);
-  else if (STATE === 'menu') { HELI.userData.rotors.forEach((r, i) => r.rotation.y += dt * (i ? -22 : 22)); }
+  else if (STATE === 'menu') { HELI.userData.rotors.forEach((r, i) => r.rotation.y += dt * (i ? -22 : 22)); T += dt; updateCranes(dt); WINDMAT_T.value = performance.now() / 1000; }
   if (running || STATE === 'menu') {
     for (const c of CHARS) animate(c, dt);
-    fxUpdate(dt); skyFx(dt);
+    fxUpdate(dt); skyFx(dt); updateCases(dt); updateCranes(dt); WINDMAT_T.value = performance.now() / 1000;
   }
   syncLoot();
   zoneWall.visible = STATE !== 'menu';
@@ -3296,6 +3943,7 @@ addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight, fal
 /* ---------- 啟動 ---------- */
 buildSite();
 buildCity();
+buildFoliage();
 flushWorld();
 drawSiteMap();
 PLAYER = new Char('你', true);
@@ -3314,7 +3962,7 @@ $('restart1').addEventListener('click', () => { newGame(); requestLock(); });
 $('sens').addEventListener('input', e => { IN.sens = +e.target.value; $('sensV').textContent = IN.sens.toFixed(2); });
 $('vol').addEventListener('input', e => { AU.vol = +e.target.value; $('volV').textContent = Math.round(AU.vol * 100); if (AU.master) AU.master.gain.value = AU.vol; });
 // 自動化測試用的掛鉤（headless 快轉、跳過直升機），遊戲本身不會用到
-window.LASTBEAM = { pl: PL, hold(v) { HOLD = v; }, glb: !!GLB, sim(sec) { for (let i = 0; i < sec * 30; i++) update(1 / 30); }, get state() { return STATE; }, get T() { return T; }, chars: CHARS, zone: ZONE, loot: LOOT, newGame, skipTo(s) { if (s === 'ground' && STATE === 'heli') { playerJump(); const p = PLAYER.p; p.set(rnd(-40, 40), 1, rnd(-40, 40)); PLAYER.st = 'ground'; BOTS.forEach(b => { if (b.ch.st === 'beam') { b.ch.st = 'fall'; botLand(b); } }); } } };
+window.LASTBEAM = { holes: HOLES, cases: CASES, input: IN, doors: DOORLIST, pl: PL, hold(v) { HOLD = v; }, glb: !!GLB, sim(sec) { for (let i = 0; i < sec * 30; i++) update(1 / 30); }, get state() { return STATE; }, get T() { return T; }, chars: CHARS, zone: ZONE, loot: LOOT, newGame, skipTo(s) { if (s === 'ground' && STATE === 'heli') { playerJump(); const p = PLAYER.p; p.set(rnd(-40, 40), 1, rnd(-40, 40)); PLAYER.st = 'ground'; BOTS.forEach(b => { if (b.ch.st === 'beam') { b.ch.st = 'fall'; botLand(b); } }); } } };
 requestAnimationFrame(frame);
 </script>
 </body>
