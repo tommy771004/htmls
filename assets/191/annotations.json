@@ -1,0 +1,353 @@
+{
+ "_note": "在 YouTube 分鏡縮圖（320×180，每 4.94 秒一格）上手工標的 2D 對應點，單位是像素；鍵名對應 landmarks.py 的地標。source：影片 bdNTTHSXfAg（甘丹設計），sheet 為分鏡圖序號、cell 為 3×3 格中的位置。",
+ "image": [
+  320,
+  180
+ ],
+ "frames": [
+  {
+   "id": "f112",
+   "sheet": 12,
+   "cell": 4,
+   "title": "客廳 · 腳架機位看向百葉窗",
+   "points": {
+    "win_w_top": [
+     127,
+     45
+    ],
+    "win_e_top": [
+     204,
+     45
+    ],
+    "win_w_bot": [
+     127,
+     139
+    ],
+    "win_e_bot": [
+     204,
+     139
+    ],
+    "corner_nw_ceil": [
+     76,
+     40
+    ],
+    "corner_ne_ceil": [
+     226,
+     40
+    ],
+    "corner_nw_floor": [
+     76,
+     141
+    ],
+    "tv_n_top": [
+     41,
+     58
+    ],
+    "tv_n_bot": [
+     41,
+     117
+    ],
+    "sofa_n_seat": [
+     191,
+     127
+    ]
+   },
+   "cellref": "12_4",
+   "feet": {
+    "host_a": [
+     132,
+     174
+    ],
+    "host_b": [
+     176,
+     150
+    ]
+   }
+  },
+  {
+   "id": "f094",
+   "sheet": 10,
+   "cell": 4,
+   "title": "百葉窗與沙發",
+   "points": {
+    "win_w_top": [
+     134,
+     15
+    ],
+    "win_e_top": [
+     238,
+     15
+    ],
+    "win_w_bot": [
+     134,
+     140
+    ],
+    "win_e_bot": [
+     238,
+     140
+    ],
+    "tv_n_top": [
+     30,
+     38
+    ],
+    "tv_n_bot": [
+     30,
+     110
+    ],
+    "corner_nw_floor": [
+     72,
+     131
+    ]
+   },
+   "cellref": "10_4"
+  },
+  {
+   "id": "f050",
+   "sheet": 5,
+   "cell": 5,
+   "title": "電視牆正面",
+   "points": {
+    "tv_s_top": [
+     146,
+     43
+    ],
+    "tv_n_top": [
+     235,
+     43
+    ],
+    "tv_s_bot": [
+     146,
+     94
+    ],
+    "tv_n_bot": [
+     235,
+     94
+    ],
+    "plat_s_top": [
+     38,
+     113
+    ],
+    "plat_n_top": [
+     298,
+     113
+    ],
+    "plat_s_bot": [
+     35,
+     133
+    ],
+    "plat_n_bot": [
+     300,
+     133
+    ]
+   },
+   "cellref": "05_5"
+  },
+  {
+   "id": "f016",
+   "sheet": 1,
+   "cell": 7,
+   "title": "玄關看進客廳",
+   "points": {
+    "tv_s_top": [
+     77,
+     70
+    ],
+    "tv_s_bot": [
+     77,
+     104
+    ],
+    "win_w_top": [
+     110,
+     61
+    ],
+    "win_w_bot": [
+     110,
+     113
+    ],
+    "pendant0_bot": [
+     238,
+     43
+    ],
+    "pendant1_bot": [
+     296,
+     56
+    ]
+   },
+   "cellref": "01_7"
+  },
+  {
+   "id": "f081",
+   "sheet": 9,
+   "cell": 0,
+   "title": "客廳回望廚房",
+   "points": {
+    "tv_s_top": [
+     288,
+     40
+    ],
+    "tv_s_bot": [
+     288,
+     112
+    ],
+    "upper_e_top": [
+     120,
+     54
+    ],
+    "upper_w_top": [
+     163,
+     54
+    ],
+    "upper_e_bot": [
+     120,
+     74
+    ],
+    "upper_w_bot": [
+     163,
+     74
+    ],
+    "plat_s_top": [
+     203,
+     118
+    ]
+   },
+   "cellref": "09_0"
+  },
+  {
+   "id": "f053",
+   "sheet": 5,
+   "cell": 8,
+   "title": "公區收納與廚房",
+   "points": {
+    "upper_e_top": [
+     100,
+     20
+    ],
+    "upper_w_top": [
+     200,
+     20
+    ],
+    "upper_e_bot": [
+     100,
+     68
+    ],
+    "upper_w_bot": [
+     200,
+     68
+    ],
+    "counter_w_top": [
+     201,
+     98
+    ]
+   },
+   "cellref": "05_8"
+  },
+  {
+   "id": "f041",
+   "sheet": 4,
+   "cell": 5,
+   "title": "中島接餐桌",
+   "points": {
+    "pendant0_bot": [
+     218,
+     28
+    ],
+    "pendant1_bot": [
+     160,
+     52
+    ],
+    "island_ne_top": [
+     66,
+     104
+    ],
+    "island_nw_top": [
+     158,
+     106
+    ],
+    "table_w_tip": [
+     263,
+     140
+    ]
+   },
+   "cellref": "04_5"
+  },
+  {
+   "id": "f052",
+   "sheet": 5,
+   "cell": 7,
+   "title": "客廳看向中島與廚房",
+   "points": {
+    "pendant0_bot": [
+     171,
+     57
+    ],
+    "pendant1_bot": [
+     135,
+     63
+    ],
+    "island_nw_top": [
+     98,
+     101
+    ],
+    "table_w_tip": [
+     192,
+     111
+    ],
+    "door_e_top": [
+     232,
+     48
+    ],
+    "door_w_top": [
+     266,
+     48
+    ],
+    "door_e_bot": [
+     232,
+     125
+    ],
+    "door_w_bot": [
+     266,
+     125
+    ],
+    "upper_e_top": [
+     165,
+     53
+    ],
+    "upper_w_top": [
+     200,
+     53
+    ],
+    "upper_e_bot": [
+     165,
+     80
+    ],
+    "upper_w_bot": [
+     200,
+     80
+    ]
+   },
+   "cellref": "05_7"
+  }
+ ],
+ "review": [
+  {
+   "frame": "f041",
+   "action": "吊燈 0／1 對調",
+   "why": "疊圖顯示兩盞吊燈的投影各自落在對方的標點上：這個機位在餐桌西北側往東南看，較低、較大的那盞其實是東邊的 1 號"
+  },
+  {
+   "frame": "f052",
+   "action": "刪除 island_ne_top",
+   "why": "疊圖顯示這個點是中島被畫面左緣切掉的位置，不是真正的角"
+  },
+  {
+   "frame": "f016",
+   "action": "刪除 win_e_top",
+   "why": "玄關機位看過去，右側亮區是窗簾盒的燈光洗牆，百葉右緣被沙發與燈擋住；和另外三個機位的窗寬互相矛盾"
+  },
+  {
+   "frame": "f052",
+   "action": "隔屏改為鞋櫃端板（x 0–0.42 m）",
+   "why": "f052 從兩種初始站位解算都收斂到西牆邊（看門與吊櫃的比例只容許這個站位），原先估計伸到 1.05 m 的隔屏會擋住畫面中完整可見的大門；隔屏沒有被任何關鍵幀直接觀測，改成最保守的形狀"
+  }
+ ]
+}

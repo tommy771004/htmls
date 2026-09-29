@@ -234,6 +234,8 @@
 - [102 Starting on Your Own Project](https://htmls-ruddy.vercel.app/web/102-your-project-playbooks.html): AI 工程化教學簡報。在自己的專案啟動 Claude Code 的三套起手劇本：全新專案、WebForms 轉 Web、WinForms 轉 Web，16 張投影片
 
 ### 專案範例
+- [191 影中屋 · FRAME TO ROOM](https://htmls-ruddy.vercel.app/web/191-frame-to-room.html)：從室內設計導覽影片重建的公共區建築模型。畫面標點與束調整解出相機與尺寸，Blender 參數化建模；六個空間視角、白模型、物件清單與平面圖，24 件物品可推倒、抽屜與門可開、掃地機器人會出門，附含剛體的 .blend。
+
 - [174 黑鋼與木之屋 · 建築模型工作室](https://htmls-ruddy.vercel.app/web/174-kurogane-house.html)：依影片及平面圖重建兩層住宅，16 個空間、34 組家具、十九級樓梯、黑鋼木格柵及庭園。47 秒導覽、逐件組裝、剖面裁切、樓層分解、家具聚焦、白模型與繁體中文平面配置；本地 Three.js，無外部請求。
 
 - [157 澄帳 · 個人財務全景](https://htmls-ruddy.vercel.app/web/157-lucid-ledger.html): AI 理財工作台，九個畫面共用一份種子固定的虛構帳本：總覽、洞察、助理、現金流、交易、帳戶、固定支出、投資與目標；轉帳、暫停訂閱、拆帳、再平衡後全部重算，助理以帳本算出「負擔得起嗎」並列出算式，全覽模式把九個畫面縮成九宮格

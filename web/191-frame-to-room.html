@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>影中屋 · FRAME TO ROOM</title>
+<meta name="description" content="依一支室內設計導覽影片重建的互動 3D 公共區：物品可推倒、抽屜與門可開，主持人沿動線走動，並附 Blender 場景檔。">
+<meta name="theme-color" content="#f4f0ea">
+<link rel="icon" href="../favicon.svg">
+<script type="importmap">{"imports":{"three":"../vendor/three-0.186.0/three.module.js","three/addons/":"../vendor/three-0.186.0/addons/"}}</script>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei",sans-serif;color:#2a2622;background:#f4f0ea;font-size:13px;--line:#e5ded3;--muted:#7d756b;--accent:#9a6b4f;--ink:#26221e}
+*{box-sizing:border-box}body{margin:0;overflow:hidden}
+button,input,select{font:inherit}button,a,input{touch-action:manipulation}
+button{cursor:pointer;border:1px solid var(--line);background:#fffdf9;color:inherit;border-radius:0;min-height:36px;padding:0 13px;transition:background .18s,color .18s}
+button:hover{background:#efe8de}button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+a{color:inherit}
+header{height:65px;background:#fffdf9;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:22px;padding:0 25px}
+header h1{font:23px "Songti TC","Noto Serif TC",serif;letter-spacing:2px;margin:0;white-space:nowrap}
+header .id{font:10px ui-monospace,monospace;color:#9d958a;letter-spacing:2px}
+.meta{display:flex;gap:20px;color:var(--muted);font-size:11px}.meta b{font-weight:500;color:#3a342e;margin-left:8px}
+.header-actions{margin-left:auto;display:flex;gap:7px}.header-actions a{font-size:11px;text-decoration:none;display:flex;align-items:center;padding:8px}
+#mobileInfo{display:none}
+.layout{display:grid;grid-template-columns:264px minmax(0,1fr);height:calc(100dvh - 65px)}
+aside{background:#fffdf9;border-right:1px solid var(--line);overflow:auto;scrollbar-width:thin}
+.tabs{display:flex;position:sticky;top:0;background:#fffdf9;z-index:1;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;border:0;border-bottom:2px solid transparent;min-height:49px;padding:0 4px;background:#fffdf9;color:#8d857a}
+.tabs button[aria-selected=true]{border-bottom-color:var(--ink);color:var(--ink)}
+.side-content{padding:25px 21px}
+.eyebrow{font-size:9px;letter-spacing:2px;color:#9d958a;margin-bottom:14px}
+h2{font:26px/1.4 "Songti TC","Noto Serif TC",serif;margin:0 0 10px}
+.sub{color:var(--muted);font-size:11px;line-height:1.8;margin:0}
+.stats{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);margin:24px 0}
+.stats div{padding:15px 12px;border-bottom:1px solid var(--line)}.stats div:nth-child(odd){border-right:1px solid var(--line)}.stats div:nth-last-child(-n+2){border-bottom:0}
+.stats strong{font:28px Georgia,serif;font-weight:normal}.stats small{color:var(--muted);margin-left:4px;font-size:10px}.stats p{margin:8px 0 0;font-size:10px;color:var(--muted)}
+.section-heading{font-size:11px;display:flex;justify-content:space-between;border-bottom:1px solid #3a342e;padding:13px 0;margin-top:6px}.section-heading span{font-size:9px;color:#a39b90;letter-spacing:1px}
+.room{border:0;border-bottom:1px solid var(--line);width:100%;background:#fffdf9;text-align:left;padding:13px 0;display:flex;justify-content:space-between;align-items:center;gap:6px;transition:padding .18s,background .18s}
+.room small{display:block;color:#978f84;font-size:9px;margin-top:5px;letter-spacing:1px}
+.room>span:last-child{font:12px Georgia,serif;color:#7f7465;white-space:nowrap}
+.room:hover{padding-left:7px;background:#fffdf9}.room[aria-pressed=true]{background:#f3ece2;color:inherit;padding-left:7px}
+.source{font-size:10px;color:#8d857a;line-height:1.8;margin-top:25px}.source a{display:inline-block;margin:4px 10px 0 0}
+.plan-canvas{width:100%;background:#fbf8f3;margin:18px 0;border:1px solid var(--line);display:block;cursor:pointer}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:10px;color:var(--muted)}.legend i{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px}
+.workspace{position:relative;min-width:0;overflow:hidden;display:flex;flex-direction:column}
+.workspace:fullscreen{height:100dvh;background:#f4f0ea}
+.stage{position:relative;flex:1;min-height:0;background:#ece5da}
+#scene{display:block;width:100%;height:100%;touch-action:none;outline-offset:-3px}
+.toolbar{position:absolute;top:19px;left:20px;right:20px;display:flex;align-items:flex-start;gap:13px;z-index:3;pointer-events:none}
+.toolbar>*{pointer-events:auto}
+.area-switch{display:flex;box-shadow:0 2px 10px #2a1e1410}.area-switch button{min-width:54px;height:54px;border-right:0;font-weight:600}.area-switch button:last-child{border-right:1px solid var(--line)}
+.area-switch small{display:block;font-size:9px;font-weight:400;margin-top:4px;opacity:.65}
+.act-switch{display:flex;flex-wrap:wrap;gap:1px;max-width:470px}.act-switch button{height:36px;font-size:11px;border-color:transparent;padding:0 12px}
+.tour{margin-left:auto;white-space:nowrap}
+.stage-note{position:absolute;left:24px;top:104px;pointer-events:none}
+.stage-note strong{font:44px Georgia,serif}.stage-note small{color:#9d958a;font:16px Georgia,serif}.stage-note p{font-size:10px;color:#7f776c;letter-spacing:1px;margin:6px 0}
+.help{position:absolute;bottom:20px;left:24px;font-size:10px;color:#8a8175;pointer-events:none;line-height:1.8}
+.compass{position:absolute;right:25px;bottom:24px;font:12px Georgia,serif;color:#766c60;border-left:1px solid #978c7e;padding-left:9px;height:31px;pointer-events:none}
+.labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.room-label{position:absolute;background:#fffdf9f0;border:1px solid #ddd3c5;border-radius:2px;padding:4px 7px;color:#5c4d40;font-size:10px;transform:translate(-50%,-50%);white-space:nowrap}
+.focus-card{position:absolute;right:23px;top:104px;width:220px;background:#fffdf9f5;border:1px solid var(--line);padding:18px;box-shadow:0 10px 35px #2a1e140d;z-index:4}
+.focus-card h3{font:21px "Songti TC","Noto Serif TC",serif;margin:12px 32px 12px 0}
+.focus-card dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:11px;margin:0 0 14px}.focus-card dt{color:#998f83}.focus-card dd{margin:0;font-variant-numeric:tabular-nums}
+.focus-card .close{position:absolute;right:6px;top:4px;border:0;font-size:10px;padding:4px;min-width:44px}
+.focus-card .acts{display:grid;gap:6px}.focus-card .acts button{width:100%;font-size:11px}
+.notice{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);padding:9px 14px;background:var(--ink);color:#fff;font-size:11px;z-index:5;pointer-events:none}
+.loading{position:absolute;inset:0;display:grid;place-items:center;text-align:center;font:18px "Songti TC","Noto Serif TC",serif;color:#7d756b;background:#ece5da;z-index:6;padding:24px}
+.loading small{display:block;font:12px -apple-system,sans-serif;margin-top:8px;color:#9d958a}
+.loading[hidden]{display:none}
+.timeline{height:70px;background:#fffdf9;border-top:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:12px 22px;z-index:4}
+.timeline button{border:0;padding:0 9px}
+.timeline .play{width:42px;height:42px;border-radius:50%;background:var(--ink);color:#fff;font-size:11px;flex:none;padding:0}
+.speed{border:0;background:transparent;color:#6f665b;font-size:11px;padding:6px}
+.timeline label{font-size:10px;white-space:nowrap;min-width:110px}.timeline label b{display:block;font-weight:500;margin-bottom:4px}.timeline label small{color:#978f84}
+.timeline input{min-width:40px;flex:1;accent-color:#3a2f26;height:20px;cursor:pointer}
+.timeline output{font:11px ui-monospace,monospace;min-width:42px}
+#scene{cursor:grab}#scene:active{cursor:grabbing}
+@media(max-width:1100px){.meta{display:none}.act-switch{max-width:300px}.tour{font-size:10px;padding:0 8px}.toolbar{gap:8px;left:12px;right:12px}.stage-note{top:123px}.focus-card{top:131px;width:190px}}
+@media(max-width:700px){
+  header{height:55px;padding:0 14px;gap:8px}header h1{font-size:19px}header .id{display:none}
+  .header-actions{gap:4px}.header-actions button{font-size:10px;padding:0 9px;min-height:40px}.header-actions a{display:none}#mobileInfo{display:block}
+  .layout{height:calc(100dvh - 55px);grid-template-columns:1fr}.workspace{grid-column:1;grid-row:1}
+  aside{position:absolute;top:55px;bottom:77px;width:264px;max-width:86vw;z-index:10;box-shadow:15px 0 50px #2a1e1426;display:none}
+  body.info-open aside{display:block}body.info-open #mobileInfo{background:var(--ink);color:#fff}
+  .toolbar{top:12px;display:grid;grid-template-columns:1fr auto;gap:8px}
+  .area-switch{grid-column:1/-1;grid-row:1;width:100%;overflow-x:auto}.area-switch button{flex:1;height:43px;min-width:48px;padding:0 4px}
+  .act-switch{grid-row:2;grid-column:1;max-width:none;flex-wrap:nowrap;overflow-x:auto;padding-bottom:3px}.act-switch button{min-height:40px;flex-shrink:0;padding:0 9px;font-size:10px}
+  .tour{grid-column:2;grid-row:2;min-height:40px}
+  .stage-note{top:122px;left:16px}.stage-note strong{font-size:30px}.stage-note small{font-size:12px}.stage-note p{font-size:9px;margin:5px 0}
+  .help{left:16px;bottom:14px;font-size:9px}.compass{right:17px;bottom:18px}
+  .timeline{height:77px;display:grid;grid-template-columns:44px 48px 1fr 40px;gap:3px 8px;padding:8px 12px}
+  .timeline .play{width:44px;height:44px;grid-column:1;grid-row:1/3}.timeline .speed{grid-column:2;grid-row:1/3;width:48px;padding:0}
+  .timeline label{grid-column:3;grid-row:1;display:flex;gap:8px;align-items:center;min-width:0}.timeline label b{margin:0}.timeline label small{font-size:8px}
+  .timeline input{grid-column:3;grid-row:2;width:100%;margin:0}.timeline output{grid-column:4;grid-row:2;font-size:9px}
+  .focus-card{right:12px;top:auto;bottom:57px;width:190px;padding:13px}.focus-card h3{font-size:18px;margin:7px 32px 7px 0}.focus-card dl{font-size:10px;margin-bottom:10px}
+  .room-label{font-size:8px;padding:3px 4px}.notice{bottom:8px}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header><span class="id">A—191</span><h1>影中屋</h1><div class="meta" id="meta"></div><div class="header-actions"><button id="mobileInfo" aria-expanded="false" aria-controls="side">空間資訊</button><button id="white" aria-pressed="false">白模型</button><button id="names" aria-pressed="false">空間標示</button><a href="../index.html">作品目錄</a></div></header>
+<div class="layout">
+  <aside id="side" aria-label="空間資訊"><div class="tabs" role="tablist" aria-label="資訊分頁"><button role="tab" id="tab-overview" aria-selected="true" aria-controls="panel" data-tab="overview">概覽</button><button role="tab" id="tab-items" aria-selected="false" aria-controls="panel" tabindex="-1" data-tab="items">物件</button><button role="tab" id="tab-plan" aria-selected="false" aria-controls="panel" tabindex="-1" data-tab="plan">平面圖</button></div><div class="side-content" id="panel" role="tabpanel" aria-labelledby="tab-overview"></div></aside>
+  <main class="workspace" id="workspace">
+    <div class="stage" id="stage">
+      <canvas id="scene" tabindex="0" aria-label="影中屋三維模型。拖曳旋轉、滾輪縮放；拖曳物品可推動，點抽屜或門可開關。"></canvas>
+      <div class="labels" id="labels" aria-hidden="true"></div>
+      <div class="toolbar">
+        <div class="area-switch" id="areas" role="group" aria-label="空間"></div>
+        <div class="act-switch" role="group" aria-label="動作"><button data-act="drawers" aria-pressed="false">抽屜</button><button data-act="doors" aria-pressed="false">門</button><button data-act="robot" aria-pressed="false">掃地機器人</button><button data-act="shake">晃一下</button><button data-act="reset">重置</button><button data-act="full" aria-pressed="false">全螢幕</button></div>
+        <button class="tour" id="tour" aria-pressed="false">播放導覽</button>
+      </div>
+      <div class="stage-note" aria-live="polite"><strong id="standing">—</strong><small id="total"> / —</small><p id="stageText">件物品站著</p></div>
+      <div class="focus-card" id="focusCard" hidden><button class="close" id="closeFocus" aria-label="關閉物件資訊">關閉</button><div class="eyebrow" id="itemType"></div><h3 id="itemName"></h3><dl id="itemMeta"></dl><div class="acts" id="itemActs"></div></div>
+      <div class="help">拖曳旋轉 · 滾輪縮放 · 拖曳物品推動 · 點抽屜與門開關<br>觸控：單指旋轉 · 雙指縮放</div>
+      <div class="compass" id="compass">北 N<br>↑</div>
+      <div class="notice" id="notice" role="status" hidden></div>
+      <div class="loading" id="loading" role="status">正在搭建影中屋…<small>模型約 2 MB</small></div>
+    </div>
+    <div class="timeline"><button class="play" id="play" aria-label="暫停人物走動">暫停</button><select class="speed" id="speed" aria-label="播放速度"><option value="0.5">0.5×</option><option selected value="1">1×</option><option value="2">2×</option></select><label for="progress"><b>人物動線</b><small>兩位主持人 · 60 秒一圈</small></label><input id="progress" type="range" min="0" max="600" value="0" aria-label="人物動線時間"><output id="timeValue">0.0 s</output></div>
+  </main>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as CANNON from '../vendor/cannon-es-0.20.0/cannon-es.js';
+
+const BASE = '../assets/191/';
+const $ = (id) => document.getElementById(id);
+const loadingEl = $('loading');
+const fail = (msg) => { loadingEl.innerHTML = msg; loadingEl.hidden = false; };
+
+let OBJ, PAR, CAM;
+try {
+  [OBJ, PAR, CAM] = await Promise.all(['objects.json', 'scene_params.json', 'cameras.json'].map((f) => fetch(BASE + f).then((r) => { if (!r.ok) throw new Error(f); return r.json(); })));
+} catch (e) {
+  fail('模型資料載入失敗。<small>請透過 HTTP 伺服器開啟此頁（例如在專案根目錄執行 npm start）。</small>');
+  throw e;
+}
+
+// 平面座標（x 東、y 北、z 上）→ three（x、y 上、z 南）
+const T = (a) => new THREE.Vector3(a[0], a[2], -a[1]);
+const REC = Object.fromEntries(OBJ.objects.map((o) => [o.id, o]));
+const dyn = OBJ.objects.filter((o) => o.kind === 'dynamic');
+const kin = OBJ.objects.filter((o) => o.kind === 'door' || o.kind === 'drawer');
+const { w: RW, d: RD, h: RH } = PAR.room;
+const C = PAR.corridor;
+const fmt = (v, d = 2) => Number(v).toFixed(d);
+const areaM2 = RW * RD + (C.x1 - RW) * (C.y1 - C.y0);
+
+$('meta').innerHTML = `<span>公共區<b>${fmt(RW)} × ${fmt(RD)} m</b></span><span>天花<b>${fmt(RH)} m</b></span><span>剛體<b>${dyn.length}</b></span>`;
+
+// ════════════ three.js ════════════
+const canvas = $('scene'), stage = $('stage');
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true }); }
+catch (e) { fail('這個瀏覽器無法建立 WebGL。'); throw e; }
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.toneMapping = THREE.NeutralToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.localClippingEnabled = true;
+renderer.setClearColor(new THREE.Color('#ece5da'), 1);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 80);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+
+{ // 室內反射環境
+  const s = new THREE.Scene();
+  const g = new THREE.BoxGeometry(1, 1, 1);
+  const room = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xd9d0c2, side: THREE.BackSide }));
+  room.scale.set(14, 6, 18); room.position.y = 3; s.add(room);
+  const panel = (c, k, p, sc) => { const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(k) })); m.position.set(...p); m.scale.set(...sc); s.add(m); };
+  panel(0xfff4e4, 3.2, [0, 2.5, -8.8], [6, 3, 0.2]);
+  panel(0xffe6c8, 1.6, [0, 5.9, 0], [8, 0.2, 10]);
+  panel(0xf2ece2, 0.9, [6.8, 2, 0], [0.2, 3, 12]);
+  const pm = new THREE.PMREMGenerator(renderer);
+  scene.environment = pm.fromScene(s, 0.04).texture;
+  scene.environmentIntensity = 0.55;
+}
+scene.add(new THREE.HemisphereLight(0xfff6ea, 0xb9ac99, 1.15));
+const sun = new THREE.DirectionalLight(0xfff0dc, 2.6);
+sun.position.copy(T([2.6, 16.5, 7.5]));
+sun.target.position.copy(T([2.3, 6.5, 0]));
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -7, right: 7, top: 9, bottom: -9, near: 1, far: 34 });
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.025;
+scene.add(sun, sun.target);
+const fillL = new THREE.DirectionalLight(0xf3ede4, 0.45);
+fillL.position.set(-4, 8, 6);
+scene.add(fillL);
+for (const p of PAR.pendants) {
+  const l = new THREE.PointLight(0xffd9ad, 2.2, 4.5, 2);
+  l.position.copy(T([p.x, p.y, p.z - 0.06]));
+  scene.add(l);
+}
+
+// ── 程序貼圖（近白色紋理，乘上頂點色） ──
+function canvasTex(draw, size = 512, repeatM = 1.2) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  draw(c.getContext('2d'), size);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(1 / repeatM, 1 / repeatM);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+let seed = 7;
+const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+const TEX = {
+  trav: () => canvasTex((g, s) => {
+    g.fillStyle = '#f7f3ec'; g.fillRect(0, 0, s, s);
+    for (let i = 0; i < 90; i++) { g.fillStyle = `rgba(${150 + rnd() * 40},${130 + rnd() * 30},${100 + rnd() * 20},${0.04 + rnd() * 0.07})`; g.fillRect(0, rnd() * s, s, 1 + rnd() * 6); }
+    for (let i = 0; i < 520; i++) { g.fillStyle = `rgba(110,92,70,${0.18 + rnd() * 0.3})`; g.beginPath(); g.ellipse(rnd() * s, rnd() * s, 1 + rnd() * 9, 0.6 + rnd() * 1.6, 0, 0, 7); g.fill(); }
+  }, 512, 0.9),
+  vein: () => canvasTex((g, s) => {
+    g.fillStyle = '#f9f8f5'; g.fillRect(0, 0, s, s);
+    g.filter = 'blur(1.2px)';
+    for (let i = 0; i < 14; i++) { g.strokeStyle = `rgba(120,116,110,${0.08 + rnd() * 0.16})`; g.lineWidth = 0.6 + rnd() * 2.2; g.beginPath(); let x = rnd() * s, y = 0; g.moveTo(x, y); while (y < s) { x += (rnd() - 0.5) * 60; y += 20 + rnd() * 40; g.lineTo(x, y); } g.stroke(); }
+    g.filter = 'none';
+  }, 512, 1.1),
+  hair: () => canvasTex((g, s) => { g.fillStyle = '#d9d9d6'; g.fillRect(0, 0, s, s); for (let y = 0; y < s; y++) { const v = 200 + rnd() * 55; g.fillStyle = `rgba(${v},${v},${v - 2},0.55)`; g.fillRect(0, y, s, 1); } }, 256, 0.4),
+  tile: () => canvasTex((g, s) => {
+    g.fillStyle = '#f5f2ec'; g.fillRect(0, 0, s, s);
+    for (let i = 0; i < 2200; i++) { g.fillStyle = `rgba(120,110,95,${rnd() * 0.05})`; g.fillRect(rnd() * s, rnd() * s, 2 + rnd() * 5, 2 + rnd() * 5); }
+    g.fillStyle = 'rgba(95,85,72,0.28)'; g.fillRect(0, 0, s, 2); g.fillRect(0, 0, 2, s); g.fillRect(s / 2, 0, 2, s);
+  }, 512, 1.2),
+  cement: () => canvasTex((g, s) => {
+    g.fillStyle = '#efebe4'; g.fillRect(0, 0, s, s);
+    g.filter = 'blur(6px)';
+    for (let i = 0; i < 160; i++) { g.fillStyle = `rgba(${160 + rnd() * 40},${154 + rnd() * 30},${146 + rnd() * 20},${0.04 + rnd() * 0.06})`; g.beginPath(); g.arc(rnd() * s, rnd() * s, 8 + rnd() * 40, 0, 7); g.fill(); }
+    g.filter = 'none';
+  }, 512, 1.6),
+  weave: () => canvasTex((g, s) => {
+    g.fillStyle = '#f4f1ec'; g.fillRect(0, 0, s, s);
+    for (let y = 0; y < s; y += 2) { g.fillStyle = `rgba(90,80,70,${0.03 + rnd() * 0.05})`; g.fillRect(0, y, s, 1); }
+    for (let x = 0; x < s; x += 2) { g.fillStyle = `rgba(90,80,70,${0.02 + rnd() * 0.04})`; g.fillRect(x, 0, 1, s); }
+  }, 256, 0.25),
+};
+const texCache = {};
+const tex = (k) => (texCache[k] ??= TEX[k]());
+const ROLE = {
+  plaster: { r: 0.93 }, cement: { r: 0.86, map: 'cement' }, floor: { r: 0.42, map: 'tile' }, travertine: { r: 0.62, map: 'trav' },
+  stone: { r: 0.34, map: 'vein' }, steel: { r: 0.3, m: 1, map: 'hair' }, lacquer: { r: 0.46 }, greige: { r: 0.5 },
+  fabric: { r: 1, map: 'weave' }, fabric_warm: { r: 1, map: 'weave' }, fabric_grey: { r: 1, map: 'weave' }, black: { r: 0.16 },
+  metal_dark: { r: 0.42, m: 0.7 }, mirror: { r: 0.04, m: 1 }, glass: { r: 0.06, glass: true }, shutter: { r: 0.55 }, lamp: { r: 0.95 },
+  glow: { emit: 0xfff0d6, k: 2.0 }, emit: { emit: 0xffe2bb, k: 2.4 }, plant: { r: 0.8 }, wood: { r: 0.6 }, rug: { r: 1, map: 'weave' },
+  ceramic: { r: 0.3 }, paper: { r: 0.9 }, rattan: { r: 0.9, map: 'weave' }, skin: { r: 0.62 }, cloth: { r: 0.95 }, denim: { r: 0.95, map: 'weave' },
+};
+const matCache = {};
+function roleMat(role) {
+  if (matCache[role]) return matCache[role];
+  const R = ROLE[role] || { r: 0.8 };
+  const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: R.r ?? 0.8, metalness: R.m ?? 0 });
+  if (R.map) m.map = tex(R.map);
+  if (R.emit) { m.emissive = new THREE.Color(R.emit); m.emissiveIntensity = R.k; }
+  if (R.glass) { m.transparent = true; m.opacity = 0.22; m.depthWrite = false; }
+  if (role === 'mirror') m.envMapIntensity = 1.6;
+  if (['plaster', 'cement', 'lacquer'].includes(role)) m.side = THREE.DoubleSide;
+  return (matCache[role] = m);
+}
+// 白模型：去掉底色與貼圖，只留烘焙在頂點色裡的環境光遮蔽（取頂點色最亮的通道當明暗）
+const whiteCache = {};
+function whiteMat(role) {
+  if (whiteCache[role]) return whiteCache[role];
+  const R = ROLE[role] || {};
+  const m = new THREE.MeshStandardMaterial({ color: 0xf6f3ee, roughness: 0.9, side: THREE.DoubleSide, vertexColors: true });
+  m.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('#include <color_fragment>', 'diffuseColor.rgb *= clamp(max(max(vColor.r, vColor.g), vColor.b) * 1.35, 0.35, 1.0);'); };
+  if (R.glass) { m.transparent = true; m.opacity = 0.25; m.depthWrite = false; }
+  if (R.emit) { m.emissive = new THREE.Color(0xfff3e2); m.emissiveIntensity = 1.2; }
+  return (whiteCache[role] = m);
+}
+
+// ════════════ 物理 ════════════
+const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -9.82, 0) });
+world.broadphase = new CANNON.SAPBroadphase(world);
+world.allowSleep = true;
+world.defaultContactMaterial.friction = 0.42;
+world.defaultContactMaterial.restitution = 0.06;
+world.defaultContactMaterial.contactEquationStiffness = 5e6;
+world.solver.iterations = 14;
+for (const s of OBJ.static_boxes) {
+  const [x0, y0, z0, x1, y1, z1] = s.box;
+  const body = new CANNON.Body({ mass: 0, type: CANNON.Body.STATIC, material: world.defaultMaterial });
+  body.addShape(new CANNON.Box(new CANNON.Vec3((x1 - x0) / 2, (z1 - z0) / 2, (y1 - y0) / 2)));
+  body.position.set((x0 + x1) / 2, (z0 + z1) / 2, -(y0 + y1) / 2);
+  world.addBody(body);
+}
+
+// ════════════ 載入模型 ════════════
+const nodes = {}, meshesOf = {}, pickable = [], bodies = [], kinematic = {};
+let mixer, action;
+const hosts = [];
+const gltf = await new GLTFLoader().loadAsync(BASE + 'scene.glb').catch((e) => { fail('模型載入失敗。<small>請透過 HTTP 伺服器開啟此頁。</small>'); throw e; });
+scene.add(gltf.scene);
+const topId = (o) => { while (o && o.parent && !REC[o.name]) o = o.parent; return o && REC[o.name] ? o.name : null; };
+gltf.scene.traverse((o) => {
+  if (REC[o.name] && !nodes[o.name]) nodes[o.name] = o;
+  if (o.isMesh) {
+    const role = o.material.name;
+    o.userData.role = role;
+    o.material = roleMat(role);
+    const id = topId(o);
+    o.userData.id = id;
+    (meshesOf[id] ??= []).push(o);
+    const glowy = role === 'emit' || role === 'glow' || role === 'glass';
+    o.castShadow = !glowy;
+    o.receiveShadow = !glowy;
+    if (id && !id.startsWith('shell') && !['cove_light', 'rug', 'corner_light'].includes(id)) pickable.push(o);
+  }
+});
+
+for (const rec of dyn) {
+  const node = nodes[rec.id];
+  if (!node) continue;
+  const c = rec.collider;
+  const body = new CANNON.Body({ mass: rec.mass, position: new CANNON.Vec3().copy(node.position), quaternion: new CANNON.Quaternion().copy(node.quaternion) });
+  let shape;
+  if (c.type === 'box') shape = new CANNON.Box(new CANNON.Vec3(c.half[0], c.half[2], c.half[1]));
+  else if (c.type === 'cyl') shape = new CANNON.Cylinder(c.r, c.r, c.h, 14);
+  else shape = new CANNON.Sphere(c.r);
+  body.addShape(shape, c.offset ? new CANNON.Vec3(c.offset[0], c.offset[2], -c.offset[1]) : new CANNON.Vec3());
+  body.linearDamping = 0.06;
+  body.angularDamping = rec.id === 'ottoman' ? 0.45 : 0.12;
+  body.sleepSpeedLimit = 0.12;
+  body.sleepTimeLimit = 0.5;
+  body.userData = { h: rec.size[2] };
+  world.addBody(body);
+  bodies.push({ id: rec.id, node, body, rest: { p: node.position.clone(), q: node.quaternion.clone() } });
+}
+const bodyOf = Object.fromEntries(bodies.map((b) => [b.id, b]));
+// 掃地機器人：cannon-es 逐接觸點加摩擦，圓柱底面會被黏住，所以它和地面之間不算摩擦，速度由驅動程式給，停機時用高阻尼停下
+if (bodyOf.robot_vacuum) {
+  const wheels = new CANNON.Material('wheels');
+  world.addContactMaterial(new CANNON.ContactMaterial(wheels, world.defaultMaterial, { friction: 0, restitution: 0.05 }));
+  bodyOf.robot_vacuum.body.material = wheels;
+  bodyOf.robot_vacuum.body.linearDamping = 0.9;
+}
+for (const rec of kin) {
+  const node = nodes[rec.id];
+  if (!node) continue;
+  const box = new THREE.Box3();
+  node.updateMatrixWorld(true);
+  const inv = node.matrixWorld.clone().invert();
+  node.traverse((o) => { if (o.isMesh) { o.geometry.computeBoundingBox(); box.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld).applyMatrix4(inv)); } });
+  const size = box.getSize(new THREE.Vector3()), ctr = box.getCenter(new THREE.Vector3());
+  const body = new CANNON.Body({ mass: 0, type: CANNON.Body.KINEMATIC });
+  body.addShape(new CANNON.Box(new CANNON.Vec3(Math.max(0.01, size.x / 2), Math.max(0.01, size.y / 2), Math.max(0.01, size.z / 2))), new CANNON.Vec3(ctr.x, ctr.y, ctr.z));
+  body.position.copy(node.position);
+  body.quaternion.copy(node.quaternion);
+  world.addBody(body);
+  kinematic[rec.id] = { rec, node, body, open: 0, target: 0, rest: { p: node.position.clone(), q: node.quaternion.clone() } };
+}
+if (gltf.animations.length) {
+  mixer = new THREE.AnimationMixer(gltf.scene);
+  action = mixer.clipAction(gltf.animations[0]);
+  action.play();
+}
+for (const pid of ['host_a', 'host_b']) {
+  const root = nodes[pid + '_root'];
+  if (!root) continue;
+  const body = new CANNON.Body({ mass: 0, type: CANNON.Body.KINEMATIC });
+  body.addShape(new CANNON.Cylinder(0.2, 0.2, 1.6, 12), new CANNON.Vec3(0, 0.8, 0));
+  world.addBody(body);
+  hosts.push({ root, body });
+}
+loadingEl.hidden = true;
+
+// ════════════ 空間與視角 ════════════
+const AREAS = [
+  { id: 'all', name: '全景', en: 'ALL', eye: [10.8, -5.2, 11.5], at: [3.4, 4.3, 0], cut: true },
+  { id: 'entry', name: '玄關', en: 'ENTRY', eye: [1.0, 0.9, 1.5], at: [1.9, 7.0, 1.2], c: [0.6, 1.5], size: '鞋櫃 · 穿鞋椅 · 隔屏' },
+  { id: 'kitchen', name: '廚房', en: 'KITCHEN', eye: [3.3, 4.2, 2.35], at: [3.0, 0.3, 0.4], c: [3.1, 0.6], size: '一字廚具 · 中島' },
+  { id: 'dining', name: '餐廳', en: 'DINING', eye: [1.2, 5.4, 1.55], at: [2.6, 1.0, 0.95], c: [2.2, 1.9], size: '長圓餐桌 · 雲朵吊燈' },
+  { id: 'living', name: '客廳', en: 'LIVING', eye: [2.3, 4.3, 1.5], at: [1.9, 9.2, 1.0], c: [2.2, 7.6], size: '電視牆 · 沙發 · 百葉窗' },
+  { id: 'hall', name: '走廊', en: 'HALL', eye: [3.2, 2.85, 1.5], at: [10.0, 2.85, 1.1], c: [7.2, 2.85], size: '四扇房門 · 掃地機器人' },
+];
+const cutPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 2.32);
+const state = { area: 'all', robot: false, shakeT: 0, white: false, names: false, focus: null, tour: false };
+$('areas').innerHTML = AREAS.map((a) => `<button data-area="${a.id}" aria-pressed="${a.id === 'all'}">${a.name}<small>${a.en}</small></button>`).join('');
+const tween = { t: 1, from: null, to: null };
+function flyTo(eye, at, cut) {
+  renderer.clippingPlanes = cut ? [cutPlane] : [];
+  tween.from = { p: camera.position.clone(), t: controls.target.clone() };
+  tween.to = { p: eye, t: at };
+  tween.t = 0;
+  controls.minDistance = cut ? 3 : 0.3;
+  controls.maxDistance = cut ? 26 : 6;
+}
+function setArea(id, instant = false) {
+  const a = AREAS.find((x) => x.id === id);
+  state.area = id;
+  flyTo(T(a.eye), T(a.at), a.cut);
+  if (instant) { tween.t = 1; camera.position.copy(tween.to.p); controls.target.copy(tween.to.t); }
+  document.querySelectorAll('[data-area]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.area === id)));
+  document.querySelectorAll('.room[data-go]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.go === id)));
+}
+$('areas').addEventListener('click', (e) => { const b = e.target.closest('[data-area]'); if (b) { stopTour(); setArea(b.dataset.area); } });
+
+// ════════════ 側欄 ════════════
+const panel = $('panel');
+const KIND = { dynamic: '可推倒', drawer: '抽屜', door: '門', static: '固定' };
+const GROUPS = ['玄關', '廚房', '餐廳', '客廳', '走廊'];
+const MATNAME = { ceramic: '陶瓷', glass: '玻璃', travertine: '洞石', steel: '不鏽鋼', wood: '木與泡棉', foam: '泡棉', paper: '紙', rattan: '藤編', plastic: '塑膠', appliance: '不鏽鋼外殼' };
+function renderTab(tab) {
+  document.querySelectorAll('[role=tab]').forEach((t) => { const on = t.dataset.tab === tab; t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; if (on) panel.setAttribute('aria-labelledby', t.id); });
+  if (tab === 'overview') {
+    panel.innerHTML = `<div class="eyebrow">RECONSTRUCTED FROM VIDEO</div><h2>影中屋</h2><p class="sub">從一支室內設計導覽影片重建的公共區。物品可以推倒，抽屜與門可以打開，兩位主持人沿著影片裡的動線走動。</p>
+      <div class="stats"><div><strong>${Math.round(areaM2)}</strong><small>m²</small><p>公共區面積</p></div><div><strong>${dyn.length}</strong><small>件</small><p>可推倒的物品</p></div><div><strong>${kin.length}</strong><small>處</small><p>抽屜與門</p></div><div><strong>${fmt(CAM.rms_all, 1)}</strong><small>px</small><p>投影回影片的誤差</p></div></div>
+      <div class="section-heading">空間<span>SPACES</span></div>
+      ${AREAS.filter((a) => a.id !== 'all').map((a) => `<button class="room" data-go="${a.id}" aria-pressed="${state.area === a.id}"><span>${a.name}<small>${a.size}</small></span><span>${a.en}</span></button>`).join('')}
+      <div class="source">參考影片：<a href="https://www.youtube.com/watch?v=bdNTTHSXfAg" target="_blank" rel="noopener">甘丹設計 · 42 坪微侘寂奶油風（上集）↗</a><br>空間與家具設計屬原設計者。只重建公共區，四個房間只有房門。尺寸由影片畫面標點解算，Pi3X、SAM3、GVHMR、Kimodo 未執行。<br><a href="${BASE}scene.blend" download>scene.blend</a><a href="${BASE}scene.glb" download>scene.glb</a><a href="${BASE}objects.json" download>objects.json</a></div>`;
+  } else if (tab === 'items') {
+    const items = OBJ.objects.filter((o) => GROUPS.includes(o.group));
+    panel.innerHTML = `<div class="eyebrow">OBJECTS</div><h2>物件</h2><p class="sub">點選物件，鏡頭會移過去並顯示尺寸與質量。</p>` + GROUPS.map((g) => {
+      const list = items.filter((o) => o.group === g);
+      return `<div class="section-heading">${g}<span>${list.length} 件</span></div>` + list.map((o) => `<button class="room" data-item="${o.id}" aria-pressed="${state.focus === o.id}"><span>${o.label.replace(/（.*）/, '')}<small>${KIND[o.kind]}${o.mass !== undefined ? ' · ' + fmt(o.mass, 1) + ' kg' : ''}</small></span><span>${o.size.map((v) => Math.round(v * 100)).join('×')}</span></button>`).join('');
+    }).join('');
+  } else {
+    panel.innerHTML = `<div class="eyebrow">FLOOR PLAN</div><h2>平面圖</h2><p class="sub">公共區 ${fmt(RW)} × ${fmt(RD)} m，走廊 ${fmt(C.x1 - RW)} × ${fmt(C.y1 - C.y0)} m。點平面圖上的空間可移動鏡頭。</p><canvas class="plan-canvas" id="plan" width="440" height="560" aria-label="平面配置圖，點選空間可移動鏡頭"></canvas><div class="legend"><span><i style="background:#cfc3b1"></i>固定家具</span><span><i style="background:#9a6b4f;border-radius:50%"></i>可推倒</span><span><i style="background:#6d8093"></i>抽屜與門</span></div>`;
+    drawPlan();
+  }
+}
+document.querySelector('.tabs').addEventListener('click', (e) => { const b = e.target.closest('[role=tab]'); if (b) renderTab(b.dataset.tab); });
+document.querySelector('.tabs').addEventListener('keydown', (e) => { if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return; const tabs = [...document.querySelectorAll('[role=tab]')]; const i = tabs.indexOf(document.activeElement); const n = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length]; n.focus(); renderTab(n.dataset.tab); });
+panel.addEventListener('click', (e) => {
+  const g = e.target.closest('[data-go]'); if (g) { stopTour(); setArea(g.dataset.go); closeMobile(); return; }
+  const it = e.target.closest('[data-item]'); if (it) { stopTour(); focusObject(it.dataset.item); closeMobile(); return; }
+  if (e.target.id === 'plan' && planGeo) {
+    const r = e.target.getBoundingClientRect(), k = e.target.width / r.width;
+    const u = (e.clientX - r.left) * k, v = (e.clientY - r.top) * k;
+    const y = (u - planGeo.pad) / planGeo.s + planGeo.minY, x = (v - planGeo.pad) / planGeo.s + planGeo.minX;
+    let best = null, bd = 1e9;
+    for (const a of AREAS) if (a.c) { const d = Math.hypot(a.c[0] - x, a.c[1] - y); if (d < bd) { bd = d; best = a; } }
+    if (best) { stopTour(); setArea(best.id); closeMobile(); }
+  }
+});
+let planGeo = null;
+function drawPlan() {
+  const cv = $('plan'); if (!cv) return;
+  const g = cv.getContext('2d');
+  const W = cv.width, pad = 22;
+  const minX = -0.3, maxX = C.x1 + 0.3, minY = -0.3, maxY = RD + 0.3;
+  // 走廊往東伸出去，平面圖轉 90°：東朝下、北朝右
+  const s = (W - pad * 2) / (maxY - minY);
+  cv.height = Math.round(pad * 2 + (maxX - minX) * s);
+  const H = cv.height;
+  const P = (x, y) => [pad + (y - minY) * s, pad + (x - minX) * s];
+  planGeo = { s, pad, minX, minY };
+  g.fillStyle = '#fbf8f3'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#f1ebe1';
+  let [a, b] = P(0, 0); g.fillRect(a, b, RD * s, RW * s);
+  [a, b] = P(RW, C.y0); g.fillRect(a, b, (C.y1 - C.y0) * s, (C.x1 - RW) * s);
+  for (const sb of OBJ.static_boxes) {
+    if (sb.id === 'shell_floor') continue;
+    const [x0, y0, , x1, y1] = sb.box;
+    const [u, v] = P(x0, y0);
+    g.fillStyle = sb.id.startsWith('shell') ? '#3a342e' : '#cfc3b1';
+    g.fillRect(u, v, (y1 - y0) * s, (x1 - x0) * s);
+  }
+  const [ru, rv] = P(PAR.rug.x, PAR.rug.y);
+  g.strokeStyle = '#c9bca9'; g.lineWidth = 1; g.beginPath(); g.arc(ru, rv, PAR.rug.r * s, 0, 7); g.stroke();
+  const wp = new THREE.Vector3();
+  for (const k of Object.values(kinematic)) { k.node.getWorldPosition(wp); const [u, v] = P(wp.x, -wp.z); g.fillStyle = '#6d8093'; g.fillRect(u - 3, v - 3, 6, 6); }
+  for (const d of bodies) { const [u, v] = P(d.node.position.x, -d.node.position.z); g.fillStyle = '#9a6b4f'; g.beginPath(); g.arc(u, v, 3.2, 0, 7); g.fill(); }
+  g.fillStyle = '#5c4d40'; g.font = '15px "Songti TC", serif'; g.textAlign = 'center';
+  for (const ar of AREAS) if (ar.c) { const [u, v] = P(ar.c[0], ar.c[1]); g.fillText(ar.name, u, v); }
+  g.fillStyle = '#9d958a'; g.font = '10px Georgia, serif'; g.textAlign = 'right';
+  g.fillText('北 N →', W - 10, H - 10);
+}
+
+// ── 手機：空間資訊抽屜 ──
+function closeMobile() { document.body.classList.remove('info-open'); $('mobileInfo').setAttribute('aria-expanded', 'false'); }
+$('mobileInfo').addEventListener('click', () => { const on = document.body.classList.toggle('info-open'); $('mobileInfo').setAttribute('aria-expanded', String(on)); });
+
+// ── 白模型、空間標示 ──
+$('white').addEventListener('click', () => {
+  state.white = !state.white;
+  $('white').setAttribute('aria-pressed', state.white);
+  for (const list of Object.values(meshesOf)) for (const m of list) if (!m.userData.flash) m.material = state.white ? whiteMat(m.userData.role) : roleMat(m.userData.role);
+});
+const labelsEl = $('labels');
+labelsEl.innerHTML = AREAS.filter((a) => a.c).map((a) => `<span class="room-label" data-l="${a.id}">${a.name}</span>`).join('');
+labelsEl.hidden = true;
+$('names').addEventListener('click', () => { state.names = !state.names; $('names').setAttribute('aria-pressed', state.names); labelsEl.hidden = !state.names; });
+
+// ════════════ 物件卡 ════════════
+const card = $('focusCard');
+function focusObject(id, move = true) {
+  const rec = REC[id], n = nodes[id];
+  if (!rec || !n || !GROUPS.includes(rec.group)) return;
+  state.focus = id;
+  $('itemType').textContent = `${rec.group} · ${KIND[rec.kind] || ''}`;
+  $('itemName').textContent = rec.label.replace(/（.*）/, '');
+  const mat = rec.label.match(/（(.*)）/);
+  $('itemMeta').innerHTML = `<dt>尺寸</dt><dd>${rec.size.map((v) => Math.round(v * 100)).join(' × ')} cm</dd>` +
+    (rec.mass !== undefined ? `<dt>質量</dt><dd>${fmt(rec.mass, 1)} kg</dd>` : '') +
+    (mat ? `<dt>材質</dt><dd>${mat[1]}</dd>` : rec.material ? `<dt>材質</dt><dd>${MATNAME[rec.material] || rec.material}</dd>` : '') +
+    (rec.error_px !== undefined ? `<dt>投影誤差</dt><dd>${fmt(rec.error_px, 1)} px</dd>` : '');
+  const acts = [];
+  if (rec.kind === 'dynamic') acts.push('<button data-card="push">推一下</button>');
+  if (kinematic[id]) acts.push(`<button data-card="toggle">${kinematic[id].target > 0.5 ? '關上' : '打開'}</button>`);
+  acts.push('<button data-card="back">返回全景</button>');
+  $('itemActs').innerHTML = acts.join('');
+  card.hidden = false;
+  document.querySelectorAll('[data-item]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.item === id)));
+  if (move) {
+    const box = new THREE.Box3().setFromObject(n);
+    const c = box.getCenter(new THREE.Vector3()), r = Math.max(0.35, box.getSize(new THREE.Vector3()).length() * 0.6);
+    // 鏡頭從房間內側看過去：朝公共區中線（走廊裡的物件朝走廊中線）後退，並限制在牆內
+    const px = c.x, py = -c.z;
+    const inHall = px > RW + 0.1;
+    const inner = inHall ? [px - 1.2, (C.y0 + C.y1) / 2] : [RW / 2, Math.min(Math.max(py, 1.4), RD - 1.4)];
+    let hx = inner[0] - px, hy = inner[1] - py;
+    const hl = Math.hypot(hx, hy) || 1; hx /= hl; hy /= hl;
+    const dist = r * 2.2 + 0.7;
+    const ex = inHall ? Math.min(Math.max(px + hx * dist, RW + 0.2), C.x1 - 0.2) : Math.min(Math.max(px + hx * dist, 0.25), RW - 0.25);
+    const ey = inHall ? Math.min(Math.max(py + hy * dist, C.y0 + 0.2), C.y1 - 0.2) : Math.min(Math.max(py + hy * dist, 0.25), RD - 0.25);
+    flyTo(T([ex, ey, Math.min(2.2, c.y + dist * 0.55)]), c, false);
+    state.area = null;
+    document.querySelectorAll('[data-area]').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+  }
+  flash(id);
+}
+function closeCard() { card.hidden = true; state.focus = null; document.querySelectorAll('[data-item]').forEach((b) => b.setAttribute('aria-pressed', 'false')); }
+$('closeFocus').addEventListener('click', closeCard);
+$('itemActs').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-card]'); if (!b || !state.focus) return;
+  const id = state.focus;
+  if (b.dataset.card === 'push') pushBody(bodyOf[id].body, null);
+  else if (b.dataset.card === 'toggle') { toggleKin(id); focusObject(id, false); }
+  else { closeCard(); setArea('all'); }
+});
+const flashes = [];
+function flash(id) {
+  for (const m of meshesOf[id] || []) {
+    if (m.userData.flash) continue;
+    const mat = m.material.clone(); mat.emissive = new THREE.Color(0x9a6b4f); mat.emissiveIntensity = 0.5;
+    m.material = mat; m.userData.flash = true;
+    flashes.push({ m, t: 1.1 });
+  }
+}
+
+// ════════════ 互動：抓、推、開抽屜與門 ════════════
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+let grab = null, down = null;
+const jointBody = new CANNON.Body({ mass: 0, type: CANNON.Body.KINEMATIC });
+jointBody.collisionFilterGroup = 0; jointBody.collisionFilterMask = 0;
+world.addBody(jointBody);
+function setNdc(e) { const r = canvas.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, camera); }
+function hit(e) {
+  setNdc(e);
+  for (const h of ray.intersectObjects(pickable, false)) {
+    if (renderer.clippingPlanes.length && h.point.y > cutPlane.constant) continue;
+    if (h.object.userData.id) return { id: h.object.userData.id, point: h.point };
+  }
+  return null;
+}
+function pushBody(b, at) {
+  const d = new THREE.Vector3(); camera.getWorldDirection(d); d.y = Math.max(d.y, -0.1); d.normalize();
+  const k = 1.6 * Math.sqrt(b.mass) + 0.4;
+  b.wakeUp();
+  // 沒有指定施力點時推在物件高度的上段，高的東西才會被推倒而不是平移
+  const hgt = (b.userData && b.userData.h) || 0.2;
+  const p = at ? new CANNON.Vec3(at.x, at.y, at.z) : b.position.vadd(new CANNON.Vec3(0, hgt * 0.35, 0));
+  b.applyImpulse(new CANNON.Vec3(d.x * k, d.y * k + 0.2, d.z * k), p);
+}
+canvas.addEventListener('pointerdown', (e) => {
+  const h = hit(e);
+  down = { x: e.clientX, y: e.clientY, t: performance.now(), h };
+  if (h && bodyOf[h.id]) {
+    const b = bodyOf[h.id].body;
+    b.wakeUp();
+    const lq = b.quaternion.inverse().vmult(new CANNON.Vec3(h.point.x, h.point.y, h.point.z).vsub(b.position));
+    jointBody.position.set(h.point.x, h.point.y, h.point.z);
+    const c = new CANNON.PointToPointConstraint(b, lq, jointBody, new CANNON.Vec3(0, 0, 0), 60 + b.mass * 20);
+    world.addConstraint(c);
+    const n = new THREE.Vector3(); camera.getWorldDirection(n);
+    grab = { c, body: b, plane: new THREE.Plane().setFromNormalAndCoplanarPoint(n, h.point) };
+    controls.enabled = false;
+    canvas.setPointerCapture(e.pointerId);
+    e.stopImmediatePropagation();
+  } else if (h && kinematic[h.id]) e.stopImmediatePropagation();
+}, { capture: true });
+canvas.addEventListener('pointermove', (e) => {
+  if (grab) {
+    setNdc(e);
+    const p = new THREE.Vector3();
+    if (ray.ray.intersectPlane(grab.plane, p)) { p.y = Math.max(0.03, p.y); jointBody.position.set(p.x, p.y, p.z); }
+    return;
+  }
+  if (e.pointerType === 'mouse' && !down) {
+    const h = hit(e);
+    canvas.style.cursor = h ? (bodyOf[h.id] ? 'grab' : kinematic[h.id] ? 'pointer' : 'help') : '';
+  }
+});
+function endPointer(e) {
+  const quick = down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 6 && performance.now() - down.t < 350;
+  if (grab) {
+    world.removeConstraint(grab.c);
+    if (quick) pushBody(grab.body, jointBody.position);
+    grab = null;
+    controls.enabled = true;
+  }
+  if (quick && down.h) {
+    if (kinematic[down.h.id]) toggleKin(down.h.id);
+    focusObject(down.h.id, false);
+  }
+  down = null;
+}
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+function toggleKin(id, force) { const k = kinematic[id]; k.target = force !== undefined ? force : (k.target > 0.5 ? 0 : 1); }
+
+// ── 掃地機器人：前進，卡住就轉向 ──
+const robot = { heading: Math.PI / 2, turn: 0, check: 0, last: new CANNON.Vec3() };
+function driveRobot(dt) {
+  const b = bodyOf.robot_vacuum?.body; if (!b) return;
+  b.linearDamping = state.robot ? 0 : 0.9;
+  if (!state.robot) return;
+  b.wakeUp();
+  if (b.quaternion.vmult(new CANNON.Vec3(0, 1, 0)).y < 0.7) return;
+  robot.check += dt;
+  if (robot.check > 0.5) {
+    if (b.position.vsub(robot.last).length() < 0.05 && robot.turn <= 0) robot.turn = 0.8 + Math.random() * 1.2;
+    robot.last.copy(b.position); robot.check = 0;
+  }
+  if (robot.turn > 0) { robot.turn -= dt; robot.heading += dt * 2.2; b.velocity.x *= 0.5; b.velocity.z *= 0.5; }
+  else { b.velocity.x = Math.cos(robot.heading) * 0.3; b.velocity.z = -Math.sin(robot.heading) * 0.3; }
+  b.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), robot.heading);
+  b.angularVelocity.set(0, 0, 0);
+}
+function resetPhysics() {
+  for (const d of bodies) {
+    d.body.position.copy(d.rest.p); d.body.quaternion.copy(d.rest.q);
+    d.body.velocity.setZero(); d.body.angularVelocity.setZero(); d.body.force.setZero(); d.body.torque.setZero();
+    d.body.sleep();
+  }
+  for (const k of Object.values(kinematic)) k.open = k.target = 0;
+  state.robot = false; state.shakeT = 0;
+  if (grab) { world.removeConstraint(grab.c); grab = null; controls.enabled = true; }
+  syncActs();
+}
+const notice = $('notice');
+let noticeT = 0;
+function say(t) { notice.textContent = t; notice.hidden = false; noticeT = 2.2; }
+function syncActs() {
+  const allOpen = (kind) => Object.values(kinematic).filter((k) => k.rec.kind === kind).every((k) => k.target > 0.5);
+  document.querySelector('[data-act="drawers"]').setAttribute('aria-pressed', allOpen('drawer'));
+  document.querySelector('[data-act="doors"]').setAttribute('aria-pressed', allOpen('door'));
+  document.querySelector('[data-act="robot"]').setAttribute('aria-pressed', state.robot);
+}
+function setAll(kind, open) {
+  const ks = Object.values(kinematic).filter((k) => k.rec.kind === kind);
+  ks.forEach((k) => (k.target = open ? 1 : 0));
+  syncActs();
+}
+document.querySelector('.act-switch').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const a = b.dataset.act;
+  if (a === 'drawers' || a === 'doors') {
+    const kind = a === 'drawers' ? 'drawer' : 'door';
+    const open = !Object.values(kinematic).filter((k) => k.rec.kind === kind).every((k) => k.target > 0.5);
+    setAll(kind, open);
+    if (open && a === 'drawers' && state.area !== 'kitchen') { stopTour(); setArea('kitchen'); }
+  }
+  else if (a === 'robot') { state.robot = !state.robot; syncActs(); if (state.robot) say('掃地機器人出門了'); }
+  else if (a === 'shake') { state.shakeT = 1.6; bodies.forEach((d) => d.body.wakeUp()); say('地面晃了一下'); }
+  else if (a === 'reset') { resetPhysics(); say('全部歸位'); }
+  else if (a === 'full') { const ws = $('workspace'); try { if (document.fullscreenElement) await document.exitFullscreen(); else await ws.requestFullscreen(); } catch (err) { say('這個瀏覽器不支援全螢幕'); } }
+});
+document.addEventListener('fullscreenchange', () => document.querySelector('[data-act="full"]').setAttribute('aria-pressed', String(!!document.fullscreenElement)));
+
+// ── 導覽：依序走過每個空間，途中開抽屜、晃地面、開門、放機器人出門 ──
+const TOUR = [
+  { area: 'entry' }, { area: 'dining' },
+  { area: 'kitchen', act: () => setAll('drawer', true) },
+  { area: 'living', act: () => { state.shakeT = 1.2; bodies.forEach((d) => d.body.wakeUp()); } },
+  { area: 'hall', act: () => { setAll('door', true); state.robot = true; syncActs(); } },
+  { area: 'all' },
+];
+let tourI = 0, tourT = 0, tourDone = false;
+function stopTour() { if (!state.tour) return; state.tour = false; $('tour').setAttribute('aria-pressed', 'false'); $('tour').textContent = '播放導覽'; }
+$('tour').addEventListener('click', () => {
+  if (state.tour) return stopTour();
+  state.tour = true; tourI = 0; tourT = 0; tourDone = false;
+  $('tour').setAttribute('aria-pressed', 'true'); $('tour').textContent = '停止導覽';
+  closeCard(); setArea(TOUR[0].area);
+});
+controls.addEventListener('start', stopTour);
+
+// ── 時間軸：人物動線 ──
+const playBtn = $('play'), prog = $('progress'), tOut = $('timeValue');
+let speed = 1;
+playBtn.addEventListener('click', () => { if (!action) return; action.paused = !action.paused; playBtn.textContent = action.paused ? '播放' : '暫停'; playBtn.setAttribute('aria-label', action.paused ? '播放人物走動' : '暫停人物走動'); });
+$('speed').addEventListener('change', (e) => { speed = +e.target.value; });
+prog.addEventListener('input', () => { if (!action) return; action.time = +prog.value / 10; mixer.update(0); });
+
+// ── 鍵盤 ──
+addEventListener('keydown', (e) => {
+  if (e.target.closest && e.target.closest('input, select, textarea')) return;
+  if (e.key === 'Escape') closeCard();
+  else if (e.key === 'r' || e.key === 'R') resetPhysics();
+  else if (/^[1-6]$/.test(e.key)) { stopTour(); setArea(AREAS[+e.key - 1].id); }
+});
+
+// ════════════ 主迴圈 ════════════
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage);
+resize();
+setArea('all', true);
+renderTab('overview');
+$('total').textContent = ' / ' + bodies.length;
+if (new URLSearchParams(location.search).has('debug')) window.__dbg = { bodies, CANNON, camera, nodes, kinematic, state, THREE, world, setArea };
+
+const timer = new THREE.Timer();
+timer.connect(document);
+const tmpV = new THREE.Vector3(), tmpA = new THREE.Vector3(), tmpQ = new THREE.Quaternion(), up = new CANNON.Vec3(0, 1, 0);
+const ease = (t) => t * t * (3 - 2 * t);
+let uiT = 0;
+renderer.setAnimationLoop(() => {
+  timer.update();
+  const rawDt = timer.getDelta();
+  const dt = Math.min(rawDt, 1 / 20);
+  if (tween.t < 1 && tween.to) {
+    tween.t = Math.min(1, tween.t + Math.min(rawDt, 0.25) / 0.9);
+    const k = ease(tween.t);
+    camera.position.lerpVectors(tween.from.p, tween.to.p, k);
+    controls.target.lerpVectors(tween.from.t, tween.to.t, k);
+  }
+  controls.update();
+  if (state.tour) {
+    tourT += rawDt;
+    const step = TOUR[tourI];
+    if (tourT > 1.2 && step.act && !tourDone) { step.act(); tourDone = true; }
+    if (tourT > 4.2) { tourT = 0; tourDone = false; tourI++; if (tourI >= TOUR.length) stopTour(); else setArea(TOUR[tourI].area); }
+  }
+  if (mixer) {
+    mixer.update(action.paused ? 0 : dt * speed);
+    if (!action.paused) prog.value = Math.round(action.time * 10);
+    tOut.textContent = fmt(action.time, 1) + ' s';
+  }
+  for (const h of hosts) {
+    h.root.getWorldPosition(tmpV);
+    h.body.velocity.set((tmpV.x - h.body.position.x) / Math.max(dt, 1e-3), 0, (tmpV.z - h.body.position.z) / Math.max(dt, 1e-3));
+    h.body.position.set(tmpV.x, 0, tmpV.z);
+  }
+  for (const k of Object.values(kinematic)) {
+    const moving = Math.abs(k.open - k.target) > 1e-4;
+    if (moving) k.open += Math.sign(k.target - k.open) * Math.min(Math.abs(k.target - k.open), dt / 0.55);
+    const e = ease(k.open);
+    const px = k.body.position.x, py = k.body.position.y, pz = k.body.position.z;
+    if (k.rec.kind === 'drawer') { const ax = k.rec.axis; k.node.position.copy(k.rest.p).add(tmpA.set(ax[0], ax[2], -ax[1]).multiplyScalar(k.rec.travel * e)); }
+    else k.node.quaternion.copy(k.rest.q).multiply(tmpQ.setFromAxisAngle(tmpA.set(0, 1, 0), THREE.MathUtils.degToRad(k.rec.open_deg) * e));
+    k.body.position.copy(k.node.position);
+    k.body.quaternion.copy(k.node.quaternion);
+    k.body.velocity.set((k.body.position.x - px) / dt, (k.body.position.y - py) / dt, (k.body.position.z - pz) / dt);
+    if (moving) for (const d of bodies) if (d.body.position.distanceTo(k.body.position) < 1.4) d.body.wakeUp();
+  }
+  driveRobot(dt);
+  if (state.shakeT > 0) {
+    state.shakeT -= dt;
+    const t = performance.now() / 1000, amp = Math.min(1, state.shakeT);
+    for (const d of bodies) d.body.applyForce(new CANNON.Vec3(Math.sin(t * 17) * d.body.mass * 7 * amp, 0, Math.cos(t * 13) * d.body.mass * 5 * amp));
+  }
+  world.step(1 / 60, dt, 4);
+  for (const d of bodies) {
+    const b = d.body;
+    if (b.position.y < -2) { b.position.copy(d.rest.p); b.velocity.setZero(); }
+    d.node.position.set(b.position.x, b.position.y, b.position.z);
+    d.node.quaternion.set(b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w);
+  }
+  for (let i = flashes.length - 1; i >= 0; i--) {
+    const f = flashes[i]; f.t -= dt;
+    if (f.t <= 0) { f.m.material.dispose(); f.m.userData.flash = false; f.m.material = state.white ? whiteMat(f.m.userData.role) : roleMat(f.m.userData.role); flashes.splice(i, 1); }
+    else f.m.material.emissiveIntensity = 0.5 * f.t / 1.1;
+  }
+  if (noticeT > 0) { noticeT -= rawDt; if (noticeT <= 0) notice.hidden = true; }
+  if (state.names) {
+    const W = stage.clientWidth, H = stage.clientHeight;
+    for (const el of labelsEl.children) {
+      const a = AREAS.find((x) => x.id === el.dataset.l);
+      tmpV.copy(T([a.c[0], a.c[1], 1.1])).project(camera);
+      const vis = tmpV.z < 1 && Math.abs(tmpV.x) < 1.05 && Math.abs(tmpV.y) < 1.05;
+      el.style.display = vis ? '' : 'none';
+      if (vis) { el.style.left = ((tmpV.x + 1) / 2) * W + 'px'; el.style.top = ((1 - tmpV.y) / 2) * H + 'px'; }
+    }
+  }
+  uiT += rawDt;
+  if (uiT > 0.25) {
+    uiT = 0;
+    let standing = 0;
+    for (const d of bodies) if (d.body.quaternion.vmult(up).y > 0.55 || /pillow|ottoman|sculpture/.test(d.id)) standing++;
+    const open = Object.values(kinematic).filter((k) => k.open > 0.5).length;
+    $('standing').textContent = standing;
+    $('stageText').textContent = `件物品站著 · 倒下 ${bodies.length - standing} · 打開 ${open}`;
+  }
+  renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>

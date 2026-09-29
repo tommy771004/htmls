@@ -1,0 +1,224 @@
+[
+ {
+  "version": 1,
+  "when": "2026-09-29 18:52",
+  "note": "v1：逐幀 PnP＋焦距網格搜尋（舊解法；f112 與 f016 的相機解到牆外）",
+  "rms_all": 12.78,
+  "frames": {
+   "f112": 8.91,
+   "f094": 6.01,
+   "f050": 3.81,
+   "f016": 7.99,
+   "f081": 7.02,
+   "f053": 4.91,
+   "f041": 34.44
+  },
+  "objects": {
+   "island": 9.62,
+   "kitchen": 5.24,
+   "pendant0": 30.8,
+   "pendant1": 27.32,
+   "shell": 8.73,
+   "sofa": 2.72,
+   "table": 23.27,
+   "tv": 4.69,
+   "tv_platform": 4.68,
+   "window": 7.86
+  },
+  "redo": [
+   "island",
+   "kitchen",
+   "pendant0",
+   "pendant1",
+   "shell",
+   "table",
+   "tv",
+   "tv_platform",
+   "window"
+  ]
+ },
+ {
+  "version": 1,
+  "when": "2026-09-29 18:54",
+  "note": "v1：依平面圖比例與分鏡目測的初始尺寸（只解相機）",
+  "rms_all": 15.52,
+  "frames": {
+   "f112": 11.85,
+   "f094": 6.2,
+   "f050": 3.83,
+   "f016": 12.28,
+   "f081": 8.22,
+   "f053": 8.87,
+   "f041": 40.21
+  },
+  "objects": {
+   "island": 19.13,
+   "kitchen": 6.43,
+   "pendant0": 34.49,
+   "pendant1": 32.95,
+   "shell": 5.77,
+   "sofa": 30.81,
+   "table": 2.69,
+   "tv": 2.21,
+   "tv_platform": 6.46,
+   "window": 8.22
+  },
+  "redo": [
+   "island",
+   "kitchen",
+   "pendant0",
+   "pendant1",
+   "shell",
+   "sofa",
+   "tv_platform",
+   "window"
+  ]
+ },
+ {
+  "version": 1,
+  "when": "2026-09-29 18:56",
+  "note": "複查標註：f041 兩盞吊燈對調；加入 f052（客廳看廚房）",
+  "rms_all": 11.78,
+  "frames": {
+   "f112": 11.85,
+   "f094": 6.2,
+   "f050": 3.83,
+   "f016": 12.28,
+   "f081": 8.22,
+   "f053": 8.87,
+   "f041": 19.94,
+   "f052": 14.94
+  },
+  "objects": {
+   "entry_door": 12.72,
+   "island": 23.6,
+   "kitchen": 7.12,
+   "pendant0": 10.08,
+   "pendant1": 6.36,
+   "shell": 5.77,
+   "sofa": 30.81,
+   "table": 4.08,
+   "tv": 2.21,
+   "tv_platform": 6.46,
+   "window": 8.22
+  },
+  "redo": [
+   "entry_door",
+   "island",
+   "kitchen",
+   "pendant0",
+   "pendant1",
+   "shell",
+   "sofa",
+   "table",
+   "tv_platform",
+   "window"
+  ]
+ },
+ {
+  "version": 1,
+  "when": "2026-09-29 18:57",
+  "note": "複查標註：刪除 f052 中島被裁切的角、f016 窗簾盒誤標的窗東緣",
+  "rms_all": 10.05,
+  "frames": {
+   "f112": 11.85,
+   "f094": 6.2,
+   "f050": 3.83,
+   "f016": 4.6,
+   "f081": 8.22,
+   "f053": 8.87,
+   "f041": 19.94,
+   "f052": 10.34
+  },
+  "objects": {
+   "entry_door": 9.84,
+   "island": 22.28,
+   "kitchen": 5.79,
+   "pendant0": 9.98,
+   "pendant1": 6.92,
+   "shell": 5.77,
+   "sofa": 30.81,
+   "table": 2.35,
+   "tv": 2.33,
+   "tv_platform": 6.46,
+   "window": 6.59
+  },
+  "redo": [
+   "entry_door",
+   "island",
+   "kitchen",
+   "pendant0",
+   "pendant1",
+   "shell",
+   "sofa",
+   "tv_platform",
+   "window"
+  ]
+ },
+ {
+  "version": 2,
+  "when": "2026-09-29 19:10",
+  "note": "束調整：41 個尺寸與 8 台相機一起擬合（上下限＋不穿牆的相對約束；相機不能在屋外或家具裡）",
+  "rms_all": 5.66,
+  "frames": {
+   "f112": 2.34,
+   "f094": 2.62,
+   "f050": 1.05,
+   "f016": 0.6,
+   "f081": 5.63,
+   "f053": 0.87,
+   "f041": 1.74,
+   "f052": 11.42
+  },
+  "objects": {
+   "entry_door": 2.86,
+   "island": 13.27,
+   "kitchen": 2.05,
+   "pendant0": 3.14,
+   "pendant1": 1.49,
+   "shell": 2.65,
+   "sofa": 5.75,
+   "table": 1.14,
+   "tv": 1.13,
+   "tv_platform": 3.71,
+   "window": 1.32
+  },
+  "redo": [
+   "island",
+   "sofa"
+  ]
+ },
+ {
+  "version": 3,
+  "when": "2026-09-29 19:10",
+  "note": "重做：被標記的物件放寬先驗 ×3 再擬合",
+  "rms_all": 5.54,
+  "frames": {
+   "f112": 1.96,
+   "f094": 2.66,
+   "f050": 0.86,
+   "f016": 0.65,
+   "f081": 5.73,
+   "f053": 0.84,
+   "f041": 1.47,
+   "f052": 11.19
+  },
+  "objects": {
+   "entry_door": 2.54,
+   "island": 12.93,
+   "kitchen": 2.04,
+   "pendant0": 3.22,
+   "pendant1": 1.24,
+   "shell": 2.66,
+   "sofa": 4.41,
+   "table": 1.25,
+   "tv": 1.02,
+   "tv_platform": 3.67,
+   "window": 1.26
+  },
+  "redo": [
+   "island",
+   "sofa"
+  ]
+ }
+]
