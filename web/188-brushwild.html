@@ -292,10 +292,12 @@ if (!THREE_VENDOR && !QS.has('proc')) {
     const job = (async () => {
       const [{ GLTFLoader }, SK] = await Promise.all([import('three/addons/loaders/GLTFLoader.js'), import('three/addons/utils/SkeletonUtils.js')]);
       const L = new GLTFLoader();
-      const [hero, props, enemies, bosses] = await Promise.all(['hero', 'props', 'enemies', 'bosses'].map(n => L.loadAsync('../assets/188/' + n + '.glb')));
-      return { hero, props, enemies, bosses, skClone: SK.clone };
+      // ?wip=hero,props：改從 assets/188/_wip/ 載入該套件（建模中的預覽，不會提交）
+      const WIP = (QS.get('wip') || '').split(',');
+      const [hero, props, enemies, bosses, isles] = await Promise.all(['hero', 'props', 'enemies', 'bosses', 'isles'].map(n => L.loadAsync('../assets/188/' + (WIP.includes(n) ? '_wip/' : '') + n + '.glb')));
+      return { hero, props, enemies, bosses, isles, skClone: SK.clone };
     })();
-    MODELS = await Promise.race([job, new Promise((_, rej) => setTimeout(() => rej(new Error('模型載入逾時')), 30000))]);
+    MODELS = await Promise.race([job, new Promise((_, rej) => setTimeout(() => rej(new Error('模型載入逾時')), 60000))]);
   } catch (e) { MODELS = null; console.warn('Blender 模型載入失敗，改用程式建模', e); }
 }
 const BOTW = !!MODELS;
@@ -372,11 +374,63 @@ function ol(mesh, th = .05) {
 }
 /* Blender 模型的材質：依 glb 裡的材質名稱決定 */
 function vtoon(hex = 0xffffff, o) { return toon(hex, Object.assign({ vertexColors: true }, o || {})); }
+// 樹葉卡片（Blender 的 leaf 材質，帶 UV）：畫布畫一叢卵形小葉，只存明暗與透明度，顏色來自頂點色
+const LEAF_TEX = BOTW ? (() => {
+  const N = 256, cv = document.createElement('canvas'); cv.width = cv.height = N;
+  const g = cv.getContext('2d');
+  for (let i = 0; i < 64; i++) {
+    const a = hash2(i, 1, 90) * TAU, r = Math.sqrt(hash2(i, 2, 90)) * .36, x = .5 + Math.cos(a) * r, y = .5 + Math.sin(a) * r;
+    const ang = a + (hash2(i, 3, 90) - .5) * 1.3, L = (.1 + hash2(i, 4, 90) * .06) * N, W = L * (.36 + hash2(i, 6, 90) * .12);
+    const v = Math.round(150 + hash2(i, 5, 90) * 105);
+    g.save(); g.translate(x * N, y * N); g.rotate(ang);
+    const gr = g.createLinearGradient(0, 0, L, 0);
+    gr.addColorStop(0, `rgb(${v * .62 | 0},${v * .62 | 0},${v * .62 | 0})`); gr.addColorStop(.55, `rgb(${v},${v},${v})`); gr.addColorStop(1, `rgb(${Math.min(255, v * 1.08) | 0},${Math.min(255, v * 1.08) | 0},${Math.min(255, v * 1.08) | 0})`);
+    g.fillStyle = gr;
+    g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(L * .45, -W, L, 0); g.quadraticCurveTo(L * .45, W, 0, 0); g.fill();
+    g.strokeStyle = `rgba(0,0,0,.18)`; g.lineWidth = 1.2; g.beginPath(); g.moveTo(L * .08, 0); g.lineTo(L * .85, 0); g.stroke();
+    g.restore();
+  }
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+})() : null;
+let leafM = null;
+function leafMat() {
+  const m = new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true, gradientMap: gradTex, map: LEAF_TEX, alphaTest: .42, alphaToCoverage: true, side: THREE.DoubleSide });
+  // 葉片卡片的法線已經朝葉叢外，背面不要翻轉法線（否則從背後看會整片反光變灰）
+  // 遠處 mipmap 會把葉片透明度平均掉，葉叢變稀疏；依取樣層級把 alpha 補回來
+  m.onBeforeCompile = s => {
+    s.fragmentShader = s.fragmentShader.replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\n#ifdef DOUBLE_SIDED\nnormal *= faceDirection;\n#endif')
+      .replace('#include <alphatest_fragment>', 'vec2 lf = fwidth(vMapUv) * 256.0; diffuseColor.a *= 1.0 + max(log2(max(max(lf.x, lf.y), 1e-4)), 0.0) * 0.45;\n#include <alphatest_fragment>');
+  };
+  m.customProgramCacheKey = () => 'leaf';
+  return m; // 不加輪廓光：葉叢邊緣全是掠射角，加了會整圈泛白
+}
 function stdMat(nm) {
+  if (nm === 'leaf' && LEAF_TEX) return leafM || (leafM = leafMat());
   if (nm === 'cloth2s') return vtoon(0xffffff, { side: THREE.DoubleSide });
   if (nm === 'flat') return vtoon(0xd8d4e0);
   if (nm === 'shell') return toon(0x8d8799, { transparent: true, opacity: .55 });
   return vtoon();
+}
+// 浮空島套件（isles.glb）：共用頂點匯出，岩面靠 flatShading 一塊塊顯出來；遠景版把霧的上限壓住，留下空氣透視的剪影
+function isleMat(hex = 0xffffff, fogMax = 0) {
+  const m = rimify(new THREE.MeshToonMaterial({ color: hex, gradientMap: gradTex, vertexColors: true }));
+  m.flatShading = true;
+  if (fogMax) {
+    const prev = m.onBeforeCompile, pk = m.customProgramCacheKey.bind(m);
+    m.onBeforeCompile = (sh, r) => { prev(sh, r); sh.fragmentShader = sh.fragmentShader.replace('#include <fog_fragment>', '#ifdef USE_FOG\n gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, min(smoothstep(fogNear, fogFar, vFogDepth), ' + fogMax.toFixed(2) + '));\n#endif'); };
+    m.customProgramCacheKey = () => pk() + '|haze' + fogMax;
+  }
+  return m;
+}
+function isleGeo(name) { let g = null; glbNode(MODELS.isles, name).traverse(o => { if (!g && o.isMesh) g = o.geometry; }); return g; }
+// 天頂島被灰寂巨像吸走了顏色：頂點色轉成偏紫的灰階（苔蘚也一起變灰）
+const greyCache = new Map();
+function greyGeo(g) {
+  if (greyCache.has(g)) return greyCache.get(g);
+  const c = g.clone(), col = c.attributes.color;
+  for (let i = 0; i < col.count; i++) { const l = col.getX(i) * .3 + col.getY(i) * .59 + col.getZ(i) * .11; col.setXYZ(i, l * .97, l * .93, l * 1.06); }
+  greyCache.set(g, c);
+  return c;
 }
 const matName = m => (m && m.name || 'fixed').replace(/\.\d+$/, '');
 function glbMats(root, fn = stdMat) {
@@ -384,11 +438,13 @@ function glbMats(root, fn = stdMat) {
   return root;
 }
 function glbNode(gl, name) { return gl.scene.getObjectByName(name); }
+// 零件名稱去掉「__序號」；多材質網格匯出後會拆成 Group＋同名子 Mesh，子 Mesh 不算零件，免得被同一條規則再轉一次
+function partName(n) { const k = n.name.replace(/__\d+$/, ''); n.userData.bn = n.isMesh && n.parent && n.parent.userData.bn === k ? '' : k; }
 // 頭目模型：零件名稱去掉「__序號」後比對
 function bossModel(name, fn) {
   const root = glbNode(MODELS.bosses, 'B_' + name).clone(true);
   root.position.set(0, 0, 0);
-  root.traverse(n => { n.userData.bn = n.name.replace(/__\d+$/, ''); });
+  root.traverse(partName);
   glbMats(root, fn);
   const N = k => { let f = null; root.traverse(n => { if (!f && n.userData.bn === k) f = n; }); return f; };
   return { root, N };
@@ -448,14 +504,17 @@ const skyMat = new THREE.ShaderMaterial({
   side: THREE.BackSide, depthWrite: false, fog: false,
   uniforms: { top: { value: new THREE.Color(0x3d9cf0) }, mid: { value: new THREE.Color(0x8fd6ff) }, bot: { value: new THREE.Color(0xcfeeff) }, sunDir: { value: new THREE.Vector3(.4, .6, -.5).normalize() }, sunCol: { value: new THREE.Color(0xfff4c9) } },
   vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); gl_Position.z = gl_Position.w; }',
-  fragmentShader: 'uniform vec3 top, mid, bot, sunDir, sunCol; varying vec3 vP; void main(){ float h = vP.y; vec3 c = h > 0.0 ? mix(mid, top, smoothstep(0.0, 0.55, h)) : mix(mid, bot, smoothstep(0.0, -0.25, h)); c = mix(bot, c, smoothstep(-0.05, 0.12, h)); float s = dot(normalize(vP), sunDir); c = mix(c, sunCol, smoothstep(0.9975, 0.999, s)); c += sunCol * pow(max(s, 0.0), 40.0) * 0.25; gl_FragColor = vec4(c, 1.0); }',
+  fragmentShader: BOTW
+    // 王國之淚式：天頂偏灰藍、地平線一條厚霧帶，太陽那一側的霧偏暖，日輪外有一圈大光暈
+    ? 'uniform vec3 top, mid, bot, sunDir, sunCol; varying vec3 vP; void main(){ vec3 d = normalize(vP); float h = d.y; vec3 c = h > 0.0 ? mix(mid, top, pow(smoothstep(0.0, 0.62, h), 0.85)) : mix(mid, bot, smoothstep(0.0, -0.2, h)); c = mix(bot, c, smoothstep(-0.03, 0.2, h)); float s = max(dot(d, sunDir), 0.0); float lowH = 1.0 - smoothstep(0.0, 0.45, abs(h)); c = mix(c, c * 0.55 + vec3(1.0, 0.84, 0.6) * 0.55, pow(s, 5.0) * lowH * 0.5); c += sunCol * (pow(s, 12.0) * 0.12 + pow(s, 90.0) * 0.35 + pow(s, 1400.0) * 1.2); c = mix(c, sunCol, smoothstep(0.9982, 0.9992, s)); gl_FragColor = vec4(c, 1.0);\n#include <colorspace_fragment>\n}'
+    : 'uniform vec3 top, mid, bot, sunDir, sunCol; varying vec3 vP; void main(){ float h = vP.y; vec3 c = h > 0.0 ? mix(mid, top, smoothstep(0.0, 0.55, h)) : mix(mid, bot, smoothstep(0.0, -0.25, h)); c = mix(bot, c, smoothstep(-0.05, 0.12, h)); float s = dot(normalize(vP), sunDir); c = mix(c, sunCol, smoothstep(0.9975, 0.999, s)); c += sunCol * pow(max(s, 0.0), 40.0) * 0.25; gl_FragColor = vec4(c, 1.0); }',
 });
 const sky = new THREE.Mesh(new THREE.SphereGeometry(2000, 32, 16), skyMat);
 sky.renderOrder = -10; sky.frustumCulled = false;
 scene.add(sky);
 
 const clouds = new THREE.Group();
-{
+if (!BOTW) {
   const n = 46 * 6;
   const im = new THREE.InstancedMesh(GEO.sphereLo, toon(0xffffff, { fog: false }), n);
   const d = new THREE.Object3D();
@@ -471,8 +530,93 @@ const clouds = new THREE.Group();
   }
   clouds.add(im);
   scene.add(clouds);
-}
-
+} else for (let c = 0; c < 46 * 28; c++) R(); // 亂數序列要和舊版雲一致（每團 4＋6×4 次），後面的擺設才不會變
+/* 曠野之息版的雲：柔邊公告板雲（畫布畫的雲團貼圖，鏡頭對著的四邊形），頂亮底灰藍、背光邊緣透亮；
+   三層：高空積雲、地平線外的雲海、浮空島腳下的薄霧。鏡頭穿過去時會淡出 */
+const CLOUD = BOTW ? (() => {
+  const N = 256, cv = document.createElement('canvas'); cv.width = cv.height = N * 2;
+  const g = cv.getContext('2d');
+  for (let v = 0; v < 4; v++) {
+    const ox = (v % 2) * N, oy = (v >> 1) * N;
+    for (let i = 0; i < 26; i++) {
+      const t = hash2(v, i, 61), u = hash2(v, i, 62), w = hash2(v, i, 63);
+      const ang = t * TAU, rad = Math.sqrt(u) * .27;
+      const x = .5 + Math.cos(ang) * rad * 1.25, y = .54 + Math.sin(ang) * rad * .7 - (1 - Math.abs(Math.cos(ang))) * .04;
+      const r = (.1 + w * .14) * (1 - rad * 1.1) + .05;
+      const cy = Math.min(y, .64);
+      const gr = g.createRadialGradient(ox + x * N, oy + cy * N, 0, ox + x * N, oy + cy * N, r * N);
+      gr.addColorStop(0, 'rgba(255,255,255,.95)'); gr.addColorStop(.55, 'rgba(255,255,255,.6)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = gr; g.beginPath(); g.arc(ox + x * N, oy + cy * N, r * N, 0, TAU); g.fill();
+    }
+  }
+  // 提高對比，邊緣用雜訊咬出來，像積雲那樣有輪廓又柔
+  const img = g.getImageData(0, 0, N * 2, N * 2), px = img.data;
+  for (let j = 0; j < N * 2; j++) for (let i = 0; i < N * 2; i++) {
+    const k = (j * N * 2 + i) * 4, a = px[k + 3] / 255, lx = (i % N) / N, ly = (j % N) / N;
+    const edge = Math.min(lx, 1 - lx, ly, 1 - ly);
+    const nz = fbm(i * .045, j * .045, 3, 64);
+    const v = sstep(.08 + nz * .25, .7 + nz * .15, a) * sstep(0, .06, edge);
+    px[k] = px[k + 1] = px[k + 2] = 255; px[k + 3] = Math.round(v * 255);
+  }
+  g.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.NoColorSpace;
+  const U = {
+    tex: { value: tex }, lit: { value: new THREE.Color(0xfffaf2) }, shade: { value: new THREE.Color(0xbac8d6) }, sunC: { value: new THREE.Color(0xffe1a6) },
+    sunDir: { value: new THREE.Vector3(.4, .6, -.5).normalize() }, fogC: { value: new THREE.Color(0xd6e1e8) }, fogN: { value: 350 }, fogF: { value: 2300 }, near: { value: new THREE.Vector2(12, 55) },
+  };
+  const mat = new THREE.ShaderMaterial({
+    uniforms: U, transparent: true, depthWrite: false, fog: false,
+    vertexShader: `attribute float aV; attribute float aA; uniform vec3 sunDir; uniform float fogN, fogF; uniform vec2 near;
+      varying vec2 vUv; varying vec2 vAt; varying float vA, vFog, vSun;
+      void main(){
+        mat4 m = modelMatrix * instanceMatrix;
+        vec3 c = m[3].xyz; float sx = length(m[0].xyz), sy = length(m[1].xyz);
+        vec3 R = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]), Up = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]);
+        vec3 wp = c + R * position.x * sx + Up * position.y * sy;
+        vec4 mv = viewMatrix * vec4(wp, 1.0);
+        gl_Position = projectionMatrix * mv;
+        vUv = uv; vAt = vec2(mod(aV, 2.0), floor(aV / 2.0)) * 0.5;
+        float d = length(c - cameraPosition);
+        vA = aA * smoothstep(near.x, near.y, d);
+        vFog = smoothstep(fogN, fogF, d);
+        vSun = pow(max(dot(normalize(wp - cameraPosition), sunDir), 0.0), 6.0);
+      }`,
+    fragmentShader: `uniform sampler2D tex; uniform vec3 lit, shade, sunC, fogC; varying vec2 vUv; varying vec2 vAt; varying float vA, vFog, vSun;
+      void main(){
+        float t = texture2D(tex, vAt + vec2(vUv.x, 1.0 - vUv.y) * 0.5).a;
+        float a = t * vA; if (a < 0.01) discard;
+        float l = clamp(0.3 + vUv.y * 0.85 + (1.0 - t) * 0.45, 0.0, 1.0); l = l * l * (3.0 - 2.0 * l);
+        vec3 col = mix(shade, lit, l) + sunC * vSun * (1.0 - t) * 0.7;
+        col = mix(col, fogC, vFog * 0.8);
+        gl_FragColor = vec4(col, a);
+      }`,
+  });
+  const set = (list, parent) => {
+    const geo = new THREE.PlaneGeometry(1, 1), im = new THREE.InstancedMesh(geo, mat, list.length);
+    const aV = new Float32Array(list.length), aA = new Float32Array(list.length), d = new THREE.Object3D();
+    list.forEach((c, i) => { d.position.set(c[0], c[1], c[2]); d.scale.set(c[3], c[4], 1); d.updateMatrix(); im.setMatrixAt(i, d.matrix); aV[i] = c[5]; aA[i] = c[6]; });
+    geo.setAttribute('aV', new THREE.InstancedBufferAttribute(aV, 1)); geo.setAttribute('aA', new THREE.InstancedBufferAttribute(aA, 1));
+    im.frustumCulled = false; im.renderOrder = 2; parent.add(im);
+    return im;
+  };
+  const h = (i, k, s) => hash2(i, k, s), high = [], sea = [];
+  // 高空積雲：34 團、每團 6 片
+  for (let c = 0; c < 34; c++) {
+    const a = h(c, 1, 70) * TAU, rad = 420 + h(c, 2, 70) * 900, cy = 170 + h(c, 3, 70) * 200, S = 22 + h(c, 4, 70) * 26;
+    for (let p = 0; p < 6; p++) {
+      const q = S * (1 + h(c, p + 10, 71) * .9);
+      high.push([Math.cos(a) * rad + (h(c, p, 72) - .5) * 2.4 * S, cy + (h(c, p, 73) - .3) * .5 * S, Math.sin(a) * rad + (h(c, p, 74) - .5) * 1.6 * S, q * 1.5, q, (c + p) % 4, .9]);
+    }
+  }
+  // 地平線外的雲海：又寬又扁，浮空島像是浮在雲上
+  for (let i = 0; i < 150; i++) {
+    const a = h(i, 1, 80) * TAU, rad = 560 + h(i, 2, 80) * 1100, w = 130 + h(i, 3, 80) * 220;
+    sea.push([Math.cos(a) * rad, 8 + h(i, 4, 80) * 34, Math.sin(a) * rad, w, w * (.32 + h(i, 5, 80) * .18), i % 4, .9]);
+  }
+  set(high, clouds); set(sea, clouds);
+  scene.add(clouds);
+  return { U, set };
+})() : null;
 const hemi = new THREE.HemisphereLight(0xe2f5ff, 0x86b060, 1.35);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff1d6, 2.4);
@@ -482,11 +626,11 @@ sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { left: -55, right: 55, top: 55, bottom: -55, near: 1, far: 260 });
 sun.shadow.bias = -0.0006; sun.shadow.normalBias = .35;
 scene.add(sun, sun.target);
-// 曠野之息式的天空：頂上深藍、地平線淡藍霧氣，陽光偏暖、陰影偏冷
+// 曠野之息式的天空：頂上灰藍、地平線一層厚霧，陽光偏暖、陰影偏冷
 if (BOTW) {
-  skyMat.uniforms.top.value.setHex(0x2a78e0); skyMat.uniforms.mid.value.setHex(0x86c4f2); skyMat.uniforms.bot.value.setHex(0xcfe6f4);
-  scene.fog.color.setHex(0xcfe6f4); scene.fog.near = 110; scene.fog.far = 820;
   hemi.color.setHex(0xdcecff); hemi.groundColor.setHex(0x7b9a62); hemi.intensity = 1.15;
+  skyMat.uniforms.top.value.setHex(0x5b93cc); skyMat.uniforms.mid.value.setHex(0xa9cbe0); skyMat.uniforms.bot.value.setHex(0xc9dae6);
+  scene.fog.color.setHex(0xc9dae6); scene.fog.near = 45; scene.fog.far = 760;
   sun.color.setHex(0xfff0d2); sun.intensity = 2.8;
 }
 
@@ -949,6 +1093,35 @@ const COLORS = [
 const THINGS = [];
 function addThing(t) { t.zone = t.zone || 'ow'; t.r = t.r || 1.5; THINGS.push(t); return t; }
 
+/* 地面筆觸：可無縫平鋪的短筆刷痕（畫布產生），以世界座標在兩種尺度取樣，讓大片地面有手繪的明暗起伏 */
+const STROKE_TEX = BOTW ? (() => {
+  const N = 256, cv = document.createElement('canvas'); cv.width = cv.height = N;
+  const g = cv.getContext('2d');
+  g.fillStyle = 'rgb(128,128,128)'; g.fillRect(0, 0, N, N);
+  for (let i = 0; i < 900; i++) {
+    const x = hash2(i, 1, 120) * N, y = hash2(i, 2, 120) * N, a = -.5 + (hash2(i, 3, 120) - .5) * .9, L = 6 + hash2(i, 4, 120) * 16, w = 1.5 + hash2(i, 5, 120) * 3;
+    const v = Math.round(128 + (hash2(i, 6, 120) - .5) * 120);
+    g.strokeStyle = `rgba(${v},${v},${v},.55)`; g.lineWidth = w; g.lineCap = 'round';
+    for (const ox of [-N, 0, N]) for (const oy of [-N, 0, N]) {
+      const cx = x + ox, cy = y + oy; if (cx < -L || cx > N + L || cy < -L || cy > N + L) continue;
+      g.beginPath(); g.moveTo(cx - Math.cos(a) * L / 2, cy - Math.sin(a) * L / 2); g.quadraticCurveTo(cx, cy - w, cx + Math.cos(a) * L / 2, cy + Math.sin(a) * L / 2); g.stroke();
+    }
+  }
+  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.NoColorSpace; t.anisotropy = 4; return t;
+})() : null;
+function strokeMat(m, k = 1) {
+  m.onBeforeCompile = s => {
+    s.uniforms.uStroke = { value: STROKE_TEX };
+    s.vertexShader = 'varying vec3 vSW;\n' + s.vertexShader.replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvSW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    s.fragmentShader = 'uniform sampler2D uStroke; varying vec3 vSW;\n' + s.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+      float st = texture2D(uStroke, vSW.xz * 0.11).r * 0.6 + texture2D(uStroke, vSW.xz * 0.027 + 0.37).r * 0.4;
+      st = (st - 0.5) * ${(1.3 * k).toFixed(2)} * (1.0 - smoothstep(70.0, 260.0, length(vSW - cameraPosition)));
+      diffuseColor.rgb *= ${(1 - .08 * k).toFixed(3)} + st;
+      diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.92, 1.0, 1.1), clamp(-st * 3.0, 0.0, 1.0));`);
+  };
+  m.customProgramCacheKey = () => 'stroke' + k;
+  return m;
+}
 /* ───────── 主島地形 ───────── */
 const ISLAND_R = 330;
 const WORLD_HALF = 400;           // 地形網格半寬
@@ -998,13 +1171,20 @@ function H(x, z) {
 function regionW(x, z) { return { e: sstep(95, 170, x), w: sstep(-90, -165, x), n: sstep(-70, -140, z), s: sstep(115, 190, z) }; }
 const C = (hex) => new THREE.Color(hex);
 const PAL = {
-  sand: C(0xf6dc98), wetSand: C(0xd9c07e), grass: C(BOTW ? 0x8ac65a : 0x92d957), grassW: C(BOTW ? 0x5aa64c : 0x58b94a), grassS: C(BOTW ? 0xaed160 : 0xb7e05a), mesa: C(0xec9460), mesaTop: C(0xf5b77a),
-  rock: C(0xb9a58f), snow: C(0xffffff), cliffN: C(0x9c8f86), cliffE: C(0xc86a45), cliffW: C(0x6f8f55), under: C(0x7fd1c4),
+  sand: C(BOTW ? 0xe2d19b : 0xf6dc98), wetSand: C(BOTW ? 0xc9b585 : 0xd9c07e), grass: C(BOTW ? 0x98bb66 : 0x92d957), grassW: C(BOTW ? 0x6f9a55 : 0x58b94a), grassS: C(BOTW ? 0xb7c270 : 0xb7e05a), grassDry: C(0xb9b66e), grassLush: C(0x7ea45c), dirt: C(0xa89168), mesa: C(BOTW ? 0xcd8c62 : 0xec9460), mesaTop: C(BOTW ? 0xdcae80 : 0xf5b77a),
+  rock: C(0xb9a58f), snow: C(0xffffff), cliffN: C(0x9c8f86), cliffE: C(BOTW ? 0xa9694c : 0xc86a45), cliffW: C(0x6f8f55), under: C(0x7fd1c4),
 };
 const _c = new THREE.Color();
 function groundColor(x, z, h, slope, out) {
   const rw = regionW(x, z);
   out.copy(PAL.grass);
+  if (BOTW) {
+    // 曠野之息的草原不是一片均勻的綠：大片偏黃的乾草地、偏藍綠的茂密處，偶爾露出泥土
+    const big = fbm(x * .012 + 31, z * .012 - 17, 3), mid = fbm(x * .05 - 7, z * .05 + 3, 2);
+    out.lerp(PAL.grassDry, sstep(.5, .68, big) * .75);
+    out.lerp(PAL.grassLush, sstep(.46, .3, big) * .7);
+    out.lerp(PAL.dirt, sstep(.7, .8, mid) * sstep(.45, .6, big) * .55);
+  }
   if (rw.w > 0) out.lerp(PAL.grassW, rw.w);
   if (rw.s > 0) out.lerp(PAL.grassS, rw.s);
   if (rw.e > 0) out.lerp(h > 20 ? PAL.mesaTop : PAL.mesa, rw.e * .9);
@@ -1043,7 +1223,9 @@ function Hfast(x, z) { // 查表版，給遠處敵人與攝影機粗略用
   }
   g.setAttribute('color', new THREE.BufferAttribute(col, 3));
   g.computeVertexNormals();
-  const terrain = new THREE.Mesh(g, new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: gradTex }));
+  // 地面用較柔的明暗階（大面積的背光坡才不會整片變成一塊深色）
+  const soft = BOTW ? (() => { const n = 64, d = new Uint8Array(n); for (let i = 0; i < n; i++) { const t = i / (n - 1); d[i] = Math.round(255 * (.56 + .37 * sstep(.2, .7, t) + .07 * sstep(.8, 1, t))); } const t = new THREE.DataTexture(d, n, 1, THREE.RedFormat); t.minFilter = t.magFilter = THREE.LinearFilter; t.needsUpdate = true; return t; })() : null;
+  const terrain = new THREE.Mesh(g, BOTW ? strokeMat(new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: soft })) : new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: gradTex }));
   terrain.receiveShadow = true;
   OW.add(terrain);
 }
@@ -1064,13 +1246,13 @@ const waterMat = new THREE.ShaderMaterial({
     float h = -20.0;
     if (uv.x > 0.0 && uv.x < 1.0 && uv.y > 0.0 && uv.y < 1.0) h = texture2D(hmap, uv).r * 40.0 - 20.0;
     float depth = max(0.0, -h);
-    vec3 shallow = vec3(0.36, 0.86, 0.86), deep = vec3(0.13, 0.52, 0.86);
+    vec3 shallow = ${BOTW ? 'vec3(0.42, 0.76, 0.74), deep = vec3(0.2, 0.44, 0.6)' : 'vec3(0.36, 0.86, 0.86), deep = vec3(0.13, 0.52, 0.86)'};
     vec3 c = mix(shallow, deep, smoothstep(0.5, 9.0, depth));
     float band = sin(depth * 2.2 - t * 1.7);
     float foam = step(depth, 0.9) + step(0.82, band) * step(depth, 3.2);
     float sp = sin(wp.x * 0.21 + t * 0.9 + sin(wp.z * 0.13)) * sin(wp.z * 0.19 - t * 0.7 + sin(wp.x * 0.11));
     c = mix(c, vec3(1.0), clamp(foam, 0.0, 1.0) * 0.85);
-    c = mix(c, vec3(0.86, 0.97, 1.0), step(0.93, sp) * 0.7);
+    c = mix(c, vec3(0.86, 0.97, 1.0), step(${BOTW ? '0.975' : '0.93'}, sp) * 0.7);
     float f = smoothstep(fogN, fogF, vz);
     gl_FragColor = vec4(mix(c, fogC, f), mix(0.86, 1.0, smoothstep(2.0, 10.0, depth)));
   }`,
@@ -1122,7 +1304,7 @@ function buildIsle(I) {
   const grp = new THREE.Group();
   // 上表面：放射網格
   const RS = 20, AS = 40, pos = [], col = [], idx = [];
-  const top = new THREE.Color(I.final ? 0xe8e2ef : 0x9ade5a), rim = new THREE.Color(I.final ? 0xcfc6db : 0x7cc450);
+  const top = new THREE.Color(I.final ? 0xe8e2ef : BOTW ? 0xa3bf68 : 0x9ade5a), rim = new THREE.Color(I.final ? 0xcfc6db : BOTW ? 0x88a857 : 0x7cc450);
   for (let ri = 0; ri <= RS; ri++) for (let ai = 0; ai < AS; ai++) {
     const a = ai / AS * TAU, e = isleEdge(I, a), rad = ri / RS * e;
     const x = I.x + Math.cos(a) * rad, z = I.z + Math.sin(a) * rad;
@@ -1141,6 +1323,17 @@ function buildIsle(I) {
   g.setIndex(idx); g.computeVertexNormals();
   const topM = new THREE.Mesh(g, new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: gradTex }));
   topM.receiveShadow = true; grp.add(topM);
+  if (BOTW) {
+    // Blender 的島體：層疊方塊岩壁＋往下收尖的垂岩；每個頂點依角度拉到這座島的邊緣半徑，外形才會貼齊草地
+    const base = isleGeo('IsleUnder' + ISLES.indexOf(I) % 3), ug = (I.final ? greyGeo(base) : base).clone(), up = ug.attributes.position;
+    for (let i = 0; i < up.count; i++) { const x = up.getX(i), z = up.getZ(i), e = isleEdge(I, Math.atan2(z, x)); up.setXYZ(i, x * e, up.getY(i) * I.r, z * e); }
+    ug.computeBoundingSphere();
+    const um = new THREE.Mesh(ug, I.final ? isleMat(0xf2eef8) : ISLE_MAT);
+    um.position.set(I.x, I.y - .45, I.z); um.castShadow = true; um.receiveShadow = true;
+    grp.add(um);
+    OW.add(grp); I.group = grp;
+    return;
+  }
   // 下方岩錐
   const depth = I.r * 1.6;
   const cg = new THREE.ConeGeometry(1, 1, AS, 6, true);
@@ -1165,7 +1358,34 @@ function buildIsle(I) {
   OW.add(grp);
   I.group = grp;
 }
+const ISLE_MAT = BOTW ? isleMat() : null;
 ISLES.forEach(buildIsle);
+
+/* 遠景：地平線外一圈浮島剪影與遠山，霧只蓋到一定程度，看得出層層的空氣透視 */
+if (BOTW) {
+  const d = new THREE.Object3D();
+  const ring = (names, n, fogMax, fn) => {
+    const byName = new Map(names.map(nm => [nm, []]));
+    for (let i = 0; i < n; i++) byName.get(names[i % names.length]).push(i);
+    for (const [nm, ids] of byName) {
+      const im = new THREE.InstancedMesh(isleGeo(nm), isleMat(0xffffff, fogMax), ids.length);
+      ids.forEach((i, k) => { fn(i, d); d.updateMatrix(); im.setMatrixAt(k, d.matrix); });
+      im.computeBoundingSphere(); OW.add(im);
+    }
+  };
+  ring(['FarIsle0', 'FarIsle1', 'FarIsle2'], 18, .5, (i, o) => {
+    const a = (i + hash2(i, 1, 51) * .7) / 18 * TAU, r = 620 + hash2(i, 2, 51) * 520, s = 22 + hash2(i, 3, 51) * 46;
+    o.position.set(Math.cos(a) * r, 90 + hash2(i, 4, 51) * 250, Math.sin(a) * r); o.rotation.set(0, hash2(i, 5, 51) * TAU, 0); o.scale.set(s, s * (.8 + hash2(i, 6, 51) * .5), s);
+  });
+  // 浮空島腳下的薄霧（不跟著高空雲轉，固定在島下）
+  const mist = [];
+  ISLES.forEach((I, n) => { for (let k = 0; k < 5; k++) { const a = hash2(n, k, 90) * TAU, d = I.r * (.2 + hash2(n, k, 91) * 1.1), w = I.r * (1.3 + hash2(n, k, 92) * 1.2); mist.push([I.x + Math.cos(a) * d, I.y - I.r * (.45 + hash2(n, k, 93) * .9), I.z + Math.sin(a) * d, w, w * .42, (n + k) % 4, .38]); } });
+  CLOUD.set(mist, OW);
+  ring(['FarMount0', 'FarMount1', 'FarMount2'], 11, .8, (i, o) => {
+    const a = (i + hash2(i, 1, 52) * .6) / 11 * TAU + .3, r = 1350 + hash2(i, 2, 52) * 420, s = 360 + hash2(i, 3, 52) * 260;
+    o.position.set(Math.cos(a) * r, -6, Math.sin(a) * r); o.rotation.set(0, hash2(i, 5, 52) * TAU, 0); o.scale.set(s, s * (.55 + hash2(i, 6, 52) * .5), s);
+  });
+}
 
 /* ───────── 植被：樹、草、花、岩石（全部 Instanced） ───────── */
 const TREES = [];
@@ -1203,7 +1423,7 @@ function placeOK(x, z, minH = 2.5) {
       const a = R() * TAU, d = Math.sqrt(R()) * I.r * .75, x = I.x + Math.cos(a) * d, z = I.z + Math.sin(a) * d;
       if (d < 7) continue;
       const y = isleTop(I, x, z); if (y == null) continue;
-      const t = { x, z, y, k: I.id === 'b' || I.id === 'f' ? 'palm' : 'round', s: rr(.7, 1.1), rot: R() * TAU, isle: I.id };
+      const t = { x, z, y, k: I.id === 'b' || I.id === 'f' ? 'palm' : BOTW && I.id !== 'e' ? 'autumn' : 'round', s: rr(.7, 1.1), rot: R() * TAU, isle: I.id };
       kinds[t.k].push(t); TREES.push(t); placed++;
     }
   }
@@ -1259,7 +1479,7 @@ function placeOK(x, z, minH = 2.5) {
   if (BOTW) {
     // Blender 草叢：七根彎曲草葉，底深頂亮；每叢再乘上地面顏色
     chunked(tufts.map(p => ({ x: p[0], y: p[1], z: p[2], r: R() * TAU, s: rr(.55, 1.05) })), (t, o) => { o.position.set(t.x, t.y - .05, t.z); o.rotation.y = t.r; o.scale.set(t.s, t.s * rr(.8, 1.3), t.s); },
-      propParts('Grass'), { mat: () => gm, color: t => { groundColor(t.x, t.z, t.y, 0, _c); return _c.offsetHSL(.01, .08, .16); } });
+      propParts('Grass'), { mat: () => gm, color: t => { groundColor(t.x, t.z, t.y, 0, _c); return _c.offsetHSL(.01, -.04, .22); } });
   } else {
     const gim = new THREE.InstancedMesh(blade, gm, tufts.length);
     tufts.forEach((p, i) => {
@@ -1348,12 +1568,30 @@ if (BOTW) {
       transformed.z += position.y * s * 0.2 * cos(uT * 1.7 + w.x * 0.07);
       transformed.xz += w; transformed.y += h - 0.06;
       vGcol = cc.rgb;`);
-    s.fragmentShader = 'varying vec3 vGcol;\n' + s.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb *= vGcol * 1.3;');
+    s.fragmentShader = 'varying vec3 vGcol;\n' + s.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb *= vGcol * 2.05; diffuseColor.rgb = mix(diffuseColor.rgb, vec3(dot(diffuseColor.rgb, vec3(.3, .59, .11))), .25);');
   };
   const mesh = new THREE.Mesh(geo, m);
   mesh.frustumCulled = false; mesh.receiveShadow = true;
   OW.add(mesh);
   GRASSP.geo = geo; GRASSP.full = N;
+}
+// 浮空島上的草叢：島面不在高度圖裡，所以在 CPU 端照 isleTop 擺好；只在鏡頭靠近那座島時才畫
+const ISLE_GRASS = [];
+if (BOTW) {
+  const parts = propParts('Grass'), tint = new THREE.Color(0xb2c47a).multiplyScalar(1.2);
+  for (const I of ISLES) {
+    if (I.final) continue;
+    const list = [], n = Math.round(I.r * I.r * 2.4);
+    for (let i = 0; i < n; i++) {
+      const a = hash2(i, 1, 95) * TAU, d = Math.sqrt(hash2(i, 2, 95)) * I.r * 1.05;
+      if (d > isleEdge(I, a) * .96) continue;
+      const x = I.x + Math.cos(a) * d, z = I.z + Math.sin(a) * d, y = isleTop(I, x, z);
+      if (y != null) list.push({ x, z, y, rot: hash2(i, 3, 95) * TAU, s: .5 + hash2(i, 4, 95) * .6 });
+    }
+    const grp = new THREE.Group(); OW.add(grp);
+    chunked(list, (t, o) => { o.position.set(t.x, t.y - .06, t.z); o.rotation.y = t.rot; o.scale.setScalar(t.s); }, parts, { chunk: 400, parent: grp, color: () => tint });
+    ISLE_GRASS.push({ I, grp });
+  }
 }
 
 /* ───────── 藤橋（綠色種子長出）與冰面（藍色冰凍水面） ───────── */
@@ -2218,7 +2456,7 @@ function updateCamera(dt) {
   if (keys.has('ArrowDown')) CAM.pitch += 1.4 * dt;
   CAM.pitch = clamp(CAM.pitch, -.45, 1.25);
   const Z = curZone();
-  const want = BOTW ? (P.flying ? 9 : Z ? 8 : 6.4) : (P.flying ? 11 : Z ? 10 : 8.2);
+  const want = BOTW ? (P.flying ? 10.5 : Z ? 8 : 6.4) : (P.flying ? 11 : Z ? 10 : 8.2);
   if (Z && CAM.pitch < (BOTW ? .62 : .72)) CAM.pitch = lerp(CAM.pitch, BOTW ? .62 : .72, damp(4, dt));
   CAM.dist = lerp(CAM.dist, want, damp(3, dt));
   const tgt = _v.set(P.pos.x, P.pos.y + (BOTW ? (P.flying ? 1.6 : 1.4) : (P.flying ? 2 : 1.75)), P.pos.z);
@@ -2632,7 +2870,7 @@ function buildEnemyGLB(def) {
   const root = new THREE.Group(), body = src.clone(true);
   body.position.set(0, 0, 0); root.add(body);
   // 模型裡的零件名稱是「名稱__序號」，先去掉序號
-  body.traverse(n => { n.userData.bn = n.name.replace(/__\d+$/, ''); });
+  body.traverse(partName);
   body.traverse(n => {
     const k = n.userData.bn;
     if (k.startsWith('opt_')) n.visible = !!o[k.slice(4)];
@@ -3529,6 +3767,53 @@ ENTRANCES.forEach(en => {
   en.portal = pm;
   addThing({ kind: 'portal', pos: new THREE.Vector3(en.x, en.y + 2, en.z), r: 2.4, prompt: '進入' + en.name, to: { zone: en.zone }, mesh: pm, interact() { usePortal(this); } });
 });
+
+// 浮空島上的遺跡（參考王國之淚空島的石柱、斷牆、拱門與高塔）：沿島緣擺，避開寶箱、彈花、營地、入口與彈花的落點航線
+if (BOTW) {
+  const busy = [];
+  LAUNCHERS.forEach(L => {
+    busy.push([L.x, L.z, 5]);
+    const T = ISLES.find(k => k.id === L.to), a = Math.atan2(L.z - T.z, L.x - T.x), e = isleEdge(T, a);
+    for (const f of [.25, .5, .75, .95]) busy.push([T.x + Math.cos(a) * e * f, T.z + Math.sin(a) * e * f, 8]);
+  });
+  OW_CHESTS.forEach(c => busy.push([c.x, c.z, 4]));
+  ENTRANCES.forEach(e => busy.push([e.x, e.z, 9]));
+  CAMPS.forEach(c => { if (c.isle) busy.push([c.x, c.z, c.ringR + 2]); });
+  TREES.forEach(t => { if (t.isle) busy.push([t.x, t.z, 2]); });
+  const PLAN = {
+    a: ['RuinArch', 'RuinPillar', 'RuinPillarBroken', 'RuinWall'], b: ['RuinTower', 'RuinPillarBroken', 'RuinBlock'],
+    c: ['RuinPillar', 'RuinPillarBroken', 'RuinBlock'], d: ['RuinTower', 'RuinArch', 'RuinWall', 'RuinPillarBroken', 'RuinPillar', 'RuinBlock'],
+    e: ['RuinPillarBroken', 'RuinBlock', 'RuinWall'], f: ['RuinTower', 'RuinPillar', 'RuinWall'],
+  };
+  const COLR = { RuinPillar: 1.1, RuinPillarBroken: 1.1, RuinBlock: 1.7, RuinTower: 2.3 }, FINAL_MAT = isleMat(0xe4dcef);
+  const put = (I, name, x, z, rot) => {
+    const y = isleTop(I, x, z); if (y == null) return false;
+    const m = new THREE.Mesh(I.final ? greyGeo(isleGeo(name)) : isleGeo(name), I.final ? FINAL_MAT : ISLE_MAT);
+    m.position.set(x, y - .15, z); m.rotation.y = rot; m.castShadow = m.receiveShadow = true; OW.add(m);
+    const c = Math.cos(rot), sn = Math.sin(rot), at = lx => [x + c * lx, z - sn * lx];
+    if (COLR[name]) addColl(x, z, COLR[name], y - 1, y + (name === 'RuinTower' ? 21 : 7));
+    else if (name === 'RuinArch') for (const lx of [-2.6, 2.6]) { const [px, pz] = at(lx); addColl(px, pz, 1, y - 1, y + 7.5); }
+    else if (name === 'RuinWall') for (const lx of [-2.2, 0, 2.2]) { const [px, pz] = at(lx); addColl(px, pz, 1.1, y - 1, y + 3.4); }
+    return true;
+  };
+  for (const I of ISLES) {
+    if (I.final) {
+      // 天頂島：一圈石柱守著島緣
+      for (let k = 0; k < 10; k++) { const a = k / 10 * TAU + .15, e = isleEdge(I, a) * .93; put(I, k % 3 === 2 ? 'RuinPillarBroken' : 'RuinPillar', I.x + Math.cos(a) * e, I.z + Math.sin(a) * e, Math.PI / 2 - a); }
+      continue;
+    }
+    (PLAN[I.id] || []).forEach((name, k) => {
+      for (let t = 0; t < 30; t++) {
+        const a = hash2(k, t, I.r | 0) * TAU, e = isleEdge(I, a), d = e * (.64 + .22 * hash2(t, k, 7));
+        const x = I.x + Math.cos(a) * d, z = I.z + Math.sin(a) * d, need = name === 'RuinTower' ? 5 : name === 'RuinArch' || name === 'RuinWall' ? 4.5 : 3;
+        if (busy.some(b => Math.hypot(x - b[0], z - b[1]) < b[2] + need)) continue;
+        if (!put(I, name, x, z, Math.PI / 2 - a)) continue;
+        busy.push([x, z, need]);
+        break;
+      }
+    });
+  }
+}
 function usePortal(t) {
   const to = t.to;
   if (G.zone === 'ow') S.checkpoint = { zone: 'ow', x: P.pos.x, z: P.pos.z, y: P.pos.y };
@@ -3548,6 +3833,7 @@ const NPC = { x: 7, z: 28 };
     [0xff5a4e, 0x3aa7ff, 0xffd23f, 0x5bd46a].forEach((c, i) => hut.add(part('sphere', c, .5, .3, .08, -2.6 + i * 1.7, .8 + (i % 2) * .6, 3.1, 0)));
   }
   addColl(-8, 20, 4.4, hy - 1, hy + 8);
+  if (BOTW) { addColl(-12.1, 20, 1, hy - 1, hy + 1.5); addColl(-3.85, 23.3, .65, hy - 1, hy + 1.2); } // 柴堆、木桶
   const ey = H(12, 26), easel = new THREE.Group(); easel.position.set(12, ey, 26); easel.rotation.y = -.6; OW.add(easel);
   if (BOTW) easel.add(prop('Easel'));
   else {
@@ -3965,7 +4251,7 @@ function colossusDown(e) {
 }
 
 /* ───────── 區域切換 ───────── */
-const OW_LOOK = BOTW ? { fog: 0xcfe6f4, near: 110, far: 820, sky: 0xdcecff, ground: 0x7b9a62, hemi: 1.15, sun: 2.8 } : { fog: 0xcfeeff, near: 160, far: 900, sky: 0xe2f5ff, ground: 0x86b060, hemi: 1.35, sun: 2.4 };
+const OW_LOOK = BOTW ? { fog: 0xc9dae6, near: 45, far: 760, sky: 0xdcecff, ground: 0x7b9a62, hemi: 1.15, sun: 2.8 } : { fog: 0xcfeeff, near: 160, far: 900, sky: 0xe2f5ff, ground: 0x86b060, hemi: 1.35, sun: 2.4 };
 function enterZone(id, at, instant) {
   const f = $('fade');
   const go = () => {
@@ -4391,6 +4677,7 @@ function update(dt) {
   const realDt = dt; dt = gd;
   WIND.value = G.time;
   GRASSP.c.value.set(P.pos.x, P.pos.z);
+  for (const g of ISLE_GRASS) g.grp.visible = Math.hypot(camera.position.x - g.I.x, camera.position.z - g.I.z) < 140 + g.I.r && Math.abs(camera.position.y - g.I.y) < 110;
   waterMat.uniforms.t.value = G.time;
   if (curZone() && curZone().lavaMat) curZone().lavaMat.color.setHSL(.06 + Math.sin(G.time * 2) * .015, 1, .56);
   heroControl(dt);
@@ -4437,7 +4724,10 @@ function autoQuality(dt) {
   if (fps > 40 || QUAL.level >= 2) return;
   QUAL.level++;
   if (QUAL.level === 1 && renderer.getPixelRatio() > 1) { renderer.setPixelRatio(1); renderer.setSize(innerWidth, innerHeight, false); pMat.uniforms.pr.value = 1; }
-  else if (GRASSP.geo) { GRASSP.geo.instanceCount = Math.round(GRASSP.full * .5); QUAL.level = 2; }
+  else if (GRASSP.geo) {
+    GRASSP.geo.instanceCount = Math.round(GRASSP.full * .5); QUAL.level = 2;
+    ISLE_GRASS.forEach(g => g.grp.traverse(o => { if (o.isInstancedMesh) o.count = Math.ceil(o.count / 2); }));
+  }
 }
 let last = performance.now(), titleT = 0;
 function frame(now) {
@@ -4466,7 +4756,7 @@ $('title').classList.remove('hide');
 // 測試與之後加內容用的後門
 window.brushwild = {
   G, S: () => S, P, CAM, models: !!MODELS, HERO, HFX, TUNE, HIT_K, openTune, closeTune, tuneSwing, renderer, scene, camera, OW, sun, splat, H, ENEMY_TYPES, ZONES, ENEMIES, THINGS, CRYSTALS, CAMPS, ISLES, BOSSES,
-  start: startGame, enterZone, spawnEnemy, saveGame, readSave, hurtPlayer, killEnemy,
+  start: startGame, enterZone, spawnEnemy, removeEnemy, saveGame, readSave, hurtPlayer, killEnemy, MODELS, prop: MODELS ? prop : null,
   warp(x, z, y) { enterZone('ow', { x, z, y }, true); },
   giveCrystals() { CRYSTALS.forEach(cr => { CAMPS.filter(c => c.guard === cr.c).forEach(c => ENEMIES.filter(e => e.camp === c).forEach(e => { e.hp = 0; killEnemy(e, 0); })); if (!S.crystals[cr.c]) activateCrystal(cr); }); },
   clearDungeon(i) { S.dungeons[i] = true; const Z = Object.values(ZONES).find(z => z.dungeon === i); zoneSave(Z.id).solved = Z.rooms.map(r => r.id); barrier.visible = S.dungeons.filter(Boolean).length < 3; saveGame(); },

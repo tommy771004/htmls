@@ -459,7 +459,8 @@ def action(rig, name, keys, loc_keys=None, loop=True):
 
 
 # ── 匯出與預覽 ──
-def export(path, objs):
+def export(path, objs, uv=False):
+    """uv=True 會一併匯出 UV（例如 leaf 材質的樹葉卡片要貼網頁畫的葉叢貼圖）；沒有 UV 層的網格不受影響"""
     for o in bpy.context.view_layer.objects:
         o.select_set(False)
     sel = set()
@@ -473,7 +474,7 @@ def export(path, objs):
     for o in sel:
         o.select_set(True)
     bpy.ops.export_scene.gltf(filepath=path, export_format='GLB', use_selection=True, export_vertex_color='ACTIVE',
-                              export_animation_mode='ACTIONS', export_apply=False, export_yup=True, export_texcoords=False,
+                              export_animation_mode='ACTIONS', export_apply=False, export_yup=True, export_texcoords=uv,
                               export_normals=True, export_materials='EXPORT', export_image_format='NONE')
     print('exported', path, os.path.getsize(path) // 1024, 'KB')
 
