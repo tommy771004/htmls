@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createState as freshState,submit,tick,rulesetHash} from '../packages/sim/sim.ts';
+import {createState,submit,tick,rulesetHash} from '../packages/sim/sim.ts';
 import type {State} from '../packages/sim/sim.ts';
 import {makeUnit} from '../packages/sim/movement.ts';
 import type {UnitKind} from '../packages/sim/movement.ts';
@@ -10,10 +10,6 @@ import {religionRules,faithOf,convertRangeOf} from '../packages/sim/religion.ts'
 import {maxHpOf,combatRules} from '../packages/sim/stats.ts';
 import {obstacleBounds} from '../packages/content/footprints.ts';
 function order(s:State,commandType:string,payload:any,playerId=0){submit(s,{protocolVersion:1,rulesetHash,playerId,sequence:s.sequence[playerId]+1,targetTick:s.tick+1,commandType,payload} as any);}
-// Red's villager (id 4) first walks out of its town centre's arrow range, by a red order (so saves and replays agree);
-// otherwise the town centre shoots the blue monks the tests bring close to it.
-function createState(seed:number){const s=freshState(seed);order(s,'move',{unitIds:[4],x:1150,y:1250},1);
- for(let i=0;i<600;i++){tick(s);const v=s.units.find(u=>u.id===4)!;if(v.x===1150&&v.y===1250&&v.navigation==='idle')break;}return s;}
 // Test fixtures (not in the command log): place a unit on the free node nearest a point; grant a technology.
 function spawn(s:State,player:number,kind:UnitKind,x:number,y:number){let best=-1,dist=Infinity;const held=new Set(s.units.map(u=>u.node)),closed=new Set(s.map.blocked);
  for(let n=0;n<nodeTotal(s.map);n++){if(closed.has(n)||held.has(n))continue;const p=position(s.map,n),d=Math.abs(p.x-x)+Math.abs(p.y-y);if(d<dist){dist=d;best=n;}}

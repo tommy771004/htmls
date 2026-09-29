@@ -5,7 +5,7 @@ import type {State} from '../packages/sim/sim.ts';
 import {makeUnit} from '../packages/sim/movement.ts';
 import type {UnitKind} from '../packages/sim/movement.ts';
 import {position,blockedTable,nodeTotal} from '../packages/sim/navigation.ts';
-import {maxHpOf} from '../packages/sim/stats.ts';
+import {maxHpOf,statsOf,hitDamage} from '../packages/sim/stats.ts';
 import {defenseRules} from '../packages/sim/defense.ts';
 import {authoritativeProblem} from '../packages/sim/buildings.ts';
 import {obstacleBounds} from '../packages/content/footprints.ts';
@@ -60,7 +60,9 @@ test('a battering ram breaks buildings, cannot be ordered at units, and shrugs o
  const ram=spawn(s,0,'ram',box[0]-150,box[3]+100);see(s);
  assert.throws(()=>order(s,'attack',{unitIds:[ram.id],target:{kind:'unit',id:4}}),/攻城槌只能攻擊建築/);
  order(s,'attack',{unitIds:[ram.id],target:{kind:'building',id:red.id}});const hp=red.hp;run(s,400,()=>{see(s);return red.hp<=hp-84;});
- assert.ok(red.hp<=hp-84,'two strikes of 42');assert.ok(ram.hp>=175-10,`arrows do 1 to it (${ram.hp})`);
+ assert.ok(red.hp<=hp-84,'two strikes of 42');
+ // Arrows barely scratch it (red is idle here, so its town centre is passive; the number comes from the same formula).
+ assert.equal(hitDamage({...statsOf('archer'),damage:defenseRules.arrows['town-center'].damage},statsOf('ram')),1);
 });
 
 test('a watch tower needs the second age, costs stone, and shoots once built',()=>{
@@ -70,4 +72,10 @@ test('a watch tower needs the second age, costs stone, and shoots once built',()
  s.ages[0]=2;s.accounts[0].stock.stone=200;order(s,'build',{unitIds:[1,2,3],kind:'watch-tower',...site});run(s,2000,()=>s.buildings.some(b=>b.kind==='watch-tower'&&b.complete));
  const tower=s.buildings.find(b=>b.kind==='watch-tower'&&b.complete)!;assert.ok(tower);assert.equal(s.accounts[0].stock.stone,75);
  const foe=spawn(s,1,'militia',site!.x+300,site!.y+50);see(s);run(s,defenseRules.arrows['watch-tower'].cooldown+2,()=>{see(s);return false;});assert.ok(foe.hp<45,'the tower shot');
+});
+
+test('practice mode: with red idle its town centre does not shoot; against the computer it does',()=>{
+ for(const opponent of ['idle','ai'] as const){const s=createState(260925,'meadow',opponent);s.units=s.units.filter(u=>!isAnimal(u.kind));const box=boxOf(s,tcOf(s,1).id);
+  const blue=spawn(s,0,'militia',box[0]-150,(box[1]+box[3])/2);see(s);run(s,defenseRules.arrows['town-center'].cooldown+2,()=>{see(s);return false;});
+  if(opponent==='idle')assert.equal(blue.hp,45);else assert.ok(blue.hp<45);}
 });

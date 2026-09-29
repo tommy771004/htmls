@@ -2137,9 +2137,10 @@ function stepDefense(s) {
     if (e.unit.hp < max) e.unit.hp++;
   }
   s.shots = s.shots.filter((v) => s.tick - v.tick < defenseRules.shotTicks);
+  const passive = s.opponent === "idle" ? 1 : -1;
   for (const b of [...s.buildings].sort((a, b2) => a.id < b2.id ? -1 : 1)) {
     const def = defenseRules.arrows[b.kind];
-    if (!def || !b.complete) continue;
+    if (!def || !b.complete || b.player === passive) continue;
     if ((s.volleys[b.id] ?? 0) > 0) {
       s.volleys[b.id]--;
       continue;
@@ -2622,6 +2623,9 @@ var aiRules = {
   waveSize: 5,
   firstWaveTick: 4800,
   herdRadius: 450,
+  rams: 2,
+  bellFoes: 3,
+  bellRadius: 450,
   penSize: 3,
   wildFoodWorkers: 6,
   wildRange: 650,
@@ -2630,6 +2634,7 @@ var aiRules = {
   baseMargin: 110,
   laneGap: 110,
   siteRange: 900,
+  siteSpread: 1.5,
   siteStep: 20,
   halfMargin: 100,
   spill: 100,
@@ -2639,7 +2644,7 @@ var aiRules = {
   monkTarget: 2,
   research: { blacksmith: ["forging", "fletching", "scale-mail-armor", "padded-archer-armor", "iron-casting", "bodkin-arrow", "chain-mail-armor", "scale-barding-armor"], barracks: ["man-at-arms", "long-swordsman"], "archery-range": ["crossbowman"], "town-center": ["loom", "wheelbarrow", "hand-cart"], "lumber-camp": ["double-bit-axe", "bow-saw", "two-man-saw"], "mining-camp": ["gold-mining", "gold-shaft-mining"], mill: ["horse-collar", "heavy-plow", "crop-rotation"] }
 };
-var soldierKinds = ["militia", "archer", "spearman", "skirmisher", "knight"];
+var soldierKinds = ["militia", "archer", "spearman", "skirmisher", "knight", "ram"];
 var gap2 = (a, b) => Math.max(a[0] - b[2], b[0] - a[2], a[1] - b[3], b[1] - a[3], 0);
 var centre = (b) => ({ x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2 });
 var dist = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
@@ -2656,6 +2661,12 @@ function stepAI(s, order) {
     return;
   }
   army(s, order, soldiers, foes, tcBox, idle, explored);
+  if (tcBox) {
+    const home2 = centre(tcBox), raiders = foes.filter((f) => f.kind !== "villager" && dist(f, home2) <= aiRules.bellRadius).length, guards = soldiers.filter((u) => dist(u, home2) <= aiRules.bellRadius).length;
+    const belled = Object.values(s.garrison).some((g) => g.units.some((e) => e.bell && e.unit.player === P));
+    if (!belled && raiders >= aiRules.bellFoes && guards < raiders) order("bell", { ring: true });
+    else if (belled && !foes.some((f) => dist(f, home2) <= aiRules.bellRadius + 150)) order("bell", { ring: false });
+  }
   if (scout && idle(scout)) {
     const size = s.map.size;
     let best = -1, far = Infinity;
@@ -2685,6 +2696,7 @@ function stepAI(s, order) {
   if (barracksDue) place(s, order, "barracks", villagers, idle, tcBox, own);
   if (s.ages[P] >= 3 && !own.some((b) => b.kind === "monastery") && stock.wood >= rules.entries.find((e) => e.id === "monastery").cost.wood) place(s, order, "monastery", villagers, idle, tcBox, own);
   if (s.ages[P] >= 2 && own.some((b) => b.kind === "archery-range" && b.complete) && !own.some((b) => b.kind === "blacksmith") && stock.wood >= rules.entries.find((e) => e.id === "blacksmith").cost.wood) place(s, order, "blacksmith", villagers, idle, tcBox, own);
+  if (s.ages[P] >= 3 && own.some((b) => b.kind === "blacksmith" && b.complete) && !own.some((b) => b.kind === "siege-workshop") && stock.wood >= rules.entries.find((e) => e.id === "siege-workshop").cost.wood) place(s, order, "siege-workshop", villagers, idle, tcBox, own);
   if (s.ages[P] >= 3 && !own.some((b) => b.kind === "stable") && stock.wood >= rules.entries.find((e) => e.id === "stable").cost.wood) place(s, order, "stable", villagers, idle, tcBox, own);
   if (s.ages[P] >= 2 && !own.some((b) => b.kind === "archery-range") && !buildRequirement(s.ages[P], "archery-range", own) && stock.wood >= rules.entries.find((e) => e.id === "archery-range").cost.wood) place(s, order, "archery-range", villagers, idle, tcBox, own);
   if (room2 <= aiRules.houseMargin && account.populationCap < rules.settings.populationCap && !pending("house") && (!barracksDue || room2 <= 0)) place(s, order, "house", villagers, idle, tcBox, own);
@@ -2705,7 +2717,7 @@ function stepAI(s, order) {
   const savingForCastle = s.ages[P] === 2 && villagers.length >= aiRules.villagerTarget && own.some((b) => b.kind === "archery-range" && b.complete) && !own.some((b) => b.queue.some((q) => q.entryId === "age-3")) && (stock.food < cost("age-3").food + 60 || stock.gold < cost("age-3").gold + 30);
   const monks = mine.filter((u) => u.kind === "monk"), seenCavalry = foes.some((u) => u.kind === "knight" || u.kind === "scout" && s.tick > aiRules.firstWaveTick), seenArchers = foes.filter((u) => u.kind === "archer").length;
   for (const b of own.filter((b2) => b2.complete && b2.queue.length < 2)) {
-    const pick = savingForCastle && b.kind !== "monastery" ? null : b.kind === "barracks" && !savingForAge ? seenCavalry ? "spearman" : "militia" : b.kind === "archery-range" ? seenArchers >= 2 ? "skirmisher" : "archer" : b.kind === "stable" && s.ages[P] >= 3 ? "knight" : b.kind === "monastery" && monks.length + queued("monk") < aiRules.monkTarget ? "monk" : null;
+    const pick = savingForCastle && b.kind !== "monastery" ? null : b.kind === "barracks" && !savingForAge ? seenCavalry ? "spearman" : "militia" : b.kind === "archery-range" ? seenArchers >= 2 ? "skirmisher" : "archer" : b.kind === "stable" && s.ages[P] >= 3 ? "knight" : b.kind === "siege-workshop" && mine.filter((u) => u.kind === "ram").length + queued("ram") < aiRules.rams ? "ram" : b.kind === "monastery" && monks.length + queued("monk") < aiRules.monkTarget ? "monk" : null;
     if (pick && !trainable(s, P, b, pick)) order("train", { buildingId: b.id, entryId: pick });
   }
   if (!savingForAge && !savingForCastle) for (const b of own.filter((b2) => b2.complete && !b2.queue.length)) {
@@ -2811,12 +2823,15 @@ function place(s, order, kind, villagers, idle, tcBox, own, worker, near) {
   const explored = new Set(s.vision[aiRules.player].explored), bodies = [...s.units.flatMap((u) => [{ x: u.x, y: u.y }, ...u.next === null ? [] : [position(s.map, u.next)]]), ...s.relics.filter((r) => r.carrier === null && r.monastery === null).map((r) => ({ x: r.x, y: r.y }))];
   const input = { tiles: s.map.tiles, obstacles: s.map.obstacles, units: bodies, explored: (t) => explored.has(t) }, sites = [];
   const g = buildingRules.grid, from = (v) => Math.ceil(-v / g) * g;
-  const lo = (v, o) => Math.max(from(o), Math.ceil((v - aiRules.siteRange) / g) * g), hi = (v, o) => Math.min(world - o, v + aiRules.siteRange);
-  for (let x = lo(c.x, x0); x <= hi(c.x, x1); x += aiRules.siteStep) for (let y = lo(c.y, y0); y <= hi(c.y, y1); y += aiRules.siteStep) {
-    const box = [x + x0, y + y0, x + x1, y + y1], mid = centre(box);
-    const margin = kind === "barracks" || kind === "archery-range" || kind === "monastery" || kind === "stable" ? aiRules.halfMargin : -aiRules.spill, ownHalf = Math.min(side(box[0], box[1]), side(box[2], box[1]), side(box[0], box[3]), side(box[2], box[3])) >= margin;
-    if (!ownHalf || dist(mid, c) > aiRules.siteRange || gap2(box, tcBox) < (kind === "farm" ? 50 : aiRules.baseMargin) || kind !== "farm" && (others.some((o) => gap2(box, o) < aiRules.laneGap) || sources.some((o) => gap2(box, o) < aiRules.sourceMargin))) continue;
-    sites.push({ x, y, d: dist(mid, c) });
+  for (const range of kind === "farm" ? [aiRules.siteRange] : [aiRules.siteRange, aiRules.siteRange * aiRules.siteSpread]) {
+    if (sites.length) break;
+    const lo = (v, o) => Math.max(from(o), Math.ceil((v - range) / g) * g), hi = (v, o) => Math.min(world - o, v + range);
+    for (let x = lo(c.x, x0); x <= hi(c.x, x1); x += aiRules.siteStep) for (let y = lo(c.y, y0); y <= hi(c.y, y1); y += aiRules.siteStep) {
+      const box = [x + x0, y + y0, x + x1, y + y1], mid = centre(box);
+      const margin = kind === "barracks" || kind === "archery-range" || kind === "monastery" || kind === "stable" || kind === "siege-workshop" ? aiRules.halfMargin : -aiRules.spill, ownHalf = Math.min(side(box[0], box[1]), side(box[2], box[1]), side(box[0], box[3]), side(box[2], box[3])) >= margin;
+      if (!ownHalf || dist(mid, c) > range || gap2(box, tcBox) < (kind === "farm" ? 50 : aiRules.baseMargin) || kind !== "farm" && (others.some((o) => gap2(box, o) < aiRules.laneGap) || sources.some((o) => gap2(box, o) < aiRules.sourceMargin))) continue;
+      sites.push({ x, y, d: dist(mid, c) });
+    }
   }
   sites.sort((a, b) => a.d - b.d || a.y - b.y || a.x - b.x);
   for (const site of sites) {
@@ -2839,7 +2854,7 @@ function army(s, order, soldiers, foes, tcBox, idle, explored) {
   const free = [], offensive = s.tick >= aiRules.firstWaveTick;
   for (const u of soldiers) {
     if (s.attacks[u.id]) continue;
-    const foe = intruder ?? foes.filter((f) => dist(f, u) <= aiRules.engageRange && (offensive || home && dist(f, home) <= aiRules.defendRadius)).sort((a, b) => dist(a, u) - dist(b, u) || a.id - b.id)[0];
+    const foe = u.kind === "ram" ? void 0 : intruder ?? foes.filter((f) => dist(f, u) <= aiRules.engageRange && (offensive || home && dist(f, home) <= aiRules.defendRadius)).sort((a, b) => dist(a, u) - dist(b, u) || a.id - b.id)[0];
     if (foe) {
       assign(u, { kind: "unit", id: foe.id });
       continue;

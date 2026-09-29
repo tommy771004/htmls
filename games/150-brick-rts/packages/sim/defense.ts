@@ -84,7 +84,9 @@ export function stepDefense(s:DefenseState){
  if(s.tick%defenseRules.healTicks===0)for(const g of Object.values(s.garrison))for(const e of g.units){const max=maxHpOf(e.unit.kind as CombatUnitKind,s.techs[e.unit.player]??[]);if(e.unit.hp<max)e.unit.hp++;}
  // Arrows: at the nearest visible enemy (not animals) in range, one per volley plus one per villager or archer inside.
  s.shots=s.shots.filter(v=>s.tick-v.tick<defenseRules.shotTicks);
- for(const b of [...s.buildings].sort((a,b)=>a.id<b.id?-1:1)){const def=defenseRules.arrows[b.kind];if(!def||!b.complete)continue;
+ // With the opponent set to 'idle' (practice), red does nothing at all: its buildings do not shoot either.
+ const passive=(s as {opponent?:string}).opponent==='idle'?1:-1;
+ for(const b of [...s.buildings].sort((a,b)=>a.id<b.id?-1:1)){const def=defenseRules.arrows[b.kind];if(!def||!b.complete||b.player===passive)continue;
   if((s.volleys[b.id]??0)>0){s.volleys[b.id]--;continue;}
   const box=boxOf(s,b.id);if(!box)continue;const seen=new Set(s.vision[b.player].visible);
   const target=s.units.filter(u=>u.player!==b.player&&!isAnimal(u.kind)&&seen.has(tileAt(u.x,u.y,s.map.size))&&reach(u,box)<=def.range).sort((p,q)=>reach(p,box)-reach(q,box)||p.id-q.id)[0];

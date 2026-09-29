@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createState as freshState,submit,tick,hash,serialize,deserialize,replay,rulesetHash} from '../packages/sim/sim.ts';
+import {createState,submit,tick,hash,serialize,deserialize,replay,rulesetHash} from '../packages/sim/sim.ts';
 import {castleAgeMatch} from './castle-age-fixture.ts';
 import type {State} from '../packages/sim/sim.ts';
 import {makeUnit} from '../packages/sim/movement.ts';
@@ -10,10 +10,6 @@ import {authoritativeProblem} from '../packages/sim/buildings.ts';
 import {religionRules,faithOf} from '../packages/sim/religion.ts';
 import {combatRules} from '../packages/sim/stats.ts';
 function order(s:State,commandType:string,payload:any,playerId=0){submit(s,{protocolVersion:1,rulesetHash,playerId,sequence:s.sequence[playerId]+1,targetTick:s.tick+1,commandType,payload} as any);}
-// Red's villager (id 4) first walks out of its town centre's arrow range, by a red order (so saves and replays agree);
-// otherwise the town centre shoots the blue monks the tests bring close to it.
-function createState(seed:number){const s=freshState(seed);order(s,'move',{unitIds:[4],x:1150,y:1250},1);
- for(let i=0;i<600;i++){tick(s);const v=s.units.find(u=>u.id===4)!;if(v.x===1150&&v.y===1250&&v.navigation==='idle')break;}return s;}
 // Place a unit on the free node nearest a point (test fixture; the command log does not know it).
 function spawn(s:State,player:number,kind:UnitKind,x:number,y:number){let best=-1,dist=Infinity;const held=new Set(s.units.map(u=>u.node)),closed=new Set(s.map.blocked);
  for(let n=0;n<nodeTotal(s.map);n++){if(closed.has(n)||held.has(n))continue;const p=position(s.map,n),d=Math.abs(p.x-x)+Math.abs(p.y-y);if(d<dist){dist=d;best=n;}}
@@ -81,8 +77,6 @@ test('an idle monk heals wounded own units nearby, 1 hit point per second, up to
 test('a conversion in a real match survives save/load and replays to the same state',()=>{
  // Every command logged (the fixture plays to the third age), so deserialize and replay re-derive the match.
  const s=castleAgeMatch(),monk=s.units.find(u=>u.player===0&&u.kind==='monk')!,red=redVillager(s);
- // Out of red's town-centre arrows first (a red order: replay re-derives it).
- order(s,'move',{unitIds:[red.id],x:1150,y:1250},1);run(s,600,()=>red.x===1150&&red.y===1250&&red.navigation==='idle');
  order(s,'move',{unitIds:[monk.id],x:red.x-200,y:red.y});run(s,3000,s=>new Set(s.vision[0].visible).has(Math.floor(red.y/100)*s.map.size+Math.floor(red.x/100))&&!s.units.find(u=>u.id===monk.id)!.path.length);
  order(s,'convert',{unitIds:[monk.id],targetId:red.id});run(s,60);assert.equal(s.rites[monk.id]?.kind,'convert');
  const copy=deserialize(serialize(s));run(s,500);run(copy,500);
