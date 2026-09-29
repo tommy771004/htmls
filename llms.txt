@@ -145,6 +145,7 @@
 - [173 北境航記 · NORÐ](https://htmls-ruddy.vercel.app/web/173-nord-voyage.html)：維京長船 3D 峽灣之旅；1.6 公里航道、懸崖、針葉林與五道瀑布，十二支船槳入水產生泡沫、漣漪和水花；水面反射、折射與深度透明，程序化木石 PBR 材質，鍵盤與觸控掌舵、槳速及三種燈光。單檔 HTML，Three.js 從 CDN 載入。
 - [183 冰帶 · RIME RIBBON](https://htmls-ruddy.vercel.app/web/183-rime-ribbon.html)：莫比烏斯冰帶上的 3D 太空單車漂移；冰帶沿三葉結半扭接回自己，一圈後翻到背面紫冰、兩圈回到起點。捲浪冰管、翻滾段、甩尾蓄力加速、跳躍迴旋、金環連擊、隕石與加速門，多層視差冰脈著色器與 WebAudio 音效，鍵盤與觸控操作。單檔 HTML，Three.js 從 CDN 載入。
 - [186 下坡 · FREEWHEEL](https://htmls-ruddy.vercel.app/web/186-night-descent.html)：第一人稱登山車下坡遊戲，依 AI 生成的夜騎影片製作。雨夜港城的濕亮柏油與山下燈海、柳杉林側光與雲海、雪夜車轍與頭燈三條程序生成山路；煞車與轉向共用摩擦圓，過彎太快會衝出路外；里程樁分段計時、把手碼錶、路燈投影、WebAudio 花鼓棘輪聲，畫質依幀率自動調整，鍵盤與觸控。
+- [188 彩筆曠野 · BRUSHWILD](https://htmls-ruddy.vercel.app/web/188-brushwild.html)：《曠野之息》式第三人稱開放世界冒險，武器是一支巨大畫筆。主島、七座浮空島與地下晶洞；1–4 切換紅（火焰）、藍（冰凍）、黃（彈跳）、綠（藤蔓），每色有不同戰鬥效果與解謎用途。三座地城各有頭目，37 種敵人與菁英怪，最終頭目灰寂巨像；點亮四顆水晶後騎畫筆飛行。卡通描邊畫風、WebAudio 合成音效、自動存檔與小地圖；桌機鍵盤滑鼠，Three.js 從 CDN 載入。
 
 ### 品牌頁面
 
@@ -259,6 +260,7 @@
 - [111 Jelly Dice · 果凍骰子工房](https://htmls-ruddy.vercel.app/web/111-jelly-dice.html): 程序化半透明果凍骰子。六種口味、1–5 顆同時擲出、碰撞與回彈、滑鼠及觸控戳壓與拖曳
 - [164 Model Y 積木說明書 · 真實零件模型](https://htmls-ruddy.vercel.app/web/164-model-y-bricks.html)：用 LEGO 現行零件拼出的 1:30 特斯拉 Model Y（116 片、25 步），可逐步翻閱的 3D 說明書；程式對照 LDraw 真實網格驗證接點、碰撞、每一步的組裝路徑與重心，附 LDraw 模型、PDF 說明書、零件清單與 BrickLink 查價；需透過網站伺服器開啟。
 - [169 港上疊樓 · HARBOUR STACK](https://htmls-ruddy.vercel.app/web/169-harbour-stack.html)：蓋在海上樁柱間、越加越高的小樓，全程式建模；鏡面相機做真實水面倒影，漁船留尾跡、落雨起漣漪；黃昏／白日／落雨／深夜四種天候，環繞、上岸走甲板、駕船出海三種模式與六個視角；Three.js 與 bloom 從 CDN 載入。
+- [187 暮港 · LAST LIGHT](https://htmls-ruddy.vercel.app/web/187-last-light.html)：第一人稱坐在小木船上漂過傍晚港灣、朝低垂的夕陽前進。自訂水面著色器：多層 Gerstner 波浪、與天空同源的菲涅耳反射、夕陽長條倒影與閃光，岸邊房舍與泊船也有解析式倒影，小船隨浪起伏；木棧道、泊船、燈塔、遠山剪影與暖色薄霧，燈火隨天色漸暗逐盞亮起，船上油燈點亮，昏星與星空浮現，海鷗飛過；拖曳環顧，WebAudio 合成水聲與遠處鐘聲；Three.js 從 CDN 載入。
 
 ## Optional
 
