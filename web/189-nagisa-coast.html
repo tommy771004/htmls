@@ -213,6 +213,7 @@ input[type=range]:focus-visible{outline:1px dashed var(--survey);outline-offset:
       <h3>顯示</h3>
       <div class="row" id="modes" role="group" aria-label="顯示模式"></div>
       <div class="sw">流線粒子<button id="bPart" aria-pressed="false" aria-label="流線粒子"></button></div>
+      <div class="sw">斷面線與波高計標記<button id="bSec" aria-pressed="true" aria-label="斷面線"></button></div>
       <div id="ctlView"></div>
       <h3 style="margin-top:14px">視角</h3>
       <div class="row" id="views"></div>
@@ -225,7 +226,7 @@ input[type=range]:focus-visible{outline:1px dashed var(--survey);outline-offset:
     <div class="rd"><b id="rHs">—</b><span>外海有義波高</span></div>
     <div class="rd"><b id="rBrk">—</b><span>碎波帶寬（斷面）</span></div>
     <div class="rd hi"><b id="rRun">—</b><span>溯上高（潮位以上）</span></div>
-    <div class="rd"><b id="rLs">—</b><span>平均沿岸流</span></div>
+    <div class="rd"><b id="rLs">—</b><span>碎波帶平均沿岸流</span></div>
     <div class="rd"><b id="rShore">—</b><span>汀線平均變化</span></div>
     <div class="rd"><b id="rVol">—</b><span>淨沙量變化</span></div>
   </div>
@@ -370,7 +371,7 @@ var FS_FLOW = HEAD + COMMON + [
 '  float eta=0.;vec2 vel=vec2(0.);float cg=sqrt(G/max(uTide-b0,1.));',
 '  for(int i=0;i<'+NW+';i++){if(i>=uNW)break;vec4 w=uW[i];float e=w.w*cos(w.x*xy.x+w.y*xy.y-w.z*uTime+uPh[i]);eta+=e;vel+=e*cg*normalize(w.xy);}',
 '  eta*=uRamp;vel*=uRamp;float ht=max(uTide+eta-b0,0.);',
-'  h=mix(h,ht,wg);hu=mix(hu,ht*vel.x,wg);hv=mix(hv,ht*vel.y,wg);hc=mix(hc,0.,wg);',
+'  float h1=mix(h,ht,wg);hc*=h>1e-3?h1/h:0.;h=h1;hu=mix(hu,ht*vel.x,wg);hv=mix(hv,ht*vel.y,wg);',
 ' }',
 ' if(uRiver.w>0.&&c.y>=uN.y-5&&abs(xy.x-uRiver.x)<uRiver.y){',
 '  float ht=1.3;h=mix(h,ht,.3);hu=mix(hu,0.,.3);hv=mix(hv,-uRiver.z*h,.3);hc=mix(hc,h*.004,.3);',
@@ -380,9 +381,10 @@ var FS_FLOW = HEAD + COMMON + [
 '  float he=max(h,.25);float sp=length(vec2(hu,hv))/h;',
 '  float ceq=min(uKs*max(sp*sp-uUcr*uUcr,0.)*sp/(G*he*uWs),.02);',
 '  float dc=(ceq-hc/h)*min(uDt*uWs/he,1.);',
-'  if(uMorf>0.){',
-'   float dB=-uMorf*h*dc/.6;float av=max(B-t0.y,0.);',
-'   dB=clamp(dB,-min(av,.01),.01);dc=-dB*.6/(uMorf*h);B+=dB;h=max(h-dB,0.);',
+'  float mf=uMorf*smoothstep(uRelax,uRelax+12.,float(c.y));',
+'  if(mf>0.){',
+'   float dB=-mf*h*dc/.6;float av=max(B-t0.y,0.);',
+'   dB=clamp(dB,-min(av,.01),.01);dc=-dB*.6/(mf*h);B+=dB;h=max(h-dB,0.);',
 '  }',
 '  hc+=h*dc;',
 ' }',
@@ -466,9 +468,10 @@ var FS_PROBE = HEAD + COMMON + [
 ' if(p.y==0){if(p.x<uN.y){ivec2 c=ivec2(uPX,p.x);vec4 u=texelFetch(uU,c,0),t=texelFetch(uT,c,0);o=vec4(u.x+t.x,t.x,t.z,u.x);}}',
 ' else if(p.y==1){if(p.x<64){int col=p.x*uN.x/64;float yB=-1.,yB0=-1.,run=-99.,vol=0.;',
 '  for(int j=1023;j>=0;j--){if(j>=uN.y)continue;vec4 t=texelFetch(uT,ivec2(col,j),0);vec4 u=texelFetch(uU,ivec2(col,j),0);',
-'   if(yB<0.&&t.x<uTide)yB=float(j);if(yB0<0.&&t.z<uTide)yB0=float(j);if(u.x>.03)run=max(run,t.x);vol+=t.x-t.z;}',
+'   if(yB<0.&&t.x<uTide)yB=float(j);if(yB0<0.&&t.z<uTide)yB0=float(j);if(u.x>.03)run=max(run,t.x);if(t.w<1.5)vol+=t.x-t.z;}',
 '  o=vec4(yB,yB0,run,vol);}}',
-' else{if(p.x<uN.y){ivec2 c=ivec2(uPX,p.x);vec4 f=texelFetch(uF,c,0),m=texelFetch(uM,c,0);o=vec4(4.*sqrt(max(f.w-f.z*f.z,0.)),m.w,m.x,m.y);}}',
+' else if(p.y==2){if(p.x<uN.y){ivec2 c=ivec2(uPX,p.x);vec4 f=texelFetch(uF,c,0),m=texelFetch(uM,c,0);o=vec4(4.*sqrt(max(f.w-f.z*f.z,0.)),m.w,m.x,m.y);}}',
+' else{if(p.x<64){int col=p.x*uN.x/64;float su=0.,n=0.,sv=0.;for(int j=0;j<1024;j++){if(j>=uN.y)break;vec4 m=texelFetch(uM,ivec2(col,j),0);float h=texelFetch(uU,ivec2(col,j),0).x;if(m.w>.004&&h>.15&&texelFetch(uT,ivec2(col,j),0).w<.5){su+=m.x;sv+=m.y;n+=1.;}}o=vec4(su,n,sv,0.);}}',
 '}'].join('\n');
 
 var FS_DOWN = HEAD + COMMON + 'uniform sampler2D uT;out vec4 o;void main(){ivec2 c=ivec2(gl_FragCoord.xy)*2;o=vec4(texelFetch(uT,c,0).x,0.,0.,0.);}';
@@ -561,8 +564,8 @@ var FS_WAT = HEAD + RCOMMON + [
 'uniform float uWind,uHref;uniform vec4 uBrush;uniform vec4 uSec;',
 'void main(){if(vH<.004)discard;vec3 V=normalize(uCam-vP);vec3 n=normalize(vNr);',
 ' if(vFar>0.){vec3 wa=waveAt(vP.xz)*(1.-smoothstep(250.,1100.,length(vP-uCam)));n=normalize(mix(n,normalize(vec3(-wa.y*uVex,1.,-wa.z*uVex)),vFar));}',
-' float dc=length(vP-uCam);float ra=(.05+uWind*.01)*(1.-smoothstep(120.,650.,dc)*.85);',
-' vec2 g=vec2(0.);for(int k=0;k<6;k++){float fk=float(k);float an=fk*1.9+.4;vec2 d=vec2(cos(an),sin(an));float wl=1.2+fk*1.3;float ph=dot(vP.xz,d)*6.283/wl-uTime*sqrt(9.81*6.283/wl)+fk*3.;g+=d*cos(ph)*(1./(1.+fk*.4));}',
+' float ra=.05+uWind*.01;',
+' float mpp=max(length(fwidth(vP.xz)),1e-3);vec2 g=vec2(0.);for(int k=0;k<6;k++){float fk=float(k);float an=fk*1.9+.4;vec2 d=vec2(cos(an),sin(an));float wl=1.2+fk*1.3;float ph=dot(vP.xz,d)*6.283/wl-uTime*sqrt(9.81*6.283/wl)+fk*3.;g+=d*cos(ph)*(1./(1.+fk*.4))*clamp((wl/mpp-3.)/5.,0.,1.);}',
 ' n=normalize(n+vec3(g.x,0.,g.y)*ra);',
 ' float ndv=max(dot(n,V),0.);float fr=.02+.98*pow(1.-ndv,5.);',
 ' vec3 R=reflect(-V,n);R.y=abs(R.y);vec3 refl=sky(R)*.82;',
@@ -578,7 +581,7 @@ var FS_WAT = HEAD + RCOMMON + [
 ' vec3 fc=vec3(.92,.94,.93)*(uSunC*(.55+.45*max(dot(n,uSun),0.))+uSkyZ*.3);',
 ' if(uMode==0){c=mix(c,fc,fm*.95);a=max(a,fm);c=mix(c,vec3(.95,.2,.45)*(.6+.4*uSunC.x*.4),clamp(vDye,0.,.85));a=max(a,clamp(vDye,0.,.8));}',
 ' else if(uMode==1){float mv=length(vMean);vec2 dm=mv>1e-4?vMean/mv:vec2(0.);float st=.5+.5*sin(dot(vP.xz,vec2(-dm.y,dm.x))*.9);float ar=fract(dot(vP.xz,dm)*.06-uTime*mv*.06);',
-'  c=pal(mv/.8)*(.72+.28*max(dot(n,uSun),0.));c*=1.-.22*smoothstep(.55,1.,ar)*smoothstep(.02,.15,mv);c+=uSunC*sp*.25;a=max(.92,a);if(vFar>.5)c=mix(c,pal(0.),.6);}',
+'  c=pal(mv/.5)*(.72+.28*max(dot(n,uSun),0.));c*=1.-.22*smoothstep(.55,1.,ar)*smoothstep(.02,.15,mv);c+=uSunC*sp*.25;a=max(.92,a);if(vFar>.5)c=mix(c,pal(0.),.6);}',
 ' else if(uMode==2){c=pal(vHs/max(uHref,.3))*(.65+.35*max(dot(n,uSun),0.));a=max(.9,a);if(vFar>.5)c=mix(c,pal(.5),.6);}',
 ' else{c=mix(vec3(.2,.45,.55),refl,fr);a=.05+fr*.12;}',
 ' if(uSec.w>0.&&vP.z>0.&&vP.z<uLY){float dx=abs(vP.x-uSec.x);float wd=fwidth(vP.x)*.8+.25;float k=smoothstep(wd,wd*.3,dx)*.45;c=mix(c,vec3(1.,.72,0.)*1.3,k);a=max(a,k);}',
@@ -594,8 +597,8 @@ var VS_PT = HEAD + RCOMMON + [
 ' ivec2 c=wr(ivec2(p.xy/uDx));vec4 u=texelFetch(uU,c,0);float B=texelFetch(uT,c,0).x;',
 ' float spd=u.x>.03?length(u.yz)/u.x:0.;vec3 w=vec3(p.x,(u.x+B)*uVex+.25,p.y);',
 ' vA=u.x>.05?smoothstep(0.,2.,p.z)*smoothstep(p.w,p.w-3.,p.z):0.;vC=mix(vec3(.85,.97,1.),vec3(1.,.85,.25),smoothstep(.3,1.6,spd));',
-' vec4 cp=uVP*vec4(w,1.);gl_Position=cp;gl_PointSize=clamp(900./cp.w,1.5,4.5);}'].join('\n');
-var FS_PT = HEAD + 'in float vA;in vec3 vC;out vec4 o;void main(){vec2 d=gl_PointCoord-.5;if(dot(d,d)>.25||vA<.01)discard;o=vec4(vC,vA*.9);}';
+' vec4 cp=uVP*vec4(w,1.);gl_Position=cp;gl_PointSize=clamp(700./cp.w,1.2,3.5);}'].join('\n');
+var FS_PT = HEAD + 'in float vA;in vec3 vC;out vec4 o;void main(){vec2 d=gl_PointCoord-.5;if(dot(d,d)>.25||vA<.01)discard;o=vec4(vC,vA*.75);}';
 
 // ---------- GL 小工具 ----------
 function sh(type, src){ var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
@@ -644,7 +647,7 @@ var FFM = [fbo([TF[0], TM[0]]), fbo([TF[1], TM[1]])];
 var PW = SMALL ? 64 : 128;
 var TP = [tex(PW,PW,32), tex(PW,PW,32)], FP = [fbo([TP[0]]), fbo([TP[1]])];
 var PROW = Math.max(NY, 64);
-var TPR = tex(PROW, 3, 32), FPR = fbo([TPR]);
+var TPR = tex(PROW, 4, 32), FPR = fbo([TPR]);
 var TDN = tex(NX/2, NY/2, 32), FDN = fbo([TDN]);
 var cu = 0, cf = 0, cp = 0;
 gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -673,7 +676,7 @@ function capsule(px, pz, ax, az, bx, bz){ var vx = bx-ax, vz = bz-az, wx = px-ax
 var PRESETS = [
   { id:'rip', name:'沙洲與離岸流', H:1.3, T:9, D:0, range:0.5, surge:0, wind:6, sec:0.34,
     icon:'<path d="M2 20c10-4 30-4 40 0" /><path d="M4 11c5-3 8-3 10 0M19 11c4-3 7-3 9 0M33 11c3-2 6-2 8 0" stroke-dasharray="1 0"/><path d="M16.5 14V3M13.5 6l3-3 3 3" stroke="#ff5a36"/>',
-    desc:'新月形沙洲在三處斷開。浪在沙洲上碎開、往岸邊堆高，積在碎波帶的水從缺口集中流回外海，就是離岸流。打開流線粒子或放染料，就能看到它把東西帶出去。',
+    desc:'新月形沙洲在三處斷開。浪在沙洲上碎開、往岸邊堆高，積在碎波帶的水從缺口集中流回外海，就是離岸流。切到「海流」或在沙洲上放染料，就能看到它把東西帶出去。',
     build:function(x, y, o){ var s = YS - y, B = baseB(x, y, o);
       var dr = Math.min(Math.abs(pdx(x, LX/6)), Math.abs(pdx(x, LX/2)), Math.abs(pdx(x, 5*LX/6)));
       var ch = Math.exp(-Math.pow(dr/30, 2));
@@ -681,10 +684,10 @@ var PRESETS = [
       return {B:B}; } },
   { id:'groyne', name:'突堤群', H:1.3, T:8, D:26, range:0.4, surge:0, wind:8, sec:0.38,
     icon:'<path d="M2 20c10-4 30-4 40 0"/><path d="M9 20V6M21 19V6M33 20V6" stroke="#f5b700"/><path d="M3 4l6 3M15 4l6 3M27 4l6 3"/>',
-    desc:'斜向入射波會推動沿岸流，沙跟著沿著海岸移動。四道垂直海岸的突堤擋住沙：上游一側淤積、下游一側被沖刷，汀線變成鋸齒狀。把地形加速調高看得更清楚。',
+    desc:'斜向入射波會推動沿岸流，沙跟著沿著海岸移動。四道垂直海岸的突堤擋住沙：上游一側淤積、下游一側被沖刷，汀線變成鋸齒狀。沿岸流要幾分鐘才會發展起來，可切到 4× 並把地形加速調高。',
     build:function(x, y, o){ var s = YS - y, B = baseB(x, y, o) + bar(x, s, 0.7, 105, 26), R = -30, mat = 0;
-      for (var k = 0; k < 4; k++){ var gx = (k+0.5)*LX/4; var d = capsule(x, s, gx, -40, gx, 115);
-        var crest = 2.5 - 1.3*sm(0, 115, s); var sb = crest - Math.max(0, d-4)*0.7;
+      for (var k = 0; k < 4; k++){ var gx = (k+0.5)*LX/4; var d = capsule(x, s, gx, -40, gx, 75);
+        var crest = 2.5 - 1.3*sm(0, 75, s); var sb = crest - Math.max(0, d-4)*0.7;
         if (sb > B){ B = sb; R = B; mat = 2; } }
       return {B:B, R:R, mat:mat}; } },
   { id:'detached', name:'離岸堤', H:1.6, T:9, D:0, range:0.5, surge:0, wind:6, sec:0.5,
@@ -873,7 +876,7 @@ Reader.prototype.poll = function(){ if (!this.sync) return false; var st = gl.cl
   if (st === gl.TIMEOUT_EXPIRED) return false; gl.deleteSync(this.sync); this.sync = null;
   gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.buf); gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.data); gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
   this.fresh = true; return true; };
-var probeR = new Reader(FPR, PROW, 3), downR = new Reader(FDN, NX/2, NY/2);
+var probeR = new Reader(FPR, PROW, 4), downR = new Reader(FDN, NX/2, NY/2);
 function probePass(){
   var P = PR.probe; gl.useProgram(P.p); vp(FPR);
   bindTex(P, 'uU', TU[cu], 0); bindTex(P, 'uT', TT[cu], 1); bindTex(P, 'uF', TF[cf], 2); bindTex(P, 'uM', TM[cf], 3);
@@ -948,7 +951,10 @@ function updateCam(dt){
   var cp = Math.cos(cam.pitch); eye = [cam.t[0] + cam.dist*cp*Math.sin(cam.yaw), cam.t[1] + cam.dist*Math.sin(cam.pitch), cam.t[2] + cam.dist*cp*Math.cos(cam.yaw)];
   var gh = groundAt(eye[0], eye[2])*S.vex; if (eye[1] < gh + 2) eye[1] = gh + 2;
   var W = canvas.width, H = canvas.height;
-  var P = persp(0.82, W/H, 0.8, 9000), V = lookAt(eye, cam.t, [0,1,0]); VPm = m4mul(P, V); IVPm = inv(VPm);
+  var P = persp(mq.matches ? 0.95 : 0.82, W/H, 0.8, 9000), V = lookAt(eye, cam.t, [0,1,0]);
+  // 視線中心移到介面沒遮住的區域（桌機避開右側儀器架與底部甲板，手機避開下方面板）
+  if (mq.matches){ P[9] -= 0.44; } else if (innerWidth > 760){ P[8] += 0.2*(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--rack'))+26)/innerWidth*2*0.5; P[9] -= 0.1; }
+  VPm = m4mul(P, V); IVPm = inv(VPm);
 }
 function groundAt(x, z){ var hx = NX/2, hy = NY/2; var i = Math.floor(((x % LX) + LX) % LX / (2*DX)), j = Math.floor(z/(2*DX));
   if (j < 0) return -H0; if (j >= hy) j = hy-1; return Bcpu[j*hx + (i % hx)]; }
@@ -1031,7 +1037,7 @@ function digest(){
   for (j = n-1; j >= 0; j--){ if (prof[j*4+1] < tide) { shoreJ = j; break; } }
   stats.brk = outer >= 0 && shoreJ > outer ? (shoreJ - outer)*DX : 0;
   // 沿岸流：斷面碎波帶內平均 u
-  var su = 0, sn = 0; for (j = Math.max(outer, 0); j <= shoreJ && outer >= 0; j++){ su += sHs[j*4+2]; sn++; } stats.ls = sn ? su/sn : 0;
+  var su = 0, sn = 0, r3 = 3*PROW*4; for (var q = 0; q < 64; q++){ su += d[r3 + q*4]; sn += d[r3 + q*4+1]; } stats.ls = sn ? su/sn : 0;
   var row = PROW*4, sumSh = 0, cnt = 0, run = -99, vol = 0;
   for (var k = 0; k < 64; k++){ var yB = d[row + k*4], yB0 = d[row + k*4+1];
     if (yB >= 0 && yB0 >= 0){ sumSh += (yB - yB0)*DX; cnt++; } run = Math.max(run, d[row+k*4+2]); vol += d[row+k*4+3]; }
@@ -1088,7 +1094,7 @@ function drawProfile(){
   S.gauges.forEach(function(g, i){ c.strokeStyle = gc[i]; c.setLineDash([2*d, 3*d]); c.beginPath(); c.moveTo(X(g), top + 4*d); c.lineTo(X(g), bot); c.stroke(); c.setLineDash([]);
     c.fillStyle = gc[i]; c.fillText('G'+(i+1), X(g) + 3*d, top + 12*d); });
   c.fillStyle = '#6c7370'; c.fillText('← 外海', lft + 4*d, H - 3*d); c.textAlign = 'right'; c.fillText('陸地 →', rgt, H - 3*d);
-  c.textAlign = 'center'; for (var dd = -200; dd <= 100; dd += 100){ var jj = (YS - dd)/DX; if (jj > j0 && jj < j1) c.fillText(dd === 0 ? '汀線' : (dd > 0 ? dd + ' m' : '+' + (-dd) + ' m'), X(jj), H - 3*d); } c.textAlign = 'left';
+  c.textAlign = 'center'; for (var dd = -200; dd <= 100; dd += 100){ var jj = (YS - dd)/DX; if (jj > j0 && jj < j1 && X(jj) < rgt - 70*d && X(jj) > lft + 50*d) c.fillText(dd === 0 ? '汀線' : (dd > 0 ? dd + ' m' : '+' + (-dd) + ' m'), X(jj), H - 3*d); } c.textAlign = 'left';
 }
 function drawGauges(){
   if (!cGauge.offsetParent) return;
@@ -1183,12 +1189,12 @@ function loadPreset(i){
 // 工具
 var TOOLS = {view:0, raise:1, dig:2, wall:3, erase:4, dye:5, section:6};
 function setTool(t){ S.tool = t; $$('#tools button').forEach(function(b){ press(b, b.dataset.tool === t); }); canvas.classList.toggle('paint', t !== 'view');
-  if (t === 'section') S.showSec = true; }
+  if (t === 'section'){ S.showSec = true; press($('#bSec'), true); } }
 $$('#tools button').forEach(function(b){ b.addEventListener('click', function(){ setTool(b.dataset.tool); }); });
 
 // 顯示模式
 var MODES = [
-  {name:'實景'}, {name:'海流', t:'平均流速（40 秒平均，條紋沿流向移動）', u:'m/s', ticks:['0','0.2','0.4','0.6','0.8+'], pal:true},
+  {name:'實景'}, {name:'海流', t:'平均流速（40 秒平均，條紋沿流向移動）', u:'m/s', ticks:['0','0.12','0.25','0.38','0.5+'], pal:true},
   {name:'波高', t:'有義波高 Hs（45 秒滑動統計）', u:'m', pal:true}, {name:'侵淤', t:'地形變化（相對初始）', u:'m', ticks:['−1.5 侵蝕','0','+1.5 淤積'], div:true},
   {name:'水深', t:'水深與高程（等高線 1 m，黃線為潮位）', u:'m', ticks:['−12','0','+7'], bathy:true}
 ];
@@ -1207,6 +1213,7 @@ function toggle(id, key, cb){ var el = $(id); el.addEventListener('click', funct
 toggle('#bIrr', 'irr', setWaves);
 toggle('#bMorph', 'morph');
 toggle('#bPart', 'parts', function(){ resetParticles = true; });
+S.showSec = true; toggle('#bSec', 'showSec');
 toggle('#bSound', 'sound', function(){ if (S.sound){ initAudio(); if (AC && AC.state === 'suspended') AC.resume(); } else if (AC) aN.master.gain.setTargetAtTime(0, AC.currentTime, 0.2); });
 $('#bPlay').addEventListener('click', togglePause);
 function togglePause(){ S.paused = !S.paused; $('#playIco').innerHTML = S.paused ? '<path d="M7 4.5l12 7.5-12 7.5z"/>' : '<path d="M8 5v14M16 5v14"/>'; $('#bPlay').setAttribute('aria-label', S.paused ? '繼續' : '暫停'); }
@@ -1324,7 +1331,6 @@ function frame(now){
 }
 
 // ---------- 啟動 ----------
-S.showSec = true;
 syncInputs(); setMode(0); setTool('view');
 loadPreset(0); updateWaveInfo(); packWaves();
 resize(); updateCam(0);

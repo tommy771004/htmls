@@ -29,8 +29,18 @@ try {
   // 揮筆真的打得死怪
   const k0 = await page.evaluate(() => brushwild.S().kills || 0);
   await page.evaluate(() => { const P = brushwild.P; P.yaw = brushwild.CAM.yaw + Math.PI; for (let i = 0; i < 3; i++) brushwild.spawnEnemy('mudslime', P.pos.x - Math.sin(brushwild.CAM.yaw) * 2.2 + (i - 1) * .6, P.pos.z - Math.cos(brushwild.CAM.yaw) * 2.2, { zone: 'ow' }).def = Object.assign({}, brushwild.ENEMY_TYPES.mudslime, { spd: 0, arch: 'turret' }); });
-  for (let i = 0; i < 6; i++) { await page.keyboard.press('KeyJ'); await page.waitForTimeout(700); }
+  // 擊退會把原地不動的測試史萊姆推遠，所以打到有一隻倒下為止
+  for (let i = 0; i < 20 && (await page.evaluate(() => brushwild.S().kills || 0)) <= k0; i++) { await page.keyboard.press('KeyJ'); await page.waitForTimeout(700); }
   assert((await page.evaluate(() => brushwild.S().kills || 0)) > k0, 'melee kills');
+  // 打擊特效：命中時有特效在播、有頓幀；關掉後完全不播
+  const fxOn = await page.evaluate(() => { const B = brushwild, P = B.P; const e = B.spawnEnemy('goblin', P.pos.x, P.pos.z + 3, { zone: 'ow' }); B.HFX.clear(); B.killEnemy; const before = e.hp; e.def = Object.assign({}, e.def, { spd: 0, arch: 'turret' }); window.__fxE = e; return before; });
+  let seen = false;
+  for (let i = 0; i < 12 && !seen; i++) { await page.evaluate(() => { const B = brushwild; B.CAM.yaw = Math.atan2(B.P.pos.x - window.__fxE.pos.x, B.P.pos.z - window.__fxE.pos.z); }); await page.keyboard.press('KeyJ'); await page.waitForTimeout(500); seen = await page.evaluate(() => window.__fxE.hp < window.__fxE.maxHp && !!window.__fxE.fxT); }
+  assert(seen, 'hit fx target');
+  await page.evaluate(() => { brushwild.HFX.enabled = false; brushwild.HFX.clear(); });
+  const offLive = await page.evaluate(() => { const B = brushwild, e = window.__fxE; B.HFX.hit({ pos: e.pos.clone(), color: 0xff0000, damage: 1 }); return B.HFX.live.length; });
+  assert.equal(offLive, 0, 'hit fx off');
+  await page.evaluate(() => { brushwild.HFX.enabled = true; });
 
   // 水晶：守護者還在 → 塗不亮；打倒後錯色不亮、對色才亮；四顆都亮 → 解鎖飛行
   const gate = await page.evaluate(() => {

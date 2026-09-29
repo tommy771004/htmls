@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>打擊特效實驗室 · 彩筆曠野</title>
+<meta name="description" content="彩筆曠野的命中特效預覽：按一下假目標播放命中特效，逐項開關、調整參數、A／B 並排比較，最後印出參數給遊戲使用。">
+<link rel="icon" href="../../favicon.svg">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js"}}</script>
+<style>
+:root{--bg:#16141d;--panel:#211e2b;--line:#34304a;--ink:#f1eef8;--dim:#a39db8;--acc:#ffd23f;--a:#ff8a5a;--b:#5ab8ff}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1.5 "PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
+body{display:grid;grid-template-columns:1fr 360px;height:100vh;overflow:hidden}
+#stage{position:relative;overflow:hidden;cursor:pointer}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+.lane{position:absolute;top:0;bottom:0;overflow:hidden;pointer-events:none}
+.lane .tag{position:absolute;left:12px;top:10px;padding:2px 10px;border-radius:99px;font-weight:800;font-size:13px;color:#16141d}
+.hp{position:absolute;width:120px;height:12px;margin-left:-60px;border-radius:7px;background:#2a2238;border:2px solid #2a2238;overflow:hidden}
+.hp i{position:absolute;left:0;top:0;bottom:0;display:block}
+.hp .w{background:#fff}.hp .r{background:#ff4d5e}
+#hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);padding:6px 14px;border-radius:99px;background:rgba(0,0,0,.45);font-size:13px;color:#e8e4f4;pointer-events:none;white-space:nowrap}
+aside{background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:14px 14px 30px}
+h1{font-size:18px;margin:0 0 2px}
+.sub{color:var(--dim);font-size:12px;margin:0 0 12px}
+.row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+button{font:inherit;color:var(--ink);background:#2e2a3d;border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+button:hover{background:#3a3550}
+button.on{background:var(--acc);color:#16141d;border-color:var(--acc);font-weight:700}
+button.big{padding:9px 14px;font-weight:800}
+button.a{box-shadow:inset 0 -3px 0 var(--a)}button.b{box-shadow:inset 0 -3px 0 var(--b)}
+.sec{margin:14px 0 6px;font-size:12px;font-weight:800;color:var(--dim);letter-spacing:.08em}
+.fxlist{display:grid;grid-template-columns:1fr;gap:3px}
+.fx{display:grid;grid-template-columns:22px 1fr 34px;align-items:center;gap:6px;padding:4px 6px;border-radius:8px;border:1px solid transparent;cursor:pointer}
+.fx:hover{background:#2a2637}
+.fx.sel{border-color:var(--acc);background:#2c2838}
+.fx input{width:16px;height:16px;accent-color:var(--acc);margin:0}
+.fx .n{font-size:13px}.fx .n small{color:var(--dim);margin-left:4px}
+.fx button{padding:2px 0;font-size:12px}
+.sl{display:grid;grid-template-columns:96px 1fr 58px;align-items:center;gap:8px;margin:6px 0}
+.sl label{font-size:12px;color:var(--dim)}
+.sl input[type=range]{width:100%;accent-color:var(--acc)}
+.sl output{font-variant-numeric:tabular-nums;font-size:12px;text-align:right}
+.edit{padding:10px;border-radius:10px;background:#1b1924;border:1px solid var(--line)}
+.edit h3{margin:0 0 4px;font-size:14px}
+.edit p{margin:0 0 6px;color:var(--dim);font-size:12px}
+.sw{display:inline-block;width:22px;height:22px;border-radius:50%;border:2px solid #16141d;box-shadow:0 0 0 1px var(--line);cursor:pointer}
+.sw.on{box-shadow:0 0 0 2px var(--acc)}
+textarea{width:100%;height:190px;background:#12101a;color:#d8f5c8;border:1px solid var(--line);border-radius:8px;font:11px/1.45 ui-monospace,Menlo,monospace;padding:8px;resize:vertical}
+.note{color:var(--dim);font-size:12px}
+@media (max-width:820px){body{grid-template-columns:1fr;grid-template-rows:48vh 1fr;height:auto;min-height:100vh;overflow:auto}aside{border-left:0;border-top:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="gl"></canvas>
+  <div id="hint">按畫面：揮筆，命中那一格才放特效</div>
+</div>
+<aside>
+  <h1>打擊特效實驗室</h1>
+  <p class="sub">彩筆曠野 188 用的命中特效。調好後按「印出參數」，把那段文字貼回遊戲。</p>
+  <div class="row">
+    <button class="big" id="bSwing">▶ 揮筆命中</button>
+    <button class="big" id="bNow">✦ 直接命中</button>
+  </div>
+  <div class="row">
+    <button id="bHeavy">重擊（第三段）</button>
+    <button id="bKill">擊殺這一下</button>
+    <button id="bSplit">並排比較 A／B</button>
+    <button id="bAll" class="on">全部特效：開</button>
+  </div>
+  <div class="row" id="laneRow" hidden>
+    <span class="note" style="align-self:center">正在調整：</span>
+    <button id="eA" class="a on">A 組</button><button id="eB" class="b">B 組</button>
+    <button id="cAB">A 複製到 B</button><button id="cBA">B 複製到 A</button>
+  </div>
+  <div class="sec">顏料顏色（「跟著顏料色」的效果會用這個）</div>
+  <div class="row" id="paints"></div>
+  <div class="sec">最常調的兩個</div>
+  <div id="quick"></div>
+  <div class="sec">效果清單（勾選＝開啟；▶ 只播這一種；點名稱調參數）</div>
+  <div class="fxlist" id="list"></div>
+  <div class="sec">參數</div>
+  <div class="edit" id="edit"></div>
+  <div class="sec">輸出</div>
+  <div class="row"><button class="big" id="bPrint">印出參數</button><button id="bCopy">複製</button><button id="bReset">這組恢復預設</button></div>
+  <textarea id="out" spellcheck="false" placeholder="按「印出參數」後會出現在這裡，也會印在瀏覽器主控台。"></textarea>
+  <p class="note">參數也會自動記在這個瀏覽器裡，下次打開還在。</p>
+</aside>
+<script type="module">
+import * as THREE from 'three';
+
+/* ───────── 打擊特效模組（預覽頁 assets/188/hitfx-lab.html 與遊戲共用同一份程式與參數格式）─────────
+   每種效果：on 開關、dur 秒數、radius 擴散半徑／強度（單位依效果而定）、count 數量、color 顏色（'auto' 跟著當下顏料色）
+   時間：畫面上的特效用真實時間跑（頓幀時也看得到）；擊退用遊戲時間（頓幀結束才被推開）。 */
+const HITFX_DEFAULT = {
+  flash:   { on: 1, dur: .09, radius: 1.8, color: '#fff4d6' },
+  ring:    { on: 1, dur: .28, radius: 2.4, color: 'auto' },
+  sparks:  { on: 1, dur: .32, radius: 3.6, count: 16, color: '#fff0b8' },
+  splat:   { on: 1, dur: .55, radius: 2.6, count: 12, color: 'auto' },
+  slash:   { on: 0, dur: .16, radius: 2.2, color: '#ffffff' },
+  trail:   { on: 0, dur: .18, radius: .35, color: 'auto' },
+  dust:    { on: 0, dur: .7, radius: 1.8, count: 6, color: '#e9e2d2' },
+  star:    { on: 0, dur: .22, radius: 1.5, color: 'auto' },
+  lines:   { on: 0, dur: .14, radius: .5, count: 28, color: '#ffffff' },
+  frame:   { on: 0, dur: .05, radius: 0, color: '#ffffff' },
+  numbers: { on: 1, dur: .8, radius: 1.2, color: '#ffffff' },
+  tflash:  { on: 1, dur: .16, radius: 1.6, color: '#ffffff' },
+  squash:  { on: 1, dur: .18, radius: .22 },
+  tshake:  { on: 1, dur: .1, radius: .1 },
+  knock:   { on: 1, dur: .22, radius: .9 },
+  hitstop: { on: 1, dur: .07 },
+  shake:   { on: 1, dur: .25, radius: .28 },
+  fov:     { on: 0, dur: .2, radius: 5 },
+  slowmo:  { on: 0, dur: .45, radius: .25 },
+  hpbar:   { on: 1, dur: .35, radius: .3 },
+  heavy:   { mul: 1.5 },
+};
+// 每種效果的中文名稱與「radius」這個滑桿在該效果代表什麼
+const HITFX_INFO = {
+  flash:   ['命中閃光', '大小（公尺）'],
+  ring:    ['衝擊波環', '擴散半徑（公尺）'],
+  sparks:  ['火花噴濺', '噴射距離（公尺）'],
+  splat:   ['顏料飛濺', '噴射距離（公尺）'],
+  slash:   ['刀光弧線', '弧線大小（公尺）'],
+  trail:   ['殘影拖尾', '拖尾寬度（公尺）'],
+  dust:    ['煙塵', '擴散半徑（公尺）'],
+  star:    ['漫畫爆炸星', '大小（公尺）'],
+  lines:   ['放射集中線', '中央留空（比例）'],
+  frame:   ['全螢幕閃白', '（反色：大於 0.5）'],
+  numbers: ['傷害數字', '上升高度（公尺）'],
+  tflash:  ['目標閃白', '亮度'],
+  squash:  ['擠壓回彈', '壓扁程度'],
+  tshake:  ['受擊抖動', '抖動幅度（公尺）'],
+  knock:   ['擊退位移', '擊退距離（公尺）'],
+  hitstop: ['頓幀', ''],
+  shake:   ['鏡頭震動', '震動幅度（公尺）'],
+  fov:     ['視角衝擊', '放大角度（度）'],
+  slowmo:  ['慢動作（擊殺時）', '時間倍率'],
+  hpbar:   ['血條白色殘影', '延遲（秒）'],
+};
+function createHitFX(o) {
+  const THREE = o.THREE, scene = o.scene;
+  const fx = { enabled: true, params: o.params, live: [], hitstop: 0, slow: 0, slowK: 1, timeScale: 1, shake: 0, shakeT: 0, shakeDur: .25, shakeDir: new THREE.Vector3(1, 0, 0), fovAdd: 0, fovT: 0, fovDur: .2, fovAmp: 0, camOff: new THREE.Vector3(), trail: [], trailMesh: null };
+  const V = () => new THREE.Vector3();
+  const cl = (v, a, b) => v < a ? a : v > b ? b : v;
+  const easeOut = t => 1 - Math.pow(1 - t, 3);
+  const backOut = t => { const c = 1.9; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+  // ── 貼圖（程式畫）──
+  const tex = (w, draw) => { const c = document.createElement('canvas'); c.width = c.height = w; draw(c.getContext('2d'), w); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; };
+  const flareTex = tex(128, (g, w) => {
+    const r = w / 2, grd = g.createRadialGradient(r, r, 0, r, r, r);
+    grd.addColorStop(0, 'rgba(255,255,255,1)'); grd.addColorStop(.18, 'rgba(255,255,255,.9)'); grd.addColorStop(.45, 'rgba(255,255,255,.25)'); grd.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grd; g.fillRect(0, 0, w, w);
+    g.fillStyle = '#fff';
+    for (let k = 0; k < 4; k++) { g.save(); g.translate(r, r); g.rotate(k * Math.PI / 4); g.beginPath(); g.moveTo(-r, 0); g.lineTo(0, -3.5 + (k % 2)); g.lineTo(r, 0); g.lineTo(0, 3.5 - (k % 2)); g.closePath(); g.globalAlpha = k % 2 ? .45 : .95; g.fill(); g.restore(); }
+  });
+  const softTex = tex(64, (g, w) => { const r = w / 2, grd = g.createRadialGradient(r, r, 0, r, r, r); grd.addColorStop(0, 'rgba(255,255,255,1)'); grd.addColorStop(.6, 'rgba(255,255,255,.55)'); grd.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = grd; g.fillRect(0, 0, w, w); });
+  const starShape = (() => { const s = new THREE.Shape(); for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, r = i % 2 ? .42 : 1 - (i % 4 === 0 ? 0 : .18); const x = Math.cos(a) * r, y = Math.sin(a) * r; i ? s.lineTo(x, y) : s.moveTo(x, y); } return s; })();
+  const starGeo = new THREE.ShapeGeometry(starShape);
+  const ringGeo = new THREE.RingGeometry(.84, 1, 56);
+  const arcGeo = new THREE.RingGeometry(.72, 1, 40, 1, 0, Math.PI);
+  const streakGeo = new THREE.BoxGeometry(1, 1, 1);
+  const blobGeo = new THREE.IcosahedronGeometry(1, 1);
+  const addMat = (color, map) => new THREE.MeshBasicMaterial({ color, map: map || null, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+  // ── 螢幕層：放射線、閃白、傷害數字 ──
+  const layer = o.overlay;
+  const lc = document.createElement('canvas'); lc.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
+  const flashDiv = document.createElement('div'); flashDiv.style.cssText = 'position:absolute;inset:0;pointer-events:none;opacity:0';
+  layer.append(lc, flashDiv);
+  const lg = lc.getContext('2d');
+  const colOf = (c, auto) => new THREE.Color(c === 'auto' || !c ? auto : c);
+  const cssOf = (c, auto) => '#' + colOf(c, auto).getHexString();
+  function project(p) {
+    const v = p.clone().project(o.camera), r = layer.getBoundingClientRect();
+    return { x: (v.x * .5 + .5) * r.width, y: (-v.y * .5 + .5) * r.height, w: r.width, h: r.height, front: v.z < 1 };
+  }
+  function billboard(m) { m.quaternion.copy(o.camera.quaternion); }
+  function add(e) { fx.live.push(e); return e; }
+
+  fx.hit = function (h) {
+    if (!fx.enabled) return;
+    const P = h.params || fx.params;
+    const k = (h.heavy ? P.heavy.mul : 1) * (h.light ? .6 : 1);
+    const pos = h.pos.clone(), dir = (h.dir ? h.dir.clone() : new THREE.Vector3(1, 0, 0)).setY(0);
+    if (dir.lengthSq() < 1e-6) dir.set(1, 0, 0);
+    dir.normalize();
+    const auto = h.color ?? 0xffffff;
+    const T = h.target;
+    // 1 命中閃光
+    if (P.flash.on) {
+      const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: flareTex, color: colOf(P.flash.color, auto), blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false, transparent: true }));
+      m.position.copy(pos); m.material.rotation = Math.random() * 3; m.renderOrder = 20; scene.add(m);
+      const R = P.flash.radius * k, D = P.flash.dur;
+      add({ t: 0, D, m, u(t) { const q = t / D; m.scale.setScalar(R * (q < .35 ? .4 + q / .35 * .6 : 1)); m.material.opacity = q < .35 ? 1 : 1 - (q - .35) / .65; } });
+    }
+    // 2 衝擊波環
+    if (P.ring.on) {
+      const m = new THREE.Mesh(ringGeo, addMat(colOf(P.ring.color, auto)));
+      m.position.copy(pos); m.renderOrder = 19; scene.add(m);
+      const R = P.ring.radius * k, D = P.ring.dur;
+      add({ t: 0, D, m, u(t) { const q = t / D; billboard(m); m.scale.setScalar(R * (.15 + .85 * easeOut(q))); m.material.opacity = (1 - q) * .9; } });
+    }
+    // 3 火花：沿打擊方向的錐形噴出，細長亮條朝速度方向
+    if (P.sparks.on) {
+      const n = Math.round(P.sparks.count * (h.light ? .6 : 1)), D = P.sparks.dur, R = P.sparks.radius * k;
+      const im = new THREE.InstancedMesh(streakGeo, addMat(colOf(P.sparks.color, auto)), n);
+      im.renderOrder = 21; im.frustumCulled = false; scene.add(im);
+      const ps = [], vs = [];
+      for (let i = 0; i < n; i++) {
+        const v = dir.clone().multiplyScalar(.6 + Math.random() * .6).add(new THREE.Vector3(Math.random() - .5, Math.random() * .9 - .1, Math.random() - .5).multiplyScalar(1.3)).normalize();
+        vs.push(v.multiplyScalar(R / D * (1.2 + Math.random() * 1.2))); ps.push(pos.clone());
+      }
+      const d = new THREE.Object3D(), up = new THREE.Vector3(1, 0, 0);
+      add({ t: 0, D, m: im, u(t, dt) {
+        const q = t / D;
+        for (let i = 0; i < n; i++) {
+          vs[i].multiplyScalar(Math.exp(-dt * 3.2)); vs[i].y -= 14 * dt; ps[i].addScaledVector(vs[i], dt);
+          const sp = vs[i].length();
+          d.position.copy(ps[i]); d.quaternion.setFromUnitVectors(up, vs[i].clone().normalize());
+          d.scale.set(cl(sp * .045, .05, .9) * (1 - q * .6), .05 * (1 - q), .05 * (1 - q)); d.updateMatrix(); im.setMatrixAt(i, d.matrix);
+        }
+        im.instanceMatrix.needsUpdate = true; im.material.opacity = 1 - q * q;
+      } });
+    }
+    // 4 顏料飛濺：一團團往打擊方向噴，落地留下斑點
+    if (P.splat.on) {
+      const n = Math.round(P.splat.count * (h.light ? .6 : 1)), D = P.splat.dur, R = P.splat.radius * k, c = colOf(P.splat.color, auto);
+      const im = new THREE.InstancedMesh(blobGeo, new THREE.MeshBasicMaterial({ color: c }), n);
+      im.frustumCulled = false; im.renderOrder = 18; scene.add(im);
+      const ps = [], vs = [], ss = [], landed = [];
+      for (let i = 0; i < n; i++) {
+        const v = dir.clone().multiplyScalar(.9).add(new THREE.Vector3(Math.random() - .5, Math.random() * 1.2, Math.random() - .5)).normalize();
+        vs.push(v.multiplyScalar(R / D * (.7 + Math.random() * .9))); ps.push(pos.clone()); ss.push(.06 + Math.random() * .12); landed.push(false);
+      }
+      const d = new THREE.Object3D();
+      add({ t: 0, D, m: im, u(t, dt) {
+        const q = t / D;
+        for (let i = 0; i < n; i++) {
+          if (!landed[i]) { vs[i].y -= 22 * dt; ps[i].addScaledVector(vs[i], dt); const gy = o.groundAt ? o.groundAt(ps[i]) : -1e9; if (ps[i].y <= gy) { ps[i].y = gy; landed[i] = true; if (o.onSplat && Math.random() < .5) o.onSplat(ps[i].clone(), c.getHex(), ss[i] * 4); } }
+          d.position.copy(ps[i]); const s = ss[i] * (1 - q * .7) * k; d.scale.set(s * (landed[i] ? 1.6 : 1), s * (landed[i] ? .25 : 1), s * (landed[i] ? 1.6 : 1)); d.updateMatrix(); im.setMatrixAt(i, d.matrix);
+        }
+        im.instanceMatrix.needsUpdate = true;
+      } });
+    }
+    // 5 刀光弧線：垂直於打擊方向的新月
+    if (P.slash.on) {
+      const m = new THREE.Mesh(arcGeo, addMat(colOf(P.slash.color, auto)));
+      m.position.copy(pos); m.renderOrder = 22; scene.add(m);
+      const R = P.slash.radius * k, D = P.slash.dur, sp = project(pos), sp2 = project(pos.clone().add(dir)), ang = Math.atan2(-(sp2.y - sp.y), sp2.x - sp.x) + (Math.random() - .5) * .5;
+      add({ t: 0, D, m, u(t) { const q = t / D; billboard(m); m.rotateZ(ang - Math.PI / 2); m.scale.set(R * (.7 + .3 * easeOut(q)), R * (.7 + .3 * easeOut(q)) * (1 - q * .5), 1); m.material.opacity = 1 - q; } });
+    }
+    // 7 煙塵
+    if (P.dust.on) {
+      const n = P.dust.count, D = P.dust.dur, R = P.dust.radius * k;
+      for (let i = 0; i < n; i++) {
+        const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTex, color: colOf(P.dust.color, auto), transparent: true, depthWrite: false, opacity: .7 }));
+        const a = Math.random() * Math.PI * 2, v = new THREE.Vector3(Math.cos(a), .25 + Math.random() * .4, Math.sin(a)).multiplyScalar(R);
+        const base = pos.clone().setY(pos.y - .3); m.position.copy(base); scene.add(m);
+        add({ t: 0, D: D * (.8 + Math.random() * .4), m, u(t) { const q = t / this.D; m.position.copy(base).addScaledVector(v, easeOut(q)); m.scale.setScalar(R * (.35 + .65 * easeOut(q))); m.material.opacity = .75 * (1 - q); } });
+      }
+    }
+    // 8 漫畫爆炸星：彩色星形外圈＋白色內星，彈出後縮回
+    if (P.star.on) {
+      const g = new THREE.Group(); g.position.copy(pos); g.renderOrder = 23; scene.add(g);
+      const a = new THREE.Mesh(starGeo, new THREE.MeshBasicMaterial({ color: colOf(P.star.color, auto), transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide }));
+      const b = new THREE.Mesh(starGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide }));
+      b.scale.setScalar(.55); b.position.z = .01; a.renderOrder = 23; b.renderOrder = 24; g.add(a, b);
+      const R = P.star.radius * k, D = P.star.dur, rot = Math.random() * 3;
+      add({ t: 0, D, m: g, u(t) { const q = t / D; billboard(g); g.rotateZ(rot + q * .6); const s = q < .45 ? backOut(q / .45) : 1 - (q - .45) / .55; g.scale.setScalar(Math.max(.001, R * s)); } });
+    }
+    // 9 放射集中線、10 全螢幕閃白
+    if (P.lines.on) {
+      const n = P.lines.count, D = P.lines.dur, col = cssOf(P.lines.color, auto), ang = []; for (let i = 0; i < n; i++) ang.push([Math.random() * Math.PI * 2, .7 + Math.random() * .6, 1 + Math.random() * 3]);
+      add({ t: 0, D, screen: true, u(t) {
+        const q = t / D, sp = project(pos);
+        const R0 = Math.hypot(sp.w, sp.h), R1 = Math.min(sp.w, sp.h) * .5 * P.lines.radius * (1 + q * .25);
+        lg.save(); lg.globalAlpha = 1 - q; lg.fillStyle = col;
+        for (const [a, l, w] of ang) { const c = Math.cos(a), s = Math.sin(a), r1 = R1 * l, x1 = sp.x + c * r1, y1 = sp.y + s * r1; lg.beginPath(); lg.moveTo(sp.x + c * R0 - s * w * 4, sp.y + s * R0 + c * w * 4); lg.lineTo(x1, y1); lg.lineTo(sp.x + c * R0 + s * w * 4, sp.y + s * R0 - c * w * 4); lg.fill(); }
+        lg.restore();
+      } });
+    }
+    if (P.frame.on && (h.heavy || h.kill || h.always)) {
+      const D = P.frame.dur, inv = P.frame.radius > .5;
+      flashDiv.style.background = inv ? '#fff' : cssOf(P.frame.color, auto); flashDiv.style.mixBlendMode = inv ? 'difference' : 'normal';
+      add({ t: 0, D, screen: true, u(t) { flashDiv.style.opacity = t < D ? (inv ? 1 : .85 * (1 - t / D)) : 0; }, end() { flashDiv.style.opacity = 0; } });
+    }
+    // 11 傷害數字
+    if (P.numbers.on && h.damage) {
+      const el = document.createElement('div');
+      const big = h.heavy || h.crit;
+      el.textContent = Math.round(h.damage * 10) / 10;
+      el.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;font:900 ' + (big ? 30 : 22) + 'px/1 system-ui,sans-serif;color:' + (big ? '#ffd23f' : cssOf(P.numbers.color, auto)) + ';text-shadow:0 2px 0 #2a2238,0 0 3px #2a2238,0 0 1px #2a2238;white-space:nowrap';
+      layer.append(el);
+      const D = P.numbers.dur, R = P.numbers.radius, sx = (Math.random() - .5) * .8;
+      add({ t: 0, D, screen: true, u(t) { const q = t / D, p = pos.clone(); p.y += R * easeOut(q) + .4; p.x += sx * q; const s = project(p); el.style.transform = 'translate(' + (s.x - 12) + 'px,' + (s.y - 12) + 'px) scale(' + (q < .15 ? .6 + q / .15 * .7 : 1.3 - Math.min(.3, (q - .15) * 1.5)) + ')'; el.style.opacity = s.front ? (q > .7 ? (1 - q) / .3 : 1) : 0; }, end() { el.remove(); } });
+    }
+    // 12～15 目標本身：閃白、擠壓、抖動、擊退
+    if (T) {
+      const TF = T.fx;
+      if (P.tflash.on && T.mats) {
+        const c = new THREE.Color(P.tflash.color || '#ffffff'), D = P.tflash.dur, I = P.tflash.radius;
+        T.mats.forEach(m => { if (!m.userData.baseEm) m.userData.baseEm = m.emissive ? m.emissive.clone() : null; });
+        add({ t: 0, D, u(t) { const q = t / D; T.mats.forEach(m => { if (m.emissive) m.emissive.copy(m.userData.baseEm).lerp(c.clone().multiplyScalar(I), Math.pow(1 - q, 2)); }); }, end() { T.mats.forEach(m => { if (m.emissive && m.userData.baseEm) m.emissive.copy(m.userData.baseEm); }); } });
+      }
+      if (P.squash.on && !T.heavy) {
+        const A = P.squash.radius * Math.min(k, 1.4), D = P.squash.dur;
+        add({ t: 0, D, u(t) { const q = t / D, s = A * Math.sin(q * Math.PI) * (1 - q * .3); TF.scale.set(1 + s * .6, 1 - s, 1 + s * .6); }, end() { TF.scale.set(1, 1, 1); } });
+      }
+      if (P.tshake.on) {
+        const A = P.tshake.radius * k, D = P.tshake.dur + (P.hitstop.on ? P.hitstop.dur * k : 0), side = new THREE.Vector3(-dir.z, 0, dir.x);
+        add({ t: 0, D, u(t) { const q = t / D; TF.off.copy(side).multiplyScalar(Math.sin(t * 95) * A * (1 - q)); }, end() { TF.off.set(0, 0, 0); } });
+      }
+      if (P.knock.on && !T.heavy) {
+        const Dist = P.knock.radius * k * (h.light ? .5 : 1), D = P.knock.dur;
+        add({ t: 0, D, game: true, last: 0, u(t) { const q = cl(t / D, 0, 1), s = easeOut(q) * Dist; TF.kb.addScaledVector(dir, s - this.last); this.last = s; } });
+      }
+      if (P.hpbar.on && T.bar) { T.bar.delay = P.hpbar.radius; T.bar.dur = Math.max(.05, P.hpbar.dur); T.bar.rate = 0; }
+    }
+    // 16～19 時間與鏡頭
+    if (P.hitstop.on && !h.light) fx.hitstop = Math.max(fx.hitstop, P.hitstop.dur * k);
+    if (P.shake.on) { fx.shake = Math.max(fx.shake, P.shake.radius * k * (h.light ? .5 : 1)); fx.shakeT = 0; fx.shakeDur = P.shake.dur * k; fx.shakeDir.copy(dir); }
+    if (P.fov.on) { fx.fovAmp = Math.max(fx.fovAmp * (1 - fx.fovT / fx.fovDur), P.fov.radius * k); fx.fovT = 0; fx.fovDur = P.fov.dur; }
+    if (P.slowmo.on && h.kill) { fx.slow = P.slowmo.dur; fx.slowK = P.slowmo.radius; }
+  };
+
+  // 6 殘影拖尾：宿主每幀餵筆尖位置
+  fx.trackTip = function (p, active) {
+    const P = fx.params;
+    const now = performance.now() / 1000;
+    if (active && p && fx.enabled && P.trail.on) fx.trail.push({ p: p.clone(), t: now });
+    while (fx.trail.length && now - fx.trail[0].t > P.trail.dur) fx.trail.shift();
+    if (!fx.trailMesh) {
+      const g = new THREE.BufferGeometry(), N = 64;
+      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * 2 * 3), 3));
+      g.setAttribute('alpha', new THREE.BufferAttribute(new Float32Array(N * 2), 1));
+      const idx = []; for (let i = 0; i < N - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } g.setIndex(idx);
+      const m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, uniforms: { c: { value: new THREE.Color() } },
+        vertexShader: 'attribute float alpha; varying float vA; void main(){ vA = alpha; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+        fragmentShader: 'uniform vec3 c; varying float vA; void main(){ gl_FragColor = vec4(c * vA, vA); }' });
+      fx.trailMesh = new THREE.Mesh(g, m); fx.trailMesh.frustumCulled = false; fx.trailMesh.renderOrder = 17; scene.add(fx.trailMesh); fx.trailN = N;
+    }
+    const tm = fx.trailMesh, pts = fx.trail.slice(-fx.trailN), pa = tm.geometry.attributes.position, aa = tm.geometry.attributes.alpha;
+    tm.visible = pts.length > 1;
+    if (!tm.visible) return;
+    tm.material.uniforms.c.value.set(P.trail.color === 'auto' ? (o.tipColor ? o.tipColor() : 0xffffff) : P.trail.color);
+    const camPos = o.camera.position, w = P.trail.radius;
+    for (let i = 0; i < fx.trailN; i++) {
+      const j = Math.min(i, pts.length - 1), a = pts[j].p, b = pts[Math.min(j + 1, pts.length - 1)].p, c0 = pts[Math.max(j - 1, 0)].p;
+      const tg = b.clone().sub(c0), side = tg.cross(camPos.clone().sub(a)).normalize().multiplyScalar(w * (j / Math.max(1, pts.length - 1)));
+      pa.setXYZ(i * 2, a.x + side.x, a.y + side.y, a.z + side.z); pa.setXYZ(i * 2 + 1, a.x - side.x, a.y - side.y, a.z - side.z);
+      const al = i < pts.length ? Math.pow(1 - (now - pts[j].t) / P.trail.dur, 1.5) * .85 : 0;
+      aa.setX(i * 2, al); aa.setX(i * 2 + 1, al);
+    }
+    pa.needsUpdate = aa.needsUpdate = true;
+  };
+
+  // 每幀呼叫一次（真實時間），回傳遊戲時間倍率；knockback 等「遊戲時間」效果要用遊戲時間推進
+  fx.update = function (dt) {
+    if (fx.hitstop > 0) fx.hitstop = Math.max(0, fx.hitstop - dt);
+    else if (fx.slow > 0) fx.slow = Math.max(0, fx.slow - dt);
+    fx.timeScale = fx.hitstop > 0 ? .02 : fx.slow > 0 ? fx.slowK : 1;
+    const gdt = dt * fx.timeScale;
+    lg.clearRect(0, 0, lc.width, lc.height);
+    const r = layer.getBoundingClientRect(), pr = Math.min(2, window.devicePixelRatio || 1);
+    if (lc.width !== Math.round(r.width * pr)) { lc.width = Math.round(r.width * pr); lc.height = Math.round(r.height * pr); }
+    lg.setTransform(pr, 0, 0, pr, 0, 0);
+    for (let i = fx.live.length - 1; i >= 0; i--) {
+      const e = fx.live[i], step = e.game ? gdt : dt;
+      e.t += step;
+      e.u(Math.min(e.t, e.D), step);
+      if (e.t >= e.D) {
+        if (e.end) e.end();
+        if (e.m) { scene.remove(e.m); if (e.m.material && e.m.material.dispose && !e.keepMat) e.m.material.dispose(); if (e.m.isInstancedMesh) e.m.dispose(); }
+        fx.live.splice(i, 1);
+      }
+    }
+    // 鏡頭震動：沿打擊方向為主、指數衰減
+    fx.camOff.set(0, 0, 0);
+    if (fx.shake > 0) {
+      fx.shakeT += dt;
+      const q = fx.shakeT / Math.max(.01, fx.shakeDur), a = fx.shake * Math.exp(-q * 4.5) * (q < 1 ? 1 : 0), w = fx.shakeT * 70;
+      fx.camOff.copy(fx.shakeDir).multiplyScalar(Math.sin(w) * a).add(new THREE.Vector3(Math.sin(w * 1.3 + 1) * a * .35, Math.cos(w * .9) * a * .6, Math.sin(w * .7 + 2) * a * .35));
+      if (q >= 1) fx.shake = 0;
+    }
+    fx.fovAdd = 0;
+    if (fx.fovAmp > 0) { fx.fovT += dt; const q = fx.fovT / fx.fovDur; fx.fovAdd = q < 1 ? fx.fovAmp * Math.exp(-q * 3) * (1 - q) : 0; if (q >= 1) fx.fovAmp = 0; }
+    return fx.timeScale;
+  };
+  // 在宿主擺好鏡頭之後呼叫，疊上震動與視角衝擊
+  fx.applyCamera = function (cam, baseFov) {
+    if (!fx.enabled) return;
+    cam.position.add(fx.camOff);
+    const f = baseFov + fx.fovAdd;
+    if (Math.abs(cam.fov - f) > .01) { cam.fov = f; cam.updateProjectionMatrix(); }
+  };
+  fx.clear = function () { for (const e of fx.live) { if (e.end) e.end(); if (e.m) scene.remove(e.m); } fx.live.length = 0; fx.hitstop = fx.slow = fx.shake = fx.fovAmp = 0; fx.timeScale = 1; fx.trail.length = 0; };
+  // 兩層血條：紅色立刻扣，白色殘影延遲後追上
+  fx.barStep = function (bar, frac, dt) {
+    if (bar.shown === undefined) bar.shown = frac;
+    if (!fx.enabled || !fx.params.hpbar.on) { bar.shown = frac; return frac; }
+    if (frac > bar.shown) bar.shown = frac;
+    if (bar.delay > 0) { bar.delay -= dt; bar.rate = 0; }
+    else if (bar.shown > frac) { if (!bar.rate) bar.rate = (bar.shown - frac) / (bar.dur || .35); bar.shown = Math.max(frac, bar.shown - bar.rate * dt); }
+    else bar.rate = 0;
+    return bar.shown;
+  };
+  return fx;
+}
+
+/* ───────── 預覽頁：兩條跑道（A／B），各自的場景、鏡頭、特效與參數 ───────── */
+const $ = id => document.getElementById(id);
+const clone = o => JSON.parse(JSON.stringify(o));
+const PAINTS = [0xff5a4e, 0x3aa7ff, 0xffd23f, 0x5bd46a];
+const KEY = 'brushwild188-hitfx-lab';
+let saved = null;
+try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+const merge = (base, over) => { const o = clone(base); if (over) for (const k in o) if (over[k]) Object.assign(o[k], over[k]); return o; };
+const ST = { paint: saved?.paint ?? 0, split: false, edit: 'A', sel: 'flash', heavy: false, kill: false, all: true, params: { A: merge(HITFX_DEFAULT, saved?.A), B: merge(HITFX_DEFAULT, saved?.B) } };
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ paint: ST.paint, A: ST.params.A, B: ST.params.B })); } catch (e) {} };
+
+const canvas = $('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.setScissorTest(true);
+const grad = (() => { const n = 64, d = new Uint8Array(n); for (let i = 0; i < n; i++) { const t = i / (n - 1); d[i] = Math.round(255 * (.6 + .33 * Math.min(1, Math.max(0, (t - .44) / .14)))); } const t = new THREE.DataTexture(d, n, 1, THREE.RedFormat); t.minFilter = t.magFilter = THREE.LinearFilter; t.needsUpdate = true; return t; })();
+const toonM = (c, o) => new THREE.MeshToonMaterial(Object.assign({ color: c, gradientMap: grad }, o || {}));
+
+function makeLane(id, color) {
+  const el = document.createElement('div'); el.className = 'lane';
+  el.innerHTML = '<span class="tag" style="background:' + color + '">' + id + '</span><div class="hp"><i class="w"></i><i class="r"></i></div>';
+  $('stage').append(el);
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xbfe0f5); scene.fog = new THREE.Fog(0xbfe0f5, 18, 45);
+  const cam = new THREE.PerspectiveCamera(55, 1, .1, 200);
+  scene.add(new THREE.HemisphereLight(0xdcecff, 0x7b9a62, 1.2));
+  const sun = new THREE.DirectionalLight(0xfff0d2, 2.6); sun.position.set(5, 9, 4); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
+  Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8 }); scene.add(sun);
+  const ground = new THREE.Mesh(new THREE.CircleGeometry(30, 48).rotateX(-Math.PI / 2), toonM(0x8ac65a)); ground.receiveShadow = true; scene.add(ground);
+  for (let i = 0; i < 260; i++) { const b = new THREE.Mesh(new THREE.ConeGeometry(.06, .5 + Math.random() * .4, 3), toonM(0x5aa64c)); const a = Math.random() * 6.28, r = 2 + Math.random() * 14; b.position.set(Math.cos(a) * r, .25, Math.sin(a) * r - 2); scene.add(b); }
+  // 假目標：一隻史萊姆
+  const target = new THREE.Group(); scene.add(target);
+  const bodyM = toonM(0x9a7350, { emissive: 0x000000 }), shineM = toonM(0xffffff);
+  const body = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 20), bodyM); body.scale.set(.95, .8, .95); body.position.y = .8; body.castShadow = true; target.add(body);
+  for (const s of [-1, 1]) { const w = new THREE.Mesh(new THREE.SphereGeometry(.17, 16, 10), shineM); w.position.set(s * .3, 1.0, .76); target.add(w); const p = new THREE.Mesh(new THREE.SphereGeometry(.09, 12, 8), toonM(0x15121c)); p.position.set(s * .3, .98, .9); target.add(p); }
+  const inner = new THREE.Group(); inner.add(...target.children); target.add(inner);
+  // 揮筆的替身：一根大畫筆從右揮到左
+  const pivot = new THREE.Group(); pivot.position.set(.2, 1.2, 2.6); scene.add(pivot);
+  const brush = new THREE.Group(); pivot.add(brush);
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(.04, .045, 2.2, 10), toonM(0xb07a44)); handle.rotation.z = Math.PI / 2; handle.position.x = -1.1; brush.add(handle);
+  const tipM = toonM(PAINTS[ST.paint]);
+  const tuft = new THREE.Mesh(new THREE.SphereGeometry(.16, 14, 10), tipM); tuft.scale.set(2.6, 1, 1); tuft.position.x = -2.5; brush.add(tuft);
+  const tip = new THREE.Object3D(); tip.position.x = -2.9; brush.add(tip);
+  brush.visible = false;
+  const fx = createHitFX({ THREE, scene, camera: cam, overlay: el, params: ST.params[id], groundAt: p => 0, tipColor: () => PAINTS[ST.paint],
+    onSplat(p, c, s) { const m = new THREE.Mesh(new THREE.CircleGeometry(s, 12).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: c, transparent: true })); m.position.set(p.x, .02, p.z); scene.add(m); lane.splats.push({ m, t: 3 }); } });
+  const lane = { id, el, scene, cam, target, inner, bodyM, fx, pivot, brush, tip, tipM, swing: null, hp: 1, bar: {}, kbPos: new THREE.Vector3(), TF: { scale: new THREE.Vector3(1, 1, 1), off: new THREE.Vector3(), kb: new THREE.Vector3() }, splats: [], respawn: 0 };
+  lane.targetRef = { fx: lane.TF, mats: [bodyM], bar: lane.bar, heavy: false };
+  return lane;
+}
+const lanes = [makeLane('A', 'var(--a)'), makeLane('B', 'var(--b)')];
+
+function doHit(L, onlyKey) {
+  const heavy = ST.heavy, dmg = heavy ? 14 : 8;
+  let params;
+  if (onlyKey) { params = clone(L.fx.params); for (const k in params) if ('on' in params[k]) params[k].on = k === onlyKey ? 1 : 0; if (onlyKey === 'frame') params.frame.on = 1; }
+  const kill = ST.kill || L.hp - dmg / 100 <= 0;
+  L.hp = Math.max(0, L.hp - dmg / 100);
+  L.fx.hit({ pos: new THREE.Vector3(L.target.position.x + .55, 1.0, L.target.position.z + .6), dir: new THREE.Vector3(-1, 0, -.35), color: PAINTS[ST.paint], target: L.targetRef, damage: dmg, heavy, kill, always: !!onlyKey, params });
+  if (kill) L.respawn = 1.2;
+}
+function play(L, mode, onlyKey) {
+  if (mode === 'now') { doHit(L, onlyKey); return; }
+  L.swing = { t: 0, dur: ST.heavy ? .46 : .34, done: false, only: onlyKey };
+}
+function playAll(mode, onlyKey) { (ST.split ? lanes : [lanes[0]]).forEach(L => play(L, mode, onlyKey)); }
+
+/* ── 介面 ── */
+const P = () => ST.params[ST.split ? ST.edit : 'A'];
+function slider(host, label, get, set, min, max, step, fmt = v => v) {
+  const d = document.createElement('div'); d.className = 'sl';
+  d.innerHTML = '<label></label><input type="range"><output></output>';
+  d.querySelector('label').textContent = label;
+  const r = d.querySelector('input'), o = d.querySelector('output');
+  Object.assign(r, { min, max, step, value: get() }); o.textContent = fmt(get());
+  r.oninput = () => { set(+r.value); o.textContent = fmt(+r.value); save(); };
+  host.append(d);
+}
+function renderQuick() {
+  const q = $('quick'); q.innerHTML = '';
+  slider(q, '鏡頭震動幅度', () => P().shake.radius, v => P().shake.radius = v, 0, 1, .01, v => v.toFixed(2) + ' m');
+  slider(q, '頓幀長度', () => P().hitstop.dur, v => P().hitstop.dur = v, 0, .25, .005, v => Math.round(v * 1000) + ' ms');
+}
+function renderList() {
+  const L = $('list'); L.innerHTML = '';
+  for (const k in HITFX_INFO) {
+    const d = document.createElement('div'); d.className = 'fx' + (ST.sel === k ? ' sel' : '');
+    const on = P()[k].on;
+    d.innerHTML = '<input type="checkbox"' + (on ? ' checked' : '') + '><span class="n"></span><button title="只播這一種">▶</button>';
+    d.querySelector('.n').textContent = HITFX_INFO[k][0];
+    if (k === 'frame') d.querySelector('.n').insertAdjacentHTML('beforeend', '<small>重擊或擊殺才出現</small>');
+    if (k === 'slowmo') d.querySelector('.n').querySelector('small')?.remove();
+    const cb = d.querySelector('input');
+    cb.onclick = e => { e.stopPropagation(); P()[k].on = cb.checked ? 1 : 0; save(); };
+    d.querySelector('button').onclick = e => { e.stopPropagation(); ST.sel = k; renderList(); renderEdit(); playAll(k === 'trail' ? 'swing' : 'now', k === 'trail' ? null : k); };
+    d.onclick = () => { ST.sel = k; renderList(); renderEdit(); };
+    L.append(d);
+  }
+}
+const DESC = {
+  flash: '命中點一瞬間的亮白星芒，最直接的「打到了」。', ring: '從命中點往外擴散的圓環，有力量傳出去的重量感。', sparks: '沿打擊方向噴出的細長亮點，清脆、硬碰硬。',
+  splat: '顏料團往打擊方向噴，落地留下斑點，軟而黏的「啪」。', slash: '垂直於打擊方向的新月形刀光，俐落。', trail: '畫筆揮過的殘影帶（在揮筆途中出現）。',
+  dust: '幾團煙塵往外散開，厚重的悶響。', star: '漫畫式爆炸星形，卡通、有趣。', lines: '從畫面邊緣往命中點收束的白線，動漫重擊感。',
+  frame: '整個畫面閃白（強度大於 0.5 改成反色），只在重擊或擊殺出現。', numbers: '跳出這一下的傷害數字，重擊變大變黃。', tflash: '目標整隻亮白一下。',
+  squash: '目標被打扁再彈回。', tshake: '目標被震得左右抖（頓幀期間也會抖）。', knock: '目標沿打擊方向被推開一小段。', hitstop: '命中那一刻整個遊戲定格一下。',
+  shake: '鏡頭沿打擊方向震動，很快衰減。', fov: '鏡頭視角瞬間放大再回來。', slowmo: '擊殺時時間變慢一下。', hpbar: '紅條立刻扣，白條延遲一下才追上，看得出這一下扣多少。',
+};
+function renderEdit() {
+  const k = ST.sel, p = P()[k], E = $('edit'); E.innerHTML = '';
+  const h = document.createElement('h3'); h.textContent = HITFX_INFO[k][0]; E.append(h);
+  const d = document.createElement('p'); d.textContent = DESC[k]; E.append(d);
+  if ('dur' in p) slider(E, k === 'hpbar' ? '追上時間' : '持續時間', () => p.dur, v => p.dur = v, k === 'hitstop' ? 0 : .02, k === 'dust' || k === 'numbers' ? 2 : k === 'slowmo' ? 1.5 : 1, .01, v => Math.round(v * 1000) + ' ms');
+  if ('radius' in p && HITFX_INFO[k][1]) {
+    const lim = { lines: [.1, 1, .01], frame: [0, 1, 1], tflash: [0, 4, .05], squash: [0, .6, .01], tshake: [0, .5, .01], knock: [0, 4, .05], shake: [0, 1, .01], fov: [0, 20, .5], slowmo: [.05, 1, .01], hpbar: [0, 1, .01], trail: [.05, 1, .01], numbers: [0, 3, .05] }[k] || [.1, 8, .05];
+    slider(E, HITFX_INFO[k][1].replace(/（.*）/, ''), () => p.radius, v => p.radius = v, lim[0], lim[1], lim[2], v => v.toFixed(2));
+  }
+  if ('count' in p) slider(E, '粒子數量', () => p.count, v => p.count = v, 1, k === 'lines' ? 80 : 60, 1, v => v);
+  if ('color' in p && k !== 'frame' || (k === 'frame')) {
+    const row = document.createElement('div'); row.className = 'sl';
+    row.innerHTML = '<label>顏色</label><span style="display:flex;gap:8px;align-items:center"><input type="color"><label style="font-size:12px;display:flex;gap:4px;align-items:center"><input type="checkbox">跟著顏料色</label></span><span></span>';
+    const ci = row.querySelector('input[type=color]'), au = row.querySelector('input[type=checkbox]');
+    ci.value = p.color === 'auto' ? '#' + PAINTS[ST.paint].toString(16).padStart(6, '0') : p.color; au.checked = p.color === 'auto';
+    ci.oninput = () => { p.color = ci.value; au.checked = false; save(); };
+    au.onchange = () => { p.color = au.checked ? 'auto' : ci.value; save(); };
+    if ('color' in p) E.append(row);
+  }
+  if (k === 'heavy') {}
+  const hm = document.createElement('div'); E.append(hm);
+  if (k === 'hitstop' || k === 'shake' || k === 'knock') slider(hm, '重擊倍率（全部）', () => P().heavy.mul, v => P().heavy.mul = v, 1, 3, .05, v => '×' + v.toFixed(2));
+}
+function renderPaints() {
+  const r = $('paints'); r.innerHTML = '';
+  PAINTS.forEach((c, i) => { const s = document.createElement('span'); s.className = 'sw' + (i === ST.paint ? ' on' : ''); s.style.background = '#' + c.toString(16).padStart(6, '0'); s.title = ['紅', '藍', '黃', '綠'][i]; s.onclick = () => { ST.paint = i; lanes.forEach(L => L.tipM.color.setHex(c)); renderPaints(); renderEdit(); save(); }; r.append(s); });
+}
+function renderAll() { renderQuick(); renderList(); renderEdit(); renderPaints(); $('eA').classList.toggle('on', ST.edit === 'A'); $('eB').classList.toggle('on', ST.edit === 'B'); }
+const tog = (id, key, fn) => $(id).onclick = () => { ST[key] = !ST[key]; $(id).classList.toggle('on', ST[key]); if (fn) fn(); };
+tog('bHeavy', 'heavy'); tog('bKill', 'kill');
+tog('bSplit', 'split', () => { $('laneRow').hidden = !ST.split; if (!ST.split) ST.edit = 'A'; resize(); renderAll(); });
+$('bAll').onclick = () => { ST.all = !ST.all; lanes.forEach(L => { L.fx.enabled = ST.all; if (!ST.all) L.fx.clear(); }); $('bAll').classList.toggle('on', ST.all); $('bAll').textContent = '全部特效：' + (ST.all ? '開' : '關'); };
+$('bSwing').onclick = () => playAll('swing');
+$('bNow').onclick = () => playAll('now');
+$('eA').onclick = () => { ST.edit = 'A'; renderAll(); };
+$('eB').onclick = () => { ST.edit = 'B'; renderAll(); };
+$('cAB').onclick = () => { ST.params.B = clone(ST.params.A); lanes[1].fx.params = ST.params.B; save(); renderAll(); };
+$('cBA').onclick = () => { ST.params.A = clone(ST.params.B); lanes[0].fx.params = ST.params.A; save(); renderAll(); };
+$('bReset').onclick = () => { const k = ST.split ? ST.edit : 'A'; ST.params[k] = clone(HITFX_DEFAULT); lanes[k === 'A' ? 0 : 1].fx.params = ST.params[k]; save(); renderAll(); };
+function round(o) { return JSON.parse(JSON.stringify(o, (k, v) => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v)); }
+$('bPrint').onclick = () => {
+  const k = ST.split ? ST.edit : 'A', p = round(ST.params[k]);
+  const lines = Object.keys(p).map(n => '  ' + n + ': ' + JSON.stringify(p[n]).replace(/"(\w+)":/g, '$1: ').replace(/,/g, ', ') + ',');
+  const txt = '// 打擊特效參數（' + k + ' 組，' + new Date().toLocaleString('zh-TW') + '）\nconst HITFX_PARAMS = {\n' + lines.join('\n') + '\n};';
+  $('out').value = txt; console.log(txt);
+};
+$('bCopy').onclick = () => { if (!$('out').value) $('bPrint').onclick(); navigator.clipboard?.writeText($('out').value).then(() => { $('bCopy').textContent = '已複製'; setTimeout(() => $('bCopy').textContent = '複製', 1200); }, () => { $('out').select(); }); };
+$('stage').addEventListener('pointerdown', e => {
+  if (!ST.split) { play(lanes[0], 'swing'); return; }
+  const r = $('stage').getBoundingClientRect();
+  play(lanes[e.clientX - r.left < r.width / 2 ? 0 : 1], 'swing');
+});
+addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); playAll('swing'); } });
+
+function resize() {
+  const r = $('stage').getBoundingClientRect();
+  renderer.setSize(r.width, r.height, false);
+  lanes.forEach((L, i) => {
+    const w = ST.split ? r.width / 2 : r.width;
+    L.rect = { x: ST.split ? i * w : 0, w, h: r.height };
+    L.el.style.left = L.rect.x + 'px'; L.el.style.width = w + 'px';
+    L.el.style.display = i === 0 || ST.split ? '' : 'none';
+    L.el.querySelector('.tag').style.display = ST.split ? '' : 'none';
+    L.cam.aspect = w / r.height; L.cam.updateProjectionMatrix();
+  });
+}
+addEventListener('resize', resize);
+resize(); renderAll();
+lanes[1].fx.params = ST.params.B; lanes[0].fx.params = ST.params.A;
+
+const _t = new THREE.Vector3();
+let last = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  lanes.forEach((L, i) => {
+    if (i === 1 && !ST.split) return;
+    const ts = L.fx.update(dt), gd = dt * ts;
+    // 揮筆：命中那一格（揮到一半）才放特效
+    if (L.swing) {
+      const s = L.swing; s.t += gd; const k = Math.min(1, s.t / s.dur);
+      L.brush.visible = true;
+      L.pivot.rotation.set(0, -1.9 + k * 3.4, ST.heavy ? .25 : -.1);
+      L.brush.rotation.x = -.15;
+      if (!s.done && k >= .5) { s.done = true; doHit(L, s.only); }
+      L.fx.trackTip(L.tip.getWorldPosition(_t), true);
+      if (k >= 1) { L.swing = null; setTimeout(() => { if (!L.swing) L.brush.visible = false; }, 250); }
+    } else L.fx.trackTip(null, false);
+    // 目標：擊退、回原位、擠壓與抖動
+    L.kbPos.add(L.TF.kb); L.TF.kb.set(0, 0, 0);
+    L.kbPos.multiplyScalar(Math.exp(-gd * 1.4));
+    L.target.position.copy(L.kbPos).add(L.TF.off);
+    L.inner.scale.copy(L.TF.scale);
+    if (L.respawn > 0) { L.respawn -= gd; L.inner.visible = L.respawn > .8 ? Math.sin(now / 30) > 0 : false; if (L.respawn <= 0) { L.hp = 1; L.inner.visible = true; } }
+    // 兩層血條
+    const shown = L.fx.barStep(L.bar, L.hp, gd);
+    const hp = L.el.querySelector('.hp'), p = L.target.position.clone(); p.y += 2.1; p.project(L.cam);
+    hp.style.left = ((p.x * .5 + .5) * L.rect.w) + 'px'; hp.style.top = ((-p.y * .5 + .5) * L.rect.h) + 'px';
+    hp.querySelector('.r').style.width = (L.hp * 100) + '%'; hp.querySelector('.w').style.width = (shown * 100) + '%';
+    for (let j = L.splats.length - 1; j >= 0; j--) { const s = L.splats[j]; s.t -= dt; s.m.material.opacity = Math.min(1, s.t); if (s.t <= 0) { L.scene.remove(s.m); L.splats.splice(j, 1); } }
+    // 鏡頭：類似遊戲的第三人稱
+    L.cam.position.set(1.2, 3.1, 7.2); L.cam.lookAt(0, 1.1, 0);
+    L.fx.applyCamera(L.cam, 55);
+    renderer.setViewport(L.rect.x, 0, L.rect.w, L.rect.h); renderer.setScissor(L.rect.x, 0, L.rect.w, L.rect.h);
+    renderer.render(L.scene, L.cam);
+  });
+}
+requestAnimationFrame(frame);
+window.hitfxLab = { ST, lanes, play, playAll };
+</script>
+</body>
+</html>

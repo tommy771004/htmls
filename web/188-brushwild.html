@@ -57,7 +57,10 @@ button{font-family:inherit;cursor:pointer}
 #boss{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);width:min(560px,calc(100vw - 32px));text-align:center}
 #boss b{display:block;font-size:16px;color:var(--paper);text-shadow:0 2px 0 var(--ink),0 0 3px var(--ink);margin-bottom:4px}
 #bossbar{height:16px;border-radius:9px;border:3px solid var(--ink);background:rgba(255,248,232,.8);overflow:hidden}
-#bossfill{height:100%;width:100%;background:linear-gradient(90deg,var(--red),var(--yellow),var(--green),var(--blue))}
+#bossbar{position:relative}
+#bosstrail{position:absolute;left:0;top:0;bottom:0;width:100%;background:#fff}
+#bossfill{position:relative;height:100%;width:100%;background:linear-gradient(90deg,var(--red),var(--yellow),var(--green),var(--blue))}
+#fxlayer{position:absolute;inset:0;overflow:hidden;pointer-events:none}
 #bossnote{margin-top:4px;font-size:12px;font-weight:700;color:var(--paper);text-shadow:0 1px 0 var(--ink),0 0 3px var(--ink)}
 #stam{position:absolute;left:52%;top:46%;width:34px;height:34px;opacity:0;transition:opacity .3s}
 #dmg{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(255,60,60,.5));opacity:0;transition:opacity .25s}
@@ -112,6 +115,7 @@ body.touch #touchnote{display:block}
 <canvas id="gl" tabindex="0"></canvas>
 
 <div id="hud" class="off">
+  <div id="fxlayer"></div>
   <div id="hearts"></div>
   <div id="inkbar"><div id="inkfill"></div></div>
   <div id="gems">◆ 0</div>
@@ -128,7 +132,7 @@ body.touch #touchnote{display:block}
   </div>
   <div id="prompt" class="hide"></div>
   <div id="toast"></div>
-  <div id="boss" class="hide"><b id="bossname"></b><div id="bossbar"><div id="bossfill"></div></div><div id="bossnote"></div></div>
+  <div id="boss" class="hide"><b id="bossname"></b><div id="bossbar"><div id="bosstrail"></div><div id="bossfill"></div></div><div id="bossnote"></div></div>
   <div id="talk" class="hide"><h4 id="talkwho"></h4><p id="talktext"></p><small>E／點一下 繼續</small></div>
   <div id="dmg"></div>
 </div>
@@ -158,6 +162,7 @@ body.touch #touchnote{display:block}
       <li><kbd>M</kbd>大地圖</li>
       <li><kbd>Esc</kbd>暫停與存檔</li>
       <li><kbd>N</kbd>聲音開關</li>
+      <li><kbd>V</kbd>打擊特效開關</li>
     </ul>
     <p class="note">進度會自動存在這台電腦的瀏覽器裡。點畫面鎖定滑鼠，按 Esc 放開。</p>
   </div>
@@ -172,6 +177,7 @@ body.touch #touchnote{display:block}
       <button class="btn alt" id="bSave">存檔</button>
       <button class="btn alt" id="bMap">地圖</button>
       <button class="btn alt" id="bSound">聲音：開</button>
+      <button class="btn alt" id="bFx">打擊特效：開</button>
       <button class="btn alt" id="bTitle">回標題</button>
     </div>
     <ul class="keys">
@@ -568,6 +574,324 @@ function setSound(on) {
 }
 try { if (localStorage.getItem('brushwild188-sound') === '0') AU.on = false; } catch (e) {}
 function rot(m, ax, v) { m.rotation[ax] = v; return m; }
+
+/* ───────── 打擊特效模組（預覽頁 assets/188/hitfx-lab.html 與遊戲共用同一份程式與參數格式）─────────
+   每種效果：on 開關、dur 秒數、radius 擴散半徑／強度（單位依效果而定）、count 數量、color 顏色（'auto' 跟著當下顏料色）
+   時間：畫面上的特效用真實時間跑（頓幀時也看得到）；擊退用遊戲時間（頓幀結束才被推開）。 */
+const HITFX_DEFAULT = {
+  flash:   { on: 1, dur: .09, radius: 1.8, color: '#fff4d6' },
+  ring:    { on: 1, dur: .28, radius: 2.4, color: 'auto' },
+  sparks:  { on: 1, dur: .32, radius: 3.6, count: 16, color: '#fff0b8' },
+  splat:   { on: 1, dur: .55, radius: 2.6, count: 12, color: 'auto' },
+  slash:   { on: 0, dur: .16, radius: 2.2, color: '#ffffff' },
+  trail:   { on: 0, dur: .18, radius: .35, color: 'auto' },
+  dust:    { on: 0, dur: .7, radius: 1.8, count: 6, color: '#e9e2d2' },
+  star:    { on: 0, dur: .22, radius: 1.5, color: 'auto' },
+  lines:   { on: 0, dur: .14, radius: .5, count: 28, color: '#ffffff' },
+  frame:   { on: 0, dur: .05, radius: 0, color: '#ffffff' },
+  numbers: { on: 1, dur: .8, radius: 1.2, color: '#ffffff' },
+  tflash:  { on: 1, dur: .16, radius: 1.6, color: '#ffffff' },
+  squash:  { on: 1, dur: .18, radius: .22 },
+  tshake:  { on: 1, dur: .1, radius: .1 },
+  knock:   { on: 1, dur: .22, radius: .9 },
+  hitstop: { on: 1, dur: .07 },
+  shake:   { on: 1, dur: .25, radius: .28 },
+  fov:     { on: 0, dur: .2, radius: 5 },
+  slowmo:  { on: 0, dur: .45, radius: .25 },
+  hpbar:   { on: 1, dur: .35, radius: .3 },
+  heavy:   { mul: 1.5 },
+};
+// 每種效果的中文名稱與「radius」這個滑桿在該效果代表什麼
+const HITFX_INFO = {
+  flash:   ['命中閃光', '大小（公尺）'],
+  ring:    ['衝擊波環', '擴散半徑（公尺）'],
+  sparks:  ['火花噴濺', '噴射距離（公尺）'],
+  splat:   ['顏料飛濺', '噴射距離（公尺）'],
+  slash:   ['刀光弧線', '弧線大小（公尺）'],
+  trail:   ['殘影拖尾', '拖尾寬度（公尺）'],
+  dust:    ['煙塵', '擴散半徑（公尺）'],
+  star:    ['漫畫爆炸星', '大小（公尺）'],
+  lines:   ['放射集中線', '中央留空（比例）'],
+  frame:   ['全螢幕閃白', '（反色：大於 0.5）'],
+  numbers: ['傷害數字', '上升高度（公尺）'],
+  tflash:  ['目標閃白', '亮度'],
+  squash:  ['擠壓回彈', '壓扁程度'],
+  tshake:  ['受擊抖動', '抖動幅度（公尺）'],
+  knock:   ['擊退位移', '擊退距離（公尺）'],
+  hitstop: ['頓幀', ''],
+  shake:   ['鏡頭震動', '震動幅度（公尺）'],
+  fov:     ['視角衝擊', '放大角度（度）'],
+  slowmo:  ['慢動作（擊殺時）', '時間倍率'],
+  hpbar:   ['血條白色殘影', '延遲（秒）'],
+};
+function createHitFX(o) {
+  const THREE = o.THREE, scene = o.scene;
+  const fx = { enabled: true, params: o.params, live: [], hitstop: 0, slow: 0, slowK: 1, timeScale: 1, shake: 0, shakeT: 0, shakeDur: .25, shakeDir: new THREE.Vector3(1, 0, 0), fovAdd: 0, fovT: 0, fovDur: .2, fovAmp: 0, camOff: new THREE.Vector3(), trail: [], trailMesh: null };
+  const V = () => new THREE.Vector3();
+  const cl = (v, a, b) => v < a ? a : v > b ? b : v;
+  const easeOut = t => 1 - Math.pow(1 - t, 3);
+  const backOut = t => { const c = 1.9; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+  // ── 貼圖（程式畫）──
+  const tex = (w, draw) => { const c = document.createElement('canvas'); c.width = c.height = w; draw(c.getContext('2d'), w); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; };
+  const flareTex = tex(128, (g, w) => {
+    const r = w / 2, grd = g.createRadialGradient(r, r, 0, r, r, r);
+    grd.addColorStop(0, 'rgba(255,255,255,1)'); grd.addColorStop(.18, 'rgba(255,255,255,.9)'); grd.addColorStop(.45, 'rgba(255,255,255,.25)'); grd.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grd; g.fillRect(0, 0, w, w);
+    g.fillStyle = '#fff';
+    for (let k = 0; k < 4; k++) { g.save(); g.translate(r, r); g.rotate(k * Math.PI / 4); g.beginPath(); g.moveTo(-r, 0); g.lineTo(0, -3.5 + (k % 2)); g.lineTo(r, 0); g.lineTo(0, 3.5 - (k % 2)); g.closePath(); g.globalAlpha = k % 2 ? .45 : .95; g.fill(); g.restore(); }
+  });
+  const softTex = tex(64, (g, w) => { const r = w / 2, grd = g.createRadialGradient(r, r, 0, r, r, r); grd.addColorStop(0, 'rgba(255,255,255,1)'); grd.addColorStop(.6, 'rgba(255,255,255,.55)'); grd.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = grd; g.fillRect(0, 0, w, w); });
+  const starShape = (() => { const s = new THREE.Shape(); for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, r = i % 2 ? .42 : 1 - (i % 4 === 0 ? 0 : .18); const x = Math.cos(a) * r, y = Math.sin(a) * r; i ? s.lineTo(x, y) : s.moveTo(x, y); } return s; })();
+  const starGeo = new THREE.ShapeGeometry(starShape);
+  const ringGeo = new THREE.RingGeometry(.84, 1, 56);
+  const arcGeo = new THREE.RingGeometry(.72, 1, 40, 1, 0, Math.PI);
+  const streakGeo = new THREE.BoxGeometry(1, 1, 1);
+  const blobGeo = new THREE.IcosahedronGeometry(1, 1);
+  const addMat = (color, map) => new THREE.MeshBasicMaterial({ color, map: map || null, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+  // ── 螢幕層：放射線、閃白、傷害數字 ──
+  const layer = o.overlay;
+  const lc = document.createElement('canvas'); lc.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
+  const flashDiv = document.createElement('div'); flashDiv.style.cssText = 'position:absolute;inset:0;pointer-events:none;opacity:0';
+  layer.append(lc, flashDiv);
+  const lg = lc.getContext('2d');
+  const colOf = (c, auto) => new THREE.Color(c === 'auto' || !c ? auto : c);
+  const cssOf = (c, auto) => '#' + colOf(c, auto).getHexString();
+  function project(p) {
+    const v = p.clone().project(o.camera), r = layer.getBoundingClientRect();
+    return { x: (v.x * .5 + .5) * r.width, y: (-v.y * .5 + .5) * r.height, w: r.width, h: r.height, front: v.z < 1 };
+  }
+  function billboard(m) { m.quaternion.copy(o.camera.quaternion); }
+  function add(e) { fx.live.push(e); return e; }
+
+  fx.hit = function (h) {
+    if (!fx.enabled) return;
+    const P = h.params || fx.params;
+    const k = (h.heavy ? P.heavy.mul : 1) * (h.light ? .6 : 1);
+    const pos = h.pos.clone(), dir = (h.dir ? h.dir.clone() : new THREE.Vector3(1, 0, 0)).setY(0);
+    if (dir.lengthSq() < 1e-6) dir.set(1, 0, 0);
+    dir.normalize();
+    const auto = h.color ?? 0xffffff;
+    const T = h.target;
+    // 1 命中閃光
+    if (P.flash.on) {
+      const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: flareTex, color: colOf(P.flash.color, auto), blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false, transparent: true }));
+      m.position.copy(pos); m.material.rotation = Math.random() * 3; m.renderOrder = 20; scene.add(m);
+      const R = P.flash.radius * k, D = P.flash.dur;
+      add({ t: 0, D, m, u(t) { const q = t / D; m.scale.setScalar(R * (q < .35 ? .4 + q / .35 * .6 : 1)); m.material.opacity = q < .35 ? 1 : 1 - (q - .35) / .65; } });
+    }
+    // 2 衝擊波環
+    if (P.ring.on) {
+      const m = new THREE.Mesh(ringGeo, addMat(colOf(P.ring.color, auto)));
+      m.position.copy(pos); m.renderOrder = 19; scene.add(m);
+      const R = P.ring.radius * k, D = P.ring.dur;
+      add({ t: 0, D, m, u(t) { const q = t / D; billboard(m); m.scale.setScalar(R * (.15 + .85 * easeOut(q))); m.material.opacity = (1 - q) * .9; } });
+    }
+    // 3 火花：沿打擊方向的錐形噴出，細長亮條朝速度方向
+    if (P.sparks.on) {
+      const n = Math.round(P.sparks.count * (h.light ? .6 : 1)), D = P.sparks.dur, R = P.sparks.radius * k;
+      const im = new THREE.InstancedMesh(streakGeo, addMat(colOf(P.sparks.color, auto)), n);
+      im.renderOrder = 21; im.frustumCulled = false; scene.add(im);
+      const ps = [], vs = [];
+      for (let i = 0; i < n; i++) {
+        const v = dir.clone().multiplyScalar(.6 + Math.random() * .6).add(new THREE.Vector3(Math.random() - .5, Math.random() * .9 - .1, Math.random() - .5).multiplyScalar(1.3)).normalize();
+        vs.push(v.multiplyScalar(R / D * (1.2 + Math.random() * 1.2))); ps.push(pos.clone());
+      }
+      const d = new THREE.Object3D(), up = new THREE.Vector3(1, 0, 0);
+      add({ t: 0, D, m: im, u(t, dt) {
+        const q = t / D;
+        for (let i = 0; i < n; i++) {
+          vs[i].multiplyScalar(Math.exp(-dt * 3.2)); vs[i].y -= 14 * dt; ps[i].addScaledVector(vs[i], dt);
+          const sp = vs[i].length();
+          d.position.copy(ps[i]); d.quaternion.setFromUnitVectors(up, vs[i].clone().normalize());
+          d.scale.set(cl(sp * .045, .05, .9) * (1 - q * .6), .05 * (1 - q), .05 * (1 - q)); d.updateMatrix(); im.setMatrixAt(i, d.matrix);
+        }
+        im.instanceMatrix.needsUpdate = true; im.material.opacity = 1 - q * q;
+      } });
+    }
+    // 4 顏料飛濺：一團團往打擊方向噴，落地留下斑點
+    if (P.splat.on) {
+      const n = Math.round(P.splat.count * (h.light ? .6 : 1)), D = P.splat.dur, R = P.splat.radius * k, c = colOf(P.splat.color, auto);
+      const im = new THREE.InstancedMesh(blobGeo, new THREE.MeshBasicMaterial({ color: c }), n);
+      im.frustumCulled = false; im.renderOrder = 18; scene.add(im);
+      const ps = [], vs = [], ss = [], landed = [];
+      for (let i = 0; i < n; i++) {
+        const v = dir.clone().multiplyScalar(.9).add(new THREE.Vector3(Math.random() - .5, Math.random() * 1.2, Math.random() - .5)).normalize();
+        vs.push(v.multiplyScalar(R / D * (.7 + Math.random() * .9))); ps.push(pos.clone()); ss.push(.06 + Math.random() * .12); landed.push(false);
+      }
+      const d = new THREE.Object3D();
+      add({ t: 0, D, m: im, u(t, dt) {
+        const q = t / D;
+        for (let i = 0; i < n; i++) {
+          if (!landed[i]) { vs[i].y -= 22 * dt; ps[i].addScaledVector(vs[i], dt); const gy = o.groundAt ? o.groundAt(ps[i]) : -1e9; if (ps[i].y <= gy) { ps[i].y = gy; landed[i] = true; if (o.onSplat && Math.random() < .5) o.onSplat(ps[i].clone(), c.getHex(), ss[i] * 4); } }
+          d.position.copy(ps[i]); const s = ss[i] * (1 - q * .7) * k; d.scale.set(s * (landed[i] ? 1.6 : 1), s * (landed[i] ? .25 : 1), s * (landed[i] ? 1.6 : 1)); d.updateMatrix(); im.setMatrixAt(i, d.matrix);
+        }
+        im.instanceMatrix.needsUpdate = true;
+      } });
+    }
+    // 5 刀光弧線：垂直於打擊方向的新月
+    if (P.slash.on) {
+      const m = new THREE.Mesh(arcGeo, addMat(colOf(P.slash.color, auto)));
+      m.position.copy(pos); m.renderOrder = 22; scene.add(m);
+      const R = P.slash.radius * k, D = P.slash.dur, sp = project(pos), sp2 = project(pos.clone().add(dir)), ang = Math.atan2(-(sp2.y - sp.y), sp2.x - sp.x) + (Math.random() - .5) * .5;
+      add({ t: 0, D, m, u(t) { const q = t / D; billboard(m); m.rotateZ(ang - Math.PI / 2); m.scale.set(R * (.7 + .3 * easeOut(q)), R * (.7 + .3 * easeOut(q)) * (1 - q * .5), 1); m.material.opacity = 1 - q; } });
+    }
+    // 7 煙塵
+    if (P.dust.on) {
+      const n = P.dust.count, D = P.dust.dur, R = P.dust.radius * k;
+      for (let i = 0; i < n; i++) {
+        const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTex, color: colOf(P.dust.color, auto), transparent: true, depthWrite: false, opacity: .7 }));
+        const a = Math.random() * Math.PI * 2, v = new THREE.Vector3(Math.cos(a), .25 + Math.random() * .4, Math.sin(a)).multiplyScalar(R);
+        const base = pos.clone().setY(pos.y - .3); m.position.copy(base); scene.add(m);
+        add({ t: 0, D: D * (.8 + Math.random() * .4), m, u(t) { const q = t / this.D; m.position.copy(base).addScaledVector(v, easeOut(q)); m.scale.setScalar(R * (.35 + .65 * easeOut(q))); m.material.opacity = .75 * (1 - q); } });
+      }
+    }
+    // 8 漫畫爆炸星：彩色星形外圈＋白色內星，彈出後縮回
+    if (P.star.on) {
+      const g = new THREE.Group(); g.position.copy(pos); g.renderOrder = 23; scene.add(g);
+      const a = new THREE.Mesh(starGeo, new THREE.MeshBasicMaterial({ color: colOf(P.star.color, auto), transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide }));
+      const b = new THREE.Mesh(starGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide }));
+      b.scale.setScalar(.55); b.position.z = .01; a.renderOrder = 23; b.renderOrder = 24; g.add(a, b);
+      const R = P.star.radius * k, D = P.star.dur, rot = Math.random() * 3;
+      add({ t: 0, D, m: g, u(t) { const q = t / D; billboard(g); g.rotateZ(rot + q * .6); const s = q < .45 ? backOut(q / .45) : 1 - (q - .45) / .55; g.scale.setScalar(Math.max(.001, R * s)); } });
+    }
+    // 9 放射集中線、10 全螢幕閃白
+    if (P.lines.on) {
+      const n = P.lines.count, D = P.lines.dur, col = cssOf(P.lines.color, auto), ang = []; for (let i = 0; i < n; i++) ang.push([Math.random() * Math.PI * 2, .7 + Math.random() * .6, 1 + Math.random() * 3]);
+      add({ t: 0, D, screen: true, u(t) {
+        const q = t / D, sp = project(pos);
+        const R0 = Math.hypot(sp.w, sp.h), R1 = Math.min(sp.w, sp.h) * .5 * P.lines.radius * (1 + q * .25);
+        lg.save(); lg.globalAlpha = 1 - q; lg.fillStyle = col;
+        for (const [a, l, w] of ang) { const c = Math.cos(a), s = Math.sin(a), r1 = R1 * l, x1 = sp.x + c * r1, y1 = sp.y + s * r1; lg.beginPath(); lg.moveTo(sp.x + c * R0 - s * w * 4, sp.y + s * R0 + c * w * 4); lg.lineTo(x1, y1); lg.lineTo(sp.x + c * R0 + s * w * 4, sp.y + s * R0 - c * w * 4); lg.fill(); }
+        lg.restore();
+      } });
+    }
+    if (P.frame.on && (h.heavy || h.kill || h.always)) {
+      const D = P.frame.dur, inv = P.frame.radius > .5;
+      flashDiv.style.background = inv ? '#fff' : cssOf(P.frame.color, auto); flashDiv.style.mixBlendMode = inv ? 'difference' : 'normal';
+      add({ t: 0, D, screen: true, u(t) { flashDiv.style.opacity = t < D ? (inv ? 1 : .85 * (1 - t / D)) : 0; }, end() { flashDiv.style.opacity = 0; } });
+    }
+    // 11 傷害數字
+    if (P.numbers.on && h.damage) {
+      const el = document.createElement('div');
+      const big = h.heavy || h.crit;
+      el.textContent = Math.round(h.damage * 10) / 10;
+      el.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;font:900 ' + (big ? 30 : 22) + 'px/1 system-ui,sans-serif;color:' + (big ? '#ffd23f' : cssOf(P.numbers.color, auto)) + ';text-shadow:0 2px 0 #2a2238,0 0 3px #2a2238,0 0 1px #2a2238;white-space:nowrap';
+      layer.append(el);
+      const D = P.numbers.dur, R = P.numbers.radius, sx = (Math.random() - .5) * .8;
+      add({ t: 0, D, screen: true, u(t) { const q = t / D, p = pos.clone(); p.y += R * easeOut(q) + .4; p.x += sx * q; const s = project(p); el.style.transform = 'translate(' + (s.x - 12) + 'px,' + (s.y - 12) + 'px) scale(' + (q < .15 ? .6 + q / .15 * .7 : 1.3 - Math.min(.3, (q - .15) * 1.5)) + ')'; el.style.opacity = s.front ? (q > .7 ? (1 - q) / .3 : 1) : 0; }, end() { el.remove(); } });
+    }
+    // 12～15 目標本身：閃白、擠壓、抖動、擊退
+    if (T) {
+      const TF = T.fx;
+      if (P.tflash.on && T.mats) {
+        const c = new THREE.Color(P.tflash.color || '#ffffff'), D = P.tflash.dur, I = P.tflash.radius;
+        T.mats.forEach(m => { if (!m.userData.baseEm) m.userData.baseEm = m.emissive ? m.emissive.clone() : null; });
+        add({ t: 0, D, u(t) { const q = t / D; T.mats.forEach(m => { if (m.emissive) m.emissive.copy(m.userData.baseEm).lerp(c.clone().multiplyScalar(I), Math.pow(1 - q, 2)); }); }, end() { T.mats.forEach(m => { if (m.emissive && m.userData.baseEm) m.emissive.copy(m.userData.baseEm); }); } });
+      }
+      if (P.squash.on && !T.heavy) {
+        const A = P.squash.radius * Math.min(k, 1.4), D = P.squash.dur;
+        add({ t: 0, D, u(t) { const q = t / D, s = A * Math.sin(q * Math.PI) * (1 - q * .3); TF.scale.set(1 + s * .6, 1 - s, 1 + s * .6); }, end() { TF.scale.set(1, 1, 1); } });
+      }
+      if (P.tshake.on) {
+        const A = P.tshake.radius * k, D = P.tshake.dur + (P.hitstop.on ? P.hitstop.dur * k : 0), side = new THREE.Vector3(-dir.z, 0, dir.x);
+        add({ t: 0, D, u(t) { const q = t / D; TF.off.copy(side).multiplyScalar(Math.sin(t * 95) * A * (1 - q)); }, end() { TF.off.set(0, 0, 0); } });
+      }
+      if (P.knock.on && !T.heavy) {
+        const Dist = P.knock.radius * k * (h.light ? .5 : 1), D = P.knock.dur;
+        add({ t: 0, D, game: true, last: 0, u(t) { const q = cl(t / D, 0, 1), s = easeOut(q) * Dist; TF.kb.addScaledVector(dir, s - this.last); this.last = s; } });
+      }
+      if (P.hpbar.on && T.bar) { T.bar.delay = P.hpbar.radius; T.bar.dur = Math.max(.05, P.hpbar.dur); T.bar.rate = 0; }
+    }
+    // 16～19 時間與鏡頭
+    if (P.hitstop.on && !h.light) fx.hitstop = Math.max(fx.hitstop, P.hitstop.dur * k);
+    if (P.shake.on) { fx.shake = Math.max(fx.shake, P.shake.radius * k * (h.light ? .5 : 1)); fx.shakeT = 0; fx.shakeDur = P.shake.dur * k; fx.shakeDir.copy(dir); }
+    if (P.fov.on) { fx.fovAmp = Math.max(fx.fovAmp * (1 - fx.fovT / fx.fovDur), P.fov.radius * k); fx.fovT = 0; fx.fovDur = P.fov.dur; }
+    if (P.slowmo.on && h.kill) { fx.slow = P.slowmo.dur; fx.slowK = P.slowmo.radius; }
+  };
+
+  // 6 殘影拖尾：宿主每幀餵筆尖位置
+  fx.trackTip = function (p, active) {
+    const P = fx.params;
+    const now = performance.now() / 1000;
+    if (active && p && fx.enabled && P.trail.on) fx.trail.push({ p: p.clone(), t: now });
+    while (fx.trail.length && now - fx.trail[0].t > P.trail.dur) fx.trail.shift();
+    if (!fx.trailMesh) {
+      const g = new THREE.BufferGeometry(), N = 64;
+      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * 2 * 3), 3));
+      g.setAttribute('alpha', new THREE.BufferAttribute(new Float32Array(N * 2), 1));
+      const idx = []; for (let i = 0; i < N - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } g.setIndex(idx);
+      const m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, uniforms: { c: { value: new THREE.Color() } },
+        vertexShader: 'attribute float alpha; varying float vA; void main(){ vA = alpha; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+        fragmentShader: 'uniform vec3 c; varying float vA; void main(){ gl_FragColor = vec4(c * vA, vA); }' });
+      fx.trailMesh = new THREE.Mesh(g, m); fx.trailMesh.frustumCulled = false; fx.trailMesh.renderOrder = 17; scene.add(fx.trailMesh); fx.trailN = N;
+    }
+    const tm = fx.trailMesh, pts = fx.trail.slice(-fx.trailN), pa = tm.geometry.attributes.position, aa = tm.geometry.attributes.alpha;
+    tm.visible = pts.length > 1;
+    if (!tm.visible) return;
+    tm.material.uniforms.c.value.set(P.trail.color === 'auto' ? (o.tipColor ? o.tipColor() : 0xffffff) : P.trail.color);
+    const camPos = o.camera.position, w = P.trail.radius;
+    for (let i = 0; i < fx.trailN; i++) {
+      const j = Math.min(i, pts.length - 1), a = pts[j].p, b = pts[Math.min(j + 1, pts.length - 1)].p, c0 = pts[Math.max(j - 1, 0)].p;
+      const tg = b.clone().sub(c0), side = tg.cross(camPos.clone().sub(a)).normalize().multiplyScalar(w * (j / Math.max(1, pts.length - 1)));
+      pa.setXYZ(i * 2, a.x + side.x, a.y + side.y, a.z + side.z); pa.setXYZ(i * 2 + 1, a.x - side.x, a.y - side.y, a.z - side.z);
+      const al = i < pts.length ? Math.pow(1 - (now - pts[j].t) / P.trail.dur, 1.5) * .85 : 0;
+      aa.setX(i * 2, al); aa.setX(i * 2 + 1, al);
+    }
+    pa.needsUpdate = aa.needsUpdate = true;
+  };
+
+  // 每幀呼叫一次（真實時間），回傳遊戲時間倍率；knockback 等「遊戲時間」效果要用遊戲時間推進
+  fx.update = function (dt) {
+    if (fx.hitstop > 0) fx.hitstop = Math.max(0, fx.hitstop - dt);
+    else if (fx.slow > 0) fx.slow = Math.max(0, fx.slow - dt);
+    fx.timeScale = fx.hitstop > 0 ? .02 : fx.slow > 0 ? fx.slowK : 1;
+    const gdt = dt * fx.timeScale;
+    lg.clearRect(0, 0, lc.width, lc.height);
+    const r = layer.getBoundingClientRect(), pr = Math.min(2, window.devicePixelRatio || 1);
+    if (lc.width !== Math.round(r.width * pr)) { lc.width = Math.round(r.width * pr); lc.height = Math.round(r.height * pr); }
+    lg.setTransform(pr, 0, 0, pr, 0, 0);
+    for (let i = fx.live.length - 1; i >= 0; i--) {
+      const e = fx.live[i], step = e.game ? gdt : dt;
+      e.t += step;
+      e.u(Math.min(e.t, e.D), step);
+      if (e.t >= e.D) {
+        if (e.end) e.end();
+        if (e.m) { scene.remove(e.m); if (e.m.material && e.m.material.dispose && !e.keepMat) e.m.material.dispose(); if (e.m.isInstancedMesh) e.m.dispose(); }
+        fx.live.splice(i, 1);
+      }
+    }
+    // 鏡頭震動：沿打擊方向為主、指數衰減
+    fx.camOff.set(0, 0, 0);
+    if (fx.shake > 0) {
+      fx.shakeT += dt;
+      const q = fx.shakeT / Math.max(.01, fx.shakeDur), a = fx.shake * Math.exp(-q * 4.5) * (q < 1 ? 1 : 0), w = fx.shakeT * 70;
+      fx.camOff.copy(fx.shakeDir).multiplyScalar(Math.sin(w) * a).add(new THREE.Vector3(Math.sin(w * 1.3 + 1) * a * .35, Math.cos(w * .9) * a * .6, Math.sin(w * .7 + 2) * a * .35));
+      if (q >= 1) fx.shake = 0;
+    }
+    fx.fovAdd = 0;
+    if (fx.fovAmp > 0) { fx.fovT += dt; const q = fx.fovT / fx.fovDur; fx.fovAdd = q < 1 ? fx.fovAmp * Math.exp(-q * 3) * (1 - q) : 0; if (q >= 1) fx.fovAmp = 0; }
+    return fx.timeScale;
+  };
+  // 在宿主擺好鏡頭之後呼叫，疊上震動與視角衝擊
+  fx.applyCamera = function (cam, baseFov) {
+    if (!fx.enabled) return;
+    cam.position.add(fx.camOff);
+    const f = baseFov + fx.fovAdd;
+    if (Math.abs(cam.fov - f) > .01) { cam.fov = f; cam.updateProjectionMatrix(); }
+  };
+  fx.clear = function () { for (const e of fx.live) { if (e.end) e.end(); if (e.m) scene.remove(e.m); } fx.live.length = 0; fx.hitstop = fx.slow = fx.shake = fx.fovAmp = 0; fx.timeScale = 1; fx.trail.length = 0; };
+  // 兩層血條：紅色立刻扣，白色殘影延遲後追上
+  fx.barStep = function (bar, frac, dt) {
+    if (bar.shown === undefined) bar.shown = frac;
+    if (!fx.enabled || !fx.params.hpbar.on) { bar.shown = frac; return frac; }
+    if (frac > bar.shown) bar.shown = frac;
+    if (bar.delay > 0) { bar.delay -= dt; bar.rate = 0; }
+    else if (bar.shown > frac) { if (!bar.rate) bar.rate = (bar.shown - frac) / (bar.dur || .35); bar.shown = Math.max(frac, bar.shown - bar.rate * dt); }
+    else bar.rate = 0;
+    return bar.shown;
+  };
+  return fx;
+}
 
 /* ───────── 遊戲總狀態（執行期） ───────── */
 const G = { running: false, paused: false, talking: false, zone: 'ow', time: 0, noLock: false, lockedOnce: false, color: 0, shake: 0, bossActive: null };
@@ -2024,13 +2348,15 @@ function updateSwing(dt) {
   if (s.step === 0) { HM.pivot.rotation.set(0, lerp(1.6, -1.8, sstep(0, .6, k)), 0); HM.brush.rotation.set(1.35, 0, 0); }
   else if (s.step === 1) { HM.pivot.rotation.set(0, lerp(-1.8, 1.6, sstep(0, .6, k)), 0); HM.brush.rotation.set(1.35, 0, 0); }
   else { HM.pivot.rotation.set(0, -k * TAU * 1.05, 0); HM.brush.rotation.set(1.45, 0, 0); HM.body.position.y = Math.sin(k * Math.PI) * .6; }
-  if (!s.hitDone && k > .28) { s.hitDone = true; swingHit(s.step); }
+  if (!s.hitDone && k > HIT_K[s.step]) { s.hitDone = true; swingHit(s.step); }
   if (k >= 1) {
     HM.body.position.y = 0;
     const q = s.queued; P.swing = null;
     if (q) startSwing();
   }
 }
+// 命中幀（揮筆進度 0～1）：Blender 動畫裡筆尖掃過角色正前方的那一格；第三段是轉圈，第一次轉到前方就算
+const HIT_K = [.36, .46, .33];
 function swingHit(step) {
   const ci = G.color, fx = Math.sin(P.yaw), fz = Math.cos(P.yaw);
   const range = step === 2 ? 4.4 : 3.9, arc = step === 2 ? Math.PI : 1.25;
@@ -2056,7 +2382,7 @@ function swingHit(step) {
   const px = P.pos.x + fx * 2.6, pz = P.pos.z + fz * 2.6;
   const g = ground(px, pz, P.pos.y + 1);
   if (Math.abs(g.h - P.pos.y) < 2.5) paintGround(px, g.h, pz, ci, g, 1.5);
-  if (any) { SFX.hit(); G.shake = Math.max(G.shake, .18); }
+  if (any) { SFX.hit(); if (!HFX.enabled) G.shake = Math.max(G.shake, .18); }
   const tip = brushTip(_v);
   burst(tip, COLORS[ci].hex, 10, 4, .8, 8, .5);
 }
@@ -2476,7 +2802,7 @@ function buildEnemyMesh(def) {
 const ENEMIES = [];
 const PICKUPS = [];
 const HPBARS = new THREE.Group(); scene.add(HPBARS);
-const barBg = new THREE.MeshBasicMaterial({ color: INK, depthTest: false }), barFg = new THREE.MeshBasicMaterial({ color: 0xff5a4e, depthTest: false });
+const barBg = new THREE.MeshBasicMaterial({ color: INK, depthTest: false }), barFg = new THREE.MeshBasicMaterial({ color: 0xff5a4e, depthTest: false }), barTr = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false });
 const barGeo = new THREE.PlaneGeometry(1, 1);
 const iceShellMat = toon(0xcdefff, { transparent: true, opacity: .6 });
 function spawnEnemy(typeId, x, z, opts = {}) {
@@ -2507,9 +2833,10 @@ function spawnEnemy(typeId, x, z, opts = {}) {
   if (def.arch === 'mimic') { e.state = 'disguise'; }
   const bar = new THREE.Group();
   const bg = new THREE.Mesh(barGeo, barBg); bg.scale.set(1.6, .22, 1);
-  const fg = new THREE.Mesh(barGeo, barFg); fg.scale.set(1.5, .14, 1); fg.position.z = .01;
-  bar.add(bg, fg); bar.renderOrder = 10; bg.renderOrder = 10; fg.renderOrder = 11; bar.visible = false;
-  HPBARS.add(bar); e.bar = bar; e.barFg = fg;
+  const fg = new THREE.Mesh(barGeo, barFg); fg.scale.set(1.5, .14, 1); fg.position.z = .02;
+  const tr = new THREE.Mesh(barGeo, barTr); tr.scale.set(1.5, .14, 1); tr.position.z = .01;
+  bar.add(bg, tr, fg); bar.renderOrder = 10; bg.renderOrder = 10; tr.renderOrder = 11; fg.renderOrder = 12; bar.visible = false;
+  HPBARS.add(bar); e.bar = bar; e.barFg = fg; e.barTr = tr; e.barS = {};
   e.mesh.traverse(o => { if (o.isMesh && !o.userData.outline) o.castShadow = true; });
   scene.add(e.mesh);
   ENEMIES.push(e);
@@ -2533,9 +2860,26 @@ function lobAt(from, to, hex, dmg = 1, t = 1.1) {
 }
 
 /* 被打到：顏色決定額外效果 */
+/* 打擊特效：實際扣到血才播；目標的材質在第一次被打時複製一份，閃白才不會連同類一起亮 */
+function fxTarget(e) {
+  if (e.fxT) return e.fxT;
+  const mats = [];
+  e.mesh.traverse(o => { if (!o.isMesh || o.userData.outline || !o.material || !o.material.isMeshToonMaterial) return; const m = o.material.clone(); o.material = BOTW ? rimify(m) : m; mats.push(m); });
+  e.barS = e.barS || {};
+  e.fxT = { fx: { scale: new THREE.Vector3(1, 1, 1), off: new THREE.Vector3(), kb: new THREE.Vector3() }, mats, bar: e.barS, heavy: !!(e.def.heavy || e.boss || e.bossRef) };
+  return e.fxT;
+}
+function hitFX(e, ci, dir, src, at, dealt) {
+  if (!HFX.enabled || !(dealt > 0)) return;
+  const pos = at ? at.clone() : e.pos.clone().setY(e.pos.y + e.hy);
+  if (!at && dir) pos.addScaledVector(dir, -e.r * .6);
+  const kill = e.dead || e.hp <= 0 || !!(e.bossRef && e.bossRef.hp <= 0);
+  HFX.hit({ pos, dir, color: COLORS[ci].hex, target: fxTarget(e), damage: dealt, heavy: src === 'melee' && P.combo === 2, light: src === 'shot', kill });
+}
 function damageEnemy(e, dmg, ci, dir, src, at) {
   if (e.dead) return;
-  if (e.onHit && e.onHit(e, dmg, ci, dir, src) === false) return;
+  const hp0 = e.hp, bh0 = e.bossRef ? e.bossRef.hp : 0;
+  if (e.onHit && e.onHit(e, dmg, ci, dir, src) === false) { const d = (hp0 - e.hp) + (e.bossRef ? bh0 - e.bossRef.hp : 0); if (d > 0) hitFX(e, ci, dir, src, at, d); return; }
   if (e.state === 'under') return;
   if (e.def.arch === 'shield' && e.shieldUp !== false && ci !== 2) {
     const fx = Math.sin(e.yaw), fz = Math.cos(e.yaw);
@@ -2547,6 +2891,7 @@ function damageEnemy(e, dmg, ci, dir, src, at) {
   if (e.st.frozen > 0 && ci !== 1) mult *= 1.5;
   e.hp -= dmg * mult;
   e.pop = .18; e.alert = true;
+  hitFX(e, ci, dir, src, at, dmg * mult);
   const at2 = at || _v.copy(e.pos).setY(e.pos.y + e.hy);
   burst(at2, COLORS[ci].hex, mult > 1 ? 18 : 10, 5, .8);
   if (mult > 1) burst(at2, 0xffffff, 6, 7, .5);
@@ -2841,6 +3186,11 @@ function enemyUpdate(e, dt) {
   if (e.pop > 0) { e.pop -= dt; const s = 1 + e.pop * 1.4; m.scale.set(base * s, base / s, base * s); }
   else if (def.arch !== 'bomb' || e.state !== 'fuse') m.scale.setScalar(base);
   if (e.squashT > 0) { e.squashT -= dt; m.scale.y *= .7; }
+  if (e.fxT) {
+    const F = e.fxT.fx;
+    m.scale.x *= F.scale.x; m.scale.y *= F.scale.y; m.scale.z *= F.scale.z; m.position.add(F.off);
+    if (F.kb.lengthSq() > 0) { if (!e.fxT.heavy) moveEnemy(e, 1, F.kb.x, F.kb.z); F.kb.set(0, 0, 0); }
+  }
   if (!frozen) {
     const mv = Math.hypot(mvx, mvz) > .2 || e.air;
     const ph = G.time * (mv ? 12 : 3);
@@ -2859,6 +3209,7 @@ function enemyUpdate(e, dt) {
     e.bar.position.set(e.pos.x, e.pos.y + e.top + .5 + (e.hover ? .3 : 0), e.pos.z);
     e.bar.quaternion.copy(camera.quaternion);
     const k = Math.max(0, e.hp / e.maxHp); e.barFg.scale.x = 1.5 * k; e.barFg.position.x = -.75 * (1 - k);
+    const kw = HFX.barStep(e.barS, k, dt); e.barTr.scale.x = Math.max(.001, 1.5 * kw); e.barTr.position.x = -.75 * (1 - kw);
   } else e.bar.visible = false;
 }
 function wander(e, dt, sp, set) {
@@ -3727,6 +4078,10 @@ function updateHUD(dt) {
     let k = b.hp / b.maxHp;
     if (b.id === 'colossus') k = b.phase === 1 ? .5 + b.coreList.reduce((s, c) => s + Math.max(0, c.hp) / 7, 0) / 8 : b.hp / b.maxHp * .5;
     $('bossfill').style.width = (clamp(k, 0, 1) * 100).toFixed(1) + '%'; $('bossnote').textContent = b.note || '';
+    if (bossRef !== b) { bossRef = b; BOSSBAR.shown = k; bossK = k; }
+    if (k < bossK - 1e-4) { BOSSBAR.delay = HITFX_PARAMS.hpbar.radius; BOSSBAR.dur = HITFX_PARAMS.hpbar.dur; BOSSBAR.rate = 0; }
+    bossK = k;
+    $('bosstrail').style.width = (clamp(HFX.barStep(BOSSBAR, k, dt), 0, 1) * 100).toFixed(1) + '%';
   } else $('boss').classList.add('hide');
 }
 function nearInteract() {
@@ -3911,6 +4266,7 @@ function globalKeys() {
   if (hit.has('Escape') || hit.has('KeyP')) { if (!$('mapscreen').classList.contains('hide')) closePause(); else if (G.paused && !$('pause').classList.contains('hide')) closePause(); else if (G.running && !G.paused) openPause(); }
   if (hit.has('KeyM') || hit.has('Tab')) { if (!$('mapscreen').classList.contains('hide')) closePause(); else if (G.running && !G.paused) openMap(); }
   if (hit.has('KeyN')) setSound(!AU.on);
+  if (hit.has('KeyV') && G.running) setHitFX(!HFX.enabled);
   if (!G.running || G.paused) return;
   for (let i = 0; i < 4; i++) if (hit.has('Digit' + (i + 1)) || hit.has('Numpad' + (i + 1))) { if (G.color !== i) { G.color = i; paintHero(); tone([392, 440, 523, 587][i], .1, 'triangle', .1); } }
   if (hit.has('KeyQ')) { G.color = (G.color + 3) % 4; paintHero(); }
@@ -3954,7 +4310,28 @@ function updateThings(dt) {
     if (t.kind === 'portal' && t.mesh && t.mesh.userData.disc) { t.mesh.userData.disc.rotation.z += dt; t.mesh.userData.disc.material.opacity = .6 + Math.sin(G.time * 3) * .15; }
   }
 }
+/* ───────── 打擊特效 ─────────
+   參數請用 assets/188/hitfx-lab.html 調好後按「印出參數」，把印出的 const HITFX_PARAMS = {…}; 整段貼來取代下面這一行 */
+const HITFX_PARAMS = JSON.parse(JSON.stringify(HITFX_DEFAULT));
+const HFX = createHitFX({ THREE, scene, camera, overlay: $('fxlayer'), params: HITFX_PARAMS,
+  groundAt: p => ground(p.x, p.z, p.y + 1).h,
+  onSplat: (p, c, s) => { const g = ground(p.x, p.z, p.y + 1); if (g.type !== 'water' && g.type !== 'pit' && g.type !== 'lava') splat(p.x, g.h, p.z, c, s, G.zone === 'ow' && g.type === 'land'); },
+  tipColor: () => COLORS[G.color].hex });
+function setHitFX(on, quiet) {
+  HFX.enabled = on; if (!on) HFX.clear();
+  $('bFx').textContent = '打擊特效：' + (on ? '開' : '關');
+  try { localStorage.setItem('brushwild188-hitfx', on ? '1' : '0'); } catch (e) {}
+  if (!quiet) toast('打擊特效：' + (on ? '開' : '關') + '（按 V 切換）');
+}
+{ let on = !QS.has('nofx'); try { if (localStorage.getItem('brushwild188-hitfx') === '0') on = false; } catch (e) {} setHitFX(on, true); }
+$('bFx').onclick = () => setHitFX(!HFX.enabled);
+const BOSSBAR = {};
+let bossK = 1, bossRef = null;
 function update(dt) {
+  // 頓幀與慢動作：遊戲時間變慢，鏡頭、介面與特效照真實時間
+  const gd = dt * HFX.update(dt);
+  G.time -= dt - gd;
+  const realDt = dt; dt = gd;
   WIND.value = G.time;
   GRASSP.c.value.set(P.pos.x, P.pos.z);
   waterMat.uniforms.t.value = G.time;
@@ -3978,7 +4355,10 @@ function update(dt) {
   if (G.zone === 'ow' && !P.flying) checkBarrier();
   if (G.zone === 'ow') setMood(G.bossActive ? 'boss' : P.pos.y > 40 ? 'sky' : 'field');
   heroAnim(dt);
+  HFX.trackTip(P.swing ? brushTip(_v3) : null, !!P.swing && !P.flying);
+  dt = realDt;
   updateCamera(dt);
+  HFX.applyCamera(camera, 62);
   sun.position.copy(P.pos).add(SUN_OFF); sun.target.position.copy(P.pos);
   sky.position.copy(camera.position);
   clouds.rotation.y += dt * .004;
@@ -4028,7 +4408,7 @@ $('title').classList.remove('hide');
 
 // 測試與之後加內容用的後門
 window.brushwild = {
-  G, S: () => S, P, CAM, models: !!MODELS, HERO, renderer, scene, camera, OW, sun, splat, H, ENEMY_TYPES, ZONES, ENEMIES, THINGS, CRYSTALS, CAMPS, ISLES, BOSSES,
+  G, S: () => S, P, CAM, models: !!MODELS, HERO, HFX, HITFX_PARAMS, HIT_K, renderer, scene, camera, OW, sun, splat, H, ENEMY_TYPES, ZONES, ENEMIES, THINGS, CRYSTALS, CAMPS, ISLES, BOSSES,
   start: startGame, enterZone, spawnEnemy, saveGame, readSave, hurtPlayer, killEnemy,
   warp(x, z, y) { enterZone('ow', { x, z, y }, true); },
   giveCrystals() { CRYSTALS.forEach(cr => { CAMPS.filter(c => c.guard === cr.c).forEach(c => ENEMIES.filter(e => e.camp === c).forEach(e => { e.hp = 0; killEnemy(e, 0); })); if (!S.crystals[cr.c]) activateCrystal(cr); }); },

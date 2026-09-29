@@ -188,6 +188,7 @@
 - [158 鏡頭實驗室 · The Plane of Focus](https://htmls-ruddy.vercel.app/web/158-lens-lab.html): 3D 光學實驗台。剖開的 24–70mm 變焦鏡頭以近軸光線追跡畫出七片玻璃的折射，轉對焦環讓前群沿光軸移動；1:16 玻璃箱微縮場景立著清晰平面，鏡頭位置即時渲染的照片依景深公式逐像素模糊，並即時驗算薄透鏡與景深公式
 - [162 終電地圖 · Tokyo Last Train Atlas](https://htmls-ruddy.vercel.app/web/162-last-train-atlas.html): 末班時刻 3D 路網。東京 97 條鐵路、1,127 個車站，每站高度等於末班離站時刻，拖動時間軸看時間水位上升、城市一站一站熄燈；平日／週末假日、業者樓層與平面切換，時刻依 Mini Tokyo 3D 公開時刻表推算
 - [185 與非到底 · NAND-8](https://htmls-ruddy.vercel.app/web/185-nand-all-the-way.html): 純 NAND 閘 8 位元電腦。26,988 個 2 輸入 NAND 組成 CPU、256 bytes RAM、1K×16 ROM 與 I/O，組譯器、GATE OS、貪食蛇與描圖板都真的跑在閘級模擬器上；3D 主機板可一路縮放到單一個閘看訊號流動，RAM 的顯示區直接浮現螢幕，推導分頁逐層驗證從 NAND 到整台機器
+- [189 渚 · NAGISA](https://htmls-ruddy.vercel.app/web/189-nagisa-coast.html)：GPU 淺水方程海岸數值水槽。有限體積法即時計算淺化、碎波湧潮、溯上、離岸流與沿岸流，懸浮沙依粒徑沖淤、地形隨之改變；可調波高、週期、波向、潮汐與風，六個情境（離岸流、突堤群、離岸堤、岬灣、河口、漁港），能堆沙、挖沙、放消波塊、滴染料；實景、海流、波高、侵淤、水深五種顯示，斷面圖與波高計即時更新。WebGL2 單檔，無外部資源。
 
 ### 東方在地
 
