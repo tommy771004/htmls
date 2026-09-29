@@ -14,19 +14,19 @@ import type {CombatState,Target} from './combat.ts';
 import type {Unit} from './movement.ts';
 import type {PlayerVision} from './vision.ts';
 import {faithOf,carrying,riteProblem} from './religion.ts';
-import type {ReligionState} from './religion.ts';
+import type {DefenseState} from './defense.ts';
 // Computer opponent (design_default engineering values, not the reference game's AI).
 // It sees only its own player's vision, and every order goes through the same validation as a human's
 // (sim.ts admits it without writing the replay log, because replay re-derives it from the same state).
 // thinkTicks: one decision pass per second at 20 Hz. firstWaveTick: no attack wave before 4 minutes.
 export const aiRules={provenance:'design_default',player:1,thinkTicks:20,thinkOffset:7,villagerTarget:12,
  gatherWeights:{food:4,wood:3,gold:2,stone:0},houseMargin:2,barracksAtVillagers:3,ageUpAtVillagers:9,
- waveSize:5,firstWaveTick:4800,herdRadius:450,penSize:3,wildFoodWorkers:6,wildRange:650,engageRange:500,defendRadius:700,baseMargin:110,laneGap:110,siteRange:900,siteStep:20,halfMargin:100,spill:100,sourceMargin:100,campDistance:350,campWorkers:2,monkTarget:2,
+ waveSize:5,firstWaveTick:4800,herdRadius:450,rams:2,bellFoes:3,bellRadius:450,penSize:3,wildFoodWorkers:6,wildRange:650,engageRange:500,defendRadius:700,baseMargin:110,laneGap:110,siteRange:900,siteSpread:1.5,siteStep:20,halfMargin:100,spill:100,sourceMargin:100,campDistance:350,campWorkers:2,monkTarget:2,
  research:{blacksmith:['forging','fletching','scale-mail-armor','padded-archer-armor','iron-casting','bodkin-arrow','chain-mail-armor','scale-barding-armor'],barracks:['man-at-arms','long-swordsman'],'archery-range':['crossbowman'],'town-center':['loom','wheelbarrow','hand-cart'],'lumber-camp':['double-bit-axe','bow-saw','two-man-saw'],'mining-camp':['gold-mining','gold-shaft-mining'],mill:['horse-collar','heavy-plow','crop-rotation']}} as const;
-export type AIState=ReligionState&ProductionState&{tick:number;ages:number[];vision:PlayerVision[]};
-export type Order=(commandType:'hunt'|'move'|'gather'|'build'|'construct'|'train'|'attack'|'resign'|'convert'|'relic'|'deposit',payload:Record<string,unknown>)=>boolean;
+export type AIState=DefenseState&ProductionState&{tick:number;ages:number[];vision:PlayerVision[]};
+export type Order=(commandType:'bell'|'hunt'|'move'|'gather'|'build'|'construct'|'train'|'attack'|'resign'|'convert'|'relic'|'deposit',payload:Record<string,unknown>)=>boolean;
 type Box=number[];
-const soldierKinds:readonly string[]=['militia','archer','spearman','skirmisher','knight'];
+const soldierKinds:readonly string[]=['militia','archer','spearman','skirmisher','knight','ram'];
 const gap=(a:Box,b:Box)=>Math.max(a[0]-b[2],b[0]-a[2],a[1]-b[3],b[1]-a[3],0);
 const centre=(b:Box)=>({x:(b[0]+b[2])/2,y:(b[1]+b[3])/2});
 const dist=(a:{x:number;y:number},b:{x:number;y:number})=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
@@ -41,6 +41,11 @@ export function stepAI(s:AIState,order:Order){
  // Concede when nothing can turn the game: no town centre (it cannot be rebuilt) and no soldiers left.
  if(!tc&&!soldiers.length){order('resign',{});return;}
  army(s,order,soldiers,foes,tcBox,idle,explored);
+ // The town bell: enough enemy soldiers at the town centre and fewer own soldiers there send the villagers inside; once
+ // no enemy is left near, they go back to work.
+ if(tcBox){const home=centre(tcBox),raiders=foes.filter(f=>f.kind!=='villager'&&dist(f,home)<=aiRules.bellRadius).length,guards=soldiers.filter(u=>dist(u,home)<=aiRules.bellRadius).length;
+  const belled=Object.values(s.garrison).some(g=>g.units.some(e=>e.bell&&e.unit.player===P));
+  if(!belled&&raiders>=aiRules.bellFoes&&guards<raiders)order('bell',{ring:true});else if(belled&&!foes.some(f=>dist(f,home)<=aiRules.bellRadius+150))order('bell',{ring:false});}
  // The scout explores: whenever idle it rides to the nearest tile red has never seen, so waves can aim at
  // buildings it actually found (the point reflection stays the fallback when nothing is known).
  if(scout&&idle(scout)){const size=s.map.size;let best=-1,far=Infinity;for(let t=0;t<size*size;t++){if(explored.has(t))continue;const d=Math.hypot((t%size)*100+50-scout.x,Math.floor(t/size)*100+50-scout.y);if(d<far){far=d;best=t;}}
@@ -59,6 +64,7 @@ export function stepAI(s:AIState,order:Order){
  if(s.ages[P]>=3&&!own.some(b=>b.kind==='monastery')&&stock.wood>=rules.entries.find(e=>e.id==='monastery')!.cost.wood)place(s,order,'monastery',villagers,idle,tcBox,own);
  // The second age adds a blacksmith (after the range); the third a stable for knights.
  if(s.ages[P]>=2&&own.some(b=>b.kind==='archery-range'&&b.complete)&&!own.some(b=>b.kind==='blacksmith')&&stock.wood>=rules.entries.find(e=>e.id==='blacksmith')!.cost.wood)place(s,order,'blacksmith',villagers,idle,tcBox,own);
+ if(s.ages[P]>=3&&own.some(b=>b.kind==='blacksmith'&&b.complete)&&!own.some(b=>b.kind==='siege-workshop')&&stock.wood>=rules.entries.find(e=>e.id==='siege-workshop')!.cost.wood)place(s,order,'siege-workshop',villagers,idle,tcBox,own);
  if(s.ages[P]>=3&&!own.some(b=>b.kind==='stable')&&stock.wood>=rules.entries.find(e=>e.id==='stable')!.cost.wood)place(s,order,'stable',villagers,idle,tcBox,own);
  if(s.ages[P]>=2&&!own.some(b=>b.kind==='archery-range')&&!buildRequirement(s.ages[P],'archery-range',own)&&stock.wood>=rules.entries.find(e=>e.id==='archery-range')!.cost.wood)place(s,order,'archery-range',villagers,idle,tcBox,own);
  if(room<=aiRules.houseMargin&&account.populationCap<rules.settings.populationCap&&!pending('house')&&(!barracksDue||room<=0))place(s,order,'house',villagers,idle,tcBox,own);
@@ -86,7 +92,7 @@ export function stepAI(s:AIState,order:Order){
  const monks=mine.filter(u=>u.kind==='monk'),seenCavalry=foes.some(u=>u.kind==='knight'||u.kind==='scout'&&s.tick>aiRules.firstWaveTick),seenArchers=foes.filter(u=>u.kind==='archer').length;
  for(const b of own.filter(b=>b.complete&&b.queue.length<2)){
   // Counters to what red has seen: spearmen once blue cavalry shows, skirmishers against blue archers.
-  const pick=savingForCastle&&b.kind!=='monastery'?null:b.kind==='barracks'&&!savingForAge?(seenCavalry?'spearman':'militia'):b.kind==='archery-range'?(seenArchers>=2?'skirmisher':'archer'):b.kind==='stable'&&s.ages[P]>=3?'knight':b.kind==='monastery'&&monks.length+queued('monk')<aiRules.monkTarget?'monk':null;
+  const pick=savingForCastle&&b.kind!=='monastery'?null:b.kind==='barracks'&&!savingForAge?(seenCavalry?'spearman':'militia'):b.kind==='archery-range'?(seenArchers>=2?'skirmisher':'archer'):b.kind==='stable'&&s.ages[P]>=3?'knight':b.kind==='siege-workshop'&&mine.filter(u=>u.kind==='ram').length+queued('ram')<aiRules.rams?'ram':b.kind==='monastery'&&monks.length+queued('monk')<aiRules.monkTarget?'monk':null;
   if(pick&&!trainable(s,P,b,pick))order('train',{buildingId:b.id,entryId:pick});}
  // Economic technologies, in the reference's usual order, whenever nothing is being saved for an age: the gather
  // upgrades at the camps and the mill, Loom and the carts at an idle town centre once the villagers are complete.
@@ -157,13 +163,15 @@ function place(s:AIState,order:Order,kind:BuildKind,villagers:Unit[],idle:(u:Uni
  const explored=new Set(s.vision[aiRules.player].explored),bodies=[...s.units.flatMap(u=>[{x:u.x,y:u.y},...(u.next===null?[]:[position(s.map,u.next)])]),...s.relics.filter(r=>r.carrier===null&&r.monastery===null).map(r=>({x:r.x,y:r.y}))];
  const input={tiles:s.map.tiles,obstacles:s.map.obstacles,units:bodies,explored:(t:number)=>explored.has(t)},sites:{x:number;y:number;d:number}[]=[];
  const g=buildingRules.grid,from=(v:number)=>Math.ceil(-v/g)*g;
- // Only the window within siteRange of the town centre is scanned.
- const lo=(v:number,o:number)=>Math.max(from(o),Math.ceil((v-aiRules.siteRange)/g)*g),hi=(v:number,o:number)=>Math.min(world-o,v+aiRules.siteRange);
+ // Only the window within siteRange of the town centre is scanned; a crowded base widens it once (siteSpread).
+ for(const range of kind==='farm'?[aiRules.siteRange]:[aiRules.siteRange,aiRules.siteRange*aiRules.siteSpread]){if(sites.length)break;
+ const lo=(v:number,o:number)=>Math.max(from(o),Math.ceil((v-range)/g)*g),hi=(v:number,o:number)=>Math.min(world-o,v+range);
  for(let x=lo(c.x,x0);x<=hi(c.x,x1);x+=aiRules.siteStep)for(let y=lo(c.y,y0);y<=hi(c.y,y1);y+=aiRules.siteStep){const box=[x+x0,y+y0,x+x1,y+y1],mid=centre(box);
   // Buildings that train soldiers keep a buffer from the centre line so fresh soldiers do not start inside enemy sight;
   // houses and farms may reach a little past it (the 16x16 map leaves little room once a base grows).
-  const margin=kind==='barracks'||kind==='archery-range'||kind==='monastery'||kind==='stable'?aiRules.halfMargin:-aiRules.spill,ownHalf=Math.min(side(box[0],box[1]),side(box[2],box[1]),side(box[0],box[3]),side(box[2],box[3]))>=margin;
-  if(!ownHalf||dist(mid,c)>aiRules.siteRange||gap(box,tcBox)<(kind==='farm'?50:aiRules.baseMargin)||(kind!=='farm'&&(others.some(o=>gap(box,o)<aiRules.laneGap)||sources.some(o=>gap(box,o)<aiRules.sourceMargin))))continue;sites.push({x,y,d:dist(mid,c)});}
+  const margin=kind==='barracks'||kind==='archery-range'||kind==='monastery'||kind==='stable'||kind==='siege-workshop'?aiRules.halfMargin:-aiRules.spill,ownHalf=Math.min(side(box[0],box[1]),side(box[2],box[1]),side(box[0],box[3]),side(box[2],box[3]))>=margin;
+  if(!ownHalf||dist(mid,c)>range||gap(box,tcBox)<(kind==='farm'?50:aiRules.baseMargin)||(kind!=='farm'&&(others.some(o=>gap(box,o)<aiRules.laneGap)||sources.some(o=>gap(box,o)<aiRules.sourceMargin))))continue;sites.push({x,y,d:dist(mid,c)});}
+ }
  sites.sort((a,b)=>a.d-b.d||a.y-b.y||a.x-b.x);
  for(const site of sites){if(placementProblem(input,kind,site.x,site.y))continue;
   const builder=worker??pickBuilder(s,villagers,idle,site);if(!builder)return false;
@@ -179,7 +187,7 @@ function army(s:AIState,order:Order,soldiers:Unit[],foes:Unit[],tcBox:Box|null,i
  for(const u of soldiers){if(s.attacks[u.id])continue;
   // Defend the base first, then the nearest enemy in reach (marching soldiers do not auto-engage).
   // Before the first wave is due, soldiers only fight inside the home area.
-  const foe=intruder??foes.filter(f=>dist(f,u)<=aiRules.engageRange&&(offensive||home&&dist(f,home)<=aiRules.defendRadius)).sort((a,b)=>dist(a,u)-dist(b,u)||a.id-b.id)[0];
+  const foe=u.kind==='ram'?undefined:intruder??foes.filter(f=>dist(f,u)<=aiRules.engageRange&&(offensive||home&&dist(f,home)<=aiRules.defendRadius)).sort((a,b)=>dist(a,u)-dist(b,u)||a.id-b.id)[0];
   if(foe){assign(u,{kind:'unit',id:foe.id});continue;}
   // Buildings are attacked only by soldiers already out on a wave, never by one trickling from home.
   const site=offensive&&idle(u)&&dist(u,home??u)>aiRules.defendRadius?enemyBuildings.sort((a,b)=>dist(centre(a.box!),u)-dist(centre(b.box!),u)||(a.b.id<b.b.id?-1:1))[0]:undefined;

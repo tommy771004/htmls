@@ -14,6 +14,9 @@ var obstacleFootprints = {
   "archery-range": { x: -15, y: -15, width: 300, depth: 300 },
   monastery: { x: -15, y: -15, width: 300, depth: 300 },
   blacksmith: { x: -15, y: -15, width: 300, depth: 300 },
+  "siege-workshop": { x: -15, y: -15, width: 300, depth: 300 },
+  // Watch tower: one tile.
+  "watch-tower": { x: 0, y: 0, width: 100, depth: 100 },
   tree: { x: -20, y: -20, width: 100, depth: 100 },
   rock: { x: 0, y: 0, width: 65, depth: 70 },
   gold: { x: 0, y: 0, width: 65, depth: 70 },
@@ -311,6 +314,8 @@ var rules = {
     entry("militia", "unit", "\u8FD1\u6230\u6C11\u5175", 60, 0, 20, 0, ["barracks"], 1),
     entry("archer", "unit", "\u5F13\u624B", 0, 40, 30, 0, ["age-2"], 1),
     entry("ram", "unit", "\u653B\u57CE\u69CC", 0, 160, 75, 0, ["age-3"], 3),
+    entry("watch-tower", "building", "\u7BAD\u5854", 0, 25, 0, 125, ["age-2"]),
+    entry("siege-workshop", "building", "\u653B\u57CE\u5668\u5DE5\u574A", 0, 200, 0, 0, ["age-3", "blacksmith"]),
     entry("scout", "unit", "\u65A5\u5019", 80, 0, 0, 0, ["stable"], 1),
     entry("monk", "unit", "\u50E7\u4FB6", 0, 0, 100, 0, ["monastery"], 1),
     entry("redemption", "technology", "\u6551\u8D16", 0, 0, 475, 0, ["monastery", "age-3"]),
@@ -375,7 +380,7 @@ var rules = {
     crossbowman: "archery-range",
     skirmisher: "archery-range",
     "elite-skirmisher": "archery-range",
-    ram: null,
+    ram: "siege-workshop",
     scout: "stable",
     "light-cavalry": "stable",
     knight: "stable",
@@ -421,7 +426,7 @@ var rules = {
     wheelbarrow: "town-center",
     "hand-cart": "town-center"
   },
-  civilizations: [{ id: "blue-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "spearman", "skirmisher", "knight", "blacksmith", "man-at-arms", "long-swordsman", "pikeman", "crossbowman", "elite-skirmisher", "light-cavalry", "forging", "iron-casting", "blast-furnace", "scale-mail-armor", "chain-mail-armor", "plate-mail-armor", "scale-barding-armor", "chain-barding-armor", "plate-barding-armor", "fletching", "bodkin-arrow", "bracer", "padded-archer-armor", "leather-archer-armor", "ring-archer-armor", "loom", "wheelbarrow", "hand-cart", "double-bit-axe", "bow-saw", "two-man-saw", "gold-mining", "gold-shaft-mining", "stone-mining", "stone-shaft-mining", "horse-collar", "heavy-plow", "crop-rotation", "age-2", "age-3", "age-4"], unavailable: [] }, { id: "red-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "spearman", "skirmisher", "knight", "blacksmith", "man-at-arms", "long-swordsman", "pikeman", "crossbowman", "elite-skirmisher", "light-cavalry", "forging", "iron-casting", "blast-furnace", "scale-mail-armor", "chain-mail-armor", "plate-mail-armor", "scale-barding-armor", "chain-barding-armor", "plate-barding-armor", "fletching", "bodkin-arrow", "bracer", "padded-archer-armor", "leather-archer-armor", "ring-archer-armor", "loom", "wheelbarrow", "hand-cart", "double-bit-axe", "bow-saw", "two-man-saw", "gold-mining", "gold-shaft-mining", "stone-mining", "stone-shaft-mining", "horse-collar", "heavy-plow", "crop-rotation", "age-2", "age-3", "age-4"], unavailable: [] }]
+  civilizations: [{ id: "blue-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "spearman", "skirmisher", "knight", "blacksmith", "watch-tower", "siege-workshop", "man-at-arms", "long-swordsman", "pikeman", "crossbowman", "elite-skirmisher", "light-cavalry", "forging", "iron-casting", "blast-furnace", "scale-mail-armor", "chain-mail-armor", "plate-mail-armor", "scale-barding-armor", "chain-barding-armor", "plate-barding-armor", "fletching", "bodkin-arrow", "bracer", "padded-archer-armor", "leather-archer-armor", "ring-archer-armor", "loom", "wheelbarrow", "hand-cart", "double-bit-axe", "bow-saw", "two-man-saw", "gold-mining", "gold-shaft-mining", "stone-mining", "stone-shaft-mining", "horse-collar", "heavy-plow", "crop-rotation", "age-2", "age-3", "age-4"], unavailable: [] }, { id: "red-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "spearman", "skirmisher", "knight", "blacksmith", "watch-tower", "siege-workshop", "man-at-arms", "long-swordsman", "pikeman", "crossbowman", "elite-skirmisher", "light-cavalry", "forging", "iron-casting", "blast-furnace", "scale-mail-armor", "chain-mail-armor", "plate-mail-armor", "scale-barding-armor", "chain-barding-armor", "plate-barding-armor", "fletching", "bodkin-arrow", "bracer", "padded-archer-armor", "leather-archer-armor", "ring-archer-armor", "loom", "wheelbarrow", "hand-cart", "double-bit-axe", "bow-saw", "two-man-saw", "gold-mining", "gold-shaft-mining", "stone-mining", "stone-shaft-mining", "horse-collar", "heavy-plow", "crop-rotation", "age-2", "age-3", "age-4"], unavailable: [] }]
 };
 function validateRules(value, exact = false) {
   const errors = [];
@@ -711,6 +716,85 @@ function blacksmithParts(v) {
   add("flag", 4, 2.24, 2.63, 1.42, 0.44, 0.05, 0.28, team2);
   if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: stone2, studs: false }))];
   return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "flag" || a.id === "hearth-fire" || a.id === "chimney-cap"));
+}
+
+// apps/web/defense-building.ts
+var check2 = (v, what) => {
+  if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error(`\u7121\u6548${what}\u5916\u89C0`);
+};
+function finish(p, v, debris, keep) {
+  if (v.health === 0) return [p[0], ...Array.from({ length: 6 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: i % 3 * 0.3, z: Math.floor(i / 3) * 0.4, y: 0.12, w: 0.26, d: 0.24, h: 0.1, color: debris, studs: false }))];
+  return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || keep(a.id));
+}
+function towerParts(v) {
+  check2(v, "\u7BAD\u5854");
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", stone2 = "#b5b29e", roof = age === 1 ? "#b8a074" : team2;
+  const add = (id, phase, x, z, y, w, d, h, color, studs = false) => p.push({ id, phase, x, z, y, w, d, h, color, studs });
+  const shaft = 1.6 + (age - 1) * 0.24;
+  add("foundation", 0, -0.05, -0.05, 0, 1.1, 1.1, 0.12, "#b3aa8c");
+  add("shaft", 1, 0.08, 0.08, 0.12, 0.84, 0.84, shaft * 0.55, stone2);
+  add("shaft-upper", 2, 0.14, 0.14, 0.12 + shaft * 0.55, 0.72, 0.72, shaft * 0.45, stone2);
+  add("door", 1, 0.36, 0.9, 0.12, 0.28, 0.04, 0.4, "#6e5a44");
+  add("lookout", 3, 0, 0, 0.12 + shaft, 1, 1, 0.14, wood2);
+  for (const [x, z] of [[0, 0], [0.84, 0], [0, 0.84], [0.84, 0.84]]) add(`post-${x}-${z}`, 3, x, z, 0.26 + shaft, 0.16, 0.16, 0.36, wood2);
+  add("roof", 4, -0.06, -0.06, 0.62 + shaft, 1.12, 1.12, 0.14, roof, true);
+  add("roof-top", 4, 0.2, 0.2, 0.76 + shaft, 0.6, 0.6, 0.14, roof, true);
+  if (age >= 3) for (let i = 0; i < 4; i++) add(`slit-${i}`, 2, 0.47, i % 2 ? 0.1 : 0.9, 0.5 + i * 0.3, 0.06, 0.02, 0.2, "#4a4740");
+  add("flag", 4, 0.46, 0.46, 0.9 + shaft, 0.06, 0.06, 0.5, wood2);
+  add("pennant", 4, 0.52, 0.46, 1.22 + shaft, 0.3, 0.04, 0.16, team2);
+  return finish(p, v, stone2, (id) => !(id === "pennant" || id === "roof-top"));
+}
+function siegeWorkshopParts(v) {
+  check2(v, "\u653B\u57CE\u5668\u5DE5\u574A");
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", dark = "#6e5438", roof = age === 1 ? "#b8a074" : team2;
+  const add = (id, phase, x, z, y, w, d, h, color, studs = false) => p.push({ id, phase, x, z, y, w, d, h, color, studs });
+  const top = 1.44;
+  add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
+  for (const x of [0.1, 2.44]) for (const z of [0.1, 1.65]) add(`post-${x}-${z}`, 1, x, z, 0.16, 0.16, 0.16, top - 0.16, wood2);
+  add("back-wall", 1, 0.1, 0.1, 0.16, 2.5, 0.15, top - 0.16, wood2);
+  for (let level = 0; level < 2; level++) add(`roof-${level}`, 2, -0.05 + level * 0.35, -0.05, top + level * 0.16, 2.9 - level * 0.7, 1.98, 0.16, roof, true);
+  add("ram-bed", 3, 0.5, 0.6, 0.16, 1.6, 0.7, 0.12, dark);
+  add("ram-log", 3, 0.45, 0.8, 0.4, 1.8, 0.3, 0.3, wood2);
+  for (const x of [0.6, 1.8]) add(`ram-rib-${x}`, 3, x, 0.6, 0.28, 0.1, 0.7, 0.6, dark);
+  for (let i = 0; i < 3; i++) add(`log-${i}`, 3, 0.3, 2.05 + i * 0.2, 0.16, 1.4, 0.18, 0.18, wood2);
+  add("log-top", 3, 0.5, 2.15, 0.34, 1, 0.18, 0.18, wood2);
+  add("wheel", 3, 2.1, 2, 0.16, 0.14, 0.6, 0.6, dark);
+  add("wheel-hub", 3, 2.08, 2.2, 0.36, 0.18, 0.2, 0.2, "#c9a55a");
+  if (age >= 3) add("crane-arm", 4, 2.2, 0.3, top - 0.1, 0.14, 1.2, 0.14, wood2);
+  add("flag-pole", 4, 2.67, 2.63, 0.16, 0.06, 0.06, 1.6, wood2);
+  add("flag", 4, 2.24, 2.63, 1.42, 0.44, 0.05, 0.28, team2);
+  return finish(p, v, wood2, (id) => !(id === "flag" || id === "crane-arm"));
+}
+
+// apps/web/siege-rig.ts
+function createRamRig(T, player, box2, material) {
+  const root = new T.Group();
+  root.name = "siege-ram";
+  const team2 = player === 0 ? "#45728c" : "#b25441", wood2 = "#94734c", dark = "#6e5438";
+  const part = (parent, x, y, z, w, h, d, color) => {
+    const m = new T.Mesh(box2(w, h, d), material(color));
+    m.position.set(x, y, z);
+    m.castShadow = true;
+    parent.add(m);
+    return m;
+  };
+  part(root, 0, 0.22, 0, 0.76, 0.1, 1.3, dark);
+  for (const x of [-0.36, 0.36]) for (const z of [-0.45, 0.45]) part(root, x, 0, z, 0.1, 0.36, 0.36, "#5c4a36");
+  for (const x of [-0.3, 0.3]) part(root, x, 0.32, 0, 0.1, 0.55, 1.2, wood2);
+  part(root, 0, 0.86, 0, 0.86, 0.1, 1.36, team2);
+  part(root, 0, 0.96, 0, 0.5, 0.1, 1.36, team2);
+  const log = new T.Group();
+  root.add(log);
+  part(log, 0, 0.4, 0.2, 0.24, 0.24, 1.2, "#8a6a45");
+  part(log, 0, 0.38, 0.82, 0.3, 0.28, 0.12, "#6b6f6c");
+  function pose(kind, time) {
+    const t = Number.isFinite(time) ? Math.max(0, time) : 0;
+    log.position.z = kind === "attack" ? Math.max(0, Math.sin(t * 8e-3)) * 0.25 : 0;
+    root.rotation.x = kind === "walk" ? Math.sin(t * 0.02) * 0.015 : kind === "hit" && t < 300 ? -0.05 * Math.sin(Math.PI * t / 300) : 0;
+  }
+  return { root, sockets: { leftHand: new T.Group(), rightHand: new T.Group() }, equip: (_) => {
+  }, dress: (_) => {
+  }, pose };
 }
 
 // apps/web/relic-model.ts
@@ -1660,7 +1744,7 @@ function placePond(seed, size, taken, centres) {
   for (let dy = 0; dy < R.size; dy++) for (let dx = 0; dx < R.size; dx++) out.push(t0 + dy * size + dx);
   return out;
 }
-var buildingKinds = /* @__PURE__ */ new Set(["house", "town-center", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "blacksmith"]);
+var buildingKinds = /* @__PURE__ */ new Set(["house", "town-center", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "blacksmith", "watch-tower", "siege-workshop"]);
 function isBuilding(o) {
   return buildingKinds.has(o.kind);
 }
@@ -1960,7 +2044,7 @@ async function createScene(canvas2, onFailure, options = {}) {
   let previewBuildingKind = "house";
   let previewBuilding = { ageVariant: 2, progress: 100, health: 100 };
   function house(x, z, red = false, obstacleKind = "house", progress = 100, age = 2, health = 100) {
-    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, health, ageVariant: Math.min(4, Math.max(1, age)) }, parts = kind === "house" ? buildingParts({ ...visual, red }) : kind === "monastery" ? monasteryParts({ ...visual, red }) : kind === "blacksmith" ? blacksmithParts({ ...visual, red }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red }) : economicBuildingParts(kind, { ...visual, red });
+    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, health, ageVariant: Math.min(4, Math.max(1, age)) }, parts = kind === "house" ? buildingParts({ ...visual, red }) : kind === "monastery" ? monasteryParts({ ...visual, red }) : kind === "blacksmith" ? blacksmithParts({ ...visual, red }) : kind === "watch-tower" ? towerParts({ ...visual, red }) : kind === "siege-workshop" ? siegeWorkshopParts({ ...visual, red }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red }) : economicBuildingParts(kind, { ...visual, red });
     for (const p of parts) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, false, p.shape);
     for (const stud of buildingStuds(parts)) staticPart(studGeo, stud.color, x + stud.x, stud.y, z + stud.z);
   }
@@ -1995,7 +2079,7 @@ async function createScene(canvas2, onFailure, options = {}) {
       muted = !options.assetPreview && view.fog[tileAt(o.x, o.y, sizeOfTiles(map.tiles))] !== 2;
       const x = o.x / 100, z = o.y / 100;
       if (o.kind === "farm") for (const p of farmParts(o.progress ?? 100, o.red)) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, p.studs);
-      else if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks" || o.kind === "lumber-camp" || o.kind === "mining-camp" || o.kind === "mill" || o.kind === "stable" || o.kind === "archery-range" || o.kind === "monastery" || o.kind === "blacksmith") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100);
+      else if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks" || o.kind === "lumber-camp" || o.kind === "mining-camp" || o.kind === "mill" || o.kind === "stable" || o.kind === "archery-range" || o.kind === "monastery" || o.kind === "blacksmith" || o.kind === "watch-tower" || o.kind === "siege-workshop") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100);
       else if (o.kind === "tree") {
         let v = Math.imul(o.x | 0, 73856093) ^ Math.imul(o.y | 0, 19349663);
         v = Math.imul(v ^ v >>> 16, 73244475);
@@ -2062,6 +2146,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     return g;
   }
   const relics = /* @__PURE__ */ new Map();
+  const arrows2 = /* @__PURE__ */ new Map(), arrowGeo = new T.BoxGeometry(0.04, 0.04, 1), arrowMaterial = new T.MeshBasicMaterial({ color: "#4a3b2a" });
   const fallen = /* @__PURE__ */ new Map();
   const barBack = new T.MeshBasicMaterial({ color: "#2d3a33" }), barGeo = new T.BoxGeometry(0.5, 0.05, 0.05);
   const ringGeo = new T.RingGeometry(0.4, 0.47, 32);
@@ -2079,8 +2164,8 @@ async function createScene(canvas2, onFailure, options = {}) {
     fill.position.z = 0.012;
     bar.add(back, fill);
     group.add(bar);
-    const rig = beast ? createAnimalRig(T, kind, player, box2, material) : createCharacterRig(T, player, box2, material);
-    if (!beast) {
+    const rig = beast ? createAnimalRig(T, kind, player, box2, material) : kind === "ram" ? createRamRig(T, player, box2, material) : createCharacterRig(T, player, box2, material);
+    if (!beast && kind !== "ram") {
       if (!options.assetPreview && kind !== "villager") rig.dress(roleOf(kind));
       rig.equip(previewTool);
     }
@@ -2199,6 +2284,22 @@ async function createScene(canvas2, onFailure, options = {}) {
       }
       g.position.set(r.x / 100, (groundHeight(worldTiles, r.x, r.y) + standingLift(r.x, r.y)) / 100, r.y / 100);
     }
+    const flying = new Set((view.shots ?? []).map((v) => `${v.tick}:${v.from.x},${v.from.y}>${v.to.x},${v.to.y}`));
+    for (const [k, m] of arrows2) if (!flying.has(k)) {
+      scene2.remove(m);
+      arrows2.delete(k);
+    }
+    for (const v of view.shots ?? []) {
+      const k = `${v.tick}:${v.from.x},${v.from.y}>${v.to.x},${v.to.y}`;
+      if (arrows2.has(k)) continue;
+      const a = new T.Vector3(v.from.x / 100, groundHeight(worldTiles, v.from.x, v.from.y) / 100 + 2.2, v.from.y / 100), b = new T.Vector3(v.to.x / 100, groundHeight(worldTiles, v.to.x, v.to.y) / 100 + 0.6, v.to.y / 100);
+      const m = new T.Mesh(arrowGeo, arrowMaterial);
+      m.position.copy(a).lerp(b, 0.5);
+      m.scale.z = a.distanceTo(b);
+      m.lookAt(b);
+      scene2.add(m);
+      arrows2.set(k, m);
+    }
     const lying = new Set((view.corpses ?? []).map((c) => c.id));
     for (const [id, f] of fallen) if (!lying.has(id)) {
       scene2.remove(f.group);
@@ -2228,7 +2329,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     if (groundHit) return { x: groundHit.point.x, y: groundHit.point.z };
     return {};
   }
-  const buildingHeights = { "town-center": 2.6, barracks: 2.2, house: 1.9, farm: 0.25, "lumber-camp": 1.9, "mining-camp": 1.9, mill: 2.6, stable: 2.2, "archery-range": 2.2, blacksmith: 2.4, monastery: 3.4 };
+  const buildingHeights = { "town-center": 2.6, barracks: 2.2, house: 1.9, farm: 0.25, "lumber-camp": 1.9, "mining-camp": 1.9, mill: 2.6, stable: 2.2, "archery-range": 2.2, blacksmith: 2.4, "watch-tower": 3.2, "siege-workshop": 2.2, monastery: 3.4 };
   function pickBuilding(clientX, clientY) {
     if (!latest) return;
     const r = canvas2.getBoundingClientRect();
@@ -2410,6 +2511,14 @@ async function createScene(canvas2, onFailure, options = {}) {
       s.remove(g);
     };
     try {
+      {
+        const rig = createRamRig(T, 0, box2, material);
+        rig.pose("idle", 0);
+        const g = new T.Group();
+        g.add(rig.root);
+        shoot("ram", g, { angle: Math.PI / 4, lift: 0.5 });
+        shoot("ram-face", g, { angle: Math.PI / 4, lift: 0.5 });
+      }
       for (const kind of ["sheep", "deer", "boar"]) {
         const rig = createAnimalRig(T, kind, 0, box2, material);
         rig.pose("idle", 0);
@@ -2436,6 +2545,8 @@ async function createScene(canvas2, onFailure, options = {}) {
         shoot(`archery-range-${age}`, parts(militaryBuildingParts("archery-range", visual(age))));
         shoot(`monastery-${age}`, parts(monasteryParts(visual(age))));
         shoot(`blacksmith-${age}`, parts(blacksmithParts(visual(age))));
+        shoot(`watch-tower-${age}`, parts(towerParts(visual(age))));
+        shoot(`siege-workshop-${age}`, parts(siegeWorkshopParts(visual(age))));
         shoot(`town-center-${age}`, parts(economicBuildingParts("town-center", visual(age))));
         for (const camp of ["lumber-camp", "mining-camp", "mill"]) shoot(`${camp}-${age}`, parts(economicBuildingParts(camp, visual(age))));
       }
@@ -2605,7 +2716,7 @@ async function createScene(canvas2, onFailure, options = {}) {
 }
 
 // packages/sim/vision.ts
-var visionRules = { provenance: "design_default", unitRadius: 400, scoutRadius: 550, sheepRadius: 200, houseRadius: 300, townCenterRadius: 600, shareVision: false, rememberStaticObjects: true };
+var visionRules = { provenance: "design_default", unitRadius: 400, scoutRadius: 550, sheepRadius: 200, houseRadius: 300, townCenterRadius: 600, towerRadius: 700, shareVision: false, rememberStaticObjects: true };
 
 // packages/sim/economy.ts
 var economyRules = {
@@ -2678,15 +2789,17 @@ var combatRules = {
     // the knight as heavy cavalry. Values design_default, in this game's scale.
     spearman: { hp: 45, damage: 4, range: 50, cooldown: 30, sight: 350, attack: "melee", armor: [0, 0], classes: ["infantry", "spear"], bonus: { cavalry: 12 } },
     skirmisher: { hp: 30, damage: 2, range: 200, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 3], classes: ["archer", "skirmisher"], bonus: { archer: 4, spear: 3 } },
-    knight: { hp: 100, damage: 10, range: 50, cooldown: 18, sight: 350, attack: "melee", armor: [2, 2], classes: ["cavalry"], bonus: {} }
+    knight: { hp: 100, damage: 10, range: 50, cooldown: 18, sight: 350, attack: "melee", armor: [2, 2], classes: ["cavalry"], bonus: {} },
+    // Battering ram: strikes buildings only (+40 against them), all but immune to arrows, slow.
+    ram: { hp: 175, damage: 2, range: 50, cooldown: 60, sight: 0, attack: "melee", armor: [0, 120], classes: ["siege"], bonus: { building: 40 } }
   },
   // Structures shrug off arrows: [melee, pierce] armor of every building.
   buildingArmor: [0, 2],
-  buildings: { "town-center": 400, house: 150, barracks: 300, farm: 100, "lumber-camp": 200, "mining-camp": 200, mill: 200, stable: 300, "archery-range": 300, monastery: 350, blacksmith: 300 },
+  buildings: { "town-center": 400, house: 150, barracks: 300, farm: 100, "lumber-camp": 200, "mining-camp": 200, mill: 200, stable: 300, "archery-range": 300, monastery: 350, blacksmith: 300, "watch-tower": 250, "siege-workshop": 300 },
   corpseTicks: 40,
   hitFlashTicks: 6,
   // Movement per tick; every value divides the 50-unit node spacing, so a unit always lands exactly on its node.
-  speed: { villager: 5, militia: 5, archer: 5, scout: 10, monk: 5, sheep: 5, deer: 10, boar: 5, spearman: 5, skirmisher: 5, knight: 10 }
+  speed: { villager: 5, militia: 5, archer: 5, scout: 10, monk: 5, sheep: 5, deer: 10, boar: 5, spearman: 5, skirmisher: 5, knight: 10, ram: 2 }
 };
 var religionBonus = { sanctityHp: 15 };
 var lineUpgrades = [
@@ -2739,13 +2852,13 @@ var buildingTarget = { armor: combatRules.buildingArmor, classes: ["building"] }
 
 // packages/sim/movement.ts
 var navigationStates = ["idle", "searching", "moving", "waiting", "unreachable", "stuck"];
-var unitKinds = ["villager", "militia", "archer", "scout", "monk", "sheep", "deer", "boar", "spearman", "skirmisher", "knight"];
+var unitKinds = ["villager", "militia", "archer", "scout", "monk", "sheep", "deer", "boar", "spearman", "skirmisher", "knight", "ram"];
 
 // packages/sim/buildings.ts
-var buildKinds = ["house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "blacksmith"];
+var buildKinds = ["house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "blacksmith", "watch-tower", "siege-workshop"];
 var buildingRules = {
   provenance: "design_default",
-  capacity: { "town-center": 5, house: 5, barracks: 0, farm: 0, "lumber-camp": 0, "mining-camp": 0, mill: 0, stable: 0, "archery-range": 0, monastery: 0, blacksmith: 0 },
+  capacity: { "town-center": 5, house: 5, barracks: 0, farm: 0, "lumber-camp": 0, "mining-camp": 0, mill: 0, stable: 0, "archery-range": 0, monastery: 0, blacksmith: 0, "watch-tower": 0, "siege-workshop": 0 },
   grid: 10,
   required: Object.fromEntries(buildKinds.map((k) => [k, rules.entries.find((e) => e.id === k).time * rules.settings.tickHz]))
 };
@@ -2779,6 +2892,19 @@ function buildRequirement(age, kind, own) {
 // packages/sim/work.ts
 var workPhases = ["none", "toSource", "gathering", "toDropoff", "toSite", "building", "hunting"];
 var dropoffRules = { provenance: "design_default", accepts: { "town-center": ["food", "wood", "gold", "stone"], "lumber-camp": ["wood"], "mining-camp": ["gold", "stone"], mill: ["food"] } };
+
+// packages/sim/defense.ts
+var defenseRules = {
+  provenance: "design_default",
+  capacity: { "town-center": 15, "watch-tower": 5 },
+  arrows: { "town-center": { base: 1, range: 300, damage: 5, cooldown: 40 }, "watch-tower": { base: 1, range: 350, damage: 5, cooldown: 40 } },
+  // Who may go inside, and who adds an arrow while there.
+  canGarrison: ["villager", "militia", "spearman", "archer", "skirmisher", "monk"],
+  addsArrow: ["villager", "archer", "skirmisher"],
+  // Units inside heal one hit point every healTicks; a shot stays drawn for shotTicks.
+  healTicks: 40,
+  shotTicks: 10
+};
 
 // packages/sim/production.ts
 var productionRules = { provenance: "design_default", queueLimit: 5 };
@@ -2876,7 +3002,7 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, religion: religionRules, animals: animalRules, tech: techRules, simulationVersion: 25 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, religion: religionRules, animals: animalRules, tech: techRules, defense: defenseRules, simulationVersion: 26 });
 
 // packages/sim/protocol.ts
 var UNIT_STRIDE = 18;
@@ -2884,7 +3010,7 @@ var STRIDE = UNIT_STRIDE;
 function decodeView(r) {
   const values = new Int32Array(r.positions), units = [];
   for (let i = 0; i < values.length; i += STRIDE) units.push({ kind: unitKinds[values[i + 11]], hp: values[i + 12], maxHp: values[i + 13], action: values[i + 14], id: values[i], player: values[i + 1], x: values[i + 2], y: values[i + 3], navigation: navigationStates[values[i + 6]], target: values[i + 4] < 0 ? null : { x: values[i + 4], y: values[i + 5] }, work: values[i + 7] > 0 ? workPhases[values[i + 7]] : null, workResource: values[i + 10] < 0 ? null : resources[values[i + 10]], cargo: values[i + 8] < 0 ? null : { resource: resources[values[i + 8]], amount: values[i + 9] }, rite: [null, "convert", "heal"][values[i + 15]] ?? null, faith: values[i + 16] < 0 ? null : values[i + 16], relic: values[i + 17] === 1 });
-  return { seed: r.seed, layout: r.layout, size: r.size, opponent: r.opponent, terrain: r.terrain, tick: r.tick, stateHash: r.stateHash, economy: r.economy, corpses: r.corpses, outcome: r.outcome, buildings: r.buildings, transactions: r.transactions, fog: r.fog, known: r.known, resources: r.resources, relicSpots: r.relicSpots, relicsHeld: r.relicsHeld, relicTotal: r.relicTotal, relicVictory: r.relicVictory, units };
+  return { seed: r.seed, layout: r.layout, size: r.size, opponent: r.opponent, terrain: r.terrain, tick: r.tick, stateHash: r.stateHash, economy: r.economy, corpses: r.corpses, outcome: r.outcome, buildings: r.buildings, transactions: r.transactions, fog: r.fog, known: r.known, resources: r.resources, relicSpots: r.relicSpots, relicsHeld: r.relicsHeld, relicTotal: r.relicTotal, relicVictory: r.relicVictory, shots: r.shots, units };
 }
 
 // apps/web/worker-client.ts
@@ -2981,11 +3107,11 @@ var SimulationClient = class {
 var el = (id) => document.getElementById(id);
 var debug = new URLSearchParams(location.search).has("debug");
 el("debug").hidden = !debug;
-var state = { seed: rules.settings.seed, layout: debug ? "meadow" : "open", size: debug ? 16 : 32, opponent: debug ? "idle" : "ai", terrain: [], tick: 0, units: [], corpses: [], outcome: null, economy: { stock: { food: 0, wood: 0, gold: 0, stone: 0 }, populationUsed: 0, populationReserved: 0, populationCap: 0, age: 1, techs: [], reseed: true }, buildings: [], transactions: [], fog: [], known: [], resources: [], stateHash: "\u2014", relicSpots: [], relicsHeld: [0, 0], relicTotal: 0, relicVictory: null };
+var state = { seed: rules.settings.seed, layout: debug ? "meadow" : "open", size: debug ? 16 : 32, opponent: debug ? "idle" : "ai", terrain: [], tick: 0, units: [], corpses: [], outcome: null, economy: { stock: { food: 0, wood: 0, gold: 0, stone: 0 }, populationUsed: 0, populationReserved: 0, populationCap: 0, age: 1, techs: [], reseed: true }, buildings: [], transactions: [], fog: [], known: [], resources: [], stateHash: "\u2014", shots: [], relicSpots: [], relicsHeld: [0, 0], relicTotal: 0, relicVictory: null };
 var resourceNames = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
 var workLabel = { toSource: "\u524D\u5F80\u63A1\u96C6", gathering: "\u63A1\u96C6\u4E2D", toDropoff: "\u9001\u8FD4\u57CE\u93AE\u4E2D\u5FC3", toSite: "\u524D\u5F80\u5DE5\u5730", building: "\u65BD\u5DE5\u4E2D", hunting: "\u72E9\u7375\u4E2D" };
-var buildingNames2 = { blacksmith: "\u9435\u5320\u92EA", house: "\u4F4F\u5B85", barracks: "\u5175\u71DF", farm: "\u8FB2\u7530", "lumber-camp": "\u4F10\u6728\u5834", "mining-camp": "\u63A1\u7926\u5834", mill: "\u78E8\u574A", stable: "\u99AC\u5EC4", "archery-range": "\u9776\u5834", monastery: "\u4FEE\u9053\u9662", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
-var homeKinds = /* @__PURE__ */ new Set(["blacksmith", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "town-center"]);
+var buildingNames2 = { "watch-tower": "\u7BAD\u5854", "siege-workshop": "\u653B\u57CE\u5668\u5DE5\u574A", blacksmith: "\u9435\u5320\u92EA", house: "\u4F4F\u5B85", barracks: "\u5175\u71DF", farm: "\u8FB2\u7530", "lumber-camp": "\u4F10\u6728\u5834", "mining-camp": "\u63A1\u7926\u5834", mill: "\u78E8\u574A", stable: "\u99AC\u5EC4", "archery-range": "\u9776\u5834", monastery: "\u4FEE\u9053\u9662", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
+var homeKinds = /* @__PURE__ */ new Set(["watch-tower", "siege-workshop", "blacksmith", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "town-center"]);
 var layoutNames = { meadow: "\u8349\u7538", coast: "\u6D77\u5CB8", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058", open: "\u66E0\u91CE" };
 var placing = null;
 var selectedBuilding = null;
@@ -3168,8 +3294,12 @@ async function deposit(monkIds, buildingId) {
 async function attack(target, label) {
   const unitIds = [...selected].filter((id) => {
     const k = state.units.find((u) => u.id === id)?.kind;
-    return k !== "monk" && !isAnimal(k ?? "");
+    return k !== "monk" && !isAnimal(k ?? "") && !(k === "ram" && target.kind === "unit");
   }).sort((a, b) => a - b);
+  if (!unitIds.length && [...selected].some((id) => state.units.find((u) => u.id === id)?.kind === "ram")) {
+    notice("\u653B\u57CE\u69CC\u53EA\u80FD\u653B\u64CA\u5EFA\u7BC9\u3002");
+    return;
+  }
   if (!unitIds.length) {
     notice(selected.size ? "\u50E7\u4FB6\u8207\u7272\u755C\u4E0D\u80FD\u653B\u64CA\uFF1A\u53F3\u9375\u6575\u65B9\u55AE\u4F4D\u6539\u70BA\u8F49\u5316\u3002" : "\u8ACB\u5148\u9078\u53D6\u55AE\u4F4D\u3002");
     return;
@@ -3243,10 +3373,10 @@ var costOf = (k) => entryOf2(k).cost;
 var costText = (k) => Object.entries(costOf(k)).filter(([, v]) => v > 0).map(([r, v]) => `${resourceNames[r]} ${v}`).join("\u3001");
 var entryName = (k) => entryOf2(k)?.name ?? k;
 var ageNames = ["", "\u7B2C\u4E00\u6642\u4EE3", entryName("age-2"), entryName("age-3"), entryName("age-4")];
-var unitNames = { villager: "\u6751\u6C11", militia: "\u8FD1\u6230\u6C11\u5175", archer: "\u5F13\u624B", scout: "\u65A5\u5019", monk: "\u50E7\u4FB6", sheep: "\u7F8A", deer: "\u9E7F", boar: "\u91CE\u8C6C", spearman: "\u9577\u69CD\u5175", skirmisher: "\u6563\u5175", knight: "\u9A0E\u58EB" };
+var unitNames = { villager: "\u6751\u6C11", militia: "\u8FD1\u6230\u6C11\u5175", archer: "\u5F13\u624B", scout: "\u65A5\u5019", monk: "\u50E7\u4FB6", sheep: "\u7F8A", deer: "\u9E7F", boar: "\u91CE\u8C6C", spearman: "\u9577\u69CD\u5175", skirmisher: "\u6563\u5175", knight: "\u9A0E\u58EB", ram: "\u653B\u57CE\u69CC" };
 var ownName = (kind) => lineName(kind, state.economy.techs) ?? unitNames[kind];
 var nameOf = (u) => u.player === 0 ? ownName(u.kind) : unitNames[u.kind];
-var soldierKinds = /* @__PURE__ */ new Set(["militia", "archer", "spearman", "skirmisher", "knight"]);
+var soldierKinds = /* @__PURE__ */ new Set(["militia", "archer", "spearman", "skirmisher", "knight", "ram"]);
 var villagersIn = (ids) => [...ids].filter((id) => state.units.find((u) => u.id === id)?.kind === "villager").sort((a, b) => a - b);
 var leftOut = (ids) => {
   const n = selected.size - ids.length;
@@ -3293,7 +3423,7 @@ function renderBuilding() {
   el("building-hp").textContent = `${b.hp}/${b.maxHp}`;
   el("building-hp-bar").style.width = `${Math.max(0, b.hp) * 100 / Math.max(1, b.maxHp)}%`;
   const field = b.kind === "farm" ? state.resources.find((r) => r.id === `resource-${b.id}`) : void 0;
-  el("building-status").textContent = (b.hp < b.maxHp ? `\u751F\u547D ${b.hp}/${b.maxHp} \xB7 ` : "") + (b.complete ? housing ? `\u5DF2\u5B8C\u5DE5 \xB7 \u63D0\u4F9B\u4EBA\u53E3 ${housing}` : field ? `\u5269\u9918\u98DF\u7269 ${field.remaining}/${field.capacity}\uFF08\u53F3\u9375\u6D3E\u6751\u6C11\u8015\u4F5C\uFF09` : b.kind === "monastery" ? `\u5DF2\u5B8C\u5DE5 \xB7 \u8056\u7269 ${b.relics}/10\uFF08\u6BCF\u5206\u9418 +${b.relics * 30} \u9EC3\u91D1\uFF09` : "\u5DF2\u5B8C\u5DE5" : `\u65BD\u5DE5\u4E2D ${Math.floor(b.work * 100 / b.required)}%\uFF08\u5168\u9AD4\u65BD\u5DE5\u4E2D\u7684\u6751\u6C11\uFF1A${builders} \u540D\uFF09`);
+  el("building-status").textContent = (b.hp < b.maxHp ? `\u751F\u547D ${b.hp}/${b.maxHp} \xB7 ` : "") + (b.complete && b.capacity ? `\u9032\u99D0 ${b.garrison}/${b.capacity} \xB7 ` : "") + (b.complete ? housing ? `\u5DF2\u5B8C\u5DE5 \xB7 \u63D0\u4F9B\u4EBA\u53E3 ${housing}` : field ? `\u5269\u9918\u98DF\u7269 ${field.remaining}/${field.capacity}\uFF08\u53F3\u9375\u6D3E\u6751\u6C11\u8015\u4F5C\uFF09` : b.kind === "monastery" ? `\u5DF2\u5B8C\u5DE5 \xB7 \u8056\u7269 ${b.relics}/10\uFF08\u6BCF\u5206\u9418 +${b.relics * 30} \u9EC3\u91D1\uFF09` : "\u5DF2\u5B8C\u5DE5" : `\u65BD\u5DE5\u4E2D ${Math.floor(b.work * 100 / b.required)}%\uFF08\u5168\u9AD4\u65BD\u5DE5\u4E2D\u7684\u6751\u6C11\uFF1A${builders} \u540D\uFF09`);
   renderProduction(b);
   const refund = b.kind in buildingNames2 && !b.complete ? `\u53D6\u6D88\u5EFA\u9020\uFF08\u9000\u56DE ${costText(b.kind)}\uFF09` : "\u53D6\u6D88\u5EFA\u9020";
   cancel.setAttribute("aria-label", refund);
@@ -3558,6 +3688,9 @@ async function construct(buildingId) {
 var productionKey = "";
 var queueKey = "";
 var militaryText = {
+  ram: "\u53EA\u80FD\u653B\u64CA\u5EFA\u7BC9\uFF08\u5C0D\u5EFA\u7BC9 +40\uFF09\uFF0C\u5E7E\u4E4E\u4E0D\u53D7\u5F13\u7BAD\u50B7\u5BB3\uFF0C\u79FB\u52D5\u5F88\u6162",
+  "watch-tower": "\u81EA\u52D5\u5C04\u7BAD\uFF08\u5C04\u7A0B 3.5 \u683C\uFF09\uFF1B\u53EF\u9032\u99D0 5 \u540D\uFF0C\u6751\u6C11\u8207\u5F13\u5175\u5404\u591A 1 \u652F\u7BAD",
+  "siege-workshop": "\u8A13\u7DF4\u653B\u57CE\u69CC",
   spearman: "\u9577\u69CD\u6B65\u5175\uFF1A\u5C0D\u9A0E\u5175 +12 \u50B7\u5BB3\uFF0C\u4FBF\u5B9C",
   skirmisher: "\u64F2\u6A19\u69CD\uFF1A\u5C0D\u5F13\u5175 +4\u3001\u5C0D\u9577\u69CD\u5175 +3\uFF0C\u9060\u7A0B\u8B77\u7532\u9AD8",
   knight: "\u91CD\u9A0E\u5175\uFF1A\u751F\u547D 100\u3001\u653B\u64CA 10\u3001\u8B77\u7532 2/2\uFF0C\u79FB\u52D5\u5FEB",
@@ -3642,6 +3775,31 @@ function renderProduction(b) {
       }
       return btn;
     }));
+    const extra = (id, icon, text, k, run) => {
+      const btn = document.createElement("button");
+      btn.className = "tile";
+      btn.id = id;
+      btn.dataset.key = k;
+      btn.onclick = run;
+      const img = document.createElement("img");
+      img.alt = "";
+      img.dataset.icon = icon;
+      setImg(img, icon);
+      const label = document.createElement("span");
+      label.className = "label";
+      label.textContent = text;
+      const kbd = document.createElement("kbd");
+      kbd.textContent = k;
+      btn.append(img, label, kbd);
+      box2.append(btn);
+    };
+    if (b.capacity > 0) {
+      extra("ungarrison", "villager-face", "\u653E\u51FA", trainKeys[heads], () => {
+        const v = state.buildings.find((v2) => v2.id === selectedBuilding);
+        if (v) void ungarrison(v);
+      });
+      if (b.kind === "town-center") extra("bell", "town-center-1", "\u9418\u8072", trainKeys[heads + 1], () => void bell());
+    }
     if (b.kind === "mill") {
       const btn = document.createElement("button"), k = trainKeys[heads];
       btn.className = "tile";
@@ -3659,6 +3817,26 @@ function renderProduction(b) {
       kbd.textContent = k;
       btn.append(img, label, kbd);
       box2.append(btn);
+    }
+  }
+  {
+    const t = box2.querySelector("#ungarrison");
+    if (t) {
+      t.hidden = !b.complete;
+      t.disabled = !connected || graphicsFailed || !b.garrison;
+      t.dataset.tip = `\u653E\u51FA\u9032\u99D0\u7684\u55AE\u4F4D\uFF08${b.garrison}/${b.capacity}\uFF09`;
+      t.setAttribute("aria-label", t.dataset.tip);
+    }
+  }
+  {
+    const t = box2.querySelector("#bell");
+    if (t) {
+      const rung = state.buildings.some((v) => v.belled > 0);
+      t.hidden = !b.complete;
+      t.disabled = !connected || graphicsFailed;
+      t.setAttribute("aria-pressed", String(rung));
+      t.dataset.tip = rung ? "\u56DE\u53BB\u5DE5\u4F5C" : "\u9418\u8072\uFF1A\u6751\u6C11\u8EB2\u9032\u57CE\u93AE\u4E2D\u5FC3\u8207\u7BAD\u5854";
+      t.setAttribute("aria-label", t.dataset.tip);
     }
   }
   {
@@ -3728,7 +3906,7 @@ function tileCard(btn) {
   card.append(title);
   if (!id) {
     title.textContent = `${btn.dataset.tip}\uFF08${btn.dataset.key ?? (btn.id === "stop" ? "S" : "Del")}\uFF09`;
-    line("meta", btn.id === "reseed" ? `\u8FB2\u7530\u8017\u76E1\u6642\uFF0C\u8FB2\u592B\u7ACB\u523B\u5728\u539F\u5730\u91CD\u5EFA\uFF08\u6263\u6728\u6750 ${costOf("farm").wood}\uFF09\uFF0C\u5B8C\u5DE5\u5F8C\u7E7C\u7E8C\u8015\u4F5C\uFF1B\u6728\u6750\u4E0D\u8DB3\u6642\u5C31\u4E0D\u88DC\u7A2E\u3002\u6309\u4E00\u4E0B\u5207\u63DB\u3002` : btn.id === "stop" ? "\u6240\u9078\u55AE\u4F4D\u5728\u4E0B\u4E00\u500B\u7BC0\u9EDE\u505C\u4E0B\uFF0C\u4E26\u653E\u4E0B\u76EE\u524D\u7684\u5DE5\u4F5C\u3002" : "\u62C6\u9664\u5730\u57FA\uFF1B\u8CBB\u7528\u5168\u984D\u9000\u56DE\u3002");
+    line("meta", btn.id === "ungarrison" ? "\u88E1\u9762\u7684\u55AE\u4F4D\u8D70\u51FA\u4F86\uFF1B\u88AB\u9418\u8072\u53EB\u9032\u53BB\u7684\u6751\u6C11\u6703\u56DE\u5230\u539F\u672C\u7684\u5DE5\u4F5C\u3002" : btn.id === "bell" ? "\u6240\u6709\u6751\u6C11\u8EB2\u9032\u6700\u8FD1\u3001\u9084\u6709\u7A7A\u4F4D\u7684\u57CE\u93AE\u4E2D\u5FC3\u6216\u7BAD\u5854\uFF0C\u4E26\u8A18\u4F4F\u539F\u672C\u7684\u5DE5\u4F5C\uFF1B\u518D\u6309\u4E00\u6B21\u56DE\u53BB\u5DE5\u4F5C\u3002" : btn.id === "reseed" ? `\u8FB2\u7530\u8017\u76E1\u6642\uFF0C\u8FB2\u592B\u7ACB\u523B\u5728\u539F\u5730\u91CD\u5EFA\uFF08\u6263\u6728\u6750 ${costOf("farm").wood}\uFF09\uFF0C\u5B8C\u5DE5\u5F8C\u7E7C\u7E8C\u8015\u4F5C\uFF1B\u6728\u6750\u4E0D\u8DB3\u6642\u5C31\u4E0D\u88DC\u7A2E\u3002\u6309\u4E00\u4E0B\u5207\u63DB\u3002` : btn.id === "stop" ? "\u6240\u9078\u55AE\u4F4D\u5728\u4E0B\u4E00\u500B\u7BC0\u9EDE\u505C\u4E0B\uFF0C\u4E26\u653E\u4E0B\u76EE\u524D\u7684\u5DE5\u4F5C\u3002" : "\u62C6\u9664\u5730\u57FA\uFF1B\u8CBB\u7528\u5168\u984D\u9000\u56DE\u3002");
     return card;
   }
   const e = entryOf2(id), why = btn.dataset.train ? trainBlocker(trainInput(state.buildings.find((v) => v.id === selectedBuilding)), id) : buildBlocker(id);
@@ -3785,6 +3963,40 @@ el("commands").addEventListener("focusout", () => {
   tipTile = null;
   renderNote();
 });
+var canShelter = /* @__PURE__ */ new Set(["villager", "militia", "spearman", "archer", "skirmisher", "monk"]);
+async function garrison(b) {
+  const unitIds = [...selected].filter((id) => canShelter.has(state.units.find((u) => u.id === id)?.kind ?? "")).sort((a, b2) => a - b2);
+  if (!unitIds.length) {
+    notice("\u53EA\u6709\u6751\u6C11\u3001\u6B65\u5175\u3001\u5F13\u5175\u8207\u50E7\u4FB6\u80FD\u9032\u99D0\u57CE\u93AE\u4E2D\u5FC3\u6216\u7BAD\u5854\u3002");
+    return;
+  }
+  try {
+    await client.request({ kind: "garrison", unitIds, buildingId: b.id });
+    audio.play("order");
+    notice(`${names2(unitIds)} \u9032\u99D0${buildingNames2[b.kind]}\uFF08${b.garrison}/${b.capacity}\uFF09\u3002${unitIds.length < selected.size ? "\uFF08\u9A0E\u5175\u8207\u653B\u57CE\u5668\u4E0D\u80FD\u9032\u99D0\uFF0C\u672A\u6D3E\u51FA\uFF09" : ""}${running ? "" : resumeHint()}`);
+  } catch (e) {
+    notice(reason(e));
+  }
+}
+async function ungarrison(b) {
+  try {
+    await client.request({ kind: "ungarrison", buildingId: b.id });
+    audio.play("order");
+    notice(`${buildingNames2[b.kind]}\u88E1\u7684 ${b.garrison} \u540D\u55AE\u4F4D\u51FA\u4F86\u4E86\u3002`);
+  } catch (e) {
+    notice(reason(e));
+  }
+}
+async function bell() {
+  const ring = !state.buildings.some((b) => b.belled > 0);
+  try {
+    await client.request({ kind: "bell", ring });
+    audio.play(ring ? "alarm" : "order");
+    notice(ring ? "\u9418\u8072\u97FF\u8D77\uFF1A\u6751\u6C11\u8EB2\u9032\u57CE\u93AE\u4E2D\u5FC3\u8207\u7BAD\u5854\uFF08\u6BCF\u540D\u6751\u6C11\u591A 1 \u652F\u7BAD\uFF09\u3002" : "\u56DE\u53BB\u5DE5\u4F5C\uFF1A\u8EB2\u8D77\u4F86\u7684\u6751\u6C11\u56DE\u5230\u539F\u672C\u7684\u5DE5\u4F5C\u3002");
+  } catch (e) {
+    notice(reason(e));
+  }
+}
 async function toggleReseed() {
   const on = !state.economy.reseed;
   try {
@@ -4098,6 +4310,10 @@ canvas.addEventListener("pointerdown", (e) => {
     const site = buildingAt(hit.x, hit.y, scene.pickBuilding(e.clientX, e.clientY)), own = site ? state.buildings.find((b) => b.id === site.id) : void 0;
     if (own && !own.complete && selected.size) {
       void construct(own.id);
+      return;
+    }
+    if (own && own.complete && own.capacity > 0 && selected.size) {
+      void garrison(own);
       return;
     }
     const r = resourceAt(hit.x, hit.y);
@@ -4435,7 +4651,7 @@ document.addEventListener("keydown", (e) => {
     notice(`\u5DF2\u9078\u53D6\u5168\u90E8\u8ECD\u968A\uFF1A${army.length} \u540D\u3002`);
     return;
   }
-  const letter = /^Key([QWERTADZXC])$/.exec(e.code);
+  const letter = /^Key([QWERTADZXCVB])$/.exec(e.code);
   if (letter && !e.ctrlKey) {
     if (commandKey(letter[1])) e.preventDefault();
     return;

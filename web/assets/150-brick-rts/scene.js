@@ -207,6 +207,85 @@ function blacksmithParts(v) {
   return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "flag" || a.id === "hearth-fire" || a.id === "chimney-cap"));
 }
 
+// apps/web/defense-building.ts
+var check = (v, what) => {
+  if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error(`\u7121\u6548${what}\u5916\u89C0`);
+};
+function finish(p, v, debris, keep) {
+  if (v.health === 0) return [p[0], ...Array.from({ length: 6 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: i % 3 * 0.3, z: Math.floor(i / 3) * 0.4, y: 0.12, w: 0.26, d: 0.24, h: 0.1, color: debris, studs: false }))];
+  return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || keep(a.id));
+}
+function towerParts(v) {
+  check(v, "\u7BAD\u5854");
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", stone2 = "#b5b29e", roof = age === 1 ? "#b8a074" : team2;
+  const add = (id, phase, x, z, y, w, d, h, color, studs = false) => p.push({ id, phase, x, z, y, w, d, h, color, studs });
+  const shaft = 1.6 + (age - 1) * 0.24;
+  add("foundation", 0, -0.05, -0.05, 0, 1.1, 1.1, 0.12, "#b3aa8c");
+  add("shaft", 1, 0.08, 0.08, 0.12, 0.84, 0.84, shaft * 0.55, stone2);
+  add("shaft-upper", 2, 0.14, 0.14, 0.12 + shaft * 0.55, 0.72, 0.72, shaft * 0.45, stone2);
+  add("door", 1, 0.36, 0.9, 0.12, 0.28, 0.04, 0.4, "#6e5a44");
+  add("lookout", 3, 0, 0, 0.12 + shaft, 1, 1, 0.14, wood2);
+  for (const [x, z] of [[0, 0], [0.84, 0], [0, 0.84], [0.84, 0.84]]) add(`post-${x}-${z}`, 3, x, z, 0.26 + shaft, 0.16, 0.16, 0.36, wood2);
+  add("roof", 4, -0.06, -0.06, 0.62 + shaft, 1.12, 1.12, 0.14, roof, true);
+  add("roof-top", 4, 0.2, 0.2, 0.76 + shaft, 0.6, 0.6, 0.14, roof, true);
+  if (age >= 3) for (let i = 0; i < 4; i++) add(`slit-${i}`, 2, 0.47, i % 2 ? 0.1 : 0.9, 0.5 + i * 0.3, 0.06, 0.02, 0.2, "#4a4740");
+  add("flag", 4, 0.46, 0.46, 0.9 + shaft, 0.06, 0.06, 0.5, wood2);
+  add("pennant", 4, 0.52, 0.46, 1.22 + shaft, 0.3, 0.04, 0.16, team2);
+  return finish(p, v, stone2, (id) => !(id === "pennant" || id === "roof-top"));
+}
+function siegeWorkshopParts(v) {
+  check(v, "\u653B\u57CE\u5668\u5DE5\u574A");
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", dark = "#6e5438", roof = age === 1 ? "#b8a074" : team2;
+  const add = (id, phase, x, z, y, w, d, h, color, studs = false) => p.push({ id, phase, x, z, y, w, d, h, color, studs });
+  const top = 1.44;
+  add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
+  for (const x of [0.1, 2.44]) for (const z of [0.1, 1.65]) add(`post-${x}-${z}`, 1, x, z, 0.16, 0.16, 0.16, top - 0.16, wood2);
+  add("back-wall", 1, 0.1, 0.1, 0.16, 2.5, 0.15, top - 0.16, wood2);
+  for (let level = 0; level < 2; level++) add(`roof-${level}`, 2, -0.05 + level * 0.35, -0.05, top + level * 0.16, 2.9 - level * 0.7, 1.98, 0.16, roof, true);
+  add("ram-bed", 3, 0.5, 0.6, 0.16, 1.6, 0.7, 0.12, dark);
+  add("ram-log", 3, 0.45, 0.8, 0.4, 1.8, 0.3, 0.3, wood2);
+  for (const x of [0.6, 1.8]) add(`ram-rib-${x}`, 3, x, 0.6, 0.28, 0.1, 0.7, 0.6, dark);
+  for (let i = 0; i < 3; i++) add(`log-${i}`, 3, 0.3, 2.05 + i * 0.2, 0.16, 1.4, 0.18, 0.18, wood2);
+  add("log-top", 3, 0.5, 2.15, 0.34, 1, 0.18, 0.18, wood2);
+  add("wheel", 3, 2.1, 2, 0.16, 0.14, 0.6, 0.6, dark);
+  add("wheel-hub", 3, 2.08, 2.2, 0.36, 0.18, 0.2, 0.2, "#c9a55a");
+  if (age >= 3) add("crane-arm", 4, 2.2, 0.3, top - 0.1, 0.14, 1.2, 0.14, wood2);
+  add("flag-pole", 4, 2.67, 2.63, 0.16, 0.06, 0.06, 1.6, wood2);
+  add("flag", 4, 2.24, 2.63, 1.42, 0.44, 0.05, 0.28, team2);
+  return finish(p, v, wood2, (id) => !(id === "flag" || id === "crane-arm"));
+}
+
+// apps/web/siege-rig.ts
+function createRamRig(T, player, box, material) {
+  const root = new T.Group();
+  root.name = "siege-ram";
+  const team2 = player === 0 ? "#45728c" : "#b25441", wood2 = "#94734c", dark = "#6e5438";
+  const part = (parent, x, y, z, w, h, d, color) => {
+    const m = new T.Mesh(box(w, h, d), material(color));
+    m.position.set(x, y, z);
+    m.castShadow = true;
+    parent.add(m);
+    return m;
+  };
+  part(root, 0, 0.22, 0, 0.76, 0.1, 1.3, dark);
+  for (const x of [-0.36, 0.36]) for (const z of [-0.45, 0.45]) part(root, x, 0, z, 0.1, 0.36, 0.36, "#5c4a36");
+  for (const x of [-0.3, 0.3]) part(root, x, 0.32, 0, 0.1, 0.55, 1.2, wood2);
+  part(root, 0, 0.86, 0, 0.86, 0.1, 1.36, team2);
+  part(root, 0, 0.96, 0, 0.5, 0.1, 1.36, team2);
+  const log = new T.Group();
+  root.add(log);
+  part(log, 0, 0.4, 0.2, 0.24, 0.24, 1.2, "#8a6a45");
+  part(log, 0, 0.38, 0.82, 0.3, 0.28, 0.12, "#6b6f6c");
+  function pose(kind, time) {
+    const t = Number.isFinite(time) ? Math.max(0, time) : 0;
+    log.position.z = kind === "attack" ? Math.max(0, Math.sin(t * 8e-3)) * 0.25 : 0;
+    root.rotation.x = kind === "walk" ? Math.sin(t * 0.02) * 0.015 : kind === "hit" && t < 300 ? -0.05 * Math.sin(Math.PI * t / 300) : 0;
+  }
+  return { root, sockets: { leftHand: new T.Group(), rightHand: new T.Group() }, equip: (_) => {
+  }, dress: (_) => {
+  }, pose };
+}
+
 // apps/web/relic-model.ts
 var relicParts = [
   { x: -0.17, y: 0, z: -0.13, w: 0.34, d: 0.26, h: 0.08, color: "#6e5438" },
@@ -868,6 +947,9 @@ var obstacleFootprints = {
   "archery-range": { x: -15, y: -15, width: 300, depth: 300 },
   monastery: { x: -15, y: -15, width: 300, depth: 300 },
   blacksmith: { x: -15, y: -15, width: 300, depth: 300 },
+  "siege-workshop": { x: -15, y: -15, width: 300, depth: 300 },
+  // Watch tower: one tile.
+  "watch-tower": { x: 0, y: 0, width: 100, depth: 100 },
   tree: { x: -20, y: -20, width: 100, depth: 100 },
   rock: { x: 0, y: 0, width: 65, depth: 70 },
   gold: { x: 0, y: 0, width: 65, depth: 70 },
@@ -891,16 +973,16 @@ var townCenterBlocking = [
   [265, 270, 271, 276]
 ];
 var walkablePlatforms = { "town-center": { rect: [-15, -15, 285, 285], height: 16 }, farm: { rect: [0, 0, 200, 200], height: 10 } };
-function check(o, radius) {
+function check2(o, radius) {
   if (!obstacleFootprints[o.kind] || !Number.isSafeInteger(radius) || radius < 0) throw Error("\u7121\u6548\u5360\u5730\u6216\u534A\u5F91");
 }
 function obstacleBounds(o, radius = 0) {
-  check(o, radius);
+  check2(o, radius);
   const f = obstacleFootprints[o.kind];
   return [o.x + f.x - radius, o.y + f.y - radius, o.x + f.x + f.width + radius, o.y + f.y + f.depth + radius];
 }
 function obstacleRects(o, radius = 0) {
-  check(o, radius);
+  check2(o, radius);
   if (o.kind === "farm") return [];
   if (o.kind !== "town-center") return [obstacleBounds(o, radius)];
   return townCenterBlocking.map(([x0, y0, x1, y1]) => [o.x + x0 - radius, o.y + y0 - radius, o.x + x1 + radius, o.y + y1 + radius]);
@@ -1264,7 +1346,7 @@ function placePond(seed, size, taken, centres) {
   for (let dy = 0; dy < R.size; dy++) for (let dx = 0; dx < R.size; dx++) out.push(t0 + dy * size + dx);
   return out;
 }
-var buildingKinds = /* @__PURE__ */ new Set(["house", "town-center", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "blacksmith"]);
+var buildingKinds = /* @__PURE__ */ new Set(["house", "town-center", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "blacksmith", "watch-tower", "siege-workshop"]);
 function isBuilding(o) {
   return buildingKinds.has(o.kind);
 }
@@ -1564,7 +1646,7 @@ async function createScene(canvas, onFailure, options = {}) {
   let previewBuildingKind = "house";
   let previewBuilding = { ageVariant: 2, progress: 100, health: 100 };
   function house(x, z, red = false, obstacleKind = "house", progress = 100, age = 2, health = 100) {
-    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, health, ageVariant: Math.min(4, Math.max(1, age)) }, parts = kind === "house" ? buildingParts({ ...visual, red }) : kind === "monastery" ? monasteryParts({ ...visual, red }) : kind === "blacksmith" ? blacksmithParts({ ...visual, red }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red }) : economicBuildingParts(kind, { ...visual, red });
+    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, health, ageVariant: Math.min(4, Math.max(1, age)) }, parts = kind === "house" ? buildingParts({ ...visual, red }) : kind === "monastery" ? monasteryParts({ ...visual, red }) : kind === "blacksmith" ? blacksmithParts({ ...visual, red }) : kind === "watch-tower" ? towerParts({ ...visual, red }) : kind === "siege-workshop" ? siegeWorkshopParts({ ...visual, red }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red }) : economicBuildingParts(kind, { ...visual, red });
     for (const p of parts) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, false, p.shape);
     for (const stud of buildingStuds(parts)) staticPart(studGeo, stud.color, x + stud.x, stud.y, z + stud.z);
   }
@@ -1599,7 +1681,7 @@ async function createScene(canvas, onFailure, options = {}) {
       muted = !options.assetPreview && view.fog[tileAt(o.x, o.y, sizeOfTiles(map.tiles))] !== 2;
       const x = o.x / 100, z = o.y / 100;
       if (o.kind === "farm") for (const p of farmParts(o.progress ?? 100, o.red)) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, p.studs);
-      else if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks" || o.kind === "lumber-camp" || o.kind === "mining-camp" || o.kind === "mill" || o.kind === "stable" || o.kind === "archery-range" || o.kind === "monastery" || o.kind === "blacksmith") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100);
+      else if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks" || o.kind === "lumber-camp" || o.kind === "mining-camp" || o.kind === "mill" || o.kind === "stable" || o.kind === "archery-range" || o.kind === "monastery" || o.kind === "blacksmith" || o.kind === "watch-tower" || o.kind === "siege-workshop") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100);
       else if (o.kind === "tree") {
         let v = Math.imul(o.x | 0, 73856093) ^ Math.imul(o.y | 0, 19349663);
         v = Math.imul(v ^ v >>> 16, 73244475);
@@ -1666,6 +1748,7 @@ async function createScene(canvas, onFailure, options = {}) {
     return g;
   }
   const relics = /* @__PURE__ */ new Map();
+  const arrows2 = /* @__PURE__ */ new Map(), arrowGeo = new T.BoxGeometry(0.04, 0.04, 1), arrowMaterial = new T.MeshBasicMaterial({ color: "#4a3b2a" });
   const fallen = /* @__PURE__ */ new Map();
   const barBack = new T.MeshBasicMaterial({ color: "#2d3a33" }), barGeo = new T.BoxGeometry(0.5, 0.05, 0.05);
   const ringGeo = new T.RingGeometry(0.4, 0.47, 32);
@@ -1683,8 +1766,8 @@ async function createScene(canvas, onFailure, options = {}) {
     fill.position.z = 0.012;
     bar.add(back, fill);
     group.add(bar);
-    const rig = beast ? createAnimalRig(T, kind, player, box, material) : createCharacterRig(T, player, box, material);
-    if (!beast) {
+    const rig = beast ? createAnimalRig(T, kind, player, box, material) : kind === "ram" ? createRamRig(T, player, box, material) : createCharacterRig(T, player, box, material);
+    if (!beast && kind !== "ram") {
       if (!options.assetPreview && kind !== "villager") rig.dress(roleOf(kind));
       rig.equip(previewTool);
     }
@@ -1803,6 +1886,22 @@ async function createScene(canvas, onFailure, options = {}) {
       }
       g.position.set(r.x / 100, (groundHeight(worldTiles, r.x, r.y) + standingLift(r.x, r.y)) / 100, r.y / 100);
     }
+    const flying = new Set((view.shots ?? []).map((v) => `${v.tick}:${v.from.x},${v.from.y}>${v.to.x},${v.to.y}`));
+    for (const [k, m] of arrows2) if (!flying.has(k)) {
+      scene.remove(m);
+      arrows2.delete(k);
+    }
+    for (const v of view.shots ?? []) {
+      const k = `${v.tick}:${v.from.x},${v.from.y}>${v.to.x},${v.to.y}`;
+      if (arrows2.has(k)) continue;
+      const a = new T.Vector3(v.from.x / 100, groundHeight(worldTiles, v.from.x, v.from.y) / 100 + 2.2, v.from.y / 100), b = new T.Vector3(v.to.x / 100, groundHeight(worldTiles, v.to.x, v.to.y) / 100 + 0.6, v.to.y / 100);
+      const m = new T.Mesh(arrowGeo, arrowMaterial);
+      m.position.copy(a).lerp(b, 0.5);
+      m.scale.z = a.distanceTo(b);
+      m.lookAt(b);
+      scene.add(m);
+      arrows2.set(k, m);
+    }
     const lying = new Set((view.corpses ?? []).map((c) => c.id));
     for (const [id, f] of fallen) if (!lying.has(id)) {
       scene.remove(f.group);
@@ -1832,7 +1931,7 @@ async function createScene(canvas, onFailure, options = {}) {
     if (groundHit) return { x: groundHit.point.x, y: groundHit.point.z };
     return {};
   }
-  const buildingHeights = { "town-center": 2.6, barracks: 2.2, house: 1.9, farm: 0.25, "lumber-camp": 1.9, "mining-camp": 1.9, mill: 2.6, stable: 2.2, "archery-range": 2.2, blacksmith: 2.4, monastery: 3.4 };
+  const buildingHeights = { "town-center": 2.6, barracks: 2.2, house: 1.9, farm: 0.25, "lumber-camp": 1.9, "mining-camp": 1.9, mill: 2.6, stable: 2.2, "archery-range": 2.2, blacksmith: 2.4, "watch-tower": 3.2, "siege-workshop": 2.2, monastery: 3.4 };
   function pickBuilding(clientX, clientY) {
     if (!latest) return;
     const r = canvas.getBoundingClientRect();
@@ -2014,6 +2113,14 @@ async function createScene(canvas, onFailure, options = {}) {
       s.remove(g);
     };
     try {
+      {
+        const rig = createRamRig(T, 0, box, material);
+        rig.pose("idle", 0);
+        const g = new T.Group();
+        g.add(rig.root);
+        shoot("ram", g, { angle: Math.PI / 4, lift: 0.5 });
+        shoot("ram-face", g, { angle: Math.PI / 4, lift: 0.5 });
+      }
       for (const kind of ["sheep", "deer", "boar"]) {
         const rig = createAnimalRig(T, kind, 0, box, material);
         rig.pose("idle", 0);
@@ -2040,6 +2147,8 @@ async function createScene(canvas, onFailure, options = {}) {
         shoot(`archery-range-${age}`, parts(militaryBuildingParts("archery-range", visual(age))));
         shoot(`monastery-${age}`, parts(monasteryParts(visual(age))));
         shoot(`blacksmith-${age}`, parts(blacksmithParts(visual(age))));
+        shoot(`watch-tower-${age}`, parts(towerParts(visual(age))));
+        shoot(`siege-workshop-${age}`, parts(siegeWorkshopParts(visual(age))));
         shoot(`town-center-${age}`, parts(economicBuildingParts("town-center", visual(age))));
         for (const camp of ["lumber-camp", "mining-camp", "mill"]) shoot(`${camp}-${age}`, parts(economicBuildingParts(camp, visual(age))));
       }

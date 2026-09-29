@@ -369,6 +369,57 @@
       "testEvidence": [
         "tests/foundation.test.ts (data validation only)"
       ],
+      "id": "watch-tower",
+      "kind": "building",
+      "name": "箭塔",
+      "cost": {
+        "food": 0,
+        "wood": 25,
+        "gold": 0,
+        "stone": 125
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "siege-workshop",
+      "kind": "building",
+      "name": "攻城器工坊",
+      "cost": {
+        "food": 0,
+        "wood": 200,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 20,
+      "population": 0,
+      "requires": [
+        "age-3",
+        "blacksmith"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "original design defaults: packages/content/rules.ts"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
       "id": "scout",
       "kind": "unit",
       "name": "斥候",
@@ -1667,7 +1718,7 @@
     "crossbowman": "archery-range",
     "skirmisher": "archery-range",
     "elite-skirmisher": "archery-range",
-    "ram": null,
+    "ram": "siege-workshop",
     "scout": "stable",
     "light-cavalry": "stable",
     "knight": "stable",
@@ -1744,6 +1795,8 @@
         "skirmisher",
         "knight",
         "blacksmith",
+        "watch-tower",
+        "siege-workshop",
         "man-at-arms",
         "long-swordsman",
         "pikeman",
@@ -1815,6 +1868,8 @@
         "skirmisher",
         "knight",
         "blacksmith",
+        "watch-tower",
+        "siege-workshop",
         "man-at-arms",
         "long-swordsman",
         "pikeman",

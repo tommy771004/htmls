@@ -1,6 +1,6 @@
 {
   "schemaVersion": 15,
-  "rulesetHash": "c8714f42",
+  "rulesetHash": "d309dfe5",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
@@ -160,6 +160,7 @@
     "sheepRadius": 200,
     "houseRadius": 300,
     "townCenterRadius": 600,
+    "towerRadius": 700,
     "shareVision": false,
     "rememberStaticObjects": true
   },
@@ -231,6 +232,18 @@
         "y": -15,
         "width": 300,
         "depth": 300
+      },
+      "siege-workshop": {
+        "x": -15,
+        "y": -15,
+        "width": 300,
+        "depth": 300
+      },
+      "watch-tower": {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "depth": 100
       },
       "tree": {
         "x": -20,
@@ -555,6 +568,24 @@
           "cavalry"
         ],
         "bonus": {}
+      },
+      "ram": {
+        "hp": 175,
+        "damage": 2,
+        "range": 50,
+        "cooldown": 60,
+        "sight": 0,
+        "attack": "melee",
+        "armor": [
+          0,
+          120
+        ],
+        "classes": [
+          "siege"
+        ],
+        "bonus": {
+          "building": 40
+        }
       }
     },
     "buildingArmor": [
@@ -572,7 +603,9 @@
       "stable": 300,
       "archery-range": 300,
       "monastery": 350,
-      "blacksmith": 300
+      "blacksmith": 300,
+      "watch-tower": 250,
+      "siege-workshop": 300
     },
     "corpseTicks": 40,
     "hitFlashTicks": 6,
@@ -587,7 +620,8 @@
       "boar": 5,
       "spearman": 5,
       "skirmisher": 5,
-      "knight": 10
+      "knight": 10,
+      "ram": 2
     }
   },
   "collisionScope": "static town-center (multi-rect, walkable gate and plinth), house/tree/rock/resource footprints; units hold one node and reserve the next (no overlap, no pass-through), wait, yield, trade stations and replan within bounded limits"
