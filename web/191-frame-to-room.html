@@ -45,19 +45,19 @@ h2{font:26px/1.4 "Songti TC","Noto Serif TC",serif;margin:0 0 10px}
 .workspace:fullscreen{height:100dvh;background:#f4f0ea}
 .stage{position:relative;flex:1;min-height:0;background:#ece5da}
 #scene{display:block;width:100%;height:100%;touch-action:none;outline-offset:-3px}
-.toolbar{position:absolute;top:19px;left:20px;right:20px;display:flex;align-items:flex-start;gap:13px;z-index:3;pointer-events:none}
+.toolbar{position:absolute;top:19px;left:20px;right:20px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:8px 13px;z-index:3;pointer-events:none}
 .toolbar>*{pointer-events:auto}
-.area-switch{display:flex;box-shadow:0 2px 10px #2a1e1410}.area-switch button{min-width:54px;height:54px;border-right:0;font-weight:600}.area-switch button:last-child{border-right:1px solid var(--line)}
+.area-switch{display:flex;flex-wrap:wrap;box-shadow:0 2px 10px #2a1e1410;grid-column:1;grid-row:1;width:max-content;max-width:100%}.area-switch button{min-width:54px;height:54px;border-right:0;font-weight:600}.area-switch button:last-child{border-right:1px solid var(--line)}
 .area-switch small{display:block;font-size:9px;font-weight:400;margin-top:4px;opacity:.65}
-.act-switch{display:flex;flex-wrap:wrap;gap:1px;max-width:470px}.act-switch button{height:36px;font-size:11px;border-color:transparent;padding:0 12px}
-.tour{margin-left:auto;white-space:nowrap}
-.stage-note{position:absolute;left:24px;top:104px;pointer-events:none}
+.act-switch{display:flex;flex-wrap:wrap;gap:1px;grid-column:1;grid-row:2;width:max-content;max-width:100%}.act-switch button{height:36px;font-size:11px;border-color:transparent;padding:0 12px}
+.tour{grid-column:2;grid-row:1;white-space:nowrap}
+.stage-note{position:absolute;left:24px;top:150px;pointer-events:none}
 .stage-note strong{font:44px Georgia,serif}.stage-note small{color:#9d958a;font:16px Georgia,serif}.stage-note p{font-size:10px;color:#7f776c;letter-spacing:1px;margin:6px 0}
 .help{position:absolute;bottom:20px;left:24px;font-size:10px;color:#8a8175;pointer-events:none;line-height:1.8}
 .compass{position:absolute;right:25px;bottom:24px;font:12px Georgia,serif;color:#766c60;border-left:1px solid #978c7e;padding-left:9px;height:31px;pointer-events:none}
 .labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .room-label{position:absolute;background:#fffdf9f0;border:1px solid #ddd3c5;border-radius:2px;padding:4px 7px;color:#5c4d40;font-size:10px;transform:translate(-50%,-50%);white-space:nowrap}
-.focus-card{position:absolute;right:23px;top:104px;width:220px;background:#fffdf9f5;border:1px solid var(--line);padding:18px;box-shadow:0 10px 35px #2a1e140d;z-index:4}
+.focus-card{position:absolute;right:23px;top:150px;width:220px;background:#fffdf9f5;border:1px solid var(--line);padding:18px;box-shadow:0 10px 35px #2a1e140d;z-index:4}
 .focus-card h3{font:21px "Songti TC","Noto Serif TC",serif;margin:12px 32px 12px 0}
 .focus-card dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:11px;margin:0 0 14px}.focus-card dt{color:#998f83}.focus-card dd{margin:0;font-variant-numeric:tabular-nums}
 .focus-card .close{position:absolute;right:6px;top:4px;border:0;font-size:10px;padding:4px;min-width:44px}
@@ -74,7 +74,7 @@ h2{font:26px/1.4 "Songti TC","Noto Serif TC",serif;margin:0 0 10px}
 .timeline input{min-width:40px;flex:1;accent-color:#3a2f26;height:20px;cursor:pointer}
 .timeline output{font:11px ui-monospace,monospace;min-width:42px}
 #scene{cursor:grab}#scene:active{cursor:grabbing}
-@media(max-width:1100px){.meta{display:none}.act-switch{max-width:300px}.tour{font-size:10px;padding:0 8px}.toolbar{gap:8px;left:12px;right:12px}.stage-note{top:123px}.focus-card{top:131px;width:190px}}
+@media(max-width:1100px){.meta{display:none}.tour{font-size:10px;padding:0 8px}.toolbar{gap:8px;left:12px;right:12px}.area-switch button{min-width:48px;padding:0 8px}.stage-note{top:200px}.focus-card{top:200px;width:190px}}
 @media(max-width:700px){
   header{height:55px;padding:0 14px;gap:8px}header h1{font-size:19px}header .id{display:none}
   .header-actions{gap:4px}.header-actions button{font-size:10px;padding:0 9px;min-height:40px}.header-actions a{display:none}#mobileInfo{display:block}
@@ -82,7 +82,7 @@ h2{font:26px/1.4 "Songti TC","Noto Serif TC",serif;margin:0 0 10px}
   aside{position:absolute;top:55px;bottom:77px;width:264px;max-width:86vw;z-index:10;box-shadow:15px 0 50px #2a1e1426;display:none}
   body.info-open aside{display:block}body.info-open #mobileInfo{background:var(--ink);color:#fff}
   .toolbar{top:12px;display:grid;grid-template-columns:1fr auto;gap:8px}
-  .area-switch{grid-column:1/-1;grid-row:1;width:100%;overflow-x:auto}.area-switch button{flex:1;height:43px;min-width:48px;padding:0 4px}
+  .area-switch{grid-column:1/-1;grid-row:1;width:100%;flex-wrap:nowrap;overflow-x:auto}.area-switch button{flex:none;height:43px;min-width:52px;padding:0 6px}
   .act-switch{grid-row:2;grid-column:1;max-width:none;flex-wrap:nowrap;overflow-x:auto;padding-bottom:3px}.act-switch button{min-height:40px;flex-shrink:0;padding:0 9px;font-size:10px}
   .tour{grid-column:2;grid-row:2;min-height:40px}
   .stage-note{top:122px;left:16px}.stage-note strong{font-size:30px}.stage-note small{font-size:12px}.stage-note p{font-size:9px;margin:5px 0}
@@ -117,7 +117,7 @@ h2{font:26px/1.4 "Songti TC","Noto Serif TC",serif;margin:0 0 10px}
       <div class="notice" id="notice" role="status" hidden></div>
       <div class="loading" id="loading" role="status">正在搭建影中屋…<small>模型約 2 MB</small></div>
     </div>
-    <div class="timeline"><button class="play" id="play" aria-label="暫停人物走動">暫停</button><select class="speed" id="speed" aria-label="播放速度"><option value="0.5">0.5×</option><option selected value="1">1×</option><option value="2">2×</option></select><label for="progress"><b>人物動線</b><small>兩位主持人 · 60 秒一圈</small></label><input id="progress" type="range" min="0" max="600" value="0" aria-label="人物動線時間"><output id="timeValue">0.0 s</output></div>
+    <div class="timeline"><button class="play" id="play" aria-label="暫停人物走動">暫停</button><select class="speed" id="speed" aria-label="播放速度"><option value="0.5">0.5×</option><option selected value="1">1×</option><option value="2">2×</option></select><label for="progress"><b>人物動線</b><small>兩位主持人 · <span id="dur">90</span> 秒一圈</small></label><input id="progress" type="range" min="0" max="900" value="0" aria-label="人物動線時間"><output id="timeValue">0.0 s</output></div>
   </main>
 </div>
 
@@ -148,9 +148,9 @@ const kin = OBJ.objects.filter((o) => o.kind === 'door' || o.kind === 'drawer');
 const { w: RW, d: RD, h: RH } = PAR.room;
 const C = PAR.corridor;
 const fmt = (v, d = 2) => Number(v).toFixed(d);
-const areaM2 = RW * RD + (C.x1 - RW) * (C.y1 - C.y0);
+const areaM2 = OBJ.area_m2;
 
-$('meta').innerHTML = `<span>公共區<b>${fmt(RW)} × ${fmt(RD)} m</b></span><span>天花<b>${fmt(RH)} m</b></span><span>剛體<b>${dyn.length}</b></span>`;
+$('meta').innerHTML = `<span>室內<b>${Math.round(areaM2)} m²</b></span><span>房間<b>4 房</b></span><span>天花<b>${fmt(RH)} m</b></span><span>剛體<b>${dyn.length}</b></span>`;
 
 // ════════════ three.js ════════════
 const canvas = $('scene'), stage = $('stage');
@@ -186,11 +186,11 @@ controls.dampingFactor = 0.08;
 }
 scene.add(new THREE.HemisphereLight(0xfff6ea, 0xb9ac99, 1.15));
 const sun = new THREE.DirectionalLight(0xfff0dc, 2.6);
-sun.position.copy(T([2.6, 16.5, 7.5]));
-sun.target.position.copy(T([2.3, 6.5, 0]));
+sun.position.copy(T([8.0, 17.5, 8.5]));
+sun.target.position.copy(T([7.3, 5.0, 0]));
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
-Object.assign(sun.shadow.camera, { left: -7, right: 7, top: 9, bottom: -9, near: 1, far: 34 });
+sun.shadow.mapSize.set(3072, 3072);
+Object.assign(sun.shadow.camera, { left: -10, right: 10, top: 10, bottom: -10, near: 1, far: 40 });
 sun.shadow.bias = -0.0004;
 sun.shadow.normalBias = 0.025;
 scene.add(sun, sun.target);
@@ -361,6 +361,10 @@ for (const rec of kin) {
   world.addBody(body);
   kinematic[rec.id] = { rec, node, body, open: 0, target: 0, rest: { p: node.position.clone(), q: node.quaternion.clone() } };
 }
+// 房門中心（主持人走近時自動打開）
+const doorsList = Object.values(kinematic).filter((k) => k.rec.kind === 'door' && /^door_/.test(k.rec.id)).map((k) => {
+  const bx = new THREE.Box3().setFromObject(k.node); const c = bx.getCenter(new THREE.Vector3()); k.cx = c.x; k.cz = c.z; return k;
+});
 if (gltf.animations.length) {
   mixer = new THREE.AnimationMixer(gltf.scene);
   action = mixer.clipAction(gltf.animations[0]);
@@ -377,13 +381,18 @@ for (const pid of ['host_a', 'host_b']) {
 loadingEl.hidden = true;
 
 // ════════════ 空間與視角 ════════════
+const CY = (C.y0 + C.y1) / 2;
 const AREAS = [
-  { id: 'all', name: '全景', en: 'ALL', eye: [10.8, -5.2, 11.5], at: [3.4, 4.3, 0], cut: true },
+  { id: 'all', name: '全景', en: 'ALL', eye: [17.6, -7.6, 15.5], at: [7.3, 4.9, 0], cut: true },
   { id: 'entry', name: '玄關', en: 'ENTRY', eye: [1.0, 0.9, 1.5], at: [1.9, 7.0, 1.2], c: [0.6, 1.5], size: '鞋櫃 · 穿鞋椅 · 隔屏' },
   { id: 'kitchen', name: '廚房', en: 'KITCHEN', eye: [3.3, 4.2, 2.35], at: [3.0, 0.3, 0.4], c: [3.1, 0.6], size: '一字廚具 · 中島' },
   { id: 'dining', name: '餐廳', en: 'DINING', eye: [1.2, 5.4, 1.55], at: [2.6, 1.0, 0.95], c: [2.2, 1.9], size: '長圓餐桌 · 雲朵吊燈' },
   { id: 'living', name: '客廳', en: 'LIVING', eye: [2.3, 4.3, 1.5], at: [1.9, 9.2, 1.0], c: [2.2, 7.6], size: '電視牆 · 沙發 · 百葉窗' },
-  { id: 'hall', name: '走廊', en: 'HALL', eye: [3.2, 2.85, 1.5], at: [10.0, 2.85, 1.1], c: [7.2, 2.85], size: '四扇房門 · 掃地機器人' },
+  { id: 'hall', name: '走廊', en: 'HALL', eye: [3.6, CY, 1.5], at: [14.0, CY, 1.1], c: [9.0, CY], size: '四扇房門 · 掃地機器人' },
+  { id: 'brother', name: '哥哥房', en: 'ROOM 1', eye: [5.32, 5.35, 1.7], at: [7.12, 9.2, 0.8], c: [6.0, 7.4], size: '滑門衣櫃 · 床座抽屜 · 窗邊平台' },
+  { id: 'younger', name: '弟弟房', en: 'ROOM 2', eye: [10.1, 5.35, 1.7], at: [8.3, 9.2, 0.8], c: [9.4, 7.4], size: '鏡射配置 · 展示櫃 · 籃框' },
+  { id: 'sister', name: '妹妹房', en: 'ROOM 3', eye: [11.5, 5.2, 1.65], at: [13.6, 8.6, 0.9], c: [12.7, 7.4], size: '化妝桌側拉抽 · 弧形穿衣鏡' },
+  { id: 'master', name: '主臥', en: 'MASTER', eye: [9.45, 3.3, 1.65], at: [13.5, 1.0, 0.8], c: [11.6, 1.9], size: '開放式更衣間 · 浴室鏡櫃' },
 ];
 const cutPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 2.32);
 const state = { area: 'all', robot: false, shakeT: 0, white: false, names: false, focus: null, tour: false };
@@ -395,12 +404,15 @@ function flyTo(eye, at, cut) {
   tween.to = { p: eye, t: at };
   tween.t = 0;
   controls.minDistance = cut ? 3 : 0.3;
-  controls.maxDistance = cut ? 26 : 6;
+  controls.maxDistance = cut ? 36 : 6;
 }
 function setArea(id, instant = false) {
   const a = AREAS.find((x) => x.id === id);
   state.area = id;
-  flyTo(T(a.eye), T(a.at), a.cut);
+  // 全景在直式畫面要退遠一點才裝得下整戶
+  let eye = T(a.eye);
+  if (a.cut && camera.aspect < 1.2) eye = T(a.at).lerp(eye, 1.2 / Math.max(0.45, camera.aspect));
+  flyTo(eye, T(a.at), a.cut);
   if (instant) { tween.t = 1; camera.position.copy(tween.to.p); controls.target.copy(tween.to.t); }
   document.querySelectorAll('[data-area]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.area === id)));
   document.querySelectorAll('.room[data-go]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.go === id)));
@@ -410,24 +422,25 @@ $('areas').addEventListener('click', (e) => { const b = e.target.closest('[data-
 // ════════════ 側欄 ════════════
 const panel = $('panel');
 const KIND = { dynamic: '可推倒', drawer: '抽屜', door: '門', static: '固定' };
-const GROUPS = ['玄關', '廚房', '餐廳', '客廳', '走廊'];
+const kindOf = (o) => o.sub || KIND[o.kind] || '';
+const GROUPS = ['玄關', '廚房', '餐廳', '客廳', '走廊', '哥哥房', '弟弟房', '妹妹房', '主臥'];
 const MATNAME = { ceramic: '陶瓷', glass: '玻璃', travertine: '洞石', steel: '不鏽鋼', wood: '木與泡棉', foam: '泡棉', paper: '紙', rattan: '藤編', plastic: '塑膠', appliance: '不鏽鋼外殼' };
 function renderTab(tab) {
   document.querySelectorAll('[role=tab]').forEach((t) => { const on = t.dataset.tab === tab; t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; if (on) panel.setAttribute('aria-labelledby', t.id); });
   if (tab === 'overview') {
-    panel.innerHTML = `<div class="eyebrow">RECONSTRUCTED FROM VIDEO</div><h2>影中屋</h2><p class="sub">從一支室內設計導覽影片重建的公共區。物品可以推倒，抽屜與門可以打開，兩位主持人沿著影片裡的動線走動。</p>
-      <div class="stats"><div><strong>${Math.round(areaM2)}</strong><small>m²</small><p>公共區面積</p></div><div><strong>${dyn.length}</strong><small>件</small><p>可推倒的物品</p></div><div><strong>${kin.length}</strong><small>處</small><p>抽屜與門</p></div><div><strong>${fmt(CAM.rms_all, 1)}</strong><small>px</small><p>投影回影片的誤差</p></div></div>
+    panel.innerHTML = `<div class="eyebrow">RECONSTRUCTED FROM VIDEO</div><h2>影中屋</h2><p class="sub">從上下兩集室內設計導覽影片重建的 4 房住宅。物品可以推倒，抽屜、滑門與門可以打開，兩位主持人沿著影片裡的動線逛完每個房間。</p>
+      <div class="stats"><div><strong>${Math.round(areaM2)}</strong><small>m²</small><p>室內面積</p></div><div><strong>${dyn.length}</strong><small>件</small><p>可推倒的物品</p></div><div><strong>${kin.length}</strong><small>處</small><p>抽屜與門</p></div><div><strong>${fmt(CAM.rms_all, 1)}</strong><small>px</small><p>投影回影片的誤差</p></div></div>
       <div class="section-heading">空間<span>SPACES</span></div>
       ${AREAS.filter((a) => a.id !== 'all').map((a) => `<button class="room" data-go="${a.id}" aria-pressed="${state.area === a.id}"><span>${a.name}<small>${a.size}</small></span><span>${a.en}</span></button>`).join('')}
-      <div class="source">參考影片：<a href="https://www.youtube.com/watch?v=bdNTTHSXfAg" target="_blank" rel="noopener">甘丹設計 · 42 坪微侘寂奶油風（上集）↗</a><br>空間與家具設計屬原設計者。只重建公共區，四個房間只有房門。尺寸由影片畫面標點解算，Pi3X、SAM3、GVHMR、Kimodo 未執行。<br><a href="${BASE}scene.blend" download>scene.blend</a><a href="${BASE}scene.glb" download>scene.glb</a><a href="${BASE}objects.json" download>objects.json</a></div>`;
+      <div class="source">參考影片：甘丹設計 · 42 坪微侘寂奶油風 <a href="https://www.youtube.com/watch?v=bdNTTHSXfAg" target="_blank" rel="noopener">上集 ↗</a><a href="https://www.youtube.com/watch?v=I631HRwPMPw" target="_blank" rel="noopener">下集 ↗</a><br>空間與家具設計屬原設計者。公共區尺寸由上集畫面標點解算；四個房間依影片中的平面圖配置、尺寸為目測。Pi3X、SAM3、GVHMR、Kimodo 未執行。<br><a href="${BASE}scene.blend" download>scene.blend</a><a href="${BASE}scene.glb" download>scene.glb</a><a href="${BASE}objects.json" download>objects.json</a></div>`;
   } else if (tab === 'items') {
     const items = OBJ.objects.filter((o) => GROUPS.includes(o.group));
     panel.innerHTML = `<div class="eyebrow">OBJECTS</div><h2>物件</h2><p class="sub">點選物件，鏡頭會移過去並顯示尺寸與質量。</p>` + GROUPS.map((g) => {
       const list = items.filter((o) => o.group === g);
-      return `<div class="section-heading">${g}<span>${list.length} 件</span></div>` + list.map((o) => `<button class="room" data-item="${o.id}" aria-pressed="${state.focus === o.id}"><span>${o.label.replace(/（.*）/, '')}<small>${KIND[o.kind]}${o.mass !== undefined ? ' · ' + fmt(o.mass, 1) + ' kg' : ''}</small></span><span>${o.size.map((v) => Math.round(v * 100)).join('×')}</span></button>`).join('');
+      return `<div class="section-heading">${g}<span>${list.length} 件</span></div>` + list.map((o) => `<button class="room" data-item="${o.id}" aria-pressed="${state.focus === o.id}"><span>${o.label.replace(/（.*）/, '')}<small>${kindOf(o)}${o.mass !== undefined ? ' · ' + fmt(o.mass, 1) + ' kg' : ''}</small></span><span>${o.size.map((v) => Math.round(v * 100)).join('×')}</span></button>`).join('');
     }).join('');
   } else {
-    panel.innerHTML = `<div class="eyebrow">FLOOR PLAN</div><h2>平面圖</h2><p class="sub">公共區 ${fmt(RW)} × ${fmt(RD)} m，走廊 ${fmt(C.x1 - RW)} × ${fmt(C.y1 - C.y0)} m。點平面圖上的空間可移動鏡頭。</p><canvas class="plan-canvas" id="plan" width="440" height="560" aria-label="平面配置圖，點選空間可移動鏡頭"></canvas><div class="legend"><span><i style="background:#cfc3b1"></i>固定家具</span><span><i style="background:#9a6b4f;border-radius:50%"></i>可推倒</span><span><i style="background:#6d8093"></i>抽屜與門</span></div>`;
+    panel.innerHTML = `<div class="eyebrow">FLOOR PLAN</div><h2>平面圖</h2><p class="sub">室內約 ${Math.round(areaM2)} m²：公共區 ${fmt(RW)} × ${fmt(RD)} m，走廊、三間小孩房與主臥套房。點平面圖上的空間可移動鏡頭。</p><canvas class="plan-canvas" id="plan" width="440" height="300" aria-label="平面配置圖，點選空間可移動鏡頭"></canvas><div class="legend"><span><i style="background:#cfc3b1"></i>固定家具</span><span><i style="background:#9a6b4f;border-radius:50%"></i>可推倒</span><span><i style="background:#6d8093"></i>抽屜與門</span></div>`;
     drawPlan();
   }
 }
@@ -439,7 +452,7 @@ panel.addEventListener('click', (e) => {
   if (e.target.id === 'plan' && planGeo) {
     const r = e.target.getBoundingClientRect(), k = e.target.width / r.width;
     const u = (e.clientX - r.left) * k, v = (e.clientY - r.top) * k;
-    const y = (u - planGeo.pad) / planGeo.s + planGeo.minY, x = (v - planGeo.pad) / planGeo.s + planGeo.minX;
+    const x = (u - planGeo.pad) / planGeo.s + planGeo.minX, y = (planGeo.H - planGeo.pad - v) / planGeo.s + planGeo.minY;
     let best = null, bd = 1e9;
     for (const a of AREAS) if (a.c) { const d = Math.hypot(a.c[0] - x, a.c[1] - y); if (d < bd) { bd = d; best = a; } }
     if (best) { stopTour(); setArea(best.id); closeMobile(); }
@@ -449,34 +462,33 @@ let planGeo = null;
 function drawPlan() {
   const cv = $('plan'); if (!cv) return;
   const g = cv.getContext('2d');
-  const W = cv.width, pad = 22;
-  const minX = -0.3, maxX = C.x1 + 0.3, minY = -0.3, maxY = RD + 0.3;
-  // 走廊往東伸出去，平面圖轉 90°：東朝下、北朝右
-  const s = (W - pad * 2) / (maxY - minY);
-  cv.height = Math.round(pad * 2 + (maxX - minX) * s);
+  const W = cv.width, pad = 16;
+  const F = OBJ.floors;
+  const minX = -0.3, maxX = Math.max(...F.map((f) => f[2])) + 0.3, minY = -0.3, maxY = Math.max(...F.map((f) => f[3])) + 0.3;
+  const s = (W - pad * 2) / (maxX - minX);
+  cv.height = Math.round(pad * 2 + (maxY - minY) * s);
   const H = cv.height;
-  const P = (x, y) => [pad + (y - minY) * s, pad + (x - minX) * s];
-  planGeo = { s, pad, minX, minY };
+  const P = (x, y) => [pad + (x - minX) * s, H - pad - (y - minY) * s];
+  planGeo = { s, pad, minX, minY, H };
   g.fillStyle = '#fbf8f3'; g.fillRect(0, 0, W, H);
   g.fillStyle = '#f1ebe1';
-  let [a, b] = P(0, 0); g.fillRect(a, b, RD * s, RW * s);
-  [a, b] = P(RW, C.y0); g.fillRect(a, b, (C.y1 - C.y0) * s, (C.x1 - RW) * s);
+  for (const [x0, y0, x1, y1] of F) { const [u, v] = P(x0, y1); g.fillRect(u, v, (x1 - x0) * s, (y1 - y0) * s); }
   for (const sb of OBJ.static_boxes) {
     if (sb.id === 'shell_floor') continue;
     const [x0, y0, , x1, y1] = sb.box;
-    const [u, v] = P(x0, y0);
-    g.fillStyle = sb.id.startsWith('shell') ? '#3a342e' : '#cfc3b1';
-    g.fillRect(u, v, (y1 - y0) * s, (x1 - x0) * s);
+    const [u, v] = P(x0, y1);
+    g.fillStyle = /shell|wing_walls|wing_mass/.test(sb.id) ? (sb.id === 'wing_mass' ? '#d9d0c3' : '#3a342e') : '#cfc3b1';
+    g.fillRect(u, v, (x1 - x0) * s, (y1 - y0) * s);
   }
   const [ru, rv] = P(PAR.rug.x, PAR.rug.y);
   g.strokeStyle = '#c9bca9'; g.lineWidth = 1; g.beginPath(); g.arc(ru, rv, PAR.rug.r * s, 0, 7); g.stroke();
   const wp = new THREE.Vector3();
-  for (const k of Object.values(kinematic)) { k.node.getWorldPosition(wp); const [u, v] = P(wp.x, -wp.z); g.fillStyle = '#6d8093'; g.fillRect(u - 3, v - 3, 6, 6); }
-  for (const d of bodies) { const [u, v] = P(d.node.position.x, -d.node.position.z); g.fillStyle = '#9a6b4f'; g.beginPath(); g.arc(u, v, 3.2, 0, 7); g.fill(); }
-  g.fillStyle = '#5c4d40'; g.font = '15px "Songti TC", serif'; g.textAlign = 'center';
+  for (const k of Object.values(kinematic)) { k.node.getWorldPosition(wp); const [u, v] = P(wp.x, -wp.z); g.fillStyle = '#6d8093'; g.fillRect(u - 2.5, v - 2.5, 5, 5); }
+  for (const d of bodies) { const [u, v] = P(d.node.position.x, -d.node.position.z); g.fillStyle = '#9a6b4f'; g.beginPath(); g.arc(u, v, 2.6, 0, 7); g.fill(); }
+  g.fillStyle = '#5c4d40'; g.font = '13px "Songti TC", serif'; g.textAlign = 'center';
   for (const ar of AREAS) if (ar.c) { const [u, v] = P(ar.c[0], ar.c[1]); g.fillText(ar.name, u, v); }
   g.fillStyle = '#9d958a'; g.font = '10px Georgia, serif'; g.textAlign = 'right';
-  g.fillText('北 N →', W - 10, H - 10);
+  g.fillText('北 N ↑', W - 8, 12);
 }
 
 // ── 手機：空間資訊抽屜 ──
@@ -500,7 +512,7 @@ function focusObject(id, move = true) {
   const rec = REC[id], n = nodes[id];
   if (!rec || !n || !GROUPS.includes(rec.group)) return;
   state.focus = id;
-  $('itemType').textContent = `${rec.group} · ${KIND[rec.kind] || ''}`;
+  $('itemType').textContent = `${rec.group} · ${kindOf(rec)}`;
   $('itemName').textContent = rec.label.replace(/（.*）/, '');
   const mat = rec.label.match(/（(.*)）/);
   $('itemMeta').innerHTML = `<dt>尺寸</dt><dd>${rec.size.map((v) => Math.round(v * 100)).join(' × ')} cm</dd>` +
@@ -517,15 +529,15 @@ function focusObject(id, move = true) {
   if (move) {
     const box = new THREE.Box3().setFromObject(n);
     const c = box.getCenter(new THREE.Vector3()), r = Math.max(0.35, box.getSize(new THREE.Vector3()).length() * 0.6);
-    // 鏡頭從房間內側看過去：朝公共區中線（走廊裡的物件朝走廊中線）後退，並限制在牆內
+    // 鏡頭從物件所在空間的內側看過去，並限制在那個空間的牆內
     const px = c.x, py = -c.z;
-    const inHall = px > RW + 0.1;
-    const inner = inHall ? [px - 1.2, (C.y0 + C.y1) / 2] : [RW / 2, Math.min(Math.max(py, 1.4), RD - 1.4)];
-    let hx = inner[0] - px, hy = inner[1] - py;
-    const hl = Math.hypot(hx, hy) || 1; hx /= hl; hy /= hl;
     const dist = r * 2.2 + 0.7;
-    const ex = inHall ? Math.min(Math.max(px + hx * dist, RW + 0.2), C.x1 - 0.2) : Math.min(Math.max(px + hx * dist, 0.25), RW - 0.25);
-    const ey = inHall ? Math.min(Math.max(py + hy * dist, C.y0 + 0.2), C.y1 - 0.2) : Math.min(Math.max(py + hy * dist, 0.25), RD - 0.25);
+    let room = OBJ.floors.find((f) => px >= f[0] - 0.3 && px <= f[2] + 0.3 && py >= f[1] - 0.3 && py <= f[3] + 0.3) || OBJ.floors[0];
+    const cx = (room[0] + room[2]) / 2, cyy = (room[1] + room[3]) / 2;
+    let hx = cx - px, hy = cyy - py;
+    const hl = Math.hypot(hx, hy) || 1; hx /= hl; hy /= hl;
+    const ex = Math.min(Math.max(px + hx * dist, room[0] + 0.2), room[2] - 0.2);
+    const ey = Math.min(Math.max(py + hy * dist, room[1] + 0.2), room[3] - 0.2);
     flyTo(T([ex, ey, Math.min(2.2, c.y + dist * 0.55)]), c, false);
     state.area = null;
     document.querySelectorAll('[data-area]').forEach((b) => b.setAttribute('aria-pressed', 'false'));
@@ -687,6 +699,7 @@ const TOUR = [
   { area: 'kitchen', act: () => setAll('drawer', true) },
   { area: 'living', act: () => { state.shakeT = 1.2; bodies.forEach((d) => d.body.wakeUp()); } },
   { area: 'hall', act: () => { setAll('door', true); state.robot = true; syncActs(); } },
+  { area: 'brother' }, { area: 'younger' }, { area: 'sister' }, { area: 'master' },
   { area: 'all' },
 ];
 let tourI = 0, tourT = 0, tourDone = false;
@@ -726,6 +739,7 @@ resize();
 setArea('all', true);
 renderTab('overview');
 $('total').textContent = ' / ' + bodies.length;
+if (action) { const dur = gltf.animations[0].duration; prog.max = Math.round(dur * 10); $('dur').textContent = Math.round(dur); }
 if (new URLSearchParams(location.search).has('debug')) window.__dbg = { bodies, CANNON, camera, nodes, kinematic, state, THREE, world, setArea };
 
 const timer = new THREE.Timer();
@@ -757,6 +771,7 @@ renderer.setAnimationLoop(() => {
   }
   for (const h of hosts) {
     h.root.getWorldPosition(tmpV);
+    for (const k of doorsList) if (k.target < 0.5 && Math.hypot(tmpV.x - k.cx, tmpV.z - k.cz) < 1.05) k.target = 1;
     h.body.velocity.set((tmpV.x - h.body.position.x) / Math.max(dt, 1e-3), 0, (tmpV.z - h.body.position.z) / Math.max(dt, 1e-3));
     h.body.position.set(tmpV.x, 0, tmpV.z);
   }

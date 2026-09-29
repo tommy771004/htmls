@@ -340,22 +340,7 @@ def build_shell():
     grid_box(wl, W, W + t, 0, C['y0'], 0, H, 'plaster')
     grid_box(wl, W, W + t, C['y1'], D, 0, H, 'plaster')
     grid_box(wl, W, W + t, C['y0'], C['y1'], C['h'], H, 'plaster')
-    # 走廊（微水泥）
-    cw = Obj('shell_corridor', '走廊（微水泥牆面）', group='房體')
-    grid_box(cw, W + t, C['x1'], C['y0'] - t, C['y0'], 0, C['h'], 'cement', var=0.05)
-    doors_x = [5.2, 6.9, 8.6]
-    xs = [W + t] + [v for x in doors_x for v in (x, x + 0.9)] + [C['x1']]
-    for i in range(0, len(xs), 2):
-        grid_box(cw, xs[i], xs[i + 1], C['y1'], C['y1'] + t, 0, C['h'], 'cement', var=0.05)
-    for x in doors_x:
-        grid_box(cw, x, x + 0.9, C['y1'], C['y1'] + t, 2.1, C['h'], 'cement', var=0.05)
-    grid_box(cw, C['x1'], C['x1'] + t, C['y0'] - t, C['y0'] + 0.15, 0, C['h'], 'cement', var=0.05)
-    grid_box(cw, C['x1'], C['x1'] + t, C['y0'] + 1.05, C['y1'] + t, 0, C['h'], 'cement', var=0.05)
-    grid_box(cw, C['x1'], C['x1'] + t, C['y0'] + 0.15, C['y0'] + 1.05, 2.1, C['h'], 'cement', var=0.05)
-    grid_box(cw, W, C['x1'] + t, C['y0'] - t, C['y1'] + t, C['h'], C['h'] + 0.05, 'plaster', collide=False)
-    # 掃地機器人的家：走廊南牆底部的凹槽
-    box(cw, 4.5, 4.95, C['y0'] - 0.02, C['y0'] + 0.001, 0.0, 0.13, 'black', color='#2A2927')
-    return doors_x
+    # 走廊與四個房間在 build_wing()
 
 
 def build_ceiling():
@@ -727,20 +712,518 @@ def build_props(shelf_tops):
 
 
 # ════════════════════════ 走廊房門 ════════════════════════
-def build_corridor_doors(doors_x):
+# ════════════════════════ 走廊與四個房間（下集） ════════════════════════
+# 位置照上下集影片裡的平面圖相對配置（北側三間小孩房、南側主臥套房），尺寸以平面圖比例與下集畫面目測。
+FLOOR_RECTS = []
+
+
+def wall_x(o, x0, x1, y0, y1, openings=(), z_top=None, role='plaster', color=None, var=0.0):
+    """沿 x 走的牆（厚度在 y），openings=[(a0, a1, z0, z1)]"""
+    zt = z_top or H
+    xs = [x0]
+    for a0, a1, _, _ in sorted(openings):
+        xs += [a0, a1]
+    xs.append(x1)
+    for k in range(0, len(xs), 2):
+        if xs[k + 1] - xs[k] > 1e-3:
+            grid_box(o, xs[k], xs[k + 1], y0, y1, 0, zt, role, color=color, var=var, step=0.45)
+    for a0, a1, z0, z1 in openings:
+        if z0 > 1e-3:
+            grid_box(o, a0, a1, y0, y1, 0, z0, role, color=color, var=var, step=0.45)
+        if z1 < zt - 1e-3:
+            grid_box(o, a0, a1, y0, y1, z1, zt, role, color=color, var=var, step=0.45)
+
+
+def wall_y(o, x0, x1, y0, y1, openings=(), z_top=None, role='plaster', color=None, var=0.0):
+    """沿 y 走的牆（厚度在 x）"""
+    zt = z_top or H
+    ys = [y0]
+    for a0, a1, _, _ in sorted(openings):
+        ys += [a0, a1]
+    ys.append(y1)
+    for k in range(0, len(ys), 2):
+        if ys[k + 1] - ys[k] > 1e-3:
+            grid_box(o, x0, x1, ys[k], ys[k + 1], 0, zt, role, color=color, var=var, step=0.45)
+    for a0, a1, z0, z1 in openings:
+        if z0 > 1e-3:
+            grid_box(o, x0, x1, a0, a1, 0, z0, role, color=color, var=var, step=0.45)
+        if z1 < zt - 1e-3:
+            grid_box(o, x0, x1, a0, a1, z1, zt, role, color=color, var=var, step=0.45)
+
+
+def door(oid, label, group, hx, hy, L, along, deg, z1=2.08, t=0.04, color='#E4DFD6', sub=None):
+    """門片：鉸鏈在 (hx, hy)，門片沿 along 軸往 L（可為負）方向延伸；deg 為打開角度（正值逆時針）"""
+    o = Obj(oid, label, kind='door', group=group, hinge=[hx, hy], axis='z', open_deg=deg, smooth=False)
+    if sub:
+        o.meta['sub'] = sub
+    s = 1 if L > 0 else -1
+    if along == 'x':
+        box(o, min(hx, hx + L) + 0.01 * s * 0, max(hx, hx + L), hy - t / 2, hy + t / 2, 0.0, z1, 'lacquer', color=color, bevel=0.003, seg=1)
+        hxh = hx + L - s * 0.1
+        for dy in (-t / 2 - 0.035, t / 2 + 0.005):
+            box(o, hxh - s * 0.1 if s < 0 else hxh - 0.1, hxh + 0.1 if s > 0 else hxh + 0.1, hy + dy, hy + dy + 0.03, 1.0, 1.02, 'black')
+    else:
+        box(o, hx - t / 2, hx + t / 2, min(hy, hy + L), max(hy, hy + L), 0.0, z1, 'lacquer', color=color, bevel=0.003, seg=1)
+        hyh = hy + L - s * 0.1
+        for dx in (-t / 2 - 0.035, t / 2 + 0.005):
+            box(o, hx + dx, hx + dx + 0.03, hyh - 0.1, hyh + 0.1, 1.0, 1.02, 'black')
+    return o
+
+
+def slider(oid, label, group, x0, x1, y0, y1, z0, z1, axis, travel, color='#E9E4DC', sub='滑門'):
+    o = Obj(oid, label, kind='drawer', group=group, axis=axis, travel=travel, smooth=False)
+    o.meta['sub'] = sub
+    box(o, x0, x1, y0, y1, z0, z1, 'lacquer', color=color, bevel=0.003, seg=1)
+    return o
+
+
+def zebra(o, x0, x1, y, z0, z1, along='x', depth=0.012):
+    """調光捲簾：不透光與透光條紋交錯"""
+    z = z0
+    k = 0
+    while z < z1 - 1e-3:
+        h = min(0.05, z1 - z)
+        role, col = ('fabric', '#EEEAE3') if k % 2 == 0 else ('glass', '#F6F3EE')
+        if along == 'x':
+            box(o, x0, x1, y - depth / 2, y + depth / 2, z, z + h, role, color=col)
+        else:
+            box(o, y - depth / 2, y + depth / 2, x0, x1, z, z + h, role, color=col)
+        z += h
+        k += 1
+
+
+def drape(o, x0, x1, y, z0, z1, amp=0.03, n=10, role='fabric_warm', color='#E9DECB'):
+    """垂墜窗簾：波浪截面沿 x 擠出"""
+    pts_f, pts_b = [], []
+    steps = max(8, int((x1 - x0) / 0.04))
+    for i in range(steps + 1):
+        x = x0 + (x1 - x0) * i / steps
+        yy = y + math.sin(i / steps * n * math.pi) * amp
+        pts_f.append((x, yy))
+        pts_b.append((x, yy + 0.012))
+    prism(o, pts_f + list(reversed(pts_b)), z0, z1, role, color=color, smooth=True)
+
+
+def bed(o, x0, x1, y0, y1, head, base_h=0.3, colors=('#E7E1D7', '#EFEAE2', '#DCCFBC'), drawers_side=None, group='', oid=''):
+    """床：床座＋床墊＋被子，head 為床頭方向 '+x' / '-x' / '+y' / '-y'；drawers_side 給抽屜所在的一側"""
+    base, mat, duv = colors
+    box(o, x0, x1, y0, y1, 0.0, 0.08, 'black', color='#3B3834', collide=True)
+    box(o, x0 + 0.01, x1 - 0.01, y0 + 0.01, y1 - 0.01, 0.08, base_h, 'lacquer', color=base, bevel=0.01, collide=True)
+    box(o, x0 + 0.03, x1 - 0.03, y0 + 0.03, y1 - 0.03, base_h, base_h + 0.22, 'fabric', color=mat, bevel=0.05, seg=3, collide=True)
+    # 被子蓋住床尾三分之二
+    if head in ('+x', '-x'):
+        L = x1 - x0
+        a, c = (x0 - 0.02, x1 - L * 0.32) if head == '+x' else (x0 + L * 0.32, x1 + 0.02)
+        box(o, a, c, y0 - 0.03, y1 + 0.03, base_h + 0.16, base_h + 0.27, 'fabric_warm', color=duv, bevel=0.05, seg=3, var=0.04)
+        box(o, a, c, y0 - 0.04, y0 - 0.02, base_h - 0.05, base_h + 0.25, 'fabric_warm', color=duv, bevel=0.01, seg=1)
+        box(o, a, c, y1 + 0.02, y1 + 0.04, base_h - 0.05, base_h + 0.25, 'fabric_warm', color=duv, bevel=0.01, seg=1)
+    else:
+        L = y1 - y0
+        a, c = (y0 - 0.02, y1 - L * 0.32) if head == '+y' else (y0 + L * 0.32, y1 + 0.02)
+        box(o, x0 - 0.03, x1 + 0.03, a, c, base_h + 0.16, base_h + 0.27, 'fabric_warm', color=duv, bevel=0.05, seg=3, var=0.04)
+        box(o, x0 - 0.04, x0 - 0.02, a, c, base_h - 0.05, base_h + 0.25, 'fabric_warm', color=duv, bevel=0.01, seg=1)
+        box(o, x1 + 0.02, x1 + 0.04, a, c, base_h - 0.05, base_h + 0.25, 'fabric_warm', color=duv, bevel=0.01, seg=1)
+
+
+def bed_drawers(prefix, label, group, x0, x1, y, z0, z1, n, side):
+    """床座側邊的抽屜：沿 x 排列，往 side（-1 往南、+1 往北）拉出"""
     out = []
-    names = ['主臥', '書房', '兒子房']
-    for k, x in enumerate(doors_x):
-        o = Obj('room_door_%d' % k, '%s房門' % names[k], kind='door', group='走廊', hinge=[x + 0.02, C['y1'] + 0.02], axis='z', open_deg=-100, smooth=False)
-        box(o, x + 0.02, x + 0.88, C['y1'] + 0.01, C['y1'] + 0.05, 0.0, 2.08, 'lacquer', color='#E4DFD6', bevel=0.003, seg=1)
-        box(o, x + 0.76, x + 0.78, C['y1'] - 0.03, C['y1'] + 0.01, 1.0, 1.02, 'black')
-        box(o, x + 0.7, x + 0.8, C['y1'] - 0.035, C['y1'] - 0.02, 1.0, 1.02, 'black')
+    w = (x1 - x0) / n
+    for k in range(n):
+        a, c = x0 + k * w + 0.01, x0 + (k + 1) * w - 0.01
+        o = Obj('%s_%d' % (prefix, k), '%s %d' % (label, k + 1), kind='drawer', group=group, axis=[0, side, 0], travel=0.42, smooth=False)
+        o.meta['sub'] = '床座抽屜'
+        yf = y
+        box(o, a, c, yf - 0.018 if side < 0 else yf, yf if side < 0 else yf + 0.018, z0, z1, 'lacquer', color='#E4DED5', bevel=0.002, seg=1)
+        yb = yf + (0.45 if side < 0 else -0.45)
+        box(o, a + 0.02, c - 0.02, min(yf, yb), max(yf, yb), z0 + 0.01, z0 + 0.022, 'lacquer', color='#D6D0C6')
+        box(o, a + 0.02, a + 0.032, min(yf, yb), max(yf, yb), z0 + 0.01, z1 - 0.03, 'lacquer', color='#D6D0C6')
+        box(o, c - 0.032, c - 0.02, min(yf, yb), max(yf, yb), z0 + 0.01, z1 - 0.03, 'lacquer', color='#D6D0C6')
+        box(o, (a + c) / 2 - 0.08, (a + c) / 2 + 0.08, (yf - 0.026) if side < 0 else yf + 0.018, (yf - 0.018) if side < 0 else yf + 0.026, z1 - 0.05, z1 - 0.035, 'black', color='#8A857D')
         out.append(o)
-    o = Obj('room_door_3', '弟弟房門', kind='door', group='走廊', hinge=[C['x1'] - 0.02, C['y0'] + 0.17], axis='z', open_deg=100, smooth=False)
-    box(o, C['x1'] - 0.05, C['x1'] - 0.01, C['y0'] + 0.17, C['y0'] + 1.03, 0.0, 2.08, 'lacquer', color='#E4DFD6', bevel=0.003, seg=1)
-    box(o, C['x1'] - 0.09, C['x1'] - 0.05, C['y0'] + 0.9, C['y0'] + 0.92, 1.0, 1.02, 'black')
-    out.append(o)
     return out
+
+
+def clothes(o, x0, x1, y, z_rod, along='x', n=8, palette=('#F2EFEA', '#D9CFC2', '#B9AFA3', '#EDE6DA', '#8D8479', '#E4DCCF')):
+    tube(o, [(x0, y, z_rod), (x1, y, z_rod)] if along == 'x' else [(y, x0, z_rod), (y, x1, z_rod)], 0.012, 'steel', seg=8)
+    for k in range(n):
+        c = x0 + (x1 - x0) * (k + 0.5) / n
+        L = 0.75 + 0.35 * ((k * 7) % 3) / 2
+        col = palette[k % len(palette)]
+        if along == 'x':
+            box(o, c - 0.018, c + 0.018, y - 0.22, y + 0.22, z_rod - L, z_rod - 0.04, 'fabric', color=col, bevel=0.01, seg=1)
+        else:
+            box(o, y - 0.22, y + 0.22, c - 0.018, c + 0.018, z_rod - L, z_rod - 0.04, 'fabric', color=col, bevel=0.01, seg=1)
+
+
+def plush(oid, label, group, x, y, z, s=1.0, col='#D8C3A8'):
+    o = dyn(oid, label, group, 'foam', 'sphere', 1.0, '填充玩偶')
+    ell(o, x, y, z + 0.07 * s, 0.07 * s, 0.06 * s, 0.07 * s, 'fabric_warm', color=col, seg=14, rings=8)
+    ell(o, x, y, z + 0.17 * s, 0.055 * s, 0.05 * s, 0.05 * s, 'fabric_warm', color=col, seg=14, rings=8)
+    for dx in (-0.035, 0.035):
+        ell(o, x + dx * s, y, z + 0.215 * s, 0.018 * s, 0.012 * s, 0.018 * s, 'fabric_warm', color=col, seg=8, rings=4)
+    o.meta['density_override'] = 60
+    return o
+
+
+def pillow(oid, label, group, x, y, z, along='y', col='#EDE7DE', size=(0.5, 0.14, 0.32)):
+    o = dyn(oid, label, group, 'foam', 'box', 0.9)
+    w, t, h = size
+    rx, ry = (t / 2, w / 2) if along == 'y' else (w / 2, t / 2)
+    ell(o, x, y, z + h / 2, rx, ry, h / 2, 'fabric_warm', color=col, seg=16, rings=10,
+        rfn=lambda a, hh: 1 - 0.16 * abs(math.sin(a * 2)) * (1 - abs(hh)))
+    return o
+
+
+def side_table(oid, label, group, x, y, col='#E3DCD0', h=0.5):
+    o = dyn(oid, label, group, 'wood', 'cyl', 0.3, '圓邊桌')
+    lathe(o, [(0.001, 0), (0.14, 0), (0.15, 0.02), (0.05, 0.05), (0.04, h - 0.04), (0.2, h - 0.03), (0.2, h), (0.001, h)], x, y, 0.0, 'lacquer', color=col, seg=28)
+    o.meta['mass_override'] = 3.0
+    return o
+
+
+def build_wing():
+    WG = P['wing']
+    t = WT
+    y0r = WG['rooms_y0']
+    east = WG['east_x']
+    M = WG['master']
+    doors, drawers = [], []
+    # ── 地坪與天花 ──
+    fl = Obj('wing_floor', '房間地坪', group='房體')
+    grid_box(fl, W + t, C['x1'], C['y0'], C['y1'], -0.05, 0, 'cement', step=0.3, var=0.05, skip=('-z', '-x', '+x', '-y', '+y'), collide=False)
+    FLOOR_RECTS.append((0, 0, W, D))
+    for k, x0 in enumerate(WG['kid_x0']):
+        grid_box(fl, x0, x0 + WG['kid_w'], y0r, D, -0.05, 0, 'floor', color='#DDD5C9', step=0.3, var=0.03, skip=('-z', '-x', '+x', '-y', '+y'), collide=False)
+    grid_box(fl, M['x0'], east, M['y0'], M['y1'], -0.05, 0, 'floor', color='#D9D1C4', step=0.3, var=0.03, skip=('-z', '-x', '+x', '-y', '+y'), collide=False)
+    ce = Obj('wing_ceiling', '房間天花', group='房體')
+    grid_box(ce, W + t, C['x1'] + t, C['y0'] - t, C['y1'] + t, C['h'], C['h'] + 0.05, 'plaster', step=0.4, collide=False)
+    for x0 in WG['kid_x0']:
+        grid_box(ce, x0, x0 + WG['kid_w'], y0r, D, H, H + 0.05, 'plaster', step=0.4, collide=False)
+    grid_box(ce, M['x0'], east, M['y0'], M['y1'], H, H + 0.05, 'plaster', step=0.4, collide=False)
+    # 走廊與房間之間沒有做的區域（平面圖上的工作陽台一帶）：做成低於剖面的實心量體
+    ms = Obj('wing_mass', '未重建區域', group='房體')
+    box(ms, W + t, M['x0'] - t, 0.0, C['y0'] - t, 0.0, 2.28, 'plaster', color='#CFC6B9', collide=True)
+
+    wl = Obj('wing_walls', '房間牆面', group='房體')
+    cw = Obj('shell_corridor', '走廊（微水泥牆面）', group='房體')
+    kw, kx = WG['kid_w'], WG['kid_x0']
+    # 小孩房門位置：哥哥房門在東側、弟弟房鏡射在西側、妹妹房在西側
+    kdoor = [(kx[0] + kw - 1.05, kx[0] + kw - 0.15), (kx[1] + 0.15, kx[1] + 1.05), (kx[2] + 0.18, kx[2] + 1.08)]
+    mdoor = (9.3, 10.2)
+    # 走廊北牆（小孩房南牆）、南牆（主臥北牆）、東端牆
+    wall_x(cw, W + t, east + t, C['y1'], y0r, [(a, c, 0, 2.1) for a, c in kdoor], role='cement', var=0.05)
+    wall_x(cw, W + t, east + t, C['y0'] - t, C['y0'], [(mdoor[0], mdoor[1], 0, 2.1)], role='cement', var=0.05)
+    wall_y(cw, east, east + t, C['y0'], C['y1'], z_top=C['h'], role='cement', var=0.05)
+    # 掃地機器人的家：走廊南牆底部的凹槽
+    box(cw, 4.5, 4.95, C['y0'] - 0.02, C['y0'] + 0.001, 0.0, 0.13, 'black', color='#2A2927')
+    # 小孩房之間的隔間、東牆、北外牆與窗
+    kwin = WG['kid_window']
+    wall_y(wl, kx[0] + kw, kx[1], y0r, D)
+    wall_y(wl, kx[1] + kw, kx[2], y0r, D)
+    wall_y(wl, east, east + t, y0r - t, D + t)
+    wall_y(wl, east, east + t, M['y0'] - t, C['y0'] - t)
+    opens = []
+    for x0 in kx:
+        cx = x0 + kw / 2
+        opens.append((cx - kwin['w'] / 2, cx + kwin['w'] / 2, kwin['z0'], kwin['z1']))
+    wall_x(wl, W + t, east + t, D, D + t, opens)
+    # 主臥：西牆、南外牆（窗）、浴室與更衣室隔間
+    mw = WG['master_window']
+    wall_y(wl, M['x0'] - t, M['x0'], M['y0'] - t, C['y0'] - t)
+    wall_x(wl, M['x0'] - t, east + t, M['y0'] - t, M['y0'], [(mw['x0'], mw['x1'], mw['z0'], mw['z1'])])
+    bdoor = (8.05, 8.8)
+    wall_x(wl, M['x0'], M['split_x'], M['bath_y1'], M['bath_y1'] + 0.1, [(bdoor[0], bdoor[1], 0, 2.05)])
+    wall_y(wl, M['split_x'], M['split_x'] + 0.1, M['y0'], M['bath_y1'] + 0.1)
+    for x0 in kx:
+        FLOOR_RECTS.append((x0, y0r, x0 + kw, D))
+    FLOOR_RECTS.append((M['x0'], M['y0'], east, M['y1']))
+    FLOOR_RECTS.append((W + t, C['y0'], east, C['y1']))
+    # 窗：玻璃、天光、調光捲簾與窗簾盒
+    win = Obj('wing_windows', '房間窗戶與調光捲簾', group='房體')
+    for x0 in kx:
+        cx = x0 + kw / 2
+        a, c = cx - kwin['w'] / 2, cx + kwin['w'] / 2
+        box(win, a, c, D + 0.06, D + 0.08, kwin['z0'], kwin['z1'], 'glass', color='#EAF0F2')
+        box(win, a, c, D + 0.09, D + 0.1, kwin['z0'], kwin['z1'], 'emit', color='#FFFFFF')
+        zebra(win, a - 0.05, c + 0.05, D - 0.06, kwin['z0'] + 0.35, kwin['z1'])
+        box(win, a - 0.15, c + 0.15, D - 0.18, D, H - 0.2, H, 'plaster', color='#ECE6DC')
+        box(win, a - 0.1, c + 0.1, D - 0.17, D - 0.15, H - 0.2, H - 0.19, 'emit')
+    a, c = mw['x0'], mw['x1']
+    box(win, a, c, M['y0'] - 0.1, M['y0'] - 0.08, mw['z0'], mw['z1'], 'glass', color='#EAF0F2')
+    box(win, a, c, M['y0'] - 0.13, M['y0'] - 0.12, mw['z0'], mw['z1'], 'emit', color='#FFFFFF')
+    zebra(win, a - 0.05, c + 0.05, M['y0'] + 0.08, mw['z0'] + 0.5, mw['z1'])
+    box(win, a - 0.2, c + 0.2, M['y0'], M['y0'] + 0.2, H - 0.22, H, 'plaster', color='#ECE6DC')
+    # ── 房門 ──
+    names = [('door_brother', '哥哥房門', '哥哥房'), ('door_younger', '弟弟房門', '弟弟房'), ('door_sister', '妹妹房門', '妹妹房')]
+    yc = (C['y1'] + y0r) / 2
+    doors.append(door(names[0][0], names[0][1], '走廊', kdoor[0][1] - 0.01, yc, -0.88, 'x', -95))
+    doors.append(door(names[1][0], names[1][1], '走廊', kdoor[1][0] + 0.01, yc, 0.88, 'x', 95))
+    doors.append(door(names[2][0], names[2][1], '走廊', kdoor[2][0] + 0.01, yc, 0.88, 'x', 95))
+    doors.append(door('door_master', '主臥房門', '走廊', mdoor[1] - 0.01, C['y0'] - t / 2, -0.88, 'x', 95))
+    doors.append(door('door_master_bath', '主臥浴室門', '主臥', bdoor[0] + 0.01, M['bath_y1'] + 0.05, 0.73, 'x', -95, z1=2.03))
+
+    # ── 哥哥房、弟弟房（鏡射配置）──
+    def kid_room(x0, mirror, grp, pre):
+        X = (lambda u: x0 + kw - u) if mirror else (lambda u: x0 + u)
+        xs = lambda u0, u1: (min(X(u0), X(u1)), max(X(u0), X(u1)))
+        out_d, out_s = [], []
+        # 衣櫃（西側，鏡射時在東側）：櫃體＋兩片滑門（內外軌）
+        wd = Obj(pre + '_wardrobe', '%s衣櫃' % grp, group=grp)
+        a, c = xs(0, 0.6)
+        box(wd, a, c, y0r, y0r + 2.6, 0, 2.4, 'lacquer', color='#E6E0D7', collide=True)
+        box(wd, a, c, y0r, y0r + 2.6, 2.4, H, 'lacquer', color='#E6E0D7')
+        cl = Obj(pre + '_clothes', '%s衣櫃內的衣物' % grp, group=grp)
+        clothes(cl, y0r + 0.1, y0r + 2.5, (a + c) / 2, 1.9, along='y', n=10)
+        fx = X(0.6)
+        s = 1 if not mirror else -1
+        p1 = xs(0.6, 0.62)
+        p2 = xs(0.62, 0.64)
+        out_s.append(slider(pre + '_slide_0', '%s衣櫃滑門（內）' % grp, grp, p1[0], p1[1], y0r + 1.3, y0r + 2.6, 0.02, 2.38, [0, -1, 0], 1.2))
+        out_s.append(slider(pre + '_slide_1', '%s衣櫃滑門（外）' % grp, grp, p2[0], p2[1], y0r + 0.02, y0r + 1.32, 0.02, 2.38, [0, 1, 0], 1.2, color='#EDE8E0'))
+        # 衣櫃上方的大樑（修成圓弧）與間照
+        bm_ = Obj(pre + '_beam', '%s修樑' % grp, group=grp)
+        bx = xs(0, kw)
+        box(bm_, bx[0], bx[1], y0r + 2.6, y0r + 3.0, 2.38, H, 'plaster', color='#ECE7DE', bevel=0.12, seg=6)
+        box(bm_, bx[0] + 0.05, bx[1] - 0.05, y0r + 2.99, y0r + 3.01, 2.38, 2.4, 'emit')
+        # 床：床頭靠東牆（鏡射時靠西牆），床座南側兩個抽屜
+        bd = Obj(pre + '_bed', '%s床組' % grp, group=grp)
+        a, c = xs(kw - 2.12, kw)
+        bed(bd, a, c, y0r + 3.15, y0r + 4.65, '+x' if not mirror else '-x', colors=('#E6E0D6', '#F1ECE4', '#D9CCB8' if not mirror else '#C9CFCB'))
+        hb = xs(kw - 0.08, kw)
+        box(bd, hb[0], hb[1], y0r + 3.05, y0r + 4.75, 0.3, 1.15, 'fabric', color='#E2D8C9', bevel=0.06, seg=4, collide=True)
+        dx = xs(kw - 1.95, kw - 0.58)
+        out_d += bed_drawers(pre + '_beddrawer', '%s床座抽屜' % grp, grp, dx[0], dx[1], y0r + 3.15, 0.1, 0.28, 2, -1)
+        # 窗邊平台＋坐墊
+        wb = Obj(pre + '_windowseat', '%s窗邊平台' % grp, group=grp)
+        a, c = xs(0.75, 2.45)
+        box(wb, a, c, D - 0.5, D, 0, 0.42, 'lacquer', color='#E4DDD2', collide=True)
+        box(wb, a + 0.03, c - 0.03, D - 0.47, D - 0.03, 0.42, 0.5, 'fabric', color='#D8CDBE', bevel=0.03, seg=3, collide=True)
+        # 壁燈（球形）
+        lp = Obj(pre + '_lamp', '%s壁燈' % grp, group=grp)
+        ell(lp, X(kw - 0.06), y0r + 4.9, 1.2, 0.07, 0.07, 0.07, 'glow', seg=16, rings=8)
+        props = []
+        props.append(pillow(pre + '_pillow_0', '%s枕頭 1' % grp, grp, X(kw - 0.25), y0r + 3.55, 0.52, 'y'))
+        props.append(pillow(pre + '_pillow_1', '%s枕頭 2' % grp, grp, X(kw - 0.25), y0r + 4.25, 0.52, 'y', col='#E0D6C8'))
+        props.append(side_table(pre + '_sidetable', '%s圓邊桌' % grp, grp, X(kw - 0.3), y0r + 2.85))
+        cols = ['#D8C3A8', '#C4CBBF', '#E5D5C8', '#B8A792']
+        for k in range(3):
+            props.append(plush(pre + '_plush_%d' % k, '%s玩偶 %d' % (grp, k + 1), grp, X(1.0 + k * 0.5), D - 0.25, 0.5, s=1.0 + 0.2 * (k % 2), col=cols[(k + (1 if mirror else 0)) % 4]))
+        return out_d, out_s, props
+
+    d1, s1, pr1 = kid_room(kx[0], False, '哥哥房', 'brother')
+    d2, s2, pr2 = kid_room(kx[1], True, '弟弟房', 'younger')
+    drawers += d1 + s1 + d2 + s2
+    # 弟弟房：展示櫃與籃框
+    grp = '弟弟房'
+    x0 = kx[1]
+    dc = Obj('younger_display', '弟弟房展示櫃', group=grp)
+    box(dc, x0 + kw - 0.45, x0 + kw, y0r + 2.7, y0r + 3.7, 0, 0.8, 'lacquer', color='#E6E0D7', collide=True)
+    box(dc, x0 + kw - 0.45, x0 + kw, y0r + 2.7, y0r + 3.7, 2.2, H, 'lacquer', color='#E6E0D7')
+    for zz in (1.2, 1.6, 2.0):
+        box(dc, x0 + kw - 0.42, x0 + kw, y0r + 2.73, y0r + 3.67, zz - 0.01, zz, 'glass', color='#EAF0F0', collide=True)
+        box(dc, x0 + kw - 0.03, x0 + kw, y0r + 2.73, y0r + 3.67, zz + 0.01, zz + 0.012, 'emit')
+    box(dc, x0 + kw - 0.44, x0 + kw, y0r + 2.7, y0r + 3.7, 0.8, 0.82, 'lacquer', color='#DDD6CB', collide=True)
+    pr2.append(dyn('younger_cap', '展示櫃上的棒球帽', grp, 'fabric', 'sphere', 0.2))
+    ell(OBJS[-1], x0 + kw - 0.22, y0r + 3.2, 1.26, 0.1, 0.1, 0.05, 'fabric_grey', color='#6A86A6', seg=16, rings=6)
+    for k, (dy, h_, col) in enumerate(((0.2, 0.18, '#D0463C'), (0.75, 0.22, '#EFD36A'))):
+        o = dyn('younger_figure_%d' % k, '收藏公仔 %d' % (k + 1), grp, 'plastic', 'box', 0.5)
+        box(o, x0 + kw - 0.28, x0 + kw - 0.16, y0r + 2.7 + dy - 0.05, y0r + 2.7 + dy + 0.05, 1.6, 1.6 + h_, 'lacquer', color=col, bevel=0.02, seg=2)
+        pr2.append(o)
+    o = dyn('younger_box', '收藏盒', grp, 'paper', 'box', 0.4)
+    box(o, x0 + kw - 0.4, x0 + kw - 0.06, y0r + 3.0, y0r + 3.4, 2.0, 2.18, 'paper', color='#E7D8B8', bevel=0.004, seg=1)
+    pr2.append(o)
+    # 籃框掛在衣櫃側板上方，籃球在地上
+    hp = Obj('younger_hoop', '弟弟房籃框', group=grp)
+    hx = x0 + kw - 0.62 - 0.3
+    box(hp, x0 + kw - 0.62 - 0.02, x0 + kw - 0.6, y0r + 2.55, y0r + 2.6, 1.7, 1.72, 'steel')
+    box(hp, x0 + kw - 1.05, x0 + kw - 0.62, y0r + 2.58, y0r + 2.6, 1.62, 1.95, 'lacquer', color='#F4F2EE')
+    ring = [(x0 + kw - 0.83 + math.cos(a) * 0.12, y0r + 2.43 + math.sin(a) * 0.12, 1.68) for a in np.linspace(0, TAU, 25)]
+    tube(hp, ring, 0.008, 'black', color='#D8552F', seg=6)
+    o = dyn('younger_ball', '籃球', grp, 'plastic', 'sphere', 0.08)
+    ell(o, x0 + 1.9, y0r + 1.6, 0.12, 0.12, 0.12, 0.12, 'fabric_warm', color='#D07A3C', seg=18, rings=10)
+    o.meta['mass_override'] = 0.6
+    pr2.append(o)
+
+    # ── 妹妹房 ──
+    grp = '妹妹房'
+    x0 = kx[2]
+    x1 = x0 + kw
+    wd = Obj('sister_wardrobe', '妹妹房衣櫃與展示櫃', group=grp)
+    box(wd, x1 - 0.6, x1, y0r, y0r + 2.0, 0, 2.4, 'lacquer', color='#E8E2D9', collide=True)
+    box(wd, x1 - 0.6, x1, y0r, y0r + 2.8, 2.4, H, 'lacquer', color='#E8E2D9')
+    # 展示格（燈光層板）
+    box(wd, x1 - 0.45, x1, y0r + 2.0, y0r + 2.8, 0, 0.75, 'lacquer', color='#E8E2D9', collide=True)
+    for zz in (1.15, 1.55, 1.95):
+        box(wd, x1 - 0.42, x1, y0r + 2.02, y0r + 2.78, zz - 0.012, zz, 'lacquer', color='#EFEAE2', collide=True)
+        box(wd, x1 - 0.42, x1 - 0.4, y0r + 2.04, y0r + 2.76, zz - 0.03, zz - 0.012, 'emit')
+    box(wd, x1 - 0.46, x1 - 0.44, y0r + 2.0, y0r + 2.8, 0.75, 2.4, 'lacquer', color='#E8E2D9')
+    cl = Obj('sister_clothes', '妹妹房衣櫃內的衣物', group=grp)
+    clothes(cl, y0r + 0.1, y0r + 1.9, x1 - 0.3, 1.9, along='y', n=8, palette=('#F4E9E2', '#E9D2C9', '#F0EDE6', '#D9C7B8', '#C9B3A6'))
+    # 衣櫃兩扇對開門（鉸鏈在外側）
+    doors.append(door('sister_wd_0', '妹妹房衣櫃門 左', grp, x1 - 0.62, y0r + 0.02, 0.97, 'y', 95, z1=2.38, t=0.02, color='#ECE6DE', sub='衣櫃門'))
+    doors.append(door('sister_wd_1', '妹妹房衣櫃門 右', grp, x1 - 0.62, y0r + 1.98, -0.97, 'y', -95, z1=2.38, t=0.02, color='#ECE6DE', sub='衣櫃門'))
+    # 化妝桌：側拉抽＋燈鏡
+    vn = Obj('sister_vanity', '妹妹房化妝桌', group=grp)
+    box(vn, x1 - 0.5, x1, y0r + 2.9, y0r + 3.9, 0.72, 0.75, 'lacquer', color='#EDE8E0', collide=True)
+    box(vn, x1 - 0.5, x1, y0r + 3.62, y0r + 3.9, 0, 0.72, 'lacquer', color='#E6E0D6', collide=True)
+    box(vn, x1 - 0.03, x1, y0r + 3.0, y0r + 3.5, 1.05, 1.75, 'mirror')
+    box(vn, x1 - 0.035, x1 - 0.03, y0r + 2.98, y0r + 3.52, 1.03, 1.77, 'emit')
+    o = Obj('sister_sidepull', '化妝桌側拉抽', kind='drawer', group=grp, axis=[-1, 0, 0], travel=0.4, smooth=False)
+    o.meta['sub'] = '側拉抽'
+    box(o, x1 - 0.52, x1 - 0.5, y0r + 3.64, y0r + 3.88, 0.05, 0.7, 'lacquer', color='#EFEAE2')
+    box(o, x1 - 0.5, x1 - 0.05, y0r + 3.66, y0r + 3.68, 0.07, 0.66, 'lacquer', color='#D8D2C8')
+    box(o, x1 - 0.5, x1 - 0.05, y0r + 3.84, y0r + 3.86, 0.07, 0.66, 'lacquer', color='#D8D2C8')
+    for zz in (0.25, 0.48):
+        box(o, x1 - 0.5, x1 - 0.05, y0r + 3.66, y0r + 3.86, zz, zz + 0.01, 'lacquer', color='#D8D2C8')
+    box(o, x1 - 0.535, x1 - 0.52, y0r + 3.72, y0r + 3.8, 0.55, 0.57, 'black', color='#9B8F80')
+    drawers.append(o)
+    # 床：床頭靠西牆，拱形軟包床頭板與雙圓壁燈
+    bd = Obj('sister_bed', '妹妹房床組', group=grp)
+    bed(bd, x0, x0 + 2.1, y0r + 3.0, y0r + 4.5, '-x', colors=('#E9E1D6', '#F4EFE8', '#E7D4C6'))
+    arch = [(x0 + 0.001, y0r + 2.95 + 0.8 + math.cos(a) * 0.8) for a in np.linspace(0, math.pi, 1)]
+    box(bd, x0, x0 + 0.07, y0r + 2.9, y0r + 4.6, 0.3, 1.25, 'fabric', color='#E3D3C2', bevel=0.07, seg=5, collide=True)
+    lp = Obj('sister_lamps', '妹妹房雙圓壁燈', group=grp)
+    for dy in (2.75, 4.75):
+        for dz in (0, 0.2):
+            cyl(lp, x0 + 0.03, y0r + dy, 1.35 + dz, 1.35 + dz + 0.001, 0.001, 'glow')
+            ell(lp, x0 + 0.03, y0r + dy, 1.35 + dz, 0.02, 0.07, 0.07, 'glow', seg=16, rings=8)
+    # 穿衣鏡：不規則弧形，貼在南牆門邊
+    mr = Obj('sister_mirror', '妹妹房弧形穿衣鏡', group=grp)
+    pts = []
+    for i in range(40):
+        a = TAU * i / 40
+        r = 1 + 0.12 * math.sin(3 * a + 0.6) + 0.06 * math.sin(5 * a)
+        pts.append((x0 + 1.75 + math.cos(a) * 0.3 * r, 1.05 + math.sin(a) * 0.72 * r))
+    vs = [mr.bm.verts.new((x, y0r + 0.012, z)) for x, z in pts]
+    f = mr.bm.faces.new(vs)
+    mr.paint(vs, [f], 'mirror')
+    vs2 = [mr.bm.verts.new((x0 + 1.75 + (x - x0 - 1.75) * 1.04, y0r + 0.006, 1.05 + (z - 1.05) * 1.03)) for x, z in pts]
+    f2 = mr.bm.faces.new(list(reversed(vs2)))
+    mr.paint(vs2, [f2], 'emit', color='#FFF0DC')
+    # 窗簾
+    cu = Obj('sister_curtain', '妹妹房窗簾', group=grp)
+    cx = x0 + kw / 2
+    drape(cu, cx - 1.35, cx - 0.9, D - 0.14, 0.02, H - 0.06)
+    drape(cu, cx + 0.9, cx + 1.35, D - 0.14, 0.02, H - 0.06)
+    pr3 = [pillow('sister_pillow_0', '妹妹房枕頭 1', grp, x0 + 0.25, y0r + 3.4, 0.52, 'y', col='#F0E7DE'),
+           pillow('sister_pillow_1', '妹妹房枕頭 2', grp, x0 + 0.25, y0r + 4.1, 0.52, 'y', col='#E8CFC4'),
+           plush('sister_plush', '妹妹房玩偶', grp, x0 + 0.6, y0r + 3.75, 0.55, s=1.3, col='#EAD9D0')]
+    o = dyn('sister_stool', '化妝椅', grp, 'foam', 'cyl', 0.6)
+    lathe(o, [(0.001, 0), (0.15, 0), (0.17, 0.3), (0.19, 0.44), (0.12, 0.47), (0.001, 0.47)], x1 - 0.8, y0r + 3.3, 0.0, 'fabric', color='#EFE8DF', seg=24)
+    o.meta['mass_override'] = 4.0
+    pr3.append(o)
+    for k, (dy, col, h_) in enumerate(((3.05, '#E8C9C0', 0.12), (3.2, '#F2EEE8', 0.08), (3.75, '#D9B9A0', 0.16))):
+        o = dyn('sister_bottle_%d' % k, '化妝桌上的瓶罐 %d' % (k + 1), grp, 'glass', 'cyl', 0.4)
+        cyl(o, x1 - 0.3, y0r + dy, 0.75, 0.75 + h_, 0.03, 'ceramic', color=col, seg=14)
+        pr3.append(o)
+
+    # ── 主臥套房 ──
+    grp = '主臥'
+    sx = M['split_x']
+    by1 = M['bath_y1']
+    # 更衣室（開放式）：掛衣桿＋燈、抽屜櫃、玻璃展示櫃；和臥室之間是小冰柱玻璃
+    cl = Obj('master_closet', '主臥開放式更衣間', group=grp)
+    clothes(cl, by1 + 0.2, M['y1'] - 0.1, M['x0'] + 0.3, 1.95, along='y', n=11)
+    box(cl, M['x0'], M['x0'] + 0.6, by1 + 0.1, M['y1'], 2.0, 2.05, 'lacquer', color='#EAE5DD')
+    box(cl, M['x0'] + 0.56, M['x0'] + 0.6, by1 + 0.15, M['y1'] - 0.05, 1.99, 2.0, 'emit')
+    box(cl, M['x0'], M['x0'] + 0.6, by1 + 0.1, M['y1'], 0, 0.2, 'lacquer', color='#EAE5DD', collide=True)
+    cab_x0, cab_x1 = M['x0'] + 0.9, sx - 0.15
+    box(cl, cab_x0, cab_x1, by1 + 0.1, by1 + 0.55, 0, 0.08, 'black', color='#3B3834', collide=True)
+    box(cl, cab_x0, cab_x1, by1 + 0.1, by1 + 0.53, 0.08, 0.78, 'lacquer', color='#E8E2D9', collide=True)
+    box(cl, cab_x0 - 0.01, cab_x1 + 0.01, by1 + 0.1, by1 + 0.56, 0.78, 0.81, 'stone', collide=True)
+    n = 3
+    for k in range(n):
+        z0 = 0.1 + k * 0.225
+        o = Obj('master_drawer_%d' % k, '更衣室抽屜櫃 %d' % (k + 1), kind='drawer', group=grp, axis=[0, 1, 0], travel=0.36, smooth=False)
+        yf = by1 + 0.53
+        box(o, cab_x0 + 0.01, cab_x1 - 0.01, yf, yf + 0.02, z0, z0 + 0.21, 'lacquer', color='#EDE8E0', bevel=0.002, seg=1)
+        box(o, cab_x0 + 0.03, cab_x1 - 0.03, yf - 0.4, yf, z0 + 0.01, z0 + 0.022, 'lacquer', color='#D6D0C6')
+        box(o, cab_x0 + 0.03, cab_x0 + 0.042, yf - 0.4, yf, z0 + 0.01, z0 + 0.18, 'lacquer', color='#D6D0C6')
+        box(o, cab_x1 - 0.042, cab_x1 - 0.03, yf - 0.4, yf, z0 + 0.01, z0 + 0.18, 'lacquer', color='#D6D0C6')
+        box(o, (cab_x0 + cab_x1) / 2 - 0.1, (cab_x0 + cab_x1) / 2 + 0.1, yf + 0.02, yf + 0.028, z0 + 0.17, z0 + 0.185, 'black', color='#8A857D')
+        drawers.append(o)
+    # 玻璃展示櫃（北牆，放包包）
+    gc = Obj('master_display', '主臥玻璃展示櫃', group=grp)
+    gx0, gx1 = M['x0'] + 0.9, sx - 0.15
+    box(gc, gx0, gx1, M['y1'] - 0.42, M['y1'], 0, 0.85, 'lacquer', color='#E8E2D9', collide=True)
+    box(gc, gx0, gx1, M['y1'] - 0.42, M['y1'], 2.25, H, 'lacquer', color='#E8E2D9')
+    for zz in (1.3, 1.78):
+        box(gc, gx0 + 0.02, gx1 - 0.02, M['y1'] - 0.4, M['y1'], zz - 0.01, zz, 'glass', color='#EAF0F0', collide=True)
+    box(gc, gx0, gx1, M['y1'] - 0.42, M['y1'] - 0.41, 0.85, 2.25, 'glass', color='#F2F5F5')
+    box(gc, gx0 + 0.02, gx1 - 0.02, M['y1'] - 0.04, M['y1'] - 0.02, 0.87, 2.23, 'emit', color='#FFF3E4')
+    box(gc, gx0 - 0.01, gx1 + 0.01, M['y1'] - 0.43, M['y1'], 0.85, 0.87, 'stone', collide=True)
+    prm = []
+    for k, (xx, zz, col) in enumerate(((0.35, 0.87, '#8C6A4E'), (1.05, 1.3, '#E2D7C6'), (0.6, 1.78, '#2F2C29'))):
+        o = dyn('master_bag_%d' % k, '展示櫃裡的包 %d' % (k + 1), grp, 'fabric', 'box', 0.25, '皮革包，內部中空')
+        bx0 = gx0 + xx
+        box(o, bx0, bx0 + 0.3, M['y1'] - 0.3, M['y1'] - 0.14, zz, zz + 0.22, 'cloth', color=col, bevel=0.03, seg=3)
+        tube(o, [(bx0 + 0.07, M['y1'] - 0.22, zz + 0.22), (bx0 + 0.15, M['y1'] - 0.22, zz + 0.33), (bx0 + 0.23, M['y1'] - 0.22, zz + 0.22)], 0.008, 'cloth', color=col, seg=6)
+        o.meta['mass_override'] = 0.9
+        prm.append(o)
+    # 小冰柱玻璃隔屏（更衣室／臥室之間）
+    ice = Obj('master_iceglass', '小冰柱玻璃隔屏', group=grp)
+    box(ice, sx, sx + 0.04, by1 + 0.1, by1 + 0.95, 0, 2.3, 'glass', color='#E9EEEF', collide=True)
+    for k in range(18):
+        yy = by1 + 0.12 + k * 0.045
+        box(ice, sx - 0.004, sx + 0.044, yy, yy + 0.012, 0, 2.3, 'glass', color='#F4F7F7')
+    box(ice, sx, sx + 0.04, by1 + 0.1, by1 + 0.95, 2.3, 2.34, 'steel', color='#B8B4AC')
+    # 浴室：鏡櫃（兩扇門）、檯面盆、馬桶、淋浴玻璃
+    bt = Obj('master_bath', '主臥浴室', group=grp)
+    box(bt, M['x0'], M['x0'] + 0.55, M['y0'] + 0.25, M['y0'] + 1.3, 0.2, 0.85, 'lacquer', color='#DDD6CB', collide=True)
+    box(bt, M['x0'], M['x0'] + 0.56, M['y0'] + 0.23, M['y0'] + 1.32, 0.85, 0.88, 'stone', collide=True)
+    ell(bt, M['x0'] + 0.3, M['y0'] + 0.78, 0.9, 0.18, 0.26, 0.05, 'ceramic', seg=24, rings=8)
+    box(bt, M['x0'], M['x0'] + 0.14, M['y0'] + 0.35, M['y0'] + 1.2, 1.1, 1.9, 'lacquer', color='#E6E0D7', collide=True)
+    box(bt, M['x0'] + 0.13, M['x0'] + 0.145, M['y0'] + 0.35, M['y0'] + 1.2, 1.08, 1.1, 'emit')
+    lathe(bt, [(0.001, 0), (0.14, 0), (0.18, 0.2), (0.21, 0.38), (0.19, 0.4), (0.001, 0.4)], 7.55, by1 - 0.3, 0.0, 'ceramic', seg=24, sy=1.25)
+    box(bt, 7.35, 7.75, by1 - 0.12, by1, 0.35, 0.8, 'ceramic', color='#F1EFEB', bevel=0.02, seg=2, collide=True)
+    bt.collide(7.35, 7.75, by1 - 0.55, by1, 0, 0.4)
+    box(bt, 8.0, sx, M['y0'], M['y0'] + 0.9, 0, 0.04, 'stone', color='#D2CCC2')
+    box(bt, 8.0, 8.02, M['y0'], M['y0'] + 0.9, 0, 2.0, 'glass', color='#EEF3F3', collide=True)
+    tube(bt, [(8.6, M['y0'] + 0.05, 2.0), (8.6, M['y0'] + 0.3, 2.0)], 0.012, 'steel', seg=8)
+    cyl(bt, 8.6, M['y0'] + 0.3, 1.98, 2.0, 0.1, 'steel', seg=16)
+    bt.smooth = False
+    doors.append(door('master_mirror_0', '鏡櫃門 左', grp, M['x0'] + 0.15, M['y0'] + 0.35, 0.42, 'y', -95, z1=1.9, t=0.02, color='#E6E0D7', sub='鏡櫃門'))
+    doors.append(door('master_mirror_1', '鏡櫃門 右', grp, M['x0'] + 0.15, M['y0'] + 1.2, -0.42, 'y', 95, z1=1.9, t=0.02, color='#E6E0D7', sub='鏡櫃門'))
+    for dd in doors[-2:]:
+        for v in dd.bm.verts:
+            if v.co.z < 1.1:
+                v.co.z = 1.1
+    # 臥室：床頭靠東牆，長低櫃沿窗，L 型圓弧天花燈帶
+    bd = Obj('master_bed', '主臥床組', group=grp)
+    by_ = (M['y0'] + M['y1']) / 2
+    bed(bd, east - 2.2, east - 0.1, by_ - 0.9, by_ + 0.9, '+x', colors=('#E3DCD1', '#F2EEE7', '#CFC3B2'))
+    box(bd, east - 0.12, east, by_ - 1.05, by_ + 1.05, 0.3, 1.3, 'fabric', color='#DCD2C4', bevel=0.06, seg=4, collide=True)
+    lc = Obj('master_lowcab', '主臥窗邊長低櫃', group=grp)
+    box(lc, sx + 0.25, east - 2.4, M['y0'], M['y0'] + 0.42, 0, 0.45, 'lacquer', color='#E6E0D6', collide=True)
+    box(lc, sx + 0.25, east - 2.4, M['y0'], M['y0'] + 0.44, 0.45, 0.48, 'travertine', collide=True)
+    art = Obj('master_art', '主臥壁畫', group=grp)
+    box(art, sx + 0.1, sx + 0.13, by1 + 1.0, M['y1'] - 0.12, 1.0, 2.0, 'travertine', color='#D9CFBF', bevel=0.005, seg=1)
+    for k in range(9):
+        yy = by1 + 1.08 + k * 0.06
+        box(art, sx + 0.13, sx + 0.15, yy, yy + 0.02, 1.08, 1.92, 'wood', color='#B8A68C')
+    cv = Obj('master_cove', '主臥圓弧天花燈帶', group=grp)
+    box(cv, sx + 0.1, east, M['y1'] - 0.45, M['y1'], H - 0.22, H, 'plaster', color='#ECE7DE', bevel=0.12, seg=6)
+    box(cv, east - 0.45, east, M['y0'], M['y1'] - 0.45, H - 0.22, H, 'plaster', color='#ECE7DE', bevel=0.12, seg=6)
+    box(cv, sx + 0.1, east - 0.45, M['y1'] - 0.47, M['y1'] - 0.45, H - 0.2, H - 0.18, 'emit')
+    box(cv, east - 0.47, east - 0.45, M['y0'] + 0.1, M['y1'] - 0.45, H - 0.2, H - 0.18, 'emit')
+    cu = Obj('master_curtain', '主臥窗簾', group=grp)
+    drape(cu, mw['x0'] - 0.45, mw['x0'] - 0.05, M['y0'] + 0.18, 0.02, H - 0.1)
+    drape(cu, mw['x1'] + 0.05, mw['x1'] + 0.45, M['y0'] + 0.18, 0.02, H - 0.1)
+    prm += [pillow('master_pillow_0', '主臥枕頭 1', grp, east - 0.3, by_ - 0.45, 0.52, 'y'),
+            pillow('master_pillow_1', '主臥枕頭 2', grp, east - 0.3, by_ + 0.45, 0.52, 'y'),
+            pillow('master_pillow_2', '主臥抱枕', grp, east - 0.5, by_, 0.52, 'y', col='#C9A391', size=(0.42, 0.12, 0.28))]
+    prm.append(side_table('master_side_0', '主臥床邊几 1', grp, east - 0.3, by_ - 1.3, col='#DDD3C4'))
+    prm.append(side_table('master_side_1', '主臥床邊几 2', grp, east - 0.3, by_ + 1.3, col='#DDD3C4'))
+    o = dyn('master_vase', '長低櫃上的花瓶', grp, 'ceramic', 'cyl', 0.2)
+    lathe(o, [(0.001, 0), (0.06, 0), (0.09, 0.12), (0.05, 0.28), (0.03, 0.32), (0.001, 0.32)], sx + 0.8, M['y0'] + 0.22, 0.48, 'ceramic', color='#E3DBCF', seg=20)
+    for k, (dx, dy) in enumerate(((0.04, 0.02), (-0.05, 0.03), (0.01, -0.05))):
+        tube(o, [(sx + 0.8, M['y0'] + 0.22, 0.78), (sx + 0.8 + dx, M['y0'] + 0.22 + dy, 1.2)], [0.005, 0.002], 'wood', color='#5E5244', seg=5)
+    prm.append(o)
+    o = dyn('master_books', '長低櫃上的書', grp, 'paper', 'box', 1.0)
+    box(o, sx + 1.4, sx + 1.7, M['y0'] + 0.1, M['y0'] + 0.32, 0.48, 0.53, 'paper', color='#D9CFBF', bevel=0.003, seg=1)
+    prm.append(o)
+    return doors, drawers
 
 
 # ════════════════════════ 主持人代理人偶（非動作捕捉） ════════════════════════
@@ -870,13 +1353,15 @@ def main():
     sc.unit_settings.system = 'METRIC'
     bpy.context.preferences.filepaths.save_version = 0
 
-    doors_x = build_shell()
+    build_shell()
     build_ceiling()
     shoe_doors = build_entry()
     drawers = build_kitchen()
     shelf_tops = build_living()
     props = build_props(shelf_tops)
-    room_doors = build_corridor_doors(doors_x)
+    wing_doors, wing_drawers = build_wing()
+    room_doors = wing_doors
+    drawers = drawers + wing_drawers
     people = build_people()
 
     obs = [realize(o) for o in OBJS]
@@ -971,6 +1456,8 @@ def make_records(people):
             r.update(material=m['material'], density=dens, fill=m['fill'], volume_l=round(vol * 1000, 2),
                      mass=round(float(mass), 2), mass_method='override' if m.get('mass_override') else 'density×volume×fill',
                      collider=col, note=m.get('note', ''))
+        if o.meta.get('sub'):
+            r['sub'] = o.meta['sub']
         if o.kind == 'door':
             r.update(hinge=o.meta['hinge'], open_deg=o.meta['open_deg'])
         if o.kind == 'drawer':
@@ -980,7 +1467,9 @@ def make_records(people):
         for b in o.boxes:
             statics.append({'id': o.id, 'box': b})
         recs.append(r)
-    return {'version': P['version'], 'units': 'm, 平面座標 x 東 y 北 z 上', 'objects': recs, 'static_boxes': statics,
+    area = sum((x1 - x0) * (y1 - y0) for x0, y0, x1, y1 in FLOOR_RECTS)
+    return {'version': P['version'], 'units': 'm, 平面座標 x 東 y 北 z 上', 'objects': recs, 'static_boxes': statics, 'area_m2': round(area, 1),
+            'floors': [[round(v, 3) for v in r] for r in FLOOR_RECTS],
             'room': {'w': W, 'd': D, 'h': H}, 'corridor': C}
 
 
@@ -991,10 +1480,24 @@ def stations():
         feet.update(fr.get('people', {}))
     a_live = feet.get('host_a', (2.0, 8.9))
     b_live = feet.get('host_b', (2.75, 9.35))
-    return {
-        'host_a': [((0.95, 0.55), 0.0), ((0.8, 1.9), 3.5), ((1.35, 2.85), 7.0), ((1.35, 2.85), 15.0), ((2.0, 5.2), 19.0), (tuple(a_live), 23.0), (tuple(a_live), 34.0), ((3.2, 4.2), 39.0), ((4.0, 2.95), 42.5), ((4.0, 2.95), 50.0), ((2.0, 3.6), 54.0), ((1.2, 3.1), 56.0), ((0.95, 0.55), 60.0)],
-        'host_b': [((1.3, 0.75), 0.0), ((1.3, 1.2), 5.0), ((1.3, 1.2), 15.0), ((1.2, 3.35), 17.5), ((2.6, 4.8), 20.0), (tuple(b_live), 23.5), (tuple(b_live), 34.0), ((3.5, 4.6), 39.5), ((4.05, 3.3), 43.0), ((4.05, 3.3), 50.0), ((2.4, 3.9), 54.5), ((1.15, 3.35), 57.0), ((1.3, 0.75), 60.0)],
-    }
+    cy = (C['y0'] + C['y1']) / 2
+    WG = P['wing']
+    kx, kw, y0r = WG['kid_x0'], WG['kid_w'], WG['rooms_y0']
+    bro_door = kx[0] + kw - 0.6
+    sis_door = kx[2] + 0.63
+    m_door = 9.75
+    # 公共區（上集）→ 走廊 → 哥哥房 → 主臥 → 妹妹房（下集）→ 回玄關，90 秒一圈
+    A = [((0.95, 0.55), 0.0), ((0.8, 1.9), 3.5), ((1.35, 2.85), 7.0), ((1.35, 2.85), 15.0), ((2.0, 5.2), 19.0), (tuple(a_live), 23.0), (tuple(a_live), 32.0),
+         ((3.4, cy), 36.0), ((bro_door, cy - 0.15), 39.0), ((bro_door, y0r + 0.6), 40.5), ((kx[0] + 1.3, y0r + 1.4), 42.5), ((kx[0] + 1.3, y0r + 1.4), 49.0),
+         ((bro_door, y0r + 0.6), 51.0), ((bro_door, cy), 52.5), ((m_door, cy), 55.0), ((m_door, 3.1), 56.5), ((10.6, 2.3), 58.0), ((10.6, 2.3), 64.0),
+         ((m_door, 3.1), 65.5), ((m_door, cy), 67.0), ((sis_door, cy), 68.5), ((sis_door, y0r + 0.6), 70.0), ((kx[2] + 1.2, y0r + 1.6), 72.0), ((kx[2] + 1.2, y0r + 1.6), 77.0),
+         ((sis_door, y0r + 0.6), 79.0), ((sis_door, cy), 80.5), ((3.4, cy), 85.0), ((1.2, 3.1), 87.5), ((0.95, 0.55), 90.0)]
+    Bp = [((1.3, 0.75), 0.0), ((1.3, 1.2), 5.0), ((1.3, 1.2), 15.0), ((1.2, 3.35), 17.5), ((2.6, 4.8), 20.0), (tuple(b_live), 23.5), (tuple(b_live), 32.0),
+          ((3.4, cy + 0.3), 37.0), ((bro_door + 0.2, cy + 0.2), 40.0), ((bro_door + 0.1, y0r + 0.7), 41.5), ((kx[0] + 2.0, y0r + 1.1), 43.5), ((kx[0] + 2.0, y0r + 1.1), 49.5),
+          ((bro_door + 0.1, y0r + 0.7), 51.5), ((bro_door, cy + 0.2), 53.0), ((m_door + 0.2, cy), 55.5), ((m_door, 3.0), 57.0), ((11.4, 2.7), 58.5), ((11.4, 2.7), 64.0),
+          ((m_door, 3.0), 66.0), ((m_door + 0.3, cy), 67.5), ((sis_door + 0.2, cy + 0.2), 69.0), ((sis_door + 0.1, y0r + 0.7), 70.5), ((kx[2] + 1.9, y0r + 1.2), 72.5), ((kx[2] + 1.9, y0r + 1.2), 77.5),
+          ((sis_door + 0.1, y0r + 0.7), 79.5), ((sis_door, cy + 0.2), 81.0), ((3.4, cy + 0.2), 85.5), ((1.15, 3.35), 88.0), ((1.3, 0.75), 90.0)]
+    return {'host_a': A, 'host_b': Bp}
 
 
 def animate_people(people):
@@ -1002,9 +1505,9 @@ def animate_people(people):
     fps = 24
     sc.render.fps = fps
     ST = stations()
-    look = {'host_a': [(0, 90), (7.0, 0.0), (19, 90), (23, 70), (39, -30), (42.5, 0), (50, 200), (60, 270)],
-            'host_b': [(0, 90), (5.0, 20), (20, 90), (23.5, 110), (39.5, -40), (43, 20), (50, 210), (60, 270)]}
-    total = 60.0
+    look = {'host_a': [(0, 90), (7.0, 0.0), (19, 90), (23, 70), (42, 60), (58, 0), (72, 60), (85, 270)],
+            'host_b': [(0, 90), (5.0, 20), (20, 90), (23.5, 110), (43, 120), (58, 180), (72, 120), (85, 270)]}
+    total = 90.0
     for pid, label, hgt, parts in people:
         path = ST[pid]
         root = parts['root'].ob

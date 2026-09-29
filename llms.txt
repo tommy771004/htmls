@@ -234,7 +234,7 @@
 - [102 Starting on Your Own Project](https://htmls-ruddy.vercel.app/web/102-your-project-playbooks.html): AI 工程化教學簡報。在自己的專案啟動 Claude Code 的三套起手劇本：全新專案、WebForms 轉 Web、WinForms 轉 Web，16 張投影片
 
 ### 專案範例
-- [191 影中屋 · FRAME TO ROOM](https://htmls-ruddy.vercel.app/web/191-frame-to-room.html)：從室內設計導覽影片重建的公共區建築模型。畫面標點與束調整解出相機與尺寸，Blender 參數化建模；六個空間視角、白模型、物件清單與平面圖，24 件物品可推倒、抽屜與門可開、掃地機器人會出門，附含剛體的 .blend。
+- [191 影中屋 · FRAME TO ROOM](https://htmls-ruddy.vercel.app/web/191-frame-to-room.html)：從上下兩集室內設計導覽影片重建的 4 房住宅建築模型。公共區由畫面標點與束調整解出相機與尺寸，四個房間依影片平面圖配置；十個空間視角、白模型、物件清單與平面圖，58 件物品可推倒、29 處抽屜滑門與門可開，主持人逛完每個房間，附含剛體的 .blend。
 
 - [174 黑鋼與木之屋 · 建築模型工作室](https://htmls-ruddy.vercel.app/web/174-kurogane-house.html)：依影片及平面圖重建兩層住宅，16 個空間、34 組家具、十九級樓梯、黑鋼木格柵及庭園。47 秒導覽、逐件組裝、剖面裁切、樓層分解、家具聚焦、白模型與繁體中文平面配置；本地 Three.js，無外部請求。
 

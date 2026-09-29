@@ -12,7 +12,7 @@
     "cement"
    ],
    "size": [
-    10.2,
+    14.32,
     9.91,
     0.0
    ],
@@ -44,27 +44,6 @@
    ],
    "error_px": 2.66,
    "redo": false
-  },
-  {
-   "id": "shell_corridor",
-   "label": "走廊（微水泥牆面）",
-   "kind": "static",
-   "group": "房體",
-   "materials": [
-    "cement",
-    "plaster",
-    "black"
-   ],
-   "size": [
-    6.04,
-    1.48,
-    2.5
-   ],
-   "origin": [
-    0.0,
-    0.0,
-    0.0
-   ]
   },
   {
    "id": "shell_ceiling",
@@ -1477,7 +1456,7 @@
    ],
    "origin": [
     4.72,
-    2.47,
+    3.92,
     0.05
    ],
    "material": "plastic",
@@ -1494,8 +1473,127 @@
    "note": ""
   },
   {
-   "id": "room_door_0",
-   "label": "主臥房門",
+   "id": "wing_floor",
+   "label": "房間地坪",
+   "kind": "static",
+   "group": "房體",
+   "materials": [
+    "cement",
+    "floor"
+   ],
+   "size": [
+    9.88,
+    9.61,
+    0.0
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "wing_ceiling",
+   "label": "房間天花",
+   "kind": "static",
+   "group": "房體",
+   "materials": [
+    "plaster"
+   ],
+   "size": [
+    10.02,
+    9.61,
+    0.35
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "wing_mass",
+   "label": "未重建區域",
+   "kind": "static",
+   "group": "房體",
+   "materials": [
+    "plaster"
+   ],
+   "size": [
+    1.76,
+    3.56,
+    2.28
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "label": "房間牆面",
+   "kind": "static",
+   "group": "房體",
+   "materials": [
+    "plaster"
+   ],
+   "size": [
+    10.02,
+    9.89,
+    2.75
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "shell_corridor",
+   "label": "走廊（微水泥牆面）",
+   "kind": "static",
+   "group": "房體",
+   "materials": [
+    "cement",
+    "black"
+   ],
+   "size": [
+    10.02,
+    1.38,
+    2.75
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "wing_windows",
+   "label": "房間窗戶與調光捲簾",
+   "kind": "static",
+   "group": "房體",
+   "materials": [
+    "glass",
+    "emit",
+    "fabric",
+    "plaster"
+   ],
+   "size": [
+    9.11,
+    9.84,
+    2.25
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "door_brother",
+   "label": "哥哥房門",
    "kind": "door",
    "group": "走廊",
    "materials": [
@@ -1503,73 +1601,23 @@
     "black"
    ],
    "size": [
-    0.86,
-    0.085,
+    0.88,
+    0.11,
     2.08
    ],
    "origin": [
-    5.22,
-    3.47,
+    7.48,
+    4.87,
     0.0
    ],
    "hinge": [
-    5.22,
-    3.47
+    7.48,
+    4.87
    ],
-   "open_deg": -100
+   "open_deg": -95
   },
   {
-   "id": "room_door_1",
-   "label": "書房房門",
-   "kind": "door",
-   "group": "走廊",
-   "materials": [
-    "lacquer",
-    "black"
-   ],
-   "size": [
-    0.86,
-    0.085,
-    2.08
-   ],
-   "origin": [
-    6.92,
-    3.47,
-    0.0
-   ],
-   "hinge": [
-    6.92,
-    3.47
-   ],
-   "open_deg": -100
-  },
-  {
-   "id": "room_door_2",
-   "label": "兒子房房門",
-   "kind": "door",
-   "group": "走廊",
-   "materials": [
-    "lacquer",
-    "black"
-   ],
-   "size": [
-    0.86,
-    0.085,
-    2.08
-   ],
-   "origin": [
-    8.62,
-    3.47,
-    0.0
-   ],
-   "hinge": [
-    8.62,
-    3.47
-   ],
-   "open_deg": -100
-  },
-  {
-   "id": "room_door_3",
+   "id": "door_younger",
    "label": "弟弟房門",
    "kind": "door",
    "group": "走廊",
@@ -1578,20 +1626,2224 @@
     "black"
    ],
    "size": [
-    0.08,
-    0.86,
+    0.88,
+    0.11,
     2.08
    ],
    "origin": [
-    10.18,
-    2.42,
+    7.94,
+    4.87,
     0.0
    ],
    "hinge": [
-    10.18,
-    2.42
+    7.94,
+    4.87
    ],
-   "open_deg": 100
+   "open_deg": 95
+  },
+  {
+   "id": "door_sister",
+   "label": "妹妹房門",
+   "kind": "door",
+   "group": "走廊",
+   "materials": [
+    "lacquer",
+    "black"
+   ],
+   "size": [
+    0.88,
+    0.11,
+    2.08
+   ],
+   "origin": [
+    11.31,
+    4.87,
+    0.0
+   ],
+   "hinge": [
+    11.309999999999999,
+    4.87
+   ],
+   "open_deg": 95
+  },
+  {
+   "id": "door_master",
+   "label": "主臥房門",
+   "kind": "door",
+   "group": "走廊",
+   "materials": [
+    "lacquer",
+    "black"
+   ],
+   "size": [
+    0.88,
+    0.11,
+    2.08
+   ],
+   "origin": [
+    10.19,
+    3.63,
+    0.0
+   ],
+   "hinge": [
+    10.19,
+    3.6300000000000003
+   ],
+   "open_deg": 95
+  },
+  {
+   "id": "door_master_bath",
+   "label": "主臥浴室門",
+   "kind": "door",
+   "group": "主臥",
+   "materials": [
+    "lacquer",
+    "black"
+   ],
+   "size": [
+    0.73,
+    0.11,
+    2.03
+   ],
+   "origin": [
+    8.06,
+    1.95,
+    0.0
+   ],
+   "hinge": [
+    8.06,
+    1.95
+   ],
+   "open_deg": -95
+  },
+  {
+   "id": "brother_wardrobe",
+   "label": "哥哥房衣櫃",
+   "kind": "static",
+   "group": "哥哥房",
+   "materials": [
+    "lacquer"
+   ],
+   "size": [
+    0.6,
+    2.6,
+    2.75
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "brother_clothes",
+   "label": "哥哥房衣櫃內的衣物",
+   "kind": "static",
+   "group": "哥哥房",
+   "materials": [
+    "steel",
+    "fabric"
+   ],
+   "size": [
+    0.44,
+    2.4,
+    1.112
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "brother_slide_0",
+   "label": "哥哥房衣櫃滑門（內）",
+   "kind": "drawer",
+   "group": "哥哥房",
+   "materials": [
+    "lacquer"
+   ],
+   "size": [
+    0.02,
+    1.3,
+    2.36
+   ],
+   "origin": [
+    5.05,
+    7.54,
+    1.2
+   ],
+   "sub": "滑門",
+   "axis": [
+    0,
+    -1,
+    0
+   ],
+   "travel": 1.2
+  },
+  {
+   "id": "brother_slide_1",
+   "label": "哥哥房衣櫃滑門（外）",
+   "kind": "drawer",
+   "group": "哥哥房",
+   "materials": [
+    "lacquer"
+   ],
+   "size": [
+    0.02,
+    1.3,
+    2.36
+   ],
+   "origin": [
+    5.07,
+    6.26,
+    1.2
+   ],
+   "sub": "滑門",
+   "axis": [
+    0,
+    1,
+    0
+   ],
+   "travel": 1.2
+  },
+  {
+   "id": "brother_beam",
+   "label": "哥哥房修樑",
+   "kind": "static",
+   "group": "哥哥房",
+   "materials": [
+    "plaster",
+    "emit"
+   ],
+   "size": [
+    3.2,
+    0.41,
+    0.37
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "brother_bed",
+   "label": "哥哥房床組",
+   "kind": "static",
+   "group": "哥哥房",
+   "materials": [
+    "black",
+    "lacquer",
+    "fabric",
+    "fabric_warm"
+   ],
+   "size": [
+    2.14,
+    1.7,
+    1.15
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "brother_beddrawer_0",
+   "label": "哥哥房床座抽屜 1",
+   "kind": "drawer",
+   "group": "哥哥房",
+   "materials": [
+    "lacquer",
+    "black"
+   ],
+   "size": [
+    0.665,
+    0.476,
+    0.18
+   ],
+   "origin": [
+    6.0325,
+    8.54,
+    0.19
+   ],
+   "sub": "床座抽屜",
+   "axis": [
+    0,
+    -1,
+    0
+   ],
+   "travel": 0.42
+  },
+  {
+   "id": "brother_beddrawer_1",
+   "label": "哥哥房床座抽屜 2",
+   "kind": "drawer",
+   "group": "哥哥房",
+   "materials": [
+    "lacquer",
+    "black"
+   ],
+   "size": [
+    0.665,
+    0.476,
+    0.18
+   ],
+   "origin": [
+    6.7175,
+    8.54,
+    0.19
+   ],
+   "sub": "床座抽屜",
+   "axis": [
+    0,
+    -1,
+    0
+   ],
+   "travel": 0.42
+  },
+  {
+   "id": "brother_windowseat",
+   "label": "哥哥房窗邊平台",
+   "kind": "static",
+   "group": "哥哥房",
+   "materials": [
+    "lacquer",
+    "fabric"
+   ],
+   "size": [
+    1.7,
+    0.5,
+    0.5
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "brother_lamp",
+   "label": "哥哥房壁燈",
+   "kind": "static",
+   "group": "哥哥房",
+   "materials": [
+    "glow"
+   ],
+   "size": [
+    0.14,
+    0.14,
+    0.14
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "brother_pillow_0",
+   "label": "哥哥房枕頭 1",
+   "kind": "dynamic",
+   "group": "哥哥房",
+   "materials": [
+    "fabric_warm"
+   ],
+   "size": [
+    0.14,
+    0.5,
+    0.32
+   ],
+   "origin": [
+    7.39,
+    8.49,
+    0.68
+   ],
+   "material": "foam",
+   "density": 45,
+   "fill": 0.9,
+   "volume_l": 22.4,
+   "mass": 0.91,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "box",
+    "half": [
+     0.07,
+     0.25,
+     0.16
+    ]
+   },
+   "note": ""
+  },
+  {
+   "id": "brother_pillow_1",
+   "label": "哥哥房枕頭 2",
+   "kind": "dynamic",
+   "group": "哥哥房",
+   "materials": [
+    "fabric_warm"
+   ],
+   "size": [
+    0.14,
+    0.5,
+    0.32
+   ],
+   "origin": [
+    7.39,
+    9.19,
+    0.68
+   ],
+   "material": "foam",
+   "density": 45,
+   "fill": 0.9,
+   "volume_l": 22.4,
+   "mass": 0.91,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "box",
+    "half": [
+     0.07,
+     0.25,
+     0.16
+    ]
+   },
+   "note": ""
+  },
+  {
+   "id": "brother_sidetable",
+   "label": "哥哥房圓邊桌",
+   "kind": "dynamic",
+   "group": "哥哥房",
+   "materials": [
+    "lacquer"
+   ],
+   "size": [
+    0.4,
+    0.4,
+    0.5
+   ],
+   "origin": [
+    7.34,
+    7.79,
+    0.25
+   ],
+   "material": "wood",
+   "density": 650,
+   "fill": 0.3,
+   "volume_l": 62.83,
+   "mass": 3.0,
+   "mass_method": "override",
+   "collider": {
+    "type": "cyl",
+    "r": 0.2,
+    "h": 0.5
+   },
+   "note": "圓邊桌"
+  },
+  {
+   "id": "brother_plush_0",
+   "label": "哥哥房玩偶 1",
+   "kind": "dynamic",
+   "group": "哥哥房",
+   "materials": [
+    "fabric_warm"
+   ],
+   "size": [
+    0.14,
+    0.117,
+    0.233
+   ],
+   "origin": [
+    5.44,
+    9.66,
+    0.6165
+   ],
+   "material": "foam",
+   "density": 60,
+   "fill": 1.0,
+   "volume_l": 2.0,
+   "mass": 0.12,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "sphere",
+    "r": 0.1165
+   },
+   "note": "填充玩偶"
+  },
+  {
+   "id": "brother_plush_1",
+   "label": "哥哥房玩偶 2",
+   "kind": "dynamic",
+   "group": "哥哥房",
+   "materials": [
+    "fabric_warm"
+   ],
+   "size": [
+    0.168,
+    0.14,
+    0.28
+   ],
+   "origin": [
+    5.94,
+    9.66,
+    0.6398
+   ],
+   "material": "foam",
+   "density": 60,
+   "fill": 1.0,
+   "volume_l": 3.45,
+   "mass": 0.21,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "sphere",
+    "r": 0.1398
+   },
+   "note": "填充玩偶"
+  },
+  {
+   "id": "brother_plush_2",
+   "label": "哥哥房玩偶 3",
+   "kind": "dynamic",
+   "group": "哥哥房",
+   "materials": [
+    "fabric_warm"
+   ],
+   "size": [
+    0.14,
+    0.117,
+    0.233
+   ],
+   "origin": [
+    6.44,
+    9.66,
+    0.6165
+   ],
+   "material": "foam",
+   "density": 60,
+   "fill": 1.0,
+   "volume_l": 2.0,
+   "mass": 0.12,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "sphere",
+    "r": 0.1165
+   },
+   "note": "填充玩偶"
+  },
+  {
+   "id": "younger_wardrobe",
+   "label": "弟弟房衣櫃",
+   "kind": "static",
+   "group": "弟弟房",
+   "materials": [
+    "lacquer"
+   ],
+   "size": [
+    0.6,
+    2.6,
+    2.75
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "younger_clothes",
+   "label": "弟弟房衣櫃內的衣物",
+   "kind": "static",
+   "group": "弟弟房",
+   "materials": [
+    "steel",
+    "fabric"
+   ],
+   "size": [
+    0.44,
+    2.4,
+    1.112
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "younger_slide_0",
+   "label": "弟弟房衣櫃滑門（內）",
+   "kind": "drawer",
+   "group": "弟弟房",
+   "materials": [
+    "lacquer"
+   ],
+   "size": [
+    0.02,
+    1.3,
+    2.36
+   ],
+   "origin": [
+    10.37,
+    7.54,
+    1.2
+   ],
+   "sub": "滑門",
+   "axis": [
+    0,
+    -1,
+    0
+   ],
+   "travel": 1.2
+  },
+  {
+   "id": "younger_slide_1",
+   "label": "弟弟房衣櫃滑門（外）",
+   "kind": "drawer",
+   "group": "弟弟房",
+   "materials": [
+    "lacquer"
+   ],
+   "size": [
+    0.02,
+    1.3,
+    2.36
+   ],
+   "origin": [
+    10.35,
+    6.26,
+    1.2
+   ],
+   "sub": "滑門",
+   "axis": [
+    0,
+    1,
+    0
+   ],
+   "travel": 1.2
+  },
+  {
+   "id": "younger_beam",
+   "label": "弟弟房修樑",
+   "kind": "static",
+   "group": "弟弟房",
+   "materials": [
+    "plaster",
+    "emit"
+   ],
+   "size": [
+    3.2,
+    0.41,
+    0.37
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "younger_bed",
+   "label": "弟弟房床組",
+   "kind": "static",
+   "group": "弟弟房",
+   "materials": [
+    "black",
+    "lacquer",
+    "fabric",
+    "fabric_warm"
+   ],
+   "size": [
+    2.14,
+    1.7,
+    1.15
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "younger_beddrawer_0",
+   "label": "弟弟房床座抽屜 1",
+   "kind": "drawer",
+   "group": "弟弟房",
+   "materials": [
+    "lacquer",
+    "black"
+   ],
+   "size": [
+    0.665,
+    0.476,
+    0.18
+   ],
+   "origin": [
+    8.7025,
+    8.54,
+    0.19
+   ],
+   "sub": "床座抽屜",
+   "axis": [
+    0,
+    -1,
+    0
+   ],
+   "travel": 0.42
+  },
+  {
+   "id": "younger_beddrawer_1",
+   "label": "弟弟房床座抽屜 2",
+   "kind": "drawer",
+   "group": "弟弟房",
+   "materials": [
+    "lacquer",
+    "black"
+   ],
+   "size": [
+    0.665,
+    0.476,
+    0.18
+   ],
+   "origin": [
+    9.3875,
+    8.54,
+    0.19
+   ],
+   "sub": "床座抽屜",
+   "axis": [
+    0,
+    -1,
+    0
+   ],
+   "travel": 0.42
+  },
+  {
+   "id": "younger_windowseat",
+   "label": "弟弟房窗邊平台",
+   "kind": "static",
+   "group": "弟弟房",
+   "materials": [
+    "lacquer",
+    "fabric"
+   ],
+   "size": [
+    1.7,
+    0.5,
+    0.5
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "younger_lamp",
+   "label": "弟弟房壁燈",
+   "kind": "static",
+   "group": "弟弟房",
+   "materials": [
+    "glow"
+   ],
+   "size": [
+    0.14,
+    0.14,
+    0.14
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "younger_pillow_0",
+   "label": "弟弟房枕頭 1",
+   "kind": "dynamic",
+   "group": "弟弟房",
+   "materials": [
+    "fabric_warm"
+   ],
+   "size": [
+    0.14,
+    0.5,
+    0.32
+   ],
+   "origin": [
+    8.03,
+    8.49,
+    0.68
+   ],
+   "material": "foam",
+   "density": 45,
+   "fill": 0.9,
+   "volume_l": 22.4,
+   "mass": 0.91,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "box",
+    "half": [
+     0.07,
+     0.25,
+     0.16
+    ]
+   },
+   "note": ""
+  },
+  {
+   "id": "younger_pillow_1",
+   "label": "弟弟房枕頭 2",
+   "kind": "dynamic",
+   "group": "弟弟房",
+   "materials": [
+    "fabric_warm"
+   ],
+   "size": [
+    0.14,
+    0.5,
+    0.32
+   ],
+   "origin": [
+    8.03,
+    9.19,
+    0.68
+   ],
+   "material": "foam",
+   "density": 45,
+   "fill": 0.9,
+   "volume_l": 22.4,
+   "mass": 0.91,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "box",
+    "half": [
+     0.07,
+     0.25,
+     0.16
+    ]
+   },
+   "note": ""
+  },
+  {
+   "id": "younger_sidetable",
+   "label": "弟弟房圓邊桌",
+   "kind": "dynamic",
+   "group": "弟弟房",
+   "materials": [
+    "lacquer"
+   ],
+   "size": [
+    0.4,
+    0.4,
+    0.5
+   ],
+   "origin": [
+    8.08,
+    7.79,
+    0.25
+   ],
+   "material": "wood",
+   "density": 650,
+   "fill": 0.3,
+   "volume_l": 62.83,
+   "mass": 3.0,
+   "mass_method": "override",
+   "collider": {
+    "type": "cyl",
+    "r": 0.2,
+    "h": 0.5
+   },
+   "note": "圓邊桌"
+  },
+  {
+   "id": "younger_plush_0",
+   "label": "弟弟房玩偶 1",
+   "kind": "dynamic",
+   "group": "弟弟房",
+   "materials": [
+    "fabric_warm"
+   ],
+   "size": [
+    0.14,
+    0.117,
+    0.233
+   ],
+   "origin": [
+    9.98,
+    9.66,
+    0.6165
+   ],
+   "material": "foam",
+   "density": 60,
+   "fill": 1.0,
+   "volume_l": 2.0,
+   "mass": 0.12,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "sphere",
+    "r": 0.1165
+   },
+   "note": "填充玩偶"
+  },
+  {
+   "id": "younger_plush_1",
+   "label": "弟弟房玩偶 2",
+   "kind": "dynamic",
+   "group": "弟弟房",
+   "materials": [
+    "fabric_warm"
+   ],
+   "size": [
+    0.168,
+    0.14,
+    0.28
+   ],
+   "origin": [
+    9.48,
+    9.66,
+    0.6398
+   ],
+   "material": "foam",
+   "density": 60,
+   "fill": 1.0,
+   "volume_l": 3.45,
+   "mass": 0.21,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "sphere",
+    "r": 0.1398
+   },
+   "note": "填充玩偶"
+  },
+  {
+   "id": "younger_plush_2",
+   "label": "弟弟房玩偶 3",
+   "kind": "dynamic",
+   "group": "弟弟房",
+   "materials": [
+    "fabric_warm"
+   ],
+   "size": [
+    0.14,
+    0.117,
+    0.233
+   ],
+   "origin": [
+    8.98,
+    9.66,
+    0.6165
+   ],
+   "material": "foam",
+   "density": 60,
+   "fill": 1.0,
+   "volume_l": 2.0,
+   "mass": 0.12,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "sphere",
+    "r": 0.1165
+   },
+   "note": "填充玩偶"
+  },
+  {
+   "id": "younger_display",
+   "label": "弟弟房展示櫃",
+   "kind": "static",
+   "group": "弟弟房",
+   "materials": [
+    "lacquer",
+    "glass",
+    "emit"
+   ],
+   "size": [
+    0.45,
+    1.0,
+    2.75
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "younger_cap",
+   "label": "展示櫃上的棒球帽",
+   "kind": "dynamic",
+   "group": "弟弟房",
+   "materials": [
+    "fabric_grey"
+   ],
+   "size": [
+    0.2,
+    0.2,
+    0.1
+   ],
+   "origin": [
+    10.76,
+    8.14,
+    1.26
+   ],
+   "material": "fabric",
+   "density": 120,
+   "fill": 0.2,
+   "volume_l": 2.09,
+   "mass": 0.05,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "sphere",
+    "r": 0.1
+   },
+   "note": ""
+  },
+  {
+   "id": "younger_figure_0",
+   "label": "收藏公仔 1",
+   "kind": "dynamic",
+   "group": "弟弟房",
+   "materials": [
+    "lacquer"
+   ],
+   "size": [
+    0.12,
+    0.1,
+    0.18
+   ],
+   "origin": [
+    10.76,
+    7.84,
+    1.69
+   ],
+   "material": "plastic",
+   "density": 1100,
+   "fill": 0.5,
+   "volume_l": 2.16,
+   "mass": 1.19,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "box",
+    "half": [
+     0.06,
+     0.05,
+     0.09
+    ]
+   },
+   "note": ""
+  },
+  {
+   "id": "younger_figure_1",
+   "label": "收藏公仔 2",
+   "kind": "dynamic",
+   "group": "弟弟房",
+   "materials": [
+    "lacquer"
+   ],
+   "size": [
+    0.12,
+    0.1,
+    0.22
+   ],
+   "origin": [
+    10.76,
+    8.39,
+    1.71
+   ],
+   "material": "plastic",
+   "density": 1100,
+   "fill": 0.5,
+   "volume_l": 2.64,
+   "mass": 1.45,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "box",
+    "half": [
+     0.06,
+     0.05,
+     0.11
+    ]
+   },
+   "note": ""
+  },
+  {
+   "id": "younger_box",
+   "label": "收藏盒",
+   "kind": "dynamic",
+   "group": "弟弟房",
+   "materials": [
+    "paper"
+   ],
+   "size": [
+    0.34,
+    0.4,
+    0.18
+   ],
+   "origin": [
+    10.75,
+    8.14,
+    2.09
+   ],
+   "material": "paper",
+   "density": 800,
+   "fill": 0.4,
+   "volume_l": 24.48,
+   "mass": 7.83,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "box",
+    "half": [
+     0.17,
+     0.2,
+     0.09
+    ]
+   },
+   "note": ""
+  },
+  {
+   "id": "younger_hoop",
+   "label": "弟弟房籃框",
+   "kind": "static",
+   "group": "弟弟房",
+   "materials": [
+    "steel",
+    "lacquer",
+    "black"
+   ],
+   "size": [
+    0.45,
+    0.297,
+    0.33
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "younger_ball",
+   "label": "籃球",
+   "kind": "dynamic",
+   "group": "弟弟房",
+   "materials": [
+    "fabric_warm"
+   ],
+   "size": [
+    0.24,
+    0.236,
+    0.24
+   ],
+   "origin": [
+    9.68,
+    6.54,
+    0.12
+   ],
+   "material": "plastic",
+   "density": 1100,
+   "fill": 0.08,
+   "volume_l": 7.13,
+   "mass": 0.6,
+   "mass_method": "override",
+   "collider": {
+    "type": "sphere",
+    "r": 0.12
+   },
+   "note": ""
+  },
+  {
+   "id": "sister_wardrobe",
+   "label": "妹妹房衣櫃與展示櫃",
+   "kind": "static",
+   "group": "妹妹房",
+   "materials": [
+    "lacquer",
+    "emit"
+   ],
+   "size": [
+    0.6,
+    2.8,
+    2.75
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "sister_clothes",
+   "label": "妹妹房衣櫃內的衣物",
+   "kind": "static",
+   "group": "妹妹房",
+   "materials": [
+    "steel",
+    "fabric"
+   ],
+   "size": [
+    0.44,
+    1.8,
+    1.112
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "sister_wd_0",
+   "label": "妹妹房衣櫃門 左",
+   "kind": "door",
+   "group": "妹妹房",
+   "materials": [
+    "lacquer",
+    "black"
+   ],
+   "size": [
+    0.09,
+    0.97,
+    2.38
+   ],
+   "origin": [
+    13.7,
+    4.96,
+    0.0
+   ],
+   "sub": "衣櫃門",
+   "hinge": [
+    13.700000000000001,
+    4.96
+   ],
+   "open_deg": 95
+  },
+  {
+   "id": "sister_wd_1",
+   "label": "妹妹房衣櫃門 右",
+   "kind": "door",
+   "group": "妹妹房",
+   "materials": [
+    "lacquer",
+    "black"
+   ],
+   "size": [
+    0.09,
+    0.97,
+    2.38
+   ],
+   "origin": [
+    13.7,
+    6.92,
+    0.0
+   ],
+   "sub": "衣櫃門",
+   "hinge": [
+    13.700000000000001,
+    6.92
+   ],
+   "open_deg": -95
+  },
+  {
+   "id": "sister_vanity",
+   "label": "妹妹房化妝桌",
+   "kind": "static",
+   "group": "妹妹房",
+   "materials": [
+    "lacquer",
+    "mirror",
+    "emit"
+   ],
+   "size": [
+    0.5,
+    1.0,
+    1.77
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "sister_sidepull",
+   "label": "化妝桌側拉抽",
+   "kind": "drawer",
+   "group": "妹妹房",
+   "materials": [
+    "lacquer",
+    "black"
+   ],
+   "size": [
+    0.485,
+    0.24,
+    0.65
+   ],
+   "origin": [
+    14.0275,
+    8.82,
+    0.375
+   ],
+   "sub": "側拉抽",
+   "axis": [
+    -1,
+    0,
+    0
+   ],
+   "travel": 0.4
+  },
+  {
+   "id": "sister_bed",
+   "label": "妹妹房床組",
+   "kind": "static",
+   "group": "妹妹房",
+   "materials": [
+    "black",
+    "lacquer",
+    "fabric",
+    "fabric_warm"
+   ],
+   "size": [
+    2.12,
+    1.7,
+    1.25
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "sister_lamps",
+   "label": "妹妹房雙圓壁燈",
+   "kind": "static",
+   "group": "妹妹房",
+   "materials": [
+    "glow"
+   ],
+   "size": [
+    0.04,
+    2.14,
+    0.34
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "sister_mirror",
+   "label": "妹妹房弧形穿衣鏡",
+   "kind": "static",
+   "group": "妹妹房",
+   "materials": [
+    "mirror",
+    "emit"
+   ],
+   "size": [
+    0.68,
+    0.006,
+    1.51
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "sister_curtain",
+   "label": "妹妹房窗簾",
+   "kind": "static",
+   "group": "妹妹房",
+   "materials": [
+    "fabric_warm"
+   ],
+   "size": [
+    2.7,
+    0.071,
+    2.67
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "sister_pillow_0",
+   "label": "妹妹房枕頭 1",
+   "kind": "dynamic",
+   "group": "妹妹房",
+   "materials": [
+    "fabric_warm"
+   ],
+   "size": [
+    0.14,
+    0.5,
+    0.32
+   ],
+   "origin": [
+    11.37,
+    8.34,
+    0.68
+   ],
+   "material": "foam",
+   "density": 45,
+   "fill": 0.9,
+   "volume_l": 22.4,
+   "mass": 0.91,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "box",
+    "half": [
+     0.07,
+     0.25,
+     0.16
+    ]
+   },
+   "note": ""
+  },
+  {
+   "id": "sister_pillow_1",
+   "label": "妹妹房枕頭 2",
+   "kind": "dynamic",
+   "group": "妹妹房",
+   "materials": [
+    "fabric_warm"
+   ],
+   "size": [
+    0.14,
+    0.5,
+    0.32
+   ],
+   "origin": [
+    11.37,
+    9.04,
+    0.68
+   ],
+   "material": "foam",
+   "density": 45,
+   "fill": 0.9,
+   "volume_l": 22.4,
+   "mass": 0.91,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "box",
+    "half": [
+     0.07,
+     0.25,
+     0.16
+    ]
+   },
+   "note": ""
+  },
+  {
+   "id": "sister_plush",
+   "label": "妹妹房玩偶",
+   "kind": "dynamic",
+   "group": "妹妹房",
+   "materials": [
+    "fabric_warm"
+   ],
+   "size": [
+    0.182,
+    0.152,
+    0.303
+   ],
+   "origin": [
+    11.72,
+    8.69,
+    0.7014
+   ],
+   "material": "foam",
+   "density": 60,
+   "fill": 1.0,
+   "volume_l": 4.39,
+   "mass": 0.26,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "sphere",
+    "r": 0.1515
+   },
+   "note": "填充玩偶"
+  },
+  {
+   "id": "sister_stool",
+   "label": "化妝椅",
+   "kind": "dynamic",
+   "group": "妹妹房",
+   "materials": [
+    "fabric"
+   ],
+   "size": [
+    0.38,
+    0.38,
+    0.47
+   ],
+   "origin": [
+    13.52,
+    8.24,
+    0.235
+   ],
+   "material": "foam",
+   "density": 45,
+   "fill": 0.6,
+   "volume_l": 53.3,
+   "mass": 4.0,
+   "mass_method": "override",
+   "collider": {
+    "type": "cyl",
+    "r": 0.19,
+    "h": 0.47
+   },
+   "note": ""
+  },
+  {
+   "id": "sister_bottle_0",
+   "label": "化妝桌上的瓶罐 1",
+   "kind": "dynamic",
+   "group": "妹妹房",
+   "materials": [
+    "ceramic"
+   ],
+   "size": [
+    0.06,
+    0.058,
+    0.12
+   ],
+   "origin": [
+    14.02,
+    7.99,
+    0.81
+   ],
+   "material": "glass",
+   "density": 2500,
+   "fill": 0.4,
+   "volume_l": 0.34,
+   "mass": 0.34,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "cyl",
+    "r": 0.03,
+    "h": 0.12
+   },
+   "note": ""
+  },
+  {
+   "id": "sister_bottle_1",
+   "label": "化妝桌上的瓶罐 2",
+   "kind": "dynamic",
+   "group": "妹妹房",
+   "materials": [
+    "ceramic"
+   ],
+   "size": [
+    0.06,
+    0.058,
+    0.08
+   ],
+   "origin": [
+    14.02,
+    8.14,
+    0.79
+   ],
+   "material": "glass",
+   "density": 2500,
+   "fill": 0.4,
+   "volume_l": 0.23,
+   "mass": 0.23,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "cyl",
+    "r": 0.03,
+    "h": 0.08
+   },
+   "note": ""
+  },
+  {
+   "id": "sister_bottle_2",
+   "label": "化妝桌上的瓶罐 3",
+   "kind": "dynamic",
+   "group": "妹妹房",
+   "materials": [
+    "ceramic"
+   ],
+   "size": [
+    0.06,
+    0.058,
+    0.16
+   ],
+   "origin": [
+    14.02,
+    8.69,
+    0.83
+   ],
+   "material": "glass",
+   "density": 2500,
+   "fill": 0.4,
+   "volume_l": 0.45,
+   "mass": 0.45,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "cyl",
+    "r": 0.03,
+    "h": 0.16
+   },
+   "note": ""
+  },
+  {
+   "id": "master_closet",
+   "label": "主臥開放式更衣間",
+   "kind": "static",
+   "group": "主臥",
+   "materials": [
+    "steel",
+    "fabric",
+    "lacquer",
+    "emit",
+    "black",
+    "stone"
+   ],
+   "size": [
+    2.52,
+    1.56,
+    2.05
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "master_drawer_0",
+   "label": "更衣室抽屜櫃 1",
+   "kind": "drawer",
+   "group": "主臥",
+   "materials": [
+    "lacquer",
+    "black"
+   ],
+   "size": [
+    1.59,
+    0.428,
+    0.21
+   ],
+   "origin": [
+    8.045,
+    2.458,
+    0.205
+   ],
+   "axis": [
+    0,
+    1,
+    0
+   ],
+   "travel": 0.36
+  },
+  {
+   "id": "master_drawer_1",
+   "label": "更衣室抽屜櫃 2",
+   "kind": "drawer",
+   "group": "主臥",
+   "materials": [
+    "lacquer",
+    "black"
+   ],
+   "size": [
+    1.59,
+    0.428,
+    0.21
+   ],
+   "origin": [
+    8.045,
+    2.458,
+    0.43
+   ],
+   "axis": [
+    0,
+    1,
+    0
+   ],
+   "travel": 0.36
+  },
+  {
+   "id": "master_drawer_2",
+   "label": "更衣室抽屜櫃 3",
+   "kind": "drawer",
+   "group": "主臥",
+   "materials": [
+    "lacquer",
+    "black"
+   ],
+   "size": [
+    1.59,
+    0.428,
+    0.21
+   ],
+   "origin": [
+    8.045,
+    2.458,
+    0.655
+   ],
+   "axis": [
+    0,
+    1,
+    0
+   ],
+   "travel": 0.36
+  },
+  {
+   "id": "master_display",
+   "label": "主臥玻璃展示櫃",
+   "kind": "static",
+   "group": "主臥",
+   "materials": [
+    "lacquer",
+    "glass",
+    "emit",
+    "stone"
+   ],
+   "size": [
+    1.63,
+    0.43,
+    2.75
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "master_bag_0",
+   "label": "展示櫃裡的包 1",
+   "kind": "dynamic",
+   "group": "主臥",
+   "materials": [
+    "cloth"
+   ],
+   "size": [
+    0.3,
+    0.16,
+    0.338
+   ],
+   "origin": [
+    7.74,
+    3.34,
+    1.039
+   ],
+   "material": "fabric",
+   "density": 120,
+   "fill": 0.25,
+   "volume_l": 16.22,
+   "mass": 0.9,
+   "mass_method": "override",
+   "collider": {
+    "type": "box",
+    "half": [
+     0.15,
+     0.08,
+     0.169
+    ]
+   },
+   "note": "皮革包，內部中空"
+  },
+  {
+   "id": "master_bag_1",
+   "label": "展示櫃裡的包 2",
+   "kind": "dynamic",
+   "group": "主臥",
+   "materials": [
+    "cloth"
+   ],
+   "size": [
+    0.3,
+    0.16,
+    0.338
+   ],
+   "origin": [
+    8.44,
+    3.34,
+    1.469
+   ],
+   "material": "fabric",
+   "density": 120,
+   "fill": 0.25,
+   "volume_l": 16.22,
+   "mass": 0.9,
+   "mass_method": "override",
+   "collider": {
+    "type": "box",
+    "half": [
+     0.15,
+     0.08,
+     0.169
+    ]
+   },
+   "note": "皮革包，內部中空"
+  },
+  {
+   "id": "master_bag_2",
+   "label": "展示櫃裡的包 3",
+   "kind": "dynamic",
+   "group": "主臥",
+   "materials": [
+    "cloth"
+   ],
+   "size": [
+    0.3,
+    0.16,
+    0.338
+   ],
+   "origin": [
+    7.99,
+    3.34,
+    1.949
+   ],
+   "material": "fabric",
+   "density": 120,
+   "fill": 0.25,
+   "volume_l": 16.22,
+   "mass": 0.9,
+   "mass_method": "override",
+   "collider": {
+    "type": "box",
+    "half": [
+     0.15,
+     0.08,
+     0.169
+    ]
+   },
+   "note": "皮革包，內部中空"
+  },
+  {
+   "id": "master_iceglass",
+   "label": "小冰柱玻璃隔屏",
+   "kind": "static",
+   "group": "主臥",
+   "materials": [
+    "glass",
+    "steel"
+   ],
+   "size": [
+    0.048,
+    0.85,
+    2.34
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "master_bath",
+   "label": "主臥浴室",
+   "kind": "static",
+   "group": "主臥",
+   "materials": [
+    "lacquer",
+    "stone",
+    "ceramic",
+    "emit",
+    "glass",
+    "steel"
+   ],
+   "size": [
+    2.66,
+    1.6,
+    2.012
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "master_mirror_0",
+   "label": "鏡櫃門 左",
+   "kind": "door",
+   "group": "主臥",
+   "materials": [
+    "lacquer",
+    "black"
+   ],
+   "size": [
+    0.09,
+    0.42,
+    0.8
+   ],
+   "origin": [
+    6.49,
+    0.65,
+    0.0
+   ],
+   "sub": "鏡櫃門",
+   "hinge": [
+    6.49,
+    0.6499999999999999
+   ],
+   "open_deg": -95
+  },
+  {
+   "id": "master_mirror_1",
+   "label": "鏡櫃門 右",
+   "kind": "door",
+   "group": "主臥",
+   "materials": [
+    "lacquer",
+    "black"
+   ],
+   "size": [
+    0.09,
+    0.42,
+    0.8
+   ],
+   "origin": [
+    6.49,
+    1.5,
+    0.0
+   ],
+   "sub": "鏡櫃門",
+   "hinge": [
+    6.49,
+    1.5
+   ],
+   "open_deg": 95
+  },
+  {
+   "id": "master_bed",
+   "label": "主臥床組",
+   "kind": "static",
+   "group": "主臥",
+   "materials": [
+    "black",
+    "lacquer",
+    "fabric",
+    "fabric_warm"
+   ],
+   "size": [
+    2.22,
+    2.1,
+    1.3
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "master_lowcab",
+   "label": "主臥窗邊長低櫃",
+   "kind": "static",
+   "group": "主臥",
+   "materials": [
+    "lacquer",
+    "travertine"
+   ],
+   "size": [
+    2.67,
+    0.44,
+    0.48
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "master_art",
+   "label": "主臥壁畫",
+   "kind": "static",
+   "group": "主臥",
+   "materials": [
+    "travertine",
+    "wood"
+   ],
+   "size": [
+    0.05,
+    0.58,
+    1.0
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "master_cove",
+   "label": "主臥圓弧天花燈帶",
+   "kind": "static",
+   "group": "主臥",
+   "materials": [
+    "plaster",
+    "emit"
+   ],
+   "size": [
+    5.22,
+    3.26,
+    0.22
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "master_curtain",
+   "label": "主臥窗簾",
+   "kind": "static",
+   "group": "主臥",
+   "materials": [
+    "fabric_warm"
+   ],
+   "size": [
+    5.1,
+    0.071,
+    2.63
+   ],
+   "origin": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "id": "master_pillow_0",
+   "label": "主臥枕頭 1",
+   "kind": "dynamic",
+   "group": "主臥",
+   "materials": [
+    "fabric_warm"
+   ],
+   "size": [
+    0.14,
+    0.5,
+    0.32
+   ],
+   "origin": [
+    14.02,
+    1.48,
+    0.68
+   ],
+   "material": "foam",
+   "density": 45,
+   "fill": 0.9,
+   "volume_l": 22.4,
+   "mass": 0.91,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "box",
+    "half": [
+     0.07,
+     0.25,
+     0.16
+    ]
+   },
+   "note": ""
+  },
+  {
+   "id": "master_pillow_1",
+   "label": "主臥枕頭 2",
+   "kind": "dynamic",
+   "group": "主臥",
+   "materials": [
+    "fabric_warm"
+   ],
+   "size": [
+    0.14,
+    0.5,
+    0.32
+   ],
+   "origin": [
+    14.02,
+    2.38,
+    0.68
+   ],
+   "material": "foam",
+   "density": 45,
+   "fill": 0.9,
+   "volume_l": 22.4,
+   "mass": 0.91,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "box",
+    "half": [
+     0.07,
+     0.25,
+     0.16
+    ]
+   },
+   "note": ""
+  },
+  {
+   "id": "master_pillow_2",
+   "label": "主臥抱枕",
+   "kind": "dynamic",
+   "group": "主臥",
+   "materials": [
+    "fabric_warm"
+   ],
+   "size": [
+    0.12,
+    0.42,
+    0.28
+   ],
+   "origin": [
+    13.82,
+    1.93,
+    0.66
+   ],
+   "material": "foam",
+   "density": 45,
+   "fill": 0.9,
+   "volume_l": 14.11,
+   "mass": 0.57,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "box",
+    "half": [
+     0.06,
+     0.21,
+     0.14
+    ]
+   },
+   "note": ""
+  },
+  {
+   "id": "master_side_0",
+   "label": "主臥床邊几 1",
+   "kind": "dynamic",
+   "group": "主臥",
+   "materials": [
+    "lacquer"
+   ],
+   "size": [
+    0.4,
+    0.4,
+    0.5
+   ],
+   "origin": [
+    14.02,
+    0.63,
+    0.25
+   ],
+   "material": "wood",
+   "density": 650,
+   "fill": 0.3,
+   "volume_l": 62.83,
+   "mass": 3.0,
+   "mass_method": "override",
+   "collider": {
+    "type": "cyl",
+    "r": 0.2,
+    "h": 0.5
+   },
+   "note": "圓邊桌"
+  },
+  {
+   "id": "master_side_1",
+   "label": "主臥床邊几 2",
+   "kind": "dynamic",
+   "group": "主臥",
+   "materials": [
+    "lacquer"
+   ],
+   "size": [
+    0.4,
+    0.4,
+    0.5
+   ],
+   "origin": [
+    14.02,
+    3.23,
+    0.25
+   ],
+   "material": "wood",
+   "density": 650,
+   "fill": 0.3,
+   "volume_l": 62.83,
+   "mass": 3.0,
+   "mass_method": "override",
+   "collider": {
+    "type": "cyl",
+    "r": 0.2,
+    "h": 0.5
+   },
+   "note": "圓邊桌"
+  },
+  {
+   "id": "master_vase",
+   "label": "長低櫃上的花瓶",
+   "kind": "dynamic",
+   "group": "主臥",
+   "materials": [
+    "ceramic",
+    "wood"
+   ],
+   "size": [
+    0.18,
+    0.18,
+    0.72
+   ],
+   "origin": [
+    9.8,
+    0.52,
+    0.8401
+   ],
+   "material": "ceramic",
+   "density": 2300,
+   "fill": 0.2,
+   "volume_l": 18.33,
+   "mass": 8.43,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "cyl",
+    "r": 0.09,
+    "h": 0.7203
+   },
+   "note": ""
+  },
+  {
+   "id": "master_books",
+   "label": "長低櫃上的書",
+   "kind": "dynamic",
+   "group": "主臥",
+   "materials": [
+    "paper"
+   ],
+   "size": [
+    0.3,
+    0.22,
+    0.05
+   ],
+   "origin": [
+    10.55,
+    0.51,
+    0.505
+   ],
+   "material": "paper",
+   "density": 800,
+   "fill": 1.0,
+   "volume_l": 3.3,
+   "mass": 2.64,
+   "mass_method": "density×volume×fill",
+   "collider": {
+    "type": "box",
+    "half": [
+     0.15,
+     0.11,
+     0.025
+    ]
+   },
+   "note": ""
   },
   {
    "id": "host_a_root",
@@ -2124,10 +4376,10 @@
    "id": "shell_floor",
    "box": [
     4.3,
-    2.25,
+    3.7,
     -0.05,
-    10.2,
-    3.45,
+    14.32,
+    4.8,
     0
    ]
   },
@@ -2137,7 +4389,7 @@
     -0.5,
     -0.5,
     -0.3,
-    10.7,
+    14.82,
     10.41,
     0
    ]
@@ -2259,7 +4511,7 @@
     0,
     0,
     4.44,
-    2.25,
+    3.7,
     2.75
    ]
   },
@@ -2267,7 +4519,7 @@
    "id": "shell_walls",
    "box": [
     4.3,
-    3.45,
+    4.8,
     0,
     4.44,
     9.91,
@@ -2278,132 +4530,11 @@
    "id": "shell_walls",
    "box": [
     4.3,
-    2.25,
+    3.7,
     2.45,
     4.44,
-    3.45,
+    4.8,
     2.75
-   ]
-  },
-  {
-   "id": "shell_corridor",
-   "box": [
-    4.44,
-    2.11,
-    0,
-    10.2,
-    2.25,
-    2.45
-   ]
-  },
-  {
-   "id": "shell_corridor",
-   "box": [
-    4.44,
-    3.45,
-    0,
-    5.2,
-    3.59,
-    2.45
-   ]
-  },
-  {
-   "id": "shell_corridor",
-   "box": [
-    6.1,
-    3.45,
-    0,
-    6.9,
-    3.59,
-    2.45
-   ]
-  },
-  {
-   "id": "shell_corridor",
-   "box": [
-    7.8,
-    3.45,
-    0,
-    8.6,
-    3.59,
-    2.45
-   ]
-  },
-  {
-   "id": "shell_corridor",
-   "box": [
-    9.5,
-    3.45,
-    0,
-    10.2,
-    3.59,
-    2.45
-   ]
-  },
-  {
-   "id": "shell_corridor",
-   "box": [
-    5.2,
-    3.45,
-    2.1,
-    6.1,
-    3.59,
-    2.45
-   ]
-  },
-  {
-   "id": "shell_corridor",
-   "box": [
-    6.9,
-    3.45,
-    2.1,
-    7.8,
-    3.59,
-    2.45
-   ]
-  },
-  {
-   "id": "shell_corridor",
-   "box": [
-    8.6,
-    3.45,
-    2.1,
-    9.5,
-    3.59,
-    2.45
-   ]
-  },
-  {
-   "id": "shell_corridor",
-   "box": [
-    10.2,
-    2.11,
-    0,
-    10.34,
-    2.4,
-    2.45
-   ]
-  },
-  {
-   "id": "shell_corridor",
-   "box": [
-    10.2,
-    3.3,
-    0,
-    10.34,
-    3.59,
-    2.45
-   ]
-  },
-  {
-   "id": "shell_corridor",
-   "box": [
-    10.2,
-    2.4,
-    2.1,
-    10.34,
-    3.3,
-    2.45
    ]
   },
   {
@@ -2647,7 +4778,992 @@
     9.85,
     0.78
    ]
+  },
+  {
+   "id": "wing_mass",
+   "box": [
+    4.44,
+    0.0,
+    0.0,
+    6.2,
+    3.56,
+    2.28
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    7.64,
+    4.94,
+    0,
+    7.78,
+    9.91,
+    2.75
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    10.98,
+    4.94,
+    0,
+    11.12,
+    9.91,
+    2.75
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    14.32,
+    4.8,
+    0,
+    14.46,
+    10.05,
+    2.75
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    14.32,
+    0.16,
+    0,
+    14.46,
+    3.56,
+    2.75
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    4.44,
+    9.91,
+    0,
+    5.04,
+    10.05,
+    2.75
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    7.04,
+    9.91,
+    0,
+    8.38,
+    10.05,
+    2.75
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    10.38,
+    9.91,
+    0,
+    11.72,
+    10.05,
+    2.75
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    13.72,
+    9.91,
+    0,
+    14.46,
+    10.05,
+    2.75
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    5.04,
+    9.91,
+    0,
+    7.04,
+    10.05,
+    0.55
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    5.04,
+    9.91,
+    2.35,
+    7.04,
+    10.05,
+    2.75
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    8.38,
+    9.91,
+    0,
+    10.38,
+    10.05,
+    0.55
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    8.38,
+    9.91,
+    2.35,
+    10.38,
+    10.05,
+    2.75
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    11.72,
+    9.91,
+    0,
+    13.72,
+    10.05,
+    0.55
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    11.72,
+    9.91,
+    2.35,
+    13.72,
+    10.05,
+    2.75
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    6.2,
+    0.16,
+    0,
+    6.34,
+    3.56,
+    2.75
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    6.2,
+    0.16,
+    0,
+    9.6,
+    0.3,
+    2.75
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    13.8,
+    0.16,
+    0,
+    14.46,
+    0.3,
+    2.75
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    9.6,
+    0.16,
+    0,
+    13.8,
+    0.3,
+    0.5
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    9.6,
+    0.16,
+    2.4,
+    13.8,
+    0.3,
+    2.75
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    6.34,
+    1.9,
+    0,
+    8.05,
+    2.0,
+    2.75
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    8.8,
+    1.9,
+    0,
+    9.0,
+    2.0,
+    2.75
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    8.05,
+    1.9,
+    2.05,
+    8.8,
+    2.0,
+    2.75
+   ]
+  },
+  {
+   "id": "wing_walls",
+   "box": [
+    9.0,
+    0.3,
+    0,
+    9.1,
+    2.0,
+    2.75
+   ]
+  },
+  {
+   "id": "shell_corridor",
+   "box": [
+    4.44,
+    4.8,
+    0,
+    6.59,
+    4.94,
+    2.75
+   ]
+  },
+  {
+   "id": "shell_corridor",
+   "box": [
+    7.49,
+    4.8,
+    0,
+    7.93,
+    4.94,
+    2.75
+   ]
+  },
+  {
+   "id": "shell_corridor",
+   "box": [
+    8.83,
+    4.8,
+    0,
+    11.3,
+    4.94,
+    2.75
+   ]
+  },
+  {
+   "id": "shell_corridor",
+   "box": [
+    12.2,
+    4.8,
+    0,
+    14.46,
+    4.94,
+    2.75
+   ]
+  },
+  {
+   "id": "shell_corridor",
+   "box": [
+    6.59,
+    4.8,
+    2.1,
+    7.49,
+    4.94,
+    2.75
+   ]
+  },
+  {
+   "id": "shell_corridor",
+   "box": [
+    7.93,
+    4.8,
+    2.1,
+    8.83,
+    4.94,
+    2.75
+   ]
+  },
+  {
+   "id": "shell_corridor",
+   "box": [
+    11.3,
+    4.8,
+    2.1,
+    12.2,
+    4.94,
+    2.75
+   ]
+  },
+  {
+   "id": "shell_corridor",
+   "box": [
+    4.44,
+    3.56,
+    0,
+    9.3,
+    3.7,
+    2.75
+   ]
+  },
+  {
+   "id": "shell_corridor",
+   "box": [
+    10.2,
+    3.56,
+    0,
+    14.46,
+    3.7,
+    2.75
+   ]
+  },
+  {
+   "id": "shell_corridor",
+   "box": [
+    9.3,
+    3.56,
+    2.1,
+    10.2,
+    3.7,
+    2.75
+   ]
+  },
+  {
+   "id": "shell_corridor",
+   "box": [
+    14.32,
+    3.7,
+    0,
+    14.46,
+    4.8,
+    2.45
+   ]
+  },
+  {
+   "id": "brother_wardrobe",
+   "box": [
+    4.44,
+    4.94,
+    0,
+    5.04,
+    7.54,
+    2.4
+   ]
+  },
+  {
+   "id": "brother_bed",
+   "box": [
+    5.52,
+    8.09,
+    0.0,
+    7.64,
+    9.59,
+    0.08
+   ]
+  },
+  {
+   "id": "brother_bed",
+   "box": [
+    5.53,
+    8.1,
+    0.08,
+    7.63,
+    9.58,
+    0.3
+   ]
+  },
+  {
+   "id": "brother_bed",
+   "box": [
+    5.55,
+    8.12,
+    0.3,
+    7.61,
+    9.56,
+    0.52
+   ]
+  },
+  {
+   "id": "brother_bed",
+   "box": [
+    7.56,
+    7.99,
+    0.3,
+    7.64,
+    9.69,
+    1.15
+   ]
+  },
+  {
+   "id": "brother_windowseat",
+   "box": [
+    5.19,
+    9.41,
+    0,
+    6.89,
+    9.91,
+    0.42
+   ]
+  },
+  {
+   "id": "brother_windowseat",
+   "box": [
+    5.22,
+    9.44,
+    0.42,
+    6.86,
+    9.88,
+    0.5
+   ]
+  },
+  {
+   "id": "younger_wardrobe",
+   "box": [
+    10.38,
+    4.94,
+    0,
+    10.98,
+    7.54,
+    2.4
+   ]
+  },
+  {
+   "id": "younger_bed",
+   "box": [
+    7.78,
+    8.09,
+    0.0,
+    9.9,
+    9.59,
+    0.08
+   ]
+  },
+  {
+   "id": "younger_bed",
+   "box": [
+    7.79,
+    8.1,
+    0.08,
+    9.89,
+    9.58,
+    0.3
+   ]
+  },
+  {
+   "id": "younger_bed",
+   "box": [
+    7.81,
+    8.12,
+    0.3,
+    9.87,
+    9.56,
+    0.52
+   ]
+  },
+  {
+   "id": "younger_bed",
+   "box": [
+    7.78,
+    7.99,
+    0.3,
+    7.86,
+    9.69,
+    1.15
+   ]
+  },
+  {
+   "id": "younger_windowseat",
+   "box": [
+    8.53,
+    9.41,
+    0,
+    10.23,
+    9.91,
+    0.42
+   ]
+  },
+  {
+   "id": "younger_windowseat",
+   "box": [
+    8.56,
+    9.44,
+    0.42,
+    10.2,
+    9.88,
+    0.5
+   ]
+  },
+  {
+   "id": "younger_display",
+   "box": [
+    10.53,
+    7.64,
+    0,
+    10.98,
+    8.64,
+    0.8
+   ]
+  },
+  {
+   "id": "younger_display",
+   "box": [
+    10.56,
+    7.67,
+    1.19,
+    10.98,
+    8.61,
+    1.2
+   ]
+  },
+  {
+   "id": "younger_display",
+   "box": [
+    10.56,
+    7.67,
+    1.59,
+    10.98,
+    8.61,
+    1.6
+   ]
+  },
+  {
+   "id": "younger_display",
+   "box": [
+    10.56,
+    7.67,
+    1.99,
+    10.98,
+    8.61,
+    2.0
+   ]
+  },
+  {
+   "id": "younger_display",
+   "box": [
+    10.54,
+    7.64,
+    0.8,
+    10.98,
+    8.64,
+    0.82
+   ]
+  },
+  {
+   "id": "sister_wardrobe",
+   "box": [
+    13.72,
+    4.94,
+    0,
+    14.32,
+    6.94,
+    2.4
+   ]
+  },
+  {
+   "id": "sister_wardrobe",
+   "box": [
+    13.87,
+    6.94,
+    0,
+    14.32,
+    7.74,
+    0.75
+   ]
+  },
+  {
+   "id": "sister_wardrobe",
+   "box": [
+    13.9,
+    6.96,
+    1.138,
+    14.32,
+    7.72,
+    1.15
+   ]
+  },
+  {
+   "id": "sister_wardrobe",
+   "box": [
+    13.9,
+    6.96,
+    1.538,
+    14.32,
+    7.72,
+    1.55
+   ]
+  },
+  {
+   "id": "sister_wardrobe",
+   "box": [
+    13.9,
+    6.96,
+    1.938,
+    14.32,
+    7.72,
+    1.95
+   ]
+  },
+  {
+   "id": "sister_vanity",
+   "box": [
+    13.82,
+    7.84,
+    0.72,
+    14.32,
+    8.84,
+    0.75
+   ]
+  },
+  {
+   "id": "sister_vanity",
+   "box": [
+    13.82,
+    8.56,
+    0,
+    14.32,
+    8.84,
+    0.72
+   ]
+  },
+  {
+   "id": "sister_bed",
+   "box": [
+    11.12,
+    7.94,
+    0.0,
+    13.22,
+    9.44,
+    0.08
+   ]
+  },
+  {
+   "id": "sister_bed",
+   "box": [
+    11.13,
+    7.95,
+    0.08,
+    13.21,
+    9.43,
+    0.3
+   ]
+  },
+  {
+   "id": "sister_bed",
+   "box": [
+    11.15,
+    7.97,
+    0.3,
+    13.19,
+    9.41,
+    0.52
+   ]
+  },
+  {
+   "id": "sister_bed",
+   "box": [
+    11.12,
+    7.84,
+    0.3,
+    11.19,
+    9.54,
+    1.25
+   ]
+  },
+  {
+   "id": "master_closet",
+   "box": [
+    6.34,
+    2.0,
+    0,
+    6.94,
+    3.56,
+    0.2
+   ]
+  },
+  {
+   "id": "master_closet",
+   "box": [
+    7.24,
+    2.0,
+    0,
+    8.85,
+    2.45,
+    0.08
+   ]
+  },
+  {
+   "id": "master_closet",
+   "box": [
+    7.24,
+    2.0,
+    0.08,
+    8.85,
+    2.43,
+    0.78
+   ]
+  },
+  {
+   "id": "master_closet",
+   "box": [
+    7.23,
+    2.0,
+    0.78,
+    8.86,
+    2.46,
+    0.81
+   ]
+  },
+  {
+   "id": "master_display",
+   "box": [
+    7.24,
+    3.14,
+    0,
+    8.85,
+    3.56,
+    0.85
+   ]
+  },
+  {
+   "id": "master_display",
+   "box": [
+    7.26,
+    3.16,
+    1.29,
+    8.83,
+    3.56,
+    1.3
+   ]
+  },
+  {
+   "id": "master_display",
+   "box": [
+    7.26,
+    3.16,
+    1.77,
+    8.83,
+    3.56,
+    1.78
+   ]
+  },
+  {
+   "id": "master_display",
+   "box": [
+    7.23,
+    3.13,
+    0.85,
+    8.86,
+    3.56,
+    0.87
+   ]
+  },
+  {
+   "id": "master_iceglass",
+   "box": [
+    9.0,
+    2.0,
+    0,
+    9.04,
+    2.85,
+    2.3
+   ]
+  },
+  {
+   "id": "master_bath",
+   "box": [
+    6.34,
+    0.55,
+    0.2,
+    6.89,
+    1.6,
+    0.85
+   ]
+  },
+  {
+   "id": "master_bath",
+   "box": [
+    6.34,
+    0.53,
+    0.85,
+    6.9,
+    1.62,
+    0.88
+   ]
+  },
+  {
+   "id": "master_bath",
+   "box": [
+    6.34,
+    0.65,
+    1.1,
+    6.48,
+    1.5,
+    1.9
+   ]
+  },
+  {
+   "id": "master_bath",
+   "box": [
+    7.35,
+    1.78,
+    0.35,
+    7.75,
+    1.9,
+    0.8
+   ]
+  },
+  {
+   "id": "master_bath",
+   "box": [
+    7.35,
+    1.35,
+    0,
+    7.75,
+    1.9,
+    0.4
+   ]
+  },
+  {
+   "id": "master_bath",
+   "box": [
+    8.0,
+    0.3,
+    0,
+    8.02,
+    1.2,
+    2.0
+   ]
+  },
+  {
+   "id": "master_bed",
+   "box": [
+    12.12,
+    1.03,
+    0.0,
+    14.22,
+    2.83,
+    0.08
+   ]
+  },
+  {
+   "id": "master_bed",
+   "box": [
+    12.13,
+    1.04,
+    0.08,
+    14.21,
+    2.82,
+    0.3
+   ]
+  },
+  {
+   "id": "master_bed",
+   "box": [
+    12.15,
+    1.06,
+    0.3,
+    14.19,
+    2.8,
+    0.52
+   ]
+  },
+  {
+   "id": "master_bed",
+   "box": [
+    14.2,
+    0.88,
+    0.3,
+    14.32,
+    2.98,
+    1.3
+   ]
+  },
+  {
+   "id": "master_lowcab",
+   "box": [
+    9.25,
+    0.3,
+    0,
+    11.92,
+    0.72,
+    0.45
+   ]
+  },
+  {
+   "id": "master_lowcab",
+   "box": [
+    9.25,
+    0.3,
+    0.45,
+    11.92,
+    0.74,
+    0.48
+   ]
   }
+ ],
+ "area_m2": 127.2,
+ "floors": [
+  [
+   0,
+   0,
+   4.3,
+   9.91
+  ],
+  [
+   4.44,
+   4.94,
+   7.64,
+   9.91
+  ],
+  [
+   7.78,
+   4.94,
+   10.98,
+   9.91
+  ],
+  [
+   11.12,
+   4.94,
+   14.32,
+   9.91
+  ],
+  [
+   6.34,
+   0.3,
+   14.32,
+   3.56
+  ],
+  [
+   4.44,
+   3.7,
+   14.32,
+   4.8
+  ]
  ],
  "room": {
   "w": 4.3,
@@ -2655,14 +5771,14 @@
   "h": 2.75
  },
  "corridor": {
-  "y0": 2.25,
-  "y1": 3.45,
-  "x1": 10.2,
+  "y0": 3.7,
+  "y1": 4.8,
+  "x1": 14.32,
   "h": 2.45
  },
  "animation": {
   "fps": 24,
-  "duration": 60.0,
+  "duration": 90.0,
   "stations": {
    "host_a": [
     [
@@ -2712,49 +5828,161 @@
       1.674,
       7.302
      ],
-     34.0
+     32.0
     ],
     [
      [
-      3.2,
-      4.2
+      3.4,
+      4.25
+     ],
+     36.0
+    ],
+    [
+     [
+      7.040000000000001,
+      4.1
      ],
      39.0
     ],
     [
      [
-      4.0,
-      2.95
+      7.040000000000001,
+      5.54
+     ],
+     40.5
+    ],
+    [
+     [
+      5.74,
+      6.34
      ],
      42.5
     ],
     [
      [
-      4.0,
-      2.95
+      5.74,
+      6.34
      ],
-     50.0
+     49.0
     ],
     [
      [
-      2.0,
-      3.6
+      7.040000000000001,
+      5.54
      ],
-     54.0
+     51.0
+    ],
+    [
+     [
+      7.040000000000001,
+      4.25
+     ],
+     52.5
+    ],
+    [
+     [
+      9.75,
+      4.25
+     ],
+     55.0
+    ],
+    [
+     [
+      9.75,
+      3.1
+     ],
+     56.5
+    ],
+    [
+     [
+      10.6,
+      2.3
+     ],
+     58.0
+    ],
+    [
+     [
+      10.6,
+      2.3
+     ],
+     64.0
+    ],
+    [
+     [
+      9.75,
+      3.1
+     ],
+     65.5
+    ],
+    [
+     [
+      9.75,
+      4.25
+     ],
+     67.0
+    ],
+    [
+     [
+      11.75,
+      4.25
+     ],
+     68.5
+    ],
+    [
+     [
+      11.75,
+      5.54
+     ],
+     70.0
+    ],
+    [
+     [
+      12.319999999999999,
+      6.540000000000001
+     ],
+     72.0
+    ],
+    [
+     [
+      12.319999999999999,
+      6.540000000000001
+     ],
+     77.0
+    ],
+    [
+     [
+      11.75,
+      5.54
+     ],
+     79.0
+    ],
+    [
+     [
+      11.75,
+      4.25
+     ],
+     80.5
+    ],
+    [
+     [
+      3.4,
+      4.25
+     ],
+     85.0
     ],
     [
      [
       1.2,
       3.1
      ],
-     56.0
+     87.5
     ],
     [
      [
       0.95,
       0.55
      ],
-     60.0
+     90.0
     ]
    ],
    "host_b": [
@@ -2805,49 +6033,161 @@
       2.549,
       8.615
      ],
-     34.0
+     32.0
     ],
     [
      [
-      3.5,
-      4.6
+      3.4,
+      4.55
      ],
-     39.5
+     37.0
     ],
     [
      [
-      4.05,
-      3.3
+      7.240000000000001,
+      4.45
      ],
-     43.0
+     40.0
     ],
     [
      [
-      4.05,
-      3.3
+      7.140000000000001,
+      5.640000000000001
      ],
-     50.0
+     41.5
     ],
     [
      [
-      2.4,
-      3.9
+      6.44,
+      6.040000000000001
      ],
-     54.5
+     43.5
+    ],
+    [
+     [
+      6.44,
+      6.040000000000001
+     ],
+     49.5
+    ],
+    [
+     [
+      7.140000000000001,
+      5.640000000000001
+     ],
+     51.5
+    ],
+    [
+     [
+      7.040000000000001,
+      4.45
+     ],
+     53.0
+    ],
+    [
+     [
+      9.95,
+      4.25
+     ],
+     55.5
+    ],
+    [
+     [
+      9.75,
+      3.0
+     ],
+     57.0
+    ],
+    [
+     [
+      11.4,
+      2.7
+     ],
+     58.5
+    ],
+    [
+     [
+      11.4,
+      2.7
+     ],
+     64.0
+    ],
+    [
+     [
+      9.75,
+      3.0
+     ],
+     66.0
+    ],
+    [
+     [
+      10.05,
+      4.25
+     ],
+     67.5
+    ],
+    [
+     [
+      11.95,
+      4.45
+     ],
+     69.0
+    ],
+    [
+     [
+      11.85,
+      5.640000000000001
+     ],
+     70.5
+    ],
+    [
+     [
+      13.02,
+      6.140000000000001
+     ],
+     72.5
+    ],
+    [
+     [
+      13.02,
+      6.140000000000001
+     ],
+     77.5
+    ],
+    [
+     [
+      11.85,
+      5.640000000000001
+     ],
+     79.5
+    ],
+    [
+     [
+      11.75,
+      4.45
+     ],
+     81.0
+    ],
+    [
+     [
+      3.4,
+      4.45
+     ],
+     85.5
     ],
     [
      [
       1.15,
       3.35
      ],
-     57.0
+     88.0
     ],
     [
      [
       1.3,
       0.75
      ],
-     60.0
+     90.0
     ]
    ]
   }
