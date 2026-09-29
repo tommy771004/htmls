@@ -54,8 +54,10 @@ export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = []
       players: room.players.map(p => p ? { name: p.name, connected: connected(p), bot: p.bot } : null)
     }, state: room.game?.view(seat) ?? null });
   }
-  function broadcast(room) { for (const ws of wss.clients) if (ws.client?.code === room.code) snapshot(ws, room); }
-  async function change(code, fn) { return restore(await store.transact(code, room => { restore(room); fn(room); room.touched = Date.now(); })); }
+  // sent remembers what each room last looked like here, so the tick only re-sends changes plus a periodic keep-alive.
+  const sent = new Map();
+  function broadcast(room, json = JSON.stringify(room)) { sent.set(room.code, { json, at: Date.now() }); for (const ws of wss.clients) if (ws.client?.code === room.code) snapshot(ws, room); }
+  async function change(code, fn) { return restore(await store.transact(code, room => { restore(room); if (fn(room) === false) return false; room.touched = Date.now(); })); }
   async function detach(ws, leave = false) {
     const c = ws.client; ws.client = null; if (!c) return;
     const room = await change(c.code, room => {
@@ -119,6 +121,8 @@ export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = []
         if (seat !== roomHost(room) || room.game?.state.phase !== 'ended') throw Error('請等房主在結算後開下一局。'); room.game.startRound();
       } else if (msg.type === 'ACTION') {
         if (!room.game) throw Error('牌局尚未開始。'); room.game.act(seat, msg.action, msg.actionId);
+      } else if (msg.type === 'AUTO') {
+        if (!room.game) throw Error('牌局尚未開始。'); room.game.setAuto(seat, msg.on === true);
       } else if (msg.type !== 'STATE_SYNC') throw Error('不支援的指令。');
     }); broadcast(room);
   }
@@ -139,20 +143,28 @@ export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = []
     if (polling) return; polling = true;
     try {
       const codes = new Set([...wss.clients].filter(ws => ws.client).map(ws => ws.client.code));
+      for (const code of sent.keys()) if (!codes.has(code)) sent.delete(code);
       await Promise.allSettled([...codes].map(async code => {
+        // Every instance ticks every room it serves, so only write when something is due: a turn or bot move,
+        // a takeover, or a presence refresh every 10 s. Idle ticks are one read and never race a player's action.
         const room = await change(code, room => {
-          const now = Date.now();
+          const now = Date.now(); let dirty = false;
           for (const ws of wss.clients) if (ws.client?.code === code && ws.readyState === WebSocket.OPEN) {
-            const p = room.players[ws.client.seat]; if (p?.connection === ws.id) p.lastSeen = now;
+            const p = room.players[ws.client.seat]; if (p?.connection === ws.id && now - p.lastSeen >= 10000) { p.lastSeen = now; dirty = true; }
           }
           room.players.forEach((p, seat) => {
             if (p && !p.bot && (p.disconnectedAt && now - p.disconnectedAt > 30000 || !p.disconnectedAt && now - p.lastSeen > 30000)) {
               if (room.game) { p.bot = true; p.token = null; room.game.setBot(seat, true); } else room.players[seat] = null;
+              dirty = true;
             }
           });
           // Catch up a frozen function only one transition at a time; deadlines use current time.
-          room.game?.tick(now);
-        }); broadcast(room);
+          if (room.game?.tick(now)) dirty = true;
+          return dirty;
+        });
+        const json = JSON.stringify(room), last = sent.get(code);
+        // Other instances' writes arrive here by polling; the 5 s floor also feeds the client's dead-link watchdog.
+        if (!last || last.json !== json || Date.now() - last.at >= 5000) broadcast(room, json);
       }));
     } finally { polling = false; }
   }, 1000);

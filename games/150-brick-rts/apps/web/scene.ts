@@ -3,6 +3,7 @@ import {createArchGeometry} from './brick-geometries.ts';
 import {militaryBuildingParts,militaryBuildings} from './military-building.ts';
 import type {MilitaryBuilding} from './military-building.ts';
 import {monasteryParts} from './monastery-building.ts';
+import {blacksmithParts} from './blacksmith-building.ts';
 import {relicParts} from './relic-model.ts';
 import {techIcons} from './tech-icons.ts';
 import {createCharacterRig} from './character-rig.ts';
@@ -24,6 +25,8 @@ import {makeMap} from '../../packages/sim/navigation.ts';
 import {walkablePlatforms,obstacleBounds} from '../../packages/content/footprints.ts';
 import type {View} from '../../packages/sim/protocol.ts';
 import type {BuildKind} from '../../packages/sim/buildings.ts';
+// What each soldier holds: the skirmisher throws javelins (a spear), the knight fights with a sword.
+export const weaponOf=(kind:string):UnitTool=>kind==='militia'||kind==='knight'?'sword':kind==='archer'?'bow':kind==='scout'||kind==='spearman'||kind==='skirmisher'?'spear':kind==='monk'?'staff':'none';
 export const brickStyle={studPitch:.5,plateHeight:.16,brickHeight:.32,bevel:.025,roughness:.62,provenance:'original_procedural'} as const;
 // Farm: a 2x2 soil plate with crop rows (walkable in the sim). Foundations show bare soil and a corner stake.
 export function farmParts(progress:number,red?:boolean){const out:{x:number;y:number;z:number;w:number;d:number;h:number;color:string;studs:boolean}[]=[{x:0,y:0,z:0,w:2,d:2,h:.1,color:'#806b49',studs:false}];
@@ -69,13 +72,13 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
  let previewBuildingKind:'house'|EconomicBuilding|MilitaryBuilding='house';
  let previewBuilding:Omit<BuildingVisual,'red'>={ageVariant:2,progress:100,health:100};
  // The model page swaps in the inspected kind; the sandbox draws each obstacle as itself at age 2.
- function house(x:number,z:number,red=false,obstacleKind:'house'|'town-center'|'barracks'|'lumber-camp'|'mining-camp'|'mill'|'stable'|'archery-range'|'monastery'='house',progress=100,age=2,health=100){const kind=options.assetPreview?previewBuildingKind:obstacleKind,visual=options.assetPreview?previewBuilding:{...previewBuilding,progress,health,ageVariant:Math.min(4,Math.max(1,age)) as 1|2|3|4},parts=kind==='house'?buildingParts({...visual,red}):kind==='monastery'?monasteryParts({...visual,red}):militaryBuildings.includes(kind as MilitaryBuilding)?militaryBuildingParts(kind as MilitaryBuilding,{...visual,red}):economicBuildingParts(kind as EconomicBuilding,{...visual,red});
+ function house(x:number,z:number,red=false,obstacleKind:'house'|'town-center'|'barracks'|'lumber-camp'|'mining-camp'|'mill'|'stable'|'archery-range'|'monastery'|'blacksmith'='house',progress=100,age=2,health=100){const kind=options.assetPreview?previewBuildingKind:obstacleKind,visual=options.assetPreview?previewBuilding:{...previewBuilding,progress,health,ageVariant:Math.min(4,Math.max(1,age)) as 1|2|3|4},parts=kind==='house'?buildingParts({...visual,red}):kind==='monastery'?monasteryParts({...visual,red}):kind==='blacksmith'?blacksmithParts({...visual,red}):militaryBuildings.includes(kind as MilitaryBuilding)?militaryBuildingParts(kind as MilitaryBuilding,{...visual,red}):economicBuildingParts(kind as EconomicBuilding,{...visual,red});
  for(const p of parts)brick(x+p.x,z+p.z,p.y,p.w,p.d,p.h,p.color,false,p.shape);
  for(const stud of buildingStuds(parts))staticPart(studGeo,stud.color,x+stud.x,stud.y,z+stud.z);}
  function buildWorld(view:View){const seed=view.seed;scene.remove(staticGroup);staticGroup.traverse((o:any)=>{if(o.isInstancedMesh)o.dispose();});staticGroup=new T.Group();scene.add(staticGroup);batches.clear();baseHeight=0;
  const map=options.assetPreview?makeMap(seed,previewLayout):{tiles:view.terrain.map((tile,id)=>({...tile,id,resourceRefs:[],obstacleRefs:[]})),obstacles:view.known.map(k=>k.obstacle),resources:view.resources};worldTiles=map.tiles;board=sizeOfTiles(map.tiles);platforms=map.obstacles.flatMap(o=>{const p=walkablePlatforms[o.kind];return p?[{x0:o.x+p.rect[0],y0:o.y+p.rect[1],x1:o.x+p.rect[2],y1:o.y+p.rect[3],height:p.height}]:[];});let rng=seed||1;for(const tile of map.tiles){const x=tile.id%board,z=Math.floor(tile.id/board);rng^=rng<<13;rng^=rng>>>17;rng^=rng<<5;const n=(rng>>>0)/4294967296;groundBlock(x,z,tile.height/100,!options.assetPreview&&view.fog[tile.id]!==2?(view.fog[tile.id]===1?'#626e64':'#293e38'):tile.terrainType==='cliff'?'#8a8065':tile.terrainType==='stone'?'#a1a28e':tile.terrainType==='highland'?'#879d69':tile.terrainType==='water'?'#4b8291':tile.terrainType==='shallow'?'#86b7b8':tile.terrainType==='sand'?'#d5c598':tile.terrainType==='road'?'#c4b18a':n<.2?'#a6b582':n<.5?'#b5c493':'#becda0');}
  for(const o of map.obstacles){baseHeight=groundHeight(map.tiles,o.x,o.y)/100;muted=!options.assetPreview&&view.fog[tileAt(o.x,o.y,sizeOfTiles(map.tiles))]!==2;const x=o.x/100,z=o.y/100;if(o.kind==='farm')for(const p of farmParts(o.progress??100,o.red))brick(x+p.x,z+p.z,p.y,p.w,p.d,p.h,p.color,p.studs);
- else if(o.kind==='house'||o.kind==='town-center'||o.kind==='barracks'||o.kind==='lumber-camp'||o.kind==='mining-camp'||o.kind==='mill'||o.kind==='stable'||o.kind==='archery-range'||o.kind==='monastery')house(x,z,o.red,o.kind,o.progress??100,o.age??2,o.damaged?35:100);else if(o.kind==='tree'){
+ else if(o.kind==='house'||o.kind==='town-center'||o.kind==='barracks'||o.kind==='lumber-camp'||o.kind==='mining-camp'||o.kind==='mill'||o.kind==='stable'||o.kind==='archery-range'||o.kind==='monastery'||o.kind==='blacksmith')house(x,z,o.red,o.kind,o.progress??100,o.age??2,o.damaged?35:100);else if(o.kind==='tree'){
   // A grove is not one tree repeated: the tile position picks trunk height, crown tiers and leaf shade (same brick sizes, same footprint).
   // Hashed from the position, so a tree keeps its shape when fog or known objects rebuild the world.
   let v=Math.imul(o.x|0,73856093)^Math.imul(o.y|0,19349663);v=Math.imul(v^v>>>16,0x45d9f3b);v=(v^v>>>16)>>>0;const lift=[0,.16,-.12,.08][v&3],leaf=(v>>2)&1?'#5d824e':'#67835a';
@@ -126,7 +129,7 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
   if(!options.assetPreview){const gathering=(data.work==='gathering'||data.work==='hunting')&&!u.moving,activity=u.moving?(data.cargo?'carry':'walk'):gathering||data.rite?'work':'idle';
    // Food by its source: a spear for the hunt and for shore fish, a knife (sickle) for a carcass, the basket for bushes and fields.
    const source=data.work==='gathering'&&data.target?view.resources.find(r=>r.x===data.target!.x&&r.y===data.target!.y&&!r.obstacleId):undefined,food:UnitTool=data.work==='hunting'||source?.kind==='fish'?'spear':source?'sickle':'basket';
-   const weapon:UnitTool=data.kind==='militia'?'sword':data.kind==='archer'?'bow':data.kind==='scout'?'spear':data.kind==='monk'?'staff':'none',tool=data.cargo&&activity!=='work'?'basket':gathering?({wood:'axe',stone:'pick',gold:'pick',food} as Record<string,UnitTool>)[data.workResource??'food']:weapon;
+   const weapon:UnitTool=weaponOf(data.kind),tool=data.cargo&&activity!=='work'?'basket':gathering?({wood:'axe',stone:'pick',gold:'pick',food} as Record<string,UnitTool>)[data.workResource??'food']:weapon;
    if(tool!==u.tool){u.rig.equip(tool as UnitTool);u.tool=tool;}
    // A carried relic rides on the monk's back.
    if(data.relic&&!u.relic){u.relic=relic();u.relic.position.set(0,.98,-.3);u.group.add(u.relic);}else if(!data.relic&&u.relic){u.group.remove(u.relic);u.relic=null;}
@@ -144,7 +147,7 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
  const hits=detail.withSelectionGeometry(scene,()=>visibleMeshHits(raycaster,[...units.values()].map(u=>u.group)));if(hits.length){let obj=hits[0].object;while(obj.parent&&obj.parent!==scene)obj=obj.parent;for(const [id,u] of units)if(u.group===obj)return {unitId:id};}
  const groundHit=raycaster.intersectObjects(staticGroup.children.filter((mesh:any)=>mesh.userData.ground),false)[0];if(groundHit)return {x:groundHit.point.x,y:groundHit.point.z};return {};}
  // Buildings by their volume (footprint x model height), so a click on a roof means that building, not the ground behind it.
- const buildingHeights:Record<string,number>={'town-center':2.6,barracks:2.2,house:1.9,farm:.25,'lumber-camp':1.9,'mining-camp':1.9,mill:2.6,stable:2.2,'archery-range':2.2,monastery:3.4};
+ const buildingHeights:Record<string,number>={'town-center':2.6,barracks:2.2,house:1.9,farm:.25,'lumber-camp':1.9,'mining-camp':1.9,mill:2.6,stable:2.2,'archery-range':2.2,blacksmith:2.4,monastery:3.4};
  function pickBuilding(clientX:number,clientY:number):string|undefined{if(!latest)return;const r=canvas.getBoundingClientRect();raycaster.setFromCamera(new T.Vector2((clientX-r.left)/r.width*2-1,-(clientY-r.top)/r.height*2+1),camera);
   let best:string|undefined,dist=Infinity;const hit=new T.Vector3();
   for(const {obstacle:o} of latest.known){const h=buildingHeights[o.kind];if(!h||!o.id)continue;const [x0,y0,x1,y1]=obstacleBounds(o),base=groundHeight(worldTiles,o.x,o.y)/100;
@@ -197,11 +200,11 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
    Object.assign(cam,{left:cx-half,right:cx+half,top:cy+half,bottom:cy-half});cam.updateProjectionMatrix();r.render(s,cam);out[name]=off.toDataURL('image/png');s.remove(g);};
   try{
    for(const kind of ['sheep','deer','boar'] as const){const rig=createAnimalRig(T,kind,0,box,material);rig.pose('idle',0);const g=new T.Group();g.add(rig.root);shoot(kind,g,{angle:Math.PI/3,lift:.35});shoot(`${kind}-face`,g,{angle:Math.PI/3,lift:.35});}
-   for(const kind of ['villager','militia','archer','scout','monk'] as const){const rig=createCharacterRig(T,0,box,material);if(kind!=='villager')rig.dress(roleOf(kind));rig.equip(kind==='militia'?'sword':kind==='archer'?'bow':kind==='scout'?'spear':kind==='monk'?'staff':'none');rig.pose('idle',0);
+   for(const kind of ['villager','militia','archer','scout','monk','spearman','skirmisher','knight'] as const){const rig=createCharacterRig(T,0,box,material);if(kind!=='villager')rig.dress(roleOf(kind));rig.equip(weaponOf(kind));rig.pose('idle',0);
     const g=new T.Group();g.add(rig.root);shoot(kind,g,{angle:Math.PI/7,lift:.35});// A rider's face sits high above the horse: frame the upper part tighter.
-    shoot(`${kind}-face`,g,kind==='scout'?{angle:Math.PI/7,lift:.35,crop:.74,span:.21}:{angle:Math.PI/7,lift:.35,crop:.72});}
+    shoot(`${kind}-face`,g,kind==='scout'||kind==='knight'?{angle:Math.PI/7,lift:.35,crop:.74,span:.21}:{angle:Math.PI/7,lift:.35,crop:.72});}
    const visual=(age:number)=>({ageVariant:age as 1|2|3|4,progress:100,health:100,red:false});
-   for(const age of [1,2,3,4]){shoot(`house-${age}`,parts(buildingParts(visual(age))));shoot(`barracks-${age}`,parts(militaryBuildingParts('barracks',visual(age))));shoot(`stable-${age}`,parts(militaryBuildingParts('stable',visual(age))));shoot(`archery-range-${age}`,parts(militaryBuildingParts('archery-range',visual(age))));shoot(`monastery-${age}`,parts(monasteryParts(visual(age))));shoot(`town-center-${age}`,parts(economicBuildingParts('town-center',visual(age))));for(const camp of ['lumber-camp','mining-camp','mill'] as const)shoot(`${camp}-${age}`,parts(economicBuildingParts(camp,visual(age))));}
+   for(const age of [1,2,3,4]){shoot(`house-${age}`,parts(buildingParts(visual(age))));shoot(`barracks-${age}`,parts(militaryBuildingParts('barracks',visual(age))));shoot(`stable-${age}`,parts(militaryBuildingParts('stable',visual(age))));shoot(`archery-range-${age}`,parts(militaryBuildingParts('archery-range',visual(age))));shoot(`monastery-${age}`,parts(monasteryParts(visual(age))));shoot(`blacksmith-${age}`,parts(blacksmithParts(visual(age))));shoot(`town-center-${age}`,parts(economicBuildingParts('town-center',visual(age))));for(const camp of ['lumber-camp','mining-camp','mill'] as const)shoot(`${camp}-${age}`,parts(economicBuildingParts(camp,visual(age))));}
    shoot('farm',parts(farmParts(100,false),false));shoot('relic',parts(relicParts.map(p=>({...p,x:p.x+.5,z:p.z+.5})),false));for(const [id,list] of Object.entries(techIcons))shoot(`tech-${id}`,parts(list,false));
    const bush=[{x:.05,y:0,z:.05,w:.55,d:.55,h:.45,color:'#5d824e'},...[.12,.36].flatMap(x=>[.12,.36].map(z=>({x,y:.45,z,w:.12,d:.12,h:.12,color:'#a84e59'})))];
    const tree=[{x:.15,y:0,z:.15,w:.3,d:.3,h:.8,color:'#80664b'},{x:-.2,y:.7,z:-.2,w:1,d:1,h:.4,color:'#67835a'},{x:-.075,y:1.1,z:-.075,w:.75,d:.75,h:.4,color:'#7e985f'},{x:.05,y:1.5,z:.05,w:.5,d:.5,h:.3,color:'#91a970'}];

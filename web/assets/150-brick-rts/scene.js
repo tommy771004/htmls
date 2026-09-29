@@ -171,6 +171,42 @@ function monasteryParts(v) {
   return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "flag" || a.id === "bell" || a.id === "bell-rope" || a.id === "finial"));
 }
 
+// apps/web/blacksmith-building.ts
+function blacksmithParts(v) {
+  if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u9435\u5320\u92EA\u5916\u89C0");
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", stone2 = "#a9a693", dark = "#5d5a52", roof = age === 1 ? "#b8a074" : team2;
+  const add = (id, phase, x, z, y, w, d, h, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h, color, studs, ...shape ? { shape } : {} });
+  const top = 1.28 + (age >= 3 ? 0.16 : 0);
+  add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
+  add("back-wall", 1, 0.1, 0.1, 0.16, 2.5, 0.2, top - 0.16, stone2);
+  for (const x of [0.1, 2.4]) add(`side-wall-${x}`, 1, x, 0.3, 0.16, 0.2, 1.5, top - 0.16, stone2);
+  for (let level = 0; level < 2; level++) add(`roof-${level}`, 2, -0.05 + level * 0.3, -0.05, top + level * 0.16, 2.9 - level * 0.6, 1.95, 0.16, roof, true);
+  add("chimney", 2, 1.75, 0.1, 0.16, 0.5, 0.5, top + 0.9, dark);
+  add("chimney-cap", 3, 1.7, 0.05, top + 1.06, 0.6, 0.6, 0.1, "#4a4740");
+  add("hearth", 1, 1.7, 0.62, 0.16, 0.6, 0.4, 0.36, dark);
+  add("hearth-fire", 3, 1.8, 0.7, 0.52, 0.4, 0.25, 0.1, "#e8793c");
+  add("stump", 3, 0.95, 1.95, 0.16, 0.36, 0.36, 0.3, wood2);
+  add("anvil", 3, 0.88, 1.97, 0.46, 0.5, 0.3, 0.14, "#6b6f6c");
+  add("anvil-horn", 3, 1.38, 2.03, 0.5, 0.14, 0.18, 0.08, "#6b6f6c");
+  add("tub", 3, 1.7, 2.05, 0.16, 0.42, 0.42, 0.3, wood2);
+  add("tub-water", 3, 1.76, 2.11, 0.44, 0.3, 0.3, 0.03, "#6a9297");
+  add("rack", 3, 0.3, 0.5, 0.16, 0.15, 1.1, 0.75, wood2);
+  for (let i = 0; i < 3; i++) add(`blade-${i}`, 3, 0.28, 0.6 + i * 0.3, 0.3, 0.06, 0.06, 0.7, "#c6cfca");
+  if (age >= 2) {
+    add("porch-beam", 1, 0.1, 1.75, top - 0.16, 2.5, 0.16, 0.16, wood2);
+    for (const x of [0.1, 2.44]) add(`porch-post-${x}`, 1, x, 1.75, 0.16, 0.16, 0.16, top - 0.32, wood2);
+  }
+  if (age >= 3) for (const x of [-0.05, 2.6]) add(`buttress-${x}`, 1, x, 0.3, 0.16, 0.15, 0.3, top - 0.32, stone2);
+  if (age === 4) {
+    add("bellows", 4, 2, 0.7, 0.16, 0.3, 0.4, 0.3, "#7a5c40");
+    add("ridge-crest", 4, 0.9, 0.4, top + 0.32, 1, 1.2, 0.16, roof, true);
+  }
+  add("flag-pole", 4, 2.67, 2.63, 0.16, 0.06, 0.06, 1.6, wood2);
+  add("flag", 4, 2.24, 2.63, 1.42, 0.44, 0.05, 0.28, team2);
+  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: stone2, studs: false }))];
+  return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "flag" || a.id === "hearth-fire" || a.id === "chimney-cap"));
+}
+
 // apps/web/relic-model.ts
 var relicParts = [
   { x: -0.17, y: 0, z: -0.13, w: 0.34, d: 0.26, h: 0.08, color: "#6e5438" },
@@ -226,6 +262,17 @@ var techIcons = {
   "heavy-plow": [{ x: 0.05, y: 0.35, z: 0.4, w: 0.8, d: 0.1, h: 0.1, color: wood }, { x: 0.6, y: 0, z: 0.35, w: 0.25, d: 0.2, h: 0.35, color: "#aab0a3" }, { x: 0.05, y: 0.45, z: 0.4, w: 0.08, d: 0.1, h: 0.3, color: wood }],
   "crop-rotation": [{ x: 0, y: 0, z: 0.05, w: 0.9, d: 0.25, h: 0.12, color: "#9bb65a" }, { x: 0, y: 0, z: 0.33, w: 0.9, d: 0.25, h: 0.12, color: "#d9c26a" }, { x: 0, y: 0, z: 0.61, w: 0.9, d: 0.25, h: 0.12, color: "#806b49" }, { x: 0.1, y: 0.12, z: 0.1, w: 0.7, d: 0.15, h: 0.1, color: "#7e985f" }]
 };
+var metal = ["#9a8c78", "#aab0a3", "#d8dcd6"];
+var band = (level) => Array.from({ length: level }, (_, i) => ({ x: 0.15 + i * 0.25, y: 0, z: 0.75, w: 0.18, d: 0.1, h: 0.08, color: gold }));
+var hammer = (l) => [{ x: 0.42, y: 0.1, z: 0.4, w: 0.08, d: 0.08, h: 0.75, color: wood }, { x: 0.25, y: 0.7, z: 0.34, w: 0.42, d: 0.2, h: 0.18, color: metal[l - 1] }, ...band(l)];
+var mail = (l) => [{ x: 0.2, y: 0.1, z: 0.35, w: 0.5, d: 0.2, h: 0.55, color: metal[l - 1] }, { x: 0.1, y: 0.5, z: 0.35, w: 0.7, d: 0.2, h: 0.15, color: metal[l - 1] }, { x: 0.35, y: 0.65, z: 0.35, w: 0.2, d: 0.2, h: 0.1, color: "#6e5438" }, ...band(l)];
+var barding = (l) => [{ x: 0.1, y: 0.15, z: 0.35, w: 0.7, d: 0.3, h: 0.3, color: metal[l - 1] }, { x: 0.65, y: 0.35, z: 0.35, w: 0.2, d: 0.3, h: 0.35, color: metal[l - 1] }, { x: 0.12, y: 0.45, z: 0.38, w: 0.5, d: 0.24, h: 0.08, color: team }, ...band(l)];
+var arrows = (l) => [...[0, 1, 2].map((i) => ({ x: 0.2 + i * 0.2, y: 0.1, z: 0.4, w: 0.05, d: 0.05, h: 0.65, color: wood })), ...[0, 1, 2].map((i) => ({ x: 0.17 + i * 0.2, y: 0.75, z: 0.37, w: 0.11, d: 0.11, h: 0.12, color: metal[l - 1] })), ...band(l)];
+var vest = (l) => [{ x: 0.2, y: 0.1, z: 0.35, w: 0.5, d: 0.2, h: 0.5, color: ["#b89a6a", "#8a6a45", "#aab0a3"][l - 1] }, { x: 0.25, y: 0.2, z: 0.33, w: 0.4, d: 0.04, h: 0.06, color: "#6e5438" }, { x: 0.25, y: 0.4, z: 0.33, w: 0.4, d: 0.04, h: 0.06, color: "#6e5438" }, ...band(l)];
+for (const [line, make] of [[["forging", "iron-casting", "blast-furnace"], hammer], [["scale-mail-armor", "chain-mail-armor", "plate-mail-armor"], mail], [["scale-barding-armor", "chain-barding-armor", "plate-barding-armor"], barding], [["fletching", "bodkin-arrow", "bracer"], arrows], [["padded-archer-armor", "leather-archer-armor", "ring-archer-armor"], vest]])
+  line.forEach((id, i) => {
+    techIcons[id] = make(i + 1);
+  });
 
 // apps/web/unit-rig.ts
 var unitPoses = ["idle", "walk", "work", "attack", "hit", "death", "carry"];
@@ -560,7 +607,7 @@ var animalRules = {
 
 // apps/web/rig-roles.ts
 function roleOf(kind) {
-  return kind === "militia" ? "swordsman" : kind === "archer" ? "archer" : kind === "scout" ? "cavalry" : kind === "monk" ? "monk" : "villager";
+  return kind === "militia" ? "swordsman" : kind === "spearman" ? "spearman" : kind === "archer" || kind === "skirmisher" ? "archer" : kind === "scout" || kind === "knight" ? "cavalry" : kind === "monk" ? "monk" : "villager";
 }
 function poseFor(kind, pose) {
   return roleOf(kind) === "cavalry" && !["idle", "walk", "attack"].includes(pose) ? "idle" : pose;
@@ -820,6 +867,7 @@ var obstacleFootprints = {
   stable: { x: -15, y: -15, width: 300, depth: 300 },
   "archery-range": { x: -15, y: -15, width: 300, depth: 300 },
   monastery: { x: -15, y: -15, width: 300, depth: 300 },
+  blacksmith: { x: -15, y: -15, width: 300, depth: 300 },
   tree: { x: -20, y: -20, width: 100, depth: 100 },
   rock: { x: 0, y: 0, width: 65, depth: 70 },
   gold: { x: 0, y: 0, width: 65, depth: 70 },
@@ -1216,7 +1264,7 @@ function placePond(seed, size, taken, centres) {
   for (let dy = 0; dy < R.size; dy++) for (let dx = 0; dx < R.size; dx++) out.push(t0 + dy * size + dx);
   return out;
 }
-var buildingKinds = /* @__PURE__ */ new Set(["house", "town-center", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery"]);
+var buildingKinds = /* @__PURE__ */ new Set(["house", "town-center", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "blacksmith"]);
 function isBuilding(o) {
   return buildingKinds.has(o.kind);
 }
@@ -1402,6 +1450,7 @@ function advancePathJob(map, job, budget) {
 }
 
 // apps/web/scene.ts
+var weaponOf = (kind) => kind === "militia" || kind === "knight" ? "sword" : kind === "archer" ? "bow" : kind === "scout" || kind === "spearman" || kind === "skirmisher" ? "spear" : kind === "monk" ? "staff" : "none";
 var brickStyle = { studPitch: 0.5, plateHeight: 0.16, brickHeight: 0.32, bevel: 0.025, roughness: 0.62, provenance: "original_procedural" };
 function farmParts(progress, red) {
   const out = [{ x: 0, y: 0, z: 0, w: 2, d: 2, h: 0.1, color: "#806b49", studs: false }];
@@ -1515,7 +1564,7 @@ async function createScene(canvas, onFailure, options = {}) {
   let previewBuildingKind = "house";
   let previewBuilding = { ageVariant: 2, progress: 100, health: 100 };
   function house(x, z, red = false, obstacleKind = "house", progress = 100, age = 2, health = 100) {
-    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, health, ageVariant: Math.min(4, Math.max(1, age)) }, parts = kind === "house" ? buildingParts({ ...visual, red }) : kind === "monastery" ? monasteryParts({ ...visual, red }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red }) : economicBuildingParts(kind, { ...visual, red });
+    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, health, ageVariant: Math.min(4, Math.max(1, age)) }, parts = kind === "house" ? buildingParts({ ...visual, red }) : kind === "monastery" ? monasteryParts({ ...visual, red }) : kind === "blacksmith" ? blacksmithParts({ ...visual, red }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red }) : economicBuildingParts(kind, { ...visual, red });
     for (const p of parts) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, false, p.shape);
     for (const stud of buildingStuds(parts)) staticPart(studGeo, stud.color, x + stud.x, stud.y, z + stud.z);
   }
@@ -1550,7 +1599,7 @@ async function createScene(canvas, onFailure, options = {}) {
       muted = !options.assetPreview && view.fog[tileAt(o.x, o.y, sizeOfTiles(map.tiles))] !== 2;
       const x = o.x / 100, z = o.y / 100;
       if (o.kind === "farm") for (const p of farmParts(o.progress ?? 100, o.red)) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, p.studs);
-      else if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks" || o.kind === "lumber-camp" || o.kind === "mining-camp" || o.kind === "mill" || o.kind === "stable" || o.kind === "archery-range" || o.kind === "monastery") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100);
+      else if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks" || o.kind === "lumber-camp" || o.kind === "mining-camp" || o.kind === "mill" || o.kind === "stable" || o.kind === "archery-range" || o.kind === "monastery" || o.kind === "blacksmith") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100);
       else if (o.kind === "tree") {
         let v = Math.imul(o.x | 0, 73856093) ^ Math.imul(o.y | 0, 19349663);
         v = Math.imul(v ^ v >>> 16, 73244475);
@@ -1717,7 +1766,7 @@ async function createScene(canvas, onFailure, options = {}) {
       if (!options.assetPreview) {
         const gathering = (data.work === "gathering" || data.work === "hunting") && !u.moving, activity = u.moving ? data.cargo ? "carry" : "walk" : gathering || data.rite ? "work" : "idle";
         const source = data.work === "gathering" && data.target ? view.resources.find((r) => r.x === data.target.x && r.y === data.target.y && !r.obstacleId) : void 0, food = data.work === "hunting" || source?.kind === "fish" ? "spear" : source ? "sickle" : "basket";
-        const weapon = data.kind === "militia" ? "sword" : data.kind === "archer" ? "bow" : data.kind === "scout" ? "spear" : data.kind === "monk" ? "staff" : "none", tool = data.cargo && activity !== "work" ? "basket" : gathering ? { wood: "axe", stone: "pick", gold: "pick", food }[data.workResource ?? "food"] : weapon;
+        const weapon = weaponOf(data.kind), tool = data.cargo && activity !== "work" ? "basket" : gathering ? { wood: "axe", stone: "pick", gold: "pick", food }[data.workResource ?? "food"] : weapon;
         if (tool !== u.tool) {
           u.rig.equip(tool);
           u.tool = tool;
@@ -1783,7 +1832,7 @@ async function createScene(canvas, onFailure, options = {}) {
     if (groundHit) return { x: groundHit.point.x, y: groundHit.point.z };
     return {};
   }
-  const buildingHeights = { "town-center": 2.6, barracks: 2.2, house: 1.9, farm: 0.25, "lumber-camp": 1.9, "mining-camp": 1.9, mill: 2.6, stable: 2.2, "archery-range": 2.2, monastery: 3.4 };
+  const buildingHeights = { "town-center": 2.6, barracks: 2.2, house: 1.9, farm: 0.25, "lumber-camp": 1.9, "mining-camp": 1.9, mill: 2.6, stable: 2.2, "archery-range": 2.2, blacksmith: 2.4, monastery: 3.4 };
   function pickBuilding(clientX, clientY) {
     if (!latest) return;
     const r = canvas.getBoundingClientRect();
@@ -1973,15 +2022,15 @@ async function createScene(canvas, onFailure, options = {}) {
         shoot(kind, g, { angle: Math.PI / 3, lift: 0.35 });
         shoot(`${kind}-face`, g, { angle: Math.PI / 3, lift: 0.35 });
       }
-      for (const kind of ["villager", "militia", "archer", "scout", "monk"]) {
+      for (const kind of ["villager", "militia", "archer", "scout", "monk", "spearman", "skirmisher", "knight"]) {
         const rig = createCharacterRig(T, 0, box, material);
         if (kind !== "villager") rig.dress(roleOf(kind));
-        rig.equip(kind === "militia" ? "sword" : kind === "archer" ? "bow" : kind === "scout" ? "spear" : kind === "monk" ? "staff" : "none");
+        rig.equip(weaponOf(kind));
         rig.pose("idle", 0);
         const g = new T.Group();
         g.add(rig.root);
         shoot(kind, g, { angle: Math.PI / 7, lift: 0.35 });
-        shoot(`${kind}-face`, g, kind === "scout" ? { angle: Math.PI / 7, lift: 0.35, crop: 0.74, span: 0.21 } : { angle: Math.PI / 7, lift: 0.35, crop: 0.72 });
+        shoot(`${kind}-face`, g, kind === "scout" || kind === "knight" ? { angle: Math.PI / 7, lift: 0.35, crop: 0.74, span: 0.21 } : { angle: Math.PI / 7, lift: 0.35, crop: 0.72 });
       }
       const visual = (age) => ({ ageVariant: age, progress: 100, health: 100, red: false });
       for (const age of [1, 2, 3, 4]) {
@@ -1990,6 +2039,7 @@ async function createScene(canvas, onFailure, options = {}) {
         shoot(`stable-${age}`, parts(militaryBuildingParts("stable", visual(age))));
         shoot(`archery-range-${age}`, parts(militaryBuildingParts("archery-range", visual(age))));
         shoot(`monastery-${age}`, parts(monasteryParts(visual(age))));
+        shoot(`blacksmith-${age}`, parts(blacksmithParts(visual(age))));
         shoot(`town-center-${age}`, parts(economicBuildingParts("town-center", visual(age))));
         for (const camp of ["lumber-camp", "mining-camp", "mill"]) shoot(`${camp}-${age}`, parts(economicBuildingParts(camp, visual(age))));
       }
@@ -2160,5 +2210,6 @@ async function createScene(canvas, onFailure, options = {}) {
 export {
   brickStyle,
   createScene,
-  farmParts
+  farmParts,
+  weaponOf
 };

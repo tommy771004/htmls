@@ -1,9 +1,9 @@
-import {approach,reach,strike} from './combat.ts';
+import {approach,reach,strike,damageOn} from './combat.ts';
 import type {CombatState} from './combat.ts';
 import {cancelMovement,commandMove,routeTo} from './movement.ts';
 import type {Unit} from './movement.ts';
 import {harvestMapResource} from './navigation.ts';
-import {combatRules} from './stats.ts';
+import {statsOf} from './stats.ts';
 import {obstacleBounds} from '../content/footprints.ts';
 import {animalRules,isAnimal,GAIA} from './fauna.ts';
 // Animal behaviour, once per tick after combat (values in fauna.ts, design_default):
@@ -38,9 +38,9 @@ export function stepAnimals(s:CombatState){
   let target=foe&&reach(a,foe)<=animalRules.boarLeash?foe:undefined;
   if(!target){target=s.units.filter(u=>!isAnimal(u.kind)&&reach(a,u)<=animalRules.boarLeash&&((s.works[u.id] as {prey?:number}|undefined)?.prey===a.id||s.attacks[u.id]?.target.kind==='unit'&&s.attacks[u.id].target.id===a.id)).sort((p,q)=>reach(a,p)-reach(a,q)||p.id-q.id)[0];
    if(!target){delete s.beasts[a.id];halt(s,a);continue;}b.foe=target.id;}
-  const stats=combatRules.units.boar;if(b.cooldown>0)b.cooldown--;
+  const stats=statsOf('boar');if(b.cooldown>0)b.cooldown--;
   if(reach(a,target)<=stats.range){if(a.next!==null)continue;if(a.path.length||busy.has(a.id))halt(s,a);a.navigation='idle';
-   if(b.cooldown===0){b.cooldown=stats.cooldown;strike(s,{kind:'unit',id:target.id},stats.damage,a.id);}continue;}
+   if(b.cooldown===0){b.cooldown=stats.cooldown;strike(s,{kind:'unit',id:target.id},damageOn(s,stats,{kind:'unit',id:target.id}),a.id);}continue;}
   if(a.next!==null)continue;if(b.repath>0&&(a.path.length||busy.has(a.id))){b.repath--;continue;}
   const nodes=approach(s,a,{x:target.x,y:target.y});if(!nodes.length){delete s.beasts[a.id];continue;}routeTo(s,a,nodes);b.repath=20;
  }

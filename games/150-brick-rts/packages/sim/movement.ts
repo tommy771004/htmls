@@ -6,9 +6,9 @@ import type {MapData,Point} from './navigation.ts';
 // unit bodies (radius 25, node spacing 50) never overlap. Units never pass through each other.
 export type Navigation='idle'|'searching'|'moving'|'waiting'|'unreachable'|'stuck';
 export const navigationStates:readonly Navigation[]=['idle','searching','moving','waiting','unreachable','stuck'];
-export type UnitKind='villager'|'militia'|'archer'|'scout'|'monk'|'sheep'|'deer'|'boar';
+export type UnitKind='villager'|'militia'|'archer'|'scout'|'monk'|'sheep'|'deer'|'boar'|'spearman'|'skirmisher'|'knight';
 // Appended in order: the Worker's Int32 unit projection encodes the index.
-export const unitKinds:readonly UnitKind[]=['villager','militia','archer','scout','monk','sheep','deer','boar'];
+export const unitKinds:readonly UnitKind[]=['villager','militia','archer','scout','monk','sheep','deer','boar','spearman','skirmisher','knight'];
 import {combatRules} from './stats.ts';
 import {isAnimal} from './fauna.ts';
 // hp: current hit points (combatRules.units[kind].hp at spawn); hitTick: last tick it took damage.

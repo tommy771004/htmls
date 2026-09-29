@@ -26,11 +26,15 @@ export class RoomStore {
       const entry = memory.get(code);
       const row = this.sql ? (await this.sql`SELECT data, version FROM jade_mahjong_rooms WHERE code = ${code} AND expires_at > now()`)[0] : entry && entry.expires > Date.now() ? { data: JSON.parse(entry.value), version: entry.version } : null;
       if (!row) throw Error('房號不存在或已過期。');
-      const room = row.data; update(room); const next = JSON.stringify(room);
+      const room = row.data;
+      if (update(room) === false) return room; // Nothing to write; the read copy is current.
+      const next = JSON.stringify(room);
       let ok;
       if (this.sql) ok = (await this.sql`UPDATE jade_mahjong_rooms SET data = ${next}::jsonb, version = version + 1, expires_at = now() + interval '2 hours' WHERE code = ${code} AND version = ${row.version} RETURNING code`).length > 0;
       else { ok = memory.get(code)?.version === row.version; if (ok) memory.set(code, { value: next, version: row.version + 1, expires: Date.now() + 7200000 }); }
       if (ok) return room;
+      // Jittered backoff so instances that lost the version race do not collide again immediately.
+      await new Promise(r => setTimeout(r, 15 + Math.random() * 40 * (attempt + 1)));
     }
     throw Error('牌桌正在同步，請稍後再操作。');
   }

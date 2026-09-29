@@ -43,3 +43,13 @@ export const techIcons:Record<string,Part[]>={
  'heavy-plow':[{x:.05,y:.35,z:.4,w:.8,d:.1,h:.1,color:wood},{x:.6,y:0,z:.35,w:.25,d:.2,h:.35,color:'#aab0a3'},{x:.05,y:.45,z:.4,w:.08,d:.1,h:.3,color:wood}],
  'crop-rotation':[{x:0,y:0,z:.05,w:.9,d:.25,h:.12,color:'#9bb65a'},{x:0,y:0,z:.33,w:.9,d:.25,h:.12,color:'#d9c26a'},{x:0,y:0,z:.61,w:.9,d:.25,h:.12,color:'#806b49'},{x:.1,y:.12,z:.1,w:.7,d:.15,h:.1,color:'#7e985f'}],
 };
+// Blacksmith lines: one silhouette per line, and the level (1-3) shown by the metal and by gold bands at the base.
+const metal=['#9a8c78','#aab0a3','#d8dcd6'],band=(level:number):Part[]=>Array.from({length:level},(_,i)=>({x:.15+i*.25,y:0,z:.75,w:.18,d:.1,h:.08,color:gold}));
+const hammer=(l:number):Part[]=>[{x:.42,y:.1,z:.4,w:.08,d:.08,h:.75,color:wood},{x:.25,y:.7,z:.34,w:.42,d:.2,h:.18,color:metal[l-1]},...band(l)];
+const mail=(l:number):Part[]=>[{x:.2,y:.1,z:.35,w:.5,d:.2,h:.55,color:metal[l-1]},{x:.1,y:.5,z:.35,w:.7,d:.2,h:.15,color:metal[l-1]},{x:.35,y:.65,z:.35,w:.2,d:.2,h:.1,color:'#6e5438'},...band(l)];
+const barding=(l:number):Part[]=>[{x:.1,y:.15,z:.35,w:.7,d:.3,h:.3,color:metal[l-1]},{x:.65,y:.35,z:.35,w:.2,d:.3,h:.35,color:metal[l-1]},{x:.12,y:.45,z:.38,w:.5,d:.24,h:.08,color:team},...band(l)];
+const arrows=(l:number):Part[]=>[...[0,1,2].map(i=>({x:.2+i*.2,y:.1,z:.4,w:.05,d:.05,h:.65,color:wood})),...[0,1,2].map(i=>({x:.17+i*.2,y:.75,z:.37,w:.11,d:.11,h:.12,color:metal[l-1]})),...band(l)];
+const vest=(l:number):Part[]=>[{x:.2,y:.1,z:.35,w:.5,d:.2,h:.5,color:['#b89a6a','#8a6a45','#aab0a3'][l-1]},{x:.25,y:.2,z:.33,w:.4,d:.04,h:.06,color:'#6e5438'},{x:.25,y:.4,z:.33,w:.4,d:.04,h:.06,color:'#6e5438'},...band(l)];
+for(const [line,make] of [[['forging','iron-casting','blast-furnace'],hammer],[['scale-mail-armor','chain-mail-armor','plate-mail-armor'],mail],[['scale-barding-armor','chain-barding-armor','plate-barding-armor'],barding],[['fletching','bodkin-arrow','bracer'],arrows],[['padded-archer-armor','leather-archer-armor','ring-archer-armor'],vest]] as const)
+ line.forEach((id,i)=>{techIcons[id]=make(i+1);});
+

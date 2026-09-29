@@ -13,6 +13,7 @@ var obstacleFootprints = {
   stable: { x: -15, y: -15, width: 300, depth: 300 },
   "archery-range": { x: -15, y: -15, width: 300, depth: 300 },
   monastery: { x: -15, y: -15, width: 300, depth: 300 },
+  blacksmith: { x: -15, y: -15, width: 300, depth: 300 },
   tree: { x: -20, y: -20, width: 100, depth: 100 },
   rock: { x: 0, y: 0, width: 65, depth: 70 },
   gold: { x: 0, y: 0, width: 65, depth: 70 },
@@ -295,14 +296,104 @@ var rules = {
   reference: { game: "Age of Empires II: Definitive Edition", version: null, build: null, contentPacks: [], verificationStatus: "unverified", sourceEvidence: [] },
   coverage: { contentDenominator: null, exactReferenceCoveragePercent: null },
   settings: { tickHz: 20, populationCap: 40, mapSize: 16, speed: 1, mode: "command-sandbox", seed: 260925, platform: "desktop browser", provenance: "design_default" },
-  entries: [entry("villager", "unit", "\u6751\u6C11", 50, 0, 0, 0, [], 1), entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 200, 0, 100), entry("house", "building", "\u6C11\u5C45", 0, 30), entry("barracks", "building", "\u5175\u71DF", 0, 150), entry("farm", "building", "\u8FB2\u7530", 0, 60), entry("lumber-camp", "building", "\u4F10\u6728\u5834", 0, 100), entry("mining-camp", "building", "\u63A1\u7926\u5834", 0, 100), entry("mill", "building", "\u78E8\u574A", 0, 100), entry("stable", "building", "\u99AC\u5EC4", 0, 175, 0, 0, ["age-2", "barracks"]), entry("archery-range", "building", "\u9776\u5834", 0, 175, 0, 0, ["age-2", "barracks"]), entry("monastery", "building", "\u4FEE\u9053\u9662", 0, 175, 0, 0, ["age-3"]), entry("militia", "unit", "\u8FD1\u6230\u6C11\u5175", 60, 0, 20, 0, ["barracks"], 1), entry("archer", "unit", "\u5F13\u624B", 0, 40, 30, 0, ["age-2"], 1), entry("ram", "unit", "\u653B\u57CE\u69CC", 0, 160, 75, 0, ["age-3"], 3), entry("scout", "unit", "\u65A5\u5019", 80, 0, 0, 0, ["stable"], 1), entry("monk", "unit", "\u50E7\u4FB6", 0, 0, 100, 0, ["monastery"], 1), entry("redemption", "technology", "\u6551\u8D16", 0, 0, 475, 0, ["monastery", "age-3"]), entry("atonement", "technology", "\u8D16\u7F6A", 0, 0, 325, 0, ["monastery", "age-3"]), entry("sanctity", "technology", "\u8056\u6F54", 0, 0, 175, 0, ["monastery", "age-3"]), entry("heresy", "technology", "\u7570\u7AEF", 0, 0, 1e3, 0, ["monastery", "age-3"]), entry("illumination", "technology", "\u555F\u8499", 0, 0, 120, 0, ["monastery", "age-4"]), entry("block-printing", "technology", "\u6D3B\u5B57\u5370\u5237", 0, 0, 200, 0, ["monastery", "age-4"]), entry("theocracy", "technology", "\u795E\u6B0A\u653F\u6CBB", 0, 0, 200, 0, ["monastery", "age-4"]), entry("faith", "technology", "\u4FE1\u4EF0", 550, 0, 750, 0, ["monastery", "age-4"]), entry("loom", "technology", "\u7E54\u5E03\u6A5F", 0, 0, 50), entry("wheelbarrow", "technology", "\u624B\u63A8\u8ECA", 175, 50, 0, 0, ["age-2"]), entry("hand-cart", "technology", "\u624B\u62C9\u8ECA", 300, 200, 0, 0, ["age-3", "wheelbarrow"]), entry("double-bit-axe", "technology", "\u96D9\u5203\u65A7", 100, 50, 0, 0, ["age-2"]), entry("bow-saw", "technology", "\u5F13\u92F8", 150, 100, 0, 0, ["age-3", "double-bit-axe"]), entry("two-man-saw", "technology", "\u96D9\u4EBA\u92F8", 300, 200, 0, 0, ["age-4", "bow-saw"]), entry("gold-mining", "technology", "\u63A1\u91D1\u8853", 100, 75, 0, 0, ["age-2"]), entry("gold-shaft-mining", "technology", "\u8C4E\u4E95\u63A1\u91D1", 200, 100, 0, 0, ["age-3", "gold-mining"]), entry("stone-mining", "technology", "\u63A1\u77F3\u8853", 100, 75, 0, 0, ["age-2"]), entry("stone-shaft-mining", "technology", "\u8C4E\u4E95\u63A1\u77F3", 200, 100, 0, 0, ["age-3", "stone-mining"]), entry("horse-collar", "technology", "\u99AC\u8EDB", 75, 75, 0, 0, ["age-2"]), entry("heavy-plow", "technology", "\u91CD\u7281", 125, 125, 0, 0, ["age-3", "horse-collar"]), entry("crop-rotation", "technology", "\u8F2A\u8015", 250, 250, 0, 0, ["age-4", "heavy-plow"]), entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300), entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]), entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"])],
+  entries: [
+    entry("villager", "unit", "\u6751\u6C11", 50, 0, 0, 0, [], 1),
+    entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 200, 0, 100),
+    entry("house", "building", "\u6C11\u5C45", 0, 30),
+    entry("barracks", "building", "\u5175\u71DF", 0, 150),
+    entry("farm", "building", "\u8FB2\u7530", 0, 60),
+    entry("lumber-camp", "building", "\u4F10\u6728\u5834", 0, 100),
+    entry("mining-camp", "building", "\u63A1\u7926\u5834", 0, 100),
+    entry("mill", "building", "\u78E8\u574A", 0, 100),
+    entry("stable", "building", "\u99AC\u5EC4", 0, 175, 0, 0, ["age-2", "barracks"]),
+    entry("archery-range", "building", "\u9776\u5834", 0, 175, 0, 0, ["age-2", "barracks"]),
+    entry("monastery", "building", "\u4FEE\u9053\u9662", 0, 175, 0, 0, ["age-3"]),
+    entry("militia", "unit", "\u8FD1\u6230\u6C11\u5175", 60, 0, 20, 0, ["barracks"], 1),
+    entry("archer", "unit", "\u5F13\u624B", 0, 40, 30, 0, ["age-2"], 1),
+    entry("ram", "unit", "\u653B\u57CE\u69CC", 0, 160, 75, 0, ["age-3"], 3),
+    entry("scout", "unit", "\u65A5\u5019", 80, 0, 0, 0, ["stable"], 1),
+    entry("monk", "unit", "\u50E7\u4FB6", 0, 0, 100, 0, ["monastery"], 1),
+    entry("redemption", "technology", "\u6551\u8D16", 0, 0, 475, 0, ["monastery", "age-3"]),
+    entry("atonement", "technology", "\u8D16\u7F6A", 0, 0, 325, 0, ["monastery", "age-3"]),
+    entry("sanctity", "technology", "\u8056\u6F54", 0, 0, 175, 0, ["monastery", "age-3"]),
+    entry("heresy", "technology", "\u7570\u7AEF", 0, 0, 1e3, 0, ["monastery", "age-3"]),
+    entry("illumination", "technology", "\u555F\u8499", 0, 0, 120, 0, ["monastery", "age-4"]),
+    entry("block-printing", "technology", "\u6D3B\u5B57\u5370\u5237", 0, 0, 200, 0, ["monastery", "age-4"]),
+    entry("theocracy", "technology", "\u795E\u6B0A\u653F\u6CBB", 0, 0, 200, 0, ["monastery", "age-4"]),
+    entry("faith", "technology", "\u4FE1\u4EF0", 550, 0, 750, 0, ["monastery", "age-4"]),
+    entry("spearman", "unit", "\u9577\u69CD\u5175", 35, 25, 0, 0, ["age-2"], 1),
+    entry("skirmisher", "unit", "\u6563\u5175", 25, 35, 0, 0, ["age-2"], 1),
+    entry("knight", "unit", "\u9A0E\u58EB", 60, 0, 75, 0, ["age-3"], 1),
+    entry("blacksmith", "building", "\u9435\u5320\u92EA", 0, 150),
+    entry("man-at-arms", "technology", "\u91CD\u6B65\u5175", 100, 0, 40, 0, ["age-2"]),
+    entry("long-swordsman", "technology", "\u9577\u528D\u58EB", 200, 0, 65, 0, ["age-3", "man-at-arms"]),
+    entry("pikeman", "technology", "\u9577\u77DB\u5175", 215, 0, 90, 0, ["age-3"]),
+    entry("crossbowman", "technology", "\u5F29\u624B", 125, 0, 75, 0, ["age-3"]),
+    entry("elite-skirmisher", "technology", "\u7CBE\u92B3\u6563\u5175", 0, 250, 160, 0, ["age-3"]),
+    entry("light-cavalry", "technology", "\u8F15\u9A0E\u5175", 150, 0, 50, 0, ["age-3"]),
+    entry("forging", "technology", "\u935B\u9020", 150, 0, 0, 0, ["age-2"]),
+    entry("iron-casting", "technology", "\u9444\u9435", 220, 0, 120, 0, ["age-3", "forging"]),
+    entry("blast-furnace", "technology", "\u9AD8\u7210", 275, 0, 225, 0, ["age-4", "iron-casting"]),
+    entry("scale-mail-armor", "technology", "\u9C57\u7532", 100, 0, 0, 0, ["age-2"]),
+    entry("chain-mail-armor", "technology", "\u9396\u5B50\u7532", 200, 0, 100, 0, ["age-3", "scale-mail-armor"]),
+    entry("plate-mail-armor", "technology", "\u677F\u7532", 300, 0, 150, 0, ["age-4", "chain-mail-armor"]),
+    entry("scale-barding-armor", "technology", "\u9C57\u7247\u99AC\u93A7", 150, 0, 0, 0, ["age-2"]),
+    entry("chain-barding-armor", "technology", "\u9396\u5B50\u99AC\u93A7", 250, 0, 150, 0, ["age-3", "scale-barding-armor"]),
+    entry("plate-barding-armor", "technology", "\u677F\u7532\u99AC\u93A7", 350, 0, 200, 0, ["age-4", "chain-barding-armor"]),
+    entry("fletching", "technology", "\u7FBD\u7BAD", 100, 0, 50, 0, ["age-2"]),
+    entry("bodkin-arrow", "technology", "\u9310\u5F62\u7BAD", 200, 0, 100, 0, ["age-3", "fletching"]),
+    entry("bracer", "technology", "\u8B77\u8155", 300, 0, 200, 0, ["age-4", "bodkin-arrow"]),
+    entry("padded-archer-armor", "technology", "\u896F\u588A\u5F13\u624B\u7532", 100, 0, 0, 0, ["age-2"]),
+    entry("leather-archer-armor", "technology", "\u76AE\u9769\u5F13\u624B\u7532", 150, 0, 150, 0, ["age-3", "padded-archer-armor"]),
+    entry("ring-archer-armor", "technology", "\u74B0\u7532\u5F13\u624B\u7532", 250, 0, 250, 0, ["age-4", "leather-archer-armor"]),
+    entry("loom", "technology", "\u7E54\u5E03\u6A5F", 0, 0, 50),
+    entry("wheelbarrow", "technology", "\u624B\u63A8\u8ECA", 175, 50, 0, 0, ["age-2"]),
+    entry("hand-cart", "technology", "\u624B\u62C9\u8ECA", 300, 200, 0, 0, ["age-3", "wheelbarrow"]),
+    entry("double-bit-axe", "technology", "\u96D9\u5203\u65A7", 100, 50, 0, 0, ["age-2"]),
+    entry("bow-saw", "technology", "\u5F13\u92F8", 150, 100, 0, 0, ["age-3", "double-bit-axe"]),
+    entry("two-man-saw", "technology", "\u96D9\u4EBA\u92F8", 300, 200, 0, 0, ["age-4", "bow-saw"]),
+    entry("gold-mining", "technology", "\u63A1\u91D1\u8853", 100, 75, 0, 0, ["age-2"]),
+    entry("gold-shaft-mining", "technology", "\u8C4E\u4E95\u63A1\u91D1", 200, 100, 0, 0, ["age-3", "gold-mining"]),
+    entry("stone-mining", "technology", "\u63A1\u77F3\u8853", 100, 75, 0, 0, ["age-2"]),
+    entry("stone-shaft-mining", "technology", "\u8C4E\u4E95\u63A1\u77F3", 200, 100, 0, 0, ["age-3", "stone-mining"]),
+    entry("horse-collar", "technology", "\u99AC\u8EDB", 75, 75, 0, 0, ["age-2"]),
+    entry("heavy-plow", "technology", "\u91CD\u7281", 125, 125, 0, 0, ["age-3", "horse-collar"]),
+    entry("crop-rotation", "technology", "\u8F2A\u8015", 250, 250, 0, 0, ["age-4", "heavy-plow"]),
+    entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300),
+    entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]),
+    entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"])
+  ],
   // Which building produces each unit/technology (design_default). null = defined but not producible yet.
   production: {
     villager: "town-center",
     militia: "barracks",
+    "man-at-arms": "barracks",
+    "long-swordsman": "barracks",
+    spearman: "barracks",
+    pikeman: "barracks",
     archer: "archery-range",
+    crossbowman: "archery-range",
+    skirmisher: "archery-range",
+    "elite-skirmisher": "archery-range",
     ram: null,
     scout: "stable",
+    "light-cavalry": "stable",
+    knight: "stable",
+    forging: "blacksmith",
+    "iron-casting": "blacksmith",
+    "blast-furnace": "blacksmith",
+    "scale-mail-armor": "blacksmith",
+    "chain-mail-armor": "blacksmith",
+    "plate-mail-armor": "blacksmith",
+    "scale-barding-armor": "blacksmith",
+    "chain-barding-armor": "blacksmith",
+    "plate-barding-armor": "blacksmith",
+    fletching: "blacksmith",
+    "bodkin-arrow": "blacksmith",
+    bracer: "blacksmith",
+    "padded-archer-armor": "blacksmith",
+    "leather-archer-armor": "blacksmith",
+    "ring-archer-armor": "blacksmith",
     monk: "monastery",
     redemption: "monastery",
     atonement: "monastery",
@@ -330,7 +421,7 @@ var rules = {
     wheelbarrow: "town-center",
     "hand-cart": "town-center"
   },
-  civilizations: [{ id: "blue-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "loom", "wheelbarrow", "hand-cart", "double-bit-axe", "bow-saw", "two-man-saw", "gold-mining", "gold-shaft-mining", "stone-mining", "stone-shaft-mining", "horse-collar", "heavy-plow", "crop-rotation", "age-2", "age-3", "age-4"], unavailable: [] }, { id: "red-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "loom", "wheelbarrow", "hand-cart", "double-bit-axe", "bow-saw", "two-man-saw", "gold-mining", "gold-shaft-mining", "stone-mining", "stone-shaft-mining", "horse-collar", "heavy-plow", "crop-rotation", "age-2", "age-3", "age-4"], unavailable: [] }]
+  civilizations: [{ id: "blue-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "spearman", "skirmisher", "knight", "blacksmith", "man-at-arms", "long-swordsman", "pikeman", "crossbowman", "elite-skirmisher", "light-cavalry", "forging", "iron-casting", "blast-furnace", "scale-mail-armor", "chain-mail-armor", "plate-mail-armor", "scale-barding-armor", "chain-barding-armor", "plate-barding-armor", "fletching", "bodkin-arrow", "bracer", "padded-archer-armor", "leather-archer-armor", "ring-archer-armor", "loom", "wheelbarrow", "hand-cart", "double-bit-axe", "bow-saw", "two-man-saw", "gold-mining", "gold-shaft-mining", "stone-mining", "stone-shaft-mining", "horse-collar", "heavy-plow", "crop-rotation", "age-2", "age-3", "age-4"], unavailable: [] }, { id: "red-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "spearman", "skirmisher", "knight", "blacksmith", "man-at-arms", "long-swordsman", "pikeman", "crossbowman", "elite-skirmisher", "light-cavalry", "forging", "iron-casting", "blast-furnace", "scale-mail-armor", "chain-mail-armor", "plate-mail-armor", "scale-barding-armor", "chain-barding-armor", "plate-barding-armor", "fletching", "bodkin-arrow", "bracer", "padded-archer-armor", "leather-archer-armor", "ring-archer-armor", "loom", "wheelbarrow", "hand-cart", "double-bit-axe", "bow-saw", "two-man-saw", "gold-mining", "gold-shaft-mining", "stone-mining", "stone-shaft-mining", "horse-collar", "heavy-plow", "crop-rotation", "age-2", "age-3", "age-4"], unavailable: [] }]
 };
 function validateRules(value, exact = false) {
   const errors = [];
@@ -586,6 +677,42 @@ function monasteryParts(v) {
   return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "flag" || a.id === "bell" || a.id === "bell-rope" || a.id === "finial"));
 }
 
+// apps/web/blacksmith-building.ts
+function blacksmithParts(v) {
+  if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u9435\u5320\u92EA\u5916\u89C0");
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", stone2 = "#a9a693", dark = "#5d5a52", roof = age === 1 ? "#b8a074" : team2;
+  const add = (id, phase, x, z, y, w, d, h, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h, color, studs, ...shape ? { shape } : {} });
+  const top = 1.28 + (age >= 3 ? 0.16 : 0);
+  add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
+  add("back-wall", 1, 0.1, 0.1, 0.16, 2.5, 0.2, top - 0.16, stone2);
+  for (const x of [0.1, 2.4]) add(`side-wall-${x}`, 1, x, 0.3, 0.16, 0.2, 1.5, top - 0.16, stone2);
+  for (let level = 0; level < 2; level++) add(`roof-${level}`, 2, -0.05 + level * 0.3, -0.05, top + level * 0.16, 2.9 - level * 0.6, 1.95, 0.16, roof, true);
+  add("chimney", 2, 1.75, 0.1, 0.16, 0.5, 0.5, top + 0.9, dark);
+  add("chimney-cap", 3, 1.7, 0.05, top + 1.06, 0.6, 0.6, 0.1, "#4a4740");
+  add("hearth", 1, 1.7, 0.62, 0.16, 0.6, 0.4, 0.36, dark);
+  add("hearth-fire", 3, 1.8, 0.7, 0.52, 0.4, 0.25, 0.1, "#e8793c");
+  add("stump", 3, 0.95, 1.95, 0.16, 0.36, 0.36, 0.3, wood2);
+  add("anvil", 3, 0.88, 1.97, 0.46, 0.5, 0.3, 0.14, "#6b6f6c");
+  add("anvil-horn", 3, 1.38, 2.03, 0.5, 0.14, 0.18, 0.08, "#6b6f6c");
+  add("tub", 3, 1.7, 2.05, 0.16, 0.42, 0.42, 0.3, wood2);
+  add("tub-water", 3, 1.76, 2.11, 0.44, 0.3, 0.3, 0.03, "#6a9297");
+  add("rack", 3, 0.3, 0.5, 0.16, 0.15, 1.1, 0.75, wood2);
+  for (let i = 0; i < 3; i++) add(`blade-${i}`, 3, 0.28, 0.6 + i * 0.3, 0.3, 0.06, 0.06, 0.7, "#c6cfca");
+  if (age >= 2) {
+    add("porch-beam", 1, 0.1, 1.75, top - 0.16, 2.5, 0.16, 0.16, wood2);
+    for (const x of [0.1, 2.44]) add(`porch-post-${x}`, 1, x, 1.75, 0.16, 0.16, 0.16, top - 0.32, wood2);
+  }
+  if (age >= 3) for (const x of [-0.05, 2.6]) add(`buttress-${x}`, 1, x, 0.3, 0.16, 0.15, 0.3, top - 0.32, stone2);
+  if (age === 4) {
+    add("bellows", 4, 2, 0.7, 0.16, 0.3, 0.4, 0.3, "#7a5c40");
+    add("ridge-crest", 4, 0.9, 0.4, top + 0.32, 1, 1.2, 0.16, roof, true);
+  }
+  add("flag-pole", 4, 2.67, 2.63, 0.16, 0.06, 0.06, 1.6, wood2);
+  add("flag", 4, 2.24, 2.63, 1.42, 0.44, 0.05, 0.28, team2);
+  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: stone2, studs: false }))];
+  return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "flag" || a.id === "hearth-fire" || a.id === "chimney-cap"));
+}
+
 // apps/web/relic-model.ts
 var relicParts = [
   { x: -0.17, y: 0, z: -0.13, w: 0.34, d: 0.26, h: 0.08, color: "#6e5438" },
@@ -641,6 +768,17 @@ var techIcons = {
   "heavy-plow": [{ x: 0.05, y: 0.35, z: 0.4, w: 0.8, d: 0.1, h: 0.1, color: wood }, { x: 0.6, y: 0, z: 0.35, w: 0.25, d: 0.2, h: 0.35, color: "#aab0a3" }, { x: 0.05, y: 0.45, z: 0.4, w: 0.08, d: 0.1, h: 0.3, color: wood }],
   "crop-rotation": [{ x: 0, y: 0, z: 0.05, w: 0.9, d: 0.25, h: 0.12, color: "#9bb65a" }, { x: 0, y: 0, z: 0.33, w: 0.9, d: 0.25, h: 0.12, color: "#d9c26a" }, { x: 0, y: 0, z: 0.61, w: 0.9, d: 0.25, h: 0.12, color: "#806b49" }, { x: 0.1, y: 0.12, z: 0.1, w: 0.7, d: 0.15, h: 0.1, color: "#7e985f" }]
 };
+var metal = ["#9a8c78", "#aab0a3", "#d8dcd6"];
+var band = (level) => Array.from({ length: level }, (_, i) => ({ x: 0.15 + i * 0.25, y: 0, z: 0.75, w: 0.18, d: 0.1, h: 0.08, color: gold }));
+var hammer = (l) => [{ x: 0.42, y: 0.1, z: 0.4, w: 0.08, d: 0.08, h: 0.75, color: wood }, { x: 0.25, y: 0.7, z: 0.34, w: 0.42, d: 0.2, h: 0.18, color: metal[l - 1] }, ...band(l)];
+var mail = (l) => [{ x: 0.2, y: 0.1, z: 0.35, w: 0.5, d: 0.2, h: 0.55, color: metal[l - 1] }, { x: 0.1, y: 0.5, z: 0.35, w: 0.7, d: 0.2, h: 0.15, color: metal[l - 1] }, { x: 0.35, y: 0.65, z: 0.35, w: 0.2, d: 0.2, h: 0.1, color: "#6e5438" }, ...band(l)];
+var barding = (l) => [{ x: 0.1, y: 0.15, z: 0.35, w: 0.7, d: 0.3, h: 0.3, color: metal[l - 1] }, { x: 0.65, y: 0.35, z: 0.35, w: 0.2, d: 0.3, h: 0.35, color: metal[l - 1] }, { x: 0.12, y: 0.45, z: 0.38, w: 0.5, d: 0.24, h: 0.08, color: team }, ...band(l)];
+var arrows = (l) => [...[0, 1, 2].map((i) => ({ x: 0.2 + i * 0.2, y: 0.1, z: 0.4, w: 0.05, d: 0.05, h: 0.65, color: wood })), ...[0, 1, 2].map((i) => ({ x: 0.17 + i * 0.2, y: 0.75, z: 0.37, w: 0.11, d: 0.11, h: 0.12, color: metal[l - 1] })), ...band(l)];
+var vest = (l) => [{ x: 0.2, y: 0.1, z: 0.35, w: 0.5, d: 0.2, h: 0.5, color: ["#b89a6a", "#8a6a45", "#aab0a3"][l - 1] }, { x: 0.25, y: 0.2, z: 0.33, w: 0.4, d: 0.04, h: 0.06, color: "#6e5438" }, { x: 0.25, y: 0.4, z: 0.33, w: 0.4, d: 0.04, h: 0.06, color: "#6e5438" }, ...band(l)];
+for (const [line, make] of [[["forging", "iron-casting", "blast-furnace"], hammer], [["scale-mail-armor", "chain-mail-armor", "plate-mail-armor"], mail], [["scale-barding-armor", "chain-barding-armor", "plate-barding-armor"], barding], [["fletching", "bodkin-arrow", "bracer"], arrows], [["padded-archer-armor", "leather-archer-armor", "ring-archer-armor"], vest]])
+  line.forEach((id, i) => {
+    techIcons[id] = make(i + 1);
+  });
 
 // apps/web/unit-rig.ts
 var unitPoses = ["idle", "walk", "work", "attack", "hit", "death", "carry"];
@@ -975,7 +1113,7 @@ var animalRules = {
 
 // apps/web/rig-roles.ts
 function roleOf(kind) {
-  return kind === "militia" ? "swordsman" : kind === "archer" ? "archer" : kind === "scout" ? "cavalry" : kind === "monk" ? "monk" : "villager";
+  return kind === "militia" ? "swordsman" : kind === "spearman" ? "spearman" : kind === "archer" || kind === "skirmisher" ? "archer" : kind === "scout" || kind === "knight" ? "cavalry" : kind === "monk" ? "monk" : "villager";
 }
 function poseFor(kind, pose) {
   return roleOf(kind) === "cavalry" && !["idle", "walk", "attack"].includes(pose) ? "idle" : pose;
@@ -1522,7 +1660,7 @@ function placePond(seed, size, taken, centres) {
   for (let dy = 0; dy < R.size; dy++) for (let dx = 0; dx < R.size; dx++) out.push(t0 + dy * size + dx);
   return out;
 }
-var buildingKinds = /* @__PURE__ */ new Set(["house", "town-center", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery"]);
+var buildingKinds = /* @__PURE__ */ new Set(["house", "town-center", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "blacksmith"]);
 function isBuilding(o) {
   return buildingKinds.has(o.kind);
 }
@@ -1708,6 +1846,7 @@ function advancePathJob(map, job, budget) {
 }
 
 // apps/web/scene.ts
+var weaponOf = (kind) => kind === "militia" || kind === "knight" ? "sword" : kind === "archer" ? "bow" : kind === "scout" || kind === "spearman" || kind === "skirmisher" ? "spear" : kind === "monk" ? "staff" : "none";
 var brickStyle = { studPitch: 0.5, plateHeight: 0.16, brickHeight: 0.32, bevel: 0.025, roughness: 0.62, provenance: "original_procedural" };
 function farmParts(progress, red) {
   const out = [{ x: 0, y: 0, z: 0, w: 2, d: 2, h: 0.1, color: "#806b49", studs: false }];
@@ -1821,7 +1960,7 @@ async function createScene(canvas2, onFailure, options = {}) {
   let previewBuildingKind = "house";
   let previewBuilding = { ageVariant: 2, progress: 100, health: 100 };
   function house(x, z, red = false, obstacleKind = "house", progress = 100, age = 2, health = 100) {
-    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, health, ageVariant: Math.min(4, Math.max(1, age)) }, parts = kind === "house" ? buildingParts({ ...visual, red }) : kind === "monastery" ? monasteryParts({ ...visual, red }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red }) : economicBuildingParts(kind, { ...visual, red });
+    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, health, ageVariant: Math.min(4, Math.max(1, age)) }, parts = kind === "house" ? buildingParts({ ...visual, red }) : kind === "monastery" ? monasteryParts({ ...visual, red }) : kind === "blacksmith" ? blacksmithParts({ ...visual, red }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red }) : economicBuildingParts(kind, { ...visual, red });
     for (const p of parts) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, false, p.shape);
     for (const stud of buildingStuds(parts)) staticPart(studGeo, stud.color, x + stud.x, stud.y, z + stud.z);
   }
@@ -1856,7 +1995,7 @@ async function createScene(canvas2, onFailure, options = {}) {
       muted = !options.assetPreview && view.fog[tileAt(o.x, o.y, sizeOfTiles(map.tiles))] !== 2;
       const x = o.x / 100, z = o.y / 100;
       if (o.kind === "farm") for (const p of farmParts(o.progress ?? 100, o.red)) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, p.studs);
-      else if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks" || o.kind === "lumber-camp" || o.kind === "mining-camp" || o.kind === "mill" || o.kind === "stable" || o.kind === "archery-range" || o.kind === "monastery") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100);
+      else if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks" || o.kind === "lumber-camp" || o.kind === "mining-camp" || o.kind === "mill" || o.kind === "stable" || o.kind === "archery-range" || o.kind === "monastery" || o.kind === "blacksmith") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100);
       else if (o.kind === "tree") {
         let v = Math.imul(o.x | 0, 73856093) ^ Math.imul(o.y | 0, 19349663);
         v = Math.imul(v ^ v >>> 16, 73244475);
@@ -2023,7 +2162,7 @@ async function createScene(canvas2, onFailure, options = {}) {
       if (!options.assetPreview) {
         const gathering = (data.work === "gathering" || data.work === "hunting") && !u.moving, activity2 = u.moving ? data.cargo ? "carry" : "walk" : gathering || data.rite ? "work" : "idle";
         const source = data.work === "gathering" && data.target ? view.resources.find((r) => r.x === data.target.x && r.y === data.target.y && !r.obstacleId) : void 0, food = data.work === "hunting" || source?.kind === "fish" ? "spear" : source ? "sickle" : "basket";
-        const weapon = data.kind === "militia" ? "sword" : data.kind === "archer" ? "bow" : data.kind === "scout" ? "spear" : data.kind === "monk" ? "staff" : "none", tool = data.cargo && activity2 !== "work" ? "basket" : gathering ? { wood: "axe", stone: "pick", gold: "pick", food }[data.workResource ?? "food"] : weapon;
+        const weapon = weaponOf(data.kind), tool = data.cargo && activity2 !== "work" ? "basket" : gathering ? { wood: "axe", stone: "pick", gold: "pick", food }[data.workResource ?? "food"] : weapon;
         if (tool !== u.tool) {
           u.rig.equip(tool);
           u.tool = tool;
@@ -2089,7 +2228,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     if (groundHit) return { x: groundHit.point.x, y: groundHit.point.z };
     return {};
   }
-  const buildingHeights = { "town-center": 2.6, barracks: 2.2, house: 1.9, farm: 0.25, "lumber-camp": 1.9, "mining-camp": 1.9, mill: 2.6, stable: 2.2, "archery-range": 2.2, monastery: 3.4 };
+  const buildingHeights = { "town-center": 2.6, barracks: 2.2, house: 1.9, farm: 0.25, "lumber-camp": 1.9, "mining-camp": 1.9, mill: 2.6, stable: 2.2, "archery-range": 2.2, blacksmith: 2.4, monastery: 3.4 };
   function pickBuilding(clientX, clientY) {
     if (!latest) return;
     const r = canvas2.getBoundingClientRect();
@@ -2279,15 +2418,15 @@ async function createScene(canvas2, onFailure, options = {}) {
         shoot(kind, g, { angle: Math.PI / 3, lift: 0.35 });
         shoot(`${kind}-face`, g, { angle: Math.PI / 3, lift: 0.35 });
       }
-      for (const kind of ["villager", "militia", "archer", "scout", "monk"]) {
+      for (const kind of ["villager", "militia", "archer", "scout", "monk", "spearman", "skirmisher", "knight"]) {
         const rig = createCharacterRig(T, 0, box2, material);
         if (kind !== "villager") rig.dress(roleOf(kind));
-        rig.equip(kind === "militia" ? "sword" : kind === "archer" ? "bow" : kind === "scout" ? "spear" : kind === "monk" ? "staff" : "none");
+        rig.equip(weaponOf(kind));
         rig.pose("idle", 0);
         const g = new T.Group();
         g.add(rig.root);
         shoot(kind, g, { angle: Math.PI / 7, lift: 0.35 });
-        shoot(`${kind}-face`, g, kind === "scout" ? { angle: Math.PI / 7, lift: 0.35, crop: 0.74, span: 0.21 } : { angle: Math.PI / 7, lift: 0.35, crop: 0.72 });
+        shoot(`${kind}-face`, g, kind === "scout" || kind === "knight" ? { angle: Math.PI / 7, lift: 0.35, crop: 0.74, span: 0.21 } : { angle: Math.PI / 7, lift: 0.35, crop: 0.72 });
       }
       const visual = (age) => ({ ageVariant: age, progress: 100, health: 100, red: false });
       for (const age of [1, 2, 3, 4]) {
@@ -2296,6 +2435,7 @@ async function createScene(canvas2, onFailure, options = {}) {
         shoot(`stable-${age}`, parts(militaryBuildingParts("stable", visual(age))));
         shoot(`archery-range-${age}`, parts(militaryBuildingParts("archery-range", visual(age))));
         shoot(`monastery-${age}`, parts(monasteryParts(visual(age))));
+        shoot(`blacksmith-${age}`, parts(blacksmithParts(visual(age))));
         shoot(`town-center-${age}`, parts(economicBuildingParts("town-center", visual(age))));
         for (const camp of ["lumber-camp", "mining-camp", "mill"]) shoot(`${camp}-${age}`, parts(economicBuildingParts(camp, visual(age))));
       }
@@ -2498,6 +2638,7 @@ var techRules = {
 var sum = (table, techs) => techs.reduce((t, id) => t + (table[id] ?? 0), 0);
 var carryOf = (techs, base, farming = false) => base + sum(techRules.carry, techs) + (farming ? sum(techRules.farmerCarry, techs) : 0);
 var farmFoodOf = (techs, base) => base + sum(techRules.farmFood, techs);
+var villagerHpBonus = (techs) => sum(techRules.villagerHp, techs);
 var techEffectText = {
   loom: "\u6751\u6C11\u751F\u547D +15",
   "wheelbarrow": "\u6751\u6C11\u651C\u5E36\u91CF 10 \u2192 12",
@@ -2517,37 +2658,94 @@ var techEffectText = {
 // packages/sim/stats.ts
 var combatRules = {
   provenance: "design_default",
+  // attack: melee or pierce (arrows, javelins); armor: [melee, pierce], subtracted from that kind of attack; classes:
+  // what bonus damage keys on; bonus: extra damage against a class. Final damage = max(1, attack - armor + bonuses).
   units: {
-    villager: { hp: 25, damage: 1, range: 50, cooldown: 30, sight: 0 },
-    militia: { hp: 45, damage: 6, range: 50, cooldown: 20, sight: 350 },
-    archer: { hp: 30, damage: 4, range: 250, cooldown: 30, sight: 400 },
+    villager: { hp: 25, damage: 1, range: 50, cooldown: 30, sight: 0, attack: "melee", armor: [0, 0], classes: ["villager"], bonus: {} },
+    militia: { hp: 45, damage: 6, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 1], classes: ["infantry"], bonus: {} },
+    archer: { hp: 30, damage: 4, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer"], bonus: { spear: 3 } },
     // Scout: the reference's standard start includes one (research doc); these numbers are design_default.
     // sight here is the automatic-engage radius (vision is visionRules): 0 means the unit only fights when ordered.
     // The scout scouts; it attacks only on an explicit order.
-    scout: { hp: 45, damage: 3, range: 50, cooldown: 40, sight: 0 },
+    scout: { hp: 45, damage: 3, range: 50, cooldown: 40, sight: 0, attack: "melee", armor: [0, 2], classes: ["cavalry"], bonus: {} },
     // Monk: hit points 30 as in the reference; no attack (converts and heals instead, see religion.ts).
-    monk: { hp: 30, damage: 0, range: 0, cooldown: 0, sight: 0 },
+    monk: { hp: 30, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 0], classes: ["monk"], bonus: {} },
     // Animals (fauna.ts): sheep and deer never fight; a boar only strikes back at whoever hunts it.
-    sheep: { hp: 7, damage: 0, range: 0, cooldown: 0, sight: 0 },
-    deer: { hp: 5, damage: 0, range: 0, cooldown: 0, sight: 0 },
-    boar: { hp: 75, damage: 8, range: 50, cooldown: 40, sight: 0 }
+    sheep: { hp: 7, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 0], classes: ["animal"], bonus: {} },
+    deer: { hp: 5, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 0], classes: ["animal"], bonus: {} },
+    boar: { hp: 75, damage: 8, range: 50, cooldown: 40, sight: 0, attack: "melee", armor: [0, 0], classes: ["animal"], bonus: {} },
+    // The counter units (after the reference's triangle): the spearman against cavalry, the skirmisher against archers,
+    // the knight as heavy cavalry. Values design_default, in this game's scale.
+    spearman: { hp: 45, damage: 4, range: 50, cooldown: 30, sight: 350, attack: "melee", armor: [0, 0], classes: ["infantry", "spear"], bonus: { cavalry: 12 } },
+    skirmisher: { hp: 30, damage: 2, range: 200, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 3], classes: ["archer", "skirmisher"], bonus: { archer: 4, spear: 3 } },
+    knight: { hp: 100, damage: 10, range: 50, cooldown: 18, sight: 350, attack: "melee", armor: [2, 2], classes: ["cavalry"], bonus: {} }
   },
-  buildings: { "town-center": 400, house: 150, barracks: 300, farm: 100, "lumber-camp": 200, "mining-camp": 200, mill: 200, stable: 300, "archery-range": 300, monastery: 350 },
+  // Structures shrug off arrows: [melee, pierce] armor of every building.
+  buildingArmor: [0, 2],
+  buildings: { "town-center": 400, house: 150, barracks: 300, farm: 100, "lumber-camp": 200, "mining-camp": 200, mill: 200, stable: 300, "archery-range": 300, monastery: 350, blacksmith: 300 },
   corpseTicks: 40,
   hitFlashTicks: 6,
   // Movement per tick; every value divides the 50-unit node spacing, so a unit always lands exactly on its node.
-  speed: { villager: 5, militia: 5, archer: 5, scout: 10, monk: 5, sheep: 5, deer: 10, boar: 5 }
+  speed: { villager: 5, militia: 5, archer: 5, scout: 10, monk: 5, sheep: 5, deer: 10, boar: 5, spearman: 5, skirmisher: 5, knight: 10 }
 };
+var religionBonus = { sanctityHp: 15 };
+var lineUpgrades = [
+  { id: "man-at-arms", kind: "militia", name: "\u91CD\u6B65\u5175", set: { hp: 55, damage: 8 } },
+  { id: "long-swordsman", kind: "militia", name: "\u9577\u528D\u58EB", set: { hp: 60, damage: 9, armor: [1, 1] } },
+  { id: "pikeman", kind: "spearman", name: "\u9577\u77DB\u5175", set: { hp: 55, bonus: { cavalry: 18 } } },
+  { id: "crossbowman", kind: "archer", name: "\u5F29\u624B", set: { hp: 35, damage: 5, range: 300 } },
+  { id: "elite-skirmisher", kind: "skirmisher", name: "\u7CBE\u92B3\u6563\u5175", set: { hp: 35, damage: 3, armor: [0, 4] } },
+  { id: "light-cavalry", kind: "scout", name: "\u8F15\u9A0E\u5175", set: { hp: 60, damage: 5 } }
+];
+var blacksmith = {
+  forging: { classes: ["infantry", "cavalry"], attack: 1 },
+  "iron-casting": { classes: ["infantry", "cavalry"], attack: 1 },
+  "blast-furnace": { classes: ["infantry", "cavalry"], attack: 2 },
+  "scale-mail-armor": { classes: ["infantry"], melee: 1, pierce: 1 },
+  "chain-mail-armor": { classes: ["infantry"], melee: 1, pierce: 1 },
+  "plate-mail-armor": { classes: ["infantry"], melee: 1, pierce: 2 },
+  "scale-barding-armor": { classes: ["cavalry"], melee: 1, pierce: 1 },
+  "chain-barding-armor": { classes: ["cavalry"], melee: 1, pierce: 1 },
+  "plate-barding-armor": { classes: ["cavalry"], melee: 1, pierce: 2 },
+  fletching: { classes: ["archer"], attack: 1, range: 50 },
+  "bodkin-arrow": { classes: ["archer"], attack: 1, range: 50 },
+  bracer: { classes: ["archer"], attack: 1, range: 50 },
+  "padded-archer-armor": { classes: ["archer"], melee: 1, pierce: 1 },
+  "leather-archer-armor": { classes: ["archer"], melee: 1, pierce: 1 },
+  "ring-archer-armor": { classes: ["archer"], melee: 1, pierce: 2 }
+};
+function statsOf(kind, techs = []) {
+  let st = { ...combatRules.units[kind] };
+  for (const up of lineUpgrades) if (up.kind === kind && techs.includes(up.id)) st = { ...st, ...up.set };
+  let [m, p] = st.armor;
+  for (const id of techs) {
+    const b = blacksmith[id];
+    if (!b || !b.classes.some((c) => st.classes.includes(c))) continue;
+    if (b.attack && st.attack !== "none") st.damage += b.attack;
+    if (b.range && st.range > 50) st.range += b.range;
+    m += b.melee ?? 0;
+    p += b.pierce ?? 0;
+  }
+  st.armor = [m, p];
+  st.hp += (kind === "monk" && techs.includes("sanctity") ? religionBonus.sanctityHp : 0) + (kind === "villager" ? villagerHpBonus(techs) : 0);
+  return st;
+}
+function lineName(kind, techs) {
+  let name = null;
+  for (const up of lineUpgrades) if (up.kind === kind && techs.includes(up.id)) name = up.name;
+  return name;
+}
+var buildingTarget = { armor: combatRules.buildingArmor, classes: ["building"] };
 
 // packages/sim/movement.ts
 var navigationStates = ["idle", "searching", "moving", "waiting", "unreachable", "stuck"];
-var unitKinds = ["villager", "militia", "archer", "scout", "monk", "sheep", "deer", "boar"];
+var unitKinds = ["villager", "militia", "archer", "scout", "monk", "sheep", "deer", "boar", "spearman", "skirmisher", "knight"];
 
 // packages/sim/buildings.ts
-var buildKinds = ["house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery"];
+var buildKinds = ["house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "blacksmith"];
 var buildingRules = {
   provenance: "design_default",
-  capacity: { "town-center": 5, house: 5, barracks: 0, farm: 0, "lumber-camp": 0, "mining-camp": 0, mill: 0, stable: 0, "archery-range": 0, monastery: 0 },
+  capacity: { "town-center": 5, house: 5, barracks: 0, farm: 0, "lumber-camp": 0, "mining-camp": 0, mill: 0, stable: 0, "archery-range": 0, monastery: 0, blacksmith: 0 },
   grid: 10,
   required: Object.fromEntries(buildKinds.map((k) => [k, rules.entries.find((e) => e.id === k).time * rules.settings.tickHz]))
 };
@@ -2662,7 +2860,7 @@ var aiRules = {
   campDistance: 350,
   campWorkers: 2,
   monkTarget: 2,
-  research: { "town-center": ["loom", "wheelbarrow", "hand-cart"], "lumber-camp": ["double-bit-axe", "bow-saw", "two-man-saw"], "mining-camp": ["gold-mining", "gold-shaft-mining"], mill: ["horse-collar", "heavy-plow", "crop-rotation"] }
+  research: { blacksmith: ["forging", "fletching", "scale-mail-armor", "padded-archer-armor", "iron-casting", "bodkin-arrow", "chain-mail-armor", "scale-barding-armor"], barracks: ["man-at-arms", "long-swordsman"], "archery-range": ["crossbowman"], "town-center": ["loom", "wheelbarrow", "hand-cart"], "lumber-camp": ["double-bit-axe", "bow-saw", "two-man-saw"], "mining-camp": ["gold-mining", "gold-shaft-mining"], mill: ["horse-collar", "heavy-plow", "crop-rotation"] }
 };
 
 // packages/sim/sim.ts
@@ -2678,7 +2876,7 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, religion: religionRules, animals: animalRules, tech: techRules, simulationVersion: 24 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, religion: religionRules, animals: animalRules, tech: techRules, simulationVersion: 25 });
 
 // packages/sim/protocol.ts
 var UNIT_STRIDE = 18;
@@ -2786,8 +2984,8 @@ el("debug").hidden = !debug;
 var state = { seed: rules.settings.seed, layout: debug ? "meadow" : "open", size: debug ? 16 : 32, opponent: debug ? "idle" : "ai", terrain: [], tick: 0, units: [], corpses: [], outcome: null, economy: { stock: { food: 0, wood: 0, gold: 0, stone: 0 }, populationUsed: 0, populationReserved: 0, populationCap: 0, age: 1, techs: [], reseed: true }, buildings: [], transactions: [], fog: [], known: [], resources: [], stateHash: "\u2014", relicSpots: [], relicsHeld: [0, 0], relicTotal: 0, relicVictory: null };
 var resourceNames = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
 var workLabel = { toSource: "\u524D\u5F80\u63A1\u96C6", gathering: "\u63A1\u96C6\u4E2D", toDropoff: "\u9001\u8FD4\u57CE\u93AE\u4E2D\u5FC3", toSite: "\u524D\u5F80\u5DE5\u5730", building: "\u65BD\u5DE5\u4E2D", hunting: "\u72E9\u7375\u4E2D" };
-var buildingNames2 = { house: "\u4F4F\u5B85", barracks: "\u5175\u71DF", farm: "\u8FB2\u7530", "lumber-camp": "\u4F10\u6728\u5834", "mining-camp": "\u63A1\u7926\u5834", mill: "\u78E8\u574A", stable: "\u99AC\u5EC4", "archery-range": "\u9776\u5834", monastery: "\u4FEE\u9053\u9662", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
-var homeKinds = /* @__PURE__ */ new Set(["house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "town-center"]);
+var buildingNames2 = { blacksmith: "\u9435\u5320\u92EA", house: "\u4F4F\u5B85", barracks: "\u5175\u71DF", farm: "\u8FB2\u7530", "lumber-camp": "\u4F10\u6728\u5834", "mining-camp": "\u63A1\u7926\u5834", mill: "\u78E8\u574A", stable: "\u99AC\u5EC4", "archery-range": "\u9776\u5834", monastery: "\u4FEE\u9053\u9662", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
+var homeKinds = /* @__PURE__ */ new Set(["blacksmith", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "town-center"]);
 var layoutNames = { meadow: "\u8349\u7538", coast: "\u6D77\u5CB8", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058", open: "\u66E0\u91CE" };
 var placing = null;
 var selectedBuilding = null;
@@ -2899,13 +3097,13 @@ function render() {
   renderOutcome();
   renderIdle();
   const chosen = chosenUnits();
-  el("selection-list").textContent = chosen.length > 1 ? chosen.map((u2) => `${unitNames[u2.kind]} ${u2.id} (${(u2.x / 100).toFixed(1)}, ${(u2.y / 100).toFixed(1)})\uFF1A${activity(u2)}`).join("\u3000") : "";
+  el("selection-list").textContent = chosen.length > 1 ? chosen.map((u2) => `${nameOf(u2)} ${u2.id} (${(u2.x / 100).toFixed(1)}, ${(u2.y / 100).toFixed(1)})\uFF1A${activity(u2)}`).join("\u3000") : "";
   const u = chosen[0];
   if (!u) {
     el("position").textContent = "\u672A\u9078\u53D6\u55AE\u4F4D";
     return;
   }
-  el("position").textContent = `${chosen.length > 1 ? `${chosen.length} \u540D\u9078\u53D6 \xB7 ` : ""}${unitNames[u.kind]} ${u.id} \xB7 (${(u.x / 100).toFixed(1)}, ${(u.y / 100).toFixed(1)}) \xB7 ${activity(u)}`;
+  el("position").textContent = `${chosen.length > 1 ? `${chosen.length} \u540D\u9078\u53D6 \xB7 ` : ""}${nameOf(u)} ${u.id} \xB7 (${(u.x / 100).toFixed(1)}, ${(u.y / 100).toFixed(1)}) \xB7 ${activity(u)}`;
 }
 function renderTop() {
   const e = state.economy;
@@ -3045,7 +3243,10 @@ var costOf = (k) => entryOf2(k).cost;
 var costText = (k) => Object.entries(costOf(k)).filter(([, v]) => v > 0).map(([r, v]) => `${resourceNames[r]} ${v}`).join("\u3001");
 var entryName = (k) => entryOf2(k)?.name ?? k;
 var ageNames = ["", "\u7B2C\u4E00\u6642\u4EE3", entryName("age-2"), entryName("age-3"), entryName("age-4")];
-var unitNames = { villager: "\u6751\u6C11", militia: "\u8FD1\u6230\u6C11\u5175", archer: "\u5F13\u624B", scout: "\u65A5\u5019", monk: "\u50E7\u4FB6", sheep: "\u7F8A", deer: "\u9E7F", boar: "\u91CE\u8C6C" };
+var unitNames = { villager: "\u6751\u6C11", militia: "\u8FD1\u6230\u6C11\u5175", archer: "\u5F13\u624B", scout: "\u65A5\u5019", monk: "\u50E7\u4FB6", sheep: "\u7F8A", deer: "\u9E7F", boar: "\u91CE\u8C6C", spearman: "\u9577\u69CD\u5175", skirmisher: "\u6563\u5175", knight: "\u9A0E\u58EB" };
+var ownName = (kind) => lineName(kind, state.economy.techs) ?? unitNames[kind];
+var nameOf = (u) => u.player === 0 ? ownName(u.kind) : unitNames[u.kind];
+var soldierKinds = /* @__PURE__ */ new Set(["militia", "archer", "spearman", "skirmisher", "knight"]);
 var villagersIn = (ids) => [...ids].filter((id) => state.units.find((u) => u.id === id)?.kind === "villager").sort((a, b) => a - b);
 var leftOut = (ids) => {
   const n = selected.size - ids.length;
@@ -3105,13 +3306,13 @@ function renderSelection() {
   el("sel-unit").hidden = !!b || chosen.length !== 1;
   el("sel-group").hidden = !!b || chosen.length < 2;
   if (!b && chosen.length === 1) {
-    const u = chosen[0], stats = combatRules.units[u.kind];
+    const u = chosen[0], stats = statsOf(u.kind, state.economy.techs);
     setImg(el("unit-portrait"), `${u.kind}-face`);
-    el("unit-name").textContent = unitNames[u.kind];
+    el("unit-name").textContent = nameOf(u);
     el("unit-owner").textContent = isAnimal(u.kind) ? "\u85CD\u65B9\u7684\u7272\u755C" : `\u85CD\u65B9 \xB7 #${u.id}`;
     el("unit-hp").textContent = `${u.hp}/${u.maxHp}`;
     el("unit-hp-bar").style.width = `${Math.max(0, u.hp) * 100 / Math.max(1, u.maxHp)}%`;
-    const facts = `${u.faith ?? ""}|\u653B\u64CA ${stats.damage}|${stats.range <= 50 ? "\u8FD1\u6230" : `\u5C04\u7A0B ${stats.range / 100} \u683C`}|${u.cargo ? `${u.cargo.resource}:${u.cargo.amount}` : ""}`;
+    const facts = `${u.faith ?? ""}|\u653B\u64CA ${stats.damage}|${stats.armor.join("/")}|${stats.range <= 50 ? "\u8FD1\u6230" : `\u5C04\u7A0B ${stats.range / 100} \u683C`}|${u.cargo ? `${u.cargo.resource}:${u.cargo.amount}` : ""}`;
     const box2 = el("unit-facts");
     if (box2.dataset.key !== facts) {
       box2.dataset.key = facts;
@@ -3137,6 +3338,9 @@ function renderSelection() {
       } else {
         add(`\u653B\u64CA ${stats.damage}`);
         add(stats.range <= 50 ? "\u8FD1\u6230" : `\u5C04\u7A0B ${stats.range / 100} \u683C`);
+        add(`\u8B77\u7532 ${stats.armor[0]}/${stats.armor[1]}`).title = "\u8FD1\u6230\u8B77\u7532\uFF0F\u9060\u7A0B\u8B77\u7532";
+        const edge = Object.entries(stats.bonus).map(([c, n]) => `\u5C0D${{ cavalry: "\u9A0E\u5175", archer: "\u5F13\u5175", spear: "\u9577\u69CD\u5175", infantry: "\u6B65\u5175" }[c] ?? c} +${n}`).join("\u3001");
+        if (edge) add(edge);
       }
       if (u.cargo) add(`${u.cargo.amount}/${carryOf(state.economy.techs, economyRules.carryCapacity)}`, u.cargo.resource);
     }
@@ -3145,7 +3349,7 @@ function renderSelection() {
   if (!b && chosen.length > 1) {
     const counts = /* @__PURE__ */ new Map();
     for (const u of chosen) counts.set(u.kind, (counts.get(u.kind) ?? 0) + 1);
-    el("group-summary").textContent = `\u5DF2\u9078\u53D6 ${chosen.length} \u540D \xB7 ` + [...counts].map(([k, n]) => `${unitNames[k]} \xD7${n}`).join(" \xB7 ");
+    el("group-summary").textContent = `\u5DF2\u9078\u53D6 ${chosen.length} \u540D \xB7 ` + [...counts].map(([k, n]) => `${ownName(k)} \xD7${n}`).join(" \xB7 ");
     const grid = el("group-grid"), small = matchMedia("(max-width:760px)").matches, [tw, th] = small ? [34, 40] : [46, 52], cols = Math.max(1, Math.floor((grid.clientWidth + 4) / (tw + 4))), rows = Math.max(1, Math.floor((grid.clientHeight + 4) / (th + 4))), room = cols * rows;
     const shown = chosen.length > room ? chosen.slice(0, room - 1) : chosen, key = shown.map((u) => u.id + u.kind).join() + "|" + chosen.length;
     if (key !== groupKey) {
@@ -3217,7 +3421,7 @@ function reportEvents() {
   if (!before || state.tick <= before.tick || state.seed !== before.seed) return;
   const had = new Set(before.units.map((u) => u.id));
   for (const u of ownUnits()) if (!had.has(u.id) && !isAnimal(u.kind)) {
-    feed(`${unitNames[u.kind]}\u5DF2\u751F\u7522`);
+    feed(`${nameOf(u)}\u5DF2\u751F\u7522`);
     audio.play("trained");
   }
   const carried = new Set(before.units.filter((u) => u.relic).map((u) => u.id));
@@ -3353,8 +3557,36 @@ async function construct(buildingId) {
 }
 var productionKey = "";
 var queueKey = "";
+var militaryText = {
+  spearman: "\u9577\u69CD\u6B65\u5175\uFF1A\u5C0D\u9A0E\u5175 +12 \u50B7\u5BB3\uFF0C\u4FBF\u5B9C",
+  skirmisher: "\u64F2\u6A19\u69CD\uFF1A\u5C0D\u5F13\u5175 +4\u3001\u5C0D\u9577\u69CD\u5175 +3\uFF0C\u9060\u7A0B\u8B77\u7532\u9AD8",
+  knight: "\u91CD\u9A0E\u5175\uFF1A\u751F\u547D 100\u3001\u653B\u64CA 10\u3001\u8B77\u7532 2/2\uFF0C\u79FB\u52D5\u5FEB",
+  "man-at-arms": "\u8FD1\u6230\u6C11\u5175\u5347\u7D1A\u70BA\u91CD\u6B65\u5175\uFF1A\u751F\u547D 55\u3001\u653B\u64CA 8",
+  "long-swordsman": "\u91CD\u6B65\u5175\u5347\u7D1A\u70BA\u9577\u528D\u58EB\uFF1A\u751F\u547D 60\u3001\u653B\u64CA 9\u3001\u8B77\u7532 1/1",
+  pikeman: "\u9577\u69CD\u5175\u5347\u7D1A\u70BA\u9577\u77DB\u5175\uFF1A\u751F\u547D 55\u3001\u5C0D\u9A0E\u5175 +18",
+  crossbowman: "\u5F13\u624B\u5347\u7D1A\u70BA\u5F29\u624B\uFF1A\u751F\u547D 35\u3001\u653B\u64CA 5\u3001\u5C04\u7A0B 3 \u683C",
+  "elite-skirmisher": "\u6563\u5175\u5347\u7D1A\u70BA\u7CBE\u92B3\u6563\u5175\uFF1A\u751F\u547D 35\u3001\u653B\u64CA 3\u3001\u9060\u7A0B\u8B77\u7532 4",
+  "light-cavalry": "\u65A5\u5019\u5347\u7D1A\u70BA\u8F15\u9A0E\u5175\uFF1A\u751F\u547D 60\u3001\u653B\u64CA 5",
+  forging: "\u6B65\u5175\u8207\u9A0E\u5175\u653B\u64CA +1",
+  "iron-casting": "\u6B65\u5175\u8207\u9A0E\u5175\u653B\u64CA\u518D +1",
+  "blast-furnace": "\u6B65\u5175\u8207\u9A0E\u5175\u653B\u64CA\u518D +2",
+  "scale-mail-armor": "\u6B65\u5175\u8B77\u7532 +1/+1",
+  "chain-mail-armor": "\u6B65\u5175\u8B77\u7532\u518D +1/+1",
+  "plate-mail-armor": "\u6B65\u5175\u8B77\u7532\u518D +1/+2",
+  "scale-barding-armor": "\u9A0E\u5175\u8B77\u7532 +1/+1",
+  "chain-barding-armor": "\u9A0E\u5175\u8B77\u7532\u518D +1/+1",
+  "plate-barding-armor": "\u9A0E\u5175\u8B77\u7532\u518D +1/+2",
+  fletching: "\u5F13\u5175\u653B\u64CA +1\u3001\u5C04\u7A0B +0.5 \u683C",
+  "bodkin-arrow": "\u5F13\u5175\u653B\u64CA\u518D +1\u3001\u5C04\u7A0B +0.5 \u683C",
+  bracer: "\u5F13\u5175\u653B\u64CA\u518D +1\u3001\u5C04\u7A0B +0.5 \u683C",
+  "padded-archer-armor": "\u5F13\u5175\u8B77\u7532 +1/+1",
+  "leather-archer-armor": "\u5F13\u5175\u8B77\u7532\u518D +1/+1",
+  "ring-archer-armor": "\u5F13\u5175\u8B77\u7532\u518D +1/+2",
+  blacksmith: "\u7814\u7A76\u6B65\u5175\u3001\u9A0E\u5175\u3001\u5F13\u5175\u7684\u653B\u64CA\u8207\u8B77\u7532"
+};
 var techEffects = {
   ...techEffectText,
+  ...militaryText,
   redemption: "\u50E7\u4FB6\u53EF\u4EE5\u8F49\u5316\u6575\u65B9\u5EFA\u7BC9\uFF08\u57CE\u93AE\u4E2D\u5FC3\u3001\u4FEE\u9053\u9662\u3001\u8FB2\u7530\u9664\u5916\uFF09\uFF0C\u5FC5\u9808\u7AD9\u5728\u65C1\u908A",
   atonement: "\u50E7\u4FB6\u53EF\u4EE5\u8F49\u5316\u6575\u65B9\u50E7\u4FB6",
   sanctity: "\u50E7\u4FB6\u751F\u547D +15",
@@ -3365,17 +3597,28 @@ var techEffects = {
   faith: "\u5DF1\u65B9\u55AE\u4F4D\u66F4\u96E3\u88AB\u8F49\u5316\uFF08\u7B2C 6 \u6B21\u624D\u53EF\u80FD\u6210\u529F\uFF0C\u6700\u9072\u7B2C 14 \u6B21\uFF09"
 };
 var trainKeys = ["Q", "W", "E", "R", "T", "A", "D", "Z", "X", "C"];
-var entryIcon = (id) => ageOf(id) ? `town-center-${ageOf(id)}` : entryOf2(id)?.kind === "technology" ? `tech-${id}` : `${id}-face`;
+var entryIcon = (id) => {
+  const up = lineUpgrades.find((u) => u.id === id);
+  return ageOf(id) ? `town-center-${ageOf(id)}` : up ? `${up.kind}-face` : entryOf2(id)?.kind === "technology" ? `tech-${id}` : `${id}-face`;
+};
 function trainInput(b) {
   const e = state.economy;
   return { player: 0, age: e.age, techs: e.techs, building: b, ownBuildings: state.buildings, stock: e.stock, populationUsed: e.populationUsed, populationReserved: e.populationReserved, populationCap: e.populationCap };
 }
 function renderProduction(b) {
   const entries = Object.entries(rules.production).filter(([, p]) => p === b.kind).map(([id]) => id), box2 = el("production");
+  const slot = /* @__PURE__ */ new Map(), before = /* @__PURE__ */ new Map();
+  let heads = 0;
+  for (const id of entries) {
+    const pred = entryOf2(id)?.requires.find((r) => entries.includes(r) && !ageOf(r));
+    if (pred !== void 0) before.set(id, pred);
+    slot.set(id, pred !== void 0 ? slot.get(pred) : heads++);
+  }
   const key = b.id + ":" + entries.join();
   if (key !== productionKey) {
     productionKey = key;
-    box2.replaceChildren(...entries.map((id, i) => {
+    box2.replaceChildren(...entries.map((id) => {
+      const i = slot.get(id);
       const btn = document.createElement("button");
       btn.className = "tile";
       btn.dataset.train = id;
@@ -3400,7 +3643,7 @@ function renderProduction(b) {
       return btn;
     }));
     if (b.kind === "mill") {
-      const btn = document.createElement("button"), k = trainKeys[entries.length];
+      const btn = document.createElement("button"), k = trainKeys[heads];
       btn.className = "tile";
       btn.id = "reseed";
       btn.dataset.key = k;
@@ -3432,10 +3675,11 @@ function renderProduction(b) {
   const reasons = [];
   for (const btn of Array.from(box2.querySelectorAll("button[data-train]"))) {
     const id = btn.dataset.train, why = trainBlocker(trainInput(b), id);
-    btn.hidden = !b.complete || why === "\u5DF2\u7814\u7A76";
+    const pred = before.get(id);
+    btn.hidden = !b.complete || why === "\u5DF2\u7814\u7A76" || pred !== void 0 && !state.economy.techs.includes(pred);
     btn.disabled = !connected || graphicsFailed || !!why;
     btn.setAttribute("aria-label", `${entryName(id)}\uFF08${costText(id)}\uFF09${why ? `\uFF1A${why}` : ""}`);
-    if (why && why !== "\u5DF2\u7814\u7A76") reasons.push(`${entryName(id)}\uFF1A${why}`);
+    if (why && !btn.hidden) reasons.push(`${entryName(id)}\uFF1A${why}`);
   }
   el("production-reason").textContent = b.complete ? reasons.join("\u3000") : "";
   const qkey = b.queue.map((q) => q.id).join();
@@ -3628,7 +3872,7 @@ async function connect() {
   }
 }
 el("worker-retry").onclick = () => void connect();
-var kindOf = (id) => unitNames[state.units.find((u) => u.id === id)?.kind ?? "villager"];
+var kindOf = (id) => ownName(state.units.find((u) => u.id === id)?.kind ?? "villager");
 var names2 = (ids) => ids.length > 3 ? `${ids.length} \u540D\u55AE\u4F4D` : ids.map((id) => `${kindOf(id)} ${id}`).join("\u3001");
 function openPoint(x, y) {
   const map = { obstacles: state.known.map((k) => k.obstacle), tiles: state.terrain.map((t, id) => ({ ...t, id, resourceRefs: [], obstacleRefs: [] })) }, p0 = { x: Math.round(x * 100), y: Math.round(y * 100) };
@@ -4159,10 +4403,10 @@ document.addEventListener("keydown", (e) => {
     el("cancel-build").click();
     return;
   }
-  const arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] };
-  if (arrows[e.key] && scene && !graphicsFailed) {
+  const arrows2 = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] };
+  if (arrows2[e.key] && scene && !graphicsFailed) {
     e.preventDefault();
-    scene.pan(...arrows[e.key]);
+    scene.pan(...arrows2[e.key]);
     return;
   }
   if ((e.key === "f" || e.key === "F") && !e.ctrlKey && scene) {
@@ -4182,7 +4426,7 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if (e.key === ",") {
-    const army = ownUnits().filter((u) => u.kind === "militia" || u.kind === "archer").map((u) => u.id);
+    const army = ownUnits().filter((u) => soldierKinds.has(u.kind)).map((u) => u.id);
     if (!army.length) {
       notice("\u6C92\u6709\u8ECD\u968A\u3002");
       return;

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 15,
-  "rulesetHash": "e5eb0356",
+  "rulesetHash": "c8714f42",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
@@ -226,6 +226,12 @@
         "width": 300,
         "depth": 300
       },
+      "blacksmith": {
+        "x": -15,
+        "y": -15,
+        "width": 300,
+        "depth": 300
+      },
       "tree": {
         "x": -20,
         "y": -20,
@@ -370,58 +376,191 @@
         "damage": 1,
         "range": 50,
         "cooldown": 30,
-        "sight": 0
+        "sight": 0,
+        "attack": "melee",
+        "armor": [
+          0,
+          0
+        ],
+        "classes": [
+          "villager"
+        ],
+        "bonus": {}
       },
       "militia": {
         "hp": 45,
         "damage": 6,
         "range": 50,
         "cooldown": 20,
-        "sight": 350
+        "sight": 350,
+        "attack": "melee",
+        "armor": [
+          0,
+          1
+        ],
+        "classes": [
+          "infantry"
+        ],
+        "bonus": {}
       },
       "archer": {
         "hp": 30,
         "damage": 4,
         "range": 250,
         "cooldown": 30,
-        "sight": 400
+        "sight": 400,
+        "attack": "pierce",
+        "armor": [
+          0,
+          0
+        ],
+        "classes": [
+          "archer"
+        ],
+        "bonus": {
+          "spear": 3
+        }
       },
       "scout": {
         "hp": 45,
         "damage": 3,
         "range": 50,
         "cooldown": 40,
-        "sight": 0
+        "sight": 0,
+        "attack": "melee",
+        "armor": [
+          0,
+          2
+        ],
+        "classes": [
+          "cavalry"
+        ],
+        "bonus": {}
       },
       "monk": {
         "hp": 30,
         "damage": 0,
         "range": 0,
         "cooldown": 0,
-        "sight": 0
+        "sight": 0,
+        "attack": "none",
+        "armor": [
+          0,
+          0
+        ],
+        "classes": [
+          "monk"
+        ],
+        "bonus": {}
       },
       "sheep": {
         "hp": 7,
         "damage": 0,
         "range": 0,
         "cooldown": 0,
-        "sight": 0
+        "sight": 0,
+        "attack": "none",
+        "armor": [
+          0,
+          0
+        ],
+        "classes": [
+          "animal"
+        ],
+        "bonus": {}
       },
       "deer": {
         "hp": 5,
         "damage": 0,
         "range": 0,
         "cooldown": 0,
-        "sight": 0
+        "sight": 0,
+        "attack": "none",
+        "armor": [
+          0,
+          0
+        ],
+        "classes": [
+          "animal"
+        ],
+        "bonus": {}
       },
       "boar": {
         "hp": 75,
         "damage": 8,
         "range": 50,
         "cooldown": 40,
-        "sight": 0
+        "sight": 0,
+        "attack": "melee",
+        "armor": [
+          0,
+          0
+        ],
+        "classes": [
+          "animal"
+        ],
+        "bonus": {}
+      },
+      "spearman": {
+        "hp": 45,
+        "damage": 4,
+        "range": 50,
+        "cooldown": 30,
+        "sight": 350,
+        "attack": "melee",
+        "armor": [
+          0,
+          0
+        ],
+        "classes": [
+          "infantry",
+          "spear"
+        ],
+        "bonus": {
+          "cavalry": 12
+        }
+      },
+      "skirmisher": {
+        "hp": 30,
+        "damage": 2,
+        "range": 200,
+        "cooldown": 30,
+        "sight": 400,
+        "attack": "pierce",
+        "armor": [
+          0,
+          3
+        ],
+        "classes": [
+          "archer",
+          "skirmisher"
+        ],
+        "bonus": {
+          "archer": 4,
+          "spear": 3
+        }
+      },
+      "knight": {
+        "hp": 100,
+        "damage": 10,
+        "range": 50,
+        "cooldown": 18,
+        "sight": 350,
+        "attack": "melee",
+        "armor": [
+          2,
+          2
+        ],
+        "classes": [
+          "cavalry"
+        ],
+        "bonus": {}
       }
     },
+    "buildingArmor": [
+      0,
+      2
+    ],
     "buildings": {
       "town-center": 400,
       "house": 150,
@@ -432,7 +571,8 @@
       "mill": 200,
       "stable": 300,
       "archery-range": 300,
-      "monastery": 350
+      "monastery": 350,
+      "blacksmith": 300
     },
     "corpseTicks": 40,
     "hitFlashTicks": 6,
@@ -444,7 +584,10 @@
       "monk": 5,
       "sheep": 5,
       "deer": 10,
-      "boar": 5
+      "boar": 5,
+      "spearman": 5,
+      "skirmisher": 5,
+      "knight": 10
     }
   },
   "collisionScope": "static town-center (multi-rect, walkable gate and plinth), house/tree/rock/resource footprints; units hold one node and reserve the next (no overlap, no pass-through), wait, yield, trade stations and replan within bounded limits"

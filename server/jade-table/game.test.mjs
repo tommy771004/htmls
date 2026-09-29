@@ -13,13 +13,15 @@ test('台灣十六張行牌與逐筆結算', () => {
   s.hands[2] = [0, 1]; assert.equal(g.offers(2, 2).length, 0);
   g.openReactions(Date.now()); g.act(1, { kind: 'chow', tiles: [0, 1, 2] }, g.actionId);
   assert.equal(s.turn, 1); assert.equal(s.melds[1][0].type, 'chow'); assert.equal(s.drawn, -1);
+  assert.equal(s.melds[1][0].claimed, 2); assert.deepEqual(s.melds[1][0].tiles, [0, 1, 2]); // Rules keep sorted tiles; the page centres the claimed one.
 
   g = game(); s = g.state; s.last = { p: 0, t: 5 }; s.discards[0] = [5]; s.hands[2] = [5, 5, 5];
   g.openReactions(Date.now()); g.act(2, { kind: 'openKong', tile: 5 }, g.actionId);
   assert.equal(s.melds[2][0].tiles.length, 4); assert.equal(s.source, 'openKong'); assert.equal(s.hands[2].length, 1);
   g = game(); s = g.state; s.hands[0] = [5, 5, 5, 5];
-  g.act(0, { kind: 'closedKong', tile: 5 }, g.actionId);
+  const tailBefore = s.tailDrawn; g.act(0, { kind: 'closedKong', tile: 5 }, g.actionId);
   assert.equal(s.melds[0][0].closed, true); assert.equal(s.source, 'closedKong');
+  assert.equal(s.tailDrawn, tailBefore + 1); assert.equal(g.view(0).wallTail, s.tailDrawn); // Replacement comes from the tail end.
   assert.deepEqual(g.view(1).melds[3][0].tiles, [null, null, null, null]);
   g = game(); s = g.state; s.melds[0] = [{ type: 'pung', tiles: [5, 5, 5], closed: false, from: 2 }]; s.hands[0] = [5];
   g.act(0, { kind: 'addedKong', tile: 5 }, g.actionId);
@@ -31,6 +33,7 @@ test('台灣十六張行牌與逐筆結算', () => {
   g.openReactions(Date.now()); const claimId = g.actionId;
   g.act(3, { kind: 'win' }, claimId);
   assert.equal(s.phase, 'ended'); assert.equal(s.result.winner, 3); assert.equal(s.melds.flat().length, 0);
+  assert.equal(s.result.tile, 5); assert.deepEqual(s.result.waits, [5]); assert.deepEqual(g.view(0).result.waits, [5]);
   g = game(); s = g.state; s.last = { p: 0, t: 5 }; s.discards[0] = [5];
   s.hands[1] = [0, 1, 2, 9, 10, 11, 12, 13, 14, 18, 19, 20, 21, 22, 23, 5];
   s.hands[3] = s.hands[1].slice();
@@ -42,6 +45,25 @@ test('台灣十六張行牌與逐筆結算', () => {
   g.act(0, { kind: 'addedKong', tile: 5 }, g.actionId);
   g.act(1, { kind: 'win' }, g.actionId);
   assert.equal(s.result.source, 'robKong'); assert.equal(s.wall.length, 30); assert.equal(s.melds[0][0].type, 'pung');
+
+  // Declaring ready hands the seat to auto: it wins a discard in the reaction window and otherwise discards its new tile.
+  g = game(); s = g.state; s.turn = 1;
+  s.hands[1] = [0, 1, 2, 9, 10, 11, 12, 13, 14, 18, 19, 20, 21, 22, 23, 5, 30]; s.drawn = 16;
+  g.act(1, { kind: 'discard', index: 16, ready: true }, g.actionId);
+  assert.equal(s.declared[1], true); assert.equal(s.auto[1], true); assert.equal(g.view(1).auto, true);
+  g.beginTurn(2, Date.now()); s.hands[2].push(30); const now = Date.now();
+  g.act(2, { kind: 'discard', index: s.hands[2].length - 1 }, g.actionId, now);
+  if (s.phase === 'reaction' && s.offers[1].some(o => o.kind === 'win')) assert.fail('30 is not a winning tile');
+  assert.equal(s.turn, 3); s.turn = 1; s.wall = [5, ...Array(29).fill(20)]; s.hands[3] = [];
+  g.beginTurn(1, now); assert.equal(g.options(1)[0]?.kind, 'win');
+  g.setAuto(1, false); assert.equal(g.tick(now + 1000), false); // Manual again: nothing happens before the deadline.
+  g.setAuto(1, true); g.tick(now + 1000); assert.equal(s.phase, 'ended'); assert.equal(s.result.winner, 1); assert.equal(s.result.tile, 5);
+  g = game(); s = g.state; s.turn = 1; s.hands[1] = [0, 1, 2, 9, 10, 11, 12, 13, 14, 18, 19, 20, 21, 22, 23, 5]; s.declared[1] = true; s.auto[1] = true;
+  s.last = { p: 0, t: 5 }; s.discards[0] = [5]; g.openReactions(now); assert.equal(s.phase, 'reaction');
+  g.tick(now + 1000); assert.equal(s.result.winner, 1); assert.equal(s.result.from, 0);
+  g = game(); s = g.state; s.turn = 1; s.hands[1] = [0, 1, 2, 9, 10, 11, 12, 13, 14, 18, 19, 20, 21, 22, 23, 5]; s.declared[1] = true; s.auto[1] = true;
+  g.beginTurn(1, now); const drawnTile = s.hands[1][s.drawn]; g.tick(now + 1000);
+  assert.equal(s.discards[1].at(-1), drawnTile); assert.equal(s.hands[1].length, 16);
 
   const hand = [0, 0, 0, 9, 9, 9, 18, 18, 18, 31, 31, 31, 32, 32, 32, 33, 33];
   const score = scoreHand({ hand, tile: 33, selfDraw: true });
@@ -94,6 +116,8 @@ test('跨伺服器四人房：隱藏手牌、拒絕越權與斷線重連', { tim
   for (const [seat, m] of states.entries()) { assert.equal(m.state.names[0], seat === 0 ? '測試東' : `測試${seat}`); assert.equal(m.state.dealer, (4 - seat) % 4); assert.equal(m.state.turn, (4 - seat) % 4); assert.ok(m.state.hands[0].every(Number.isInteger)); assert.ok(m.state.hands.slice(1).flat().every(x => x === null)); assert.equal(m.state.wall, undefined); assert.ok(m.room.players.every(p => !('token' in p))); }
   clients[1].send({ type: 'ACTION', actionId: states[1].state.actionId, action: { kind: 'discard', index: 0 }, seat: 0 });
   assert.match((await clients[1].next(m => m.type === 'ERROR')).message, /還沒輪到/);
+  clients[1].send({ type: 'AUTO', on: true });
+  assert.match((await clients[1].next(m => m.type === 'ERROR')).message, /宣告聽牌後/);
   a.send({ type: 'ACTION', actionId: states[0].state.actionId, action: { kind: 'discard', index: 0 } });
   await clients[2].next(m => m.type === 'STATE_SYNC' && m.state?.actionId > states[0].state.actionId);
   a.ws.terminate(); const resumed = await client(1); resumed.send({ type: 'RECONNECT', code: owner.code, token: owner.token });

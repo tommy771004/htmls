@@ -73,7 +73,7 @@ def finish(bm, name, role, color, at=(0, 0, 0), rot=None, smooth=True, var=0.0, 
     bm.free()
     ob = bpy.data.objects.new(name, me)
     bpy.context.scene.collection.objects.link(ob)
-    me.materials.append(mat(role if role in ROLES else 'fixed'))
+    me.materials.append(mat(role if role in ROLES or role == 'glass' else 'fixed'))
     for p in me.polygons:
         p.use_smooth = smooth
     c = (1.0, 1.0, 1.0) if role in ROLES else hexrgb(color)

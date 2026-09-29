@@ -6,7 +6,7 @@ import type {Unit} from './movement.ts';
 import {recomputeCapacity,closeFarm} from './buildings.ts';
 import type {Building} from './buildings.ts';
 import type {WorkState} from './work.ts';
-import {combatRules} from './stats.ts';
+import {combatRules,statsOf,hitDamage,buildingTarget} from './stats.ts';
 import {tileAt} from './terrain.ts';
 import type {KnownObstacle} from './vision.ts';
 import {isAnimal,makeCarcass} from './fauna.ts';
@@ -43,7 +43,10 @@ export function commandAttack(s:CombatState,unitIds:number[],t:Target){
 export function clearAttacks(s:CombatState,unitIds:number[]){for(const id of unitIds)delete s.attacks[id];}
 // Against a building, range counts from the unit's body edge (range + radius), like a builder's work ring;
 // otherwise some footprint offsets leave no free node inside the band that range-from-centre allows.
-const limit=(u:Unit,shape:{x:number;y:number}|number[])=>combatRules.units[u.kind].range+(Array.isArray(shape)?navigationRules.radius:0);
+const limit=(u:Unit,shape:{x:number;y:number}|number[],techs:readonly string[]=[])=>statsOf(u.kind,techs).range+(Array.isArray(shape)?navigationRules.radius:0);
+// One hit from a unit with these numbers on a target: armor and bonuses of the target unit (its owner's research), or
+// a building's armor.
+export function damageOn(s:CombatState,attacker:ReturnType<typeof statsOf>,t:Target){if(t.kind==='building')return hitDamage(attacker,buildingTarget);const v=s.units.find(u=>u.id===t.id);return v?hitDamage(attacker,statsOf(v.kind,s.techs[v.player]??[])):0;}
 // Free nodes within range of the target (range defaults to the unit's attack reach); monks use it for their rites too.
 export function approach(s:CombatState,u:Unit,shape:{x:number;y:number}|number[],range=limit(u,shape)){
  const out:number[]=[];
@@ -77,7 +80,7 @@ export function stepCombat(s:CombatState){
  const busy=new Set(s.pathJobs.flatMap(j=>j.kind==='group'?j.unitIds:[j.unitId]));
  // Idle soldiers engage the nearest visible enemy unit within sight (lowest id on ties).
  for(const u of [...s.units].sort((a,b)=>a.id-b.id)){
-  const sight=combatRules.units[u.kind].sight;if(!sight||s.attacks[u.id]||s.works[u.id]||u.next!==null||u.path.length||busy.has(u.id))continue;
+  const sight=statsOf(u.kind,s.techs[u.player]??[]).sight;if(!sight||s.attacks[u.id]||s.works[u.id]||u.next!==null||u.path.length||busy.has(u.id))continue;
   const seen=new Set(s.vision[u.player].visible);let best:Unit|null=null,dist=Infinity;
   // Animals are never picked automatically (hunting is an order); they have no sight here, so they pick no fights.
   for(const e of s.units)if(e.player!==u.player&&!isAnimal(e.kind)&&seen.has(tileAt(e.x,e.y,s.map.size))){const d=reach(u,e);if(d<=sight&&(d<dist||d===dist&&best&&e.id<best.id)){best=e;dist=d;}}
@@ -90,17 +93,17 @@ export function stepCombat(s:CombatState){
   // A remembered building that is gone: the order becomes a walk to where it stood (the memory clears on arrival).
   const r=resolve(s,a.target);if(!r){const o=a.target.kind==='building'?remembered(s,u.player,a.target.id):null;delete s.attacks[id];
    if(o){const [x0,y0,x1,y1]=obstacleBounds(o);commandMove(s,[u.id],{x:Math.round((x0+x1)/2),y:Math.round((y0+y1)/2)});}continue;}
-  const stats=combatRules.units[u.kind];if(a.cooldown>0)a.cooldown--;
-  if(reach(u,r.shape)<=limit(u,r.shape)){
+  const stats=statsOf(u.kind,s.techs[u.player]??[]);if(a.cooldown>0)a.cooldown--;
+  if(reach(u,r.shape)<=limit(u,r.shape,s.techs[u.player])){
    if(u.next!==null)continue;
    if(u.path.length||busy.has(u.id)){cancelMovement(s,u.id);u.path=[];u.goal=null;u.target=null;}
    u.navigation='idle';
-   if(a.cooldown===0){a.cooldown=stats.cooldown;a.firedTick=s.tick;strike(s,a.target,stats.damage,u.id);}
+   if(a.cooldown===0){a.cooldown=stats.cooldown;a.firedTick=s.tick;strike(s,a.target,damageOn(s,stats,a.target),u.id);}
    continue;
   }
   if(u.next!==null)continue;
   if(a.repath>0&&(u.path.length||busy.has(u.id))){a.repath--;continue;}
-  const nodes=approach(s,u,r.shape);if(!nodes.length){delete s.attacks[id];continue;}
+  const nodes=approach(s,u,r.shape,limit(u,r.shape,s.techs[u.player]));if(!nodes.length){delete s.attacks[id];continue;}
   routeTo(s,u,nodes);a.repath=REPATH;
  }
  // Conquest: a player with no units and no buildings is defeated; the last one standing wins.

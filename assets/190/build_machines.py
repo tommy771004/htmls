@@ -62,7 +62,7 @@ def track(O, x, w, L, h):
         out.append(cyl('sp', 'fixed', 0x46484b, sub(O, (x - w * .53, h / 2, zz)), sub(O, (x + w * .53, h / 2, zz)), h * .36, 16))
     return out
 
-def cabin(O, c, s, body, bevel=.06, roof=None, glass_sides=(1, 1, 1, 1)):
+def cabin(O, c, s, body, bevel=.06, roof=None, glass_sides=(1, 1, 1, 1), gr='fixed'):
     """車廂：外殼 + 四面嵌入的玻璃（前、後、左、右）"""
     x, y, z = sub(O, c)
     w, h, d = s
@@ -73,10 +73,10 @@ def cabin(O, c, s, body, bevel=.06, roof=None, glass_sides=(1, 1, 1, 1)):
             out.append(box('pl', body[0], body[1], (x + sx * (w / 2 - .04), y + h * .72, z + sz * (d / 2 - .04)), (.08, h * .56, .08), .02))
     gy, gh = y + h * .72, h * .52
     f, b, l, r = glass_sides
-    if f: out.append(box('gf', 'fixed', GLASS, (x, gy, z + d / 2 - .03), (w - .1, gh, .03), .01, var=0))
-    if b: out.append(box('gb', 'fixed', GLASS, (x, gy, z - d / 2 + .03), (w - .1, gh, .03), .01, var=0))
-    if l: out.append(box('gl', 'fixed', GLASS, (x + w / 2 - .03, gy, z), (.03, gh, d - .1), .01, var=0))
-    if r: out.append(box('gr', 'fixed', GLASS, (x - w / 2 + .03, gy, z), (.03, gh, d - .1), .01, var=0))
+    if f: out.append(box('gf', gr, GLASS, (x, gy, z + d / 2 - .03), (w - .1, gh, .03), .01, var=0))
+    if b: out.append(box('gb', gr, GLASS, (x, gy, z - d / 2 + .03), (w - .1, gh, .03), .01, var=0))
+    if l: out.append(box('gl', gr, GLASS, (x + w / 2 - .03, gy, z), (.03, gh, d - .1), .01, var=0))
+    if r: out.append(box('gr', gr, GLASS, (x - w / 2 + .03, gy, z), (.03, gh, d - .1), .01, var=0))
     if roof:
         out.append(box('rf', 'fixed', roof, (x, y + h + .02, z), (w + .06, .05, d + .06), .02))
     return out
@@ -258,28 +258,35 @@ ld += [box('bk', 'fixed', YELD, sub(O, (0, .35, 3.05)), (2.6, .85, .5), .06, rot
        box('be', 'fixed', 0x8a8c8e, sub(O, (0, .08, 3.45)), (2.6, .06, .2), .01)]
 done('V_loader', ld, O)
 
-# ───────── 皮卡（車身 paint）─────────
+# ───────── 皮卡（可駕駛）：車身、玻璃（材質 glass，網頁用半透明）、車內座椅與方向盤；輪子另外匯出 ─────────
 O = (40, 0, 0)
-pk = []
-for zz in (1.55, -1.55):
+pk = [box('lo', 'paint', 0, sub(O, (0, .45, 0)), (1.85, .55, 5.2), .15),
+      box('hd', 'paint', 0, sub(O, (0, .95, 2.0)), (1.8, .22, 1.3), .12, rot=(.08, 0, 0)),
+      box('bw1', 'paint', 0, sub(O, (.88, 1.0, -1.55)), (.08, .45, 2.0), .03),
+      box('bw2', 'paint', 0, sub(O, (-.88, 1.0, -1.55)), (.08, .45, 2.0), .03),
+      box('bw3', 'paint', 0, sub(O, (0, 1.0, -2.55)), (1.84, .45, .08), .03),
+      box('bl', 'fixed', 0x2a2b2d, sub(O, (0, 1.0, -1.55)), (1.7, .02, 1.95), .01),
+      box('bp1', 'fixed', 0x3a3b3d, sub(O, (0, .35, 2.62)), (1.9, .22, .14), .05),
+      box('bp2', 'fixed', 0x3a3b3d, sub(O, (0, .35, -2.62)), (1.9, .22, .14), .05),
+      box('gr', 'fixed', 0x2a2b2d, sub(O, (0, .75, 2.6)), (1.0, .25, .04), .02)]
+for zz in (1.55, -1.55):   # 輪拱
     for sx in (1, -1):
-        pk += wheel(O, (sx * .82, .4, zz), .4, .3, rim=0xb9bcbf)
-pk += [box('lo', 'paint', 0, sub(O, (0, .45, 0)), (1.85, .55, 5.2), .15),
-       box('hd', 'paint', 0, sub(O, (0, .95, 2.0)), (1.8, .22, 1.3), .12, rot=(.08, 0, 0)),
-       box('bw1', 'paint', 0, sub(O, (.88, 1.0, -1.55)), (.08, .45, 2.0), .03),
-       box('bw2', 'paint', 0, sub(O, (-.88, 1.0, -1.55)), (.08, .45, 2.0), .03),
-       box('bw3', 'paint', 0, sub(O, (0, 1.0, -2.55)), (1.84, .45, .08), .03),
-       box('bl', 'fixed', 0x2a2b2d, sub(O, (0, 1.0, -1.55)), (1.7, .02, 1.95), .01),
-       box('bp1', 'fixed', 0x3a3b3d, sub(O, (0, .35, 2.62)), (1.9, .22, .14), .05),
-       box('bp2', 'fixed', 0x3a3b3d, sub(O, (0, .35, -2.62)), (1.9, .22, .14), .05),
-       box('gr', 'fixed', 0x2a2b2d, sub(O, (0, .75, 2.6)), (1.0, .25, .04), .02)]
-pk += cabin(O, (0, 1.0, .45), (1.75, .95, 1.9), ('paint', 0), bevel=.1, roof=None)
+        pk.append(box('wa', 'fixed', 0x1f2022, sub(O, (sx * .86, .55, zz)), (.16, .5, .95), .06))
+pk += cabin(O, (0, 1.0, .45), (1.75, .95, 1.9), ('paint', 0), bevel=.1, roof=None, gr='glass')
 pk.append(box('bc', 'fixed', 0xe8671d, sub(O, (0, 1.97, .45)), (.7, .1, .22), .03, var=0))
 for sx in (1, -1):
     pk.append(box('hl', 'fixed', 0xf1efe4, sub(O, (sx * .7, .8, 2.61)), (.3, .12, .03), .02, var=0))
     pk.append(box('tl', 'fixed', 0xc03a2b, sub(O, (sx * .8, .9, -2.61)), (.12, .25, .03), .02, var=0))
     pk.append(box('mr', 'fixed', 0x1f1f1f, sub(O, (sx * .98, 1.45, 1.35)), (.14, .12, .06), .02))
-done('V_pickup', pk, O)
+    pk.append(box('sb', 'fixed', 0x2e3033, sub(O, (sx * .42, 1.42, .05)), (.5, .5, .1), .04, rot=(-.15, 0, 0)))
+    pk.append(box('hr', 'fixed', 0x2e3033, sub(O, (sx * .42, 1.93, .02)), (.26, .14, .08), .03))
+    pk.append(box('dh', 'fixed', 0x3a3a3a, sub(O, (sx * .9, 1.28, .45)), (.03, .03, .16), .01))
+pk += [box('db', 'fixed', 0x26282a, sub(O, (0, 1.42, 1.22)), (1.62, .14, .32), .04),
+       lathe('sw', 'fixed', 0x1a1a1a, [(.15, -.012), (.17, -.012), (.17, .012), (.15, .012), (.15, -.012)], sub(O, (.42, 1.6, .98)), 24, rot=(-1.1, 0, 0), cap_top=False, cap_bot=False),
+       tube('sc', 'fixed', 0x1a1a1a, [sub(O, (.42, 1.6, .98)), sub(O, (.42, 1.48, 1.12))], .02, 8)]
+done('V_pickup_body', pk, O)
+W0 = (60, .4, 0)
+done('V_wheel', wheel((60, 0, 0), (.0001, .4, 0), .4, .3, rim=0xb9bcbf), W0)
 
 # ───────── 堆高機 ─────────
 O = (47, 0, 0)

@@ -98,7 +98,7 @@ export class MahjongGame {
       else { this.streak = 0; this.dealer = (this.dealer + 1) % 4; this.rotations++; }
     }
     this.round++;
-    this.state = { phase: 'dealing', hands: four(() => []), melds: four(() => []), flowers: four(() => []), discards: four(() => []), discardCount: [0, 0, 0, 0], drawCount: [0, 0, 0, 0], declared: [false, false, false, false], earthReady: [false, false, false, false], passed: four(() => []), passedPung: four(() => []), wall: shuffledWall(), turn: this.dealer, source: '', drawn: -1, last: null, log: [], result: null, anyCall: false, initialFlower: [false, false, false, false] };
+    this.state = { phase: 'dealing', hands: four(() => []), melds: four(() => []), flowers: four(() => []), discards: four(() => []), discardCount: [0, 0, 0, 0], drawCount: [0, 0, 0, 0], declared: [false, false, false, false], auto: [false, false, false, false], tailDrawn: 0, earthReady: [false, false, false, false], passed: four(() => []), passedPung: four(() => []), wall: shuffledWall(), turn: this.dealer, source: '', drawn: -1, last: null, log: [], result: null, anyCall: false, initialFlower: [false, false, false, false] };
     for (let n = 0; n < 16; n++) for (let d = 0; d < 4; d++) this.draw((this.dealer + d) % 4, 'deal', true);
     this.state.hands.forEach(h => h.sort((a, b) => a - b));
     for (let p = 0; p < 4; p++) this.state.initialFlower[p] = this.state.flowers[p].length >= 7;
@@ -110,6 +110,7 @@ export class MahjongGame {
     let tail = !['normal', 'deal'].includes(source), flowerDraw = false;
     while (this.liveCount() > 0) {
       const t = tail ? s.wall.pop() : s.wall.shift();
+      if (tail) s.tailDrawn = (s.tailDrawn ?? 0) + 1;
       if (t >= 34) {
         s.flowers[p].push(t); flowerDraw = true; tail = true;
         if (!dealing) this.log(`${this.names[p]}補花 ${TILE_NAMES[t]}。`);
@@ -144,6 +145,9 @@ export class MahjongGame {
       if (other >= 0) { const own = f.slice(); f.push(s.flowers[other].pop()); this.finish(p, other, s.source, { payer: other, branch: 'collect', own, initial: s.initialFlower[p] }); }
     }
   }
+  // After declaring ready the seat may hand its locked hand to the computer; unlike setBot this is not a takeover.
+  setAuto(p, on) { const s = this.state; if (!s || s.phase === 'ended' || !s.declared[p]) throw Error('宣告聽牌後才能自動打牌。'); s.auto ??= [false, false, false, false]; s.auto[p] = !!on; }
+  isAuto(p) { const s = this.state; return this.bots[p] || !!(s.auto?.[p] && s.declared[p]); }
   selfWin(p) { const s = this.state; return s.drawn >= 0 && !s.passed[p].length && s.source !== 'openKong' && canWin(s.hands[p], s.melds[p]); }
   options(p) {
     const s = this.state; if (!s) return [];
@@ -210,7 +214,7 @@ export class MahjongGame {
       if (action.ready && (s.declared[p] || !waitingTiles(rest, s.melds[p]).length)) throw Error('打出這張牌後尚未聽牌。');
       if (this.selfWin(p)) { const before = s.hands[p].slice(); before.splice(s.drawn >= 0 ? s.drawn : i, 1); s.passed[p] = waitingTiles(before, s.melds[p]); s.earthReady[p] = false; }
       if (!s.passed[p].includes(t)) s.passed[p] = [];
-      if (action.ready) { s.declared[p] = true; s.earthReady[p] = s.discardCount[p] === 0 && s.melds[p].length === 0; this.log(`${this.names[p]}宣告${s.earthReady[p] ? '地聽' : '聽牌'}。`); }
+      if (action.ready) { s.declared[p] = true; s.earthReady[p] = s.discardCount[p] === 0 && s.melds[p].length === 0; s.auto ??= [false, false, false, false]; s.auto[p] = true; this.log(`${this.names[p]}宣告${s.earthReady[p] ? '地聽' : '聽牌'}。`); }
       s.hands[p] = rest.sort((a, b) => a - b); s.discards[p].push(t); s.discardCount[p]++; s.drawn = -1; s.last = { p, t }; s.pendingKong = null;
       this.log(`${this.names[p]}打出${TILE_NAMES[t]}。`); this.openReactions(now); return;
     }
@@ -240,7 +244,7 @@ export class MahjongGame {
     }
     if (!claim) { this.beginTurn((from + 1) % 4, now); return; }
     const { p, action } = claim, tiles = action.kind === 'chow' ? action.tiles : Array(action.kind === 'openKong' ? 4 : 3).fill(t), need = tiles.slice(); need.splice(need.indexOf(t), 1);
-    this.remove(p, need); s.discards[from].pop(); s.melds[p].push({ type: action.kind === 'openKong' ? 'kong' : action.kind, tiles: tiles.slice(), closed: false, from }); s.anyCall = true; s.last = null;
+    this.remove(p, need); s.discards[from].pop(); s.melds[p].push({ type: action.kind === 'openKong' ? 'kong' : action.kind, tiles: tiles.slice(), closed: false, from, claimed: t }); s.anyCall = true; s.last = null;
     this.log(`${this.names[p]}${({ chow: '吃', pung: '碰', openKong: '明槓' })[action.kind]}${TILE_NAMES[t]}。`);
     this.beginTurn(p, now, action.kind === 'openKong' ? 'openKong' : 'claim', action.kind === 'openKong');
   }
@@ -253,8 +257,9 @@ export class MahjongGame {
   tick(now = Date.now()) {
     const s = this.state; if (!s || s.phase === 'ended') return false;
     if (s.phase === 'playing') {
-      if (this.bots[s.turn] && now >= s.botAt) {
-        const opts = this.options(s.turn), choice = opts.find(o => o.kind === 'win') || opts.find(o => o.kind.endsWith('Kong'));
+      if (this.isAuto(s.turn) && now >= s.botAt && (this.bots[s.turn] || s.drawn >= 0)) {
+        // A declared seat on auto only wins or discards its new tile; kongs stay a manual choice.
+        const opts = this.options(s.turn), choice = opts.find(o => o.kind === 'win') || (this.bots[s.turn] ? opts.find(o => o.kind.endsWith('Kong')) : null);
         this.act(s.turn, choice || { kind: 'discard', index: this.chooseDiscard(s.turn) }, this.actionId, now); return true;
       }
       if (now >= s.deadline) { this.act(s.turn, { kind: 'discard', index: s.drawn >= 0 ? s.drawn : s.hands[s.turn].length - 1 }, this.actionId, now); return true; }
@@ -262,19 +267,21 @@ export class MahjongGame {
     }
     let changed = false;
     for (let p = 0; p < 4 && s.phase === 'reaction'; p++) {
-      if (s.offers[p].length && !s.responses[p] && (now >= s.deadline || this.bots[p] && now >= s.botAt)) {
-        this.act(p, this.bots[p] ? s.offers[p][0] : { kind: 'pass' }, this.actionId, now); changed = true;
+      const auto = this.isAuto(p);
+      if (s.offers[p].length && !s.responses[p] && (now >= s.deadline || auto && now >= s.botAt)) {
+        this.act(p, auto ? s.offers[p][0] : { kind: 'pass' }, this.actionId, now); changed = true;
       }
     }
     return changed;
   }
   finish(winner, from = -1, source = '', flower = null) {
     const s = this.state; this.enter('ended', Date.now()); s.deadline = 0;
-    const delta = [0, 0, 0, 0], payments = []; let scoring = { tai: 0, items: [] };
+    const delta = [0, 0, 0, 0], payments = []; let scoring = { tai: 0, items: [] }, winTile = null, waits = [];
     if (winner >= 0) {
       const wind = (winner - this.dealer + 4) % 4, tile = s.hands[winner].at(-1), selfDraw = from < 0 || flower?.branch === 'collect';
       scoring = scoreHand({ hand: s.hands[winner], melds: s.melds[winner], flowers: flower ? [] : s.flowers[winner], wind, roundWind: Math.floor(this.rotations / 4) % 4, tile, selfDraw, source, flowerRob: flower?.branch === 'rob', lastTile: !this.liveCount(), declared: s.declared[winner], earthReady: s.earthReady[winner], heaven: winner === this.dealer && s.discardCount.every(n => n === 0) && !s.anyCall, earth: winner !== this.dealer && selfDraw && s.drawCount[winner] === 1 && s.discardCount[winner] === 0 && !s.melds[winner].length, human: from >= 0 && s.discardCount[from] === 1 && !s.anyCall && source === 'discard' });
       const normalWin = !!scoring; scoring ||= { tai: 0, items: [] };
+      if (normalWin) { winTile = tile; waits = waitingTiles(s.hands[winner].slice(0, -1), s.melds[winner]); }
       if (flower) { const flowerTai = 8 + (flower.initial ? 4 : 0); scoring = { ...scoring, tai: scoring.tai + flowerTai, items: [...scoring.items, { name: flower.branch === 'eight' ? '八仙過海' : '七搶一', tai: 8 }, ...(flower.initial ? [{ name: '配牌花胡', tai: 4 }] : [])] }; }
       const payers = from < 0 || flower?.branch === 'collect' && normalWin ? [0, 1, 2, 3].filter(p => p !== winner) : [from];
       for (const p of payers) {
@@ -288,14 +295,14 @@ export class MahjongGame {
       this.scores = this.scores.map((n, p) => n + delta[p]);
       this.log(`${this.names[winner]}${flower ? '花胡' : from < 0 ? '自摸' : '胡牌'}，獲得 ${delta[winner]} 分。`);
     } else this.log('活牌已盡，保留十六張，流局續莊。');
-    s.result = { winner, from, source, flower: !!flower, scoring, delta, payments };
+    s.result = { winner, from, source, flower: !!flower, scoring, delta, payments, tile: winTile, waits };
   }
   view(viewer) {
     const s = this.state, ids = four(i => (i + viewer) % 4), relative = p => p < 0 ? p : (p - viewer + 4) % 4;
     const winner = s.result?.winner;
     return {
       rules: RULES_ID, actionId: this.actionId, round: this.round, dealer: relative(this.dealer), streak: this.streak, roundWind: Math.floor(this.rotations / 4) % 4, base: this.base, unit: this.unit,
-      phase: s.phase, turn: relative(s.turn), source: s.source, drawn: s.turn === viewer ? s.drawn : -1, deadline: s.deadline, remaining: this.liveCount(), wallCount: s.wall.length,
+      phase: s.phase, turn: relative(s.turn), source: s.source, drawn: s.turn === viewer ? s.drawn : -1, deadline: s.deadline, remaining: this.liveCount(), wallCount: s.wall.length, wallTail: s.tailDrawn ?? 0, auto: !!(s.auto?.[viewer] && s.declared[viewer]),
       names: ids.map(p => this.names[p]), bots: ids.map(p => this.bots[p]), scores: ids.map(p => this.scores[p]),
       hands: ids.map(p => p === viewer || s.phase === 'ended' && p === winner ? s.hands[p].slice() : Array(s.hands[p].length).fill(null)),
       melds: ids.map(p => s.melds[p].map(m => ({ ...m, from: relative(m.from), tiles: m.closed && p !== viewer && !(s.phase === 'ended' && p === winner) ? m.tiles.map(() => null) : m.tiles.slice() }))),
