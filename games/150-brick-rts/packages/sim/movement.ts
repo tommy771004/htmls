@@ -6,10 +6,11 @@ import type {MapData,Point} from './navigation.ts';
 // unit bodies (radius 25, node spacing 50) never overlap. Units never pass through each other.
 export type Navigation='idle'|'searching'|'moving'|'waiting'|'unreachable'|'stuck';
 export const navigationStates:readonly Navigation[]=['idle','searching','moving','waiting','unreachable','stuck'];
-export type UnitKind='villager'|'militia'|'archer'|'scout'|'monk';
+export type UnitKind='villager'|'militia'|'archer'|'scout'|'monk'|'sheep'|'deer'|'boar';
 // Appended in order: the Worker's Int32 unit projection encodes the index.
-export const unitKinds:readonly UnitKind[]=['villager','militia','archer','scout','monk'];
+export const unitKinds:readonly UnitKind[]=['villager','militia','archer','scout','monk','sheep','deer','boar'];
 import {combatRules} from './stats.ts';
+import {isAnimal} from './fauna.ts';
 // hp: current hit points (combatRules.units[kind].hp at spawn); hitTick: last tick it took damage.
 export type Unit={id:number;player:number;kind:UnitKind;hp:number;hitTick:number;x:number;y:number;node:number;next:number|null;path:number[];goal:number|null;target:Point|null;navigation:Navigation;wait:number;detours:number;partial:boolean;order:number;outcome:'stuck'|null};
 type Search={frontier:number[];head:number;parent:number[]};
@@ -138,7 +139,8 @@ export function stepMovement(s:MovementState):{expanded:number}{
   if(!u.path.length||searching.has(u.id))return;
   const n=u.path[0],o=owner[n];
   if(o===0||o===u.id){owner[n]=u.id;u.next=n;u.path.shift();u.navigation='moving';u.wait=0;return;}
-  const b=byId.get(o)!,idleFriend=b.player===u.player&&b.next===null&&!b.path.length&&!searching.has(b.id);
+  // An idle animal (anyone's) steps aside like an idle friendly unit; it never blocks a path for good.
+  const b=byId.get(o)!,idleFriend=(b.player===u.player||isAnimal(b.kind))&&b.next===null&&!b.path.length&&!searching.has(b.id);
   const settledMate=idleFriend&&b.order===u.order&&(b.navigation==='idle'||b.navigation==='stuck');
   const toGoal=u.goal===null?Infinity:Math.abs(position(s.map,u.goal).x-position(s.map,u.node).x)+Math.abs(position(s.map,u.goal).y-position(s.map,u.node).y);
   // 1. Arrival radius: close to its station and blocked by a group-mate who has settled, settle here.

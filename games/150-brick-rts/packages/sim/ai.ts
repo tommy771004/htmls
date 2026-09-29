@@ -2,12 +2,13 @@ import {obstacleBounds} from '../content/footprints.ts';
 import {rules} from '../content/rules.ts';
 import type {Resource} from '../content/rules.ts';
 import {resourceDefinitions,tileAt} from './terrain.ts';
-import {clearSegment,isBuilding,position} from './navigation.ts';
+import {clearSegment,isBuilding,position,blockedTable,nodesNear} from './navigation.ts';
 import {placementProblem,buildKinds,farmOwner,buildingRules,buildRequirement} from './buildings.ts';
 import type {Building,BuildKind} from './buildings.ts';
 import {trainable} from './production.ts';
 import type {ProductionState} from './production.ts';
-import {gatherable,dropoffRules} from './work.ts';
+import {gatherable,dropoffRules,huntProblem} from './work.ts';
+import {isAnimal,carcassId} from './fauna.ts';
 import {targetProblem} from './combat.ts';
 import type {CombatState,Target} from './combat.ts';
 import type {Unit} from './movement.ts';
@@ -20,9 +21,9 @@ import type {ReligionState} from './religion.ts';
 // thinkTicks: one decision pass per second at 20 Hz. firstWaveTick: no attack wave before 4 minutes.
 export const aiRules={provenance:'design_default',player:1,thinkTicks:20,thinkOffset:7,villagerTarget:12,
  gatherWeights:{food:4,wood:3,gold:2,stone:0},houseMargin:2,barracksAtVillagers:3,ageUpAtVillagers:9,
- waveSize:5,firstWaveTick:4800,engageRange:500,defendRadius:700,baseMargin:50,siteRange:900,siteStep:20,halfMargin:100,spill:100,sourceMargin:100,campDistance:350,campWorkers:2,monkTarget:2} as const;
+ waveSize:5,firstWaveTick:4800,herdRadius:450,penSize:3,wildFoodWorkers:6,wildRange:650,engageRange:500,defendRadius:700,baseMargin:50,siteRange:900,siteStep:20,halfMargin:100,spill:100,sourceMargin:100,campDistance:350,campWorkers:2,monkTarget:2} as const;
 export type AIState=ReligionState&ProductionState&{tick:number;ages:number[];vision:PlayerVision[]};
-export type Order=(commandType:'move'|'gather'|'build'|'construct'|'train'|'attack'|'resign'|'convert'|'relic'|'deposit',payload:Record<string,unknown>)=>boolean;
+export type Order=(commandType:'hunt'|'move'|'gather'|'build'|'construct'|'train'|'attack'|'resign'|'convert'|'relic'|'deposit',payload:Record<string,unknown>)=>boolean;
 type Box=number[];
 const gap=(a:Box,b:Box)=>Math.max(a[0]-b[2],b[0]-a[2],a[1]-b[3],b[1]-a[3],0);
 const centre=(b:Box)=>({x:(b[0]+b[2])/2,y:(b[1]+b[3])/2});
@@ -34,7 +35,7 @@ export function stepAI(s:AIState,order:Order){
  const idle=(u:Unit)=>!s.works[u.id]&&!s.attacks[u.id]&&u.next===null&&!u.path.length&&!busy.has(u.id);
  const mine=s.units.filter(u=>u.player===P).sort((a,b)=>a.id-b.id),villagers=mine.filter(u=>u.kind==='villager'),soldiers=mine.filter(u=>u.kind==='militia'||u.kind==='archer'),scout=mine.find(u=>u.kind==='scout');
  const own=s.buildings.filter(b=>b.player===P),tc=own.find(b=>b.kind==='town-center'),tcBox=tc?boxOf(s,tc):null;
- const foes=s.units.filter(u=>u.player!==P&&seen.has(tileAt(u.x,u.y,s.map.size))).sort((a,b)=>a.id-b.id);
+ const foes=s.units.filter(u=>u.player!==P&&!isAnimal(u.kind)&&seen.has(tileAt(u.x,u.y,s.map.size))).sort((a,b)=>a.id-b.id);
  // Concede when nothing can turn the game: no town centre (it cannot be rebuilt) and no soldiers left.
  if(!tc&&!soldiers.length){order('resign',{});return;}
  army(s,order,soldiers,foes,tcBox,idle,explored);
@@ -56,12 +57,14 @@ export function stepAI(s:AIState,order:Order){
  if(s.ages[P]>=3&&!own.some(b=>b.kind==='monastery')&&stock.wood>=rules.entries.find(e=>e.id==='monastery')!.cost.wood)place(s,order,'monastery',villagers,idle,tcBox,own);
  if(s.ages[P]>=2&&!own.some(b=>b.kind==='archery-range')&&!buildRequirement(s.ages[P],'archery-range',own)&&stock.wood>=rules.entries.find(e=>e.id==='archery-range')!.cost.wood)place(s,order,'archery-range',villagers,idle,tcBox,own);
  if(room<=aiRules.houseMargin&&account.populationCap<rules.settings.populationCap&&!pending('house')&&(!barracksDue||room<=0))place(s,order,'house',villagers,idle,tcBox,own);
- // Drop-off camps: when two or more villagers carry wood (or gold/stone) from farther than campDistance to the
+ // Drop-off camps: when two or more villagers carry wood (gold/stone, natural food) from farther than campDistance to the
  // nearest drop-off that takes it, a camp goes up next to that source.
  const accepts=dropoffRules.accepts as Record<string,readonly string[]>,drops=own.filter(b=>b.complete&&accepts[b.kind]).map(b=>({kinds:accepts[b.kind],box:boxOf(s,b)!})).filter(d=>d.box);
- for(const [camp,kinds] of [['lumber-camp',['wood']],['mining-camp',['gold','stone']]] as const){if(own.some(b=>b.kind===camp&&!b.complete))continue;
-  const far=villagers.map(u=>s.works[u.id]).filter(w=>w?.kind==='gather').map(w=>s.map.resources.find(r=>r.id===(w as {resourceId:string}).resourceId)).filter((r):r is NonNullable<typeof r>=>!!r&&(kinds as readonly string[]).includes(resourceDefinitions[r.kind].yield)&&Math.min(...drops.filter(d=>d.kinds.includes(resourceDefinitions[r.kind].yield)).map(d=>gap([r.x,r.y,r.x,r.y],d.box)))>aiRules.campDistance);
-  if(far.length>=aiRules.campWorkers){place(s,order,camp,villagers,idle,tcBox,own,undefined,{x:far[0].x,y:far[0].y});break;}}
+ for(const [camp,kinds] of [['lumber-camp',['wood']],['mining-camp',['gold','stone']],['mill',['food']]] as const){if(own.some(b=>b.kind===camp&&!b.complete))continue;
+  // A mill goes next to far natural food (bushes, carcasses, fish), never next to a farm.
+  const far=villagers.map(u=>s.works[u.id]).filter(w=>w?.kind==='gather').map(w=>s.map.resources.find(r=>r.id===(w as {resourceId:string}).resourceId)).filter((r):r is NonNullable<typeof r>=>!!r&&r.kind!=='farm'&&(kinds as readonly string[]).includes(resourceDefinitions[r.kind].yield)&&Math.min(...drops.filter(d=>d.kinds.includes(resourceDefinitions[r.kind].yield)).map(d=>gap([r.x,r.y,r.x,r.y],d.box)))>aiRules.campDistance);
+  // A camp that finds no site (e.g. by a mine on the far side) does not hold up the next kind.
+  if(far.length>=aiRules.campWorkers&&place(s,order,camp,villagers,idle,tcBox,own,undefined,{x:far[0].x,y:far[0].y}))break;}
  // Town centre: villagers up to the target, then the second age once the barracks exists.
  const queued=(id:string)=>own.reduce((t,b)=>t+b.queue.filter(q=>q.entryId===id).length,0);
  if(tc.complete&&!tc.queue.length){
@@ -91,17 +94,36 @@ export function stepAI(s:AIState,order:Order){
   if(relic&&!rite&&monastery){order('relic',{unitIds:[m.id],relicId:relic.id});fetching.add(relic.id);}}
  // Idle villagers gather whichever weighted resource is most under-staffed, from the nearest explored source.
  const staff:Record<Resource,number>={food:0,wood:0,gold:0,stone:0},farmers=new Set<string>();
- for(const u of villagers){const w=s.works[u.id];if(w?.kind==='gather'){const r=s.map.resources.find(r=>r.id===w.resourceId);if(r){staff[resourceDefinitions[r.kind].yield]++;if(r.kind==='farm')farmers.add(r.id);}}}
+ // Hunters of a live animal count as food (its carcass does not exist yet).
+ // wild: villagers on natural food (hunting, herding, carcasses, bushes, fish); beyond wildFoodWorkers, and from the
+ // second age on, new food workers farm (those already on a carcass or a bush finish it).
+ const hunted=new Set<number>();let wild=0;
+ for(const u of villagers){const w=s.works[u.id];if(w?.kind==='gather'){if(w.prey!==undefined){staff.food++;wild++;hunted.add(w.prey);continue;}const r=s.map.resources.find(r=>r.id===w.resourceId);if(r){staff[resourceDefinitions[r.kind].yield]++;if(r.kind==='farm')farmers.add(r.id);else if(resourceDefinitions[r.kind].yield==='food')wild++;}}}
+ // Found sheep are driven next to the town centre, where they are eaten one by one.
+ // Only penSize sheep wait in the pen at a time (a big flock by the town centre would block the villagers' way); the
+ // nearest stray ones are fetched as the pen empties.
+ {const home=centre(tcBox),pen=penSpot(s,tcBox),sheep=mine.filter(u=>u.kind==='sheep'),penned=sheep.filter(u=>dist(u,home)<=aiRules.herdRadius||!idle(u)).length;
+  const stray=sheep.filter(u=>idle(u)&&!hunted.has(u.id)&&dist(u,home)>aiRules.herdRadius).sort((a,b)=>dist(a,home)-dist(b,home)||a.id-b.id).slice(0,Math.max(0,aiRules.penSize-penned));if(stray.length)march(s,order,stray,pen);}
  for(const u of villagers.filter(idle)){
   const kinds=(Object.keys(aiRules.gatherWeights) as Resource[]).filter(k=>aiRules.gatherWeights[k]>0).sort((a,b)=>staff[a]/aiRules.gatherWeights[a]-staff[b]/aiRules.gatherWeights[b]);
   // Food counts only within reach of the own town centre (otherwise villagers would walk to the opponent's
   // berries once the scout has seen them); beyond that a farm is laid out instead.
-  for(const kind of kinds){const source=s.map.resources.filter(r=>resourceDefinitions[r.kind].yield===kind&&explored.has(tileAt(r.x,r.y,s.map.size))&&(kind!=='food'||dist(r,centre(tcBox))<=aiRules.siteRange)&&!gatherable(s.map,r.id)&&(r.kind!=='farm'||farmOwner(s,r.id)===P&&!farmers.has(r.id))).sort((a,b)=>dist(u,a)-dist(u,b)||(a.id<b.id?-1:1))[0];
-   if(source&&order('gather',{unitIds:[u.id],resourceId:source.id})){staff[kind]++;if(source.kind==='farm')farmers.add(source.id);break;}
+  for(const kind of kinds){const natural=wild<aiRules.wildFoodWorkers&&s.ages[P]<2,source=s.map.resources.filter(r=>resourceDefinitions[r.kind].yield===kind&&(kind!=='food'||natural||r.kind==='farm')&&explored.has(tileAt(r.x,r.y,s.map.size))&&(kind!=='food'||dist(r,centre(tcBox))<=(r.kind==='farm'?aiRules.siteRange:aiRules.wildRange))&&!gatherable(s.map,r.id)&&(r.kind!=='farm'||farmOwner(s,r.id)===P&&!farmers.has(r.id))).sort((a,b)=>dist(u,a)-dist(u,b)||(a.id<b.id?-1:1))[0];
+   // Food: an own sheep already driven home, or a deer near home (never a boar), when it is closer than any carcass,
+   // bush or field; one already being hunted is joined only when no other is in reach.
+   if(kind==='food'&&natural){const prey=s.units.filter(a=>(a.kind==='sheep'?dist(a,centre(tcBox))<=aiRules.herdRadius+50:a.kind==='deer'&&dist(a,centre(tcBox))<=aiRules.wildRange)&&!huntProblem(s,P,a.id)&&!s.map.resources.some(r=>r.id===carcassId(a.id))).sort((a,b)=>Number(hunted.has(a.id))-Number(hunted.has(b.id))||dist(u,a)-dist(u,b)||a.id-b.id)[0];
+    if(prey&&(!source||source.kind==='farm'||dist(u,prey)<dist(u,source))&&order('hunt',{unitIds:[u.id],animalId:prey.id})){staff.food++;wild++;hunted.add(prey.id);break;}}
+   if(source&&order('gather',{unitIds:[u.id],resourceId:source.id})){staff[kind]++;if(source.kind==='farm')farmers.add(source.id);else if(kind==='food')wild++;break;}
    // No natural food left in sight: this villager lays out a farm (one farmer per field).
    if(kind==='food'&&!source&&!own.some(b=>b.kind==='farm'&&!b.complete)&&place(s,order,'farm',villagers,idle,tcBox,own,u))break;}
  }
 }
+// The pen: the side of the town centre (150 beyond its footprint; the gate side last) with the most open nodes round
+// it, so a carcass there lies a few steps from the drop-off ring and clear of the base's own buildings.
+function penSpot(s:AIState,tcBox:Box){const c=centre(tcBox),closed=blockedTable(s.map),edge=s.map.size*100-100;let best={x:c.x,y:c.y},room=-1;
+ for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[-1,-1],[1,-1],[-1,1],[1,1],[0,1]]){const x=Math.round(dx<0?tcBox[0]-150:dx>0?tcBox[2]+150:c.x),y=Math.round(dy<0?tcBox[1]-150:dy>0?tcBox[3]+150:c.y);
+  if(x<100||y<100||x>edge||y>edge)continue;const open=nodesNear(s.map,[x,y,x,y],100).filter(n=>!closed[n]).length;if(open>room){room=open;best={x,y};}}
+ return best;}
 function boxOf(s:AIState,b:Building){const o=s.map.obstacles.find(o=>o.id===b.id);return o?obstacleBounds(o):null;}
 function pickBuilder(s:AIState,villagers:Unit[],idle:(u:Unit)=>boolean,near:{x:number;y:number}){
  const free=villagers.filter(idle).sort((a,b)=>dist(a,near)-dist(b,near)||a.id-b.id)[0];if(free)return free;

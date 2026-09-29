@@ -1,6 +1,6 @@
 {
   "schemaVersion": 15,
-  "rulesetHash": "3865dd41",
+  "rulesetHash": "389da6bd",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
@@ -43,6 +43,11 @@
       "wood": 20,
       "gold": 25,
       "stone": 25
+    },
+    "sourceTicks": {
+      "hunt": 15,
+      "livestock": 18,
+      "fish": 14
     },
     "workReach": 50,
     "dropoffReach": 50
@@ -152,6 +157,7 @@
     "provenance": "design_default",
     "unitRadius": 400,
     "scoutRadius": 550,
+    "sheepRadius": 200,
     "houseRadius": 300,
     "townCenterRadius": 600,
     "shareVision": false,
@@ -393,6 +399,27 @@
         "range": 0,
         "cooldown": 0,
         "sight": 0
+      },
+      "sheep": {
+        "hp": 7,
+        "damage": 0,
+        "range": 0,
+        "cooldown": 0,
+        "sight": 0
+      },
+      "deer": {
+        "hp": 5,
+        "damage": 0,
+        "range": 0,
+        "cooldown": 0,
+        "sight": 0
+      },
+      "boar": {
+        "hp": 75,
+        "damage": 8,
+        "range": 50,
+        "cooldown": 40,
+        "sight": 0
       }
     },
     "buildings": {
@@ -414,7 +441,10 @@
       "militia": 5,
       "archer": 5,
       "scout": 10,
-      "monk": 5
+      "monk": 5,
+      "sheep": 5,
+      "deer": 10,
+      "boar": 5
     }
   },
   "collisionScope": "static town-center (multi-rect, walkable gate and plinth), house/tree/rock/resource footprints; units hold one node and reserve the next (no overlap, no pass-through), wait, yield, trade stations and replan within bounded limits"

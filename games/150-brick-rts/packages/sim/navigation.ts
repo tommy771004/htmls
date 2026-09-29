@@ -3,6 +3,7 @@ import type {ObstacleKind} from '../content/footprints.ts';
 // Engineering defaults, not values from the reference game.
 import {createTiles,tileAt,canTraverse,terrainRules,extractResource,resourceDefinitions,mapSizes,terrainDefinitions} from './terrain.ts';
 import type {Tile,ResourceNode,MapLayout,ResourceKind} from './terrain.ts';
+import type {AnimalKind,AnimalSpawn} from './fauna.ts';
 // expansionsPerTick 128: chosen from test-results/movement-benchmark-{32,64,128,256}.json (fastest 24/40-unit
 // gate settle; 32 left 40 units waiting on search for ~40 s). Node count, never wall time, decides results.
 // waitLimit: ticks behind a stationary blocker between replans (x queueWaitFactor behind a unit that is
@@ -18,7 +19,8 @@ export type Obstacle={id?:string;kind:ObstacleKind;x:number;y:number;red?:boolea
 // size: tiles per side (world units = size x 100); navigation nodes sit every 50 units, (2 x size - 1) per side.
 // starts: each player's villager start points (first entry is the player's reference spawn).
 // scouts: each player's scout start point (the match map only; the 16-tile test grounds have none).
-export type MapData={size:number;starts:Point[][];scouts?:Point[];obstacles:Obstacle[];blocked:number[];tiles:Tile[];resources:ResourceNode[];navigationRevision:number;generationAttempt:number};
+// animals: where the sheep, deer and boar start (they become units in createState).
+export type MapData={size:number;starts:Point[][];scouts?:Point[];animals?:AnimalSpawn[];obstacles:Obstacle[];blocked:number[];tiles:Tile[];resources:ResourceNode[];navigationRevision:number;generationAttempt:number};
 // Fast lookup of map.blocked (kept as a sorted list for saves and hashes); rebuilt when the list changes.
 const tables=new WeakMap<MapData,{list:number[];length:number;revision:number;table:Uint8Array}>();
 export function blockedTable(map:MapData):Uint8Array{let t=tables.get(map);
@@ -66,11 +68,22 @@ function generateCandidate(seed:number,layout:MapLayout):MapData{
  const map:MapData={size:mapSizes[layout],starts:[[{x:350,y:700},{x:450,y:700},{x:400,y:800}],[{x:1150,y:700},{x:1250,y:700},{x:1200,y:800}]],obstacles,blocked:[],tiles:createTiles(layout,seed),resources:[],navigationRevision:0,generationAttempt:0};
  obstacles.forEach((o,index)=>{o.id=`obstacle-${index}`;map.tiles[tileAt(o.x,o.y,map.size)].obstacleRefs.push(o.id);
  if(!isBuilding(o)){const kind=(o.kind==='rock'?'stone':o.kind) as ResourceKind;const id=`resource-${index}`,capacity=terrainRules.resourceCapacity[kind];map.resources.push({id,kind,x:o.x,y:o.y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId:o.id,depletedAt:null});map.tiles[tileAt(o.x,o.y,map.size)].resourceRefs.push(id);}});
- const addResource=(kind:'hunt'|'livestock'|'fish',x:number,y:number)=>{const id=`resource-${kind}-${x}-${y}`,capacity=terrainRules.resourceCapacity[kind],obstacleId=kind==='fish'?null:`obstacle-${kind}-${x}-${y}`;if(obstacleId&&kind!=='fish'){map.obstacles.push({id:obstacleId,kind,x,y});map.tiles[tileAt(x,y,map.size)].obstacleRefs.push(obstacleId);}map.resources.push({id,kind,x,y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId,depletedAt:null});map.tiles[tileAt(x,y,map.size)].resourceRefs.push(id);};
- for(const x of [300,1200])addResource('livestock',x,900);for(const x of [500,1000])addResource('hunt',x,1000);
- if(layout==='coast')for(const x of [300,1200])addResource('fish',x,1450);
- if(layout==='acceptance')for(const y of [300,1200])addResource('fish',800,y);
- for(let i=0;i<nodeTotal(map);i++)if(!clearSegment(map,position(map,i),position(map,i)))map.blocked.push(i);return map;
+ const addFish=(x:number,y:number)=>{const id=`resource-fish-${x}-${y}`,capacity=terrainRules.resourceCapacity.fish;map.resources.push({id,kind:'fish',x,y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId:null,depletedAt:null});map.tiles[tileAt(x,y,map.size)].resourceRefs.push(id);};
+ // Shore fish lie in the first row of water, within a villager's reach from the sand (fauna.ts fishReach).
+ if(layout==='coast')for(const x of [300,1200])addFish(x,(12+(((seed>>>0)>>>Math.floor(x/400))&1))*100+50);
+ if(layout==='acceptance')for(const y of [300,1200])addFish(800,y);
+ for(let i=0;i<nodeTotal(map);i++)if(!clearSegment(map,position(map,i),position(map,i)))map.blocked.push(i);
+ // Each side's sheep (4, on the nodes the old livestock marker covered) and a deer herd, mirrored.
+ // Aimed between four nodes, so each group fills the 2x2 block of nodes the old animal markers used to cover.
+ map.animals=[];[300,1200].forEach((x,player)=>flock(map,'sheep',x+25,925,4,200,player));for(const x of [500,1000])flock(map,'deer',x+25,1025,4);return map;
+}
+// Animals stand on the free nodes nearest to a spot (Manhattan, lowest node id on ties), never on a spawn point or
+// another animal; a spot with too little room gets fewer animals.
+// owner: the starting flock by a town centre already belongs to that player (as in the reference); others are wild.
+function flock(map:MapData,kind:AnimalKind,x:number,y:number,count:number,within=200,owner?:number){
+ const closed=blockedTable(map),taken=new Set([...map.starts.flat(),...(map.scouts??[]),...(map.animals??[])].map(p=>nodeAt(map,p)));
+ const nodes=nodesNear(map,[x,y,x,y],within).filter(n=>!closed[n]&&!taken.has(n)).map(n=>({n,d:Math.abs(position(map,n).x-x)+Math.abs(position(map,n).y-y)})).sort((a,b)=>a.d-b.d||a.n-b.n);
+ for(const {n} of nodes.slice(0,count))(map.animals??=[]).push({kind,...position(map,n),...(owner===undefined?{}:{owner})});
 }
 // Open-land match map (design_default, loosely after the reference's random_placement idea; no reference numbers).
 // Players sit on a circle round the centre at a seeded angle, the second roughly opposite. Every base gets the same
@@ -82,7 +95,9 @@ export const openMapRules={provenance:'design_default',size:32,radius:[.29,.34],
  // has the same distances. margin: room the whole kit needs round a town centre (left, top, right, bottom).
  kit:[{kind:'tree',dx:0,dy:-560,group:6},{kind:'gold',dx:520,dy:-60},{kind:'rock',dx:-520,dy:-60},{kind:'berries',dx:480,dy:360},{kind:'livestock',dx:-480,dy:340},{kind:'hunt',dx:0,dy:780}],
  margin:{left:-700,top:-760,right:700,bottom:900},
- forestClumps:10,clumpTrees:[6,13],clumpClearance:1050,borderWood:.45,borderClearance:750,neutral:{gold:2,rock:2},neutralRadius:650,dirtPatches:7} as const;
+ forestClumps:10,clumpTrees:[6,13],clumpClearance:1050,borderWood:.45,borderClearance:750,neutral:{gold:2,rock:2},neutralRadius:650,dirtPatches:7,
+ // Animals per base (kit flock, kit herd, a boar and two more sheep farther out) and the shared pond.
+ animals:{sheep:4,deer:3,boarDistance:950,farSheepDistance:1050},pond:{size:3,baseDistance:1100,fairness:300}} as const;
 function generateOpen(seed:number):MapData{
  let rng=seed||1;const random=()=>{rng^=rng<<13;rng^=rng>>>17;rng^=rng<<5;return (rng>>>0)/4294967296;};
  const R=openMapRules,size=R.size,world=size*100,mid=world/2,tiles=createTiles('open',seed);
@@ -99,10 +114,11 @@ function generateOpen(seed:number):MapData{
  for(const c of centres)for(let ty=Math.floor((c.y-150)/100);ty<=Math.floor((c.y+150)/100);ty++)for(let tx=Math.floor((c.x-150)/100);tx<=Math.floor((c.x+150)/100);tx++)taken.add(ty*size+tx);
  const free=(tx:number,ty:number)=>tx>=1&&ty>=1&&tx<size-1&&ty<size-1&&!taken.has(ty*size+tx)&&!aprons.some(b=>tx*100+100>b[0]&&tx*100<b[2]&&ty*100+100>b[1]&&ty*100<b[3]);
  const offset:Record<string,number>={tree:12,gold:15,rock:15,berries:15,livestock:15,hunt:15};
- const animals:{kind:'hunt'|'livestock';x:number;y:number}[]=[];
- const put=(kind:string,tx:number,ty:number)=>{taken.add(ty*size+tx);const x=tx*100+offset[kind],y=ty*100+offset[kind];if(kind==='hunt'||kind==='livestock')animals.push({kind,x,y});else obstacles.push({kind:kind as Obstacle['kind'],x,y});};
+ // Kit animals: the centre of the tile they were given (livestock: a flock of sheep, hunt: a deer herd).
+ const animals:{kind:'hunt'|'livestock';x:number;y:number;base:number}[]=[];let kitOwner=-1;
+ const put=(kind:string,tx:number,ty:number)=>{taken.add(ty*size+tx);const x=tx*100+offset[kind],y=ty*100+offset[kind];if(kind==='hunt'||kind==='livestock')animals.push({kind,x:tx*100+50,y:ty*100+50,base:kitOwner});else obstacles.push({kind:kind as Obstacle['kind'],x,y});};
  // Base kits: the same offsets for both players; only a blocked spot turns round the centre in 15-degree steps.
- centres.forEach(c=>{
+ centres.forEach((c,player)=>{kitOwner=player;
   for(const item of R.kit){let placed=false;const d=Math.hypot(item.dx,item.dy),base=Math.atan2(item.dy,item.dx);
    for(let step=0;step<24&&!placed;step++){const a=base+(step%2?-1:1)*Math.ceil(step/2)*15*Math.PI/180,tx=Math.floor((c.x+Math.cos(a)*d)/100),ty=Math.floor((c.y+Math.sin(a)*d)/100);
     const cells=item.kind==='tree'?[[0,0],[1,0],[0,1],[1,1],[-1,0],[0,-1]].slice(0,(item as {group?:number}).group??1).map(([dx,dy])=>[tx+dx,ty+dy]):[[tx,ty]];
@@ -118,11 +134,30 @@ function generateOpen(seed:number):MapData{
   for(let n=0,k=0;n<want&&k<want*6;k++){if(free(tx,ty)&&far(tx,ty,R.clumpClearance)){put('tree',tx,ty);n++;}const dir=Math.floor(random()*4);tx+=dir===0?1:dir===1?-1:0;ty+=dir===2?1:dir===3?-1:0;tx=Math.min(size-2,Math.max(1,tx));ty=Math.min(size-2,Math.max(1,ty));}}
  // Border woods on the outermost ring of tiles, thinned near bases.
  for(let ty=0;ty<size;ty++)for(let tx=0;tx<size;tx++){if(tx>0&&ty>0&&tx<size-1&&ty<size-1)continue;const v=random();if(v<R.borderWood&&!taken.has(ty*size+tx)&&far(tx,ty,R.borderClearance)){taken.add(ty*size+tx);obstacles.push({kind:'tree',x:tx*100+12,y:ty*100+12});}}
+ // A pond with shore fish, on open ground about as far from both town centres (its own seeded stream, so the
+ // rest of the map is exactly what it was before ponds existed).
+ const pond=placePond(seed,size,taken,centres);for(const t of pond)Object.assign(tiles[t],{terrainType:'water',...terrainDefinitions.water});
  const map:MapData={size,starts,scouts,obstacles,blocked:[],tiles,resources:[],navigationRevision:0,generationAttempt:0};
  obstacles.forEach((o,index)=>{o.id=`obstacle-${index}`;map.tiles[tileAt(o.x,o.y,size)].obstacleRefs.push(o.id);
   if(!isBuilding(o)){const kind=(o.kind==='rock'?'stone':o.kind) as ResourceKind;const id=`resource-${index}`,capacity=terrainRules.resourceCapacity[kind];map.resources.push({id,kind,x:o.x,y:o.y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId:o.id,depletedAt:null});map.tiles[tileAt(o.x,o.y,size)].resourceRefs.push(id);}});
- for(const {kind,x,y} of animals){const id=`resource-${kind}-${x}-${y}`,capacity=terrainRules.resourceCapacity[kind],obstacleId=`obstacle-${kind}-${x}-${y}`;map.obstacles.push({id:obstacleId,kind,x,y});map.tiles[tileAt(x,y,size)].obstacleRefs.push(obstacleId);map.resources.push({id,kind,x,y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId,depletedAt:null});map.tiles[tileAt(x,y,size)].resourceRefs.push(id);}
- for(let i=0;i<nodeTotal(map);i++)if(!clearSegment(map,position(map,i),position(map,i)))map.blocked.push(i);return map;
+ // Shore fish: the middle tile of each side of the pond.
+ if(pond.length){const [t0]=pond,tx=t0%size,ty=Math.floor(t0/size);for(const [dx,dy] of [[1,0],[0,1],[2,1],[1,2]]){const x=(tx+dx)*100+50,y=(ty+dy)*100+50,id=`resource-fish-${x}-${y}`,capacity=terrainRules.resourceCapacity.fish;map.resources.push({id,kind:'fish',x,y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId:null,depletedAt:null});map.tiles[tileAt(x,y,size)].resourceRefs.push(id);}}
+ for(let i=0;i<nodeTotal(map);i++)if(!clearSegment(map,position(map,i),position(map,i)))map.blocked.push(i);
+ map.animals=[];for(const {kind,x,y,base} of animals)kind==='livestock'?flock(map,'sheep',x,y,R.animals.sheep,200,base):flock(map,'deer',x,y,R.animals.deer);
+ // Each base also gets a boar and a pair of sheep farther out, placed the same way for both (turned to the base's
+ // own direction away from the map centre).
+ centres.forEach(c=>{const away=Math.atan2(c.y-mid,c.x-mid);for(const [kind,d,turn,count] of [['boar',R.animals.boarDistance,.9,1],['sheep',R.animals.farSheepDistance,-1.1,2]] as const)flock(map,kind,Math.min(world-150,Math.max(150,Math.round(c.x+Math.cos(away+turn)*d))),Math.min(world-150,Math.max(150,Math.round(c.y+Math.sin(away+turn)*d))),count,250);});
+ return map;
+}
+// The first 3x3 block of empty tiles (with an empty ring round it) that lies about as far from both town centres,
+// in a seeded order; none when no block fits.
+function placePond(seed:number,size:number,taken:Set<number>,centres:{x:number;y:number}[]):number[]{
+ const R=openMapRules.pond,spots:number[]=[];
+ for(let ty=2;ty+R.size+1<size-1;ty++)for(let tx=2;tx+R.size+1<size-1;tx++){const c={x:(tx+R.size/2)*100,y:(ty+R.size/2)*100},[d0,d1]=centres.map(p=>Math.hypot(p.x-c.x,p.y-c.y));
+  if(Math.min(d0,d1)<R.baseDistance||Math.abs(d0-d1)>R.fairness)continue;let clear=true;
+  for(let y=ty-1;y<=ty+R.size&&clear;y++)for(let x=tx-1;x<=tx+R.size;x++)if(taken.has(y*size+x)){clear=false;break;}if(clear)spots.push(ty*size+tx);}
+ if(!spots.length)return [];let n=(seed^0x9e3779b9)>>>0||1;n^=n<<13;n^=n>>>17;n^=n<<5;n>>>=0;
+ const t0=spots[n%spots.length],out:number[]=[];for(let dy=0;dy<R.size;dy++)for(let dx=0;dx<R.size;dx++)out.push(t0+dy*size+dx);return out;
 }
 export const buildingKinds=new Set(['house','town-center','barracks','farm','lumber-camp','mining-camp','mill','stable','archery-range','monastery']);
 export function isBuilding(o:Obstacle){return buildingKinds.has(o.kind);}
@@ -184,7 +219,7 @@ export function validateMap(map:MapData):string[]{
  if((r.status==='depleted')!==(r.remaining===0)||r.collectible!==(r.remaining>0)||r.status==='depleted'&&(r.obstacleId!==null||r.depletedAt===null))errors.push(`資源 ${r.id} 狀態不一致`);
  if(r.obstacleId&&!obstacles.has(r.obstacleId))errors.push(`資源 ${r.id} 障礙參照失效`);
  if(!map.tiles[tileAt(r.x,r.y,map.size)]?.resourceRefs.includes(r.id))errors.push(`資源 ${r.id} 地格參照失效`);}
- const spawns=[...map.starts.flat(),...(map.scouts??[])];
+ const spawns=[...map.starts.flat(),...(map.scouts??[]),...(map.animals??[])];
  if(spawns.some(p=>!clearSegment(map,p,p)))errors.push('出生點不可通行');
  else {const job=createPathJob(map,0,map.starts[0][0],map.starts[1][0]);advancePathJob(map,job,nodeTotal(map));if(job.status!=='found')errors.push('玩家出生區互不連通');}
  return errors;

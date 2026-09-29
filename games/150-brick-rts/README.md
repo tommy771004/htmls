@@ -1,3 +1,13 @@
+# 放牧、狩獵與捕魚
+
+羊、鹿、野豬現在是會走動的動物，食物來源和原作一樣分成放牧、狩獵與捕魚：
+- **放牧**：開局 4 隻羊屬於你；曠野外圍還有沒主人的羊，派任何單位走過去就歸你，對手的單位靠近、你的單位離開時會被搶走。選取自己的羊可以右鍵地面趕到別處。村民右鍵自己的羊就宰羊、採集、送回，吃完自動換下一隻。
+- **狩獵**：村民右鍵鹿或野豬。鹿受擊會逃，村民會追；野豬會反擊，單獨一名村民會被打死，要多派幾名。死掉的動物留下屍體（羊 100、鹿 140、野豬 340 食物），慢慢腐壞。
+- **捕魚**：曠野中間有池塘，岸邊的魚由村民站在岸上採集，送回城鎮中心或磨坊。漁船與碼頭還沒有。
+- **電腦**一次把 3 隻羊趕到城鎮中心旁宰殺、也會獵鹿，第二時代起改種田；這輪順便修正它放不下採礦場時就不蓋磨坊的錯誤。
+
+數值查核見 docs/aoe2-rules-research.md（野豬 340 有二手來源，其餘未查證）。State／snapshot 為 v23，v22 存檔無法讀取；詳見 docs/first-use-023.md。
+
 # 聖物、修道院科技與電腦的僧侶
 
 - **聖物**：曠野上散布 5 個聖物。選取僧侶、右鍵聖物就會撿起；再右鍵自己的修道院就能存放。每個聖物每分鐘給 30 黃金。一方持有全部聖物時開始倒數 16:40（原作的 200 年），守住就獲勝。頂列顯示雙方的聖物數與倒數。
@@ -102,7 +112,7 @@ PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:browser
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:rig-browser   # 模型檢視頁
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:first-use     # prompt 19 首次使用流程：滑鼠點選穿過城鎮中心拱門
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:controls       # 框選、編組、右鍵移動、停止、鏡頭平移、觸控
-PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:economy        # prompt 19 首次使用流程：採木、採野果、送返、存讀
+PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:economy        # prompt 19 首次使用流程：採木、採野果、送返、右鍵鹿狩獵、存讀
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:build          # prompt 19 首次使用流程：放置、施工、人口、取消退款
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:production     # prompt 19 首次使用流程：生產村民、人口上限、集結點、升時代、兵營與近戰民兵（兵營沒有弓手）
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs npm run test:combat         # prompt 19 首次使用流程：造兵、偵查、攻擊、攻城、勝利、再開一局
@@ -129,7 +139,8 @@ npm run bench:movement   # 3／8／24／40 名穿過城鎮中心大門的負載�
    - 右鍵地面：移動，各自分到目的地附近的站位；點在建築或樹上時走到最近的空地。右鍵樹木、石礦、金礦、野果或己方農田：村民採集，裝滿 10 單位後送到最近能收這種資源的建築（城鎮中心、伐木場、採礦場或磨坊）再回來。右鍵未完工的建築：協助施工。右鍵紅方單位或建築：攻擊；選取中的僧侶改為轉化紅方單位（研究救贖後也能轉化建築）；右鍵受傷的己方單位是治療，右鍵聖物是撿起，攜帶聖物時右鍵己方修道院是存放。
    - S 或指令格的停止：在下一個節點停下。
    - 村民與士兵一起選取時，採集與建造只派出村民，並提示有幾名士兵沒有派出。
-   - 狩獵、放牧、捕魚尚未實作，會直接說明原因。
+   - 右鍵動物：村民宰羊（只能宰自己的羊）或狩獵鹿與野豬，士兵攻擊牠；右鍵岸邊的魚，村民在岸上捕魚。只選取自己的羊時，右鍵地面是把羊趕過去。
+   - 框選時框到村民或士兵就不會選到羊；只框到羊才選羊。
 3. 指令格
    - 選取村民時：Q 住宅、W 兵營、E 農田、R 伐木場、T 採礦場、A 磨坊、D 馬廄、Z 靶場（馬廄與靶場需要第二時代與完工的兵營）、X 修道院（需要第三時代）。選取修道院時，科技格用 Q W E R T A D Z X C。在戰場上移動滑鼠看占地預覽（綠色可放、紅色會寫出原因），左鍵放置，Shift＋左鍵連續放置，右鍵或 Esc 取消。
    - 選取完工的城鎮中心、兵營、馬廄、靶場或修道院時：生產與研究依序是 Q W E R T。已研究的時代會從指令格移除。未完工的建築有取消格（Del），全額退款。

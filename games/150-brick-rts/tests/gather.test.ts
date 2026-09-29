@@ -43,9 +43,10 @@ test('a move order keeps cargo and ends work; a gold order first returns the woo
  let deposited=false;for(let i=0;i<3000&&!(s.accounts[0].ledger.extracted.gold>0);i++){tick(s);assertLedger(s);if(s.accounts[0].ledger.deposited.wood===carried)deposited=true;}
  assert.ok(deposited,'wood was returned before gold');assert.ok(s.accounts[0].ledger.extracted.gold>0);
 });
-test('hunt, herd and fish are refused honestly; unexplored resources look identical to missing ones',()=>{
+test('live animals take a hunt order, not a gather order; unexplored resources look identical to missing ones',()=>{
  const s=createState(260925),before=hash(s);
- for(const kind of ['hunt','livestock'])assert.throws(()=>order(s,{unitIds:[1],resourceId:s.map.resources.find(r=>r.kind===kind)!.id}),/尚未實作/);
+ // Hunting and herding sources exist only as carcasses (tests/animals.test.ts); the live animal is a unit.
+ assert.ok(!s.map.resources.some(r=>r.kind==='hunt'||r.kind==='livestock'));assert.throws(()=>order(s,{unitIds:[1],resourceId:'resource-carcass-900001'}),/找不到這個資源/);
  const hidden=s.map.resources.find(r=>!s.vision[0].explored.includes(tileAt(r.x,r.y,16)))!;
  assert.throws(()=>order(s,{unitIds:[1],resourceId:hidden.id}),/找不到這個資源/);assert.throws(()=>order(s,{unitIds:[1],resourceId:'nope'}),/找不到這個資源/);
  assert.throws(()=>order(s,{unitIds:[4],resourceId:nearest(s,'tree').id}));assert.equal(hash(s),before);

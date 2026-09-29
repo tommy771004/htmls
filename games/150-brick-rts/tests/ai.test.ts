@@ -5,6 +5,7 @@ import type {State} from '../packages/sim/sim.ts';
 import {aiRules} from '../packages/sim/ai.ts';
 import {dropoffNodes} from '../packages/sim/work.ts';
 import {obstacleBounds} from '../packages/content/footprints.ts';
+import {isAnimal} from '../packages/sim/fauna.ts';
 import {nodeTotal,position} from '../packages/sim/navigation.ts';
 function order(s:State,commandType:string,payload:any){submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:s.sequence[0]+1,targetTick:s.tick+1,commandType,payload} as any);}
 const run=(s:State,n:number)=>{for(let i=0;i<n&&!s.outcome;i++)tick(s);return s;};
@@ -13,7 +14,7 @@ const berries=(s:State)=>{const v=s.map.starts[0][0];return s.map.resources.filt
 
 test('idle opponent is unchanged: red keeps one villager and never acts',()=>{
  const s=run(createState(260925),3000);
- assert.equal(s.opponent,'idle');assert.equal(s.units.filter(u=>u.player===1).length,1);assert.equal(s.sequence[1],0);
+ assert.equal(s.opponent,'idle');assert.equal(s.units.filter(u=>u.player===1&&!isAnimal(u.kind)).length,1);assert.equal(s.sequence[1],0);
  assert.equal(s.buildings.filter(b=>b.player===1).length,1);assert.deepEqual(s.queue.filter(c=>c.playerId===1),[]);
 });
 
@@ -37,12 +38,17 @@ test('computer opponent is deterministic across save/load and replay',()=>{
 
 test('computer opponent builds an economy with drop-off camps, ages up to an archery range, attacks only after the grace time and can win',()=>{
  const s=createState(260925,'open','ai'),seen={house:0,barracks:0,farm:0,'lumber-camp':0,'mining-camp':0,'archery-range':0,soldier:0,age2:0,firstBlueLoss:0};
- while(s.tick<20000&&!s.outcome){tick(s);const red=s.buildings.filter(b=>b.player===1);
+ const milestones=['house','barracks','farm','lumber-camp','mining-camp','archery-range','soldier','age2'] as const,blueTc=s.buildings.find(b=>b.player===0&&b.kind==='town-center')!;
+ const watch=()=>{const red=s.buildings.filter(b=>b.player===1);
   for(const k of ['house','barracks','farm','lumber-camp','mining-camp','archery-range'] as const)if(!seen[k]&&red.some(b=>b.kind===k&&b.complete))seen[k]=s.tick;
-  if(!seen.soldier&&s.units.some(u=>u.player===1&&u.kind!=='villager'))seen.soldier=s.tick;
+  if(!seen.soldier&&s.units.some(u=>u.player===1&&u.kind!=='villager'&&!isAnimal(u.kind)))seen.soldier=s.tick;
   if(!seen.age2&&s.ages[1]>=2)seen.age2=s.tick;
-  if(!seen.firstBlueLoss&&s.units.filter(u=>u.player===0).length<3)seen.firstBlueLoss=s.tick;}
- for(const k of ['house','barracks','farm','lumber-camp','mining-camp','archery-range','soldier','age2'] as const)assert.ok(seen[k]>0,`red reached ${k}`);
+  if(!seen.firstBlueLoss&&s.units.filter(u=>u.player===0&&!isAnimal(u.kind)).length<3)seen.firstBlueLoss=s.tick;};
+ // Blue is idle and red's straggling soldiers may raze its town centre early (around tick 7000 on this seed, before
+ // red needs farms): the town centre is kept standing (fixture) until red has shown its whole economy, then released.
+ while(s.tick<20000&&!s.outcome&&!milestones.every(k=>seen[k])){tick(s);blueTc.hp=blueTc.maxHp;watch();}
+ for(const k of milestones)assert.ok(seen[k]>0,`red reached ${k}`);
+ while(s.tick<40000&&!s.outcome){tick(s);watch();}
  assert.ok(seen.firstBlueLoss>=aiRules.firstWaveTick,`no blue losses before the first wave is due (first at ${seen.firstBlueLoss})`);
  assert.equal(s.outcome?.winner,1,'red conquers an idle blue');
  // Red's own buildings never close its drop-off ring, and the barracks sits on red's half.
@@ -55,11 +61,13 @@ test('computer opponent builds an economy with drop-off camps, ages up to an arc
 
 test('computer opponent defends its base against blue soldiers',()=>{
  const s=createState(260925,'open','ai');run(s,4000);
- const red=s.units.filter(u=>u.player===1&&u.kind!=='villager');assert.ok(red.length>0,'red has a soldier by now');
+ const red=s.units.filter(u=>u.player===1&&u.kind!=='villager'&&!isAnimal(u.kind));assert.ok(red.length>0,'red has a soldier by now');
  // A blue militia appears next to the red town centre: red soldiers engage it.
  const tc=s.buildings.find(b=>b.player===1&&b.kind==='town-center')!,box=obstacleBounds(s.map.obstacles.find(o=>o.id===tc.id)!);
- const spot=[...Array(nodeTotal(s.map)).keys()].map(n=>({...position(s.map,n),n})).find(p=>!s.map.blocked.includes(p.n)&&!s.units.some(u=>u.node===p.n)&&p.y>box[3]+50&&p.y<box[3]+200&&p.x>box[0]&&p.x<box[2])!;
- s.units.push({...structuredClone(s.units.find(u=>u.player===0)!),id:s.nextUnitId++,kind:'militia',hp:45,x:spot.x,y:spot.y,node:spot.n,next:null,path:[],goal:null,target:null,navigation:'idle'});s.accounts[0].populationUsed++;
+ // Any free node 50-200 beyond the town centre's footprint (red's own buildings may cover the side below its gate).
+ const gap=(p:{x:number;y:number})=>Math.max(box[0]-p.x,p.x-box[2],box[1]-p.y,p.y-box[3]);
+ const spot=[...Array(nodeTotal(s.map)).keys()].map(n=>({...position(s.map,n),n})).find(p=>!s.map.blocked.includes(p.n)&&!s.units.some(u=>u.node===p.n)&&gap(p)>50&&gap(p)<200)!;
+ s.units.push({...structuredClone(s.units.find(u=>u.player===0&&u.kind==='villager')!),id:s.nextUnitId++,kind:'militia',hp:45,x:spot.x,y:spot.y,node:spot.n,next:null,path:[],goal:null,target:null,navigation:'idle'});s.accounts[0].populationUsed++;
  const intruder=s.nextUnitId-1;run(s,aiRules.thinkTicks*2);
  assert.ok(red.some(u=>s.attacks[u.id]?.target.kind==='unit'&&(s.attacks[u.id]!.target as {id:number}).id===intruder)||!s.units.some(u=>u.id===intruder),'red soldiers engage the intruder');
 });
@@ -80,15 +88,19 @@ test('the computer concedes once it has no town centre and no soldiers (it canno
 });
 
 test('in the third age the computer builds a monastery; its monks store relics and convert intruders near its base',()=>{
- const s=createState(260925,'open','ai');
- while(s.tick<20000&&!s.outcome&&!s.relics.some(r=>r.monastery!==null&&s.buildings.find(b=>b.id===r.monastery)?.player===1))tick(s);
+ // Blue is idle, and red's richer early food (sheep, deer) now lets it conquer blue around tick 10000, before the
+ // third age: blue's town centre is kept standing (fixture) so the match lasts long enough to watch red's monks.
+ const s=createState(260925,'open','ai'),blueTc=s.buildings.find(b=>b.player===0&&b.kind==='town-center')!;
+ while(s.tick<20000&&!s.outcome&&!s.relics.some(r=>r.monastery!==null&&s.buildings.find(b=>b.id===r.monastery)?.player===1)){tick(s);blueTc.hp=blueTc.maxHp;}
  assert.ok(s.ages[1]>=3,'third age');assert.ok(s.buildings.some(b=>b.player===1&&b.kind==='monastery'&&b.complete),'monastery');
  assert.ok(s.relics.some(r=>r.monastery!==null),'a relic stored by a red monk');
  // An intruder next to red's town centre; red's soldiers are kept off the field (fixture) so only the monk responds.
  const monk=s.units.find(u=>u.player===1&&u.kind==='monk')!;s.faith[monk.id]=-1e6;
  s.units=s.units.filter(u=>!(u.player===1&&(u.kind==='militia'||u.kind==='archer')));
  const tc=s.buildings.find(b=>b.player===1&&b.kind==='town-center')!,box=obstacleBounds(s.map.obstacles.find(o=>o.id===tc.id)!);
- const spot=[...Array(nodeTotal(s.map)).keys()].map(n=>({...position(s.map,n),n})).find(p=>!s.map.blocked.includes(p.n)&&!s.units.some(u=>u.node===p.n)&&p.y>box[3]+50&&p.y<box[3]+200&&p.x>box[0]&&p.x<box[2])!;
+ // Any free node 50-200 beyond the town centre's footprint (red's own buildings may cover the side below its gate).
+ const gap=(p:{x:number;y:number})=>Math.max(box[0]-p.x,p.x-box[2],box[1]-p.y,p.y-box[3]);
+ const spot=[...Array(nodeTotal(s.map)).keys()].map(n=>({...position(s.map,n),n})).find(p=>!s.map.blocked.includes(p.n)&&!s.units.some(u=>u.node===p.n)&&gap(p)>50&&gap(p)<200)!;
  s.units.push({...structuredClone(s.units.find(u=>u.kind==='villager')!),id:s.nextUnitId++,player:0,kind:'militia',hp:45,x:spot.x,y:spot.y,node:spot.n,next:null,path:[],goal:null,target:null,navigation:'idle'});
  const intruder=s.nextUnitId-1;let converted=false,targeted=false;
  for(let i=0;i<1200&&!converted&&s.units.some(u=>u.id===intruder);i++){s.units=s.units.filter(u=>!(u.player===1&&(u.kind==='militia'||u.kind==='archer')));tick(s);targeted||=Object.values(s.rites).some(r=>r.kind==='convert'&&r.target===intruder);converted=s.units.find(u=>u.id===intruder)?.player===1;}

@@ -9,13 +9,17 @@ import type {WorkState} from './work.ts';
 import {combatRules} from './stats.ts';
 import {tileAt} from './terrain.ts';
 import type {KnownObstacle} from './vision.ts';
+import {isAnimal,makeCarcass} from './fauna.ts';
+import type {AnimalKind} from './fauna.ts';
 // Deterministic combat: fixed damage on a fixed cooldown, no randomness, no animation timing.
 export type Target={kind:'unit';id:number}|{kind:'building';id:string};
 export type Attack={target:Target;cooldown:number;auto:boolean;repath:number;firedTick:number};
 export type Corpse={id:number;player:number;kind:Unit['kind'];x:number;y:number;tick:number};
 // reason: conquest (no units and no buildings left) or resign (a player conceded).
 export type Outcome={winner:number|null;defeated:number[];tick:number;reason?:'resign'|'relic'};
-export type CombatState=WorkState&{attacks:Record<number,Attack>;corpses:Corpse[];outcome:Outcome|null;vision:{visible:number[];explored:number[];known:KnownObstacle[]}[]};
+// beasts: animals that were struck and by whom (a deer flees from its hunter, a boar charges it; animals.ts).
+export type Beast={foe:number;cooldown:number;repath:number};
+export type CombatState=WorkState&{attacks:Record<number,Attack>;corpses:Corpse[];outcome:Outcome|null;beasts:Record<number,Beast>;vision:{visible:number[];explored:number[];known:KnownObstacle[]}[]};
 const REPATH=20;
 function buildingBox(s:CombatState,b:Building){const o=s.map.obstacles.find(o=>o.id===b.id);return o?obstacleBounds(o):null;}
 // Chebyshev distance from a point to a unit centre or to a building footprint edge.
@@ -50,6 +54,8 @@ export function approach(s:CombatState,u:Unit,shape:{x:number;y:number}|number[]
  return free.length?free:out;
 }
 export function killUnit(s:CombatState,u:Unit){
+ // An animal leaves its food where it fell; it never counted towards anyone's population.
+ if(isAnimal(u.kind)){delete s.beasts[u.id];delete s.attacks[u.id];cancelMovement(s,u.id);s.units=s.units.filter(v=>v!==u);makeCarcass(s.map,u as Unit&{kind:AnimalKind});return;}
  const a=s.accounts[u.player],c=s.cargo[u.id];if(c){a.ledger.lost[c.resource]+=c.amount;delete s.cargo[u.id];}
  delete s.works[u.id];delete s.attacks[u.id];cancelMovement(s,u.id);a.populationUsed--;
  s.units=s.units.filter(v=>v!==u);s.corpses.push({id:u.id,player:u.player,kind:u.kind,x:u.x,y:u.y,tick:s.tick});
@@ -59,8 +65,9 @@ function destroyBuilding(s:CombatState,b:Building){
  const o=s.map.obstacles.find(o=>o.id===b.id)!;s.map.obstacles=s.map.obstacles.filter(v=>v!==o);for(const t of s.map.tiles)t.obstacleRefs=t.obstacleRefs.filter(r=>r!==b.id);
  s.buildings=s.buildings.filter(v=>v!==b);if(b.kind==='farm')closeFarm(s,b.id,s.tick);refreshNavigation(s.map,obstacleBounds(o,navigationRules.radius));recomputeCapacity(s,b.player);
 }
-function damage(s:CombatState,t:Target,amount:number){
- if(t.kind==='unit'){const u=s.units.find(u=>u.id===t.id)!;u.hp-=amount;u.hitTick=s.tick;if(u.hp<=0)killUnit(s,u);return;}
+// attacker: who struck (a struck animal remembers the first one, see animals.ts).
+export function strike(s:CombatState,t:Target,amount:number,attacker:number){
+ if(t.kind==='unit'){const u=s.units.find(u=>u.id===t.id)!;u.hp-=amount;u.hitTick=s.tick;if(isAnimal(u.kind)&&!s.beasts[u.id])s.beasts[u.id]={foe:attacker,cooldown:0,repath:0};if(u.hp<=0)killUnit(s,u);return;}
  const b=s.buildings.find(b=>b.id===t.id)!;b.hp-=amount;const o=s.map.obstacles.find(o=>o.id===b.id)!;
  // The damaged look (missing parts) appears below half health; it is appearance only.
  if(b.hp*2<b.maxHp)o.damaged=true;if(b.hp<=0)destroyBuilding(s,b);
@@ -72,7 +79,8 @@ export function stepCombat(s:CombatState){
  for(const u of [...s.units].sort((a,b)=>a.id-b.id)){
   const sight=combatRules.units[u.kind].sight;if(!sight||s.attacks[u.id]||s.works[u.id]||u.next!==null||u.path.length||busy.has(u.id))continue;
   const seen=new Set(s.vision[u.player].visible);let best:Unit|null=null,dist=Infinity;
-  for(const e of s.units)if(e.player!==u.player&&seen.has(tileAt(e.x,e.y,s.map.size))){const d=reach(u,e);if(d<=sight&&(d<dist||d===dist&&best&&e.id<best.id)){best=e;dist=d;}}
+  // Animals are never picked automatically (hunting is an order); they have no sight here, so they pick no fights.
+  for(const e of s.units)if(e.player!==u.player&&!isAnimal(e.kind)&&seen.has(tileAt(e.x,e.y,s.map.size))){const d=reach(u,e);if(d<=sight&&(d<dist||d===dist&&best&&e.id<best.id)){best=e;dist=d;}}
   if(best)s.attacks[u.id]={target:{kind:'unit',id:best.id},cooldown:0,auto:true,repath:0,firedTick:-1};
  }
  for(const id of Object.keys(s.attacks).map(Number).sort((a,b)=>a-b)){
@@ -87,7 +95,7 @@ export function stepCombat(s:CombatState){
    if(u.next!==null)continue;
    if(u.path.length||busy.has(u.id)){cancelMovement(s,u.id);u.path=[];u.goal=null;u.target=null;}
    u.navigation='idle';
-   if(a.cooldown===0){a.cooldown=stats.cooldown;a.firedTick=s.tick;damage(s,a.target,stats.damage);}
+   if(a.cooldown===0){a.cooldown=stats.cooldown;a.firedTick=s.tick;strike(s,a.target,stats.damage,u.id);}
    continue;
   }
   if(u.next!==null)continue;
@@ -96,6 +104,6 @@ export function stepCombat(s:CombatState){
   routeTo(s,u,nodes);a.repath=REPATH;
  }
  // Conquest: a player with no units and no buildings is defeated; the last one standing wins.
- if(!s.outcome){const alive=[0,1].filter(p=>s.units.some(u=>u.player===p)||s.buildings.some(b=>b.player===p));
+ if(!s.outcome){const alive=[0,1].filter(p=>s.units.some(u=>u.player===p&&!isAnimal(u.kind))||s.buildings.some(b=>b.player===p));
   if(alive.length<2)s.outcome={winner:alive.length===1?alive[0]:null,defeated:[0,1].filter(p=>!alive.includes(p)),tick:s.tick};}
 }

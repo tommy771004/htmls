@@ -8,6 +8,7 @@ import {obstacleBounds} from '../content/footprints.ts';
 import {navigationRules,position,blockedTable,nodeTotal} from './navigation.ts';
 import type {MapData} from './navigation.ts';
 import {recomputeCapacity} from './buildings.ts';
+import {isAnimal} from './fauna.ts';
 import type {Building} from './buildings.ts';
 import {cancelReservation} from './economy.ts';
 // Monks, monastery technologies and relics. Reference values (aoe2-rules-research.md):
@@ -59,6 +60,7 @@ export function riteProblem(s:ReligionState,player:number,kind:RiteKind,target:n
   if((religionRules.unconvertibleBuildings as readonly string[]).includes(b.kind))return '城鎮中心、修道院與農田不能被轉化';
   if(!b.complete)return '只能轉化完工的建築';return null;}
  const t=s.units.find(u=>u.id===target);if(!t)return '找不到目標';
+ if(isAnimal(t.kind))return kind==='heal'?'動物不能被治療':'動物不能被轉化：村民可以右鍵羊隻放牧';
  if(kind==='heal'){if(t.player!==player)return '只能治療己方單位';if(t.kind==='monk')return '僧侶不能被治療';return null;}
  if(t.player===player)return '不能轉化己方單位';
  if(!seen(s,player,t.x,t.y))return '找不到目標';
@@ -136,7 +138,7 @@ export function stepReligion(s:ReligionState){
  // An idle monk heals the nearest wounded own unit it can see (lowest id on ties); conversion is by order only.
  for(const m of monks){if(s.rites[m.id]||s.attacks[m.id]||m.next!==null||m.path.length||busy.has(m.id))continue;
   let best:Unit|null=null,dist=Infinity;
-  for(const u of s.units)if(u!==m&&u.player===m.player&&u.kind!=='monk'&&u.hp<maxHp(s,u)){const d=reach(m,u);if(d<=religionRules.healSight&&(d<dist||d===dist&&best&&u.id<best.id)){best=u;dist=d;}}
+  for(const u of s.units)if(u!==m&&u.player===m.player&&u.kind!=='monk'&&!isAnimal(u.kind)&&u.hp<maxHp(s,u)){const d=reach(m,u);if(d<=religionRules.healSight&&(d<dist||d===dist&&best&&u.id<best.id)){best=u;dist=d;}}
   if(best)s.rites[m.id]={kind:'heal',target:best.id,progress:0,needed:0,repath:0,attempt:0};}
  for(const m of monks){const r=s.rites[m.id];if(!r)continue;
   const done=()=>{delete s.rites[m.id];cancelMovement(s,m.id);Object.assign(m,{path:[],goal:null,target:null,navigation:m.next===null?'idle':'moving'});};

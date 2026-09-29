@@ -5,7 +5,7 @@ import {tileAt} from './terrain.ts';
 import {obstacleBounds} from '../content/footprints.ts';
 // Buildings count as seen when any tile under their footprint is visible; other objects use their anchor tile.
 function footprintTiles(o:Obstacle,size:number):number[]{if(!isBuilding(o))return [tileAt(o.x,o.y,size)];const [x0,y0,x1,y1]=obstacleBounds(o),tiles:number[]=[];for(let ty=Math.max(0,Math.floor(y0/100));ty<=Math.min(size-1,Math.floor((y1-1)/100));ty++)for(let tx=Math.max(0,Math.floor(x0/100));tx<=Math.min(size-1,Math.floor((x1-1)/100));tx++)tiles.push(ty*size+tx);return tiles;}
-export const visionRules={provenance:'design_default',unitRadius:400,scoutRadius:550,houseRadius:300,townCenterRadius:600,shareVision:false,rememberStaticObjects:true} as const;
+export const visionRules={provenance:'design_default',unitRadius:400,scoutRadius:550,sheepRadius:200,houseRadius:300,townCenterRadius:600,shareVision:false,rememberStaticObjects:true} as const;
 export type Observer={player:number;x:number;y:number;kind?:string};
 export type KnownObstacle={obstacle:Obstacle;lastSeenTick:number};
 export type PlayerVision={explored:number[];visible:number[];known:KnownObstacle[];resources:ResourceNode[]};
@@ -17,7 +17,8 @@ export function updateVision(visions:PlayerVision[],map:MapData,units:Observer[]
  // Tile centres within the radius; only the tiles in the radius' bounding box are tested.
  const size=map.size,reveal=(player:number,x:number,y:number,radius:number)=>{const t0=Math.max(0,Math.floor((x-radius)/100)),t1=Math.min(size-1,Math.floor((x+radius)/100)),u0=Math.max(0,Math.floor((y-radius)/100)),u1=Math.min(size-1,Math.floor((y+radius)/100));
   for(let ty=u0;ty<=u1;ty++)for(let tx=t0;tx<=t1;tx++){const dx=tx*100+50-x,dy=ty*100+50-y;if(dx*dx+dy*dy<=radius*radius)own[player].add(ty*size+tx);}};
- for(const u of units)reveal(u.player,u.x,u.y,u.kind==='scout'?visionRules.scoutRadius:visionRules.unitRadius);
+ // Wild animals see for nobody; an owned sheep shows its owner a little ground round it.
+ for(const u of units){if(u.player!==0&&u.player!==1)continue;reveal(u.player,u.x,u.y,u.kind==='scout'?visionRules.scoutRadius:u.kind==='sheep'?visionRules.sheepRadius:visionRules.unitRadius);}
  for(const o of map.obstacles)if(o.kind==='house'||o.kind==='barracks')reveal(o.red?1:0,o.x+100,o.y+100,visionRules.houseRadius);
  else if(o.kind==='town-center')reveal(o.red?1:0,o.x+135,o.y+135,visionRules.townCenterRadius);
  for(let player=0;player<2;player++){

@@ -35,13 +35,14 @@ test('both bases get the same starting kit at the same distances (within one nod
 test('the match map is deterministic and survives save/load and replay',()=>{
  assert.equal(hash(makeMap(51,'open')),hash(makeMap(51,'open')));assert.notEqual(hash(makeMap(51,'open')),hash(makeMap(52,'open')));
  const s=createState(260925,'open','ai');for(let i=0;i<600;i++)tick(s);
- assert.equal(s.units.filter(u=>u.player===0&&u.kind==='villager').length,3);assert.equal(s.units.filter(u=>u.player===0&&u.kind==='scout').length,1);assert.deepEqual(s.units.filter(u=>u.player===0).map(u=>({x:u.x,y:u.y})).sort((a,b)=>a.x-b.x||a.y-b.y).length,4);
+ assert.equal(s.units.filter(u=>u.player===0&&u.kind==='villager').length,3);assert.equal(s.units.filter(u=>u.player===0&&u.kind==='scout').length,1);assert.deepEqual(s.units.filter(u=>u.player===0&&u.kind!=='sheep').map(u=>({x:u.x,y:u.y})).sort((a,b)=>a.x-b.x||a.y-b.y).length,4);
  const copy=deserialize(serialize(s));assert.equal(hash(copy),hash(s));
 });
 
 test('the incrementally updated navigation table equals a full rebuild after trees fall and buildings rise',()=>{
- const s=createState(260925,'open','ai');let checks=0;
- for(let i=0;i<9000&&!s.outcome;i++){tick(s);if(i%1500===1499){assert.deepEqual(currentGraph(s.map),fullGraph(s.map),`tick ${s.tick}`);checks++;}}
+ // Blue's town centre is kept standing (fixture) so the idle blue lasts the whole 9000 ticks.
+ const s=createState(260925,'open','ai'),blueTc=s.buildings.find(b=>b.player===0&&b.kind==='town-center')!;let checks=0;
+ for(let i=0;i<9000&&!s.outcome;i++){tick(s);blueTc.hp=blueTc.maxHp;if(i%1500===1499){assert.deepEqual(currentGraph(s.map),fullGraph(s.map),`tick ${s.tick}`);checks++;}}
  assert.ok(checks>=5);assert.ok(s.map.navigationRevision>10,'the map changed many times');
 });
 

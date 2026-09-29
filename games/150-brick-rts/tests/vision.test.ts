@@ -25,7 +25,7 @@ test('vision sharing is opt-in and revocation removes current visibility without
  updateVision(visions,map,units,2);assert.equal(projectVision(visions[0],16).fog[14*16+14],1);const before=hash(visions);assert.throws(()=>updateVision(visions,map,units,3,[[2],[1]]));assert.equal(hash(visions),before);
 });
 test('Worker view excludes unseen enemy and unknown enemy buildings',()=>{
- const response=createService()({protocol:1,id:1,operation:{kind:'reset',seed:260925}});assert.ok(response.ok);const view=decodeView(response);assert.deepEqual(view.units.map(u=>u.id),[1,2,3]);assert.ok(view.known.every(k=>!k.obstacle.red));assert.ok(view.fog.includes(0));
+ const response=createService()({protocol:1,id:1,operation:{kind:'reset',seed:260925}});assert.ok(response.ok);const view=decodeView(response);assert.deepEqual(view.units.filter(u=>u.kind==='villager').map(u=>u.id),[1,2,3]);assert.ok(view.units.every(u=>u.player!==1));assert.ok(view.known.every(k=>!k.obstacle.red));assert.ok(view.fog.includes(0));
 });
 test('exploration survives saves and command replay; old snapshot version is rejected',()=>{
  const s=createState(7);submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:1,targetTick:1,commandType:'move',payload:{unitIds:[1],x:1100,y:900}});for(let i=0;i<220;i++)tick(s);

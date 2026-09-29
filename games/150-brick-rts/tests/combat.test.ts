@@ -9,6 +9,7 @@ import {combatRules} from '../packages/sim/stats.ts';
 import {authoritativeProblem,placeBuilding} from '../packages/sim/buildings.ts';
 import {commandAttack,targetProblem} from '../packages/sim/combat.ts';
 import {obstacleBounds} from '../packages/content/footprints.ts';
+import {isAnimal} from '../packages/sim/fauna.ts';
 function order(s:State,commandType:string,payload:any,playerId=0){submit(s,{protocolVersion:1,rulesetHash,playerId,sequence:s.sequence[playerId]+1,targetTick:s.tick+1,commandType,payload} as any);}
 // Place a unit on the free node nearest a point (test fixture; the command log does not know it).
 function spawn(s:State,player:number,kind:UnitKind,x:number,y:number,id:number){let best=-1,dist=Infinity;const held=new Set(s.units.map(u=>u.node));
@@ -34,7 +35,7 @@ test('an archer stops at range and shoots; four militia surround one target with
  const t=createState(260925);red(t).hp=1000;for(let i=0;i<4;i++)spawn(t,0,'militia',950+i*50,850,60+i);tick(t);order(t,'attack',{unitIds:[60,61,62,63],target:{kind:'unit',id:4}});
  run(t,400,x=>Object.values(x.attacks).filter(a=>a.firedTick>=0).length===4);
  assert.equal(Object.values(t.attacks).filter(a=>a.firedTick>=0).length,4,'all four reached their own attack positions');
- const spots=t.units.filter(u=>u.id>=60).map(u=>u.node);assert.equal(new Set(spots).size,4);assert.ok(t.units.filter(u=>u.id>=60).every(u=>Math.max(Math.abs(u.x-red(t).x),Math.abs(u.y-red(t).y))<=50));
+ const militia=t.units.filter(u=>u.id>=60&&u.id<64),spots=militia.map(u=>u.node);assert.equal(new Set(spots).size,4);assert.ok(militia.every(u=>Math.max(Math.abs(u.x-red(t).x),Math.abs(u.y-red(t).y))<=50));
 });
 test('idle soldiers engage visible enemies on their own; villagers do not',()=>{
  const s=createState(260925);spawn(s,0,'militia',900,700,50);spawn(s,0,'villager',950,850,51);run(s,500,t=>!t.units.some(u=>u.id===4));
@@ -76,7 +77,8 @@ test('every building position on the 10-unit grid can be attacked by melee (regr
  // node was close enough, so attackers gave up. It must now be reachable and take damage.
  // Left edge 725 (≡ 25 mod 50) and top edge 1005 (≡ 5 mod 50): no node sat in the 25–50 band on any side.
  for(const offset of [0,10,20,30,40].map(o=>o===0?[40,20]:[o,o])){
-  const s=createState(260925);s.vision[0].visible=Array.from({length:256},(_,i)=>i);s.vision[0].explored=[...s.vision[0].visible];
+  // Animals are not the subject here (a deer standing on a site would block it): the fixture removes them.
+  const s=createState(260925);s.units=s.units.filter(u=>!isAnimal(u.kind));s.vision[0].visible=Array.from({length:256},(_,i)=>i);s.vision[0].explored=[...s.vision[0].visible];
   s.vision[1].explored=[...s.vision[0].visible];
   const x=700+offset[0],y=1000+offset[1];assert.equal(authoritativeProblem(s,1,'house',x,y),null,`site ${x},${y}`);
   const b=placeBuilding(s,1,'house',x,y,'1:test');

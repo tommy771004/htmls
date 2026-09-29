@@ -1,0 +1,44 @@
+import {approach,reach,strike} from './combat.ts';
+import type {CombatState} from './combat.ts';
+import {cancelMovement,commandMove,routeTo} from './movement.ts';
+import type {Unit} from './movement.ts';
+import {harvestMapResource} from './navigation.ts';
+import {combatRules} from './stats.ts';
+import {animalRules,isAnimal,GAIA} from './fauna.ts';
+// Animal behaviour, once per tick after combat (values in fauna.ts, design_default):
+// - a sheep belongs to the only player with a unit within captureRange (found, or taken from the other side);
+// - a struck deer runs fleeDistance away from whoever struck it;
+// - a struck boar charges the first unit that struck it, then whoever else is hunting it, up to boarLeash away;
+// - a carcass slowly spoils, worked or not (one food per decayTicks).
+const halt=(s:CombatState,a:Unit)=>{cancelMovement(s,a.id);Object.assign(a,{path:[],goal:null,target:null,navigation:a.next===null?'idle':'moving'});};
+// Sheep ownership (also run when a match is created, so the starting flock is already the player's at tick 0).
+export function claimSheep(s:CombatState){
+ for(const sheep of s.units){if(sheep.kind!=='sheep')continue;
+  const near=new Set<number>();for(const u of s.units)if(!isAnimal(u.kind)&&u.player!==GAIA&&reach(u,sheep)<=animalRules.captureRange)near.add(u.player);
+  if(near.size!==1||near.has(sheep.player))continue;
+  // Changing hands stops the sheep where it is (the old owner's order no longer applies).
+  sheep.player=[...near][0];halt(s,sheep);}
+}
+export function stepAnimals(s:CombatState){
+ const animals=s.units.filter(u=>isAnimal(u.kind)).sort((a,b)=>a.id-b.id),busy=new Set(s.pathJobs.flatMap(j=>j.kind==='group'?j.unitIds:[j.unitId]));
+ for(const id of Object.keys(s.beasts).map(Number))if(!animals.some(a=>a.id===id))delete s.beasts[id];
+ claimSheep(s);
+ for(const a of animals){const b=s.beasts[a.id];if(!b)continue;
+  const foe=s.units.find(u=>u.id===b.foe&&!isAnimal(u.kind));
+  if(a.kind==='sheep'){delete s.beasts[a.id];continue;}
+  if(a.kind==='deer'){delete s.beasts[a.id];if(!foe)continue;
+   const dx=a.x-foe.x,dy=a.y-foe.y,len=Math.hypot(dx,dy)||1,edge=s.map.size*100-50,clamp=(v:number)=>Math.min(edge,Math.max(50,Math.round(v)));
+   try{commandMove(s,[a.id],{x:clamp(a.x+dx/len*animalRules.fleeDistance),y:clamp(a.y+dy/len*animalRules.fleeDistance)});}catch{}
+   continue;}
+  // Boar: the first attacker, else the nearest unit still hunting or attacking it; none left means it calms down.
+  let target=foe&&reach(a,foe)<=animalRules.boarLeash?foe:undefined;
+  if(!target){target=s.units.filter(u=>!isAnimal(u.kind)&&reach(a,u)<=animalRules.boarLeash&&((s.works[u.id] as {prey?:number}|undefined)?.prey===a.id||s.attacks[u.id]?.target.kind==='unit'&&s.attacks[u.id].target.id===a.id)).sort((p,q)=>reach(a,p)-reach(a,q)||p.id-q.id)[0];
+   if(!target){delete s.beasts[a.id];halt(s,a);continue;}b.foe=target.id;}
+  const stats=combatRules.units.boar;if(b.cooldown>0)b.cooldown--;
+  if(reach(a,target)<=stats.range){if(a.next!==null)continue;if(a.path.length||busy.has(a.id))halt(s,a);a.navigation='idle';
+   if(b.cooldown===0){b.cooldown=stats.cooldown;strike(s,{kind:'unit',id:target.id},stats.damage,a.id);}continue;}
+  if(a.next!==null)continue;if(b.repath>0&&(a.path.length||busy.has(a.id))){b.repath--;continue;}
+  const nodes=approach(s,a,{x:target.x,y:target.y});if(!nodes.length){delete s.beasts[a.id];continue;}routeTo(s,a,nodes);b.repath=20;
+ }
+ if(s.tick%animalRules.decayTicks===0)for(const r of s.map.resources)if(r.collectible&&r.id.startsWith('resource-carcass-'))harvestMapResource(s.map,r.id,1,s.tick);
+}

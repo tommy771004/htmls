@@ -824,6 +824,98 @@ function createCharacterRig(T, player, box2, material) {
   return { root, sockets: rider.sockets, equip: rider.equip, dress, pose };
 }
 
+// apps/web/animal-rig.ts
+var animalLooks = {
+  sheep: {
+    legs: { h: 0.26, w: 0.09, x: 0.15, z: 0.2, color: "#4b4439" },
+    body: [{ x: 0, y: 0.24, z: 0, w: 0.52, h: 0.36, d: 0.7, color: "#ece6d2" }, { x: 0, y: 0.56, z: -0.05, w: 0.4, h: 0.1, d: 0.52, color: "#f4efdf" }],
+    head: [{ x: 0, y: 0.4, z: 0.42, w: 0.2, h: 0.22, d: 0.24, color: "#4b4439" }, { x: -0.12, y: 0.54, z: 0.4, w: 0.07, h: 0.04, d: 0.1, color: "#4b4439" }, { x: 0.12, y: 0.54, z: 0.4, w: 0.07, h: 0.04, d: 0.1, color: "#4b4439" }],
+    collar: { y: 0.36, z: 0.3 }
+  },
+  deer: {
+    legs: { h: 0.42, w: 0.08, x: 0.13, z: 0.24, color: "#8a643f" },
+    body: [{ x: 0, y: 0.4, z: 0, w: 0.36, h: 0.32, d: 0.76, color: "#a67a4c" }, { x: 0, y: 0.42, z: -0.4, w: 0.12, h: 0.14, d: 0.06, color: "#efe6d2" }],
+    head: [{ x: 0, y: 0.62, z: 0.36, w: 0.14, h: 0.3, d: 0.14, color: "#a67a4c" }, { x: 0, y: 0.86, z: 0.44, w: 0.16, h: 0.14, d: 0.24, color: "#a67a4c" }, { x: -0.08, y: 1, z: 0.4, w: 0.03, h: 0.18, d: 0.03, color: "#d8c7a0" }, { x: 0.08, y: 1, z: 0.4, w: 0.03, h: 0.18, d: 0.03, color: "#d8c7a0" }, { x: -0.12, y: 1.12, z: 0.4, w: 0.1, h: 0.03, d: 0.03, color: "#d8c7a0" }, { x: 0.12, y: 1.12, z: 0.4, w: 0.1, h: 0.03, d: 0.03, color: "#d8c7a0" }],
+    collar: null
+  },
+  boar: {
+    legs: { h: 0.22, w: 0.1, x: 0.16, z: 0.26, color: "#3f3226" },
+    body: [{ x: 0, y: 0.2, z: 0, w: 0.5, h: 0.42, d: 0.86, color: "#5d4a36" }, { x: 0, y: 0.62, z: 0.02, w: 0.14, h: 0.08, d: 0.6, color: "#3f3226" }],
+    head: [{ x: 0, y: 0.26, z: 0.48, w: 0.34, h: 0.3, d: 0.24, color: "#5d4a36" }, { x: 0, y: 0.3, z: 0.66, w: 0.18, h: 0.14, d: 0.12, color: "#b89078" }, { x: -0.12, y: 0.32, z: 0.66, w: 0.04, h: 0.12, d: 0.04, color: "#f1ead6" }, { x: 0.12, y: 0.32, z: 0.66, w: 0.04, h: 0.12, d: 0.04, color: "#f1ead6" }],
+    collar: null
+  }
+};
+function carcassParts(kind, share) {
+  const look = animalLooks[kind], s = 0.5 + 0.5 * Math.max(0, Math.min(1, share)), b = look.body[0];
+  return [{ x: -b.h * 0.6, y: 0, z: -b.d * s / 2, w: b.h * 1.2, h: b.w * 0.55, d: b.d * s, color: b.color }, { x: -0.08, y: 0, z: b.d * s / 2, w: 0.16, h: 0.12, d: 0.16, color: look.head[0].color }];
+}
+function createAnimalRig(T, kind, player, box2, material) {
+  const look = animalLooks[kind], root = new T.Group();
+  root.name = `animal-${kind}`;
+  const body = new T.Group();
+  root.add(body);
+  const part = (parent, p) => {
+    const m = new T.Mesh(box2(p.w, p.h, p.d), material(p.color));
+    m.position.set(p.x, p.y, p.z);
+    m.castShadow = true;
+    parent.add(m);
+    return m;
+  };
+  for (const p of look.body) part(body, p);
+  const head = new T.Group();
+  head.position.set(0, 0, 0);
+  body.add(head);
+  for (const p of look.head) part(head, p);
+  if (look.collar && (player === 0 || player === 1)) part(body, { x: 0, y: look.collar.y, z: look.collar.z, w: 0.46, h: 0.08, d: 0.08, color: player === 0 ? "#45728c" : "#b25441" });
+  const legs = [];
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const leg = new T.Group();
+    leg.position.set(sx * look.legs.x, look.legs.h, sz * look.legs.z);
+    root.add(leg);
+    legs.push(leg);
+    part(leg, { x: 0, y: -look.legs.h, z: 0, w: look.legs.w, h: look.legs.h, d: look.legs.w, color: look.legs.color });
+  }
+  function pose(kind2, time) {
+    const t = Number.isFinite(time) ? Math.max(0, time) : 0, swing = kind2 === "walk" ? Math.sin(t * 0.016) * 0.45 : 0;
+    legs.forEach((leg, i) => {
+      leg.rotation.x = (i === 0 || i === 3 ? 1 : -1) * swing;
+    });
+    const graze = kind2 === "idle" ? Math.max(0, Math.sin(t * 17e-4)) * 0.35 : 0, lunge = kind2 === "attack" ? Math.max(0, Math.sin(t * 0.012)) * 0.18 : 0;
+    head.rotation.x = graze;
+    body.position.z = lunge;
+    body.rotation.x = kind2 === "hit" && t < 300 ? -0.2 * Math.sin(Math.PI * t / 300) : 0;
+    root.rotation.z = 0;
+  }
+  return { root, sockets: { leftHand: new T.Group(), rightHand: new T.Group() }, equip: (_) => {
+  }, dress: (_) => {
+  }, pose };
+}
+
+// packages/sim/fauna.ts
+var animalKinds = ["sheep", "deer", "boar"];
+var isAnimal = (kind) => animalKinds.includes(kind);
+var animalRules = {
+  provenance: "design_default",
+  // Food in the carcass; which resource kind the carcass is (sheep herd, the others hunt).
+  food: { sheep: 100, deer: 140, boar: 340 },
+  carcass: { sheep: "livestock", deer: "hunt", boar: "hunt" },
+  // A sheep belongs to the only player with a unit (other than an animal) within captureRange; with both sides near it
+  // keeps its owner. An owned sheep lets its owner see a little ground round it (visionRules.sheepRadius).
+  captureRange: 200,
+  // A struck deer runs fleeDistance away from the hunter; a struck boar charges its attacker (combatRules.units.boar).
+  fleeDistance: 350,
+  boarLeash: 700,
+  // Villager hunting: damage per strike, ticks between strikes, reach (Chebyshev, to the animal's centre).
+  hunt: { damage: 3, cooldown: 30, range: { sheep: 50, deer: 150, boar: 150 } },
+  // A carcass loses one food every decayTicks, whether or not anyone is working it.
+  decayTicks: 100,
+  // Villagers stand this close (Chebyshev) to a carcass or a shore fish to work it.
+  pointReach: 100,
+  fishReach: 150,
+  // Ids of animals start here, apart from player units, so trained units keep the ids they always had.
+  firstId: 900001
+};
+
 // apps/web/rig-roles.ts
 function roleOf(kind) {
   return kind === "militia" ? "swordsman" : kind === "archer" ? "archer" : kind === "scout" ? "cavalry" : kind === "monk" ? "monk" : "villager";
@@ -1136,6 +1228,12 @@ function blockedTable(map) {
   }
   return t.table;
 }
+function nodesNear(map, box2, pad) {
+  const side = sideOf(map), out = [];
+  const x0 = Math.max(0, Math.ceil((box2[0] - pad - 50) / 50)), x1 = Math.min(side - 1, Math.floor((box2[2] + pad - 50) / 50)), y0 = Math.max(0, Math.ceil((box2[1] - pad - 50) / 50)), y1 = Math.min(side - 1, Math.floor((box2[3] + pad - 50) / 50));
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) out.push(y * side + x);
+  return out;
+}
 var sideOf = (map) => map.size * 2 - 1;
 var nodeTotal = (map) => sideOf(map) ** 2;
 function makeMap(seed, layout = "meadow") {
@@ -1182,21 +1280,23 @@ function generateCandidate(seed, layout) {
       map.tiles[tileAt(o.x, o.y, map.size)].resourceRefs.push(id);
     }
   });
-  const addResource = (kind, x, y) => {
-    const id = `resource-${kind}-${x}-${y}`, capacity = terrainRules.resourceCapacity[kind], obstacleId = kind === "fish" ? null : `obstacle-${kind}-${x}-${y}`;
-    if (obstacleId && kind !== "fish") {
-      map.obstacles.push({ id: obstacleId, kind, x, y });
-      map.tiles[tileAt(x, y, map.size)].obstacleRefs.push(obstacleId);
-    }
-    map.resources.push({ id, kind, x, y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId, depletedAt: null });
+  const addFish = (x, y) => {
+    const id = `resource-fish-${x}-${y}`, capacity = terrainRules.resourceCapacity.fish;
+    map.resources.push({ id, kind: "fish", x, y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: null, depletedAt: null });
     map.tiles[tileAt(x, y, map.size)].resourceRefs.push(id);
   };
-  for (const x of [300, 1200]) addResource("livestock", x, 900);
-  for (const x of [500, 1e3]) addResource("hunt", x, 1e3);
-  if (layout === "coast") for (const x of [300, 1200]) addResource("fish", x, 1450);
-  if (layout === "acceptance") for (const y of [300, 1200]) addResource("fish", 800, y);
+  if (layout === "coast") for (const x of [300, 1200]) addFish(x, (12 + (seed >>> 0 >>> Math.floor(x / 400) & 1)) * 100 + 50);
+  if (layout === "acceptance") for (const y of [300, 1200]) addFish(800, y);
   for (let i = 0; i < nodeTotal(map); i++) if (!clearSegment(map, position(map, i), position(map, i))) map.blocked.push(i);
+  map.animals = [];
+  [300, 1200].forEach((x, player) => flock(map, "sheep", x + 25, 925, 4, 200, player));
+  for (const x of [500, 1e3]) flock(map, "deer", x + 25, 1025, 4);
   return map;
+}
+function flock(map, kind, x, y, count, within = 200, owner) {
+  const closed = blockedTable(map), taken = new Set([...map.starts.flat(), ...map.scouts ?? [], ...map.animals ?? []].map((p) => nodeAt(map, p)));
+  const nodes = nodesNear(map, [x, y, x, y], within).filter((n) => !closed[n] && !taken.has(n)).map((n) => ({ n, d: Math.abs(position(map, n).x - x) + Math.abs(position(map, n).y - y) })).sort((a, b) => a.d - b.d || a.n - b.n);
+  for (const { n } of nodes.slice(0, count)) (map.animals ??= []).push({ kind, ...position(map, n), ...owner === void 0 ? {} : { owner } });
 }
 var openMapRules = {
   provenance: "design_default",
@@ -1216,7 +1316,10 @@ var openMapRules = {
   borderClearance: 750,
   neutral: { gold: 2, rock: 2 },
   neutralRadius: 650,
-  dirtPatches: 7
+  dirtPatches: 7,
+  // Animals per base (kit flock, kit herd, a boar and two more sheep farther out) and the shared pond.
+  animals: { sheep: 4, deer: 3, boarDistance: 950, farSheepDistance: 1050 },
+  pond: { size: 3, baseDistance: 1100, fairness: 300 }
 };
 function generateOpen(seed) {
   let rng = seed || 1;
@@ -1249,13 +1352,15 @@ function generateOpen(seed) {
   const free = (tx, ty) => tx >= 1 && ty >= 1 && tx < size - 1 && ty < size - 1 && !taken.has(ty * size + tx) && !aprons.some((b) => tx * 100 + 100 > b[0] && tx * 100 < b[2] && ty * 100 + 100 > b[1] && ty * 100 < b[3]);
   const offset = { tree: 12, gold: 15, rock: 15, berries: 15, livestock: 15, hunt: 15 };
   const animals = [];
+  let kitOwner = -1;
   const put = (kind, tx, ty) => {
     taken.add(ty * size + tx);
     const x = tx * 100 + offset[kind], y = ty * 100 + offset[kind];
-    if (kind === "hunt" || kind === "livestock") animals.push({ kind, x, y });
+    if (kind === "hunt" || kind === "livestock") animals.push({ kind, x: tx * 100 + 50, y: ty * 100 + 50, base: kitOwner });
     else obstacles.push({ kind, x, y });
   };
-  centres.forEach((c) => {
+  centres.forEach((c, player) => {
+    kitOwner = player;
     for (const item of R.kit) {
       let placed = false;
       const d = Math.hypot(item.dx, item.dy), base = Math.atan2(item.dy, item.dx);
@@ -1307,6 +1412,8 @@ function generateOpen(seed) {
       obstacles.push({ kind: "tree", x: tx * 100 + 12, y: ty * 100 + 12 });
     }
   }
+  const pond = placePond(seed, size, taken, centres);
+  for (const t of pond) Object.assign(tiles[t], { terrainType: "water", ...terrainDefinitions.water });
   const map = { size, starts, scouts, obstacles, blocked: [], tiles, resources: [], navigationRevision: 0, generationAttempt: 0 };
   obstacles.forEach((o, index) => {
     o.id = `obstacle-${index}`;
@@ -1318,15 +1425,44 @@ function generateOpen(seed) {
       map.tiles[tileAt(o.x, o.y, size)].resourceRefs.push(id);
     }
   });
-  for (const { kind, x, y } of animals) {
-    const id = `resource-${kind}-${x}-${y}`, capacity = terrainRules.resourceCapacity[kind], obstacleId = `obstacle-${kind}-${x}-${y}`;
-    map.obstacles.push({ id: obstacleId, kind, x, y });
-    map.tiles[tileAt(x, y, size)].obstacleRefs.push(obstacleId);
-    map.resources.push({ id, kind, x, y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId, depletedAt: null });
-    map.tiles[tileAt(x, y, size)].resourceRefs.push(id);
+  if (pond.length) {
+    const [t0] = pond, tx = t0 % size, ty = Math.floor(t0 / size);
+    for (const [dx, dy] of [[1, 0], [0, 1], [2, 1], [1, 2]]) {
+      const x = (tx + dx) * 100 + 50, y = (ty + dy) * 100 + 50, id = `resource-fish-${x}-${y}`, capacity = terrainRules.resourceCapacity.fish;
+      map.resources.push({ id, kind: "fish", x, y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: null, depletedAt: null });
+      map.tiles[tileAt(x, y, size)].resourceRefs.push(id);
+    }
   }
   for (let i = 0; i < nodeTotal(map); i++) if (!clearSegment(map, position(map, i), position(map, i))) map.blocked.push(i);
+  map.animals = [];
+  for (const { kind, x, y, base } of animals) kind === "livestock" ? flock(map, "sheep", x, y, R.animals.sheep, 200, base) : flock(map, "deer", x, y, R.animals.deer);
+  centres.forEach((c) => {
+    const away = Math.atan2(c.y - mid, c.x - mid);
+    for (const [kind, d, turn, count] of [["boar", R.animals.boarDistance, 0.9, 1], ["sheep", R.animals.farSheepDistance, -1.1, 2]]) flock(map, kind, Math.min(world - 150, Math.max(150, Math.round(c.x + Math.cos(away + turn) * d))), Math.min(world - 150, Math.max(150, Math.round(c.y + Math.sin(away + turn) * d))), count, 250);
+  });
   return map;
+}
+function placePond(seed, size, taken, centres) {
+  const R = openMapRules.pond, spots = [];
+  for (let ty = 2; ty + R.size + 1 < size - 1; ty++) for (let tx = 2; tx + R.size + 1 < size - 1; tx++) {
+    const c = { x: (tx + R.size / 2) * 100, y: (ty + R.size / 2) * 100 }, [d0, d1] = centres.map((p) => Math.hypot(p.x - c.x, p.y - c.y));
+    if (Math.min(d0, d1) < R.baseDistance || Math.abs(d0 - d1) > R.fairness) continue;
+    let clear = true;
+    for (let y = ty - 1; y <= ty + R.size && clear; y++) for (let x = tx - 1; x <= tx + R.size; x++) if (taken.has(y * size + x)) {
+      clear = false;
+      break;
+    }
+    if (clear) spots.push(ty * size + tx);
+  }
+  if (!spots.length) return [];
+  let n = (seed ^ 2654435769) >>> 0 || 1;
+  n ^= n << 13;
+  n ^= n >>> 17;
+  n ^= n << 5;
+  n >>>= 0;
+  const t0 = spots[n % spots.length], out = [];
+  for (let dy = 0; dy < R.size; dy++) for (let dx = 0; dx < R.size; dx++) out.push(t0 + dy * size + dx);
+  return out;
 }
 var buildingKinds = /* @__PURE__ */ new Set(["house", "town-center", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery"]);
 function isBuilding(o) {
@@ -1400,7 +1536,7 @@ function validateMap(map) {
     if (r.obstacleId && !obstacles.has(r.obstacleId)) errors.push(`\u8CC7\u6E90 ${r.id} \u969C\u7919\u53C3\u7167\u5931\u6548`);
     if (!map.tiles[tileAt(r.x, r.y, map.size)]?.resourceRefs.includes(r.id)) errors.push(`\u8CC7\u6E90 ${r.id} \u5730\u683C\u53C3\u7167\u5931\u6548`);
   }
-  const spawns = [...map.starts.flat(), ...map.scouts ?? []];
+  const spawns = [...map.starts.flat(), ...map.scouts ?? [], ...map.animals ?? []];
   if (spawns.some((p) => !clearSegment(map, p, p))) errors.push("\u51FA\u751F\u9EDE\u4E0D\u53EF\u901A\u884C");
   else {
     const job = createPathJob(map, 0, map.starts[0][0], map.starts[1][0]);
@@ -1412,6 +1548,10 @@ function validateMap(map) {
 function position(map, id) {
   const side = sideOf(map);
   return { x: 50 + id % side * 50, y: 50 + Math.floor(id / side) * 50 };
+}
+function nodeAt(map, p) {
+  const side = sideOf(map), x = (p.x - 50) / 50, y = (p.y - 50) / 50;
+  return Number.isInteger(x) && Number.isInteger(y) && x >= 0 && x < side && y >= 0 && y < side ? y * side + x : -1;
 }
 function validateStartingResources(map) {
   const errors = [];
@@ -1683,6 +1823,12 @@ async function createScene(canvas2, onFailure, options = {}) {
         brick(x + 0.15, z + 0.15, 0.3, 0.35, 0.4, 0.18, o.kind === "gold" ? "#dec36f" : "#b8b39c", false);
       }
     }
+    for (const resource of map.resources ?? []) if ((resource.kind === "hunt" || resource.kind === "livestock") && !resource.obstacleId && resource.status === "available") {
+      const kind = Object.keys(animalRules.food).find((k) => animalRules.food[k] === resource.capacity) ?? "sheep";
+      baseHeight = groundHeight(map.tiles, resource.x, resource.y) / 100;
+      muted = false;
+      for (const p of carcassParts(kind, resource.remaining / resource.capacity)) brick(resource.x / 100 + p.x, resource.y / 100 + p.z, p.y, p.w, p.d, p.h, p.color, false);
+    }
     for (const resource of map.resources ?? []) if (resource.kind === "fish" && resource.status === "available") {
       const x = resource.x / 100, z = resource.y / 100;
       baseHeight = groundHeight(map.tiles, resource.x, resource.y) / 100;
@@ -1728,17 +1874,19 @@ async function createScene(canvas2, onFailure, options = {}) {
   function unit(id, player, kind = "villager") {
     const group = new T.Group();
     scene2.add(group);
-    const bar = new T.Group();
-    bar.position.y = 1.42;
+    const beast = isAnimal(kind), bar = new T.Group();
+    bar.position.y = beast ? kind === "deer" ? 1.3 : 0.95 : 1.42;
     bar.visible = false;
     const back = new T.Mesh(barGeo, barBack);
-    const fill = new T.Mesh(barGeo, new T.MeshBasicMaterial({ color: player === 0 ? "#5f9a6a" : "#c0604c" }));
+    const fill = new T.Mesh(barGeo, new T.MeshBasicMaterial({ color: player === 0 ? "#5f9a6a" : player === 1 ? "#c0604c" : "#c9b27a" }));
     fill.position.z = 0.012;
     bar.add(back, fill);
     group.add(bar);
-    const rig = createCharacterRig(T, player, box2, material);
-    if (!options.assetPreview && kind !== "villager") rig.dress(roleOf(kind));
-    rig.equip(previewTool);
+    const rig = beast ? createAnimalRig(T, kind, player, box2, material) : createCharacterRig(T, player, box2, material);
+    if (!beast) {
+      if (!options.assetPreview && kind !== "villager") rig.dress(roleOf(kind));
+      rig.equip(previewTool);
+    }
     group.add(rig.root);
     detail.apply(group, zoom);
     const ring = new T.Mesh(ringGeo, ringMaterial);
@@ -1813,10 +1961,11 @@ async function createScene(canvas2, onFailure, options = {}) {
       u.goal = goal;
       u.ring.visible = selected2.has(data.id);
       u.moving = data.navigation === "moving";
-      if (!options.assetPreview && (data.work === "gathering" || data.action === 1) && !u.moving && data.target) u.group.rotation.y = Math.atan2(data.target.x / 100 - u.group.position.x, data.target.y / 100 - u.group.position.z);
+      if (!options.assetPreview && (data.work === "gathering" || data.work === "hunting" || data.action === 1) && !u.moving && data.target) u.group.rotation.y = Math.atan2(data.target.x / 100 - u.group.position.x, data.target.y / 100 - u.group.position.z);
       if (!options.assetPreview) {
-        const gathering = data.work === "gathering" && !u.moving, activity2 = u.moving ? data.cargo ? "carry" : "walk" : gathering || data.rite ? "work" : "idle";
-        const weapon = data.kind === "militia" ? "sword" : data.kind === "archer" ? "bow" : data.kind === "scout" ? "spear" : data.kind === "monk" ? "staff" : "none", tool = data.cargo && activity2 !== "work" ? "basket" : gathering ? { wood: "axe", stone: "pick", gold: "pick", food: "basket" }[data.workResource ?? "food"] : weapon;
+        const gathering = (data.work === "gathering" || data.work === "hunting") && !u.moving, activity2 = u.moving ? data.cargo ? "carry" : "walk" : gathering || data.rite ? "work" : "idle";
+        const source = data.work === "gathering" && data.target ? view.resources.find((r) => r.x === data.target.x && r.y === data.target.y && !r.obstacleId) : void 0, food = data.work === "hunting" || source?.kind === "fish" ? "spear" : source ? "sickle" : "basket";
+        const weapon = data.kind === "militia" ? "sword" : data.kind === "archer" ? "bow" : data.kind === "scout" ? "spear" : data.kind === "monk" ? "staff" : "none", tool = data.cargo && activity2 !== "work" ? "basket" : gathering ? { wood: "axe", stone: "pick", gold: "pick", food }[data.workResource ?? "food"] : weapon;
         if (tool !== u.tool) {
           u.rig.equip(tool);
           u.tool = tool;
@@ -2064,6 +2213,14 @@ async function createScene(canvas2, onFailure, options = {}) {
       s.remove(g);
     };
     try {
+      for (const kind of ["sheep", "deer", "boar"]) {
+        const rig = createAnimalRig(T, kind, 0, box2, material);
+        rig.pose("idle", 0);
+        const g = new T.Group();
+        g.add(rig.root);
+        shoot(kind, g, { angle: Math.PI / 3, lift: 0.35 });
+        shoot(`${kind}-face`, g, { angle: Math.PI / 3, lift: 0.35 });
+      }
       for (const kind of ["villager", "militia", "archer", "scout", "monk"]) {
         const rig = createCharacterRig(T, 0, box2, material);
         if (kind !== "villager") rig.dress(roleOf(kind));
@@ -2250,10 +2407,21 @@ async function createScene(canvas2, onFailure, options = {}) {
 }
 
 // packages/sim/vision.ts
-var visionRules = { provenance: "design_default", unitRadius: 400, scoutRadius: 550, houseRadius: 300, townCenterRadius: 600, shareVision: false, rememberStaticObjects: true };
+var visionRules = { provenance: "design_default", unitRadius: 400, scoutRadius: 550, sheepRadius: 200, houseRadius: 300, townCenterRadius: 600, shareVision: false, rememberStaticObjects: true };
 
 // packages/sim/economy.ts
-var economyRules = { provenance: "design_default", initialStock: { food: 200, wood: 200, gold: 100, stone: 100 }, populationCap: rules.settings.populationCap, cancellationRefundPercent: 100, carryCapacity: 10, gatherTicks: { food: 20, wood: 20, gold: 25, stone: 25 }, workReach: 50, dropoffReach: 50 };
+var economyRules = {
+  provenance: "design_default",
+  initialStock: { food: 200, wood: 200, gold: 100, stone: 100 },
+  populationCap: rules.settings.populationCap,
+  cancellationRefundPercent: 100,
+  carryCapacity: 10,
+  gatherTicks: { food: 20, wood: 20, gold: 25, stone: 25 },
+  // Faster food sources (after the reference's order: hunters and fishers outpace foragers; values design_default).
+  sourceTicks: { hunt: 15, livestock: 18, fish: 14 },
+  workReach: 50,
+  dropoffReach: 50
+};
 
 // packages/sim/stats.ts
 var combatRules = {
@@ -2267,18 +2435,22 @@ var combatRules = {
     // The scout scouts; it attacks only on an explicit order.
     scout: { hp: 45, damage: 3, range: 50, cooldown: 40, sight: 0 },
     // Monk: hit points 30 as in the reference; no attack (converts and heals instead, see religion.ts).
-    monk: { hp: 30, damage: 0, range: 0, cooldown: 0, sight: 0 }
+    monk: { hp: 30, damage: 0, range: 0, cooldown: 0, sight: 0 },
+    // Animals (fauna.ts): sheep and deer never fight; a boar only strikes back at whoever hunts it.
+    sheep: { hp: 7, damage: 0, range: 0, cooldown: 0, sight: 0 },
+    deer: { hp: 5, damage: 0, range: 0, cooldown: 0, sight: 0 },
+    boar: { hp: 75, damage: 8, range: 50, cooldown: 40, sight: 0 }
   },
   buildings: { "town-center": 400, house: 150, barracks: 300, farm: 100, "lumber-camp": 200, "mining-camp": 200, mill: 200, stable: 300, "archery-range": 300, monastery: 350 },
   corpseTicks: 40,
   hitFlashTicks: 6,
   // Movement per tick; every value divides the 50-unit node spacing, so a unit always lands exactly on its node.
-  speed: { villager: 5, militia: 5, archer: 5, scout: 10, monk: 5 }
+  speed: { villager: 5, militia: 5, archer: 5, scout: 10, monk: 5, sheep: 5, deer: 10, boar: 5 }
 };
 
 // packages/sim/movement.ts
 var navigationStates = ["idle", "searching", "moving", "waiting", "unreachable", "stuck"];
-var unitKinds = ["villager", "militia", "archer", "scout", "monk"];
+var unitKinds = ["villager", "militia", "archer", "scout", "monk", "sheep", "deer", "boar"];
 
 // packages/sim/buildings.ts
 var buildKinds = ["house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery"];
@@ -2316,7 +2488,7 @@ function buildRequirement(age, kind, own) {
 }
 
 // packages/sim/work.ts
-var workPhases = ["none", "toSource", "gathering", "toDropoff", "toSite", "building"];
+var workPhases = ["none", "toSource", "gathering", "toDropoff", "toSite", "building", "hunting"];
 var dropoffRules = { provenance: "design_default", accepts: { "town-center": ["food", "wood", "gold", "stone"], "lumber-camp": ["wood"], "mining-camp": ["gold", "stone"], mill: ["food"] } };
 
 // packages/sim/production.ts
@@ -2382,6 +2554,10 @@ var aiRules = {
   ageUpAtVillagers: 9,
   waveSize: 5,
   firstWaveTick: 4800,
+  herdRadius: 450,
+  penSize: 3,
+  wildFoodWorkers: 6,
+  wildRange: 650,
   engageRange: 500,
   defendRadius: 700,
   baseMargin: 50,
@@ -2408,7 +2584,7 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, religion: religionRules, simulationVersion: 22 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, religion: religionRules, animals: animalRules, simulationVersion: 23 });
 
 // packages/sim/protocol.ts
 var UNIT_STRIDE = 18;
@@ -2515,7 +2691,7 @@ var debug = new URLSearchParams(location.search).has("debug");
 el("debug").hidden = !debug;
 var state = { seed: rules.settings.seed, layout: debug ? "meadow" : "open", size: debug ? 16 : 32, opponent: debug ? "idle" : "ai", terrain: [], tick: 0, units: [], corpses: [], outcome: null, economy: { stock: { food: 0, wood: 0, gold: 0, stone: 0 }, populationUsed: 0, populationReserved: 0, populationCap: 0, age: 1, techs: [] }, buildings: [], transactions: [], fog: [], known: [], resources: [], stateHash: "\u2014", relicSpots: [], relicsHeld: [0, 0], relicTotal: 0, relicVictory: null };
 var resourceNames = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
-var workLabel = { toSource: "\u524D\u5F80\u63A1\u96C6", gathering: "\u63A1\u96C6\u4E2D", toDropoff: "\u9001\u8FD4\u57CE\u93AE\u4E2D\u5FC3", toSite: "\u524D\u5F80\u5DE5\u5730", building: "\u65BD\u5DE5\u4E2D" };
+var workLabel = { toSource: "\u524D\u5F80\u63A1\u96C6", gathering: "\u63A1\u96C6\u4E2D", toDropoff: "\u9001\u8FD4\u57CE\u93AE\u4E2D\u5FC3", toSite: "\u524D\u5F80\u5DE5\u5730", building: "\u65BD\u5DE5\u4E2D", hunting: "\u72E9\u7375\u4E2D" };
 var buildingNames2 = { house: "\u4F4F\u5B85", barracks: "\u5175\u71DF", farm: "\u8FB2\u7530", "lumber-camp": "\u4F10\u6728\u5834", "mining-camp": "\u63A1\u7926\u5834", mill: "\u78E8\u574A", stable: "\u99AC\u5EC4", "archery-range": "\u9776\u5834", monastery: "\u4FEE\u9053\u9662", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
 var homeKinds = /* @__PURE__ */ new Set(["house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "town-center"]);
 var layoutNames = { meadow: "\u8349\u7538", coast: "\u6D77\u5CB8", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058", open: "\u66E0\u91CE" };
@@ -2698,9 +2874,12 @@ async function deposit(monkIds, buildingId) {
   }
 }
 async function attack(target, label) {
-  const unitIds = [...selected].filter((id) => state.units.find((u) => u.id === id)?.kind !== "monk").sort((a, b) => a - b);
+  const unitIds = [...selected].filter((id) => {
+    const k = state.units.find((u) => u.id === id)?.kind;
+    return k !== "monk" && !isAnimal(k ?? "");
+  }).sort((a, b) => a - b);
   if (!unitIds.length) {
-    notice(selected.size ? "\u50E7\u4FB6\u4E0D\u80FD\u653B\u64CA\uFF1A\u53F3\u9375\u6575\u65B9\u55AE\u4F4D\u6539\u70BA\u8F49\u5316\u3002" : "\u8ACB\u5148\u9078\u53D6\u55AE\u4F4D\u3002");
+    notice(selected.size ? "\u50E7\u4FB6\u8207\u7272\u755C\u4E0D\u80FD\u653B\u64CA\uFF1A\u53F3\u9375\u6575\u65B9\u55AE\u4F4D\u6539\u70BA\u8F49\u5316\u3002" : "\u8ACB\u5148\u9078\u53D6\u55AE\u4F4D\u3002");
     return;
   }
   try {
@@ -2711,6 +2890,16 @@ async function attack(target, label) {
     notice(reason(e));
   }
 }
+async function hunt(unitIds, animal) {
+  try {
+    await client.request({ kind: "hunt", unitIds, animalId: animal.id });
+    audio.play("order");
+    notice(`${names2(unitIds)} ${animal.kind === "sheep" ? "\u524D\u5F80\u5BB0\u7F8A" : `\u524D\u5F80\u7375${unitNames[animal.kind]}`}${animal.kind === "boar" ? "\uFF08\u91CE\u8C6C\u6703\u53CD\u64CA\uFF0C\u591A\u6D3E\u5E7E\u540D\u6751\u6C11\uFF09" : ""}\u3002${leftOut(unitIds)}${running ? "" : resumeHint()}`);
+  } catch (e) {
+    notice(reason(e));
+  }
+}
+var animalNote = (a) => a.kind === "sheep" ? a.player === 1 ? "\u7D05\u65B9\u7684\u7F8A\uFF1A\u8B93\u4F60\u7684\u55AE\u4F4D\u9760\u8FD1\u3001\u7D05\u65B9\u7684\u55AE\u4F4D\u96E2\u958B\uFF0C\u5C31\u80FD\u6436\u904E\u4F86\u3002" : "\u9084\u6C92\u6709\u4E3B\u4EBA\u7684\u7F8A\uFF1A\u6D3E\u4EFB\u4F55\u55AE\u4F4D\u8D70\u5230\u7260\u65C1\u908A\u5C31\u6B78\u4F60\u3002" : `\u91CE\u751F\u7684${unitNames[a.kind]}\uFF1A\u9078\u53D6\u6751\u6C11\u5F8C\u53F3\u9375\u7260\u72E9\u7375${a.kind === "boar" ? "\uFF08\u6703\u53CD\u64CA\uFF09" : "\uFF08\u53D7\u9A5A\u6703\u9003\uFF09"}\u3002`;
 function enemyBuildingAt(x, y, id) {
   if (id) {
     const o = state.known.map((k) => k.obstacle).find((o2) => o2.id === id && o2.red);
@@ -2762,11 +2951,11 @@ var costOf = (k) => entryOf2(k).cost;
 var costText = (k) => Object.entries(costOf(k)).filter(([, v]) => v > 0).map(([r, v]) => `${resourceNames[r]} ${v}`).join("\u3001");
 var entryName = (k) => entryOf2(k)?.name ?? k;
 var ageNames = ["", "\u7B2C\u4E00\u6642\u4EE3", entryName("age-2"), entryName("age-3"), entryName("age-4")];
-var unitNames = { villager: "\u6751\u6C11", militia: "\u8FD1\u6230\u6C11\u5175", archer: "\u5F13\u624B", scout: "\u65A5\u5019", monk: "\u50E7\u4FB6" };
+var unitNames = { villager: "\u6751\u6C11", militia: "\u8FD1\u6230\u6C11\u5175", archer: "\u5F13\u624B", scout: "\u65A5\u5019", monk: "\u50E7\u4FB6", sheep: "\u7F8A", deer: "\u9E7F", boar: "\u91CE\u8C6C" };
 var villagersIn = (ids) => [...ids].filter((id) => state.units.find((u) => u.id === id)?.kind === "villager").sort((a, b) => a - b);
 var leftOut = (ids) => {
   const n = selected.size - ids.length;
-  return n > 0 ? `\uFF08${n} \u540D\u58EB\u5175\u4E0D\u80FD\u63A1\u96C6\u6216\u5EFA\u9020\uFF0C\u672A\u6D3E\u51FA\uFF09` : "";
+  return n > 0 ? `\uFF08\u5176\u9918 ${n} \u500B\u9078\u53D6\u55AE\u4F4D\u4E0D\u662F\u6751\u6C11\uFF0C\u672A\u6D3E\u51FA\uFF09` : "";
 };
 function buildBlocker(k) {
   if (!villagersIn(selected).length) return "\u5148\u9078\u53D6\u6751\u6C11";
@@ -2825,7 +3014,7 @@ function renderSelection() {
     const u = chosen[0], stats = combatRules.units[u.kind];
     setImg(el("unit-portrait"), `${u.kind}-face`);
     el("unit-name").textContent = unitNames[u.kind];
-    el("unit-owner").textContent = `\u85CD\u65B9 \xB7 #${u.id}`;
+    el("unit-owner").textContent = isAnimal(u.kind) ? "\u85CD\u65B9\u7684\u7272\u755C" : `\u85CD\u65B9 \xB7 #${u.id}`;
     el("unit-hp").textContent = `${u.hp}/${u.maxHp}`;
     el("unit-hp-bar").style.width = `${Math.max(0, u.hp) * 100 / Math.max(1, u.maxHp)}%`;
     const facts = `${u.faith ?? ""}|\u653B\u64CA ${stats.damage}|${stats.range <= 50 ? "\u8FD1\u6230" : `\u5C04\u7A0B ${stats.range / 100} \u683C`}|${u.cargo ? `${u.cargo.resource}:${u.cargo.amount}` : ""}`;
@@ -2845,7 +3034,10 @@ function renderSelection() {
         box2.append(s);
         return s;
       };
-      if (u.kind === "monk") {
+      if (isAnimal(u.kind)) {
+        add(`\u98DF\u7269 ${animalRules.food[u.kind]}`, "food");
+        add(u.kind === "sheep" ? "\u53F3\u9375\u5730\u9762\u53EF\u8D95\u5230\u5225\u8655" : u.kind === "boar" ? "\u6703\u53CD\u64CA\u7375\u4EBA" : "\u53D7\u9A5A\u6703\u9003\u8DD1");
+      } else if (u.kind === "monk") {
         add(`\u8F49\u5316\u5C04\u7A0B ${religionRules.convertRange / 100} \u683C`);
         add(`\u4FE1\u4EF0 ${u.faith ?? 100}%`);
       } else {
@@ -2930,7 +3122,7 @@ function reportEvents() {
   previous = state;
   if (!before || state.tick <= before.tick || state.seed !== before.seed) return;
   const had = new Set(before.units.map((u) => u.id));
-  for (const u of ownUnits()) if (!had.has(u.id)) {
+  for (const u of ownUnits()) if (!had.has(u.id) && !isAnimal(u.kind)) {
     feed(`${unitNames[u.kind]}\u5DF2\u751F\u7522`);
     audio.play("trained");
   }
@@ -2953,6 +3145,14 @@ function reportEvents() {
   for (const u of state.units) {
     const was = side.get(u.id);
     if (was === void 0 || was === u.player) continue;
+    if (isAnimal(u.kind)) {
+      if (u.player === 0) feed(was === 1 ? "\u5F9E\u7D05\u65B9\u6436\u4F86\u4E00\u96BB\u7F8A" : "\u627E\u5230\u4E00\u96BB\u7F8A");
+      else if (was === 0) {
+        feed("\u4E00\u96BB\u7F8A\u88AB\u7D05\u65B9\u6436\u8D70", "alarm");
+        audio.play("alarm");
+      }
+      continue;
+    }
     if (u.player === 0) {
       feed(`\u8F49\u5316\u4E86\u7D05\u65B9${unitNames[u.kind]}`);
       audio.play("converted");
@@ -2983,11 +3183,12 @@ function reportEvents() {
   }
   const lastHp = new Map(before.units.map((u) => [u.id, u.hp]));
   if (state.units.some((u) => (lastHp.get(u.id) ?? u.hp) > u.hp)) audio.play("hit");
-  const hp = new Map([...before.units.filter((u) => u.player === 0).map((u) => [`u${u.id}`, u.hp]), ...before.buildings.map((b) => [`b${b.id}`, b.hp])]);
+  const hp = new Map([...before.units.filter((u) => u.player === 0 && !isAnimal(u.kind)).map((u) => [`u${u.id}`, u.hp]), ...before.buildings.map((b) => [`b${b.id}`, b.hp])]);
   const hurt = [...ownUnits().filter((u) => (hp.get(`u${u.id}`) ?? u.hp) > u.hp).map((u) => ({ x: u.x, y: u.y })), ...state.buildings.filter((b) => (hp.get(`b${b.id}`) ?? b.hp) > b.hp).map((b) => ({ x: b.x + 100, y: b.y + 100 }))];
+  const boar = hurt.length && state.units.some((u) => u.kind === "boar" && Math.max(Math.abs(u.x - hurt[0].x), Math.abs(u.y - hurt[0].y)) <= 100);
   if (hurt.length && state.tick - lastAlarm >= 10 * rules.settings.tickHz) {
     lastAlarm = state.tick;
-    feed("\u8B66\u544A\uFF1A\u4F60\u6B63\u5728\u88AB\u7D05\u65B9\u653B\u64CA\uFF01", "alarm");
+    feed(boar ? "\u8B66\u544A\uFF1A\u91CE\u8C6C\u6B63\u5728\u653B\u64CA\u4F60\u7684\u6751\u6C11\uFF01" : "\u8B66\u544A\uFF1A\u4F60\u6B63\u5728\u88AB\u7D05\u65B9\u653B\u64CA\uFF01", "alarm");
     audio.play("alarm");
     ping = { x: hurt[0].x / 100, z: hurt[0].y / 100, until: performance.now() + 3e3 };
     miniKey = "";
@@ -3340,7 +3541,7 @@ function resourceAt(x, y) {
   const p = { x: Math.round(x * 100), y: Math.round(y * 100) };
   return state.resources.find((r) => {
     const kind = r.kind === "stone" ? "rock" : r.kind;
-    if (r.kind === "fish") return Math.abs(p.x - r.x) <= 50 && Math.abs(p.y - r.y) <= 50;
+    if (r.kind === "fish" || !r.obstacleId) return Math.abs(p.x - r.x) <= 50 && Math.abs(p.y - r.y) <= 50;
     const [x0, y0, x1, y1] = obstacleBounds({ kind, x: r.x, y: r.y }, 10);
     return p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1;
   });
@@ -3464,6 +3665,18 @@ canvas.addEventListener("pointerdown", (e) => {
     }
     if (selected.size) {
       const u = scene.pick(e.clientX, e.clientY);
+      const beast = u.unitId !== void 0 ? state.units.find((v) => v.id === u.unitId && isAnimal(v.kind)) : void 0;
+      if (beast) {
+        const hunters = villagersIn(selected), fighters = [...selected].filter((id) => {
+          const k = state.units.find((v) => v.id === id)?.kind;
+          return !!k && k !== "villager" && k !== "monk" && !isAnimal(k);
+        });
+        scene.setMarker(beast.player === 0 && !hunters.length ? "move" : "attack", beast.x / 100, beast.y / 100);
+        if (hunters.length) void hunt(hunters, beast);
+        if (fighters.length && beast.player !== 0) void attack({ kind: "unit", id: beast.id }, unitNames[beast.kind]);
+        if (!hunters.length && !(fighters.length && beast.player !== 0)) void move(hit.x, hit.y);
+        return;
+      }
       const foe = u.unitId !== void 0 ? state.units.find((v) => v.id === u.unitId && v.player !== 0) : void 0;
       const monks = [...selected].filter((id) => state.units.find((u2) => u2.id === id)?.kind === "monk").sort((a, b) => a - b);
       if (foe) {
@@ -3534,7 +3747,7 @@ canvas.addEventListener("pointerup", (e) => {
   const d = drag;
   endDrag();
   if (d.box) {
-    const own = new Set(ownUnits().map((u) => u.id)), ids = scene.unitsInRect(d.x, d.y, e.clientX, e.clientY).filter((id) => own.has(id));
+    const own = new Set(ownUnits().map((u) => u.id)), boxed = scene.unitsInRect(d.x, d.y, e.clientX, e.clientY).filter((id) => own.has(id)), people = boxed.filter((id) => !isAnimal(state.units.find((u) => u.id === id)?.kind ?? "")), ids = people.length ? people : boxed;
     if (e.shiftKey) select([...selected, ...ids]);
     else select(ids);
     notice(ids.length ? `\u6846\u9078 ${ids.length} \u540D\u55AE\u4F4D\u3002\u5C0D\u5730\u9762\u6309\u53F3\u9375\u4E0B\u9054\u79FB\u52D5\u3002` : "\u6846\u5167\u6C92\u6709\u85CD\u65B9\u55AE\u4F4D\u3002");
@@ -3546,6 +3759,9 @@ canvas.addEventListener("pointerup", (e) => {
     if (unit?.player === 0) {
       if (e.shiftKey) toggle(unit.id);
       else choose(unit.id);
+    } else if (unit && isAnimal(unit.kind)) {
+      if (e.pointerType === "touch" && villagersIn(selected).length) void hunt(villagersIn(selected), unit);
+      else notice(animalNote(unit));
     } else notice("\u7D05\u65B9\u55AE\u4F4D\u4E0D\u53EF\u7531\u85CD\u65B9\u63A7\u5236\u3002");
     return;
   }
@@ -3642,15 +3858,22 @@ function drawMinimap() {
     if ((state.fog[Math.floor(o.y / 100) * state.size + Math.floor(o.x / 100)] ?? 0) < 2 && !home) ctx.fillStyle = shade(ctx.fillStyle, 0.6);
     quad(x0 / 100, y0 / 100, x1 / 100, y1 / 100);
   }
+  for (const r of state.resources) if (r.kind === "fish") {
+    const [px, py] = g.P(r.x / 100, r.y / 100);
+    ctx.fillStyle = "#d5e7de";
+    ctx.beginPath();
+    ctx.arc(px, py, 1.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
   for (const u of state.units) {
-    const [px, py] = g.P(u.x / 100, u.y / 100);
-    ctx.fillStyle = u.player === 0 ? selected.has(u.id) ? "#fff4c4" : "#7fb6dc" : "#ee7b5f";
+    const [px, py] = g.P(u.x / 100, u.y / 100), beast = isAnimal(u.kind), r = beast ? 1.5 : 2.2;
+    ctx.fillStyle = u.player === 0 ? selected.has(u.id) ? "#fff4c4" : "#7fb6dc" : u.player === 1 ? "#ee7b5f" : u.kind === "sheep" ? "#e7e2cc" : "#9b7552";
     ctx.strokeStyle = "#15201b";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.rect(px - 2.2, py - 2.2, 4.4, 4.4);
+    ctx.rect(px - r, py - r, 2 * r, 2 * r);
     ctx.fill();
-    ctx.stroke();
+    if (!beast) ctx.stroke();
   }
   for (const r of state.relicSpots) {
     const [px, py] = g.P(r.x / 100, r.y / 100);

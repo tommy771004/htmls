@@ -5,6 +5,7 @@ import type {State} from '../packages/sim/sim.ts';
 import {authoritativeProblem,buildingRules,placementProblem} from '../packages/sim/buildings.ts';
 import type {BuildKind} from '../packages/sim/buildings.ts';
 import {clearSegment} from '../packages/sim/navigation.ts';
+import {isAnimal} from '../packages/sim/fauna.ts';
 import {obstacleBounds} from '../packages/content/footprints.ts';
 function order(s:State,commandType:string,payload:any){submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:s.sequence[0]+1,targetTick:s.tick+1,commandType,payload} as any);}
 // First valid spot scanning outward from a point, deterministic.
@@ -51,7 +52,8 @@ test('cancelling a foundation refunds in full, frees the ground and stops the bu
  run(s,5);assert.equal(s.works[1],undefined);assert.throws(()=>order(s,'cancelBuild',{buildingId:b.id}),/找不到/);
 });
 test('a unit whose route crosses a new foundation reroutes and never steps inside it',()=>{
- const s=createState(260925);order(s,'move',{unitIds:[1],x:1200,y:1000});run(s,12);
+ // Animals are units the route may pass through (they are not the subject here): the fixture removes them.
+ const s=createState(260925);s.units=s.units.filter(u=>!isAnimal(u.kind));order(s,'move',{unitIds:[1],x:1200,y:1000});run(s,12);
  const route=[s.units[0].next??s.units[0].node,...s.units[0].path].map(n=>({x:50+(n%31)*50,y:50+Math.floor(n/31)*50}));
  // Put a house on a node of the planned route that is not currently occupied.
  let placed=null as null|{x:number;y:number};for(const p of route.slice(3)){for(const dy of [-200,-150,-100,-50,0])for(const dx of [-200,-150,-100,-50,0]){const x=p.x+dx,y=p.y+dy;if(!authoritativeProblem(s,0,'house',x,y)){placed={x,y};break;}}if(placed)break;}

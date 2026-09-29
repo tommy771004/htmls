@@ -9,7 +9,7 @@ const types={'.html':'text/html; charset=utf-8','.js':'text/javascript','.svg':'
 const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));if(!file.startsWith(root)||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',types[path.extname(file)]||'application/octet-stream');res.end(fs.readFileSync(file));});
 await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
 const world=createState(260925),find=kind=>world.map.resources.filter(r=>r.kind===kind).sort((a,b)=>Math.abs(a.x-400)+Math.abs(a.y-700)-(Math.abs(b.x-400)+Math.abs(b.y-700)))[0];
-const tree=find('tree'),berries=find('berries'),hunt=find('hunt');
+const tree=find('tree'),berries=find('berries'),deer=world.units.filter(u=>u.kind==='deer').sort((a,b)=>Math.abs(a.x-400)+Math.abs(a.y-700)-(Math.abs(b.x-400)+Math.abs(b.y-700))||a.id-b.id)[0];
 const browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1440,height:900}});const errors=[],external=[],log=[];
 const note=(step,detail)=>{log.push({step,detail});console.log(step,'|',detail);};
 page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('request',r=>{if(!r.url().startsWith(origin)&&!r.url().startsWith('data:')&&!r.url().startsWith('blob:'))external.push(r.url());});
@@ -33,8 +33,8 @@ await runUntil(()=>/木材 2[1-9]\d/.test(document.querySelector('#stock').textC
 const v3=await screen(4,.6,8);const pos3=await text('selection-list');const m3=/村民 3 \(([\d.]+), ([\d.]+)\)/.exec(pos3);p=await screen(+m3[1],.6,+m3[2]);await page.mouse.click(p.x,p.y);note('點選村民 3',await text('selected'));assert.equal(await text('selected'),'#03');
 p=await centre(berries,30,30);note('右鍵野果',await order(p,{button:'right'}));assert.match(await text('notice'),/村民 3 前往採集/);
 await runUntil(()=>/食物 2[1-9]\d/.test(document.querySelector('#stock').textContent),120000);note('食物送返',await text('stock'));
-// Hunting is not implemented: the order is refused with a reason, not faked.
-p=await centre(hunt,30,30);note('右鍵獵物',await order(p,{button:'right'}));assert.match(await text('notice'),/狩獵尚未實作/);
+// Hunting: a right-click on a deer sends the villager after it (it keeps the berries it carries: both are food).
+p=await screen(deer.x/100,.3,deer.y/100);note('右鍵鹿',await order(p,{button:'right'}));assert.match(await text('notice'),/村民 3 前往獵鹿/);
 // Stop keeps whatever is carried.
 await page.locator('#pause').click();await page.waitForFunction(()=>/攜帶/.test(document.querySelector('#position').textContent),undefined,{timeout:60000});await page.keyboard.press('KeyS');await page.locator('#pause').click();
 await page.locator('#pause').click();await page.waitForTimeout(700);await page.locator('#pause').click();note('停止後',await text('position'));assert.match(await text('position'),/待命 · 攜帶/);

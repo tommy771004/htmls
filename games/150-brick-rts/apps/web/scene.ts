@@ -6,6 +6,9 @@ import {monasteryParts} from './monastery-building.ts';
 import {relicParts} from './relic-model.ts';
 import {techIcons} from './tech-icons.ts';
 import {createCharacterRig} from './character-rig.ts';
+import {createAnimalRig,carcassParts} from './animal-rig.ts';
+import type {AnimalLook} from './animal-rig.ts';
+import {isAnimal,animalRules} from '../../packages/sim/fauna.ts';
 import {roleOf,poseFor,corpseRole} from './rig-roles.ts';
 import {visibleMeshHits} from './picking.ts';
 import {createDetailController,detailLevel} from './lod.ts';
@@ -78,11 +81,13 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
   let v=Math.imul(o.x|0,73856093)^Math.imul(o.y|0,19349663);v=Math.imul(v^v>>>16,0x45d9f3b);v=(v^v>>>16)>>>0;const lift=[0,.16,-.12,.08][v&3],leaf=(v>>2)&1?'#5d824e':'#67835a';
   brick(x+.15,z+.15,0,.3,.3,.8+lift,'#80664b',false);brick(x-.2,z-.2,.7+lift,1,1,.4,leaf);brick(x-.075,z-.075,1.1+lift,.75,.75,.4,'#7e985f');
   if((v&3)!==2)brick(x+.05,z+.05,1.5+lift,.5,.5,.3,'#91a970');if((v>>3)%3===0)brick(x+.175,z+.175,(v&3)===2?1.5+lift:1.8+lift,.25,.25,.2,'#91a970',false);}else if(o.kind==='hunt'||o.kind==='livestock'){const color=o.kind==='hunt'?'#99714e':'#e7e2cc';for(const dx of [.1,.45])for(const dz of [.1,.5])brick(x+dx,z+dz,0,.09,.09,.28,'#615643',false);brick(x+.04,z+.06,.25,.54,.55,.35,color,false);brick(x+.16,z+.48,.47,.28,.2,.26,color,false);if(o.kind==='hunt')for(const dx of [.18,.36])brick(x+dx,z+.51,.73,.04,.04,.2,'#715a40',false);}else if(o.kind==='berries'){brick(x+.05,z+.05,0,.55,.55,.45,'#5d824e');for(const dx of [.12,.36])for(const dz of [.12,.36])brick(x+dx,z+dz,.45,.12,.12,.12,'#a84e59',false);}else{brick(x,z,0,.65,.7,.3,o.kind==='gold'?'#b59a48':'#a19f86');brick(x+.15,z+.15,.3,.35,.4,.18,o.kind==='gold'?'#dec36f':'#b8b39c',false);}}
+ // Carcasses: the animal lying on its side, shrinking as it is eaten (which animal: by the food it started with).
+ for(const resource of map.resources??[])if((resource.kind==='hunt'||resource.kind==='livestock')&&!resource.obstacleId&&resource.status==='available'){const kind=(Object.keys(animalRules.food) as AnimalLook[]).find(k=>animalRules.food[k]===resource.capacity)??'sheep';baseHeight=groundHeight(map.tiles,resource.x,resource.y)/100;muted=false;for(const p of carcassParts(kind,resource.remaining/resource.capacity))brick(resource.x/100+p.x,resource.y/100+p.z,p.y,p.w,p.d,p.h,p.color,false);}
  for(const resource of map.resources??[])if(resource.kind==='fish'&&resource.status==='available'){const x=resource.x/100,z=resource.y/100;baseHeight=groundHeight(map.tiles,resource.x,resource.y)/100;muted=false;for(const offset of [0,.22]){brick(x-.2+offset,z-.1+offset,.025,.25,.1,.05,'#d5e7de',false);brick(x-.27+offset,z-.1+offset,.025,.09,.15,.06,'#bad0ce',false);}}
  baseHeight=0;muted=false;for(const {geo,color,matrices} of batches.values()){const mesh=new T.InstancedMesh(geo,material(color),matrices.length);matrices.forEach((m,i)=>mesh.setMatrixAt(i,m));mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();mesh.userData.studs=geo===studGeo;mesh.userData.ground=groundGeometries.has(geo);mesh.castShadow=true;mesh.receiveShadow=true;staticGroup.add(mesh);}
  }
  // goal: the latest simulated position; the drawn position eases toward it every frame (sim runs at 20 Hz, screens faster).
- const units=new Map<number,{group:any;rig:ReturnType<typeof createCharacterRig>;ring:any;player:number;moving:boolean;activity:string;tool:string;poseStart:number;bar:any;fill:any;goal:any;kind:string;relic:any}>();
+ const units=new Map<number,{group:any;rig:ReturnType<typeof createCharacterRig>|ReturnType<typeof createAnimalRig>;ring:any;player:number;moving:boolean;activity:string;tool:string;poseStart:number;bar:any;fill:any;goal:any;kind:string;relic:any}>();
  // Relics: small dynamic groups, on the ground where the player saw them or on a carrying monk's back.
  function relic(){const g=new T.Group();g.name='relic';for(const p of relicParts){const m=new T.Mesh(box(p.w,p.h,p.d),material(p.color));m.position.set(p.x+p.w/2,p.y,p.z+p.d/2);m.castShadow=true;g.add(m);}return g;}
  const relics=new Map<number,any>();
@@ -91,8 +96,9 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
  const barBack=new T.MeshBasicMaterial({color:'#2d3a33'}),barGeo=new T.BoxGeometry(.5,.05,.05);
  const ringGeo=new T.RingGeometry(.4,.47,32);ringGeo.rotateX(-Math.PI/2);geometry.set('ring',ringGeo);const ringMaterial=new T.MeshBasicMaterial({color:'#fff2a1',side:T.DoubleSide});
  function unit(id:number,player:number,kind='villager'){const group=new T.Group();scene.add(group);
- const bar=new T.Group();bar.position.y=1.42;bar.visible=false;const back=new T.Mesh(barGeo,barBack);const fill=new T.Mesh(barGeo,new T.MeshBasicMaterial({color:player===0?'#5f9a6a':'#c0604c'}));fill.position.z=.012;bar.add(back,fill);group.add(bar);
- const rig=createCharacterRig(T,player,box,material);if(!options.assetPreview&&kind!=='villager')rig.dress(roleOf(kind));rig.equip(previewTool);group.add(rig.root);detail.apply(group,zoom);
+ // Animals: their own brick rig, a lower health bar, a neutral bar colour while wild.
+ const beast=isAnimal(kind),bar=new T.Group();bar.position.y=beast?(kind==='deer'?1.3:.95):1.42;bar.visible=false;const back=new T.Mesh(barGeo,barBack);const fill=new T.Mesh(barGeo,new T.MeshBasicMaterial({color:player===0?'#5f9a6a':player===1?'#c0604c':'#c9b27a'}));fill.position.z=.012;bar.add(back,fill);group.add(bar);
+ const rig=beast?createAnimalRig(T,kind as AnimalLook,player,box,material):createCharacterRig(T,player,box,material);if(!beast){if(!options.assetPreview&&kind!=='villager')rig.dress(roleOf(kind) as any);rig.equip(previewTool);}group.add(rig.root);detail.apply(group,zoom);
  const ring=new T.Mesh(ringGeo,ringMaterial);ring.position.y=.025;group.add(ring);units.set(id,{group,rig,ring,player,moving:false,activity:'idle',tool:'none',poseStart:0,bar,fill,goal:null,kind,relic:null as any});return units.get(id)!;
  }
  let previewRole='villager';
@@ -116,9 +122,11 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
   // New units, the model viewer and jumps of more than 1.5 tiles (load, respawn) snap; ordinary steps are eased in draw().
   if(!u.goal||options.assetPreview||u.group.position.distanceTo(goal)>1.5)u.group.position.copy(goal);u.goal=goal;u.ring.visible=selected.has(data.id);u.moving=data.navigation==='moving';
   // Sim state drives the pose: gathering works with the resource's tool, returning cargo walks with a basket.
-  if(!options.assetPreview&&(data.work==='gathering'||data.action===1)&&!u.moving&&data.target)u.group.rotation.y=Math.atan2(data.target.x/100-u.group.position.x,data.target.y/100-u.group.position.z);
-  if(!options.assetPreview){const gathering=data.work==='gathering'&&!u.moving,activity=u.moving?(data.cargo?'carry':'walk'):gathering||data.rite?'work':'idle';
-   const weapon:UnitTool=data.kind==='militia'?'sword':data.kind==='archer'?'bow':data.kind==='scout'?'spear':data.kind==='monk'?'staff':'none',tool=data.cargo&&activity!=='work'?'basket':gathering?({wood:'axe',stone:'pick',gold:'pick',food:'basket'} as Record<string,UnitTool>)[data.workResource??'food']:weapon;
+  if(!options.assetPreview&&(data.work==='gathering'||data.work==='hunting'||data.action===1)&&!u.moving&&data.target)u.group.rotation.y=Math.atan2(data.target.x/100-u.group.position.x,data.target.y/100-u.group.position.z);
+  if(!options.assetPreview){const gathering=(data.work==='gathering'||data.work==='hunting')&&!u.moving,activity=u.moving?(data.cargo?'carry':'walk'):gathering||data.rite?'work':'idle';
+   // Food by its source: a spear for the hunt and for shore fish, a knife (sickle) for a carcass, the basket for bushes and fields.
+   const source=data.work==='gathering'&&data.target?view.resources.find(r=>r.x===data.target!.x&&r.y===data.target!.y&&!r.obstacleId):undefined,food:UnitTool=data.work==='hunting'||source?.kind==='fish'?'spear':source?'sickle':'basket';
+   const weapon:UnitTool=data.kind==='militia'?'sword':data.kind==='archer'?'bow':data.kind==='scout'?'spear':data.kind==='monk'?'staff':'none',tool=data.cargo&&activity!=='work'?'basket':gathering?({wood:'axe',stone:'pick',gold:'pick',food} as Record<string,UnitTool>)[data.workResource??'food']:weapon;
    if(tool!==u.tool){u.rig.equip(tool as UnitTool);u.tool=tool;}
    // A carried relic rides on the monk's back.
    if(data.relic&&!u.relic){u.relic=relic();u.relic.position.set(0,.98,-.3);u.group.add(u.relic);}else if(!data.relic&&u.relic){u.group.remove(u.relic);u.relic=null;}
@@ -188,6 +196,7 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
    const half=view.crop?(y1-y0)*(view.span??.36):Math.max(x1-x0,y1-y0)/2*1.06,cx=(x0+x1)/2,cy=view.crop?0:(y0+y1)/2;
    Object.assign(cam,{left:cx-half,right:cx+half,top:cy+half,bottom:cy-half});cam.updateProjectionMatrix();r.render(s,cam);out[name]=off.toDataURL('image/png');s.remove(g);};
   try{
+   for(const kind of ['sheep','deer','boar'] as const){const rig=createAnimalRig(T,kind,0,box,material);rig.pose('idle',0);const g=new T.Group();g.add(rig.root);shoot(kind,g,{angle:Math.PI/3,lift:.35});shoot(`${kind}-face`,g,{angle:Math.PI/3,lift:.35});}
    for(const kind of ['villager','militia','archer','scout','monk'] as const){const rig=createCharacterRig(T,0,box,material);if(kind!=='villager')rig.dress(roleOf(kind));rig.equip(kind==='militia'?'sword':kind==='archer'?'bow':kind==='scout'?'spear':kind==='monk'?'staff':'none');rig.pose('idle',0);
     const g=new T.Group();g.add(rig.root);shoot(kind,g,{angle:Math.PI/7,lift:.35});// A rider's face sits high above the horse: frame the upper part tighter.
     shoot(`${kind}-face`,g,kind==='scout'?{angle:Math.PI/7,lift:.35,crop:.74,span:.21}:{angle:Math.PI/7,lift:.35,crop:.72});}

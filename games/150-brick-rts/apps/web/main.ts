@@ -15,13 +15,14 @@ import {religionRules} from '../../packages/sim/religion.ts';
 import {terrainRules} from '../../packages/sim/terrain.ts';
 import {economyRules} from '../../packages/sim/economy.ts';
 import type {BuildKind} from '../../packages/sim/buildings.ts';
+import {isAnimal,animalRules} from '../../packages/sim/fauna.ts';
 const el=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 // ?debug=1 shows the engineering drawer (step, hash, coordinates, fog and rules tools) and starts paused;
 // a normal visit is only the game screen and the match starts running as soon as the simulation connects.
 const debug=new URLSearchParams(location.search).has('debug');el('debug').hidden=!debug;
 let state:View={seed:rules.settings.seed,layout:debug?'meadow':'open',size:debug?16:32,opponent:debug?'idle':'ai',terrain:[],tick:0,units:[],corpses:[],outcome:null,economy:{stock:{food:0,wood:0,gold:0,stone:0},populationUsed:0,populationReserved:0,populationCap:0,age:1,techs:[]},buildings:[],transactions:[],fog:[],known:[],resources:[],stateHash:'—',relicSpots:[],relicsHeld:[0,0],relicTotal:0,relicVictory:null};
 const resourceNames:Record<string,string>={food:'食物',wood:'木材',gold:'黃金',stone:'石頭'};
-const workLabel:Record<string,string>={toSource:'前往採集',gathering:'採集中',toDropoff:'送返城鎮中心',toSite:'前往工地',building:'施工中'};
+const workLabel:Record<string,string>={toSource:'前往採集',gathering:'採集中',toDropoff:'送返城鎮中心',toSite:'前往工地',building:'施工中',hunting:'狩獵中'};
 const buildingNames:Record<string,string>={house:'住宅',barracks:'兵營',farm:'農田','lumber-camp':'伐木場','mining-camp':'採礦場',mill:'磨坊',stable:'馬廄','archery-range':'靶場',monastery:'修道院','town-center':'城鎮中心'};
 const homeKinds=new Set(['house','barracks','farm','lumber-camp','mining-camp','mill','stable','archery-range','monastery','town-center']);
 const layoutNames:Record<MapLayout,string>={meadow:'草甸',coast:'海岸',acceptance:'高地與淺灘',open:'曠野'};
@@ -89,8 +90,12 @@ async function riteOn(monkIds:number[],buildingId:string,label:string){
  try{await client.request({kind:'convert',unitIds:monkIds,buildingId});audio.play('convert');notice(`${names(monkIds)} 轉化${label}。${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
 async function deposit(monkIds:number[],buildingId:string){
  try{await client.request({kind:'deposit',unitIds:monkIds,buildingId});audio.play('order');notice(`${names(monkIds)} 把聖物送進修道院。${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
-async function attack(target:{kind:'unit';id:number}|{kind:'building';id:string},label:string){const unitIds=[...selected].filter(id=>state.units.find(u=>u.id===id)?.kind!=='monk').sort((a,b)=>a-b);if(!unitIds.length){notice(selected.size?'僧侶不能攻擊：右鍵敵方單位改為轉化。':'請先選取單位。');return;}
+async function attack(target:{kind:'unit';id:number}|{kind:'building';id:string},label:string){const unitIds=[...selected].filter(id=>{const k=state.units.find(u=>u.id===id)?.kind;return k!=='monk'&&!isAnimal(k??'');}).sort((a,b)=>a-b);if(!unitIds.length){notice(selected.size?'僧侶與牲畜不能攻擊：右鍵敵方單位改為轉化。':'請先選取單位。');return;}
  try{await client.request({kind:'attack',unitIds,target});audio.play('order-attack');notice(`${names(unitIds)} 攻擊${label}。${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
+// Villagers hunt: a sheep of one's own is slaughtered where it stands, a deer or a boar is chased down first.
+async function hunt(unitIds:number[],animal:View['units'][number]){try{await client.request({kind:'hunt',unitIds,animalId:animal.id});audio.play('order');notice(`${names(unitIds)} ${animal.kind==='sheep'?'前往宰羊':`前往獵${unitNames[animal.kind]}`}${animal.kind==='boar'?'（野豬會反擊，多派幾名村民）':''}。${leftOut(unitIds)}${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
+// What a click on an animal nobody here controls tells the player.
+const animalNote=(a:View['units'][number])=>a.kind==='sheep'?(a.player===1?'紅方的羊：讓你的單位靠近、紅方的單位離開，就能搶過來。':'還沒有主人的羊：派任何單位走到牠旁邊就歸你。'):`野生的${unitNames[a.kind]}：選取村民後右鍵牠狩獵${a.kind==='boar'?'（會反擊）':'（受驚會逃）'}。`;
 function enemyBuildingAt(x:number,y:number,id?:string){if(id){const o=state.known.map(k=>k.obstacle).find(o=>o.id===id&&o.red);if(o)return o;}const p={x:Math.round(x*100),y:Math.round(y*100)};return state.known.map(k=>k.obstacle).find(o=>homeKinds.has(o.kind)&&o.red&&(()=>{const [x0,y0,x1,y1]=obstacleBounds(o);return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1;})());}
 const statusLabel:Record<string,string>={idle:'待命',searching:'尋路中',moving:'移動中',waiting:'等待讓路',unreachable:'無法到達，停在最近點',stuck:'受阻停止'};
 const resumeHint=()=>debug?'按「開始」或「前進 1 tick」執行。':'繼續遊戲（▶）後執行。';
@@ -110,9 +115,9 @@ const costOf=(k:string)=>entryOf(k)!.cost;
 const costText=(k:string)=>Object.entries(costOf(k)).filter(([,v])=>v>0).map(([r,v])=>`${resourceNames[r]} ${v}`).join('、');
 const entryName=(k:string)=>entryOf(k)?.name??k;
 const ageNames=['','第一時代',entryName('age-2'),entryName('age-3'),entryName('age-4')];
-const unitNames:Record<string,string>={villager:'村民',militia:'近戰民兵',archer:'弓手',scout:'斥候',monk:'僧侶'};
+const unitNames:Record<string,string>={villager:'村民',militia:'近戰民兵',archer:'弓手',scout:'斥候',monk:'僧侶',sheep:'羊',deer:'鹿',boar:'野豬'};
 const villagersIn=(ids:Iterable<number>)=>[...ids].filter(id=>state.units.find(u=>u.id===id)?.kind==='villager').sort((a,b)=>a-b);
-const leftOut=(ids:number[])=>{const n=selected.size-ids.length;return n>0?`（${n} 名士兵不能採集或建造，未派出）`:'';};
+const leftOut=(ids:number[])=>{const n=selected.size-ids.length;return n>0?`（其餘 ${n} 個選取單位不是村民，未派出）`:'';};
 function buildBlocker(k:BuildKind){if(!villagersIn(selected).length)return '先選取村民';const req=buildRequirement(state.economy.age,k,state.buildings);if(req)return req;const st=state.economy.stock,c=costOf(k),short=(Object.keys(c) as (keyof typeof c)[]).filter(r=>st[r]<c[r]);return short.length?short.map(r=>`${resourceNames[r]}不足：需要 ${c[r]}，目前 ${st[r]}`).join('；'):null;}
 function renderBuild(){const show=!selectedBuilding&&villagersIn(selected).length>0;
  for(const k of buildKinds){const b=el<HTMLButtonElement>(`build-${k}`),why=buildBlocker(k);b.hidden=!show;b.disabled=!connected||graphicsFailed||!!why;b.setAttribute('aria-label',`${buildingNames[k]}（${costText(k)}）${why?`：${why}`:''}`);b.setAttribute('aria-pressed',String(placing===k));
@@ -134,11 +139,12 @@ let groupKey='';
 function renderSelection(){const chosen=chosenUnits(),b=state.buildings.find(v=>v.id===selectedBuilding);
  el('sel-empty').hidden=!!b||chosen.length>0;el('sel-unit').hidden=!!b||chosen.length!==1;el('sel-group').hidden=!!b||chosen.length<2;
  if(!b&&chosen.length===1){const u=chosen[0],stats=combatRules.units[u.kind as keyof typeof combatRules.units];
-  setImg(el<HTMLImageElement>('unit-portrait'),`${u.kind}-face`);el('unit-name').textContent=unitNames[u.kind];el('unit-owner').textContent=`藍方 · #${u.id}`;
+  setImg(el<HTMLImageElement>('unit-portrait'),`${u.kind}-face`);el('unit-name').textContent=unitNames[u.kind];el('unit-owner').textContent=isAnimal(u.kind)?'藍方的牲畜':`藍方 · #${u.id}`;
   el('unit-hp').textContent=`${u.hp}/${u.maxHp}`;el('unit-hp-bar').style.width=`${Math.max(0,u.hp)*100/Math.max(1,u.maxHp)}%`;
   const facts=`${u.faith??''}|攻擊 ${stats.damage}|${stats.range<=50?'近戰':`射程 ${stats.range/100} 格`}|${u.cargo?`${u.cargo.resource}:${u.cargo.amount}`:''}`;const box=el('unit-facts');
   if(box.dataset.key!==facts){box.dataset.key=facts;box.replaceChildren();const add=(text:string,icon?:string)=>{const s=document.createElement('span');if(icon){const i=document.createElement('img');i.alt=resourceNames[icon];setImg(i,icon);s.append(i);}s.append(text);box.append(s);return s;};
-   if(u.kind==='monk'){add(`轉化射程 ${religionRules.convertRange/100} 格`);add(`信仰 ${u.faith??100}%`);}else{add(`攻擊 ${stats.damage}`);add(stats.range<=50?'近戰':`射程 ${stats.range/100} 格`);}if(u.cargo)add(`${u.cargo.amount}/${economyRules.carryCapacity}`,u.cargo.resource);}
+   if(isAnimal(u.kind)){add(`食物 ${animalRules.food[u.kind]}`,'food');add(u.kind==='sheep'?'右鍵地面可趕到別處':u.kind==='boar'?'會反擊獵人':'受驚會逃跑');}
+   else if(u.kind==='monk'){add(`轉化射程 ${religionRules.convertRange/100} 格`);add(`信仰 ${u.faith??100}%`);}else{add(`攻擊 ${stats.damage}`);add(stats.range<=50?'近戰':`射程 ${stats.range/100} 格`);}if(u.cargo)add(`${u.cargo.amount}/${economyRules.carryCapacity}`,u.cargo.resource);}
   el('unit-status').textContent=doing(u);}
  if(!b&&chosen.length>1){const counts=new Map<string,number>();for(const u of chosen)counts.set(u.kind,(counts.get(u.kind)??0)+1);
   el('group-summary').textContent=`已選取 ${chosen.length} 名 · `+[...counts].map(([k,n])=>`${unitNames[k]} ×${n}`).join(' · ');
@@ -157,7 +163,7 @@ function renderOutcome(){const o=state.outcome,box=el('result');box.hidden=!o;if
 let previous:View|null=null,lastAlarm=-1e9;
 function feed(text:string,kind='info'){const list=el('events'),li=document.createElement('li');li.textContent=text;li.dataset.kind=kind;list.append(li);while(list.children.length>5)list.firstElementChild!.remove();window.setTimeout(()=>li.remove(),12000);}
 function reportEvents(){const before=previous;previous=state;if(!before||state.tick<=before.tick||state.seed!==before.seed)return;
- const had=new Set(before.units.map(u=>u.id));for(const u of ownUnits())if(!had.has(u.id)){feed(`${unitNames[u.kind]}已生產`);audio.play('trained');}
+ const had=new Set(before.units.map(u=>u.id));for(const u of ownUnits())if(!had.has(u.id)&&!isAnimal(u.kind)){feed(`${unitNames[u.kind]}已生產`);audio.play('trained');}
  // Relics picked up or stored, technologies researched, the relic countdown starting or stopping.
  const carried=new Set(before.units.filter(u=>u.relic).map(u=>u.id));for(const u of ownUnits())if(u.relic&&!carried.has(u.id)){feed('僧侶撿起了聖物');audio.play('relic');}
  if(state.relicsHeld[0]>before.relicsHeld[0]){feed(`聖物已存入修道院（${state.relicsHeld[0]}/${state.relicTotal}）`);audio.play('relic');}
@@ -166,7 +172,8 @@ function reportEvents(){const before=previous;previous=state;if(!before||state.t
  if(!state.relicVictory&&before.relicVictory)feed('聖物勝利倒數中止');
  // Conversions: a unit that changed sides between two views.
  const side=new Map(before.units.map(u=>[u.id,u.player]));
- for(const u of state.units){const was=side.get(u.id);if(was===undefined||was===u.player)continue;if(u.player===0){feed(`轉化了紅方${unitNames[u.kind]}`);audio.play('converted');}else{feed(`你的${unitNames[u.kind]}被紅方轉化`,'alarm');audio.play('alarm');}}
+ // Sheep change hands by standing near them (herding), not by conversion.
+ for(const u of state.units){const was=side.get(u.id);if(was===undefined||was===u.player)continue;if(isAnimal(u.kind)){if(u.player===0)feed(was===1?'從紅方搶來一隻羊':'找到一隻羊');else if(was===0){feed('一隻羊被紅方搶走','alarm');audio.play('alarm');}continue;}if(u.player===0){feed(`轉化了紅方${unitNames[u.kind]}`);audio.play('converted');}else{feed(`你的${unitNames[u.kind]}被紅方轉化`,'alarm');audio.play('alarm');}}
  const old=new Map(before.buildings.map(b=>[b.id,b]));
  for(const b of state.buildings){const o=old.get(b.id);if(o&&!o.complete&&b.complete){feed(`${buildingNames[b.kind]??b.kind}已建造`);audio.play('built');}}
  // Foundations that vanish were cancelled or razed before completion: no message (the order's own notice covers a cancel).
@@ -176,9 +183,11 @@ function reportEvents(){const before=previous;previous=state;if(!before||state.t
  // Any visible unit losing health this view is a hit (the sound spaces itself out).
  const lastHp=new Map(before.units.map(u=>[u.id,u.hp]));if(state.units.some(u=>(lastHp.get(u.id)??u.hp)>u.hp))audio.play('hit');
  // Under attack: any own unit or building lost health; at most one warning every 10 seconds.
- const hp=new Map([...before.units.filter(u=>u.player===0).map(u=>[`u${u.id}`,u.hp] as const),...before.buildings.map(b=>[`b${b.id}`,b.hp] as const)]);
+ const hp=new Map([...before.units.filter(u=>u.player===0&&!isAnimal(u.kind)).map(u=>[`u${u.id}`,u.hp] as const),...before.buildings.map(b=>[`b${b.id}`,b.hp] as const)]);
  const hurt=[...ownUnits().filter(u=>(hp.get(`u${u.id}`)??u.hp)>u.hp).map(u=>({x:u.x,y:u.y})),...state.buildings.filter(b=>(hp.get(`b${b.id}`)??b.hp)>b.hp).map(b=>({x:b.x+100,y:b.y+100}))];
- if(hurt.length&&state.tick-lastAlarm>=10*rules.settings.tickHz){lastAlarm=state.tick;feed('警告：你正在被紅方攻擊！','alarm');audio.play('alarm');ping={x:hurt[0].x/100,z:hurt[0].y/100,until:performance.now()+3000};miniKey='';}}
+ // A boar next to the wounded unit is the likelier cause than red.
+ const boar=hurt.length&&state.units.some(u=>u.kind==='boar'&&Math.max(Math.abs(u.x-hurt[0].x),Math.abs(u.y-hurt[0].y))<=100);
+ if(hurt.length&&state.tick-lastAlarm>=10*rules.settings.tickHz){lastAlarm=state.tick;feed(boar?'警告：野豬正在攻擊你的村民！':'警告：你正在被紅方攻擊！','alarm');audio.play('alarm');ping={x:hurt[0].x/100,z:hurt[0].y/100,until:performance.now()+3000};miniKey='';}}
 let ping:{x:number;z:number;until:number}|null=null;
 function reportTransactions(){for(const t of state.transactions)if(t.sequence>lastTransaction){lastTransaction=t.sequence;if(!t.ok)notice(`指令在 tick ${t.tick} 未執行：${t.error}`);}}
 function selectBuilding(id:string|null){if(id&&id!==selectedBuilding)audio.play('order');selectedBuilding=id;if(id)select([]);render();}
@@ -259,7 +268,7 @@ async function move(x:number,y:number,exact=false){const unitIds=[...selected].s
 async function gather(resourceId:string){const unitIds=villagersIn(selected);if(!unitIds.length){notice(selected.size?'所選單位中沒有村民，不能採集。':'請先選取村民。');return;}
  try{await client.request({kind:'gather',unitIds,resourceId});audio.play('order');notice(`${names(unitIds)} 前往採集。${leftOut(unitIds)}${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
 // A right-click inside a visible resource's footprint is a gather order; ground elsewhere is a move.
-function resourceAt(x:number,y:number){const p={x:Math.round(x*100),y:Math.round(y*100)};return state.resources.find(r=>{const kind=(r.kind==='stone'?'rock':r.kind) as ObstacleKind;if(r.kind==='fish')return Math.abs(p.x-r.x)<=50&&Math.abs(p.y-r.y)<=50;const [x0,y0,x1,y1]=obstacleBounds({kind,x:r.x,y:r.y},10);return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1;});}
+function resourceAt(x:number,y:number){const p={x:Math.round(x*100),y:Math.round(y*100)};return state.resources.find(r=>{const kind=(r.kind==='stone'?'rock':r.kind) as ObstacleKind;if(r.kind==='fish'||!r.obstacleId)return Math.abs(p.x-r.x)<=50&&Math.abs(p.y-r.y)<=50;const [x0,y0,x1,y1]=obstacleBounds({kind,x:r.x,y:r.y},10);return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1;});}
 async function stop(){const unitIds=[...selected].sort((a,b)=>a-b);if(!unitIds.length){notice('請先選取要停止的單位。');return;}
  try{await client.request({kind:'stop',unitIds});notice(`${names(unitIds)} 將在下一個節點停下（tick ${state.tick+1}）。`);}catch(e){notice(reason(e));}}
 // Idle villagers: the '.' key and the button next to the minimap cycle through them and centre the camera.
@@ -284,7 +293,12 @@ canvas.addEventListener('pointerdown',e=>{if(!scene||graphicsFailed||!e.isPrimar
  if(e.button===2&&state.outcome){e.preventDefault();notice('對局已結束：按「再開一局」開始新遊戲。');return;}
  if(e.button===2){e.preventDefault();endDrag();const hit=scene.pickGround(e.clientX,e.clientY);if(hit.x===undefined||hit.y===undefined||hit.x<.5||hit.x>state.size-.5||hit.y<.5||hit.y>state.size-.5){notice('請在地圖內側的地面按右鍵。');return;}
   if(selectedBuilding&&!selected.size){orderAtGround(hit.x,hit.y);return;}// Enemy unit under the cursor, then enemy building: attack orders.
-  if(selected.size){const u=scene.pick(e.clientX,e.clientY);const foe=u.unitId!==undefined?state.units.find(v=>v.id===u.unitId&&v.player!==0):undefined;const monks=[...selected].filter(id=>state.units.find(u=>u.id===id)?.kind==='monk').sort((a,b)=>a-b);
+  if(selected.size){const u=scene.pick(e.clientX,e.clientY);
+    // An animal: villagers hunt it, soldiers attack it (not an own sheep); selected sheep just walk there.
+    const beast=u.unitId!==undefined?state.units.find(v=>v.id===u.unitId&&isAnimal(v.kind)):undefined;
+    if(beast){const hunters=villagersIn(selected),fighters=[...selected].filter(id=>{const k=state.units.find(v=>v.id===id)?.kind;return !!k&&k!=='villager'&&k!=='monk'&&!isAnimal(k);});scene.setMarker(beast.player===0&&!hunters.length?'move':'attack',beast.x/100,beast.y/100);
+     if(hunters.length)void hunt(hunters,beast);if(fighters.length&&beast.player!==0)void attack({kind:'unit',id:beast.id},unitNames[beast.kind]);if(!hunters.length&&!(fighters.length&&beast.player!==0))void move(hit.x,hit.y);return;}
+    const foe=u.unitId!==undefined?state.units.find(v=>v.id===u.unitId&&v.player!==0):undefined;const monks=[...selected].filter(id=>state.units.find(u=>u.id===id)?.kind==='monk').sort((a,b)=>a-b);
     if(foe){scene.setMarker('attack',foe.x/100,foe.y/100);if(monks.length)void rite('convert',monks,foe.id,`紅方${unitNames[foe.kind]}`);if(monks.length<selected.size)void attack({kind:'unit',id:foe.id},`紅方${unitNames[foe.kind]}`);return;}
     // Monks heal a wounded own unit under the cursor (not themselves, not another monk).
     const friend=u.unitId!==undefined?ownUnits().find(v=>v.id===u.unitId):undefined;if(friend&&monks.length&&friend.kind!=='monk'&&friend.hp<friend.maxHp){scene.setMarker('gather',friend.x/100,friend.y/100);void rite('heal',monks,friend.id,`${unitNames[friend.kind]} ${friend.id}`);return;}
@@ -303,10 +317,14 @@ canvas.addEventListener('pointerdown',e=>{if(!scene||graphicsFailed||!e.isPrimar
 canvas.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;if(!drag.box&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>=4)drag.box=true;if(drag.box)showBox(drag.x,drag.y,e.clientX,e.clientY);});
 canvas.addEventListener('pointercancel',endDrag);canvas.addEventListener('lostpointercapture',endDrag);
 canvas.addEventListener('pointerup',e=>{if(!drag||e.pointerId!==drag.id||!scene)return;const d=drag;endDrag();
- if(d.box){const own=new Set(ownUnits().map(u=>u.id)),ids=scene.unitsInRect(d.x,d.y,e.clientX,e.clientY).filter(id=>own.has(id));
+ // A box with people in it leaves the sheep out; a box of sheep alone selects them (to drive the flock).
+ if(d.box){const own=new Set(ownUnits().map(u=>u.id)),boxed=scene.unitsInRect(d.x,d.y,e.clientX,e.clientY).filter(id=>own.has(id)),people=boxed.filter(id=>!isAnimal(state.units.find(u=>u.id===id)?.kind??'')),ids=people.length?people:boxed;
   if(e.shiftKey)select([...selected,...ids]);else select(ids);notice(ids.length?`框選 ${ids.length} 名單位。對地面按右鍵下達移動。`:'框內沒有藍方單位。');return;}
  const hit=scene.pick(e.clientX,e.clientY);
- if(hit.unitId!==undefined){const unit=state.units.find(u=>u.id===hit.unitId);if(unit?.player===0){if(e.shiftKey)toggle(unit.id);else choose(unit.id);}else notice('紅方單位不可由藍方控制。');return;}
+ if(hit.unitId!==undefined){const unit=state.units.find(u=>u.id===hit.unitId);if(unit?.player===0){if(e.shiftKey)toggle(unit.id);else choose(unit.id);}
+  // Touch has no right button: tapping an animal with villagers selected hunts it.
+  else if(unit&&isAnimal(unit.kind)){if(e.pointerType==='touch'&&villagersIn(selected).length)void hunt(villagersIn(selected),unit);else notice(animalNote(unit));}
+  else notice('紅方單位不可由藍方控制。');return;}
  // Touch: inspect completed own buildings before interpreting a ground tap as an order.
  // A selected worker can instead resume an unfinished site; production stays reachable after unit selection.
  if(e.pointerType==='touch'){const g=scene.pickGround(e.clientX,e.clientY),roof=scene.pickBuilding(e.clientX,e.clientY);const site=g.x!==undefined&&g.y!==undefined?buildingAt(g.x,g.y,roof):roof?buildingAt(-1,-1,roof):undefined;
@@ -333,7 +351,9 @@ function drawMinimap(){if(!scene||graphicsFailed||!mctx)return;const g=miniGeome
  state.terrain.forEach((t,id)=>{const f=state.fog[id]??0,x=id%state.size,z=Math.floor(id/state.size),base=terrainColor[t.terrainType]??'#b5c493';ctx.fillStyle=f===0?'#1c2622':f===1?shade(base,.52):base;quad(x-.02,z-.02,x+1.02,z+1.02);});
  for(const k of state.known){const o=k.obstacle,[x0,y0,x1,y1]=obstacleBounds(o),home=homeKinds.has(o.kind);
   ctx.fillStyle=o.kind==='farm'?(o.red?'#b58a62':'#a99a5e'):home?(o.red?'#d0664c':'#5d93b6'):obstacleColor[o.kind]??'#c8c2a8';if((state.fog[Math.floor(o.y/100)*state.size+Math.floor(o.x/100)]??0)<2&&!home)ctx.fillStyle=shade(ctx.fillStyle as string,.6);quad(x0/100,y0/100,x1/100,y1/100);}
- for(const u of state.units){const [px,py]=g.P(u.x/100,u.y/100);ctx.fillStyle=u.player===0?(selected.has(u.id)?'#fff4c4':'#7fb6dc'):'#ee7b5f';ctx.strokeStyle='#15201b';ctx.lineWidth=1;ctx.beginPath();ctx.rect(px-2.2,py-2.2,4.4,4.4);ctx.fill();ctx.stroke();}
+ // Animals are smaller dots: wild ones in their own colour, owned sheep in their owner's; shore fish as pale dots.
+ for(const r of state.resources)if(r.kind==='fish'){const [px,py]=g.P(r.x/100,r.y/100);ctx.fillStyle='#d5e7de';ctx.beginPath();ctx.arc(px,py,1.6,0,Math.PI*2);ctx.fill();}
+ for(const u of state.units){const [px,py]=g.P(u.x/100,u.y/100),beast=isAnimal(u.kind),r=beast?1.5:2.2;ctx.fillStyle=u.player===0?(selected.has(u.id)?'#fff4c4':'#7fb6dc'):u.player===1?'#ee7b5f':u.kind==='sheep'?'#e7e2cc':'#9b7552';ctx.strokeStyle='#15201b';ctx.lineWidth=1;ctx.beginPath();ctx.rect(px-r,py-r,2*r,2*r);ctx.fill();if(!beast)ctx.stroke();}
  for(const r of state.relicSpots){const [px,py]=g.P(r.x/100,r.y/100);ctx.fillStyle='#f2d66b';ctx.strokeStyle='#15201b';ctx.lineWidth=1;ctx.beginPath();ctx.arc(px,py,3,0,Math.PI*2);ctx.fill();ctx.stroke();}
  // Attack ping: a red ring where the warning came from, shrinking over three seconds.
  if(ping){const left=ping.until-performance.now();if(left<=0)ping=null;else{const [px,py]=g.P(ping.x,ping.z);ctx.strokeStyle='#ff6a4d';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px,py,4+10*left/3000,0,Math.PI*2);ctx.stroke();miniKey='';}}

@@ -13,7 +13,8 @@ function barracks(s:State){s.vision[0].explored=Array.from({length:256},(_,i)=>i
  throw Error('no barracks spot');}
 const run=(s:State,n:number)=>{for(let i=0;i<n;i++)tick(s);};
 // A free spot for the building near blue's base, and a finished one built by villagers 1-3 (wood granted).
-function site(s:State,kind:string){for(let y=650;y<=1200;y+=50)for(let x=500;x<=1100;x+=50)if(!authoritativeProblem(s,0,kind as any,x,y))return {x,y};throw Error('no spot for '+kind);}
+// Rows below blue's base first; the window reaches the map edges because animals standing about also block sites.
+function site(s:State,kind:string){for(let y=650;y<=1250;y+=50)for(let x=100;x<=1200;x+=50)if(!authoritativeProblem(s,0,kind as any,x,y))return {x,y};throw Error('no spot for '+kind);}
 function erect(s:State,kind:string){s.accounts[0].stock.wood+=175;order(s,'build',{unitIds:[1,2,3],kind,...site(s,kind)});for(let i=0;i<3000&&!s.buildings.some(b=>b.kind===kind&&b.complete);i++)tick(s);const b=s.buildings.find(b=>b.kind===kind&&b.complete);assert.ok(b,kind+' built');return b!;}
 
 test('a villager is paid and housed when queued, then walks out of the town center',()=>{
@@ -59,7 +60,7 @@ test('a rally point sends new units there',()=>{
 });
 test('production survives save/load and replays to the same hash',()=>{
  const s=createState(260925),id=tc(s).id;order(s,'train',{buildingId:id,entryId:'villager'});order(s,'train',{buildingId:id,entryId:'villager'});run(s,300);
- const restored=deserialize(serialize(s));run(s,600);run(restored,600);assert.equal(hash(s),hash(restored));assert.equal(hash(s),hash(replay(s.seed,s.log,s.tick)));assert.equal(s.units.filter(u=>u.player===0).length,5);
+ const restored=deserialize(serialize(s));run(s,600);run(restored,600);assert.equal(hash(s),hash(restored));assert.equal(hash(s),hash(replay(s.seed,s.log,s.tick)));assert.equal(s.units.filter(u=>u.player===0&&u.kind==='villager').length,5);
 });
 
 test('a rally point on a building is refused; one covered later by a new building is skipped without error',()=>{

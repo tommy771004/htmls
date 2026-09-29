@@ -11,12 +11,14 @@ import {makeMap,clearSegment,navigationRules,startingResourceRules,openMapRules}
 import type {MapData} from './navigation.ts';
 import {makeUnit,commandMove,commandStop,stepMovement} from './movement.ts';
 import type {Unit,Job} from './movement.ts';
-import {commandGather,commandBuild,clearWork,stepWork,gatherable,dropoffRules} from './work.ts';
+import {commandGather,commandBuild,clearWork,stepWork,gatherable,dropoffRules,commandHunt,huntProblem} from './work.ts';
+import {stepAnimals,claimSheep} from './animals.ts';
+import {animalRules,GAIA,isAnimal} from './fauna.ts';
 import {initBuildings,placeBuilding,cancelBuilding,authoritativeProblem,buildKinds,farmOwner,buildRequirement} from './buildings.ts';
 import type {Building,BuildKind} from './buildings.ts';
 import {enqueue,dequeue,stepProduction,trainable} from './production.ts';
 import {commandAttack,clearAttacks,stepCombat,targetProblem} from './combat.ts';
-import type {Attack,Corpse,Outcome,Target} from './combat.ts';
+import type {Attack,Beast,Corpse,Outcome,Target} from './combat.ts';
 import type {Work,Cargo} from './work.ts';
 import {tileAt} from './terrain.ts';
 import {stepAI,aiRules} from './ai.ts';
@@ -27,6 +29,7 @@ type Envelope={protocolVersion:1;rulesetHash:string;playerId:number;sequence:num
 export type MoveCommand=Envelope&{commandType:'move';payload:{unitIds:number[];x:number;y:number}};
 export type StopCommand=Envelope&{commandType:'stop';payload:{unitIds:number[]}};
 export type GatherCommand=Envelope&{commandType:'gather';payload:{unitIds:number[];resourceId:string}};
+export type HuntCommand=Envelope&{commandType:'hunt';payload:{unitIds:number[];animalId:number}};
 export type BuildCommand=Envelope&{commandType:'build';payload:{unitIds:number[];kind:BuildKind;x:number;y:number}};
 export type ConstructCommand=Envelope&{commandType:'construct';payload:{unitIds:number[];buildingId:string}};
 export type CancelBuildCommand=Envelope&{commandType:'cancelBuild';payload:{buildingId:string}};
@@ -36,21 +39,23 @@ export type RallyCommand=Envelope&{commandType:'rally';payload:{buildingId:strin
 export type ResignCommand=Envelope&{commandType:'resign';payload:Record<string,never>};
 export type AttackCommand=Envelope&{commandType:'attack';payload:{unitIds:number[];target:Target}};
 export type RiteCommand=Envelope&{commandType:'convert'|'heal';payload:{unitIds:number[];targetId?:number;buildingId?:string}}|Envelope&{commandType:'relic';payload:{unitIds:number[];relicId:number}}|Envelope&{commandType:'deposit';payload:{unitIds:number[];buildingId:string}};
-export type Command=RiteCommand|ResignCommand|AttackCommand|MoveCommand|StopCommand|GatherCommand|BuildCommand|ConstructCommand|CancelBuildCommand|TrainCommand|CancelTrainCommand|RallyCommand|Envelope&{commandType:'reserve';payload:{entryId:string}}|Envelope&{commandType:'cancelReservation';payload:{reservationId:string}};
+export type Command=HuntCommand|RiteCommand|ResignCommand|AttackCommand|MoveCommand|StopCommand|GatherCommand|BuildCommand|ConstructCommand|CancelBuildCommand|TrainCommand|CancelTrainCommand|RallyCommand|Envelope&{commandType:'reserve';payload:{entryId:string}}|Envelope&{commandType:'cancelReservation';payload:{reservationId:string}};
 export type LoggedCommand=Command&{acceptedTick:number};
 export type TransactionResult={tick:number;playerId:number;sequence:number;ok:boolean;error?:string};
 // opponent: 'ai' runs the computer player for red; 'idle' keeps red still (practice and the scripted flows).
 export type Opponent='ai'|'idle';
-export type State={navigationSeen:number;buildings:Building[];nextBuildingId:number;ages:number[];nextUnitId:number;nextQueueId:number;attacks:Record<number,Attack>;corpses:Corpse[];outcome:Outcome|null;rites:Record<number,Rite>;faith:Record<number,number>;techs:string[][];relics:Relic[];relicMemory:{id:number;x:number;y:number}[][];relicVictory:RelicVictory|null;version:22;opponent:Opponent;works:Record<number,Work>;cargo:Record<number,Cargo>;layout:MapLayout;vision:PlayerVision[];accounts:Account[];transactions:TransactionResult[];map:MapData;pathJobs:Job[];nextJobId:number;seed:number;rng:number;tick:number;sequence:number[];units:Unit[];queue:Command[];log:LoggedCommand[]};
+export type State={navigationSeen:number;buildings:Building[];nextBuildingId:number;ages:number[];nextUnitId:number;nextQueueId:number;attacks:Record<number,Attack>;corpses:Corpse[];outcome:Outcome|null;rites:Record<number,Rite>;faith:Record<number,number>;techs:string[][];relics:Relic[];relicMemory:{id:number;x:number;y:number}[][];relicVictory:RelicVictory|null;beasts:Record<number,Beast>;version:23;opponent:Opponent;works:Record<number,Work>;cargo:Record<number,Cargo>;layout:MapLayout;vision:PlayerVision[];accounts:Account[];transactions:TransactionResult[];map:MapData;pathJobs:Job[];nextJobId:number;seed:number;rng:number;tick:number;sequence:number[];units:Unit[];queue:Command[];log:LoggedCommand[]};
 function canonical(value:unknown):string {if(value===null||typeof value!=='object')return JSON.stringify(value);if(Array.isArray(value))return '['+value.map(canonical).join(',')+']';return '{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+canonical((value as Record<string,unknown>)[k])).join(',')+'}';}
 export function hash(value:unknown):string{let h=2166136261;for(const c of canonical(value)){h=Math.imul(h^c.charCodeAt(0),16777619);}return (h>>>0).toString(16).padStart(8,'0');}
-export const rulesetHash=hash({rules,navigationRules,economyRules,terrainRules,terrainDefinitions,resourceDefinitions,visionRules,startingResourceRules,footprints:footprintContract,combat:combatRules,ai:aiRules,maps:{mapSizes,openMapRules},dropoffs:dropoffRules,religion:religionRules,simulationVersion:22});
-export function createState(seed:number,layout:MapLayout='meadow',opponent:Opponent='idle'):State{if(!Number.isSafeInteger(seed)||seed<0||seed>4294967295)throw Error('seed 必須為 uint32');if(opponent!=='ai'&&opponent!=='idle')throw Error('未知的對手設定');const map=makeMap(seed,layout);const state:State={buildings:[],nextBuildingId:1,ages:[1,1],nextUnitId:5,nextQueueId:1,attacks:{},corpses:[],outcome:null,rites:{},faith:{},techs:[[],[]],relics:layout==='open'?placeRelics(map,seed):[],relicMemory:[[],[]],relicVictory:null,version:22,opponent,works:{},cargo:{},layout,vision:createVision(),accounts:[createAccount(3),createAccount(opponent==='ai'?3:1)],transactions:[],map,pathJobs:[],nextJobId:1,navigationSeen:0,seed,rng:seed||1,tick:0,sequence:[0,0],units:[...map.starts[0].map((p,i)=>makeUnit(map,1+i,0,p.x,p.y)),makeUnit(map,4,1,map.starts[1][0].x,map.starts[1][0].y)],queue:[],log:[]};
+export const rulesetHash=hash({rules,navigationRules,economyRules,terrainRules,terrainDefinitions,resourceDefinitions,visionRules,startingResourceRules,footprints:footprintContract,combat:combatRules,ai:aiRules,maps:{mapSizes,openMapRules},dropoffs:dropoffRules,religion:religionRules,animals:animalRules,simulationVersion:23});
+export function createState(seed:number,layout:MapLayout='meadow',opponent:Opponent='idle'):State{if(!Number.isSafeInteger(seed)||seed<0||seed>4294967295)throw Error('seed 必須為 uint32');if(opponent!=='ai'&&opponent!=='idle')throw Error('未知的對手設定');const map=makeMap(seed,layout);const state:State={buildings:[],nextBuildingId:1,ages:[1,1],nextUnitId:5,nextQueueId:1,attacks:{},corpses:[],outcome:null,rites:{},faith:{},techs:[[],[]],relics:layout==='open'?placeRelics(map,seed):[],relicMemory:[[],[]],relicVictory:null,beasts:{},version:23,opponent,works:{},cargo:{},layout,vision:createVision(),accounts:[createAccount(3),createAccount(opponent==='ai'?3:1)],transactions:[],map,pathJobs:[],nextJobId:1,navigationSeen:0,seed,rng:seed||1,tick:0,sequence:[0,0],units:[...map.starts[0].map((p,i)=>makeUnit(map,1+i,0,p.x,p.y)),makeUnit(map,4,1,map.starts[1][0].x,map.starts[1][0].y)],queue:[],log:[]};
  // Against the computer red starts like blue: three villagers, mirrored around the map's centre line.
  if(opponent==='ai'){state.units.push(...map.starts[1].slice(1).map((p,i)=>makeUnit(map,5+i,1,p.x,p.y)));state.nextUnitId=5+map.starts[1].length-1;}
  // The match map adds a scout per side (red's only against the computer): ids follow the villagers.
  if(map.scouts){for(const p of opponent==='ai'?[0,1]:[0]){const at=map.scouts[p];state.units.push(makeUnit(map,state.nextUnitId++,p,at.x,at.y,'scout'));state.accounts[p].populationUsed++;}}
- initBuildings(state);updateVision(state.vision,state.map,state.units,0);return state;}
+ // Sheep, deer and boar (ids from animalRules.firstId): each base's starting flock is its player's, the rest are wild.
+ (map.animals??[]).forEach((a,i)=>state.units.push(makeUnit(map,animalRules.firstId+i,a.owner??GAIA,a.x,a.y,a.kind)));
+ initBuildings(state);claimSheep(state);updateVision(state.vision,state.map,state.units,0);return state;}
 // xorshift32; renderers never advance this stream.
 export function nextRandom(state:State):number{let n=state.rng;n^=n<<13;n^=n>>>17;n^=n<<5;state.rng=n>>>0;return state.rng;}
 // The target of a monk's order: a unit id, a building id (conversion with Redemption, deposit) or a relic id.
@@ -67,11 +72,11 @@ export function submit(state:State, c:Command, record=true):void {
  if(!Number.isSafeInteger(c.targetTick)||c.targetTick<=state.tick||c.targetTick>state.tick+200)throw Error('命令已過期或過遠');
  if(!c.payload)throw Error('缺少 payload');
  if(state.outcome)throw Error('對局已結束：請再開一局');
- if(c.commandType==='move'||c.commandType==='stop'||c.commandType==='gather'||c.commandType==='build'||c.commandType==='construct'||c.commandType==='attack'||c.commandType==='convert'||c.commandType==='heal'||c.commandType==='relic'||c.commandType==='deposit'){
+ if(c.commandType==='move'||c.commandType==='stop'||c.commandType==='gather'||c.commandType==='hunt'||c.commandType==='build'||c.commandType==='construct'||c.commandType==='attack'||c.commandType==='convert'||c.commandType==='heal'||c.commandType==='relic'||c.commandType==='deposit'){
  const ids=c.payload.unitIds;
  if(!Array.isArray(ids)||!ids.length||ids.length>navigationRules.maxGroupSize||!ids.every((id,i)=>Number.isSafeInteger(id)&&(i===0||id>ids[i-1])))throw Error(`單位清單需為 1–${navigationRules.maxGroupSize} 個遞增且不重複的 ID`);
  for(const id of ids){const u=state.units.find(u=>u.id===id);if(!u||u.player!==c.playerId)throw Error('不可控制敵方或不存在的單位');if(c.commandType==='convert'||c.commandType==='heal'||c.commandType==='relic'||c.commandType==='deposit'){if(u.kind!=='monk')throw Error('只有僧侶能轉化、治療或搬運聖物');}
- else if(c.commandType==='attack'){if(u.kind==='monk')throw Error('僧侶不能攻擊：右鍵敵方單位改為轉化');}
+ else if(c.commandType==='attack'){if(u.kind==='monk')throw Error('僧侶不能攻擊：右鍵敵方單位改為轉化');if(isAnimal(u.kind))throw Error('動物不能攻擊');}
  else if(c.commandType!=='move'&&c.commandType!=='stop'&&u.kind!=='villager')throw Error('只有村民能採集或建造');}
  }
  if(c.commandType==='move'){
@@ -108,6 +113,7 @@ export function submit(state:State, c:Command, record=true):void {
  if(r.kind==='farm'&&farmOwner(state,r.id)!==c.playerId)throw Error('只能耕作己方的農田');
  const problem=gatherable(state.map,r.id);if(problem)throw Error(problem);
  }
+ else if(c.commandType==='hunt'){if(!Number.isSafeInteger(c.payload.animalId))throw Error('找不到這隻動物');const problem=huntProblem(state,c.playerId,c.payload.animalId);if(problem)throw Error(problem);}
  else if(c.commandType==='resign'){}
  else if(c.commandType==='reserve'){if(!rules.entries.some(e=>e.id===c.payload.entryId))throw Error('未知預留內容');}
  else if(c.commandType==='cancelReservation'){if(typeof c.payload.reservationId!=='string'||!c.payload.reservationId.startsWith(`${c.playerId}:`))throw Error('不可取消敵方或無效的預留');}
@@ -125,7 +131,9 @@ export function tick(s:State):{expanded:number} {
  if(c.commandType==='resign'){if(!s.outcome)s.outcome={winner:1-c.playerId,defeated:[c.playerId],tick:s.tick,reason:'resign'};continue;}
  if(c.commandType==='attack'){if(!targetProblem(s,c.playerId,c.payload.target))commandAttack(s,c.payload.unitIds,c.payload.target);else{clearAttacks(s,c.payload.unitIds);commandStop(s,c.payload.unitIds);}continue;}
  if(c.commandType==='convert'||c.commandType==='heal'||c.commandType==='relic'||c.commandType==='deposit'){const t=riteTarget(c)!;if(!riteProblem(s,c.playerId,c.commandType,t))commandRite(s,c.payload.unitIds,c.commandType,t);else{clearRites(s,c.payload.unitIds);commandStop(s,c.payload.unitIds);}continue;}
- if(c.commandType==='move'||c.commandType==='stop'||c.commandType==='gather'||c.commandType==='build'||c.commandType==='construct'){clearAttacks(s,c.payload.unitIds);clearRites(s,c.payload.unitIds);}
+ if(c.commandType==='move'||c.commandType==='stop'||c.commandType==='gather'||c.commandType==='hunt'||c.commandType==='build'||c.commandType==='construct'){clearAttacks(s,c.payload.unitIds);clearRites(s,c.payload.unitIds);}
+ // Re-validated at execution: the animal may have died, fled out of sight or changed hands.
+ if(c.commandType==='hunt'){clearWork(s,c.payload.unitIds);if(!huntProblem(s,c.playerId,c.payload.animalId))commandHunt(s,c.payload.unitIds,c.payload.animalId);else commandStop(s,c.payload.unitIds);continue;}
  if(c.commandType==='move'){clearWork(s,c.payload.unitIds);commandMove(s,c.payload.unitIds,{x:c.payload.x,y:c.payload.y});continue;}
  if(c.commandType==='stop'){clearWork(s,c.payload.unitIds);commandStop(s,c.payload.unitIds);continue;}
  // Re-validated at execution: the resource may have run out since the order was accepted.
@@ -147,6 +155,7 @@ export function tick(s:State):{expanded:number} {
  // Deterministic movement: shared search budget, node reservations, waiting and bounded replans.
  const stats=stepMovement(s);
  stepCombat(s);
+ stepAnimals(s);
  stepReligion(s);
  stepWork(s);
  updateVision(s.vision,s.map,s.units,s.tick);
@@ -163,12 +172,12 @@ export function replay(seed:number,commands:LoggedCommand[],ticks:number,layout:
  }
  while(s.tick<ticks)tick(s);return s;
 }
-export function serialize(s:State):string{if(s.tick>100000||s.log.length>10000)throw Error('已超過此階段沙盒存檔容量（100000 ticks / 10000 指令）');return JSON.stringify({format:'brick-sandbox-22',rulesetHash,state:s,checksum:hash(s)});}
+export function serialize(s:State):string{if(s.tick>100000||s.log.length>10000)throw Error('已超過此階段沙盒存檔容量（100000 ticks / 10000 指令）');return JSON.stringify({format:'brick-sandbox-23',rulesetHash,state:s,checksum:hash(s)});}
 export function deserialize(raw:string):State{
  const v=JSON.parse(raw);
- if(!v||v.format!=='brick-sandbox-22'||v.rulesetHash!==rulesetHash||!v.state||v.checksum!==hash(v.state))throw Error('存檔版本不符或內容損壞');
+ if(!v||v.format!=='brick-sandbox-23'||v.rulesetHash!==rulesetHash||!v.state||v.checksum!==hash(v.state))throw Error('存檔版本不符或內容損壞');
  const s=v.state as State;
- if(s.version!==22||(s.opponent!=='ai'&&s.opponent!=='idle')||!Number.isSafeInteger(s.tick)||s.tick<0||s.tick>100000||!Array.isArray(s.log)||s.log.length>10000)throw Error('無效存檔狀態');
+ if(s.version!==23||(s.opponent!=='ai'&&s.opponent!=='idle')||!Number.isSafeInteger(s.tick)||s.tick<0||s.tick>100000||!Array.isArray(s.log)||s.log.length>10000)throw Error('無效存檔狀態');
  const rebuilt=replay(s.seed,s.log,s.tick,s.layout,s.opponent);
  if(hash(rebuilt)!==hash(s))throw Error('存檔狀態無法由命令重建');
  return structuredClone(s);

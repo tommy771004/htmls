@@ -22,3 +22,7 @@
 The latest implementation supersedes earlier no-collision notes: `packages/sim/navigation.ts` supplies shared static house/tree/rock footprints and deterministic routing. State v2 includes map, pathJobs, frontier/parents/head, unit path and navigation status. All jobs share 32 node expansions per tick in stable order. Runtime defaults are recorded in `docs/runtime-manifest.json`; they are not reference-game values. Static obstacle clearance is implemented, but unit-to-unit avoidance, dynamic occupancy, formations, full resource economy and match completion remain pending.
 
 Snapshots now use sandbox v2. Old v1 snapshots are explicitly rejected without changing the live state; no migration is claimed. Full RTS collision and match gates remain open. See `docs/first-use-003.md`.
+
+## 放牧、狩獵與捕魚（2026-09-29）
+
+羊、鹿、野豬是模擬中的單位（歸屬、逃跑、反擊、屍體、腐壞），岸邊魚可由村民採集，電腦會用；有單元測試與 `test:economy` 瀏覽器流程。缺口：漁船、碼頭、魚梁與海軍；經濟科技；市場；城牆、塔、駐軍；鐵匠鋪、兵種相剋與升級；攻城器；陣型與姿態。原作數值多數未查證（見 aoe2-rules-research.md）。

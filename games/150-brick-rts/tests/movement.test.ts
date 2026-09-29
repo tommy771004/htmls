@@ -14,7 +14,7 @@ function order(s:State,unitIds:number[],x:number,y:number,commandType:'move'|'st
 function addUnits(s:State,nodes:[number,number][],firstId=10){
  const taken=new Set(s.units.map(u=>u.node));let id=firstId;
  for(const [x,y] of nodes){const n=nodeAt({size:16},{x,y});if(n<0||s.map.blocked.includes(n)||taken.has(n))continue;taken.add(n);s.units.push(makeUnit({size:16},id++,0,x,y));}
- s.units.sort((a,b)=>a.id-b.id);return s.units.filter(u=>u.id>=firstId).map(u=>u.id);
+ s.units.sort((a,b)=>a.id-b.id);return s.units.filter(u=>u.id>=firstId&&u.id<id).map(u=>u.id);
 }
 // Unit bodies are 50x50 squares on the nav grid: centres must stay at least 50 apart on some axis.
 function assertNoOverlap(s:State){for(let i=0;i<s.units.length;i++)for(let j=i+1;j<s.units.length;j++){const a=s.units[i],b=s.units[j];assert.ok(Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y))>=50,`tick ${s.tick}: units ${a.id} and ${b.id} overlap at (${a.x},${a.y}) (${b.x},${b.y})`);}}
@@ -25,8 +25,8 @@ const blockSouthOfHall:[number,number][]=[250,300,500,550].flatMap(x=>[750,800,8
 test('a group order assigns distinct stations and every unit arrives without overlap',()=>{
  const s=createState(260925);order(s,[1,2,3],800,900);
  const r=run(s,1500,settled([1,2,3]));
- const stations=s.units.filter(u=>u.player===0).map(u=>u.node);assert.equal(new Set(stations).size,3);
- assert.ok(s.units.filter(u=>u.player===0).every(u=>u.navigation==='idle'&&Math.abs(u.x-800)+Math.abs(u.y-900)<=150),JSON.stringify(s.units));
+ const stations=s.units.filter(u=>u.id<=3).map(u=>u.node);assert.equal(new Set(stations).size,3);
+ assert.ok(s.units.filter(u=>u.id<=3).every(u=>u.navigation==='idle'&&Math.abs(u.x-800)+Math.abs(u.y-900)<=150),JSON.stringify(s.units));
  assert.ok(r.maxExpanded<=navigationRules.expansionsPerTick);
 });
 test('fifteen villagers queue single file through the town-center gate and nobody gets stuck',()=>{

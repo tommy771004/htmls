@@ -12,11 +12,15 @@ export const combatRules={provenance:'design_default',
   scout:{hp:45,damage:3,range:50,cooldown:40,sight:0},
   // Monk: hit points 30 as in the reference; no attack (converts and heals instead, see religion.ts).
   monk:{hp:30,damage:0,range:0,cooldown:0,sight:0},
+  // Animals (fauna.ts): sheep and deer never fight; a boar only strikes back at whoever hunts it.
+  sheep:{hp:7,damage:0,range:0,cooldown:0,sight:0},
+  deer:{hp:5,damage:0,range:0,cooldown:0,sight:0},
+  boar:{hp:75,damage:8,range:50,cooldown:40,sight:0},
  },
  buildings:{'town-center':400,house:150,barracks:300,farm:100,'lumber-camp':200,'mining-camp':200,mill:200,stable:300,'archery-range':300,monastery:350},
  corpseTicks:40,hitFlashTicks:6,
  // Movement per tick; every value divides the 50-unit node spacing, so a unit always lands exactly on its node.
- speed:{villager:5,militia:5,archer:5,scout:10,monk:5},
+ speed:{villager:5,militia:5,archer:5,scout:10,monk:5,sheep:5,deer:10,boar:5},
 } as const;
 // Monastery technology effects that touch unit stats (reference values, see aoe2-rules-research.md).
 export const religionBonus={sanctityHp:15} as const;
