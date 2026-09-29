@@ -41,6 +41,23 @@ try {
   const offLive = await page.evaluate(() => { const B = brushwild, e = window.__fxE; B.HFX.hit({ pos: e.pos.clone(), color: 0xff0000, damage: 1 }); return B.HFX.live.length; });
   assert.equal(offLive, 0, 'hit fx off');
   await page.evaluate(() => { brushwild.HFX.enabled = true; });
+  // 遊戲內的打擊特效調整面板：T 開啟、練習用哥布林、試打、滑桿即時套用並存檔、A／B 切換、Esc 關閉
+  await page.keyboard.press('KeyT');
+  await page.waitForSelector('#tune:not(.hide)', slow);
+  assert(await page.evaluate(() => !!brushwild.TUNE.dummy && !brushwild.TUNE.dummy.dead));
+  const hpBefore = await page.evaluate(() => brushwild.TUNE.dummy.hp);
+  await page.click('#tSwing');
+  await page.waitForFunction(h => brushwild.TUNE.dummy && brushwild.TUNE.dummy.hp < h, hpBefore, slow);
+  await page.$eval('#tQuick input[type=range]', r => { r.value = '0.61'; r.dispatchEvent(new Event('input')); });
+  assert.equal(await page.evaluate(() => brushwild.HFX.params.shake.radius), .61);
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('brushwild188-hitfx-params')).A.shake.radius), .61);
+  await page.click('#tB');
+  assert.equal(await page.evaluate(() => brushwild.HFX.params === brushwild.TUNE.sets.B && brushwild.HFX.params.shake.radius !== .61), true);
+  await page.click('#tA');
+  await page.screenshot({ path: `${output}/tune-panel.png` });
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => document.getElementById('tune').classList.contains('hide'), null, slow);
+  assert.equal(await page.evaluate(() => brushwild.TUNE.dummy), null);
 
   // 水晶：守護者還在 → 塗不亮；打倒後錯色不亮、對色才亮；四顆都亮 → 解鎖飛行
   const gate = await page.evaluate(() => {

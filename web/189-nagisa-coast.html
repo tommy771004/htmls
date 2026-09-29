@@ -257,6 +257,7 @@ input[type=range]:focus-visible{outline:1px dashed var(--survey);outline-offset:
     <li>淺水方程沒有頻散：波速只看水深，波浪會比真實世界更早變陡成湧潮，所以造波邊界放在近岸 7 m 水深處，外海更遠的浪只是依線性理論畫出來的；也沒有處理波浪的垂直結構與底流（undertow），所以沙灘的季節性前進後退只是近似。</li>
     <li>潮汐週期壓縮成 30 分鐘，潮流因此比真實的強；地形加速因子會放大沙的變化速度，但不會讓波浪加快。</li>
     <li>消波塊視為不透水的堤，沒有透水與越波的細節。</li>
+    <li>計算範圍是中間 1 公里 × 0.5 公里的海岸（沿岸方向重複）。範圍外的丘陵、山、島、防砂林、村落與外海的浪都是程式生成的布景，只有畫面，不參與計算；消波塊與岩塊依計算用的地形擺放。</li>
   </ul>
   <p style="margin-top:12px;color:var(--dim)">快捷鍵：<code>Q W E R T Y U</code> 工具、<code>1–6</code> 情境、<code>M</code> 顯示模式、<code>P</code> 粒子、<code>空白</code> 暫停、<code>H</code> 隱藏介面。</p>
 </div></div>
@@ -404,7 +405,7 @@ var FS_BED = HEAD + COMMON + [
 '  float d=tn.x-b;bool wet=min(u0.x,un.x)>.02;float lim=uDx*(wet?.42:.68);',
 '  float f=max(abs(d)-lim,0.)*.08;if(wet)f+=uKd*abs(d);',
 '  float av=d>0.?max(tn.x-tn.y,0.):max(b-t0.y,0.);f=min(f,av*.2);dB+=sign(d)*f;}',
-' oT=vec4(b+dB,t0.yzw);oU=vec4(max(u0.x-dB,0.),u0.yzw);}'].join('\n');
+' oT=vec4(b+dB,t0.yzw);oU=u0.x>1e-3?vec4(max(u0.x-dB,0.),u0.yzw):vec4(0.,0.,0.,0.);}'].join('\n');
 
 // 筆刷：堆沙、挖沙、消波塊、拆除
 var FS_BRUSH = HEAD + COMMON + [
@@ -418,7 +419,7 @@ var FS_BRUSH = HEAD + COMMON + [
 '  else if(uTool==3){if(r<.85){float cr=uTide+2.6+.35*vnoise(p*.4);B=max(B,mix(B,cr,min(1.,uAmt*3.)));t.y=B;t.w=2.;}}',
 '  else if(uTool==4){if(t.w>1.5){float sb=0.,n=0.;for(int k=0;k<24;k++){float a=float(k)*.2618;vec2 q=uBr.xy+vec2(cos(a),sin(a))*(uBr.z+8.);ivec2 qc=wr(ivec2(floor(q/uDx)));vec4 tq=texelFetch(uT,qc,0);if(tq.w<1.5){sb+=tq.x;n+=1.;}}',
 '   float nb=n>0.?sb/n:-2.;B=nb;t.z=nb;t.y=-30.;t.w=0.;}}',
-'  float nh=max(w-B,0.);float s=u.x>1e-4?nh/u.x:0.;u=vec4(nh,u.yz*s,u.w*s);t.x=B;}',
+'  float nh=u.x>1e-3?max(w-B,0.):0.;float s=u.x>1e-4?nh/u.x:0.;u=vec4(nh,u.yz*s,u.w*s);t.x=B;}',
 ' oU=u;oT=t;}'].join('\n');
 
 // 泡沫、染料與統計
@@ -474,129 +475,255 @@ var FS_PROBE = HEAD + COMMON + [
 ' else{if(p.x<64){int col=p.x*uN.x/64;float su=0.,n=0.,sv=0.;for(int j=0;j<1024;j++){if(j>=uN.y)break;vec4 m=texelFetch(uM,ivec2(col,j),0);float h=texelFetch(uU,ivec2(col,j),0).x;if(m.w>.004&&h>.15&&texelFetch(uT,ivec2(col,j),0).w<.5){su+=m.x;sv+=m.y;n+=1.;}}o=vec4(su,n,sv,0.);}}',
 '}'].join('\n');
 
-var FS_DOWN = HEAD + COMMON + 'uniform sampler2D uT;out vec4 o;void main(){ivec2 c=ivec2(gl_FragCoord.xy)*2;o=vec4(texelFetch(uT,c,0).x,0.,0.,0.);}';
+var FS_DOWN = HEAD + COMMON + 'uniform sampler2D uT;out vec4 o;void main(){ivec2 c=ivec2(gl_FragCoord.xy)*2;vec4 t=texelFetch(uT,c,0);o=vec4(t.x,t.w,0.,0.);}';
 
 // ---------- 繪製用 ----------
-var RCOMMON = COMMON + [
-'uniform mat4 uVP;uniform vec3 uCam,uSun,uSunC,uSkyZ,uSkyH;uniform float uTime,uVex,uTide,uLY,uOff;uniform int uMode;',
-'uniform vec4 uW['+NW+'];uniform float uPh['+NW+'];uniform int uNW;uniform float uRamp;',
-'vec3 sky(vec3 d){float y=max(d.y,0.);vec3 c=mix(uSkyH,uSkyZ,pow(y,.42));float s=max(dot(d,uSun),0.);',
-' c+=uSunC*(pow(s,1400.)*30.+pow(s,14.)*.10+pow(s,3.)*.05);if(d.y<0.)c=uSkyH*mix(1.,.72,min(-d.y*3.,1.));return c;}',
-'vec3 fog(vec3 c,vec3 p){float d=length(p-uCam);vec3 dir=normalize(p-uCam);float f=1.-exp(-d*d*6e-8-d*5e-5);return mix(c,sky(vec3(dir.x,max(dir.y,.02),dir.z))*.96,clamp(f,0.,1.));}',
+// 共用：世界高度（模擬區用貼圖，陸側接丘陵與山，海側接海床與島）、天空、雲、大氣透視
+var RC = COMMON + [
+'uniform mat4 uVP;uniform vec3 uCam,uSun,uSunC,uSkyZ,uSkyH;uniform float uTime,uVex,uTide,uLX,uLY,uCloud,uRamp;uniform int uMode;',
+'uniform sampler2D uRB,uRW;uniform vec4 uRiv;',
+'uniform vec4 uW['+NW+'];uniform float uPh['+NW+'];uniform int uNW;',
+'vec2 duv(vec2 p){return vec2(p.x/uLX,p.y/uLY);}',
+'float ridge(vec2 p){float s=0.,a=.5;for(int i=0;i<5;i++){float n=1.-abs(vnoise(p)*2.-1.);s+=a*n*n;p=p*2.07+vec2(3.1,1.7);a*=.5;}return s;}',
+'float island(vec2 p,vec2 c,float r,float h){float t=1.-length((p-c)*vec2(1.,1.35))/r+(fbm(p*.0021)-.5)*.55;if(t<=0.)return -90.;return -30.+(h+30.)*pow(clamp(t*1.7,0.,1.),1.25)*(.5+.7*ridge(p*.0013+c*.001));}',
+'float rivX(float z){return uRiv.x+26.*sin((z-300.)/60.);}',
+'float landH(vec2 p,float e){float d=p.y-uLY;',
+' float hills=8.+.035*d+62.*(fbm(p*.0018+vec2(4.,1.))-.28)*smoothstep(0.,900.,d)+10.*(fbm(p*.012)-.45)*smoothstep(0.,300.,d);',
+' float m=smoothstep(1000.,4800.,d);if(m>0.)hills+=900.*pow(ridge(p*.0003+vec2(2.3,.7)),1.8)*m;',
+' float h=mix(e,hills,smoothstep(0.,300.,d));',
+' if(uRiv.y>0.){float dx=abs(p.x-rivX(p.y)-uLX*floor((p.x-rivX(p.y))/uLX+.5));float v=1.-smoothstep(16.,60.+d*.05,dx);h=mix(h,min(h,.7+d*.004),v);}',
+' return h;}',
+'float seaH(vec2 p,float e){float d=-p.y;float b=mix(e,-40.,smoothstep(0.,3400.,d));b=max(b,island(p,vec2(-2300.,-4800.),1100.,240.));b=max(b,island(p,vec2(3400.,-7200.),1800.,430.));b=max(b,island(p,vec2(6400.,-3900.),520.,110.));return b;}',
+'float gH(vec2 p){if(p.y>=0.&&p.y<=uLY)return textureLod(uRB,duv(p),0.).x;if(p.y>uLY)return landH(p,textureLod(uRB,vec2(p.x/uLX,1.),0.).x);return seaH(p,textureLod(uRB,vec2(p.x/uLX,0.),0.).x);}',
+'vec3 waveAt(vec2 p){float e=0.;vec2 g=vec2(0.);for(int i=0;i<'+NW+';i++){if(i>=uNW)break;vec4 w=uW[i];float ph=w.x*p.x+w.y*p.y-w.z*uTime+uPh[i];e+=w.w*cos(ph);g-=w.w*sin(ph)*w.xy;}return vec3(e,g)*uRamp;}',
+'vec3 skyBase(vec3 d){float y=max(d.y,0.);vec3 c=mix(uSkyH,uSkyZ,pow(y,.5));float s=max(dot(d,uSun),0.);c+=uSunC*(pow(s,5.)*.09+pow(s,48.)*.22)*(1.-.7*y);return c;}',
+'float cloudCov(vec2 q){return fbm(q)+.55*fbm(q*2.9+3.7)-.8+uCloud;}',
+'vec4 clouds(vec3 o,vec3 d){if(d.y<=.004)return vec4(0.);float t=(1800.-o.y)/d.y;vec2 q=(o.xz+d.xz*t)*.00036+vec2(uTime*.0012,0.);float cv=cloudCov(q);',
+' float a=smoothstep(0.,.28,cv)*smoothstep(.004,.1,d.y);if(a<=0.)return vec4(0.);float lit=clamp(.62+(cv-cloudCov(q+uSun.xz*.028))*2.4,.2,1.15);',
+' vec3 col=mix(uSkyH,vec3(1.),.45)*(uSunC*.40*lit+uSkyZ*.55);col=mix(col,uSkyH*1.05,smoothstep(.12,.0,d.y)*.6);return vec4(col,a*.94);}',
+'vec3 sky(vec3 o,vec3 d){vec3 c=skyBase(d);float s=dot(d,uSun);c+=uSunC*smoothstep(.99955,.99985,s)*22.;vec4 cl=clouds(o,d);return mix(c,cl.rgb,cl.a);}',
+'float cloudShadow(vec3 p){if(uSun.y<.05||uCloud<-.3)return 1.;vec2 q=(p.xz+uSun.xz/uSun.y*(1800.-p.y))*.00036+vec2(uTime*.0012,0.);return 1.-.62*smoothstep(0.,.28,cloudCov(q));}',
+'vec3 aerial(vec3 c,vec3 p){vec3 v=p-uCam;float d=length(v);vec3 dir=v/max(d,1e-3);float hf=.3+.7*exp(-max(p.y,0.)/700.);float f=1.-exp(-d*9e-5*hf);',
+' vec3 fc=skyBase(normalize(vec3(dir.x,max(dir.y,0.)*.2+.02,dir.z)))*.92;return mix(c,fc,clamp(f,0.,1.));}',
 'vec3 aces(vec3 x){x*=.9;return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);}',
 'vec3 outc(vec3 c){return pow(aces(c),vec3(1./2.2));}',
 'vec3 pal(float t){t=clamp(t,0.,1.);vec3 a=vec3(.03,.07,.2),b=vec3(.05,.42,.62),c=vec3(.35,.83,.78),d=vec3(.98,.78,.18),e=vec3(.95,.24,.12);',
 ' return t<.25?mix(a,b,t*4.):t<.5?mix(b,c,(t-.25)*4.):t<.75?mix(c,d,(t-.5)*4.):mix(d,e,(t-.75)*4.);}',
 'vec3 div3(float t){t=clamp(t,-1.,1.);vec3 z=vec3(.30,.29,.27);return t<0.?mix(z,vec3(1.,.28,.12),pow(-t,.7)):mix(z,vec3(.08,.62,.78),pow(t,.7));}',
-'vec3 waveAt(vec2 p){float e=0.;vec2 g=vec2(0.);for(int i=0;i<'+NW+';i++){if(i>=uNW)break;vec4 w=uW[i];float ph=w.x*p.x+w.y*p.y-w.z*uTime+uPh[i];e+=w.w*cos(ph);g-=w.w*sin(ph)*w.xy;}return vec3(e,g)*uRamp;}',
+'float vor(vec2 p){vec2 i=floor(p),f=fract(p);float d1=8.,d2=8.;for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 g=vec2(x,y);vec2 q=g+vec2(hash(i+g),hash(i+g+19.7))-f;float d=dot(q,q);if(d<d1){d2=d1;d1=d;}else if(d<d2)d2=d;}return sqrt(d2)-sqrt(d1);}',
 ''].join('\n');
 
-var VS_TER = HEAD + RCOMMON + [
-'in vec3 aP;uniform sampler2D uT,uU,uM;',
-'out vec3 vP;out vec3 vNr;out float vB,vB0,vWet,vMat,vH,vLand;',
-'float Bf(ivec2 c){return texelFetch(uT,wr(c),0).x;}',
-'void main(){int i=int(aP.x),j=int(aP.y);ivec2 c=ivec2(i%uN.x,j);vec4 t=texelFetch(uT,c,0);',
-' float x=(aP.x+.5)*uDx+uOff,z=aP.z;float B=t.x;',
-' vec3 n=normalize(vec3(-(Bf(c+ivec2(1,0))-Bf(c-ivec2(1,0)))*uVex,2.*uDx,-(Bf(c+ivec2(0,1))-Bf(c-ivec2(0,1)))*uVex));',
-' float land=0.;',
-' if(z<0.){float d=-z;B=mix(B,-22.,smoothstep(0.,2200.,d))-d*.002;n=vec3(0.,1.,0.);}',
-' else if(z>uLY){float d=z-uLY;float hill=(fbm(vec2(x,z)*.004)-.3)*26.*smoothstep(0.,500.,d);',
-'  float forest=smoothstep(30.,90.,d)*(1.-smoothstep(380.,480.,d))*(7.+4.*fbm(vec2(x,z)*.05));B+=hill+forest+d*.01;land=forest>1.?1.:0.;',
-'  float e=2.;float hx=(fbm(vec2(x+e,z)*.004)-fbm(vec2(x-e,z)*.004))*26.,hz=(fbm(vec2(x,z+e)*.004)-fbm(vec2(x,z-e)*.004))*26.;n=normalize(vec3(-hx*smoothstep(0.,500.,d),2.*e,-hz*smoothstep(0.,500.,d)));}',
-' vB=B;vB0=t.z;vMat=t.w;vH=texelFetch(uU,c,0).x;vWet=texelFetch(uM,c,0).z;vLand=land;',
-' if(z<0.||z>uLY){vH=z<0.?30.:0.;vWet=0.;vB0=B;vMat=0.;}',
-' vP=vec3(x,B*uVex,z);vNr=n;gl_Position=uVP*vec4(vP,1.);}'].join('\n');
+// 繪製用貼圖：地形 (B, B0, 材質, 濕度) 與水面 (繪製水位, 水深, 流速, 濃度)，半精度、線性過濾
+var FS_RCOPY = HEAD + COMMON + [
+'uniform sampler2D uU,uT,uF,uM;',
+'layout(location=0) out vec4 oB;layout(location=1) out vec4 oW;',
+'void main(){ivec2 c=ivec2(gl_FragCoord.xy);vec4 u=texelFetch(uU,c,0),t=texelFetch(uT,c,0),f=texelFetch(uF,c,0),m=texelFetch(uM,c,0);',
+' float h=u.x,sp=h>.02?length(u.yz)/h:0.;',
+' float w=h>.012?u.x+t.x+.28*clamp(f.x,0.,1.2)*smoothstep(.05,.5,h):t.x-.3;',
+' oB=vec4(t.x,t.z,t.w,m.z);oW=vec4(w,h,sp,h>.02?u.w/h:0.);}'].join('\n');
 
-var FS_TER = HEAD + RCOMMON + [
-'in vec3 vP;in vec3 vNr;in float vB,vB0,vWet,vMat,vH,vLand;out vec4 o;',
-'uniform vec4 uBrush;uniform vec4 uSec;',
-'float vor(vec2 p){vec2 i=floor(p),f=fract(p);float d1=8.,d2=8.;for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 g=vec2(x,y);vec2 q=g+vec2(hash(i+g),hash(i+g+19.7))-f;float d=dot(q,q);if(d<d1){d2=d1;d1=d;}else if(d<d2)d2=d;}return sqrt(d2)-sqrt(d1);}',
-'void main(){vec3 n=normalize(vNr);vec2 xz=vP.xz;float B=vB;',
-' float nz=fbm(xz*.18);float fine=vnoise(xz*2.3);',
-' vec3 sand=vec3(.60,.47,.29)*(.86+.22*nz+.06*fine);',
-' vec3 col=sand;float rough=1.;',
-' float slopeK=1.-n.y;',
-' if(B<uTide+.2){float rip=.5+.5*sin(xz.y*2.1+fbm(xz*.3)*6.);col*=.9+.12*rip;}',
-' col=mix(col,col*vec3(.55,.56,.6),clamp(vWet,0.,1.)*step(uTide-.3,B));',
-' if(B>2.7&&vMat<.5&&vH<.01){float g=smoothstep(2.7,3.6,B)*smoothstep(.35,.62,fbm(xz*.07)+.25)*(1.-smoothstep(.25,.5,slopeK));',
-'  vec3 grass=mix(vec3(.21,.26,.10),vec3(.36,.37,.17),fine);col=mix(col,grass,g);}',
-' if(vLand>.5){col=mix(vec3(.05,.10,.05),vec3(.10,.16,.07),fbm(xz*.2));}',
-' else if(vP.z>uLY){col=mix(col,mix(vec3(.26,.30,.13),vec3(.34,.33,.18),nz),smoothstep(0.,40.,vP.z-uLY));}',
-' if(vMat>.5&&vMat<1.5){float st=fbm(vec2(xz.x*.08,B*1.4)+nz);col=mix(vec3(.23,.21,.19),vec3(.42,.39,.34),st);',
-'  col=mix(col,mix(vec3(.10,.16,.06),vec3(.20,.24,.10),fine),smoothstep(5.,7.,B)*(1.-smoothstep(.3,.55,slopeK))*smoothstep(.3,.5,fbm(xz*.09)+.2));',
-'  if(B<uTide+1.2&&B>uTide-1.)col=mix(col,vec3(.08,.10,.06),.55*(1.-abs(B-uTide-.1)));}',
-' if(vMat>1.5){float v=vor(xz*.55);float bump=smoothstep(.02,.28,v);col=vec3(.60,.60,.57)*(.42+.58*bump)*(.9+.2*vnoise(floor(xz*.55)*3.1));',
-'  n=normalize(n+vec3(vnoise(xz*1.7)-.5,0.,vnoise(xz*1.7+5.)-.5)*.9*bump);',
-'  if(B<uTide+.6)col*=mix(vec3(.45,.5,.42),vec3(1.),smoothstep(uTide-.4,uTide+.6,B));}',
+// 太陽陰影（沿太陽方向步進高度場的柔和陰影）與環境光遮蔽
+var FS_SHADOW = HEAD + RC + [
+'out vec4 o;',
+'void main(){ivec2 c=ivec2(gl_FragCoord.xy);vec2 p=(vec2(c)+.5)*uDx;float h0=texelFetch(uRB,c,0).x*uVex;',
+' vec3 o0=vec3(p.x,h0+.4,p.y);float vis=1.,t=1.5;',
+' for(int i=0;i<44;i++){vec3 q=o0+uSun*t;float dh=q.y-gH(q.xz)*uVex;vis=min(vis,clamp(7.*dh/t,0.,1.));if(vis<=0.||q.y>600.)break;t+=max(1.5,t*.13);}',
+' float occ=0.;for(int k=0;k<8;k++){float a=float(k)*.7854+.3;vec2 dr=vec2(cos(a),sin(a));float mx=0.;',
+'  for(int r=1;r<=4;r++){float rr=float(r*r)*2.5;mx=max(mx,(gH(p+dr*rr)*uVex-h0)/rr);}occ+=clamp(mx*1.2,0.,1.);}',
+' o=vec4(vis,1.-occ/8.*.85,0.,1.);}'].join('\n');
+
+// 地形：模擬區網格（uWorld=0）與外圍世界網格（uWorld=1）
+var VS_TER = HEAD + RC + [
+'in vec3 aP;uniform float uOff;uniform int uWorld;',
+'out vec3 vP;out vec3 vN;out float vSv;',
+'void main(){vec2 p;float B;vec3 n=vec3(0.,1.,0.);vSv=-1.;',
+' if(uWorld==0){p=vec2((aP.x+.5)*uDx+uOff,(aP.y+.5)*uDx);B=textureLod(uRB,vec2((aP.x+.5)/float(uN.x),(aP.y+.5)/float(uN.y)),0.).x;}',
+' else{p=aP.xy;B=gH(p);float e=max(3.,length(p-uCam.xz)*.006);',
+'  n=normalize(vec3(-(gH(p+vec2(e,0.))-gH(p-vec2(e,0.)))*uVex,2.*e,-(gH(p+vec2(0.,e))-gH(p-vec2(0.,e)))*uVex));',
+'  if(p.y<0.||p.y>uLY){float t=8.,v=1.;vec3 o0=vec3(p.x,B*uVex+1.,p.y);for(int i=0;i<20;i++){vec3 q=o0+uSun*t;v=min(v,clamp(5.*(q.y-gH(q.xz)*uVex)/t,0.,1.));t+=t*.3+8.;if(q.y>1400.||v<=0.)break;}vSv=v;}}',
+' vP=vec3(p.x,B*uVex,p.y);vN=n;gl_Position=uVP*vec4(vP,1.);}'].join('\n');
+
+var FS_TER = HEAD + RC + [
+'in vec3 vP;in vec3 vN;in float vSv;out vec4 o;',
+'uniform sampler2D uSH;uniform vec4 uBrush,uSec;',
+'void main(){vec2 p=vP.xz;bool inD=p.y>=0.&&p.y<=uLY;vec2 uv=duv(p);float dist=length(vP-uCam);',
+' float B=vP.y/uVex,B0=B,mat=0.,wet=0.,sv=1.,ao=1.,hw=0.;vec3 n=normalize(vN);',
+' if(inD){vec4 rb=texture(uRB,uv);B=rb.x;B0=rb.y;mat=rb.z;wet=rb.w;float e=max(uDx*.55,dist*.0012);',
+'  n=normalize(vec3(-(texture(uRB,duv(p+vec2(e,0.))).x-texture(uRB,duv(p-vec2(e,0.))).x)*uVex,2.*e,-(texture(uRB,duv(p+vec2(0.,e))).x-texture(uRB,duv(p-vec2(0.,e))).x)*uVex));',
+'  vec4 sh=texture(uSH,uv);sv=sh.x;ao=sh.y;hw=texture(uRW,uv).y;}',
+' else{if(vSv>=0.)sv=vSv;if(dist<900.){float e=max(1.5,dist*.004);n=normalize(vec3(-(gH(p+vec2(e,0.))-gH(p-vec2(e,0.)))*uVex,2.*e,-(gH(p+vec2(0.,e))-gH(p-vec2(0.,e)))*uVex));}}',
+' float slope=1.-n.y,nz=fbm(p*.13),nz2=fbm(p*.6+3.),fine=vnoise(p*3.3),fd=1.-smoothstep(80.,500.,dist);',
+' vec3 sand=vec3(.60,.49,.33)*(.9+.14*nz+.06*fine*fd);vec3 alb=sand;',
+' float isWet=clamp(wet,0.,1.)*step(uTide-.6,B)*(1.-smoothstep(uTide+2.,uTide+4.,B));',
+' alb=mix(alb,alb*vec3(.5,.49,.5),isWet);',
+' float veg=0.;',
+' if(inD&&mat<.5){veg=smoothstep(3.2,5.,B)*(1.-smoothstep(.32,.58,slope))*smoothstep(.3,.62,nz+.25*(nz2-.5)+.22*smoothstep(4.,9.,B));veg=max(veg,smoothstep(2.9,4.2,B)*smoothstep(.62,.7,nz2)*(1.-smoothstep(.3,.5,slope)));}',
+' vec3 grass=mix(vec3(.14,.20,.06),vec3(.36,.34,.17),smoothstep(.35,.75,nz2));',
+' if(!inD&&p.y>uLY){veg=1.-smoothstep(.55,.8,slope);float fm=smoothstep(.42,.58,fbm(p*.0045+2.));vec3 forest=vec3(.035,.075,.03)*(.75+.5*fine);',
+'  vec2 fq=floor(p/vec2(90.,60.)+vec2(fbm(p*.01),0.)*1.5);float fh=hash(fq);vec3 field=fh<.3?vec3(.30,.31,.12):fh<.55?vec3(.16,.24,.07):fh<.75?vec3(.36,.32,.18):vec3(.22,.27,.10);',
+'  field*=.85+.25*vnoise(p*.08);float farm=(1.-smoothstep(40.,120.,B))*(1.-smoothstep(.12,.25,slope));',
+'  grass=mix(mix(vec3(.12,.19,.06),vec3(.26,.28,.12),nz2),field,farm*.8);grass=mix(grass,forest,max(fm,smoothstep(70.,220.,B))*smoothstep(0.,60.,p.y-uLY));grass=mix(grass,vec3(.08,.11,.06),smoothstep(350.,800.,B)*.7);}',
+' alb=mix(alb,grass,veg);',
+' float rockF=0.;if(mat>.5&&mat<1.5)rockF=1.;if(!inD&&p.y>uLY)rockF=max(rockF,smoothstep(.5,.72,slope)*(.6+.4*nz));',
+' if(p.y<0.)rockF=max(rockF,clamp(smoothstep(.2,.45,slope)+1.-smoothstep(-1.,5.,B),0.,1.));',
+' vec3 rock=mix(vec3(.15,.14,.12),vec3(.36,.33,.29),fbm(vec2(p.x*.04+p.y*.03,B*.8)))*(.75+.4*fine)*(.8+.3*smoothstep(.3,.7,nz2));',
+' alb=mix(alb,rock,clamp(rockF,0.,1.));',
+' if(p.y<0.&&B>6.)alb=mix(alb,vec3(.06,.11,.04)*(.8+.4*nz),(1.-smoothstep(.35,.6,slope))*smoothstep(6.,20.,B));',
+' if(mat>.5&&mat<1.5){alb=mix(alb,mix(vec3(.05,.09,.035),vec3(.16,.17,.08),smoothstep(.4,.8,nz2))*(.7+.5*fine),smoothstep(4.,7.,B)*(1.-smoothstep(.28,.5,slope))*smoothstep(.38,.55,nz2*.7+nz*.5));',
+'  alb=mix(alb,vec3(.05,.06,.045),(1.-smoothstep(0.,1.5,abs(B-uTide-.2)))*.75);}',
+' if(mat>1.5&&mat<2.5)alb=vec3(.30,.30,.29)*(.7+.3*fine);',
+' if(mat>2.5){vec2 g=abs(fract(p/vec2(6.,4.))-.5);alb=vec3(.46,.45,.42)*(.85+.1*nz)*(1.-.25*smoothstep(.47,.5,max(g.x,g.y)));}',
+' float bump=(.05+.25*veg+.7*rockF)*fd;',
+' if(veg<.2&&rockF<.2&&B>uTide+.3)n=normalize(n+vec3(0.,0.,.06*sin(dot(p,vec2(.35,1.1))*5.+fine*2.))*fd);',
+' n=normalize(n+vec3(vnoise(p*1.9)-.5,0.,vnoise(p*1.9+9.)-.5)*bump);',
+' float dif=max(dot(n,uSun),0.)*sv*cloudShadow(vP);',
+' vec3 amb=mix(vec3(.30,.26,.20)*.35,uSkyZ*1.15,n.y*.5+.5)*ao;',
+' vec3 c=alb*(uSunC*dif+amb*.8);',
+' if(isWet>.01){vec3 V=normalize(uCam-vP);vec3 Hh=normalize(V+uSun);c+=uSunC*pow(max(dot(n,Hh),0.),90.)*.5*isWet*sv;}',
 ' float depth=uTide-B;',
-' if(depth>0.&&vP.z>=0.&&uMode==0){float t=uTime*.9;vec2 q=xz*.55;float cs=abs(sin(q.x+sin(q.y*1.3+t))+sin(q.y*1.1+sin(q.x*1.7-t*1.2)));',
-'  col+=vec3(.9,1.,.95)*pow(max(1.-cs*.55,0.),6.)*exp(-depth*.35)*.55*max(uSun.y,0.);}',
-' if(uMode==3){float dB=vB-vB0;col=vMat>1.5?vec3(.55,.55,.57):div3(dB/1.2)*(.8+.2*nz);if(vB>uTide+.3&&abs(dB)<.05&&vMat<1.5)col=mix(col,sand*.8,.6);}',
-' if(uMode==4){col=B<0.?mix(vec3(.55,.8,.85),vec3(.05,.16,.36),clamp(-B/12.,0.,1.)):mix(vec3(.78,.72,.52),vec3(.42,.5,.3),clamp(B/7.,0.,1.));',
-'  float fl=abs(fract(B+.5)-.5)/fwidth(B);col*=mix(.55,1.,clamp(fl,0.,1.));float z0=abs(B-uTide)/fwidth(B);col=mix(vec3(.96,.72,0.),col,clamp(z0*.7,0.,1.));}',
-' float dif=max(dot(n,uSun),0.);vec3 amb=mix(uSkyH,uSkyZ,.5)*.45;',
-' vec3 c=col*(uSunC*dif*.9+amb);',
-' if(uMode>=3)c=col*(.55+.5*dif);',
-' if(uSec.w>0.&&vP.z>0.&&vP.z<uLY){float dx=abs(vP.x-uSec.x);float wd=fwidth(vP.x)*.8+.25;c=mix(c,vec3(1.,.72,0.)*1.3,smoothstep(wd,wd*.3,dx)*.4);',
-'  for(int k=0;k<3;k++){float gz=k==0?uSec.y:k==1?uSec.z:uSec.w;float r=length(vec2(vP.x-uSec.x,vP.z-gz));c=mix(c,vec3(1.,.72,0.)*1.6,smoothstep(1.4,.6,abs(r-4.)));}}',
-' if(uBrush.w>0.){float r=length(vec2(vP.x,vP.z)-uBrush.xy);float e=fwidth(r)*1.5+.4;c=mix(c,vec3(1.3),smoothstep(e,0.,abs(r-uBrush.z))*.9);}',
-' o=vec4(outc(uMode>=3?mix(c,fog(c,vP),.35):fog(c,vP)),1.);}'].join('\n');
+' if(inD&&depth>0.&&hw>.02&&uMode==0){float t=uTime*.35;vec2 q=p*.45+vec2(vnoise(p*.2+t),vnoise(p*.2-t+4.))*1.6;float ca=1.-abs(vnoise(q+t)*2.-1.);float cb=1.-abs(vnoise(q*1.7-t+9.)*2.-1.);',
+'  c+=vec3(.9,1.,.95)*pow(ca*cb,5.)*exp(-depth*.35)*.8*uSunC*sv*fd;c*=mix(vec3(1.),vec3(.5,.78,.82),clamp(depth*.25,0.,.85));}',
+' if(uMode==3&&inD){float dB=B-B0;vec3 dc=mat>1.5?vec3(.55,.55,.57):div3(dB/1.2);if(B>uTide+.3&&abs(dB)<.05&&mat<1.5)dc=mix(dc,alb,.7);c=dc*(.6+.5*max(dot(n,uSun),0.));}',
+' if(uMode==4&&inD){vec3 bc=B<0.?mix(vec3(.55,.8,.85),vec3(.05,.16,.36),clamp(-B/8.,0.,1.)):mix(vec3(.78,.72,.52),vec3(.42,.5,.3),clamp(B/10.,0.,1.));',
+'  float fl=abs(fract(B+.5)-.5)/fwidth(B);bc*=mix(.55,1.,clamp(fl,0.,1.));float z0=abs(B-uTide)/fwidth(B);bc=mix(vec3(.96,.72,0.),bc,clamp(z0*.7,0.,1.));c=bc*(.6+.5*max(dot(n,uSun),0.));}',
+' if(uSec.w>0.&&inD){float dx=abs(p.x-uSec.x);float wd=fwidth(p.x)*.8+.2;c=mix(c,vec3(1.,.72,0.)*1.2,smoothstep(wd,wd*.3,dx)*.4);',
+'  for(int k=0;k<3;k++){float gz=k==0?uSec.y:k==1?uSec.z:uSec.w;float r=length(vec2(p.x-uSec.x,p.y-gz));c=mix(c,vec3(1.,.72,0.)*1.5,smoothstep(1.4,.6,abs(r-4.)));}}',
+' if(uBrush.w>0.){float r=length(p-uBrush.xy);float e=fwidth(r)*1.5+.35;c=mix(c,vec3(1.3),smoothstep(e,0.,abs(r-uBrush.z))*.9);}',
+' c=uMode>=3?mix(c,aerial(c,vP),.35):aerial(c,vP);o=vec4(outc(c),1.);}'].join('\n');
 
-var VS_WAT = HEAD + RCOMMON + [
-'in vec3 aP;uniform sampler2D uT,uU,uF,uM;',
-'out vec3 vP;out vec3 vNr;out float vH,vC,vFoam,vDye,vHs,vSpd,vFar;out vec2 vMean;',
-'float Wc(ivec2 c,float w0){vec4 u=texelFetch(uU,wr(c),0);return u.x>.01?u.x+texelFetch(uT,wr(c),0).x:w0;}',
-'void main(){int i=int(aP.x),j=int(aP.y);ivec2 c=ivec2(i%uN.x,j);float x=(aP.x+.5)*uDx+uOff,z=aP.z;',
-' vec4 u=texelFetch(uU,c,0);vec4 t=texelFetch(uT,c,0);vec4 f=texelFetch(uF,c,0);',
-' float h=u.x,B=t.x,w=h+B;vec3 n;vFar=0.;',
-' if(z<0.){float d=-z;vec3 wa=waveAt(vec2(x,z));w=uTide+wa.x*exp(-d/260.);h=uTide-(mix(B,-22.,smoothstep(0.,2200.,d))-d*.002);n=normalize(vec3(-wa.y*exp(-d/260.)*uVex,1.,-wa.z*exp(-d/260.)*uVex));vFar=smoothstep(0.,60.,d);f=vec4(0.);}',
-' else{',
-'  if(h<.01)w=B-.12;',
-'  float wE=Wc(c+ivec2(1,0),w),wW=Wc(c-ivec2(1,0),w),wN=Wc(c+ivec2(0,1),w),wS=Wc(c-ivec2(0,1),w);',
-'  n=normalize(vec3(-(wE-wW)*uVex,2.*uDx,-(wN-wS)*uVex));',
-'  if(z>uLY)w=-50.;',
-' }',
-' vMean=texelFetch(uM,c,0).xy;if(z<0.)vMean=vec2(0.);vH=h;vC=h>.02?u.w/h:0.;vFoam=f.x;vDye=f.y;vHs=4.*sqrt(max(f.w-f.z*f.z,0.));vSpd=h>.03?length(u.yz)/h:0.;',
-' vP=vec3(x,w*uVex,z);vNr=n;gl_Position=uVP*vec4(vP,1.);}'].join('\n');
+// 水面
+var VS_WAT = HEAD + RC + [
+'in vec3 aP;uniform float uOff;uniform int uWorld;',
+'out vec3 vP;out float vH;out float vFar;',
+'void main(){vec2 p;float w,h;vFar=0.;',
+' if(uWorld==0){p=vec2((aP.x+.5)*uDx+uOff,(aP.y+.5)*uDx);vec4 rw=textureLod(uRW,vec2((aP.x+.5)/float(uN.x),(aP.y+.5)/float(uN.y)),0.);w=rw.x;h=rw.y;}',
+' else{p=aP.xy;if(p.y>=0.&&p.y<=uLY){vec4 rw=textureLod(uRW,duv(p),0.);w=rw.x;h=rw.y;}',
+'  else if(p.y<0.){float g=gH(p);float fd=exp(p.y/500.)*(1.-smoothstep(900.,2600.,length(p-uCam.xz)));w=uTide+waveAt(p).x*fd;h=uTide-g;vFar=1.;if(h<0.)w=g-2.;}',
+'  else{float g=gH(p);h=0.;w=g-3.;if(uRiv.y>0.){float dx=abs(p.x-rivX(p.y)-uLX*floor((p.x-rivX(p.y))/uLX+.5));if(dx<20.){w=.7+(p.y-uLY)*.004+1.1;h=1.2;}}}}',
+' vH=h;vP=vec3(p.x,w*uVex,p.y);gl_Position=uVP*vec4(vP,1.);}'].join('\n');
 
-var FS_WAT = HEAD + RCOMMON + [
-'in vec3 vP;in vec3 vNr;in float vH,vC,vFoam,vDye,vHs,vSpd,vFar;in vec2 vMean;out vec4 o;',
-'uniform float uWind,uHref;uniform vec4 uBrush;uniform vec4 uSec;',
-'void main(){if(vH<.004)discard;vec3 V=normalize(uCam-vP);vec3 n=normalize(vNr);',
-' if(vFar>0.){vec3 wa=waveAt(vP.xz)*(1.-smoothstep(250.,1100.,length(vP-uCam)));n=normalize(mix(n,normalize(vec3(-wa.y*uVex,1.,-wa.z*uVex)),vFar));}',
-' float ra=.05+uWind*.01;',
-' float mpp=max(length(fwidth(vP.xz)),1e-3);vec2 g=vec2(0.);for(int k=0;k<6;k++){float fk=float(k);float an=fk*1.9+.4;vec2 d=vec2(cos(an),sin(an));float wl=1.2+fk*1.3;float ph=dot(vP.xz,d)*6.283/wl-uTime*sqrt(9.81*6.283/wl)+fk*3.;g+=d*cos(ph)*(1./(1.+fk*.4))*clamp((wl/mpp-3.)/5.,0.,1.);}',
+var FS_WAT = HEAD + RC + [
+'in vec3 vP;in float vH;in float vFar;out vec4 o;',
+'uniform sampler2D uF,uM;uniform float uWind,uHref;uniform vec4 uBrush,uSec;',
+'void main(){vec2 p=vP.xz;bool inD=p.y>=0.&&p.y<=uLY;vec2 uv=duv(p);float dist=length(vP-uCam);',
+' float h=vH,foam=0.,dye=0.,spd=0.,conc=0.,hs=0.,crest=0.;vec3 n=vec3(0.,1.,0.);vec2 mean=vec2(0.);',
+' if(inD){vec4 rw=texture(uRW,uv);h=rw.y;if(h<.008)discard;spd=rw.z;conc=rw.w;float e=max(uDx*.5,dist*.0009);',
+'  float w0=rw.x,lim=e*.8;',
+'  float wE=max(texture(uRW,duv(p+vec2(e,0.))).x,w0-lim),wW=max(texture(uRW,duv(p-vec2(e,0.))).x,w0-lim),wN=max(texture(uRW,duv(p+vec2(0.,e))).x,w0-lim),wS=max(texture(uRW,duv(p-vec2(0.,e))).x,w0-lim);',
+'  n=normalize(vec3(-(wE-wW)*uVex,2.*e,-(wN-wS)*uVex));vec4 f=texture(uF,uv);foam=f.x;dye=f.y;hs=4.*sqrt(max(f.w-f.z*f.z,0.));crest=clamp((w0-uTide-f.z)*1.5,0.,1.);',
+'  mean=texture(uM,uv).xy;}',
+' else if(vFar>0.){if(h<.05)discard;vec3 wa=waveAt(p)*exp(p.y/500.)*(1.-smoothstep(900.,2600.,dist));n=normalize(vec3(-wa.y*uVex,1.,-wa.z*uVex));crest=clamp(wa.x,0.,1.);}',
+' else{if(h<.05)discard;h=.6;}',
+' vec3 V=normalize(uCam-vP);',
+// 細浪：多組方向波，依畫面頻率淡出避免疊紋
+' float mpp=max(length(fwidth(p)),1e-3);vec2 g=vec2(0.);float ra=.06+uWind*.011;',
+' for(int k=0;k<8;k++){float fk=float(k);float an=fk*2.39+.4;vec2 d=vec2(cos(an),sin(an));float wl=.9+fk*fk*.55;float ph=dot(p,d)*6.283/wl-uTime*sqrt(9.81*6.283/wl)+fk*3.;g+=d*cos(ph)*(1./(1.+fk*.35))*clamp((wl/mpp-3.)/5.,0.,1.);}',
 ' n=normalize(n+vec3(g.x,0.,g.y)*ra);',
 ' float ndv=max(dot(n,V),0.);float fr=.02+.98*pow(1.-ndv,5.);',
-' vec3 R=reflect(-V,n);R.y=abs(R.y);vec3 refl=sky(R)*.82;',
-' float sp=pow(max(dot(R,uSun),0.),700.)*14.+pow(max(dot(R,uSun),0.),60.)*.35;',
-' vec3 deep=vec3(.006,.05,.09),shal=vec3(.04,.30,.30);',
-' vec3 body=mix(shal,deep,1.-exp(-vH*.22));body=mix(body,vec3(.30,.25,.15),clamp(vC*350.,0.,.75));',
-' float thin=clamp(1.-n.y*1.02,0.,1.)*4.;body+=vec3(.02,.12,.1)*thin*exp(-vH*.08);',
-' body*=uSunC*(.35+.55*max(dot(n,uSun),0.))+mix(uSkyH,uSkyZ,.5)*.25;',
-' vec3 c=mix(body,refl,fr)+uSunC*sp;',
-' float a=clamp(1.-exp(-vH*1.35),0.,1.);a=max(a,fr*smoothstep(0.,.15,vH));',
-' float lace=fbm(vP.xz*.32+vec2(uTime*.03,0.))*1.1+vnoise(vP.xz*1.6)*.45-.35;',
-' float fm=smoothstep(.25,.75,vFoam*(.35+lace*1.3))*smoothstep(0.,.25,vFoam);fm=max(fm,smoothstep(.85,1.15,vFoam));',
-' vec3 fc=vec3(.92,.94,.93)*(uSunC*(.55+.45*max(dot(n,uSun),0.))+uSkyZ*.3);',
-' if(uMode==0){c=mix(c,fc,fm*.95);a=max(a,fm);c=mix(c,vec3(.95,.2,.45)*(.6+.4*uSunC.x*.4),clamp(vDye,0.,.85));a=max(a,clamp(vDye,0.,.8));}',
-' else if(uMode==1){float mv=length(vMean);vec2 dm=mv>1e-4?vMean/mv:vec2(0.);float st=.5+.5*sin(dot(vP.xz,vec2(-dm.y,dm.x))*.9);float ar=fract(dot(vP.xz,dm)*.06-uTime*mv*.06);',
-'  c=pal(mv/.5)*(.72+.28*max(dot(n,uSun),0.));c*=1.-.22*smoothstep(.55,1.,ar)*smoothstep(.02,.15,mv);c+=uSunC*sp*.25;a=max(.92,a);if(vFar>.5)c=mix(c,pal(0.),.6);}',
-' else if(uMode==2){c=pal(vHs/max(uHref,.3))*(.65+.35*max(dot(n,uSun),0.));a=max(.9,a);if(vFar>.5)c=mix(c,pal(.5),.6);}',
+' vec3 R=reflect(-V,n);R.y=abs(R.y)+.01;vec3 refl=sky(vP,normalize(R))*.68;',
+' float rough=.02+uWind*.0015;vec3 Hh=normalize(V+uSun);float nh=max(dot(n,Hh),0.);float spec=pow(nh,2./(rough*rough)-2.)*(1./(3.1416*rough*rough))*.02*fr*4.;',
+' float cs=cloudShadow(vP);',
+' vec3 deep=vec3(.003,.035,.07),shal=vec3(.02,.28,.29);',
+' vec3 body=mix(shal,deep,1.-exp(-h*.2));body=mix(body,vec3(.28,.22,.13),clamp(conc*320.,0.,.75));if(p.y>uLY)body=vec3(.05,.08,.05);',
+' vec3 bl=body*(uSunC*(.3+.5*max(dot(n,uSun),0.))*cs+uSkyZ*.3);',
+// 背光透亮：浪峰薄處透出青綠
+' float sss=pow(clamp(dot(V,-normalize(uSun+n*.6))*.5+.5,0.,1.),3.)*(.3+crest*1.4+(1.-n.y)*5.)*exp(-h*.08);',
+' bl+=vec3(.03,.36,.29)*uSunC*sss*.7*cs;',
+' vec3 c=mix(bl,refl,fr)+uSunC*spec*cs;',
+' float a=clamp(1.-exp(-h*1.1/max(ndv,.25)),0.,1.);a=max(a,fr*smoothstep(0.,.12,h));',
+// 泡沫：新鮮的是一整片，舊的散成蕾絲網
+// 泡沫：碎波波前是一條有厚度的白浪；退下來的舊泡沫散成隨機的條紋與斑塊
+' vec2 wq=p*.3+vec2(fbm(p*.13+uTime*.02),fbm(p*.13+5.1))*2.2;float fn=fbm(wq)*.75+fbm(wq*2.6+3.)*.35;',
+' float bub=smoothstep(.03,.22,vor(p*1.6+vec2(uTime*.03,0.)));',
+' float fresh=smoothstep(.62,1.1,foam);float cov=clamp(foam*.85,0.,1.);',
+' float old=smoothstep(.72-cov*.55,.8-cov*.55,fn)*(.82+.18*bub)*smoothstep(.04,.2,foam);',
+' float fm=clamp(max(fresh*(.8+.2*fn),old*.9),0.,1.);',
+' vec2 fg=vec2(vnoise(p*1.2+uTime*.4)-vnoise(p*1.2+vec2(.7,0.)+uTime*.4),vnoise(p*1.2+vec2(0.,3.))-vnoise(p*1.2+vec2(0.,3.7)))*2.;',
+' vec3 fnrm=normalize(n+vec3(fg.x,0.,fg.y)*fresh*1.2+vec3(g.x,0.,g.y)*.15);',
+' float fao=.72+.28*smoothstep(.3,.8,fn);',
+' vec3 fcol=vec3(.93,.95,.95)*(uSunC*(.4+.6*max(dot(fnrm,uSun),0.))*cs*fao+uSkyZ*.5*fao);',
+' int md=inD?uMode:0;',
+' if(md==0){c=mix(c,fcol,fm);a=max(a,fm);c=mix(c,vec3(.95,.2,.45)*(.55+.45*cs),clamp(dye,0.,.85));a=max(a,clamp(dye,0.,.8));}',
+' else if(md==1){float mv=length(mean);vec2 dm=mv>1e-4?mean/mv:vec2(0.);float ar=fract(dot(p,dm)*.06-uTime*mv*.06);',
+'  c=pal(mv/.5)*(.72+.28*max(dot(n,uSun),0.));c*=1.-.22*smoothstep(.55,1.,ar)*smoothstep(.02,.15,mv);a=max(.92,a);if(!inD)c=pal(0.)*(.8+.2*n.y);}',
+' else if(md==2){c=pal(hs/max(uHref,.3))*(.65+.35*max(dot(n,uSun),0.));a=max(.9,a);if(!inD)c=pal(.5)*.8;}',
 ' else{c=mix(vec3(.2,.45,.55),refl,fr);a=.05+fr*.12;}',
-' if(uSec.w>0.&&vP.z>0.&&vP.z<uLY){float dx=abs(vP.x-uSec.x);float wd=fwidth(vP.x)*.8+.25;float k=smoothstep(wd,wd*.3,dx)*.45;c=mix(c,vec3(1.,.72,0.)*1.3,k);a=max(a,k);}',
-' if(uBrush.w>0.){float r=length(vP.xz-uBrush.xy);float e=fwidth(r)*1.5+.4;float k=smoothstep(e,0.,abs(r-uBrush.z));c=mix(c,vec3(1.3),k*.9);a=max(a,k*.9);}',
-' o=vec4(outc(fog(c,vP)),a);}'].join('\n');
+' if(uSec.w>0.&&inD){float dx=abs(p.x-uSec.x);float wd=fwidth(p.x)*.8+.2;float k=smoothstep(wd,wd*.3,dx)*.35;c=mix(c,vec3(1.,.72,0.)*1.2,k);a=max(a,k);}',
+' if(uBrush.w>0.){float r=length(p-uBrush.xy);float e=fwidth(r)*1.5+.35;float k=smoothstep(e,0.,abs(r-uBrush.z));c=mix(c,vec3(1.3),k*.9);a=max(a,k*.9);}',
+' o=vec4(outc(aerial(c,vP)),a);}'].join('\n');
 
-var VS_SKY = HEAD + 'in vec2 aP;out vec2 vN;void main(){vN=aP;gl_Position=vec4(aP,.9999,1.);}';
-var FS_SKY = HEAD + RCOMMON + 'uniform mat4 uIVP;in vec2 vN;out vec4 o;void main(){vec4 a=uIVP*vec4(vN,-1.,1.),b=uIVP*vec4(vN,1.,1.);vec3 d=normalize(b.xyz/b.w-a.xyz/a.w);vec3 c=sky(d);o=vec4(outc(c),1.);}';
+var VS_SKY = HEAD + 'in vec2 aP;out vec2 vN;void main(){vN=aP;gl_Position=vec4(aP,.99999,1.);}';
+var FS_SKY = HEAD + RC + 'uniform mat4 uIVP;in vec2 vN;out vec4 o;void main(){vec4 a=uIVP*vec4(vN,-1.,1.),b=uIVP*vec4(vN,1.,1.);vec3 d=normalize(b.xyz/b.w-a.xyz/a.w);o=vec4(outc(sky(uCam,d)),1.);}';
 
-var VS_PT = HEAD + RCOMMON + [
-'uniform sampler2D uP,uU,uT;uniform int uPW;out float vA;out vec3 vC;',
-'void main(){ivec2 ic=ivec2(gl_VertexID%uPW,gl_VertexID/uPW);vec4 p=texelFetch(uP,ic,0);',
-' ivec2 c=wr(ivec2(p.xy/uDx));vec4 u=texelFetch(uU,c,0);float B=texelFetch(uT,c,0).x;',
-' float spd=u.x>.03?length(u.yz)/u.x:0.;vec3 w=vec3(p.x,(u.x+B)*uVex+.25,p.y);',
-' vA=u.x>.05?smoothstep(0.,2.,p.z)*smoothstep(p.w,p.w-3.,p.z):0.;vC=mix(vec3(.85,.97,1.),vec3(1.,.85,.25),smoothstep(.3,1.6,spd));',
+// 立體物件（樹、消波塊、岩塊、房屋、燈塔、漁船），instanced
+var VS_PROP = HEAD + RC + [
+'layout(location=0) in vec3 aP;layout(location=1) in vec3 aN;layout(location=2) in vec4 aC;layout(location=3) in vec4 aI;layout(location=4) in vec4 aJ;',
+'uniform int uKind;uniform float uOff,uTreeZ;uniform sampler2D uSH,uPL;',
+'out vec3 vP;out vec3 vN;out vec4 vC;out float vSv;out float vVar;',
+'mat3 rY(float a){float c=cos(a),s=sin(a);return mat3(c,0.,-s,0.,1.,0.,s,0.,c);}',
+'mat3 rX(float a){float c=cos(a),s=sin(a);return mat3(1.,0.,0.,0.,c,s,0.,-s,c);}',
+'mat3 rZ(float a){float c=cos(a),s=sin(a);return mat3(c,s,0.,-s,c,0.,0.,0.,1.);}',
+'void main(){vec2 b=aI.xy+vec2(uOff,0.);float sc=aI.z;mat3 R=rY(aI.w);bool hide=false;float g;',
+' bool inD=b.y>=0.&&b.y<=uLY;',
+' if(uKind==5){vec3 wa;if(inD){vec4 rw=textureLod(uRW,duv(b),0.);g=rw.x;float e=3.;float gx=textureLod(uRW,duv(b+vec2(e,0.)),0.).x-textureLod(uRW,duv(b-vec2(e,0.)),0.).x;float gz=textureLod(uRW,duv(b+vec2(0.,e)),0.).x-textureLod(uRW,duv(b-vec2(0.,e)),0.).x;',
+'   R=rX(clamp(-gz/(2.*e),-.3,.3))*rZ(clamp(gx/(2.*e),-.3,.3))*R;if(rw.y<.6)hide=true;}',
+'  else{wa=waveAt(b)*exp(b.y/500.)*(1.-smoothstep(900.,2600.,length(b-uCam.xz)));g=uTide+wa.x;R=rX(clamp(wa.z*.8,-.25,.25))*rZ(clamp(-wa.y*.8,-.25,.25))*R;}',
+'  g+=.05*sin(uTime*1.3+aJ.z*6.);}',
+' else if(uKind==0||uKind==3){vec4 pl=texelFetch(uPL,ivec2(gl_InstanceID%128,gl_InstanceID/128),0);g=pl.x;hide=pl.y>.5;}',
+' else g=gH(b);',
+' if(uKind==1||uKind==2)R=R*rX(aJ.y)*rZ(aJ.z);',
+' if(uKind==2){float mt=inD?textureLod(uRB,duv(b),0.).z:1.;if(mt<.5||mt>1.5)hide=true;}',
+' if(uKind==1){float mt=inD?textureLod(uRB,duv(b),0.).z:0.;if(mt<1.5||mt>2.5)hide=true;}',
+' vec3 wp=R*(aP*sc);vN=R*aN;wp.xz+=b;wp.y+=g*uVex+aJ.x;',
+' vP=wp;vC=aC;vVar=aJ.w;vSv=inD?textureLod(uSH,duv(b),0.).x:1.;',
+' gl_Position=hide?vec4(2.,2.,2.,1.):uVP*vec4(wp,1.);}'].join('\n');
+var FS_PROP = HEAD + RC + [
+'in vec3 vP;in vec3 vN;in vec4 vC;in float vSv;in float vVar;out vec4 o;uniform int uKind;',
+'void main(){vec3 n=normalize(vN);if(!gl_FrontFacing)n=-n;vec3 alb=vC.rgb;',
+' if(vC.a>.5&&vC.a<1.5){vec3 w1=vec3(.74,.72,.66),w2=vec3(.30,.21,.14),w3=vec3(.50,.56,.58),w4=vec3(.66,.58,.46);float v=fract(vVar*7.);alb=v<.35?w1:v<.6?w2:v<.8?w4:w3;}',
+' if(vC.a>1.5){float v=fract(vVar*13.);alb=v<.5?vec3(.10,.12,.15):v<.8?vec3(.30,.12,.07):vec3(.25,.27,.28);}',
+' if(uKind==0)alb*=.8+.4*fract(vVar*3.7);',
+' float y=vP.y/uVex;if(uKind==1||uKind==2){alb*=.85+.3*fract(vVar*5.3);float band=1.-smoothstep(uTide-.2,uTide+.9,y);alb=mix(alb,alb*vec3(.35,.42,.32),band);}',
+' float wrap=uKind==0?.35:.1;float dif=clamp((dot(n,uSun)+wrap)/(1.+wrap),0.,1.)*vSv*cloudShadow(vP);',
+' vec3 amb=mix(vec3(.28,.24,.18)*.4,uSkyZ*1.1,n.y*.5+.5);',
+' vec3 c=alb*(uSunC*dif+amb*.8);',
+' if(uKind==1){vec3 V=normalize(uCam-vP);c+=uSunC*pow(max(dot(n,normalize(V+uSun)),0.),24.)*.05*dif;}',
+' o=vec4(outc(aerial(c,vP)),1.);}'].join('\n');
+
+// 樹與房屋的落點：每個實例只算一次地面高度、坡度與能不能種
+var FS_PLACE = HEAD + RC + [
+'uniform sampler2D uI;uniform int uKind;uniform float uTreeZ;out vec4 o;',
+'void main(){ivec2 c=ivec2(gl_FragCoord.xy);vec4 I=texelFetch(uI,c,0);vec2 b=I.xy;float g=gH(b),e=3.;',
+' float sl=length(vec2(gH(b+vec2(e,0.))-gH(b-vec2(e,0.)),gH(b+vec2(0.,e))-gH(b-vec2(0.,e))))/(2.*e);',
+' bool inD=b.y>=0.&&b.y<=uLY;float mt=inD?textureLod(uRB,duv(b),0.).z:0.;',
+' bool hide=I.z<=0.||g<(uKind==0?4.:2.4)||sl>(uKind==0?.55:.28)||(uKind==0&&mt>.5)||(uKind==3&&mt>.5&&mt<2.5)||(inD&&b.y<uTreeZ&&uKind==0);',
+' o=vec4(g,hide?1.:0.,sl,1.);}'].join('\n');
+
+// 碎波浪花：在陡峭的湧潮波前生成、受重力落下
+var FS_SPRAY = HEAD + RC + [
+'uniform sampler2D uSP,uSV,uF;uniform float uDt,uSeed;uniform vec2 uZr;',
+'layout(location=0) out vec4 oP;layout(location=1) out vec4 oV;',
+'void main(){ivec2 c=ivec2(gl_FragCoord.xy);vec4 P=texelFetch(uSP,c,0),Vv=texelFetch(uSV,c,0);',
+' if(P.w>0.){Vv.y-=9.81*uDt;Vv.xyz*=exp(-uDt*.9);P.xyz+=Vv.xyz*uDt;P.w-=uDt;float ws=textureLod(uRW,duv(P.xz),0.).x;if(P.y<ws-.3)P.w=0.;}',
+' else if(uDt>0.){vec2 r=vec2(hash(vec2(c)+uSeed*vec2(1.3,2.1)),hash(vec2(c.yx)*1.7+uSeed*vec2(.7,3.3)));',
+'  vec2 p=vec2(r.x*uLX,mix(uZr.x,uZr.y,r.y));vec4 rw=textureLod(uRW,duv(p),0.);float e=2.;',
+'  vec2 gr=vec2(textureLod(uRW,duv(p+vec2(e,0.)),0.).x-textureLod(uRW,duv(p-vec2(e,0.)),0.).x,textureLod(uRW,duv(p+vec2(0.,e)),0.).x-textureLod(uRW,duv(p-vec2(0.,e)),0.).x)/(2.*e);',
+'  float fo=textureLod(uF,duv(p),0.).x;float brk=smoothstep(.07,.28,length(gr))*step(.35,rw.y)*smoothstep(.3,1.2,rw.z)*step(.3,fo);',
+'  if(hash(r*91.7+uSeed)<brk*.7){vec2 dir=normalize(-gr+1e-4);float k=hash(r*13.1);P=vec4(p.x+dir.x*.5,rw.x+.15,p.y+dir.y*.5,.5+k*1.3);',
+'   Vv=vec4(dir.x*(2.+k*3.)+(hash(r*5.3)-.5)*1.5,1.5+hash(r*7.9)*4.5,dir.y*(2.+k*3.)+(hash(r*3.1)-.5)*1.5,.5+k*.9);}}',
+' oP=P;oV=Vv;}'].join('\n');
+var VS_SPRAYD = HEAD + RC + [
+'uniform sampler2D uSP,uSV;uniform int uPW;uniform float uPx;out float vA;out float vL;',
+'void main(){ivec2 ic=ivec2(gl_VertexID%uPW,gl_VertexID/uPW);vec4 P=texelFetch(uSP,ic,0),Vv=texelFetch(uSV,ic,0);',
+' vA=P.w>0.?smoothstep(0.,.35,P.w):0.;vec3 w=vec3(P.x,P.y*uVex,P.z);vec4 cp=uVP*vec4(w,1.);gl_Position=P.w>0.?cp:vec4(2.,2.,2.,1.);',
+' vL=cloudShadow(w);gl_PointSize=clamp(Vv.w*uPx/cp.w,1.,48.);}'].join('\n');
+var FS_SPRAYD = HEAD + RC + 'in float vA;in float vL;out vec4 o;void main(){vec2 d=gl_PointCoord-.5;float r=dot(d,d);if(r>.25)discard;float a=vA*(1.-r*4.)*.55;vec3 c=vec3(.95)*(uSunC*.7*vL+uSkyZ*.6);o=vec4(outc(c),a);}';
+
+// 流線粒子
+var VS_PT = HEAD + RC + [
+'uniform sampler2D uP;uniform int uPW;out float vA;out vec3 vC;',
+'void main(){ivec2 ic=ivec2(gl_VertexID%uPW,gl_VertexID/uPW);vec4 p=texelFetch(uP,ic,0);vec4 rw=textureLod(uRW,duv(p.xy),0.);',
+' vec3 w=vec3(p.x,rw.x*uVex+.25,p.y);vA=rw.y>.05?smoothstep(0.,2.,p.z)*smoothstep(p.w,p.w-3.,p.z):0.;vC=mix(vec3(.85,.97,1.),vec3(1.,.85,.25),smoothstep(.3,1.6,rw.z));',
 ' vec4 cp=uVP*vec4(w,1.);gl_Position=cp;gl_PointSize=clamp(700./cp.w,1.2,3.5);}'].join('\n');
 var FS_PT = HEAD + 'in float vA;in vec3 vC;out vec4 o;void main(){vec2 d=gl_PointCoord-.5;if(dot(d,d)>.25||vA<.01)discard;o=vec4(vC,vA*.75);}';
 
@@ -610,7 +737,7 @@ function prog(vs, fs){ var p = gl.createProgram(); gl.attachShader(p, sh(gl.VERT
   var cache = {}; return {p:p, u:function(n){ if (!(n in cache)) cache[n] = gl.getUniformLocation(p, n); return cache[n]; }}; }
 function tex(w, h, fmt, data, linear){
   var t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
-  var F = fmt === 16 ? [gl.RGBA16F, gl.HALF_FLOAT] : [gl.RGBA32F, gl.FLOAT];
+  var F = fmt === 8 ? [gl.RGBA8, gl.UNSIGNED_BYTE] : fmt === 16 ? [gl.RGBA16F, gl.HALF_FLOAT] : [gl.RGBA32F, gl.FLOAT];
   gl.texImage2D(gl.TEXTURE_2D, 0, F[0], w, h, 0, gl.RGBA, fmt === 16 && data ? gl.FLOAT : F[1], data || null);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, linear ? gl.LINEAR : gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, linear ? gl.LINEAR : gl.NEAREST);
@@ -629,7 +756,8 @@ try {
   PR = {
     flow: prog(VS_QUAD, FS_FLOW), bed: prog(VS_QUAD, FS_BED), brush: prog(VS_QUAD, FS_BRUSH), fx: prog(VS_QUAD, FS_FX),
     part: prog(VS_QUAD, FS_PART), probe: prog(VS_QUAD, FS_PROBE), down: prog(VS_QUAD, FS_DOWN),
-    ter: prog(VS_TER, FS_TER), wat: prog(VS_WAT, FS_WAT), sky: prog(VS_SKY, FS_SKY), pt: prog(VS_PT, FS_PT)
+    ter: prog(VS_TER, FS_TER), wat: prog(VS_WAT, FS_WAT), sky: prog(VS_SKY, FS_SKY), pt: prog(VS_PT, FS_PT),
+    rcopy: prog(VS_QUAD, FS_RCOPY), place: prog(VS_QUAD, FS_PLACE), shadow: prog(VS_QUAD, FS_SHADOW), prop: prog(VS_PROP, FS_PROP), spray: prog(VS_QUAD, FS_SPRAY), sprayd: prog(VS_SPRAYD, FS_SPRAYD)
   };
 } catch(e){ fail(e.message); return; }
 
@@ -650,6 +778,10 @@ var PROW = Math.max(NY, 64);
 var TPR = tex(PROW, 4, 32), FPR = fbo([TPR]);
 var TDN = tex(NX/2, NY/2, 32), FDN = fbo([TDN]);
 var cu = 0, cf = 0, cp = 0;
+// 繪製用：地形與水面的半精度線性貼圖、陰影、碎波浪花
+var TRB = tex(NX,NY,16,null,true), TRW = tex(NX,NY,16,null,true), FRD = fbo([TRB, TRW]);
+var TSH = tex(NX,NY,8,null,true), FSH = fbo([TSH]);
+var SPW = SMALL ? 48 : 80, TSP = [tex(SPW,SPW,32), tex(SPW,SPW,32)], TSV = [tex(SPW,SPW,32), tex(SPW,SPW,32)], FSPR = [fbo([TSP[0], TSV[0]]), fbo([TSP[1], TSV[1]])];
 gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
 // ---------- 地形 ----------
@@ -662,10 +794,21 @@ function baseB(x, y, o){
   var s = YS - y, B;
   if (s >= 0) B = -Math.min(H0, DEAN_A*Math.pow(s, 2/3));
   else {
-    var a = -s, fs = 1/o.slope;
-    B = Math.min(a*fs, 2.0 + (a - 2.0/fs)*0.012);
-    B += 3.4*Math.exp(-Math.pow((a-92)/22, 2)) * (0.8 + 0.25*Math.sin(2*Math.PI*5*x/LX + 1.3));
-    if (a > 92) B = Math.max(B, 3.2 + (a-92)*0.004);
+    var a = -s, fs = 1/o.slope, ph = 2*Math.PI*x/LX;
+    B = Math.min(a*fs, 2.0 + (a - 2.0/fs)*0.014);                       // 前灘與灘肩
+    // 前丘：脊線蜿蜒、高低起伏，兩處風蝕缺口
+    var c1 = 90 + 9*Math.sin(ph*3 + 0.7) + 5*Math.sin(ph*7 + 2.1);
+    var h1 = 10 + 2.4*Math.sin(ph*5 + 1.3) + 1.5*Math.sin(ph*11 + 0.4) + 0.8*Math.sin(ph*23 + a*0.05);
+    var blow = Math.exp(-Math.pow(pdx(x, LX*0.27)/24, 2)) + Math.exp(-Math.pow(pdx(x, LX*0.71)/20, 2));
+    h1 *= 1 - 0.6*Math.min(1, blow);
+    var d1 = a < c1 ? Math.exp(-Math.pow((c1 - a)/22, 2)) : Math.exp(-Math.pow((a - c1)/34, 2));
+    // 第二列沙丘與丘間低地
+    var c2 = 160 + 8*Math.sin(ph*4 + 2.5), h2 = 7.5 + 2.2*Math.sin(ph*6 + 0.9) + 1.2*Math.sin(ph*13 + 1.7);
+    var d2 = Math.exp(-Math.pow((a - c2)/28, 2));
+    var slack = 3.6 + 0.8*Math.sin(ph*8 + a*0.02) + (a - 120)*0.006;
+    var dune = Math.max(2.3 + h1*d1, a > c1 ? Math.max(slack + h2*d2, slack) : 0);
+    dune += 0.7*sm(55, 90, a)*pnoise(x*2.3, y*1.7);                    // 小丘與風痕
+    B = Math.max(B, dune*sm(40, 62, a) + B*(1 - sm(40, 62, a)));
   }
   if (y > RELAX_M) B += 0.12*pnoise(x, y)*sm(RELAX_M, RELAX_M + 80, y);
   return B;
@@ -674,7 +817,7 @@ function bar(x, s, amp, sb, wb){ return amp*Math.exp(-Math.pow((s - sb)/wb, 2));
 function capsule(px, pz, ax, az, bx, bz){ var vx = bx-ax, vz = bz-az, wx = px-ax, wz = pz-az; var t = Math.max(0, Math.min(1, (wx*vx+wz*vz)/(vx*vx+vz*vz))); var dx = wx - vx*t, dz = wz - vz*t; return Math.sqrt(dx*dx+dz*dz); }
 
 var PRESETS = [
-  { id:'rip', name:'沙洲與離岸流', H:1.3, T:9, D:0, range:0.5, surge:0, wind:6, sec:0.34,
+  { id:'rip', name:'沙洲與離岸流', H:1.8, T:11, D:0, range:0.5, surge:0, wind:6, sec:0.34,
     icon:'<path d="M2 20c10-4 30-4 40 0" /><path d="M4 11c5-3 8-3 10 0M19 11c4-3 7-3 9 0M33 11c3-2 6-2 8 0" stroke-dasharray="1 0"/><path d="M16.5 14V3M13.5 6l3-3 3 3" stroke="#ff5a36"/>',
     desc:'新月形沙洲在三處斷開。浪在沙洲上碎開、往岸邊堆高，積在碎波帶的水從缺口集中流回外海，就是離岸流。切到「海流」或在沙洲上放染料，就能看到它把東西帶出去。',
     build:function(x, y, o){ var s = YS - y, B = baseB(x, y, o);
@@ -682,7 +825,7 @@ var PRESETS = [
       var ch = Math.exp(-Math.pow(dr/30, 2));
       B += bar(x, s, 2.4*(1 - 0.97*ch), 100 - 14*Math.cos(2*Math.PI*3*x/LX), 22) - 0.9*ch*sm(15, 45, s)*(1 - sm(150, 190, s));
       return {B:B}; } },
-  { id:'groyne', name:'突堤群', H:1.3, T:8, D:26, range:0.4, surge:0, wind:8, sec:0.38,
+  { id:'groyne', name:'突堤群', H:1.6, T:9, D:26, range:0.4, surge:0, wind:8, sec:0.38,
     icon:'<path d="M2 20c10-4 30-4 40 0"/><path d="M9 20V6M21 19V6M33 20V6" stroke="#f5b700"/><path d="M3 4l6 3M15 4l6 3M27 4l6 3"/>',
     desc:'斜向入射波會推動沿岸流，沙跟著沿著海岸移動。四道垂直海岸的突堤擋住沙：上游一側淤積、下游一側被沖刷，汀線變成鋸齒狀。沿岸流要幾分鐘才會發展起來，可切到 4× 並把地形加速調高。',
     build:function(x, y, o){ var s = YS - y, B = baseB(x, y, o) + bar(x, s, 0.7, 105, 26), R = -30, mat = 0;
@@ -690,14 +833,14 @@ var PRESETS = [
         var crest = 2.5 - 1.3*sm(0, 75, s); var sb = crest - Math.max(0, d-4)*0.7;
         if (sb > B){ B = sb; R = B; mat = 2; } }
       return {B:B, R:R, mat:mat}; } },
-  { id:'detached', name:'離岸堤', H:1.6, T:9, D:0, range:0.5, surge:0, wind:6, sec:0.5,
+  { id:'detached', name:'離岸堤', H:1.9, T:10, D:0, range:0.5, surge:0, wind:6, sec:0.5,
     icon:'<path d="M2 20c10-4 30-4 40 0"/><path d="M4 8h8M18 8h8M32 8h8" stroke="#f5b700" stroke-width="2.4"/><path d="M8 18c0-3 1-5 0-7M22 18c0-3 1-5 0-7" stroke-dasharray="2 2"/>',
     desc:'離岸 125 公尺處的三座平行離岸堤。堤後是波影區，兩側的浪繞射進來、把沙帶往堤後堆積，汀線往外凸出成舌狀沙洲（salient），長久下去可能連到堤上。',
     build:function(x, y, o){ var s = YS - y, B = baseB(x, y, o) + bar(x, s, 0.5, 100, 25), R = -30, mat = 0;
       for (var k = 0; k < 3; k++){ var gx = (k+0.5)*LX/3; var d = capsule(x, s, gx-52, 125, gx+52, 125);
         var sb = 2.6 - Math.max(0, d-5)*0.65; if (sb > B){ B = sb; R = B; mat = 2; } }
       return {B:B, R:R, mat:mat}; } },
-  { id:'headland', name:'岬灣', H:1.5, T:11, D:20, range:1.0, surge:0, wind:7, sec:0.3,
+  { id:'headland', name:'岬灣', H:2.0, T:12, D:20, range:1.0, surge:0, wind:7, sec:0.3,
     icon:'<path d="M2 20c4-2 10-3 15-6 3-2 4-8 7-9 3 1 3 7 6 9 5 3 9 4 12 6" /><path d="M21 7l2-2 3 2" stroke="#9aa19f"/>',
     desc:'岩岬伸入海中，岬與岬之間夾著袋狀海灘。浪繞過岬頭時轉向，背風側的海灣被遮蔽，形成螺旋狀的平衡汀線。岩盤不會被侵蝕。',
     build:function(x, y, o){ var s = YS - y, B = baseB(x, y, o), R = -30, mat = 0;
@@ -707,7 +850,7 @@ var PRESETS = [
         var rb = top - 15*Math.pow(dn, 3) + 1.1*pnoise(x*3.1, y*2.3) + 0.6*pnoise(x*7.3, y*5.1);
         if (rb > B){ B = rb; R = B; mat = 1; } }
       return {B:B, R:R, mat:mat}; } },
-  { id:'river', name:'河口', H:1.1, T:8, D:14, range:1.4, surge:0, wind:5, sec:0.5,
+  { id:'river', name:'河口', H:1.4, T:10, D:14, range:1.4, surge:0, wind:5, sec:0.5,
     icon:'<path d="M2 20c10-4 30-4 40 0"/><path d="M22 2c-3 4 3 7 0 11s-1 5 0 6" stroke="#5fd4e6" stroke-width="2.2"/>',
     desc:'河川從陸地流進海裡，帶著泥沙。河水在河口外減速、沙就沉在河口前方形成沙嘴；漲潮時海水倒灌，退潮時水流加速沖刷河道。潮差調大更明顯。',
     build:function(x, y, o){ var s = YS - y, B = baseB(x, y, o) + bar(x, s, 0.6, 110, 26);
@@ -716,7 +859,7 @@ var PRESETS = [
       var lobe = Math.exp(-Math.pow(pdx(x, LX*0.5)/80, 2))*Math.exp(-Math.pow((s-55)/30, 2)); B += 0.9*lobe;
       return {B:B}; },
     river:function(){ return [LX*0.5 + 26*Math.sin((LY - DX*3 - YS)/60), 16, 0.9, 1]; } },
-  { id:'harbor', name:'漁港', H:2.0, T:10, D:14, range:0.6, surge:0, wind:10, sec:0.5,
+  { id:'harbor', name:'漁港', H:2.3, T:11, D:14, range:0.6, surge:0, wind:10, sec:0.5,
     icon:'<path d="M2 20c10-4 30-4 40 0"/><path d="M12 19V7h9M33 19V9h-8" stroke="#f5b700" stroke-width="2.2"/>',
     desc:'兩道防波堤圍出港池，港口朝下游開。外面浪很大，港內卻很平靜；看波高圖就知道港口的遮蔽效果。防波堤轉角也會把浪反射回去。',
     build:function(x, y, o){ var s = YS - y, B = baseB(x, y, o) + bar(x, s, 0.6, 115, 26), R = -30, mat = 0;
@@ -724,18 +867,18 @@ var PRESETS = [
       if (x > ax + 8 && x < bx - 8 && s > -35 && s < 130){ B = Math.min(B, -3.8 + 0.4*sm(100, 135, s)); }
       var d = Math.min(capsule(x, s, ax, -40, ax, 145), capsule(x, s, ax, 145, gx1, 145), capsule(x, s, bx, -40, bx, 125), capsule(x, s, bx, 125, gx2, 125));
       var sb = 3.4 - Math.max(0, d-6)*0.62; if (sb > B){ B = sb; R = B; mat = 2; }
-      if (x > ax && x < bx && s > -60 && s <= -35){ B = 2.4; R = B; mat = 2; }
+      if (x > ax - 30 && x < bx + 30 && s > -130 && s <= -35 && mat < 1){ B = 2.7; R = B; mat = 3; }   // 港區岸壁與作業場
       return {B:B, R:R, mat:mat}; } }
 ];
 
 // ---------- 狀態 ----------
 var S = {
-  preset: 0, H:1.3, T:9, D:0, irr:true, surge:0, range:0.5, wind:6,
-  morph:true, morf:40, d50:0.25, slope:12, brush:20, sun:22, vex:1,
+  preset: 0, H:1.8, T:11, D:0, irr:true, surge:0, range:0.5, wind:6,
+  morph:true, morf:40, d50:0.25, slope:12, brush:20, sun:17, vex:1, cloud:0.1,
   mode:0, parts:false, tool:'view', speed:1, paused:false, sound:false,
   t:0, tMorph:0, ramp:0, secX:0, gauges:[0,0,0], river:[0,0,0,0]
 };
-var Bcpu = new Float32Array((NX/2)*(NY/2));
+var Bcpu = new Float32Array((NX/2)*(NY/2)), Mcpu = new Float32Array((NX/2)*(NY/2));
 var B0cpu = new Float32Array(NX*NY);
 
 function buildTerrain(){
@@ -749,7 +892,7 @@ function buildTerrain(){
     T[k] = B; T[k+1] = R; T[k+2] = B; T[k+3] = mat; B0cpu[j*NX+i] = B;
     U[k] = Math.max(tide - B, 0);
   }
-  for (var jj = 0; jj < NY/2; jj++) for (var ii = 0; ii < NX/2; ii++) Bcpu[jj*(NX/2)+ii] = T[((jj*2)*NX + ii*2)*4];
+  for (var jj = 0; jj < NY/2; jj++) for (var ii = 0; ii < NX/2; ii++){ Bcpu[jj*(NX/2)+ii] = T[((jj*2)*NX + ii*2)*4]; Mcpu[jj*(NX/2)+ii] = T[((jj*2)*NX + ii*2)*4+3]; }
   [0,1].forEach(function(n){
     gl.bindTexture(gl.TEXTURE_2D, TU[n]); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, NX, NY, 0, gl.RGBA, gl.FLOAT, U);
     gl.bindTexture(gl.TEXTURE_2D, TT[n]); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, NX, NY, 0, gl.RGBA, gl.FLOAT, T);
@@ -763,11 +906,12 @@ function buildTerrain(){
   S.ramp = 0; S.tMorph = 0; S.waveT0 = S.t; S.statT0 = S.t;
   setSection(Math.round(P.sec*NX));
   hist.length = 0; resetParticles = true;
+  rebuildProps(); shadowKey = ''; placeDirty = true;
   warm(120);
 }
 // 快轉：讓浪先傳到岸邊，一開場就是碎浪的海（不計入地形演變）
 function warm(sec){ S.warm = Math.min(Math.round(sec/DT), SOFT ? 40 : 100000); S.warmN = S.warm; }
-function warmChunk(){ var n = Math.min(S.warm, SOFT ? 20 : SMALL ? 50 : 110), mo = S.morph; S.morph = false;
+function warmChunk(){ var n = Math.min(S.warm, SOFT ? 20 : SMALL ? 50 : 100), mo = S.morph; S.morph = false;
   for (var i = 0; i < n; i++){ flowStep(); if (i % 5 === 4) fxStep(DT*5); if (S.parts && i % 5 === 4) partStep(DT*5); }
   S.morph = mo; S.warm -= n; if (S.warm <= 0){ S.warm = 0; S.tMorph = 0; S.statT0 = S.t - 20; } }
 function setSection(ix){
@@ -889,34 +1033,156 @@ function downPass(){
 }
 
 // ---------- 網格 ----------
-function buildMesh(){
-  var rows = [], E = 34, L2 = 22, k;
-  for (k = E; k >= 1; k--) rows.push([0, -2 - 2600*Math.pow(k/E, 2.1)]);
-  for (var j = 0; j < NY; j++) rows.push([j, (j+.5)*DX]);
-  for (k = 1; k <= L2; k++) rows.push([NY-1, (NY-.5)*DX + 900*Math.pow(k/L2, 1.7)]);
-  var cols = NX+1, R = rows.length, v = new Float32Array(cols*R*3);
-  for (var r = 0; r < R; r++) for (var i = 0; i < cols; i++){ var o = (r*cols+i)*3; v[o] = i; v[o+1] = rows[r][0]; v[o+2] = rows[r][1]; }
-  function idx(stride){
-    var rs = [], cs = [], a = [];
-    for (var r = 0; r < R; r++){ var gj = r - E; if (gj < 0 || gj >= NY || gj % stride === 0 || gj === NY-1) rs.push(r); }
-    for (var i = 0; i < cols; i += stride) cs.push(i); if (cs[cs.length-1] !== cols-1) cs.push(cols-1);
-    for (var y = 0; y < rs.length-1; y++) for (var x = 0; x < cs.length-1; x++){
-      var p0 = rs[y]*cols + cs[x], p1 = rs[y]*cols + cs[x+1], p2 = rs[y+1]*cols + cs[x], p3 = rs[y+1]*cols + cs[x+1];
-      a.push(p0, p2, p1, p1, p2, p3); }
-    return new Uint32Array(a); }
-  var vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+// 模擬區：以格點索引 (i, j) 建立；中央一片全解析度，左右各一片隔點取樣
+function tileMesh(stride){
+  var cols = [], rows = [], v = [], a = [];
+  for (var i = 0; i <= NX; i += stride) cols.push(i); if (cols[cols.length-1] !== NX) cols.push(NX);
+  for (var j = 0; j < NY; j += stride) rows.push(j); if (rows[rows.length-1] !== NY-1) rows.push(NY-1);
+  rows.forEach(function(j){ cols.forEach(function(i){ v.push(i, j, 0); }); });
+  var W = cols.length;
+  for (var y = 0; y < rows.length-1; y++) for (var x = 0; x < W-1; x++){ var p0 = y*W+x, p1 = p0+1, p2 = p0+W, p3 = p2+1; a.push(p0, p2, p1, p1, p2, p3); }
+  return meshVao(new Float32Array(v), new Uint32Array(a));
+}
+// 外圍世界：靠近模擬區密、越遠越疏；中央被模擬區網格蓋住的部分挖掉（留一點重疊避免裂縫）
+function worldMesh(){
+  function axis(a, b, lo, hi, s0, g){ var v = []; for (var x = a; x <= b + 1e-6; x += s0) v.push(x);
+    var s = s0, x0 = a; while (x0 > lo){ s *= g; x0 -= s; v.unshift(Math.max(x0, lo)); }
+    s = s0; x0 = v[v.length-1]; while (x0 < hi){ s *= g; x0 += s; v.push(Math.min(x0, hi)); } return v; }
+  var s0 = SMALL ? 24 : 12;
+  var xs = axis(-LX, 2*LX, -16000, 17000, s0, 1.12), zs = axis(0, LY + 400, -16000, LY + 14000, s0, 1.12);
+  var v = [], a = [], W = xs.length;
+  zs.forEach(function(z){ xs.forEach(function(x){ v.push(x, z, 1); }); });
+  for (var y = 0; y < zs.length-1; y++) for (var x = 0; x < W-1; x++){
+    var x0 = xs[x], x1 = xs[x+1], z0 = zs[y], z1 = zs[y+1];
+    if (x0 >= -LX + 3*s0 && x1 <= 2*LX - 3*s0 && z0 >= s0 && z1 <= LY - s0) continue;
+    var p0 = y*W+x, p1 = p0+1, p2 = p0+W, p3 = p2+1; a.push(p0, p2, p1, p1, p2, p3); }
+  return meshVao(new Float32Array(v), new Uint32Array(a));
+}
+function meshVao(v, idx){ var vao = gl.createVertexArray(); gl.bindVertexArray(vao);
   var vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, v, gl.STATIC_DRAW);
   gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-  var full = idx(1), coarse = idx(4);
-  var ib1 = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib1); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, full, gl.STATIC_DRAW);
-  var vao2 = gl.createVertexArray(); gl.bindVertexArray(vao2); gl.bindBuffer(gl.ARRAY_BUFFER, vb);
-  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-  var ib2 = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib2); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, coarse, gl.STATIC_DRAW);
-  gl.bindVertexArray(null);
-  return {full:vao, nFull:full.length, coarse:vao2, nCoarse:coarse.length};
-}
-var MESH = buildMesh();
+  var ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+  gl.bindVertexArray(null); return {vao:vao, n:idx.length}; }
+var MESH = {full:tileMesh(1), side:tileMesh(2), world:worldMesh()};
 
+// ---------- 立體物件的幾何 ----------
+function Geo(){ this.v = []; }
+Geo.prototype.tri = function(a, b, c, col, na, nb, nc){
+  var n = norm(cross(sub(b, a), sub(c, a)));
+  [[a, na], [b, nb], [c, nc]].forEach(function(q){ var nn = q[1] || n; this.v.push(q[0][0], q[0][1], q[0][2], nn[0], nn[1], nn[2], col[0], col[1], col[2], col[3] || 0); }, this); };
+Geo.prototype.quad = function(a, b, c, d, col){ this.tri(a, b, c, col); this.tri(a, c, d, col); };
+// 沿線段的截錐（可當樹幹、消波塊的腳、燈塔）
+Geo.prototype.frustum = function(p0, p1, r0, r1, seg, col, cap){
+  var ax = norm(sub(p1, p0)), up = Math.abs(ax[1]) < 0.9 ? [0,1,0] : [1,0,0], u = norm(cross(ax, up)), w = cross(ax, u);
+  function ring(p, r, k){ var t = k/seg*Math.PI*2, c = Math.cos(t), s = Math.sin(t); return [p[0] + (u[0]*c + w[0]*s)*r, p[1] + (u[1]*c + w[1]*s)*r, p[2] + (u[2]*c + w[2]*s)*r]; }
+  function rn(k){ var t = k/seg*Math.PI*2; return norm([u[0]*Math.cos(t) + w[0]*Math.sin(t), u[1]*Math.cos(t) + w[1]*Math.sin(t), u[2]*Math.cos(t) + w[2]*Math.sin(t)]); }
+  for (var k = 0; k < seg; k++){
+    var a = ring(p0, r0, k), b = ring(p0, r0, k+1), c = ring(p1, r1, k+1), d = ring(p1, r1, k);
+    this.tri(a, b, c, col, rn(k), rn(k+1), rn(k+1)); this.tri(a, c, d, col, rn(k), rn(k+1), rn(k));
+    if (cap){ this.tri(p1, d, c, col, ax, ax, ax); if (cap > 1){ var nax = [-ax[0], -ax[1], -ax[2]]; this.tri(p0, b, a, col, nax, nax, nax); } }
+  } };
+// 雙層細分的二十面體（樹冠、岩塊），可壓扁與加雜訊
+Geo.prototype.blob = function(c, rx, ry, rz, col, jit, seed, sub1){
+  var t = (1 + Math.sqrt(5))/2, V = [[-1,t,0],[1,t,0],[-1,-t,0],[1,-t,0],[0,-1,t],[0,1,t],[0,-1,-t],[0,1,-t],[t,0,-1],[t,0,1],[-t,0,-1],[-t,0,1]].map(norm);
+  var F = [[0,11,5],[0,5,1],[0,1,7],[0,7,10],[0,10,11],[1,5,9],[5,11,4],[11,10,2],[10,7,6],[7,1,8],[3,9,4],[3,4,2],[3,2,6],[3,6,8],[3,8,9],[4,9,5],[2,4,11],[6,2,10],[8,6,7],[9,8,1]];
+  if (sub1){ var nf = []; F.forEach(function(f){ var m = [0,1,2].map(function(k){ return norm([(V[f[k]][0]+V[f[(k+1)%3]][0])/2, (V[f[k]][1]+V[f[(k+1)%3]][1])/2, (V[f[k]][2]+V[f[(k+1)%3]][2])/2]); });
+      var i0 = V.push(m[0])-1, i1 = V.push(m[1])-1, i2 = V.push(m[2])-1; nf.push([f[0],i0,i2],[f[1],i1,i0],[f[2],i2,i1],[i0,i1,i2]); }); F = nf; }
+  var R = rng(seed), P = V.map(function(p){ var k = 1 + (R()-.5)*jit; return [c[0] + p[0]*rx*k, c[1] + p[1]*ry*k, c[2] + p[2]*rz*k]; });
+  F.forEach(function(f){ var cc = col.slice(); var sh = 0.78 + 0.34*((V[f[0]][1] + V[f[1]][1] + V[f[2]][1])/3*.5 + .5);
+    cc = [col[0]*sh, col[1]*sh, col[2]*sh, col[3] || 0];
+    this.tri(P[f[0]], P[f[1]], P[f[2]], cc, V[f[0]], V[f[1]], V[f[2]]); }, this); };
+Geo.prototype.box = function(c, sx, sy, sz, col){ var x0 = c[0]-sx/2, x1 = c[0]+sx/2, y0 = c[1], y1 = c[1]+sy, z0 = c[2]-sz/2, z1 = c[2]+sz/2;
+  this.quad([x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1], col); this.quad([x1,y0,z0],[x0,y0,z0],[x0,y1,z0],[x1,y1,z0], col);
+  this.quad([x1,y0,z1],[x1,y0,z0],[x1,y1,z0],[x1,y1,z1], col); this.quad([x0,y0,z0],[x0,y0,z1],[x0,y1,z1],[x0,y1,z0], col);
+  this.quad([x0,y1,z1],[x1,y1,z1],[x1,y1,z0],[x0,y1,z0], col); };
+
+function geoPine(){ var g = new Geo(), bark = [.20,.14,.10], R = rng(11);
+  var p0 = [0,-0.6,0], p1 = [0.5,3.6,0.25], p2 = [1.3,6.8,0.6], p3 = [1.6,8.6,0.7];
+  g.frustum(p0, p1, .34, .25, 7, bark); g.frustum(p1, p2, .25, .17, 7, bark); g.frustum(p2, p3, .17, .08, 6, bark, 1);
+  g.frustum([0.9,5.4,0.45], [-1.6,6.2,-0.4], .11, .05, 5, bark); g.frustum([1.2,6.3,0.55], [3.4,6.9,1.2], .1, .05, 5, bark);
+  var cl = [[1.6,8.4,0.7,2.6],[-1.6,6.4,-0.4,1.9],[3.4,7.0,1.2,1.8],[0.4,7.3,0.1,2.0],[2.6,8.9,-0.3,1.6],[1.0,9.6,1.1,1.5]];
+  cl.forEach(function(q, k){ var tone = 0.8 + R()*0.3; g.blob([q[0],q[1],q[2]], q[3]*1.35, q[3]*0.45, q[3]*1.2, [.035*tone,.07*tone,.035*tone], 0.4, 20+k, true); });
+  return g; }
+function geoTetrapod(){ var g = new Geo(), col = [.62,.61,.58];
+  var dirs = [[0,1,0]]; for (var k = 0; k < 3; k++){ var a = k*Math.PI*2/3; dirs.push([Math.sqrt(8/9)*Math.cos(a), -1/3, Math.sqrt(8/9)*Math.sin(a)]); }
+  dirs.forEach(function(d){ g.frustum([d[0]*.15, d[1]*.15, d[2]*.15], [d[0]*1.25, d[1]*1.25, d[2]*1.25], .52, .3, 8, col, 1); });
+  return g; }
+function geoBoulder(){ var g = new Geo(); g.blob([0,0.2,0], 1, .72, .9, [.20,.185,.165], .55, 5, true); return g; }
+function geoHouse(){ var g = new Geo(), wall = [1,1,1,1], roof = [1,1,1,2], dark = [.12,.10,.09];
+  g.box([0,0,0], 7, 3.6, 5.5, wall); g.box([2.2,0,2.76], 1.2, 2.1, .08, dark); g.box([-1.6,1.3,2.76], 1.8, 1.1, .06, [.16,.2,.24]); g.box([-1.6,1.3,-2.76], 1.8, 1.1, .06, [.16,.2,.24]);
+  var y0 = 3.6, y1 = 5.6, ex = 4.1, ez = 3.35;
+  g.quad([-ex,y0-.3,ez],[ex,y0-.3,ez],[ex,y1,0],[-ex,y1,0], roof); g.quad([ex,y0-.3,-ez],[-ex,y0-.3,-ez],[-ex,y1,0],[ex,y1,0], roof);
+  g.tri([-3.5,y0,2.75],[-3.5,y1-.2,0],[-3.5,y0,-2.75], wall); g.tri([3.5,y0,-2.75],[3.5,y1-.2,0],[3.5,y0,2.75], wall);
+  return g; }
+function geoLighthouse(){ var g = new Geo(), white = [.86,.86,.83], gray = [.4,.42,.42], red = [.62,.07,.05];
+  g.frustum([0,-1,0],[0,15,0], 2.4, 1.6, 16, white, 1); g.frustum([0,15,0],[0,15.5,0], 2.5, 2.5, 16, gray, 1);
+  g.frustum([0,15.5,0],[0,17.6,0], 1.25, 1.25, 12, [.10,.14,.16], 1); g.frustum([0,17.6,0],[0,19,0], 1.45, .2, 12, red, 1);
+  g.box([3.5,-1,0], 5, 4, 4, white); g.frustum([3.5,3,0],[3.5,3.2,0], 3.2, 3.2, 4, gray, 1); return g; }
+function geoBoat(){ var g = new Geo(), hullT = [.84,.84,.80], hullB = [.45,.08,.06], stripe = [.10,.28,.52];
+  var sec = []; for (var k = 0; k <= 10; k++){ var x = -6 + k*1.2, t = (x + 6)/12; var w = 1.75*Math.sqrt(Math.max(0, 1 - Math.pow(Math.max(0, t - .55)/.45, 2))) + .05; sec.push([x, w]); }
+  for (k = 0; k < 10; k++){ var a = sec[k], b = sec[k+1];
+    [-1, 1].forEach(function(sd){ var ta = [a[0], 1.2, a[1]*sd], tb = [b[0], 1.2, b[1]*sd], ma = [a[0], .15, a[1]*.92*sd], mb = [b[0], .15, b[1]*.92*sd], ka = [a[0], -.9, .15*sd], kb = [b[0], -.9, .15*sd];
+      if (sd > 0){ g.quad(ma, mb, tb, ta, hullT); g.quad(ka, kb, mb, ma, hullB); } else { g.quad(ta, tb, mb, ma, hullT); g.quad(ma, mb, kb, ka, hullB); }
+      if (sd > 0) g.quad([a[0],1.25,a[1]*.99],[b[0],1.25,b[1]*.99],[b[0],.95,b[1]*.99],[a[0],.95,a[1]*.99], stripe); });
+    g.quad([a[0],1.15,-a[1]],[b[0],1.15,-b[1]],[b[0],1.15,b[1]],[a[0],1.15,a[1]], [.55,.5,.44]); }
+  g.box([-3.2,1.15,0], 3.2, 2.2, 2.6, [.88,.88,.85]); g.box([-3.2,3.35,0], 3.5, .15, 2.9, [.2,.3,.45]);
+  g.frustum([-1,1.2,0],[-1,6.5,0], .08, .05, 5, [.3,.3,.3], 1); return g; }
+
+var PROP_KINDS = ['tree', 'tetra', 'boulder', 'house', 'light', 'boat'];
+var PROPS = {};
+(function(){ var geos = [geoPine(), geoTetrapod(), geoBoulder(), geoHouse(), geoLighthouse(), geoBoat()];
+  geos.forEach(function(g, k){ var vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+    var vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(g.v), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 40, 0);
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 40, 12);
+    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.FLOAT, false, 40, 24);
+    var ib = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, ib);
+    gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 4, gl.FLOAT, false, 32, 0); gl.vertexAttribDivisor(3, 1);
+    gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 4, gl.FLOAT, false, 32, 16); gl.vertexAttribDivisor(4, 1);
+    gl.bindVertexArray(null);
+    PROPS[PROP_KINDS[k]] = {kind:k, vao:vao, ib:ib, nv:g.v.length/10, count:0}; });
+})();
+function setInstances(name, arr){ var P = PROPS[name]; gl.bindBuffer(gl.ARRAY_BUFFER, P.ib); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.DYNAMIC_DRAW); P.count = arr.length/8;
+  if (name === 'tree' || name === 'house'){ var rows = Math.max(1, Math.ceil(P.count/128)), d = new Float32Array(128*rows*4);
+    for (var k = 0; k < P.count; k++){ d[k*4] = arr[k*8]; d[k*4+1] = arr[k*8+1]; d[k*4+2] = 1; }
+    P.ti = tex(128, rows, 32, d); P.tp = tex(128, rows, 32); P.fp = fbo([P.tp]); placeDirty = true; } }
+var placeDirty = true;
+function placePass(){ var P = PR.place; gl.useProgram(P.p); var sk = skyParams();
+  ['tree', 'house'].forEach(function(name){ var pr = PROPS[name]; if (!pr.fp) return; vp(pr.fp); common(P, sk); bindTex(P, 'uRB', TRB, 0); bindTex(P, 'uI', pr.ti, 1);
+    gl.uniform1i(P.u('uKind'), pr.kind); gl.uniform1f(P.u('uTreeZ'), YS + 115); gl.drawArrays(gl.TRIANGLES, 0, 3); });
+  placeDirty = false; }
+
+// 樹林與村落：與情境無關，只放一次（地面高度、坡度與是否在沙丘後由著色器判斷）
+(function(){ var R = rng(4242), t = [], n = SMALL ? 2600 : 7000;
+  for (var k = 0; k < n; k++){
+    var x = -2600 + R()*6400, z = k < n*0.7 ? YS + 110 + Math.pow(R(), 1.4)*(LY - YS + 520) : LY + 200 + R()*1300;
+    var cl = 0.55 + 0.45*Math.sin(x*0.013 + Math.sin(z*0.02)*2) * Math.sin(z*0.017 + x*0.004); if (R() > cl + 0.35) continue;
+    t.push(x, z, 0.75 + R()*0.7, 3.14 + (R()-.5)*1.1, -0.4, 0, 0, R()); }
+  setInstances('tree', t);
+  var h = [], clusters = [[LX*0.3, LY + 150, 120], [LX*0.78, LY + 230, 150], [LX*1.35, LY + 170, 110], [-LX*0.4, LY + 260, 130]];
+  clusters.forEach(function(c){ for (var k = 0; k < 16; k++){ var a = R()*Math.PI*2, r = Math.sqrt(R())*c[2]; h.push(c[0] + Math.cos(a)*r*1.4, c[1] + Math.sin(a)*r*0.7, 0.9 + R()*0.35, (R() < .5 ? 0 : Math.PI/2) + (R()-.5)*.25, -0.2, 0, 0, R()); } });
+  setInstances('house', h);
+})();
+// 消波塊、岩塊、燈塔、漁船：依目前地形（讀回的材質）重新擺放
+var propsDirty = true;
+function rebuildProps(){
+  var hx = NX/2, hy = NY/2, cell = DX*2, R = rng(99 + S.preset), tet = [], bou = [], tide = tideLevel();
+  var sp = SMALL ? 2.6 : 2.0;
+  for (var z = 0; z < LY; z += sp) for (var x = 0; x < LX; x += sp){
+    var px = x + (R()-.5)*sp*0.6, pz = z + (R()-.5)*sp*0.6, i = Math.min(hx-1, Math.floor(px/cell)), j = Math.min(hy-1, Math.floor(pz/cell)), q = j*hx + i;
+    var m = Mcpu[q], B = Bcpu[q];
+    if (m > 1.5 && m < 2.5) tet.push(px, pz, 0.9 + R()*0.25, R()*6.283, -0.35 - R()*0.3, R()*6.283, R()*6.283, R());
+    else if (m > 0.5 && m < 1.5 && B > tide - 2.5 && B < tide + 3.5 && R() < 0.22) bou.push(px, pz, 0.7 + Math.pow(R(), 2)*2.2, R()*6.283, -0.3, R()*3, R()*3, R());
+  }
+  setInstances('tetra', tet); setInstances('boulder', bou);
+  var lh = [], boats = [];
+  if (PRESETS[S.preset].id === 'headland'){ var best = -99, bx = 0, bz = 0;
+    for (var jj = 0; jj < hy; jj++) for (var ii = 0; ii < hx; ii++){ var qq = jj*hx + ii, zz = (jj+.5)*cell, s = YS - zz; if (Mcpu[qq] > .5 && Mcpu[qq] < 1.5 && s > 90 && s < 135 && Bcpu[qq] > best){ best = Bcpu[qq]; bx = (ii+.5)*cell; bz = zz; } }
+    if (best > 2) lh.push(bx, bz, 1, 0.3, -0.5, 0, 0, 0); }
+  if (PRESETS[S.preset].id === 'harbor'){ [[0.42, 60, 0.3], [0.45, 35, 0.1], [0.49, 85, -0.2], [0.53, 25, 0.25], [0.57, 55, 0.05], [0.6, 95, -0.15]].forEach(function(b){ boats.push(b[0]*LX, YS - b[1], 1, b[2] + Math.PI/2, 0, 0, R(), R()); }); }
+  boats.push(LX*0.3, -420, 1, 0.4, 0, 0, 1.7, 0.2, LX*0.72, -760, 1.1, 2.2, 0, 0, 3.1, 0.6);
+  setInstances('light', lh); setInstances('boat', boats); propsDirty = false;
+}
 // ---------- 相機 ----------
 function m4mul(a, b){ var o = new Float32Array(16); for (var i = 0; i < 4; i++) for (var j = 0; j < 4; j++){ var s = 0; for (var k = 0; k < 4; k++) s += a[k*4+j]*b[i*4+k]; o[i*4+j] = s; } return o; }
 function persp(fy, as, n, f){ var t = 1/Math.tan(fy/2), o = new Float32Array(16); o[0] = t/as; o[5] = t; o[10] = (f+n)/(n-f); o[11] = -1; o[14] = 2*f*n/(n-f); return o; }
@@ -933,91 +1199,117 @@ function inv(m){ var a = m, o = new Float32Array(16);
   o[8]=(a[4]*b10-a[5]*b08+a[7]*b06)*d; o[9]=(a[1]*b08-a[0]*b10-a[3]*b06)*d; o[10]=(a[12]*b04-a[13]*b02+a[15]*b00)*d; o[11]=(a[9]*b02-a[8]*b04-a[11]*b00)*d;
   o[12]=(a[5]*b07-a[4]*b09-a[6]*b06)*d; o[13]=(a[0]*b09-a[1]*b07+a[2]*b06)*d; o[14]=(a[13]*b01-a[12]*b03-a[14]*b00)*d; o[15]=(a[8]*b03-a[9]*b01+a[10]*b00)*d; return o; }
 
+// 預設視角在碎波帶外的海面上空，斜看浪一道道湧上沙灘，背後是防砂林與山
 var VIEWS = [
-  {name:'鳥瞰', t:[0.42, 0, YS-80], yaw:0.5, pitch:0.42, dist:520},
-  {name:'岸上', t:[0.4, 1, YS-60], yaw:0.55, pitch:0.07, dist:120},
-  {name:'沿岸', t:[0.5, 0, YS-80], yaw:1.42, pitch:0.2, dist:520},
-  {name:'外海', t:[0.5, 0, YS-60], yaw:Math.PI+0.35, pitch:0.28, dist:560},
+  {name:'海上', t:[0.41, 0, YS-70], yaw:2.3, pitch:0.12, dist:290},
+  {name:'沙丘上', t:[0.5, 0, YS-50], yaw:0.98, pitch:0.09, dist:250},
+  {name:'沿岸', t:[0.51, 2, YS-40], yaw:1.75, pitch:0.1, dist:260},
+  {name:'外海', t:[0.5, 60, YS+400], yaw:Math.PI+0.3, pitch:0.05, dist:1400},
   {name:'俯視', t:[0.5, 0, LY*0.5], yaw:0, pitch:1.5, dist:1250}
 ];
-var cam = {t:[LX*0.42, 0, YS-80], yaw:0.5, pitch:0.42, dist:520}, camGoal = null;
+var cam = {t:[VIEWS[0].t[0]*LX, VIEWS[0].t[1], VIEWS[0].t[2]], yaw:VIEWS[0].yaw, pitch:VIEWS[0].pitch, dist:VIEWS[0].dist}, camGoal = null;
 function setView(k){ var v = VIEWS[k]; camGoal = {t:[v.t[0]*LX, v.t[1], v.t[2]], yaw:v.yaw, pitch:v.pitch, dist:v.dist};
   var d = camGoal.yaw - cam.yaw; camGoal.yaw -= Math.round(d/(2*Math.PI))*2*Math.PI; }
 var VPm, IVPm, eye = [0,0,0];
 function updateCam(dt){
-  if (camGoal){ var a = 1 - Math.exp(-dt*4); cam.yaw += (camGoal.yaw - cam.yaw)*a; cam.pitch += (camGoal.pitch - cam.pitch)*a; cam.dist += (camGoal.dist - cam.dist)*a;
+  if (camGoal){ var a = 1 - Math.exp(-dt*3.5); cam.yaw += (camGoal.yaw - cam.yaw)*a; cam.pitch += (camGoal.pitch - cam.pitch)*a; cam.dist += (camGoal.dist - cam.dist)*a;
     for (var i = 0; i < 3; i++) cam.t[i] += (camGoal.t[i] - cam.t[i])*a;
     if (Math.abs(camGoal.dist - cam.dist) < 0.5 && Math.abs(camGoal.yaw - cam.yaw) < 0.002) camGoal = null; }
   var cp = Math.cos(cam.pitch); eye = [cam.t[0] + cam.dist*cp*Math.sin(cam.yaw), cam.t[1] + cam.dist*Math.sin(cam.pitch), cam.t[2] + cam.dist*cp*Math.cos(cam.yaw)];
-  var gh = groundAt(eye[0], eye[2])*S.vex; if (eye[1] < gh + 2) eye[1] = gh + 2;
+  var gh = Math.max(groundAt(eye[0], eye[2]), tideLevel() + 1)*S.vex; if (eye[1] < gh + 2.5) eye[1] = gh + 2.5;
   var W = canvas.width, H = canvas.height;
-  var P = persp(mq.matches ? 0.95 : 0.82, W/H, 0.8, 9000), V = lookAt(eye, cam.t, [0,1,0]);
+  var P = persp(mq.matches ? 0.95 : 0.8, W/H, 0.8, 32000), V = lookAt(eye, cam.t, [0,1,0]);
   // 視線中心移到介面沒遮住的區域（桌機避開右側儀器架與底部甲板，手機避開下方面板）
-  if (mq.matches){ P[9] -= 0.44; } else if (innerWidth > 760){ P[8] += 0.2*(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--rack'))+26)/innerWidth*2*0.5; P[9] -= 0.1; }
+  if (mq.matches){ P[9] -= 0.44; } else if (innerWidth > 760 && !document.body.classList.contains('bare')){ P[8] += 0.2*(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--rack'))+26)/innerWidth; P[9] -= 0.1; }
   VPm = m4mul(P, V); IVPm = inv(VPm);
 }
 function groundAt(x, z){ var hx = NX/2, hy = NY/2; var i = Math.floor(((x % LX) + LX) % LX / (2*DX)), j = Math.floor(z/(2*DX));
-  if (j < 0) return -H0; if (j >= hy) j = hy-1; return Bcpu[j*hx + (i % hx)]; }
+  if (j < 0) return -H0; if (j >= hy) return Bcpu[(hy-1)*hx + (i % hx)] + Math.max(0, z - LY)*0.04; return Bcpu[j*hx + (i % hx)]; }
 function pick(cx, cy){
   var r = canvas.getBoundingClientRect(); var nx = (cx - r.left)/r.width*2-1, ny = 1-(cy - r.top)/r.height*2;
   var a = mulv(IVPm, [nx, ny, -1, 1]), b = mulv(IVPm, [nx, ny, 1, 1]);
   var o = [a[0]/a[3], a[1]/a[3], a[2]/a[3]], d = norm(sub([b[0]/b[3], b[1]/b[3], b[2]/b[3]], o));
-  var prev = 0, step = 1.5;
+  var prev = 0, step = 1;
   for (var t = 0; t < 6000; t += step){ var p = [o[0]+d[0]*t, o[1]+d[1]*t, o[2]+d[2]*t];
     if (p[2] >= 0 && p[2] < LY && p[1] <= groundAt(p[0], p[2])*S.vex){
       var lo = prev, hi = t; for (var k = 0; k < 10; k++){ var m = (lo+hi)/2, q = [o[0]+d[0]*m, o[1]+d[1]*m, o[2]+d[2]*m]; if (q[1] <= groundAt(q[0], q[2])*S.vex) hi = m; else lo = m; }
       return [o[0]+d[0]*hi, o[2]+d[2]*hi]; }
-    if (p[1] < -40) break; prev = t; step = Math.min(8, 1.5 + t*0.004); }
+    if (p[1] < -40) break; prev = t; step = Math.min(8, 1 + t*0.004); }
   return null; }
 function mulv(m, v){ return [0,1,2,3].map(function(i){ return m[i]*v[0]+m[4+i]*v[1]+m[8+i]*v[2]+m[12+i]*v[3]; }); }
 
 // ---------- 天空 ----------
-function skyParams(){ var e = S.sun*Math.PI/180, az = 0.55; var t = sm(3, 40, S.sun);
+function skyParams(){ var e = S.sun*Math.PI/180, az = 1.2, t = sm(1, 14, S.sun);
   var mix = function(a, b){ return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]; };
-  var sc = mix([1.0,0.52,0.26],[1.0,0.93,0.84]), k = 1.4 + 1.0*t;
+  var sc = mix([1.0,0.50,0.24],[1.0,0.92,0.80]), k = 1.6 + 1.3*t;
   return {sun:[Math.sin(az)*Math.cos(e), Math.sin(e), -Math.cos(az)*Math.cos(e)], sunC:[sc[0]*k, sc[1]*k, sc[2]*k],
-          zen:mix([0.10,0.15,0.34],[0.05,0.19,0.50]), hor:mix([0.95,0.55,0.36],[0.47,0.62,0.74])}; }
+          zen:mix([0.09,0.14,0.32],[0.07,0.21,0.55]), hor:mix([0.92,0.56,0.38],[0.56,0.69,0.84])}; }
 
 // ---------- 繪製 ----------
 function common(P, sk){
   gl.uniformMatrix4fv(P.u('uVP'), false, VPm); gl.uniform3fv(P.u('uCam'), eye);
   gl.uniform3fv(P.u('uSun'), sk.sun); gl.uniform3fv(P.u('uSunC'), sk.sunC); gl.uniform3fv(P.u('uSkyZ'), sk.zen); gl.uniform3fv(P.u('uSkyH'), sk.hor);
-  gl.uniform1f(P.u('uTime'), S.t); gl.uniform1f(P.u('uVex'), S.vex); gl.uniform1f(P.u('uTide'), tideLevel()); gl.uniform1f(P.u('uLY'), LY);
+  gl.uniform1f(P.u('uTime'), S.t); gl.uniform1f(P.u('uVex'), S.vex); gl.uniform1f(P.u('uTide'), tideLevel()); gl.uniform1f(P.u('uLX'), LX); gl.uniform1f(P.u('uLY'), LY);
+  gl.uniform1f(P.u('uCloud'), S.cloud); gl.uniform4f(P.u('uRiv'), LX*0.5, S.river[3], 0, 0);
   gl.uniform1i(P.u('uMode'), S.mode); gl.uniform2i(P.u('uN'), NX, NY); gl.uniform1f(P.u('uDx'), DX); gl.uniform1f(P.u('uRamp'), S.ramp);
   setWaveUniforms(P);
 }
+// 繪製用貼圖與陰影
+function rcopyPass(){ var P = PR.rcopy; gl.useProgram(P.p); vp(FRD);
+  bindTex(P, 'uU', TU[cu], 0); bindTex(P, 'uT', TT[cu], 1); bindTex(P, 'uF', TF[cf], 2); bindTex(P, 'uM', TM[cf], 3);
+  gl.drawArrays(gl.TRIANGLES, 0, 3); }
+var shadowKey = '';
+function shadowPass(sk){ var P = PR.shadow; gl.useProgram(P.p); vp(FSH); common(P, sk); bindTex(P, 'uRB', TRB, 0); gl.drawArrays(gl.TRIANGLES, 0, 3); }
 var brushVis = [0,0,0,0];
 function secU(){ return [(S.secX+.5)*DX, (S.gauges[0]+.5)*DX, (S.gauges[1]+.5)*DX, (S.gauges[2]+.5)*DX]; }
+var SKIP = {};
+function drawTiles(P){ if (SKIP.tiles) return;
+  [0, -1, 1].forEach(function(k){ gl.uniform1f(P.u('uOff'), k*LX); gl.uniform1i(P.u('uWorld'), 0); var m = k === 0 ? MESH.full : MESH.side;
+    gl.bindVertexArray(m.vao); gl.drawElements(gl.TRIANGLES, m.n, gl.UNSIGNED_INT, 0); }); }
+function drawWorld(P){ if (SKIP.world) return; gl.uniform1f(P.u('uOff'), 0); gl.uniform1i(P.u('uWorld'), 1); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(2, 8);
+  gl.bindVertexArray(MESH.world.vao); gl.drawElements(gl.TRIANGLES, MESH.world.n, gl.UNSIGNED_INT, 0); gl.disable(gl.POLYGON_OFFSET_FILL); }
 function render(){
+  var sk = skyParams();
+  var key = S.sun + '|' + S.vex; if (!SKIP.shadow && (key !== shadowKey || frameN % 20 === 0)){ shadowKey = key; shadowPass(sk); }
   gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, canvas.width, canvas.height);
   gl.clearColor(0,0,0,1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  var sk = skyParams();
-  gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);
-  // 天空
-  var P = PR.sky; gl.useProgram(P.p); gl.bindVertexArray(quad); common(P, sk); gl.uniformMatrix4fv(P.u('uIVP'), false, IVPm);
+  gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.disable(gl.CULL_FACE);
+  var P = PR.sky; gl.useProgram(P.p); gl.bindVertexArray(quad); common(P, sk); bindTex(P, 'uRB', TRB, 0); gl.uniformMatrix4fv(P.u('uIVP'), false, IVPm);
   gl.depthMask(false); gl.drawArrays(gl.TRIANGLES, 0, 3); gl.depthMask(true);
-  var tiles = [0, -1, 1, -2, 2], sec = S.showSec ? secU() : [0,0,0,0];
+  var sec = S.showSec ? secU() : [0,0,0,0];
   // 地形
   P = PR.ter; gl.useProgram(P.p); common(P, sk);
-  bindTex(P, 'uT', TT[cu], 0); bindTex(P, 'uU', TU[cu], 1); bindTex(P, 'uM', TM[cf], 2);
+  bindTex(P, 'uRB', TRB, 0); bindTex(P, 'uRW', TRW, 1); bindTex(P, 'uSH', TSH, 2);
   gl.uniform4fv(P.u('uBrush'), brushVis); gl.uniform4fv(P.u('uSec'), sec);
-  tiles.forEach(function(k){ gl.uniform1f(P.u('uOff'), k*LX);
-    if (k === 0){ gl.bindVertexArray(MESH.full); gl.drawElements(gl.TRIANGLES, MESH.nFull, gl.UNSIGNED_INT, 0); }
-    else { gl.bindVertexArray(MESH.coarse); gl.drawElements(gl.TRIANGLES, MESH.nCoarse, gl.UNSIGNED_INT, 0); } });
+  drawTiles(P); drawWorld(P);
+  // 立體物件
+  P = PR.prop; gl.useProgram(P.p); common(P, sk); bindTex(P, 'uRB', TRB, 0); bindTex(P, 'uRW', TRW, 1); bindTex(P, 'uSH', TSH, 2);
+  gl.uniform1f(P.u('uTreeZ'), YS + 115);
+  PROP_KINDS.forEach(function(name){ var pr = PROPS[name]; if (!pr.count || SKIP[name]) return; gl.uniform1i(P.u('uKind'), pr.kind); gl.bindVertexArray(pr.vao); if (pr.tp) bindTex(P, 'uPL', pr.tp, 3);
+    var offs = (name === 'tetra' || name === 'boulder' || name === 'light') ? [0, -LX, LX] : [0];
+    offs.forEach(function(o){ gl.uniform1f(P.u('uOff'), o); gl.drawArraysInstanced(gl.TRIANGLES, 0, pr.nv, pr.count); }); });
   // 水
-  P = PR.wat; gl.useProgram(P.p); common(P, sk);
-  bindTex(P, 'uT', TT[cu], 0); bindTex(P, 'uU', TU[cu], 1); bindTex(P, 'uF', TF[cf], 2); bindTex(P, 'uM', TM[cf], 3);
+  if (!SKIP.water){ P = PR.wat; gl.useProgram(P.p); common(P, sk);
+  bindTex(P, 'uRB', TRB, 0); bindTex(P, 'uRW', TRW, 1); bindTex(P, 'uF', TF[cf], 2); bindTex(P, 'uM', TM[cf], 3);
   gl.uniform1f(P.u('uWind'), S.wind); gl.uniform1f(P.u('uHref'), S.H*1.5); gl.uniform4fv(P.u('uBrush'), brushVis); gl.uniform4fv(P.u('uSec'), sec);
   gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-  tiles.forEach(function(k){ gl.uniform1f(P.u('uOff'), k*LX);
-    if (k === 0){ gl.bindVertexArray(MESH.full); gl.drawElements(gl.TRIANGLES, MESH.nFull, gl.UNSIGNED_INT, 0); }
-    else { gl.bindVertexArray(MESH.coarse); gl.drawElements(gl.TRIANGLES, MESH.nCoarse, gl.UNSIGNED_INT, 0); } });
-  // 粒子
+  drawTiles(P); drawWorld(P); }
+  // 浪花
+  gl.depthMask(false);
+  if (S.mode === 0){ P = PR.sprayd; gl.useProgram(P.p); common(P, sk); gl.bindVertexArray(emptyVao);
+    bindTex(P, 'uSP', TSP[cs], 0); bindTex(P, 'uSV', TSV[cs], 1); gl.uniform1i(P.u('uPW'), SPW); gl.uniform1f(P.u('uPx'), canvas.height*1.2);
+    gl.drawArrays(gl.POINTS, 0, SPW*SPW); }
+  // 流線粒子
   if (S.parts){ P = PR.pt; gl.useProgram(P.p); common(P, sk); gl.bindVertexArray(emptyVao);
-    bindTex(P, 'uP', TP[cp], 0); bindTex(P, 'uU', TU[cu], 1); bindTex(P, 'uT', TT[cu], 2); gl.uniform1i(P.u('uPW'), PW);
-    gl.depthMask(false); gl.drawArrays(gl.POINTS, 0, PW*PW); gl.depthMask(true); }
-  gl.disable(gl.BLEND); gl.bindVertexArray(quad);
+    bindTex(P, 'uP', TP[cp], 0); bindTex(P, 'uRW', TRW, 1); gl.uniform1i(P.u('uPW'), PW);
+    gl.drawArrays(gl.POINTS, 0, PW*PW); }
+  gl.depthMask(true); gl.disable(gl.BLEND); gl.bindVertexArray(quad);
 }
+var cs = 0;
+function sprayStep(dt){ var P = PR.spray; gl.useProgram(P.p); vp(FSPR[1-cs]); gl.uniform1f(P.u('uLX'), LX); gl.uniform1f(P.u('uLY'), LY); gl.uniform2i(P.u('uN'), NX, NY); gl.uniform1f(P.u('uDx'), DX);
+  bindTex(P, 'uSP', TSP[cs], 0); bindTex(P, 'uSV', TSV[cs], 1); bindTex(P, 'uRW', TRW, 2); bindTex(P, 'uF', TF[cf], 3); bindTex(P, 'uRB', TRB, 4);
+  gl.uniform1f(P.u('uDt'), dt); gl.uniform1f(P.u('uSeed'), (S.t*7.13) % 97); gl.uniform2f(P.u('uZr'), RELAX_M + 20, YS + 10);
+  gl.drawArrays(gl.TRIANGLES, 0, 3); cs = 1-cs; }
 
 // ---------- 讀數與圖表 ----------
 var hist = [], lastRun = [], runHist = [];
@@ -1157,6 +1449,7 @@ var CTRL = {
   slope:{sec:'#ctlBed', label:'前灘坡度（重建時套用）', min:6, max:30, step:1, unit:'', d:0, pre:'1 : '},
   brush:{sec:'#ctlBed', label:'筆刷半徑', min:6, max:60, step:1, unit:'m', d:0},
   sun:{sec:'#ctlView', label:'太陽高度', min:2, max:65, step:1, unit:'°', d:0},
+  cloud:{sec:'#ctlView', label:'雲量', min:-0.4, max:0.6, step:0.05, unit:'', d:2},
   vex:{sec:'#ctlView', label:'垂直放大', min:1, max:4, step:0.5, unit:'×', d:1}
 };
 var inputs = {};
@@ -1233,7 +1526,8 @@ function restoreBed(waterOnly){
     for (var j = 0; j < NY; j++) for (var i = 0; i < NX; i++){ var r = P.build((i+.5)*DX, (j+.5)*DX, o), kk = (j*NX+i)*4; if ((j+.5)*DX >= RELAX_M && r.mat){ T[kk+1] = r.R; T[kk+3] = r.mat; } } }
   [0,1].forEach(function(n){ gl.bindTexture(gl.TEXTURE_2D, TU[n]); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, NX, NY, 0, gl.RGBA, gl.FLOAT, U);
     gl.bindTexture(gl.TEXTURE_2D, TT[n]); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, NX, NY, 0, gl.RGBA, gl.FLOAT, T); });
-  for (var jj = 0; jj < NY/2; jj++) for (var ii = 0; ii < NX/2; ii++) Bcpu[jj*(NX/2)+ii] = T[((jj*2)*NX + ii*2)*4];
+  for (var jj = 0; jj < NY/2; jj++) for (var ii = 0; ii < NX/2; ii++){ Bcpu[jj*(NX/2)+ii] = T[((jj*2)*NX + ii*2)*4]; Mcpu[jj*(NX/2)+ii] = T[((jj*2)*NX + ii*2)*4+3]; }
+  rebuildProps(); shadowKey = '';
   if (!waterOnly) S.tMorph = 0; S.ramp = 0; S.waveT0 = S.t; S.statT0 = S.t; hist.length = 0; resetParticles = true;
   warm(120);
 }
@@ -1318,10 +1612,13 @@ function frame(now){
   if (painting && S.tool !== 'view' && S.tool !== 'section') toolTap(false);
   if (steps || pendingDye){ fxStep(Math.max(steps*DT, 1e-3), pendingDye); pendingDye = null; }
   if (S.parts && steps) partStep(steps*DT);
+  rcopyPass();
+  if (placeDirty || (S.morph && frameN % 240 === 0)) placePass();
+  if (S.mode === 0) sprayStep(S.paused ? 0 : Math.min(dt*S.speed, 0.05));
   if (probeR.poll()) digest();
   if (frameN % 3 === 0) probePass();
-  if (downR.poll()){ Bcpu.set(new Float32Array(downR.data.filter(function(_, i){ return i % 4 === 0; }))); }
-  if (brushDirty && frameN % 10 === 0){ downPass(); brushDirty = false; } else if (frameN % 90 === 45 && S.morph) downPass();
+  if (downR.poll()){ for (var q = 0; q < Bcpu.length; q++){ Bcpu[q] = downR.data[q*4]; Mcpu[q] = downR.data[q*4+1]; } if (propsDirty) rebuildProps(); }
+  if (brushDirty && frameN % 10 === 0){ downPass(); brushDirty = false; propsDirty = true; } else if (frameN % 90 === 45 && S.morph) downPass();
   // 筆刷游標
   brushVis = [0,0,0,0];
   if (S.tool !== 'view' && S.tool !== 'section' && pointerXY && IVPm){ var h = pick(pointerXY[0], pointerXY[1]); if (h) brushVis = [h[0], h[1], S.tool === 'dye' ? Math.max(4, S.brush*0.6) : S.brush, 1]; }
@@ -1352,6 +1649,8 @@ window.nagisa = {
   dump:function(ix){ function rd(fb, att){ gl.bindFramebuffer(gl.FRAMEBUFFER, fb); gl.readBuffer(gl.COLOR_ATTACHMENT0+att); var A = new Float32Array(NX*NY*4); gl.readPixels(0, 0, NX, NY, gl.RGBA, gl.FLOAT, A); gl.readBuffer(gl.COLOR_ATTACHMENT0); return A; }
     var U = rd(FUT[cu], 0), T = rd(FUT[cu], 1), F = rd(FFM[cf], 0), M = rd(FFM[cf], 1), out = [];
     for (var j = 0; j < NY; j += 2){ var k = (j*NX + ix)*4; out.push([j*DX, +T[k].toFixed(2), +U[k].toFixed(2), +(U[k] > .02 ? Math.hypot(U[k+1], U[k+2])/U[k] : 0).toFixed(2), +F[k].toFixed(2), +M[k+3].toFixed(3), +(U[k+3]/Math.max(U[k], .01)*1000).toFixed(2)]); } return out; },
+  skip:SKIP,
+  cam:function(o){ camGoal = null; if (o.t) cam.t = o.t; ['yaw','pitch','dist'].forEach(function(k){ if (o[k] !== undefined) cam[k] = o[k]; }); return {t:cam.t, yaw:cam.yaw, pitch:cam.pitch, dist:cam.dist, eye:eye}; },
   dye:function(x, z, r){ pendingDye = [x, z, r || 12, 1.2]; },
   view:function(k){ setView(k); },
   brush:function(tool, x, z, n){ for (var i = 0; i < (n||1); i++) brushStep(TOOLS[tool], x, z, tool === 'wall' ? 0.4 : 0.06); }

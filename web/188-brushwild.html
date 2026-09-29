@@ -98,6 +98,32 @@ body.touch #touchnote{display:block}
 #loading{position:fixed;inset:0;display:grid;place-items:center;background:var(--sky);font-size:18px;font-weight:800;color:var(--ink)}
 #loading span{display:inline-block;animation:bob 1s ease-in-out infinite}
 @keyframes bob{50%{transform:translateY(-6px)}}
+/* 打擊特效調整面板 */
+#tune{position:fixed;right:16px;top:16px;bottom:16px;width:min(360px,calc(100vw - 32px));display:flex;flex-direction:column;background:var(--paper);border:3px solid var(--ink);border-radius:18px;box-shadow:0 6px 0 var(--ink);font-size:13px;z-index:5}
+#tune header{display:flex;align-items:center;gap:8px;padding:12px 14px 8px;border-bottom:2px dashed rgba(42,34,56,.2)}
+#tune header h2{margin:0;font-size:17px;flex:1}
+#tune .body{overflow:auto;padding:4px 14px 16px}
+#tune .x{width:30px;height:30px;border-radius:50%;border:2px solid var(--ink);background:#fff;font-weight:900;cursor:pointer}
+#tune .tip{margin:6px 0 2px;color:var(--ink-soft);font-size:12px;line-height:1.5}
+#tune .row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+#tune button.tb{padding:6px 10px;border-radius:10px;border:2px solid var(--ink);background:#fff;font-weight:700;font-size:12px;box-shadow:0 2px 0 var(--ink);cursor:pointer}
+#tune button.tb.on{background:var(--yellow)}
+#tune button.tb.go{background:var(--yellow);font-size:14px;padding:8px 14px}
+#tune .sec{margin:12px 0 4px;font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--ink-soft)}
+#tune .fx{display:grid;grid-template-columns:20px 1fr 30px;align-items:center;gap:6px;padding:3px 6px;border-radius:9px;border:2px solid transparent;cursor:pointer}
+#tune .fx:hover{background:rgba(42,34,56,.06)}
+#tune .fx.sel{border-color:var(--ink);background:#fff}
+#tune .fx input{width:16px;height:16px;margin:0;accent-color:#e0a800}
+#tune .fx button{padding:0;height:24px;border-radius:7px;border:2px solid var(--ink);background:#fff;font-size:11px;cursor:pointer}
+#tune .fx small{color:var(--ink-soft);margin-left:4px;font-size:10px}
+#tune .sl{display:grid;grid-template-columns:92px 1fr 56px;align-items:center;gap:8px;margin:6px 0}
+#tune .sl label{font-size:12px;color:var(--ink-soft)}
+#tune .sl input[type=range]{width:100%;accent-color:#e0a800}
+#tune .sl output{font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+#tune .edit{padding:10px;border-radius:12px;background:#fff;border:2px solid var(--ink)}
+#tune .edit h3{margin:0 0 2px;font-size:14px}
+#tune .edit p{margin:0 0 6px;color:var(--ink-soft);font-size:12px;line-height:1.5}
+#tune textarea{width:100%;height:150px;border-radius:10px;border:2px solid var(--ink);background:#2a2238;color:#d8f5c8;font:11px/1.45 ui-monospace,Menlo,monospace;padding:8px;resize:vertical}
 @media (max-width:720px){
   #objective{top:auto;bottom:108px;max-width:calc(100vw - 32px);min-width:0;font-size:12px}
   #mapwrap{width:112px;height:112px;right:12px;top:12px}
@@ -136,6 +162,21 @@ body.touch #touchnote{display:block}
   <div id="talk" class="hide"><h4 id="talkwho"></h4><p id="talktext"></p><small>E／點一下 繼續</small></div>
   <div id="dmg"></div>
 </div>
+<div id="tune" class="hide">
+  <header><h2>調整打擊特效</h2><button class="x" id="tClose" title="關閉（T／Esc）">✕</button></header>
+  <div class="body">
+    <p class="tip">面前的練習用哥布林不會反擊。點畫面或按「揮筆試打」，畫筆打到那一格才放特效。調整會馬上套用，也會自動存在這台電腦。</p>
+    <div class="row"><button class="tb go" id="tSwing">▶ 揮筆試打</button><button class="tb go" id="tNow">✦ 直接命中</button></div>
+    <div class="row"><button class="tb" id="tHeavy">重擊（第三段）</button><button class="tb" id="tKill">擊殺這一下</button><button class="tb on" id="tAll">打擊特效：開</button></div>
+    <div class="row"><span class="tip" style="align-self:center;margin:0">使用中：</span><button class="tb" id="tA">A 組</button><button class="tb" id="tB">B 組</button><button class="tb" id="tAB">A 複製到 B</button><button class="tb" id="tCmp">輪流播 A→B</button></div>
+    <div class="sec">最常調的兩個</div><div id="tQuick"></div>
+    <div class="sec">效果清單（勾選＝開；▶ 只播這一種；點名稱調參數）</div><div id="tList"></div>
+    <div class="sec">參數</div><div class="edit" id="tEdit"></div>
+    <div class="sec">輸出</div>
+    <div class="row"><button class="tb" id="tPrint">印出參數</button><button class="tb" id="tCopy">複製</button><button class="tb" id="tReset">這組恢復預設</button></div>
+    <textarea id="tOut" spellcheck="false" placeholder="按「印出參數」後會出現在這裡（也會印在瀏覽器主控台），可以存起來或分享。"></textarea>
+  </div>
+</div>
 <div id="fade"></div>
 
 <div id="title" class="screen hide">
@@ -163,6 +204,7 @@ body.touch #touchnote{display:block}
       <li><kbd>Esc</kbd>暫停與存檔</li>
       <li><kbd>N</kbd>聲音開關</li>
       <li><kbd>V</kbd>打擊特效開關</li>
+      <li><kbd>T</kbd>調整打擊特效</li>
     </ul>
     <p class="note">進度會自動存在這台電腦的瀏覽器裡。點畫面鎖定滑鼠，按 Esc 放開。</p>
   </div>
@@ -178,6 +220,7 @@ body.touch #touchnote{display:block}
       <button class="btn alt" id="bMap">地圖</button>
       <button class="btn alt" id="bSound">聲音：開</button>
       <button class="btn alt" id="bFx">打擊特效：開</button>
+      <button class="btn alt" id="bTune">調整打擊特效</button>
       <button class="btn alt" id="bTitle">回標題</button>
     </div>
     <ul class="keys">
@@ -462,6 +505,7 @@ addEventListener('blur', () => { keys.clear(); mouseL = mouseR = false; });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 canvas.addEventListener('mousedown', e => {
   if (!G.running) return;
+  if (G.tuning) { if (e.button === 0) tuneSwing(); return; }
   if (document.pointerLockElement !== canvas && !G.noLock) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (err) {} if (e.button === 0) return; }
   if (e.button === 0) { mouseL = true; clickL = true; }
   if (e.button === 2) { mouseR = true; clickR = true; }
@@ -472,7 +516,7 @@ addEventListener('mousemove', e => {
   else if (G.running && (e.buttons & 4)) { lookDX += e.movementX; lookDY += e.movementY; }
 });
 document.addEventListener('pointerlockchange', () => {
-  if (document.pointerLockElement !== canvas && G.running && !G.paused && !G.talking && G.lockedOnce) openPause();
+  if (document.pointerLockElement !== canvas && G.running && !G.paused && !G.talking && !G.tuning && G.lockedOnce) openPause();
   if (document.pointerLockElement === canvas) G.lockedOnce = true;
 });
 
@@ -575,7 +619,7 @@ function setSound(on) {
 try { if (localStorage.getItem('brushwild188-sound') === '0') AU.on = false; } catch (e) {}
 function rot(m, ax, v) { m.rotation[ax] = v; return m; }
 
-/* ───────── 打擊特效模組（預覽頁 assets/188/hitfx-lab.html 與遊戲共用同一份程式與參數格式）─────────
+/* ───────── 打擊特效模組（遊戲裡按 T 開啟調整面板；HITFX_DEFAULT 是所有人的預設值）─────────
    每種效果：on 開關、dur 秒數、radius 擴散半徑／強度（單位依效果而定）、count 數量、color 顏色（'auto' 跟著當下顏料色）
    時間：畫面上的特效用真實時間跑（頓幀時也看得到）；擊退用遊戲時間（頓幀結束才被推開）。 */
 const HITFX_DEFAULT = {
@@ -2874,7 +2918,7 @@ function hitFX(e, ci, dir, src, at, dealt) {
   const pos = at ? at.clone() : e.pos.clone().setY(e.pos.y + e.hy);
   if (!at && dir) pos.addScaledVector(dir, -e.r * .6);
   const kill = e.dead || e.hp <= 0 || !!(e.bossRef && e.bossRef.hp <= 0);
-  HFX.hit({ pos, dir, color: COLORS[ci].hex, target: fxTarget(e), damage: dealt, heavy: src === 'melee' && P.combo === 2, light: src === 'shot', kill });
+  HFX.hit({ pos, dir, color: COLORS[ci].hex, target: fxTarget(e), damage: dealt, heavy: src === 'melee' && P.combo === 2, light: src === 'shot', kill, params: TUNE.only || undefined, always: !!TUNE.only });
 }
 function damageEnemy(e, dmg, ci, dir, src, at) {
   if (e.dead) return;
@@ -2930,6 +2974,7 @@ function killEnemy(e, ci) {
   if (e.spawn) { e.spawn.done = true; const Z = ZONES[e.zone]; if (Z && e.spawn.cell) roomCheck(Z, e.spawn.cell.room); }
   if (e.camp) { e.camp.alive--; if (e.camp.alive <= 0) { e.camp.clearedAt = G.time; if (e.camp.guard !== undefined) { toast(CRYSTALS[e.camp.guard].name + '的封印解除了！塗上' + COLORS[CRYSTALS[e.camp.guard].c].name + '色點亮它', true); } } }
   if (e.onDeath) e.onDeath(e);
+  if (e.tuneDummy) { setTimeout(() => { if (TUNE.open) ensureDummy(); }, 900); return; }
   S.kills = (S.kills || 0) + 1;
   if (ENEMY_TYPES[e.id] && !S.seen.includes(e.id)) S.seen.push(e.id);
 }
@@ -4079,7 +4124,7 @@ function updateHUD(dt) {
     if (b.id === 'colossus') k = b.phase === 1 ? .5 + b.coreList.reduce((s, c) => s + Math.max(0, c.hp) / 7, 0) / 8 : b.hp / b.maxHp * .5;
     $('bossfill').style.width = (clamp(k, 0, 1) * 100).toFixed(1) + '%'; $('bossnote').textContent = b.note || '';
     if (bossRef !== b) { bossRef = b; BOSSBAR.shown = k; bossK = k; }
-    if (k < bossK - 1e-4) { BOSSBAR.delay = HITFX_PARAMS.hpbar.radius; BOSSBAR.dur = HITFX_PARAMS.hpbar.dur; BOSSBAR.rate = 0; }
+    if (k < bossK - 1e-4) { BOSSBAR.delay = HFX.params.hpbar.radius; BOSSBAR.dur = HFX.params.hpbar.dur; BOSSBAR.rate = 0; }
     bossK = k;
     $('bosstrail').style.width = (clamp(HFX.barStep(BOSSBAR, k, dt), 0, 1) * 100).toFixed(1) + '%';
   } else $('boss').classList.add('hide');
@@ -4263,6 +4308,8 @@ if (readSave()) $('bCont').classList.remove('hide');
 
 /* ───────── 按鍵（非移動類） ───────── */
 function globalKeys() {
+  if (G.tuning && (hit.has('Escape') || hit.has('KeyT'))) { closeTune(); hit.delete('Escape'); hit.delete('KeyT'); }
+  else if (hit.has('KeyT') && G.running && !G.paused) openTune();
   if (hit.has('Escape') || hit.has('KeyP')) { if (!$('mapscreen').classList.contains('hide')) closePause(); else if (G.paused && !$('pause').classList.contains('hide')) closePause(); else if (G.running && !G.paused) openPause(); }
   if (hit.has('KeyM') || hit.has('Tab')) { if (!$('mapscreen').classList.contains('hide')) closePause(); else if (G.running && !G.paused) openMap(); }
   if (hit.has('KeyN')) setSound(!AU.on);
@@ -4274,7 +4321,7 @@ function globalKeys() {
   if (hit.has('KeyE') || hit.has('Enter')) { if (G.talking) advanceTalk(); else { const t = nearInteract(); if (t) t.interact(); } }
   else if (G.talking && (clickL)) advanceTalk();
 }
-addEventListener('wheel', e => { if (!G.running || G.paused) return; G.color = (G.color + (e.deltaY > 0 ? 1 : 3)) % 4; paintHero(); }, { passive: true });
+addEventListener('wheel', e => { if (!G.running || G.paused || G.tuning) return; G.color = (G.color + (e.deltaY > 0 ? 1 : 3)) % 4; paintHero(); }, { passive: true });
 
 /* ───────── 主迴圈 ───────── */
 const ZLIST = Object.keys(ZONES);
@@ -4311,9 +4358,17 @@ function updateThings(dt) {
   }
 }
 /* ───────── 打擊特效 ─────────
-   參數請用 assets/188/hitfx-lab.html 調好後按「印出參數」，把印出的 const HITFX_PARAMS = {…}; 整段貼來取代下面這一行 */
-const HITFX_PARAMS = JSON.parse(JSON.stringify(HITFX_DEFAULT));
-const HFX = createHitFX({ THREE, scene, camera, overlay: $('fxlayer'), params: HITFX_PARAMS,
+   參數在遊戲裡按 T（或暫停選單「調整打擊特效」）調整，A／B 兩組自動存在瀏覽器；
+   想把某組參數變成所有人的預設值，就把面板「印出參數」的內容貼進 hitfx 模組的 HITFX_DEFAULT */
+const TUNE_KEY = 'brushwild188-hitfx-params';
+const TUNE = (() => {
+  const t = { open: false, sel: 'flash', heavy: false, kill: false, dummy: null, only: null, use: 'A', sets: {} };
+  let s = null; try { s = JSON.parse(localStorage.getItem(TUNE_KEY) || 'null'); } catch (e) {}
+  const merge = over => { const o = JSON.parse(JSON.stringify(HITFX_DEFAULT)); if (over) for (const k in o) if (over[k]) Object.assign(o[k], over[k]); return o; };
+  t.sets.A = merge(s && s.A); t.sets.B = merge(s && s.B); t.use = s && s.use === 'B' ? 'B' : 'A';
+  return t;
+})();
+const HFX = createHitFX({ THREE, scene, camera, overlay: $('fxlayer'), params: TUNE.sets[TUNE.use],
   groundAt: p => ground(p.x, p.z, p.y + 1).h,
   onSplat: (p, c, s) => { const g = ground(p.x, p.z, p.y + 1); if (g.type !== 'water' && g.type !== 'pit' && g.type !== 'lava') splat(p.x, g.h, p.z, c, s, G.zone === 'ow' && g.type === 'land'); },
   tipColor: () => COLORS[G.color].hex });
@@ -4322,9 +4377,11 @@ function setHitFX(on, quiet) {
   $('bFx').textContent = '打擊特效：' + (on ? '開' : '關');
   try { localStorage.setItem('brushwild188-hitfx', on ? '1' : '0'); } catch (e) {}
   if (!quiet) toast('打擊特效：' + (on ? '開' : '關') + '（按 V 切換）');
+  if ($('tAll')) { $('tAll').classList.toggle('on', on); $('tAll').textContent = '打擊特效：' + (on ? '開' : '關'); }
 }
 { let on = !QS.has('nofx'); try { if (localStorage.getItem('brushwild188-hitfx') === '0') on = false; } catch (e) {} setHitFX(on, true); }
 $('bFx').onclick = () => setHitFX(!HFX.enabled);
+$('bTune').onclick = () => openTune();
 const BOSSBAR = {};
 let bossK = 1, bossRef = null;
 function update(dt) {
@@ -4408,7 +4465,7 @@ $('title').classList.remove('hide');
 
 // 測試與之後加內容用的後門
 window.brushwild = {
-  G, S: () => S, P, CAM, models: !!MODELS, HERO, HFX, HITFX_PARAMS, HIT_K, renderer, scene, camera, OW, sun, splat, H, ENEMY_TYPES, ZONES, ENEMIES, THINGS, CRYSTALS, CAMPS, ISLES, BOSSES,
+  G, S: () => S, P, CAM, models: !!MODELS, HERO, HFX, TUNE, HIT_K, openTune, closeTune, tuneSwing, renderer, scene, camera, OW, sun, splat, H, ENEMY_TYPES, ZONES, ENEMIES, THINGS, CRYSTALS, CAMPS, ISLES, BOSSES,
   start: startGame, enterZone, spawnEnemy, saveGame, readSave, hurtPlayer, killEnemy,
   warp(x, z, y) { enterZone('ow', { x, z, y }, true); },
   giveCrystals() { CRYSTALS.forEach(cr => { CAMPS.filter(c => c.guard === cr.c).forEach(c => ENEMIES.filter(e => e.camp === c).forEach(e => { e.hp = 0; killEnemy(e, 0); })); if (!S.crystals[cr.c]) activateCrystal(cr); }); },
@@ -4416,6 +4473,140 @@ window.brushwild = {
   killBoss() { const b = G.bossActive; if (!b) return false; if (b.id === 'colossus') { colossusDown(b); return true; } b.hp = 0; killEnemy(b, 0); bossDown(b); return true; },
   god(on = true) { G.god = on; },
 };
+
+/* ───────── 打擊特效調整面板（T 或暫停選單開啟）─────────
+   面前放一隻不會反擊的練習用哥布林；點畫面、按「揮筆試打」或 J 都會揮筆，打到那一格才放特效 */
+const TUNE_DESC = {
+  flash: '命中點一瞬間的亮白星芒，最直接的「打到了」。', ring: '從命中點往外擴散的圓環，有力量傳出去的重量感。', sparks: '沿打擊方向噴出的細長亮點，清脆、硬碰硬。',
+  splat: '顏料團往打擊方向噴，落地留下斑點，軟而黏的「啪」。', slash: '垂直於打擊方向的新月形刀光，俐落。', trail: '畫筆揮過的殘影帶（揮筆途中出現，▶ 會揮一次筆）。',
+  dust: '幾團煙塵往外散開，厚重的悶響。', star: '漫畫式爆炸星形，卡通、有趣。', lines: '從畫面邊緣往命中點收束的白線，動漫重擊感。',
+  frame: '整個畫面閃白（強度大於 0.5 改成反色），只在重擊或擊殺出現。', numbers: '跳出這一下的傷害數字，重擊變大變黃。', tflash: '目標整隻亮白一下。',
+  squash: '目標被打扁再彈回。', tshake: '目標被震得左右抖（頓幀期間也會抖）。', knock: '目標沿打擊方向被推開一小段（頭目與重型敵人不會被推動）。', hitstop: '命中那一刻整個遊戲定格一下。',
+  shake: '鏡頭沿打擊方向震動，很快衰減。', fov: '鏡頭視角瞬間放大再回來。', slowmo: '擊殺時時間變慢一下。', hpbar: '紅條立刻扣，白條延遲一下才追上，看得出這一下扣多少。',
+};
+const TUNE_LIM = { lines: [.1, 1, .01], frame: [0, 1, 1], tflash: [0, 4, .05], squash: [0, .6, .01], tshake: [0, .5, .01], knock: [0, 4, .05], shake: [0, 1, .01], fov: [0, 20, .5], slowmo: [.05, 1, .01], hpbar: [0, 1, .01], trail: [.05, 1, .01], numbers: [0, 3, .05] };
+function tuneSave() { try { localStorage.setItem(TUNE_KEY, JSON.stringify({ use: TUNE.use, A: TUNE.sets.A, B: TUNE.sets.B })); } catch (e) {} }
+function ensureDummy() {
+  const d = TUNE.dummy;
+  if (d && !d.dead && d.zone === G.zone && Math.hypot(d.pos.x - P.pos.x, d.pos.z - P.pos.z) < 14) return d;
+  if (d && !d.dead) removeEnemy(d);
+  const fx = Math.sin(P.yaw), fz = Math.cos(P.yaw);
+  const e = spawnEnemy('goblin', P.pos.x + fx * 2.9, P.pos.z + fz * 2.9, { zone: G.zone, y: P.pos.y + 2 });
+  e.def = Object.assign({}, e.def, { arch: 'dummy', spd: 0, dmg: 0 });
+  e.name = '練習用哥布林'; e.noDrop = true; e.tuneDummy = true; e.maxHp = e.hp = 24;
+  e.yaw = Math.atan2(-fx, -fz);
+  TUNE.dummy = e;
+  return e;
+}
+function faceDummy(d) { P.yaw = Math.atan2(d.pos.x - P.pos.x, d.pos.z - P.pos.z); CAM.yaw = P.yaw - Math.PI; }
+function tuneSwing() {
+  if (P.flying || P.dead) return;
+  const d = ensureDummy();
+  faceDummy(d);
+  if (TUNE.kill) d.hp = Math.min(d.hp, .4);
+  P.swing = null;
+  if (TUNE.heavy) { P.combo = 1; P.comboT = .5; } else P.comboT = 0;
+  startSwing();
+}
+function tuneDirect() {
+  const d = ensureDummy();
+  faceDummy(d);
+  if (TUNE.kill) d.hp = Math.min(d.hp, .4);
+  P.combo = TUNE.heavy ? 2 : 0;
+  damageEnemy(d, TUNE.heavy ? 3 : 2, G.color, new THREE.Vector3(d.pos.x - P.pos.x, 0, d.pos.z - P.pos.z).normalize(), 'melee');
+}
+function tuneOnly(k) {
+  if (k === 'trail') { tuneSwing(); return; }
+  const p = JSON.parse(JSON.stringify(HFX.params));
+  for (const n in p) if ('on' in p[n]) p[n].on = n === k ? 1 : 0;
+  TUNE.only = p; tuneDirect(); TUNE.only = null;
+}
+function useSet(k) { TUNE.use = k; HFX.params = TUNE.sets[k]; tuneSave(); renderTune(); }
+function openTune() {
+  if (!G.running || G.zone === undefined) return;
+  if (G.paused) closePause();
+  TUNE.open = true; G.tuning = true;
+  if (document.pointerLockElement) document.exitPointerLock();
+  $('tune').classList.remove('hide');
+  if (!HFX.enabled) setHitFX(true, true);
+  ensureDummy();
+  renderTune();
+}
+function closeTune() {
+  TUNE.open = false; G.tuning = false;
+  $('tune').classList.add('hide');
+  if (TUNE.dummy && !TUNE.dummy.dead) removeEnemy(TUNE.dummy);
+  TUNE.dummy = null;
+  canvas.focus();
+}
+function tSlider(host, label, get, set, min, max, step, fmt) {
+  const d = document.createElement('div'); d.className = 'sl';
+  d.innerHTML = '<label></label><input type="range"><output></output>';
+  d.querySelector('label').textContent = label;
+  const r = d.querySelector('input'), o = d.querySelector('output');
+  Object.assign(r, { min, max, step, value: get() }); o.textContent = fmt(get());
+  r.oninput = () => { set(+r.value); o.textContent = fmt(+r.value); tuneSave(); };
+  host.append(d);
+}
+const ms = v => Math.round(v * 1000) + ' ms';
+function renderTune() {
+  const Pm = HFX.params;
+  $('tA').classList.toggle('on', TUNE.use === 'A'); $('tB').classList.toggle('on', TUNE.use === 'B');
+  $('tHeavy').classList.toggle('on', TUNE.heavy); $('tKill').classList.toggle('on', TUNE.kill);
+  const q = $('tQuick'); q.innerHTML = '';
+  tSlider(q, '鏡頭震動幅度', () => Pm.shake.radius, v => Pm.shake.radius = v, 0, 1, .01, v => v.toFixed(2) + ' m');
+  tSlider(q, '頓幀長度', () => Pm.hitstop.dur, v => Pm.hitstop.dur = v, 0, .25, .005, ms);
+  const L = $('tList'); L.innerHTML = '';
+  for (const k in HITFX_INFO) {
+    const d = document.createElement('div'); d.className = 'fx' + (TUNE.sel === k ? ' sel' : '');
+    d.innerHTML = '<input type="checkbox"' + (Pm[k].on ? ' checked' : '') + '><span></span><button title="只播這一種">▶</button>';
+    d.querySelector('span').textContent = HITFX_INFO[k][0];
+    if (k === 'frame') d.querySelector('span').insertAdjacentHTML('beforeend', '<small>重擊或擊殺才出現</small>');
+    const cb = d.querySelector('input');
+    cb.onclick = e => { e.stopPropagation(); Pm[k].on = cb.checked ? 1 : 0; tuneSave(); };
+    d.querySelector('button').onclick = e => { e.stopPropagation(); TUNE.sel = k; renderTune(); tuneOnly(k); };
+    d.onclick = () => { TUNE.sel = k; renderTune(); };
+    L.append(d);
+  }
+  const k = TUNE.sel, p = Pm[k], E = $('tEdit'); E.innerHTML = '';
+  const h = document.createElement('h3'); h.textContent = HITFX_INFO[k][0]; E.append(h);
+  const dsc = document.createElement('p'); dsc.textContent = TUNE_DESC[k]; E.append(dsc);
+  if ('dur' in p) tSlider(E, k === 'hpbar' ? '追上時間' : '持續時間', () => p.dur, v => p.dur = v, k === 'hitstop' ? 0 : .02, k === 'dust' || k === 'numbers' ? 2 : k === 'slowmo' ? 1.5 : 1, .01, ms);
+  if ('radius' in p && HITFX_INFO[k][1]) { const lim = TUNE_LIM[k] || [.1, 8, .05]; tSlider(E, HITFX_INFO[k][1].replace(/（.*）/, ''), () => p.radius, v => p.radius = v, lim[0], lim[1], lim[2], v => v.toFixed(2)); }
+  if ('count' in p) tSlider(E, '粒子數量', () => p.count, v => p.count = v, 1, k === 'lines' ? 80 : 60, 1, v => v);
+  if ('color' in p) {
+    const row = document.createElement('div'); row.className = 'sl';
+    row.innerHTML = '<label>顏色</label><span style="display:flex;gap:8px;align-items:center"><input type="color"><label style="display:flex;gap:4px;align-items:center;font-size:12px"><input type="checkbox">跟著顏料色</label></span><span></span>';
+    const ci = row.querySelector('input[type=color]'), au = row.querySelector('input[type=checkbox]');
+    ci.value = p.color === 'auto' ? COLORS[G.color].css : p.color; au.checked = p.color === 'auto';
+    ci.oninput = () => { p.color = ci.value; au.checked = false; tuneSave(); };
+    au.onchange = () => { p.color = au.checked ? 'auto' : ci.value; tuneSave(); };
+    E.append(row);
+  }
+  if (k === 'hitstop' || k === 'shake' || k === 'knock') tSlider(E, '重擊倍率（全部）', () => Pm.heavy.mul, v => Pm.heavy.mul = v, 1, 3, .05, v => '×' + v.toFixed(2));
+}
+$('tClose').onclick = closeTune;
+$('tSwing').onclick = tuneSwing;
+$('tNow').onclick = tuneDirect;
+$('tHeavy').onclick = () => { TUNE.heavy = !TUNE.heavy; renderTune(); };
+$('tKill').onclick = () => { TUNE.kill = !TUNE.kill; renderTune(); };
+$('tAll').onclick = () => setHitFX(!HFX.enabled);
+$('tA').onclick = () => useSet('A');
+$('tB').onclick = () => useSet('B');
+$('tAB').onclick = () => { TUNE.sets.B = JSON.parse(JSON.stringify(TUNE.sets.A)); if (TUNE.use === 'B') HFX.params = TUNE.sets.B; tuneSave(); toast('A 組已複製到 B 組'); };
+$('tCmp').onclick = () => {
+  const back = TUNE.use;
+  useSet('A'); tuneDirect(); toast('A 組');
+  setTimeout(() => { useSet('B'); tuneDirect(); toast('B 組'); setTimeout(() => useSet(back), 900); }, 1100);
+};
+$('tReset').onclick = () => { TUNE.sets[TUNE.use] = JSON.parse(JSON.stringify(HITFX_DEFAULT)); HFX.params = TUNE.sets[TUNE.use]; tuneSave(); renderTune(); toast(TUNE.use + ' 組已恢復預設'); };
+$('tPrint').onclick = () => {
+  const p = JSON.parse(JSON.stringify(HFX.params, (k, v) => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v));
+  const lines = Object.keys(p).map(n => '  ' + n + ': ' + JSON.stringify(p[n]).replace(/"(\w+)":/g, '$1: ').replace(/,/g, ', ') + ',');
+  const txt = '// 打擊特效參數（' + TUNE.use + ' 組，' + new Date().toLocaleString('zh-TW') + '）\nconst HITFX_DEFAULT = {\n' + lines.join('\n') + '\n};';
+  $('tOut').value = txt; console.log(txt);
+};
+$('tCopy').onclick = () => { if (!$('tOut').value) $('tPrint').onclick(); navigator.clipboard?.writeText($('tOut').value).then(() => toast('已複製參數'), () => $('tOut').select()); };
 </script>
 </body>
 </html>
