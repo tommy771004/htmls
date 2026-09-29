@@ -6,7 +6,7 @@ const root = path.resolve(fileURLToPath(new URL('../', import.meta.url))), outpu
 const server = http.createServer((req, res) => { const pathname = new URL(req.url, 'http://localhost').pathname, file = path.resolve(root, '.' + (pathname === '/' ? '/index.html' : pathname)); if (!file.startsWith(root + path.sep) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); return res.end(); } res.setHeader('Content-Type', file.endsWith('.html') ? 'text/html' : /\.(js|mjs)$/.test(file) ? 'text/javascript' : 'application/octet-stream'); res.end(fs.readFileSync(file)); });
 await new Promise(r => server.listen(0, '127.0.0.1', r)); const origin = `http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch({ headless: true, ...(process.env.BROWSER_EXECUTABLE ? { executablePath: process.env.BROWSER_EXECUTABLE } : {}), args: ['--enable-webgl', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-const slow = { timeout: 120000 };
+const slow = { timeout: 240000 };
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } }), errors = [], external = [];
   page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
@@ -16,6 +16,7 @@ try {
   assert(await page.evaluate(() => !!document.querySelector('meta[name=viewport]')));
   const counts = await page.evaluate(() => ({ types: Object.keys(brushwild.ENEMY_TYPES).length, zones: Object.keys(brushwild.ZONES), dungeons: Object.values(brushwild.ZONES).filter(z => z.boss).length, crystals: brushwild.CRYSTALS.length }));
   assert(counts.types >= 30); assert.equal(counts.dungeons, 3); assert(counts.zones.includes('cave')); assert.equal(counts.crystals, 4);
+  assert.equal(await page.evaluate(() => brushwild.models), true, 'Blender 模型沒有載入');
   await page.click('#bNew');
   await page.waitForFunction(() => brushwild.G.talking, null, slow);
   while (await page.evaluate(() => brushwild.G.talking)) await page.evaluate(() => document.getElementById('talk').click());
@@ -117,5 +118,16 @@ try {
   assert.deepEqual(merr, []);
   assert.deepEqual(errors, []);
   assert(external.every(u => u.startsWith('https://cdn.jsdelivr.net/npm/three@0.186.0/')), 'external ' + external);
-  console.log('PASS 37+ enemy types, melee kills, crystal guardian and color gate, flight unlock, launcher to sky isle, 3 dungeons solved room by room with doors, boss rooms reveal exit and chest, respawn, colossus and ending, save/continue, mobile no overflow. Screenshots: ' + output);
+  // 模型載不到（直接開檔、離線）時要退回程式建模，而且不能報錯
+  const fb = await browser.newPage({ viewport: { width: 1280, height: 800 } }); const ferr = [];
+  fb.on('pageerror', e => ferr.push(e.message)); fb.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) ferr.push(m.text()); });
+  await fb.route('**/assets/188/*.glb', r => r.abort());
+  await fb.goto(origin + '/web/188-brushwild.html'); await fb.waitForSelector('#title:not(.hide)', slow);
+  assert.equal(await fb.evaluate(() => brushwild.models), false);
+  await fb.click('#bNew'); await fb.waitForTimeout(2500);
+  await fb.evaluate(() => { const P = brushwild.P; ['mudslime', 'goblin', 'boar'].forEach((id, i) => brushwild.spawnEnemy(id, P.pos.x + i * 3, P.pos.z - 8, { zone: 'ow' })); brushwild.enterZone('d1', null, true); });
+  await fb.waitForTimeout(1500);
+  assert.deepEqual(ferr, []);
+  await fb.close();
+  console.log('PASS Blender models loaded, procedural fallback without glb, 37+ enemy types, melee kills, crystal guardian and color gate, flight unlock, launcher to sky isle, 3 dungeons solved room by room with doors, boss rooms reveal exit and chest, respawn, colossus and ending, save/continue, mobile no overflow. Screenshots: ' + output);
 } finally { await browser.close(); await new Promise(r => server.close(r)); }
