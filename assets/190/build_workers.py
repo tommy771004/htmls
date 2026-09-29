@@ -1,7 +1,6 @@
-# 190 封頂：工人、安全帽、防護背心、四把槍與戰利品 → workers.glb
+# 190 封頂：工人（蒙皮網格 + 骨架）、翼型降落傘、安全帽、防護背心、四把槍與戰利品 → workers.glb
 # 重建：/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup -P assets/190/build_workers.py
 #   環境變數 PREVIEW=資料夾 會另存預覽圖
-# 工人拆成 11 個剛體部位，每個部位的原點就是網頁動畫用的關節（見 web/190-last-beam.html 的 makeWorker）。
 import sys, os, math
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lb_lib import *
@@ -26,121 +25,305 @@ def part(name, objs, pivot):
 BOOT, SOLE, BELT, LEATHER, STEEL = 0x5a3d24, 0x1e1e1e, 0x3a2a1c, 0x7c5c34, 0x5b5f63
 TAPE = 0xdde2e6
 
-# ───────── 工人（組好站姿，好讓 AO 看得到彼此的遮蔽）─────────
-H = (0, .94, 0)
-pel = [
-    lathe('p1', 'pants', 0, [(.15, -.13), (.168, -.07), (.174, 0), (.172, .06), (.168, .095)], H, 24, 1, .72),
-    ell('p2', 'pants', 0, add(H, (0, -.12, 0)), (.13, .07, .1)),
-    lathe('p3', 'fixed', BELT, [(.177, .045), (.181, .05), (.181, .085), (.177, .09)], H, 28, 1, .73, cap_top=False, cap_bot=False),
-    box('p4', 'fixed', 0xb3a98c, add(H, (0, .067, .133)), (.055, .038, .012), .004),
-    box('p5', 'fixed', LEATHER, add(H, (-.175, -.01, .02)), (.05, .12, .12), .014),
-    box('p6', 'fixed', 0x6a4c2a, add(H, (-.176, .04, .02)), (.055, .03, .125), .01),
-    tube('p7', 'fixed', 0x9a6a3a, [add(H, (.19, .03, .05)), add(H, (.195, -.2, .065))], .012, 8),
-    box('p8', 'fixed', STEEL, add(H, (.19, .045, .05)), (.035, .03, .11), .006),
-    box('p9', 'fixed', 0xf2c230, add(H, (.183, -.0, -.06)), (.04, .075, .075), .016),
+# ───────── 工人：一整塊蒙皮網格 + 11 根骨頭 ─────────
+# 骨頭的位置就是網頁動畫的關節（見 web/190-last-beam.html 的 makeWorker），而且全部朝上、沒有滾轉，
+# 匯出後每根骨頭的靜止旋轉是單位四元數，網頁直接改 bone.rotation 就能沿用原本的動畫程式。
+BONES = [  # 名稱, 關節位置（three 世界座標）, 父骨
+    ('hips', (0, .94, 0), None), ('torso', (0, 1.02, 0), 'hips'), ('head', (0, 1.58, 0), 'torso'),
+    ('upL', (.27, 1.47, 0), 'torso'), ('foreL', (.27, 1.18, 0), 'upL'), ('upR', (-.27, 1.47, 0), 'torso'), ('foreR', (-.27, 1.18, 0), 'upR'),
+    ('thighL', (.1, .89, 0), 'hips'), ('shinL', (.1, .45, 0), 'thighL'), ('thighR', (-.1, .89, 0), 'hips'), ('shinR', (-.1, .45, 0), 'thighR'),
 ]
-part('W_pelvis', pel, H)
+SEG = {  # 權重用的骨段
+    'hips': ((0, .78, 0), (0, 1.0, 0)), 'torso': ((0, 1.06, 0), (0, 1.47, 0)), 'head': ((0, 1.63, 0), (0, 1.86, 0)),
+    'upL': ((.27, 1.46, 0), (.27, 1.21, 0)), 'foreL': ((.27, 1.15, 0), (.27, .78, 0)),
+    'upR': ((-.27, 1.46, 0), (-.27, 1.21, 0)), 'foreR': ((-.27, 1.15, 0), (-.27, .78, 0)),
+    'thighL': ((.1, .86, 0), (.1, .49, 0)), 'shinL': ((.1, .42, 0), (.1, -.05, .05)),
+    'thighR': ((-.1, .86, 0), (-.1, .49, 0)), 'shinR': ((-.1, .42, 0), (-.1, -.05, .05)),
+}
 
+def seg_d(p, a, b):
+    a, b = Vector(a), Vector(b)
+    ab = b - a
+    t = max(0.0, min(1.0, (p - a).dot(ab) / ab.dot(ab)))
+    return (p - (a + ab * t)).length
+
+def skin(ob, bones, power=6.0):
+    """距離式權重：只在允許的骨頭間分配；單一骨頭則整塊跟著動"""
+    bpy.context.view_layer.update()
+    mw = ob.matrix_world
+    groups = {b: (ob.vertex_groups.get(b) or ob.vertex_groups.new(name=b)) for b in bones}
+    for v in ob.data.vertices:
+        if len(bones) == 1:
+            groups[bones[0]].add([v.index], 1.0, 'REPLACE'); continue
+        p = T(mw @ v.co)
+        ws = sorted(((1.0 / (seg_d(p, *SEG[b]) + .012) ** power, b) for b in bones), reverse=True)[:3]
+        s = sum(w for w, _ in ws)
+        for w, b in ws:
+            if w / s > .01:
+                groups[b].add([v.index], w / s, 'REPLACE')
+    return ob
+
+def sk(ob, *bones):
+    return skin(ob, list(bones))
+
+def resample(pts, radii, step=.028):
+    """把折線切細，讓關節附近有足夠的環數可以平順彎曲"""
+    P = [Vector(p) for p in pts]
+    out, rr = [], []
+    for i in range(len(P) - 1):
+        n = max(1, int((P[i + 1] - P[i]).length / step))
+        for k in range(n):
+            t = k / n
+            out.append(tuple(P[i].lerp(P[i + 1], t))); rr.append(radii[i] + (radii[i + 1] - radii[i]) * t)
+    out.append(tuple(P[-1])); rr.append(radii[-1])
+    return out, rr
+
+def limb(name, role, color, pts, radii, seg=18, caps=True, flat=1.0):
+    p2, r2 = resample(pts, radii)
+    return finish(bm_tube(p2, r2, seg, caps, flat, up=(0, 0, 1)), name, role, color, var=.03)
+
+def fabric(ob, amp=.0025, freq=38):
+    """布料的細微起伏"""
+    me = ob.data
+    for v in me.vertices:
+        v.co = v.co + v.normal * noise.noise(v.co * freq) * amp
+    me.update()
+
+BODY = []
+def B_(ob, *bones, cloth=False):
+    if cloth:
+        fabric(ob)
+    sk(ob, *bones)
+    BODY.append(ob)
+    return ob
+
+# 骨盆與褲頭
+H = (0, .94, 0)
+B_(lathe('p1', 'pants', 0, [(.148, -.14), (.166, -.08), (.172, 0), (.17, .06), (.166, .095)], H, 28, 1, .72), 'hips', cloth=True)
+B_(ell('p2', 'pants', 0, add(H, (0, -.12, 0)), (.13, .07, .1), 20, 12), 'hips', 'thighL', 'thighR')
+B_(lathe('p3', 'fixed', BELT, [(.176, .045), (.18, .05), (.18, .085), (.176, .09)], H, 32, 1, .73, cap_top=False, cap_bot=False), 'hips')
+B_(box('p4', 'fixed', 0xb3a98c, add(H, (0, .067, .133)), (.055, .038, .012), .004), 'hips')
+B_(box('p4b', 'fixed', 0x4a4a48, add(H, (0, .067, .14)), (.035, .02, .004), .002), 'hips')
+for a in (-1.1, -.45, .45, 1.1, 2.3, -2.3):
+    B_(box('lp', 'pants', 0, add(H, (math.sin(a) * .176, .066, math.cos(a) * .128)), (.018, .05, .012), .004, rot=(0, a, 0)), 'hips')
+B_(box('pp', 'fixed', LEATHER, add(H, (-.175, -.01, .02)), (.05, .12, .12), .014), 'hips')
+B_(box('pf', 'fixed', 0x6a4c2a, add(H, (-.176, .04, .02)), (.055, .03, .125), .01), 'hips')
+for i, c in enumerate((0xc03a2b, 0xf2c230, 0x3e6b8e)):
+    B_(cyl('sd', 'fixed', c, add(H, (-.176, .05, -.01 + i * .025)), add(H, (-.176, .1, -.01 + i * .025)), .007, 8), 'hips')
+B_(tube('hm', 'fixed', 0x9a6a3a, [add(H, (.19, .03, .05)), add(H, (.195, -.2, .065))], .012, 8), 'hips')
+B_(box('hh', 'fixed', STEEL, add(H, (.19, .045, .05)), (.035, .03, .11), .006), 'hips')
+B_(box('tm', 'fixed', 0xf2c230, add(H, (.183, 0, -.06)), (.04, .075, .075), .016), 'hips')
+B_(box('bpk', 'pants', 0, add(H, (.08, -.03, -.125)), (.09, .1, .012), .005, rot=(0, .3, 0)), 'hips')
+B_(box('bpk', 'pants', 0, add(H, (-.08, -.03, -.125)), (.09, .1, .012), .005, rot=(0, -.3, 0)), 'hips')
+
+# 軀幹（襯衫）與肩頭
 S = (0, 1.02, 0)
-def vr(y):  # 背心在高度 y 的半徑（x 方向）
-    pr = [(.04, .176), (.14, .19), (.24, .2), (.34, .21), (.42, .212), (.485, .196)]
+B_(lathe('t1', 'shirt', 0, [(.158, -.06), (.168, 0), (.176, .1), (.19, .2), (.2, .32), (.204, .41), (.19, .48), (.15, .53), (.09, .56), (.06, .58)], S, 32, 1, .6, cap_top=False), 'hips', 'torso', cloth=True)
+for sx, up in ((1, 'upL'), (-1, 'upR')):
+    B_(ell('sh', 'shirt', 0, add(S, (sx * .19, .47, 0)), (.07, .06, .075), 20, 12), 'torso', up, cloth=True)
+B_(lathe('cl', 'shirt', 0, [(.066, .545), (.086, .56), (.088, .605), (.078, .612)], S, 24, 1, .95, cap_top=False, cap_bot=False), 'torso', 'head')
+for sx in (1, -1):
+    B_(box('cf', 'shirt', 0, add(S, (sx * .04, .575, .07)), (.05, .006, .05), .004, rot=(.5, 0, sx * .35)), 'torso')
+# 反光背心
+vest_bm = bm_lathe([(r, y) for (y, r) in [(.04, .176), (.14, .19), (.24, .2), (.34, .21), (.42, .213), (.485, .197)]], 36, 1, .64, cap_top=False, cap_bot=False)
+bmesh.ops.delete(vest_bm, geom=[f for f in vest_bm.faces if (lambda c: c.z > 0 and c.y > .33 and abs(c.x) < .02 + (c.y - .33) * .9)(f.calc_center_median())], context='FACES')
+B_(finish(vest_bm, 't5', 'vis', 0, S), 'hips', 'torso')
+def vr(y):
+    pr = [(.04, .176), (.14, .19), (.24, .2), (.34, .21), (.42, .213), (.485, .197)]
     for (y0, r0), (y1, r1) in zip(pr, pr[1:]):
         if y <= y1:
             return r0 + (r1 - r0) * max(0, (y - y0)) / (y1 - y0)
     return pr[-1][1]
-
-vest_bm = bm_lathe([(r, y) for (y, r) in [(.04, .176), (.14, .19), (.24, .2), (.34, .21), (.42, .212), (.485, .196)]], 32, 1, .64, cap_top=False, cap_bot=False)
-dead = [f for f in vest_bm.faces if (lambda c: c.z > 0 and c.y > .33 and abs(c.x) < .02 + (c.y - .33) * .9)(f.calc_center_median())]
-bmesh.ops.delete(vest_bm, geom=dead, context='FACES')
-tor = [
-    lathe('t1', 'shirt', 0, [(.16, 0), (.172, .08), (.188, .2), (.2, .32), (.204, .42), (.188, .49), (.14, .54), (.08, .565), (.001, .57)], S, 28, 1, .6),
-    ell('t2', 'shirt', 0, add(S, (.2, .465, 0)), (.085, .075, .085)),
-    ell('t3', 'shirt', 0, add(S, (-.2, .465, 0)), (.085, .075, .085)),
-    lathe('t4', 'shirt', 0, [(.07, .545), (.088, .56), (.086, .6), (.073, .598)], S, 20, 1, .95, cap_top=False, cap_bot=False),
-    finish(vest_bm, 't5', 'vis', 0, S),
-]
 for (y0, y1) in ((.17, .215), (.29, .33)):
-    tor.append(lathe('tb', 'fixed', TAPE, [(vr(y0) + .003, y0), (vr(y0) + .005, y0 + .004), (vr(y1) + .005, y1 - .004), (vr(y1) + .003, y1)], S, 32, 1, .655, cap_top=False, cap_bot=False, var=0))
+    B_(lathe('tb', 'fixed', TAPE, [(vr(y0) + .003, y0), (vr(y0) + .005, y0 + .004), (vr(y1) + .005, y1 - .004), (vr(y1) + .003, y1)], S, 36, 1, .655, cap_top=False, cap_bot=False, var=0), 'hips', 'torso')
 for sx in (1, -1):
-    tor.append(tube('ts', 'fixed', TAPE, [add(S, (sx * .1, .3, .137)), add(S, (sx * .115, .43, .115)), add(S, (sx * .125, .5, 0)), add(S, (sx * .115, .43, -.12)), add(S, (sx * .1, .3, -.137))], .016, 6, flat=.3, var=0))
-tor += [
-    box('tz', 'fixed', 0x2b2b2b, add(S, (0, .2, vr(.2) * .64 + .003)), (.01, .3, .006), .002),
-    box('tp', 'vis', 0, add(S, (.095, .29, .122)), (.07, .07, .012), .004),
-    cyl('tn', 'fixed', 0x1f4fa8, add(S, (.113, .3, .128)), add(S, (.113, .365, .128)), .005, 8),
-    box('tk', 'fixed', 0x2d3a44, add(S, (0, .3, -.135)), (.2, .07, .006), .003),
-    box('bp', 'fixed', 0x4b5240, add(S, (0, .3, -.245)), (.26, .3, .1), .03),
-    box('bf', 'fixed', 0x3f4536, add(S, (0, .43, -.245)), (.265, .06, .106), .02),
-    box('bq', 'fixed', 0x3f4536, add(S, (0, .2, -.3)), (.18, .1, .02), .008),
-]
+    B_(tube('ts', 'fixed', TAPE, [add(S, (sx * .1, .3, .137)), add(S, (sx * .115, .43, .115)), add(S, (sx * .125, .5, 0)), add(S, (sx * .115, .43, -.12)), add(S, (sx * .1, .3, -.137))], .016, 6, flat=.3, var=0), 'torso')
+    B_(box('vp', 'vis', 0, add(S, (sx * .12, .1, .1)), (.075, .08, .012), .005, rot=(0, sx * .5, 0)), 'hips', 'torso')
+    B_(box('vpf', 'vis', 0, add(S, (sx * .12, .145, .102)), (.078, .02, .014), .004, rot=(0, sx * .5, 0)), 'torso')
+B_(box('tz', 'fixed', 0x2b2b2b, add(S, (0, .2, vr(.2) * .64 + .003)), (.01, .3, .006), .002), 'hips', 'torso')
+B_(box('zp', 'fixed', 0x9a9c9e, add(S, (0, .32, vr(.32) * .64 + .006)), (.012, .02, .006), .002), 'torso')
+B_(box('tp', 'vis', 0, add(S, (.095, .29, .122)), (.07, .07, .012), .004), 'torso')
+B_(cyl('tn', 'fixed', 0x1f4fa8, add(S, (.113, .3, .128)), add(S, (.113, .365, .128)), .005, 8), 'torso')
+B_(box('rd', 'fixed', 0x1f1f1f, add(S, (-.1, .36, .118)), (.035, .06, .02), .006), 'torso')
+B_(tube('ra', 'fixed', 0x1f1f1f, [add(S, (-.11, .39, .118)), add(S, (-.11, .45, .114))], .004, 6), 'torso')
+B_(box('bd', 'fixed', 0xeeeeee, add(S, (-.1, .27, .124)), (.06, .035, .004), .002, var=0), 'torso')
+B_(box('tk', 'fixed', 0x2d3a44, add(S, (0, .3, -.135)), (.2, .07, .006), .003), 'torso')
+for sx in (1, -1):  # 背後的反光 X
+    B_(tube('bx', 'fixed', TAPE, [add(S, (sx * .15, .1, -.125)), add(S, (0, .25, -.137)), add(S, (-sx * .15, .42, -.12))], .014, 6, flat=.3, var=0), 'torso', 'hips')
+# 背包
+B_(box('bp', 'fixed', 0x4b5240, add(S, (0, .3, -.245)), (.26, .3, .1), .03), 'torso')
+B_(box('bf', 'fixed', 0x3f4536, add(S, (0, .43, -.245)), (.265, .06, .106), .02), 'torso')
+B_(box('bq', 'fixed', 0x3f4536, add(S, (0, .2, -.3)), (.18, .1, .025), .008), 'torso')
+B_(box('bz', 'fixed', 0x222222, add(S, (0, .25, -.314)), (.16, .006, .004), .001), 'torso')
 for sx in (1, -1):
-    tor.append(tube('bs', 'fixed', 0x2f3328, [add(S, (sx * .09, .42, -.2)), add(S, (sx * .1, .51, -.07)), add(S, (sx * .105, .5, .07)), add(S, (sx * .1, .37, .14)), add(S, (sx * .095, .26, .14))], .016, 6, flat=.3))
-part('W_torso', tor, S)
+    B_(box('bsp', 'fixed', 0x3f4536, add(S, (sx * .135, .28, -.245)), (.03, .16, .08), .01), 'torso')
+    B_(tube('bs', 'fixed', 0x2f3328, [add(S, (sx * .09, .42, -.2)), add(S, (sx * .1, .51, -.07)), add(S, (sx * .105, .5, .07)), add(S, (sx * .1, .37, .14)), add(S, (sx * .095, .26, .14))], .016, 6, flat=.3), 'torso')
+B_(box('cs', 'fixed', 0x2f3328, add(S, (0, .34, .142)), (.19, .014, .008), .003), 'torso')
+B_(box('cb', 'fixed', 0x1f1f1f, add(S, (0, .34, .148)), (.03, .02, .008), .003), 'torso')
 
+# 脖子與頭
 HD = (0, 1.58, 0)
-hb = bm_ell((.093, .118, .105), 24, 16)
+B_(lathe('nk', 'skin', 0, [(.05, -.06), (.053, .0), (.055, .05), (.052, .1)], HD, 20, cap_top=False, cap_bot=False), 'torso', 'head')
+hb = bm_ell((.092, .117, .104), 28, 20)
 for v in hb.verts:
     y = v.co.y
     if y < -.02:
-        k = 1 - (-.02 - y) * 1.3
+        k = 1 - (-.02 - y) * 1.35
         v.co.x *= k
-        v.co.z = v.co.z * (1 - (-.02 - y) * .5)
+        v.co.z = v.co.z * (1 - (-.02 - y) * .45)
     if v.co.z > .05:
         v.co.x *= 1 - (v.co.z - .05) * .9
-hair_bm = bm_ell((.099, .122, .11), 24, 14)
-bmesh.ops.delete(hair_bm, geom=[f for f in hair_bm.faces if (lambda c: (c.z > .015 and c.y < .08) or c.y < -.08)(f.calc_center_median())], context='FACES')
+    for sx in (1, -1):  # 顴骨
+        d = (Vector(v.co) - Vector((sx * .058, -.01, .07))).length
+        if d < .035:
+            v.co = Vector(v.co) * (1 + (.035 - d) * .25)
+    d = (Vector(v.co) - Vector((0, .05, .09))).length  # 眉骨
+    if d < .05:
+        v.co.z += (.05 - d) * .12
+B_(finish(hb, 'h2', 'skin', 0, add(HD, (0, .14, .005))), 'head')
+B_(tube('ns', 'skin', 0, [add(HD, (0, .165, .1)), add(HD, (0, .135, .114)), add(HD, (0, .118, .122))], [.008, .012, .014], 10), 'head')
+B_(ell('nt', 'skin', 0, add(HD, (0, .114, .112)), (.02, .011, .013)), 'head')
+B_(ell('ch', 'skin', 0, add(HD, (0, .052, .075)), (.032, .022, .025)), 'head')
+for yy, zz, r in ((.079, .097, .0035), (.071, .095, .0042)):
+    B_(tube('lp', 'skin', 0, [add(HD, (-.019, yy + .002, zz - .007)), add(HD, (0, yy, zz)), add(HD, (.019, yy + .002, zz - .007))], r, 8), 'head')
+B_(tube('lm', 'fixed', 0x5a2e26, [add(HD, (-.017, .075, .093)), add(HD, (0, .075, .097)), add(HD, (.017, .075, .093))], .0012, 6), 'head')
+for sx in (1, -1):
+    B_(ell('er', 'skin', 0, add(HD, (sx * .091, .13, -.005)), (.012, .031, .022)), 'head')
+    B_(ell('ei', 'fixed', 0x7a4a3a, add(HD, (sx * .097, .13, 0)), (.004, .016, .01)), 'head')
+    B_(box('eb', 'hair', 0, add(HD, (sx * .034, .174, .094)), (.036, .009, .012), .003, rot=(0, 0, -sx * .12)), 'head')
 glass = [(math.sin(a) * .1, .15, math.cos(a) * .113) for a in [math.radians(d) for d in range(-70, 71, 10)]]
-hd = [
-    lathe('h1', 'skin', 0, [(.052, -.03), (.055, .04), (.052, .08)], HD, 16, cap_top=False, cap_bot=False),
-    finish(hb, 'h2', 'skin', 0, add(HD, (0, .14, .005))),
-    ell('h3', 'skin', 0, add(HD, (0, .125, .103)), (.017, .028, .022)),
-    ell('h4', 'skin', 0, add(HD, (.091, .13, -.005)), (.014, .03, .022)),
-    ell('h5', 'skin', 0, add(HD, (-.091, .13, -.005)), (.014, .03, .022)),
-    box('h6', 'hair', 0, add(HD, (.034, .172, .094)), (.034, .008, .012), .003, rot=(0, 0, -.12)),
-    box('h7', 'hair', 0, add(HD, (-.034, .172, .094)), (.034, .008, .012), .003, rot=(0, 0, .12)),
-    box('h8', 'fixed', 0x6e3e30, add(HD, (0, .07, .095)), (.03, .005, .008), .002),
-    tube('h9', 'fixed', 0x1c2a33, [add(HD, p) for p in glass], .0055, 8, flat=2.2, var=0),
-    tube('ha', 'fixed', 0x1c2a33, [add(HD, (.1, .15, .035)), add(HD, (.101, .15, -.05))], .004, 6),
-    tube('hb', 'fixed', 0x1c2a33, [add(HD, (-.1, .15, .035)), add(HD, (-.101, .15, -.05))], .004, 6),
-    finish(hair_bm, 'hc', 'hair', 0, add(HD, (0, .145, -.004))),
-]
-part('W_head', hd, HD)
+B_(tube('gl', 'fixed', 0x1c2a33, [add(HD, p) for p in glass], .0055, 8, flat=2.2, var=0), 'head')
+B_(tube('gf', 'fixed', 0x3a3a3a, [add(HD, (p[0] * 1.02, .164, p[2] * 1.02)) for p in glass], .0025, 6, var=0), 'head')
+for sx in (1, -1):
+    B_(tube('gt', 'fixed', 0x1c2a33, [add(HD, (sx * .1, .152, .035)), add(HD, (sx * .101, .152, -.05))], .004, 6), 'head')
+hair_bm = bm_ell((.098, .121, .109), 28, 16)
+bmesh.ops.delete(hair_bm, geom=[f for f in hair_bm.faces if (lambda c: (c.z > .015 and c.y < .08) or c.y < -.08)(f.calc_center_median())], context='FACES')
+B_(finish(hair_bm, 'hc', 'hair', 0, add(HD, (0, .145, -.004)), var=.12), 'head')
 
+# 手臂、手套與手指
 for sx, tag in ((1, 'L'), (-1, 'R')):
-    SH = (sx * .27, 1.47, 0)
-    part('W_up' + tag, [
-        lathe('a1', 'shirt', 0, [(.05, .045), (.066, 0), (.07, -.08), (.066, -.2), (.06, -.29)], SH, 18),
-        ell('a2', 'shirt', 0, add(SH, (0, -.295, 0)), (.058, .055, .058)),
-    ], SH)
-    EL = (sx * .27, 1.18, 0)
-    fore = [
-        lathe('f1', 'shirt', 0, [(.056, .02), (.058, -.02), (.057, -.12), (.05, -.2), (.052, -.215)], EL, 18),
-        lathe('f2', 'glove', 0, [(.055, -.2), (.058, -.212), (.058, -.24), (.05, -.25)], EL, 18),
-        box('f3', 'glove', 0, add(EL, (0, -.29, .005)), (.08, .1, .042), .018, smooth=True),
-        ell('f4', 'glove', 0, add(EL, (-sx * .045, -.28, .028)), (.016, .036, .018), rot=(0, 0, sx * .4)),
-    ]
+    up, fo = 'up' + tag, 'fore' + tag
+    B_(limb('arm', 'shirt', 0, [(sx * .25, 1.545, 0), (sx * .268, 1.5, 0), (sx * .27, 1.47, 0), (sx * .275, 1.33, 0), (sx * .272, 1.18, .004), (sx * .27, 1.05, .004), (sx * .27, .96, 0)], [.058, .07, .07, .066, .06, .055, .05]), 'torso', up, fo)
+    B_(lathe('cu', 'shirt', 0, [(.052, -.02), (.056, -.01), (.056, .01), (.052, .02)], (sx * .27, .965, 0), 18, cap_top=False, cap_bot=False), fo)
+    B_(box('ep', 'shirt', 0, (sx * .272, 1.18, -.055), (.07, .06, .012), .006), up, fo)
+    W = (sx * .27, .95, 0)
+    B_(lathe('gc', 'glove', 0, [(.05, -.005), (.057, 0), (.058, .03), (.052, .035)], add(W, (0, -.02, 0)), 18), fo)
+    B_(box('pm', 'glove', 0, add(W, (0, -.07, .006)), (.076, .085, .036), .016, smooth=True), fo)
+    B_(box('kn', 'fixed', 0x3a3c3e, add(W, (0, -.1, .024)), (.07, .02, .01), .005), fo)
     for i in range(4):
-        fore.append(box('f5', 'glove', 0, add(EL, (-.03 + i * .02, -.352, .014)), (.018, .05, .026), .008, rot=(.35, 0, 0), smooth=True))
-    part('W_fore' + tag, fore, EL)
+        fx = -.027 + i * .018
+        L = [.95, 1.0, .96, .82][i]
+        B_(tube('fg', 'glove', 0, [add(W, (fx, -.108, .008)), add(W, (fx, -.108 - .038 * L, .014)), add(W, (fx, -.108 - .06 * L, .034))], [.0095, .009, .0082], 8), fo)
+    B_(tube('th', 'glove', 0, [add(W, (-sx * .03, -.05, .018)), add(W, (-sx * .045, -.085, .036)), add(W, (-sx * .042, -.105, .05))], [.012, .0105, .009], 8), fo)
+
+# 腿、護膝與工作靴
+for sx, tag in ((1, 'L'), (-1, 'R')):
+    th, sh = 'thigh' + tag, 'shin' + tag
+    B_(limb('leg', 'pants', 0, [(sx * .095, .97, 0), (sx * .1, .89, 0), (sx * .102, .72, .004), (sx * .1, .5, .008), (sx * .1, .45, .01), (sx * .1, .3, 0), (sx * .1, .12, -.004)], [.09, .094, .091, .08, .078, .073, .07], seg=20), 'hips', th, sh)
     HP = (sx * .1, .89, 0)
-    part('W_thigh' + tag, [
-        lathe('l1', 'pants', 0, [(.083, .05), (.09, 0), (.094, -.08), (.088, -.25), (.078, -.42), (.075, -.45)], HP, 18, 1, .95),
-        box('l2', 'pants', 0, add(HP, (sx * .088, -.22, 0)), (.022, .13, .11), .008),
-        box('l3', 'pants', 0, add(HP, (sx * .091, -.152, 0)), (.026, .03, .116), .006),
-        ell('l4', 'pants', 0, add(HP, (0, -.44, .005)), (.074, .06, .078)),
-    ], HP)
+    B_(box('cp', 'pants', 0, add(HP, (sx * .088, -.22, 0)), (.024, .13, .11), .008), th)
+    B_(box('cpf', 'pants', 0, add(HP, (sx * .092, -.152, 0)), (.028, .03, .116), .006), th)
+    B_(box('cpb', 'fixed', 0x3a3a38, add(HP, (sx * .105, -.152, 0)), (.004, .012, .018), .002), th)
     KN = (sx * .1, .45, 0)
-    part('W_shin' + tag, [
-        lathe('s1', 'pants', 0, [(.074, .03), (.077, 0), (.075, -.1), (.07, -.22), (.07, -.25)], KN, 18),
-        box('s2', 'fixed', 0x2f3133, add(KN, (0, -.02, .07)), (.1, .12, .04), .018, smooth=True),
-        lathe('s3', 'fixed', 0x26282a, [(.077, -.06), (.079, -.055), (.079, -.035), (.077, -.03)], KN, 18, cap_top=False, cap_bot=False),
-        lathe('s4', 'fixed', BOOT, [(.07, -.24), (.078, -.27), (.08, -.35)], KN, 18),
-        box('s5', 'fixed', BOOT, add(KN, (0, -.385, .04)), (.1, .085, .245), .035, smooth=True),
-        ell('s6', 'fixed', 0x4a3120, add(KN, (0, -.39, .145)), (.052, .042, .056)),
-        box('s7', 'fixed', SOLE, add(KN, (0, -.437, .045)), (.108, .026, .28), .008),
-        box('s8', 'fixed', SOLE, add(KN, (0, -.43, -.06)), (.1, .04, .08), .008),
-        box('s9', 'fixed', 0xd8c9a0, add(KN, (0, -.35, .085)), (.05, .006, .008), .002, rot=(-.5, 0, 0)),
-        box('sa', 'fixed', 0xd8c9a0, add(KN, (0, -.365, .11)), (.05, .006, .008), .002, rot=(-.5, 0, 0)),
-    ], KN)
+    B_(box('kp', 'fixed', 0x2f3133, add(KN, (0, -.02, .072)), (.1, .12, .04), .018, smooth=True), sh)
+    B_(box('kpi', 'fixed', 0x46484b, add(KN, (0, -.02, .094)), (.06, .07, .006), .004), sh)
+    B_(lathe('ks', 'fixed', 0x26282a, [(.078, -.06), (.08, -.055), (.08, -.035), (.078, -.03)], KN, 20, cap_top=False, cap_bot=False), sh)
+    B_(lathe('pc', 'pants', 0, [(.076, -.33), (.081, -.31), (.08, -.26)], KN, 20, cap_top=False, cap_bot=False), sh)
+    B_(lathe('bs', 'fixed', BOOT, [(.07, -.27), (.077, -.3), (.08, -.35)], KN, 20), sh)
+    B_(box('ft', 'fixed', BOOT, add(KN, (0, -.388, .04)), (.1, .08, .245), .035, smooth=True), sh)
+    B_(ell('tc', 'fixed', 0x4a3120, add(KN, (0, -.392, .145)), (.052, .04, .056)), sh)
+    B_(box('so', 'fixed', SOLE, add(KN, (0, -.437, .045)), (.108, .026, .28), .008), sh)
+    B_(box('he', 'fixed', SOLE, add(KN, (0, -.43, -.06)), (.1, .04, .08), .008), sh)
+    for i in range(5):
+        B_(box('tr', 'fixed', 0x151515, add(KN, (0, -.451, -.06 + i * .05)), (.1, .006, .02), .002), sh)
+    for i in range(4):
+        y, z = -.335 - i * .014, .065 + i * .018
+        B_(box('la', 'fixed', 0xd8c9a0, add(KN, (0, y, z)), (.052, .005, .008), .002, rot=(-.6, 0, (.3 if i % 2 else -.3))), sh)
+    B_(box('pt', 'fixed', 0x3a2818, add(KN, (0, -.27, -.075)), (.025, .04, .006), .002), sh)
+
+BODYOB = join(BODY, 'W_body')
+smooth_by_angle(BODYOB, 55)
+# 骨架：每根骨頭朝上 0.08m（three 的 +y），靜止旋轉才會是單位矩陣
+arm = bpy.data.armatures.new('WorkerRig')
+RIG = bpy.data.objects.new('WorkerRig', arm)
+bpy.context.scene.collection.objects.link(RIG)
+bpy.context.view_layer.objects.active = RIG
+bpy.ops.object.mode_set(mode='EDIT')
+for (n, p, par) in BONES:
+    b = arm.edit_bones.new(n)
+    b.head = V(*p)
+    b.tail = V(p[0], p[1] + .08, p[2])
+    b.roll = 0
+    if par:
+        b.parent = arm.edit_bones[par]
+bpy.ops.object.mode_set(mode='OBJECT')
+BODYOB.parent = RIG
+mod = BODYOB.modifiers.new('Armature', 'ARMATURE')
+mod.object = RIG
+OUT += [RIG, BODYOB]; BAKE.append(BODYOB)
+
+# ───────── 翼型降落傘（原點 = 雙手握的操縱帶位置，網頁從這裡拉傘繩）─────────
+CH = (0, 0, -8)
+CR, CT, CSPAN, NCELL, CHORD = 5.4, 5.6, .74, 9, 2.7
+def canopy_pt(phi, u, top):
+    """phi：展向角度；u：弦向 0（前緣）..1（後緣）；top：上表面或下表面"""
+    z = CHORD * (.42 - u)
+    th = .34 * (4 * u * (1 - u)) ** .8 * (1 - .5 * u)
+    r = CR + (th * .62 if top else -th * .38)
+    if not top:
+        r += (u < .06) * .02
+    return (math.sin(phi) * r, CT - CR + math.cos(phi) * r, z)
+cells = []
+SPC, NCH = 4, 14
+def cell_color(ci, top):
+    c = 0xe8671d if ci % 2 == 0 else 0x2d3035
+    if ci == NCELL // 2:
+        c = 0xf4b400
+    return c if top else ((c >> 16 & 255) * 7 // 10) << 16 | ((c >> 8 & 255) * 7 // 10) << 8 | (c & 255) * 7 // 10
+for ci in range(NCELL):
+    for top in (True, False):
+        bm = bmesh.new()
+        rows = []
+        for i in range(SPC + 1):
+            phi = -CSPAN + 2 * CSPAN * (ci * SPC + i) / (NCELL * SPC)
+            f = i / SPC
+            bulge = math.sin(f * math.pi) * (.07 if top else -.03)
+            row = []
+            for k in range(NCH + 1):
+                u = (k / NCH) ** 1.2
+                x, y, z = canopy_pt(phi, u, top)
+                n = Vector((math.sin(phi), math.cos(phi), 0))
+                q = Vector((x, y, z)) + n * bulge * (4 * u * (1 - u)) ** .5
+                row.append(bm.verts.new(q))
+            rows.append(row)
+        for i in range(SPC):
+            for k in range(NCH):
+                if not top and k == 0:
+                    continue
+                bm.faces.new((rows[i][k], rows[i + 1][k], rows[i + 1][k + 1], rows[i][k + 1]))
+        ob = finish(bm, 'cn', 'fixed', cell_color(ci, top), CH, var=.03)
+        recolor(ob, lambda p, n: hexrgb(0xeeeae0) if (p.z - CH[2]) > CHORD * .42 - .14 else None)
+        cells.append(ob)
+ribs = []
+for i in range(NCELL + 1):
+    phi = -CSPAN + 2 * CSPAN * i / NCELL
+    secs = [canopy_pt(phi, (k / 10) ** 1.2, True) for k in range(11)] + [canopy_pt(phi, (k / 10) ** 1.2, False) for k in range(10, -1, -1)]
+    bm = bmesh.new()
+    vs = [bm.verts.new(p) for p in secs]
+    bm.faces.new(vs)
+    ribs.append(finish(bm, 'rb', 'fixed', 0xd9d4c6 if i in (0, NCELL) else 0x3a3d40, CH, var=0))
+chute = join(cells + ribs, 'CHUTE')
+for p in chute.data.polygons:
+    p.use_smooth = True
+origin_to(chute, CH)
+OUT.append(chute); BAKE.append(chute)
+# 傘繩接點（給網頁用）：每根肋在弦向四個位置，寫成自訂屬性
+pts = []
+for i in range(NCELL + 1):
+    phi = -CSPAN + 2 * CSPAN * i / NCELL
+    for u in (.08, .32, .58, .86):
+        pts.append(canopy_pt(phi, u, False))
+print('CHUTE_LINES', [tuple(round(x, 3) for x in p) for p in pts[:2]], len(pts))
 
 # ───────── 安全帽（原點 = 頭上 0.22 的掛點），各自放遠一點避免 AO 互相遮蔽 ─────────
 def dome_pts(prof, xo, sz):
@@ -419,11 +602,24 @@ item('I_frag', ox, [
     tube('rg', 'fixed', 0xb0b4b8, [(ox + .016 + .016 * math.cos(a), .12 + .016 * math.sin(a), 3) for a in [i / 12 * TAU for i in range(13)]], .0025, 6, caps=False),
 ])
 
-print('tris', tri_count(OUT))
+print('tris', tri_count([o for o in OUT if o.type == 'MESH']))
 ao_bake(BAKE, samples=int(os.environ.get('SAMPLES', '32')))
 if PREVIEW:
     os.makedirs(PREVIEW, exist_ok=True)
     preview(os.path.join(PREVIEW, 'worker.png'), (0, 1, 0), 3.2, 35, 10)
+    for pb in RIG.pose.bones:
+        pb.rotation_mode = 'ZYX'
+    POSE = {'upL': (.2, 0, 1.35), 'foreL': (0, 0, 1.45), 'upR': (.2, 0, -1.35), 'foreR': (0, 0, -1.45), 'thighL': (-.9, 0, .1), 'shinL': (1.4, 0, 0), 'thighR': (.3, 0, -.1), 'shinR': (.4, 0, 0), 'torso': (.1, .3, 0), 'head': (-.3, 0, 0)}
+    for n, r in POSE.items():
+        RIG.pose.bones[n].rotation_euler = r
+    bpy.context.view_layer.update()
+    preview(os.path.join(PREVIEW, 'posed.png'), (0, 1.1, 0), 3.0, 20, 10)
+    preview(os.path.join(PREVIEW, 'posed_side.png'), (0, 1.1, 0), 3.0, 90, 10)
+    for pb in RIG.pose.bones:
+        pb.rotation_euler = (0, 0, 0)
+    bpy.context.view_layer.update()
+    preview(os.path.join(PREVIEW, 'chute.png'), (0, 3, -8), 12, 30, 25)
+    preview(os.path.join(PREVIEW, 'hand.png'), (.27, .9, .05), .5, 30, 5)
     preview(os.path.join(PREVIEW, 'worker_back.png'), (0, 1.2, 0), 2.6, 200, 10)
     preview(os.path.join(PREVIEW, 'head.png'), (0, 1.72, 0), .9, 25, 5)
     preview(os.path.join(PREVIEW, 'hats.png'), (4.8, 1.8, 0), 4.2, 20, 20)

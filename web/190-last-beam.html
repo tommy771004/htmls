@@ -39,7 +39,25 @@ button{font:inherit;color:inherit}
 .plate{background:var(--plate);border:1px solid var(--line);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
 .cap{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3)}
 
-#phase{position:absolute;top:14px;left:50%;transform:translateX(-50%);min-width:210px;padding:7px 16px 6px;text-align:center}
+#compass{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:380px;height:26px;overflow:hidden;background:rgba(20,23,25,.45);-webkit-mask:linear-gradient(90deg,transparent,#000 18%,#000 82%,transparent);mask:linear-gradient(90deg,transparent,#000 18%,#000 82%,transparent)}
+#compStrip{position:absolute;left:0;top:0;height:26px;white-space:nowrap;will-change:transform}
+#compStrip span{position:absolute;top:0;width:30px;margin-left:-15px;text-align:center;font-size:10px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+#compStrip span::after{content:"";position:absolute;left:14.5px;top:14px;width:1px;height:6px;background:var(--ink-3)}
+#compStrip span.c{font-size:14px;color:var(--ink);font-weight:700}
+#compStrip span.c::after{height:9px;top:17px;background:var(--hazard)}
+#compass>i{position:absolute;left:50%;bottom:0;margin-left:-5px;border:5px solid transparent;border-bottom-color:var(--hazard)}
+#compass>b{position:absolute;left:50%;top:-1px;transform:translateX(-50%);font-size:9px;color:var(--hazard);letter-spacing:.1em}
+#alti{position:absolute;right:26px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:5px}
+#alti .bar{position:relative;width:6px;height:200px;background:rgba(243,238,228,.2);border-radius:3px}
+#alti .bar i{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(var(--ink),rgba(243,238,228,.55));border-radius:3px}
+#alti .bar em{position:absolute;left:-7px;right:-7px;height:2px;background:var(--hazard)}
+#alti .bar em::after{content:"開傘";position:absolute;right:16px;top:-6px;font-size:9px;font-style:normal;color:var(--hazard);white-space:nowrap}
+#alti .bar b{position:absolute;left:-9px;width:0;height:0;border:5px solid transparent;border-left-color:var(--ink);margin-top:-5px}
+#alti span{font-size:22px;font-variant-numeric:tabular-nums;line-height:1}
+#alti small{font-size:11px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+#hint{position:absolute;left:50%;bottom:66px;transform:translateX(-50%);padding:5px 12px;font-size:12px;letter-spacing:.06em;white-space:nowrap}
+#hint kbd{font-family:var(--mono);font-size:10px;padding:0 5px;margin:0 2px;border:1px solid var(--line)}
+#phase{position:absolute;top:44px;left:50%;transform:translateX(-50%);min-width:210px;padding:7px 16px 6px;text-align:center}
 #phase::before{content:"";position:absolute;left:0;right:0;top:-5px;height:5px;background:var(--tape)}
 #phase .cap{display:block}
 #phase b{display:block;font-size:26px;line-height:1.05;letter-spacing:.04em;font-variant-numeric:tabular-nums}
@@ -187,12 +205,17 @@ body.touch #touch.on{display:block}
 #touch .tb{position:absolute;width:62px;height:62px;border-radius:50%;background:rgba(20,23,25,.5);border:1px solid rgba(243,238,228,.3);display:flex;align-items:center;justify-content:center;font-size:12px;letter-spacing:.06em;color:var(--ink);touch-action:none}
 #touch .tb.big{width:80px;height:80px;background:rgba(224,48,43,.45);font-size:14px}
 #touch .tb.on{background:rgba(244,180,0,.55);color:#111}
+body.air #touch .tb:not(#tDrop):not(#tMap){display:none}
 #stick{position:absolute;width:120px;height:120px;border-radius:50%;border:1px solid rgba(243,238,228,.3);background:rgba(20,23,25,.25);display:none}
 #stick i{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(243,238,228,.5)}
 body.touch #meds div,body.touch #guns .slot,body.touch #guns .frag{pointer-events:auto}
 
 @media (max-width:720px){
   #phase{top:8px;left:8px;transform:none;min-width:0;width:150px;padding:5px 9px 4px;text-align:left}
+  #compass{display:none}
+  #alti{right:auto;left:150px;top:auto;bottom:250px;transform:none}
+  #alti .bar{height:120px}
+  #hint{bottom:auto;top:44%;font-size:10px;white-space:normal;width:78vw;text-align:center}
   #phase b{font-size:19px}
   #phase .cap{font-size:8px;letter-spacing:.12em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #vitals{top:62px;bottom:auto;left:8px;transform:none;width:124px}
@@ -236,6 +259,9 @@ body.touch #meds div,body.touch #guns .slot,body.touch #guns .frag{pointer-event
   <div id="vign"></div>
   <div id="scope"><i></i></div>
   <div id="floats"></div>
+  <div id="compass"><div id="compStrip"></div><i></i></div>
+  <div id="alti" class="hide"><div class="bar"><i id="altiFill"></i><em id="altiOpen"></em><b id="altiMark"></b></div><span id="altiNum">0</span><small id="altiSpd">0 km/h</small></div>
+  <div id="hint" class="plate hide"></div>
   <div id="phase" class="plate"><span class="cap" id="phaseCap">起重直升機</span><b id="phaseT">F 跳傘</b></div>
   <div id="counts"><div class="plate"><b id="nAlive">20</b><span class="cap">存活</span></div><div class="plate"><b id="nKills">0</b><span class="cap">擊殺</span></div></div>
   <div id="mmwrap" class="plate"><canvas id="mm" width="352" height="352"></canvas></div>
@@ -353,11 +379,12 @@ const MAXANISO = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 /* ---------- Blender 模型（assets/190/*.glb，建模腳本在同一資料夾）----------
    直接開檔或載不到時退回下面的程式建模；網址加 ?proc 可強制使用程式建模 */
 const QS = new URLSearchParams(location.search);
-let GLB = null;
+let GLB = null, SKCLONE = null;
 if (/^https?:$/.test(location.protocol) && !QS.has('proc')) {
   try {
     $('loadNote').textContent = '正在把機具與工人吊進工地…';
-    const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+    const [{ GLTFLoader }, SKU] = await Promise.all([import('three/addons/loaders/GLTFLoader.js'), import('three/addons/utils/SkeletonUtils.js')]);
+    SKCLONE = SKU.clone;
     const L = new GLTFLoader();
     const job = Promise.all(['workers', 'machines'].map(n => L.loadAsync('../assets/190/' + n + '.glb')));
     const [w, m] = await Promise.race([job, new Promise((_, rej) => setTimeout(() => rej(new Error('模型載入逾時')), 25000))]);
@@ -415,10 +442,22 @@ Object.assign(sun.shadow.camera, { left: -64, right: 64, top: 64, bottom: -64, n
 sun.shadow.bias = -0.0005;
 sun.shadow.normalBias = 0.035;
 scene.add(sun, sun.target);
-function placeSun(x, z) {
-  x = Math.round(x); z = Math.round(z);
-  sun.target.position.set(x, 0, z);
-  sun.position.set(x + SUN_DIR.x * 220, SUN_DIR.y * 220, z + SUN_DIR.z * 220);
+const SUN_X = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), SUN_DIR).normalize(), SUN_Y = new THREE.Vector3().crossVectors(SUN_DIR, SUN_X);
+let shadowSize = 64;
+/* 陰影相機跟著玩家，但把中心對齊到光源空間的貼圖像素格，移動時陰影邊緣才不會抖；
+   size 只在兩個固定值之間切換（地面 64 m、高空 150 m），像素大小不會連續變化 */
+function placeSun(x, z, size) {
+  if (size !== shadowSize) {
+    shadowSize = size;
+    Object.assign(sun.shadow.camera, { left: -size, right: size, top: size, bottom: -size });
+    sun.shadow.camera.updateProjectionMatrix();
+  }
+  const texel = 2 * size / sun.shadow.mapSize.x;
+  _v.set(x, 0, z);
+  const a = Math.round(_v.dot(SUN_X) / texel) * texel, b = Math.round(_v.dot(SUN_Y) / texel) * texel, c = _v.dot(SUN_DIR);
+  _v.copy(SUN_X).multiplyScalar(a).addScaledVector(SUN_Y, b).addScaledVector(SUN_DIR, c);
+  sun.target.position.copy(_v);
+  sun.position.copy(_v).addScaledVector(SUN_DIR, 220);
 }
 
 /* 天空：漸層、太陽光暈與慢慢飄的條狀雲 */
@@ -786,7 +825,7 @@ const SITE = 120;
   dirt.rotation.x = -Math.PI / 2; dirt.receiveShadow = true; scene.add(dirt);
   TEX.asph.repeat.set(3200 / 8, 3200 / 8);
   const asph = new THREE.Mesh(new THREE.PlaneGeometry(3200, 3200), new THREE.MeshStandardMaterial({ map: TEX.asph, roughness: .95 }));
-  asph.rotation.x = -Math.PI / 2; asph.position.y = -0.03; asph.receiveShadow = true; scene.add(asph);
+  asph.rotation.x = -Math.PI / 2; asph.position.y = -0.12; asph.receiveShadow = true; scene.add(asph);
 }
 function pad(x0, z0, x1, z1, color, h = .06, key = 'conc') {
   B(key, color, (x0 + x1) / 2, 0, (z0 + z1) / 2, x1 - x0, h, z1 - z0, h > .09 ? { col: 1 } : undefined);
@@ -1115,11 +1154,11 @@ function buildSite() {
   addCol(-E - .5, 0, -E - .3, E + .5, 4, -E + .2, 1); addCol(-E - .5, 0, E - .2, E + .5, 4, E + .3, 1);
   addCol(-E - .3, 0, -E, -E + .2, 4, E, 1); addCol(E - .2, 0, -E, E + .3, 4, E, 1);
   // 圍籬外的人行道與道路標線
-  for (const s of [-1, 1]) { B('conc', K.concL, 0, 0, s * (E + 3), 2 * E + 12, .15, 5); B('conc', K.concL, s * (E + 3), 0, 0, 5, .15, 2 * E + 1); }
+  for (const s of [-1, 1]) { B('conc', K.concL, 0, 0, s * (E + 3), 2 * E + 12, .15, 5); B('conc', K.concL, s * (E + 3), 0, 0, 5, .17, 2 * E + 1); }
   for (let i = -E - 30; i < E + 30; i += 9) for (const s of [-1, 1]) { B('flat', 0xe6e2d6, i, .005, s * (E + 13), 4, .02, .18); B('flat', 0xe6e2d6, s * (E + 13), .005, i, .18, .02, 4); }
 
   // 施工便道
-  pad(-6, -SITE, 6, SITE, K.concL, .05); pad(-SITE, 20, SITE, 30, K.concL, .05); pad(-SITE, -40, -6, -32, K.concL, .05);
+  pad(-6, -SITE, 6, SITE, K.concL, .07); pad(-SITE, 20, SITE, 30, K.concL, .05); pad(-SITE, -40, -6, -32, K.concL, .05);
   PADS.push({ x0: -30, z0: -18, x1: 30, z1: 16, c: K.conc });
 
   // A 塔樓：6 層骨架 + 塔吊
@@ -1194,7 +1233,7 @@ function buildSite() {
   forklift(24, 104, Math.PI / 2); forklift(-40, 54, 0);
   sandPile(100, 90, 6, 3.6, K.sand); sandPile(90, 112, 5, 2.8, K.grav); sandPile(110, 40, 5, 3.2, K.sand); sandPile(-30, -60, 5.5, 3.4, K.dirtD);
   PADS.push({ x0: 50, z0: 50, x1: 110, z1: 110, c: 0x9c9890 });
-  B('flat', K.grav, 80, 0, 80, 60, .03, 60);
+  B('flat', K.grav, 80, 0, 80, 60, .035, 60);
   // 工作棚：鋼柱、浪板屋頂、兩面牆
   pushX(96, 0, -30, 0);
   for (let i = 0; i < 4; i++) for (const zz of [-8, 8]) B('metal', K.steel, -9 + i * 6, 0, zz, .35, 6, .35, { col: 1 });
@@ -1287,8 +1326,41 @@ const PALETTES = {
   glove: [0xe0b33a, 0x3c3f44, 0xd8d3c4, 0x9a6b3c],
   hair: [0x2a211a, 0x1b1b1d, 0x5a4330, 0x7a746c, 0x3b2a20]
 };
+/* Blender 蒙皮工人：一整塊網格 + 11 根骨頭（名稱與關節位置同程式版），網頁直接轉骨頭 */
+const RIGSRC = GLB && GLB.w.scene.getObjectByName('WorkerRig');
+const _SKC = {};
+function skinGeo(geo, hex) {
+  const key = geo.uuid + ':' + hex;
+  if (_SKC[key]) return _SKC[key];
+  const g = geo.clone(), ca = geo.attributes.color, n = geo.attributes.position.count, col = new Float32Array(n * 3), c = hex == null ? null : new THREE.Color(hex);
+  for (let i = 0; i < n; i++) {
+    let r = ca ? ca.getX(i) : 1, gg = ca ? ca.getY(i) : 1, b = ca ? ca.getZ(i) : 1;
+    if (c) { r *= c.r; gg *= c.g; b *= c.b; }
+    col[i * 3] = r; col[i * 3 + 1] = gg; col[i * 3 + 2] = b;
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return (_SKC[key] = g);
+}
+function makeWorkerRig(pal) {
+  const root = new THREE.Group(); root.rotation.order = 'YXZ';
+  const rig = SKCLONE(RIGSRC); rig.position.set(0, 0, 0); root.add(rig);
+  const roles = { shirt: pal.shirt, vis: pal.vis, pants: pal.pants, skin: pal.skin, glove: pal.glove, hair: pal.hair };
+  rig.traverse(o => { if (o.isSkinnedMesh) { o.geometry = skinGeo(o.geometry, roles[o.material.name]); o.material = CHMAT; o.castShadow = true; o.frustumCulled = false; } });
+  const bone = n => rig.getObjectByName(n);
+  const hips = bone('hips'), torso = bone('torso'), head = bone('head');
+  const armL = { sh: bone('upL'), el: bone('foreL') }, armR = { sh: bone('upR'), el: bone('foreR') }, legL = { hp: bone('thighL'), kn: bone('shinL') }, legR = { hp: bone('thighR'), kn: bone('shinR') };
+  const mk = (geo, parent) => { const m = new THREE.Mesh(geo, CHMAT); m.castShadow = true; parent.add(m); return m; };
+  const armor = mk(ARMORGEO[1], torso); armor.visible = false;
+  const hat = mk(HATGEO[0], head); hat.position.y = .22;
+  const gunG = new THREE.Group(); gunG.position.set(-.08, .34, .16); torso.add(gunG);
+  const gun = new THREE.Mesh(GUNGEO.m416, GUNMAT); gun.castShadow = true; gunG.add(gun); gun.visible = false;
+  const flash = new THREE.Mesh(FLASHGEO, FLASHMAT); flash.visible = false; gunG.add(flash);
+  const back = new THREE.Mesh(GUNGEO.m416, GUNMAT); back.position.set(0, .32, -.29); back.rotation.order = 'ZYX'; back.rotation.set(0, Math.PI / 2, .75); back.visible = false; torso.add(back);
+  return { root, hips, torso, head, hat, armor, armL, armR, legL, legR, gunG, gun, flash, back };
+}
 function makeWorker(pal) {
-  const root = new THREE.Group();
+  if (RIGSRC && SKCLONE) return makeWorkerRig(pal);
+  const root = new THREE.Group(); root.rotation.order = 'YXZ';
   const mk = (geo, parent) => { const m = new THREE.Mesh(geo, CHMAT); m.castShadow = true; parent.add(m); return m; };
   // Blender 版：每個部位是一塊平滑網格，調色盤只改衣服、背心、褲子、皮膚、手套與頭髮
   const roles = GLB && { shirt: pal.shirt, vis: pal.vis, pants: pal.pants, skin: pal.skin, glove: pal.glove, hair: pal.hair };
@@ -1522,12 +1594,39 @@ const CHUTEGEO = (() => {
 const CHUTEMAT = new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: .8 });
 const CHUTELINES = (() => {
   const pts = [];
-  for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; pts.push(new THREE.Vector3(Math.cos(a) * 3.2 * .87, 4.1, Math.sin(a) * 3.3 * 1.25 * .87), new THREE.Vector3(Math.cos(a) * .2, 1.5, Math.sin(a) * .1)); }
+  for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; pts.push(new THREE.Vector3(Math.cos(a) * 2.43, 5.68, Math.sin(a) * 3.04), new THREE.Vector3(Math.cos(a) * .18 + (Math.cos(a) > 0 ? .1 : -.1), 2.2, Math.sin(a) * .06)); }
+  return new THREE.BufferGeometry().setFromPoints(pts);
+})();
+/* 翼型傘：Blender 的傘面原點在雙手握的操縱帶；傘繩接點用同一條公式算 */
+const RAM = GLB && glbGeo('CHUTE');
+const CAN = { R: 5.4, T: 5.6, SPAN: .74, N: 9, CH: 2.7 };
+function canopyPt(phi, u) {
+  const z = CAN.CH * (.42 - u), th = .34 * Math.pow(4 * u * (1 - u), .8) * (1 - .5 * u);
+  const r = CAN.R - th * .38 + (u < .06 ? .02 : 0);
+  return new THREE.Vector3(Math.sin(phi) * r, CAN.T - CAN.R + Math.cos(phi) * r, z);
+}
+const RAMLINES = (() => {
+  const pts = [];
+  for (let i = 0; i <= CAN.N; i++) {
+    const phi = -CAN.SPAN + 2 * CAN.SPAN * i / CAN.N;
+    const us = i <= 1 || i >= CAN.N - 1 ? [.08, .32, .58, .86, .99] : [.08, .32, .58, .86];
+    for (const u of us) {
+      const side = i < CAN.N / 2 ? -1 : i > CAN.N / 2 ? 1 : (u < .5 ? -1 : 1);
+      pts.push(canopyPt(phi, u), new THREE.Vector3(side * .17, 0, u > .95 ? -.02 : u < .5 ? .05 : -.05));
+    }
+  }
+  for (const sx of [-1, 1]) pts.push(new THREE.Vector3(sx * .17, 0, 0), new THREE.Vector3(sx * .17, .45, 0));
   return new THREE.BufferGeometry().setFromPoints(pts);
 })();
 function makeChute() {
-  const g = new THREE.Group();
-  const c = new THREE.Mesh(CHUTEGEO, CHUTEMAT); c.position.y = 4; c.castShadow = true; g.add(c);
+  const g = new THREE.Group(); g.rotation.order = 'YXZ';
+  if (RAM) {
+    const c = new THREE.Mesh(RAM, CHUTEMAT); c.castShadow = true; g.add(c);
+    g.add(new THREE.LineSegments(RAMLINES, new THREE.LineBasicMaterial({ color: 0x2a2a2a, transparent: true, opacity: .75 })));
+    g.userData.ram = true; g.visible = false; scene.add(g);
+    return g;
+  }
+  const c = new THREE.Mesh(CHUTEGEO, CHUTEMAT); c.position.y = 5; c.scale.setScalar(.85); c.castShadow = true; g.add(c);
   g.add(new THREE.LineSegments(CHUTELINES, new THREE.LineBasicMaterial({ color: 0x333333, transparent: true, opacity: .7 })));
   g.visible = false; scene.add(g);
   return g;
@@ -1574,11 +1673,11 @@ class Char {
       hp: 100, boost: 0, helm: 0, vest: 0, guns: [null, null], slot: 0, ammo: { '556': 0, '762': 0, '12': 0, '45': 0 }, meds: [0, 0, 0, 0], frags: 0,
       alive: true, st: 'beam', crouch: false, onGround: false, kills: 0, dmg: 0, cast: null, reloadT: 0, nextShot: 0, aim: false,
       phase: 0, speed: 0, yaw: 0, pitch: 0, deadT: 0, lastHitBy: null, lastHitT: -99, bloom: 0, flashT: 9, sprint: false, fallT: 0,
-      chuteT: 0, rank: 0, holster: false, killedBy: null, killedWith: '', survived: 0, prevVy: 0, stepAcc: 0, deathYaw: 0
+      chuteT: 0, agl: 0, flare: 0, tilt: 0, tiltV: 0, bank: 0, prevYaw: 0, landT: 0, dive: false, chuteLand: null, rank: 0, holster: false, killedBy: null, killedWith: '', survived: 0, prevVy: 0, stepAcc: 0, deathYaw: 0
     });
     this.p.set(0, 0, 0); this.v.set(0, 0, 0);
     const m = this.m;
-    m.root.visible = true; m.root.rotation.set(0, 0, 0); m.hips.position.y = .94;
+    m.root.visible = true; m.root.rotation.set(0, 0, 0); m.hips.position.y = .94; m.hips.rotation.set(0, 0, 0);
     m.hat.geometry = HATGEO[0]; m.armor.visible = false; m.gun.visible = false; m.back.visible = false; m.flash.visible = false;
     this.chute.visible = false;
   }
@@ -1852,6 +1951,10 @@ function stepGround(ch, dt, wx, wz, speed, jump) {
   ch.speed = Math.hypot(ch.v.x, ch.v.z);
 }
 /* 空中：自由落體與開傘 */
+function openChute(ch) {
+  ch.st = 'chute'; ch.chuteT = 0; ch.dive = false;
+  if (ch.isPlayer) { sfxChute(); camShake = Math.max(camShake, .35); PL.jolt = 1; }
+}
 function stepAir(ch, dt, fx, fz, fwd, fall) {
   const k = 1 - Math.exp(-dt * 2.2);
   ch.v.x += (fx * fwd - ch.v.x) * k; ch.v.z += (fz * fwd - ch.v.z) * k;
@@ -1863,41 +1966,80 @@ function stepAir(ch, dt, fx, fz, fwd, fall) {
     resolveBody(ch.p, .3, 1.8, ch.v, true);
   }
   const gb = groundBelow(ch.p.x, ch.p.y, ch.p.z, .28);
-  if (ch.p.y <= gb + .01) { ch.p.y = gb; ch.v.set(ch.v.x * .2, 0, ch.v.z * .2); ch.st = 'ground'; ch.onGround = true; ch.chuteT = 0; ch.m.root.rotation.x = 0; return true; }
+  ch.agl = ch.p.y - gb;
+  ch.flare = ch.st === 'chute' ? clamp((4.5 - ch.agl) / 3, 0, 1) : 0;
+  if (ch.p.y <= gb + .01) { ch.p.y = gb; ch.v.set(ch.v.x * .35, 0, ch.v.z * .35); ch.flare = 0; ch.st = 'ground'; ch.onGround = true; ch.chuteT = 0; ch.landT = .45; ch.dive = false; return true; }
   return false;
 }
 
 /* ---------- 動畫 ---------- */
+const _av = new THREE.Vector3();
+/* 讓身體繞 (0, hc, 0) 轉，而不是繞腳底轉：自由落體趴平時身體留在原位 */
+function pivotRoot(obj, p, hc) {
+  _av.set(0, hc, 0).applyEuler(obj.rotation);
+  obj.position.set(p.x - _av.x, p.y + hc - _av.y, p.z - _av.z);
+}
 function animate(ch, dt) {
   const m = ch.m, r = m.root;
-  r.position.copy(ch.p);
+  const ease = 1 - Math.exp(-dt * 14);
+  const set = (o, x, y, z) => { o.rotation.x += (x - o.rotation.x) * ease; o.rotation.y += ((y || 0) - o.rotation.y) * ease; o.rotation.z += ((z || 0) - o.rotation.z) * ease; };
   if (!ch.alive) {
     ch.deadT += dt;
     const k = Math.min(1, ch.deadT / .55);
     r.rotation.set(-Math.PI / 2 * (k * k), ch.deathYaw, 0);
-    r.position.y = ch.p.y + .12 * k;
-    m.hips.position.y = .94;
+    r.position.copy(ch.p); r.position.y += .12 * k;
+    m.hips.position.y = .94; m.hips.rotation.set(0, 0, 0);
     m.gun.visible = false; m.back.visible = false; m.flash.visible = false;
     m.armL.sh.rotation.set(-.4 * k, 0, .5 * k); m.armR.sh.rotation.set(-.4 * k, 0, -.5 * k);
     return;
   }
-  r.rotation.y = ch.yaw;
-  const ease = 1 - Math.exp(-dt * 14);
-  const set = (o, x, y, z) => { o.rotation.x += (x - o.rotation.x) * ease; o.rotation.y += ((y || 0) - o.rotation.y) * ease; o.rotation.z += ((z || 0) - o.rotation.z) * ease; };
+  // 轉向時的側傾（自由落體繞身體長軸、傘下繞前後軸）
+  const yr = angDiff(ch.prevYaw, ch.yaw) / Math.max(dt, 1e-3); ch.prevYaw = ch.yaw;
+  const air = ch.st === 'fall' || ch.st === 'chute';
+  ch.bank += (clamp(-yr * (ch.st === 'fall' ? .3 : .22), -.55, .55) * (air ? 1 : 0) - ch.bank) * Math.min(1, dt * 5);
+  // 整體傾角：自由落體從站姿慢慢趴平；開傘後像單擺甩回垂直並帶一點過衝
+  let hc = .95;
+  if (ch.st === 'fall') {
+    ch.tilt += ((ch.dive ? 2.05 : 1.45) - ch.tilt) * Math.min(1, dt * (ch.fallT < .8 ? 3 : 5)); ch.tiltV = 0;
+  } else if (ch.st === 'chute') {
+    const fs = ch.v.x * Math.sin(ch.yaw) + ch.v.z * Math.cos(ch.yaw);
+    ch.tiltV += (-(ch.tilt - fs * .018) * 16 - ch.tiltV * 3.2) * dt;
+    ch.tilt += ch.tiltV * dt;
+    hc = lerp(.95, 2.4, Math.min(1, ch.chuteT / .8));
+  } else { ch.tilt += (0 - ch.tilt) * ease; ch.tiltV = 0; }
+  r.rotation.set(ch.tilt, ch.yaw, 0);
+  pivotRoot(r, ch.p, hc);
   let hipsY = .94;
   if (ch.st === 'fall') {
-    r.rotation.x += (1.2 - r.rotation.x) * ease;
-    const f = Math.sin(T * 9) * .08;
-    set(m.armL.sh, 0, 0, 1.25 + f); set(m.armR.sh, 0, 0, -1.25 - f); set(m.armL.el, -.4); set(m.armR.el, -.4);
-    set(m.legL.hp, .25, 0, .25); set(m.legR.hp, .25, 0, -.25); set(m.legL.kn, .5); set(m.legR.kn, .5);
-    set(m.torso, 0); set(m.head, -.9);
+    const f = Math.sin(T * 7 + ch.p.x) * .06, g2 = Math.sin(T * 5.3 + ch.p.z) * .05;
+    set(m.hips, 0, ch.bank, 0);
+    if (ch.dive) {
+      // 俯衝：頭下腳上、手臂收在身側、雙腿併攏
+      set(m.armL.sh, .15, 0, .32 + f); set(m.armR.sh, .15, 0, -.32 - f); set(m.armL.el, 0); set(m.armR.el, 0);
+      set(m.legL.hp, .08, 0, .05); set(m.legR.hp, .08, 0, -.05); set(m.legL.kn, .12); set(m.legR.kn, .12);
+      set(m.torso, 0); set(m.head, -.95);
+    } else {
+      // 標準趴姿（box position）：雙臂外展到肩高、前臂朝頭彎、膝蓋彎起小腿朝天、背微拱、抬頭看前方
+      set(m.armL.sh, .2, 0, 1.35 + f); set(m.armR.sh, .2, 0, -1.35 - f);
+      set(m.armL.el, 0, 0, 1.45 + g2); set(m.armR.el, 0, 0, -1.45 - g2);
+      set(m.legL.hp, .22, 0, .28 + g2); set(m.legR.hp, .22, 0, -.28 - g2); set(m.legL.kn, 1.15 + f); set(m.legR.kn, 1.15 - f);
+      set(m.torso, -.18); set(m.head, -.6);
+    }
   } else if (ch.st === 'chute' || ch.st === 'beam') {
-    r.rotation.x += (0 - r.rotation.x) * ease;
-    if (ch.st === 'chute') { set(m.armL.sh, 0, 0, 2.7); set(m.armR.sh, 0, 0, -2.7); set(m.armL.el, 0, 0, .3); set(m.armR.el, 0, 0, -.3); set(m.legL.hp, -.3); set(m.legR.hp, -.15); set(m.legL.kn, .4); set(m.legR.kn, .3); }
-    else { set(m.armL.sh, 0, 0, .15); set(m.armR.sh, 0, 0, -.15); set(m.armL.el, 0); set(m.armR.el, 0); set(m.legL.hp, 0); set(m.legR.hp, 0); set(m.legL.kn, 0); set(m.legR.kn, 0); }
-    set(m.torso, 0); set(m.head, ch.st === 'chute' ? .2 : 0);
+    if (ch.st === 'chute') {
+      const sw = Math.sin(T * 2.2 + ch.p.x) * .08;
+      set(m.hips, 0, 0, ch.bank);
+      const fl = ch.flare, tl = clamp(ch.bank * 1.6, -.5, .5);  // 轉彎時拉低一側的操縱繩
+      set(m.armL.sh, -.1 - fl * .3, 0, 2.75 - fl * 1.05 - Math.max(0, -tl)); set(m.armR.sh, -.1 - fl * .3, 0, -2.75 + fl * 1.05 + Math.max(0, tl)); set(m.armL.el, 0, 0, .35 + fl * .4); set(m.armR.el, 0, 0, -.35 - fl * .4);
+      set(m.legL.hp, -.35 + sw, 0, .06); set(m.legR.hp, -.2 - sw, 0, -.06); set(m.legL.kn, .45); set(m.legR.kn, .35);
+      set(m.torso, .05); set(m.head, .25);
+    } else {
+      set(m.hips, 0, 0, 0);
+      set(m.armL.sh, 0, 0, .15); set(m.armR.sh, 0, 0, -.15); set(m.armL.el, 0); set(m.armR.el, 0); set(m.legL.hp, 0); set(m.legR.hp, 0); set(m.legL.kn, 0); set(m.legR.kn, 0);
+      set(m.torso, 0); set(m.head, 0);
+    }
   } else {
-    r.rotation.x = 0;
+    set(m.hips, 0, 0, 0);
     const s = ch.speed;
     ch.phase += s * dt * 3.3;
     const amp = Math.min(1, s / 4.5) * (s > 5.5 ? .95 : .62);
@@ -1925,6 +2067,15 @@ function animate(ch, dt) {
     set(m.torso, armed && !(ch.sprint && !ch.aim) ? -tp * .75 : (ch.sprint ? .18 : 0));
     set(m.head, armed ? -tp * .25 : -tp * .6);
   }
+  // 著陸緩衝：落地後 0.45 秒屈膝蹲下再站起
+  if (ch.landT > 0 && ch.st === 'ground') {
+    ch.landT -= dt;
+    const k = Math.max(0, ch.landT / .45), b = Math.sin(k * Math.PI * .5);
+    hipsY -= .32 * b;
+    m.legL.hp.rotation.x = lerp(m.legL.hp.rotation.x, -1.0, b); m.legR.hp.rotation.x = lerp(m.legR.hp.rotation.x, -.8, b);
+    m.legL.kn.rotation.x = lerp(m.legL.kn.rotation.x, 1.7, b); m.legR.kn.rotation.x = lerp(m.legR.kn.rotation.x, 1.4, b);
+    m.torso.rotation.x = lerp(m.torso.rotation.x, .35, b);
+  }
   m.hips.position.y += (hipsY - m.hips.position.y) * ease;
   const g = ch.gun;
   const onGround = ch.st === 'ground';
@@ -1942,17 +2093,48 @@ function animate(ch, dt) {
   if (ch.st === 'chute') {
     ch.chuteT += dt;
     const c = ch.chute; c.visible = true;
-    const k = Math.min(1, ch.chuteT / .6);
-    c.position.set(ch.p.x, ch.p.y + .2, ch.p.z); c.rotation.set(-ch.v.z * .01, ch.yaw, ch.v.x * .01 * 0);
-    c.scale.set(.3 + .7 * k, .4 + .6 * k, .3 + .7 * k);
+    const fs = ch.v.x * Math.sin(ch.yaw) + ch.v.z * Math.cos(ch.yaw);
+    if (c.userData.ram) {
+      // 開傘：先是背上拉出的傘包，傘繩拉直後傘面由中間往兩側充氣張開（帶一點回彈）
+      const d = clamp((ch.chuteT - .12) / .9, 0, 1), e = 1 + 2.4 * Math.pow(d - 1, 3) + 1.4 * Math.pow(d - 1, 2);
+      c.scale.set(lerp(.06, 1, e), lerp(.12, 1, Math.min(1, d * 1.7)), lerp(.2, 1, Math.min(1, d * 1.4)));
+      c.position.set(ch.p.x, ch.p.y + 2.12, ch.p.z);
+      c.rotation.set(clamp(fs * .012, -.06, .14) - ch.flare * .42 + Math.sin(T * 1.7 + ch.p.x) * .02, ch.yaw, -ch.bank * 1.15);
+    } else {
+      const k = Math.min(1, ch.chuteT / .6);
+      c.position.set(ch.p.x, ch.p.y + .2, ch.p.z); c.rotation.set(clamp(fs * .02, -.1, .25) + (1 - k) * .3, ch.yaw, -ch.bank * .6);
+      c.scale.set(.25 + .75 * k, .35 + .65 * k, .25 + .75 * k);
+    }
+    ch.chuteLand = null;
+  } else if (ch.chute.visible && ch.chute.userData.ram) {
+    ch.chuteT += dt;
+    const c = ch.chute;
+    if (!ch.chuteLand) ch.chuteLand = { y: c.position.y, rx: c.rotation.x };
+    // 落地後傘面失去張力，往前倒下、攤平在地上，再收起
+    const k = Math.min(1, ch.chuteT / 1.1), e = k * k * (3 - 2 * k);
+    c.position.y = lerp(ch.chuteLand.y, ch.p.y + .15, e);
+    c.rotation.x = lerp(ch.chuteLand.rx, 1.42, e);
+    c.scale.set(lerp(1, .8, e), lerp(1, .5, e), 1);
+    const fade = clamp((ch.chuteT - 1.5) / .5, 0, 1);
+    if (fade > 0) c.scale.set(.8 * (1 - fade * .95), .5 * (1 - fade), 1 - fade * .9);
+    if (ch.chuteT > 2) c.visible = false;
   } else if (ch.chute.visible) {
     ch.chuteT += dt;
-    const c = ch.chute; c.position.y -= dt * 2.5; c.scale.y *= Math.pow(.2, dt); c.rotation.z += dt * .6;
-    if (ch.chuteT > 1.6) c.visible = false;
+    const c = ch.chute;
+    if (!ch.chuteLand) ch.chuteLand = { y: c.position.y, rx: c.rotation.x };
+    // 失去張力的傘往前倒、壓扁在地上，最後收起來
+    const k = Math.min(1, ch.chuteT / 1.2), e = k * k * (3 - 2 * k);
+    c.position.y = lerp(ch.chuteLand.y, ch.p.y - 3.4, e);
+    c.rotation.x = lerp(ch.chuteLand.rx, 1.25, e);
+    c.scale.y = lerp(1, .22, e);
+    const fade = clamp((ch.chuteT - 1.6) / .5, 0, 1);
+    if (fade > 0) c.scale.set(1 - fade * .9, .22 * (1 - fade), 1 - fade * .9);
+    if (ch.chuteT > 2.1) c.visible = false;
   }
 }
 
 /* ---------- 安全區 ---------- */
+const AUTO_OPEN = 42;
 const PHASES = [
   { wait: 95, shrink: 50, f: .62, dps: .7 },
   { wait: 55, shrink: 40, f: .58, dps: 1.4 },
@@ -2219,10 +2401,12 @@ function botUpdate(b, dt) {
     if (ch.st === 'fall') {
       ch.fallT += dt;
       const need = Math.min(1, d / 60);
+      ch.dive = d < 25;
       stepAir(ch, dt, dx / (d + 1e-3), dz / (d + 1e-3), 6 + need * 13, d < 25 ? 52 : 34);
-      if (ch.p.y - gb < 42 + rnd(0, 12) && ch.st === 'fall') { ch.st = 'chute'; ch.chuteT = 0; }
+      if (ch.p.y - gb < 42 + rnd(0, 12) && ch.st === 'fall') openChute(ch);
     } else {
-      stepAir(ch, dt, dx / (d + 1e-3), dz / (d + 1e-3), Math.min(8, d * .6), d < 6 ? 7 : 5.6);
+      const fl = ch.flare || 0;
+      stepAir(ch, dt, dx / (d + 1e-3), dz / (d + 1e-3), Math.min(8, d * .6) * (1 - fl * .45), lerp(d < 6 ? 7 : 5.6, 2.4, fl));
     }
     if (ch.st === 'ground') { b.lootUntil = T + rnd(40, 95); b.think = 0; }
     return;
@@ -2459,12 +2643,12 @@ function playerAction() {
   const ch = PLAYER;
   if (STATE === 'heli' && ch.st === 'beam') {
     if (heliOverSite()) playerJump(); else toast('還沒到工地上空');
-  } else if (ch.st === 'fall' && ch.fallT > 1) { ch.st = 'chute'; ch.chuteT = 0; sfxChute(); }
+  } else if (ch.st === 'fall' && ch.fallT > 1) openChute(ch);
 }
 function playerJump() {
   const ch = PLAYER;
   ch.st = 'fall'; ch.fallT = 0; ch.v.set(HP.dx * HP.speed * .5, -2, HP.dz * HP.speed * .5);
-  STATE = 'play'; PL.pitch = -.55;
+  STATE = 'play'; PL.pitch = -.95;
   hideBanner(); sfxChute();
   $('tDrop').classList.toggle('hide', true);
 }
@@ -2488,14 +2672,15 @@ function playerUpdate(dt) {
     const wx = fx * Math.max(f, 0) + rx * s, wz = fz * Math.max(f, 0) + rz * s, wl = Math.hypot(wx, wz) || 1;
     if (ch.st === 'fall') {
       ch.fallT += dt;
-      const dive = f > 0 && PL.pitch < -.75;
+      const dive = f > 0 && PL.pitch < -.75; ch.dive = dive;
       const fwd = f > 0 ? (dive ? 12 : 19) : f < 0 ? 2 : (s ? 9 : 5);
       stepAir(ch, dt, f || s ? wx / wl : fx, f || s ? wz / wl : fz, fwd, dive ? 56 : f > 0 ? 31 : 42);
-      if (ch.st === 'fall' && ch.p.y - gb < 42) { ch.st = 'chute'; ch.chuteT = 0; sfxChute(); }
+      if (ch.st === 'fall' && ch.p.y - gb < AUTO_OPEN) openChute(ch);
     } else {
-      stepAir(ch, dt, f || s ? wx / wl : fx, f || s ? wz / wl : fz, f > 0 ? 9 : f < 0 ? 1.5 : (s ? 5 : 3.5), f > 0 ? 6.4 : 5.2);
+      const fl = ch.flare || 0;  // 接近地面自動拉煞：前進與下降都變慢
+      stepAir(ch, dt, f || s ? wx / wl : fx, f || s ? wz / wl : fz, (f > 0 ? 9 : f < 0 ? 1.5 : (s ? 5 : 3.5)) * (1 - fl * .45), lerp(f > 0 ? 6.4 : 5.2, 2.4, fl));
     }
-    if (ch.st === 'ground') { toast('著陸 · 找槍、安全帽和背心'); uiDirty = true; }
+    if (ch.st === 'ground') { ch.landedAt = T; uiDirty = true; }
     return;
   }
   // 地面
@@ -2528,6 +2713,7 @@ function playerUpdate(dt) {
   PL.near = nearestItem();
 }
 const _cp = new THREE.Vector3(), _cs = new THREE.Vector3(), _cd = new THREE.Vector3();
+function setNear(n) { if (Math.abs(camera.near - n) > .005) { camera.near = n; camera.updateProjectionMatrix(); } }
 function updateCamera(dt) {
   const ch = PLAYER;
   lookDir(_lk);
@@ -2538,7 +2724,7 @@ function updateCamera(dt) {
     PL.orbit += dt * .05;
     camera.position.set(Math.cos(PL.orbit) * 190, 70, Math.sin(PL.orbit) * 190);
     camera.lookAt(0, 8, 0);
-    camera.fov = 60; camera.updateProjectionMatrix();
+    camera.near = 1; camera.fov = 60; camera.updateProjectionMatrix();
     return;
   }
   if (!ch.alive) {
@@ -2546,12 +2732,13 @@ function updateCamera(dt) {
     const r = 7;
     camera.position.set(ch.p.x + Math.cos(PL.orbit) * r, ch.p.y + 3.5, ch.p.z + Math.sin(PL.orbit) * r);
     camera.lookAt(ch.p.x, ch.p.y + .4, ch.p.z);
-    camera.fov = 60; camera.updateProjectionMatrix();
+    camera.near = .1; camera.fov = 60; camera.updateProjectionMatrix();
     return;
   }
   if (ch.st === 'beam' || ch.st === 'fall' || ch.st === 'chute') {
-    const dist = ch.st === 'beam' ? 17 : ch.st === 'fall' ? 7 : 10;
-    _cp.set(ch.p.x, ch.p.y + (ch.st === 'chute' ? 3 : 1.2), ch.p.z).addScaledVector(_lk, -dist);
+    PL.jolt = Math.max(0, (PL.jolt || 0) - dt * 1.4);
+    const dist = (ch.st === 'beam' ? 17 : ch.st === 'fall' ? 8 : 12.5) + (PL.jolt || 0) * 3;
+    _cp.set(ch.p.x, ch.p.y + (ch.st === 'chute' ? 3.6 : 1.2), ch.p.z).addScaledVector(_lk, -dist);
     fov = ch.st === 'fall' ? 78 : 70;
   } else {
     PL.aimK += ((ch.aim ? 1 : 0) - PL.aimK) * (1 - Math.exp(-dt * 16));
@@ -2582,6 +2769,7 @@ function updateCamera(dt) {
   if (camShake > .001) { _cp.x += rnd(-1, 1) * camShake * .15; _cp.y += rnd(-1, 1) * camShake * .15; camShake *= Math.exp(-dt * 7); }
   camera.position.copy(_cp);
   camera.rotation.set(PL.pitch, PL.yaw + Math.PI, 0);
+  setNear(ch.st === 'ground' ? (PL.scoped ? .08 : .1) : clamp((ch.p.y - 10) * .012, .1, 1.2));
   PL.fov += (fov - PL.fov) * (1 - Math.exp(-dt * 14));
   if (Math.abs(camera.fov - PL.fov) > .01) { camera.fov = PL.scoped ? fov : PL.fov; camera.updateProjectionMatrix(); }
 }
@@ -2710,12 +2898,41 @@ function renderInv() {
   setT('vestChip', ch.vest ? '背心 LV' + ch.vest : '背心 —'); $('vestChip').classList.toggle('on', ch.vest > 0);
 }
 let hpLagV = 100, invKey = '';
+/* 指南針：每 15° 一格（30px），做兩圈好無縫捲動；北方是地圖上方（-z） */
+{
+  const DIRS = { 0: 'N', 45: 'NE', 90: 'E', 135: 'SE', 180: 'S', 225: 'SW', 270: 'W', 315: 'NW' };
+  let h = '';
+  for (let d = -180; d <= 540; d += 15) { const n = ((d % 360) + 360) % 360; h += `<span class="${DIRS[n] ? 'c' : ''}" style="left:${(d + 180) * 2}px">${DIRS[n] || n}</span>`; }
+  $('compStrip').innerHTML = h;
+}
+const HINTS = {
+  beam: TOUCH ? '飛到工地上空後點「跳傘」' : '<kbd>F</kbd> 跳下 · 直升機飛過工地上空才能跳',
+  fall: TOUCH ? '左搖桿前推滑翔 · 視角朝下俯衝 · 點「跳傘」提早開傘' : '<kbd>W</kbd> 滑翔 · 往下看＋<kbd>W</kbd> 俯衝 · <kbd>F</kbd> 提早開傘 · ' + AUTO_OPEN + ' m 自動開傘',
+  chute: TOUCH ? '搖桿操控方向 · 接近地面自動拉煞' : '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 操控方向 · 轉彎時傘會傾斜 · 接近地面自動拉煞',
+  land: '建築骨架、貨櫃和工作棚裡有物資',
+};
 const _fp = new THREE.Vector3();
 function updateHUD(dt) {
   const ch = PLAYER;
   setT('nAlive', String(aliveCount())); setT('nKills', String(ch.kills));
   const ph = $('phase');
-  if (STATE === 'heli' && ch.st === 'beam') { setT('phaseCap', '起重直升機 · 二十人'); setT('phaseT', heliOverSite() ? (TOUCH ? '點「跳傘」' : '按 F 跳傘') : '飛往工地上空'); ph.classList.remove('shrink'); }
+  // 指南針、高度計與階段提示
+  const bearing = ((Math.atan2(Math.sin(PL.yaw), -Math.cos(PL.yaw)) * 180 / Math.PI) + 360) % 360;
+  setS($('compStrip'), 'transform', `translateX(${(190 - (bearing + 180) * 2).toFixed(1)}px)`);
+  const airborne = ch.alive && (ch.st === 'fall' || ch.st === 'chute');
+  $('alti').classList.toggle('hide', !airborne);
+  document.body.classList.toggle('air', ch.alive && (airborne || ch.st === 'beam'));
+  if (airborne) {
+    const agl = Math.max(0, ch.agl || 0), H0 = 160;
+    setS($('altiFill'), 'height', clamp(agl / H0 * 100, 0, 100).toFixed(1) + '%');
+    setS($('altiMark'), 'top', (100 - clamp(agl / H0 * 100, 0, 100)).toFixed(1) + '%');
+    setS($('altiOpen'), 'bottom', (AUTO_OPEN / H0 * 100) + '%');
+    setT('altiNum', Math.round(agl) + ' m');
+    setT('altiSpd', Math.round(ch.v.length() * 3.6) + ' km/h');
+  }
+  const hk = !ch.alive ? null : ch.st === 'beam' ? 'beam' : ch.st === 'fall' ? 'fall' : ch.st === 'chute' ? 'chute' : (ch.landedAt != null && T - ch.landedAt < 5 ? 'land' : null);
+  if (HC.hint !== hk) { HC.hint = hk; $('hint').classList.toggle('hide', !hk); if (hk) $('hint').innerHTML = HINTS[hk]; }
+  if (STATE === 'heli' && ch.st === 'beam') { setT('phaseCap', '起重直升機 · 機上 ' + CHARS.filter(c => c.st === 'beam').length + ' 人'); setT('phaseT', heliOverSite() ? (TOUCH ? '點「跳傘」' : '按 F 跳傘') : '飛往工地上空'); ph.classList.remove('shrink'); }
   else if (ZONE.st === 'wait') { setT('phaseCap', '第 ' + (ZONE.phase + 1) + ' 階段 · 安全區收縮倒數'); setT('phaseT', fmt(ZONE.t)); ph.classList.remove('shrink'); }
   else if (ZONE.st === 'shrink') { setT('phaseCap', '第 ' + (ZONE.phase + 1) + ' 階段 · 安全區收縮中'); setT('phaseT', fmt(ZONE.t)); ph.classList.add('shrink'); }
   else { setT('phaseCap', '最終安全區'); setT('phaseT', '0:00'); ph.classList.add('shrink'); }
@@ -2962,6 +3179,46 @@ function commonUpdate(ch, dt) {
   }
 }
 
+/* ---------- 跳傘時的雲層與風線 ---------- */
+const CLOUDTEX = (() => {
+  const c = mkCanvas(128, 128), g = c.getContext('2d');
+  for (let i = 0; i < 9; i++) {
+    const x = 64 + rnd(-26, 26), y = 64 + rnd(-14, 14), r = rnd(26, 46);
+    const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  }
+  return tex(c, false);
+})();
+const CLOUDS = [];
+for (let i = 0; i < 34; i++) {
+  const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: CLOUDTEX, transparent: true, depthWrite: false, opacity: 0, color: 0xf4f7fa }));
+  const a = rnd(TAU), d = Math.sqrt(Math.random()) * 230;
+  m.position.set(Math.cos(a) * d, rnd(88, 118), Math.sin(a) * d);
+  const sc = rnd(38, 80); m.scale.set(sc, sc * rnd(.35, .55), 1);
+  m.userData.o = rnd(.55, .9); m.renderOrder = 3;
+  scene.add(m); CLOUDS.push(m);
+}
+let cloudK = 0;
+const WIND = new THREE.InstancedMesh(new THREE.BoxGeometry(.012, 1, .012), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .32, depthWrite: false, fog: false }), 46);
+WIND.frustumCulled = false; WIND.count = 0; scene.add(WIND);
+const WINDP = Array.from({ length: 46 }, () => new THREE.Vector3(0, -999, 0));
+function skyFx(dt) {
+  const ch = PLAYER, up = STATE === 'heli' || (ch && (ch.st === 'fall' || ch.st === 'chute'));
+  cloudK += ((up ? 1 : 0) - cloudK) * Math.min(1, dt * (up ? 2 : .5));
+  for (const c of CLOUDS) { c.material.opacity = c.userData.o * cloudK; c.visible = cloudK > .01; }
+  // 自由落體時在玩家周圍放一些靜止的細線，往下掉時就會一道道往上掠過
+  if (ch && ch.st === 'fall') {
+    const sp = ch.v.length();
+    for (let i = 0; i < WINDP.length; i++) {
+      const w = WINDP[i];
+      if (w.y > ch.p.y + 9 || Math.hypot(w.x - ch.p.x, w.z - ch.p.z) > 9) w.set(ch.p.x + rnd(-7, 7), ch.p.y - rnd(2, 14), ch.p.z + rnd(-7, 7));
+      _pm.compose(w, _pq, _psc.set(1, clamp(sp * .06, .5, 3.4), 1));
+      WIND.setMatrixAt(i, _pm);
+    }
+    WIND.count = WINDP.length; WIND.instanceMatrix.needsUpdate = true;
+  } else if (WIND.count) { WIND.count = 0; for (const w of WINDP) w.y = -999; }
+}
+
 /* ---------- 特效更新 ---------- */
 const _pm = new THREE.Matrix4(), _pq = new THREE.Quaternion(), _pv = new THREE.Vector3(), _psc = new THREE.Vector3();
 function fxUpdate(dt) {
@@ -3013,7 +3270,7 @@ function frame(now) {
   else if (STATE === 'menu') { HELI.userData.rotors.forEach((r, i) => r.rotation.y += dt * (i ? -22 : 22)); }
   if (running || STATE === 'menu') {
     for (const c of CHARS) animate(c, dt);
-    fxUpdate(dt);
+    fxUpdate(dt); skyFx(dt);
   }
   syncLoot();
   zoneWall.visible = STATE !== 'menu';
@@ -3023,8 +3280,9 @@ function frame(now) {
     mmT -= dt;
     if (mmT <= 0) { mmT = 1 / 20; drawMinimap(); if (IN.map) drawBigMap(); }
   }
-  const fp = PLAYER && STATE !== 'menu' ? PLAYER.p : camera.position;
-  placeSun(fp.x, fp.z);
+  const high = STATE === 'menu' || !PLAYER || PLAYER.st === 'beam' || ((PLAYER.st === 'fall' || PLAYER.st === 'chute') && PLAYER.p.y > 28);
+  const fp = high ? { x: 0, z: 0 } : PLAYER.p;
+  placeSun(fp.x, fp.z, high ? 150 : 64);
   sky.position.copy(camera.position);
   skyMat.uniforms.uTime.value = now / 1000;
   zoneMat.uniforms.uTime.value = now / 1000;

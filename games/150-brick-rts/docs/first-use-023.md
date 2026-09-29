@@ -48,7 +48,7 @@ State／snapshot 為 v23；v22 的存檔會被拒絕讀取（沒有遷移）。
 
 - `npm test`：180 項通過，新增 `tests/animals.test.ts`（13 項）：開局動物與池塘、羊被搶、宰羊到送回（資源帳平衡）、換下一隻羊、鹿逃跑與追獵、野豬打死單獨的村民、士兵不自動攻擊動物、動物不影響勝負、岸邊捕魚、屍體腐壞、指令驗證、狩獵中存讀與重播、Worker 投影、電腦先牧羊。
 - 舊測試的調整：數單位的地方排除動物；電腦經濟、第三時代與導航表三項測試在藍方城鎮中心加上保護（電腦現在約 tick 7000 就能打下完全不動的藍方，早於它需要種田或升第三時代）。
-- 瀏覽器流程（Playwright 1.61、Chromium 149）：`test:browser`、`test:rig-browser`、`test:first-use`、`test:controls`、`test:economy`、`test:build`、`test:production`、`test:combat`、`test:feudal`、`test:monastery`、`test:relics`、`test:full`、`test:match` 通過；`test:hud` 在 390 版面的高度檢查失敗（FU23-8，既有問題），所以這輪沒有重新產生 `thumbs/150.jpg`。
+- 瀏覽器流程（Playwright 1.61、Chromium 149）：`test:browser`、`test:rig-browser`、`test:first-use`、`test:controls`、`test:economy`、`test:build`、`test:production`、`test:combat`、`test:feudal`、`test:monastery`、`test:relics`、`test:full`、`test:match` 通過；`test:hud` 在 390 版面的高度檢查失敗（FU23-8，既有問題）；縮圖步驟在它之前，`thumbs/150.jpg` 已由這輪的建置重新產生。修正後最後一次完整重跑，14 個流程中 13 個通過。
 - 流程調整：`test:economy` 的「右鍵獵物被拒絕」改為「右鍵鹿，村民前往獵鹿」；`test:browser` 的迷霧檢查只看玩家單位；`test:match` 見 FU23-7。
 
 ## 沒有做的
