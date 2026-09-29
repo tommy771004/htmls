@@ -3408,6 +3408,11 @@ function renderBuild() {
   const reasons = buildKinds.map((k) => [k, buildBlocker(k)]).filter(([, w]) => w);
   el("build-reason").textContent = placing ? preview?.problem ? `\u4E0D\u80FD\u653E\u5728\u9019\u88E1\uFF1A${preview.problem}` : `\u5DE6\u9375\u653E\u7F6E${buildingNames2[placing]}\uFF1BShift\uFF0B\u5DE6\u9375\u9023\u7E8C\u653E\u7F6E\uFF1B\u53F3\u9375\u6216 Esc \u53D6\u6D88\u3002` : reasons.length === buildKinds.length && reasons[0][1] === "\u5148\u9078\u53D6\u6751\u6C11" ? "\u5148\u9078\u53D6\u6751\u6C11\u624D\u80FD\u5EFA\u9020\u3002" : reasons.map(([k, w]) => `${buildingNames2[k]}\uFF1A${w}`).join("\u3000");
   el("stop").hidden = !!selectedBuilding || !chosenUnits().length;
+  {
+    const g = el("garrison-cmd"), fit = chosenUnits().filter((u) => canShelter.has(u.kind));
+    g.hidden = !!selectedBuilding || !fit.length;
+    g.disabled = !connected || graphicsFailed || !state.buildings.some((b) => b.complete && b.capacity > b.garrison);
+  }
 }
 function renderBuilding() {
   const panel = el("building-panel"), b = state.buildings.find((b2) => b2.id === selectedBuilding);
@@ -3910,7 +3915,7 @@ function tileCard(btn) {
   card.append(title);
   if (!id) {
     title.textContent = `${btn.dataset.tip}\uFF08${btn.dataset.key ?? (btn.id === "stop" ? "S" : "Del")}\uFF09`;
-    line("meta", btn.id === "ungarrison" ? "\u88E1\u9762\u7684\u55AE\u4F4D\u8D70\u51FA\u4F86\uFF1B\u88AB\u9418\u8072\u53EB\u9032\u53BB\u7684\u6751\u6C11\u6703\u56DE\u5230\u539F\u672C\u7684\u5DE5\u4F5C\u3002" : btn.id === "bell" ? "\u6240\u6709\u6751\u6C11\u8EB2\u9032\u6700\u8FD1\u3001\u9084\u6709\u7A7A\u4F4D\u7684\u57CE\u93AE\u4E2D\u5FC3\u6216\u7BAD\u5854\uFF0C\u4E26\u8A18\u4F4F\u539F\u672C\u7684\u5DE5\u4F5C\uFF1B\u518D\u6309\u4E00\u6B21\u56DE\u53BB\u5DE5\u4F5C\u3002" : btn.id === "reseed" ? `\u8FB2\u7530\u8017\u76E1\u6642\uFF0C\u8FB2\u592B\u7ACB\u523B\u5728\u539F\u5730\u91CD\u5EFA\uFF08\u6263\u6728\u6750 ${costOf("farm").wood}\uFF09\uFF0C\u5B8C\u5DE5\u5F8C\u7E7C\u7E8C\u8015\u4F5C\uFF1B\u6728\u6750\u4E0D\u8DB3\u6642\u5C31\u4E0D\u88DC\u7A2E\u3002\u6309\u4E00\u4E0B\u5207\u63DB\u3002` : btn.id === "stop" ? "\u6240\u9078\u55AE\u4F4D\u5728\u4E0B\u4E00\u500B\u7BC0\u9EDE\u505C\u4E0B\uFF0C\u4E26\u653E\u4E0B\u76EE\u524D\u7684\u5DE5\u4F5C\u3002" : "\u62C6\u9664\u5730\u57FA\uFF1B\u8CBB\u7528\u5168\u984D\u9000\u56DE\u3002");
+    line("meta", btn.id === "garrison-cmd" ? "\u6240\u9078\u7684\u6751\u6C11\u3001\u6B65\u5175\u3001\u5F13\u5175\u8207\u50E7\u4FB6\u8D70\u9032\u6700\u8FD1\u3001\u9084\u6709\u7A7A\u4F4D\u7684\u57CE\u93AE\u4E2D\u5FC3\u6216\u7BAD\u5854\u3002" : btn.id === "ungarrison" ? "\u88E1\u9762\u7684\u55AE\u4F4D\u8D70\u51FA\u4F86\uFF1B\u88AB\u9418\u8072\u53EB\u9032\u53BB\u7684\u6751\u6C11\u6703\u56DE\u5230\u539F\u672C\u7684\u5DE5\u4F5C\u3002" : btn.id === "bell" ? "\u6240\u6709\u6751\u6C11\u8EB2\u9032\u6700\u8FD1\u3001\u9084\u6709\u7A7A\u4F4D\u7684\u57CE\u93AE\u4E2D\u5FC3\u6216\u7BAD\u5854\uFF0C\u4E26\u8A18\u4F4F\u539F\u672C\u7684\u5DE5\u4F5C\uFF1B\u518D\u6309\u4E00\u6B21\u56DE\u53BB\u5DE5\u4F5C\u3002" : btn.id === "reseed" ? `\u8FB2\u7530\u8017\u76E1\u6642\uFF0C\u8FB2\u592B\u7ACB\u523B\u5728\u539F\u5730\u91CD\u5EFA\uFF08\u6263\u6728\u6750 ${costOf("farm").wood}\uFF09\uFF0C\u5B8C\u5DE5\u5F8C\u7E7C\u7E8C\u8015\u4F5C\uFF1B\u6728\u6750\u4E0D\u8DB3\u6642\u5C31\u4E0D\u88DC\u7A2E\u3002\u6309\u4E00\u4E0B\u5207\u63DB\u3002` : btn.id === "stop" ? "\u6240\u9078\u55AE\u4F4D\u5728\u4E0B\u4E00\u500B\u7BC0\u9EDE\u505C\u4E0B\uFF0C\u4E26\u653E\u4E0B\u76EE\u524D\u7684\u5DE5\u4F5C\u3002" : "\u62C6\u9664\u5730\u57FA\uFF1B\u8CBB\u7528\u5168\u984D\u9000\u56DE\u3002");
     return card;
   }
   const e = entryOf2(id), why = btn.dataset.train ? trainBlocker(trainInput(state.buildings.find((v) => v.id === selectedBuilding)), id) : buildBlocker(id);
@@ -3981,6 +3986,17 @@ async function garrison(b) {
   } catch (e) {
     notice(reason(e));
   }
+}
+function garrisonNearest() {
+  const fit = chosenUnits().filter((u) => canShelter.has(u.kind));
+  if (!fit.length) return;
+  const c = { x: fit.reduce((t, u) => t + u.x, 0) / fit.length, y: fit.reduce((t, u) => t + u.y, 0) / fit.length };
+  const best = state.buildings.filter((b) => b.complete && b.capacity - b.garrison >= fit.length).sort((a, b) => Math.abs(a.x - c.x) + Math.abs(a.y - c.y) - (Math.abs(b.x - c.x) + Math.abs(b.y - c.y)))[0];
+  if (!best) {
+    notice("\u6C92\u6709\u7A7A\u4F4D\u8DB3\u5920\u7684\u57CE\u93AE\u4E2D\u5FC3\u6216\u7BAD\u5854\u3002");
+    return;
+  }
+  void garrison(best);
 }
 async function ungarrison(b) {
   try {
@@ -4316,7 +4332,7 @@ canvas.addEventListener("pointerdown", (e) => {
       void construct(own.id);
       return;
     }
-    if (own && own.complete && own.capacity > 0 && selected.size) {
+    if (own && own.complete && own.kind === "watch-tower" && selected.size) {
       void garrison(own);
       return;
     }
@@ -4655,7 +4671,7 @@ document.addEventListener("keydown", (e) => {
     notice(`\u5DF2\u9078\u53D6\u5168\u90E8\u8ECD\u968A\uFF1A${army.length} \u540D\u3002`);
     return;
   }
-  const letter = /^Key([QWERTADZXCVB])$/.exec(e.code);
+  const letter = /^Key([QWERTADZXCVBG])$/.exec(e.code);
   if (letter && !e.ctrlKey) {
     if (commandKey(letter[1])) e.preventDefault();
     return;
@@ -4702,6 +4718,7 @@ document.querySelectorAll("[data-unit]").forEach((b) => b.onclick = (e) => {
   else choose(id);
 });
 el("stop").onclick = () => void stop();
+el("garrison-cmd").onclick = garrisonNearest;
 renderGroups();
 el("result-restart").onclick = () => el("restart").click();
 for (const k of buildKinds) el(`build-${k}`).onclick = () => {

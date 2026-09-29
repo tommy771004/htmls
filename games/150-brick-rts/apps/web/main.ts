@@ -129,7 +129,8 @@ function renderBuild(){const show=!selectedBuilding&&villagersIn(selected).lengt
   const img=b.querySelector('img')!;img.dataset.icon=k==='farm'?'farm':`${k}-${state.economy.age}`;setImg(img,img.dataset.icon);}
  const reasons=buildKinds.map(k=>[k,buildBlocker(k)] as const).filter(([,w])=>w);
  el('build-reason').textContent=placing?(preview?.problem?`不能放在這裡：${preview.problem}`:`左鍵放置${buildingNames[placing]}；Shift＋左鍵連續放置；右鍵或 Esc 取消。`):reasons.length===buildKinds.length&&reasons[0][1]==='先選取村民'?'先選取村民才能建造。':reasons.map(([k,w])=>`${buildingNames[k]}：${w}`).join('　');
- el('stop').hidden=!!selectedBuilding||!chosenUnits().length;}
+ el('stop').hidden=!!selectedBuilding||!chosenUnits().length;
+ {const g=el<HTMLButtonElement>('garrison-cmd'),fit=chosenUnits().filter(u=>canShelter.has(u.kind));g.hidden=!!selectedBuilding||!fit.length;g.disabled=!connected||graphicsFailed||!state.buildings.some(b=>b.complete&&b.capacity>b.garrison);}}
 function renderBuilding(){const panel=el('building-panel'),b=state.buildings.find(b=>b.id===selectedBuilding);panel.hidden=!b;scene?.setRally(b?.rally?{x:b.rally.x/100,z:b.rally.y/100}:null);
  const cancel=el<HTMLButtonElement>('cancel-build');cancel.hidden=!b||b.complete;el('production').hidden=!b;if(!b){el('production-reason').textContent='';return;}
  const builders=state.units.filter(u=>u.work==='building'||u.work==='toSite').length;
@@ -250,7 +251,7 @@ function renderProduction(b:View['buildings'][number]){
 let tipTile:HTMLButtonElement|null=null;
 function tileCard(btn:HTMLButtonElement){const card=document.createDocumentFragment(),line=(cls:string,text:string)=>{const p=document.createElement('span');p.className=cls;p.textContent=text;p.style.display='block';card.append(p);};
  const id=btn.dataset.train??btn.dataset.build;const title=document.createElement('strong');card.append(title);
- if(!id){title.textContent=`${btn.dataset.tip}（${btn.dataset.key??(btn.id==='stop'?'S':'Del')}）`;line('meta',btn.id==='ungarrison'?'裡面的單位走出來；被鐘聲叫進去的村民會回到原本的工作。':btn.id==='bell'?'所有村民躲進最近、還有空位的城鎮中心或箭塔，並記住原本的工作；再按一次回去工作。':btn.id==='reseed'?`農田耗盡時，農夫立刻在原地重建（扣木材 ${costOf('farm').wood}），完工後繼續耕作；木材不足時就不補種。按一下切換。`:btn.id==='stop'?'所選單位在下一個節點停下，並放下目前的工作。':'拆除地基；費用全額退回。');return card;}
+ if(!id){title.textContent=`${btn.dataset.tip}（${btn.dataset.key??(btn.id==='stop'?'S':'Del')}）`;line('meta',btn.id==='garrison-cmd'?'所選的村民、步兵、弓兵與僧侶走進最近、還有空位的城鎮中心或箭塔。':btn.id==='ungarrison'?'裡面的單位走出來；被鐘聲叫進去的村民會回到原本的工作。':btn.id==='bell'?'所有村民躲進最近、還有空位的城鎮中心或箭塔，並記住原本的工作；再按一次回去工作。':btn.id==='reseed'?`農田耗盡時，農夫立刻在原地重建（扣木材 ${costOf('farm').wood}），完工後繼續耕作；木材不足時就不補種。按一下切換。`:btn.id==='stop'?'所選單位在下一個節點停下，並放下目前的工作。':'拆除地基；費用全額退回。');return card;}
  const e=entryOf(id)!,why=btn.dataset.train?trainBlocker(trainInput(state.buildings.find(v=>v.id===selectedBuilding)!),id):buildBlocker(id as BuildKind);
  title.textContent=`${btn.dataset.build?buildingNames[id]:entryName(id)}（${btn.dataset.key}）`;const cost=document.createElement('span');cost.className='cost';
  for(const r of resources)if(e.cost[r]>0){const s=document.createElement('span'),i=document.createElement('img');i.alt=resourceNames[r];setImg(i,r);s.append(i,String(e.cost[r]));if(state.economy.stock[r]<e.cost[r])s.style.color='#f3b19f';cost.append(s);}
@@ -269,6 +270,10 @@ const canShelter=new Set(['villager','militia','spearman','archer','skirmisher',
 async function garrison(b:View['buildings'][number]){const unitIds=[...selected].filter(id=>canShelter.has(state.units.find(u=>u.id===id)?.kind??'')).sort((a,b)=>a-b);
  if(!unitIds.length){notice('只有村民、步兵、弓兵與僧侶能進駐城鎮中心或箭塔。');return;}
  try{await client.request({kind:'garrison',unitIds,buildingId:b.id});audio.play('order');notice(`${names(unitIds)} 進駐${buildingNames[b.kind]}（${b.garrison}/${b.capacity}）。${unitIds.length<selected.size?'（騎兵與攻城器不能進駐，未派出）':''}${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
+// The G tile: into the nearest own town centre or tower that still has room.
+function garrisonNearest(){const fit=chosenUnits().filter(u=>canShelter.has(u.kind));if(!fit.length)return;const c={x:fit.reduce((t,u)=>t+u.x,0)/fit.length,y:fit.reduce((t,u)=>t+u.y,0)/fit.length};
+ const best=state.buildings.filter(b=>b.complete&&b.capacity-b.garrison>=fit.length).sort((a,b)=>Math.abs(a.x-c.x)+Math.abs(a.y-c.y)-(Math.abs(b.x-c.x)+Math.abs(b.y-c.y)))[0];
+ if(!best){notice('沒有空位足夠的城鎮中心或箭塔。');return;}void garrison(best);}
 async function ungarrison(b:View['buildings'][number]){try{await client.request({kind:'ungarrison',buildingId:b.id});audio.play('order');notice(`${buildingNames[b.kind]}裡的 ${b.garrison} 名單位出來了。`);}catch(e){notice(reason(e));}}
 // The town bell: rung, every villager hides in the nearest town centre or tower; rung again, they go back to work.
 async function bell(){const ring=!state.buildings.some(b=>b.belled>0);try{await client.request({kind:'bell',ring});audio.play(ring?'alarm':'order');notice(ring?'鐘聲響起：村民躲進城鎮中心與箭塔（每名村民多 1 支箭）。':'回去工作：躲起來的村民回到原本的工作。');}catch(e){notice(reason(e));}}
@@ -344,8 +349,9 @@ canvas.addEventListener('pointerdown',e=>{if(!scene||graphicsFailed||!e.isPrimar
    {const site=buildingAt(hit.x,hit.y,scene.pickBuilding(e.clientX,e.clientY)),carriers=monks.filter(id=>state.units.find(u=>u.id===id)?.relic);
     if(site?.kind==='monastery'&&carriers.length){void deposit(carriers,site.id!);return;}}}
   const site=buildingAt(hit.x,hit.y,scene.pickBuilding(e.clientX,e.clientY)),own=site?state.buildings.find(b=>b.id===site.id):undefined;if(own&&!own.complete&&selected.size){void construct(own.id);return;}
-  // An own town centre or tower: the selected villagers, foot soldiers, archers and monks go inside.
-  if(own&&own.complete&&own.capacity>0&&selected.size){void garrison(own);return;}
+  // An own tower: the selected villagers, foot soldiers, archers and monks go inside. (The town centre's hall is
+  // walkable, so a right-click there still moves; its garrison is the G tile, the bell or the tile card.)
+  if(own&&own.complete&&own.kind==='watch-tower'&&selected.size){void garrison(own);return;}
   const r=resourceAt(hit.x,hit.y);if(r){scene.setMarker('gather',hit.x,hit.y);void gather(r.id);return;}void move(hit.x,hit.y);return;}
  if(e.button!==0)return;drag={x:e.clientX,y:e.clientY,id:e.pointerId,box:false};canvas.setPointerCapture(e.pointerId);});
 canvas.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;if(!drag.box&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>=4)drag.box=true;if(drag.box)showBox(drag.x,drag.y,e.clientX,e.clientY);});
@@ -425,7 +431,7 @@ document.addEventListener('keydown',e=>{const t=e.target as HTMLElement;
  if(e.key==='.'){nextIdle();return;}
  // ',' selects every own soldier (militia and archers; the scout scouts and villagers work).
  if(e.key===','){const army=ownUnits().filter(u=>soldierKinds.has(u.kind)).map(u=>u.id);if(!army.length){notice('沒有軍隊。');return;}select(army);notice(`已選取全部軍隊：${army.length} 名。`);return;}
- const letter=/^Key([QWERTADZXCVB])$/.exec(e.code);if(letter&&!e.ctrlKey){if(commandKey(letter[1]))e.preventDefault();return;}
+ const letter=/^Key([QWERTADZXCVBG])$/.exec(e.code);if(letter&&!e.ctrlKey){if(commandKey(letter[1]))e.preventDefault();return;}
  const digit=/^Digit([1-9])$/.exec(e.code);if(!digit)return;const n=Number(digit[1]);e.preventDefault();
  if(e.ctrlKey){const ids=[...selected].sort((a,b)=>a-b);if(!ids.length){notice('請先選取單位再編組。');return;}groups.set(n,ids);renderGroups();notice(`編組 ${n}：${names(ids)}。按 ${n} 叫回。`);return;}
  const ids=groups.get(n);if(!ids){notice(`編組 ${n} 尚未建立：選取後按 Ctrl＋${n}。`);return;}select(ids);notice(`已叫回編組 ${n}：${names(ids)}。`);});
@@ -434,7 +440,7 @@ window.addEventListener('blur',endDrag);
 canvas.addEventListener('wheel',e=>{e.preventDefault();if(!graphicsFailed){const px=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?400:1);scene?.wheelZoom(Math.max(-.25,Math.min(.25,-px*(e.ctrlKey?.004:.0012))));}},{passive:false});
 el('zoom-in').onclick=()=>scene?.zoom(.2);el('zoom-out').onclick=()=>scene?.zoom(-.2);el('rotate-view').onclick=()=>scene?.rotate();el('reset-view').onclick=()=>scene?.resetCamera();el('idle-villager').onclick=nextIdle;
 document.querySelectorAll<HTMLButtonElement>('[data-unit]').forEach(b=>b.onclick=e=>{const id=Number(b.dataset.unit);if(e.shiftKey)toggle(id);else choose(id);});
-el('stop').onclick=()=>void stop();renderGroups();
+el('stop').onclick=()=>void stop();el('garrison-cmd').onclick=garrisonNearest;renderGroups();
 el('result-restart').onclick=()=>el('restart').click();
 for(const k of buildKinds)el(`build-${k}`).onclick=()=>{if(buildBlocker(k))return;placing=k;preview=null;notice(`在戰場上移動滑鼠選擇${buildingNames[k]}的位置。`);render();};
 el('cancel-build').onclick=async()=>{const b=state.buildings.find(b=>b.id===selectedBuilding);if(!b)return;try{await client.request({kind:'cancelBuild',buildingId:b.id});notice(`已取消${buildingNames[b.kind]}，退回 ${costText(b.kind as BuildKind)}。`);selectBuilding(null);}catch(e){notice(reason(e));}};
