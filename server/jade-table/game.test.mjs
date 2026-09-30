@@ -135,6 +135,14 @@ test('跨伺服器四人房：隱藏手牌、拒絕越權與斷線重連', { tim
   assert.equal((await clients[2].next(m => m.type === 'CHAT_OK')).cid, 'emoji1');
   clients[2].send({ type: 'CHAT', text: '字'.repeat(61) });
   assert.match((await clients[2].next(m => m.type === 'ERROR')).message, /60 字/);
+  // A sticker is a chat line with a whitelisted emote; the server writes its log text and ignores the page's.
+  clients[2].send({ type: 'CHAT', emote: 'toString' });
+  const badEmote = await clients[2].next(m => m.type === 'ERROR'); assert.equal(badEmote.scope, 'chat'); assert.match(badEmote.message, /表情/);
+  await new Promise(r => setTimeout(r, 850));
+  clients[2].send({ type: 'CHAT', emote: 'smug', text: '<b>假字</b>', cid: 'emote1' });
+  assert.equal((await clients[2].next(m => m.type === 'CHAT_OK')).cid, 'emote1');
+  const sticker = (await clients[3].next(m => m.type === 'STATE_SYNC' && m.chat?.some(x => x.emote))).chat.find(x => x.emote);
+  assert.deepEqual([sticker.seat, sticker.emote, sticker.text], [2, 'smug', '〔得意〕']);
   a.ws.terminate(); const resumed = await client(1); resumed.send({ type: 'RECONNECT', code: owner.code, token: owner.token });
   assert.equal((await resumed.next(m => m.type === 'ROOM_JOINED')).seat, 0);
   const history = (await resumed.next(m => m.type === 'STATE_SYNC')).chat; assert.equal(history[0]?.text, '大家好， 請多指教'); assert.equal(history.filter(m => m.cid === 'hello1').length, 1); // A new socket gets today's history.

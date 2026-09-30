@@ -6,6 +6,7 @@ import { randomBytes, randomInt } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
 import { RoomStore } from './store.mjs';
 import { MahjongGame } from '../../assets/jade-table/engine.mjs';
+import { EMOTES } from '../../assets/jade-table/emotes.mjs';
 
 // Room transitions are persisted atomically before any client sees the resulting state.
 export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = [], turnMs = 20000, claimMs = 10000 } = {}) {
@@ -82,7 +83,10 @@ export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = []
   // Chat is stored in the room row, so players on other instances receive it through the same polling as moves.
   async function chat(ws, msg) {
     if (!ws.client) throw Error('入座後才能聊天。');
-    const text = typeof msg.text === 'string' ? msg.text.replace(/\s+/g, ' ').trim() : '';
+    // A sticker line carries a whitelisted emote key; its log text comes from the server, never from the page.
+    const emote = msg.emote === undefined ? undefined : Object.hasOwn(EMOTES, msg.emote) ? msg.emote : null;
+    if (emote === null) throw Error('沒有這個表情。');
+    const text = emote ? `〔${EMOTES[emote]}〕` : typeof msg.text === 'string' ? msg.text.replace(/\s+/g, ' ').trim() : '';
     if (!text || text.length > 1000 || chatLength(text) > 60 || /[\u0000-\u001f\u007f]/.test(text)) throw Error('訊息需為 1 至 60 字。');
     // cid is the page's id for one line: a resend after a dropped reply is acknowledged without writing it twice.
     const { code, seat, token } = ws.client, cid = typeof msg.cid === 'string' && /^[a-z0-9]{1,16}$/.test(msg.cid) ? msg.cid : undefined;
@@ -92,7 +96,7 @@ export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = []
       if (now - (p.chatAt ?? 0) < 800) throw Object.assign(Error('說得太快了，喝口茶再說。'), { retry: 800 - (now - p.chatAt) });
       p.chatAt = now; p.lastSeen = now;
       const id = (room.chatSeq ?? 0) + 1;
-      room.chat = [...todaysChat(room, now), { id, seat, name: p.name, text, at: now, cid }].slice(-50); room.chatSeq = id;
+      room.chat = [...todaysChat(room, now), { id, seat, name: p.name, text, at: now, cid, ...(emote && { emote }) }].slice(-50); room.chatSeq = id;
     }); broadcast(room); send(ws, { type: 'CHAT_OK', cid });
   }
   async function handle(ws, msg) {

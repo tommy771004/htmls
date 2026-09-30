@@ -5,6 +5,7 @@ import { grad, r1, blossoms } from './art/common.mjs';
 import { faceLayers } from './art/face.mjs';
 import { hairLayers } from './art/hair.mjs';
 import { bustClothes, figureSvg } from './art/garment.mjs';
+import { chibiSvg } from './art/chibi.mjs';
 let seq = 0;
 
 export const CAST = {
@@ -61,6 +62,11 @@ export function bust(key, { frame = true, title = true, border: edge = true, vie
 export function figure(key = 'qingque') {
   const c = CAST[key] ?? CAST.qingque, u = `jf${++seq}`;
   return figureSvg(c, u, parts(c, u));
+}
+
+// Q 版 sticker head for a seat emote (moods in ./emotes.mjs), 120×120 with a die-cut rim; drawn in ./art/chibi.mjs.
+export function chibi(key = 'qingque', mood = 'smug') {
+  return chibiSvg(CAST[key] ?? CAST.qingque, `jc${++seq}`, mood);
 }
 
 // Lobby backdrop, 1600×900 (use preserveAspectRatio slice): a moonlit garden seen from an engawa. Jade night sky warming to gold
