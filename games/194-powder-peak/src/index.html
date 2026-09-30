@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>雪峰滑降 · POWDER PEAK</title>
+<meta name="description" content="第三人稱無盡滑雪：雙板維京滑雪者沿程序生成的北坡滑降，轉向有慣性與側滑，蹲低加速、跳台滯空、穿旗門連擊，摔三次結束。">
+<meta name="theme-color" content="#8ec3ee">
+<link rel="icon" href="../favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script>
+/* Google Fonts 以 JS 動態插入 → 不阻塞首次繪製與遊戲腳本。
+   直接寫 <link rel=stylesheet> 時，若內網把 fonts.googleapis.com 黑洞（不回應），整頁會空白到逾時（實測 15 s 才出畫面）。 */
+(function () {
+  var l = document.createElement('link');
+  l.rel = 'stylesheet';
+  l.href = 'https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;1,600;1,700&family=Chakra+Petch:ital,wght@1,700&family=Titan+One&display=swap';
+  document.head.appendChild(l);
+})();
+</script>
+<style>
+:root {
+  /* Layout: full-viewport WebGL canvas; HUD pinned to the four safe-area-aware corners + top-centre wordmark; screens centred above. */
+  --sky: #8ec3ee;
+  --glass: rgba(50, 68, 98, .57);   /* 疊在白雪上白字對比：.42 → 2.1:1、.5 → 3.4:1、.57 → 目標 ≥ 4:1 */
+  --glass-filter: blur(6px) saturate(1.15) brightness(.9);
+  --glass-strong: rgba(58, 78, 108, .66);
+  --glass-edge: rgba(255, 255, 255, .30);
+  --glass-shadow: 0 .4em 1.2em rgba(24, 40, 68, .16);
+  --ink: #fff;
+  --ink-soft: rgba(255, 255, 255, .9);   /* .82 在雪地面板上只有 2.9:1 */
+  --navy: #1c2a44;
+  --navy-soft: rgba(28, 42, 68, .58);
+  --accent: #ffc93c;
+  --accent-hi: #ffe483;
+  --accent-lo: #e8980f;
+  --accent-edge: #b8700a;
+  --danger: #ff4f5e;
+  --cyan: #45dcf6;
+  --cyan-lo: #1aa6d6;
+  --radius: 12px;
+  --gap: clamp(10px, 1.5vw, 20px);
+  --u: clamp(11px, 7.5px + .55vw, 16px);
+  --touch: clamp(64px, 17vw, 92px);
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --f-display: "Titan One", "PP Display", "Arial Black", "Arial Rounded MT Bold", "PP CJK", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --f-num: "Chakra Petch", "Bahnschrift", "PP Num", "Segoe UI", "PP CJK", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --f-label: "Barlow Condensed", "PP Label", "Arial Narrow", "Roboto Condensed", "Segoe UI", "PP CJK", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --shadow-text: 0 1px 2px rgba(20, 32, 56, .5);
+  --outline-text: 0 .05em 0 var(--navy), 0 -.03em 0 var(--navy), .04em 0 0 var(--navy), -.04em 0 0 var(--navy);
+}
+
+/* Google Fonts 被擋時的粗體系統字替身（以 400 字重宣告，避免 fallback 變細體） */
+@font-face { font-family: "PP Display"; font-weight: 400; src: local("Arial Black"), local("Arial-Black"), local("Segoe UI Black"), local("SegoeUI-Black"), local("Roboto Black"), local("Roboto-Black"), local("Helvetica Neue Condensed Black"); }
+@font-face { font-family: "PP Num"; font-weight: 700; src: local("Segoe UI Bold"), local("SegoeUI-Bold"), local("Roboto Bold"), local("Roboto-Bold"), local("Helvetica Neue Bold"); }
+/* 中文字：西文展示字體都沒有中文字形，以 400 字重宣告粗黑體替身，免得標題與按鈕的中文變成細體 */
+@font-face { font-family: "PP CJK"; font-weight: 400 700; unicode-range: U+2E80-9FFF, U+F900-FAFF, U+FF00-FFEF; src: local("PingFangTC-Semibold"), local("PingFang TC Semibold"), local("NotoSansTC-Black"), local("Noto Sans TC Black"), local("NotoSansCJKtc-Black"), local("Microsoft JhengHei Bold"), local("MicrosoftJhengHeiBold"); }
+@font-face { font-family: "PP Label"; font-weight: 400 700; src: local("Bahnschrift SemiBold Condensed"), local("Arial Narrow Bold"), local("ArialNarrow-Bold"), local("Roboto Condensed Bold"), local("RobotoCondensed-Bold"), local("Segoe UI Semibold"); }
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; overflow: hidden; background: var(--sky); }
+body { font-family: var(--f-label); color: var(--ink); -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
+
+#app { position: fixed; inset: 0; overflow: hidden; background: linear-gradient(180deg, #6fb0ec 0%, var(--sky) 45%, #eef5fb 46%, #f7fafd 100%); }
+#game { position: absolute; inset: 0; touch-action: none; }
+#game canvas { display: block; width: 100%; height: 100%; outline: none; }
+
+/* ---------- HUD shell ---------- */
+.hud { position: absolute; inset: 0; pointer-events: none; font-size: var(--u); line-height: 1.15; user-select: none; -webkit-user-select: none; touch-action: none; }
+:where(.hud button) { font: inherit; color: inherit; }
+.hud button { pointer-events: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.hud button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; box-shadow: 0 0 0 6px rgba(28, 42, 68, .55); }
+
+.panel {
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 0 1px var(--glass-edge), var(--glass-shadow);
+  color: var(--ink);
+  text-shadow: var(--shadow-text);
+}
+.lbl { display: block; font: italic 700 .82em/1 var(--f-label); letter-spacing: .09em; text-transform: uppercase; }
+.pill { display: inline-block; padding: .2em .55em .18em; border-radius: .45em; background: var(--navy-soft); font: italic 700 .76em/1 var(--f-label); letter-spacing: .1em; text-transform: uppercase; }
+.num { font-family: var(--f-num); font-style: italic; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+
+.corner { position: absolute; display: flex; flex-direction: column; gap: .45em; }
+.tl { top: calc(var(--gap) + var(--safe-t)); left: calc(var(--gap) + var(--safe-l)); }
+.tr { top: calc(var(--gap) + var(--safe-t)); right: calc(var(--gap) + var(--safe-r)); align-items: flex-end; }
+.bl { bottom: calc(var(--gap) + var(--safe-b)); left: calc(var(--gap) + var(--safe-l)); }
+.br { bottom: calc(var(--gap) + var(--safe-b)); right: calc(var(--gap) + var(--safe-r)); width: 14em; }
+
+/* time + score */
+.stat { width: 11.6em; padding: .42em .85em .5em; }
+.stat .lbl { margin-bottom: .14em; }
+.time-val { display: block; font-size: 2.15em; line-height: 1; color: var(--accent); text-shadow: 0 .07em 0 rgba(28, 42, 68, .7), 0 0 .12em rgba(28, 42, 68, .45); }
+.stat-head { display: flex; align-items: center; justify-content: space-between; gap: .4em; margin-bottom: .14em; }
+.stat-head .lbl { margin: 0; }
+.score-row { display: flex; align-items: baseline; gap: .45em; }
+.score-val { font-size: 1.85em; line-height: 1; }
+.combo { padding: .12em .38em .1em; border-radius: .4em; background: rgba(255, 201, 60, .2); box-shadow: inset 0 0 0 1px rgba(255, 214, 100, .55); font: italic 700 .92em/1 var(--f-num); color: var(--accent); }
+.lives { display: flex; gap: .12em; margin: -.2em -.15em -.2em 0; }
+.life { width: 1.5em; height: 1.5em; display: block; transition: opacity .25s, filter .25s, transform .25s; filter: drop-shadow(0 1px 1px rgba(20, 32, 56, .45)); }
+.life.lost { opacity: .3; filter: grayscale(1); transform: scale(.82); }
+.life.pop { animation: lifepop .6s ease-out; }
+@keyframes lifepop { 0% { transform: scale(1.5) rotate(-12deg); opacity: 1; filter: none; } 100% { transform: scale(.82); } }
+
+/* wordmark */
+.wordmark { position: absolute; top: calc(var(--gap) + var(--safe-t) + .15em); left: 50%; transform: translateX(-50%); text-align: center; opacity: .92; white-space: nowrap; }
+.wordmark b { display: block; font: 400 1.18em/1 var(--f-display); letter-spacing: .16em; transform: skewX(-8deg); text-shadow: 0 1px 0 rgba(28, 42, 68, .35), 0 2px 6px rgba(28, 42, 68, .25); }
+.wordmark b span { color: var(--accent-hi); }
+.wordmark small { display: block; margin-top: .35em; font: 700 .6em/1 var(--f-label); text-transform: uppercase; letter-spacing: .42em; text-indent: .42em; text-shadow: var(--shadow-text); }
+
+/* minimap */
+.map { width: 12.8em; padding: .42em .42em .3em; }
+.map canvas { display: block; width: 100%; min-width: 0; height: 7.4em; border-radius: .55em; background: linear-gradient(180deg, #e9f2fb 0%, #cfe0f2 100%); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .6); }
+.map-foot { display: flex; justify-content: space-between; align-items: baseline; padding: .32em .3em .05em; font: italic 700 .66em/1 var(--f-label); letter-spacing: .12em; text-transform: uppercase; }
+.map-foot .num { letter-spacing: .02em; font-size: 1.08em; text-transform: none; }
+.btn-row { display: flex; gap: .45em; position: relative; z-index: 2; } /* 在覆蓋畫面之上仍可點 */
+.iconbtn { width: 2.3em; height: 2.3em; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; background: var(--glass); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); box-shadow: inset 0 0 0 1px var(--glass-edge), var(--glass-shadow); transition: background .15s, transform .15s; }
+.iconbtn:hover:not(:disabled) { background: rgba(52, 70, 100, .72); }
+.iconbtn:disabled { opacity: .38; cursor: default; }
+.iconbtn:active:not(:disabled) { transform: scale(.92); }
+.iconbtn svg { width: 1.15em; height: 1.15em; filter: drop-shadow(0 1px 1px rgba(20, 32, 56, .4)); }
+
+/* key hints */
+.keys { display: grid; grid-template-columns: repeat(4, auto); gap: .2em .7em; padding: .55em .8em .5em; }
+.key { display: flex; flex-direction: column; align-items: center; gap: .28em; min-width: 2.6em; }
+.cap { min-width: 2.1em; height: 1.65em; padding: 0 .45em; display: grid; place-items: center; border-radius: .38em; background: linear-gradient(180deg, #3a4b69, #212e47); box-shadow: inset 0 -.14em 0 rgba(0, 0, 0, .35), inset 0 0 0 1px rgba(255, 255, 255, .16), 0 1px 2px rgba(20, 32, 56, .35); font: italic 700 1em/1 var(--f-label); letter-spacing: .02em; transition: transform .08s, background .08s; }
+.key.down .cap { transform: translateY(.1em); background: linear-gradient(180deg, var(--accent-hi), var(--accent)); color: var(--navy); text-shadow: none; }
+.key svg { width: 1.2em; height: 1.2em; }
+.key .lbl { font-size: .7em; letter-spacing: .12em; color: var(--ink-soft); }
+
+/* speed + boost */
+.speed { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: .2em .5em; padding: .5em .6em .45em .75em; }
+.speed-info { display: flex; flex-direction: column; align-items: center; min-width: 3.6em; }
+.speed-val { font-size: 2.55em; line-height: 1.05; margin-top: .06em; text-shadow: 0 .06em 0 rgba(28, 42, 68, .55); }
+.speed-unit { font: italic 700 .78em/1 var(--f-label); letter-spacing: .06em; color: var(--ink-soft); }
+.speed canvas { display: block; width: 100%; min-width: 0; height: 5.4em; }
+.boost { padding: .38em .6em .55em; }
+.boost .pill { margin-bottom: .35em; }
+.boost-bar { position: relative; height: 1em; }
+.boost-segs { position: absolute; inset: 0; display: flex; gap: .22em; }
+.boost-segs i { flex: 1; border-radius: .22em; background: rgba(20, 34, 58, .45); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); }
+.boost-fill { clip-path: inset(0 0 0 0); transition: clip-path .12s linear; }
+.boost-fill i { background: linear-gradient(180deg, #a6f3ff 0%, var(--cyan) 45%, var(--cyan-lo) 100%); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .35), 0 0 .5em rgba(69, 220, 246, .45); }
+.boost.low .boost-fill i { background: linear-gradient(180deg, #ffb3ba, var(--danger)); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .3); }
+
+/* popups */
+.popups { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: .15em; width: max-content; max-width: 92vw; }
+.popup { font: 400 clamp(1.4rem, 3.4vw, 2.6rem)/1.1 var(--f-display); letter-spacing: .03em; white-space: nowrap; color: #fff; text-shadow: var(--outline-text), 0 .12em .3em rgba(20, 32, 56, .35); animation: popup var(--popup-ms, 1250ms) cubic-bezier(.2, .8, .3, 1) forwards; }
+.popup-good { color: var(--accent); }
+.popup-bad { color: var(--danger); }
+.popup-info { color: #fff; font-size: clamp(1.15rem, 2.6vw, 2rem); }
+@keyframes popup {
+  0% { opacity: 0; transform: translateY(.4em) scale(.6) skewX(-8deg); }
+  14% { opacity: 1; transform: translateY(0) scale(1.12) skewX(-8deg); }
+  24% { transform: translateY(0) scale(1) skewX(-8deg); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-1.1em) scale(1) skewX(-8deg); }
+}
+
+/* touch controls (coarse pointers only) */
+.touch { display: none; }
+.tbtn { position: absolute; width: var(--touch); height: var(--touch); border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center; background: rgba(62, 82, 114, .40); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .5), 0 .3em 1em rgba(24, 40, 68, .18); color: #fff; font: italic 700 clamp(13px, 3.6vw, 16px)/1 var(--f-label); letter-spacing: .12em; text-transform: uppercase; text-shadow: var(--shadow-text); touch-action: none; align-content: center; gap: .3em; transition: transform .06s, background .06s; }
+.tbtn svg { width: calc(var(--touch) * .42); height: calc(var(--touch) * .42); margin: 0 auto; filter: drop-shadow(0 1px 1px rgba(20, 32, 56, .45)); }
+.tbtn svg.sm { width: calc(var(--touch) * .26); height: calc(var(--touch) * .26); }
+.tbtn.down { transform: scale(.93); background: rgba(255, 201, 60, .5); }
+.t-left { left: calc(var(--gap) + var(--safe-l)); bottom: calc(var(--gap) + var(--safe-b)); }
+.t-right { left: calc(var(--gap) + var(--safe-l) + var(--touch) + 14px); bottom: calc(var(--gap) + var(--safe-b)); }
+.t-jump { right: calc(var(--gap) + var(--safe-r)); bottom: calc(var(--gap) + var(--safe-b)); width: calc(var(--touch) * 1.12); height: calc(var(--touch) * 1.12); }
+.t-boost { right: calc(var(--gap) + var(--safe-r) + var(--touch) * 1.12 + 12px); bottom: calc(var(--gap) + var(--safe-b)); }
+.ctl-touch { display: none; }
+
+@media (pointer: coarse) {
+  .hud[data-screen="playing"] .touch { display: block; }
+  .keys { display: none; }
+  .br { bottom: calc(var(--gap) + var(--safe-b) + var(--touch) * 1.12 + 14px); }
+  .iconbtn { width: 40px; height: 40px; }
+  .ctl-keys { display: none; }
+  .ctl-touch { display: inline; }
+}
+/* 觸控筆電：第一次觸控後由 hud.js 設定 data-touch */
+.hud[data-touch][data-screen="playing"] .touch { display: block; }
+.hud[data-touch] .keys { display: none; }
+.hud[data-touch] .br { bottom: calc(var(--gap) + var(--safe-b) + var(--touch) * 1.12 + 14px); }
+
+/* ---------- screens ---------- */
+.screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: calc(var(--gap) + var(--safe-t)) calc(var(--gap) + var(--safe-r)) calc(var(--gap) + var(--safe-b)) calc(var(--gap) + var(--safe-l)); text-align: center; pointer-events: auto; overflow: auto; touch-action: pan-y; }
+.eyebrow { margin: 0; font: italic 700 clamp(.8em, 1.1vw, 1em)/1 var(--f-label); letter-spacing: .34em; text-indent: .34em; text-transform: uppercase; text-shadow: 0 1px 3px rgba(20, 32, 56, .55); }
+.display { font-family: var(--f-display); font-weight: 400; transform: skewX(-9deg); white-space: nowrap; }
+.w-white { color: #fff; -webkit-text-stroke: .1em var(--navy); paint-order: stroke fill; }
+.w-gold { color: var(--accent); -webkit-text-stroke: .1em var(--navy); paint-order: stroke fill; }
+
+/* 標題畫面：文字區塊放在畫面上半部，展示鏡頭把角色放在下半部（附圖角色約佔畫面高 51%、在標題下方），不要被 LOGO / 按鈕蓋住 */
+.screen-title { justify-content: flex-start; padding-top: calc(var(--gap) + var(--safe-t) + clamp(48px, 8.5vh, 104px)); background: radial-gradient(ellipse 62% 36% at 50% 26%, rgba(22, 40, 70, .40), rgba(22, 40, 70, 0) 72%); }
+.title-wrap { display: flex; flex-direction: column; align-items: center; }
+.title { margin: .12em 0 0; font-size: clamp(2.2rem, min(10.5vw, 13.5vh), 7.6rem); line-height: .95; letter-spacing: .005em; filter: drop-shadow(0 .06em 0 var(--navy)) drop-shadow(0 .1em .14em rgba(20, 32, 56, .35)); }
+.subtitle { margin: .75em 0 0; font: 700 clamp(.78em, 1.2vw, 1.05em)/1 var(--f-label); letter-spacing: .6em; text-indent: .6em; text-transform: uppercase; text-shadow: 0 1px 2px rgba(20, 32, 56, .85), 0 0 10px rgba(20, 32, 56, .5); }
+.tagline { margin: .8em 0 0; max-width: 34em; font: italic 600 clamp(1.05em, 1.6vw, 1.35em)/1.3 var(--f-label); letter-spacing: .03em; text-shadow: 0 1px 3px rgba(20, 32, 56, .7), 0 0 12px rgba(20, 32, 56, .35); }
+.controls-line { margin: .9em 0 0; padding: .45em 1em; border-radius: 999px; background: rgba(28, 42, 68, .32); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); font: 600 clamp(.82em, 1vw, .95em)/1.4 var(--f-label); letter-spacing: .08em; color: #fff; text-transform: uppercase; text-shadow: 0 1px 3px rgba(20, 32, 56, .7); }
+.controls-line kbd { font: inherit; font-weight: 700; color: var(--navy); text-shadow: none; padding: .05em .4em; border-radius: .3em; background: rgba(255, 255, 255, .92); box-shadow: 0 1px 0 rgba(28, 42, 68, .5); }
+
+.cta { margin-top: 1em; border: 0; border-radius: 999px; padding: .62em 1.8em .66em; font: 400 clamp(1.25em, 1.8vw, 1.55em)/1 var(--f-display); letter-spacing: .05em; color: #3b2500; background: linear-gradient(180deg, var(--accent-hi) 0%, var(--accent) 52%, #f6ad1f 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .75), inset 0 0 0 1px rgba(184, 112, 10, .45), 0 .2em 0 var(--accent-edge), 0 .55em 1.1em rgba(60, 40, 0, .28); text-shadow: 0 1px 0 rgba(255, 255, 255, .45); transition: transform .12s, box-shadow .12s, filter .12s; }
+.cta:hover { filter: brightness(1.06); }
+.cta:active { transform: translateY(2px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .75), 0 .06em 0 var(--accent-edge), 0 .3em .6em rgba(60, 40, 0, .25); }
+.ghost { border: 0; border-radius: 999px; padding: .62em 1.6em .66em; font: 400 clamp(1.05em, 1.5vw, 1.25em)/1 var(--f-display); letter-spacing: .05em; color: #fff; background: rgba(255, 255, 255, .14); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .55); text-shadow: var(--shadow-text); transition: background .12s, transform .12s; }
+.ghost:hover { background: rgba(255, 255, 255, .24); }
+.ghost:active { transform: translateY(1px); }
+
+.screen-pause, .screen-results { background: rgba(22, 38, 64, .38); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.card { width: min(100%, 31em); padding: 1.6em 1.6em 1.7em; border-radius: 18px; background: var(--glass-strong); -webkit-backdrop-filter: blur(10px) saturate(1.2); backdrop-filter: blur(10px) saturate(1.2); box-shadow: inset 0 0 0 1px var(--glass-edge), 0 1em 2.6em rgba(16, 28, 50, .35); font-size: clamp(12px, 8px + .5vw, 16px); }
+.card h2 { margin: .25em 0 0; font-size: clamp(2.4em, 5vw, 3.4em); line-height: 1; filter: drop-shadow(0 .05em 0 var(--navy)); }
+.card .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .8em; margin-top: 1.5em; }
+.card .actions .cta { margin-top: 0; }
+.pause-card { width: min(100%, 30em); } /* 27em：字型 fallback（Arial Black 較寬）時 RESUME / RESTART 會折成兩行 */
+.pause-hint { margin: 1.15em 0 0; font: 600 .92em/1.3 var(--f-label); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+.pause-hint kbd { font: inherit; font-weight: 700; color: var(--navy); padding: .02em .35em; border-radius: .3em; background: rgba(255, 255, 255, .9); }
+
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6em; margin: 1.35em 0 0; }
+.stats div { padding: .65em .4em .6em; border-radius: 10px; background: rgba(20, 34, 58, .38); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); }
+.stats dt { font: italic 700 .78em/1 var(--f-label); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+.stats dd { margin: .35em 0 0; font-size: 1.55em; line-height: 1; text-shadow: var(--shadow-text); }
+.stats dd small { font: italic 700 .5em/1 var(--f-label); letter-spacing: .06em; color: var(--ink-soft); margin-left: .2em; }
+.stats .hl { background: linear-gradient(180deg, rgba(255, 201, 60, .3), rgba(255, 201, 60, .14)); box-shadow: inset 0 0 0 1px rgba(255, 214, 100, .6); }
+.stats .hl dd { color: var(--accent); }
+.best { margin: 1em 0 0; font: italic 700 1em/1.2 var(--f-label); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+.best.new { color: var(--accent); font-size: 1.15em; }
+
+/* ---------- motion ---------- */
+.hud:not([data-screen="playing"]) .popups { top: 16%; }
+.screen-title:not([hidden]) .title-wrap > * { animation: rise .7s cubic-bezier(.2, .8, .3, 1) both; }
+.screen-title:not([hidden]) .title-wrap > :nth-child(2) { animation-delay: .06s; }
+.screen-title:not([hidden]) .title-wrap > :nth-child(3) { animation-delay: .12s; }
+.screen-title:not([hidden]) .title-wrap > :nth-child(4) { animation-delay: .2s; }
+.screen-title:not([hidden]) .title-wrap > :nth-child(5) { animation-delay: .28s; }
+.screen-title:not([hidden]) .title-wrap > :nth-child(6) { animation-delay: .34s; }
+.screen-results:not([hidden]) .card, .screen-pause:not([hidden]) .card { animation: rise .45s cubic-bezier(.2, .8, .3, 1) both; }
+@keyframes rise { from { opacity: 0; translate: 0 14px; } to { opacity: 1; translate: 0 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .popup, .life.pop, .screen-title:not([hidden]) .title-wrap > *, .screen-results:not([hidden]) .card, .screen-pause:not([hidden]) .card { animation: none !important; }
+  .boost-fill, .life, .cta, .iconbtn { transition: none !important; }
+}
+
+/* ---------- narrow / short screens ---------- */
+@media (max-width: 720px) {
+  .keys { display: none; }
+  .wordmark { display: none; }
+}
+@media (max-width: 480px) {
+  .stat { width: 10.4em; padding: .38em .7em .42em; }
+  .time-val { font-size: 2em; }
+  .map { width: 11.2em; }
+  .map canvas { height: 6.6em; }
+  .br { width: 12.6em; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .card { padding: 1.2em 1em 1.3em; }
+}
+@media (max-height: 520px) {
+  :root { --u: clamp(10px, 2.6vh, 13px); --touch: clamp(60px, 17vh, 78px); --gap: 10px; }
+  .tr { flex-direction: row-reverse; align-items: flex-start; }
+  .btn-row { flex-direction: column; }
+  .map canvas { height: 5.6em; }
+  .wordmark { display: none; }
+  /* 橫式手機：標題畫面的大字會壓到速度錶 → 標題時先藏右下/左下面板 */
+  .hud[data-screen="title"] .br, .hud[data-screen="title"] .bl { display: none; }
+}
+/* 直式：左上 / 右上面板比較高 → 標題區塊往下讓開（角色在 50～80 %，標題仍在上半部） */
+@media (max-aspect-ratio: 4/5) {
+  .screen-title { padding-top: calc(var(--gap) + var(--safe-t) + clamp(96px, 15vh, 150px)); }
+}
+@media (max-height: 480px) {
+  .keys { display: none; }
+  /* 橫式手機：只留大標 + 按鈕，擠在上方 40 %，角色留在下半部 */
+  .screen-title { padding-top: calc(var(--gap) + var(--safe-t) + 4px); }
+  .screen-title .eyebrow, .screen-title .subtitle, .screen-title .tagline { display: none; }
+  .title { font-size: clamp(2rem, 15vh, 4rem); }
+  .controls-line { display: none; }
+  .cta { margin-top: .6em; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="game"></div>
+
+  <div id="hud" class="hud" data-screen="title">
+    <!-- 上方置中字樣 -->
+    <div class="wordmark" aria-hidden="true"><b>POWDER <span>PEAK</span></b><small>北坡 · 無盡滑降</small></div>
+
+    <!-- 左上：時間 / 分數 / 生命 -->
+    <div class="corner tl">
+      <div class="panel stat">
+        <span class="lbl">時間</span>
+        <span class="num time-val" id="hud-time">00:00.00</span>
+      </div>
+      <div class="panel stat">
+        <div class="stat-head"><span class="lbl">分數</span><div class="lives" id="hud-lives" role="img" aria-label="剩餘機會"></div></div>
+        <div class="score-row">
+          <span class="num score-val" id="hud-score">0</span>
+          <span class="combo" id="hud-combo" hidden></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右上：小地圖 + 圓鈕 -->
+    <div class="corner tr">
+      <div class="panel map">
+        <canvas id="hud-minimap" aria-label="賽道圖" role="img"></canvas>
+        <div class="map-foot"><span>北坡</span><span class="num" id="hud-distance">0 m</span></div>
+      </div>
+      <div class="btn-row">
+        <button type="button" class="iconbtn" id="hud-mute" data-action="mute" aria-label="靜音" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true" data-icon="on"><path d="M3.5 9.2h3.8L12.5 5v14l-5.2-4.2H3.5z" fill="#fff"/><path d="M15.6 8.8a4.6 4.6 0 0 1 0 6.4M18.3 6.2a8.2 8.2 0 0 1 0 11.6" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true" data-icon="off" hidden><path d="M3.5 9.2h3.8L12.5 5v14l-5.2-4.2H3.5z" fill="#fff"/><path d="M16 9.5l5 5M21 9.5l-5 5" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/></svg>
+        </button>
+        <button type="button" class="iconbtn" id="hud-pause" data-action="toggle-pause" aria-label="暫停">
+          <svg viewBox="0 0 24 24" aria-hidden="true" data-icon="pause"><rect x="6" y="5" width="4.2" height="14" rx="1.3" fill="#fff"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.3" fill="#fff"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true" data-icon="play" hidden><path d="M7.5 5.2v13.6a.9.9 0 0 0 1.4.8l10.3-6.8a.9.9 0 0 0 0-1.6L8.9 4.4a.9.9 0 0 0-1.4.8z" fill="#fff"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 左下：按鍵提示 -->
+    <div class="corner bl">
+      <div class="panel keys" id="hud-keys" aria-hidden="true">
+        <div class="key" data-keys="KeyA ArrowLeft"><span class="cap">A</span><svg viewBox="0 0 24 24"><path d="M19 12H5.5M11 6l-6 6 6 6" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="lbl">左轉</span></div>
+        <div class="key" data-keys="KeyD ArrowRight"><span class="cap">D</span><svg viewBox="0 0 24 24"><path d="M5 12h13.5M13 6l6 6-6 6" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="lbl">右轉</span></div>
+        <div class="key" data-keys="Space"><span class="cap">Space</span><svg viewBox="0 0 24 24"><path d="M12 19.5V5.5M6 11l6-6 6 6" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="lbl">跳躍</span></div>
+        <div class="key" data-keys="ShiftLeft ShiftRight KeyS ArrowDown"><span class="cap">Shift</span><svg viewBox="0 0 24 24"><path d="M13.5 3 5.5 13.5h6l-1 7.5 8-10.5h-6z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg><span class="lbl">蹲低加速</span></div>
+      </div>
+    </div>
+
+    <!-- 右下：速度錶 + BOOST -->
+    <div class="corner br">
+      <div class="panel speed">
+        <div class="speed-info">
+          <span class="pill">速度</span>
+          <span class="num speed-val" id="hud-speed">0</span>
+          <span class="speed-unit">km/h</span>
+        </div>
+        <canvas id="hud-gauge" aria-hidden="true"></canvas>
+      </div>
+      <div class="panel boost" id="hud-boost">
+        <span class="pill">加速</span>
+        <div class="boost-bar" role="meter" aria-label="加速量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" id="hud-boost-bar">
+          <div class="boost-segs" id="hud-boost-bg"></div>
+          <div class="boost-segs boost-fill" id="hud-boost-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="popups" id="hud-popups" aria-live="polite"></div>
+
+    <!-- 觸控按鈕 -->
+    <div class="touch" id="hud-touch">
+      <button type="button" class="tbtn t-left" id="hud-t-left" aria-label="向左轉"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button type="button" class="tbtn t-right" id="hud-t-right" aria-label="向右轉"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 4.5 16 12l-7.5 7.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button type="button" class="tbtn t-boost" id="hud-t-boost"><svg class="sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 3 5.5 13.5h6l-1 7.5 8-10.5h-6z" fill="#fff" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/></svg><span>加速</span></button>
+      <button type="button" class="tbtn t-jump" id="hud-t-jump"><svg class="sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19.5V5.5M5.5 11.5 12 5l6.5 6.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>跳躍</span></button>
+    </div>
+
+    <!-- 標題畫面 -->
+    <section class="screen screen-title" id="hud-title" aria-labelledby="hud-title-h">
+      <div class="title-wrap">
+        <p class="eyebrow">北坡 · 單人滑降</p>
+        <h1 class="display title" id="hud-title-h"><span class="w-white">POWDER</span><span class="w-gold">PEAK</span></h1>
+        <p class="subtitle">無盡下坡</p>
+        <p class="tagline">切過旗門，飛上跳台，別摔滿三次。</p>
+        <button type="button" class="cta" data-action="start">出發</button>
+        <p class="controls-line">
+          <span class="ctl-keys"><kbd>A</kbd> <kbd>D</kbd> 轉向 · <kbd>Space</kbd> 跳躍 · <kbd>Shift</kbd> 蹲低加速 · <kbd>Esc</kbd> 暫停</span>
+          <span class="ctl-touch">按住 ◀ ▶ 轉向 · 跳躍 · 加速</span>
+        </p>
+      </div>
+    </section>
+
+    <!-- 暫停 -->
+    <section class="screen screen-pause" id="hud-paused" aria-labelledby="hud-paused-h" hidden>
+      <div class="card pause-card">
+        <p class="eyebrow">喘口氣</p>
+        <h2 class="display" id="hud-paused-h"><span class="w-white">暫停</span></h2>
+        <div class="actions">
+          <button type="button" class="cta" data-action="resume">繼續</button>
+          <button type="button" class="ghost" data-action="restart">重新開始</button>
+        </div>
+        <p class="pause-hint ctl-keys"><kbd>Esc</kbd> 繼續 · <kbd>M</kbd> 聲音</p>
+      </div>
+    </section>
+
+    <!-- 結算 -->
+    <section class="screen screen-results" id="hud-results" aria-labelledby="hud-results-h" hidden>
+      <div class="card">
+        <p class="eyebrow">北坡 · 成績</p>
+        <h2 class="display" id="hud-results-h"><span class="w-white">滑降</span><span class="w-gold">結束</span></h2>
+        <dl class="stats">
+          <div><dt>距離</dt><dd class="num"><span id="res-distance">0</span><small>m</small></dd></div>
+          <div><dt>最高速度</dt><dd class="num"><span id="res-speed">0</span><small>km/h</small></dd></div>
+          <div><dt>最長滯空</dt><dd class="num"><span id="res-air">0.00</span><small>s</small></dd></div>
+          <div><dt>時間</dt><dd class="num" id="res-time">00:00.00</dd></div>
+          <div><dt>旗門</dt><dd class="num" id="res-gates">0 / 0</dd></div>
+          <div class="hl"><dt>分數</dt><dd class="num" id="res-score">0</dd></div>
+        </dl>
+        <p class="best" id="res-best"></p>
+        <div class="actions">
+          <button type="button" class="cta" data-action="restart">再滑一次</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+<!--BUNDLE-->
+</body>
+</html>
