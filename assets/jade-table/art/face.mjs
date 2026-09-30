@@ -34,16 +34,16 @@ function eye(u, c, t, s) {
   const hx = 81.5 + s * 4.3;
   return `<g transform="rotate(${-(c.tilt || 0)} 82 100)"><ellipse cx="80" cy="${y(90)}" rx="16" ry="6.5" fill="url(#${u}-f-sock)" opacity="${s > 0 ? .95 : .55}"/>
 <path d="M67 ${yo}Q80 ${r1(top)} 95 ${yi}Q93 110 81 112.5Q70 111 67 ${yo}Z" fill="url(#${u}-white)"/>
-<g clip-path="url(#${u}-eyeclip)"><ellipse cx="81.5" cy="102" rx="10.4" ry="12.4" fill="url(#${u}-irisR)"/><path d="${FIBRES}" stroke="${c.eye[2]}" stroke-width=".45" opacity=".3"/>
-<ellipse cx="81.5" cy="102" rx="10.4" ry="12.4" fill="url(#${u}-iris)"/><ellipse cx="81.5" cy="102" rx="10.4" ry="12.4" fill="none" stroke="${c.eye[0]}" stroke-width="1.6" opacity=".85"/>
+<g clip-path="url(#${u}-eyeclip)"><ellipse cx="81.5" cy="102" rx="9.5" ry="11.6" fill="url(#${u}-irisR)"/><path d="${FIBRES}" stroke="${c.eye[2]}" stroke-width=".45" opacity=".3"/>
+<ellipse cx="81.5" cy="102" rx="9.5" ry="11.6" fill="url(#${u}-iris)"/><ellipse cx="81.5" cy="102" rx="9.5" ry="11.6" fill="none" stroke="${c.eye[0]}" stroke-width="1.6" opacity=".85"/>
 <ellipse cx="81.5" cy="103" rx="7.2" ry="8.8" fill="none" stroke="${mix(c.eye[0], c.eye[1], .4)}" stroke-width=".55" opacity=".5"/><ellipse cx="81.5" cy="109" rx="8.5" ry="5" fill="url(#${u}-f-bnc)"/>
 <ellipse cx="81.5" cy="102.5" rx="3.5" ry="5.5" fill="${mix(c.eye[0], '#000000', .35)}"/><path d="M73 107Q81.5 115.6 90 107Q81.5 111.8 73 107Z" fill="${c.eye[2]}" opacity=".85"/>
 <path d="M60 ${y(88.5)}Q80 ${y(82.5)} 100 ${y(90.5)}V${y(96)}Q80 ${y(94.4)} 60 ${y(99.6)}Z" fill="${mix(c.eye[0], '#6a6c8c', .55)}" opacity=".45" filter="url(#${u}-f-cel)"/></g>
 <ellipse cx="${r1(hx)}" cy="${y(97.2 - d * .6)}" rx="3" ry="3.9" transform="rotate(${s * 22} ${r1(hx)} ${y(97.2 - d * .6)})" fill="#fff"/><circle cx="${r1(81.5 - s * 4.8)}" cy="107.4" r="1.45" fill="#fff" opacity=".95"/><circle cx="${r1(81.5 + s * 5.6)}" cy="108.6" r=".6" fill="#fff" opacity=".8"/>
-<path d="M64 ${r1(99.5 + d * .6)}Q71 ${r1(top - 2.2)} 82 ${r1(top - 1.6)}Q91.5 ${r1(top - 1)} 97.5 ${r1(94 + d * .4)}Q90.5 ${r1(top + 2.6)} 81 ${r1(top + 2.8)}Q71 ${r1(top + 4)} 64 ${r1(99.5 + d * .6)}Z" fill="url(#${u}-lash)"/>
+<path d="M64 ${r1(99.5 + d * .6)}Q71 ${r1(top - 2.2)} 82 ${r1(top - 1.6)}Q91.5 ${r1(top - 1)} 97.5 ${r1(94 + d * .4)}Q90.5 ${r1(top + 1.2)} 81 ${r1(top + 2.4)}Q71 ${r1(top + 4)} 64 ${r1(99.5 + d * .6)}Z" fill="url(#${u}-lash)"/>
 <path d="M65.6 ${r1(99 + d * .6)}Q63.2 ${r1(97.2 + d * .5)} 61.6 ${r1(93.4 + d * .5)}Q64 ${r1(95.2 + d * .5)} 67.2 ${r1(96 + d * .5)}Z" fill="${c.line}"/>
 <path d="M66.4 ${r1(95.2 + d * .5)}Q64.6 ${r1(92.4 + d * .5)} 63 ${r1(91 + d * .5)}M68.9 ${r1(92.4 + d * .6)}Q67.8 ${r1(89.6 + d * .6)} 66.8 ${r1(88.2 + d * .6)}" stroke="${c.line}" stroke-width=".8" fill="none" stroke-linecap="round" opacity=".9"/>
-<path d="M68.5 ${y(90.2)}Q80 ${y(81.2)} 93.5 ${y(87.6)}Q80 ${y(83)} 68.5 ${y(90.2)}Z" fill="${t.core}" opacity=".6"/>
+<path d="M68.5 ${y(90.2)}Q80 ${y(81.2)} 93.5 ${y(87.6)}Q80 ${y(83)} 68.5 ${y(90.2)}Z" fill="${t.core}" opacity=".32"/>
 <path d="M72.5 111.4Q81 115.6 89.5 111Q81 114.2 72.5 111.4Z" fill="${t.core}"/><path d="M75.5 114Q81 116 86.5 113.5" stroke="${t.lit}" stroke-width=".6" fill="none" opacity=".45"/>
 <path d="M75 111.9Q70.6 110.9 68.4 106.4Q71.2 109.5 74.8 110.7Z" fill="${c.line}" opacity=".75"/><path d="M76 112.4l-.7 1.7M79.6 113.2l-.3 1.7M83.4 113.1l.1 1.5" stroke="${t.core}" stroke-width=".55" opacity=".75" stroke-linecap="round"/></g>`;
 }
@@ -93,8 +93,8 @@ ${grad(`${u}-white`, [[0, '#dcd9e2'], [.45, '#fbfaf8'], [1, '#ffffff']])}
 <path d="M86 124H114V133.4Q106.4 143.4 100.4 145.2Q95.4 146 91.6 144.2Q88.8 142.8 86 142.4Z" fill="${t.core}" opacity=".7" filter="url(#${u}-f-cel)"/>
 <path d="M109.6 131Q108.2 139 109.3 145.3Q110.4 150.2 112.9 153.6" stroke="${t.rim}" stroke-width="1.3" fill="none" opacity=".55"/>
 <ellipse cx="100.2" cy="152.4" rx="2.2" ry="1.3" fill="${t.sh}" opacity=".35" filter="url(#${u}-soft)"/><path d="M86 149H114V154H86Z" fill="url(#${u}-f-nb)"/></g>`;
-  const brow = `M90.4 81.5Q80.3 77.9 69 83.6Q80 79.5 90.3 83Z`;
-  const brows = `<g fill="${mix(c.hair[2], c.skin[2], .3)}" opacity=".85"><path d="${brow}"/><path d="${brow}" transform="translate(200 0) scale(-1 1)"/></g>`;
+  const brow = `M91.2 79.4Q81.4 73.6 68.6 79.4Q81.2 75.4 91 80.6Z`;
+  const brows = `<g fill="${mix(c.hair[2], c.skin[2], .45)}" opacity=".72"><path d="${brow}"/><path d="${brow}" transform="translate(200 0) scale(-1 1)"/></g>`;
   // Nose: a small wedge-shaped form. The viewer-left plane of the bridge turns away from the key, so it takes a narrow soft shade
   // that widens into a crisp cel wedge down the side of the tip; the tip's underside and its cast shadow fall down-left; the right
   // ridge of the bridge catches a thin lit line ending in a tiny specular on the tip. Only a short, thin line marks the tip itself.

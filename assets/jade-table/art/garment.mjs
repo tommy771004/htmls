@@ -36,7 +36,7 @@ function tones(c) {
   const lum = rgb(k0).reduce((s, v, i) => s + v * [.3, .59, .11][i], 0) / 255;
   return {
     ho: lum < .3 ? .6 : .38, dark: lum < .3, pale: lum > .6,
-    sh: mix(k1, cool, .3), core: mix(k1, '#010806', .62), hl: mix(k0, '#ffe8bf', .5), rim: '#ffe2ae', line: mix(k1, '#020c09', .58),
+    vol: mix(k1, cool, lum > .6 ? .62 : .45), sh: mix(k1, cool, lum > .6 ? .42 : .3), core: mix(k1, '#010806', .62), hl: mix(k0, '#ffe8bf', .5), rim: '#ffe2ae', line: mix(k1, '#020c09', .58),
     jub: c.collar, jubS: mix(c.collar, '#1f4a40', .4), gl: mix(c.band, '#fff7dc', .62), gd: mix(c.band, '#3b2508', .5),
     ps: mix(mix(k1, cool, .3), mix(k1, '#010806', .62), lum > .6 ? .55 : .25), pk: mix(k1, '#010806', .62),
     skin: c.skin[1], skinS: mix(c.skin[1], c.skin[2], .7), skinC: mix(c.skin[2], '#a8545a', .3)
@@ -110,7 +110,7 @@ export function figureSvg(c, u, p) {
     for (const [x0, y0, cx, cy, x1, y1, w] of folds) { S.push(wedge(x0, y0, cx, cy, x1, y1, w * 1.6)); K.push(wedge(x0, y0, cx, cy, x1, y1, w * .45)); H.push(cres(x0, y0, cx, cy, x1, y1, -w * .3)); }
     const f = (a, fill, o) => a.length ? `<g fill="${fill}" opacity="${o}">${a.map(x => `<path d="${x}"/>`).join('')}</g>` : '';
     const print = fl.length ? `${flowers(fl)}<clipPath id="${g}${id}f">${petals(fl)}</clipPath><g clip-path="url(#${g}${id}f)"><rect x="150" y="230" width="300" height="680" fill="url(#${g}lit)"/>${f(S0, t.ps, .4)}${f(K0, t.pk, .3)}${f(R, '#fff8e4', .6)}</g>` : '';
-    return `<clipPath id="${g}${id}"><path d="${d}"/></clipPath><path d="${d}" fill="url(#${g}k)"/><path d="${d}" fill="url(#${u}-fab)"/><g clip-path="url(#${g}${id})">${deco}<rect x="150" y="230" width="300" height="680" fill="url(#${g}lit)"/>${t.dark && lift ? `<path d="${lift}" fill="${t.hl}" opacity=".18"/>` : ''}${f(S, t.sh, .62)}${f(K, t.core, .7)}${f(H, t.hl, t.ho)}${f(R, t.rim, .75)}${print}${extra}</g><path d="${d}" fill="none" stroke="${t.line}" stroke-width="2" stroke-linejoin="round"/>`;
+    return `<clipPath id="${g}${id}"><path d="${d}"/></clipPath><path d="${d}" fill="url(#${g}k)"/><path d="${d}" fill="url(#${u}-fab)"/><g clip-path="url(#${g}${id})">${deco}<rect x="150" y="230" width="300" height="680" fill="url(#${g}lit)"/><path d="${d}" fill="url(#${g}vol)"/><path d="${d}" fill="url(#${g}volV)"/>${t.dark && lift ? `<path d="${lift}" fill="${t.hl}" opacity=".18"/>` : ''}${f(S, t.sh, t.pale ? .78 : .62)}${f(K, t.core, t.pale ? .8 : .7)}${f(H, t.hl, t.ho)}${f(R, t.rim, .75)}${print}${extra}</g><path d="${d}" fill="none" stroke="${t.line}" stroke-width="2" stroke-linejoin="round"/>`;
   };
   // Padded hem roll (fuki) along a quadratic edge, h deep, lit on top.
   const fuki = (x0, y0, cx, cy, x1, y1, h) => `<path d="M${x0} ${y0}Q${cx} ${cy} ${x1} ${y1}L${x1} ${y1 + h}Q${cx} ${cy + h} ${x0} ${y0 + h}Z" fill="url(#${g}lin)" stroke="${t.line}" stroke-width="1.4"/><path d="${cres(x0 + 3, y0 + 2, cx, cy + 2, x1 - 3, y1 + 2, 1.2)}" fill="#fff" opacity=".5"/>`;
@@ -191,6 +191,7 @@ ${grad(`${g}oa`, [[0, mix(c.collar, '#fff8e6', .3)], [.6, c.collar], [1, mix(c.c
 ${grad(`${g}lin`, [[0, mix(c.collar, '#ffffff', .2)], [.55, c.collar], [1, t.jubS]])}
 ${grad(`${g}pet`, [[0, '#fffaf0'], [1, '#dccfa9']])}
 ${grad(`${g}tile`, [[0, '#fffdf1'], [1, '#e7e2cc']])}
+${grad(`${g}vol`, [[0, t.vol, t.pale ? .62 : .55], [.18, t.vol, .26], [.42, t.vol, 0], [.66, '#fff3d6', t.pale ? .2 : .1], [.84, t.vol, .04], [1, t.vol, t.pale ? .4 : .34]], 1, 0)}${grad(`${g}volV`, [[0, t.vol, .22], [.25, t.vol, 0], [.8, t.vol, 0], [1, t.vol, .28]])}
 </defs>
 <g transform="${head}">${p.back}</g>
 ${skirtP}
@@ -236,7 +237,7 @@ function handL(c, t) {
   const back = 'M-2-5C3-5.6 9-8.4 15.6-9.8C20.6-10.8 24.4-9.6 25.8-6.6C27-3.6 27.2-.4 26.6 2.6C26 6 24.2 9 21.2 10.4C15.4 12.2 8 10-2 6.4Z';
   const thumb = 'M4-7.6C9-10.6 14.4-12.2 19.6-12.4C22.6-12.4 23.8-10.4 22.2-8.8C18-8 13-7 9-5.4Z';
   // [x, y, r, proximal, distal, angle, bend], little finger first so each finger above overlaps the one below it.
-  const F = [[20.4, 7.2, 2.55, 9.4, 5.8, 24, 64], [22.6, 3, 2.8, 10.6, 6.8, 18, 58], [23.2, -1.6, 2.9, 11.2, 7.4, 12, 52], [22.4, -6.2, 2.8, 10.4, 7, 7, 46]];
+  const F = [[20.6, 6.4, 3.05, 8.4, 5, 16, 70], [22.8, 2.4, 3.3, 9.4, 5.8, 13, 66], [23.4, -1.6, 3.4, 9.8, 6.2, 10, 62], [22.6, -5.6, 3.3, 9.2, 5.8, 8, 58]];
   const sil = `<path d="${back}${thumb}"/>` + F.map(([x, y, r, a, b, ang]) => `<path d="${cap(x, y, x + a * Math.cos(ang * Math.PI / 180), y + a * Math.sin(ang * Math.PI / 180), r)}"/>`).join('');
   // Knuckle shading: a small shadow below each knuckle bump, where the back turns down into the next finger.
   const knuckles = F.map(([x, y, r], i) => i < 3 ? `<path d="${cres(x - 4.4, y + r * .95, x - .4, y + r * 1.25, x + 3, y + r * .9, .45)}" fill="${t.skinC}" opacity=".6"/>` : '').join('');
