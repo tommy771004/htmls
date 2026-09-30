@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>封頂 · LAST BEAM</title>
-<meta name="description" content="二十名工人從起重直升機跳傘，降落在一座施工中的工地：搜刮槍枝、安全帽與防護背心，在不斷縮小的安全區裡活到最後，替大樓吊上最後一根鋼梁。第三人稱 Three.js 大逃殺。">
+<meta name="description" content="六十名工人分乘三架起重直升機跳傘，降落在一座有施工中工地的島上：搜刮槍枝、安全帽與防護背心，在不斷縮小的安全區裡活到最後，替大樓吊上最後一根鋼梁。第三人稱 Three.js 大逃殺。">
 <meta name="theme-color" content="#16191b">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231a1a1a'/%3E%3Cpath d='M4 20h24v5H4z' fill='%23f4b400'/%3E%3Cpath d='M8 20a8 8 0 0 1 16 0z' fill='%23f4b400'/%3E%3C/svg%3E">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"}}</script>
@@ -146,12 +146,6 @@ body.drive #touch .tb:not(#tUse):not(#tMap):not(#tJump){display:none}
 
 #rdot{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px;border-radius:50%;background:#ff3b30;box-shadow:0 0 6px 2px rgba(255,59,48,.55);opacity:0;transition:opacity .08s}
 #rdot.on{opacity:1}
-#scope{position:absolute;inset:0;opacity:0;transition:opacity .08s;background:radial-gradient(circle at 50% 50%,transparent 0 calc(min(40vw,40vh)),#050505 calc(min(40vw,40vh) + 1px))}
-#scope.on{opacity:1}
-#scope::before,#scope::after{content:"";position:absolute;background:#050505}
-#scope::before{left:50%;top:10%;bottom:10%;width:2px;margin-left:-1px;background:linear-gradient(#050505 0 44%,transparent 44% 56%,#050505 56%)}
-#scope::after{top:50%;left:8%;right:8%;height:2px;margin-top:-1px;background:linear-gradient(90deg,#050505 0 45%,transparent 45% 55%,#050505 55%)}
-#scope i{position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px;border-radius:50%;background:var(--blood)}
 
 #vign{position:absolute;inset:0;opacity:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(160,20,20,.55) 100%);transition:opacity .35s}
 #zonetint{position:absolute;inset:0;opacity:0;background:linear-gradient(rgba(60,120,210,.18),rgba(60,120,210,.3));transition:opacity .5s}
@@ -161,6 +155,7 @@ body.drive #touch .tb:not(#tUse):not(#tMap):not(#tJump){display:none}
 #banner h2{margin:8px 0 4px;font-size:clamp(34px,6vw,64px);line-height:.95;letter-spacing:.02em;text-shadow:0 2px 0 rgba(0,0,0,.25)}
 #banner p{display:inline-block;margin:0;padding:4px 10px;background:var(--plate);font-size:14px;letter-spacing:.04em}
 #banner.show{animation:bannerIn .5s var(--ease-out)}
+body.touch #banner{width:min(640px,calc(100vw - 136px))}
 @keyframes bannerIn{from{opacity:0;transform:translate(-50%,10px)}}
 
 #elim{position:absolute;left:50%;top:60%;transform:translateX(-50%);text-align:center;opacity:0}
@@ -266,7 +261,6 @@ body.touch #meds div,body.touch #guns .slot,body.touch #guns .frag{pointer-event
 <div id="hud" aria-hidden="true">
   <div id="zonetint"></div>
   <div id="vign"></div>
-  <div id="scope"><i></i></div>
   <div id="rdot"></div>
   <div id="floats"></div>
   <div id="compass"><div id="compStrip"></div><i></i></div>
@@ -274,7 +268,7 @@ body.touch #meds div,body.touch #guns .slot,body.touch #guns .frag{pointer-event
   <div id="hint" class="plate hide"></div>
   <div id="vehHud" class="plate hide"><b id="vehSpd">0</b><small>km/h</small><div><i id="vehHp"></i></div><span>車況</span></div>
   <div id="phase" class="plate"><span class="cap" id="phaseCap">起重直升機</span><b id="phaseT">F 跳傘</b></div>
-  <div id="counts"><div class="plate"><b id="nAlive">20</b><span class="cap">存活</span></div><div class="plate"><b id="nKills">0</b><span class="cap">擊殺</span></div></div>
+  <div id="counts"><div class="plate"><b id="nAlive">60</b><span class="cap">存活</span></div><div class="plate"><b id="nKills">0</b><span class="cap">擊殺</span></div></div>
   <div id="mmwrap" class="plate"><canvas id="mm" width="352" height="352"></canvas></div>
   <div id="feed"></div>
   <div id="meds"></div>
@@ -311,9 +305,9 @@ body.touch #meds div,body.touch #guns .slot,body.touch #guns .frag{pointer-event
 
 <div id="menu" class="screen">
   <div class="card-s">
-    <div class="kick">CANARY YARD · 二十人登機</div>
+    <div class="kick">CANARY YARD · 六十人登機</div>
     <h1>封頂<span>LAST BEAM</span></h1>
-    <p>一架起重直升機吊著最後一根鋼梁飛過工地，二十名工人站在梁上。跳下去，開傘，落在鷹架、塔樓或機具堆裡，搜刮槍枝、安全帽與防護背心。安全區會一圈一圈縮小，最後站著的人，負責把這根梁吊上頂樓。</p>
+    <p>三架起重直升機各吊著一根鋼梁飛過島嶼，六十名工人站在梁上。跳下去，開傘，落在工地的鷹架與塔樓、村莊或採石場，搜刮槍枝、安全帽與防護背心。安全區會一圈一圈縮小，最後站著的人，負責把最後一根鋼梁吊上頂樓。</p>
     <div class="keys" id="keysDesk">
       <kbd>滑鼠</kbd><span>環顧・左鍵開火・右鍵瞄準（KAR98K 開 4 倍鏡）</span>
       <kbd>W A S D</kbd><span>移動・跳傘時操控方向</span>
@@ -360,7 +354,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 /* ============================================================
    封頂 · LAST BEAM
-   二十人空降工地的第三人稱大逃殺。所有模型、貼圖與聲音都由程式產生。
+   六十人空降島嶼的第三人稱大逃殺。所有模型、貼圖與聲音都由程式產生。
    座標：工地中心為原點，工地範圍 x、z ∈ [-120, 120]，y 向上，單位公尺。
    角色的正前方是 (sin yaw, 0, cos yaw)。
    ============================================================ */
@@ -413,7 +407,7 @@ const MAXANISO = Math.min(16, renderer.capabilities.getMaxAnisotropy());
 /* ---------- Blender 模型（assets/190/*.glb，建模腳本在同一資料夾）----------
    直接開檔或載不到時退回下面的程式建模；網址加 ?proc 可強制使用程式建模 */
 const QS = new URLSearchParams(location.search);
-let GLB = null, SKCLONE = null;
+let GLB = null, SKCLONE = null, WG = null;   // WG：島上的建物、樹與道具（world.glb）；載不到時島上照樣用程式建模
 if (/^https?:$/.test(location.protocol) && !QS.has('proc')) {
   try {
     $('loadNote').textContent = '正在把機具與工人吊進工地…';
@@ -421,8 +415,11 @@ if (/^https?:$/.test(location.protocol) && !QS.has('proc')) {
     SKCLONE = SKU.clone;
     const L = new GLTFLoader();
     const job = Promise.all(['workers', 'machines'].map(n => L.loadAsync('../assets/190/' + n + '.glb')));
-    const [w, m] = await Promise.race([job, new Promise((_, rej) => setTimeout(() => rej(new Error('模型載入逾時')), 25000))]);
+    const tmo = new Promise((_, rej) => setTimeout(() => rej(new Error('模型載入逾時')), 25000));
+    const wjob = L.loadAsync('../assets/190/world.glb'); wjob.catch(() => {});
+    const [w, m] = await Promise.race([job, tmo]);
     GLB = { w, m };
+    try { WG = await Promise.race([wjob, tmo]); } catch (e) { WG = null; console.warn('world.glb 載入失敗，島上建物改用程式建模', e); }
   } catch (e) { GLB = null; console.warn('Blender 模型載入失敗，改用程式建模', e); }
 }
 const _GC = {};
@@ -980,7 +977,7 @@ vec4 detTri(vec3 p, vec3 w) { return texture2D(tDet, p.zy) * w.x + texture2D(tDe
 	float dFar = smoothstep(18.0, 60.0, length(vViewPosition));
 	float dG = (dL.b - .5) * .55 + (dM.g - .5) * .3 + (dM.r - .5) * .22 * (1.0 - dFar);
 	${streak ? `dG -= smoothstep(.45, .9, texture2D(tDet, vec2((vDP.x + vDP.z) * .11, vDP.y * .012)).a) * ${streak.toFixed(3)} * (1.0 - dW.y);` : ''}
-	${low ? `dG -= (1.0 - smoothstep(0.02, 0.9, vDP.y)) * ${(.16 * low).toFixed(3)} * (1.0 - dW.y);` : ''}
+	${low ? `dG -= (1.0 - smoothstep(0.02, 0.9, vDP.y)) * step(max(abs(vDP.x), abs(vDP.z)), 150.0) * ${(.16 * low).toFixed(3)} * (1.0 - dW.y);` : ''}
 	diffuseColor.rgb *= clamp(1.0 + dG * ${grime.toFixed(3)}, .55, 1.3);`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
 	roughnessFactor = clamp(roughnessFactor + ((dL.g - .5) * .6 + (dM.r - .5) * .5) * ${rv.toFixed(3)}, .04, 1.0);`)
@@ -1570,8 +1567,8 @@ const SITE = 120;
    解析函數 → 整地（建築平台）→ 道路切填，烘成 2 m 的高度格 HF；
    碰撞、子彈、地形網格、草、樹與小地圖都讀同一份
    ============================================================ */
-const WORLDQ = { grass: 1, treeDist: 420, viewDist: 1400 };
-if (TOUCH) Object.assign(WORLDQ, { grass: .4, treeDist: 260, viewDist: 1000 });
+/* 草量、樹的顯示距離、地形的遠近層：跟著畫質預設（低／中／高／極致），切換畫質時由 'lastbeam-quality' 事件即時套用 */
+const WORLDQ = { grass: QUALITY.grass, treeDist: QUALITY.treeDist, viewDist: QUALITY.viewDist };
 const SEA = -4, HW = 640, HS = 2, HN = HW * 2 / HS + 1, WORLD = 600;
 const HF = new Float32Array(HN * HN);
 const smooth01 = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
@@ -1764,15 +1761,20 @@ let TERR_MAX = -16;
   const V = POI.village; V.houses = [];
   V.plaza = flat(V.x, V.z, 11, 11, 0, 8);
   const ring = [[104, 26], [146, 28], [186, 25], [238, 28], [284, 26], [330, 28], [14, 27], [75, 40], [212, 40]];
+  // world.glb：HOUSE_A（平房，門廊往 +z 多 1.5 m）與 HOUSE_B（兩層樓，外梯在 +x）交錯，平台照模型大小
+  const HT = [0, 1, 0, 1, 0, 0, 1, 1, 0];
   ring.forEach(([deg, r], i) => {
     const a = deg * Math.PI / 180, x = V.x + Math.cos(a) * r, z = V.z + Math.sin(a) * r, ry = Math.atan2(V.x - x, V.z - z);
-    V.houses.push({ x, z, ry, big: i === 7, f: flat(x, z, i === 7 ? 6.6 : 4.8, i === 7 ? 5.2 : 4, ry, 7) });
+    const t = HT[i], hw = WG ? (t ? 5.9 : 4.6) : i === 7 ? 6.6 : 4.8, hd = WG ? (t ? 4.6 : 6.9) : i === 7 ? 5.2 : 4;
+    V.houses.push({ x, z, ry, big: i === 7, t, f: flat(x, z, hw, hd, ry, 7) });
   });
   const G = POI.gas; G.ry = Math.atan2(-.644, -.765); G.x = 274; G.z = 252; G.f = flat(G.x, G.z, 17, 12.5, G.ry, 10);
   const C = POI.camp; C.f = flat(C.x, C.z, 30, 22, 0, 12);
-  const F = POI.farm; F.f = flat(F.x, F.z, 14, 10, .15, 9); F.house = flat(F.x + 30, F.z + 14, 5.5, 4.5, -.3, 7); F.silo = flat(F.x - 20, F.z - 4, 4, 4, 0, 6);
+  const F = POI.farm; F.f = flat(F.x, F.z, 14, 10, .15, 9); F.house = flat(F.x + 30, F.z + 14, 5.5, WG ? 7 : 4.5, -.3, 7); F.silo = flat(F.x - 20, F.z - 4, 4, 4, 0, 6);
   const T = POI.tower; T.f = flat(T.x, T.z, 13, 13, 0, 9);
   const L = POI.lake; L.dock = { x: -241, z: 256 }; L.f = flat(-238, 256, 9, 7, Math.PI / 2, 7);
+  // 採石場西北的紅岩崖（world.glb 的 MESA_B，採石面朝東對著坑）：先整出一塊平地讓崖腳貼地
+  if (WG) POI.quarry.cliff = flat(-80, -464, 40, 35, Math.PI / 2, 36, 11);   // 高度壓低到西、北兩側的地面，靠海那邊才不會墊出一座土台
 }
 
 bakeTerrain();
@@ -1795,7 +1797,7 @@ function bakeMask() {
     // 平台：只有腳印外 4 m 內是踩禿的土，順接坡照樣長草
     for (const f of FLATS) { const R = Math.hypot(f.hw, f.hd) + 4; if (Math.abs(x - f.x) > R || Math.abs(z - f.z) > R) continue; const c = Math.cos(f.ry), s = Math.sin(f.ry), dx = x - f.x, dz = z - f.z, d = Math.hypot(Math.max(0, Math.abs(dx * c - dz * s) - f.hw), Math.max(0, Math.abs(dx * s + dz * c) - f.hd)); dirt = Math.max(dirt, smooth01(4, 0, d) * .6); }
     const dry = clamp(smooth01(.42, .68, fbm2(x / 160 - 7, z / 160 + 2, 3)) + smooth01(60, 0, coastR(Math.atan2(z, x)) - Math.hypot(x, z)) * .6, 0, 1);
-    let g = smooth01(.95, .55, gr) * smooth01(SEA + 2.3, SEA + 3.2, h) * smooth01(6, 7.5, rd) * (1 - dirt * .9) * (1 - red * .6) * (.5 + .5 * smooth01(.25, .6, n2 + n1 * .4));
+    let g = smooth01(.95, .55, gr) * smooth01(SEA + 2.3, SEA + 3.2, h) * smooth01(6, 7.5, rd) * (1 - dirt * .9) * (1 - red * .6) * (.66 + .34 * smooth01(.25, .6, n2 + n1 * .4));
     if (padDist(x, z) < 146 || dm < mesaR(Math.atan2(z - M.z, x - M.x)) + 9) g = 0;
     MASK[k * 4] = g * 255; MASK[k * 4 + 1] = dirt * 255; MASK[k * 4 + 2] = red * 255; MASK[k * 4 + 3] = dry * 255;
   }
@@ -3188,25 +3190,268 @@ function buildSite() {
 }
 
 /* ============================================================
+   world.glb：島上的建物、樹、石頭與路邊道具（建模腳本 assets/190/build_world.py）。
+   每個物件依材質名稱（= 用途：paint 可換色、glass、emit…）拆成幾何，保留公尺為單位的 UV 與烘好 AO 的頂點色；
+   同一種物件用 InstancedMesh 一次畫完。碰撞盒、門口與樓板高度照模型資料（WCOL，區域座標）；
+   載不到（或 ?proc）時據點照舊用程式建模
+   ============================================================ */
+const WCOL = { TREE_A: [[-.398,0,-.398,.398,3.1,.398]],
+  TREE_B: [[-.442,0,-.442,.442,3.6,.442]],
+  TREE_C: [[-.238,0,-.238,.238,2.5,.238]],
+  ROCK_A: [[-.588,0,-.42,.588,.62,.42]],
+  ROCK_B: [[-1.26,0,-1.008,1.26,1.19,1.008]],
+  ROCK_C: [[-2.1,0,-1.68,2.1,2.21,1.68]],
+  HOUSE_A: [[-3.55,0,-4.55,3.55,.3,4.55], [-3.5,.3,4.3,-2.5,3.1,4.5], [-2.5,.3,4.3,-1.3,1.2,4.5], [-2.5,2.3,4.3,-1.3,3.1,4.5], [-1.3,.3,4.3,-.55,3.1,4.5], [-.55,2.45,4.3,.55,3.1,4.5], [.55,.3,4.3,1.3,3.1,4.5], [1.3,.3,4.3,2.5,1.2,4.5], [1.3,2.3,4.3,2.5,3.1,4.5], [2.5,.3,4.3,3.5,3.1,4.5], [-3.5,.3,-4.5,-1,3.1,-4.3], [-1,.3,-4.5,1,1.3,-4.3], [-1,2.3,-4.5,1,3.1,-4.3], [1,.3,-4.5,3.5,3.1,-4.3], [3.3,.3,-4.3,3.5,3.1,-3], [3.3,.3,-3,3.5,1.2,-1.8], [3.3,2.3,-3,3.5,3.1,-1.8], [3.3,.3,-1.8,3.5,3.1,1.2], [3.3,.3,1.2,3.5,1.2,2.4], [3.3,2.3,1.2,3.5,3.1,2.4], [3.3,.3,2.4,3.5,3.1,4.3], [-3.5,.3,-4.3,-3.3,3.1,-3.3], [-3.5,.3,-3.3,-3.3,1.2,-2.1], [-3.5,2.3,-3.3,-3.3,3.1,-2.1], [-3.5,.3,-2.1,-3.3,3.1,-.5], [-3.5,.3,-.5,-3.3,1.2,.7], [-3.5,2.3,-.5,-3.3,3.1,.7], [-3.5,.3,.7,-3.3,3.1,4.3], [-3.3,.3,-1.26,1,3.1,-1.14], [1,2.4,-1.26,1.95,3.1,-1.14], [1.95,.3,-1.26,3.3,3.1,-1.14], [-.545,.3,3.3,-.495,2.4,4.3], [-3.9,2.88,-4.9,3.9,5.14,4.9], [-2.3,3.1,-2.7,-1.7,5.7,-2.1], [-1.4,0,4.5,1.4,.28,6], [-.7,0,6,.7,.14,6.4], [1.19,.275,5.79,1.31,2.725,5.91], [-1.31,.275,5.79,-1.19,2.725,5.91], [-2.2,.3,1.2,-1,1.07,2], [2.6,.3,2.5,3.2,2.1,3.9], [-3.1,.3,-4.2,-1.5,.8,-2.2]],
+  HOUSE_B: [[-4.05,0,-3.55,4.05,.2,3.55], [-4,.2,3.3,-2.9,5.9,3.5], [-2.9,2.35,3.3,-1.8,4.1,3.5], [-2.9,5.2,3.3,-1.8,5.9,3.5], [-1.8,.2,3.3,-1.7,4.1,3.5], [-1.8,5.2,3.3,-1.7,5.9,3.5], [-1.7,.2,3.3,-.4,5.9,3.5], [-.4,.2,3.3,.2,4.1,3.5], [-.4,5.2,3.3,.2,5.9,3.5], [.2,.2,3.3,.9,1.1,3.5], [.2,2.2,3.3,.9,4.1,3.5], [.2,5.2,3.3,.9,5.9,3.5], [.9,.2,3.3,1.6,1.1,3.5], [.9,2.2,3.3,1.6,5.9,3.5], [1.6,.2,3.3,2.2,5.9,3.5], [2.2,.2,3.3,2.3,4.1,3.5], [2.2,5.2,3.3,2.3,5.9,3.5], [2.3,.2,3.3,3.4,1.1,3.5], [2.3,2.2,3.3,3.4,4.1,3.5], [2.3,5.2,3.3,3.4,5.9,3.5], [3.4,.2,3.3,4,5.9,3.5], [-4,.2,-3.5,-2.5,5.9,-3.3], [-2.5,.2,-3.5,-1.3,4.1,-3.3], [-2.5,5.2,-3.5,-1.3,5.9,-3.3], [-1.3,.2,-3.5,-1,5.9,-3.3], [-1,.2,-3.5,1,1.1,-3.3], [-1,2.2,-3.5,1,5.9,-3.3], [1,.2,-3.5,1.3,5.9,-3.3], [1.3,.2,-3.5,2.5,4.1,-3.3], [1.3,5.2,-3.5,2.5,5.9,-3.3], [2.5,.2,-3.5,4,5.9,-3.3], [3.8,.2,-3.3,4,5.9,-3], [3.8,.2,-3,4,3.2,-1.95], [3.8,5.35,-3,4,5.9,-1.95], [3.8,.2,-1.95,4,5.9,.3], [3.8,.2,.3,4,1.1,1.5], [3.8,2.2,.3,4,4.1,1.5], [3.8,5.2,.3,4,5.9,1.5], [3.8,.2,1.5,4,5.9,3.3], [-4,.2,-3.3,-3.8,5.9,-1.2], [-4,.2,-1.2,-3.8,1.1,0], [-4,2.2,-1.2,-3.8,4.1,0], [-4,5.2,-1.2,-3.8,5.9,0], [-4,.2,0,-3.8,5.9,1.5], [-4,.2,1.5,-3.8,4.1,2.5], [-4,5.2,1.5,-3.8,5.9,2.5], [-4,.2,2.5,-3.8,5.9,3.3], [-3.8,3,-3.3,3.8,3.2,3.3], [-4.4,5.74,-3.9,4.4,7.44,3.9], [4.05,0,3.02,5.25,.2,3.3], [4.05,0,2.74,5.25,.4,3.02], [4.05,0,2.46,5.25,.6,2.74], [4.05,0,2.18,5.25,.8,2.46], [4.05,0,1.9,5.25,1,2.18], [4.05,0,1.62,5.25,1.2,1.9], [4.05,0,1.34,5.25,1.4,1.62], [4.05,0,1.06,5.25,1.6,1.34], [4.05,0,.78,5.25,1.8,1.06], [4.05,0,.5,5.25,2,.78], [4.05,0,.22,5.25,2.2,.5], [4.05,0,-.06,5.25,2.4,.22], [4.05,0,-.34,5.25,2.6,-.06], [4.05,0,-.62,5.25,2.8,-.34], [4.05,0,-.9,5.25,3,-.62], [4.05,0,-1.18,5.25,3.2,-.9], [4.05,3,-3.5,5.25,3.2,-1.18], [5.15,0,-3.5,5.27,4.2,-1.18]],
+  SHED: [[-2.05,0,-2.55,2.05,.1,2.55], [-2.06,0,-2.56,-1.94,2.6,-2.44], [1.94,0,-2.56,2.06,2.6,-2.44], [-2.06,0,2.44,-1.94,3,2.56], [1.94,0,2.44,2.06,3,2.56], [-2,0,-2.6,2,2.6,-2.54], [2.07,0,-2.5,2.13,3,2.5], [-2.13,0,-2.5,-2.07,3,2.5], [-2.25,2.6,-2.8,2.25,3.12,2.8], [-1.1,0,-2.4,1.1,.94,-1.7], [1.1,.1,1.2,1.7,.98,1.8], [1.15,.1,.5,1.75,.98,1.1]],
+  BARN: [[-5,0,-7,5,.1,7], [-5,.1,6.8,-2.2,4.5,7], [-2.2,4.3,6.8,2.2,4.5,7], [2.2,.1,6.8,5,4.5,7], [-5,.1,-7,-1,4.5,-6.8], [-1,2.4,-7,1,4.5,-6.8], [1,.1,-7,5,4.5,-6.8], [4.8,.1,-6.8,5,4.5,-5], [4.8,.1,-5,5,2.4,-4], [4.8,3.2,-5,5,4.5,-4], [4.8,.1,-4,5,4.5,-.5], [4.8,.1,-.5,5,2.4,.5], [4.8,3.2,-.5,5,4.5,.5], [4.8,.1,.5,5,4.5,4], [4.8,.1,4,5,2.4,5], [4.8,3.2,4,5,4.5,5], [4.8,.1,5,5,4.5,6.8], [-5,.1,-6.8,-4.8,4.5,-5], [-5,.1,-5,-4.8,2.4,-4], [-5,3.2,-5,-4.8,4.5,-4], [-5,.1,-4,-4.8,4.5,-.5], [-5,.1,-.5,-4.8,2.4,.5], [-5,3.2,-.5,-4.8,4.5,.5], [-5,.1,.5,-4.8,4.5,4], [-5,.1,4,-4.8,2.4,5], [-5,3.2,4,-4.8,4.5,5], [-5,.1,5,-4.8,4.5,6.8], [-5.4,4.3,-7.4,5.4,8.45,7.4], [2.25,.1,7.06,4.55,4.3,7.18], [-4.55,.1,7.06,-2.25,4.3,7.18], [-4.05,.1,-6.5,-2.95,1,-4.5], [-4.05,1,-6.2,-2.95,1.9,-4.2], [-2.85,.1,-6.6,-1.75,1,-4.6], [3.05,.1,-5.8,4.15,1,-3.8]],
+  GAS_CANOPY: [[-4.725,0,-2.725,-4.275,5,-2.275], [-4.85,0,-2.85,-4.15,.6,-2.15], [4.275,0,-2.725,4.725,5,-2.275], [4.15,0,-2.85,4.85,.6,-2.15], [-4.725,0,2.275,-4.275,5,2.725], [-4.85,0,2.15,-4.15,.6,2.85], [4.275,0,2.275,4.725,5,2.725], [4.15,0,2.15,4.85,.6,2.85], [-7,5,-4.5,7,5.9,4.5]],
+  GAS_PUMP: [[-1.3,0,-.5,1.3,.18,.5], [-.4,.18,-.25,.4,1.88,.25], [1.05,.075,-.1,1.25,1.125,.1], [-1.25,.075,-.1,-1.05,1.125,.1]],
+  GAS_SHOP: [[-5.05,0,-4.05,5.05,.2,4.05], [-5.05,0,4,5.05,.12,6], [-5,.2,3.8,-4.4,4,4], [-4.4,3.3,3.8,4.4,4,4], [4.4,.2,3.8,5,4,4], [-5,.2,-4,2.9,4,-3.8], [2.9,2.3,-4,3.9,4,-3.8], [2.9,.2,-4,3.9,2.3,-3.8], [3.9,.2,-4,5,4,-3.8], [4.8,.2,-3.8,5,4,3.8], [-5,.2,-3.8,-4.8,4,3.8], [-4.4,.2,3.86,-.7,.7,3.94], [.7,.2,3.86,4.4,.7,3.94], [-4.4,.725,3.84,-.7,3.275,3.96], [.7,.725,3.84,4.4,3.275,3.96], [-5.15,4,-4.15,5.15,4.3,4.15], [-4.5,.2,-2.2,-1.9,1.2,-1.4], [-.5,.2,-.45,2.9,1.7,.05], [-.5,.2,1.35,2.9,1.7,1.85], [3.8,.2,-3.25,4.8,2.2,-2.35]],
+  GUARDRAIL: [[-1.06,0,-.13,-.94,.84,.12], [.94,0,-.13,1.06,.84,.12], [-2,.45,.1,2,.8,.18]],
+  POLE: [[-.16,0,-.16,.16,9.2,.16]],
+  STREETLIGHT: [[-.12,0,-.12,.12,7.6,.12]],
+  SIGN: [[-.06,0,-.1,.06,2.5,.02], [-.62,1.63,-.05,.62,2.47,.03]],
+  FENCE_WOOD: [[-1.51,-.005,-.06,-1.39,1.245,.06], [1.39,-.005,-.06,1.51,1.245,.06], [-1.5,0,-.07,1.5,1.2,.12]],
+  WATER_TOWER: [[2.1,0,2.1,2.5,12,2.5], [2.1,0,-2.5,2.5,12,-2.1], [-2.5,0,2.1,-2.1,12,2.5], [-2.5,0,-2.5,-2.1,12,-2.1], [-3.1,11.3,-3.1,3.1,17.6,3.1], [-3.75,12.2,-3.75,3.75,12.3,3.75]],
+  PIER: [[-1.25,-.05,-2.5,1.25,0,2.5], [-1.29,-3.2,-2.44,-1.01,.25,-2.16], [1.01,-3.2,-2.44,1.29,.25,-2.16], [-1.29,-3.2,2.16,-1.01,.25,2.44], [1.01,-3.2,2.16,1.29,.25,2.44]],
+  BOAT: [[-.8,-.25,-2.2,.8,.6,2.1]] };
+/* MESA_B 每一層的外輪廓 [y0, y1, [x, z, …]]：採石場旁的紅岩崖依它切成直條碰撞（凹進去的採石面也走得進去） */
+const MESA_B_BANDS = [[0,6.3,[35.5,0,38.9,8.3,36.4,16.7,28.3,22,20,25.6,8.3,20,3,20,-2,20,-7.2,20,-20.4,30.3,-27,23.1,-28.2,14.5,-31.3,8.1,-34.1,1.4,-36.5,-6.2,-31.7,-12.9,-29.4,-20.6,-22.6,-26.1,-15,-31.1,-5.4,-31,3.7,-31.9,12.6,-30.2,21.5,-27.6,27.6,-21.4,30.3,-13.9,33.9,-7.3]], [6.3,12.6,[34.9,0,38.2,8.2,36,16.5,27.9,21.7,19.6,25.2,7.3,17.6,2.6,17.6,-1.7,17.6,-6.3,17.6,-20.3,30.1,-27,23.1,-27.7,14.2,-30.7,8,-33.4,1.4,-36.4,-6.2,-31.7,-12.8,-28.8,-20.3,-22.1,-25.6,-14.8,-30.6,-5.3,-30.5,3.6,-31.2,12.5,-29.8,21.1,-27,27.2,-21.1,29.6,-13.6,33.7,-7.2]], [12.6,19,[34.4,0,37.7,8.1,35.7,16.3,27.7,21.5,19.3,24.8,6.3,15.2,2.3,15.2,-1.5,15.2,-5.4,15.2,-20.2,29.9,-26.9,23,-27.1,13.9,-30.2,7.8,-32.8,1.4,-36.4,-6.2,-31.6,-12.8,-28.2,-19.8,-21.8,-25.2,-14.6,-30.2,-5.2,-30.1,3.5,-30.6,12.3,-29.5,20.6,-26.5,26.9,-20.9,29.1,-13.3,33.3,-7.2]], [19,25.3,[33.8,0,37.3,8,35.4,16.2,27.6,21.4,19,24.4,5.3,12.8,1.9,12.8,-1.3,12.8,-4.6,12.8,-19.9,29.5,-26.4,22.6,-26.7,13.7,-29.8,7.7,-32.2,1.4,-36.2,-6.2,-31.5,-12.8,-27.7,-19.5,-21.5,-24.9,-14.4,-29.9,-5.1,-29.7,3.5,-30.1,12.1,-29,20.2,-25.9,26.6,-20.7,28.8,-13.2,32.8,-7]], [25.3,31.6,[32.6,0,36.1,7.8,34.3,15.7,26.9,20.9,18.3,23.5,4.3,10.4,1.5,10.4,-1,10.4,-3.7,10.4,-19,28.3,-25.3,21.7,-25.6,13.1,-28.7,7.5,-30.9,1.3,-35.1,-6,-30.4,-12.3,-26.5,-18.7,-20.8,-24.1,-13.9,-28.7,-4.9,-28.5,3.3,-29,11.6,-27.8,19.4,-24.8,25.8,-20,27.9,-12.8,31.5,-6.8]], [31.6,38,[32.3,0,35.9,7.7,34.3,15.7,26.8,20.8,18,23.1,3.3,8,1.2,8,-.8,8,-2.9,8,-18.8,27.9,-25,21.5,-25.3,13,-28.6,7.4,-30.5,1.3,-34.9,-6,-30,-12.2,-26.2,-18.4,-20.7,-23.9,-13.7,-28.3,-4.9,-28.2,3.3,-28.8,11.4,-27.3,19.1,-24.5,25.6,-19.9,27.8,-12.7,31.2,-6.7]]];
+const _WGC = {};
+/* 依三角形把一個幾何拆成兩份（招牌正面是 0..1 的 UV，要和其他公尺 UV 的面分開） */
+function wSplit(g, pred) {
+  const ix = g.index.array, a = [], b = [];
+  for (let i = 0; i < ix.length; i += 3) (pred(ix[i], ix[i + 1], ix[i + 2]) ? b : a).push(ix[i], ix[i + 1], ix[i + 2]);
+  const ga = g.clone(), gb = g.clone(); ga.setIndex(a); gb.setIndex(b);
+  return [ga, gb];
+}
+/* 名稱 → { 用途: 幾何 }（物件自己的座標，原點在地面中心）；可重複的貼圖 UV 縮成 1 = 4 m（和工地的 boxUV 一樣），台地 1 = 9 m */
+function worldGeo(name) {
+  if (!WG) return null;
+  if (name in _WGC) return _WGC[name];
+  const root = WG.scene.getObjectByName(name);
+  if (!root) { if (!GLB_MISSING.includes(name)) GLB_MISSING.push(name); return (_WGC[name] = null); }
+  root.updateMatrixWorld(true);
+  const inv = root.matrixWorld.clone().invert(), m = new THREE.Matrix4(), by = {};
+  root.traverse(o => { if (o.isMesh) (by[o.material.name.split('.')[0]] ||= []).push(o.geometry.clone().applyMatrix4(m.multiplyMatrices(inv, o.matrixWorld))); });
+  for (const k in by) by[k] = by[k].length > 1 ? mergeGeometries(by[k], false) : by[k][0];
+  const FACE = { SIGN: (p, n, i) => n.getZ(i) > .9 && p.getZ(i) > 0, GAS_SHOP: (p, n, i) => n.getZ(i) > .9 && p.getZ(i) > 4.155 && p.getY(i) > 3.25 && p.getY(i) < 4.05 }[name];
+  if (FACE && by.paint) { const p = by.paint.attributes.position, n = by.paint.attributes.normal; [by.paint, by.face] = wSplit(by.paint, (a, b, c) => FACE(p, n, a) && FACE(p, n, b) && FACE(p, n, c)); }
+  const us = name.startsWith('MESA') ? 1 / 9 : name.startsWith('ROCK') ? .55 : .25;   // 石頭近看密一點（1 UV ≈ 1.8 m），面與面交界的接縫才不明顯
+  for (const k in by) if (k !== 'leaf' && k !== 'face' && by[k].attributes.uv) { const a = by[k].attributes.uv.array; for (let i = 0; i < a.length; i++) a[i] *= us; }
+  return (_WGC[name] = by);
+}
+/* 灰階、平均亮度拉到 .8 的細節貼圖（顏色已經在頂點色裡，貼圖只負責明暗紋理）；回傳 [貼圖, 補回亮度的倍率] */
+function lumTex(c) {
+  const w = c.width, h = c.height, o = mkCanvas(w, h), g = o.getContext('2d'), L = lumOf(c), im = g.createImageData(w, h);
+  let m = 0; for (const v of L) m += v; m /= L.length;
+  let lin = 0;
+  for (let i = 0; i < L.length; i++) { const v = Math.min(1, L[i] / m * .8); im.data.set([v * 255, v * 255, v * 255, 255], i * 4); lin += Math.pow(v, 2.2); }
+  g.putImageData(im, 0, 0);
+  return [tex(o), L.length / lin];
+}
+/* 葉片圖集：2×2 格（0 大片闊葉、1 密的中葉、2 小葉與細枝、3 稀疏細葉），白／淺灰加透明，綠色來自頂點色。glTF 的 v 往下 → flipY = false */
+const WLEAFTEX = (() => {
+  const S = 512, c = mkCanvas(S, S), g = c.getContext('2d'), H = S / 2;
+  for (let cell = 0; cell < 4; cell++) {
+    const ox = (cell % 2) * H, oy = (cell >> 1) * H, n = [80, 150, 190, 120][cell], sz = [15, 10, 7, 6][cell];
+    g.save(); g.beginPath(); g.rect(ox + 8, oy + 8, H - 16, H - 16); g.clip();
+    g.strokeStyle = 'rgba(96,84,70,.9)'; g.lineWidth = cell === 3 ? 1.2 : 2;
+    for (let i = 0; i < 6; i++) { const a = Math.random() * TAU; g.beginPath(); g.moveTo(ox + H / 2, oy + H / 2); g.quadraticCurveTo(ox + H / 2 + Math.cos(a + .4) * 50, oy + H / 2 + Math.sin(a + .4) * 50, ox + H / 2 + Math.cos(a) * 104, oy + H / 2 + Math.sin(a) * 104); g.stroke(); }
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * TAU, r = Math.pow(Math.random(), .6) * 106, l = sz * (.7 + Math.random() * .6), v = 150 + (r / 106) * 60 + Math.random() * 45 | 0;
+      g.save(); g.translate(ox + H / 2 + Math.cos(a) * r, oy + H / 2 + Math.sin(a) * r); g.rotate(a + (Math.random() - .5) * 1.4);
+      g.fillStyle = `rgb(${v},${v},${v})`; g.beginPath(); g.ellipse(0, 0, l, l * (cell === 3 ? .3 : .42), 0, 0, TAU); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.18)'; g.beginPath(); g.ellipse(-l * .15, -l * .1, l * .6, l * .12, 0, 0, TAU); g.fill();
+      g.restore();
+    }
+    g.restore();
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.flipY = false; t.anisotropy = MAXANISO;
+  return t;
+})();
+/* 材質（依用途）：都用頂點色；貼圖只拿法線與粗糙度（T1 的工地貼圖），髒污與雨痕用 addDetail，
+   AO 已經烘在頂點色裡，貼地壓暗（low）關掉。樹皮、葉片跟著風擺（和舊的草叢、樹用同一個風） */
+let WMAT = null;
+function wMats() {
+  if (WMAT) return WMAT;
+  const std = (o, d) => { const m = new THREE.MeshStandardMaterial(Object.assign({ vertexColors: true }, o)); return d ? addDetail(m, Object.assign({ low: 0 }, d)) : m; };
+  const [rockT, rockK] = lumTex(TEX.rock.image), rockN = normalFrom(TEX.rock.image, 2.4);
+  const wind = (m, amp, base, key) => { windify(m, amp, base); m.customProgramCacheKey = () => key + amp + base; return m; };
+  const leaf = (amp, base) => {
+    const m = new THREE.MeshStandardMaterial({ vertexColors: true, map: WLEAFTEX, alphaTest: .5, side: THREE.DoubleSide, roughness: .9 });
+    wind(m, amp, base, 'wLeaf'); const w = m.onBeforeCompile;
+    m.onBeforeCompile = sh => { w(sh); sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', FIXNORMAL).replace('#include <map_fragment>', MAPBIAS); };
+    const d = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: WLEAFTEX, alphaTest: .5 });
+    wind(d, amp, base, 'wLeafD');
+    return [m, d];
+  };
+  WMAT = {
+    plain: std({ roughness: .92, normalMap: TEX.concN, normalScale: NS(.25) }, { g: .3, r: .08, s: .12 }),
+    paint: std({ roughness: .8, normalMap: TEX.concN, normalScale: NS(.35) }, { g: .38, r: .1, s: .25 }),
+    roof: std({ roughness: .78, metalness: .1, normalMap: TEX.plyN, normalScale: NS(.5) }, { g: .4, r: .12, s: .3 }),
+    wood: std({ roughness: 1, normalMap: TEX.woodN, normalScale: NS(.6), roughnessMap: TEX.woodR }, { g: .3, r: .05 }),
+    metal: std({ roughness: 1, metalness: .55, normalMap: TEX.galvN, normalScale: NS(.3), roughnessMap: TEX.galvR, envMapIntensity: 1.1 }, { g: .35, r: .18, s: .2 }),
+    rock: std({ roughness: .95, map: rockT, color: new THREE.Color(rockK, rockK, rockK), normalMap: rockN, normalScale: NS(.9) }, { g: .45, r: .08 }),
+    glass: std({ roughness: .05, metalness: .6, transparent: true, opacity: .38, depthWrite: false, envMapIntensity: 1.4 }),
+    emit: std({ roughness: .4, emissive: 0xfff0cc, emissiveIntensity: .75 }),
+    bark: wind(std({ roughness: .95, normalMap: TEX.woodN, normalScale: NS(.5) }), .026, 2.4, 'wBark'),
+    barkS: wind(std({ roughness: .95 }), .05, .15, 'wBark'),
+    leaf: leaf(.026, 2.4), leafS: leaf(.05, .15),
+  };
+  return WMAT;
+}
+/* 在目前的變換（XF）下放一個 world.glb 物件：ry 旋轉、o.s 等比縮放、o.c 為 paint 的顏色；碰撞照模型資料 */
+const WPROPS = {};
+function placeW(name, x, y, z, ry = 0, o = {}) {
+  if (!worldGeo(name)) return null;
+  _m.makeRotationY(ry).setPosition(x, y, z); if (o.s || o.sx || o.sz) _m.scale(_v.set(o.sx || o.s || 1, o.s || 1, o.sz || o.s || 1));
+  const M = o.M || XF.clone().multiply(_m);
+  (WPROPS[name] ||= []).push(Object.assign({ M }, o));
+  if (o.col !== false) for (const b of WCOL[name] || []) wColBox(M, b, o.tag, o.sl);
+  return M;
+}
+/* 區域座標的方塊 b 經 M 變換後的碰撞：軸對齊就一個 AABB；斜放時沿兩軸切成小塊（牆的厚度才不會膨脹、門口不會變窄） */
+const _wc = new THREE.Vector3(), _wm = new THREE.Matrix4();
+function wColBox(M, b, tag, sl) {
+  const w = b[3] - b[0], h = b[4] - b[1], d = b[5] - b[2];
+  _wm.makeTranslation((b[0] + b[3]) / 2, (b[1] + b[4]) / 2, (b[2] + b[5]) / 2).premultiply(M);
+  const e = _wm.elements, sx = Math.hypot(e[0], e[1], e[2]), skew = Math.abs(e[0]) > 1e-3 * sx && Math.abs(e[2]) > 1e-3 * sx;
+  const s = skew ? (sl || clamp(Math.min(w, d) * 1.2, .35, 1.2)) : 1e9, nx = Math.max(1, Math.ceil(w / s - .01)), nz = Math.max(1, Math.ceil(d / s - .01));
+  for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
+    let x0 = Infinity, y0 = Infinity, z0 = Infinity, x1 = -Infinity, y1 = -Infinity, z1 = -Infinity;
+    for (const a of [i, i + 1]) for (const bb of [-h / 2, h / 2]) for (const c of [j, j + 1]) {
+      _wc.set(-w / 2 + w * a / nx, bb, -d / 2 + d * c / nz).applyMatrix4(_wm);
+      x0 = Math.min(x0, _wc.x); y0 = Math.min(y0, _wc.y); z0 = Math.min(z0, _wc.z); x1 = Math.max(x1, _wc.x); y1 = Math.max(y1, _wc.y); z1 = Math.max(z1, _wc.z);
+    }
+    const e2 = skew ? .003 : 0;   // 斜切的小塊互相重疊一點點：射線剛好落在兩塊的交界時不會從縫裡穿過去
+    const c = addCol(x0 - e2, y0, z0 - e2, x1 + e2, y1, z1 + e2, 1); if (tag) c[tag] = 1;
+  }
+}
+/* 台地的分層輪廓 → 每 step 公尺一條的直條碰撞（凹進去的採石面、層與層之間的平台都保留） */
+function mesaCol(M, bands, top, step = 3) {
+  bands.forEach(([y0, y1, P], bi) => {
+    const n = P.length / 2; let x0 = Infinity, x1 = -Infinity;
+    for (let i = 0; i < n; i++) { x0 = Math.min(x0, P[i * 2]); x1 = Math.max(x1, P[i * 2]); }
+    if (bi === bands.length - 1) y1 = top;
+    for (let x = x0; x < x1 - .1; x += step) {
+      const xe = Math.min(x + step, x1); let z0 = Infinity, z1 = -Infinity;
+      for (const xs of [x + .05, (x + xe) / 2, xe - .05]) for (let i = 0; i < n; i++) {
+        const ax = P[i * 2], az = P[i * 2 + 1], bx = P[(i + 1) % n * 2], bz = P[(i + 1) % n * 2 + 1];
+        if ((ax - xs) * (bx - xs) > 0 || ax === bx) continue;
+        const z = az + (bz - az) * (xs - ax) / (bx - ax); z0 = Math.min(z0, z); z1 = Math.max(z1, z);
+      }
+      if (z1 > z0) wColBox(M, [x, y0, z0, xe, y1, z1], 'rock', step);   // 小地圖把它畫成岩石點，不當建築
+    }
+  });
+}
+/* 路牌：每塊一格 256×170 的圖集，綠底白字（地名與箭頭）；加油站招牌另外一張 */
+const WSIGNS = [], SIGN_CH = 170;
+function signTex() {
+  const c = mkCanvas(1024, 1024), g = c.getContext('2d');
+  g.fillStyle = '#2e7d4f'; g.fillRect(0, 0, 1024, 1024);
+  WSIGNS.forEach((s, k) => {
+    const x = (k % 4) * 256, y = Math.floor(k / 4) * SIGN_CH;
+    g.strokeStyle = '#f3f1ea'; g.lineWidth = 5; g.strokeRect(x + 9, y + 9, 238, SIGN_CH - 18);
+    g.fillStyle = '#f3f1ea'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = '700 38px "PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif';
+    g.fillText(s.t, x + 128, y + 66, 220);
+    g.font = '700 30px "PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif';
+    g.fillText(s.a + (s.d ? '  ' + s.d : ''), x + 128, y + 120, 220);
+  });
+  const t = tex(c, false); t.flipY = false; return t;
+}
+function shopTex() {
+  const c = mkCanvas(1024, 72), g = c.getContext('2d');
+  g.fillStyle = '#e8671d'; g.fillRect(0, 0, 1024, 72); g.fillStyle = '#f7f3ea'; g.fillRect(0, 60, 1024, 5);
+  g.fillStyle = '#fffaf0'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '700 42px "PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif';
+  g.fillText('金絲雀加油站 · 24 小時便利商店', 512, 32, 980);
+  const t = tex(c, false); t.flipY = false; return t;
+}
+/* 建造完：每種物件、每種用途一個 InstancedMesh（paint 用實例顏色換色）；招牌正面合併成一個網格 */
+function flushWProps() {
+  if (!WG) return;
+  const W = wMats(), col = new THREE.Color();
+  for (const name in WPROPS) {
+    const list = WPROPS[name], geo = worldGeo(name);
+    for (const role in geo) {
+      if (role === 'face') {
+        const parts = list.map(it => {
+          const c = geo.face.clone();
+          if (name === 'SIGN') { const uv = c.attributes.uv; for (let k = 0; k < uv.count; k++) uv.setXY(k, ((it.cell % 4) + uv.getX(k)) / 4, (Math.floor(it.cell / 4) + uv.getY(k)) * SIGN_CH / 1024); }
+          return c.applyMatrix4(it.M);
+        });
+        const m = new THREE.Mesh(mergeGeometries(parts, false), new THREE.MeshStandardMaterial({ vertexColors: true, map: name === 'SIGN' ? signTex() : shopTex(), roughness: .45, metalness: .1, emissive: 0xffffff, emissiveIntensity: .06 }));
+        parts.forEach(p => p.dispose()); m.receiveShadow = true; m.matrixAutoUpdate = false; scene.add(m);
+        continue;
+      }
+      const im = new THREE.InstancedMesh(geo[role], W[role] || W.plain, list.length);
+      list.forEach((it, i) => { im.setMatrixAt(i, it.M); if (role === 'paint') im.setColorAt(i, col.set(it.c ?? 0xf1ede4)); });
+      im.castShadow = role !== 'glass' && role !== 'emit'; im.receiveShadow = true; im.matrixAutoUpdate = false;
+      scene.add(im);
+    }
+  }
+}
+
+/* ============================================================
    島上的據點：每個據點一個建造函數（placeXxx），外型之後可以整組換成 world.glb 的模型
    ============================================================ */
 /* 圍起來的空間（工地圍籬、小屋、穀倉…）與它的出入口：電腦要進出時先走到門口再穿過去。
    以目前的變換登記；gates = [[外側 x, z, 內側 x, z]]（區域座標） */
 const NAVENC = [];
-function navEnc(hw, hd, gates) {
+function navEnc(hw, hd, gates, ob) {
   const w = (x, z) => { _v.set(x, 0, z).applyMatrix4(XF); return [_v.x, _v.z]; };
-  NAVENC.push({ inv: XF.clone().invert(), hw, hd, gates: gates.map(([ox, oz, ix, iz]) => [...w(ox, oz), ...w(ix, iz)]) });
+  // ob = 繞行用的外框 [x0, z0, x1, z1]（區域座標，含後院圍籬、外樓梯）；從背後過來的電腦先繞過轉角再到門口
+  NAVENC.push({ inv: XF.clone().invert(), M: XF.clone(), hw, hd, a: hw * hd, ob: ob || [-hw, -hd, hw, hd], gates: gates.map(([ox, oz, ix, iz]) => [...w(ox, oz), ...w(ix, iz)]) });
+}
+/* 區域座標的線段 a→b 有沒有穿過外框（外擴 e） */
+function navHit(ob, ax, az, bx, bz, e) {
+  let t0 = 0, t1 = 1; const d = [bx - ax, bz - az], o = [ax, az], lo = [ob[0] - e, ob[1] - e], hi = [ob[2] + e, ob[3] + e];
+  for (let k = 0; k < 2; k++) {
+    if (Math.abs(d[k]) < 1e-9) { if (o[k] < lo[k] || o[k] > hi[k]) return false; continue; }
+    let u = (lo[k] - o[k]) / d[k], v = (hi[k] - o[k]) / d[k]; if (u > v) [u, v] = [v, u];
+    t0 = Math.max(t0, u); t1 = Math.min(t1, v); if (t0 > t1) return false;
+  }
+  return true;
+}
+/* 在外面、要去的門口在房子另一頭：回傳繞過外框的下一個轉角（世界座標），不用繞就回 null */
+function navAround(E, p, gx, gz) {
+  const ob = E.ob, e = .45, c = 1.6;
+  _v.set(p.x, 0, p.z).applyMatrix4(E.inv); const px = _v.x, pz = _v.z;
+  if (px > ob[0] - e && px < ob[2] + e && pz > ob[1] - e && pz < ob[3] + e) return null;
+  _v.set(gx, 0, gz).applyMatrix4(E.inv); const qx = _v.x, qz = _v.z;
+  if (!navHit(ob, px, pz, qx, qz, e)) return null;
+  const K = [[ob[0] - c, ob[1] - c], [ob[2] + c, ob[1] - c], [ob[2] + c, ob[3] + c], [ob[0] - c, ob[3] + c]];
+  const ok = (a, b) => !navHit(ob, a[0], a[1], b[0], b[1], e), D = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]), P = [px, pz], G = [qx, qz];
+  let best = null, bd = 1e9;
+  for (let i = 0; i < 4; i++) {
+    if (!ok(P, K[i])) continue;
+    if (ok(K[i], G)) { const d = D(P, K[i]) + D(K[i], G); if (d < bd) { bd = d; best = K[i]; } }
+    for (const j of [(i + 1) % 4, (i + 3) % 4]) if (ok(K[j], G)) { const d = D(P, K[i]) + D(K[i], K[j]) + D(K[j], G); if (d < bd) { bd = d; best = K[i]; } }
+  }
+  if (!best) return null;
+  _v.set(best[0], 0, best[1]).applyMatrix4(E.M); return [_v.x, _v.z];
 }
 const navIn = (E, x, z) => { _v.set(x, 0, z).applyMatrix4(E.inv); return Math.abs(_v.x) < E.hw && Math.abs(_v.z) < E.hd; };
 function navWaypoint(p, tx, tz) {
-  for (const E of NAVENC) {
-    const bi = navIn(E, p.x, p.z);
-    if (bi === navIn(E, tx, tz)) continue;
+  // 套在一起的空間（屋裡的臥室）：要出去先出最裡面那層，要進去先進最外面那層
+  let E = null, bi = false;
+  for (const e of NAVENC) {
+    const i = navIn(e, p.x, p.z); if (i === navIn(e, tx, tz)) continue;
+    if (!E || (i && !bi) || (i === bi && (i ? e.a < E.a : e.a > E.a))) { E = e; bi = i; }
+  }
+  if (E) {
     let best = null, bd = 1e9;
     for (const g of E.gates) { const q = bi ? [g[2], g[3], g[0], g[1]] : g, d = Math.hypot(q[0] - p.x, q[1] - p.z) + Math.hypot(tx - q[2], tz - q[3]); if (d < bd) { bd = d; best = q; } }
     // 還沒走到門口就先去門口；已經在門口（比門口更靠近另一側）就穿過去
     const dO = Math.hypot(best[0] - p.x, best[1] - p.z), dI = Math.hypot(best[2] - p.x, best[3] - p.z), L = Math.hypot(best[2] - best[0], best[3] - best[1]);
-    return dO > 1.3 && dI > L - .2 ? [best[0], best[1]] : [best[2], best[3]];
+    if (dO > 1.3 && dI > L - .2) {
+      // 從房子背後或側面過來：先繞到轉角，別直接朝門口撞牆（人已經在別的圍起來的空間裡就不繞）
+      if (!bi && !NAVENC.some(e => e !== E && navIn(e, p.x, p.z))) { const r = navAround(E, p, best[0], best[1]); if (r) return r; }
+      return [best[0], best[1]];
+    }
+    return [best[2], best[3]];
   }
   return null;
 }
@@ -3266,6 +3511,21 @@ function propHouse(w, d, style, o = {}) {
   if (w > 9) { S(-hw * .6, y0 + .52, -hd * .2); S(hw * .6, y0 + .02, hd * .35); }
 }
 
+/* world.glb 的民房（原點在地面中心、門朝 +z）：HOUSE_A 平房（前門＋隔間裡的臥室門）、HOUSE_B 兩層樓（一樓前門，二樓從 +x 的外梯進）。
+   戰利品放在地板與家具頂上；電腦從前門進出（臥室是套在屋裡的另一層） */
+const WPAL = [0xf1ede4, 0xbfd3dc, 0xb9c7a4, 0xe9d9b4, 0xe8cdb0];
+function wHouse(t, c, yd) {
+  if (t) {
+    placeW('HOUSE_B', 0, 0, 0, 0, { c });
+    navEnc(3.8, 3.3, [[-2.35, 4.8, -2.35, 2.1]], yd ? [-6.1, -10.1, 6.1, 3.7] : [-4.2, -3.7, 5.4, 3.7]);
+    S(1.4, .22, 1.8); S(-2.9, .22, -2.3); S(2.7, .22, -1.4); S(-1.2, 3.22, .8); S(2.2, 3.22, -2.2);
+  } else {
+    placeW('HOUSE_A', 0, 0, 0, 0, { c });
+    navEnc(3.3, 4.3, [[0, 5.7, 0, 3.2]], yd ? [-6.1, -10.1, 6.1, 4.6] : [-3.7, -4.7, 3.7, 4.6]);
+    pushX(0, 0, -2.75, 0); navEnc(3.3, 1.5, [[1.475, 2.6, 1.475, .4]]); popX();
+    S(.8, .32, 1.6); S(-1.6, 1.09, 1.6); S(-2.3, .82, -3.2); S(2.3, .32, -2.9);
+  }
+}
 /* 坡頂村：山頂廣場（井、市集攤）＋ 一圈可以進去的小屋 */
 function placeVillage(V) {
   at(V.x, V.z, 0, () => {
@@ -3279,8 +3539,11 @@ function placeVillage(V) {
     }
     for (const [x, z] of [[-4, -6], [5, 6]]) B('wood', 0x8a6a48, x, 0, z, 1.8, .45, .45, { col: 1 });
     S(2, .02, 2); S(-3, .02, -2);
+    if (WG) for (const [x, z] of [[-9.6, -9.6], [9.6, 9.6], [9.6, -9.6], [-9.6, 9.6]]) placeW('STREETLIGHT', x, 0, z, Math.atan2(-x, -z));
   }, V.plaza.y);
-  V.houses.forEach((hs, i) => at(hs.x, hs.z, hs.ry, () => propHouse(hs.big ? 12 : 8.2, hs.big ? 9 : 6.6, i % 3, hs.big ? { part: 1.2 } : {}), hs.f.y));
+  // 屋後一圈木圍籬圍出小後院（跟著坡度，前面開口）
+  const yard = () => { const y0 = XF.elements[13], yf = (x, z) => { _v.set(x, 0, z).applyMatrix4(XF); return terrainH(_v.x, _v.z) - y0; }; wTiles('FENCE_WOOD', 3, 6, -5.5, 6, -10, yf); wTiles('FENCE_WOOD', 3, 6, -10, -6, -10, yf); wTiles('FENCE_WOOD', 3, -6, -10, -6, -5.5, yf); };
+  V.houses.forEach((hs, i) => at(hs.x, hs.z, hs.ry, () => { if (!WG) return propHouse(hs.big ? 12 : 8.2, hs.big ? 9 : 6.6, i % 3, hs.big ? { part: 1.2 } : {}); wHouse(hs.t, WPAL[i % WPAL.length], i % 3 !== 1); if (i % 3 !== 1) yard(); }, hs.f.y));
   LABELS.push({ x: V.x, z: V.z, t: V.t, big: 1 });
 }
 
@@ -3288,6 +3551,18 @@ function placeVillage(V) {
 function placeGasStation(G) {
   at(G.x, G.z, G.ry, () => {
     B('conc', 0xa9a59c, 0, -.5, 0, 34, .56, 25, { us: 3 });
+    if (WG) {
+      // world.glb：雨棚（招牌帶是品牌橘）、兩座加油島、可進入的小超商（正面招牌另外畫字）、路邊路燈
+      placeW('GAS_CANOPY', 0, .06, 5.6, 0, { c: 0xe8671d });
+      for (const x of [-4.5, 4.5]) placeW('GAS_PUMP', x, .06, 5.6, Math.PI / 2, { c: 0xe8671d });
+      pushX(0, .06, -8.6, 0);
+      placeW('GAS_SHOP', 0, 0, 0, 0, { c: 0xece6da });
+      navEnc(4.8, 3.8, [[0, 5.3, 0, 2.6]]);
+      S(-3, .22, 1.8); S(-1.4, .22, .7); S(3.4, .22, 2.4); S(-3.2, .22, -.8); S(-4, .22, -3);
+      popX();
+      for (const x of [-15.5, 10.5]) placeW('STREETLIGHT', x, .06, 11.8);
+      S(0, .08, 5.6); S(0, .08, 1.4);
+    } else {
     for (const x of [-6, 6]) for (const z of [2.2, 9]) B('metal', 0xdcdcd6, x, 0, z, .4, 5, .4, { col: 1 });
     B('metal', 0xe8e6e0, 0, 5, 5.6, 17, .55, 11, { col: 1 });
     for (const z of [.08, 11.12]) B('flat', 0xc8312b, 0, 5.05, z, 17.02, .45, .04);
@@ -3313,11 +3588,13 @@ function placeGasStation(G) {
     B('wood', 0x7a5a3c, 4.6, .12, 1.4, 2.2, 1, .7, { col: 1 }); B('flat', 0x222222, 4.6, 1.12, 1.4, .4, .3, .3); S(4.6, 1.13, 1.2);
     B('metal', 0xd8e2e6, -5.8, .12, -2.9, 1, 2, .7, { col: 1 }); S(-5.8, .13, -2); S(2, .13, 2);
     popX();
+    S(-6, .27, 5.6); S(6, .27, 5.6);
+    }
     // 價格看板
     B('metal', 0x7d868a, 14.5, 0, 10.5, .35, 7, .35, { col: 1 }); B('flat', 0xc8312b, 14.5, 7, 10.5, 2.4, 1.4, .3); B('flat', 0xf4f1ea, 14.5, 5.3, 10.5, 2.2, 1.6, .28);
     for (let i = 0; i < 3; i++) B('flat', 0x1c1c1c, 14.5, 5.55 + i * .45, 10.36 + .005, 1.6, .22, .01);
     drum(-12, -3, K.red); drum(-12.7, -3.6, K.blu); pallet(-11.5, -8, .2, 'bags');
-    S(-6, .27, 5.6); S(6, .27, 5.6); S(12, .07, -2);
+    S(12, .07, -2);
     pickup(-11, 6, Math.PI / 2, 0x4a5b6a);
   }, G.f.y);
   LABELS.push({ x: G.x, z: G.z, t: G.t, big: 1 });
@@ -3337,6 +3614,7 @@ function placeWorkCamp(Cp) {
     // 帆布棚、工具與掩體
     for (const [x, z] of [[2, -2], [2, 4]]) { for (const a of [-2, 2]) for (const b of [-1.5, 1.5]) B('metal', K.galv, x + a, 0, z + b, .08, 2.4, .08); B('flat', K.tarp, x, 2.4, z, 4.6, .06, 3.4); B('wood', K.wood, x, 0, z, 2.4, .8, 1.1, { col: 1 }); S(x, .82, z); }
     generator(-4, -18, 0); lightTower(22, 0, 0); lightTower(-27, 8, 0);
+    if (WG) { placeW('SHED', 24, 0, -14, -Math.PI / 2); S(24.4, .12, -14); }
     for (let i = 0; i < 4; i++) toilet(-24 + i * 1.4, 16, Math.PI);
     skip(24, 16, 0); pallet(-6, 6, 0, 'brick'); pallet(-7.4, 6, 0, 'block'); drum(20, -6, K.blu); drum(20.6, -6.8, K.red);
     barrierRow(-18, -21, 8, 0); barrierRow(14, -21, 8, 0); barrierRow(0, 21, 6, 0); barrierRow(29, 0, 8, Math.PI / 2);
@@ -3348,8 +3626,32 @@ function placeWorkCamp(Cp) {
 }
 
 /* 農場穀倉：紅色木板大穀倉（有閣樓，草捆可以踩上去）、筒倉、農舍、圍欄 */
+/* 一段一段鋪的道具（木圍籬 3 m、護欄 4 m）：沿 a→b 鋪滿，柱子保持直立、橫木順著地面高低（剪切而不是旋轉），模型的 +z 朝 a→b 的左手邊；yf 給每個點的高度 */
+function wTiles(name, len, ax, az, bx, bz, yf, o = {}) {
+  const L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.round(L / len)), ux = (bx - ax) / L, uz = (bz - az) / L;
+  for (let i = 0; i < n; i++) {
+    if (o.skip && o.skip(i, n)) continue;
+    const x0 = ax + (bx - ax) * i / n, z0 = az + (bz - az) * i / n, x1 = ax + (bx - ax) * (i + 1) / n, z1 = az + (bz - az) * (i + 1) / n, y0 = yf(x0, z0), y1 = yf(x1, z1), k = L / n / len;
+    _m.set(ux * k, 0, -uz, (x0 + x1) / 2, (y1 - y0) / len, 1, 0, (y0 + y1) / 2, uz * k, 0, ux, (z0 + z1) / 2, 0, 0, 0, 1);   // +z 在 a→b 的左手邊
+    placeW(name, 0, 0, 0, 0, Object.assign({}, o, { M: XF.clone().multiply(_m) }));
+  }
+}
 function placeFarm(F) {
-  at(F.x, F.z, .15, () => {
+  if (WG) {
+    at(F.x, F.z, .15, () => {
+      // world.glb：紅穀倉（大門與後門都開著）、旁邊的工具棚、畜欄圍籬
+      placeW('BARN', 0, 0, 0, 0, { c: 0x9b2f24 });
+      navEnc(4.8, 6.8, [[0, 8.7, 0, 5.4], [0, -8.7, 0, -5.4]]);
+      S(0, .12, 1); S(3, .12, 4); S(-3, .12, -1.5); S(-2.3, 1.02, -5.6); S(3.6, 1.02, -4.8); S(-3.5, 1.92, -5.2);
+      placeW('SHED', -10.5, 0, 2, -Math.PI / 2); S(-10.5, .12, 1);
+      const y0 = () => 0;
+      wTiles('FENCE_WOOD', 3, 10, 7, 26, 7, y0); wTiles('FENCE_WOOD', 3, 26, 7, 26, -9, y0); wTiles('FENCE_WOOD', 3, 26, -9, 10, -9, y0);
+    }, F.f.y);
+    // 犁過的田外圍一圈圍籬（跟著坡度），東西兩邊各留一個缺口
+    const x0 = F.x - 121, x1 = F.x - 39, z0 = F.z - 41, z1 = F.z + 46, gap = (i, n) => i === (n >> 1) || i === (n >> 1) + 1;
+    wTiles('FENCE_WOOD', 3, x0, z0, x1, z0, terrainH); wTiles('FENCE_WOOD', 3, x0, z1, x1, z1, terrainH);
+    wTiles('FENCE_WOOD', 3, x0, z0, x0, z1, terrainH, { skip: gap }); wTiles('FENCE_WOOD', 3, x1, z0, x1, z1, terrainH, { skip: gap });
+  } else at(F.x, F.z, .15, () => {
     const w = 16, d = 11, H = 5.2, t = .25, hw = w / 2, hd = d / 2, y0 = .2, R = 0xa8412e;
     navEnc(hw, hd, [[0, hd + 1.5, 0, hd - 1.5], [3.2, -hd - 1.5, 3.2, -hd + 1.5]]);
     B('conc', K.concD, 0, -1.2, 0, w + .4, 1.4, d + .4, { col: 1 });
@@ -3378,7 +3680,7 @@ function placeFarm(F) {
     fence(10, 7, 26, 7); fence(26, 7, 26, -9); fence(26, -9, 10, -9);
   }, F.f.y);
   at(F.silo.x, F.silo.z, 0, () => { C('metal', 0xb9c0c4, 0, 6.5, 0, 3, 3, 13, 18, { col: 1 }); C('metal', 0x9aa3a8, 0, 13.9, 0, .4, 3.1, 1.8, 18); for (let y = 1; y < 13; y += 2.2) C('metal', 0x8b9396, 0, y, 0, 3.05, 3.05, .12, 18); S(3.6, .02, 0); }, F.silo.y);
-  at(F.house.x, F.house.z, F.house.ry, () => propHouse(9, 7, 0), F.house.y);
+  at(F.house.x, F.house.z, F.house.ry, () => WG ? wHouse(0, 0xe9d9b4) : propHouse(9, 7, 0), F.house.y);
   at(F.x + 12, F.z + 24, 0, () => pickup(0, 0, Math.PI * .6, 0x6a4a33));
   LABELS.push({ x: F.x, z: F.z, t: F.t, big: 1 });
 }
@@ -3398,10 +3700,13 @@ function placeRadioHill(T) {
     B('flat', 0xd12a2a, 0, h + .06, 0, .3, .3, .3);
     // 水塔
     pushX(-7, .06, 6, 0);
+    if (WG) placeW('WATER_TOWER', 0, 0, 0, Math.PI / 2, { c: 0x6f97b3 });
+    else {
     for (const a of [-1.8, 1.8]) for (const b of [-1.8, 1.8]) L('metal', 0x7d868a, a, 0, b, a * .7, 9, b * .7, .22);
     for (const a of [-1.53, 1.53]) for (const b of [-1.53, 1.53]) addCol(...colBoxLocal(a, 0, b, .6, 9, .6));
     C('metal', 0x9aa9ae, 0, 11, 0, 3, 3, 4, 18, { col: 1 }); C('metal', 0x7d868a, 0, 13.6, 0, .3, 3.1, 1.2, 18);
     for (let y = .5; y < 9; y += .4) B('metal', 0x5d6266, 2.05, y, 0, .06, .04, .5);
+    }
     popX();
     pushX(7, .06, -6, 0); propHouse(6, 5, 2, { flatRoof: true, dx: 0 }); popX();
     // 鐵絲網圍籬
@@ -3418,10 +3723,17 @@ function placeRadioHill(T) {
 /* 湖岸碼頭：木棧道伸進湖裡、兩間船屋、小船與岸邊小屋 */
 function placeLakeDock(Lk) {
   const yD = SEA + .95, F = Lk.f;
-  at(F.x, F.z, F.ry, () => propHouse(7, 5.5, 1), F.y);
+  at(F.x, F.z, F.ry, () => WG ? wHouse(0, 0xbfd3dc) : propHouse(7, 5.5, 1), F.y);
   // 由小屋往西找到水邊
   let x0 = F.x - 8; while (x0 > F.x - 60 && terrainH(x0, F.z) > yD - .15) x0 -= .5;
   const deck = (cx, cz, lx, lz) => {
+    if (WG) {
+      // world.glb 的棧橋（5 m 一段、原點是橋面中心）：碰撞沿用一整塊橋面
+      pColB(cx, yD - .22, cz, lx, .22, lz, { col: 1 });
+      const ax = lx > lz, L = ax ? lx : lz, n = Math.max(1, Math.round(L / 5));
+      for (let i = 0; i < n; i++) { const t = ((i + .5) / n - .5) * L; placeW('PIER', cx + (ax ? t : 0), yD, cz + (ax ? 0 : t), ax ? Math.PI / 2 : 0, { col: false, sz: L / n / 5, sx: (ax ? lz : lx) / 2.5 }); }
+      return;
+    }
     B('wood', K.wood, cx, yD - .22, cz, lx, .22, lz, { col: 1, us: 1 });
     for (let x = cx - lx / 2 + .3; x <= cx + lx / 2; x += 3) for (const s of [-1, 1]) { const px = x, pz = cz + s * (lz / 2 - .15), b = terrainH(px, pz); if (b < yD - .3) C('wood', 0x6b5238, px, (b + yD - .2) / 2, pz, .12, .12, yD - .2 - b, 6); }
   };
@@ -3434,10 +3746,11 @@ function placeLakeDock(Lk) {
     B('wood', 0xe0d0b4, 0, -.9, -d / 2, w, 4.2, .15, { col: 1, us: 2 });
     B('flat', 0x4d5660, 0, 3.4, 0, w + .6, .14, d + .6, { rx: .12 });
     for (const s of [-1, 1]) B('wood', K.wood, s * (w / 2 - .6), -.22, 0, 1.1, .22, d - .4, { col: 1, us: 1 });
-    B('flat', 0xe9e6df, 0, -1.15, .5, 1.6, .55, 4.2); B('flat', 0x3d6a8e, 0, -.62, .5, 1.62, .08, 4.22); B('flat', 0x6b5238, 0, -.6, -.4, 1.2, .08, .4);
+    if (WG) placeW('BOAT', 0, SEA - yD, .5, 0, { c: 0x2f5f8a });
+    else { B('flat', 0xe9e6df, 0, -1.15, .5, 1.6, .55, 4.2); B('flat', 0x3d6a8e, 0, -.62, .5, 1.62, .08, 4.22); B('flat', 0x6b5238, 0, -.6, -.4, 1.2, .08, .4); }
     S(w / 2 - .6, .02, 1); S(-(w / 2 - .6), .02, -2);
   }, yD);
-  for (const [bx, bz, ry, c] of [[x0 - 9, F.z + 3.2, .1, K.red], [x0 - 36, F.z - 4, -.3, K.wht]]) at(bx, bz, ry, () => { B('flat', c, 0, 0, 0, 1.5, .5, 3.8); B('flat', 0xe9e6df, 0, .5, 0, 1.52, .08, 3.82); B('wood', 0x8a6a48, 0, .4, .6, 1.3, .06, .35); }, SEA - .3);
+  for (const [bx, bz, ry, c] of [[x0 - 9, F.z + 3.2, .1, K.red], [x0 - 36, F.z - 4, -.3, K.wht]]) at(bx, bz, ry, () => { if (WG) { placeW('BOAT', 0, .3, 0, 0, { c: c === K.red ? 0xb8452f : 0xf0efe9 }); return; } B('flat', c, 0, 0, 0, 1.5, .5, 3.8); B('flat', 0xe9e6df, 0, .5, 0, 1.52, .08, 3.82); B('wood', 0x8a6a48, 0, .4, .6, 1.3, .06, .35); }, SEA - .3);
   for (const x of [-6, -14, -24, -34]) S(x0 + x, yD + .02, F.z + sr(-.8, .8));
   S(x0 - 22, yD + .02, F.z - 14); S(x0 - 32, yD + .02, F.z + 12);
   LABELS.push({ x: Lk.x + 40, z: Lk.z, t: Lk.t, big: 1 });
@@ -3465,6 +3778,8 @@ function placeQuarry(Q) {
   }
   // 台階上的戰利品
   for (let i = 0; i < 10; i++) { const a = sr(0, TAU), r = 34 + ((srand() * 5) | 0) * 14 + 7, x = Q.x + Math.cos(a) * r, z = Q.z + Math.sin(a) * r, h = terrainH(x, z); if (hGrad(((Math.round((z + HW) / HS)) * HN + Math.round((x + HW) / HS))) < .3) S(x, h + .02, z); }
+  // world.glb 的 MESA_B：西北邊一座紅砂岩崖，階梯狀的採石面朝東對著坑；碰撞照每一層的輪廓切成直條
+  if (WG && Q.cliff) { const C = Q.cliff; pushX(C.x, C.y - .35, C.z, Math.PI / 2); placeW('MESA_B', 0, 0, 0, 0, { col: false }); mesaCol(XF.clone(), MESA_B_BANDS, 40.5); popX(); }
   LABELS.push({ x: Q.x, z: Q.z, t: Q.t, big: 1 });
   LABELS.push({ x: POI.mesa.x, z: POI.mesa.z, t: POI.mesa.t, big: 1 });
 }
@@ -3531,9 +3846,71 @@ function placeCountryside() {
     S(x, h + .02, z); n++;
   }
 }
+/* 路邊（world.glb）：環島路外側的電線桿與電線、填方路堤邊的護欄、路口的路牌、工地大門的路燈 */
+function placeRoadside() {
+  const S0 = ROADS[0].s, N = S0.length;
+  const otherRoad = (x, z, ri, lim) => ROADS.some((R, k) => k !== ri && R.s.some(q => Math.abs(q.x - x) < lim && Math.abs(q.z - z) < lim && Math.hypot(q.x - x, q.z - z) < lim));
+  const clear = (x, z, r) => { const h = terrainH(x, z); return h > SEA + 1.5 && padDist(x, z) > 150 && !pointBlocked(x, h, z, r) && !FLATS.some(f => Math.hypot(x - f.x, z - f.z) < Math.hypot(f.hw, f.hd) + 3); };
+  // 電線桿：每 44 m 一根，橫擔垂直於路；前後兩根都在才拉線（每條線中間垂下來）
+  const wires = [], tops = [], PT = [[-1.05, 8.66, 0], [-.45, 8.66, 0], [.45, 8.66, 0], [1.05, 8.66, 0]];
+  for (let i = 0; i < N; i += 22) {
+    const p = S0[i]; let nx = -p.tz, nz = p.tx; if (nx * p.x + nz * p.z < 0) { nx = -nx; nz = -nz; }
+    const x = p.x + nx * (RSH + 3.4), z = p.z + nz * (RSH + 3.4);
+    if (!clear(x, z, .6) || otherRoad(x, z, 0, RSH + 3) || hGrad(Math.round((z + HW) / HS) * HN + Math.round((x + HW) / HS)) > .5) { tops.push(null); continue; }
+    const M = placeW('POLE', x, terrainH(x, z) - .1, z, Math.atan2(p.tx, p.tz)); tops.push(M && PT.map(q => new THREE.Vector3(...q).applyMatrix4(M)));
+  }
+  tops.push(tops[0]);
+  for (let i = 0; i + 1 < tops.length; i++) {
+    const a = tops[i], b = tops[i + 1]; if (!a || !b || a[0].distanceTo(b[0]) > 60) continue;
+    for (let k = 0; k < 4; k++) { const A = a[k], B2 = b[k], sag = A.distanceTo(B2) * .018; for (let t = 0; t < 8; t++) for (const u of [t / 8, (t + 1) / 8]) wires.push(lerp(A.x, B2.x, u), lerp(A.y, B2.y, u) - sag * 4 * u * (1 - u), lerp(A.z, B2.z, u)); }
+  }
+  if (wires.length) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(wires, 3)); const l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x2b2a28 })); l.matrixAutoUpdate = false; scene.add(l); }
+  // 護欄：路面比 5 m 外的坡腳高出 1.6 m 以上（填方路堤、高架的彎道）連續一段就裝，4 m 一片、柱子朝外、+z 朝路
+  ROADS.forEach((R, ri) => {
+    const S = R.s, n = S.length;
+    for (const sd of [1, -1]) {
+      let run = [];
+      const flush = () => {
+        if (run.length >= 5) for (let k = 0; k + 2 < run.length; k += 2) {
+          const a = S[run[k]], b = S[run[k + 2]], o = RSH - .25, ax = a.x - a.tz * sd * o, az = a.z + a.tx * sd * o, bx = b.x - b.tz * sd * o, bz = b.z + b.tx * sd * o;
+          sd > 0 ? wTiles('GUARDRAIL', 4, bx, bz, ax, az, terrainH, { sl: .8 }) : wTiles('GUARDRAIL', 4, ax, az, bx, bz, terrainH, { sl: .8 });
+        }
+        run = [];
+      };
+      for (let i = 0; i < n; i++) {
+        const p = S[i], ox = p.x - p.tz * sd * (RSH + 5), oz = p.z + p.tx * sd * (RSH + 5);
+        if (p.h - terrainH(ox, oz) > 1.6 && padDist(p.x, p.z) > 165 && !otherRoad(p.x, p.z, ri, 22)) run.push(i); else flush();
+      }
+      flush();
+    }
+  });
+  // 路牌：支線接環島路的路口前 28 m，兩個方向各一塊（地名＋箭頭＋距離）；支線靠工地那頭一塊「金絲雀工地」
+  const DEST = [null, POI.quarry, POI.farm, POI.camp, POI.village, POI.tower];
+  const sign = (p, tx, tz, t, a, d) => {
+    const rx = -tz, rz = tx; let x = p.x + rx * (RSH + 1.4), z = p.z + rz * (RSH + 1.4);
+    if (!clear(x, z, .5)) return;
+    WSIGNS.push({ t, a, d }); placeW('SIGN', x, terrainH(x, z) - .05, z, Math.atan2(-tx, -tz), { c: 0x2e7d4f, cell: WSIGNS.length - 1 });
+  };
+  for (let r = 1; r < ROADS.length; r++) {
+    const R = ROADS[r], P = R.p, D = DEST[r];
+    const jp = P.find(q => ROADS[0].p.some(l => l[0] === q[0] && l[1] === q[1])); if (!jp) continue;
+    let j = 0, bd = 1e9; S0.forEach((q, k) => { const d = Math.hypot(q.x - jp[0], q.z - jp[1]); if (d < bd) { bd = d; j = k; } });
+    const dx = D.x - jp[0], dz = D.z - jp[1], dl = Math.hypot(dx, dz), dist = Math.round(dl * 1.15 / 50) * 50;
+    for (const dir of [1, -1]) {
+      const p = S0[(j - dir * 14 + N) % N], tx = p.tx * dir, tz = p.tz * dir;
+      sign(p, tx, tz, D.t, tz * dx - tx * dz > 0 ? '←' : '→', dist >= 1000 ? (dist / 1000).toFixed(1) + ' 公里' : dist + ' 公尺');
+    }
+    if (padDist(P[0][0], P[0][1]) < 150) { const q = R.s[22]; if (q) sign(q, -q.tx, -q.tz, '金絲雀工地', '↑', ''); }
+  }
+  // 工地四個大門外的路燈（燈臂伸到路面上）
+  for (const [gx, gz, ax, az] of [[0, -150, 1, 0], [0, 150, 1, 0], [150, 25, 0, 1], [-150, 25, 0, 1]]) for (const s of [-1, 1]) {
+    const x = gx + ax * s * 6.6, z = gz + az * s * 6.6; placeW('STREETLIGHT', x, terrainH(x, z) - .05, z, Math.atan2(-ax * s, -az * s));
+  }
+}
 function buildIsland() {
   placeVillage(POI.village); placeGasStation(POI.gas); placeWorkCamp(POI.camp); placeFarm(POI.farm);
   placeRadioHill(POI.tower); placeLakeDock(POI.lake); placeQuarry(POI.quarry); buildMesaCliff(); placeCountryside();
+  if (WG) { placeRoadside(); flushWProps(); }
 }
 
 /* ---------- 隨風擺動的草叢、行道樹與旗子（頂點著色器） ---------- */
@@ -3596,7 +3973,7 @@ const GRASSTEX = (() => {
   }
   return tex(c, false);
 })();
-const GRASS_U = { uCam: { value: new THREE.Vector3() }, uR: { value: 50 }, uS: { value: 1 }, tH: { value: HTEX }, tM: { value: MTEX } };
+const GRASS_U = { uCam: { value: new THREE.Vector3() }, uR: { value: 50 }, uS: { value: 1 }, tH: { value: HTEX }, tM: { value: MTEX }, tN: { value: TEX.noise } };
 let GRASS = null;
 function buildGrass() {
   if (GRASS) { scene.remove(GRASS); GRASS.geometry.dispose(); GRASS = null; }
@@ -3611,7 +3988,7 @@ function buildGrass() {
   const mat = new THREE.MeshLambertMaterial({ map: GRASSTEX, alphaTest: .42, side: THREE.DoubleSide });
   mat.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, GRASS_U); sh.uniforms.uWind = WINDMAT_T;
-    sh.vertexShader = `attribute vec2 aOff; uniform vec3 uCam; uniform float uR, uS, uWind; uniform sampler2D tH, tM; varying vec3 vGT;
+    sh.vertexShader = `attribute vec2 aOff; uniform vec3 uCam; uniform float uR, uS, uWind; uniform sampler2D tH, tM, tN; varying vec3 vGT;
       ${GLSL_HGT}
       float gHash(vec2 c) { return fract(sin(dot(c, vec2(127.1, 311.7))) * 43758.5453); }\n` + sh.vertexShader
       .replace('#include <beginnormal_vertex>', 'vec3 objectNormal = vec3(0.0, 1.0, 0.0);')
@@ -3621,18 +3998,20 @@ function buildGrass() {
       float r1 = gHash(gC), r2 = gHash(gC + 19.19), r3 = gHash(gC + 7.73);
       gW += (vec2(r1, r2) - .5) * uS;
       vec4 gM = texture2D(tM, (gW + ${HW}.0) / ${HS * HN}.0 + ${(.5 / HN).toFixed(6)});
-      float gF = 1.0 - smoothstep(uR * .55, uR * .97, length(gW - uCam.xz));
+      float gD = length(gW - uCam.xz), gF = 1.0 - smoothstep(uR * .55, uR * .97, gD);
       vec3 gV = vec3(gW.x, terrH(gW), gW.y) - uCam;
       float gS = step(r3, gM.r) * gF * (.7 + r2 * .6) * smoothstep(.9, .68, abs(gV.y) / length(gV));   // 從正上方看，交叉的草片會變成星形：直接收掉
       float gA = r1 * 6.2832, gc = cos(gA), gs = sin(gA), gk = position.y / .9;
-      vec3 transformed = vec3(position.x * gc - position.z * gs, position.y * (.65 + r3 * .8 + gM.a * .35), position.x * gs + position.z * gc) * gS;
+      vec3 transformed = vec3(position.x * gc - position.z * gs, position.y * (.46 + r3 * .5 + gM.a * .28) * mix(.72, 1.0, smoothstep(1.5, 10.0, gD)), position.x * gs + position.z * gc) * gS;
       float gw = sin(uWind * 1.6 + gW.x * .27 + gW.y * .21) * .55 + sin(uWind * 2.9 + gW.x * .8 - gW.y * .55) * .22 + sin(uWind * .45 + gW.y * .04) * .45;
       transformed.xz += vec2(.24, .1) * gw * gk * gk * gS;
       transformed += vec3(gW.x, terrH(gW) - .17 * gS, gW.y);
-      vGT = mix(vec3(.7, .86, .46), vec3(1.05, .92, .58), gM.a * (.35 + r2 * .65)) * (.84 + r1 * .3) * mix(.5, 1.08, gk);`);
+      vGT = mix(vec3(.7, .86, .46), vec3(1.05, .92, .58), gM.a * (.35 + r2 * .65)) * (.84 + r1 * .3) * mix(.5, 1.08, gk);
+      vGT *= mix(vec3(.86, .95, .8), vec3(1.14, 1.04, .82), smoothstep(.2, .85, texture2D(tN, gW / 47.0).r));   // 大片的深淺與偏黃，草地才不會一整片同一個綠
+      vGT = mix(vec3(dot(vGT, vec3(.3, .59, .11))), vGT, .8);   // 收一點彩度：偏橄欖、黃綠，不要鮮綠`);
     sh.fragmentShader = 'varying vec3 vGT;\n' + sh.fragmentShader.replace('#include <map_fragment>', MAPBIAS + '\n  diffuseColor.rgb *= vGT;').replace('#include <normal_fragment_begin>', FIXNORMAL);
   };
-  GRASS = new THREE.Mesh(geo, mat); GRASS.frustumCulled = false; GRASS.receiveShadow = true;
+  GRASS = new THREE.Mesh(geo, mat); GRASS.frustumCulled = false; GRASS.receiveShadow = true; GRASS.userData.q = q;
   GRASS.onBeforeRender = (r, s, cam) => GRASS_U.uCam.value.copy(cam.position);
   scene.add(GRASS);
 }
@@ -3732,57 +4111,188 @@ function instTiles(list, geos, mats, f, shadow) {
 }
 let TREE_LODS = [];
 const FOLIAGE_N = {};
+/* world.glb 的樹、灌木與石頭：每種三組 InstancedMesh（近：完整模型、投影；中：葉片抽稀放大的簡化版、投影；遠：簡化版、不投影）。
+   鏡頭移動或轉向時由 CPU 依每一棵的距離重新分組（不是整塊地一起切），超過 WORLDQ.treeDist 就不畫、邊界前慢慢縮小 */
+const WFOL = { spec: [], x: 1e9, z: 0, fx: 0, fz: 1, q: -1, lv: -1 };
+/* 葉片卡（4 個頂點、6 個索引一張）每 keep 張留一張、以卡片中心放大 grow 倍 */
+function leafLod(g, keep, grow) {
+  const ix = g.index.array, A = g.attributes, P = A.position, pos = [], nor = [], uv = [], col = [], idx = [];
+  for (let c = 0; c < ix.length / 6; c += keep) {
+    const vs = [...new Set(ix.slice(c * 6, c * 6 + 6))], base = pos.length / 3, map = {};
+    let cx = 0, cy = 0, cz = 0; for (const v of vs) { cx += P.getX(v) / vs.length; cy += P.getY(v) / vs.length; cz += P.getZ(v) / vs.length; }
+    vs.forEach((v, k) => {
+      map[v] = base + k;
+      pos.push(cx + (P.getX(v) - cx) * grow, cy + (P.getY(v) - cy) * grow, cz + (P.getZ(v) - cz) * grow);
+      nor.push(A.normal.getX(v), A.normal.getY(v), A.normal.getZ(v)); uv.push(A.uv.getX(v), A.uv.getY(v)); col.push(A.color.getX(v), A.color.getY(v), A.color.getZ(v), 1);
+    });
+    for (let k = 0; k < 6; k++) idx.push(map[ix[c * 6 + k]]);
+  }
+  const o = new THREE.BufferGeometry();
+  o.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); o.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  o.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); o.setAttribute('color', new THREE.Float32BufferAttribute(col, 4)); o.setIndex(idx);
+  return o;
+}
+/* 遠處的樹皮：一根主幹分三支伸進樹冠底部（約 40 個三角形），顏色取原本樹皮的平均 */
+const WCANOPY = [[[.46, 8.09, -.03], [5.5, 1.66, 5.76], 3.2, .36], [[.71, 9.27, -.55], [4.11, 2.03, 4.01], 5, .4], [[1.87, 5.45, -.3], [2.23, 1.38, 2.45], 3.4, .22]];
+function barkFar(g, v) {
+  const [c, r, fy, r0] = WCANOPY[v], C = g.attributes.color, col = [0, 0, 0], parts = [];
+  for (let i = 0; i < C.count; i++) { col[0] += C.getX(i) / C.count; col[1] += C.getY(i) / C.count; col[2] += C.getZ(i) / C.count; }
+  const T = [c[0] * .45, fy, c[2] * .45];
+  const seg = (a, b, ra, rb) => {
+    _v.set(b[0] - a[0], b[1] - a[1], b[2] - a[2]); const len = _v.length(), cg = new THREE.CylinderGeometry(rb, ra, len, 5, 1, true);
+    cg.deleteAttribute('uv'); _q.setFromUnitVectors(_v2.set(0, 1, 0), _v.normalize()); _m.compose(_v.set((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2), _q, _s); parts.push(cg.applyMatrix4(_m));
+  };
+  seg([0, -.2, 0], T, r0, r0 * .7);
+  for (let k = 0; k < 3; k++) { const a = k * TAU / 3 + v; seg(T, [c[0] + Math.cos(a) * r[0] * .5, c[1] - r[1] * .4, c[2] + Math.sin(a) * r[2] * .5], r0 * .45, r0 * .2); }
+  const o = mergeGeometries(parts, false); parts.forEach(p => p.dispose());
+  const n = o.attributes.position.count, ca = new Float32Array(n * 3); for (let i = 0; i < n; i++) ca.set(col, i * 3);
+  o.setAttribute('color', new THREE.BufferAttribute(ca, 3)); o.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(n * 2), 2));
+  return o;
+}
+/* 一種植物／石頭：items = [{ x, y, z, s, ry, c }]，tiers = 近／中／遠三組 [[幾何, 材質, 深度材質?], …]、投影與否；near 公尺、far = treeDist 的倍數 */
+function wfolSpec(items, tiers, near, far) {
+  const n = items.length; if (!n) return;
+  const sp = { n, near, far, X: new Float32Array(n), Z: new Float32Array(n), M: new Float32Array(n * 16), C: new Float32Array(n * 3), t: [] }, col = new THREE.Color();
+  items.forEach((it, i) => {
+    _qq.setFromAxisAngle(_yy, it.ry); _mm.compose(_pp.set(it.x, it.y, it.z), _qq, _ss.set(it.s, it.s, it.s)); _mm.toArray(sp.M, i * 16);
+    sp.X[i] = it.x; sp.Z[i] = it.z; col.set(it.c); sp.C[i * 3] = col.r; sp.C[i * 3 + 1] = col.g; sp.C[i * 3 + 2] = col.b;
+  });
+  sp.t = tiers.map(([parts, shadow]) => parts.map(([geo, mat, depth]) => {
+    const im = new THREE.InstancedMesh(geo, mat, n); im.count = 0; im.visible = false;
+    im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3);
+    im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); im.instanceColor.setUsage(THREE.DynamicDrawUsage);
+    im.frustumCulled = false; im.castShadow = shadow; im.receiveShadow = true; im.matrixAutoUpdate = false;
+    if (depth) im.customDepthMaterial = depth;
+    scene.add(im); return im;
+  }));
+  WFOL.spec.push(sp);
+}
+function wfolUpdate(cam) {
+  const p = cam.position; cam.getWorldDirection(_v);
+  const fl = Math.hypot(_v.x, _v.z) || 1, fx = _v.x / fl, fz = _v.z / fl, lv = QUALITY.level;
+  if ((p.x - WFOL.x) ** 2 + (p.z - WFOL.z) ** 2 < 9 && fx * WFOL.fx + fz * WFOL.fz > .96 && WFOL.q === WORLDQ.treeDist && WFOL.lv === lv) return;
+  Object.assign(WFOL, { x: p.x, z: p.z, fx, fz, q: WORLDQ.treeDist, lv });
+  const sd = QPRESET[lv].sDist, nk = [.45, .7, 1, 1.25][lv];   // 完整模型的範圍跟著畫質縮放
+  for (const sp of WFOL.spec) {
+    const fr = sp.far * WORLDQ.treeDist, nr = Math.min(sp.near * nk, fr), lim = [nr, Math.max(nr, Math.min(sd, fr)), fr], l2 = lim.map(v => v * v), f0 = fr * .86, n = [0, 0, 0];
+    for (let i = 0; i < sp.n; i++) {
+      const dx = sp.X[i] - p.x, dz = sp.Z[i] - p.z, d2 = dx * dx + dz * dz;
+      if (d2 >= l2[2]) continue;
+      const t = d2 < l2[0] ? 0 : d2 < l2[1] ? 1 : 2, d = Math.sqrt(d2);
+      if (t === 2 && d > 40 && dx * fx + dz * fz < -.25 * d) continue;   // 背後又不投影的不畫
+      const k = n[t]++, f = d > f0 ? smooth01(fr, f0, d) : 1;
+      for (const im of sp.t[t]) {
+        const a = im.instanceMatrix.array; a.set(sp.M.subarray(i * 16, i * 16 + 16), k * 16);
+        if (f < 1) for (let j = 0; j < 11; j++) if (j % 4 !== 3) a[k * 16 + j] *= f;
+        im.instanceColor.array.set(sp.C.subarray(i * 3, i * 3 + 3), k * 3);
+      }
+    }
+    sp.t.forEach((tier, t) => { for (const im of tier) {
+      im.count = n[t]; im.visible = n[t] > 0;
+      for (const [a, s] of [[im.instanceMatrix, 16], [im.instanceColor, 3]]) { a.clearUpdateRanges(); a.addUpdateRange(0, n[t] * s); a.needsUpdate = true; }
+    } });
+  }
+}
 function buildTrees() {
   const trees = [], bushes = [], rocks = [], F = FLATS;
   const cellK = (x, z) => Math.round((z + HW) / HS) * HN + Math.round((x + HW) / HS);
   const nearFlat = (x, z, m) => F.some(f => Math.abs(x - f.x) < Math.max(f.hw, f.hd) + m && Math.abs(z - f.z) < Math.max(f.hw, f.hd) + m);
-  const tint = () => new THREE.Color().setHSL(sr(.2, .3), sr(.35, .6), sr(.42, .62)).getHex();
+  // 程式建模的樹用偏綠的色調；world.glb 的顏色已經在頂點色裡，只做接近白色的小變化
+  const tint = () => WG ? new THREE.Color(sr(.9, 1.06), sr(.93, 1.08), sr(.86, 1)).getHex() : new THREE.Color().setHSL(sr(.2, .3), sr(.35, .6), sr(.42, .62)).getHex();
+  const okTree = (x, z, h, m = 5) => {
+    if (h < SEA + 2.8 || padDist(x, z) < 152) return false;
+    const k = cellK(x, z);
+    return hGrad(k) <= .62 && ROADD[k] >= 9 && MASK[k * 4 + 2] <= 140 && !nearFlat(x, z, m) && !pointBlocked(x, h, z, 1.4);
+  };
+  const tree = (x, z, h, v) => trees.push({ x, y: h - .1 - hGrad(cellK(x, z)) * .5, z, s: sr(.8, 1.25), v, ry: srand() * TAU, c: tint() });
+  const pickV = () => { const r = srand(); return r < .38 ? 0 : r < .72 ? 1 : 2; };
+  // 單株與灌木：稀疏散在草坡上；大尺度雜訊高的地方是林地，密一點
   for (let gz = -600; gz < 600; gz += 8) for (let gx = -600; gx < 600; gx += 8) {
     const x = gx + sr(0, 8), z = gz + sr(0, 8), h = terrainH(x, z);
     if (h < SEA + 2.8 || padDist(x, z) < 152) continue;
     const k = cellK(x, z), gr = hGrad(k), red = MASK[k * 4 + 2] / 255;
     if (gr > .62 || ROADD[k] < 9 || red > .55) continue;
     const forest = smooth01(.44, .66, fbm2(x / 150 + 5, z / 150 - 2, 3)), r = srand();
-    if (r < .05 + .5 * forest) {
-      if (nearFlat(x, z, 5) || pointBlocked(x, h, z, 1.4)) continue;
-      const v = srand() < .45 ? 0 : srand() < .6 ? 1 : 2, s = sr(.8, 1.25);
-      trees.push({ x, y: h - .1, z, s, v, ry: srand() * TAU, c: tint() });
-      addCol(x - .28 * s, h, z - .28 * s, x + .28 * s, h + 4.5 * s, z + .28 * s, 1).tree = 1;
-    } else if (r < .12 + .5 * forest) {
+    if (r < .028 + .42 * forest) { if (okTree(x, z, h)) tree(x, z, h, pickV()); }
+    else if (r < .1 + .45 * forest) {
       if (nearFlat(x, z, 2)) continue;
-      bushes.push({ x: x + sr(-2, 2), y: h - .05, z: z + sr(-2, 2), s: sr(.7, 1.4), v: 0, ry: srand() * TAU, c: tint() });
+      bushes.push({ x: x + sr(-2, 2), y: h - .05, z: z + sr(-2, 2), s: sr(.7, 1.4), v: srand() < .5 ? 0 : 1, ry: srand() * TAU, c: tint() });
     }
   }
+  // 樹叢：三到八棵擠在一起、外圍幾叢灌木（參考畫面裡草坡上一團一團的樹）
+  for (let i = 0; i < 230; i++) {
+    const a = srand() * TAU, rr = 165 + Math.sqrt(srand()) * 380, cx = Math.cos(a) * rr, cz = Math.sin(a) * rr, ch = terrainH(cx, cz);
+    if (!okTree(cx, cz, ch, 8)) continue;
+    const v0 = pickV(), n = 3 + (srand() * 6 | 0), mine = [];
+    for (let k = 0, tries = 0; k < n && tries < 30; tries++) {
+      const x = cx + (srand() + srand() - 1) * 13, z = cz + (srand() + srand() - 1) * 13, h = terrainH(x, z);
+      if (mine.some(q => Math.hypot(q[0] - x, q[1] - z) < 3.6) || !okTree(x, z, h)) continue;
+      mine.push([x, z]); tree(x, z, h, srand() < .75 ? v0 : pickV()); k++;
+    }
+    for (let k = 0; k < 2 + (srand() * 4 | 0); k++) { const x = cx + sr(-12, 12), z = cz + sr(-12, 12); if (!nearFlat(x, z, 2) && ROADD[cellK(x, z)] > 7) bushes.push({ x, y: terrainH(x, z) - .05, z, s: sr(.8, 1.5), v: srand() < .5 ? 0 : 1, ry: srand() * TAU, c: tint() }); }
+  }
+  // 農場犁過的田（四周有圍籬）裡不長樹與灌木；事後再剔掉，隨機序列不變、其他地方的樹不會跟著搬家
+  const FM = POI.farm, inField = o => o.x > FM.x - 124 && o.x < FM.x - 36 && o.z > FM.z - 44 && o.z < FM.z + 49;
+  for (const L of [trees, bushes]) { let n = 0; for (const o of L) if (!inField(o)) L[n++] = o; L.length = n; }
   // 圍籬外人行道上的行道樹
   const E = SITE + 2;
   for (let i = -E + 6; i < E - 4; i += 11) for (const sg of [-1, 1]) for (const [x, z] of [[i + sr(-1.5, 1.5), sg * (E + 3.8)], [sg * (E + 3.8), i + sr(-1.5, 1.5)]]) {
     if (Math.abs(x) < 12 && Math.abs(z) > 100 || Math.abs(z - 25) < 12 && Math.abs(x) > 100) continue;
-    trees.push({ x, y: .12, z, s: sr(.75, .95), v: 2, ry: srand() * TAU, c: tint() }); addCol(x - .25, 0, z - .25, x + .25, 3.5, z + .25, 1).tree = 1;
+    trees.push({ x, y: .12, z, s: sr(.75, .95), v: 2, ry: srand() * TAU, c: tint(), side: 1 });
   }
-  // 石頭：紅岩台地與採石場附近多、大顆；其他地方零星
-  for (let i = 0; i < 2600 && rocks.length < 700; i++) {
+  // 石頭：紅岩台地與採石場附近多、大顆；陡坡上多；其他地方零星
+  for (let i = 0; i < 3000 && rocks.length < 800; i++) {
     const a = srand() * TAU, rr = 150 + Math.sqrt(srand()) * 420, x = Math.cos(a) * rr, z = Math.sin(a) * rr, h = terrainH(x, z);
     if (h < SEA + .5) continue;
     const k = cellK(x, z), red = MASK[k * 4 + 2] / 255, gr = hGrad(k);
     if (ROADD[k] < 7.5 || nearFlat(x, z, 2)) continue;
-    if (srand() > .12 + red * .8 + gr * .6) continue;
+    if (srand() > .12 + red * .8 + gr * .9) continue;
     if (Math.hypot(x - POI.quarry.x, z - POI.quarry.z) < 42) continue;
     const s = Math.min(2.3, sr(.3, 1) * (1 + red * 1.2 + (srand() < .08 ? 1.2 : 0)));
     if (s > 1.1 && pointBlocked(x, h, z, s)) continue;
-    rocks.push({ x, y: h - .15 * s, z, s, sy: sr(.7, 1.2), v: 0, ry: srand() * TAU, c: red > .4 ? 0xd07a5c : pick([0xa39d94, 0x8f8a82, 0xb3ada2]) });
-    if (s > 1.1) addCol(x - s * .75, h - .3, z - s * .75, x + s * .75, h + s * .55, z + s * .75, 1).rock = 1;
+    rocks.push({ x, y: h - .15 * s, z, s, sy: sr(.7, 1.2), v: s > 1.3 ? 2 : srand() < .5 ? 0 : 1, ry: srand() * TAU, c: red > .4 ? 0xd07a5c : pick([0xa39d94, 0x8f8a82, 0xb3ada2]) });
   }
-  const TG = [0, 1, 2].map(propTreeGeo), BG = propTreeGeo(3), RG = [propRockGeo(0)];
-  TREE_LODS = instTiles(trees, TG, TREEMAT, 1, true).concat(instTiles(bushes, [BG], BUSHMAT, .45, false), instTiles(rocks, RG, ROCKMAT, .9, true));
   Object.assign(FOLIAGE_N, { trees: trees.length, bushes: bushes.length, rocks: rocks.length });
+  if (!WG || !worldGeo('TREE_A')) {
+    for (const t of trees) t.side ? addCol(t.x - .25, 0, t.z - .25, t.x + .25, 3.5, t.z + .25, 1).tree = 1 : addCol(t.x - .28 * t.s, t.y + .1, t.z - .28 * t.s, t.x + .28 * t.s, t.y + .1 + 4.5 * t.s, t.z + .28 * t.s, 1).tree = 1;
+    for (const r of rocks) if (r.s > 1.1) addCol(r.x - r.s * .75, r.y + .15 * r.s - .3, r.z - r.s * .75, r.x + r.s * .75, r.y + .7 * r.s, r.z + r.s * .75, 1).rock = 1;
+    rocks.forEach(r => r.v = 0);
+    const TG = [0, 1, 2].map(propTreeGeo), BG = propTreeGeo(3), RG = [propRockGeo(0)];
+    TREE_LODS = instTiles(trees, TG, TREEMAT, 1, true).concat(instTiles(bushes, [BG], BUSHMAT, .45, false), instTiles(rocks, RG, ROCKMAT, .9, true));
+    return;
+  }
+  // world.glb：石頭改用 ROCK_A/B/C（尺寸本身就不同，縮放收斂一點）；碰撞照模型的樹幹與石頭內框
+  const W = wMats(), TN = ['TREE_A', 'TREE_B', 'TREE_C'], BN = ['BUSH_A', 'BUSH_B'], RN = ['ROCK_A', 'ROCK_B', 'ROCK_C'];
+  const colOf = (name, it, tag) => { _qq.setFromAxisAngle(_yy, it.ry); _mm.compose(_pp.set(it.x, it.y, it.z), _qq, _ss.set(it.s, it.s, it.s)); wColBox(_mm.clone(), WCOL[name][0], tag); };
+  for (const r of rocks) { r.s = r.v === 2 ? clamp(r.s * .75, .6, 1.4) : r.v === 1 ? clamp(r.s * .8, .5, 1.3) : clamp(r.s * 1.1, .5, 1.6); r.y = terrainH(r.x, r.z) - .08 * r.s - hGrad(cellK(r.x, r.z)) * .4 * r.s; r.c = r.c === 0xd07a5c ? 0xf2b49a : new THREE.Color(sr(.9, 1.05), sr(.9, 1.03), sr(.88, 1)).getHex(); }
+  TN.forEach((name, v) => {
+    const g = worldGeo(name), lo = [barkFar(g.bark, v), leafLod(g.leaf, 3, 1.6)];
+    const mine = trees.filter(t => t.v === v); mine.forEach(t => colOf(name, t, 'tree'));
+    wfolSpec(mine, [[[[g.bark, W.bark], [g.leaf, W.leaf[0], W.leaf[1]]], true], [[[lo[0], W.bark], [lo[1], W.leaf[0], W.leaf[1]]], true], [[[lo[0], W.bark], [lo[1], W.leaf[0]]], false]], 110, 1);
+  });
+  BN.forEach((name, v) => { const g = worldGeo(name), parts = [[g.bark, W.barkS], [g.leaf, W.leafS[0], W.leafS[1]]]; wfolSpec(bushes.filter(b => b.v === v), [[parts, true], [parts, false], [parts, false]], 45, .45); });
+  RN.forEach((name, v) => {
+    const g = worldGeo(name), mine = rocks.filter(r => r.v === v), parts = [[g.rock, W.rock]];
+    mine.forEach(r => { if ((WCOL[name][0][4]) * r.s > .75) colOf(name, r, 'rock'); });
+    wfolSpec(mine, [[parts, true], [parts, false], [parts, false]], 70, [.28, .38, .6][v]);
+  });
+  // 每次畫主場景之前（陰影之前）依鏡頭重新分組
+  const prev = scene.onBeforeRender;
+  scene.onBeforeRender = (r, s, cam, rt) => { prev.call(scene, r, s, cam, rt); if (cam === camera) wfolUpdate(cam); };
 }
-/* 畫質設定改變時（整合時接到畫質選單）：重建高草、調整樹與石頭的顯示距離 */
+/* 畫質設定改變時：重建高草、調整地形遠近層、樹與石頭的顯示距離（world.glb 的樹在下一次畫面更新時自動重新分組） */
 function applyWorldQ() {
-  buildGrass();
+  if (!GRASS || GRASS.userData.q !== WORLDQ.grass) buildGrass();
   for (const l of TERRAIN.children) { l.levels[1].distance = WORLDQ.viewDist * TLOD[0]; l.levels[2].distance = WORLDQ.viewDist * TLOD[1]; }
   TREE_FAR.value = WORLDQ.treeDist; BUSH_FAR.value = WORLDQ.treeDist * .45; ROCK_FAR.value = WORLDQ.treeDist * .9;
   for (const l of TREE_LODS) l.levels[1].distance = WORLDQ.treeDist * l.userData.f + 300 * .75;
+  WFOL.q = -1;
 }
+addEventListener('lastbeam-quality', e => {
+  const Q = e.detail || QUALITY;
+  if (Q.grass === WORLDQ.grass && Q.treeDist === WORLDQ.treeDist && Q.viewDist === WORLDQ.viewDist) return;
+  Object.assign(WORLDQ, { grass: Q.grass, treeDist: Q.treeDist, viewDist: Q.viewDist }); applyWorldQ();
+});
 function buildFoliage() {
   footprintMask();
   buildGrass();
@@ -3837,6 +4347,23 @@ function buildCity() {
   // 自己的空氣透視：比場景霧淡，遠山才看得到輪廓
   mat.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <fog_fragment>', '#ifdef USE_FOG\n  gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, (1.0 - exp(-vFogDepth * .00072)) * .78);\n#endif'); };
   const m = new THREE.Mesh(g, mat); m.matrixAutoUpdate = false; m.receiveShadow = false; scene.add(m);
+  // world.glb 的紅砂岩台地當遠景：散在對岸的陸地上、放大 2–3.4 倍、下緣埋進地面，空氣透視和遠山一樣
+  const MA = worldGeo('MESA_A'), MB = worldGeo('MESA_B');
+  if (MA && MB) {
+    const spots = [];
+    for (let k = 0; k < 400 && spots.length < 9; k++) {
+      const a = srand() * TAU, r = sr(1400, 2500), x = Math.cos(a) * r, z = Math.sin(a) * r, h = farH(x, z);
+      if (h < 35 || spots.some(q => Math.hypot(q.x - x, q.z - z) < 650)) continue;
+      spots.push({ x, z, h, s: sr(2, 3.4), ry: srand() * TAU, b: srand() < 0 });   // MESA_B 的階梯採石面從島上看像尖角，遠景只用平頂的 MESA_A（照樣抽亂數，其他遠景位置不變）
+    }
+    const fm = new THREE.MeshLambertMaterial({ vertexColors: true }); fm.onBeforeCompile = mat.onBeforeCompile;
+    for (const [G, list] of [[MA, spots.filter(q => !q.b)], [MB, spots.filter(q => q.b)]]) {
+      if (!list.length) continue;
+      const im = new THREE.InstancedMesh(G.rock, fm, list.length);
+      list.forEach((q, i) => { _qq.setFromAxisAngle(_yy, q.ry); _mm.compose(_pp.set(q.x, Math.min(q.h, farH(q.x + 40, q.z), farH(q.x - 40, q.z), farH(q.x, q.z + 40), farH(q.x, q.z - 40)) - 4 * q.s, q.z), _qq, _ss.set(q.s, q.s * sr(.8, 1.1), q.s)); im.setMatrixAt(i, _mm); });
+      im.matrixAutoUpdate = false; scene.add(im);
+    }
+  }
 }
 
 /* ============================================================
@@ -3947,20 +4474,24 @@ function randomLook() {
   return { pal: { vis: pick(PALETTES.vis), shirt: pick(PALETTES.shirt), pants: pick(PALETTES.pants), skin: pick(PALETTES.skin), glove: pick(PALETTES.glove), hair: pick(PALETTES.hair) },
     hair: (Math.random() * 3) | 0, beard: Math.random() < .45 ? 0 : 1 + ((Math.random() * 3) | 0) };
 }
+/* 蒙皮網格畫陰影用自己的深度材質：three 預設所有物件共用一個，蒙皮與一般網格交錯時每次都要換程式 */
+const SKINDEPTH = new THREE.MeshDepthMaterial();
 function makeWorkerRig(pal, look) {
   const root = new THREE.Group(); root.rotation.order = 'YXZ';
   const rig = SKCLONE(RIGSRC); rig.position.set(0, 0, 0); root.add(rig);
   const mat = charMat(pal);
   let body = null, lod = null;
-  rig.traverse(o => { if (o.isSkinnedMesh) { o.material = mat; o.castShadow = true; o.frustumCulled = true; o.boundingSphere = CHAR_SPHERE; if (o.name === 'W_lod') lod = o; else body = o; } });
+  rig.traverse(o => { if (o.isSkinnedMesh) { o.material = mat; o.customDepthMaterial = SKINDEPTH; o.castShadow = true; o.frustumCulled = true; o.boundingSphere = CHAR_SPHERE; if (o.name === 'W_lod') lod = o; else body = o; } });
   if (lod) lod.visible = false;
   const bone = n => rig.getObjectByName(n);
   const hips = bone('hips'), torso = bone('torso'), chest = bone('chest'), neck = bone('neck'), head = bone('head');
   const arm = t => ({ cl: bone('clav' + t), sh: bone('up' + t), el: bone('fore' + t), hd: bone('hand' + t) });
   const leg = t => ({ hp: bone('thigh' + t), kn: bone('shin' + t), ft: bone('foot' + t) });
   const mk = (geo, parent, mt = CHMAT) => { const m = new THREE.Mesh(geo, mt); m.castShadow = true; parent.add(m); return m; };
-  const hair = HAIRGEO[look.hair] ? mk(HAIRGEO[look.hair], head, mat) : null;
-  const beard = BEARDGEO[look.beard] ? mk(BEARDGEO[look.beard], head, mat) : null;
+  // 頭髮、鬍子是一般網格：和蒙皮身體共用材質的話，每畫一次都要換著色器程式（60 人時很貴），另給一份
+  const matH = HAIRGEO[look.hair] || BEARDGEO[look.beard] ? charMat(pal) : null;
+  const hair = HAIRGEO[look.hair] ? mk(HAIRGEO[look.hair], head, matH) : null;
+  const beard = BEARDGEO[look.beard] ? mk(BEARDGEO[look.beard], head, matH) : null;
   const armor = mk(ARMORGEO[1], chest); armor.position.y = -.23; armor.visible = false;
   const hat = mk(HATGEO[0], head); hat.position.y = HAT_Y;
   return Object.assign({ root, rig, body, lod, mat, hips, torso, chest, neck, head, hat, hair, beard, armor, armL: arm('L'), armR: arm('R'), legL: leg('L'), legR: leg('R') }, gunParts(chest, -.27));
@@ -4092,43 +4623,54 @@ const ITEMGEO = {};
   }
 }
 const ITEMINST = {};
-for (const t in ITEMGEO) { const im = new THREE.InstancedMesh(ITEMGEO[t], ITEMMAT, 96); im.count = 0; im.frustumCulled = false; im.castShadow = true; scene.add(im); ITEMINST[t] = im; }
+const LOOTMAX = 320;   // 每種物品同時最多幾個（六十人的島；5.56 子彈一開場就有近 200 盒）
+for (const t in ITEMGEO) { const im = new THREE.InstancedMesh(ITEMGEO[t], ITEMMAT, LOOTMAX); im.count = 0; im.frustumCulled = false; im.castShadow = true; scene.add(im); ITEMINST[t] = im; }
 const LOOT = [];
 let lootDirty = true;
 function spawnItem(t, x, y, z, n) {
   if (!ITEMS[t]) return;
-  if (LOOT.filter(l => l.t === t).length >= 96) return;
+  if (LOOT.filter(l => l.t === t).length >= LOOTMAX) return;
   // 地上的槍附半個彈匣
   LOOT.push({ t, x, y, z, ry: rnd(TAU), n: n != null ? n : ITEMS[t].kind === 'gun' ? Math.ceil(WPN[t].mag / 2) : (ITEMS[t].n || 0), claim: null });
   lootDirty = true;
 }
 function removeItem(it) { const i = LOOT.indexOf(it); if (i >= 0) LOOT.splice(i, 1); lootDirty = true; }
 const _mm = new THREE.Matrix4(), _qq = new THREE.Quaternion(), _yy = new THREE.Vector3(0, 1, 0), _pp = new THREE.Vector3(), _ss = new THREE.Vector3(1, 1, 1);
+/* 只畫鏡頭附近的物資（全島六、七百件全畫要多好幾百萬個三角形）；鏡頭走開 8 m 重排一次 */
+let lootCx = 1e9, lootCz = 1e9, lootZ = 1;
 function syncLoot() {
-  if (!lootDirty) return; lootDirty = false;
+  const cp = camera.position, zz = PL.scoped && PLAYER && PLAYER.w ? PLAYER.w.zoom : 1;   // 開鏡時看得遠，畫的範圍跟著放大
+  if (Math.abs(cp.x - lootCx) + Math.abs(cp.z - lootCz) > 8 || zz !== lootZ) lootDirty = true;
+  if (!lootDirty) return; lootDirty = false; lootCx = cp.x; lootCz = cp.z; lootZ = zz;
+  const R = Math.min(360, Math.max(60, QUALITY.charLod * 1.6) * zz), R2 = R * R;
   for (const t in ITEMINST) ITEMINST[t].count = 0;
   for (const it of LOOT) {
-    const im = ITEMINST[it.t]; if (im.count >= 96) continue;
+    if ((it.x - cp.x) * (it.x - cp.x) + (it.z - cp.z) * (it.z - cp.z) > R2) continue;
+    const im = ITEMINST[it.t]; if (im.count >= LOOTMAX) continue;
     _qq.setFromAxisAngle(_yy, it.ry); _mm.compose(_pp.set(it.x, it.y, it.z), _qq, _ss);
     im.setMatrixAt(im.count++, _mm);
   }
   for (const t in ITEMINST) ITEMINST[t].instanceMatrix.needsUpdate = true;
 }
-function rollLoot() {
-  const r = Math.random();
-  if (r < .25) { const g = pick(['m416', 'm416', 'ump', 'ump', 'kar98', 's686', 's686']); return [g, AMMO_ITEM[WPN[g].cal], AMMO_ITEM[WPN[g].cal]]; }
-  if (r < .45) return [pick(['a556', 'a556', 'a762', 'a12', 'a45', 'a45'])];
-  if (r < .56) return ['helm' + (Math.random() < .5 ? 1 : Math.random() < .72 ? 2 : 3)];
-  if (r < .67) return ['vest' + (Math.random() < .5 ? 1 : Math.random() < .72 ? 2 : 3)];
-  if (r < .9) return [pick(['bandage', 'bandage', 'bandage', 'firstaid', 'firstaid', 'medkit', 'drink', 'drink'])];
+/* rich：Canary Yard 與採石場，槍多、步槍與狙擊槍多、護具等級高 */
+function rollLoot(rich) {
+  const r = Math.random(), lv = () => rich ? (Math.random() < .3 ? 1 : Math.random() < .6 ? 2 : 3) : (Math.random() < .5 ? 1 : Math.random() < .72 ? 2 : 3);
+  if (r < (rich ? .34 : .3)) { const g = pick(rich ? ['m416', 'm416', 'm416', 'ump', 'kar98', 'kar98', 's686'] : ['m416', 'm416', 'ump', 'ump', 'kar98', 's686', 's686']); return [g, AMMO_ITEM[WPN[g].cal], AMMO_ITEM[WPN[g].cal]]; }
+  if (r < (rich ? .5 : .47)) return [pick(['a556', 'a556', 'a762', 'a12', 'a45', 'a45'])];
+  if (r < (rich ? .62 : .56)) return ['helm' + lv()];
+  if (r < (rich ? .75 : .68)) return ['vest' + lv()];
+  if (r < .91) return [pick(['bandage', 'bandage', 'bandage', 'firstaid', 'firstaid', 'medkit', 'drink', 'drink'])];
   return ['frag'];
 }
+/* 每個點擲一次（空點 8%），一半多的點再多擲一次；工地與採石場的點多擲、品質好。六十人約 170 把槍、130 件護具 */
+const richSpot = s => (Math.abs(s.x) < 125 && Math.abs(s.z) < 125) || Math.hypot(s.x - POI.quarry.x, s.z - POI.quarry.z) < 125;
 function scatterLoot() {
   LOOT.length = 0;
   for (const s of SPOTS) {
-    if (Math.random() < .22) continue;
-    const list = rollLoot();
-    if (Math.random() < .3) list.push(...rollLoot());
+    const rich = richSpot(s);
+    if (Math.random() < (rich ? .06 : .08)) continue;
+    const list = rollLoot(rich);
+    if (Math.random() < (rich ? .6 : .55)) list.push(...rollLoot(rich));
     list.forEach((t, i) => { const a = rnd(TAU), d = i ? rnd(.5, .9) : 0; spawnItem(t, s.x + Math.cos(a) * d, s.y, s.z + Math.sin(a) * d); });
   }
   lootDirty = true;
@@ -4329,8 +4871,11 @@ boomMesh.visible = false; scene.add(boomMesh);
 let boomT = 9;
 
 /* ---------- 起重直升機（雙旋翼）與吊掛的鋼梁 ---------- */
-const HELI = new THREE.Group();
-{
+/* 一場 NPLAYERS 人：每架直升機的鋼梁站 PER_BEAM 人 */
+const NPLAYERS = 60, PER_BEAM = 20, NHELI = Math.ceil(NPLAYERS / PER_BEAM);
+const cnum = n => { const D = '〇一二三四五六七八九', t = n / 10 | 0, u = n % 10; return n < 10 ? D[n] : (t > 1 ? D[t] : '') + '十' + (u ? D[u] : ''); };
+function makeHeli() {
+  const HELI = new THREE.Group();
   const b = new MB();
   b.box(0xe8671d, 0, 0, 0, 2.6, 2.6, 13).cyl(0xe8671d, 0, 0, 6.5, 1.3, 1.3, 2.6, 14, Math.PI / 2, 0, 0).box(0x2f3a44, 0, .5, 7.4, 2.3, 1, 1.2)
     .box(0xe9e6df, 0, -.2, 0, 2.62, .5, 13.02).box(0xe8671d, 0, 1.6, -5.4, 1.4, 2.6, 2.8).box(0xe8671d, 0, 1.4, 5.2, 1.2, 1.2, 2)
@@ -4362,7 +4907,9 @@ const HELI = new THREE.Group();
   }
   HELI.userData.beamY = beamY + .53;
   scene.add(HELI);
+  return HELI;
 }
+const HELIS = Array.from({ length: NHELI }, makeHeli), HELI = HELIS[0];
 
 /* ---------- 降落傘：橘白相間的傘面 ---------- */
 const CHUTEGEO = (() => {
@@ -4436,10 +4983,11 @@ const zoneMat = new THREE.ShaderMaterial({
       float scan = smoothstep(.93, 1., fract(vW.y * .06 - uTime * .22)) * .8 + smoothstep(.985, 1., fract(vW.y * .5 - uTime * .9)) * .25;
       vec2 cell = floor(q * vec2(.57735, 1.0));
       float flick = step(.93, h2(cell + floor(uTime * 3.0))) * .35;
-      float fade = 1.0 - smoothstep(0., 110., vW.y);
+      float fade = 1.0 - smoothstep(0., 110., vW.y - uGround);
       float d = length(vW - cameraPosition), near = mix(1.0, .45, smoothstep(30.0, 260.0, d));
+      float far = 1.0 - smoothstep(250.0, 600.0, d);   // 遠處（海上、天邊）只剩一層淡淡的藍，網格與掃描線不畫
       float base = exp(-max(vW.y - uGround, 0.0) * .45);
-      float a = (.05 + edge * .2 * (1.0 - smoothstep(60.0, 220.0, d)) + scan * .22 + flick * edge + base * .28) * fade * near;
+      float a = (mix(.022, .05, far) + (edge * .2 * (1.0 - smoothstep(60.0, 220.0, d)) + scan * .22 + flick * edge) * far + base * .28) * fade * near;
       vec3 col = mix(vec3(.25, .55, 1.0), vec3(.75, .9, 1.6), clamp(edge * .6 + scan + base * .5, 0.0, 1.0));
       gl_FragColor = vec4(col * (1.0 + base * 1.4), clamp(a, 0.0, .8));
       #include <tonemapping_fragment>
@@ -4448,12 +4996,19 @@ const zoneMat = new THREE.ShaderMaterial({
 });
 const zoneWall = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 160, 1, true), zoneMat);
 zoneWall.scale.set(175, 320, 175); zoneWall.position.y = 150; zoneWall.renderOrder = 2; zoneWall.frustumCulled = false;
+/* 貼地亮帶跟著地形：取牆上離鏡頭最近那一點的地面高度（海上不低於海面） */
+zoneWall.onBeforeRender = (r, s, cam) => {
+  const P = zoneWall.position, R = zoneWall.scale.x, dx = cam.position.x - P.x, dz = cam.position.z - P.z, l = Math.hypot(dx, dz) || 1;
+  zoneMat.uniforms.uGround.value = Math.max(SEA, terrainH(P.x + dx / l * R, P.z + dz / l * R));
+};
 scene.add(zoneWall);
 
 /* ============================================================
    角色、戰鬥、搜刮
    ============================================================ */
-const BOT_NAMES = ['Rebar', 'Grout', 'Lintel', 'Sparky', 'Chippy', 'Brickie', 'Plumb', 'Trowel', 'Joist', 'Hoist', 'Screed', 'Dozer', 'Banksman', 'Rigger', 'Slinger', 'Scaffy', 'Dumper', 'Skip', 'Tamper'];
+const BOT_NAMES = ['Rebar', 'Grout', 'Lintel', 'Sparky', 'Chippy', 'Brickie', 'Plumb', 'Trowel', 'Joist', 'Hoist', 'Screed', 'Dozer', 'Banksman', 'Rigger', 'Slinger', 'Scaffy', 'Dumper', 'Skip', 'Tamper',
+  'Chisel', 'Mallet', 'Sledge', 'Crowbar', 'Rivet', 'Girder', 'Purlin', 'Rafter', 'Truss', 'Gable', 'Soffit', 'Plinth', 'Mortar', 'Ballast', 'Kerb', 'Tarmac', 'Roller', 'Grader', 'Digger', 'Loader',
+  'Jib', 'Winch', 'Shackle', 'Chainy', 'Conduit', 'Gauge', 'Glazier', 'Tiler', 'Roofer', 'Chalky', 'Dusty', 'Rusty', 'Nailer', 'Shim', 'Flange', 'Spanner', 'Auger', 'Piler', 'Welder', 'Hodman'];
 const CHARS = [];
 let T = 0, STATE = 'menu', PAUSED = false;
 const RED = [0, .3, .4, .55];
@@ -4474,7 +5029,7 @@ class Char {
       hp: 100, boost: 0, helm: 0, vest: 0, guns: [null, null], slot: 0, ammo: { '556': 0, '762': 0, '12': 0, '45': 0 }, meds: [0, 0, 0, 0], frags: 0,
       alive: true, st: 'beam', crouch: false, onGround: false, kills: 0, dmg: 0, cast: null, reloadT: 0, nextShot: 0, aim: false,
       phase: 0, speed: 0, yaw: 0, pitch: 0, deadT: 0, lastHitBy: null, lastHitT: -99, bloom: 0, flashT: 9, sprint: false, fallT: 0,
-      chuteT: 0, inVeh: null, prone: false, proneK: 0, lean: 0, leanK: 0, vault: null, obst: false, visY: null, lookYaw: null, lastFireT: -9, pickT: 0, hitT: 0, agl: 0, flare: 0, tilt: 0, tiltV: 0, bank: 0, prevYaw: 0, landT: 0, dive: false, chuteLand: null, rank: 0, holster: false, killedBy: null, killedWith: '', survived: 0, prevVy: 0, stepAcc: 0, deathYaw: 0, deathKind: null, fp: null, animAcc: 0
+      chuteT: 0, inVeh: null, prone: false, proneK: 0, lean: 0, leanK: 0, vault: null, obst: false, visY: null, lookYaw: null, lastFireT: -9, pickT: 0, hitT: 0, agl: 0, flare: 0, tilt: 0, tiltV: 0, bank: 0, prevYaw: 0, landT: 0, dive: false, chuteLand: null, rank: 0, holster: false, killedBy: null, killedWith: '', survived: 0, prevVy: 0, stepAcc: 0, deathYaw: 0, deathKind: null, fp: null, animAcc: 0, looted: false
     });
     this.p.set(0, 0, 0); this.v.set(0, 0, 0);
     const m = this.m;
@@ -4498,7 +5053,18 @@ class Char {
   }
 }
 
-/* 射線對角色：頭部球體 + 身體方塊 */
+/* 射線對膠囊（線段 a→b、半徑 r），回傳進入點的距離 */
+function rayCapsule(ox, oy, oz, dx, dy, dz, a, b, r, maxT) {
+  const ux = b.x - a.x, uy = b.y - a.y, uz = b.z - a.z, wx = ox - a.x, wy = oy - a.y, wz = oz - a.z;
+  const B = dx * ux + dy * uy + dz * uz, C = ux * ux + uy * uy + uz * uz, D = dx * wx + dy * wy + dz * wz, E = ux * wx + uy * wy + uz * wz, den = C - B * B;
+  const s = den > 1e-9 ? clamp((E - B * D) / den, 0, 1) : 0, t = Math.max(0, s * B - D);
+  const ex = wx + t * dx - s * ux, ey = wy + t * dy - s * uy, ez = wz + t * dz - s * uz, e2 = ex * ex + ey * ey + ez * ez;
+  if (e2 > r * r) return Infinity;
+  const tt = t - Math.sqrt(r * r - e2);
+  return tt > 0 && tt < maxT ? tt : Infinity;
+}
+const _ra = new THREE.Vector3(), _rb = new THREE.Vector3(), _rc = new THREE.Vector3();
+/* 射線對角色：頭部球體 + 軀幹方塊（半寬 0.22）+ 兩隻手臂（上臂、前臂各一段膠囊，讀骨架的世界座標） */
 function rayChar(c, ox, oy, oz, dx, dy, dz, maxT) {
   if (c.st === 'ground' && c.prone) {
     const fx = Math.sin(c.yaw), fz = Math.cos(c.yaw), cx = c.p.x + fx * .05, cz = c.p.z + fz * .05;
@@ -4513,14 +5079,25 @@ function rayChar(c, ox, oy, oz, dx, dy, dz, maxT) {
   }
   const h = c.bodyH(), air = c.st === 'fall';
   const ln = (c.leanK || 0) * .32;
-  const hx = c.p.x + Math.sin(c.yaw) * (air ? .9 : .02) - Math.cos(c.yaw) * ln, hz = c.p.z + Math.cos(c.yaw) * (air ? .9 : .02) + Math.sin(c.yaw) * ln, hy = air ? c.p.y + .3 : c.p.y + h - .13 - Math.abs(ln) * .15;
+  // 模型跟得上位置時直接讀頭骨與手臂骨（上一次算動畫的姿勢）；畫面外凍結或無頭模擬時用公式
+  const m = c.m, rp = m.root.position, sync = !air && !c.inVeh && Math.abs(rp.x - c.p.x) + Math.abs(rp.z - c.p.z) < .3 && Math.abs(rp.y - c.p.y) < .6;
+  // 頭心：站 p.y+1.69、蹲 1.35（workers.glb 頭骨 1.60／1.26 再往上 9 cm）
+  let hx = c.p.x + Math.sin(c.yaw) * (air ? .9 : .03) - Math.cos(c.yaw) * ln, hz = c.p.z + Math.cos(c.yaw) * (air ? .9 : .03) + Math.sin(c.yaw) * ln, hy = air ? c.p.y + .3 : c.p.y + (h > 1.5 ? 1.69 : 1.35) - Math.abs(ln) * .15;
+  if (sync) { _ra.setFromMatrixPosition(m.head.matrixWorld); hx = _ra.x; hy = _ra.y + .09; hz = _ra.z; }
   let best = maxT, head = false;
   const lx = ox - hx, ly = oy - hy, lz = oz - hz, b = lx * dx + ly * dy + lz * dz, cc = lx * lx + ly * ly + lz * lz - .16 * .16, disc = b * b - cc;
   if (disc > 0) { const t = -b - Math.sqrt(disc); if (t > 0 && t < best) { best = t; head = true; } }
-  const r = air ? .5 : .27;
-  const box = { x0: c.p.x - r, x1: c.p.x + r, z0: c.p.z - r, z1: c.p.z + r, y0: c.p.y + (air ? -.2 : 0), y1: air ? c.p.y + .5 : c.p.y + h - .27 };
+  const r = air ? .5 : .22;
+  const box = { x0: c.p.x - r, x1: c.p.x + r, z0: c.p.z - r, z1: c.p.z + r, y0: c.p.y + (air ? -.2 : 0), y1: air ? c.p.y + .5 : hy - .16 };
   const t = rayBox(box, ox, oy, oz, 1 / dx, 1 / dy, 1 / dz);
   if (t < best) { best = t; head = false; }
+  if (sync) {
+    for (const A of [m.armL, m.armR]) {
+      _ra.setFromMatrixPosition(A.sh.matrixWorld); _rb.setFromMatrixPosition(A.el.matrixWorld); _rc.setFromMatrixPosition(A.hd.matrixWorld);
+      const t1 = Math.min(rayCapsule(ox, oy, oz, dx, dy, dz, _ra, _rb, .07, best), rayCapsule(ox, oy, oz, dx, dy, dz, _rb, _rc, .06, best));
+      if (t1 < best) { best = t1; head = false; }
+    }
+  }
   return best < maxT ? { t: best, head } : null;
 }
 const _o = new THREE.Vector3(), _d = new THREE.Vector3(), _t1 = new THREE.Vector3(), _t2 = new THREE.Vector3(), _t3 = new THREE.Vector3();
@@ -4546,6 +5123,8 @@ function traceShot(ignore, o, d, maxT) {
 }
 function muzzleWorld(ch, out) {
   const w = ch.w;
+  // 停住的模型（遠而且在畫面外）骨架是舊的：槍口改從眼睛前方算，曳光彈才不會從它停住的地方射出來
+  if (ch.frz) { ch.eye(out); return out.set(out.x + Math.sin(ch.yaw) * .6, out.y - .12, out.z + Math.cos(ch.yaw) * .6); }
   ch.m.root.updateMatrixWorld(true);
   return out.set(0, .02, w ? w.muzzle : .3).applyMatrix4(ch.m.gunG.matrixWorld);
 }
@@ -4594,8 +5173,8 @@ function fire(ch, o, dir, spread) {
 function damage(v, dmg, att, wname, head, pt) {
   if (!v.alive) return;
   const red = wname === '安全區' || wname === '墜落' ? 0 : wname === '手雷' ? RED[v.vest] * .4 : head ? RED[v.helm] : RED[v.vest];
-  // 電腦之間的交火打得比較慢，留更多人給玩家遇到
-  const bvb = att && v.brain && att.brain ? .5 : 1;
+  // 電腦之間的交火打得比較慢，留更多人給玩家遇到；前兩個階段更慢，人數才不會一落地就掉一半
+  const bvb = att && v.brain && att.brain ? BVB[Math.min(ZONE.phase, BVB.length - 1)] : 1;
   const d = Math.min(dmg * (1 - red) * bvb, v.hp);
   v.hp -= d;
   if (att && att !== v) { att.dmg += d; v.lastHitBy = att; v.lastHitT = T; }
@@ -5011,13 +5590,16 @@ function stepAir(ch, dt, fx, fz, fwd, fall) {
   const k = 1 - Math.exp(-dt * 2.2);
   ch.v.x += (fx * fwd - ch.v.x) * k; ch.v.z += (fz * fwd - ch.v.z) * k;
   ch.v.y += (-fall - ch.v.y) * (1 - Math.exp(-dt * 3));
-  const n = Math.max(1, Math.ceil(Math.hypot(ch.v.x, ch.v.y, ch.v.z) * dt / .22)), sdt = dt / n;
+  const n = Math.max(1, Math.ceil(Math.hypot(ch.v.x, ch.v.y, ch.v.z) * dt / .22)), sdt = dt / n, y0 = ch.p.y, vy0 = ch.v.y;
   for (let i = 0; i < n; i++) {
     ch.p.x += ch.v.x * sdt; ch.p.z += ch.v.z * sdt; ch.p.y += ch.v.y * sdt;
     airClamp(ch.p);
     resolveBody(ch.p, .3, 1.8, ch.v, true);
   }
-  const gb = groundBelow(ch.p.x, ch.p.y, ch.p.z, .28);
+  // 往下掉卻一點都沒降（踩在欄杆、牆頭上又被旁邊的柱子推開，groundBelow 看不到它）：當作落地，
+  // 不然會整場掛在傘下。半徑也和 resolveBody 一樣
+  const held = vy0 < -.05 && ch.p.y >= y0 - 1e-4;
+  const gb = held ? ch.p.y : groundBelow(ch.p.x, ch.p.y, ch.p.z, .3);
   ch.agl = ch.p.y - gb;
   ch.flare = ch.st === 'chute' ? clamp((4.5 - ch.agl) / 3, 0, 1) : 0;
   if (ch.p.y <= gb + .01) { if (shoreSnap(ch.p)) ch.p.y = groundBelow(ch.p.x, ch.p.y + 40, ch.p.z, .28); else ch.p.y = gb; ch.v.set(ch.v.x * .35, 0, ch.v.z * .35); ch.flare = 0; ch.st = 'ground'; ch.onGround = true; ch.chuteT = 0; ch.landT = .45; ch.dive = false; return true; }
@@ -5040,8 +5622,9 @@ function animate(ch, dt) {
   const lod = ch.isPlayer ? 0 : d < ANIM.near ? 0 : d < ANIM.mid ? 1 : 2;
   ch.lod = lod;
   if (m.body && m.lod) { const far = d > ANIM.lodMesh && !ch.isPlayer; m.body.visible = !far; m.lod.visible = far; }
-  if (m.body) m.body.castShadow = d < ANIM.shadow;
-  if (m.lod) m.lod.castShadow = d < ANIM.shadow;
+  ch._csd = d < ANIM.shadow;
+  if (m.body) m.body.castShadow = ch._csd;
+  if (m.lod) m.lod.castShadow = ch._csd;
   // 換彈到一半死掉、走遠、上車或離地：彈匣放回槍上，不要留在手上
   if (m.magOut && (!ch.alive || ch.st !== 'ground' || ch.inVeh || lod > 0)) resetMag(m, m.gunId);
   ch.animAcc = (ch.animAcc || 0) + dt;
@@ -5599,16 +6182,18 @@ function armIK(A, target, pole, wgt, handQ) {
 
 /* ---------- 安全區 ---------- */
 const AUTO_OPEN = 42;
-/* 1 km 的島：第一圈蓋住整座島，第一階段留足搜刮與移動的時間 */
+/* 1 km 的島、六十人：第一圈蓋住整座島，第一階段留足搜刮與移動的時間（含直升機航程約一分鐘）；
+   八個階段加起來約 14 分鐘，活到最後的一場大約 13–15 分鐘 */
 const ZONE_R0 = 660;
 const PHASES = [
-  { wait: 140, shrink: 90, f: .55, dps: .6 },
-  { wait: 85, shrink: 60, f: .55, dps: 1.2 },
-  { wait: 60, shrink: 45, f: .52, dps: 2.4 },
-  { wait: 45, shrink: 35, f: .5, dps: 4.5 },
-  { wait: 35, shrink: 28, f: .46, dps: 7 },
-  { wait: 26, shrink: 22, f: .42, dps: 10 },
-  { wait: 20, shrink: 18, f: 0, dps: 14 },
+  { wait: 150, shrink: 100, f: .6, dps: .5 },
+  { wait: 115, shrink: 80, f: .6, dps: 1 },
+  { wait: 95, shrink: 60, f: .58, dps: 2 },
+  { wait: 70, shrink: 45, f: .55, dps: 3.5 },
+  { wait: 50, shrink: 32, f: .52, dps: 5.5 },
+  { wait: 35, shrink: 24, f: .5, dps: 8 },
+  { wait: 28, shrink: 20, f: .45, dps: 11 },
+  { wait: 20, shrink: 16, f: 0, dps: 15 },
 ];
 const ZONE = { phase: 0, st: 'wait', t: 0, x: 0, z: 0, r: ZONE_R0, fx: 0, fz: 0, fr: ZONE_R0, nx: 0, nz: 0, nr: 0 };
 function zonePlanNext() {
@@ -5655,32 +6240,40 @@ function zoneUpdate(dt) {
 const outsideZone = c => Math.hypot(c.p.x - ZONE.x, c.p.z - ZONE.z) > ZONE.r;
 
 /* ---------- 起重直升機航線 ---------- */
-/* 航線橫越整座島；j0–j1 是航線在陸地上方的那一段（沿航線的距離），這段都能跳 */
-const HP = { ax: 0, az: 0, dx: 1, dz: 0, t: 0, speed: 30, len: 1500, y: 210, gone: false, j0: 0, j1: 1500 };
+/* 每架一條直線航線橫越整座島，三條大致圍成三角形、各掃過島的一部分，錯開出發時間與高度。
+   j0–j1 是航線在陸地上方的那一段（沿航線的距離），這段都能跳。HP 是玩家搭的那一架 */
+const HPS = HELIS.map((heli, i) => ({ i, heli, ax: 0, az: 0, dx: 1, dz: 0, t: 0, speed: 30, len: 1500, y: 210, gone: false, j0: 0, j1: 1500 }));
+let HP = HPS[0];
 function heliPlan() {
-  HP.len = 1500;
-  const a = rnd(TAU), off = rnd(-220, 220);
-  HP.dx = Math.cos(a); HP.dz = Math.sin(a);
-  const px = -HP.dz * off, pz = HP.dx * off;
-  HP.ax = px - HP.dx * HP.len / 2; HP.az = pz - HP.dz * HP.len / 2; HP.t = 0; HP.gone = false;
-  HP.j0 = HP.len; HP.j1 = 0;
-  for (let s = 0; s <= HP.len; s += 10) if (terrainH(HP.ax + HP.dx * s, HP.az + HP.dz * s) > SEA + .5) { HP.j0 = Math.min(HP.j0, s); HP.j1 = Math.max(HP.j1, s); }
-  if (HP.j1 < HP.j0) { HP.j0 = HP.len / 2 - 120; HP.j1 = HP.len / 2 + 120; }
-  // 從海岸前 60 m 才出發，不要先在海上飛一大段
-  const cut = Math.max(0, HP.j0 - 60);
-  HP.ax += HP.dx * cut; HP.az += HP.dz * cut; HP.j0 -= cut; HP.j1 -= cut; HP.len = Math.min(HP.len - cut, HP.j1 + 90);
-  HELI.visible = true;
+  const a0 = rnd(TAU), side = Math.random() < .5 ? 1 : -1;
+  for (const P of HPS) {
+    P.len = 1500;
+    const a = a0 + P.i * TAU / NHELI + rnd(-.2, .2), off = NHELI > 1 ? side * rnd(110, 240) : rnd(-220, 220);
+    P.dx = Math.cos(a); P.dz = Math.sin(a);
+    const px = -P.dz * off, pz = P.dx * off;
+    P.ax = px - P.dx * P.len / 2; P.az = pz - P.dz * P.len / 2; P.gone = false;
+    P.j0 = P.len; P.j1 = 0;
+    for (let s = 0; s <= P.len; s += 10) if (terrainH(P.ax + P.dx * s, P.az + P.dz * s) > SEA + .5) { P.j0 = Math.min(P.j0, s); P.j1 = Math.max(P.j1, s); }
+    if (P.j1 < P.j0) { P.j0 = P.len / 2 - 120; P.j1 = P.len / 2 + 120; }
+    // 從海岸前 60 m 才出發，不要先在海上飛一大段；後面幾架起點往回退 60–90 m 錯開（高度不同，交叉時不會撞在一起）
+    const cut = Math.max(0, P.j0 - 60 - P.i * rnd(60, 90));
+    P.ax += P.dx * cut; P.az += P.dz * cut; P.j0 -= cut; P.j1 -= cut; P.len = Math.min(P.len - cut, P.j1 + 90);
+    P.t = 0; P.y = 210 + P.i * 16;
+    P.heli.visible = true;
+  }
 }
-function heliPos(t, out) { return out.set(HP.ax + HP.dx * HP.speed * t, HP.y, HP.az + HP.dz * HP.speed * t); }
-const heliYaw = () => Math.atan2(HP.dx, HP.dz);
-function heliOverSite() { const s = HP.t * HP.speed; return s >= HP.j0 && s <= HP.j1; }
+function heliPos(t, out, P = HP) { return out.set(P.ax + P.dx * P.speed * t, P.y, P.az + P.dz * P.speed * t); }
+const heliYaw = (P = HP) => Math.atan2(P.dx, P.dz);
+function heliOverSite(P = HP) { const s = P.t * P.speed; return s >= P.j0 && s <= P.j1; }
+/* 第 i 個位子：每架 PER_BEAM 人，i / PER_BEAM 決定哪一架 */
+const heliOf = c => HPS[Math.min(NHELI - 1, (c.slotI || 0) / PER_BEAM | 0)];
 function beamSlot(i, out) {
-  HELI.updateMatrixWorld(true);
-  return out.set(0, HELI.userData.beamY, -6.6 + i * .7).applyMatrix4(HELI.matrixWorld);
+  const H = HPS[Math.min(NHELI - 1, i / PER_BEAM | 0)].heli; H.updateMatrix();
+  return out.set(0, H.userData.beamY, (i % PER_BEAM - (PER_BEAM - 1) / 2) * .7).applyMatrix4(H.matrix);
 }
 
 /* ============================================================
-   電腦工人（19 名）
+   電腦工人（NPLAYERS − 1 名）
    ============================================================ */
 const BOTS = [];
 const RANGE_PREF = { s686: 7, ump: 16, m416: 26, kar98: 55 };
@@ -5690,7 +6283,7 @@ class Brain {
     Object.assign(this, {
       skill: rnd(.2, .75), planned: false, aggro: rnd(.3, 1), jumpAt: 0, lx: 0, lz: 0, goal: null, gx: 0, gz: 0, enemy: null, vis: false, seeT: 0, engageT: 0,
       lastSeenT: -99, lsx: 0, lsz: 0, strafe: 1, strafeT: 0, think: rnd(.3), stuckT: 0, sx: 0, sz: 0, detourT: 0, detourA: 0,
-      lootUntil: 0, burst: 0, pauseT: 0, heardT: -99, hx: 0, hz: 0, crouchT: 0, idleT: 0, item: null, wantMove: false, react: 0, jumpReq: false, healDelay: 0, fragT: rnd(8, 20), senseT: 0
+      lootUntil: 0, burst: 0, pauseT: 0, stuckN: 0, ban: null, banT: 0, sta: null, stT: 0, stx: 0, stz: 0, pgx: 0, pgz: 0, pgD: 0, pgT: 0, unstickT: 0, heardT: -99, hx: 0, hz: 0, crouchT: 0, idleT: 0, item: null, wantMove: false, react: 0, jumpReq: false, healDelay: 0, fragT: rnd(8, 20), senseT: 0
     });
     this.idx = i;
   }
@@ -5701,8 +6294,13 @@ class Brain {
     this.healDelay = T + 4; if (this.ch.cast) this.ch.cast = null;
   }
 }
-const LATE = () => ZONE.phase >= 2 || aliveCount() <= 6;
+let ALIVE_N = NPLAYERS;   // 每次 update 開頭算一次，不要每個電腦每次判斷都數一遍
+const LATE = () => ZONE.phase >= 4 || ALIVE_N <= 5;
+/* 依安全區階段：主動開戰的最遠距離、電腦互打的傷害倍率 */
+const ENGAGE = [40, 55, 75, 100, 140, 200], BVB = [.22, .25, .24, .27, .32, .45, .7];
 function botHasAmmo(ch) { return ch.guns.some(g => g && (g.mag > 0 || ch.ammo[WPN[g.id].cal] > 0)); }
+/* 子彈快打完（手上的槍加備彈不到兩個彈匣）：電腦互打比較慢、耗彈多，後期不去撿的話會剩一群空槍的人 */
+const botLowAmmo = ch => !ch.guns.some(g => g && g.mag + ch.ammo[WPN[g.id].cal] >= WPN[g.id].mag * 2);
 function botWants(ch, it) {
   const I = ITEMS[it.t];
   switch (I.kind) {
@@ -5713,7 +6311,7 @@ function botWants(ch, it) {
       const worst = Math.min(WPN[ch.guns[0].id].tier, WPN[ch.guns[1].id].tier);
       return WPN[it.t].tier > worst ? 4 : 0;
     }
-    case 'ammo': return ch.guns.some(g => g && WPN[g.id].cal === I.cal) && ch.ammo[I.cal] < 120 ? 7 : 0;
+    case 'ammo': return !ch.guns.some(g => g && WPN[g.id].cal === I.cal) ? 0 : ch.ammo[I.cal] < 60 ? 9 : ch.ammo[I.cal] < 150 ? 6 : 0;
     case 'helm': return I.lv > ch.helm ? 8 : 0;
     case 'vest': return I.lv > ch.vest ? 8 : 0;
     case 'med': return ch.meds.reduce((a, b) => a + b, 0) < 6 ? 4 : 0;
@@ -5732,9 +6330,20 @@ function botPickGun(b) {
   });
   if (best >= 0 && (best !== ch.slot || ch.holster)) switchSlot(ch, best);
 }
-function botPerceive(b) {
+/* 電腦的視線：地形先用高度格每 2.5 m 抽樣（比逐步前進的地形射線便宜很多），通了再只對物件打射線；工地平台上沒有地形起伏 */
+function botLos(ax, ay, az, bx, by, bz) {
+  const dx = bx - ax, dy = by - ay, dz = bz - az, d = Math.hypot(dx, dy, dz);
+  if (d < 1e-3) return true;
+  if (!(Math.abs(ax) < 127 && Math.abs(az) < 127 && Math.abs(bx) < 127 && Math.abs(bz) < 127)) {
+    const n = Math.ceil(d / 2.5);
+    for (let k = 1; k < n; k++) { const t = k / n; if (terrainH(ax + dx * t, az + dz * t) > ay + dy * t) return false; }
+  }
+  return raycast(ax, ay, az, dx / d, dy / d, dz / d, d, true) >= d - .05;
+}
+function botPerceive(b, far) {
   const ch = b.ch, armed = botHasAmmo(ch), range = armed ? (T < b.lootUntil ? 45 : 150) : 30;
-  const gunReach = ch.gun ? RANGE_PREF[ch.gun.id] * 3.4 + 15 : 30;
+  // 主動開戰的距離跟著階段放寬：前期六十人散在全島，遠遠看到就打的話三分鐘就死一半
+  const gunReach = Math.min(ch.gun ? RANGE_PREF[ch.gun.id] * 3.4 + 15 : 30, ENGAGE[Math.min(ZONE.phase, ENGAGE.length - 1)]);
   ch.eye(_t1);
   const fx = Math.sin(ch.yaw), fz = Math.cos(ch.yaw);
   const cands = [];
@@ -5752,12 +6361,12 @@ function botPerceive(b) {
     cands.push([score, c]);
   }
   cands.sort((a, b2) => a[0] - b2[0]);
-  for (let i = 0; i < Math.min(3, cands.length); i++) {
+  for (let i = 0; i < Math.min(far ? 2 : 3, cands.length); i++) {
     const c = cands[i][1]; c.chest(_t2);
     const d = _t1.distanceTo(_t2);
     if (d > 60 && c.crouch && Math.random() < .5) continue;
     if (c.inVeh) { const dx = _t2.x - _t1.x, dy = _t2.y - _t1.y, dz = _t2.z - _t1.z, dd = Math.hypot(dx, dy, dz); raycast(_t1.x, _t1.y, _t1.z, dx / dd, dy / dd, dz / dd, dd); if (!RAYHIT.c || RAYHIT.dyn === c.inVeh.dyn) return c; continue; }
-    if (losClear(_t1.x, _t1.y, _t1.z, _t2.x, _t2.y, _t2.z)) return c;
+    if (botLos(_t1.x, _t1.y, _t1.z, _t2.x, _t2.y, _t2.z)) return c;
   }
   return null;
 }
@@ -5790,16 +6399,18 @@ function botLand(b) {
   if (terrainH(bx, bz) < SEA + 1) { const s = SPOTS.reduce((m, q) => Math.hypot(q.x - bx, q.z - bz) < Math.hypot(m.x - bx, m.z - bz) ? q : m, SPOTS[0]); bx = s.x; bz = s.z; }
   b.lx = clamp(bx, -WORLD, WORLD); b.lz = clamp(bz, -WORLD, WORLD);
 }
+/* 走得到的地面點：不在水裡、不在紅岩台地的崖頂上（四周是崖壁，走不上去） */
+const walkable = (x, z) => terrainH(x, z) >= SEA + 1 && Math.hypot(x - POI.mesa.x, z - POI.mesa.z) > mesaR(Math.atan2(z - POI.mesa.z, x - POI.mesa.x)) + 6;
 function nextZoneTarget(b) {
   const r = (ZONE.st === 'wait' ? ZONE.nr : ZONE.nr) * .75;
   const a = rnd(TAU), d = Math.sqrt(Math.random()) * r;
   let x = ZONE.nx + Math.cos(a) * d, z = ZONE.nz + Math.sin(a) * d;
-  for (let i = 0; i < 8 && (pointBlocked(x, terrainH(x, z), z, .6) || terrainH(x, z) < SEA + 1); i++) { x += rnd(-6, 6) - (x - ZONE.nx) * .15; z += rnd(-6, 6) - (z - ZONE.nz) * .15; }
+  for (let i = 0; i < 12 && (pointBlocked(x, terrainH(x, z), z, .6) || !walkable(x, z)); i++) { x += rnd(-8, 8) - (x - ZONE.nx) * .2; z += rnd(-8, 8) - (z - ZONE.nz) * .2; }
   b.gx = clamp(x, -WORLD, WORLD); b.gz = clamp(z, -WORLD, WORLD); b.goal = 'zone';
 }
-function botThink(b) {
+function botThink(b, far) {
   const ch = b.ch;
-  const seen = botPerceive(b);
+  const seen = botPerceive(b, far);
   if (seen) {
     if (b.enemy !== seen || !b.vis) { b.react = T + lerp(1.1, .45, b.skill) * rnd(.8, 1.3) * (seen.isPlayer ? 1.15 : 1); }
     if (b.enemy !== seen) b.engageT = 0;
@@ -5807,6 +6418,14 @@ function botThink(b) {
   } else {
     b.vis = false;
     const calm = !LATE() && (T < b.lootUntil || b.aggro < .6);
+    // 打倒對手後去舔包：補兩個彈匣（算作從對方身上拿的，地上的東西照樣留著），再去撿東西。
+    // 電腦互打傷害打折、耗彈多，不補的話後期會剩一群空槍的人等毒圈收完
+    if (b.enemy && !b.enemy.alive && !b.enemy.looted && b.enemy.killedBy === ch) {
+      // 兩把槍都補（後期三個彈匣）：只補手上那把的話，切到另一把就沒子彈，最後幾個人常常都是空槍
+      b.enemy.looted = true; const nm = LATE() ? 3 : 2;
+      for (const g of ch.guns) if (g) { const w = WPN[g.id]; ch.ammo[w.cal] = Math.min(Math.max(ch.ammo[w.cal], 150), ch.ammo[w.cal] + w.mag * nm); }
+      if (Math.hypot(b.enemy.p.x - ch.p.x, b.enemy.p.z - ch.p.z) < 45) b.lootUntil = Math.max(b.lootUntil, T + 10);
+    }
     if (b.enemy && (!b.enemy.alive || T - b.lastSeenT > (calm ? 2.5 : 7))) b.enemy = null;
   }
   const armed = botHasAmmo(ch);
@@ -5826,13 +6445,21 @@ function botThink(b) {
     const d = Math.hypot(b.lsx - ch.p.x, b.lsz - ch.p.z);
     if (d > 10 && d < 30) { b.fragT = T + rnd(12, 25); const yaw = Math.atan2(b.lsx - ch.p.x, b.lsz - ch.p.z); const pitch = .15 + d / 90; throwFrag(ch, new THREE.Vector3(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch))); }
   }
-  // 決定去哪
+  // 決定去哪（正在脫困就先走完）
+  if (b.goal === 'unstick' && T < b.unstickT && !b.vis) return;
+  if (b.goal === 'unstick') { b.goal = null; b.idleT = 0; }
   const zoneDanger = outsideZone(ch) || (Math.hypot(ch.p.x - ZONE.nx, ch.p.z - ZONE.nz) > ZONE.nr * .92 && (ZONE.st === 'shrink' || ZONE.t < 40));
   if (b.item && (!LOOT.includes(b.item) || b.item.claim !== b)) b.item = null;
   if (zoneDanger && !(b.vis && armed && Math.random() < .3)) {
     if (b.goal !== 'zone' || Math.hypot(b.gx - ZONE.nx, b.gz - ZONE.nz) > ZONE.nr) nextZoneTarget(b);
     if (b.item) { b.item.claim = null; b.item = null; }
     return;
+  }
+  // 前中期血少又不是貼身：先退開找掩護補血，不要打到死
+  if (b.enemy && armed && ch.hp < 40 && !LATE() && Math.hypot(b.enemy.p.x - ch.p.x, b.enemy.p.z - ch.p.z) > 8 && (ch.meds.some(n => n > 0) || ch.hp < 25)) {
+    if (b.item) { b.item.claim = null; b.item = null; }
+    if (b.goal !== 'flee' || Math.hypot(b.gx - ch.p.x, b.gz - ch.p.z) < 3) { const a = Math.atan2(ch.p.x - b.enemy.p.x, ch.p.z - b.enemy.p.z) + rnd(-.7, .7); b.gx = clamp(ch.p.x + Math.sin(a) * 28, -WORLD, WORLD); b.gz = clamp(ch.p.z + Math.cos(a) * 28, -WORLD, WORLD); }
+    b.goal = 'flee'; if (!b.vis) b.enemy = null; return;
   }
   if (b.enemy && armed) {
     if (b.item) { b.item.claim = null; b.item = null; }
@@ -5843,12 +6470,14 @@ function botThink(b) {
     b.gx = clamp(ch.p.x + Math.sin(a) * 20, -WORLD, WORLD); b.gz = clamp(ch.p.z + Math.cos(a) * 20, -WORLD, WORLD); b.goal = 'flee';
   }
   // 搜刮
-  if (!b.item && (T < b.lootUntil || !armed || Math.random() < .08)) {
-    let best = null, bs = 0;
+  if (!b.item && (T < b.lootUntil || !armed || (!b.vis && botLowAmmo(ch)) || Math.random() < .08)) {
+    // 後期人少、地上的東西也被撿得差不多：沒子彈或子彈快完的找遠一點，不然會剩空槍的人等毒圈
+    let best = null, bs = 0; const lr = !armed ? (LATE() ? 200 : 95) : LATE() && botLowAmmo(ch) ? 120 : 45;
     for (const it of LOOT) {
       if (it.claim && it.claim !== b && it.claim.ch.alive) continue;
+      if (it === b.ban && T < b.banT) continue;
       if (Math.abs(it.y - terrainH(it.x, it.z) - ch.p.y + terrainH(ch.p.x, ch.p.z)) > 1.2) continue;
-      const d = Math.hypot(it.x - ch.p.x, it.z - ch.p.z); if (d > (armed ? 45 : 95)) continue;
+      const d = Math.hypot(it.x - ch.p.x, it.z - ch.p.z); if (d > lr) continue;
       const w = botWants(ch, it); if (!w) continue;
       const s = w / (1 + d / 8);
       if (s > bs) { bs = s; best = it; }
@@ -5866,10 +6495,24 @@ function botThink(b) {
   if (b.heardT > T - 5 && !b.enemy && (b.aggro > .55 || LATE())) { b.goal = 'hunt'; b.gx = b.hx + rnd(-6, 6); b.gz = b.hz + rnd(-6, 6); return; }
   if (b.goal !== 'roam' && b.goal !== 'zone' || Math.hypot(b.gx - ch.p.x, b.gz - ch.p.z) < 2) {
     if (b.idleT <= 0) {
-      if (Math.random() < .5) nextZoneTarget(b); else { b.goal = 'roam'; b.gx = clamp(ch.p.x + rnd(-30, 30), -WORLD, WORLD); b.gz = clamp(ch.p.z + rnd(-30, 30), -WORLD, WORLD); }
+      if (Math.random() < .5) nextZoneTarget(b);
+      else { b.goal = 'roam'; for (let i = 0; i < 6; i++) { b.gx = clamp(ch.p.x + rnd(-30, 30), -WORLD, WORLD); b.gz = clamp(ch.p.z + rnd(-30, 30), -WORLD, WORLD); if (walkable(b.gx, b.gz) && !pointBlocked(b.gx, terrainH(b.gx, b.gz), b.gz, .5)) break; } }
       b.idleT = rnd(1, 5);
     }
   }
+}
+/* 卡住（在貨櫃、流動廁所、牆角或崖邊）：找一個兩個高度都通 2.5 m 以上的方向，先往那裡走 2.5 秒再重新想目標 */
+function botUnstick(b) {
+  const ch = b.ch; let best = null, bs = 0;
+  b.stuckN = 0;
+  for (let k = 0; k < 12; k++) {
+    const a = k / 12 * TAU + rnd(.2), sx = Math.sin(a), sz = Math.cos(a);
+    const l = Math.min(raycast(ch.p.x, ch.p.y + .45, ch.p.z, sx, 0, sz, 5, true), raycast(ch.p.x, ch.p.y + 1.3, ch.p.z, sx, 0, sz, 5, true));
+    if (l < 2.5 || terrainH(ch.p.x + sx * 2.5, ch.p.z + sz * 2.5) - ch.p.y > 2.2) continue;
+    const s = l + rnd(1.5); if (s > bs) { bs = s; best = a; }
+  }
+  if (best === null) { b.goal = null; b.idleT = 0; b.think = 0; return; }
+  b.goal = 'unstick'; b.gx = ch.p.x + Math.sin(best) * (bs - .5); b.gz = ch.p.z + Math.cos(best) * (bs - .5); b.unstickT = T + 2.5; b.stT = 0;
 }
 const _aim = new THREE.Vector3(), _bo = new THREE.Vector3(), _bdir = new THREE.Vector3();
 function botUpdate(b, dt) {
@@ -5894,8 +6537,9 @@ function botUpdate(b, dt) {
     return;
   }
   if (ch.vault) { stepVault(ch, dt); return; }
+  // 想事情的頻率：離鏡頭很遠又沒在打的電腦慢一點（大家的時間本來就錯開）
   b.think -= dt;
-  if (b.think <= 0) { b.think = .22 + rnd(.1); botThink(b); }
+  if (b.think <= 0) { const cp = camera.position, far = !b.enemy && (ch.p.x - cp.x) ** 2 + (ch.p.z - cp.z) ** 2 > 180 * 180; b.think = (far ? .4 : .22) + rnd(far ? .15 : .1); botThink(b, far); }
   b.idleT -= dt; b.detourT -= dt;
   // 裝填、補血計時
   if (ch.reloadT > 0) { ch.reloadT -= dt; if (ch.reloadT <= 0) finishReload(ch); }
@@ -5913,7 +6557,7 @@ function botUpdate(b, dt) {
       b.strafeT -= dt;
       if (b.strafeT <= 0) { b.strafe = Math.random() < .5 ? -1 : 1; b.strafeT = rnd(.6, 1.8); if (Math.random() < .3 * (1 - b.aggro)) b.strafe = 0; }
       const px = dz / (d + 1e-3), pz = -dx / (d + 1e-3);
-      tx = ch.p.x + px * b.strafe * 3 + (d < pref * .6 ? -dx / d * 2 : 0); tz = ch.p.z + pz * b.strafe * 3 + (d < pref * .6 ? -dz / d * 2 : 0);
+      tx = ch.p.x + px * b.strafe * 3 + (d < pref * .6 ? -dx / (d + 1e-3) * 2 : 0); tz = ch.p.z + pz * b.strafe * 3 + (d < pref * .6 ? -dz / (d + 1e-3) * 2 : 0);
       speed = b.strafe ? 3.6 : 0;
       b.crouchT -= dt;
       if (b.crouchT <= 0) { const sn = ch.gun && ch.gun.id === 'kar98', far = d > 45; ch.prone = sn && far && Math.random() < .45; ch.crouch = !ch.prone && Math.random() < (sn ? .7 : .25); b.crouchT = rnd(2, 5); }
@@ -5923,6 +6567,7 @@ function botUpdate(b, dt) {
     ch.crouch = false; ch.prone = false;
     if (b.goal && !(ch.cast)) { tx = b.gx; tz = b.gz; }
     if (b.goal === 'zone' || b.goal === 'flee') { speed = 6.2; ch.sprint = true; }
+    if (b.goal === 'unstick') ch.crouch = true;   // 蹲低才鑽得過矮門楣（例如站到流動廁所的馬桶上）
     if (b.heardT > T - 3 && !b.vis) face = Math.atan2(b.hx - ch.p.x, b.hz - ch.p.z);
   }
   if (ch.cast) { tx = null; ch.sprint = false; }
@@ -5935,17 +6580,29 @@ function botUpdate(b, dt) {
   }
   let wx = 0, wz = 0;
   if (tx !== null && speed > 0) {
-    const a = steer(b, tx, tz);
+    // 繞路方向 0.1 秒算一次（每次最多二十幾條射線），目標跳動超過 1.5 m 才重算
+    if (T >= b.stT || Math.abs(tx - b.stx) + Math.abs(tz - b.stz) > 1.5) { b.sta = steer(b, tx, tz); b.stT = T + .1; b.stx = tx; b.stz = tz; }
+    const a = b.sta;
     if (a !== null) { wx = Math.sin(a); wz = Math.cos(a); if (face === null) face = a; }
   }
   if (face !== null) ch.yaw += angDiff(ch.yaw, face) * Math.min(1, dt * (b.vis ? 8 : 5));
   ch.lookYaw = e && e.alive && T - b.lastSeenT < 3 ? Math.atan2(e.p.x - ch.p.x, e.p.z - ch.p.z) : face;
   ch.aim = !!(e && e.alive && b.vis && ch.gun);
-  // 卡住偵測
+  // 卡住偵測：1.2 秒沒走動就繞路、跳；另外看有沒有離目標越來越近（在牆角、崖邊來回蹭也算卡住）
   b.stuckT += dt;
   if (b.stuckT > 1.2) {
     const moved = Math.hypot(ch.p.x - b.sx, ch.p.z - b.sz);
-    if ((wx || wz) && moved < .5) { b.detourA = (Math.random() < .5 ? 1 : -1) * rnd(1, 2.2); b.detourT = rnd(1, 2); b.jumpReq = true; if (b.item) { b.item.claim = null; b.item = null; } }
+    let stuck = false;
+    if ((wx || wz) && moved < .5) {
+      b.detourA = (Math.random() < .5 ? 1 : -1) * rnd(1, 2.2); b.detourT = rnd(1, 2); b.jumpReq = true; b.stT = 0;
+      if (b.item) { b.ban = b.item; b.banT = T + 25; b.item.claim = null; b.item = null; }
+      stuck = ++b.stuckN >= 3;
+    } else b.stuckN = 0;
+    const dT = tx === null ? 0 : Math.hypot(tx - ch.p.x, tz - ch.p.z);
+    if (tx === null || b.goal === 'fight' || b.goal === 'unstick' || Math.abs(tx - b.pgx) + Math.abs(tz - b.pgz) > 3) { b.pgx = tx; b.pgz = tz; b.pgD = dT; b.pgT = T; }
+    else if (dT < b.pgD - 1) { b.pgD = dT; b.pgT = T; }
+    else if (T - b.pgT > 8) { stuck = true; b.pgT = T; if (b.item) { b.ban = b.item; b.banT = T + 25; b.item.claim = null; b.item = null; } }
+    if (stuck && b.goal !== 'fight') botUnstick(b);
     b.sx = ch.p.x; b.sz = ch.p.z; b.stuckT = 0;
   }
   const spd = ch.prone ? Math.min(speed, 1.1) : ch.crouch ? Math.min(speed, 2.4) : ch.cast ? 1.5 : speed;
@@ -5957,8 +6614,8 @@ function botUpdate(b, dt) {
   if (e && e.alive && b.vis && ch.gun && T > b.react && ch.reloadT <= 0 && !ch.cast) {
     const g = ch.gun, w = WPN[g.id];
     e.chest(_aim);
-    const headShot = Math.random() < b.skill * .22;
-    if (headShot) _aim.y = e.p.y + e.bodyH() - .13;
+    const headShot = Math.random() < b.skill * .22 && !(e.st === 'ground' && e.prone) && !e.inVeh;
+    if (headShot) _aim.y = e.p.y + (e.bodyH() > 1.5 ? 1.69 : 1.35);
     ch.eye(_bo); _bo.y -= .15;
     const dir = _bdir.copy(_aim).sub(_bo); const dist = dir.length(); dir.normalize();
     ch.pitch = Math.asin(clamp(dir.y, -1, 1));
@@ -6046,6 +6703,8 @@ function sfxShot(kind, ch) {
   if (!AU.ctx) return;
   const t = AU.ctx.currentTime, me = ch.isPlayer, d = me ? 0 : camera.position.distanceTo(ch.p);
   if (d > 420) return;
+  // 六十人時遠處的槍聲很密：120 m 外每 0.06 秒最多一聲，省下大量音訊節點
+  if (d > 120) { if (t - (AU.farShot || 0) < .06) return; AU.farShot = t; }
   const P = SHOT[kind], vol = me ? .9 : 1.1 / (1 + d / 16), cut = me ? P[0] : Math.max(380, P[0] / (1 + d / 35));
   const o = out(me ? null : ch.p, vol);
   noiseHit(t, o, 'lowpass', cut, .002, P[2], P[1]);
@@ -6611,7 +7270,7 @@ function updateHUD(dt) {
   }
   const hk = !ch.alive ? null : ch.inVeh ? 'drive' : ch.st === 'beam' ? 'beam' : ch.st === 'fall' ? 'fall' : ch.st === 'chute' ? 'chute' : (ch.landedAt != null && T - ch.landedAt < 5 ? 'land' : null);
   if (HC.hint !== hk) { HC.hint = hk; $('hint').classList.toggle('hide', !hk); if (hk) $('hint').innerHTML = HINTS[hk]; }
-  if (STATE === 'heli' && ch.st === 'beam') { setT('phaseCap', '起重直升機 · 機上 ' + CHARS.filter(c => c.st === 'beam').length + ' 人'); setT('phaseT', heliOverSite() ? (TOUCH ? '點「跳傘」' : '按 F 跳傘') : '飛往島上'); ph.classList.remove('shrink'); }
+  if (STATE === 'heli' && ch.st === 'beam') { setT('phaseCap', '起重直升機 · 機上 ' + CHARS.filter(c => c.st === 'beam' && heliOf(c) === HP).length + ' 人'); setT('phaseT', heliOverSite() ? (TOUCH ? '點「跳傘」' : '按 F 跳傘') : '飛往島上'); ph.classList.remove('shrink'); }
   else if (ZONE.st === 'wait') { setT('phaseCap', '第 ' + (ZONE.phase + 1) + ' 階段 · 安全區收縮倒數'); setT('phaseT', fmt(ZONE.t)); ph.classList.remove('shrink'); }
   else if (ZONE.st === 'shrink') { setT('phaseCap', '第 ' + (ZONE.phase + 1) + ' 階段 · 安全區收縮中'); setT('phaseT', fmt(ZONE.t)); ph.classList.add('shrink'); }
   else { setT('phaseCap', '最終安全區'); setT('phaseT', '0:00'); ph.classList.add('shrink'); }
@@ -6776,10 +7435,15 @@ function drawArrow(g, x, y, yaw, s) {
   g.fillStyle = '#f4b400'; g.strokeStyle = '#1a1a1a'; g.lineWidth = 2; g.fill(); g.stroke(); g.restore();
 }
 function drawHeliPath(g, sx, sy) {
-  if (HP.gone || STATE !== 'heli') return;
-  g.save(); g.setLineDash([8, 6]); g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 2;
-  g.beginPath(); g.moveTo(sx(HP.ax), sy(HP.az)); g.lineTo(sx(HP.ax + HP.dx * HP.len), sy(HP.az + HP.dz * HP.len)); g.stroke(); g.restore();
-  heliPos(HP.t, _t1); g.fillStyle = '#e8671d'; g.beginPath(); g.arc(sx(_t1.x), sy(_t1.z), 6, 0, TAU); g.fill();
+  if (STATE !== 'heli') return;
+  // 自己那架的航線白色、其他兩架淡一點；圓點是直升機現在的位置
+  for (const P of HPS) {
+    if (P.gone) continue;
+    const me = P === HP;
+    g.save(); g.setLineDash(me ? [8, 6] : [5, 7]); g.strokeStyle = me ? 'rgba(255,255,255,.85)' : 'rgba(255,255,255,.38)'; g.lineWidth = me ? 2.2 : 1.5;
+    g.beginPath(); g.moveTo(sx(P.ax), sy(P.az)); g.lineTo(sx(P.ax + P.dx * P.len), sy(P.az + P.dz * P.len)); g.stroke(); g.restore();
+    heliPos(P.t, _t1, P); g.fillStyle = me ? '#e8671d' : 'rgba(232,103,29,.6)'; g.beginPath(); g.arc(sx(_t1.x), sy(_t1.z), me ? 6 : 4.5, 0, TAU); g.fill();
+  }
 }
 function drawVehicles(g, sx, sy, ppm) {
   for (const v of VEHS) {
@@ -6836,24 +7500,28 @@ function newGame() {
   CHARS.forEach(c => { c.inVeh = null; c.reset(); });
   const order = CHARS.map((c, i) => i).sort(() => Math.random() - .5);
   CHARS.forEach((c, i) => { c.slotI = order[i]; });
-  const enter = HP.j0 / HP.speed, exit = Math.max(HP.j0, HP.j1 - 25) / HP.speed;
-  // 每個電腦先挑一個離別人遠、從航線滑得到的落點（全島各據點），再在直升機最接近那裡時跳
-  const targets = [];
+  HP = heliOf(PLAYER);
+  // 每個電腦先挑一個離別人遠、從自己那架的航線滑得到的落點（全島各據點），再在直升機最接近那裡時跳。
+  // 物資點一半以上在工地裡，直接隨機挑會有二十幾人擠進工地；先把點分進 70 m 的格子、平均挑格子
+  const targets = [], LAND = SPOTS.filter(s => s.y - terrainH(s.x, s.z) <= .6), cells = {};
+  for (const s of LAND) (cells[Math.floor(s.x / 70) + ',' + Math.floor(s.z / 70)] ||= []).push(s);
+  const CELLS = Object.values(cells);
   BOTS.forEach((b, i) => {
     b.reset(i);
+    const P = heliOf(b.ch), enter = P.j0 / P.speed, exit = Math.max(P.j0, P.j1 - 25) / P.speed;
     let best = null, bd = -1;
-    for (let k = 0; k < 16; k++) {
-      const s = pick(SPOTS); if (s.y - terrainH(s.x, s.z) > .6) continue;
-      const along = (s.x - HP.ax) * HP.dx + (s.z - HP.az) * HP.dz, cross = Math.abs((s.x - HP.ax) * HP.dz - (s.z - HP.az) * HP.dx);
-      if (cross > 170 || along < HP.j0 - 40 || along > HP.j1 + 40) continue;
+    for (let k = 0; k < 40; k++) {
+      const s = pick(pick(CELLS));
+      const along = (s.x - P.ax) * P.dx + (s.z - P.az) * P.dz, cross = Math.abs((s.x - P.ax) * P.dz - (s.z - P.az) * P.dx);
+      if (cross > 170 || along < P.j0 - 40 || along > P.j1 + 40) continue;
       const dmin = targets.reduce((m, t) => Math.min(m, Math.hypot(t.x - s.x, t.z - s.z)), 999);
       if (dmin > bd) { bd = dmin; best = s; }
     }
-    if (!best) { const s = rnd(HP.j0, HP.j1), o = rnd(-90, 90), x = HP.ax + HP.dx * s - HP.dz * o, z = HP.az + HP.dz * s + HP.dx * o; best = SPOTS.reduce((m, q) => Math.hypot(q.x - x, q.z - z) < Math.hypot(m.x - x, m.z - z) ? q : m, SPOTS[0]); }
+    if (!best) { const s = rnd(P.j0, P.j1), o = rnd(-90, 90), x = P.ax + P.dx * s - P.dz * o, z = P.az + P.dz * s + P.dx * o; best = LAND.reduce((m, q) => Math.hypot(q.x - x, q.z - z) < Math.hypot(m.x - x, m.z - z) ? q : m, LAND[0]); }
     targets.push(best);
     b.lx = clamp(best.x + rnd(-2, 2), -WORLD, WORLD); b.lz = clamp(best.z + rnd(-2, 2), -WORLD, WORLD); b.planned = true;
-    const along = (b.lx - HP.ax) * HP.dx + (b.lz - HP.az) * HP.dz;
-    b.jumpAt = clamp(along / HP.speed + rnd(-3, .5), enter, exit);
+    const along = (b.lx - P.ax) * P.dx + (b.lz - P.az) * P.dz;
+    b.jumpAt = clamp(along / P.speed + rnd(-3, .5), enter, exit);
   });
   Object.assign(PL, { yaw: heliYaw() + Math.PI / 2 + .6, pitch: -.3, recoilAcc: 0, aimK: 0, near: null, deadT: 0, endShown: false });
   T = 0; lastKillT = -99; multi = 0; hpLagV = 100; uiDirty = true; invKey = '';
@@ -6863,20 +7531,25 @@ function newGame() {
   $('hud').classList.add('on');
   if (TOUCH) $('touch').classList.add('on');
   ['end', 'pause', 'menu'].forEach(id => $(id).classList.add('hide'));
-  banner('CANARY YARD · 起重直升機', '封頂之戰', TOUCH ? '二十人站在鋼梁上。飛到島嶼上空，點「跳傘」。' : '二十人站在鋼梁上。飛到島嶼上空按 F 跳下，途中 F 提早開傘。');
+  banner('CANARY YARD · 起重直升機', '封頂之戰', cnum(NPLAYERS) + '人分乘' + cnum(NHELI) + '架直升機，站在鋼梁上。' + (TOUCH ? '飛到島嶼上空，點「跳傘」。' : '飛到島嶼上空按 F 跳下，途中 F 提早開傘。'));
 }
 function heliUpdate(dt) {
-  if (HP.gone) return;
-  HP.t += dt;
-  heliPos(HP.t, HELI.position);
-  HELI.rotation.set(Math.sin(T * .7) * .02, heliYaw(), Math.sin(T * .5) * .03);
-  HELI.userData.rotors.forEach((r, i) => r.rotation.y += dt * (i ? -22 : 22));
-  for (const c of CHARS) if (c.st === 'beam') { beamSlot(c.slotI, c.p); c.yaw = heliYaw() + Math.PI / 2; }
-  for (const b of BOTS) if (b.ch.st === 'beam' && HP.t >= b.jumpAt) {
-    b.ch.st = 'fall'; b.ch.fallT = 0; b.ch.v.set(HP.dx * HP.speed * .5, -2, HP.dz * HP.speed * .5); if (!b.planned) botLand(b);
+  for (const P of HPS) {
+    if (P.gone) continue;
+    const H = P.heli;
+    P.t += dt;
+    heliPos(P.t, H.position, P);
+    H.rotation.set(Math.sin(T * .7 + P.i * 2) * .02, heliYaw(P), Math.sin(T * .5 + P.i) * .03);
+    H.userData.rotors.forEach((r, i) => r.rotation.y += dt * (i ? -22 : 22));
+    if (P.t * P.speed > P.len + 60) { P.gone = true; H.visible = false; }
   }
-  if (PLAYER.st === 'beam' && HP.t * HP.speed > HP.j1) { toast('被推下去了！'); playerJump(); }
-  if (HP.t * HP.speed > HP.len + 60) { HP.gone = true; HELI.visible = false; }
+  for (const c of CHARS) if (c.st === 'beam') { const P = heliOf(c); beamSlot(c.slotI, c.p); c.yaw = heliYaw(P) + Math.PI / 2; }
+  for (const b of BOTS) if (b.ch.st === 'beam') {
+    const P = heliOf(b.ch);
+    if (P.t < b.jumpAt && !P.gone) continue;
+    b.ch.st = 'fall'; b.ch.fallT = 0; b.ch.v.set(P.dx * P.speed * .5, -2, P.dz * P.speed * .5); if (!b.planned) botLand(b);
+  }
+  if (PLAYER.st === 'beam' && (HP.t * HP.speed > HP.j1 || HP.gone)) { toast('被推下去了！'); playerJump(); }
 }
 function onPlayerDead() {
   STATE = 'dead';
@@ -6891,10 +7564,10 @@ function showEnd(won) {
   if (document.pointerLockElement) document.exitPointerLock();
   const ch = PLAYER;
   $('hud').classList.remove('on'); $('touch').classList.remove('on');
-  $('endKick').textContent = won ? '#1 / 20 · 最後一人' : `#${ch.rank} / 20`;
+  $('endKick').textContent = won ? `#1 / ${NPLAYERS} · 最後一人` : `#${ch.rank} / ${NPLAYERS}`;
   $('endTitle').textContent = won ? '封頂！' : '今天先收工';
   const by = ch.killedBy;
-  $('endLine').textContent = won ? '其他十九人都倒下了。最後一根鋼梁由你吊上頂樓，工地響起封頂的鞭炮聲。'
+  $('endLine').textContent = won ? `其他${cnum(NPLAYERS - 1)}人都倒下了。最後一根鋼梁由你吊上頂樓，工地響起封頂的鞭炮聲。`
     : by ? `被 ${by.name} 用 ${ch.killedWith} 淘汰。${ch.kills ? '你帶走了 ' + ch.kills + ' 個人。' : '下次先找把槍。'}`
       : ch.killedWith === '安全區' ? '在電網外撐不下去了。下次早點往白圈移動。' : '從高處摔下來了。鷹架沒有欄杆的地方要小心。';
   setT('sRank', '#' + (won ? 1 : ch.rank)); setT('sKills', String(ch.kills)); setT('sDmg', String(Math.round(ch.dmg))); setT('sTime', fmt(won ? T : ch.survived));
@@ -6903,11 +7576,16 @@ function showEnd(won) {
 }
 
 /* ---------- 共通：補血飲料、腳步 ---------- */
+/* 角色互推：照 x 排序後只比 x 差 0.7 m 以內的（六十人不用兩兩比） */
+const SEPA = [];
 function separateChars() {
-  for (let i = 0; i < CHARS.length; i++) {
-    const a = CHARS[i]; if (!a.alive || a.st === 'beam' || a.inVeh) continue;
-    for (let j = i + 1; j < CHARS.length; j++) {
-      const b = CHARS[j]; if (!b.alive || b.st === 'beam' || b.inVeh) continue;
+  SEPA.length = 0;
+  for (const c of CHARS) if (c.alive && c.st !== 'beam' && !c.inVeh) SEPA.push(c);
+  SEPA.sort((a, b) => a.p.x - b.p.x);
+  for (let i = 0; i < SEPA.length; i++) {
+    const a = SEPA[i];
+    for (let j = i + 1; j < SEPA.length; j++) {
+      const b = SEPA[j]; if (b.p.x - a.p.x > .7) break;
       if (Math.abs(a.p.y - b.p.y) > (a.st === 'ground' && b.st === 'ground' ? 1.5 : 1.8)) continue;
       const dx = b.p.x - a.p.x, dz = b.p.z - a.p.z, d2 = dx * dx + dz * dz, R = (a.prone || b.prone) ? .7 : .58;
       if (d2 >= R * R) continue;
@@ -7036,6 +7714,71 @@ function fxUpdate(dt) {
 /* ============================================================
    主迴圈
    ============================================================ */
+/* 六十人的動畫細節：ANIM 的距離門檻跟畫質的 charLod 走（高 = 原本的 38／110／55／70 m）。
+   畫面外又超出陰影距離的角色整個不算（姿勢停住，回到畫面時 animate 會一次補上位置）；
+   地面上很遠的角色（超過 2 倍 mid）八格才算一次 */
+const _frus = new THREE.Frustum(), _frm = new THREE.Matrix4(), _fsph = new THREE.Sphere(new THREE.Vector3(), 2.4);
+const PROF = { upd: 0, anim: 0, n: 0, animN: 0, frozen: 0 };
+let lodQ = -1;
+/* 影子替身：近層陰影（split）以外，身體（4 萬多面）不畫影子，改用低面數的 W_lod 只畫進陰影圖。
+   它放在第 5 層：主畫面收集物件時相機看不到第 5 層，畫陰影前才把第 5 層打開（three 畫陰影也用主相機的圖層判斷） */
+const SHADOW_ONLY = 5, SHPROXY = { on: true };
+if (sun.shadow && sun.shadow.updateMatrices) {
+  const um = sun.shadow.updateMatrices.bind(sun.shadow);
+  sun.shadow.updateMatrices = (light, cam) => { if (cam && cam.layers) cam.layers.enable(SHADOW_ONLY); return um(light, cam); };
+  const ob = scene.onBeforeRender;   // 串起來，不要蓋掉別人掛的
+  scene.onBeforeRender = function (r, s, cam, rt) { if (cam && cam.layers) cam.layers.disable(SHADOW_ONLY); return ob && ob.call(this, r, s, cam, rt); };
+}
+function animateChars(dt) {
+  if (lodQ !== QUALITY.charLod) {
+    lodQ = QUALITY.charLod;
+    Object.assign(ANIM, { near: lodQ * .42, mid: lodQ * 1.22, lodMesh: lodQ * .61, shadow: lodQ * .78 });
+  }
+  _frus.setFromProjectionMatrix(_frm.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+  // 開鏡時遠處的人看起來近 zoom 倍：每 8 格才動一次的距離也跟著放大（和 animate() 的 LOD 距離一致）
+  const zz = PL.scoped && PLAYER && PLAYER.w ? PLAYER.w.zoom : 1;
+  const cp = camera.position, far2 = (ANIM.mid * 2 * zz) ** 2, sh2 = ANIM.shadow * ANIM.shadow;
+  for (const c of CHARS) {
+    if (!c.isPlayer && c.animP && !c.inVeh) {
+      const dx = c.p.x - cp.x, dy = c.p.y - cp.y, dz = c.p.z - cp.z, d2 = dx * dx + dy * dy + dz * dz;
+      _fsph.center.set(c.p.x, c.p.y + 1, c.p.z);
+      // 停住的模型藏起來：不然鏡頭轉過去時會看到它還站在離開畫面的地方。
+      // 空中與傘還張著的人不停：傘是另一個物件，停住的話會留在半空中
+      if (charFreezable(c) && d2 > sh2 && !_frus.intersectsSphere(_fsph)) { c.m.root.visible = false; c.frz = true; PROF.frozen++; continue; }
+      if (d2 > far2 && c.st === 'ground' && (ANIM.frame + (c.slotI || 0)) % 8) { c.animAcc = (c.animAcc || 0) + dt; PROF.frozen++; continue; }
+    }
+    if (c.frz) { c.frz = false; c.m.root.visible = true; }
+    animate(c, dt); PROF.animN++;
+    const m = c.m;
+    let px = false;
+    if (m.lod) {
+      px = SHPROXY.on && !c.isPlayer && m.body.visible && m.body.castShadow && c.p.distanceTo(cp) > QPRESET[QUALITY.level].split;
+      if (px) { m.body.castShadow = false; m.lod.visible = true; m.lod.castShadow = true; }
+      m.lod.layers.set(px ? SHADOW_ONLY : 0);
+    }
+    // 帽子、頭髮、護甲、槍、彈匣（程式建模時是每個身體部位）：陰影距離外不投影；用陰影替身時替身的輪廓已經包含它們
+    const acs = !!c._csd && !px;
+    if (c._acs !== acs) { c._acs = acs; for (const o of (m.shAcc || (m.shAcc = shadowParts(m)))) o.castShadow = acs; }
+  }
+}
+const charFreezable = c => (c.st === 'ground' || c.st === 'beam') && !c.chute.visible;
+function shadowParts(m) {
+  const a = [];
+  m.root.traverse(o => { if (o.isMesh && !o.isSkinnedMesh && o.castShadow && o !== m.flash) a.push(o); });
+  return a;
+}
+/* 可見性用這一格的鏡頭再判一次：animateChars 在 updateCamera 之前跑，用的是上一格的鏡頭，
+   快速轉頭時剛轉進畫面的人會少畫一格 */
+function revealChars(dt) {
+  camera.updateMatrixWorld();
+  _frus.setFromProjectionMatrix(_frm.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+  for (const c of CHARS) {
+    if (!c.frz) continue;
+    _fsph.center.set(c.p.x, c.p.y + 1, c.p.z);
+    if (!_frus.intersectsSphere(_fsph)) continue;
+    c.frz = false; c.m.root.visible = true; animate(c, dt); PROF.animN++;
+  }
+}
 let HOLD = false, last = performance.now(), mmT = 0, fpsAcc = 0, fpsN = 0, lowFps = 0;
 function update(dt) {
   T += dt;
@@ -7043,7 +7786,7 @@ function update(dt) {
   zoneUpdate(dt);
   playerUpdate(dt);
   updateVehicles(dt);
-  for (const b of BOTS) botUpdate(b, dt);
+  ALIVE_N = aliveCount(); for (const b of BOTS) botUpdate(b, dt);
   separateChars();
   updateDoors(dt);
   for (const c of CHARS) commonUpdate(c, dt);
@@ -7053,8 +7796,9 @@ function update(dt) {
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').classList.remove('on'); }
   // 聲音：直升機、風切
   if (AU.ctx) {
-    const hd = HP.gone ? 999 : camera.position.distanceTo(HELI.position);
-    AU.heliG.gain.setTargetAtTime(HP.gone ? 0 : .9 / (1 + hd / 30), AU.ctx.currentTime, .1);
+    // 旋翼聲只跟最近的一架
+    let hd = 1e9; for (const P of HPS) if (!P.gone) hd = Math.min(hd, camera.position.distanceTo(P.heli.position));
+    AU.heliG.gain.setTargetAtTime(hd > 1e8 ? 0 : .9 / (1 + hd / 30), AU.ctx.currentTime, .1);
     const vs = PLAYER.st === 'fall' ? PLAYER.v.length() / 50 : PLAYER.st === 'chute' ? .12 : 0;
     AU.windG.gain.setTargetAtTime(vs * .7, AU.ctx.currentTime, .2);
     AU.windF.frequency.setTargetAtTime(500 + vs * 900, AU.ctx.currentTime, .2);
@@ -7071,15 +7815,19 @@ function frame(now) {
   requestAnimationFrame(frame);
   const rawDt = (now - last) / 1000, dt = Math.min(.05, rawDt); last = now;
   const running = STATE !== 'menu' && !PAUSED && !(PL.endShown);
+  const t0 = performance.now();
   if (running && !HOLD) update(dt);
-  else if (STATE === 'menu') { HELI.userData.rotors.forEach((r, i) => r.rotation.y += dt * (i ? -22 : 22)); T += dt; updateCranes(dt); WINDMAT_T.value = performance.now() / 1000; }
+  else if (STATE === 'menu') { for (const H of HELIS) H.userData.rotors.forEach((r, i) => r.rotation.y += dt * (i ? -22 : 22)); T += dt; updateCranes(dt); WINDMAT_T.value = performance.now() / 1000; }
+  const t1 = performance.now();
   if (running || STATE === 'menu') {
-    for (const c of CHARS) animate(c, dt);
+    animateChars(dt);
+    PROF.upd += t1 - t0; PROF.anim += performance.now() - t1; PROF.n++;
     fxUpdate(dt); skyFx(dt); updateCases(dt); updateCranes(dt); WINDMAT_T.value = performance.now() / 1000;
   }
   syncLoot();
   zoneWall.visible = STATE !== 'menu';
   updateCamera(dt);
+  if (running || STATE === 'menu') revealChars(dt);
   if (STATE !== 'menu') {
     updateHUD(dt);
     mmT -= dt;
@@ -7108,13 +7856,13 @@ flushWorld();
 drawSiteMap();
 PLAYER = new Char('你', true);
 CHARS.push(PLAYER);
-for (const n of BOT_NAMES) { const c = new Char(n, false); CHARS.push(c); BOTS.push(new Brain(c)); }
+for (let i = 0; i < NPLAYERS - 1; i++) { const c = new Char(BOT_NAMES[i % BOT_NAMES.length] + (i < BOT_NAMES.length ? '' : ' ' + (i / BOT_NAMES.length + 1 | 0)), false); CHARS.push(c); BOTS.push(new Brain(c)); }
 BOTS.forEach((b, i) => b.reset(i));
 scatterLoot();
-heliPlan(); HP.t = HP.len / 2 / HP.speed - 4; heliPos(HP.t, HELI.position); HELI.rotation.y = heliYaw();
-CHARS.forEach((c, i) => { c.slotI = i; beamSlot(i, c.p); c.yaw = heliYaw() + Math.PI / 2; });
+heliPlan(); for (const P of HPS) { P.t = P.len / 2 / P.speed - 4 - P.i * 9; heliPos(P.t, P.heli.position, P); P.heli.rotation.y = heliYaw(P); }
+CHARS.forEach((c, i) => { c.slotI = i; beamSlot(i, c.p); c.yaw = heliYaw(heliOf(c)) + Math.PI / 2; });
 zoneReset(); zoneWall.position.set(0, 150, 0);
-$('loadNote').textContent = '工地已就緒 · 20 人待命';
+$('loadNote').textContent = '工地已就緒 · ' + NPLAYERS + ' 人待命';
 $('start').addEventListener('click', () => { audioInit(); newGame(); requestLock(); canvas.focus(); });
 $('again').addEventListener('click', () => { audioInit(); newGame(); requestLock(); });
 $('resume').addEventListener('click', () => { audioInit(); setPause(false); });
@@ -7123,9 +7871,36 @@ $('sens').addEventListener('input', e => { IN.sens = +e.target.value; $('sensV')
 $('vol').addEventListener('input', e => { AU.vol = +e.target.value; $('volV').textContent = Math.round(AU.vol * 100); if (AU.master) AU.master.gain.value = AU.vol; });
 // 自動化測試用的掛鉤（headless 快轉、跳過直升機），遊戲本身不會用到
 window.LASTBEAM = { dyn: DYN, ray: raycast, rayhit: RAYHIT, vehs: VEHS, enter: v => enterVehicle(PLAYER, v), holes: HOLES, cases: CASES, input: IN, doors: DOORLIST, pl: PL, hold(v) { HOLD = v; }, glb: !!GLB, sim(sec) { for (let i = 0; i < sec * 30; i++) update(1 / 30); }, get state() { return STATE; }, get T() { return T; }, chars: CHARS, zone: ZONE, loot: LOOT, newGame, skipTo(s) { if (s === 'ground' && STATE === 'heli') { playerJump(); const p = PLAYER.p; p.set(rnd(-40, 40), 1, rnd(-40, 40)); PLAYER.st = 'ground'; BOTS.forEach(b => { if (b.ch.st === 'beam') { b.ch.st = 'fall'; botLand(b); } }); } } };
+// 六十人：三架直升機的航線、效能計時、整場快轉（玩家當觀眾不參戰，記錄存活曲線、死因與卡住的電腦）
+Object.defineProperty(window.LASTBEAM, 'hp', { get: () => HP, set() { }, enumerable: true, configurable: true });
+Object.assign(window.LASTBEAM, { nplayers: NPLAYERS, shadowProxy: SHPROXY, rayChar, helis: HPS, bots: BOTS, heliOf, prof() { const n = Math.max(1, PROF.n), r = { updMs: +(PROF.upd / n).toFixed(3), animMs: +(PROF.anim / n).toFixed(3), animated: +(PROF.animN / n).toFixed(1), frozen: +(PROF.frozen / n).toFixed(1), frames: PROF.n }; Object.assign(PROF, { upd: 0, anim: 0, n: 0, animN: 0, frozen: 0 }); return r; },
+  simMatch(maxSec = 1100, every = 60) {
+    newGame(); const P = PLAYER; P.alive = false; P.st = 'ground'; P.p.set(0, -300, 0); STATE = 'play';
+    const curve = [], stuck = [], anchor = new Map(), phaseT = [];
+    let ph = 0; const dead = new Set(), kills = [];
+    for (let i = 0; T < maxSec; i++) {
+      update(1 / 30);
+      for (const c of CHARS) if (!c.alive && !c.isPlayer && !dead.has(c)) { dead.add(c); const k = c.killedBy; kills.push([Math.round(T), k && k !== c ? Math.round(Math.hypot(k.p.x - c.p.x, k.p.z - c.p.z)) : -1, c.killedWith].concat(c.killedWith === '安全區' ? [Math.round(c.p.x), Math.round(c.p.z), c.brain.goal, Math.round(Math.hypot(c.p.x - ZONE.x, c.p.z - ZONE.z) - ZONE.r)] : [])); }
+      if (ZONE.phase !== ph) { ph = ZONE.phase; phaseT.push([Math.round(T), aliveCount()]); }
+      if (i % 30 === 0) for (const b of BOTS) {
+        const c = b.ch; if (!c.alive || c.st !== 'ground' || c.inVeh) { anchor.delete(b); continue; }
+        if (outsideZone(c)) { b.outT = (b.outT || 0) + 1; if (b.outT === 45) stuck.push({ n: c.name, out: 1, t: Math.round(T), x: Math.round(c.p.x), y: Math.round(c.p.y), z: Math.round(c.p.z), goal: b.goal, gx: Math.round(b.gx), gz: Math.round(b.gz), hp: Math.round(c.hp), zr: Math.round(ZONE.r), zd: Math.round(Math.hypot(c.p.x - ZONE.x, c.p.z - ZONE.z)) }); } else b.outT = 0;
+        const a = anchor.get(b);
+        if (!a || b.vis || b.goal === 'fight' || c.cast || Math.hypot(c.p.x - a.x, c.p.z - a.z) > 2) { anchor.set(b, { x: c.p.x, z: c.p.z, t: T }); continue; }
+        if (T - a.t > 20 && b.goal && Math.hypot(b.gx - c.p.x, b.gz - c.p.z) > 3) { stuck.push({ n: c.name, t: Math.round(T), x: +c.p.x.toFixed(1), y: +c.p.y.toFixed(1), z: +c.p.z.toFixed(1), goal: b.goal, gx: +b.gx.toFixed(1), gz: +b.gz.toFixed(1) }); anchor.delete(b); }
+      }
+      if (i % (every * 30) === 0) curve.push([Math.round(T), aliveCount(), ZONE.phase + 1, Math.round(ZONE.r), BOTS.filter(b => b.ch.alive && botHasAmmo(b.ch)).length]);
+      if (aliveCount() <= 1) break;
+    }
+    curve.push([Math.round(T), aliveCount(), ZONE.phase + 1, Math.round(ZONE.r)]);
+    const causes = {}; for (const c of CHARS) if (!c.isPlayer && !c.alive) { const k = c.killedWith === '安全區' || c.killedWith === '墜落' ? c.killedWith : c.killedBy && c.killedBy.brain ? 'bot' : c.killedWith; causes[k] = (causes[k] || 0) + 1; }
+    const left = BOTS.filter(b => b.ch.alive).map(b => ({ n: b.ch.name, st: b.ch.st, veh: !!b.ch.inVeh, hp: Math.round(b.ch.hp), p: [Math.round(b.ch.p.x), Math.round(b.ch.p.y), Math.round(b.ch.p.z)], goal: b.goal, armed: botHasAmmo(b.ch) }));
+    return { end: Math.round(T), alive: aliveCount(), curve, phaseT, causes, stuck, loot: LOOT.length, kills, left };
+  } });
 Object.assign(window.LASTBEAM, { fx: { burst, boom: bigBoom }, three: { scene, camera, renderer, sun, MATS, TEX, POST, compMat }, quality: QUALITY, qualityNames: QNAMES, qualityPresets: QPRESET, setQuality: l => applyQuality(l, { auto: true, test: true }), perf: () => ({ fps: FPS_NOW, renderMs, level: QUALITY.level, name: QNAMES[QUALITY.level], dpr: DPR, post: POST.on, sm: sun.shadow.map ? sun.shadow.map.width : 0, calls: renderer.info.render.calls, tris: renderer.info.render.triangles }) });
 requestAnimationFrame(frame);
 Object.assign(window.LASTBEAM, { terrainH, terrainN: (x, z) => terrainN(x, z, new THREE.Vector3()), poi: POI, roads: ROADS, spots: SPOTS, labels: LABELS, hp: HP, sea: SEA, worldQ: WORLDQ, applyWorldQ, foliage: FOLIAGE_N, renderInfo: () => ({ ...renderer.info.render }), terrain: TERRAIN, grass: () => GRASS, teleport(x, z, y, yaw) { const p = PLAYER; if (p.inVeh) exitVehicle(p, true); if (p.st === 'beam') playerJump(); p.st = 'ground'; p.chute.visible = false; p.p.set(x, y == null ? terrainH(x, z) + .05 : y, z); p.v.set(0, 0, 0); p.onGround = true; if (yaw != null) PL.yaw = yaw; } });
+Object.assign(window.LASTBEAM, { worldGlb: !!WG, wfol: WFOL, wprops: WPROPS });
 </script>
 </body>
 </html>
