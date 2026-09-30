@@ -46,13 +46,18 @@ export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = []
   const connected = (p, now = Date.now()) => !!p && !p.bot && !p.disconnectedAt && now - p.lastSeen < 30000;
   const roomHost = room => room.players.findIndex(p => connected(p));
   const restore = room => { if (room.game) room.game = Object.assign(new MahjongGame(), room.game); return room; };
+  // Table chat keeps only the current Taiwan calendar day; older lines are pruned from the room and never sent.
+  const chatDay = t => Math.floor((t + 8 * 3600000) / 86400000);
+  const todaysChat = (room, now = Date.now()) => (room.chat ?? []).filter(m => chatDay(m.at) === chatDay(now));
   function snapshot(ws, room) {
     const seat = ws.client?.seat, p = room.players[seat];
     if (!p || p.connection !== ws.id || p.token !== ws.client.token) { ws.close(4001, 'Session moved'); return; }
+    // Each socket gets only the lines it has not seen; a new socket (join, reload, rotation) starts with today's history.
+    const chat = todaysChat(room).filter(m => m.id > ws.chatSent); ws.chatSent = Math.max(ws.chatSent, room.chatSeq ?? 0);
     send(ws, { type: 'STATE_SYNC', serverTime: Date.now(), room: {
       code: room.code, seat, host: roomHost(room), base: room.base, unit: room.unit,
       players: room.players.map(p => p ? { name: p.name, connected: connected(p), bot: p.bot } : null)
-    }, state: room.game?.view(seat) ?? null });
+    }, state: room.game?.view(seat) ?? null, chat });
   }
   // sent remembers what each room last looked like here, so the tick only re-sends changes plus a periodic keep-alive.
   const sent = new Map();
@@ -72,8 +77,24 @@ export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = []
     return value.trim();
   }
   const player = (name, ws) => ({ name, token: randomBytes(32).toString('hex'), connection: ws.id, bot: false, disconnectedAt: 0, lastSeen: Date.now() });
+  // Chat is stored in the room row, so players on other instances receive it through the same polling as moves.
+  async function chat(ws, msg) {
+    if (!ws.client) throw Error('入座後才能聊天。');
+    const text = typeof msg.text === 'string' ? msg.text.replace(/\s+/g, ' ').trim() : '';
+    if (!text || [...text].length > 60 || /[\u0000-\u001f\u007f]/.test(text)) throw Error('訊息需為 1 至 60 字。');
+    const { code, seat, token } = ws.client;
+    const room = await change(code, room => {
+      const p = room.players[seat], now = Date.now(); if (p?.token !== token || p.connection !== ws.id) throw Error('連線已被取代。');
+      if (now - (p.chatAt ?? 0) < 800) throw Error('說得太快了，喝口茶再說。');
+      p.chatAt = now; p.lastSeen = now;
+      const id = (room.chatSeq ?? 0) + 1;
+      room.chat = [...todaysChat(room, now), { id, seat, name: p.name, text, at: now }].slice(-50); room.chatSeq = id;
+    }); broadcast(room);
+  }
   async function handle(ws, msg) {
     if (!msg || typeof msg !== 'object' || typeof msg.type !== 'string') throw Error('無效訊息。');
+    // Chat errors are tagged so the page shows them in the chat panel instead of the table status line.
+    if (msg.type === 'CHAT') { await chat(ws, msg).catch(err => { throw Object.assign(err, { scope: 'chat' }); }); return; }
     if (['CREATE_ROOM', 'JOIN_ROOM', 'RECONNECT'].includes(msg.type)) {
       if (ws.client) throw Error('請先離開目前房間。');
       let room, seat;
@@ -127,7 +148,7 @@ export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = []
     }); broadcast(room);
   }
   wss.on('connection', ws => {
-    ws.id = randomBytes(16).toString('hex'); ws.alive = true; ws.windowAt = Date.now(); ws.requests = 0; ws.chain = Promise.resolve();
+    ws.id = randomBytes(16).toString('hex'); ws.chatSent = 0; ws.alive = true; ws.windowAt = Date.now(); ws.requests = 0; ws.chain = Promise.resolve();
     ws.on('pong', () => { ws.alive = true; }); ws.on('error', () => {}); ws.on('close', () => { ws.chain = ws.chain.then(() => detach(ws)).catch(() => {}); });
     ws.on('message', (raw, binary) => {
       ws.chain = ws.chain.then(async () => {
@@ -135,7 +156,7 @@ export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = []
         if (Date.now() - ws.windowAt > 10000) { ws.windowAt = Date.now(); ws.requests = 0; }
         if (++ws.requests > 60) { ws.close(1008, 'Rate limit'); return; }
         await handle(ws, JSON.parse(raw.toString()));
-      }).catch(err => send(ws, { type: 'ERROR', message: err instanceof SyntaxError ? 'JSON 格式錯誤。' : err.message }));
+      }).catch(err => send(ws, { type: 'ERROR', message: err instanceof SyntaxError ? 'JSON 格式錯誤。' : err.message, scope: err.scope }));
     });
   });
   let polling = false;
@@ -158,6 +179,8 @@ export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = []
               dirty = true;
             }
           });
+          // Past midnight in Taiwan, yesterday's chat is deleted from the room row, not just hidden.
+          if (room.chat?.some(m => chatDay(m.at) !== chatDay(now))) { room.chat = todaysChat(room, now); dirty = true; }
           // Catch up a frozen function only one transition at a time; deadlines use current time.
           if (room.game?.tick(now)) dirty = true;
           return dirty;

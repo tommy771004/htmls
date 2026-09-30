@@ -120,8 +120,19 @@ test('跨伺服器四人房：隱藏手牌、拒絕越權與斷線重連', { tim
   assert.match((await clients[1].next(m => m.type === 'ERROR')).message, /宣告聽牌後/);
   a.send({ type: 'ACTION', actionId: states[0].state.actionId, action: { kind: 'discard', index: 0 } });
   await clients[2].next(m => m.type === 'STATE_SYNC' && m.state?.actionId > states[0].state.actionId);
+  // Chat reaches the other instance with the speaker's seat; bad lines and rapid repeats come back as chat-scoped errors.
+  a.send({ type: 'CHAT', text: '  大家好，\n請多指教  ' }); a.send({ type: 'CHAT', text: '再一句' });
+  // The 0.8 s cooldown is only checked in memory: two Neon round trips per write can outlast it.
+  if (!process.env.DATABASE_URL) assert.equal((await a.next(m => m.type === 'ERROR')).scope, 'chat');
+  const heard = await clients[1].next(m => m.type === 'STATE_SYNC' && m.chat?.length);
+  assert.deepEqual(heard.chat.slice(0, 1).map(m => [m.seat, m.name, m.text]), [[0, '測試東', '大家好， 請多指教']]);
+  clients[2].send({ type: 'CHAT', text: ' ' });
+  assert.equal((await clients[2].next(m => m.type === 'ERROR')).scope, 'chat');
+  clients[2].send({ type: 'CHAT', text: '字'.repeat(61) });
+  assert.match((await clients[2].next(m => m.type === 'ERROR')).message, /60 字/);
   a.ws.terminate(); const resumed = await client(1); resumed.send({ type: 'RECONNECT', code: owner.code, token: owner.token });
   assert.equal((await resumed.next(m => m.type === 'ROOM_JOINED')).seat, 0);
+  assert.equal((await resumed.next(m => m.type === 'STATE_SYNC')).chat[0]?.text, '大家好， 請多指教'); // A new socket gets today's history.
   const replaced = new Promise(resolve => resumed.ws.once('close', resolve));
   const replacement = await client(0);
   replacement.send({ type: 'RECONNECT', code: owner.code, token: owner.token });
