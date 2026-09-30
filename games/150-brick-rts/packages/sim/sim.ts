@@ -6,8 +6,11 @@ import type {Account} from './economy.ts';
 import {terrainRules,terrainDefinitions,resourceDefinitions,mapSizes} from './terrain.ts';
 import {rules} from '../content/rules.ts';
 import {footprintContract} from '../content/footprints.ts';
-import {combatRules} from './stats.ts';
-import {makeMap,clearSegment,navigationRules,startingResourceRules,openMapRules} from './navigation.ts';
+import {combatRules,lineUpgrades,blacksmith,religionBonus,maxHpOf} from './stats.ts';
+import type {CombatUnitKind} from './stats.ts';
+import {civDefs,neutralCiv} from '../content/civs.ts';
+import {ownerOf,civExists,costOf,startStock,startVillagers,losBonus} from './civ.ts';
+import {makeMap,clearSegment,navigationRules,startingResourceRules,openMapRules,nodesNear,blockedTable,position} from './navigation.ts';
 import type {MapData} from './navigation.ts';
 import {makeUnit,commandMove,commandStop,stepMovement} from './movement.ts';
 import type {Unit,Job} from './movement.ts';
@@ -49,18 +52,29 @@ export type LoggedCommand=Command&{acceptedTick:number};
 export type TransactionResult={tick:number;playerId:number;sequence:number;ok:boolean;error?:string};
 // opponent: 'ai' runs the computer player for red; 'idle' keeps red still (practice and the scripted flows).
 export type Opponent='ai'|'idle';
-export type State={navigationSeen:number;buildings:Building[];nextBuildingId:number;ages:number[];nextUnitId:number;nextQueueId:number;attacks:Record<number,Attack>;corpses:Corpse[];outcome:Outcome|null;rites:Record<number,Rite>;faith:Record<number,number>;techs:string[][];relics:Relic[];relicMemory:{id:number;x:number;y:number}[][];relicVictory:RelicVictory|null;beasts:Record<number,Beast>;reseed:boolean[];garrison:Record<string,Garrison>;entering:Record<number,{buildingId:string;repath:number;work:Work|null;bell:boolean}>;volleys:Record<string,number>;shots:Shot[];version:26;opponent:Opponent;works:Record<number,Work>;cargo:Record<number,Cargo>;layout:MapLayout;vision:PlayerVision[];accounts:Account[];transactions:TransactionResult[];map:MapData;pathJobs:Job[];nextJobId:number;seed:number;rng:number;tick:number;sequence:number[];units:Unit[];queue:Command[];log:LoggedCommand[]};
+export type State={navigationSeen:number;buildings:Building[];nextBuildingId:number;ages:number[];nextUnitId:number;nextQueueId:number;attacks:Record<number,Attack>;corpses:Corpse[];outcome:Outcome|null;rites:Record<number,Rite>;faith:Record<number,number>;techs:string[][];relics:Relic[];relicMemory:{id:number;x:number;y:number}[][];relicVictory:RelicVictory|null;beasts:Record<number,Beast>;reseed:boolean[];garrison:Record<string,Garrison>;entering:Record<number,{buildingId:string;repath:number;work:Work|null;bell:boolean}>;volleys:Record<string,number>;shots:Shot[];version:27;opponent:Opponent;civs:string[];keptHousing:number[];works:Record<number,Work>;cargo:Record<number,Cargo>;layout:MapLayout;vision:PlayerVision[];accounts:Account[];transactions:TransactionResult[];map:MapData;pathJobs:Job[];nextJobId:number;seed:number;rng:number;tick:number;sequence:number[];units:Unit[];queue:Command[];log:LoggedCommand[]};
 function canonical(value:unknown):string {if(value===null||typeof value!=='object')return JSON.stringify(value);if(Array.isArray(value))return '['+value.map(canonical).join(',')+']';return '{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+canonical((value as Record<string,unknown>)[k])).join(',')+'}';}
 export function hash(value:unknown):string{let h=2166136261;for(const c of canonical(value)){h=Math.imul(h^c.charCodeAt(0),16777619);}return (h>>>0).toString(16).padStart(8,'0');}
-export const rulesetHash=hash({rules,navigationRules,economyRules,terrainRules,terrainDefinitions,resourceDefinitions,visionRules,startingResourceRules,footprints:footprintContract,combat:combatRules,ai:aiRules,maps:{mapSizes,openMapRules},dropoffs:dropoffRules,religion:religionRules,animals:animalRules,tech:techRules,defense:defenseRules,simulationVersion:26});
-export function createState(seed:number,layout:MapLayout='meadow',opponent:Opponent='idle'):State{if(!Number.isSafeInteger(seed)||seed<0||seed>4294967295)throw Error('seed 必須為 uint32');if(opponent!=='ai'&&opponent!=='idle')throw Error('未知的對手設定');const map=makeMap(seed,layout);const state:State={buildings:[],nextBuildingId:1,ages:[1,1],nextUnitId:5,nextQueueId:1,attacks:{},corpses:[],outcome:null,rites:{},faith:{},techs:[[],[]],relics:layout==='open'?placeRelics(map,seed):[],relicMemory:[[],[]],relicVictory:null,beasts:{},reseed:[true,true],garrison:{},entering:{},volleys:{},shots:[],version:26,opponent,works:{},cargo:{},layout,vision:createVision(),accounts:[createAccount(3),createAccount(opponent==='ai'?3:1)],transactions:[],map,pathJobs:[],nextJobId:1,navigationSeen:0,seed,rng:seed||1,tick:0,sequence:[0,0],units:[...map.starts[0].map((p,i)=>makeUnit(map,1+i,0,p.x,p.y)),makeUnit(map,4,1,map.starts[1][0].x,map.starts[1][0].y)],queue:[],log:[]};
+export const rulesetHash=hash({rules,navigationRules,economyRules,terrainRules,terrainDefinitions,resourceDefinitions,visionRules,startingResourceRules,footprints:footprintContract,combat:combatRules,ai:aiRules,maps:{mapSizes,openMapRules},dropoffs:dropoffRules,religion:religionRules,animals:animalRules,tech:techRules,defense:defenseRules,civs:civDefs,unitLines:{lineUpgrades,blacksmith,religionBonus},simulationVersion:27});
+// civs: each player's civilization (packages/content/civs.ts); the neutral one keeps the original rules exactly.
+export function createState(seed:number,layout:MapLayout='meadow',opponent:Opponent='idle',civs:readonly string[]=[neutralCiv,neutralCiv]):State{if(!Number.isSafeInteger(seed)||seed<0||seed>4294967295)throw Error('seed 必須為 uint32');if(opponent!=='ai'&&opponent!=='idle')throw Error('未知的對手設定');
+ if(!Array.isArray(civs)||civs.length!==2||!civs.every(civExists))throw Error('未知的文明');const map=makeMap(seed,layout);const state:State={buildings:[],nextBuildingId:1,ages:[1,1],nextUnitId:5,nextQueueId:1,attacks:{},corpses:[],outcome:null,rites:{},faith:{},techs:[[],[]],relics:layout==='open'?placeRelics(map,seed):[],relicMemory:[[],[]],relicVictory:null,beasts:{},reseed:[true,true],garrison:{},entering:{},volleys:{},shots:[],version:27,opponent,civs:[...civs],keptHousing:[0,0],works:{},cargo:{},layout,vision:createVision(),accounts:[createAccount(3),createAccount(opponent==='ai'?3:1)],transactions:[],map,pathJobs:[],nextJobId:1,navigationSeen:0,seed,rng:seed||1,tick:0,sequence:[0,0],units:[...map.starts[0].map((p,i)=>makeUnit(map,1+i,0,p.x,p.y)),makeUnit(map,4,1,map.starts[1][0].x,map.starts[1][0].y)],queue:[],log:[]};
  // Against the computer red starts like blue: three villagers, mirrored around the map's centre line.
  if(opponent==='ai'){state.units.push(...map.starts[1].slice(1).map((p,i)=>makeUnit(map,5+i,1,p.x,p.y)));state.nextUnitId=5+map.starts[1].length-1;}
  // The match map adds a scout per side (red's only against the computer): ids follow the villagers.
  if(map.scouts){for(const p of opponent==='ai'?[0,1]:[0]){const at=map.scouts[p];state.units.push(makeUnit(map,state.nextUnitId++,p,at.x,at.y,'scout'));state.accounts[p].populationUsed++;}}
  // Sheep, deer and boar (ids from animalRules.firstId): each base's starting flock is its player's, the rest are wild.
  (map.animals??[]).forEach((a,i)=>state.units.push(makeUnit(map,animalRules.firstId+i,a.owner??GAIA,a.x,a.y,a.kind)));
- initBuildings(state);claimSheep(state);updateVision(state.vision,state.map,state.units,0);return state;}
+ // Civilization starts: extra villagers next to the first villager (Chinese), starting stock (Persians, Chinese).
+ for(const p of [0,1]){const o=ownerOf(state,p),stock=startStock(o),a=state.accounts[p];for(const k of ['food','wood','gold','stone'] as const)a.stock[k]=Math.max(0,a.stock[k]+stock[k]);
+  const extra=startVillagers(o);if(!extra)continue;const at=map.starts[p][0],closed=blockedTable(map);
+  const held=new Set(state.units.map(u=>u.node)),free=nodesNear(map,[at.x,at.y,at.x,at.y],400).filter(n=>!closed[n]&&!held.has(n)).sort((a,b)=>{const pa=position(map,a),pb=position(map,b);return Math.hypot(pa.x-at.x,pa.y-at.y)-Math.hypot(pb.x-at.x,pb.y-at.y)||a-b;});
+  for(const n of free.slice(0,extra)){const q=position(map,n);state.units.push(makeUnit(map,state.nextUnitId++,p,q.x,q.y));a.populationUsed++;}}
+ state.units.sort((a,b)=>a.id-b.id);
+ for(const u of state.units)if(u.player===0||u.player===1)u.hp=maxHpOf(u.kind as CombatUnitKind,ownerOf(state,u.player));
+ initBuildings(state);claimSheep(state);updateVision(state.vision,state.map,state.units,0,undefined,sightOf(state));return state;}
+// Sight a player's civilization adds to a unit or building kind.
+function sightOf(s:State){return (player:number,kind:string)=>kind in combatRules.units?losBonus(ownerOf(s,player),kind,combatRules.units[kind as CombatUnitKind].classes):losBonus(ownerOf(s,player),kind);}
 // xorshift32; renderers never advance this stream.
 export function nextRandom(state:State):number{let n=state.rng;n^=n<<13;n^=n>>>17;n^=n<<5;state.rng=n>>>0;return state.rng;}
 // The target of a monk's order: a unit id, a building id (conversion with Redemption, deposit) or a relic id.
@@ -98,8 +112,8 @@ export function submit(state:State, c:Command, record=true):void {
  else if(c.commandType==='attack'){const t=c.payload.target;if(!t||!['unit','building'].includes(t.kind))throw Error('無效的攻擊目標');const problem=targetProblem(state,c.playerId,t);if(problem)throw Error(problem);}
  else if(c.commandType==='build'){
  const {kind,x,y}=c.payload;if(!buildKinds.includes(kind))throw Error('未知的建築種類');
- const problem=buildRequirement(state.ages[c.playerId],kind,state.buildings.filter(b=>b.player===c.playerId))??authoritativeProblem(state,c.playerId,kind,x,y);if(problem)throw Error(problem);
- const cost=rules.entries.find(e=>e.id===kind)!.cost,stock=state.accounts[c.playerId].stock,short=(Object.keys(cost) as (keyof typeof cost)[]).filter(k=>stock[k]<cost[k]);
+ const problem=buildRequirement(state.ages[c.playerId],kind,state.buildings.filter(b=>b.player===c.playerId),state.civs[c.playerId])??authoritativeProblem(state,c.playerId,kind,x,y);if(problem)throw Error(problem);
+ const cost=costOf(kind,ownerOf(state,c.playerId)),stock=state.accounts[c.playerId].stock,short=(Object.keys(cost) as (keyof typeof cost)[]).filter(k=>stock[k]<cost[k]);
  if(short.length)throw Error(`資源不足：${short.map(k=>`${({food:'食物',wood:'木材',gold:'黃金',stone:'石頭'} as const)[k]}需要 ${cost[k]}，目前 ${stock[k]}`).join('；')}`);
  }
  else if(c.commandType==='train'||c.commandType==='cancelTrain'||c.commandType==='rally'){
@@ -122,7 +136,7 @@ export function submit(state:State, c:Command, record=true):void {
  else if(c.commandType==='hunt'){if(!Number.isSafeInteger(c.payload.animalId))throw Error('找不到這隻動物');const problem=huntProblem(state,c.playerId,c.payload.animalId);if(problem)throw Error(problem);}
  else if(c.commandType==='garrison'){const problem=garrisonProblem(state,c.playerId,c.payload.buildingId,c.payload.unitIds);if(problem)throw Error(problem);}
  else if(c.commandType==='ungarrison'){const b=state.buildings.find(b=>b.id===c.payload.buildingId);if(!b||b.player!==c.playerId)throw Error('找不到這棟己方建築');if(!state.garrison[b.id]?.units.length)throw Error('建築裡沒有進駐的單位');}
- else if(c.commandType==='bell'){if(typeof c.payload.ring!=='boolean')throw Error('鐘聲設定無效');if(c.payload.ring&&!state.buildings.some(b=>b.player===c.playerId&&b.complete&&b.kind in defenseRules.capacity))throw Error('沒有可以躲的城鎮中心或箭塔');}
+ else if(c.commandType==='bell'){if(typeof c.payload.ring!=='boolean')throw Error('鐘聲設定無效');if(c.payload.ring&&!state.buildings.some(b=>b.player===c.playerId&&b.complete&&b.kind in defenseRules.capacity))throw Error('沒有可以躲的城鎮中心、箭塔或城堡');}
  else if(c.commandType==='reseed'){if(typeof c.payload.enabled!=='boolean')throw Error('自動補種設定無效');}
  else if(c.commandType==='resign'){}
  else if(c.commandType==='reserve'){if(!rules.entries.some(e=>e.id===c.payload.entryId))throw Error('未知預留內容');}
@@ -165,7 +179,7 @@ export function tick(s:State):{expanded:number} {
    else cancelBuilding(s,c.playerId,c.payload.buildingId);}
   catch(e){result.ok=false;result.error=(e as Error).message;if(c.commandType!=='cancelBuild'){clearWork(s,c.payload.unitIds);commandStop(s,c.payload.unitIds);}}
   s.transactions.push(result);continue;}
- {const result:TransactionResult={tick:s.tick,playerId:c.playerId,sequence:c.sequence,ok:true};try{if(c.commandType==='reserve')reserve(s.accounts[c.playerId],`${c.playerId}:${c.sequence}`,c.payload.entryId);else cancelReservation(s.accounts[c.playerId],(c.payload as {reservationId:string}).reservationId);}catch(e){result.ok=false;result.error=(e as Error).message;}s.transactions.push(result);continue;}
+ {const result:TransactionResult={tick:s.tick,playerId:c.playerId,sequence:c.sequence,ok:true};try{if(c.commandType==='reserve')reserve(s.accounts[c.playerId],`${c.playerId}:${c.sequence}`,c.payload.entryId,costOf(c.payload.entryId,ownerOf(s,c.playerId)));else cancelReservation(s.accounts[c.playerId],(c.payload as {reservationId:string}).reservationId);}catch(e){result.ok=false;result.error=(e as Error).message;}s.transactions.push(result);continue;}
  }
  stepProduction(s);
  // Deterministic movement: shared search budget, node reservations, waiting and bounded replans.
@@ -175,27 +189,27 @@ export function tick(s:State):{expanded:number} {
  stepAnimals(s);
  stepReligion(s);
  stepWork(s);
- updateVision(s.vision,s.map,s.units,s.tick);
+ updateVision(s.vision,s.map,s.units,s.tick,undefined,sightOf(s));
  // The computer decides on what red can see after this tick; its orders run next tick, like a human's.
  if(s.opponent==='ai')stepAI(s,(commandType,payload)=>{try{submit(s,{protocolVersion:1,rulesetHash,playerId:aiRules.player,sequence:s.sequence[aiRules.player]+1,targetTick:s.tick+1,commandType,payload} as unknown as Command,false);return true;}catch{return false;}});
  return stats;
 }
-export function replay(seed:number,commands:LoggedCommand[],ticks:number,layout:MapLayout='meadow',opponent:Opponent='idle'):State{
+export function replay(seed:number,commands:LoggedCommand[],ticks:number,layout:MapLayout='meadow',opponent:Opponent='idle',civs:readonly string[]=[neutralCiv,neutralCiv]):State{
  if(!Number.isSafeInteger(ticks)||ticks<0||ticks>100000||!Array.isArray(commands)||commands.length>10000)throw Error('無效重播範圍');
- const s=createState(seed,layout,opponent);let previousTick=0;
+ const s=createState(seed,layout,opponent,civs);let previousTick=0;
  for(const c of commands){
  if(!c||!Number.isSafeInteger(c.acceptedTick)||c.acceptedTick<previousTick||c.acceptedTick>ticks)throw Error('無效命令接收時間');
  while(s.tick<c.acceptedTick)tick(s);submit(s,c);previousTick=c.acceptedTick;
  }
  while(s.tick<ticks)tick(s);return s;
 }
-export function serialize(s:State):string{if(s.tick>100000||s.log.length>10000)throw Error('已超過此階段沙盒存檔容量（100000 ticks / 10000 指令）');return JSON.stringify({format:'brick-sandbox-26',rulesetHash,state:s,checksum:hash(s)});}
+export function serialize(s:State):string{if(s.tick>100000||s.log.length>10000)throw Error('已超過此階段沙盒存檔容量（100000 ticks / 10000 指令）');return JSON.stringify({format:'brick-sandbox-27',rulesetHash,state:s,checksum:hash(s)});}
 export function deserialize(raw:string):State{
  const v=JSON.parse(raw);
- if(!v||v.format!=='brick-sandbox-26'||v.rulesetHash!==rulesetHash||!v.state||v.checksum!==hash(v.state))throw Error('存檔版本不符或內容損壞');
+ if(!v||v.format!=='brick-sandbox-27'||v.rulesetHash!==rulesetHash||!v.state||v.checksum!==hash(v.state))throw Error('存檔版本不符或內容損壞');
  const s=v.state as State;
- if(s.version!==26||(s.opponent!=='ai'&&s.opponent!=='idle')||!Number.isSafeInteger(s.tick)||s.tick<0||s.tick>100000||!Array.isArray(s.log)||s.log.length>10000)throw Error('無效存檔狀態');
- const rebuilt=replay(s.seed,s.log,s.tick,s.layout,s.opponent);
+ if(s.version!==27||(s.opponent!=='ai'&&s.opponent!=='idle')||!Array.isArray(s.civs)||s.civs.length!==2||!s.civs.every(civExists)||!Number.isSafeInteger(s.tick)||s.tick<0||s.tick>100000||!Array.isArray(s.log)||s.log.length>10000)throw Error('無效存檔狀態');
+ const rebuilt=replay(s.seed,s.log,s.tick,s.layout,s.opponent,s.civs);
  if(hash(rebuilt)!==hash(s))throw Error('存檔狀態無法由命令重建');
  return structuredClone(s);
 }

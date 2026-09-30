@@ -11,17 +11,20 @@ export type KnownObstacle={obstacle:Obstacle;lastSeenTick:number};
 export type PlayerVision={explored:number[];visible:number[];known:KnownObstacle[];resources:ResourceNode[]};
 export function createVision():PlayerVision[]{return Array.from({length:2},()=>({explored:[],visible:[],known:[],resources:[]}));}
 // Policy is explicit: callers may only supply allies after diplomacy/technology validation.
-export function updateVision(visions:PlayerVision[],map:MapData,units:Observer[],tick:number,sharing:number[][]=[[0],[1]]):void{
+// extra: sight a player's civilization adds to a unit or building kind (packages/sim/civ.ts losBonus).
+export function updateVision(visions:PlayerVision[],map:MapData,units:Observer[],tick:number,sharing:number[][]=[[0],[1]],extra:(player:number,kind:string)=>number=()=>0):void{
  if(sharing.length!==2||sharing.some((members,p)=>!members.includes(p)||members.some(id=>!Number.isInteger(id)||id<0||id>1)))throw Error('無效共享視野規則');
  const own=[new Set<number>(),new Set<number>()];
  // Tile centres within the radius; only the tiles in the radius' bounding box are tested.
  const size=map.size,reveal=(player:number,x:number,y:number,radius:number)=>{const t0=Math.max(0,Math.floor((x-radius)/100)),t1=Math.min(size-1,Math.floor((x+radius)/100)),u0=Math.max(0,Math.floor((y-radius)/100)),u1=Math.min(size-1,Math.floor((y+radius)/100));
   for(let ty=u0;ty<=u1;ty++)for(let tx=t0;tx<=t1;tx++){const dx=tx*100+50-x,dy=ty*100+50-y;if(dx*dx+dy*dy<=radius*radius)own[player].add(ty*size+tx);}};
  // Wild animals see for nobody; an owned sheep shows its owner a little ground round it.
- for(const u of units){if(u.player!==0&&u.player!==1)continue;reveal(u.player,u.x,u.y,u.kind==='scout'?visionRules.scoutRadius:u.kind==='sheep'?visionRules.sheepRadius:visionRules.unitRadius);}
+ for(const u of units){if(u.player!==0&&u.player!==1)continue;reveal(u.player,u.x,u.y,(u.kind==='scout'?visionRules.scoutRadius:u.kind==='sheep'?visionRules.sheepRadius:visionRules.unitRadius)+(u.kind?extra(u.player,u.kind):0));}
  for(const o of map.obstacles)if(o.kind==='house'||o.kind==='barracks')reveal(o.red?1:0,o.x+100,o.y+100,visionRules.houseRadius);
- else if(o.kind==='town-center')reveal(o.red?1:0,o.x+135,o.y+135,visionRules.townCenterRadius);
+ else if(o.kind==='town-center')reveal(o.red?1:0,o.x+135,o.y+135,visionRules.townCenterRadius+extra(o.red?1:0,o.kind));
  else if(o.kind==='watch-tower'&&o.progress===undefined)reveal(o.red?1:0,o.x+50,o.y+50,visionRules.towerRadius);
+ // The Castle sees as far as a tower, from its centre.
+ else if(o.kind==='castle'&&o.progress===undefined)reveal(o.red?1:0,o.x+185,o.y+185,visionRules.towerRadius);
  for(let player=0;player<2;player++){
  const vision=visions[player],visible=new Set(sharing[player].flatMap(id=>[...own[id]]));
  vision.resources=map.resources.filter(r=>r.status==='available'&&visible.has(tileAt(r.x,r.y,size))).map(r=>({...r}));

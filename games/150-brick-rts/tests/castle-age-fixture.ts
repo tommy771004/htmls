@@ -8,8 +8,9 @@ import type {BuildKind} from '../packages/sim/buildings.ts';
 // explore: the scout also rides to the map centre and past every relic (so blue remembers them), and villager 2
 // mines the central gold until 225 gold are in stock (enough for Sanctity).
 // collect (with explore): the monk then fetches every relic into the monastery, one trip at a time.
-export function castleAgeMatch(seed=260925,options:{explore?:boolean;collect?:boolean}={}):State{
- const s=createState(seed,'open','idle');
+// civs: both players' civilizations (default: the neutral settlers, as createState).
+export function castleAgeMatch(seed=260925,options:{explore?:boolean;collect?:boolean;civs?:readonly string[]}={}):State{
+ const s=createState(seed,'open','idle',options.civs);
  const order=(t:string,p:unknown)=>submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:s.sequence[0]+1,targetTick:s.tick+1,commandType:t,payload:p} as never);
  const stock=s.accounts[0].stock,tcB=s.buildings.find(b=>b.player===0&&b.kind==='town-center')!,tc=s.map.obstacles.find(o=>o.id===tcB.id)!;
  const until=(done:()=>boolean,limit=30000)=>{const end=s.tick+limit;while(!done()){if(s.tick>=end)throw Error(`fixture stalled at tick ${s.tick}`);tick(s);}};

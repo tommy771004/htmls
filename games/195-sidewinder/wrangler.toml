@@ -1,0 +1,4 @@
+# Cloudflare Pages 專案設定（部署：npm run deploy，需先 npx wrangler login）
+name = "sidewinder"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-09-30"

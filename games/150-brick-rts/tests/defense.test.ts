@@ -31,7 +31,7 @@ test('villagers and archers inside add arrows; cavalry and relic carriers cannot
  const s=createState(260925);s.units=s.units.filter(u=>!isAnimal(u.kind));const tc=tcOf(s,0),box=boxOf(s,tc.id);
  order(s,'garrison',{unitIds:[1,2,3],buildingId:tc.id});run(s,200,()=>s.garrison[tc.id]?.units.length===3);
  assert.equal(s.garrison[tc.id].units.length,3);assert.ok(![1,2,3].some(id=>s.units.some(u=>u.id===id)),'inside means out of the world');assert.equal(s.accounts[0].populationUsed,3,'still counted');
- const knight=spawn(s,0,'knight',box[2]+100,box[3]+100);assert.throws(()=>order(s,'garrison',{unitIds:[knight.id],buildingId:tc.id}),/只有村民、步兵、弓兵與僧侶/);
+ const knight=spawn(s,0,'knight',box[2]+100,box[3]+100);assert.throws(()=>order(s,'garrison',{unitIds:[knight.id],buildingId:tc.id}),/只有村民、步兵、徒步弓兵與僧侶/);
  const foe=spawn(s,1,'militia',box[2]+150,(box[1]+box[3])/2);see(s);s.volleys[tc.id]=0;tick(s);
  assert.equal(foe.hp,45-4*4,'one arrow plus one per villager inside');
  assert.equal(defenseRules.capacity['town-center'],15);

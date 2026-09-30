@@ -3,6 +3,7 @@ import type {Unit} from './movement.ts';
 import {approach,reach,killUnit} from './combat.ts';
 import type {CombatState} from './combat.ts';
 import {maxHpOf} from './stats.ts';
+import {ownerOf,healRangeScale,healRateScale,conversionResist} from './civ.ts';
 import {tileAt} from './terrain.ts';
 import {obstacleBounds} from '../content/footprints.ts';
 import {navigationRules,position,blockedTable,nodeTotal} from './navigation.ts';
@@ -25,13 +26,13 @@ export const religionRules={provenance:'reference research for timings, costs an
  convertRange:350,printingRange:117,adjacentRange:50,healRange:150,healTicks:20,healSight:400,
  attemptTicks:24,attempts:{min:4,max:10},faithAttempts:{min:6,max:14},attemptChance:28,
  buildingTicks:{min:360,max:600},rechargeTicks:1240,
- unconvertibleBuildings:['town-center','monastery','farm'],
+ unconvertibleBuildings:['town-center','monastery','farm','castle'],
  relics:{count:5,goldTicks:40,perMonastery:10,victoryTicks:20000,baseDistance:900,spacing:600,fairness:400,edge:150}} as const;
 export type RiteKind='convert'|'heal'|'relic'|'deposit';
 export type Rite={kind:RiteKind;target:number|string;progress:number;needed:number;repath:number;attempt:number};
 export type Relic={id:number;x:number;y:number;carrier:number|null;monastery:string|null};
 export type RelicVictory={player:number;endsTick:number};
-export type ReligionState=CombatState&{rites:Record<number,Rite>;faith:Record<number,number>;rng:number;techs:string[][];relics:Relic[];relicMemory:{id:number;x:number;y:number}[][];relicVictory:RelicVictory|null};
+export type ReligionState=CombatState&{civs?:string[];rites:Record<number,Rite>;faith:Record<number,number>;rng:number;techs:string[][];relics:Relic[];relicMemory:{id:number;x:number;y:number}[][];relicVictory:RelicVictory|null};
 const random=(s:ReligionState)=>{let n=s.rng;n^=n<<13;n^=n>>>17;n^=n<<5;s.rng=n>>>0;return s.rng;};
 const has=(s:{techs:string[][]},player:number,tech:string)=>s.techs[player].includes(tech);
 const recharge=(s:ReligionState,player:number)=>religionRules.rechargeTicks/(has(s,player,'illumination')?2:1);
@@ -39,7 +40,10 @@ const recharge=(s:ReligionState,player:number)=>religionRules.rechargeTicks/(has
 export function faithOf(s:ReligionState,monkId:number){const last=s.faith[monkId],m=s.units.find(u=>u.id===monkId);return last===undefined||!m?1:Math.min(1,(s.tick-last)/recharge(s,m.player));}
 export const convertRangeOf=(s:{techs:string[][]},player:number)=>religionRules.convertRange+(has(s,player,'block-printing')?religionRules.printingRange:0);
 export const carrying=(s:{relics:Relic[]},monkId:number)=>s.relics.some(r=>r.carrier===monkId);
-const maxHp=(s:ReligionState,u:Unit)=>maxHpOf(u.kind,s.techs[u.player]);
+const maxHp=(s:ReligionState,u:Unit)=>maxHpOf(u.kind,ownerOf(s,u.player));
+// The monk owner's civilization: healing range (Teutons) and pace (the Byzantine team bonus).
+const healRangeOf=(s:ReligionState,player:number)=>Math.round(religionRules.healRange*healRangeScale(ownerOf(s,player)));
+const healTicksOf=(s:ReligionState,player:number)=>Math.max(1,Math.round(religionRules.healTicks/healRateScale(ownerOf(s,player))));
 const seen=(s:ReligionState,player:number,x:number,y:number)=>new Set(s.vision[player].visible).has(tileAt(x,y,s.map.size));
 function buildingTiles(s:ReligionState,b:Building){const o=s.map.obstacles.find(o=>o.id===b.id);if(!o)return [];const box=obstacleBounds(o),out:number[]=[];
  for(let ty=Math.floor(box[1]/100);ty<=Math.floor((box[3]-1)/100);ty++)for(let tx=Math.floor(box[0]/100);tx<=Math.floor((box[2]-1)/100);tx++)out.push(ty*s.map.size+tx);return out;}
@@ -57,7 +61,7 @@ export function riteProblem(s:ReligionState,player:number,kind:RiteKind,target:n
   if(kind!=='convert')return '只能治療單位';
   const b=s.buildings.find(b=>b.id===target);if(!b||!buildingTiles(s,b).some(t=>new Set(s.vision[player].visible).has(t)))return '找不到目標';
   if(b.player===player)return '不能轉化己方建築';if(!has(s,player,'redemption'))return '需要研究「救贖」才能轉化建築';
-  if((religionRules.unconvertibleBuildings as readonly string[]).includes(b.kind))return '城鎮中心、修道院與農田不能被轉化';
+  if((religionRules.unconvertibleBuildings as readonly string[]).includes(b.kind))return '城鎮中心、修道院、農田與城堡不能被轉化';
   if(!b.complete)return '只能轉化完工的建築';return null;}
  const t=s.units.find(u=>u.id===target);if(!t)return '找不到目標';
  if(isAnimal(t.kind))return kind==='heal'?'動物不能被治療':'動物不能被轉化：村民可以右鍵羊隻放牧';
@@ -153,7 +157,7 @@ export function stepReligion(s:ReligionState){
   else{const t=s.units.find(u=>u.id===r.target)!;
    if(r.kind==='heal'&&t.hp>=maxHp(s,t)){done();continue;}
    if(r.kind==='convert'&&(carrying(s,m.id)||r.attempt===0&&r.progress===0&&faithOf(s,m.id)<1)){done();continue;}
-   shape={x:t.x,y:t.y};range=r.kind==='convert'?convertRangeOf(s,m.player):religionRules.healRange;}
+   shape={x:t.x,y:t.y};range=r.kind==='convert'?convertRangeOf(s,m.player):healRangeOf(s,m.player);}
   if(reach(m,shape)<=range){
    if(m.next!==null)continue;
    if(m.path.length||busy.has(m.id)){cancelMovement(s,m.id);m.path=[];m.goal=null;m.target=null;}
@@ -163,12 +167,13 @@ export function stepReligion(s:ReligionState){
     if(relic.carrier===null&&relic.monastery===null&&relic.x===x&&relic.y===y){relic.carrier=m.id;relic.x=m.x;relic.y=m.y;}done();continue;}
    if(r.kind==='deposit'){const relic=s.relics.find(x=>x.carrier===m.id)!,b=s.buildings.find(b=>b.id===r.target)!,box=shape as number[];
     relic.carrier=null;relic.monastery=b.id;relic.x=Math.round((box[0]+box[2])/2);relic.y=Math.round((box[1]+box[3])/2);done();continue;}
-   if(r.kind==='heal'){const t=s.units.find(u=>u.id===r.target)!;if(++r.progress%religionRules.healTicks===0)t.hp=Math.min(maxHp(s,t),t.hp+1);continue;}
+   if(r.kind==='heal'){const t=s.units.find(u=>u.id===r.target)!;if(++r.progress%healTicksOf(s,m.player)===0)t.hp=Math.min(maxHp(s,t),t.hp+1);continue;}
    if(typeof r.target==='string'){if(r.needed===0){const {min,max}=religionRules.buildingTicks;r.needed=min+random(s)%(max-min+1);}
     if(++r.progress>=r.needed){convertBuilding(s,m,s.buildings.find(b=>b.id===r.target)!);delete s.rites[m.id];}continue;}
    // A unit: one attempt per interval; the first ones never succeed, the last one always does.
    if(++r.progress%religionRules.attemptTicks!==0)continue;
-   const t=s.units.find(u=>u.id===r.target)!,{min,max}=has(s,t.player,'faith')?religionRules.faithAttempts:religionRules.attempts;r.attempt++;
+   // The target owner's Faith, and its civilization's resistance (the Teuton team bonus: more sure failures first).
+   const t=s.units.find(u=>u.id===r.target)!,base=has(s,t.player,'faith')?religionRules.faithAttempts:religionRules.attempts,resist=conversionResist(ownerOf(s,t.player)),min=base.min+resist,max=base.max+resist;r.attempt++;
    if(r.attempt>=min&&(r.attempt>=max||random(s)%100<religionRules.attemptChance)){convertUnit(s,m,t);delete s.rites[m.id];}
    continue;
   }

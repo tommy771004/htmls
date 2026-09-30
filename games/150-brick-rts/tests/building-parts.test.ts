@@ -11,3 +11,13 @@ test('damage and rubble are bounded; restoring health reconstructs exactly',()=>
  const visual={ageVariant:4 as const,progress:100,health:100,red:false},full=buildingParts(visual);visual.health=35;const damaged=buildingParts(visual);assert.ok(damaged.length<full.length);assert.ok(damaged.some(p=>p.id==='foundation'));visual.health=0;const rubble=buildingParts(visual);assert.equal(rubble.length,13);assert.ok(rubble.every(p=>p.y+p.h<=.28));visual.health=100;assert.deepEqual(buildingParts(visual),full);
 });
 test('invalid inspector state rejects before producing model parts',()=>{for(const value of [-1,101,NaN,Infinity])assert.throws(()=>buildingParts({ageVariant:2,progress:value,health:100,red:false}));});
+import {techIcons} from '../apps/web/tech-icons.ts';
+import {rules} from '../packages/content/rules.ts';
+import {lineUpgrades} from '../packages/sim/stats.ts';
+test('every technology a building offers has its own brick emblem (elite upgrades use the unit portrait)',()=>{
+ const techs=rules.entries.filter(e=>e.kind==='technology'&&!/^age-\d$/.test(e.id)&&!lineUpgrades.some(u=>u.id===e.id));
+ for(const e of techs){const icon=techIcons[e.id];assert.ok(icon?.length,`${e.id} emblem`);assert.ok(icon.every(p=>[p.x,p.y,p.z,p.w,p.d,p.h].every(Number.isFinite)&&p.w>0&&p.h>0&&p.d>0&&p.y>=0&&p.x>=-.1&&p.x+p.w<=1.1),e.id);}
+ // Distinct emblems (gold and stone mining share a shape and differ by the ore colour).
+ const shapes=techs.map(e=>JSON.stringify(techIcons[e.id]));assert.equal(new Set(shapes).size,shapes.length);
+ for(const id of ['yeomen','crenellations','great-wall','drill','nomads'])assert.ok(techs.some(e=>e.id===id),id);
+});

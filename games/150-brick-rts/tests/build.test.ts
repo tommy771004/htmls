@@ -31,7 +31,7 @@ test('two builders finish sooner than one',()=>{
 });
 test('invalid placements are refused with a reason and cost nothing',()=>{
  const s=createState(260925),before=hash(s),tc=s.map.obstacles.find(o=>o.kind==='town-center'&&!o.red)!;
- const cases:[any,RegExp][]=[[{kind:'house',x:tc.x+35,y:tc.y+50},/重疊/],[{kind:'house',x:625,y:800},/格線/],[{kind:'house',x:1300,y:1300},/探索/],[{kind:'house',x:350,y:650},/單位/],[{kind:'castle',x:600,y:800},/未知/]];
+ const cases:[any,RegExp][]=[[{kind:'house',x:tc.x+35,y:tc.y+50},/重疊/],[{kind:'house',x:625,y:800},/格線/],[{kind:'house',x:1300,y:1300},/探索/],[{kind:'house',x:350,y:650},/單位/],[{kind:'wonder',x:600,y:800},/未知/]];
  for(const [p,re] of cases)assert.throws(()=>order(s,'build',{unitIds:[1],...p}),re);
  const coast=createState(260925,'coast');for(const u of coast.units)coast.vision[0].explored.push(...Array.from({length:256},(_,i)=>i));
  assert.match(authoritativeProblem(coast,0,'house',600,1300)??'',/地形/);

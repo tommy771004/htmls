@@ -15,6 +15,8 @@ var obstacleFootprints = {
   monastery: { x: -15, y: -15, width: 300, depth: 300 },
   blacksmith: { x: -15, y: -15, width: 300, depth: 300 },
   "siege-workshop": { x: -15, y: -15, width: 300, depth: 300 },
+  // Castle: a solid 4x4 keep (the reference's castle is 4x4).
+  castle: { x: -15, y: -15, width: 400, depth: 400 },
   // Watch tower: one tile.
   "watch-tower": { x: 0, y: 0, width: 100, depth: 100 },
   tree: { x: -20, y: -20, width: 100, depth: 100 },
@@ -86,20 +88,20 @@ function createTiles(layout = "meadow", seed = 0) {
       if (x === 7 || x === 8) terrainType = y >= 7 && y <= 9 ? "shallow" : "water";
       else if (x === 6 || x === 9) terrainType = "sand";
     }
-    const tile = { id, terrainType, ...terrainDefinitions[terrainType], resourceRefs: [], obstacleRefs: [] };
+    const tile2 = { id, terrainType, ...terrainDefinitions[terrainType], resourceRefs: [], obstacleRefs: [] };
     if (layout === "acceptance") {
       if (x >= 2 && x <= 5 && y >= 11 && y <= 14) {
-        tile.terrainType = x === 2 && y === 11 ? "cliff" : x === 3 && y === 13 ? "stone" : "highland";
-        Object.assign(tile, terrainDefinitions[tile.terrainType]);
-        tile.height = 100;
+        tile2.terrainType = x === 2 && y === 11 ? "cliff" : x === 3 && y === 13 ? "stone" : "highland";
+        Object.assign(tile2, terrainDefinitions[tile2.terrainType]);
+        tile2.height = 100;
       }
       if (x === 4 && y >= 8 && y <= 10) {
-        tile.terrainType = "road";
-        tile.height = (y - 7) * 25;
-        tile.buildability = false;
+        tile2.terrainType = "road";
+        tile2.height = (y - 7) * 25;
+        tile2.buildability = false;
       }
     }
-    return tile;
+    return tile2;
   });
 }
 var sizeOfTiles = (tiles) => Math.round(Math.sqrt(tiles.length));
@@ -109,8 +111,8 @@ function groundHeight(tiles, x, y) {
 function tileAt(x, y, size) {
   return Math.floor(y / 100) * size + Math.floor(x / 100);
 }
-function canTraverse(tile, movement) {
-  return tile.walkClass === movement || tile.walkClass === "both";
+function canTraverse(tile2, movement) {
+  return tile2.walkClass === movement || tile2.walkClass === "both";
 }
 
 // apps/web/fog-debug.ts
@@ -168,7 +170,7 @@ function createAudio(report = () => {
 }) {
   let ctx = null, master = null, volume = 0.6, count = 0, noise = null;
   const lastPlayed = /* @__PURE__ */ new Map();
-  const spacing = { hit: 140, order: 60, "order-attack": 80, trained: 250, built: 250, alarm: 3e3, convert: 400 };
+  const spacing = { hit: 140, order: 60, "order-attack": 80, trained: 250, built: 250, castle: 600, unique: 250, alarm: 3e3, convert: 400 };
   function unlock() {
     if (!ctx) {
       const Ctor = window.AudioContext ?? window.webkitAudioContext;
@@ -276,6 +278,18 @@ function createAudio(report = () => {
     relic: () => {
       tone("sine", 1175, 0, 0.6, 0.06);
       tone("sine", 1568, 0.05, 0.55, 0.04);
+    },
+    // A Castle completed: a stone thud under a low horn call (fourth, then octave), heavier than an ordinary building.
+    castle: () => {
+      burst("lowpass", 300, 0, 0.45, 0.3);
+      tone("sine", 70, 0, 0.5, 0.18, 48);
+      [196, 262, 392].forEach((f, i) => tone("triangle", f, 0.12 + i * 0.18, 0.55, 0.09));
+    },
+    // A unique unit ready: the trained chime with a brass-like sawtooth underneath.
+    unique: () => {
+      tone("sawtooth", 330, 0, 0.32, 0.035, 392);
+      tone("sine", 660, 0.05, 0.4, 0.1);
+      tone("sine", 990, 0.12, 0.4, 0.06);
     }
   };
   function play(name) {
@@ -290,9 +304,391 @@ function createAudio(report = () => {
   return { unlock, setVolume, play, state: () => ctx?.state ?? "locked", volume: () => volume };
 }
 
+// packages/content/civs.ts
+var mulKinds = ["hp", "cooldown", "speed", "cost", "time", "buildingHp", "arrowCooldown", "healRange", "healRate"];
+function fx(id, kind, select3, value, text, o = {}) {
+  const mul = o.op ? o.op === "mul" : mulKinds.includes(kind);
+  return {
+    id,
+    kind,
+    select: select3,
+    op: mul ? "mul" : "add",
+    value,
+    ...o.vs ? { vs: o.vs } : {},
+    ...o.resource ? { resource: o.resource } : {},
+    ...o.to ? { to: o.to } : {},
+    trigger: { ...o.age ? { age: o.age } : {}, ...o.tech ? { tech: o.tech } : {} },
+    stacking: mul ? "product" : "sum",
+    priority: mul ? 1 : 0,
+    scope: o.team ? "team" : "self",
+    appliesToExisting: o.existing ?? !["cost", "costShift", "time", "workRate", "startStock", "startVillagers", "deathRefund", "keepHousing", "grant", "producer"].includes(kind),
+    text
+  };
+}
+var site = (page2) => `aoetw.com/${page2}\uFF082026-09-30 \u53D6\u81EA github.com/webrsb/aoetw \u539F\u59CB\u78BC\uFF09`;
+var footArchers = { classes: ["archer"], exclude: ["skirmisher", "gunpowder", "cavalry-archer"] };
+var infantry = { classes: ["infantry"] };
+var neutralCiv = "settlers";
+var civDefs = [
+  { id: neutralCiv, name: "\u62D3\u8352\u8005", nameEn: "Settlers", type: "\u7121\u52A0\u6210\uFF08\u5747\u8861\u6E2C\u8A66\uFF09", architecture: "neutral", missing: [], missingLater: [], uniqueUnits: [], eliteUpgrades: [], uniqueTechs: [], effects: [], omitted: [], sources: ["\u672C\u4F5C\u539F\u5275\uFF1A\u6C92\u6709\u6587\u660E\u52A0\u6210\u8207\u57CE\u5821\uFF0C\u4F5C\u70BA\u6E2C\u8A66\u8207\u7DF4\u7FD2\u7684\u57FA\u6E96"] },
+  {
+    id: "britons",
+    name: "\u4E0D\u5217\u985B",
+    nameEn: "Britons",
+    type: "\u5F13\u5175\u6587\u660E",
+    architecture: "west",
+    missing: ["crop-rotation", "stone-shaft-mining", "redemption", "atonement", "heresy"],
+    missingLater: ["hussar", "paladin", "siege-ram", "thumb-ring", "parthian-tactics", "bloodlines", "camel", "bombard-cannon", "elite-cannon-galleon", "missionary", "bombard-tower"],
+    uniqueUnits: ["longbowman"],
+    eliteUpgrades: ["elite-longbowman"],
+    uniqueTechs: [{ id: "yeomen", name: "\u7FA9\u52C7\u9A0E\u5175", nameEn: "Yeomen", age: 3, effectText: "\u5F92\u6B65\u5F13\u5175\u5C04\u7A0B +1\uFF0C\u7BAD\u5854\u653B\u64CA +2" }, { id: "warwolf", name: "\u6230\u72FC\u865F", nameEn: "Warwolf", age: 4, effectText: "\u5DE8\u578B\u6295\u77F3\u6A5F\u7372\u5F97\u7BC4\u570D\u50B7\u5BB3" }],
+    effects: [
+      fx("britons.archer-range", "range", footArchers, [0, 0, 50, 100], "\u5F92\u6B65\u5F13\u5175\uFF08\u6563\u5175\u9664\u5916\uFF09\u5C04\u7A0B\uFF1A\u7B2C\u4E09\u6642\u4EE3 +1\u3001\u7B2C\u56DB\u6642\u4EE3 +2"),
+      fx("britons.shepherds", "gather", { sources: ["livestock"] }, 25, "\u7267\u7F8A\uFF08\u5BB0\u7F8A\u63A1\u96C6\uFF09\u901F\u5EA6 +25%"),
+      fx("britons.team-range", "workRate", { buildings: ["archery-range"] }, 20, "\u5718\u968A\u52A0\u6210\uFF1A\u9776\u5834\u751F\u7522\u901F\u5EA6 +20%", { team: true }),
+      fx("britons.yeomen-range", "range", { classes: ["archer"], exclude: ["gunpowder", "cavalry-archer"] }, 50, "\u7FA9\u52C7\u9A0E\u5175\uFF1A\u5F92\u6B65\u5F13\u5175\uFF08\u542B\u6563\u5175\uFF09\u5C04\u7A0B +1", { tech: "yeomen" }),
+      fx("britons.yeomen-tower", "arrowDamage", { buildings: ["watch-tower"] }, 2, "\u7FA9\u52C7\u9A0E\u5175\uFF1A\u7BAD\u5854\u653B\u64CA +2", { tech: "yeomen" })
+    ],
+    omitted: [{ text: "\u7B2C\u4E09\u6642\u4EE3\u8D77\u57CE\u93AE\u4E2D\u5FC3\u6728\u6750 -50%", reason: "\u672C\u4F5C\u7684\u57CE\u93AE\u4E2D\u5FC3\u4E0D\u80FD\u53E6\u5916\u5EFA\u9020" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u6230\u72FC\u865F\u300D", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5DE8\u578B\u6295\u77F3\u6A5F" }],
+    sources: [site("civs/Britons"), site("units/Longbowman"), site("techs/Yeomen"), site("techs/Warwolf"), site("tree/bri")]
+  },
+  {
+    id: "celts",
+    name: "\u585E\u723E\u7279",
+    nameEn: "Celts",
+    type: "\u6B65\u5175\u8207\u653B\u57CE\u5668\u6587\u660E",
+    architecture: "west",
+    missing: ["two-man-saw", "crop-rotation", "bracer", "ring-archer-armor", "plate-barding-armor", "redemption", "atonement", "illumination", "block-printing", "theocracy"],
+    missingLater: ["arbalest", "thumb-ring", "bloodlines", "camel", "bombard-cannon", "architecture", "missionary", "parthian-tactics", "bombard-tower", "elite-cannon-galleon"],
+    uniqueUnits: ["woad-raider"],
+    eliteUpgrades: ["elite-woad-raider"],
+    uniqueTechs: [{ id: "stronghold", name: "\u5821\u58D8", nameEn: "Stronghold", age: 3, effectText: "\u57CE\u5821\u8207\u7BAD\u5854\u5C04\u901F +25%" }, { id: "furor-celtica", name: "\u585E\u723E\u7279\u72C2\u71B1", nameEn: "Furor Celtica", age: 4, effectText: "\u653B\u57CE\u5668\u5DE5\u574A\u7684\u55AE\u4F4D\u751F\u547D +40%" }],
+    effects: [
+      fx("celts.lumberjacks", "gather", { resources: ["wood"] }, 15, "\u4F10\u6728\u901F\u5EA6 +15%"),
+      fx("celts.infantry-speed", "speed", infantry, [1, 1.15, 1.15, 1.15], "\u7B2C\u4E8C\u6642\u4EE3\u8D77\u6B65\u5175\u79FB\u52D5\u901F\u5EA6 +15%\uFF08\u672C\u4F5C\u4EE5\u6BCF tick \u6574\u6578\u6B65\u9577\u63DB\u7B97\uFF0C\u5BE6\u969B\u7D04 +11%\uFF09"),
+      fx("celts.siege-rate", "cooldown", { classes: ["siege"] }, 1 / 1.25, "\u653B\u57CE\u5668\u653B\u64CA\u901F\u5EA6 +25%"),
+      fx("celts.team-siege", "workRate", { buildings: ["siege-workshop"] }, 20, "\u5718\u968A\u52A0\u6210\uFF1A\u653B\u57CE\u5668\u5DE5\u574A\u751F\u7522\u901F\u5EA6 +20%", { team: true }),
+      fx("celts.stronghold", "arrowCooldown", { buildings: ["castle", "watch-tower"] }, 1 / 1.25, "\u5821\u58D8\uFF1A\u57CE\u5821\u8207\u7BAD\u5854\u5C04\u901F +25%", { tech: "stronghold" }),
+      fx("celts.furor", "hp", { classes: ["siege"] }, 1.4, "\u585E\u723E\u7279\u72C2\u71B1\uFF1A\u653B\u57CE\u5668\u751F\u547D +40%", { tech: "furor-celtica" })
+    ],
+    omitted: [{ text: "\u53EF\u5728\u5C0D\u624B\u55AE\u4F4D\u8996\u91CE\u5167\u6436\u8D70\u5C0D\u624B\u7684\u7F8A", reason: "\u672C\u4F5C\u7684\u6436\u7F8A\u898F\u5247\u4E0D\u770B\u8996\u91CE\uFF08\u5DF1\u65B9\u5EFA\u7BC9 4 \u683C\u5167\u7684\u7F8A\u672C\u4F86\u5C31\u4E0D\u6703\u88AB\u6436\uFF09" }],
+    sources: [site("civs/Celts"), site("units/Woad_Raider"), site("techs/Stronghold"), site("techs/Furor_Celtica"), site("tree/cel")]
+  },
+  {
+    id: "franks",
+    name: "\u6CD5\u862D\u514B",
+    nameEn: "Franks",
+    type: "\u9A0E\u5175\u6587\u660E",
+    architecture: "west",
+    missing: ["two-man-saw", "stone-shaft-mining", "bracer", "ring-archer-armor", "redemption"],
+    missingLater: ["arbalest", "hussar", "siege-ram", "keep", "thumb-ring", "parthian-tactics", "bloodlines", "camel", "bombard-tower", "heated-shot", "shipwright", "elite-cannon-galleon", "missionary"],
+    uniqueUnits: ["throwing-axeman"],
+    eliteUpgrades: ["elite-throwing-axeman"],
+    uniqueTechs: [{ id: "chivalry", name: "\u9A0E\u58EB\u7CBE\u795E", nameEn: "Chivalry", age: 3, effectText: "\u99AC\u5EC4\u751F\u7522\u901F\u5EA6 +40%" }, { id: "bearded-axe", name: "\u5012\u9264\u65A7", nameEn: "Bearded Axe", age: 4, effectText: "\u64F2\u65A7\u5175\u5C04\u7A0B +1" }],
+    effects: [
+      fx("franks.foragers", "gather", { sources: ["berries"] }, 25, "\u63A1\u6F3F\u679C\u901F\u5EA6 +25%"),
+      fx("franks.free-farming", "cost", { entries: ["horse-collar", "heavy-plow", "crop-rotation"] }, 0, "\u78E8\u574A\u7684\u8FB2\u7530\u79D1\u6280\u514D\u8CBB"),
+      fx("franks.cavalry-hp", "hp", { kinds: ["scout", "knight"] }, [1, 1.2, 1.2, 1.2], "\u7B2C\u4E8C\u6642\u4EE3\u8D77\u99AC\u5EC4\u55AE\u4F4D\u751F\u547D +20%"),
+      fx("franks.castle", "cost", { entries: ["castle"] }, 0.75, "\u57CE\u5821\u4FBF\u5B9C 25%"),
+      fx("franks.team-los", "los", { kinds: ["knight"] }, 200, "\u5718\u968A\u52A0\u6210\uFF1A\u9A0E\u58EB\u8996\u91CE +2", { team: true }),
+      fx("franks.chivalry", "workRate", { buildings: ["stable"] }, 40, "\u9A0E\u58EB\u7CBE\u795E\uFF1A\u99AC\u5EC4\u751F\u7522\u901F\u5EA6 +40%", { tech: "chivalry" }),
+      fx("franks.bearded-axe", "range", { kinds: ["throwing-axeman"] }, 50, "\u5012\u9264\u65A7\uFF1A\u64F2\u65A7\u5175\u5C04\u7A0B +1", { tech: "bearded-axe" })
+    ],
+    omitted: [],
+    sources: [site("civs/Franks"), site("units/Throwing_Axeman"), site("techs/Chivalry"), site("techs/Bearded_Axe"), site("tree/fra")]
+  },
+  {
+    id: "goths",
+    name: "\u54E5\u5FB7",
+    nameEn: "Goths",
+    type: "\u6B65\u5175\u6587\u660E",
+    architecture: "central",
+    missing: ["gold-shaft-mining", "plate-mail-armor", "plate-barding-armor", "redemption", "atonement", "heresy", "block-printing"],
+    missingLater: ["paladin", "arbalest", "siege-ram", "guard-tower", "keep", "camel", "bombard-tower", "thumb-ring", "parthian-tactics", "elite-cannon-galleon", "missionary"],
+    uniqueUnits: ["huskarl"],
+    eliteUpgrades: ["elite-huskarl"],
+    uniqueTechs: [{ id: "anarchy", name: "\u7121\u653F\u5E9C\u72C0\u614B", nameEn: "Anarchy", age: 3, effectText: "\u5175\u71DF\u4E5F\u80FD\u8A13\u7DF4\u54E5\u5FB7\u885B\u968A" }, { id: "perfusion", name: "\u4E95\u5674", nameEn: "Perfusion", age: 4, effectText: "\u5175\u71DF\u751F\u7522\u901F\u5EA6 +100%" }],
+    effects: [
+      fx("goths.infantry-cost", "cost", { entries: ["militia", "spearman", "huskarl"] }, [0.8, 0.75, 0.7, 0.65], "\u6B65\u5175\u4FBF\u5B9C\uFF1A\u7B2C\u4E00\u81F3\u7B2C\u56DB\u6642\u4EE3 -20% / -25% / -30% / -35%"),
+      fx("goths.infantry-buildings", "bonus", infantry, [0, 1, 2, 3], "\u6B65\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +1 / +2 / +3", { vs: "building" }),
+      fx("goths.boar", "huntDamage", { prey: ["boar"] }, 5, "\u6751\u6C11\u6253\u91CE\u8C6C\u653B\u64CA +5"),
+      fx("goths.hunter-carry", "carry", { sources: ["hunt"] }, 15, "\u7375\u4EBA\u651C\u5E36\u91CF +15"),
+      fx("goths.pop", "popCap", {}, [0, 0, 0, 10], "\u7B2C\u56DB\u6642\u4EE3\u4EBA\u53E3\u4E0A\u9650 +10"),
+      fx("goths.loom", "time", { entries: ["loom"] }, 0, "\u7E54\u5E03\u6A5F\u7ACB\u5373\u5B8C\u6210\uFF08\u4ECD\u9700\u4ED8\u8CBB\uFF09"),
+      fx("goths.team-barracks", "workRate", { buildings: ["barracks"] }, 20, "\u5718\u968A\u52A0\u6210\uFF1A\u5175\u71DF\u751F\u7522\u901F\u5EA6 +20%", { team: true }),
+      fx("goths.anarchy", "producer", { entries: ["huskarl"], buildings: ["barracks"] }, 1, "\u7121\u653F\u5E9C\u72C0\u614B\uFF1A\u5175\u71DF\u4E5F\u80FD\u8A13\u7DF4\u54E5\u5FB7\u885B\u968A", { tech: "anarchy" }),
+      fx("goths.perfusion", "workRate", { buildings: ["barracks"] }, 100, "\u4E95\u5674\uFF1A\u5175\u71DF\u751F\u7522\u901F\u5EA6 +100%", { tech: "perfusion" })
+    ],
+    omitted: [],
+    sources: [site("civs/Goths"), site("units/Huskarl"), site("techs/Anarchy"), site("techs/Perfusion"), site("tree/got")]
+  },
+  {
+    id: "teutons",
+    name: "\u689D\u9813",
+    nameEn: "Teutons",
+    type: "\u6B65\u5175\u6587\u660E",
+    architecture: "central",
+    missing: ["bracer", "light-cavalry", "gold-shaft-mining"],
+    missingLater: ["arbalest", "hussar", "siege-ram", "thumb-ring", "camel", "parthian-tactics", "architecture", "shipwright", "elite-cannon-galleon"],
+    uniqueUnits: ["teutonic-knight"],
+    eliteUpgrades: ["elite-teutonic-knight"],
+    uniqueTechs: [{ id: "ironclad", name: "\u92FC\u9435\u7532", nameEn: "Ironclad", age: 3, effectText: "\u653B\u57CE\u5668\u8FD1\u6230\u8B77\u7532 +4" }, { id: "crenellations", name: "\u7832\u9580\u579B\u53E3", nameEn: "Crenellations", age: 4, effectText: "\u57CE\u5821\u5C04\u7A0B +3\uFF0C\u9032\u99D0\u7684\u6B65\u5175\u4E5F\u6703\u5C04\u7BAD" }],
+    effects: [
+      fx("teutons.heal-range", "healRange", {}, 2, "\u50E7\u4FB6\u6CBB\u7642\u8DDD\u96E2\u5169\u500D"),
+      fx("teutons.tower-garrison", "garrison", { buildings: ["watch-tower"] }, 5, "\u7BAD\u5854\u53EF\u99D0\u7D2E\u5169\u500D\u55AE\u4F4D"),
+      fx("teutons.farms", "cost", { entries: ["farm"] }, 0.6, "\u8FB2\u7530\u4FBF\u5B9C 40%"),
+      fx("teutons.tc-garrison", "garrison", { buildings: ["town-center"] }, 10, "\u57CE\u93AE\u4E2D\u5FC3\u99D0\u8ECD +10"),
+      fx("teutons.melee-armor", "meleeArmor", { kinds: ["militia", "spearman", "scout", "knight"] }, [0, 0, 1, 2], "\u5175\u71DF\u8207\u99AC\u5EC4\u55AE\u4F4D\u8FD1\u6230\u8B77\u7532\uFF1A\u7B2C\u4E09\u6642\u4EE3 +1\u3001\u7B2C\u56DB\u6642\u4EE3 +2"),
+      fx("teutons.team-faith", "conversionResist", {}, 1, "\u5718\u968A\u52A0\u6210\uFF1A\u55AE\u4F4D\u8F03\u96E3\u88AB\u8F49\u5316\uFF08\u6BCF\u540D\u50E7\u4FB6\u7684\u5224\u5B9A\u591A\u4E00\u6B21\u5FC5\u5B9A\u5931\u6557\uFF09", { team: true }),
+      fx("teutons.ironclad", "meleeArmor", { classes: ["siege"] }, 4, "\u92FC\u9435\u7532\uFF1A\u653B\u57CE\u5668\u8FD1\u6230\u8B77\u7532 +4", { tech: "ironclad" }),
+      fx("teutons.crenellations-range", "arrowRange", { buildings: ["castle"] }, 150, "\u7832\u9580\u579B\u53E3\uFF1A\u57CE\u5821\u5C04\u7A0B +3", { tech: "crenellations" }),
+      fx("teutons.crenellations-infantry", "garrisonArrows", { buildings: ["castle"], classes: ["infantry"] }, 1, "\u7832\u9580\u579B\u53E3\uFF1A\u9032\u99D0\u57CE\u5821\u7684\u6B65\u5175\u5404\u591A\u4E00\u652F\u7BAD", { tech: "crenellations" })
+    ],
+    omitted: [{ text: "\u514D\u8CBB\u6BBA\u4EBA\u5B54\u8207\u8349\u85E5\u5B78", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u9019\u5169\u9805\u79D1\u6280" }],
+    sources: [site("civs/Teutons"), site("units/Teutonic_Knight"), site("techs/Ironclad"), site("techs/Crenellations"), site("tree/teu")]
+  },
+  {
+    id: "vikings",
+    name: "\u7DAD\u4EAC",
+    nameEn: "Vikings",
+    type: "\u6B65\u5175\u8207\u6D77\u8ECD\u6587\u660E",
+    architecture: "central",
+    missing: ["stone-shaft-mining", "plate-barding-armor", "redemption", "sanctity", "illumination", "theocracy"],
+    missingLater: ["halberdier", "hussar", "paladin", "keep", "herbal-medicine", "camel", "bombard-tower", "fire-ship", "bloodlines", "parthian-tactics", "bombard-cannon", "elite-cannon-galleon", "shipwright", "missionary"],
+    uniqueUnits: ["berserk"],
+    eliteUpgrades: ["elite-berserk"],
+    uniqueTechs: [{ id: "chieftains", name: "\u914B\u9577", nameEn: "Chieftains", age: 3, effectText: "\u6B65\u5175\u5C0D\u9A0E\u5175\u653B\u64CA +5" }, { id: "berserkergang", name: "\u72C2\u6230\u58EB\u5E6B", nameEn: "Berserkergang", age: 4, effectText: "\u72C2\u6230\u58EB\u56DE\u8840\u901F\u5EA6\u5169\u500D" }],
+    effects: [
+      fx("vikings.infantry-hp", "hp", infantry, [1, 1.1, 1.15, 1.2], "\u6B65\u5175\u751F\u547D\uFF1A\u7B2C\u4E8C\u6642\u4EE3 +10%\u3001\u7B2C\u4E09\u6642\u4EE3 +15%\u3001\u7B2C\u56DB\u6642\u4EE3 +20%"),
+      fx("vikings.wheelbarrow", "grant", { entries: ["wheelbarrow"] }, 1, "\u5347\u5230\u7B2C\u4E8C\u6642\u4EE3\u6642\u514D\u8CBB\u5F97\u5230\u624B\u63A8\u8ECA", { age: 2 }),
+      fx("vikings.hand-cart", "grant", { entries: ["hand-cart"] }, 1, "\u5347\u5230\u7B2C\u4E09\u6642\u4EE3\u6642\u514D\u8CBB\u5F97\u5230\u624B\u62C9\u8ECA", { age: 3 }),
+      fx("vikings.chieftains", "bonus", infantry, 5, "\u914B\u9577\uFF1A\u6B65\u5175\u5C0D\u9A0E\u5175\u653B\u64CA +5", { vs: "cavalry", tech: "chieftains" }),
+      fx("vikings.berserkergang", "regen", { kinds: ["berserk"] }, 20, "\u72C2\u6230\u58EB\u5E6B\uFF1A\u72C2\u6230\u58EB\u6BCF\u5206\u9418\u56DE\u8840 20 \u2192 40", { tech: "berserkergang" })
+    ],
+    omitted: [{ text: "\u6230\u8239\u4FBF\u5B9C 15% / 15% / 20%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u5718\u968A\u52A0\u6210\uFF1A\u78BC\u982D\u4FBF\u5B9C 15%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u78BC\u982D" }, { text: "\u914B\u9577\uFF1A\u6B65\u5175\u5C0D\u99F1\u99DD\u9A0E\u5175 +4", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u99F1\u99DD\u9A0E\u5175" }, { text: "\u7279\u6B8A\u55AE\u4F4D\u7DAD\u4EAC\u5927\u6230\u8239", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u6D77\u6230" }],
+    sources: [site("civs/Vikings"), site("units/Berserk"), site("techs/Chieftains"), site("techs/Berserkergang"), site("tree/vik")]
+  },
+  {
+    id: "byzantines",
+    name: "\u62DC\u5360\u5EAD",
+    nameEn: "Byzantines",
+    type: "\u9632\u79A6\u6587\u660E",
+    architecture: "mideast",
+    missing: ["blast-furnace"],
+    missingLater: ["herbal-medicine", "bloodlines", "parthian-tactics", "missionary", "heated-shot", "heavy-scorpion", "bombard-tower", "architecture"],
+    uniqueUnits: ["cataphract"],
+    eliteUpgrades: ["elite-cataphract"],
+    uniqueTechs: [{ id: "greek-fire", name: "\u5E0C\u81D8\u4E4B\u706B", nameEn: "Greek Fire", age: 3, effectText: "\u706B\u6230\u8239\u5C04\u7A0B +1" }, { id: "logistica", name: "\u5F8C\u52E4", nameEn: "Logistica", age: 4, effectText: "\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u8E10\u8E0F\u50B7\u5BB3\uFF0C\u5C0D\u6B65\u5175 +6" }],
+    effects: [
+      fx("byzantines.building-hp", "buildingHp", {}, [1.1, 1.2, 1.3, 1.4], "\u5EFA\u7BC9\u751F\u547D\uFF1A\u7B2C\u4E00\u81F3\u7B2C\u56DB\u6642\u4EE3 +10% / +20% / +30% / +40%"),
+      fx("byzantines.counter-cost", "cost", { entries: ["spearman", "skirmisher"] }, 0.75, "\u9577\u69CD\u5175\u8207\u6563\u5175\u4FBF\u5B9C 25%"),
+      fx("byzantines.imperial", "cost", { entries: ["age-4"] }, 0.67, "\u5347\u7B2C\u56DB\u6642\u4EE3\u4FBF\u5B9C 33%"),
+      fx("byzantines.team-heal", "healRate", {}, 1.5, "\u5718\u968A\u52A0\u6210\uFF1A\u50E7\u4FB6\u6CBB\u7642\u901F\u5EA6 +50%", { team: true }),
+      fx("byzantines.logistica", "bonus", { kinds: ["cataphract"] }, 6, "\u5F8C\u52E4\uFF1A\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u5C0D\u6B65\u5175 +6", { vs: "infantry", tech: "logistica" }),
+      fx("byzantines.trample", "splash", { kinds: ["cataphract"] }, 5, "\u5F8C\u52E4\uFF1A\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u653B\u64CA\u6642\uFF0C\u76EE\u6A19\u65C1\u7684\u6575\u5175\u53D7 5 \u9EDE\u8E10\u8E0F\u50B7\u5BB3", { tech: "logistica" })
+    ],
+    omitted: [{ text: "\u706B\u6230\u8239\u653B\u64CA\u901F\u5EA6 +20%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u5C01\u5EFA\u6642\u4EE3\u514D\u8CBB\u57CE\u93AE\u77AD\u671B", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u57CE\u93AE\u77AD\u671B" }, { text: "\u99F1\u99DD\u9A0E\u5175\u4FBF\u5B9C 25%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u99F1\u99DD\u9A0E\u5175" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u5E0C\u81D8\u4E4B\u706B\u300D", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u706B\u6230\u8239" }],
+    sources: [site("civs/Byzantines"), site("units/Cataphract"), site("techs/Greek_Fire"), site("techs/Logistica"), site("tree/byz")]
+  },
+  {
+    id: "persians",
+    name: "\u6CE2\u65AF",
+    nameEn: "Persians",
+    type: "\u9A0E\u5175\u6587\u660E",
+    architecture: "mideast",
+    missing: ["bracer", "redemption", "atonement", "heresy", "sanctity", "illumination"],
+    missingLater: ["two-handed-swordsman", "champion", "arbalest", "keep", "shipwright", "bombard-tower", "missionary"],
+    uniqueUnits: ["war-elephant"],
+    eliteUpgrades: ["elite-war-elephant"],
+    uniqueTechs: [{ id: "kamandaran", name: "\u6CE2\u65AF\u5F13\u5175", nameEn: "Kamandaran", age: 3, effectText: "\u5F13\u624B\u6539\u7528\u6728\u6750\u652F\u4ED8\u539F\u672C\u7684\u9EC3\u91D1" }, { id: "mahouts", name: "\u8C61\u4F15", nameEn: "Mahouts", age: 4, effectText: "\u6230\u8C61\u79FB\u52D5\u901F\u5EA6 +30%" }],
+    effects: [
+      fx("persians.food", "startStock", {}, 50, "\u958B\u5C40\u98DF\u7269 +50", { resource: "food" }),
+      fx("persians.wood", "startStock", {}, 50, "\u958B\u5C40\u6728\u6750 +50", { resource: "wood" }),
+      fx("persians.tc-hp", "buildingHp", { buildings: ["town-center"] }, 2, "\u57CE\u93AE\u4E2D\u5FC3\u751F\u547D\u5169\u500D"),
+      fx("persians.tc-rate", "workRate", { buildings: ["town-center"] }, [0, 10, 15, 20], "\u57CE\u93AE\u4E2D\u5FC3\u751F\u7522\u8207\u7814\u7A76\u901F\u5EA6\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +10% / +15% / +20%"),
+      fx("persians.team-knights", "bonus", { kinds: ["knight"] }, 2, "\u5718\u968A\u52A0\u6210\uFF1A\u9A0E\u58EB\u5C0D\u5F13\u5175\u653B\u64CA +2", { vs: "archer", team: true }),
+      fx("persians.kamandaran", "costShift", { entries: ["archer"] }, 1, "\u6CE2\u65AF\u5F13\u5175\uFF1A\u5F13\u624B\u7684\u9EC3\u91D1\u6539\u4EE5\u6728\u6750\u652F\u4ED8", { resource: "gold", to: "wood", tech: "kamandaran" }),
+      fx("persians.mahouts", "speed", { kinds: ["war-elephant"] }, 1.3, "\u8C61\u4F15\uFF1A\u6230\u8C61\u79FB\u52D5\u901F\u5EA6 +30%", { tech: "mahouts" })
+    ],
+    omitted: [{ text: "\u78BC\u982D\u751F\u547D\u5169\u500D\u3001\u78BC\u982D\u5DE5\u4F5C\u901F\u5EA6\u63D0\u5347", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u78BC\u982D" }],
+    sources: [site("civs/Persians"), site("units/War_Elephant"), site("techs/Kamandaran"), site("techs/Mahouts"), site("tree/pre")]
+  },
+  {
+    id: "saracens",
+    name: "\u85A9\u62C9\u68EE",
+    nameEn: "Saracens",
+    type: "\u99F1\u99DD\u8207\u6D77\u8ECD\u6587\u660E",
+    architecture: "mideast",
+    missing: ["crop-rotation", "stone-shaft-mining"],
+    missingLater: ["halberdier", "cavalier", "paladin", "heavy-scorpion", "bombard-tower", "architecture", "heated-shot", "shipwright", "missionary"],
+    uniqueUnits: ["mameluke"],
+    eliteUpgrades: ["elite-mameluke"],
+    uniqueTechs: [{ id: "madrasah", name: "\u7A46\u65AF\u6797\u5B78\u588A", nameEn: "Madrasah", age: 3, effectText: "\u50E7\u4FB6\u6B7B\u4EA1\u6642\u8FD4\u9084 33 \u9EC3\u91D1" }, { id: "zealotry", name: "\u72C2\u71B1", nameEn: "Zealotry", age: 4, effectText: "\u99F1\u99DD\u9A0E\u5175\u8207\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u751F\u547D +30" }],
+    effects: [
+      fx("saracens.archer-buildings", "bonus", footArchers, [0, 1, 2, 3], "\u5F13\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +1 / +2 / +3", { vs: "building" }),
+      fx("saracens.team-archers", "bonus", footArchers, 2, "\u5718\u968A\u52A0\u6210\uFF1A\u5F92\u6B65\u5F13\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA +2", { vs: "building", team: true }),
+      fx("saracens.madrasah", "deathRefund", { kinds: ["monk"] }, 33, "\u7A46\u65AF\u6797\u5B78\u588A\uFF1A\u50E7\u4FB6\u6B7B\u4EA1\u6642\u8FD4\u9084 33 \u9EC3\u91D1", { tech: "madrasah" }),
+      fx("saracens.zealotry", "hp", { kinds: ["mameluke"] }, 30, "\u72C2\u71B1\uFF1A\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u751F\u547D +30", { tech: "zealotry", op: "add" })
+    ],
+    omitted: [{ text: "\u5E02\u96C6\u4EA4\u6613\u8CBB 5%\u3001\u5E02\u96C6\u4FBF\u5B9C 100 \u6728\u6750", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5E02\u96C6" }, { text: "\u904B\u8F38\u8239\u751F\u547D\u5169\u500D\u3001\u904B\u8F09 +5\uFF1B\u6230\u8239\u653B\u64CA\u901F\u5EA6 +25%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u99AC\u5F13\u9A0E\u5175\u5C0D\u5EFA\u7BC9\u518D +1", reason: "\u672C\u4F5C\u7684\u85A9\u62C9\u68EE\u6C92\u6709\u99AC\u5F13\u9A0E\u5175" }, { text: "\u72C2\u71B1\uFF1A\u99F1\u99DD\u9A0E\u5175\u751F\u547D +30", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u99F1\u99DD\u9A0E\u5175" }],
+    sources: [site("civs/Saracens"), site("units/Mameluke"), site("techs/Madrasah"), site("techs/Zealotry"), site("tree/sar")]
+  },
+  {
+    id: "turks",
+    name: "\u571F\u8033\u5176",
+    nameEn: "Turks",
+    type: "\u706B\u85E5\u6587\u660E",
+    architecture: "mideast",
+    missing: ["pikeman", "elite-skirmisher", "stone-shaft-mining", "faith", "illumination"],
+    missingLater: ["halberdier", "arbalest", "paladin", "herbal-medicine"],
+    uniqueUnits: ["janissary"],
+    eliteUpgrades: ["elite-janissary"],
+    uniqueTechs: [{ id: "sipahi", name: "\u91C7\u9091\u9A0E\u5175", nameEn: "Sipahi", age: 3, effectText: "\u99AC\u5F13\u9A0E\u5175\u8207\u6A19\u69CD\u9A0E\u5175\u751F\u547D +20" }, { id: "artillery", name: "\u7832\u5175", nameEn: "Artillery", age: 4, effectText: "\u706B\u7832\u3001\u706B\u7832\u5854\u3001\u706B\u7832\u6230\u8239\u5C04\u7A0B +2" }],
+    effects: [
+      fx("turks.gunpowder-hp", "hp", { classes: ["gunpowder"] }, 1.25, "\u706B\u85E5\u55AE\u4F4D\u751F\u547D +25%"),
+      fx("turks.gold", "gather", { resources: ["gold"] }, 20, "\u63A1\u91D1\u901F\u5EA6 +20%"),
+      fx("turks.free-light-cavalry", "cost", { entries: ["light-cavalry"] }, 0, "\u65A5\u5019\u7CFB\u5347\u7D1A\u514D\u8CBB"),
+      fx("turks.scout-armor", "pierceArmor", { kinds: ["scout"] }, 1, "\u65A5\u5019\u7CFB\u9060\u7A0B\u8B77\u7532 +1"),
+      fx("turks.team-gunpowder", "time", { entries: ["janissary"] }, 1 / 1.25, "\u5718\u968A\u52A0\u6210\uFF1A\u706B\u85E5\u55AE\u4F4D\u8A13\u7DF4\u901F\u5EA6 +25%", { team: true })
+    ],
+    omitted: [{ text: "\u706B\u85E5\u79D1\u6280\u4FBF\u5B9C 50%\u3001\u514D\u8CBB\u5316\u5B78", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5927\u5B78\u8207\u706B\u85E5\u79D1\u6280" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u91C7\u9091\u9A0E\u5175\u300D", reason: "\u672C\u4F5C\u7684\u571F\u8033\u5176\u6C92\u6709\u99AC\u5F13\u9A0E\u5175" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u7832\u5175\u300D", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u706B\u7832\u8207\u706B\u7832\u5854" }],
+    sources: [site("civs/Turks"), site("units/Janissary"), site("techs/Sipahi"), site("techs/Artillery"), site("tree/tur")]
+  },
+  {
+    id: "chinese",
+    name: "\u4E2D\u570B",
+    nameEn: "Chinese",
+    type: "\u5F13\u5175\u6587\u660E",
+    architecture: "eastasia",
+    missing: ["crop-rotation", "redemption", "heresy"],
+    missingLater: ["hussar", "paladin"],
+    uniqueUnits: ["chu-ko-nu"],
+    eliteUpgrades: ["elite-chu-ko-nu"],
+    uniqueTechs: [{ id: "great-wall", name: "\u9577\u57CE", nameEn: "Great Wall", age: 3, effectText: "\u7BAD\u5854\u8207\u57CE\u7246\u751F\u547D +30%" }, { id: "rocketry", name: "\u706B\u7BAD\u6280\u8853", nameEn: "Rocketry", age: 4, effectText: "\u9023\u5F29\u5175\u653B\u64CA +2\uFF0C\u5F29\u7832\u653B\u64CA +4" }],
+    effects: [
+      fx("chinese.villagers", "startVillagers", {}, 3, "\u958B\u5C40\u591A 3 \u540D\u6751\u6C11"),
+      fx("chinese.food", "startStock", {}, -200, "\u958B\u5C40\u98DF\u7269 -200", { resource: "food" }),
+      fx("chinese.wood", "startStock", {}, -50, "\u958B\u5C40\u6728\u6750 -50", { resource: "wood" }),
+      fx("chinese.tc-housing", "housing", { buildings: ["town-center"] }, 5, "\u57CE\u93AE\u4E2D\u5FC3\u53EF\u4F4F 10 \u4EBA"),
+      fx("chinese.tc-los", "los", { buildings: ["town-center"] }, 500, "\u57CE\u93AE\u4E2D\u5FC3\u8996\u91CE +5"),
+      fx("chinese.techs", "cost", { allTechs: true, exclude: ["age-2", "age-3", "age-4"] }, [1, 0.9, 0.85, 0.8], "\u79D1\u6280\u4FBF\u5B9C\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 -10% / -15% / -20%"),
+      fx("chinese.team-farms", "farmFood", {}, 45, "\u5718\u968A\u52A0\u6210\uFF1A\u8FB2\u7530\u98DF\u7269 +45", { team: true }),
+      fx("chinese.great-wall", "buildingHp", { buildings: ["watch-tower"] }, 1.3, "\u9577\u57CE\uFF1A\u7BAD\u5854\u751F\u547D +30%", { tech: "great-wall" }),
+      fx("chinese.rocketry", "attack", { kinds: ["chu-ko-nu"] }, 2, "\u706B\u7BAD\u6280\u8853\uFF1A\u9023\u5F29\u5175\u653B\u64CA +2", { tech: "rocketry" })
+    ],
+    omitted: [{ text: "\u7206\u7834\u8239\u751F\u547D +50%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u706B\u7BAD\u6280\u8853\u7684\u5F29\u7832 +4", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5F29\u7832" }, { text: "\u9577\u57CE\u7684\u57CE\u7246 +30%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u57CE\u7246" }],
+    sources: [site("civs/Chinese"), site("units/Chu_Ko_Nu"), site("techs/Great_Wall"), site("techs/Rocketry"), site("tree/chi")]
+  },
+  {
+    id: "japanese",
+    name: "\u65E5\u672C",
+    nameEn: "Japanese",
+    type: "\u6B65\u5175\u6587\u660E",
+    architecture: "eastasia",
+    missing: ["crop-rotation", "stone-shaft-mining", "plate-barding-armor", "heresy"],
+    missingLater: ["paladin", "siege-ram", "camel", "bombard-cannon", "bombard-tower", "heated-shot", "architecture", "missionary"],
+    uniqueUnits: ["samurai"],
+    eliteUpgrades: ["elite-samurai"],
+    uniqueTechs: [{ id: "yasama", name: "\u5C04\u7BAD\u5B54", nameEn: "Yasama", age: 3, effectText: "\u7BAD\u5854\u591A\u5C04\u5169\u652F\u7BAD" }, { id: "kataparuto", name: "\u5F48\u5C04\u5668", nameEn: "Kataparuto", age: 4, effectText: "\u5DE8\u578B\u6295\u77F3\u6A5F\u7D44\u88DD\u8207\u5C04\u901F\u63D0\u5347" }],
+    effects: [
+      fx("japanese.camps", "cost", { entries: ["lumber-camp", "mining-camp", "mill"] }, 0.5, "\u4F10\u6728\u5834\u3001\u63A1\u7926\u5834\u3001\u78E8\u574A\u4FBF\u5B9C 50%"),
+      fx("japanese.infantry-rate", "cooldown", infantry, [1, 0.9, 0.85, 0.75], "\u6B65\u5175\u653B\u64CA\u901F\u5EA6\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +10% / +15% / +25%"),
+      fx("japanese.yasama", "arrows", { buildings: ["watch-tower"] }, 2, "\u5C04\u7BAD\u5B54\uFF1A\u7BAD\u5854\u591A\u5C04\u5169\u652F\u7BAD", { tech: "yasama" })
+    ],
+    omitted: [{ text: "\u6F01\u8239\u751F\u547D\u5169\u500D\u3001\u9060\u7A0B\u8B77\u7532 +2\u3001\u5DE5\u4F5C\u901F\u5EA6\u63D0\u5347", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u6F01\u8239" }, { text: "\u5718\u968A\u52A0\u6210\uFF1A\u6230\u8239\u8996\u91CE +50%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u5F48\u5C04\u5668\u300D", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5DE8\u578B\u6295\u77F3\u6A5F" }],
+    sources: [site("civs/Japanese"), site("units/Samurai"), site("techs/Yasama"), site("techs/Kataparuto"), site("tree/jap")]
+  },
+  {
+    id: "mongols",
+    name: "\u8499\u53E4",
+    nameEn: "Mongols",
+    type: "\u99AC\u5F13\u9A0E\u5175\u6587\u660E",
+    architecture: "eastasia",
+    missing: ["two-man-saw", "crop-rotation", "plate-barding-armor", "ring-archer-armor", "redemption", "sanctity", "faith", "block-printing"],
+    missingLater: ["paladin", "keep", "halberdier", "bombard-cannon", "bombard-tower", "elite-cannon-galleon", "heated-shot", "architecture"],
+    uniqueUnits: ["mangudai"],
+    eliteUpgrades: ["elite-mangudai"],
+    uniqueTechs: [{ id: "nomads", name: "\u6E38\u7267", nameEn: "Nomads", age: 3, effectText: "\u6C11\u5C45\u88AB\u6467\u6BC0\u5F8C\u4EBA\u53E3\u4E0A\u9650\u4E0D\u4E0B\u964D" }, { id: "drill", name: "\u947F\u5CA9\u6A5F", nameEn: "Drill", age: 4, effectText: "\u653B\u57CE\u5668\u5DE5\u574A\u7684\u55AE\u4F4D\u79FB\u52D5\u901F\u5EA6 +50%" }],
+    effects: [
+      fx("mongols.horse-archers", "cooldown", { classes: ["cavalry-archer"] }, 1 / 1.2, "\u99AC\u5F13\u9A0E\u5175\u5C04\u901F +20%"),
+      fx("mongols.light-cavalry", "hp", { kinds: ["scout"] }, 1.3, "\u8F15\u9A0E\u5175\u751F\u547D +30%", { tech: "light-cavalry" }),
+      fx("mongols.hunters", "gather", { sources: ["hunt"] }, 40, "\u6253\u7375\u901F\u5EA6 +40%"),
+      fx("mongols.team-scouts", "los", { kinds: ["scout"] }, 200, "\u5718\u968A\u52A0\u6210\uFF1A\u65A5\u5019\u8996\u91CE +2", { team: true }),
+      fx("mongols.nomads", "keepHousing", { buildings: ["house"] }, 1, "\u6E38\u7267\uFF1A\u6C11\u5C45\u88AB\u6467\u6BC0\u5F8C\u4EBA\u53E3\u4E0A\u9650\u4E0D\u4E0B\u964D", { tech: "nomads" }),
+      fx("mongols.drill", "speed", { classes: ["siege"] }, 1.5, "\u947F\u5CA9\u6A5F\uFF1A\u653B\u57CE\u5668\u79FB\u52D5\u901F\u5EA6 +50%", { tech: "drill" })
+    ],
+    omitted: [],
+    sources: [site("civs/Mongols"), site("units/Mangudai"), site("techs/Nomads"), site("techs/Drill"), site("tree/mon")]
+  }
+];
+var deferredTechs = ["warwolf", "greek-fire", "sipahi", "artillery", "kataparuto"];
+var uniqueUnitOwner = Object.fromEntries(civDefs.flatMap((c) => [...c.uniqueUnits, ...c.eliteUpgrades, ...c.uniqueTechs.map((t) => t.id)].map((id) => [id, c.id])));
+var civById = (id) => civDefs.find((c) => c.id === id);
+
 // packages/content/rules.ts
 var resources = ["food", "wood", "gold", "stone"];
-var entry = (id, kind, name, food = 0, wood2 = 0, gold2 = 0, stone2 = 0, requires = [], population = 0) => ({ referenceVersion: null, sourceEvidence: ["original design defaults: packages/content/rules.ts"], implementationStatus: id === "villager" ? "in_progress" : "not_started", testEvidence: ["tests/foundation.test.ts (data validation only)"], id, kind, name, cost: { food, wood: wood2, gold: gold2, stone: stone2 }, time: 20, population, requires, verificationStatus: "design_default" });
+var entry = (id, kind, name, food = 0, wood2 = 0, gold3 = 0, stone2 = 0, requires = [], population = 0, time = 20, source = "original design defaults: packages/content/rules.ts") => ({ referenceVersion: null, sourceEvidence: [source], implementationStatus: id === "villager" ? "in_progress" : "not_started", testEvidence: ["tests/foundation.test.ts (data validation only)"], id, kind, name, cost: { food, wood: wood2, gold: gold3, stone: stone2 }, time, population, requires, verificationStatus: "design_default" });
+var aoetw = "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset";
+var unique = (id, name, food, wood2, gold3, time) => entry(id, "unit", name, food, wood2, gold3, 0, [], 1, time, aoetw);
+var upgrade = (id, name, food, wood2, gold3, stone2, age, time) => entry(id, "technology", name, food, wood2, gold3, stone2, [`age-${age}`], 0, time, aoetw);
+var castleEntries = [
+  entry("castle", "building", "\u57CE\u5821", 0, 0, 0, 300, ["age-3"], 0, 60, "aoetw.com/building/Castle (650 stone there); 300 stone and 60 s are design_default for this map"),
+  unique("longbowman", "\u9577\u5F13\u5175", 0, 35, 40, 18),
+  unique("woad-raider", "\u83D8\u85CD\u6B66\u58EB", 65, 0, 25, 10),
+  unique("throwing-axeman", "\u64F2\u65A7\u5175", 55, 0, 25, 17),
+  unique("huskarl", "\u54E5\u5FB7\u885B\u968A", 80, 0, 40, 16),
+  unique("teutonic-knight", "\u689D\u9813\u6B66\u58EB", 85, 0, 40, 12),
+  unique("berserk", "\u72C2\u6230\u58EB", 65, 0, 25, 14),
+  unique("cataphract", "\u62DC\u5360\u5EAD\u8056\u9A0E\u5175", 70, 0, 75, 20),
+  unique("war-elephant", "\u6230\u8C61", 200, 0, 75, 31),
+  unique("mameluke", "\u963F\u62C9\u4F2F\u5974\u96B8\u5175", 55, 0, 85, 23),
+  unique("janissary", "\u571F\u8033\u5176\u706B\u69CD\u5175", 60, 0, 55, 17),
+  unique("chu-ko-nu", "\u9023\u5F29\u5175", 0, 40, 35, 16),
+  unique("samurai", "\u65E5\u672C\u6B66\u58EB", 60, 0, 30, 9),
+  unique("mangudai", "\u8499\u53E4\u7A81\u9A0E", 0, 55, 65, 26),
+  upgrade("elite-longbowman", "\u7CBE\u92B3\u9577\u5F13\u5175", 850, 0, 850, 0, 4, 60),
+  upgrade("elite-woad-raider", "\u7CBE\u92B3\u83D8\u85CD\u6B66\u58EB", 1e3, 0, 800, 0, 4, 45),
+  upgrade("elite-throwing-axeman", "\u7CBE\u92B3\u64F2\u65A7\u5175", 1e3, 0, 750, 0, 4, 45),
+  upgrade("elite-huskarl", "\u7CBE\u92B3\u54E5\u5FB7\u885B\u968A", 1200, 0, 550, 0, 4, 40),
+  upgrade("elite-teutonic-knight", "\u7CBE\u92B3\u689D\u9813\u6B66\u58EB", 1200, 0, 600, 0, 4, 50),
+  upgrade("elite-berserk", "\u7CBE\u92B3\u72C2\u6230\u58EB", 1300, 0, 550, 0, 4, 45),
+  upgrade("elite-cataphract", "\u7CBE\u92B3\u62DC\u5360\u5EAD\u8056\u9A0E\u5175", 1600, 0, 800, 0, 4, 50),
+  upgrade("elite-war-elephant", "\u7CBE\u92B3\u6230\u8C61", 1600, 0, 1200, 0, 4, 75),
+  upgrade("elite-mameluke", "\u7CBE\u92B3\u963F\u62C9\u4F2F\u5974\u96B8\u5175", 600, 0, 500, 0, 4, 50),
+  upgrade("elite-janissary", "\u7CBE\u92B3\u571F\u8033\u5176\u706B\u69CD\u5175", 850, 0, 750, 0, 4, 55),
+  upgrade("elite-chu-ko-nu", "\u7CBE\u92B3\u9023\u5F29\u5175", 950, 0, 950, 0, 4, 50),
+  upgrade("elite-samurai", "\u7CBE\u92B3\u65E5\u672C\u6B66\u58EB", 950, 0, 875, 0, 4, 60),
+  upgrade("elite-mangudai", "\u7CBE\u92B3\u8499\u53E4\u7A81\u9A0E", 1100, 0, 675, 0, 4, 50),
+  upgrade("yeomen", "\u7FA9\u52C7\u9A0E\u5175", 0, 750, 450, 0, 3, 60),
+  upgrade("stronghold", "\u5821\u58D8", 250, 0, 200, 0, 3, 30),
+  upgrade("furor-celtica", "\u585E\u723E\u7279\u72C2\u71B1", 750, 0, 450, 0, 4, 50),
+  upgrade("chivalry", "\u9A0E\u58EB\u7CBE\u795E", 0, 400, 400, 0, 3, 40),
+  upgrade("bearded-axe", "\u5012\u9264\u65A7", 400, 0, 400, 0, 4, 60),
+  upgrade("anarchy", "\u7121\u653F\u5E9C\u72C0\u614B", 450, 0, 250, 0, 3, 40),
+  upgrade("perfusion", "\u4E95\u5674", 0, 400, 600, 0, 4, 40),
+  upgrade("ironclad", "\u92FC\u9435\u7532", 0, 400, 350, 0, 3, 60),
+  upgrade("crenellations", "\u7832\u9580\u579B\u53E3", 600, 0, 0, 400, 4, 60),
+  upgrade("chieftains", "\u914B\u9577", 700, 0, 500, 0, 3, 40),
+  upgrade("berserkergang", "\u72C2\u6230\u58EB\u5E6B", 850, 0, 400, 0, 4, 40),
+  upgrade("logistica", "\u5F8C\u52E4", 1e3, 0, 600, 0, 4, 50),
+  upgrade("kamandaran", "\u6CE2\u65AF\u5F13\u5175", 400, 0, 300, 0, 3, 40),
+  upgrade("mahouts", "\u8C61\u4F15", 300, 0, 300, 0, 4, 50),
+  upgrade("madrasah", "\u7A46\u65AF\u6797\u5B78\u588A", 200, 0, 100, 0, 3, 30),
+  upgrade("zealotry", "\u72C2\u71B1", 750, 0, 700, 0, 4, 50),
+  upgrade("great-wall", "\u9577\u57CE", 0, 400, 0, 200, 3, 40),
+  upgrade("rocketry", "\u706B\u7BAD\u6280\u8853", 0, 750, 750, 0, 4, 60),
+  upgrade("yasama", "\u5C04\u7BAD\u5B54", 300, 300, 0, 0, 3, 40),
+  upgrade("nomads", "\u6E38\u7267", 0, 300, 150, 0, 3, 40),
+  upgrade("drill", "\u947F\u5CA9\u6A5F", 500, 0, 450, 0, 4, 60)
+];
+function civilizationsOf(entries) {
+  const ids = entries.map((e) => e.id), uniqueIds = new Set(civDefs.flatMap((c) => [...c.uniqueUnits, ...c.eliteUpgrades, ...c.uniqueTechs.map((t) => t.id)]));
+  return civDefs.map((c) => {
+    const own = /* @__PURE__ */ new Set([...c.uniqueUnits, ...c.eliteUpgrades, ...c.uniqueTechs.map((t) => t.id)]);
+    const unavailable = ids.filter((id) => c.missing.includes(id) || uniqueIds.has(id) && !own.has(id) || id === "castle" && !c.uniqueUnits.length);
+    return { id: c.id, available: ids.filter((id) => !unavailable.includes(id)), unavailable };
+  });
+}
 var rules = {
   schemaVersion: 1,
   id: "brick-foundation-0.1",
@@ -366,7 +762,8 @@ var rules = {
     entry("crop-rotation", "technology", "\u8F2A\u8015", 250, 250, 0, 0, ["age-4", "heavy-plow"]),
     entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300),
     entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]),
-    entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"])
+    entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"]),
+    ...castleEntries
   ],
   // Which building produces each unit/technology (design_default). null = defined but not producible yet.
   production: {
@@ -424,10 +821,13 @@ var rules = {
     // After the ages, so the town centre's age-up keeps its tile and hotkey.
     loom: "town-center",
     wheelbarrow: "town-center",
-    "hand-cart": "town-center"
+    "hand-cart": "town-center",
+    // The Castle: unique units, their elite upgrades and the unique technologies.
+    ...Object.fromEntries(castleEntries.filter((e) => e.kind !== "building").map((e) => [e.id, "castle"]))
   },
-  civilizations: [{ id: "blue-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "spearman", "skirmisher", "knight", "blacksmith", "watch-tower", "siege-workshop", "man-at-arms", "long-swordsman", "pikeman", "crossbowman", "elite-skirmisher", "light-cavalry", "forging", "iron-casting", "blast-furnace", "scale-mail-armor", "chain-mail-armor", "plate-mail-armor", "scale-barding-armor", "chain-barding-armor", "plate-barding-armor", "fletching", "bodkin-arrow", "bracer", "padded-archer-armor", "leather-archer-armor", "ring-archer-armor", "loom", "wheelbarrow", "hand-cart", "double-bit-axe", "bow-saw", "two-man-saw", "gold-mining", "gold-shaft-mining", "stone-mining", "stone-shaft-mining", "horse-collar", "heavy-plow", "crop-rotation", "age-2", "age-3", "age-4"], unavailable: [] }, { id: "red-settlement", available: ["villager", "town-center", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "militia", "archer", "ram", "scout", "monk", "redemption", "atonement", "sanctity", "heresy", "illumination", "block-printing", "theocracy", "faith", "spearman", "skirmisher", "knight", "blacksmith", "watch-tower", "siege-workshop", "man-at-arms", "long-swordsman", "pikeman", "crossbowman", "elite-skirmisher", "light-cavalry", "forging", "iron-casting", "blast-furnace", "scale-mail-armor", "chain-mail-armor", "plate-mail-armor", "scale-barding-armor", "chain-barding-armor", "plate-barding-armor", "fletching", "bodkin-arrow", "bracer", "padded-archer-armor", "leather-archer-armor", "ring-archer-armor", "loom", "wheelbarrow", "hand-cart", "double-bit-axe", "bow-saw", "two-man-saw", "gold-mining", "gold-shaft-mining", "stone-mining", "stone-shaft-mining", "horse-collar", "heavy-plow", "crop-rotation", "age-2", "age-3", "age-4"], unavailable: [] }]
+  civilizations: []
 };
+rules.civilizations = civilizationsOf(rules.entries);
 function validateRules(value, exact = false) {
   const errors = [];
   const obj = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -495,6 +895,12 @@ function validateRules(value, exact = false) {
       civIds.add(c.id);
       for (const id of [...c.available, ...c.unavailable]) if (!ids.has(id)) errors.push(`${c.id} \u61F8\u7A7A\u5167\u5BB9\uFF1A${id}`);
       for (const id of c.available) if (c.unavailable.includes(id)) errors.push(`${c.id} \u7981\u7528\u9805\u51FA\u73FE\u5728\u53EF\u7528\u5217\u8868\uFF1A${id}`);
+      for (const id of ids) if (!c.available.includes(id) && !c.unavailable.includes(id)) errors.push(`${c.id} \u672A\u6A19\u660E\u662F\u5426\u53EF\u7528\uFF1A${id}`);
+      for (const e of entries) if (c.available.includes(e.id)) {
+        for (const dep of Array.isArray(e.requires) ? e.requires : []) if (ids.has(dep) && !c.available.includes(dep)) errors.push(`${c.id} \u7684 ${e.id} \u9700\u8981\u4E0D\u53EF\u7528\u7684 ${dep}`);
+        const producer = obj(value.production) ? value.production[e.id] : void 0;
+        if (typeof producer === "string" && !c.available.includes(producer)) errors.push(`${c.id} \u7684 ${e.id} \u6C92\u6709\u53EF\u7528\u7684\u751F\u7522\u5EFA\u7BC9 ${producer}`);
+      }
     }
   }
   if (!obj(value.production)) errors.push("production \u5FC5\u9808\u70BA\u7269\u4EF6");
@@ -557,7 +963,7 @@ var militaryBuildings = ["barracks", "archery-range", "stable"];
 function militaryBuildingParts(kind, v) {
   if (!militaryBuildings.includes(kind) || ![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u8ECD\u4E8B\u5EFA\u7BC9\u5916\u89C0");
   const p = [], team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", stone2 = "#b5b29e", top = 1.44 + (v.ageVariant - 1) * 0.16;
-  const add = (id, phase, x, z, y, w, d, h, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h, color, studs, ...shape ? { shape } : {} });
+  const add = (id, phase, x, z, y, w, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
   if (kind === "archery-range") {
     for (const x of [0.1, 2.5]) {
@@ -646,11 +1052,11 @@ function militaryBuildingParts(kind, v) {
 // apps/web/monastery-building.ts
 function monasteryParts(v) {
   if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u4FEE\u9053\u9662\u5916\u89C0");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", lime = "#d8cfb6", stone2 = "#b9b39d", roof = age === 1 ? "#b8a074" : team2;
-  const add = (id, phase, x, z, y, w, d, h, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h, color, studs, ...shape ? { shape } : {} });
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", lime2 = "#d8cfb6", stone2 = "#b9b39d", roof = age === 1 ? "#b8a074" : team2;
+  const add = (id, phase, x, z, y, w, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
   const wallTop = 1.12 + (age >= 3 ? 0.32 : 0), towerTop = age <= 2 ? 2.24 : 2.56 + (age === 4 ? 0.32 : 0);
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
-  add("nave", 1, 0.2, 0.3, 0.16, 1.6, 2.2, wallTop - 0.16, lime);
+  add("nave", 1, 0.2, 0.3, 0.16, 1.6, 2.2, wallTop - 0.16, lime2);
   add("door", 1, 0.75, 2.46, 0.16, 0.5, 0.08, 0.72, "#6e5a44", false, "arch");
   for (const z of [0.8, 1.6]) for (const x of [0.16, 1.76]) add(`window-${x}-${z}`, 1, x, z, 0.62, 0.08, 0.26, 0.36, "#5b5040");
   for (let level = 0; level < 3; level++) add(`roof-${level}`, 2, 0.1 + level * 0.3, 0.2, wallTop + level * 0.16, 1.8 - level * 0.6, 2.4, 0.16, roof, true);
@@ -678,23 +1084,23 @@ function monasteryParts(v) {
   }
   add("flag-pole", 4, 0.02, 2.63, 0.16, 0.06, 0.06, 1.6, wood2);
   add("flag", 4, 0.08, 2.63, 1.42, 0.44, 0.05, 0.28, team2);
-  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: lime, studs: false }))];
+  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: lime2, studs: false }))];
   return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "flag" || a.id === "bell" || a.id === "bell-rope" || a.id === "finial"));
 }
 
 // apps/web/blacksmith-building.ts
 function blacksmithParts(v) {
   if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u9435\u5320\u92EA\u5916\u89C0");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", stone2 = "#a9a693", dark = "#5d5a52", roof = age === 1 ? "#b8a074" : team2;
-  const add = (id, phase, x, z, y, w, d, h, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h, color, studs, ...shape ? { shape } : {} });
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", stone2 = "#a9a693", dark2 = "#5d5a52", roof = age === 1 ? "#b8a074" : team2;
+  const add = (id, phase, x, z, y, w, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
   const top = 1.28 + (age >= 3 ? 0.16 : 0);
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
   add("back-wall", 1, 0.1, 0.1, 0.16, 2.5, 0.2, top - 0.16, stone2);
   for (const x of [0.1, 2.4]) add(`side-wall-${x}`, 1, x, 0.3, 0.16, 0.2, 1.5, top - 0.16, stone2);
   for (let level = 0; level < 2; level++) add(`roof-${level}`, 2, -0.05 + level * 0.3, -0.05, top + level * 0.16, 2.9 - level * 0.6, 1.95, 0.16, roof, true);
-  add("chimney", 2, 1.75, 0.1, 0.16, 0.5, 0.5, top + 0.9, dark);
+  add("chimney", 2, 1.75, 0.1, 0.16, 0.5, 0.5, top + 0.9, dark2);
   add("chimney-cap", 3, 1.7, 0.05, top + 1.06, 0.6, 0.6, 0.1, "#4a4740");
-  add("hearth", 1, 1.7, 0.62, 0.16, 0.6, 0.4, 0.36, dark);
+  add("hearth", 1, 1.7, 0.62, 0.16, 0.6, 0.4, 0.36, dark2);
   add("hearth-fire", 3, 1.8, 0.7, 0.52, 0.4, 0.25, 0.1, "#e8793c");
   add("stump", 3, 0.95, 1.95, 0.16, 0.36, 0.36, 0.3, wood2);
   add("anvil", 3, 0.88, 1.97, 0.46, 0.5, 0.3, 0.14, "#6b6f6c");
@@ -729,36 +1135,39 @@ function finish(p, v, debris, keep) {
 function towerParts(v) {
   check2(v, "\u7BAD\u5854");
   const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", stone2 = "#b5b29e", roof = age === 1 ? "#b8a074" : team2;
-  const add = (id, phase, x, z, y, w, d, h, color, studs = false) => p.push({ id, phase, x, z, y, w, d, h, color, studs });
-  const shaft = 1.6 + (age - 1) * 0.24;
+  const add = (id, phase, x, z, y, w, d, h2, color, studs = false) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs });
+  const shaft2 = 1.6 + (age - 1) * 0.24;
   add("foundation", 0, -0.05, -0.05, 0, 1.1, 1.1, 0.12, "#b3aa8c");
-  add("shaft", 1, 0.08, 0.08, 0.12, 0.84, 0.84, shaft * 0.55, stone2);
-  add("shaft-upper", 2, 0.14, 0.14, 0.12 + shaft * 0.55, 0.72, 0.72, shaft * 0.45, stone2);
+  add("shaft", 1, 0.08, 0.08, 0.12, 0.84, 0.84, shaft2 * 0.55, stone2);
+  add("shaft-upper", 2, 0.14, 0.14, 0.12 + shaft2 * 0.55, 0.72, 0.72, shaft2 * 0.45, stone2);
   add("door", 1, 0.36, 0.9, 0.12, 0.28, 0.04, 0.4, "#6e5a44");
-  add("lookout", 3, 0, 0, 0.12 + shaft, 1, 1, 0.14, wood2);
-  for (const [x, z] of [[0, 0], [0.84, 0], [0, 0.84], [0.84, 0.84]]) add(`post-${x}-${z}`, 3, x, z, 0.26 + shaft, 0.16, 0.16, 0.36, wood2);
-  add("roof", 4, -0.06, -0.06, 0.62 + shaft, 1.12, 1.12, 0.14, roof, true);
-  add("roof-top", 4, 0.2, 0.2, 0.76 + shaft, 0.6, 0.6, 0.14, roof, true);
-  if (age >= 3) for (let i = 0; i < 4; i++) add(`slit-${i}`, 2, 0.47, i % 2 ? 0.1 : 0.9, 0.5 + i * 0.3, 0.06, 0.02, 0.2, "#4a4740");
-  add("flag", 4, 0.46, 0.46, 0.9 + shaft, 0.06, 0.06, 0.5, wood2);
-  add("pennant", 4, 0.52, 0.46, 1.22 + shaft, 0.3, 0.04, 0.16, team2);
-  return finish(p, v, stone2, (id) => !(id === "pennant" || id === "roof-top"));
+  add("lookout", 3, 0, 0, 0.12 + shaft2, 1, 1, 0.14, wood2);
+  for (const [x, z] of [[0, 0], [0.84, 0], [0, 0.84], [0.84, 0.84]]) add(`post-${x}-${z}`, 3, x, z, 0.26 + shaft2, 0.16, 0.16, 0.36, wood2);
+  add("roof", 4, -0.06, -0.06, 0.62 + shaft2, 1.12, 1.12, 0.14, roof, true);
+  add("roof-top", 4, 0.2, 0.2, 0.76 + shaft2, 0.6, 0.6, 0.14, roof, true);
+  if (age >= 3) for (let i = 0; i < 4; i++) {
+    const y = 0.5 + i * 0.3, upper = y >= 0.12 + shaft2 * 0.55;
+    add(`slit-${i}`, 2, 0.47, i % 2 ? upper ? 0.12 : 0.1 : upper ? 0.86 : 0.9, y, 0.06, 0.02, 0.2, "#4a4740");
+  }
+  add("flag", 4, 0.46, 0.46, 0.9 + shaft2, 0.06, 0.06, 0.5, wood2);
+  add("pennant", 4, 0.52, 0.46, 1.22 + shaft2, 0.3, 0.04, 0.16, team2);
+  return finish(p, v, stone2, (id) => !(id === "pennant" || id === "roof-top" || id === "flag"));
 }
 function siegeWorkshopParts(v) {
   check2(v, "\u653B\u57CE\u5668\u5DE5\u574A");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", dark = "#6e5438", roof = age === 1 ? "#b8a074" : team2;
-  const add = (id, phase, x, z, y, w, d, h, color, studs = false) => p.push({ id, phase, x, z, y, w, d, h, color, studs });
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", dark2 = "#6e5438", roof = age === 1 ? "#b8a074" : team2;
+  const add = (id, phase, x, z, y, w, d, h2, color, studs = false) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs });
   const top = 1.44;
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
   for (const x of [0.1, 2.44]) for (const z of [0.1, 1.65]) add(`post-${x}-${z}`, 1, x, z, 0.16, 0.16, 0.16, top - 0.16, wood2);
   add("back-wall", 1, 0.1, 0.1, 0.16, 2.5, 0.15, top - 0.16, wood2);
   for (let level = 0; level < 2; level++) add(`roof-${level}`, 2, -0.05 + level * 0.35, -0.05, top + level * 0.16, 2.9 - level * 0.7, 1.98, 0.16, roof, true);
-  add("ram-bed", 3, 0.5, 0.6, 0.16, 1.6, 0.7, 0.12, dark);
+  add("ram-bed", 3, 0.5, 0.6, 0.16, 1.6, 0.7, 0.12, dark2);
   add("ram-log", 3, 0.45, 0.8, 0.4, 1.8, 0.3, 0.3, wood2);
-  for (const x of [0.6, 1.8]) add(`ram-rib-${x}`, 3, x, 0.6, 0.28, 0.1, 0.7, 0.6, dark);
+  for (const x of [0.6, 1.8]) add(`ram-rib-${x}`, 3, x, 0.6, 0.28, 0.1, 0.7, 0.6, dark2);
   for (let i = 0; i < 3; i++) add(`log-${i}`, 3, 0.3, 2.05 + i * 0.2, 0.16, 1.4, 0.18, 0.18, wood2);
   add("log-top", 3, 0.5, 2.15, 0.34, 1, 0.18, 0.18, wood2);
-  add("wheel", 3, 2.1, 2, 0.16, 0.14, 0.6, 0.6, dark);
+  add("wheel", 3, 2.1, 2, 0.16, 0.14, 0.6, 0.6, dark2);
   add("wheel-hub", 3, 2.08, 2.2, 0.36, 0.18, 0.2, 0.2, "#c9a55a");
   if (age >= 3) add("crane-arm", 4, 2.2, 0.3, top - 0.1, 0.14, 1.2, 0.14, wood2);
   add("flag-pole", 4, 2.67, 2.63, 0.16, 0.06, 0.06, 1.6, wood2);
@@ -766,19 +1175,96 @@ function siegeWorkshopParts(v) {
   return finish(p, v, wood2, (id) => !(id === "flag" || id === "crane-arm"));
 }
 
+// apps/web/castle-building.ts
+function castleParts(v) {
+  if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u57CE\u5821\u5916\u89C0");
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", straw = "#b8a074", stone2 = "#b5b29e", dark2 = "#4a4740", oak = "#5a4632";
+  const add = (id, phase, x, z, y, w, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
+  const f = obstacleFootprints.castle;
+  add("foundation", 0, f.x / 100, f.y / 100, 0, f.width / 100, f.depth / 100, 0.16, "#b3aa8c");
+  const wallH = 1.12 + (age >= 3 ? 0.32 : 0), wallTop = 0.16 + wallH, towerTop = wallTop + 0.64, keepTop = 0.16 + [1.6, 1.92, 2.24, 2.24][age - 1];
+  const crest = (id, x, z, y, alongX) => age === 1 ? add(`stake-${id}`, 2, x + (alongX ? 0.04 : 0.12), z + (alongX ? 0.12 : 0.04), y, 0.12, 0.12, 0.3, wood2) : add(`merlon-${id}`, 2, x, z, y, alongX ? 0.2 : 0.36, alongX ? 0.36 : 0.2, 0.24, stone2);
+  const towers = [[-0.1, -0.1], [2.9, -0.1], [-0.1, 2.9], [2.9, 2.9]];
+  for (const [x, z] of towers) {
+    const id = `${x}-${z}`;
+    add(`tower-${id}`, 1, x, z, 0.16, 0.9, 0.9, towerTop - 0.16, stone2);
+    if (age === 1) {
+      add(`hoard-${id}`, 2, x - 0.05, z - 0.05, towerTop, 1, 1, 0.3, wood2);
+      add(`hoard-roof-${id}`, 2, x + 0.05, z + 0.05, towerTop + 0.3, 0.8, 0.8, 0.16, straw, true);
+      add(`hoard-cap-${id}`, 3, x + 0.25, z + 0.25, towerTop + 0.46, 0.4, 0.4, 0.16, straw);
+    } else for (const dx of [0, 0.35, 0.7]) for (const dz of [0, 0.35, 0.7]) if (dx !== 0.35 || dz !== 0.35) add(`tmerlon-${id}-${dx}-${dz}`, 2, x + dx, z + dz, towerTop, 0.2, 0.2, 0.24, stone2);
+    if (age >= 3) add(`slit-${id}`, 3, x + 0.6, z < 0 ? z - 0.03 : z + 0.9, towerTop - 1, 0.1, 0.03, 0.32, dark2);
+    if (age === 4) {
+      add(`drum-${id}`, 3, x + 0.2, z + 0.2, towerTop, 0.5, 0.5, 0.32, stone2);
+      add(`cone-0-${id}`, 3, x + 0.1, z + 0.1, towerTop + 0.32, 0.7, 0.7, 0.16, team2, true);
+      add(`cone-1-${id}`, 3, x + 0.22, z + 0.22, towerTop + 0.48, 0.46, 0.46, 0.16, team2);
+      add(`cone-2-${id}`, 4, x + 0.34, z + 0.34, towerTop + 0.64, 0.22, 0.22, 0.2, team2);
+    }
+  }
+  add("wall-back", 1, 0.8, 0.17, 0.16, 2.1, 0.36, wallH, stone2);
+  add("wall-left", 1, 0.17, 0.8, 0.16, 0.36, 2.1, wallH, stone2);
+  add("wall-right", 1, 3.17, 0.8, 0.16, 0.36, 2.1, wallH, stone2);
+  add("wall-front-l", 1, 0.8, 3.17, 0.16, 0.6, 0.36, wallH, stone2);
+  add("wall-front-r", 1, 2.3, 3.17, 0.16, 0.6, 0.36, wallH, stone2);
+  for (let i = 0; i < 5; i++) {
+    const at = 0.9 + i * 0.4;
+    crest(`back-${i}`, at, 0.17, wallTop, true);
+    crest(`left-${i}`, 0.17, at, wallTop, false);
+    crest(`right-${i}`, 3.17, at, wallTop, false);
+  }
+  for (const x of [0.88, 1.16, 2.36, 2.64]) crest(`front-${x}`, x, 3.17, wallTop, true);
+  add("gate-arch", 1, 1.4, 3.1, 0.16, 0.9, 0.5, wallH, stone2, false, "arch");
+  add("gate-top", 2, 1.4, 3.1, wallTop, 0.9, 0.5, 0.32, stone2);
+  add("portcullis", 3, 1.62, 3.3, 0.16, 0.46, 0.06, 0.76, oak);
+  if (age >= 2) for (const x of [1.4, 1.75, 2.1]) add(`gate-merlon-${x}`, 3, x, 3.4, wallTop + 0.32, 0.2, 0.2, 0.24, stone2);
+  if (age === 4) for (const x of [1.4, 2.04]) {
+    add(`gate-turret-${x}`, 3, x, 3.1, wallTop + 0.32, 0.26, 0.26, 0.4, stone2);
+    add(`gate-turret-cap-${x}`, 4, x - 0.02, 3.08, wallTop + 0.72, 0.3, 0.3, 0.12, team2);
+  }
+  add("keep", 1, 1.25, 1.1, 0.16, 1.2, 1.2, keepTop - 0.16, stone2);
+  let crown = keepTop;
+  if (age === 1) {
+    add("keep-roof-0", 2, 1.2, 1.05, keepTop, 1.3, 1.3, 0.16, straw, true);
+    add("keep-roof-1", 2, 1.45, 1.3, keepTop + 0.16, 0.8, 0.8, 0.16, straw, true);
+    crown = keepTop + 0.32;
+  } else {
+    add("keep-parapet", 2, 1.2, 1.05, keepTop, 1.3, 1.3, 0.12, stone2);
+    crown = keepTop + 0.12;
+    for (const dx of [0, 0.55, 1.1]) for (const dz of [0, 0.55, 1.1]) if (dx !== 0.55 || dz !== 0.55) add(`keep-merlon-${dx}-${dz}`, 2, 1.2 + dx, 1.05 + dz, crown, 0.2, 0.2, 0.24, stone2);
+  }
+  if (age >= 3) {
+    add("keep-turret", 2, 1.55, 1.4, crown, 0.6, 0.6, 0.64, stone2);
+    add("keep-turret-cap", 3, 1.5, 1.35, crown + 0.64, 0.7, 0.7, 0.16, team2, true);
+    crown += 0.8;
+  }
+  if (age === 4) {
+    add("keep-spire-0", 3, 1.65, 1.5, crown, 0.4, 0.4, 0.16, team2);
+    add("keep-spire-1", 4, 1.75, 1.6, crown + 0.16, 0.2, 0.2, 0.2, team2);
+    crown += 0.36;
+  }
+  for (const x of [1.4, 2]) {
+    add(`banner-keep-${x}`, 3, x, 2.3, keepTop - 1, 0.3, 0.04, 0.8, team2);
+  }
+  for (const x of [0, 3]) add(`banner-tower-${x}`, 3, x, 3.8, towerTop - 1.1, 0.3, 0.04, 0.7, team2);
+  add("flag-pole", 4, 1.82, 1.67, crown, 0.06, 0.06, 0.9, wood2);
+  add("flag", 4, 1.88, 1.67, crown + 0.5, 0.5, 0.05, 0.3, team2);
+  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.9, z: 0.2 + Math.floor(i / 4) * 1.2, y: 0.16, w: 0.4, d: 0.34, h: 0.12, color: stone2, studs: false }))];
+  return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "flag" || a.id.startsWith("banner-") || /^(merlon|stake)-.*-[13]$/.test(a.id) || a.id.startsWith("cone-2-") || a.id.startsWith("hoard-cap-")));
+}
+
 // apps/web/siege-rig.ts
 function createRamRig(T, player, box2, material) {
   const root = new T.Group();
   root.name = "siege-ram";
-  const team2 = player === 0 ? "#45728c" : "#b25441", wood2 = "#94734c", dark = "#6e5438";
-  const part = (parent, x, y, z, w, h, d, color) => {
-    const m = new T.Mesh(box2(w, h, d), material(color));
+  const team2 = player === 0 ? "#45728c" : "#b25441", wood2 = "#94734c", dark2 = "#6e5438";
+  const part = (parent, x, y, z, w, h2, d, color) => {
+    const m = new T.Mesh(box2(w, h2, d), material(color));
     m.position.set(x, y, z);
     m.castShadow = true;
     parent.add(m);
     return m;
   };
-  part(root, 0, 0.22, 0, 0.76, 0.1, 1.3, dark);
+  part(root, 0, 0.22, 0, 0.76, 0.1, 1.3, dark2);
   for (const x of [-0.36, 0.36]) for (const z of [-0.45, 0.45]) part(root, x, 0, z, 0.1, 0.36, 0.36, "#5c4a36");
   for (const x of [-0.3, 0.3]) part(root, x, 0.32, 0, 0.1, 0.55, 1.2, wood2);
   part(root, 0, 0.86, 0, 0.86, 0.1, 1.36, team2);
@@ -863,11 +1349,74 @@ for (const [line, make] of [[["forging", "iron-casting", "blast-furnace"], hamme
   line.forEach((id, i) => {
     techIcons[id] = make(i + 1);
   });
+var metal2 = "#aab0a3";
+var dark = "#4a4740";
+var green = "#5f9a6a";
+var grey = "#8d8c86";
+var felt = "#ece6d6";
+var sand = "#d8c9a6";
+var red = "#b25441";
+var plus = (x, y) => [{ x: x + 0.09, y, z: 0.42, w: 0.08, d: 0.04, h: 0.26, color: green }, { x, y: y + 0.09, z: 0.42, w: 0.26, d: 0.04, h: 0.08, color: green }];
+var streaks = (x, y) => [0, 1, 2].map((i) => ({ x: x - i * 0.04, y: y + i * 0.14, z: 0.45, w: 0.18 + i * 0.06, d: 0.04, h: 0.05, color: "#efe6cc" }));
+var shaft = (x, y, len) => [{ x, y, z: 0.45, w: len, d: 0.04, h: 0.04, color: wood }, { x: x + len, y: y - 0.02, z: 0.44, w: 0.08, d: 0.06, h: 0.08, color: metal2 }];
+var merlons = (x, y, n, w = 0.14) => Array.from({ length: n }, (_, i) => ({ x: x + i * w * 2, y, z: 0.3, w, d: 0.36, h: 0.12, color: stone }));
+Object.assign(techIcons, {
+  // Yeomen: a tall longbow beside a tower top (archer range and tower attack).
+  yeomen: [{ x: 0, y: 0, z: 0.3, w: 0.45, d: 0.4, h: 0.6, color: stone }, ...merlons(0, 0.6, 2, 0.12), ...[[0, 0], [0.06, 0.18], [0.09, 0.36], [0.06, 0.54], [0, 0.72]].map(([dx, y]) => ({ x: 0.7 + dx, y, z: 0.4, w: 0.06, d: 0.06, h: 0.2, color: wood })), { x: 0.66, y: 0, z: 0.42, w: 0.02, d: 0.02, h: 0.92, color: "#d9cba4" }],
+  // Stronghold: a castle tower loosing arrows in quick succession.
+  stronghold: [{ x: 0, y: 0, z: 0.25, w: 0.5, d: 0.5, h: 0.75, color: stone }, ...merlons(0, 0.75, 2), { x: 0.18, y: 0.35, z: 0.74, w: 0.12, d: 0.02, h: 0.2, color: dark }, ...shaft(0.55, 0.62, 0.3), ...shaft(0.55, 0.42, 0.3), ...shaft(0.55, 0.22, 0.3)],
+  // Furor Celtica: a ram on its wheels under a green plus (siege hit points).
+  "furor-celtica": [{ x: 0, y: 0.12, z: 0.3, w: 0.9, d: 0.3, h: 0.18, color: wood }, { x: 0.1, y: 0, z: 0.25, w: 0.18, d: 0.4, h: 0.18, color: "#5c4a36" }, { x: 0.62, y: 0, z: 0.25, w: 0.18, d: 0.4, h: 0.18, color: "#5c4a36" }, { x: 0.85, y: 0.12, z: 0.32, w: 0.12, d: 0.26, h: 0.18, color: metal2 }, ...plus(0.32, 0.45)],
+  // Chivalry: a horseshoe with gold nails and speed streaks (faster stable).
+  chivalry: [{ x: 0.1, y: 0, z: 0.1, w: 0.16, d: 0.7, h: 0.14, color: metal2 }, { x: 0.64, y: 0, z: 0.1, w: 0.16, d: 0.7, h: 0.14, color: metal2 }, { x: 0.1, y: 0, z: 0.1, w: 0.7, d: 0.16, h: 0.14, color: metal2 }, ...[0.14, 0.68].flatMap((x) => [0.35, 0.6].map((z) => ({ x: x + 0.04, y: 0.14, z, w: 0.06, d: 0.06, h: 0.04, color: gold }))), ...streaks(0.2, 0.3).map((p) => ({ ...p, y: 0, z: 0.85 + (p.y - 0.3) / 0.7, h: 0.04 }))],
+  // Bearded Axe: the francisca in flight, its path drawn out behind it (longer throw).
+  "bearded-axe": [{ x: 0.52, y: 0, z: 0.42, w: 0.08, d: 0.08, h: 0.8, color: wood }, { x: 0.6, y: 0.56, z: 0.41, w: 0.3, d: 0.1, h: 0.2, color: metal2 }, { x: 0.74, y: 0.38, z: 0.41, w: 0.16, d: 0.1, h: 0.2, color: metal2 }, { x: 0.44, y: 0.64, z: 0.41, w: 0.08, d: 0.1, h: 0.1, color: metal2 }, ...[0, 1, 2].map((i) => ({ x: 0.02 + i * 0.14, y: 0.3 + i * 0.12, z: 0.44, w: 0.1, d: 0.04, h: 0.05, color: "#efe6cc" }))],
+  // Anarchy: a barracks arch with a Huskarl's round shield in the doorway.
+  anarchy: [{ x: 0, y: 0, z: 0.2, w: 0.18, d: 0.4, h: 0.7, color: stone }, { x: 0.72, y: 0, z: 0.2, w: 0.18, d: 0.4, h: 0.7, color: stone }, { x: 0, y: 0.7, z: 0.2, w: 0.9, d: 0.4, h: 0.16, color: red }, { x: 0.27, y: 0.08, z: 0.52, w: 0.36, d: 0.05, h: 0.5, color: team }, { x: 0.2, y: 0.15, z: 0.52, w: 0.5, d: 0.05, h: 0.36, color: team }, { x: 0.4, y: 0.28, z: 0.57, w: 0.1, d: 0.03, h: 0.1, color: gold }],
+  // Perfusion: two helmets side by side (twice the training speed).
+  perfusion: [0, 0.46].flatMap((x) => [{ x: x + 0.06, y: 0, z: 0.35, w: 0.26, d: 0.2, h: 0.2, color: "#44514b" }, { x: x + 0.02, y: 0.2, z: 0.33, w: 0.34, d: 0.24, h: 0.3, color: team }, { x: x + 0.07, y: 0.5, z: 0.35, w: 0.24, d: 0.2, h: 0.2, color: "#dfbb7e" }, { x: x + 0.04, y: 0.7, z: 0.33, w: 0.3, d: 0.24, h: 0.08, color: metal2 }, { x: x + 0.36, y: 0.1, z: 0.42, w: 0.04, d: 0.04, h: 0.66, color: wood }]),
+  // Ironclad: a ram under riveted iron plates (siege melee armour).
+  ironclad: [{ x: 0, y: 0, z: 0.3, w: 0.9, d: 0.3, h: 0.2, color: wood }, { x: 0.05, y: 0.2, z: 0.25, w: 0.8, d: 0.4, h: 0.14, color: metal2 }, { x: 0.15, y: 0.34, z: 0.3, w: 0.6, d: 0.3, h: 0.14, color: "#8f9896" }, ...[0.15, 0.4, 0.65].map((x) => ({ x, y: 0.24, z: 0.65, w: 0.06, d: 0.02, h: 0.06, color: gold }))],
+  // Crenellations: a crenellated wall with a helmeted defender between the merlons.
+  crenellations: [{ x: 0, y: 0, z: 0.3, w: 0.9, d: 0.36, h: 0.45, color: stone }, { x: 0, y: 0.45, z: 0.3, w: 0.16, d: 0.36, h: 0.2, color: stone }, { x: 0.74, y: 0.45, z: 0.3, w: 0.16, d: 0.36, h: 0.2, color: stone }, { x: 0.34, y: 0.45, z: 0.38, w: 0.22, d: 0.2, h: 0.16, color: "#dfbb7e" }, { x: 0.32, y: 0.61, z: 0.36, w: 0.26, d: 0.24, h: 0.1, color: metal2 }, ...shaft(0.55, 0.72, 0.3)],
+  // Chieftains: a helmet crowned with a gold circlet over a spear (infantry against horsemen).
+  chieftains: [{ x: 0.1, y: 0.05, z: 0.44, w: 0.8, d: 0.04, h: 0.04, color: wood }, { x: 0.86, y: 0.03, z: 0.43, w: 0.12, d: 0.06, h: 0.08, color: metal2 }, { x: 0.25, y: 0.2, z: 0.3, w: 0.4, d: 0.38, h: 0.3, color: metal2 }, { x: 0.23, y: 0.42, z: 0.28, w: 0.44, d: 0.42, h: 0.06, color: gold }, ...[0.25, 0.43, 0.61].map((x) => ({ x, y: 0.48, z: 0.45, w: 0.04, d: 0.04, h: 0.12, color: gold }))],
+  // Berserkergang: a wolf-pelt hood with a green plus (faster regeneration).
+  berserkergang: [{ x: 0.1, y: 0, z: 0.3, w: 0.5, d: 0.4, h: 0.45, color: "#8a8272" }, { x: 0.2, y: 0.2, z: 0.7, w: 0.3, d: 0.1, h: 0.15, color: "#8a8272" }, { x: 0.12, y: 0.45, z: 0.35, w: 0.1, d: 0.1, h: 0.14, color: "#8a8272" }, { x: 0.48, y: 0.45, z: 0.35, w: 0.1, d: 0.1, h: 0.14, color: "#8a8272" }, { x: 0.22, y: 0.3, z: 0.7, w: 0.06, d: 0.02, h: 0.04, color: dark }, { x: 0.42, y: 0.3, z: 0.7, w: 0.06, d: 0.02, h: 0.04, color: dark }, ...plus(0.64, 0.5)],
+  // Logistica: a hoof over scattered bricks (trample damage around the target).
+  logistica: [{ x: 0.3, y: 0.18, z: 0.3, w: 0.3, d: 0.3, h: 0.5, color: "#6f5a44" }, { x: 0.26, y: 0.1, z: 0.26, w: 0.38, d: 0.38, h: 0.1, color: metal2 }, ...[[0, 0], [0.75, 0.05], [0.05, 0.6], [0.72, 0.62]].map(([x, z]) => ({ x, y: 0, z, w: 0.16, d: 0.14, h: 0.1, color: stone }))],
+  // Kamandaran: a bow over a stack of logs (archers paid in wood).
+  kamandaran: [...[0, 1, 2].map((i) => ({ x: 0.05, y: i * 0.14, z: 0.3 + i % 2 * 0.04, w: 0.8, d: 0.14, h: 0.14, color: i === 1 ? "#6e5438" : wood })), ...[[0, 0], [0.05, 0.14], [0.07, 0.28], [0.05, 0.42], [0, 0.56]].map(([dx, y]) => ({ x: 0.4 + dx, y: 0.42 + y * 0.6, z: 0.5, w: 0.06, d: 0.06, h: 0.14, color: "#997447" })), { x: 0.38, y: 0.42, z: 0.52, w: 0.02, d: 0.02, h: 0.46, color: "#d9cba4" }],
+  // Mahouts: an elephant's head with tusks and speed streaks.
+  mahouts: [{ x: 0.25, y: 0.3, z: 0.25, w: 0.5, d: 0.45, h: 0.5, color: grey }, { x: 0.05, y: 0.35, z: 0.35, w: 0.2, d: 0.08, h: 0.45, color: "#9a988f" }, { x: 0.75, y: 0.35, z: 0.35, w: 0.2, d: 0.08, h: 0.45, color: "#9a988f" }, { x: 0.28, y: 0.8, z: 0.3, w: 0.44, d: 0.36, h: 0.08, color: gold }, { x: 0.42, y: 0.12, z: 0.7, w: 0.16, d: 0.14, h: 0.4, color: grey }, { x: 0.43, y: 0, z: 0.78, w: 0.14, d: 0.18, h: 0.12, color: grey }, { x: 0.28, y: 0.3, z: 0.7, w: 0.07, d: 0.24, h: 0.07, color: "#efe8d2" }, { x: 0.65, y: 0.3, z: 0.7, w: 0.07, d: 0.24, h: 0.07, color: "#efe8d2" }, ...streaks(0.08, 0.4).map((p) => ({ ...p, z: 0.05 }))],
+  // Madrasah: a domed hall over a gold coin (gold back when a monk falls).
+  madrasah: [{ x: 0.05, y: 0, z: 0.25, w: 0.6, d: 0.5, h: 0.35, color: sand }, { x: 0.1, y: 0.35, z: 0.3, w: 0.5, d: 0.4, h: 0.12, color: felt }, { x: 0.18, y: 0.47, z: 0.36, w: 0.34, d: 0.28, h: 0.1, color: felt }, { x: 0.28, y: 0.57, z: 0.42, w: 0.14, d: 0.14, h: 0.08, color: felt }, { x: 0.33, y: 0.65, z: 0.47, w: 0.04, d: 0.04, h: 0.12, color: gold }, { x: 0.68, y: 0, z: 0.4, w: 0.26, d: 0.26, h: 0.08, color: gold }, { x: 0.72, y: 0.08, z: 0.44, w: 0.18, d: 0.18, h: 0.06, color: "#dec36f" }],
+  // Zealotry: a camel with a green plus (camel and Mameluke hit points).
+  zealotry: [{ x: 0.1, y: 0.3, z: 0.35, w: 0.6, d: 0.3, h: 0.25, color: sand }, { x: 0.3, y: 0.55, z: 0.38, w: 0.2, d: 0.24, h: 0.14, color: sand }, { x: 0.66, y: 0.4, z: 0.4, w: 0.1, d: 0.2, h: 0.4, color: sand }, { x: 0.66, y: 0.8, z: 0.38, w: 0.22, d: 0.24, h: 0.1, color: sand }, ...[0.14, 0.56].map((x) => ({ x, y: 0, z: 0.4, w: 0.08, d: 0.12, h: 0.3, color: "#b8a074" })), { x: 0.14, y: 0.52, z: 0.33, w: 0.52, d: 0.34, h: 0.04, color: team }, ...plus(0, 0.62)],
+  // Great Wall: a long crenellated wall climbing to a watch tower (tougher walls and towers).
+  "great-wall": [{ x: 0, y: 0, z: 0.35, w: 0.62, d: 0.28, h: 0.3, color: stone }, ...merlons(0, 0.3, 3, 0.11), { x: 0.62, y: 0, z: 0.28, w: 0.34, d: 0.42, h: 0.7, color: stone }, { x: 0.58, y: 0.7, z: 0.24, w: 0.42, d: 0.5, h: 0.1, color: "#3f4a4c" }, { x: 0.7, y: 0.8, z: 0.36, w: 0.18, d: 0.26, h: 0.1, color: "#3f4a4c" }],
+  // Rocketry: a bolt carrying a red powder tube with flame at its tail.
+  rocketry: [{ x: 0.05, y: 0.4, z: 0.45, w: 0.8, d: 0.05, h: 0.05, color: wood }, { x: 0.85, y: 0.38, z: 0.43, w: 0.1, d: 0.09, h: 0.09, color: metal2 }, { x: 0.3, y: 0.36, z: 0.41, w: 0.3, d: 0.13, h: 0.13, color: red }, { x: 0.1, y: 0.37, z: 0.42, w: 0.2, d: 0.11, h: 0.11, color: "#e0a040" }, { x: 0, y: 0.39, z: 0.44, w: 0.1, d: 0.07, h: 0.07, color: "#f5dc7a" }],
+  // Yasama: a watch tower with three arrows fanning out (extra arrows).
+  yasama: [{ x: 0, y: 0, z: 0.3, w: 0.4, d: 0.4, h: 0.7, color: stone }, { x: -0.04, y: 0.7, z: 0.26, w: 0.48, d: 0.48, h: 0.1, color: "#3f4a4c" }, ...shaft(0.45, 0.75, 0.35), ...shaft(0.45, 0.5, 0.35), ...shaft(0.45, 0.25, 0.35)],
+  // Nomads: a round felt yurt with a team band (houses keep their population room).
+  nomads: [{ x: 0.1, y: 0, z: 0.2, w: 0.7, d: 0.6, h: 0.35, color: felt }, { x: 0.05, y: 0.25, z: 0.15, w: 0.8, d: 0.7, h: 0.06, color: team }, { x: 0.18, y: 0.35, z: 0.28, w: 0.54, d: 0.44, h: 0.12, color: felt }, { x: 0.32, y: 0.47, z: 0.4, w: 0.26, d: 0.2, h: 0.08, color: felt }, { x: 0.38, y: 0, z: 0.8, w: 0.14, d: 0.02, h: 0.22, color: "#6e5438" }],
+  // Drill: a siege wheel with speed streaks (faster siege).
+  drill: [{ x: 0.2, y: 0, z: 0.4, w: 0.5, d: 0.12, h: 0.5, color: "#6e5438" }, { x: 0.35, y: 0.15, z: 0.52, w: 0.2, d: 0.04, h: 0.2, color: gold }, { x: 0.12, y: 0.5, z: 0.35, w: 0.66, d: 0.2, h: 0.1, color: wood }, ...streaks(0.84, 0.05)]
+});
 
 // apps/web/unit-rig.ts
 var unitPoses = ["idle", "walk", "work", "attack", "hit", "death", "carry"];
-var unitTools = ["none", "axe", "pick", "sickle", "hammer", "basket", "sword", "spear", "bow", "staff"];
-var unitRoles = ["villager", "swordsman", "spearman", "archer", "monk"];
+var unitTools = ["none", "axe", "pick", "sickle", "hammer", "basket", "sword", "spear", "bow", "staff", "longbow", "repeater", "musket", "throwing-axe", "great-sword", "war-axe", "katana", "scimitar"];
+var unitRoles = ["villager", "swordsman", "spearman", "archer", "monk", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "samurai", "janissary", "chu-ko-nu", "cataphract-rider", "mameluke-rider", "mangudai-rider", "mahout"];
+var roleTools = { swordsman: "sword", spearman: "spear", archer: "bow", monk: "staff", longbowman: "longbow", "woad-raider": "sword", "throwing-axeman": "throwing-axe", huskarl: "sword", "teutonic-knight": "great-sword", berserk: "war-axe", samurai: "katana", janissary: "musket", "chu-ko-nu": "repeater", "cataphract-rider": "spear", "mameluke-rider": "scimitar", "mangudai-rider": "bow", mahout: "spear" };
+var skin = "#dfbb7e";
+var metal3 = "#9aa3a1";
+var leather = "#5a4632";
+var fur = "#7d6a52";
+var gold2 = "#c9a55a";
+var woad = "#3f5f95";
+var lacquer = "#3a3530";
 function samplePose(pose, time) {
   const t = Math.max(0, Number.isFinite(time) ? time : 0), walk = Math.sin(t * 0.012) * 0.35;
   const p = { leftLeg: 0, rightLeg: 0, leftArm: 0, rightArm: 0, lean: 0, fall: 0 };
@@ -898,8 +1447,8 @@ function samplePose(pose, time) {
 function createUnitRig(T, player, box2, material) {
   const root = new T.Group();
   root.name = "body-root";
-  const part = (parent, x, y, z, w, h, d, color) => {
-    const mesh = new T.Mesh(box2(w, h, d), material(color));
+  const part = (parent, x, y, z, w, h2, d, color) => {
+    const mesh = new T.Mesh(box2(w, h2, d), material(color));
     mesh.position.set(x, y, z);
     mesh.castShadow = true;
     parent.add(mesh);
@@ -932,7 +1481,7 @@ function createUnitRig(T, player, box2, material) {
   const outfits = /* @__PURE__ */ new Map();
   function dress(role) {
     if (!unitRoles.includes(role)) throw Error("\u672A\u77E5\u6A21\u578B\u8ECD\u7A2E");
-    for (const outfit2 of outfits.values()) outfit2.visible = false;
+    for (const outfit2 of outfits.values()) for (const g of outfit2) g.visible = false;
     shield.visible = false;
     if (role === "villager") {
       equip("none");
@@ -940,31 +1489,130 @@ function createUnitRig(T, player, box2, material) {
     }
     let outfit = outfits.get(role);
     if (!outfit) {
-      outfit = new T.Group();
-      outfit.name = `outfit-${role}`;
-      root.add(outfit);
+      const o = new T.Group(), la = new T.Group(), ra = new T.Group();
+      o.name = `outfit-${role}`;
+      la.name = `outfit-${role}-arm-left`;
+      ra.name = `outfit-${role}-arm-right`;
+      root.add(o);
+      leftArm.add(la);
+      rightArm.add(ra);
+      outfit = [o, la, ra];
       outfits.set(role, outfit);
+      const arms = (x, y, z, w, h2, d, color) => {
+        for (const a of [la, ra]) part(a, x, y, z, w, h2, d, color);
+      };
       if (role === "monk") {
         const habit2 = "#7a5c40";
-        part(outfit, 0, 0.3, 0, 0.5, 0.42, 0.36, habit2);
-        part(outfit, 0, 0.06, 0, 0.44, 0.26, 0.34, habit2);
-        for (const x of [-0.09, 0.09]) part(outfit, x, 0.34, 0.185, 0.07, 0.38, 0.02, team2);
-        part(outfit, 0, 0.36, 0, 0.52, 0.04, 0.38, "#d8c48a");
-        part(outfit, 0, 0.99, -0.01, 0.47, 0.14, 0.43, habit2);
-        part(outfit, 0, 0.74, -0.17, 0.4, 0.3, 0.06, habit2);
+        part(o, 0, 0.3, 0, 0.5, 0.42, 0.36, habit2);
+        part(o, 0, 0.06, 0, 0.44, 0.26, 0.34, habit2);
+        for (const x of [-0.09, 0.09]) part(o, x, 0.34, 0.185, 0.07, 0.38, 0.02, team2);
+        part(o, 0, 0.36, 0, 0.52, 0.04, 0.38, "#d8c48a");
+        part(o, 0, 0.99, -0.01, 0.47, 0.14, 0.43, habit2);
+        part(o, 0, 0.74, -0.17, 0.4, 0.3, 0.06, habit2);
       } else if (role === "archer") {
-        part(outfit, 0, 1.1, 0, 0.36, 0.13, 0.32, "#667c4e");
-        part(outfit, 0, 0.36, -0.24, 0.21, 0.43, 0.18, "#8b6746");
-        for (const x of [-0.06, 0.06]) part(outfit, x, 0.77, -0.24, 0.025, 0.2, 0.025, "#d3b981");
+        part(o, 0, 1.1, 0, 0.36, 0.13, 0.32, "#667c4e");
+        part(o, 0, 0.36, -0.24, 0.21, 0.43, 0.18, "#8b6746");
+        for (const x of [-0.06, 0.06]) part(o, x, 0.77, -0.24, 0.025, 0.2, 0.025, "#d3b981");
+      } else if (role === "longbowman") {
+        part(o, 0, 1.1, 0, 0.54, 0.05, 0.5, "#6d5a3e");
+        part(o, 0, 1.15, 0, 0.3, 0.13, 0.28, "#6d5a3e");
+        part(o, 0, 0.42, 0, 0.48, 0.05, 0.34, leather);
+        part(o, 0.08, 0.3, -0.23, 0.15, 0.6, 0.13, "#8b6746");
+        for (const x of [0.04, 0.12]) part(o, x, 0.9, -0.23, 0.03, 0.18, 0.03, "#e8e0c8");
+      } else if (role === "chu-ko-nu") {
+        part(o, 0, 0.42, 0, 0.48, 0.28, 0.34, "#5b4a3a");
+        part(o, 0, 0.66, 0, 0.3, 0.04, 0.35, gold2);
+        part(o, 0, 1.1, 0, 0.34, 0.08, 0.3, lacquer);
+        part(o, 0, 1.18, -0.02, 0.12, 0.1, 0.12, lacquer);
+      } else if (role === "janissary") {
+        part(o, 0, 1.1, -0.02, 0.32, 0.36, 0.3, "#ece6d6");
+        part(o, 0, 0.96, -0.2, 0.28, 0.4, 0.06, "#ece6d6");
+        part(o, 0, 1.1, 0, 0.34, 0.06, 0.34, gold2);
+        part(o, 0, 0.42, 0, 0.48, 0.07, 0.34, gold2);
+      } else if (role === "woad-raider") {
+        part(o, 0, 0.44, 0, 0.475, 0.27, 0.335, skin);
+        for (const y of [0.5, 0.6]) part(o, 0, y, 0, 0.48, 0.04, 0.34, woad);
+        part(o, 0, 0.42, 0, 0.49, 0.04, 0.345, leather);
+        part(o, 0, 0.8, 0.15, 0.3, 0.04, 0.012, woad);
+        part(o, 0, 1.1, 0, 0.4, 0.1, 0.36, "#ece6d2");
+        for (const x of [-0.12, 0, 0.12]) part(o, x, 1.2, 0, 0.08, 0.14, 0.08, "#ece6d2");
+        arms(0, -0.3, 0, 0.12, 0.31, 0.18, skin);
+        arms(0, -0.2, 0, 0.125, 0.04, 0.185, woad);
+      } else if (role === "throwing-axeman") {
+        part(o, 0, 1.02, -0.03, 0.46, 0.14, 0.44, "#9a5a30");
+        part(o, 0, 0.76, -0.2, 0.36, 0.3, 0.06, "#9a5a30");
+        part(o, 0, 0.79, 0.155, 0.2, 0.04, 0.02, "#9a5a30");
+        part(o, 0, 0.64, -0.02, 0.52, 0.08, 0.38, "#a08a68");
+        part(o, 0, 0.42, 0, 0.48, 0.05, 0.34, leather);
+        for (const x of [-0.26, 0.26]) {
+          part(o, x, 0.26, 0.06, 0.04, 0.22, 0.04, "#967447");
+          part(o, x, 0.4, 0.1, 0.05, 0.08, 0.1, "#aab0a3");
+        }
+      } else if (role === "huskarl") {
+        part(o, 0, 1.1, 0, 0.4, 0.14, 0.36, metal3);
+        part(o, 0, 1.24, 0, 0.24, 0.08, 0.22, metal3);
+        part(o, 0, 0.86, 0.16, 0.05, 0.24, 0.03, metal3);
+        part(o, 0, 0.3, 0, 0.48, 0.26, 0.34, metal3);
+        part(la, -0.14, -0.6, 0.16, 0.06, 0.5, 0.3, team2);
+        part(la, -0.14, -0.5, 0.16, 0.06, 0.3, 0.5, team2);
+        part(la, -0.18, -0.4, 0.16, 0.04, 0.1, 0.1, gold2);
+      } else if (role === "teutonic-knight") {
+        part(o, 0, 0.7, 0, 0.47, 0.46, 0.44, metal3);
+        part(o, 0, 0.9, 0.22, 0.36, 0.035, 0.012, "#2c2e2c");
+        part(o, 0, 1.16, 0, 0.08, 0.08, 0.32, team2);
+        part(o, 0, 0.3, 0, 0.48, 0.4, 0.34, "#ece8dc");
+        for (const z of [0.17, -0.17]) {
+          part(o, 0, 0.34, z, 0.08, 0.3, 0.012, team2);
+          part(o, 0, 0.5, z, 0.26, 0.08, 0.012, team2);
+        }
+        arms(0, -0.12, 0, 0.15, 0.14, 0.2, metal3);
+      } else if (role === "berserk") {
+        part(o, 0, 1.06, -0.02, 0.42, 0.14, 0.42, "#8a8272");
+        part(o, 0, 1.12, 0.2, 0.16, 0.08, 0.1, "#8a8272");
+        for (const x of [-0.13, 0.13]) part(o, x, 1.2, -0.04, 0.08, 0.1, 0.06, "#8a8272");
+        part(o, 0, 0.62, -0.02, 0.54, 0.12, 0.38, fur);
+        part(o, 0, 0.3, -0.2, 0.44, 0.36, 0.06, fur);
+        part(o, 0, 0.71, 0.15, 0.26, 0.11, 0.05, "#a35f35");
+        arms(0, -0.3, 0, 0.12, 0.28, 0.18, skin);
+        arms(0, -0.3, 0, 0.125, 0.06, 0.185, leather);
+      } else if (role === "samurai") {
+        part(o, 0, 1.1, 0, 0.4, 0.14, 0.38, lacquer);
+        part(o, 0, 0.92, -0.06, 0.52, 0.16, 0.36, lacquer);
+        for (const x of [-0.1, 0.1]) part(o, x, 1.16, 0.17, 0.04, 0.26, 0.02, gold2);
+        part(o, 0, 1.14, 0.2, 0.1, 0.08, 0.02, gold2);
+        part(o, 0, 0.4, 0, 0.48, 0.3, 0.34, "#4a3a32");
+        for (const y of [0.46, 0.58]) part(o, 0, y, 0, 0.49, 0.04, 0.345, team2);
+        arms(0, -0.24, 0, 0.14, 0.24, 0.22, team2);
+        arms(0, -0.16, 0, 0.145, 0.03, 0.225, lacquer);
+      } else if (role === "cataphract-rider") {
+        part(o, 0, 0.3, 0, 0.48, 0.4, 0.34, "#a89a6a");
+        part(o, 0, 0.32, -0.19, 0.4, 0.4, 0.04, team2);
+        part(o, 0, 1.1, 0, 0.4, 0.12, 0.36, "#a5b0ad");
+        part(o, 0, 1.22, 0, 0.24, 0.1, 0.22, "#a5b0ad");
+        part(o, 0, 1.32, 0, 0.06, 0.22, 0.06, team2);
+      } else if (role === "mameluke-rider") {
+        part(o, 0, 1.08, 0, 0.44, 0.14, 0.42, "#efe9da");
+        part(o, 0, 1.12, 0, 0.46, 0.05, 0.44, team2);
+        part(o, 0, 1.22, 0, 0.12, 0.14, 0.12, gold2);
+        part(o, 0, 0.42, 0, 0.48, 0.05, 0.34, gold2);
+      } else if (role === "mangudai-rider") {
+        part(o, 0, 1.06, 0, 0.48, 0.1, 0.44, "#8a6a48");
+        part(o, 0, 1.16, 0, 0.3, 0.14, 0.28, team2);
+        part(o, 0, 1.3, 0, 0.1, 0.06, 0.1, gold2);
+        part(o, 0.08, 0.44, 0.165, 0.14, 0.24, 0.02, "#d8c48a");
+        part(o, 0.25, 0.3, -0.05, 0.1, 0.32, 0.14, "#8b6746");
+      } else if (role === "mahout") {
+        part(o, 0, 1.08, 0, 0.42, 0.12, 0.4, team2);
+        part(o, 0, 1.2, 0, 0.14, 0.06, 0.14, gold2);
       } else {
-        part(outfit, 0, 1.12, 0, 0.4, 0.14, 0.35, "#a5b0ad");
-        part(outfit, 0, 0.4, 0.18, 0.36, 0.23, 0.055, "#a5b0ad");
-        if (role === "spearman") part(outfit, 0, 1.26, 0, 0.065, 0.15, 0.25, team2);
+        part(o, 0, 1.12, 0, 0.4, 0.14, 0.35, "#a5b0ad");
+        part(o, 0, 0.4, 0.18, 0.36, 0.23, 0.055, "#a5b0ad");
+        if (role === "spearman") part(o, 0, 1.26, 0, 0.065, 0.15, 0.25, team2);
       }
     }
-    outfit.visible = true;
+    for (const g of outfit) g.visible = true;
     shield.visible = role === "swordsman";
-    equip(role === "swordsman" ? "sword" : role === "spearman" ? "spear" : role === "monk" ? "staff" : "bow");
+    equip(roleTools[role]);
   }
   const shield = new T.Group();
   shield.name = "shield-left";
@@ -991,6 +1639,46 @@ function createUnitRig(T, player, box2, material) {
     } else if (kind === "bow") {
       for (const [y, z] of [[-0.12, 0], [0.04, 0.08], [0.2, 0.12], [0.36, 0.08], [0.52, 0]]) part(group, 0, y, z, 0.065, 0.17, 0.06, "#997447");
       part(group, 0, -0.12, 0, 0.018, 0.81, 0.018, "#d9cba4");
+    } else if (kind === "longbow") {
+      for (const [y, z] of [[-0.34, 0], [-0.12, 0.06], [0.1, 0.1], [0.32, 0.1], [0.54, 0.06], [0.76, 0]]) part(group, 0, y, z, 0.07, 0.23, 0.07, "#a57c4a");
+      part(group, 0, -0.34, -0.01, 0.016, 1.33, 0.016, "#d9cba4");
+    } else if (kind === "repeater") {
+      part(group, 0, -0.02, 0.18, 0.07, 0.08, 0.56, "#8a6a45");
+      part(group, 0, 0.06, 0.24, 0.08, 0.16, 0.2, "#6e5438");
+      part(group, 0, 0.02, 0.42, 0.56, 0.05, 0.05, "#8a6a45");
+      part(group, 0, 0.1, 0.08, 0.03, 0.2, 0.03, "#6e5438");
+    } else if (kind === "musket") {
+      part(group, 0, -0.3, 0, 0.09, 0.36, 0.08, "#7a5a3a");
+      part(group, 0, 0.06, 0, 0.06, 0.9, 0.06, "#4a4a48");
+      part(group, 0, 0.3, 0, 0.06, 0.03, 0.06, "#c9a55a");
+      part(group, 0.04, -0.02, 0, 0.03, 0.06, 0.05, "#c9a55a");
+    } else if (kind === "throwing-axe") {
+      part(group, 0, -0.04, 0, 0.045, 0.32, 0.05, "#967447");
+      part(group, 0.07, 0.2, 0, 0.1, 0.08, 0.05, "#aab0a3");
+      part(group, 0.12, 0.12, 0, 0.06, 0.1, 0.05, "#aab0a3");
+      part(group, 0.1, 0.28, 0, 0.05, 0.05, 0.05, "#aab0a3");
+    } else if (kind === "great-sword") {
+      part(group, 0, -0.16, 0, 0.08, 0.05, 0.08, "#baa167");
+      part(group, 0, -0.12, 0, 0.05, 0.22, 0.06, "#5a4632");
+      part(group, 0, 0.1, 0, 0.34, 0.05, 0.07, "#baa167");
+      part(group, 0, 0.15, 0, 0.1, 0.8, 0.05, "#d2d8d4");
+    } else if (kind === "war-axe") {
+      part(group, 0, -0.3, 0, 0.055, 1.05, 0.06, "#6e5438");
+      part(group, 0.1, 0.52, 0, 0.18, 0.22, 0.05, "#aab0a3");
+      part(group, 0.16, 0.4, 0, 0.08, 0.14, 0.05, "#aab0a3");
+      part(group, -0.06, 0.6, 0, 0.06, 0.06, 0.05, "#aab0a3");
+    } else if (kind === "katana") {
+      part(group, 0, -0.12, 0, 0.045, 0.2, 0.05, "#2f2a26");
+      part(group, 0, 0.08, 0, 0.12, 0.025, 0.12, "#c9a55a");
+      part(group, 0, 0.105, 0, 0.05, 0.3, 0.04, "#dfe4e0");
+      part(group, 0, 0.4, -0.015, 0.05, 0.25, 0.04, "#dfe4e0");
+      part(group, 0, 0.64, -0.035, 0.045, 0.16, 0.04, "#dfe4e0");
+    } else if (kind === "scimitar") {
+      part(group, 0, -0.1, 0, 0.05, 0.18, 0.06, "#5a4632");
+      part(group, 0, 0.08, 0, 0.18, 0.04, 0.07, "#c9a55a");
+      part(group, 0, 0.12, 0, 0.05, 0.24, 0.04, "#d2d8d4");
+      part(group, 0, 0.34, 0.03, 0.07, 0.16, 0.04, "#d2d8d4");
+      part(group, 0, 0.48, 0.07, 0.07, 0.1, 0.04, "#d2d8d4");
     } else if (kind !== "none") {
       part(group, 0, -0.08, 0, 0.055, 0.48, 0.06, kind === "sword" ? "#756449" : "#967447");
       if (kind === "axe") part(group, 0.08, 0.23, 0, 0.22, 0.15, 0.055, "#aab0a3");
@@ -1033,36 +1721,115 @@ function createUnitRig(T, player, box2, material) {
   } };
 }
 
-// apps/web/character-rig.ts
-function createCharacterRig(T, player, box2, material) {
-  const root = new T.Group(), rider = createUnitRig(T, player, box2, material);
-  root.add(rider.root);
-  let horse = null, saddle = null, mounted = false;
-  const legs = [];
-  const part = (parent, x, y, z, w, h, d, color) => {
-    const m = new T.Mesh(box2(w, h, d), material(color));
+// apps/web/elephant-rig.ts
+function createElephantMount(T, player, box2, material) {
+  const root = new T.Group();
+  root.name = "elephant-root";
+  const team2 = player === 0 ? "#45728c" : "#b25441", grey2 = "#8d8c86", ear = "#9a988f", ivory = "#efe8d2", gold3 = "#c9a55a", wood2 = "#6e5438";
+  const part = (parent, x, y, z, w, h2, d, color) => {
+    const m = new T.Mesh(box2(w, h2, d), material(color));
     m.position.set(x, y, z);
     m.castShadow = true;
     parent.add(m);
+    return m;
+  };
+  const legs = [];
+  for (const x of [-0.3, 0.3]) for (const z of [-0.45, 0.45]) {
+    const leg = new T.Group();
+    leg.name = `elephant-leg-${legs.length}`;
+    leg.position.set(x, 0.8, z);
+    root.add(leg);
+    legs.push(leg);
+    part(leg, 0, -0.8, 0, 0.3, 0.8, 0.32, grey2);
+    part(leg, 0, -0.8, 0.165, 0.26, 0.08, 0.03, "#d9d2c2");
+  }
+  const body = new T.Group();
+  root.add(body);
+  part(body, 0, 0.72, 0, 1, 0.86, 1.5, grey2);
+  part(body, 0, 1.02, 0, 1.04, 0.58, 1.1, team2);
+  part(body, 0, 0.98, 0, 1.05, 0.06, 1.11, gold3);
+  part(body, 0, 1.02, 0.8, 0.72, 0.7, 0.46, grey2);
+  part(body, 0, 1.72, 0.82, 0.5, 0.1, 0.34, grey2);
+  for (const sx of [-1, 1]) {
+    part(body, sx * 0.42, 1.02, 0.62, 0.1, 0.6, 0.46, ear);
+    part(body, sx * 0.22, 1.42, 1.035, 0.06, 0.05, 0.02, "#2f3932");
+    part(body, sx * 0.22, 0.9, 1.12, 0.08, 0.08, 0.34, ivory);
+    part(body, sx * 0.22, 0.95, 1.32, 0.07, 0.12, 0.07, ivory);
+  }
+  part(body, 0, 0.96, -0.78, 0.06, 0.44, 0.06, ear);
+  part(body, 0, 0.9, -0.78, 0.1, 0.1, 0.1, "#4a4640");
+  const trunk = new T.Group();
+  trunk.name = "elephant-trunk";
+  trunk.position.set(0, 1.1, 0.96);
+  body.add(trunk);
+  part(trunk, 0, -0.34, 0.07, 0.22, 0.4, 0.2, grey2);
+  part(trunk, 0, -0.66, 0.12, 0.17, 0.34, 0.17, grey2);
+  part(trunk, 0, -0.86, 0.2, 0.14, 0.22, 0.14, grey2);
+  part(trunk, 0, -0.88, 0.3, 0.12, 0.1, 0.12, grey2);
+  part(body, 0, 1.6, -0.12, 0.9, 0.1, 0.96, wood2);
+  for (const z of [0.3, -0.54]) part(body, 0, 1.7, z, 0.9, 0.3, 0.08, team2);
+  for (const x of [-0.41, 0.41]) part(body, x, 1.7, -0.12, 0.08, 0.3, 0.76, team2);
+  for (const z of [0.3, -0.54]) part(body, 0, 2, z, 0.94, 0.05, 0.1, gold3);
+  for (const x of [-0.41, 0.41]) for (const z of [0.3, -0.54]) part(body, x, 2, z, 0.08, 0.3, 0.08, gold3);
+  const saddle = new T.Group();
+  saddle.name = "rider-saddle";
+  saddle.position.set(0, 1.7, -0.12);
+  body.add(saddle);
+  function pose(kind, time) {
+    const t = Number.isFinite(time) ? Math.max(0, time) : 0, phase = t * 8e-3, walking = kind === "walk";
+    legs.forEach((leg, i) => {
+      const swing = walking ? Math.sin(phase + (i === 0 || i === 3 ? 0 : Math.PI)) * 0.18 : 0;
+      leg.rotation.x = swing;
+      leg.position.y = 0.8 + Math.abs(Math.sin(swing)) * 0.2;
+    });
+    body.position.y = walking ? Math.abs(Math.sin(phase)) * 0.03 : 0;
+    trunk.rotation.x = kind === "attack" ? -(0.5 + 0.4 * Math.sin(t * 0.01)) : 0;
+    trunk.rotation.z = kind === "idle" ? Math.sin(t * 2e-3) * 0.12 : 0;
+  }
+  return { root, saddle, pose };
+}
+
+// apps/web/character-rig.ts
+var mountedRoles = ["cavalry", "cataphract", "mameluke", "mangudai", "war-elephant"];
+var isMounted = (role) => mountedRoles.includes(role);
+var mounts = {
+  cavalry: { rider: "swordsman", tool: "spear", horse: { coat: "#957350", head: "#a5835b", mane: "#64533d", barding: false } },
+  cataphract: { rider: "cataphract-rider", tool: "spear", horse: { coat: "#6f5a44", head: "#7c6550", mane: "#3e3326", barding: true } },
+  mameluke: { rider: "mameluke-rider", tool: "scimitar", horse: { coat: "#d6cdb9", head: "#e0d8c6", mane: "#8b8374", barding: false } },
+  mangudai: { rider: "mangudai-rider", tool: "bow", horse: { coat: "#7a5b3c", head: "#8a6a48", mane: "#3e3326", barding: false } },
+  "war-elephant": { rider: "mahout", tool: "spear", horse: null }
+};
+function createCharacterRig(T, player, box2, material) {
+  const root = new T.Group(), rider = createUnitRig(T, player, box2, material);
+  root.add(rider.root);
+  const team2 = player === 0 ? "#45728c" : "#b25441";
+  let horse = null, saddle = null, barding2 = null, mounted = null, elephant = null;
+  const legs = [];
+  const tints = { coat: [], head: [], mane: [] };
+  const part = (parent, x, y, z, w, h2, d, color) => {
+    const m = new T.Mesh(box2(w, h2, d), material(color));
+    m.position.set(x, y, z);
+    m.castShadow = true;
+    parent.add(m);
+    return m;
   };
   function makeHorse() {
     horse = new T.Group();
     horse.name = "horse-root";
     root.add(horse);
-    part(horse, 0, 0.62, 0, 0.56, 0.5, 1.15, "#957350");
-    part(horse, 0, 0.82, 0.43, 0.36, 0.65, 0.32, "#957350");
-    part(horse, 0, 1.22, 0.61, 0.38, 0.28, 0.52, "#a5835b");
-    part(horse, 0, 1.5, 0.5, 0.3, 0.14, 0.12, "#64533d");
+    tints.coat.push(part(horse, 0, 0.62, 0, 0.56, 0.5, 1.15, "#957350"), part(horse, 0, 0.82, 0.43, 0.36, 0.65, 0.32, "#957350"));
+    tints.head.push(part(horse, 0, 1.22, 0.61, 0.38, 0.28, 0.52, "#a5835b"));
+    tints.mane.push(part(horse, 0, 1.5, 0.5, 0.3, 0.14, 0.12, "#64533d"));
     for (const x of [-0.2, 0.2]) part(horse, x, 1.39, 0.67, 0.03, 0.04, 0.05, "#2f3932");
-    part(horse, 0, 0.72, -0.66, 0.16, 0.4, 0.15, "#64533d");
-    part(horse, 0, 1.12, 0, 0.68, 0.08, 0.5, player === 0 ? "#45728c" : "#b25441");
+    tints.mane.push(part(horse, 0, 0.72, -0.66, 0.16, 0.4, 0.15, "#64533d"));
+    part(horse, 0, 1.12, 0, 0.68, 0.08, 0.5, team2);
     for (const x of [-0.19, 0.19]) for (const z of [-0.42, 0.42]) {
       const leg = new T.Group();
       leg.name = `horse-leg-${legs.length}`;
       leg.position.set(x, 0.62, z);
       horse.add(leg);
       legs.push(leg);
-      part(leg, 0, -0.62, 0, 0.15, 0.62, 0.17, "#957350");
+      tints.coat.push(part(leg, 0, -0.62, 0, 0.15, 0.62, 0.17, "#957350"));
       part(leg, 0, -0.62, 0.025, 0.18, 0.12, 0.22, "#514b3c");
     }
     saddle = new T.Group();
@@ -1070,33 +1837,62 @@ function createCharacterRig(T, player, box2, material) {
     saddle.position.set(0, 0.9, -0.05);
     horse.add(saddle);
   }
+  function makeBarding() {
+    barding2 = new T.Group();
+    barding2.name = "horse-barding";
+    horse.add(barding2);
+    const steel = "#8f9896";
+    part(barding2, 0, 0.58, 0, 0.6, 0.42, 1.19, steel);
+    part(barding2, 0, 0.56, 0, 0.62, 0.06, 1.21, team2);
+    part(barding2, 0, 0.84, 0.43, 0.4, 0.5, 0.36, steel);
+    part(barding2, 0, 1.24, 0.86, 0.3, 0.24, 0.04, steel);
+    part(barding2, 0, 1.48, 0.5, 0.06, 0.16, 0.06, team2);
+  }
   function dress(role) {
-    mounted = role === "cavalry";
-    if (mounted) {
-      if (!horse) makeHorse();
-      horse.visible = true;
-      saddle.add(rider.root);
-      rider.dress("swordsman");
-      rider.equip("spear");
+    const next = isMounted(role) ? role : null;
+    mounted = next;
+    if (next) {
+      const look = mounts[next];
+      if (look.horse) {
+        if (!horse) makeHorse();
+        horse.visible = true;
+        if (elephant) elephant.root.visible = false;
+        for (const k of ["coat", "head", "mane"]) for (const m of tints[k]) m.material = material(look.horse[k]);
+        if (look.horse.barding && !barding2) makeBarding();
+        if (barding2) barding2.visible = look.horse.barding;
+        saddle.add(rider.root);
+      } else {
+        if (!elephant) {
+          elephant = createElephantMount(T, player, box2, material);
+          root.add(elephant.root);
+        }
+        elephant.root.visible = true;
+        if (horse) horse.visible = false;
+        elephant.saddle.add(rider.root);
+      }
+      rider.dress(look.rider);
+      rider.equip(look.tool);
     } else {
       if (horse) horse.visible = false;
+      if (elephant) elephant.root.visible = false;
       root.add(rider.root);
       rider.dress(role);
     }
-    rider.seat(mounted);
+    rider.seat(!!next);
     pose("idle", 0);
   }
   function pose(kind, time) {
     if (mounted && !["idle", "walk", "attack"].includes(kind)) throw Error("\u9A0E\u4E58\u6A21\u578B\u76EE\u524D\u50C5\u652F\u63F4\u5F85\u547D\u3001\u884C\u8D70\u8207\u653B\u64CA\u59FF\u614B");
     rider.pose(kind, time);
     if (horse) {
-      const phase = Number.isFinite(time) ? Math.max(0, time) * 0.012 : 0;
+      const phase = Number.isFinite(time) ? Math.max(0, time) * 0.012 : 0, walking = mounted && mounted !== "war-elephant" && kind === "walk";
       legs.forEach((leg, i) => {
-        const swing = mounted && kind === "walk" ? Math.sin(phase + (i === 0 || i === 3 ? 0 : Math.PI)) * 0.26 : 0;
+        const swing = walking ? Math.sin(phase + (i === 0 || i === 3 ? 0 : Math.PI)) * 0.26 : 0;
         leg.rotation.x = swing;
         leg.position.y = 0.62 + Math.abs(Math.sin(swing)) * 0.14;
       });
     }
+    if (elephant) elephant.pose(mounted === "war-elephant" ? kind : "idle", time);
   }
   return { root, sockets: rider.sockets, equip: rider.equip, dress, pose };
 }
@@ -1196,15 +1992,16 @@ var animalRules = {
 };
 
 // apps/web/rig-roles.ts
+var footUniques = ["longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "samurai", "janissary", "chu-ko-nu"];
 function roleOf(kind) {
-  return kind === "militia" ? "swordsman" : kind === "spearman" ? "spearman" : kind === "archer" || kind === "skirmisher" ? "archer" : kind === "scout" || kind === "knight" ? "cavalry" : kind === "monk" ? "monk" : "villager";
+  return kind === "militia" ? "swordsman" : kind === "spearman" ? "spearman" : kind === "archer" || kind === "skirmisher" ? "archer" : kind === "scout" || kind === "knight" ? "cavalry" : kind === "monk" ? "monk" : footUniques.includes(kind) ? kind : isMounted(kind) ? kind : "villager";
 }
 function poseFor(kind, pose) {
-  return roleOf(kind) === "cavalry" && !["idle", "walk", "attack"].includes(pose) ? "idle" : pose;
+  return isMounted(roleOf(kind)) && !["idle", "walk", "attack"].includes(pose) ? "idle" : pose;
 }
 function corpseRole(kind) {
   const role = roleOf(kind);
-  return role === "cavalry" ? "swordsman" : role;
+  return isMounted(role) ? mounts[role].rider : role;
 }
 
 // apps/web/picking.ts
@@ -1222,9 +2019,9 @@ function detailLevel(zoom) {
 }
 function createDetailController(T) {
   const detailed = /* @__PURE__ */ new Map(), simple = /* @__PURE__ */ new Map();
-  function register(geometry, w, h, d) {
-    const low = new T.BoxGeometry(w, h, d);
-    low.translate(0, h / 2, 0);
+  function register(geometry, w, h2, d) {
+    const low = new T.BoxGeometry(w, h2, d);
+    low.translate(0, h2 / 2, 0);
     detailed.set(geometry, geometry);
     detailed.set(low, geometry);
     simple.set(geometry, low);
@@ -1264,7 +2061,7 @@ var economicBuildings = ["lumber-camp", "mining-camp", "mill", "farm", "town-cen
 function economicBuildingParts(kind, v) {
   if (!economicBuildings.includes(kind) || ![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u7D93\u6FDF\u5EFA\u7BC9\u5916\u89C0");
   const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", stone2 = "#aaa994", brass = "#bca068", water = "#6a9297", height = 1.28 + (age - 1) * 0.16;
-  const add = (id, phase, x, z, y, w, d, h, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h, color, studs, ...shape ? { shape } : {} });
+  const add = (id, phase, x, z, y, w, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, kind === "farm" ? "#806b49" : "#b3aa8c");
   if (kind === "farm") {
     for (let row = 0; row < 4; row++) {
@@ -1444,10 +2241,10 @@ function economicBuildingParts(kind, v) {
 
 // apps/web/building-parts.ts
 function buildingParts(visual) {
-  const { ageVariant: age, progress, health, red } = visual;
+  const { ageVariant: age, progress, health, red: red2 } = visual;
   if (![1, 2, 3, 4].includes(age) || ![progress, health].every((v) => Number.isFinite(v) && v >= 0 && v <= 100)) throw Error("\u7121\u6548\u5EFA\u7BC9\u5916\u89C0\u72C0\u614B");
-  const parts = [], team2 = red ? "#b85c47" : "#456e87";
-  const add = (id, phase2, x, z, y, w, d, h, color, studs = false, shape) => parts.push({ id, phase: phase2, x, z, y, w, d, h, color, studs, ...shape ? { shape } : {} });
+  const parts = [], team2 = red2 ? "#b85c47" : "#456e87";
+  const add = (id, phase2, x, z, y, w, d, h2, color, studs = false, shape) => parts.push({ id, phase: phase2, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
   const footprint = obstacleFootprints.house;
   add("foundation", 0, footprint.x / 100, footprint.y / 100, 0, footprint.width / 100, footprint.depth / 100, 0.16, "#b3aa8c");
   const courses = age + 2, wallTop = 0.16 + courses * 0.32, wall = age <= 2 ? "#dec59b" : "#b7b6a5";
@@ -1491,6 +2288,60 @@ function buildingParts(visual) {
   }
   const phase = Math.min(4, Math.floor(progress / 20));
   return parts.filter((p) => p.phase <= phase).filter((p) => health >= 50 || !(p.id.startsWith("roof-") && Number(p.id.split("-")[2]) % 2 === 0 || p.id === "flag"));
+}
+var architectures = ["neutral", "west", "central", "mideast", "eastasia"];
+var slate = "#5d6670";
+var tar = "#4a3d30";
+var carved = "#6e5438";
+var lime = "#e9e1cf";
+var sand2 = "#d8c9a6";
+var tile = "#3f4a4c";
+var gilt = "#c9a55a";
+var eave = (id) => id === "roof" || /^roof-0(-|$)/.test(id) || /^(canopy-roof|awning-\d|keep-roof-0|keep-parapet|hoard-roof-.*)$/.test(id);
+var ornament = /flag|pole|pennant|banner|finial|vane|rope|bell|debris|style-/;
+function regionalParts(parts, style) {
+  if (!architectures.includes(style)) throw Error("\u672A\u77E5\u5EFA\u7BC9\u98A8\u683C");
+  if (style === "neutral" || parts.length < 2 || !parts.some((p) => p.phase >= 2)) return parts;
+  const out = [...parts], base = parts[0], x0 = base.x, x1 = base.x + base.w, z0 = base.z, z1 = base.z + base.d;
+  const clash = (a) => out.some((b) => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 1e-8 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 1e-8 && Math.min(a.z + a.d, b.z + b.d) - Math.max(a.z, b.z) > 1e-8);
+  const place = (slot, phase, stack) => {
+    if (stack.some(clash) || stack.some((s) => s.x < x0 - 1e-8 || s.z < z0 - 1e-8 || s.x + s.w > x1 + 1e-8 || s.z + s.d > z1 + 1e-8)) return;
+    stack.forEach((s, i) => out.push({ id: `style-${style}-${slot}-${i}`, phase, studs: false, ...s }));
+  };
+  const eaves = parts.filter((p) => eave(p.id));
+  if (eaves.length) {
+    const y = Math.min(...eaves.map((p) => p.y)), tier = eaves.filter((p) => Math.abs(p.y - y) < 1e-6), top = y + tier[0].h;
+    const rx0 = Math.max(x0, Math.min(...tier.map((p) => p.x))), rx1 = Math.min(x1, Math.max(...tier.map((p) => p.x + p.w))), rz0 = Math.max(z0, Math.min(...tier.map((p) => p.z))), rz1 = Math.min(z1, Math.max(...tier.map((p) => p.z + p.d))), c = 0.16;
+    for (const [sx, sz] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+      const cx = sx ? rx1 - c : rx0, cz = sz ? rz1 - c : rz0, under = tier.find((p) => p.x <= cx + 1e-8 && p.x + p.w >= cx + c - 1e-8 && p.z <= cz + 1e-8 && p.z + p.d >= cz + c - 1e-8);
+      if (!under) continue;
+      const ox = sx ? cx + c - 0.1 : cx, oz = sz ? cz + c - 0.1 : cz;
+      const stack = style === "eastasia" ? [{ x: cx, z: cz, y: top, w: c, d: c, h: 0.08, color: under.color }, { x: ox, z: oz, y: top + 0.08, w: 0.1, d: 0.1, h: 0.18, color: under.color }] : style === "west" ? [{ x: cx, z: cz, y: top, w: c, d: c, h: 0.3, color: slate }, { x: cx + 0.05, z: cz + 0.05, y: top + 0.3, w: 0.06, d: 0.06, h: 0.2, color: slate }] : style === "central" ? [{ x: cx + 0.02, z: cz + 0.02, y: top, w: 0.12, d: 0.12, h: 0.44, color: tar }, { x: ox, z: oz, y: top + 0.44, w: 0.1, d: 0.1, h: 0.12, color: carved }] : [{ x: cx, z: cz, y: top, w: c, d: c, h: 0.18, color: lime }, { x: cx + 0.04, z: cz + 0.04, y: top + 0.18, w: 0.08, d: 0.08, h: 0.1, color: lime }];
+      place(`corner-${sx}${sz}`, under.phase, stack);
+    }
+  }
+  const peak = Math.max(...parts.map((p) => p.y + p.h)), free = parts.slice(1).filter((p) => p.w >= 0.2 && p.d >= 0.2 && !ornament.test(p.id) && p.y + p.h >= 0.6 * peak && !parts.some((o) => o !== p && Math.abs(o.y - p.y - p.h) < 1e-8 && o.x < p.x + p.w && o.x + o.w > p.x && o.z < p.z + p.d && o.z + o.d > p.z)).sort((a, b) => b.y + b.h - (a.y + a.h) || b.w * b.d - a.w * a.d);
+  const crowns = free.filter((p) => free.length && Math.abs(p.y + p.h - free[0].y - free[0].h) < 1e-6 && Math.abs(p.w * p.d - free[0].w * free[0].d) < 1e-6);
+  crowns.forEach((crown, k) => {
+    const top = crown.y + crown.h, cx = crown.x + crown.w / 2, cz = crown.z + crown.d / 2, s = Math.min(crown.w, crown.d), sq = (w, y, h2, color) => ({ x: cx - w / 2, z: cz - w / 2, y, w, d: w, h: h2, color });
+    let stack = [];
+    if (style === "west") {
+      const b = Math.min(0.6 * s, 0.6);
+      stack = [sq(b, top, 0.2, slate), sq(b * 0.66, top + 0.2, 0.28, slate), sq(b * 0.33, top + 0.48, 0.36, slate), sq(0.06, top + 0.84, 0.26, gilt)];
+    } else if (style === "mideast") {
+      const b = Math.min(0.7 * s, 0.7);
+      stack = [sq(b, top, 0.16, sand2), sq(b * 0.9, top + 0.16, 0.18, lime), sq(b * 0.72, top + 0.34, 0.14, lime), sq(b * 0.48, top + 0.48, 0.12, lime), sq(b * 0.24, top + 0.6, 0.08, lime), sq(0.06, top + 0.68, 0.26, gilt)];
+    } else if (style === "eastasia") {
+      const e = 0.1, px0 = Math.max(x0, crown.x - e), px1 = Math.min(x1, crown.x + crown.w + e), pz0 = Math.max(z0, crown.z - e), pz1 = Math.min(z1, crown.z + crown.d + e), t = 0.1;
+      stack = [{ x: px0, z: pz0, y: top, w: px1 - px0, d: pz1 - pz0, h: 0.08, color: tile }, ...[[px0, pz0], [px1 - t, pz0], [px0, pz1 - t], [px1 - t, pz1 - t]].map(([x, z]) => ({ x, z, y: top + 0.08, w: t, d: t, h: 0.16, color: tile })), sq(Math.min(0.6 * s, 0.6), top + 0.08, 0.2, tile), sq(Math.min(0.3 * s, 0.3), top + 0.28, 0.12, tile), sq(0.1, top + 0.4, 0.2, gilt)];
+    } else {
+      const alongX = crown.w >= crown.d, L = alongX ? crown.w : crown.d, r = Math.max(0.1, Math.min(0.4 * L, 0.5 * L - 0.12));
+      const bar = (a0, a1, y, h2, t, color) => alongX ? { x: cx + a0, z: cz - t / 2, y, w: a1 - a0, d: t, h: h2, color } : { x: cx - t / 2, z: cz + a0, y, w: t, d: a1 - a0, h: h2, color };
+      stack = [bar(-r, r, top, 0.1, 0.12, tar), bar(-r, -r + 0.1, top + 0.1, 0.5, 0.1, tar), bar(r - 0.1, r, top + 0.1, 0.5, 0.1, tar), bar(-r - 0.12, -r + 0.1, top + 0.6, 0.12, 0.1, carved), bar(r - 0.1, r + 0.12, top + 0.6, 0.12, 0.1, carved)];
+    }
+    place(`crown-${k}`, crown.phase, stack);
+  });
+  return out;
 }
 
 // packages/sim/navigation.ts
@@ -1572,9 +2423,9 @@ function generateCandidate(seed, layout) {
   for (const x of [500, 1e3]) flock(map, "deer", x + 25, 1025, 4);
   return map;
 }
-function flock(map, kind, x, y, count, within = 200, owner, open = 0) {
+function flock(map, kind, x, y, count, within = 200, owner, open2 = 0) {
   const closed = blockedTable(map), taken = new Set([...map.starts.flat(), ...map.scouts ?? [], ...map.animals ?? []].map((p) => nodeAt(map, p)));
-  const roomy = (n) => !open || nodesNear(map, [position(map, n).x, position(map, n).y, position(map, n).x, position(map, n).y], 100).filter((m) => !closed[m]).length >= open;
+  const roomy = (n) => !open2 || nodesNear(map, [position(map, n).x, position(map, n).y, position(map, n).x, position(map, n).y], 100).filter((m) => !closed[m]).length >= open2;
   const nodes = nodesNear(map, [x, y, x, y], within).filter((n) => !closed[n] && !taken.has(n) && roomy(n)).map((n) => ({ n, d: Math.abs(position(map, n).x - x) + Math.abs(position(map, n).y - y) })).sort((a, b) => a.d - b.d || a.n - b.n);
   for (const { n } of nodes.slice(0, count)) (map.animals ??= []).push({ kind, ...position(map, n), ...owner === void 0 ? {} : { owner } });
 }
@@ -1757,10 +2608,10 @@ function clearSegment(map, a, b, movement = "land") {
   const maxStep = movement === "land" ? terrainRules.maxLandStep : 0, radius = navigationRules.radius;
   const tx0 = Math.max(0, Math.floor((Math.min(a.x, b.x) - radius) / 100) - 1), tx1 = Math.min(size - 1, Math.floor((Math.max(a.x, b.x) + radius) / 100) + 1), ty0 = Math.max(0, Math.floor((Math.min(a.y, b.y) - radius) / 100) - 1), ty1 = Math.min(size - 1, Math.floor((Math.max(a.y, b.y) + radius) / 100) + 1);
   for (let y = ty0; y <= ty1; y++) for (let x = tx0; x <= tx1; x++) {
-    const tile = map.tiles[y * size + x];
-    if (x < size - 1 && Math.abs(tile.height - map.tiles[tile.id + 1].height) > maxStep && intersects(a, b, [(x + 1) * 100 - radius, y * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
-    if (y < size - 1 && Math.abs(tile.height - map.tiles[tile.id + size].height) > maxStep && intersects(a, b, [x * 100 - radius, (y + 1) * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
-    if (!canTraverse(tile, movement) && intersects(a, b, [x * 100 - radius, y * 100 - radius, x * 100 + 100 + radius, y * 100 + 100 + radius])) return false;
+    const tile2 = map.tiles[y * size + x];
+    if (x < size - 1 && Math.abs(tile2.height - map.tiles[tile2.id + 1].height) > maxStep && intersects(a, b, [(x + 1) * 100 - radius, y * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
+    if (y < size - 1 && Math.abs(tile2.height - map.tiles[tile2.id + size].height) > maxStep && intersects(a, b, [x * 100 - radius, (y + 1) * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
+    if (!canTraverse(tile2, movement) && intersects(a, b, [x * 100 - radius, y * 100 - radius, x * 100 + 100 + radius, y * 100 + 100 + radius])) return false;
   }
   for (const o of map.obstacles) for (const [x0, y0, x1, y1] of obstacleRects(o, navigationRules.radius)) {
     let lo = 0, hi = 1;
@@ -1799,10 +2650,10 @@ function validateMap(map) {
   const obstacles = new Set(map.obstacles.map((o) => o.id)), resources2 = new Set(map.resources.map((r) => r.id));
   if (obstacles.size !== map.obstacles.length || obstacles.has(void 0)) errors.push("\u969C\u7919 ID \u91CD\u8907\u6216\u7F3A\u5C11");
   if (resources2.size !== map.resources.length) errors.push("\u8CC7\u6E90 ID \u91CD\u8907");
-  for (const tile of map.tiles) {
-    if (!Number.isSafeInteger(tile.height) || tile.height < 0) errors.push(`\u5730\u683C ${tile.id} \u9AD8\u5EA6\u7121\u6548`);
-    if (!["land", "water", "both", "blocked"].includes(tile.walkClass) || typeof tile.buildability !== "boolean") errors.push(`\u5730\u683C ${tile.id} \u901A\u884C\u6216\u5EFA\u9020\u898F\u5247\u7121\u6548`);
-    if (tile.resourceRefs.some((id) => !resources2.has(id)) || tile.obstacleRefs.some((id) => !obstacles.has(id))) errors.push(`\u5730\u683C ${tile.id} \u53C3\u7167\u5931\u6548`);
+  for (const tile2 of map.tiles) {
+    if (!Number.isSafeInteger(tile2.height) || tile2.height < 0) errors.push(`\u5730\u683C ${tile2.id} \u9AD8\u5EA6\u7121\u6548`);
+    if (!["land", "water", "both", "blocked"].includes(tile2.walkClass) || typeof tile2.buildability !== "boolean") errors.push(`\u5730\u683C ${tile2.id} \u901A\u884C\u6216\u5EFA\u9020\u898F\u5247\u7121\u6548`);
+    if (tile2.resourceRefs.some((id) => !resources2.has(id)) || tile2.obstacleRefs.some((id) => !obstacles.has(id))) errors.push(`\u5730\u683C ${tile2.id} \u53C3\u7167\u5931\u6548`);
   }
   for (const r of map.resources) {
     if (!resourceDefinitions[r.kind]) {
@@ -1865,7 +2716,7 @@ function validateStartingResources(map) {
         }
         return { id: resource.id, remaining: resource.remaining, distance, approach: approach2 };
       }).filter((n) => n.distance <= startingResourceRules.maxApproachDistance);
-      const available = nodes.reduce((sum2, n) => sum2 + n.remaining, 0), nearestDistance = nodes.length ? Math.min(...nodes.map((n) => n.distance)) : null;
+      const available = nodes.reduce((sum3, n) => sum3 + n.remaining, 0), nearestDistance = nodes.length ? Math.min(...nodes.map((n) => n.distance)) : null;
       if (available < minimum) errors.push(`\u73A9\u5BB6 ${player} \u8D77\u59CB ${kind} \u53EF\u9054\u5BB9\u91CF\u4E0D\u8DB3\uFF1A${available}/${minimum}`);
       return { kind, minimum, available, nearestDistance, nodes };
     });
@@ -1930,16 +2781,26 @@ function advancePathJob(map, job, budget) {
 }
 
 // apps/web/scene.ts
-var weaponOf = (kind) => kind === "militia" || kind === "knight" ? "sword" : kind === "archer" ? "bow" : kind === "scout" || kind === "spearman" || kind === "skirmisher" ? "spear" : kind === "monk" ? "staff" : "none";
+var weaponOf = (kind) => kind === "militia" || kind === "knight" ? "sword" : kind === "archer" ? "bow" : kind === "scout" || kind === "spearman" || kind === "skirmisher" ? "spear" : kind === "monk" ? "staff" : uniqueWeapon(kind);
+var uniqueWeapon = (kind) => {
+  const role = roleOf(kind);
+  return isMounted(role) ? mounts[role].tool : role === "villager" ? "none" : roleTools[role];
+};
+var iconUniques = ["longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "cataphract", "war-elephant", "mameluke", "janissary", "chu-ko-nu", "samurai", "mangudai"];
+var unitFrame = (kind) => {
+  const role = roleOf(kind);
+  return role === "war-elephant" ? { bar: 3.05, ring: 2.4 } : isMounted(role) ? { bar: 2.3, ring: 1.8 } : { bar: 1.42, ring: 1 };
+};
+var architectureOf = (civs, player) => civById(civs?.[player] ?? "")?.architecture ?? "neutral";
 var brickStyle = { studPitch: 0.5, plateHeight: 0.16, brickHeight: 0.32, bevel: 0.025, roughness: 0.62, provenance: "original_procedural" };
-function farmParts(progress, red) {
+function farmParts(progress, red2) {
   const out = [{ x: 0, y: 0, z: 0, w: 2, d: 2, h: 0.1, color: "#806b49", studs: false }];
   if (progress < 100) {
-    out.push({ x: 0.05, y: 0.1, z: 0.05, w: 0.08, d: 0.08, h: 0.4, color: red ? "#b85c47" : "#456e87", studs: false });
+    out.push({ x: 0.05, y: 0.1, z: 0.05, w: 0.08, d: 0.08, h: 0.4, color: red2 ? "#b85c47" : "#456e87", studs: false });
     return out;
   }
   for (const z of [0.2, 0.7, 1.2, 1.7]) out.push({ x: 0.15, y: 0.1, z: z - 0.1, w: 1.7, d: 0.2, h: 0.12, color: "#9bb65a", studs: true });
-  out.push({ x: 0.05, y: 0.1, z: 0.05, w: 0.08, d: 0.08, h: 0.4, color: red ? "#b85c47" : "#456e87", studs: false });
+  out.push({ x: 0.05, y: 0.1, z: 0.05, w: 0.08, d: 0.08, h: 0.4, color: red2 ? "#b85c47" : "#456e87", studs: false });
   return out;
 }
 async function createScene(canvas2, onFailure, options = {}) {
@@ -1980,21 +2841,21 @@ async function createScene(canvas2, onFailure, options = {}) {
     if (!materials.has(color)) materials.set(color, new T.MeshStandardMaterial({ color, roughness: brickStyle.roughness }));
     return materials.get(color);
   }
-  function box2(w, h, d) {
-    const key = `${w}:${h}:${d}`;
+  function box2(w, h2, d) {
+    const key = `${w}:${h2}:${d}`;
     if (geometry.has(key)) return geometry.get(key);
-    const b = Math.min(brickStyle.bevel, w / 8, h / 8, d / 8);
+    const b = Math.min(brickStyle.bevel, w / 8, h2 / 8, d / 8);
     const shape = new T.Shape();
     shape.moveTo(-w / 2 + b, -d / 2 + b);
     shape.lineTo(w / 2 - b, -d / 2 + b);
     shape.lineTo(w / 2 - b, d / 2 - b);
     shape.lineTo(-w / 2 + b, d / 2 - b);
     shape.closePath();
-    const geo = new T.ExtrudeGeometry(shape, { depth: Math.max(1e-3, h - 2 * b), bevelEnabled: true, bevelSize: b, bevelThickness: b, bevelSegments: 1, steps: 1, curveSegments: 1 });
+    const geo = new T.ExtrudeGeometry(shape, { depth: Math.max(1e-3, h2 - 2 * b), bevelEnabled: true, bevelSize: b, bevelThickness: b, bevelSegments: 1, steps: 1, curveSegments: 1 });
     geo.rotateX(-Math.PI / 2);
     geo.translate(0, b, 0);
     geometry.set(key, geo);
-    detail.register(geo, w, h, d);
+    detail.register(geo, w, h2, d);
     return geo;
   }
   const studGeo = new T.CylinderGeometry(studStyle.radius, studStyle.radius, studStyle.height, 10);
@@ -2015,17 +2876,17 @@ async function createScene(canvas2, onFailure, options = {}) {
     if (!batches.has(key)) batches.set(key, { geo, color, matrices: [] });
     batches.get(key).matrices.push(new T.Matrix4().makeTranslation(x, y + baseHeight, z));
   }
-  function arch(w, h, d) {
-    const key = `arch:${w}:${h}:${d}`;
-    if (!geometry.has(key)) geometry.set(key, createArchGeometry(T, w, h, d));
+  function arch(w, h2, d) {
+    const key = `arch:${w}:${h2}:${d}`;
+    if (!geometry.has(key)) geometry.set(key, createArchGeometry(T, w, h2, d));
     return geometry.get(key);
   }
-  function brick(x, z, y, w, d, h, color, studs = true, shape) {
-    staticPart(shape === "arch" ? arch(w - 0.018, h, d - 0.018) : box2(w - 0.018, h, d - 0.018), color, x + w / 2, y, z + d / 2);
-    if (studs) for (let a = 0.25; a < w; a += 0.5) for (let b = 0.25; b < d; b += 0.5) staticPart(studGeo, color, x + a, y + h + 0.04, z + b);
+  function brick(x, z, y, w, d, h2, color, studs = true, shape) {
+    staticPart(shape === "arch" ? arch(w - 0.018, h2, d - 0.018) : box2(w - 0.018, h2, d - 0.018), color, x + w / 2, y, z + d / 2);
+    if (studs) for (let a = 0.25; a < w; a += 0.5) for (let b = 0.25; b < d; b += 0.5) staticPart(studGeo, color, x + a, y + h2 + 0.04, z + b);
   }
   function groundBlock(x, z, height2, color) {
-    const h = height2 + 0.24, key = `ground:${h}`;
+    const h2 = height2 + 0.24, key = `ground:${h2}`;
     if (!geometry.has(key)) {
       const b = 0.03, shape = new T.Shape();
       shape.moveTo(-0.5 + b, -0.5 + b);
@@ -2033,7 +2894,7 @@ async function createScene(canvas2, onFailure, options = {}) {
       shape.lineTo(0.5 - b, 0.5 - b);
       shape.lineTo(-0.5 + b, 0.5 - b);
       shape.closePath();
-      const geo = new T.ExtrudeGeometry(shape, { depth: h - 2 * b, bevelEnabled: true, bevelSize: b, bevelThickness: b, bevelSegments: 1, steps: 1, curveSegments: 1 });
+      const geo = new T.ExtrudeGeometry(shape, { depth: h2 - 2 * b, bevelEnabled: true, bevelSize: b, bevelThickness: b, bevelSegments: 1, steps: 1, curveSegments: 1 });
       geo.rotateX(-Math.PI / 2);
       geo.translate(0, b, 0);
       geometry.set(key, geo);
@@ -2041,10 +2902,10 @@ async function createScene(canvas2, onFailure, options = {}) {
     }
     staticPart(geometry.get(key), color, x + 0.5, -0.24, z + 0.5);
   }
-  let previewBuildingKind = "house";
+  let previewBuildingKind = "house", previewStyle = "neutral";
   let previewBuilding = { ageVariant: 2, progress: 100, health: 100 };
-  function house(x, z, red = false, obstacleKind = "house", progress = 100, age = 2, health = 100) {
-    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, health, ageVariant: Math.min(4, Math.max(1, age)) }, parts = kind === "house" ? buildingParts({ ...visual, red }) : kind === "monastery" ? monasteryParts({ ...visual, red }) : kind === "blacksmith" ? blacksmithParts({ ...visual, red }) : kind === "watch-tower" ? towerParts({ ...visual, red }) : kind === "siege-workshop" ? siegeWorkshopParts({ ...visual, red }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red }) : economicBuildingParts(kind, { ...visual, red });
+  function house(x, z, red2 = false, obstacleKind = "house", progress = 100, age = 2, health = 100, style = "neutral") {
+    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, health, ageVariant: Math.min(4, Math.max(1, age)) }, parts = regionalParts(kind === "house" ? buildingParts({ ...visual, red: red2 }) : kind === "monastery" ? monasteryParts({ ...visual, red: red2 }) : kind === "blacksmith" ? blacksmithParts({ ...visual, red: red2 }) : kind === "watch-tower" ? towerParts({ ...visual, red: red2 }) : kind === "siege-workshop" ? siegeWorkshopParts({ ...visual, red: red2 }) : kind === "castle" ? castleParts({ ...visual, red: red2 }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red: red2 }) : economicBuildingParts(kind, { ...visual, red: red2 }), kind === "farm" ? "neutral" : options.assetPreview ? previewStyle : style);
     for (const p of parts) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, false, p.shape);
     for (const stud of buildingStuds(parts)) staticPart(studGeo, stud.color, x + stud.x, stud.y, z + stud.z);
   }
@@ -2058,7 +2919,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     scene2.add(staticGroup);
     batches.clear();
     baseHeight = 0;
-    const map = options.assetPreview ? makeMap(seed, previewLayout) : { tiles: view.terrain.map((tile, id) => ({ ...tile, id, resourceRefs: [], obstacleRefs: [] })), obstacles: view.known.map((k) => k.obstacle), resources: view.resources };
+    const map = options.assetPreview ? makeMap(seed, previewLayout) : { tiles: view.terrain.map((tile2, id) => ({ ...tile2, id, resourceRefs: [], obstacleRefs: [] })), obstacles: view.known.map((k) => k.obstacle), resources: view.resources };
     worldTiles = map.tiles;
     board = sizeOfTiles(map.tiles);
     platforms = map.obstacles.flatMap((o) => {
@@ -2066,20 +2927,20 @@ async function createScene(canvas2, onFailure, options = {}) {
       return p ? [{ x0: o.x + p.rect[0], y0: o.y + p.rect[1], x1: o.x + p.rect[2], y1: o.y + p.rect[3], height: p.height }] : [];
     });
     let rng = seed || 1;
-    for (const tile of map.tiles) {
-      const x = tile.id % board, z = Math.floor(tile.id / board);
+    for (const tile2 of map.tiles) {
+      const x = tile2.id % board, z = Math.floor(tile2.id / board);
       rng ^= rng << 13;
       rng ^= rng >>> 17;
       rng ^= rng << 5;
       const n = (rng >>> 0) / 4294967296;
-      groundBlock(x, z, tile.height / 100, !options.assetPreview && view.fog[tile.id] !== 2 ? view.fog[tile.id] === 1 ? "#626e64" : "#293e38" : tile.terrainType === "cliff" ? "#8a8065" : tile.terrainType === "stone" ? "#a1a28e" : tile.terrainType === "highland" ? "#879d69" : tile.terrainType === "water" ? "#4b8291" : tile.terrainType === "shallow" ? "#86b7b8" : tile.terrainType === "sand" ? "#d5c598" : tile.terrainType === "road" ? "#c4b18a" : n < 0.2 ? "#a6b582" : n < 0.5 ? "#b5c493" : "#becda0");
+      groundBlock(x, z, tile2.height / 100, !options.assetPreview && view.fog[tile2.id] !== 2 ? view.fog[tile2.id] === 1 ? "#626e64" : "#293e38" : tile2.terrainType === "cliff" ? "#8a8065" : tile2.terrainType === "stone" ? "#a1a28e" : tile2.terrainType === "highland" ? "#879d69" : tile2.terrainType === "water" ? "#4b8291" : tile2.terrainType === "shallow" ? "#86b7b8" : tile2.terrainType === "sand" ? "#d5c598" : tile2.terrainType === "road" ? "#c4b18a" : n < 0.2 ? "#a6b582" : n < 0.5 ? "#b5c493" : "#becda0");
     }
     for (const o of map.obstacles) {
       baseHeight = groundHeight(map.tiles, o.x, o.y) / 100;
       muted = !options.assetPreview && view.fog[tileAt(o.x, o.y, sizeOfTiles(map.tiles))] !== 2;
       const x = o.x / 100, z = o.y / 100;
       if (o.kind === "farm") for (const p of farmParts(o.progress ?? 100, o.red)) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, p.studs);
-      else if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks" || o.kind === "lumber-camp" || o.kind === "mining-camp" || o.kind === "mill" || o.kind === "stable" || o.kind === "archery-range" || o.kind === "monastery" || o.kind === "blacksmith" || o.kind === "watch-tower" || o.kind === "siege-workshop") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100);
+      else if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks" || o.kind === "lumber-camp" || o.kind === "mining-camp" || o.kind === "mill" || o.kind === "stable" || o.kind === "archery-range" || o.kind === "monastery" || o.kind === "blacksmith" || o.kind === "watch-tower" || o.kind === "siege-workshop" || o.kind === "castle") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100, options.assetPreview ? "neutral" : architectureOf(view.civs, o.red ? 1 : 0));
       else if (o.kind === "tree") {
         let v = Math.imul(o.x | 0, 73856093) ^ Math.imul(o.y | 0, 19349663);
         v = Math.imul(v ^ v >>> 16, 73244475);
@@ -2156,8 +3017,8 @@ async function createScene(canvas2, onFailure, options = {}) {
   function unit(id, player, kind = "villager") {
     const group = new T.Group();
     scene2.add(group);
-    const beast = isAnimal(kind), bar = new T.Group();
-    bar.position.y = beast ? kind === "deer" ? 1.3 : 0.95 : 1.42;
+    const beast = isAnimal(kind), frame2 = unitFrame(kind), bar = new T.Group();
+    bar.position.y = beast ? kind === "deer" ? 1.3 : 0.95 : frame2.bar;
     bar.visible = false;
     const back = new T.Mesh(barGeo, barBack);
     const fill = new T.Mesh(barGeo, new T.MeshBasicMaterial({ color: player === 0 ? "#5f9a6a" : player === 1 ? "#c0604c" : "#c9b27a" }));
@@ -2173,6 +3034,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     detail.apply(group, zoom);
     const ring = new T.Mesh(ringGeo, ringMaterial);
     ring.position.y = 0.025;
+    if (!beast) ring.scale.set(frame2.ring, 1, frame2.ring);
     group.add(ring);
     units.set(id, { group, rig, ring, player, moving: false, activity: "idle", tool: "none", poseStart: 0, bar, fill, goal: null, kind, relic: null });
     return units.get(id);
@@ -2215,7 +3077,7 @@ async function createScene(canvas2, onFailure, options = {}) {
   function update(view, ids) {
     latest = view;
     selected2 = new Set(typeof ids === "number" ? [ids] : ids);
-    const key = JSON.stringify([previewBuildingKind, previewBuilding, previewLayout, view.layout, view.seed, view.fog, view.known?.map((k) => k.obstacle), view.resources]);
+    const key = JSON.stringify([previewBuildingKind, previewBuilding, previewStyle, previewLayout, view.layout, view.seed, view.civs, view.fog, view.known?.map((k) => k.obstacle), view.resources]);
     if (worldKey !== key) {
       worldKey = key;
       const t = performance.now();
@@ -2329,19 +3191,19 @@ async function createScene(canvas2, onFailure, options = {}) {
     if (groundHit) return { x: groundHit.point.x, y: groundHit.point.z };
     return {};
   }
-  const buildingHeights = { "town-center": 2.6, barracks: 2.2, house: 1.9, farm: 0.25, "lumber-camp": 1.9, "mining-camp": 1.9, mill: 2.6, stable: 2.2, "archery-range": 2.2, blacksmith: 2.4, "watch-tower": 3.2, "siege-workshop": 2.2, monastery: 3.4 };
+  const buildingHeights = { "town-center": 2.6, barracks: 2.2, house: 1.9, farm: 0.25, "lumber-camp": 1.9, "mining-camp": 1.9, mill: 2.6, stable: 2.2, "archery-range": 2.2, blacksmith: 2.4, "watch-tower": 3.2, "siege-workshop": 2.2, monastery: 3.4, castle: 4.7 };
   function pickBuilding(clientX, clientY) {
     if (!latest) return;
     const r = canvas2.getBoundingClientRect();
     raycaster.setFromCamera(new T.Vector2((clientX - r.left) / r.width * 2 - 1, -(clientY - r.top) / r.height * 2 + 1), camera);
     let best, dist = Infinity;
-    const hit = new T.Vector3();
+    const hit2 = new T.Vector3();
     for (const { obstacle: o } of latest.known) {
-      const h = buildingHeights[o.kind];
-      if (!h || !o.id) continue;
+      const h2 = buildingHeights[o.kind];
+      if (!h2 || !o.id) continue;
       const [x0, y0, x1, y1] = obstacleBounds(o), base = groundHeight(worldTiles, o.x, o.y) / 100;
-      if (raycaster.ray.intersectBox(new T.Box3(new T.Vector3(x0 / 100, base, y0 / 100), new T.Vector3(x1 / 100, base + h, y1 / 100)), hit)) {
-        const d = hit.distanceTo(raycaster.ray.origin);
+      if (raycaster.ray.intersectBox(new T.Box3(new T.Vector3(x0 / 100, base, y0 / 100), new T.Vector3(x1 / 100, base + h2, y1 / 100)), hit2)) {
+        const d = hit2.distanceTo(raycaster.ray.origin);
         if (d < dist) {
           dist = d;
           best = o.id;
@@ -2353,8 +3215,8 @@ async function createScene(canvas2, onFailure, options = {}) {
   function pickGround(clientX, clientY) {
     const r = canvas2.getBoundingClientRect();
     raycaster.setFromCamera(new T.Vector2((clientX - r.left) / r.width * 2 - 1, -(clientY - r.top) / r.height * 2 + 1), camera);
-    const hit = raycaster.intersectObjects(staticGroup.children.filter((mesh) => mesh.userData.ground), false)[0];
-    return hit ? { x: hit.point.x, y: hit.point.z } : {};
+    const hit2 = raycaster.intersectObjects(staticGroup.children.filter((mesh) => mesh.userData.ground), false)[0];
+    return hit2 ? { x: hit2.point.x, y: hit2.point.z } : {};
   }
   function unitsInRect(x0, y0, x1, y1) {
     const r = canvas2.getBoundingClientRect(), out = [], p = new T.Vector3();
@@ -2527,15 +3389,16 @@ async function createScene(canvas2, onFailure, options = {}) {
         shoot(kind, g, { angle: Math.PI / 3, lift: 0.35 });
         shoot(`${kind}-face`, g, { angle: Math.PI / 3, lift: 0.35 });
       }
-      for (const kind of ["villager", "militia", "archer", "scout", "monk", "spearman", "skirmisher", "knight"]) {
+      for (const kind of ["villager", "militia", "archer", "scout", "monk", "spearman", "skirmisher", "knight", ...iconUniques]) {
         const rig = createCharacterRig(T, 0, box2, material);
         if (kind !== "villager") rig.dress(roleOf(kind));
         rig.equip(weaponOf(kind));
         rig.pose("idle", 0);
         const g = new T.Group();
         g.add(rig.root);
+        const role = roleOf(kind);
         shoot(kind, g, { angle: Math.PI / 7, lift: 0.35 });
-        shoot(`${kind}-face`, g, kind === "scout" || kind === "knight" ? { angle: Math.PI / 7, lift: 0.35, crop: 0.74, span: 0.21 } : { angle: Math.PI / 7, lift: 0.35, crop: 0.72 });
+        shoot(`${kind}-face`, g, role === "war-elephant" ? { angle: Math.PI / 7, lift: 0.35, crop: 0.81, span: 0.15 } : role === "mameluke" || role === "mangudai" ? { angle: Math.PI / 7, lift: 0.35, crop: 0.84, span: 0.23 } : isMounted(role) ? { angle: Math.PI / 7, lift: 0.35, crop: 0.74, span: 0.21 } : { angle: Math.PI / 7, lift: 0.35, crop: 0.72 });
       }
       const visual = (age) => ({ ageVariant: age, progress: 100, health: 100, red: false });
       for (const age of [1, 2, 3, 4]) {
@@ -2547,6 +3410,7 @@ async function createScene(canvas2, onFailure, options = {}) {
         shoot(`blacksmith-${age}`, parts(blacksmithParts(visual(age))));
         shoot(`watch-tower-${age}`, parts(towerParts(visual(age))));
         shoot(`siege-workshop-${age}`, parts(siegeWorkshopParts(visual(age))));
+        shoot(`castle-${age}`, parts(castleParts(visual(age))));
         shoot(`town-center-${age}`, parts(economicBuildingParts("town-center", visual(age))));
         for (const camp of ["lumber-camp", "mining-camp", "mill"]) shoot(`${camp}-${age}`, parts(economicBuildingParts(camp, visual(age))));
       }
@@ -2598,17 +3462,23 @@ async function createScene(canvas2, onFailure, options = {}) {
     renderIcons,
     cameraView,
     setPreviewBuildingKind: (kind) => {
-      if (!options.assetPreview || kind !== "house" && !economicBuildings.includes(kind) && !militaryBuildings.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5EFA\u7BC9");
+      if (!options.assetPreview || kind !== "house" && kind !== "castle" && !economicBuildings.includes(kind) && !militaryBuildings.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5EFA\u7BC9");
       previewBuildingKind = kind;
       if (latest) update(latest, selected2);
     },
+    setPreviewStyle: (style) => {
+      if (!options.assetPreview || !architectures.includes(style)) throw Error("\u672A\u77E5\u5EFA\u7BC9\u98A8\u683C");
+      previewStyle = style;
+      if (latest) update(latest, selected2);
+    },
     setPreviewRole: (role) => {
-      if (!options.assetPreview || !unitRoles.includes(role) && role !== "cavalry") throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u6709\u6548\u8ECD\u7A2E");
+      if (!options.assetPreview || !unitRoles.includes(role) && !isMounted(role)) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u6709\u6548\u8ECD\u7A2E");
       previewRole = role;
       previewPose = "idle";
+      const ring = role === "war-elephant" ? 2.4 : isMounted(role) ? 1.8 : 1;
       for (const u of units.values()) {
         u.rig.dress(role);
-        u.ring.scale.set(role === "cavalry" ? 1.8 : 1, 1, role === "cavalry" ? 1.8 : 1);
+        u.ring.scale.set(ring, 1, ring);
         detail.apply(u.group, zoom);
       }
     },
@@ -2640,7 +3510,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     },
     setPreviewMotion: (pose, tool, animated) => {
       if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u59FF\u614B");
-      if (previewRole === "cavalry" && !["idle", "walk", "attack"].includes(pose) || !unitPoses.includes(pose) || !unitTools.includes(tool)) throw Error("\u672A\u77E5\u6A21\u578B\u59FF\u614B\u6216\u5DE5\u5177");
+      if (isMounted(previewRole) && !["idle", "walk", "attack"].includes(pose) || !unitPoses.includes(pose) || !unitTools.includes(tool)) throw Error("\u672A\u77E5\u6A21\u578B\u59FF\u614B\u6216\u5DE5\u5177");
       previewPose = pose;
       previewTool = tool;
       previewAnimated = animated;
@@ -2766,6 +3636,89 @@ var techEffectText = {
   "crop-rotation": "\u4E4B\u5F8C\u5EFA\u7684\u8FB2\u7530\u98DF\u7269 +175"
 };
 
+// packages/sim/civ.ts
+var asOwner = (o) => Array.isArray(o) ? { civ: neutralCiv, age: 1, techs: o } : o;
+var byCiv = new Map(civDefs.map((c) => [c.id, c.effects]));
+function activeEffects(o, kind) {
+  const list = byCiv.get(o.civ);
+  if (!list) return [];
+  return list.filter((e) => e.kind === kind && (e.trigger.age === void 0 || o.age >= e.trigger.age) && (e.trigger.tech === void 0 || o.techs.includes(e.trigger.tech)));
+}
+var valueOf = (e, o) => typeof e.value === "number" ? e.value : e.value[Math.min(3, Math.max(0, o.age - 1))];
+var hit = (list, values) => !!list && values.some((v) => list.includes(v));
+function unitMatches(sel, kind, classes) {
+  if (hit(sel.exclude, [kind, ...classes])) return false;
+  return hit(sel.kinds, [kind]) || hit(sel.classes, classes);
+}
+function entryMatches(sel, entryId) {
+  if (sel.exclude?.includes(entryId)) return false;
+  const e = rules.entries.find((e2) => e2.id === entryId);
+  return !!sel.entries?.includes(entryId) || !!e && (sel.allUnits && e.kind === "unit" || sel.allTechs && e.kind === "technology");
+}
+var buildingMatches = (sel, kind) => !sel.buildings || sel.buildings.includes(kind);
+var sum2 = (list, o) => list.reduce((t, e) => t + valueOf(e, o), 0);
+var product = (list, o) => list.reduce((t, e) => t * valueOf(e, o), 1);
+var unitSum = (o, kind, unit, classes, op = "add") => sum2(activeEffects(o, kind).filter((e) => e.op === op && unitMatches(e.select, unit, classes)), o);
+var unitProduct = (o, kind, unit, classes) => product(activeEffects(o, kind).filter((e) => e.op === "mul" && unitMatches(e.select, unit, classes)), o);
+function unitBonuses(o, unit, classes) {
+  const out = {};
+  for (const e of activeEffects(o, "bonus")) if (e.vs && unitMatches(e.select, unit, classes)) {
+    const v = valueOf(e, o);
+    if (v) out[e.vs] = (out[e.vs] ?? 0) + v;
+  }
+  return out;
+}
+function costOf(entryId, o) {
+  const e = rules.entries.find((e2) => e2.id === entryId);
+  const cost = { food: 0, wood: 0, gold: 0, stone: 0, ...e?.cost ?? {} };
+  for (const fx2 of activeEffects(o, "cost")) if (entryMatches(fx2.select, entryId)) {
+    for (const r of resources) if (!fx2.resource || fx2.resource === r) cost[r] = cost[r] * valueOf(fx2, o);
+  }
+  for (const r of resources) cost[r] = Math.max(0, Math.round(cost[r]));
+  for (const fx2 of activeEffects(o, "costShift")) if (entryMatches(fx2.select, entryId) && fx2.resource && fx2.to) {
+    cost[fx2.to] += cost[fx2.resource];
+    cost[fx2.resource] = 0;
+  }
+  return cost;
+}
+function timeTicks(entryId, o, building) {
+  const e = rules.entries.find((e2) => e2.id === entryId);
+  if (!e) return 0;
+  const scale = product(activeEffects(o, "time").filter((fx2) => entryMatches(fx2.select, entryId)), o), rate = sum2(activeEffects(o, "workRate").filter((fx2) => buildingMatches(fx2.select, building)), o);
+  return Math.round(e.time * rules.settings.tickHz * scale * 100 / (100 + rate));
+}
+function producersOf(entryId, o) {
+  const base = rules.production[entryId];
+  const out = base ? [base] : [];
+  for (const fx2 of activeEffects(o, "producer")) if (fx2.select.entries?.includes(entryId)) {
+    for (const b of fx2.select.buildings ?? []) if (!out.includes(b)) out.push(b);
+  }
+  return out;
+}
+function producedAt(building, o) {
+  const out = Object.entries(rules.production).filter(([, b]) => b === building).map(([id]) => id);
+  for (const fx2 of activeEffects(o, "producer")) if (fx2.select.buildings?.includes(building)) {
+    for (const id of fx2.select.entries ?? []) if (!out.includes(id)) out.push(id);
+  }
+  return out;
+}
+var civAvailable = (civ, entryId) => {
+  const c = rules.civilizations.find((c2) => c2.id === civ) ?? rules.civilizations.find((c2) => c2.id === neutralCiv);
+  return c.available.includes(entryId);
+};
+var buildingSum = (o, kind, building) => sum2(activeEffects(o, kind).filter((e) => buildingMatches(e.select, building)), o);
+var housingBonus = (o, building) => buildingSum(o, "housing", building);
+var garrisonBonus = (o, building) => buildingSum(o, "garrison", building);
+function arrowsOf(o, building) {
+  return {
+    extra: buildingSum(o, "arrows", building),
+    damage: buildingSum(o, "arrowDamage", building),
+    range: buildingSum(o, "arrowRange", building),
+    cooldown: product(activeEffects(o, "arrowCooldown").filter((e) => buildingMatches(e.select, building)), o),
+    garrisonClasses: activeEffects(o, "garrisonArrows").filter((e) => buildingMatches(e.select, building)).flatMap((e) => [...e.select.classes ?? []])
+  };
+}
+
 // packages/sim/stats.ts
 var combatRules = {
   provenance: "design_default",
@@ -2791,15 +3744,63 @@ var combatRules = {
     skirmisher: { hp: 30, damage: 2, range: 200, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 3], classes: ["archer", "skirmisher"], bonus: { archer: 4, spear: 3 } },
     knight: { hp: 100, damage: 10, range: 50, cooldown: 18, sight: 350, attack: "melee", armor: [2, 2], classes: ["cavalry"], bonus: {} },
     // Battering ram: strikes buildings only (+40 against them), all but immune to arrows, slow.
-    ram: { hp: 175, damage: 2, range: 50, cooldown: 60, sight: 0, attack: "melee", armor: [0, 120], classes: ["siege"], bonus: { building: 40 } }
+    ram: { hp: 175, damage: 2, range: 50, cooldown: 60, sight: 0, attack: "melee", armor: [0, 120], classes: ["siege"], bonus: { building: 40 } },
+    // Unique units (trained at the Castle): hit points, attack, armor and bonuses from aoetw.com's unit pages; range at
+    // 50 units per tile over a 150 base (Longbowman 5 -> 300), melee cooldown = the reference's seconds x 10, ranged x 15.
+    // Classes: 'unique' (the Samurai's bonus), 'gunpowder' (Turks), 'cavalry-archer' (Mongols); see docs/aoe2-rules-research.md.
+    longbowman: { hp: 35, damage: 6, range: 300, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "unique"], bonus: { spear: 2 } },
+    "woad-raider": { hp: 65, damage: 8, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 1], classes: ["infantry", "unique"], bonus: { building: 2 } },
+    // Its axes are thrown: a melee attack from 3 tiles.
+    "throwing-axeman": { hp: 60, damage: 7, range: 200, cooldown: 20, sight: 350, attack: "melee", armor: [0, 0], classes: ["infantry", "unique"], bonus: { building: 1 } },
+    huskarl: { hp: 60, damage: 10, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 6], classes: ["infantry", "unique"], bonus: { building: 2, archer: 6 } },
+    "teutonic-knight": { hp: 80, damage: 12, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [5, 2], classes: ["infantry", "unique"], bonus: { building: 4 } },
+    // Regains 20 hit points a minute (Berserkergang: 40).
+    berserk: { hp: 54, damage: 9, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 1], classes: ["infantry", "unique"], bonus: { building: 2 }, regen: 20 },
+    cataphract: { hp: 110, damage: 9, range: 50, cooldown: 18, sight: 350, attack: "melee", armor: [2, 1], classes: ["cavalry", "unique"], bonus: { infantry: 9 } },
+    "war-elephant": { hp: 450, damage: 15, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [1, 2], classes: ["cavalry", "unique", "elephant"], bonus: { building: 7 } },
+    // A melee attack from 3 tiles, like the Throwing Axeman.
+    mameluke: { hp: 65, damage: 8, range: 200, cooldown: 20, sight: 350, attack: "melee", armor: [0, 0], classes: ["cavalry", "unique"], bonus: { cavalry: 9 } },
+    janissary: { hp: 35, damage: 17, range: 450, cooldown: 50, sight: 450, attack: "pierce", armor: [1, 0], classes: ["archer", "gunpowder", "unique"], bonus: { siege: 2 } },
+    // Fires three arrows a shot: the first at full attack, the other two at 3 each.
+    "chu-ko-nu": { hp: 45, damage: 8, range: 250, cooldown: 55, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "unique"], bonus: { spear: 2 }, extraShots: 2, extraDamage: 3 },
+    samurai: { hp: 60, damage: 8, range: 50, cooldown: 19, sight: 350, attack: "melee", armor: [1, 1], classes: ["infantry", "unique"], bonus: { building: 2, unique: 10 } },
+    mangudai: { hp: 60, damage: 6, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "cavalry", "cavalry-archer", "unique"], bonus: { siege: 3, spear: 1 } }
   },
   // Structures shrug off arrows: [melee, pierce] armor of every building.
   buildingArmor: [0, 2],
-  buildings: { "town-center": 400, house: 150, barracks: 300, farm: 100, "lumber-camp": 200, "mining-camp": 200, mill: 200, stable: 300, "archery-range": 300, monastery: 350, blacksmith: 300, "watch-tower": 250, "siege-workshop": 300 },
+  buildings: { "town-center": 400, house: 150, barracks: 300, farm: 100, "lumber-camp": 200, "mining-camp": 200, mill: 200, stable: 300, "archery-range": 300, monastery: 350, blacksmith: 300, "watch-tower": 250, "siege-workshop": 300, castle: 800 },
   corpseTicks: 40,
   hitFlashTicks: 6,
-  // Movement per tick; every value divides the 50-unit node spacing, so a unit always lands exactly on its node.
-  speed: { villager: 5, militia: 5, archer: 5, scout: 10, monk: 5, sheep: 5, deer: 10, boar: 5, spearman: 5, skirmisher: 5, knight: 10, ram: 2 }
+  // Movement per tick.
+  // Units always step at most this far and stop exactly on the next node, so any whole number works: a node takes
+  // ceil(50/speed) ticks (a civilization's speed multiplier rounds to the nearest whole step).
+  speed: {
+    villager: 5,
+    militia: 5,
+    archer: 5,
+    scout: 10,
+    monk: 5,
+    sheep: 5,
+    deer: 10,
+    boar: 5,
+    spearman: 5,
+    skirmisher: 5,
+    knight: 10,
+    ram: 2,
+    longbowman: 5,
+    "woad-raider": 7,
+    "throwing-axeman": 6,
+    huskarl: 6,
+    "teutonic-knight": 4,
+    berserk: 6,
+    cataphract: 10,
+    "war-elephant": 4,
+    mameluke: 10,
+    janissary: 5,
+    "chu-ko-nu": 5,
+    samurai: 6,
+    mangudai: 10
+  }
 };
 var religionBonus = { sanctityHp: 15 };
 var lineUpgrades = [
@@ -2808,40 +3809,76 @@ var lineUpgrades = [
   { id: "pikeman", kind: "spearman", name: "\u9577\u77DB\u5175", set: { hp: 55, bonus: { cavalry: 18 } } },
   { id: "crossbowman", kind: "archer", name: "\u5F29\u624B", set: { hp: 35, damage: 5, range: 300 } },
   { id: "elite-skirmisher", kind: "skirmisher", name: "\u7CBE\u92B3\u6563\u5175", set: { hp: 35, damage: 3, armor: [0, 4] } },
-  { id: "light-cavalry", kind: "scout", name: "\u8F15\u9A0E\u5175", set: { hp: 60, damage: 5 } }
+  { id: "light-cavalry", kind: "scout", name: "\u8F15\u9A0E\u5175", set: { hp: 60, damage: 5 } },
+  // Elite unique units (aoetw.com's elite columns; armor and bonus are whole fields, so each lists both).
+  { id: "elite-longbowman", kind: "longbowman", name: "\u7CBE\u92B3\u9577\u5F13\u5175", set: { hp: 40, damage: 7, range: 350, armor: [0, 1] } },
+  { id: "elite-woad-raider", kind: "woad-raider", name: "\u7CBE\u92B3\u83D8\u85CD\u6B66\u58EB", set: { hp: 80, damage: 13, bonus: { building: 3 } } },
+  { id: "elite-throwing-axeman", kind: "throwing-axeman", name: "\u7CBE\u92B3\u64F2\u65A7\u5175", set: { hp: 70, damage: 8, range: 250, armor: [1, 0], bonus: { building: 2 } } },
+  { id: "elite-huskarl", kind: "huskarl", name: "\u7CBE\u92B3\u54E5\u5FB7\u885B\u968A", set: { hp: 70, damage: 12, armor: [0, 8], bonus: { building: 3, archer: 10 } } },
+  { id: "elite-teutonic-knight", kind: "teutonic-knight", name: "\u7CBE\u92B3\u689D\u9813\u6B66\u58EB", set: { hp: 100, damage: 17, armor: [10, 2] } },
+  { id: "elite-berserk", kind: "berserk", name: "\u7CBE\u92B3\u72C2\u6230\u58EB", set: { hp: 62, damage: 14, armor: [2, 1], bonus: { building: 3 } } },
+  { id: "elite-cataphract", kind: "cataphract", name: "\u7CBE\u92B3\u62DC\u5360\u5EAD\u8056\u9A0E\u5175", set: { hp: 150, damage: 12, cooldown: 17, bonus: { infantry: 12 } } },
+  { id: "elite-war-elephant", kind: "war-elephant", name: "\u7CBE\u92B3\u6230\u8C61", set: { hp: 600, damage: 20, armor: [1, 3], bonus: { building: 10 } } },
+  { id: "elite-mameluke", kind: "mameluke", name: "\u7CBE\u92B3\u963F\u62C9\u4F2F\u5974\u96B8\u5175", set: { hp: 80, damage: 10, armor: [1, 0], bonus: { cavalry: 12 } } },
+  { id: "elite-janissary", kind: "janissary", name: "\u7CBE\u92B3\u571F\u8033\u5176\u706B\u69CD\u5175", set: { hp: 40, damage: 22, armor: [2, 0], bonus: { siege: 3 } } },
+  { id: "elite-chu-ko-nu", kind: "chu-ko-nu", name: "\u7CBE\u92B3\u9023\u5F29\u5175", set: { hp: 50, cooldown: 58, extraShots: 4 } },
+  { id: "elite-samurai", kind: "samurai", name: "\u7CBE\u92B3\u65E5\u672C\u6B66\u58EB", set: { hp: 80, damage: 12, bonus: { building: 3, unique: 12 } } },
+  { id: "elite-mangudai", kind: "mangudai", name: "\u7CBE\u92B3\u8499\u53E4\u7A81\u9A0E", set: { damage: 8, armor: [1, 0], bonus: { siege: 5, spear: 1 } } }
 ];
 var blacksmith = {
-  forging: { classes: ["infantry", "cavalry"], attack: 1 },
-  "iron-casting": { classes: ["infantry", "cavalry"], attack: 1 },
-  "blast-furnace": { classes: ["infantry", "cavalry"], attack: 2 },
+  forging: { classes: ["infantry", "cavalry"], exclude: ["cavalry-archer"], attack: 1 },
+  "iron-casting": { classes: ["infantry", "cavalry"], exclude: ["cavalry-archer"], attack: 1 },
+  "blast-furnace": { classes: ["infantry", "cavalry"], exclude: ["cavalry-archer"], attack: 2 },
   "scale-mail-armor": { classes: ["infantry"], melee: 1, pierce: 1 },
   "chain-mail-armor": { classes: ["infantry"], melee: 1, pierce: 1 },
   "plate-mail-armor": { classes: ["infantry"], melee: 1, pierce: 2 },
-  "scale-barding-armor": { classes: ["cavalry"], melee: 1, pierce: 1 },
-  "chain-barding-armor": { classes: ["cavalry"], melee: 1, pierce: 1 },
-  "plate-barding-armor": { classes: ["cavalry"], melee: 1, pierce: 2 },
-  fletching: { classes: ["archer"], attack: 1, range: 50 },
-  "bodkin-arrow": { classes: ["archer"], attack: 1, range: 50 },
-  bracer: { classes: ["archer"], attack: 1, range: 50 },
+  "scale-barding-armor": { classes: ["cavalry"], exclude: ["cavalry-archer"], melee: 1, pierce: 1 },
+  "chain-barding-armor": { classes: ["cavalry"], exclude: ["cavalry-archer"], melee: 1, pierce: 1 },
+  "plate-barding-armor": { classes: ["cavalry"], exclude: ["cavalry-archer"], melee: 1, pierce: 2 },
+  fletching: { classes: ["archer"], exclude: ["gunpowder"], attack: 1, range: 50 },
+  "bodkin-arrow": { classes: ["archer"], exclude: ["gunpowder"], attack: 1, range: 50 },
+  bracer: { classes: ["archer"], exclude: ["gunpowder"], attack: 1, range: 50 },
   "padded-archer-armor": { classes: ["archer"], melee: 1, pierce: 1 },
   "leather-archer-armor": { classes: ["archer"], melee: 1, pierce: 1 },
   "ring-archer-armor": { classes: ["archer"], melee: 1, pierce: 2 }
 };
-function statsOf(kind, techs = []) {
+function statsOf(kind, who = []) {
+  const o = asOwner(who), techs = o.techs;
   let st = { ...combatRules.units[kind] };
   for (const up of lineUpgrades) if (up.kind === kind && techs.includes(up.id)) st = { ...st, ...up.set };
   let [m, p] = st.armor;
   for (const id of techs) {
     const b = blacksmith[id];
     if (!b || !b.classes.some((c) => st.classes.includes(c))) continue;
+    if (b.exclude?.some((c) => st.classes.includes(c))) continue;
     if (b.attack && st.attack !== "none") st.damage += b.attack;
     if (b.range && st.range > 50) st.range += b.range;
     m += b.melee ?? 0;
     p += b.pierce ?? 0;
   }
-  st.armor = [m, p];
-  st.hp += (kind === "monk" && techs.includes("sanctity") ? religionBonus.sanctityHp : 0) + (kind === "villager" ? villagerHpBonus(techs) : 0);
+  const cls = st.classes;
+  if (st.attack !== "none") st.damage += unitSum(o, "attack", kind, cls);
+  if (st.range > 50) st.range += unitSum(o, "range", kind, cls);
+  st.armor = [m + unitSum(o, "meleeArmor", kind, cls), p + unitSum(o, "pierceArmor", kind, cls)];
+  const extra = unitBonuses(o, kind, cls);
+  if (Object.keys(extra).length) {
+    const bonus = { ...st.bonus };
+    for (const [c, v] of Object.entries(extra)) bonus[c] = (bonus[c] ?? 0) + v;
+    st.bonus = bonus;
+  }
+  const pace = unitProduct(o, "cooldown", kind, cls);
+  if (pace !== 1) st.cooldown = Math.max(1, Math.round(st.cooldown * pace));
+  for (const k of ["regen", "extraShots", "splash"]) {
+    const v = unitSum(o, k, kind, cls);
+    if (v) st[k] = (st[k] ?? 0) + v;
+  }
+  st.hp = Math.round(st.hp * unitProduct(o, "hp", kind, cls)) + (kind === "monk" && techs.includes("sanctity") ? religionBonus.sanctityHp : 0) + (kind === "villager" ? villagerHpBonus(techs) : 0) + unitSum(o, "hp", kind, cls);
   return st;
+}
+function speedOf(kind, who = []) {
+  const o = asOwner(who), base = combatRules.speed[kind];
+  const scale = unitProduct(o, "speed", kind, combatRules.units[kind].classes);
+  return scale === 1 ? base : Math.max(1, Math.round(base * scale));
 }
 function lineName(kind, techs) {
   let name = null;
@@ -2852,13 +3889,13 @@ var buildingTarget = { armor: combatRules.buildingArmor, classes: ["building"] }
 
 // packages/sim/movement.ts
 var navigationStates = ["idle", "searching", "moving", "waiting", "unreachable", "stuck"];
-var unitKinds = ["villager", "militia", "archer", "scout", "monk", "sheep", "deer", "boar", "spearman", "skirmisher", "knight", "ram"];
+var unitKinds = ["villager", "militia", "archer", "scout", "monk", "sheep", "deer", "boar", "spearman", "skirmisher", "knight", "ram", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "cataphract", "war-elephant", "mameluke", "janissary", "chu-ko-nu", "samurai", "mangudai"];
 
 // packages/sim/buildings.ts
-var buildKinds = ["house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "blacksmith", "watch-tower", "siege-workshop"];
+var buildKinds = ["house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "blacksmith", "watch-tower", "siege-workshop", "castle"];
 var buildingRules = {
   provenance: "design_default",
-  capacity: { "town-center": 5, house: 5, barracks: 0, farm: 0, "lumber-camp": 0, "mining-camp": 0, mill: 0, stable: 0, "archery-range": 0, monastery: 0, blacksmith: 0, "watch-tower": 0, "siege-workshop": 0 },
+  capacity: { "town-center": 5, house: 5, barracks: 0, farm: 0, "lumber-camp": 0, "mining-camp": 0, mill: 0, stable: 0, "archery-range": 0, monastery: 0, blacksmith: 0, "watch-tower": 0, "siege-workshop": 0, castle: 10 },
   grid: 10,
   required: Object.fromEntries(buildKinds.map((k) => [k, rules.entries.find((e) => e.id === k).time * rules.settings.tickHz]))
 };
@@ -2878,9 +3915,10 @@ function placementProblem(input, kind, x, y) {
   if (kind !== "farm" && input.units.some((u) => u.x >= box2[0] - r && u.x <= box2[2] + r && u.y >= box2[1] - r && u.y <= box2[3] + r)) return "\u6709\u55AE\u4F4D\u7AD9\u5728\u9810\u5B9A\u5730\u4E0A";
   return null;
 }
-function buildRequirement(age, kind, own) {
+function buildRequirement(age, kind, own, civ = neutralCiv) {
   const entry2 = rules.entries.find((e) => e.id === kind);
   if (!entry2) return "\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E";
+  if (!civAvailable(civ, kind)) return "\u6B64\u6587\u660E\u4E0D\u80FD\u5EFA\u9020";
   for (const req of entry2.requires) {
     const need = rules.entries.find((e) => e.id === req), m = /^age-(\d)$/.exec(req);
     if (m && age < Number(m[1])) return `\u9700\u8981${need?.name ?? req}`;
@@ -2896,11 +3934,12 @@ var dropoffRules = { provenance: "design_default", accepts: { "town-center": ["f
 // packages/sim/defense.ts
 var defenseRules = {
   provenance: "design_default",
-  capacity: { "town-center": 15, "watch-tower": 5 },
-  arrows: { "town-center": { base: 1, range: 300, damage: 5, cooldown: 40 }, "watch-tower": { base: 1, range: 350, damage: 5, cooldown: 40 } },
-  // Who may go inside, and who adds an arrow while there.
-  canGarrison: ["villager", "militia", "spearman", "archer", "skirmisher", "monk"],
-  addsArrow: ["villager", "archer", "skirmisher"],
+  // The Castle (design_default in this scale: the reference's castle holds 20 and outranges a town centre).
+  capacity: { "town-center": 15, "watch-tower": 5, castle: 20 },
+  arrows: { "town-center": { base: 1, range: 300, damage: 5, cooldown: 40 }, "watch-tower": { base: 1, range: 350, damage: 5, cooldown: 40 }, castle: { base: 4, range: 400, damage: 5, cooldown: 40 } },
+  // Who may go inside (foot units: no cavalry, no siege), and who adds an arrow while there.
+  canGarrison: ["villager", "militia", "spearman", "archer", "skirmisher", "monk", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "janissary", "chu-ko-nu", "samurai"],
+  addsArrow: ["villager", "archer", "skirmisher", "longbowman", "janissary", "chu-ko-nu"],
   // Units inside heal one hit point every healTicks; a shot stays drawn for shotTicks.
   healTicks: 40,
   shotTicks: 10
@@ -2915,11 +3954,11 @@ function ageOf(entryId) {
 }
 var entryOf = (id) => rules.entries.find((e) => e.id === id);
 function trainBlocker(i, entryId) {
-  const e = entryOf(entryId), civ = rules.civilizations[i.player];
+  const e = entryOf(entryId), owner = { civ: i.civ ?? neutralCiv, age: i.age, techs: i.techs };
   if (!e || e.kind === "building") return "\u672A\u77E5\u7684\u751F\u7522\u9805\u76EE";
-  if (!civ.available.includes(entryId)) return "\u6B64\u6587\u660E\u4E0D\u80FD\u751F\u7522";
+  if (!civAvailable(owner.civ, entryId)) return "\u6B64\u6587\u660E\u4E0D\u80FD\u751F\u7522";
   if (!i.building.complete) return "\u5EFA\u7BC9\u5C1A\u672A\u5B8C\u5DE5";
-  if (rules.production[entryId] !== i.building.kind) return "\u9019\u68DF\u5EFA\u7BC9\u4E0D\u80FD\u751F\u7522\u9019\u500B\u9805\u76EE";
+  if (!producersOf(entryId, owner).includes(i.building.kind)) return "\u9019\u68DF\u5EFA\u7BC9\u4E0D\u80FD\u751F\u7522\u9019\u500B\u9805\u76EE";
   for (const req of e.requires) {
     const need = entryOf(req);
     if (need?.kind === "building" && !i.ownBuildings.some((v) => v.kind === req && v.complete)) return `\u9700\u8981\u5B8C\u5DE5\u7684${need.name}`;
@@ -2932,8 +3971,8 @@ function trainBlocker(i, entryId) {
     if (i.ownBuildings.some((v) => v.queue.some((q) => q.entryId === entryId))) return "\u5DF2\u5728\u7814\u7A76\u4E2D";
   }
   if (i.building.queue.length >= productionRules.queueLimit) return `\u4F47\u5217\u5DF2\u6EFF\uFF08${productionRules.queueLimit}\uFF09`;
-  const short = resources.filter((r) => i.stock[r] < e.cost[r]);
-  if (short.length) return short.map((r) => `${names[r]}\u4E0D\u8DB3\uFF1A\u9700\u8981 ${e.cost[r]}\uFF0C\u76EE\u524D ${i.stock[r]}`).join("\uFF1B");
+  const cost = costOf(entryId, owner), short = resources.filter((r) => i.stock[r] < cost[r]);
+  if (short.length) return short.map((r) => `${names[r]}\u4E0D\u8DB3\uFF1A\u9700\u8981 ${cost[r]}\uFF0C\u76EE\u524D ${i.stock[r]}`).join("\uFF1B");
   if (i.populationUsed + i.populationReserved + e.population > i.populationCap) return `\u4EBA\u53E3\u5DF2\u6EFF\uFF08${i.populationUsed + i.populationReserved}/${i.populationCap}\uFF09\uFF1A\u8ACB\u84CB\u4F4F\u5B85`;
   return null;
 }
@@ -2953,7 +3992,7 @@ var religionRules = {
   attemptChance: 28,
   buildingTicks: { min: 360, max: 600 },
   rechargeTicks: 1240,
-  unconvertibleBuildings: ["town-center", "monastery", "farm"],
+  unconvertibleBuildings: ["town-center", "monastery", "farm", "castle"],
   relics: { count: 5, goldTicks: 40, perMonastery: 10, victoryTicks: 2e4, baseDistance: 900, spacing: 600, fairness: 400, edge: 150 }
 };
 
@@ -2990,8 +4029,13 @@ var aiRules = {
   campDistance: 350,
   campWorkers: 2,
   monkTarget: 2,
+  uniqueTarget: 5,
+  stoneWorkers: 3,
+  castleBuilders: 3,
+  castleMargin: 0,
   research: { blacksmith: ["forging", "fletching", "scale-mail-armor", "padded-archer-armor", "iron-casting", "bodkin-arrow", "chain-mail-armor", "scale-barding-armor"], barracks: ["man-at-arms", "long-swordsman"], "archery-range": ["crossbowman"], "town-center": ["loom", "wheelbarrow", "hand-cart"], "lumber-camp": ["double-bit-axe", "bow-saw", "two-man-saw"], "mining-camp": ["gold-mining", "gold-shaft-mining"], mill: ["horse-collar", "heavy-plow", "crop-rotation"] }
 };
+var soldierKinds = unitKinds.filter((k) => k !== "villager" && k !== "monk" && k !== "scout" && !isAnimal(k) && combatRules.units[k].attack !== "none");
 
 // packages/sim/sim.ts
 function canonical(value) {
@@ -3000,13 +4044,13 @@ function canonical(value) {
   return "{" + Object.keys(value).sort().map((k) => JSON.stringify(k) + ":" + canonical(value[k])).join(",") + "}";
 }
 function hash(value) {
-  let h = 2166136261;
+  let h2 = 2166136261;
   for (const c of canonical(value)) {
-    h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+    h2 = Math.imul(h2 ^ c.charCodeAt(0), 16777619);
   }
-  return (h >>> 0).toString(16).padStart(8, "0");
+  return (h2 >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, religion: religionRules, animals: animalRules, tech: techRules, defense: defenseRules, simulationVersion: 26 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, religion: religionRules, animals: animalRules, tech: techRules, defense: defenseRules, civs: civDefs, unitLines: { lineUpgrades, blacksmith, religionBonus }, simulationVersion: 27 });
 
 // packages/sim/protocol.ts
 var UNIT_STRIDE = 18;
@@ -3014,15 +4058,15 @@ var STRIDE = UNIT_STRIDE;
 function decodeView(r) {
   const values = new Int32Array(r.positions), units = [];
   for (let i = 0; i < values.length; i += STRIDE) units.push({ kind: unitKinds[values[i + 11]], hp: values[i + 12], maxHp: values[i + 13], action: values[i + 14], id: values[i], player: values[i + 1], x: values[i + 2], y: values[i + 3], navigation: navigationStates[values[i + 6]], target: values[i + 4] < 0 ? null : { x: values[i + 4], y: values[i + 5] }, work: values[i + 7] > 0 ? workPhases[values[i + 7]] : null, workResource: values[i + 10] < 0 ? null : resources[values[i + 10]], cargo: values[i + 8] < 0 ? null : { resource: resources[values[i + 8]], amount: values[i + 9] }, rite: [null, "convert", "heal"][values[i + 15]] ?? null, faith: values[i + 16] < 0 ? null : values[i + 16], relic: values[i + 17] === 1 });
-  return { seed: r.seed, layout: r.layout, size: r.size, opponent: r.opponent, terrain: r.terrain, tick: r.tick, stateHash: r.stateHash, economy: r.economy, corpses: r.corpses, outcome: r.outcome, buildings: r.buildings, transactions: r.transactions, fog: r.fog, known: r.known, resources: r.resources, relicSpots: r.relicSpots, relicsHeld: r.relicsHeld, relicTotal: r.relicTotal, relicVictory: r.relicVictory, shots: r.shots, units };
+  return { seed: r.seed, layout: r.layout, size: r.size, opponent: r.opponent, civs: r.civs, terrain: r.terrain, tick: r.tick, stateHash: r.stateHash, economy: r.economy, corpses: r.corpses, outcome: r.outcome, buildings: r.buildings, transactions: r.transactions, fog: r.fog, known: r.known, resources: r.resources, relicSpots: r.relicSpots, relicsHeld: r.relicsHeld, relicTotal: r.relicTotal, relicVictory: r.relicVictory, shots: r.shots, units };
 }
 
 // apps/web/worker-client.ts
 var SimulationClient = class {
-  constructor(seed, layout, opponent, update, failure) {
+  constructor(seed, layout, opponent, civs, update, failure) {
     this.update = update;
     this.failure = failure;
-    this.checkpoint = { seed, layout, opponent, commands: [], ticks: 0 };
+    this.checkpoint = { seed, layout, opponent, civs, commands: [], ticks: 0 };
   }
   worker = null;
   counter = 0;
@@ -3055,6 +4099,7 @@ var SimulationClient = class {
       if (response.accepted) this.checkpoint.commands.push(response.accepted);
       this.checkpoint.layout = response.layout;
       this.checkpoint.opponent = response.opponent;
+      this.checkpoint.civs = response.civs;
       this.checkpoint.seed = response.seed;
       this.checkpoint.ticks = response.tick;
       this.update(decodeView(response));
@@ -3107,16 +4152,527 @@ var SimulationClient = class {
   }
 };
 
+// packages/content/codex.ts
+var codexIntro = "\u6587\u660E\u8CC7\u6599\u6574\u7406\u81EA aoetw.com\uFF08\u4E16\u7D00\u5E1D\u570B II \u7684\u7E41\u9AD4\u4E2D\u6587\u767E\u79D1\uFF0C\u5167\u5BB9\u4EE5 HD\uFF0FUserPatch \u6642\u4EE3\u70BA\u6E96\uFF09\uFF0C\u6578\u503C\u5DF2\u63DB\u7B97\u6210\u672C\u4F5C\u7684\u6BD4\u4F8B\u3002\u672C\u4F5C\u662F\u4E00\u5C0D\u4E00\u5C0D\u6230\uFF0C\u5718\u968A\u52A0\u6210\u53EA\u4F5C\u7528\u5728\u64C1\u6709\u8005\u81EA\u5DF1\u8EAB\u4E0A\u3002\u6A19\u793A\u300C\u5C1A\u672A\u5BE6\u4F5C\u300D\u7684\u9805\u76EE\u76EE\u524D\u4E0D\u5728\u904A\u6232\u88E1\u3002";
+var architectureLabel = { west: "\u897F\u6B50", central: "\u4E2D\u6B50", mideast: "\u4E2D\u6771", eastasia: "\u6771\u4E9E", neutral: "\u672C\u4F5C\u539F\u5275" };
+var civProse = {
+  settlers: {
+    summary: "\u62D3\u8352\u8005\u662F\u672C\u4F5C\u539F\u5275\u7684\u57FA\u6E96\u6587\u660E\uFF1A\u6C92\u6709\u6587\u660E\u52A0\u6210\u3001\u7279\u6B8A\u55AE\u4F4D\uFF0C\u4E5F\u4E0D\u80FD\u5EFA\u9020\u57CE\u5821\uFF0C\u79D1\u6280\u6A39\u5C31\u662F\u672C\u4F5C\u5B8C\u6574\u7684\u901A\u7528\u7248\u672C\u3002",
+    strategy: "\u9069\u5408\u719F\u6089\u57FA\u672C\u64CD\u4F5C\uFF0C\u6216\u7576\u4F5C\u5C0D\u7167\u7D44\u6BD4\u8F03\u5404\u6587\u660E\u52A0\u6210\u7684\u6548\u679C\u3002\u96D9\u65B9\u90FD\u662F\u62D3\u8352\u8005\u6642\uFF0C\u52DD\u8CA0\u53EA\u53D6\u6C7A\u65BC\u904B\u71DF\u8207\u64CD\u4F5C\u3002",
+    sources: []
+  },
+  britons: {
+    summary: "\u4E0D\u5217\u985B\u662F\u897F\u6B50\u7684\u5F13\u5175\u6587\u660E\uFF0C\u4EE3\u8868\u4E2D\u4E16\u7D00\u7684\u82F1\u683C\u862D\u4EBA\u8207\u76CE\u683C\u9B6F\uFF0D\u8AFE\u66FC\u4EBA\u3002\u76F8\u50B3\u82F1\u683C\u862D\u4E00\u5EA6\u53EA\u51C6\u767E\u59D3\u7DF4\u7FD2\u5C04\u7BAD\uFF0C\u5F13\u8853\u56E0\u800C\u51A0\u7D55\u4E00\u6642\uFF0C\u7267\u7F8A\u4E5F\u662F\u4ED6\u5011\u7684\u5C08\u9577\u3002\u9577\u5F13\u5175\u5C04\u5F97\u6BD4\u5176\u4ED6\u5F13\u5175\u90FD\u9060\uFF0C\u4F46\u99AC\u5EC4\u8207\u4FEE\u9053\u9662\u7684\u79D1\u6280\u6709\u7F3A\u53E3\u3002",
+    strategy: "\u524D\u671F\u4EE5\u9776\u5834\u7684\u5F13\u624B\u642D\u914D\u9577\u69CD\u5175\u65BD\u58D3\uFF0C\u9776\u5834\u7684\u6548\u7387\u52A0\u6210\u8B93\u5F13\u5175\u88DC\u5F97\u5FEB\u3002\u5C04\u7A0B\u52A0\u6210\u8981\u5230\u7B2C\u4E09\u6642\u4EE3\u624D\u751F\u6548\uFF0C\u9577\u5F13\u5175\u8981\u7AD9\u5728\u8FD1\u6230\u90E8\u968A\u5F8C\u65B9\u8F38\u51FA\uFF0C\u5225\u8B93\u9663\u578B\u88AB\u885D\u6563\u3002\u5C0D\u624B\u7528\u9A0E\u5175\u7E5E\u5F8C\u6642\uFF0C\u4EE5\u9577\u69CD\u5175\u8207\u7BAD\u5854\u8B77\u4F4F\u5F13\u5175\u3002",
+    sources: ["civs/Britons", "units/Longbowman"]
+  },
+  celts: {
+    summary: "\u585E\u723E\u7279\u662F\u897F\u6B50\u7684\u6B65\u5175\u8207\u653B\u57CE\u5668\u6587\u660E\uFF0C\u4EE5\u8607\u683C\u862D\u3001\u611B\u723E\u862D\u8207\u5A01\u723E\u58EB\u4EBA\u70BA\u539F\u578B\u3002\u4ED6\u5011\u4EE5\u6728\u5DE5\u8207\u51B6\u91D1\u898B\u9577\uFF0C\u4F10\u6728\u5FEB\u3001\u653B\u57CE\u5668\u7CBE\u826F\uFF1B\u83D8\u85CD\u6B66\u58EB\u53D6\u6750\u81EA\u81C9\u5857\u85CD\u6F06\u3001\u4F86\u53BB\u5982\u98A8\u7684\u6230\u58EB\u3002\u5F13\u5175\u8207\u9A0E\u5175\u7684\u79D1\u6280\u7F3A\u53E3\u5927\uFF0C\u662F\u5178\u578B\u3001\u4E5F\u5BB9\u6613\u88AB\u91DD\u5C0D\u7684\u6B65\u5175\u6587\u660E\u3002",
+    strategy: "\u6B65\u5175\u5F9E\u7B2C\u4E8C\u6642\u4EE3\u8D77\u5C31\u8DD1\u5F97\u6BD4\u5225\u4EBA\u5FEB\uFF0C\u9069\u5408\u65E9\u65E9\u7528\u6C11\u5175\u7CFB\u8207\u9577\u69CD\u5175\u9A37\u64FE\u3002\u653B\u57CE\u5668\u653B\u64CA\u66F4\u5FEB\uFF0C\u7B2C\u56DB\u6642\u4EE3\u7684\u585E\u723E\u7279\u72C2\u71B1\u518D\u8B93\u5B83\u66F4\u8010\u6253\uFF0C\u653B\u57CE\u69CC\u914D\u6B65\u5175\u662F\u4E3B\u8981\u7684\u63A8\u9032\u65B9\u5F0F\u3002\u83D8\u85CD\u6B66\u58EB\u9069\u5408\u7E5E\u5F8C\u62C6\u5EFA\u7BC9\u3001\u8FFD\u6BBA\u653B\u57CE\u5668\uFF0C\u4F46\u8B77\u7532\u8584\uFF0C\u5225\u6B63\u9762\u649E\u4E0A\u6210\u7FA4\u5F13\u5175\u6216\u5DF2\u5E03\u597D\u7684\u9632\u7DDA\u3002",
+    sources: ["civs/Celts", "units/Woad_Raider"]
+  },
+  franks: {
+    summary: "\u6CD5\u862D\u514B\u6E90\u81EA\u53E4\u7A31\u9AD8\u76E7\u7684\u5730\u5340\uFF0C\u6B77\u7D93\u58A8\u6D1B\u6EAB\u8207\u5361\u6D1B\u6797\u738B\u671D\uFF0C\u662F\u65E5\u5F8C\u6CD5\u862D\u897F\u738B\u570B\u8207\u795E\u8056\u7F85\u99AC\u5E1D\u570B\u7684\u524D\u8EAB\u3002\u904A\u6232\u4E2D\u662F\u897F\u6B50\u7684\u9A0E\u5175\u6587\u660E\uFF1A\u99AC\u5EC4\u55AE\u4F4D\u66F4\u8010\u6253\uFF0C\u57CE\u5821\u4E5F\u84CB\u5F97\u4FBF\u5B9C\u3002\u6B65\u5175\u79D1\u6280\u5B8C\u6574\uFF0C\u5F13\u5175\u5247\u662F\u6574\u500B\u79D1\u6280\u6A39\u6700\u5F31\u7684\u4E00\u74B0\u3002",
+    strategy: "\u63A1\u6F3F\u679C\u5FEB\u3001\u78E8\u574A\u7684\u8FB2\u7530\u79D1\u6280\u514D\u8CBB\uFF0C\u524D\u671F\u7D93\u6FDF\u7A69\uFF0C\u9069\u5408\u7B2C\u4E8C\u6642\u4EE3\u7528\u65A5\u5019\u9A37\u64FE\u3001\u7B2C\u4E09\u6642\u4EE3\u8F49\u51FA\u9A0E\u58EB\u3002\u4FBF\u5B9C\u7684\u57CE\u5821\u53EF\u4EE5\u63D0\u65E9\u84CB\u5728\u524D\u7DDA\u63A7\u5236\u5730\u5716\uFF0C\u5927\u91CF\u51FA\u9A0E\u58EB\u6642\u518D\u7814\u7A76\u9A0E\u58EB\u7CBE\u795E\u3002\u9047\u4E0A\u9577\u69CD\u5175\u6D77\u5C31\u6539\u7528\u64F2\u65A7\u5175\u8207\u6B65\u5175\u61C9\u5C0D\uFF0C\u4E0D\u8981\u786C\u8D70\u5F13\u5175\u8DEF\u7DDA\u3002",
+    sources: ["civs/Franks", "units/Throwing_Axeman"]
+  },
+  goths: {
+    summary: "\u54E5\u5FB7\u6CDB\u6307\u6771\u65E5\u8033\u66FC\u8AF8\u90E8\u65CF\uFF0C\u4EE5\u897F\u5143 476 \u5E74\u7D42\u7D50\u897F\u7F85\u99AC\u5E1D\u570B\u805E\u540D\uFF1B\u6771\u54E5\u5FB7\u5F8C\u4F86\u843D\u8173\u7FA9\u5927\u5229\uFF0C\u897F\u54E5\u5FB7\u5247\u5728\u4F0A\u6BD4\u5229\u534A\u5CF6\u7ACB\u570B\u3002\u904A\u6232\u4E2D\u662F\u4E2D\u6B50\u7684\u6B65\u5175\u6587\u660E\uFF0C\u6B65\u5175\u4FBF\u5B9C\u53C8\u91CF\u7522\u5F97\u5FEB\uFF0C\u9632\u79A6\u8A2D\u65BD\u537B\u662F\u5168\u6587\u660E\u6700\u5F31\u7684\u3002\u9032\u653B\u6642\u5147\u731B\uFF0C\u4E00\u65E6\u8F49\u70BA\u5B88\u52E2\u5C31\u76F8\u7576\u5403\u529B\u3002",
+    strategy: "\u6B65\u5175\u96A8\u6642\u4EE3\u8D8A\u4F86\u8D8A\u4FBF\u5B9C\uFF0C\u7B2C\u4E8C\u6642\u4EE3\u5C31\u80FD\u7528\u6C11\u5175\u7CFB\u8207\u9577\u69CD\u5175\u5927\u91CF\u65BD\u58D3\u3002\u7B2C\u4E09\u6642\u4EE3\u4EE5\u54E5\u5FB7\u885B\u968A\u5C08\u6253\u5F13\u5175\u8207\u5EFA\u7BC9\uFF0C\u9577\u69CD\u5175\u8CA0\u8CAC\u64CB\u9A0E\u5175\uFF1B\u7814\u7A76\u7121\u653F\u5E9C\u72C0\u614B\u5F8C\u5175\u71DF\u4E5F\u80FD\u8A13\u7DF4\u54E5\u5FB7\u885B\u968A\u3002\u7F3A\u6B65\u5175\u677F\u7532\uFF0C\u6015\u689D\u9813\u6B66\u58EB\u3001\u65E5\u672C\u6B66\u58EB\u9019\u985E\u5F37\u529B\u8FD1\u6230\u6B65\u5175\uFF0C\u6700\u597D\u7684\u9632\u5B88\u5C31\u662F\u6301\u7E8C\u9032\u653B\u3002",
+    sources: ["civs/Goths", "units/Huskarl"]
+  },
+  teutons: {
+    summary: "\u689D\u9813\u6E90\u81EA\u65E5\u8033\u66FC\u7684\u4E00\u652F\uFF0C\u6C11\u65CF\u5927\u9077\u5F99\u5F8C\u5B9A\u5C45\u4ECA\u65E5\u5FB7\u570B\u4E00\u5E36\uFF0C\u904A\u6232\u4E2D\u4EE3\u8868\u795E\u8056\u7F85\u99AC\u5E1D\u570B\uFF1B\u689D\u9813\u6B66\u58EB\u53D6\u6750\u81EA\u6B77\u53F2\u4E0A\u7684\u689D\u9813\u9A0E\u58EB\u5718\u3002\u4ED6\u5011\u5728\u9632\u79A6\u3001\u7D93\u6FDF\u8207\u9032\u653B\u4E0A\u90FD\u6709\u52A0\u6210\uFF0C\u7BAD\u5854\u8207\u57CE\u93AE\u4E2D\u5FC3\u80FD\u9032\u99D0\u66F4\u591A\u4EBA\u3001\u8FB2\u7530\u4FBF\u5B9C\uFF0C\u914D\u4E0A\u7832\u9580\u579B\u53E3\u7684\u57CE\u5821\u6BBA\u50B7\u529B\u5C45\u5404\u6587\u660E\u4E4B\u51A0\u3002",
+    strategy: "\u7BAD\u5854\u80FD\u9032\u99D0\u52A0\u500D\u7684\u55AE\u4F4D\uFF0C\u7B2C\u4E8C\u6642\u4EE3\u7684\u5854\u653B\u5F88\u6709\u5A01\u8105\uFF1B\u4FBF\u5B9C\u7684\u8FB2\u7530\u66FF\u524D\u671F\u7701\u4E0B\u6728\u6750\u3002\u6B65\u5175\u8207\u9A0E\u5175\u5728\u7B2C\u4E09\u3001\u7B2C\u56DB\u6642\u4EE3\u8FD1\u6230\u8B77\u7532\u9010\u6B65\u63D0\u9AD8\uFF0C\u9069\u5408\u6253\u6B63\u9762\u6D88\u8017\u6230\u3002\u689D\u9813\u6B66\u58EB\u53C8\u6162\u53C8\u6015\u9060\u7A0B\u55AE\u4F4D\uFF0C\u8981\u6709\u9A0E\u58EB\u6216\u653B\u57CE\u69CC\u63A9\u8B77\u624D\u63A5\u8FD1\u5F97\u4E86\u76EE\u6A19\uFF1B\u6C92\u6709\u8F15\u9A0E\u5175\uFF0C\u5F8C\u671F\u6B20\u7F3A\u5FEB\u901F\u9A37\u64FE\u7684\u624B\u6BB5\u3002",
+    sources: ["civs/Teutons", "units/Teutonic_Knight"]
+  },
+  vikings: {
+    summary: "\u7DAD\u4EAC\u4EBA\u5728\u516B\u81F3\u5341\u4E00\u4E16\u7D00\u52AB\u63A0\u4E26\u6B96\u6C11\u6B50\u6D32\u6CBF\u5CB8\u8207\u4E0D\u5217\u985B\u7FA4\u5CF6\uFF0C\u904A\u6232\u4E2D\u662F\u6B65\u5175\u8207\u6D77\u8ECD\u6587\u660E\u3002\u9678\u6230\u4EE5\u72C2\u6230\u58EB\u70BA\u6838\u5FC3\uFF0C\u6B65\u5175\u751F\u547D\u96A8\u6642\u4EE3\u6210\u9577\uFF1B\u5347\u6642\u4EE3\u6642\u514D\u8CBB\u5F97\u5230\u624B\u63A8\u8ECA\u8207\u624B\u62C9\u8ECA\uFF0C\u524D\u4E2D\u671F\u7D93\u6FDF\u7279\u5225\u9806\u3002\u9A0E\u5175\u8207\u50E7\u4FB6\u7684\u79D1\u6280\u6B98\u7F3A\uFF0C\u5F8C\u671F\u76F8\u5C0D\u5403\u8667\u3002",
+    strategy: "\u7701\u4E0B\u7684\u7D93\u6FDF\u79D1\u6280\u53EF\u4EE5\u63DB\u6210\u66F4\u65E9\u7684\u5175\u529B\uFF0C\u7B2C\u4E8C\u5230\u7B2C\u4E09\u6642\u4EE3\u662F\u65BD\u58D3\u7684\u597D\u6642\u6A5F\u3002\u72C2\u6230\u58EB\u6703\u81EA\u5DF1\u56DE\u8840\u3001\u5C0D\u4ED8\u9577\u69CD\u5175\u8207\u8F15\u9A0E\u5175\u5F88\u6709\u6548\uFF0C\u9069\u5408\u4F86\u56DE\u9A37\u64FE\uFF1B\u7814\u7A76\u914B\u9577\u5F8C\u5168\u9AD4\u6B65\u5175\u4E5F\u80FD\u53CD\u5236\u9A0E\u5175\u3002\u672C\u4F5C\u9084\u6C92\u6709\u6D77\u6230\uFF0C\u7DAD\u4EAC\u7684\u6230\u8239\u52A0\u6210\u8207\u7DAD\u4EAC\u5927\u6230\u8239\u66AB\u6642\u6D3E\u4E0D\u4E0A\u7528\u5834\u3002",
+    sources: ["civs/Vikings", "units/Berserk"]
+  },
+  byzantines: {
+    summary: "\u62DC\u5360\u5EAD\u5373\u6771\u7F85\u99AC\u5E1D\u570B\uFF0C\u4EE5\u541B\u58EB\u5766\u4E01\u5821\u70BA\u4E2D\u5FC3\uFF0C\u9760\u8457\u96D9\u91CD\u57CE\u7246\u5B88\u4F4F\u6B50\u4E9E\u4EA4\u754C\u4E0A\u5343\u5E74\uFF1B\u904A\u6232\u4E2D\u5EFA\u7BC9\u96A8\u6642\u4EE3\u8D8A\u4F86\u8D8A\u5805\u56FA\uFF0C\u5347\u7B2C\u56DB\u6642\u4EE3\u4E5F\u6BD4\u8F03\u4FBF\u5B9C\u3002\u4EE5\u4FBF\u5B9C\u7684\u9577\u69CD\u5175\u3001\u6563\u5175\u9019\u985E\u300C\u5783\u573E\u5175\u300D\u70BA\u9AA8\u5E79\uFF0C\u79D1\u6280\u6A39\u5E7E\u4E4E\u5B8C\u6574\uFF0C\u8DEF\u7DDA\u591A\u8B8A\uFF1B\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u662F\u5C08\u524B\u6B65\u5175\u7684\u91CD\u9A0E\u5175\u3002",
+    strategy: "\u9577\u69CD\u5175\u8207\u6563\u5175\u7684\u6298\u6263\u8B93\u7B2C\u4E8C\u6642\u4EE3\u5C31\u80FD\u4EE5\u4F4E\u6210\u672C\u5927\u91CF\u53CD\u5236\u9A0E\u5175\u8207\u5F13\u5175\u3002\u4FBF\u5B9C\u7684\u7B2C\u56DB\u6642\u4EE3\u9069\u5408\u7A69\u5B88\u4E4B\u5F8C\u5FEB\u901F\u5347\u7D1A\uFF0C\u50E7\u4FB6\u7684\u6CBB\u7642\u4E5F\u66F4\u5FEB\u3002\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u8207\u5B83\u7684\u5347\u7D1A\u90FD\u6602\u8CB4\uFF0C\u7B49\u8CC7\u6E90\u5145\u8DB3\u518D\u5927\u91CF\u751F\u7522\uFF0C\u5C0D\u4EE5\u6B65\u5175\u70BA\u4E3B\u7684\u5C0D\u624B\u6709\u6BC0\u6EC5\u6027\u3002",
+    sources: ["civs/Byzantines", "units/Cataphract"]
+  },
+  persians: {
+    summary: "\u6CE2\u65AF\u662F\u6B77\u53F2\u60A0\u4E45\u7684\u53E4\u570B\uFF0C\u5230\u4E86\u4E2D\u4E16\u7D00\u4ECD\u6DF1\u523B\u5F71\u97FF\u8457\u4E2D\u4E9E\u3002\u904A\u6232\u4E2D\u662F\u4E2D\u6771\u7684\u9A0E\u5175\u6587\u660E\uFF1A\u7D93\u6FDF\u5F37\u3001\u9A0E\u5175\u79D1\u6280\u5B8C\u6574\uFF0C\u6230\u8C61\u8FD1\u4E4E\u7121\u6575\u3002\u4EE3\u50F9\u662F\u6B65\u5175\u5728\u5168\u6587\u660E\u4E2D\u6700\u5F31\uFF0C\u800C\u4E14\u975E\u5E38\u4F9D\u8CF4\u9EC3\u91D1\u3002",
+    strategy: "\u57CE\u93AE\u4E2D\u5FC3\u7684\u5DE5\u4F5C\u901F\u5EA6\u96A8\u6642\u4EE3\u52A0\u5FEB\uFF0C\u958B\u5C40\u8CC7\u6E90\u4E5F\u8F03\u591A\uFF0C\u6751\u6C11\u88DC\u5F97\u5FEB\u3002\u9A0E\u58EB\u8207\u6230\u8C61\u662F\u4E3B\u529B\uFF1B\u6230\u8C61\u53C8\u6162\u53C8\u6015\u9577\u69CD\u5175\u8207\u50E7\u4FB6\u8F49\u5316\uFF0C\u9700\u8981\u5F13\u5175\u6216\u9A0E\u5175\u63A9\u8B77\u3002\u6B65\u5175\u5F8C\u671F\u660E\u986F\u843D\u5F8C\uFF0C\u5225\u628A\u592A\u591A\u8CC7\u6E90\u6295\u9032\u6B65\u5175\u6253\u9577\u671F\u6230\u3002",
+    sources: ["civs/Persians", "units/War_Elephant"]
+  },
+  saracens: {
+    summary: "\u300C\u85A9\u62C9\u68EE\u300D\u662F\u6B50\u6D32\u4EBA\u5C0D\u7A46\u65AF\u6797\u7684\u6CDB\u7A31\uFF0C\u6B77\u53F2\u4E0A\u4E26\u6C92\u6709\u9019\u500B\u540D\u5B57\u7684\u5E1D\u570B\uFF1B\u904A\u6232\u4E2D\u7D9C\u5408\u4E86\u963F\u62C9\u4F2F\u54C8\u91CC\u767C\u3001\u502D\u99AC\u4E9E\u3001\u963F\u62D4\u65AF\u8207\u963F\u5C24\u5E03\u7B49\u52E2\u529B\u3002\u5B9A\u4F4D\u70BA\u99F1\u99DD\u8207\u6D77\u8ECD\u6587\u660E\uFF0C\u79D1\u6280\u6A39\u76F8\u7576\u5B8C\u6574\uFF0C\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u64C5\u9577\u524B\u5236\u9A0E\u5175\u3002",
+    strategy: "\u5F13\u5175\u5C0D\u5EFA\u7BC9\u6709\u984D\u5916\u653B\u64CA\uFF0C\u9069\u5408\u4EE5\u5F13\u624B\u58D3\u5236\u4E26\u62C6\u6389\u5C0D\u624B\u7684\u524D\u7DDA\u5EFA\u7BC9\u3002\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u6A5F\u52D5\u6027\u9AD8\u3001\u5C0D\u9A0E\u5175\u6709\u52A0\u6210\uFF0C\u80FD\u61C9\u4ED8\u591A\u6578\u9A0E\u5175\u8207\u6B65\u5175\uFF0C\u4F46\u6015\u9577\u69CD\u5175\u7CFB\u8207\u689D\u9813\u6B66\u58EB\u3002\u4FEE\u9053\u9662\u79D1\u6280\u5E7E\u4E4E\u9F4A\u5168\uFF0C\u7A46\u65AF\u6797\u5B78\u588A\u8B93\u9663\u4EA1\u7684\u50E7\u4FB6\u9000\u56DE\u90E8\u5206\u9EC3\u91D1\uFF0C\u50E7\u4FB6\u6230\u8853\u503C\u5F97\u4E00\u8A66\u3002",
+    sources: ["civs/Saracens", "units/Mameluke"]
+  },
+  turks: {
+    summary: "\u571F\u8033\u5176\u6E90\u81EA\u7A81\u53A5\u70CF\u53E4\u65AF\u4EBA\u5EFA\u7ACB\u7684\u585E\u723E\u67F1\uFF0C\u5176\u5F8C\u7684\u9102\u5716\u66FC\u5E1D\u570B\u6EC5\u4EA1\u4E86\u6771\u7F85\u99AC\uFF0C\u4E26\u628A\u541B\u58EB\u5766\u4E01\u5821\u6539\u540D\u4F0A\u65AF\u5766\u5821\u3002\u904A\u6232\u4E2D\u662F\u4E2D\u6771\u7684\u706B\u85E5\u6587\u660E\uFF0C\u706B\u85E5\u55AE\u4F4D\u66F4\u8010\u6253\u3001\u63A1\u91D1\u66F4\u5FEB\uFF1B\u571F\u8033\u5176\u706B\u69CD\u5175\u5728\u7B2C\u4E09\u6642\u4EE3\u5C31\u80FD\u8A13\u7DF4\uFF0C\u9019\u5728\u706B\u85E5\u55AE\u4F4D\u4E2D\u76F8\u7576\u5C11\u898B\u3002",
+    strategy: "\u5E38\u898B\u6253\u6CD5\u662F\u7B2C\u4E8C\u6642\u4EE3\u7528\u65A5\u5019\u9A37\u64FE\uFF0C\u9032\u5165\u7B2C\u4E09\u6642\u4EE3\u6642\u514D\u8CBB\u5347\u7D1A\u8F15\u9A0E\u5175\u7ACB\u523B\u8F49\u5F37\uFF0C\u63A5\u8457\u4EE5\u571F\u8033\u5176\u706B\u69CD\u5175\u70BA\u4E3B\u529B\u3002\u7F3A\u9577\u77DB\u5175\u8207\u7CBE\u92B3\u6563\u5175\uFF0C\u53CD\u5236\u9A0E\u5175\u8207\u5F13\u5175\u7684\u5175\u7A2E\u90FD\u4E0D\u5B8C\u6574\uFF0C\u4E00\u65E6\u9677\u5165\u88AB\u52D5\u5C31\u6703\u640D\u5931\u6158\u91CD\uFF0C\u6700\u597D\u4E3B\u52D5\u51FA\u64CA\u3002\u706B\u69CD\u5175\u5F88\u5403\u9EC3\u91D1\uFF0C\u5F8C\u671F\u8981\u9760\u63A1\u91D1\u52A0\u6210\u6490\u4F4F\u7D93\u6FDF\u3002",
+    sources: ["civs/Turks", "units/Janissary"]
+  },
+  chinese: {
+    summary: "\u4E2D\u570B\u662F\u904A\u6232\u4E2D\u6700\u53E4\u8001\u7684\u6587\u660E\u4E4B\u4E00\uFF0C\u64C5\u9577\u5F13\u3001\u5F29\u8207\u706B\u5668\u3002\u4F5C\u70BA\u6771\u4E9E\u7684\u5F13\u5175\u6587\u660E\uFF0C\u958B\u5C40\u591A\u5E7E\u540D\u6751\u6C11\u537B\u5C11\u4E86\u98DF\u7269\u8207\u6728\u6750\uFF0C\u8D77\u6B65\u4E0D\u6613\uFF1B\u5404\u6642\u4EE3\u7814\u7A76\u79D1\u6280\u90FD\u6709\u6298\u6263\uFF0C\u5B8C\u6574\u767C\u63EE\u5F8C\u5F8C\u671F\u975E\u5E38\u5F37\u3002\u6B65\u5175\u8207\u5F13\u5175\u7684\u79D1\u6280\u9F4A\u5168\uFF0C\u6A23\u6A23\u80FD\u505A\u3001\u6A23\u6A23\u4E0D\u5C08\u7CBE\u3002",
+    strategy: "\u958B\u5C40\u98DF\u7269\u5403\u7DCA\uFF0C\u5148\u7814\u7A76\u7E54\u5E03\u6A5F\u4E26\u5F15\u91CE\u8C6C\u56DE\u57CE\u93AE\u4E2D\u5FC3\uFF0C\u8B93\u57CE\u93AE\u4E2D\u5FC3\u4E00\u76F4\u751F\u7522\u6751\u6C11\u3002\u524D\u671F\u6015\u5FEB\u653B\uFF0C\u8981\u53CA\u65E9\u7528\u7BAD\u5854\u8207\u5EFA\u7BC9\u570D\u597D\u57FA\u5730\u3002\u9023\u5F29\u5175\u4E00\u6B21\u5C04\u51FA\u591A\u652F\u7BAD\uFF0C\u6210\u7FA4\u6642\u80FD\u8FC5\u901F\u62C6\u6389\u653B\u57CE\u69CC\uFF0C\u4F46\u5C04\u7A0B\u77ED\uFF0C\u9069\u5408\u9632\u5B88\uFF1B\u7B2C\u56DB\u6642\u4EE3\u7684\u706B\u7BAD\u6280\u8853\u518D\u63D0\u9AD8\u5B83\u7684\u653B\u64CA\u3002",
+    sources: ["civs/Chinese", "units/Chu_Ko_Nu"]
+  },
+  japanese: {
+    summary: "\u65E5\u672C\u7684\u5C01\u5EFA\u5236\u5EA6\u7D04\u5728\u5341\u4E00\u4E16\u7D00\u624D\u6210\u5F62\uFF0C\u8ECD\u968A\u6B77\u4F86\u4EE5\u6B65\u5175\u70BA\u4E3B\uFF0C\u662F\u6771\u4E9E\u7684\u6B65\u5175\u6587\u660E\u3002\u6B65\u5175\u7684\u653B\u64CA\u901F\u5EA6\u96A8\u6642\u4EE3\u52A0\u5FEB\uFF0C\u7D93\u6FDF\u5EFA\u7BC9\u4FBF\u5B9C\uFF0C\u7BAD\u5854\u706B\u529B\u51FA\u773E\uFF1B\u4EE3\u50F9\u662F\u9A0E\u5175\u5B71\u5F31\u3002",
+    strategy: "\u4F10\u6728\u5834\u3001\u63A1\u7926\u5834\u8207\u78E8\u574A\u4FBF\u5B9C\uFF0C\u524D\u671F\u7D93\u6FDF\u8D77\u5F97\u5FEB\uFF0C\u9069\u5408\u7B2C\u4E8C\u6642\u4EE3\u4EE5\u6B65\u5175\u5FEB\u653B\u3001\u76E1\u91CF\u5728\u524D\u671F\u53D6\u52DD\u3002\u7B2C\u4E09\u6642\u4EE3\u7814\u7A76\u5C04\u7BAD\u5B54\u5F8C\uFF0C\u7BAD\u5854\u662F\u53EF\u9760\u7684\u5B88\u5BB6\u624B\u6BB5\u3002\u65E5\u672C\u6B66\u58EB\u5C08\u524B\u7279\u6B8A\u55AE\u4F4D\uFF0C\u5C0D\u624B\u4F9D\u8CF4\u7279\u6B8A\u55AE\u4F4D\u6642\u624D\u503C\u5F97\u5927\u91CF\u751F\u7522\uFF1B\u5E73\u6642\u9577\u528D\u58EB\u3001\u5F29\u624B\u8207\u9577\u77DB\u5175\u7684\u7D44\u5408\u66F4\u5BE6\u7528\u3002",
+    sources: ["civs/Japanese", "units/Samurai"]
+  },
+  mongols: {
+    summary: "\u8499\u53E4\u5E1D\u570B\u7531\u9435\u6728\u771F\uFF08\u6210\u5409\u601D\u6C57\uFF09\u5728 1206 \u5E74\u5EFA\u7ACB\uFF0C\u9F0E\u76DB\u6642\u662F\u6B77\u53F2\u4E0A\u9023\u7E8C\u7248\u5716\u6700\u907C\u95CA\u7684\u570B\u5BB6\u3002\u904A\u6232\u4E2D\u4EE5\u99AC\u5F13\u9A0E\u5175\u8207\u653B\u57CE\u5668\u898B\u9577\uFF0C\u64C5\u9577\u6E38\u64CA\u8207\u5FEB\u901F\u7834\u58DE\uFF0C\u8F15\u9A0E\u5175\u4E5F\u66F4\u8010\u6253\u3002\u5F31\u9EDE\u5728\u9632\u5B88\uFF0C\u7BAD\u5854\u7684\u5347\u7D1A\u6709\u9650\u3002",
+    strategy: "\u6253\u7375\u7279\u5225\u5FEB\uFF0C\u9760\u7375\u7269\u8FC5\u901F\u9032\u5165\u7B2C\u4E8C\u6642\u4EE3\uFF0C\u518D\u7528\u65A5\u5019\u9A37\u64FE\u5C0D\u624B\u7684\u6751\u6C11\u3002\u8499\u53E4\u7A81\u9A0E\u5C04\u901F\u5FEB\u3001\u5C0D\u653B\u57CE\u5668\u6709\u52A0\u6210\uFF0C\u9069\u5408\u8972\u64CA\u6751\u6C11\u8207\u50E7\u4FB6\uFF0C\u4E5F\u80FD\u5728\u4E2D\u8DDD\u96E2\u64CA\u6BC0\u653B\u57CE\u69CC\u3002\u6E38\u7267\u8B93\u57FA\u5730\u88AB\u5077\u8972\u6642\u4FDD\u4F4F\u4EBA\u53E3\u4E0A\u9650\uFF0C\u947F\u5CA9\u6A5F\u8B93\u653B\u57CE\u69CC\u63A8\u9032\u5F97\u66F4\u5FEB\uFF1B\u907F\u958B\u9577\u69CD\u5175\u7CFB\u8207\u6210\u7FA4\u7684\u8F15\u9A0E\u5175\u3002",
+    sources: ["civs/Mongols", "units/Mangudai"]
+  }
+};
+var uniqueUnitText = {
+  longbowman: "\u5C04\u7A0B\u6700\u9060\u7684\u5F92\u6B65\u5F13\u5175\uFF0C\u6210\u7FA4\u6642\u706B\u529B\u81F4\u547D\uFF0C\u4F46\u751F\u547D\u4F4E\uFF0C\u6015\u9A0E\u5175\u8207\u653B\u57CE\u5668\u8FD1\u8EAB\u3002",
+  "woad-raider": "\u8DD1\u5F97\u6700\u5FEB\u7684\u6B65\u5175\u4E4B\u4E00\uFF0C\u5C0D\u5EFA\u7BC9\u6709\u52A0\u6210\uFF0C\u64C5\u9577\u6E38\u64CA\u8207\u8FFD\u6BBA\u653B\u57CE\u5668\uFF0C\u4F46\u8B77\u7532\u8584\u3002",
+  "throwing-axeman": "\u5F9E\u9060\u8655\u64F2\u51FA\u65A7\u982D\u7684\u6B65\u5175\uFF0C\u50B7\u5BB3\u7B97\u8FD1\u6230\uFF0C\u5C0D\u5EFA\u7BC9\u6709\u52A0\u6210\uFF1B\u80FD\u58D3\u5236\u9577\u69CD\u5175\u8207\u653B\u57CE\u69CC\uFF0C\u6015\u91CD\u9A0E\u5175\u8207\u6253\u5E36\u8DD1\u7684\u5F13\u5175\u3002",
+  huskarl: "\u9060\u7A0B\u8B77\u7532\u6975\u9AD8\u3001\u5E7E\u4E4E\u4E0D\u6015\u7BAD\u77E2\u7684\u6B65\u5175\uFF0C\u5C08\u6253\u5F13\u5175\u8207\u5EFA\u7BC9\uFF1B\u7F3A\u8FD1\u6230\u8B77\u7532\uFF0C\u6015\u9A0E\u58EB\u8207\u5F37\u529B\u8FD1\u6230\u6B65\u5175\u3002",
+  "teutonic-knight": "\u53C8\u6162\u53C8\u786C\u7684\u91CD\u6B65\u5175\uFF0C\u653B\u64CA\u8207\u8FD1\u6230\u8B77\u7532\u90FD\u9AD8\uFF0C\u5C0D\u5EFA\u7BC9\u6709\u52A0\u6210\uFF1B\u6015\u9060\u7A0B\u55AE\u4F4D\u6253\u5E36\u8DD1\u8207\u50E7\u4FB6\u8F49\u5316\u3002",
+  berserk: "\u6703\u81EA\u5DF1\u56DE\u8840\u7684\u6B65\u5175\uFF0C\u64C5\u9577\u5C0D\u4ED8\u9577\u69CD\u5175\u8207\u8F15\u9A0E\u5175\uFF0C\u9069\u5408\u9A37\u64FE\uFF1B\u6015\u5F13\u5175\u8207\u5C0D\u6B65\u5175\u6709\u52A0\u6210\u7684\u55AE\u4F4D\u3002",
+  cataphract: "\u5C0D\u6B65\u5175\u6709\u5927\u91CF\u52A0\u6210\u50B7\u5BB3\u7684\u91CD\u9A0E\u5175\uFF0C\u7814\u7A76\u5F8C\u52E4\u5F8C\u9084\u6703\u8E10\u8E0F\u76EE\u6A19\u5468\u570D\u7684\u6575\u5175\uFF1B\u9060\u7A0B\u8B77\u7532\u504F\u4F4E\uFF0C\u9020\u50F9\u6602\u8CB4\u3002",
+  "war-elephant": "\u7B28\u91CD\u7DE9\u6162\u537B\u8FD1\u4E4E\u7121\u6575\u7684\u9A0E\u5175\uFF0C\u5C0D\u5EFA\u7BC9\u6709\u52A0\u6210\uFF1B\u6015\u9577\u69CD\u5175\u7CFB\u8207\u50E7\u4FB6\u8F49\u5316\u3002",
+  mameluke: "\u9A0E\u8457\u99F1\u99DD\u3001\u5F9E\u77ED\u8DDD\u96E2\u64F2\u51FA\u5F4E\u5200\u7684\u8FD1\u6230\u55AE\u4F4D\uFF0C\u5C0D\u9A0E\u5175\u6709\u52A0\u6210\uFF0C\u6A5F\u52D5\u6027\u9AD8\u4F46\u6602\u8CB4\u3002",
+  janissary: "\u7B2C\u4E09\u6642\u4EE3\u5C31\u80FD\u8A13\u7DF4\u7684\u706B\u85E5\u6B65\u5175\uFF0C\u653B\u64CA\u9AD8\u3001\u5C04\u7A0B\u9060\uFF0C\u4F46\u751F\u547D\u504F\u4F4E\uFF1B\u6015\u5F13\u5175\u8207\u9A0E\u5175\u3002",
+  "chu-ko-nu": "\u4E00\u6B21\u5C04\u51FA\u591A\u652F\u7BAD\u7684\u9023\u5F29\u624B\uFF0C\u53EA\u6709\u7B2C\u4E00\u652F\u662F\u5B8C\u6574\u50B7\u5BB3\uFF1B\u6210\u7FA4\u6642\u80FD\u8FC5\u901F\u62C6\u6389\u653B\u57CE\u69CC\uFF0C\u4F46\u5C04\u7A0B\u77ED\u3002",
+  samurai: "\u653B\u64CA\u901F\u5EA6\u6975\u5FEB\u7684\u6B65\u5175\uFF0C\u5C0D\u6240\u6709\u7279\u6B8A\u55AE\u4F4D\u6709\u984D\u5916\u50B7\u5BB3\uFF1B\u6015\u5F13\u5175\u8207\u9A0E\u58EB\u3002",
+  mangudai: "\u5C04\u901F\u6975\u5FEB\u3001\u5C0D\u653B\u57CE\u5668\u6709\u52A0\u6210\u7684\u99AC\u5F13\u9A0E\u5175\uFF0C\u9069\u5408\u8972\u64CA\u6751\u6C11\u8207\u50E7\u4FB6\uFF1B\u6015\u9577\u69CD\u5175\u7CFB\u8207\u6210\u7FA4\u7684\u8F15\u9A0E\u5175\u3002"
+};
+var referenceOnlyNames = {
+  hussar: "\u5308\u7259\u5229\u8F15\u9A0E\u5175",
+  paladin: "\u904A\u4FE0",
+  cavalier: "\u91CD\u88DD\u9A0E\u58EB",
+  "siege-ram": "\u91CD\u578B\u885D\u649E\u8ECA",
+  "thumb-ring": "\u62C7\u6307\u74B0",
+  "parthian-tactics": "\u5B89\u606F\u4EBA\u6230\u8853",
+  bloodlines: "\u54C1\u7A2E",
+  camel: "\u99F1\u99DD\u9A0E\u5175",
+  "heavy-scorpion": "\u91CD\u578B\u5F29\u7832",
+  "bombard-cannon": "\u706B\u7832",
+  "elite-cannon-galleon": "\u7CBE\u92B3\u706B\u7832\u6230\u8239",
+  missionary: "\u50B3\u6559\u58EB",
+  arbalest: "\u5F37\u5F29\u5175",
+  architecture: "\u5EFA\u7BC9\u5B78",
+  keep: "\u5927\u578B\u7BAD\u5854",
+  "guard-tower": "\u9632\u79A6\u7BAD\u5854",
+  "bombard-tower": "\u706B\u7832\u5854",
+  "heated-shot": "\u706B\u7BAD\uFF08\u71D2\u71B1\u5F48\uFF09",
+  shipwright: "\u9020\u8239\u54E1",
+  halberdier: "\u621F\u5175",
+  "herbal-medicine": "\u8349\u85E5\u6CBB\u7642",
+  "fire-ship": "\u706B\u6230\u8239",
+  "two-handed-swordsman": "\u96D9\u624B\u528D\u5175",
+  champion: "\u528D\u5175\u52C7\u58EB"
+};
+var classLabel = {
+  infantry: "\u6B65\u5175",
+  cavalry: "\u9A0E\u5175",
+  archer: "\u5F13\u5175",
+  spear: "\u9577\u69CD\u5175",
+  skirmisher: "\u6563\u5175",
+  building: "\u5EFA\u7BC9",
+  siege: "\u653B\u57CE\u5668",
+  unique: "\u7279\u6B8A\u55AE\u4F4D",
+  gunpowder: "\u706B\u85E5\u55AE\u4F4D",
+  "cavalry-archer": "\u99AC\u5F13\u9A0E\u5175",
+  elephant: "\u6230\u8C61",
+  monk: "\u50E7\u4FB6",
+  villager: "\u6751\u6C11",
+  animal: "\u52D5\u7269"
+};
+
+// apps/web/codex-model.ts
+var tick2 = rules.settings.tickHz;
+var entryOf2 = (id) => rules.entries.find((e) => e.id === id);
+var nameOf = (id) => entryOf2(id)?.name ?? id;
+var producerName = (id) => {
+  const b = rules.production[id];
+  return b ? nameOf(b) : "";
+};
+var ageOf2 = (id) => Number(entryOf2(id)?.requires.find((r) => r.startsWith("age-"))?.slice(4) ?? 1);
+var ageNames = ["", "\u7B2C\u4E00\u6642\u4EE3", "\u7B2C\u4E8C\u6642\u4EE3", "\u7B2C\u4E09\u6642\u4EE3", "\u7B2C\u56DB\u6642\u4EE3"];
+var ageName = (age) => ageNames[age] ?? "";
+var codexCivs = () => [...civDefs.filter((c) => c.id !== neutralCiv), ...civDefs.filter((c) => c.id === neutralCiv)];
+function roleOf2(id, civs) {
+  const self = civs[0] === id, rival = civs[1] === id;
+  return self && rival ? "both" : self ? "self" : rival ? "rival" : null;
+}
+function civList(civs) {
+  return codexCivs().map((c) => ({ id: c.id, name: c.name, nameEn: c.nameEn, type: c.type, architecture: c.architecture, group: architectureLabel[c.architecture] ?? c.architecture, role: roleOf2(c.id, civs) }));
+}
+function statSheet(kind, o) {
+  const st = statsOf(kind, o);
+  return {
+    hp: st.hp,
+    damage: st.damage,
+    attack: st.attack,
+    range: st.range,
+    armor: st.armor,
+    cooldown: st.cooldown,
+    speed: speedOf(kind, o),
+    bonus: Object.entries(st.bonus).map(([vs, value]) => ({ vs, label: classLabel[vs] ?? vs, value })),
+    regen: st.regen ?? 0,
+    extraShots: st.extraShots ?? 0,
+    extraDamage: st.extraDamage ?? 0,
+    splash: st.splash ?? 0
+  };
+}
+var rangeText = (range) => range <= 50 ? "\u8FD1\u6230" : `\u5C04\u7A0B ${range / 100} \u683C`;
+var trim = (n) => String(Math.round(n * 100) / 100);
+var secondsText = (s) => `${trim(s)} \u79D2`;
+var cooldownSeconds = (cooldown) => cooldown / tick2;
+var tilesPerSecond = (speed2) => speed2 * tick2 / 100;
+var numberText = trim;
+var seconds = (id, o) => timeTicks(id, o, "castle") / tick2;
+var deferredReason = (c, name) => c.omitted.find((o) => o.text.includes(`\u300C${name}\u300D`))?.reason ?? null;
+var partialOf = (c, name) => c.omitted.filter((o) => !o.text.includes(`\u300C${name}\u300D`) && o.text.startsWith(name));
+function civDetail(id, civs = []) {
+  const c = civById(id) ?? civById(neutralCiv), prose = civProse[c.id];
+  const own = (age) => ({ civ: c.id, age, techs: [] });
+  const utIds = new Set(c.uniqueTechs.map((t) => t.id));
+  const general = c.effects.filter((e) => !(e.trigger.tech && utIds.has(e.trigger.tech)));
+  const units = c.uniqueUnits.map((kind) => {
+    const k = kind, elite = c.eliteUpgrades.find((u) => u === `elite-${kind}`) ?? null, o3 = own(3), o4 = { civ: c.id, age: 4, techs: elite ? [elite] : [] };
+    return {
+      id: kind,
+      name: nameOf(kind),
+      text: uniqueUnitText[kind] ?? "",
+      at: producerName(kind),
+      classes: statsOf(k, o3).classes.map((x) => classLabel[x] ?? x),
+      cost: costOf(kind, o3),
+      seconds: seconds(kind, o3),
+      stats: statSheet(k, o3),
+      elite: elite ? { id: elite, name: nameOf(elite), age: ageOf2(elite), at: producerName(elite), cost: costOf(elite, own(4)), seconds: seconds(elite, own(4)), stats: statSheet(k, o4) } : null
+    };
+  });
+  const techs = c.uniqueTechs.map((t) => {
+    const implemented = !!entryOf2(t.id) && !deferredTechs.includes(t.id), o = own(t.age);
+    return {
+      id: t.id,
+      name: t.name,
+      nameEn: t.nameEn,
+      age: t.age,
+      at: producerName(t.id),
+      reference: t.effectText,
+      implemented,
+      reason: implemented ? null : deferredReason(c, t.name),
+      cost: implemented ? costOf(t.id, o) : null,
+      seconds: implemented ? seconds(t.id, o) : null,
+      effects: c.effects.filter((e) => e.trigger.tech === t.id).map((e) => e.text.replace(`${t.name}\uFF1A`, "")),
+      partial: partialOf(c, t.name)
+    };
+  });
+  const onCards = new Set(c.uniqueTechs.flatMap((t) => c.omitted.filter((o) => o.text.includes(`\u300C${t.name}\u300D`) || o.text.startsWith(t.name))));
+  const civ = rules.civilizations.find((x) => x.id === c.id), groups2 = /* @__PURE__ */ new Map();
+  for (const eid of civ?.unavailable ?? []) {
+    const owner = uniqueUnitOwner[eid];
+    if (owner && owner !== c.id) continue;
+    const e = entryOf2(eid);
+    if (!e) continue;
+    const at = e.kind === "building" ? "" : rules.production[eid] ?? "", key = at || "-";
+    if (!groups2.has(key)) groups2.set(key, { building: at, name: at ? nameOf(at) : "\u5EFA\u7BC9", entries: [] });
+    groups2.get(key).entries.push({ id: eid, name: e.name });
+  }
+  const order = (g) => g.building ? rules.entries.findIndex((e) => e.id === g.building) : -1;
+  return {
+    id: c.id,
+    name: c.name,
+    nameEn: c.nameEn,
+    type: c.type,
+    architecture: c.architecture,
+    group: architectureLabel[c.architecture] ?? c.architecture,
+    role: roleOf2(c.id, civs),
+    summary: prose?.summary ?? "",
+    strategy: prose?.strategy ?? "",
+    bonuses: general.filter((e) => e.scope !== "team").map((e) => e.text),
+    team: general.filter((e) => e.scope === "team").map((e) => e.text.replace(/^團隊加成：/, "")),
+    omitted: c.omitted.filter((o) => !onCards.has(o)),
+    units,
+    techs,
+    tree: [...groups2.values()].sort((a, b) => order(a) - order(b)),
+    later: c.missingLater.map((x) => ({ id: x, name: referenceOnlyNames[x] ?? x })),
+    sources: (prose?.sources ?? []).map((p) => `aoetw.com/${p}`)
+  };
+}
+var costEntries = (cost) => resources.filter((r) => cost[r] > 0).map((r) => [r, cost[r]]);
+
+// apps/web/codex.ts
+var resourceNames = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
+var css = `
+.cx-host{display:grid;place-items:center;padding:16px}.cx-host[hidden]{display:none}
+.cx{--cx-well:var(--well,#26332d);--cx-tile:var(--tile,#415349);--cx-edge:var(--tile-edge,#27342e);--cx-gold:var(--gold,#d8b45a);--cx-muted:var(--muted,#a9b4a4);--cx-cream:var(--cream,#efe6cf);
+ width:min(1100px,100%);height:min(820px,100%);display:grid;grid-template-rows:auto minmax(0,1fr);background:var(--plate,#2f3f38);border-bottom:6px solid var(--plate-edge,#1f2a25);border-radius:4px;overflow:hidden;color:var(--cx-cream);font-size:14px;line-height:1.55}
+.cx *{box-sizing:border-box}
+.cx-head{position:relative;display:flex;align-items:center;gap:10px 16px;padding:12px 16px 19px 20px;border-bottom:3px solid var(--plate-edge,#1f2a25)}
+.cx-head::after{content:"";position:absolute;left:0;right:0;bottom:4px;height:6px;background:radial-gradient(circle at 8px 3px,var(--plate-stud,#3b4d45) 3.5px,transparent 4px) 0 0/16px 6px repeat-x;pointer-events:none}
+.cx-head h2{margin:0;font-size:20px;line-height:1.2;color:var(--cx-gold);letter-spacing:.1em}
+.cx-cat{margin:0;font-size:14px;font-weight:650;color:var(--cx-cream)}.cx-cat::before{content:"/";margin-right:12px;color:var(--cx-muted);font-weight:400}
+.cx-close{margin-left:auto;height:34px;padding:0 12px;display:inline-flex;align-items:center;gap:8px;background:var(--cx-tile);border:0;border-bottom:3px solid var(--cx-edge);border-radius:3px;font-weight:650;font-size:13px;color:var(--cx-cream)}
+.cx-close:hover{background:var(--tile-hover,#4c6155)}.cx-close:active{border-bottom-width:1px;padding-top:2px}.cx-close kbd{font:600 11px/1 system-ui,sans-serif;color:var(--cx-muted)}
+@media (pointer:coarse){.cx-close kbd{display:none}}
+.cx-body{display:grid;grid-template-columns:236px minmax(0,1fr);min-height:0}
+.cx-list{min-height:0;overflow:auto;background:var(--cx-well);padding:10px 10px 18px}
+.cx-group{margin:14px 4px 6px;font-size:12px;font-weight:600;color:var(--cx-muted)}.cx-grp:first-child .cx-group{margin-top:2px}
+.cx-list ul{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.cx-civ{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:0 8px;padding:7px 10px 6px;background:var(--cx-tile);border:0;border-bottom:3px solid var(--cx-edge);border-radius:3px;text-align:left;color:var(--cx-cream)}
+.cx-civ:hover{background:var(--tile-hover,#4c6155)}
+.cx-civ[aria-current=true]{background:#6f6034;border-bottom-color:#4a3f20;border-bottom-width:1px;padding-top:9px}
+.cx-civ b{font-size:15px;font-weight:650;white-space:nowrap}.cx-civ small{grid-column:1;font-size:12px;color:var(--cx-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cx-civ[aria-current=true] small{color:#e6d9b2}
+.cx-mark{grid-column:2;grid-row:1/3;font-size:11.5px;font-weight:650;white-space:nowrap}.cx-mark.self{color:#a8cbe0}.cx-mark.rival{color:#f2b4a4}.cx-mark.both{color:var(--cx-gold)}
+.cx-detail{min-width:0;min-height:0;overflow:auto;padding:20px 26px 30px;overscroll-behavior:contain}
+.cx-page{max-width:880px}
+@media (prefers-reduced-motion:no-preference){.cx-page{animation:cx-in .2s cubic-bezier(.2,.7,.2,1)}}
+@keyframes cx-in{from{transform:translateY(8px)}}
+.cx-page h3{margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px;font-size:28px;line-height:1.2;letter-spacing:.04em}
+.cx-page h3 span{font-size:14px;font-weight:500;letter-spacing:0;color:var(--cx-muted)}
+.cx-sub{margin:6px 0 0;font-size:13px;color:var(--cx-muted)}.cx-sub b{font-weight:650}.cx-sub .self{color:#a8cbe0}.cx-sub .rival{color:#f2b4a4}.cx-sub .both{color:var(--cx-gold)}
+.cx-summary{margin:14px 0 0;font-size:15px;line-height:1.75;max-width:46em}
+.cx-page h4{margin:28px 0 10px;font-size:15px;color:var(--cx-gold);letter-spacing:.08em}
+.cx-page h4 small{margin-left:10px;font-size:12px;font-weight:500;letter-spacing:0;color:var(--cx-muted)}
+.cx-page p{margin:0}.cx-prose{max-width:46em;line-height:1.75}
+.cx-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0 32px}
+.cx-bricks{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.cx-bricks li{display:flex;gap:10px;align-items:flex-start}
+.cx-bricks li::before{content:"";flex:none;width:10px;height:7px;margin-top:8px;background:var(--cx-gold);border-radius:1.5px;box-shadow:inset 0 -2px 0 rgba(60,44,10,.45)}
+.cx-bricks.off li::before{background:transparent;box-shadow:inset 0 0 0 1.5px var(--cx-muted)}
+.cx-bricks small{display:block;font-size:12.5px;color:var(--cx-muted)}
+.cx-note{font-size:12.5px;color:var(--cx-muted);margin:0 0 10px!important}
+.cx-unit{display:grid;grid-template-columns:112px minmax(0,1fr);gap:4px 18px;padding:14px;background:var(--cx-well);border-radius:3px}.cx-unit+.cx-unit{margin-top:10px}.cx-unit.no-face{grid-template-columns:minmax(0,1fr)}
+.cx-uhead,.cx-ubody{grid-column:2;min-width:0}.cx-unit.no-face>div{grid-column:1}
+.cx-face{grid-row:1/3;width:112px;height:112px;display:grid;place-items:center;background:#384a41;border-bottom:4px solid var(--cx-edge);border-radius:3px;overflow:hidden}.cx-face img{width:100%;height:100%;object-fit:contain}
+.cx-unit h5,.cx-tech h5{margin:0;font-size:17px;line-height:1.3;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}.cx-unit h5 span,.cx-tech h5 span{font-size:12.5px;font-weight:500;color:var(--cx-muted)}
+.cx-uhead p{margin:4px 0 0!important}
+.cx-cost{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin:10px 0 0;font-variant-numeric:tabular-nums;font-weight:600}.cx-cost span{display:inline-flex;align-items:center;gap:4px}.cx-cost img{width:20px;height:20px;object-fit:contain}.cx-cost .t{font-weight:500;color:var(--cx-muted)}
+.cx-stats{width:100%;max-width:560px;margin:12px 0 0;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.cx-stats th,.cx-stats td{padding:4px 10px 4px 0;text-align:left;vertical-align:top}.cx-stats thead th{font-size:12px;font-weight:600;color:var(--cx-gold)}
+.cx-stats tbody th{width:6.5em;font-weight:500;color:var(--cx-muted);white-space:nowrap}.cx-stats tbody tr:nth-child(odd){background:rgba(0,0,0,.12)}.cx-stats tbody th{padding-left:8px}
+.cx-stats td.up{color:#e7d59a}
+.cx-elite{margin:12px 0 0;font-size:13px;color:var(--cx-muted)}.cx-elite .cx-cost{margin-top:4px}.cx-elite b{color:var(--cx-cream);font-weight:600}
+.cx-techs{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px}
+.cx-tech{padding:12px 14px 14px;background:var(--cx-well);border-radius:3px}.cx-tech.off{background:#222d28}
+.cx-tech .cx-age{margin:2px 0 0;font-size:12.5px;color:var(--cx-muted)}.cx-tech .cx-bricks{margin-top:10px}.cx-tech .cx-cost{margin-top:8px}
+.cx-flag{color:#f3b19f;font-weight:650}
+.cx-tree{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 16px;margin:0}.cx-tree dt{color:var(--cx-muted)}.cx-tree dd{margin:0}
+.cx-later{margin-top:14px!important;font-size:13px;color:var(--cx-muted)}.cx-later b{font-weight:600;color:var(--cx-cream)}
+.cx-foot{margin-top:34px;padding-top:14px;border-top:3px solid rgba(0,0,0,.18);font-size:12.5px;color:var(--cx-muted);max-width:52em}.cx-foot p+p{margin-top:6px}
+@media (max-width:760px){
+ .cx{width:100%;height:100%}
+ .cx-head{padding:10px 16px 17px}.cx-head h2{font-size:18px}
+ .cx-body{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+ .cx-list{display:flex;gap:5px;overflow-x:auto;overflow-y:hidden;padding:8px 16px 10px}
+ .cx-grp,.cx-list ul,.cx-list li{display:contents}.cx-group{display:none}
+ .cx-civ{flex:none;width:auto;padding:6px 12px 5px}.cx-civ[aria-current=true]{padding-top:8px}.cx-civ small{display:none}.cx-mark{grid-row:1}
+ .cx-detail{padding:16px 16px 26px}.cx-page h3{font-size:24px}.cx-summary{font-size:14.5px}
+ .cx-unit{grid-template-columns:72px minmax(0,1fr);gap:4px 12px;padding:12px}.cx-face{grid-row:1;width:72px;height:72px}.cx-ubody{grid-column:1/-1}
+ .cx-stats{font-size:12.5px}.cx-stats th,.cx-stats td{padding-right:6px}.cx-stats tbody th{width:auto}
+ .cx-cols{grid-template-columns:minmax(0,1fr)}.cx-techs{grid-template-columns:minmax(0,1fr)}
+}`;
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) k === "class" ? e.className = v : e.setAttribute(k, v);
+  for (const k of kids) if (k !== null && k !== void 0 && k !== false) e.append(k);
+  return e;
+}
+var open = null;
+var chosen = null;
+var roleText = { self: "\u4F60\u7684\u6587\u660E", rival: "\u5C0D\u624B", both: "\u96D9\u65B9" };
+function costRow(icons2, cost, seconds2, extra) {
+  const row = h("p", { class: "cx-cost" });
+  for (const [r, v] of costEntries(cost)) {
+    const s = h("span", null);
+    if (icons2[r]) s.append(h("img", { src: icons2[r], alt: resourceNames[r] }));
+    else s.append(`${resourceNames[r]} `);
+    s.append(String(v));
+    row.append(s);
+  }
+  if (!costEntries(cost).length) row.append(h("span", null, "\u514D\u8CBB"));
+  if (seconds2 !== null) row.append(h("span", { class: "t" }, secondsText(seconds2)));
+  if (extra) row.append(h("span", { class: "t" }, extra));
+  return row;
+}
+var attackText = (s) => s.attack === "none" ? "\u7121" : `${s.damage}\uFF08${s.attack === "melee" ? "\u8FD1\u6230" : "\u9060\u7A0B"}\uFF09`;
+var bonusText = (s) => s.bonus.length ? s.bonus.map((b) => `\u5C0D${b.label} +${b.value}`).join("\u3001") : "\u7121";
+function specialText(s) {
+  const out = [];
+  if (s.regen) out.push(`\u6BCF\u5206\u9418\u56DE\u5FA9 ${s.regen} \u751F\u547D`);
+  if (s.extraShots) out.push(`\u6BCF\u6B21\u591A\u5C04 ${s.extraShots} \u652F\u7BAD\uFF08\u6BCF\u652F ${s.extraDamage}\uFF09`);
+  if (s.splash) out.push(`\u76EE\u6A19\u65C1\u7684\u6575\u5175\u53D7 ${s.splash} \u9EDE\u8E10\u8E0F\u50B7\u5BB3`);
+  return out.join("\uFF1B");
+}
+function statTable(u) {
+  const rows = [
+    ["\u751F\u547D", (s) => String(s.hp)],
+    ["\u653B\u64CA", attackText],
+    ["\u5C04\u7A0B", (s) => rangeText(s.range).replace("\u5C04\u7A0B ", "")],
+    ["\u8B77\u7532", (s) => `${s.armor[0]}/${s.armor[1]}`, "\u8FD1\u6230\u8B77\u7532\uFF0F\u9060\u7A0B\u8B77\u7532"],
+    ["\u653B\u64CA\u9593\u9694", (s) => secondsText(cooldownSeconds(s.cooldown))],
+    ["\u79FB\u52D5", (s) => `${numberText(tilesPerSecond(s.speed))} \u683C\uFF0F\u79D2`],
+    ["\u984D\u5916\u50B7\u5BB3", bonusText]
+  ];
+  if (specialText(u.stats) || u.elite && specialText(u.elite.stats)) rows.push(["\u7279\u6027", (s) => specialText(s) || "\u7121"]);
+  const elite = u.elite?.stats;
+  return h(
+    "table",
+    { class: "cx-stats" },
+    h("thead", null, h("tr", null, h("td", null), h("th", { scope: "col" }, "\u7B2C\u4E09\u6642\u4EE3"), elite ? h("th", { scope: "col" }, "\u7CBE\u92B3\u30FB\u7B2C\u56DB\u6642\u4EE3") : null)),
+    h("tbody", null, ...rows.map(([label, f, title]) => {
+      const a = f(u.stats), b = elite ? f(elite) : null;
+      return h("tr", null, h("th", { scope: "row", ...title ? { title } : {} }, label), h("td", null, a), b !== null ? h("td", b !== a ? { class: "up" } : null, b) : null);
+    }))
+  );
+}
+function unitCard(u, icons2) {
+  const face = icons2[`${u.id}-face`];
+  return h(
+    "article",
+    { class: `cx-unit${face ? "" : " no-face"}` },
+    face ? h("div", { class: "cx-face" }, h("img", { src: face, alt: "" })) : null,
+    h("div", { class: "cx-uhead" }, h("h5", null, u.name, h("span", null, u.classes.join("\u30FB"))), h("p", null, u.text)),
+    h(
+      "div",
+      { class: "cx-ubody" },
+      costRow(icons2, u.cost, u.seconds, u.at ? `\u65BC${u.at}\u8A13\u7DF4` : ""),
+      statTable(u),
+      u.elite ? h("div", { class: "cx-elite" }, "\u7CBE\u92B3\u5347\u7D1A ", h("b", null, u.elite.name), "\uFF1A", costRow(icons2, u.elite.cost, u.elite.seconds, `${ageName(u.elite.age)}${u.elite.at ? `\u65BC${u.elite.at}` : ""}\u7814\u7A76`)) : null
+    )
+  );
+}
+function techCard(t, icons2) {
+  const card = h("article", { class: `cx-tech${t.implemented ? "" : " off"}` }, h("h5", null, t.name, h("span", { lang: "en" }, t.nameEn)), h("p", { class: "cx-age" }, t.at ? `${ageName(t.age)}\u30FB${t.at}` : ageName(t.age)));
+  if (t.implemented) {
+    card.append(costRow(icons2, t.cost, t.seconds), h("ul", { class: "cx-bricks" }, ...t.effects.map((x) => h("li", null, h("span", null, x)))));
+    if (t.partial.length) card.append(h("ul", { class: "cx-bricks off" }, ...t.partial.map((o) => h("li", null, h("span", null, h("span", { class: "cx-flag" }, "\u5C1A\u672A\u5BE6\u4F5C"), `\uFF1A${o.text}`, h("small", null, o.reason))))));
+  } else card.append(h("p", { style: "margin-top:10px" }, h("span", { class: "cx-flag" }, "\u5C1A\u672A\u5BE6\u4F5C"), t.reason ? `\uFF1A${t.reason}` : ""), h("p", { class: "cx-note", style: "margin:6px 0 0!important" }, `\u539F\u4F5C\u6548\u679C\uFF1A${t.reference}`));
+  return card;
+}
+function page(d, icons2) {
+  const p = h("div", { class: "cx-page" });
+  p.append(
+    h("h3", { id: "cx-civ-name" }, d.name, h("span", { lang: "en" }, d.nameEn)),
+    h("p", { class: "cx-sub" }, `${d.type}\u30FB${d.group}${d.architecture === "neutral" ? "" : "\u5EFA\u7BC9"}`, d.role ? "\u30FB" : "", d.role ? h("b", { class: d.role }, roleText[d.role]) : null),
+    h("p", { class: "cx-summary" }, d.summary),
+    h("h4", null, "\u6230\u8853"),
+    h("p", { class: "cx-prose" }, d.strategy)
+  );
+  if (d.bonuses.length || d.team.length) {
+    const cols = h("div", { class: "cx-cols" });
+    if (d.bonuses.length) cols.append(h("section", null, h("h4", null, "\u6587\u660E\u52A0\u6210"), h("ul", { class: "cx-bricks" }, ...d.bonuses.map((x) => h("li", null, h("span", null, x))))));
+    if (d.team.length) cols.append(h("section", null, h("h4", null, "\u5718\u968A\u52A0\u6210", h("small", null, "\u4E00\u5C0D\u4E00\u6642\u53EA\u4F5C\u7528\u5728\u81EA\u5DF1")), h("ul", { class: "cx-bricks" }, ...d.team.map((x) => h("li", null, h("span", null, x))))));
+    p.append(cols);
+  }
+  if (d.omitted.length) p.append(h(
+    "section",
+    null,
+    h("h4", null, "\u5C1A\u672A\u5BE6\u4F5C", h("small", null, "\u539F\u4F5C\u6709\u3001\u672C\u4F5C\u9084\u505A\u4E0D\u5230\u7684\u52A0\u6210")),
+    h("ul", { class: "cx-bricks off" }, ...d.omitted.map((o) => h("li", null, h("span", null, o.text, h("small", null, o.reason)))))
+  ));
+  if (d.units.length) p.append(h("section", null, h("h4", null, "\u7279\u6B8A\u55AE\u4F4D"), h("p", { class: "cx-note" }, "\u50F9\u683C\u8207\u6578\u503C\u5DF2\u542B\u6587\u660E\u52A0\u6210\uFF1A\u7B2C\u4E09\u6642\u4EE3\u3001\u5C1A\u672A\u7814\u7A76\u4EFB\u4F55\u79D1\u6280\uFF1B\u7CBE\u92B3\u6B04\u70BA\u7B2C\u56DB\u6642\u4EE3\u5B8C\u6210\u7CBE\u92B3\u5347\u7D1A\u5F8C\u3002"), ...d.units.map((u) => unitCard(u, icons2))));
+  if (d.techs.length) p.append(h("section", null, h("h4", null, "\u7279\u6B8A\u79D1\u6280"), h("div", { class: "cx-techs" }, ...d.techs.map((t) => techCard(t, icons2)))));
+  if (d.tree.length || d.later.length) {
+    const s = h("section", null, h("h4", null, "\u79D1\u6280\u6A39\u5DEE\u7570", h("small", null, d.architecture === "neutral" ? "\u672C\u4F5C\u7684\u901A\u7528\u79D1\u6280\u6A39\uFF0C\u53EA\u5C11\u4E86\u57CE\u5821" : "\u548C\u62D3\u8352\u8005\u7684\u5B8C\u6574\u79D1\u6280\u6A39\u76F8\u6BD4")));
+    if (d.tree.length) s.append(h("dl", { class: "cx-tree" }, ...d.tree.flatMap((g) => [h("dt", null, g.name), h("dd", null, g.entries.map((e) => e.name).join("\u3001"))])));
+    else s.append(h("p", null, "\u672C\u4F5C\u73FE\u6709\u7684\u901A\u7528\u9805\u76EE\u90FD\u80FD\u4F7F\u7528\u3002"));
+    if (d.later.length) s.append(h("p", { class: "cx-later" }, h("b", null, "\u539F\u4F5C\u4E5F\u7F3A\u5C11\uFF08\u672C\u4F5C\u5C1A\u7121\u6B64\u9805\uFF09\uFF1A"), d.later.map((e) => e.name).join("\u3001")));
+    p.append(s);
+  }
+  p.append(h("footer", { class: "cx-foot" }, h("p", null, codexIntro), d.sources.length ? h("p", null, `\u8CC7\u6599\u4F86\u6E90\uFF1A${d.sources.join("\u3001")}`) : null));
+  return p;
+}
+function listItem(c) {
+  return h("li", null, h("button", { type: "button", class: "cx-civ", "data-civ": c.id, tabindex: "-1", "aria-current": "false" }, h("b", null, c.name), h("small", null, c.type), c.role ? h("span", { class: `cx-mark ${c.role}` }, roleText[c.role]) : null));
+}
+function reveal(list, b) {
+  const l = list.getBoundingClientRect(), r = b.getBoundingClientRect(), m = 16;
+  if (r.right > l.right - m) list.scrollLeft += r.right - l.right + m;
+  else if (r.left < l.left + m) list.scrollLeft -= l.left + m - r.left;
+  if (r.bottom > l.bottom - m) list.scrollTop += r.bottom - l.bottom + m;
+  else if (r.top < l.top + m) list.scrollTop -= l.top + m - r.top;
+}
+function select(id, focus = false) {
+  if (!open) return;
+  chosen = id;
+  for (const b of Array.from(open.list.querySelectorAll(".cx-civ"))) {
+    const on = b.dataset.civ === id;
+    b.setAttribute("aria-current", String(on));
+    b.tabIndex = on ? 0 : -1;
+    if (on) {
+      if (focus) b.focus({ preventScroll: true });
+      reveal(open.list, b);
+    }
+  }
+  open.detail.replaceChildren(page(civDetail(id, open.ctx.civs), open.ctx.icons));
+  open.detail.scrollTop = 0;
+}
+function injectStyle() {
+  if (document.getElementById("cx-style")) return;
+  const s = document.createElement("style");
+  s.id = "cx-style";
+  s.textContent = css;
+  document.head.append(s);
+}
+function openCodex(host, ctx) {
+  injectStyle();
+  const prev = open?.prev ?? document.activeElement;
+  open = null;
+  const items = civList(ctx.civs), groups2 = [];
+  for (const c of items) {
+    const g = groups2.at(-1);
+    if (g && g.label === c.group) g.items.push(c);
+    else groups2.push({ label: c.group, items: [c] });
+  }
+  const list = h("nav", { class: "cx-list", "aria-label": "\u6587\u660E\u5217\u8868" }, ...groups2.map((g, i) => h("div", { class: "cx-grp" }, h("p", { class: "cx-group", id: `cx-g${i}` }, g.label), h("ul", { "aria-labelledby": `cx-g${i}` }, ...g.items.map(listItem)))));
+  const detail = h("div", { class: "cx-detail", role: "region", "aria-labelledby": "cx-civ-name", tabindex: "-1" });
+  const close = h("button", { type: "button", class: "cx-close" }, "\u95DC\u9589", h("kbd", null, "Esc"));
+  close.onclick = () => closeCodex();
+  list.addEventListener("click", (e) => {
+    const b = e.target.closest(".cx-civ");
+    if (b?.dataset.civ) select(b.dataset.civ);
+  });
+  list.addEventListener("keydown", (e) => {
+    const ids = codexCivs().map((c) => c.id), i = ids.indexOf(chosen ?? ids[0]);
+    const next = e.key === "ArrowDown" || e.key === "ArrowRight" ? Math.min(ids.length - 1, i + 1) : e.key === "ArrowUp" || e.key === "ArrowLeft" ? Math.max(0, i - 1) : e.key === "Home" ? 0 : e.key === "End" ? ids.length - 1 : null;
+    if (next === null) return;
+    e.preventDefault();
+    select(ids[next], true);
+  });
+  host.classList.add("cx-host");
+  if (!host.hasAttribute("role")) host.setAttribute("role", "dialog");
+  host.setAttribute("aria-modal", "true");
+  host.setAttribute("aria-labelledby", "cx-title");
+  host.replaceChildren(h("div", { class: "cx" }, h("header", { class: "cx-head" }, h("h2", { id: "cx-title" }, "\u767E\u79D1"), h("p", { class: "cx-cat" }, "\u6587\u660E"), close), h("div", { class: "cx-body" }, list, detail)));
+  host.hidden = false;
+  open = { host, ctx, prev, list, detail };
+  const first = chosen && items.some((c) => c.id === chosen) ? chosen : items.find((c) => c.role === "self" || c.role === "both")?.id ?? items[0].id;
+  select(first, true);
+}
+function closeCodex() {
+  if (!open) return;
+  const { host, ctx, prev } = open;
+  open = null;
+  host.replaceChildren();
+  host.hidden = true;
+  if (prev instanceof HTMLElement && prev.isConnected) prev.focus();
+  ctx.onClose();
+}
+
 // apps/web/main.ts
 var el = (id) => document.getElementById(id);
 var debug = new URLSearchParams(location.search).has("debug");
 el("debug").hidden = !debug;
-var state = { seed: rules.settings.seed, layout: debug ? "meadow" : "open", size: debug ? 16 : 32, opponent: debug ? "idle" : "ai", terrain: [], tick: 0, units: [], corpses: [], outcome: null, economy: { stock: { food: 0, wood: 0, gold: 0, stone: 0 }, populationUsed: 0, populationReserved: 0, populationCap: 0, age: 1, techs: [], reseed: true }, buildings: [], transactions: [], fog: [], known: [], resources: [], stateHash: "\u2014", shots: [], relicSpots: [], relicsHeld: [0, 0], relicTotal: 0, relicVictory: null };
-var resourceNames = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
+var startCivs = debug ? [neutralCiv, neutralCiv] : ["britons", "franks"];
+var state = { seed: rules.settings.seed, layout: debug ? "meadow" : "open", size: debug ? 16 : 32, opponent: debug ? "idle" : "ai", civs: [...startCivs], terrain: [], tick: 0, units: [], corpses: [], outcome: null, economy: { stock: { food: 0, wood: 0, gold: 0, stone: 0 }, populationUsed: 0, populationReserved: 0, populationCap: 0, age: 1, techs: [], reseed: true }, buildings: [], transactions: [], fog: [], known: [], resources: [], stateHash: "\u2014", shots: [], relicSpots: [], relicsHeld: [0, 0], relicTotal: 0, relicVictory: null };
+var resourceNames2 = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
 var workLabel = { toSource: "\u524D\u5F80\u63A1\u96C6", gathering: "\u63A1\u96C6\u4E2D", toDropoff: "\u9001\u8FD4\u57CE\u93AE\u4E2D\u5FC3", toSite: "\u524D\u5F80\u5DE5\u5730", building: "\u65BD\u5DE5\u4E2D", hunting: "\u72E9\u7375\u4E2D" };
-var buildingNames2 = { "watch-tower": "\u7BAD\u5854", "siege-workshop": "\u653B\u57CE\u5668\u5DE5\u574A", blacksmith: "\u9435\u5320\u92EA", house: "\u4F4F\u5B85", barracks: "\u5175\u71DF", farm: "\u8FB2\u7530", "lumber-camp": "\u4F10\u6728\u5834", "mining-camp": "\u63A1\u7926\u5834", mill: "\u78E8\u574A", stable: "\u99AC\u5EC4", "archery-range": "\u9776\u5834", monastery: "\u4FEE\u9053\u9662", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
-var homeKinds = /* @__PURE__ */ new Set(["watch-tower", "siege-workshop", "blacksmith", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "town-center"]);
+var buildingNames2 = { castle: "\u57CE\u5821", "watch-tower": "\u7BAD\u5854", "siege-workshop": "\u653B\u57CE\u5668\u5DE5\u574A", blacksmith: "\u9435\u5320\u92EA", house: "\u4F4F\u5B85", barracks: "\u5175\u71DF", farm: "\u8FB2\u7530", "lumber-camp": "\u4F10\u6728\u5834", "mining-camp": "\u63A1\u7926\u5834", mill: "\u78E8\u574A", stable: "\u99AC\u5EC4", "archery-range": "\u9776\u5834", monastery: "\u4FEE\u9053\u9662", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
+var homeKinds = /* @__PURE__ */ new Set(["castle", "watch-tower", "siege-workshop", "blacksmith", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "town-center"]);
 var layoutNames = { meadow: "\u8349\u7538", coast: "\u6D77\u5CB8", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058", open: "\u66E0\u91CE" };
+var civName = (id) => civById(id ?? neutralCiv)?.name ?? id ?? "";
+var myCiv = () => state.civs[0] ?? neutralCiv;
+var mine = () => ({ civ: myCiv(), age: state.economy.age, techs: state.economy.techs });
 var placing = null;
 var selectedBuilding = null;
 var lastTransaction = 0;
@@ -3216,7 +4772,7 @@ function render() {
   el("tick").textContent = String(state.tick);
   el("hash").textContent = state.stateHash;
   const e = state.economy;
-  el("stock").textContent = state.stateHash === "\u2014" ? "\u8CC7\u6E90\u8F09\u5165\u4E2D\u2026" : `${ageNames[e.age]} \xB7 \u98DF\u7269 ${e.stock.food} \xB7 \u6728\u6750 ${e.stock.wood} \xB7 \u9EC3\u91D1 ${e.stock.gold} \xB7 \u77F3\u982D ${e.stock.stone} \xB7 \u4EBA\u53E3 ${e.populationUsed}/${e.populationCap}`;
+  el("stock").textContent = state.stateHash === "\u2014" ? "\u8CC7\u6E90\u8F09\u5165\u4E2D\u2026" : `${ageNames2[e.age]} \xB7 \u98DF\u7269 ${e.stock.food} \xB7 \u6728\u6750 ${e.stock.wood} \xB7 \u9EC3\u91D1 ${e.stock.gold} \xB7 \u77F3\u982D ${e.stock.stone} \xB7 \u4EBA\u53E3 ${e.populationUsed}/${e.populationCap}`;
   renderTop();
   renderBuild();
   renderBuilding();
@@ -3226,14 +4782,14 @@ function render() {
   reportEvents();
   renderOutcome();
   renderIdle();
-  const chosen = chosenUnits();
-  el("selection-list").textContent = chosen.length > 1 ? chosen.map((u2) => `${nameOf(u2)} ${u2.id} (${(u2.x / 100).toFixed(1)}, ${(u2.y / 100).toFixed(1)})\uFF1A${activity(u2)}`).join("\u3000") : "";
-  const u = chosen[0];
+  const chosen2 = chosenUnits();
+  el("selection-list").textContent = chosen2.length > 1 ? chosen2.map((u2) => `${nameOf2(u2)} ${u2.id} (${(u2.x / 100).toFixed(1)}, ${(u2.y / 100).toFixed(1)})\uFF1A${activity(u2)}`).join("\u3000") : "";
+  const u = chosen2[0];
   if (!u) {
     el("position").textContent = "\u672A\u9078\u53D6\u55AE\u4F4D";
     return;
   }
-  el("position").textContent = `${chosen.length > 1 ? `${chosen.length} \u540D\u9078\u53D6 \xB7 ` : ""}${nameOf(u)} ${u.id} \xB7 (${(u.x / 100).toFixed(1)}, ${(u.y / 100).toFixed(1)}) \xB7 ${activity(u)}`;
+  el("position").textContent = `${chosen2.length > 1 ? `${chosen2.length} \u540D\u9078\u53D6 \xB7 ` : ""}${nameOf2(u)} ${u.id} \xB7 (${(u.x / 100).toFixed(1)}, ${(u.y / 100).toFixed(1)}) \xB7 ${activity(u)}`;
 }
 function renderTop() {
   const e = state.economy;
@@ -3243,7 +4799,7 @@ function renderTop() {
   for (const r of resources) {
     const c = el(`crew-${r}`);
     c.textContent = crews[r] ? String(crews[r]) : "";
-    c.title = `${crews[r]} \u540D\u6751\u6C11\u63A1${resourceNames[r]}`;
+    c.title = `${crews[r]} \u540D\u6751\u6C11\u63A1${resourceNames2[r]}`;
   }
   el("res-pop").textContent = `${e.populationUsed}/${e.populationCap}`;
   {
@@ -3258,15 +4814,16 @@ function renderTop() {
   }
   el("pop").classList.toggle("full", e.populationCap > 0 && e.populationUsed + e.populationReserved >= e.populationCap);
   el("pop").title = `\u4EBA\u53E3 ${e.populationUsed}\uFF0F\u4E0A\u9650 ${e.populationCap}${e.populationReserved ? `\uFF08\u4F47\u5217\u4FDD\u7559 ${e.populationReserved}\uFF09` : ""}`;
-  el("age-name").textContent = ageNames[e.age];
+  el("civ-name").textContent = civName(myCiv());
+  el("age-name").textContent = ageNames2[e.age];
   const t = Math.floor(state.tick / rules.settings.tickHz), mm = Math.floor(t / 60), ss = t % 60;
   el("clock").textContent = `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
-  el("sel-empty-title").textContent = `\u85CD\u65B9 \xB7 ${layoutNames[state.layout]} \xB7 \u5C0D\u624B\uFF1A${state.opponent === "ai" ? "\u96FB\u8166" : "\u4E0D\u884C\u52D5"}`;
+  el("sel-empty-title").textContent = `\u85CD\u65B9\uFF08${civName(myCiv())}\uFF09 \xB7 ${layoutNames[state.layout]} \xB7 \u5C0D\u624B\uFF1A${state.opponent === "ai" ? "\u96FB\u8166" : "\u4E0D\u884C\u52D5"}\uFF08${civName(state.civs[1])}\uFF09`;
 }
 var doing = (u) => u.relic && !u.rite ? "\u651C\u5E36\u8056\u7269" : u.rite ? u.rite === "convert" ? "\u8F49\u5316\u4E2D" : "\u6CBB\u7642\u4E2D" : u.faith !== null && u.faith < 100 ? `\u4FE1\u4EF0\u6062\u5FA9\u4E2D ${u.faith}%` : u.action === 1 ? "\u653B\u64CA\u4E2D" : u.work && u.navigation !== "waiting" && u.navigation !== "stuck" ? workLabel[u.work] : statusLabel[u.navigation];
 function activity(u) {
   const life = u.hp < u.maxHp ? ` \xB7 \u751F\u547D ${u.hp}/${u.maxHp}` : "";
-  return (u.cargo ? `${doing(u)} \xB7 \u651C\u5E36${resourceNames[u.cargo.resource]} ${u.cargo.amount}` : doing(u)) + life;
+  return (u.cargo ? `${doing(u)} \xB7 \u651C\u5E36${resourceNames2[u.cargo.resource]} ${u.cargo.amount}` : doing(u)) + life;
 }
 async function rite(kind, monkIds, targetId, label) {
   try {
@@ -3356,7 +4913,7 @@ function setRunning(v) {
 function renderPaused() {
   el("paused-banner").hidden = running || !connected || !!state.outcome || graphicsFailed;
 }
-function select(ids) {
+function select2(ids) {
   if (selectedBuilding && [...ids].length) selectedBuilding = null;
   const own = new Set(ownUnits().map((u) => u.id)), before = [...selected].sort().join();
   selected = new Set([...ids].filter((id) => own.size === 0 || own.has(id)));
@@ -3370,17 +4927,18 @@ function select(ids) {
   render();
 }
 function choose(id) {
-  select([id]);
+  select2([id]);
 }
-var entryOf2 = (k) => rules.entries.find((e) => e.id === k);
-var costOf = (k) => entryOf2(k).cost;
-var costText = (k) => Object.entries(costOf(k)).filter(([, v]) => v > 0).map(([r, v]) => `${resourceNames[r]} ${v}`).join("\u3001");
-var entryName = (k) => entryOf2(k)?.name ?? k;
-var ageNames = ["", "\u7B2C\u4E00\u6642\u4EE3", entryName("age-2"), entryName("age-3"), entryName("age-4")];
-var unitNames = { villager: "\u6751\u6C11", militia: "\u8FD1\u6230\u6C11\u5175", archer: "\u5F13\u624B", scout: "\u65A5\u5019", monk: "\u50E7\u4FB6", sheep: "\u7F8A", deer: "\u9E7F", boar: "\u91CE\u8C6C", spearman: "\u9577\u69CD\u5175", skirmisher: "\u6563\u5175", knight: "\u9A0E\u58EB", ram: "\u653B\u57CE\u69CC" };
+var entryOf3 = (k) => rules.entries.find((e) => e.id === k);
+var costOf2 = (k) => costOf(k, mine());
+var costText = (k) => Object.entries(costOf2(k)).filter(([, v]) => v > 0).map(([r, v]) => `${resourceNames2[r]} ${v}`).join("\u3001");
+var entryName = (k) => entryOf3(k)?.name ?? k;
+var ageNames2 = ["", "\u7B2C\u4E00\u6642\u4EE3", entryName("age-2"), entryName("age-3"), entryName("age-4")];
+var uniqueKinds = civDefs.flatMap((c) => c.uniqueUnits);
+var unitNames = { villager: "\u6751\u6C11", militia: "\u8FD1\u6230\u6C11\u5175", archer: "\u5F13\u624B", scout: "\u65A5\u5019", monk: "\u50E7\u4FB6", sheep: "\u7F8A", deer: "\u9E7F", boar: "\u91CE\u8C6C", spearman: "\u9577\u69CD\u5175", skirmisher: "\u6563\u5175", knight: "\u9A0E\u58EB", ram: "\u653B\u57CE\u69CC", ...Object.fromEntries(uniqueKinds.map((k) => [k, entryName(k)])) };
 var ownName = (kind) => lineName(kind, state.economy.techs) ?? unitNames[kind];
-var nameOf = (u) => u.player === 0 ? ownName(u.kind) : unitNames[u.kind];
-var soldierKinds = /* @__PURE__ */ new Set(["militia", "archer", "spearman", "skirmisher", "knight", "ram"]);
+var nameOf2 = (u) => u.player === 0 ? ownName(u.kind) : unitNames[u.kind];
+var soldierKinds2 = /* @__PURE__ */ new Set(["militia", "archer", "spearman", "skirmisher", "knight", "ram", ...uniqueKinds]);
 var villagersIn = (ids) => [...ids].filter((id) => state.units.find((u) => u.id === id)?.kind === "villager").sort((a, b) => a - b);
 var leftOut = (ids) => {
   const n = selected.size - ids.length;
@@ -3388,16 +4946,17 @@ var leftOut = (ids) => {
 };
 function buildBlocker(k) {
   if (!villagersIn(selected).length) return "\u5148\u9078\u53D6\u6751\u6C11";
-  const req = buildRequirement(state.economy.age, k, state.buildings);
+  const req = buildRequirement(state.economy.age, k, state.buildings, myCiv());
   if (req) return req;
-  const st = state.economy.stock, c = costOf(k), short = Object.keys(c).filter((r) => st[r] < c[r]);
-  return short.length ? short.map((r) => `${resourceNames[r]}\u4E0D\u8DB3\uFF1A\u9700\u8981 ${c[r]}\uFF0C\u76EE\u524D ${st[r]}`).join("\uFF1B") : null;
+  const st = state.economy.stock, c = costOf2(k), short = Object.keys(c).filter((r) => st[r] < c[r]);
+  return short.length ? short.map((r) => `${resourceNames2[r]}\u4E0D\u8DB3\uFF1A\u9700\u8981 ${c[r]}\uFF0C\u76EE\u524D ${st[r]}`).join("\uFF1B") : null;
 }
+var ownBuildKinds = () => buildKinds.filter((k) => civAvailable(myCiv(), k));
 function renderBuild() {
-  const show = !selectedBuilding && villagersIn(selected).length > 0;
+  const show = !selectedBuilding && villagersIn(selected).length > 0, kinds = ownBuildKinds();
   for (const k of buildKinds) {
     const b = el(`build-${k}`), why = buildBlocker(k);
-    b.hidden = !show;
+    b.hidden = !show || !kinds.includes(k);
     b.disabled = !connected || graphicsFailed || !!why;
     b.setAttribute("aria-label", `${buildingNames2[k]}\uFF08${costText(k)}\uFF09${why ? `\uFF1A${why}` : ""}`);
     b.setAttribute("aria-pressed", String(placing === k));
@@ -3405,8 +4964,8 @@ function renderBuild() {
     img.dataset.icon = k === "farm" ? "farm" : `${k}-${state.economy.age}`;
     setImg(img, img.dataset.icon);
   }
-  const reasons = buildKinds.map((k) => [k, buildBlocker(k)]).filter(([, w]) => w);
-  el("build-reason").textContent = placing ? preview?.problem ? `\u4E0D\u80FD\u653E\u5728\u9019\u88E1\uFF1A${preview.problem}` : `\u5DE6\u9375\u653E\u7F6E${buildingNames2[placing]}\uFF1BShift\uFF0B\u5DE6\u9375\u9023\u7E8C\u653E\u7F6E\uFF1B\u53F3\u9375\u6216 Esc \u53D6\u6D88\u3002` : reasons.length === buildKinds.length && reasons[0][1] === "\u5148\u9078\u53D6\u6751\u6C11" ? "\u5148\u9078\u53D6\u6751\u6C11\u624D\u80FD\u5EFA\u9020\u3002" : reasons.map(([k, w]) => `${buildingNames2[k]}\uFF1A${w}`).join("\u3000");
+  const reasons = kinds.map((k) => [k, buildBlocker(k)]).filter(([, w]) => w);
+  el("build-reason").textContent = placing ? preview?.problem ? `\u4E0D\u80FD\u653E\u5728\u9019\u88E1\uFF1A${preview.problem}` : `\u5DE6\u9375\u653E\u7F6E${buildingNames2[placing]}\uFF1BShift\uFF0B\u5DE6\u9375\u9023\u7E8C\u653E\u7F6E\uFF1B\u53F3\u9375\u6216 Esc \u53D6\u6D88\u3002` : reasons.length === kinds.length && reasons[0][1] === "\u5148\u9078\u53D6\u6751\u6C11" ? "\u5148\u9078\u53D6\u6751\u6C11\u624D\u80FD\u5EFA\u9020\u3002" : reasons.map(([k, w]) => `${buildingNames2[k]}\uFF1A${w}`).join("\u3000");
   el("stop").hidden = !!selectedBuilding || !chosenUnits().length;
   {
     const g = el("garrison-cmd"), fit = chosenUnits().filter((u) => canShelter.has(u.kind));
@@ -3427,7 +4986,8 @@ function renderBuilding() {
   }
   const builders = state.units.filter((u) => u.work === "building" || u.work === "toSite").length;
   el("building-title").textContent = buildingNames2[b.kind] ?? b.kind;
-  const housing = buildingRules.capacity[b.kind] ?? 0;
+  el("building-owner").textContent = `\u85CD\u65B9 \xB7 ${civName(myCiv())}`;
+  const housing = (buildingRules.capacity[b.kind] ?? 0) + housingBonus(mine(), b.kind);
   setImg(el("building-portrait"), b.kind === "farm" ? "farm" : `${b.kind}-${state.economy.age}`);
   el("building-hp").textContent = `${b.hp}/${b.maxHp}`;
   el("building-hp-bar").style.width = `${Math.max(0, b.hp) * 100 / Math.max(1, b.maxHp)}%`;
@@ -3438,20 +4998,47 @@ function renderBuilding() {
   cancel.setAttribute("aria-label", refund);
   cancel.dataset.tip = refund;
 }
+var classNames = {
+  cavalry: "\u9A0E\u5175",
+  archer: "\u5F13\u5175",
+  spear: "\u9577\u69CD\u5175",
+  infantry: "\u6B65\u5175",
+  building: "\u5EFA\u7BC9",
+  siege: "\u653B\u57CE\u5668",
+  unique: "\u7279\u6B8A\u55AE\u4F4D",
+  gunpowder: "\u706B\u85E5",
+  "cavalry-archer": "\u99AC\u5F13\u9A0E\u5175",
+  elephant: "\u6230\u8C61",
+  skirmisher: "\u6563\u5175",
+  monk: "\u50E7\u4FB6",
+  villager: "\u6751\u6C11",
+  animal: "\u52D5\u7269"
+};
+function extrasOf(st) {
+  const out = [];
+  if (st.regen) out.push(`\u6BCF\u5206\u9418\u56DE\u5FA9\u751F\u547D ${st.regen}`);
+  if (st.extraShots) out.push(`\u6BCF\u6B21\u591A\u5C04 ${st.extraShots} \u652F\u7BAD\uFF08\u5404 ${st.extraDamage ?? 1} \u50B7\u5BB3\uFF09`);
+  if (st.splash) out.push(`\u8E10\u8E0F\uFF1A\u76EE\u6A19\u65C1\u7684\u6575\u5175\u53D7 ${st.splash} \u50B7\u5BB3`);
+  return out;
+}
+var bonusText2 = (st) => Object.entries(st.bonus).map(([c, n]) => `\u5C0D${classNames[c] ?? c} +${n}`).join("\u3001");
+function statLine(st) {
+  return [`\u751F\u547D ${st.hp}`, `\u653B\u64CA ${st.damage}`, st.range <= 50 ? "\u8FD1\u6230" : `\u5C04\u7A0B ${st.range / 100} \u683C`, `\u8B77\u7532 ${st.armor[0]}/${st.armor[1]}`, bonusText2(st), ...extrasOf(st)].filter(Boolean).join("\u3001");
+}
 var groupKey = "";
 function renderSelection() {
-  const chosen = chosenUnits(), b = state.buildings.find((v) => v.id === selectedBuilding);
-  el("sel-empty").hidden = !!b || chosen.length > 0;
-  el("sel-unit").hidden = !!b || chosen.length !== 1;
-  el("sel-group").hidden = !!b || chosen.length < 2;
-  if (!b && chosen.length === 1) {
-    const u = chosen[0], stats = statsOf(u.kind, state.economy.techs);
+  const chosen2 = chosenUnits(), b = state.buildings.find((v) => v.id === selectedBuilding);
+  el("sel-empty").hidden = !!b || chosen2.length > 0;
+  el("sel-unit").hidden = !!b || chosen2.length !== 1;
+  el("sel-group").hidden = !!b || chosen2.length < 2;
+  if (!b && chosen2.length === 1) {
+    const u = chosen2[0], stats = statsOf(u.kind, mine());
     setImg(el("unit-portrait"), `${u.kind}-face`);
-    el("unit-name").textContent = nameOf(u);
-    el("unit-owner").textContent = isAnimal(u.kind) ? "\u85CD\u65B9\u7684\u7272\u755C" : `\u85CD\u65B9 \xB7 #${u.id}`;
+    el("unit-name").textContent = nameOf2(u);
+    el("unit-owner").textContent = isAnimal(u.kind) ? "\u85CD\u65B9\u7684\u7272\u755C" : `\u85CD\u65B9 \xB7 ${civName(myCiv())} \xB7 #${u.id}`;
     el("unit-hp").textContent = `${u.hp}/${u.maxHp}`;
     el("unit-hp-bar").style.width = `${Math.max(0, u.hp) * 100 / Math.max(1, u.maxHp)}%`;
-    const facts = `${u.faith ?? ""}|\u653B\u64CA ${stats.damage}|${stats.armor.join("/")}|${stats.range <= 50 ? "\u8FD1\u6230" : `\u5C04\u7A0B ${stats.range / 100} \u683C`}|${u.cargo ? `${u.cargo.resource}:${u.cargo.amount}` : ""}`;
+    const facts = `${u.kind}|${u.faith ?? ""}|${statLine(stats)}|${u.cargo ? `${u.cargo.resource}:${u.cargo.amount}` : ""}`;
     const box2 = el("unit-facts");
     if (box2.dataset.key !== facts) {
       box2.dataset.key = facts;
@@ -3460,7 +5047,7 @@ function renderSelection() {
         const s = document.createElement("span");
         if (icon) {
           const i = document.createElement("img");
-          i.alt = resourceNames[icon];
+          i.alt = resourceNames2[icon];
           setImg(i, icon);
           s.append(i);
         }
@@ -3478,22 +5065,24 @@ function renderSelection() {
         add(`\u653B\u64CA ${stats.damage}`);
         add(stats.range <= 50 ? "\u8FD1\u6230" : `\u5C04\u7A0B ${stats.range / 100} \u683C`);
         add(`\u8B77\u7532 ${stats.armor[0]}/${stats.armor[1]}`).title = "\u8FD1\u6230\u8B77\u7532\uFF0F\u9060\u7A0B\u8B77\u7532";
-        const edge = Object.entries(stats.bonus).map(([c, n]) => `\u5C0D${{ cavalry: "\u9A0E\u5175", archer: "\u5F13\u5175", spear: "\u9577\u69CD\u5175", infantry: "\u6B65\u5175" }[c] ?? c} +${n}`).join("\u3001");
+        const edge = bonusText2(stats);
         if (edge) add(edge);
+        for (const x of extrasOf(stats)) add(x);
+        if (stats.classes.includes("unique")) add(`${civName(myCiv())}\u7279\u6B8A\u55AE\u4F4D`).className = "dim";
       }
       if (u.cargo) add(`${u.cargo.amount}/${carryOf(state.economy.techs, economyRules.carryCapacity)}`, u.cargo.resource);
     }
     el("unit-status").textContent = doing(u);
   }
-  if (!b && chosen.length > 1) {
+  if (!b && chosen2.length > 1) {
     const counts = /* @__PURE__ */ new Map();
-    for (const u of chosen) counts.set(u.kind, (counts.get(u.kind) ?? 0) + 1);
-    el("group-summary").textContent = `\u5DF2\u9078\u53D6 ${chosen.length} \u540D \xB7 ` + [...counts].map(([k, n]) => `${ownName(k)} \xD7${n}`).join(" \xB7 ");
+    for (const u of chosen2) counts.set(u.kind, (counts.get(u.kind) ?? 0) + 1);
+    el("group-summary").textContent = `\u5DF2\u9078\u53D6 ${chosen2.length} \u540D \xB7 ` + [...counts].map(([k, n]) => `${ownName(k)} \xD7${n}`).join(" \xB7 ");
     const grid = el("group-grid"), small = matchMedia("(max-width:760px)").matches, [tw, th] = small ? [34, 40] : [46, 52], cols = Math.max(1, Math.floor((grid.clientWidth + 4) / (tw + 4))), rows = Math.max(1, Math.floor((grid.clientHeight + 4) / (th + 4))), room = cols * rows;
-    const shown = chosen.length > room ? chosen.slice(0, room - 1) : chosen, key = shown.map((u) => u.id + u.kind).join() + "|" + chosen.length;
+    const shown = chosen2.length > room ? chosen2.slice(0, room - 1) : chosen2, key = shown.map((u) => u.id + u.kind).join() + "|" + chosen2.length;
     if (key !== groupKey) {
       groupKey = key;
-      const more = chosen.length - shown.length;
+      const more = chosen2.length - shown.length;
       grid.replaceChildren(...shown.map((u) => {
         const btn = document.createElement("button");
         btn.className = "mini-unit";
@@ -3520,7 +5109,7 @@ function renderSelection() {
       }
     }
     for (const btn of Array.from(grid.querySelectorAll("[data-pick]"))) {
-      const u = chosen.find((v) => v.id === Number(btn.dataset.pick));
+      const u = chosen2.find((v) => v.id === Number(btn.dataset.pick));
       if (u) btn.querySelector("i i").style.width = `${Math.max(0, u.hp) * 100 / Math.max(1, u.maxHp)}%`;
     }
   }
@@ -3560,8 +5149,8 @@ function reportEvents() {
   if (!before || state.tick <= before.tick || state.seed !== before.seed) return;
   const had = new Set(before.units.map((u) => u.id));
   for (const u of ownUnits()) if (!had.has(u.id) && !isAnimal(u.kind)) {
-    feed(`${nameOf(u)}\u5DF2\u751F\u7522`);
-    audio.play("trained");
+    feed(`${nameOf2(u)}\u5DF2\u751F\u7522`);
+    audio.play(uniqueKinds.includes(u.kind) ? "unique" : "trained");
   }
   const carried = new Set(before.units.filter((u) => u.relic).map((u) => u.id));
   for (const u of ownUnits()) if (u.relic && !carried.has(u.id)) {
@@ -3603,7 +5192,7 @@ function reportEvents() {
     const o = old.get(b.id);
     if (o && !o.complete && b.complete) {
       feed(`${buildingNames2[b.kind] ?? b.kind}\u5DF2\u5EFA\u9020`);
-      audio.play("built");
+      audio.play(b.kind === "castle" ? "castle" : "built");
     }
   }
   for (const o of before.buildings) if (!state.buildings.some((b) => b.id === o.id)) {
@@ -3615,7 +5204,7 @@ function reportEvents() {
     }
   }
   if (state.economy.age > before.economy.age) {
-    feed(`\u5DF2\u5347\u4E0A${ageNames[state.economy.age]}`);
+    feed(`\u5DF2\u5347\u4E0A${ageNames2[state.economy.age]}`);
     audio.play("age");
   }
   const lastHp = new Map(before.units.map((u) => [u.id, u.hp]));
@@ -3641,7 +5230,7 @@ function reportTransactions() {
 function selectBuilding(id) {
   if (id && id !== selectedBuilding) audio.play("order");
   selectedBuilding = id;
-  if (id) select([]);
+  if (id) select2([]);
   render();
 }
 function buildingAt(x, y, id) {
@@ -3738,21 +5327,42 @@ var techEffects = {
   theocracy: "\u4E00\u7FA4\u50E7\u4FB6\u8F49\u5316\u6210\u529F\u5F8C\uFF0C\u53EA\u6709\u4E00\u540D\u9700\u8981\u6062\u5FA9\u4FE1\u4EF0",
   faith: "\u5DF1\u65B9\u55AE\u4F4D\u66F4\u96E3\u88AB\u8F49\u5316\uFF08\u7B2C 6 \u6B21\u624D\u53EF\u80FD\u6210\u529F\uFF0C\u6700\u9072\u7B2C 14 \u6B21\uFF09"
 };
+var stripName = (text, name) => text.startsWith(`${name}\uFF1A`) ? text.slice(name.length + 1) : text;
+function civText(id) {
+  const o = mine(), civ = civDefs.find((c) => c.uniqueUnits.includes(id) || c.eliteUpgrades.includes(id) || c.uniqueTechs.some((t) => t.id === id));
+  if (uniqueKinds.includes(id)) return `${civName(civ?.id)}\u7279\u6B8A\u55AE\u4F4D\uFF1A${statLine(statsOf(id, o))}`;
+  const up = lineUpgrades.find((u) => u.id === id);
+  if (up && civ) return `${unitNames[up.kind]}\u5347\u7D1A\u70BA${up.name}\uFF1A${statLine(statsOf(up.kind, { ...o, techs: [...o.techs, id] }))}`;
+  const ut = civ?.uniqueTechs.find((t) => t.id === id);
+  if (ut) {
+    const own = civ.effects.filter((e) => e.trigger.tech === id).map((e) => stripName(e.text, ut.name));
+    return `${civName(civ.id)}\u7279\u6B8A\u79D1\u6280\uFF1A${own.length ? own.join("\uFF1B") : ut.effectText}`;
+  }
+  if (id === "castle") {
+    const a = defenseRules.arrows.castle, x = arrowsOf(o, "castle"), units = civById(myCiv())?.uniqueUnits.map((k) => unitNames[k]).join("\u3001");
+    return `${units ? `\u8A13\u7DF4${units}\u3001` : ""}\u7814\u7A76\u7279\u6B8A\u79D1\u6280\uFF1B\u81EA\u52D5\u5C04 ${a.base + x.extra} \u652F\u7BAD\uFF08\u5C04\u7A0B ${(a.range + x.range) / 100} \u683C\uFF09\uFF1B\u53EF\u9032\u99D0 ${defenseRules.capacity.castle + garrisonBonus(o, "castle")} \u540D\uFF0C\u6751\u6C11\u8207\u5F13\u5175\u5404\u591A 1 \u652F\u7BAD`;
+  }
+  return "";
+}
+var civExtra = (id) => {
+  const civ = civById(myCiv());
+  return !civ || civ.uniqueTechs.some((t) => t.id === id) ? "" : civ.effects.filter((e) => e.trigger.tech === id).map((e) => e.text).join("\uFF1B");
+};
 var trainKeys = ["Q", "W", "E", "R", "T", "A", "D", "Z", "X", "C"];
 var entryIcon = (id) => {
   const up = lineUpgrades.find((u) => u.id === id);
-  return ageOf(id) ? `town-center-${ageOf(id)}` : up ? `${up.kind}-face` : entryOf2(id)?.kind === "technology" ? `tech-${id}` : `${id}-face`;
+  return ageOf(id) ? `town-center-${ageOf(id)}` : up ? `${up.kind}-face` : entryOf3(id)?.kind === "technology" ? `tech-${id}` : `${id}-face`;
 };
 function trainInput(b) {
   const e = state.economy;
-  return { player: 0, age: e.age, techs: e.techs, building: b, ownBuildings: state.buildings, stock: e.stock, populationUsed: e.populationUsed, populationReserved: e.populationReserved, populationCap: e.populationCap };
+  return { player: 0, civ: myCiv(), age: e.age, techs: e.techs, building: b, ownBuildings: state.buildings, stock: e.stock, populationUsed: e.populationUsed, populationReserved: e.populationReserved, populationCap: e.populationCap };
 }
 function renderProduction(b) {
-  const entries = Object.entries(rules.production).filter(([, p]) => p === b.kind).map(([id]) => id), box2 = el("production");
+  const entries = producedAt(b.kind, mine()).filter((id) => civAvailable(myCiv(), id)), box2 = el("production");
   const slot = /* @__PURE__ */ new Map(), before = /* @__PURE__ */ new Map();
   let heads = 0;
   for (const id of entries) {
-    const pred = entryOf2(id)?.requires.find((r) => entries.includes(r) && !ageOf(r));
+    const pred = entryOf3(id)?.requires.find((r) => entries.includes(r) && !ageOf(r));
     if (pred !== void 0) before.set(id, pred);
     slot.set(id, pred !== void 0 ? slot.get(pred) : heads++);
   }
@@ -3844,7 +5454,7 @@ function renderProduction(b) {
       t.hidden = !b.complete;
       t.disabled = !connected || graphicsFailed;
       t.setAttribute("aria-pressed", String(rung));
-      t.dataset.tip = rung ? "\u56DE\u53BB\u5DE5\u4F5C" : "\u9418\u8072\uFF1A\u6751\u6C11\u8EB2\u9032\u57CE\u93AE\u4E2D\u5FC3\u8207\u7BAD\u5854";
+      t.dataset.tip = rung ? "\u56DE\u53BB\u5DE5\u4F5C" : "\u9418\u8072\uFF1A\u6751\u6C11\u8EB2\u9032\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u8207\u57CE\u5821";
       t.setAttribute("aria-label", t.dataset.tip);
     }
   }
@@ -3899,7 +5509,7 @@ function renderProduction(b) {
     const fill = label.parentElement.querySelector(".q-bar i");
     if (fill) fill.style.width = `${Math.min(100, q.work * 100 / q.required)}%`;
   }
-  el("rally-hint").textContent = b.complete && entries.some((id) => entryOf2(id)?.kind === "unit") ? `\u96C6\u7D50\u9EDE\uFF1A${b.rally ? `(${(b.rally.x / 100).toFixed(1)}, ${(b.rally.y / 100).toFixed(1)})` : "\u672A\u8A2D\u5B9A"}\uFF08\u53F3\u9375\u5730\u9762\u8A2D\u5B9A\uFF09` : "";
+  el("rally-hint").textContent = b.complete && entries.some((id) => entryOf3(id)?.kind === "unit") ? `\u96C6\u7D50\u9EDE\uFF1A${b.rally ? `(${(b.rally.x / 100).toFixed(1)}, ${(b.rally.y / 100).toFixed(1)})` : "\u672A\u8A2D\u5B9A"}\uFF08\u53F3\u9375\u5730\u9762\u8A2D\u5B9A\uFF09` : "";
 }
 var tipTile = null;
 function tileCard(btn) {
@@ -3915,24 +5525,29 @@ function tileCard(btn) {
   card.append(title);
   if (!id) {
     title.textContent = `${btn.dataset.tip}\uFF08${btn.dataset.key ?? (btn.id === "stop" ? "S" : "Del")}\uFF09`;
-    line("meta", btn.id === "garrison-cmd" ? "\u6240\u9078\u7684\u6751\u6C11\u3001\u6B65\u5175\u3001\u5F13\u5175\u8207\u50E7\u4FB6\u8D70\u9032\u6700\u8FD1\u3001\u9084\u6709\u7A7A\u4F4D\u7684\u57CE\u93AE\u4E2D\u5FC3\u6216\u7BAD\u5854\u3002" : btn.id === "ungarrison" ? "\u88E1\u9762\u7684\u55AE\u4F4D\u8D70\u51FA\u4F86\uFF1B\u88AB\u9418\u8072\u53EB\u9032\u53BB\u7684\u6751\u6C11\u6703\u56DE\u5230\u539F\u672C\u7684\u5DE5\u4F5C\u3002" : btn.id === "bell" ? "\u6240\u6709\u6751\u6C11\u8EB2\u9032\u6700\u8FD1\u3001\u9084\u6709\u7A7A\u4F4D\u7684\u57CE\u93AE\u4E2D\u5FC3\u6216\u7BAD\u5854\uFF0C\u4E26\u8A18\u4F4F\u539F\u672C\u7684\u5DE5\u4F5C\uFF1B\u518D\u6309\u4E00\u6B21\u56DE\u53BB\u5DE5\u4F5C\u3002" : btn.id === "reseed" ? `\u8FB2\u7530\u8017\u76E1\u6642\uFF0C\u8FB2\u592B\u7ACB\u523B\u5728\u539F\u5730\u91CD\u5EFA\uFF08\u6263\u6728\u6750 ${costOf("farm").wood}\uFF09\uFF0C\u5B8C\u5DE5\u5F8C\u7E7C\u7E8C\u8015\u4F5C\uFF1B\u6728\u6750\u4E0D\u8DB3\u6642\u5C31\u4E0D\u88DC\u7A2E\u3002\u6309\u4E00\u4E0B\u5207\u63DB\u3002` : btn.id === "stop" ? "\u6240\u9078\u55AE\u4F4D\u5728\u4E0B\u4E00\u500B\u7BC0\u9EDE\u505C\u4E0B\uFF0C\u4E26\u653E\u4E0B\u76EE\u524D\u7684\u5DE5\u4F5C\u3002" : "\u62C6\u9664\u5730\u57FA\uFF1B\u8CBB\u7528\u5168\u984D\u9000\u56DE\u3002");
+    line("meta", btn.id === "garrison-cmd" ? "\u6240\u9078\u7684\u6751\u6C11\u3001\u6B65\u5175\u3001\u5F92\u6B65\u5F13\u5175\u8207\u50E7\u4FB6\u8D70\u9032\u6700\u8FD1\u3001\u9084\u6709\u7A7A\u4F4D\u7684\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u6216\u57CE\u5821\u3002" : btn.id === "ungarrison" ? "\u88E1\u9762\u7684\u55AE\u4F4D\u8D70\u51FA\u4F86\uFF1B\u88AB\u9418\u8072\u53EB\u9032\u53BB\u7684\u6751\u6C11\u6703\u56DE\u5230\u539F\u672C\u7684\u5DE5\u4F5C\u3002" : btn.id === "bell" ? "\u6240\u6709\u6751\u6C11\u8EB2\u9032\u6700\u8FD1\u3001\u9084\u6709\u7A7A\u4F4D\u7684\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u6216\u57CE\u5821\uFF0C\u4E26\u8A18\u4F4F\u539F\u672C\u7684\u5DE5\u4F5C\uFF1B\u518D\u6309\u4E00\u6B21\u56DE\u53BB\u5DE5\u4F5C\u3002" : btn.id === "reseed" ? `\u8FB2\u7530\u8017\u76E1\u6642\uFF0C\u8FB2\u592B\u7ACB\u523B\u5728\u539F\u5730\u91CD\u5EFA\uFF08\u6263\u6728\u6750 ${costOf2("farm").wood}\uFF09\uFF0C\u5B8C\u5DE5\u5F8C\u7E7C\u7E8C\u8015\u4F5C\uFF1B\u6728\u6750\u4E0D\u8DB3\u6642\u5C31\u4E0D\u88DC\u7A2E\u3002\u6309\u4E00\u4E0B\u5207\u63DB\u3002` : btn.id === "stop" ? "\u6240\u9078\u55AE\u4F4D\u5728\u4E0B\u4E00\u500B\u7BC0\u9EDE\u505C\u4E0B\uFF0C\u4E26\u653E\u4E0B\u76EE\u524D\u7684\u5DE5\u4F5C\u3002" : "\u62C6\u9664\u5730\u57FA\uFF1B\u8CBB\u7528\u5168\u984D\u9000\u56DE\u3002");
     return card;
   }
-  const e = entryOf2(id), why = btn.dataset.train ? trainBlocker(trainInput(state.buildings.find((v) => v.id === selectedBuilding)), id) : buildBlocker(id);
+  const e = entryOf3(id), why = btn.dataset.train ? trainBlocker(trainInput(state.buildings.find((v) => v.id === selectedBuilding)), id) : buildBlocker(id);
   title.textContent = `${btn.dataset.build ? buildingNames2[id] : entryName(id)}\uFF08${btn.dataset.key}\uFF09`;
   const cost = document.createElement("span");
   cost.className = "cost";
-  for (const r of resources) if (e.cost[r] > 0) {
+  const price = costOf2(id), at = btn.dataset.train ? state.buildings.find((v) => v.id === selectedBuilding) : void 0, secs = at ? Math.round(timeTicks(id, mine(), at.kind) / rules.settings.tickHz) : e.time;
+  for (const r of resources) if (price[r] > 0) {
     const s = document.createElement("span"), i = document.createElement("img");
-    i.alt = resourceNames[r];
+    i.alt = resourceNames2[r];
     setImg(i, r);
-    s.append(i, String(e.cost[r]));
-    if (state.economy.stock[r] < e.cost[r]) s.style.color = "#f3b19f";
+    s.append(i, String(price[r]));
+    if (state.economy.stock[r] < price[r]) s.style.color = "#f3b19f";
     cost.append(s);
   }
   card.append(cost);
-  const housing = buildingRules.capacity[id];
-  line("meta", [`${e.time} \u79D2`, e.population ? `\u4EBA\u53E3 ${e.population}` : "", housing ? `\u63D0\u4F9B\u4EBA\u53E3 ${housing}` : "", id === "farm" ? `\u5B8C\u5DE5\u5F8C\u53EF\u8015\u4F5C ${farmFoodOf(state.economy.techs, terrainRules.resourceCapacity.farm)} \u98DF\u7269\uFF0C\u53EF\u4EE5\u8D70\u4E0A\u53BB\uFF1B\u5EFA\u9020\u7684\u6751\u6C11\u6703\u63A5\u8457\u8015\u4F5C` : "", { "lumber-camp": "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u6728\u6750", "mining-camp": "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u9EC3\u91D1\u8207\u77F3\u982D", mill: "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u98DF\u7269", monastery: "\u8A13\u7DF4\u50E7\u4FB6\uFF1A\u8F49\u5316\u6575\u65B9\u55AE\u4F4D\u3001\u6CBB\u7642\u5DF1\u65B9\u55AE\u4F4D\uFF1B\u5B58\u653E\u8056\u7269\uFF08\u6BCF\u500B\u6BCF\u5206\u9418 30 \u9EC3\u91D1\uFF09", ...techEffects }[id] ?? ""].filter(Boolean).join(" \xB7 "));
+  const housing = (buildingRules.capacity[id] ?? 0) + (btn.dataset.build ? housingBonus(mine(), id) : 0);
+  line("meta", [`${secs} \u79D2`, e.population ? `\u4EBA\u53E3 ${e.population}` : "", housing ? `\u63D0\u4F9B\u4EBA\u53E3 ${housing}` : "", id === "farm" ? `\u5B8C\u5DE5\u5F8C\u53EF\u8015\u4F5C ${farmFoodOf(state.economy.techs, terrainRules.resourceCapacity.farm)} \u98DF\u7269\uFF0C\u53EF\u4EE5\u8D70\u4E0A\u53BB\uFF1B\u5EFA\u9020\u7684\u6751\u6C11\u6703\u63A5\u8457\u8015\u4F5C` : "", { "lumber-camp": "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u6728\u6750", "mining-camp": "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u9EC3\u91D1\u8207\u77F3\u982D", mill: "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u98DF\u7269", monastery: "\u8A13\u7DF4\u50E7\u4FB6\uFF1A\u8F49\u5316\u6575\u65B9\u55AE\u4F4D\u3001\u6CBB\u7642\u5DF1\u65B9\u55AE\u4F4D\uFF1B\u5B58\u653E\u8056\u7269\uFF08\u6BCF\u500B\u6BCF\u5206\u9418 30 \u9EC3\u91D1\uFF09", ...techEffects }[id] ?? civText(id)].filter(Boolean).join(" \xB7 "));
+  {
+    const x = civExtra(id);
+    if (x) line("meta", `${civName(myCiv())}\uFF1A${x}`);
+  }
   if (why) line("why", why);
   return card;
 }
@@ -3972,11 +5587,11 @@ el("commands").addEventListener("focusout", () => {
   tipTile = null;
   renderNote();
 });
-var canShelter = /* @__PURE__ */ new Set(["villager", "militia", "spearman", "archer", "skirmisher", "monk"]);
+var canShelter = new Set(defenseRules.canGarrison);
 async function garrison(b) {
   const unitIds = [...selected].filter((id) => canShelter.has(state.units.find((u) => u.id === id)?.kind ?? "")).sort((a, b2) => a - b2);
   if (!unitIds.length) {
-    notice("\u53EA\u6709\u6751\u6C11\u3001\u6B65\u5175\u3001\u5F13\u5175\u8207\u50E7\u4FB6\u80FD\u9032\u99D0\u57CE\u93AE\u4E2D\u5FC3\u6216\u7BAD\u5854\u3002");
+    notice("\u53EA\u6709\u6751\u6C11\u3001\u6B65\u5175\u3001\u5F92\u6B65\u5F13\u5175\u8207\u50E7\u4FB6\u80FD\u9032\u99D0\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u6216\u57CE\u5821\u3002");
     return;
   }
   try {
@@ -3993,7 +5608,7 @@ function garrisonNearest() {
   const c = { x: fit.reduce((t, u) => t + u.x, 0) / fit.length, y: fit.reduce((t, u) => t + u.y, 0) / fit.length };
   const best = state.buildings.filter((b) => b.complete && b.capacity - b.garrison >= fit.length).sort((a, b) => Math.abs(a.x - c.x) + Math.abs(a.y - c.y) - (Math.abs(b.x - c.x) + Math.abs(b.y - c.y)))[0];
   if (!best) {
-    notice("\u6C92\u6709\u7A7A\u4F4D\u8DB3\u5920\u7684\u57CE\u93AE\u4E2D\u5FC3\u6216\u7BAD\u5854\u3002");
+    notice("\u6C92\u6709\u7A7A\u4F4D\u8DB3\u5920\u7684\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u6216\u57CE\u5821\u3002");
     return;
   }
   void garrison(best);
@@ -4012,7 +5627,7 @@ async function bell() {
   try {
     await client.request({ kind: "bell", ring });
     audio.play(ring ? "alarm" : "order");
-    notice(ring ? "\u9418\u8072\u97FF\u8D77\uFF1A\u6751\u6C11\u8EB2\u9032\u57CE\u93AE\u4E2D\u5FC3\u8207\u7BAD\u5854\uFF08\u6BCF\u540D\u6751\u6C11\u591A 1 \u652F\u7BAD\uFF09\u3002" : "\u56DE\u53BB\u5DE5\u4F5C\uFF1A\u8EB2\u8D77\u4F86\u7684\u6751\u6C11\u56DE\u5230\u539F\u672C\u7684\u5DE5\u4F5C\u3002");
+    notice(ring ? "\u9418\u8072\u97FF\u8D77\uFF1A\u6751\u6C11\u8EB2\u9032\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u8207\u57CE\u5821\uFF08\u6BCF\u540D\u6751\u6C11\u591A 1 \u652F\u7BAD\uFF09\u3002" : "\u56DE\u53BB\u5DE5\u4F5C\uFF1A\u8EB2\u8D77\u4F86\u7684\u6751\u6C11\u56DE\u5230\u539F\u672C\u7684\u5DE5\u4F5C\u3002");
   } catch (e) {
     notice(reason(e));
   }
@@ -4059,11 +5674,47 @@ function toggle(id) {
   const next = new Set(selected);
   if (next.has(id)) next.delete(id);
   else next.add(id);
-  select(next);
+  select2(next);
 }
 el("opponent").value = debug ? "idle" : "ai";
 el("layout").value = debug ? "meadow" : "open";
-var client = new SimulationClient(rules.settings.seed, debug ? "meadow" : "open", debug ? "idle" : "ai", (v) => {
+var playable = civDefs.filter((c) => c.id !== neutralCiv);
+var randomCiv = (seed) => playable[(Math.imul(seed >>> 0 ^ 2654435769, 2246822507) >>> 0) % playable.length].id;
+for (const [id, random] of [["civ-blue", false], ["civ-red", true]]) {
+  const sel = el(id), opt = (value, text, title) => {
+    const o = document.createElement("option");
+    o.value = value;
+    o.textContent = text;
+    o.title = title;
+    sel.append(o);
+  };
+  if (random) opt("random", "\u96A8\u6A5F", "\u4F9D\u5730\u5716\u7A2E\u5B50\u6C7A\u5B9A");
+  for (const c of playable) opt(c.id, c.name, c.type);
+  const n = civById(neutralCiv);
+  opt(n.id, `${n.name}\uFF08\u7121\u52A0\u6210\uFF09`, n.type);
+}
+function setCivPicks(civs) {
+  el("civ-blue").value = civs[0] ?? neutralCiv;
+  el("civ-red").value = civs[1] ?? neutralCiv;
+  renderCivNote();
+}
+function chosenCivs(seed) {
+  const red2 = el("civ-red").value;
+  return [el("civ-blue").value, red2 === "random" ? randomCiv(seed) : red2];
+}
+function renderCivNote() {
+  const box2 = el("civ-note"), seed = el("seed").value, red2 = el("civ-red").value, [b, r] = chosenCivs(Number(seed) || 0);
+  const side = (label, id, extra = "") => {
+    const c = civById(id);
+    const w = document.createElement("b");
+    w.textContent = `${label} ${c?.name ?? id}`;
+    return [w, ` ${c?.type ?? ""}${extra}`];
+  };
+  box2.replaceChildren(...side("\u85CD\u65B9", b), "\u3000", ...side("\u7D05\u65B9", r, red2 === "random" ? seed === "" ? "\uFF08\u96A8\u6A5F\uFF1A\u8F38\u5165\u7A2E\u5B50\u5F8C\u6C7A\u5B9A\uFF09" : `\uFF08\u96A8\u6A5F\uFF0C\u7A2E\u5B50 ${seed}\uFF09` : ""));
+}
+for (const id of ["civ-blue", "civ-red", "seed"]) el(id).addEventListener(id === "seed" ? "input" : "change", renderCivNote);
+setCivPicks(startCivs);
+var client = new SimulationClient(rules.settings.seed, debug ? "meadow" : "open", debug ? "idle" : "ai", [...startCivs], (v) => {
   state = v;
   render();
 }, (reason2) => {
@@ -4229,7 +5880,7 @@ canvas.addEventListener("pointermove", (e) => {
 function orderAtGround(x, y) {
   if (selectedBuilding && !selected.size) {
     const b = state.buildings.find((b2) => b2.id === selectedBuilding);
-    if (b?.complete && Object.entries(rules.production).some(([id, p]) => p === b.kind && entryOf2(id)?.kind === "unit")) void rally(b.id, x, y);
+    if (b?.complete && producedAt(b.kind, mine()).some((id) => entryOf3(id)?.kind === "unit" && civAvailable(myCiv(), id))) void rally(b.id, x, y);
     else notice("\u9019\u68DF\u5EFA\u7BC9\u6C92\u6709\u96C6\u7D50\u9EDE\u3002");
     return;
   }
@@ -4264,13 +5915,13 @@ canvas.addEventListener("pointerdown", (e) => {
   if (e.button === 2) {
     e.preventDefault();
     endDrag();
-    const hit = scene.pickGround(e.clientX, e.clientY);
-    if (hit.x === void 0 || hit.y === void 0 || hit.x < 0.5 || hit.x > state.size - 0.5 || hit.y < 0.5 || hit.y > state.size - 0.5) {
+    const hit2 = scene.pickGround(e.clientX, e.clientY);
+    if (hit2.x === void 0 || hit2.y === void 0 || hit2.x < 0.5 || hit2.x > state.size - 0.5 || hit2.y < 0.5 || hit2.y > state.size - 0.5) {
       notice("\u8ACB\u5728\u5730\u5716\u5167\u5074\u7684\u5730\u9762\u6309\u53F3\u9375\u3002");
       return;
     }
     if (selectedBuilding && !selected.size) {
-      orderAtGround(hit.x, hit.y);
+      orderAtGround(hit2.x, hit2.y);
       return;
     }
     if (selected.size) {
@@ -4284,7 +5935,7 @@ canvas.addEventListener("pointerdown", (e) => {
         scene.setMarker(beast.player === 0 && !hunters.length ? "move" : "attack", beast.x / 100, beast.y / 100);
         if (hunters.length) void hunt(hunters, beast);
         if (fighters.length && beast.player !== 0) void attack({ kind: "unit", id: beast.id }, unitNames[beast.kind]);
-        if (!hunters.length && !(fighters.length && beast.player !== 0)) void move(hit.x, hit.y);
+        if (!hunters.length && !(fighters.length && beast.player !== 0)) void move(hit2.x, hit2.y);
         return;
       }
       const foe = u.unitId !== void 0 ? state.units.find((v) => v.id === u.unitId && v.player !== 0) : void 0;
@@ -4301,14 +5952,14 @@ canvas.addEventListener("pointerdown", (e) => {
         void rite("heal", monks, friend.id, `${unitNames[friend.kind]} ${friend.id}`);
         return;
       }
-      const holy = state.relicSpots.find((r2) => Math.max(Math.abs(r2.x / 100 - hit.x), Math.abs(r2.y / 100 - hit.y)) <= 0.45), free = monks.filter((id) => !state.units.find((u2) => u2.id === id)?.relic);
+      const holy = state.relicSpots.find((r2) => Math.max(Math.abs(r2.x / 100 - hit2.x), Math.abs(r2.y / 100 - hit2.y)) <= 0.45), free = monks.filter((id) => !state.units.find((u2) => u2.id === id)?.relic);
       if (holy && monks.length) {
         scene.setMarker("gather", holy.x / 100, holy.y / 100);
         if (free.length) void rite("relic", free, holy.id, "\u8056\u7269");
         else notice("\u6240\u9078\u50E7\u4FB6\u5DF2\u7D93\u651C\u5E36\u8056\u7269\uFF1A\u53F3\u9375\u5DF1\u65B9\u4FEE\u9053\u9662\u5B58\u653E\u3002");
         return;
       }
-      const fort = enemyBuildingAt(hit.x, hit.y, scene.pickBuilding(e.clientX, e.clientY));
+      const fort = enemyBuildingAt(hit2.x, hit2.y, scene.pickBuilding(e.clientX, e.clientY));
       if (fort) {
         {
           const [x0, y0, x1, y1] = obstacleBounds(fort);
@@ -4320,29 +5971,29 @@ canvas.addEventListener("pointerdown", (e) => {
         return;
       }
       {
-        const site2 = buildingAt(hit.x, hit.y, scene.pickBuilding(e.clientX, e.clientY)), carriers = monks.filter((id) => state.units.find((u2) => u2.id === id)?.relic);
-        if (site2?.kind === "monastery" && carriers.length) {
-          void deposit(carriers, site2.id);
+        const site3 = buildingAt(hit2.x, hit2.y, scene.pickBuilding(e.clientX, e.clientY)), carriers = monks.filter((id) => state.units.find((u2) => u2.id === id)?.relic);
+        if (site3?.kind === "monastery" && carriers.length) {
+          void deposit(carriers, site3.id);
           return;
         }
       }
     }
-    const site = buildingAt(hit.x, hit.y, scene.pickBuilding(e.clientX, e.clientY)), own = site ? state.buildings.find((b) => b.id === site.id) : void 0;
+    const site2 = buildingAt(hit2.x, hit2.y, scene.pickBuilding(e.clientX, e.clientY)), own = site2 ? state.buildings.find((b) => b.id === site2.id) : void 0;
     if (own && !own.complete && selected.size) {
       void construct(own.id);
       return;
     }
-    if (own && own.complete && own.kind === "watch-tower" && selected.size) {
+    if (own && own.complete && (own.kind === "watch-tower" || own.kind === "castle") && selected.size) {
       void garrison(own);
       return;
     }
-    const r = resourceAt(hit.x, hit.y);
+    const r = resourceAt(hit2.x, hit2.y);
     if (r) {
-      scene.setMarker("gather", hit.x, hit.y);
+      scene.setMarker("gather", hit2.x, hit2.y);
       void gather(r.id);
       return;
     }
-    void move(hit.x, hit.y);
+    void move(hit2.x, hit2.y);
     return;
   }
   if (e.button !== 0) return;
@@ -4362,34 +6013,35 @@ canvas.addEventListener("pointerup", (e) => {
   endDrag();
   if (d.box) {
     const own = new Set(ownUnits().map((u) => u.id)), boxed = scene.unitsInRect(d.x, d.y, e.clientX, e.clientY).filter((id) => own.has(id)), people = boxed.filter((id) => !isAnimal(state.units.find((u) => u.id === id)?.kind ?? "")), ids = people.length ? people : boxed;
-    if (e.shiftKey) select([...selected, ...ids]);
-    else select(ids);
+    if (e.shiftKey) select2([...selected, ...ids]);
+    else select2(ids);
     notice(ids.length ? `\u6846\u9078 ${ids.length} \u540D\u55AE\u4F4D\u3002\u5C0D\u5730\u9762\u6309\u53F3\u9375\u4E0B\u9054\u79FB\u52D5\u3002` : "\u6846\u5167\u6C92\u6709\u85CD\u65B9\u55AE\u4F4D\u3002");
     return;
   }
-  const hit = scene.pick(e.clientX, e.clientY);
-  if (hit.unitId !== void 0) {
-    const unit = state.units.find((u) => u.id === hit.unitId);
+  const hit2 = scene.pick(e.clientX, e.clientY);
+  if (hit2.unitId !== void 0) {
+    const unit = state.units.find((u) => u.id === hit2.unitId);
     if (unit?.player === 0) {
       if (e.shiftKey) toggle(unit.id);
       else choose(unit.id);
     } else if (unit && isAnimal(unit.kind)) {
       if (e.pointerType === "touch" && villagersIn(selected).length) void hunt(villagersIn(selected), unit);
       else notice(animalNote(unit));
-    } else notice("\u7D05\u65B9\u55AE\u4F4D\u4E0D\u53EF\u7531\u85CD\u65B9\u63A7\u5236\u3002");
+    } else if (unit && unit.kind in combatRules.units) notice(`\u7D05\u65B9${unitNames[unit.kind]}\uFF08${civName(state.civs[1])}\uFF09 \xB7 \u751F\u547D ${unit.hp}/${unit.maxHp} \xB7 \u57FA\u672C\u6578\u503C\uFF1A${statLine(statsOf(unit.kind, { civ: state.civs[1] ?? neutralCiv, age: 1, techs: [] }))}\u3002\u7D05\u65B9\u55AE\u4F4D\u4E0D\u53EF\u7531\u85CD\u65B9\u63A7\u5236\u3002`);
+    else notice("\u7D05\u65B9\u55AE\u4F4D\u4E0D\u53EF\u7531\u85CD\u65B9\u63A7\u5236\u3002");
     return;
   }
   if (e.pointerType === "touch") {
     const g = scene.pickGround(e.clientX, e.clientY), roof = scene.pickBuilding(e.clientX, e.clientY);
-    const site = g.x !== void 0 && g.y !== void 0 ? buildingAt(g.x, g.y, roof) : roof ? buildingAt(-1, -1, roof) : void 0;
-    if (site) {
-      const own = state.buildings.find((b) => b.id === site.id);
+    const site2 = g.x !== void 0 && g.y !== void 0 ? buildingAt(g.x, g.y, roof) : roof ? buildingAt(-1, -1, roof) : void 0;
+    if (site2) {
+      const own = state.buildings.find((b) => b.id === site2.id);
       if (own && !own.complete && selected.size) {
         void construct(own.id);
         return;
       }
-      selectBuilding(site.id);
-      notice(`\u5DF2\u9078\u53D6${buildingNames2[site.kind]}\u3002`);
+      selectBuilding(site2.id);
+      notice(`\u5DF2\u9078\u53D6${buildingNames2[site2.kind]}\u3002`);
       return;
     }
   }
@@ -4404,15 +6056,15 @@ canvas.addEventListener("pointerup", (e) => {
   }
   {
     const g = scene.pickGround(e.clientX, e.clientY), roof = scene.pickBuilding(e.clientX, e.clientY);
-    const site = g.x !== void 0 && g.y !== void 0 ? buildingAt(g.x, g.y, roof) : roof ? buildingAt(-1, -1, roof) : void 0;
-    if (site && !e.shiftKey && e.pointerType !== "touch") {
-      selectBuilding(site.id);
-      notice(`\u5DF2\u9078\u53D6${buildingNames2[site.kind]}\u3002`);
+    const site2 = g.x !== void 0 && g.y !== void 0 ? buildingAt(g.x, g.y, roof) : roof ? buildingAt(-1, -1, roof) : void 0;
+    if (site2 && !e.shiftKey && e.pointerType !== "touch") {
+      selectBuilding(site2.id);
+      notice(`\u5DF2\u9078\u53D6${buildingNames2[site2.kind]}\u3002`);
       return;
     }
   }
   if (!e.shiftKey && selected.size) {
-    select([]);
+    select2([]);
     notice("\u5DF2\u53D6\u6D88\u9078\u53D6\u3002\u79FB\u52D5\u6307\u4EE4\u8ACB\u5C0D\u5730\u9762\u6309\u53F3\u9375\uFF08\u89F8\u63A7\uFF1A\u9078\u53D6\u5F8C\u8F15\u89F8\u5730\u9762\uFF09\u3002");
   } else if (!e.shiftKey && selectedBuilding) selectBuilding(null);
 });
@@ -4426,9 +6078,9 @@ var shade = (hex, f) => {
   return `rgb(${Math.round((n >> 16 & 255) * f)},${Math.round((n >> 8 & 255) * f)},${Math.round((n & 255) * f)})`;
 };
 function miniGeometry() {
-  const r = mini.getBoundingClientRect(), v = scene.cameraView(), K = Math.SQRT1_2, n = state.size, h = n / 2, s = Math.min(r.width / (n * Math.SQRT2), r.height / (n * Math.SQRT2 * K)) * 0.96, c = Math.cos(v.angle), sn = Math.sin(v.angle);
-  return { r, v, K, s, c, sn, h, P: (x, z) => {
-    const dx = x - h, dz = z - h;
+  const r = mini.getBoundingClientRect(), v = scene.cameraView(), K = Math.SQRT1_2, n = state.size, h2 = n / 2, s = Math.min(r.width / (n * Math.SQRT2), r.height / (n * Math.SQRT2 * K)) * 0.96, c = Math.cos(v.angle), sn = Math.sin(v.angle);
+  return { r, v, K, s, c, sn, h: h2, P: (x, z) => {
+    const dx = x - h2, dz = z - h2;
     return [r.width / 2 + (dx * c - dz * sn) * s, r.height / 2 + (dx * sn + dz * c) * K * s];
   } };
 }
@@ -4576,21 +6228,46 @@ el("menu-close").onclick = () => closeMenu();
 el("menu").addEventListener("pointerdown", (e) => {
   if (e.target === el("menu")) closeMenu();
 });
+var codexHost = el("codex");
+function openCodexView() {
+  if (!codexHost.hidden) return;
+  codexHost.hidden = false;
+  openCodex(codexHost, { civs: [...state.civs], icons, onClose: hideCodex });
+  if (!codexHost.contains(document.activeElement)) codexHost.focus();
+}
+function hideCodex() {
+  if (codexHost.hidden) return;
+  codexHost.hidden = true;
+  closeCodex();
+  el("codex-open").focus();
+}
+el("codex-open").onclick = openCodexView;
+codexHost.addEventListener("pointerdown", (e) => {
+  if (e.target === codexHost) hideCodex();
+});
+document.addEventListener("keydown", (e) => {
+  if (codexHost.hidden || e.key !== "Escape" && e.key !== "F10") return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  hideCodex();
+  if (e.key === "F10") closeMenu();
+}, { capture: true });
 var groups = /* @__PURE__ */ new Map();
 function renderGroups() {
   el("groups").textContent = groups.size ? "\u7DE8\u7D44 " + [...groups].sort((a, b) => a[0] - b[0]).map(([n, ids]) => `${n}\uFF1D${ids.join("\u3001")}`).join("\uFF1B") : "\u5C1A\u672A\u7DE8\u7D44\uFF08Ctrl\uFF0B\u6578\u5B57\uFF09\u3002";
 }
 function commandKey(letter) {
-  const tile = Array.from(el("commands").querySelectorAll("button.tile")).find((b) => !b.hidden && b.dataset.key === letter);
-  if (!tile) return false;
-  if (tile.disabled) {
-    const why = tile.getAttribute("aria-label")?.split("\uFF1A").slice(1).join("\uFF1A");
-    notice(why ? `${tile.getAttribute("aria-label").split("\uFF08")[0]}\uFF1A${why}` : "\u9019\u500B\u6307\u4EE4\u76EE\u524D\u4E0D\u80FD\u4F7F\u7528\u3002");
-  } else tile.click();
+  const tile2 = Array.from(el("commands").querySelectorAll("button.tile")).find((b) => !b.hidden && b.dataset.key === letter);
+  if (!tile2) return false;
+  if (tile2.disabled) {
+    const why = tile2.getAttribute("aria-label")?.split("\uFF1A").slice(1).join("\uFF1A");
+    notice(why ? `${tile2.getAttribute("aria-label").split("\uFF08")[0]}\uFF1A${why}` : "\u9019\u500B\u6307\u4EE4\u76EE\u524D\u4E0D\u80FD\u4F7F\u7528\u3002");
+  } else tile2.click();
   return true;
 }
 document.addEventListener("keydown", (e) => {
   const t = e.target;
+  if (!codexHost.hidden) return;
   if (e.key === "F10") {
     e.preventDefault();
     if (el("menu").hidden) openMenu();
@@ -4624,7 +6301,7 @@ document.addEventListener("keydown", (e) => {
       return;
     }
     if (selected.size) {
-      select([]);
+      select2([]);
       notice("\u5DF2\u53D6\u6D88\u9078\u53D6\u3002");
     }
     return;
@@ -4646,9 +6323,9 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if ((e.key === "f" || e.key === "F") && !e.ctrlKey && scene) {
-    const chosen = chosenUnits();
-    if (chosen.length) {
-      scene.focusOn(chosen.reduce((t2, u) => t2 + u.x, 0) / chosen.length / 100, chosen.reduce((t2, u) => t2 + u.y, 0) / chosen.length / 100);
+    const chosen2 = chosenUnits();
+    if (chosen2.length) {
+      scene.focusOn(chosen2.reduce((t2, u) => t2 + u.x, 0) / chosen2.length / 100, chosen2.reduce((t2, u) => t2 + u.y, 0) / chosen2.length / 100);
       notice("\u93E1\u982D\u5DF2\u5C0D\u6E96\u9078\u53D6\u7684\u55AE\u4F4D\u3002");
     }
     return;
@@ -4662,16 +6339,16 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if (e.key === ",") {
-    const army = ownUnits().filter((u) => soldierKinds.has(u.kind)).map((u) => u.id);
+    const army = ownUnits().filter((u) => soldierKinds2.has(u.kind)).map((u) => u.id);
     if (!army.length) {
       notice("\u6C92\u6709\u8ECD\u968A\u3002");
       return;
     }
-    select(army);
+    select2(army);
     notice(`\u5DF2\u9078\u53D6\u5168\u90E8\u8ECD\u968A\uFF1A${army.length} \u540D\u3002`);
     return;
   }
-  const letter = /^Key([QWERTADZXCVBG])$/.exec(e.code);
+  const letter = /^Key([QWERTADZXCVBGY])$/.exec(e.code);
   if (letter && !e.ctrlKey) {
     if (commandKey(letter[1])) e.preventDefault();
     return;
@@ -4696,7 +6373,7 @@ document.addEventListener("keydown", (e) => {
     notice(`\u7DE8\u7D44 ${n} \u5C1A\u672A\u5EFA\u7ACB\uFF1A\u9078\u53D6\u5F8C\u6309 Ctrl\uFF0B${n}\u3002`);
     return;
   }
-  select(ids);
+  select2(ids);
   notice(`\u5DF2\u53EB\u56DE\u7DE8\u7D44 ${n}\uFF1A${names2(ids)}\u3002`);
 });
 window.addEventListener("blur", endDrag);
@@ -4767,12 +6444,13 @@ el("restart").onclick = async () => {
   try {
     const input = el("seed");
     if (input.value === "") throw Error("\u8ACB\u8F38\u5165\u7A2E\u5B50");
-    await client.request({ kind: "reset", seed: Number(input.value), layout: el("layout").value, opponent: el("opponent").value });
+    const civs = chosenCivs(Number(input.value));
+    await client.request({ kind: "reset", seed: Number(input.value), layout: el("layout").value, opponent: el("opponent").value, civs });
     choose(1);
     lastTransaction = 0;
     previous = null;
     el("events").replaceChildren();
-    notice("\u5DF2\u5EFA\u7ACB\u65B0\u6C99\u76D2\uFF1A\u65B0\u904A\u6232\u958B\u59CB\u3002\u5148\u524D\u7684\u624B\u52D5\u5B58\u6A94\u4ECD\u7136\u4FDD\u7559\u3002");
+    notice(`\u5DF2\u5EFA\u7ACB\u65B0\u6C99\u76D2\uFF1A${civName(state.civs[0])}\u5C0D${civName(state.civs[1])}\uFF0C\u65B0\u904A\u6232\u958B\u59CB\u3002\u5148\u524D\u7684\u624B\u52D5\u5B58\u6A94\u4ECD\u7136\u4FDD\u7559\u3002`);
     autoStart();
   } catch (e) {
     notice(reason(e));
@@ -4799,6 +6477,7 @@ el("load").onclick = async () => {
     el("seed").value = String(state.seed);
     el("layout").value = state.layout;
     el("opponent").value = state.opponent;
+    setCivPicks(state.civs);
     choose(1);
     previous = null;
     el("events").replaceChildren();

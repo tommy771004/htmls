@@ -6,10 +6,12 @@ import type {MapData,Point} from './navigation.ts';
 // unit bodies (radius 25, node spacing 50) never overlap. Units never pass through each other.
 export type Navigation='idle'|'searching'|'moving'|'waiting'|'unreachable'|'stuck';
 export const navigationStates:readonly Navigation[]=['idle','searching','moving','waiting','unreachable','stuck'];
-export type UnitKind='villager'|'militia'|'archer'|'scout'|'monk'|'sheep'|'deer'|'boar'|'spearman'|'skirmisher'|'knight'|'ram';
+export type UnitKind='villager'|'militia'|'archer'|'scout'|'monk'|'sheep'|'deer'|'boar'|'spearman'|'skirmisher'|'knight'|'ram'|'longbowman'|'woad-raider'|'throwing-axeman'|'huskarl'|'teutonic-knight'|'berserk'|'cataphract'|'war-elephant'|'mameluke'|'janissary'|'chu-ko-nu'|'samurai'|'mangudai';
 // Appended in order: the Worker's Int32 unit projection encodes the index.
-export const unitKinds:readonly UnitKind[]=['villager','militia','archer','scout','monk','sheep','deer','boar','spearman','skirmisher','knight','ram'];
-import {combatRules} from './stats.ts';
+// Append only: the Worker projects a unit's kind as its index here.
+export const unitKinds:readonly UnitKind[]=['villager','militia','archer','scout','monk','sheep','deer','boar','spearman','skirmisher','knight','ram','longbowman','woad-raider','throwing-axeman','huskarl','teutonic-knight','berserk','cataphract','war-elephant','mameluke','janissary','chu-ko-nu','samurai','mangudai'];
+import {combatRules,speedOf} from './stats.ts';
+import {ownerOf} from './civ.ts';
 import {isAnimal} from './fauna.ts';
 // hp: current hit points (combatRules.units[kind].hp at spawn); hitTick: last tick it took damage.
 export type Unit={id:number;player:number;kind:UnitKind;hp:number;hitTick:number;x:number;y:number;node:number;next:number|null;path:number[];goal:number|null;target:Point|null;navigation:Navigation;wait:number;detours:number;partial:boolean;order:number;outcome:'stuck'|null};
@@ -177,7 +179,7 @@ export function stepMovement(s:MovementState):{expanded:number}{
  for(const u of [...s.units].sort((a,b)=>a.id-b.id)){
   if(u.next===null)tryReserve(u);
   if(u.next===null)continue;
-  const target=position(s.map,u.next),step=combatRules.speed[u.kind];
+  const target=position(s.map,u.next),step=speedOf(u.kind,ownerOf(s as {civs?:string[];ages?:number[];techs?:string[][]},u.player));
   const p={x:u.x+Math.sign(target.x-u.x)*Math.min(step,Math.abs(target.x-u.x)),y:u.y+Math.sign(target.y-u.y)*Math.min(step,Math.abs(target.y-u.y))};
   if(!clearSegment(s.map,u,p))throw Error(`entity ${u.id}: 非法碰撞路徑`);
   u.x=p.x;u.y=p.y;

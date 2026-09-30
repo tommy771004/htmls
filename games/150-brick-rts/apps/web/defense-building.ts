@@ -14,9 +14,11 @@ export function towerParts(v:BuildingVisual):BuildingPart[]{
  add('door',1,.36,.9,.12,.28,.04,.4,'#6e5a44');
  add('lookout',3,0,0,.12+shaft,1,1,.14,wood);for(const [x,z] of [[0,0],[.84,0],[0,.84],[.84,.84]])add(`post-${x}-${z}`,3,x,z,.26+shaft,.16,.16,.36,wood);
  add('roof',4,-.06,-.06,.62+shaft,1.12,1.12,.14,roof,true);add('roof-top',4,.2,.2,.76+shaft,.6,.6,.14,roof,true);
- if(age>=3)for(let i=0;i<4;i++)add(`slit-${i}`,2,.47,i%2?.1:.9,.5+i*.3,.06,.02,.2,'#4a4740');
+ // Slits sit on whichever shaft section is at their height (the upper one is narrower).
+ if(age>=3)for(let i=0;i<4;i++){const y=.5+i*.3,upper=y>=.12+shaft*.55;add(`slit-${i}`,2,.47,i%2?(upper?.12:.1):(upper?.86:.9),y,.06,.02,.2,'#4a4740');}
  add('flag',4,.46,.46,.9+shaft,.06,.06,.5,wood);add('pennant',4,.52,.46,1.22+shaft,.3,.04,.16,team);
- return finish(p,v,stone,id=>!(id==='pennant'||id==='roof-top'));
+ // The flag stands on the roof top, so it falls with it.
+ return finish(p,v,stone,id=>!(id==='pennant'||id==='roof-top'||id==='flag'));
 }
 export function siegeWorkshopParts(v:BuildingVisual):BuildingPart[]{
  check(v,'攻城器工坊');const p:BuildingPart[]=[],age=v.ageVariant,team=v.red?'#b85c47':'#456e87',wood='#94734c',dark='#6e5438',roof=age===1?'#b8a074':team;

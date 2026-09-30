@@ -26,3 +26,19 @@ test('military silhouettes use one outfit and hand-mounted weapons and restore v
  assert.ok(rig.sockets.rightHand.children.every((o:any)=>!o.visible));assert.equal(rig.sockets.leftHand.getObjectByName('shield-left').visible,false);
  assert.throws(()=>rig.dress('unknown' as any));
 });
+import {unitRoles,roleTools} from '../apps/web/unit-rig.ts';
+test('every dress, unique outfits included, shows exactly one outfit and arrives with its own weapon',()=>{
+ const rig=createUnitRig(T,1,(w,h,d)=>new T.BoxGeometry(w,h,d),color=>new T.MeshStandardMaterial({color}));
+ const looks=new Set<string>();
+ for(const role of unitRoles.filter(r=>r!=='villager')){
+  rig.dress(role);rig.pose('attack',350);rig.root.updateMatrixWorld(true);
+  const shown=rig.root.children.filter((o:any)=>o.visible&&o.name.startsWith('outfit-'));assert.equal(shown.length,1,role);assert.equal(shown[0].name,`outfit-${role}`);
+  // Sleeves and strapped shields ride the arm joints: only this outfit's arm groups are visible.
+  for(const arm of ['shoulder-left','shoulder-right'])assert.deepEqual(rig.root.getObjectByName(arm).children.filter((o:any)=>o.name.startsWith('outfit-')&&o.visible).map((o:any)=>o.name),[`outfit-${role}-arm-${arm.split('-')[1]}`]);
+  assert.equal(rig.sockets.rightHand.children.filter((o:any)=>o.visible)[0].name,`tool-${roleTools[role]}`,role);
+  rig.root.traverse((o:any)=>{assert.deepEqual(o.scale.toArray(),[1,1,1]);assert.ok(o.matrixWorld.elements.every(Number.isFinite));});
+  looks.add(JSON.stringify(shown[0].children.map((m:any)=>[m.position.toArray(),m.material.color.getHexString()])));
+ }
+ assert.equal(looks.size,unitRoles.length-1,'no two outfits are the same');
+ rig.dress('villager');assert.equal(rig.root.children.filter((o:any)=>o.visible&&o.name.startsWith('outfit-')).length,0);assert.ok(rig.sockets.rightHand.children.every((o:any)=>!o.visible));
+});

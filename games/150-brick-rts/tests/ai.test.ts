@@ -108,3 +108,33 @@ test('in the third age the computer builds a monastery; its monks store relics a
  for(let i=0;i<1200&&!converted&&s.units.some(u=>u.id===intruder);i++){s.units=s.units.filter(u=>!(u.player===1&&['militia','archer','spearman','skirmisher','knight'].includes(u.kind)));tick(s);targeted||=Object.values(s.rites).some(r=>r.kind==='convert'&&r.target===intruder);converted=s.units.find(u=>u.id===intruder)?.player===1;}
  assert.ok(targeted,'a red monk went to convert it');assert.ok(converted,`converted by the red monk (${s.units.some(u=>u.id===intruder)?'alive':'killed first'})`);
 });
+
+test('a civilization\'s computer builds a castle in the third age and trains its unique unit there',()=>{
+ // Red plays the Britons (castle, Longbowman); blue's town centre is kept standing and silent (fixture, as above) so red
+ // reaches the third age. On this seed the castle stands near tick 15700 and the first Longbowman follows near 16100.
+ const s=createState(260925,'open','ai',['settlers','britons']),blueTc=s.buildings.find(b=>b.player===0&&b.kind==='town-center')!;
+ const hold=(m:State)=>{const tc=m.buildings.find(b=>b.id===blueTc.id);if(tc){tc.hp=tc.maxHp;m.volleys[tc.id]=1;}};
+ const castle=()=>s.buildings.find(b=>b.player===1&&b.kind==='castle');
+ while(s.tick<20000&&!s.outcome&&!castle()?.complete){tick(s);hold(s);}
+ assert.ok(s.ages[1]>=3,'third age');assert.ok(castle()?.complete,'a finished castle');
+ // Its stone was mined by red's villagers (the start stock is short of it), and the castle stands on red's own half.
+ const box=obstacleBounds(s.map.obstacles.find(o=>o.id===castle()!.id)!),tc=s.buildings.find(b=>b.player===1&&b.kind==='town-center')!,home=obstacleBounds(s.map.obstacles.find(o=>o.id===tc.id)!),mid=s.map.size*50,hx=(home[0]+home[2])/2-mid,hy=(home[1]+home[3])/2-mid,len=Math.hypot(hx,hy);
+ for(const [x,y] of [[box[0],box[1]],[box[2],box[1]],[box[0],box[3]],[box[2],box[3]]])assert.ok(((x-mid)*hx+(y-mid)*hy)/len>=aiRules.castleMargin);
+ // A copy taken in the middle of the castle plan goes on identically: the plan lives in the state alone, no hidden AI
+ // memory (deserialize itself refuses this state, since the fixture's edits cannot be rebuilt from the command log).
+ const restored=JSON.parse(JSON.stringify(s)) as State;
+ for(let i=0;i<1500&&!s.outcome;i++){tick(s);hold(s);tick(restored);hold(restored);}
+ assert.equal(hash(restored),hash(s));
+ const bows=s.units.filter(u=>u.player===1&&u.kind==='longbowman').length;
+ assert.ok(bows>0&&bows<=aiRules.uniqueTarget,`longbowmen trained at the castle (${bows})`);
+ assert.equal(s.buildings.filter(b=>b.player===1&&b.kind==='castle').length,1,'one castle');
+});
+
+test('the computer with civilizations is deterministic across save/load and replay',()=>{
+ const straight=createState(260925,'open','ai',['franks','britons']);order(straight,'gather',{unitIds:[1,2,3],resourceId:berries(straight).id});run(straight,1500);
+ const restored=deserialize(serialize(straight));run(straight,1500);run(restored,1500);
+ assert.equal(hash(restored),hash(straight));
+ assert.equal(hash(replay(straight.seed,straight.log,straight.tick,straight.layout,'ai',straight.civs)),hash(straight));
+ // Recovery without the civilizations would rebuild a different match.
+ assert.notEqual(hash(replay(straight.seed,straight.log,straight.tick,straight.layout,'ai')),hash(straight));
+});

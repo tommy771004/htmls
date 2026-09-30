@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>響尾蛇越野 · SIDEWINDER</title>
+<meta name="description" content="致敬 1989 年街機越野卡車賽的俯視角賽車：四台卡車同場，泥地、跳台、水坑與坡道，比完用獎金改車。Rust 編成 WebAssembly 的物理核心，WebGL2 渲染，支援鍵盤、手把與街機旋轉方向盤。">
+<meta name="theme-color" content="#21150d">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 1 31 16 16 31 1 16Z' fill='%23d9a62c' stroke='%2321150d' stroke-width='2'/%3E%3Cpath d='M16 9 23 16 16 23 9 16Z' fill='%2321150d'/%3E%3C/svg%3E">
+<style>
+/* 載入畫面（在內嵌資產解析前就要能顯示，其餘樣式在 style.css） */
+html,body{margin:0;height:100%;background:#21150d;color:#ecdfc6;overflow:hidden}
+#loading{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:#21150d;padding:24px;box-sizing:border-box;
+  font:500 15px/1.5 system-ui,-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
+#loading .ld-card{width:min(560px,100%);display:grid;gap:18px}
+#loading .ld-mark{min-height:60px}
+#loading .ld-mark svg{display:block;width:100%;height:auto}
+#loading .ld-fallback{font:800 44px/1 "DIN Condensed","Avenir Next Condensed","Arial Narrow",system-ui,sans-serif;letter-spacing:.04em;color:#d9a62c;font-style:italic}
+#loading .ld-mark svg+.ld-fallback{display:none}
+#loading .ld-bar{height:6px;background:#3b2618;border-radius:3px;overflow:hidden}
+#loading .ld-bar i{display:block;height:100%;width:0;background:#d9a62c;border-radius:3px;transition:width .25s ease-out}
+#loading .ld-steps{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 18px;color:#9c8a6c}
+#loading .ld-steps li{display:flex;align-items:center;gap:8px}
+#loading .ld-steps i{width:9px;height:9px;border:1.5px solid currentColor;transform:rotate(45deg)}
+#loading .ld-steps li.now{color:#ecdfc6}
+#loading .ld-steps li.done{color:#d9a62c}
+#loading .ld-steps li.done i{background:currentColor}
+#loading.err .ld-card{background:#3b2618;padding:26px 28px;clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px)}
+#loading.err h2{margin:0;color:#d9a62c;font-size:22px}
+#loading.err p{margin:0}
+</style>
+</head>
+<body data-screen="loading">
+<div id="app">
+  <canvas id="view" aria-label="賽道畫面"></canvas>
+  <div id="hud"></div>
+  <div id="touch"></div>
+  <div id="screens"></div>
+  <div id="loading" role="progressbar" aria-label="載入中" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0">
+    <div class="ld-card">
+      <div class="ld-mark"><div class="ld-fallback">SIDEWINDER</div></div>
+      <div class="ld-bar"><i></i></div>
+      <ul class="ld-steps"><li class="now"><i></i><span>載入中</span></li></ul>
+    </div>
+  </div>
+</div>
+<noscript><p style="padding:24px">響尾蛇越野需要開啟 JavaScript。</p></noscript>
+<!--ASSETS-->
+<!--BUNDLE-->
+</body>
+</html>

@@ -1,6 +1,6 @@
 # 資料模型與權威邊界
 
-目前權威 State／snapshot 為 v15，支援三種地圖、有限資源資料、三態視野、移動、存讀與重播，起始建築是有可通行入口的城鎮中心。下文保留各版本演進，不表示舊格式仍可載入。新增模型、LOD、除錯介面及幾何占地共用不增加玩法狀態。
+目前權威 State／snapshot 為 v27（本頁寫到 v22 與 v27；v23–v26 見 first-use-023～026），支援三種地圖、有限資源資料、三態視野、移動、存讀與重播，起始建築是有可通行入口的城鎮中心。下文保留各版本演進，不表示舊格式仍可載入。新增模型、LOD、除錯介面及幾何占地共用不增加玩法狀態。
 
 ## 初始資料模型（歷史 v1，後續演進見下文）
 
@@ -366,7 +366,7 @@ packages/content/footprints.ts 是目前七種障礙物物理矩形的唯一來�
   - 單位目標仍然必須看得見。
 - simulationVersion、State.version 與 snapshot 格式升為 21，舊版明確拒絕。
 
-## 轉化判定、修道院科技與聖物 v22（目前版本）
+## 轉化判定、修道院科技與聖物 v22
 
 - **轉化判定**（取代 v21 的「5–15 秒均勻抽樣」）：
   - 僧侶在範圍內每 24 tick（1.2 秒）判定一次：第 1–3 次必定失敗，第 4 次起每次用種子亂數抽 28%，第 10 次必定成功。
@@ -411,3 +411,45 @@ packages/content/footprints.ts 是目前七種障礙物物理矩形的唯一來�
   - 電腦不研究修道院科技。
 - **頁面（不影響模擬）**：Worker 請求的逾時保護，對讀檔（restore）、恢復（recover）與重播驗證（replay）改為 60 秒，其他仍是 5 秒。這三種請求要依指令紀錄重新推導整局，長對局會超過 5 秒。
 - simulationVersion、State.version 與 snapshot 格式升為 22，舊版明確拒絕。
+
+## 文明、城堡與特殊單位 v27（目前版本）
+
+本頁在 v22 之後沒有更新；v23–v26（放牧與狩獵、經濟科技、鐵匠鋪與相剋、駐軍與攻城槌）只記在 first-use-023～026，這裡直接接 v27。
+
+- **State**：
+  - `civs: string[]`：兩名玩家的文明 id（`packages/content/civs.ts` 的 `civDefs`，含中立的 `settlers`）。
+  - `keptHousing: number[]`：被摧毀的建築留下的人口容量（蒙古研究游牧後的民居）；人口上限 = 完工建築的容量 ＋ 這個數，上限仍是 40（哥德第四時代 +10）。
+  - `Account.ledger.refund`：死亡返還的資源（薩拉森研究穆斯林學墊後，僧侶陣亡返還 33 黃金）。
+- **建立與重播**：
+  - `createState(seed, layout, opponent, civs=[settlers, settlers])`；文明不是兩個已知 id 時丟出「未知的文明」。開局依文明調整資源（`startStock`）與村民數（`startVillagers`，中國多 3 名）。
+  - `replay(seed, commands, ticks, layout, opponent, civs)` 多一個參數；少了它會重播成中立文明的對局，狀態指紋不同。
+  - snapshot 格式 `brick-sandbox-27`；`deserialize` 檢查 `civs`，再用存檔裡的 `civs` 重播比對。
+- **Worker**：
+  - `Operation.reset` 與 `Recovery` 多了選填的 `civs`；`recover` 與 `replay` 都帶著文明重建。
+  - `View.civs`／`Response.civs`：雙方的文明（公開資訊）。
+  - 單位的 `maxHp` 依擁有者的文明、時代與科技計算（`ownerOf`）；`BuildingView.capacity` 改由 `garrisonCapacity` 計算（條頓箭塔 10、城鎮中心 25）。
+- **規則資料**：
+  - `rules.civilizations`：每個文明的 `{id, available, unavailable}`，由 `civDefs` 推導：`missing` 裡的項目、其他文明的特殊內容，以及沒有特殊單位的文明（拓荒者）的城堡都不可用。`submit` 與頁面的建造、生產檢查都讀這份表。
+  - `rules.entries` 新增城堡（第三時代、石頭 300、60 秒）、13 個特殊單位、13 項精銳升級與 21 項特殊科技；它們的 `sourceEvidence` 是 aoetw.com，`verificationStatus` 仍是 design_default。`entry()` 可以指定時間，其他項目仍是 20 秒。`rules.production` 讓這些項目都在城堡生產。
+  - 暫緩的 5 項特殊科技（`deferredTechs`）不在 `rules.entries`，城堡不提供。
+- **文明效果**（`civs.ts` 的 `Effect`，對應提示包 11 的欄位）：
+  - `id`、`kind`（效果種類，例如 `hp`、`range`、`cooldown`、`bonus`、`gather`、`cost`、`costShift`、`time`、`producer`、`grant`、`workRate`、`buildingHp`、`garrison`、`arrows`、`popCap`、`keepHousing`、`deathRefund`、`conversionResist` 等）。
+  - `select`（selector）：單位的 `kinds`／`classes`（`exclude` 優先）、項目的 `entries`／`allUnits`／`allTechs`、建築的 `buildings`、經濟的 `resources`（產出）或 `sources`（來源種類）、`prey`。
+  - `op`（operation）：`add` 或 `mul`；`value`：一個數，或四個時代各一個數（同一效果的時代數值互相取代，不累加）。另有 `vs`（加成對象類別）、`resource`／`to`（成本轉換）。
+  - `trigger`：`age`（從該時代起）與／或 `tech`（研究後）。
+  - `stacking`：`sum`（加法效果相加）或 `product`（乘法效果相乘）；`priority`：0 為加法、1 為乘法，乘法在後。
+  - `scope`：`self` 或 `team`（團隊加成；每邊只有一名玩家，所以只作用在自己）。
+  - `appliesToExisting`：單位與建築的數值效果立刻作用在場上已有的單位與建築（單位的生命加上最大生命的差值，建築依原本的損傷比例換算）；費用、時間、工作速度、開局資源、授予科技只影響之後排入的項目。
+  - `text`：給頁面與百科的說明。`omitted` 另列目標不存在、無法表達的加成與原因。
+- **計算**（`packages/sim/civ.ts`，模擬、電腦與頁面共用，不依文明名稱分支）：
+  - `Owner = {civ, age, techs}`；`ownerOf(state, player)` 從 State 取出。`statsOf`、`maxHpOf`、`speedOf`（乘上倍率後取整到整數步長，至少 1）、`buildingHpOf` 都改收 `Owner`。
+  - `costOf(entry, owner)`：每種資源先乘上所有 `cost` 倍率並四捨五入，再做 `costShift`（波斯弓兵把弓手的黃金移到木材）。
+  - `timeTicks(entry, owner, building) = round(time × 20 × 時間倍率 × 100 / (100 + 工作速度加成))`，在排入佇列時決定。
+  - `producersOf`／`producedAt`：`producer` 效果增加生產建築（哥德研究無政府狀態後，兵營也訓練哥德衛隊）。
+  - `grant`：升時代時免費得到的科技（維京的手推車、手拉車），寫進 `State.techs`。
+  - 時代或科技改變時，`refreshOwner` 更新場上單位與建築的生命，並重算人口上限（v27 修正：之前只在建築完工、失去或換邊時重算）。
+- **城堡**：4×4 占地、生命 800、提供人口 10、駐軍 20、基本 4 支箭、射程 400、視野同箭塔。特殊單位與精銳升級的數值在 `combatRules.units` 與 `lineUpgrades`。
+- **rulesetHash** 另外納入 `civs: civDefs` 與 `unitLines: {lineUpgrades, blacksmith, religionBonus}`，所以兵種升級與鐵匠鋪的數值改變也會換掉指紋。
+- **電腦**：用 `costOf(…, ownerOf(s, 1))` 算費用，不蓋文明沒有的建築；第三時代、有特殊單位的文明蓋一座城堡並訓練最多 5 名特殊單位（見 first-use-027）。
+- 拓荒者沒有任何效果：每條規則的回答都和不指定文明時相同（`tests/civilizations.test.ts`），電腦在拓荒者對局中的行為也和加入文明之前相同。
+- simulationVersion、State.version 與 snapshot 格式升為 27，v26 存檔明確拒絕（沒有遷移）。

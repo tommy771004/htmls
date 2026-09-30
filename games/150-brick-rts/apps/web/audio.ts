@@ -1,11 +1,11 @@
 // Sound effects, synthesised with WebAudio at play time (no audio files, no network). The context starts only
 // after a user gesture (browser autoplay rules); until then play() is a no-op. Volume 0 mutes.
-export type Sound='select-villager'|'select-soldier'|'order'|'order-attack'|'place'|'built'|'trained'|'hit'|'alarm'|'age'|'victory'|'defeat'|'collapse'|'resign'|'convert'|'converted'|'relic';
+export type Sound='select-villager'|'select-soldier'|'order'|'order-attack'|'place'|'built'|'trained'|'hit'|'alarm'|'age'|'victory'|'defeat'|'collapse'|'resign'|'convert'|'converted'|'relic'|'castle'|'unique';
 export function createAudio(report:(name:string,count:number)=>void=()=>{}){
  let ctx:AudioContext|null=null,master:GainNode|null=null,volume=.6,count=0,noise:AudioBuffer|null=null;
  const lastPlayed=new Map<Sound,number>();
  // Minimum gap per sound, so a battle's many hits or a burst of orders never pile up into noise.
- const spacing:Partial<Record<Sound,number>>={hit:140,order:60,'order-attack':80,trained:250,built:250,alarm:3000,convert:400};
+ const spacing:Partial<Record<Sound,number>>={hit:140,order:60,'order-attack':80,trained:250,built:250,castle:600,unique:250,alarm:3000,convert:400};
  function unlock(){
   if(!ctx){const Ctor=window.AudioContext??(window as unknown as {webkitAudioContext?:typeof AudioContext}).webkitAudioContext;if(!Ctor)return;
    ctx=new Ctor();master=ctx.createGain();master.gain.value=volume;master.connect(ctx.destination);
@@ -44,6 +44,10 @@ export function createAudio(report:(name:string,count:number)=>void=()=>{}){
   converted:()=>{[440,554,659].forEach((f,i)=>tone('sine',f,i*.1,.5,.07));},
   // A relic lifted or laid down: a bright bell-like pair.
   relic:()=>{tone('sine',1175,0,.6,.06);tone('sine',1568,.05,.55,.04);},
+  // A Castle completed: a stone thud under a low horn call (fourth, then octave), heavier than an ordinary building.
+  castle:()=>{burst('lowpass',300,0,.45,.3);tone('sine',70,0,.5,.18,48);[196,262,392].forEach((f,i)=>tone('triangle',f,.12+i*.18,.55,.09));},
+  // A unique unit ready: the trained chime with a brass-like sawtooth underneath.
+  unique:()=>{tone('sawtooth',330,0,.32,.035,392);tone('sine',660,.05,.4,.1);tone('sine',990,.12,.4,.06);},
  };
  function play(name:Sound){
   const now=performance.now(),gap=spacing[name]??0;if(gap&&now-(lastPlayed.get(name)??-1e9)<gap)return;lastPlayed.set(name,now);

@@ -74,7 +74,7 @@ test('Redemption: monks convert enemy buildings standing next to them, except to
  assert.throws(()=>order(s,'convert',{unitIds:[m.id],buildingId:house.id}),/救贖/);grant(s,0,'redemption');
  // Seen for this check only (fixture): a town centre is never convertible.
  const vis=s.vision[0].visible;for(let ty=Math.floor(box[1]/100);ty<=Math.floor((box[3]-1)/100);ty++)for(let tx=Math.floor(box[0]/100);tx<=Math.floor((box[2]-1)/100);tx++)vis.push(ty*16+tx);
- assert.throws(()=>order(s,'convert',{unitIds:[m.id],buildingId:redTc.id}),/城鎮中心、修道院與農田不能被轉化/);
+ assert.throws(()=>order(s,'convert',{unitIds:[m.id],buildingId:redTc.id}),/城鎮中心、修道院、農田與城堡不能被轉化/);
  const [capRed,capBlue]=[s.accounts[1].populationCap,s.accounts[0].populationCap];
  order(s,'convert',{unitIds:[m.id],buildingId:house.id});const start=s.tick;run(s,1500,()=>house.player===0);
  assert.equal(house.player,0,'converted');assert.ok(s.tick-start>=religionRules.buildingTicks.min,'at least 18 s');

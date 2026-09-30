@@ -539,6 +539,173 @@
         "four structural age variants: timber, framed canopy/porch, masonry, roof vents/end turrets"
       ],
       "status": "four original structural age silhouettes; inspector only, no training/rally/navigation or production animation"
+    },
+    {
+      "id": "castle",
+      "source": "apps/web/castle-building.ts; apps/web/scene.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "foundation lower corner at (-0.15,0,-0.15)",
+      "footprint": [
+        4,
+        4
+      ],
+      "selectionBounds": "pick volume 4x4 tiles x 4.7 (scene.ts buildingHeights)",
+      "collisionProxy": "packages/content/footprints.ts castle 4x4 rectangle",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "previewOnlyStates": [
+        "five construction phases",
+        "intact/damaged (banners, flag and alternate merlons drop)/12-piece bounded rubble/restored",
+        "four structural age variants: timber hoardings and palisade stakes, stone crenellations, taller walls with arrow slits and keep turret, team conical roofs with gate turrets and keep spire"
+      ],
+      "gameState": "drawn for built and damaged castles in the match with the owner's regional style; HUD icons castle-1..castle-4 stay neutral",
+      "status": "original brick castle: corner towers, curtain walls, arched gatehouse with portcullis, keep, team banners; arrows and garrison are simulation rules, not animated",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
+      "id": "unique-units",
+      "source": "apps/web/unit-rig.ts; apps/web/character-rig.ts; apps/web/rig-roles.ts; apps/web/scene.ts",
+      "type": "procedural articulated Three.js mesh (outfits and tools on the shared body rig)",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "feet center (mounted: mount feet center)",
+      "kinds": [
+        "longbowman",
+        "woad-raider",
+        "throwing-axeman",
+        "huskarl",
+        "teutonic-knight",
+        "berserk",
+        "samurai",
+        "janissary",
+        "chu-ko-nu",
+        "cataphract",
+        "mameluke",
+        "mangudai",
+        "war-elephant"
+      ],
+      "tools": [
+        "longbow",
+        "repeater",
+        "musket",
+        "throwing-axe",
+        "great-sword",
+        "war-axe",
+        "katana",
+        "scimitar"
+      ],
+      "mounts": {
+        "cataphract": "recoloured horse with steel barding",
+        "mameluke": "pale horse",
+        "mangudai": "dun horse, rider holds a bow",
+        "war-elephant": "elephant rig with howdah saddle"
+      },
+      "selectionBounds": "visible mesh raycast; ring scale 1 (foot), 1.8 (horse), 2.4 (elephant)",
+      "collisionProxy": "simulation unit radius (packages/sim); visual size does not change collision",
+      "attachmentPoints": [
+        "hand-left",
+        "hand-right",
+        "rider-saddle"
+      ],
+      "animations": [
+        "idle",
+        "walk",
+        "work",
+        "attack",
+        "hit",
+        "death",
+        "carry"
+      ],
+      "mountedAnimations": [
+        "idle",
+        "walk",
+        "attack"
+      ],
+      "hudIcons": "`${kind}` and `${kind}-face` rendered by scene.renderIcons",
+      "status": "silhouettes by headgear, armour, weapon and mount; a fallen rider lies dismounted in its rider dress; no unique attack effects (splash, extra arrows, regeneration) are animated",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
+      "id": "war-elephant",
+      "source": "apps/web/elephant-rig.ts; apps/web/character-rig.ts",
+      "type": "procedural articulated Three.js mesh",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "elephant feet center",
+      "footprint": [
+        1.04,
+        2.2
+      ],
+      "selectionBounds": "visible mesh raycast; ring radius 1.13; health bar at 3.05",
+      "collisionProxy": "simulation unit radius; the model is visually larger",
+      "attachmentPoints": [
+        "rider-saddle"
+      ],
+      "animations": [
+        "idle (trunk sway)",
+        "walk (leg swing)",
+        "attack (trunk raise)"
+      ],
+      "status": "grey body, fan ears, trunk, ivory tusks, team caparison and howdah; no death animation for the mount (the mahout falls dismounted)",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
+      "id": "regional-architecture",
+      "source": "apps/web/building-parts.ts regionalParts(); apps/web/scene.ts",
+      "type": "procedural post-pass adding parts to every building model",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "styles": {
+        "neutral": "unchanged (settlers)",
+        "west": "slate spire on the top roof, slate pinnacles on the eave corners",
+        "central": "tarred ridge beam with carved crossed heads, carved corner posts",
+        "mideast": "stepped lime dome with a gilt finial, lime corner merlons",
+        "eastasia": "dark tile cap with upturned corners and a gilt finial, upturned eave tips"
+      },
+      "groups": "packages/content/civs.ts architecture per civilization",
+      "rules": "added only from the roof stage, never to rubble; pieces stay inside the foundation, rest on a roof and do not cut other parts (tests/building-support.test.ts); farms and the first-age archery range (no roof) stay plain",
+      "gameState": "each building uses its owner's civilization (View.civs); HUD icons stay neutral",
+      "status": "a few silhouette parts per group; facades, materials and wonders are not regional",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
+      "id": "unique-tech-emblems",
+      "source": "apps/web/tech-icons.ts",
+      "type": "procedural brick emblems rendered to HUD PNGs",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "ids": [
+        "yeomen",
+        "stronghold",
+        "furor-celtica",
+        "chivalry",
+        "bearded-axe",
+        "anarchy",
+        "perfusion",
+        "ironclad",
+        "crenellations",
+        "chieftains",
+        "berserkergang",
+        "logistica",
+        "kamandaran",
+        "mahouts",
+        "madrasah",
+        "zealotry",
+        "great-wall",
+        "rocketry",
+        "yasama",
+        "nomads",
+        "drill"
+      ],
+      "status": "one emblem per implemented unique technology (the unit or building affected plus a sign of the effect); elite upgrades reuse the unit portrait",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
     }
   ],
   "remaining": [

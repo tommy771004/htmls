@@ -6,12 +6,14 @@ import {refreshNavigation,navigationRules,position} from './navigation.ts';
 import type {MapData,Obstacle} from './navigation.ts';
 import type {Unit} from './movement.ts';
 import {tileAt,terrainRules,sizeOfTiles} from './terrain.ts';
-import {combatRules} from './stats.ts';
+import {combatRules,buildingHpOf} from './stats.ts';
+import {ownerOf,costOf,civAvailable,housingBonus,popCapBonus,farmFoodBonus} from './civ.ts';
+import {neutralCiv} from '../content/civs.ts';
 import {farmFoodOf} from './tech.ts';
 import type {Tile} from './terrain.ts';
 // Player buildings (design_default engineering rules, not reference-game values).
-export type BuildKind='house'|'barracks'|'farm'|'lumber-camp'|'mining-camp'|'mill'|'stable'|'archery-range'|'monastery'|'blacksmith'|'watch-tower'|'siege-workshop';
-export const buildKinds:readonly BuildKind[]=['house','barracks','farm','lumber-camp','mining-camp','mill','stable','archery-range','monastery','blacksmith','watch-tower','siege-workshop'];
+export type BuildKind='house'|'barracks'|'farm'|'lumber-camp'|'mining-camp'|'mill'|'stable'|'archery-range'|'monastery'|'blacksmith'|'watch-tower'|'siege-workshop'|'castle';
+export const buildKinds:readonly BuildKind[]=['house','barracks','farm','lumber-camp','mining-camp','mill','stable','archery-range','monastery','blacksmith','watch-tower','siege-workshop','castle'];
 // queue: production/research in order (only the first advances); rally: where finished units walk.
 export type QueueItem={id:number;entryId:string;reservationId:string;work:number;required:number};
 // hp: structure points; a foundation starts at 1 and gains hit points in step with construction work.
@@ -19,9 +21,10 @@ export type Building={id:string;kind:BuildKind|'town-center';player:number;x:num
 // capacity: population housed when complete (hard cap rules.settings.populationCap). One builder adds one
 // work point per tick; required = entry time (s) x tick rate. Positions snap to a 10-unit grid, fine enough
 // that the mirror image of any site (the maps are left-right symmetric) is also a legal position.
-export const buildingRules={provenance:'design_default',capacity:{'town-center':5,house:5,barracks:0,farm:0,'lumber-camp':0,'mining-camp':0,mill:0,stable:0,'archery-range':0,monastery:0,blacksmith:0,'watch-tower':0,'siege-workshop':0},grid:10,
+export const buildingRules={provenance:'design_default',capacity:{'town-center':5,house:5,barracks:0,farm:0,'lumber-camp':0,'mining-camp':0,mill:0,stable:0,'archery-range':0,monastery:0,blacksmith:0,'watch-tower':0,'siege-workshop':0,castle:10},grid:10,
  required:Object.fromEntries(buildKinds.map(k=>[k,rules.entries.find(e=>e.id===k)!.time*rules.settings.tickHz])) as Record<BuildKind,number>} as const;
-export type BuildingState={map:MapData;units:Unit[];accounts:Account[];buildings:Building[];nextBuildingId:number;vision:{explored:number[]}[];ages:number[]};
+// civs: each player's civilization; keptHousing: housing that destroyed houses leave behind (Mongol Nomads).
+export type BuildingState={map:MapData;units:Unit[];accounts:Account[];buildings:Building[];nextBuildingId:number;vision:{explored:number[]}[];ages:number[];civs?:string[];keptHousing?:number[]};
 const overlap=(a:number[],b:number[])=>Math.min(a[2],b[2])-Math.max(a[0],b[0])>0&&Math.min(a[3],b[3])-Math.max(a[1],b[1])>0;
 // Shared by the Worker (authoritative, full map) and the page (preview, only what the player knows).
 export function placementProblem(input:{tiles:Pick<Tile,'buildability'|'height'>[];obstacles:Obstacle[];units:{x:number;y:number}[];explored:(tile:number)=>boolean},kind:BuildKind,x:number,y:number):string|null{
@@ -52,33 +55,37 @@ export function authoritativeProblem(s:BuildingState,player:number,kind:BuildKin
 // A finished farm becomes a food source only its owner may work (resource id = farmResourceId).
 export const farmResourceId=(buildingId:string)=>`resource-${buildingId}`;
 // Its food: the base plus the owner's farming technologies at completion (Horse Collar, Heavy Plow, Crop Rotation).
-function openFarm(s:BuildingState,b:Building){const capacity=farmFoodOf((s as {techs?:string[][]}).techs?.[b.player]??[],terrainRules.resourceCapacity.farm);s.map.resources.push({id:farmResourceId(b.id),kind:'farm',x:b.x,y:b.y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId:b.id,depletedAt:null});s.map.tiles[tileAt(b.x,b.y,s.map.size)].resourceRefs.push(farmResourceId(b.id));}
+function openFarm(s:BuildingState,b:Building){const capacity=farmFoodOf((s as {techs?:string[][]}).techs?.[b.player]??[],terrainRules.resourceCapacity.farm)+farmFoodBonus(ownerOf(s,b.player));s.map.resources.push({id:farmResourceId(b.id),kind:'farm',x:b.x,y:b.y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId:b.id,depletedAt:null});s.map.tiles[tileAt(b.x,b.y,s.map.size)].resourceRefs.push(farmResourceId(b.id));}
 // Removing a farm (destroyed, cancelled or worked out) closes its food source.
 export function closeFarm(s:BuildingState,buildingId:string,tick:number){const r=s.map.resources.find(r=>r.id===farmResourceId(buildingId));if(!r||r.status==='depleted')return;r.collectible=false;r.status='depleted';r.obstacleId=null;r.depletedAt=tick;}
 export function farmOwner(s:BuildingState,resourceId:string){return s.buildings.find(b=>farmResourceId(b.id)===resourceId)?.player??null;}
 // Construction requirements from the rule data: an age, and finished buildings of the player's own (the archery
 // range and the stable need a barracks). Shared by the Worker and the page, so both give the same reason.
-export function buildRequirement(age:number,kind:string,own:readonly {kind:string;complete:boolean}[]):string|null{
+// civ: the builder's civilization (the neutral one when absent); a building outside its tree is refused.
+export function buildRequirement(age:number,kind:string,own:readonly {kind:string;complete:boolean}[],civ:string=neutralCiv):string|null{
  const entry=rules.entries.find(e=>e.id===kind);if(!entry)return '未知的建築種類';
+ if(!civAvailable(civ,kind))return '此文明不能建造';
  for(const req of entry.requires){const need=rules.entries.find(e=>e.id===req),m=/^age-(\d)$/.exec(req);
   if(m&&age<Number(m[1]))return `需要${need?.name??req}`;
   if(need?.kind==='building'&&!own.some(b=>b.kind===req&&b.complete))return `需要完工的${need.name}`;}
  return null;}
 export function stageOf(b:Building){return b.complete?100:Math.min(80,Math.floor(b.work*5/b.required)*20);}
 function obstacleOf(s:BuildingState,b:Building){return s.map.obstacles.find(o=>o.id===b.id);}
+// Housing of a building for its owner (the Chinese town centre houses 10).
+export const housingOf=(s:BuildingState,player:number,kind:BuildKind|'town-center')=>buildingRules.capacity[kind]+housingBonus(ownerOf(s,player),kind);
 export function recomputeCapacity(s:BuildingState,player:number){
- const housed=s.buildings.filter(b=>b.player===player&&b.complete).reduce((t,b)=>t+buildingRules.capacity[b.kind],0);
- s.accounts[player].populationCap=Math.min(rules.settings.populationCap,housed);
+ const owner=ownerOf(s,player),housed=s.buildings.filter(b=>b.player===player&&b.complete).reduce((t,b)=>t+housingOf(s,player,b.kind),0)+(s.keptHousing?.[player]??0);
+ s.accounts[player].populationCap=Math.min(rules.settings.populationCap+popCapBonus(owner),housed);
 }
 export function initBuildings(s:BuildingState){
- for(const o of s.map.obstacles)if(o.kind==='town-center'){s.buildings.push({id:o.id!,kind:'town-center',player:o.red?1:0,x:o.x,y:o.y,work:0,required:0,complete:true,reservationId:null,queue:[],rally:null,hp:combatRules.buildings['town-center'],maxHp:combatRules.buildings['town-center']});o.age=s.ages[o.red?1:0];}
+ for(const o of s.map.obstacles)if(o.kind==='town-center'){{const p=o.red?1:0,hp=buildingHpOf('town-center',ownerOf(s,p));s.buildings.push({id:o.id!,kind:'town-center',player:p,x:o.x,y:o.y,work:0,required:0,complete:true,reservationId:null,queue:[],rally:null,hp,maxHp:hp});}o.age=s.ages[o.red?1:0];}
  for(const p of [0,1])recomputeCapacity(s,p);
 }
 // Pays up front (reservation), places a blocking foundation and updates navigation. Throws before any change.
 export function placeBuilding(s:BuildingState,player:number,kind:BuildKind,x:number,y:number,reservationId:string):Building{
- const problem=authoritativeProblem(s,player,kind,x,y)??buildRequirement(s.ages[player],kind,s.buildings.filter(b=>b.player===player));if(problem)throw Error(problem);
- reserve(s.accounts[player],reservationId,kind);
- const b:Building={id:`building-${s.nextBuildingId++}`,kind,player,x,y,work:0,required:buildingRules.required[kind],complete:false,reservationId,queue:[],rally:null,hp:1,maxHp:combatRules.buildings[kind]};
+ const owner=ownerOf(s,player),problem=authoritativeProblem(s,player,kind,x,y)??buildRequirement(s.ages[player],kind,s.buildings.filter(b=>b.player===player),owner.civ);if(problem)throw Error(problem);
+ reserve(s.accounts[player],reservationId,kind,costOf(kind,owner));
+ const b:Building={id:`building-${s.nextBuildingId++}`,kind,player,x,y,work:0,required:buildingRules.required[kind],complete:false,reservationId,queue:[],rally:null,hp:1,maxHp:buildingHpOf(kind,owner)};
  s.buildings.push(b);const o:Obstacle={id:b.id,kind,x,y,progress:0,age:s.ages[player],...(player?{red:true}:{})};s.map.obstacles.push(o);s.map.tiles[tileAt(x,y,s.map.size)].obstacleRefs.push(b.id);
  refreshNavigation(s.map,obstacleBounds(o,navigationRules.radius));return b;
 }

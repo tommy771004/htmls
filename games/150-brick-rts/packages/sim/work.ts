@@ -8,6 +8,7 @@ import {routeTo,cancelMovement} from './movement.ts';
 import type {Unit,Job,MovementState} from './movement.ts';
 import {addWork,farmResourceId,placeBuilding} from './buildings.ts';
 import {gatherRate,carryOf} from './tech.ts';
+import {ownerOf,gatherBonus,carryBonus,huntDamageBonus} from './civ.ts';
 import type {Building,BuildingState} from './buildings.ts';
 import {resourceDefinitions} from './terrain.ts';
 import type {ResourceNode} from './terrain.ts';
@@ -23,7 +24,7 @@ export type BuildWork={kind:'build';buildingId:string;phase:'toSite'|'building';
 export type Work=GatherWork|BuildWork;
 export type Cargo={resource:Resource;amount:number};
 // techs: each player's researched technologies (gather rate, carry); reseed: each player's automatic farm reseeding.
-export type WorkState=MovementState&BuildingState&{tick:number;works:Record<number,Work>;cargo:Record<number,Cargo>;techs:string[][];reseed:boolean[]};
+export type WorkState=MovementState&BuildingState&{civs?:string[];tick:number;works:Record<number,Work>;cargo:Record<number,Cargo>;techs:string[][];reseed:boolean[]};
 const gap=(p:{x:number;y:number},[x0,y0,x1,y1]:number[])=>Math.max(x0-p.x,0,p.x-x1)+Math.max(y0-p.y,0,p.y-y1);
 // Nodes just outside an obstacle's radius-expanded footprint (the same rule the map generator uses).
 function ring(map:MapData,o:Obstacle,reach:number):number[]{const box=obstacleBounds(o,25),out:number[]=[],closed=blockedTable(map);for(const n of nodesNear(map,box,reach)){if(closed[n])continue;const d=gap(position(map,n),box);if(d>0&&d<=reach)out.push(n);}return out;}
@@ -129,7 +130,7 @@ function stepHunt(s:CombatState,u:Unit,w:GatherWork){
  if(huntProblem(s,u.player,prey.id)||!isAnimal(prey.kind)){stopWork(s,u);return;}
  const range=animalRules.hunt.range[prey.kind];
  if(reach(u,prey)<=range){w.phase='hunting';w.retries=0;u.navigation='idle';if(w.progress>0){w.progress--;return;}
-  strike(s,{kind:'unit',id:prey.id},animalRules.hunt.damage,u.id);w.progress=animalRules.hunt.cooldown;
+  strike(s,{kind:'unit',id:prey.id},animalRules.hunt.damage+huntDamageBonus(ownerOf(s,u.player),prey.kind),u.id);w.progress=animalRules.hunt.cooldown;
   if(!s.units.includes(prey)){delete w.prey;w.progress=0;goToSource(s,u,w);}return;}
  const nodes=approach(s,u,{x:prey.x,y:prey.y},range);if(!nodes.length){if(++w.retries>3)stopWork(s,u);return;}
  w.phase='toSource';routeTo(s,u,nodes);
@@ -159,7 +160,8 @@ export function stepWork(s:CombatState){
   if(!workSlots(s.map,w.resourceId).includes(u.node)){if(++w.retries>3){stopWork(s,u);continue;}goToSource(s,u,w);continue;}
   w.phase='gathering';w.retries=0;u.navigation='idle';
   // Progress counts in hundredths of a tick's work, so a technology's +20% is exact over time (the remainder carries).
-  w.progress+=gatherRate(s.techs[u.player],kind);if(w.progress<ticksFor(resource,kind)*100)continue;
+  // The civilization's bonus counts by yield (lumberjacks) or by source (shepherds, foragers, hunters).
+  const owner=ownerOf(s,u.player);w.progress+=gatherRate(s.techs[u.player],kind)+gatherBonus(owner,kind,resource.kind);if(w.progress<ticksFor(resource,kind)*100)continue;
   w.progress-=ticksFor(resource,kind)*100;
   const got=harvestMapResource(s.map,w.resourceId,1,s.tick).amount;
   // A worked-out farm leaves the field: its building record goes with the obstacle. With automatic reseeding on (the
@@ -169,6 +171,6 @@ export function stepWork(s:CombatState){
    if(old&&s.reseed[u.player]){try{reseeded=placeBuilding(s,u.player,'farm',old.x,old.y,`${u.player}:reseed:${s.nextBuildingId}`).id;}catch{}}}
   if(got>0){const c=s.cargo[u.id]??(s.cargo[u.id]={resource:kind,amount:0});c.amount+=got;s.accounts[u.player].ledger.extracted[kind]+=got;}
   if(reseeded){const b:BuildWork={kind:'build',buildingId:reseeded,phase:'toSite',retries:0};s.works[u.id]=b;goToSite(s,u,b);continue;}
-  if((s.cargo[u.id]?.amount??0)>=carryOf(s.techs[u.player],economyRules.carryCapacity,resource.kind==='farm'))goToDropoff(s,u,w);
+  if((s.cargo[u.id]?.amount??0)>=carryOf(s.techs[u.player],economyRules.carryCapacity,resource.kind==='farm')+carryBonus(owner,resource.kind))goToDropoff(s,u,w);
  }
 }

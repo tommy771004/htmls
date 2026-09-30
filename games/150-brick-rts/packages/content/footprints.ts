@@ -16,6 +16,8 @@ export const obstacleFootprints={
  monastery:{x:-15,y:-15,width:300,depth:300},
  blacksmith:{x:-15,y:-15,width:300,depth:300},
  'siege-workshop':{x:-15,y:-15,width:300,depth:300},
+ // Castle: a solid 4x4 keep (the reference's castle is 4x4).
+ castle:{x:-15,y:-15,width:400,depth:400},
  // Watch tower: one tile.
  'watch-tower':{x:0,y:0,width:100,depth:100},
  tree:{x:-20,y:-20,width:100,depth:100},

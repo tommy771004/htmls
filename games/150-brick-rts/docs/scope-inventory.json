@@ -5,8 +5,117 @@
   "referenceInventories": {
     "civilizations": {
       "status": "unverified",
-      "entries": [],
-      "note": "Original complete inventory not provided; empty does not mean no content."
+      "entries": [
+        {
+          "id": "britons",
+          "name": "不列顛",
+          "status": "implemented_design_default",
+          "source": "aoetw.com/civs"
+        },
+        {
+          "id": "celts",
+          "name": "塞爾特",
+          "status": "implemented_design_default",
+          "source": "aoetw.com/civs"
+        },
+        {
+          "id": "franks",
+          "name": "法蘭克",
+          "status": "implemented_design_default",
+          "source": "aoetw.com/civs"
+        },
+        {
+          "id": "goths",
+          "name": "哥德",
+          "status": "implemented_design_default",
+          "source": "aoetw.com/civs"
+        },
+        {
+          "id": "teutons",
+          "name": "條頓",
+          "status": "implemented_design_default",
+          "source": "aoetw.com/civs"
+        },
+        {
+          "id": "vikings",
+          "name": "維京",
+          "status": "implemented_design_default",
+          "source": "aoetw.com/civs"
+        },
+        {
+          "id": "byzantines",
+          "name": "拜占庭",
+          "status": "implemented_design_default",
+          "source": "aoetw.com/civs"
+        },
+        {
+          "id": "persians",
+          "name": "波斯",
+          "status": "implemented_design_default",
+          "source": "aoetw.com/civs"
+        },
+        {
+          "id": "saracens",
+          "name": "薩拉森",
+          "status": "implemented_design_default",
+          "source": "aoetw.com/civs"
+        },
+        {
+          "id": "turks",
+          "name": "土耳其",
+          "status": "implemented_design_default",
+          "source": "aoetw.com/civs"
+        },
+        {
+          "id": "chinese",
+          "name": "中國",
+          "status": "implemented_design_default",
+          "source": "aoetw.com/civs"
+        },
+        {
+          "id": "japanese",
+          "name": "日本",
+          "status": "implemented_design_default",
+          "source": "aoetw.com/civs"
+        },
+        {
+          "id": "mongols",
+          "name": "蒙古",
+          "status": "implemented_design_default",
+          "source": "aoetw.com/civs"
+        },
+        {
+          "id": "settlers",
+          "name": "拓荒者",
+          "status": "design_default",
+          "source": "original neutral test civilization (no bonuses, no Castle)"
+        }
+      ],
+      "notImplemented": [
+        "aztecs",
+        "mayans",
+        "huns",
+        "koreans",
+        "spanish",
+        "italians",
+        "indians",
+        "incas",
+        "magyars",
+        "slavs",
+        "portuguese",
+        "ethiopians",
+        "malians",
+        "berbers",
+        "khmer",
+        "malay",
+        "burmese",
+        "vietnamese",
+        "bulgarians",
+        "tatars",
+        "cumans",
+        "lithuanians"
+      ],
+      "note": "13 of the 35 civilization pages on aoetw.com (github.com/webrsb/aoetw, commit 78b412a, 2023-05-21), a fan encyclopedia that mixes HD/UserPatch 5.8 and DE values. 35 is the site's count, not a verified reference denominator; see docs/aoe2-rules-research.md."
     },
     "units": {
       "status": "unverified",
@@ -25,18 +134,854 @@
     },
     "civilizationBonuses": {
       "status": "unverified",
-      "entries": [],
-      "note": "Original complete inventory not provided; empty does not mean no content."
+      "entries": [
+        {
+          "id": "britons.archer-range",
+          "civ": "britons",
+          "text": "徒步弓兵（散兵除外）射程：第三時代 +1、第四時代 +2",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "britons.shepherds",
+          "civ": "britons",
+          "text": "牧羊（宰羊採集）速度 +25%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": null,
+          "civ": "britons",
+          "text": "第三時代起城鎮中心木材 -50%",
+          "status": "omitted",
+          "reason": "本作的城鎮中心不能另外建造"
+        },
+        {
+          "id": "celts.lumberjacks",
+          "civ": "celts",
+          "text": "伐木速度 +15%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "celts.infantry-speed",
+          "civ": "celts",
+          "text": "第二時代起步兵移動速度 +15%（本作以每 tick 整數步長換算，實際約 +11%）",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "celts.siege-rate",
+          "civ": "celts",
+          "text": "攻城器攻擊速度 +25%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": null,
+          "civ": "celts",
+          "text": "可在對手單位視野內搶走對手的羊",
+          "status": "omitted",
+          "reason": "本作的搶羊規則不看視野（己方建築 4 格內的羊本來就不會被搶）"
+        },
+        {
+          "id": "franks.foragers",
+          "civ": "franks",
+          "text": "採漿果速度 +25%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "franks.free-farming",
+          "civ": "franks",
+          "text": "磨坊的農田科技免費",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "franks.cavalry-hp",
+          "civ": "franks",
+          "text": "第二時代起馬廄單位生命 +20%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "franks.castle",
+          "civ": "franks",
+          "text": "城堡便宜 25%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "goths.infantry-cost",
+          "civ": "goths",
+          "text": "步兵便宜：第一至第四時代 -20% / -25% / -30% / -35%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "goths.infantry-buildings",
+          "civ": "goths",
+          "text": "步兵對建築攻擊：第二至第四時代 +1 / +2 / +3",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "goths.boar",
+          "civ": "goths",
+          "text": "村民打野豬攻擊 +5",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "goths.hunter-carry",
+          "civ": "goths",
+          "text": "獵人攜帶量 +15",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "goths.pop",
+          "civ": "goths",
+          "text": "第四時代人口上限 +10",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "goths.loom",
+          "civ": "goths",
+          "text": "織布機立即完成（仍需付費）",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "teutons.heal-range",
+          "civ": "teutons",
+          "text": "僧侶治療距離兩倍",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "teutons.tower-garrison",
+          "civ": "teutons",
+          "text": "箭塔可駐紮兩倍單位",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "teutons.farms",
+          "civ": "teutons",
+          "text": "農田便宜 40%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "teutons.tc-garrison",
+          "civ": "teutons",
+          "text": "城鎮中心駐軍 +10",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "teutons.melee-armor",
+          "civ": "teutons",
+          "text": "兵營與馬廄單位近戰護甲：第三時代 +1、第四時代 +2",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": null,
+          "civ": "teutons",
+          "text": "免費殺人孔與草藥學",
+          "status": "omitted",
+          "reason": "本作還沒有這兩項科技"
+        },
+        {
+          "id": "vikings.infantry-hp",
+          "civ": "vikings",
+          "text": "步兵生命：第二時代 +10%、第三時代 +15%、第四時代 +20%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "vikings.wheelbarrow",
+          "civ": "vikings",
+          "text": "升到第二時代時免費得到手推車",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "vikings.hand-cart",
+          "civ": "vikings",
+          "text": "升到第三時代時免費得到手拉車",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": null,
+          "civ": "vikings",
+          "text": "戰船便宜 15% / 15% / 20%",
+          "status": "omitted",
+          "reason": "本作還沒有船隻"
+        },
+        {
+          "id": "byzantines.building-hp",
+          "civ": "byzantines",
+          "text": "建築生命：第一至第四時代 +10% / +20% / +30% / +40%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "byzantines.counter-cost",
+          "civ": "byzantines",
+          "text": "長槍兵與散兵便宜 25%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "byzantines.imperial",
+          "civ": "byzantines",
+          "text": "升第四時代便宜 33%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": null,
+          "civ": "byzantines",
+          "text": "火戰船攻擊速度 +20%",
+          "status": "omitted",
+          "reason": "本作還沒有船隻"
+        },
+        {
+          "id": null,
+          "civ": "byzantines",
+          "text": "封建時代免費城鎮瞭望",
+          "status": "omitted",
+          "reason": "本作還沒有城鎮瞭望"
+        },
+        {
+          "id": null,
+          "civ": "byzantines",
+          "text": "駱駝騎兵便宜 25%",
+          "status": "omitted",
+          "reason": "本作還沒有駱駝騎兵"
+        },
+        {
+          "id": "persians.food",
+          "civ": "persians",
+          "text": "開局食物 +50",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "persians.wood",
+          "civ": "persians",
+          "text": "開局木材 +50",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "persians.tc-hp",
+          "civ": "persians",
+          "text": "城鎮中心生命兩倍",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "persians.tc-rate",
+          "civ": "persians",
+          "text": "城鎮中心生產與研究速度：第二至第四時代 +10% / +15% / +20%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": null,
+          "civ": "persians",
+          "text": "碼頭生命兩倍、碼頭工作速度提升",
+          "status": "omitted",
+          "reason": "本作還沒有碼頭"
+        },
+        {
+          "id": "saracens.archer-buildings",
+          "civ": "saracens",
+          "text": "弓兵對建築攻擊：第二至第四時代 +1 / +2 / +3",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": null,
+          "civ": "saracens",
+          "text": "市集交易費 5%、市集便宜 100 木材",
+          "status": "omitted",
+          "reason": "本作還沒有市集"
+        },
+        {
+          "id": null,
+          "civ": "saracens",
+          "text": "運輸船生命兩倍、運載 +5；戰船攻擊速度 +25%",
+          "status": "omitted",
+          "reason": "本作還沒有船隻"
+        },
+        {
+          "id": null,
+          "civ": "saracens",
+          "text": "馬弓騎兵對建築再 +1",
+          "status": "omitted",
+          "reason": "本作的薩拉森沒有馬弓騎兵"
+        },
+        {
+          "id": "turks.gunpowder-hp",
+          "civ": "turks",
+          "text": "火藥單位生命 +25%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "turks.gold",
+          "civ": "turks",
+          "text": "採金速度 +20%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "turks.free-light-cavalry",
+          "civ": "turks",
+          "text": "斥候系升級免費",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "turks.scout-armor",
+          "civ": "turks",
+          "text": "斥候系遠程護甲 +1",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": null,
+          "civ": "turks",
+          "text": "火藥科技便宜 50%、免費化學",
+          "status": "omitted",
+          "reason": "本作還沒有大學與火藥科技"
+        },
+        {
+          "id": "chinese.villagers",
+          "civ": "chinese",
+          "text": "開局多 3 名村民",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "chinese.food",
+          "civ": "chinese",
+          "text": "開局食物 -200",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "chinese.wood",
+          "civ": "chinese",
+          "text": "開局木材 -50",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "chinese.tc-housing",
+          "civ": "chinese",
+          "text": "城鎮中心可住 10 人",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "chinese.tc-los",
+          "civ": "chinese",
+          "text": "城鎮中心視野 +5",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "chinese.techs",
+          "civ": "chinese",
+          "text": "科技便宜：第二至第四時代 -10% / -15% / -20%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": null,
+          "civ": "chinese",
+          "text": "爆破船生命 +50%",
+          "status": "omitted",
+          "reason": "本作還沒有船隻"
+        },
+        {
+          "id": "japanese.camps",
+          "civ": "japanese",
+          "text": "伐木場、採礦場、磨坊便宜 50%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "japanese.infantry-rate",
+          "civ": "japanese",
+          "text": "步兵攻擊速度：第二至第四時代 +10% / +15% / +25%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": null,
+          "civ": "japanese",
+          "text": "漁船生命兩倍、遠程護甲 +2、工作速度提升",
+          "status": "omitted",
+          "reason": "本作還沒有漁船"
+        },
+        {
+          "id": "mongols.horse-archers",
+          "civ": "mongols",
+          "text": "馬弓騎兵射速 +20%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "mongols.light-cavalry",
+          "civ": "mongols",
+          "text": "輕騎兵生命 +30%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "mongols.hunters",
+          "civ": "mongols",
+          "text": "打獵速度 +40%",
+          "status": "implemented_design_default"
+        }
+      ],
+      "note": "Bonuses of the 13 implemented civilizations, as effects in packages/content/civs.ts; omitted means the target does not exist in this game yet. 13 of the 35 civilization pages on aoetw.com (github.com/webrsb/aoetw, commit 78b412a, 2023-05-21), a fan encyclopedia that mixes HD/UserPatch 5.8 and DE values. 35 is the site's count, not a verified reference denominator; see docs/aoe2-rules-research.md."
     },
     "teamBonuses": {
       "status": "unverified",
-      "entries": [],
-      "note": "Original complete inventory not provided; empty does not mean no content."
+      "entries": [
+        {
+          "id": "britons.team-range",
+          "civ": "britons",
+          "text": "團隊加成：靶場生產速度 +20%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "celts.team-siege",
+          "civ": "celts",
+          "text": "團隊加成：攻城器工坊生產速度 +20%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "franks.team-los",
+          "civ": "franks",
+          "text": "團隊加成：騎士視野 +2",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "goths.team-barracks",
+          "civ": "goths",
+          "text": "團隊加成：兵營生產速度 +20%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "teutons.team-faith",
+          "civ": "teutons",
+          "text": "團隊加成：單位較難被轉化（每名僧侶的判定多一次必定失敗）",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": null,
+          "civ": "vikings",
+          "text": "團隊加成：碼頭便宜 15%",
+          "status": "omitted",
+          "reason": "本作還沒有碼頭"
+        },
+        {
+          "id": "byzantines.team-heal",
+          "civ": "byzantines",
+          "text": "團隊加成：僧侶治療速度 +50%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "persians.team-knights",
+          "civ": "persians",
+          "text": "團隊加成：騎士對弓兵攻擊 +2",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "saracens.team-archers",
+          "civ": "saracens",
+          "text": "團隊加成：徒步弓兵對建築攻擊 +2",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "turks.team-gunpowder",
+          "civ": "turks",
+          "text": "團隊加成：火藥單位訓練速度 +25%",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "chinese.team-farms",
+          "civ": "chinese",
+          "text": "團隊加成：農田食物 +45",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": null,
+          "civ": "japanese",
+          "text": "團隊加成：戰船視野 +50%",
+          "status": "omitted",
+          "reason": "本作還沒有船隻"
+        },
+        {
+          "id": "mongols.team-scouts",
+          "civ": "mongols",
+          "text": "團隊加成：斥候視野 +2",
+          "status": "implemented_design_default"
+        }
+      ],
+      "note": "Effects with scope 'team'; with one player per side each applies to its owner only. 13 of the 35 civilization pages on aoetw.com (github.com/webrsb/aoetw, commit 78b412a, 2023-05-21), a fan encyclopedia that mixes HD/UserPatch 5.8 and DE values. 35 is the site's count, not a verified reference denominator; see docs/aoe2-rules-research.md."
     },
     "uniqueUpgrades": {
       "status": "unverified",
-      "entries": [],
-      "note": "Original complete inventory not provided; empty does not mean no content."
+      "entries": [
+        {
+          "id": "elite-longbowman",
+          "civ": "britons",
+          "kind": "elite-upgrade",
+          "of": "longbowman",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "elite-woad-raider",
+          "civ": "celts",
+          "kind": "elite-upgrade",
+          "of": "woad-raider",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "elite-throwing-axeman",
+          "civ": "franks",
+          "kind": "elite-upgrade",
+          "of": "throwing-axeman",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "elite-huskarl",
+          "civ": "goths",
+          "kind": "elite-upgrade",
+          "of": "huskarl",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "elite-teutonic-knight",
+          "civ": "teutons",
+          "kind": "elite-upgrade",
+          "of": "teutonic-knight",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "elite-berserk",
+          "civ": "vikings",
+          "kind": "elite-upgrade",
+          "of": "berserk",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "elite-cataphract",
+          "civ": "byzantines",
+          "kind": "elite-upgrade",
+          "of": "cataphract",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "elite-war-elephant",
+          "civ": "persians",
+          "kind": "elite-upgrade",
+          "of": "war-elephant",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "elite-mameluke",
+          "civ": "saracens",
+          "kind": "elite-upgrade",
+          "of": "mameluke",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "elite-janissary",
+          "civ": "turks",
+          "kind": "elite-upgrade",
+          "of": "janissary",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "elite-chu-ko-nu",
+          "civ": "chinese",
+          "kind": "elite-upgrade",
+          "of": "chu-ko-nu",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "elite-samurai",
+          "civ": "japanese",
+          "kind": "elite-upgrade",
+          "of": "samurai",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "elite-mangudai",
+          "civ": "mongols",
+          "kind": "elite-upgrade",
+          "of": "mangudai",
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "yeomen",
+          "civ": "britons",
+          "kind": "unique-technology",
+          "name": "義勇騎兵",
+          "age": 3,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "warwolf",
+          "civ": "britons",
+          "kind": "unique-technology",
+          "name": "戰狼號",
+          "age": 4,
+          "status": "deferred"
+        },
+        {
+          "id": "stronghold",
+          "civ": "celts",
+          "kind": "unique-technology",
+          "name": "堡壘",
+          "age": 3,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "furor-celtica",
+          "civ": "celts",
+          "kind": "unique-technology",
+          "name": "塞爾特狂熱",
+          "age": 4,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "chivalry",
+          "civ": "franks",
+          "kind": "unique-technology",
+          "name": "騎士精神",
+          "age": 3,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "bearded-axe",
+          "civ": "franks",
+          "kind": "unique-technology",
+          "name": "倒鉤斧",
+          "age": 4,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "anarchy",
+          "civ": "goths",
+          "kind": "unique-technology",
+          "name": "無政府狀態",
+          "age": 3,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "perfusion",
+          "civ": "goths",
+          "kind": "unique-technology",
+          "name": "井噴",
+          "age": 4,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "ironclad",
+          "civ": "teutons",
+          "kind": "unique-technology",
+          "name": "鋼鐵甲",
+          "age": 3,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "crenellations",
+          "civ": "teutons",
+          "kind": "unique-technology",
+          "name": "砲門垛口",
+          "age": 4,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "chieftains",
+          "civ": "vikings",
+          "kind": "unique-technology",
+          "name": "酋長",
+          "age": 3,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "berserkergang",
+          "civ": "vikings",
+          "kind": "unique-technology",
+          "name": "狂戰士幫",
+          "age": 4,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "greek-fire",
+          "civ": "byzantines",
+          "kind": "unique-technology",
+          "name": "希臘之火",
+          "age": 3,
+          "status": "deferred"
+        },
+        {
+          "id": "logistica",
+          "civ": "byzantines",
+          "kind": "unique-technology",
+          "name": "後勤",
+          "age": 4,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "kamandaran",
+          "civ": "persians",
+          "kind": "unique-technology",
+          "name": "波斯弓兵",
+          "age": 3,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "mahouts",
+          "civ": "persians",
+          "kind": "unique-technology",
+          "name": "象伕",
+          "age": 4,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "madrasah",
+          "civ": "saracens",
+          "kind": "unique-technology",
+          "name": "穆斯林學墊",
+          "age": 3,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "zealotry",
+          "civ": "saracens",
+          "kind": "unique-technology",
+          "name": "狂熱",
+          "age": 4,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "sipahi",
+          "civ": "turks",
+          "kind": "unique-technology",
+          "name": "采邑騎兵",
+          "age": 3,
+          "status": "deferred"
+        },
+        {
+          "id": "artillery",
+          "civ": "turks",
+          "kind": "unique-technology",
+          "name": "砲兵",
+          "age": 4,
+          "status": "deferred"
+        },
+        {
+          "id": "great-wall",
+          "civ": "chinese",
+          "kind": "unique-technology",
+          "name": "長城",
+          "age": 3,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "rocketry",
+          "civ": "chinese",
+          "kind": "unique-technology",
+          "name": "火箭技術",
+          "age": 4,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "yasama",
+          "civ": "japanese",
+          "kind": "unique-technology",
+          "name": "射箭孔",
+          "age": 3,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "kataparuto",
+          "civ": "japanese",
+          "kind": "unique-technology",
+          "name": "彈射器",
+          "age": 4,
+          "status": "deferred"
+        },
+        {
+          "id": "nomads",
+          "civ": "mongols",
+          "kind": "unique-technology",
+          "name": "游牧",
+          "age": 3,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": "drill",
+          "civ": "mongols",
+          "kind": "unique-technology",
+          "name": "鑿岩機",
+          "age": 4,
+          "status": "implemented_design_default"
+        },
+        {
+          "id": null,
+          "civ": "britons",
+          "text": "特殊科技「戰狼號」",
+          "status": "omitted",
+          "reason": "本作還沒有巨型投石機",
+          "kind": "omitted-part"
+        },
+        {
+          "id": null,
+          "civ": "vikings",
+          "text": "酋長：步兵對駱駝騎兵 +4",
+          "status": "omitted",
+          "reason": "本作還沒有駱駝騎兵",
+          "kind": "omitted-part"
+        },
+        {
+          "id": null,
+          "civ": "vikings",
+          "text": "特殊單位維京大戰船",
+          "status": "omitted",
+          "reason": "本作還沒有海戰",
+          "kind": "omitted-part"
+        },
+        {
+          "id": null,
+          "civ": "byzantines",
+          "text": "特殊科技「希臘之火」",
+          "status": "omitted",
+          "reason": "本作還沒有火戰船",
+          "kind": "omitted-part"
+        },
+        {
+          "id": null,
+          "civ": "saracens",
+          "text": "狂熱：駱駝騎兵生命 +30",
+          "status": "omitted",
+          "reason": "本作還沒有駱駝騎兵",
+          "kind": "omitted-part"
+        },
+        {
+          "id": null,
+          "civ": "turks",
+          "text": "特殊科技「采邑騎兵」",
+          "status": "omitted",
+          "reason": "本作的土耳其沒有馬弓騎兵",
+          "kind": "omitted-part"
+        },
+        {
+          "id": null,
+          "civ": "turks",
+          "text": "特殊科技「砲兵」",
+          "status": "omitted",
+          "reason": "本作還沒有火砲與火砲塔",
+          "kind": "omitted-part"
+        },
+        {
+          "id": null,
+          "civ": "chinese",
+          "text": "火箭技術的弩砲 +4",
+          "status": "omitted",
+          "reason": "本作還沒有弩砲",
+          "kind": "omitted-part"
+        },
+        {
+          "id": null,
+          "civ": "chinese",
+          "text": "長城的城牆 +30%",
+          "status": "omitted",
+          "reason": "本作還沒有城牆",
+          "kind": "omitted-part"
+        },
+        {
+          "id": null,
+          "civ": "japanese",
+          "text": "特殊科技「彈射器」",
+          "status": "omitted",
+          "reason": "本作還沒有巨型投石機",
+          "kind": "omitted-part"
+        }
+      ],
+      "note": "Elite unique-unit upgrades and unique technologies of the 13 implemented civilizations; deferred = not offered because its target (trebuchet, fire ship, cavalry archer, bombard) does not exist here; omitted-part = the part of a unique unit or technology this game cannot express. 13 of the 35 civilization pages on aoetw.com (github.com/webrsb/aoetw, commit 78b412a, 2023-05-21), a fan encyclopedia that mixes HD/UserPatch 5.8 and DE values. 35 is the site's count, not a verified reference denominator; see docs/aoe2-rules-research.md."
     },
     "mapScripts": {
       "status": "unverified",

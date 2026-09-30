@@ -24,7 +24,8 @@
     "test:monastery": "node --experimental-strip-types tests/first-use-monastery.mjs",
     "test:relics": "node --experimental-strip-types tests/first-use-relics.mjs",
     "test:match": "node --experimental-strip-types tests/first-use-match.mjs",
-    "test:full": "node --experimental-strip-types tests/first-use-full.mjs"
+    "test:full": "node --experimental-strip-types tests/first-use-full.mjs",
+    "test:civs": "node --experimental-strip-types tests/first-use-civs.mjs"
   },
   "devDependencies": {
     "esbuild": "0.25.10",

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 15,
-  "rulesetHash": "57c37d95",
+  "rulesetHash": "bfb8fd1e",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
@@ -238,6 +238,12 @@
         "y": -15,
         "width": 300,
         "depth": 300
+      },
+      "castle": {
+        "x": -15,
+        "y": -15,
+        "width": 400,
+        "depth": 400
       },
       "watch-tower": {
         "x": 0,
@@ -586,6 +592,263 @@
         "bonus": {
           "building": 40
         }
+      },
+      "longbowman": {
+        "hp": 35,
+        "damage": 6,
+        "range": 300,
+        "cooldown": 30,
+        "sight": 400,
+        "attack": "pierce",
+        "armor": [
+          0,
+          0
+        ],
+        "classes": [
+          "archer",
+          "unique"
+        ],
+        "bonus": {
+          "spear": 2
+        }
+      },
+      "woad-raider": {
+        "hp": 65,
+        "damage": 8,
+        "range": 50,
+        "cooldown": 20,
+        "sight": 350,
+        "attack": "melee",
+        "armor": [
+          0,
+          1
+        ],
+        "classes": [
+          "infantry",
+          "unique"
+        ],
+        "bonus": {
+          "building": 2
+        }
+      },
+      "throwing-axeman": {
+        "hp": 60,
+        "damage": 7,
+        "range": 200,
+        "cooldown": 20,
+        "sight": 350,
+        "attack": "melee",
+        "armor": [
+          0,
+          0
+        ],
+        "classes": [
+          "infantry",
+          "unique"
+        ],
+        "bonus": {
+          "building": 1
+        }
+      },
+      "huskarl": {
+        "hp": 60,
+        "damage": 10,
+        "range": 50,
+        "cooldown": 20,
+        "sight": 350,
+        "attack": "melee",
+        "armor": [
+          0,
+          6
+        ],
+        "classes": [
+          "infantry",
+          "unique"
+        ],
+        "bonus": {
+          "building": 2,
+          "archer": 6
+        }
+      },
+      "teutonic-knight": {
+        "hp": 80,
+        "damage": 12,
+        "range": 50,
+        "cooldown": 20,
+        "sight": 350,
+        "attack": "melee",
+        "armor": [
+          5,
+          2
+        ],
+        "classes": [
+          "infantry",
+          "unique"
+        ],
+        "bonus": {
+          "building": 4
+        }
+      },
+      "berserk": {
+        "hp": 54,
+        "damage": 9,
+        "range": 50,
+        "cooldown": 20,
+        "sight": 350,
+        "attack": "melee",
+        "armor": [
+          0,
+          1
+        ],
+        "classes": [
+          "infantry",
+          "unique"
+        ],
+        "bonus": {
+          "building": 2
+        },
+        "regen": 20
+      },
+      "cataphract": {
+        "hp": 110,
+        "damage": 9,
+        "range": 50,
+        "cooldown": 18,
+        "sight": 350,
+        "attack": "melee",
+        "armor": [
+          2,
+          1
+        ],
+        "classes": [
+          "cavalry",
+          "unique"
+        ],
+        "bonus": {
+          "infantry": 9
+        }
+      },
+      "war-elephant": {
+        "hp": 450,
+        "damage": 15,
+        "range": 50,
+        "cooldown": 20,
+        "sight": 350,
+        "attack": "melee",
+        "armor": [
+          1,
+          2
+        ],
+        "classes": [
+          "cavalry",
+          "unique",
+          "elephant"
+        ],
+        "bonus": {
+          "building": 7
+        }
+      },
+      "mameluke": {
+        "hp": 65,
+        "damage": 8,
+        "range": 200,
+        "cooldown": 20,
+        "sight": 350,
+        "attack": "melee",
+        "armor": [
+          0,
+          0
+        ],
+        "classes": [
+          "cavalry",
+          "unique"
+        ],
+        "bonus": {
+          "cavalry": 9
+        }
+      },
+      "janissary": {
+        "hp": 35,
+        "damage": 17,
+        "range": 450,
+        "cooldown": 50,
+        "sight": 450,
+        "attack": "pierce",
+        "armor": [
+          1,
+          0
+        ],
+        "classes": [
+          "archer",
+          "gunpowder",
+          "unique"
+        ],
+        "bonus": {
+          "siege": 2
+        }
+      },
+      "chu-ko-nu": {
+        "hp": 45,
+        "damage": 8,
+        "range": 250,
+        "cooldown": 55,
+        "sight": 400,
+        "attack": "pierce",
+        "armor": [
+          0,
+          0
+        ],
+        "classes": [
+          "archer",
+          "unique"
+        ],
+        "bonus": {
+          "spear": 2
+        },
+        "extraShots": 2,
+        "extraDamage": 3
+      },
+      "samurai": {
+        "hp": 60,
+        "damage": 8,
+        "range": 50,
+        "cooldown": 19,
+        "sight": 350,
+        "attack": "melee",
+        "armor": [
+          1,
+          1
+        ],
+        "classes": [
+          "infantry",
+          "unique"
+        ],
+        "bonus": {
+          "building": 2,
+          "unique": 10
+        }
+      },
+      "mangudai": {
+        "hp": 60,
+        "damage": 6,
+        "range": 250,
+        "cooldown": 30,
+        "sight": 400,
+        "attack": "pierce",
+        "armor": [
+          0,
+          0
+        ],
+        "classes": [
+          "archer",
+          "cavalry",
+          "cavalry-archer",
+          "unique"
+        ],
+        "bonus": {
+          "siege": 3,
+          "spear": 1
+        }
       }
     },
     "buildingArmor": [
@@ -605,7 +868,8 @@
       "monastery": 350,
       "blacksmith": 300,
       "watch-tower": 250,
-      "siege-workshop": 300
+      "siege-workshop": 300,
+      "castle": 800
     },
     "corpseTicks": 40,
     "hitFlashTicks": 6,
@@ -621,7 +885,20 @@
       "spearman": 5,
       "skirmisher": 5,
       "knight": 10,
-      "ram": 2
+      "ram": 2,
+      "longbowman": 5,
+      "woad-raider": 7,
+      "throwing-axeman": 6,
+      "huskarl": 6,
+      "teutonic-knight": 4,
+      "berserk": 6,
+      "cataphract": 10,
+      "war-elephant": 4,
+      "mameluke": 10,
+      "janissary": 5,
+      "chu-ko-nu": 5,
+      "samurai": 6,
+      "mangudai": 10
     }
   },
   "collisionScope": "static town-center (multi-rect, walkable gate and plinth), house/tree/rock/resource footprints; units hold one node and reserve the next (no overlap, no pass-through), wait, yield, trade stations and replan within bounded limits"

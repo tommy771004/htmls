@@ -66,6 +66,12 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 - 原始碼在 `games/194-powder-peak/`（Three.js 0.186.0 + esbuild），有自己的 `package.json`；`npm run build` 輸出單檔 `web/194-powder-peak.html`，改了 `src/` 要重新 build 並把產出一起 commit。`npm test` 是無頭 Chrome 的模擬測試（跑打包後的單檔，要先 build）。
 - 規格見 `games/194-powder-peak/SPEC.md`，指令、除錯參數與 `window.__game` 測試 API 見同資料夾的 `README.md`。
 
+## 響尾蛇越野（195）
+
+- 原始碼在 `games/195-sidewinder/`，有自己的 `package.json`：`core/` 是 Rust crate（編成 `wasm32-unknown-unknown`，純 C ABI，不用 wasm-bindgen），`blender/` 是產生賽道與模型的 Blender 腳本（`npm run assets`，輸出 `blender/out/` 要 commit），`src/` 是前端（esbuild）。
+- `npm run build` 會先 `cargo build`，再把 WASM、模型、賽道與貼圖 gzip＋base64 內嵌成單檔 `web/195-sidewinder.html`；改了 `core/`、`blender/out/` 或 `src/` 要重新 build 並把產出一起 commit。`npm test` 是無頭 Chrome 驗收（跑打包後的單檔），`npm run test:core` 是 `cargo test`。
+- 模組契約（SWTK／SWMS 檔案格式、WASM ABI、狀態陣列、事件）見同資料夾的 `SPEC.md`；指令、`window.__sw` 測試 API、音效掛點與 Cloudflare Pages 部署見 `README.md`。部署到 Cloudflare 需要使用者自己的帳號，不要自動執行。
+
 ## 青雀真人麻將（127）架構
 
 - `assets/jade-table/engine.mjs`：台灣十六張規則引擎（`MahjongGame`、`scoreHand`、台表），**瀏覽器單人模式與伺服器共用同一份**。改規則時兩邊會一起受影響。

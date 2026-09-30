@@ -1,0 +1,128 @@
+{
+ "meshes": [
+  {
+   "name": "truck_body",
+   "verts": 1484,
+   "tris": 810
+  },
+  {
+   "name": "wheel",
+   "verts": 648,
+   "tris": 356
+  },
+  {
+   "name": "tire_stack",
+   "verts": 480,
+   "tris": 288
+  },
+  {
+   "name": "hay_bale",
+   "verts": 88,
+   "tris": 42
+  },
+  {
+   "name": "barrel",
+   "verts": 464,
+   "tris": 236
+  },
+  {
+   "name": "grandstand",
+   "verts": 2058,
+   "tris": 1032
+  },
+  {
+   "name": "floodlight",
+   "verts": 424,
+   "tris": 212
+  },
+  {
+   "name": "flag_pole",
+   "verts": 86,
+   "tris": 44
+  },
+  {
+   "name": "cactus",
+   "verts": 332,
+   "tris": 156
+  },
+  {
+   "name": "start_arch",
+   "verts": 356,
+   "tris": 212
+  },
+  {
+   "name": "fence",
+   "verts": 88,
+   "tris": 44
+  },
+  {
+   "name": "pickup_nitro",
+   "verts": 344,
+   "tris": 178
+  },
+  {
+   "name": "pickup_money",
+   "verts": 380,
+   "tris": 188
+  }
+ ],
+ "tracks": [
+  {
+   "id": 0,
+   "name": "Sidewinder Gulch",
+   "length_m": 243.7,
+   "n_path": 139,
+   "n_pickup": 8,
+   "n_props": 185,
+   "bin_bytes": 49084,
+   "albedo": [
+    576,
+    384
+   ],
+   "albedo_bytes": 50551
+  },
+  {
+   "id": 1,
+   "name": "Dry Wash",
+   "length_m": 201.8,
+   "n_path": 115,
+   "n_pickup": 8,
+   "n_props": 209,
+   "bin_bytes": 49276,
+   "albedo": [
+    576,
+    384
+   ],
+   "albedo_bytes": 54849
+  },
+  {
+   "id": 2,
+   "name": "Mudflat Basin",
+   "length_m": 189.0,
+   "n_path": 108,
+   "n_pickup": 8,
+   "n_props": 106,
+   "bin_bytes": 46692,
+   "albedo": [
+    576,
+    384
+   ],
+   "albedo_bytes": 54915
+  },
+  {
+   "id": 3,
+   "name": "Anvil Mesa",
+   "length_m": 225.8,
+   "n_path": 129,
+   "n_pickup": 8,
+   "n_props": 195,
+   "bin_bytes": 49164,
+   "albedo": [
+    576,
+    384
+   ],
+   "albedo_bytes": 53113
+  }
+ ],
+ "note": "地面貼圖 track_N.jpg：第 0 列 = 北（z = origin_z），第 0 欄 = x = origin_x；每公尺 8 px（2×2 超取樣）。track_N_check.png 是每公尺 2 px 的檢查用小圖，不內嵌。"
+}

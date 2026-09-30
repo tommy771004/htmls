@@ -135,11 +135,11 @@ function militaryBuildingParts(kind, v) {
 // apps/web/monastery-building.ts
 function monasteryParts(v) {
   if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u4FEE\u9053\u9662\u5916\u89C0");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", lime = "#d8cfb6", stone2 = "#b9b39d", roof = age === 1 ? "#b8a074" : team2;
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", lime2 = "#d8cfb6", stone2 = "#b9b39d", roof = age === 1 ? "#b8a074" : team2;
   const add = (id, phase, x, z, y, w, d, h, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h, color, studs, ...shape ? { shape } : {} });
   const wallTop = 1.12 + (age >= 3 ? 0.32 : 0), towerTop = age <= 2 ? 2.24 : 2.56 + (age === 4 ? 0.32 : 0);
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
-  add("nave", 1, 0.2, 0.3, 0.16, 1.6, 2.2, wallTop - 0.16, lime);
+  add("nave", 1, 0.2, 0.3, 0.16, 1.6, 2.2, wallTop - 0.16, lime2);
   add("door", 1, 0.75, 2.46, 0.16, 0.5, 0.08, 0.72, "#6e5a44", false, "arch");
   for (const z of [0.8, 1.6]) for (const x of [0.16, 1.76]) add(`window-${x}-${z}`, 1, x, z, 0.62, 0.08, 0.26, 0.36, "#5b5040");
   for (let level = 0; level < 3; level++) add(`roof-${level}`, 2, 0.1 + level * 0.3, 0.2, wallTop + level * 0.16, 1.8 - level * 0.6, 2.4, 0.16, roof, true);
@@ -167,23 +167,23 @@ function monasteryParts(v) {
   }
   add("flag-pole", 4, 0.02, 2.63, 0.16, 0.06, 0.06, 1.6, wood2);
   add("flag", 4, 0.08, 2.63, 1.42, 0.44, 0.05, 0.28, team2);
-  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: lime, studs: false }))];
+  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: lime2, studs: false }))];
   return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "flag" || a.id === "bell" || a.id === "bell-rope" || a.id === "finial"));
 }
 
 // apps/web/blacksmith-building.ts
 function blacksmithParts(v) {
   if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u9435\u5320\u92EA\u5916\u89C0");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", stone2 = "#a9a693", dark = "#5d5a52", roof = age === 1 ? "#b8a074" : team2;
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", stone2 = "#a9a693", dark2 = "#5d5a52", roof = age === 1 ? "#b8a074" : team2;
   const add = (id, phase, x, z, y, w, d, h, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h, color, studs, ...shape ? { shape } : {} });
   const top = 1.28 + (age >= 3 ? 0.16 : 0);
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
   add("back-wall", 1, 0.1, 0.1, 0.16, 2.5, 0.2, top - 0.16, stone2);
   for (const x of [0.1, 2.4]) add(`side-wall-${x}`, 1, x, 0.3, 0.16, 0.2, 1.5, top - 0.16, stone2);
   for (let level = 0; level < 2; level++) add(`roof-${level}`, 2, -0.05 + level * 0.3, -0.05, top + level * 0.16, 2.9 - level * 0.6, 1.95, 0.16, roof, true);
-  add("chimney", 2, 1.75, 0.1, 0.16, 0.5, 0.5, top + 0.9, dark);
+  add("chimney", 2, 1.75, 0.1, 0.16, 0.5, 0.5, top + 0.9, dark2);
   add("chimney-cap", 3, 1.7, 0.05, top + 1.06, 0.6, 0.6, 0.1, "#4a4740");
-  add("hearth", 1, 1.7, 0.62, 0.16, 0.6, 0.4, 0.36, dark);
+  add("hearth", 1, 1.7, 0.62, 0.16, 0.6, 0.4, 0.36, dark2);
   add("hearth-fire", 3, 1.8, 0.7, 0.52, 0.4, 0.25, 0.1, "#e8793c");
   add("stump", 3, 0.95, 1.95, 0.16, 0.36, 0.36, 0.3, wood2);
   add("anvil", 3, 0.88, 1.97, 0.46, 0.5, 0.3, 0.14, "#6b6f6c");
@@ -219,35 +219,38 @@ function towerParts(v) {
   check(v, "\u7BAD\u5854");
   const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", stone2 = "#b5b29e", roof = age === 1 ? "#b8a074" : team2;
   const add = (id, phase, x, z, y, w, d, h, color, studs = false) => p.push({ id, phase, x, z, y, w, d, h, color, studs });
-  const shaft = 1.6 + (age - 1) * 0.24;
+  const shaft2 = 1.6 + (age - 1) * 0.24;
   add("foundation", 0, -0.05, -0.05, 0, 1.1, 1.1, 0.12, "#b3aa8c");
-  add("shaft", 1, 0.08, 0.08, 0.12, 0.84, 0.84, shaft * 0.55, stone2);
-  add("shaft-upper", 2, 0.14, 0.14, 0.12 + shaft * 0.55, 0.72, 0.72, shaft * 0.45, stone2);
+  add("shaft", 1, 0.08, 0.08, 0.12, 0.84, 0.84, shaft2 * 0.55, stone2);
+  add("shaft-upper", 2, 0.14, 0.14, 0.12 + shaft2 * 0.55, 0.72, 0.72, shaft2 * 0.45, stone2);
   add("door", 1, 0.36, 0.9, 0.12, 0.28, 0.04, 0.4, "#6e5a44");
-  add("lookout", 3, 0, 0, 0.12 + shaft, 1, 1, 0.14, wood2);
-  for (const [x, z] of [[0, 0], [0.84, 0], [0, 0.84], [0.84, 0.84]]) add(`post-${x}-${z}`, 3, x, z, 0.26 + shaft, 0.16, 0.16, 0.36, wood2);
-  add("roof", 4, -0.06, -0.06, 0.62 + shaft, 1.12, 1.12, 0.14, roof, true);
-  add("roof-top", 4, 0.2, 0.2, 0.76 + shaft, 0.6, 0.6, 0.14, roof, true);
-  if (age >= 3) for (let i = 0; i < 4; i++) add(`slit-${i}`, 2, 0.47, i % 2 ? 0.1 : 0.9, 0.5 + i * 0.3, 0.06, 0.02, 0.2, "#4a4740");
-  add("flag", 4, 0.46, 0.46, 0.9 + shaft, 0.06, 0.06, 0.5, wood2);
-  add("pennant", 4, 0.52, 0.46, 1.22 + shaft, 0.3, 0.04, 0.16, team2);
-  return finish(p, v, stone2, (id) => !(id === "pennant" || id === "roof-top"));
+  add("lookout", 3, 0, 0, 0.12 + shaft2, 1, 1, 0.14, wood2);
+  for (const [x, z] of [[0, 0], [0.84, 0], [0, 0.84], [0.84, 0.84]]) add(`post-${x}-${z}`, 3, x, z, 0.26 + shaft2, 0.16, 0.16, 0.36, wood2);
+  add("roof", 4, -0.06, -0.06, 0.62 + shaft2, 1.12, 1.12, 0.14, roof, true);
+  add("roof-top", 4, 0.2, 0.2, 0.76 + shaft2, 0.6, 0.6, 0.14, roof, true);
+  if (age >= 3) for (let i = 0; i < 4; i++) {
+    const y = 0.5 + i * 0.3, upper = y >= 0.12 + shaft2 * 0.55;
+    add(`slit-${i}`, 2, 0.47, i % 2 ? upper ? 0.12 : 0.1 : upper ? 0.86 : 0.9, y, 0.06, 0.02, 0.2, "#4a4740");
+  }
+  add("flag", 4, 0.46, 0.46, 0.9 + shaft2, 0.06, 0.06, 0.5, wood2);
+  add("pennant", 4, 0.52, 0.46, 1.22 + shaft2, 0.3, 0.04, 0.16, team2);
+  return finish(p, v, stone2, (id) => !(id === "pennant" || id === "roof-top" || id === "flag"));
 }
 function siegeWorkshopParts(v) {
   check(v, "\u653B\u57CE\u5668\u5DE5\u574A");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", dark = "#6e5438", roof = age === 1 ? "#b8a074" : team2;
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", dark2 = "#6e5438", roof = age === 1 ? "#b8a074" : team2;
   const add = (id, phase, x, z, y, w, d, h, color, studs = false) => p.push({ id, phase, x, z, y, w, d, h, color, studs });
   const top = 1.44;
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
   for (const x of [0.1, 2.44]) for (const z of [0.1, 1.65]) add(`post-${x}-${z}`, 1, x, z, 0.16, 0.16, 0.16, top - 0.16, wood2);
   add("back-wall", 1, 0.1, 0.1, 0.16, 2.5, 0.15, top - 0.16, wood2);
   for (let level = 0; level < 2; level++) add(`roof-${level}`, 2, -0.05 + level * 0.35, -0.05, top + level * 0.16, 2.9 - level * 0.7, 1.98, 0.16, roof, true);
-  add("ram-bed", 3, 0.5, 0.6, 0.16, 1.6, 0.7, 0.12, dark);
+  add("ram-bed", 3, 0.5, 0.6, 0.16, 1.6, 0.7, 0.12, dark2);
   add("ram-log", 3, 0.45, 0.8, 0.4, 1.8, 0.3, 0.3, wood2);
-  for (const x of [0.6, 1.8]) add(`ram-rib-${x}`, 3, x, 0.6, 0.28, 0.1, 0.7, 0.6, dark);
+  for (const x of [0.6, 1.8]) add(`ram-rib-${x}`, 3, x, 0.6, 0.28, 0.1, 0.7, 0.6, dark2);
   for (let i = 0; i < 3; i++) add(`log-${i}`, 3, 0.3, 2.05 + i * 0.2, 0.16, 1.4, 0.18, 0.18, wood2);
   add("log-top", 3, 0.5, 2.15, 0.34, 1, 0.18, 0.18, wood2);
-  add("wheel", 3, 2.1, 2, 0.16, 0.14, 0.6, 0.6, dark);
+  add("wheel", 3, 2.1, 2, 0.16, 0.14, 0.6, 0.6, dark2);
   add("wheel-hub", 3, 2.08, 2.2, 0.36, 0.18, 0.2, 0.2, "#c9a55a");
   if (age >= 3) add("crane-arm", 4, 2.2, 0.3, top - 0.1, 0.14, 1.2, 0.14, wood2);
   add("flag-pole", 4, 2.67, 2.63, 0.16, 0.06, 0.06, 1.6, wood2);
@@ -255,11 +258,147 @@ function siegeWorkshopParts(v) {
   return finish(p, v, wood2, (id) => !(id === "flag" || id === "crane-arm"));
 }
 
+// packages/content/footprints.ts
+var obstacleFootprints = {
+  house: { x: -15, y: -15, width: 250, depth: 230 },
+  // Barracks: solid 3x3 foundation for now; its open front is visual only (no walkable interior).
+  barracks: { x: -15, y: -15, width: 300, depth: 300 },
+  "town-center": { x: -15, y: -15, width: 300, depth: 300 },
+  // Farm: a walkable 2x2 field (no blocking rectangle); its extent still stops other buildings.
+  farm: { x: 0, y: 0, width: 200, depth: 200 },
+  // Drop-off camps use the 3x3 models (same footprint as the barracks).
+  "lumber-camp": { x: -15, y: -15, width: 300, depth: 300 },
+  "mining-camp": { x: -15, y: -15, width: 300, depth: 300 },
+  mill: { x: -15, y: -15, width: 300, depth: 300 },
+  stable: { x: -15, y: -15, width: 300, depth: 300 },
+  "archery-range": { x: -15, y: -15, width: 300, depth: 300 },
+  monastery: { x: -15, y: -15, width: 300, depth: 300 },
+  blacksmith: { x: -15, y: -15, width: 300, depth: 300 },
+  "siege-workshop": { x: -15, y: -15, width: 300, depth: 300 },
+  // Castle: a solid 4x4 keep (the reference's castle is 4x4).
+  castle: { x: -15, y: -15, width: 400, depth: 400 },
+  // Watch tower: one tile.
+  "watch-tower": { x: 0, y: 0, width: 100, depth: 100 },
+  tree: { x: -20, y: -20, width: 100, depth: 100 },
+  rock: { x: 0, y: 0, width: 65, depth: 70 },
+  gold: { x: 0, y: 0, width: 65, depth: 70 },
+  berries: { x: 0, y: 0, width: 65, depth: 70 },
+  hunt: { x: 0, y: 0, width: 65, depth: 70 },
+  livestock: { x: 0, y: 0, width: 65, depth: 70 }
+};
+var townCenterBlocking = [
+  [15, 15, 65, 165],
+  [205, 15, 255, 165],
+  [10, 10, 26, 26],
+  [240, 10, 256, 26],
+  [10, 180, 26, 196],
+  [240, 180, 256, 196],
+  // Arch flanks reach past the visible opening: 3D clearance for a villager on the plinth.
+  [65, 150, 97, 175],
+  [173, 150, 205, 175],
+  [14, 190, 62, 198],
+  [20, 198, 54, 201],
+  [210, 210, 252, 252],
+  [265, 270, 271, 276]
+];
+var walkablePlatforms = { "town-center": { rect: [-15, -15, 285, 285], height: 16 }, farm: { rect: [0, 0, 200, 200], height: 10 } };
+function check2(o, radius) {
+  if (!obstacleFootprints[o.kind] || !Number.isSafeInteger(radius) || radius < 0) throw Error("\u7121\u6548\u5360\u5730\u6216\u534A\u5F91");
+}
+function obstacleBounds(o, radius = 0) {
+  check2(o, radius);
+  const f = obstacleFootprints[o.kind];
+  return [o.x + f.x - radius, o.y + f.y - radius, o.x + f.x + f.width + radius, o.y + f.y + f.depth + radius];
+}
+function obstacleRects(o, radius = 0) {
+  check2(o, radius);
+  if (o.kind === "farm") return [];
+  if (o.kind !== "town-center") return [obstacleBounds(o, radius)];
+  return townCenterBlocking.map(([x0, y0, x1, y1]) => [o.x + x0 - radius, o.y + y0 - radius, o.x + x1 + radius, o.y + y1 + radius]);
+}
+
+// apps/web/castle-building.ts
+function castleParts(v) {
+  if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u57CE\u5821\u5916\u89C0");
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", straw = "#b8a074", stone2 = "#b5b29e", dark2 = "#4a4740", oak = "#5a4632";
+  const add = (id, phase, x, z, y, w, d, h, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h, color, studs, ...shape ? { shape } : {} });
+  const f = obstacleFootprints.castle;
+  add("foundation", 0, f.x / 100, f.y / 100, 0, f.width / 100, f.depth / 100, 0.16, "#b3aa8c");
+  const wallH = 1.12 + (age >= 3 ? 0.32 : 0), wallTop = 0.16 + wallH, towerTop = wallTop + 0.64, keepTop = 0.16 + [1.6, 1.92, 2.24, 2.24][age - 1];
+  const crest = (id, x, z, y, alongX) => age === 1 ? add(`stake-${id}`, 2, x + (alongX ? 0.04 : 0.12), z + (alongX ? 0.12 : 0.04), y, 0.12, 0.12, 0.3, wood2) : add(`merlon-${id}`, 2, x, z, y, alongX ? 0.2 : 0.36, alongX ? 0.36 : 0.2, 0.24, stone2);
+  const towers = [[-0.1, -0.1], [2.9, -0.1], [-0.1, 2.9], [2.9, 2.9]];
+  for (const [x, z] of towers) {
+    const id = `${x}-${z}`;
+    add(`tower-${id}`, 1, x, z, 0.16, 0.9, 0.9, towerTop - 0.16, stone2);
+    if (age === 1) {
+      add(`hoard-${id}`, 2, x - 0.05, z - 0.05, towerTop, 1, 1, 0.3, wood2);
+      add(`hoard-roof-${id}`, 2, x + 0.05, z + 0.05, towerTop + 0.3, 0.8, 0.8, 0.16, straw, true);
+      add(`hoard-cap-${id}`, 3, x + 0.25, z + 0.25, towerTop + 0.46, 0.4, 0.4, 0.16, straw);
+    } else for (const dx of [0, 0.35, 0.7]) for (const dz of [0, 0.35, 0.7]) if (dx !== 0.35 || dz !== 0.35) add(`tmerlon-${id}-${dx}-${dz}`, 2, x + dx, z + dz, towerTop, 0.2, 0.2, 0.24, stone2);
+    if (age >= 3) add(`slit-${id}`, 3, x + 0.6, z < 0 ? z - 0.03 : z + 0.9, towerTop - 1, 0.1, 0.03, 0.32, dark2);
+    if (age === 4) {
+      add(`drum-${id}`, 3, x + 0.2, z + 0.2, towerTop, 0.5, 0.5, 0.32, stone2);
+      add(`cone-0-${id}`, 3, x + 0.1, z + 0.1, towerTop + 0.32, 0.7, 0.7, 0.16, team2, true);
+      add(`cone-1-${id}`, 3, x + 0.22, z + 0.22, towerTop + 0.48, 0.46, 0.46, 0.16, team2);
+      add(`cone-2-${id}`, 4, x + 0.34, z + 0.34, towerTop + 0.64, 0.22, 0.22, 0.2, team2);
+    }
+  }
+  add("wall-back", 1, 0.8, 0.17, 0.16, 2.1, 0.36, wallH, stone2);
+  add("wall-left", 1, 0.17, 0.8, 0.16, 0.36, 2.1, wallH, stone2);
+  add("wall-right", 1, 3.17, 0.8, 0.16, 0.36, 2.1, wallH, stone2);
+  add("wall-front-l", 1, 0.8, 3.17, 0.16, 0.6, 0.36, wallH, stone2);
+  add("wall-front-r", 1, 2.3, 3.17, 0.16, 0.6, 0.36, wallH, stone2);
+  for (let i = 0; i < 5; i++) {
+    const at = 0.9 + i * 0.4;
+    crest(`back-${i}`, at, 0.17, wallTop, true);
+    crest(`left-${i}`, 0.17, at, wallTop, false);
+    crest(`right-${i}`, 3.17, at, wallTop, false);
+  }
+  for (const x of [0.88, 1.16, 2.36, 2.64]) crest(`front-${x}`, x, 3.17, wallTop, true);
+  add("gate-arch", 1, 1.4, 3.1, 0.16, 0.9, 0.5, wallH, stone2, false, "arch");
+  add("gate-top", 2, 1.4, 3.1, wallTop, 0.9, 0.5, 0.32, stone2);
+  add("portcullis", 3, 1.62, 3.3, 0.16, 0.46, 0.06, 0.76, oak);
+  if (age >= 2) for (const x of [1.4, 1.75, 2.1]) add(`gate-merlon-${x}`, 3, x, 3.4, wallTop + 0.32, 0.2, 0.2, 0.24, stone2);
+  if (age === 4) for (const x of [1.4, 2.04]) {
+    add(`gate-turret-${x}`, 3, x, 3.1, wallTop + 0.32, 0.26, 0.26, 0.4, stone2);
+    add(`gate-turret-cap-${x}`, 4, x - 0.02, 3.08, wallTop + 0.72, 0.3, 0.3, 0.12, team2);
+  }
+  add("keep", 1, 1.25, 1.1, 0.16, 1.2, 1.2, keepTop - 0.16, stone2);
+  let crown = keepTop;
+  if (age === 1) {
+    add("keep-roof-0", 2, 1.2, 1.05, keepTop, 1.3, 1.3, 0.16, straw, true);
+    add("keep-roof-1", 2, 1.45, 1.3, keepTop + 0.16, 0.8, 0.8, 0.16, straw, true);
+    crown = keepTop + 0.32;
+  } else {
+    add("keep-parapet", 2, 1.2, 1.05, keepTop, 1.3, 1.3, 0.12, stone2);
+    crown = keepTop + 0.12;
+    for (const dx of [0, 0.55, 1.1]) for (const dz of [0, 0.55, 1.1]) if (dx !== 0.55 || dz !== 0.55) add(`keep-merlon-${dx}-${dz}`, 2, 1.2 + dx, 1.05 + dz, crown, 0.2, 0.2, 0.24, stone2);
+  }
+  if (age >= 3) {
+    add("keep-turret", 2, 1.55, 1.4, crown, 0.6, 0.6, 0.64, stone2);
+    add("keep-turret-cap", 3, 1.5, 1.35, crown + 0.64, 0.7, 0.7, 0.16, team2, true);
+    crown += 0.8;
+  }
+  if (age === 4) {
+    add("keep-spire-0", 3, 1.65, 1.5, crown, 0.4, 0.4, 0.16, team2);
+    add("keep-spire-1", 4, 1.75, 1.6, crown + 0.16, 0.2, 0.2, 0.2, team2);
+    crown += 0.36;
+  }
+  for (const x of [1.4, 2]) {
+    add(`banner-keep-${x}`, 3, x, 2.3, keepTop - 1, 0.3, 0.04, 0.8, team2);
+  }
+  for (const x of [0, 3]) add(`banner-tower-${x}`, 3, x, 3.8, towerTop - 1.1, 0.3, 0.04, 0.7, team2);
+  add("flag-pole", 4, 1.82, 1.67, crown, 0.06, 0.06, 0.9, wood2);
+  add("flag", 4, 1.88, 1.67, crown + 0.5, 0.5, 0.05, 0.3, team2);
+  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.9, z: 0.2 + Math.floor(i / 4) * 1.2, y: 0.16, w: 0.4, d: 0.34, h: 0.12, color: stone2, studs: false }))];
+  return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "flag" || a.id.startsWith("banner-") || /^(merlon|stake)-.*-[13]$/.test(a.id) || a.id.startsWith("cone-2-") || a.id.startsWith("hoard-cap-")));
+}
+
 // apps/web/siege-rig.ts
 function createRamRig(T, player, box, material) {
   const root = new T.Group();
   root.name = "siege-ram";
-  const team2 = player === 0 ? "#45728c" : "#b25441", wood2 = "#94734c", dark = "#6e5438";
+  const team2 = player === 0 ? "#45728c" : "#b25441", wood2 = "#94734c", dark2 = "#6e5438";
   const part = (parent, x, y, z, w, h, d, color) => {
     const m = new T.Mesh(box(w, h, d), material(color));
     m.position.set(x, y, z);
@@ -267,7 +406,7 @@ function createRamRig(T, player, box, material) {
     parent.add(m);
     return m;
   };
-  part(root, 0, 0.22, 0, 0.76, 0.1, 1.3, dark);
+  part(root, 0, 0.22, 0, 0.76, 0.1, 1.3, dark2);
   for (const x of [-0.36, 0.36]) for (const z of [-0.45, 0.45]) part(root, x, 0, z, 0.1, 0.36, 0.36, "#5c4a36");
   for (const x of [-0.3, 0.3]) part(root, x, 0.32, 0, 0.1, 0.55, 1.2, wood2);
   part(root, 0, 0.86, 0, 0.86, 0.1, 1.36, team2);
@@ -352,11 +491,74 @@ for (const [line, make] of [[["forging", "iron-casting", "blast-furnace"], hamme
   line.forEach((id, i) => {
     techIcons[id] = make(i + 1);
   });
+var metal2 = "#aab0a3";
+var dark = "#4a4740";
+var green = "#5f9a6a";
+var grey = "#8d8c86";
+var felt = "#ece6d6";
+var sand = "#d8c9a6";
+var red = "#b25441";
+var plus = (x, y) => [{ x: x + 0.09, y, z: 0.42, w: 0.08, d: 0.04, h: 0.26, color: green }, { x, y: y + 0.09, z: 0.42, w: 0.26, d: 0.04, h: 0.08, color: green }];
+var streaks = (x, y) => [0, 1, 2].map((i) => ({ x: x - i * 0.04, y: y + i * 0.14, z: 0.45, w: 0.18 + i * 0.06, d: 0.04, h: 0.05, color: "#efe6cc" }));
+var shaft = (x, y, len) => [{ x, y, z: 0.45, w: len, d: 0.04, h: 0.04, color: wood }, { x: x + len, y: y - 0.02, z: 0.44, w: 0.08, d: 0.06, h: 0.08, color: metal2 }];
+var merlons = (x, y, n, w = 0.14) => Array.from({ length: n }, (_, i) => ({ x: x + i * w * 2, y, z: 0.3, w, d: 0.36, h: 0.12, color: stone }));
+Object.assign(techIcons, {
+  // Yeomen: a tall longbow beside a tower top (archer range and tower attack).
+  yeomen: [{ x: 0, y: 0, z: 0.3, w: 0.45, d: 0.4, h: 0.6, color: stone }, ...merlons(0, 0.6, 2, 0.12), ...[[0, 0], [0.06, 0.18], [0.09, 0.36], [0.06, 0.54], [0, 0.72]].map(([dx, y]) => ({ x: 0.7 + dx, y, z: 0.4, w: 0.06, d: 0.06, h: 0.2, color: wood })), { x: 0.66, y: 0, z: 0.42, w: 0.02, d: 0.02, h: 0.92, color: "#d9cba4" }],
+  // Stronghold: a castle tower loosing arrows in quick succession.
+  stronghold: [{ x: 0, y: 0, z: 0.25, w: 0.5, d: 0.5, h: 0.75, color: stone }, ...merlons(0, 0.75, 2), { x: 0.18, y: 0.35, z: 0.74, w: 0.12, d: 0.02, h: 0.2, color: dark }, ...shaft(0.55, 0.62, 0.3), ...shaft(0.55, 0.42, 0.3), ...shaft(0.55, 0.22, 0.3)],
+  // Furor Celtica: a ram on its wheels under a green plus (siege hit points).
+  "furor-celtica": [{ x: 0, y: 0.12, z: 0.3, w: 0.9, d: 0.3, h: 0.18, color: wood }, { x: 0.1, y: 0, z: 0.25, w: 0.18, d: 0.4, h: 0.18, color: "#5c4a36" }, { x: 0.62, y: 0, z: 0.25, w: 0.18, d: 0.4, h: 0.18, color: "#5c4a36" }, { x: 0.85, y: 0.12, z: 0.32, w: 0.12, d: 0.26, h: 0.18, color: metal2 }, ...plus(0.32, 0.45)],
+  // Chivalry: a horseshoe with gold nails and speed streaks (faster stable).
+  chivalry: [{ x: 0.1, y: 0, z: 0.1, w: 0.16, d: 0.7, h: 0.14, color: metal2 }, { x: 0.64, y: 0, z: 0.1, w: 0.16, d: 0.7, h: 0.14, color: metal2 }, { x: 0.1, y: 0, z: 0.1, w: 0.7, d: 0.16, h: 0.14, color: metal2 }, ...[0.14, 0.68].flatMap((x) => [0.35, 0.6].map((z) => ({ x: x + 0.04, y: 0.14, z, w: 0.06, d: 0.06, h: 0.04, color: gold }))), ...streaks(0.2, 0.3).map((p) => ({ ...p, y: 0, z: 0.85 + (p.y - 0.3) / 0.7, h: 0.04 }))],
+  // Bearded Axe: the francisca in flight, its path drawn out behind it (longer throw).
+  "bearded-axe": [{ x: 0.52, y: 0, z: 0.42, w: 0.08, d: 0.08, h: 0.8, color: wood }, { x: 0.6, y: 0.56, z: 0.41, w: 0.3, d: 0.1, h: 0.2, color: metal2 }, { x: 0.74, y: 0.38, z: 0.41, w: 0.16, d: 0.1, h: 0.2, color: metal2 }, { x: 0.44, y: 0.64, z: 0.41, w: 0.08, d: 0.1, h: 0.1, color: metal2 }, ...[0, 1, 2].map((i) => ({ x: 0.02 + i * 0.14, y: 0.3 + i * 0.12, z: 0.44, w: 0.1, d: 0.04, h: 0.05, color: "#efe6cc" }))],
+  // Anarchy: a barracks arch with a Huskarl's round shield in the doorway.
+  anarchy: [{ x: 0, y: 0, z: 0.2, w: 0.18, d: 0.4, h: 0.7, color: stone }, { x: 0.72, y: 0, z: 0.2, w: 0.18, d: 0.4, h: 0.7, color: stone }, { x: 0, y: 0.7, z: 0.2, w: 0.9, d: 0.4, h: 0.16, color: red }, { x: 0.27, y: 0.08, z: 0.52, w: 0.36, d: 0.05, h: 0.5, color: team }, { x: 0.2, y: 0.15, z: 0.52, w: 0.5, d: 0.05, h: 0.36, color: team }, { x: 0.4, y: 0.28, z: 0.57, w: 0.1, d: 0.03, h: 0.1, color: gold }],
+  // Perfusion: two helmets side by side (twice the training speed).
+  perfusion: [0, 0.46].flatMap((x) => [{ x: x + 0.06, y: 0, z: 0.35, w: 0.26, d: 0.2, h: 0.2, color: "#44514b" }, { x: x + 0.02, y: 0.2, z: 0.33, w: 0.34, d: 0.24, h: 0.3, color: team }, { x: x + 0.07, y: 0.5, z: 0.35, w: 0.24, d: 0.2, h: 0.2, color: "#dfbb7e" }, { x: x + 0.04, y: 0.7, z: 0.33, w: 0.3, d: 0.24, h: 0.08, color: metal2 }, { x: x + 0.36, y: 0.1, z: 0.42, w: 0.04, d: 0.04, h: 0.66, color: wood }]),
+  // Ironclad: a ram under riveted iron plates (siege melee armour).
+  ironclad: [{ x: 0, y: 0, z: 0.3, w: 0.9, d: 0.3, h: 0.2, color: wood }, { x: 0.05, y: 0.2, z: 0.25, w: 0.8, d: 0.4, h: 0.14, color: metal2 }, { x: 0.15, y: 0.34, z: 0.3, w: 0.6, d: 0.3, h: 0.14, color: "#8f9896" }, ...[0.15, 0.4, 0.65].map((x) => ({ x, y: 0.24, z: 0.65, w: 0.06, d: 0.02, h: 0.06, color: gold }))],
+  // Crenellations: a crenellated wall with a helmeted defender between the merlons.
+  crenellations: [{ x: 0, y: 0, z: 0.3, w: 0.9, d: 0.36, h: 0.45, color: stone }, { x: 0, y: 0.45, z: 0.3, w: 0.16, d: 0.36, h: 0.2, color: stone }, { x: 0.74, y: 0.45, z: 0.3, w: 0.16, d: 0.36, h: 0.2, color: stone }, { x: 0.34, y: 0.45, z: 0.38, w: 0.22, d: 0.2, h: 0.16, color: "#dfbb7e" }, { x: 0.32, y: 0.61, z: 0.36, w: 0.26, d: 0.24, h: 0.1, color: metal2 }, ...shaft(0.55, 0.72, 0.3)],
+  // Chieftains: a helmet crowned with a gold circlet over a spear (infantry against horsemen).
+  chieftains: [{ x: 0.1, y: 0.05, z: 0.44, w: 0.8, d: 0.04, h: 0.04, color: wood }, { x: 0.86, y: 0.03, z: 0.43, w: 0.12, d: 0.06, h: 0.08, color: metal2 }, { x: 0.25, y: 0.2, z: 0.3, w: 0.4, d: 0.38, h: 0.3, color: metal2 }, { x: 0.23, y: 0.42, z: 0.28, w: 0.44, d: 0.42, h: 0.06, color: gold }, ...[0.25, 0.43, 0.61].map((x) => ({ x, y: 0.48, z: 0.45, w: 0.04, d: 0.04, h: 0.12, color: gold }))],
+  // Berserkergang: a wolf-pelt hood with a green plus (faster regeneration).
+  berserkergang: [{ x: 0.1, y: 0, z: 0.3, w: 0.5, d: 0.4, h: 0.45, color: "#8a8272" }, { x: 0.2, y: 0.2, z: 0.7, w: 0.3, d: 0.1, h: 0.15, color: "#8a8272" }, { x: 0.12, y: 0.45, z: 0.35, w: 0.1, d: 0.1, h: 0.14, color: "#8a8272" }, { x: 0.48, y: 0.45, z: 0.35, w: 0.1, d: 0.1, h: 0.14, color: "#8a8272" }, { x: 0.22, y: 0.3, z: 0.7, w: 0.06, d: 0.02, h: 0.04, color: dark }, { x: 0.42, y: 0.3, z: 0.7, w: 0.06, d: 0.02, h: 0.04, color: dark }, ...plus(0.64, 0.5)],
+  // Logistica: a hoof over scattered bricks (trample damage around the target).
+  logistica: [{ x: 0.3, y: 0.18, z: 0.3, w: 0.3, d: 0.3, h: 0.5, color: "#6f5a44" }, { x: 0.26, y: 0.1, z: 0.26, w: 0.38, d: 0.38, h: 0.1, color: metal2 }, ...[[0, 0], [0.75, 0.05], [0.05, 0.6], [0.72, 0.62]].map(([x, z]) => ({ x, y: 0, z, w: 0.16, d: 0.14, h: 0.1, color: stone }))],
+  // Kamandaran: a bow over a stack of logs (archers paid in wood).
+  kamandaran: [...[0, 1, 2].map((i) => ({ x: 0.05, y: i * 0.14, z: 0.3 + i % 2 * 0.04, w: 0.8, d: 0.14, h: 0.14, color: i === 1 ? "#6e5438" : wood })), ...[[0, 0], [0.05, 0.14], [0.07, 0.28], [0.05, 0.42], [0, 0.56]].map(([dx, y]) => ({ x: 0.4 + dx, y: 0.42 + y * 0.6, z: 0.5, w: 0.06, d: 0.06, h: 0.14, color: "#997447" })), { x: 0.38, y: 0.42, z: 0.52, w: 0.02, d: 0.02, h: 0.46, color: "#d9cba4" }],
+  // Mahouts: an elephant's head with tusks and speed streaks.
+  mahouts: [{ x: 0.25, y: 0.3, z: 0.25, w: 0.5, d: 0.45, h: 0.5, color: grey }, { x: 0.05, y: 0.35, z: 0.35, w: 0.2, d: 0.08, h: 0.45, color: "#9a988f" }, { x: 0.75, y: 0.35, z: 0.35, w: 0.2, d: 0.08, h: 0.45, color: "#9a988f" }, { x: 0.28, y: 0.8, z: 0.3, w: 0.44, d: 0.36, h: 0.08, color: gold }, { x: 0.42, y: 0.12, z: 0.7, w: 0.16, d: 0.14, h: 0.4, color: grey }, { x: 0.43, y: 0, z: 0.78, w: 0.14, d: 0.18, h: 0.12, color: grey }, { x: 0.28, y: 0.3, z: 0.7, w: 0.07, d: 0.24, h: 0.07, color: "#efe8d2" }, { x: 0.65, y: 0.3, z: 0.7, w: 0.07, d: 0.24, h: 0.07, color: "#efe8d2" }, ...streaks(0.08, 0.4).map((p) => ({ ...p, z: 0.05 }))],
+  // Madrasah: a domed hall over a gold coin (gold back when a monk falls).
+  madrasah: [{ x: 0.05, y: 0, z: 0.25, w: 0.6, d: 0.5, h: 0.35, color: sand }, { x: 0.1, y: 0.35, z: 0.3, w: 0.5, d: 0.4, h: 0.12, color: felt }, { x: 0.18, y: 0.47, z: 0.36, w: 0.34, d: 0.28, h: 0.1, color: felt }, { x: 0.28, y: 0.57, z: 0.42, w: 0.14, d: 0.14, h: 0.08, color: felt }, { x: 0.33, y: 0.65, z: 0.47, w: 0.04, d: 0.04, h: 0.12, color: gold }, { x: 0.68, y: 0, z: 0.4, w: 0.26, d: 0.26, h: 0.08, color: gold }, { x: 0.72, y: 0.08, z: 0.44, w: 0.18, d: 0.18, h: 0.06, color: "#dec36f" }],
+  // Zealotry: a camel with a green plus (camel and Mameluke hit points).
+  zealotry: [{ x: 0.1, y: 0.3, z: 0.35, w: 0.6, d: 0.3, h: 0.25, color: sand }, { x: 0.3, y: 0.55, z: 0.38, w: 0.2, d: 0.24, h: 0.14, color: sand }, { x: 0.66, y: 0.4, z: 0.4, w: 0.1, d: 0.2, h: 0.4, color: sand }, { x: 0.66, y: 0.8, z: 0.38, w: 0.22, d: 0.24, h: 0.1, color: sand }, ...[0.14, 0.56].map((x) => ({ x, y: 0, z: 0.4, w: 0.08, d: 0.12, h: 0.3, color: "#b8a074" })), { x: 0.14, y: 0.52, z: 0.33, w: 0.52, d: 0.34, h: 0.04, color: team }, ...plus(0, 0.62)],
+  // Great Wall: a long crenellated wall climbing to a watch tower (tougher walls and towers).
+  "great-wall": [{ x: 0, y: 0, z: 0.35, w: 0.62, d: 0.28, h: 0.3, color: stone }, ...merlons(0, 0.3, 3, 0.11), { x: 0.62, y: 0, z: 0.28, w: 0.34, d: 0.42, h: 0.7, color: stone }, { x: 0.58, y: 0.7, z: 0.24, w: 0.42, d: 0.5, h: 0.1, color: "#3f4a4c" }, { x: 0.7, y: 0.8, z: 0.36, w: 0.18, d: 0.26, h: 0.1, color: "#3f4a4c" }],
+  // Rocketry: a bolt carrying a red powder tube with flame at its tail.
+  rocketry: [{ x: 0.05, y: 0.4, z: 0.45, w: 0.8, d: 0.05, h: 0.05, color: wood }, { x: 0.85, y: 0.38, z: 0.43, w: 0.1, d: 0.09, h: 0.09, color: metal2 }, { x: 0.3, y: 0.36, z: 0.41, w: 0.3, d: 0.13, h: 0.13, color: red }, { x: 0.1, y: 0.37, z: 0.42, w: 0.2, d: 0.11, h: 0.11, color: "#e0a040" }, { x: 0, y: 0.39, z: 0.44, w: 0.1, d: 0.07, h: 0.07, color: "#f5dc7a" }],
+  // Yasama: a watch tower with three arrows fanning out (extra arrows).
+  yasama: [{ x: 0, y: 0, z: 0.3, w: 0.4, d: 0.4, h: 0.7, color: stone }, { x: -0.04, y: 0.7, z: 0.26, w: 0.48, d: 0.48, h: 0.1, color: "#3f4a4c" }, ...shaft(0.45, 0.75, 0.35), ...shaft(0.45, 0.5, 0.35), ...shaft(0.45, 0.25, 0.35)],
+  // Nomads: a round felt yurt with a team band (houses keep their population room).
+  nomads: [{ x: 0.1, y: 0, z: 0.2, w: 0.7, d: 0.6, h: 0.35, color: felt }, { x: 0.05, y: 0.25, z: 0.15, w: 0.8, d: 0.7, h: 0.06, color: team }, { x: 0.18, y: 0.35, z: 0.28, w: 0.54, d: 0.44, h: 0.12, color: felt }, { x: 0.32, y: 0.47, z: 0.4, w: 0.26, d: 0.2, h: 0.08, color: felt }, { x: 0.38, y: 0, z: 0.8, w: 0.14, d: 0.02, h: 0.22, color: "#6e5438" }],
+  // Drill: a siege wheel with speed streaks (faster siege).
+  drill: [{ x: 0.2, y: 0, z: 0.4, w: 0.5, d: 0.12, h: 0.5, color: "#6e5438" }, { x: 0.35, y: 0.15, z: 0.52, w: 0.2, d: 0.04, h: 0.2, color: gold }, { x: 0.12, y: 0.5, z: 0.35, w: 0.66, d: 0.2, h: 0.1, color: wood }, ...streaks(0.84, 0.05)]
+});
 
 // apps/web/unit-rig.ts
 var unitPoses = ["idle", "walk", "work", "attack", "hit", "death", "carry"];
-var unitTools = ["none", "axe", "pick", "sickle", "hammer", "basket", "sword", "spear", "bow", "staff"];
-var unitRoles = ["villager", "swordsman", "spearman", "archer", "monk"];
+var unitTools = ["none", "axe", "pick", "sickle", "hammer", "basket", "sword", "spear", "bow", "staff", "longbow", "repeater", "musket", "throwing-axe", "great-sword", "war-axe", "katana", "scimitar"];
+var unitRoles = ["villager", "swordsman", "spearman", "archer", "monk", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "samurai", "janissary", "chu-ko-nu", "cataphract-rider", "mameluke-rider", "mangudai-rider", "mahout"];
+var roleTools = { swordsman: "sword", spearman: "spear", archer: "bow", monk: "staff", longbowman: "longbow", "woad-raider": "sword", "throwing-axeman": "throwing-axe", huskarl: "sword", "teutonic-knight": "great-sword", berserk: "war-axe", samurai: "katana", janissary: "musket", "chu-ko-nu": "repeater", "cataphract-rider": "spear", "mameluke-rider": "scimitar", "mangudai-rider": "bow", mahout: "spear" };
+var skin = "#dfbb7e";
+var metal3 = "#9aa3a1";
+var leather = "#5a4632";
+var fur = "#7d6a52";
+var gold2 = "#c9a55a";
+var woad = "#3f5f95";
+var lacquer = "#3a3530";
 function samplePose(pose, time) {
   const t = Math.max(0, Number.isFinite(time) ? time : 0), walk = Math.sin(t * 0.012) * 0.35;
   const p = { leftLeg: 0, rightLeg: 0, leftArm: 0, rightArm: 0, lean: 0, fall: 0 };
@@ -421,7 +623,7 @@ function createUnitRig(T, player, box, material) {
   const outfits = /* @__PURE__ */ new Map();
   function dress(role) {
     if (!unitRoles.includes(role)) throw Error("\u672A\u77E5\u6A21\u578B\u8ECD\u7A2E");
-    for (const outfit2 of outfits.values()) outfit2.visible = false;
+    for (const outfit2 of outfits.values()) for (const g of outfit2) g.visible = false;
     shield.visible = false;
     if (role === "villager") {
       equip("none");
@@ -429,31 +631,130 @@ function createUnitRig(T, player, box, material) {
     }
     let outfit = outfits.get(role);
     if (!outfit) {
-      outfit = new T.Group();
-      outfit.name = `outfit-${role}`;
-      root.add(outfit);
+      const o = new T.Group(), la = new T.Group(), ra = new T.Group();
+      o.name = `outfit-${role}`;
+      la.name = `outfit-${role}-arm-left`;
+      ra.name = `outfit-${role}-arm-right`;
+      root.add(o);
+      leftArm.add(la);
+      rightArm.add(ra);
+      outfit = [o, la, ra];
       outfits.set(role, outfit);
+      const arms = (x, y, z, w, h, d, color) => {
+        for (const a of [la, ra]) part(a, x, y, z, w, h, d, color);
+      };
       if (role === "monk") {
         const habit2 = "#7a5c40";
-        part(outfit, 0, 0.3, 0, 0.5, 0.42, 0.36, habit2);
-        part(outfit, 0, 0.06, 0, 0.44, 0.26, 0.34, habit2);
-        for (const x of [-0.09, 0.09]) part(outfit, x, 0.34, 0.185, 0.07, 0.38, 0.02, team2);
-        part(outfit, 0, 0.36, 0, 0.52, 0.04, 0.38, "#d8c48a");
-        part(outfit, 0, 0.99, -0.01, 0.47, 0.14, 0.43, habit2);
-        part(outfit, 0, 0.74, -0.17, 0.4, 0.3, 0.06, habit2);
+        part(o, 0, 0.3, 0, 0.5, 0.42, 0.36, habit2);
+        part(o, 0, 0.06, 0, 0.44, 0.26, 0.34, habit2);
+        for (const x of [-0.09, 0.09]) part(o, x, 0.34, 0.185, 0.07, 0.38, 0.02, team2);
+        part(o, 0, 0.36, 0, 0.52, 0.04, 0.38, "#d8c48a");
+        part(o, 0, 0.99, -0.01, 0.47, 0.14, 0.43, habit2);
+        part(o, 0, 0.74, -0.17, 0.4, 0.3, 0.06, habit2);
       } else if (role === "archer") {
-        part(outfit, 0, 1.1, 0, 0.36, 0.13, 0.32, "#667c4e");
-        part(outfit, 0, 0.36, -0.24, 0.21, 0.43, 0.18, "#8b6746");
-        for (const x of [-0.06, 0.06]) part(outfit, x, 0.77, -0.24, 0.025, 0.2, 0.025, "#d3b981");
+        part(o, 0, 1.1, 0, 0.36, 0.13, 0.32, "#667c4e");
+        part(o, 0, 0.36, -0.24, 0.21, 0.43, 0.18, "#8b6746");
+        for (const x of [-0.06, 0.06]) part(o, x, 0.77, -0.24, 0.025, 0.2, 0.025, "#d3b981");
+      } else if (role === "longbowman") {
+        part(o, 0, 1.1, 0, 0.54, 0.05, 0.5, "#6d5a3e");
+        part(o, 0, 1.15, 0, 0.3, 0.13, 0.28, "#6d5a3e");
+        part(o, 0, 0.42, 0, 0.48, 0.05, 0.34, leather);
+        part(o, 0.08, 0.3, -0.23, 0.15, 0.6, 0.13, "#8b6746");
+        for (const x of [0.04, 0.12]) part(o, x, 0.9, -0.23, 0.03, 0.18, 0.03, "#e8e0c8");
+      } else if (role === "chu-ko-nu") {
+        part(o, 0, 0.42, 0, 0.48, 0.28, 0.34, "#5b4a3a");
+        part(o, 0, 0.66, 0, 0.3, 0.04, 0.35, gold2);
+        part(o, 0, 1.1, 0, 0.34, 0.08, 0.3, lacquer);
+        part(o, 0, 1.18, -0.02, 0.12, 0.1, 0.12, lacquer);
+      } else if (role === "janissary") {
+        part(o, 0, 1.1, -0.02, 0.32, 0.36, 0.3, "#ece6d6");
+        part(o, 0, 0.96, -0.2, 0.28, 0.4, 0.06, "#ece6d6");
+        part(o, 0, 1.1, 0, 0.34, 0.06, 0.34, gold2);
+        part(o, 0, 0.42, 0, 0.48, 0.07, 0.34, gold2);
+      } else if (role === "woad-raider") {
+        part(o, 0, 0.44, 0, 0.475, 0.27, 0.335, skin);
+        for (const y of [0.5, 0.6]) part(o, 0, y, 0, 0.48, 0.04, 0.34, woad);
+        part(o, 0, 0.42, 0, 0.49, 0.04, 0.345, leather);
+        part(o, 0, 0.8, 0.15, 0.3, 0.04, 0.012, woad);
+        part(o, 0, 1.1, 0, 0.4, 0.1, 0.36, "#ece6d2");
+        for (const x of [-0.12, 0, 0.12]) part(o, x, 1.2, 0, 0.08, 0.14, 0.08, "#ece6d2");
+        arms(0, -0.3, 0, 0.12, 0.31, 0.18, skin);
+        arms(0, -0.2, 0, 0.125, 0.04, 0.185, woad);
+      } else if (role === "throwing-axeman") {
+        part(o, 0, 1.02, -0.03, 0.46, 0.14, 0.44, "#9a5a30");
+        part(o, 0, 0.76, -0.2, 0.36, 0.3, 0.06, "#9a5a30");
+        part(o, 0, 0.79, 0.155, 0.2, 0.04, 0.02, "#9a5a30");
+        part(o, 0, 0.64, -0.02, 0.52, 0.08, 0.38, "#a08a68");
+        part(o, 0, 0.42, 0, 0.48, 0.05, 0.34, leather);
+        for (const x of [-0.26, 0.26]) {
+          part(o, x, 0.26, 0.06, 0.04, 0.22, 0.04, "#967447");
+          part(o, x, 0.4, 0.1, 0.05, 0.08, 0.1, "#aab0a3");
+        }
+      } else if (role === "huskarl") {
+        part(o, 0, 1.1, 0, 0.4, 0.14, 0.36, metal3);
+        part(o, 0, 1.24, 0, 0.24, 0.08, 0.22, metal3);
+        part(o, 0, 0.86, 0.16, 0.05, 0.24, 0.03, metal3);
+        part(o, 0, 0.3, 0, 0.48, 0.26, 0.34, metal3);
+        part(la, -0.14, -0.6, 0.16, 0.06, 0.5, 0.3, team2);
+        part(la, -0.14, -0.5, 0.16, 0.06, 0.3, 0.5, team2);
+        part(la, -0.18, -0.4, 0.16, 0.04, 0.1, 0.1, gold2);
+      } else if (role === "teutonic-knight") {
+        part(o, 0, 0.7, 0, 0.47, 0.46, 0.44, metal3);
+        part(o, 0, 0.9, 0.22, 0.36, 0.035, 0.012, "#2c2e2c");
+        part(o, 0, 1.16, 0, 0.08, 0.08, 0.32, team2);
+        part(o, 0, 0.3, 0, 0.48, 0.4, 0.34, "#ece8dc");
+        for (const z of [0.17, -0.17]) {
+          part(o, 0, 0.34, z, 0.08, 0.3, 0.012, team2);
+          part(o, 0, 0.5, z, 0.26, 0.08, 0.012, team2);
+        }
+        arms(0, -0.12, 0, 0.15, 0.14, 0.2, metal3);
+      } else if (role === "berserk") {
+        part(o, 0, 1.06, -0.02, 0.42, 0.14, 0.42, "#8a8272");
+        part(o, 0, 1.12, 0.2, 0.16, 0.08, 0.1, "#8a8272");
+        for (const x of [-0.13, 0.13]) part(o, x, 1.2, -0.04, 0.08, 0.1, 0.06, "#8a8272");
+        part(o, 0, 0.62, -0.02, 0.54, 0.12, 0.38, fur);
+        part(o, 0, 0.3, -0.2, 0.44, 0.36, 0.06, fur);
+        part(o, 0, 0.71, 0.15, 0.26, 0.11, 0.05, "#a35f35");
+        arms(0, -0.3, 0, 0.12, 0.28, 0.18, skin);
+        arms(0, -0.3, 0, 0.125, 0.06, 0.185, leather);
+      } else if (role === "samurai") {
+        part(o, 0, 1.1, 0, 0.4, 0.14, 0.38, lacquer);
+        part(o, 0, 0.92, -0.06, 0.52, 0.16, 0.36, lacquer);
+        for (const x of [-0.1, 0.1]) part(o, x, 1.16, 0.17, 0.04, 0.26, 0.02, gold2);
+        part(o, 0, 1.14, 0.2, 0.1, 0.08, 0.02, gold2);
+        part(o, 0, 0.4, 0, 0.48, 0.3, 0.34, "#4a3a32");
+        for (const y of [0.46, 0.58]) part(o, 0, y, 0, 0.49, 0.04, 0.345, team2);
+        arms(0, -0.24, 0, 0.14, 0.24, 0.22, team2);
+        arms(0, -0.16, 0, 0.145, 0.03, 0.225, lacquer);
+      } else if (role === "cataphract-rider") {
+        part(o, 0, 0.3, 0, 0.48, 0.4, 0.34, "#a89a6a");
+        part(o, 0, 0.32, -0.19, 0.4, 0.4, 0.04, team2);
+        part(o, 0, 1.1, 0, 0.4, 0.12, 0.36, "#a5b0ad");
+        part(o, 0, 1.22, 0, 0.24, 0.1, 0.22, "#a5b0ad");
+        part(o, 0, 1.32, 0, 0.06, 0.22, 0.06, team2);
+      } else if (role === "mameluke-rider") {
+        part(o, 0, 1.08, 0, 0.44, 0.14, 0.42, "#efe9da");
+        part(o, 0, 1.12, 0, 0.46, 0.05, 0.44, team2);
+        part(o, 0, 1.22, 0, 0.12, 0.14, 0.12, gold2);
+        part(o, 0, 0.42, 0, 0.48, 0.05, 0.34, gold2);
+      } else if (role === "mangudai-rider") {
+        part(o, 0, 1.06, 0, 0.48, 0.1, 0.44, "#8a6a48");
+        part(o, 0, 1.16, 0, 0.3, 0.14, 0.28, team2);
+        part(o, 0, 1.3, 0, 0.1, 0.06, 0.1, gold2);
+        part(o, 0.08, 0.44, 0.165, 0.14, 0.24, 0.02, "#d8c48a");
+        part(o, 0.25, 0.3, -0.05, 0.1, 0.32, 0.14, "#8b6746");
+      } else if (role === "mahout") {
+        part(o, 0, 1.08, 0, 0.42, 0.12, 0.4, team2);
+        part(o, 0, 1.2, 0, 0.14, 0.06, 0.14, gold2);
       } else {
-        part(outfit, 0, 1.12, 0, 0.4, 0.14, 0.35, "#a5b0ad");
-        part(outfit, 0, 0.4, 0.18, 0.36, 0.23, 0.055, "#a5b0ad");
-        if (role === "spearman") part(outfit, 0, 1.26, 0, 0.065, 0.15, 0.25, team2);
+        part(o, 0, 1.12, 0, 0.4, 0.14, 0.35, "#a5b0ad");
+        part(o, 0, 0.4, 0.18, 0.36, 0.23, 0.055, "#a5b0ad");
+        if (role === "spearman") part(o, 0, 1.26, 0, 0.065, 0.15, 0.25, team2);
       }
     }
-    outfit.visible = true;
+    for (const g of outfit) g.visible = true;
     shield.visible = role === "swordsman";
-    equip(role === "swordsman" ? "sword" : role === "spearman" ? "spear" : role === "monk" ? "staff" : "bow");
+    equip(roleTools[role]);
   }
   const shield = new T.Group();
   shield.name = "shield-left";
@@ -480,6 +781,46 @@ function createUnitRig(T, player, box, material) {
     } else if (kind === "bow") {
       for (const [y, z] of [[-0.12, 0], [0.04, 0.08], [0.2, 0.12], [0.36, 0.08], [0.52, 0]]) part(group, 0, y, z, 0.065, 0.17, 0.06, "#997447");
       part(group, 0, -0.12, 0, 0.018, 0.81, 0.018, "#d9cba4");
+    } else if (kind === "longbow") {
+      for (const [y, z] of [[-0.34, 0], [-0.12, 0.06], [0.1, 0.1], [0.32, 0.1], [0.54, 0.06], [0.76, 0]]) part(group, 0, y, z, 0.07, 0.23, 0.07, "#a57c4a");
+      part(group, 0, -0.34, -0.01, 0.016, 1.33, 0.016, "#d9cba4");
+    } else if (kind === "repeater") {
+      part(group, 0, -0.02, 0.18, 0.07, 0.08, 0.56, "#8a6a45");
+      part(group, 0, 0.06, 0.24, 0.08, 0.16, 0.2, "#6e5438");
+      part(group, 0, 0.02, 0.42, 0.56, 0.05, 0.05, "#8a6a45");
+      part(group, 0, 0.1, 0.08, 0.03, 0.2, 0.03, "#6e5438");
+    } else if (kind === "musket") {
+      part(group, 0, -0.3, 0, 0.09, 0.36, 0.08, "#7a5a3a");
+      part(group, 0, 0.06, 0, 0.06, 0.9, 0.06, "#4a4a48");
+      part(group, 0, 0.3, 0, 0.06, 0.03, 0.06, "#c9a55a");
+      part(group, 0.04, -0.02, 0, 0.03, 0.06, 0.05, "#c9a55a");
+    } else if (kind === "throwing-axe") {
+      part(group, 0, -0.04, 0, 0.045, 0.32, 0.05, "#967447");
+      part(group, 0.07, 0.2, 0, 0.1, 0.08, 0.05, "#aab0a3");
+      part(group, 0.12, 0.12, 0, 0.06, 0.1, 0.05, "#aab0a3");
+      part(group, 0.1, 0.28, 0, 0.05, 0.05, 0.05, "#aab0a3");
+    } else if (kind === "great-sword") {
+      part(group, 0, -0.16, 0, 0.08, 0.05, 0.08, "#baa167");
+      part(group, 0, -0.12, 0, 0.05, 0.22, 0.06, "#5a4632");
+      part(group, 0, 0.1, 0, 0.34, 0.05, 0.07, "#baa167");
+      part(group, 0, 0.15, 0, 0.1, 0.8, 0.05, "#d2d8d4");
+    } else if (kind === "war-axe") {
+      part(group, 0, -0.3, 0, 0.055, 1.05, 0.06, "#6e5438");
+      part(group, 0.1, 0.52, 0, 0.18, 0.22, 0.05, "#aab0a3");
+      part(group, 0.16, 0.4, 0, 0.08, 0.14, 0.05, "#aab0a3");
+      part(group, -0.06, 0.6, 0, 0.06, 0.06, 0.05, "#aab0a3");
+    } else if (kind === "katana") {
+      part(group, 0, -0.12, 0, 0.045, 0.2, 0.05, "#2f2a26");
+      part(group, 0, 0.08, 0, 0.12, 0.025, 0.12, "#c9a55a");
+      part(group, 0, 0.105, 0, 0.05, 0.3, 0.04, "#dfe4e0");
+      part(group, 0, 0.4, -0.015, 0.05, 0.25, 0.04, "#dfe4e0");
+      part(group, 0, 0.64, -0.035, 0.045, 0.16, 0.04, "#dfe4e0");
+    } else if (kind === "scimitar") {
+      part(group, 0, -0.1, 0, 0.05, 0.18, 0.06, "#5a4632");
+      part(group, 0, 0.08, 0, 0.18, 0.04, 0.07, "#c9a55a");
+      part(group, 0, 0.12, 0, 0.05, 0.24, 0.04, "#d2d8d4");
+      part(group, 0, 0.34, 0.03, 0.07, 0.16, 0.04, "#d2d8d4");
+      part(group, 0, 0.48, 0.07, 0.07, 0.1, 0.04, "#d2d8d4");
     } else if (kind !== "none") {
       part(group, 0, -0.08, 0, 0.055, 0.48, 0.06, kind === "sword" ? "#756449" : "#967447");
       if (kind === "axe") part(group, 0.08, 0.23, 0, 0.22, 0.15, 0.055, "#aab0a3");
@@ -522,36 +863,115 @@ function createUnitRig(T, player, box, material) {
   } };
 }
 
-// apps/web/character-rig.ts
-function createCharacterRig(T, player, box, material) {
-  const root = new T.Group(), rider = createUnitRig(T, player, box, material);
-  root.add(rider.root);
-  let horse = null, saddle = null, mounted = false;
-  const legs = [];
+// apps/web/elephant-rig.ts
+function createElephantMount(T, player, box, material) {
+  const root = new T.Group();
+  root.name = "elephant-root";
+  const team2 = player === 0 ? "#45728c" : "#b25441", grey2 = "#8d8c86", ear = "#9a988f", ivory = "#efe8d2", gold3 = "#c9a55a", wood2 = "#6e5438";
   const part = (parent, x, y, z, w, h, d, color) => {
     const m = new T.Mesh(box(w, h, d), material(color));
     m.position.set(x, y, z);
     m.castShadow = true;
     parent.add(m);
+    return m;
+  };
+  const legs = [];
+  for (const x of [-0.3, 0.3]) for (const z of [-0.45, 0.45]) {
+    const leg = new T.Group();
+    leg.name = `elephant-leg-${legs.length}`;
+    leg.position.set(x, 0.8, z);
+    root.add(leg);
+    legs.push(leg);
+    part(leg, 0, -0.8, 0, 0.3, 0.8, 0.32, grey2);
+    part(leg, 0, -0.8, 0.165, 0.26, 0.08, 0.03, "#d9d2c2");
+  }
+  const body = new T.Group();
+  root.add(body);
+  part(body, 0, 0.72, 0, 1, 0.86, 1.5, grey2);
+  part(body, 0, 1.02, 0, 1.04, 0.58, 1.1, team2);
+  part(body, 0, 0.98, 0, 1.05, 0.06, 1.11, gold3);
+  part(body, 0, 1.02, 0.8, 0.72, 0.7, 0.46, grey2);
+  part(body, 0, 1.72, 0.82, 0.5, 0.1, 0.34, grey2);
+  for (const sx of [-1, 1]) {
+    part(body, sx * 0.42, 1.02, 0.62, 0.1, 0.6, 0.46, ear);
+    part(body, sx * 0.22, 1.42, 1.035, 0.06, 0.05, 0.02, "#2f3932");
+    part(body, sx * 0.22, 0.9, 1.12, 0.08, 0.08, 0.34, ivory);
+    part(body, sx * 0.22, 0.95, 1.32, 0.07, 0.12, 0.07, ivory);
+  }
+  part(body, 0, 0.96, -0.78, 0.06, 0.44, 0.06, ear);
+  part(body, 0, 0.9, -0.78, 0.1, 0.1, 0.1, "#4a4640");
+  const trunk = new T.Group();
+  trunk.name = "elephant-trunk";
+  trunk.position.set(0, 1.1, 0.96);
+  body.add(trunk);
+  part(trunk, 0, -0.34, 0.07, 0.22, 0.4, 0.2, grey2);
+  part(trunk, 0, -0.66, 0.12, 0.17, 0.34, 0.17, grey2);
+  part(trunk, 0, -0.86, 0.2, 0.14, 0.22, 0.14, grey2);
+  part(trunk, 0, -0.88, 0.3, 0.12, 0.1, 0.12, grey2);
+  part(body, 0, 1.6, -0.12, 0.9, 0.1, 0.96, wood2);
+  for (const z of [0.3, -0.54]) part(body, 0, 1.7, z, 0.9, 0.3, 0.08, team2);
+  for (const x of [-0.41, 0.41]) part(body, x, 1.7, -0.12, 0.08, 0.3, 0.76, team2);
+  for (const z of [0.3, -0.54]) part(body, 0, 2, z, 0.94, 0.05, 0.1, gold3);
+  for (const x of [-0.41, 0.41]) for (const z of [0.3, -0.54]) part(body, x, 2, z, 0.08, 0.3, 0.08, gold3);
+  const saddle = new T.Group();
+  saddle.name = "rider-saddle";
+  saddle.position.set(0, 1.7, -0.12);
+  body.add(saddle);
+  function pose(kind, time) {
+    const t = Number.isFinite(time) ? Math.max(0, time) : 0, phase = t * 8e-3, walking = kind === "walk";
+    legs.forEach((leg, i) => {
+      const swing = walking ? Math.sin(phase + (i === 0 || i === 3 ? 0 : Math.PI)) * 0.18 : 0;
+      leg.rotation.x = swing;
+      leg.position.y = 0.8 + Math.abs(Math.sin(swing)) * 0.2;
+    });
+    body.position.y = walking ? Math.abs(Math.sin(phase)) * 0.03 : 0;
+    trunk.rotation.x = kind === "attack" ? -(0.5 + 0.4 * Math.sin(t * 0.01)) : 0;
+    trunk.rotation.z = kind === "idle" ? Math.sin(t * 2e-3) * 0.12 : 0;
+  }
+  return { root, saddle, pose };
+}
+
+// apps/web/character-rig.ts
+var mountedRoles = ["cavalry", "cataphract", "mameluke", "mangudai", "war-elephant"];
+var isMounted = (role) => mountedRoles.includes(role);
+var mounts = {
+  cavalry: { rider: "swordsman", tool: "spear", horse: { coat: "#957350", head: "#a5835b", mane: "#64533d", barding: false } },
+  cataphract: { rider: "cataphract-rider", tool: "spear", horse: { coat: "#6f5a44", head: "#7c6550", mane: "#3e3326", barding: true } },
+  mameluke: { rider: "mameluke-rider", tool: "scimitar", horse: { coat: "#d6cdb9", head: "#e0d8c6", mane: "#8b8374", barding: false } },
+  mangudai: { rider: "mangudai-rider", tool: "bow", horse: { coat: "#7a5b3c", head: "#8a6a48", mane: "#3e3326", barding: false } },
+  "war-elephant": { rider: "mahout", tool: "spear", horse: null }
+};
+function createCharacterRig(T, player, box, material) {
+  const root = new T.Group(), rider = createUnitRig(T, player, box, material);
+  root.add(rider.root);
+  const team2 = player === 0 ? "#45728c" : "#b25441";
+  let horse = null, saddle = null, barding2 = null, mounted = null, elephant = null;
+  const legs = [];
+  const tints = { coat: [], head: [], mane: [] };
+  const part = (parent, x, y, z, w, h, d, color) => {
+    const m = new T.Mesh(box(w, h, d), material(color));
+    m.position.set(x, y, z);
+    m.castShadow = true;
+    parent.add(m);
+    return m;
   };
   function makeHorse() {
     horse = new T.Group();
     horse.name = "horse-root";
     root.add(horse);
-    part(horse, 0, 0.62, 0, 0.56, 0.5, 1.15, "#957350");
-    part(horse, 0, 0.82, 0.43, 0.36, 0.65, 0.32, "#957350");
-    part(horse, 0, 1.22, 0.61, 0.38, 0.28, 0.52, "#a5835b");
-    part(horse, 0, 1.5, 0.5, 0.3, 0.14, 0.12, "#64533d");
+    tints.coat.push(part(horse, 0, 0.62, 0, 0.56, 0.5, 1.15, "#957350"), part(horse, 0, 0.82, 0.43, 0.36, 0.65, 0.32, "#957350"));
+    tints.head.push(part(horse, 0, 1.22, 0.61, 0.38, 0.28, 0.52, "#a5835b"));
+    tints.mane.push(part(horse, 0, 1.5, 0.5, 0.3, 0.14, 0.12, "#64533d"));
     for (const x of [-0.2, 0.2]) part(horse, x, 1.39, 0.67, 0.03, 0.04, 0.05, "#2f3932");
-    part(horse, 0, 0.72, -0.66, 0.16, 0.4, 0.15, "#64533d");
-    part(horse, 0, 1.12, 0, 0.68, 0.08, 0.5, player === 0 ? "#45728c" : "#b25441");
+    tints.mane.push(part(horse, 0, 0.72, -0.66, 0.16, 0.4, 0.15, "#64533d"));
+    part(horse, 0, 1.12, 0, 0.68, 0.08, 0.5, team2);
     for (const x of [-0.19, 0.19]) for (const z of [-0.42, 0.42]) {
       const leg = new T.Group();
       leg.name = `horse-leg-${legs.length}`;
       leg.position.set(x, 0.62, z);
       horse.add(leg);
       legs.push(leg);
-      part(leg, 0, -0.62, 0, 0.15, 0.62, 0.17, "#957350");
+      tints.coat.push(part(leg, 0, -0.62, 0, 0.15, 0.62, 0.17, "#957350"));
       part(leg, 0, -0.62, 0.025, 0.18, 0.12, 0.22, "#514b3c");
     }
     saddle = new T.Group();
@@ -559,33 +979,62 @@ function createCharacterRig(T, player, box, material) {
     saddle.position.set(0, 0.9, -0.05);
     horse.add(saddle);
   }
+  function makeBarding() {
+    barding2 = new T.Group();
+    barding2.name = "horse-barding";
+    horse.add(barding2);
+    const steel = "#8f9896";
+    part(barding2, 0, 0.58, 0, 0.6, 0.42, 1.19, steel);
+    part(barding2, 0, 0.56, 0, 0.62, 0.06, 1.21, team2);
+    part(barding2, 0, 0.84, 0.43, 0.4, 0.5, 0.36, steel);
+    part(barding2, 0, 1.24, 0.86, 0.3, 0.24, 0.04, steel);
+    part(barding2, 0, 1.48, 0.5, 0.06, 0.16, 0.06, team2);
+  }
   function dress(role) {
-    mounted = role === "cavalry";
-    if (mounted) {
-      if (!horse) makeHorse();
-      horse.visible = true;
-      saddle.add(rider.root);
-      rider.dress("swordsman");
-      rider.equip("spear");
+    const next = isMounted(role) ? role : null;
+    mounted = next;
+    if (next) {
+      const look = mounts[next];
+      if (look.horse) {
+        if (!horse) makeHorse();
+        horse.visible = true;
+        if (elephant) elephant.root.visible = false;
+        for (const k of ["coat", "head", "mane"]) for (const m of tints[k]) m.material = material(look.horse[k]);
+        if (look.horse.barding && !barding2) makeBarding();
+        if (barding2) barding2.visible = look.horse.barding;
+        saddle.add(rider.root);
+      } else {
+        if (!elephant) {
+          elephant = createElephantMount(T, player, box, material);
+          root.add(elephant.root);
+        }
+        elephant.root.visible = true;
+        if (horse) horse.visible = false;
+        elephant.saddle.add(rider.root);
+      }
+      rider.dress(look.rider);
+      rider.equip(look.tool);
     } else {
       if (horse) horse.visible = false;
+      if (elephant) elephant.root.visible = false;
       root.add(rider.root);
       rider.dress(role);
     }
-    rider.seat(mounted);
+    rider.seat(!!next);
     pose("idle", 0);
   }
   function pose(kind, time) {
     if (mounted && !["idle", "walk", "attack"].includes(kind)) throw Error("\u9A0E\u4E58\u6A21\u578B\u76EE\u524D\u50C5\u652F\u63F4\u5F85\u547D\u3001\u884C\u8D70\u8207\u653B\u64CA\u59FF\u614B");
     rider.pose(kind, time);
     if (horse) {
-      const phase = Number.isFinite(time) ? Math.max(0, time) * 0.012 : 0;
+      const phase = Number.isFinite(time) ? Math.max(0, time) * 0.012 : 0, walking = mounted && mounted !== "war-elephant" && kind === "walk";
       legs.forEach((leg, i) => {
-        const swing = mounted && kind === "walk" ? Math.sin(phase + (i === 0 || i === 3 ? 0 : Math.PI)) * 0.26 : 0;
+        const swing = walking ? Math.sin(phase + (i === 0 || i === 3 ? 0 : Math.PI)) * 0.26 : 0;
         leg.rotation.x = swing;
         leg.position.y = 0.62 + Math.abs(Math.sin(swing)) * 0.14;
       });
     }
+    if (elephant) elephant.pose(mounted === "war-elephant" ? kind : "idle", time);
   }
   return { root, sockets: rider.sockets, equip: rider.equip, dress, pose };
 }
@@ -685,15 +1134,16 @@ var animalRules = {
 };
 
 // apps/web/rig-roles.ts
+var footUniques = ["longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "samurai", "janissary", "chu-ko-nu"];
 function roleOf(kind) {
-  return kind === "militia" ? "swordsman" : kind === "spearman" ? "spearman" : kind === "archer" || kind === "skirmisher" ? "archer" : kind === "scout" || kind === "knight" ? "cavalry" : kind === "monk" ? "monk" : "villager";
+  return kind === "militia" ? "swordsman" : kind === "spearman" ? "spearman" : kind === "archer" || kind === "skirmisher" ? "archer" : kind === "scout" || kind === "knight" ? "cavalry" : kind === "monk" ? "monk" : footUniques.includes(kind) ? kind : isMounted(kind) ? kind : "villager";
 }
 function poseFor(kind, pose) {
-  return roleOf(kind) === "cavalry" && !["idle", "walk", "attack"].includes(pose) ? "idle" : pose;
+  return isMounted(roleOf(kind)) && !["idle", "walk", "attack"].includes(pose) ? "idle" : pose;
 }
 function corpseRole(kind) {
   const role = roleOf(kind);
-  return role === "cavalry" ? "swordsman" : role;
+  return isMounted(role) ? mounts[role].rider : role;
 }
 
 // apps/web/picking.ts
@@ -931,68 +1381,11 @@ function economicBuildingParts(kind, v) {
   return built.filter((a) => !(a.id === "marker-flag" || a.id === "roof-2" && !loaded || /^(awning|valance)-[24]$/.test(a.id) || a.id.startsWith("grain-") || a.id === "blade-horizontal" || a.id.endsWith("-finial") || a.id === "vane-arrow"));
 }
 
-// packages/content/footprints.ts
-var obstacleFootprints = {
-  house: { x: -15, y: -15, width: 250, depth: 230 },
-  // Barracks: solid 3x3 foundation for now; its open front is visual only (no walkable interior).
-  barracks: { x: -15, y: -15, width: 300, depth: 300 },
-  "town-center": { x: -15, y: -15, width: 300, depth: 300 },
-  // Farm: a walkable 2x2 field (no blocking rectangle); its extent still stops other buildings.
-  farm: { x: 0, y: 0, width: 200, depth: 200 },
-  // Drop-off camps use the 3x3 models (same footprint as the barracks).
-  "lumber-camp": { x: -15, y: -15, width: 300, depth: 300 },
-  "mining-camp": { x: -15, y: -15, width: 300, depth: 300 },
-  mill: { x: -15, y: -15, width: 300, depth: 300 },
-  stable: { x: -15, y: -15, width: 300, depth: 300 },
-  "archery-range": { x: -15, y: -15, width: 300, depth: 300 },
-  monastery: { x: -15, y: -15, width: 300, depth: 300 },
-  blacksmith: { x: -15, y: -15, width: 300, depth: 300 },
-  "siege-workshop": { x: -15, y: -15, width: 300, depth: 300 },
-  // Watch tower: one tile.
-  "watch-tower": { x: 0, y: 0, width: 100, depth: 100 },
-  tree: { x: -20, y: -20, width: 100, depth: 100 },
-  rock: { x: 0, y: 0, width: 65, depth: 70 },
-  gold: { x: 0, y: 0, width: 65, depth: 70 },
-  berries: { x: 0, y: 0, width: 65, depth: 70 },
-  hunt: { x: 0, y: 0, width: 65, depth: 70 },
-  livestock: { x: 0, y: 0, width: 65, depth: 70 }
-};
-var townCenterBlocking = [
-  [15, 15, 65, 165],
-  [205, 15, 255, 165],
-  [10, 10, 26, 26],
-  [240, 10, 256, 26],
-  [10, 180, 26, 196],
-  [240, 180, 256, 196],
-  // Arch flanks reach past the visible opening: 3D clearance for a villager on the plinth.
-  [65, 150, 97, 175],
-  [173, 150, 205, 175],
-  [14, 190, 62, 198],
-  [20, 198, 54, 201],
-  [210, 210, 252, 252],
-  [265, 270, 271, 276]
-];
-var walkablePlatforms = { "town-center": { rect: [-15, -15, 285, 285], height: 16 }, farm: { rect: [0, 0, 200, 200], height: 10 } };
-function check2(o, radius) {
-  if (!obstacleFootprints[o.kind] || !Number.isSafeInteger(radius) || radius < 0) throw Error("\u7121\u6548\u5360\u5730\u6216\u534A\u5F91");
-}
-function obstacleBounds(o, radius = 0) {
-  check2(o, radius);
-  const f = obstacleFootprints[o.kind];
-  return [o.x + f.x - radius, o.y + f.y - radius, o.x + f.x + f.width + radius, o.y + f.y + f.depth + radius];
-}
-function obstacleRects(o, radius = 0) {
-  check2(o, radius);
-  if (o.kind === "farm") return [];
-  if (o.kind !== "town-center") return [obstacleBounds(o, radius)];
-  return townCenterBlocking.map(([x0, y0, x1, y1]) => [o.x + x0 - radius, o.y + y0 - radius, o.x + x1 + radius, o.y + y1 + radius]);
-}
-
 // apps/web/building-parts.ts
 function buildingParts(visual) {
-  const { ageVariant: age, progress, health, red } = visual;
+  const { ageVariant: age, progress, health, red: red2 } = visual;
   if (![1, 2, 3, 4].includes(age) || ![progress, health].every((v) => Number.isFinite(v) && v >= 0 && v <= 100)) throw Error("\u7121\u6548\u5EFA\u7BC9\u5916\u89C0\u72C0\u614B");
-  const parts = [], team2 = red ? "#b85c47" : "#456e87";
+  const parts = [], team2 = red2 ? "#b85c47" : "#456e87";
   const add = (id, phase2, x, z, y, w, d, h, color, studs = false, shape) => parts.push({ id, phase: phase2, x, z, y, w, d, h, color, studs, ...shape ? { shape } : {} });
   const footprint = obstacleFootprints.house;
   add("foundation", 0, footprint.x / 100, footprint.y / 100, 0, footprint.width / 100, footprint.depth / 100, 0.16, "#b3aa8c");
@@ -1038,6 +1431,380 @@ function buildingParts(visual) {
   const phase = Math.min(4, Math.floor(progress / 20));
   return parts.filter((p) => p.phase <= phase).filter((p) => health >= 50 || !(p.id.startsWith("roof-") && Number(p.id.split("-")[2]) % 2 === 0 || p.id === "flag"));
 }
+var architectures = ["neutral", "west", "central", "mideast", "eastasia"];
+var slate = "#5d6670";
+var tar = "#4a3d30";
+var carved = "#6e5438";
+var lime = "#e9e1cf";
+var sand2 = "#d8c9a6";
+var tile = "#3f4a4c";
+var gilt = "#c9a55a";
+var eave = (id) => id === "roof" || /^roof-0(-|$)/.test(id) || /^(canopy-roof|awning-\d|keep-roof-0|keep-parapet|hoard-roof-.*)$/.test(id);
+var ornament = /flag|pole|pennant|banner|finial|vane|rope|bell|debris|style-/;
+function regionalParts(parts, style) {
+  if (!architectures.includes(style)) throw Error("\u672A\u77E5\u5EFA\u7BC9\u98A8\u683C");
+  if (style === "neutral" || parts.length < 2 || !parts.some((p) => p.phase >= 2)) return parts;
+  const out = [...parts], base = parts[0], x0 = base.x, x1 = base.x + base.w, z0 = base.z, z1 = base.z + base.d;
+  const clash = (a) => out.some((b) => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 1e-8 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 1e-8 && Math.min(a.z + a.d, b.z + b.d) - Math.max(a.z, b.z) > 1e-8);
+  const place = (slot, phase, stack) => {
+    if (stack.some(clash) || stack.some((s) => s.x < x0 - 1e-8 || s.z < z0 - 1e-8 || s.x + s.w > x1 + 1e-8 || s.z + s.d > z1 + 1e-8)) return;
+    stack.forEach((s, i) => out.push({ id: `style-${style}-${slot}-${i}`, phase, studs: false, ...s }));
+  };
+  const eaves = parts.filter((p) => eave(p.id));
+  if (eaves.length) {
+    const y = Math.min(...eaves.map((p) => p.y)), tier = eaves.filter((p) => Math.abs(p.y - y) < 1e-6), top = y + tier[0].h;
+    const rx0 = Math.max(x0, Math.min(...tier.map((p) => p.x))), rx1 = Math.min(x1, Math.max(...tier.map((p) => p.x + p.w))), rz0 = Math.max(z0, Math.min(...tier.map((p) => p.z))), rz1 = Math.min(z1, Math.max(...tier.map((p) => p.z + p.d))), c = 0.16;
+    for (const [sx, sz] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+      const cx = sx ? rx1 - c : rx0, cz = sz ? rz1 - c : rz0, under = tier.find((p) => p.x <= cx + 1e-8 && p.x + p.w >= cx + c - 1e-8 && p.z <= cz + 1e-8 && p.z + p.d >= cz + c - 1e-8);
+      if (!under) continue;
+      const ox = sx ? cx + c - 0.1 : cx, oz = sz ? cz + c - 0.1 : cz;
+      const stack = style === "eastasia" ? [{ x: cx, z: cz, y: top, w: c, d: c, h: 0.08, color: under.color }, { x: ox, z: oz, y: top + 0.08, w: 0.1, d: 0.1, h: 0.18, color: under.color }] : style === "west" ? [{ x: cx, z: cz, y: top, w: c, d: c, h: 0.3, color: slate }, { x: cx + 0.05, z: cz + 0.05, y: top + 0.3, w: 0.06, d: 0.06, h: 0.2, color: slate }] : style === "central" ? [{ x: cx + 0.02, z: cz + 0.02, y: top, w: 0.12, d: 0.12, h: 0.44, color: tar }, { x: ox, z: oz, y: top + 0.44, w: 0.1, d: 0.1, h: 0.12, color: carved }] : [{ x: cx, z: cz, y: top, w: c, d: c, h: 0.18, color: lime }, { x: cx + 0.04, z: cz + 0.04, y: top + 0.18, w: 0.08, d: 0.08, h: 0.1, color: lime }];
+      place(`corner-${sx}${sz}`, under.phase, stack);
+    }
+  }
+  const peak = Math.max(...parts.map((p) => p.y + p.h)), free = parts.slice(1).filter((p) => p.w >= 0.2 && p.d >= 0.2 && !ornament.test(p.id) && p.y + p.h >= 0.6 * peak && !parts.some((o) => o !== p && Math.abs(o.y - p.y - p.h) < 1e-8 && o.x < p.x + p.w && o.x + o.w > p.x && o.z < p.z + p.d && o.z + o.d > p.z)).sort((a, b) => b.y + b.h - (a.y + a.h) || b.w * b.d - a.w * a.d);
+  const crowns = free.filter((p) => free.length && Math.abs(p.y + p.h - free[0].y - free[0].h) < 1e-6 && Math.abs(p.w * p.d - free[0].w * free[0].d) < 1e-6);
+  crowns.forEach((crown, k) => {
+    const top = crown.y + crown.h, cx = crown.x + crown.w / 2, cz = crown.z + crown.d / 2, s = Math.min(crown.w, crown.d), sq = (w, y, h, color) => ({ x: cx - w / 2, z: cz - w / 2, y, w, d: w, h, color });
+    let stack = [];
+    if (style === "west") {
+      const b = Math.min(0.6 * s, 0.6);
+      stack = [sq(b, top, 0.2, slate), sq(b * 0.66, top + 0.2, 0.28, slate), sq(b * 0.33, top + 0.48, 0.36, slate), sq(0.06, top + 0.84, 0.26, gilt)];
+    } else if (style === "mideast") {
+      const b = Math.min(0.7 * s, 0.7);
+      stack = [sq(b, top, 0.16, sand2), sq(b * 0.9, top + 0.16, 0.18, lime), sq(b * 0.72, top + 0.34, 0.14, lime), sq(b * 0.48, top + 0.48, 0.12, lime), sq(b * 0.24, top + 0.6, 0.08, lime), sq(0.06, top + 0.68, 0.26, gilt)];
+    } else if (style === "eastasia") {
+      const e = 0.1, px0 = Math.max(x0, crown.x - e), px1 = Math.min(x1, crown.x + crown.w + e), pz0 = Math.max(z0, crown.z - e), pz1 = Math.min(z1, crown.z + crown.d + e), t = 0.1;
+      stack = [{ x: px0, z: pz0, y: top, w: px1 - px0, d: pz1 - pz0, h: 0.08, color: tile }, ...[[px0, pz0], [px1 - t, pz0], [px0, pz1 - t], [px1 - t, pz1 - t]].map(([x, z]) => ({ x, z, y: top + 0.08, w: t, d: t, h: 0.16, color: tile })), sq(Math.min(0.6 * s, 0.6), top + 0.08, 0.2, tile), sq(Math.min(0.3 * s, 0.3), top + 0.28, 0.12, tile), sq(0.1, top + 0.4, 0.2, gilt)];
+    } else {
+      const alongX = crown.w >= crown.d, L = alongX ? crown.w : crown.d, r = Math.max(0.1, Math.min(0.4 * L, 0.5 * L - 0.12));
+      const bar = (a0, a1, y, h, t, color) => alongX ? { x: cx + a0, z: cz - t / 2, y, w: a1 - a0, d: t, h, color } : { x: cx - t / 2, z: cz + a0, y, w: t, d: a1 - a0, h, color };
+      stack = [bar(-r, r, top, 0.1, 0.12, tar), bar(-r, -r + 0.1, top + 0.1, 0.5, 0.1, tar), bar(r - 0.1, r, top + 0.1, 0.5, 0.1, tar), bar(-r - 0.12, -r + 0.1, top + 0.6, 0.12, 0.1, carved), bar(r - 0.1, r + 0.12, top + 0.6, 0.12, 0.1, carved)];
+    }
+    place(`crown-${k}`, crown.phase, stack);
+  });
+  return out;
+}
+
+// packages/content/civs.ts
+var mulKinds = ["hp", "cooldown", "speed", "cost", "time", "buildingHp", "arrowCooldown", "healRange", "healRate"];
+function fx(id, kind, select, value, text, o = {}) {
+  const mul = o.op ? o.op === "mul" : mulKinds.includes(kind);
+  return {
+    id,
+    kind,
+    select,
+    op: mul ? "mul" : "add",
+    value,
+    ...o.vs ? { vs: o.vs } : {},
+    ...o.resource ? { resource: o.resource } : {},
+    ...o.to ? { to: o.to } : {},
+    trigger: { ...o.age ? { age: o.age } : {}, ...o.tech ? { tech: o.tech } : {} },
+    stacking: mul ? "product" : "sum",
+    priority: mul ? 1 : 0,
+    scope: o.team ? "team" : "self",
+    appliesToExisting: o.existing ?? !["cost", "costShift", "time", "workRate", "startStock", "startVillagers", "deathRefund", "keepHousing", "grant", "producer"].includes(kind),
+    text
+  };
+}
+var site = (page) => `aoetw.com/${page}\uFF082026-09-30 \u53D6\u81EA github.com/webrsb/aoetw \u539F\u59CB\u78BC\uFF09`;
+var footArchers = { classes: ["archer"], exclude: ["skirmisher", "gunpowder", "cavalry-archer"] };
+var infantry = { classes: ["infantry"] };
+var neutralCiv = "settlers";
+var civDefs = [
+  { id: neutralCiv, name: "\u62D3\u8352\u8005", nameEn: "Settlers", type: "\u7121\u52A0\u6210\uFF08\u5747\u8861\u6E2C\u8A66\uFF09", architecture: "neutral", missing: [], missingLater: [], uniqueUnits: [], eliteUpgrades: [], uniqueTechs: [], effects: [], omitted: [], sources: ["\u672C\u4F5C\u539F\u5275\uFF1A\u6C92\u6709\u6587\u660E\u52A0\u6210\u8207\u57CE\u5821\uFF0C\u4F5C\u70BA\u6E2C\u8A66\u8207\u7DF4\u7FD2\u7684\u57FA\u6E96"] },
+  {
+    id: "britons",
+    name: "\u4E0D\u5217\u985B",
+    nameEn: "Britons",
+    type: "\u5F13\u5175\u6587\u660E",
+    architecture: "west",
+    missing: ["crop-rotation", "stone-shaft-mining", "redemption", "atonement", "heresy"],
+    missingLater: ["hussar", "paladin", "siege-ram", "thumb-ring", "parthian-tactics", "bloodlines", "camel", "bombard-cannon", "elite-cannon-galleon", "missionary", "bombard-tower"],
+    uniqueUnits: ["longbowman"],
+    eliteUpgrades: ["elite-longbowman"],
+    uniqueTechs: [{ id: "yeomen", name: "\u7FA9\u52C7\u9A0E\u5175", nameEn: "Yeomen", age: 3, effectText: "\u5F92\u6B65\u5F13\u5175\u5C04\u7A0B +1\uFF0C\u7BAD\u5854\u653B\u64CA +2" }, { id: "warwolf", name: "\u6230\u72FC\u865F", nameEn: "Warwolf", age: 4, effectText: "\u5DE8\u578B\u6295\u77F3\u6A5F\u7372\u5F97\u7BC4\u570D\u50B7\u5BB3" }],
+    effects: [
+      fx("britons.archer-range", "range", footArchers, [0, 0, 50, 100], "\u5F92\u6B65\u5F13\u5175\uFF08\u6563\u5175\u9664\u5916\uFF09\u5C04\u7A0B\uFF1A\u7B2C\u4E09\u6642\u4EE3 +1\u3001\u7B2C\u56DB\u6642\u4EE3 +2"),
+      fx("britons.shepherds", "gather", { sources: ["livestock"] }, 25, "\u7267\u7F8A\uFF08\u5BB0\u7F8A\u63A1\u96C6\uFF09\u901F\u5EA6 +25%"),
+      fx("britons.team-range", "workRate", { buildings: ["archery-range"] }, 20, "\u5718\u968A\u52A0\u6210\uFF1A\u9776\u5834\u751F\u7522\u901F\u5EA6 +20%", { team: true }),
+      fx("britons.yeomen-range", "range", { classes: ["archer"], exclude: ["gunpowder", "cavalry-archer"] }, 50, "\u7FA9\u52C7\u9A0E\u5175\uFF1A\u5F92\u6B65\u5F13\u5175\uFF08\u542B\u6563\u5175\uFF09\u5C04\u7A0B +1", { tech: "yeomen" }),
+      fx("britons.yeomen-tower", "arrowDamage", { buildings: ["watch-tower"] }, 2, "\u7FA9\u52C7\u9A0E\u5175\uFF1A\u7BAD\u5854\u653B\u64CA +2", { tech: "yeomen" })
+    ],
+    omitted: [{ text: "\u7B2C\u4E09\u6642\u4EE3\u8D77\u57CE\u93AE\u4E2D\u5FC3\u6728\u6750 -50%", reason: "\u672C\u4F5C\u7684\u57CE\u93AE\u4E2D\u5FC3\u4E0D\u80FD\u53E6\u5916\u5EFA\u9020" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u6230\u72FC\u865F\u300D", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5DE8\u578B\u6295\u77F3\u6A5F" }],
+    sources: [site("civs/Britons"), site("units/Longbowman"), site("techs/Yeomen"), site("techs/Warwolf"), site("tree/bri")]
+  },
+  {
+    id: "celts",
+    name: "\u585E\u723E\u7279",
+    nameEn: "Celts",
+    type: "\u6B65\u5175\u8207\u653B\u57CE\u5668\u6587\u660E",
+    architecture: "west",
+    missing: ["two-man-saw", "crop-rotation", "bracer", "ring-archer-armor", "plate-barding-armor", "redemption", "atonement", "illumination", "block-printing", "theocracy"],
+    missingLater: ["arbalest", "thumb-ring", "bloodlines", "camel", "bombard-cannon", "architecture", "missionary", "parthian-tactics", "bombard-tower", "elite-cannon-galleon"],
+    uniqueUnits: ["woad-raider"],
+    eliteUpgrades: ["elite-woad-raider"],
+    uniqueTechs: [{ id: "stronghold", name: "\u5821\u58D8", nameEn: "Stronghold", age: 3, effectText: "\u57CE\u5821\u8207\u7BAD\u5854\u5C04\u901F +25%" }, { id: "furor-celtica", name: "\u585E\u723E\u7279\u72C2\u71B1", nameEn: "Furor Celtica", age: 4, effectText: "\u653B\u57CE\u5668\u5DE5\u574A\u7684\u55AE\u4F4D\u751F\u547D +40%" }],
+    effects: [
+      fx("celts.lumberjacks", "gather", { resources: ["wood"] }, 15, "\u4F10\u6728\u901F\u5EA6 +15%"),
+      fx("celts.infantry-speed", "speed", infantry, [1, 1.15, 1.15, 1.15], "\u7B2C\u4E8C\u6642\u4EE3\u8D77\u6B65\u5175\u79FB\u52D5\u901F\u5EA6 +15%\uFF08\u672C\u4F5C\u4EE5\u6BCF tick \u6574\u6578\u6B65\u9577\u63DB\u7B97\uFF0C\u5BE6\u969B\u7D04 +11%\uFF09"),
+      fx("celts.siege-rate", "cooldown", { classes: ["siege"] }, 1 / 1.25, "\u653B\u57CE\u5668\u653B\u64CA\u901F\u5EA6 +25%"),
+      fx("celts.team-siege", "workRate", { buildings: ["siege-workshop"] }, 20, "\u5718\u968A\u52A0\u6210\uFF1A\u653B\u57CE\u5668\u5DE5\u574A\u751F\u7522\u901F\u5EA6 +20%", { team: true }),
+      fx("celts.stronghold", "arrowCooldown", { buildings: ["castle", "watch-tower"] }, 1 / 1.25, "\u5821\u58D8\uFF1A\u57CE\u5821\u8207\u7BAD\u5854\u5C04\u901F +25%", { tech: "stronghold" }),
+      fx("celts.furor", "hp", { classes: ["siege"] }, 1.4, "\u585E\u723E\u7279\u72C2\u71B1\uFF1A\u653B\u57CE\u5668\u751F\u547D +40%", { tech: "furor-celtica" })
+    ],
+    omitted: [{ text: "\u53EF\u5728\u5C0D\u624B\u55AE\u4F4D\u8996\u91CE\u5167\u6436\u8D70\u5C0D\u624B\u7684\u7F8A", reason: "\u672C\u4F5C\u7684\u6436\u7F8A\u898F\u5247\u4E0D\u770B\u8996\u91CE\uFF08\u5DF1\u65B9\u5EFA\u7BC9 4 \u683C\u5167\u7684\u7F8A\u672C\u4F86\u5C31\u4E0D\u6703\u88AB\u6436\uFF09" }],
+    sources: [site("civs/Celts"), site("units/Woad_Raider"), site("techs/Stronghold"), site("techs/Furor_Celtica"), site("tree/cel")]
+  },
+  {
+    id: "franks",
+    name: "\u6CD5\u862D\u514B",
+    nameEn: "Franks",
+    type: "\u9A0E\u5175\u6587\u660E",
+    architecture: "west",
+    missing: ["two-man-saw", "stone-shaft-mining", "bracer", "ring-archer-armor", "redemption"],
+    missingLater: ["arbalest", "hussar", "siege-ram", "keep", "thumb-ring", "parthian-tactics", "bloodlines", "camel", "bombard-tower", "heated-shot", "shipwright", "elite-cannon-galleon", "missionary"],
+    uniqueUnits: ["throwing-axeman"],
+    eliteUpgrades: ["elite-throwing-axeman"],
+    uniqueTechs: [{ id: "chivalry", name: "\u9A0E\u58EB\u7CBE\u795E", nameEn: "Chivalry", age: 3, effectText: "\u99AC\u5EC4\u751F\u7522\u901F\u5EA6 +40%" }, { id: "bearded-axe", name: "\u5012\u9264\u65A7", nameEn: "Bearded Axe", age: 4, effectText: "\u64F2\u65A7\u5175\u5C04\u7A0B +1" }],
+    effects: [
+      fx("franks.foragers", "gather", { sources: ["berries"] }, 25, "\u63A1\u6F3F\u679C\u901F\u5EA6 +25%"),
+      fx("franks.free-farming", "cost", { entries: ["horse-collar", "heavy-plow", "crop-rotation"] }, 0, "\u78E8\u574A\u7684\u8FB2\u7530\u79D1\u6280\u514D\u8CBB"),
+      fx("franks.cavalry-hp", "hp", { kinds: ["scout", "knight"] }, [1, 1.2, 1.2, 1.2], "\u7B2C\u4E8C\u6642\u4EE3\u8D77\u99AC\u5EC4\u55AE\u4F4D\u751F\u547D +20%"),
+      fx("franks.castle", "cost", { entries: ["castle"] }, 0.75, "\u57CE\u5821\u4FBF\u5B9C 25%"),
+      fx("franks.team-los", "los", { kinds: ["knight"] }, 200, "\u5718\u968A\u52A0\u6210\uFF1A\u9A0E\u58EB\u8996\u91CE +2", { team: true }),
+      fx("franks.chivalry", "workRate", { buildings: ["stable"] }, 40, "\u9A0E\u58EB\u7CBE\u795E\uFF1A\u99AC\u5EC4\u751F\u7522\u901F\u5EA6 +40%", { tech: "chivalry" }),
+      fx("franks.bearded-axe", "range", { kinds: ["throwing-axeman"] }, 50, "\u5012\u9264\u65A7\uFF1A\u64F2\u65A7\u5175\u5C04\u7A0B +1", { tech: "bearded-axe" })
+    ],
+    omitted: [],
+    sources: [site("civs/Franks"), site("units/Throwing_Axeman"), site("techs/Chivalry"), site("techs/Bearded_Axe"), site("tree/fra")]
+  },
+  {
+    id: "goths",
+    name: "\u54E5\u5FB7",
+    nameEn: "Goths",
+    type: "\u6B65\u5175\u6587\u660E",
+    architecture: "central",
+    missing: ["gold-shaft-mining", "plate-mail-armor", "plate-barding-armor", "redemption", "atonement", "heresy", "block-printing"],
+    missingLater: ["paladin", "arbalest", "siege-ram", "guard-tower", "keep", "camel", "bombard-tower", "thumb-ring", "parthian-tactics", "elite-cannon-galleon", "missionary"],
+    uniqueUnits: ["huskarl"],
+    eliteUpgrades: ["elite-huskarl"],
+    uniqueTechs: [{ id: "anarchy", name: "\u7121\u653F\u5E9C\u72C0\u614B", nameEn: "Anarchy", age: 3, effectText: "\u5175\u71DF\u4E5F\u80FD\u8A13\u7DF4\u54E5\u5FB7\u885B\u968A" }, { id: "perfusion", name: "\u4E95\u5674", nameEn: "Perfusion", age: 4, effectText: "\u5175\u71DF\u751F\u7522\u901F\u5EA6 +100%" }],
+    effects: [
+      fx("goths.infantry-cost", "cost", { entries: ["militia", "spearman", "huskarl"] }, [0.8, 0.75, 0.7, 0.65], "\u6B65\u5175\u4FBF\u5B9C\uFF1A\u7B2C\u4E00\u81F3\u7B2C\u56DB\u6642\u4EE3 -20% / -25% / -30% / -35%"),
+      fx("goths.infantry-buildings", "bonus", infantry, [0, 1, 2, 3], "\u6B65\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +1 / +2 / +3", { vs: "building" }),
+      fx("goths.boar", "huntDamage", { prey: ["boar"] }, 5, "\u6751\u6C11\u6253\u91CE\u8C6C\u653B\u64CA +5"),
+      fx("goths.hunter-carry", "carry", { sources: ["hunt"] }, 15, "\u7375\u4EBA\u651C\u5E36\u91CF +15"),
+      fx("goths.pop", "popCap", {}, [0, 0, 0, 10], "\u7B2C\u56DB\u6642\u4EE3\u4EBA\u53E3\u4E0A\u9650 +10"),
+      fx("goths.loom", "time", { entries: ["loom"] }, 0, "\u7E54\u5E03\u6A5F\u7ACB\u5373\u5B8C\u6210\uFF08\u4ECD\u9700\u4ED8\u8CBB\uFF09"),
+      fx("goths.team-barracks", "workRate", { buildings: ["barracks"] }, 20, "\u5718\u968A\u52A0\u6210\uFF1A\u5175\u71DF\u751F\u7522\u901F\u5EA6 +20%", { team: true }),
+      fx("goths.anarchy", "producer", { entries: ["huskarl"], buildings: ["barracks"] }, 1, "\u7121\u653F\u5E9C\u72C0\u614B\uFF1A\u5175\u71DF\u4E5F\u80FD\u8A13\u7DF4\u54E5\u5FB7\u885B\u968A", { tech: "anarchy" }),
+      fx("goths.perfusion", "workRate", { buildings: ["barracks"] }, 100, "\u4E95\u5674\uFF1A\u5175\u71DF\u751F\u7522\u901F\u5EA6 +100%", { tech: "perfusion" })
+    ],
+    omitted: [],
+    sources: [site("civs/Goths"), site("units/Huskarl"), site("techs/Anarchy"), site("techs/Perfusion"), site("tree/got")]
+  },
+  {
+    id: "teutons",
+    name: "\u689D\u9813",
+    nameEn: "Teutons",
+    type: "\u6B65\u5175\u6587\u660E",
+    architecture: "central",
+    missing: ["bracer", "light-cavalry", "gold-shaft-mining"],
+    missingLater: ["arbalest", "hussar", "siege-ram", "thumb-ring", "camel", "parthian-tactics", "architecture", "shipwright", "elite-cannon-galleon"],
+    uniqueUnits: ["teutonic-knight"],
+    eliteUpgrades: ["elite-teutonic-knight"],
+    uniqueTechs: [{ id: "ironclad", name: "\u92FC\u9435\u7532", nameEn: "Ironclad", age: 3, effectText: "\u653B\u57CE\u5668\u8FD1\u6230\u8B77\u7532 +4" }, { id: "crenellations", name: "\u7832\u9580\u579B\u53E3", nameEn: "Crenellations", age: 4, effectText: "\u57CE\u5821\u5C04\u7A0B +3\uFF0C\u9032\u99D0\u7684\u6B65\u5175\u4E5F\u6703\u5C04\u7BAD" }],
+    effects: [
+      fx("teutons.heal-range", "healRange", {}, 2, "\u50E7\u4FB6\u6CBB\u7642\u8DDD\u96E2\u5169\u500D"),
+      fx("teutons.tower-garrison", "garrison", { buildings: ["watch-tower"] }, 5, "\u7BAD\u5854\u53EF\u99D0\u7D2E\u5169\u500D\u55AE\u4F4D"),
+      fx("teutons.farms", "cost", { entries: ["farm"] }, 0.6, "\u8FB2\u7530\u4FBF\u5B9C 40%"),
+      fx("teutons.tc-garrison", "garrison", { buildings: ["town-center"] }, 10, "\u57CE\u93AE\u4E2D\u5FC3\u99D0\u8ECD +10"),
+      fx("teutons.melee-armor", "meleeArmor", { kinds: ["militia", "spearman", "scout", "knight"] }, [0, 0, 1, 2], "\u5175\u71DF\u8207\u99AC\u5EC4\u55AE\u4F4D\u8FD1\u6230\u8B77\u7532\uFF1A\u7B2C\u4E09\u6642\u4EE3 +1\u3001\u7B2C\u56DB\u6642\u4EE3 +2"),
+      fx("teutons.team-faith", "conversionResist", {}, 1, "\u5718\u968A\u52A0\u6210\uFF1A\u55AE\u4F4D\u8F03\u96E3\u88AB\u8F49\u5316\uFF08\u6BCF\u540D\u50E7\u4FB6\u7684\u5224\u5B9A\u591A\u4E00\u6B21\u5FC5\u5B9A\u5931\u6557\uFF09", { team: true }),
+      fx("teutons.ironclad", "meleeArmor", { classes: ["siege"] }, 4, "\u92FC\u9435\u7532\uFF1A\u653B\u57CE\u5668\u8FD1\u6230\u8B77\u7532 +4", { tech: "ironclad" }),
+      fx("teutons.crenellations-range", "arrowRange", { buildings: ["castle"] }, 150, "\u7832\u9580\u579B\u53E3\uFF1A\u57CE\u5821\u5C04\u7A0B +3", { tech: "crenellations" }),
+      fx("teutons.crenellations-infantry", "garrisonArrows", { buildings: ["castle"], classes: ["infantry"] }, 1, "\u7832\u9580\u579B\u53E3\uFF1A\u9032\u99D0\u57CE\u5821\u7684\u6B65\u5175\u5404\u591A\u4E00\u652F\u7BAD", { tech: "crenellations" })
+    ],
+    omitted: [{ text: "\u514D\u8CBB\u6BBA\u4EBA\u5B54\u8207\u8349\u85E5\u5B78", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u9019\u5169\u9805\u79D1\u6280" }],
+    sources: [site("civs/Teutons"), site("units/Teutonic_Knight"), site("techs/Ironclad"), site("techs/Crenellations"), site("tree/teu")]
+  },
+  {
+    id: "vikings",
+    name: "\u7DAD\u4EAC",
+    nameEn: "Vikings",
+    type: "\u6B65\u5175\u8207\u6D77\u8ECD\u6587\u660E",
+    architecture: "central",
+    missing: ["stone-shaft-mining", "plate-barding-armor", "redemption", "sanctity", "illumination", "theocracy"],
+    missingLater: ["halberdier", "hussar", "paladin", "keep", "herbal-medicine", "camel", "bombard-tower", "fire-ship", "bloodlines", "parthian-tactics", "bombard-cannon", "elite-cannon-galleon", "shipwright", "missionary"],
+    uniqueUnits: ["berserk"],
+    eliteUpgrades: ["elite-berserk"],
+    uniqueTechs: [{ id: "chieftains", name: "\u914B\u9577", nameEn: "Chieftains", age: 3, effectText: "\u6B65\u5175\u5C0D\u9A0E\u5175\u653B\u64CA +5" }, { id: "berserkergang", name: "\u72C2\u6230\u58EB\u5E6B", nameEn: "Berserkergang", age: 4, effectText: "\u72C2\u6230\u58EB\u56DE\u8840\u901F\u5EA6\u5169\u500D" }],
+    effects: [
+      fx("vikings.infantry-hp", "hp", infantry, [1, 1.1, 1.15, 1.2], "\u6B65\u5175\u751F\u547D\uFF1A\u7B2C\u4E8C\u6642\u4EE3 +10%\u3001\u7B2C\u4E09\u6642\u4EE3 +15%\u3001\u7B2C\u56DB\u6642\u4EE3 +20%"),
+      fx("vikings.wheelbarrow", "grant", { entries: ["wheelbarrow"] }, 1, "\u5347\u5230\u7B2C\u4E8C\u6642\u4EE3\u6642\u514D\u8CBB\u5F97\u5230\u624B\u63A8\u8ECA", { age: 2 }),
+      fx("vikings.hand-cart", "grant", { entries: ["hand-cart"] }, 1, "\u5347\u5230\u7B2C\u4E09\u6642\u4EE3\u6642\u514D\u8CBB\u5F97\u5230\u624B\u62C9\u8ECA", { age: 3 }),
+      fx("vikings.chieftains", "bonus", infantry, 5, "\u914B\u9577\uFF1A\u6B65\u5175\u5C0D\u9A0E\u5175\u653B\u64CA +5", { vs: "cavalry", tech: "chieftains" }),
+      fx("vikings.berserkergang", "regen", { kinds: ["berserk"] }, 20, "\u72C2\u6230\u58EB\u5E6B\uFF1A\u72C2\u6230\u58EB\u6BCF\u5206\u9418\u56DE\u8840 20 \u2192 40", { tech: "berserkergang" })
+    ],
+    omitted: [{ text: "\u6230\u8239\u4FBF\u5B9C 15% / 15% / 20%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u5718\u968A\u52A0\u6210\uFF1A\u78BC\u982D\u4FBF\u5B9C 15%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u78BC\u982D" }, { text: "\u914B\u9577\uFF1A\u6B65\u5175\u5C0D\u99F1\u99DD\u9A0E\u5175 +4", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u99F1\u99DD\u9A0E\u5175" }, { text: "\u7279\u6B8A\u55AE\u4F4D\u7DAD\u4EAC\u5927\u6230\u8239", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u6D77\u6230" }],
+    sources: [site("civs/Vikings"), site("units/Berserk"), site("techs/Chieftains"), site("techs/Berserkergang"), site("tree/vik")]
+  },
+  {
+    id: "byzantines",
+    name: "\u62DC\u5360\u5EAD",
+    nameEn: "Byzantines",
+    type: "\u9632\u79A6\u6587\u660E",
+    architecture: "mideast",
+    missing: ["blast-furnace"],
+    missingLater: ["herbal-medicine", "bloodlines", "parthian-tactics", "missionary", "heated-shot", "heavy-scorpion", "bombard-tower", "architecture"],
+    uniqueUnits: ["cataphract"],
+    eliteUpgrades: ["elite-cataphract"],
+    uniqueTechs: [{ id: "greek-fire", name: "\u5E0C\u81D8\u4E4B\u706B", nameEn: "Greek Fire", age: 3, effectText: "\u706B\u6230\u8239\u5C04\u7A0B +1" }, { id: "logistica", name: "\u5F8C\u52E4", nameEn: "Logistica", age: 4, effectText: "\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u8E10\u8E0F\u50B7\u5BB3\uFF0C\u5C0D\u6B65\u5175 +6" }],
+    effects: [
+      fx("byzantines.building-hp", "buildingHp", {}, [1.1, 1.2, 1.3, 1.4], "\u5EFA\u7BC9\u751F\u547D\uFF1A\u7B2C\u4E00\u81F3\u7B2C\u56DB\u6642\u4EE3 +10% / +20% / +30% / +40%"),
+      fx("byzantines.counter-cost", "cost", { entries: ["spearman", "skirmisher"] }, 0.75, "\u9577\u69CD\u5175\u8207\u6563\u5175\u4FBF\u5B9C 25%"),
+      fx("byzantines.imperial", "cost", { entries: ["age-4"] }, 0.67, "\u5347\u7B2C\u56DB\u6642\u4EE3\u4FBF\u5B9C 33%"),
+      fx("byzantines.team-heal", "healRate", {}, 1.5, "\u5718\u968A\u52A0\u6210\uFF1A\u50E7\u4FB6\u6CBB\u7642\u901F\u5EA6 +50%", { team: true }),
+      fx("byzantines.logistica", "bonus", { kinds: ["cataphract"] }, 6, "\u5F8C\u52E4\uFF1A\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u5C0D\u6B65\u5175 +6", { vs: "infantry", tech: "logistica" }),
+      fx("byzantines.trample", "splash", { kinds: ["cataphract"] }, 5, "\u5F8C\u52E4\uFF1A\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u653B\u64CA\u6642\uFF0C\u76EE\u6A19\u65C1\u7684\u6575\u5175\u53D7 5 \u9EDE\u8E10\u8E0F\u50B7\u5BB3", { tech: "logistica" })
+    ],
+    omitted: [{ text: "\u706B\u6230\u8239\u653B\u64CA\u901F\u5EA6 +20%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u5C01\u5EFA\u6642\u4EE3\u514D\u8CBB\u57CE\u93AE\u77AD\u671B", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u57CE\u93AE\u77AD\u671B" }, { text: "\u99F1\u99DD\u9A0E\u5175\u4FBF\u5B9C 25%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u99F1\u99DD\u9A0E\u5175" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u5E0C\u81D8\u4E4B\u706B\u300D", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u706B\u6230\u8239" }],
+    sources: [site("civs/Byzantines"), site("units/Cataphract"), site("techs/Greek_Fire"), site("techs/Logistica"), site("tree/byz")]
+  },
+  {
+    id: "persians",
+    name: "\u6CE2\u65AF",
+    nameEn: "Persians",
+    type: "\u9A0E\u5175\u6587\u660E",
+    architecture: "mideast",
+    missing: ["bracer", "redemption", "atonement", "heresy", "sanctity", "illumination"],
+    missingLater: ["two-handed-swordsman", "champion", "arbalest", "keep", "shipwright", "bombard-tower", "missionary"],
+    uniqueUnits: ["war-elephant"],
+    eliteUpgrades: ["elite-war-elephant"],
+    uniqueTechs: [{ id: "kamandaran", name: "\u6CE2\u65AF\u5F13\u5175", nameEn: "Kamandaran", age: 3, effectText: "\u5F13\u624B\u6539\u7528\u6728\u6750\u652F\u4ED8\u539F\u672C\u7684\u9EC3\u91D1" }, { id: "mahouts", name: "\u8C61\u4F15", nameEn: "Mahouts", age: 4, effectText: "\u6230\u8C61\u79FB\u52D5\u901F\u5EA6 +30%" }],
+    effects: [
+      fx("persians.food", "startStock", {}, 50, "\u958B\u5C40\u98DF\u7269 +50", { resource: "food" }),
+      fx("persians.wood", "startStock", {}, 50, "\u958B\u5C40\u6728\u6750 +50", { resource: "wood" }),
+      fx("persians.tc-hp", "buildingHp", { buildings: ["town-center"] }, 2, "\u57CE\u93AE\u4E2D\u5FC3\u751F\u547D\u5169\u500D"),
+      fx("persians.tc-rate", "workRate", { buildings: ["town-center"] }, [0, 10, 15, 20], "\u57CE\u93AE\u4E2D\u5FC3\u751F\u7522\u8207\u7814\u7A76\u901F\u5EA6\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +10% / +15% / +20%"),
+      fx("persians.team-knights", "bonus", { kinds: ["knight"] }, 2, "\u5718\u968A\u52A0\u6210\uFF1A\u9A0E\u58EB\u5C0D\u5F13\u5175\u653B\u64CA +2", { vs: "archer", team: true }),
+      fx("persians.kamandaran", "costShift", { entries: ["archer"] }, 1, "\u6CE2\u65AF\u5F13\u5175\uFF1A\u5F13\u624B\u7684\u9EC3\u91D1\u6539\u4EE5\u6728\u6750\u652F\u4ED8", { resource: "gold", to: "wood", tech: "kamandaran" }),
+      fx("persians.mahouts", "speed", { kinds: ["war-elephant"] }, 1.3, "\u8C61\u4F15\uFF1A\u6230\u8C61\u79FB\u52D5\u901F\u5EA6 +30%", { tech: "mahouts" })
+    ],
+    omitted: [{ text: "\u78BC\u982D\u751F\u547D\u5169\u500D\u3001\u78BC\u982D\u5DE5\u4F5C\u901F\u5EA6\u63D0\u5347", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u78BC\u982D" }],
+    sources: [site("civs/Persians"), site("units/War_Elephant"), site("techs/Kamandaran"), site("techs/Mahouts"), site("tree/pre")]
+  },
+  {
+    id: "saracens",
+    name: "\u85A9\u62C9\u68EE",
+    nameEn: "Saracens",
+    type: "\u99F1\u99DD\u8207\u6D77\u8ECD\u6587\u660E",
+    architecture: "mideast",
+    missing: ["crop-rotation", "stone-shaft-mining"],
+    missingLater: ["halberdier", "cavalier", "paladin", "heavy-scorpion", "bombard-tower", "architecture", "heated-shot", "shipwright", "missionary"],
+    uniqueUnits: ["mameluke"],
+    eliteUpgrades: ["elite-mameluke"],
+    uniqueTechs: [{ id: "madrasah", name: "\u7A46\u65AF\u6797\u5B78\u588A", nameEn: "Madrasah", age: 3, effectText: "\u50E7\u4FB6\u6B7B\u4EA1\u6642\u8FD4\u9084 33 \u9EC3\u91D1" }, { id: "zealotry", name: "\u72C2\u71B1", nameEn: "Zealotry", age: 4, effectText: "\u99F1\u99DD\u9A0E\u5175\u8207\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u751F\u547D +30" }],
+    effects: [
+      fx("saracens.archer-buildings", "bonus", footArchers, [0, 1, 2, 3], "\u5F13\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +1 / +2 / +3", { vs: "building" }),
+      fx("saracens.team-archers", "bonus", footArchers, 2, "\u5718\u968A\u52A0\u6210\uFF1A\u5F92\u6B65\u5F13\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA +2", { vs: "building", team: true }),
+      fx("saracens.madrasah", "deathRefund", { kinds: ["monk"] }, 33, "\u7A46\u65AF\u6797\u5B78\u588A\uFF1A\u50E7\u4FB6\u6B7B\u4EA1\u6642\u8FD4\u9084 33 \u9EC3\u91D1", { tech: "madrasah" }),
+      fx("saracens.zealotry", "hp", { kinds: ["mameluke"] }, 30, "\u72C2\u71B1\uFF1A\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u751F\u547D +30", { tech: "zealotry", op: "add" })
+    ],
+    omitted: [{ text: "\u5E02\u96C6\u4EA4\u6613\u8CBB 5%\u3001\u5E02\u96C6\u4FBF\u5B9C 100 \u6728\u6750", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5E02\u96C6" }, { text: "\u904B\u8F38\u8239\u751F\u547D\u5169\u500D\u3001\u904B\u8F09 +5\uFF1B\u6230\u8239\u653B\u64CA\u901F\u5EA6 +25%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u99AC\u5F13\u9A0E\u5175\u5C0D\u5EFA\u7BC9\u518D +1", reason: "\u672C\u4F5C\u7684\u85A9\u62C9\u68EE\u6C92\u6709\u99AC\u5F13\u9A0E\u5175" }, { text: "\u72C2\u71B1\uFF1A\u99F1\u99DD\u9A0E\u5175\u751F\u547D +30", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u99F1\u99DD\u9A0E\u5175" }],
+    sources: [site("civs/Saracens"), site("units/Mameluke"), site("techs/Madrasah"), site("techs/Zealotry"), site("tree/sar")]
+  },
+  {
+    id: "turks",
+    name: "\u571F\u8033\u5176",
+    nameEn: "Turks",
+    type: "\u706B\u85E5\u6587\u660E",
+    architecture: "mideast",
+    missing: ["pikeman", "elite-skirmisher", "stone-shaft-mining", "faith", "illumination"],
+    missingLater: ["halberdier", "arbalest", "paladin", "herbal-medicine"],
+    uniqueUnits: ["janissary"],
+    eliteUpgrades: ["elite-janissary"],
+    uniqueTechs: [{ id: "sipahi", name: "\u91C7\u9091\u9A0E\u5175", nameEn: "Sipahi", age: 3, effectText: "\u99AC\u5F13\u9A0E\u5175\u8207\u6A19\u69CD\u9A0E\u5175\u751F\u547D +20" }, { id: "artillery", name: "\u7832\u5175", nameEn: "Artillery", age: 4, effectText: "\u706B\u7832\u3001\u706B\u7832\u5854\u3001\u706B\u7832\u6230\u8239\u5C04\u7A0B +2" }],
+    effects: [
+      fx("turks.gunpowder-hp", "hp", { classes: ["gunpowder"] }, 1.25, "\u706B\u85E5\u55AE\u4F4D\u751F\u547D +25%"),
+      fx("turks.gold", "gather", { resources: ["gold"] }, 20, "\u63A1\u91D1\u901F\u5EA6 +20%"),
+      fx("turks.free-light-cavalry", "cost", { entries: ["light-cavalry"] }, 0, "\u65A5\u5019\u7CFB\u5347\u7D1A\u514D\u8CBB"),
+      fx("turks.scout-armor", "pierceArmor", { kinds: ["scout"] }, 1, "\u65A5\u5019\u7CFB\u9060\u7A0B\u8B77\u7532 +1"),
+      fx("turks.team-gunpowder", "time", { entries: ["janissary"] }, 1 / 1.25, "\u5718\u968A\u52A0\u6210\uFF1A\u706B\u85E5\u55AE\u4F4D\u8A13\u7DF4\u901F\u5EA6 +25%", { team: true })
+    ],
+    omitted: [{ text: "\u706B\u85E5\u79D1\u6280\u4FBF\u5B9C 50%\u3001\u514D\u8CBB\u5316\u5B78", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5927\u5B78\u8207\u706B\u85E5\u79D1\u6280" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u91C7\u9091\u9A0E\u5175\u300D", reason: "\u672C\u4F5C\u7684\u571F\u8033\u5176\u6C92\u6709\u99AC\u5F13\u9A0E\u5175" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u7832\u5175\u300D", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u706B\u7832\u8207\u706B\u7832\u5854" }],
+    sources: [site("civs/Turks"), site("units/Janissary"), site("techs/Sipahi"), site("techs/Artillery"), site("tree/tur")]
+  },
+  {
+    id: "chinese",
+    name: "\u4E2D\u570B",
+    nameEn: "Chinese",
+    type: "\u5F13\u5175\u6587\u660E",
+    architecture: "eastasia",
+    missing: ["crop-rotation", "redemption", "heresy"],
+    missingLater: ["hussar", "paladin"],
+    uniqueUnits: ["chu-ko-nu"],
+    eliteUpgrades: ["elite-chu-ko-nu"],
+    uniqueTechs: [{ id: "great-wall", name: "\u9577\u57CE", nameEn: "Great Wall", age: 3, effectText: "\u7BAD\u5854\u8207\u57CE\u7246\u751F\u547D +30%" }, { id: "rocketry", name: "\u706B\u7BAD\u6280\u8853", nameEn: "Rocketry", age: 4, effectText: "\u9023\u5F29\u5175\u653B\u64CA +2\uFF0C\u5F29\u7832\u653B\u64CA +4" }],
+    effects: [
+      fx("chinese.villagers", "startVillagers", {}, 3, "\u958B\u5C40\u591A 3 \u540D\u6751\u6C11"),
+      fx("chinese.food", "startStock", {}, -200, "\u958B\u5C40\u98DF\u7269 -200", { resource: "food" }),
+      fx("chinese.wood", "startStock", {}, -50, "\u958B\u5C40\u6728\u6750 -50", { resource: "wood" }),
+      fx("chinese.tc-housing", "housing", { buildings: ["town-center"] }, 5, "\u57CE\u93AE\u4E2D\u5FC3\u53EF\u4F4F 10 \u4EBA"),
+      fx("chinese.tc-los", "los", { buildings: ["town-center"] }, 500, "\u57CE\u93AE\u4E2D\u5FC3\u8996\u91CE +5"),
+      fx("chinese.techs", "cost", { allTechs: true, exclude: ["age-2", "age-3", "age-4"] }, [1, 0.9, 0.85, 0.8], "\u79D1\u6280\u4FBF\u5B9C\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 -10% / -15% / -20%"),
+      fx("chinese.team-farms", "farmFood", {}, 45, "\u5718\u968A\u52A0\u6210\uFF1A\u8FB2\u7530\u98DF\u7269 +45", { team: true }),
+      fx("chinese.great-wall", "buildingHp", { buildings: ["watch-tower"] }, 1.3, "\u9577\u57CE\uFF1A\u7BAD\u5854\u751F\u547D +30%", { tech: "great-wall" }),
+      fx("chinese.rocketry", "attack", { kinds: ["chu-ko-nu"] }, 2, "\u706B\u7BAD\u6280\u8853\uFF1A\u9023\u5F29\u5175\u653B\u64CA +2", { tech: "rocketry" })
+    ],
+    omitted: [{ text: "\u7206\u7834\u8239\u751F\u547D +50%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u706B\u7BAD\u6280\u8853\u7684\u5F29\u7832 +4", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5F29\u7832" }, { text: "\u9577\u57CE\u7684\u57CE\u7246 +30%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u57CE\u7246" }],
+    sources: [site("civs/Chinese"), site("units/Chu_Ko_Nu"), site("techs/Great_Wall"), site("techs/Rocketry"), site("tree/chi")]
+  },
+  {
+    id: "japanese",
+    name: "\u65E5\u672C",
+    nameEn: "Japanese",
+    type: "\u6B65\u5175\u6587\u660E",
+    architecture: "eastasia",
+    missing: ["crop-rotation", "stone-shaft-mining", "plate-barding-armor", "heresy"],
+    missingLater: ["paladin", "siege-ram", "camel", "bombard-cannon", "bombard-tower", "heated-shot", "architecture", "missionary"],
+    uniqueUnits: ["samurai"],
+    eliteUpgrades: ["elite-samurai"],
+    uniqueTechs: [{ id: "yasama", name: "\u5C04\u7BAD\u5B54", nameEn: "Yasama", age: 3, effectText: "\u7BAD\u5854\u591A\u5C04\u5169\u652F\u7BAD" }, { id: "kataparuto", name: "\u5F48\u5C04\u5668", nameEn: "Kataparuto", age: 4, effectText: "\u5DE8\u578B\u6295\u77F3\u6A5F\u7D44\u88DD\u8207\u5C04\u901F\u63D0\u5347" }],
+    effects: [
+      fx("japanese.camps", "cost", { entries: ["lumber-camp", "mining-camp", "mill"] }, 0.5, "\u4F10\u6728\u5834\u3001\u63A1\u7926\u5834\u3001\u78E8\u574A\u4FBF\u5B9C 50%"),
+      fx("japanese.infantry-rate", "cooldown", infantry, [1, 0.9, 0.85, 0.75], "\u6B65\u5175\u653B\u64CA\u901F\u5EA6\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +10% / +15% / +25%"),
+      fx("japanese.yasama", "arrows", { buildings: ["watch-tower"] }, 2, "\u5C04\u7BAD\u5B54\uFF1A\u7BAD\u5854\u591A\u5C04\u5169\u652F\u7BAD", { tech: "yasama" })
+    ],
+    omitted: [{ text: "\u6F01\u8239\u751F\u547D\u5169\u500D\u3001\u9060\u7A0B\u8B77\u7532 +2\u3001\u5DE5\u4F5C\u901F\u5EA6\u63D0\u5347", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u6F01\u8239" }, { text: "\u5718\u968A\u52A0\u6210\uFF1A\u6230\u8239\u8996\u91CE +50%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u5F48\u5C04\u5668\u300D", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5DE8\u578B\u6295\u77F3\u6A5F" }],
+    sources: [site("civs/Japanese"), site("units/Samurai"), site("techs/Yasama"), site("techs/Kataparuto"), site("tree/jap")]
+  },
+  {
+    id: "mongols",
+    name: "\u8499\u53E4",
+    nameEn: "Mongols",
+    type: "\u99AC\u5F13\u9A0E\u5175\u6587\u660E",
+    architecture: "eastasia",
+    missing: ["two-man-saw", "crop-rotation", "plate-barding-armor", "ring-archer-armor", "redemption", "sanctity", "faith", "block-printing"],
+    missingLater: ["paladin", "keep", "halberdier", "bombard-cannon", "bombard-tower", "elite-cannon-galleon", "heated-shot", "architecture"],
+    uniqueUnits: ["mangudai"],
+    eliteUpgrades: ["elite-mangudai"],
+    uniqueTechs: [{ id: "nomads", name: "\u6E38\u7267", nameEn: "Nomads", age: 3, effectText: "\u6C11\u5C45\u88AB\u6467\u6BC0\u5F8C\u4EBA\u53E3\u4E0A\u9650\u4E0D\u4E0B\u964D" }, { id: "drill", name: "\u947F\u5CA9\u6A5F", nameEn: "Drill", age: 4, effectText: "\u653B\u57CE\u5668\u5DE5\u574A\u7684\u55AE\u4F4D\u79FB\u52D5\u901F\u5EA6 +50%" }],
+    effects: [
+      fx("mongols.horse-archers", "cooldown", { classes: ["cavalry-archer"] }, 1 / 1.2, "\u99AC\u5F13\u9A0E\u5175\u5C04\u901F +20%"),
+      fx("mongols.light-cavalry", "hp", { kinds: ["scout"] }, 1.3, "\u8F15\u9A0E\u5175\u751F\u547D +30%", { tech: "light-cavalry" }),
+      fx("mongols.hunters", "gather", { sources: ["hunt"] }, 40, "\u6253\u7375\u901F\u5EA6 +40%"),
+      fx("mongols.team-scouts", "los", { kinds: ["scout"] }, 200, "\u5718\u968A\u52A0\u6210\uFF1A\u65A5\u5019\u8996\u91CE +2", { team: true }),
+      fx("mongols.nomads", "keepHousing", { buildings: ["house"] }, 1, "\u6E38\u7267\uFF1A\u6C11\u5C45\u88AB\u6467\u6BC0\u5F8C\u4EBA\u53E3\u4E0A\u9650\u4E0D\u4E0B\u964D", { tech: "nomads" }),
+      fx("mongols.drill", "speed", { classes: ["siege"] }, 1.5, "\u947F\u5CA9\u6A5F\uFF1A\u653B\u57CE\u5668\u79FB\u52D5\u901F\u5EA6 +50%", { tech: "drill" })
+    ],
+    omitted: [],
+    sources: [site("civs/Mongols"), site("units/Mangudai"), site("techs/Nomads"), site("techs/Drill"), site("tree/mon")]
+  }
+];
+var uniqueUnitOwner = Object.fromEntries(civDefs.flatMap((c) => [...c.uniqueUnits, ...c.eliteUpgrades, ...c.uniqueTechs.map((t) => t.id)].map((id) => [id, c.id])));
+var civById = (id) => civDefs.find((c) => c.id === id);
 
 // packages/sim/terrain.ts
 var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, maxLandStep: 25, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200, farm: 250 }, generationAttempts: 8 };
@@ -1068,20 +1835,20 @@ function createTiles(layout = "meadow", seed = 0) {
       if (x === 7 || x === 8) terrainType = y >= 7 && y <= 9 ? "shallow" : "water";
       else if (x === 6 || x === 9) terrainType = "sand";
     }
-    const tile = { id, terrainType, ...terrainDefinitions[terrainType], resourceRefs: [], obstacleRefs: [] };
+    const tile2 = { id, terrainType, ...terrainDefinitions[terrainType], resourceRefs: [], obstacleRefs: [] };
     if (layout === "acceptance") {
       if (x >= 2 && x <= 5 && y >= 11 && y <= 14) {
-        tile.terrainType = x === 2 && y === 11 ? "cliff" : x === 3 && y === 13 ? "stone" : "highland";
-        Object.assign(tile, terrainDefinitions[tile.terrainType]);
-        tile.height = 100;
+        tile2.terrainType = x === 2 && y === 11 ? "cliff" : x === 3 && y === 13 ? "stone" : "highland";
+        Object.assign(tile2, terrainDefinitions[tile2.terrainType]);
+        tile2.height = 100;
       }
       if (x === 4 && y >= 8 && y <= 10) {
-        tile.terrainType = "road";
-        tile.height = (y - 7) * 25;
-        tile.buildability = false;
+        tile2.terrainType = "road";
+        tile2.height = (y - 7) * 25;
+        tile2.buildability = false;
       }
     }
-    return tile;
+    return tile2;
   });
 }
 var sizeOfTiles = (tiles) => Math.round(Math.sqrt(tiles.length));
@@ -1091,8 +1858,8 @@ function groundHeight(tiles, x, y) {
 function tileAt(x, y, size) {
   return Math.floor(y / 100) * size + Math.floor(x / 100);
 }
-function canTraverse(tile, movement) {
-  return tile.walkClass === movement || tile.walkClass === "both";
+function canTraverse(tile2, movement) {
+  return tile2.walkClass === movement || tile2.walkClass === "both";
 }
 
 // packages/sim/navigation.ts
@@ -1359,10 +2126,10 @@ function clearSegment(map, a, b, movement = "land") {
   const maxStep = movement === "land" ? terrainRules.maxLandStep : 0, radius = navigationRules.radius;
   const tx0 = Math.max(0, Math.floor((Math.min(a.x, b.x) - radius) / 100) - 1), tx1 = Math.min(size - 1, Math.floor((Math.max(a.x, b.x) + radius) / 100) + 1), ty0 = Math.max(0, Math.floor((Math.min(a.y, b.y) - radius) / 100) - 1), ty1 = Math.min(size - 1, Math.floor((Math.max(a.y, b.y) + radius) / 100) + 1);
   for (let y = ty0; y <= ty1; y++) for (let x = tx0; x <= tx1; x++) {
-    const tile = map.tiles[y * size + x];
-    if (x < size - 1 && Math.abs(tile.height - map.tiles[tile.id + 1].height) > maxStep && intersects(a, b, [(x + 1) * 100 - radius, y * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
-    if (y < size - 1 && Math.abs(tile.height - map.tiles[tile.id + size].height) > maxStep && intersects(a, b, [x * 100 - radius, (y + 1) * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
-    if (!canTraverse(tile, movement) && intersects(a, b, [x * 100 - radius, y * 100 - radius, x * 100 + 100 + radius, y * 100 + 100 + radius])) return false;
+    const tile2 = map.tiles[y * size + x];
+    if (x < size - 1 && Math.abs(tile2.height - map.tiles[tile2.id + 1].height) > maxStep && intersects(a, b, [(x + 1) * 100 - radius, y * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
+    if (y < size - 1 && Math.abs(tile2.height - map.tiles[tile2.id + size].height) > maxStep && intersects(a, b, [x * 100 - radius, (y + 1) * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
+    if (!canTraverse(tile2, movement) && intersects(a, b, [x * 100 - radius, y * 100 - radius, x * 100 + 100 + radius, y * 100 + 100 + radius])) return false;
   }
   for (const o of map.obstacles) for (const [x0, y0, x1, y1] of obstacleRects(o, navigationRules.radius)) {
     let lo = 0, hi = 1;
@@ -1401,10 +2168,10 @@ function validateMap(map) {
   const obstacles = new Set(map.obstacles.map((o) => o.id)), resources = new Set(map.resources.map((r) => r.id));
   if (obstacles.size !== map.obstacles.length || obstacles.has(void 0)) errors.push("\u969C\u7919 ID \u91CD\u8907\u6216\u7F3A\u5C11");
   if (resources.size !== map.resources.length) errors.push("\u8CC7\u6E90 ID \u91CD\u8907");
-  for (const tile of map.tiles) {
-    if (!Number.isSafeInteger(tile.height) || tile.height < 0) errors.push(`\u5730\u683C ${tile.id} \u9AD8\u5EA6\u7121\u6548`);
-    if (!["land", "water", "both", "blocked"].includes(tile.walkClass) || typeof tile.buildability !== "boolean") errors.push(`\u5730\u683C ${tile.id} \u901A\u884C\u6216\u5EFA\u9020\u898F\u5247\u7121\u6548`);
-    if (tile.resourceRefs.some((id) => !resources.has(id)) || tile.obstacleRefs.some((id) => !obstacles.has(id))) errors.push(`\u5730\u683C ${tile.id} \u53C3\u7167\u5931\u6548`);
+  for (const tile2 of map.tiles) {
+    if (!Number.isSafeInteger(tile2.height) || tile2.height < 0) errors.push(`\u5730\u683C ${tile2.id} \u9AD8\u5EA6\u7121\u6548`);
+    if (!["land", "water", "both", "blocked"].includes(tile2.walkClass) || typeof tile2.buildability !== "boolean") errors.push(`\u5730\u683C ${tile2.id} \u901A\u884C\u6216\u5EFA\u9020\u898F\u5247\u7121\u6548`);
+    if (tile2.resourceRefs.some((id) => !resources.has(id)) || tile2.obstacleRefs.some((id) => !obstacles.has(id))) errors.push(`\u5730\u683C ${tile2.id} \u53C3\u7167\u5931\u6548`);
   }
   for (const r of map.resources) {
     if (!resourceDefinitions[r.kind]) {
@@ -1532,16 +2299,26 @@ function advancePathJob(map, job, budget) {
 }
 
 // apps/web/scene.ts
-var weaponOf = (kind) => kind === "militia" || kind === "knight" ? "sword" : kind === "archer" ? "bow" : kind === "scout" || kind === "spearman" || kind === "skirmisher" ? "spear" : kind === "monk" ? "staff" : "none";
+var weaponOf = (kind) => kind === "militia" || kind === "knight" ? "sword" : kind === "archer" ? "bow" : kind === "scout" || kind === "spearman" || kind === "skirmisher" ? "spear" : kind === "monk" ? "staff" : uniqueWeapon(kind);
+var uniqueWeapon = (kind) => {
+  const role = roleOf(kind);
+  return isMounted(role) ? mounts[role].tool : role === "villager" ? "none" : roleTools[role];
+};
+var iconUniques = ["longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "cataphract", "war-elephant", "mameluke", "janissary", "chu-ko-nu", "samurai", "mangudai"];
+var unitFrame = (kind) => {
+  const role = roleOf(kind);
+  return role === "war-elephant" ? { bar: 3.05, ring: 2.4 } : isMounted(role) ? { bar: 2.3, ring: 1.8 } : { bar: 1.42, ring: 1 };
+};
+var architectureOf = (civs, player) => civById(civs?.[player] ?? "")?.architecture ?? "neutral";
 var brickStyle = { studPitch: 0.5, plateHeight: 0.16, brickHeight: 0.32, bevel: 0.025, roughness: 0.62, provenance: "original_procedural" };
-function farmParts(progress, red) {
+function farmParts(progress, red2) {
   const out = [{ x: 0, y: 0, z: 0, w: 2, d: 2, h: 0.1, color: "#806b49", studs: false }];
   if (progress < 100) {
-    out.push({ x: 0.05, y: 0.1, z: 0.05, w: 0.08, d: 0.08, h: 0.4, color: red ? "#b85c47" : "#456e87", studs: false });
+    out.push({ x: 0.05, y: 0.1, z: 0.05, w: 0.08, d: 0.08, h: 0.4, color: red2 ? "#b85c47" : "#456e87", studs: false });
     return out;
   }
   for (const z of [0.2, 0.7, 1.2, 1.7]) out.push({ x: 0.15, y: 0.1, z: z - 0.1, w: 1.7, d: 0.2, h: 0.12, color: "#9bb65a", studs: true });
-  out.push({ x: 0.05, y: 0.1, z: 0.05, w: 0.08, d: 0.08, h: 0.4, color: red ? "#b85c47" : "#456e87", studs: false });
+  out.push({ x: 0.05, y: 0.1, z: 0.05, w: 0.08, d: 0.08, h: 0.4, color: red2 ? "#b85c47" : "#456e87", studs: false });
   return out;
 }
 async function createScene(canvas, onFailure, options = {}) {
@@ -1643,10 +2420,10 @@ async function createScene(canvas, onFailure, options = {}) {
     }
     staticPart(geometry.get(key), color, x + 0.5, -0.24, z + 0.5);
   }
-  let previewBuildingKind = "house";
+  let previewBuildingKind = "house", previewStyle = "neutral";
   let previewBuilding = { ageVariant: 2, progress: 100, health: 100 };
-  function house(x, z, red = false, obstacleKind = "house", progress = 100, age = 2, health = 100) {
-    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, health, ageVariant: Math.min(4, Math.max(1, age)) }, parts = kind === "house" ? buildingParts({ ...visual, red }) : kind === "monastery" ? monasteryParts({ ...visual, red }) : kind === "blacksmith" ? blacksmithParts({ ...visual, red }) : kind === "watch-tower" ? towerParts({ ...visual, red }) : kind === "siege-workshop" ? siegeWorkshopParts({ ...visual, red }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red }) : economicBuildingParts(kind, { ...visual, red });
+  function house(x, z, red2 = false, obstacleKind = "house", progress = 100, age = 2, health = 100, style = "neutral") {
+    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, health, ageVariant: Math.min(4, Math.max(1, age)) }, parts = regionalParts(kind === "house" ? buildingParts({ ...visual, red: red2 }) : kind === "monastery" ? monasteryParts({ ...visual, red: red2 }) : kind === "blacksmith" ? blacksmithParts({ ...visual, red: red2 }) : kind === "watch-tower" ? towerParts({ ...visual, red: red2 }) : kind === "siege-workshop" ? siegeWorkshopParts({ ...visual, red: red2 }) : kind === "castle" ? castleParts({ ...visual, red: red2 }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red: red2 }) : economicBuildingParts(kind, { ...visual, red: red2 }), kind === "farm" ? "neutral" : options.assetPreview ? previewStyle : style);
     for (const p of parts) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, false, p.shape);
     for (const stud of buildingStuds(parts)) staticPart(studGeo, stud.color, x + stud.x, stud.y, z + stud.z);
   }
@@ -1660,7 +2437,7 @@ async function createScene(canvas, onFailure, options = {}) {
     scene.add(staticGroup);
     batches.clear();
     baseHeight = 0;
-    const map = options.assetPreview ? makeMap(seed, previewLayout) : { tiles: view.terrain.map((tile, id) => ({ ...tile, id, resourceRefs: [], obstacleRefs: [] })), obstacles: view.known.map((k) => k.obstacle), resources: view.resources };
+    const map = options.assetPreview ? makeMap(seed, previewLayout) : { tiles: view.terrain.map((tile2, id) => ({ ...tile2, id, resourceRefs: [], obstacleRefs: [] })), obstacles: view.known.map((k) => k.obstacle), resources: view.resources };
     worldTiles = map.tiles;
     board = sizeOfTiles(map.tiles);
     platforms = map.obstacles.flatMap((o) => {
@@ -1668,20 +2445,20 @@ async function createScene(canvas, onFailure, options = {}) {
       return p ? [{ x0: o.x + p.rect[0], y0: o.y + p.rect[1], x1: o.x + p.rect[2], y1: o.y + p.rect[3], height: p.height }] : [];
     });
     let rng = seed || 1;
-    for (const tile of map.tiles) {
-      const x = tile.id % board, z = Math.floor(tile.id / board);
+    for (const tile2 of map.tiles) {
+      const x = tile2.id % board, z = Math.floor(tile2.id / board);
       rng ^= rng << 13;
       rng ^= rng >>> 17;
       rng ^= rng << 5;
       const n = (rng >>> 0) / 4294967296;
-      groundBlock(x, z, tile.height / 100, !options.assetPreview && view.fog[tile.id] !== 2 ? view.fog[tile.id] === 1 ? "#626e64" : "#293e38" : tile.terrainType === "cliff" ? "#8a8065" : tile.terrainType === "stone" ? "#a1a28e" : tile.terrainType === "highland" ? "#879d69" : tile.terrainType === "water" ? "#4b8291" : tile.terrainType === "shallow" ? "#86b7b8" : tile.terrainType === "sand" ? "#d5c598" : tile.terrainType === "road" ? "#c4b18a" : n < 0.2 ? "#a6b582" : n < 0.5 ? "#b5c493" : "#becda0");
+      groundBlock(x, z, tile2.height / 100, !options.assetPreview && view.fog[tile2.id] !== 2 ? view.fog[tile2.id] === 1 ? "#626e64" : "#293e38" : tile2.terrainType === "cliff" ? "#8a8065" : tile2.terrainType === "stone" ? "#a1a28e" : tile2.terrainType === "highland" ? "#879d69" : tile2.terrainType === "water" ? "#4b8291" : tile2.terrainType === "shallow" ? "#86b7b8" : tile2.terrainType === "sand" ? "#d5c598" : tile2.terrainType === "road" ? "#c4b18a" : n < 0.2 ? "#a6b582" : n < 0.5 ? "#b5c493" : "#becda0");
     }
     for (const o of map.obstacles) {
       baseHeight = groundHeight(map.tiles, o.x, o.y) / 100;
       muted = !options.assetPreview && view.fog[tileAt(o.x, o.y, sizeOfTiles(map.tiles))] !== 2;
       const x = o.x / 100, z = o.y / 100;
       if (o.kind === "farm") for (const p of farmParts(o.progress ?? 100, o.red)) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, p.studs);
-      else if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks" || o.kind === "lumber-camp" || o.kind === "mining-camp" || o.kind === "mill" || o.kind === "stable" || o.kind === "archery-range" || o.kind === "monastery" || o.kind === "blacksmith" || o.kind === "watch-tower" || o.kind === "siege-workshop") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100);
+      else if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks" || o.kind === "lumber-camp" || o.kind === "mining-camp" || o.kind === "mill" || o.kind === "stable" || o.kind === "archery-range" || o.kind === "monastery" || o.kind === "blacksmith" || o.kind === "watch-tower" || o.kind === "siege-workshop" || o.kind === "castle") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100, options.assetPreview ? "neutral" : architectureOf(view.civs, o.red ? 1 : 0));
       else if (o.kind === "tree") {
         let v = Math.imul(o.x | 0, 73856093) ^ Math.imul(o.y | 0, 19349663);
         v = Math.imul(v ^ v >>> 16, 73244475);
@@ -1758,8 +2535,8 @@ async function createScene(canvas, onFailure, options = {}) {
   function unit(id, player, kind = "villager") {
     const group = new T.Group();
     scene.add(group);
-    const beast = isAnimal(kind), bar = new T.Group();
-    bar.position.y = beast ? kind === "deer" ? 1.3 : 0.95 : 1.42;
+    const beast = isAnimal(kind), frame = unitFrame(kind), bar = new T.Group();
+    bar.position.y = beast ? kind === "deer" ? 1.3 : 0.95 : frame.bar;
     bar.visible = false;
     const back = new T.Mesh(barGeo, barBack);
     const fill = new T.Mesh(barGeo, new T.MeshBasicMaterial({ color: player === 0 ? "#5f9a6a" : player === 1 ? "#c0604c" : "#c9b27a" }));
@@ -1775,6 +2552,7 @@ async function createScene(canvas, onFailure, options = {}) {
     detail.apply(group, zoom);
     const ring = new T.Mesh(ringGeo, ringMaterial);
     ring.position.y = 0.025;
+    if (!beast) ring.scale.set(frame.ring, 1, frame.ring);
     group.add(ring);
     units.set(id, { group, rig, ring, player, moving: false, activity: "idle", tool: "none", poseStart: 0, bar, fill, goal: null, kind, relic: null });
     return units.get(id);
@@ -1817,7 +2595,7 @@ async function createScene(canvas, onFailure, options = {}) {
   function update(view, ids) {
     latest = view;
     selected = new Set(typeof ids === "number" ? [ids] : ids);
-    const key = JSON.stringify([previewBuildingKind, previewBuilding, previewLayout, view.layout, view.seed, view.fog, view.known?.map((k) => k.obstacle), view.resources]);
+    const key = JSON.stringify([previewBuildingKind, previewBuilding, previewStyle, previewLayout, view.layout, view.seed, view.civs, view.fog, view.known?.map((k) => k.obstacle), view.resources]);
     if (worldKey !== key) {
       worldKey = key;
       const t = performance.now();
@@ -1931,7 +2709,7 @@ async function createScene(canvas, onFailure, options = {}) {
     if (groundHit) return { x: groundHit.point.x, y: groundHit.point.z };
     return {};
   }
-  const buildingHeights = { "town-center": 2.6, barracks: 2.2, house: 1.9, farm: 0.25, "lumber-camp": 1.9, "mining-camp": 1.9, mill: 2.6, stable: 2.2, "archery-range": 2.2, blacksmith: 2.4, "watch-tower": 3.2, "siege-workshop": 2.2, monastery: 3.4 };
+  const buildingHeights = { "town-center": 2.6, barracks: 2.2, house: 1.9, farm: 0.25, "lumber-camp": 1.9, "mining-camp": 1.9, mill: 2.6, stable: 2.2, "archery-range": 2.2, blacksmith: 2.4, "watch-tower": 3.2, "siege-workshop": 2.2, monastery: 3.4, castle: 4.7 };
   function pickBuilding(clientX, clientY) {
     if (!latest) return;
     const r = canvas.getBoundingClientRect();
@@ -2129,15 +2907,16 @@ async function createScene(canvas, onFailure, options = {}) {
         shoot(kind, g, { angle: Math.PI / 3, lift: 0.35 });
         shoot(`${kind}-face`, g, { angle: Math.PI / 3, lift: 0.35 });
       }
-      for (const kind of ["villager", "militia", "archer", "scout", "monk", "spearman", "skirmisher", "knight"]) {
+      for (const kind of ["villager", "militia", "archer", "scout", "monk", "spearman", "skirmisher", "knight", ...iconUniques]) {
         const rig = createCharacterRig(T, 0, box, material);
         if (kind !== "villager") rig.dress(roleOf(kind));
         rig.equip(weaponOf(kind));
         rig.pose("idle", 0);
         const g = new T.Group();
         g.add(rig.root);
+        const role = roleOf(kind);
         shoot(kind, g, { angle: Math.PI / 7, lift: 0.35 });
-        shoot(`${kind}-face`, g, kind === "scout" || kind === "knight" ? { angle: Math.PI / 7, lift: 0.35, crop: 0.74, span: 0.21 } : { angle: Math.PI / 7, lift: 0.35, crop: 0.72 });
+        shoot(`${kind}-face`, g, role === "war-elephant" ? { angle: Math.PI / 7, lift: 0.35, crop: 0.81, span: 0.15 } : role === "mameluke" || role === "mangudai" ? { angle: Math.PI / 7, lift: 0.35, crop: 0.84, span: 0.23 } : isMounted(role) ? { angle: Math.PI / 7, lift: 0.35, crop: 0.74, span: 0.21 } : { angle: Math.PI / 7, lift: 0.35, crop: 0.72 });
       }
       const visual = (age) => ({ ageVariant: age, progress: 100, health: 100, red: false });
       for (const age of [1, 2, 3, 4]) {
@@ -2149,6 +2928,7 @@ async function createScene(canvas, onFailure, options = {}) {
         shoot(`blacksmith-${age}`, parts(blacksmithParts(visual(age))));
         shoot(`watch-tower-${age}`, parts(towerParts(visual(age))));
         shoot(`siege-workshop-${age}`, parts(siegeWorkshopParts(visual(age))));
+        shoot(`castle-${age}`, parts(castleParts(visual(age))));
         shoot(`town-center-${age}`, parts(economicBuildingParts("town-center", visual(age))));
         for (const camp of ["lumber-camp", "mining-camp", "mill"]) shoot(`${camp}-${age}`, parts(economicBuildingParts(camp, visual(age))));
       }
@@ -2200,17 +2980,23 @@ async function createScene(canvas, onFailure, options = {}) {
     renderIcons,
     cameraView,
     setPreviewBuildingKind: (kind) => {
-      if (!options.assetPreview || kind !== "house" && !economicBuildings.includes(kind) && !militaryBuildings.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5EFA\u7BC9");
+      if (!options.assetPreview || kind !== "house" && kind !== "castle" && !economicBuildings.includes(kind) && !militaryBuildings.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5EFA\u7BC9");
       previewBuildingKind = kind;
       if (latest) update(latest, selected);
     },
+    setPreviewStyle: (style) => {
+      if (!options.assetPreview || !architectures.includes(style)) throw Error("\u672A\u77E5\u5EFA\u7BC9\u98A8\u683C");
+      previewStyle = style;
+      if (latest) update(latest, selected);
+    },
     setPreviewRole: (role) => {
-      if (!options.assetPreview || !unitRoles.includes(role) && role !== "cavalry") throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u6709\u6548\u8ECD\u7A2E");
+      if (!options.assetPreview || !unitRoles.includes(role) && !isMounted(role)) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u6709\u6548\u8ECD\u7A2E");
       previewRole = role;
       previewPose = "idle";
+      const ring = role === "war-elephant" ? 2.4 : isMounted(role) ? 1.8 : 1;
       for (const u of units.values()) {
         u.rig.dress(role);
-        u.ring.scale.set(role === "cavalry" ? 1.8 : 1, 1, role === "cavalry" ? 1.8 : 1);
+        u.ring.scale.set(ring, 1, ring);
         detail.apply(u.group, zoom);
       }
     },
@@ -2242,7 +3028,7 @@ async function createScene(canvas, onFailure, options = {}) {
     },
     setPreviewMotion: (pose, tool, animated) => {
       if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u59FF\u614B");
-      if (previewRole === "cavalry" && !["idle", "walk", "attack"].includes(pose) || !unitPoses.includes(pose) || !unitTools.includes(tool)) throw Error("\u672A\u77E5\u6A21\u578B\u59FF\u614B\u6216\u5DE5\u5177");
+      if (isMounted(previewRole) && !["idle", "walk", "attack"].includes(pose) || !unitPoses.includes(pose) || !unitTools.includes(tool)) throw Error("\u672A\u77E5\u6A21\u578B\u59FF\u614B\u6216\u5DE5\u5177");
       previewPose = pose;
       previewTool = tool;
       previewAnimated = animated;
@@ -2317,8 +3103,10 @@ async function createScene(canvas, onFailure, options = {}) {
   };
 }
 export {
+  architectureOf,
   brickStyle,
   createScene,
   farmParts,
+  unitFrame,
   weaponOf
 };

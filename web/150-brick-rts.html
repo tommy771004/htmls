@@ -7,7 +7,7 @@ button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer}:f
 /* Top bar: a dark plate with one stud row along its lower edge. */
 .topbar{position:relative;display:flex;align-items:center;gap:18px;padding:0 14px;background:var(--plate);border-bottom:3px solid var(--plate-edge);z-index:3}
 .res{display:flex;align-items:center;gap:16px;min-width:0}.r{display:flex;align-items:center;gap:6px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}.r img{width:26px;height:26px;object-fit:contain}.r b{min-width:3ch;font-weight:650}.r.full b{color:#f0a48f}.r[hidden]{display:none}
-.age{position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;font-weight:700;letter-spacing:.08em;color:var(--gold);white-space:nowrap}
+.age{position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;font-weight:700;letter-spacing:.08em;color:var(--gold);white-space:nowrap}#civ-name{color:var(--cream);font-weight:650;letter-spacing:.04em}#civ-name:not(:empty)::after{content:"·";margin:0 .5em;color:var(--muted)}
 .sys{display:flex;align-items:center;gap:8px;margin-left:auto}#clock{font-variant-numeric:tabular-nums;color:var(--muted);min-width:5ch;text-align:right}
 .bar-btn{height:32px;min-width:34px;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--tile);border:0;border-bottom:3px solid var(--tile-edge);border-radius:3px;font-size:13px;font-weight:600}.bar-btn:hover{background:var(--tile-hover)}.bar-btn:active{border-bottom-width:1px;margin-top:2px}.bar-btn:disabled{opacity:.45;cursor:default}.bar-btn svg{width:14px;height:14px;fill:currentColor}
 #speed{height:32px;background:var(--tile);border:0;border-bottom:3px solid var(--tile-edge);border-radius:3px;padding:0 6px;font-size:13px;font-weight:600}
@@ -30,7 +30,7 @@ canvas#map{position:absolute;inset:0;width:100%;height:100%;display:block;touch-
 .cmd{position:relative;background:var(--well);border-radius:3px;padding:8px}
 .slots,#commands{display:grid;grid-template-columns:repeat(5,48px);grid-template-rows:repeat(3,48px);gap:5px}.slots{position:absolute;inset:8px;pointer-events:none}.slots i{background:#222d28;border-radius:3px}
 #production{display:contents}#production[hidden]{display:none}img:not([src]){visibility:hidden}#cmd-note p{margin:0}.tile{position:relative;width:48px;height:48px;padding:0;background:var(--tile);border:0;border-bottom:4px solid var(--tile-edge);border-radius:3px;display:grid;place-items:center;overflow:hidden}.tile:hover:not(:disabled){background:var(--tile-hover)}.tile:active:not(:disabled){border-bottom-width:2px;padding-top:2px}.tile[hidden]{display:none}.tile:disabled{cursor:default}.tile:disabled img{filter:grayscale(1) brightness(.62)}.tile[aria-pressed=true]{background:#6f6034;border-bottom-color:#4a3f20}
-.tile img{width:40px;height:40px;object-fit:contain;pointer-events:none}.tile kbd{position:absolute;right:3px;top:1px;font:700 10.5px/1.2 system-ui,sans-serif;color:var(--cream);opacity:.85}.tile .label{display:none;font-size:11px;line-height:1.1;padding:0 2px}.no-icons .tile img{display:none}.no-icons .tile .label{display:block}.tile .roman{position:absolute;left:3px;bottom:0;font:700 11px/1.3 Georgia,serif;color:var(--gold)}.tile svg{width:24px;height:24px;fill:var(--cream)}
+.tile img{width:40px;height:40px;object-fit:contain;pointer-events:none}.tile img:not([src]){display:none}.tile img:not([src])+.label{display:block}.tile kbd{position:absolute;right:3px;top:1px;font:700 10.5px/1.2 system-ui,sans-serif;color:var(--cream);opacity:.85}.tile .label{display:none;font-size:11px;line-height:1.1;padding:0 2px}.no-icons .tile img{display:none}.no-icons .tile .label{display:block}.tile .roman{position:absolute;left:3px;bottom:0;font:700 11px/1.3 Georgia,serif;color:var(--gold)}.tile svg{width:24px;height:24px;fill:var(--cream)}
 #stop{grid-area:3/5}#cancel-build{grid-area:3/5}
 .sel{min-width:0;background:var(--well);border-radius:3px;padding:10px 14px;overflow:hidden}
 .sel-view{display:flex;gap:14px;height:100%;min-width:0}.sel-view[hidden]{display:none}
@@ -52,6 +52,9 @@ canvas#map{position:absolute;inset:0;width:100%;height:100%;display:block;touch-
 .menu-card h2{margin:0 0 14px;font-size:20px;color:var(--gold);letter-spacing:.1em;text-align:center}.menu-card .menu-btn{display:block;width:100%;height:42px;margin:0 0 8px;background:var(--tile);border:0;border-bottom:4px solid var(--tile-edge);border-radius:3px;font-weight:650}.menu-card .menu-btn:hover:not(:disabled){background:var(--tile-hover)}.menu-card .menu-btn:disabled{opacity:.45;cursor:default}.menu-card .resign[data-armed]{background:#7a3527;border-bottom-color:#4f2118}
 .menu-card fieldset{border:0;margin:18px 0 0;padding:0}.menu-card legend{padding:0 0 8px;color:var(--gold);font-size:13px;font-weight:650}.menu-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px;font-size:13px}.menu-row select,.menu-row input{width:170px;height:34px;background:var(--well);border:0;border-radius:3px;padding:0 8px}
 .volume{display:flex;align-items:center;gap:10px;width:170px}.volume input{flex:1;min-width:0;accent-color:var(--gold)}.volume output{width:4ch;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.civ-note{margin:-2px 0 10px;font-size:12px;line-height:1.5;color:var(--muted)}.civ-note b{color:var(--cream);font-weight:600}
+/* Encyclopedia: its own backdrop above the menu; apps/web/codex.ts renders the panel inside. */
+#codex{position:fixed;inset:0;z-index:11;display:grid;place-items:center;padding:16px;background:rgba(14,20,17,.78);overflow:auto;overscroll-behavior:contain}#codex[hidden]{display:none}#codex:focus{outline:none}#codex>*{max-width:100%;min-width:0}
 .keys{margin:0;padding:0;list-style:none;font-size:12.5px;color:var(--muted);display:grid;gap:3px}.keys b{color:var(--cream);font-weight:600}.menu-links{display:flex;justify-content:space-between;gap:12px;margin-top:14px;font-size:13px}.menu-links a{color:var(--cream)}
 /* Debug drawer (?debug=1): engineering tools and the text read by automated flows. */
 #debug{width:320px;flex:none;overflow:auto;background:#f5f2e9;color:#233e37;padding:12px 14px;font-size:12px;border-left:3px solid var(--plate-edge)}#debug[hidden]{display:none}#debug h3{font-size:12px;margin:12px 0 6px}#debug p{margin:4px 0}#debug button{background:#fffdf7;border:1px solid #cdd2c4;border-radius:3px;padding:5px 9px;font-size:12px}#debug button[aria-pressed=true]{background:#254b40;color:#fff}#debug input{width:64px;border:1px solid #cdd2c4;padding:3px}#debug .row{display:flex;gap:6px;flex-wrap:wrap;align-items:end}#debug details{margin-top:10px}#debug summary{cursor:pointer}#debug textarea{width:100%;min-height:200px;font:11px/1.4 ui-monospace,monospace}#debug b{font:14px ui-monospace,monospace}
@@ -81,7 +84,7 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
   <span class="r" id="pop" title="人口（已用／上限）"><img data-icon="villager-face" alt="人口"><b id="res-pop">0/0</b></span>
   <span class="r" id="relics" title="聖物" hidden><img data-icon="relic" alt="聖物"><b id="res-relics">0·0/0</b></span>
  </div>
- <div class="age" id="age-name">第一時代</div>
+ <div class="age"><span id="civ-name"></span><span id="age-name">第一時代</span></div>
  <div class="sys"><span id="clock" title="遊戲時間">00:00</span><label><span class="sr">遊戲速度</span><select id="speed" title="遊戲速度"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select></label><button id="pause" class="bar-btn" aria-pressed="false" aria-label="開始（F3）" title="開始／暫停（F3）"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg></button><button id="menu-open" class="bar-btn" aria-haspopup="dialog" title="選單（F10）">選單</button></div>
 </header>
 <main class="field">
@@ -123,6 +126,7 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
    <button id="build-blacksmith" class="tile" data-build="blacksmith" data-key="C" hidden><img data-icon="blacksmith-1" alt=""><span class="label">鐵匠鋪</span><kbd>C</kbd></button>
    <button id="build-watch-tower" class="tile" data-build="watch-tower" data-key="V" hidden><img data-icon="watch-tower-2" alt=""><span class="label">箭塔</span><kbd>V</kbd></button>
    <button id="build-siege-workshop" class="tile" data-build="siege-workshop" data-key="B" hidden><img data-icon="siege-workshop-3" alt=""><span class="label">攻城器工坊</span><kbd>B</kbd></button>
+   <button id="build-castle" class="tile" data-build="castle" data-key="Y" hidden><img data-icon="castle-3" alt=""><span class="label">城堡</span><kbd>Y</kbd></button>
    <div id="production"></div>
    <button id="cancel-build" class="tile" hidden aria-label="取消建造" data-tip="取消建造"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.3 4.2 12 9.9l5.7-5.7 2.1 2.1-5.7 5.7 5.7 5.7-2.1 2.1-5.7-5.7-5.7 5.7-2.1-2.1 5.7-5.7-5.7-5.7z"/></svg><kbd>Del</kbd></button>
    <button id="garrison-cmd" class="tile" hidden aria-label="進駐（G）" data-tip="進駐" data-key="G"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V9l8-6 8 6v12h-5v-6H9v6z"/></svg><kbd>G</kbd></button>
@@ -132,7 +136,7 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
   <div class="sel-view sel-empty" id="sel-empty"><b id="sel-empty-title">藍方 · 草甸</b><span>左鍵選取、拖曳框選；右鍵地面移動、右鍵資源採集、右鍵紅方目標攻擊。</span><span>方向鍵移動鏡頭 · H 城鎮中心 · . 閒置村民 · F3 暫停 · F10 選單</span></div>
   <div class="sel-view" id="sel-unit" hidden><div class="portrait"><img id="unit-portrait" alt=""></div><div class="sel-main"><h2><span id="unit-name"></span><small id="unit-owner">藍方</small></h2><div class="hp"><i><i id="unit-hp-bar"></i></i><span id="unit-hp"></span></div><div class="facts" id="unit-facts"></div><div class="facts"><span id="unit-status"></span></div></div></div>
   <div class="sel-view" id="sel-group" hidden><div id="group-summary"></div><div id="group-grid"></div></div>
-  <div class="sel-view" id="building-panel" hidden><div class="portrait"><img id="building-portrait" alt=""></div><div class="sel-main"><h2><span id="building-title"></span><small>藍方</small></h2><div class="hp"><i><i id="building-hp-bar"></i></i><span id="building-hp"></span></div><span id="building-status"></span><p id="rally-hint"></p></div><div id="queue" aria-label="生產佇列"></div></div>
+  <div class="sel-view" id="building-panel" hidden><div class="portrait"><img id="building-portrait" alt=""></div><div class="sel-main"><h2><span id="building-title"></span><small id="building-owner">藍方</small></h2><div class="hp"><i><i id="building-hp-bar"></i></i><span id="building-hp"></span></div><span id="building-status"></span><p id="rally-hint"></p></div><div id="queue" aria-label="生產佇列"></div></div>
  </div>
  <div class="mini"><div class="mini-map"><canvas id="minimap" aria-label="小地圖：左鍵移動鏡頭，右鍵對選取單位下達移動"></canvas></div>
   <div class="mini-tools"><button id="idle-villager" title="下一名閒置村民（.）" aria-label="下一名閒置村民"><img data-icon="villager-face" alt=""><span id="idle-count"></span></button><button id="zoom-in" title="拉近" aria-label="拉近鏡頭">+</button><button id="zoom-out" title="拉遠" aria-label="拉遠鏡頭">−</button><button id="rotate-view" title="旋轉視角" aria-label="旋轉視角 90 度"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a8 8 0 0 1 7.7 5.9H22l-3.5 4.6L15 9.9h2.5A5.8 5.8 0 1 0 17 15.8l1.9 1.2A8 8 0 1 1 12 4z"/></svg></button></div></div>
@@ -143,6 +147,7 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
  <button id="menu-close" class="menu-btn">回到遊戲</button>
  <button id="save" class="menu-btn">儲存遊戲</button>
  <button id="load" class="menu-btn">讀取遊戲</button>
+ <button id="codex-open" class="menu-btn" aria-haspopup="dialog" aria-controls="codex">百科</button>
  <button id="resign" class="menu-btn resign">投降</button>
  <fieldset><legend>設定</legend>
   <label class="menu-row">畫質 <select id="quality"><option value="high">高（銳利、柔和陰影）</option><option value="medium">中</option><option value="low">低（無陰影）</option></select></label>
@@ -150,6 +155,9 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
  </fieldset>
  <fieldset><legend>新遊戲</legend>
   <label class="menu-row">地圖 <select id="layout"><option value="open">曠野（32×32，隨機出生）</option><option value="meadow">草甸</option><option value="coast">海岸</option><option value="acceptance">高地與淺灘</option></select></label>
+  <label class="menu-row">藍方文明 <select id="civ-blue"></select></label>
+  <label class="menu-row">紅方文明 <select id="civ-red"></select></label>
+  <p class="civ-note" id="civ-note" aria-live="polite"></p>
   <label class="menu-row">紅方 <select id="opponent"><option value="ai">電腦（基本 AI）</option><option value="idle">不行動（練習）</option></select></label>
   <label class="menu-row">地圖種子 <input id="seed" type="number" min="0" max="4294967295" step="1" value="260925"></label>
   <button id="restart" class="menu-btn">開始新遊戲</button>
@@ -159,12 +167,13 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
   <li><b>左鍵</b> 選取 · <b>拖曳</b> 框選 · <b>Shift</b> 加減選</li>
   <li><b>右鍵</b> 地面移動、資源採集（含己方農田）、未完工建築施工、紅方目標攻擊</li>
   <li><b>選取建築時右鍵</b> 設定集結點</li>
-  <li><b>Q W E R T A D Z X C</b> 指令格 · <b>S</b> 停止 · <b>Del</b> 取消建造</li>
+  <li><b>Q W E R T A D Z X C V B Y</b> 指令格（<b>Y</b> 城堡） · <b>G</b> 進駐 · <b>S</b> 停止 · <b>Del</b> 取消建造</li>
   <li><b>Ctrl＋數字</b> 編組 · <b>數字</b> 叫回</li>
   <li><b>方向鍵</b> 移動鏡頭 · <b>F</b> 對準選取 · <b>H</b> 城鎮中心 · <b>.</b> 閒置村民 · <b>,</b> 全部軍隊</li>
   <li><b>觸控</b> 輕觸選取，選取後輕觸地面移動或採集</li>
  </ul></fieldset>
  <div class="menu-links"><a href="150-brick-rts-models.html">積木模型檢視</a><a href="../index.html#150">返回作品集</a></div>
 </div></div>
+<div id="codex" role="dialog" aria-modal="true" aria-label="百科" tabindex="-1" hidden></div>
 <noscript>請啟用 JavaScript 才能遊玩。</noscript>
-<script type="module" src="./assets/150-brick-rts/main.js?v=20260927-realism-5"></script><script>window.addEventListener('error',function(e){if(e.target&&e.target.tagName==='SCRIPT'){var box=document.getElementById('boot-error');box.hidden=false;box.textContent='模組載入失敗。請透過 HTTP 伺服器開啟，並確認已執行 npm run build。'}},true);</script></body></html>
+<script type="module" src="./assets/150-brick-rts/main.js?v=20260930-civs-1"></script><script>window.addEventListener('error',function(e){if(e.target&&e.target.tagName==='SCRIPT'){var box=document.getElementById('boot-error');box.hidden=false;box.textContent='模組載入失敗。請透過 HTTP 伺服器開啟，並確認已執行 npm run build。'}},true);</script></body></html>

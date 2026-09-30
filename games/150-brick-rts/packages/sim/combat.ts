@@ -3,10 +3,13 @@ import {forfeitReservation} from './economy.ts';
 import {refreshNavigation,position,navigationRules,blockedTable,nodesNear} from './navigation.ts';
 import {routeTo,cancelMovement,commandMove} from './movement.ts';
 import type {Unit} from './movement.ts';
-import {recomputeCapacity,closeFarm} from './buildings.ts';
+import {recomputeCapacity,closeFarm,housingOf} from './buildings.ts';
 import type {Building} from './buildings.ts';
 import type {WorkState} from './work.ts';
 import {combatRules,statsOf,hitDamage,buildingTarget} from './stats.ts';
+import type {CombatUnitKind} from './stats.ts';
+import {ownerOf,deathRefund,keepsHousing} from './civ.ts';
+import type {Owner} from './civ.ts';
 import {tileAt} from './terrain.ts';
 import type {KnownObstacle} from './vision.ts';
 import {isAnimal,makeCarcass} from './fauna.ts';
@@ -19,7 +22,7 @@ export type Corpse={id:number;player:number;kind:Unit['kind'];x:number;y:number;
 export type Outcome={winner:number|null;defeated:number[];tick:number;reason?:'resign'|'relic'};
 // beasts: animals that were struck and by whom (a deer flees from its hunter, a boar charges it; animals.ts).
 export type Beast={foe:number;cooldown:number;repath:number};
-export type CombatState=WorkState&{attacks:Record<number,Attack>;corpses:Corpse[];outcome:Outcome|null;beasts:Record<number,Beast>;vision:{visible:number[];explored:number[];known:KnownObstacle[]}[]};
+export type CombatState=WorkState&{keptHousing?:number[];attacks:Record<number,Attack>;corpses:Corpse[];outcome:Outcome|null;beasts:Record<number,Beast>;vision:{visible:number[];explored:number[];known:KnownObstacle[]}[]};
 const REPATH=20;
 function buildingBox(s:CombatState,b:Building){const o=s.map.obstacles.find(o=>o.id===b.id);return o?obstacleBounds(o):null;}
 // Chebyshev distance from a point to a unit centre or to a building footprint edge.
@@ -43,10 +46,10 @@ export function commandAttack(s:CombatState,unitIds:number[],t:Target){
 export function clearAttacks(s:CombatState,unitIds:number[]){for(const id of unitIds)delete s.attacks[id];}
 // Against a building, range counts from the unit's body edge (range + radius), like a builder's work ring;
 // otherwise some footprint offsets leave no free node inside the band that range-from-centre allows.
-const limit=(u:Unit,shape:{x:number;y:number}|number[],techs:readonly string[]=[])=>statsOf(u.kind,techs).range+(Array.isArray(shape)?navigationRules.radius:0);
+const limit=(u:Unit,shape:{x:number;y:number}|number[],owner:Owner|readonly string[]=[])=>statsOf(u.kind,owner).range+(Array.isArray(shape)?navigationRules.radius:0);
 // One hit from a unit with these numbers on a target: armor and bonuses of the target unit (its owner's research), or
 // a building's armor.
-export function damageOn(s:CombatState,attacker:ReturnType<typeof statsOf>,t:Target){if(t.kind==='building')return hitDamage(attacker,buildingTarget);const v=s.units.find(u=>u.id===t.id);return v?hitDamage(attacker,statsOf(v.kind,s.techs[v.player]??[])):0;}
+export function damageOn(s:CombatState,attacker:ReturnType<typeof statsOf>,t:Target){if(t.kind==='building')return hitDamage(attacker,buildingTarget);const v=s.units.find(u=>u.id===t.id);return v?hitDamage(attacker,statsOf(v.kind,ownerOf(s,v.player))):0;}
 // Free nodes within range of the target (range defaults to the unit's attack reach); monks use it for their rites too.
 export function approach(s:CombatState,u:Unit,shape:{x:number;y:number}|number[],range=limit(u,shape)){
  const out:number[]=[];
@@ -60,12 +63,16 @@ export function killUnit(s:CombatState,u:Unit){
  // An animal leaves its food where it fell; it never counted towards anyone's population.
  if(isAnimal(u.kind)){delete s.beasts[u.id];delete s.attacks[u.id];cancelMovement(s,u.id);s.units=s.units.filter(v=>v!==u);makeCarcass(s.map,u as Unit&{kind:AnimalKind});return;}
  const a=s.accounts[u.player],c=s.cargo[u.id];if(c){a.ledger.lost[c.resource]+=c.amount;delete s.cargo[u.id];}
+ // Madrasah: a fallen monk returns part of its gold to its owner.
+ const refund=u.kind in combatRules.units?deathRefund(ownerOf(s,u.player),u.kind,combatRules.units[u.kind as CombatUnitKind].classes):0;if(refund){a.stock.gold+=refund;a.ledger.refund.gold+=refund;}
  delete s.works[u.id];delete s.attacks[u.id];cancelMovement(s,u.id);a.populationUsed--;
  s.units=s.units.filter(v=>v!==u);s.corpses.push({id:u.id,player:u.player,kind:u.kind,x:u.x,y:u.y,tick:s.tick});
 }
 function destroyBuilding(s:CombatState,b:Building){
  const a=s.accounts[b.player];if(!b.complete&&b.reservationId)forfeitReservation(a,b.reservationId);for(const q of b.queue)forfeitReservation(a,q.reservationId);
  const o=s.map.obstacles.find(o=>o.id===b.id)!;s.map.obstacles=s.map.obstacles.filter(v=>v!==o);for(const t of s.map.tiles)t.obstacleRefs=t.obstacleRefs.filter(r=>r!==b.id);
+ // Nomads: a finished house that falls keeps its housing for its owner.
+ if(b.complete&&keepsHousing(ownerOf(s,b.player),b.kind)){(s.keptHousing??=[0,0])[b.player]+=housingOf(s,b.player,b.kind);}
  s.buildings=s.buildings.filter(v=>v!==b);if(b.kind==='farm')closeFarm(s,b.id,s.tick);refreshNavigation(s.map,obstacleBounds(o,navigationRules.radius));recomputeCapacity(s,b.player);
 }
 // attacker: who struck (a struck animal remembers the first one, see animals.ts).
@@ -75,12 +82,26 @@ export function strike(s:CombatState,t:Target,amount:number,attacker:number){
  // The damaged look (missing parts) appears below half health; it is appearance only.
  if(b.hp*2<b.maxHp)o.damaged=true;if(b.hp<=0)destroyBuilding(s,b);
 }
+// One attack: the hit itself, then any extra arrows (the Chu Ko Nu's) and splash on the enemy units next to a unit
+// target (Logistica's trample).
+function volley(s:CombatState,u:Unit,stats:ReturnType<typeof statsOf>,t:Target){
+ const at=t.kind==='unit'?s.units.find(v=>v.id===t.id):undefined,where=at?{x:at.x,y:at.y}:null;
+ strike(s,t,damageOn(s,stats,t),u.id);
+ for(let i=0;i<(stats.extraShots??0);i++){if(t.kind==='unit'&&!s.units.some(v=>v.id===t.id))break;strike(s,t,damageOn(s,{...stats,damage:stats.extraDamage??1,bonus:{}},t),u.id);}
+ if(stats.splash&&where)for(const v of [...s.units].sort((a,b)=>a.id-b.id))if(v.id!==(t as {id:number}).id&&v.player!==u.player&&!isAnimal(v.kind)&&reach(where,v)<=50&&s.units.includes(v))strike(s,{kind:'unit',id:v.id},damageOn(s,{...stats,damage:stats.splash,bonus:{}},{kind:'unit',id:v.id}),u.id);
+}
+// Regeneration (the Berserk): a hit point every so many ticks, up to the unit's maximum.
+function regenerate(s:CombatState){
+ for(const u of s.units){if(!(u.kind in combatRules.units))continue;const st=statsOf(u.kind as CombatUnitKind,ownerOf(s,u.player));if(!st.regen)continue;
+  const every=Math.max(1,Math.round(60*20/st.regen));if(s.tick%every===0&&u.hp<st.hp)u.hp=Math.min(st.hp,u.hp+1);}
+}
 export function stepCombat(s:CombatState){
+ regenerate(s);
  s.corpses=s.corpses.filter(c=>s.tick-c.tick<combatRules.corpseTicks);
  const busy=new Set(s.pathJobs.flatMap(j=>j.kind==='group'?j.unitIds:[j.unitId]));
  // Idle soldiers engage the nearest visible enemy unit within sight (lowest id on ties).
  for(const u of [...s.units].sort((a,b)=>a.id-b.id)){
-  const sight=statsOf(u.kind,s.techs[u.player]??[]).sight;if(!sight||s.attacks[u.id]||s.works[u.id]||u.next!==null||u.path.length||busy.has(u.id))continue;
+  const sight=statsOf(u.kind,ownerOf(s,u.player)).sight;if(!sight||s.attacks[u.id]||s.works[u.id]||u.next!==null||u.path.length||busy.has(u.id))continue;
   const seen=new Set(s.vision[u.player].visible);let best:Unit|null=null,dist=Infinity;
   // Animals are never picked automatically (hunting is an order); they have no sight here, so they pick no fights.
   for(const e of s.units)if(e.player!==u.player&&!isAnimal(e.kind)&&seen.has(tileAt(e.x,e.y,s.map.size))){const d=reach(u,e);if(d<=sight&&(d<dist||d===dist&&best&&e.id<best.id)){best=e;dist=d;}}
@@ -93,17 +114,17 @@ export function stepCombat(s:CombatState){
   // A remembered building that is gone: the order becomes a walk to where it stood (the memory clears on arrival).
   const r=resolve(s,a.target);if(!r){const o=a.target.kind==='building'?remembered(s,u.player,a.target.id):null;delete s.attacks[id];
    if(o){const [x0,y0,x1,y1]=obstacleBounds(o);commandMove(s,[u.id],{x:Math.round((x0+x1)/2),y:Math.round((y0+y1)/2)});}continue;}
-  const stats=statsOf(u.kind,s.techs[u.player]??[]);if(a.cooldown>0)a.cooldown--;
-  if(reach(u,r.shape)<=limit(u,r.shape,s.techs[u.player])){
+  const owner=ownerOf(s,u.player),stats=statsOf(u.kind,owner);if(a.cooldown>0)a.cooldown--;
+  if(reach(u,r.shape)<=limit(u,r.shape,owner)){
    if(u.next!==null)continue;
    if(u.path.length||busy.has(u.id)){cancelMovement(s,u.id);u.path=[];u.goal=null;u.target=null;}
    u.navigation='idle';
-   if(a.cooldown===0){a.cooldown=stats.cooldown;a.firedTick=s.tick;strike(s,a.target,damageOn(s,stats,a.target),u.id);}
+   if(a.cooldown===0){a.cooldown=stats.cooldown;a.firedTick=s.tick;volley(s,u,stats,a.target);}
    continue;
   }
   if(u.next!==null)continue;
   if(a.repath>0&&(u.path.length||busy.has(u.id))){a.repath--;continue;}
-  const nodes=approach(s,u,r.shape,limit(u,r.shape,s.techs[u.player]));if(!nodes.length){delete s.attacks[id];continue;}
+  const nodes=approach(s,u,r.shape,limit(u,r.shape,owner));if(!nodes.length){delete s.attacks[id];continue;}
   routeTo(s,u,nodes);a.repath=REPATH;
  }
  // Conquest: a player with no units and no buildings is defeated; the last one standing wins.

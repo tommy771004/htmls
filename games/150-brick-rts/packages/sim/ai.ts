@@ -15,18 +15,37 @@ import type {Unit} from './movement.ts';
 import type {PlayerVision} from './vision.ts';
 import {faithOf,carrying,riteProblem} from './religion.ts';
 import type {DefenseState} from './defense.ts';
+import {unitKinds} from './movement.ts';
+import {combatRules} from './stats.ts';
+import type {CombatUnitKind} from './stats.ts';
+import {ownerOf,costOf,civAvailable,producersOf} from './civ.ts';
+import type {Owner} from './civ.ts';
+import {civDefs} from '../content/civs.ts';
 // Computer opponent (design_default engineering values, not the reference game's AI).
 // It sees only its own player's vision, and every order goes through the same validation as a human's
 // (sim.ts admits it without writing the replay log, because replay re-derives it from the same state).
 // thinkTicks: one decision pass per second at 20 Hz. firstWaveTick: no attack wave before 4 minutes.
+// Civilizations: a civ with a unique unit builds one Castle in the third age (stone gathered for it by stoneWorkers,
+// castleBuilders on its foundation), trains up to uniqueTarget of its unique unit there and then researches its
+// castle-age unique technologies. The computer never researches the fourth age (it has no Imperial plan), so the elite
+// upgrades and fourth-age unique technologies stay out of its reach. castleMargin: a Castle fights back, so when no site
+// keeps halfMargin it may stand anywhere on red's own half (the 4x4 keep rarely finds room otherwise on a grown base).
 export const aiRules={provenance:'design_default',player:1,thinkTicks:20,thinkOffset:7,villagerTarget:12,
  gatherWeights:{food:4,wood:3,gold:2,stone:0},houseMargin:2,barracksAtVillagers:3,ageUpAtVillagers:9,
  waveSize:5,firstWaveTick:4800,herdRadius:450,rams:2,bellFoes:3,bellRadius:450,penSize:3,wildFoodWorkers:6,wildRange:650,engageRange:500,defendRadius:700,baseMargin:110,laneGap:110,siteRange:900,siteSpread:1.5,siteStep:20,halfMargin:100,spill:100,sourceMargin:100,campDistance:350,campWorkers:2,monkTarget:2,
+ uniqueTarget:5,stoneWorkers:3,castleBuilders:3,castleMargin:0,
  research:{blacksmith:['forging','fletching','scale-mail-armor','padded-archer-armor','iron-casting','bodkin-arrow','chain-mail-armor','scale-barding-armor'],barracks:['man-at-arms','long-swordsman'],'archery-range':['crossbowman'],'town-center':['loom','wheelbarrow','hand-cart'],'lumber-camp':['double-bit-axe','bow-saw','two-man-saw'],'mining-camp':['gold-mining','gold-shaft-mining'],mill:['horse-collar','heavy-plow','crop-rotation']}} as const;
 export type AIState=DefenseState&ProductionState&{tick:number;ages:number[];vision:PlayerVision[]};
 export type Order=(commandType:'bell'|'hunt'|'move'|'gather'|'build'|'construct'|'train'|'attack'|'resign'|'convert'|'relic'|'deposit',payload:Record<string,unknown>)=>boolean;
 type Box=number[];
-const soldierKinds:readonly string[]=['militia','archer','spearman','skirmisher','knight','ram'];
+// Soldiers: every unit that can fight except villagers, monks, animals and the scout (it explores on its own).
+export const soldierKinds:readonly string[]=unitKinds.filter(k=>k!=='villager'&&k!=='monk'&&k!=='scout'&&!isAnimal(k)&&combatRules.units[k as CombatUnitKind].attack!=='none');
+const classesOf=(kind:string)=>combatRules.units[kind as CombatUnitKind]?.classes??[];
+// The castle plan of a civilization: its unique unit (none for the neutral civ, which has no Castle) and the castle-age
+// unique technologies that exist as entries here, in the civ's listed order.
+function castlePlan(o:Owner){const civ=civDefs.find(c=>c.id===o.civ),unit=civ?.uniqueUnits.find(k=>civAvailable(o.civ,k)&&soldierKinds.includes(k));
+ if(!civ||!unit||!civAvailable(o.civ,'castle'))return null;
+ return {unit,techs:civ.uniqueTechs.filter(t=>t.age===3&&civAvailable(o.civ,t.id)&&rules.entries.some(e=>e.id===t.id)).map(t=>t.id)};}
 const gap=(a:Box,b:Box)=>Math.max(a[0]-b[2],b[0]-a[2],a[1]-b[3],b[1]-a[3],0);
 const centre=(b:Box)=>({x:(b[0]+b[2])/2,y:(b[1]+b[3])/2});
 const dist=(a:{x:number;y:number},b:{x:number;y:number})=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
@@ -51,22 +70,32 @@ export function stepAI(s:AIState,order:Order){
  if(scout&&idle(scout)){const size=s.map.size;let best=-1,far=Infinity;for(let t=0;t<size*size;t++){if(explored.has(t))continue;const d=Math.hypot((t%size)*100+50-scout.x,Math.floor(t/size)*100+50-scout.y);if(d<far){far=d;best=t;}}
   if(best>=0)march(s,order,[scout],{x:(best%size)*100+50,y:Math.floor(best/size)*100+50});}
  if(!tc||!tcBox)return;
- const account=s.accounts[P],stock=account.stock;
+ const account=s.accounts[P],stock=account.stock,owner=ownerOf(s,P),cost=(id:string)=>costOf(id,owner);
+ const queued=(id:string)=>own.reduce((t,b)=>t+b.queue.filter(q=>q.entryId===id).length,0);
+ // The castle plan (third age, a civ with a unique unit): the castle, then its unique units and technologies.
+ const plan=s.ages[P]>=3?castlePlan(owner):null,castle=own.find(b=>b.kind==='castle');
+ // Stone still wanted: the castle's and the unique technologies' not yet researched or queued (the Great Wall costs stone).
+ const stoneDue=!!plan&&stock.stone<(castle?0:cost('castle').stone)+plan.techs.filter(id=>!s.techs[P].includes(id)&&!queued(id)).reduce((t,id)=>t+cost(id).stone,0);
  // Unfinished foundations with nobody working on them get one builder.
- for(const b of own.filter(b=>!b.complete)){if(villagers.some(u=>{const w=s.works[u.id];return w?.kind==='build'&&w.buildingId===b.id;}))continue;
+ // The castle takes castleBuilders (one joins per pass).
+ for(const b of own.filter(b=>!b.complete)){if(villagers.filter(u=>{const w=s.works[u.id];return w?.kind==='build'&&w.buildingId===b.id;}).length>=(b.kind==='castle'?aiRules.castleBuilders:1))continue;
   const builder=pickBuilder(s,villagers,idle,centre(boxOf(s,b)!));if(builder)order('construct',{unitIds:[builder.id],buildingId:b.id});}
  const pending=(k:BuildKind)=>own.some(b=>b.kind===k&&!b.complete);
  const room=account.populationCap-account.populationUsed-account.populationReserved;
  // The barracks goes down first: it needs the larger site, and houses would otherwise take those spots.
  const barracksDue=villagers.length>=aiRules.barracksAtVillagers&&!own.some(b=>b.kind==='barracks');
  if(barracksDue)place(s,order,'barracks',villagers,idle,tcBox,own);
+ // In the third age the castle comes before the stable and the siege workshop: its 4x4 site is the hardest to find, so
+ // they wait while its stone comes in (a pass that finds no site for it lets them go ahead). The monastery does not
+ // wait: held back, it found no room at all once the castle stood on this map.
+ const holdForCastle=!!plan&&!castle&&(stock.stone<cost('castle').stone||place(s,order,'castle',villagers,idle,tcBox,own));
  // In the second age an archery range follows (it needs the finished barracks).
- if(s.ages[P]>=3&&!own.some(b=>b.kind==='monastery')&&stock.wood>=rules.entries.find(e=>e.id==='monastery')!.cost.wood)place(s,order,'monastery',villagers,idle,tcBox,own);
+ if(s.ages[P]>=3&&!own.some(b=>b.kind==='monastery')&&stock.wood>=cost('monastery').wood)place(s,order,'monastery',villagers,idle,tcBox,own);
  // The second age adds a blacksmith (after the range); the third a stable for knights.
- if(s.ages[P]>=2&&own.some(b=>b.kind==='archery-range'&&b.complete)&&!own.some(b=>b.kind==='blacksmith')&&stock.wood>=rules.entries.find(e=>e.id==='blacksmith')!.cost.wood)place(s,order,'blacksmith',villagers,idle,tcBox,own);
- if(s.ages[P]>=3&&own.some(b=>b.kind==='blacksmith'&&b.complete)&&!own.some(b=>b.kind==='siege-workshop')&&stock.wood>=rules.entries.find(e=>e.id==='siege-workshop')!.cost.wood)place(s,order,'siege-workshop',villagers,idle,tcBox,own);
- if(s.ages[P]>=3&&!own.some(b=>b.kind==='stable')&&stock.wood>=rules.entries.find(e=>e.id==='stable')!.cost.wood)place(s,order,'stable',villagers,idle,tcBox,own);
- if(s.ages[P]>=2&&!own.some(b=>b.kind==='archery-range')&&!buildRequirement(s.ages[P],'archery-range',own)&&stock.wood>=rules.entries.find(e=>e.id==='archery-range')!.cost.wood)place(s,order,'archery-range',villagers,idle,tcBox,own);
+ if(s.ages[P]>=2&&own.some(b=>b.kind==='archery-range'&&b.complete)&&!own.some(b=>b.kind==='blacksmith')&&stock.wood>=cost('blacksmith').wood)place(s,order,'blacksmith',villagers,idle,tcBox,own);
+ if(s.ages[P]>=3&&!holdForCastle&&own.some(b=>b.kind==='blacksmith'&&b.complete)&&!own.some(b=>b.kind==='siege-workshop')&&stock.wood>=cost('siege-workshop').wood)place(s,order,'siege-workshop',villagers,idle,tcBox,own);
+ if(s.ages[P]>=3&&!holdForCastle&&!own.some(b=>b.kind==='stable')&&stock.wood>=cost('stable').wood)place(s,order,'stable',villagers,idle,tcBox,own);
+ if(s.ages[P]>=2&&!own.some(b=>b.kind==='archery-range')&&!buildRequirement(s.ages[P],'archery-range',own,owner.civ)&&stock.wood>=cost('archery-range').wood)place(s,order,'archery-range',villagers,idle,tcBox,own);
  if(room<=aiRules.houseMargin&&account.populationCap<rules.settings.populationCap&&!pending('house')&&(!barracksDue||room<=0))place(s,order,'house',villagers,idle,tcBox,own);
  // Drop-off camps: when two or more villagers carry wood (gold/stone, natural food) from farther than campDistance to the
  // nearest drop-off that takes it, a camp goes up next to that source.
@@ -77,7 +106,6 @@ export function stepAI(s:AIState,order:Order){
   // A camp that finds no site (e.g. by a mine on the far side) does not hold up the next kind.
   if(far.length>=aiRules.campWorkers&&place(s,order,camp,villagers,idle,tcBox,own,undefined,{x:far[0].x,y:far[0].y}))break;}
  // Town centre: villagers up to the target, then the second age once the barracks exists.
- const queued=(id:string)=>own.reduce((t,b)=>t+b.queue.filter(q=>q.entryId===id).length,0);
  if(tc.complete&&!tc.queue.length){
   if(villagers.length+queued('villager')<aiRules.villagerTarget&&!trainable(s,P,tc,'villager'))order('train',{buildingId:tc.id,entryId:'villager'});
   else if(s.ages[P]<2&&villagers.length>=aiRules.ageUpAtVillagers&&own.some(b=>b.kind==='barracks'&&b.complete)&&!trainable(s,P,tc,'age-2'))order('train',{buildingId:tc.id,entryId:'age-2'});
@@ -85,20 +113,31 @@ export function stepAI(s:AIState,order:Order){
   else if(s.ages[P]===2&&villagers.length>=aiRules.villagerTarget&&own.some(b=>b.kind==='archery-range'&&b.complete)&&!trainable(s,P,tc,'age-3'))order('train',{buildingId:tc.id,entryId:'age-3'});
  }
  // Barracks: militia, but food is kept for the age-up when it is due. Archery range: archers.
- const cost=(id:string)=>rules.entries.find(e=>e.id===id)!.cost;
  const savingForAge=s.ages[P]<2&&villagers.length>=aiRules.ageUpAtVillagers&&stock.food<cost('age-2').food+60;
  // Saving for the third age: soldiers wait while food or gold is short of it (plus one soldier's worth).
  const savingForCastle=s.ages[P]===2&&villagers.length>=aiRules.villagerTarget&&own.some(b=>b.kind==='archery-range'&&b.complete)&&!own.some(b=>b.queue.some(q=>q.entryId==='age-3'))&&(stock.food<cost('age-3').food+60||stock.gold<cost('age-3').gold+30);
- const monks=mine.filter(u=>u.kind==='monk'),seenCavalry=foes.some(u=>u.kind==='knight'||u.kind==='scout'&&s.tick>aiRules.firstWaveTick),seenArchers=foes.filter(u=>u.kind==='archer').length;
+ const monks=mine.filter(u=>u.kind==='monk'),seenCavalry=foes.some(u=>classesOf(u.kind).includes('cavalry')&&(u.kind!=='scout'||s.tick>aiRules.firstWaveTick)),seenArchers=foes.filter(u=>classesOf(u.kind).includes('archer')&&!classesOf(u.kind).includes('skirmisher')).length;
+ // Unique units still due (castle standing or going up): the other buildings keep that many population slots and their
+ // gold free, so the castle's units are not crowded out by the population cap or a spent gold mine.
+ // The reserve is the next unit's cost in every resource and the gold of all of them (gold is the one that runs out).
+ const slots=plan&&castle?Math.max(0,aiRules.uniqueTarget-mine.filter(u=>u.kind===plan.unit).length-queued(plan.unit)):0,unitCost=plan?cost(plan.unit):null;
+ const reserve=(r:Resource)=>!slots||!unitCost?0:r==='gold'?slots*unitCost.gold:unitCost[r],left={...stock};
+ const spare=(id:string)=>{const c=cost(id);return !slots||(Object.keys(c) as Resource[]).every(r=>left[r]>=reserve(r)+c[r]);};let open=room;
  for(const b of own.filter(b=>b.complete&&b.queue.length<2)){
   // Counters to what red has seen: spearmen once blue cavalry shows, skirmishers against blue archers.
-  const pick=savingForCastle&&b.kind!=='monastery'?null:b.kind==='barracks'&&!savingForAge?(seenCavalry?'spearman':'militia'):b.kind==='archery-range'?(seenArchers>=2?'skirmisher':'archer'):b.kind==='stable'&&s.ages[P]>=3?'knight':b.kind==='siege-workshop'&&mine.filter(u=>u.kind==='ram').length+queued('ram')<aiRules.rams?'ram':b.kind==='monastery'&&monks.length+queued('monk')<aiRules.monkTarget?'monk':null;
-  if(pick&&!trainable(s,P,b,pick))order('train',{buildingId:b.id,entryId:pick});}
+  // The unique unit wherever this civ trains it (the castle; the Goths' barracks after Anarchy).
+  const unique=plan&&slots&&producersOf(plan.unit,owner).includes(b.kind)?plan.unit:null;
+  const pick=unique??(savingForCastle&&b.kind!=='monastery'?null:b.kind==='barracks'&&!savingForAge?(seenCavalry?'spearman':'militia'):b.kind==='archery-range'?(seenArchers>=2?'skirmisher':'archer'):b.kind==='stable'&&s.ages[P]>=3?'knight':b.kind==='siege-workshop'&&mine.filter(u=>u.kind==='ram').length+queued('ram')<aiRules.rams?'ram':b.kind==='monastery'&&monks.length+queued('monk')<aiRules.monkTarget?'monk':null);
+  // (open and left count this pass's own orders, which are admitted only next tick.)
+  if(pick&&pick!==unique&&slots&&(open<=slots||!spare(pick)))continue;
+  if(pick&&!trainable(s,P,b,pick)&&order('train',{buildingId:b.id,entryId:pick})&&slots&&pick!==unique){open--;const c=cost(pick);for(const r of Object.keys(c) as Resource[])left[r]-=c[r];}}
  // Economic technologies, in the reference's usual order, whenever nothing is being saved for an age: the gather
  // upgrades at the camps and the mill, Loom and the carts at an idle town centre once the villagers are complete.
+ // The castle researches the civ's castle-age unique technologies once its unique units are complete.
+ const research={...aiRules.research,...(plan?{castle:plan.techs}:{})} as Record<string,readonly string[]>;
  if(!savingForAge&&!savingForCastle)for(const b of own.filter(b=>b.complete&&!b.queue.length)){
   if(b.kind==='town-center'&&villagers.length+queued('villager')<aiRules.villagerTarget)continue;
-  const next=(aiRules.research as Record<string,readonly string[]>)[b.kind]?.find(id=>!trainable(s,P,b,id));if(next)order('train',{buildingId:b.id,entryId:next});}
+  const next=research[b.kind]?.find(id=>!trainable(s,P,b,id)&&spare(id));if(next)order('train',{buildingId:b.id,entryId:next});}
  // Monks: a carried relic goes to the monastery; with full faith a monk converts the nearest enemy unit that comes
  // near the town centre; otherwise idle monks fetch relics red has seen (one monk per relic). Healing is automatic.
  const monastery=own.find(b=>b.kind==='monastery'&&b.complete),home=tcBox?centre(tcBox):null,fetching=new Set(Object.values(s.rites).filter(r=>r.kind==='relic').map(r=>r.target));
@@ -121,7 +160,14 @@ export function stepAI(s:AIState,order:Order){
  // nearest stray ones are fetched as the pen empties.
  {const home=centre(tcBox),pen=penSpot(s,tcBox),sheep=mine.filter(u=>u.kind==='sheep'),penned=sheep.filter(u=>dist(u,home)<=aiRules.herdRadius||!idle(u)).length;
   const stray=sheep.filter(u=>idle(u)&&!hunted.has(u.id)&&dist(u,home)>aiRules.herdRadius).sort((a,b)=>dist(a,home)-dist(b,home)||a.id-b.id).slice(0,Math.max(0,aiRules.penSize-penned));if(stray.length)march(s,order,stray,pen);}
- for(const u of villagers.filter(idle)){
+ // Stone for the castle plan: villagers on wood (else gold) move to the explored stone nearest the town centre, the
+ // nearest to it first, until stoneWorkers mine it (busy villagers are never re-tasked otherwise). Once no stone is due
+ // they are re-tasked like idle villagers (stone has no weight).
+ const yieldOf=(u:Unit)=>{const w=s.works[u.id];if(w?.kind!=='gather'||w.prey!==undefined)return null;const r=s.map.resources.find(r=>r.id===w.resourceId);return r?resourceDefinitions[r.kind].yield:null;};
+ if(stoneDue&&staff.stone<aiRules.stoneWorkers){const home=centre(tcBox),rock=s.map.resources.filter(r=>resourceDefinitions[r.kind].yield==='stone'&&explored.has(tileAt(r.x,r.y,s.map.size))&&!gatherable(s.map,r.id)).sort((a,b)=>dist(a,home)-dist(b,home)||(a.id<b.id?-1:1))[0];
+  if(rock)for(const kind of ['wood','gold'] as const)for(const u of villagers.filter(u=>yieldOf(u)===kind).sort((a,b)=>dist(a,rock)-dist(b,rock)||a.id-b.id)){
+   if(staff.stone>=aiRules.stoneWorkers)break;if(order('gather',{unitIds:[u.id],resourceId:rock.id})){staff.stone++;staff[kind]--;}}}
+ for(const u of villagers.filter(u=>idle(u)||!stoneDue&&yieldOf(u)==='stone')){
   const kinds=(Object.keys(aiRules.gatherWeights) as Resource[]).filter(k=>aiRules.gatherWeights[k]>0).sort((a,b)=>staff[a]/aiRules.gatherWeights[a]-staff[b]/aiRules.gatherWeights[b]);
   // Food counts only within reach of the own town centre (otherwise villagers would walk to the opponent's
   // berries once the scout has seen them); beyond that a farm is laid out instead.
@@ -153,26 +199,30 @@ function pickBuilder(s:AIState,villagers:Unit[],idle:(u:Unit)=>boolean,near:{x:n
 // and other own buildings (drop-off ring and gates stay open). Same placement rule as a human's order.
 // near: centre of the search (default the town centre); camps search round the resource they serve.
 function place(s:AIState,order:Order,kind:BuildKind,villagers:Unit[],idle:(u:Unit)=>boolean,tcBox:Box,own:Building[],worker?:Unit,near?:{x:number;y:number}):boolean{
- const cost=rules.entries.find(e=>e.id===kind)!.cost,stock=s.accounts[aiRules.player].stock;
- if((Object.keys(cost) as Resource[]).some(r=>stock[r]<cost[r])||!buildKinds.includes(kind))return false;
+ const owner=ownerOf(s,aiRules.player),cost=costOf(kind,owner),stock=s.accounts[aiRules.player].stock;
+ if((Object.keys(cost) as Resource[]).some(r=>stock[r]<cost[r])||!buildKinds.includes(kind)||!civAvailable(owner.civ,kind))return false;
  const home=centre(tcBox),c=near??home,others=own.filter(b=>b.kind!=='farm'&&b.kind!=='town-center').map(b=>boxOf(s,b)).filter(b=>b!==null) as Box[],[x0,y0,x1,y1]=obstacleBounds({kind,x:0,y:0}),world=s.map.size*100,
   // Mines, berries and animals keep room round them, so a building never boxes in their work slots.
   sources=s.map.obstacles.filter(o=>o.kind==='gold'||o.kind==='rock'||o.kind==='berries'||o.kind==='hunt'||o.kind==='livestock').map(o=>obstacleBounds(o)),middle=world/2,axis=Math.hypot(home.x-middle,home.y-middle)||1,ux=(home.x-middle)/axis,uy=(home.y-middle)/axis;
  // Own side: how far a point lies from the map centre towards the own town centre (negative = the far side).
  const side=(x:number,y:number)=>(x-middle)*ux+(y-middle)*uy;
  const explored=new Set(s.vision[aiRules.player].explored),bodies=[...s.units.flatMap(u=>[{x:u.x,y:u.y},...(u.next===null?[]:[position(s.map,u.next)])]),...s.relics.filter(r=>r.carrier===null&&r.monastery===null).map(r=>({x:r.x,y:r.y}))];
- const input={tiles:s.map.tiles,obstacles:s.map.obstacles,units:bodies,explored:(t:number)=>explored.has(t)},sites:{x:number;y:number;d:number}[]=[];
+ const input={tiles:s.map.tiles,obstacles:s.map.obstacles,units:bodies,explored:(t:number)=>explored.has(t)},sites:{x:number;y:number;d:number;half:number}[]=[];
  const g=buildingRules.grid,from=(v:number)=>Math.ceil(-v/g)*g;
- // Only the window within siteRange of the town centre is scanned; a crowded base widens it once (siteSpread).
- for(const range of kind==='farm'?[aiRules.siteRange]:[aiRules.siteRange,aiRules.siteRange*aiRules.siteSpread]){if(sites.length)break;
+ // Only the window within siteRange of the town centre is scanned; a crowded base widens it once (siteSpread). The
+ // castle keeps only sites that pass the placement check and may widen to the whole own half: a grown base often has
+ // no free 4x4 block left near the town centre.
+ for(const range of kind==='farm'?[aiRules.siteRange]:kind==='castle'?[aiRules.siteRange,aiRules.siteRange*aiRules.siteSpread,world]:[aiRules.siteRange,aiRules.siteRange*aiRules.siteSpread]){if(sites.length)break;
  const lo=(v:number,o:number)=>Math.max(from(o),Math.ceil((v-range)/g)*g),hi=(v:number,o:number)=>Math.min(world-o,v+range);
  for(let x=lo(c.x,x0);x<=hi(c.x,x1);x+=aiRules.siteStep)for(let y=lo(c.y,y0);y<=hi(c.y,y1);y+=aiRules.siteStep){const box=[x+x0,y+y0,x+x1,y+y1],mid=centre(box);
   // Buildings that train soldiers keep a buffer from the centre line so fresh soldiers do not start inside enemy sight;
-  // houses and farms may reach a little past it (the 16x16 map leaves little room once a base grows).
-  const margin=kind==='barracks'||kind==='archery-range'||kind==='monastery'||kind==='stable'||kind==='siege-workshop'?aiRules.halfMargin:-aiRules.spill,ownHalf=Math.min(side(box[0],box[1]),side(box[2],box[1]),side(box[0],box[3]),side(box[2],box[3]))>=margin;
-  if(!ownHalf||dist(mid,c)>range||gap(box,tcBox)<(kind==='farm'?50:aiRules.baseMargin)||(kind!=='farm'&&(others.some(o=>gap(box,o)<aiRules.laneGap)||sources.some(o=>gap(box,o)<aiRules.sourceMargin))))continue;sites.push({x,y,d:dist(mid,c)});}
+  // houses and farms may reach a little past it (the 16x16 map leaves little room once a base grows). The castle
+  // prefers halfMargin but settles for castleMargin (sorted below).
+  const margin=kind==='castle'?aiRules.castleMargin:kind==='barracks'||kind==='archery-range'||kind==='monastery'||kind==='stable'||kind==='siege-workshop'?aiRules.halfMargin:-aiRules.spill,half=Math.min(side(box[0],box[1]),side(box[2],box[1]),side(box[0],box[3]),side(box[2],box[3])),ownHalf=half>=margin;
+  if(!ownHalf||dist(mid,c)>range||gap(box,tcBox)<(kind==='farm'?50:aiRules.baseMargin)||(kind!=='farm'&&(others.some(o=>gap(box,o)<aiRules.laneGap)||sources.some(o=>gap(box,o)<aiRules.sourceMargin)))||kind==='castle'&&placementProblem(input,kind,x,y))continue;sites.push({x,y,d:dist(mid,c),half});}
  }
- sites.sort((a,b)=>a.d-b.d||a.y-b.y||a.x-b.x);
+ const short=(v:{half:number})=>kind==='castle'&&v.half<aiRules.halfMargin?1:0;
+ sites.sort((a,b)=>short(a)-short(b)||a.d-b.d||a.y-b.y||a.x-b.x);
  for(const site of sites){if(placementProblem(input,kind,site.x,site.y))continue;
   const builder=worker??pickBuilder(s,villagers,idle,site);if(!builder)return false;
   return order('build',{unitIds:[builder.id],kind,x:site.x,y:site.y});}
