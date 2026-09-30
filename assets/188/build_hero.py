@@ -883,6 +883,11 @@ for side, s in S.items():
         radial(f, pts[1], pts[-1], lambda t, a, r: .0012 * (math.exp(-((t - .02) / .06) ** 2) + math.exp(-((t - .45) / .06) ** 2)))
         paint(f, lambda p, n, K=K: mix(GLOVE, SKIN, sstep(.022, .03, (p - K).length)))
         add(f, ['hand.' + side])
+    if grip:
+        # 拳心墊一截：筆在手上時整個藏在筆桿裡；筆背在背上時把手指圍出來的洞補滿，看起來是握緊的拳頭
+        core = stube('FistCore', [tuple(A + Vector((0, 0, 1)) * f_) for f_ in (-.043, -.04, -.035, -.029, 0, .029, .035, .04, .043)], [.012, .03, .0345, .026, .026, .026, .0345, .03, .012], per=1, seg=12, up=tuple(outw))
+        paint(core, lambda p, n: mix(SKIN_SH, SKIN, .35))
+        add(core, ['hand.' + side], False)
     # 拇指
     T0 = wr + hd * .022 + fwd * .03 + inw * .006
     if grip:

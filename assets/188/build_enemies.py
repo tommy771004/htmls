@@ -1172,7 +1172,7 @@ def quad(kind):
             parts += [tail, tuft]
             J(parts, 'BodyM')
         elif kind == 'shell':
-            body = mball('Body', [Em((0, .78, -.05), (.56, .42, .85)), Em((0, .6, .3), (.42, .3, .4))], slot='c1', target=900)
+            body = mball('Body', [Em((0, .78, -.05), (.56, .42, .85)), Em((0, .6, .3), (.42, .3, .4)), Em((0, .72, .72), (.3, .27, .22))], slot='c1', target=900)
             Vp(body, lambda p, n: .8 + .12 * n[1] + .1 * sstep(-.2, -.6, n[1]) + .04 * fb(p, 4))
             head = mball('HeadMesh', [
                 Em((0, .72, .92), (.25, .22, .3)), Km((0, .68, 1.05), (0, .58, 1.42), .09), Bm((0, .57, 1.44), .06),
@@ -1191,49 +1191,67 @@ def quad(kind):
                 er.matrix_world = Matrix.Translation(V(*root)) @ fm(X, Y, Z)
                 Vp(er, lambda p, n: .85 + .1 * n[1])
                 parts.append(er)
-            # 帶狀甲殼：前後各一片大甲，中間七條環帶
-            bands = []
-            for i in range(9):
-                z0 = -.88 + i * .21
-                big = i in (0, 8)
-                wz = .27 if not big else .32
-                R = .6 * math.sqrt(max(.15, 1 - ((z0 + .05) / 1.0) ** 2)) + .06
+            # 帶狀甲殼：後面一片臀甲、中間七條環帶、前面一片肩甲；每片後緣往外翻、前緣往內收，
+            # 後一片的前緣塞在前一片的後緣底下，像屋瓦一樣疊著；兩側一路包到肚子邊的裙緣
+            def shell_plate(z0, z1, nrow, shield=False, seed=0):
+                def prof(z):
+                    rb = math.sqrt(max(.12, 1 - ((z + .08) / 1.02) ** 2))
+                    return .6 * rb + .09, .5 * rb + .1
                 bm = bmesh.new()
-                NA, NZ = 16, 3
+                NA = 22
+                A0 = 2.25
                 lay = []
-                for layer, off in ((0, 0.0), (1, -.05)):
+                for off in (0.0, -.04):
                     rows = []
                     for ia in range(NA + 1):
-                        a = -1.95 + 3.9 * ia / NA
+                        a = -A0 + 2 * A0 * ia / NA
                         row = []
-                        for iz in range(NZ):
-                            z = z0 + wz * iz / (NZ - 1)
-                            lip = .03 * (iz == NZ - 1)
-                            rr = R + off + lip + .02 * (1 - abs(a) / 2)
-                            row.append(bm.verts.new(V(math.sin(a) * rr * 1.02, .72 + math.cos(a) * rr * .85, z)))
+                        for iz in range(nrow):
+                            u = iz / (nrow - 1)
+                            z = z0 + (z1 - z0) * u
+                            rx, ry = prof(z)
+                            # 前緣（u=1，朝 +z）收進去、後緣（u=0）翻出來
+                            flare = .045 * sstep(.45, 0, u) - .02 * sstep(.6, 1, u) if not shield else .03 * sstep(.3, 0, u) + .02 * sstep(.7, 1, u)
+                            skirt = 1 + .1 * sstep(1.7, A0, abs(a))
+                            rr = 1 + off / max(rx, .2)
+                            row.append(bm.verts.new(V(math.sin(a) * (rx + flare) * rr * skirt, .74 + math.cos(a) * (ry + flare) * rr * (1 - .05 * sstep(1.7, A0, abs(a))), z)))
                         rows.append(row)
                     lay.append(rows)
                 for L_, flip in ((lay[0], False), (lay[1], True)):
                     for ia in range(NA):
-                        for iz in range(NZ - 1):
+                        for iz in range(nrow - 1):
                             f_ = (L_[ia][iz], L_[ia + 1][iz], L_[ia + 1][iz + 1], L_[ia][iz + 1])
                             bm.faces.new(tuple(reversed(f_)) if flip else f_)
                 for ia in range(NA):
-                    for iz in (0, NZ - 1):
-                        try:
-                            bm.faces.new((lay[0][ia][iz], lay[1][ia][iz], lay[1][ia + 1][iz], lay[0][ia + 1][iz]))
-                        except ValueError:
-                            pass
+                    for iz in (0, nrow - 1):
+                        bm.faces.new((lay[0][ia][iz], lay[1][ia][iz], lay[1][ia + 1][iz], lay[0][ia + 1][iz]))
                 for ia in (0, NA):
-                    for iz in range(NZ - 1):
-                        try:
-                            bm.faces.new((lay[0][ia][iz], lay[0][ia][iz + 1], lay[1][ia][iz + 1], lay[1][ia][iz]))
-                        except ValueError:
-                            pass
+                    for iz in range(nrow - 1):
+                        bm.faces.new((lay[0][ia][iz], lay[0][ia][iz + 1], lay[1][ia][iz + 1], lay[1][ia][iz]))
                 bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
                 bd = obj_from_bm(bm, 'Plate', slot='c2')
-                Vp(bd, lambda p, n, z0=z0, wz=wz: .72 + .2 * n[1] * .5 + .18 * sstep(.7, 1.0, (p[2] - z0) / wz) - (.14 if (math.atan2(p[0], p[1] - .72) * 3.2) % 1 < .12 else 0) + .04 * nz(p, 9))
-                bands.append(bd)
+
+                def pv(p, n):
+                    u = (p[2] - z0) / (z1 - z0)
+                    a = math.atan2(p[0], p[1] - .74)
+                    v = .74 + .1 * n[1] + .05 * nz(p, 9, seed)
+                    v += .16 * sstep(.35, 0, u) - .1 * sstep(.7, 1, u)
+                    if (a * 5.5) % 1 < .1:
+                        v -= .14
+                    if shield and ((p[2] * 9 + .5 * math.floor(a * 5.5)) % 1) < .12:
+                        v -= .14
+                    return v
+                Vp(bd, pv)
+                return bd
+            bands = [shell_plate(-1.0, -.42, 7, shield=True, seed=1)]
+            for i in range(7):
+                z0 = -.5 + i * .12
+                bands.append(shell_plate(z0, z0 + .21, 4, seed=i + 2))
+            bands.append(shell_plate(.28, .8, 7, shield=True, seed=12))
+            # 臀甲後方封口（尾巴從這裡伸出）
+            rc = ellipsoid('RumpCap', (0, .76, -.97), (.4, .34, .1), seg=16, rings=8, slot='c2')
+            Vp(rc, lambda p, n: .7 + .1 * n[1] - (.12 if (math.atan2(p[0], p[1] - .76) * 5.5) % 1 < .1 else 0))
+            bands.append(rc)
             parts += bands
             tail = []
             for k in range(6):
@@ -1518,24 +1536,45 @@ def bird():
             parts.append(Cg(curve_cone('Talon', [(s * .15, -.46, .08), (s * .15 + math.sin(a) * .1, -.5, .08 + math.cos(a) * .1), (s * .15 + math.sin(a) * .13, -.56, .08 + math.cos(a) * .11)], .03, seg=4), 0x2a2228, 0x5a4a50))
     J(parts, 'BodyM')
     for s, nm in ((1, 'WingL'), (-1, 'WingR')):
+        # 翅膀：前緣是圓厚的上臂／前臂肉（肩部最厚），後面蓋兩排互相交疊的覆羽，再接有厚度、上拱的飛羽
         sh = Vector((s * .3, .08, 0))
-        wrist = Vector((s * .95, .14, -.1))
-        arm = mball('WingArm', [Km(tuple(sh), tuple(wrist), .1), Em(tuple(sh + (wrist - sh) * .45 + Vector((0, 0, -.1))), (.3, .06, .2))], slot='c1', target=260)
-        Vp(arm, lambda p, n: .78 + .15 * n[1])
+        el = Vector((s * .62, .14, .06))
+        wr = Vector((s * .95, .15, .02))
+        hd = Vector((s * 1.22, .13, -.04))
+        arm = mball('WingArm', [
+            Km(tuple(sh), tuple(el), .14), Km(tuple(el), tuple(wr), .1), Km(tuple(wr), tuple(hd), .07), Bm(tuple(wr), .1),
+            Em(tuple((sh + el) / 2 + Vector((0, -.01, -.14))), (.2, .09, .17)),
+            Em(tuple((el + wr) / 2 + Vector((0, -.01, -.12))), (.19, .065, .14)),
+            Em(tuple((wr + hd) / 2 + Vector((0, -.01, -.08))), (.15, .06, .11)),
+        ], slot='c1', target=420)
+        Vp(arm, lambda p, n: .74 + .18 * n[1] + .04 * fb(p, 7))
         fe = [arm]
-        for k in range(8):
-            t = k / 7
-            root = sh + (wrist - sh) * (.25 + .75 * t) if k < 6 else wrist
-            L_ = .5 + .35 * t if k < 6 else .72 + .06 * (k - 5)
-            ang = -1.35 + 1.2 * t
-            X = Vector((s * math.cos(ang) * (1 if k < 6 else 1.1), -.02, math.sin(ang))).normalized()
-            if k >= 6:
-                X = Vector((s * .95, -.05, -.25 * (k - 5))).normalized()
+
+        def feather(root, X, L_, W_, th, slot='c1', dark=.32, droop=.0, camber=-.35):
+            X = Vector(X).normalized()
             Z = Vector((0, 1, 0)); Z = (Z - X * Z.dot(X)).normalized(); Y = Z.cross(X)
-            f_ = leafy('Feather', L_, .14, .016, cup=.1, bend=.04, taper=.35, seg=6, rings=6, slot='c1' if k < 7 else 'c2', root_w=.7)
-            Vp(f_, lambda p, n, L_=L_: .9 - .32 * sstep(.45, 1.0, p[0] / L_) - (.1 if abs(p[1]) < .012 else 0))
-            f_.matrix_world = Matrix.Translation(V(*(root + Vector((0, -.02 - .005 * k, 0))))) @ fm(X, Y, Z)
-            fe.append(f_)
+            f_ = leafy('Feather', L_, W_, th, cup=camber, bend=droop, taper=.4, seg=6, rings=6, slot=slot, root_w=.75)
+            Vp(f_, lambda p, n, L_=L_: .92 - dark * sstep(.4, 1.0, p[0] / L_) - (.12 if abs(p[1]) < .014 else 0) + .06 * n[1])
+            f_.matrix_world = Matrix.Translation(V(*root)) @ fm(X, Y, Z)
+            return f_
+        # 飛羽：次級飛羽沿前臂往後，初級飛羽從手部往外扇開（最外兩根用 c2 做翼尖的顏色）
+        for k in range(5):
+            t = k / 4
+            root = el + (wr - el) * t + Vector((0, -.03 - .006 * k, -.16))
+            fe.append(feather(tuple(root), (s * (.12 + .15 * t), -.04, -1), .42 + .05 * t, .12, .03, droop=.03))
+        for k in range(6):
+            t = k / 5
+            root = wr + (hd - wr) * t + Vector((0, -.03 - .005 * k, -.09 + .05 * t))
+            ang = -1.25 + 1.05 * t
+            fe.append(feather(tuple(root), (s * math.cos(ang), .02, math.sin(ang)), .48 + .12 * t, .12, .036, slot='c1' if k < 4 else 'c2', droop=.06, camber=-.5))
+        # 覆羽：大覆羽蓋在飛羽根部、小覆羽蓋在翼肉上，前後交疊
+        for row, (n_, L_, W_, back, dy, dark) in enumerate([(7, .3, .1, -.1, .035, .16), (6, .19, .085, .0, .075, .1)]):
+            for k in range(n_):
+                t = k / (n_ - 1)
+                base = sh + (hd - sh) * (.08 + .88 * t) if row == 0 else sh + (wr - sh) * (.1 + .9 * t)
+                root = base + Vector((0, dy - .015 * t, back + .04))
+                X = (s * (.25 + .5 * t * t), -.15, -1)
+                fe.append(feather(tuple(root), X, L_ * (1 - .25 * t), W_, .035, dark=dark, droop=.04, camber=-.4))
         wg = J(fe, nm)
         pivot(wg, tuple(sh))
 

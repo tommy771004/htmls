@@ -3128,15 +3128,17 @@ function removeEnemy(e) {
   scene.remove(e.mesh); HPBARS.remove(e.bar);
   const i = ENEMIES.indexOf(e); if (i >= 0) ENEMIES.splice(i, 1);
 }
+// 敵人的彈：曠野之息版沒有描邊，平塗的球看起來像場景裡的擺設，所以讓它微微自發光，一看就知道是飛過來的彈
+const shotMat = hex => BOTW ? toon(hex, { emissive: hex, emissiveIntensity: .45 }) : toon(hex);
 function enemyShot(from, dir, speed, hex, dmg = 1, grav = 0, rad = .45, onLand) {
-  const m = new THREE.Mesh(shotGeo, toon(hex)); m.scale.setScalar(rad / .42); ol(m, .05);
+  const m = new THREE.Mesh(shotGeo, shotMat(hex)); m.scale.setScalar(rad / .42); ol(m, .05);
   m.position.copy(from); scene.add(m);
   SHOTS.push({ m, v: dir.clone().normalize().multiplyScalar(speed), t: 3, zone: G.zone, player: false, dmg, hex, grav, rad, onLand });
 }
 function lobAt(from, to, hex, dmg = 1, t = 1.1) {
   const g = 22;
   const v = new THREE.Vector3((to.x - from.x) / t, (to.y - from.y + .5 * g * t * t) / t, (to.z - from.z) / t);
-  const m = new THREE.Mesh(shotGeo, toon(hex)); m.scale.setScalar(1.2); ol(m, .05);
+  const m = new THREE.Mesh(shotGeo, shotMat(hex)); m.scale.setScalar(1.2); ol(m, .05);
   m.position.copy(from); scene.add(m);
   SHOTS.push({ m, v, t: t + 1, zone: G.zone, player: false, dmg, hex, grav: g, rad: .5 });
 }
@@ -4012,8 +4014,9 @@ function spawnThornmaw(x, z) {
     e.yaw += angDiff(e.yaw, Math.atan2(toP[0], toP[1])) * damp(2, dt);
     e.rootT -= dt;
     if (e.exposed > 0) {
-      e.exposed -= dt; m.position.x += (R() - .5) * .2; face.rotation.z = Math.sin(G.time * 10) * .3;
-      if (e.exposed <= 0) { e.armor = 6; armor.children.forEach(t => t.visible = true); e.note = '荊棘又長回來了！'; burst(_v.copy(e.pos).setY(e.pos.y + 2), 0x3f7a2a, 30, 6); }
+      // 被擊暈時搖晃：Blender 版的五官嵌在樹皮的眼窩裡，改成整棵樹一起晃，五官才不會滑出眼窩
+      e.exposed -= dt; m.position.x += (R() - .5) * .2; const sway = BOTW ? m.children[0] : face; sway.rotation.z = Math.sin(G.time * 10) * (BOTW ? .05 : .3);
+      if (e.exposed <= 0) { sway.rotation.z = 0; e.armor = 6; armor.children.forEach(t => t.visible = true); e.note = '荊棘又長回來了！'; burst(_v.copy(e.pos).setY(e.pos.y + 2), 0x3f7a2a, 30, 6); }
       return [0, 0, false];
     }
     arms.forEach((a, i) => { a.rotation.z = Math.sin(G.time * 2 + i) * .3 * (e.rootT > 0 ? .1 : 1); a.rotation.y = Math.sin(G.time * 1.3 + i * 2) * .5; });
