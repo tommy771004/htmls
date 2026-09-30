@@ -4,25 +4,25 @@ let seq = 0;
 
 export const CAST = {
   qingque: {
-    name: '青雀', style: 'bob', mouth: 'smile', lids: 0,
+    name: '青雀', style: 'bob', mouth: 'open', lids: 0, tilt: 3, ahoge: true,
     hair: ['#3f6a5f', '#1d3531', '#0d1a18'], sheen: '#8fc2b1', line: '#0a1512',
     eye: ['#2a1a0c', '#b8812f', '#f6d58e'], skin: ['#fff6ec', '#f3d9c6', '#e4b9a4'],
     kimono: ['#17714f', '#0b4533'], collar: '#f5eed8', band: '#d8b060', motif: 'wave', acc: 'sparrow'
   },
   moon: {
-    name: '月白', style: 'long', mouth: 'calm', lids: 0.18,
+    name: '月白', style: 'long', mouth: 'smile', lids: 0.2, tilt: -3,
     hair: ['#f4f5ef', '#c9d3cd', '#8e9f99'], sheen: '#ffffff', line: '#56655f',
     eye: ['#1d3a38', '#5aa89c', '#c9f0e4'], skin: ['#fffaf4', '#f5e2d6', '#e6c3b3'],
     kimono: ['#eef0e6', '#bfcfc2'], collar: '#1d6a50', band: '#caa25a', motif: 'hemp', acc: 'moon'
   },
   bamboo: {
-    name: '竹隱', style: 'ponytail', mouth: 'smirk', lids: 0.1,
+    name: '竹隱', style: 'ponytail', mouth: 'smirk', lids: 0.12, tilt: 7,
     hair: ['#343a36', '#161a18', '#070908'], sheen: '#7c8a82', line: '#050706',
     eye: ['#10291a', '#3f9a61', '#bff0c8'], skin: ['#fff3e8', '#f1d6c2', '#dcb29b'],
     kimono: ['#23543d', '#102c20'], collar: '#e9e2c8', band: '#b98f45', motif: 'bamboo', acc: 'mask'
   },
   mountain: {
-    name: '遠山', style: 'wave', mouth: 'calm', lids: 0.32,
+    name: '遠山', style: 'wave', mouth: 'calm', lids: 0.34, tilt: 1, mole: true,
     hair: ['#56606a', '#2a3139', '#12161b'], sheen: '#a8b4bd', line: '#0d1013',
     eye: ['#2b1d10', '#a47a3f', '#f0d49a'], skin: ['#fff5ec', '#f2dccb', '#e0b9a3'],
     kimono: ['#2f3a37', '#161d1b'], collar: '#e6d9b4', band: '#c9a45a', motif: 'ridge', acc: 'jade'
@@ -102,23 +102,27 @@ function accessory(u, c) {
   return '';
 }
 
-// One eye, drawn for the viewer's left; the right eye mirrors it. lids lowers the upper lid for calmer or sleepier looks.
-// The upper lash is a filled, tapered shape (thin inside, heavy at the outer corner) rather than a stroke.
+// One eye, drawn for the viewer's left; the right eye mirrors it. The iris glows from the lower centre out to a dark rim, the upper lid
+// casts a soft shadow into it, and the lash line is a filled, tapered shape in warm near-black with a few flicks at the outer corner.
+// lids lowers the upper lid (calmer, sleepier); tilt turns the eye so the outer corner rises (sharper) or falls (gentler).
 function eye(u, c) {
-  const d = c.lids * 7, top = 86 + d;
-  return `<path d="M67 ${r1(98 + d * .6)}Q80 ${r1(top)} 95 ${r1(95 + d * .4)}Q93 110 81 112.5Q70 111 67 ${r1(98 + d * .6)}Z" fill="url(#${u}-white)"/>
-<g clip-path="url(#${u}-eyeclip)"><ellipse cx="81.5" cy="102" rx="9.6" ry="11.6" fill="url(#${u}-iris)"/><ellipse cx="81.5" cy="102" rx="9.6" ry="11.6" fill="none" stroke="${c.eye[0]}" stroke-width="1.2" opacity=".8"/>
-<ellipse cx="81.5" cy="103" rx="3.6" ry="5.6" fill="${c.eye[0]}"/><path d="M73 107Q81.5 115 90 107" stroke="${c.eye[2]}" stroke-width="2.6" fill="none" opacity=".8"/>
-<path d="M60 ${r1(90 + d)}Q80 ${r1(84 + d)} 100 ${r1(92 + d)}V${r1(99 + d)}Q80 ${r1(92 + d)} 60 ${r1(98 + d)}Z" fill="${c.line}" opacity=".22"/></g>
-<ellipse cx="77.5" cy="${r1(97.5 + d * .4)}" rx="3" ry="3.6" fill="#fff"/><circle cx="86" cy="106.5" r="1.5" fill="#fff" opacity=".9"/><circle cx="84" cy="96" r=".9" fill="#fff" opacity=".8"/>
-<path d="M64.5 ${r1(99 + d * .6)}Q72 ${r1(top - 1.5)} 82 ${r1(top - 1)}Q91 ${r1(top - .5)} 97 ${r1(94 + d * .4)}Q90 ${r1(top + 2.4)} 81 ${r1(top + 2.4)}Q72 ${r1(top + 3.4)} 64.5 ${r1(99 + d * .6)}Z" fill="${c.line}"/>
-<path d="M65 ${r1(98.5 + d * .6)}Q61 ${r1(97 + d * .5)} 57.5 ${r1(93.5 + d * .5)}Q61.5 ${r1(95 + d * .5)} 66.5 ${r1(96 + d * .5)}Z" fill="${c.line}"/>
-<path d="M66 ${r1(95.5 + d * .5)}Q63 ${r1(92 + d * .5)} 61 ${r1(90.5 + d * .5)}" stroke="${c.line}" stroke-width="1" fill="none" stroke-linecap="round"/>
-<path d="M69 ${r1(89 + d)}Q80 ${r1(81.5 + d)} 93 ${r1(87.5 + d)}" stroke="${c.line}" stroke-width=".8" fill="none" opacity=".4"/>
-<path d="M74 111.6Q81 114 88 111" stroke="${c.skin[2]}" stroke-width="1.1" fill="none"/><path d="M88 111Q91 109.8 92.5 107.8" stroke="${c.line}" stroke-width=".9" fill="none" opacity=".6"/>`;
+  const d = c.lids * 7, top = 86 + d, t = c.tilt || 0;
+  return `<g transform="rotate(${-t} 82 100)"><path d="M67 ${r1(98 + d * .6)}Q80 ${r1(top)} 95 ${r1(95 + d * .4)}Q93 110 81 112.5Q70 111 67 ${r1(98 + d * .6)}Z" fill="url(#${u}-white)"/>
+<g clip-path="url(#${u}-eyeclip)"><ellipse cx="81.5" cy="102" rx="10.4" ry="12.4" fill="url(#${u}-irisR)"/><ellipse cx="81.5" cy="102" rx="10.4" ry="12.4" fill="url(#${u}-iris)" opacity=".55"/>
+<ellipse cx="81.5" cy="102" rx="10.4" ry="12.4" fill="none" stroke="${c.eye[0]}" stroke-width="1.4" opacity=".75"/><ellipse cx="81.5" cy="102.5" rx="6.6" ry="8" fill="none" stroke="${c.eye[1]}" stroke-width=".6" opacity=".5"/>
+<ellipse cx="81.5" cy="102" rx="3.5" ry="5.6" fill="${c.eye[0]}"/><path d="M72.5 106.5Q81.5 116 90.5 106.5Q81.5 111.5 72.5 106.5Z" fill="${c.eye[2]}" opacity=".95"/>
+<circle cx="76.5" cy="108" r=".8" fill="#fff" opacity=".85"/><circle cx="87" cy="104" r=".6" fill="#fff" opacity=".7"/><circle cx="84" cy="109.5" r=".5" fill="${c.eye[2]}"/>
+<path d="M60 ${r1(89 + d)}Q80 ${r1(83 + d)} 100 ${r1(91 + d)}V${r1(101 + d)}Q80 ${r1(93 + d)} 60 ${r1(99 + d)}Z" fill="${c.eye[0]}" opacity=".55" filter="url(#${u}-soft)"/></g>
+<ellipse cx="77" cy="${r1(97 + d * .4)}" rx="3.3" ry="4.1" transform="rotate(-24 77 ${r1(97 + d * .4)})" fill="#fff"/><circle cx="86.8" cy="106.8" r="1.7" fill="#fff" opacity=".95"/>
+<path d="M64 ${r1(99.5 + d * .6)}Q71 ${r1(top - 2.2)} 82 ${r1(top - 1.6)}Q91.5 ${r1(top - 1)} 97.5 ${r1(94 + d * .4)}Q90.5 ${r1(top + 2.6)} 81 ${r1(top + 2.8)}Q71 ${r1(top + 4)} 64 ${r1(99.5 + d * .6)}Z" fill="url(#${u}-lash)"/>
+<path d="M65 ${r1(99 + d * .6)}Q60.5 ${r1(97.5 + d * .5)} 56.5 ${r1(93.5 + d * .5)}Q61 ${r1(95 + d * .5)} 66.5 ${r1(96 + d * .5)}Z" fill="${c.line}"/>
+<path d="M66 ${r1(95.5 + d * .5)}Q62.5 ${r1(91.5 + d * .5)} 60.5 ${r1(89.8 + d * .5)}M68.5 ${r1(92.5 + d * .6)}Q66.5 ${r1(88.5 + d * .6)} 65 ${r1(87 + d * .6)}" stroke="${c.line}" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+<path d="M68.5 ${r1(89.5 + d)}Q80 ${r1(81.5 + d)} 93 ${r1(87.5 + d)}" stroke="#8a4a3c" stroke-width=".9" fill="none" opacity=".55"/>
+<path d="M73.5 111.8Q81 114.6 88.5 111.2" stroke="#b57b6c" stroke-width="1" fill="none"/><path d="M88 111.3Q91.2 110 93 107.6" stroke="${c.line}" stroke-width="1" fill="none" opacity=".7"/><path d="M76 112.4l-.6 1.6M79.5 113.1l-.3 1.6" stroke="#8a5a4c" stroke-width=".6" opacity=".7"/></g>`;
 }
 
 const MOUTH = {
+  open: '<path d="M95 126Q100 132 105 126Q100 127.6 95 126Z" fill="#8a3a3c"/><path d="M97.2 128.8Q100 130.6 102.8 128.8Q100 129.4 97.2 128.8Z" fill="#e58d88"/><path d="M94.2 125.9Q100 127.4 105.8 125.9" stroke="#96504c" stroke-width="1" fill="none" stroke-linecap="round"/>',
   smile: '<path d="M93 127Q100 132.5 107 127" stroke="#a4524d" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M96 129.2Q100 131 104 129.2" stroke="#e79b92" stroke-width="1.2" fill="none" opacity=".7"/>',
   calm: '<path d="M95 128Q100 130 105 128" stroke="#a4524d" stroke-width="1.4" fill="none" stroke-linecap="round"/>',
   smirk: '<path d="M94 128Q100 129.5 107 125.5" stroke="#a4524d" stroke-width="1.4" fill="none" stroke-linecap="round"/>'
@@ -142,7 +146,10 @@ ${grad(`${u}-gold`, [[0, '#fff0c0'], [.5, '#d9b262'], [1, '#8a6225']], 1, 1)}
 ${grad(`${u}-jade`, [[0, '#9fe0c4'], [1, '#146a4c']], 1, 1)}
 ${grad(`${u}-bg`, [[0, '#123f31'], [1, '#07201a']])}
 ${grad(`${u}-sheen`, [[0, c.sheen, 0], [.5, c.sheen, .55], [1, c.sheen, 0]], 1, 0)}
-<filter id="${u}-soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.4"/></filter>
+<filter id="${u}-soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.4"/></filter><filter id="${u}-soft3" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+<radialGradient id="${u}-irisR" cx=".5" cy=".64" r=".62"><stop offset="0" stop-color="${c.eye[2]}"/><stop offset=".5" stop-color="${c.eye[1]}"/><stop offset="1" stop-color="${c.eye[0]}"/></radialGradient>
+${grad(`${u}-lash`, [[0, '#6a3a30'], [.35, c.line], [1, c.line]], 1, 0)}
+${grad(`${u}-neck`, [[0, c.skin[2], .55], [.45, c.skin[2], .1], [1, c.skin[2], 0]])}${grad(`${u}-hl`, [[0, '#ffe3ad', 0], [.6, '#ffe3ad', 0], [.97, '#ffe3ad', .32], [1, '#ffe3ad', .1]], 1, 0)}${grad(`${u}-hlF`, [[0, '#ffe3ad', 0], [.7, '#ffe3ad', 0], [1, '#ffe3ad', .2]], 1, 0)}
 <radialGradient id="${u}-blush"><stop offset="0" stop-color="#f08f86" stop-opacity=".55"/><stop offset="1" stop-color="#f08f86" stop-opacity="0"/></radialGradient>
 <radialGradient id="${u}-rim" cx=".5" cy=".3" r=".75"><stop offset="0" stop-color="#e9cf8e" stop-opacity=".28"/><stop offset="1" stop-color="#e9cf8e" stop-opacity="0"/></radialGradient>
 ${motif(u, c)}
@@ -150,7 +157,9 @@ ${motif(u, c)}
 ${grad(`${u}-white`, [[0, '#e9e4e6'], [.4, '#fffdfb'], [1, '#ffffff']])}
 <clipPath id="${u}-fringeclip"><path d="${h.fringe}"/></clipPath>
 `;
-  const face = 'M58 84C57 104 64 122 82 134Q92 142 100 143Q108 142 118 134C136 122 143 104 142 84C142 56 58 56 58 84Z';
+  const face = 'M58 84C57 104 63 121 80 134Q92 144 100 146Q108 144 120 134C137 121 143 104 142 84C142 56 58 56 58 84Z';
+  // Zigzag lower edge for the fringe's band of shine (the classic ring of light across anime hair).
+  const zig = Array.from({ length: 16 }, (_, i) => `L${154 - i * 7.5} ${i % 2 ? 60 : 66}`).join('');
   const shoulders = 'M4 240C8 198 34 174 70 164Q80 160 88 154L112 154Q120 160 130 164C166 174 192 198 196 240Z';
   const body = `<path d="${shoulders}" fill="url(#${u}-kim)"/>
 <path d="${shoulders}" fill="url(#${u}-fab)"/>
@@ -158,21 +167,23 @@ ${grad(`${u}-white`, [[0, '#e9e4e6'], [.4, '#fffdfb'], [1, '#ffffff']])}
 <path d="M115 153L100 196 95.5 186 108 153Z" fill="${c.band}" opacity=".95"/><path d="M85 153L95.5 186 92 196 77 157Z" fill="${c.band}" opacity=".7"/>
 <path d="M100 196L115 153 126 157 104 206Z" fill="${c.kimono[1]}" opacity=".55"/>
 <path d="M28 240C32 214 46 194 66 180" stroke="${c.kimono[1]}" stroke-width="2.4" fill="none" opacity=".7"/><path d="M172 240C168 214 154 194 134 180" stroke="${c.kimono[1]}" stroke-width="2.4" fill="none" opacity=".7"/><path d="M70 166Q58 172 48 188" stroke="#fff" stroke-width="3" fill="none" opacity=".12"/>`;
-  const neck = `<path d="M90 128L110 128 112 160Q100 168 88 160Z" fill="url(#${u}-skin)"/><path d="M90 136Q100 146 110 136L110.5 141Q100 151 89.5 141Z" fill="${c.skin[2]}" opacity=".35"/>`;
+  const neck = `<path d="M90 128L110 128 112 160Q100 168 88 160Z" fill="url(#${u}-skin)"/><path d="M90 128L110 128 112 160Q100 168 88 160Z" fill="url(#${u}-neck)"/><path d="M90 136Q100 146 110 136L110.5 141Q100 151 89.5 141Z" fill="${c.skin[2]}" opacity=".35"/>`;
   const brows = `<path d="M70 83Q80 78 90 81" stroke="${c.hair[2]}" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".8"/><path d="M130 83Q120 78 110 81" stroke="${c.hair[2]}" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".8"/>`;
   const back = `${h.tail ? `<path d="${h.tail}" fill="url(#${u}-hair)"/><path d="M136 36Q158 30 170 52" stroke="${c.sheen}" stroke-width="3" fill="none" opacity=".35"/><path d="M128 38Q134 30 142 36" stroke="#b8322b" stroke-width="5" stroke-linecap="round"/>` : ''}
-<path d="${h.back}" fill="url(#${u}-hair)" stroke="${c.line}" stroke-width=".9"/>`;
-  const front = `<path d="${face}" fill="url(#${u}-skin)" stroke="${c.skin[2]}" stroke-width=".8"/>
-<path d="M60 88C66 96 72 100 80 102L62 106Z" fill="${c.skin[2]}" opacity=".25"/><path d="M140 88C134 96 128 100 120 102L138 106Z" fill="${c.skin[2]}" opacity=".25"/>
-<ellipse cx="74" cy="118" rx="10" ry="5" fill="url(#${u}-blush)"/><ellipse cx="126" cy="118" rx="10" ry="5" fill="url(#${u}-blush)"/>
+<path d="${h.back}" fill="url(#${u}-hair)" stroke="${c.line}" stroke-width=".9"/><path d="${h.back}" fill="url(#${u}-hl)"/>`;
+  const front = `<path d="${face}" fill="url(#${u}-skin)" stroke="#b27766" stroke-width=".9"/>
+<path d="M58 86C57 104 64 122 82 134L86 127C72 117 65 104 65 88Z" fill="${c.skin[2]}" opacity=".45" filter="url(#${u}-soft3)"/><path d="M120 136Q100 146 84 134L90 131Q100 139 116 130Z" fill="${c.skin[2]}" opacity=".4" filter="url(#${u}-soft)"/>
+<ellipse cx="74" cy="118" rx="11" ry="5.5" fill="url(#${u}-blush)"/><ellipse cx="126" cy="118" rx="11" ry="5.5" fill="url(#${u}-blush)"/><g stroke="#e27f79" stroke-width=".7" opacity=".55"><path d="M68 117l2-3M71.5 117.5l2-3M75 118l2-3"/><path d="M124 117.5l2-3M127.5 117.5l2-3M131 117l2-3"/></g>
 ${eye(u, c)}<g transform="translate(200 0) scale(-1 1)">${eye(u, c)}</g>
 ${brows}
-<path d="M100.5 115L99 119.5" stroke="${c.skin[2]}" stroke-width="1.2" stroke-linecap="round"/>
+<path d="M100.5 114.5L98.6 119.6L100.6 119.9" stroke="#c28a78" stroke-width="1.1" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="101.6" cy="118.4" r=".9" fill="#fff" opacity=".7"/>${c.mole ? '<circle cx="125" cy="116" r=".95" fill="#5a3a34"/>' : ''}
 ${MOUTH[c.mouth]}
 <path d="${h.fringe}" fill="${c.skin[2]}" opacity=".3" transform="translate(1 3.5)"/>
 ${h.side.map(d => `<path d="${d}" fill="url(#${u}-hair)" stroke="${c.line}" stroke-width=".8"/>`).join('')}
-<path d="${h.fringe}" fill="url(#${u}-hair)" stroke="${c.line}" stroke-width=".8"/>
-<g clip-path="url(#${u}-fringeclip)">${h.partings.map(d => `<path d="${d}" stroke="${c.hair[2]}" stroke-width="1.3" fill="none" opacity=".7"/>`).join('')}<path d="M62 50Q84 32 100 31M110 32Q126 36 138 50" stroke="${c.sheen}" stroke-width="4" stroke-linecap="round" fill="none" opacity=".3"/>${h.glints.map(d => `<path d="${d}" stroke="${c.sheen}" stroke-width="1.7" stroke-linecap="round" fill="none" opacity=".4"/>`).join('')}</g>
+${c.ahoge ? `<path d="M99.5 26C97 13 106 5 116 7C108.5 9 102.5 14 102 26Z" fill="url(#${u}-hair)" stroke="${c.line}" stroke-width=".7"/>` : ''}
+<path d="${h.fringe}" fill="url(#${u}-hair)" stroke="${c.line}" stroke-width=".8"/><path d="${h.fringe}" fill="url(#${u}-hlF)"/>${h.side.map(d => `<path d="${d}" fill="url(#${u}-hl)"/>`).join('')}
+<g stroke="${c.hair[1]}" stroke-width=".7" fill="none" opacity=".8" stroke-linecap="round"><path d="M54 98Q46 118 50 136"/><path d="M146 98Q156 116 151 132"/><path d="M62 40Q50 44 44 56"/></g>
+<g clip-path="url(#${u}-fringeclip)">${h.tips.map(([x, y], i) => `<path d="M${r1(100 + (x - 100) * .4)} ${r1(y - 44)}Q${r1(x + (i % 2 ? 2 : -2))} ${r1(y - 22)} ${r1(x + (100 - x) * .05)} ${r1(y - 7)}" stroke="${c.sheen}" stroke-width=".6" fill="none" opacity=".3"/>`).join('')}${h.partings.map(d => `<path d="${d}" stroke="${c.hair[2]}" stroke-width="1.3" fill="none" opacity=".7"/>`).join('')}<path d="M44 48Q100 20 156 48L156 60${zig}L44 60Z" fill="${c.sheen}" opacity=".2"/><path d="M62 50Q84 32 100 31M110 32Q126 36 138 50" stroke="${c.sheen}" stroke-width="4" stroke-linecap="round" fill="none" opacity=".3"/>${h.glints.map(d => `<path d="${d}" stroke="${c.sheen}" stroke-width="1.7" stroke-linecap="round" fill="none" opacity=".4"/>`).join('')}</g>
 ${accessory(u, c)}`;
   return { defs, back, neck, body, front };
 }
@@ -204,7 +215,7 @@ export function figure(key = 'qingque') {
   const flowers = (list, clip) => `<g clip-path="url(#${u}-${clip})">` + list.map(([x, y, r, rot]) => `<g transform="translate(${x} ${y}) rotate(${rot})">${[0, 72, 144, 216, 288].map(t => `<ellipse cx="0" cy="${-r * .6}" rx="${r * .42}" ry="${r * .6}" transform="rotate(${t})" fill="#f6efdc"/>`).join('')}<circle r="${r * .24}" fill="#d9b262"/>${[0, 72, 144, 216, 288].map(t => `<path d="M0 0V${-r * .5}" transform="rotate(${t + 36})" stroke="#c9a04e" stroke-width=".8"/>`).join('')}</g>`).join('') + '</g>';
   const stream = (x, y, w) => `<path d="M${x} ${y}c${w * .2}-12 ${w * .4} 12 ${w * .6} 0s${w * .3}-10 ${w * .4} 2" stroke="${c.band}" stroke-width="2" fill="none" opacity=".6"/>`;
   const fold = d => `<path d="${d}" stroke="#021510" stroke-width="3" fill="none" opacity=".35" stroke-linecap="round"/>`;
-  return `<svg viewBox="0 0 600 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${c.name}立繪"><defs>${p.defs}
+  return `<svg viewBox="0 -30 600 930" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${c.name}立繪"><defs>${p.defs}
 ${grad(`${u}-kimL`, [[0, c.kimono[0]], [.6, c.kimono[1]], [1, '#05261c']])}
 ${grad(`${u}-lit`, [[0, '#000', .28], [.55, '#000', 0], [1, '#dff3e6', .16]], 1, 0)}
 ${grad(`${u}-obi`, [[0, '#f3dc9c'], [.45, '#d4aa56'], [1, '#8f6a2b']])}
