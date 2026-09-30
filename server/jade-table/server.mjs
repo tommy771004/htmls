@@ -48,6 +48,8 @@ export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = []
   const restore = room => { if (room.game) room.game = Object.assign(new MahjongGame(), room.game); return room; };
   // Table chat keeps only the current Taiwan calendar day; older lines are pruned from the room and never sent.
   const chatDay = t => Math.floor((t + 8 * 3600000) / 86400000);
+  // Length is counted in visible characters (an emoji family is one), as the page's input counts it; the raw cap bounds the row size.
+  const graphemes = new Intl.Segmenter('zh-Hant', { granularity: 'grapheme' }), chatLength = t => [...graphemes.segment(t)].length;
   const todaysChat = (room, now = Date.now()) => (room.chat ?? []).filter(m => chatDay(m.at) === chatDay(now));
   function snapshot(ws, room) {
     const seat = ws.client?.seat, p = room.players[seat];
@@ -81,15 +83,17 @@ export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = []
   async function chat(ws, msg) {
     if (!ws.client) throw Error('入座後才能聊天。');
     const text = typeof msg.text === 'string' ? msg.text.replace(/\s+/g, ' ').trim() : '';
-    if (!text || [...text].length > 60 || /[\u0000-\u001f\u007f]/.test(text)) throw Error('訊息需為 1 至 60 字。');
-    const { code, seat, token } = ws.client;
+    if (!text || text.length > 1000 || chatLength(text) > 60 || /[\u0000-\u001f\u007f]/.test(text)) throw Error('訊息需為 1 至 60 字。');
+    // cid is the page's id for one line: a resend after a dropped reply is acknowledged without writing it twice.
+    const { code, seat, token } = ws.client, cid = typeof msg.cid === 'string' && /^[a-z0-9]{1,16}$/.test(msg.cid) ? msg.cid : undefined;
     const room = await change(code, room => {
       const p = room.players[seat], now = Date.now(); if (p?.token !== token || p.connection !== ws.id) throw Error('連線已被取代。');
-      if (now - (p.chatAt ?? 0) < 800) throw Error('說得太快了，喝口茶再說。');
+      if (cid && room.chat?.some(m => m.seat === seat && m.cid === cid)) return false;
+      if (now - (p.chatAt ?? 0) < 800) throw Object.assign(Error('說得太快了，喝口茶再說。'), { retry: 800 - (now - p.chatAt) });
       p.chatAt = now; p.lastSeen = now;
       const id = (room.chatSeq ?? 0) + 1;
-      room.chat = [...todaysChat(room, now), { id, seat, name: p.name, text, at: now }].slice(-50); room.chatSeq = id;
-    }); broadcast(room);
+      room.chat = [...todaysChat(room, now), { id, seat, name: p.name, text, at: now, cid }].slice(-50); room.chatSeq = id;
+    }); broadcast(room); send(ws, { type: 'CHAT_OK', cid });
   }
   async function handle(ws, msg) {
     if (!msg || typeof msg !== 'object' || typeof msg.type !== 'string') throw Error('無效訊息。');
@@ -146,6 +150,8 @@ export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = []
         if (!room.game) throw Error('牌局尚未開始。'); room.game.setAuto(seat, msg.on === true);
       } else if (msg.type !== 'STATE_SYNC') throw Error('不支援的指令。');
     }); broadcast(room);
+    // Chat and other players' moves also send STATE_SYNC, so the page keeps its move locked until this reply or an ERROR.
+    if (msg.type === 'ACTION') send(ws, { type: 'DONE', actionId: msg.actionId });
   }
   wss.on('connection', ws => {
     ws.id = randomBytes(16).toString('hex'); ws.chatSent = 0; ws.alive = true; ws.windowAt = Date.now(); ws.requests = 0; ws.chain = Promise.resolve();
@@ -156,7 +162,7 @@ export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = []
         if (Date.now() - ws.windowAt > 10000) { ws.windowAt = Date.now(); ws.requests = 0; }
         if (++ws.requests > 60) { ws.close(1008, 'Rate limit'); return; }
         await handle(ws, JSON.parse(raw.toString()));
-      }).catch(err => send(ws, { type: 'ERROR', message: err instanceof SyntaxError ? 'JSON 格式錯誤。' : err.message, scope: err.scope }));
+      }).catch(err => send(ws, { type: 'ERROR', message: err instanceof SyntaxError ? 'JSON 格式錯誤。' : err.message, scope: err.scope, retry: err.retry }));
     });
   });
   let polling = false;
