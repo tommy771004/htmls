@@ -1,5 +1,6 @@
 # 190 封頂：雙旋翼起重直升機與七種工地機具 → machines.glb
 # 重建：/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup -P assets/190/build_machines.py
+#   匯出後最後一步由 glb_draco.py 把網格改存 KHR_draco_mesh_compression（網頁用 DRACOLoader 解碼）；DRACO=0 輸出未壓縮的 glb
 #   環境變數 PREVIEW=資料夾 會另存預覽圖；GLB=路徑 改寫到別處（驗證用）
 # 車輛原點在地面中心、車頭朝 +z，外形尺寸對齊網頁裡的碰撞盒。材質叫 paint 的部分由網頁換車身色，
 # 皮卡的 glass 材質由網頁畫成半透明；其他機具的玻璃是 fixed 的深色頂點色。
@@ -1358,3 +1359,5 @@ GLB_PATH = os.environ.get('GLB', os.path.join(HERE, 'machines.glb'))
 export(GLB_PATH, OUT)
 from world_lib import quantize_glb_colors
 quantize_glb_colors(GLB_PATH)   # 頂點色改存 8 位元，檔案小約 0.5 MB
+from glb_draco import draco_glb
+draco_glb(GLB_PATH)   # 最後一步：頂點與索引改存 Draco（見 glb_draco.py）

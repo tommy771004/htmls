@@ -1,5 +1,6 @@
 # 190 封頂：1 公里島嶼用的樹木、岩石、紅砂岩台地、房屋、加油站與路邊設施 → world.glb
 # 重建：/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup -P assets/190/build_world.py
+#   匯出後最後一步由 glb_draco.py 把網格改存 KHR_draco_mesh_compression（網頁用 DRACOLoader 解碼）；DRACO=0 輸出未壓縮的 glb
 #   PREVIEW=資料夾 另存預覽圖；GLB=路徑 改寫到別處；META=路徑 輸出碰撞盒 / 門 / 樓板等 JSON（寫清單用）
 # 每個物件一個節點、節點位移為 0；原點在地面中心（PIER 在甲板面、BOAT 在吃水線），正面朝 +z，公尺。
 # 材質名稱 = 用途（leaf / bark / paint / glass / emit / rock / wood / metal / roof / plain），頂點色 = 底色 × AO，保留 UV。
@@ -390,8 +391,8 @@ def mesa(name, W, D, bands, seed, at, N=128, quarry=None, ledges=None, crown=4.0
                  smooth=24, extra=dict(bands=meta_bands, quarry=dict(half_angle_deg=round(math.degrees(quarry[0]), 1), benches=[dict(y0=bands[k], y1=bands[k + 1], face_z=round(quarry[1](k), 2)) for k in range(len(bands) - 1)]) if quarry else None))
 
 
-mesa('MESA_A', 132, 88, [0, 4, 11, 15, 23, 28, 37, 41, 49, 55], 7, (0, 0, 320), 168, ledges={3: .035, 6: .045}, crown=5.0)
-mesa('MESA_B', 70, 60, [0, 6.3, 12.6, 19, 25.3, 31.6, 38], 13, (220, 0, 320), 128, quarry=(math.radians(30), lambda k: 20 - k * 2.4), ledges={4: .03}, crown=3.0)
+# MESA_A / MESA_B 不再輸出：台地、採石場的崖與遠景孤丘都改在頁面裡程式建模（butteGeo / buildMesaCliff），省掉約 0.7 MB 的下載。
+# mesa() 留著備用：mesa('MESA_A', 132, 88, [0, 4, 11, 15, 23, 28, 37, 41, 49, 55], 7, (0, 0, 320), 168, ledges={3: .035, 6: .045}, crown=5.0)
 
 
 # ═════════ 建築 ═════════
@@ -1014,6 +1015,742 @@ for fn, w in ((guardrail, 6), (pole, 5), (streetlight, 5), (sign, 4), (fence, 5)
 pier((-240, 0, 0))
 boat((-230, 0, 0))
 
+
+# ═════════ 室內陳設（穀倉、工具棚、工寮、民房）：一件一個節點，網頁用 InstancedMesh 依距離顯示；排在 z = 130 一列烘 AO ═════════
+IPX = [0.0]
+
+
+def iprop(name, P, COL=None, dist=.6, notes='', grime=0.0, w=4.0, wall=False):
+    at = (IPX[0], 0, 130)
+    IPX[0] += w + 4
+    ob = asset(name, P, at, dist, COL or [], notes=notes, grime=grime, smooth=35)
+    # 看不到的面拿掉（檔案小一點）：貼地的底面；掛牆的道具貼牆的背面
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    dead = []
+    for f in bm.faces:
+        c, n = T(f.calc_center_median()), T(f.normal)
+        if (n.y < -.95 and c.y < .015) or (wall and n.z < -.95 and c.z < .012):
+            dead.append(f)
+    bmesh.ops.delete(bm, geom=dead, context='FACES')
+    bm.to_mesh(ob.data)
+    bm.free()
+    return ob
+
+
+def lumpy(name, role, color, c, s, amp, seed, bevel=.06, seg=1, cuts=2, var=.08, rot=None):
+    """有點鼓、表面不平的方塊（草捆、麻袋、帆布）：細分後沿法線用雜訊推"""
+    bm = bm_box(s, bevel, seg)
+    if cuts:
+        bmesh.ops.subdivide_edges(bm, edges=list(bm.edges), cuts=cuts, use_grid_fill=True)
+    off = Vector((seed * 3.7, seed * 1.3, seed * 5.1))
+    for v in bm.verts:
+        p = Vector(v.co)
+        k = noise.noise(p * 3.1 + off) * amp + noise.noise(p * 9.0 + off) * amp * .35
+        n = Vector((p.x / max(s[0], 1e-3), p.y / max(s[1], 1e-3), p.z / max(s[2], 1e-3)))
+        v.co = p + n.normalized() * k
+    return wfinish(bm, name, role, color, c, rot, False, var, seed)
+
+
+def cyl_y(name, role, color, c, r, h, seg=12, var=.04, r2=None):
+    x, y, z = c
+    return wcyls(name, role, color, [((x, y, z), (x, y + h, z), r, r if r2 is None else r2)], seg, var)
+
+
+def strands(name, color, cx, cz, rx, rz, y0, n, seed, L=(.12, .35)):
+    """散落的乾草稈：細長的平面（雙面），躺在地上"""
+    rng = rng_for(seed)
+    bm = bmesh.new()
+    for i in range(n):
+        a = rng.uniform(0, TAU)
+        r = math.sqrt(rng.random())
+        x, z = cx + math.cos(a) * r * rx, cz + math.sin(a) * r * rz
+        l, w, t = rng.uniform(*L), rng.uniform(.006, .014), rng.uniform(0, math.pi)
+        dx, dz = math.cos(t) * l / 2, math.sin(t) * l / 2
+        ox, oz = -math.sin(t) * w, math.cos(t) * w
+        y = y0 + rng.uniform(0, .015)
+        vs = [bm.verts.new((x - dx - ox, y, z - dz - oz)), bm.verts.new((x + dx - ox, y + rng.uniform(0, .03), z + dz - oz)), bm.verts.new((x + dx + ox, y + rng.uniform(0, .03), z + dz + oz)), bm.verts.new((x - dx + ox, y, z - dz + oz))]
+        bm.faces.new(list(reversed(vs)))
+    return wfinish(bm, name, 'plain', color, var=.18, seed=seed, recalc=False)
+
+
+HAYC, BOARD, BOARDD, STEELC = 0xcdb36a, 0x8a6a48, 0x5e4430, 0x5b6067
+
+
+# ── 穀倉 ──
+def hay_bale():
+    P = [lumpy('hb', 'plain', HAYC, (0, .21, 0), (.52, .42, 1.0), .012, 3, .05, 1, 2, .14)]
+    P.append(wboxes('tw', 'plain', 0x6b5a3c, [((0, .21, z), (.535, .435, .025)) for z in (-.25, .25)], var=.1))
+    P.append(strands('st', 0xd9c27a, 0, 0, .22, .45, .425, 14, 5, (.08, .2)))
+    return iprop('HAY_BALE', P, [aabb((0, .21, 0), (.52, .42, 1.0))], .6, 'small square bale 0.52 × 0.42 × 1.0; stack in the page')
+
+
+def hay_loose():
+    bm = bm_ell((.85, .42, .62), 14, 6)
+    off = Vector((1.3, 2.2, .7))
+    for v in bm.verts:
+        p = Vector(v.co)
+        if p.y < 0:
+            p.y = 0
+        k = 1 + noise.noise(p * 2.4 + off) * .22 + noise.noise(p * 7 + off) * .08
+        v.co = Vector((p.x * k, p.y * k, p.z * k))
+    P = [wfinish(bm, 'hl', 'plain', 0xc2a95f, smooth=True, var=.16, seed=7)]
+    P.append(strands('st', 0xd4bd74, 0, 0, 1.2, .95, .005, 40, 9))
+    P.append(strands('su', 0xcdb36a, 0, 0, .6, .45, .3, 16, 11, (.1, .25)))
+    return iprop('HAY_LOOSE', P, None, .6, 'loose hay heap 1.7 × 0.45 × 1.25, walk-through')
+
+
+def trough():
+    P, COL = [], []
+    L, Wd, H = 1.6, .5, .55
+    P.append(wboxes('tb', 'wood', BOARD, [((0, .2, 0), (L, .05, Wd)), ((0, .38, Wd / 2 - .025), (L, .36, .05)), ((0, .38, -Wd / 2 + .025), (L, .36, .05)),
+                                          ((L / 2 - .025, .38, 0), (.05, .36, Wd - .1)), ((-L / 2 + .025, .38, 0), (.05, .36, Wd - .1))], var=.08))
+    P.append(wboxes('tl', 'wood', BOARDD, [((sx * (L / 2 - .1), .1, sz * (Wd / 2 - .06)), (.08, .2, .08)) for sx in (1, -1) for sz in (1, -1)], var=.06))
+    P.append(wboxes('tr', 'metal', 0x4a4d50, [((0, H - .012, sz * (Wd / 2 - .02)), (L + .01, .025, .06)) for sz in (1, -1)], var=.04))
+    P.append(lumpy('tf', 'plain', 0x8f7a46, (0, .3, 0), (L - .14, .12, Wd - .14), .02, 4, .03, 1, 2, .14))
+    COL.append(aabb((0, H / 2, 0), (L, H, Wd)))
+    return iprop('TROUGH', P, COL, .6, 'wooden feed trough on legs, long axis x')
+
+
+def stall():
+    """一格畜欄（沿走道寬 3 m，往後 3.2 m）：+x 側一片隔板（高 1.05，在閣樓底下第三人稱鏡頭才不會被擠到人身上）、正面（+z）右段半牆 + 左邊往內開 60° 的柵門；原點在正面中間地面"""
+    P, COL = [], []
+    zb, H = -3.2, 1.05
+    # 隔板：直柱 + 橫木 + 木板
+    P.append(wboxes('sp', 'wood', BOARDD, [((1.5, H / 2 + .05, z), (.14, H + .1, .14)) for z in (-.07, -1.6, zb + .07)] + [((-1.5, H / 2 + .05, -.07), (.14, H + .1, .14)), ((.15, H / 2 + .05, -.07), (.12, H + .1, .12))], var=.06))
+    pl = [((1.5, .12 + i * .19 + .09, (zb + 0) / 2), (.05, .18, -zb - .1)) for i in range(5)]
+    P.append(wboxes('sb', 'wood', BOARD, pl, var=.12))
+    P.append(wboxes('sr', 'wood', BOARDD, [((1.5, H + .07, zb / 2), (.12, .07, -zb)), ((.82, H + .07, -.07), (1.4, .07, .12))], var=.06))
+    # 正面右段半牆
+    P.append(wboxes('fb', 'wood', BOARD, [((.82, .12 + i * .19 + .09, -.04), (1.28, .18, .05)) for i in range(5)], var=.12))
+    COL.append([1.43, 0, zb, 1.57, H + .1, 0])
+    COL.append([.09, 0, -.14, 1.57, H + .1, .0])
+    COL.append([-1.57, 0, -.14, -1.43, H + .1, 0])
+    # 柵門：鉸鏈在 x = .1（右邊的柱子），門往格子裡（-z）開 60°；先在門自己的座標（u 沿門寬、往 -x）做，再轉過去
+    gw = 1.5
+    bm = bm_boxes([((gw / 2, y, 0), (gw, .09, .05)) for y in (.22, .6, .95)] + [((u, .58, 0), (.09, .9, .055)) for u in (.05, gw - .05)])
+    r = bmesh.ops.create_cube(bm, size=1.0)
+    Rb = Matrix.Translation((gw / 2, .58, 0)) @ Matrix.Rotation(math.atan2(.73, gw - .1), 4, 'Z') @ Matrix.Diagonal((math.hypot(gw - .1, .73), .08, .045, 1))
+    for v in r['verts']:
+        v.co = Rb @ v.co
+    P.append(wfinish(bm, 'gt', 'wood', 0x7a5a3c, (.1, 0, -.07), (0, 2.094, 0), False, .08))
+    P.append(wboxes('gh', 'metal', 0x3a3c3e, [((.12, y, -.07), (.06, .12, .1)) for y in (.28, .9)], var=.04))
+    # 地上的稻草
+    P.append(strands('st', 0xc9b16b, 0, zb / 2, 1.3, 1.3, .002, 46, 13))
+    return iprop('STALL', P, COL, .8, 'one stall bay: x in [-1.5, 1.5] along the aisle, z from 0 (front, gate) to -3.2 (back); divider on +x; gate hinged at x=.1, open 120° into the bay', w=5)
+
+
+def loft():
+    """穀倉右側的乾草閣樓（穀倉座標：x 1.5..4.8、z -6.8..1.0、樓板頂 2.2）＋ 往 -z 上去的直梯式樓梯（x 1.65..2.5、z 3.0 → 1.0）"""
+    P, COL = [], []
+    x0, x1, z0, z1, Y = 1.5, 4.8, -6.8, 1.0, 2.2
+    posts = [(1.6, z) for z in (-6.6, -3.6, -.6, .9)]
+    P.append(wboxes('lp', 'wood', BOARDD, [((x, (Y - .1) / 2 + .05, z), (.16, Y - .1, .16)) for (x, z) in posts], var=.06))
+    for (x, z) in posts:
+        COL.append(aabb((x, (Y - .1) / 2 + .05, z), (.16, Y - .1, .16)))
+    P.append(wbox('lb', 'wood', BOARDD, (1.6, Y - .17, (z0 + z1) / 2), (.16, .16, z1 - z0), var=.06))
+    js = []
+    z = z0 + .15
+    while z < z1:
+        js.append(((3.2, Y - .17, z), (3.2, .14, .07)))
+        z += .65
+    P.append(wboxes('lj', 'wood', 0x6b4e34, js, var=.08))
+    pk, n = [], 11
+    for i in range(n):
+        xa = x0 + (x1 - x0) * i / n
+        pk.append(((xa + (x1 - x0) / n / 2, Y - .05, (z0 + z1) / 2), ((x1 - x0) / n - .012, .1, z1 - z0)))
+    P.append(wboxes('lk', 'wood', 0x9a7a52, pk, var=.12))
+    COL.append([x0, Y - .24, z0, x1, Y, z1])
+    # 欄杆：走道邊（x = 1.55）與樓梯口旁（z = 1.0，x 2.55..4.8）
+    rp = [((1.56, Y + .5, z), (.08, 1.0, .08)) for z in (-6.7, -5.1, -3.6, -2.1, -.6, .94)] + [((x, Y + .5, .96), (.08, 1.0, .08)) for x in (2.58, 3.7, 4.74)]
+    rr = [((1.56, Y + y, (z0 + z1) / 2), (.07, .07, z1 - z0)) for y in (.5, .98)] + [(((2.55 + x1) / 2, Y + y, .96), (x1 - 2.55, .07, .07)) for y in (.5, .98)]
+    P.append(wboxes('lr', 'wood', BOARDD, rp + rr, var=.06))
+    COL.append([1.5, Y, z0, 1.62, Y + 1.0, z1])
+    COL.append([2.55, Y, .92, x1, Y + 1.0, 1.0])
+    # 樓梯：六階、每階高 .35；實心的踏階碰撞（樓梯底下不能鑽）
+    xs0, xs1, zs0, zs1 = 1.65, 2.5, 3.0, 1.0
+    k = 6
+    d = (zs0 - zs1) / k
+    tr = []
+    for i in range(k):
+        top = .1 + .35 * (i + 1)
+        za, zb_ = zs0 - d * (i + 1), zs0 - d * i
+        tr.append((((xs0 + xs1) / 2, top - .025, (za + zb_) / 2), (xs1 - xs0 - .1, .05, d + .02)))
+        COL.append([xs0, 0, round(za, 3), xs1, round(top, 3), round(zb_, 3)])
+    P.append(wboxes('st', 'wood', 0x9a7a52, tr, var=.1))
+    L = math.hypot(zs0 - zs1 + .1, Y - .1)
+    ang = math.atan2(Y - .1, zs0 - zs1)
+    for x in (xs0 + .03, xs1 - .03):
+        P.append(wbox('sg', 'wood', BOARDD, (x, (Y + .1) / 2 - .12, (zs0 + zs1) / 2), (.06, .26, L), rot=(ang, 0, 0), var=.06))
+    # 扶手（走道那一側）
+    P.append(wboxes('hp', 'wood', BOARDD, [((xs0 - .02, .55, zs0 - .05), (.06, .9, .06))], var=.06))
+    P.append(wbox('hr', 'wood', BOARDD, (xs0 - .02, (Y + .1) / 2 + .9, (zs0 + zs1) / 2), (.06, .06, L), rot=(ang, 0, 0), var=.06))
+    COL.append([xs0 - .06, .1, zs1, xs0 + .02, Y + 1.0, zs0])
+    return iprop('LOFT', P, COL, 1.0, 'barn-local hay loft (place at the barn origin, ry 0): deck top 2.2 over x 1.5..4.8, z -6.8..1.0; 6-step stair x 1.65..2.5 rising toward -z from z 3.0', w=8)
+
+
+def tractor():
+    P, COL = [], []
+    RED, DK, TY = 0xb33a2a, 0x2c2d2f, 0x1e1f21
+    # 後輪（大）與前輪：胎面一圈凸紋用輪廓的鋸齒做
+    def wheel(nm, x, y, z, r, w, seg):
+        prof = [(r * .62, -w / 2), (r * .9, -w / 2), (r, -w * .38), (r, w * .38), (r * .9, w / 2), (r * .62, w / 2)]
+        rf = lambda a, yy: 1 + (.04 if (int(round(a / TAU * seg)) % 2 == 0 and abs(yy) < w * .4) else 0)
+        P.append(wlathe(nm, 'plain', TY, prof, (x, y, z), seg, rot=(0, 0, math.pi / 2), rfn=rf, smooth=False, cap_bot=False, cap_top=False))
+        P.append(wlathe(nm + 'h', 'metal', 0xd8b23a, [(r * .63, -w * .42), (r * .3, -w * .3), (r * .12, -w * .5), (.001, -w * .5)], (x, y, z), 10, rot=(0, 0, math.pi / 2 * (1 if x > 0 else -1)), cap_bot=False))
+    for sx in (1, -1):
+        wheel('rw', sx * .72, .62, -.75, .62, .34, 14)
+        wheel('fw', sx * .62, .34, 1.05, .34, .18, 10)
+    P.append(wcyls('ax', 'metal', DK, [((-.62, .34, 1.05), (.62, .34, 1.05), .05), ((-.72, .62, -.75), (.72, .62, -.75), .07)], 8))
+    # 車身：引擎蓋、散熱格柵、引擎、變速箱、擋泥板、座椅、方向盤、排氣管、燈
+    P.append(wbox('hd', 'metal', RED, (0, .98, .55), (.62, .5, 1.25), bevel=.06, seg=1))
+    P.append(wbox('gr', 'metal', 0x9aa0a4, (0, .95, 1.19), (.5, .42, .04), var=.03))
+    P.append(wboxes('gl', 'metal', DK, [((0, .78 + i * .07, 1.215), (.46, .025, .02)) for i in range(6)], var=.02))
+    P.append(wbox('en', 'metal', 0x3a3c3e, (0, .62, .45), (.5, .36, 1.1), var=.04))
+    P.append(wbox('tb', 'metal', RED, (0, .72, -.55), (.6, .5, .9), bevel=.05, seg=1))
+    for sx in (1, -1):
+        P.append(wlathe('fd', 'metal', RED, [(.7, -.15), (.7, .15)], (sx * .72, .62, -.75), 14, rot=(0, 0, math.pi / 2), a0=math.radians(15), a1=math.radians(190), cap_bot=False, cap_top=False, smooth=True))
+        P.append(wbox('fp', 'metal', RED, (sx * .48, .98, -.75), (.12, .04, .95), var=.03))
+    P.append(wbox('se', 'plain', DK, (0, 1.08, -.9), (.46, .08, .42), bevel=.03, seg=1))
+    P.append(wbox('sb', 'plain', DK, (0, 1.32, -1.12), (.46, .42, .07), bevel=.03, seg=1, rot=(-.2, 0, 0)))
+    P.append(wcyls('sc', 'metal', DK, [((0, .78, -.9), (0, 1.04, -.9), .05), ((0, 1.1, -.3), (0, 1.5, -.48), .025)], 6))
+    P.append(wlathe('sw', 'plain', DK, [(.19, -.015), (.2, 0), (.19, .015), (.17, 0)], (0, 1.52, -.5), 14, rot=(-.6, 0, 0), cap_bot=False, cap_top=False))
+    P.append(wcyls('ex', 'metal', 0x2a2b2c, [((.18, 1.2, .9), (.18, 1.95, .9), .035)], 8))
+    P.append(cyl_y('ec', 'metal', 0x2a2b2c, (.18, 1.95, .9), .045, .06, 8))
+    P.append(wcyls('lt', 'metal', DK, [((sx * .22, 1.12, 1.18), (sx * .22, 1.12, 1.24), .055) for sx in (1, -1)], 10))
+    P.append(wcyls('lg', 'emit', 0xfff2c8, [((sx * .22, 1.12, 1.24), (sx * .22, 1.12, 1.25), .045) for sx in (1, -1)], 10, var=0))
+    P.append(wbox('hk', 'metal', DK, (0, .55, -1.12), (.3, .12, .2), var=.03))
+    COL.append(aabb((0, .62, -.75), (1.8, 1.25, 1.25)))
+    COL.append(aabb((0, .75, .45), (.75, 1.1, 1.65)))
+    COL.append(aabb((0, .34, 1.05), (1.45, .68, .4)))
+    return iprop('TRACTOR', P, COL, .8, 'small vintage tractor, front +z, 1.8 wide × 2.6 long', w=6)
+
+
+def workbench():
+    P, COL = [], []
+    L, Dp, H = 2.0, .7, .9
+    P.append(wbox('tp', 'wood', 0x9a7650, (0, H - .03, 0), (L, .06, Dp), var=.1))
+    P.append(wboxes('lg', 'wood', 0x6b4a2e, [((sx * (L / 2 - .06), (H - .06) / 2, sz * (Dp / 2 - .06)), (.08, H - .06, .08)) for sx in (1, -1) for sz in (1, -1)], var=.06))
+    P.append(wbox('sh', 'wood', 0x8a6a48, (0, .2, 0), (L - .1, .03, Dp - .1), var=.1))
+    P.append(wbox('bk', 'wood', 0x7a5a3c, (0, H + .15, -Dp / 2 + .02), (L, .3, .03), var=.08))
+    # 抽屜櫃（右）
+    P.append(wbox('dr', 'wood', 0x7a5a3c, (.6, .55, .02), (.6, .5, Dp - .1), var=.06))
+    P.append(wboxes('dh', 'metal', 0x9aa0a4, [((.6, .45 + i * .2, Dp / 2 - .02), (.18, .025, .03)) for i in range(2)], var=.02))
+    P.append(wboxes('dl', 'wood', 0x5e4430, [((.6, .55 + i * .2 - .1, Dp / 2 - .025), (.58, .01, .01)) for i in range(3)], var=.02))
+    # 虎鉗（左前角）
+    VC = 0x3d5a6e
+    P.append(wboxes('vs', 'metal', VC, [((-.75, H + .04, .22), (.16, .08, .22)), ((-.75, H + .12, .3), (.2, .14, .06)), ((-.75, H + .12, .17), (.2, .14, .06))], var=.04))
+    P.append(wcyls('vh', 'metal', 0x9aa0a4, [((-.75, H + .1, .33), (-.75, H + .1, .5), .015), ((-.86, H + .1, .5), (-.64, H + .1, .5), .012)], 6))
+    # 檯面上的東西：鎚子、鋸子、罐子、木塊
+    P.append(wbox('hm', 'wood', 0x8a6440, (-.2, H + .015, .1), (.3, .025, .03), rot=(0, .4, 0)))
+    P.append(wbox('hh', 'metal', 0x3a3c3e, (-.06, H + .03, .16), (.04, .05, .11), rot=(0, .4, 0)))
+    P.append(wbox('sa', 'metal', 0xb8bcbe, (.15, H + .005, -.15), (.5, .006, .14), rot=(0, -.15, 0)))
+    P.append(wbox('sg', 'wood', 0x7a3a2c, (.43, H + .02, -.11), (.12, .04, .1), rot=(0, -.15, 0)))
+    P.append(cyl_y('cn', 'metal', 0x8a8f94, (-.45, H, -.18), .06, .14, 10))
+    P.append(wboxes('wk', 'wood', 0xc49a64, [((.0, H + .03, -.22), (.35, .06, .09)), ((-.1, H + .09, -.22), (.25, .06, .09))], var=.1))
+    COL.append(aabb((0, H / 2, 0), (L, H, Dp)))
+    return iprop('WORKBENCH', P, COL, .6, 'wooden workbench 2.0 × 0.7 × 0.9, back against the wall at -z; top at 0.9 (loot on top is fine)')
+
+
+def tool_rack():
+    P = []
+    W, H = 1.8, 1.0
+    P.append(wbox('pb', 'wood', 0xb8986a, (0, 1.45, -.015), (W, H, .03), var=.06))
+    P.append(wboxes('pf', 'wood', 0x6b4a2e, [((0, 1.45 + sy * H / 2, 0), (W + .06, .05, .05)) for sy in (1, -1)] + [((sx * W / 2, 1.45, 0), (.05, H + .05, .05)) for sx in (1, -1)], var=.06))
+    # 長柄工具：草叉、鏟子、耙子（掛在板子下緣、斜靠在地上）
+    def long_tool(x, head):
+        P.append(wcyls('th', 'wood', 0x8a6440, [((x, .05, .12), (x + .03, 1.6, .03), .018)], 6))
+        if head == 'fork':
+            P.append(wboxes('tf', 'metal', 0x7d8387, [((x - .1 + i * .067, -.12 + .25, .13), (.012, .32, .012)) for i in range(4)] + [((x, .26 + .16, .13), (.22, .03, .02))], var=.03))
+        elif head == 'shovel':
+            P.append(wbox('ts', 'metal', 0x6f7478, (x, .18, .13), (.24, .3, .02), bevel=.02, seg=1))
+        else:
+            P.append(wbox('tr', 'metal', 0x6f7478, (x, .08, .14), (.36, .03, .03)))
+            P.append(wboxes('tt', 'metal', 0x6f7478, [((x - .16 + i * .053, .03, .16), (.01, .07, .01)) for i in range(7)], var=.02))
+    long_tool(-.75, 'fork'); long_tool(-.48, 'shovel'); long_tool(.72, 'rake')
+    # 掛在板上的：鋸子、鎚子、扳手、繩子一圈、鉗子
+    P.append(wbox('sw', 'metal', 0xb8bcbe, (-.05, 1.5, .01), (.55, .14, .008), rot=(0, 0, .05)))
+    P.append(wbox('sg', 'wood', 0x7a3a2c, (.25, 1.53, .02), (.12, .12, .04)))
+    P.append(wboxes('hm', 'wood', 0x8a6440, [((.45, 1.35, .02), (.035, .32, .03)), ((.6, 1.38, .02), (.035, .28, .03))], var=.06))
+    P.append(wboxes('hh', 'metal', 0x3a3c3e, [((.45, 1.53, .03), (.14, .05, .05)), ((.6, 1.54, .03), (.12, .05, .05))], var=.03))
+    P.append(wboxes('wr', 'metal', 0x9aa0a4, [((-.42 + i * .07, 1.72, .01), (.025, .2 - i * .02, .012)) for i in range(4)], var=.03))
+    P.append(wlathe('ro', 'plain', 0xb59a6a, [(.14, -.03), (.16, 0), (.14, .03), (.12, 0)], (.15, 1.2, .05), 14, rot=(math.pi / 2, 0, 0), cap_bot=False, cap_top=False))
+    P.append(wboxes('pg', 'metal', 0x2a2b2d, [((x, 1.6, .02), (.015, .015, .05)) for x in (-.6, -.3, 0, .3, .6)], var=0))
+    return iprop('TOOL_RACK', P, None, .6, 'wall tool board 1.8 wide (board face at z=0, against wall), long tools leaning to the floor in front (z ≤ .16)', wall=True)
+
+
+def barrel():
+    prof = [(.25, 0), (.29, .2), (.31, .45), (.29, .7), (.25, .9)]
+    P = [wlathe('bb', 'wood', 0x8a6440, prof, (0, 0, 0), 14, smooth=True, var=.08)]
+    P.append(wlathe('bt', 'wood', 0x7a5a3c, [(.24, .885), (.001, .885)], (0, 0, 0), 14, cap_bot=False))
+    for y in (.1, .32, .58, .8):
+        r = .25 + (.31 - .25) * math.sin(y / .9 * math.pi) * 1.0 + .006
+        P.append(wlathe('bh', 'metal', 0x3a3c3e, [(r, y - .025), (r + .006, y), (r, y + .025)], (0, 0, 0), 14, cap_bot=False, cap_top=False, smooth=True))
+    return iprop('BARREL', P, [aabb((0, .45, 0), (.6, .9, .6))], .6, 'wooden barrel r .31 h .9')
+
+
+def sacks():
+    P = [wbox('pl', 'wood', 0x9a7a52, (0, .06, 0), (1.1, .12, .8), var=.1)]
+    rng = rng_for(21)
+    sk = []
+    for i, (x, y, z, ry) in enumerate(((-.27, .22, -.05, .05), (.27, .22, .02, -.08), (0, .42, 0, 1.52))):
+        L = .88 if ry > 1 else .75
+        P.append(lumpy('sk', 'plain', 0xb59a6a if i != 1 else 0xc8b48a, (x, y, z), (.5, .2, L), .03, 30 + i, .08, 1, 1, .1, rot=(0, ry, 0)))
+    P.append(lumpy('sk', 'plain', 0xd8d0b8, (.3, .17, .3), (.42, .18, .35), .02, 40, .07, 1, 1, .08, rot=(0, .9, 0)))
+    return iprop('SACKS', P, [aabb((0, .3, 0), (1.1, .6, .85))], .6, 'feed sacks on a pallet 1.1 × 0.6 × 0.8')
+
+
+def lantern():
+    P = [wlathe('lc', 'metal', 0x2f3a36, [(.09, 0), (.1, .03), (.06, .06), (.03, .1), (.001, .12)], (0, -.12, 0), 10, cap_bot=False)]
+    P.append(wlathe('lg', 'emit', 0xffe6b0, [(.045, -.2), (.07, -.15), (.07, -.07), (.05, -.02)], (0, -.12, 0), 10, var=0))
+    P.append(wlathe('lb', 'metal', 0x2f3a36, [(.08, -.27), (.09, -.24), (.07, -.2), (.001, -.2)], (0, -.12, 0), 10, cap_bot=False))
+    P.append(wcyls('lw', 'metal', 0x2a2b2d, [((sx * .065, -.33, 0), (sx * .065, -.13, 0), .006) for sx in (1, -1)] + [((0, -.12, 0), (0, 0, 0), .006)], 4))
+    return iprop('LANTERN', P, None, .3, 'hanging kerosene lantern, origin at the hook (hangs .4 below)')
+
+
+def ladder():
+    P = []
+    L, Wd, a = 3.1, .46, .28
+    ca, sa = math.cos(a), math.sin(a)
+    def at(u, x, d=0):
+        return (x, u * ca, -u * sa + d)
+    for sx in (1, -1):
+        P.append(wbox('lr', 'wood', 0x9a7a52, at(L / 2, sx * Wd / 2), (.05, L, .07), rot=(-a, 0, 0), var=.08))
+    P.append(wboxes('rg', 'wood', 0x8a6a48, [(at(.25 + i * .3, 0), (Wd, .035, .035)) for i in range(10)], var=.08))
+    return iprop('LADDER', P, None, .6, 'wooden ladder leaning back (top toward -z by 0.85 m), feet at z=0')
+
+
+# ── 工具棚 ──
+def shelf():
+    P, COL = [], []
+    W, Dp, H = 1.2, .45, 1.9
+    P.append(wboxes('up', 'metal', STEELC, [((sx * (W / 2 - .02), H / 2, sz * (Dp / 2 - .02)), (.035, H, .035)) for sx in (1, -1) for sz in (1, -1)], var=.04))
+    ys = (.1, .62, 1.14, 1.66)
+    P.append(wboxes('sv', 'metal', 0x6f7478, [((0, y, 0), (W, .025, Dp)) for y in ys] + [((0, y - .03, sz * (Dp / 2 - .01)), (W, .05, .015)) for y in ys for sz in (1, -1)], var=.05))
+    rng = rng_for(61)
+    bx, cans, pc = [], [], []
+    for y in ys:
+        x = -W / 2 + .06
+        while x < W / 2 - .12:
+            r = rng.random()
+            if r < .45:
+                w, h, d = rng.uniform(.22, .36), rng.uniform(.14, .3), rng.uniform(.26, .38)
+                if x + w > W / 2 - .04: break
+                bx.append(((x + w / 2, y + .0125 + h / 2, rng.uniform(-.03, .03)), (w, h, d)))
+                x += w + .03
+            elif r < .8:
+                n = rng.randint(1, 3)
+                for k in range(n):
+                    if x + .17 > W / 2 - .04: break
+                    c = rng.choice((0xc03a2b, 0xe8ad18, 0x3d6a8e, 0xe9e6df, 0x4d7a48, 0x2f2f2f))
+                    pc.append((x + .085, y + .0125, rng.uniform(-.1, .1), c))
+                    x += .18
+            else:
+                x += rng.uniform(.08, .18)
+    P.append(wboxes('cb', 'wood', 0xc49a64, bx, var=.16))
+    P.append(wboxes('ct', 'plain', 0x8f6f45, [((b[0][0], b[0][1] + b[1][1] / 2 + .004, b[0][2]), (.06, .01, b[1][2] * 1.01)) for b in bx], var=.05))
+    for (x, y, z, c) in pc:
+        P.append(cyl_y('pc', 'metal', c, (x, y, z), .075, .18, 7, .05))
+    COL.append(aabb((0, H / 2, 0), (W, H, Dp)))
+    return iprop('SHELF', P, COL, .6, 'steel shelving 1.2 × 0.45 × 1.9 with cartons and paint cans; long axis x')
+
+
+def toolbox_kit():
+    """放在工作台面上的一組（原點在檯面）：紅色工具箱、虎鉗、扳手、手電筒、咖啡罐裝螺絲"""
+    P = []
+    P.append(wbox('tb', 'metal', 0xb8342a, (-.35, .1, 0), (.5, .2, .24), bevel=.015, seg=1))
+    P.append(wbox('tl', 'metal', 0x9a2a22, (-.35, .21, 0), (.5, .03, .24), var=.03))
+    P.append(wcyls('tg', 'metal', 0x2a2b2d, [((-.5, .26, 0), (-.2, .26, 0), .012)], 6))
+    P.append(wboxes('tp', 'metal', 0x2a2b2d, [((x, .235, 0), (.02, .05, .02)) for x in (-.5, -.2)], var=0))
+    VC = 0x3d5a6e
+    P.append(wboxes('vs', 'metal', VC, [((.45, .04, -.02), (.16, .08, .22)), ((.45, .13, .08), (.2, .14, .06)), ((.45, .13, -.06), (.2, .14, .06))], var=.04))
+    P.append(wcyls('vh', 'metal', 0x9aa0a4, [((.45, .11, .11), (.45, .11, .26), .014), ((.36, .11, .26), (.54, .11, .26), .011)], 6))
+    P.append(wbox('wr', 'metal', 0x9aa0a4, (0, .008, .12), (.28, .012, .035), rot=(0, .3, 0)))
+    P.append(wcyls('fl', 'metal', 0xe8ad18, [((.05, .03, -.08), (.25, .03, -.04), .028)], 8))
+    P.append(cyl_y('cc', 'metal', 0x8a8f94, (.2, 0, .1), .055, .13, 10))
+    return iprop('TOOLBOX', P, None, .4, 'bench-top kit, origin on the bench top; spans x -.6..+.6')
+
+
+def generator():
+    P, COL = [], []
+    FR = 0x2a2b2d
+    W, Dp, H = .7, .5, .55
+    fr = []
+    for sz in (1, -1):
+        z = sz * Dp / 2
+        pts = [(-W / 2, .04, z), (-W / 2, H - .05, z), (-W / 2 + .05, H, z), (W / 2 - .05, H, z), (W / 2, H - .05, z), (W / 2, .04, z)]
+        P.append(wtube('ft', 'metal', FR, pts, .018, 6, True, .03))
+    P.append(wcyls('fx', 'metal', FR, [((x, .04, -Dp / 2), (x, .04, Dp / 2), .018) for x in (-W / 2, W / 2)] + [((0, H, -Dp / 2), (0, H, Dp / 2), .016)], 6))
+    P.append(wbox('tk', 'metal', 0xe8ad18, (.06, H - .12, 0), (.48, .16, .38), bevel=.04, seg=1))
+    P.append(cyl_y('tc', 'metal', 0x2a2b2d, (.2, H - .05, .05), .035, .04, 8))
+    P.append(wbox('en', 'metal', 0x3a3c3e, (-.08, .22, 0), (.36, .3, .32), bevel=.02, seg=1))
+    P.append(wlathe('mf', 'metal', 0x6f7478, [(.06, -.07), (.07, -.06), (.07, .06), (.06, .07)], (.2, .2, .1), 10, rot=(0, 0, math.pi / 2)))
+    P.append(wbox('pn', 'metal', 0xd8b23a, (.24, .25, -.14), (.18, .18, .02), var=.03))
+    P.append(wboxes('so', 'plain', 0x1c1c1c, [((.2 + i * .07, .25, -.152), (.035, .05, .01)) for i in range(-1, 1)], var=0))
+    P.append(wcyls('pu', 'plain', 0x1c1c1c, [((-.24, .32, -.17), (-.24, .32, -.24), .02)], 6))
+    COL.append(aabb((0, H / 2, 0), (W + .04, H, Dp + .04)))
+    return iprop('GENERATOR', P, COL, .4, 'portable generator in a tube frame .7 × .55 × .5')
+
+
+def gas_can():
+    P = [wbox('gc', 'metal', 0xb8342a, (0, .22, 0), (.17, .44, .34), bevel=.025, seg=1)]
+    P.append(wboxes('gx', 'metal', 0x9a2a22, [((sx * .086, .22, 0), (.006, .3, .24)) for sx in (1, -1)], var=.02))
+    P.append(wboxes('gh', 'metal', 0x9a2a22, [((0, .46, z), (.03, .04, .04)) for z in (-.1, 0, .1)] + [((0, .5, 0), (.05, .03, .26))], var=.02))
+    P.append(wcyls('gs', 'metal', 0x2a2b2d, [((0, .42, .13), (0, .52, .2), .025)], 6))
+    return iprop('GAS_CAN', P, None, .3, 'red jerry can .17 × .5 × .34 (no collision; step over)')
+
+
+def wheelbarrow():
+    P, COL = [], []
+    T0, T1 = 0x3d6b4a, 0x2f5a3c
+    secs = []
+    for (z, w, h, y) in ((-.35, .48, .02, .42), (-.33, .52, .3, .42), (.15, .62, .32, .4), (.45, .5, .28, .38), (.5, .3, .03, .5)):
+        secs.append([(-w / 2, y, z), (w / 2, y, z), (w / 2 * 1.15, y + h, z + .04), (-w / 2 * 1.15, y + h, z + .04)])
+    bm = bm_loft([[(p[0], p[1], p[2]) for p in s] for s in secs], True)
+    P.append(wfinish(bm, 'tr', 'metal', T0, smooth=False, var=.05))
+    P.append(wcyls('hn', 'wood', 0x8a6440, [((sx * .3, .55, -1.05), (sx * .2, .3, .62), .022) for sx in (1, -1)], 6))
+    P.append(wcyls('lg', 'metal', 0x2a2b2d, [((sx * .22, .42, -.3), (sx * .26, 0, -.38), .016) for sx in (1, -1)], 6))
+    P.append(wlathe('wh', 'plain', 0x1e1f21, [(.1, -.05), (.17, -.05), (.19, -.02), (.19, .02), (.17, .05), (.1, .05)], (0, .19, .7), 12, rot=(0, 0, math.pi / 2), cap_bot=False, cap_top=False))
+    P.append(wcyls('wa', 'metal', 0xb8bcbe, [((-.07, .19, .7), (.07, .19, .7), .1), ((-.2, .19, .7), (.2, .19, .7), .015)], 8))
+    P.append(wcyls('ws', 'metal', 0x2a2b2d, [((sx * .06, .19, .7), (sx * .2, .42, .45), .015) for sx in (1, -1)], 6))
+    COL.append(aabb((0, .45, 0), (.7, .9, 1.0)))
+    return iprop('WHEELBARROW', P, COL, .5, 'wheelbarrow, wheel at +z, handles at -z (≈1.9 long)')
+
+
+def tarp():
+    bm = bm_box((1.3, .75, .95), .12, 1)
+    bmesh.ops.subdivide_edges(bm, edges=list(bm.edges), cuts=2, use_grid_fill=True)
+    off = Vector((5.1, 1.7, 2.3))
+    for v in bm.verts:
+        p = Vector(v.co)
+        y = p.y + .375
+        k = noise.noise(p * 2.6 + off) * .06
+        drop = max(0, (.75 - y)) * .1
+        v.co = Vector((p.x * (1 + drop) + k, max(-.375, p.y + k * .6 - (.08 if abs(p.x) > .5 and abs(p.z) > .3 else 0)), p.z * (1 + drop) + k))
+    P = [wfinish(bm, 'tp', 'plain', 0x3f7fb0, (0, .375, 0), None, False, .1, 3)]
+    P.append(wlathe('ty', 'plain', 0x1f2022, [(.14, -.06), (.25, -.06), (.27, 0), (.25, .06), (.14, .06)], (.4, .8, .1), 12, cap_bot=False, cap_top=False))
+    return iprop('TARP', P, [aabb((0, .4, 0), (1.35, .8, 1.0))], .6, 'blue tarp over a pile, a tyre on top; 1.35 × 0.85 × 1.0')
+
+
+# ── 工寮 ──
+def bunk():
+    P, COL = [], []
+    W, L, H = .95, 2.0, 1.75
+    FR = 0x4f5a66
+    P.append(wboxes('fp', 'metal', FR, [((sx * (W / 2 - .025), H / 2, sz * (L / 2 - .025)), (.05, H, .05)) for sx in (1, -1) for sz in (1, -1)], var=.04))
+    rails = []
+    for y in (.32, 1.22):
+        rails += [((sx * (W / 2 - .025), y, 0), (.04, .06, L)) for sx in (1, -1)] + [((0, y, sz * (L / 2 - .025)), (W, .06, .04)) for sz in (1, -1)]
+    rails += [((0, y, sz * (L / 2 - .025)), (W, .04, .03)) for sz in (1, -1) for y in (.6, 1.55, H - .03)]
+    P.append(wboxes('fr', 'metal', FR, rails, var=.04))
+    P.append(wboxes('lr', 'metal', FR, [((W / 2 - .025, .32 + k * .3, L / 2 - .03), (.06, .03, .06)) for k in range(1, 4)], var=.04))
+    P.append(wboxes('gr', 'metal', FR, [((-W / 2 + .025, 1.42, z), (.035, .03, 1.2)) for z in (-.15,)], var=.04))
+    for y in (.35, 1.25):
+        P.append(wbox('mt', 'plain', 0xd8d2c0, (0, y + .07, 0), (W - .08, .13, L - .08), var=.05))
+        P.append(lumpy('bl', 'paint', 0xffffff, (0, y + .15, .2), (W - .04, .06, 1.35), .012, 5 + int(y * 10), .025, 1, 1, .04))
+        P.append(lumpy('pw', 'plain', 0xf1efe8, (0, y + .2, -.72), (.6, .1, .32), .015, 9 + int(y * 10), .04, 1, 0, .04))
+    COL.append(aabb((0, H / 2, 0), (W, H, L)))
+    return iprop('BUNK', P, COL, .6, 'steel bunk bed .95 × 1.75 × 2.0 (long axis z, pillows at -z); blankets are role paint (instance colour)')
+
+
+def locker():
+    P, COL = [], []
+    W, Dp, H = .9, .5, 1.85
+    P.append(wbox('lb', 'paint', 0xffffff, (0, H / 2, 0), (W, H, Dp), var=.03))
+    P.append(wboxes('ld', 'plain', 0x2a2b2d, [((0, H / 2, Dp / 2 + .002), (.008, H - .1, .004))] + [((0, .05, Dp / 2 + .002), (W, .006, .004))], var=0))
+    for sx in (1, -1):
+        P.append(wboxes('lv', 'plain', 0x3a3c3e, [((sx * W / 4, 1.55 + k * .05, Dp / 2 + .003), (.22, .018, .004)) for k in range(4)] + [((sx * W / 4, .25 + k * .05, Dp / 2 + .003), (.22, .018, .004)) for k in range(3)], var=0))
+        P.append(wbox('lh', 'metal', 0xb8bcbe, (sx * .05, 1.0, Dp / 2 + .015), (.025, .14, .025)))
+        P.append(wbox('ln', 'plain', 0xf2efe8, (sx * W / 4, 1.32, Dp / 2 + .003), (.12, .05, .004), var=0))
+    P.append(wbox('lt', 'paint', 0xffffff, (0, H + .01, 0), (W + .02, .02, Dp + .02), var=.03))
+    COL.append(aabb((0, H / 2, 0), (W, H, Dp)))
+    return iprop('LOCKER', P, COL, .5, 'double steel locker .9 × 1.85 × .5, doors at +z; body role paint (instance colour)')
+
+
+def ftable():
+    P, COL = [], []
+    L, Dp, H = 1.8, .75, .74
+    P.append(wbox('tt', 'plain', 0xe8e6df, (0, H - .02, 0), (L, .04, Dp), bevel=.015, seg=1, var=.02))
+    P.append(wbox('te', 'plain', 0x8a8f94, (0, H - .055, 0), (L - .06, .03, Dp - .06), var=.02))
+    P.append(wcyls('tl', 'metal', 0x6f7478, [((sx * (L / 2 - .15), H - .07, sz * (Dp / 2 - .08)), (sx * (L / 2 - .15), 0, sz * (Dp / 2 - .05)), .015) for sx in (1, -1) for sz in (1, -1)], 6))
+    P.append(wcyls('tb', 'metal', 0x6f7478, [((sx * (L / 2 - .15), .08, -Dp / 2 + .05), (sx * (L / 2 - .15), .08, Dp / 2 - .05), .012) for sx in (1, -1)], 6))
+    COL.append(aabb((0, H / 2, 0), (L, H, Dp)))
+    return iprop('FTABLE', P, COL, .5, 'folding table 1.8 × 0.75, top 0.74')
+
+
+def fchair():
+    P = []
+    S = .44
+    P.append(wbox('cs', 'plain', 0x3d5a6e, (0, .45, .02), (S, .03, S * .95), bevel=.01, seg=1))
+    P.append(wbox('cb', 'plain', 0x3d5a6e, (0, .74, -.21), (S, .2, .025), bevel=.008, seg=1, rot=(-.1, 0, 0)))
+    P.append(wcyls('cf', 'metal', 0x9aa0a4, [((sx * .2, 0, .22), (sx * .2, .44, -.12), .011) for sx in (1, -1)] + [((sx * .2, 0, -.2), (sx * .2, .85, -.24), .011) for sx in (1, -1)] + [((-.2, .2, .1), (.2, .2, .1), .008)], 6))
+    return iprop('FCHAIR', P, None, .4, 'folding chair, seat .45, facing +z (no collision)')
+
+
+def kitchen():
+    P, COL = [], []
+    L, Dp, H = 1.4, .6, .9
+    P.append(wbox('kc', 'plain', 0xd9d5cb, (0, (H - .04) / 2, 0), (L, H - .04, Dp), var=.03))
+    P.append(wbox('kt', 'plain', 0x5d5a55, (0, H - .02, 0), (L + .04, .04, Dp + .03), var=.03))
+    P.append(wboxes('kd', 'plain', 0x9a958a, [((x, .45, Dp / 2 + .002), (.006, .78, .004)) for x in (-.23, .23)], var=0))
+    P.append(wboxes('kh', 'metal', 0x9aa0a4, [((x, .7, Dp / 2 + .015), (.12, .02, .02)) for x in (-.4, 0, .4)], var=0))
+    P.append(wbox('sk', 'metal', 0xb8bcbe, (.4, H - .03, .02), (.42, .02, .36)))
+    P.append(wbox('si', 'metal', 0x8a8f94, (.4, H - .02, .02), (.36, .012, .3)))
+    P.append(wcyls('ft', 'metal', 0xb8bcbe, [((.4, H, -.2), (.4, H + .25, -.2), .012), ((.4, H + .25, -.2), (.4, H + .23, -.05), .012)], 6))
+    # 微波爐
+    P.append(wbox('mw', 'plain', 0xeeece6, (-.35, H + .14, -.05), (.48, .28, .36), bevel=.012, seg=1, var=.02))
+    P.append(wbox('mg', 'plain', 0x1c1d1f, (-.4, H + .14, .132), (.32, .2, .004), var=0))
+    P.append(wbox('mp', 'plain', 0x6f7478, (-.17, H + .14, .132), (.08, .22, .004), var=0))
+    # 電熱水壺、杯子
+    P.append(wlathe('kt2', 'metal', 0xc8ccce, [(.075, 0), (.085, .05), (.08, .18), (.06, .22), (.001, .22)], (.05, H, -.12), 12, cap_bot=False))
+    P.append(wbox('kh2', 'plain', 0x2a2b2d, (.05, H + .14, -.21), (.03, .12, .04)))
+    for i, c in enumerate((0xc03a2b, 0xe8e6df, 0x3d6a8e)):
+        P.append(cyl_y('mg', 'plain', c, (.0 + i * .1, H, .15), .035, .09, 8))
+    COL.append(aabb((0, H / 2, 0), (L, H, Dp)))
+    return iprop('KITCHEN', P, COL, .5, 'kitchenette counter 1.4 × 0.6 × 0.9 with sink, microwave and kettle; back at -z')
+
+
+def hooks():
+    """牆上的掛鉤橫板：三頂安全帽、兩件反光背心（原點在地面、靠牆 z = 0）"""
+    P = []
+    P.append(wbox('hb', 'wood', 0x7a5a3c, (0, 1.75, .015), (1.6, .1, .03), var=.06))
+    P.append(wboxes('hk', 'metal', 0x2a2b2d, [((x, 1.72, .06), (.02, .02, .08)) for x in (-.65, -.35, -.05, .3, .62)], var=0))
+    for i, (x, c) in enumerate(((-.65, 0xf1efe8), (-.35, 0xe8ad18), (.62, 0xe8671d))):
+        P.append(wlathe('hh', 'plain', c, [(.001, .14), (.07, .13), (.11, .08), (.125, .02), (.13, 0)], (x, 1.5, .13), 10, smooth=True, var=.03))
+        P.append(wlathe('hr', 'plain', c, [(.13, 0), (.17, -.005), (.17, -.015), (.12, -.01)], (x, 1.5, .13), 10, smooth=True, cap_bot=False, cap_top=False, var=.03, sx=1, sz=1.15))
+    for (x, c) in ((-.05, 0xd8e33a), (.3, 0xe8671d)):
+        secs = []
+        for (y, w) in ((1.68, .16), (1.62, .32), (1.4, .44), (1.1, .46), (.95, .44)):
+            secs.append([(x - w / 2, y, .07), (x + w / 2, y, .07), (x + w / 2, y, .1), (x - w / 2, y, .1)])
+        P.append(wfinish(bm_loft(secs, True), 'vs', 'plain', c, smooth=False, var=.05))
+        P.append(wboxes('vr', 'plain', 0xd9dde0, [((x, y, .102), (.44, .04, .006)) for y in (1.05, 1.2)], var=0))
+    return iprop('HOOKS', P, None, .5, 'wall hook rail at 1.75 m with hard hats and hi-vis vests (wall at z=0, items stick out to z .25)', wall=True)
+
+
+def notice():
+    P = [wbox('nb', 'wood', 0x6b4a2e, (0, 1.5, .02), (1.2, .85, .04), var=.06), wbox('nc', 'plain', 0xb08a5a, (0, 1.5, .042), (1.12, .77, .006), var=.08)]
+    rng = rng_for(77)
+    pp, pins = [], []
+    for i in range(7):
+        w, h = rng.uniform(.16, .26), rng.uniform(.2, .3)
+        x, y = rng.uniform(-.42, .42), rng.uniform(1.25, 1.75)
+        pp.append(((x, y, .048 + i * .001), (w, h, .002)))
+        pins.append(((x, y + h / 2 - .03, .052 + i * .001), (.015, .015, .006)))
+    P.append(wboxes('np', 'plain', 0xf2efe6, pp, var=.04))
+    P.append(wbox('nw', 'plain', 0xe8ad18, (.3, 1.82, .051), (.3, .1, .002), var=0))
+    P.append(wboxes('nt', 'plain', 0xc03a2b, pins, var=0))
+    return iprop('NOTICE', P, None, .4, 'cork notice board 1.2 × 0.85 at 1.5 m (wall at z=0)', wall=True)
+
+
+def fan():
+    P = [wlathe('fb', 'plain', 0x2a2b2d, [(.2, 0), (.2, .03), (.06, .05), (.001, .05)], (0, 0, 0), 12, cap_bot=True)]
+    P.append(wcyls('fp', 'metal', 0xb8bcbe, [((0, .05, 0), (0, 1.15, 0), .018)], 6))
+    P.append(wlathe('fm', 'plain', 0xeeece6, [(.001, -.12), (.06, -.1), (.07, 0), (.05, .06), (.001, .07)], (0, 1.22, -.02), 10, rot=(math.pi / 2, 0, 0)))
+    # 葉片與護網
+    for k in range(3):
+        a = k * TAU / 3
+        P.append(wbox('bl', 'plain', 0x8fb4c8, (math.cos(a) * .12, 1.22 + math.sin(a) * .12, .08), (.2, .09, .006), rot=(0, .3, a), var=.03))
+    for (r, z) in ((.25, .1), (.17, .13), (.25, .02)):
+        P.append(wlathe('fg', 'metal', 0xd8dcde, [(r - .006, -.004), (r, 0), (r - .006, .004)], (0, 1.22, z), 18, rot=(math.pi / 2, 0, 0), cap_bot=False, cap_top=False))
+    P.append(wcyls('fs', 'metal', 0xd8dcde, [((math.cos(k * TAU / 8) * .25, 1.22 + math.sin(k * TAU / 8) * .25, .02), (math.cos(k * TAU / 8) * .05, 1.22 + math.sin(k * TAU / 8) * .05, .14), .003) for k in range(8)], 3))
+    return iprop('FAN', P, None, .4, 'pedestal fan 1.45 tall, blowing +z (no collision)')
+
+
+def water():
+    P, COL = [], []
+    P.append(wbox('wd', 'plain', 0xeeece6, (0, .5, 0), (.32, 1.0, .32), bevel=.02, seg=1, var=.02))
+    P.append(wbox('wp', 'plain', 0x3a3c3e, (0, .78, .14), (.24, .2, .06), var=.02))
+    P.append(wboxes('wt', 'plain', 0x2a2b2d, [((sx * .05, .82, .18), (.03, .05, .04)) for sx in (1, -1)], var=0))
+    P.append(wboxes('wn', 'plain', 0xc03a2b, [((-.05, .86, .182), (.02, .01, .01))] + [((.05, .86, .182), (.02, .01, .01))], var=0))
+    P.append(wlathe('wb', 'glass', 0x6fa8d6, [(.001, 1.0), (.04, 1.0), (.04, 1.04), (.13, 1.1), (.135, 1.38), (.12, 1.42), (.001, 1.43)], (0, 0, 0), 12, cap_bot=False, var=0))
+    COL.append(aabb((0, .7, 0), (.34, 1.4, .34)))
+    return iprop('WATER', P, COL, .4, 'water dispenser with 19 L bottle, front +z')
+
+
+def clothes():
+    P, COL = [], []
+    S = 3.4
+    for sx in (1, -1):
+        x = sx * S / 2
+        P.append(wcyls('cp', 'metal', 0x6f7478, [((x, 0, 0), (x, 1.95, 0), .03), ((x, 1.9, -.35), (x, 1.9, .35), .02)], 6))
+        COL.append(aabb((x, .98, 0), (.08, 1.95, .1)))
+    P.append(wcyls('cl', 'plain', 0xe8e6df, [((-S / 2, 1.88, z), (S / 2, 1.88, z), .004) for z in (-.3, .3)], 3, var=0))
+    rng = rng_for(91)
+    items = [(-1.2, -.3, 'shirt', 0x3d6a8e), (-.55, -.3, 'towel', 0xe8e6df), (.15, -.3, 'vest', 0xd8e33a), (.85, -.3, 'pants', 0x3a4a5c),
+             (-.9, .3, 'towel', 0xc03a2b), (-.2, .3, 'shirt', 0xe8671d), (.6, .3, 'shirt', 0x8a8f94), (1.2, .3, 'towel', 0x4d7a48)]
+    for (x, z, kind, c) in items:
+        sway = rng.uniform(-.04, .04)
+        if kind == 'shirt':
+            secs = [[(x - w / 2, y, z - .01 + sway * (1.88 - y)), (x + w / 2, y, z - .01 + sway * (1.88 - y)), (x + w / 2, y, z + .01 + sway * (1.88 - y)), (x - w / 2, y, z + .01 + sway * (1.88 - y))] for (y, w) in ((1.88, .5), (1.78, .56), (1.6, .42), (1.25, .4))]
+        elif kind == 'vest':
+            secs = [[(x - w / 2, y, z - .01), (x + w / 2, y, z - .01), (x + w / 2, y, z + .01), (x - w / 2, y, z + .01)] for (y, w) in ((1.88, .36), (1.6, .44), (1.3, .44))]
+        elif kind == 'pants':
+            secs = [[(x - w / 2, y, z - .01), (x + w / 2, y, z - .01), (x + w / 2, y, z + .01), (x - w / 2, y, z + .01)] for (y, w) in ((1.88, .38), (1.5, .4), (1.0, .44))]
+        else:
+            secs = [[(x - w / 2, y, z - .008 + sway * (1.88 - y)), (x + w / 2, y, z - .008 + sway * (1.88 - y)), (x + w / 2, y, z + .008 + sway * (1.88 - y)), (x - w / 2, y, z + .008 + sway * (1.88 - y))] for (y, w) in ((1.88, .38), (1.6, .38), (1.32, .37))]
+        P.append(wfinish(bm_loft(secs, True), 'ct', 'plain', c, smooth=False, var=.06, seed=int(x * 10)))
+        if kind == 'vest':
+            P.append(wboxes('cr', 'plain', 0xd9dde0, [((x, y, z), (.44, .035, .024)) for y in (1.4, 1.5)], var=0))
+        P.append(wboxes('cg', 'plain', 0xd8b640, [((x + sx * .15, 1.89, z), (.02, .05, .025)) for sx in (1, -1)], var=0))
+    return iprop('CLOTHES', P, COL, .6, 'outdoor clothesline: two T-posts 3.4 m apart along x, two lines at z ±.3 with laundry', w=5)
+
+
+def picnic():
+    P, COL = [], []
+    L = 1.8
+    P.append(wboxes('pt', 'wood', 0xa3825c, [((0, .74, z), (L, .045, .13)) for z in (-.29, -.145, 0, .145, .29)], var=.1))
+    P.append(wboxes('pb', 'wood', 0x9a7a52, [((0, .44, sz * (.62 + dz)), (L, .045, .13)) for sz in (1, -1) for dz in (-.07, .07)], var=.1))
+    legs = []
+    for sx in (1, -1):
+        x = sx * (L / 2 - .25)
+        for sz in (1, -1):
+            legs.append(((x, 0, sz * .62), (x, .74, sz * .06)))
+        P.append(wbox('pc', 'wood', 0x7a5a3c, (x, .42, 0), (.06, .06, 1.62), var=.06))
+        P.append(wbox('pu', 'wood', 0x7a5a3c, (x, .7, 0), (.06, .06, .72), var=.06))
+    P.append(wcyls('pl', 'wood', 0x7a5a3c, [(a, b, .035) for (a, b) in legs], 4, var=.06))
+    COL.append(aabb((0, .38, 0), (L, .76, .74)))
+    COL.append(aabb((0, .23, 0), (L, .46, 1.5)))
+    return iprop('PICNIC', P, COL, .6, 'picnic table with attached benches 1.8 × 1.5, top at 0.76')
+
+
+# ── 民房 ──
+def fridge():
+    P = [wbox('fb', 'plain', 0xeeece6, (0, .88, 0), (.68, 1.76, .66), bevel=.03, seg=1, var=.02)]
+    P.append(wbox('fs', 'plain', 0x9a958a, (0, 1.2, .332), (.66, .008, .004), var=0))
+    P.append(wboxes('fh', 'metal', 0xb8bcbe, [((-.27, 1.45, .35), (.025, .3, .03)), ((-.27, .9, .35), (.025, .35, .03))], var=0))
+    P.append(wboxes('fm', 'plain', 0xe8ad18, [((.1, 1.55, .333), (.06, .06, .006)), ((-.05, 1.4, .333), (.1, .14, .004))], var=.02))
+    return iprop('FRIDGE', P, [aabb((0, .88, 0), (.68, 1.76, .66))], .5, 'fridge .68 × 1.76 × .66, door at +z')
+
+
+def bookshelf():
+    P, COL = [], []
+    W, Dp, H = 1.0, .34, 1.9
+    WC = 0x7b5a3a
+    P.append(wboxes('bs', 'wood', WC, [((sx * (W / 2 - .015), H / 2, 0), (.03, H, Dp)) for sx in (1, -1)] + [((0, y, 0), (W - .06, .025, Dp)) for y in (.06, .5, .92, 1.34, H - .015)] + [((0, H / 2, -Dp / 2 + .006), (W, H, .012))], var=.06))
+    rng = rng_for(33)
+    bk = []
+    for y in (.0725, .5125, .9325, 1.3525):
+        x = -W / 2 + .05
+        while x < W / 2 - .06:
+            if rng.random() < .12:
+                x += rng.uniform(.05, .12)
+                continue
+            t, h = rng.uniform(.025, .05), rng.uniform(.2, .33)
+            if x + t > W / 2 - .04:
+                break
+            bk.append(((x + t / 2, y + h / 2, rng.uniform(-.02, .02)), (t, h, rng.uniform(.18, .24)), rng.choice((0x8a2c22, 0x2f4a6e, 0x3d6a3a, 0xc8a24a, 0x6b4a6e, 0xe0d8c4, 0x2a2b2d))))
+            x += t + .004
+    for c in sorted(set(b[2] for b in bk)):
+        bm = bmesh.new()
+        for ((x, y, z), (t, h, d), cc) in bk:
+            if cc != c:
+                continue
+            x0, x1, y0, y1, z1 = x - t / 2, x + t / 2, y - h / 2, y + h / 2, z + d / 2
+            q = [bm.verts.new(p) for p in ((x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1), (x0, y1, z1 - d), (x1, y1, z1 - d))]
+            bm.faces.new((q[0], q[1], q[2], q[3]))
+            bm.faces.new((q[3], q[2], q[5], q[4]))
+        P.append(wfinish(bm, 'bk', 'plain', c, var=.08, recalc=False))
+    COL.append(aabb((0, H / 2, 0), (W, H, Dp)))
+    return iprop('BOOKSHELF', P, COL, .5, 'wooden bookshelf 1.0 × 1.9 × .34 full of books, front +z')
+
+
+def tv_unit():
+    P, COL = [], []
+    L, Dp, H = 1.5, .42, .5
+    P.append(wbox('tc', 'wood', 0x5e4430, (0, H / 2, 0), (L, H, Dp), var=.05))
+    P.append(wboxes('td', 'wood', 0x4a3424, [((x, .22, Dp / 2 + .002), (.004, .36, .004)) for x in (-.25, .25)], var=0))
+    P.append(wboxes('tk', 'metal', 0x9aa0a4, [((x, .3, Dp / 2 + .012), (.1, .015, .015)) for x in (-.5, .5)], var=0))
+    P.append(wbox('tv', 'plain', 0x1a1b1d, (0, H + .42, -.05), (1.05, .62, .04), var=.01))
+    P.append(wbox('ts', 'plain', 0x0c0d0e, (0, H + .43, -.028), (.99, .56, .004), var=0))
+    P.append(wboxes('tf', 'plain', 0x2a2b2d, [((0, H + .05, -.05), (.3, .03, .18)), ((0, H + .1, -.06), (.06, .1, .03))], var=0))
+    P.append(wboxes('sp', 'plain', 0x2a2b2d, [((sx * .62, H + .14, -.02), (.12, .28, .14)) for sx in (1, -1)], var=.03))
+    P.append(wbox('bx', 'plain', 0x3a3c3e, (-.3, .06, .02), (.36, .06, .26), var=.02))
+    COL.append(aabb((0, H / 2, 0), (L, H, Dp)))
+    return iprop('TV_UNIT', P, COL, .5, 'low TV cabinet 1.5 × 0.5 × 0.42 with a flat TV and speakers, front +z')
+
+
+def chair():
+    P = []
+    WC = 0x7b5a3a
+    P.append(wbox('cs', 'wood', WC, (0, .45, 0), (.44, .04, .42), var=.06))
+    P.append(wboxes('cl', 'wood', 0x6b4a2e, [((sx * .19, .215, sz * .18), (.04, .43, .04)) for sx in (1, -1) for sz in (1, -1)] + [((sx * .19, .72, -.18), (.04, .5, .04)) for sx in (1, -1)], var=.06))
+    P.append(wboxes('cb', 'wood', WC, [((0, .95, -.18), (.42, .07, .03))] + [((x, .72, -.18), (.03, .42, .02)) for x in (-.08, 0, .08)] + [((0, .15, sz * .18), (.36, .025, .025)) for sz in (1, -1)], var=.06))
+    return iprop('CHAIR', P, None, .4, 'wooden dining chair, seat .47, back at -z (no collision)')
+
+
+def wardrobe():
+    P, COL = [], []
+    W, Dp, H = 1.2, .58, 2.0
+    WC = 0x8a6a48
+    P.append(wbox('wb', 'wood', WC, (0, H / 2 + .05, 0), (W, H - .1, Dp), var=.06))
+    P.append(wbox('wt', 'wood', 0x6b4a2e, (0, H + .02, 0), (W + .06, .06, Dp + .04), var=.06))
+    P.append(wbox('wf', 'wood', 0x5e4430, (0, .05, .0), (W - .04, .1, Dp - .04), var=.06))
+    P.append(wbox('wl', 'wood', 0x5e4430, (0, 1.05, Dp / 2 + .002), (.006, H - .2, .004), var=0))
+    P.append(wboxes('wp', 'wood', 0x7b5a3a, [((sx * W / 4, y, Dp / 2 + .006), (W / 2 - .14, h, .012)) for sx in (1, -1) for (y, h) in ((1.5, .7), (.62, .7))], var=.06))
+    P.append(wboxes('wh', 'metal', 0xc8a24a, [((sx * .06, 1.1, Dp / 2 + .02), (.02, .12, .02)) for sx in (1, -1)], var=0))
+    COL.append(aabb((0, H / 2 + .02, 0), (W, H + .05, Dp)))
+    return iprop('WARDROBE', P, COL, .5, 'wooden wardrobe 1.2 × 2.05 × .58, doors at +z')
+
+
+def strip_glb_attrs(path, names, drop=('NORMAL', 'TEXCOORD_0')):
+    """匯出後處理：names 這些節點的網格拿掉法線與 UV（網頁照面重算法線、用方盒投影補 UV），沒人用的 accessor / bufferView 一起丟掉；其他物件的資料不變"""
+    import json, struct
+    raw = open(path, 'rb').read()
+    jl = struct.unpack('<I', raw[12:16])[0]
+    j = json.loads(raw[20:20 + jl])
+    o = 20 + jl
+    bl = struct.unpack('<I', raw[o:o + 4])[0]
+    binb = raw[o + 8:o + 8 + bl]
+    meshes = {j['nodes'][i]['mesh'] for i in range(len(j['nodes'])) if j['nodes'][i].get('name') in names and 'mesh' in j['nodes'][i]}
+    for mi in meshes:
+        for pr in j['meshes'][mi]['primitives']:
+            for k in drop:
+                pr['attributes'].pop(k, None)
+    used = []
+    for m in j['meshes']:
+        for pr in m['primitives']:
+            used += list(pr['attributes'].values()) + ([pr['indices']] if 'indices' in pr else [])
+    used = sorted(set(used))
+    amap = {a: i for i, a in enumerate(used)}
+    for m in j['meshes']:
+        for pr in m['primitives']:
+            pr['attributes'] = {k: amap[v] for k, v in pr['attributes'].items()}
+            if 'indices' in pr:
+                pr['indices'] = amap[pr['indices']]
+    accs = [j['accessors'][a] for a in used]
+    out, views, vmap = bytearray(), [], {}
+    for a in accs:
+        bi = a['bufferView']
+        if bi not in vmap:
+            bv = j['bufferViews'][bi]
+            while len(out) % 4:
+                out += b'\0'
+            v = dict(bv, byteOffset=len(out))
+            s0 = bv.get('byteOffset', 0)
+            out += binb[s0:s0 + bv['byteLength']]
+            vmap[bi] = len(views)
+            views.append(v)
+        a['bufferView'] = vmap[bi]
+    while len(out) % 4:
+        out += b'\0'
+    j['accessors'], j['bufferViews'], j['buffers'] = accs, views, [{'byteLength': len(out)}]
+    js = json.dumps(j, separators=(',', ':')).encode()
+    while len(js) % 4:
+        js += b' '
+    with open(path, 'wb') as f:
+        f.write(struct.pack('<III', 0x46546C67, 2, 12 + 8 + len(js) + 8 + len(out)))
+        f.write(struct.pack('<II', len(js), 0x4E4F534A)); f.write(js)
+        f.write(struct.pack('<II', len(out), 0x004E4942)); f.write(bytes(out))
+    print('stripped normals / uv', len(meshes), 'meshes', os.path.getsize(path) // 1024, 'KB')
+
+
+IPROPS = []
+for fn in (hay_bale, hay_loose, trough, stall, loft, tractor, workbench, tool_rack, barrel, sacks, lantern, ladder,
+           shelf, toolbox_kit, generator, gas_can, wheelbarrow, tarp,
+           bunk, locker, ftable, fchair, kitchen, hooks, notice, fan, water, clothes, picnic,
+           fridge, bookshelf, tv_unit, chair, wardrobe):
+    IPROPS.append(fn().name)
+
 print('tris', {o.name: tri_count([o]) for o in OUT})
 # AO：地面（碼頭與船不在範圍內）＋ 依大小分組的距離
 gp = bpy.data.objects.new('GroundTmp', bpy.data.meshes.new('GroundTmp'))
@@ -1060,3 +1797,6 @@ if os.environ.get('META'):
 GLB_PATH = os.environ.get('GLB', os.path.join(HERE, 'world.glb'))
 wexport(GLB_PATH, OUT)
 quantize_glb_colors(GLB_PATH)
+strip_glb_attrs(GLB_PATH, set(IPROPS))   # 室內陳設：法線與 UV 由網頁補（見 worldGeo）
+from glb_draco import draco_glb
+draco_glb(GLB_PATH)   # 最後一步：頂點與索引改存 Draco（見 glb_draco.py）

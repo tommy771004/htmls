@@ -1,10 +1,14 @@
 # 190 封頂：工人（蒙皮網格 + 19 根骨頭）、臉、頭髮與鬍子變化、翼型降落傘、安全帽、防護背心、
 #          四把槍（含可拆的彈匣、4 倍鏡）、第一人稱手臂、遠距離用的低面數身體與戰利品 → workers.glb
 # 重建：/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup -P assets/190/build_workers.py
-#   環境變數 PREVIEW=資料夾 會另存預覽圖（調色盤部位塗上示範顏色）；SAMPLES=烘焙取樣數；STAGE=body 只做身體
+#   匯出後最後一步由 glb_draco.py 把網格改存 KHR_draco_mesh_compression（網頁用 DRACOLoader 解碼）；DRACO=0 輸出未壓縮的 glb
+#   環境變數 PREVIEW=資料夾 會另存預覽圖（調色盤部位塗上示範顏色）；SAMPLES=烘焙取樣數；STAGE=body 只做身體；
+#   VMDEV=資料夾 只做到第一人稱手臂：印出手指跟槍的穿插檢查、存每把槍的視角圖，不烘焙也不匯出
 import sys, os, math, random
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lb_lib import *
+import lb_lib
+lb_lib.ROLES = ROLES = ROLES + ('gear',)     # gear：手套的袖口、護墊（跟手套同色壓暗，徒手時收起來）
 from mathutils.bvhtree import BVHTree
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -123,6 +127,10 @@ def fabric(ob, amp=.0022, freq=38):
         v.co = v.co + v.normal * noise.noise(v.co * freq) * amp
     me.update()
 
+def ss(e0, e1, x):
+    t = max(0.0, min(1.0, (x - e0) / (e1 - e0)))
+    return t * t * (3 - 2 * t)
+
 def gauss(d, r):
     return math.exp(-(d / r) ** 2)
 
@@ -204,6 +212,19 @@ def build_skin_body():
     bpy.context.view_layer.objects.active = ob
     bpy.ops.object.modifier_apply(modifier='Skin')
     bpy.ops.object.modifier_apply(modifier='Sub')
+    # 皺褶最深的手肘、膝蓋再細分一次（腰、胯下、褲管的淺褶用原本的點就夠，省面數給一群人同框的時候）
+    def fold_zone(c):
+        for sx in (1, -1):
+            if (c - Vector((sx * .262, 1.15, 0))).length < .085 or (c - Vector((sx * .103, .5, 0))).length < .095:
+                return True
+        return False
+    bm = bmesh.new(); bm.from_mesh(ob.data)
+    fs = [f for f in bm.faces if fold_zone(T(f.calc_center_median()))]
+    bmesh.ops.subdivide_edges(bm, edges=list({e for f in fs for e in f.edges}), cuts=1, use_grid_fill=True, smooth=1.0)
+    ng = [f for f in bm.faces if len(f.verts) > 4]
+    if ng:
+        bmesh.ops.triangulate(bm, faces=ng)
+    bm.to_mesh(ob.data); bm.free(); ob.data.update()
     return ob
 
 # 骨架線段（給分部位與雕塑用）
@@ -263,12 +284,32 @@ def sculpt_body(ob):
         # 外套下擺：在 1.0 附近往外翻一圈
         if abs(p.x) < .2 and 1.0 < p.y < 1.035:
             d += .007 * math.sin((p.y - 1.0) / .035 * math.pi)
-        # 手肘、膝蓋、腰的布料皺褶
+        # 布料皺褶：折痕窄、布面寬（|cos| 的形狀）；手肘前面、膝蓋後面較深
         for sx in (1, -1):
-            for (c, r, f) in (((sx * .262, 1.15, 0), .07, 120), ((sx * .103, .5, 0), .08, 90), ((sx * .1, .12, 0), .07, 110)):
+            for (c, r, f, amp, inner) in (((sx * .262, 1.15, 0), .075, 175, .012, 1), ((sx * .103, .5, 0), .085, 150, .013, -1)):
                 w = gauss((p - Vector(c)).length, r)
-                if w > .05:
-                    d += .004 * w * math.sin(p.y * f + noise.noise(p * 12) * 3)
+                if w > .04:
+                    u = p.y * f + (p.x * sx) * 40 * inner + noise.noise(p * 14) * 2.2
+                    d += amp * w * (abs(math.cos(u)) - .62) * (.55 + .45 * max(0, n.z * inner))
+            # 腋下往胸口斜的皺褶
+            w = gauss((p - Vector((sx * .165, 1.34, .03))).length, .07) * max(0, n.z)
+            if w > .04:
+                d += .008 * w * (abs(math.cos((p.y - 1.34) * 150 + (p.x * sx) * 110 + noise.noise(p * 16) * 1.5)) - .62)
+            # 褲管下緣堆在靴子上：一圈圈斜的波浪
+            w = ss(.31, .25, p.y) * ss(.15, .19, p.y) * (1 if abs(p.x - sx * .105) < .1 else 0)
+            if w > 0:
+                a = math.atan2(p.x - sx * .105, p.z)
+                d += .01 * w * (abs(math.cos(p.y * 105 + a * 1.6 + noise.noise(p * 13) * 2)) - .55)
+        # 衣服紮進褲子：皮帶上方鼓起一圈，有幾道直的褶子
+        w = ss(1.03, 1.045, p.y) * ss(1.12, 1.07, p.y) * (1 if abs(p.x) < .2 else 0)
+        if w > 0:
+            a = math.atan2(p.x, p.z)
+            d += w * (.005 + .007 * (abs(math.cos(a * 7 + noise.noise(p * 10) * 1.8)) - .6))
+        # 胯下往大腿的斜褶
+        for sx in (1, -1):
+            w = gauss((p - Vector((sx * .06, .8, .07))).length, .06) * max(0, n.z)
+            if w > .04:
+                d += .007 * w * (abs(math.cos((p.y - .8) * 130 - (p.x * sx) * 150 + noise.noise(p * 15))) - .6)
         d += noise.noise(p * 22) * .0025
         v.co = V(*(p + n * d))
     me.update()
@@ -288,7 +329,7 @@ def split_roles(ob, fn):
     for poly in me.polygons:
         poly.material_index = names.index(fn(T(ob.matrix_world @ poly.center)))
 
-DEMO = {'shirt': 0x2f4a5a, 'pants': 0x283347, 'skin': 0xc98f6a, 'glove': 0xe0b33a, 'vis': 0xd9ea2b, 'hair': 0x2a211a, 'paint': 0x888888}
+DEMO = {'shirt': 0x2f4a5a, 'pants': 0x283347, 'skin': 0xc98f6a, 'glove': 0xa88a62, 'gear': 0x6e5a40, 'vis': 0xd9ea2b, 'hair': 0x2a211a, 'paint': 0x888888}
 def tint_roles(objs, table=DEMO):
     """預覽用：把調色盤部位（白色）乘上示範顏色；匯出之後才呼叫"""
     for ob in objs:
@@ -325,15 +366,9 @@ def body_role(c):
     return 'shirt'
 split_roles(body, body_role)
 paint(body, lambda p, n: (1, 1, 1))
-# 衣服的接縫：肩線、側縫、褲子側縫與胯下，顏色壓暗一點（乘上調色盤後就是縫線）
+# 衣服接縫的顏色：袖子、袖籠、褲子、軀幹側縫已經是幾何（下面的 welt），這裡只剩腰線（被腰帶蓋住，只在腰帶縫隙露出）壓暗一點
 def seams(p, n):
     k = 1.0
-    ax = abs(p.x)
-    for sx in (1, -1):
-        k -= .16 * gauss(p.x - sx * .19, .006) * (1 if 1.1 < p.y < 1.42 and abs(p.z) < .03 else 0)
-    k -= .14 * gauss(abs(p.z) - .0, .006) * (1 if ax > .14 and 1.0 < p.y < 1.4 else 0)
-    k -= .14 * gauss(p.z + 0, .008) * (1 if ax > .13 and p.y < .95 else 0) * (1 if ax > .12 else 0)
-    k -= .1 * gauss(p.y - 1.46, .01) * (1 if ax > .1 else 0)
     k -= .06 * gauss(p.y - 1.012, .008)
     k *= 1 + noise.noise(p * 60) * .03
     return (k, k, k)
@@ -359,10 +394,6 @@ def near(p):
     loc, nor, i, dist = BVH.find_nearest(V(*p))
     return T(loc), T(nor).normalized()
 
-def ss(e0, e1, x):
-    t = max(0.0, min(1.0, (x - e0) / (e1 - e0)))
-    return t * t * (3 - 2 * t)
-
 def g2(dx, dy, rx, ry):
     return math.exp(-(dx / rx) ** 2 - (dy / ry) ** 2)
 
@@ -387,15 +418,57 @@ def band(name, role, color, y0, y1, off, cx=0.0, zc=0.0, n=48, th=.004, var=.03)
             bm.faces.new((rows[k][i], rows[k][j], rows[(k + 1) % 4][j], rows[(k + 1) % 4][i]))
     return finish(bm, name, role, color, var=var)
 
-def on_surface(name, role, color, o, d, size, lift=0.0, bevel=.006, tilt=0.0, smooth=True, var=.04):
-    """沿射線找到表面，放一個貼著表面的方塊（口袋、護膝、貼片）"""
+def tag_welt(ob):
+    """標記成縫線（做遠距離身體時刪掉）"""
+    g = ob.vertex_groups.get('welt') or ob.vertex_groups.new(name='welt')
+    g.add(list(range(len(ob.data.vertices))), 1.0, 'REPLACE')
+
+def on_surface(name, role, color, o, d, size, lift=0.0, bevel=.006, tilt=0.0, smooth=True, var=.04, st=0.0, top=True):
+    """沿射線找到表面，放一個貼著表面的方塊（口袋、護膝、貼片）；st>0 時在正面離邊 st 處加一圈凸起的車縫線（細條幾何，遠距離身體會刪掉）"""
     p, n = ray(o, d)
     if p is None:
         return None
     yaw = math.atan2(n.x, n.z)
     pitch = -math.asin(max(-1, min(1, n.y)))
     c = p + n * (size[2] / 2 + lift)
-    return box(name, role, color, tuple(c), size, bevel, rot=(pitch + tilt, yaw, 0), smooth=smooth, var=var)
+    ob = box(name, role, color, tuple(c), size, bevel, rot=(pitch + tilt, yaw, 0), smooth=smooth, var=var)
+    if st:
+        Ri = rot_m((pitch + tilt, yaw, 0)).inverted()
+        def sc(q, nn, base=hexrgb(color) if role not in ROLES else (1, 1, 1)):
+            l = Ri @ (q - c)
+            if l.z < size[2] / 2 - .002:
+                return None
+            e = min(size[0] / 2 - abs(l.x), size[1] / 2 - abs(l.y))
+            k = .74 if abs(e - st) < .0012 else 1.0
+            return tuple(x * k for x in base)
+        recolor(ob, sc)
+        # 車縫的細稜：三角斷面（寬 1.6 mm、比布面高 1.2 mm，硬邊才吃得到光），底面貼著口袋不做；上緣被袋蓋蓋住的不做（top=False）
+        R = rot_m((pitch + tilt, yaw, 0))
+        z, hx, hy = size[2] / 2 - .0002, size[0] / 2 - st, size[1] / 2 - st
+        bm = bmesh.new()
+        def ridge(a, b, sd):
+            a, b, sd = Vector(a), Vector(b), Vector(sd)
+            up = Vector((0, 0, .0014))
+            vs = [bm.verts.new(tuple(c + R @ q)) for q in (a - sd, a + up, a + sd, b - sd, b + up, b + sd)]
+            bm.faces.new((vs[0], vs[3], vs[4], vs[1])); bm.faces.new((vs[1], vs[4], vs[5], vs[2]))      # 兩端 1.6 mm 的小三角形看不到，不做
+        w = .0008
+        if top:
+            ridge((-hx, hy, z), (hx, hy, z), (0, w, 0))
+        ridge((hx, -hy, z), (-hx, -hy, z), (0, -w, 0))
+        ridge((-hx, -hy, z), (-hx, hy, z), (-w, 0, 0))
+        ridge((hx, hy, z), (hx, -hy, z), (w, 0, 0))
+        bars = finish(bm, name + 'st', role, color, var=0, smooth=False)
+        # 開放的細條：recalc 可能把整條翻反，跟口袋正面的方向比，反了就整條（2 面）翻回來
+        Nb = V(*(R @ Vector((0, 0, 1))))
+        b2 = bmesh.new(); b2.from_mesh(bars.data); b2.faces.ensure_lookup_table(); b2.normal_update()
+        for k in range(0, len(b2.faces), 2):
+            if b2.faces[k].normal.dot(Nb) + b2.faces[k + 1].normal.dot(Nb) < 0:
+                bmesh.ops.reverse_faces(b2, faces=b2.faces[k:k + 2])
+        b2.to_mesh(bars.data); b2.free(); bars.data.update()
+        recolor(bars, lambda q, nn, base=hexrgb(color) if role not in ROLES else (1, 1, 1): tuple(x * .8 for x in base))
+        tag_welt(bars)
+        ob = join([ob, bars], name)
+    return ob
 
 VC = Vector((0, 1.25, 0))
 def sph_hit(th, ph, off, c=VC):
@@ -468,26 +541,77 @@ VPH0 = D(-53)
 vb = patch('vest', 'vis', 0, -math.pi, math.pi, VPH0, 0, 72, 26, .011, keep=vest_keep, th_fn=vest_top)
 smooth_boundary(vb, .011)
 vest = finish(vb, 'vest', 'vis', 0)
+def boundary_loops(ob):
+    """網格的開放邊界（只接一個面的邊）串成一圈一圈，回傳 three 座標"""
+    me = ob.data
+    cnt = {}
+    for poly in me.polygons:
+        for ek in poly.edge_keys:
+            cnt[ek] = cnt.get(ek, 0) + 1
+    nb = {}
+    for (a, b), c in sorted(cnt.items()):
+        if c == 1:
+            nb.setdefault(a, []).append(b); nb.setdefault(b, []).append(a)
+    loops, seen = [], set()
+    for v0 in sorted(nb):
+        if v0 in seen:
+            continue
+        lp, prev, v = [v0], None, v0
+        seen.add(v0)
+        while True:
+            nx = [u for u in nb[v] if u != prev and u not in seen]
+            if not nx:
+                break
+            prev, v = v, nx[0]
+            seen.add(v); lp.append(v)
+        loops.append([T(ob.matrix_world @ me.vertices[i].co) for i in lp])
+    return loops
+VEST_LOOPS = boundary_loops(vest)
 solid(vest, .006)
 fabric(vest, .0015, 30)
 B_(vest, *TORSO_B)
 # 反光條：兩圈橫帶 + 前後各兩條直帶 + 越過肩膀
 for (y0, y1) in ((1.095, 1.135), (1.2, 1.24)):
     B_(band('tape', 'fixed', TAPE, y0, y1, .0185, n=72, th=.003, var=0), *TORSO_B)
+def ribbon(name, role, color, pts, w, off, th=.0025, sm=0):
+    """沿著身體表面的一條等寬帶子：中心線每點取表面法線與切線，兩側邊點各自再貼回表面（邊緣不會鋸齒）"""
+    P = [Vector(q) for q in pts]
+    def hit(q):          # 跟背心一樣從軀幹中心打射線（背心也是這樣貼的），肩膀上才不會一個貼手臂、一個貼軀幹
+        c, n = ray(VC, q - VC)
+        return (c, n) if c is not None else near(tuple(q))
+    bm = bmesh.new()
+    rows = []
+    for i, q in enumerate(P):
+        tg = (P[min(i + 1, len(P) - 1)] - P[max(i - 1, 0)]).normalized()
+        c, n = hit(q)
+        sd = n.cross(tg).normalized()
+        row = []
+        for k in (-1, 1):
+            e, n2 = hit(c + sd * (k * w / 2))
+            row.append(e + n2 * off)
+        rows.append(row)
+    # 肩膀上射線幾乎擦過表面，點會跳：沿著帶子方向平滑幾次
+    for _ in range(sm):
+        rows = [rows[0]] + [[rows[i][k] * .5 + (rows[i - 1][k] + rows[i + 1][k]) * .25 for k in (0, 1)] for i in range(1, len(rows) - 1)] + [rows[-1]]
+    rows = [[bm.verts.new(tuple(q)) for q in r] for r in rows]
+    for i in range(len(rows) - 1):
+        bm.faces.new((rows[i][0], rows[i + 1][0], rows[i + 1][1], rows[i][1]))
+    ob = finish(bm, name, role, color, var=0)
+    solid(ob, th)
+    return ob
 for sx in (1, -1):
-    for c in (D(31), D(149)):
-        tb = patch('tv', 'fixed', TAPE, sx * c - D(3.2), sx * c + D(3.2), D(-40), D(64), 2, 26, .0185)
-        B_(finish(tb, 'tv', 'fixed', TAPE, var=0), *TORSO_B)
-    tb = patch('ts', 'fixed', TAPE, sx * D(28), sx * D(152), D(60), D(66.5), 30, 2, .0185)
-    B_(finish(tb, 'ts', 'fixed', TAPE, var=0), *CHEST_B)
+    # 前面的直條跟背帶保持固定間距：胸口在 39°，上胸跟著背帶往外彎到 52° 接上肩帶（原本在 31° 被背帶斜斜壓過，兩側都露出白色碎片）
+    B_(ribbon('rv', 'fixed', TAPE, [sph_hit(sx * D(39 + 13 * ss(40, 64, -40 + 104 * i / 40)), D(-40 + 104 * i / 40), 0) for i in range(41)], .03, .0205, sm=2), *TORSO_B)
+    B_(ribbon('rv', 'fixed', TAPE, [sph_hit(sx * D(149), D(-40 + 104 * i / 40), 0) for i in range(41)], .03, .0205, sm=2), *TORSO_B)
+    B_(ribbon('rs', 'fixed', TAPE, [sph_hit(sx * D(42 + 110 * i / 40), D(63.2), 0) for i in range(41)], .032, .0215, sm=10), *CHEST_B)   # 從前面直條的中線（41°）起：再往內會凸出直條、浮在 V 領外
 # 拉鍊、胸前口袋、對講機、名牌
 zb = patch('zip', 'fixed', 0x2b2b2b, -D(1.1), D(1.1), VPH0, D(37), 1, 20, .0175)
 B_(finish(zb, 'zip', 'fixed', 0x2b2b2b, var=0), *TORSO_B)
 B_(on_surface('zp', 'fixed', 0x9a9c9e, (0, 1.36, 0), (0, 0, 1), (.012, .022, .006), .014, .002), 'chest')
 for sx in (1, -1):
-    B_(on_surface('vp', 'vis', 0, (sx * .07, 1.08, 0), (sx * .55, 0, 1), (.075, .085, .014), .012, .005), 'torso', 'hips')
+    B_(on_surface('vp', 'vis', 0, (sx * .07, 1.08, 0), (sx * .55, 0, 1), (.075, .085, .014), .012, .005, st=.005, top=False), 'torso', 'hips')
     B_(on_surface('vpf', 'vis', 0, (sx * .07, 1.125, 0), (sx * .55, 0, 1), (.08, .022, .016), .014, .004), 'torso')
-B_(on_surface('pk', 'vis', 0, (.075, 1.3, 0), (.5, 0, 1), (.07, .075, .014), .012, .005), 'chest')
+B_(on_surface('pk', 'vis', 0, (.075, 1.3, 0), (.5, 0, 1), (.07, .075, .014), .012, .005, st=.005), 'chest')
 B_(on_surface('pen', 'fixed', 0x1f4fa8, (.085, 1.345, 0), (.5, 0, 1), (.007, .05, .007), .02, .002), 'chest')
 B_(on_surface('rd', 'fixed', 0x1f1f1f, (-.075, 1.31, 0), (-.5, 0, 1), (.042, .07, .024), .012, .006), 'chest')
 B_(on_surface('rdb', 'fixed', 0x3a3a3a, (-.075, 1.35, 0), (-.5, 0, 1), (.044, .012, .026), .012, .003), 'chest')
@@ -516,7 +640,7 @@ B_(collar, 'chest', 'neck')
 for sx, t in ((1, 'L'), (-1, 'R')):
     wr = Vector((sx * .302, .93, .005))
     B_(lathe('cu', 'shirt', 0, [(.047, -.03), (.051, -.022), (.052, .012), (.048, .02)], tuple(wr), 20, cap_top=False, cap_bot=False), 'fore' + t, 'hand' + t)
-    B_(on_surface('sp', 'shirt', 0, (sx * .2, 1.33, 0), (sx, 0, .15), (.07, .08, .012), .004, .006), 'up' + t)
+    B_(on_surface('sp', 'shirt', 0, (sx * .2, 1.33, 0), (sx, 0, .15), (.07, .08, .012), .004, .006, st=.005, top=False), 'up' + t)
     B_(on_surface('spf', 'shirt', 0, (sx * .2, 1.37, 0), (sx, 0, .15), (.074, .02, .016), .004, .004), 'up' + t)
     if sx > 0:
         B_(on_surface('fl', 'fixed', 0x1b2a3a, (sx * .2, 1.335, 0), (sx, 0, .15), (.05, .035, .004), .012, .002, var=0), 'up' + t)
@@ -549,11 +673,13 @@ B_(box('tmc', 'fixed', 0x222222, tuple(p + n * .046), (.004, .03, .03), .002), '
 for sx, t in ((1, 'L'), (-1, 'R')):
     th, sh = 'thigh' + t, 'shin' + t
     ax = (sx * .1, 0, 0)
-    B_(on_surface('cp', 'pants', 0, (sx * .1, .66, 0), (sx, 0, .1), (.105, .13, .02), .002, .008), th)
-    B_(on_surface('cpf', 'pants', 0, (sx * .1, .725, 0), (sx, 0, .1), (.11, .032, .024), .004, .006), th)
-    B_(on_surface('cpb', 'fixed', 0x3a3a38, (sx * .1, .72, 0), (sx, 0, .1), (.018, .012, .005), .03, .002), th)
-    B_(on_surface('bpk', 'pants', 0, (sx * .08, .9, 0), (sx * .2, 0, -1), (.1, .11, .012), .003, .005), 'hips', th)
-    B_(on_surface('bpf', 'pants', 0, (sx * .08, .95, 0), (sx * .2, 0, -1), (.104, .025, .016), .004, .004), 'hips')
+    B_(on_surface('cp', 'pants', 0, (sx * .1, .66, 0), (sx, 0, .1), (.105, .13, .02), .002, .008, st=.006, top=False), th)
+    B_(on_surface('cpf', 'pants', 0, (sx * .1, .725, 0), (sx, 0, .1), (.11, .032, .024), .004, .006, st=.005), th)
+    for dz in (-.012, .026):               # 蓋子上兩顆壓扣、口袋中間一道風琴褶
+        B_(on_surface('cpb', 'fixed', 0x3a3a38, (sx * .1, .716, dz), (sx, 0, .1), (.014, .012, .005), .0345, .002), th)
+    B_(on_surface('cpl', 'pants', 0, (sx * .1, .655, 0), (sx, 0, .1), (.01, .115, .024), .002, .0), th)
+    B_(on_surface('bpk', 'pants', 0, (sx * .08, .9, 0), (sx * .2, 0, -1), (.1, .11, .012), .003, .005, st=.006, top=False), 'hips', th)
+    B_(on_surface('bpf', 'pants', 0, (sx * .08, .95, 0), (sx * .2, 0, -1), (.104, .025, .016), .004, .004, st=.005), 'hips')
     # 護膝
     p, n = ray((sx * .103, .5, 0), (0, 0, 1))
     kc = p + n * .018
@@ -563,6 +689,154 @@ for sx, t in ((1, 'L'), (-1, 'R')):
     B_(band('ks2', 'fixed', 0x26282a, .535, .555, .004, cx=sx * .103, zc=.004, n=32, th=.004), th)
     # 褲管下緣（蓋在靴筒外面）
     B_(band('hem', 'pants', 0, .16, .2, .004, cx=sx * .105, zc=-.004, n=32, th=.006), sh)
+
+# ── 立體的縫線：袖子內側、袖籠、褲子外側縫與內側縫、褲襠，做成貼著布面的細稜（中間凸起、兩邊沒入布面），會吃光；
+#    背心的邊緣包一圈滾邊。網格很省（每段 4 個三角形），遠距離的 W_lod 不帶這些 ──
+def welt(name, role, pts, w=.007, h=.0015):
+    """沿著布面的一條稜：pts = [(表面點, 法線)]；兩側邊點浮在布面上 0.3 mm，中線抬高 h"""
+    # 皺褶比點距短：兩點中間的布面比連線凸出 0.25 mm 以上就在中間補一個貼著布面的點（最多再分 3 層），
+    # 稜線才不會一段段沉進布裡（看起來像一截截的黑縫）
+    def seg(a, b, d):
+        (p, n), (q, m) = a, b
+        if d == 0 or (q - p).length < .0025:
+            return [b]
+        mid = (p + q) / 2
+        c = near(tuple(mid))
+        if (c[0] - mid).dot((n + m).normalized()) > .00025:
+            return seg(a, c, d - 1) + seg(c, b, d - 1)
+        return [b]
+    dense = pts[:1]
+    for a, b in zip(pts, pts[1:]):
+        dense += seg(a, b, 3)
+    pts = dense
+    bm = bmesh.new()
+    rows = []
+    for i, (p, n) in enumerate(pts):
+        tg = (pts[min(i + 1, len(pts) - 1)][0] - pts[max(i - 1, 0)][0]).normalized()
+        sd = n.cross(tg).normalized()
+        hk = h * min(1.0, i / 2, (len(pts) - 1 - i) / 2)       # 兩端收進布面
+        row = []
+        for k in (-1, 0, 1):
+            if k:
+                q, n2 = near(tuple(p + sd * (k * w / 2)))
+                row.append(bm.verts.new(tuple(q + n2 * .0003)))
+            else:
+                row.append(bm.verts.new(tuple(p + n * max(hk, .0005))))
+        rows.append(row)
+    for i in range(len(rows) - 1):
+        for k in (0, 1):
+            bm.faces.new((rows[i][k], rows[i + 1][k], rows[i + 1][k + 1], rows[i][k + 1]))
+    ob = finish(bm, name, role, 0, var=0)
+    # 開放的細條：法線方向不能靠 recalc 猜，跟布面法線比一下，反了就翻
+    me = ob.data
+    if sum(p.normal.dot(V(*near(tuple(T(p.center)))[1])) for p in me.polygons) < 0:
+        b2 = bmesh.new(); b2.from_mesh(me); bmesh.ops.reverse_faces(b2, faces=b2.faces); b2.to_mesh(me); b2.free(); me.update()
+    recolor(ob, lambda p, n: (1, 1, 1) if (p - near(tuple(p))[0]).length > .0009 else (.9, .9, .9))   # 稜線亮、兩邊稍暗（車縫的陰影）
+    B_(ob, fn=body_weights)
+    tag_welt(ob)
+    return ob
+
+def axis_path(nodes, y0, y1, step):
+    """沿著骨架線（SKG 節點）取等距點，y0..y1 之間"""
+    P = [_skp[n][0] for n in nodes]
+    out = []
+    for a, b in zip(P, P[1:]):
+        L = (b - a).length
+        for i in range(max(1, int(L / step))):
+            q = a.lerp(b, i * step / L)
+            if y1 <= q.y <= y0:
+                out.append(q)
+    q = P[-1]
+    if y1 <= q.y <= y0:
+        out.append(q)
+    return out
+
+# 被背心蓋住的那幾段不做（看不到，省面數）：從布面沿法線往外 3.5 cm 內打到背心就算蓋住；剩下連續的幾段各做一條
+bpy.context.view_layer.update()
+VBVH = BVHTree.FromObject(vest, bpy.context.evaluated_depsgraph_get())
+def covered(p, n):
+    loc, nor, i, dist = VBVH.ray_cast(V(*(p + n * .0015)), V(*n))
+    return loc is not None and dist < .035
+def welt_vis(name, role, pts, *a):
+    run = []
+    for pn in pts + [None]:
+        if pn is not None and not covered(*pn):
+            run.append(pn)
+            continue
+        if len(run) >= 4:
+            welt(name, role, run, *a)
+        run = []
+
+def cast_line(axis_pts, d):
+    """從骨架線往 d 方向打射線，取表面上的點"""
+    out = []
+    for q in axis_pts:
+        p, n = ray(tuple(q), d)
+        if p is not None:
+            out.append((p, n))
+    return out
+
+for sx, t in ((1, 'L'), (-1, 'R')):
+    # 袖子內側縫：腋下到袖口，偏後一點；每 9 mm 取一點，皺褶處 welt() 再自己補點
+    welt_vis('tseam', 'shirt', cast_line(axis_path(['dl' + t, 'ua' + t, 'el' + t, 'fa' + t, 'wr' + t], 1.31, .965, .009), (-sx * .7, -.1, -.75)))
+    # 袖籠：手臂根部一圈（上面被背心蓋住的部分也一起做，接得起來）
+    c, nrm = Vector((sx * .17, 1.39, -.004)), Vector((sx, .42, 0)).normalized()
+    e1 = Vector((0, 0, 1)); e2 = nrm.cross(e1).normalized()
+    ring = []
+    for i in range(41):
+        a = i / 40 * TAU
+        p, n = ray(tuple(c), tuple(e1 * math.cos(a) + e2 * math.sin(a)))
+        if p is not None:
+            ring.append((p, n))
+    welt_vis('tseam', 'shirt', ring)
+    # 軀幹側縫：腰帶上緣到腋下（背心蓋住的那段自動略過，只剩背心下襬與袖籠之間露出的部分）
+    welt_vis('tseam', 'shirt', cast_line([Vector((0, 1.046 + i * .0065, -.004)) for i in range(56)], (sx, 0, 0)))
+    # 褲子外側縫（腰帶下到褲管）、內側縫（胯下到褲管）
+    welt('tseam', 'pants', cast_line(axis_path(['pelvis', 'hp' + t, 'th' + t, 'kn' + t, 'ca' + t, 'an' + t], .975, .205, .019), (sx, 0, -.06)), .008, .0018)
+    welt('tseam', 'pants', cast_line(axis_path(['hp' + t, 'th' + t, 'kn' + t, 'ca' + t, 'an' + t], .76, .205, .019), (-sx, 0, -.04)), .008, .0018)
+# 褲頭上緣：腰帶上面露出 1 cm 的褲頭，一圈車縫的稜（背心蓋住的前後兩段略過）
+wb = []
+for i in range(57):
+    a = i / 56 * TAU
+    p, n = ray((0, 1.04, -.004), (math.sin(a), 0, math.cos(a)))
+    if p is not None:
+        wb.append((p, n))
+welt_vis('tseam', 'pants', wb, .008, .0018)
+# 褲襠：前面從腰帶下繞過胯下到後面
+crotch = []
+for i in range(19):
+    a = math.radians(70 - 140 * i / 18)
+    p, n = ray((0, .9, -.004), (0, -math.cos(a), math.sin(a)))
+    if p is not None and p.y < .975:
+        crotch.append((p, n))
+welt('tseam', 'pants', crotch, .008, .0018)
+# 背心的滾邊：沿背心的邊緣（V 領、袖口、下襬）一圈 4 邊形的細管，包住布邊
+def loop_tube(name, role, pts, r, step=.014):
+    keep, acc = [pts[0]], 0.0
+    for a, b in zip(pts, pts[1:]):
+        acc += (b - a).length
+        if acc >= step:
+            keep.append(b); acc = 0.0
+    P = keep
+    bm = bmesh.new()
+    rings = []
+    m = len(P)
+    for i in range(m):
+        tg = (P[(i + 1) % m] - P[i - 1]).normalized()
+        q, n = near(tuple(P[i]))
+        n = (n - tg * n.dot(tg)).normalized()
+        b = tg.cross(n)
+        c = P[i] - n * .003
+        rings.append([bm.verts.new(tuple(c + (n * math.cos(k * TAU / 4) + b * math.sin(k * TAU / 4)) * r)) for k in range(4)])
+    for i in range(m):
+        for k in range(4):
+            bm.faces.new((rings[i][k], rings[i][(k + 1) % 4], rings[(i + 1) % m][(k + 1) % 4], rings[(i + 1) % m][k]))
+    return finish(bm, name, role, 0, var=0)
+for lp in VEST_LOOPS:
+    if len(lp) > 8:
+        B_(loop_tube('vbind', 'vis', lp, .0042), *TORSO_B)
+        recolor(BODY[-1], lambda p, n: (.86, .86, .86))
+        tag_welt(BODY[-1])
 
 # ── 背包（小型水袋包）與肩帶、胸扣 ──
 p, n = ray((0, 1.26, 0), (0, 0, -1))
@@ -579,74 +853,201 @@ for sx in (1, -1):
     pts = [tuple(bpc + Vector((sx * .085, .13, .02)))]
     for ph in (62, 68, 66, 55, 40, 25):
         pts.append(sph_hit(sx * D(152 - (ph - 25) * 0 if ph < 60 else 150), D(ph), .026) if False else None)
-    pts = [tuple(bpc + Vector((sx * .085, .13, .03))), sph_hit(sx * D(150), D(64), .024), sph_hit(sx * D(90), D(68), .024),
-           sph_hit(sx * D(40), D(64), .024), sph_hit(sx * D(26), D(45), .022), sph_hit(sx * D(24), D(22), .022), sph_hit(sx * D(24), D(4), .02)]
-    B_(tube('bs', 'fixed', 0x2f3328, pts, .017, 6, flat=.28), 'chest', 'clav' + ('L' if sx > 0 else 'R'))
-    B_(box('bsb', 'fixed', 0x1f1f1f, sph_hit(sx * D(24), D(15), .026), (.03, .026, .012), .004), 'chest')
+    pts = [tuple(bpc + Vector((sx * .085, .13, .03))), sph_hit(sx * D(150), D(64), .03), sph_hit(sx * D(90), D(68), .03),
+           sph_hit(sx * D(40), D(64), .03), sph_hit(sx * D(26), D(45), .029), sph_hit(sx * D(24), D(22), .029), sph_hit(sx * D(24), D(4), .027)]
+    B_(tube('bs', 'fixed', 0x2f3328, pts, .017, 6, flat=.28), *TORSO_B)       # 跟反光條同一組骨頭，舉槍時兩者才不會錯開、反光條從背帶邊戳出來
+    B_(box('bsb', 'fixed', 0x1f1f1f, sph_hit(sx * D(24), D(15), .032), (.03, .026, .012), .004), *TORSO_B)
 cs0, cs1 = Vector(sph_hit(D(24), D(30), .026)), Vector(sph_hit(-D(24), D(30), .026))
 B_(box('cs', 'fixed', 0x2f3328, tuple((cs0 + cs1) / 2), ((cs0 - cs1).length, .014, .008), .003), 'chest')
 B_(box('cb', 'fixed', 0x1f1f1f, tuple((cs0 + cs1) / 2 + Vector((0, 0, .004))), (.03, .022, .01), .003), 'chest')
 
-# ───────── 頭：變形的橢球雕出臉（眼窩、眉骨、鼻、唇、下巴、顴骨、下顎），眼睛、眼皮、眉毛、耳朵 ─────────
+# ───────── 頭：單位球在臉部加密（眼睛、鼻嘴再加密一次），塑形成前臉較平、太陽穴轉折明顯的頭形，
+#           雕出眉骨、眼窩、鼻根鼻樑鼻頭鼻翼與鼻孔、人中、上下唇、下巴、顴骨、下顎；
+#           眼裂挖空讓眼球露出來、眼皮包著眼球；耳朵有耳輪、對耳輪、耳甲與耳垂 ─────────
 HC = Vector((0, 1.7, .01))
-hb = bm_ell((.085, .112, .103), 64, 48)
+ER = .0122                    # 眼球半徑
+EX, EY = .0315, .005          # 眼球中心（相對頭中心，x 取絕對值）
+AW = .0116                    # 眼裂半寬
+
+def lid_top(u):
+    """眼裂上緣（u：往外為正、相對眼球中心），外眼角略高"""
+    s = max(-1.0, min(1.0, (u + .0012) / AW))
+    return .0009 * u / AW + .0001 + .0044 * (1 - s * s) ** .8
+
+def lid_bot(u):
+    s = max(-1.0, min(1.0, (u - .0008) / AW))
+    return .0009 * u / AW + .0001 - .0034 * (1 - s * s) ** .9
+
+def in_eye(u, v):
+    return -AW < u < AW and lid_bot(u) < v < lid_top(u)
+
+def refine(bm, pick):
+    fs = [f for f in bm.faces if pick(f.calc_center_median())]
+    es = list({e for f in fs for e in f.edges})
+    bmesh.ops.subdivide_edges(bm, edges=es, cuts=1, use_grid_fill=True)
+    for v in bm.verts:
+        v.co.normalize()
+
+def interp(t, keys):
+    if t >= keys[0][0]:
+        return keys[0][1]
+    for (a0, y0), (a1, y1) in zip(keys, keys[1:]):
+        if t >= a1:
+            k = (t - a0) / (a1 - a0)
+            k = k * k * (3 - 2 * k)
+            return y0 + (y1 - y0) * k
+    return keys[-1][1]
+
+def seg_dist(px, py, ax, ay, bx, by):
+    dx, dy = bx - ax, by - ay
+    t = max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)))
+    return math.hypot(px - ax - dx * t, py - ay - dy * t)
+
+def nose(x, y):
+    """鼻子：高度與半寬沿 y 變化（鼻根 → 鼻樑 → 鼻頭 → 鼻小柱），截面頂端較平"""
+    H = interp(y, [(.022, 0), (.012, .0045), (-.004, .0098), (-.02, .016), (-.03, .0208), (-.036, .0214), (-.041, .016), (-.046, .0055), (-.05, 0)])
+    W = interp(y, [(.022, .0085), (.004, .0072), (-.02, .0084), (-.033, .0102), (-.043, .0088), (-.05, .008)])
+    h = .8 * H * math.exp(-abs(x / W) ** 2.4)
+    h += .003 * g2(x, y + .0335, .0082, .0075)                               # 圓鼻頭
+    return h
+
 def face_disp(x, y, z):
     fz = ss(.02, .075, z)
+    ax = abs(x)
     dz = 0.0
-    for sx in (1, -1):
-        dz -= .0065 * g2(x - sx * .031, y - .007, .016, .011)         # 眼窩
-        dz += .008 * g2(x - sx * .029, y - .03, .024, .009)           # 眉骨
-        dz += .005 * g2(x - sx * .05, y + .022, .018, .016)           # 顴骨
-        dz += .0045 * g2(x - sx * .0135, y + .041, .0085, .0065)      # 鼻翼
-        dz -= .003 * g2(x - sx * .026, y + .068, .006, .008)          # 嘴角
-        dz -= .004 * g2(x - sx * .045, y + .045, .012, .02)           # 法令紋下的臉頰凹
-    nb = .017 * ss(.022, -.036, y) * (1 - ss(-.034, -.047, y))
-    dz += nb * math.exp(-(x / (.0125 + ss(.005, -.04, y) * .007)) ** 2)   # 鼻樑到鼻頭（寬一點、不要太挺）
-    dz += .0045 * g2(x, y + .035, .012, .011)                        # 圓圓的鼻頭
-    dz -= .0015 * g2(x, y + .051, .0035, .005)                       # 人中
-    dz += .0045 * g2(x, y + .057, .021, .0055)                       # 上唇
-    dz += .0055 * g2(x, y + .071, .019, .0065)                       # 下唇
-    dz -= .003 * g2(x, y + .0645, .024, .0022)                       # 嘴縫
-    dz -= .0025 * g2(x, y + .081, .016, .004)                        # 唇下凹
-    dz += .007 * g2(x, y + .094, .026, .014)                         # 下巴
+    dz -= .0105 * g2(ax - .031, y - .003, .0175, .0125)                       # 眼窩
+    dz -= .003 * g2(ax - .028, y - .014, .013, .005)                          # 眉骨下的凹
+    dz += .0075 * g2(ax - .029, y - .027, .026, .0085)                        # 眉骨
+    dz += .003 * g2(x, y - .02, .009, .01)                                    # 眉心
+    dz += .0055 * g2(ax - .047, y + .017, .017, .012)                         # 顴骨
+    dz -= .0025 * g2(ax - .052, y + .047, .016, .02)                          # 顴骨下的凹
+    dz += nose(x, y)
+    dz += .0098 * g2(ax - .0145, y + .0405, .0074, .0066)                     # 鼻翼
+    ring = math.hypot(ax - .0145, (y + .0405) * 1.1) - .0098
+    dz -= .003 * math.exp(-(ring / .0022) ** 2) * ss(.011, .02, ax + max(0, y + .036) * 2)   # 鼻翼溝
+    dz -= .0055 * g2(ax - .0072, y + .0452, .0033, .0021)                     # 鼻孔
+    nl = seg_dist(ax, y, .022, -.037, .034, -.072)
+    dz -= .0022 * math.exp(-(nl / .0034) ** 2)                               # 法令紋
+    dz += .0016 * math.exp(-((nl - .0065) / .005) ** 2) * (1 if ax > .025 else ss(.018, .025, ax))
+    dz -= .0014 * g2(x, y + .051, .0028, .006)                                # 人中
+    dz += .0008 * g2(ax - .0048, y + .051, .002, .0065)                       # 人中兩條脊
+    dz += .0062 * math.exp(-(x / .019) ** 4) * math.exp(-((y + .0585 - .0007 * g2(ax - .0055, 0, .004, 1)) / .0042) ** 2)   # 上唇（唇峰）
+    dz += .0072 * math.exp(-(x / .0165) ** 4) * math.exp(-((y + .0708) / .005) ** 2)      # 下唇
+    ym = -.0648 + .0006 * (x / .02) ** 2
+    dz -= .0045 * math.exp(-(x / .0235) ** 6) * math.exp(-((y - ym) / .0013) ** 2)       # 嘴縫
+    dz -= .0028 * g2(ax - .0245, y + .0648, .0035, .004)                      # 嘴角
+    dz -= .003 * g2(x, y + .0815, .015, .0038)                                # 唇下凹
+    dz += .0085 * g2(x, y + .095, .019, .0125)                                # 下巴
     return dz * fz
-for v in hb.verts:
-    x, y, z = v.co
+
+def head_shape(ux, uy, uz):
+    x, y, z = ux * .085, uy * .112, uz * .103
     jaw = ss(-.02, -.104, y)
-    x *= 1 - jaw * .24
+    x *= 1 - jaw * .2
     top = ss(.01, .1, y)
     x *= 1 + top * .1
     z *= 1 + top * .05
     if z < 0:
         z *= (1 - ss(-.02, -.1, y) * .22) * (1 + ss(-.01, .06, y) * .07)
     else:
+        # 前臉較平：水平截面 45° 附近往外推，臉頰與太陽穴的轉折更明顯
+        a = math.atan2(abs(x), z)
+        band = ss(-.11, -.06, y) * (1 - ss(.03, .08, y))
+        k = math.sin(2 * a) ** 2 * band
+        z *= 1 + .07 * k
+        x *= 1 + .02 * k
         x *= 1 - ss(.035, .1, z) * .16
         z *= 1 - ss(.03, .11, y) * .1
         z *= 1 + jaw * .02
-    for sx in (1, -1):
-        w = g2(x - sx * .066, y + .06, .024, .026) * (1 if z < .05 else 0)
-        x += sx * .01 * w                                           # 下顎角
+        # 口鼻往前：上下顎在臉的正面，側面看臉才不會往後倒
+        z += .014 * ss(.005, -.04, y) * (1 - ss(-.095, -.125, y)) * math.cos(min(a, 1.5)) ** 3
+    sx = 1 if x >= 0 else -1
+    x += sx * .01 * g2(abs(x) - .066, y + .06, .024, .026) * ss(.07, .035, z)                  # 下顎角
+    x -= sx * .0035 * g2(y - .028, z - .04, .02, .025)                                       # 太陽穴
     z += face_disp(x, y, z)
-    v.co = Vector((x, y, z))
+    return Vector((x, y, z))
+
+hb = bm_ell((1, 1, 1), 48, 36)
+refine(hb, lambda c: c.normalized().z > .28 and -.86 < c.normalized().y < .5)
+refine(hb, lambda c: (lambda d: ((abs(d.x) - .37) / .26) ** 2 + ((d.y - .045) / .17) ** 2 < 1 and d.z > 0)(c.normalized()))
+refine(hb, lambda c: (lambda d: abs(d.x) < .36 and -.74 < d.y < -.22 and d.z > 0)(c.normalized()))
+for v in hb.verts:
+    v.co = head_shape(*v.co)
+# 眼球的位置：眼窩表面往前 3.8 mm 是眼球最前緣
+_hbvt = BVHTree.FromBMesh(hb)
+def _hz(x, y):
+    loc, nor, i, d = _hbvt.ray_cast(Vector((x, y, .5)), Vector((0, 0, -1)))
+    return loc.z if loc else .08
+EZ = _hz(EX, EY) + .0038 - ER
+# 眼皮包著眼球：眼球投影範圍內的皮膚推到眼球外 1.6 mm，外面一點是雙眼皮的摺
+RL = ER + .0016
+for v in hb.verts:
+    x, y, z = v.co
+    if z < .03:
+        continue
+    u, w = abs(x) - EX, y - EY
+    d = math.hypot(u, w)
+    if d < RL:
+        ze = EZ + math.sqrt(RL * RL - d * d)
+        k = ss(RL, RL * .72, d)
+        if ze > z:
+            z += (ze - z) * k
+    z -= .0011 * g2(u + .001, w - .0088, .011, .0018)
+    v.co.z = z
+# 輕輕平滑兩次：加密邊界的三角形、鼻翼溝這種急轉的地方不會有鋸齒
+bmesh.ops.smooth_vert(hb, verts=[v for v in hb.verts if v.co.z > -.02], factor=.35, use_axis_x=True, use_axis_y=True, use_axis_z=True)
+bmesh.ops.smooth_vert(hb, verts=[v for v in hb.verts if v.co.z > -.02], factor=.35, use_axis_x=True, use_axis_y=True, use_axis_z=True)
+# 挖眼裂：面中心在杏仁形裡的刪掉，邊界點貼到杏仁形的曲線上、落在眼球表面外 0.3 mm
+dead = []
+for f in hb.faces:
+    c = f.calc_center_median()
+    if c.z > .03 and in_eye(abs(c.x) - EX, c.y - EY):
+        dead.append(f)
+bmesh.ops.delete(hb, geom=dead, context='FACES')
+bmesh.ops.delete(hb, geom=[v for v in hb.verts if not v.link_faces], context='VERTS')
+for v in hb.verts:
+    if v.co.z < .03 or not any(e.is_boundary for e in v.link_edges):
+        continue
+    u, w = abs(v.co.x) - EX, v.co.y - EY
+    u = max(-AW, min(AW, u))
+    t, b = lid_top(u), lid_bot(u)
+    w = t if w > (t + b) / 2 else b
+    d2 = u * u + w * w
+    R2 = (ER + .0003) ** 2
+    v.co = Vector(((EX + u) * (1 if v.co.x >= 0 else -1), EY + w, EZ + math.sqrt(max(0, R2 - d2))))
 head = finish(hb, 'head', 'skin', 0, tuple(HC), var=0)
+
 def skin_tone(p, n):
     q = p - HC
     x, y, z = q
+    ax = abs(x)
     fz = ss(.02, .07, z)
     r, g, b = 1.0, 1.0, 1.0
-    lip = g2(x, y + .064, .021, .0105) * fz
-    r, g, b = r * (1 - .14 * lip), g * (1 - .3 * lip), b * (1 - .28 * lip)
-    blush = sum(g2(x - sx * .05, y + .012, .02, .018) for sx in (1, -1)) * fz
-    g *= 1 - .06 * blush; b *= 1 - .07 * blush
-    stub = ss(-.035, -.07, y) * (1 - lip) * ss(-.03, .03, z) + g2(x, y + .05, .02, .006) * fz * .8
-    k = 1 - .13 * min(1, stub)
-    r, g, b = r * k, g * k, b * (k + .02 * stub)
-    sock = sum(g2(x - sx * .031, y - .002, .015, .012) for sx in (1, -1)) * fz
-    r, g, b = r * (1 - .16 * sock), g * (1 - .2 * sock), b * (1 - .16 * sock)
-    nl = sum(g2(x - sx * .03, y + .05, .006, .018) for sx in (1, -1)) * fz
-    r, g, b = r * (1 - .1 * nl), g * (1 - .12 * nl), b * (1 - .1 * nl)
-    nos = sum(g2(x - sx * .009, y + .046, .004, .0028) for sx in (1, -1)) * (1 if n.y < -.2 else .3)
-    r, g, b = r * (1 - .6 * nos), g * (1 - .65 * nos), b * (1 - .65 * nos)
+    lip = (math.exp(-(x / .019) ** 4) * math.exp(-((y + .0585) / .0036) ** 2) + math.exp(-(x / .0168) ** 4) * math.exp(-((y + .0708) / .0046) ** 2)) * fz
+    lip = min(1.0, lip * 1.15)
+    r, g, b = r * (1 - .08 * lip), g * (1 - .3 * lip), b * (1 - .27 * lip)
+    ml = math.exp(-(x / .0235) ** 6) * math.exp(-((y + .0648 - .0006 * (x / .02) ** 2) / .0011) ** 2) * fz
+    r, g, b = r * (1 - .45 * ml), g * (1 - .5 * ml), b * (1 - .48 * ml)
+    red = (g2(x, y + .032, .012, .01) + .8 * sum(g2(x - sx * .046, y + .02, .018, .015) for sx in (1, -1))) * fz
+    g, b = g * (1 - .07 * red), b * (1 - .08 * red)
+    sock = sum(g2(x - sx * .031, y - .001, .016, .011) for sx in (1, -1)) * fz
+    r, g, b = r * (1 - .1 * sock), g * (1 - .14 * sock), b * (1 - .1 * sock)
+    crease = sum(g2(x - sx * .031, y - .0135, .012, .0022) for sx in (1, -1)) * fz
+    r, g, b = r * (1 - .12 * crease), g * (1 - .14 * crease), b * (1 - .12 * crease)
+    nl = sum(g2(x - sx * .03, y + .052, .006, .018) for sx in (1, -1)) * fz
+    r, g, b = r * (1 - .06 * nl), g * (1 - .08 * nl), b * (1 - .07 * nl)
+    nos = g2(ax - .0072, y + .0452, .0034, .0023) * (1 if n.y < -.1 else .35) * fz
+    r, g, b = r * (1 - .7 * nos), g * (1 - .74 * nos), b * (1 - .72 * nos)
+    # 眼裂邊：上緣是睫毛線（深色）、下緣粉一點，內眼角偏紅
+    u, w = ax - EX, y - EY
+    if z > .03 and -AW - .002 < u < AW + .002:
+        tt, bb = lid_top(max(-AW, min(AW, u))), lid_bot(max(-AW, min(AW, u)))
+        up = math.exp(-((w - tt) / .0011) ** 2) * (1 if w > (tt + bb) / 2 else 0)
+        lo = math.exp(-((w - bb) / .0009) ** 2) * (1 if w <= (tt + bb) / 2 else 0)
+        r, g, b = r * (1 - .78 * up), g * (1 - .8 * up), b * (1 - .78 * up)
+        r, g, b = r * (1 - .02 * lo), g * (1 - .12 * lo), b * (1 - .1 * lo)
+        inner = ss(-AW * .55, -AW, u) * (up + lo + .6 * math.exp(-((w - (tt + bb) / 2) / .002) ** 2))
+        g, b = g * (1 - .18 * min(1, inner)), b * (1 - .14 * min(1, inner))
     return (r, g, b)
 recolor(head, skin_tone)
 B_(head, 'head', 'neck', fn=lambda p: {'head': 1.0} if p.y > 1.64 else {'head': ss(1.59, 1.64, p.y) + .01, 'neck': 1 - ss(1.59, 1.64, p.y) + .01})
@@ -656,80 +1057,159 @@ def head_z(x, y):
     loc, nor, i, d = hbv.ray_cast(V(x, y, .5), V(0, 0, -1))
     return T(loc).z if loc else HC.z + .08
 
-# 眼睛：極點朝前的球，一圈一圈上色成眼白、虹膜、瞳孔；上下眼皮是略大的球殼
-ER = .0136
+# 眼球：極點朝前的球，一圈一圈上色成眼白、虹膜（外圈深、內圈亮、放射紋）、瞳孔
 for sx in (1, -1):
-    ex, ey = sx * .032, HC.y + .006
-    ez = head_z(ex, ey) + .0015 - ER
-    ec = Vector((ex, ey, ez))
-    eb = bm_ell((ER, ER, ER), 18, 20)
-    eye = finish(eb, 'eye', 'fixed', 0xe9e4dc, tuple(ec), rot=(math.pi / 2, 0, 0), var=0)
-    def eye_col(p, n, ec=ec):
+    ec = Vector((sx * EX, HC.y + EY, HC.z + EZ))
+    ebm = bm_ell((ER, ER, ER), 18, 18)
+    bmesh.ops.delete(ebm, geom=[f for f in ebm.faces if f.calc_center_median().y < -.25 * ER], context='FACES')    # 後半球看不到
+    bmesh.ops.delete(ebm, geom=[v for v in ebm.verts if not v.link_faces], context='VERTS')
+    eye = finish(ebm, 'eye', 'fixed', 0xe9e4dc, tuple(ec), rot=(math.pi / 2, 0, 0), var=0)
+    def eye_col(p, n, ec=ec, sx=sx):
         d = (p - ec).normalized()
         a = math.degrees(math.acos(max(-1, min(1, d.z))))
-        if a < 8.5:
-            return hexrgb(0x0c0a09)
-        if a < 22:
-            k = .8 + .25 * noise.noise(d * 40)
-            c = hexrgb(0x5a3d26)
-            return tuple(x * k * (.7 if a > 19.5 else 1) for x in c)
-        return tuple(x * (.85 if a > 45 else 1) for x in hexrgb(0xddd5ca))
+        if a < 11:
+            return hexrgb(0x0b0908)
+        if a < 27:
+            ph = math.atan2(d.y, d.x)
+            k = .82 + .22 * noise.noise(Vector((ph * 6, a * .3, 0))) + .1 * math.sin(ph * 23)
+            c = hexrgb(0x8a6440) if a < 17 else hexrgb(0x5c3f27)
+            k *= .55 if a > 24.5 else 1
+            return tuple(x * k for x in c)
+        side = abs(d.x) * (1 if d.x * sx < 0 else .6)                  # 內眼角那側帶點紅
+        return (.9 - .02 * side, .87 - .1 * side, .83 - .1 * side) if a < 70 else (.72, .66, .64)
     recolor(eye, eye_col)
     B_(eye, 'head')
-    for (keep, col) in ((lambda c: c.y > .0062 and c.z > -.004, None), (lambda c: c.y < -.0088 and c.z > -.002, None)):
-        lb = bm_ell((ER + .0016, ER + .0016, ER + .0016), 28, 18)
-        bmesh.ops.delete(lb, geom=[f for f in lb.faces if not keep(f.calc_center_median())], context='FACES')
-        lid = finish(lb, 'lid', 'skin', 0, tuple(ec), var=0)
-        recolor(lid, lambda p, n, ec=ec: (.35, .28, .26) if abs(p.y - ec.y) < .0078 else (.97, .93, .92))
-        B_(lid, 'head')
-    # 眉毛（頭髮色）
-    pts = []
-    for i in range(7):
-        t = i / 6
-        x = sx * (.013 + t * .04)
-        y = HC.y + .027 + math.sin(t * math.pi) * .006 - t * .004
-        pts.append((x, y, head_z(x, y) + .0008))
-    B_(tube('br', 'hair', 0, pts, [.0024, .003, .0031, .003, .0027, .0023, .0016], 8, flat=2.4), 'head')
-    # 耳朵：扁橢球，外緣捲起、內側凹進去
-    ea = add(tuple(HC), (sx * .074, -.006, -.012))
-    ebm = bm_ell((.011, .031, .02), 20, 16)
-    for v in ebm.verts:
-        x, y, z = v.co
-        rr = math.sqrt((y / .031) ** 2 + (z / .02) ** 2)
-        if x > 0:
-            v.co.x = x * (.35 + .9 * ss(.55, .95, rr))
-        if y < -.012:
-            v.co.z *= 1 - ss(-.012, -.031, y) * .35
-    ear = finish(ebm, 'ear', 'skin', 0, ea, rot=(0, sx * .3, 0) if sx > 0 else (0, math.pi - .3, 0), var=0)
-    recolor(ear, lambda p, n, ea=Vector(ea), sx=sx: (.85, .78, .78) if (p - ea).x * sx < .002 and math.sqrt(((p - ea).y / .031) ** 2 + ((p - ea).z / .02) ** 2) < .6 else (1, .96, .95))
+    # 眉毛（頭髮色）：順著眉骨，內側粗、尾巴細
+    # 眉毛：貼著眉骨皮膚的一片（沿著眉形取格子，每點打到皮膚上再外推），內側寬、眉尾細
+    bb = bmesh.new()
+    NU, NV = 18, 4
+    G = []
+    for i in range(NU + 1):
+        t = i / NU
+        cx = .011 + t * .043
+        cy = .0205 + math.sin(min(1, t * 1.25) * math.pi * .85) * .006 - t * .0045
+        hh = .0046 * (1 - t) ** .6 + .0012
+        col = []
+        for j in range(NV + 1):
+            y = cy + hh * (j / NV * 2 - 1) - .0012 * (j / NV * 2 - 1) ** 2 * (1 - t)
+            x = sx * cx
+            col.append(bb.verts.new((x, HC.y + y, head_z(x, HC.y + y) + .00045 + .0005 * (1 - abs(j / NV * 2 - 1)) - HC.z)))
+        G.append(col)
+    for i in range(NU):
+        for j in range(NV):
+            bb.faces.new((G[i][j], G[i + 1][j], G[i + 1][j + 1], G[i][j + 1]))
+    brw = finish(bb, 'br', 'hair', 0, (0, 0, HC.z), var=0)
+    solid(brw, .0005)
+    recolor(brw, lambda p, n: (max(.45, min(1, .8 + .4 * noise.noise(Vector((p.x * 1400, p.y * 260, p.z * 1400))))),) * 3)
+    B_(brw, 'head')
+
+# 耳朵：耳甲為中心的極座標網格，耳輪往外捲、對耳輪隆起、耳甲凹下、耳垂較厚；後緣往外張
+def ear_bm():
+    N, M = 6, 24
+    def outline(th):
+        c, s = math.cos(th), math.sin(th)
+        rx = .019 if c > 0 else .0095
+        ry = .026 if s > 0 else .031
+        return 1 / math.sqrt((c / rx) ** 2 + (s / ry) ** 2)
+    def height(r, th):
+        deg = math.degrees(th) % 360
+        rimw = 1 - ss(215, 250, deg) * (1 - ss(300, 330, deg))            # 耳垂沒有耳輪
+        h = .0042 * math.exp(-((r - .9) / .075) ** 2) * rimw
+        h -= .0018 * math.exp(-((r - .74) / .06) ** 2) * rimw               # 耳舟
+        anti = 1 - ss(150, 190, deg) * (1 - ss(330, 350, deg))
+        h += .0032 * math.exp(-((r - .55) / .08) ** 2) * anti * (1 - ss(200, 230, deg))
+        h -= .0055 * max(0, 1 - (r / .4) ** 2)                              # 耳甲
+        h += .003 * math.exp(-((r - .78) / .1) ** 2) * math.exp(-((deg - 185) / 18) ** 2)   # 耳屏
+        h += .0015 * (1 - rimw) * ss(.3, .7, r)                               # 耳垂
+        return h
+    bm = bmesh.new()
+    rows = []
+    for i in range(1, N + 1):
+        r = i / N
+        row = []
+        for j in range(M):
+            th = j / M * TAU
+            R = outline(th) * r
+            s, t = math.cos(th) * R, math.sin(th) * R
+            h = height(r, th) + max(0, s) * .38                                # 後緣往外張約 20°
+            if r > .96:
+                h -= .0012                                                     # 耳輪邊往內捲
+            row.append(bm.verts.new((h, t, -s)))
+        rows.append(row)
+    cen = bm.verts.new((height(0, 0), 0, 0))
+    for j in range(M):
+        bm.faces.new((cen, rows[0][j], rows[0][(j + 1) % M]))
+    for i in range(N - 1):
+        for j in range(M):
+            bm.faces.new((rows[i][j], rows[i + 1][j], rows[i + 1][(j + 1) % M], rows[i][(j + 1) % M]))
+    return bm
+for sx in (1, -1):
+    _l, _n, _i, _d = _hbvt.ray_cast(Vector((sx * .2, -.005, -.008)), Vector((-sx, 0, 0)))
+    ea = add(tuple(HC), ((_l.x - sx * .0025) if _l else sx * .08, -.005, -.008))
+    ebm = ear_bm()
+    if sx < 0:
+        for v in ebm.verts:
+            v.co.x = -v.co.x
+    ear = finish(ebm, 'ear', 'skin', 0, ea, var=0)
+    solid(ear, .0035)
+    recolor(ear, lambda p, n, ea=Vector(ea), sx=sx: (.97, .86, .84) if math.hypot((p - ea).y, (p - ea).z) < .012 else (1, .95, .94))
     B_(ear, 'head')
 
-# ── 手套：掌心、四指（放鬆微彎，握槍時也好看）、拇指、護指板 ──
+# ── 手套：圓角方形截面的手掌（手背微凸、掌心微凹）、四指各三節（關節處略粗、指尖圓）、拇指兩節與拇指球；
+#    袖口、魔鬼氈帶與指節護墊是「gear」部位：顏色跟手套走（壓暗），徒手的人在網頁裡整組收起來 ──
+def rsec(c, w, t, n=20, p=3.2, bow=0.0, sx=1):
+    """y 固定的圓角方形截面：t 為 x 方向厚度、w 為 z 方向寬度；bow>0 時手背（+sx 側）中間鼓起"""
+    pts = []
+    for i in range(n):
+        a = i / n * TAU
+        ca, sa = math.cos(a), math.sin(a)
+        x = math.copysign(abs(ca) ** (2 / p), ca) * t / 2
+        z = math.copysign(abs(sa) ** (2 / p), sa) * w / 2
+        if x * sx > 0:
+            x += sx * bow * (1 - (2 * z / w) ** 2)
+        pts.append(tuple(c + Vector((x, 0, z))))
+    return pts
+
 def hand_bm(sx):
     W = Vector((sx * .305, .905, .006))
     out = []
-    def sec(yo, w, t, dz=0.0, n=16):
-        return [tuple(W + Vector((sx * (math.cos(a) * t / 2) - sx * .004, yo, math.sin(a) * w / 2 + dz))) for a in [i / n * TAU for i in range(n)]]
-    out.append(loft('palm', 'glove', 0, [sec(.012, .058, .04), sec(-.02, .07, .038), sec(-.055, .086, .034), sec(-.085, .088, .03), sec(-.098, .082, .026)], var=.03))
-    for i, (zo, L) in enumerate(((.03, .074), (.01, .08), (-.01, .076), (-.029, .062))):
-        p = W + Vector((-sx * .004, -.094, zo))
-        d = Vector((0, -1, 0))
-        pts = [tuple(p)]
+    C = lambda yo, dz=0.0: W + Vector((-sx * .004, yo, dz))
+    out.append(loft('palm', 'glove', 0, [rsec(C(.014), .056, .038, sx=sx), rsec(C(-.012), .066, .035, bow=.002, sx=sx), rsec(C(-.045, .002), .082, .032, bow=.003, sx=sx),
+                                        rsec(C(-.078, .001), .086, .029, bow=.0025, sx=sx), rsec(C(-.094), .08, .025, bow=.001, sx=sx)], var=.02))
+    # 四指：掌指、近端、遠端三節，關節處略粗；稍微張開、往掌心彎
+    for i, (zo, L, spread) in enumerate(((.029, .074, .05), (.0095, .081, .01), (-.0095, .077, -.03), (-.028, .062, -.07))):
+        p = W + Vector((-sx * .005, -.092, zo))
+        pts, rad = [tuple(p)], [.0092]
         A = 0.0
-        for (f, c) in ((.45, .2), (.3, .38), (.25, .32)):
+        for k, (f, c) in enumerate(((.44, .22), (.31, .42), (.25, .34))):
             A += c
-            d = Vector((-sx * math.sin(A), -math.cos(A), (zo * .6) * math.sin(A)))
+            d = Vector((-sx * math.sin(A), -math.cos(A), spread * math.cos(A) + zo * .5 * math.sin(A)))
+            mid = p + d.normalized() * L * f * .5
             p = p + d.normalized() * L * f
-            pts.append(tuple(p))
-        out.append(limb('fg', 'glove', 0, pts, [.0098, .0093, .0086, .0078], 10, step=.008))
-        out.append(ell('kn', 'glove', 0, tuple(W + Vector((sx * .002, -.093, zo))), (.011, .01, .01), 10, 8))
-    tp = [W + Vector((-sx * .012, -.032, .028))]
-    for (dx, dy, dz, L) in ((-.3, -.85, .38, .036), (-.45, -.85, .16, .03), (-.55, -.8, .05, .024)):
-        tp.append(tp[-1] + Vector((sx * dx, dy, dz)).normalized() * L)
-    out.append(limb('th', 'glove', 0, [tuple(p) for p in tp], [.0125, .0112, .0102, .009], 10, step=.008))
-    out.append(box('kg', 'fixed', 0x3a3c3e, tuple(W + Vector((sx * .016, -.08, 0))), (.008, .022, .064), .004, smooth=True))
-    out.append(lathe('gc', 'glove', 0, [(.043, .0), (.049, .006), (.05, .03), (.046, .036)], tuple(W + Vector((0, -.006, 0))), 20))
-    out.append(box('gs', 'fixed', 0x2e3032, tuple(W + Vector((sx * .036, .016, 0))), (.008, .016, .03), .003))
+            pts += [tuple(mid), tuple(p)]
+            rad += [(.0086, .0081, .0074)[k], (.0089, .0082, .0071)[k]]
+        out.append(limb('fg', 'glove', 0, pts, rad, 10, step=.0065, flat=.9))
+        out.append(ell('ft', 'glove', 0, pts[-1], (.0071, .0071, .0071), 8, 5))
+        # 指節上的小護墊（gear）
+        out.append(ell('kp', 'gear', 0, tuple(W + Vector((sx * .0092, -.092, zo))), (.0032, .0095, .0086), 6, 4))
+        recolor(out[-1], lambda p, n: (.86, .86, .86))
+    # 拇指：從掌根內側往前下方伸，兩節；拇指球把手掌和拇指接起來
+    tp = [W + Vector((-sx * a, b, c)) for (a, b, c) in ((.011, -.034, .026), (.014, -.06, .039), (.018, -.074, .043), (.022, -.087, .044), (.027, -.099, .041))]
+    trad = [.0122, .0112, .0102, .0096, .0088]
+    out.append(limb('th', 'glove', 0, [tuple(p) for p in tp], trad, 10, step=.0065, flat=.9))
+    out.append(ell('tt', 'glove', 0, tuple(tp[-1]), (.0086, .0086, .0086), 8, 6))
+    out.append(ell('tpad', 'glove', 0, tuple(W + Vector((-sx * .016, -.035, .018))), (.013, .024, .016), 14, 10))
+    # 手背護板（gear，薄、有兩道分節）
+    for k in range(2):
+        out.append(box('kg', 'gear', 0, tuple(W + Vector((sx * (.0152 - k * .002), -.05 - k * .0165, .003))), (.0034, .0145, .052 - k * .004), .0016, smooth=True))
+        recolor(out[-1], lambda p, n: (.9, .9, .9))
+    # 袖口：厚一點的鬆緊口 + 魔鬼氈帶
+    out.append(lathe('gc', 'gear', 0, [(.04, -.004), (.0445, .002), (.0452, .022), (.0425, .033), (.038, .036)], tuple(W + Vector((0, -.008, 0))), 24, sz=1.04, cap_top=False, cap_bot=False))
+    recolor(out[-1], lambda p, n: (.88, .88, .88) if abs(p.y - W.y - .007) > .012 else (1, 1, 1))
+    out.append(box('gs', 'gear', 0, tuple(W + Vector((sx * .0445, .004, .004))), (.006, .022, .038), .0025, smooth=True))
+    recolor(out[-1], lambda p, n: (.84, .84, .84))
+    out.append(box('gsb', 'gear', 0, tuple(W + Vector((sx * .048, .004, .012))), (.003, .012, .012), .0015))
+    recolor(out[-1], lambda p, n: (.5, .5, .5))
     return out
 for sx, t in ((1, 'L'), (-1, 'R')):
     for o in hand_bm(sx):
@@ -751,26 +1231,61 @@ for sx, t in ((1, 'L'), (-1, 'R')):
         h = y1 - y0
         secs.append([(A.x + px, y0 + h / 2 + py, A.z + z) for (px, py, _) in rrect(0, 0, w, h, min(w, h) * .45, 0)])
     bt = loft('boot', 'fixed', BOOT, secs, var=.06)
-    recolor(bt, lambda p, n: tuple(x * (1.25 if p.z - A.z > .15 and n.z > .3 else 1) for x in hexrgb(BOOT)))
+    def boot_col(p, n):
+        z, y = p.z - A.z, p.y
+        k = 1.0
+        cap = .118 + .02 * (abs(p.x - A.x) / .054) ** 2                          # 鞋頭護皮的邊線（往兩側往後彎）
+        k *= .82 if z > cap else 1
+        k *= 1 - .35 * math.exp(-((z - cap) / .003) ** 2) - .2 * math.exp(-((z - cap - .006) / .0015) ** 2)   # 車縫
+        k *= .86 if z < -.045 and y < .105 else 1                               # 後跟包覆
+        k *= 1 + (.18 if z > .15 and n.z > .3 else 0)                           # 鞋頭磨亮
+        return tuple(x * k for x in hexrgb(BOOT))
+    recolor(bt, boot_col)
     B_(bt, fn=boot_w(t))
-    B_(lathe('bs', 'fixed', BOOT, [(.058, .09), (.062, .12), (.062, .2), (.066, .215), (.064, .225)], tuple(A + Vector((0, 0, -.008))), 20, cap_bot=False), fn=boot_w(t))
+    BS = lathe('bs', 'fixed', BOOT, [(.058, .09), (.062, .12), (.062, .2), (.066, .215), (.064, .225)], tuple(A + Vector((0, 0, -.008))), 20, cap_bot=False)
+    B_(BS, fn=boot_w(t))
     B_(lathe('bpad', 'fixed', 0x3a2818, [(.066, .205), (.07, .21), (.07, .228), (.066, .232)], tuple(A + Vector((0, 0, -.008))), 20, cap_top=False, cap_bot=False), fn=boot_w(t))
     B_(box('so', 'fixed', SOLE, tuple(A + Vector((0, .012, .06))), (.114, .026, .305), .01), fn=boot_w(t))
     B_(box('he', 'fixed', SOLE, tuple(A + Vector((0, .018, -.05))), (.1, .036, .08), .01), fn=boot_w(t))
     B_(box('ws', 'fixed', 0x8a6a3a, tuple(A + Vector((0, .028, .06))), (.117, .006, .3), .003), fn=boot_w(t))
     for i in range(7):
-        B_(box('tr', 'fixed', 0x151515, tuple(A + Vector((0, -.001, -.07 + i * .045))), (.1, .005, .018), .002), fn=boot_w(t))
-    # 鞋舌與鞋帶
-    B_(box('tg', 'fixed', 0x4a3120, tuple(A + Vector((0, .135, .045))), (.05, .1, .02), .008, rot=(-.75, 0, 0), smooth=True), fn=boot_w(t))
-    for i in range(5):
-        y, z = .19 - i * .022, .035 + i * .016
-        B_(box('la', 'fixed', 0xd8c9a0, tuple(A + Vector((0, y, z + .012))), (.05, .005, .007), .002, rot=(-.7, 0, (.35 if i % 2 else -.35))), fn=boot_w(t))
-        for s2 in (1, -1):
-            B_(cyl('ey', 'fixed', 0xb0a080, tuple(A + Vector((s2 * .027, y, z + .004))), tuple(A + Vector((s2 * .027, y, z + .012))), .004, 6), fn=boot_w(t))
+        B_(box('tr', 'fixed', 0x151515, tuple(A + Vector((0, -.001, -.07 + i * .045))), (.1, .005, .018), 0), fn=boot_w(t))
+    # 鞋舌與鞋帶：打射線找靴面，鞋舌貼著靴面，鞋帶在兩排鞋眼之間交叉
+    bpy.context.view_layer.update()
+    _dgb = bpy.context.evaluated_depsgraph_get()
+    BV = [BVHTree.FromObject(o, _dgb) for o in (bt, BS)]
+    def bz(x, y):
+        best = None
+        for bv in BV:
+            loc, nor, i, d = bv.ray_cast(V(A.x + x, y, .5), V(0, 0, -1))
+            if loc is not None and (best is None or T(loc).z > best):
+                best = T(loc).z
+        return best if best is not None else A.z + .06
+    ys = [.212 - i * .019 for i in range(6)]
+    tpts = [(A.x, y, bz(0, y) + .0035) for y in ys + [.1]]
+    B_(finish(bm_tube(tpts, [.0032] * len(tpts), 10, True, 6.5, up=(1, 0, 0)), 'tg', 'fixed', 0x4a3120, var=.05), fn=boot_w(t))
+    EY_ = [[(A.x + s2 * .022, y, bz(s2 * .022, y) + .0028) for y in ys] for s2 in (1, -1)]
+    for i in range(len(ys)):
+        for s2 in (0, 1):
+            e = Vector(EY_[s2][i])
+            B_(finish(bm_tube([tuple(e + Vector((0, 0, -.002))), tuple(e + Vector((0, 0, .0015)))], .0034, 6), 'ey', 'fixed', 0xb8a47a, var=0), fn=boot_w(t))
+        if i < len(ys) - 1:
+            for s2 in (0, 1):
+                a, b = Vector(EY_[s2][i]), Vector(EY_[1 - s2][i + 1])
+                m = (a + b) / 2 + Vector((0, 0, .0045))
+                B_(tube('la', 'fixed', 0xd8c9a0, [tuple(a), tuple(m), tuple(b)], .0021, 6, var=.05), fn=boot_w(t))
+
     B_(box('pt', 'fixed', 0x3a2818, tuple(A + Vector((0, .2, -.07))), (.022, .04, .006), .002), 'shin' + t)
 
 BODYOB = join(BODY, 'W_body')
 smooth_by_angle(BODYOB, 55)
+# 臉上的嘴縫、鼻孔、眼皮這些急轉處不要被角度判成硬邊：頭部一律平滑法線
+_sh = BODYOB.data.attributes.get('sharp_edge')
+if _sh is not None:
+    _vs = BODYOB.data.vertices
+    for e in BODYOB.data.edges:
+        if _sh.data[e.index].value and all((T(_vs[i].co) - HC).length < .135 and T(_vs[i].co).y > 1.595 for i in e.vertices):
+            _sh.data[e.index].value = False
 # 骨架：每根骨頭朝上 0.08m（three 的 +y），靜止旋轉才會是單位矩陣
 arm = bpy.data.armatures.new('WorkerRig')
 RIG = bpy.data.objects.new('WorkerRig', arm)
@@ -814,8 +1329,24 @@ if STAGE == 'body':
     preview(os.path.join(prev, 'w_back.png'), (0, .95, 0), 4.6, 200, 6)
     preview(os.path.join(prev, 'w_head.png'), (0, 1.68, 0), .75, 25, 3)
     preview(os.path.join(prev, 'w_headf.png'), (0, 1.68, 0), .6, 0, 0)
+    preview(os.path.join(prev, 'w_heads.png'), (0, 1.68, 0), .6, 90, 0)
+    preview(os.path.join(prev, 'w_head3.png'), (0, 1.68, 0), .55, 35, 8)
+    preview(os.path.join(prev, 'w_eye.png'), (.031, 1.705, .09), .16, 15, 5)
+    preview(os.path.join(prev, 'w_mouth.png'), (0, 1.655, .1), .2, 30, -5)
+    preview(os.path.join(prev, 'w_ear.png'), (.08, 1.695, 0), .22, 80, 5)
     preview(os.path.join(prev, 'w_hand.png'), (.3, .85, .0), .55, 40, 5)
+    preview(os.path.join(prev, 'w_handb.png'), (.3, .84, .0), .3, 95, 5)
+    preview(os.path.join(prev, 'w_handp.png'), (-.3, .84, .0), .3, 80, 5)
+    preview(os.path.join(prev, 'w_handf.png'), (.3, .84, .0), .3, 10, 5)
     preview(os.path.join(prev, 'w_boot.png'), (.1, .12, .05), .9, 40, 20)
+    preview(os.path.join(prev, 'w_vest.png'), (0, 1.25, 0), .8, 20, 8)
+    preview(os.path.join(prev, 'w_vestb.png'), (0, 1.25, 0), .8, 160, 8)
+    preview(os.path.join(prev, 'w_shoulder.png'), (.12, 1.42, 0), .45, 50, 35)
+    preview(os.path.join(prev, 'w_legs.png'), (0, .6, 0), 1.3, 25, 5)
+    preview(os.path.join(prev, 'w_elbow.png'), (.26, 1.15, 0), .5, 20, 5)
+    preview(os.path.join(prev, 'w_kneeb.png'), (.1, .45, 0), .6, 160, 5)
+    preview(os.path.join(prev, 'w_waist.png'), (0, 1.05, 0), .6, 30, 5)
+    preview(os.path.join(prev, 'w_ankle.png'), (.1, .25, 0), .5, 30, 5)
     for k, P in POSES.items():
         pose(P)
         preview(os.path.join(prev, 'p_' + k + '.png'), (0, .95, 0), 4.6, 35, 8)
@@ -890,7 +1421,8 @@ def mouth_hole(q):
     return g2(q.x, q.y + .064, .03, .017) > .35
 def beard_keep(q):
     a = math.degrees(math.atan2(abs(q.x), q.z))
-    return q.z > -.04 and a < 100 and (q.y < -.05 - max(0, a - 50) * .0005) and q.y > -.125 and not mouth_hole(q)
+    # 下緣停在下顎線（下巴前面低一點），不要包到下巴底下，側面看才不會像一塊楔子
+    return q.z > -.04 and a < 100 and (q.y < -.05 - max(0, a - 50) * .0005) and q.y > -.102 - .014 * ss(.02, .08, q.z) and not mouth_hole(q)
 def stache(e):
     pts = []
     for i in range(9):
@@ -898,20 +1430,20 @@ def stache(e):
         x = t * .026
         y = HC.y - .054 - abs(t) ** 1.6 * .014
         pts.append((x, y, head_z(x, y) + e))
-    m = tube('ms', 'hair', 0, pts, [.0025, .0045, .0058, .0062, .0055, .0062, .0058, .0045, .0025], 8, flat=.6)
+    m = tube('ms', 'hair', 0, pts, [.0016, .0028, .0036, .0039, .0035, .0039, .0036, .0028, .0016], 8, flat=.8)
     recolor(m, strand_col)
     return m
-bm = head_shell(.004, beard_keep, amp=.0015, freq=90)
+bm = head_shell(.0024, beard_keep, amp=.0008, freq=120)       # 短鬍子：薄薄一層貼著下巴
 b1 = finish(bm, 'beard', 'hair', 0, var=0)
-solid(b1, .002)
+solid(b1, .0012)
 recolor(b1, strand_col)
-variant('BEARD_1', [b1, stache(.002)])
-variant('BEARD_2', [stache(.002)])
+variant('BEARD_1', [b1, stache(.0012)])
+variant('BEARD_2', [stache(.0012)])
 bm = head_shell(.005, lambda q: abs(q.x) < .026 - max(0, q.y + .09) * .2 and -.122 < q.y < -.076 and q.z > 0, amp=.002, freq=90)
 b3 = finish(bm, 'goat', 'hair', 0, var=0)
 solid(b3, .002)
 recolor(b3, strand_col)
-variant('BEARD_3', [b3, stache(.002)])
+variant('BEARD_3', [b3, stache(.0012)])
 
 # ───────── 安全帽（原點 = 帽子掛點，head 骨上方 0.18），各自放遠一點避免 AO 互相遮蔽 ─────────
 def dome_pts(prof, xo, sz):
@@ -1395,92 +1927,519 @@ item('I_frag', ox, [
 ])
 
 
-# ───────── 第一人稱手臂（手套 + 袖子；原點 = 握把中心 / 護木軸線），網頁依槍擺位置 ─────────
-def fing(pts, r0, r1, n=10):
-    rr = [r0 + (r1 - r0) * i / (len(pts) - 1) for i in range(len(pts))]
-    return limb('vf', 'glove', 0, pts, rr, n, step=.006)
+# ───────── 第一人稱手臂（每把槍各一組，原點 = 槍的原點，網頁直接掛在槍上）─────────
+# 手套跟第三人稱的工人同一套比例：圓角截面的手掌、四指三節、拇指兩節與拇指球、指節護墊、手背護板、袖口與魔鬼氈（gear）。
+# 手掌先貼到握把或護木旁邊，手指再像真的握東西一樣一節一節往內彎，碰到槍的表面就停（槍的網格做成 BVH 來量距離），
+# 前臂朝「鏡頭座標」裡固定的手肘方向伸出去，每把槍的瞄準距離不同，手肘在畫面上的位置還是一樣。
+VMEYE = {'m416': (.1, .16, .34), 'ump': (.082, 0, .3), 'kar98': (.1, -.152, .08), 's686': (.062, .1, .5)}   # 同網頁 SIGHT 的 y、z、d（改了要兩邊一起改）
+GUNOX = {'m416': 0, 'ump': .8, 'kar98': 1.8, 's686': 2.6}
+D_ = math.radians
+def eye_dir(gid, c):
+    """鏡頭座標（x 右、y 上、z 往後）的方向 → 槍的座標（槍口 +z、槍的左邊 +x）"""
+    return Vector((-c[0], c[1], -c[2])).normalized()
 
-def vm_right():
-    o = []
-    # 握把局部座標：握把沿 y、前方 +z；右手手掌包在後方與右側，手指繞過前面到左側
-    o.append(box('vp', 'glove', 0, (-.016, .012, -.036), (.036, .095, .05), .016, rot=(0, -.5, 0), seg=3, smooth=True))
-    for i, y in enumerate((.022, -.004, -.03)):
+def gun_bvh(gid):
+    vs, fs = [], []
+    for nm, off in (('G_' + gid, (GUNOX[gid], 1, -4)), ('M_' + gid, (GUNOX[gid], 1, -4.6))):
+        ob = bpy.data.objects.get(nm)
+        if ob is None:
+            continue
+        mw, b, o = ob.matrix_world, len(vs), Vector(off)
+        vs += [T(mw @ v.co) - o for v in ob.data.vertices]
+        fs += [tuple(b + i for i in p.vertices) for p in ob.data.polygons]
+    return BVHTree.FromPolygons(vs, fs)
+
+def gdist(bv, p):
+    """到槍表面的距離；在槍裡面是負的"""
+    loc, nor, i, d = bv.find_nearest(p)
+    if loc is None:
+        return 1.0
+    return -d if (p - loc).dot(nor) < 0 else d
+
+# 手的座標 (a, b, c)：a 手腕→指根、b 往拇指那側、c 手背；Hand.g() 轉成槍的座標
+FINGERS = (  # 指根 (a, b, c)、往拇指側張開的角度、三節長度、每節頭尾半徑
+    ((.088, .0265, .001), .07, (.042, .025, .019), ((.0098, .0093), (.009, .0085), (.0083, .0075))),
+    ((.092, .0085, .002), .015, (.046, .028, .02), ((.01, .0095), (.0092, .0086), (.0084, .0076))),
+    ((.089, -.0105, .001), -.04, (.043, .027, .02), ((.0096, .0091), (.0089, .0083), (.0081, .0074))),
+    ((.081, -.0275, -.002), -.11, (.034, .021, .017), ((.0088, .0083), (.0081, .0076), (.0074, .0068))),
+)
+THUMB = ((.016, .024, -.013), (.032, .03, .025), ((.0118, .0109), (.0107, .0099), (.0095, .0086)))
+
+class Hand:
+    def __init__(self, gid, right, F, D, W):
+        self.gid, self.right, self.bv = gid, right, gun_bvh(gid)
+        F, D = Vector(F).normalized(), Vector(D)
+        D = (D - F * D.dot(F)).normalized()
+        self.F, self.D = F, D
+        self.B = D.cross(F) if right else F.cross(D)       # 拇指那側
+        self.W = Vector(W)
+        self.ymax, self.cup = 9.0, 0.0      # ymax：手指不要越過的高度（托住細的護木時指尖停在側面上緣）
+    def g(self, p):
+        return self.W + self.F * p[0] + self.B * p[1] + self.D * p[2]
+    def gv(self, v):
+        return self.F * v[0] + self.B * v[1] + self.D * v[2]
+
+def palm_secs(cup=0.0):
+    """手掌截面（手的座標）：手腕到指根，手背微凸；cup 是手掌往掌心捲的曲率（握圓的東西時兩側包過去）"""
+    out = []
+    for (a, w, t, bow, bc) in ((-.014, .058, .04, 0, 0), (.004, .064, .037, .0015, .001), (.03, .077, .034, .0025, .002), (.058, .085, .031, .003, .001), (.082, .087, .029, .0025, -.001), (.097, .08, .025, .001, -.002)):
         pts = []
-        for k in range(8):
-            th = math.radians(-115 + k * 26)
-            rx, rz = .03, .038
-            pts.append((rx * math.sin(th), y - k * .0012, rz * math.cos(th)))
-        o.append(fing(pts, .0105, .0088))
-    # 食指扣在扳機上、拇指壓在左側
-    o.append(fing([(-.024, .05, -.012), (-.02, .056, .025), (-.008, .058, .055), (.0, .05, .068)], .0102, .0088))
-    o.append(fing([(-.02, .052, -.05), (.0, .062, -.03), (.022, .06, -.005), (.03, .052, .02)], .0125, .0098))
-    o.append(box('vk', 'fixed', 0x3a3c3e, (-.03, .03, -.045), (.012, .03, .05), .005, rot=(0, -.5, 0), smooth=True))
-    # 手腕與前臂往右後下方延伸
-    W = Vector((-.02, -.035, -.085))
-    E = Vector((-.12, -.34, -.24))   # 前臂往下多、往後少：第一人稱時袖口會從畫面右下角出現
-    o.append(lathe('vgc', 'glove', 0, [(.036, -.02), (.041, -.01), (.043, .03), (.04, .04)], (0, 0, 0), 20))
-    o[-1].location = V(*W); bpy.context.view_layer.update()
-    arm_bm = bm_tube([tuple(W + (E - W) * t) for t in (0, .1, 1)], [.036, .042, .05], 18)
-    o.append(finish(arm_bm, 'vs', 'shirt', 0, var=.03))
-    o.append(finish(bm_tube([tuple(W + (E - W) * .09), tuple(W + (E - W) * .16)], .046, 18), 'vcu', 'shirt', 0))
+        for i in range(22):
+            q = i / 22 * TAU
+            cq, sq = math.cos(q), math.sin(q)
+            c = math.copysign(abs(cq) ** (2 / 3.2), cq) * t / 2
+            b = math.copysign(abs(sq) ** (2 / 3.2), sq) * w / 2
+            if c > 0:
+                c += bow * (1 - (2 * b / w) ** 2)
+            pts.append((a, b + bc, c - cup * (b + bc) ** 2 / 2 * ss(-.02, .03, a)))
+        out.append(pts)
+    return out
+
+def place(bm, c, X, Y, Z, name, role, color=0, var=0.0):
+    """bmesh 的局部座標 (x, y, z) 對到 c + X·x + Y·y + Z·z（槍的座標）"""
+    for v in bm.verts:
+        q = Vector(v.co)
+        v.co = c + X * q.x + Y * q.y + Z * q.z
+    return finish(bm, name, role, color, var=var)
+
+def chain(base, d0, k, L, th):
+    """一根手指的關節點：每個關節繞 k 軸往掌心彎 th[j]"""
+    pts, p, A = [Vector(base)], Vector(base), 0.0
+    for j in range(len(L)):
+        A += th[j]
+        p = p + Matrix.Rotation(A, 3, k) @ d0 * L[j]
+        pts.append(p.copy())
+    return pts
+
+def fillet(pts, rads, rr=.006, n=3):
+    """關節處用小圓弧接起來（不然管子在折角會被擠扁）；半徑跟著插值"""
+    P, R = [pts[0]], [rads[0][0]]
+    for j in range(1, len(pts) - 1):
+        a, b, c = pts[j - 1], pts[j], pts[j + 1]
+        r = min(rr, (b - a).length * .4, (c - b).length * .4)
+        p0, p1 = b + (a - b).normalized() * r, b + (c - b).normalized() * r
+        P.append(p0); R.append(rads[j - 1][1])
+        for i in range(1, n):
+            t = i / n
+            P.append(p0 * (1 - t) ** 2 + b * 2 * t * (1 - t) + p1 * t * t); R.append(rads[j - 1][1] * (1 - t) + rads[j][0] * t + .0006 * math.sin(t * math.pi))
+        P.append(p1); R.append(rads[j][0])
+    P.append(pts[-1]); R.append(rads[-1][1])
+    return P, R
+
+def seg_hit(H, pts, rads, j0, gap, skip0=0.0):
+    """哪一節最先碰到槍（第 j 節的取樣點離表面小於半徑＋間隙）；skip0：第一節靠根部埋在手掌裡的比例不算"""
+    for j in range(j0, len(pts) - 1):
+        a, b = H.g(pts[j]), H.g(pts[j + 1])
+        n = max(2, int((b - a).length / .0025))
+        for i in range(n + 1):
+            t = i / n
+            if j == 0 and t < skip0:
+                continue
+            r = rads[j][0] * (1 - t) + rads[j][1] * t
+            q = a.lerp(b, t)
+            if gdist(H.bv, q) < r + gap or q.y > H.ymax:
+                return j
+    return None
+
+def grasp(H, base, d0, k, L, rads, th0, vel, mx, gap=.002, skip0=0.0):
+    """像機械手一樣握：每個關節以各自的速度彎，某一節碰到槍就停住它和它之前的關節，後面的繼續彎"""
+    th, act = list(th0), [True] * len(L)
+    for it in range(240):
+        if not any(act):
+            break
+        prev = th[:]
+        for j in range(len(L)):
+            if act[j]:
+                th[j] = min(mx[j], th[j] + math.radians(.75) * vel[j])
+                if th[j] >= mx[j]:
+                    act[j] = False
+        hit = seg_hit(H, chain(base, d0, k, L, th), rads, 0, gap, skip0)
+        if hit is not None:
+            th = prev
+            for j in range(hit + 1):
+                act[j] = False
+    return th
+
+def flexax(d0, toward):
+    """d0 往 toward 方向彎時的旋轉軸（正角度就是往那邊彎）"""
+    return d0.cross(toward).normalized()
+
+def vm_hand(H, pose):
+    """回傳手（手套）的物件清單；pose：每根手指的起始角、速度、上限，拇指的方向"""
+    o = []
+    cup = pose.get('cup', 0.0)
+    secs = [[tuple(H.g(p)) for p in s] for s in palm_secs(cup)]
+    o.append(loft('vpalm', 'glove', 0, secs, var=.02))
+    recolor(o[-1], lambda p, n: (.93, .93, .93) if n.dot(H.D) < -.55 else None)      # 掌心的補強皮比較深
+    for fi, (base, sp, L, rads) in enumerate(FINGERS):
+        base = (base[0], base[1], base[2] - cup * base[1] ** 2 / 2)
+        sp *= pose.get('spread', .45)          # 握東西時手指併攏
+        d0 = Vector((math.cos(sp), math.sin(sp), 0))
+        k = flexax(d0, Vector((0, 0, -1)))
+        th0, vel, mx = pose['f'][fi]
+        # 伸直時就碰到槍（扣扳機的食指常這樣）：往上下擺開一點再握
+        for ds in [0] + [x * D_(2) * sg for x in range(1, 16) for sg in (-1, 1)]:
+            d1 = Matrix.Rotation(ds, 3, Vector((0, 0, 1))) @ d0
+            k1 = flexax(d1, Vector((0, 0, -1)))
+            if seg_hit(H, chain(Vector(base), d1, k1, L, th0), rads, 0, .001, .25) is None:
+                d0, k = d1, k1
+                break
+        th = grasp(H, Vector(base), d0, k, L, rads, th0, vel, mx)
+        # 關節的圓弧比折線更靠內側：整根手指稍微張開，直到圓弧也不碰到槍
+        for it in range(25):
+            P, R = fillet(chain(Vector(base), d0, k, L, th), rads)
+            m = 1.0
+            for j in range(len(P) - 1):
+                n = max(1, int((P[j + 1] - P[j]).length / .002))
+                m = min([m] + [gdist(H.bv, H.g(P[j].lerp(P[j + 1], i / n))) - (R[j] + (R[j + 1] - R[j]) * i / n) for i in range(n + 1)])
+            if m > .0008:
+                break
+            th = [max(0.0, t - D_(1)) for t in th]
+        pts = chain(Vector(base), d0, k, L, th)
+        P, R = fillet(pts, rads)
+        Pg = [H.g(p) for p in P]
+        up = H.gv(Matrix.Rotation(th[0] * .5, 3, k) @ Vector((0, 0, 1)))
+        o.append(finish(bm_tube([tuple(p) for p in Pg], R, 8, True, .9, up=tuple(up)), 'vf', 'glove', 0, var=.02))
+        # 指節的折痕：關節處掌心那面壓暗
+        J = [H.g(p) for p in pts[1:3]]
+        recolor(o[-1], lambda p, n, J=J: (.8, .8, .8) if any((p - q).length < .0075 and n.dot(H.D) < 0 for q in J) else None)
+        tip = H.g(pts[-1])
+        o.append(ell('vft', 'glove', 0, tuple(tip), (rads[2][1], rads[2][1], rads[2][1]), 8, 4))
+        # 近端指節上的護墊（gear）
+        mid = H.g(pts[0].lerp(pts[1], .45))
+        dn = H.gv(Matrix.Rotation(th[0], 3, k) @ Vector((0, 0, 1)))
+        dl = H.gv(Matrix.Rotation(th[0], 3, k) @ d0)
+        pad = finish(bm_tube([tuple(mid - dl * .011 + dn * rads[0][0] * .82), tuple(mid + dl * .011 + dn * rads[0][0] * .82)], .0042, 8, True, .55, up=tuple(dn)), 'vkp', 'gear', 0, var=0)
+        recolor(pad, lambda p, n: (.86, .86, .86))
+        o.append(pad)
+        # 指根的指節（手背上鼓起一點）
+        o.append(ell('vkn', 'glove', 0, tuple(H.g(Vector(base) + Vector((-.003, 0, .0045)))), (.009, .009, .007), 6, 4))
+    # 拇指：掌根內側的拇指球 + 兩節，往食指那側彎
+    tb, tL, trad = THUMB
+    td = Vector(pose['td']).normalized()
+    if pose.get('tgt'):          # 拇指指向槍上的一個點（槍的座標）
+        q = Vector(pose['tgt']) - H.W
+        td = (Vector((q.dot(H.F), q.dot(H.B), q.dot(H.D))) - Vector(tb)).normalized()
+    tk = flexax(td, Vector(pose.get('tt', (.2, -.5, -.8))))
+    th0, vel, mx = pose['t']
+    # 起始姿勢就碰到槍的話，把拇指往外張開（繞彎曲軸反方向轉）直到離開
+    for i in range(30):
+        if seg_hit(H, chain(Vector(tb), td, tk, tL, th0), trad, 0, .0015, .45) is None:
+            break
+        td = Matrix.Rotation(-D_(3), 3, tk) @ td
+        tk = flexax(td, Vector(pose.get('tt', (.2, -.5, -.8))))
+    tth = grasp(H, Vector(tb), td, tk, tL, trad, th0, vel, mx, skip0=.45)
+    tp = chain(Vector(tb), td, tk, tL, tth)
+    P, R = fillet(tp, trad)
+    o.append(finish(bm_tube([tuple(H.g(p)) for p in P], R, 10, True, .92, up=tuple(H.gv(Vector((0, 0, 1))))), 'vth', 'glove', 0, var=.02))
+    o.append(ell('vtt', 'glove', 0, tuple(H.g(tp[-1])), (trad[2][1],) * 3, 8, 6))
+    # 拇指球：從掌根鼓到拇指第一節，長軸跟著拇指的掌骨
+    ax = H.gv(tp[1] - Vector(tb)).normalized()
+    ay = H.D.cross(ax).normalized()
+    az = ax.cross(ay)
+    tc = H.g((Vector(tb) + tp[1]) * .5 + Vector((-.006, -.005, .002)))
+    o.append(place(bm_ell((.026, .015, .012), 12, 8), tc, ax, ay, az, 'vtp', 'glove'))
+    # 手背護板（gear，兩片分節）
+    for kk in range(2):
+        c = H.g((.05 + kk * .0175, .002, .0175 - kk * .0015))
+        bb = place(bm_box((.0145, .052 - kk * .004, .0034), .0016, 1), c, H.F, H.B, H.D, 'vkg', 'gear')
+        recolor(bb, lambda p, n: (.9, .9, .9))
+        o.append(bb)
     return o
 
-def vm_left():
+def eye_pt(gid, c):
+    """鏡頭座標的點 → 槍的座標"""
+    y, z, d = VMEYE[gid]
+    return Vector((-c[0], y + c[1], z - d - c[2]))
+
+def vm_forearm(H, gid, edir, shoulder, length=.27, seed=0):
+    """手套袖口（gear＋魔鬼氈）、工作服袖子（袖口、扣子、往上堆的褶子）；edir：鏡頭座標的手肘方向"""
     o = []
-    # 護木沿 z、半徑約 0.038；左手托在下方，手指繞上左側，拇指在右側
-    o.append(box('vp', 'glove', 0, (.01, -.05, 0), (.06, .03, .09), .014, rot=(0, 0, .35), seg=3, smooth=True))
-    for i, z in enumerate((.03, .01, -.01, -.03)):
+    Wc = H.g((-.008, 0, .0))
+    u = eye_dir(gid, edir)
+    # 前臂截面的「手背」方向：手背法線去掉沿前臂的分量
+    nd = (H.D - u * H.D.dot(u)).normalized()
+    sd = u.cross(nd).normalized()
+    def ring(s, r, n, fn=None, flat=.9):
+        c = Wc + u * s
         pts = []
-        for k in range(8):
-            th = math.radians(-70 + k * 16 - i * 4)
-            pts.append((.047 * math.cos(th), .047 * math.sin(th), z + k * .001))
-        o.append(fing(pts, .0105, .0088))
-    o.append(fing([(-.012, -.05, -.02), (-.035, -.035, .0), (-.046, -.012, .025), (-.046, .004, .045)], .0125, .0095))
-    o.append(box('vk', 'fixed', 0x3a3c3e, (.045, -.03, 0), (.012, .03, .07), .005, rot=(0, 0, .6), smooth=True))
-    W = Vector((.03, -.08, -.05))
-    E = Vector((.15, -.38, -.2))     # 左前臂從畫面左下方伸上來托住護木
-    arm_bm = bm_tube([tuple(W + (E - W) * t) for t in (0, .12, 1)], [.035, .041, .05], 18)
-    o.append(finish(arm_bm, 'vs', 'shirt', 0, var=.03))
-    o.append(finish(bm_tube([tuple(W + (E - W) * .1), tuple(W + (E - W) * .17)], .045, 18), 'vcu', 'shirt', 0))
-    o.append(finish(bm_tube([tuple(W - (E - W).normalized() * .012), tuple(W + (E - W).normalized() * .02)], .04, 18), 'vgc', 'glove', 0))
-    o.append(finish(bm_tube([tuple(W + (E - W) * .03), tuple(W + (E - W) * .055)], .043, 18), 'vw', 'fixed', 0x1b1b1b))
+        for i in range(n):
+            q = i / n * TAU
+            rr = r + (fn(s, q) if fn else 0)
+            pts.append(tuple(c + nd * math.cos(q) * rr * flat + sd * math.sin(q) * rr))
+        return pts
+    # 手套的長袖口：從手腕包到前臂，末端塞進袖子
+    gc = [ring(s, r, 24) for (s, r) in ((-.012, .036), (.0, .04), (.016, .0435), (.034, .0445), (.05, .0435))]
+    o.append(loft('vgc', 'gear', 0, gc, var=.02, cap=False))
+    recolor(o[-1], lambda p, n: (.85, .85, .85) if abs((p - Wc).dot(u) - .002) < .0035 else (.9, .9, .9))
+    # 魔鬼氈帶（手背那側）
+    vs = Wc + u * .02 + nd * .0445
+    vb = place(bm_box((.006, .026, .034), .0025, 1), vs, nd, sd, u, 'vgs', 'gear')
+    recolor(vb, lambda p, n: (.78, .78, .78))
+    o.append(vb)
+    # 袖子：袖口一圈布邊（雙車縫）＋往手肘逐漸變粗的袖管，袖口上方堆幾圈褶子、前臂有斜的拉扯褶
+    def folds(s, q):
+        d = 0.0
+        w = ss(.06, .075, s) * ss(.15, .1, s)
+        d += .0032 * w * math.sin((s - .06) * 160 + math.sin(q * 2 + seed) * 1.6 + q * .5)
+        d += .0024 * ss(.08, .13, s) * (abs(math.cos(q * 1.5 + s * 22 + seed + noise.noise(Vector((s * 30, q, seed))) * 1.2)) - .55)
+        d += .0015 * noise.noise(Vector((math.cos(q) * 3, math.sin(q) * 3, s * 40 + seed)))
+        return d
+    cu = [ring(s, r, 28) for (s, r) in ((.026, .0455), (.028, .0485), (.034, .05), (.06, .05), (.066, .0485), (.068, .046))]
+    cuo = loft('vcu', 'shirt', 0, cu, var=.02, cap=False)
+    recolor(cuo, lambda p, n: (.8, .8, .8) if any(abs((p - Wc).dot(u) - s0) < .0018 for s0 in (.031, .063)) else (.97, .97, .97))
+    o.append(cuo)
+    # 袖口開衩上的扣子
+    bt = Wc + u * .046 - sd * .0505 + nd * .012
+    o.append(finish(bm_tube([tuple(bt - sd * .0015), tuple(bt + sd * .003)], .0055, 10), 'vbt', 'fixed', 0x2e2b26, var=0))
+    sl = []
+    S = [.062 + i * .0104 for i in range(10)] + [.17 + i * .025 for i in range(int((length - .1) / .025))]     # 袖口附近（離鏡頭近、褶子多）密一點
+    for s in S:
+        r = .048 + .008 * ss(.06, length, s)
+        sl.append(ring(s, r, 20, folds))
+    sv = loft('vs', 'shirt', 0, sl, var=.03, cap=True)
+    # 袖子下面的接縫：一條壓暗的線＋兩邊車縫
+    recolor(sv, lambda p, n: (.78, .78, .78) if abs(n.dot(sd) + .97) < .02 or (n.dot(sd) < -.9 and abs((p - Wc).dot(nd)) < .004) else None)
+    o.append(sv)
+    # 上臂：從手肘往鏡頭後下方的肩膀，到眼睛後面 3 cm 就截斷封口（再後面永遠看不到）；袖管末端不會在畫面邊緣露出空心的切口
+    E, Sh = Wc + u * (S[-1] - .012), eye_pt(gid, shoulder)
+    zc = eye_pt(gid, (0, 0, .03)).z
+    if Sh.z < zc < E.z:
+        Sh = E.lerp(Sh, (E.z - zc) / (E.z - Sh.z))
+    o.append(finish(bm_tube([tuple(E), tuple(E.lerp(Sh, .5)), tuple(Sh)], [.054, .058, .06], 14, True, .92, up=tuple(nd)), 'vua', 'shirt', 0, var=.03))
     return o
 
-for name, fn, ox in (('VM_R', vm_right, -2), ('VM_L', vm_left, -2.6)):
-    parts = orient_all(fn())
-    o = join(parts, name)
-    smooth_by_angle(o, 45)
-    origin_to(o, (0, 0, 0))
-    move(o, (ox, 1, -4))
-    OUT.append(o); BAKE.append(o)
+FCL = ((D_(4), D_(6), D_(4)), (1.0, 1.15, .8), (D_(100), D_(105), D_(75)))     # 一般手指：起始角、速度、上限
+def grip_r(gid, gc, r=.35, back=.07, up=-.016, yaw=0.0, tgt=None, roll=0.0):
+    """右手握握把（手槍握把或槍托的握頸）：手掌貼右側面、四指從下前方繞到左側、食指伸進護弓扣扳機、拇指從後上方繞到左側；
+    r 是手掌往下斜的角度（手槍握把 0.35，步槍握頸更斜）"""
+    F = Vector((math.sin(yaw), -math.sin(r) * math.cos(yaw), math.cos(r) * math.cos(yaw)))     # yaw>0：手腕離槍身遠一點（槍托的握頸比較粗、手腕要在外側）
+    H = Hand(gid, True, F, (-math.cos(roll), math.sin(roll), 0), Vector(gc) + F * -back + Vector((0, math.cos(r), math.sin(r))) * up + Vector((-.036, 0, 0)))     # roll>0：手背轉向上（從眼睛看得到指節）
+    H.cup = 4
+    return H, {'cup': 4, 'f': [((D_(2), D_(8), D_(4)), (.25, 1.0, .8), (D_(14), D_(60), D_(40))), FCL, FCL, FCL], 'td': (.45, .55, -.7), 'tgt': tgt, 'tt': (.3, -.2, -.9), 't': ((0, D_(5), D_(5)), (1, 1, .8), (D_(35), D_(50), D_(45)))}
+def guard_l(gid, c, F=(-.8, .1, .55), D=(.15, -.98, .2), back=.05, cup=18, ymax=9.0, tgt=None):
+    """左手托住木頭護木：手掌在左下方，四指從下面繞到右側，拇指沿著左側往前；ymax 讓指尖停在護木側面的上緣"""
+    H = Hand(gid, False, F, D, Vector(c))
+    H.W = Vector(c) + H.D * .07 - H.F * back
+    H.cup, H.ymax = cup, ymax
+    return H, {'cup': cup, 'f': [FCL] * 4, 'td': (.75, .62, -.15), 'tgt': tgt, 'tt': (.1, -.3, -.9), 't': ((0, D_(4), D_(4)), (.6, 1, .8), (D_(25), D_(40), D_(35)))}
+def settle(H):
+    """手掌沿 −D 靠過去，直到離槍 1.5 mm"""
+    pts = [Vector(p) for s in palm_secs(H.cup) for p in s]
+    while min(gdist(H.bv, H.g(p)) for p in pts) < .006:
+        H.W = H.W + H.D * .002
+    for i in range(400):
+        W1 = H.W - H.D * .0005
+        H2 = H.W
+        H.W = W1
+        if min(gdist(H.bv, H.g(p)) for p in pts) < .0015:
+            H.W = H2
+            break
+    return H
+EDIR = {'R': (.5, -.62, .6), 'L': (-.55, -.68, .48)}       # 鏡頭座標的手肘方向：右手往右下後、左手往左下後
+SHOULDER = {'R': (.2, -.24, .12), 'L': (-.2, -.26, .1)}    # 鏡頭座標的肩膀
+VMPOSE = {
+    'm416': (grip_r('m416', (0, -.09, -.012), roll=.3, tgt=(.03, -.052, -.056)), guard_l('m416', (0, .016, .33), D=(.55, -.8, .15), tgt=(.05, .03, .43))),
+    'ump': (grip_r('ump', (0, -.09, -.03), roll=.3, tgt=(.032, -.085, -.068)), guard_l('ump', (0, -.02, .262), D=(.55, -.8, .15), tgt=(.04, .01, .34))),
+    'kar98': (grip_r('kar98', (0, -.04, -.115), .65, yaw=.35, roll=.4, tgt=(.03, .028, -.125)), guard_l('kar98', (0, -.006, .13), ymax=.012, tgt=(.03, .004, .21))),
+    's686': (grip_r('s686', (0, -.035, -.085), .6, yaw=.35, roll=.45, tgt=(.03, .022, -.095)), guard_l('s686', (0, -.006, .3), ymax=.006, tgt=(.03, .0, .38))),
+}
+VMS = []
+for gid, ((HR, PR), (HL, PL_)) in VMPOSE.items():
+    for (H, P, side) in ((HR, PR, 'R'), (HL, PL_, 'L')):
+        settle(H)
+        objs = vm_hand(H, P) + vm_forearm(H, gid, EDIR[side], SHOULDER[side])
+        if os.environ.get('VMDEV'):
+            for ob in objs:
+                bpy.context.view_layer.update()
+                ds = [gdist(H.bv, T(ob.matrix_world @ v.co)) for v in ob.data.vertices]
+                if min(ds) < -.0005:
+                    print('  clip', gid, side, ob.name, sum(1 for d in ds if d < -.0005), 'min %.4f' % min(ds))
+        nm = 'VM_' + side + ('' if gid == 'm416' else '_' + gid)
+        o = join(orient_all(objs), nm)
+        smooth_by_angle(o, 50)
+        origin_to(o, (0, 0, 0))
+        move(o, (GUNOX[gid], 1, -4))
+        OUT.append(o); VMS.append(o)
+        print('vm', nm, 'tris', tri_count([o]))
+
+def vm_clip_report():
+    for o in VMS:
+        gid = next((g for g in GUNOX if o.name.endswith('_' + g)), 'm416')
+        bv, off = gun_bvh(gid), Vector((GUNOX[gid], 1, -4))
+        ds = [gdist(bv, T(o.matrix_world @ v.co) - off) for v in o.data.vertices]
+        print('vmclip', o.name, 'inside', sum(1 for d in ds if d < -.0005), 'min %.4f' % min(ds))
+
+def vm_cam(path, gid, pos, look, vfov, res=(960, 600)):
+    sc = bpy.context.scene
+    sc.render.engine = 'BLENDER_WORKBENCH'
+    sc.display.shading.light = 'STUDIO'
+    sc.display.shading.color_type = 'VERTEX'
+    sc.display.shading.show_shadows = False
+    sc.render.resolution_x, sc.render.resolution_y = res
+    cam = bpy.data.objects.get('VmCam')
+    if not cam:
+        cam = bpy.data.objects.new('VmCam', bpy.data.cameras.new('VmCam'))
+        sc.collection.objects.link(cam)
+    off = Vector((GUNOX[gid], 1, -4))
+    cam.location = V(*(Vector(pos) + off))
+    d = (V(*(Vector(pos) + Vector(look) + off)) - cam.location).normalized()
+    cam.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler()
+    cam.data.sensor_fit = 'VERTICAL'
+    cam.data.angle = math.radians(vfov)
+    cam.data.clip_start = .005
+    sc.camera = cam
+    sc.render.filepath = path
+    bpy.ops.render.render(write_still=True)
+    sc.render.engine = 'CYCLES'
+
+VMDEV = os.environ.get('VMDEV')
+if VMDEV:
+    os.makedirs(VMDEV, exist_ok=True)
+    vm_clip_report()
+    tint_roles([o for o in OUT if o.type == 'MESH' and o.name.startswith(('VM_', 'G_', 'M_'))], dict(DEMO, glove=0x9c8460, shirt=0x3d6468))
+    ZOOM = {'m416': 1.45, 'ump': 1.35, 'kar98': 1.25, 's686': 1.2}
+    for gid in VMPOSE:
+        y, z, d = VMEYE[gid]
+        e = (0, y, z - d)
+        vm_cam(os.path.join(VMDEV, gid + '-ads.png'), gid, e, (0, 0, 1), 72 / ZOOM[gid])
+        vm_cam(os.path.join(VMDEV, gid + '-wide.png'), gid, e, (0, -.35, 1), 100)
+        vm_cam(os.path.join(VMDEV, gid + '-right.png'), gid, (-.55, -.05, .12), (1, 0, 0), 45)
+        vm_cam(os.path.join(VMDEV, gid + '-left.png'), gid, (.55, -.05, .12), (-1, 0, 0), 45)
+        vm_cam(os.path.join(VMDEV, gid + '-below.png'), gid, (.25, -.55, .5), (-.25, .5, -.35), 50)
+        vm_cam(os.path.join(VMDEV, gid + '-front.png'), gid, (0, -.05, .95), (0, 0, -1), 40)
+        vm_cam(os.path.join(VMDEV, gid + '-eye75.png'), gid, e, (0, -.25, 1), 75)
+        for side, (HH, PP) in zip('RL', VMPOSE[gid]):
+            c = HH.g((.07, 0, 0))
+            for k, dv in (('xn', Vector((-1, 0, 0))), ('xp', Vector((1, 0, 0))), ('yn', Vector((0, -1, .001))), ('zp', Vector((0, 0, 1))), ('zn', Vector((.0, .0, -1)))):
+                vm_cam(os.path.join(VMDEV, gid + '-' + side + k + '.png'), gid, tuple(c + dv * .4), tuple(-dv), 36, (640, 480))
+    sys.exit(0)
 
 # ───────── 烘焙、遠距離用的低面數身體、匯出 ─────────
 print('tris', tri_count([o for o in OUT if o.type == 'MESH']))
 SAMPLES = int(os.environ.get('SAMPLES', '32'))
-for o in VARIANTS:
+for o in VARIANTS + VMS:
     o.hide_render = True
+_col0 = np.zeros(len(BODYOB.data.vertices) * 4, dtype=np.float32)
+BODYOB.data.color_attributes['Col'].data.foreach_get('color', _col0)
 ao_bake(BAKE, samples=SAMPLES)
+# 縫線、滾邊離布面不到 1 mm，烘出來被布面遮得很黑（看起來像割開的黑縫）：改用旁邊布面的遮蔽量
+def welt_ao(ob, c0):
+    from mathutils import kdtree
+    g = ob.vertex_groups.get('welt')
+    me = ob.data
+    c1 = np.zeros_like(c0)
+    me.color_attributes['Col'].data.foreach_get('color', c1)
+    c0, c1 = c0.reshape(-1, 4), c1.reshape(-1, 4)
+    k = c1[:, 0] / np.maximum(c0[:, 0], 1e-4)
+    isw = np.zeros(len(me.vertices), dtype=bool)
+    for v in me.vertices:
+        isw[v.index] = any(e.group == g.index for e in v.groups)
+    kd = kdtree.KDTree(int((~isw).sum()))
+    for v in me.vertices:
+        if not isw[v.index]:
+            kd.insert(v.co, v.index)
+    kd.balance()
+    for i in np.nonzero(isw)[0]:
+        near_k = [k[j] for (co, j, d) in kd.find_n(me.vertices[i].co, 6)]
+        c1[i, :3] = c0[i, :3] * max(near_k)
+    me.color_attributes['Col'].data.foreach_set('color', c1.ravel())
+welt_ao(BODYOB, _col0)
 for o in VARIANTS:
     o.hide_render = False
     ao_bake([o], samples=SAMPLES)
     o.hide_render = True
-for o in VARIANTS:
+# 第一人稱手臂一組一組烘：只跟自己的槍互相遮（手指貼著槍的地方會暗），槍本身不會被手臂壓暗
+for o in VMS:
+    o.hide_render = False
+    ao_bake([o], samples=SAMPLES)
+    o.hide_render = True
+for o in VARIANTS + VMS:
     o.hide_render = False
 # 低面數身體：同一副骨架與權重，面數約 1/5（60 m 外換成它）
 LOD = BODYOB.copy(); LOD.data = BODYOB.data.copy(); LOD.name = 'W_lod'; LOD.data.name = 'W_lod'
 bpy.context.scene.collection.objects.link(LOD)
 for m in list(LOD.modifiers):
     LOD.modifiers.remove(m)
-dm = LOD.modifiers.new('Dec', 'DECIMATE'); dm.ratio = float(os.environ.get('LODR', '.2'))
+# 縫線與滾邊只給近距離：遠距離的身體先刪掉它們再減面（細條減面後會變成尖刺）
+def drop_welt(ob, delete):
+    g = ob.vertex_groups.get('welt')
+    if g is None:
+        return
+    if delete:
+        bm = bmesh.new(); bm.from_mesh(ob.data)
+        dl = bm.verts.layers.deform.active
+        bmesh.ops.delete(bm, geom=[v for v in bm.verts if g.index in v[dl]], context='VERTS')
+        bm.to_mesh(ob.data); bm.free(); ob.data.update()
+    ob.vertex_groups.remove(g)
+drop_welt(LOD, True)
+drop_welt(BODYOB, False)
+dm = LOD.modifiers.new('Dec', 'DECIMATE'); dm.ratio = min(float(os.environ.get('LODR', '.2')), 8400 / tri_count([LOD]))
 for o in bpy.context.view_layer.objects:
     o.select_set(False)
 LOD.select_set(True); bpy.context.view_layer.objects.active = LOD
 bpy.ops.object.modifier_apply(modifier='Dec')
+LOD.data.validate(clean_customdata=False)          # 減面後偶爾留下退化的面，匯出前清掉（不然 glTF 匯出會警告網格無效）
 LOD.parent = RIG
 am = LOD.modifiers.new('Armature', 'ARMATURE'); am.object = RIG
 OUT.append(LOD)
 print('lod tris', tri_count([LOD]), 'body tris', tri_count([BODYOB]))
-export(os.environ.get('GLB', os.path.join(HERE, 'workers.glb')), OUT)
+# 蒙皮身體（W_body、W_lod）的權重與頂點色改存 8 位元（glTF 核心規格允許 UNSIGNED_BYTE normalized）：權重每個頂點從 16 bytes 降到 4 bytes，
+# 四個權重加起來剛好 255；頂點色（烘焙的遮蔽）從 8 bytes 降到 4 bytes。網頁 mergeSkin 讀的時候會換回浮點數
+def quantize_weights(path):
+    import struct, json
+    b = open(path, 'rb').read()
+    jl = struct.unpack_from('<I', b, 12)[0]
+    J = json.loads(b[20:20 + jl])
+    BIN = b[28 + jl:28 + jl + struct.unpack_from('<I', b, 20 + jl)[0]]
+    uses = {}
+    for a in J['accessors']:
+        if 'bufferView' in a:
+            uses[a['bufferView']] = uses.get(a['bufferView'], 0) + 1
+    new = {}
+    skinned = [pr['attributes'] for m in J['meshes'] for pr in m['primitives'] if 'WEIGHTS_0' in pr['attributes']]
+    for ai in sorted({at[k] for at in skinned for k in ('WEIGHTS_0', 'COLOR_0') if k in at}):
+        a = J['accessors'][ai]
+        bv = J['bufferViews'][a['bufferView']]
+        wt = a['componentType'] == 5126
+        if a['type'] != 'VEC4' or a['componentType'] not in (5126, 5123) or uses[a['bufferView']] > 1 or bv.get('byteStride', 16 if wt else 8) != (16 if wt else 8):
+            continue
+        n = a['count']
+        f = struct.unpack_from('<%d%s' % (4 * n, 'f' if wt else 'H'), BIN, bv.get('byteOffset', 0) + a.get('byteOffset', 0))
+        out = bytearray(4 * n)
+        for i in range(n):
+            w = f[4 * i:4 * i + 4]
+            if wt:
+                s = sum(w) or 1.0
+                q = [int(round(x / s * 255)) for x in w]
+                q[max(range(4), key=lambda j: q[j])] += 255 - sum(q)
+            else:
+                q = [(x * 255 + 32767) // 65535 for x in w]
+            out[4 * i:4 * i + 4] = bytes(q)
+        new[a['bufferView']] = bytes(out)
+        a['componentType'], a['normalized'] = 5121, True
+        for k in ('byteOffset', 'min', 'max'):
+            a.pop(k, None)
+        bv.pop('byteStride', None)
+    nb = bytearray()
+    for i, bv in enumerate(J['bufferViews']):
+        o = bv.get('byteOffset', 0)
+        d = new.get(i, BIN[o:o + bv['byteLength']])
+        nb += bytes(-len(nb) % 4)
+        bv['byteOffset'], bv['byteLength'] = len(nb), len(d)
+        nb += d
+    nb += bytes(-len(nb) % 4)
+    J['buffers'][0]['byteLength'] = len(nb)
+    js = json.dumps(J, separators=(',', ':')).encode()
+    js += b' ' * (-len(js) % 4)
+    open(path, 'wb').write(struct.pack('<III', 0x46546C67, 2, 28 + len(js) + len(nb)) + struct.pack('<II', len(js), 0x4E4F534A) + js + struct.pack('<II', len(nb), 0x004E4942) + nb)
+    print('quantized', len(new), 'accessors ->', os.path.getsize(path) // 1024, 'KB')
+
+GLBOUT = os.environ.get('GLB', os.path.join(HERE, 'workers.glb'))
+export(GLBOUT, OUT)
+quantize_weights(GLBOUT)
+from glb_draco import draco_glb
+draco_glb(GLBOUT)   # 最後一步：頂點與索引改存 Draco（見 glb_draco.py）
 
 if PREVIEW:
     os.makedirs(PREVIEW, exist_ok=True)
@@ -1508,6 +2467,6 @@ if PREVIEW:
     preview(os.path.join(PREVIEW, 'guns_side.png'), (1.3, 1, -4.2), 3.4, 90, 5, lens=50)
     preview(os.path.join(PREVIEW, 'kar.png'), (1.8, 1.08, -3.95), .8, 60, 12)
     preview(os.path.join(PREVIEW, 'm416.png'), (0, 1.0, -3.8), 1.2, 70, 15)
-    preview(os.path.join(PREVIEW, 'vm.png'), (-2.3, .95, -4.1), 1.0, 160, 25)
+    preview(os.path.join(PREVIEW, 'vm.png'), (0, .95, -3.85), 1.1, 200, 22)        # M416 的第一人稱手臂（跟槍放在一起）
     preview(os.path.join(PREVIEW, 'chute.png'), (0, 3, -8), 12, 30, 25)
     preview(os.path.join(PREVIEW, 'items.png'), (24, .1, 3), 5.5, 10, 35)
