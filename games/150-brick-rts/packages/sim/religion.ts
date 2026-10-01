@@ -26,7 +26,8 @@ export const religionRules={provenance:'reference research for timings, costs an
  convertRange:350,printingRange:117,adjacentRange:50,healRange:150,healTicks:20,healSight:400,
  attemptTicks:24,attempts:{min:4,max:10},faithAttempts:{min:6,max:14},attemptChance:28,
  buildingTicks:{min:360,max:600},rechargeTicks:1240,
- unconvertibleBuildings:['town-center','monastery','farm','castle'],
+ // Walls, gates and the wonder cannot be converted either (the reference).
+ unconvertibleBuildings:['town-center','monastery','farm','castle','wonder','palisade-wall','stone-wall','palisade-gate','gate'],
  relics:{count:5,goldTicks:40,perMonastery:10,victoryTicks:20000,baseDistance:900,spacing:600,fairness:400,edge:150}} as const;
 export type RiteKind='convert'|'heal'|'relic'|'deposit';
 export type Rite={kind:RiteKind;target:number|string;progress:number;needed:number;repath:number;attempt:number};

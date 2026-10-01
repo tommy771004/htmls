@@ -1,6 +1,6 @@
 # 資料模型與權威邊界
 
-目前權威 State／snapshot 為 v27（本頁寫到 v22 與 v27；v23–v26 見 first-use-023～026），支援三種地圖、有限資源資料、三態視野、移動、存讀與重播，起始建築是有可通行入口的城鎮中心。下文保留各版本演進，不表示舊格式仍可載入。新增模型、LOD、除錯介面及幾何占地共用不增加玩法狀態。
+目前權威 State／snapshot 為 v30（本頁寫到 v22、v27–v30；v23–v26 見 first-use-023～026），支援五種地圖、有限資源資料、三態視野、移動、存讀與重播，起始建築是有可通行入口的城鎮中心。下文保留各版本演進，不表示舊格式仍可載入。新增模型、LOD、除錯介面及幾何占地共用不增加玩法狀態。
 
 ## 初始資料模型（歷史 v1，後續演進見下文）
 
@@ -412,7 +412,7 @@ packages/content/footprints.ts 是目前七種障礙物物理矩形的唯一來�
 - **頁面（不影響模擬）**：Worker 請求的逾時保護，對讀檔（restore）、恢復（recover）與重播驗證（replay）改為 60 秒，其他仍是 5 秒。這三種請求要依指令紀錄重新推導整局，長對局會超過 5 秒。
 - simulationVersion、State.version 與 snapshot 格式升為 22，舊版明確拒絕。
 
-## 文明、城堡與特殊單位 v27（目前版本）
+## 文明、城堡與特殊單位 v27
 
 本頁在 v22 之後沒有更新；v23–v26（放牧與狩獵、經濟科技、鐵匠鋪與相剋、駐軍與攻城槌）只記在 first-use-023～026，這裡直接接 v27。
 
@@ -453,3 +453,84 @@ packages/content/footprints.ts 是目前七種障礙物物理矩形的唯一來�
 - **電腦**：用 `costOf(…, ownerOf(s, 1))` 算費用，不蓋文明沒有的建築；第三時代、有特殊單位的文明蓋一座城堡並訓練最多 5 名特殊單位（見 first-use-027）。
 - 拓荒者沒有任何效果：每條規則的回答都和不指定文明時相同（`tests/civilizations.test.ts`），電腦在拓荒者對局中的行為也和加入文明之前相同。
 - simulationVersion、State.version 與 snapshot 格式升為 27，v26 存檔明確拒絕（沒有遷移）。
+
+## 單位：攻城器、駱駝與馬弓騎兵 v28
+
+- **State**：
+  - `setups: Record<unitId, {unpacked, progress}>`：架好或正在架設、收起的巨型投石機。`unpacked: false` 時 `progress` 是架設的 tick 數，`true` 時是收起的 tick 數；收起完成、架設途中收到移動命令或單位死亡時刪除。留在射程內射擊時 `progress` 歸零（FU28-1）。
+  - `version: 28`；snapshot 格式 `brick-sandbox-28`。v27 存檔明確拒絕（沒有遷移）。
+- **單位種類**：`unitKinds` 依序附加 `cavalry-archer`、`camel`、`mangonel`、`scorpion`、`trebuchet`、`petard`（Worker 用索引投影種類，只能附加）。升級沿用原本的種類（裝甲衝撞車是 `ram`、中型投石車是 `mangonel`），名稱由 `lineName` 依已研究的升級決定。
+- **`UnitStats` 新增的選填欄位**（`packages/sim/stats.ts`）：
+  - `minRange`：比這更近的目標打不到；自動接戰不選、自動戰鬥的目標走進來就放棄，下令攻擊時 `approach(s, u, shape, range, min)` 只找距離在 `min` 到 `range` 之間的節點。
+  - `blast`：落點周圍這個距離內的敵方單位一起受擊（目標中心或建築占地邊緣，Chebyshev 距離）；不含己方與動物。
+  - `passThrough`：從射手到單位目標後方這個距離、離彈道 25 以內的敵方單位受一半攻擊。
+  - `buildingsOnly`：只能攻擊建築（攻城槌、巨型投石機）；`submit` 拒絕對單位的攻擊命令，自動接戰與電腦都跳過。取代原本寫死的 `kind === 'ram'`。
+  - `selfDestruct`：出手後 `killUnit`（炸藥桶）。
+  - `setup`：架設與收起的 tick 數（巨型投石機 150）；`combat.ts` 在射程內先架設，`movement.ts` 在第一步前先收起。
+- **文明效果**：`EffectKind` 多了 `blast`（加）與 `setup`（乘，在 `mulKinds`）；`statsOf` 把 `setup` 的倍率乘上後四捨五入，至少 1。
+- **規則資料**：
+  - `rules.entries` 新增 6 種單位、14 項兵種升級（`requires` 是第四時代與前一階），以及戰狼號、彈射器、采邑騎兵；`rules.production` 讓升級在訓練該單位的建築研究，巨型投石機、炸藥桶與這 3 項特殊科技在城堡。`deferredTechs` 只剩 `greek-fire`、`artillery`。
+  - `civilizationsOf` 反覆排除「生產建築或前置項目不可用」的項目直到沒有變化（拓荒者沒有城堡，也就沒有巨型投石機與炸藥桶）；`unavailable` 依 `rules.entries` 的順序。
+  - 鐵匠鋪的近戰攻擊與馬鎧多選 `camel` 類別。
+- **Worker**：
+  - `UNIT_STRIDE` 18 → 19：索引 18 是 `unpacked`（`setups[id].unpacked` 為 true 時 1）；`UnitView.unpacked: boolean`。`tests/browser.mjs` 寫死步長，`tests/worker.test.ts` 會提醒同步。
+  - `createService(initial?: State)`：給測試讀入夾具狀態（例如已架好的巨型投石機）；Worker 不傳，仍從 `createState(260925)` 開始。
+- simulationVersion、State.version 與 snapshot 格式升為 28；`rulesetHash` 因規則資料改變而換掉。
+
+## 科技：學院、通用科技與火藥單位 v29
+
+- **State**：
+  - `version: 29`；snapshot 格式 `brick-sandbox-29`。v28 存檔明確拒絕（沒有遷移）。
+  - `Unit.stride?: number`：上一 tick 沒走完、帶到下一 tick 的距離（百分之一）。速度有小數，或走到節點後這一步還有剩、而且還要繼續走時才有；單位停下或剩餘為 0 時刪除。速度整除 50 的單位不會出現這個欄位，所以舊的對局內容不變。
+  - `Building.boost?: number`：磨坊水車的建造加成累積（百分點）；每名村民每 tick 加上 `buildRate`，滿 100 多算一次工作（不超過完工前一格）。沒有研究時不出現。
+  - `State.techs[player]` 照舊記錄已研究的科技；這一輪的通用科技、砲兵都寫在這裡，沒有新的科技狀態。
+- **種類**：
+  - `unitKinds` 依序附加 `hand-cannoneer`、`bombard-cannon`（Worker 用索引投影種類，只能附加）。
+  - `BuildKind`／`buildKinds` 附加 `university`；`buildingRules.capacity.university = 0`（不提供人口）；`footprints.university` 3×3（300×300）；`combatRules.buildings.university = 350`。
+- **效果資料**（`packages/content/civs.ts`、`packages/content/techs.ts`、`packages/sim/civ.ts`）：
+  - `techs.ts` 的 `techEffects`：通用科技的 `Effect` 紀錄（`trigger.tech` 是科技 id），和文明加成同一種資料；`fx`、`Opts` 從 `civs.ts` 匯出給它用。
+  - `activeEffects(owner, kind)` 對每個文明都加上 `techEffects`（`withTechs` 依文明快取），所以通用科技和文明加成一樣疊加：加法相加、倍率相乘、時代分級互相取代。
+  - 新的 `EffectKind`：`buildingMeleeArmor`、`buildingPierceArmor`（加，`buildingArmorBonus`）、`buildRate`（加，百分點，`buildRateBonus`）、`garrisonHeal`（乘，`garrisonHealScale`）、`bonusScale`（乘，對 `vs` 類別的加成，`bonusScales`）。`garrisonHeal` 與 `bonusScale` 在 `mulKinds`。
+  - `Selector.allUnits` 在 `workRate` 上的意思是只加快單位的訓練（`timeTicks` 檢查項目是單位），不加快研究（徵兵技術）。
+  - `los` 的建築加成擴大到城鎮中心、住宅、兵營、箭塔與城堡（`vision.ts` 的 `extra`），未完工的住宅與兵營不加。
+  - `rulesetHash` 加入 `techEffects`。
+- **數值**（`packages/sim/stats.ts`）：
+  - `speedOf` 算到百分之一（之前四捨五入到整數）；`movement.ts` 每 tick 走 `floor(stride + speed)`（以百分之一計算），剩下的存回 `stride`。
+  - `buildingTargetOf(kind, owner)`：建築的護甲加上磚瓦技術、建築學；`combat.ts` 的 `damageOn` 打建築時用它（之前是固定的 `buildingTarget`）。
+  - `statsOf` 在類別加成之後套用 `bonusScale`（四捨五入）。
+  - `defense.ts`：進駐回血第 n tick 回 `floor(n×scale/40) − floor((n−1)×scale/40)` 點。
+  - 新單位的 `UnitStats`：火槍兵（類別 `archer`、`gunpowder`）、火砲（`siege`、`gunpowder`，`minRange` 250、`blast` 50）。
+- **規則資料**：
+  - `rules.entries` 新增學院（建築）、22 項通用科技、火槍兵與火砲（`requires` 是第四時代與化學）、砲兵；`rules.production` 讓學院的 8 項在學院，其他在兵營、靶場、馬廄、城鎮中心、修道院、城堡，火槍兵在靶場、火砲在攻城器工坊、砲兵在城堡。`deferredTechs` 只剩 `greek-fire`。
+  - 各文明的 `missing` 補上這一輪的項目（科技樹頁）；拜占庭例外，見 first-use-029 的 FU29-7。
+- **Worker**：投影不變，`UNIT_STRIDE` 仍是 19；`stride`、`boost` 不投影。頁面的護甲與箭塔名稱由頁面依自己的科技計算（`buildingTargetOf`、`economy.techs`）。
+- simulationVersion、State.version 與 snapshot 格式升為 29；`rulesetHash` 因規則資料與科技效果改變而換掉。
+
+## 建築：碼頭、船、市集、城牆與奇觀 v30（目前版本）
+
+- **State**：
+  - `version: 30`；snapshot 格式 `brick-sandbox-30`。v29 存檔明確拒絕（沒有遷移）。
+  - `market: {food, wood, stone}`：市集的公平價（每 100 單位的黃金），兩位玩家共用；開局 100／100／130，每次賣出降 2、買入升 2，介於 20～9999（`market.ts` 的 `marketRules`）。
+  - `trades: Record<unitId, {home, target, leg: 'out'|'back', retries}>`：貿易車隊與貿易商船的路線。`home` 是下令時最近的自己完工的市集或碼頭，`target` 是對方的市集或碼頭；回到 `home` 時入帳一趟的黃金。任何其他命令、任一端消失、單位換邊或連續走不到（`retries` > 3）時刪除。
+  - `wonders: Record<buildingId, endsTick>`：每座完工的奇觀的獲勝時間（完工 tick + 聖物勝利的 20000）；奇觀倒塌就刪除。`wonderVictory: {player, building, endsTick} | null`：最早到的那一座；到時 `Outcome.reason` 為 `'wonder'`。
+  - `transports: Record<unitId, Unit[]>`：運輸船裡的單位（不在 `units` 裡，和進駐建築一樣）；運輸船沉沒時逐一 `killUnit`。征服判定把船上的單位也算成活著。
+  - `boarding: Record<unitId, {transportId, repath}>`：走向運輸船、準備上船的單位；`unloading: Record<transportId, {x, y}>`：開往卸載點的運輸船。之後對這些單位或運輸船下任何命令都會取消。
+  - `Account.ledger` 多了 `market`（市集買賣，含黃金，有正負）與 `trade`（貿易帶回的黃金）。
+- **地圖**：`MapLayout` 多了 `'lakes'`（32×32，`generateOpen(seed, true)`）：地圖中央半徑 720 內、不在雙方基地範圍的格子變成水，先標記為占用；湖岸外兩格保留為空地（不放礦與樹，繞湖的路不會只剩一格寬）；湖裡放 8 群深水魚（周圍八格都是水，村民從岸上碰不到），中立礦改放在離中心 1000～1250 的環上；沒有小池塘（`openMapRules.lake`）。`'open'` 的生成完全不變（湖的部分不消耗亂數）。
+- **種類**：
+  - `unitKinds` 依序附加 `fishing-ship`、`transport-ship`、`trade-cog`、`trade-cart`、`galley`、`fire-galley`、`demolition-raft`、`cannon-galleon`、`longboat`（Worker 用索引投影種類，只能附加）。升級沿用原本的種類：弩砲戰船一次把 `galley`、`fire-galley`、`demolition-raft` 三條線都升一階（`lineUpgrades` 裡同一個 id 有三筆）。
+  - 類別 `ship` 讓單位走水面圖層（`movement.ts` 的 `layerOf`）；`warship`（戰船系與維京大戰船）吃羽箭、錐形箭、護腕與化學；`trade` 吃商隊；`fishing`、`transport` 給文明效果選用。
+  - `BuildKind`／`buildKinds` 附加 `town-center`、`market`、`dock`、`fish-trap`、`outpost`、`bombard-tower`、`wonder`、`palisade-wall`、`palisade-gate`、`stone-wall`、`gate`；`navigation.ts` 的 `buildingKinds` 改成由 `rules.entries` 的建築條目產生（之前寫死，少了城堡與學院）。
+  - 資源種類多了 `fish-trap`（食物、走水面，容量 1000）：完工的魚網開出的食物，只有擁有者的漁船能採，採完就消失。
+- **占地**（`packages/content/footprints.ts`）：碼頭與市集 3×3、奇觀 5×5、魚網 2×2，哨站、火砲塔、每一格城牆與城門 1×1。魚網與城門沒有擋路矩形（和農田一樣）：船可以開過魚網；城門由 `movement.ts` 的每位玩家通行表對敵方關閉（`landFor`）。沒有擋路矩形的建築，放置時仍以整個占地判斷重疊，所以不能蓋在城門、魚網或農田上。
+- **放置**（`buildings.ts` 的 `placementProblem`，頁面與 Worker 共用）：碼頭的每一格都要是水或淺灘，而且至少一格緊鄰可建造的陸地；魚網的每一格都要是水；其他建築照舊只能蓋在可建造的地面。城門可以蓋在自己同材質的城牆上，取代那一格（不退費）。`buildRequirement` 多了 `techs` 參數：前置是一般科技時（火砲塔要火砲塔技術）檢查是否已研究。
+- **命令**：
+  - `build` 多了選填的 `to: {x, y}`（只限木牆、石牆）：從起點格到終點格的直線（Bresenham），最多 24 格，每格各自檢查、各自付費；放不下的格子跳過，一格都放不下才失敗。村民蓋完一格後找 300 內最近的自己未完工城牆或城門。漁船只能蓋魚網，村民不能蓋魚網。
+  - `market {action: 'buy'|'sell', resource: 'food'|'wood'|'stone'}`：要有自己完工的市集；執行時才結算並記成交易結果。
+  - `trade {unitIds, buildingId}`：貿易車隊對對方的市集、貿易商船對對方的碼頭（要在自己記得的建築裡）。
+  - `load {unitIds, transportId}`、`unload {transportId, x, y}`：陸上單位走到運輸船 150 內上船；運輸船開到點附近的水面，把單位放到 150 內的空地（`naval.ts` 的 `navalRules`）。
+  - `attack` 拒絕攻擊類型為 `'none'` 的單位（漁船、運輸船、貿易單位）。
+- **效果資料**：新的 `EffectKind`：`marketFee`（加，百分點，`marketFeeOf`）、`transportCapacity`（加，`transportCapacityOf`）、`arrowBonus`（加，建築的箭對 `vs` 類別，`arrowsOf().bonus`）。`gatherBonus(owner, yield, source, kind)` 多了採集者種類：選擇器寫了 `kinds` 的效果（流刺網、日本漁船）只作用在那些種類。
+- **規則常數**：`marketRules`（`market.ts`）、`navalRules`（`naval.ts`）、`dropoffRules.ships`（碼頭只收漁船的食物）、`defenseRules` 的火砲塔與箭的 `bonus`（對船）、`visionRules` 的哨站、城牆與奇觀視野、`aiRules` 的碼頭、漁船、魚網、戰船、市集與貿易車隊常數，都在 `rulesetHash` 裡。
+- **Worker**：快照多了 `NavalView`（市集價格與自己的交易費、自己的運輸船與乘客、自己的貿易路線與每趟黃金、雙方完工的奇觀與倒數）；`Operation` 多了 `load`、`unload`、`market`、`trade`，`build` 多了 `to`。
+- simulationVersion、State.version 與 snapshot 格式升為 30；`rulesetHash` 因規則資料改變而換掉。

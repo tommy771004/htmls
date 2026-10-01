@@ -50,7 +50,7 @@
     {
       "referenceVersion": null,
       "sourceEvidence": [
-        "original design defaults: packages/content/rules.ts"
+        "aoetw.com/building/Town_Center (275 wood, 100 stone, Castle Age); 60 s is design_default"
       ],
       "implementationStatus": "not_started",
       "testEvidence": [
@@ -61,13 +61,15 @@
       "name": "城鎮中心",
       "cost": {
         "food": 0,
-        "wood": 200,
+        "wood": 275,
         "gold": 0,
         "stone": 100
       },
-      "time": 20,
+      "time": 60,
       "population": 0,
-      "requires": [],
+      "requires": [
+        "age-3"
+      ],
       "verificationStatus": "design_default"
     },
     {
@@ -2879,6 +2881,2116 @@
         "age-4"
       ],
       "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "two-handed-swordsman",
+      "kind": "technology",
+      "name": "雙手劍兵",
+      "cost": {
+        "food": 300,
+        "wood": 0,
+        "gold": 100,
+        "stone": 0
+      },
+      "time": 75,
+      "population": 0,
+      "requires": [
+        "age-4",
+        "long-swordsman"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "champion",
+      "kind": "technology",
+      "name": "劍兵勇士",
+      "cost": {
+        "food": 750,
+        "wood": 0,
+        "gold": 350,
+        "stone": 0
+      },
+      "time": 100,
+      "population": 0,
+      "requires": [
+        "age-4",
+        "two-handed-swordsman"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "halberdier",
+      "kind": "technology",
+      "name": "戟兵",
+      "cost": {
+        "food": 300,
+        "wood": 0,
+        "gold": 600,
+        "stone": 0
+      },
+      "time": 50,
+      "population": 0,
+      "requires": [
+        "age-4",
+        "pikeman"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "arbalest",
+      "kind": "technology",
+      "name": "強弩兵",
+      "cost": {
+        "food": 350,
+        "wood": 0,
+        "gold": 300,
+        "stone": 0
+      },
+      "time": 50,
+      "population": 0,
+      "requires": [
+        "age-4",
+        "crossbowman"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "cavalry-archer",
+      "kind": "unit",
+      "name": "馬弓騎兵",
+      "cost": {
+        "food": 0,
+        "wood": 40,
+        "gold": 60,
+        "stone": 0
+      },
+      "time": 34,
+      "population": 1,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "heavy-cavalry-archer",
+      "kind": "technology",
+      "name": "重裝馬弓騎兵",
+      "cost": {
+        "food": 900,
+        "wood": 0,
+        "gold": 500,
+        "stone": 0
+      },
+      "time": 50,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "hussar",
+      "kind": "technology",
+      "name": "匈牙利輕騎兵",
+      "cost": {
+        "food": 500,
+        "wood": 0,
+        "gold": 600,
+        "stone": 0
+      },
+      "time": 50,
+      "population": 0,
+      "requires": [
+        "age-4",
+        "light-cavalry"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "cavalier",
+      "kind": "technology",
+      "name": "重裝騎士",
+      "cost": {
+        "food": 300,
+        "wood": 0,
+        "gold": 300,
+        "stone": 0
+      },
+      "time": 100,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "paladin",
+      "kind": "technology",
+      "name": "遊俠",
+      "cost": {
+        "food": 1300,
+        "wood": 0,
+        "gold": 750,
+        "stone": 0
+      },
+      "time": 170,
+      "population": 0,
+      "requires": [
+        "age-4",
+        "cavalier"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "camel",
+      "kind": "unit",
+      "name": "駱駝騎兵",
+      "cost": {
+        "food": 55,
+        "wood": 0,
+        "gold": 60,
+        "stone": 0
+      },
+      "time": 22,
+      "population": 1,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "heavy-camel",
+      "kind": "technology",
+      "name": "重裝駱駝騎兵",
+      "cost": {
+        "food": 325,
+        "wood": 0,
+        "gold": 365,
+        "stone": 0
+      },
+      "time": 105,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "capped-ram",
+      "kind": "technology",
+      "name": "裝甲衝撞車",
+      "cost": {
+        "food": 300,
+        "wood": 0,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 50,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "siege-ram",
+      "kind": "technology",
+      "name": "重型衝撞車",
+      "cost": {
+        "food": 1000,
+        "wood": 0,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 75,
+      "population": 0,
+      "requires": [
+        "age-4",
+        "capped-ram"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "mangonel",
+      "kind": "unit",
+      "name": "輕型投石車",
+      "cost": {
+        "food": 0,
+        "wood": 160,
+        "gold": 135,
+        "stone": 0
+      },
+      "time": 46,
+      "population": 1,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "onager",
+      "kind": "technology",
+      "name": "中型投石車",
+      "cost": {
+        "food": 800,
+        "wood": 0,
+        "gold": 500,
+        "stone": 0
+      },
+      "time": 75,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "siege-onager",
+      "kind": "technology",
+      "name": "重型投石車",
+      "cost": {
+        "food": 1450,
+        "wood": 0,
+        "gold": 1000,
+        "stone": 0
+      },
+      "time": 150,
+      "population": 0,
+      "requires": [
+        "age-4",
+        "onager"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "scorpion",
+      "kind": "unit",
+      "name": "弩砲",
+      "cost": {
+        "food": 0,
+        "wood": 75,
+        "gold": 75,
+        "stone": 0
+      },
+      "time": 30,
+      "population": 1,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "heavy-scorpion",
+      "kind": "technology",
+      "name": "重型弩砲",
+      "cost": {
+        "food": 1000,
+        "wood": 1100,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 50,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "trebuchet",
+      "kind": "unit",
+      "name": "巨型投石機",
+      "cost": {
+        "food": 0,
+        "wood": 200,
+        "gold": 200,
+        "stone": 0
+      },
+      "time": 50,
+      "population": 1,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "petard",
+      "kind": "unit",
+      "name": "炸藥桶",
+      "cost": {
+        "food": 65,
+        "wood": 0,
+        "gold": 20,
+        "stone": 0
+      },
+      "time": 25,
+      "population": 1,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "warwolf",
+      "kind": "technology",
+      "name": "戰狼號",
+      "cost": {
+        "food": 0,
+        "wood": 800,
+        "gold": 400,
+        "stone": 0
+      },
+      "time": 40,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "kataparuto",
+      "kind": "technology",
+      "name": "彈射器",
+      "cost": {
+        "food": 0,
+        "wood": 750,
+        "gold": 400,
+        "stone": 0
+      },
+      "time": 60,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "sipahi",
+      "kind": "technology",
+      "name": "采邑騎兵",
+      "cost": {
+        "food": 350,
+        "wood": 0,
+        "gold": 150,
+        "stone": 0
+      },
+      "time": 60,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com/building/University; 40 s is design_default like the other buildings"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "university",
+      "kind": "building",
+      "name": "學院",
+      "cost": {
+        "food": 0,
+        "wood": 200,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 40,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "masonry",
+      "kind": "technology",
+      "name": "磚瓦技術",
+      "cost": {
+        "food": 150,
+        "wood": 175,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 50,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "architecture",
+      "kind": "technology",
+      "name": "建築學",
+      "cost": {
+        "food": 300,
+        "wood": 200,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 70,
+      "population": 0,
+      "requires": [
+        "age-4",
+        "masonry"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "chemistry",
+      "kind": "technology",
+      "name": "化學",
+      "cost": {
+        "food": 300,
+        "wood": 0,
+        "gold": 200,
+        "stone": 0
+      },
+      "time": 100,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "siege-engineers",
+      "kind": "technology",
+      "name": "攻城工程師",
+      "cost": {
+        "food": 500,
+        "wood": 600,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 45,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "guard-tower",
+      "kind": "technology",
+      "name": "防禦箭塔",
+      "cost": {
+        "food": 100,
+        "wood": 250,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 30,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "keep",
+      "kind": "technology",
+      "name": "大型箭塔",
+      "cost": {
+        "food": 500,
+        "wood": 350,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 75,
+      "population": 0,
+      "requires": [
+        "age-4",
+        "guard-tower"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "treadmill-crane",
+      "kind": "technology",
+      "name": "磨坊水車",
+      "cost": {
+        "food": 300,
+        "wood": 200,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 50,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "arrowslits",
+      "kind": "technology",
+      "name": "箭狹槽",
+      "cost": {
+        "food": 250,
+        "wood": 250,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 25,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "supplies",
+      "kind": "technology",
+      "name": "供給",
+      "cost": {
+        "food": 150,
+        "wood": 0,
+        "gold": 100,
+        "stone": 0
+      },
+      "time": 35,
+      "population": 0,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "squires",
+      "kind": "technology",
+      "name": "護衛技術",
+      "cost": {
+        "food": 100,
+        "wood": 0,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 40,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "arson",
+      "kind": "technology",
+      "name": "縱火",
+      "cost": {
+        "food": 150,
+        "wood": 0,
+        "gold": 50,
+        "stone": 0
+      },
+      "time": 25,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "thumb-ring",
+      "kind": "technology",
+      "name": "拇指環",
+      "cost": {
+        "food": 300,
+        "wood": 250,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 45,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "parthian-tactics",
+      "kind": "technology",
+      "name": "安息人戰術",
+      "cost": {
+        "food": 200,
+        "wood": 0,
+        "gold": 250,
+        "stone": 0
+      },
+      "time": 65,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "bloodlines",
+      "kind": "technology",
+      "name": "品種",
+      "cost": {
+        "food": 150,
+        "wood": 0,
+        "gold": 100,
+        "stone": 0
+      },
+      "time": 50,
+      "population": 0,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "husbandry",
+      "kind": "technology",
+      "name": "耕種技術",
+      "cost": {
+        "food": 150,
+        "wood": 0,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 40,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "town-watch",
+      "kind": "technology",
+      "name": "城鎮瞭望",
+      "cost": {
+        "food": 75,
+        "wood": 0,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 25,
+      "population": 0,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "town-patrol",
+      "kind": "technology",
+      "name": "城鎮巡邏",
+      "cost": {
+        "food": 300,
+        "wood": 0,
+        "gold": 100,
+        "stone": 0
+      },
+      "time": 40,
+      "population": 0,
+      "requires": [
+        "age-3",
+        "town-watch"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "fervor",
+      "kind": "technology",
+      "name": "宗教狂熱",
+      "cost": {
+        "food": 0,
+        "wood": 0,
+        "gold": 140,
+        "stone": 0
+      },
+      "time": 50,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "herbal-medicine",
+      "kind": "technology",
+      "name": "草藥治療",
+      "cost": {
+        "food": 0,
+        "wood": 0,
+        "gold": 350,
+        "stone": 0
+      },
+      "time": 35,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "hoardings",
+      "kind": "technology",
+      "name": "圍牆",
+      "cost": {
+        "food": 400,
+        "wood": 400,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 75,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "sappers",
+      "kind": "technology",
+      "name": "兵工學",
+      "cost": {
+        "food": 400,
+        "wood": 0,
+        "gold": 200,
+        "stone": 0
+      },
+      "time": 10,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "conscription",
+      "kind": "technology",
+      "name": "徵兵技術",
+      "cost": {
+        "food": 150,
+        "wood": 0,
+        "gold": 150,
+        "stone": 0
+      },
+      "time": 60,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "hand-cannoneer",
+      "kind": "unit",
+      "name": "火槍兵",
+      "cost": {
+        "food": 45,
+        "wood": 0,
+        "gold": 50,
+        "stone": 0
+      },
+      "time": 34,
+      "population": 1,
+      "requires": [
+        "age-4",
+        "chemistry"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "bombard-cannon",
+      "kind": "unit",
+      "name": "火砲",
+      "cost": {
+        "food": 0,
+        "wood": 225,
+        "gold": 225,
+        "stone": 0
+      },
+      "time": 56,
+      "population": 1,
+      "requires": [
+        "age-4",
+        "chemistry"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "artillery",
+      "kind": "technology",
+      "name": "砲兵",
+      "cost": {
+        "food": 0,
+        "wood": 0,
+        "gold": 500,
+        "stone": 450
+      },
+      "time": 40,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com/building/Dock; build time design_default"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "dock",
+      "kind": "building",
+      "name": "碼頭",
+      "cost": {
+        "food": 0,
+        "wood": 150,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 15,
+      "population": 0,
+      "requires": [],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com/building/Fish_Trap; build time design_default"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "fish-trap",
+      "kind": "building",
+      "name": "魚網",
+      "cost": {
+        "food": 0,
+        "wood": 100,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 15,
+      "population": 0,
+      "requires": [
+        "age-2",
+        "dock"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com/building/Market; build time design_default"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "market",
+      "kind": "building",
+      "name": "市集",
+      "cost": {
+        "food": 0,
+        "wood": 175,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 25,
+      "population": 0,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com/building/Outpost; build time design_default"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "outpost",
+      "kind": "building",
+      "name": "哨站",
+      "cost": {
+        "food": 0,
+        "wood": 25,
+        "gold": 0,
+        "stone": 5
+      },
+      "time": 6,
+      "population": 0,
+      "requires": [],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com/building/Palisade_Wall; build time design_default"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "palisade-wall",
+      "kind": "building",
+      "name": "木牆",
+      "cost": {
+        "food": 0,
+        "wood": 2,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 3,
+      "population": 0,
+      "requires": [],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com/building/Palisade_Gate; build time design_default"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "palisade-gate",
+      "kind": "building",
+      "name": "木門",
+      "cost": {
+        "food": 0,
+        "wood": 30,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 12,
+      "population": 0,
+      "requires": [],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com/building/Stone_Wall; build time design_default"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "stone-wall",
+      "kind": "building",
+      "name": "石牆",
+      "cost": {
+        "food": 0,
+        "wood": 0,
+        "gold": 0,
+        "stone": 5
+      },
+      "time": 4,
+      "population": 0,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com/building/Gate; build time design_default"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "gate",
+      "kind": "building",
+      "name": "城門",
+      "cost": {
+        "food": 0,
+        "wood": 0,
+        "gold": 0,
+        "stone": 30
+      },
+      "time": 12,
+      "population": 0,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com/building/Bombard_Tower; build time design_default"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "bombard-tower",
+      "kind": "building",
+      "name": "火砲塔",
+      "cost": {
+        "food": 0,
+        "wood": 0,
+        "gold": 100,
+        "stone": 125
+      },
+      "time": 30,
+      "population": 0,
+      "requires": [
+        "age-4",
+        "bombard-tower-tech"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com/building/Wonder (1000 wood, gold and stone, 3500 s); cost and time scaled to this map, design_default"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "wonder",
+      "kind": "building",
+      "name": "世界奇觀",
+      "cost": {
+        "food": 0,
+        "wood": 1000,
+        "gold": 500,
+        "stone": 500
+      },
+      "time": 600,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "fishing-ship",
+      "kind": "unit",
+      "name": "漁船",
+      "cost": {
+        "food": 0,
+        "wood": 75,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 40,
+      "population": 1,
+      "requires": [],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "transport-ship",
+      "kind": "unit",
+      "name": "運輸船",
+      "cost": {
+        "food": 0,
+        "wood": 125,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 46,
+      "population": 1,
+      "requires": [],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "trade-cog",
+      "kind": "unit",
+      "name": "貿易商船",
+      "cost": {
+        "food": 0,
+        "wood": 100,
+        "gold": 50,
+        "stone": 0
+      },
+      "time": 36,
+      "population": 1,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "galley",
+      "kind": "unit",
+      "name": "戰船",
+      "cost": {
+        "food": 0,
+        "wood": 90,
+        "gold": 30,
+        "stone": 0
+      },
+      "time": 60,
+      "population": 1,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "fire-galley",
+      "kind": "unit",
+      "name": "火艨艟",
+      "cost": {
+        "food": 0,
+        "wood": 75,
+        "gold": 45,
+        "stone": 0
+      },
+      "time": 60,
+      "population": 1,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "demolition-raft",
+      "kind": "unit",
+      "name": "自爆筏",
+      "cost": {
+        "food": 0,
+        "wood": 70,
+        "gold": 50,
+        "stone": 0
+      },
+      "time": 45,
+      "population": 1,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "cannon-galleon",
+      "kind": "unit",
+      "name": "火砲戰船",
+      "cost": {
+        "food": 0,
+        "wood": 200,
+        "gold": 150,
+        "stone": 0
+      },
+      "time": 46,
+      "population": 1,
+      "requires": [
+        "age-4",
+        "chemistry"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "longboat",
+      "kind": "unit",
+      "name": "維京大戰船",
+      "cost": {
+        "food": 0,
+        "wood": 100,
+        "gold": 50,
+        "stone": 0
+      },
+      "time": 25,
+      "population": 1,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "trade-cart",
+      "kind": "unit",
+      "name": "貿易車隊",
+      "cost": {
+        "food": 0,
+        "wood": 100,
+        "gold": 50,
+        "stone": 0
+      },
+      "time": 51,
+      "population": 1,
+      "requires": [
+        "age-2"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "war-galley",
+      "kind": "technology",
+      "name": "弩砲戰船",
+      "cost": {
+        "food": 230,
+        "wood": 0,
+        "gold": 100,
+        "stone": 0
+      },
+      "time": 50,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "galleon",
+      "kind": "technology",
+      "name": "重型弩砲戰船",
+      "cost": {
+        "food": 400,
+        "wood": 0,
+        "gold": 315,
+        "stone": 0
+      },
+      "time": 65,
+      "population": 0,
+      "requires": [
+        "age-4",
+        "war-galley"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "fast-fire-ship",
+      "kind": "technology",
+      "name": "重型火戰船",
+      "cost": {
+        "food": 280,
+        "wood": 0,
+        "gold": 250,
+        "stone": 0
+      },
+      "time": 50,
+      "population": 0,
+      "requires": [
+        "age-4",
+        "war-galley"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "heavy-demolition-ship",
+      "kind": "technology",
+      "name": "重型爆破船",
+      "cost": {
+        "food": 0,
+        "wood": 200,
+        "gold": 300,
+        "stone": 0
+      },
+      "time": 50,
+      "population": 0,
+      "requires": [
+        "age-4",
+        "war-galley"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "elite-cannon-galleon",
+      "kind": "technology",
+      "name": "精銳火砲戰船",
+      "cost": {
+        "food": 0,
+        "wood": 525,
+        "gold": 500,
+        "stone": 0
+      },
+      "time": 30,
+      "population": 0,
+      "requires": [
+        "age-4",
+        "chemistry"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "elite-longboat",
+      "kind": "technology",
+      "name": "精銳維京大戰船",
+      "cost": {
+        "food": 750,
+        "wood": 0,
+        "gold": 475,
+        "stone": 0
+      },
+      "time": 60,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "gillnets",
+      "kind": "technology",
+      "name": "流刺網",
+      "cost": {
+        "food": 150,
+        "wood": 0,
+        "gold": 200,
+        "stone": 0
+      },
+      "time": 45,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "careening",
+      "kind": "technology",
+      "name": "航海技術",
+      "cost": {
+        "food": 250,
+        "wood": 0,
+        "gold": 150,
+        "stone": 0
+      },
+      "time": 50,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "dry-dock",
+      "kind": "technology",
+      "name": "船塢",
+      "cost": {
+        "food": 600,
+        "wood": 0,
+        "gold": 400,
+        "stone": 0
+      },
+      "time": 60,
+      "population": 0,
+      "requires": [
+        "age-4",
+        "careening"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "shipwright",
+      "kind": "technology",
+      "name": "造船員",
+      "cost": {
+        "food": 1000,
+        "wood": 0,
+        "gold": 300,
+        "stone": 0
+      },
+      "time": 60,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "caravan",
+      "kind": "technology",
+      "name": "商隊",
+      "cost": {
+        "food": 200,
+        "wood": 0,
+        "gold": 200,
+        "stone": 0
+      },
+      "time": 40,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "guilds",
+      "kind": "technology",
+      "name": "公會制度",
+      "cost": {
+        "food": 300,
+        "wood": 0,
+        "gold": 200,
+        "stone": 0
+      },
+      "time": 50,
+      "population": 0,
+      "requires": [
+        "age-4"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "heated-shot",
+      "kind": "technology",
+      "name": "火箭",
+      "cost": {
+        "food": 350,
+        "wood": 0,
+        "gold": 100,
+        "stone": 0
+      },
+      "time": 30,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "fortified-wall",
+      "kind": "technology",
+      "name": "垛牆",
+      "cost": {
+        "food": 200,
+        "wood": 100,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 50,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "bombard-tower-tech",
+      "kind": "technology",
+      "name": "火砲塔技術",
+      "cost": {
+        "food": 800,
+        "wood": 400,
+        "gold": 0,
+        "stone": 0
+      },
+      "time": 60,
+      "population": 0,
+      "requires": [
+        "age-4",
+        "chemistry"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
+      "id": "greek-fire",
+      "kind": "technology",
+      "name": "希臘之火",
+      "cost": {
+        "food": 250,
+        "wood": 0,
+        "gold": 300,
+        "stone": 0
+      },
+      "time": 40,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
     }
   ],
   "production": {
@@ -2982,7 +5094,80 @@
     "rocketry": "castle",
     "yasama": "castle",
     "nomads": "castle",
-    "drill": "castle"
+    "drill": "castle",
+    "two-handed-swordsman": "barracks",
+    "champion": "barracks",
+    "halberdier": "barracks",
+    "arbalest": "archery-range",
+    "cavalry-archer": "archery-range",
+    "heavy-cavalry-archer": "archery-range",
+    "hussar": "stable",
+    "cavalier": "stable",
+    "paladin": "stable",
+    "camel": "stable",
+    "heavy-camel": "stable",
+    "capped-ram": "siege-workshop",
+    "siege-ram": "siege-workshop",
+    "mangonel": "siege-workshop",
+    "onager": "siege-workshop",
+    "siege-onager": "siege-workshop",
+    "scorpion": "siege-workshop",
+    "heavy-scorpion": "siege-workshop",
+    "trebuchet": "castle",
+    "petard": "castle",
+    "warwolf": "castle",
+    "kataparuto": "castle",
+    "sipahi": "castle",
+    "masonry": "university",
+    "architecture": "university",
+    "chemistry": "university",
+    "siege-engineers": "university",
+    "guard-tower": "university",
+    "keep": "university",
+    "treadmill-crane": "university",
+    "arrowslits": "university",
+    "supplies": "barracks",
+    "squires": "barracks",
+    "arson": "barracks",
+    "thumb-ring": "archery-range",
+    "parthian-tactics": "archery-range",
+    "bloodlines": "stable",
+    "husbandry": "stable",
+    "town-watch": "town-center",
+    "town-patrol": "town-center",
+    "fervor": "monastery",
+    "herbal-medicine": "monastery",
+    "hoardings": "castle",
+    "sappers": "castle",
+    "conscription": "castle",
+    "hand-cannoneer": "archery-range",
+    "bombard-cannon": "siege-workshop",
+    "artillery": "castle",
+    "fishing-ship": "dock",
+    "transport-ship": "dock",
+    "trade-cog": "dock",
+    "galley": "dock",
+    "fire-galley": "dock",
+    "demolition-raft": "dock",
+    "cannon-galleon": "dock",
+    "longboat": "dock",
+    "war-galley": "dock",
+    "galleon": "dock",
+    "fast-fire-ship": "dock",
+    "heavy-demolition-ship": "dock",
+    "elite-cannon-galleon": "dock",
+    "elite-longboat": "dock",
+    "gillnets": "dock",
+    "careening": "dock",
+    "dry-dock": "dock",
+    "shipwright": "dock",
+    "trade-cart": "market",
+    "caravan": "market",
+    "guilds": "market",
+    "heated-shot": "university",
+    "fortified-wall": "university",
+    "bombard-tower-tech": "university",
+    "greek-fire": "castle"
   },
   "civilizations": [
     {
@@ -3054,7 +5239,79 @@
         "crop-rotation",
         "age-2",
         "age-3",
-        "age-4"
+        "age-4",
+        "two-handed-swordsman",
+        "champion",
+        "halberdier",
+        "arbalest",
+        "cavalry-archer",
+        "heavy-cavalry-archer",
+        "hussar",
+        "cavalier",
+        "paladin",
+        "camel",
+        "heavy-camel",
+        "capped-ram",
+        "siege-ram",
+        "mangonel",
+        "onager",
+        "siege-onager",
+        "scorpion",
+        "heavy-scorpion",
+        "university",
+        "masonry",
+        "architecture",
+        "chemistry",
+        "siege-engineers",
+        "guard-tower",
+        "keep",
+        "treadmill-crane",
+        "arrowslits",
+        "supplies",
+        "squires",
+        "arson",
+        "thumb-ring",
+        "parthian-tactics",
+        "bloodlines",
+        "husbandry",
+        "town-watch",
+        "town-patrol",
+        "fervor",
+        "herbal-medicine",
+        "hand-cannoneer",
+        "bombard-cannon",
+        "dock",
+        "fish-trap",
+        "market",
+        "outpost",
+        "palisade-wall",
+        "palisade-gate",
+        "stone-wall",
+        "gate",
+        "bombard-tower",
+        "wonder",
+        "fishing-ship",
+        "transport-ship",
+        "trade-cog",
+        "galley",
+        "fire-galley",
+        "demolition-raft",
+        "cannon-galleon",
+        "trade-cart",
+        "war-galley",
+        "galleon",
+        "fast-fire-ship",
+        "heavy-demolition-ship",
+        "elite-cannon-galleon",
+        "gillnets",
+        "careening",
+        "dry-dock",
+        "shipwright",
+        "caravan",
+        "guilds",
+        "heated-shot",
+        "fortified-wall",
+        "bombard-tower-tech"
       ],
       "unavailable": [
         "castle",
@@ -3104,7 +5361,19 @@
         "rocketry",
         "yasama",
         "nomads",
-        "drill"
+        "drill",
+        "trebuchet",
+        "petard",
+        "warwolf",
+        "kataparuto",
+        "sipahi",
+        "hoardings",
+        "sappers",
+        "conscription",
+        "artillery",
+        "longboat",
+        "elite-longboat",
+        "greek-fire"
       ]
     },
     {
@@ -3175,7 +5444,71 @@
         "castle",
         "longbowman",
         "elite-longbowman",
-        "yeomen"
+        "yeomen",
+        "two-handed-swordsman",
+        "champion",
+        "halberdier",
+        "arbalest",
+        "cavalry-archer",
+        "heavy-cavalry-archer",
+        "cavalier",
+        "capped-ram",
+        "mangonel",
+        "onager",
+        "scorpion",
+        "heavy-scorpion",
+        "trebuchet",
+        "petard",
+        "warwolf",
+        "university",
+        "masonry",
+        "architecture",
+        "chemistry",
+        "siege-engineers",
+        "guard-tower",
+        "keep",
+        "arrowslits",
+        "supplies",
+        "squires",
+        "arson",
+        "husbandry",
+        "town-watch",
+        "town-patrol",
+        "fervor",
+        "herbal-medicine",
+        "hoardings",
+        "sappers",
+        "conscription",
+        "dock",
+        "fish-trap",
+        "market",
+        "outpost",
+        "palisade-wall",
+        "palisade-gate",
+        "stone-wall",
+        "gate",
+        "wonder",
+        "fishing-ship",
+        "transport-ship",
+        "trade-cog",
+        "galley",
+        "fire-galley",
+        "demolition-raft",
+        "cannon-galleon",
+        "trade-cart",
+        "war-galley",
+        "galleon",
+        "fast-fire-ship",
+        "heavy-demolition-ship",
+        "gillnets",
+        "careening",
+        "dry-dock",
+        "shipwright",
+        "caravan",
+        "guilds",
+        "heated-shot",
+        "fortified-wall",
+        "bombard-tower-tech"
       ],
       "unavailable": [
         "redemption",
@@ -3226,7 +5559,27 @@
         "rocketry",
         "yasama",
         "nomads",
-        "drill"
+        "drill",
+        "hussar",
+        "paladin",
+        "camel",
+        "heavy-camel",
+        "siege-ram",
+        "siege-onager",
+        "kataparuto",
+        "sipahi",
+        "treadmill-crane",
+        "thumb-ring",
+        "parthian-tactics",
+        "bloodlines",
+        "hand-cannoneer",
+        "bombard-cannon",
+        "artillery",
+        "bombard-tower",
+        "longboat",
+        "elite-cannon-galleon",
+        "elite-longboat",
+        "greek-fire"
       ]
     },
     {
@@ -3293,7 +5646,71 @@
         "woad-raider",
         "elite-woad-raider",
         "stronghold",
-        "furor-celtica"
+        "furor-celtica",
+        "two-handed-swordsman",
+        "champion",
+        "halberdier",
+        "cavalry-archer",
+        "heavy-cavalry-archer",
+        "hussar",
+        "cavalier",
+        "paladin",
+        "capped-ram",
+        "siege-ram",
+        "mangonel",
+        "onager",
+        "siege-onager",
+        "scorpion",
+        "heavy-scorpion",
+        "trebuchet",
+        "petard",
+        "university",
+        "masonry",
+        "chemistry",
+        "siege-engineers",
+        "guard-tower",
+        "keep",
+        "treadmill-crane",
+        "arrowslits",
+        "supplies",
+        "arson",
+        "husbandry",
+        "town-watch",
+        "town-patrol",
+        "fervor",
+        "herbal-medicine",
+        "hoardings",
+        "sappers",
+        "conscription",
+        "dock",
+        "fish-trap",
+        "market",
+        "outpost",
+        "palisade-wall",
+        "palisade-gate",
+        "stone-wall",
+        "gate",
+        "wonder",
+        "fishing-ship",
+        "transport-ship",
+        "trade-cog",
+        "galley",
+        "fire-galley",
+        "demolition-raft",
+        "cannon-galleon",
+        "trade-cart",
+        "war-galley",
+        "galleon",
+        "heavy-demolition-ship",
+        "gillnets",
+        "careening",
+        "dry-dock",
+        "shipwright",
+        "caravan",
+        "guilds",
+        "heated-shot",
+        "fortified-wall",
+        "bombard-tower-tech"
       ],
       "unavailable": [
         "redemption",
@@ -3348,7 +5765,27 @@
         "rocketry",
         "yasama",
         "nomads",
-        "drill"
+        "drill",
+        "arbalest",
+        "camel",
+        "heavy-camel",
+        "warwolf",
+        "kataparuto",
+        "sipahi",
+        "architecture",
+        "squires",
+        "thumb-ring",
+        "parthian-tactics",
+        "bloodlines",
+        "hand-cannoneer",
+        "bombard-cannon",
+        "artillery",
+        "bombard-tower",
+        "longboat",
+        "fast-fire-ship",
+        "elite-cannon-galleon",
+        "elite-longboat",
+        "greek-fire"
       ]
     },
     {
@@ -3420,7 +5857,68 @@
         "throwing-axeman",
         "elite-throwing-axeman",
         "chivalry",
-        "bearded-axe"
+        "bearded-axe",
+        "two-handed-swordsman",
+        "champion",
+        "halberdier",
+        "cavalry-archer",
+        "heavy-cavalry-archer",
+        "cavalier",
+        "paladin",
+        "capped-ram",
+        "mangonel",
+        "onager",
+        "scorpion",
+        "heavy-scorpion",
+        "trebuchet",
+        "petard",
+        "university",
+        "masonry",
+        "architecture",
+        "chemistry",
+        "siege-engineers",
+        "guard-tower",
+        "treadmill-crane",
+        "arrowslits",
+        "supplies",
+        "squires",
+        "arson",
+        "husbandry",
+        "town-watch",
+        "town-patrol",
+        "fervor",
+        "herbal-medicine",
+        "hoardings",
+        "conscription",
+        "hand-cannoneer",
+        "bombard-cannon",
+        "dock",
+        "fish-trap",
+        "market",
+        "outpost",
+        "palisade-wall",
+        "palisade-gate",
+        "stone-wall",
+        "gate",
+        "wonder",
+        "fishing-ship",
+        "transport-ship",
+        "trade-cog",
+        "galley",
+        "fire-galley",
+        "demolition-raft",
+        "cannon-galleon",
+        "trade-cart",
+        "war-galley",
+        "galleon",
+        "fast-fire-ship",
+        "heavy-demolition-ship",
+        "gillnets",
+        "careening",
+        "dry-dock",
+        "caravan",
+        "fortified-wall",
+        "bombard-tower-tech"
       ],
       "unavailable": [
         "redemption",
@@ -3470,7 +5968,30 @@
         "rocketry",
         "yasama",
         "nomads",
-        "drill"
+        "drill",
+        "arbalest",
+        "hussar",
+        "camel",
+        "heavy-camel",
+        "siege-ram",
+        "siege-onager",
+        "warwolf",
+        "kataparuto",
+        "sipahi",
+        "keep",
+        "thumb-ring",
+        "parthian-tactics",
+        "bloodlines",
+        "sappers",
+        "artillery",
+        "bombard-tower",
+        "longboat",
+        "elite-cannon-galleon",
+        "elite-longboat",
+        "shipwright",
+        "guilds",
+        "heated-shot",
+        "greek-fire"
       ]
     },
     {
@@ -3540,7 +6061,65 @@
         "huskarl",
         "elite-huskarl",
         "anarchy",
-        "perfusion"
+        "perfusion",
+        "two-handed-swordsman",
+        "champion",
+        "halberdier",
+        "cavalry-archer",
+        "heavy-cavalry-archer",
+        "hussar",
+        "cavalier",
+        "capped-ram",
+        "mangonel",
+        "onager",
+        "scorpion",
+        "heavy-scorpion",
+        "trebuchet",
+        "petard",
+        "university",
+        "masonry",
+        "architecture",
+        "chemistry",
+        "supplies",
+        "squires",
+        "bloodlines",
+        "husbandry",
+        "town-watch",
+        "town-patrol",
+        "fervor",
+        "herbal-medicine",
+        "sappers",
+        "conscription",
+        "hand-cannoneer",
+        "bombard-cannon",
+        "dock",
+        "fish-trap",
+        "market",
+        "outpost",
+        "palisade-wall",
+        "palisade-gate",
+        "stone-wall",
+        "gate",
+        "wonder",
+        "fishing-ship",
+        "transport-ship",
+        "trade-cog",
+        "galley",
+        "fire-galley",
+        "demolition-raft",
+        "cannon-galleon",
+        "trade-cart",
+        "war-galley",
+        "galleon",
+        "fast-fire-ship",
+        "heavy-demolition-ship",
+        "gillnets",
+        "careening",
+        "shipwright",
+        "caravan",
+        "guilds",
+        "heated-shot",
+        "bombard-tower-tech"
       ],
       "unavailable": [
         "redemption",
@@ -3592,7 +6171,33 @@
         "rocketry",
         "yasama",
         "nomads",
-        "drill"
+        "drill",
+        "arbalest",
+        "paladin",
+        "camel",
+        "heavy-camel",
+        "siege-ram",
+        "siege-onager",
+        "warwolf",
+        "kataparuto",
+        "sipahi",
+        "siege-engineers",
+        "guard-tower",
+        "keep",
+        "treadmill-crane",
+        "arrowslits",
+        "arson",
+        "thumb-ring",
+        "parthian-tactics",
+        "hoardings",
+        "artillery",
+        "bombard-tower",
+        "longboat",
+        "elite-cannon-galleon",
+        "elite-longboat",
+        "dry-dock",
+        "fortified-wall",
+        "greek-fire"
       ]
     },
     {
@@ -3666,7 +6271,70 @@
         "teutonic-knight",
         "elite-teutonic-knight",
         "ironclad",
-        "crenellations"
+        "crenellations",
+        "two-handed-swordsman",
+        "champion",
+        "halberdier",
+        "cavalry-archer",
+        "cavalier",
+        "paladin",
+        "capped-ram",
+        "mangonel",
+        "onager",
+        "siege-onager",
+        "scorpion",
+        "heavy-scorpion",
+        "trebuchet",
+        "petard",
+        "university",
+        "masonry",
+        "chemistry",
+        "siege-engineers",
+        "guard-tower",
+        "keep",
+        "treadmill-crane",
+        "arrowslits",
+        "supplies",
+        "squires",
+        "arson",
+        "bloodlines",
+        "town-watch",
+        "town-patrol",
+        "fervor",
+        "herbal-medicine",
+        "hoardings",
+        "conscription",
+        "hand-cannoneer",
+        "bombard-cannon",
+        "dock",
+        "fish-trap",
+        "market",
+        "outpost",
+        "palisade-wall",
+        "palisade-gate",
+        "stone-wall",
+        "gate",
+        "bombard-tower",
+        "wonder",
+        "fishing-ship",
+        "transport-ship",
+        "trade-cog",
+        "galley",
+        "fire-galley",
+        "demolition-raft",
+        "cannon-galleon",
+        "trade-cart",
+        "war-galley",
+        "galleon",
+        "fast-fire-ship",
+        "heavy-demolition-ship",
+        "gillnets",
+        "careening",
+        "caravan",
+        "guilds",
+        "heated-shot",
+        "fortified-wall",
+        "bombard-tower-tech"
       ],
       "unavailable": [
         "light-cavalry",
@@ -3714,7 +6382,28 @@
         "rocketry",
         "yasama",
         "nomads",
-        "drill"
+        "drill",
+        "arbalest",
+        "heavy-cavalry-archer",
+        "hussar",
+        "camel",
+        "heavy-camel",
+        "siege-ram",
+        "warwolf",
+        "kataparuto",
+        "sipahi",
+        "architecture",
+        "thumb-ring",
+        "parthian-tactics",
+        "husbandry",
+        "sappers",
+        "artillery",
+        "longboat",
+        "elite-cannon-galleon",
+        "elite-longboat",
+        "dry-dock",
+        "shipwright",
+        "greek-fire"
       ]
     },
     {
@@ -3785,7 +6474,66 @@
         "berserk",
         "elite-berserk",
         "chieftains",
-        "berserkergang"
+        "berserkergang",
+        "two-handed-swordsman",
+        "champion",
+        "arbalest",
+        "cavalry-archer",
+        "cavalier",
+        "capped-ram",
+        "siege-ram",
+        "mangonel",
+        "onager",
+        "scorpion",
+        "heavy-scorpion",
+        "trebuchet",
+        "petard",
+        "university",
+        "masonry",
+        "architecture",
+        "chemistry",
+        "siege-engineers",
+        "guard-tower",
+        "treadmill-crane",
+        "arrowslits",
+        "supplies",
+        "squires",
+        "arson",
+        "thumb-ring",
+        "town-watch",
+        "town-patrol",
+        "fervor",
+        "hoardings",
+        "sappers",
+        "conscription",
+        "dock",
+        "fish-trap",
+        "market",
+        "outpost",
+        "palisade-wall",
+        "palisade-gate",
+        "stone-wall",
+        "gate",
+        "wonder",
+        "fishing-ship",
+        "transport-ship",
+        "trade-cog",
+        "galley",
+        "demolition-raft",
+        "cannon-galleon",
+        "longboat",
+        "trade-cart",
+        "war-galley",
+        "galleon",
+        "heavy-demolition-ship",
+        "elite-longboat",
+        "gillnets",
+        "careening",
+        "dry-dock",
+        "caravan",
+        "heated-shot",
+        "fortified-wall",
+        "bombard-tower-tech"
       ],
       "unavailable": [
         "redemption",
@@ -3836,7 +6584,32 @@
         "rocketry",
         "yasama",
         "nomads",
-        "drill"
+        "drill",
+        "halberdier",
+        "heavy-cavalry-archer",
+        "hussar",
+        "paladin",
+        "camel",
+        "heavy-camel",
+        "siege-onager",
+        "warwolf",
+        "kataparuto",
+        "sipahi",
+        "keep",
+        "parthian-tactics",
+        "bloodlines",
+        "husbandry",
+        "herbal-medicine",
+        "hand-cannoneer",
+        "bombard-cannon",
+        "artillery",
+        "bombard-tower",
+        "fire-galley",
+        "fast-fire-ship",
+        "elite-cannon-galleon",
+        "shipwright",
+        "guilds",
+        "greek-fire"
       ]
     },
     {
@@ -3911,7 +6684,73 @@
         "castle",
         "cataphract",
         "elite-cataphract",
-        "logistica"
+        "logistica",
+        "two-handed-swordsman",
+        "champion",
+        "halberdier",
+        "arbalest",
+        "cavalry-archer",
+        "heavy-cavalry-archer",
+        "hussar",
+        "cavalier",
+        "paladin",
+        "camel",
+        "heavy-camel",
+        "capped-ram",
+        "siege-ram",
+        "mangonel",
+        "onager",
+        "scorpion",
+        "trebuchet",
+        "petard",
+        "university",
+        "chemistry",
+        "guard-tower",
+        "keep",
+        "arrowslits",
+        "supplies",
+        "squires",
+        "arson",
+        "thumb-ring",
+        "husbandry",
+        "town-watch",
+        "town-patrol",
+        "fervor",
+        "hoardings",
+        "conscription",
+        "hand-cannoneer",
+        "bombard-cannon",
+        "dock",
+        "fish-trap",
+        "market",
+        "outpost",
+        "palisade-wall",
+        "palisade-gate",
+        "stone-wall",
+        "gate",
+        "wonder",
+        "fishing-ship",
+        "transport-ship",
+        "trade-cog",
+        "galley",
+        "fire-galley",
+        "demolition-raft",
+        "cannon-galleon",
+        "trade-cart",
+        "war-galley",
+        "galleon",
+        "fast-fire-ship",
+        "heavy-demolition-ship",
+        "elite-cannon-galleon",
+        "gillnets",
+        "careening",
+        "dry-dock",
+        "shipwright",
+        "caravan",
+        "guilds",
+        "fortified-wall",
+        "bombard-tower-tech",
+        "greek-fire"
       ],
       "unavailable": [
         "blast-furnace",
@@ -3958,7 +6797,25 @@
         "rocketry",
         "yasama",
         "nomads",
-        "drill"
+        "drill",
+        "siege-onager",
+        "heavy-scorpion",
+        "warwolf",
+        "kataparuto",
+        "sipahi",
+        "masonry",
+        "architecture",
+        "siege-engineers",
+        "treadmill-crane",
+        "parthian-tactics",
+        "bloodlines",
+        "herbal-medicine",
+        "sappers",
+        "artillery",
+        "bombard-tower",
+        "longboat",
+        "elite-longboat",
+        "heated-shot"
       ]
     },
     {
@@ -4029,7 +6886,73 @@
         "war-elephant",
         "elite-war-elephant",
         "kamandaran",
-        "mahouts"
+        "mahouts",
+        "halberdier",
+        "cavalry-archer",
+        "heavy-cavalry-archer",
+        "hussar",
+        "cavalier",
+        "paladin",
+        "camel",
+        "heavy-camel",
+        "capped-ram",
+        "siege-ram",
+        "mangonel",
+        "onager",
+        "scorpion",
+        "heavy-scorpion",
+        "trebuchet",
+        "petard",
+        "university",
+        "masonry",
+        "architecture",
+        "chemistry",
+        "guard-tower",
+        "supplies",
+        "squires",
+        "arson",
+        "thumb-ring",
+        "parthian-tactics",
+        "bloodlines",
+        "husbandry",
+        "town-watch",
+        "town-patrol",
+        "fervor",
+        "herbal-medicine",
+        "hoardings",
+        "sappers",
+        "conscription",
+        "hand-cannoneer",
+        "bombard-cannon",
+        "dock",
+        "fish-trap",
+        "market",
+        "outpost",
+        "palisade-wall",
+        "palisade-gate",
+        "stone-wall",
+        "gate",
+        "wonder",
+        "fishing-ship",
+        "transport-ship",
+        "trade-cog",
+        "galley",
+        "fire-galley",
+        "demolition-raft",
+        "cannon-galleon",
+        "trade-cart",
+        "war-galley",
+        "galleon",
+        "fast-fire-ship",
+        "heavy-demolition-ship",
+        "elite-cannon-galleon",
+        "gillnets",
+        "careening",
+        "dry-dock",
+        "caravan",
+        "guilds",
+        "heated-shot",
+        "bombard-tower-tech"
       ],
       "unavailable": [
         "redemption",
@@ -4080,7 +7003,25 @@
         "rocketry",
         "yasama",
         "nomads",
-        "drill"
+        "drill",
+        "two-handed-swordsman",
+        "champion",
+        "arbalest",
+        "siege-onager",
+        "warwolf",
+        "kataparuto",
+        "sipahi",
+        "siege-engineers",
+        "keep",
+        "treadmill-crane",
+        "arrowslits",
+        "artillery",
+        "bombard-tower",
+        "longboat",
+        "elite-longboat",
+        "shipwright",
+        "fortified-wall",
+        "greek-fire"
       ]
     },
     {
@@ -4155,7 +7096,73 @@
         "mameluke",
         "elite-mameluke",
         "madrasah",
-        "zealotry"
+        "zealotry",
+        "two-handed-swordsman",
+        "champion",
+        "arbalest",
+        "cavalry-archer",
+        "heavy-cavalry-archer",
+        "hussar",
+        "camel",
+        "heavy-camel",
+        "capped-ram",
+        "siege-ram",
+        "mangonel",
+        "onager",
+        "siege-onager",
+        "scorpion",
+        "trebuchet",
+        "petard",
+        "university",
+        "masonry",
+        "chemistry",
+        "siege-engineers",
+        "guard-tower",
+        "keep",
+        "treadmill-crane",
+        "arrowslits",
+        "supplies",
+        "squires",
+        "arson",
+        "thumb-ring",
+        "parthian-tactics",
+        "bloodlines",
+        "husbandry",
+        "town-watch",
+        "town-patrol",
+        "fervor",
+        "herbal-medicine",
+        "hoardings",
+        "conscription",
+        "hand-cannoneer",
+        "bombard-cannon",
+        "dock",
+        "fish-trap",
+        "market",
+        "outpost",
+        "palisade-wall",
+        "palisade-gate",
+        "stone-wall",
+        "gate",
+        "wonder",
+        "fishing-ship",
+        "transport-ship",
+        "trade-cog",
+        "galley",
+        "fire-galley",
+        "demolition-raft",
+        "cannon-galleon",
+        "trade-cart",
+        "war-galley",
+        "galleon",
+        "heavy-demolition-ship",
+        "elite-cannon-galleon",
+        "gillnets",
+        "careening",
+        "dry-dock",
+        "caravan",
+        "fortified-wall",
+        "bombard-tower-tech"
       ],
       "unavailable": [
         "stone-shaft-mining",
@@ -4202,7 +7209,25 @@
         "rocketry",
         "yasama",
         "nomads",
-        "drill"
+        "drill",
+        "halberdier",
+        "cavalier",
+        "paladin",
+        "heavy-scorpion",
+        "warwolf",
+        "kataparuto",
+        "sipahi",
+        "architecture",
+        "sappers",
+        "artillery",
+        "bombard-tower",
+        "longboat",
+        "fast-fire-ship",
+        "elite-longboat",
+        "shipwright",
+        "guilds",
+        "heated-shot",
+        "greek-fire"
       ]
     },
     {
@@ -4272,7 +7297,77 @@
         "age-4",
         "castle",
         "janissary",
-        "elite-janissary"
+        "elite-janissary",
+        "two-handed-swordsman",
+        "champion",
+        "cavalry-archer",
+        "heavy-cavalry-archer",
+        "hussar",
+        "cavalier",
+        "camel",
+        "heavy-camel",
+        "capped-ram",
+        "siege-ram",
+        "mangonel",
+        "scorpion",
+        "heavy-scorpion",
+        "trebuchet",
+        "petard",
+        "sipahi",
+        "university",
+        "masonry",
+        "architecture",
+        "chemistry",
+        "guard-tower",
+        "keep",
+        "treadmill-crane",
+        "arrowslits",
+        "supplies",
+        "squires",
+        "arson",
+        "thumb-ring",
+        "parthian-tactics",
+        "bloodlines",
+        "husbandry",
+        "town-watch",
+        "town-patrol",
+        "fervor",
+        "hoardings",
+        "sappers",
+        "conscription",
+        "hand-cannoneer",
+        "bombard-cannon",
+        "artillery",
+        "dock",
+        "fish-trap",
+        "market",
+        "outpost",
+        "palisade-wall",
+        "palisade-gate",
+        "stone-wall",
+        "gate",
+        "bombard-tower",
+        "wonder",
+        "fishing-ship",
+        "transport-ship",
+        "trade-cog",
+        "galley",
+        "fire-galley",
+        "demolition-raft",
+        "cannon-galleon",
+        "trade-cart",
+        "war-galley",
+        "galleon",
+        "heavy-demolition-ship",
+        "elite-cannon-galleon",
+        "gillnets",
+        "careening",
+        "dry-dock",
+        "caravan",
+        "guilds",
+        "heated-shot",
+        "fortified-wall",
+        "bombard-tower-tech"
       ],
       "unavailable": [
         "illumination",
@@ -4324,7 +7419,21 @@
         "rocketry",
         "yasama",
         "nomads",
-        "drill"
+        "drill",
+        "halberdier",
+        "arbalest",
+        "paladin",
+        "onager",
+        "siege-onager",
+        "warwolf",
+        "kataparuto",
+        "siege-engineers",
+        "herbal-medicine",
+        "longboat",
+        "fast-fire-ship",
+        "elite-longboat",
+        "shipwright",
+        "greek-fire"
       ]
     },
     {
@@ -4398,7 +7507,73 @@
         "chu-ko-nu",
         "elite-chu-ko-nu",
         "great-wall",
-        "rocketry"
+        "rocketry",
+        "two-handed-swordsman",
+        "champion",
+        "halberdier",
+        "arbalest",
+        "cavalry-archer",
+        "heavy-cavalry-archer",
+        "cavalier",
+        "camel",
+        "heavy-camel",
+        "capped-ram",
+        "siege-ram",
+        "mangonel",
+        "onager",
+        "scorpion",
+        "heavy-scorpion",
+        "trebuchet",
+        "petard",
+        "university",
+        "masonry",
+        "architecture",
+        "chemistry",
+        "guard-tower",
+        "keep",
+        "treadmill-crane",
+        "arrowslits",
+        "supplies",
+        "squires",
+        "arson",
+        "thumb-ring",
+        "bloodlines",
+        "husbandry",
+        "town-watch",
+        "town-patrol",
+        "fervor",
+        "herbal-medicine",
+        "sappers",
+        "conscription",
+        "dock",
+        "fish-trap",
+        "market",
+        "outpost",
+        "palisade-wall",
+        "palisade-gate",
+        "stone-wall",
+        "gate",
+        "bombard-tower",
+        "wonder",
+        "fishing-ship",
+        "transport-ship",
+        "trade-cog",
+        "galley",
+        "fire-galley",
+        "demolition-raft",
+        "cannon-galleon",
+        "trade-cart",
+        "war-galley",
+        "galleon",
+        "heavy-demolition-ship",
+        "gillnets",
+        "careening",
+        "dry-dock",
+        "shipwright",
+        "caravan",
+        "heated-shot",
+        "fortified-wall",
+        "bombard-tower-tech"
       ],
       "unavailable": [
         "redemption",
@@ -4446,7 +7621,25 @@
         "zealotry",
         "yasama",
         "nomads",
-        "drill"
+        "drill",
+        "hussar",
+        "paladin",
+        "siege-onager",
+        "warwolf",
+        "kataparuto",
+        "sipahi",
+        "siege-engineers",
+        "parthian-tactics",
+        "hoardings",
+        "hand-cannoneer",
+        "bombard-cannon",
+        "artillery",
+        "longboat",
+        "fast-fire-ship",
+        "elite-cannon-galleon",
+        "elite-longboat",
+        "guilds",
+        "greek-fire"
       ]
     },
     {
@@ -4518,7 +7711,73 @@
         "castle",
         "samurai",
         "elite-samurai",
-        "yasama"
+        "yasama",
+        "two-handed-swordsman",
+        "champion",
+        "halberdier",
+        "arbalest",
+        "cavalry-archer",
+        "heavy-cavalry-archer",
+        "hussar",
+        "cavalier",
+        "capped-ram",
+        "mangonel",
+        "onager",
+        "scorpion",
+        "heavy-scorpion",
+        "trebuchet",
+        "petard",
+        "kataparuto",
+        "university",
+        "masonry",
+        "chemistry",
+        "siege-engineers",
+        "guard-tower",
+        "keep",
+        "treadmill-crane",
+        "arrowslits",
+        "supplies",
+        "squires",
+        "arson",
+        "thumb-ring",
+        "parthian-tactics",
+        "bloodlines",
+        "husbandry",
+        "town-watch",
+        "town-patrol",
+        "fervor",
+        "herbal-medicine",
+        "sappers",
+        "conscription",
+        "hand-cannoneer",
+        "dock",
+        "fish-trap",
+        "market",
+        "outpost",
+        "palisade-wall",
+        "palisade-gate",
+        "stone-wall",
+        "gate",
+        "wonder",
+        "fishing-ship",
+        "transport-ship",
+        "trade-cog",
+        "galley",
+        "fire-galley",
+        "demolition-raft",
+        "cannon-galleon",
+        "trade-cart",
+        "war-galley",
+        "galleon",
+        "fast-fire-ship",
+        "elite-cannon-galleon",
+        "gillnets",
+        "careening",
+        "dry-dock",
+        "shipwright",
+        "caravan",
+        "fortified-wall",
+        "bombard-tower-tech"
       ],
       "unavailable": [
         "heresy",
@@ -4568,7 +7827,25 @@
         "great-wall",
         "rocketry",
         "nomads",
-        "drill"
+        "drill",
+        "paladin",
+        "camel",
+        "heavy-camel",
+        "siege-ram",
+        "siege-onager",
+        "warwolf",
+        "sipahi",
+        "architecture",
+        "hoardings",
+        "bombard-cannon",
+        "artillery",
+        "bombard-tower",
+        "longboat",
+        "heavy-demolition-ship",
+        "elite-longboat",
+        "guilds",
+        "heated-shot",
+        "greek-fire"
       ]
     },
     {
@@ -4637,7 +7914,72 @@
         "mangudai",
         "elite-mangudai",
         "nomads",
-        "drill"
+        "drill",
+        "two-handed-swordsman",
+        "champion",
+        "arbalest",
+        "cavalry-archer",
+        "heavy-cavalry-archer",
+        "hussar",
+        "cavalier",
+        "camel",
+        "heavy-camel",
+        "capped-ram",
+        "siege-ram",
+        "mangonel",
+        "onager",
+        "siege-onager",
+        "scorpion",
+        "heavy-scorpion",
+        "trebuchet",
+        "petard",
+        "university",
+        "masonry",
+        "chemistry",
+        "siege-engineers",
+        "guard-tower",
+        "supplies",
+        "squires",
+        "arson",
+        "thumb-ring",
+        "parthian-tactics",
+        "bloodlines",
+        "husbandry",
+        "town-watch",
+        "town-patrol",
+        "fervor",
+        "herbal-medicine",
+        "hoardings",
+        "sappers",
+        "conscription",
+        "hand-cannoneer",
+        "dock",
+        "fish-trap",
+        "market",
+        "outpost",
+        "palisade-wall",
+        "palisade-gate",
+        "stone-wall",
+        "gate",
+        "wonder",
+        "fishing-ship",
+        "transport-ship",
+        "trade-cog",
+        "galley",
+        "fire-galley",
+        "demolition-raft",
+        "cannon-galleon",
+        "trade-cart",
+        "war-galley",
+        "galleon",
+        "fast-fire-ship",
+        "heavy-demolition-ship",
+        "gillnets",
+        "careening",
+        "shipwright",
+        "caravan",
+        "fortified-wall",
+        "bombard-tower-tech"
       ],
       "unavailable": [
         "redemption",
@@ -4690,7 +8032,26 @@
         "zealotry",
         "great-wall",
         "rocketry",
-        "yasama"
+        "yasama",
+        "halberdier",
+        "paladin",
+        "warwolf",
+        "kataparuto",
+        "sipahi",
+        "architecture",
+        "keep",
+        "treadmill-crane",
+        "arrowslits",
+        "bombard-cannon",
+        "artillery",
+        "bombard-tower",
+        "longboat",
+        "elite-cannon-galleon",
+        "elite-longboat",
+        "dry-dock",
+        "guilds",
+        "heated-shot",
+        "greek-fire"
       ]
     }
   ]

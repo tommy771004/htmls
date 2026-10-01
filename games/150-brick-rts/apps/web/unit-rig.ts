@@ -2,14 +2,17 @@
 export const unitPoses=['idle','walk','work','attack','hit','death','carry'] as const;
 export type UnitPose=typeof unitPoses[number];
 // Append-only: the unique units' weapons follow the base tools.
-export const unitTools=['none','axe','pick','sickle','hammer','basket','sword','spear','bow','staff','longbow','repeater','musket','throwing-axe','great-sword','war-axe','katana','scimitar'] as const;
+export const unitTools=['none','axe','pick','sickle','hammer','basket','sword','spear','bow','staff','longbow','repeater','musket','throwing-axe','great-sword','war-axe','katana','scimitar','powder-keg','hand-cannon'] as const;
 export type UnitTool=typeof unitTools[number];
 // Foot dresses. The unique units wear their own outfit over the same body; the *-rider dresses are what the mounted
-// unique units wear in the saddle (and when they fall, dismounted).
-export const unitRoles=['villager','swordsman','spearman','archer','monk','longbowman','woad-raider','throwing-axeman','huskarl','teutonic-knight','berserk','samurai','janissary','chu-ko-nu','cataphract-rider','mameluke-rider','mangudai-rider','mahout'] as const;
+// unique units wear in the saddle (and when they fall, dismounted). Appended: the cavalry archer and camel riders and the
+// petard (a sapper carrying a powder keg), then the 科技 round's hand cannoneer.
+export const unitRoles=['villager','swordsman','spearman','archer','monk','longbowman','woad-raider','throwing-axeman','huskarl','teutonic-knight','berserk','samurai','janissary','chu-ko-nu','cataphract-rider','mameluke-rider','mangudai-rider','mahout','cavalry-archer-rider','camel-rider','petard','hand-cannoneer'] as const;
 export type UnitRole=typeof unitRoles[number];
 // The weapon a dress arrives with (the scene then equips the unit kind's weapon, which matches).
-export const roleTools:Record<Exclude<UnitRole,'villager'>,UnitTool>={swordsman:'sword',spearman:'spear',archer:'bow',monk:'staff',longbowman:'longbow','woad-raider':'sword','throwing-axeman':'throwing-axe',huskarl:'sword','teutonic-knight':'great-sword',berserk:'war-axe',samurai:'katana',janissary:'musket','chu-ko-nu':'repeater','cataphract-rider':'spear','mameluke-rider':'scimitar','mangudai-rider':'bow',mahout:'spear'};
+export const roleTools:Record<Exclude<UnitRole,'villager'>,UnitTool>={swordsman:'sword',spearman:'spear',archer:'bow',monk:'staff',longbowman:'longbow','woad-raider':'sword','throwing-axeman':'throwing-axe',huskarl:'sword','teutonic-knight':'great-sword',berserk:'war-axe',samurai:'katana',janissary:'musket','chu-ko-nu':'repeater','cataphract-rider':'spear','mameluke-rider':'scimitar','mangudai-rider':'bow',mahout:'spear','cavalry-archer-rider':'bow','camel-rider':'scimitar',petard:'powder-keg','hand-cannoneer':'hand-cannon'};
+// Line upgrades with a look worn by the rider (ids from packages/sim/stats.ts lineUpgrades).
+export const riderLooks=['two-handed-swordsman','champion','hussar','heavy-cavalry-archer'] as const;
 // Shared palette for the unique outfits (metal, leather, fur, skin, woad, gold) so they batch with the rest.
 const skin='#dfbb7e',metal='#9aa3a1',leather='#5a4632',fur='#7d6a52',gold='#c9a55a',woad='#3f5f95',lacquer='#3a3530';
 export function samplePose(pose:UnitPose,time:number){
@@ -36,13 +39,14 @@ export function createUnitRig(T:any,player:number,box:(w:number,h:number,d:numbe
  const leftArm=joint('shoulder-left',-.19,.67,0),rightArm=joint('shoulder-right',.19,.67,0);
  const sockets:{leftHand:any;rightHand:any}={leftHand:new T.Group(),rightHand:new T.Group()};
  for(const [arm,socket,name] of [[leftArm,sockets.leftHand,'hand-left'],[rightArm,sockets.rightHand,'hand-right']]){part(arm,0,-.28,0,.1,.28,.16,team);part(arm,0,-.38,0,.1,.14,.17,'#dfbb7e');socket.name=name;socket.position.set(0,-.31,.09);arm.add(socket);}
- let seated=false;
+ let seated=false,worn:UnitRole='villager';
  // An outfit is one group on the body plus one on each arm joint (sleeves, pauldrons, a strapped shield swing with the arm).
  const outfits=new Map<UnitRole,any[]>();
  function dress(role:UnitRole){
   if(!unitRoles.includes(role))throw Error('未知模型軍種');
   for(const outfit of outfits.values())for(const g of outfit)g.visible=false;
-  shield.visible=false;if(role==='villager'){equip('none');return;}
+  for(const look of grades.values())for(const g of look)g.visible=false;
+  shield.visible=false;worn=role;if(role==='villager'){equip('none');return;}
   let outfit=outfits.get(role);
   if(!outfit){const o=new T.Group(),la=new T.Group(),ra=new T.Group();o.name=`outfit-${role}`;la.name=`outfit-${role}-arm-left`;ra.name=`outfit-${role}-arm-right`;root.add(o);leftArm.add(la);rightArm.add(ra);outfit=[o,la,ra];outfits.set(role,outfit);
    // Both arms alike (sleeve overlays): x mirrors nothing, the arm joints are symmetric.
@@ -115,6 +119,28 @@ export function createUnitRig(T:any,player:number,box:(w:number,h:number,d:numbe
     // Fur-brimmed steppe hat with a team crown, the deel's crossed flap and a quiver at the hip.
     part(o,0,1.06,0,.48,.1,.44,'#8a6a48');part(o,0,1.16,0,.3,.14,.28,team);part(o,0,1.3,0,.1,.06,.1,gold);
     part(o,.08,.44,.165,.14,.24,.02,'#d8c48a');part(o,.25,.3,-.05,.1,.32,.14,'#8b6746');
+   }else if(role==='cavalry-archer-rider'){
+    // Peaked leather cap with ear flaps, a short team cape and a quiver slung across the back (the Mangudai's is at the hip).
+    const cap='#6b5238';part(o,0,1.01,0,.46,.13,.44,cap);part(o,0,1.14,0,.32,.12,.3,cap);part(o,0,1.26,0,.14,.1,.14,cap);for(const x of [-.2,.2])part(o,x,.84,0,.04,.2,.2,cap);
+    part(o,0,.36,-.18,.42,.34,.04,team);part(o,-.1,.4,-.24,.12,.42,.1,'#8b6746');for(const x of [-.13,-.07])part(o,x,.82,-.24,.03,.12,.03,'#efe9da');
+   }else if(role==='camel-rider'){
+    // Desert headcloth held by a team cord, its tail down the back and a veil over the mouth, a team sash across the robe.
+    const cloth='#cdb88e';part(o,0,1,-.01,.47,.16,.45,cloth);part(o,0,.7,-.2,.3,.34,.05,cloth);part(o,0,.74,.16,.32,.1,.02,cloth);part(o,0,1.1,0,.49,.04,.47,team);
+    part(o,0,.12,0,.5,.2,.36,'#e8e0c8');part(o,0,.5,.17,.4,.06,.02,team);
+   }else if(role==='petard'){
+    // Leather skullcap with a team band, a team neckerchief, a bandolier of powder flasks and a lit slow match in the left hand.
+    part(o,0,1.01,0,.46,.15,.42,leather);part(o,0,1.03,0,.47,.04,.43,team);part(o,0,.64,0,.4,.06,.34,team);
+    part(o,0,.5,.17,.42,.05,.02,'#6e5438');for(const x of [-.12,.02,.14])part(o,x,.36,.17,.06,.1,.05,'#b8964a');
+    part(la,0,-.52,.12,.03,.2,.03,'#6e5438');part(la,0,-.34,.12,.045,.045,.045,'#e0a040');
+   }else if(role==='hand-cannoneer'){
+    // A charcoal felt cap with a soft crown pushed to one side and a pale plume, a quilted buff jack (stitched bands), a ramrod slung across
+    // the back, a powder horn and a shot bag at the hips. (The janissary's tall white börk and gold sash stay his own.)
+    const jack='#b9a27a',stitch='#9c8660';
+    part(o,0,1,0,.46,.14,.42,'#3d3a34');const beret=part(o,-.04,1.13,.01,.34,.06,.32,'#3d3a34');beret.rotation.z=.14;part(o,.14,1.14,-.1,.05,.22,.05,'#e8e0c8');
+    part(o,0,.24,0,.49,.4,.34,jack);for(const y of [.36,.5])part(o,0,y,0,.495,.02,.345,stitch);part(o,0,.24,0,.5,.05,.35,leather);
+    const rod=part(o,0,.2,-.2,.03,.8,.03,'#5a4632');rod.rotation.z=.6;
+    part(o,-.26,.3,.05,.06,.16,.08,'#e3d6b4');part(o,-.26,.44,.05,.07,.04,.09,'#6e5438');part(o,.26,.26,.04,.08,.14,.12,leather);
+    arms(0,-.14,0,.12,.12,.18,jack);
    }else if(role==='mahout'){
     part(o,0,1.08,0,.42,.12,.4,team);part(o,0,1.2,0,.14,.06,.14,gold);
    }else{
@@ -124,6 +150,31 @@ export function createUnitRig(T:any,player:number,box:(w:number,h:number,d:numbe
    }
   }
   for(const g of outfit)g.visible=true;shield.visible=role==='swordsman';equip(roleTools[role]);
+ }
+ // Line-upgrade looks worn over a dress (own units only; the scene passes the latest researched upgrade of the unit's line).
+ // Groups are named grade-*, apart from the outfits, and the swordsman's shield goes once he takes a two-handed sword.
+ const grades=new Map<string,any[]>();
+ function grade(look:string|null){
+  for(const g of grades.values())for(const x of g)x.visible=false;
+  shield.visible=worn==='swordsman'&&look!=='two-handed-swordsman'&&look!=='champion';
+  if(!look||!(riderLooks as readonly string[]).includes(look))return;
+  let g=grades.get(look);
+  if(!g){const o=new T.Group(),la=new T.Group(),ra=new T.Group();o.name=`grade-${look}`;la.name=`grade-${look}-arm-left`;ra.name=`grade-${look}-arm-right`;root.add(o);leftArm.add(la);rightArm.add(ra);g=[o,la,ra];grades.set(look,g);
+   const arms=(x:number,y:number,z:number,w:number,h:number,d:number,color:string)=>{for(const a of [la,ra])part(a,x,y,z,w,h,d,color);};
+   if(look==='two-handed-swordsman'||look==='champion'){
+    // A deep sallet with a visor slit over the swordsman's cap; the champion adds a team plume, a gilt rim and pauldrons.
+    part(o,0,1.06,0,.46,.2,.42,metal);part(o,0,.88,.18,.36,.16,.03,metal);part(o,0,.95,.196,.3,.03,.01,'#2c2e2c');
+    if(look==='champion'){part(o,0,1.26,0,.08,.2,.08,team);part(o,0,1.06,0,.47,.03,.43,gold);arms(0,-.12,0,.16,.14,.21,metal);}
+   }else if(look==='hussar'){
+    // Tall dark fur busby with a team plume and a feathered wing rising behind the shoulders.
+    part(o,0,1.08,0,.42,.32,.38,'#3a3530');part(o,.15,1.4,0,.06,.14,.06,team);part(o,0,.5,-.22,.05,1,.05,'#6e5438');
+    for(const [y,z] of [[.72,-.27],[.88,-.29],[1.04,-.3],[1.2,-.29],[1.36,-.27]])part(o,0,y,z,.04,.12,.1,'#efe9da');
+   }else if(look==='heavy-cavalry-archer'){
+    // Mail coat and mail sleeves (the team cape still shows on the back).
+    part(o,0,.3,0,.485,.32,.345,metal);part(o,0,.62,0,.36,.05,.33,metal);arms(0,-.26,0,.115,.24,.175,metal);
+   }
+  }
+  for(const x of g)x.visible=true;
  }
  const shield=new T.Group();shield.name='shield-left';sockets.leftHand.add(shield);shield.visible=false;
  part(shield,-.12,-.17,.07,.08,.48,.4,'#9d885b');part(shield,-.17,-.11,.07,.03,.34,.28,team);
@@ -145,6 +196,16 @@ export function createUnitRig(T:any,player:number,box:(w:number,h:number,d:numbe
  else if(kind==='war-axe'){part(group,0,-.3,0,.055,1.05,.06,'#6e5438');part(group,.1,.52,0,.18,.22,.05,'#aab0a3');part(group,.16,.4,0,.08,.14,.05,'#aab0a3');part(group,-.06,.6,0,.06,.06,.05,'#aab0a3');}
  else if(kind==='katana'){part(group,0,-.12,0,.045,.2,.05,'#2f2a26');part(group,0,.08,0,.12,.025,.12,'#c9a55a');part(group,0,.105,0,.05,.3,.04,'#dfe4e0');part(group,0,.4,-.015,.05,.25,.04,'#dfe4e0');part(group,0,.64,-.035,.045,.16,.04,'#dfe4e0');}
  else if(kind==='scimitar'){part(group,0,-.1,0,.05,.18,.06,'#5a4632');part(group,0,.08,0,.18,.04,.07,'#c9a55a');part(group,0,.12,0,.05,.24,.04,'#d2d8d4');part(group,0,.34,.03,.07,.16,.04,'#d2d8d4');part(group,0,.48,.07,.07,.1,.04,'#d2d8d4');}
+ else if(kind==='powder-keg'){
+  // A powder keg hugged against the belly (centred on the body, not the hand), iron hoops and a short lit fuse.
+  part(group,-.19,-.2,.13,.34,.38,.3,'#7a5a3a');for(const y of [-.12,.08])part(group,-.19,y,.13,.36,.04,.32,'#4a4a48');part(group,-.19,.18,.13,.26,.03,.22,'#6e5438');part(group,-.12,.21,.18,.03,.1,.03,'#d9cba4');part(group,-.12,.31,.18,.05,.05,.05,'#f5dc7a');}
+ else if(kind==='hand-cannon'){
+  // Hand cannon: a long wooden tiller running back up the forearm (braced under the arm when aimed) and a short, fat iron
+  // tube beyond the fist with two bands and a flared muzzle, the touch hole on top; no smoke. A brief muzzle flash
+  // (tool-hand-cannon-flash) shows only while firing.
+  part(group,0,-.02,0,.05,.5,.05,'#8a6a45');part(group,0,-.3,0,.12,.28,.12,'#5b5e5c');for(const y of [-.24,-.12])part(group,0,y,0,.135,.035,.135,'#3f4240');
+  part(group,0,-.36,0,.15,.06,.15,'#3f4240');part(group,0,-.08,.06,.03,.03,.02,'#2c2e2c');
+  const flash=part(group,0,-.46,0,.1,.1,.1,'#f2c25a');flash.name='tool-hand-cannon-flash';flash.visible=false;}
  else if(kind!=='none'){
  part(group,0,-.08,0,.055,.48,.06,kind==='sword'?'#756449':'#967447');
  if(kind==='axe')part(group,.08,.23,0,.22,.15,.055,'#aab0a3');
@@ -156,6 +217,12 @@ export function createUnitRig(T:any,player:number,box:(w:number,h:number,d:numbe
  toolMeshes.set(kind,group);return group;
  }
  function equip(kind:UnitTool){if(!unitTools.includes(kind))throw Error('未知模型工具');for(const mesh of toolMeshes.values())mesh.visible=false;selected=kind;if(kind!=='none')(toolMeshes.get(kind)??makeTool(kind)).visible=true;}
- function pose(kind:UnitPose,time:number){if(!unitPoses.includes(kind))throw Error('未知模型姿態');const p=samplePose(kind,time);leftLeg.rotation.x=seated?0:p.leftLeg;rightLeg.rotation.x=seated?0:p.rightLeg;leftLeg.position.x=seated?-.4:-.12;rightLeg.position.x=seated?.4:.12;leftArm.rotation.x=p.leftArm;rightArm.rotation.x=p.rightArm;root.rotation.x=p.lean;root.rotation.z=-p.fall;root.position.y=.28*Math.sin(p.fall);for(const [tool,mesh] of toolMeshes)mesh.visible=tool===selected&&kind!=='death';}
- return {root,sockets,equip,pose,dress,seat:(value:boolean)=>{seated=value;}};
+ // Firing the hand cannon: both arms level (the tiller under the right arm, the left hand under the tube), a sharp kick up
+ // and back on each shot with a flash at the muzzle, then held aim while reloading. Other tools swing as usual.
+ function aim(time:number){const t=Math.max(0,Number.isFinite(time)?time:0),f=(t%1400)/1400,kick=f<.12?Math.sin(Math.PI*f/.12):0;
+  return {right:-1.5-.3*kick,left:-1.25-.2*kick,lean:-.08*kick||0,flash:f<.07};}
+ function pose(kind:UnitPose,time:number){if(!unitPoses.includes(kind))throw Error('未知模型姿態');const p=samplePose(kind,time);
+  const firing=kind==='attack'&&selected==='hand-cannon'&&!seated,shot=firing?aim(time):null;if(shot){p.rightArm=shot.right;p.leftArm=shot.left;p.lean=shot.lean;}
+  const flash=toolMeshes.get('hand-cannon')?.getObjectByName('tool-hand-cannon-flash');if(flash)flash.visible=!!shot?.flash;leftLeg.rotation.x=seated?0:p.leftLeg;rightLeg.rotation.x=seated?0:p.rightLeg;leftLeg.position.x=seated?-.4:-.12;rightLeg.position.x=seated?.4:.12;leftArm.rotation.x=p.leftArm;rightArm.rotation.x=p.rightArm;root.rotation.x=p.lean;root.rotation.z=-p.fall;root.position.y=.28*Math.sin(p.fall);for(const [tool,mesh] of toolMeshes)mesh.visible=tool===selected&&kind!=='death';}
+ return {root,sockets,equip,pose,dress,grade,seat:(value:boolean)=>{seated=value;}};
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 15,
-  "rulesetHash": "bfb8fd1e",
+  "rulesetHash": "0d1395f6",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
@@ -65,7 +65,8 @@
       "hunt": 120,
       "livestock": 100,
       "fish": 200,
-      "farm": 250
+      "farm": 250,
+      "fish-trap": 1000
     },
     "generationAttempts": 8
   },
@@ -151,6 +152,11 @@
       "yield": "food",
       "method": "gather",
       "movement": "land"
+    },
+    "fish-trap": {
+      "yield": "food",
+      "method": "fish",
+      "movement": "water"
     }
   },
   "vision": {
@@ -161,6 +167,14 @@
     "houseRadius": 300,
     "townCenterRadius": 600,
     "towerRadius": 700,
+    "outpostRadius": [
+      420,
+      560,
+      700,
+      840
+    ],
+    "wallRadius": 200,
+    "wonderRadius": 560,
     "shareVision": false,
     "rememberStaticObjects": true
   },
@@ -239,6 +253,12 @@
         "width": 300,
         "depth": 300
       },
+      "university": {
+        "x": -15,
+        "y": -15,
+        "width": 300,
+        "depth": 300
+      },
       "castle": {
         "x": -15,
         "y": -15,
@@ -250,6 +270,66 @@
         "y": 0,
         "width": 100,
         "depth": 100
+      },
+      "market": {
+        "x": -15,
+        "y": -15,
+        "width": 300,
+        "depth": 300
+      },
+      "dock": {
+        "x": 0,
+        "y": 0,
+        "width": 300,
+        "depth": 300
+      },
+      "fish-trap": {
+        "x": 0,
+        "y": 0,
+        "width": 200,
+        "depth": 200
+      },
+      "outpost": {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "depth": 100
+      },
+      "bombard-tower": {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "depth": 100
+      },
+      "palisade-wall": {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "depth": 100
+      },
+      "stone-wall": {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "depth": 100
+      },
+      "palisade-gate": {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "depth": 100
+      },
+      "gate": {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "depth": 100
+      },
+      "wonder": {
+        "x": 0,
+        "y": 0,
+        "width": 500,
+        "depth": 500
       },
       "tree": {
         "x": -20,
@@ -536,7 +616,8 @@
           "spear"
         ],
         "bonus": {
-          "cavalry": 12
+          "cavalry": 12,
+          "camel": 10
         }
       },
       "skirmisher": {
@@ -591,7 +672,8 @@
         ],
         "bonus": {
           "building": 40
-        }
+        },
+        "buildingsOnly": true
       },
       "longbowman": {
         "hp": 35,
@@ -849,6 +931,342 @@
           "siege": 3,
           "spear": 1
         }
+      },
+      "cavalry-archer": {
+        "hp": 50,
+        "damage": 6,
+        "range": 250,
+        "cooldown": 30,
+        "sight": 400,
+        "attack": "pierce",
+        "armor": [
+          0,
+          0
+        ],
+        "classes": [
+          "archer",
+          "cavalry",
+          "cavalry-archer"
+        ],
+        "bonus": {
+          "spear": 2
+        }
+      },
+      "camel": {
+        "hp": 100,
+        "damage": 6,
+        "range": 50,
+        "cooldown": 20,
+        "sight": 350,
+        "attack": "melee",
+        "armor": [
+          0,
+          0
+        ],
+        "classes": [
+          "camel"
+        ],
+        "bonus": {
+          "cavalry": 9,
+          "camel": 5
+        }
+      },
+      "mangonel": {
+        "hp": 50,
+        "damage": 40,
+        "range": 400,
+        "cooldown": 60,
+        "sight": 500,
+        "attack": "melee",
+        "armor": [
+          0,
+          6
+        ],
+        "classes": [
+          "siege"
+        ],
+        "bonus": {
+          "building": 11
+        },
+        "minRange": 150,
+        "blast": 75
+      },
+      "scorpion": {
+        "hp": 40,
+        "damage": 12,
+        "range": 400,
+        "cooldown": 54,
+        "sight": 500,
+        "attack": "pierce",
+        "armor": [
+          0,
+          7
+        ],
+        "classes": [
+          "siege"
+        ],
+        "bonus": {
+          "elephant": 6,
+          "building": 1
+        },
+        "minRange": 100,
+        "passThrough": 200
+      },
+      "trebuchet": {
+        "hp": 150,
+        "damage": 25,
+        "range": 850,
+        "cooldown": 100,
+        "sight": 0,
+        "attack": "melee",
+        "armor": [
+          1,
+          8
+        ],
+        "classes": [
+          "siege"
+        ],
+        "bonus": {
+          "building": 50
+        },
+        "minRange": 200,
+        "buildingsOnly": true,
+        "setup": 150
+      },
+      "hand-cannoneer": {
+        "hp": 35,
+        "damage": 17,
+        "range": 400,
+        "cooldown": 52,
+        "sight": 450,
+        "attack": "pierce",
+        "armor": [
+          1,
+          0
+        ],
+        "classes": [
+          "archer",
+          "gunpowder"
+        ],
+        "bonus": {
+          "infantry": 10,
+          "siege": 2,
+          "spear": 1
+        }
+      },
+      "bombard-cannon": {
+        "hp": 80,
+        "damage": 40,
+        "range": 650,
+        "cooldown": 65,
+        "sight": 650,
+        "attack": "melee",
+        "armor": [
+          2,
+          5
+        ],
+        "classes": [
+          "siege",
+          "gunpowder"
+        ],
+        "bonus": {
+          "building": 64,
+          "siege": 6
+        },
+        "minRange": 250,
+        "blast": 50
+      },
+      "petard": {
+        "hp": 50,
+        "damage": 25,
+        "range": 50,
+        "cooldown": 20,
+        "sight": 0,
+        "attack": "melee",
+        "armor": [
+          0,
+          2
+        ],
+        "classes": [
+          "petard"
+        ],
+        "bonus": {
+          "building": 55,
+          "siege": 19
+        },
+        "selfDestruct": true
+      },
+      "fishing-ship": {
+        "hp": 60,
+        "damage": 0,
+        "range": 0,
+        "cooldown": 0,
+        "sight": 0,
+        "attack": "none",
+        "armor": [
+          0,
+          4
+        ],
+        "classes": [
+          "ship",
+          "fishing"
+        ],
+        "bonus": {}
+      },
+      "transport-ship": {
+        "hp": 100,
+        "damage": 0,
+        "range": 0,
+        "cooldown": 0,
+        "sight": 0,
+        "attack": "none",
+        "armor": [
+          4,
+          8
+        ],
+        "classes": [
+          "ship",
+          "transport"
+        ],
+        "bonus": {}
+      },
+      "trade-cog": {
+        "hp": 80,
+        "damage": 0,
+        "range": 0,
+        "cooldown": 0,
+        "sight": 0,
+        "attack": "none",
+        "armor": [
+          0,
+          6
+        ],
+        "classes": [
+          "ship",
+          "trade"
+        ],
+        "bonus": {}
+      },
+      "trade-cart": {
+        "hp": 70,
+        "damage": 0,
+        "range": 0,
+        "cooldown": 0,
+        "sight": 0,
+        "attack": "none",
+        "armor": [
+          0,
+          0
+        ],
+        "classes": [
+          "trade"
+        ],
+        "bonus": {}
+      },
+      "galley": {
+        "hp": 120,
+        "damage": 6,
+        "range": 300,
+        "cooldown": 46,
+        "sight": 400,
+        "attack": "pierce",
+        "armor": [
+          0,
+          6
+        ],
+        "classes": [
+          "ship",
+          "warship",
+          "galley"
+        ],
+        "bonus": {
+          "ship": 8,
+          "building": 2
+        }
+      },
+      "fire-galley": {
+        "hp": 100,
+        "damage": 1,
+        "range": 175,
+        "cooldown": 5,
+        "sight": 300,
+        "attack": "melee",
+        "armor": [
+          0,
+          4
+        ],
+        "classes": [
+          "ship",
+          "fire"
+        ],
+        "bonus": {
+          "ship": 3
+        }
+      },
+      "demolition-raft": {
+        "hp": 45,
+        "damage": 90,
+        "range": 50,
+        "cooldown": 20,
+        "sight": 0,
+        "attack": "melee",
+        "armor": [
+          0,
+          2
+        ],
+        "classes": [
+          "ship",
+          "demolition"
+        ],
+        "bonus": {
+          "building": 58
+        },
+        "blast": 125,
+        "selfDestruct": true
+      },
+      "cannon-galleon": {
+        "hp": 120,
+        "damage": 35,
+        "range": 700,
+        "cooldown": 100,
+        "sight": 700,
+        "attack": "melee",
+        "armor": [
+          0,
+          6
+        ],
+        "classes": [
+          "ship",
+          "gunpowder"
+        ],
+        "bonus": {
+          "building": 64,
+          "siege": 13
+        },
+        "minRange": 150
+      },
+      "longboat": {
+        "hp": 130,
+        "damage": 7,
+        "range": 350,
+        "cooldown": 50,
+        "sight": 400,
+        "attack": "pierce",
+        "armor": [
+          0,
+          6
+        ],
+        "classes": [
+          "ship",
+          "warship",
+          "unique"
+        ],
+        "bonus": {
+          "ship": 9,
+          "building": 2
+        },
+        "extraShots": 3,
+        "extraDamage": 1
       }
     },
     "buildingArmor": [
@@ -869,7 +1287,18 @@
       "blacksmith": 300,
       "watch-tower": 250,
       "siege-workshop": 300,
-      "castle": 800
+      "castle": 800,
+      "university": 350,
+      "market": 350,
+      "dock": 300,
+      "fish-trap": 40,
+      "outpost": 100,
+      "bombard-tower": 370,
+      "wonder": 800,
+      "palisade-wall": 60,
+      "palisade-gate": 70,
+      "stone-wall": 300,
+      "gate": 450
     },
     "corpseTicks": 40,
     "hitFlashTicks": 6,
@@ -898,7 +1327,24 @@
       "janissary": 5,
       "chu-ko-nu": 5,
       "samurai": 6,
-      "mangudai": 10
+      "mangudai": 10,
+      "cavalry-archer": 10,
+      "camel": 10,
+      "mangonel": 4,
+      "scorpion": 4,
+      "trebuchet": 5,
+      "petard": 5,
+      "hand-cannoneer": 5,
+      "bombard-cannon": 4.4,
+      "fishing-ship": 7.9,
+      "transport-ship": 9.1,
+      "trade-cog": 8.25,
+      "trade-cart": 6.25,
+      "galley": 8.9,
+      "fire-galley": 8.1,
+      "demolition-raft": 9.4,
+      "cannon-galleon": 6.9,
+      "longboat": 9.6
     }
   },
   "collisionScope": "static town-center (multi-rect, walkable gate and plinth), house/tree/rock/resource footprints; units hold one node and reserve the next (no overlap, no pass-through), wait, yield, trade stations and replan within bounded limits"

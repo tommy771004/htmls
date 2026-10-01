@@ -28,5 +28,5 @@ export function createAnimalRig(T:any,kind:AnimalLook,player:number,box:(w:numbe
   // Idle: the head dips to graze now and then; attack: a lunge; hit: the body rocks back.
   const graze=kind==='idle'?Math.max(0,Math.sin(t*.0017))*.35:0,lunge=kind==='attack'?Math.max(0,Math.sin(t*.012))*.18:0;
   head.rotation.x=graze;body.position.z=lunge;body.rotation.x=kind==='hit'&&t<300?-.2*Math.sin(Math.PI*t/300):0;root.rotation.z=0;}
- return {root,sockets:{leftHand:new T.Group(),rightHand:new T.Group()},equip:(_:string)=>{},dress:(_:string)=>{},pose};
+ return {root,sockets:{leftHand:new T.Group(),rightHand:new T.Group()},equip:(_:string)=>{},dress:(_:string)=>{},grade:(_:string|null)=>{},pose};
 }

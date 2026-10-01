@@ -15,10 +15,27 @@ var obstacleFootprints = {
   monastery: { x: -15, y: -15, width: 300, depth: 300 },
   blacksmith: { x: -15, y: -15, width: 300, depth: 300 },
   "siege-workshop": { x: -15, y: -15, width: 300, depth: 300 },
+  university: { x: -15, y: -15, width: 300, depth: 300 },
   // Castle: a solid 4x4 keep (the reference's castle is 4x4).
   castle: { x: -15, y: -15, width: 400, depth: 400 },
   // Watch tower: one tile.
   "watch-tower": { x: 0, y: 0, width: 100, depth: 100 },
+  // The 建築 round. Market and dock: 3x3 like the other production buildings (the reference's market is 4x4, scaled like
+  // the university). The dock stands on water next to the shore; ships leave it on the water side.
+  market: { x: -15, y: -15, width: 300, depth: 300 },
+  dock: { x: 0, y: 0, width: 300, depth: 300 },
+  // Fish trap: a 2x2 net on the water; ships sail over it (no blocking rectangle, like the farm).
+  "fish-trap": { x: 0, y: 0, width: 200, depth: 200 },
+  // One-tile structures: the outpost, the bombard tower, and every wall segment and gate (walls are dragged as a line
+  // of one-tile segments; a gate takes one segment's place). Gates block only the enemy (movement.ts gate overlay).
+  outpost: { x: 0, y: 0, width: 100, depth: 100 },
+  "bombard-tower": { x: 0, y: 0, width: 100, depth: 100 },
+  "palisade-wall": { x: 0, y: 0, width: 100, depth: 100 },
+  "stone-wall": { x: 0, y: 0, width: 100, depth: 100 },
+  "palisade-gate": { x: 0, y: 0, width: 100, depth: 100 },
+  gate: { x: 0, y: 0, width: 100, depth: 100 },
+  // The wonder: a solid 5x5 (the reference's size).
+  wonder: { x: 0, y: 0, width: 500, depth: 500 },
   tree: { x: -20, y: -20, width: 100, depth: 100 },
   rock: { x: 0, y: 0, width: 65, depth: 70 },
   gold: { x: 0, y: 0, width: 65, depth: 70 },
@@ -54,15 +71,750 @@ function obstacleBounds(o, radius = 0) {
 }
 function obstacleRects(o, radius = 0) {
   check(o, radius);
-  if (o.kind === "farm") return [];
+  if (o.kind === "farm" || o.kind === "fish-trap" || o.kind === "gate" || o.kind === "palisade-gate") return [];
   if (o.kind !== "town-center") return [obstacleBounds(o, radius)];
   return townCenterBlocking.map(([x0, y0, x1, y1]) => [o.x + x0 - radius, o.y + y0 - radius, o.x + x1 + radius, o.y + y1 + radius]);
 }
 
+// packages/content/civs.ts
+var mulKinds = ["bonusScale", "garrisonHeal", "setup", "hp", "cooldown", "speed", "cost", "time", "buildingHp", "arrowCooldown", "healRange", "healRate"];
+function fx(id, kind, select, value, text, o = {}) {
+  const mul = o.op ? o.op === "mul" : mulKinds.includes(kind);
+  return {
+    id,
+    kind,
+    select,
+    op: mul ? "mul" : "add",
+    value,
+    ...o.vs ? { vs: o.vs } : {},
+    ...o.resource ? { resource: o.resource } : {},
+    ...o.to ? { to: o.to } : {},
+    trigger: { ...o.age ? { age: o.age } : {}, ...o.tech ? { tech: o.tech } : {} },
+    stacking: mul ? "product" : "sum",
+    priority: mul ? 1 : 0,
+    scope: o.team ? "team" : "self",
+    appliesToExisting: o.existing ?? !["cost", "costShift", "time", "workRate", "startStock", "startVillagers", "deathRefund", "keepHousing", "grant", "producer"].includes(kind),
+    text
+  };
+}
+var site = (page) => `aoetw.com/${page}\uFF082026-09-30 \u53D6\u81EA github.com/webrsb/aoetw \u539F\u59CB\u78BC\uFF09`;
+var footArchers = { classes: ["archer"], exclude: ["skirmisher", "gunpowder", "cavalry-archer"] };
+var infantry = { classes: ["infantry"] };
+var neutralCiv = "settlers";
+var civDefs = [
+  { id: neutralCiv, name: "\u62D3\u8352\u8005", nameEn: "Settlers", type: "\u7121\u52A0\u6210\uFF08\u5747\u8861\u6E2C\u8A66\uFF09", architecture: "neutral", missing: [], missingLater: [], uniqueUnits: [], eliteUpgrades: [], uniqueTechs: [], effects: [], omitted: [], sources: ["\u672C\u4F5C\u539F\u5275\uFF1A\u6C92\u6709\u6587\u660E\u52A0\u6210\u8207\u57CE\u5821\uFF0C\u4F5C\u70BA\u6E2C\u8A66\u8207\u7DF4\u7FD2\u7684\u57FA\u6E96"] },
+  {
+    id: "britons",
+    name: "\u4E0D\u5217\u985B",
+    nameEn: "Britons",
+    type: "\u5F13\u5175\u6587\u660E",
+    architecture: "west",
+    missing: ["crop-rotation", "stone-shaft-mining", "redemption", "atonement", "heresy", "hussar", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "treadmill-crane", "bloodlines", "thumb-ring", "parthian-tactics", "hand-cannoneer", "bombard-cannon", "elite-cannon-galleon", "bombard-tower"],
+    missingLater: ["missionary"],
+    uniqueUnits: ["longbowman"],
+    eliteUpgrades: ["elite-longbowman"],
+    uniqueTechs: [{ id: "yeomen", name: "\u7FA9\u52C7\u9A0E\u5175", nameEn: "Yeomen", age: 3, effectText: "\u5F92\u6B65\u5F13\u5175\u5C04\u7A0B +1\uFF0C\u7BAD\u5854\u653B\u64CA +2" }, { id: "warwolf", name: "\u6230\u72FC\u865F", nameEn: "Warwolf", age: 4, effectText: "\u5DE8\u578B\u6295\u77F3\u6A5F\u7372\u5F97\u7BC4\u570D\u50B7\u5BB3" }],
+    effects: [
+      fx("britons.archer-range", "range", footArchers, [0, 0, 50, 100], "\u5F92\u6B65\u5F13\u5175\uFF08\u6563\u5175\u9664\u5916\uFF09\u5C04\u7A0B\uFF1A\u7B2C\u4E09\u6642\u4EE3 +1\u3001\u7B2C\u56DB\u6642\u4EE3 +2"),
+      fx("britons.tc-wood", "cost", { entries: ["town-center"] }, [1, 1, 0.5, 0.5], "\u7B2C\u4E09\u6642\u4EE3\u8D77\u57CE\u93AE\u4E2D\u5FC3\u6728\u6750 -50%", { resource: "wood" }),
+      fx("britons.shepherds", "gather", { sources: ["livestock"] }, 25, "\u7267\u7F8A\uFF08\u5BB0\u7F8A\u63A1\u96C6\uFF09\u901F\u5EA6 +25%"),
+      fx("britons.team-range", "workRate", { buildings: ["archery-range"] }, 20, "\u5718\u968A\u52A0\u6210\uFF1A\u9776\u5834\u751F\u7522\u901F\u5EA6 +20%", { team: true }),
+      fx("britons.yeomen-range", "range", { classes: ["archer"], exclude: ["gunpowder", "cavalry-archer"] }, 50, "\u7FA9\u52C7\u9A0E\u5175\uFF1A\u5F92\u6B65\u5F13\u5175\uFF08\u542B\u6563\u5175\uFF09\u5C04\u7A0B +1", { tech: "yeomen" }),
+      fx("britons.yeomen-tower", "arrowDamage", { buildings: ["watch-tower"] }, 2, "\u7FA9\u52C7\u9A0E\u5175\uFF1A\u7BAD\u5854\u653B\u64CA +2", { tech: "yeomen" }),
+      fx("britons.warwolf", "blast", { kinds: ["trebuchet"] }, 75, "\u6230\u72FC\u865F\uFF1A\u5DE8\u578B\u6295\u77F3\u6A5F\u7684\u77F3\u5F48\u6CE2\u53CA\u843D\u9EDE\u5468\u570D\u7684\u6575\u5175", { tech: "warwolf" })
+    ],
+    omitted: [{ text: "\u6230\u72FC\u865F\u5C0D\u975C\u6B62\u55AE\u4F4D 100% \u547D\u4E2D", reason: "\u672C\u4F5C\u7684\u5DE8\u578B\u6295\u77F3\u6A5F\u53EA\u6253\u5EFA\u7BC9\uFF0C\u4E5F\u6C92\u6709\u547D\u4E2D\u7387" }],
+    sources: [site("civs/Britons"), site("units/Longbowman"), site("techs/Yeomen"), site("techs/Warwolf"), site("tree/bri")]
+  },
+  {
+    id: "celts",
+    name: "\u585E\u723E\u7279",
+    nameEn: "Celts",
+    type: "\u6B65\u5175\u8207\u653B\u57CE\u5668\u6587\u660E",
+    architecture: "west",
+    missing: ["two-man-saw", "crop-rotation", "bracer", "ring-archer-armor", "plate-barding-armor", "redemption", "atonement", "illumination", "block-printing", "theocracy", "arbalest", "camel", "heavy-camel", "architecture", "bloodlines", "thumb-ring", "parthian-tactics", "squires", "hand-cannoneer", "bombard-cannon", "bombard-tower", "elite-cannon-galleon", "fast-fire-ship"],
+    missingLater: ["missionary"],
+    uniqueUnits: ["woad-raider"],
+    eliteUpgrades: ["elite-woad-raider"],
+    uniqueTechs: [{ id: "stronghold", name: "\u5821\u58D8", nameEn: "Stronghold", age: 3, effectText: "\u57CE\u5821\u8207\u7BAD\u5854\u5C04\u901F +25%" }, { id: "furor-celtica", name: "\u585E\u723E\u7279\u72C2\u71B1", nameEn: "Furor Celtica", age: 4, effectText: "\u653B\u57CE\u5668\u5DE5\u574A\u7684\u55AE\u4F4D\u751F\u547D +40%" }],
+    effects: [
+      fx("celts.lumberjacks", "gather", { resources: ["wood"] }, 15, "\u4F10\u6728\u901F\u5EA6 +15%"),
+      fx("celts.infantry-speed", "speed", infantry, [1, 1.15, 1.15, 1.15], "\u7B2C\u4E8C\u6642\u4EE3\u8D77\u6B65\u5175\u79FB\u52D5\u901F\u5EA6 +15%\uFF08\u672C\u4F5C\u4EE5\u6BCF tick \u6574\u6578\u6B65\u9577\u63DB\u7B97\uFF0C\u5BE6\u969B\u7D04 +11%\uFF09"),
+      fx("celts.siege-rate", "cooldown", { classes: ["siege"] }, 1 / 1.25, "\u653B\u57CE\u5668\u653B\u64CA\u901F\u5EA6 +25%"),
+      fx("celts.team-siege", "workRate", { buildings: ["siege-workshop"] }, 20, "\u5718\u968A\u52A0\u6210\uFF1A\u653B\u57CE\u5668\u5DE5\u574A\u751F\u7522\u901F\u5EA6 +20%", { team: true }),
+      fx("celts.stronghold", "arrowCooldown", { buildings: ["castle", "watch-tower"] }, 1 / 1.25, "\u5821\u58D8\uFF1A\u57CE\u5821\u8207\u7BAD\u5854\u5C04\u901F +25%", { tech: "stronghold" }),
+      fx("celts.furor", "hp", { kinds: ["ram", "mangonel", "scorpion", "bombard-cannon"] }, 1.4, "\u585E\u723E\u7279\u72C2\u71B1\uFF1A\u653B\u57CE\u5668\u751F\u547D +40%", { tech: "furor-celtica" })
+    ],
+    omitted: [{ text: "\u53EF\u5728\u5C0D\u624B\u55AE\u4F4D\u8996\u91CE\u5167\u6436\u8D70\u5C0D\u624B\u7684\u7F8A", reason: "\u672C\u4F5C\u7684\u6436\u7F8A\u898F\u5247\u4E0D\u770B\u8996\u91CE\uFF08\u5DF1\u65B9\u5EFA\u7BC9 4 \u683C\u5167\u7684\u7F8A\u672C\u4F86\u5C31\u4E0D\u6703\u88AB\u6436\uFF09" }],
+    sources: [site("civs/Celts"), site("units/Woad_Raider"), site("techs/Stronghold"), site("techs/Furor_Celtica"), site("tree/cel")]
+  },
+  {
+    id: "franks",
+    name: "\u6CD5\u862D\u514B",
+    nameEn: "Franks",
+    type: "\u9A0E\u5175\u6587\u660E",
+    architecture: "west",
+    missing: ["two-man-saw", "stone-shaft-mining", "bracer", "ring-archer-armor", "redemption", "arbalest", "hussar", "camel", "heavy-camel", "siege-ram", "siege-onager", "keep", "bloodlines", "thumb-ring", "parthian-tactics", "sappers", "bombard-tower", "heated-shot", "shipwright", "elite-cannon-galleon", "guilds"],
+    missingLater: ["missionary"],
+    uniqueUnits: ["throwing-axeman"],
+    eliteUpgrades: ["elite-throwing-axeman"],
+    uniqueTechs: [{ id: "chivalry", name: "\u9A0E\u58EB\u7CBE\u795E", nameEn: "Chivalry", age: 3, effectText: "\u99AC\u5EC4\u751F\u7522\u901F\u5EA6 +40%" }, { id: "bearded-axe", name: "\u5012\u9264\u65A7", nameEn: "Bearded Axe", age: 4, effectText: "\u64F2\u65A7\u5175\u5C04\u7A0B +1" }],
+    effects: [
+      fx("franks.foragers", "gather", { sources: ["berries"] }, 25, "\u63A1\u6F3F\u679C\u901F\u5EA6 +25%"),
+      fx("franks.free-farming", "cost", { entries: ["horse-collar", "heavy-plow", "crop-rotation"] }, 0, "\u78E8\u574A\u7684\u8FB2\u7530\u79D1\u6280\u514D\u8CBB"),
+      fx("franks.cavalry-hp", "hp", { kinds: ["scout", "knight"] }, [1, 1.2, 1.2, 1.2], "\u7B2C\u4E8C\u6642\u4EE3\u8D77\u99AC\u5EC4\u55AE\u4F4D\u751F\u547D +20%"),
+      fx("franks.castle", "cost", { entries: ["castle"] }, 0.75, "\u57CE\u5821\u4FBF\u5B9C 25%"),
+      fx("franks.team-los", "los", { kinds: ["knight"] }, 200, "\u5718\u968A\u52A0\u6210\uFF1A\u9A0E\u58EB\u8996\u91CE +2", { team: true }),
+      fx("franks.chivalry", "workRate", { buildings: ["stable"] }, 40, "\u9A0E\u58EB\u7CBE\u795E\uFF1A\u99AC\u5EC4\u751F\u7522\u901F\u5EA6 +40%", { tech: "chivalry" }),
+      fx("franks.bearded-axe", "range", { kinds: ["throwing-axeman"] }, 50, "\u5012\u9264\u65A7\uFF1A\u64F2\u65A7\u5175\u5C04\u7A0B +1", { tech: "bearded-axe" })
+    ],
+    omitted: [],
+    sources: [site("civs/Franks"), site("units/Throwing_Axeman"), site("techs/Chivalry"), site("techs/Bearded_Axe"), site("tree/fra")]
+  },
+  {
+    id: "goths",
+    name: "\u54E5\u5FB7",
+    nameEn: "Goths",
+    type: "\u6B65\u5175\u6587\u660E",
+    architecture: "central",
+    missing: ["gold-shaft-mining", "plate-mail-armor", "plate-barding-armor", "redemption", "atonement", "heresy", "block-printing", "arbalest", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "siege-engineers", "guard-tower", "keep", "treadmill-crane", "arrowslits", "thumb-ring", "parthian-tactics", "arson", "hoardings", "bombard-tower", "elite-cannon-galleon", "dry-dock", "fortified-wall"],
+    missingLater: ["missionary"],
+    uniqueUnits: ["huskarl"],
+    eliteUpgrades: ["elite-huskarl"],
+    uniqueTechs: [{ id: "anarchy", name: "\u7121\u653F\u5E9C\u72C0\u614B", nameEn: "Anarchy", age: 3, effectText: "\u5175\u71DF\u4E5F\u80FD\u8A13\u7DF4\u54E5\u5FB7\u885B\u968A" }, { id: "perfusion", name: "\u4E95\u5674", nameEn: "Perfusion", age: 4, effectText: "\u5175\u71DF\u751F\u7522\u901F\u5EA6 +100%" }],
+    effects: [
+      fx("goths.infantry-cost", "cost", { entries: ["militia", "spearman", "huskarl"] }, [0.8, 0.75, 0.7, 0.65], "\u6B65\u5175\u4FBF\u5B9C\uFF1A\u7B2C\u4E00\u81F3\u7B2C\u56DB\u6642\u4EE3 -20% / -25% / -30% / -35%"),
+      fx("goths.infantry-buildings", "bonus", infantry, [0, 1, 2, 3], "\u6B65\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +1 / +2 / +3", { vs: "building" }),
+      fx("goths.boar", "huntDamage", { prey: ["boar"] }, 5, "\u6751\u6C11\u6253\u91CE\u8C6C\u653B\u64CA +5"),
+      fx("goths.hunter-carry", "carry", { sources: ["hunt"] }, 15, "\u7375\u4EBA\u651C\u5E36\u91CF +15"),
+      fx("goths.pop", "popCap", {}, [0, 0, 0, 10], "\u7B2C\u56DB\u6642\u4EE3\u4EBA\u53E3\u4E0A\u9650 +10"),
+      fx("goths.loom", "time", { entries: ["loom"] }, 0, "\u7E54\u5E03\u6A5F\u7ACB\u5373\u5B8C\u6210\uFF08\u4ECD\u9700\u4ED8\u8CBB\uFF09"),
+      fx("goths.team-barracks", "workRate", { buildings: ["barracks"] }, 20, "\u5718\u968A\u52A0\u6210\uFF1A\u5175\u71DF\u751F\u7522\u901F\u5EA6 +20%", { team: true }),
+      fx("goths.anarchy", "producer", { entries: ["huskarl"], buildings: ["barracks"] }, 1, "\u7121\u653F\u5E9C\u72C0\u614B\uFF1A\u5175\u71DF\u4E5F\u80FD\u8A13\u7DF4\u54E5\u5FB7\u885B\u968A", { tech: "anarchy" }),
+      fx("goths.perfusion", "workRate", { buildings: ["barracks"] }, 100, "\u4E95\u5674\uFF1A\u5175\u71DF\u751F\u7522\u901F\u5EA6 +100%", { tech: "perfusion" })
+    ],
+    omitted: [],
+    sources: [site("civs/Goths"), site("units/Huskarl"), site("techs/Anarchy"), site("techs/Perfusion"), site("tree/got")]
+  },
+  {
+    id: "teutons",
+    name: "\u689D\u9813",
+    nameEn: "Teutons",
+    type: "\u6B65\u5175\u6587\u660E",
+    architecture: "central",
+    missing: ["bracer", "light-cavalry", "gold-shaft-mining", "arbalest", "heavy-cavalry-archer", "hussar", "camel", "heavy-camel", "siege-ram", "architecture", "husbandry", "thumb-ring", "parthian-tactics", "sappers", "shipwright", "elite-cannon-galleon", "dry-dock"],
+    missingLater: [],
+    uniqueUnits: ["teutonic-knight"],
+    eliteUpgrades: ["elite-teutonic-knight"],
+    uniqueTechs: [{ id: "ironclad", name: "\u92FC\u9435\u7532", nameEn: "Ironclad", age: 3, effectText: "\u653B\u57CE\u5668\u8FD1\u6230\u8B77\u7532 +4" }, { id: "crenellations", name: "\u7832\u9580\u579B\u53E3", nameEn: "Crenellations", age: 4, effectText: "\u57CE\u5821\u5C04\u7A0B +3\uFF0C\u9032\u99D0\u7684\u6B65\u5175\u4E5F\u6703\u5C04\u7BAD" }],
+    effects: [
+      fx("teutons.heal-range", "healRange", {}, 2, "\u50E7\u4FB6\u6CBB\u7642\u8DDD\u96E2\u5169\u500D"),
+      fx("teutons.tower-garrison", "garrison", { buildings: ["watch-tower"] }, 5, "\u7BAD\u5854\u53EF\u99D0\u7D2E\u5169\u500D\u55AE\u4F4D"),
+      fx("teutons.farms", "cost", { entries: ["farm"] }, 0.6, "\u8FB2\u7530\u4FBF\u5B9C 40%"),
+      fx("teutons.herbal", "cost", { entries: ["herbal-medicine"] }, 0, "\u8349\u85E5\u6CBB\u7642\u514D\u8CBB"),
+      fx("teutons.tc-garrison", "garrison", { buildings: ["town-center"] }, 10, "\u57CE\u93AE\u4E2D\u5FC3\u99D0\u8ECD +10"),
+      fx("teutons.melee-armor", "meleeArmor", { kinds: ["militia", "spearman", "scout", "knight"] }, [0, 0, 1, 2], "\u5175\u71DF\u8207\u99AC\u5EC4\u55AE\u4F4D\u8FD1\u6230\u8B77\u7532\uFF1A\u7B2C\u4E09\u6642\u4EE3 +1\u3001\u7B2C\u56DB\u6642\u4EE3 +2"),
+      fx("teutons.team-faith", "conversionResist", {}, 1, "\u5718\u968A\u52A0\u6210\uFF1A\u55AE\u4F4D\u8F03\u96E3\u88AB\u8F49\u5316\uFF08\u6BCF\u540D\u50E7\u4FB6\u7684\u5224\u5B9A\u591A\u4E00\u6B21\u5FC5\u5B9A\u5931\u6557\uFF09", { team: true }),
+      fx("teutons.ironclad", "meleeArmor", { classes: ["siege"] }, 4, "\u92FC\u9435\u7532\uFF1A\u653B\u57CE\u5668\u8FD1\u6230\u8B77\u7532 +4", { tech: "ironclad" }),
+      fx("teutons.crenellations-range", "arrowRange", { buildings: ["castle"] }, 150, "\u7832\u9580\u579B\u53E3\uFF1A\u57CE\u5821\u5C04\u7A0B +3", { tech: "crenellations" }),
+      fx("teutons.crenellations-infantry", "garrisonArrows", { buildings: ["castle"], classes: ["infantry"] }, 1, "\u7832\u9580\u579B\u53E3\uFF1A\u9032\u99D0\u57CE\u5821\u7684\u6B65\u5175\u5404\u591A\u4E00\u652F\u7BAD", { tech: "crenellations" })
+    ],
+    omitted: [{ text: "\u514D\u8CBB\u8FD1\u5C04\u5B54", reason: "\u672C\u4F5C\u7684\u7BAD\u5854\u6C92\u6709\u6700\u8FD1\u5C04\u7A0B\uFF0C\u8FD1\u5C04\u5B54\u6C92\u6709\u4F5C\u7528" }],
+    sources: [site("civs/Teutons"), site("units/Teutonic_Knight"), site("techs/Ironclad"), site("techs/Crenellations"), site("tree/teu")]
+  },
+  {
+    id: "vikings",
+    name: "\u7DAD\u4EAC",
+    nameEn: "Vikings",
+    type: "\u6B65\u5175\u8207\u6D77\u8ECD\u6587\u660E",
+    architecture: "central",
+    missing: ["stone-shaft-mining", "plate-barding-armor", "redemption", "sanctity", "illumination", "theocracy", "halberdier", "heavy-cavalry-archer", "hussar", "paladin", "camel", "heavy-camel", "siege-onager", "keep", "bloodlines", "husbandry", "parthian-tactics", "herbal-medicine", "hand-cannoneer", "bombard-cannon", "bombard-tower", "fire-galley", "fast-fire-ship", "elite-cannon-galleon", "shipwright", "guilds"],
+    missingLater: ["missionary"],
+    uniqueUnits: ["berserk", "longboat"],
+    eliteUpgrades: ["elite-berserk", "elite-longboat"],
+    uniqueTechs: [{ id: "chieftains", name: "\u914B\u9577", nameEn: "Chieftains", age: 3, effectText: "\u6B65\u5175\u5C0D\u9A0E\u5175\u653B\u64CA +5" }, { id: "berserkergang", name: "\u72C2\u6230\u58EB\u5E6B", nameEn: "Berserkergang", age: 4, effectText: "\u72C2\u6230\u58EB\u56DE\u8840\u901F\u5EA6\u5169\u500D" }],
+    effects: [
+      fx("vikings.infantry-hp", "hp", infantry, [1, 1.1, 1.15, 1.2], "\u6B65\u5175\u751F\u547D\uFF1A\u7B2C\u4E8C\u6642\u4EE3 +10%\u3001\u7B2C\u4E09\u6642\u4EE3 +15%\u3001\u7B2C\u56DB\u6642\u4EE3 +20%"),
+      fx("vikings.wheelbarrow", "grant", { entries: ["wheelbarrow"] }, 1, "\u5347\u5230\u7B2C\u4E8C\u6642\u4EE3\u6642\u514D\u8CBB\u5F97\u5230\u624B\u63A8\u8ECA", { age: 2 }),
+      fx("vikings.hand-cart", "grant", { entries: ["hand-cart"] }, 1, "\u5347\u5230\u7B2C\u4E09\u6642\u4EE3\u6642\u514D\u8CBB\u5F97\u5230\u624B\u62C9\u8ECA", { age: 3 }),
+      fx("vikings.chieftains", "bonus", infantry, 5, "\u914B\u9577\uFF1A\u6B65\u5175\u5C0D\u9A0E\u5175\u653B\u64CA +5", { vs: "cavalry", tech: "chieftains" }),
+      fx("vikings.chieftains-camel", "bonus", infantry, 4, "\u914B\u9577\uFF1A\u6B65\u5175\u5C0D\u99F1\u99DD\u9A0E\u5175\u653B\u64CA +4", { vs: "camel", tech: "chieftains" }),
+      fx("vikings.berserkergang", "regen", { kinds: ["berserk"] }, 20, "\u72C2\u6230\u58EB\u5E6B\uFF1A\u72C2\u6230\u58EB\u6BCF\u5206\u9418\u56DE\u8840 20 \u2192 40", { tech: "berserkergang" }),
+      fx("vikings.warships", "cost", { entries: ["galley", "demolition-raft", "cannon-galleon", "longboat"] }, [1, 0.85, 0.85, 0.8], "\u6230\u8239\u4FBF\u5B9C\uFF1A\u7B2C\u4E8C\u3001\u7B2C\u4E09\u6642\u4EE3 -15%\uFF0C\u7B2C\u56DB\u6642\u4EE3 -20%"),
+      fx("vikings.team-dock", "cost", { entries: ["dock"] }, 0.85, "\u5718\u968A\u52A0\u6210\uFF1A\u78BC\u982D\u4FBF\u5B9C 15%", { team: true })
+    ],
+    omitted: [],
+    sources: [site("civs/Vikings"), site("units/Berserk"), site("units/Longboat"), site("techs/Chieftains"), site("techs/Berserkergang"), site("tree/vik")]
+  },
+  {
+    id: "byzantines",
+    name: "\u62DC\u5360\u5EAD",
+    nameEn: "Byzantines",
+    type: "\u9632\u79A6\u6587\u660E",
+    architecture: "mideast",
+    missing: ["masonry", "architecture", "blast-furnace", "siege-onager", "heavy-scorpion", "siege-engineers", "treadmill-crane", "bloodlines", "parthian-tactics", "sappers", "herbal-medicine", "heated-shot", "bombard-tower"],
+    missingLater: ["missionary"],
+    uniqueUnits: ["cataphract"],
+    eliteUpgrades: ["elite-cataphract"],
+    uniqueTechs: [{ id: "greek-fire", name: "\u5E0C\u81D8\u4E4B\u706B", nameEn: "Greek Fire", age: 3, effectText: "\u706B\u6230\u8239\u5C04\u7A0B +1" }, { id: "logistica", name: "\u5F8C\u52E4", nameEn: "Logistica", age: 4, effectText: "\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u8E10\u8E0F\u50B7\u5BB3\uFF0C\u5C0D\u6B65\u5175 +6" }],
+    effects: [
+      fx("byzantines.building-hp", "buildingHp", {}, [1.1, 1.2, 1.3, 1.4], "\u5EFA\u7BC9\u751F\u547D\uFF1A\u7B2C\u4E00\u81F3\u7B2C\u56DB\u6642\u4EE3 +10% / +20% / +30% / +40%"),
+      fx("byzantines.counter-cost", "cost", { entries: ["spearman", "skirmisher", "camel"] }, 0.75, "\u9577\u69CD\u5175\u3001\u6563\u5175\u8207\u99F1\u99DD\u9A0E\u5175\u4FBF\u5B9C 25%"),
+      fx("byzantines.town-watch", "cost", { entries: ["town-watch"] }, 0, "\u57CE\u93AE\u77AD\u671B\u514D\u8CBB"),
+      fx("byzantines.imperial", "cost", { entries: ["age-4"] }, 0.67, "\u5347\u7B2C\u56DB\u6642\u4EE3\u4FBF\u5B9C 33%"),
+      fx("byzantines.team-heal", "healRate", {}, 1.5, "\u5718\u968A\u52A0\u6210\uFF1A\u50E7\u4FB6\u6CBB\u7642\u901F\u5EA6 +50%", { team: true }),
+      fx("byzantines.logistica", "bonus", { kinds: ["cataphract"] }, 6, "\u5F8C\u52E4\uFF1A\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u5C0D\u6B65\u5175 +6", { vs: "infantry", tech: "logistica" }),
+      fx("byzantines.trample", "splash", { kinds: ["cataphract"] }, 5, "\u5F8C\u52E4\uFF1A\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u653B\u64CA\u6642\uFF0C\u76EE\u6A19\u65C1\u7684\u6575\u5175\u53D7 5 \u9EDE\u8E10\u8E0F\u50B7\u5BB3", { tech: "logistica" }),
+      fx("byzantines.fire-ships", "cooldown", { kinds: ["fire-galley"] }, 1 / 1.25, "\u706B\u6230\u8239\u7CFB\u653B\u64CA\u901F\u5EA6 +25%"),
+      fx("byzantines.greek-fire", "range", { kinds: ["fire-galley"] }, 50, "\u5E0C\u81D8\u4E4B\u706B\uFF1A\u706B\u6230\u8239\u7CFB\u5C04\u7A0B +1", { tech: "greek-fire" })
+    ],
+    omitted: [],
+    sources: [site("civs/Byzantines"), site("units/Cataphract"), site("techs/Greek_Fire"), site("techs/Logistica"), site("tree/byz")]
+  },
+  {
+    id: "persians",
+    name: "\u6CE2\u65AF",
+    nameEn: "Persians",
+    type: "\u9A0E\u5175\u6587\u660E",
+    architecture: "mideast",
+    missing: ["bracer", "redemption", "atonement", "heresy", "sanctity", "illumination", "two-handed-swordsman", "champion", "arbalest", "siege-onager", "siege-engineers", "keep", "treadmill-crane", "arrowslits", "shipwright", "bombard-tower", "fortified-wall"],
+    missingLater: ["missionary"],
+    uniqueUnits: ["war-elephant"],
+    eliteUpgrades: ["elite-war-elephant"],
+    uniqueTechs: [{ id: "kamandaran", name: "\u6CE2\u65AF\u5F13\u5175", nameEn: "Kamandaran", age: 3, effectText: "\u5F13\u624B\u6539\u7528\u6728\u6750\u652F\u4ED8\u539F\u672C\u7684\u9EC3\u91D1" }, { id: "mahouts", name: "\u8C61\u4F15", nameEn: "Mahouts", age: 4, effectText: "\u6230\u8C61\u79FB\u52D5\u901F\u5EA6 +30%" }],
+    effects: [
+      fx("persians.food", "startStock", {}, 50, "\u958B\u5C40\u98DF\u7269 +50", { resource: "food" }),
+      fx("persians.wood", "startStock", {}, 50, "\u958B\u5C40\u6728\u6750 +50", { resource: "wood" }),
+      fx("persians.tc-hp", "buildingHp", { buildings: ["town-center", "dock"] }, 2, "\u57CE\u93AE\u4E2D\u5FC3\u8207\u78BC\u982D\u751F\u547D\u5169\u500D"),
+      fx("persians.tc-rate", "workRate", { buildings: ["town-center", "dock"] }, [0, 10, 15, 20], "\u57CE\u93AE\u4E2D\u5FC3\u8207\u78BC\u982D\u751F\u7522\u8207\u7814\u7A76\u901F\u5EA6\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +10% / +15% / +20%"),
+      fx("persians.team-knights", "bonus", { kinds: ["knight"] }, 2, "\u5718\u968A\u52A0\u6210\uFF1A\u9A0E\u58EB\u5C0D\u5F13\u5175\u653B\u64CA +2", { vs: "archer", team: true }),
+      fx("persians.kamandaran", "costShift", { entries: ["archer"] }, 1, "\u6CE2\u65AF\u5F13\u5175\uFF1A\u5F13\u624B\u7684\u9EC3\u91D1\u6539\u4EE5\u6728\u6750\u652F\u4ED8", { resource: "gold", to: "wood", tech: "kamandaran" }),
+      fx("persians.mahouts", "speed", { kinds: ["war-elephant"] }, 1.3, "\u8C61\u4F15\uFF1A\u6230\u8C61\u79FB\u52D5\u901F\u5EA6 +30%", { tech: "mahouts" })
+    ],
+    omitted: [],
+    sources: [site("civs/Persians"), site("units/War_Elephant"), site("techs/Kamandaran"), site("techs/Mahouts"), site("tree/pre")]
+  },
+  {
+    id: "saracens",
+    name: "\u85A9\u62C9\u68EE",
+    nameEn: "Saracens",
+    type: "\u99F1\u99DD\u8207\u6D77\u8ECD\u6587\u660E",
+    architecture: "mideast",
+    missing: ["crop-rotation", "stone-shaft-mining", "halberdier", "cavalier", "paladin", "heavy-scorpion", "architecture", "sappers", "bombard-tower", "heated-shot", "shipwright", "guilds", "fast-fire-ship"],
+    missingLater: ["missionary"],
+    uniqueUnits: ["mameluke"],
+    eliteUpgrades: ["elite-mameluke"],
+    uniqueTechs: [{ id: "madrasah", name: "\u7A46\u65AF\u6797\u5B78\u588A", nameEn: "Madrasah", age: 3, effectText: "\u50E7\u4FB6\u6B7B\u4EA1\u6642\u8FD4\u9084 33 \u9EC3\u91D1" }, { id: "zealotry", name: "\u72C2\u71B1", nameEn: "Zealotry", age: 4, effectText: "\u99F1\u99DD\u9A0E\u5175\u8207\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u751F\u547D +30" }],
+    effects: [
+      fx("saracens.archer-buildings", "bonus", footArchers, [0, 1, 2, 3], "\u5F13\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +1 / +2 / +3", { vs: "building" }),
+      fx("saracens.team-archers", "bonus", footArchers, 2, "\u5718\u968A\u52A0\u6210\uFF1A\u5F92\u6B65\u5F13\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA +2", { vs: "building", team: true }),
+      fx("saracens.horse-archer-buildings", "bonus", { classes: ["cavalry-archer"] }, [0, 2, 3, 4], "\u99AC\u5F13\u9A0E\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +2 / +3 / +4\uFF08\u5F13\u5175\u7684\u52A0\u6210\u518D +1\uFF09", { vs: "building" }),
+      fx("saracens.madrasah", "deathRefund", { kinds: ["monk"] }, 33, "\u7A46\u65AF\u6797\u5B78\u588A\uFF1A\u50E7\u4FB6\u6B7B\u4EA1\u6642\u8FD4\u9084 33 \u9EC3\u91D1", { tech: "madrasah" }),
+      fx("saracens.zealotry", "hp", { kinds: ["mameluke", "camel"] }, 30, "\u72C2\u71B1\uFF1A\u99F1\u99DD\u9A0E\u5175\u8207\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u751F\u547D +30", { tech: "zealotry", op: "add" }),
+      fx("saracens.market-fee", "marketFee", {}, -25, "\u5E02\u96C6\u4EA4\u6613\u8CBB 5%\uFF08\u4E00\u822C 30%\uFF09"),
+      fx("saracens.market-cost", "cost", { entries: ["market"] }, 100 / 175, "\u5E02\u96C6\u4FBF\u5B9C 75 \u6728\u6750", { resource: "wood" }),
+      fx("saracens.transport-hp", "hp", { kinds: ["transport-ship"] }, 2, "\u904B\u8F38\u8239\u751F\u547D\u5169\u500D"),
+      fx("saracens.transport-capacity", "transportCapacity", { kinds: ["transport-ship"] }, 5, "\u904B\u8F38\u8239\u904B\u8F09 +5"),
+      fx("saracens.galleys", "cooldown", { classes: ["galley"] }, 1 / 1.25, "\u6230\u8239\u7CFB\u653B\u64CA\u901F\u5EA6 +25%")
+    ],
+    omitted: [],
+    sources: [site("civs/Saracens"), site("units/Mameluke"), site("techs/Madrasah"), site("techs/Zealotry"), site("tree/sar")]
+  },
+  {
+    id: "turks",
+    name: "\u571F\u8033\u5176",
+    nameEn: "Turks",
+    type: "\u706B\u85E5\u6587\u660E",
+    architecture: "mideast",
+    missing: ["pikeman", "elite-skirmisher", "stone-shaft-mining", "faith", "illumination", "halberdier", "arbalest", "paladin", "onager", "siege-onager", "siege-engineers", "herbal-medicine", "shipwright", "fast-fire-ship"],
+    missingLater: [],
+    uniqueUnits: ["janissary"],
+    eliteUpgrades: ["elite-janissary"],
+    uniqueTechs: [{ id: "sipahi", name: "\u91C7\u9091\u9A0E\u5175", nameEn: "Sipahi", age: 3, effectText: "\u99AC\u5F13\u9A0E\u5175\u8207\u6A19\u69CD\u9A0E\u5175\u751F\u547D +20" }, { id: "artillery", name: "\u7832\u5175", nameEn: "Artillery", age: 4, effectText: "\u706B\u7832\u3001\u706B\u7832\u5854\u3001\u706B\u7832\u6230\u8239\u5C04\u7A0B +2" }],
+    effects: [
+      fx("turks.gunpowder-hp", "hp", { classes: ["gunpowder"] }, 1.25, "\u706B\u85E5\u55AE\u4F4D\u751F\u547D +25%"),
+      fx("turks.gold", "gather", { resources: ["gold"] }, 20, "\u63A1\u91D1\u901F\u5EA6 +20%"),
+      fx("turks.free-light-cavalry", "cost", { entries: ["light-cavalry", "hussar"] }, 0, "\u65A5\u5019\u7CFB\u5347\u7D1A\u514D\u8CBB"),
+      fx("turks.sipahi", "hp", { classes: ["cavalry-archer"] }, 20, "\u91C7\u9091\u9A0E\u5175\uFF1A\u99AC\u5F13\u9A0E\u5175\u751F\u547D +20", { tech: "sipahi", op: "add" }),
+      fx("turks.scout-armor", "pierceArmor", { kinds: ["scout"] }, 1, "\u65A5\u5019\u7CFB\u9060\u7A0B\u8B77\u7532 +1"),
+      fx("turks.chemistry", "cost", { entries: ["chemistry"] }, 0, "\u5316\u5B78\u514D\u8CBB"),
+      fx("turks.artillery", "range", { kinds: ["bombard-cannon", "cannon-galleon"] }, 100, "\u7832\u5175\uFF1A\u706B\u7832\u8207\u706B\u7832\u6230\u8239\u5C04\u7A0B +2", { tech: "artillery" }),
+      fx("turks.artillery-tower", "arrowRange", { buildings: ["bombard-tower"] }, 100, "\u7832\u5175\uFF1A\u706B\u7832\u5854\u5C04\u7A0B +2", { tech: "artillery" }),
+      fx("turks.gunpowder-techs", "cost", { entries: ["elite-cannon-galleon", "bombard-tower-tech"] }, 0.5, "\u706B\u85E5\u79D1\u6280\u4FBF\u5B9C 50%\uFF08\u7CBE\u92B3\u706B\u7832\u6230\u8239\u3001\u706B\u7832\u5854\uFF1B\u5316\u5B78\u53E6\u5916\u514D\u8CBB\uFF09"),
+      fx("turks.team-gunpowder", "time", { entries: ["janissary", "hand-cannoneer", "bombard-cannon", "cannon-galleon"] }, 1 / 1.25, "\u5718\u968A\u52A0\u6210\uFF1A\u706B\u85E5\u55AE\u4F4D\u8A13\u7DF4\u901F\u5EA6 +25%", { team: true })
+    ],
+    omitted: [],
+    sources: [site("civs/Turks"), site("units/Janissary"), site("techs/Sipahi"), site("techs/Artillery"), site("tree/tur")]
+  },
+  {
+    id: "chinese",
+    name: "\u4E2D\u570B",
+    nameEn: "Chinese",
+    type: "\u5F13\u5175\u6587\u660E",
+    architecture: "eastasia",
+    missing: ["crop-rotation", "redemption", "heresy", "hussar", "paladin", "siege-onager", "siege-engineers", "parthian-tactics", "hoardings", "hand-cannoneer", "bombard-cannon", "guilds", "fast-fire-ship", "elite-cannon-galleon"],
+    missingLater: [],
+    uniqueUnits: ["chu-ko-nu"],
+    eliteUpgrades: ["elite-chu-ko-nu"],
+    uniqueTechs: [{ id: "great-wall", name: "\u9577\u57CE", nameEn: "Great Wall", age: 3, effectText: "\u7BAD\u5854\u8207\u57CE\u7246\u751F\u547D +30%" }, { id: "rocketry", name: "\u706B\u7BAD\u6280\u8853", nameEn: "Rocketry", age: 4, effectText: "\u9023\u5F29\u5175\u653B\u64CA +2\uFF0C\u5F29\u7832\u653B\u64CA +4" }],
+    effects: [
+      fx("chinese.villagers", "startVillagers", {}, 3, "\u958B\u5C40\u591A 3 \u540D\u6751\u6C11"),
+      fx("chinese.food", "startStock", {}, -200, "\u958B\u5C40\u98DF\u7269 -200", { resource: "food" }),
+      fx("chinese.wood", "startStock", {}, -50, "\u958B\u5C40\u6728\u6750 -50", { resource: "wood" }),
+      fx("chinese.tc-housing", "housing", { buildings: ["town-center"] }, 5, "\u57CE\u93AE\u4E2D\u5FC3\u53EF\u4F4F 10 \u4EBA"),
+      fx("chinese.tc-los", "los", { buildings: ["town-center"] }, 500, "\u57CE\u93AE\u4E2D\u5FC3\u8996\u91CE +5"),
+      fx("chinese.techs", "cost", { allTechs: true, exclude: ["age-2", "age-3", "age-4"] }, [1, 0.9, 0.85, 0.8], "\u79D1\u6280\u4FBF\u5B9C\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 -10% / -15% / -20%"),
+      fx("chinese.team-farms", "farmFood", {}, 45, "\u5718\u968A\u52A0\u6210\uFF1A\u8FB2\u7530\u98DF\u7269 +45", { team: true }),
+      fx("chinese.great-wall", "buildingHp", { buildings: ["watch-tower", "palisade-wall", "stone-wall", "palisade-gate", "gate"] }, 1.3, "\u9577\u57CE\uFF1A\u7BAD\u5854\u8207\u57CE\u7246\uFF08\u542B\u57CE\u9580\uFF09\u751F\u547D +30%", { tech: "great-wall" }),
+      fx("chinese.demolition-hp", "hp", { kinds: ["demolition-raft"] }, 1.5, "\u7206\u7834\u8239\u7CFB\u751F\u547D +50%"),
+      fx("chinese.rocketry", "attack", { kinds: ["chu-ko-nu"] }, 2, "\u706B\u7BAD\u6280\u8853\uFF1A\u9023\u5F29\u5175\u653B\u64CA +2", { tech: "rocketry" }),
+      fx("chinese.rocketry-scorpion", "attack", { kinds: ["scorpion"] }, 4, "\u706B\u7BAD\u6280\u8853\uFF1A\u5F29\u7832\u653B\u64CA +4", { tech: "rocketry" })
+    ],
+    omitted: [],
+    sources: [site("civs/Chinese"), site("units/Chu_Ko_Nu"), site("techs/Great_Wall"), site("techs/Rocketry"), site("tree/chi")]
+  },
+  {
+    id: "japanese",
+    name: "\u65E5\u672C",
+    nameEn: "Japanese",
+    type: "\u6B65\u5175\u6587\u660E",
+    architecture: "eastasia",
+    missing: ["crop-rotation", "stone-shaft-mining", "plate-barding-armor", "heresy", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "architecture", "hoardings", "bombard-cannon", "bombard-tower", "heated-shot", "guilds", "heavy-demolition-ship"],
+    missingLater: ["missionary"],
+    uniqueUnits: ["samurai"],
+    eliteUpgrades: ["elite-samurai"],
+    uniqueTechs: [{ id: "yasama", name: "\u5C04\u7BAD\u5B54", nameEn: "Yasama", age: 3, effectText: "\u7BAD\u5854\u591A\u5C04\u5169\u652F\u7BAD" }, { id: "kataparuto", name: "\u5F48\u5C04\u5668", nameEn: "Kataparuto", age: 4, effectText: "\u5DE8\u578B\u6295\u77F3\u6A5F\u7D44\u88DD\u8207\u5C04\u901F\u63D0\u5347" }],
+    effects: [
+      fx("japanese.camps", "cost", { entries: ["lumber-camp", "mining-camp", "mill"] }, 0.5, "\u4F10\u6728\u5834\u3001\u63A1\u7926\u5834\u3001\u78E8\u574A\u4FBF\u5B9C 50%"),
+      fx("japanese.infantry-rate", "cooldown", infantry, [1, 0.9, 0.85, 0.75], "\u6B65\u5175\u653B\u64CA\u901F\u5EA6\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +10% / +15% / +25%"),
+      fx("japanese.kataparuto-setup", "setup", { kinds: ["trebuchet"] }, 0.25, "\u5F48\u5C04\u5668\uFF1A\u5DE8\u578B\u6295\u77F3\u6A5F\u7D44\u88DD\u8207\u62C6\u88DD\u5FEB 4 \u500D", { tech: "kataparuto" }),
+      fx("japanese.kataparuto-rate", "cooldown", { kinds: ["trebuchet"] }, 0.75, "\u5F48\u5C04\u5668\uFF1A\u5DE8\u578B\u6295\u77F3\u6A5F\u5C04\u901F +33%", { tech: "kataparuto" }),
+      fx("japanese.yasama", "arrows", { buildings: ["watch-tower"] }, 2, "\u5C04\u7BAD\u5B54\uFF1A\u7BAD\u5854\u591A\u5C04\u5169\u652F\u7BAD", { tech: "yasama" }),
+      fx("japanese.fishing-hp", "hp", { kinds: ["fishing-ship"] }, 2, "\u6F01\u8239\u751F\u547D\u5169\u500D"),
+      fx("japanese.fishing-armor", "pierceArmor", { kinds: ["fishing-ship"] }, 2, "\u6F01\u8239\u9060\u7A0B\u8B77\u7532 +2"),
+      fx("japanese.fishing-rate", "gather", { kinds: ["fishing-ship"], sources: ["fish", "fish-trap"] }, [5, 10, 15, 20], "\u6F01\u8239\u5DE5\u4F5C\u901F\u5EA6\uFF1A\u7B2C\u4E00\u81F3\u7B2C\u56DB\u6642\u4EE3 +5% / +10% / +15% / +20%"),
+      fx("japanese.team-galley-los", "los", { classes: ["warship"] }, 200, "\u5718\u968A\u52A0\u6210\uFF1A\u6230\u8239\u8996\u91CE +50%", { team: true })
+    ],
+    omitted: [],
+    sources: [site("civs/Japanese"), site("units/Samurai"), site("techs/Yasama"), site("techs/Kataparuto"), site("tree/jap")]
+  },
+  {
+    id: "mongols",
+    name: "\u8499\u53E4",
+    nameEn: "Mongols",
+    type: "\u99AC\u5F13\u9A0E\u5175\u6587\u660E",
+    architecture: "eastasia",
+    missing: ["halberdier", "two-man-saw", "crop-rotation", "plate-barding-armor", "ring-archer-armor", "redemption", "sanctity", "faith", "block-printing", "paladin", "architecture", "keep", "treadmill-crane", "arrowslits", "bombard-cannon", "bombard-tower", "elite-cannon-galleon", "heated-shot", "guilds", "dry-dock"],
+    missingLater: [],
+    uniqueUnits: ["mangudai"],
+    eliteUpgrades: ["elite-mangudai"],
+    uniqueTechs: [{ id: "nomads", name: "\u6E38\u7267", nameEn: "Nomads", age: 3, effectText: "\u6C11\u5C45\u88AB\u6467\u6BC0\u5F8C\u4EBA\u53E3\u4E0A\u9650\u4E0D\u4E0B\u964D" }, { id: "drill", name: "\u947F\u5CA9\u6A5F", nameEn: "Drill", age: 4, effectText: "\u653B\u57CE\u5668\u5DE5\u574A\u7684\u55AE\u4F4D\u79FB\u52D5\u901F\u5EA6 +50%" }],
+    effects: [
+      fx("mongols.horse-archers", "cooldown", { classes: ["cavalry-archer"] }, 1 / 1.2, "\u99AC\u5F13\u9A0E\u5175\u5C04\u901F +20%"),
+      fx("mongols.light-cavalry", "hp", { kinds: ["scout"] }, 1.3, "\u8F15\u9A0E\u5175\u751F\u547D +30%", { tech: "light-cavalry" }),
+      fx("mongols.hunters", "gather", { sources: ["hunt"] }, 40, "\u6253\u7375\u901F\u5EA6 +40%"),
+      fx("mongols.team-scouts", "los", { kinds: ["scout"] }, 200, "\u5718\u968A\u52A0\u6210\uFF1A\u65A5\u5019\u8996\u91CE +2", { team: true }),
+      fx("mongols.nomads", "keepHousing", { buildings: ["house"] }, 1, "\u6E38\u7267\uFF1A\u6C11\u5C45\u88AB\u6467\u6BC0\u5F8C\u4EBA\u53E3\u4E0A\u9650\u4E0D\u4E0B\u964D", { tech: "nomads" }),
+      fx("mongols.drill", "speed", { kinds: ["ram", "mangonel", "scorpion", "bombard-cannon"] }, 1.5, "\u947F\u5CA9\u6A5F\uFF1A\u653B\u57CE\u5668\u79FB\u52D5\u901F\u5EA6 +50%", { tech: "drill" })
+    ],
+    omitted: [],
+    sources: [site("civs/Mongols"), site("units/Mangudai"), site("techs/Nomads"), site("techs/Drill"), site("tree/mon")]
+  }
+];
+var uniqueUnitOwner = Object.fromEntries(civDefs.flatMap((c) => [...c.uniqueUnits, ...c.eliteUpgrades, ...c.uniqueTechs.map((t) => t.id)].map((id) => [id, c.id])));
+
+// packages/content/rules.ts
+var resources = ["food", "wood", "gold", "stone"];
+var entry = (id, kind, name, food = 0, wood = 0, gold = 0, stone = 0, requires = [], population = 0, time = 20, source = "original design defaults: packages/content/rules.ts") => ({ referenceVersion: null, sourceEvidence: [source], implementationStatus: id === "villager" ? "in_progress" : "not_started", testEvidence: ["tests/foundation.test.ts (data validation only)"], id, kind, name, cost: { food, wood, gold, stone }, time, population, requires, verificationStatus: "design_default" });
+var aoetw = "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset";
+var unique = (id, name, food, wood, gold, time) => entry(id, "unit", name, food, wood, gold, 0, [], 1, time, aoetw);
+var upgrade = (id, name, food, wood, gold, stone, age, time) => entry(id, "technology", name, food, wood, gold, stone, [`age-${age}`], 0, time, aoetw);
+var castleEntries = [
+  entry("castle", "building", "\u57CE\u5821", 0, 0, 0, 300, ["age-3"], 0, 60, "aoetw.com/building/Castle (650 stone there); 300 stone and 60 s are design_default for this map"),
+  unique("longbowman", "\u9577\u5F13\u5175", 0, 35, 40, 18),
+  unique("woad-raider", "\u83D8\u85CD\u6B66\u58EB", 65, 0, 25, 10),
+  unique("throwing-axeman", "\u64F2\u65A7\u5175", 55, 0, 25, 17),
+  unique("huskarl", "\u54E5\u5FB7\u885B\u968A", 80, 0, 40, 16),
+  unique("teutonic-knight", "\u689D\u9813\u6B66\u58EB", 85, 0, 40, 12),
+  unique("berserk", "\u72C2\u6230\u58EB", 65, 0, 25, 14),
+  unique("cataphract", "\u62DC\u5360\u5EAD\u8056\u9A0E\u5175", 70, 0, 75, 20),
+  unique("war-elephant", "\u6230\u8C61", 200, 0, 75, 31),
+  unique("mameluke", "\u963F\u62C9\u4F2F\u5974\u96B8\u5175", 55, 0, 85, 23),
+  unique("janissary", "\u571F\u8033\u5176\u706B\u69CD\u5175", 60, 0, 55, 17),
+  unique("chu-ko-nu", "\u9023\u5F29\u5175", 0, 40, 35, 16),
+  unique("samurai", "\u65E5\u672C\u6B66\u58EB", 60, 0, 30, 9),
+  unique("mangudai", "\u8499\u53E4\u7A81\u9A0E", 0, 55, 65, 26),
+  upgrade("elite-longbowman", "\u7CBE\u92B3\u9577\u5F13\u5175", 850, 0, 850, 0, 4, 60),
+  upgrade("elite-woad-raider", "\u7CBE\u92B3\u83D8\u85CD\u6B66\u58EB", 1e3, 0, 800, 0, 4, 45),
+  upgrade("elite-throwing-axeman", "\u7CBE\u92B3\u64F2\u65A7\u5175", 1e3, 0, 750, 0, 4, 45),
+  upgrade("elite-huskarl", "\u7CBE\u92B3\u54E5\u5FB7\u885B\u968A", 1200, 0, 550, 0, 4, 40),
+  upgrade("elite-teutonic-knight", "\u7CBE\u92B3\u689D\u9813\u6B66\u58EB", 1200, 0, 600, 0, 4, 50),
+  upgrade("elite-berserk", "\u7CBE\u92B3\u72C2\u6230\u58EB", 1300, 0, 550, 0, 4, 45),
+  upgrade("elite-cataphract", "\u7CBE\u92B3\u62DC\u5360\u5EAD\u8056\u9A0E\u5175", 1600, 0, 800, 0, 4, 50),
+  upgrade("elite-war-elephant", "\u7CBE\u92B3\u6230\u8C61", 1600, 0, 1200, 0, 4, 75),
+  upgrade("elite-mameluke", "\u7CBE\u92B3\u963F\u62C9\u4F2F\u5974\u96B8\u5175", 600, 0, 500, 0, 4, 50),
+  upgrade("elite-janissary", "\u7CBE\u92B3\u571F\u8033\u5176\u706B\u69CD\u5175", 850, 0, 750, 0, 4, 55),
+  upgrade("elite-chu-ko-nu", "\u7CBE\u92B3\u9023\u5F29\u5175", 950, 0, 950, 0, 4, 50),
+  upgrade("elite-samurai", "\u7CBE\u92B3\u65E5\u672C\u6B66\u58EB", 950, 0, 875, 0, 4, 60),
+  upgrade("elite-mangudai", "\u7CBE\u92B3\u8499\u53E4\u7A81\u9A0E", 1100, 0, 675, 0, 4, 50),
+  upgrade("yeomen", "\u7FA9\u52C7\u9A0E\u5175", 0, 750, 450, 0, 3, 60),
+  upgrade("stronghold", "\u5821\u58D8", 250, 0, 200, 0, 3, 30),
+  upgrade("furor-celtica", "\u585E\u723E\u7279\u72C2\u71B1", 750, 0, 450, 0, 4, 50),
+  upgrade("chivalry", "\u9A0E\u58EB\u7CBE\u795E", 0, 400, 400, 0, 3, 40),
+  upgrade("bearded-axe", "\u5012\u9264\u65A7", 400, 0, 400, 0, 4, 60),
+  upgrade("anarchy", "\u7121\u653F\u5E9C\u72C0\u614B", 450, 0, 250, 0, 3, 40),
+  upgrade("perfusion", "\u4E95\u5674", 0, 400, 600, 0, 4, 40),
+  upgrade("ironclad", "\u92FC\u9435\u7532", 0, 400, 350, 0, 3, 60),
+  upgrade("crenellations", "\u7832\u9580\u579B\u53E3", 600, 0, 0, 400, 4, 60),
+  upgrade("chieftains", "\u914B\u9577", 700, 0, 500, 0, 3, 40),
+  upgrade("berserkergang", "\u72C2\u6230\u58EB\u5E6B", 850, 0, 400, 0, 4, 40),
+  upgrade("logistica", "\u5F8C\u52E4", 1e3, 0, 600, 0, 4, 50),
+  upgrade("kamandaran", "\u6CE2\u65AF\u5F13\u5175", 400, 0, 300, 0, 3, 40),
+  upgrade("mahouts", "\u8C61\u4F15", 300, 0, 300, 0, 4, 50),
+  upgrade("madrasah", "\u7A46\u65AF\u6797\u5B78\u588A", 200, 0, 100, 0, 3, 30),
+  upgrade("zealotry", "\u72C2\u71B1", 750, 0, 700, 0, 4, 50),
+  upgrade("great-wall", "\u9577\u57CE", 0, 400, 0, 200, 3, 40),
+  upgrade("rocketry", "\u706B\u7BAD\u6280\u8853", 0, 750, 750, 0, 4, 60),
+  upgrade("yasama", "\u5C04\u7BAD\u5B54", 300, 300, 0, 0, 3, 40),
+  upgrade("nomads", "\u6E38\u7267", 0, 300, 150, 0, 3, 40),
+  upgrade("drill", "\u947F\u5CA9\u6A5F", 500, 0, 450, 0, 4, 60)
+];
+var unit = (id, name, food, wood, gold, age, time) => entry(id, "unit", name, food, wood, gold, 0, [`age-${age}`], 1, time, aoetw);
+var line = (id, name, food, wood, gold, after, time) => entry(id, "technology", name, food, wood, gold, 0, after ? ["age-4", after] : ["age-4"], 0, time, aoetw);
+var unitEntries = [
+  line("two-handed-swordsman", "\u96D9\u624B\u528D\u5175", 300, 0, 100, "long-swordsman", 75),
+  line("champion", "\u528D\u5175\u52C7\u58EB", 750, 0, 350, "two-handed-swordsman", 100),
+  line("halberdier", "\u621F\u5175", 300, 0, 600, "pikeman", 50),
+  line("arbalest", "\u5F37\u5F29\u5175", 350, 0, 300, "crossbowman", 50),
+  unit("cavalry-archer", "\u99AC\u5F13\u9A0E\u5175", 0, 40, 60, 3, 34),
+  line("heavy-cavalry-archer", "\u91CD\u88DD\u99AC\u5F13\u9A0E\u5175", 900, 0, 500, null, 50),
+  line("hussar", "\u5308\u7259\u5229\u8F15\u9A0E\u5175", 500, 0, 600, "light-cavalry", 50),
+  line("cavalier", "\u91CD\u88DD\u9A0E\u58EB", 300, 0, 300, null, 100),
+  line("paladin", "\u904A\u4FE0", 1300, 0, 750, "cavalier", 170),
+  unit("camel", "\u99F1\u99DD\u9A0E\u5175", 55, 0, 60, 3, 22),
+  line("heavy-camel", "\u91CD\u88DD\u99F1\u99DD\u9A0E\u5175", 325, 0, 365, null, 105),
+  line("capped-ram", "\u88DD\u7532\u885D\u649E\u8ECA", 300, 0, 0, null, 50),
+  line("siege-ram", "\u91CD\u578B\u885D\u649E\u8ECA", 1e3, 0, 0, "capped-ram", 75),
+  unit("mangonel", "\u8F15\u578B\u6295\u77F3\u8ECA", 0, 160, 135, 3, 46),
+  line("onager", "\u4E2D\u578B\u6295\u77F3\u8ECA", 800, 0, 500, null, 75),
+  line("siege-onager", "\u91CD\u578B\u6295\u77F3\u8ECA", 1450, 0, 1e3, "onager", 150),
+  unit("scorpion", "\u5F29\u7832", 0, 75, 75, 3, 30),
+  line("heavy-scorpion", "\u91CD\u578B\u5F29\u7832", 1e3, 1100, 0, null, 50),
+  unit("trebuchet", "\u5DE8\u578B\u6295\u77F3\u6A5F", 0, 200, 200, 4, 50),
+  unit("petard", "\u70B8\u85E5\u6876", 65, 0, 20, 3, 25),
+  // Unique techs whose targets exist from this round on (they were deferred in the civilization round).
+  upgrade("warwolf", "\u6230\u72FC\u865F", 0, 800, 400, 0, 4, 40),
+  upgrade("kataparuto", "\u5F48\u5C04\u5668", 0, 750, 400, 0, 4, 60),
+  upgrade("sipahi", "\u91C7\u9091\u9A0E\u5175", 350, 0, 150, 0, 3, 60)
+];
+var unitProducers = {
+  "two-handed-swordsman": "barracks",
+  champion: "barracks",
+  halberdier: "barracks",
+  arbalest: "archery-range",
+  "cavalry-archer": "archery-range",
+  "heavy-cavalry-archer": "archery-range",
+  hussar: "stable",
+  cavalier: "stable",
+  paladin: "stable",
+  camel: "stable",
+  "heavy-camel": "stable",
+  "capped-ram": "siege-workshop",
+  "siege-ram": "siege-workshop",
+  mangonel: "siege-workshop",
+  onager: "siege-workshop",
+  "siege-onager": "siege-workshop",
+  scorpion: "siege-workshop",
+  "heavy-scorpion": "siege-workshop",
+  trebuchet: "castle",
+  petard: "castle",
+  warwolf: "castle",
+  kataparuto: "castle",
+  sipahi: "castle"
+};
+var tech = (id, name, food, wood, gold, stone, requires, time) => entry(id, "technology", name, food, wood, gold, stone, requires, 0, time, aoetw);
+var techEntries = [
+  entry("university", "building", "\u5B78\u9662", 0, 200, 0, 0, ["age-3"], 0, 40, "aoetw.com/building/University; 40 s is design_default like the other buildings"),
+  tech("masonry", "\u78DA\u74E6\u6280\u8853", 150, 175, 0, 0, ["age-3"], 50),
+  tech("architecture", "\u5EFA\u7BC9\u5B78", 300, 200, 0, 0, ["age-4", "masonry"], 70),
+  tech("chemistry", "\u5316\u5B78", 300, 0, 200, 0, ["age-4"], 100),
+  tech("siege-engineers", "\u653B\u57CE\u5DE5\u7A0B\u5E2B", 500, 600, 0, 0, ["age-4"], 45),
+  tech("guard-tower", "\u9632\u79A6\u7BAD\u5854", 100, 250, 0, 0, ["age-3"], 30),
+  tech("keep", "\u5927\u578B\u7BAD\u5854", 500, 350, 0, 0, ["age-4", "guard-tower"], 75),
+  tech("treadmill-crane", "\u78E8\u574A\u6C34\u8ECA", 300, 200, 0, 0, ["age-3"], 50),
+  tech("arrowslits", "\u7BAD\u72F9\u69FD", 250, 250, 0, 0, ["age-4"], 25),
+  tech("supplies", "\u4F9B\u7D66", 150, 0, 100, 0, ["age-2"], 35),
+  tech("squires", "\u8B77\u885B\u6280\u8853", 100, 0, 0, 0, ["age-3"], 40),
+  tech("arson", "\u7E31\u706B", 150, 0, 50, 0, ["age-3"], 25),
+  tech("thumb-ring", "\u62C7\u6307\u74B0", 300, 250, 0, 0, ["age-3"], 45),
+  tech("parthian-tactics", "\u5B89\u606F\u4EBA\u6230\u8853", 200, 0, 250, 0, ["age-4"], 65),
+  tech("bloodlines", "\u54C1\u7A2E", 150, 0, 100, 0, ["age-2"], 50),
+  tech("husbandry", "\u8015\u7A2E\u6280\u8853", 150, 0, 0, 0, ["age-3"], 40),
+  tech("town-watch", "\u57CE\u93AE\u77AD\u671B", 75, 0, 0, 0, ["age-2"], 25),
+  tech("town-patrol", "\u57CE\u93AE\u5DE1\u908F", 300, 0, 100, 0, ["age-3", "town-watch"], 40),
+  tech("fervor", "\u5B97\u6559\u72C2\u71B1", 0, 0, 140, 0, ["age-3"], 50),
+  tech("herbal-medicine", "\u8349\u85E5\u6CBB\u7642", 0, 0, 350, 0, ["age-3"], 35),
+  tech("hoardings", "\u570D\u7246", 400, 400, 0, 0, ["age-4"], 75),
+  tech("sappers", "\u5175\u5DE5\u5B78", 400, 0, 200, 0, ["age-4"], 10),
+  tech("conscription", "\u5FB5\u5175\u6280\u8853", 150, 0, 150, 0, ["age-4"], 60),
+  entry("hand-cannoneer", "unit", "\u706B\u69CD\u5175", 45, 0, 50, 0, ["age-4", "chemistry"], 1, 34, aoetw),
+  entry("bombard-cannon", "unit", "\u706B\u7832", 0, 225, 225, 0, ["age-4", "chemistry"], 1, 56, aoetw),
+  // Turks' Artillery: its bombard cannon exists from this round on.
+  upgrade("artillery", "\u7832\u5175", 0, 0, 500, 450, 4, 40)
+];
+var techProducers = {
+  masonry: "university",
+  architecture: "university",
+  chemistry: "university",
+  "siege-engineers": "university",
+  "guard-tower": "university",
+  keep: "university",
+  "treadmill-crane": "university",
+  arrowslits: "university",
+  supplies: "barracks",
+  squires: "barracks",
+  arson: "barracks",
+  "thumb-ring": "archery-range",
+  "parthian-tactics": "archery-range",
+  bloodlines: "stable",
+  husbandry: "stable",
+  "town-watch": "town-center",
+  "town-patrol": "town-center",
+  fervor: "monastery",
+  "herbal-medicine": "monastery",
+  hoardings: "castle",
+  sappers: "castle",
+  conscription: "castle",
+  "hand-cannoneer": "archery-range",
+  "bombard-cannon": "siege-workshop",
+  artillery: "castle"
+};
+var building = (id, name, wood, gold, stone, requires, time, page) => entry(id, "building", name, 0, wood, gold, stone, requires, 0, time, `aoetw.com/building/${page}; build time design_default`);
+var ship = (id, name, wood, gold, requires, time) => entry(id, "unit", name, 0, wood, gold, 0, requires, 1, time, aoetw);
+var buildingEntries = [
+  building("dock", "\u78BC\u982D", 150, 0, 0, [], 15, "Dock"),
+  building("fish-trap", "\u9B5A\u7DB2", 100, 0, 0, ["age-2", "dock"], 15, "Fish_Trap"),
+  building("market", "\u5E02\u96C6", 175, 0, 0, ["age-2"], 25, "Market"),
+  building("outpost", "\u54E8\u7AD9", 25, 0, 5, [], 6, "Outpost"),
+  building("palisade-wall", "\u6728\u7246", 2, 0, 0, [], 3, "Palisade_Wall"),
+  building("palisade-gate", "\u6728\u9580", 30, 0, 0, [], 12, "Palisade_Gate"),
+  building("stone-wall", "\u77F3\u7246", 0, 0, 5, ["age-2"], 4, "Stone_Wall"),
+  building("gate", "\u57CE\u9580", 0, 0, 30, ["age-2"], 12, "Gate"),
+  building("bombard-tower", "\u706B\u7832\u5854", 0, 100, 125, ["age-4", "bombard-tower-tech"], 30, "Bombard_Tower"),
+  entry("wonder", "building", "\u4E16\u754C\u5947\u89C0", 0, 1e3, 500, 500, ["age-4"], 0, 600, "aoetw.com/building/Wonder (1000 wood, gold and stone, 3500 s); cost and time scaled to this map, design_default"),
+  // Ships (the dock) and the trade cart (the market).
+  ship("fishing-ship", "\u6F01\u8239", 75, 0, [], 40),
+  ship("transport-ship", "\u904B\u8F38\u8239", 125, 0, [], 46),
+  ship("trade-cog", "\u8CBF\u6613\u5546\u8239", 100, 50, ["age-2"], 36),
+  ship("galley", "\u6230\u8239", 90, 30, ["age-2"], 60),
+  ship("fire-galley", "\u706B\u8268\u825F", 75, 45, ["age-2"], 60),
+  ship("demolition-raft", "\u81EA\u7206\u7B4F", 70, 50, ["age-2"], 45),
+  ship("cannon-galleon", "\u706B\u7832\u6230\u8239", 200, 150, ["age-4", "chemistry"], 46),
+  ship("longboat", "\u7DAD\u4EAC\u5927\u6230\u8239", 100, 50, ["age-3"], 25),
+  entry("trade-cart", "unit", "\u8CBF\u6613\u8ECA\u968A", 0, 100, 50, 0, ["age-2"], 1, 51, aoetw),
+  // Dock upgrades: War Galley also turns fire galleys into fire ships and demolition rafts into demolition ships.
+  tech("war-galley", "\u5F29\u7832\u6230\u8239", 230, 0, 100, 0, ["age-3"], 50),
+  tech("galleon", "\u91CD\u578B\u5F29\u7832\u6230\u8239", 400, 0, 315, 0, ["age-4", "war-galley"], 65),
+  tech("fast-fire-ship", "\u91CD\u578B\u706B\u6230\u8239", 280, 0, 250, 0, ["age-4", "war-galley"], 50),
+  tech("heavy-demolition-ship", "\u91CD\u578B\u7206\u7834\u8239", 0, 200, 300, 0, ["age-4", "war-galley"], 50),
+  tech("elite-cannon-galleon", "\u7CBE\u92B3\u706B\u7832\u6230\u8239", 0, 525, 500, 0, ["age-4", "chemistry"], 30),
+  upgrade("elite-longboat", "\u7CBE\u92B3\u7DAD\u4EAC\u5927\u6230\u8239", 750, 0, 475, 0, 4, 60),
+  tech("gillnets", "\u6D41\u523A\u7DB2", 150, 0, 200, 0, ["age-3"], 45),
+  tech("careening", "\u822A\u6D77\u6280\u8853", 250, 0, 150, 0, ["age-3"], 50),
+  tech("dry-dock", "\u8239\u5862", 600, 0, 400, 0, ["age-4", "careening"], 60),
+  tech("shipwright", "\u9020\u8239\u54E1", 1e3, 0, 300, 0, ["age-4"], 60),
+  // The market's and the university's.
+  tech("caravan", "\u5546\u968A", 200, 0, 200, 0, ["age-3"], 40),
+  tech("guilds", "\u516C\u6703\u5236\u5EA6", 300, 0, 200, 0, ["age-4"], 50),
+  tech("heated-shot", "\u706B\u7BAD", 350, 0, 100, 0, ["age-3"], 30),
+  tech("fortified-wall", "\u579B\u7246", 200, 100, 0, 0, ["age-3"], 50),
+  tech("bombard-tower-tech", "\u706B\u7832\u5854\u6280\u8853", 800, 400, 0, 0, ["age-4", "chemistry"], 60),
+  // Byzantines' Greek Fire: its fire ships exist from this round on.
+  upgrade("greek-fire", "\u5E0C\u81D8\u4E4B\u706B", 250, 0, 300, 0, 3, 40)
+];
+var dockItems = ["fishing-ship", "transport-ship", "trade-cog", "galley", "fire-galley", "demolition-raft", "cannon-galleon", "longboat", "war-galley", "galleon", "fast-fire-ship", "heavy-demolition-ship", "elite-cannon-galleon", "elite-longboat", "gillnets", "careening", "dry-dock", "shipwright"];
+var buildingProducers = { ...Object.fromEntries(dockItems.map((id) => [id, "dock"])), "trade-cart": "market", caravan: "market", guilds: "market", "heated-shot": "university", "fortified-wall": "university", "bombard-tower-tech": "university", "greek-fire": "castle" };
+function civilizationsOf(entries) {
+  const ids = entries.map((e) => e.id), uniqueIds = new Set(civDefs.flatMap((c) => [...c.uniqueUnits, ...c.eliteUpgrades, ...c.uniqueTechs.map((t) => t.id)]));
+  return civDefs.map((c) => {
+    const own = /* @__PURE__ */ new Set([...c.uniqueUnits, ...c.eliteUpgrades, ...c.uniqueTechs.map((t) => t.id)]);
+    const unavailable = ids.filter((id) => c.missing.includes(id) || uniqueIds.has(id) && !own.has(id) || id === "castle" && !c.uniqueUnits.length);
+    for (let grew = true; grew; ) {
+      grew = false;
+      for (const e of entries) {
+        if (unavailable.includes(e.id)) continue;
+        const producer = rules.production[e.id];
+        if (producer && unavailable.includes(producer) || e.requires.some((r) => unavailable.includes(r))) {
+          unavailable.push(e.id);
+          grew = true;
+        }
+      }
+    }
+    return { id: c.id, available: ids.filter((id) => !unavailable.includes(id)), unavailable: ids.filter((id) => unavailable.includes(id)) };
+  });
+}
+var rules = {
+  schemaVersion: 1,
+  id: "brick-foundation-0.1",
+  reference: { game: "Age of Empires II: Definitive Edition", version: null, build: null, contentPacks: [], verificationStatus: "unverified", sourceEvidence: [] },
+  coverage: { contentDenominator: null, exactReferenceCoveragePercent: null },
+  settings: { tickHz: 20, populationCap: 40, mapSize: 16, speed: 1, mode: "command-sandbox", seed: 260925, platform: "desktop browser", provenance: "design_default" },
+  entries: [
+    entry("villager", "unit", "\u6751\u6C11", 50, 0, 0, 0, [], 1),
+    entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 275, 0, 100, ["age-3"], 0, 60, "aoetw.com/building/Town_Center (275 wood, 100 stone, Castle Age); 60 s is design_default"),
+    entry("house", "building", "\u6C11\u5C45", 0, 30),
+    entry("barracks", "building", "\u5175\u71DF", 0, 150),
+    entry("farm", "building", "\u8FB2\u7530", 0, 60),
+    entry("lumber-camp", "building", "\u4F10\u6728\u5834", 0, 100),
+    entry("mining-camp", "building", "\u63A1\u7926\u5834", 0, 100),
+    entry("mill", "building", "\u78E8\u574A", 0, 100),
+    entry("stable", "building", "\u99AC\u5EC4", 0, 175, 0, 0, ["age-2", "barracks"]),
+    entry("archery-range", "building", "\u9776\u5834", 0, 175, 0, 0, ["age-2", "barracks"]),
+    entry("monastery", "building", "\u4FEE\u9053\u9662", 0, 175, 0, 0, ["age-3"]),
+    entry("militia", "unit", "\u8FD1\u6230\u6C11\u5175", 60, 0, 20, 0, ["barracks"], 1),
+    entry("archer", "unit", "\u5F13\u624B", 0, 40, 30, 0, ["age-2"], 1),
+    entry("ram", "unit", "\u653B\u57CE\u69CC", 0, 160, 75, 0, ["age-3"], 3),
+    entry("watch-tower", "building", "\u7BAD\u5854", 0, 25, 0, 125, ["age-2"]),
+    entry("siege-workshop", "building", "\u653B\u57CE\u5668\u5DE5\u574A", 0, 200, 0, 0, ["age-3", "blacksmith"]),
+    entry("scout", "unit", "\u65A5\u5019", 80, 0, 0, 0, ["stable"], 1),
+    entry("monk", "unit", "\u50E7\u4FB6", 0, 0, 100, 0, ["monastery"], 1),
+    entry("redemption", "technology", "\u6551\u8D16", 0, 0, 475, 0, ["monastery", "age-3"]),
+    entry("atonement", "technology", "\u8D16\u7F6A", 0, 0, 325, 0, ["monastery", "age-3"]),
+    entry("sanctity", "technology", "\u8056\u6F54", 0, 0, 175, 0, ["monastery", "age-3"]),
+    entry("heresy", "technology", "\u7570\u7AEF", 0, 0, 1e3, 0, ["monastery", "age-3"]),
+    entry("illumination", "technology", "\u555F\u8499", 0, 0, 120, 0, ["monastery", "age-4"]),
+    entry("block-printing", "technology", "\u6D3B\u5B57\u5370\u5237", 0, 0, 200, 0, ["monastery", "age-4"]),
+    entry("theocracy", "technology", "\u795E\u6B0A\u653F\u6CBB", 0, 0, 200, 0, ["monastery", "age-4"]),
+    entry("faith", "technology", "\u4FE1\u4EF0", 550, 0, 750, 0, ["monastery", "age-4"]),
+    entry("spearman", "unit", "\u9577\u69CD\u5175", 35, 25, 0, 0, ["age-2"], 1),
+    entry("skirmisher", "unit", "\u6563\u5175", 25, 35, 0, 0, ["age-2"], 1),
+    entry("knight", "unit", "\u9A0E\u58EB", 60, 0, 75, 0, ["age-3"], 1),
+    entry("blacksmith", "building", "\u9435\u5320\u92EA", 0, 150),
+    entry("man-at-arms", "technology", "\u91CD\u6B65\u5175", 100, 0, 40, 0, ["age-2"]),
+    entry("long-swordsman", "technology", "\u9577\u528D\u58EB", 200, 0, 65, 0, ["age-3", "man-at-arms"]),
+    entry("pikeman", "technology", "\u9577\u77DB\u5175", 215, 0, 90, 0, ["age-3"]),
+    entry("crossbowman", "technology", "\u5F29\u624B", 125, 0, 75, 0, ["age-3"]),
+    entry("elite-skirmisher", "technology", "\u7CBE\u92B3\u6563\u5175", 0, 250, 160, 0, ["age-3"]),
+    entry("light-cavalry", "technology", "\u8F15\u9A0E\u5175", 150, 0, 50, 0, ["age-3"]),
+    entry("forging", "technology", "\u935B\u9020", 150, 0, 0, 0, ["age-2"]),
+    entry("iron-casting", "technology", "\u9444\u9435", 220, 0, 120, 0, ["age-3", "forging"]),
+    entry("blast-furnace", "technology", "\u9AD8\u7210", 275, 0, 225, 0, ["age-4", "iron-casting"]),
+    entry("scale-mail-armor", "technology", "\u9C57\u7532", 100, 0, 0, 0, ["age-2"]),
+    entry("chain-mail-armor", "technology", "\u9396\u5B50\u7532", 200, 0, 100, 0, ["age-3", "scale-mail-armor"]),
+    entry("plate-mail-armor", "technology", "\u677F\u7532", 300, 0, 150, 0, ["age-4", "chain-mail-armor"]),
+    entry("scale-barding-armor", "technology", "\u9C57\u7247\u99AC\u93A7", 150, 0, 0, 0, ["age-2"]),
+    entry("chain-barding-armor", "technology", "\u9396\u5B50\u99AC\u93A7", 250, 0, 150, 0, ["age-3", "scale-barding-armor"]),
+    entry("plate-barding-armor", "technology", "\u677F\u7532\u99AC\u93A7", 350, 0, 200, 0, ["age-4", "chain-barding-armor"]),
+    entry("fletching", "technology", "\u7FBD\u7BAD", 100, 0, 50, 0, ["age-2"]),
+    entry("bodkin-arrow", "technology", "\u9310\u5F62\u7BAD", 200, 0, 100, 0, ["age-3", "fletching"]),
+    entry("bracer", "technology", "\u8B77\u8155", 300, 0, 200, 0, ["age-4", "bodkin-arrow"]),
+    entry("padded-archer-armor", "technology", "\u896F\u588A\u5F13\u624B\u7532", 100, 0, 0, 0, ["age-2"]),
+    entry("leather-archer-armor", "technology", "\u76AE\u9769\u5F13\u624B\u7532", 150, 0, 150, 0, ["age-3", "padded-archer-armor"]),
+    entry("ring-archer-armor", "technology", "\u74B0\u7532\u5F13\u624B\u7532", 250, 0, 250, 0, ["age-4", "leather-archer-armor"]),
+    entry("loom", "technology", "\u7E54\u5E03\u6A5F", 0, 0, 50),
+    entry("wheelbarrow", "technology", "\u624B\u63A8\u8ECA", 175, 50, 0, 0, ["age-2"]),
+    entry("hand-cart", "technology", "\u624B\u62C9\u8ECA", 300, 200, 0, 0, ["age-3", "wheelbarrow"]),
+    entry("double-bit-axe", "technology", "\u96D9\u5203\u65A7", 100, 50, 0, 0, ["age-2"]),
+    entry("bow-saw", "technology", "\u5F13\u92F8", 150, 100, 0, 0, ["age-3", "double-bit-axe"]),
+    entry("two-man-saw", "technology", "\u96D9\u4EBA\u92F8", 300, 200, 0, 0, ["age-4", "bow-saw"]),
+    entry("gold-mining", "technology", "\u63A1\u91D1\u8853", 100, 75, 0, 0, ["age-2"]),
+    entry("gold-shaft-mining", "technology", "\u8C4E\u4E95\u63A1\u91D1", 200, 100, 0, 0, ["age-3", "gold-mining"]),
+    entry("stone-mining", "technology", "\u63A1\u77F3\u8853", 100, 75, 0, 0, ["age-2"]),
+    entry("stone-shaft-mining", "technology", "\u8C4E\u4E95\u63A1\u77F3", 200, 100, 0, 0, ["age-3", "stone-mining"]),
+    entry("horse-collar", "technology", "\u99AC\u8EDB", 75, 75, 0, 0, ["age-2"]),
+    entry("heavy-plow", "technology", "\u91CD\u7281", 125, 125, 0, 0, ["age-3", "horse-collar"]),
+    entry("crop-rotation", "technology", "\u8F2A\u8015", 250, 250, 0, 0, ["age-4", "heavy-plow"]),
+    entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300),
+    entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]),
+    entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"]),
+    ...castleEntries,
+    ...unitEntries,
+    ...techEntries,
+    ...buildingEntries
+  ],
+  // Which building produces each unit/technology (design_default). null = defined but not producible yet.
+  production: {
+    villager: "town-center",
+    militia: "barracks",
+    "man-at-arms": "barracks",
+    "long-swordsman": "barracks",
+    spearman: "barracks",
+    pikeman: "barracks",
+    archer: "archery-range",
+    crossbowman: "archery-range",
+    skirmisher: "archery-range",
+    "elite-skirmisher": "archery-range",
+    ram: "siege-workshop",
+    scout: "stable",
+    "light-cavalry": "stable",
+    knight: "stable",
+    forging: "blacksmith",
+    "iron-casting": "blacksmith",
+    "blast-furnace": "blacksmith",
+    "scale-mail-armor": "blacksmith",
+    "chain-mail-armor": "blacksmith",
+    "plate-mail-armor": "blacksmith",
+    "scale-barding-armor": "blacksmith",
+    "chain-barding-armor": "blacksmith",
+    "plate-barding-armor": "blacksmith",
+    fletching: "blacksmith",
+    "bodkin-arrow": "blacksmith",
+    bracer: "blacksmith",
+    "padded-archer-armor": "blacksmith",
+    "leather-archer-armor": "blacksmith",
+    "ring-archer-armor": "blacksmith",
+    monk: "monastery",
+    redemption: "monastery",
+    atonement: "monastery",
+    sanctity: "monastery",
+    heresy: "monastery",
+    illumination: "monastery",
+    "block-printing": "monastery",
+    theocracy: "monastery",
+    faith: "monastery",
+    "double-bit-axe": "lumber-camp",
+    "bow-saw": "lumber-camp",
+    "two-man-saw": "lumber-camp",
+    "gold-mining": "mining-camp",
+    "gold-shaft-mining": "mining-camp",
+    "stone-mining": "mining-camp",
+    "stone-shaft-mining": "mining-camp",
+    "horse-collar": "mill",
+    "heavy-plow": "mill",
+    "crop-rotation": "mill",
+    "age-2": "town-center",
+    "age-3": "town-center",
+    "age-4": "town-center",
+    // After the ages, so the town centre's age-up keeps its tile and hotkey.
+    loom: "town-center",
+    wheelbarrow: "town-center",
+    "hand-cart": "town-center",
+    // The Castle: unique units, their elite upgrades and the unique technologies.
+    ...Object.fromEntries(castleEntries.filter((e) => e.kind !== "building").map((e) => [e.id, "castle"])),
+    ...unitProducers,
+    ...techProducers,
+    ...buildingProducers
+  },
+  civilizations: []
+};
+rules.civilizations = civilizationsOf(rules.entries);
+
 // packages/sim/terrain.ts
-var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, maxLandStep: 25, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200, farm: 250 }, generationAttempts: 8 };
-var resourceDefinitions = { tree: { yield: "wood", method: "gather", movement: "land" }, stone: { yield: "stone", method: "gather", movement: "land" }, gold: { yield: "gold", method: "gather", movement: "land" }, berries: { yield: "food", method: "gather", movement: "land" }, hunt: { yield: "food", method: "hunt", movement: "land" }, livestock: { yield: "food", method: "herd", movement: "land" }, fish: { yield: "food", method: "fish", movement: "water" }, farm: { yield: "food", method: "gather", movement: "land" } };
-var mapSizes = { meadow: 16, coast: 16, acceptance: 16, open: 32 };
+var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, maxLandStep: 25, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200, farm: 250, "fish-trap": 1e3 }, generationAttempts: 8 };
+var resourceDefinitions = {
+  tree: { yield: "wood", method: "gather", movement: "land" },
+  stone: { yield: "stone", method: "gather", movement: "land" },
+  gold: { yield: "gold", method: "gather", movement: "land" },
+  berries: { yield: "food", method: "gather", movement: "land" },
+  hunt: { yield: "food", method: "hunt", movement: "land" },
+  livestock: { yield: "food", method: "herd", movement: "land" },
+  fish: { yield: "food", method: "fish", movement: "water" },
+  farm: { yield: "food", method: "gather", movement: "land" },
+  // A finished fish trap (the 建築 round): owner-only food on the water, worked by fishing ships (site 715 food x this
+  // game's farm factor 250/175 -> 1000, design_default).
+  "fish-trap": { yield: "food", method: "fish", movement: "water" }
+};
+var mapSizes = { meadow: 16, coast: 16, acceptance: 16, open: 32, lakes: 32 };
 var terrainDefinitions = {
   grass: { walkClass: "land", buildability: true, height: 0 },
   road: { walkClass: "land", buildability: true, height: 0 },
@@ -78,7 +830,7 @@ function createTiles(layout = "meadow", seed = 0) {
   const size = mapSizes[layout];
   return Array.from({ length: size * size }, (_, id) => {
     const x = id % size, y = Math.floor(id / size);
-    let terrainType = layout !== "open" && y === 8 ? "road" : "grass";
+    let terrainType = layout !== "open" && layout !== "lakes" && y === 8 ? "road" : "grass";
     if (layout === "coast") {
       const edge = 12 + (seed >>> 0 >>> Math.floor(x / 4) & 1);
       if (y >= edge) terrainType = "water";
@@ -138,7 +890,6 @@ function blockedTable(map) {
   }
   return t.table;
 }
-var isBlocked = (map, n) => blockedTable(map)[n] === 1;
 function nodesNear(map, box, pad) {
   const side = sideOf(map), out = [];
   const x0 = Math.max(0, Math.ceil((box[0] - pad - 50) / 50)), x1 = Math.min(side - 1, Math.floor((box[2] + pad - 50) / 50)), y0 = Math.max(0, Math.ceil((box[1] - pad - 50) / 50)), y1 = Math.min(side - 1, Math.floor((box[3] + pad - 50) / 50));
@@ -146,11 +897,29 @@ function nodesNear(map, box, pad) {
   return out;
 }
 var dirtyAreas = /* @__PURE__ */ new WeakMap();
-function takeDirtyAreas(map) {
-  const list = dirtyAreas.get(map) ?? [];
-  dirtyAreas.delete(map);
-  return list;
+function dirtyLog(map) {
+  return dirtyAreas.get(map) ?? dirtyAreas.set(map, []).get(map);
 }
+var waterTables = /* @__PURE__ */ new WeakMap();
+function waterBlockedTable(map) {
+  let t = waterTables.get(map);
+  if (!t || t.revision !== map.navigationRevision) {
+    const n = nodeTotal(map), table = new Uint8Array(n), side = sideOf(map), size = map.size;
+    for (let id = 0; id < n; id++) {
+      const x = id % side, y = Math.floor(id / side), tx = x >> 1, ty = y >> 1;
+      let wet = false;
+      for (const [a, b] of [[tx, ty], [tx + (x & 1), ty], [tx, ty + (y & 1)], [tx + (x & 1), ty + (y & 1)]]) {
+        const tile = map.tiles[Math.min(size - 1, b) * size + Math.min(size - 1, a)];
+        if (tile && (tile.walkClass === "water" || tile.walkClass === "both")) wet = true;
+      }
+      table[id] = wet && clearSegment(map, position(map, id), position(map, id), "water") ? 0 : 1;
+    }
+    t = { revision: map.navigationRevision, table };
+    waterTables.set(map, t);
+  }
+  return t.table;
+}
+var blockedFor = (map, layer) => layer === "water" ? waterBlockedTable(map) : blockedTable(map);
 var searchBudget = (map) => Math.round(navigationRules.expansionsPerTick * nodeTotal(map) / 961);
 var sideOf = (map) => map.size * 2 - 1;
 var nodeTotal = (map) => sideOf(map) ** 2;
@@ -167,7 +936,7 @@ function makeMap(seed, layout = "meadow") {
   throw Error(`\u5730\u5716\u751F\u6210\u5931\u6557\uFF08${terrainRules.generationAttempts} \u6B21\uFF09\uFF1A${lastErrors.join("\uFF1B")}`);
 }
 function generateCandidate(seed, layout) {
-  if (layout === "open") return generateOpen(seed);
+  if (layout === "open" || layout === "lakes") return generateOpen(seed, layout === "lakes");
   let rng = seed || 1;
   let obstacles = [{ kind: "town-center", x: 265, y: 350 }, { kind: "town-center", x: 1065, y: 350, red: true }];
   const woods = [];
@@ -238,9 +1007,13 @@ var openMapRules = {
   dirtPatches: 7,
   // Animals per base (kit flock, kit herd, a boar and two more sheep farther out) and the shared pond.
   animals: { sheep: 4, deer: 3, boarDistance: 950, farSheepDistance: 1050 },
-  pond: { size: 3, baseDistance: 1100, fairness: 300 }
+  pond: { size: 3, baseDistance: 1100, fairness: 300 },
+  // The 'lakes' variant: water within this radius of the centre (off the bases' aprons), deep-water fish for fishing
+  // ships, and the neutral mines on a ring round the lake.
+  // shore: tiles of open land kept round the lake (no mines or trees), so the walk round it is never one lane wide.
+  lake: { radius: 720, fish: 8, fishSpacing: 300, neutralRing: [1e3, 1250], shore: 2 }
 };
-function generateOpen(seed) {
+function generateOpen(seed, lake = false) {
   let rng = seed || 1;
   const random2 = () => {
     rng ^= rng << 13;
@@ -269,6 +1042,24 @@ function generateOpen(seed) {
   const taken = /* @__PURE__ */ new Set(), aprons = centres.map((c) => [c.x + R.apron.left, c.y + R.apron.top, c.x + R.apron.right, c.y + R.apron.bottom]);
   for (const c of centres) for (let ty = Math.floor((c.y - 150) / 100); ty <= Math.floor((c.y + 150) / 100); ty++) for (let tx = Math.floor((c.x - 150) / 100); tx <= Math.floor((c.x + 150) / 100); tx++) taken.add(ty * size + tx);
   const free = (tx, ty) => tx >= 1 && ty >= 1 && tx < size - 1 && ty < size - 1 && !taken.has(ty * size + tx) && !aprons.some((b) => tx * 100 + 100 > b[0] && tx * 100 < b[2] && ty * 100 + 100 > b[1] && ty * 100 < b[3]);
+  const lakeTiles = [];
+  if (lake) {
+    for (let ty = 1; ty < size - 1; ty++) for (let tx = 1; tx < size - 1; tx++) if (Math.hypot(tx * 100 + 50 - mid, ty * 100 + 50 - mid) <= R.lake.radius && free(tx, ty)) {
+      lakeTiles.push(ty * size + tx);
+      taken.add(ty * size + tx);
+      Object.assign(tiles[ty * size + tx], { terrainType: "water", ...terrainDefinitions.water });
+    }
+  }
+  if (lake) {
+    const ring2 = R.lake.shore;
+    for (const t of lakeTiles) {
+      const tx = t % size, ty = Math.floor(t / size);
+      for (let dy = -ring2; dy <= ring2; dy++) for (let dx = -ring2; dx <= ring2; dx++) {
+        const x = tx + dx, y = ty + dy;
+        if (x >= 0 && y >= 0 && x < size && y < size) taken.add(y * size + x);
+      }
+    }
+  }
   const offset = { tree: 12, gold: 15, rock: 15, berries: 15, livestock: 15, hunt: 15 };
   const animals = [];
   let kitOwner = -1;
@@ -296,7 +1087,7 @@ function generateOpen(seed) {
   });
   const far = (tx, ty, d) => centres.every((c) => Math.hypot(tx * 100 + 50 - c.x, ty * 100 + 50 - c.y) >= d);
   for (const [kind, count] of Object.entries(R.neutral)) for (let i = 0; i < count; i++) for (let k = 0; k < 40; k++) {
-    const a = random2() * Math.PI * 2, d = random2() * R.neutralRadius, tx = Math.floor((mid + Math.cos(a) * d) / 100), ty = Math.floor((mid + Math.sin(a) * d) / 100);
+    const a = random2() * Math.PI * 2, d = lake ? R.lake.neutralRing[0] + random2() * (R.lake.neutralRing[1] - R.lake.neutralRing[0]) : random2() * R.neutralRadius, tx = Math.floor((mid + Math.cos(a) * d) / 100), ty = Math.floor((mid + Math.sin(a) * d) / 100);
     if (free(tx, ty) && far(tx, ty, R.clumpClearance)) {
       put(kind, tx, ty);
       break;
@@ -331,7 +1122,7 @@ function generateOpen(seed) {
       obstacles.push({ kind: "tree", x: tx * 100 + 12, y: ty * 100 + 12 });
     }
   }
-  const pond = placePond(seed, size, taken, centres);
+  const pond = lake ? [] : placePond(seed, size, taken, centres);
   for (const t of pond) Object.assign(tiles[t], { terrainType: "water", ...terrainDefinitions.water });
   const map = { size, starts, scouts, obstacles, blocked: [], tiles, resources: [], navigationRevision: 0, generationAttempt: 0 };
   obstacles.forEach((o, index) => {
@@ -350,6 +1141,20 @@ function generateOpen(seed) {
       const x = (tx + dx) * 100 + 50, y = (ty + dy) * 100 + 50, id = `resource-fish-${x}-${y}`, capacity = terrainRules.resourceCapacity.fish;
       map.resources.push({ id, kind: "fish", x, y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: null, depletedAt: null });
       map.tiles[tileAt(x, y, size)].resourceRefs.push(id);
+    }
+  }
+  if (lake) {
+    const deep = lakeTiles.filter((t) => [-size - 1, -size, -size + 1, -1, 1, size - 1, size, size + 1].every((d) => tiles[t + d]?.terrainType === "water")).sort((a, b) => Math.atan2(Math.floor(a / size) * 100 - mid, a % size * 100 - mid) - Math.atan2(Math.floor(b / size) * 100 - mid, b % size * 100 - mid) || a - b);
+    const picked = [];
+    for (const t of deep) {
+      if (picked.length >= R.lake.fish) break;
+      const x = t % size * 100 + 50, y = Math.floor(t / size) * 100 + 50;
+      if (picked.every((p) => Math.hypot(p % size * 100 + 50 - x, Math.floor(p / size) * 100 + 50 - y) >= R.lake.fishSpacing)) picked.push(t);
+    }
+    for (const t of picked) {
+      const x = t % size * 100 + 50, y = Math.floor(t / size) * 100 + 50, id = `resource-fish-${x}-${y}`, capacity = terrainRules.resourceCapacity.fish;
+      map.resources.push({ id, kind: "fish", x, y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: null, depletedAt: null });
+      map.tiles[t].resourceRefs.push(id);
     }
   }
   for (let i = 0; i < nodeTotal(map); i++) if (!clearSegment(map, position(map, i), position(map, i))) map.blocked.push(i);
@@ -383,7 +1188,7 @@ function placePond(seed, size, taken, centres) {
   for (let dy = 0; dy < R.size; dy++) for (let dx = 0; dx < R.size; dx++) out.push(t0 + dy * size + dx);
   return out;
 }
-var buildingKinds = /* @__PURE__ */ new Set(["house", "town-center", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "blacksmith", "watch-tower", "siege-workshop"]);
+var buildingKinds = new Set(rules.entries.filter((e) => e.kind === "building").map((e) => e.id));
 function isBuilding(o) {
   return buildingKinds.has(o.kind);
 }
@@ -564,8 +1369,8 @@ function nearest(map, p, outbound = true, movement = "land") {
   }
   return best;
 }
-function nearestOpen(map, p) {
-  const closed = blockedTable(map);
+function nearestOpen(map, p, layer = "land") {
+  const closed = blockedFor(map, layer);
   let best = -1, distance = Infinity;
   for (let i = 0; i < nodeTotal(map); i++) {
     if (closed[i]) continue;
@@ -620,7 +1425,33 @@ function footprintTiles(o, size) {
   for (let ty = Math.max(0, Math.floor(y0 / 100)); ty <= Math.min(size - 1, Math.floor((y1 - 1) / 100)); ty++) for (let tx = Math.max(0, Math.floor(x0 / 100)); tx <= Math.min(size - 1, Math.floor((x1 - 1) / 100)); tx++) tiles.push(ty * size + tx);
   return tiles;
 }
-var visionRules = { provenance: "design_default", unitRadius: 400, scoutRadius: 550, sheepRadius: 200, houseRadius: 300, townCenterRadius: 600, towerRadius: 700, shareVision: false, rememberStaticObjects: true };
+var visionRules = {
+  provenance: "design_default",
+  unitRadius: 400,
+  scoutRadius: 550,
+  sheepRadius: 200,
+  houseRadius: 300,
+  townCenterRadius: 600,
+  towerRadius: 700,
+  // The 建築 round: the outpost sees 6/8/10/12 tiles by age on aoetw.com, at the tower's 70 a tile (its 10 tiles -> 700);
+  // walls a little, the wonder like its 8 tiles; market, dock and gates like a house.
+  outpostRadius: [420, 560, 700, 840],
+  wallRadius: 200,
+  wonderRadius: 560,
+  shareVision: false,
+  rememberStaticObjects: true
+};
+var sighted = {
+  outpost: (a) => visionRules.outpostRadius[Math.min(4, Math.max(1, a)) - 1],
+  "bombard-tower": () => visionRules.towerRadius,
+  "palisade-wall": () => visionRules.wallRadius,
+  "stone-wall": () => visionRules.wallRadius,
+  wonder: () => visionRules.wonderRadius,
+  market: () => visionRules.houseRadius,
+  dock: () => visionRules.houseRadius,
+  "palisade-gate": () => visionRules.houseRadius,
+  gate: () => visionRules.houseRadius
+};
 function createVision() {
   return Array.from({ length: 2 }, () => ({ explored: [], visible: [], known: [], resources: [] }));
 }
@@ -638,10 +1469,13 @@ function updateVision(visions, map, units, tick2, sharing = [[0], [1]], extra = 
     if (u.player !== 0 && u.player !== 1) continue;
     reveal(u.player, u.x, u.y, (u.kind === "scout" ? visionRules.scoutRadius : u.kind === "sheep" ? visionRules.sheepRadius : visionRules.unitRadius) + (u.kind ? extra(u.player, u.kind) : 0));
   }
-  for (const o of map.obstacles) if (o.kind === "house" || o.kind === "barracks") reveal(o.red ? 1 : 0, o.x + 100, o.y + 100, visionRules.houseRadius);
-  else if (o.kind === "town-center") reveal(o.red ? 1 : 0, o.x + 135, o.y + 135, visionRules.townCenterRadius + extra(o.red ? 1 : 0, o.kind));
-  else if (o.kind === "watch-tower" && o.progress === void 0) reveal(o.red ? 1 : 0, o.x + 50, o.y + 50, visionRules.towerRadius);
-  else if (o.kind === "castle" && o.progress === void 0) reveal(o.red ? 1 : 0, o.x + 185, o.y + 185, visionRules.towerRadius);
+  for (const o of map.obstacles) if (o.kind === "house" || o.kind === "barracks") reveal(o.red ? 1 : 0, o.x + 100, o.y + 100, visionRules.houseRadius + (o.progress === void 0 ? extra(o.red ? 1 : 0, o.kind) : 0));
+  else if (o.kind === "town-center" && o.progress === void 0) reveal(o.red ? 1 : 0, o.x + 135, o.y + 135, visionRules.townCenterRadius + extra(o.red ? 1 : 0, o.kind));
+  else if (o.progress === void 0 && o.kind in sighted || o.kind === "town-center") {
+    const [x0, y0, x1, y1] = obstacleBounds(o), p = o.red ? 1 : 0, r = o.kind === "town-center" ? visionRules.houseRadius : sighted[o.kind](o.age ?? 1);
+    reveal(p, (x0 + x1) / 2, (y0 + y1) / 2, r + (o.kind === "town-center" ? 0 : extra(p, o.kind)));
+  } else if (o.kind === "watch-tower" && o.progress === void 0) reveal(o.red ? 1 : 0, o.x + 50, o.y + 50, visionRules.towerRadius + extra(o.red ? 1 : 0, o.kind));
+  else if (o.kind === "castle" && o.progress === void 0) reveal(o.red ? 1 : 0, o.x + 185, o.y + 185, visionRules.towerRadius + extra(o.red ? 1 : 0, o.kind));
   for (let player = 0; player < 2; player++) {
     const vision = visions[player], visible = new Set(sharing[player].flatMap((id) => [...own[id]]));
     vision.resources = map.resources.filter((r) => r.status === "available" && visible.has(tileAt(r.x, r.y, size))).map((r) => ({ ...r }));
@@ -656,532 +1490,9 @@ function projectVision(vision, size) {
   const visible = new Set(vision.visible), explored = new Set(vision.explored);
   return { fog: Array.from({ length: size * size }, (_, id) => visible.has(id) ? 2 : explored.has(id) ? 1 : 0), known: structuredClone(vision.known), resources: structuredClone(vision.resources) };
 }
-function unitVisible(vision, unit, player, size) {
-  return unit.player === player || vision.visible.includes(tileAt(unit.x, unit.y, size));
+function unitVisible(vision, unit2, player, size) {
+  return unit2.player === player || vision.visible.includes(tileAt(unit2.x, unit2.y, size));
 }
-
-// packages/content/civs.ts
-var mulKinds = ["hp", "cooldown", "speed", "cost", "time", "buildingHp", "arrowCooldown", "healRange", "healRate"];
-function fx(id, kind, select, value, text, o = {}) {
-  const mul = o.op ? o.op === "mul" : mulKinds.includes(kind);
-  return {
-    id,
-    kind,
-    select,
-    op: mul ? "mul" : "add",
-    value,
-    ...o.vs ? { vs: o.vs } : {},
-    ...o.resource ? { resource: o.resource } : {},
-    ...o.to ? { to: o.to } : {},
-    trigger: { ...o.age ? { age: o.age } : {}, ...o.tech ? { tech: o.tech } : {} },
-    stacking: mul ? "product" : "sum",
-    priority: mul ? 1 : 0,
-    scope: o.team ? "team" : "self",
-    appliesToExisting: o.existing ?? !["cost", "costShift", "time", "workRate", "startStock", "startVillagers", "deathRefund", "keepHousing", "grant", "producer"].includes(kind),
-    text
-  };
-}
-var site = (page) => `aoetw.com/${page}\uFF082026-09-30 \u53D6\u81EA github.com/webrsb/aoetw \u539F\u59CB\u78BC\uFF09`;
-var footArchers = { classes: ["archer"], exclude: ["skirmisher", "gunpowder", "cavalry-archer"] };
-var infantry = { classes: ["infantry"] };
-var neutralCiv = "settlers";
-var civDefs = [
-  { id: neutralCiv, name: "\u62D3\u8352\u8005", nameEn: "Settlers", type: "\u7121\u52A0\u6210\uFF08\u5747\u8861\u6E2C\u8A66\uFF09", architecture: "neutral", missing: [], missingLater: [], uniqueUnits: [], eliteUpgrades: [], uniqueTechs: [], effects: [], omitted: [], sources: ["\u672C\u4F5C\u539F\u5275\uFF1A\u6C92\u6709\u6587\u660E\u52A0\u6210\u8207\u57CE\u5821\uFF0C\u4F5C\u70BA\u6E2C\u8A66\u8207\u7DF4\u7FD2\u7684\u57FA\u6E96"] },
-  {
-    id: "britons",
-    name: "\u4E0D\u5217\u985B",
-    nameEn: "Britons",
-    type: "\u5F13\u5175\u6587\u660E",
-    architecture: "west",
-    missing: ["crop-rotation", "stone-shaft-mining", "redemption", "atonement", "heresy"],
-    missingLater: ["hussar", "paladin", "siege-ram", "thumb-ring", "parthian-tactics", "bloodlines", "camel", "bombard-cannon", "elite-cannon-galleon", "missionary", "bombard-tower"],
-    uniqueUnits: ["longbowman"],
-    eliteUpgrades: ["elite-longbowman"],
-    uniqueTechs: [{ id: "yeomen", name: "\u7FA9\u52C7\u9A0E\u5175", nameEn: "Yeomen", age: 3, effectText: "\u5F92\u6B65\u5F13\u5175\u5C04\u7A0B +1\uFF0C\u7BAD\u5854\u653B\u64CA +2" }, { id: "warwolf", name: "\u6230\u72FC\u865F", nameEn: "Warwolf", age: 4, effectText: "\u5DE8\u578B\u6295\u77F3\u6A5F\u7372\u5F97\u7BC4\u570D\u50B7\u5BB3" }],
-    effects: [
-      fx("britons.archer-range", "range", footArchers, [0, 0, 50, 100], "\u5F92\u6B65\u5F13\u5175\uFF08\u6563\u5175\u9664\u5916\uFF09\u5C04\u7A0B\uFF1A\u7B2C\u4E09\u6642\u4EE3 +1\u3001\u7B2C\u56DB\u6642\u4EE3 +2"),
-      fx("britons.shepherds", "gather", { sources: ["livestock"] }, 25, "\u7267\u7F8A\uFF08\u5BB0\u7F8A\u63A1\u96C6\uFF09\u901F\u5EA6 +25%"),
-      fx("britons.team-range", "workRate", { buildings: ["archery-range"] }, 20, "\u5718\u968A\u52A0\u6210\uFF1A\u9776\u5834\u751F\u7522\u901F\u5EA6 +20%", { team: true }),
-      fx("britons.yeomen-range", "range", { classes: ["archer"], exclude: ["gunpowder", "cavalry-archer"] }, 50, "\u7FA9\u52C7\u9A0E\u5175\uFF1A\u5F92\u6B65\u5F13\u5175\uFF08\u542B\u6563\u5175\uFF09\u5C04\u7A0B +1", { tech: "yeomen" }),
-      fx("britons.yeomen-tower", "arrowDamage", { buildings: ["watch-tower"] }, 2, "\u7FA9\u52C7\u9A0E\u5175\uFF1A\u7BAD\u5854\u653B\u64CA +2", { tech: "yeomen" })
-    ],
-    omitted: [{ text: "\u7B2C\u4E09\u6642\u4EE3\u8D77\u57CE\u93AE\u4E2D\u5FC3\u6728\u6750 -50%", reason: "\u672C\u4F5C\u7684\u57CE\u93AE\u4E2D\u5FC3\u4E0D\u80FD\u53E6\u5916\u5EFA\u9020" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u6230\u72FC\u865F\u300D", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5DE8\u578B\u6295\u77F3\u6A5F" }],
-    sources: [site("civs/Britons"), site("units/Longbowman"), site("techs/Yeomen"), site("techs/Warwolf"), site("tree/bri")]
-  },
-  {
-    id: "celts",
-    name: "\u585E\u723E\u7279",
-    nameEn: "Celts",
-    type: "\u6B65\u5175\u8207\u653B\u57CE\u5668\u6587\u660E",
-    architecture: "west",
-    missing: ["two-man-saw", "crop-rotation", "bracer", "ring-archer-armor", "plate-barding-armor", "redemption", "atonement", "illumination", "block-printing", "theocracy"],
-    missingLater: ["arbalest", "thumb-ring", "bloodlines", "camel", "bombard-cannon", "architecture", "missionary", "parthian-tactics", "bombard-tower", "elite-cannon-galleon"],
-    uniqueUnits: ["woad-raider"],
-    eliteUpgrades: ["elite-woad-raider"],
-    uniqueTechs: [{ id: "stronghold", name: "\u5821\u58D8", nameEn: "Stronghold", age: 3, effectText: "\u57CE\u5821\u8207\u7BAD\u5854\u5C04\u901F +25%" }, { id: "furor-celtica", name: "\u585E\u723E\u7279\u72C2\u71B1", nameEn: "Furor Celtica", age: 4, effectText: "\u653B\u57CE\u5668\u5DE5\u574A\u7684\u55AE\u4F4D\u751F\u547D +40%" }],
-    effects: [
-      fx("celts.lumberjacks", "gather", { resources: ["wood"] }, 15, "\u4F10\u6728\u901F\u5EA6 +15%"),
-      fx("celts.infantry-speed", "speed", infantry, [1, 1.15, 1.15, 1.15], "\u7B2C\u4E8C\u6642\u4EE3\u8D77\u6B65\u5175\u79FB\u52D5\u901F\u5EA6 +15%\uFF08\u672C\u4F5C\u4EE5\u6BCF tick \u6574\u6578\u6B65\u9577\u63DB\u7B97\uFF0C\u5BE6\u969B\u7D04 +11%\uFF09"),
-      fx("celts.siege-rate", "cooldown", { classes: ["siege"] }, 1 / 1.25, "\u653B\u57CE\u5668\u653B\u64CA\u901F\u5EA6 +25%"),
-      fx("celts.team-siege", "workRate", { buildings: ["siege-workshop"] }, 20, "\u5718\u968A\u52A0\u6210\uFF1A\u653B\u57CE\u5668\u5DE5\u574A\u751F\u7522\u901F\u5EA6 +20%", { team: true }),
-      fx("celts.stronghold", "arrowCooldown", { buildings: ["castle", "watch-tower"] }, 1 / 1.25, "\u5821\u58D8\uFF1A\u57CE\u5821\u8207\u7BAD\u5854\u5C04\u901F +25%", { tech: "stronghold" }),
-      fx("celts.furor", "hp", { classes: ["siege"] }, 1.4, "\u585E\u723E\u7279\u72C2\u71B1\uFF1A\u653B\u57CE\u5668\u751F\u547D +40%", { tech: "furor-celtica" })
-    ],
-    omitted: [{ text: "\u53EF\u5728\u5C0D\u624B\u55AE\u4F4D\u8996\u91CE\u5167\u6436\u8D70\u5C0D\u624B\u7684\u7F8A", reason: "\u672C\u4F5C\u7684\u6436\u7F8A\u898F\u5247\u4E0D\u770B\u8996\u91CE\uFF08\u5DF1\u65B9\u5EFA\u7BC9 4 \u683C\u5167\u7684\u7F8A\u672C\u4F86\u5C31\u4E0D\u6703\u88AB\u6436\uFF09" }],
-    sources: [site("civs/Celts"), site("units/Woad_Raider"), site("techs/Stronghold"), site("techs/Furor_Celtica"), site("tree/cel")]
-  },
-  {
-    id: "franks",
-    name: "\u6CD5\u862D\u514B",
-    nameEn: "Franks",
-    type: "\u9A0E\u5175\u6587\u660E",
-    architecture: "west",
-    missing: ["two-man-saw", "stone-shaft-mining", "bracer", "ring-archer-armor", "redemption"],
-    missingLater: ["arbalest", "hussar", "siege-ram", "keep", "thumb-ring", "parthian-tactics", "bloodlines", "camel", "bombard-tower", "heated-shot", "shipwright", "elite-cannon-galleon", "missionary"],
-    uniqueUnits: ["throwing-axeman"],
-    eliteUpgrades: ["elite-throwing-axeman"],
-    uniqueTechs: [{ id: "chivalry", name: "\u9A0E\u58EB\u7CBE\u795E", nameEn: "Chivalry", age: 3, effectText: "\u99AC\u5EC4\u751F\u7522\u901F\u5EA6 +40%" }, { id: "bearded-axe", name: "\u5012\u9264\u65A7", nameEn: "Bearded Axe", age: 4, effectText: "\u64F2\u65A7\u5175\u5C04\u7A0B +1" }],
-    effects: [
-      fx("franks.foragers", "gather", { sources: ["berries"] }, 25, "\u63A1\u6F3F\u679C\u901F\u5EA6 +25%"),
-      fx("franks.free-farming", "cost", { entries: ["horse-collar", "heavy-plow", "crop-rotation"] }, 0, "\u78E8\u574A\u7684\u8FB2\u7530\u79D1\u6280\u514D\u8CBB"),
-      fx("franks.cavalry-hp", "hp", { kinds: ["scout", "knight"] }, [1, 1.2, 1.2, 1.2], "\u7B2C\u4E8C\u6642\u4EE3\u8D77\u99AC\u5EC4\u55AE\u4F4D\u751F\u547D +20%"),
-      fx("franks.castle", "cost", { entries: ["castle"] }, 0.75, "\u57CE\u5821\u4FBF\u5B9C 25%"),
-      fx("franks.team-los", "los", { kinds: ["knight"] }, 200, "\u5718\u968A\u52A0\u6210\uFF1A\u9A0E\u58EB\u8996\u91CE +2", { team: true }),
-      fx("franks.chivalry", "workRate", { buildings: ["stable"] }, 40, "\u9A0E\u58EB\u7CBE\u795E\uFF1A\u99AC\u5EC4\u751F\u7522\u901F\u5EA6 +40%", { tech: "chivalry" }),
-      fx("franks.bearded-axe", "range", { kinds: ["throwing-axeman"] }, 50, "\u5012\u9264\u65A7\uFF1A\u64F2\u65A7\u5175\u5C04\u7A0B +1", { tech: "bearded-axe" })
-    ],
-    omitted: [],
-    sources: [site("civs/Franks"), site("units/Throwing_Axeman"), site("techs/Chivalry"), site("techs/Bearded_Axe"), site("tree/fra")]
-  },
-  {
-    id: "goths",
-    name: "\u54E5\u5FB7",
-    nameEn: "Goths",
-    type: "\u6B65\u5175\u6587\u660E",
-    architecture: "central",
-    missing: ["gold-shaft-mining", "plate-mail-armor", "plate-barding-armor", "redemption", "atonement", "heresy", "block-printing"],
-    missingLater: ["paladin", "arbalest", "siege-ram", "guard-tower", "keep", "camel", "bombard-tower", "thumb-ring", "parthian-tactics", "elite-cannon-galleon", "missionary"],
-    uniqueUnits: ["huskarl"],
-    eliteUpgrades: ["elite-huskarl"],
-    uniqueTechs: [{ id: "anarchy", name: "\u7121\u653F\u5E9C\u72C0\u614B", nameEn: "Anarchy", age: 3, effectText: "\u5175\u71DF\u4E5F\u80FD\u8A13\u7DF4\u54E5\u5FB7\u885B\u968A" }, { id: "perfusion", name: "\u4E95\u5674", nameEn: "Perfusion", age: 4, effectText: "\u5175\u71DF\u751F\u7522\u901F\u5EA6 +100%" }],
-    effects: [
-      fx("goths.infantry-cost", "cost", { entries: ["militia", "spearman", "huskarl"] }, [0.8, 0.75, 0.7, 0.65], "\u6B65\u5175\u4FBF\u5B9C\uFF1A\u7B2C\u4E00\u81F3\u7B2C\u56DB\u6642\u4EE3 -20% / -25% / -30% / -35%"),
-      fx("goths.infantry-buildings", "bonus", infantry, [0, 1, 2, 3], "\u6B65\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +1 / +2 / +3", { vs: "building" }),
-      fx("goths.boar", "huntDamage", { prey: ["boar"] }, 5, "\u6751\u6C11\u6253\u91CE\u8C6C\u653B\u64CA +5"),
-      fx("goths.hunter-carry", "carry", { sources: ["hunt"] }, 15, "\u7375\u4EBA\u651C\u5E36\u91CF +15"),
-      fx("goths.pop", "popCap", {}, [0, 0, 0, 10], "\u7B2C\u56DB\u6642\u4EE3\u4EBA\u53E3\u4E0A\u9650 +10"),
-      fx("goths.loom", "time", { entries: ["loom"] }, 0, "\u7E54\u5E03\u6A5F\u7ACB\u5373\u5B8C\u6210\uFF08\u4ECD\u9700\u4ED8\u8CBB\uFF09"),
-      fx("goths.team-barracks", "workRate", { buildings: ["barracks"] }, 20, "\u5718\u968A\u52A0\u6210\uFF1A\u5175\u71DF\u751F\u7522\u901F\u5EA6 +20%", { team: true }),
-      fx("goths.anarchy", "producer", { entries: ["huskarl"], buildings: ["barracks"] }, 1, "\u7121\u653F\u5E9C\u72C0\u614B\uFF1A\u5175\u71DF\u4E5F\u80FD\u8A13\u7DF4\u54E5\u5FB7\u885B\u968A", { tech: "anarchy" }),
-      fx("goths.perfusion", "workRate", { buildings: ["barracks"] }, 100, "\u4E95\u5674\uFF1A\u5175\u71DF\u751F\u7522\u901F\u5EA6 +100%", { tech: "perfusion" })
-    ],
-    omitted: [],
-    sources: [site("civs/Goths"), site("units/Huskarl"), site("techs/Anarchy"), site("techs/Perfusion"), site("tree/got")]
-  },
-  {
-    id: "teutons",
-    name: "\u689D\u9813",
-    nameEn: "Teutons",
-    type: "\u6B65\u5175\u6587\u660E",
-    architecture: "central",
-    missing: ["bracer", "light-cavalry", "gold-shaft-mining"],
-    missingLater: ["arbalest", "hussar", "siege-ram", "thumb-ring", "camel", "parthian-tactics", "architecture", "shipwright", "elite-cannon-galleon"],
-    uniqueUnits: ["teutonic-knight"],
-    eliteUpgrades: ["elite-teutonic-knight"],
-    uniqueTechs: [{ id: "ironclad", name: "\u92FC\u9435\u7532", nameEn: "Ironclad", age: 3, effectText: "\u653B\u57CE\u5668\u8FD1\u6230\u8B77\u7532 +4" }, { id: "crenellations", name: "\u7832\u9580\u579B\u53E3", nameEn: "Crenellations", age: 4, effectText: "\u57CE\u5821\u5C04\u7A0B +3\uFF0C\u9032\u99D0\u7684\u6B65\u5175\u4E5F\u6703\u5C04\u7BAD" }],
-    effects: [
-      fx("teutons.heal-range", "healRange", {}, 2, "\u50E7\u4FB6\u6CBB\u7642\u8DDD\u96E2\u5169\u500D"),
-      fx("teutons.tower-garrison", "garrison", { buildings: ["watch-tower"] }, 5, "\u7BAD\u5854\u53EF\u99D0\u7D2E\u5169\u500D\u55AE\u4F4D"),
-      fx("teutons.farms", "cost", { entries: ["farm"] }, 0.6, "\u8FB2\u7530\u4FBF\u5B9C 40%"),
-      fx("teutons.tc-garrison", "garrison", { buildings: ["town-center"] }, 10, "\u57CE\u93AE\u4E2D\u5FC3\u99D0\u8ECD +10"),
-      fx("teutons.melee-armor", "meleeArmor", { kinds: ["militia", "spearman", "scout", "knight"] }, [0, 0, 1, 2], "\u5175\u71DF\u8207\u99AC\u5EC4\u55AE\u4F4D\u8FD1\u6230\u8B77\u7532\uFF1A\u7B2C\u4E09\u6642\u4EE3 +1\u3001\u7B2C\u56DB\u6642\u4EE3 +2"),
-      fx("teutons.team-faith", "conversionResist", {}, 1, "\u5718\u968A\u52A0\u6210\uFF1A\u55AE\u4F4D\u8F03\u96E3\u88AB\u8F49\u5316\uFF08\u6BCF\u540D\u50E7\u4FB6\u7684\u5224\u5B9A\u591A\u4E00\u6B21\u5FC5\u5B9A\u5931\u6557\uFF09", { team: true }),
-      fx("teutons.ironclad", "meleeArmor", { classes: ["siege"] }, 4, "\u92FC\u9435\u7532\uFF1A\u653B\u57CE\u5668\u8FD1\u6230\u8B77\u7532 +4", { tech: "ironclad" }),
-      fx("teutons.crenellations-range", "arrowRange", { buildings: ["castle"] }, 150, "\u7832\u9580\u579B\u53E3\uFF1A\u57CE\u5821\u5C04\u7A0B +3", { tech: "crenellations" }),
-      fx("teutons.crenellations-infantry", "garrisonArrows", { buildings: ["castle"], classes: ["infantry"] }, 1, "\u7832\u9580\u579B\u53E3\uFF1A\u9032\u99D0\u57CE\u5821\u7684\u6B65\u5175\u5404\u591A\u4E00\u652F\u7BAD", { tech: "crenellations" })
-    ],
-    omitted: [{ text: "\u514D\u8CBB\u6BBA\u4EBA\u5B54\u8207\u8349\u85E5\u5B78", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u9019\u5169\u9805\u79D1\u6280" }],
-    sources: [site("civs/Teutons"), site("units/Teutonic_Knight"), site("techs/Ironclad"), site("techs/Crenellations"), site("tree/teu")]
-  },
-  {
-    id: "vikings",
-    name: "\u7DAD\u4EAC",
-    nameEn: "Vikings",
-    type: "\u6B65\u5175\u8207\u6D77\u8ECD\u6587\u660E",
-    architecture: "central",
-    missing: ["stone-shaft-mining", "plate-barding-armor", "redemption", "sanctity", "illumination", "theocracy"],
-    missingLater: ["halberdier", "hussar", "paladin", "keep", "herbal-medicine", "camel", "bombard-tower", "fire-ship", "bloodlines", "parthian-tactics", "bombard-cannon", "elite-cannon-galleon", "shipwright", "missionary"],
-    uniqueUnits: ["berserk"],
-    eliteUpgrades: ["elite-berserk"],
-    uniqueTechs: [{ id: "chieftains", name: "\u914B\u9577", nameEn: "Chieftains", age: 3, effectText: "\u6B65\u5175\u5C0D\u9A0E\u5175\u653B\u64CA +5" }, { id: "berserkergang", name: "\u72C2\u6230\u58EB\u5E6B", nameEn: "Berserkergang", age: 4, effectText: "\u72C2\u6230\u58EB\u56DE\u8840\u901F\u5EA6\u5169\u500D" }],
-    effects: [
-      fx("vikings.infantry-hp", "hp", infantry, [1, 1.1, 1.15, 1.2], "\u6B65\u5175\u751F\u547D\uFF1A\u7B2C\u4E8C\u6642\u4EE3 +10%\u3001\u7B2C\u4E09\u6642\u4EE3 +15%\u3001\u7B2C\u56DB\u6642\u4EE3 +20%"),
-      fx("vikings.wheelbarrow", "grant", { entries: ["wheelbarrow"] }, 1, "\u5347\u5230\u7B2C\u4E8C\u6642\u4EE3\u6642\u514D\u8CBB\u5F97\u5230\u624B\u63A8\u8ECA", { age: 2 }),
-      fx("vikings.hand-cart", "grant", { entries: ["hand-cart"] }, 1, "\u5347\u5230\u7B2C\u4E09\u6642\u4EE3\u6642\u514D\u8CBB\u5F97\u5230\u624B\u62C9\u8ECA", { age: 3 }),
-      fx("vikings.chieftains", "bonus", infantry, 5, "\u914B\u9577\uFF1A\u6B65\u5175\u5C0D\u9A0E\u5175\u653B\u64CA +5", { vs: "cavalry", tech: "chieftains" }),
-      fx("vikings.berserkergang", "regen", { kinds: ["berserk"] }, 20, "\u72C2\u6230\u58EB\u5E6B\uFF1A\u72C2\u6230\u58EB\u6BCF\u5206\u9418\u56DE\u8840 20 \u2192 40", { tech: "berserkergang" })
-    ],
-    omitted: [{ text: "\u6230\u8239\u4FBF\u5B9C 15% / 15% / 20%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u5718\u968A\u52A0\u6210\uFF1A\u78BC\u982D\u4FBF\u5B9C 15%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u78BC\u982D" }, { text: "\u914B\u9577\uFF1A\u6B65\u5175\u5C0D\u99F1\u99DD\u9A0E\u5175 +4", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u99F1\u99DD\u9A0E\u5175" }, { text: "\u7279\u6B8A\u55AE\u4F4D\u7DAD\u4EAC\u5927\u6230\u8239", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u6D77\u6230" }],
-    sources: [site("civs/Vikings"), site("units/Berserk"), site("techs/Chieftains"), site("techs/Berserkergang"), site("tree/vik")]
-  },
-  {
-    id: "byzantines",
-    name: "\u62DC\u5360\u5EAD",
-    nameEn: "Byzantines",
-    type: "\u9632\u79A6\u6587\u660E",
-    architecture: "mideast",
-    missing: ["blast-furnace"],
-    missingLater: ["herbal-medicine", "bloodlines", "parthian-tactics", "missionary", "heated-shot", "heavy-scorpion", "bombard-tower", "architecture"],
-    uniqueUnits: ["cataphract"],
-    eliteUpgrades: ["elite-cataphract"],
-    uniqueTechs: [{ id: "greek-fire", name: "\u5E0C\u81D8\u4E4B\u706B", nameEn: "Greek Fire", age: 3, effectText: "\u706B\u6230\u8239\u5C04\u7A0B +1" }, { id: "logistica", name: "\u5F8C\u52E4", nameEn: "Logistica", age: 4, effectText: "\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u8E10\u8E0F\u50B7\u5BB3\uFF0C\u5C0D\u6B65\u5175 +6" }],
-    effects: [
-      fx("byzantines.building-hp", "buildingHp", {}, [1.1, 1.2, 1.3, 1.4], "\u5EFA\u7BC9\u751F\u547D\uFF1A\u7B2C\u4E00\u81F3\u7B2C\u56DB\u6642\u4EE3 +10% / +20% / +30% / +40%"),
-      fx("byzantines.counter-cost", "cost", { entries: ["spearman", "skirmisher"] }, 0.75, "\u9577\u69CD\u5175\u8207\u6563\u5175\u4FBF\u5B9C 25%"),
-      fx("byzantines.imperial", "cost", { entries: ["age-4"] }, 0.67, "\u5347\u7B2C\u56DB\u6642\u4EE3\u4FBF\u5B9C 33%"),
-      fx("byzantines.team-heal", "healRate", {}, 1.5, "\u5718\u968A\u52A0\u6210\uFF1A\u50E7\u4FB6\u6CBB\u7642\u901F\u5EA6 +50%", { team: true }),
-      fx("byzantines.logistica", "bonus", { kinds: ["cataphract"] }, 6, "\u5F8C\u52E4\uFF1A\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u5C0D\u6B65\u5175 +6", { vs: "infantry", tech: "logistica" }),
-      fx("byzantines.trample", "splash", { kinds: ["cataphract"] }, 5, "\u5F8C\u52E4\uFF1A\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u653B\u64CA\u6642\uFF0C\u76EE\u6A19\u65C1\u7684\u6575\u5175\u53D7 5 \u9EDE\u8E10\u8E0F\u50B7\u5BB3", { tech: "logistica" })
-    ],
-    omitted: [{ text: "\u706B\u6230\u8239\u653B\u64CA\u901F\u5EA6 +20%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u5C01\u5EFA\u6642\u4EE3\u514D\u8CBB\u57CE\u93AE\u77AD\u671B", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u57CE\u93AE\u77AD\u671B" }, { text: "\u99F1\u99DD\u9A0E\u5175\u4FBF\u5B9C 25%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u99F1\u99DD\u9A0E\u5175" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u5E0C\u81D8\u4E4B\u706B\u300D", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u706B\u6230\u8239" }],
-    sources: [site("civs/Byzantines"), site("units/Cataphract"), site("techs/Greek_Fire"), site("techs/Logistica"), site("tree/byz")]
-  },
-  {
-    id: "persians",
-    name: "\u6CE2\u65AF",
-    nameEn: "Persians",
-    type: "\u9A0E\u5175\u6587\u660E",
-    architecture: "mideast",
-    missing: ["bracer", "redemption", "atonement", "heresy", "sanctity", "illumination"],
-    missingLater: ["two-handed-swordsman", "champion", "arbalest", "keep", "shipwright", "bombard-tower", "missionary"],
-    uniqueUnits: ["war-elephant"],
-    eliteUpgrades: ["elite-war-elephant"],
-    uniqueTechs: [{ id: "kamandaran", name: "\u6CE2\u65AF\u5F13\u5175", nameEn: "Kamandaran", age: 3, effectText: "\u5F13\u624B\u6539\u7528\u6728\u6750\u652F\u4ED8\u539F\u672C\u7684\u9EC3\u91D1" }, { id: "mahouts", name: "\u8C61\u4F15", nameEn: "Mahouts", age: 4, effectText: "\u6230\u8C61\u79FB\u52D5\u901F\u5EA6 +30%" }],
-    effects: [
-      fx("persians.food", "startStock", {}, 50, "\u958B\u5C40\u98DF\u7269 +50", { resource: "food" }),
-      fx("persians.wood", "startStock", {}, 50, "\u958B\u5C40\u6728\u6750 +50", { resource: "wood" }),
-      fx("persians.tc-hp", "buildingHp", { buildings: ["town-center"] }, 2, "\u57CE\u93AE\u4E2D\u5FC3\u751F\u547D\u5169\u500D"),
-      fx("persians.tc-rate", "workRate", { buildings: ["town-center"] }, [0, 10, 15, 20], "\u57CE\u93AE\u4E2D\u5FC3\u751F\u7522\u8207\u7814\u7A76\u901F\u5EA6\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +10% / +15% / +20%"),
-      fx("persians.team-knights", "bonus", { kinds: ["knight"] }, 2, "\u5718\u968A\u52A0\u6210\uFF1A\u9A0E\u58EB\u5C0D\u5F13\u5175\u653B\u64CA +2", { vs: "archer", team: true }),
-      fx("persians.kamandaran", "costShift", { entries: ["archer"] }, 1, "\u6CE2\u65AF\u5F13\u5175\uFF1A\u5F13\u624B\u7684\u9EC3\u91D1\u6539\u4EE5\u6728\u6750\u652F\u4ED8", { resource: "gold", to: "wood", tech: "kamandaran" }),
-      fx("persians.mahouts", "speed", { kinds: ["war-elephant"] }, 1.3, "\u8C61\u4F15\uFF1A\u6230\u8C61\u79FB\u52D5\u901F\u5EA6 +30%", { tech: "mahouts" })
-    ],
-    omitted: [{ text: "\u78BC\u982D\u751F\u547D\u5169\u500D\u3001\u78BC\u982D\u5DE5\u4F5C\u901F\u5EA6\u63D0\u5347", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u78BC\u982D" }],
-    sources: [site("civs/Persians"), site("units/War_Elephant"), site("techs/Kamandaran"), site("techs/Mahouts"), site("tree/pre")]
-  },
-  {
-    id: "saracens",
-    name: "\u85A9\u62C9\u68EE",
-    nameEn: "Saracens",
-    type: "\u99F1\u99DD\u8207\u6D77\u8ECD\u6587\u660E",
-    architecture: "mideast",
-    missing: ["crop-rotation", "stone-shaft-mining"],
-    missingLater: ["halberdier", "cavalier", "paladin", "heavy-scorpion", "bombard-tower", "architecture", "heated-shot", "shipwright", "missionary"],
-    uniqueUnits: ["mameluke"],
-    eliteUpgrades: ["elite-mameluke"],
-    uniqueTechs: [{ id: "madrasah", name: "\u7A46\u65AF\u6797\u5B78\u588A", nameEn: "Madrasah", age: 3, effectText: "\u50E7\u4FB6\u6B7B\u4EA1\u6642\u8FD4\u9084 33 \u9EC3\u91D1" }, { id: "zealotry", name: "\u72C2\u71B1", nameEn: "Zealotry", age: 4, effectText: "\u99F1\u99DD\u9A0E\u5175\u8207\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u751F\u547D +30" }],
-    effects: [
-      fx("saracens.archer-buildings", "bonus", footArchers, [0, 1, 2, 3], "\u5F13\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +1 / +2 / +3", { vs: "building" }),
-      fx("saracens.team-archers", "bonus", footArchers, 2, "\u5718\u968A\u52A0\u6210\uFF1A\u5F92\u6B65\u5F13\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA +2", { vs: "building", team: true }),
-      fx("saracens.madrasah", "deathRefund", { kinds: ["monk"] }, 33, "\u7A46\u65AF\u6797\u5B78\u588A\uFF1A\u50E7\u4FB6\u6B7B\u4EA1\u6642\u8FD4\u9084 33 \u9EC3\u91D1", { tech: "madrasah" }),
-      fx("saracens.zealotry", "hp", { kinds: ["mameluke"] }, 30, "\u72C2\u71B1\uFF1A\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u751F\u547D +30", { tech: "zealotry", op: "add" })
-    ],
-    omitted: [{ text: "\u5E02\u96C6\u4EA4\u6613\u8CBB 5%\u3001\u5E02\u96C6\u4FBF\u5B9C 100 \u6728\u6750", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5E02\u96C6" }, { text: "\u904B\u8F38\u8239\u751F\u547D\u5169\u500D\u3001\u904B\u8F09 +5\uFF1B\u6230\u8239\u653B\u64CA\u901F\u5EA6 +25%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u99AC\u5F13\u9A0E\u5175\u5C0D\u5EFA\u7BC9\u518D +1", reason: "\u672C\u4F5C\u7684\u85A9\u62C9\u68EE\u6C92\u6709\u99AC\u5F13\u9A0E\u5175" }, { text: "\u72C2\u71B1\uFF1A\u99F1\u99DD\u9A0E\u5175\u751F\u547D +30", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u99F1\u99DD\u9A0E\u5175" }],
-    sources: [site("civs/Saracens"), site("units/Mameluke"), site("techs/Madrasah"), site("techs/Zealotry"), site("tree/sar")]
-  },
-  {
-    id: "turks",
-    name: "\u571F\u8033\u5176",
-    nameEn: "Turks",
-    type: "\u706B\u85E5\u6587\u660E",
-    architecture: "mideast",
-    missing: ["pikeman", "elite-skirmisher", "stone-shaft-mining", "faith", "illumination"],
-    missingLater: ["halberdier", "arbalest", "paladin", "herbal-medicine"],
-    uniqueUnits: ["janissary"],
-    eliteUpgrades: ["elite-janissary"],
-    uniqueTechs: [{ id: "sipahi", name: "\u91C7\u9091\u9A0E\u5175", nameEn: "Sipahi", age: 3, effectText: "\u99AC\u5F13\u9A0E\u5175\u8207\u6A19\u69CD\u9A0E\u5175\u751F\u547D +20" }, { id: "artillery", name: "\u7832\u5175", nameEn: "Artillery", age: 4, effectText: "\u706B\u7832\u3001\u706B\u7832\u5854\u3001\u706B\u7832\u6230\u8239\u5C04\u7A0B +2" }],
-    effects: [
-      fx("turks.gunpowder-hp", "hp", { classes: ["gunpowder"] }, 1.25, "\u706B\u85E5\u55AE\u4F4D\u751F\u547D +25%"),
-      fx("turks.gold", "gather", { resources: ["gold"] }, 20, "\u63A1\u91D1\u901F\u5EA6 +20%"),
-      fx("turks.free-light-cavalry", "cost", { entries: ["light-cavalry"] }, 0, "\u65A5\u5019\u7CFB\u5347\u7D1A\u514D\u8CBB"),
-      fx("turks.scout-armor", "pierceArmor", { kinds: ["scout"] }, 1, "\u65A5\u5019\u7CFB\u9060\u7A0B\u8B77\u7532 +1"),
-      fx("turks.team-gunpowder", "time", { entries: ["janissary"] }, 1 / 1.25, "\u5718\u968A\u52A0\u6210\uFF1A\u706B\u85E5\u55AE\u4F4D\u8A13\u7DF4\u901F\u5EA6 +25%", { team: true })
-    ],
-    omitted: [{ text: "\u706B\u85E5\u79D1\u6280\u4FBF\u5B9C 50%\u3001\u514D\u8CBB\u5316\u5B78", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5927\u5B78\u8207\u706B\u85E5\u79D1\u6280" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u91C7\u9091\u9A0E\u5175\u300D", reason: "\u672C\u4F5C\u7684\u571F\u8033\u5176\u6C92\u6709\u99AC\u5F13\u9A0E\u5175" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u7832\u5175\u300D", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u706B\u7832\u8207\u706B\u7832\u5854" }],
-    sources: [site("civs/Turks"), site("units/Janissary"), site("techs/Sipahi"), site("techs/Artillery"), site("tree/tur")]
-  },
-  {
-    id: "chinese",
-    name: "\u4E2D\u570B",
-    nameEn: "Chinese",
-    type: "\u5F13\u5175\u6587\u660E",
-    architecture: "eastasia",
-    missing: ["crop-rotation", "redemption", "heresy"],
-    missingLater: ["hussar", "paladin"],
-    uniqueUnits: ["chu-ko-nu"],
-    eliteUpgrades: ["elite-chu-ko-nu"],
-    uniqueTechs: [{ id: "great-wall", name: "\u9577\u57CE", nameEn: "Great Wall", age: 3, effectText: "\u7BAD\u5854\u8207\u57CE\u7246\u751F\u547D +30%" }, { id: "rocketry", name: "\u706B\u7BAD\u6280\u8853", nameEn: "Rocketry", age: 4, effectText: "\u9023\u5F29\u5175\u653B\u64CA +2\uFF0C\u5F29\u7832\u653B\u64CA +4" }],
-    effects: [
-      fx("chinese.villagers", "startVillagers", {}, 3, "\u958B\u5C40\u591A 3 \u540D\u6751\u6C11"),
-      fx("chinese.food", "startStock", {}, -200, "\u958B\u5C40\u98DF\u7269 -200", { resource: "food" }),
-      fx("chinese.wood", "startStock", {}, -50, "\u958B\u5C40\u6728\u6750 -50", { resource: "wood" }),
-      fx("chinese.tc-housing", "housing", { buildings: ["town-center"] }, 5, "\u57CE\u93AE\u4E2D\u5FC3\u53EF\u4F4F 10 \u4EBA"),
-      fx("chinese.tc-los", "los", { buildings: ["town-center"] }, 500, "\u57CE\u93AE\u4E2D\u5FC3\u8996\u91CE +5"),
-      fx("chinese.techs", "cost", { allTechs: true, exclude: ["age-2", "age-3", "age-4"] }, [1, 0.9, 0.85, 0.8], "\u79D1\u6280\u4FBF\u5B9C\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 -10% / -15% / -20%"),
-      fx("chinese.team-farms", "farmFood", {}, 45, "\u5718\u968A\u52A0\u6210\uFF1A\u8FB2\u7530\u98DF\u7269 +45", { team: true }),
-      fx("chinese.great-wall", "buildingHp", { buildings: ["watch-tower"] }, 1.3, "\u9577\u57CE\uFF1A\u7BAD\u5854\u751F\u547D +30%", { tech: "great-wall" }),
-      fx("chinese.rocketry", "attack", { kinds: ["chu-ko-nu"] }, 2, "\u706B\u7BAD\u6280\u8853\uFF1A\u9023\u5F29\u5175\u653B\u64CA +2", { tech: "rocketry" })
-    ],
-    omitted: [{ text: "\u7206\u7834\u8239\u751F\u547D +50%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u706B\u7BAD\u6280\u8853\u7684\u5F29\u7832 +4", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5F29\u7832" }, { text: "\u9577\u57CE\u7684\u57CE\u7246 +30%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u57CE\u7246" }],
-    sources: [site("civs/Chinese"), site("units/Chu_Ko_Nu"), site("techs/Great_Wall"), site("techs/Rocketry"), site("tree/chi")]
-  },
-  {
-    id: "japanese",
-    name: "\u65E5\u672C",
-    nameEn: "Japanese",
-    type: "\u6B65\u5175\u6587\u660E",
-    architecture: "eastasia",
-    missing: ["crop-rotation", "stone-shaft-mining", "plate-barding-armor", "heresy"],
-    missingLater: ["paladin", "siege-ram", "camel", "bombard-cannon", "bombard-tower", "heated-shot", "architecture", "missionary"],
-    uniqueUnits: ["samurai"],
-    eliteUpgrades: ["elite-samurai"],
-    uniqueTechs: [{ id: "yasama", name: "\u5C04\u7BAD\u5B54", nameEn: "Yasama", age: 3, effectText: "\u7BAD\u5854\u591A\u5C04\u5169\u652F\u7BAD" }, { id: "kataparuto", name: "\u5F48\u5C04\u5668", nameEn: "Kataparuto", age: 4, effectText: "\u5DE8\u578B\u6295\u77F3\u6A5F\u7D44\u88DD\u8207\u5C04\u901F\u63D0\u5347" }],
-    effects: [
-      fx("japanese.camps", "cost", { entries: ["lumber-camp", "mining-camp", "mill"] }, 0.5, "\u4F10\u6728\u5834\u3001\u63A1\u7926\u5834\u3001\u78E8\u574A\u4FBF\u5B9C 50%"),
-      fx("japanese.infantry-rate", "cooldown", infantry, [1, 0.9, 0.85, 0.75], "\u6B65\u5175\u653B\u64CA\u901F\u5EA6\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +10% / +15% / +25%"),
-      fx("japanese.yasama", "arrows", { buildings: ["watch-tower"] }, 2, "\u5C04\u7BAD\u5B54\uFF1A\u7BAD\u5854\u591A\u5C04\u5169\u652F\u7BAD", { tech: "yasama" })
-    ],
-    omitted: [{ text: "\u6F01\u8239\u751F\u547D\u5169\u500D\u3001\u9060\u7A0B\u8B77\u7532 +2\u3001\u5DE5\u4F5C\u901F\u5EA6\u63D0\u5347", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u6F01\u8239" }, { text: "\u5718\u968A\u52A0\u6210\uFF1A\u6230\u8239\u8996\u91CE +50%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u5F48\u5C04\u5668\u300D", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5DE8\u578B\u6295\u77F3\u6A5F" }],
-    sources: [site("civs/Japanese"), site("units/Samurai"), site("techs/Yasama"), site("techs/Kataparuto"), site("tree/jap")]
-  },
-  {
-    id: "mongols",
-    name: "\u8499\u53E4",
-    nameEn: "Mongols",
-    type: "\u99AC\u5F13\u9A0E\u5175\u6587\u660E",
-    architecture: "eastasia",
-    missing: ["two-man-saw", "crop-rotation", "plate-barding-armor", "ring-archer-armor", "redemption", "sanctity", "faith", "block-printing"],
-    missingLater: ["paladin", "keep", "halberdier", "bombard-cannon", "bombard-tower", "elite-cannon-galleon", "heated-shot", "architecture"],
-    uniqueUnits: ["mangudai"],
-    eliteUpgrades: ["elite-mangudai"],
-    uniqueTechs: [{ id: "nomads", name: "\u6E38\u7267", nameEn: "Nomads", age: 3, effectText: "\u6C11\u5C45\u88AB\u6467\u6BC0\u5F8C\u4EBA\u53E3\u4E0A\u9650\u4E0D\u4E0B\u964D" }, { id: "drill", name: "\u947F\u5CA9\u6A5F", nameEn: "Drill", age: 4, effectText: "\u653B\u57CE\u5668\u5DE5\u574A\u7684\u55AE\u4F4D\u79FB\u52D5\u901F\u5EA6 +50%" }],
-    effects: [
-      fx("mongols.horse-archers", "cooldown", { classes: ["cavalry-archer"] }, 1 / 1.2, "\u99AC\u5F13\u9A0E\u5175\u5C04\u901F +20%"),
-      fx("mongols.light-cavalry", "hp", { kinds: ["scout"] }, 1.3, "\u8F15\u9A0E\u5175\u751F\u547D +30%", { tech: "light-cavalry" }),
-      fx("mongols.hunters", "gather", { sources: ["hunt"] }, 40, "\u6253\u7375\u901F\u5EA6 +40%"),
-      fx("mongols.team-scouts", "los", { kinds: ["scout"] }, 200, "\u5718\u968A\u52A0\u6210\uFF1A\u65A5\u5019\u8996\u91CE +2", { team: true }),
-      fx("mongols.nomads", "keepHousing", { buildings: ["house"] }, 1, "\u6E38\u7267\uFF1A\u6C11\u5C45\u88AB\u6467\u6BC0\u5F8C\u4EBA\u53E3\u4E0A\u9650\u4E0D\u4E0B\u964D", { tech: "nomads" }),
-      fx("mongols.drill", "speed", { classes: ["siege"] }, 1.5, "\u947F\u5CA9\u6A5F\uFF1A\u653B\u57CE\u5668\u79FB\u52D5\u901F\u5EA6 +50%", { tech: "drill" })
-    ],
-    omitted: [],
-    sources: [site("civs/Mongols"), site("units/Mangudai"), site("techs/Nomads"), site("techs/Drill"), site("tree/mon")]
-  }
-];
-var uniqueUnitOwner = Object.fromEntries(civDefs.flatMap((c) => [...c.uniqueUnits, ...c.eliteUpgrades, ...c.uniqueTechs.map((t) => t.id)].map((id) => [id, c.id])));
-
-// packages/content/rules.ts
-var resources = ["food", "wood", "gold", "stone"];
-var entry = (id, kind, name, food = 0, wood = 0, gold = 0, stone = 0, requires = [], population = 0, time = 20, source = "original design defaults: packages/content/rules.ts") => ({ referenceVersion: null, sourceEvidence: [source], implementationStatus: id === "villager" ? "in_progress" : "not_started", testEvidence: ["tests/foundation.test.ts (data validation only)"], id, kind, name, cost: { food, wood, gold, stone }, time, population, requires, verificationStatus: "design_default" });
-var aoetw = "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset";
-var unique = (id, name, food, wood, gold, time) => entry(id, "unit", name, food, wood, gold, 0, [], 1, time, aoetw);
-var upgrade = (id, name, food, wood, gold, stone, age, time) => entry(id, "technology", name, food, wood, gold, stone, [`age-${age}`], 0, time, aoetw);
-var castleEntries = [
-  entry("castle", "building", "\u57CE\u5821", 0, 0, 0, 300, ["age-3"], 0, 60, "aoetw.com/building/Castle (650 stone there); 300 stone and 60 s are design_default for this map"),
-  unique("longbowman", "\u9577\u5F13\u5175", 0, 35, 40, 18),
-  unique("woad-raider", "\u83D8\u85CD\u6B66\u58EB", 65, 0, 25, 10),
-  unique("throwing-axeman", "\u64F2\u65A7\u5175", 55, 0, 25, 17),
-  unique("huskarl", "\u54E5\u5FB7\u885B\u968A", 80, 0, 40, 16),
-  unique("teutonic-knight", "\u689D\u9813\u6B66\u58EB", 85, 0, 40, 12),
-  unique("berserk", "\u72C2\u6230\u58EB", 65, 0, 25, 14),
-  unique("cataphract", "\u62DC\u5360\u5EAD\u8056\u9A0E\u5175", 70, 0, 75, 20),
-  unique("war-elephant", "\u6230\u8C61", 200, 0, 75, 31),
-  unique("mameluke", "\u963F\u62C9\u4F2F\u5974\u96B8\u5175", 55, 0, 85, 23),
-  unique("janissary", "\u571F\u8033\u5176\u706B\u69CD\u5175", 60, 0, 55, 17),
-  unique("chu-ko-nu", "\u9023\u5F29\u5175", 0, 40, 35, 16),
-  unique("samurai", "\u65E5\u672C\u6B66\u58EB", 60, 0, 30, 9),
-  unique("mangudai", "\u8499\u53E4\u7A81\u9A0E", 0, 55, 65, 26),
-  upgrade("elite-longbowman", "\u7CBE\u92B3\u9577\u5F13\u5175", 850, 0, 850, 0, 4, 60),
-  upgrade("elite-woad-raider", "\u7CBE\u92B3\u83D8\u85CD\u6B66\u58EB", 1e3, 0, 800, 0, 4, 45),
-  upgrade("elite-throwing-axeman", "\u7CBE\u92B3\u64F2\u65A7\u5175", 1e3, 0, 750, 0, 4, 45),
-  upgrade("elite-huskarl", "\u7CBE\u92B3\u54E5\u5FB7\u885B\u968A", 1200, 0, 550, 0, 4, 40),
-  upgrade("elite-teutonic-knight", "\u7CBE\u92B3\u689D\u9813\u6B66\u58EB", 1200, 0, 600, 0, 4, 50),
-  upgrade("elite-berserk", "\u7CBE\u92B3\u72C2\u6230\u58EB", 1300, 0, 550, 0, 4, 45),
-  upgrade("elite-cataphract", "\u7CBE\u92B3\u62DC\u5360\u5EAD\u8056\u9A0E\u5175", 1600, 0, 800, 0, 4, 50),
-  upgrade("elite-war-elephant", "\u7CBE\u92B3\u6230\u8C61", 1600, 0, 1200, 0, 4, 75),
-  upgrade("elite-mameluke", "\u7CBE\u92B3\u963F\u62C9\u4F2F\u5974\u96B8\u5175", 600, 0, 500, 0, 4, 50),
-  upgrade("elite-janissary", "\u7CBE\u92B3\u571F\u8033\u5176\u706B\u69CD\u5175", 850, 0, 750, 0, 4, 55),
-  upgrade("elite-chu-ko-nu", "\u7CBE\u92B3\u9023\u5F29\u5175", 950, 0, 950, 0, 4, 50),
-  upgrade("elite-samurai", "\u7CBE\u92B3\u65E5\u672C\u6B66\u58EB", 950, 0, 875, 0, 4, 60),
-  upgrade("elite-mangudai", "\u7CBE\u92B3\u8499\u53E4\u7A81\u9A0E", 1100, 0, 675, 0, 4, 50),
-  upgrade("yeomen", "\u7FA9\u52C7\u9A0E\u5175", 0, 750, 450, 0, 3, 60),
-  upgrade("stronghold", "\u5821\u58D8", 250, 0, 200, 0, 3, 30),
-  upgrade("furor-celtica", "\u585E\u723E\u7279\u72C2\u71B1", 750, 0, 450, 0, 4, 50),
-  upgrade("chivalry", "\u9A0E\u58EB\u7CBE\u795E", 0, 400, 400, 0, 3, 40),
-  upgrade("bearded-axe", "\u5012\u9264\u65A7", 400, 0, 400, 0, 4, 60),
-  upgrade("anarchy", "\u7121\u653F\u5E9C\u72C0\u614B", 450, 0, 250, 0, 3, 40),
-  upgrade("perfusion", "\u4E95\u5674", 0, 400, 600, 0, 4, 40),
-  upgrade("ironclad", "\u92FC\u9435\u7532", 0, 400, 350, 0, 3, 60),
-  upgrade("crenellations", "\u7832\u9580\u579B\u53E3", 600, 0, 0, 400, 4, 60),
-  upgrade("chieftains", "\u914B\u9577", 700, 0, 500, 0, 3, 40),
-  upgrade("berserkergang", "\u72C2\u6230\u58EB\u5E6B", 850, 0, 400, 0, 4, 40),
-  upgrade("logistica", "\u5F8C\u52E4", 1e3, 0, 600, 0, 4, 50),
-  upgrade("kamandaran", "\u6CE2\u65AF\u5F13\u5175", 400, 0, 300, 0, 3, 40),
-  upgrade("mahouts", "\u8C61\u4F15", 300, 0, 300, 0, 4, 50),
-  upgrade("madrasah", "\u7A46\u65AF\u6797\u5B78\u588A", 200, 0, 100, 0, 3, 30),
-  upgrade("zealotry", "\u72C2\u71B1", 750, 0, 700, 0, 4, 50),
-  upgrade("great-wall", "\u9577\u57CE", 0, 400, 0, 200, 3, 40),
-  upgrade("rocketry", "\u706B\u7BAD\u6280\u8853", 0, 750, 750, 0, 4, 60),
-  upgrade("yasama", "\u5C04\u7BAD\u5B54", 300, 300, 0, 0, 3, 40),
-  upgrade("nomads", "\u6E38\u7267", 0, 300, 150, 0, 3, 40),
-  upgrade("drill", "\u947F\u5CA9\u6A5F", 500, 0, 450, 0, 4, 60)
-];
-function civilizationsOf(entries) {
-  const ids = entries.map((e) => e.id), uniqueIds = new Set(civDefs.flatMap((c) => [...c.uniqueUnits, ...c.eliteUpgrades, ...c.uniqueTechs.map((t) => t.id)]));
-  return civDefs.map((c) => {
-    const own = /* @__PURE__ */ new Set([...c.uniqueUnits, ...c.eliteUpgrades, ...c.uniqueTechs.map((t) => t.id)]);
-    const unavailable = ids.filter((id) => c.missing.includes(id) || uniqueIds.has(id) && !own.has(id) || id === "castle" && !c.uniqueUnits.length);
-    return { id: c.id, available: ids.filter((id) => !unavailable.includes(id)), unavailable };
-  });
-}
-var rules = {
-  schemaVersion: 1,
-  id: "brick-foundation-0.1",
-  reference: { game: "Age of Empires II: Definitive Edition", version: null, build: null, contentPacks: [], verificationStatus: "unverified", sourceEvidence: [] },
-  coverage: { contentDenominator: null, exactReferenceCoveragePercent: null },
-  settings: { tickHz: 20, populationCap: 40, mapSize: 16, speed: 1, mode: "command-sandbox", seed: 260925, platform: "desktop browser", provenance: "design_default" },
-  entries: [
-    entry("villager", "unit", "\u6751\u6C11", 50, 0, 0, 0, [], 1),
-    entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 200, 0, 100),
-    entry("house", "building", "\u6C11\u5C45", 0, 30),
-    entry("barracks", "building", "\u5175\u71DF", 0, 150),
-    entry("farm", "building", "\u8FB2\u7530", 0, 60),
-    entry("lumber-camp", "building", "\u4F10\u6728\u5834", 0, 100),
-    entry("mining-camp", "building", "\u63A1\u7926\u5834", 0, 100),
-    entry("mill", "building", "\u78E8\u574A", 0, 100),
-    entry("stable", "building", "\u99AC\u5EC4", 0, 175, 0, 0, ["age-2", "barracks"]),
-    entry("archery-range", "building", "\u9776\u5834", 0, 175, 0, 0, ["age-2", "barracks"]),
-    entry("monastery", "building", "\u4FEE\u9053\u9662", 0, 175, 0, 0, ["age-3"]),
-    entry("militia", "unit", "\u8FD1\u6230\u6C11\u5175", 60, 0, 20, 0, ["barracks"], 1),
-    entry("archer", "unit", "\u5F13\u624B", 0, 40, 30, 0, ["age-2"], 1),
-    entry("ram", "unit", "\u653B\u57CE\u69CC", 0, 160, 75, 0, ["age-3"], 3),
-    entry("watch-tower", "building", "\u7BAD\u5854", 0, 25, 0, 125, ["age-2"]),
-    entry("siege-workshop", "building", "\u653B\u57CE\u5668\u5DE5\u574A", 0, 200, 0, 0, ["age-3", "blacksmith"]),
-    entry("scout", "unit", "\u65A5\u5019", 80, 0, 0, 0, ["stable"], 1),
-    entry("monk", "unit", "\u50E7\u4FB6", 0, 0, 100, 0, ["monastery"], 1),
-    entry("redemption", "technology", "\u6551\u8D16", 0, 0, 475, 0, ["monastery", "age-3"]),
-    entry("atonement", "technology", "\u8D16\u7F6A", 0, 0, 325, 0, ["monastery", "age-3"]),
-    entry("sanctity", "technology", "\u8056\u6F54", 0, 0, 175, 0, ["monastery", "age-3"]),
-    entry("heresy", "technology", "\u7570\u7AEF", 0, 0, 1e3, 0, ["monastery", "age-3"]),
-    entry("illumination", "technology", "\u555F\u8499", 0, 0, 120, 0, ["monastery", "age-4"]),
-    entry("block-printing", "technology", "\u6D3B\u5B57\u5370\u5237", 0, 0, 200, 0, ["monastery", "age-4"]),
-    entry("theocracy", "technology", "\u795E\u6B0A\u653F\u6CBB", 0, 0, 200, 0, ["monastery", "age-4"]),
-    entry("faith", "technology", "\u4FE1\u4EF0", 550, 0, 750, 0, ["monastery", "age-4"]),
-    entry("spearman", "unit", "\u9577\u69CD\u5175", 35, 25, 0, 0, ["age-2"], 1),
-    entry("skirmisher", "unit", "\u6563\u5175", 25, 35, 0, 0, ["age-2"], 1),
-    entry("knight", "unit", "\u9A0E\u58EB", 60, 0, 75, 0, ["age-3"], 1),
-    entry("blacksmith", "building", "\u9435\u5320\u92EA", 0, 150),
-    entry("man-at-arms", "technology", "\u91CD\u6B65\u5175", 100, 0, 40, 0, ["age-2"]),
-    entry("long-swordsman", "technology", "\u9577\u528D\u58EB", 200, 0, 65, 0, ["age-3", "man-at-arms"]),
-    entry("pikeman", "technology", "\u9577\u77DB\u5175", 215, 0, 90, 0, ["age-3"]),
-    entry("crossbowman", "technology", "\u5F29\u624B", 125, 0, 75, 0, ["age-3"]),
-    entry("elite-skirmisher", "technology", "\u7CBE\u92B3\u6563\u5175", 0, 250, 160, 0, ["age-3"]),
-    entry("light-cavalry", "technology", "\u8F15\u9A0E\u5175", 150, 0, 50, 0, ["age-3"]),
-    entry("forging", "technology", "\u935B\u9020", 150, 0, 0, 0, ["age-2"]),
-    entry("iron-casting", "technology", "\u9444\u9435", 220, 0, 120, 0, ["age-3", "forging"]),
-    entry("blast-furnace", "technology", "\u9AD8\u7210", 275, 0, 225, 0, ["age-4", "iron-casting"]),
-    entry("scale-mail-armor", "technology", "\u9C57\u7532", 100, 0, 0, 0, ["age-2"]),
-    entry("chain-mail-armor", "technology", "\u9396\u5B50\u7532", 200, 0, 100, 0, ["age-3", "scale-mail-armor"]),
-    entry("plate-mail-armor", "technology", "\u677F\u7532", 300, 0, 150, 0, ["age-4", "chain-mail-armor"]),
-    entry("scale-barding-armor", "technology", "\u9C57\u7247\u99AC\u93A7", 150, 0, 0, 0, ["age-2"]),
-    entry("chain-barding-armor", "technology", "\u9396\u5B50\u99AC\u93A7", 250, 0, 150, 0, ["age-3", "scale-barding-armor"]),
-    entry("plate-barding-armor", "technology", "\u677F\u7532\u99AC\u93A7", 350, 0, 200, 0, ["age-4", "chain-barding-armor"]),
-    entry("fletching", "technology", "\u7FBD\u7BAD", 100, 0, 50, 0, ["age-2"]),
-    entry("bodkin-arrow", "technology", "\u9310\u5F62\u7BAD", 200, 0, 100, 0, ["age-3", "fletching"]),
-    entry("bracer", "technology", "\u8B77\u8155", 300, 0, 200, 0, ["age-4", "bodkin-arrow"]),
-    entry("padded-archer-armor", "technology", "\u896F\u588A\u5F13\u624B\u7532", 100, 0, 0, 0, ["age-2"]),
-    entry("leather-archer-armor", "technology", "\u76AE\u9769\u5F13\u624B\u7532", 150, 0, 150, 0, ["age-3", "padded-archer-armor"]),
-    entry("ring-archer-armor", "technology", "\u74B0\u7532\u5F13\u624B\u7532", 250, 0, 250, 0, ["age-4", "leather-archer-armor"]),
-    entry("loom", "technology", "\u7E54\u5E03\u6A5F", 0, 0, 50),
-    entry("wheelbarrow", "technology", "\u624B\u63A8\u8ECA", 175, 50, 0, 0, ["age-2"]),
-    entry("hand-cart", "technology", "\u624B\u62C9\u8ECA", 300, 200, 0, 0, ["age-3", "wheelbarrow"]),
-    entry("double-bit-axe", "technology", "\u96D9\u5203\u65A7", 100, 50, 0, 0, ["age-2"]),
-    entry("bow-saw", "technology", "\u5F13\u92F8", 150, 100, 0, 0, ["age-3", "double-bit-axe"]),
-    entry("two-man-saw", "technology", "\u96D9\u4EBA\u92F8", 300, 200, 0, 0, ["age-4", "bow-saw"]),
-    entry("gold-mining", "technology", "\u63A1\u91D1\u8853", 100, 75, 0, 0, ["age-2"]),
-    entry("gold-shaft-mining", "technology", "\u8C4E\u4E95\u63A1\u91D1", 200, 100, 0, 0, ["age-3", "gold-mining"]),
-    entry("stone-mining", "technology", "\u63A1\u77F3\u8853", 100, 75, 0, 0, ["age-2"]),
-    entry("stone-shaft-mining", "technology", "\u8C4E\u4E95\u63A1\u77F3", 200, 100, 0, 0, ["age-3", "stone-mining"]),
-    entry("horse-collar", "technology", "\u99AC\u8EDB", 75, 75, 0, 0, ["age-2"]),
-    entry("heavy-plow", "technology", "\u91CD\u7281", 125, 125, 0, 0, ["age-3", "horse-collar"]),
-    entry("crop-rotation", "technology", "\u8F2A\u8015", 250, 250, 0, 0, ["age-4", "heavy-plow"]),
-    entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300),
-    entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]),
-    entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"]),
-    ...castleEntries
-  ],
-  // Which building produces each unit/technology (design_default). null = defined but not producible yet.
-  production: {
-    villager: "town-center",
-    militia: "barracks",
-    "man-at-arms": "barracks",
-    "long-swordsman": "barracks",
-    spearman: "barracks",
-    pikeman: "barracks",
-    archer: "archery-range",
-    crossbowman: "archery-range",
-    skirmisher: "archery-range",
-    "elite-skirmisher": "archery-range",
-    ram: "siege-workshop",
-    scout: "stable",
-    "light-cavalry": "stable",
-    knight: "stable",
-    forging: "blacksmith",
-    "iron-casting": "blacksmith",
-    "blast-furnace": "blacksmith",
-    "scale-mail-armor": "blacksmith",
-    "chain-mail-armor": "blacksmith",
-    "plate-mail-armor": "blacksmith",
-    "scale-barding-armor": "blacksmith",
-    "chain-barding-armor": "blacksmith",
-    "plate-barding-armor": "blacksmith",
-    fletching: "blacksmith",
-    "bodkin-arrow": "blacksmith",
-    bracer: "blacksmith",
-    "padded-archer-armor": "blacksmith",
-    "leather-archer-armor": "blacksmith",
-    "ring-archer-armor": "blacksmith",
-    monk: "monastery",
-    redemption: "monastery",
-    atonement: "monastery",
-    sanctity: "monastery",
-    heresy: "monastery",
-    illumination: "monastery",
-    "block-printing": "monastery",
-    theocracy: "monastery",
-    faith: "monastery",
-    "double-bit-axe": "lumber-camp",
-    "bow-saw": "lumber-camp",
-    "two-man-saw": "lumber-camp",
-    "gold-mining": "mining-camp",
-    "gold-shaft-mining": "mining-camp",
-    "stone-mining": "mining-camp",
-    "stone-shaft-mining": "mining-camp",
-    "horse-collar": "mill",
-    "heavy-plow": "mill",
-    "crop-rotation": "mill",
-    "age-2": "town-center",
-    "age-3": "town-center",
-    "age-4": "town-center",
-    // After the ages, so the town centre's age-up keeps its tile and hotkey.
-    loom: "town-center",
-    wheelbarrow: "town-center",
-    "hand-cart": "town-center",
-    // The Castle: unique units, their elite upgrades and the unique technologies.
-    ...Object.fromEntries(castleEntries.filter((e) => e.kind !== "building").map((e) => [e.id, "castle"]))
-  },
-  civilizations: []
-};
-rules.civilizations = civilizationsOf(rules.entries);
 
 // packages/sim/economy.ts
 var economyRules = {
@@ -1198,7 +1509,7 @@ var economyRules = {
 };
 var zero = () => ({ food: 0, wood: 0, gold: 0, stone: 0 });
 function createAccount(populationUsed) {
-  return { stock: { ...economyRules.initialStock }, populationUsed, populationReserved: 0, populationCap: economyRules.populationCap, reservations: [], ledger: { extracted: zero(), deposited: zero(), lost: zero(), relic: zero(), refund: zero() } };
+  return { stock: { ...economyRules.initialStock }, populationUsed, populationReserved: 0, populationCap: economyRules.populationCap, reservations: [], ledger: { extracted: zero(), deposited: zero(), lost: zero(), relic: zero(), refund: zero(), market: zero(), trade: zero() } };
 }
 function reserve(account, id, entryId, cost) {
   const found = rules.entries.find((e) => e.id === entryId), entry2 = found && cost ? { ...found, cost } : found;
@@ -1252,6 +1563,73 @@ var carryOf = (techs, base, farming = false) => base + sum(techRules.carry, tech
 var farmFoodOf = (techs, base) => base + sum(techRules.farmFood, techs);
 var villagerHpBonus = (techs) => sum(techRules.villagerHp, techs);
 
+// packages/content/techs.ts
+var infantry2 = { classes: ["infantry"] };
+var mounted = { classes: ["cavalry", "camel"] };
+var ships = ["fishing-ship", "transport-ship", "trade-cog", "galley", "fire-galley", "demolition-raft", "cannon-galleon", "longboat"];
+var footArchers2 = { classes: ["archer"], exclude: ["skirmisher", "gunpowder", "cavalry-archer", "chu-ko-nu"] };
+var sighted2 = ["town-center", "house", "barracks", "watch-tower", "castle", "outpost", "bombard-tower", "market", "dock", "wonder", "palisade-wall", "stone-wall", "palisade-gate", "gate"];
+var techEffects = [
+  // University.
+  fx("masonry.hp", "buildingHp", {}, 1.1, "\u78DA\u74E6\u6280\u8853\uFF1A\u5EFA\u7BC9\u751F\u547D +10%", { tech: "masonry" }),
+  fx("masonry.melee", "buildingMeleeArmor", {}, 1, "\u78DA\u74E6\u6280\u8853\uFF1A\u5EFA\u7BC9\u8FD1\u6230\u8B77\u7532 +1", { tech: "masonry" }),
+  fx("masonry.pierce", "buildingPierceArmor", {}, 1, "\u78DA\u74E6\u6280\u8853\uFF1A\u5EFA\u7BC9\u9060\u7A0B\u8B77\u7532 +1", { tech: "masonry" }),
+  fx("architecture.hp", "buildingHp", {}, 1.1, "\u5EFA\u7BC9\u5B78\uFF1A\u5EFA\u7BC9\u751F\u547D\u518D +10%", { tech: "architecture" }),
+  fx("architecture.melee", "buildingMeleeArmor", {}, 1, "\u5EFA\u7BC9\u5B78\uFF1A\u5EFA\u7BC9\u8FD1\u6230\u8B77\u7532\u518D +1", { tech: "architecture" }),
+  fx("architecture.pierce", "buildingPierceArmor", {}, 1, "\u5EFA\u7BC9\u5B78\uFF1A\u5EFA\u7BC9\u9060\u7A0B\u8B77\u7532\u518D +1", { tech: "architecture" }),
+  fx("chemistry.missiles", "attack", { classes: ["archer", "siege", "warship"], exclude: ["gunpowder", "ram", "petard"] }, 1, "\u5316\u5B78\uFF1A\u5F13\u5175\u3001\u6295\u5C04\u653B\u57CE\u5668\u8207\u6230\u8239\u653B\u64CA +1\uFF08\u706B\u85E5\u55AE\u4F4D\u3001\u885D\u649E\u8ECA\u9664\u5916\uFF09", { tech: "chemistry" }),
+  fx("chemistry.buildings", "arrowDamage", { buildings: ["town-center", "watch-tower", "castle"] }, 1, "\u5316\u5B78\uFF1A\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u8207\u57CE\u5821\u7684\u7BAD +1", { tech: "chemistry" }),
+  fx("siege-engineers.range", "range", { classes: ["siege"], exclude: ["ram"] }, 50, "\u653B\u57CE\u5DE5\u7A0B\u5E2B\uFF1A\u653B\u57CE\u5668\u5C04\u7A0B +1\uFF08\u885D\u649E\u8ECA\u9664\u5916\uFF09", { tech: "siege-engineers" }),
+  fx("siege-engineers.buildings", "bonusScale", { classes: ["siege"] }, 1.2, "\u653B\u57CE\u5DE5\u7A0B\u5E2B\uFF1A\u653B\u57CE\u5668\u5C0D\u5EFA\u7BC9\u653B\u64CA +20%", { vs: "building", tech: "siege-engineers" }),
+  fx("guard-tower.hp", "buildingHp", { buildings: ["watch-tower"] }, 1.47, "\u9632\u79A6\u7BAD\u5854\uFF1A\u7BAD\u5854\u751F\u547D +47%\uFF08\u539F\u4F5C 1020 \u2192 1500\uFF09", { tech: "guard-tower" }),
+  fx("guard-tower.arrow", "arrowDamage", { buildings: ["watch-tower"] }, 1, "\u9632\u79A6\u7BAD\u5854\uFF1A\u7BAD\u5854\u653B\u64CA +1", { tech: "guard-tower" }),
+  fx("keep.hp", "buildingHp", { buildings: ["watch-tower"] }, 1.5, "\u5927\u578B\u7BAD\u5854\uFF1A\u7BAD\u5854\u751F\u547D\u518D +50%\uFF08\u539F\u4F5C 1500 \u2192 2250\uFF09", { tech: "keep" }),
+  fx("keep.arrow", "arrowDamage", { buildings: ["watch-tower"] }, 1, "\u5927\u578B\u7BAD\u5854\uFF1A\u7BAD\u5854\u653B\u64CA\u518D +1", { tech: "keep" }),
+  fx("treadmill-crane", "buildRate", {}, 20, "\u78E8\u574A\u6C34\u8ECA\uFF1A\u6751\u6C11\u5EFA\u9020\u901F\u5EA6 +20%", { tech: "treadmill-crane" }),
+  fx("arrowslits", "arrowDamage", { buildings: ["watch-tower"] }, 2, "\u7BAD\u72F9\u69FD\uFF1A\u7BAD\u5854\u653B\u64CA +2\uFF08\u539F\u4F5C\u4F9D\u5854\u7684\u7B49\u7D1A +1\uFF0F+2\uFF0F+3\uFF09", { tech: "arrowslits" }),
+  // Barracks.
+  fx("supplies", "cost", { entries: ["militia"] }, 0.75, "\u4F9B\u7D66\uFF1A\u6C11\u5175\u7CFB\u98DF\u7269 -15", { tech: "supplies", resource: "food" }),
+  fx("squires", "speed", infantry2, 1.1, "\u8B77\u885B\u6280\u8853\uFF1A\u6B65\u5175\u79FB\u52D5\u901F\u5EA6 +10%", { tech: "squires" }),
+  fx("arson", "bonus", infantry2, 2, "\u7E31\u706B\uFF1A\u6B65\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA +2", { vs: "building", tech: "arson" }),
+  // Archery range.
+  fx("thumb-ring.foot", "cooldown", footArchers2, 1 / 1.18, "\u62C7\u6307\u74B0\uFF1A\u5F92\u6B65\u5F13\u5175\u5C04\u901F +18%", { tech: "thumb-ring" }),
+  fx("thumb-ring.horse", "cooldown", { classes: ["cavalry-archer"] }, 1 / 1.11, "\u62C7\u6307\u74B0\uFF1A\u99AC\u5F13\u9A0E\u5175\u5C04\u901F +11%", { tech: "thumb-ring" }),
+  fx("thumb-ring.chu-ko-nu", "cooldown", { kinds: ["chu-ko-nu"] }, 1 / 1.25, "\u62C7\u6307\u74B0\uFF1A\u9023\u5F29\u5175\u5C04\u901F +25%", { tech: "thumb-ring" }),
+  fx("parthian.melee", "meleeArmor", { classes: ["cavalry-archer"] }, 1, "\u5B89\u606F\u4EBA\u6230\u8853\uFF1A\u99AC\u5F13\u9A0E\u5175\u8FD1\u6230\u8B77\u7532 +1", { tech: "parthian-tactics" }),
+  fx("parthian.pierce", "pierceArmor", { classes: ["cavalry-archer"] }, 2, "\u5B89\u606F\u4EBA\u6230\u8853\uFF1A\u99AC\u5F13\u9A0E\u5175\u9060\u7A0B\u8B77\u7532 +2", { tech: "parthian-tactics" }),
+  fx("parthian.spear", "bonus", { kinds: ["cavalry-archer"] }, 4, "\u5B89\u606F\u4EBA\u6230\u8853\uFF1A\u99AC\u5F13\u9A0E\u5175\u5C0D\u9577\u69CD\u5175 +4", { vs: "spear", tech: "parthian-tactics" }),
+  fx("parthian.spear-unique", "bonus", { kinds: ["mangudai"] }, 2, "\u5B89\u606F\u4EBA\u6230\u8853\uFF1A\u5176\u4ED6\u99AC\u5F13\u9A0E\u5175\uFF08\u8499\u53E4\u7A81\u9A0E\uFF09\u5C0D\u9577\u69CD\u5175 +2", { vs: "spear", tech: "parthian-tactics" }),
+  // Stable.
+  fx("bloodlines", "hp", mounted, 20, "\u54C1\u7A2E\uFF1A\u9A0E\u5175\u8207\u99F1\u99DD\u751F\u547D +20", { tech: "bloodlines", op: "add" }),
+  fx("husbandry", "speed", mounted, 1.1, "\u8015\u7A2E\u6280\u8853\uFF1A\u9A0E\u5175\u8207\u99F1\u99DD\u79FB\u52D5\u901F\u5EA6 +10%", { tech: "husbandry" }),
+  // Town centre: sight of every building (a tile of sight is 100 here).
+  fx("town-watch", "los", { buildings: sighted2 }, 400, "\u57CE\u93AE\u77AD\u671B\uFF1A\u5EFA\u7BC9\u8996\u91CE +4", { tech: "town-watch" }),
+  fx("town-patrol", "los", { buildings: sighted2 }, 400, "\u57CE\u93AE\u5DE1\u908F\uFF1A\u5EFA\u7BC9\u8996\u91CE\u518D +4", { tech: "town-patrol" }),
+  // Monastery.
+  fx("fervor", "speed", { kinds: ["monk"] }, 1.15, "\u5B97\u6559\u72C2\u71B1\uFF1A\u50E7\u4FB6\u79FB\u52D5\u901F\u5EA6 +15%", { tech: "fervor" }),
+  fx("herbal-medicine", "garrisonHeal", {}, 6, "\u8349\u85E5\u6CBB\u7642\uFF1A\u9032\u99D0\u55AE\u4F4D\u56DE\u8840\u5FEB 6 \u500D", { tech: "herbal-medicine" }),
+  // Castle.
+  fx("hoardings", "buildingHp", { buildings: ["castle"] }, 1.21, "\u570D\u7246\uFF1A\u57CE\u5821\u751F\u547D +21%", { tech: "hoardings" }),
+  fx("sappers", "bonus", { kinds: ["villager"] }, 15, "\u5175\u5DE5\u5B78\uFF1A\u6751\u6C11\u5C0D\u5EFA\u7BC9\u653B\u64CA +15", { vs: "building", tech: "sappers" }),
+  // University, the 建築 round: Heated Shot (towers and castles +125% against ships: the arrows' ship bonus here),
+  // Fortified Wall (stone walls 1800 -> 3000, gates 2750 -> 4000 hit points in the reference).
+  fx("heated-shot", "arrowBonus", { buildings: ["watch-tower", "castle"] }, 6, "\u706B\u7BAD\uFF1A\u7BAD\u5854\u8207\u57CE\u5821\u7684\u7BAD\u5C0D\u8239 +6\uFF08\u539F\u4F5C +125%\uFF09", { vs: "ship", tech: "heated-shot" }),
+  fx("fortified-wall.wall", "buildingHp", { buildings: ["stone-wall"] }, 5 / 3, "\u579B\u7246\uFF1A\u77F3\u7246\u751F\u547D +67%\uFF08\u539F\u4F5C 1800 \u2192 3000\uFF09", { tech: "fortified-wall" }),
+  fx("fortified-wall.gate", "buildingHp", { buildings: ["gate"] }, 4e3 / 2750, "\u579B\u7246\uFF1A\u57CE\u9580\u751F\u547D +45%\uFF08\u539F\u4F5C 2750 \u2192 4000\uFF09", { tech: "fortified-wall" }),
+  // Dock.
+  fx("gillnets", "gather", { kinds: ["fishing-ship"], sources: ["fish", "fish-trap"] }, 25, "\u6D41\u523A\u7DB2\uFF1A\u6F01\u8239\u5DE5\u4F5C\u901F\u5EA6 +25%", { tech: "gillnets" }),
+  fx("careening.armor", "pierceArmor", { classes: ["ship"] }, 1, "\u822A\u6D77\u6280\u8853\uFF1A\u8239\u96BB\u9060\u7A0B\u8B77\u7532 +1", { tech: "careening" }),
+  fx("careening.capacity", "transportCapacity", { kinds: ["transport-ship"] }, 5, "\u822A\u6D77\u6280\u8853\uFF1A\u904B\u8F38\u8239\u904B\u8F09 +5", { tech: "careening" }),
+  fx("dry-dock.speed", "speed", { classes: ["ship"] }, 1.15, "\u8239\u5862\uFF1A\u8239\u96BB\u79FB\u52D5\u901F\u5EA6 +15%", { tech: "dry-dock" }),
+  fx("dry-dock.capacity", "transportCapacity", { kinds: ["transport-ship"] }, 10, "\u8239\u5862\uFF1A\u904B\u8F38\u8239\u904B\u8F09 +10", { tech: "dry-dock" }),
+  fx("shipwright.cost", "cost", { entries: ships }, 0.8, "\u9020\u8239\u54E1\uFF1A\u8239\u96BB\u6728\u6750 -20%", { tech: "shipwright", resource: "wood" }),
+  fx("shipwright.time", "time", { entries: ships }, 0.65, "\u9020\u8239\u54E1\uFF1A\u8239\u96BB\u8A13\u7DF4\u6642\u9593 -35%", { tech: "shipwright" }),
+  // Market.
+  fx("caravan", "speed", { classes: ["trade"] }, 1.5, "\u5546\u968A\uFF1A\u8CBF\u6613\u8ECA\u968A\u8207\u8CBF\u6613\u5546\u8239\u79FB\u52D5\u901F\u5EA6 +50%", { tech: "caravan" }),
+  fx("guilds", "marketFee", {}, -15, "\u516C\u6703\u5236\u5EA6\uFF1A\u5E02\u96C6\u4EA4\u6613\u8CBB 30% \u2192 15%", { tech: "guilds" }),
+  fx("conscription", "workRate", { buildings: ["barracks", "archery-range", "stable", "castle"], allUnits: true }, 33, "\u5FB5\u5175\u6280\u8853\uFF1A\u5175\u71DF\u3001\u9776\u5834\u3001\u99AC\u5EC4\u8207\u57CE\u5821\u8A13\u7DF4\u901F\u5EA6 +33%\uFF08\u7814\u7A76\u4E0D\u8B8A\uFF09", { tech: "conscription" })
+];
+
 // packages/sim/civ.ts
 function ownerOf(s, player) {
   return { civ: s.civs?.[player] ?? neutralCiv, age: s.ages?.[player] ?? 1, techs: s.techs?.[player] ?? [] };
@@ -1259,9 +1637,13 @@ function ownerOf(s, player) {
 var asOwner = (o) => Array.isArray(o) ? { civ: neutralCiv, age: 1, techs: o } : o;
 var byCiv = new Map(civDefs.map((c) => [c.id, c.effects]));
 var civExists = (id) => typeof id === "string" && byCiv.has(id);
+var withTechs = /* @__PURE__ */ new Map();
 function activeEffects(o, kind) {
-  const list = byCiv.get(o.civ);
-  if (!list) return [];
+  let list = withTechs.get(o.civ);
+  if (!list) {
+    list = [...byCiv.get(o.civ) ?? [], ...techEffects];
+    withTechs.set(o.civ, list);
+  }
   return list.filter((e) => e.kind === kind && (e.trigger.age === void 0 || o.age >= e.trigger.age) && (e.trigger.tech === void 0 || o.techs.includes(e.trigger.tech)));
 }
 var valueOf = (e, o) => typeof e.value === "number" ? e.value : e.value[Math.min(3, Math.max(0, o.age - 1))];
@@ -1278,16 +1660,17 @@ function entryMatches(sel, entryId) {
 var buildingMatches = (sel, kind) => !sel.buildings || sel.buildings.includes(kind);
 var sum2 = (list, o) => list.reduce((t, e) => t + valueOf(e, o), 0);
 var product = (list, o) => list.reduce((t, e) => t * valueOf(e, o), 1);
-var unitSum = (o, kind, unit, classes, op = "add") => sum2(activeEffects(o, kind).filter((e) => e.op === op && unitMatches(e.select, unit, classes)), o);
-var unitProduct = (o, kind, unit, classes) => product(activeEffects(o, kind).filter((e) => e.op === "mul" && unitMatches(e.select, unit, classes)), o);
-function unitBonuses(o, unit, classes) {
+var unitSum = (o, kind, unit2, classes, op = "add") => sum2(activeEffects(o, kind).filter((e) => e.op === op && unitMatches(e.select, unit2, classes)), o);
+var unitProduct = (o, kind, unit2, classes) => product(activeEffects(o, kind).filter((e) => e.op === "mul" && unitMatches(e.select, unit2, classes)), o);
+function unitBonuses(o, unit2, classes) {
   const out = {};
-  for (const e of activeEffects(o, "bonus")) if (e.vs && unitMatches(e.select, unit, classes)) {
+  for (const e of activeEffects(o, "bonus")) if (e.vs && unitMatches(e.select, unit2, classes)) {
     const v = valueOf(e, o);
     if (v) out[e.vs] = (out[e.vs] ?? 0) + v;
   }
   return out;
 }
+var bonusScales = (o, unit2, classes) => activeEffects(o, "bonusScale").filter((e) => e.vs && unitMatches(e.select, unit2, classes)).map((e) => ({ vs: e.vs, scale: valueOf(e, o) }));
 function costOf(entryId, o) {
   const e = rules.entries.find((e2) => e2.id === entryId);
   const cost = { food: 0, wood: 0, gold: 0, stone: 0, ...e?.cost ?? {} };
@@ -1301,10 +1684,10 @@ function costOf(entryId, o) {
   }
   return cost;
 }
-function timeTicks(entryId, o, building) {
+function timeTicks(entryId, o, building2) {
   const e = rules.entries.find((e2) => e2.id === entryId);
   if (!e) return 0;
-  const scale = product(activeEffects(o, "time").filter((fx2) => entryMatches(fx2.select, entryId)), o), rate = sum2(activeEffects(o, "workRate").filter((fx2) => buildingMatches(fx2.select, building)), o);
+  const scale = product(activeEffects(o, "time").filter((fx2) => entryMatches(fx2.select, entryId)), o), rate = sum2(activeEffects(o, "workRate").filter((fx2) => buildingMatches(fx2.select, building2) && (!fx2.select.allUnits || e.kind === "unit")), o);
   return Math.round(e.time * rules.settings.tickHz * scale * 100 / (100 + rate));
 }
 function producersOf(entryId, o) {
@@ -1319,30 +1702,36 @@ var civAvailable = (civ, entryId) => {
   const c = rules.civilizations.find((c2) => c2.id === civ) ?? rules.civilizations.find((c2) => c2.id === neutralCiv);
   return c.available.includes(entryId);
 };
-var gatherBonus = (o, yieldKind, source) => sum2(activeEffects(o, "gather").filter((e) => e.select.resources?.includes(yieldKind) || e.select.sources?.includes(source)), o);
+var gatherBonus = (o, yieldKind, source, kind = "villager") => sum2(activeEffects(o, "gather").filter((e) => (!e.select.kinds || e.select.kinds.includes(kind)) && (e.select.resources?.includes(yieldKind) || e.select.sources?.includes(source))), o);
 var carryBonus = (o, source) => sum2(activeEffects(o, "carry").filter((e) => e.select.sources?.includes(source)), o);
 var farmFoodBonus = (o) => sum2(activeEffects(o, "farmFood"), o);
 var huntDamageBonus = (o, prey) => sum2(activeEffects(o, "huntDamage").filter((e) => !e.select.prey || e.select.prey.includes(prey)), o);
-var buildingSum = (o, kind, building) => sum2(activeEffects(o, kind).filter((e) => buildingMatches(e.select, building)), o);
-var buildingHpScale = (o, building) => product(activeEffects(o, "buildingHp").filter((e) => buildingMatches(e.select, building)), o);
-var housingBonus = (o, building) => buildingSum(o, "housing", building);
-var garrisonBonus = (o, building) => buildingSum(o, "garrison", building);
+var buildingSum = (o, kind, building2) => sum2(activeEffects(o, kind).filter((e) => buildingMatches(e.select, building2)), o);
+var buildingHpScale = (o, building2) => product(activeEffects(o, "buildingHp").filter((e) => buildingMatches(e.select, building2)), o);
+var housingBonus = (o, building2) => buildingSum(o, "housing", building2);
+var garrisonBonus = (o, building2) => buildingSum(o, "garrison", building2);
 var popCapBonus = (o) => sum2(activeEffects(o, "popCap"), o);
-var keepsHousing = (o, building) => activeEffects(o, "keepHousing").some((e) => buildingMatches(e.select, building));
-function arrowsOf(o, building) {
+var buildingArmorBonus = (o, building2) => [buildingSum(o, "buildingMeleeArmor", building2), buildingSum(o, "buildingPierceArmor", building2)];
+var buildRateBonus = (o, building2) => buildingSum(o, "buildRate", building2);
+var garrisonHealScale = (o, building2) => product(activeEffects(o, "garrisonHeal").filter((e) => buildingMatches(e.select, building2)), o);
+var keepsHousing = (o, building2) => activeEffects(o, "keepHousing").some((e) => buildingMatches(e.select, building2));
+function arrowsOf(o, building2) {
   return {
-    extra: buildingSum(o, "arrows", building),
-    damage: buildingSum(o, "arrowDamage", building),
-    range: buildingSum(o, "arrowRange", building),
-    cooldown: product(activeEffects(o, "arrowCooldown").filter((e) => buildingMatches(e.select, building)), o),
-    garrisonClasses: activeEffects(o, "garrisonArrows").filter((e) => buildingMatches(e.select, building)).flatMap((e) => [...e.select.classes ?? []])
+    extra: buildingSum(o, "arrows", building2),
+    damage: buildingSum(o, "arrowDamage", building2),
+    range: buildingSum(o, "arrowRange", building2),
+    cooldown: product(activeEffects(o, "arrowCooldown").filter((e) => buildingMatches(e.select, building2)), o),
+    garrisonClasses: activeEffects(o, "garrisonArrows").filter((e) => buildingMatches(e.select, building2)).flatMap((e) => [...e.select.classes ?? []]),
+    bonus: activeEffects(o, "arrowBonus").filter((e) => e.vs && buildingMatches(e.select, building2)).reduce((t, e) => ({ ...t, [e.vs]: (t[e.vs] ?? 0) + valueOf(e, o) }), {})
   };
 }
+var marketFeeOf = (o, base) => Math.max(0, base + sum2(activeEffects(o, "marketFee"), o));
+var transportCapacityOf = (o, base) => base + sum2(activeEffects(o, "transportCapacity").filter((e) => unitMatches(e.select, "transport-ship", ["ship", "transport"])), o);
 var losBonus = (o, kind, classes = []) => sum2(activeEffects(o, "los").filter((e) => e.select.buildings ? e.select.buildings.includes(kind) : unitMatches(e.select, kind, classes)), o);
 var healRangeScale = (o) => product(activeEffects(o, "healRange"), o);
 var healRateScale = (o) => product(activeEffects(o, "healRate"), o);
 var conversionResist = (o) => sum2(activeEffects(o, "conversionResist"), o);
-var deathRefund = (o, unit, classes) => sum2(activeEffects(o, "deathRefund").filter((e) => unitMatches(e.select, unit, classes)), o);
+var deathRefund = (o, unit2, classes) => sum2(activeEffects(o, "deathRefund").filter((e) => unitMatches(e.select, unit2, classes)), o);
 function startStock(o) {
   const out = { food: 0, wood: 0, gold: 0, stone: 0 };
   for (const e of activeEffects(o, "startStock")) if (e.resource) out[e.resource] += valueOf(e, o);
@@ -1372,11 +1761,12 @@ var combatRules = {
     boar: { hp: 75, damage: 8, range: 50, cooldown: 40, sight: 0, attack: "melee", armor: [0, 0], classes: ["animal"], bonus: {} },
     // The counter units (after the reference's triangle): the spearman against cavalry, the skirmisher against archers,
     // the knight as heavy cavalry. Values design_default, in this game's scale.
-    spearman: { hp: 45, damage: 4, range: 50, cooldown: 30, sight: 350, attack: "melee", armor: [0, 0], classes: ["infantry", "spear"], bonus: { cavalry: 12 } },
+    // Camels are their own class (aoetw: 駱駝, not 騎兵); the spear line's camel bonus keeps the site's ratio to its cavalry one.
+    spearman: { hp: 45, damage: 4, range: 50, cooldown: 30, sight: 350, attack: "melee", armor: [0, 0], classes: ["infantry", "spear"], bonus: { cavalry: 12, camel: 10 } },
     skirmisher: { hp: 30, damage: 2, range: 200, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 3], classes: ["archer", "skirmisher"], bonus: { archer: 4, spear: 3 } },
     knight: { hp: 100, damage: 10, range: 50, cooldown: 18, sight: 350, attack: "melee", armor: [2, 2], classes: ["cavalry"], bonus: {} },
     // Battering ram: strikes buildings only (+40 against them), all but immune to arrows, slow.
-    ram: { hp: 175, damage: 2, range: 50, cooldown: 60, sight: 0, attack: "melee", armor: [0, 120], classes: ["siege"], bonus: { building: 40 } },
+    ram: { hp: 175, damage: 2, range: 50, cooldown: 60, sight: 0, attack: "melee", armor: [0, 120], classes: ["siege"], bonus: { building: 40 }, buildingsOnly: true },
     // Unique units (trained at the Castle): hit points, attack, armor and bonuses from aoetw.com's unit pages; range at
     // 50 units per tile over a 150 base (Longbowman 5 -> 300), melee cooldown = the reference's seconds x 10, ranged x 15.
     // Classes: 'unique' (the Samurai's bonus), 'gunpowder' (Turks), 'cavalry-archer' (Mongols); see docs/aoe2-rules-research.md.
@@ -1396,16 +1786,76 @@ var combatRules = {
     // Fires three arrows a shot: the first at full attack, the other two at 3 each.
     "chu-ko-nu": { hp: 45, damage: 8, range: 250, cooldown: 55, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "unique"], bonus: { spear: 2 }, extraShots: 2, extraDamage: 3 },
     samurai: { hp: 60, damage: 8, range: 50, cooldown: 19, sight: 350, attack: "melee", armor: [1, 1], classes: ["infantry", "unique"], bonus: { building: 2, unique: 10 } },
-    mangudai: { hp: 60, damage: 6, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "cavalry", "cavalry-archer", "unique"], bonus: { siege: 3, spear: 1 } }
+    mangudai: { hp: 60, damage: 6, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "cavalry", "cavalry-archer", "unique"], bonus: { siege: 3, spear: 1 } },
+    // The 單位 round (aoetw.com units pages). Ranges 50 + 50 a tile like the archers (mangonel 7 -> 400, below the
+    // castle's 400 as the site's 7 is below its 8), minimum ranges 50 a tile; building bonuses x0.32
+    // (the battering ram's 125 -> 40 here) so a trebuchet levels a castle in about as many shots as there; blast radii in
+    // this map's units (a node is 50).
+    "cavalry-archer": { hp: 50, damage: 6, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "cavalry", "cavalry-archer"], bonus: { spear: 2 } },
+    camel: { hp: 100, damage: 6, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 0], classes: ["camel"], bonus: { cavalry: 9, camel: 5 } },
+    // Hurls a stone that hits every enemy unit near the impact; cannot shoot closer than 3 tiles.
+    mangonel: { hp: 50, damage: 40, range: 400, cooldown: 60, sight: 500, attack: "melee", armor: [0, 6], classes: ["siege"], bonus: { building: 11 }, minRange: 150, blast: 75 },
+    // A bolt that goes on through the target: the units behind it on its path take half.
+    scorpion: { hp: 40, damage: 12, range: 400, cooldown: 54, sight: 500, attack: "pierce", armor: [0, 7], classes: ["siege"], bonus: { elephant: 6, building: 1 }, minRange: 100, passThrough: 200 },
+    // Strikes buildings only, from 16 tiles; unpacks before firing and packs before moving (7.5 s each).
+    trebuchet: { hp: 150, damage: 25, range: 850, cooldown: 100, sight: 0, attack: "melee", armor: [1, 8], classes: ["siege"], bonus: { building: 50 }, minRange: 200, buildingsOnly: true, setup: 150 },
+    // Spent by its charge; goes only where it is sent (no automatic fights).
+    // The 科技 round: the gunpowder units Chemistry opens (aoetw.com; no accuracy model, every shot hits).
+    "hand-cannoneer": { hp: 35, damage: 17, range: 400, cooldown: 52, sight: 450, attack: "pierce", armor: [1, 0], classes: ["archer", "gunpowder"], bonus: { infantry: 10, siege: 2, spear: 1 } },
+    // Heavy shot from 12 tiles (minimum 5); the site's half-tile blast is one node here (50).
+    "bombard-cannon": { hp: 80, damage: 40, range: 650, cooldown: 65, sight: 650, attack: "melee", armor: [2, 5], classes: ["siege", "gunpowder"], bonus: { building: 64, siege: 6 }, minRange: 250, blast: 50 },
+    petard: { hp: 50, damage: 25, range: 50, cooldown: 20, sight: 0, attack: "melee", armor: [0, 2], classes: ["petard"], bonus: { building: 55, siege: 19 }, selfDestruct: true },
+    // The 建築 round: the dock's ships and the market's trade cart (aoetw.com units pages). Same conversions as above;
+    // 'ship' puts a unit on the water layer (movement.ts layerOf). Fishing ships, transports and the trade units never
+    // fight. 'warship': the galley line and the Longboat, which take the archer attack lines (Fletching to Bracer).
+    "fishing-ship": { hp: 60, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 4], classes: ["ship", "fishing"], bonus: {} },
+    "transport-ship": { hp: 100, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [4, 8], classes: ["ship", "transport"], bonus: {} },
+    "trade-cog": { hp: 80, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 6], classes: ["ship", "trade"], bonus: {} },
+    "trade-cart": { hp: 70, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 0], classes: ["trade"], bonus: {} },
+    galley: { hp: 120, damage: 6, range: 300, cooldown: 46, sight: 400, attack: "pierce", armor: [0, 6], classes: ["ship", "warship", "galley"], bonus: { ship: 8, building: 2 } },
+    // Fire: a short-range stream four times a second (the reference's 0.25 s), strong only against ships.
+    "fire-galley": { hp: 100, damage: 1, range: 175, cooldown: 5, sight: 300, attack: "melee", armor: [0, 4], classes: ["ship", "fire"], bonus: { ship: 3 } },
+    // Spent by its blast (the petard's rule): every enemy unit within the radius of the target takes the hit.
+    "demolition-raft": { hp: 45, damage: 90, range: 50, cooldown: 20, sight: 0, attack: "melee", armor: [0, 2], classes: ["ship", "demolition"], bonus: { building: 58 }, blast: 125, selfDestruct: true },
+    "cannon-galleon": { hp: 120, damage: 35, range: 700, cooldown: 100, sight: 700, attack: "melee", armor: [0, 6], classes: ["ship", "gunpowder"], bonus: { building: 64, siege: 13 }, minRange: 150 },
+    // Four arrows a volley: the first at full attack, the other three at 1 each (aoetw).
+    longboat: { hp: 130, damage: 7, range: 350, cooldown: 50, sight: 400, attack: "pierce", armor: [0, 6], classes: ["ship", "warship", "unique"], bonus: { ship: 9, building: 2 }, extraShots: 3, extraDamage: 1 }
   },
   // Structures shrug off arrows: [melee, pierce] armor of every building.
   buildingArmor: [0, 2],
-  buildings: { "town-center": 400, house: 150, barracks: 300, farm: 100, "lumber-camp": 200, "mining-camp": 200, mill: 200, stable: 300, "archery-range": 300, monastery: 350, blacksmith: 300, "watch-tower": 250, "siege-workshop": 300, castle: 800 },
+  buildings: {
+    "town-center": 400,
+    house: 150,
+    barracks: 300,
+    farm: 100,
+    "lumber-camp": 200,
+    "mining-camp": 200,
+    mill: 200,
+    stable: 300,
+    "archery-range": 300,
+    monastery: 350,
+    blacksmith: 300,
+    "watch-tower": 250,
+    "siege-workshop": 300,
+    castle: 800,
+    university: 350,
+    // The 建築 round: about the site's hit points / 6 like the castle (4800 -> 800); the fish trap keeps a token 40.
+    market: 350,
+    dock: 300,
+    "fish-trap": 40,
+    outpost: 100,
+    "bombard-tower": 370,
+    wonder: 800,
+    "palisade-wall": 60,
+    "palisade-gate": 70,
+    "stone-wall": 300,
+    gate: 450
+  },
   corpseTicks: 40,
   hitFlashTicks: 6,
   // Movement per tick.
-  // Units always step at most this far and stop exactly on the next node, so any whole number works: a node takes
-  // ceil(50/speed) ticks (a civilization's speed multiplier rounds to the nearest whole step).
+  // A unit stops exactly on each node; what a step cut short there leaves over carries to the next tick while the walk
+  // goes on (movement.ts u.stride), so a walk covers speed x ticks for any speed to a hundredth (speedOf).
   speed: {
     villager: 5,
     militia: 5,
@@ -1431,17 +1881,51 @@ var combatRules = {
     janissary: 5,
     "chu-ko-nu": 5,
     samurai: 6,
-    mangudai: 10
+    mangudai: 10,
+    "cavalry-archer": 10,
+    camel: 10,
+    mangonel: 4,
+    scorpion: 4,
+    trebuchet: 5,
+    petard: 5,
+    "hand-cannoneer": 5,
+    "bombard-cannon": 4.4,
+    // Ships and the trade cart: the site's tiles a second x 6.25 (the villager's 0.8 -> 5).
+    "fishing-ship": 7.9,
+    "transport-ship": 9.1,
+    "trade-cog": 8.25,
+    "trade-cart": 6.25,
+    galley: 8.9,
+    "fire-galley": 8.1,
+    "demolition-raft": 9.4,
+    "cannon-galleon": 6.9,
+    longboat: 9.6
   }
 };
 var religionBonus = { sanctityHp: 15 };
 var lineUpgrades = [
   { id: "man-at-arms", kind: "militia", name: "\u91CD\u6B65\u5175", set: { hp: 55, damage: 8 } },
   { id: "long-swordsman", kind: "militia", name: "\u9577\u528D\u58EB", set: { hp: 60, damage: 9, armor: [1, 1] } },
-  { id: "pikeman", kind: "spearman", name: "\u9577\u77DB\u5175", set: { hp: 55, bonus: { cavalry: 18 } } },
+  { id: "pikeman", kind: "spearman", name: "\u9577\u77DB\u5175", set: { hp: 55, bonus: { cavalry: 18, camel: 15 } } },
   { id: "crossbowman", kind: "archer", name: "\u5F29\u624B", set: { hp: 35, damage: 5, range: 300 } },
   { id: "elite-skirmisher", kind: "skirmisher", name: "\u7CBE\u92B3\u6563\u5175", set: { hp: 35, damage: 3, armor: [0, 4] } },
   { id: "light-cavalry", kind: "scout", name: "\u8F15\u9A0E\u5175", set: { hp: 60, damage: 5 } },
+  // The 單位 round: each line's last upgrades (aoetw.com's numbers where this game's line already matched them; whole
+  // fields again, so armor and bonus are listed in full).
+  { id: "two-handed-swordsman", kind: "militia", name: "\u96D9\u624B\u528D\u5175", set: { hp: 65, damage: 12, armor: [1, 1] } },
+  { id: "champion", kind: "militia", name: "\u528D\u5175\u52C7\u58EB", set: { hp: 75, damage: 13, armor: [2, 1] } },
+  { id: "halberdier", kind: "spearman", name: "\u621F\u5175", set: { hp: 60, damage: 6, bonus: { cavalry: 26, camel: 21 } } },
+  { id: "arbalest", kind: "archer", name: "\u5F37\u5F29\u5175", set: { hp: 40, damage: 6, range: 300 } },
+  { id: "heavy-cavalry-archer", kind: "cavalry-archer", name: "\u91CD\u88DD\u99AC\u5F13\u9A0E\u5175", set: { hp: 60, damage: 7, armor: [1, 0] } },
+  { id: "hussar", kind: "scout", name: "\u5308\u7259\u5229\u8F15\u9A0E\u5175", set: { hp: 75, damage: 7 } },
+  { id: "cavalier", kind: "knight", name: "\u91CD\u88DD\u9A0E\u58EB", set: { hp: 120, damage: 12 } },
+  { id: "paladin", kind: "knight", name: "\u904A\u4FE0", set: { hp: 160, damage: 14, cooldown: 19, armor: [2, 3] } },
+  { id: "heavy-camel", kind: "camel", name: "\u91CD\u88DD\u99F1\u99DD\u9A0E\u5175", set: { hp: 120, damage: 7, bonus: { cavalry: 18, camel: 9 } } },
+  { id: "capped-ram", kind: "ram", name: "\u88DD\u7532\u885D\u649E\u8ECA", set: { hp: 200, damage: 3, bonus: { building: 48 } } },
+  { id: "siege-ram", kind: "ram", name: "\u91CD\u578B\u885D\u649E\u8ECA", set: { hp: 270, damage: 4, bonus: { building: 64 } } },
+  { id: "onager", kind: "mangonel", name: "\u4E2D\u578B\u6295\u77F3\u8ECA", set: { hp: 60, damage: 50, range: 450, armor: [0, 7], bonus: { building: 14 }, blast: 90 } },
+  { id: "siege-onager", kind: "mangonel", name: "\u91CD\u578B\u6295\u77F3\u8ECA", set: { hp: 70, damage: 75, range: 450, armor: [0, 8], bonus: { building: 19 }, blast: 110 } },
+  { id: "heavy-scorpion", kind: "scorpion", name: "\u91CD\u578B\u5F29\u7832", set: { hp: 50, damage: 16, bonus: { elephant: 8, building: 1 } } },
   // Elite unique units (aoetw.com's elite columns; armor and bonus are whole fields, so each lists both).
   { id: "elite-longbowman", kind: "longbowman", name: "\u7CBE\u92B3\u9577\u5F13\u5175", set: { hp: 40, damage: 7, range: 350, armor: [0, 1] } },
   { id: "elite-woad-raider", kind: "woad-raider", name: "\u7CBE\u92B3\u83D8\u85CD\u6B66\u58EB", set: { hp: 80, damage: 13, bonus: { building: 3 } } },
@@ -1455,21 +1939,30 @@ var lineUpgrades = [
   { id: "elite-janissary", kind: "janissary", name: "\u7CBE\u92B3\u571F\u8033\u5176\u706B\u69CD\u5175", set: { hp: 40, damage: 22, armor: [2, 0], bonus: { siege: 3 } } },
   { id: "elite-chu-ko-nu", kind: "chu-ko-nu", name: "\u7CBE\u92B3\u9023\u5F29\u5175", set: { hp: 50, cooldown: 58, extraShots: 4 } },
   { id: "elite-samurai", kind: "samurai", name: "\u7CBE\u92B3\u65E5\u672C\u6B66\u58EB", set: { hp: 80, damage: 12, bonus: { building: 3, unique: 12 } } },
-  { id: "elite-mangudai", kind: "mangudai", name: "\u7CBE\u92B3\u8499\u53E4\u7A81\u9A0E", set: { damage: 8, armor: [1, 0], bonus: { siege: 5, spear: 1 } } }
+  { id: "elite-mangudai", kind: "mangudai", name: "\u7CBE\u92B3\u8499\u53E4\u7A81\u9A0E", set: { damage: 8, armor: [1, 0], bonus: { siege: 5, spear: 1 } } },
+  // The dock's upgrades (aoetw.com). War Galley upgrades all three Feudal ships at once.
+  { id: "war-galley", kind: "galley", name: "\u5F29\u7832\u6230\u8239", set: { hp: 135, damage: 7, range: 350, bonus: { ship: 9, building: 2 } } },
+  { id: "galleon", kind: "galley", name: "\u91CD\u578B\u5F29\u7832\u6230\u8239", set: { hp: 165, damage: 8, range: 400, armor: [0, 8], bonus: { ship: 11, building: 3 } } },
+  { id: "war-galley", kind: "fire-galley", name: "\u706B\u6230\u8239", set: { hp: 120, damage: 2, armor: [0, 6] } },
+  { id: "fast-fire-ship", kind: "fire-galley", name: "\u91CD\u578B\u706B\u6230\u8239", set: { hp: 140, damage: 3, armor: [0, 8], bonus: { ship: 4 } } },
+  { id: "war-galley", kind: "demolition-raft", name: "\u7206\u7834\u8239", set: { hp: 60, damage: 110, armor: [0, 3], bonus: { building: 70 }, blast: 150 } },
+  { id: "heavy-demolition-ship", kind: "demolition-raft", name: "\u91CD\u578B\u7206\u7834\u8239", set: { hp: 70, damage: 140, armor: [0, 5], bonus: { building: 90 }, blast: 175 } },
+  { id: "elite-cannon-galleon", kind: "cannon-galleon", name: "\u7CBE\u92B3\u706B\u7832\u6230\u8239", set: { hp: 150, damage: 45, range: 800, armor: [0, 8], bonus: { building: 88, siege: 13 } } },
+  { id: "elite-longboat", kind: "longboat", name: "\u7CBE\u92B3\u7DAD\u4EAC\u5927\u6230\u8239", set: { hp: 160, damage: 8, range: 400, armor: [0, 8], bonus: { ship: 11, building: 3 } } }
 ];
 var blacksmith = {
-  forging: { classes: ["infantry", "cavalry"], exclude: ["cavalry-archer"], attack: 1 },
-  "iron-casting": { classes: ["infantry", "cavalry"], exclude: ["cavalry-archer"], attack: 1 },
-  "blast-furnace": { classes: ["infantry", "cavalry"], exclude: ["cavalry-archer"], attack: 2 },
+  forging: { classes: ["infantry", "cavalry", "camel"], exclude: ["cavalry-archer"], attack: 1 },
+  "iron-casting": { classes: ["infantry", "cavalry", "camel"], exclude: ["cavalry-archer"], attack: 1 },
+  "blast-furnace": { classes: ["infantry", "cavalry", "camel"], exclude: ["cavalry-archer"], attack: 2 },
   "scale-mail-armor": { classes: ["infantry"], melee: 1, pierce: 1 },
   "chain-mail-armor": { classes: ["infantry"], melee: 1, pierce: 1 },
   "plate-mail-armor": { classes: ["infantry"], melee: 1, pierce: 2 },
-  "scale-barding-armor": { classes: ["cavalry"], exclude: ["cavalry-archer"], melee: 1, pierce: 1 },
-  "chain-barding-armor": { classes: ["cavalry"], exclude: ["cavalry-archer"], melee: 1, pierce: 1 },
-  "plate-barding-armor": { classes: ["cavalry"], exclude: ["cavalry-archer"], melee: 1, pierce: 2 },
-  fletching: { classes: ["archer"], exclude: ["gunpowder"], attack: 1, range: 50 },
-  "bodkin-arrow": { classes: ["archer"], exclude: ["gunpowder"], attack: 1, range: 50 },
-  bracer: { classes: ["archer"], exclude: ["gunpowder"], attack: 1, range: 50 },
+  "scale-barding-armor": { classes: ["cavalry", "camel"], exclude: ["cavalry-archer"], melee: 1, pierce: 1 },
+  "chain-barding-armor": { classes: ["cavalry", "camel"], exclude: ["cavalry-archer"], melee: 1, pierce: 1 },
+  "plate-barding-armor": { classes: ["cavalry", "camel"], exclude: ["cavalry-archer"], melee: 1, pierce: 2 },
+  fletching: { classes: ["archer", "warship"], exclude: ["gunpowder"], attack: 1, range: 50 },
+  "bodkin-arrow": { classes: ["archer", "warship"], exclude: ["gunpowder"], attack: 1, range: 50 },
+  bracer: { classes: ["archer", "warship"], exclude: ["gunpowder"], attack: 1, range: 50 },
   "padded-archer-armor": { classes: ["archer"], melee: 1, pierce: 1 },
   "leather-archer-armor": { classes: ["archer"], melee: 1, pierce: 1 },
   "ring-archer-armor": { classes: ["archer"], melee: 1, pierce: 2 }
@@ -1498,12 +1991,17 @@ function statsOf(kind, who = []) {
     for (const [c, v] of Object.entries(extra)) bonus[c] = (bonus[c] ?? 0) + v;
     st.bonus = bonus;
   }
+  for (const { vs, scale } of bonusScales(o, kind, cls)) if (st.bonus[vs]) {
+    st.bonus = { ...st.bonus, [vs]: Math.round(st.bonus[vs] * scale) };
+  }
   const pace = unitProduct(o, "cooldown", kind, cls);
   if (pace !== 1) st.cooldown = Math.max(1, Math.round(st.cooldown * pace));
-  for (const k of ["regen", "extraShots", "splash"]) {
+  for (const k of ["regen", "extraShots", "splash", "blast"]) {
     const v = unitSum(o, k, kind, cls);
     if (v) st[k] = (st[k] ?? 0) + v;
   }
+  const pack = unitProduct(o, "setup", kind, cls);
+  if (st.setup && pack !== 1) st.setup = Math.max(1, Math.round(st.setup * pack));
   st.hp = Math.round(st.hp * unitProduct(o, "hp", kind, cls)) + (kind === "monk" && techs.includes("sanctity") ? religionBonus.sanctityHp : 0) + (kind === "villager" ? villagerHpBonus(techs) : 0) + unitSum(o, "hp", kind, cls);
   return st;
 }
@@ -1513,7 +2011,7 @@ function maxHpOf(kind, who) {
 function speedOf(kind, who = []) {
   const o = asOwner(who), base = combatRules.speed[kind];
   const scale = unitProduct(o, "speed", kind, combatRules.units[kind].classes);
-  return scale === 1 ? base : Math.max(1, Math.round(base * scale));
+  return scale === 1 ? base : Math.max(1, Math.round(base * scale * 100) / 100);
 }
 function buildingHpOf(kind, who = []) {
   return Math.round((combatRules.buildings[kind] ?? 0) * buildingHpScale(asOwner(who), kind));
@@ -1524,6 +2022,10 @@ function hitDamage(attacker, target) {
   return Math.max(1, attacker.damage - armor + bonus);
 }
 var buildingTarget = { armor: combatRules.buildingArmor, classes: ["building"] };
+function buildingTargetOf(kind, who = []) {
+  const [m, p] = buildingArmorBonus(asOwner(who), kind);
+  return m || p ? { armor: [buildingTarget.armor[0] + m, buildingTarget.armor[1] + p], classes: buildingTarget.classes } : buildingTarget;
+}
 
 // packages/sim/fauna.ts
 var animalKinds = ["sheep", "deer", "boar"];
@@ -1562,42 +2064,74 @@ function makeCarcass(map, animal) {
 
 // packages/sim/movement.ts
 var navigationStates = ["idle", "searching", "moving", "waiting", "unreachable", "stuck"];
-var unitKinds = ["villager", "militia", "archer", "scout", "monk", "sheep", "deer", "boar", "spearman", "skirmisher", "knight", "ram", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "cataphract", "war-elephant", "mameluke", "janissary", "chu-ko-nu", "samurai", "mangudai"];
+var unitKinds = ["villager", "militia", "archer", "scout", "monk", "sheep", "deer", "boar", "spearman", "skirmisher", "knight", "ram", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "cataphract", "war-elephant", "mameluke", "janissary", "chu-ko-nu", "samurai", "mangudai", "cavalry-archer", "camel", "mangonel", "scorpion", "trebuchet", "petard", "hand-cannoneer", "bombard-cannon", "fishing-ship", "transport-ship", "trade-cog", "trade-cart", "galley", "fire-galley", "demolition-raft", "cannon-galleon", "longboat"];
+var layerOf = (kind) => kind in combatRules.units && combatRules.units[kind].classes.includes("ship") ? "water" : "land";
 var graphs = /* @__PURE__ */ new WeakMap();
-function graph(map) {
-  let g = graphs.get(map);
+function graph(map, layer = "land") {
+  const all = graphs.get(map) ?? graphs.set(map, {}).get(map);
+  let g = all[layer];
   if (!g || g.revision !== map.navigationRevision) {
-    const SIDE = sideOf(map), NODES = nodeTotal(map), blocked = new Uint8Array(NODES);
-    for (const n of map.blocked) blocked[n] = 1;
-    const areas = g && g.open.length === NODES * 2 ? takeDirtyAreas(map) : (takeDirtyAreas(map), []), open = areas.length ? g.open : new Uint8Array(NODES * 2);
+    const SIDE = sideOf(map), NODES = nodeTotal(map), blocked = blockedFor(map, layer).slice(), log = dirtyLog(map);
+    const areas = g && g.open.length === NODES * 2 ? log.slice(g.cursor) : null, open = areas ? g.open : new Uint8Array(NODES * 2);
     const edges = (id) => {
       open[id * 2] = 0;
       open[id * 2 + 1] = 0;
       if (blocked[id]) return;
       const x = id % SIDE, y = Math.floor(id / SIDE);
-      if (x < SIDE - 1 && !blocked[id + 1] && clearSegment(map, position(map, id), position(map, id + 1))) open[id * 2] = 1;
-      if (y < SIDE - 1 && !blocked[id + SIDE] && clearSegment(map, position(map, id), position(map, id + SIDE))) open[id * 2 + 1] = 1;
+      if (x < SIDE - 1 && !blocked[id + 1] && clearSegment(map, position(map, id), position(map, id + 1), layer)) open[id * 2] = 1;
+      if (y < SIDE - 1 && !blocked[id + SIDE] && clearSegment(map, position(map, id), position(map, id + SIDE), layer)) open[id * 2 + 1] = 1;
     };
-    if (areas.length) {
+    if (areas) {
       const seen2 = /* @__PURE__ */ new Set();
       for (const area of areas) for (const id of nodesNear(map, area, 50)) if (!seen2.has(id)) {
         seen2.add(id);
         edges(id);
       }
     } else for (let id = 0; id < NODES; id++) edges(id);
-    g = { revision: map.navigationRevision, blocked, open };
-    graphs.set(map, g);
+    g = { revision: map.navigationRevision, cursor: log.length, blocked, open };
+    all[layer] = g;
+    if (log.length > 4096 && Object.values(all).every((v) => v.cursor === log.length)) {
+      log.length = 0;
+      for (const v of Object.values(all)) v.cursor = 0;
+    }
   }
   return g;
 }
-function neighbours(map, id) {
-  const { open } = graph(map), SIDE = sideOf(map), x = id % SIDE, out = [];
+var gateKinds = /* @__PURE__ */ new Set(["gate", "palisade-gate"]);
+var gateGraphs = /* @__PURE__ */ new WeakMap();
+function landFor(map, player) {
+  const base = graph(map, "land");
+  if (player < 0) return base;
+  const gates = map.obstacles.filter((o) => gateKinds.has(o.kind) && o.progress === void 0 && (o.red ? 1 : 0) !== player);
+  if (!gates.length) return base;
+  const all = gateGraphs.get(map) ?? gateGraphs.set(map, {}).get(map);
+  let g = all[player];
+  if (!g || g.revision !== map.navigationRevision) {
+    const SIDE = sideOf(map), open = base.open.slice(), blocked = base.blocked.slice();
+    for (const o of gates) for (const id of nodesNear(map, obstacleBounds(o, navigationRules.radius), 0)) {
+      blocked[id] = 1;
+      open[id * 2] = 0;
+      open[id * 2 + 1] = 0;
+      if (id % SIDE > 0) open[(id - 1) * 2] = 0;
+      if (id >= SIDE) open[(id - SIDE) * 2 + 1] = 0;
+    }
+    g = { revision: map.navigationRevision, open, blocked };
+    all[player] = g;
+  }
+  return g;
+}
+var graphFor = (map, layer = "land", player = -1) => layer === "water" ? graph(map, "water") : landFor(map, player);
+function neighbours(map, id, layer = "land", player = -1) {
+  const { open } = graphFor(map, layer, player), SIDE = sideOf(map), x = id % SIDE, out = [];
   if (open[id * 2]) out.push(id + 1);
   if (open[id * 2 + 1]) out.push(id + SIDE);
   if (x > 0 && open[(id - 1) * 2]) out.push(id - 1);
   if (id >= SIDE && open[(id - SIDE) * 2 + 1]) out.push(id - SIDE);
   return out;
 }
+var closedFor = (map, id, layer = "land", player = -1) => graphFor(map, layer, player).blocked[id] === 1;
+var blockedOf = (map, layer = "land", player = -1) => graphFor(map, layer, player).blocked;
+var unitLayer = (u) => ({ layer: layerOf(u.kind), player: u.player });
 function makeUnit(map, id, player, x, y, kind = "villager") {
   const node = nodeAt(map, { x, y });
   if (node < 0) throw Error("\u55AE\u4F4D\u5FC5\u9808\u7AD9\u5728\u5C0E\u822A\u7BC0\u9EDE\u4E0A");
@@ -1621,15 +2155,20 @@ function cancel(s, id) {
   s.pathJobs = s.pathJobs.filter((j) => j.kind === "group" ? j.unitIds.length > 0 : j.unitId !== id);
 }
 function commandMove(s, unitIds, target) {
-  const goal = nearest(s.map, target, false) >= 0 ? nearest(s.map, target, false) : nearestOpen(s.map, target);
-  if (goal < 0) throw Error("\u76EE\u6A19\u9644\u8FD1\u6C92\u6709\u53EF\u7AD9\u7ACB\u7684\u7BC0\u9EDE");
-  const group = new Set(unitIds), units = unitIds.map((id) => s.units.find((u) => u.id === id));
-  for (const u of units) {
-    cancel(s, u.id);
-    Object.assign(u, { path: [], goal: null, target: null, navigation: "searching", wait: 0, detours: 0, partial: false, order: s.nextJobId, outcome: null });
+  const all = unitIds.map((id) => s.units.find((u) => u.id === id)), layers = [...new Set(all.map((u) => layerOf(u.kind)))];
+  for (const layer of layers) {
+    const units = all.filter((u) => layerOf(u.kind) === layer), ids = units.map((u) => u.id);
+    const near = nearest(s.map, target, false, layer), goal = near >= 0 ? near : nearestOpen(s.map, target, layer);
+    if (goal < 0) throw Error(layer === "water" ? "\u76EE\u6A19\u9644\u8FD1\u6C92\u6709\u53EF\u822A\u884C\u7684\u6C34\u9762" : "\u76EE\u6A19\u9644\u8FD1\u6C92\u6709\u53EF\u7AD9\u7ACB\u7684\u7BC0\u9EDE");
+    const group = new Set(ids), player = units[0].player;
+    for (const u of units) {
+      cancel(s, u.id);
+      Object.assign(u, { path: [], goal: null, target: null, navigation: "searching", wait: 0, detours: 0, partial: false, order: s.nextJobId, outcome: null });
+    }
+    s.pathJobs.push({ kind: "group", id: s.nextJobId++, ...layer === "water" ? { layer } : {}, ...layer === "land" && gatesExist(s.map) ? { player } : {}, unitIds: [...ids], goal, starts: units.map((u) => u.next ?? u.node), held: held(s.units, group), slots: [], status: "searching", ...search(s.map, goal) });
   }
-  s.pathJobs.push({ kind: "group", id: s.nextJobId++, unitIds: [...unitIds], goal, starts: units.map((u) => u.next ?? u.node), held: held(s.units, group), slots: [], status: "searching", ...search(s.map, goal) });
 }
+var gatesExist = (map) => map.obstacles.some((o) => gateKinds.has(o.kind));
 function commandStop(s, unitIds) {
   for (const id of unitIds) {
     const u = s.units.find((u2) => u2.id === id);
@@ -1651,7 +2190,7 @@ function advance(s, job, budget) {
     const id = job.frontier[job.head++];
     used++;
     if (job.kind === "group") {
-      if (job.slots.length < job.unitIds.length && !job.held.includes(id) && !isBlocked(s.map, id)) job.slots.push(id);
+      if (job.slots.length < job.unitIds.length && !job.held.includes(id) && !closedFor(s.map, id, job.layer ?? "land", job.player ?? -1)) job.slots.push(id);
     } else {
       const SIDE = sideOf(s.map), g = job.goal, d = (n) => Math.abs(n % SIDE - g % SIDE) + Math.abs(Math.floor(n / SIDE) - Math.floor(g / SIDE));
       if (d(id) < d(job.best)) job.best = id;
@@ -1661,7 +2200,7 @@ function advance(s, job, budget) {
         break;
       }
     }
-    for (const next of neighbours(s.map, id)) if (job.parent[next] === -2 && !(job.kind === "unit" && job.excluded.includes(next))) {
+    for (const next of neighbours(s.map, id, job.layer ?? "land", job.player ?? -1)) if (job.parent[next] === -2 && !(job.kind === "unit" && job.excluded.includes(next))) {
       job.parent[next] = id;
       job.frontier.push(next);
     }
@@ -1695,8 +2234,8 @@ function finishGroup(s, job) {
   for (const u of units) if (!order.has(start(u))) s.pathJobs.push(unitJob(s, u, job.goal, [], []));
 }
 function unitJob(s, u, goal, excluded, keep, targets = null) {
-  const start = u.next ?? u.node;
-  return { kind: "unit", id: s.nextJobId++, unitId: u.id, start, goal, excluded, best: start, keep, targets, found: -1, status: "searching", ...search(s.map, start) };
+  const start = u.next ?? u.node, { layer, player } = unitLayer(u);
+  return { ...layer === "water" ? { layer } : {}, ...layer === "land" && gatesExist(s.map) ? { player } : {}, kind: "unit", id: s.nextJobId++, unitId: u.id, start, goal, excluded, best: start, keep, targets, found: -1, status: "searching", ...search(s.map, start) };
 }
 function routeTo(s, u, targets) {
   if (!targets.length) throw Error("\u6C92\u6709\u53EF\u7528\u7684\u76EE\u6A19\u7BC0\u9EDE");
@@ -1727,6 +2266,10 @@ function reconcile(s) {
   for (const job of s.pathJobs) if (job.status === "searching") {
     const fresh = search(s.map, job.kind === "group" ? job.goal : job.start);
     Object.assign(job, fresh);
+    if (!job.layer && job.player === void 0 && gatesExist(s.map)) {
+      const u = s.units.find((u2) => u2.id === (job.kind === "group" ? job.unitIds[0] : job.unitId));
+      if (u) job.player = u.player;
+    }
     if (job.kind === "group") job.slots = [];
     else {
       job.best = job.start;
@@ -1737,7 +2280,8 @@ function reconcile(s) {
   for (const u of s.units) {
     if (!u.path.length || searching.has(u.id)) continue;
     const route = [u.next ?? u.node, ...u.path];
-    if (route.every((n, i) => i === 0 || neighbours(s.map, route[i - 1]).includes(n))) continue;
+    const { layer, player } = unitLayer(u);
+    if (route.every((n, i) => i === 0 || neighbours(s.map, route[i - 1], layer, gatesExist(s.map) ? player : -1).includes(n))) continue;
     const goal = u.goal ?? u.path.at(-1);
     u.path = [];
     u.navigation = "searching";
@@ -1784,7 +2328,7 @@ function stepMovement(s) {
       return;
     }
     if (idleFriend) {
-      const free = neighbours(s.map, b.node).filter((c) => owner[c] === 0), step = free.find((c) => !u.path.includes(c));
+      const lb = unitLayer(b), free = neighbours(s.map, b.node, lb.layer, gatesExist(s.map) ? lb.player : -1).filter((c) => owner[c] === 0), step = free.find((c) => !u.path.includes(c));
       if (step !== void 0) b.path = [step];
       else if (settledMate && u.goal !== null && u.goal !== n) {
         Object.assign(b, { path: u.path.slice(1), goal: u.goal, target: position(s.map, u.goal), outcome: null });
@@ -1814,12 +2358,23 @@ function stepMovement(s) {
     u.navigation = "searching";
     searching.add(u.id);
   }
+  const setups = s.setups;
   for (const u of [...s.units].sort((a, b) => a.id - b.id)) {
+    const pack = setups?.[u.id];
+    if (pack && (u.next !== null || u.path.length)) {
+      if (pack.unpacked) {
+        if (++pack.progress < (statsOf(u.kind, ownerOf(s, u.player)).setup ?? 0)) continue;
+      }
+      delete setups[u.id];
+    }
     if (u.next === null) tryReserve(u);
     if (u.next === null) continue;
-    const target = position(s.map, u.next), step = speedOf(u.kind, ownerOf(s, u.player));
+    const target = position(s.map, u.next), speed = speedOf(u.kind, ownerOf(s, u.player));
+    const acc = Math.round(((u.stride ?? 0) + speed) * 100), step = Math.min(Math.floor(acc / 100), Math.max(Math.abs(target.x - u.x), Math.abs(target.y - u.y))), rest2 = acc - step * 100;
+    if (rest2) u.stride = rest2 / 100;
+    else delete u.stride;
     const p = { x: u.x + Math.sign(target.x - u.x) * Math.min(step, Math.abs(target.x - u.x)), y: u.y + Math.sign(target.y - u.y) * Math.min(step, Math.abs(target.y - u.y)) };
-    if (!clearSegment(s.map, u, p)) throw Error(`entity ${u.id}: \u975E\u6CD5\u78B0\u649E\u8DEF\u5F91`);
+    if (!clearSegment(s.map, u, p, layerOf(u.kind))) throw Error(`entity ${u.id}: \u975E\u6CD5\u78B0\u649E\u8DEF\u5F91`);
     u.x = p.x;
     u.y = p.y;
     if (u.x === target.x && u.y === target.y) {
@@ -1833,21 +2388,52 @@ function stepMovement(s) {
         u.goal = null;
         u.wait = 0;
       }
+      if (u.next === null) delete u.stride;
     }
   }
   return { expanded };
 }
 
 // packages/sim/buildings.ts
-var buildKinds = ["house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "blacksmith", "watch-tower", "siege-workshop", "castle"];
+var buildKinds = [
+  "house",
+  "barracks",
+  "farm",
+  "lumber-camp",
+  "mining-camp",
+  "mill",
+  "stable",
+  "archery-range",
+  "monastery",
+  "blacksmith",
+  "watch-tower",
+  "siege-workshop",
+  "castle",
+  "university",
+  // The 建築 round (the town centre becomes buildable from the third age).
+  "town-center",
+  "market",
+  "dock",
+  "fish-trap",
+  "outpost",
+  "bombard-tower",
+  "wonder",
+  "palisade-wall",
+  "palisade-gate",
+  "stone-wall",
+  "gate"
+];
 var buildingRules = {
   provenance: "design_default",
-  capacity: { "town-center": 5, house: 5, barracks: 0, farm: 0, "lumber-camp": 0, "mining-camp": 0, mill: 0, stable: 0, "archery-range": 0, monastery: 0, blacksmith: 0, "watch-tower": 0, "siege-workshop": 0, castle: 10 },
+  capacity: { "town-center": 5, house: 5, barracks: 0, farm: 0, "lumber-camp": 0, "mining-camp": 0, mill: 0, stable: 0, "archery-range": 0, monastery: 0, blacksmith: 0, "watch-tower": 0, "siege-workshop": 0, castle: 10, university: 0, market: 0, dock: 0, "fish-trap": 0, outpost: 0, "bombard-tower": 0, wonder: 0, "palisade-wall": 0, "palisade-gate": 0, "stone-wall": 0, gate: 0 },
   grid: 10,
   required: Object.fromEntries(buildKinds.map((k) => [k, rules.entries.find((e) => e.id === k).time * rules.settings.tickHz]))
 };
 var overlap = (a, b) => Math.min(a[2], b[2]) - Math.max(a[0], b[0]) > 0 && Math.min(a[3], b[3]) - Math.max(a[1], b[1]) > 0;
-function placementProblem(input, kind, x, y) {
+var wallKinds = /* @__PURE__ */ new Set(["palisade-wall", "stone-wall"]);
+var wallGate = { "palisade-gate": "palisade-wall", gate: "stone-wall" };
+var replacesWall = (kind, o, owner) => wallGate[kind] === o.kind && (o.red ? 1 : 0) === owner;
+function placementProblem(input, kind, x, y, owner) {
   if (!buildKinds.includes(kind)) return "\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E";
   if (!Number.isSafeInteger(x) || !Number.isSafeInteger(y) || x % buildingRules.grid || y % buildingRules.grid) return `\u4F4D\u7F6E\u5FC5\u9808\u5C0D\u9F4A ${buildingRules.grid} \u55AE\u4F4D\u683C\u7DDA`;
   const box = obstacleBounds({ kind, x, y }), size = sizeOfTiles(input.tiles), world = size * 100;
@@ -1855,25 +2441,37 @@ function placementProblem(input, kind, x, y) {
   const tiles = [];
   for (let ty = Math.floor(box[1] / 100); ty <= Math.floor((box[3] - 1) / 100); ty++) for (let tx = Math.floor(box[0] / 100); tx <= Math.floor((box[2] - 1) / 100); tx++) tiles.push(ty * size + tx);
   if (tiles.some((t) => !input.explored(t))) return "\u5C1A\u672A\u63A2\u7D22\u7684\u5340\u57DF\u4E0D\u80FD\u5EFA\u9020";
-  if (tiles.some((t) => !input.tiles[t]?.buildability)) return "\u5730\u5F62\u4E0D\u53EF\u5EFA\u9020\uFF08\u6C34\u57DF\u3001\u61F8\u5D16\u3001\u5761\u9053\u6216\u6DFA\u7058\uFF09";
+  const wet = (t) => input.tiles[t]?.terrainType === "water" || input.tiles[t]?.terrainType === "shallow";
+  if (kind === "dock" && (x % 100 || y % 100)) return "\u78BC\u982D\u5FC5\u9808\u5C0D\u9F4A\u5730\u5716\u683C\u5B50";
+  if (kind === "dock" || kind === "fish-trap") {
+    if (tiles.some((t) => !wet(t))) return kind === "dock" ? "\u78BC\u982D\u5FC5\u9808\u84CB\u5728\u5CB8\u908A\u7684\u6C34\u9762\u4E0A" : "\u9B5A\u7DB2\u5FC5\u9808\u653E\u5728\u6C34\u9762\u4E0A";
+    if (kind === "dock" && !tiles.some((t) => {
+      const tx = t % size, ty = Math.floor(t / size);
+      return [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
+        const nx = tx + dx, ny = ty + dy, n = ny * size + nx;
+        return nx >= 0 && ny >= 0 && nx < size && ny < size && !tiles.includes(n) && !!input.tiles[n]?.buildability;
+      });
+    })) return "\u78BC\u982D\u5FC5\u9808\u7DCA\u9130\u53EF\u5EFA\u9020\u7684\u9678\u5730";
+  } else if (tiles.some((t) => !input.tiles[t]?.buildability)) return "\u5730\u5F62\u4E0D\u53EF\u5EFA\u9020\uFF08\u6C34\u57DF\u3001\u61F8\u5D16\u3001\u5761\u9053\u6216\u6DFA\u7058\uFF09";
   if (new Set(tiles.map((t) => input.tiles[t].height)).size > 1) return "\u5730\u9762\u9AD8\u5EA6\u4E0D\u4E00\u81F4";
-  if (input.obstacles.some((o) => (o.kind === "farm" ? [obstacleBounds(o)] : obstacleRects(o)).some((r2) => overlap(r2, box)))) return "\u8207\u5EFA\u7BC9\u6216\u8CC7\u6E90\u91CD\u758A";
+  if (input.obstacles.some((o) => !(owner !== void 0 && replacesWall(kind, o, owner)) && (obstacleRects(o).length ? obstacleRects(o) : isBuilding(o) ? [obstacleBounds(o)] : []).some((r2) => overlap(r2, box)))) return "\u8207\u5EFA\u7BC9\u6216\u8CC7\u6E90\u91CD\u758A";
   const r = navigationRules.radius;
-  if (kind !== "farm" && input.units.some((u) => u.x >= box[0] - r && u.x <= box[2] + r && u.y >= box[1] - r && u.y <= box[3] + r)) return "\u6709\u55AE\u4F4D\u7AD9\u5728\u9810\u5B9A\u5730\u4E0A";
+  if (kind !== "farm" && kind !== "fish-trap" && input.units.some((u) => u.x >= box[0] - r && u.x <= box[2] + r && u.y >= box[1] - r && u.y <= box[3] + r)) return "\u6709\u55AE\u4F4D\u7AD9\u5728\u9810\u5B9A\u5730\u4E0A";
   return null;
 }
 function authoritativeProblem(s, player, kind, x, y) {
   const explored = new Set(s.vision[player].explored);
   const bodies = s.units.flatMap((u) => [{ x: u.x, y: u.y }, ...u.next === null ? [] : [position(s.map, u.next)]]);
-  const problem = placementProblem({ tiles: s.map.tiles, obstacles: s.map.obstacles, units: bodies, explored: (t) => explored.has(t) }, kind, x, y);
+  const problem = placementProblem({ tiles: s.map.tiles, obstacles: s.map.obstacles, units: bodies, explored: (t) => explored.has(t) }, kind, x, y, player);
   if (problem) return problem;
   const relics = s.relics ?? [], [x0, y0, x1, y1] = obstacleBounds({ kind, x, y });
-  return relics.some((r) => r.carrier === null && r.monastery === null && r.x >= x0 - 25 && r.x <= x1 + 25 && r.y >= y0 - 25 && r.y <= y1 + 25) ? "\u8056\u7269\u6240\u5728\u7684\u4F4D\u7F6E\u4E0D\u80FD\u5EFA\u9020" : null;
+  if (relics.some((r) => r.carrier === null && r.monastery === null && r.x >= x0 - 25 && r.x <= x1 + 25 && r.y >= y0 - 25 && r.y <= y1 + 25)) return "\u8056\u7269\u6240\u5728\u7684\u4F4D\u7F6E\u4E0D\u80FD\u5EFA\u9020";
+  return s.map.resources.some((r) => !r.obstacleId && r.status === "available" && r.x > x0 && r.x < x1 && r.y > y0 && r.y < y1) ? "\u8207\u8CC7\u6E90\u91CD\u758A" : null;
 }
 var farmResourceId = (buildingId) => `resource-${buildingId}`;
 function openFarm(s, b) {
-  const capacity = farmFoodOf(s.techs?.[b.player] ?? [], terrainRules.resourceCapacity.farm) + farmFoodBonus(ownerOf(s, b.player));
-  s.map.resources.push({ id: farmResourceId(b.id), kind: "farm", x: b.x, y: b.y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: b.id, depletedAt: null });
+  const trap = b.kind === "fish-trap", capacity = trap ? terrainRules.resourceCapacity["fish-trap"] : farmFoodOf(s.techs?.[b.player] ?? [], terrainRules.resourceCapacity.farm) + farmFoodBonus(ownerOf(s, b.player));
+  s.map.resources.push({ id: farmResourceId(b.id), kind: trap ? "fish-trap" : "farm", x: b.x, y: b.y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: b.id, depletedAt: null });
   s.map.tiles[tileAt(b.x, b.y, s.map.size)].resourceRefs.push(farmResourceId(b.id));
 }
 function closeFarm(s, buildingId, tick2) {
@@ -1887,13 +2485,14 @@ function closeFarm(s, buildingId, tick2) {
 function farmOwner(s, resourceId) {
   return s.buildings.find((b) => farmResourceId(b.id) === resourceId)?.player ?? null;
 }
-function buildRequirement(age, kind, own, civ = neutralCiv) {
+function buildRequirement(age, kind, own, civ = neutralCiv, techs = []) {
   const entry2 = rules.entries.find((e) => e.id === kind);
   if (!entry2) return "\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E";
   if (!civAvailable(civ, kind)) return "\u6B64\u6587\u660E\u4E0D\u80FD\u5EFA\u9020";
   for (const req of entry2.requires) {
     const need = rules.entries.find((e) => e.id === req), m = /^age-(\d)$/.exec(req);
     if (m && age < Number(m[1])) return `\u9700\u8981${need?.name ?? req}`;
+    if (!m && need?.kind === "technology" && !techs.includes(req)) return `\u9700\u8981\u5148\u7814\u7A76\u300C${need.name}\u300D`;
     if (need?.kind === "building" && !own.some((b) => b.kind === req && b.complete)) return `\u9700\u8981\u5B8C\u5DE5\u7684${need.name}`;
   }
   return null;
@@ -1920,9 +2519,16 @@ function initBuildings(s) {
   for (const p of [0, 1]) recomputeCapacity(s, p);
 }
 function placeBuilding(s, player, kind, x, y, reservationId) {
-  const owner = ownerOf(s, player), problem = authoritativeProblem(s, player, kind, x, y) ?? buildRequirement(s.ages[player], kind, s.buildings.filter((b2) => b2.player === player), owner.civ);
+  const owner = ownerOf(s, player), problem = authoritativeProblem(s, player, kind, x, y) ?? buildRequirement(s.ages[player], kind, s.buildings.filter((b2) => b2.player === player), owner.civ, owner.techs);
   if (problem) throw Error(problem);
   reserve(s.accounts[player], reservationId, kind, costOf(kind, owner));
+  if (kind in wallGate) {
+    const box = obstacleBounds({ kind, x, y });
+    for (const w of s.buildings.filter((w2) => w2.player === player && w2.kind === wallGate[kind])) {
+      const o2 = obstacleOf(s, w);
+      if (o2 && overlap(obstacleBounds(o2), box)) removeBuilding(s, w);
+    }
+  }
   const b = { id: `building-${s.nextBuildingId++}`, kind, player, x, y, work: 0, required: buildingRules.required[kind], complete: false, reservationId, queue: [], rally: null, hp: 1, maxHp: buildingHpOf(kind, owner) };
   s.buildings.push(b);
   const o = { id: b.id, kind, x, y, progress: 0, age: s.ages[player], ...player ? { red: true } : {} };
@@ -1933,6 +2539,17 @@ function placeBuilding(s, player, kind, x, y, reservationId) {
 }
 function addWork(s, b) {
   if (b.complete) return false;
+  const rate = buildRateBonus(ownerOf(s, b.player), b.kind);
+  if (rate) {
+    b.boost = (b.boost ?? 0) + rate;
+    if (b.boost >= 100 && b.work + 1 < b.required) {
+      b.boost -= 100;
+      if (addWork1(s, b)) return true;
+    }
+  }
+  return addWork1(s, b);
+}
+function addWork1(s, b) {
   b.work++;
   const o = obstacleOf(s, b);
   const gained = Math.floor(b.work * b.maxHp / b.required) - Math.floor((b.work - 1) * b.maxHp / b.required);
@@ -1942,11 +2559,67 @@ function addWork(s, b) {
     commitReservation(s.accounts[b.player], b.reservationId);
     delete o.progress;
     recomputeCapacity(s, b.player);
-    if (b.kind === "farm") openFarm(s, b);
+    if (b.kind === "farm" || b.kind === "fish-trap") openFarm(s, b);
     return true;
   }
   o.progress = stageOf(b);
   return false;
+}
+function removeBuilding(s, b) {
+  const a = s.accounts[b.player];
+  if (!b.complete && b.reservationId) forfeitReservation(a, b.reservationId);
+  for (const q of b.queue) forfeitReservation(a, q.reservationId);
+  const o = obstacleOf(s, b);
+  if (o) {
+    s.map.obstacles = s.map.obstacles.filter((v) => v !== o);
+    for (const t of s.map.tiles) t.obstacleRefs = t.obstacleRefs.filter((r) => r !== b.id);
+  }
+  s.buildings = s.buildings.filter((v) => v !== b);
+  if (o) refreshNavigation(s.map, obstacleBounds(o, navigationRules.radius));
+  recomputeCapacity(s, b.player);
+}
+var wallRules = { provenance: "design_default", maxSegments: 24, builderReach: 300 };
+function wallLine(from, to) {
+  let x = Math.floor(from.x / 100), y = Math.floor(from.y / 100);
+  const x1 = Math.floor(to.x / 100), y1 = Math.floor(to.y / 100), dx = Math.abs(x1 - x), dy = -Math.abs(y1 - y), sx = x < x1 ? 1 : -1, sy = y < y1 ? 1 : -1;
+  let err = dx + dy;
+  const out = [];
+  for (; ; ) {
+    out.push({ x: x * 100, y: y * 100 });
+    if (out.length >= wallRules.maxSegments || x === x1 && y === y1) break;
+    const e2 = 2 * err;
+    if (e2 >= dy) {
+      err += dy;
+      x += sx;
+    }
+    if (e2 <= dx) {
+      err += dx;
+      y += sy;
+    }
+  }
+  return out;
+}
+function wallProblem(s, player, kind, from, to) {
+  let first = null;
+  for (const p of wallLine(from, to)) {
+    const why = authoritativeProblem(s, player, kind, p.x, p.y);
+    if (!why) return null;
+    first ??= why;
+  }
+  return first;
+}
+function placeWall(s, player, kind, from, to, reservationId) {
+  const out = [];
+  let first = null;
+  wallLine(from, to).forEach((p, i) => {
+    try {
+      out.push(placeBuilding(s, player, kind, p.x, p.y, i ? `${reservationId}:${i}` : reservationId));
+    } catch (e) {
+      first ??= e;
+    }
+  });
+  if (!out.length) throw first ?? Error("\u7121\u6CD5\u5EFA\u9020\u57CE\u7246");
+  return out;
 }
 function cancelBuilding(s, player, id) {
   const b = s.buildings.find((b2) => b2.id === id);
@@ -2004,18 +2677,22 @@ function clearAttacks(s, unitIds) {
   for (const id of unitIds) delete s.attacks[id];
 }
 var limit = (u, shape, owner = []) => statsOf(u.kind, owner).range + (Array.isArray(shape) ? navigationRules.radius : 0);
+var nearest2 = (u, owner = []) => statsOf(u.kind, owner).minRange ?? 0;
 function damageOn(s, attacker, t) {
-  if (t.kind === "building") return hitDamage(attacker, buildingTarget);
+  if (t.kind === "building") {
+    const b = s.buildings.find((b2) => b2.id === t.id);
+    return hitDamage(attacker, buildingTargetOf(b?.kind ?? "", b ? ownerOf(s, b.player) : []));
+  }
   const v = s.units.find((u) => u.id === t.id);
   return v ? hitDamage(attacker, statsOf(v.kind, ownerOf(s, v.player))) : 0;
 }
-function approach(s, u, shape, range = limit(u, shape)) {
+function approach(s, u, shape, range = limit(u, shape), min = 0) {
   const out = [];
-  const closed = blockedTable(s.map), area = Array.isArray(shape) ? shape : [shape.x, shape.y, shape.x, shape.y];
+  const closed = blockedOf(s.map, layerOf(u.kind), u.player), area = Array.isArray(shape) ? shape : [shape.x, shape.y, shape.x, shape.y];
   for (const n of nodesNear(s.map, area, range)) {
     if (closed[n]) continue;
     const p = position(s.map, n), d = reach(p, shape);
-    if (d <= range && (Array.isArray(shape) || d > 0)) out.push(n);
+    if (d <= range && d >= min && (Array.isArray(shape) || d > 0)) out.push(n);
   }
   const held2 = new Set(s.units.filter((v) => v !== u && v.next === null && !v.path.length).map((v) => v.node)), free = out.filter((n) => !held2.has(n));
   return free.length ? free : out;
@@ -2039,8 +2716,20 @@ function killUnit(s, u) {
     a.stock.gold += refund;
     a.ledger.refund.gold += refund;
   }
+  const naval2 = s, aboard = naval2.transports?.[u.id];
+  if (aboard) {
+    delete naval2.transports[u.id];
+    for (const v of aboard) {
+      v.x = u.x;
+      v.y = u.y;
+      killUnit(s, v);
+    }
+  }
+  if (naval2.unloading) delete naval2.unloading[u.id];
+  if (naval2.boarding) delete naval2.boarding[u.id];
   delete s.works[u.id];
   delete s.attacks[u.id];
+  if (s.setups) delete s.setups[u.id];
   cancelMovement(s, u.id);
   a.populationUsed--;
   s.units = s.units.filter((v) => v !== u);
@@ -2057,7 +2746,7 @@ function destroyBuilding(s, b) {
     (s.keptHousing ??= [0, 0])[b.player] += housingOf(s, b.player, b.kind);
   }
   s.buildings = s.buildings.filter((v) => v !== b);
-  if (b.kind === "farm") closeFarm(s, b.id, s.tick);
+  if (b.kind === "farm" || b.kind === "fish-trap") closeFarm(s, b.id, s.tick);
   refreshNavigation(s.map, obstacleBounds(o, navigationRules.radius));
   recomputeCapacity(s, b.player);
 }
@@ -2078,7 +2767,24 @@ function strike(s, t, amount, attacker) {
 }
 function volley(s, u, stats, t) {
   const at = t.kind === "unit" ? s.units.find((v) => v.id === t.id) : void 0, where = at ? { x: at.x, y: at.y } : null;
+  const box = t.kind === "building" ? (() => {
+    const b = s.buildings.find((b2) => b2.id === t.id);
+    return b ? buildingBox(s, b) : null;
+  })() : null;
+  const foes = () => [...s.units].sort((a, b) => a.id - b.id).filter((v) => v.id !== t.id && v.player !== u.player && !isAnimal(v.kind));
+  const line2 = stats.passThrough && where ? { x0: u.x, y0: u.y, x1: where.x, y1: where.y } : null;
   strike(s, t, damageOn(s, stats, t), u.id);
+  if (stats.blast && (where || box)) {
+    for (const v of foes()) if (s.units.includes(v) && reach(v, where ?? box) <= stats.blast) strike(s, { kind: "unit", id: v.id }, damageOn(s, stats, { kind: "unit", id: v.id }), u.id);
+  }
+  if (line2) {
+    const dx = line2.x1 - line2.x0, dy = line2.y1 - line2.y0, len = Math.hypot(dx, dy) || 1, end = len + stats.passThrough;
+    for (const v of foes()) {
+      if (!s.units.includes(v)) continue;
+      const along = ((v.x - line2.x0) * dx + (v.y - line2.y0) * dy) / len, off = Math.abs((v.x - line2.x0) * dy - (v.y - line2.y0) * dx) / len;
+      if (along > 0 && along <= end && off <= 25) strike(s, { kind: "unit", id: v.id }, damageOn(s, { ...stats, damage: Math.max(1, Math.round(stats.damage / 2)) }, { kind: "unit", id: v.id }), u.id);
+    }
+  }
   for (let i = 0; i < (stats.extraShots ?? 0); i++) {
     if (t.kind === "unit" && !s.units.some((v) => v.id === t.id)) break;
     strike(s, t, damageOn(s, { ...stats, damage: stats.extraDamage ?? 1, bonus: {} }, t), u.id);
@@ -2101,13 +2807,14 @@ function stepCombat(s) {
   s.corpses = s.corpses.filter((c) => s.tick - c.tick < combatRules.corpseTicks);
   const busy = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId]));
   for (const u of [...s.units].sort((a, b) => a.id - b.id)) {
-    const sight = statsOf(u.kind, ownerOf(s, u.player)).sight;
-    if (!sight || s.attacks[u.id] || s.works[u.id] || u.next !== null || u.path.length || busy.has(u.id)) continue;
+    const own = statsOf(u.kind, ownerOf(s, u.player)), sight = own.sight;
+    if (!sight || own.buildingsOnly || s.attacks[u.id] || s.works[u.id] || u.next !== null || u.path.length || busy.has(u.id)) continue;
     const seen2 = new Set(s.vision[u.player].visible);
     let best = null, dist2 = Infinity;
-    for (const e of s.units) if (e.player !== u.player && !isAnimal(e.kind) && seen2.has(tileAt(e.x, e.y, s.map.size))) {
+    const layer = layerOf(u.kind), across = own.range >= 150;
+    for (const e of s.units) if (e.player !== u.player && !isAnimal(e.kind) && (across || layerOf(e.kind) === layer) && seen2.has(tileAt(e.x, e.y, s.map.size))) {
       const d = reach(u, e);
-      if (d <= sight && (d < dist2 || d === dist2 && best && e.id < best.id)) {
+      if (d <= sight && d >= (own.minRange ?? 0) && (d < dist2 || d === dist2 && best && e.id < best.id)) {
         best = e;
         dist2 = d;
       }
@@ -2135,7 +2842,12 @@ function stepCombat(s) {
     }
     const owner = ownerOf(s, u.player), stats = statsOf(u.kind, owner);
     if (a.cooldown > 0) a.cooldown--;
-    if (reach(u, r.shape) <= limit(u, r.shape, owner)) {
+    const d = reach(u, r.shape), min = nearest2(u, owner);
+    if (d < min && a.auto) {
+      delete s.attacks[id];
+      continue;
+    }
+    if (d <= limit(u, r.shape, owner) && d >= min) {
       if (u.next !== null) continue;
       if (u.path.length || busy.has(u.id)) {
         cancelMovement(s, u.id);
@@ -2144,10 +2856,23 @@ function stepCombat(s) {
         u.target = null;
       }
       u.navigation = "idle";
+      if (stats.setup) {
+        const st = (s.setups ??= {})[u.id] ??= { unpacked: false, progress: 0 };
+        if (!st.unpacked) {
+          if (++st.progress < stats.setup) continue;
+          st.unpacked = true;
+          st.progress = 0;
+          a.cooldown = 0;
+        } else st.progress = 0;
+      }
       if (a.cooldown === 0) {
         a.cooldown = stats.cooldown;
         a.firedTick = s.tick;
         volley(s, u, stats, a.target);
+        if (stats.selfDestruct && s.units.includes(u)) {
+          delete s.attacks[id];
+          killUnit(s, u);
+        }
       }
       continue;
     }
@@ -2156,7 +2881,7 @@ function stepCombat(s) {
       a.repath--;
       continue;
     }
-    const nodes = approach(s, u, r.shape, limit(u, r.shape, owner));
+    const nodes = approach(s, u, r.shape, limit(u, r.shape, owner), min);
     if (!nodes.length) {
       delete s.attacks[id];
       continue;
@@ -2165,7 +2890,7 @@ function stepCombat(s) {
     a.repath = REPATH;
   }
   if (!s.outcome) {
-    const inside = (p) => Object.values(s.garrison ?? {}).some((g) => g.units.some((e) => e.unit.player === p));
+    const inside = (p) => Object.values(s.garrison ?? {}).some((g) => g.units.some((e) => e.unit.player === p)) || Object.values(s.transports ?? {}).some((l) => l.some((v) => v.player === p));
     const alive = [0, 1].filter((p) => s.units.some((u) => u.player === p && !isAnimal(u.kind)) || s.buildings.some((b) => b.player === p) || inside(p));
     if (alive.length < 2) s.outcome = { winner: alive.length === 1 ? alive[0] : null, defeated: [0, 1].filter((p) => !alive.includes(p)), tick: s.tick };
   }
@@ -2174,8 +2899,8 @@ function stepCombat(s) {
 // packages/sim/work.ts
 var workPhases = ["none", "toSource", "gathering", "toDropoff", "toSite", "building", "hunting"];
 var gap = (p, [x0, y0, x1, y1]) => Math.max(x0 - p.x, 0, p.x - x1) + Math.max(y0 - p.y, 0, p.y - y1);
-function ring(map, o, reach2) {
-  const box = obstacleBounds(o, 25), out = [], closed = blockedTable(map);
+function ring(map, o, reach2, layer = "land") {
+  const box = obstacleBounds(o, 25), out = [], closed = blockedFor(map, layer);
   for (const n of nodesNear(map, box, reach2)) {
     if (closed[n]) continue;
     const d = gap(position(map, n), box);
@@ -2183,35 +2908,41 @@ function ring(map, o, reach2) {
   }
   return out;
 }
-function workSlots(map, resourceId) {
+function workSlots(map, resourceId, layer = "land") {
   const r = map.resources.find((r2) => r2.id === resourceId), o = r?.obstacleId ? map.obstacles.find((o2) => o2.id === r.obstacleId) : void 0;
   if (r && !r.obstacleId && r.status === "available") {
-    const reach2 = r.kind === "fish" ? animalRules.fishReach : animalRules.pointReach, closed = blockedTable(map);
+    const reach2 = r.kind === "fish" ? animalRules.fishReach : animalRules.pointReach, closed = blockedFor(map, layer);
     return nodesNear(map, [r.x, r.y, r.x, r.y], reach2).filter((n) => {
       if (closed[n]) return false;
       const p = position(map, n), d = Math.max(Math.abs(p.x - r.x), Math.abs(p.y - r.y));
       return d > 0 && d <= reach2;
     });
   }
-  if (o?.kind === "farm") {
-    const b = obstacleBounds(o), out = [], closed = blockedTable(map);
+  if (o?.kind === "farm" || o?.kind === "fish-trap") {
+    const b = obstacleBounds(o), out = [], closed = blockedFor(map, o.kind === "farm" ? "land" : "water");
     for (const n of nodesNear(map, b, 0)) {
       const p = position(map, n);
       if (!closed[n] && p.x > b[0] && p.x < b[2] && p.y > b[1] && p.y < b[3]) out.push(n);
     }
     return out;
   }
-  return o ? ring(map, o, economyRules.workReach) : [];
+  return o ? ring(map, o, economyRules.workReach, layer) : [];
 }
-var dropoffRules = { provenance: "design_default", accepts: { "town-center": ["food", "wood", "gold", "stone"], "lumber-camp": ["wood"], "mining-camp": ["gold", "stone"], mill: ["food"] } };
-function dropoffNodes(map, player, resource) {
-  const accepts = dropoffRules.accepts;
-  return [...new Set(map.obstacles.filter((o) => accepts[o.kind] && o.progress === void 0 && (o.red ? 1 : 0) === player && (!resource || accepts[o.kind].includes(resource))).flatMap((o) => ring(map, o, economyRules.dropoffReach)))].sort((a, b) => a - b);
+var dropoffRules = { provenance: "design_default", accepts: { "town-center": ["food", "wood", "gold", "stone"], "lumber-camp": ["wood"], "mining-camp": ["gold", "stone"], mill: ["food"] }, ships: { dock: ["food"] } };
+function dropoffNodes(map, player, resource, layer = "land") {
+  const accepts = layer === "water" ? dropoffRules.ships : dropoffRules.accepts;
+  return [...new Set(map.obstacles.filter((o) => accepts[o.kind] && o.progress === void 0 && (o.red ? 1 : 0) === player && (!resource || accepts[o.kind].includes(resource))).flatMap((o) => ring(map, o, economyRules.dropoffReach, layer)))].sort((a, b) => a - b);
 }
-function gatherable(map, resourceId) {
+function gatherable(map, resourceId, layer = "land") {
   const r = map.resources.find((r2) => r2.id === resourceId);
   if (!r) return "\u627E\u4E0D\u5230\u9019\u500B\u8CC7\u6E90";
   if (!r.collectible) return "\u8CC7\u6E90\u5DF2\u8017\u76E1";
+  if (layer === "water") {
+    if (r.kind !== "fish" && r.kind !== "fish-trap") return "\u6F01\u8239\u53EA\u80FD\u6355\u9B5A\u6216\u6536\u9B5A\u7DB2";
+    if (!workSlots(map, r.id, "water").length) return "\u6F01\u8239\u5230\u4E0D\u4E86\u9019\u7FA4\u9B5A";
+    return null;
+  }
+  if (r.kind === "fish-trap") return "\u9B5A\u7DB2\u53EA\u80FD\u7531\u6F01\u8239\u6536\u6210";
   if (r.kind === "fish" && !workSlots(map, r.id).length) return "\u6751\u6C11\u53EA\u80FD\u5F9E\u5CB8\u908A\u6355\u9B5A\uFF1A\u9019\u7FA4\u9B5A\u96E2\u5CB8\u592A\u9060";
   return null;
 }
@@ -2222,7 +2953,7 @@ function huntProblem(s, player, animalId) {
   return null;
 }
 function sourceTargets(s, u, resourceId) {
-  const slots = workSlots(s.map, resourceId), taken = /* @__PURE__ */ new Set();
+  const slots = workSlots(s.map, resourceId, layerOf(u.kind)), taken = /* @__PURE__ */ new Set();
   for (const v of s.units) if (v !== u) {
     {
       const w = s.works[v.id];
@@ -2248,7 +2979,7 @@ var cargoOf = (s, w) => {
   return r ? resourceDefinitions[r.kind].yield : w.prey !== void 0 ? "food" : void 0;
 };
 function goToDropoff(s, u, w) {
-  const t = dropoffNodes(s.map, u.player, s.cargo[u.id]?.resource ?? cargoOf(s, w));
+  const t = dropoffNodes(s.map, u.player, s.cargo[u.id]?.resource ?? cargoOf(s, w), layerOf(u.kind));
   if (!t.length) return stopWork(s, u);
   w.phase = "toDropoff";
   routeTo(s, u, t);
@@ -2293,7 +3024,7 @@ function deposit(s, u) {
 function nextSource(s, u, from, kind) {
   if (resourceDefinitions[from.kind].method !== "gather") {
     let best = null, dist2 = Infinity;
-    for (const r of s.map.resources) if (r.collectible && r.kind === from.kind && (r.kind !== "fish" || workSlots(s.map, r.id).length)) {
+    for (const r of s.map.resources) if (r.collectible && r.kind === from.kind && r.kind !== "fish-trap" && (r.kind !== "fish" || workSlots(s.map, r.id, layerOf(u.kind)).length)) {
       const d = Math.abs(r.x - from.x) + Math.abs(r.y - from.y);
       if (d <= 600 && (d < dist2 || d === dist2 && best !== null && r.id < best.resourceId)) {
         best = { resourceId: r.id };
@@ -2324,13 +3055,13 @@ function nearestGather(s, from, kind) {
   }
   return best;
 }
-function buildSlots(map, b) {
+function buildSlots(map, b, layer = "land") {
   const o = map.obstacles.find((o2) => o2.id === b.id);
-  return o ? ring(map, o, economyRules.workReach) : [];
+  return o ? ring(map, o, economyRules.workReach, layer) : [];
 }
 function goToSite(s, u, w) {
   const b = s.buildings.find((b2) => b2.id === w.buildingId);
-  const t = b ? buildSlots(s.map, b) : [];
+  const t = b ? buildSlots(s.map, b, layerOf(u.kind)) : [];
   if (!t.length) return stopWork(s, u);
   const held2 = new Set(s.units.filter((v) => v !== u && v.next === null && !v.path.length).map((v) => v.node)), free = t.filter((n) => !held2.has(n));
   w.phase = "toSite";
@@ -2347,13 +3078,21 @@ function commandBuild(s, unitIds, buildingId) {
 }
 function stepBuilder(s, u, w) {
   const b = s.buildings.find((b2) => b2.id === w.buildingId);
-  if (b?.complete && b.kind === "farm" && s.map.resources.some((r) => r.id === farmResourceId(b.id) && r.collectible) && !s.units.some((v) => v !== u && s.works[v.id]?.resourceId === farmResourceId(b.id))) {
+  if (b?.complete && (b.kind === "farm" || b.kind === "fish-trap") && s.map.resources.some((r) => r.id === farmResourceId(b.id) && r.collectible) && !s.units.some((v) => v !== u && s.works[v.id]?.resourceId === farmResourceId(b.id))) {
     const g = { kind: "gather", resourceId: farmResourceId(b.id), phase: "toSource", progress: 0, retries: 0 };
     s.works[u.id] = g;
     return goToSource(s, u, g);
   }
+  if (b?.complete && (wallKinds.has(b.kind) || b.kind in wallGate)) {
+    const next = s.buildings.filter((v) => v.player === u.player && !v.complete && (wallKinds.has(v.kind) || v.kind in wallGate) && Math.max(Math.abs(v.x - b.x), Math.abs(v.y - b.y)) <= wallRules.builderReach).sort((p, q) => Math.max(Math.abs(p.x - b.x), Math.abs(p.y - b.y)) - Math.max(Math.abs(q.x - b.x), Math.abs(q.y - b.y)) || (p.id < q.id ? -1 : 1))[0];
+    if (next) {
+      w.buildingId = next.id;
+      w.retries = 0;
+      return goToSite(s, u, w);
+    }
+  }
   if (!b || b.complete) return stopWork(s, u);
-  if (!buildSlots(s.map, b).includes(u.node)) {
+  if (!buildSlots(s.map, b, layerOf(u.kind)).includes(u.node)) {
     if (++w.retries > 3) return stopWork(s, u);
     return goToSite(s, u, w);
   }
@@ -2443,7 +3182,7 @@ function stepWork(s) {
       w.progress = 0;
     };
     if (w.phase === "toDropoff") {
-      if (!dropoffNodes(s.map, u.player, s.cargo[u.id]?.resource ?? kind).includes(u.node)) {
+      if (!dropoffNodes(s.map, u.player, s.cargo[u.id]?.resource ?? kind, layerOf(u.kind)).includes(u.node)) {
         if (++w.retries > 3) {
           stopWork(s, u);
           continue;
@@ -2486,7 +3225,7 @@ function stepWork(s) {
       goToSource(s, u, w);
       continue;
     }
-    if (!workSlots(s.map, w.resourceId).includes(u.node)) {
+    if (!workSlots(s.map, w.resourceId, layerOf(u.kind)).includes(u.node)) {
       if (++w.retries > 3) {
         stopWork(s, u);
         continue;
@@ -2497,12 +3236,16 @@ function stepWork(s) {
     w.phase = "gathering";
     w.retries = 0;
     u.navigation = "idle";
-    const owner = ownerOf(s, u.player);
-    w.progress += gatherRate(s.techs[u.player], kind) + gatherBonus(owner, kind, resource.kind);
+    const owner = ownerOf(s, u.player), ship2 = u.kind === "fishing-ship";
+    w.progress += (ship2 ? 100 : gatherRate(s.techs[u.player], kind)) + gatherBonus(owner, kind, resource.kind, u.kind);
     if (w.progress < ticksFor(resource, kind) * 100) continue;
     w.progress -= ticksFor(resource, kind) * 100;
     const got = harvestMapResource(s.map, w.resourceId, 1, s.tick).amount;
     let reseeded = null;
+    if (resource.kind === "fish-trap" && resource.status === "depleted") {
+      const old = s.buildings.find((b) => farmResourceId(b.id) === resource.id);
+      s.buildings = s.buildings.filter((b) => b !== old);
+    }
     if (resource.kind === "farm" && resource.status === "depleted") {
       const old = s.buildings.find((b) => farmResourceId(b.id) === resource.id);
       s.buildings = s.buildings.filter((b) => b !== old);
@@ -2524,7 +3267,7 @@ function stepWork(s) {
       goToSite(s, u, b);
       continue;
     }
-    if ((s.cargo[u.id]?.amount ?? 0) >= carryOf(s.techs[u.player], economyRules.carryCapacity, resource.kind === "farm") + carryBonus(owner, resource.kind)) goToDropoff(s, u, w);
+    if ((s.cargo[u.id]?.amount ?? 0) >= (ship2 ? economyRules.carryCapacity : carryOf(s.techs[u.player], economyRules.carryCapacity, resource.kind === "farm")) + carryBonus(owner, resource.kind)) goToDropoff(s, u, w);
   }
 }
 
@@ -2614,11 +3357,20 @@ function stepAnimals(s) {
 var defenseRules = {
   provenance: "design_default",
   // The Castle (design_default in this scale: the reference's castle holds 20 and outranges a town centre).
-  capacity: { "town-center": 15, "watch-tower": 5, castle: 20 },
-  arrows: { "town-center": { base: 1, range: 300, damage: 5, cooldown: 40 }, "watch-tower": { base: 1, range: 350, damage: 5, cooldown: 40 }, castle: { base: 4, range: 400, damage: 5, cooldown: 40 } },
+  // The bombard tower (the 建築 round, aoetw.com): holds 5 like a tower, but those inside add no shots (shots: false).
+  capacity: { "town-center": 15, "watch-tower": 5, castle: 20, "bombard-tower": 5 },
+  // bonus: extra damage against a class (aoetw: the town centre's +5 and the tower's +7 against ships). The bombard
+  // tower fires one cannonball (120 pierce, +40 against ships) every 6 s (cooldown x20 like the towers), from a tower's
+  // range; it outshoots nothing, it one-shots most units.
+  arrows: {
+    "town-center": { base: 1, range: 300, damage: 5, cooldown: 40, bonus: { ship: 5 } },
+    "watch-tower": { base: 1, range: 350, damage: 5, cooldown: 40, bonus: { ship: 7 } },
+    castle: { base: 4, range: 400, damage: 5, cooldown: 40 },
+    "bombard-tower": { base: 1, range: 350, damage: 120, cooldown: 120, bonus: { ship: 40 }, shots: false }
+  },
   // Who may go inside (foot units: no cavalry, no siege), and who adds an arrow while there.
-  canGarrison: ["villager", "militia", "spearman", "archer", "skirmisher", "monk", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "janissary", "chu-ko-nu", "samurai"],
-  addsArrow: ["villager", "archer", "skirmisher", "longbowman", "janissary", "chu-ko-nu"],
+  canGarrison: ["villager", "militia", "spearman", "archer", "skirmisher", "monk", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "janissary", "chu-ko-nu", "samurai", "hand-cannoneer"],
+  addsArrow: ["villager", "archer", "skirmisher", "longbowman", "janissary", "chu-ko-nu", "hand-cannoneer"],
   // Units inside heal one hit point every healTicks; a shot stays drawn for shotTicks.
   healTicks: 40,
   shotTicks: 10
@@ -2745,9 +3497,14 @@ function stepDefense(s) {
     const g = s.garrison[id], b = s.buildings.find((b2) => b2.id === id);
     if (!b || b.player !== g.units[0]?.unit.player) release(s, id);
   }
-  if (s.tick % defenseRules.healTicks === 0) for (const g of Object.values(s.garrison)) for (const e of g.units) {
-    const max = maxHpOf(e.unit.kind, ownerOf(s, e.unit.player));
-    if (e.unit.hp < max) e.unit.hp++;
+  for (const [id, g] of Object.entries(s.garrison)) {
+    const b = s.buildings.find((b2) => b2.id === id), scale = b ? garrisonHealScale(ownerOf(s, b.player), b.kind) : 1;
+    const heal = Math.floor(s.tick * scale / defenseRules.healTicks) - Math.floor((s.tick - 1) * scale / defenseRules.healTicks);
+    if (heal <= 0) continue;
+    for (const e of g.units) {
+      const max = maxHpOf(e.unit.kind, ownerOf(s, e.unit.player));
+      if (e.unit.hp < max) e.unit.hp = Math.min(max, e.unit.hp + heal);
+    }
   }
   s.shots = s.shots.filter((v) => s.tick - v.tick < defenseRules.shotTicks);
   const passive = s.opponent === "idle" ? 1 : -1;
@@ -2764,9 +3521,11 @@ function stepDefense(s) {
     const mod = arrowsOf(ownerOf(s, b.player), b.kind), range = def.range + mod.range;
     const target = s.units.filter((u) => u.player !== b.player && !isAnimal(u.kind) && seen2.has(tileAt(u.x, u.y, s.map.size)) && reach(u, box) <= range).sort((p, q) => reach(p, box) - reach(q, box) || p.id - q.id)[0];
     if (!target) continue;
-    const cooldown = Math.max(1, Math.round(def.cooldown * mod.cooldown)), arrow = { hp: 0, damage: def.damage + mod.damage, range, cooldown, sight: 0, attack: "pierce", armor: [0, 0], classes: [], bonus: {} };
+    const bonus = { ...def.bonus };
+    for (const [c, v] of Object.entries(mod.bonus)) bonus[c] = (bonus[c] ?? 0) + v;
+    const cooldown = Math.max(1, Math.round(def.cooldown * mod.cooldown)), arrow = { hp: 0, damage: def.damage + mod.damage, range, cooldown, sight: 0, attack: "pierce", armor: [0, 0], classes: [], bonus };
     const shooter = (k) => defenseRules.addsArrow.includes(k) || k in combatRules.units && combatRules.units[k].classes.some((c) => mod.garrisonClasses.includes(c));
-    const count = def.base + mod.extra + (s.garrison[b.id]?.units.filter((e) => shooter(e.unit.kind)).length ?? 0);
+    const count = def.base + mod.extra + (def.shots === false ? 0 : s.garrison[b.id]?.units.filter((e) => shooter(e.unit.kind)).length ?? 0);
     for (let i = 0; i < count && s.units.includes(target); i++) strike(s, { kind: "unit", id: target.id }, damageOn(s, arrow, { kind: "unit", id: target.id }), -1);
     s.volleys[b.id] = cooldown;
     s.shots.push({ player: b.player, from: { x: Math.round((box[0] + box[2]) / 2), y: Math.round((box[1] + box[3]) / 2) }, to: { x: target.x, y: target.y }, tick: s.tick });
@@ -2826,12 +3585,12 @@ function dequeue(s, player, buildingId, itemId) {
   cancelReservation(s.accounts[player], item.reservationId);
   b.queue = b.queue.filter((q) => q !== item);
 }
-function exitNode(s, b) {
+function exitNode(s, b, layer = "land") {
   const o = s.map.obstacles.find((o2) => o2.id === b.id), box = obstacleBounds(o, navigationRules.radius);
   const held2 = new Set(s.units.flatMap((u) => u.next === null ? [u.node] : [u.node, u.next]));
   const aim = b.rally ?? { x: (box[0] + box[2]) / 2, y: box[3] + 50 };
   let best = -1, dist2 = Infinity;
-  const closed = blockedTable(s.map);
+  const closed = blockedFor(s.map, layer);
   for (const n of nodesNear(s.map, box, 50)) {
     if (closed[n] || held2.has(n)) continue;
     const p = position(s.map, n), g = Math.max(box[0] - p.x, 0, p.x - box[2]) + Math.max(box[1] - p.y, 0, p.y - box[3]);
@@ -2894,14 +3653,14 @@ function stepProduction(s) {
       refreshOwner(s, b.player, before);
       continue;
     }
-    const node = exitNode(s, b);
+    const layer = layerOf(unitKindOf(item.entryId)), node = exitNode(s, b, layer);
     if (node < 0) continue;
     commitReservation(s.accounts[b.player], item.reservationId);
     b.queue.shift();
     const p = position(s.map, node), u = makeUnit(s.map, s.nextUnitId++, b.player, p.x, p.y, unitKindOf(item.entryId));
     u.hp = maxHpOf(u.kind, ownerOf(s, b.player));
     s.units.push(u);
-    if (b.rally && nearest(s.map, b.rally, false) >= 0) commandMove(s, [u.id], b.rally);
+    if (b.rally && nearest(s.map, b.rally, false, layer) >= 0) commandMove(s, [u.id], b.rally);
   }
 }
 
@@ -2920,7 +3679,8 @@ var religionRules = {
   attemptChance: 28,
   buildingTicks: { min: 360, max: 600 },
   rechargeTicks: 1240,
-  unconvertibleBuildings: ["town-center", "monastery", "farm", "castle"],
+  // Walls, gates and the wonder cannot be converted either (the reference).
+  unconvertibleBuildings: ["town-center", "monastery", "farm", "castle", "wonder", "palisade-wall", "stone-wall", "palisade-gate", "gate"],
   relics: { count: 5, goldTicks: 40, perMonastery: 10, victoryTicks: 2e4, baseDistance: 900, spacing: 600, fairness: 400, edge: 150 }
 };
 var random = (s) => {
@@ -2931,7 +3691,7 @@ var random = (s) => {
   s.rng = n >>> 0;
   return s.rng;
 };
-var has = (s, player, tech) => s.techs[player].includes(tech);
+var has = (s, player, tech2) => s.techs[player].includes(tech2);
 var recharge = (s, player) => religionRules.rechargeTicks / (has(s, player, "illumination") ? 2 : 1);
 function faithOf(s, monkId) {
   const last = s.faith[monkId], m = s.units.find((u) => u.id === monkId);
@@ -3251,6 +4011,157 @@ function stepReligion(s) {
   stepRelics(s);
 }
 
+// packages/sim/market.ts
+var marketRules = {
+  provenance: "design_default",
+  start: { food: 100, wood: 100, stone: 130 },
+  lot: 100,
+  step: 2,
+  min: 20,
+  max: 9999,
+  fee: 30,
+  trade: { factor: 1.4, base: 0.3, cog: 0.75, reach: 100, retries: 3 }
+};
+var marketResources = ["food", "wood", "stone"];
+var startPrices = () => ({ ...marketRules.start });
+var names2 = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
+function marketQuote(prices, o, resource) {
+  const fee = marketFeeOf(o, marketRules.fee), p = prices[resource];
+  return { sell: Math.floor((p * (100 - fee) + 50) / 100), buy: Math.floor((p * (100 + fee) + 50) / 100), fee };
+}
+var hasMarket = (s, player) => s.buildings.some((b) => b.player === player && b.kind === "market" && b.complete);
+function marketProblem(s, player, action, resource) {
+  if (action !== "buy" && action !== "sell") return "\u7121\u6548\u7684\u4EA4\u6613";
+  if (!marketResources.includes(resource)) return "\u5E02\u96C6\u53EA\u8CB7\u8CE3\u98DF\u7269\u3001\u6728\u6750\u8207\u77F3\u982D";
+  if (!hasMarket(s, player)) return "\u9700\u8981\u4E00\u5EA7\u5B8C\u5DE5\u7684\u5E02\u96C6";
+  const q = marketQuote(s.market, ownerOf(s, player), resource), stock = s.accounts[player].stock;
+  if (action === "sell" && stock[resource] < marketRules.lot) return `${names2[resource]}\u4E0D\u8DB3\uFF1A\u9700\u8981 ${marketRules.lot}\uFF0C\u76EE\u524D ${stock[resource]}`;
+  if (action === "buy" && stock.gold < q.buy) return `\u9EC3\u91D1\u4E0D\u8DB3\uFF1A\u9700\u8981 ${q.buy}\uFF0C\u76EE\u524D ${stock.gold}`;
+  return null;
+}
+function marketTrade(s, player, action, resource) {
+  const problem = marketProblem(s, player, action, resource);
+  if (problem) throw Error(problem);
+  const a = s.accounts[player], q = marketQuote(s.market, ownerOf(s, player), resource), lot = marketRules.lot, R = marketRules;
+  if (action === "sell") {
+    a.stock[resource] -= lot;
+    a.stock.gold += q.sell;
+    a.ledger.market[resource] -= lot;
+    a.ledger.market.gold += q.sell;
+    s.market[resource] = Math.max(R.min, s.market[resource] - R.step);
+  } else {
+    a.stock.gold -= q.buy;
+    a.stock[resource] += lot;
+    a.ledger.market.gold -= q.buy;
+    a.ledger.market[resource] += lot;
+    s.market[resource] = Math.min(R.max, s.market[resource] + R.step);
+  }
+}
+var tradeHome = { "trade-cart": "market", "trade-cog": "dock" };
+var boxOf3 = (s, id) => {
+  const o = s.map.obstacles.find((o2) => o2.id === id);
+  return o ? obstacleBounds(o) : null;
+};
+var centre = (b) => ({ x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2 });
+function homeOf(s, u) {
+  const kind = tradeHome[u.kind];
+  let best = null, dist2 = Infinity;
+  for (const b of s.buildings) {
+    if (b.player !== u.player || b.kind !== kind || !b.complete) continue;
+    const box = boxOf3(s, b.id);
+    if (!box) continue;
+    const d = reach(u, box);
+    if (d < dist2 || d === dist2 && best && b.id < best.id) {
+      best = b;
+      dist2 = d;
+    }
+  }
+  return best;
+}
+function tradeProblem(s, player, unitIds, buildingId) {
+  const units = unitIds.map((id) => s.units.find((u) => u.id === id));
+  if (units.some((u) => !u || !(u.kind in tradeHome))) return "\u53EA\u6709\u8CBF\u6613\u8ECA\u968A\u8207\u8CBF\u6613\u5546\u8239\u80FD\u8CBF\u6613";
+  const b = typeof buildingId === "string" ? s.buildings.find((b2) => b2.id === buildingId) : void 0, known = b && s.vision[player].known.some((k) => k.obstacle.id === b.id);
+  if (!b) return "\u627E\u4E0D\u5230\u9019\u68DF\u5EFA\u7BC9";
+  if (b.player === player) return "\u53EA\u80FD\u8207\u5C0D\u624B\u7684\u5E02\u96C6\u6216\u78BC\u982D\u8CBF\u6613";
+  if (!known) return "\u627E\u4E0D\u5230\u9019\u68DF\u5EFA\u7BC9";
+  if (!b.complete) return "\u5C0D\u65B9\u7684\u5EFA\u7BC9\u5C1A\u672A\u5B8C\u5DE5";
+  for (const u of units) {
+    if (b.kind !== tradeHome[u.kind]) return u.kind === "trade-cart" ? "\u8CBF\u6613\u8ECA\u968A\u53EA\u80FD\u524D\u5F80\u5C0D\u624B\u7684\u5E02\u96C6" : "\u8CBF\u6613\u5546\u8239\u53EA\u80FD\u524D\u5F80\u5C0D\u624B\u7684\u78BC\u982D";
+    if (!homeOf(s, u)) return u.kind === "trade-cart" ? "\u9700\u8981\u4E00\u5EA7\u5DF1\u65B9\u5B8C\u5DE5\u7684\u5E02\u96C6" : "\u9700\u8981\u4E00\u5EA7\u5DF1\u65B9\u5B8C\u5DE5\u7684\u78BC\u982D";
+  }
+  return null;
+}
+function commandTrade(s, unitIds, buildingId) {
+  for (const id of unitIds) {
+    const u = s.units.find((u2) => u2.id === id), home = u && homeOf(s, u);
+    if (!u || !home) continue;
+    cancelMovement(s, id);
+    delete s.works[id];
+    delete s.attacks[id];
+    s.trades[id] = { home: home.id, target: buildingId, leg: "out", retries: 0 };
+  }
+}
+function tradeGold(s, kind, home, target) {
+  const a = centre(home), b = centre(target), T = marketRules.trade, d = Math.hypot(a.x - b.x, a.y - b.y) / 100;
+  return Math.round(d * (d / s.map.size + T.base) * T.factor * (kind === "trade-cog" ? T.cog : 1));
+}
+function dockNodes(s, u, box) {
+  const closed = blockedFor(s.map, layerOf(u.kind)), r = navigationRules.radius, R = marketRules.trade.reach;
+  return nodesNear(s.map, box, R + r).filter((n) => {
+    if (closed[n]) return false;
+    const d = reach(position(s.map, n), box);
+    return d > r && d <= r + R;
+  });
+}
+function stepTrade(s) {
+  const busy = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId]));
+  for (const id of Object.keys(s.trades).map(Number).sort((a, b) => a - b)) {
+    const t = s.trades[id], u = s.units.find((u2) => u2.id === id);
+    const home = s.buildings.find((b) => b.id === t.home), target = s.buildings.find((b) => b.id === t.target), hb = home && boxOf3(s, home.id), tb = target && boxOf3(s, target.id);
+    if (!u || !home || !target || !hb || !tb || !home.complete || home.player !== u.player || target.player === u.player) {
+      delete s.trades[id];
+      if (u && !u.path.length && u.next === null) u.navigation = "idle";
+      continue;
+    }
+    if (u.next !== null || u.path.length || busy.has(u.id)) continue;
+    const box = t.leg === "out" ? tb : hb;
+    if (reach(u, box) <= navigationRules.radius + marketRules.trade.reach) {
+      if (t.leg === "back") {
+        const gold = tradeGold(s, u.kind, hb, tb), a = s.accounts[u.player];
+        if (Number.isSafeInteger(a.stock.gold + gold)) {
+          a.stock.gold += gold;
+          a.ledger.trade.gold += gold;
+        }
+      }
+      t.leg = t.leg === "out" ? "back" : "out";
+      t.retries = 0;
+    } else if (++t.retries > marketRules.trade.retries) {
+      delete s.trades[id];
+      u.navigation = "unreachable";
+      continue;
+    }
+    const nodes = dockNodes(s, u, t.leg === "out" ? tb : hb);
+    if (!nodes.length) {
+      delete s.trades[id];
+      continue;
+    }
+    routeTo(s, u, nodes);
+  }
+}
+function stepWonders(s) {
+  const T = religionRules.relics.victoryTicks;
+  for (const id of Object.keys(s.wonders)) if (!s.buildings.some((b) => b.id === id && b.kind === "wonder" && b.complete)) delete s.wonders[id];
+  for (const b of [...s.buildings].sort((a, b2) => a.id < b2.id ? -1 : 1)) if (b.kind === "wonder" && b.complete && !(b.id in s.wonders)) s.wonders[b.id] = s.tick + T;
+  let best = null;
+  for (const [id, endsTick] of Object.entries(s.wonders).sort(([a], [b]) => a < b ? -1 : 1)) {
+    const b = s.buildings.find((b2) => b2.id === id);
+    if (!best || endsTick < best.endsTick) best = { player: b.player, building: id, endsTick };
+  }
+  s.wonderVictory = best;
+  if (best && !s.outcome && s.tick >= best.endsTick) s.outcome = { winner: best.player, defeated: [1 - best.player], tick: s.tick, reason: "wonder" };
+}
+
 // packages/sim/ai.ts
 var aiRules = {
   provenance: "design_default",
@@ -3278,6 +4189,8 @@ var aiRules = {
   siteRange: 900,
   siteSpread: 1.5,
   siteStep: 20,
+  siteChecks: 80,
+  worldStep: 50,
   halfMargin: 100,
   spill: 100,
   sourceMargin: 100,
@@ -3288,33 +4201,57 @@ var aiRules = {
   stoneWorkers: 3,
   castleBuilders: 3,
   castleMargin: 0,
-  research: { blacksmith: ["forging", "fletching", "scale-mail-armor", "padded-archer-armor", "iron-casting", "bodkin-arrow", "chain-mail-armor", "scale-barding-armor"], barracks: ["man-at-arms", "long-swordsman"], "archery-range": ["crossbowman"], "town-center": ["loom", "wheelbarrow", "hand-cart"], "lumber-camp": ["double-bit-axe", "bow-saw", "two-man-saw"], "mining-camp": ["gold-mining", "gold-shaft-mining"], mill: ["horse-collar", "heavy-plow", "crop-rotation"] }
+  // The 建築 round. Water (any map with a dock site within dockRange of the town centre, the lake map): a dock once the
+  // barracks stands and dockAtVillagers work, fishingShips on the deep fish, fish traps (at most fishTraps, within
+  // trapRange of the dock) once no fish is in sight, and from the third age warships galleys guarding navyRadius of
+  // the dock. The market in the third age with marketSpare wood beyond its cost: a resource above sellAbove is sold
+  // while gold is below goldShort, stone is bought for the castle while gold allows, and tradeCarts go to the
+  // opponent's market once red has seen one finished (trade needs the other player's market).
+  dockAtVillagers: 6,
+  dockRange: 1300,
+  fishingShips: 4,
+  fishTraps: 3,
+  trapRange: 700,
+  warships: 2,
+  navyRadius: 900,
+  marketSpare: 100,
+  sellAbove: 600,
+  goldShort: 100,
+  tradeCarts: 2,
+  research: { blacksmith: ["forging", "fletching", "scale-mail-armor", "padded-archer-armor", "iron-casting", "bodkin-arrow", "chain-mail-armor", "scale-barding-armor"], barracks: ["man-at-arms", "long-swordsman"], "archery-range": ["crossbowman"], "town-center": ["loom", "wheelbarrow", "hand-cart"], dock: ["gillnets"], "lumber-camp": ["double-bit-axe", "bow-saw", "two-man-saw"], "mining-camp": ["gold-mining", "gold-shaft-mining"], mill: ["horse-collar", "heavy-plow", "crop-rotation"] }
 };
 var soldierKinds = unitKinds.filter((k) => k !== "villager" && k !== "monk" && k !== "scout" && !isAnimal(k) && combatRules.units[k].attack !== "none");
 var classesOf = (kind) => combatRules.units[kind]?.classes ?? [];
 function castlePlan(o) {
-  const civ = civDefs.find((c) => c.id === o.civ), unit = civ?.uniqueUnits.find((k) => civAvailable(o.civ, k) && soldierKinds.includes(k));
-  if (!civ || !unit || !civAvailable(o.civ, "castle")) return null;
-  return { unit, techs: civ.uniqueTechs.filter((t) => t.age === 3 && civAvailable(o.civ, t.id) && rules.entries.some((e) => e.id === t.id)).map((t) => t.id) };
+  const civ = civDefs.find((c) => c.id === o.civ), unit2 = civ?.uniqueUnits.find((k) => civAvailable(o.civ, k) && soldierKinds.includes(k));
+  if (!civ || !unit2 || !civAvailable(o.civ, "castle")) return null;
+  return { unit: unit2, techs: civ.uniqueTechs.filter((t) => t.age === 3 && civAvailable(o.civ, t.id) && rules.entries.some((e) => e.id === t.id)).map((t) => t.id) };
 }
 var gap2 = (a, b) => Math.max(a[0] - b[2], b[0] - a[2], a[1] - b[3], b[1] - a[3], 0);
-var centre = (b) => ({ x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2 });
+var centre2 = (b) => ({ x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2 });
 var dist = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+var claimed = [];
+var clashes = (box, lane = 0) => claimed.some((c) => lane ? gap2(box, c) < lane : Math.min(box[2], c[2]) > Math.max(box[0], c[0]) && Math.min(box[3], c[3]) > Math.max(box[1], c[1]));
+function claim(ok, kind, x, y) {
+  if (ok) claimed.push(obstacleBounds({ kind, x, y }));
+  return ok;
+}
 function stepAI(s, order) {
   if (s.outcome || s.tick % aiRules.thinkTicks !== aiRules.thinkOffset) return;
+  claimed = [];
   const P = aiRules.player, vision = s.vision[P], seen2 = new Set(vision.visible), explored = new Set(vision.explored);
   const busy = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId]));
   const idle = (u) => !s.works[u.id] && !s.attacks[u.id] && u.next === null && !u.path.length && !busy.has(u.id);
-  const mine = s.units.filter((u) => u.player === P).sort((a, b) => a.id - b.id), villagers = mine.filter((u) => u.kind === "villager"), soldiers = mine.filter((u) => soldierKinds.includes(u.kind)), scout = mine.find((u) => u.kind === "scout");
-  const own = s.buildings.filter((b) => b.player === P), tc = own.find((b) => b.kind === "town-center"), tcBox = tc ? boxOf3(s, tc) : null;
+  const mine = s.units.filter((u) => u.player === P).sort((a, b) => a.id - b.id), villagers = mine.filter((u) => u.kind === "villager"), soldiers = mine.filter((u) => soldierKinds.includes(u.kind) && layerOf(u.kind) === "land"), warships = mine.filter((u) => soldierKinds.includes(u.kind) && layerOf(u.kind) === "water"), scout = mine.find((u) => u.kind === "scout");
+  const own = s.buildings.filter((b) => b.player === P), tc = own.find((b) => b.kind === "town-center"), tcBox = tc ? boxOf4(s, tc) : null;
   const foes = s.units.filter((u) => u.player !== P && !isAnimal(u.kind) && seen2.has(tileAt(u.x, u.y, s.map.size))).sort((a, b) => a.id - b.id);
-  if (!tc && !soldiers.length) {
+  if (!tc && !soldiers.length && !warships.length) {
     order("resign", {});
     return;
   }
   army(s, order, soldiers, foes, tcBox, idle, explored);
   if (tcBox) {
-    const home2 = centre(tcBox), raiders = foes.filter((f) => f.kind !== "villager" && dist(f, home2) <= aiRules.bellRadius).length, guards = soldiers.filter((u) => dist(u, home2) <= aiRules.bellRadius).length;
+    const home2 = centre2(tcBox), raiders = foes.filter((f) => f.kind !== "villager" && dist(f, home2) <= aiRules.bellRadius).length, guards = soldiers.filter((u) => dist(u, home2) <= aiRules.bellRadius).length;
     const belled = Object.values(s.garrison).some((g) => g.units.some((e) => e.bell && e.unit.player === P));
     if (!belled && raiders >= aiRules.bellFoes && guards < raiders) order("bell", { ring: true });
     else if (belled && !foes.some((f) => dist(f, home2) <= aiRules.bellRadius + 150)) order("bell", { ring: false });
@@ -3323,7 +4260,7 @@ function stepAI(s, order) {
     const size = s.map.size;
     let best = -1, far = Infinity;
     for (let t = 0; t < size * size; t++) {
-      if (explored.has(t)) continue;
+      if (explored.has(t) || s.map.tiles[t].terrainType === "water") continue;
       const d = Math.hypot(t % size * 100 + 50 - scout.x, Math.floor(t / size) * 100 + 50 - scout.y);
       if (d < far) {
         far = d;
@@ -3342,23 +4279,24 @@ function stepAI(s, order) {
       const w = s.works[u.id];
       return w?.kind === "build" && w.buildingId === b.id;
     }).length >= (b.kind === "castle" ? aiRules.castleBuilders : 1)) continue;
-    const builder = pickBuilder(s, villagers, idle, centre(boxOf3(s, b)));
+    const builder = pickBuilder(s, villagers, idle, centre2(boxOf4(s, b)));
     if (builder) order("construct", { unitIds: [builder.id], buildingId: b.id });
   }
   const pending = (k) => own.some((b) => b.kind === k && !b.complete);
-  const room2 = account.populationCap - account.populationUsed - account.populationReserved;
+  const room3 = account.populationCap - account.populationUsed - account.populationReserved;
   const barracksDue = villagers.length >= aiRules.barracksAtVillagers && !own.some((b) => b.kind === "barracks");
   if (barracksDue) place(s, order, "barracks", villagers, idle, tcBox, own);
   const holdForCastle = !!plan && !castle && (stock.stone < cost("castle").stone || place(s, order, "castle", villagers, idle, tcBox, own));
-  if (s.ages[P] >= 3 && !own.some((b) => b.kind === "monastery") && stock.wood >= cost("monastery").wood) place(s, order, "monastery", villagers, idle, tcBox, own);
+  const monasteryLost = s.ages[P] >= 3 && !own.some((b) => b.kind === "monastery") && stock.wood >= cost("monastery").wood && !place(s, order, "monastery", villagers, idle, tcBox, own);
   if (s.ages[P] >= 2 && own.some((b) => b.kind === "archery-range" && b.complete) && !own.some((b) => b.kind === "blacksmith") && stock.wood >= cost("blacksmith").wood) place(s, order, "blacksmith", villagers, idle, tcBox, own);
   if (s.ages[P] >= 3 && !holdForCastle && own.some((b) => b.kind === "blacksmith" && b.complete) && !own.some((b) => b.kind === "siege-workshop") && stock.wood >= cost("siege-workshop").wood) place(s, order, "siege-workshop", villagers, idle, tcBox, own);
   if (s.ages[P] >= 3 && !holdForCastle && !own.some((b) => b.kind === "stable") && stock.wood >= cost("stable").wood) place(s, order, "stable", villagers, idle, tcBox, own);
   if (s.ages[P] >= 2 && !own.some((b) => b.kind === "archery-range") && !buildRequirement(s.ages[P], "archery-range", own, owner.civ) && stock.wood >= cost("archery-range").wood) place(s, order, "archery-range", villagers, idle, tcBox, own);
-  if (room2 <= aiRules.houseMargin && account.populationCap < rules.settings.populationCap && !pending("house") && (!barracksDue || room2 <= 0)) place(s, order, "house", villagers, idle, tcBox, own);
-  const accepts = dropoffRules.accepts, drops = own.filter((b) => b.complete && accepts[b.kind]).map((b) => ({ kinds: accepts[b.kind], box: boxOf3(s, b) })).filter((d) => d.box);
+  const monasteryDue = s.ages[P] >= 3 && civAvailable(owner.civ, "monastery") && !own.some((b) => b.kind === "monastery") && !monasteryLost;
+  if (room3 <= (monasteryDue ? 0 : aiRules.houseMargin) && account.populationCap < rules.settings.populationCap && !pending("house") && (!barracksDue || room3 <= 0)) place(s, order, "house", villagers, idle, tcBox, own);
+  const accepts = dropoffRules.accepts, drops = own.filter((b) => b.complete && accepts[b.kind]).map((b) => ({ kinds: accepts[b.kind], box: boxOf4(s, b) })).filter((d) => d.box);
   for (const [camp, kinds] of [["lumber-camp", ["wood"]], ["mining-camp", ["gold", "stone"]], ["mill", ["food"]]]) {
-    if (own.some((b) => b.kind === camp && !b.complete)) continue;
+    if (monasteryDue || own.some((b) => b.kind === camp && !b.complete)) continue;
     const far = villagers.map((u) => s.works[u.id]).filter((w) => w?.kind === "gather").map((w) => s.map.resources.find((r) => r.id === w.resourceId)).filter((r) => !!r && r.kind !== "farm" && kinds.includes(resourceDefinitions[r.kind].yield) && Math.min(...drops.filter((d) => d.kinds.includes(resourceDefinitions[r.kind].yield)).map((d) => gap2([r.x, r.y, r.x, r.y], d.box))) > aiRules.campDistance);
     if (far.length >= aiRules.campWorkers && place(s, order, camp, villagers, idle, tcBox, own, void 0, { x: far[0].x, y: far[0].y })) break;
   }
@@ -3376,7 +4314,7 @@ function stepAI(s, order) {
     const c = cost(id);
     return !slots || Object.keys(c).every((r) => left[r] >= reserve2(r) + c[r]);
   };
-  let open = room2;
+  let open = room3;
   for (const b of own.filter((b2) => b2.complete && b2.queue.length < 2)) {
     const unique2 = plan && slots && producersOf(plan.unit, owner).includes(b.kind) ? plan.unit : null;
     const pick = unique2 ?? (savingForCastle && b.kind !== "monastery" ? null : b.kind === "barracks" && !savingForAge ? seenCavalry ? "spearman" : "militia" : b.kind === "archery-range" ? seenArchers >= 2 ? "skirmisher" : "archer" : b.kind === "stable" && s.ages[P] >= 3 ? "knight" : b.kind === "siege-workshop" && mine.filter((u) => u.kind === "ram").length + queued("ram") < aiRules.rams ? "ram" : b.kind === "monastery" && monks.length + queued("monk") < aiRules.monkTarget ? "monk" : null);
@@ -3393,7 +4331,9 @@ function stepAI(s, order) {
     const next = research[b.kind]?.find((id) => !trainable(s, P, b, id) && spare(id));
     if (next) order("train", { buildingId: b.id, entryId: next });
   }
-  const monastery = own.find((b) => b.kind === "monastery" && b.complete), home = tcBox ? centre(tcBox) : null, fetching = new Set(Object.values(s.rites).filter((r) => r.kind === "relic").map((r) => r.target));
+  water(s, order, { own, mine, villagers, warships, idle, tcBox, cost, queued, spare, explored, foes });
+  trade(s, order, { own, mine, villagers, idle, tcBox, cost, queued, saving: savingForAge || savingForCastle || monasteryDue, stoneDue: !!plan && !castle && stock.stone < cost("castle").stone });
+  const monastery = own.find((b) => b.kind === "monastery" && b.complete), home = tcBox ? centre2(tcBox) : null, fetching = new Set(Object.values(s.rites).filter((r) => r.kind === "relic").map((r) => r.target));
   for (const m of monks) {
     const rite = s.rites[m.id];
     if (carrying(s, m.id)) {
@@ -3433,7 +4373,7 @@ function stepAI(s, order) {
     }
   }
   {
-    const home2 = centre(tcBox), pen = penSpot(s, tcBox), sheep = mine.filter((u) => u.kind === "sheep"), penned = sheep.filter((u) => dist(u, home2) <= aiRules.herdRadius || !idle(u)).length;
+    const home2 = centre2(tcBox), pen = penSpot(s, tcBox), sheep = mine.filter((u) => u.kind === "sheep"), penned = sheep.filter((u) => dist(u, home2) <= aiRules.herdRadius || !idle(u)).length;
     const stray = sheep.filter((u) => idle(u) && !hunted.has(u.id) && dist(u, home2) > aiRules.herdRadius).sort((a, b) => dist(a, home2) - dist(b, home2) || a.id - b.id).slice(0, Math.max(0, aiRules.penSize - penned));
     if (stray.length) march(s, order, stray, pen);
   }
@@ -3444,7 +4384,7 @@ function stepAI(s, order) {
     return r ? resourceDefinitions[r.kind].yield : null;
   };
   if (stoneDue && staff.stone < aiRules.stoneWorkers) {
-    const home2 = centre(tcBox), rock = s.map.resources.filter((r) => resourceDefinitions[r.kind].yield === "stone" && explored.has(tileAt(r.x, r.y, s.map.size)) && !gatherable(s.map, r.id)).sort((a, b) => dist(a, home2) - dist(b, home2) || (a.id < b.id ? -1 : 1))[0];
+    const home2 = centre2(tcBox), rock = s.map.resources.filter((r) => resourceDefinitions[r.kind].yield === "stone" && explored.has(tileAt(r.x, r.y, s.map.size)) && !gatherable(s.map, r.id)).sort((a, b) => dist(a, home2) - dist(b, home2) || (a.id < b.id ? -1 : 1))[0];
     if (rock) for (const kind of ["wood", "gold"]) for (const u of villagers.filter((u2) => yieldOf(u2) === kind).sort((a, b) => dist(a, rock) - dist(b, rock) || a.id - b.id)) {
       if (staff.stone >= aiRules.stoneWorkers) break;
       if (order("gather", { unitIds: [u.id], resourceId: rock.id })) {
@@ -3456,9 +4396,9 @@ function stepAI(s, order) {
   for (const u of villagers.filter((u2) => idle(u2) || !stoneDue && yieldOf(u2) === "stone")) {
     const kinds = Object.keys(aiRules.gatherWeights).filter((k) => aiRules.gatherWeights[k] > 0).sort((a, b) => staff[a] / aiRules.gatherWeights[a] - staff[b] / aiRules.gatherWeights[b]);
     for (const kind of kinds) {
-      const natural = wild < aiRules.wildFoodWorkers && s.ages[P] < 2, source = s.map.resources.filter((r) => resourceDefinitions[r.kind].yield === kind && (kind !== "food" || natural || r.kind === "farm") && explored.has(tileAt(r.x, r.y, s.map.size)) && (kind !== "food" || dist(r, centre(tcBox)) <= (r.kind === "farm" ? aiRules.siteRange : aiRules.wildRange)) && !gatherable(s.map, r.id) && (r.kind !== "farm" || farmOwner(s, r.id) === P && !farmers.has(r.id))).sort((a, b) => dist(u, a) - dist(u, b) || (a.id < b.id ? -1 : 1))[0];
+      const natural = wild < aiRules.wildFoodWorkers && s.ages[P] < 2, source = s.map.resources.filter((r) => resourceDefinitions[r.kind].yield === kind && (kind !== "food" || natural || r.kind === "farm") && explored.has(tileAt(r.x, r.y, s.map.size)) && (kind !== "food" || dist(r, centre2(tcBox)) <= (r.kind === "farm" ? aiRules.siteRange : aiRules.wildRange)) && !gatherable(s.map, r.id) && (r.kind !== "farm" || farmOwner(s, r.id) === P && !farmers.has(r.id))).sort((a, b) => dist(u, a) - dist(u, b) || (a.id < b.id ? -1 : 1))[0];
       if (kind === "food" && natural) {
-        const prey = s.units.filter((a) => (a.kind === "sheep" ? dist(a, centre(tcBox)) <= aiRules.herdRadius + 50 : a.kind === "deer" && dist(a, centre(tcBox)) <= aiRules.wildRange) && !huntProblem(s, P, a.id) && !s.map.resources.some((r) => r.id === carcassId(a.id))).sort((a, b) => Number(hunted.has(a.id)) - Number(hunted.has(b.id)) || dist(u, a) - dist(u, b) || a.id - b.id)[0];
+        const prey = s.units.filter((a) => (a.kind === "sheep" ? dist(a, centre2(tcBox)) <= aiRules.herdRadius + 50 : a.kind === "deer" && dist(a, centre2(tcBox)) <= aiRules.wildRange) && !huntProblem(s, P, a.id) && !s.map.resources.some((r) => r.id === carcassId(a.id))).sort((a, b) => Number(hunted.has(a.id)) - Number(hunted.has(b.id)) || dist(u, a) - dist(u, b) || a.id - b.id)[0];
         if (prey && (!source || source.kind === "farm" || dist(u, prey) < dist(u, source)) && order("hunt", { unitIds: [u.id], animalId: prey.id })) {
           staff.food++;
           wild++;
@@ -3476,21 +4416,117 @@ function stepAI(s, order) {
     }
   }
 }
+var affords = (s, c, extra = 0) => Object.keys(c).every((r) => s.accounts[aiRules.player].stock[r] >= c[r] + (c[r] ? extra : 0));
+function knownInput(s) {
+  const explored = new Set(s.vision[aiRules.player].explored), bodies = [...s.units.flatMap((u) => [{ x: u.x, y: u.y }, ...u.next === null ? [] : [position(s.map, u.next)]]), ...s.relics.filter((r) => r.carrier === null && r.monastery === null).map((r) => ({ x: r.x, y: r.y }))];
+  return { tiles: s.map.tiles, obstacles: s.map.obstacles, units: bodies, explored: (t) => explored.has(t) };
+}
+function waterSite(s, kind, near, range) {
+  const size = s.map.size, [, , w, d] = obstacleBounds({ kind, x: 0, y: 0 }), n = w / 100, sites = [];
+  const wet = (t) => s.map.tiles[t]?.terrainType === "water" || s.map.tiles[t]?.terrainType === "shallow";
+  for (let ty = 0; ty + d / 100 <= size; ty++) for (let tx = 0; tx + n <= size; tx++) {
+    if (!wet(ty * size + tx)) continue;
+    const c = { x: tx * 100 + w / 2, y: ty * 100 + d / 2 }, dd = dist(c, near);
+    if (dd <= range) sites.push({ x: tx * 100, y: ty * 100, d: dd });
+  }
+  sites.sort((a, b) => a.d - b.d || a.y - b.y || a.x - b.x);
+  const input = knownInput(s);
+  return sites.find((v) => !clashes(obstacleBounds({ kind, x: v.x, y: v.y })) && !placementProblem(input, kind, v.x, v.y)) ?? null;
+}
+function water(s, order, c) {
+  const P = aiRules.player, owner = ownerOf(s, P), docks = c.own.filter((b) => b.kind === "dock"), dock = docks.find((b) => b.complete), home = centre2(c.tcBox);
+  if (!docks.length) {
+    if (civAvailable(owner.civ, "dock") && c.villagers.length >= aiRules.dockAtVillagers && c.own.some((b) => b.kind === "barracks") && affords(s, c.cost("dock"))) {
+      const site2 = waterSite(s, "dock", home, aiRules.dockRange);
+      const builder = site2 && pickBuilder(s, c.villagers, c.idle, { x: site2.x + 150, y: site2.y + 150 });
+      if (site2 && builder) claim(order("build", { unitIds: [builder.id], kind: "dock", x: site2.x, y: site2.y }), "dock", site2.x, site2.y);
+    }
+    return;
+  }
+  if (!dock) return;
+  const dockBox = boxOf4(s, dock), at = centre2(dockBox), ships2 = c.mine.filter((u) => u.kind === "fishing-ship");
+  if (!dock.queue.length) {
+    const pick = ships2.length + c.queued("fishing-ship") < aiRules.fishingShips ? "fishing-ship" : s.ages[P] >= 3 && c.warships.length + c.queued("galley") < aiRules.warships && c.spare("galley") ? "galley" : null;
+    if (pick && !trainable(s, P, dock, pick)) order("train", { buildingId: dock.id, entryId: pick });
+  }
+  const worked = new Set(c.mine.map((u) => s.works[u.id]).filter((w) => w?.kind === "gather").map((w) => w.resourceId));
+  const traps = c.own.filter((b) => b.kind === "fish-trap").length;
+  let laid = false;
+  for (const u of ships2.filter(c.idle)) {
+    const source = s.map.resources.filter((r) => (r.kind === "fish" || r.kind === "fish-trap" && farmOwner(s, r.id) === P && !worked.has(r.id)) && c.explored.has(tileAt(r.x, r.y, s.map.size)) && !gatherable(s.map, r.id, "water")).sort((a, b) => dist(u, a) - dist(u, b) || (a.id < b.id ? -1 : 1))[0];
+    if (source) {
+      if (order("gather", { unitIds: [u.id], resourceId: source.id }) && source.kind === "fish-trap") worked.add(source.id);
+      continue;
+    }
+    const sighted3 = s.map.resources.some((r) => r.kind === "fish" && r.collectible && c.explored.has(tileAt(r.x, r.y, s.map.size)));
+    if (!sighted3 && !laid && traps < aiRules.fishTraps && civAvailable(owner.civ, "fish-trap") && s.ages[P] >= 2 && affords(s, c.cost("fish-trap"), 50)) {
+      const site2 = waterSite(s, "fish-trap", at, aiRules.trapRange);
+      if (site2 && claim(order("build", { unitIds: [u.id], kind: "fish-trap", x: site2.x, y: site2.y }), "fish-trap", site2.x, site2.y)) {
+        laid = true;
+        continue;
+      }
+    }
+    const size = s.map.size;
+    let best = -1, far = Infinity;
+    for (let t = 0; t < size * size; t++) {
+      if (c.explored.has(t) || s.map.tiles[t].terrainType !== "water") continue;
+      const d = Math.hypot(t % size * 100 + 50 - u.x, Math.floor(t / size) * 100 + 50 - u.y);
+      if (d < far) {
+        far = d;
+        best = t;
+      }
+    }
+    if (best >= 0) order("move", { unitIds: [u.id], x: best % size * 100 + 50, y: Math.floor(best / size) * 100 + 50 });
+  }
+  const prey = c.foes.filter((f) => layerOf(f.kind) === "water" && dist(f, at) <= aiRules.navyRadius).sort((a, b) => dist(a, at) - dist(b, at) || a.id - b.id)[0];
+  const enemyDock = prey ? void 0 : s.buildings.filter((b) => b.player !== P && b.kind === "dock").map((b) => ({ b, box: boxOf4(s, b) })).filter((v) => v.box && dist(centre2(v.box), at) <= aiRules.navyRadius && !targetProblem(s, P, { kind: "building", id: v.b.id })).sort((a, b) => dist(centre2(a.box), at) - dist(centre2(b.box), at) || (a.b.id < b.b.id ? -1 : 1))[0];
+  const target = prey ? { kind: "unit", id: prey.id } : enemyDock ? { kind: "building", id: enemyDock.b.id } : null;
+  const free = c.warships.filter((u) => !s.attacks[u.id]);
+  if (target && free.length) order("attack", { unitIds: free.map((u) => u.id), target });
+  else {
+    const away = free.filter((u) => c.idle(u) && dist(u, at) > 400);
+    if (away.length) order("move", { unitIds: away.map((u) => u.id), x: Math.round(at.x), y: Math.round(at.y) });
+  }
+}
+function trade(s, order, c) {
+  const P = aiRules.player, owner = ownerOf(s, P), stock = s.accounts[P].stock, markets = c.own.filter((b) => b.kind === "market"), market = markets.find((b) => b.complete);
+  if (!markets.length) {
+    if (s.ages[P] >= 3 && !c.saving && civAvailable(owner.civ, "market") && stock.wood >= c.cost("market").wood + aiRules.marketSpare) place(s, order, "market", c.villagers, c.idle, c.tcBox, c.own);
+    return;
+  }
+  if (!market) return;
+  if (!market.rally) {
+    const box = boxOf4(s, market), m = centre2(box), h = centre2(c.tcBox), d = Math.hypot(h.x - m.x, h.y - m.y) || 1, k = Math.min(d, (box[2] - box[0]) / 2 + 150) / d;
+    const spot = standable(s, { x: m.x + (h.x - m.x) * k, y: m.y + (h.y - m.y) * k });
+    if (spot) order("rally", { buildingId: market.id, x: spot.x, y: spot.y });
+  }
+  if (s.market && c.stoneDue && stock.gold >= marketQuote(s.market, owner, "stone").buy + aiRules.goldShort) order("market", { action: "buy", resource: "stone" });
+  else if (stock.gold < aiRules.goldShort) {
+    const surplus = [...marketResources].filter((r) => stock[r] >= aiRules.sellAbove + marketRules.lot).sort((a, b) => stock[b] - stock[a] || (a < b ? -1 : 1))[0];
+    if (surplus) order("market", { action: "sell", resource: surplus });
+  }
+  const theirs = s.vision[P].known.map((k) => k.obstacle).filter((o) => o.kind === "market" && !o.red && o.progress === void 0).map((o) => ({ id: o.id, c: centre2(obstacleBounds(o)) })).sort((a, b) => dist(a.c, centre2(c.tcBox)) - dist(b.c, centre2(c.tcBox)) || (a.id < b.id ? -1 : 1))[0];
+  if (!theirs || !civAvailable(owner.civ, "trade-cart")) return;
+  const carts = c.mine.filter((u) => u.kind === "trade-cart");
+  if (!market.queue.length && !c.saving && carts.length + c.queued("trade-cart") < aiRules.tradeCarts && !trainable(s, P, market, "trade-cart")) order("train", { buildingId: market.id, entryId: "trade-cart" });
+  const idleCarts = carts.filter((u) => c.idle(u) && !s.trades?.[u.id]);
+  if (idleCarts.length) order("trade", { unitIds: idleCarts.map((u) => u.id), buildingId: theirs.id });
+}
 function penSpot(s, tcBox) {
-  const c = centre(tcBox), closed = blockedTable(s.map), edge = s.map.size * 100 - 100;
-  let best = { x: c.x, y: c.y }, room2 = -1;
+  const c = centre2(tcBox), closed = blockedTable(s.map), edge = s.map.size * 100 - 100;
+  let best = { x: c.x, y: c.y }, room3 = -1;
   for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [-1, -1], [1, -1], [-1, 1], [1, 1], [0, 1]]) {
     const x = Math.round(dx < 0 ? tcBox[0] - 150 : dx > 0 ? tcBox[2] + 150 : c.x), y = Math.round(dy < 0 ? tcBox[1] - 150 : dy > 0 ? tcBox[3] + 150 : c.y);
     if (x < 100 || y < 100 || x > edge || y > edge) continue;
     const open = nodesNear(s.map, [x, y, x, y], 100).filter((n) => !closed[n]).length;
-    if (open > room2) {
-      room2 = open;
+    if (open > room3) {
+      room3 = open;
       best = { x, y };
     }
   }
   return best;
 }
-function boxOf3(s, b) {
+function boxOf4(s, b) {
   const o = s.map.obstacles.find((o2) => o2.id === b.id);
   return o ? obstacleBounds(o) : null;
 }
@@ -3501,29 +4537,63 @@ function pickBuilder(s, villagers, idle, near) {
 }
 function place(s, order, kind, villagers, idle, tcBox, own, worker, near) {
   const owner = ownerOf(s, aiRules.player), cost = costOf(kind, owner), stock = s.accounts[aiRules.player].stock;
-  if (Object.keys(cost).some((r) => stock[r] < cost[r]) || !buildKinds.includes(kind) || !civAvailable(owner.civ, kind)) return false;
-  const home = centre(tcBox), c = near ?? home, others = own.filter((b) => b.kind !== "farm" && b.kind !== "town-center").map((b) => boxOf3(s, b)).filter((b) => b !== null), [x0, y0, x1, y1] = obstacleBounds({ kind, x: 0, y: 0 }), world = s.map.size * 100, sources = s.map.obstacles.filter((o) => o.kind === "gold" || o.kind === "rock" || o.kind === "berries" || o.kind === "hunt" || o.kind === "livestock").map((o) => obstacleBounds(o)), middle = world / 2, axis = Math.hypot(home.x - middle, home.y - middle) || 1, ux = (home.x - middle) / axis, uy = (home.y - middle) / axis;
+  if (Object.keys(cost).some((r2) => stock[r2] < cost[r2]) || !buildKinds.includes(kind) || !civAvailable(owner.civ, kind)) return false;
+  const home = centre2(tcBox), c = near ?? home, others = own.filter((b) => b.kind !== "farm" && b.kind !== "town-center").map((b) => boxOf4(s, b)).filter((b) => b !== null), [x0, y0, x1, y1] = obstacleBounds({ kind, x: 0, y: 0 }), world = s.map.size * 100, sources = s.map.obstacles.filter((o) => o.kind === "gold" || o.kind === "rock" || o.kind === "berries" || o.kind === "hunt" || o.kind === "livestock").map((o) => obstacleBounds(o)), middle = world / 2, axis = Math.hypot(home.x - middle, home.y - middle) || 1, ux = (home.x - middle) / axis, uy = (home.y - middle) / axis;
   const side = (x, y) => (x - middle) * ux + (y - middle) * uy;
-  const explored = new Set(s.vision[aiRules.player].explored), bodies = [...s.units.flatMap((u) => [{ x: u.x, y: u.y }, ...u.next === null ? [] : [position(s.map, u.next)]]), ...s.relics.filter((r) => r.carrier === null && r.monastery === null).map((r) => ({ x: r.x, y: r.y }))];
+  const explored = new Set(s.vision[aiRules.player].explored), bodies = [...s.units.flatMap((u) => [{ x: u.x, y: u.y }, ...u.next === null ? [] : [position(s.map, u.next)]]), ...s.relics.filter((r2) => r2.carrier === null && r2.monastery === null).map((r2) => ({ x: r2.x, y: r2.y }))];
   const input = { tiles: s.map.tiles, obstacles: s.map.obstacles, units: bodies, explored: (t) => explored.has(t) }, sites = [];
   const g = buildingRules.grid, from = (v) => Math.ceil(-v / g) * g;
-  for (const range of kind === "farm" ? [aiRules.siteRange] : kind === "castle" ? [aiRules.siteRange, aiRules.siteRange * aiRules.siteSpread, world] : [aiRules.siteRange, aiRules.siteRange * aiRules.siteSpread]) {
-    if (sites.length) break;
-    const lo = (v, o) => Math.max(from(o), Math.ceil((v - range) / g) * g), hi = (v, o) => Math.min(world - o, v + range);
-    for (let x = lo(c.x, x0); x <= hi(c.x, x1); x += aiRules.siteStep) for (let y = lo(c.y, y0); y <= hi(c.y, y1); y += aiRules.siteStep) {
-      const box = [x + x0, y + y0, x + x1, y + y1], mid = centre(box);
-      const margin = kind === "castle" ? aiRules.castleMargin : kind === "barracks" || kind === "archery-range" || kind === "monastery" || kind === "stable" || kind === "siege-workshop" ? aiRules.halfMargin : -aiRules.spill, half = Math.min(side(box[0], box[1]), side(box[2], box[1]), side(box[0], box[3]), side(box[2], box[3])), ownHalf = half >= margin;
-      if (!ownHalf || dist(mid, c) > range || gap2(box, tcBox) < (kind === "farm" ? 50 : aiRules.baseMargin) || kind !== "farm" && (others.some((o) => gap2(box, o) < aiRules.laneGap) || sources.some((o) => gap2(box, o) < aiRules.sourceMargin)) || kind === "castle" && placementProblem(input, kind, x, y)) continue;
-      sites.push({ x, y, d: dist(mid, c), half });
+  const size = s.map.size, r = navigationRules.radius, bucket = /* @__PURE__ */ new Map(), put = (b) => {
+    for (let ty = Math.max(0, Math.floor(b[1] / 100)); ty <= Math.min(size - 1, Math.floor(b[3] / 100)); ty++) for (let tx = Math.max(0, Math.floor(b[0] / 100)); tx <= Math.min(size - 1, Math.floor(b[2] / 100)); tx++) {
+      const k = ty * size + tx;
+      (bucket.get(k) ?? bucket.set(k, []).get(k)).push(b);
+    }
+  };
+  for (const o of s.map.obstacles) {
+    const rects = obstacleRects(o);
+    for (const b of rects.length ? rects : isBuilding(o) ? [obstacleBounds(o)] : []) put(b);
+  }
+  const bodies2 = kind === "farm" ? [] : bodies.map((u) => [u.x - r, u.y - r, u.x + r, u.y + r]);
+  const bodyBucket = /* @__PURE__ */ new Map();
+  for (const b of bodies2) {
+    const k = Math.floor(b[1] / 100) * size + Math.floor(b[0] / 100);
+    for (const dk of [0, 1, size, size + 1]) {
+      const key = k + dk;
+      (bodyBucket.get(key) ?? bodyBucket.set(key, []).get(key)).push(b);
     }
   }
-  const short = (v) => kind === "castle" && v.half < aiRules.halfMargin ? 1 : 0;
-  sites.sort((a, b) => short(a) - short(b) || a.d - b.d || a.y - b.y || a.x - b.x);
-  for (const site2 of sites) {
-    if (placementProblem(input, kind, site2.x, site2.y)) continue;
-    const builder = worker ?? pickBuilder(s, villagers, idle, site2);
-    if (!builder) return false;
-    return order("build", { unitIds: [builder.id], kind, x: site2.x, y: site2.y });
+  const dry = (box) => {
+    let h = null;
+    for (let ty = Math.floor(box[1] / 100); ty <= Math.floor((box[3] - 1) / 100); ty++) for (let tx = Math.floor(box[0] / 100); tx <= Math.floor((box[2] - 1) / 100); tx++) {
+      const t = ty * size + tx, tile = s.map.tiles[t];
+      if (!tile?.buildability || !explored.has(t) || h !== null && tile.height !== h) return false;
+      h = tile.height;
+      if (bucket.get(t)?.some((o) => Math.min(o[2], box[2]) > Math.max(o[0], box[0]) && Math.min(o[3], box[3]) > Math.max(o[1], box[1]))) return false;
+      if (bodyBucket.get(t)?.some((o) => o[2] >= box[0] && o[0] <= box[2] && o[3] >= box[1] && o[1] <= box[3])) return false;
+    }
+    return true;
+  };
+  for (const range of kind === "farm" || kind === "lumber-camp" || kind === "mining-camp" || kind === "mill" ? [aiRules.siteRange] : kind === "castle" ? [aiRules.siteRange, aiRules.siteRange * aiRules.siteSpread, world] : [aiRules.siteRange, aiRules.siteRange * aiRules.siteSpread]) {
+    sites.length = 0;
+    const step = range === world ? aiRules.worldStep : aiRules.siteStep;
+    const lo = (v, o) => Math.max(from(o), Math.ceil((v - range) / g) * g), hi = (v, o) => Math.min(world - o, v + range);
+    for (let x = lo(c.x, x0); x <= hi(c.x, x1); x += step) for (let y = lo(c.y, y0); y <= hi(c.y, y1); y += step) {
+      const box = [x + x0, y + y0, x + x1, y + y1], mid = centre2(box);
+      const margin = kind === "castle" ? aiRules.castleMargin : kind === "barracks" || kind === "archery-range" || kind === "monastery" || kind === "stable" || kind === "siege-workshop" ? aiRules.halfMargin : -aiRules.spill, half = Math.min(side(box[0], box[1]), side(box[2], box[1]), side(box[0], box[3]), side(box[2], box[3])), ownHalf = half >= margin;
+      if (!ownHalf || dist(mid, c) > range || !dry(box) || gap2(box, tcBox) < (kind === "farm" ? 50 : aiRules.baseMargin) || kind !== "farm" && (others.some((o) => gap2(box, o) < aiRules.laneGap) || sources.some((o) => gap2(box, o) < aiRules.sourceMargin)) || kind === "castle" && placementProblem(input, kind, x, y)) continue;
+      sites.push({ x, y, d: dist(mid, c), half });
+    }
+    const short = (v) => kind === "castle" && v.half < aiRules.halfMargin ? 1 : 0;
+    sites.sort((a, b) => short(a) - short(b) || a.d - b.d || a.y - b.y || a.x - b.x);
+    let checks = 0;
+    for (const site2 of sites) {
+      if (clashes(obstacleBounds({ kind, x: site2.x, y: site2.y }), kind === "farm" ? 0 : aiRules.laneGap)) continue;
+      if (++checks > aiRules.siteChecks) break;
+      if (placementProblem(input, kind, site2.x, site2.y)) continue;
+      const builder = worker ?? pickBuilder(s, villagers, idle, site2);
+      if (!builder) return false;
+      return claim(order("build", { unitIds: [builder.id], kind, x: site2.x, y: site2.y }), kind, site2.x, site2.y);
+    }
   }
   return false;
 }
@@ -3534,17 +4604,17 @@ function army(s, order, soldiers, foes, tcBox, idle, explored) {
     if (!attackers.has(key)) attackers.set(key, { target, ids: [] });
     attackers.get(key).ids.push(u.id);
   };
-  const home = tcBox ? centre(tcBox) : null, intruder = home ? foes.filter((f) => dist(f, home) <= aiRules.defendRadius).sort((a, b) => dist(a, home) - dist(b, home) || a.id - b.id)[0] : void 0;
-  const enemyBuildings = s.buildings.filter((b) => b.player !== P).map((b) => ({ b, box: boxOf3(s, b) })).filter((v) => v.box && !targetProblem(s, P, { kind: "building", id: v.b.id }));
+  const home = tcBox ? centre2(tcBox) : null, intruder = home ? foes.filter((f) => dist(f, home) <= aiRules.defendRadius).sort((a, b) => dist(a, home) - dist(b, home) || a.id - b.id)[0] : void 0;
+  const enemyBuildings = s.buildings.filter((b) => b.player !== P).map((b) => ({ b, box: boxOf4(s, b) })).filter((v) => v.box && !targetProblem(s, P, { kind: "building", id: v.b.id }));
   const free = [], offensive = s.tick >= aiRules.firstWaveTick;
   for (const u of soldiers) {
     if (s.attacks[u.id]) continue;
-    const foe = u.kind === "ram" ? void 0 : intruder ?? foes.filter((f) => dist(f, u) <= aiRules.engageRange && (offensive || home && dist(f, home) <= aiRules.defendRadius)).sort((a, b) => dist(a, u) - dist(b, u) || a.id - b.id)[0];
+    const foe = combatRules.units[u.kind]?.buildingsOnly ? void 0 : intruder ?? foes.filter((f) => dist(f, u) <= aiRules.engageRange && (offensive || home && dist(f, home) <= aiRules.defendRadius)).sort((a, b) => dist(a, u) - dist(b, u) || a.id - b.id)[0];
     if (foe) {
       assign(u, { kind: "unit", id: foe.id });
       continue;
     }
-    const site2 = offensive && idle(u) && dist(u, home ?? u) > aiRules.defendRadius ? enemyBuildings.sort((a, b) => dist(centre(a.box), u) - dist(centre(b.box), u) || (a.b.id < b.b.id ? -1 : 1))[0] : void 0;
+    const site2 = offensive && idle(u) && dist(u, home ?? u) > aiRules.defendRadius ? enemyBuildings.sort((a, b) => dist(centre2(a.box), u) - dist(centre2(b.box), u) || (a.b.id < b.b.id ? -1 : 1))[0] : void 0;
     if (site2) {
       assign(u, { kind: "building", id: site2.b.id });
       continue;
@@ -3558,7 +4628,7 @@ function army(s, order, soldiers, foes, tcBox, idle, explored) {
   if (away.length) march(s, order, away, offensive ? objective(s, home, explored, false) : { x: home.x, y: home.y + 250 });
 }
 function objective(s, home, explored, wave) {
-  const P = aiRules.player, known = s.vision[P].known.map((k) => k.obstacle).filter((o) => isBuilding(o) && !o.red).map((o) => centre(obstacleBounds(o)));
+  const P = aiRules.player, known = s.vision[P].known.map((k) => k.obstacle).filter((o) => isBuilding(o) && !o.red).map((o) => centre2(obstacleBounds(o)));
   if (known.length) return known.sort((a, b) => dist(a, home) - dist(b, home))[0];
   const middle = s.map.size * 50, mirror = { x: 2 * middle - home.x, y: 2 * middle - home.y };
   if (wave && !explored.has(tileAt(mirror.x, mirror.y, s.map.size))) return mirror;
@@ -3569,6 +4639,15 @@ function objective(s, home, explored, wave) {
   }
   return mirror;
 }
+function standable(s, goal) {
+  const edge = s.map.size * 100 - 50;
+  for (let r = 0; r <= 200; r += 50) for (let dy = -r; dy <= r; dy += 50) for (let dx = -r; dx <= r; dx += 50) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+    const p = { x: Math.round((goal.x + dx) / 50) * 50, y: Math.round((goal.y + dy) / 50) * 50 };
+    if (p.x >= 50 && p.y >= 50 && p.x <= edge && p.y <= edge && clearSegment(s.map, p, p)) return p;
+  }
+  return null;
+}
 function march(s, order, units, goal) {
   for (let r = 0; r <= 400; r += 50) for (let dy = -r; dy <= r; dy += 50) for (let dx = -r; dx <= r; dx += 50) {
     if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
@@ -3578,6 +4657,123 @@ function march(s, order, units, goal) {
     if (order("move", { unitIds: units.map((u) => u.id).sort((a, b) => a - b).slice(0, 40), x: p.x, y: p.y })) return;
   }
 }
+
+// packages/sim/naval.ts
+var navalRules = { provenance: "design_default", transportCapacity: 5, boardReach: 150, landReach: 150, repathTicks: 20 };
+var naval = (s) => {
+  const n = s;
+  n.transports ??= {};
+  n.boarding ??= {};
+  n.unloading ??= {};
+  return n;
+};
+var capacityOf = (s, t) => transportCapacityOf(ownerOf(s, t.player), navalRules.transportCapacity);
+var room2 = (s, t) => capacityOf(s, t) - (s.transports[t.id]?.length ?? 0) - Object.values(s.boarding).filter((b) => b.transportId === t.id).length;
+function loadProblem(s, player, transportId, unitIds) {
+  const n = naval(s), t = s.units.find((u) => u.id === transportId);
+  if (!t || t.player !== player || t.kind !== "transport-ship") return "\u53EA\u80FD\u767B\u4E0A\u5DF1\u65B9\u7684\u904B\u8F38\u8239";
+  const units = unitIds.map((id) => s.units.find((u) => u.id === id));
+  if (units.some((u) => !u || layerOf(u.kind) !== "land" || isAnimal(u.kind))) return "\u53EA\u6709\u9678\u4E0A\u55AE\u4F4D\u80FD\u767B\u8239";
+  const relics = s.relics ?? [];
+  if (units.some((u) => u && relics.some((r) => r.carrier === u.id))) return "\u651C\u5E36\u8056\u7269\u7684\u50E7\u4FB6\u4E0D\u80FD\u767B\u8239";
+  const free = room2(n, t) + unitIds.filter((id) => n.boarding[id]?.transportId === t.id).length;
+  if (free < unitIds.length) return `\u7A7A\u4F4D\u4E0D\u8DB3\uFF1A\u9084\u80FD\u767B\u8239 ${Math.max(0, free)} \u540D`;
+  return null;
+}
+function commandLoad(s, unitIds, transportId) {
+  const n = naval(s), t = s.units.find((u) => u.id === transportId);
+  for (const id of unitIds) {
+    cancelMovement(s, id);
+    delete s.works[id];
+    delete s.attacks[id];
+    n.boarding[id] = { transportId, repath: 0 };
+  }
+  const first = s.units.find((u) => u.id === unitIds[0]);
+  if (first && reach(first, t) > navalRules.boardReach) {
+    delete n.unloading[t.id];
+    commandMove(s, [t.id], { x: first.x, y: first.y });
+  }
+}
+function unloadProblem(s, player, transportId, x, y) {
+  const n = naval(s), t = s.units.find((u) => u.id === transportId);
+  if (!t || t.player !== player || t.kind !== "transport-ship") return "\u627E\u4E0D\u5230\u9019\u8258\u5DF1\u65B9\u904B\u8F38\u8239";
+  if (!n.transports[t.id]?.length) return "\u904B\u8F38\u8239\u4E0A\u6C92\u6709\u55AE\u4F4D";
+  if (!Number.isSafeInteger(x) || !Number.isSafeInteger(y) || x < 50 || y < 50 || x > s.map.size * 100 - 50 || y > s.map.size * 100 - 50) return "\u76EE\u6A19\u8D85\u51FA\u5730\u5716";
+  return null;
+}
+function commandUnload(s, transportId, x, y) {
+  const n = naval(s);
+  n.unloading[transportId] = { x, y };
+  commandMove(s, [transportId], { x, y });
+}
+function clearNaval(s, unitIds) {
+  const n = naval(s);
+  for (const id of unitIds) {
+    delete n.boarding[id];
+    delete n.unloading[id];
+  }
+}
+function landing(s, t, aim) {
+  const closed = blockedOf(s.map, "land", t.player), held2 = new Set(s.units.flatMap((u) => u.next === null ? [u.node] : [u.node, u.next]));
+  return nodesNear(s.map, [t.x, t.y, t.x, t.y], navalRules.landReach).filter((id) => !closed[id] && !held2.has(id) && reach(position(s.map, id), t) <= navalRules.landReach).sort((a, b) => {
+    const p = position(s.map, a), q = position(s.map, b);
+    return Math.abs(p.x - aim.x) + Math.abs(p.y - aim.y) - (Math.abs(q.x - aim.x) + Math.abs(q.y - aim.y)) || a - b;
+  });
+}
+function stepNaval(s) {
+  const n = naval(s), busy = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId]));
+  for (const id of Object.keys(n.boarding).map(Number).sort((a, b) => a - b)) {
+    const b = n.boarding[id], u = s.units.find((u2) => u2.id === id), t = s.units.find((v) => v.id === b.transportId);
+    if (!u || !t || t.player !== u.player || (n.transports[t.id]?.length ?? 0) >= capacityOf(s, t)) {
+      delete n.boarding[id];
+      if (u && !u.path.length && u.next === null) u.navigation = "idle";
+      continue;
+    }
+    if (u.next !== null) continue;
+    if (reach(u, t) <= navalRules.boardReach) {
+      delete n.boarding[id];
+      cancelMovement(s, u.id);
+      Object.assign(u, { path: [], goal: null, target: null, next: null, navigation: "idle", wait: 0 });
+      delete u.stride;
+      s.units = s.units.filter((v) => v !== u);
+      (n.transports[t.id] ??= []).push(u);
+      continue;
+    }
+    if (b.repath > 0 && (u.path.length || busy.has(u.id))) {
+      b.repath--;
+      continue;
+    }
+    const closed = blockedOf(s.map, "land", u.player), nodes = nodesNear(s.map, [t.x, t.y, t.x, t.y], navalRules.boardReach).filter((id2) => !closed[id2] && reach(position(s.map, id2), t) <= navalRules.boardReach);
+    if (!nodes.length) {
+      b.repath = navalRules.repathTicks;
+      continue;
+    }
+    routeTo(s, u, nodes);
+    b.repath = navalRules.repathTicks;
+  }
+  for (const id of Object.keys(n.unloading).map(Number).sort((a, b) => a - b)) {
+    const t = s.units.find((u) => u.id === id), aim = n.unloading[id];
+    if (!t || !n.transports[id]?.length) {
+      delete n.unloading[id];
+      continue;
+    }
+    if (t.next !== null || t.path.length || busy.has(t.id)) continue;
+    delete n.unloading[id];
+    const spots = landing(n, t, aim), out = [];
+    for (const u of n.transports[id]) {
+      const node = spots.shift();
+      if (node === void 0) break;
+      const p = position(s.map, node);
+      Object.assign(u, { x: p.x, y: p.y, node, next: null, path: [], goal: null, target: null, navigation: "idle", wait: 0 });
+      s.units.push(u);
+      out.push(u);
+    }
+    n.transports[id] = n.transports[id].filter((u) => !out.includes(u));
+    if (!n.transports[id].length) delete n.transports[id];
+    if (out.length) s.units.sort((a, b) => a.id - b.id);
+  }
+}
+var passengers = (s, transportId) => s.transports?.[transportId] ?? [];
 
 // packages/sim/sim.ts
 function canonical(value) {
@@ -3592,13 +4788,13 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, religion: religionRules, animals: animalRules, tech: techRules, defense: defenseRules, civs: civDefs, unitLines: { lineUpgrades, blacksmith, religionBonus }, simulationVersion: 27 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, naval: navalRules, market: marketRules, religion: religionRules, animals: animalRules, tech: techRules, defense: defenseRules, civs: civDefs, techs: techEffects, unitLines: { lineUpgrades, blacksmith, religionBonus }, simulationVersion: 30 });
 function createState(seed, layout = "meadow", opponent = "idle", civs = [neutralCiv, neutralCiv]) {
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) throw Error("seed \u5FC5\u9808\u70BA uint32");
   if (opponent !== "ai" && opponent !== "idle") throw Error("\u672A\u77E5\u7684\u5C0D\u624B\u8A2D\u5B9A");
   if (!Array.isArray(civs) || civs.length !== 2 || !civs.every(civExists)) throw Error("\u672A\u77E5\u7684\u6587\u660E");
   const map = makeMap(seed, layout);
-  const state = { buildings: [], nextBuildingId: 1, ages: [1, 1], nextUnitId: 5, nextQueueId: 1, attacks: {}, corpses: [], outcome: null, rites: {}, faith: {}, techs: [[], []], relics: layout === "open" ? placeRelics(map, seed) : [], relicMemory: [[], []], relicVictory: null, beasts: {}, reseed: [true, true], garrison: {}, entering: {}, volleys: {}, shots: [], version: 27, opponent, civs: [...civs], keptHousing: [0, 0], works: {}, cargo: {}, layout, vision: createVision(), accounts: [createAccount(3), createAccount(opponent === "ai" ? 3 : 1)], transactions: [], map, pathJobs: [], nextJobId: 1, navigationSeen: 0, seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [...map.starts[0].map((p, i) => makeUnit(map, 1 + i, 0, p.x, p.y)), makeUnit(map, 4, 1, map.starts[1][0].x, map.starts[1][0].y)], queue: [], log: [] };
+  const state = { buildings: [], nextBuildingId: 1, ages: [1, 1], nextUnitId: 5, nextQueueId: 1, attacks: {}, corpses: [], outcome: null, rites: {}, faith: {}, techs: [[], []], relics: layout === "open" || layout === "lakes" ? placeRelics(map, seed) : [], relicMemory: [[], []], relicVictory: null, market: startPrices(), trades: {}, wonders: {}, wonderVictory: null, transports: {}, boarding: {}, unloading: {}, beasts: {}, reseed: [true, true], garrison: {}, entering: {}, volleys: {}, shots: [], version: 30, opponent, civs: [...civs], keptHousing: [0, 0], setups: {}, works: {}, cargo: {}, layout, vision: createVision(), accounts: [createAccount(3), createAccount(opponent === "ai" ? 3 : 1)], transactions: [], map, pathJobs: [], nextJobId: 1, navigationSeen: 0, seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [...map.starts[0].map((p, i) => makeUnit(map, 1 + i, 0, p.x, p.y)), makeUnit(map, 4, 1, map.starts[1][0].x, map.starts[1][0].y)], queue: [], log: [] };
   if (opponent === "ai") {
     state.units.push(...map.starts[1].slice(1).map((p, i) => makeUnit(map, 5 + i, 1, p.x, p.y)));
     state.nextUnitId = 5 + map.starts[1].length - 1;
@@ -3651,7 +4847,7 @@ function submit(state, c, record = true) {
   if (!Number.isSafeInteger(c.targetTick) || c.targetTick <= state.tick || c.targetTick > state.tick + 200) throw Error("\u547D\u4EE4\u5DF2\u904E\u671F\u6216\u904E\u9060");
   if (!c.payload) throw Error("\u7F3A\u5C11 payload");
   if (state.outcome) throw Error("\u5C0D\u5C40\u5DF2\u7D50\u675F\uFF1A\u8ACB\u518D\u958B\u4E00\u5C40");
-  if (c.commandType === "move" || c.commandType === "stop" || c.commandType === "gather" || c.commandType === "hunt" || c.commandType === "garrison" || c.commandType === "build" || c.commandType === "construct" || c.commandType === "attack" || c.commandType === "convert" || c.commandType === "heal" || c.commandType === "relic" || c.commandType === "deposit") {
+  if (c.commandType === "move" || c.commandType === "stop" || c.commandType === "gather" || c.commandType === "hunt" || c.commandType === "garrison" || c.commandType === "build" || c.commandType === "construct" || c.commandType === "attack" || c.commandType === "convert" || c.commandType === "heal" || c.commandType === "relic" || c.commandType === "deposit" || c.commandType === "trade" || c.commandType === "load") {
     const ids = c.payload.unitIds;
     if (!Array.isArray(ids) || !ids.length || ids.length > navigationRules.maxGroupSize || !ids.every((id, i) => Number.isSafeInteger(id) && (i === 0 || id > ids[i - 1]))) throw Error(`\u55AE\u4F4D\u6E05\u55AE\u9700\u70BA 1\u2013${navigationRules.maxGroupSize} \u500B\u905E\u589E\u4E14\u4E0D\u91CD\u8907\u7684 ID`);
     for (const id of ids) {
@@ -3662,10 +4858,13 @@ function submit(state, c, record = true) {
       } else if (c.commandType === "attack") {
         if (u.kind === "monk") throw Error("\u50E7\u4FB6\u4E0D\u80FD\u653B\u64CA\uFF1A\u53F3\u9375\u6575\u65B9\u55AE\u4F4D\u6539\u70BA\u8F49\u5316");
         if (isAnimal(u.kind)) throw Error("\u52D5\u7269\u4E0D\u80FD\u653B\u64CA");
-        if (u.kind === "ram" && c.payload.target?.kind !== "building") throw Error("\u653B\u57CE\u69CC\u53EA\u80FD\u653B\u64CA\u5EFA\u7BC9");
-      } else if (c.commandType === "garrison") {
+        if (statsOf(u.kind, ownerOf(state, u.player)).attack === "none") throw Error(`${rules.entries.find((e) => e.id === u.kind)?.name ?? u.kind}\u4E0D\u80FD\u653B\u64CA`);
+        if (statsOf(u.kind, ownerOf(state, u.player)).buildingsOnly && c.payload.target?.kind !== "building") throw Error(`${rules.entries.find((e) => e.id === u.kind)?.name ?? u.kind}\u53EA\u80FD\u653B\u64CA\u5EFA\u7BC9`);
+      } else if (c.commandType === "garrison" || c.commandType === "trade") {
+      } else if (c.commandType === "load" || (c.commandType === "gather" || c.commandType === "build" || c.commandType === "construct") && u.kind === "fishing-ship") {
       } else if (c.commandType !== "move" && c.commandType !== "stop" && u.kind !== "villager") throw Error("\u53EA\u6709\u6751\u6C11\u80FD\u63A1\u96C6\u6216\u5EFA\u9020");
     }
+    if ((c.commandType === "gather" || c.commandType === "build" || c.commandType === "construct") && new Set(ids.map((id) => state.units.find((u) => u.id === id).kind)).size > 1) throw Error("\u6F01\u8239\u8207\u6751\u6C11\u4E0D\u80FD\u4E00\u8D77\u63A1\u96C6\u6216\u5EFA\u9020");
   }
   if (c.commandType === "move") {
     for (const k of ["x", "y"]) if (!Number.isSafeInteger(c.payload[k]) || c.payload[k] < 50 || c.payload[k] > state.map.size * 100 - 50) throw Error("\u76EE\u6A19\u8D85\u51FA\u5730\u5716");
@@ -3688,9 +4887,14 @@ function submit(state, c, record = true) {
     const problem = targetProblem(state, c.playerId, t);
     if (problem) throw Error(problem);
   } else if (c.commandType === "build") {
-    const { kind, x, y } = c.payload;
+    const { kind, x, y, to } = c.payload;
     if (!buildKinds.includes(kind)) throw Error("\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E");
-    const problem = buildRequirement(state.ages[c.playerId], kind, state.buildings.filter((b) => b.player === c.playerId), state.civs[c.playerId]) ?? authoritativeProblem(state, c.playerId, kind, x, y);
+    {
+      const ship2 = state.units.some((u) => u.id === c.payload.unitIds[0] && u.kind === "fishing-ship");
+      if (ship2 !== (kind === "fish-trap")) throw Error(ship2 ? "\u6F01\u8239\u53EA\u80FD\u653E\u7F6E\u9B5A\u7DB2" : "\u9B5A\u7DB2\u53EA\u80FD\u7531\u6F01\u8239\u653E\u7F6E");
+    }
+    if (to !== void 0 && (!wallKinds.has(kind) || !to || !Number.isSafeInteger(to.x) || !Number.isSafeInteger(to.y) || to.x < 0 || to.y < 0 || to.x >= state.map.size * 100 || to.y >= state.map.size * 100)) throw Error(wallKinds.has(kind) ? "\u57CE\u7246\u7D42\u9EDE\u8D85\u51FA\u5730\u5716" : "\u53EA\u6709\u57CE\u7246\u53EF\u4EE5\u62D6\u66F3\u6210\u4E00\u5217");
+    const problem = buildRequirement(state.ages[c.playerId], kind, state.buildings.filter((b) => b.player === c.playerId), state.civs[c.playerId], state.techs[c.playerId]) ?? (to ? wallProblem(state, c.playerId, kind, { x, y }, to) : authoritativeProblem(state, c.playerId, kind, x, y));
     if (problem) throw Error(problem);
     const cost = costOf(kind, ownerOf(state, c.playerId)), stock = state.accounts[c.playerId].stock, short = Object.keys(cost).filter((k) => stock[k] < cost[k]);
     if (short.length) throw Error(`\u8CC7\u6E90\u4E0D\u8DB3\uFF1A${short.map((k) => `${{ food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" }[k]}\u9700\u8981 ${cost[k]}\uFF0C\u76EE\u524D ${stock[k]}`).join("\uFF1B")}`);
@@ -3705,17 +4909,22 @@ function submit(state, c, record = true) {
     } else {
       if (!b.complete) throw Error("\u5EFA\u7BC9\u5C1A\u672A\u5B8C\u5DE5");
       for (const k of ["x", "y"]) if (!Number.isSafeInteger(c.payload[k]) || c.payload[k] < 50 || c.payload[k] > state.map.size * 100 - 50) throw Error("\u96C6\u7D50\u9EDE\u8D85\u51FA\u5730\u5716");
-      if (!clearSegment(state.map, c.payload, c.payload)) throw Error("\u96C6\u7D50\u9EDE\u4E0D\u80FD\u8A2D\u5728\u5EFA\u7BC9\u3001\u8CC7\u6E90\u6216\u4E0D\u53EF\u901A\u884C\u5730\u5F62\u4E0A");
+      if (!clearSegment(state.map, c.payload, c.payload, b.kind === "dock" ? "water" : "land")) throw Error(b.kind === "dock" ? "\u78BC\u982D\u7684\u96C6\u7D50\u9EDE\u8981\u8A2D\u5728\u6C34\u9762\u4E0A" : "\u96C6\u7D50\u9EDE\u4E0D\u80FD\u8A2D\u5728\u5EFA\u7BC9\u3001\u8CC7\u6E90\u6216\u4E0D\u53EF\u901A\u884C\u5730\u5F62\u4E0A");
     }
   } else if (c.commandType === "construct" || c.commandType === "cancelBuild") {
     const b = state.buildings.find((b2) => b2.id === c.payload.buildingId);
     if (!b || b.player !== c.playerId) throw Error("\u627E\u4E0D\u5230\u9019\u68DF\u5DF1\u65B9\u5EFA\u7BC9");
     if (b.complete) throw Error("\u5EFA\u7BC9\u5DF2\u5B8C\u5DE5");
+    if (c.commandType === "construct") {
+      const ship2 = state.units.some((u) => u.id === c.payload.unitIds[0] && u.kind === "fishing-ship");
+      if (ship2 !== (b.kind === "fish-trap")) throw Error(ship2 ? "\u6F01\u8239\u53EA\u80FD\u5EFA\u9020\u9B5A\u7DB2" : "\u9B5A\u7DB2\u53EA\u80FD\u7531\u6F01\u8239\u5EFA\u9020");
+    }
   } else if (c.commandType === "gather") {
     const r = typeof c.payload.resourceId === "string" ? state.map.resources.find((r2) => r2.id === c.payload.resourceId) : void 0;
     if (!r || !state.vision[c.playerId].explored.includes(tileAt(r.x, r.y, state.map.size))) throw Error("\u627E\u4E0D\u5230\u9019\u500B\u8CC7\u6E90");
     if (r.kind === "farm" && farmOwner(state, r.id) !== c.playerId) throw Error("\u53EA\u80FD\u8015\u4F5C\u5DF1\u65B9\u7684\u8FB2\u7530");
-    const problem = gatherable(state.map, r.id);
+    if (r.kind === "fish-trap" && farmOwner(state, r.id) !== c.playerId) throw Error("\u53EA\u80FD\u6536\u6210\u5DF1\u65B9\u7684\u9B5A\u7DB2");
+    const problem = gatherable(state.map, r.id, layerOf(state.units.find((u) => u.id === c.payload.unitIds[0]).kind));
     if (problem) throw Error(problem);
   } else if (c.commandType === "hunt") {
     if (!Number.isSafeInteger(c.payload.animalId)) throw Error("\u627E\u4E0D\u5230\u9019\u96BB\u52D5\u7269");
@@ -3733,7 +4942,21 @@ function submit(state, c, record = true) {
     if (c.payload.ring && !state.buildings.some((b) => b.player === c.playerId && b.complete && b.kind in defenseRules.capacity)) throw Error("\u6C92\u6709\u53EF\u4EE5\u8EB2\u7684\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u6216\u57CE\u5821");
   } else if (c.commandType === "reseed") {
     if (typeof c.payload.enabled !== "boolean") throw Error("\u81EA\u52D5\u88DC\u7A2E\u8A2D\u5B9A\u7121\u6548");
+  } else if (c.commandType === "load") {
+    if (!Number.isSafeInteger(c.payload.transportId)) throw Error("\u53EA\u80FD\u767B\u4E0A\u5DF1\u65B9\u7684\u904B\u8F38\u8239");
+    const problem = loadProblem(state, c.playerId, c.payload.transportId, c.payload.unitIds);
+    if (problem) throw Error(problem);
+  } else if (c.commandType === "unload") {
+    if (!Number.isSafeInteger(c.payload.transportId)) throw Error("\u627E\u4E0D\u5230\u9019\u8258\u5DF1\u65B9\u904B\u8F38\u8239");
+    const problem = unloadProblem(state, c.playerId, c.payload.transportId, c.payload.x, c.payload.y);
+    if (problem) throw Error(problem);
   } else if (c.commandType === "resign") {
+  } else if (c.commandType === "market") {
+    const problem = marketProblem(state, c.playerId, c.payload.action, c.payload.resource);
+    if (problem) throw Error(problem);
+  } else if (c.commandType === "trade") {
+    const problem = tradeProblem(state, c.playerId, c.payload.unitIds, c.payload.buildingId);
+    if (problem) throw Error(problem);
   } else if (c.commandType === "reserve") {
     if (!rules.entries.some((e) => e.id === c.payload.entryId)) throw Error("\u672A\u77E5\u9810\u7559\u5167\u5BB9");
   } else if (c.commandType === "cancelReservation") {
@@ -3768,7 +4991,46 @@ function tick(s) {
       ringBell(s, c.playerId, c.payload.ring);
       continue;
     }
-    if ("unitIds" in c.payload && Array.isArray(c.payload.unitIds)) for (const id of c.payload.unitIds) delete s.entering[id];
+    if ("unitIds" in c.payload && Array.isArray(c.payload.unitIds)) for (const id of c.payload.unitIds) {
+      delete s.entering[id];
+      delete s.trades[id];
+    }
+    if ("unitIds" in c.payload && Array.isArray(c.payload.unitIds)) clearNaval(s, c.payload.unitIds);
+    if (c.commandType === "load") {
+      clearWork(s, c.payload.unitIds);
+      clearAttacks(s, c.payload.unitIds);
+      clearRites(s, c.payload.unitIds);
+      if (!loadProblem(s, c.playerId, c.payload.transportId, c.payload.unitIds)) commandLoad(s, c.payload.unitIds, c.payload.transportId);
+      else commandStop(s, c.payload.unitIds);
+      continue;
+    }
+    if (c.commandType === "unload") {
+      clearNaval(s, [c.payload.transportId]);
+      if (!unloadProblem(s, c.playerId, c.payload.transportId, c.payload.x, c.payload.y)) {
+        clearAttacks(s, [c.payload.transportId]);
+        commandUnload(s, c.payload.transportId, c.payload.x, c.payload.y);
+      }
+      continue;
+    }
+    if (c.commandType === "market") {
+      const result = { tick: s.tick, playerId: c.playerId, sequence: c.sequence, ok: true };
+      try {
+        marketTrade(s, c.playerId, c.payload.action, c.payload.resource);
+      } catch (e) {
+        result.ok = false;
+        result.error = e.message;
+      }
+      s.transactions.push(result);
+      continue;
+    }
+    if (c.commandType === "trade") {
+      clearWork(s, c.payload.unitIds);
+      clearAttacks(s, c.payload.unitIds);
+      clearRites(s, c.payload.unitIds);
+      if (!tradeProblem(s, c.playerId, c.payload.unitIds, c.payload.buildingId)) commandTrade(s, c.payload.unitIds, c.payload.buildingId);
+      else commandStop(s, c.payload.unitIds);
+      continue;
+    }
     if (c.commandType === "garrison") {
       clearWork(s, c.payload.unitIds);
       clearAttacks(s, c.payload.unitIds);
@@ -3819,7 +5081,7 @@ function tick(s) {
       continue;
     }
     if (c.commandType === "gather") {
-      if (!gatherable(s.map, c.payload.resourceId)) commandGather(s, c.payload.unitIds, c.payload.resourceId);
+      if (!gatherable(s.map, c.payload.resourceId, layerOf(s.units.find((u) => u.id === c.payload.unitIds[0]).kind))) commandGather(s, c.payload.unitIds, c.payload.resourceId);
       else {
         clearWork(s, c.payload.unitIds);
         commandStop(s, c.payload.unitIds);
@@ -3847,7 +5109,7 @@ function tick(s) {
       const result = { tick: s.tick, playerId: c.playerId, sequence: c.sequence, ok: true };
       try {
         if (c.commandType === "build") {
-          const b = placeBuilding(s, c.playerId, c.payload.kind, c.payload.x, c.payload.y, `${c.playerId}:${c.sequence}`);
+          const b = c.payload.to ? placeWall(s, c.playerId, c.payload.kind, c.payload, c.payload.to, `${c.playerId}:${c.sequence}`)[0] : placeBuilding(s, c.playerId, c.payload.kind, c.payload.x, c.payload.y, `${c.playerId}:${c.sequence}`);
           clearWork(s, c.payload.unitIds);
           commandBuild(s, c.payload.unitIds, b.id);
         } else if (c.commandType === "construct") {
@@ -3884,9 +5146,12 @@ function tick(s) {
   const stats = stepMovement(s);
   stepCombat(s);
   stepDefense(s);
+  stepNaval(s);
   stepAnimals(s);
   stepReligion(s);
   stepWork(s);
+  stepTrade(s);
+  stepWonders(s);
   updateVision(s.vision, s.map, s.units, s.tick, void 0, sightOf(s));
   if (s.opponent === "ai") stepAI(s, (commandType, payload) => {
     try {
@@ -3913,23 +5178,39 @@ function replay(seed, commands, ticks, layout = "meadow", opponent = "idle", civ
 }
 function serialize(s) {
   if (s.tick > 1e5 || s.log.length > 1e4) throw Error("\u5DF2\u8D85\u904E\u6B64\u968E\u6BB5\u6C99\u76D2\u5B58\u6A94\u5BB9\u91CF\uFF08100000 ticks / 10000 \u6307\u4EE4\uFF09");
-  return JSON.stringify({ format: "brick-sandbox-27", rulesetHash, state: s, checksum: hash(s) });
+  return JSON.stringify({ format: "brick-sandbox-30", rulesetHash, state: s, checksum: hash(s) });
 }
 function deserialize(raw) {
   const v = JSON.parse(raw);
-  if (!v || v.format !== "brick-sandbox-27" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
+  if (!v || v.format !== "brick-sandbox-30" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
   const s = v.state;
-  if (s.version !== 27 || s.opponent !== "ai" && s.opponent !== "idle" || !Array.isArray(s.civs) || s.civs.length !== 2 || !s.civs.every(civExists) || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
+  if (s.version !== 30 || s.opponent !== "ai" && s.opponent !== "idle" || !Array.isArray(s.civs) || s.civs.length !== 2 || !s.civs.every(civExists) || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
   const rebuilt = replay(s.seed, s.log, s.tick, s.layout, s.opponent, s.civs);
   if (hash(rebuilt) !== hash(s)) throw Error("\u5B58\u6A94\u72C0\u614B\u7121\u6CD5\u7531\u547D\u4EE4\u91CD\u5EFA");
   return structuredClone(s);
 }
 
 // packages/sim/protocol.ts
-var UNIT_STRIDE = 18;
+var UNIT_STRIDE = 19;
 var STRIDE = UNIT_STRIDE;
-function createService() {
-  let state = createState(260925), lastId = 0;
+function navalView(state) {
+  const o = ownerOf(state, 0), hp = (u) => maxHpOf(u.kind, ownerOf(state, u.player));
+  return {
+    market: { prices: { ...state.market }, fee: marketQuote(state.market, o, "food").fee },
+    transports: state.units.filter((u) => u.player === 0 && u.kind === "transport-ship").map((t) => ({ id: t.id, capacity: capacityOf(state, t), passengers: passengers(state, t.id).map((p) => ({ id: p.id, kind: p.kind, hp: p.hp, maxHp: hp(p) })) })),
+    trades: Object.entries(state.trades).map(([id, t]) => ({ id: Number(id), t, u: state.units.find((u) => u.id === Number(id)) })).filter((v) => v.u?.player === 0).map(({ id, t, u }) => {
+      const a = state.map.obstacles.find((o2) => o2.id === t.home), b = state.map.obstacles.find((o2) => o2.id === t.target);
+      return { unitId: id, home: t.home, target: t.target, leg: t.leg, gold: a && b ? tradeGold(state, u.kind, obstacleBounds(a), obstacleBounds(b)) : 0 };
+    }),
+    wonders: Object.entries(state.wonders).flatMap(([id, endsTick]) => {
+      const b = state.buildings.find((b2) => b2.id === id);
+      return b ? [{ player: b.player, building: id, x: b.x, y: b.y, endsTick }] : [];
+    }).sort((a, b) => a.endsTick - b.endsTick),
+    wonderVictory: state.wonderVictory ? { ...state.wonderVictory } : null
+  };
+}
+function createService(initial) {
+  let state = initial ?? createState(260925), lastId = 0;
   return (raw) => {
     const req = raw;
     try {
@@ -3939,6 +5220,10 @@ function createService() {
       if (!op || typeof op.kind !== "string") throw Error("\u7F3A\u5C11 operation");
       let accepted, commands, snapshot, replayMatches;
       switch (op.kind) {
+        case "market":
+        case "trade":
+        case "load":
+        case "unload":
         case "garrison":
         case "ungarrison":
         case "bell":
@@ -3962,7 +5247,7 @@ function createService() {
           if (state.log.length >= 1e4) throw Error("\u5DF2\u9054\u6C99\u76D2 10000 \u6307\u4EE4\u4E0A\u9650\uFF0C\u8ACB\u5132\u5B58\u6216\u91CD\u5EFA");
           {
             const envelope = { acceptedTick: state.tick, protocolVersion: 1, rulesetHash, playerId: 0, sequence: state.sequence[0] + 1, targetTick: state.tick + 1 };
-            const command = op.kind === "garrison" ? { ...envelope, commandType: "garrison", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "ungarrison" ? { ...envelope, commandType: "ungarrison", payload: { buildingId: op.buildingId } } : op.kind === "bell" ? { ...envelope, commandType: "bell", payload: { ring: op.ring } } : op.kind === "reseed" ? { ...envelope, commandType: "reseed", payload: { enabled: op.enabled } } : op.kind === "hunt" ? { ...envelope, commandType: "hunt", payload: { unitIds: op.unitIds, animalId: op.animalId } } : op.kind === "convert" || op.kind === "heal" ? { ...envelope, commandType: op.kind, payload: op.buildingId !== void 0 ? { unitIds: op.unitIds, buildingId: op.buildingId } : { unitIds: op.unitIds, targetId: op.targetId } } : op.kind === "relic" ? { ...envelope, commandType: "relic", payload: { unitIds: op.unitIds, relicId: op.relicId } } : op.kind === "deposit" ? { ...envelope, commandType: "deposit", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "resign" ? { ...envelope, commandType: "resign", payload: {} } : op.kind === "attack" ? { ...envelope, commandType: "attack", payload: { unitIds: op.unitIds, target: op.target } } : op.kind === "move" ? { ...envelope, commandType: "move", payload: { unitIds: op.unitIds, x: op.x, y: op.y } } : op.kind === "gather" ? { ...envelope, commandType: "gather", payload: { unitIds: op.unitIds, resourceId: op.resourceId } } : op.kind === "build" ? { ...envelope, commandType: "build", payload: { unitIds: op.unitIds, kind: op.building, x: op.x, y: op.y } } : op.kind === "construct" ? { ...envelope, commandType: "construct", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "cancelBuild" ? { ...envelope, commandType: "cancelBuild", payload: { buildingId: op.buildingId } } : op.kind === "train" ? { ...envelope, commandType: "train", payload: { buildingId: op.buildingId, entryId: op.entryId } } : op.kind === "cancelTrain" ? { ...envelope, commandType: "cancelTrain", payload: { buildingId: op.buildingId, itemId: op.itemId } } : op.kind === "rally" ? { ...envelope, commandType: "rally", payload: { buildingId: op.buildingId, x: op.x, y: op.y } } : { ...envelope, commandType: "stop", payload: { unitIds: op.unitIds } };
+            const command = op.kind === "load" ? { ...envelope, commandType: "load", payload: { unitIds: op.unitIds, transportId: op.transportId } } : op.kind === "unload" ? { ...envelope, commandType: "unload", payload: { transportId: op.transportId, x: op.x, y: op.y } } : op.kind === "garrison" ? { ...envelope, commandType: "garrison", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "ungarrison" ? { ...envelope, commandType: "ungarrison", payload: { buildingId: op.buildingId } } : op.kind === "bell" ? { ...envelope, commandType: "bell", payload: { ring: op.ring } } : op.kind === "reseed" ? { ...envelope, commandType: "reseed", payload: { enabled: op.enabled } } : op.kind === "hunt" ? { ...envelope, commandType: "hunt", payload: { unitIds: op.unitIds, animalId: op.animalId } } : op.kind === "convert" || op.kind === "heal" ? { ...envelope, commandType: op.kind, payload: op.buildingId !== void 0 ? { unitIds: op.unitIds, buildingId: op.buildingId } : { unitIds: op.unitIds, targetId: op.targetId } } : op.kind === "relic" ? { ...envelope, commandType: "relic", payload: { unitIds: op.unitIds, relicId: op.relicId } } : op.kind === "deposit" ? { ...envelope, commandType: "deposit", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "resign" ? { ...envelope, commandType: "resign", payload: {} } : op.kind === "attack" ? { ...envelope, commandType: "attack", payload: { unitIds: op.unitIds, target: op.target } } : op.kind === "move" ? { ...envelope, commandType: "move", payload: { unitIds: op.unitIds, x: op.x, y: op.y } } : op.kind === "gather" ? { ...envelope, commandType: "gather", payload: { unitIds: op.unitIds, resourceId: op.resourceId } } : op.kind === "build" ? { ...envelope, commandType: "build", payload: { unitIds: op.unitIds, kind: op.building, x: op.x, y: op.y, ...op.to ? { to: { x: op.to.x, y: op.to.y } } : {} } } : op.kind === "market" ? { ...envelope, commandType: "market", payload: { action: op.action, resource: op.resource } } : op.kind === "trade" ? { ...envelope, commandType: "trade", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "construct" ? { ...envelope, commandType: "construct", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "cancelBuild" ? { ...envelope, commandType: "cancelBuild", payload: { buildingId: op.buildingId } } : op.kind === "train" ? { ...envelope, commandType: "train", payload: { buildingId: op.buildingId, entryId: op.entryId } } : op.kind === "cancelTrain" ? { ...envelope, commandType: "cancelTrain", payload: { buildingId: op.buildingId, itemId: op.itemId } } : op.kind === "rally" ? { ...envelope, commandType: "rally", payload: { buildingId: op.buildingId, x: op.x, y: op.y } } : { ...envelope, commandType: "stop", payload: { unitIds: op.unitIds } };
             submit(state, command);
             accepted = command;
           }
@@ -4005,10 +5290,10 @@ function createService() {
         const prey = w?.kind === "gather" && w.prey !== void 0 ? state.units.find((v) => v.id === w.prey) : state.beasts[u.id] ? state.units.find((v) => v.id === state.beasts[u.id].foe) : void 0;
         const target = box ? { x: Math.round((bx0 + bx1) / 2), y: Math.round((by0 + by1) / 2) } : src ? { x: src.x, y: src.y } : prey ? { x: prey.x, y: prey.y } : foe ? { x: foe.x, y: foe.y } : flock2 ? { x: flock2.x, y: flock2.y } : sb ? { x: Math.round((sb[0] + sb[2]) / 2), y: Math.round((sb[1] + sb[3]) / 2) } : u.target;
         const rite = state.rites[u.id], beast = state.beasts[u.id], action = fight && fight.firedTick >= 0 && state.tick - fight.firedTick < 10 || u.kind === "boar" && beast && beast.cooldown > combatRules.units.boar.cooldown - 10 || w?.kind === "gather" && w.phase === "hunting" && w.progress > animalRules.hunt.cooldown - 10 ? 1 : u.hitTick >= 0 && state.tick - u.hitTick < combatRules.hitFlashTicks ? 2 : 0;
-        positions.set([u.id, u.player, u.x, u.y, target?.x ?? -1, target?.y ?? -1, navigationStates.indexOf(u.navigation), w ? workPhases.indexOf(w.phase) : 0, c ? resources.indexOf(c.resource) : -1, c?.amount ?? 0, w?.kind === "gather" ? resources.indexOf(w.prey !== void 0 ? "food" : resourceDefinitions[state.map.resources.find((r) => r.id === w.resourceId)?.kind ?? "berries"].yield) : -1, unitKinds.indexOf(u.kind), u.hp, maxHpOf(u.kind, ownerOf(state, u.player)), action, rite?.kind === "convert" ? 1 : rite?.kind === "heal" ? 2 : 0, own && u.kind === "monk" ? Math.floor(faithOf(state, u.id) * 100) : -1, carrying(state, u.id) ? 1 : 0], i * STRIDE);
+        positions.set([u.id, u.player, u.x, u.y, target?.x ?? -1, target?.y ?? -1, navigationStates.indexOf(u.navigation), w ? workPhases.indexOf(w.phase) : 0, c ? resources.indexOf(c.resource) : -1, c?.amount ?? 0, w?.kind === "gather" ? resources.indexOf(w.prey !== void 0 ? "food" : resourceDefinitions[state.map.resources.find((r) => r.id === w.resourceId)?.kind ?? "berries"].yield) : -1, unitKinds.indexOf(u.kind), u.hp, maxHpOf(u.kind, ownerOf(state, u.player)), action, rite?.kind === "convert" ? 1 : rite?.kind === "heal" ? 2 : 0, own && u.kind === "monk" ? Math.floor(faithOf(state, u.id) * 100) : -1, carrying(state, u.id) ? 1 : 0, state.setups[u.id]?.unpacked ? 1 : 0], i * STRIDE);
       });
       const account = state.accounts[0], economy = { stock: { ...account.stock }, populationUsed: account.populationUsed, populationReserved: account.populationReserved, populationCap: account.populationCap, age: state.ages[0], techs: [...state.techs[0]], reseed: state.reseed[0] };
-      return { protocol: 1, id: req.id, ok: true, seed: state.seed, layout: state.layout, size: state.map.size, opponent: state.opponent, civs: [...state.civs], terrain: state.map.tiles.map(({ terrainType, height, walkClass, buildability }) => ({ terrainType, height, walkClass, buildability })), tick: state.tick, stateHash: hash(state), positions: positions.buffer, economy, corpses: state.corpses.filter((c) => c.player === 0 || state.vision[0].visible.includes(tileAt(c.x, c.y, state.map.size))).map((c) => ({ ...c })), outcome: state.outcome ? { ...state.outcome } : null, buildings: state.buildings.filter((b) => b.player === 0).map(({ id, kind, x, y, work, required, complete, queue, rally, hp, maxHp: maxHp2 }) => ({ id, kind, x, y, work, required, complete, hp, maxHp: maxHp2, garrison: state.garrison[id]?.units.length ?? 0, capacity: garrisonCapacity(state, { kind, player: 0 }), belled: state.garrison[id]?.units.filter((e) => e.bell).length ?? 0, queue: queue.map(({ id: id2, entryId, work: work2, required: required2 }) => ({ id: id2, entryId, work: work2, required: required2 })), rally, relics: state.relics.filter((r) => r.monastery === id).length })), relicSpots: state.relicMemory[0].map((r) => ({ ...r })), relicsHeld: [0, 1].map((p) => state.relics.filter((r) => r.monastery !== null && state.buildings.find((b) => b.id === r.monastery)?.player === p).length), relicTotal: state.relics.length, relicVictory: state.relicVictory ? { ...state.relicVictory } : null, shots: state.shots.filter((v) => v.player === 0 || state.vision[0].visible.includes(tileAt(v.to.x, v.to.y, state.map.size)) || state.vision[0].visible.includes(tileAt(v.from.x, v.from.y, state.map.size))).map((v) => structuredClone(v)), transactions: state.transactions.filter((t) => t.playerId === 0).slice(-5).map(({ sequence, tick: tick2, ok, error }) => ({ sequence, tick: tick2, ok, ...error ? { error } : {} })), ...projectVision(state.vision[0], state.map.size), accepted, commands, snapshot, replayMatches };
+      return { protocol: 1, id: req.id, ok: true, seed: state.seed, layout: state.layout, size: state.map.size, opponent: state.opponent, civs: [...state.civs], terrain: state.map.tiles.map(({ terrainType, height, walkClass, buildability }) => ({ terrainType, height, walkClass, buildability })), tick: state.tick, stateHash: hash(state), positions: positions.buffer, economy, corpses: state.corpses.filter((c) => c.player === 0 || state.vision[0].visible.includes(tileAt(c.x, c.y, state.map.size))).map((c) => ({ ...c })), outcome: state.outcome ? { ...state.outcome } : null, buildings: state.buildings.filter((b) => b.player === 0).map(({ id, kind, x, y, work, required, complete, queue, rally, hp, maxHp: maxHp2 }) => ({ id, kind, x, y, work, required, complete, hp, maxHp: maxHp2, garrison: state.garrison[id]?.units.length ?? 0, capacity: garrisonCapacity(state, { kind, player: 0 }), belled: state.garrison[id]?.units.filter((e) => e.bell).length ?? 0, queue: queue.map(({ id: id2, entryId, work: work2, required: required2 }) => ({ id: id2, entryId, work: work2, required: required2 })), rally, relics: state.relics.filter((r) => r.monastery === id).length })), relicSpots: state.relicMemory[0].map((r) => ({ ...r })), relicsHeld: [0, 1].map((p) => state.relics.filter((r) => r.monastery !== null && state.buildings.find((b) => b.id === r.monastery)?.player === p).length), relicTotal: state.relics.length, relicVictory: state.relicVictory ? { ...state.relicVictory } : null, shots: state.shots.filter((v) => v.player === 0 || state.vision[0].visible.includes(tileAt(v.to.x, v.to.y, state.map.size)) || state.vision[0].visible.includes(tileAt(v.from.x, v.from.y, state.map.size))).map((v) => structuredClone(v)), ...navalView(state), transactions: state.transactions.filter((t) => t.playerId === 0).slice(-5).map(({ sequence, tick: tick2, ok, error }) => ({ sequence, tick: tick2, ok, ...error ? { error } : {} })), ...projectVision(state.vision[0], state.map.size), accepted, commands, snapshot, replayMatches };
     } catch (error) {
       return { protocol: 1, id: Number.isSafeInteger(req?.id) ? req.id : 0, ok: false, tick: state.tick, message: error.message, entityId: ["garrison", "hunt", "attack", "move", "stop", "gather", "build", "construct", "convert", "heal", "relic", "deposit"].includes(req?.operation?.kind) ? req.operation.unitIds?.[0] : void 0 };
     }

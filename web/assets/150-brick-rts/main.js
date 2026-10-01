@@ -15,10 +15,27 @@ var obstacleFootprints = {
   monastery: { x: -15, y: -15, width: 300, depth: 300 },
   blacksmith: { x: -15, y: -15, width: 300, depth: 300 },
   "siege-workshop": { x: -15, y: -15, width: 300, depth: 300 },
+  university: { x: -15, y: -15, width: 300, depth: 300 },
   // Castle: a solid 4x4 keep (the reference's castle is 4x4).
   castle: { x: -15, y: -15, width: 400, depth: 400 },
   // Watch tower: one tile.
   "watch-tower": { x: 0, y: 0, width: 100, depth: 100 },
+  // The 建築 round. Market and dock: 3x3 like the other production buildings (the reference's market is 4x4, scaled like
+  // the university). The dock stands on water next to the shore; ships leave it on the water side.
+  market: { x: -15, y: -15, width: 300, depth: 300 },
+  dock: { x: 0, y: 0, width: 300, depth: 300 },
+  // Fish trap: a 2x2 net on the water; ships sail over it (no blocking rectangle, like the farm).
+  "fish-trap": { x: 0, y: 0, width: 200, depth: 200 },
+  // One-tile structures: the outpost, the bombard tower, and every wall segment and gate (walls are dragged as a line
+  // of one-tile segments; a gate takes one segment's place). Gates block only the enemy (movement.ts gate overlay).
+  outpost: { x: 0, y: 0, width: 100, depth: 100 },
+  "bombard-tower": { x: 0, y: 0, width: 100, depth: 100 },
+  "palisade-wall": { x: 0, y: 0, width: 100, depth: 100 },
+  "stone-wall": { x: 0, y: 0, width: 100, depth: 100 },
+  "palisade-gate": { x: 0, y: 0, width: 100, depth: 100 },
+  gate: { x: 0, y: 0, width: 100, depth: 100 },
+  // The wonder: a solid 5x5 (the reference's size).
+  wonder: { x: 0, y: 0, width: 500, depth: 500 },
   tree: { x: -20, y: -20, width: 100, depth: 100 },
   rock: { x: 0, y: 0, width: 65, depth: 70 },
   gold: { x: 0, y: 0, width: 65, depth: 70 },
@@ -54,15 +71,27 @@ function obstacleBounds(o, radius = 0) {
 }
 function obstacleRects(o, radius = 0) {
   check(o, radius);
-  if (o.kind === "farm") return [];
+  if (o.kind === "farm" || o.kind === "fish-trap" || o.kind === "gate" || o.kind === "palisade-gate") return [];
   if (o.kind !== "town-center") return [obstacleBounds(o, radius)];
   return townCenterBlocking.map(([x0, y0, x1, y1]) => [o.x + x0 - radius, o.y + y0 - radius, o.x + x1 + radius, o.y + y1 + radius]);
 }
 
 // packages/sim/terrain.ts
-var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, maxLandStep: 25, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200, farm: 250 }, generationAttempts: 8 };
-var resourceDefinitions = { tree: { yield: "wood", method: "gather", movement: "land" }, stone: { yield: "stone", method: "gather", movement: "land" }, gold: { yield: "gold", method: "gather", movement: "land" }, berries: { yield: "food", method: "gather", movement: "land" }, hunt: { yield: "food", method: "hunt", movement: "land" }, livestock: { yield: "food", method: "herd", movement: "land" }, fish: { yield: "food", method: "fish", movement: "water" }, farm: { yield: "food", method: "gather", movement: "land" } };
-var mapSizes = { meadow: 16, coast: 16, acceptance: 16, open: 32 };
+var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, maxLandStep: 25, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200, farm: 250, "fish-trap": 1e3 }, generationAttempts: 8 };
+var resourceDefinitions = {
+  tree: { yield: "wood", method: "gather", movement: "land" },
+  stone: { yield: "stone", method: "gather", movement: "land" },
+  gold: { yield: "gold", method: "gather", movement: "land" },
+  berries: { yield: "food", method: "gather", movement: "land" },
+  hunt: { yield: "food", method: "hunt", movement: "land" },
+  livestock: { yield: "food", method: "herd", movement: "land" },
+  fish: { yield: "food", method: "fish", movement: "water" },
+  farm: { yield: "food", method: "gather", movement: "land" },
+  // A finished fish trap (the 建築 round): owner-only food on the water, worked by fishing ships (site 715 food x this
+  // game's farm factor 250/175 -> 1000, design_default).
+  "fish-trap": { yield: "food", method: "fish", movement: "water" }
+};
+var mapSizes = { meadow: 16, coast: 16, acceptance: 16, open: 32, lakes: 32 };
 var terrainDefinitions = {
   grass: { walkClass: "land", buildability: true, height: 0 },
   road: { walkClass: "land", buildability: true, height: 0 },
@@ -78,7 +107,7 @@ function createTiles(layout = "meadow", seed = 0) {
   const size = mapSizes[layout];
   return Array.from({ length: size * size }, (_, id) => {
     const x = id % size, y = Math.floor(id / size);
-    let terrainType = layout !== "open" && y === 8 ? "road" : "grass";
+    let terrainType = layout !== "open" && layout !== "lakes" && y === 8 ? "road" : "grass";
     if (layout === "coast") {
       const edge = 12 + (seed >>> 0 >>> Math.floor(x / 4) & 1);
       if (y >= edge) terrainType = "water";
@@ -88,20 +117,20 @@ function createTiles(layout = "meadow", seed = 0) {
       if (x === 7 || x === 8) terrainType = y >= 7 && y <= 9 ? "shallow" : "water";
       else if (x === 6 || x === 9) terrainType = "sand";
     }
-    const tile2 = { id, terrainType, ...terrainDefinitions[terrainType], resourceRefs: [], obstacleRefs: [] };
+    const tile3 = { id, terrainType, ...terrainDefinitions[terrainType], resourceRefs: [], obstacleRefs: [] };
     if (layout === "acceptance") {
       if (x >= 2 && x <= 5 && y >= 11 && y <= 14) {
-        tile2.terrainType = x === 2 && y === 11 ? "cliff" : x === 3 && y === 13 ? "stone" : "highland";
-        Object.assign(tile2, terrainDefinitions[tile2.terrainType]);
-        tile2.height = 100;
+        tile3.terrainType = x === 2 && y === 11 ? "cliff" : x === 3 && y === 13 ? "stone" : "highland";
+        Object.assign(tile3, terrainDefinitions[tile3.terrainType]);
+        tile3.height = 100;
       }
       if (x === 4 && y >= 8 && y <= 10) {
-        tile2.terrainType = "road";
-        tile2.height = (y - 7) * 25;
-        tile2.buildability = false;
+        tile3.terrainType = "road";
+        tile3.height = (y - 7) * 25;
+        tile3.buildability = false;
       }
     }
-    return tile2;
+    return tile3;
   });
 }
 var sizeOfTiles = (tiles) => Math.round(Math.sqrt(tiles.length));
@@ -111,8 +140,8 @@ function groundHeight(tiles, x, y) {
 function tileAt(x, y, size) {
   return Math.floor(y / 100) * size + Math.floor(x / 100);
 }
-function canTraverse(tile2, movement) {
-  return tile2.walkClass === movement || tile2.walkClass === "both";
+function canTraverse(tile3, movement) {
+  return tile3.walkClass === movement || tile3.walkClass === "both";
 }
 
 // apps/web/fog-debug.ts
@@ -170,7 +199,7 @@ function createAudio(report = () => {
 }) {
   let ctx = null, master = null, volume = 0.6, count = 0, noise = null;
   const lastPlayed = /* @__PURE__ */ new Map();
-  const spacing = { hit: 140, order: 60, "order-attack": 80, trained: 250, built: 250, castle: 600, unique: 250, alarm: 3e3, convert: 400 };
+  const spacing = { hit: 140, order: 60, "order-attack": 80, trained: 250, built: 250, castle: 600, unique: 250, launch: 220, gunshot: 160, research: 300, alarm: 3e3, convert: 400 };
   function unlock() {
     if (!ctx) {
       const Ctor = window.AudioContext ?? window.webkitAudioContext;
@@ -290,6 +319,25 @@ function createAudio(report = () => {
       tone("sawtooth", 330, 0, 0.32, 0.035, 392);
       tone("sine", 660, 0.05, 0.4, 0.1);
       tone("sine", 990, 0.12, 0.4, 0.06);
+    },
+    // A mangonel or trebuchet letting go: the arm's wooden knock, then a low thump falling away.
+    launch: () => {
+      burst("bandpass", 700, 0, 0.07, 0.22);
+      tone("sine", 110, 0.02, 0.32, 0.2, 46);
+      burst("lowpass", 260, 0.03, 0.3, 0.18);
+    },
+    // A technology researched: two quick wooden-block taps and a short rising third (lighter than the age fanfare).
+    research: () => {
+      burst("bandpass", 2400, 0, 0.04, 0.12);
+      burst("bandpass", 2e3, 0.07, 0.04, 0.1);
+      tone("triangle", 659, 0.12, 0.28, 0.08);
+      tone("triangle", 831, 0.2, 0.32, 0.07);
+    },
+    // Gunpowder firing: a bright crack, then a low powder boom with a noisy tail.
+    gunshot: () => {
+      burst("highpass", 2600, 0, 0.05, 0.32);
+      burst("lowpass", 900, 0, 0.35, 0.28);
+      tone("sine", 80, 0, 0.3, 0.22, 40);
     }
   };
   function play(name) {
@@ -305,7 +353,7 @@ function createAudio(report = () => {
 }
 
 // packages/content/civs.ts
-var mulKinds = ["hp", "cooldown", "speed", "cost", "time", "buildingHp", "arrowCooldown", "healRange", "healRate"];
+var mulKinds = ["bonusScale", "garrisonHeal", "setup", "hp", "cooldown", "speed", "cost", "time", "buildingHp", "arrowCooldown", "healRange", "healRate"];
 function fx(id, kind, select3, value, text, o = {}) {
   const mul = o.op ? o.op === "mul" : mulKinds.includes(kind);
   return {
@@ -337,19 +385,21 @@ var civDefs = [
     nameEn: "Britons",
     type: "\u5F13\u5175\u6587\u660E",
     architecture: "west",
-    missing: ["crop-rotation", "stone-shaft-mining", "redemption", "atonement", "heresy"],
-    missingLater: ["hussar", "paladin", "siege-ram", "thumb-ring", "parthian-tactics", "bloodlines", "camel", "bombard-cannon", "elite-cannon-galleon", "missionary", "bombard-tower"],
+    missing: ["crop-rotation", "stone-shaft-mining", "redemption", "atonement", "heresy", "hussar", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "treadmill-crane", "bloodlines", "thumb-ring", "parthian-tactics", "hand-cannoneer", "bombard-cannon", "elite-cannon-galleon", "bombard-tower"],
+    missingLater: ["missionary"],
     uniqueUnits: ["longbowman"],
     eliteUpgrades: ["elite-longbowman"],
     uniqueTechs: [{ id: "yeomen", name: "\u7FA9\u52C7\u9A0E\u5175", nameEn: "Yeomen", age: 3, effectText: "\u5F92\u6B65\u5F13\u5175\u5C04\u7A0B +1\uFF0C\u7BAD\u5854\u653B\u64CA +2" }, { id: "warwolf", name: "\u6230\u72FC\u865F", nameEn: "Warwolf", age: 4, effectText: "\u5DE8\u578B\u6295\u77F3\u6A5F\u7372\u5F97\u7BC4\u570D\u50B7\u5BB3" }],
     effects: [
       fx("britons.archer-range", "range", footArchers, [0, 0, 50, 100], "\u5F92\u6B65\u5F13\u5175\uFF08\u6563\u5175\u9664\u5916\uFF09\u5C04\u7A0B\uFF1A\u7B2C\u4E09\u6642\u4EE3 +1\u3001\u7B2C\u56DB\u6642\u4EE3 +2"),
+      fx("britons.tc-wood", "cost", { entries: ["town-center"] }, [1, 1, 0.5, 0.5], "\u7B2C\u4E09\u6642\u4EE3\u8D77\u57CE\u93AE\u4E2D\u5FC3\u6728\u6750 -50%", { resource: "wood" }),
       fx("britons.shepherds", "gather", { sources: ["livestock"] }, 25, "\u7267\u7F8A\uFF08\u5BB0\u7F8A\u63A1\u96C6\uFF09\u901F\u5EA6 +25%"),
       fx("britons.team-range", "workRate", { buildings: ["archery-range"] }, 20, "\u5718\u968A\u52A0\u6210\uFF1A\u9776\u5834\u751F\u7522\u901F\u5EA6 +20%", { team: true }),
       fx("britons.yeomen-range", "range", { classes: ["archer"], exclude: ["gunpowder", "cavalry-archer"] }, 50, "\u7FA9\u52C7\u9A0E\u5175\uFF1A\u5F92\u6B65\u5F13\u5175\uFF08\u542B\u6563\u5175\uFF09\u5C04\u7A0B +1", { tech: "yeomen" }),
-      fx("britons.yeomen-tower", "arrowDamage", { buildings: ["watch-tower"] }, 2, "\u7FA9\u52C7\u9A0E\u5175\uFF1A\u7BAD\u5854\u653B\u64CA +2", { tech: "yeomen" })
+      fx("britons.yeomen-tower", "arrowDamage", { buildings: ["watch-tower"] }, 2, "\u7FA9\u52C7\u9A0E\u5175\uFF1A\u7BAD\u5854\u653B\u64CA +2", { tech: "yeomen" }),
+      fx("britons.warwolf", "blast", { kinds: ["trebuchet"] }, 75, "\u6230\u72FC\u865F\uFF1A\u5DE8\u578B\u6295\u77F3\u6A5F\u7684\u77F3\u5F48\u6CE2\u53CA\u843D\u9EDE\u5468\u570D\u7684\u6575\u5175", { tech: "warwolf" })
     ],
-    omitted: [{ text: "\u7B2C\u4E09\u6642\u4EE3\u8D77\u57CE\u93AE\u4E2D\u5FC3\u6728\u6750 -50%", reason: "\u672C\u4F5C\u7684\u57CE\u93AE\u4E2D\u5FC3\u4E0D\u80FD\u53E6\u5916\u5EFA\u9020" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u6230\u72FC\u865F\u300D", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5DE8\u578B\u6295\u77F3\u6A5F" }],
+    omitted: [{ text: "\u6230\u72FC\u865F\u5C0D\u975C\u6B62\u55AE\u4F4D 100% \u547D\u4E2D", reason: "\u672C\u4F5C\u7684\u5DE8\u578B\u6295\u77F3\u6A5F\u53EA\u6253\u5EFA\u7BC9\uFF0C\u4E5F\u6C92\u6709\u547D\u4E2D\u7387" }],
     sources: [site("civs/Britons"), site("units/Longbowman"), site("techs/Yeomen"), site("techs/Warwolf"), site("tree/bri")]
   },
   {
@@ -358,8 +408,8 @@ var civDefs = [
     nameEn: "Celts",
     type: "\u6B65\u5175\u8207\u653B\u57CE\u5668\u6587\u660E",
     architecture: "west",
-    missing: ["two-man-saw", "crop-rotation", "bracer", "ring-archer-armor", "plate-barding-armor", "redemption", "atonement", "illumination", "block-printing", "theocracy"],
-    missingLater: ["arbalest", "thumb-ring", "bloodlines", "camel", "bombard-cannon", "architecture", "missionary", "parthian-tactics", "bombard-tower", "elite-cannon-galleon"],
+    missing: ["two-man-saw", "crop-rotation", "bracer", "ring-archer-armor", "plate-barding-armor", "redemption", "atonement", "illumination", "block-printing", "theocracy", "arbalest", "camel", "heavy-camel", "architecture", "bloodlines", "thumb-ring", "parthian-tactics", "squires", "hand-cannoneer", "bombard-cannon", "bombard-tower", "elite-cannon-galleon", "fast-fire-ship"],
+    missingLater: ["missionary"],
     uniqueUnits: ["woad-raider"],
     eliteUpgrades: ["elite-woad-raider"],
     uniqueTechs: [{ id: "stronghold", name: "\u5821\u58D8", nameEn: "Stronghold", age: 3, effectText: "\u57CE\u5821\u8207\u7BAD\u5854\u5C04\u901F +25%" }, { id: "furor-celtica", name: "\u585E\u723E\u7279\u72C2\u71B1", nameEn: "Furor Celtica", age: 4, effectText: "\u653B\u57CE\u5668\u5DE5\u574A\u7684\u55AE\u4F4D\u751F\u547D +40%" }],
@@ -369,7 +419,7 @@ var civDefs = [
       fx("celts.siege-rate", "cooldown", { classes: ["siege"] }, 1 / 1.25, "\u653B\u57CE\u5668\u653B\u64CA\u901F\u5EA6 +25%"),
       fx("celts.team-siege", "workRate", { buildings: ["siege-workshop"] }, 20, "\u5718\u968A\u52A0\u6210\uFF1A\u653B\u57CE\u5668\u5DE5\u574A\u751F\u7522\u901F\u5EA6 +20%", { team: true }),
       fx("celts.stronghold", "arrowCooldown", { buildings: ["castle", "watch-tower"] }, 1 / 1.25, "\u5821\u58D8\uFF1A\u57CE\u5821\u8207\u7BAD\u5854\u5C04\u901F +25%", { tech: "stronghold" }),
-      fx("celts.furor", "hp", { classes: ["siege"] }, 1.4, "\u585E\u723E\u7279\u72C2\u71B1\uFF1A\u653B\u57CE\u5668\u751F\u547D +40%", { tech: "furor-celtica" })
+      fx("celts.furor", "hp", { kinds: ["ram", "mangonel", "scorpion", "bombard-cannon"] }, 1.4, "\u585E\u723E\u7279\u72C2\u71B1\uFF1A\u653B\u57CE\u5668\u751F\u547D +40%", { tech: "furor-celtica" })
     ],
     omitted: [{ text: "\u53EF\u5728\u5C0D\u624B\u55AE\u4F4D\u8996\u91CE\u5167\u6436\u8D70\u5C0D\u624B\u7684\u7F8A", reason: "\u672C\u4F5C\u7684\u6436\u7F8A\u898F\u5247\u4E0D\u770B\u8996\u91CE\uFF08\u5DF1\u65B9\u5EFA\u7BC9 4 \u683C\u5167\u7684\u7F8A\u672C\u4F86\u5C31\u4E0D\u6703\u88AB\u6436\uFF09" }],
     sources: [site("civs/Celts"), site("units/Woad_Raider"), site("techs/Stronghold"), site("techs/Furor_Celtica"), site("tree/cel")]
@@ -380,8 +430,8 @@ var civDefs = [
     nameEn: "Franks",
     type: "\u9A0E\u5175\u6587\u660E",
     architecture: "west",
-    missing: ["two-man-saw", "stone-shaft-mining", "bracer", "ring-archer-armor", "redemption"],
-    missingLater: ["arbalest", "hussar", "siege-ram", "keep", "thumb-ring", "parthian-tactics", "bloodlines", "camel", "bombard-tower", "heated-shot", "shipwright", "elite-cannon-galleon", "missionary"],
+    missing: ["two-man-saw", "stone-shaft-mining", "bracer", "ring-archer-armor", "redemption", "arbalest", "hussar", "camel", "heavy-camel", "siege-ram", "siege-onager", "keep", "bloodlines", "thumb-ring", "parthian-tactics", "sappers", "bombard-tower", "heated-shot", "shipwright", "elite-cannon-galleon", "guilds"],
+    missingLater: ["missionary"],
     uniqueUnits: ["throwing-axeman"],
     eliteUpgrades: ["elite-throwing-axeman"],
     uniqueTechs: [{ id: "chivalry", name: "\u9A0E\u58EB\u7CBE\u795E", nameEn: "Chivalry", age: 3, effectText: "\u99AC\u5EC4\u751F\u7522\u901F\u5EA6 +40%" }, { id: "bearded-axe", name: "\u5012\u9264\u65A7", nameEn: "Bearded Axe", age: 4, effectText: "\u64F2\u65A7\u5175\u5C04\u7A0B +1" }],
@@ -403,8 +453,8 @@ var civDefs = [
     nameEn: "Goths",
     type: "\u6B65\u5175\u6587\u660E",
     architecture: "central",
-    missing: ["gold-shaft-mining", "plate-mail-armor", "plate-barding-armor", "redemption", "atonement", "heresy", "block-printing"],
-    missingLater: ["paladin", "arbalest", "siege-ram", "guard-tower", "keep", "camel", "bombard-tower", "thumb-ring", "parthian-tactics", "elite-cannon-galleon", "missionary"],
+    missing: ["gold-shaft-mining", "plate-mail-armor", "plate-barding-armor", "redemption", "atonement", "heresy", "block-printing", "arbalest", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "siege-engineers", "guard-tower", "keep", "treadmill-crane", "arrowslits", "thumb-ring", "parthian-tactics", "arson", "hoardings", "bombard-tower", "elite-cannon-galleon", "dry-dock", "fortified-wall"],
+    missingLater: ["missionary"],
     uniqueUnits: ["huskarl"],
     eliteUpgrades: ["elite-huskarl"],
     uniqueTechs: [{ id: "anarchy", name: "\u7121\u653F\u5E9C\u72C0\u614B", nameEn: "Anarchy", age: 3, effectText: "\u5175\u71DF\u4E5F\u80FD\u8A13\u7DF4\u54E5\u5FB7\u885B\u968A" }, { id: "perfusion", name: "\u4E95\u5674", nameEn: "Perfusion", age: 4, effectText: "\u5175\u71DF\u751F\u7522\u901F\u5EA6 +100%" }],
@@ -428,8 +478,8 @@ var civDefs = [
     nameEn: "Teutons",
     type: "\u6B65\u5175\u6587\u660E",
     architecture: "central",
-    missing: ["bracer", "light-cavalry", "gold-shaft-mining"],
-    missingLater: ["arbalest", "hussar", "siege-ram", "thumb-ring", "camel", "parthian-tactics", "architecture", "shipwright", "elite-cannon-galleon"],
+    missing: ["bracer", "light-cavalry", "gold-shaft-mining", "arbalest", "heavy-cavalry-archer", "hussar", "camel", "heavy-camel", "siege-ram", "architecture", "husbandry", "thumb-ring", "parthian-tactics", "sappers", "shipwright", "elite-cannon-galleon", "dry-dock"],
+    missingLater: [],
     uniqueUnits: ["teutonic-knight"],
     eliteUpgrades: ["elite-teutonic-knight"],
     uniqueTechs: [{ id: "ironclad", name: "\u92FC\u9435\u7532", nameEn: "Ironclad", age: 3, effectText: "\u653B\u57CE\u5668\u8FD1\u6230\u8B77\u7532 +4" }, { id: "crenellations", name: "\u7832\u9580\u579B\u53E3", nameEn: "Crenellations", age: 4, effectText: "\u57CE\u5821\u5C04\u7A0B +3\uFF0C\u9032\u99D0\u7684\u6B65\u5175\u4E5F\u6703\u5C04\u7BAD" }],
@@ -437,6 +487,7 @@ var civDefs = [
       fx("teutons.heal-range", "healRange", {}, 2, "\u50E7\u4FB6\u6CBB\u7642\u8DDD\u96E2\u5169\u500D"),
       fx("teutons.tower-garrison", "garrison", { buildings: ["watch-tower"] }, 5, "\u7BAD\u5854\u53EF\u99D0\u7D2E\u5169\u500D\u55AE\u4F4D"),
       fx("teutons.farms", "cost", { entries: ["farm"] }, 0.6, "\u8FB2\u7530\u4FBF\u5B9C 40%"),
+      fx("teutons.herbal", "cost", { entries: ["herbal-medicine"] }, 0, "\u8349\u85E5\u6CBB\u7642\u514D\u8CBB"),
       fx("teutons.tc-garrison", "garrison", { buildings: ["town-center"] }, 10, "\u57CE\u93AE\u4E2D\u5FC3\u99D0\u8ECD +10"),
       fx("teutons.melee-armor", "meleeArmor", { kinds: ["militia", "spearman", "scout", "knight"] }, [0, 0, 1, 2], "\u5175\u71DF\u8207\u99AC\u5EC4\u55AE\u4F4D\u8FD1\u6230\u8B77\u7532\uFF1A\u7B2C\u4E09\u6642\u4EE3 +1\u3001\u7B2C\u56DB\u6642\u4EE3 +2"),
       fx("teutons.team-faith", "conversionResist", {}, 1, "\u5718\u968A\u52A0\u6210\uFF1A\u55AE\u4F4D\u8F03\u96E3\u88AB\u8F49\u5316\uFF08\u6BCF\u540D\u50E7\u4FB6\u7684\u5224\u5B9A\u591A\u4E00\u6B21\u5FC5\u5B9A\u5931\u6557\uFF09", { team: true }),
@@ -444,7 +495,7 @@ var civDefs = [
       fx("teutons.crenellations-range", "arrowRange", { buildings: ["castle"] }, 150, "\u7832\u9580\u579B\u53E3\uFF1A\u57CE\u5821\u5C04\u7A0B +3", { tech: "crenellations" }),
       fx("teutons.crenellations-infantry", "garrisonArrows", { buildings: ["castle"], classes: ["infantry"] }, 1, "\u7832\u9580\u579B\u53E3\uFF1A\u9032\u99D0\u57CE\u5821\u7684\u6B65\u5175\u5404\u591A\u4E00\u652F\u7BAD", { tech: "crenellations" })
     ],
-    omitted: [{ text: "\u514D\u8CBB\u6BBA\u4EBA\u5B54\u8207\u8349\u85E5\u5B78", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u9019\u5169\u9805\u79D1\u6280" }],
+    omitted: [{ text: "\u514D\u8CBB\u8FD1\u5C04\u5B54", reason: "\u672C\u4F5C\u7684\u7BAD\u5854\u6C92\u6709\u6700\u8FD1\u5C04\u7A0B\uFF0C\u8FD1\u5C04\u5B54\u6C92\u6709\u4F5C\u7528" }],
     sources: [site("civs/Teutons"), site("units/Teutonic_Knight"), site("techs/Ironclad"), site("techs/Crenellations"), site("tree/teu")]
   },
   {
@@ -453,20 +504,23 @@ var civDefs = [
     nameEn: "Vikings",
     type: "\u6B65\u5175\u8207\u6D77\u8ECD\u6587\u660E",
     architecture: "central",
-    missing: ["stone-shaft-mining", "plate-barding-armor", "redemption", "sanctity", "illumination", "theocracy"],
-    missingLater: ["halberdier", "hussar", "paladin", "keep", "herbal-medicine", "camel", "bombard-tower", "fire-ship", "bloodlines", "parthian-tactics", "bombard-cannon", "elite-cannon-galleon", "shipwright", "missionary"],
-    uniqueUnits: ["berserk"],
-    eliteUpgrades: ["elite-berserk"],
+    missing: ["stone-shaft-mining", "plate-barding-armor", "redemption", "sanctity", "illumination", "theocracy", "halberdier", "heavy-cavalry-archer", "hussar", "paladin", "camel", "heavy-camel", "siege-onager", "keep", "bloodlines", "husbandry", "parthian-tactics", "herbal-medicine", "hand-cannoneer", "bombard-cannon", "bombard-tower", "fire-galley", "fast-fire-ship", "elite-cannon-galleon", "shipwright", "guilds"],
+    missingLater: ["missionary"],
+    uniqueUnits: ["berserk", "longboat"],
+    eliteUpgrades: ["elite-berserk", "elite-longboat"],
     uniqueTechs: [{ id: "chieftains", name: "\u914B\u9577", nameEn: "Chieftains", age: 3, effectText: "\u6B65\u5175\u5C0D\u9A0E\u5175\u653B\u64CA +5" }, { id: "berserkergang", name: "\u72C2\u6230\u58EB\u5E6B", nameEn: "Berserkergang", age: 4, effectText: "\u72C2\u6230\u58EB\u56DE\u8840\u901F\u5EA6\u5169\u500D" }],
     effects: [
       fx("vikings.infantry-hp", "hp", infantry, [1, 1.1, 1.15, 1.2], "\u6B65\u5175\u751F\u547D\uFF1A\u7B2C\u4E8C\u6642\u4EE3 +10%\u3001\u7B2C\u4E09\u6642\u4EE3 +15%\u3001\u7B2C\u56DB\u6642\u4EE3 +20%"),
       fx("vikings.wheelbarrow", "grant", { entries: ["wheelbarrow"] }, 1, "\u5347\u5230\u7B2C\u4E8C\u6642\u4EE3\u6642\u514D\u8CBB\u5F97\u5230\u624B\u63A8\u8ECA", { age: 2 }),
       fx("vikings.hand-cart", "grant", { entries: ["hand-cart"] }, 1, "\u5347\u5230\u7B2C\u4E09\u6642\u4EE3\u6642\u514D\u8CBB\u5F97\u5230\u624B\u62C9\u8ECA", { age: 3 }),
       fx("vikings.chieftains", "bonus", infantry, 5, "\u914B\u9577\uFF1A\u6B65\u5175\u5C0D\u9A0E\u5175\u653B\u64CA +5", { vs: "cavalry", tech: "chieftains" }),
-      fx("vikings.berserkergang", "regen", { kinds: ["berserk"] }, 20, "\u72C2\u6230\u58EB\u5E6B\uFF1A\u72C2\u6230\u58EB\u6BCF\u5206\u9418\u56DE\u8840 20 \u2192 40", { tech: "berserkergang" })
+      fx("vikings.chieftains-camel", "bonus", infantry, 4, "\u914B\u9577\uFF1A\u6B65\u5175\u5C0D\u99F1\u99DD\u9A0E\u5175\u653B\u64CA +4", { vs: "camel", tech: "chieftains" }),
+      fx("vikings.berserkergang", "regen", { kinds: ["berserk"] }, 20, "\u72C2\u6230\u58EB\u5E6B\uFF1A\u72C2\u6230\u58EB\u6BCF\u5206\u9418\u56DE\u8840 20 \u2192 40", { tech: "berserkergang" }),
+      fx("vikings.warships", "cost", { entries: ["galley", "demolition-raft", "cannon-galleon", "longboat"] }, [1, 0.85, 0.85, 0.8], "\u6230\u8239\u4FBF\u5B9C\uFF1A\u7B2C\u4E8C\u3001\u7B2C\u4E09\u6642\u4EE3 -15%\uFF0C\u7B2C\u56DB\u6642\u4EE3 -20%"),
+      fx("vikings.team-dock", "cost", { entries: ["dock"] }, 0.85, "\u5718\u968A\u52A0\u6210\uFF1A\u78BC\u982D\u4FBF\u5B9C 15%", { team: true })
     ],
-    omitted: [{ text: "\u6230\u8239\u4FBF\u5B9C 15% / 15% / 20%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u5718\u968A\u52A0\u6210\uFF1A\u78BC\u982D\u4FBF\u5B9C 15%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u78BC\u982D" }, { text: "\u914B\u9577\uFF1A\u6B65\u5175\u5C0D\u99F1\u99DD\u9A0E\u5175 +4", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u99F1\u99DD\u9A0E\u5175" }, { text: "\u7279\u6B8A\u55AE\u4F4D\u7DAD\u4EAC\u5927\u6230\u8239", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u6D77\u6230" }],
-    sources: [site("civs/Vikings"), site("units/Berserk"), site("techs/Chieftains"), site("techs/Berserkergang"), site("tree/vik")]
+    omitted: [],
+    sources: [site("civs/Vikings"), site("units/Berserk"), site("units/Longboat"), site("techs/Chieftains"), site("techs/Berserkergang"), site("tree/vik")]
   },
   {
     id: "byzantines",
@@ -474,20 +528,23 @@ var civDefs = [
     nameEn: "Byzantines",
     type: "\u9632\u79A6\u6587\u660E",
     architecture: "mideast",
-    missing: ["blast-furnace"],
-    missingLater: ["herbal-medicine", "bloodlines", "parthian-tactics", "missionary", "heated-shot", "heavy-scorpion", "bombard-tower", "architecture"],
+    missing: ["masonry", "architecture", "blast-furnace", "siege-onager", "heavy-scorpion", "siege-engineers", "treadmill-crane", "bloodlines", "parthian-tactics", "sappers", "herbal-medicine", "heated-shot", "bombard-tower"],
+    missingLater: ["missionary"],
     uniqueUnits: ["cataphract"],
     eliteUpgrades: ["elite-cataphract"],
     uniqueTechs: [{ id: "greek-fire", name: "\u5E0C\u81D8\u4E4B\u706B", nameEn: "Greek Fire", age: 3, effectText: "\u706B\u6230\u8239\u5C04\u7A0B +1" }, { id: "logistica", name: "\u5F8C\u52E4", nameEn: "Logistica", age: 4, effectText: "\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u8E10\u8E0F\u50B7\u5BB3\uFF0C\u5C0D\u6B65\u5175 +6" }],
     effects: [
       fx("byzantines.building-hp", "buildingHp", {}, [1.1, 1.2, 1.3, 1.4], "\u5EFA\u7BC9\u751F\u547D\uFF1A\u7B2C\u4E00\u81F3\u7B2C\u56DB\u6642\u4EE3 +10% / +20% / +30% / +40%"),
-      fx("byzantines.counter-cost", "cost", { entries: ["spearman", "skirmisher"] }, 0.75, "\u9577\u69CD\u5175\u8207\u6563\u5175\u4FBF\u5B9C 25%"),
+      fx("byzantines.counter-cost", "cost", { entries: ["spearman", "skirmisher", "camel"] }, 0.75, "\u9577\u69CD\u5175\u3001\u6563\u5175\u8207\u99F1\u99DD\u9A0E\u5175\u4FBF\u5B9C 25%"),
+      fx("byzantines.town-watch", "cost", { entries: ["town-watch"] }, 0, "\u57CE\u93AE\u77AD\u671B\u514D\u8CBB"),
       fx("byzantines.imperial", "cost", { entries: ["age-4"] }, 0.67, "\u5347\u7B2C\u56DB\u6642\u4EE3\u4FBF\u5B9C 33%"),
       fx("byzantines.team-heal", "healRate", {}, 1.5, "\u5718\u968A\u52A0\u6210\uFF1A\u50E7\u4FB6\u6CBB\u7642\u901F\u5EA6 +50%", { team: true }),
       fx("byzantines.logistica", "bonus", { kinds: ["cataphract"] }, 6, "\u5F8C\u52E4\uFF1A\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u5C0D\u6B65\u5175 +6", { vs: "infantry", tech: "logistica" }),
-      fx("byzantines.trample", "splash", { kinds: ["cataphract"] }, 5, "\u5F8C\u52E4\uFF1A\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u653B\u64CA\u6642\uFF0C\u76EE\u6A19\u65C1\u7684\u6575\u5175\u53D7 5 \u9EDE\u8E10\u8E0F\u50B7\u5BB3", { tech: "logistica" })
+      fx("byzantines.trample", "splash", { kinds: ["cataphract"] }, 5, "\u5F8C\u52E4\uFF1A\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u653B\u64CA\u6642\uFF0C\u76EE\u6A19\u65C1\u7684\u6575\u5175\u53D7 5 \u9EDE\u8E10\u8E0F\u50B7\u5BB3", { tech: "logistica" }),
+      fx("byzantines.fire-ships", "cooldown", { kinds: ["fire-galley"] }, 1 / 1.25, "\u706B\u6230\u8239\u7CFB\u653B\u64CA\u901F\u5EA6 +25%"),
+      fx("byzantines.greek-fire", "range", { kinds: ["fire-galley"] }, 50, "\u5E0C\u81D8\u4E4B\u706B\uFF1A\u706B\u6230\u8239\u7CFB\u5C04\u7A0B +1", { tech: "greek-fire" })
     ],
-    omitted: [{ text: "\u706B\u6230\u8239\u653B\u64CA\u901F\u5EA6 +20%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u5C01\u5EFA\u6642\u4EE3\u514D\u8CBB\u57CE\u93AE\u77AD\u671B", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u57CE\u93AE\u77AD\u671B" }, { text: "\u99F1\u99DD\u9A0E\u5175\u4FBF\u5B9C 25%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u99F1\u99DD\u9A0E\u5175" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u5E0C\u81D8\u4E4B\u706B\u300D", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u706B\u6230\u8239" }],
+    omitted: [],
     sources: [site("civs/Byzantines"), site("units/Cataphract"), site("techs/Greek_Fire"), site("techs/Logistica"), site("tree/byz")]
   },
   {
@@ -496,21 +553,21 @@ var civDefs = [
     nameEn: "Persians",
     type: "\u9A0E\u5175\u6587\u660E",
     architecture: "mideast",
-    missing: ["bracer", "redemption", "atonement", "heresy", "sanctity", "illumination"],
-    missingLater: ["two-handed-swordsman", "champion", "arbalest", "keep", "shipwright", "bombard-tower", "missionary"],
+    missing: ["bracer", "redemption", "atonement", "heresy", "sanctity", "illumination", "two-handed-swordsman", "champion", "arbalest", "siege-onager", "siege-engineers", "keep", "treadmill-crane", "arrowslits", "shipwright", "bombard-tower", "fortified-wall"],
+    missingLater: ["missionary"],
     uniqueUnits: ["war-elephant"],
     eliteUpgrades: ["elite-war-elephant"],
     uniqueTechs: [{ id: "kamandaran", name: "\u6CE2\u65AF\u5F13\u5175", nameEn: "Kamandaran", age: 3, effectText: "\u5F13\u624B\u6539\u7528\u6728\u6750\u652F\u4ED8\u539F\u672C\u7684\u9EC3\u91D1" }, { id: "mahouts", name: "\u8C61\u4F15", nameEn: "Mahouts", age: 4, effectText: "\u6230\u8C61\u79FB\u52D5\u901F\u5EA6 +30%" }],
     effects: [
       fx("persians.food", "startStock", {}, 50, "\u958B\u5C40\u98DF\u7269 +50", { resource: "food" }),
       fx("persians.wood", "startStock", {}, 50, "\u958B\u5C40\u6728\u6750 +50", { resource: "wood" }),
-      fx("persians.tc-hp", "buildingHp", { buildings: ["town-center"] }, 2, "\u57CE\u93AE\u4E2D\u5FC3\u751F\u547D\u5169\u500D"),
-      fx("persians.tc-rate", "workRate", { buildings: ["town-center"] }, [0, 10, 15, 20], "\u57CE\u93AE\u4E2D\u5FC3\u751F\u7522\u8207\u7814\u7A76\u901F\u5EA6\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +10% / +15% / +20%"),
+      fx("persians.tc-hp", "buildingHp", { buildings: ["town-center", "dock"] }, 2, "\u57CE\u93AE\u4E2D\u5FC3\u8207\u78BC\u982D\u751F\u547D\u5169\u500D"),
+      fx("persians.tc-rate", "workRate", { buildings: ["town-center", "dock"] }, [0, 10, 15, 20], "\u57CE\u93AE\u4E2D\u5FC3\u8207\u78BC\u982D\u751F\u7522\u8207\u7814\u7A76\u901F\u5EA6\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +10% / +15% / +20%"),
       fx("persians.team-knights", "bonus", { kinds: ["knight"] }, 2, "\u5718\u968A\u52A0\u6210\uFF1A\u9A0E\u58EB\u5C0D\u5F13\u5175\u653B\u64CA +2", { vs: "archer", team: true }),
       fx("persians.kamandaran", "costShift", { entries: ["archer"] }, 1, "\u6CE2\u65AF\u5F13\u5175\uFF1A\u5F13\u624B\u7684\u9EC3\u91D1\u6539\u4EE5\u6728\u6750\u652F\u4ED8", { resource: "gold", to: "wood", tech: "kamandaran" }),
       fx("persians.mahouts", "speed", { kinds: ["war-elephant"] }, 1.3, "\u8C61\u4F15\uFF1A\u6230\u8C61\u79FB\u52D5\u901F\u5EA6 +30%", { tech: "mahouts" })
     ],
-    omitted: [{ text: "\u78BC\u982D\u751F\u547D\u5169\u500D\u3001\u78BC\u982D\u5DE5\u4F5C\u901F\u5EA6\u63D0\u5347", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u78BC\u982D" }],
+    omitted: [],
     sources: [site("civs/Persians"), site("units/War_Elephant"), site("techs/Kamandaran"), site("techs/Mahouts"), site("tree/pre")]
   },
   {
@@ -519,18 +576,24 @@ var civDefs = [
     nameEn: "Saracens",
     type: "\u99F1\u99DD\u8207\u6D77\u8ECD\u6587\u660E",
     architecture: "mideast",
-    missing: ["crop-rotation", "stone-shaft-mining"],
-    missingLater: ["halberdier", "cavalier", "paladin", "heavy-scorpion", "bombard-tower", "architecture", "heated-shot", "shipwright", "missionary"],
+    missing: ["crop-rotation", "stone-shaft-mining", "halberdier", "cavalier", "paladin", "heavy-scorpion", "architecture", "sappers", "bombard-tower", "heated-shot", "shipwright", "guilds", "fast-fire-ship"],
+    missingLater: ["missionary"],
     uniqueUnits: ["mameluke"],
     eliteUpgrades: ["elite-mameluke"],
     uniqueTechs: [{ id: "madrasah", name: "\u7A46\u65AF\u6797\u5B78\u588A", nameEn: "Madrasah", age: 3, effectText: "\u50E7\u4FB6\u6B7B\u4EA1\u6642\u8FD4\u9084 33 \u9EC3\u91D1" }, { id: "zealotry", name: "\u72C2\u71B1", nameEn: "Zealotry", age: 4, effectText: "\u99F1\u99DD\u9A0E\u5175\u8207\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u751F\u547D +30" }],
     effects: [
       fx("saracens.archer-buildings", "bonus", footArchers, [0, 1, 2, 3], "\u5F13\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +1 / +2 / +3", { vs: "building" }),
       fx("saracens.team-archers", "bonus", footArchers, 2, "\u5718\u968A\u52A0\u6210\uFF1A\u5F92\u6B65\u5F13\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA +2", { vs: "building", team: true }),
+      fx("saracens.horse-archer-buildings", "bonus", { classes: ["cavalry-archer"] }, [0, 2, 3, 4], "\u99AC\u5F13\u9A0E\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +2 / +3 / +4\uFF08\u5F13\u5175\u7684\u52A0\u6210\u518D +1\uFF09", { vs: "building" }),
       fx("saracens.madrasah", "deathRefund", { kinds: ["monk"] }, 33, "\u7A46\u65AF\u6797\u5B78\u588A\uFF1A\u50E7\u4FB6\u6B7B\u4EA1\u6642\u8FD4\u9084 33 \u9EC3\u91D1", { tech: "madrasah" }),
-      fx("saracens.zealotry", "hp", { kinds: ["mameluke"] }, 30, "\u72C2\u71B1\uFF1A\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u751F\u547D +30", { tech: "zealotry", op: "add" })
+      fx("saracens.zealotry", "hp", { kinds: ["mameluke", "camel"] }, 30, "\u72C2\u71B1\uFF1A\u99F1\u99DD\u9A0E\u5175\u8207\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u751F\u547D +30", { tech: "zealotry", op: "add" }),
+      fx("saracens.market-fee", "marketFee", {}, -25, "\u5E02\u96C6\u4EA4\u6613\u8CBB 5%\uFF08\u4E00\u822C 30%\uFF09"),
+      fx("saracens.market-cost", "cost", { entries: ["market"] }, 100 / 175, "\u5E02\u96C6\u4FBF\u5B9C 75 \u6728\u6750", { resource: "wood" }),
+      fx("saracens.transport-hp", "hp", { kinds: ["transport-ship"] }, 2, "\u904B\u8F38\u8239\u751F\u547D\u5169\u500D"),
+      fx("saracens.transport-capacity", "transportCapacity", { kinds: ["transport-ship"] }, 5, "\u904B\u8F38\u8239\u904B\u8F09 +5"),
+      fx("saracens.galleys", "cooldown", { classes: ["galley"] }, 1 / 1.25, "\u6230\u8239\u7CFB\u653B\u64CA\u901F\u5EA6 +25%")
     ],
-    omitted: [{ text: "\u5E02\u96C6\u4EA4\u6613\u8CBB 5%\u3001\u5E02\u96C6\u4FBF\u5B9C 100 \u6728\u6750", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5E02\u96C6" }, { text: "\u904B\u8F38\u8239\u751F\u547D\u5169\u500D\u3001\u904B\u8F09 +5\uFF1B\u6230\u8239\u653B\u64CA\u901F\u5EA6 +25%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u99AC\u5F13\u9A0E\u5175\u5C0D\u5EFA\u7BC9\u518D +1", reason: "\u672C\u4F5C\u7684\u85A9\u62C9\u68EE\u6C92\u6709\u99AC\u5F13\u9A0E\u5175" }, { text: "\u72C2\u71B1\uFF1A\u99F1\u99DD\u9A0E\u5175\u751F\u547D +30", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u99F1\u99DD\u9A0E\u5175" }],
+    omitted: [],
     sources: [site("civs/Saracens"), site("units/Mameluke"), site("techs/Madrasah"), site("techs/Zealotry"), site("tree/sar")]
   },
   {
@@ -539,19 +602,24 @@ var civDefs = [
     nameEn: "Turks",
     type: "\u706B\u85E5\u6587\u660E",
     architecture: "mideast",
-    missing: ["pikeman", "elite-skirmisher", "stone-shaft-mining", "faith", "illumination"],
-    missingLater: ["halberdier", "arbalest", "paladin", "herbal-medicine"],
+    missing: ["pikeman", "elite-skirmisher", "stone-shaft-mining", "faith", "illumination", "halberdier", "arbalest", "paladin", "onager", "siege-onager", "siege-engineers", "herbal-medicine", "shipwright", "fast-fire-ship"],
+    missingLater: [],
     uniqueUnits: ["janissary"],
     eliteUpgrades: ["elite-janissary"],
     uniqueTechs: [{ id: "sipahi", name: "\u91C7\u9091\u9A0E\u5175", nameEn: "Sipahi", age: 3, effectText: "\u99AC\u5F13\u9A0E\u5175\u8207\u6A19\u69CD\u9A0E\u5175\u751F\u547D +20" }, { id: "artillery", name: "\u7832\u5175", nameEn: "Artillery", age: 4, effectText: "\u706B\u7832\u3001\u706B\u7832\u5854\u3001\u706B\u7832\u6230\u8239\u5C04\u7A0B +2" }],
     effects: [
       fx("turks.gunpowder-hp", "hp", { classes: ["gunpowder"] }, 1.25, "\u706B\u85E5\u55AE\u4F4D\u751F\u547D +25%"),
       fx("turks.gold", "gather", { resources: ["gold"] }, 20, "\u63A1\u91D1\u901F\u5EA6 +20%"),
-      fx("turks.free-light-cavalry", "cost", { entries: ["light-cavalry"] }, 0, "\u65A5\u5019\u7CFB\u5347\u7D1A\u514D\u8CBB"),
+      fx("turks.free-light-cavalry", "cost", { entries: ["light-cavalry", "hussar"] }, 0, "\u65A5\u5019\u7CFB\u5347\u7D1A\u514D\u8CBB"),
+      fx("turks.sipahi", "hp", { classes: ["cavalry-archer"] }, 20, "\u91C7\u9091\u9A0E\u5175\uFF1A\u99AC\u5F13\u9A0E\u5175\u751F\u547D +20", { tech: "sipahi", op: "add" }),
       fx("turks.scout-armor", "pierceArmor", { kinds: ["scout"] }, 1, "\u65A5\u5019\u7CFB\u9060\u7A0B\u8B77\u7532 +1"),
-      fx("turks.team-gunpowder", "time", { entries: ["janissary"] }, 1 / 1.25, "\u5718\u968A\u52A0\u6210\uFF1A\u706B\u85E5\u55AE\u4F4D\u8A13\u7DF4\u901F\u5EA6 +25%", { team: true })
+      fx("turks.chemistry", "cost", { entries: ["chemistry"] }, 0, "\u5316\u5B78\u514D\u8CBB"),
+      fx("turks.artillery", "range", { kinds: ["bombard-cannon", "cannon-galleon"] }, 100, "\u7832\u5175\uFF1A\u706B\u7832\u8207\u706B\u7832\u6230\u8239\u5C04\u7A0B +2", { tech: "artillery" }),
+      fx("turks.artillery-tower", "arrowRange", { buildings: ["bombard-tower"] }, 100, "\u7832\u5175\uFF1A\u706B\u7832\u5854\u5C04\u7A0B +2", { tech: "artillery" }),
+      fx("turks.gunpowder-techs", "cost", { entries: ["elite-cannon-galleon", "bombard-tower-tech"] }, 0.5, "\u706B\u85E5\u79D1\u6280\u4FBF\u5B9C 50%\uFF08\u7CBE\u92B3\u706B\u7832\u6230\u8239\u3001\u706B\u7832\u5854\uFF1B\u5316\u5B78\u53E6\u5916\u514D\u8CBB\uFF09"),
+      fx("turks.team-gunpowder", "time", { entries: ["janissary", "hand-cannoneer", "bombard-cannon", "cannon-galleon"] }, 1 / 1.25, "\u5718\u968A\u52A0\u6210\uFF1A\u706B\u85E5\u55AE\u4F4D\u8A13\u7DF4\u901F\u5EA6 +25%", { team: true })
     ],
-    omitted: [{ text: "\u706B\u85E5\u79D1\u6280\u4FBF\u5B9C 50%\u3001\u514D\u8CBB\u5316\u5B78", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5927\u5B78\u8207\u706B\u85E5\u79D1\u6280" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u91C7\u9091\u9A0E\u5175\u300D", reason: "\u672C\u4F5C\u7684\u571F\u8033\u5176\u6C92\u6709\u99AC\u5F13\u9A0E\u5175" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u7832\u5175\u300D", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u706B\u7832\u8207\u706B\u7832\u5854" }],
+    omitted: [],
     sources: [site("civs/Turks"), site("units/Janissary"), site("techs/Sipahi"), site("techs/Artillery"), site("tree/tur")]
   },
   {
@@ -560,8 +628,8 @@ var civDefs = [
     nameEn: "Chinese",
     type: "\u5F13\u5175\u6587\u660E",
     architecture: "eastasia",
-    missing: ["crop-rotation", "redemption", "heresy"],
-    missingLater: ["hussar", "paladin"],
+    missing: ["crop-rotation", "redemption", "heresy", "hussar", "paladin", "siege-onager", "siege-engineers", "parthian-tactics", "hoardings", "hand-cannoneer", "bombard-cannon", "guilds", "fast-fire-ship", "elite-cannon-galleon"],
+    missingLater: [],
     uniqueUnits: ["chu-ko-nu"],
     eliteUpgrades: ["elite-chu-ko-nu"],
     uniqueTechs: [{ id: "great-wall", name: "\u9577\u57CE", nameEn: "Great Wall", age: 3, effectText: "\u7BAD\u5854\u8207\u57CE\u7246\u751F\u547D +30%" }, { id: "rocketry", name: "\u706B\u7BAD\u6280\u8853", nameEn: "Rocketry", age: 4, effectText: "\u9023\u5F29\u5175\u653B\u64CA +2\uFF0C\u5F29\u7832\u653B\u64CA +4" }],
@@ -573,10 +641,12 @@ var civDefs = [
       fx("chinese.tc-los", "los", { buildings: ["town-center"] }, 500, "\u57CE\u93AE\u4E2D\u5FC3\u8996\u91CE +5"),
       fx("chinese.techs", "cost", { allTechs: true, exclude: ["age-2", "age-3", "age-4"] }, [1, 0.9, 0.85, 0.8], "\u79D1\u6280\u4FBF\u5B9C\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 -10% / -15% / -20%"),
       fx("chinese.team-farms", "farmFood", {}, 45, "\u5718\u968A\u52A0\u6210\uFF1A\u8FB2\u7530\u98DF\u7269 +45", { team: true }),
-      fx("chinese.great-wall", "buildingHp", { buildings: ["watch-tower"] }, 1.3, "\u9577\u57CE\uFF1A\u7BAD\u5854\u751F\u547D +30%", { tech: "great-wall" }),
-      fx("chinese.rocketry", "attack", { kinds: ["chu-ko-nu"] }, 2, "\u706B\u7BAD\u6280\u8853\uFF1A\u9023\u5F29\u5175\u653B\u64CA +2", { tech: "rocketry" })
+      fx("chinese.great-wall", "buildingHp", { buildings: ["watch-tower", "palisade-wall", "stone-wall", "palisade-gate", "gate"] }, 1.3, "\u9577\u57CE\uFF1A\u7BAD\u5854\u8207\u57CE\u7246\uFF08\u542B\u57CE\u9580\uFF09\u751F\u547D +30%", { tech: "great-wall" }),
+      fx("chinese.demolition-hp", "hp", { kinds: ["demolition-raft"] }, 1.5, "\u7206\u7834\u8239\u7CFB\u751F\u547D +50%"),
+      fx("chinese.rocketry", "attack", { kinds: ["chu-ko-nu"] }, 2, "\u706B\u7BAD\u6280\u8853\uFF1A\u9023\u5F29\u5175\u653B\u64CA +2", { tech: "rocketry" }),
+      fx("chinese.rocketry-scorpion", "attack", { kinds: ["scorpion"] }, 4, "\u706B\u7BAD\u6280\u8853\uFF1A\u5F29\u7832\u653B\u64CA +4", { tech: "rocketry" })
     ],
-    omitted: [{ text: "\u7206\u7834\u8239\u751F\u547D +50%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u706B\u7BAD\u6280\u8853\u7684\u5F29\u7832 +4", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5F29\u7832" }, { text: "\u9577\u57CE\u7684\u57CE\u7246 +30%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u57CE\u7246" }],
+    omitted: [],
     sources: [site("civs/Chinese"), site("units/Chu_Ko_Nu"), site("techs/Great_Wall"), site("techs/Rocketry"), site("tree/chi")]
   },
   {
@@ -585,17 +655,23 @@ var civDefs = [
     nameEn: "Japanese",
     type: "\u6B65\u5175\u6587\u660E",
     architecture: "eastasia",
-    missing: ["crop-rotation", "stone-shaft-mining", "plate-barding-armor", "heresy"],
-    missingLater: ["paladin", "siege-ram", "camel", "bombard-cannon", "bombard-tower", "heated-shot", "architecture", "missionary"],
+    missing: ["crop-rotation", "stone-shaft-mining", "plate-barding-armor", "heresy", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "architecture", "hoardings", "bombard-cannon", "bombard-tower", "heated-shot", "guilds", "heavy-demolition-ship"],
+    missingLater: ["missionary"],
     uniqueUnits: ["samurai"],
     eliteUpgrades: ["elite-samurai"],
     uniqueTechs: [{ id: "yasama", name: "\u5C04\u7BAD\u5B54", nameEn: "Yasama", age: 3, effectText: "\u7BAD\u5854\u591A\u5C04\u5169\u652F\u7BAD" }, { id: "kataparuto", name: "\u5F48\u5C04\u5668", nameEn: "Kataparuto", age: 4, effectText: "\u5DE8\u578B\u6295\u77F3\u6A5F\u7D44\u88DD\u8207\u5C04\u901F\u63D0\u5347" }],
     effects: [
       fx("japanese.camps", "cost", { entries: ["lumber-camp", "mining-camp", "mill"] }, 0.5, "\u4F10\u6728\u5834\u3001\u63A1\u7926\u5834\u3001\u78E8\u574A\u4FBF\u5B9C 50%"),
       fx("japanese.infantry-rate", "cooldown", infantry, [1, 0.9, 0.85, 0.75], "\u6B65\u5175\u653B\u64CA\u901F\u5EA6\uFF1A\u7B2C\u4E8C\u81F3\u7B2C\u56DB\u6642\u4EE3 +10% / +15% / +25%"),
-      fx("japanese.yasama", "arrows", { buildings: ["watch-tower"] }, 2, "\u5C04\u7BAD\u5B54\uFF1A\u7BAD\u5854\u591A\u5C04\u5169\u652F\u7BAD", { tech: "yasama" })
+      fx("japanese.kataparuto-setup", "setup", { kinds: ["trebuchet"] }, 0.25, "\u5F48\u5C04\u5668\uFF1A\u5DE8\u578B\u6295\u77F3\u6A5F\u7D44\u88DD\u8207\u62C6\u88DD\u5FEB 4 \u500D", { tech: "kataparuto" }),
+      fx("japanese.kataparuto-rate", "cooldown", { kinds: ["trebuchet"] }, 0.75, "\u5F48\u5C04\u5668\uFF1A\u5DE8\u578B\u6295\u77F3\u6A5F\u5C04\u901F +33%", { tech: "kataparuto" }),
+      fx("japanese.yasama", "arrows", { buildings: ["watch-tower"] }, 2, "\u5C04\u7BAD\u5B54\uFF1A\u7BAD\u5854\u591A\u5C04\u5169\u652F\u7BAD", { tech: "yasama" }),
+      fx("japanese.fishing-hp", "hp", { kinds: ["fishing-ship"] }, 2, "\u6F01\u8239\u751F\u547D\u5169\u500D"),
+      fx("japanese.fishing-armor", "pierceArmor", { kinds: ["fishing-ship"] }, 2, "\u6F01\u8239\u9060\u7A0B\u8B77\u7532 +2"),
+      fx("japanese.fishing-rate", "gather", { kinds: ["fishing-ship"], sources: ["fish", "fish-trap"] }, [5, 10, 15, 20], "\u6F01\u8239\u5DE5\u4F5C\u901F\u5EA6\uFF1A\u7B2C\u4E00\u81F3\u7B2C\u56DB\u6642\u4EE3 +5% / +10% / +15% / +20%"),
+      fx("japanese.team-galley-los", "los", { classes: ["warship"] }, 200, "\u5718\u968A\u52A0\u6210\uFF1A\u6230\u8239\u8996\u91CE +50%", { team: true })
     ],
-    omitted: [{ text: "\u6F01\u8239\u751F\u547D\u5169\u500D\u3001\u9060\u7A0B\u8B77\u7532 +2\u3001\u5DE5\u4F5C\u901F\u5EA6\u63D0\u5347", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u6F01\u8239" }, { text: "\u5718\u968A\u52A0\u6210\uFF1A\u6230\u8239\u8996\u91CE +50%", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u8239\u96BB" }, { text: "\u7279\u6B8A\u79D1\u6280\u300C\u5F48\u5C04\u5668\u300D", reason: "\u672C\u4F5C\u9084\u6C92\u6709\u5DE8\u578B\u6295\u77F3\u6A5F" }],
+    omitted: [],
     sources: [site("civs/Japanese"), site("units/Samurai"), site("techs/Yasama"), site("techs/Kataparuto"), site("tree/jap")]
   },
   {
@@ -604,8 +680,8 @@ var civDefs = [
     nameEn: "Mongols",
     type: "\u99AC\u5F13\u9A0E\u5175\u6587\u660E",
     architecture: "eastasia",
-    missing: ["two-man-saw", "crop-rotation", "plate-barding-armor", "ring-archer-armor", "redemption", "sanctity", "faith", "block-printing"],
-    missingLater: ["paladin", "keep", "halberdier", "bombard-cannon", "bombard-tower", "elite-cannon-galleon", "heated-shot", "architecture"],
+    missing: ["halberdier", "two-man-saw", "crop-rotation", "plate-barding-armor", "ring-archer-armor", "redemption", "sanctity", "faith", "block-printing", "paladin", "architecture", "keep", "treadmill-crane", "arrowslits", "bombard-cannon", "bombard-tower", "elite-cannon-galleon", "heated-shot", "guilds", "dry-dock"],
+    missingLater: [],
     uniqueUnits: ["mangudai"],
     eliteUpgrades: ["elite-mangudai"],
     uniqueTechs: [{ id: "nomads", name: "\u6E38\u7267", nameEn: "Nomads", age: 3, effectText: "\u6C11\u5C45\u88AB\u6467\u6BC0\u5F8C\u4EBA\u53E3\u4E0A\u9650\u4E0D\u4E0B\u964D" }, { id: "drill", name: "\u947F\u5CA9\u6A5F", nameEn: "Drill", age: 4, effectText: "\u653B\u57CE\u5668\u5DE5\u574A\u7684\u55AE\u4F4D\u79FB\u52D5\u901F\u5EA6 +50%" }],
@@ -615,22 +691,22 @@ var civDefs = [
       fx("mongols.hunters", "gather", { sources: ["hunt"] }, 40, "\u6253\u7375\u901F\u5EA6 +40%"),
       fx("mongols.team-scouts", "los", { kinds: ["scout"] }, 200, "\u5718\u968A\u52A0\u6210\uFF1A\u65A5\u5019\u8996\u91CE +2", { team: true }),
       fx("mongols.nomads", "keepHousing", { buildings: ["house"] }, 1, "\u6E38\u7267\uFF1A\u6C11\u5C45\u88AB\u6467\u6BC0\u5F8C\u4EBA\u53E3\u4E0A\u9650\u4E0D\u4E0B\u964D", { tech: "nomads" }),
-      fx("mongols.drill", "speed", { classes: ["siege"] }, 1.5, "\u947F\u5CA9\u6A5F\uFF1A\u653B\u57CE\u5668\u79FB\u52D5\u901F\u5EA6 +50%", { tech: "drill" })
+      fx("mongols.drill", "speed", { kinds: ["ram", "mangonel", "scorpion", "bombard-cannon"] }, 1.5, "\u947F\u5CA9\u6A5F\uFF1A\u653B\u57CE\u5668\u79FB\u52D5\u901F\u5EA6 +50%", { tech: "drill" })
     ],
     omitted: [],
     sources: [site("civs/Mongols"), site("units/Mangudai"), site("techs/Nomads"), site("techs/Drill"), site("tree/mon")]
   }
 ];
-var deferredTechs = ["warwolf", "greek-fire", "sipahi", "artillery", "kataparuto"];
+var deferredTechs = [];
 var uniqueUnitOwner = Object.fromEntries(civDefs.flatMap((c) => [...c.uniqueUnits, ...c.eliteUpgrades, ...c.uniqueTechs.map((t) => t.id)].map((id) => [id, c.id])));
 var civById = (id) => civDefs.find((c) => c.id === id);
 
 // packages/content/rules.ts
 var resources = ["food", "wood", "gold", "stone"];
-var entry = (id, kind, name, food = 0, wood2 = 0, gold3 = 0, stone2 = 0, requires = [], population = 0, time = 20, source = "original design defaults: packages/content/rules.ts") => ({ referenceVersion: null, sourceEvidence: [source], implementationStatus: id === "villager" ? "in_progress" : "not_started", testEvidence: ["tests/foundation.test.ts (data validation only)"], id, kind, name, cost: { food, wood: wood2, gold: gold3, stone: stone2 }, time, population, requires, verificationStatus: "design_default" });
+var entry = (id, kind, name, food = 0, wood6 = 0, gold4 = 0, stone6 = 0, requires = [], population = 0, time = 20, source = "original design defaults: packages/content/rules.ts") => ({ referenceVersion: null, sourceEvidence: [source], implementationStatus: id === "villager" ? "in_progress" : "not_started", testEvidence: ["tests/foundation.test.ts (data validation only)"], id, kind, name, cost: { food, wood: wood6, gold: gold4, stone: stone6 }, time, population, requires, verificationStatus: "design_default" });
 var aoetw = "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset";
-var unique = (id, name, food, wood2, gold3, time) => entry(id, "unit", name, food, wood2, gold3, 0, [], 1, time, aoetw);
-var upgrade = (id, name, food, wood2, gold3, stone2, age, time) => entry(id, "technology", name, food, wood2, gold3, stone2, [`age-${age}`], 0, time, aoetw);
+var unique = (id, name, food, wood6, gold4, time) => entry(id, "unit", name, food, wood6, gold4, 0, [], 1, time, aoetw);
+var upgrade = (id, name, food, wood6, gold4, stone6, age, time) => entry(id, "technology", name, food, wood6, gold4, stone6, [`age-${age}`], 0, time, aoetw);
 var castleEntries = [
   entry("castle", "building", "\u57CE\u5821", 0, 0, 0, 300, ["age-3"], 0, 60, "aoetw.com/building/Castle (650 stone there); 300 stone and 60 s are design_default for this map"),
   unique("longbowman", "\u9577\u5F13\u5175", 0, 35, 40, 18),
@@ -681,12 +757,178 @@ var castleEntries = [
   upgrade("nomads", "\u6E38\u7267", 0, 300, 150, 0, 3, 40),
   upgrade("drill", "\u947F\u5CA9\u6A5F", 500, 0, 450, 0, 4, 60)
 ];
+var unit = (id, name, food, wood6, gold4, age, time) => entry(id, "unit", name, food, wood6, gold4, 0, [`age-${age}`], 1, time, aoetw);
+var line = (id, name, food, wood6, gold4, after, time) => entry(id, "technology", name, food, wood6, gold4, 0, after ? ["age-4", after] : ["age-4"], 0, time, aoetw);
+var unitEntries = [
+  line("two-handed-swordsman", "\u96D9\u624B\u528D\u5175", 300, 0, 100, "long-swordsman", 75),
+  line("champion", "\u528D\u5175\u52C7\u58EB", 750, 0, 350, "two-handed-swordsman", 100),
+  line("halberdier", "\u621F\u5175", 300, 0, 600, "pikeman", 50),
+  line("arbalest", "\u5F37\u5F29\u5175", 350, 0, 300, "crossbowman", 50),
+  unit("cavalry-archer", "\u99AC\u5F13\u9A0E\u5175", 0, 40, 60, 3, 34),
+  line("heavy-cavalry-archer", "\u91CD\u88DD\u99AC\u5F13\u9A0E\u5175", 900, 0, 500, null, 50),
+  line("hussar", "\u5308\u7259\u5229\u8F15\u9A0E\u5175", 500, 0, 600, "light-cavalry", 50),
+  line("cavalier", "\u91CD\u88DD\u9A0E\u58EB", 300, 0, 300, null, 100),
+  line("paladin", "\u904A\u4FE0", 1300, 0, 750, "cavalier", 170),
+  unit("camel", "\u99F1\u99DD\u9A0E\u5175", 55, 0, 60, 3, 22),
+  line("heavy-camel", "\u91CD\u88DD\u99F1\u99DD\u9A0E\u5175", 325, 0, 365, null, 105),
+  line("capped-ram", "\u88DD\u7532\u885D\u649E\u8ECA", 300, 0, 0, null, 50),
+  line("siege-ram", "\u91CD\u578B\u885D\u649E\u8ECA", 1e3, 0, 0, "capped-ram", 75),
+  unit("mangonel", "\u8F15\u578B\u6295\u77F3\u8ECA", 0, 160, 135, 3, 46),
+  line("onager", "\u4E2D\u578B\u6295\u77F3\u8ECA", 800, 0, 500, null, 75),
+  line("siege-onager", "\u91CD\u578B\u6295\u77F3\u8ECA", 1450, 0, 1e3, "onager", 150),
+  unit("scorpion", "\u5F29\u7832", 0, 75, 75, 3, 30),
+  line("heavy-scorpion", "\u91CD\u578B\u5F29\u7832", 1e3, 1100, 0, null, 50),
+  unit("trebuchet", "\u5DE8\u578B\u6295\u77F3\u6A5F", 0, 200, 200, 4, 50),
+  unit("petard", "\u70B8\u85E5\u6876", 65, 0, 20, 3, 25),
+  // Unique techs whose targets exist from this round on (they were deferred in the civilization round).
+  upgrade("warwolf", "\u6230\u72FC\u865F", 0, 800, 400, 0, 4, 40),
+  upgrade("kataparuto", "\u5F48\u5C04\u5668", 0, 750, 400, 0, 4, 60),
+  upgrade("sipahi", "\u91C7\u9091\u9A0E\u5175", 350, 0, 150, 0, 3, 60)
+];
+var unitProducers = {
+  "two-handed-swordsman": "barracks",
+  champion: "barracks",
+  halberdier: "barracks",
+  arbalest: "archery-range",
+  "cavalry-archer": "archery-range",
+  "heavy-cavalry-archer": "archery-range",
+  hussar: "stable",
+  cavalier: "stable",
+  paladin: "stable",
+  camel: "stable",
+  "heavy-camel": "stable",
+  "capped-ram": "siege-workshop",
+  "siege-ram": "siege-workshop",
+  mangonel: "siege-workshop",
+  onager: "siege-workshop",
+  "siege-onager": "siege-workshop",
+  scorpion: "siege-workshop",
+  "heavy-scorpion": "siege-workshop",
+  trebuchet: "castle",
+  petard: "castle",
+  warwolf: "castle",
+  kataparuto: "castle",
+  sipahi: "castle"
+};
+var tech = (id, name, food, wood6, gold4, stone6, requires, time) => entry(id, "technology", name, food, wood6, gold4, stone6, requires, 0, time, aoetw);
+var techEntries = [
+  entry("university", "building", "\u5B78\u9662", 0, 200, 0, 0, ["age-3"], 0, 40, "aoetw.com/building/University; 40 s is design_default like the other buildings"),
+  tech("masonry", "\u78DA\u74E6\u6280\u8853", 150, 175, 0, 0, ["age-3"], 50),
+  tech("architecture", "\u5EFA\u7BC9\u5B78", 300, 200, 0, 0, ["age-4", "masonry"], 70),
+  tech("chemistry", "\u5316\u5B78", 300, 0, 200, 0, ["age-4"], 100),
+  tech("siege-engineers", "\u653B\u57CE\u5DE5\u7A0B\u5E2B", 500, 600, 0, 0, ["age-4"], 45),
+  tech("guard-tower", "\u9632\u79A6\u7BAD\u5854", 100, 250, 0, 0, ["age-3"], 30),
+  tech("keep", "\u5927\u578B\u7BAD\u5854", 500, 350, 0, 0, ["age-4", "guard-tower"], 75),
+  tech("treadmill-crane", "\u78E8\u574A\u6C34\u8ECA", 300, 200, 0, 0, ["age-3"], 50),
+  tech("arrowslits", "\u7BAD\u72F9\u69FD", 250, 250, 0, 0, ["age-4"], 25),
+  tech("supplies", "\u4F9B\u7D66", 150, 0, 100, 0, ["age-2"], 35),
+  tech("squires", "\u8B77\u885B\u6280\u8853", 100, 0, 0, 0, ["age-3"], 40),
+  tech("arson", "\u7E31\u706B", 150, 0, 50, 0, ["age-3"], 25),
+  tech("thumb-ring", "\u62C7\u6307\u74B0", 300, 250, 0, 0, ["age-3"], 45),
+  tech("parthian-tactics", "\u5B89\u606F\u4EBA\u6230\u8853", 200, 0, 250, 0, ["age-4"], 65),
+  tech("bloodlines", "\u54C1\u7A2E", 150, 0, 100, 0, ["age-2"], 50),
+  tech("husbandry", "\u8015\u7A2E\u6280\u8853", 150, 0, 0, 0, ["age-3"], 40),
+  tech("town-watch", "\u57CE\u93AE\u77AD\u671B", 75, 0, 0, 0, ["age-2"], 25),
+  tech("town-patrol", "\u57CE\u93AE\u5DE1\u908F", 300, 0, 100, 0, ["age-3", "town-watch"], 40),
+  tech("fervor", "\u5B97\u6559\u72C2\u71B1", 0, 0, 140, 0, ["age-3"], 50),
+  tech("herbal-medicine", "\u8349\u85E5\u6CBB\u7642", 0, 0, 350, 0, ["age-3"], 35),
+  tech("hoardings", "\u570D\u7246", 400, 400, 0, 0, ["age-4"], 75),
+  tech("sappers", "\u5175\u5DE5\u5B78", 400, 0, 200, 0, ["age-4"], 10),
+  tech("conscription", "\u5FB5\u5175\u6280\u8853", 150, 0, 150, 0, ["age-4"], 60),
+  entry("hand-cannoneer", "unit", "\u706B\u69CD\u5175", 45, 0, 50, 0, ["age-4", "chemistry"], 1, 34, aoetw),
+  entry("bombard-cannon", "unit", "\u706B\u7832", 0, 225, 225, 0, ["age-4", "chemistry"], 1, 56, aoetw),
+  // Turks' Artillery: its bombard cannon exists from this round on.
+  upgrade("artillery", "\u7832\u5175", 0, 0, 500, 450, 4, 40)
+];
+var techProducers = {
+  masonry: "university",
+  architecture: "university",
+  chemistry: "university",
+  "siege-engineers": "university",
+  "guard-tower": "university",
+  keep: "university",
+  "treadmill-crane": "university",
+  arrowslits: "university",
+  supplies: "barracks",
+  squires: "barracks",
+  arson: "barracks",
+  "thumb-ring": "archery-range",
+  "parthian-tactics": "archery-range",
+  bloodlines: "stable",
+  husbandry: "stable",
+  "town-watch": "town-center",
+  "town-patrol": "town-center",
+  fervor: "monastery",
+  "herbal-medicine": "monastery",
+  hoardings: "castle",
+  sappers: "castle",
+  conscription: "castle",
+  "hand-cannoneer": "archery-range",
+  "bombard-cannon": "siege-workshop",
+  artillery: "castle"
+};
+var building = (id, name, wood6, gold4, stone6, requires, time, page2) => entry(id, "building", name, 0, wood6, gold4, stone6, requires, 0, time, `aoetw.com/building/${page2}; build time design_default`);
+var ship = (id, name, wood6, gold4, requires, time) => entry(id, "unit", name, 0, wood6, gold4, 0, requires, 1, time, aoetw);
+var buildingEntries = [
+  building("dock", "\u78BC\u982D", 150, 0, 0, [], 15, "Dock"),
+  building("fish-trap", "\u9B5A\u7DB2", 100, 0, 0, ["age-2", "dock"], 15, "Fish_Trap"),
+  building("market", "\u5E02\u96C6", 175, 0, 0, ["age-2"], 25, "Market"),
+  building("outpost", "\u54E8\u7AD9", 25, 0, 5, [], 6, "Outpost"),
+  building("palisade-wall", "\u6728\u7246", 2, 0, 0, [], 3, "Palisade_Wall"),
+  building("palisade-gate", "\u6728\u9580", 30, 0, 0, [], 12, "Palisade_Gate"),
+  building("stone-wall", "\u77F3\u7246", 0, 0, 5, ["age-2"], 4, "Stone_Wall"),
+  building("gate", "\u57CE\u9580", 0, 0, 30, ["age-2"], 12, "Gate"),
+  building("bombard-tower", "\u706B\u7832\u5854", 0, 100, 125, ["age-4", "bombard-tower-tech"], 30, "Bombard_Tower"),
+  entry("wonder", "building", "\u4E16\u754C\u5947\u89C0", 0, 1e3, 500, 500, ["age-4"], 0, 600, "aoetw.com/building/Wonder (1000 wood, gold and stone, 3500 s); cost and time scaled to this map, design_default"),
+  // Ships (the dock) and the trade cart (the market).
+  ship("fishing-ship", "\u6F01\u8239", 75, 0, [], 40),
+  ship("transport-ship", "\u904B\u8F38\u8239", 125, 0, [], 46),
+  ship("trade-cog", "\u8CBF\u6613\u5546\u8239", 100, 50, ["age-2"], 36),
+  ship("galley", "\u6230\u8239", 90, 30, ["age-2"], 60),
+  ship("fire-galley", "\u706B\u8268\u825F", 75, 45, ["age-2"], 60),
+  ship("demolition-raft", "\u81EA\u7206\u7B4F", 70, 50, ["age-2"], 45),
+  ship("cannon-galleon", "\u706B\u7832\u6230\u8239", 200, 150, ["age-4", "chemistry"], 46),
+  ship("longboat", "\u7DAD\u4EAC\u5927\u6230\u8239", 100, 50, ["age-3"], 25),
+  entry("trade-cart", "unit", "\u8CBF\u6613\u8ECA\u968A", 0, 100, 50, 0, ["age-2"], 1, 51, aoetw),
+  // Dock upgrades: War Galley also turns fire galleys into fire ships and demolition rafts into demolition ships.
+  tech("war-galley", "\u5F29\u7832\u6230\u8239", 230, 0, 100, 0, ["age-3"], 50),
+  tech("galleon", "\u91CD\u578B\u5F29\u7832\u6230\u8239", 400, 0, 315, 0, ["age-4", "war-galley"], 65),
+  tech("fast-fire-ship", "\u91CD\u578B\u706B\u6230\u8239", 280, 0, 250, 0, ["age-4", "war-galley"], 50),
+  tech("heavy-demolition-ship", "\u91CD\u578B\u7206\u7834\u8239", 0, 200, 300, 0, ["age-4", "war-galley"], 50),
+  tech("elite-cannon-galleon", "\u7CBE\u92B3\u706B\u7832\u6230\u8239", 0, 525, 500, 0, ["age-4", "chemistry"], 30),
+  upgrade("elite-longboat", "\u7CBE\u92B3\u7DAD\u4EAC\u5927\u6230\u8239", 750, 0, 475, 0, 4, 60),
+  tech("gillnets", "\u6D41\u523A\u7DB2", 150, 0, 200, 0, ["age-3"], 45),
+  tech("careening", "\u822A\u6D77\u6280\u8853", 250, 0, 150, 0, ["age-3"], 50),
+  tech("dry-dock", "\u8239\u5862", 600, 0, 400, 0, ["age-4", "careening"], 60),
+  tech("shipwright", "\u9020\u8239\u54E1", 1e3, 0, 300, 0, ["age-4"], 60),
+  // The market's and the university's.
+  tech("caravan", "\u5546\u968A", 200, 0, 200, 0, ["age-3"], 40),
+  tech("guilds", "\u516C\u6703\u5236\u5EA6", 300, 0, 200, 0, ["age-4"], 50),
+  tech("heated-shot", "\u706B\u7BAD", 350, 0, 100, 0, ["age-3"], 30),
+  tech("fortified-wall", "\u579B\u7246", 200, 100, 0, 0, ["age-3"], 50),
+  tech("bombard-tower-tech", "\u706B\u7832\u5854\u6280\u8853", 800, 400, 0, 0, ["age-4", "chemistry"], 60),
+  // Byzantines' Greek Fire: its fire ships exist from this round on.
+  upgrade("greek-fire", "\u5E0C\u81D8\u4E4B\u706B", 250, 0, 300, 0, 3, 40)
+];
+var dockItems = ["fishing-ship", "transport-ship", "trade-cog", "galley", "fire-galley", "demolition-raft", "cannon-galleon", "longboat", "war-galley", "galleon", "fast-fire-ship", "heavy-demolition-ship", "elite-cannon-galleon", "elite-longboat", "gillnets", "careening", "dry-dock", "shipwright"];
+var buildingProducers = { ...Object.fromEntries(dockItems.map((id) => [id, "dock"])), "trade-cart": "market", caravan: "market", guilds: "market", "heated-shot": "university", "fortified-wall": "university", "bombard-tower-tech": "university", "greek-fire": "castle" };
 function civilizationsOf(entries) {
   const ids = entries.map((e) => e.id), uniqueIds = new Set(civDefs.flatMap((c) => [...c.uniqueUnits, ...c.eliteUpgrades, ...c.uniqueTechs.map((t) => t.id)]));
   return civDefs.map((c) => {
     const own = /* @__PURE__ */ new Set([...c.uniqueUnits, ...c.eliteUpgrades, ...c.uniqueTechs.map((t) => t.id)]);
     const unavailable = ids.filter((id) => c.missing.includes(id) || uniqueIds.has(id) && !own.has(id) || id === "castle" && !c.uniqueUnits.length);
-    return { id: c.id, available: ids.filter((id) => !unavailable.includes(id)), unavailable };
+    for (let grew = true; grew; ) {
+      grew = false;
+      for (const e of entries) {
+        if (unavailable.includes(e.id)) continue;
+        const producer = rules.production[e.id];
+        if (producer && unavailable.includes(producer) || e.requires.some((r) => unavailable.includes(r))) {
+          unavailable.push(e.id);
+          grew = true;
+        }
+      }
+    }
+    return { id: c.id, available: ids.filter((id) => !unavailable.includes(id)), unavailable: ids.filter((id) => unavailable.includes(id)) };
   });
 }
 var rules = {
@@ -697,7 +939,7 @@ var rules = {
   settings: { tickHz: 20, populationCap: 40, mapSize: 16, speed: 1, mode: "command-sandbox", seed: 260925, platform: "desktop browser", provenance: "design_default" },
   entries: [
     entry("villager", "unit", "\u6751\u6C11", 50, 0, 0, 0, [], 1),
-    entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 200, 0, 100),
+    entry("town-center", "building", "\u57CE\u93AE\u4E2D\u5FC3", 0, 275, 0, 100, ["age-3"], 0, 60, "aoetw.com/building/Town_Center (275 wood, 100 stone, Castle Age); 60 s is design_default"),
     entry("house", "building", "\u6C11\u5C45", 0, 30),
     entry("barracks", "building", "\u5175\u71DF", 0, 150),
     entry("farm", "building", "\u8FB2\u7530", 0, 60),
@@ -763,7 +1005,10 @@ var rules = {
     entry("age-2", "technology", "\u7B2C\u4E8C\u6642\u4EE3", 300),
     entry("age-3", "technology", "\u7B2C\u4E09\u6642\u4EE3", 500, 0, 200, 0, ["age-2"]),
     entry("age-4", "technology", "\u7B2C\u56DB\u6642\u4EE3", 800, 0, 400, 0, ["age-3"]),
-    ...castleEntries
+    ...castleEntries,
+    ...unitEntries,
+    ...techEntries,
+    ...buildingEntries
   ],
   // Which building produces each unit/technology (design_default). null = defined but not producible yet.
   production: {
@@ -823,7 +1068,10 @@ var rules = {
     wheelbarrow: "town-center",
     "hand-cart": "town-center",
     // The Castle: unique units, their elite upgrades and the unique technologies.
-    ...Object.fromEntries(castleEntries.filter((e) => e.kind !== "building").map((e) => [e.id, "castle"]))
+    ...Object.fromEntries(castleEntries.filter((e) => e.kind !== "building").map((e) => [e.id, "castle"])),
+    ...unitProducers,
+    ...techProducers,
+    ...buildingProducers
   },
   civilizations: []
 };
@@ -962,119 +1210,119 @@ function createArchGeometry(T, width, height, depth) {
 var militaryBuildings = ["barracks", "archery-range", "stable"];
 function militaryBuildingParts(kind, v) {
   if (!militaryBuildings.includes(kind) || ![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u8ECD\u4E8B\u5EFA\u7BC9\u5916\u89C0");
-  const p = [], team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", stone2 = "#b5b29e", top = 1.44 + (v.ageVariant - 1) * 0.16;
+  const p = [], team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", stone6 = "#b5b29e", top = 1.44 + (v.ageVariant - 1) * 0.16;
   const add = (id, phase, x, z, y, w, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
   if (kind === "archery-range") {
     for (const x of [0.1, 2.5]) {
-      add(`fence-post-${x}`, 1, x, 0.12, 0.16, 0.13, 2.1, 0.5, wood2);
+      add(`fence-post-${x}`, 1, x, 0.12, 0.16, 0.13, 2.1, 0.5, wood6);
     }
-    add("backstop", 1, 0.1, 0.12, 0.16, 2.53, 0.18, 1.1, wood2);
+    add("backstop", 1, 0.1, 0.12, 0.16, 2.53, 0.18, 1.1, wood6);
     for (const x of [0.36, 1.67]) {
-      add(`target-leg-${x}`, 2, x + 0.23, 0.75, 0.16, 0.1, 0.2, 0.75, wood2);
+      add(`target-leg-${x}`, 2, x + 0.23, 0.75, 0.16, 0.1, 0.2, 0.75, wood6);
       add(`target-board-${x}`, 2, x, 0.72, 0.83, 0.56, 0.16, 0.6, "#cfbd87");
       add(`target-ring-${x}`, 3, x + 0.1, 0.88, 0.93, 0.36, 0.03, 0.4, "#aa5c48");
       add(`target-center-${x}`, 3, x + 0.2, 0.91, 1.03, 0.16, 0.03, 0.2, "#e5d4a8");
     }
-    add("arrow-rack", 3, 0.22, 2.3, 0.16, 0.7, 0.27, 0.4, wood2);
+    add("arrow-rack", 3, 0.22, 2.3, 0.16, 0.7, 0.27, 0.4, wood6);
     for (let i = 0; i < 4; i++) add(`arrow-${i}`, 3, 0.3 + i * 0.14, 2.4, 0.56, 0.03, 0.03, 0.42, "#d2be8f");
   } else {
-    for (const x of [0.1, 2.44]) for (const z of [0.1, 1.65]) add(`post-${x}-${z}`, 1, x, z, 0.16, 0.16, 0.16, top - 0.16, v.ageVariant >= 3 ? stone2 : wood2);
-    add("back-wall", 1, 0.1, 0.1, 0.16, 2.5, 0.15, top - 0.16, kind === "stable" ? wood2 : stone2);
+    for (const x of [0.1, 2.44]) for (const z of [0.1, 1.65]) add(`post-${x}-${z}`, 1, x, z, 0.16, 0.16, 0.16, top - 0.16, v.ageVariant >= 3 ? stone6 : wood6);
+    add("back-wall", 1, 0.1, 0.1, 0.16, 2.5, 0.15, top - 0.16, kind === "stable" ? wood6 : stone6);
     for (let level = 0; level < 3; level++) add(`roof-${level}`, 2, -0.05 + level * 0.28, -0.05, top + level * 0.16, 2.9 - level * 0.56, 1.98, 0.16, v.ageVariant === 1 ? "#b8a074" : team2, true);
     if (kind === "barracks") {
       add("drill-floor", 1, 0.3, 1.85, 0.16, 2.1, 0.85, 0.08, "#a59a76");
-      add("weapon-rack", 3, 0.3, 0.5, 0.16, 0.15, 1.1, 0.75, wood2);
+      add("weapon-rack", 3, 0.3, 0.5, 0.16, 0.15, 1.1, 0.75, wood6);
       for (let i = 0; i < 3; i++) {
-        add(`spear-shaft-${i}`, 3, 0.32, 0.6 + i * 0.3, 0.16, 0.04, 0.04, 1.15, wood2);
+        add(`spear-shaft-${i}`, 3, 0.32, 0.6 + i * 0.3, 0.16, 0.04, 0.04, 1.15, wood6);
         add(`spear-point-${i}`, 3, 0.28, 0.58 + i * 0.3, 1.31, 0.12, 0.08, 0.2, "#bdc5bd");
       }
       for (const x of [0.5, 1.05, 1.6]) {
-        add(`shield-support-${x}`, 3, x, 1.9, 0.24, 0.08, 0.15, 0.62, wood2);
+        add(`shield-support-${x}`, 3, x, 1.9, 0.24, 0.08, 0.15, 0.62, wood6);
         add(`shield-${x}`, 3, x - 0.08, 2.02, 0.43, 0.36, 0.08, 0.44, team2);
         add(`shield-boss-${x}`, 3, x + 0.04, 2.1, 0.57, 0.1, 0.04, 0.12, "#bca36f");
       }
     } else {
       for (const x of [0.15, 1.75]) {
-        add(`stall-divider-${x}`, 1, x, 0.35, 0.16, 0.1, 1.3, 0.65, wood2);
+        add(`stall-divider-${x}`, 1, x, 0.35, 0.16, 0.1, 1.3, 0.65, wood6);
         add(`hay-${x}`, 3, x + 0.16, 0.4, 0.16, 0.62, 0.55, 0.3, "#beac69", true);
       }
-      add("trough-base", 3, 0.6, 2.03, 0.16, 1.5, 0.4, 0.12, wood2);
-      for (const z of [2.03, 2.35]) add(`trough-rim-${z}`, 3, 0.6, z, 0.28, 1.5, 0.08, 0.2, wood2);
-      for (const x of [0.6, 2.02]) add(`trough-end-${x}`, 3, x, 2.11, 0.28, 0.08, 0.24, 0.2, wood2);
+      add("trough-base", 3, 0.6, 2.03, 0.16, 1.5, 0.4, 0.12, wood6);
+      for (const z of [2.03, 2.35]) add(`trough-rim-${z}`, 3, 0.6, z, 0.28, 1.5, 0.08, 0.2, wood6);
+      for (const x of [0.6, 2.02]) add(`trough-end-${x}`, 3, x, 2.11, 0.28, 0.08, 0.24, 0.2, wood6);
       add("trough-water", 3, 0.69, 2.12, 0.28, 1.32, 0.22, 0.035, "#6a9297");
-      add("saddle-rack", 3, 2.48, 0.9, 0.16, 0.12, 0.15, 0.85, wood2);
+      add("saddle-rack", 3, 2.48, 0.9, 0.16, 0.12, 0.15, 0.85, wood6);
       add("spare-saddle", 3, 2.3, 0.84, 1.01, 0.45, 0.4, 0.16, "#716045");
     }
   }
   if (v.ageVariant >= 2) {
     if (kind === "archery-range") {
-      for (const x of [0.1, 2.44]) add(`canopy-post-${x}`, 1, x, 0.12, 0.16, 0.16, 0.18, top - 0.16, wood2);
-      add("canopy-beam", 1, 0.1, 0.12, top, 2.5, 0.18, 0.16, wood2);
+      for (const x of [0.1, 2.44]) add(`canopy-post-${x}`, 1, x, 0.12, 0.16, 0.16, 0.18, top - 0.16, wood6);
+      add("canopy-beam", 1, 0.1, 0.12, top, 2.5, 0.18, 0.16, wood6);
       add("canopy-roof", 2, -0.05, -0.02, top + 0.16, 2.8, 0.7, 0.16, team2, true);
     } else {
-      for (const x of [0.1, 2.44]) add(`porch-foot-${x}`, 1, x - 0.07, 1.58, 0.16, 0.3, 0.3, 0.32, stone2);
-      add("porch-beam", 1, 0.1, 1.65, top - 0.16, 2.5, 0.16, 0.16, wood2);
+      for (const x of [0.1, 2.44]) add(`porch-foot-${x}`, 1, x - 0.07, 1.58, 0.16, 0.3, 0.3, 0.32, stone6);
+      add("porch-beam", 1, 0.1, 1.65, top - 0.16, 2.5, 0.16, 0.16, wood6);
       add("ridge-cap", 2, 0.79, -0.05, top + 0.48, 1.22, 1.98, 0.16, team2, true);
     }
   }
   if (v.ageVariant >= 3) {
     if (kind === "archery-range") {
-      add("stone-backstop", 1, 0.1, -0.04, 0.16, 2.5, 0.16, 1.28, stone2);
-      for (const x of [0.1, 2.3]) add(`backstop-buttress-${x}`, 1, x, 0.13, 0.16, 0.3, 0.35, 1.12, stone2);
-      for (let i = 0; i < 5; i++) add(`backstop-crenel-${i}`, 2, 0.1 + i * 0.5, -0.04, 1.44, 0.3, 0.16, 0.24, stone2, true);
+      add("stone-backstop", 1, 0.1, -0.04, 0.16, 2.5, 0.16, 1.28, stone6);
+      for (const x of [0.1, 2.3]) add(`backstop-buttress-${x}`, 1, x, 0.13, 0.16, 0.3, 0.35, 1.12, stone6);
+      for (let i = 0; i < 5; i++) add(`backstop-crenel-${i}`, 2, 0.1 + i * 0.5, -0.04, 1.44, 0.3, 0.16, 0.24, stone6, true);
     } else {
-      for (const z of [0.1, 1.6]) for (const x of [-0.05, 2.6]) add(`buttress-${x}-${z}`, 1, x, z, 0.16, 0.15, 0.3, top - 0.16, stone2);
-      add("porch-arch", 1, 0.26, 1.65, 0.16, 2.18, 0.16, top - 0.16, stone2, false, "arch");
+      for (const z of [0.1, 1.6]) for (const x of [-0.05, 2.6]) add(`buttress-${x}-${z}`, 1, x, z, 0.16, 0.15, 0.3, top - 0.16, stone6);
+      add("porch-arch", 1, 0.26, 1.65, 0.16, 2.18, 0.16, top - 0.16, stone6, false, "arch");
     }
   }
   if (v.ageVariant === 4) {
     if (kind === "archery-range") {
       for (const x of [0.1, 2.2]) {
-        add(`turret-base-${x}`, 2, x, 0.05, top + 0.32, 0.4, 0.4, 0.16, stone2);
-        for (const dx of [0, 0.28]) add(`turret-post-${x}-${dx}`, 3, x + dx, 0.05, top + 0.48, 0.12, 0.4, 0.48, stone2);
+        add(`turret-base-${x}`, 2, x, 0.05, top + 0.32, 0.4, 0.4, 0.16, stone6);
+        for (const dx of [0, 0.28]) add(`turret-post-${x}-${dx}`, 3, x + dx, 0.05, top + 0.48, 0.12, 0.4, 0.48, stone6);
         add(`turret-cap-${x}`, 3, x - 0.05, 0, top + 0.96, 0.5, 0.5, 0.16, team2, true);
       }
     } else {
       const base = top + 0.64;
-      add("vent-base", 2, 0.91, 0.5, base, 0.96, 0.8, 0.16, stone2);
-      for (const x of [0.91, 1.71]) for (const z of [0.5, 1.14]) add(`vent-post-${x}-${z}`, 3, x, z, base + 0.16, 0.16, 0.16, 0.48, stone2);
+      add("vent-base", 2, 0.91, 0.5, base, 0.96, 0.8, 0.16, stone6);
+      for (const x of [0.91, 1.71]) for (const z of [0.5, 1.14]) add(`vent-post-${x}-${z}`, 3, x, z, base + 0.16, 0.16, 0.16, 0.48, stone6);
       add("vent-cap", 3, 0.83, 0.42, base + 0.64, 1.12, 0.96, 0.16, team2, true);
       add("vent-crown", 4, 1.07, 0.58, base + 0.8, 0.64, 0.64, 0.16, team2, true);
     }
   }
-  add("flag-pole", 4, 2.67, 2.63, 0.16, 0.06, 0.06, 1.6, wood2);
+  add("flag-pole", 4, 2.67, 2.63, 0.16, 0.06, 0.06, 1.6, wood6);
   add("flag", 4, 2.24, 2.63, 1.42, 0.44, 0.05, 0.28, team2);
-  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: wood2, studs: false }))];
+  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: wood6, studs: false }))];
   return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "flag" || a.id.startsWith("target-center") || a.id === "vent-crown" || a.id.startsWith("backstop-crenel")));
 }
 
 // apps/web/monastery-building.ts
 function monasteryParts(v) {
   if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u4FEE\u9053\u9662\u5916\u89C0");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", lime2 = "#d8cfb6", stone2 = "#b9b39d", roof = age === 1 ? "#b8a074" : team2;
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", lime3 = "#d8cfb6", stone6 = "#b9b39d", roof = age === 1 ? "#b8a074" : team2;
   const add = (id, phase, x, z, y, w, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
   const wallTop = 1.12 + (age >= 3 ? 0.32 : 0), towerTop = age <= 2 ? 2.24 : 2.56 + (age === 4 ? 0.32 : 0);
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
-  add("nave", 1, 0.2, 0.3, 0.16, 1.6, 2.2, wallTop - 0.16, lime2);
+  add("nave", 1, 0.2, 0.3, 0.16, 1.6, 2.2, wallTop - 0.16, lime3);
   add("door", 1, 0.75, 2.46, 0.16, 0.5, 0.08, 0.72, "#6e5a44", false, "arch");
   for (const z of [0.8, 1.6]) for (const x of [0.16, 1.76]) add(`window-${x}-${z}`, 1, x, z, 0.62, 0.08, 0.26, 0.36, "#5b5040");
   for (let level = 0; level < 3; level++) add(`roof-${level}`, 2, 0.1 + level * 0.3, 0.2, wallTop + level * 0.16, 1.8 - level * 0.6, 2.4, 0.16, roof, true);
-  add("tower", 1, 2, 0.25, 0.16, 0.7, 0.7, towerTop - 0.16, age <= 2 ? wood2 : stone2);
-  for (const x of [2, 2.56]) for (const z of [0.25, 0.81]) add(`belfry-post-${x}-${z}`, 2, x, z, towerTop, 0.14, 0.14, 0.48, age <= 2 ? wood2 : stone2);
-  add("belfry-plate", 2, 2, 0.25, towerTop + 0.48, 0.7, 0.7, 0.12, wood2);
+  add("tower", 1, 2, 0.25, 0.16, 0.7, 0.7, towerTop - 0.16, age <= 2 ? wood6 : stone6);
+  for (const x of [2, 2.56]) for (const z of [0.25, 0.81]) add(`belfry-post-${x}-${z}`, 2, x, z, towerTop, 0.14, 0.14, 0.48, age <= 2 ? wood6 : stone6);
+  add("belfry-plate", 2, 2, 0.25, towerTop + 0.48, 0.7, 0.7, 0.12, wood6);
   add("bell", 3, 2.24, 0.49, towerTop + 0.26, 0.22, 0.22, 0.22, "#b8964a");
   add("bell-rope", 3, 2.33, 0.58, towerTop + 0.1, 0.04, 0.04, 0.16, "#d8c48a");
-  add("belfry-floor", 2, 2, 0.25, towerTop - 0.02, 0.7, 0.7, 0.02, stone2);
+  add("belfry-floor", 2, 2, 0.25, towerTop - 0.02, 0.7, 0.7, 0.02, stone6);
   add("tower-cap", 3, 1.95, 0.2, towerTop + 0.6, 0.8, 0.8, 0.16, roof, true);
   add("tower-cap-2", 3, 2.1, 0.35, towerTop + 0.76, 0.5, 0.5, 0.16, roof, true);
   add("garden-soil", 1, 2, 1.35, 0.16, 0.7, 1.25, 0.06, "#8a6a48");
-  for (const z of [1.35, 2.5]) add(`garden-wall-${z}`, 2, 2, z, 0.22, 0.7, 0.1, 0.24, stone2);
-  add("garden-wall-side", 2, 2.6, 1.45, 0.22, 0.1, 1.05, 0.24, stone2);
+  for (const z of [1.35, 2.5]) add(`garden-wall-${z}`, 2, 2, z, 0.22, 0.7, 0.1, 0.24, stone6);
+  add("garden-wall-side", 2, 2.6, 1.45, 0.22, 0.1, 1.05, 0.24, stone6);
   for (const z of [1.6, 1.95, 2.25]) add(`herb-${z}`, 3, 2.2, z, 0.22, 0.26, 0.2, 0.16, "#6f8a55", true);
-  if (age >= 2) for (const z of [0.3, 2.34]) add(`plinth-${z}`, 1, 0.14, z, 0.16, 1.72, 0.16, 0.24, stone2);
+  if (age >= 2) for (const z of [0.3, 2.34]) add(`plinth-${z}`, 1, 0.14, z, 0.16, 1.72, 0.16, 0.24, stone6);
   if (age >= 3) {
-    for (const z of [0.6, 1.4]) for (const x of [0.05, 1.8]) add(`buttress-${x}-${z}`, 1, x, z, 0.16, 0.15, 0.3, wallTop - 0.48, stone2);
+    for (const z of [0.6, 1.4]) for (const x of [0.05, 1.8]) add(`buttress-${x}-${z}`, 1, x, z, 0.16, 0.15, 0.3, wallTop - 0.48, stone6);
     add("roof-ridge", 2, 0.5, 0.3, wallTop + 0.48, 1, 2.2, 0.16, roof, true);
   }
   if (age === 4) {
@@ -1082,45 +1330,45 @@ function monasteryParts(v) {
     add("finial", 4, 2.3, 0.5, towerTop + 1.4, 0.1, 0.2, 0.16, "#c9a55a");
     add("rose-window", 3, 0.84, 2.5, wallTop - 0.46, 0.32, 0.03, 0.32, "#c9a55a");
   }
-  add("flag-pole", 4, 0.02, 2.63, 0.16, 0.06, 0.06, 1.6, wood2);
+  add("flag-pole", 4, 0.02, 2.63, 0.16, 0.06, 0.06, 1.6, wood6);
   add("flag", 4, 0.08, 2.63, 1.42, 0.44, 0.05, 0.28, team2);
-  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: lime2, studs: false }))];
+  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: lime3, studs: false }))];
   return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "flag" || a.id === "bell" || a.id === "bell-rope" || a.id === "finial"));
 }
 
 // apps/web/blacksmith-building.ts
 function blacksmithParts(v) {
   if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u9435\u5320\u92EA\u5916\u89C0");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", stone2 = "#a9a693", dark2 = "#5d5a52", roof = age === 1 ? "#b8a074" : team2;
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", stone6 = "#a9a693", dark6 = "#5d5a52", roof = age === 1 ? "#b8a074" : team2;
   const add = (id, phase, x, z, y, w, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
   const top = 1.28 + (age >= 3 ? 0.16 : 0);
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
-  add("back-wall", 1, 0.1, 0.1, 0.16, 2.5, 0.2, top - 0.16, stone2);
-  for (const x of [0.1, 2.4]) add(`side-wall-${x}`, 1, x, 0.3, 0.16, 0.2, 1.5, top - 0.16, stone2);
+  add("back-wall", 1, 0.1, 0.1, 0.16, 2.5, 0.2, top - 0.16, stone6);
+  for (const x of [0.1, 2.4]) add(`side-wall-${x}`, 1, x, 0.3, 0.16, 0.2, 1.5, top - 0.16, stone6);
   for (let level = 0; level < 2; level++) add(`roof-${level}`, 2, -0.05 + level * 0.3, -0.05, top + level * 0.16, 2.9 - level * 0.6, 1.95, 0.16, roof, true);
-  add("chimney", 2, 1.75, 0.1, 0.16, 0.5, 0.5, top + 0.9, dark2);
+  add("chimney", 2, 1.75, 0.1, 0.16, 0.5, 0.5, top + 0.9, dark6);
   add("chimney-cap", 3, 1.7, 0.05, top + 1.06, 0.6, 0.6, 0.1, "#4a4740");
-  add("hearth", 1, 1.7, 0.62, 0.16, 0.6, 0.4, 0.36, dark2);
+  add("hearth", 1, 1.7, 0.62, 0.16, 0.6, 0.4, 0.36, dark6);
   add("hearth-fire", 3, 1.8, 0.7, 0.52, 0.4, 0.25, 0.1, "#e8793c");
-  add("stump", 3, 0.95, 1.95, 0.16, 0.36, 0.36, 0.3, wood2);
+  add("stump", 3, 0.95, 1.95, 0.16, 0.36, 0.36, 0.3, wood6);
   add("anvil", 3, 0.88, 1.97, 0.46, 0.5, 0.3, 0.14, "#6b6f6c");
   add("anvil-horn", 3, 1.38, 2.03, 0.5, 0.14, 0.18, 0.08, "#6b6f6c");
-  add("tub", 3, 1.7, 2.05, 0.16, 0.42, 0.42, 0.3, wood2);
+  add("tub", 3, 1.7, 2.05, 0.16, 0.42, 0.42, 0.3, wood6);
   add("tub-water", 3, 1.76, 2.11, 0.44, 0.3, 0.3, 0.03, "#6a9297");
-  add("rack", 3, 0.3, 0.5, 0.16, 0.15, 1.1, 0.75, wood2);
+  add("rack", 3, 0.3, 0.5, 0.16, 0.15, 1.1, 0.75, wood6);
   for (let i = 0; i < 3; i++) add(`blade-${i}`, 3, 0.28, 0.6 + i * 0.3, 0.3, 0.06, 0.06, 0.7, "#c6cfca");
   if (age >= 2) {
-    add("porch-beam", 1, 0.1, 1.75, top - 0.16, 2.5, 0.16, 0.16, wood2);
-    for (const x of [0.1, 2.44]) add(`porch-post-${x}`, 1, x, 1.75, 0.16, 0.16, 0.16, top - 0.32, wood2);
+    add("porch-beam", 1, 0.1, 1.75, top - 0.16, 2.5, 0.16, 0.16, wood6);
+    for (const x of [0.1, 2.44]) add(`porch-post-${x}`, 1, x, 1.75, 0.16, 0.16, 0.16, top - 0.32, wood6);
   }
-  if (age >= 3) for (const x of [-0.05, 2.6]) add(`buttress-${x}`, 1, x, 0.3, 0.16, 0.15, 0.3, top - 0.32, stone2);
+  if (age >= 3) for (const x of [-0.05, 2.6]) add(`buttress-${x}`, 1, x, 0.3, 0.16, 0.15, 0.3, top - 0.32, stone6);
   if (age === 4) {
     add("bellows", 4, 2, 0.7, 0.16, 0.3, 0.4, 0.3, "#7a5c40");
     add("ridge-crest", 4, 0.9, 0.4, top + 0.32, 1, 1.2, 0.16, roof, true);
   }
-  add("flag-pole", 4, 2.67, 2.63, 0.16, 0.06, 0.06, 1.6, wood2);
+  add("flag-pole", 4, 2.67, 2.63, 0.16, 0.06, 0.06, 1.6, wood6);
   add("flag", 4, 2.24, 2.63, 1.42, 0.44, 0.05, 0.28, team2);
-  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: stone2, studs: false }))];
+  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: stone6, studs: false }))];
   return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "flag" || a.id === "hearth-fire" || a.id === "chimney-cap"));
 }
 
@@ -1132,80 +1380,166 @@ function finish(p, v, debris, keep) {
   if (v.health === 0) return [p[0], ...Array.from({ length: 6 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: i % 3 * 0.3, z: Math.floor(i / 3) * 0.4, y: 0.12, w: 0.26, d: 0.24, h: 0.1, color: debris, studs: false }))];
   return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || keep(a.id));
 }
-function towerParts(v) {
+var towerGrades = ["guard-tower", "keep"];
+var towerGradeOf = (techs2) => techs2.includes("keep") ? "keep" : techs2.includes("guard-tower") ? "guard-tower" : null;
+var towerLift = (grade) => grade === "keep" ? 0.64 : grade === "guard-tower" ? 0.32 : 0;
+function towerParts(v, grade = null) {
   check2(v, "\u7BAD\u5854");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", stone2 = "#b5b29e", roof = age === 1 ? "#b8a074" : team2;
+  if (grade !== null && !towerGrades.includes(grade)) throw Error("\u7121\u6548\u7BAD\u5854\u5347\u7D1A\u5916\u89C0");
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", stone6 = "#b5b29e", roof = age === 1 ? "#b8a074" : team2;
   const add = (id, phase, x, z, y, w, d, h2, color, studs = false) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs });
-  const shaft2 = 1.6 + (age - 1) * 0.24;
+  const shaft2 = 1.6 + (age - 1) * 0.24 + towerLift(grade), top = grade ? stone6 : wood6;
   add("foundation", 0, -0.05, -0.05, 0, 1.1, 1.1, 0.12, "#b3aa8c");
-  add("shaft", 1, 0.08, 0.08, 0.12, 0.84, 0.84, shaft2 * 0.55, stone2);
-  add("shaft-upper", 2, 0.14, 0.14, 0.12 + shaft2 * 0.55, 0.72, 0.72, shaft2 * 0.45, stone2);
+  add("shaft", 1, 0.08, 0.08, 0.12, 0.84, 0.84, shaft2 * 0.55, stone6);
+  add("shaft-upper", 2, 0.14, 0.14, 0.12 + shaft2 * 0.55, 0.72, 0.72, shaft2 * 0.45, stone6);
   add("door", 1, 0.36, 0.9, 0.12, 0.28, 0.04, 0.4, "#6e5a44");
-  add("lookout", 3, 0, 0, 0.12 + shaft2, 1, 1, 0.14, wood2);
-  for (const [x, z] of [[0, 0], [0.84, 0], [0, 0.84], [0.84, 0.84]]) add(`post-${x}-${z}`, 3, x, z, 0.26 + shaft2, 0.16, 0.16, 0.36, wood2);
+  add("lookout", 3, 0, 0, 0.12 + shaft2, 1, 1, 0.14, top);
+  for (const [x, z] of [[0, 0], [0.84, 0], [0, 0.84], [0.84, 0.84]]) add(`post-${x}-${z}`, 3, x, z, 0.26 + shaft2, 0.16, 0.16, 0.36, top);
+  if (grade) for (const [x, z, w, d] of [[0.16, 0, 0.18, 0.08], [0.66, 0, 0.18, 0.08], [0.16, 0.92, 0.18, 0.08], [0.66, 0.92, 0.18, 0.08], [0, 0.16, 0.08, 0.18], [0, 0.66, 0.08, 0.18], [0.92, 0.16, 0.08, 0.18], [0.92, 0.66, 0.08, 0.18]]) add(`${grade}-merlon-${x}-${z}`, 3, x, z, 0.26 + shaft2, w, d, 0.16, stone6);
+  if (grade === "keep") for (const [x, z, w, d] of [[0.08, 0, 0.84, 0.08], [0.08, 0.92, 0.84, 0.08], [0, 0.08, 0.08, 0.84], [0.92, 0.08, 0.08, 0.84]]) add(`keep-corbel-${x}-${z}`, 3, x, z, shaft2, w, d, 0.12, "#9d9a88");
   add("roof", 4, -0.06, -0.06, 0.62 + shaft2, 1.12, 1.12, 0.14, roof, true);
   add("roof-top", 4, 0.2, 0.2, 0.76 + shaft2, 0.6, 0.6, 0.14, roof, true);
+  if (grade === "keep") add("roof-spire", 4, 0.35, 0.35, 0.9 + shaft2, 0.3, 0.3, 0.2, roof);
   if (age >= 3) for (let i = 0; i < 4; i++) {
     const y = 0.5 + i * 0.3, upper = y >= 0.12 + shaft2 * 0.55;
     add(`slit-${i}`, 2, 0.47, i % 2 ? upper ? 0.12 : 0.1 : upper ? 0.86 : 0.9, y, 0.06, 0.02, 0.2, "#4a4740");
   }
-  add("flag", 4, 0.46, 0.46, 0.9 + shaft2, 0.06, 0.06, 0.5, wood2);
-  add("pennant", 4, 0.52, 0.46, 1.22 + shaft2, 0.3, 0.04, 0.16, team2);
-  return finish(p, v, stone2, (id) => !(id === "pennant" || id === "roof-top" || id === "flag"));
+  const flagBase = grade === "keep" ? 1.1 + shaft2 : 0.9 + shaft2;
+  add("flag", 4, 0.46, 0.46, flagBase, 0.06, 0.06, 0.5, wood6);
+  add("pennant", 4, 0.52, 0.46, flagBase + 0.32, 0.3, 0.04, 0.16, team2);
+  return finish(p, v, stone6, (id) => !(id === "pennant" || id === "roof-top" || id === "flag" || id === "roof-spire"));
 }
 function siegeWorkshopParts(v) {
   check2(v, "\u653B\u57CE\u5668\u5DE5\u574A");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", dark2 = "#6e5438", roof = age === 1 ? "#b8a074" : team2;
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", dark6 = "#6e5438", roof = age === 1 ? "#b8a074" : team2;
   const add = (id, phase, x, z, y, w, d, h2, color, studs = false) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs });
   const top = 1.44;
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
-  for (const x of [0.1, 2.44]) for (const z of [0.1, 1.65]) add(`post-${x}-${z}`, 1, x, z, 0.16, 0.16, 0.16, top - 0.16, wood2);
-  add("back-wall", 1, 0.1, 0.1, 0.16, 2.5, 0.15, top - 0.16, wood2);
+  for (const x of [0.1, 2.44]) for (const z of [0.1, 1.65]) add(`post-${x}-${z}`, 1, x, z, 0.16, 0.16, 0.16, top - 0.16, wood6);
+  add("back-wall", 1, 0.1, 0.1, 0.16, 2.5, 0.15, top - 0.16, wood6);
   for (let level = 0; level < 2; level++) add(`roof-${level}`, 2, -0.05 + level * 0.35, -0.05, top + level * 0.16, 2.9 - level * 0.7, 1.98, 0.16, roof, true);
-  add("ram-bed", 3, 0.5, 0.6, 0.16, 1.6, 0.7, 0.12, dark2);
-  add("ram-log", 3, 0.45, 0.8, 0.4, 1.8, 0.3, 0.3, wood2);
-  for (const x of [0.6, 1.8]) add(`ram-rib-${x}`, 3, x, 0.6, 0.28, 0.1, 0.7, 0.6, dark2);
-  for (let i = 0; i < 3; i++) add(`log-${i}`, 3, 0.3, 2.05 + i * 0.2, 0.16, 1.4, 0.18, 0.18, wood2);
-  add("log-top", 3, 0.5, 2.15, 0.34, 1, 0.18, 0.18, wood2);
-  add("wheel", 3, 2.1, 2, 0.16, 0.14, 0.6, 0.6, dark2);
+  add("ram-bed", 3, 0.5, 0.6, 0.16, 1.6, 0.7, 0.12, dark6);
+  add("ram-log", 3, 0.45, 0.8, 0.4, 1.8, 0.3, 0.3, wood6);
+  for (const x of [0.6, 1.8]) add(`ram-rib-${x}`, 3, x, 0.6, 0.28, 0.1, 0.7, 0.6, dark6);
+  for (let i = 0; i < 3; i++) add(`log-${i}`, 3, 0.3, 2.05 + i * 0.2, 0.16, 1.4, 0.18, 0.18, wood6);
+  add("log-top", 3, 0.5, 2.15, 0.34, 1, 0.18, 0.18, wood6);
+  add("wheel", 3, 2.1, 2, 0.16, 0.14, 0.6, 0.6, dark6);
   add("wheel-hub", 3, 2.08, 2.2, 0.36, 0.18, 0.2, 0.2, "#c9a55a");
-  if (age >= 3) add("crane-arm", 4, 2.2, 0.3, top - 0.1, 0.14, 1.2, 0.14, wood2);
-  add("flag-pole", 4, 2.67, 2.63, 0.16, 0.06, 0.06, 1.6, wood2);
+  if (age >= 3) add("crane-arm", 4, 2.2, 0.3, top - 0.1, 0.14, 1.2, 0.14, wood6);
+  add("flag-pole", 4, 2.67, 2.63, 0.16, 0.06, 0.06, 1.6, wood6);
   add("flag", 4, 2.24, 2.63, 1.42, 0.44, 0.05, 0.28, team2);
-  return finish(p, v, wood2, (id) => !(id === "flag" || id === "crane-arm"));
+  return finish(p, v, wood6, (id) => !(id === "flag" || id === "crane-arm"));
+}
+
+// apps/web/university-building.ts
+function universityParts(v) {
+  if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u5B78\u9662\u5916\u89C0");
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87";
+  const wood6 = "#94734c", oak3 = "#6e5438", plaster = "#e3d7b8", sand4 = "#d6b77e", stone6 = "#c4bba2", straw3 = "#b8a074", dark6 = "#4a4740", brass2 = "#b8964a", gilt5 = "#c9a55a", paper = "#efe6cc", leather2 = "#7a4a32";
+  const add = (id, phase, x, z, y, w, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
+  const f = obstacleFootprints.university;
+  add("foundation", 0, f.x / 100, f.y / 100, 0, f.width / 100, f.depth / 100, 0.16, "#b3aa8c");
+  const wall = age === 1 ? plaster : sand4, roof = age === 1 ? straw3 : team2, trim2 = age === 1 ? wood6 : stone6;
+  const wallTop = 1.28 + (age >= 3 ? 0.32 : 0), beamY = wallTop - 0.36, towerTop = [1.9, 2.2, 2.5, 2.8][age - 1];
+  add("hall", 1, 0.05, 0.1, 0.16, 2, 1.4, wallTop - 0.16, wall);
+  if (age === 1) {
+    for (const x of [0.05, 1.95]) add(`timber-front-${x}`, 1, x, 1.5, 0.24, 0.1, 0.06, beamY - 0.24, wood6);
+    for (const z of [0.1, 1.4]) add(`timber-side-${z}`, 1, 2.05, z, 0.16, 0.06, 0.1, wallTop - 0.16, wood6);
+  } else add("plinth", 1, 2.05, 0.1, 0.16, 0.06, 1.4, 0.2, stone6);
+  add("porch", 1, 0.1, 1.5, 0.16, 1.9, 0.5, 0.08, trim2);
+  add("step", 1, 0.7, 2, 0.16, 0.7, 0.18, 0.05, trim2);
+  for (const [i, x] of [0.18, 0.62, 1.34, 1.78].entries()) add(`column-${i}`, 1, x, 1.76, 0.24, 0.14, 0.14, beamY - 0.24, age === 1 ? wood6 : "#e6dcc3");
+  add("porch-beam", 2, 0.1, 1.5, beamY, 1.9, 0.42, 0.14, trim2);
+  const tiers = age >= 3 ? 4 : 3;
+  for (let level = 0; level < tiers; level++) add(`roof-${level}`, 2, -0.05 + level * 0.25, level * 0.15, wallTop + level * 0.16, 2.2 - level * 0.5, 1.6 - level * 0.3, 0.16, roof, true);
+  add("door", 3, 0.82, 1.5, 0.24, 0.46, 0.04, age >= 3 ? 0.8 : 0.64, "#5a4632", false, "arch");
+  for (const x of [0.36, 1.46]) add(`window-front-${x}`, 3, x, 1.5, 0.62, 0.24, 0.03, age >= 3 ? 0.5 : 0.26, "#3f4a4c", false, age >= 3 ? "arch" : void 0);
+  for (const z of [0.82, 1.14]) add(`window-side-${z}`, 3, 2.05, z, 0.66, 0.03, 0.2, 0.3, "#3f4a4c");
+  add("lectern-post", 3, 0.46, 1.66, 0.24, 0.06, 0.06, 0.34, oak3);
+  add("lectern-top", 3, 0.4, 1.6, 0.58, 0.2, 0.16, 0.05, oak3);
+  add("book", 3, 0.42, 1.62, 0.63, 0.16, 0.12, 0.025, leather2);
+  add("book-pages", 3, 0.43, 1.63, 0.655, 0.14, 0.1, 0.02, paper);
+  add("scroll-rack", 1, -0.1, 0.35, 0.16, 0.15, 0.9, 0.78, oak3);
+  for (let row = 0; row < 3; row++) for (let col = 0; col < 4; col++) add(`scroll-${row}-${col}`, 3, -0.13, 0.42 + col * 0.2, 0.26 + row * 0.22, 0.03, 0.1, 0.1, paper);
+  add("tower", 1, 2.15, 0.1, 0.16, 0.6, 0.6, towerTop - 0.16, age === 1 ? wood6 : stone6);
+  add("tower-deck", 2, 2.1, 0.05, towerTop, 0.7, 0.7, 0.1, trim2);
+  const deck3 = towerTop + 0.1;
+  if (age <= 2) {
+    add("tower-cap", 2, 2.15, 0.1, deck3, 0.6, 0.6, 0.16, roof, true);
+    add("tower-cap-2", 2, 2.3, 0.25, deck3 + 0.16, 0.3, 0.3, 0.16, roof, true);
+    for (const [x, z] of [[2.1, 0.05], [2.75, 0.05], [2.1, 0.7], [2.75, 0.7]]) add(`rail-${x}-${z}`, 3, x, z, deck3, 0.05, 0.05, 0.14, oak3);
+  } else {
+    add("observatory", 3, 2.2, 0.15, deck3, 0.5, 0.5, 0.32, stone6);
+    add("sight-slit", 3, 2.41, 0.65, deck3 + 0.04, 0.08, 0.02, 0.26, dark6);
+    add("observatory-cap", 3, 2.15, 0.1, deck3 + 0.32, 0.6, 0.6, 0.12, roof, true);
+    add("observatory-cap-2", 3, 2.3, 0.25, deck3 + 0.44, 0.3, 0.3, 0.12, roof, true);
+    add("telescope", 4, 2.42, 0.67, deck3 + 0.2, 0.07, 0.36, 0.07, brass2);
+    add("telescope-lens", 4, 2.41, 1.03, deck3 + 0.19, 0.09, 0.04, 0.09, dark6);
+  }
+  if (age === 4) {
+    const top = deck3 + 0.56;
+    add("armillary-post", 4, 2.42, 0.37, top, 0.06, 0.06, 0.1, gilt5);
+    add("armillary-low", 4, 2.26, 0.38, top + 0.1, 0.36, 0.04, 0.04, gilt5);
+    add("armillary-high", 4, 2.26, 0.38, top + 0.42, 0.36, 0.04, 0.04, gilt5);
+    for (const x of [2.22, 2.62]) add(`armillary-side-${x}`, 4, x, 0.38, top + 0.1, 0.04, 0.04, 0.36, gilt5);
+    add("armillary-band", 4, 2.26, 0.38, top + 0.24, 0.36, 0.04, 0.04, brass2);
+    add("armillary-ball", 4, 2.39, 0.34, top + 0.46, 0.12, 0.12, 0.12, gilt5);
+    add("clock", 3, 2.32, 0.7, towerTop - 0.62, 0.26, 0.03, 0.26, "#efe9da");
+    add("clock-hand", 3, 2.44, 0.73, towerTop - 0.56, 0.03, 0.02, 0.14, dark6);
+    const r = wallTop + tiers * 0.16;
+    add("dome-drum", 3, 0.75, 0.5, r, 0.6, 0.6, 0.2, stone6);
+    for (const [i, s] of [0.5, 0.36, 0.22].entries()) add(`dome-${i}`, 3, 1.05 - s / 2, 0.8 - s / 2, r + 0.2 + [0, 0.14, 0.26][i], s, s, [0.14, 0.12, 0.1][i], team2);
+    add("dome-finial", 4, 1.01, 0.76, r + 0.56, 0.08, 0.08, 0.2, gilt5);
+  }
+  add("crane-sill", 1, 2.12, 1.62, 0.16, 0.66, 1.2, 0.08, oak3);
+  const segments = [["bottom", 1.92, 2.38, 0.24, 0.34], ["top", 1.92, 2.38, 1.06, 1.16], ["low-a", 1.76, 1.92, 0.28, 0.52], ["side-a", 1.7, 1.76, 0.48, 0.92], ["high-a", 1.76, 1.92, 0.88, 1.1], ["low-b", 2.38, 2.54, 0.28, 0.52], ["side-b", 2.54, 2.6, 0.48, 0.92], ["high-b", 2.38, 2.54, 0.88, 1.1], ["spoke-v", 2.11, 2.19, 0.34, 1.06], ["spoke-a", 1.76, 2.11, 0.65, 0.73], ["spoke-b", 2.19, 2.54, 0.65, 0.73]];
+  for (const [rim, x] of [["a", 2.18], ["b", 2.64]]) for (const [name, z0, z1, y0, y1] of segments) add(`wheel-${rim}-${name}`, 3, x, z0, y0, 0.08, z1 - z0, y1 - y0, wood6);
+  add("wheel-axle", 3, 2.26, 2.11, 0.65, 0.38, 0.08, 0.08, dark6);
+  for (const [z, y] of [[1.98, 0.24], [2.26, 0.24], [1.72, 0.6], [2.52, 0.6], [1.98, 1.08]]) add(`tread-${z}-${y}`, 3, 2.26, z, y, 0.38, 0.08, 0.08, wood6);
+  if (age >= 3) {
+    add("crane-mast", 3, 2.74, 1.62, 0.24, 0.1, 0.12, 1.8, oak3);
+    add("crane-jib", 4, 2.74, 1.74, 1.94, 0.1, 1.1, 0.1, oak3);
+    add("crane-rope", 4, 2.77, 2.72, 1.36, 0.04, 0.04, 0.58, "#d8c48a");
+    add("crane-load", 4, 2.66, 2.62, 1.14, 0.19, 0.22, 0.22, "#b5b29e");
+  }
+  add("flag-pole", 4, -0.12, 2.72, 0.16, 0.06, 0.06, 1.6, wood6);
+  add("flag", 4, -0.06, 2.72, 1.48, 0.44, 0.05, 0.28, team2);
+  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.1 + i % 4 * 0.65, z: 0.15 + Math.floor(i / 4) * 0.85, y: 0.16, w: 0.36, d: 0.3, h: 0.12, color: i % 3 ? wall : stone6, studs: false }))];
+  const lost = /^(flag|telescope|telescope-lens|armillary-.*|crane-rope|crane-load|column-1|dome-finial|clock-hand)$/;
+  return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !lost.test(a.id));
 }
 
 // apps/web/castle-building.ts
 function castleParts(v) {
   if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u57CE\u5821\u5916\u89C0");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", straw = "#b8a074", stone2 = "#b5b29e", dark2 = "#4a4740", oak = "#5a4632";
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", straw3 = "#b8a074", stone6 = "#b5b29e", dark6 = "#4a4740", oak3 = "#5a4632";
   const add = (id, phase, x, z, y, w, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
   const f = obstacleFootprints.castle;
   add("foundation", 0, f.x / 100, f.y / 100, 0, f.width / 100, f.depth / 100, 0.16, "#b3aa8c");
   const wallH = 1.12 + (age >= 3 ? 0.32 : 0), wallTop = 0.16 + wallH, towerTop = wallTop + 0.64, keepTop = 0.16 + [1.6, 1.92, 2.24, 2.24][age - 1];
-  const crest = (id, x, z, y, alongX) => age === 1 ? add(`stake-${id}`, 2, x + (alongX ? 0.04 : 0.12), z + (alongX ? 0.12 : 0.04), y, 0.12, 0.12, 0.3, wood2) : add(`merlon-${id}`, 2, x, z, y, alongX ? 0.2 : 0.36, alongX ? 0.36 : 0.2, 0.24, stone2);
+  const crest = (id, x, z, y, alongX) => age === 1 ? add(`stake-${id}`, 2, x + (alongX ? 0.04 : 0.12), z + (alongX ? 0.12 : 0.04), y, 0.12, 0.12, 0.3, wood6) : add(`merlon-${id}`, 2, x, z, y, alongX ? 0.2 : 0.36, alongX ? 0.36 : 0.2, 0.24, stone6);
   const towers = [[-0.1, -0.1], [2.9, -0.1], [-0.1, 2.9], [2.9, 2.9]];
   for (const [x, z] of towers) {
     const id = `${x}-${z}`;
-    add(`tower-${id}`, 1, x, z, 0.16, 0.9, 0.9, towerTop - 0.16, stone2);
+    add(`tower-${id}`, 1, x, z, 0.16, 0.9, 0.9, towerTop - 0.16, stone6);
     if (age === 1) {
-      add(`hoard-${id}`, 2, x - 0.05, z - 0.05, towerTop, 1, 1, 0.3, wood2);
-      add(`hoard-roof-${id}`, 2, x + 0.05, z + 0.05, towerTop + 0.3, 0.8, 0.8, 0.16, straw, true);
-      add(`hoard-cap-${id}`, 3, x + 0.25, z + 0.25, towerTop + 0.46, 0.4, 0.4, 0.16, straw);
-    } else for (const dx of [0, 0.35, 0.7]) for (const dz of [0, 0.35, 0.7]) if (dx !== 0.35 || dz !== 0.35) add(`tmerlon-${id}-${dx}-${dz}`, 2, x + dx, z + dz, towerTop, 0.2, 0.2, 0.24, stone2);
-    if (age >= 3) add(`slit-${id}`, 3, x + 0.6, z < 0 ? z - 0.03 : z + 0.9, towerTop - 1, 0.1, 0.03, 0.32, dark2);
+      add(`hoard-${id}`, 2, x - 0.05, z - 0.05, towerTop, 1, 1, 0.3, wood6);
+      add(`hoard-roof-${id}`, 2, x + 0.05, z + 0.05, towerTop + 0.3, 0.8, 0.8, 0.16, straw3, true);
+      add(`hoard-cap-${id}`, 3, x + 0.25, z + 0.25, towerTop + 0.46, 0.4, 0.4, 0.16, straw3);
+    } else for (const dx of [0, 0.35, 0.7]) for (const dz of [0, 0.35, 0.7]) if (dx !== 0.35 || dz !== 0.35) add(`tmerlon-${id}-${dx}-${dz}`, 2, x + dx, z + dz, towerTop, 0.2, 0.2, 0.24, stone6);
+    if (age >= 3) add(`slit-${id}`, 3, x + 0.6, z < 0 ? z - 0.03 : z + 0.9, towerTop - 1, 0.1, 0.03, 0.32, dark6);
     if (age === 4) {
-      add(`drum-${id}`, 3, x + 0.2, z + 0.2, towerTop, 0.5, 0.5, 0.32, stone2);
+      add(`drum-${id}`, 3, x + 0.2, z + 0.2, towerTop, 0.5, 0.5, 0.32, stone6);
       add(`cone-0-${id}`, 3, x + 0.1, z + 0.1, towerTop + 0.32, 0.7, 0.7, 0.16, team2, true);
       add(`cone-1-${id}`, 3, x + 0.22, z + 0.22, towerTop + 0.48, 0.46, 0.46, 0.16, team2);
       add(`cone-2-${id}`, 4, x + 0.34, z + 0.34, towerTop + 0.64, 0.22, 0.22, 0.2, team2);
     }
   }
-  add("wall-back", 1, 0.8, 0.17, 0.16, 2.1, 0.36, wallH, stone2);
-  add("wall-left", 1, 0.17, 0.8, 0.16, 0.36, 2.1, wallH, stone2);
-  add("wall-right", 1, 3.17, 0.8, 0.16, 0.36, 2.1, wallH, stone2);
-  add("wall-front-l", 1, 0.8, 3.17, 0.16, 0.6, 0.36, wallH, stone2);
-  add("wall-front-r", 1, 2.3, 3.17, 0.16, 0.6, 0.36, wallH, stone2);
+  add("wall-back", 1, 0.8, 0.17, 0.16, 2.1, 0.36, wallH, stone6);
+  add("wall-left", 1, 0.17, 0.8, 0.16, 0.36, 2.1, wallH, stone6);
+  add("wall-right", 1, 3.17, 0.8, 0.16, 0.36, 2.1, wallH, stone6);
+  add("wall-front-l", 1, 0.8, 3.17, 0.16, 0.6, 0.36, wallH, stone6);
+  add("wall-front-r", 1, 2.3, 3.17, 0.16, 0.6, 0.36, wallH, stone6);
   for (let i = 0; i < 5; i++) {
     const at = 0.9 + i * 0.4;
     crest(`back-${i}`, at, 0.17, wallTop, true);
@@ -1213,27 +1547,27 @@ function castleParts(v) {
     crest(`right-${i}`, 3.17, at, wallTop, false);
   }
   for (const x of [0.88, 1.16, 2.36, 2.64]) crest(`front-${x}`, x, 3.17, wallTop, true);
-  add("gate-arch", 1, 1.4, 3.1, 0.16, 0.9, 0.5, wallH, stone2, false, "arch");
-  add("gate-top", 2, 1.4, 3.1, wallTop, 0.9, 0.5, 0.32, stone2);
-  add("portcullis", 3, 1.62, 3.3, 0.16, 0.46, 0.06, 0.76, oak);
-  if (age >= 2) for (const x of [1.4, 1.75, 2.1]) add(`gate-merlon-${x}`, 3, x, 3.4, wallTop + 0.32, 0.2, 0.2, 0.24, stone2);
+  add("gate-arch", 1, 1.4, 3.1, 0.16, 0.9, 0.5, wallH, stone6, false, "arch");
+  add("gate-top", 2, 1.4, 3.1, wallTop, 0.9, 0.5, 0.32, stone6);
+  add("portcullis", 3, 1.62, 3.3, 0.16, 0.46, 0.06, 0.76, oak3);
+  if (age >= 2) for (const x of [1.4, 1.75, 2.1]) add(`gate-merlon-${x}`, 3, x, 3.4, wallTop + 0.32, 0.2, 0.2, 0.24, stone6);
   if (age === 4) for (const x of [1.4, 2.04]) {
-    add(`gate-turret-${x}`, 3, x, 3.1, wallTop + 0.32, 0.26, 0.26, 0.4, stone2);
+    add(`gate-turret-${x}`, 3, x, 3.1, wallTop + 0.32, 0.26, 0.26, 0.4, stone6);
     add(`gate-turret-cap-${x}`, 4, x - 0.02, 3.08, wallTop + 0.72, 0.3, 0.3, 0.12, team2);
   }
-  add("keep", 1, 1.25, 1.1, 0.16, 1.2, 1.2, keepTop - 0.16, stone2);
+  add("keep", 1, 1.25, 1.1, 0.16, 1.2, 1.2, keepTop - 0.16, stone6);
   let crown = keepTop;
   if (age === 1) {
-    add("keep-roof-0", 2, 1.2, 1.05, keepTop, 1.3, 1.3, 0.16, straw, true);
-    add("keep-roof-1", 2, 1.45, 1.3, keepTop + 0.16, 0.8, 0.8, 0.16, straw, true);
+    add("keep-roof-0", 2, 1.2, 1.05, keepTop, 1.3, 1.3, 0.16, straw3, true);
+    add("keep-roof-1", 2, 1.45, 1.3, keepTop + 0.16, 0.8, 0.8, 0.16, straw3, true);
     crown = keepTop + 0.32;
   } else {
-    add("keep-parapet", 2, 1.2, 1.05, keepTop, 1.3, 1.3, 0.12, stone2);
+    add("keep-parapet", 2, 1.2, 1.05, keepTop, 1.3, 1.3, 0.12, stone6);
     crown = keepTop + 0.12;
-    for (const dx of [0, 0.55, 1.1]) for (const dz of [0, 0.55, 1.1]) if (dx !== 0.55 || dz !== 0.55) add(`keep-merlon-${dx}-${dz}`, 2, 1.2 + dx, 1.05 + dz, crown, 0.2, 0.2, 0.24, stone2);
+    for (const dx of [0, 0.55, 1.1]) for (const dz of [0, 0.55, 1.1]) if (dx !== 0.55 || dz !== 0.55) add(`keep-merlon-${dx}-${dz}`, 2, 1.2 + dx, 1.05 + dz, crown, 0.2, 0.2, 0.24, stone6);
   }
   if (age >= 3) {
-    add("keep-turret", 2, 1.55, 1.4, crown, 0.6, 0.6, 0.64, stone2);
+    add("keep-turret", 2, 1.55, 1.4, crown, 0.6, 0.6, 0.64, stone6);
     add("keep-turret-cap", 3, 1.5, 1.35, crown + 0.64, 0.7, 0.7, 0.16, team2, true);
     crown += 0.8;
   }
@@ -1246,17 +1580,22 @@ function castleParts(v) {
     add(`banner-keep-${x}`, 3, x, 2.3, keepTop - 1, 0.3, 0.04, 0.8, team2);
   }
   for (const x of [0, 3]) add(`banner-tower-${x}`, 3, x, 3.8, towerTop - 1.1, 0.3, 0.04, 0.7, team2);
-  add("flag-pole", 4, 1.82, 1.67, crown, 0.06, 0.06, 0.9, wood2);
+  add("flag-pole", 4, 1.82, 1.67, crown, 0.06, 0.06, 0.9, wood6);
   add("flag", 4, 1.88, 1.67, crown + 0.5, 0.5, 0.05, 0.3, team2);
-  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.9, z: 0.2 + Math.floor(i / 4) * 1.2, y: 0.16, w: 0.4, d: 0.34, h: 0.12, color: stone2, studs: false }))];
+  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.9, z: 0.2 + Math.floor(i / 4) * 1.2, y: 0.16, w: 0.4, d: 0.34, h: 0.12, color: stone6, studs: false }))];
   return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "flag" || a.id.startsWith("banner-") || /^(merlon|stake)-.*-[13]$/.test(a.id) || a.id.startsWith("cone-2-") || a.id.startsWith("hoard-cap-")));
 }
 
 // apps/web/siege-rig.ts
-function createRamRig(T, player, box2, material) {
-  const root = new T.Group();
-  root.name = "siege-ram";
-  const team2 = player === 0 ? "#45728c" : "#b25441", wood2 = "#94734c", dark2 = "#6e5438";
+var wood = "#94734c";
+var dark = "#6e5438";
+var iron = "#6b6f6c";
+var metal = "#9aa3a1";
+var rope = "#7a5c40";
+var stone = "#a19f86";
+var gold = "#c9a55a";
+var teamOf = (player) => player === 0 ? "#45728c" : "#b25441";
+function kit(T, box2, material) {
   const part = (parent, x, y, z, w, h2, d, color) => {
     const m = new T.Mesh(box2(w, h2, d), material(color));
     m.position.set(x, y, z);
@@ -1264,23 +1603,1053 @@ function createRamRig(T, player, box2, material) {
     parent.add(m);
     return m;
   };
-  part(root, 0, 0.22, 0, 0.76, 0.1, 1.3, dark2);
-  for (const x of [-0.36, 0.36]) for (const z of [-0.45, 0.45]) part(root, x, 0, z, 0.1, 0.36, 0.36, "#5c4a36");
-  for (const x of [-0.3, 0.3]) part(root, x, 0.32, 0, 0.1, 0.55, 1.2, wood2);
-  part(root, 0, 0.86, 0, 0.86, 0.1, 1.36, team2);
-  part(root, 0, 0.96, 0, 0.5, 0.1, 1.36, team2);
-  const log = new T.Group();
-  root.add(log);
+  const group = (parent, name, x = 0, y = 0, z = 0) => {
+    const g = new T.Group();
+    g.name = name;
+    g.position.set(x, y, z);
+    parent.add(g);
+    return g;
+  };
+  const spokes = [];
+  const wheel = (parent, x, z, size) => {
+    part(parent, x, 0, z, 0.08, size, size, "#5c4a36");
+    const s = group(parent, "wheel-spokes", x + Math.sign(x || 1) * 0.045, size / 2, z);
+    part(s, 0, -size * 0.42, 0, 0.02, size * 0.84, 0.04, "#3f3226");
+    const cross = part(s, 0, -size * 0.42, 0, 0.02, size * 0.84, 0.04, "#3f3226");
+    cross.rotation.x = Math.PI / 2;
+    cross.position.set(0, 0, -size * 0.42);
+    part(s, 0, -0.04, 0, 0.03, 0.08, 0.08, iron);
+    spokes.push(s);
+  };
+  return { part, group, wheel, spokes };
+}
+function motion(root, body, spokes, halfWidth) {
+  return (kind, t) => {
+    const fall = kind === "death" ? Math.min(t / 700, 1) : 0;
+    for (const s of spokes) s.rotation.x = kind === "walk" ? -t * 6e-3 : 0;
+    body.rotation.x = kind === "walk" ? Math.sin(t * 0.02) * 0.015 : kind === "hit" && t < 300 ? -0.05 * Math.sin(Math.PI * t / 300) : 0;
+    body.position.y = Math.abs(Math.sin(body.rotation.x)) * 1.35;
+    root.rotation.z = fall ? -fall * 0.5 : 0;
+    root.position.y = Math.sin(fall * 0.5) * halfWidth;
+  };
+}
+var clock = (time) => Number.isFinite(time) ? Math.max(0, time) : 0;
+var noSockets = (T) => ({ leftHand: new T.Group(), rightHand: new T.Group() });
+function createRamRig(T, player, box2, material) {
+  const root = new T.Group();
+  root.name = "siege-ram";
+  const team2 = teamOf(player), { part, group } = kit(T, box2, material);
+  const body = group(root, "siege-body");
+  part(body, 0, 0.22, 0, 0.76, 0.1, 1.3, dark);
+  for (const x of [-0.36, 0.36]) for (const z of [-0.45, 0.45]) part(body, x, 0, z, 0.1, 0.36, 0.36, "#5c4a36");
+  for (const x of [-0.3, 0.3]) part(body, x, 0.32, 0, 0.1, 0.55, 1.2, wood);
+  part(body, 0, 0.86, 0, 0.86, 0.1, 1.36, team2);
+  part(body, 0, 0.96, 0, 0.5, 0.1, 1.36, team2);
+  const log = group(body, "ram-log");
   part(log, 0, 0.4, 0.2, 0.24, 0.24, 1.2, "#8a6a45");
-  part(log, 0, 0.38, 0.82, 0.3, 0.28, 0.12, "#6b6f6c");
+  part(log, 0, 0.38, 0.82, 0.3, 0.28, 0.12, iron);
+  const looks = /* @__PURE__ */ new Map();
+  function grade(look) {
+    for (const g2 of looks.values()) for (const x of g2) x.visible = false;
+    if (look !== "capped-ram" && look !== "siege-ram") return;
+    let g = looks.get(look);
+    if (!g) {
+      const roof = group(body, `grade-${look}`), head = group(log, `grade-${look}-head`);
+      g = [roof, head];
+      looks.set(look, g);
+      for (const x of [-0.34, 0.34]) {
+        part(roof, x, 0.96, 0, 0.18, 0.04, 1.3, metal);
+        for (const z of [-0.5, 0, 0.5]) part(roof, x, 1, z, 0.04, 0.02, 0.04, gold);
+      }
+      if (look === "siege-ram") {
+        for (const x of [-0.36, 0.36]) part(roof, x, 0.36, 0, 0.03, 0.44, 1.14, metal);
+        part(head, 0, 0.34, 0.86, 0.38, 0.36, 0.16, iron);
+      }
+    }
+    for (const x of g) x.visible = true;
+  }
+  const move2 = motion(root, body, [], 0.43);
   function pose(kind, time) {
-    const t = Number.isFinite(time) ? Math.max(0, time) : 0;
+    const t = clock(time);
+    move2(kind, t);
     log.position.z = kind === "attack" ? Math.max(0, Math.sin(t * 8e-3)) * 0.25 : 0;
-    root.rotation.x = kind === "walk" ? Math.sin(t * 0.02) * 0.015 : kind === "hit" && t < 300 ? -0.05 * Math.sin(Math.PI * t / 300) : 0;
+  }
+  return { root, sockets: noSockets(T), equip: (_) => {
+  }, dress: (_) => {
+  }, pose, grade };
+}
+function createMangonelRig(T, player, box2, material) {
+  const root = new T.Group();
+  root.name = "siege-mangonel";
+  const team2 = teamOf(player), { part, group, wheel, spokes } = kit(T, box2, material);
+  const body = group(root, "siege-body");
+  for (const z of [-0.62, 0.3]) for (const x of [-0.36, 0.36]) wheel(body, x, z, 0.34);
+  for (const x of [-0.26, 0.26]) {
+    part(body, x, 0.22, -0.25, 0.1, 0.12, 1.6, wood);
+    part(body, x * 1.21, 0.25, -0.25, 0.02, 0.06, 1.4, team2);
+  }
+  for (const z of [0.45, -0.85]) part(body, 0, 0.22, z, 0.62, 0.1, 0.1, dark);
+  for (const x of [-0.2, 0.2]) {
+    part(body, x, 0.34, -0.12, 0.1, 0.72, 0.1, wood);
+    const brace = part(body, x, 0.34, 0.4, 0.07, 0.62, 0.07, dark);
+    brace.rotation.x = -0.75;
+  }
+  part(body, 0, 0.86, -0.12, 0.5, 0.12, 0.12, wood);
+  part(body, 0, 0.84, -0.2, 0.36, 0.16, 0.04, team2);
+  part(body, 0, 0.34, -0.3, 0.44, 0.18, 0.18, rope);
+  part(body, 0, 0.34, -0.95, 0.5, 0.1, 0.1, "#5c4a36");
+  for (const x of [-0.29, 0.29]) part(body, x, 0.28, -0.95, 0.04, 0.22, 0.04, dark);
+  const arm = group(body, "mangonel-arm", 0, 0.43, -0.3);
+  const makeArm = (name, len, cup) => {
+    const a = group(arm, name);
+    part(a, 0, 0, 0, 0.09, len, 0.09, wood);
+    part(a, 0, len - 0.1, 0.06, cup, 0.16, cup - 0.02, "#5c4a36");
+    const s = part(a, 0, len - 0.08, 0.06 + cup / 2, cup * 0.6, cup * 0.6, 0.1, stone);
+    return { a, s };
+  };
+  const short = makeArm("arm-mangonel", 0.75, 0.24), long = makeArm("arm-onager", 0.95, 0.3);
+  long.a.visible = false;
+  const bands = group(long.a, "arm-bands");
+  for (const y of [0.2, 0.45, 0.7]) part(bands, 0, y, 0, 0.11, 0.04, 0.11, iron);
+  bands.visible = false;
+  const extension = group(body, "onager-frame");
+  for (const x of [-0.26, 0.26]) part(extension, x, 0.22, -1.18, 0.1, 0.12, 0.3, wood);
+  part(extension, 0, 0.22, -1.28, 0.62, 0.1, 0.1, dark);
+  extension.visible = false;
+  const plates = group(body, "siege-onager-plates");
+  for (const x of [-0.2, 0.2]) part(plates, x * 1.3, 0.5, -0.12, 0.02, 0.36, 0.12, iron);
+  plates.visible = false;
+  function grade(look) {
+    const onager = look === "onager" || look === "siege-onager";
+    short.a.visible = !onager;
+    long.a.visible = onager;
+    extension.visible = onager;
+    bands.visible = look === "siege-onager";
+    plates.visible = look === "siege-onager";
+  }
+  const rest = -1.4, fire = 0.12, move2 = motion(root, body, spokes, 0.45);
+  function pose(kind, time) {
+    const t = clock(time);
+    move2(kind, t);
+    let angle = rest, loaded = true;
+    if (kind === "attack") {
+      const f = t % 1600 / 1600;
+      angle = f < 0.1 ? rest + (fire - rest) * (1 - (1 - f / 0.1) ** 2) : f < 0.25 ? fire : fire + (rest - fire) * (f - 0.25) / 0.75;
+      loaded = f < 0.08 || f > 0.85;
+    }
+    arm.rotation.x = angle;
+    short.s.visible = long.s.visible = loaded;
+  }
+  return { root, sockets: noSockets(T), equip: (_) => {
+  }, dress: (_) => {
+  }, pose, grade };
+}
+function createScorpionRig(T, player, box2, material) {
+  const root = new T.Group();
+  root.name = "siege-scorpion";
+  const team2 = teamOf(player), { part, group, wheel, spokes } = kit(T, box2, material);
+  const body = group(root, "siege-body");
+  for (const z of [-0.35, 0.35]) for (const x of [-0.32, 0.32]) wheel(body, x, z, 0.28);
+  part(body, 0, 0.2, 0, 0.56, 0.08, 0.9, dark);
+  part(body, 0, 0.28, 0.46, 0.62, 0.36, 0.05, wood);
+  part(body, 0, 0.33, 0.49, 0.44, 0.24, 0.02, team2);
+  part(body, 0, 0.28, -0.05, 0.14, 0.36, 0.14, wood);
+  part(body, 0, 0.28, -0.05, 0.26, 0.06, 0.26, dark);
+  const bow = group(body, "scorpion-bow", 0, 0.64, -0.05);
+  part(bow, 0, 0, -0.05, 0.12, 0.1, 1, wood);
+  part(bow, 0, -0.04, 0.42, 0.22, 0.18, 0.12, dark);
+  for (const sx of [-1, 1]) {
+    part(bow, sx * 0.14, -0.12, 0.42, 0.08, 0.32, 0.1, rope);
+    part(bow, sx * 0.3, 0.02, 0.4, 0.24, 0.07, 0.07, wood);
+    part(bow, sx * 0.5, 0.02, 0.32, 0.18, 0.07, 0.07, wood);
+    part(bow, sx * 0.6, 0.02, 0.24, 0.06, 0.08, 0.06, metal);
+    const cord = part(bow, sx * 0.3, 0.05, -0.03, 0.015, 0.015, 0.81, "#d9cba4");
+    cord.rotation.y = sx * Math.atan2(0.6, 0.54);
+  }
+  part(bow, 0, -0.06, -0.5, 0.3, 0.08, 0.08, dark);
+  for (const sx of [-1, 1]) part(bow, sx * 0.17, -0.14, -0.5, 0.03, 0.16, 0.03, dark);
+  const bolt = group(bow, "scorpion-bolt");
+  part(bolt, 0, 0.1, -0.1, 0.04, 0.04, 0.8, "#d9cba4");
+  part(bolt, 0, 0.09, 0.32, 0.07, 0.06, 0.1, iron);
+  part(bolt, 0, 0.09, -0.48, 0.02, 0.08, 0.1, "#efe9da");
+  const armour = group(body, "heavy-scorpion-plates");
+  part(armour, 0, 0.3, 0.515, 0.64, 0.32, 0.02, iron);
+  for (const x of [-0.24, 0, 0.24]) part(armour, x, 0.58, 0.53, 0.04, 0.04, 0.02, gold);
+  const caps = group(bow, "heavy-scorpion-caps");
+  for (const sx of [-1, 1]) part(caps, sx * 0.6, 0, 0.24, 0.09, 0.11, 0.09, iron);
+  armour.visible = caps.visible = false;
+  function grade(look) {
+    armour.visible = caps.visible = look === "heavy-scorpion";
+  }
+  const move2 = motion(root, body, spokes, 0.4);
+  function pose(kind, time) {
+    const t = clock(time);
+    move2(kind, t);
+    let fly = 0, shown = true, kick = 0;
+    if (kind === "attack") {
+      const f = t % 1300 / 1300;
+      if (f < 0.1) {
+        fly = f / 0.1 * 1.6;
+        kick = 0.1 * (1 - f / 0.1);
+      } else shown = f > 0.55;
+    }
+    bolt.position.z = fly;
+    bolt.visible = shown && fly < 1.5;
+    bow.rotation.x = -0.08 - kick;
+  }
+  return { root, sockets: noSockets(T), equip: (_) => {
+  }, dress: (_) => {
+  }, pose, grade };
+}
+var trebuchetStates = ["packed", "unpacked"];
+function createTrebuchetRig(T, player, box2, material) {
+  const root = new T.Group();
+  root.name = "siege-trebuchet";
+  const team2 = teamOf(player), { part, group, wheel, spokes } = kit(T, box2, material);
+  const body = group(root, "siege-body");
+  const packed = group(body, "trebuchet-packed");
+  for (const z of [-0.7, 0.7]) for (const x of [-0.4, 0.4]) wheel(packed, x, z, 0.4);
+  part(packed, 0, 0.3, 0, 0.7, 0.1, 1.9, dark);
+  for (const x of [-0.33, 0.33]) part(packed, x, 0.4, 0, 0.06, 0.12, 1.9, wood);
+  part(packed, 0.14, 0.4, -0.12, 0.14, 0.14, 2.3, "#8a6a45");
+  part(packed, -0.16, 0.4, -0.1, 0.12, 0.12, 1.6, wood);
+  part(packed, -0.16, 0.52, -0.1, 0.12, 0.12, 1.4, wood);
+  part(packed, 0.05, 0.4, 0.55, 0.5, 0.4, 0.45, "#5c4a36");
+  part(packed, 0.05, 0.8, 0.55, 0.54, 0.06, 0.5, team2);
+  part(packed, 0.05, 0.52, 0.79, 0.4, 0.28, 0.02, team2);
+  part(packed, 0.14, 0.54, -0.95, 0.18, 0.06, 0.18, "#c9b27a");
+  part(packed, 0, 0.3, 1.12, 0.08, 0.08, 0.4, wood);
+  const standing = group(body, "trebuchet-unpacked");
+  for (const x of [-0.42, 0.42]) {
+    part(standing, x, 0, 0, 0.14, 0.14, 2.2, wood);
+    part(standing, x, 0.14, 0, 0.14, 1.9, 0.14, wood);
+    for (const [z, a] of [[0.85, -0.63], [-0.85, 0.63]]) {
+      const brace = part(standing, x, 0.14, z, 0.1, 1.32, 0.1, dark);
+      brace.rotation.x = a;
+    }
+  }
+  for (const z of [-0.9, 0.9]) part(standing, 0, 0, z, 0.98, 0.12, 0.14, dark);
+  part(standing, 0, 1.95, 0, 1, 0.1, 0.1, iron);
+  part(standing, 0.42, 2.04, 0, 0.03, 0.42, 0.03, dark);
+  part(standing, 0.53, 2.28, 0, 0.2, 0.14, 0.02, team2);
+  const arm = group(standing, "trebuchet-arm", 0, 2, 0);
+  part(arm, 0, -0.06, -0.7, 0.12, 0.12, 2.6, "#8a6a45");
+  for (const z of [-1.6, -0.9, -0.2]) part(arm, 0, -0.07, z, 0.14, 0.14, 0.04, iron);
+  part(arm, 0, -0.7, 0.5, 0.5, 0.55, 0.5, "#5c4a36");
+  part(arm, 0, -0.5, 0.5, 0.52, 0.14, 0.52, team2);
+  for (const x of [-0.15, 0.15]) part(arm, x, -0.15, 0.5, 0.04, 0.15, 0.04, metal);
+  part(arm, 0, -0.45, -2, 0.03, 0.45, 0.03, "#c9b27a");
+  part(arm, 0, -0.55, -2, 0.14, 0.1, 0.18, "#8b6746");
+  const shot = part(arm, 0, -0.47, -2, 0.12, 0.1, 0.12, stone);
+  let state2 = "packed";
+  standing.visible = false;
+  function dress(next) {
+    if (!trebuchetStates.includes(next)) throw Error("\u672A\u77E5\u6295\u77F3\u6A5F\u72C0\u614B");
+    state2 = next;
+    packed.visible = state2 === "packed";
+    standing.visible = state2 === "unpacked";
+  }
+  const rest = -0.9, fire = 1.2, moving = motion(root, body, spokes, 0.5), standingStill = motion(root, body, [], 1);
+  function pose(kind, time) {
+    const t = clock(time);
+    (state2 === "packed" ? moving : standingStill)(kind, t);
+    let angle = rest, loaded = true;
+    if (kind === "attack" && state2 === "unpacked") {
+      const f = t % 2500 / 2500;
+      angle = f < 0.15 ? rest + (fire - rest) * (f / 0.15) ** 2 : f < 0.3 ? fire : fire + (rest - fire) * (f - 0.3) / 0.7;
+      loaded = f < 0.12 || f > 0.9;
+    }
+    arm.rotation.x = angle;
+    shot.visible = loaded;
+  }
+  return { root, sockets: noSockets(T), equip: (_) => {
+  }, dress, pose, grade: (_) => {
+  }, state: () => state2 };
+}
+function createBombardRig(T, player, box2, material) {
+  const root = new T.Group();
+  root.name = "siege-bombard-cannon";
+  const team2 = teamOf(player), { part, group, wheel, spokes } = kit(T, box2, material);
+  const body = group(root, "siege-body");
+  for (const x of [-0.42, 0.42]) wheel(body, x, 0, 0.62);
+  part(body, 0, 0.27, 0, 0.92, 0.08, 0.08, iron);
+  part(body, 0, 0.3, -0.05, 0.5, 0.1, 1.1, dark);
+  for (const x of [-0.27, 0.27]) {
+    part(body, x, 0.4, -0.05, 0.06, 0.14, 1, wood);
+    part(body, x * 1.13, 0.42, -0.05, 0.02, 0.1, 0.8, team2);
+  }
+  part(body, 0, 0.1, -0.66, 0.16, 0.2, 0.12, dark);
+  part(body, 0, 0, -1, 0.2, 0.1, 0.66, dark);
+  part(body, 0, 0.1, -1.26, 0.24, 0.06, 0.1, wood);
+  for (const z of [-0.82, -0.98]) part(body, 0, 0.1, z, 0.12, 0.12, 0.12, stone);
+  const barrel = group(body, "bombard-barrel", 0, 0.4, 0);
+  barrel.rotation.x = -0.1;
+  part(barrel, 0, 0.04, -0.38, 0.26, 0.26, 0.42, "#5b5e5c");
+  part(barrel, 0, 0.08, -0.62, 0.12, 0.12, 0.08, "#5b5e5c");
+  part(barrel, 0, 0, 0.02, 0.4, 0.4, 0.62, "#6b6f6c");
+  for (const z of [-0.24, -0.1, 0.08, 0.24]) part(barrel, 0, -0.02, z, 0.44, 0.44, 0.05, "#3f4240");
+  part(barrel, 0, -0.03, 0.34, 0.46, 0.46, 0.06, "#3f4240");
+  part(barrel, 0, 0.08, 0.4, 0.22, 0.22, 0.01, "#1f1d1b");
+  part(barrel, 0, 0.3, -0.5, 0.04, 0.02, 0.04, "#1f1d1b");
+  const flash = part(barrel, 0, 0.08, 0.42, 0.24, 0.24, 0.14, "#f2c25a");
+  flash.visible = false;
+  const move2 = motion(root, body, spokes, 0.46);
+  function pose(kind, time) {
+    const t = clock(time);
+    move2(kind, t);
+    let back = 0, jolt = 0, fired = false;
+    if (kind === "attack") {
+      const f = t % 1600 / 1600;
+      back = f < 0.06 ? 0.2 * Math.sin(Math.PI / 2 * f / 0.06) : f < 0.5 ? 0.2 * (1 - (f - 0.06) / 0.44) : 0;
+      jolt = f < 0.12 ? Math.sin(Math.PI * f / 0.12) : 0;
+      fired = f < 0.05;
+    }
+    const fall = kind === "death" ? Math.min(t / 700, 1) : 0;
+    barrel.position.set(0, 0.4 - 0.12 * fall, -back + 0.3 * fall);
+    barrel.rotation.set(-0.1 - 0.04 * jolt + 0.5 * fall, 0, 0.35 * fall);
+    body.position.z = -0.06 * jolt;
+    flash.visible = fired;
+  }
+  return { root, sockets: noSockets(T), equip: (_) => {
+  }, dress: (_) => {
+  }, pose, grade: (_) => {
+  } };
+}
+function createSiegeRig(T, kind, player, box2, material) {
+  return kind === "mangonel" ? createMangonelRig(T, player, box2, material) : kind === "scorpion" ? createScorpionRig(T, player, box2, material) : kind === "trebuchet" ? createTrebuchetRig(T, player, box2, material) : kind === "bombard-cannon" ? createBombardRig(T, player, box2, material) : createRamRig(T, player, box2, material);
+}
+
+// apps/web/vessel-rig.ts
+var wood2 = "#8a6a45";
+var dark2 = "#5c4a36";
+var deck = "#b8955f";
+var plank = "#a4824f";
+var iron2 = "#5b5e5c";
+var gilt = "#c9a55a";
+var rope2 = "#7a5c40";
+var cloth = "#ece2c4";
+var flame = "#e0a040";
+var spark = "#f5dc7a";
+var keg = "#7c5a3a";
+var teamOf2 = (player) => player === 0 ? "#45728c" : "#b25441";
+var clock2 = (time) => Number.isFinite(time) ? Math.max(0, time) : 0;
+function kit2(T, box2, material) {
+  const part = (parent, x, y, z, w, h2, d, color) => {
+    const m = new T.Mesh(box2(w, h2, d), material(color));
+    m.position.set(x, y, z);
+    m.castShadow = true;
+    parent.add(m);
+    return m;
+  };
+  const group = (parent, name, x = 0, y = 0, z = 0) => {
+    const g = new T.Group();
+    g.name = name;
+    g.position.set(x, y, z);
+    parent.add(g);
+    return g;
+  };
+  const hull2 = (g, L, B, H, color, trim2) => {
+    part(g, 0, -0.12, 0, B * 0.55, 0.12, L * 0.62, dark2);
+    part(g, 0, 0, 0, B, H, L * 0.6, color);
+    [0.78, 0.54, 0.3].forEach((s, i) => part(g, 0, 0, L * 0.3 + L * 0.08 * (i + 0.5), B * s, H + 0.03 * (i + 1), L * 0.08, color));
+    [0.82, 0.6].forEach((s, i) => part(g, 0, 0, -(L * 0.3 + L * 0.07 * (i + 0.5)), B * s, H + 0.02 * (i + 1), L * 0.07, color));
+    part(g, 0, H, 0, B * 0.78, 0.02, L * 0.56, deck);
+    for (const x of [-1, 1]) part(g, x * (B / 2 - 0.025), H, 0, 0.05, 0.05, L * 0.6, trim2);
+    return H + 0.02;
+  };
+  const sail = (r, z, deckY, mastH, w, h2, color, stripe) => {
+    part(r.group, 0, deckY, z, 0.06, mastH, 0.06, wood2);
+    const g = group(r.group, "sail", 0, 0, z);
+    part(g, 0, deckY + mastH - 0.06, 0, w + 0.12, 0.04, 0.04, wood2);
+    part(g, 0, deckY + mastH - 0.08 - h2, 0.04, w, h2, 0.02, color);
+    part(g, 0, deckY + mastH - 0.08 - h2 * 0.62, 0.055, w, h2 * 0.24, 0.02, stripe);
+    r.sails.push({ g, z });
+  };
+  const oars = (r, n, B, deckY, z0, step2, len = 0.42) => {
+    for (const side of [-1, 1]) for (let i = 0; i < n; i++) {
+      const o = group(r.group, "oar", side * B / 2, deckY - 0.04, z0 + i * step2);
+      o.rotation.z = side * 0.55;
+      part(o, side * len / 2, -0.015, 0, len, 0.03, 0.03, wood2);
+      part(o, side * (len - 0.05), -0.03, 0, 0.1, 0.06, 0.03, plank);
+      r.oars.push(o);
+    }
+  };
+  return { part, group, hull: hull2, sail, oars };
+}
+function afloat(root, body) {
+  return (kind, t) => {
+    const fall = kind === "death" ? Math.min(t / 1400, 1) : 0, hit2 = kind === "hit" && t < 300 ? Math.sin(Math.PI * t / 300) : 0;
+    body.position.y = fall ? 0 : Math.sin(t * 24e-4) * 0.02;
+    body.rotation.z = fall ? 0 : Math.sin(t * 17e-4) * 0.03 + hit2 * 0.08;
+    body.rotation.x = 0;
+    root.position.y = -fall * 0.55;
+    root.rotation.x = -fall * 0.45;
+    root.rotation.z = fall * 0.18;
+  };
+}
+function animate(r, kind, t) {
+  const moving = kind === "walk" || kind === "carry";
+  r.oars.forEach((o, i) => {
+    o.rotation.y = moving ? Math.sin(t * 8e-3 + i % 2 * 0.4) * 0.4 : 0;
+  });
+  for (const s of r.sails) s.g.position.z = s.z + (moving ? 0.05 : 0);
+  const f = t % 1500 / 1500;
+  if (r.bolt) {
+    r.bolt.m.position.z = r.bolt.z + (kind === "attack" ? f * 1.1 : 0);
+    r.bolt.m.visible = kind !== "attack" || f < 0.55;
+  }
+  if (r.flash) r.flash.forEach((m, i) => {
+    m.visible = kind === "attack" && t % 1500 < 90 + i * 20;
+  });
+  if (r.flames) r.flames.forEach((m, i) => {
+    m.visible = kind === "attack" && (Math.floor(t / 125) + i) % 2 === 0;
+  });
+  if (r.net) {
+    const dip = kind === "work" ? (Math.sin(t * 4e-3) + 1) / 2 : 0;
+    r.net.rotation.x = 0.25 + dip * 0.55;
+  }
+}
+function createShipRig(T, kind, player, box2, material) {
+  const root = new T.Group();
+  root.name = `ship-${kind}`;
+  const team2 = teamOf2(player), k = kit2(T, box2, material), { part, group, hull: hull2, sail, oars } = k;
+  const body = group(root, "ship-body");
+  const looks = /* @__PURE__ */ new Map();
+  const look = (name, build2) => {
+    const r = { group: group(body, `look-${name ?? "base"}`), oars: [], sails: [] };
+    build2(r);
+    r.group.visible = name === null;
+    looks.set(name, r);
+  };
+  const ballista = (r, y, z, arm = 0.3) => {
+    part(r.group, 0, y, z, 0.08, 0.06, 0.26, dark2);
+    part(r.group, 0, y + 0.06, z + 0.08, arm, 0.04, 0.04, wood2);
+    const m = part(r.group, 0, y + 0.08, z, 0.03, 0.03, 0.3, "#d8c48a");
+    r.bolt = { m, z };
+  };
+  const shields = (r, B, y, z0, n, step2) => {
+    for (const side of [-1, 1]) for (let i = 0; i < n; i++) part(r.group, side * (B / 2 + 0.015), y - 0.1, z0 + i * step2, 0.03, 0.14, 0.14, i % 2 ? cloth : team2);
+  };
+  if (kind === "fishing-ship") {
+    look(null, (r) => {
+      const y = hull2(r.group, 0.9, 0.42, 0.24, wood2, dark2);
+      sail(r, 0.08, y, 0.62, 0.34, 0.32, cloth, team2);
+      part(r.group, 0, y, -0.22, 0.3, 0.1, 0.16, keg);
+      const net2 = group(r.group, "net", 0.2, y + 0.36, -0.12);
+      part(net2, 0, 0, 0, 0.04, 0.04, 0.36, wood2);
+      part(net2, 0.02, -0.3, 0.16, 0.16, 0.3, 0.04, "#9aa08a");
+      part(net2, 0.02, -0.3, 0.16, 0.18, 0.04, 0.05, team2);
+      r.net = net2;
+      for (const z of [-0.08, 0.02]) part(r.group, -0.1, y, z, 0.12, 0.06, 0.08, "#bad0ce");
+    });
+  } else if (kind === "transport-ship") {
+    look(null, (r) => {
+      const y = hull2(r.group, 1.25, 0.62, 0.22, wood2, dark2);
+      part(r.group, 0, y, -0.1, 0.44, 0.04, 0.56, dark2);
+      for (const [x, z] of [[-0.1, -0.24], [0.12, -0.02]]) part(r.group, x, y + 0.04, z, 0.18, 0.16, 0.18, plank);
+      part(r.group, 0, y, 0.48, 0.36, 0.05, 0.12, deck);
+      sail(r, 0.18, y, 0.58, 0.4, 0.28, cloth, team2);
+      oars(r, 2, 0.62, y, -0.2, 0.3);
+    });
+  } else if (kind === "trade-cog") {
+    look(null, (r) => {
+      const y = hull2(r.group, 1.1, 0.58, 0.4, wood2, team2);
+      part(r.group, 0, y, -0.38, 0.5, 0.18, 0.22, plank);
+      part(r.group, 0, y + 0.18, -0.38, 0.54, 0.04, 0.26, dark2);
+      sail(r, 0.08, y, 0.9, 0.48, 0.52, cloth, gilt);
+      part(r.group, -0.12, y, 0.22, 0.16, 0.14, 0.16, "#d8c9a6");
+      part(r.group, 0.1, y, 0.24, 0.12, 0.16, 0.12, keg);
+      part(r.group, 0, y + 0.9, 0.08, 0.12, 0.06, 0.04, gilt);
+    });
+  } else if (kind === "galley") {
+    look(null, (r) => {
+      const y = hull2(r.group, 1.45, 0.48, 0.26, wood2, dark2);
+      part(r.group, 0, -0.04, 0.74, 0.12, 0.1, 0.14, "#a07c4a");
+      sail(r, -0.05, y, 0.78, 0.42, 0.38, team2, cloth);
+      oars(r, 3, 0.48, y, -0.36, 0.22);
+      ballista(r, y, 0.42);
+    });
+    look("war-galley", (r) => {
+      const y = hull2(r.group, 1.55, 0.52, 0.3, wood2, team2);
+      part(r.group, 0, -0.04, 0.8, 0.14, 0.12, 0.16, iron2);
+      part(r.group, 0, y, 0.4, 0.42, 0.12, 0.3, plank);
+      sail(r, -0.12, y, 0.86, 0.46, 0.42, team2, cloth);
+      sail(r, 0.24, y + 0.12, 0.56, 0.28, 0.24, cloth, team2);
+      oars(r, 3, 0.52, y, -0.4, 0.22);
+      shields(r, 0.52, y, -0.42, 4, 0.2);
+      ballista(r, y + 0.12, 0.48);
+    });
+    look("galleon", (r) => {
+      const y = hull2(r.group, 1.7, 0.6, 0.36, dark2, gilt);
+      part(r.group, 0, y, -0.52, 0.52, 0.26, 0.36, wood2);
+      part(r.group, 0, y + 0.26, -0.52, 0.56, 0.04, 0.4, gilt);
+      part(r.group, 0, y, 0.48, 0.46, 0.12, 0.26, plank);
+      sail(r, -0.22, y, 1.1, 0.52, 0.48, team2, cloth);
+      sail(r, 0.12, y, 0.96, 0.48, 0.42, cloth, team2);
+      sail(r, 0.42, y + 0.12, 0.6, 0.3, 0.26, team2, cloth);
+      shields(r, 0.6, y, -0.3, 4, 0.2);
+      ballista(r, y + 0.12, 0.56, 0.36);
+      part(r.group, 0, y + 1.1, -0.22, 0.14, 0.08, 0.04, gilt);
+    });
+  } else if (kind === "fire-galley") {
+    const siphon = (r, y, z, size) => {
+      part(r.group, 0, y, z, 0.12, 0.12, 0.16, iron2);
+      part(r.group, 0, y + 0.04, z + 0.12, 0.06, 0.06, 0.16, iron2);
+      r.flames = [part(r.group, 0, y + 0.02, z + 0.28, size, size * 0.8, size, flame), part(r.group, 0, y + 0.04, z + 0.28 + size, size * 0.8, size * 0.6, size * 0.9, spark)];
+    };
+    look(null, (r) => {
+      const y = hull2(r.group, 1.2, 0.42, 0.22, wood2, dark2);
+      sail(r, -0.12, y, 0.6, 0.32, 0.28, cloth, team2);
+      oars(r, 2, 0.42, y, -0.28, 0.24);
+      part(r.group, 0, y, 0, 0.16, 0.1, 0.16, iron2);
+      part(r.group, 0, y + 0.1, 0, 0.1, 0.08, 0.1, flame);
+      siphon(r, y, 0.38, 0.12);
+    });
+    look("war-galley", (r) => {
+      const y = hull2(r.group, 1.35, 0.48, 0.26, wood2, team2);
+      sail(r, -0.16, y, 0.7, 0.38, 0.32, team2, cloth);
+      oars(r, 3, 0.48, y, -0.36, 0.2);
+      part(r.group, 0, y, 0.3, 0.3, 0.18, 0.2, iron2);
+      part(r.group, 0, y + 0.18, 0.3, 0.34, 0.04, 0.24, team2);
+      for (const z of [-0.04, 0.14]) part(r.group, 0, y, z, 0.12, 0.12, 0.12, flame);
+      siphon(r, y + 0.04, 0.42, 0.14);
+    });
+    look("fast-fire-ship", (r) => {
+      const y = hull2(r.group, 1.5, 0.46, 0.26, dark2, gilt);
+      part(r.group, 0, -0.04, 0.76, 0.12, 0.12, 0.14, iron2);
+      sail(r, -0.2, y, 0.8, 0.38, 0.36, team2, flame);
+      sail(r, 0.2, y, 0.5, 0.24, 0.2, cloth, team2);
+      oars(r, 4, 0.46, y, -0.46, 0.2);
+      for (const x of [-0.08, 0.08]) part(r.group, x, y, 0.44, 0.06, 0.06, 0.18, iron2);
+      part(r.group, 0, y, 0.32, 0.28, 0.14, 0.14, iron2);
+      siphon(r, y + 0.06, 0.5, 0.16);
+    });
+  } else if (kind === "demolition-raft") {
+    const kegs = (r, y, spots, banded) => {
+      for (const [x, z] of spots) {
+        part(r.group, x, y, z, 0.14, 0.16, 0.14, keg);
+        part(r.group, x, y + 0.06, z, 0.15, 0.03, 0.15, banded ? iron2 : dark2);
+      }
+      part(r.group, spots[0][0], y + 0.16, spots[0][1], 0.02, 0.08, 0.02, rope2);
+      part(r.group, spots[0][0], y + 0.24, spots[0][1], 0.05, 0.05, 0.05, spark);
+    };
+    look(null, (r) => {
+      for (let i = 0; i < 5; i++) part(r.group, -0.28 + i * 0.14, -0.06, 0, 0.12, 0.12, 0.78, i % 2 ? wood2 : plank);
+      for (const z of [-0.28, 0.28]) part(r.group, 0, 0.06, z, 0.72, 0.04, 0.06, rope2);
+      kegs(r, 0.06, [[-0.14, -0.12], [0.1, -0.12], [-0.02, 0.12]], false);
+      part(r.group, 0.24, 0.06, 0.2, 0.04, 0.5, 0.04, wood2);
+      part(r.group, 0.24, 0.38, 0.24, 0.02, 0.14, 0.14, team2);
+      oars(r, 1, 0.7, 0.1, -0.16, 0, 0.34);
+    });
+    look("war-galley", (r) => {
+      const y = hull2(r.group, 0.95, 0.46, 0.2, wood2, team2);
+      kegs(r, y, [[-0.1, -0.16], [0.1, -0.16], [-0.1, 0.04], [0.1, 0.04], [0, 0.24]], false);
+      part(r.group, 0, y, -0.38, 0.06, 0.36, 0.06, wood2);
+      part(r.group, 0, y + 0.36, -0.38, 0.08, 0.08, 0.08, flame);
+    });
+    look("heavy-demolition-ship", (r) => {
+      const y = hull2(r.group, 1.1, 0.52, 0.24, dark2, iron2);
+      kegs(r, y, [[-0.12, -0.24], [0.12, -0.24], [-0.12, -0.04], [0.12, -0.04], [-0.12, 0.16], [0.12, 0.16], [0, 0.34]], true);
+      for (const z of [-0.14, 0.06]) part(r.group, 0, y + 0.16, z, 0.34, 0.04, 0.04, iron2);
+      sail(r, -0.42, y, 0.5, 0.24, 0.22, team2, keg);
+    });
+  } else if (kind === "cannon-galleon") {
+    const gun = (r, x, y, z, along) => {
+      const m = part(r.group, x, y, z, along ? 0.08 : 0.18, 0.08, along ? 0.2 : 0.08, iron2);
+      r.flash ??= [];
+      r.flash.push(part(r.group, along ? x : x + Math.sign(x) * 0.12, y, along ? z + 0.13 : z, 0.09, 0.09, 0.09, spark));
+      return m;
+    };
+    look(null, (r) => {
+      const y = hull2(r.group, 1.55, 0.64, 0.34, dark2, team2);
+      part(r.group, 0, y, -0.5, 0.54, 0.24, 0.34, wood2);
+      part(r.group, 0, y + 0.24, -0.5, 0.58, 0.04, 0.38, team2);
+      for (const z of [-0.12, 0.18]) for (const x of [-0.34, 0.34]) gun(r, x, y - 0.16, z, false);
+      gun(r, 0, y, 0.5, true);
+      sail(r, -0.06, y, 1, 0.52, 0.46, cloth, team2);
+      sail(r, 0.3, y, 0.7, 0.32, 0.28, team2, cloth);
+    });
+    look("elite-cannon-galleon", (r) => {
+      const y = hull2(r.group, 1.7, 0.7, 0.4, dark2, gilt);
+      part(r.group, 0, y, -0.56, 0.6, 0.34, 0.4, wood2);
+      part(r.group, 0, y + 0.34, -0.56, 0.64, 0.04, 0.44, gilt);
+      part(r.group, 0, y + 0.38, -0.62, 0.3, 0.16, 0.2, team2);
+      for (const z of [-0.2, 0.06, 0.32]) for (const x of [-0.37, 0.37]) {
+        gun(r, x, y - 0.2, z, false);
+      }
+      for (const z of [-0.06, 0.2]) for (const x of [-0.37, 0.37]) gun(r, x, y - 0.08, z, false);
+      gun(r, 0, y, 0.56, true);
+      sail(r, -0.12, y, 1.16, 0.58, 0.52, team2, cloth);
+      sail(r, 0.32, y, 0.8, 0.36, 0.32, cloth, team2);
+      part(r.group, 0, y + 1.16, -0.12, 0.16, 0.08, 0.04, gilt);
+    });
+  } else if (kind === "longboat") {
+    const dragon = (r, y, L, color) => {
+      part(r.group, 0, y - 0.02, L * 0.5, 0.06, 0.18, 0.06, color);
+      part(r.group, 0, y + 0.14, L * 0.5 + 0.04, 0.08, 0.08, 0.14, color);
+      part(r.group, 0, y + 0.2, L * 0.5 + 0.12, 0.04, 0.04, 0.06, "#1f1d1b");
+      part(r.group, 0, y - 0.02, -L * 0.47, 0.06, 0.14, 0.06, color);
+      part(r.group, 0, y + 0.12, -L * 0.47 - 0.06, 0.05, 0.06, 0.1, color);
+    };
+    const striped = (r, y, mast, w, h2) => {
+      part(r.group, 0, y, 0, 0.06, mast, 0.06, wood2);
+      const g = group(r.group, "sail", 0, 0, 0);
+      part(g, 0, y + mast - 0.06, 0, w + 0.12, 0.04, 0.04, wood2);
+      for (let i = 0; i < 5; i++) part(g, -w / 2 + w * (i + 0.5) / 5, y + mast - 0.08 - h2, 0.04, w / 5, h2, 0.02, i % 2 ? cloth : team2);
+      r.sails.push({ g, z: 0 });
+    };
+    look(null, (r) => {
+      const y = hull2(r.group, 1.6, 0.44, 0.18, wood2, dark2);
+      for (let i = 0; i < 3; i++) part(r.group, 0, 0.04 + i * 0.05, 0, 0.46 - i * 0.01, 0.02, 0.9, i % 2 ? plank : wood2);
+      dragon(r, y, 1.6, wood2);
+      striped(r, y, 0.8, 0.44, 0.36);
+      oars(r, 4, 0.44, y, -0.48, 0.22, 0.4);
+      shields(r, 0.44, y + 0.06, -0.52, 6, 0.2);
+      ballista(r, y, 0.42, 0.24);
+    });
+    look("elite-longboat", (r) => {
+      const y = hull2(r.group, 1.75, 0.48, 0.2, dark2, gilt);
+      for (let i = 0; i < 3; i++) part(r.group, 0, 0.04 + i * 0.05, 0, 0.5 - i * 0.01, 0.02, 1, i % 2 ? gilt : wood2);
+      dragon(r, y, 1.75, gilt);
+      striped(r, y, 0.96, 0.5, 0.44);
+      oars(r, 5, 0.48, y, -0.56, 0.22, 0.4);
+      shields(r, 0.48, y + 0.06, -0.58, 7, 0.19);
+      ballista(r, y, 0.48, 0.28);
+    });
+  } else throw Error(`\u672A\u77E5\u8239\u96BB\uFF1A${kind}`);
+  let shown = looks.get(null);
+  function grade(look2) {
+    const next = looks.get(look2) ?? looks.get(null);
+    for (const r of looks.values()) r.group.visible = r === next;
+    shown = next;
+  }
+  const move2 = afloat(root, body);
+  function pose(kind2, time) {
+    const t = clock2(time);
+    move2(kind2, t);
+    animate(shown, kind2, t);
   }
   return { root, sockets: { leftHand: new T.Group(), rightHand: new T.Group() }, equip: (_) => {
   }, dress: (_) => {
-  }, pose };
+  }, pose, grade };
+}
+function createTradeCartRig(T, player, box2, material) {
+  const root = new T.Group();
+  root.name = "vessel-trade-cart";
+  const team2 = teamOf2(player), { part, group } = kit2(T, box2, material);
+  const body = group(root, "cart-body"), hide = "#8b6a4c", horn = "#efe6d2";
+  const ox = group(body, "ox", 0, 0, 0.5);
+  part(ox, 0, 0.3, 0, 0.32, 0.3, 0.56, hide);
+  part(ox, 0, 0.5, 0.3, 0.22, 0.2, 0.2, hide);
+  part(ox, 0, 0.5, 0.42, 0.16, 0.1, 0.06, "#5c4a36");
+  for (const x of [-1, 1]) part(ox, x * 0.15, 0.66, 0.32, 0.12, 0.04, 0.04, horn);
+  const legs = [];
+  for (const [x, z] of [[-0.1, 0.18], [0.1, 0.18], [-0.1, -0.18], [0.1, -0.18]]) {
+    const l = group(ox, "leg", x, 0.32, z);
+    part(l, 0, -0.3, 0, 0.08, 0.3, 0.08, "#5c4a36");
+    legs.push(l);
+  }
+  part(ox, 0, 0.6, 0.14, 0.4, 0.04, 0.06, wood2);
+  for (const x of [-0.18, 0.18]) part(body, x, 0.36, 0.12, 0.04, 0.04, 0.5, wood2);
+  const spokes = [];
+  for (const x of [-0.32, 0.32]) {
+    part(body, x, 0, -0.3, 0.06, 0.4, 0.4, dark2);
+    const s = group(body, "wheel-spokes", x + Math.sign(x) * 0.035, 0.2, -0.3);
+    part(s, 0, -0.17, 0, 0.02, 0.34, 0.04, "#3f3226");
+    part(s, 0, -0.02, 0, 0.02, 0.04, 0.34, "#3f3226");
+    spokes.push(s);
+  }
+  part(body, 0, 0.2, -0.3, 0.7, 0.04, 0.04, iron2);
+  part(body, 0, 0.26, -0.3, 0.56, 0.08, 0.62, wood2);
+  for (const x of [-0.27, 0.27]) part(body, x, 0.34, -0.3, 0.04, 0.12, 0.62, plank);
+  part(body, -0.1, 0.34, -0.42, 0.2, 0.18, 0.2, "#d8c9a6");
+  part(body, 0.12, 0.34, -0.2, 0.16, 0.16, 0.16, keg);
+  part(body, 0.1, 0.34, -0.46, 0.16, 0.12, 0.16, deck);
+  for (const z of [-0.58, -0.02]) for (const x of [-0.25, 0.25]) part(body, x, 0.46, z, 0.03, 0.3, 0.03, wood2);
+  part(body, 0, 0.76, -0.3, 0.56, 0.05, 0.62, team2);
+  part(body, 0, 0.81, -0.3, 0.36, 0.04, 0.62, cloth);
+  function pose(kind, time) {
+    const t = clock2(time), moving = kind === "walk" || kind === "carry", fall = kind === "death" ? Math.min(t / 700, 1) : 0;
+    legs.forEach((l, i) => {
+      l.rotation.x = moving ? Math.sin(t * 0.012 + (i % 3 ? Math.PI : 0)) * 0.45 : 0;
+    });
+    for (const s of spokes) s.rotation.x = moving ? -t * 6e-3 : 0;
+    body.rotation.x = kind === "hit" && t < 300 ? -0.05 * Math.sin(Math.PI * t / 300) : 0;
+    body.position.y = Math.abs(Math.sin(body.rotation.x)) * 0.6;
+    root.rotation.z = -fall * 0.5;
+    root.position.y = Math.sin(fall * 0.5) * 0.36;
+  }
+  return { root, sockets: { leftHand: new T.Group(), rightHand: new T.Group() }, equip: (_) => {
+  }, dress: (_) => {
+  }, pose, grade: (_) => {
+  } };
+}
+function createVesselRig(T, kind, player, box2, material) {
+  return kind === "trade-cart" ? createTradeCartRig(T, player, box2, material) : createShipRig(T, kind, player, box2, material);
+}
+var vesselFrames = { "fishing-ship": { bar: 1.15, ring: 1.3 }, "transport-ship": { bar: 1.05, ring: 1.7 }, "trade-cog": { bar: 1.55, ring: 1.5 }, galley: { bar: 1.3, ring: 2 }, "fire-galley": { bar: 1.05, ring: 1.7 }, "demolition-raft": { bar: 0.85, ring: 1.3 }, "cannon-galleon": { bar: 1.6, ring: 2.1 }, longboat: { bar: 1.25, ring: 2.1 }, "trade-cart": { bar: 1.1, ring: 1.4 } };
+
+// apps/web/fortification-building.ts
+var wallKinds = ["palisade-wall", "stone-wall"];
+var gateKinds = ["palisade-gate", "gate"];
+var noLinks = { n: false, s: false, e: false, w: false, ne: false, nw: false, se: false, sw: false };
+var wallFamily = (kind) => kind === "palisade-wall" || kind === "palisade-gate" ? "palisade" : kind === "stone-wall" || kind === "gate" ? "stone" : null;
+var check3 = (v, what) => {
+  if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error(`\u7121\u6548${what}\u5916\u89C0`);
+};
+var wood3 = "#94734c";
+var oak = "#6e5438";
+var dark3 = "#4a4740";
+var stone2 = "#b5b29e";
+var stoneDark = "#9d9a88";
+var soil = "#806b49";
+var iron3 = "#5b5e5c";
+var flame2 = "#e0a040";
+var spark2 = "#f5dc7a";
+var straw = "#b8a074";
+var gilt2 = "#c9a55a";
+function builder() {
+  const p = [];
+  const add = (id, phase, x, z, y, w, d, h2, color, studs = false) => {
+    p.push({ id, phase, x, z, y, w, d, h: h2, color, studs });
+  };
+  return { p, add };
+}
+function finish2(p, v, debris, lost, count = 4) {
+  if (v.health === 0) return [p[0], ...Array.from({ length: count }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.1 + i % 2 * 0.45, z: 0.1 + Math.floor(i / 2) * 0.45, y: 0.04, w: 0.3, d: 0.28, h: 0.1, color: debris, studs: false }))];
+  return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !lost.test(a.id));
+}
+var diagonals = [["ne", 1, -1], ["nw", -1, -1], ["se", 1, 1], ["sw", -1, 1]];
+function wallParts(kind, v, links = noLinks) {
+  check3(v, "\u57CE\u7246");
+  if (!wallKinds.includes(kind)) throw Error("\u672A\u77E5\u57CE\u7246");
+  const { p, add } = builder(), age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87";
+  if (kind === "palisade-wall") {
+    const H2 = 1.04 + (age >= 3 ? 0.12 : 0), stake = (id, x, z, y, h2, w, d) => {
+      add(id, 1, x, z, y, w, d, h2, wood3);
+      add(`${id}-tip`, 2, x + w * 0.25, z + d * 0.25, y + h2, w * 0.5, d * 0.5, 0.14, oak);
+    };
+    add("foundation", 0, 0.32, 0.32, 0, 0.36, 0.36, 0.06, soil);
+    stake("stake-c", 0.4, 0.4, 0.06, H2 + 0.04, 0.2, 0.2);
+    add("lashing", 3, 0.39, 0.39, 0.62, 0.22, 0.22, 0.08, team2);
+    for (const [dir, dx, dz] of [["e", 1, 0], ["w", -1, 0], ["s", 0, 1], ["n", 0, -1]]) if (links[dir]) {
+      for (let i = 1; i <= 2; i++) stake(`stake-${dir}-${i}`, dx ? 0.4 + 0.2 * i * dx : 0.41, dz ? 0.4 + 0.2 * i * dz : 0.41, 0, H2 - i % 2 * 0.06, dx ? 0.2 : 0.18, dz ? 0.2 : 0.18);
+      add(`rail-${dir}`, 2, dx > 0 ? 0.6 : dx < 0 ? 0 : 0.45, dz > 0 ? 0.6 : dz < 0 ? 0 : 0.45, 0.52, dx ? 0.4 : 0.1, dz ? 0.4 : 0.1, 0.08, oak);
+    }
+    for (const [dir, dx, dz] of diagonals) if (links[dir]) for (const [i, t] of [0.2, 0.38].entries()) stake(`stake-${dir}-${i}`, 0.39 + dx * t, 0.39 + dz * t, 0, H2 - 0.06 * (i + 1), 0.22, 0.22);
+    return finish2(p, v, wood3, /-tip$|^rail-/);
+  }
+  const H = 0.96 + (age >= 3 ? 0.16 : 0), top = 0.08 + H;
+  add("foundation", 0, 0.2, 0.2, 0, 0.6, 0.6, 0.08, stoneDark);
+  add("pier", 1, 0.22, 0.22, 0.08, 0.56, 0.56, H, stone2, true);
+  for (const z of [0.2, 0.78]) add(`shield-${z}`, 3, 0.42, z, 0.42, 0.16, 0.02, 0.2, team2);
+  for (const [dir, dx, dz] of [["e", 1, 0], ["w", -1, 0], ["s", 0, 1], ["n", 0, -1]]) if (links[dir]) {
+    const x = dx > 0 ? 0.78 : dx < 0 ? 0 : 0.25, z = dz > 0 ? 0.78 : dz < 0 ? 0 : 0.25, w = dx ? 0.22 : 0.5, d = dz ? 0.22 : 0.5;
+    add(`arm-${dir}`, 1, x, z, 0, w, d, top, stone2, true);
+    add(`merlon-${dir}`, 2, dx > 0 ? 0.84 : dx < 0 ? 0 : 0.37, dz > 0 ? 0.84 : dz < 0 ? 0 : 0.37, top, dx ? 0.16 : 0.26, dz ? 0.16 : 0.26, 0.2, stone2);
+    if (age >= 3) add(`slit-${dir}`, 3, dx ? x + 0.06 : 0.24, dz ? z + 0.06 : 0.24, 0.5, dx ? 0.1 : 0.02, dz ? 0.1 : 0.02, 0.24, dark3);
+  }
+  for (const [dir, dx, dz] of diagonals) if (links[dir]) for (const [i, t] of [0.28, 0.38].entries()) add(`arm-${dir}-${i}`, 1, 0.38 + dx * t, 0.38 + dz * t, 0, 0.24, 0.24, top - 0.04 * i, stone2, true);
+  for (const [x, z] of [[0.22, 0.22], [0.64, 0.22], [0.22, 0.64], [0.64, 0.64]]) add(`merlon-c-${x}-${z}`, 2, x, z, top, 0.14, 0.14, 0.2, stone2);
+  if (age >= 3) add("coping", 3, 0.3, 0.3, top, 0.4, 0.4, 0.06, stoneDark);
+  return finish2(p, v, stone2, /^(merlon-[en]|merlon-c-0\.64-0\.64|coping)$/);
+}
+function gateParts(kind, v, links = noLinks) {
+  check3(v, "\u57CE\u9580");
+  if (!gateKinds.includes(kind)) throw Error("\u672A\u77E5\u57CE\u9580");
+  const { p, add } = builder(), age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87";
+  if (kind === "gate") {
+    const H = 1.32 + (age >= 3 ? 0.16 : 0);
+    add("foundation", 0, 0, 0.22, 0, 1, 0.56, 0.06, stoneDark);
+    for (const [i, x] of [0, 0.74].entries()) {
+      add(`tower-${i}`, 1, x, 0.2, 0.06, 0.26, 0.6, H, stone2, true);
+      for (const z of [0.2, 0.66]) add(`merlon-${i}-${z}`, 2, x + 0.06, z, 0.06 + H, 0.14, 0.14, 0.18, stone2);
+      if (age === 4) {
+        add(`cap-${i}`, 3, x + 0.02, 0.36, 0.06 + H, 0.22, 0.28, 0.12, team2, true);
+        add(`finial-${i}`, 4, x + 0.09, 0.46, 0.18 + H, 0.08, 0.08, 0.16, gilt2);
+      }
+    }
+    add("lintel", 2, 0.26, 0.24, 0.94, 0.48, 0.52, H - 0.88, stone2, true);
+    add("door-l", 3, 0.26, 0.46, 0.06, 0.24, 0.08, 0.88, oak);
+    add("door-r", 3, 0.5, 0.46, 0.06, 0.24, 0.08, 0.88, oak);
+    for (const y of [0.24, 0.62]) add(`band-${y}`, 3, 0.28, 0.44, y, 0.44, 0.02, 0.06, iron3);
+    add("crest", 3, 0.42, 0.42, 0.98, 0.16, 0.04, 0.18, team2);
+  } else {
+    const H = 1.2 + (age >= 3 ? 0.12 : 0);
+    add("foundation", 0, 0, 0.3, 0, 1, 0.4, 0.04, soil);
+    for (const [i, x] of [0, 0.78].entries()) {
+      add(`post-${i}`, 1, x, 0.38, 0.04, 0.22, 0.24, H, wood3);
+      add(`post-${i}-tip`, 2, x + 0.05, 0.44, 0.04 + H, 0.12, 0.12, 0.14, oak);
+    }
+    add("beam", 2, 0.22, 0.42, 0.04 + H - 0.16, 0.56, 0.16, 0.14, oak);
+    add("door-l", 3, 0.22, 0.44, 0.04, 0.28, 0.1, H - 0.2, wood3);
+    add("door-r", 3, 0.5, 0.44, 0.04, 0.28, 0.1, H - 0.2, wood3);
+    for (const [i, y] of [0.22, 0.7].entries()) add(`brace-${i}`, 3, 0.24, 0.42, y, 0.52, 0.02, 0.06, oak);
+    add("pennant", 4, 0.48, 0.5, 0.04 + H - 0.02, 0.06, 0.04, 0.28, team2);
+  }
+  const alongZ = !(links.e || links.w) && (links.n || links.s);
+  const turned = alongZ ? p.map((a) => ({ ...a, x: a.z, z: a.x, w: a.d, d: a.w })) : p;
+  return finish2(turned, v, kind === "gate" ? stone2 : wood3, /^(finial-|crest|pennant|post-\d-tip)/);
+}
+function outpostParts(v) {
+  check3(v, "\u54E8\u7AD9");
+  const { p, add } = builder(), age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", deckY = 1.18 + (age - 1) * 0.14;
+  add("foundation", 0, 0.1, 0.1, 0, 0.8, 0.8, 0.1, age >= 2 ? stoneDark : soil);
+  for (const [x, z] of [[0.14, 0.14], [0.74, 0.14], [0.14, 0.74], [0.74, 0.74]]) add(`leg-${x}-${z}`, 1, x, z, 0.1, 0.12, 0.12, deckY - 0.1, wood3);
+  for (const y of [0.5, 0.9]) add(`brace-${y}`, 1, 0.26, 0.14, y, 0.48, 0.04, 0.06, oak);
+  add("deck", 2, 0.06, 0.06, deckY, 0.88, 0.88, 0.08, wood3, true);
+  for (const [x, z, w, d] of [[0.06, 0.06, 0.88, 0.06], [0.06, 0.88, 0.88, 0.06], [0.06, 0.12, 0.06, 0.76], [0.88, 0.12, 0.06, 0.76]]) add(`rail-${x}-${z}`, 3, x, z, deckY + 0.08, w, d, 0.2, oak);
+  for (const x of [0.36, 0.58]) add(`ladder-rail-${x}`, 1, x, 0.88, 0.1, 0.04, 0.04, deckY - 0.1, oak);
+  for (let i = 0; i < 4; i++) add(`rung-${i}`, 1, 0.4, 0.88, 0.3 + i * (deckY - 0.4) / 4, 0.18, 0.04, 0.04, oak);
+  add("torch-post", 3, 0.8, 0.8, deckY + 0.08, 0.06, 0.06, 0.42, oak);
+  add("torch-cup", 3, 0.78, 0.78, deckY + 0.5, 0.1, 0.1, 0.06, iron3);
+  add("torch-flame", 4, 0.8, 0.8, deckY + 0.56, 0.06, 0.06, 0.12, flame2);
+  add("torch-spark", 4, 0.815, 0.815, deckY + 0.68, 0.03, 0.03, 0.06, spark2);
+  if (age >= 2) {
+    for (const [x, z] of [[0.08, 0.08], [0.08, 0.8]]) add(`roof-post-${z}`, 3, x, z, deckY + 0.08, 0.06, 0.06, 0.5, oak);
+    add("roof", 3, 0, 0.04, deckY + 0.58, 0.6, 0.9, 0.08, age >= 3 ? team2 : straw, true);
+  }
+  add("pennant-pole", 4, 0.12, 0.12, deckY + (age >= 2 ? 0.66 : 0.08), 0.04, 0.04, 0.34, oak);
+  add("pennant", 4, 0.16, 0.12, deckY + (age >= 2 ? 0.86 : 0.28), 0.22, 0.03, 0.12, team2);
+  return finish2(p, v, wood3, /^(pennant|torch-spark|torch-flame)/);
+}
+function bombardTowerParts(v) {
+  check3(v, "\u706B\u7832\u5854");
+  const { p, add } = builder(), team2 = v.red ? "#b85c47" : "#456e87", H = 0.86;
+  add("foundation", 0, 0, 0, 0, 1, 1, 0.12, stoneDark);
+  add("batter", 1, 0.02, 0.02, 0.12, 0.96, 0.96, 0.26, stoneDark, true);
+  const y0 = 0.38;
+  add("drum", 1, 0.1, 0.1, y0, 0.8, 0.8, H, stone2, true);
+  add("drum-x", 1, 0.04, 0.22, y0, 0.92, 0.56, H, stone2);
+  add("drum-z", 1, 0.22, 0.04, y0, 0.56, 0.92, H, stone2);
+  for (const y of [y0 + 0.24, y0 + 0.62]) add(`band-${y}`, 2, 0.03, 0.21, y, 0.94, 0.58, 0.06, iron3);
+  add("embrasure", 2, 0.34, 0.96, y0 + 0.26, 0.32, 0.02, 0.28, dark3);
+  add("barrel-front", 3, 0.39, 0.97, y0 + 0.3, 0.22, 0.2, 0.2, iron3);
+  add("muzzle", 3, 0.37, 1, y0 + 0.28, 0.26, 0.03, 0.24, "#3f4240");
+  add("deck", 2, 0, 0, y0 + H, 1, 1, 0.08, stoneDark);
+  const top = y0 + H + 0.08;
+  for (const [x, z] of [[0, 0], [0.4, 0], [0.8, 0], [0, 0.4], [0.8, 0.4], [0, 0.8], [0.8, 0.8]]) add(`merlon-${x}-${z}`, 3, x, z, top, 0.2, 0.2, 0.2, stone2);
+  add("gun-bed", 3, 0.3, 0.24, top, 0.4, 0.5, 0.08, "#6e5438");
+  add("barrel-top", 3, 0.36, 0.3, top + 0.08, 0.28, 0.62, 0.24, iron3);
+  for (const z of [0.44, 0.66]) add(`barrel-band-${z}`, 3, 0.34, z, top + 0.06, 0.32, 0.06, 0.28, "#3f4240");
+  add("barrel-mouth", 3, 0.38, 0.92, top + 0.1, 0.24, 0.04, 0.2, "#1f1d1b");
+  add("cap-post", 3, 0.06, 0.44, top, 0.08, 0.08, 0.5, "#6e5438");
+  add("cap", 4, 0.02, 0.4, top + 0.5, 0.24, 0.2, 0.06, team2, true);
+  for (const [x, z] of [[0, 0], [0.84, 0]]) add(`keg-${x}`, 3, x, z, 0.12, 0.16, 0.16, 0.18, "#7c5a3a");
+  return finish2(p, v, stone2, /^(cap|barrel-mouth|barrel-band-0\.66|merlon-0\.4-0)$/);
+}
+
+// apps/web/harbor-building.ts
+var check4 = (v, what) => {
+  if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error(`\u7121\u6548${what}\u5916\u89C0`);
+};
+var wood4 = "#94734c";
+var oak2 = "#6e5438";
+var plank2 = "#a4824f";
+var deck2 = "#8a6c48";
+var stone3 = "#b5b29e";
+var stoneDark2 = "#9d9a88";
+var straw2 = "#b8a074";
+var rope3 = "#d8c48a";
+var iron4 = "#5b5e5c";
+var brass = "#b8964a";
+var net = "#7c8a78";
+var keg2 = "#7c5a3a";
+var fish = "#d5e7de";
+var lamp = "#f5dc7a";
+function turnParts(parts, size, quarters) {
+  let out = parts;
+  for (let q = 0; q < (quarters % 4 + 4) % 4; q++) out = out.map((a) => ({ ...a, x: size - a.z - a.d, z: a.x, w: a.d, d: a.w }));
+  return out;
+}
+function finish3(p, v, debris, lost, size) {
+  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.15 + i % 4 * size / 4.4, z: 0.15 + Math.floor(i / 4) * size / 3.4, y: p[0].h, w: 0.32 * size / 3, d: 0.28 * size / 3, h: 0.1, color: debris, studs: false }))];
+  return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !lost.test(a.id));
+}
+function dockParts(v, landSide = 0) {
+  check4(v, "\u78BC\u982D");
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87";
+  const add = (id, phase, x, z, y2, w, d, h2, color, studs = false) => p.push({ id, phase, x, z, y: y2, w, d, h: h2, color, studs });
+  add("foundation", 0, 0, 0, 0, 3, 3, 0.16, deck2);
+  for (let i = 0; i < 6; i++) add(`plank-${i}`, 1, 0.04, 0.04 + i * 0.49, 0.16, 2.92, 0.47, 0.03, i % 2 ? plank2 : deck2);
+  const y = 0.19;
+  for (const x of [0, 1.42, 2.84]) add(`pile-${x}`, 1, x, 2.84, 0, 0.16, 0.16, 0.72, oak2);
+  for (const z of [1.5]) for (const x of [0, 2.84]) add(`pile-side-${x}`, 1, x, z, 0, 0.16, 0.16, 0.6, oak2);
+  for (const x of [0.6, 2.2]) {
+    add(`bollard-${x}`, 3, x, 2.7, y, 0.14, 0.14, 0.2, iron4);
+    add(`rope-${x}`, 3, x - 0.06, 2.66, y, 0.26, 0.04, 0.06, rope3);
+  }
+  const wallH = 0.96 + (age >= 3 ? 0.16 : 0), shed = age === 1 ? wood4 : age === 2 ? plank2 : stone3;
+  if (age >= 2) for (const x of [0.12, 1.52]) add(`footing-${x}`, 1, x, 0.12, y, 0.2, 1.16, 0.12, stoneDark2);
+  const base = age >= 2 ? y + 0.12 : y;
+  add("shed-back", 1, 0.12, 0.12, base, 1.6, 0.16, wallH, shed);
+  for (const x of [0.12, 1.56]) add(`shed-side-${x}`, 1, x, 0.28, base, 0.16, 1, wallH, shed);
+  add("shed-front-l", 1, 0.28, 1.12, base, 0.36, 0.16, wallH, shed);
+  add("shed-front-r", 1, 1.2, 1.12, base, 0.36, 0.16, wallH, shed);
+  add("shed-lintel", 1, 0.64, 1.12, base + 0.62, 0.56, 0.16, wallH - 0.62, shed);
+  add("shed-door", 3, 0.64, 1.24, base, 0.56, 0.04, 0.6, oak2);
+  const roofY = base + wallH, roof = age === 1 ? straw2 : team2;
+  for (let i = 0; i < 3; i++) add(`roof-${i}`, 2, 0.04 + i * 0.26, 0.06 + i * 0.16, roofY + i * 0.16, 1.8 - i * 0.52, 1.36 - i * 0.32, 0.16, roof, true);
+  add("barrel-0", 3, 1.86, 0.3, y, 0.22, 0.22, 0.28, keg2);
+  add("barrel-1", 3, 1.86, 0.56, y, 0.22, 0.22, 0.22, keg2);
+  add("basket", 3, 1.86, 1.3, y, 0.3, 0.26, 0.16, "#c9b27a");
+  add("catch", 3, 1.9, 1.34, y + 0.16, 0.22, 0.18, 0.05, fish);
+  const mastH = 1.7 + (age >= 3 ? 0.3 : 0);
+  add("crane-foot", 1, 2.4, 0.2, y, 0.36, 0.36, 0.14, stoneDark2);
+  add("crane-mast", 3, 2.5, 0.3, y + 0.14, 0.16, 0.16, mastH, oak2);
+  add("crane-jib", 3, 2.5, 0.46, y + 0.14 + mastH - 0.16, 0.16, 1.9, 0.14, oak2);
+  if (age >= 3) {
+    add("crane-rope", 4, 2.56, 2.24, y + 0.62, 0.04, 0.04, mastH - 0.64, rope3);
+    add("crane-net", 4, 2.46, 2.14, y + 0.4, 0.24, 0.24, 0.22, net);
+    add("crane-fish", 4, 2.5, 2.18, y + 0.62, 0.16, 0.16, 0.06, fish);
+  }
+  if (age >= 3) add("quay", 1, 0, 0, y, 3, 0.12, 0.24, stone3, true);
+  if (age === 4) {
+    add("light-base", 3, 0.1, 2.2, y, 0.5, 0.5, 1.2, stone3, true);
+    add("light-room", 3, 0.16, 2.26, y + 1.2, 0.38, 0.38, 0.26, lamp);
+    add("light-cap", 4, 0.12, 2.22, y + 1.46, 0.46, 0.46, 0.12, team2, true);
+    add("light-top", 4, 0.26, 2.36, y + 1.58, 0.18, 0.18, 0.14, brass);
+  }
+  add("flag-pole", 4, 2.82, 0.02, y, 0.06, 0.06, 1.3, wood4);
+  add("flag", 4, 2.42, 0.02, y + 1.04, 0.4, 0.05, 0.24, team2);
+  return turnParts(finish3(p, v, plank2, /^(flag|crane-net|crane-fish|crane-rope|light-top|roof-2|rope-.*)$/, 3), 3, landSide);
+}
+function fishTrapParts(v) {
+  check4(v, "\u9B5A\u7DB2");
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87";
+  const add = (id, phase, x, z, y, w, d, h2, color, studs = false) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs });
+  add("foundation", 0, 0.12, 0.12, 0, 1.76, 1.76, 0.03, net);
+  add("log-n", 1, 0, 0, 0, 2, 0.14, 0.1, wood4);
+  add("log-s", 1, 0, 1.86, 0, 2, 0.14, 0.1, wood4);
+  add("log-w", 1, 0, 0.14, 0, 0.14, 1.72, 0.1, wood4);
+  add("log-e", 1, 1.86, 0.14, 0, 0.14, 1.72, 0.1, wood4);
+  for (const [x, z] of [[0, 0], [1.86, 0], [0, 1.86], [1.86, 1.86]]) add(`stake-${x}-${z}`, 2, x + 0.02, z + 0.02, 0.1, 0.1, 0.1, 0.42, oak2);
+  for (const [i, x] of [0.5, 0.95, 1.4].entries()) {
+    add(`float-n-${i}`, 3, x, 0.02, 0.1, 0.1, 0.1, 0.08, i % 2 ? "#ece2c4" : team2);
+    add(`float-s-${i}`, 3, x, 1.88, 0.1, 0.1, 0.1, 0.08, i % 2 ? "#ece2c4" : team2);
+  }
+  if (age >= 2) for (const t of [0.62, 1.02, 1.42]) {
+    add(`mesh-x-${t}`, 3, 0.14, t - 0.02, 0.03, 1.72, 0.04, 0.02, "#5d6b5f");
+    add(`mesh-z-${t}`, 3, t - 0.02, 0.14, 0.03, 0.04, 1.72, 0.02, "#5d6b5f");
+  }
+  for (const [x, z] of [[0.5, 0.7], [1.2, 1.1], [0.8, 1.4]]) add(`fish-${x}`, 3, x, z, 0.03, 0.22, 0.08, 0.05, fish);
+  if (age === 4) {
+    add("lantern", 4, 1.87, 1.87, 0.52, 0.08, 0.08, 0.1, lamp);
+    add("lantern-cap", 4, 1.86, 1.86, 0.62, 0.1, 0.1, 0.04, iron4);
+  }
+  add("pennant", 4, 0.04, 0.04, 0.52, 0.04, 0.04, 0.26, oak2);
+  add("pennant-cloth", 4, 0.08, 0.04, 0.66, 0.18, 0.03, 0.1, team2);
+  return finish3(p, v, wood4, /^(pennant.*|lantern.*|float-.-1)$/, 2);
+}
+
+// apps/web/wonder-building.ts
+var check5 = (v) => {
+  if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u4E16\u754C\u5947\u89C0\u5916\u89C0");
+};
+var stone4 = "#c4bba2";
+var stoneDark3 = "#9d9a88";
+var sand = "#d8c9a6";
+var lime = "#e9e1cf";
+var slate = "#5d6670";
+var tar = "#4a3d30";
+var carved = "#6e5438";
+var tile = "#3f4a4c";
+var gilt3 = "#c9a55a";
+var dark4 = "#4a4740";
+var glass = "#7fa3b0";
+var cream = "#efe6cc";
+var wonderStyles = ["neutral", "west", "central", "mideast", "eastasia"];
+function wonderParts(v, style = "neutral") {
+  check5(v);
+  if (!wonderStyles.includes(style)) throw Error("\u672A\u77E5\u5EFA\u7BC9\u98A8\u683C");
+  const p = [], team2 = v.red ? "#b85c47" : "#456e87";
+  const add = (id, phase, x, z, y, w, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
+  const sq = (id, phase, c, y, s, h2, color, studs = false) => add(id, phase, c - s / 2, c - s / 2, y, s, s, h2, color, studs);
+  add("foundation", 0, 0, 0, 0, 5, 5, 0.16, stoneDark3);
+  add("step-0", 1, 0.2, 0.2, 0.16, 4.6, 4.6, 0.24, stone4, true);
+  add("step-1", 1, 0.45, 0.45, 0.4, 4.1, 4.1, 0.24, stone4, true);
+  add("stair-0", 1, 2, 4.8, 0.16, 1, 0.2, 0.12, lime);
+  add("stair-1", 1, 2, 4.55, 0.4, 1, 0.25, 0.12, lime);
+  const top = 0.64;
+  if (style === "neutral") {
+    [[3.6, 0.5], [2.8, 0.5], [2, 0.5]].forEach(([s, h2], i) => sq(`tier-${i}`, 1, 2.5, top + i * 0.5, s, h2, i % 2 ? sand : stone4, true));
+    const y = top + 1.5;
+    sq("shrine", 2, 2.5, y, 1.2, 0.7, lime);
+    add("shrine-door", 3, 2.25, 3.1, y, 0.5, 0.02, 0.5, dark4);
+    sq("shrine-roof", 2, 2.5, y + 0.7, 1.4, 0.16, team2, true);
+    sq("shrine-roof-1", 3, 2.5, y + 0.86, 0.8, 0.16, team2);
+    sq("finial", 4, 2.5, y + 1.02, 0.16, 0.4, gilt3);
+    for (const [x, z] of [[0.22, 0.22], [4.58, 0.22], [0.22, 4.58], [4.58, 4.58]]) {
+      add(`brazier-${x}-${z}`, 3, x, z, 0.4, 0.2, 0.2, 0.26, dark4);
+      add(`fire-${x}-${z}`, 4, x + 0.04, z + 0.04, 0.66, 0.12, 0.12, 0.14, "#e0a040");
+    }
+  } else if (style === "west") {
+    add("nave", 1, 1.3, 1, top, 2.4, 2.9, 1.7, sand, true);
+    for (const x of [0.9, 3.7]) for (const z of [1.2, 2, 2.8]) add(`buttress-${x}-${z}`, 1, x, z, top, 0.4, 0.3, 1.2, stone4);
+    for (let i = 0; i < 3; i++) add(`nave-roof-${i}`, 2, 1.2 + i * 0.35, 0.9, top + 1.7 + i * 0.18, 2.6 - i * 0.7, 3, 0.18, slate, true);
+    for (const [i, x] of [1.1, 3.1].entries()) {
+      add(`tower-${i}`, 1, x, 3.9, top, 0.8, 0.8, 2.6, stone4, true);
+      add(`spire-${i}-0`, 2, x + 0.05, 3.95, top + 2.6, 0.7, 0.7, 0.3, slate);
+      add(`spire-${i}-1`, 3, x + 0.17, 4.07, top + 2.9, 0.46, 0.46, 0.5, slate);
+      add(`spire-${i}-2`, 3, x + 0.31, 4.21, top + 3.4, 0.18, 0.18, 0.6, slate);
+      add(`cross-${i}`, 4, x + 0.36, 4.26, top + 4, 0.08, 0.08, 0.26, gilt3);
+    }
+    add("facade", 1, 1.9, 3.9, top, 1.2, 0.4, 1.9, sand, true);
+    add("portal", 3, 2.15, 4.3, top, 0.7, 0.04, 0.9, dark4, false, "arch");
+    add("rose", 3, 2.25, 4.3, top + 1.1, 0.5, 0.04, 0.5, glass);
+    add("rose-ring", 3, 2.2, 4.34, top + 1.05, 0.6, 0.02, 0.08, gilt3);
+    const cy = top + 1.7 + 3 * 0.18;
+    sq("crossing", 3, 2.5, cy, 0.6, 0.5, stone4);
+    sq("crossing-spire", 3, 2.5, cy + 0.5, 0.36, 0.5, slate);
+    sq("crossing-tip", 4, 2.5, cy + 1, 0.12, 0.36, gilt3);
+  } else if (style === "central") {
+    sq("hall", 1, 2.5, top, 3, 1.1, carved, true);
+    for (const [x, z] of [[0.95, 0.95], [3.75, 0.95], [0.95, 3.75], [3.75, 3.75]]) add(`post-${x}-${z}`, 1, x, z, top, 0.3, 0.3, 1.3, tar);
+    [3.6, 2.8, 2.1, 1.4, 0.8].forEach((s, i) => {
+      const y = top + 1.1 + i * 0.62;
+      sq(`roof-${i}`, 2, 2.5, y, s, 0.16, tar, true);
+      if (i < 4) sq(`storey-${i}`, 2, 2.5, y + 0.16, s * 0.62, 0.46, carved);
+    });
+    [3.6, 2.8, 2.1].forEach((s, i) => {
+      for (const j of [-1, 1]) add(`head-${i}-${j}`, 3, 2.5 + j * (s / 2 - 0.2) - 0.1, 2.4, top + 1.1 + i * 0.62 + 0.16, 0.2, 0.2, 0.3, carved);
+    });
+    sq("spire", 3, 2.5, top + 1.1 + 5 * 0.62 - 0.46, 0.24, 0.7, tar);
+    sq("finial", 4, 2.5, top + 1.1 + 5 * 0.62 + 0.24, 0.12, 0.3, gilt3);
+    add("door", 3, 2.2, 4, top, 0.6, 0.02, 0.8, dark4, false, "arch");
+  } else if (style === "mideast") {
+    sq("hall", 1, 2.5, top, 2.8, 1.5, sand, true);
+    add("portal-frame", 1, 1.8, 3.9, top, 1.4, 0.3, 1.9, lime, true);
+    add("portal", 3, 2.1, 4.2, top, 0.8, 0.02, 1.2, dark4, false, "arch");
+    const y = top + 1.5;
+    sq("drum", 2, 2.5, y, 1.8, 0.4, lime);
+    [1.7, 1.4, 1.05, 0.7, 0.36].forEach((s, i) => sq(`dome-${i}`, 2, 2.5, y + 0.4 + i * 0.22, s, 0.22, i % 2 ? lime : cream, i === 0));
+    sq("finial", 4, 2.5, y + 1.5, 0.1, 0.36, gilt3);
+    for (const [x, z] of [[0.45, 0.45], [4.15, 0.45], [0.45, 4.15], [4.15, 4.15]]) {
+      add(`minaret-${x}-${z}`, 1, x, z, top, 0.4, 0.4, 2.8, lime, true);
+      add(`balcony-${x}-${z}`, 3, x - 0.06, z - 0.06, top + 2, 0.52, 0.52, 0.08, sand);
+      add(`minaret-cap-${x}-${z}`, 2, x + 0.05, z + 0.05, top + 2.8, 0.3, 0.3, 0.2, cream);
+      add(`minaret-tip-${x}-${z}`, 4, x + 0.16, z + 0.16, top + 3, 0.08, 0.08, 0.24, gilt3);
+    }
+  } else {
+    let y = top;
+    [2.6, 2.2, 1.8, 1.4, 1].forEach((s, i) => {
+      sq(`storey-${i}`, i ? 2 : 1, 2.5, y, s, 0.62, i % 2 ? lime : "#b0574a", true);
+      y += 0.62;
+      sq(`eave-${i}`, 2, 2.5, y, s + 0.6, 0.12, tile, true);
+      for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) add(`tip-${i}-${dx}-${dz}`, 3, 2.5 + dx * (s / 2 + 0.3) - (dx > 0 ? 0.14 : 0), 2.5 + dz * (s / 2 + 0.3) - (dz > 0 ? 0.14 : 0), y + 0.12, 0.14, 0.14, 0.12, tile);
+      y += 0.12;
+    });
+    sq("spire", 3, 2.5, y, 0.2, 0.9, gilt3);
+    for (const [i, s] of [0.5, 0.38, 0.26].entries()) sq(`ring-${i}`, 3, 2.5, y + 0.2 + i * 0.22, s, 0.05, gilt3);
+    add("door", 3, 2.15, 3.81, top, 0.7, 0.02, 0.5, dark4);
+  }
+  for (const x of [0.7, 3.9]) {
+    add(`banner-pole-${x}`, 3, x, 4.4, 0.4, 0.08, 0.08, 1.6, carved);
+    add(`banner-${x}`, 4, x + 0.08, 4.42, 1.2, 0.36, 0.04, 0.7, team2);
+  }
+  if (v.health === 0) return [p[0], ...Array.from({ length: 16 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.3 + i % 4 * 1.15, z: 0.3 + Math.floor(i / 4) * 1.15, y: 0.16, w: 0.5, d: 0.42, h: 0.14, color: i % 3 ? stone4 : sand, studs: false }))];
+  const lost = /^(banner-.*|finial|cross-\d|crossing-tip|minaret-tip-.*|ring-2|fire-.*|spire-\d-2|rose-ring)$/;
+  return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !lost.test(a.id));
 }
 
 // apps/web/relic-model.ts
@@ -1292,129 +2661,284 @@ var relicParts = [
 ];
 
 // apps/web/tech-icons.ts
-var gold = "#d9bf6f";
-var wood = "#8a6a45";
-var stone = "#cfc7ae";
+var gold2 = "#d9bf6f";
+var wood5 = "#8a6a45";
+var stone5 = "#cfc7ae";
 var habit = "#7a5c40";
 var team = "#456e87";
 var techIcons = {
   // Redemption: a small house wearing a halo (buildings can change sides).
-  redemption: [{ x: 0, y: 0, z: 0, w: 0.8, d: 0.7, h: 0.5, color: stone }, { x: -0.05, y: 0.5, z: -0.05, w: 0.9, d: 0.8, h: 0.14, color: team }, { x: 0.2, y: 0.64, z: 0.15, w: 0.5, d: 0.5, h: 0.12, color: team }, { x: 0.3, y: 0.92, z: 0.25, w: 0.3, d: 0.3, h: 0.05, color: gold }, { x: 0.3, y: 0, z: 0.62, w: 0.2, d: 0.1, h: 0.3, color: wood }],
+  redemption: [{ x: 0, y: 0, z: 0, w: 0.8, d: 0.7, h: 0.5, color: stone5 }, { x: -0.05, y: 0.5, z: -0.05, w: 0.9, d: 0.8, h: 0.14, color: team }, { x: 0.2, y: 0.64, z: 0.15, w: 0.5, d: 0.5, h: 0.12, color: team }, { x: 0.3, y: 0.92, z: 0.25, w: 0.3, d: 0.3, h: 0.05, color: gold2 }, { x: 0.3, y: 0, z: 0.62, w: 0.2, d: 0.1, h: 0.3, color: wood5 }],
   // Atonement: a hooded figure under a halo (monks can be converted).
-  atonement: [{ x: 0.2, y: 0, z: 0.2, w: 0.4, d: 0.34, h: 0.5, color: habit }, { x: 0.25, y: 0.5, z: 0.24, w: 0.3, d: 0.26, h: 0.24, color: "#dfbb7e" }, { x: 0.2, y: 0.72, z: 0.2, w: 0.4, d: 0.34, h: 0.12, color: habit }, { x: 0.22, y: 0.95, z: 0.22, w: 0.36, d: 0.3, h: 0.05, color: gold }],
+  atonement: [{ x: 0.2, y: 0, z: 0.2, w: 0.4, d: 0.34, h: 0.5, color: habit }, { x: 0.25, y: 0.5, z: 0.24, w: 0.3, d: 0.26, h: 0.24, color: "#dfbb7e" }, { x: 0.2, y: 0.72, z: 0.2, w: 0.4, d: 0.34, h: 0.12, color: habit }, { x: 0.22, y: 0.95, z: 0.22, w: 0.36, d: 0.3, h: 0.05, color: gold2 }],
   // Sanctity: a shield with a green plus (more hit points).
   sanctity: [{ x: 0.1, y: 0, z: 0.3, w: 0.7, d: 0.12, h: 0.8, color: "#9d885b" }, { x: 0.4, y: 0.15, z: 0.42, w: 0.1, d: 0.04, h: 0.5, color: "#5f9a6a" }, { x: 0.22, y: 0.35, z: 0.42, w: 0.46, d: 0.04, h: 0.1, color: "#5f9a6a" }],
   // Heresy: a staff broken in two (a converted unit is lost instead).
-  heresy: [{ x: 0.1, y: 0, z: 0.3, w: 0.1, d: 0.1, h: 0.55, color: wood }, { x: 0.1, y: 0.55, z: 0.3, w: 0.12, d: 0.12, h: 0.1, color: gold }, { x: 0.45, y: 0, z: 0.3, w: 0.55, d: 0.1, h: 0.1, color: wood }, { x: 0.35, y: 0, z: 0.28, w: 0.12, d: 0.14, h: 0.06, color: "#6e5438" }],
+  heresy: [{ x: 0.1, y: 0, z: 0.3, w: 0.1, d: 0.1, h: 0.55, color: wood5 }, { x: 0.1, y: 0.55, z: 0.3, w: 0.12, d: 0.12, h: 0.1, color: gold2 }, { x: 0.45, y: 0, z: 0.3, w: 0.55, d: 0.1, h: 0.1, color: wood5 }, { x: 0.35, y: 0, z: 0.28, w: 0.12, d: 0.14, h: 0.06, color: "#6e5438" }],
   // Illumination: a lantern (faith returns faster).
-  illumination: [{ x: 0.25, y: 0, z: 0.25, w: 0.4, d: 0.4, h: 0.08, color: wood }, { x: 0.3, y: 0.08, z: 0.3, w: 0.3, d: 0.3, h: 0.4, color: "#f5dc7a" }, { x: 0.25, y: 0.48, z: 0.25, w: 0.4, d: 0.4, h: 0.08, color: wood }, { x: 0.4, y: 0.56, z: 0.4, w: 0.1, d: 0.1, h: 0.16, color: wood }],
+  illumination: [{ x: 0.25, y: 0, z: 0.25, w: 0.4, d: 0.4, h: 0.08, color: wood5 }, { x: 0.3, y: 0.08, z: 0.3, w: 0.3, d: 0.3, h: 0.4, color: "#f5dc7a" }, { x: 0.25, y: 0.48, z: 0.25, w: 0.4, d: 0.4, h: 0.08, color: wood5 }, { x: 0.4, y: 0.56, z: 0.4, w: 0.1, d: 0.1, h: 0.16, color: wood5 }],
   // Block Printing: a stack of printed pages (a longer reach).
   "block-printing": [{ x: 0, y: 0, z: 0.1, w: 0.8, d: 0.6, h: 0.1, color: "#6e5438" }, { x: 0.05, y: 0.1, z: 0.12, w: 0.7, d: 0.55, h: 0.16, color: "#efe6cc" }, { x: 0.05, y: 0.26, z: 0.12, w: 0.7, d: 0.55, h: 0.06, color: "#6e5438" }, { x: 0.15, y: 0.32, z: 0.2, w: 0.5, d: 0.4, h: 0.12, color: "#efe6cc" }],
   // Theocracy: a stepped tower (one monk rests for the group).
-  theocracy: [{ x: 0.1, y: 0, z: 0.1, w: 0.6, d: 0.6, h: 0.35, color: stone }, { x: 0.2, y: 0.35, z: 0.2, w: 0.4, d: 0.4, h: 0.3, color: stone }, { x: 0.28, y: 0.65, z: 0.28, w: 0.24, d: 0.24, h: 0.25, color: team }, { x: 0.35, y: 0.9, z: 0.35, w: 0.1, d: 0.1, h: 0.14, color: gold }],
+  theocracy: [{ x: 0.1, y: 0, z: 0.1, w: 0.6, d: 0.6, h: 0.35, color: stone5 }, { x: 0.2, y: 0.35, z: 0.2, w: 0.4, d: 0.4, h: 0.3, color: stone5 }, { x: 0.28, y: 0.65, z: 0.28, w: 0.24, d: 0.24, h: 0.25, color: team }, { x: 0.35, y: 0.9, z: 0.35, w: 0.1, d: 0.1, h: 0.14, color: gold2 }],
   // Faith: a bell (one's own units hold firm).
-  faith: [{ x: 0.1, y: 0.86, z: 0.3, w: 0.6, d: 0.1, h: 0.1, color: wood }, { x: 0.2, y: 0.2, z: 0.2, w: 0.4, d: 0.3, h: 0.5, color: "#b8964a" }, { x: 0.12, y: 0.1, z: 0.15, w: 0.56, d: 0.4, h: 0.12, color: "#b8964a" }, { x: 0.35, y: 0.7, z: 0.3, w: 0.1, d: 0.1, h: 0.16, color: wood }, { x: 0.36, y: 0, z: 0.3, w: 0.08, d: 0.08, h: 0.1, color: "#6e5438" }],
+  faith: [{ x: 0.1, y: 0.86, z: 0.3, w: 0.6, d: 0.1, h: 0.1, color: wood5 }, { x: 0.2, y: 0.2, z: 0.2, w: 0.4, d: 0.3, h: 0.5, color: "#b8964a" }, { x: 0.12, y: 0.1, z: 0.15, w: 0.56, d: 0.4, h: 0.12, color: "#b8964a" }, { x: 0.35, y: 0.7, z: 0.3, w: 0.1, d: 0.1, h: 0.16, color: wood5 }, { x: 0.36, y: 0, z: 0.3, w: 0.08, d: 0.08, h: 0.1, color: "#6e5438" }],
   // Economic technologies (town centre, lumber camp, mining camp, mill).
   // Loom: a frame with coloured threads (villagers +15 hit points).
-  loom: [{ x: 0.05, y: 0, z: 0.3, w: 0.1, d: 0.1, h: 0.8, color: wood }, { x: 0.75, y: 0, z: 0.3, w: 0.1, d: 0.1, h: 0.8, color: wood }, { x: 0.05, y: 0.72, z: 0.3, w: 0.8, d: 0.1, h: 0.08, color: wood }, { x: 0.15, y: 0.15, z: 0.32, w: 0.6, d: 0.06, h: 0.5, color: "#c9b27a" }, { x: 0.2, y: 0.25, z: 0.36, w: 0.5, d: 0.04, h: 0.08, color: team }, { x: 0.2, y: 0.45, z: 0.36, w: 0.5, d: 0.04, h: 0.08, color: "#b25441" }],
+  loom: [{ x: 0.05, y: 0, z: 0.3, w: 0.1, d: 0.1, h: 0.8, color: wood5 }, { x: 0.75, y: 0, z: 0.3, w: 0.1, d: 0.1, h: 0.8, color: wood5 }, { x: 0.05, y: 0.72, z: 0.3, w: 0.8, d: 0.1, h: 0.08, color: wood5 }, { x: 0.15, y: 0.15, z: 0.32, w: 0.6, d: 0.06, h: 0.5, color: "#c9b27a" }, { x: 0.2, y: 0.25, z: 0.36, w: 0.5, d: 0.04, h: 0.08, color: team }, { x: 0.2, y: 0.45, z: 0.36, w: 0.5, d: 0.04, h: 0.08, color: "#b25441" }],
   // Wheelbarrow: a tray on one wheel with two handles (villagers carry more).
-  wheelbarrow: [{ x: 0.2, y: 0.25, z: 0.2, w: 0.5, d: 0.45, h: 0.25, color: wood }, { x: 0.05, y: 0.1, z: 0.3, w: 0.14, d: 0.25, h: 0.14, color: "#5c4a36" }, { x: 0.7, y: 0.3, z: 0.25, w: 0.25, d: 0.06, h: 0.06, color: wood }, { x: 0.7, y: 0.3, z: 0.55, w: 0.25, d: 0.06, h: 0.06, color: wood }, { x: 0.3, y: 0.5, z: 0.25, w: 0.3, d: 0.35, h: 0.08, color: "#c9b27a" }],
+  wheelbarrow: [{ x: 0.2, y: 0.25, z: 0.2, w: 0.5, d: 0.45, h: 0.25, color: wood5 }, { x: 0.05, y: 0.1, z: 0.3, w: 0.14, d: 0.25, h: 0.14, color: "#5c4a36" }, { x: 0.7, y: 0.3, z: 0.25, w: 0.25, d: 0.06, h: 0.06, color: wood5 }, { x: 0.7, y: 0.3, z: 0.55, w: 0.25, d: 0.06, h: 0.06, color: wood5 }, { x: 0.3, y: 0.5, z: 0.25, w: 0.3, d: 0.35, h: 0.08, color: "#c9b27a" }],
   // Hand Cart: a bigger box on two wheels.
-  "hand-cart": [{ x: 0.1, y: 0.25, z: 0.15, w: 0.7, d: 0.6, h: 0.3, color: wood }, { x: 0.2, y: 0, z: 0.05, w: 0.25, d: 0.1, h: 0.25, color: "#5c4a36" }, { x: 0.2, y: 0, z: 0.7, w: 0.25, d: 0.1, h: 0.25, color: "#5c4a36" }, { x: 0.2, y: 0.55, z: 0.25, w: 0.5, d: 0.4, h: 0.12, color: "#c9b27a" }, { x: 0.8, y: 0.35, z: 0.4, w: 0.2, d: 0.1, h: 0.06, color: wood }],
+  "hand-cart": [{ x: 0.1, y: 0.25, z: 0.15, w: 0.7, d: 0.6, h: 0.3, color: wood5 }, { x: 0.2, y: 0, z: 0.05, w: 0.25, d: 0.1, h: 0.25, color: "#5c4a36" }, { x: 0.2, y: 0, z: 0.7, w: 0.25, d: 0.1, h: 0.25, color: "#5c4a36" }, { x: 0.2, y: 0.55, z: 0.25, w: 0.5, d: 0.4, h: 0.12, color: "#c9b27a" }, { x: 0.8, y: 0.35, z: 0.4, w: 0.2, d: 0.1, h: 0.06, color: wood5 }],
   // Double-Bit Axe: a handle with a blade on both sides.
-  "double-bit-axe": [{ x: 0.4, y: 0, z: 0.4, w: 0.08, d: 0.08, h: 0.85, color: wood }, { x: 0.15, y: 0.6, z: 0.38, w: 0.25, d: 0.12, h: 0.22, color: "#aab0a3" }, { x: 0.48, y: 0.6, z: 0.38, w: 0.25, d: 0.12, h: 0.22, color: "#aab0a3" }],
+  "double-bit-axe": [{ x: 0.4, y: 0, z: 0.4, w: 0.08, d: 0.08, h: 0.85, color: wood5 }, { x: 0.15, y: 0.6, z: 0.38, w: 0.25, d: 0.12, h: 0.22, color: "#aab0a3" }, { x: 0.48, y: 0.6, z: 0.38, w: 0.25, d: 0.12, h: 0.22, color: "#aab0a3" }],
   // Bow Saw: a curved frame with a blade.
-  "bow-saw": [{ x: 0.05, y: 0.1, z: 0.4, w: 0.8, d: 0.08, h: 0.05, color: "#c6cfca" }, { x: 0.05, y: 0.1, z: 0.4, w: 0.08, d: 0.08, h: 0.45, color: wood }, { x: 0.77, y: 0.1, z: 0.4, w: 0.08, d: 0.08, h: 0.45, color: wood }, { x: 0.1, y: 0.52, z: 0.4, w: 0.7, d: 0.08, h: 0.08, color: wood }],
+  "bow-saw": [{ x: 0.05, y: 0.1, z: 0.4, w: 0.8, d: 0.08, h: 0.05, color: "#c6cfca" }, { x: 0.05, y: 0.1, z: 0.4, w: 0.08, d: 0.08, h: 0.45, color: wood5 }, { x: 0.77, y: 0.1, z: 0.4, w: 0.08, d: 0.08, h: 0.45, color: wood5 }, { x: 0.1, y: 0.52, z: 0.4, w: 0.7, d: 0.08, h: 0.08, color: wood5 }],
   // Two-Man Saw: a long blade with a handle at each end.
-  "two-man-saw": [{ x: 0.12, y: 0.3, z: 0.4, w: 0.76, d: 0.06, h: 0.12, color: "#c6cfca" }, { x: 0, y: 0.2, z: 0.38, w: 0.12, d: 0.1, h: 0.35, color: wood }, { x: 0.88, y: 0.2, z: 0.38, w: 0.12, d: 0.1, h: 0.35, color: wood }],
+  "two-man-saw": [{ x: 0.12, y: 0.3, z: 0.4, w: 0.76, d: 0.06, h: 0.12, color: "#c6cfca" }, { x: 0, y: 0.2, z: 0.38, w: 0.12, d: 0.1, h: 0.35, color: wood5 }, { x: 0.88, y: 0.2, z: 0.38, w: 0.12, d: 0.1, h: 0.35, color: wood5 }],
   // Gold Mining: a pick over a gold nugget; Gold Shaft Mining: a shaft frame over it.
-  "gold-mining": [{ x: 0.2, y: 0, z: 0.25, w: 0.5, d: 0.45, h: 0.25, color: "#dec36f" }, { x: 0.42, y: 0.25, z: 0.42, w: 0.07, d: 0.07, h: 0.6, color: wood }, { x: 0.2, y: 0.8, z: 0.42, w: 0.5, d: 0.07, h: 0.07, color: "#aab0a3" }],
-  "gold-shaft-mining": [{ x: 0.2, y: 0, z: 0.25, w: 0.5, d: 0.45, h: 0.25, color: "#dec36f" }, { x: 0.1, y: 0, z: 0.15, w: 0.08, d: 0.08, h: 0.85, color: wood }, { x: 0.72, y: 0, z: 0.15, w: 0.08, d: 0.08, h: 0.85, color: wood }, { x: 0.1, y: 0.85, z: 0.15, w: 0.7, d: 0.08, h: 0.08, color: wood }, { x: 0.42, y: 0.4, z: 0.18, w: 0.04, d: 0.04, h: 0.45, color: "#80674f" }],
+  "gold-mining": [{ x: 0.2, y: 0, z: 0.25, w: 0.5, d: 0.45, h: 0.25, color: "#dec36f" }, { x: 0.42, y: 0.25, z: 0.42, w: 0.07, d: 0.07, h: 0.6, color: wood5 }, { x: 0.2, y: 0.8, z: 0.42, w: 0.5, d: 0.07, h: 0.07, color: "#aab0a3" }],
+  "gold-shaft-mining": [{ x: 0.2, y: 0, z: 0.25, w: 0.5, d: 0.45, h: 0.25, color: "#dec36f" }, { x: 0.1, y: 0, z: 0.15, w: 0.08, d: 0.08, h: 0.85, color: wood5 }, { x: 0.72, y: 0, z: 0.15, w: 0.08, d: 0.08, h: 0.85, color: wood5 }, { x: 0.1, y: 0.85, z: 0.15, w: 0.7, d: 0.08, h: 0.08, color: wood5 }, { x: 0.42, y: 0.4, z: 0.18, w: 0.04, d: 0.04, h: 0.45, color: "#80674f" }],
   // Stone Mining and Stone Shaft Mining: the same with a stone block.
-  "stone-mining": [{ x: 0.2, y: 0, z: 0.25, w: 0.5, d: 0.45, h: 0.25, color: stone }, { x: 0.42, y: 0.25, z: 0.42, w: 0.07, d: 0.07, h: 0.6, color: wood }, { x: 0.2, y: 0.8, z: 0.42, w: 0.5, d: 0.07, h: 0.07, color: "#aab0a3" }],
-  "stone-shaft-mining": [{ x: 0.2, y: 0, z: 0.25, w: 0.5, d: 0.45, h: 0.25, color: stone }, { x: 0.1, y: 0, z: 0.15, w: 0.08, d: 0.08, h: 0.85, color: wood }, { x: 0.72, y: 0, z: 0.15, w: 0.08, d: 0.08, h: 0.85, color: wood }, { x: 0.1, y: 0.85, z: 0.15, w: 0.7, d: 0.08, h: 0.08, color: wood }, { x: 0.42, y: 0.4, z: 0.18, w: 0.04, d: 0.04, h: 0.45, color: "#80674f" }],
+  "stone-mining": [{ x: 0.2, y: 0, z: 0.25, w: 0.5, d: 0.45, h: 0.25, color: stone5 }, { x: 0.42, y: 0.25, z: 0.42, w: 0.07, d: 0.07, h: 0.6, color: wood5 }, { x: 0.2, y: 0.8, z: 0.42, w: 0.5, d: 0.07, h: 0.07, color: "#aab0a3" }],
+  "stone-shaft-mining": [{ x: 0.2, y: 0, z: 0.25, w: 0.5, d: 0.45, h: 0.25, color: stone5 }, { x: 0.1, y: 0, z: 0.15, w: 0.08, d: 0.08, h: 0.85, color: wood5 }, { x: 0.72, y: 0, z: 0.15, w: 0.08, d: 0.08, h: 0.85, color: wood5 }, { x: 0.1, y: 0.85, z: 0.15, w: 0.7, d: 0.08, h: 0.08, color: wood5 }, { x: 0.42, y: 0.4, z: 0.18, w: 0.04, d: 0.04, h: 0.45, color: "#80674f" }],
   // Horse Collar: a padded U; Heavy Plow: a plough blade on a beam; Crop Rotation: three fields of different crops.
-  "horse-collar": [{ x: 0.15, y: 0, z: 0.4, w: 0.14, d: 0.14, h: 0.7, color: "#7a5c40" }, { x: 0.61, y: 0, z: 0.4, w: 0.14, d: 0.14, h: 0.7, color: "#7a5c40" }, { x: 0.15, y: 0.6, z: 0.4, w: 0.6, d: 0.14, h: 0.16, color: "#7a5c40" }, { x: 0.25, y: 0.1, z: 0.42, w: 0.4, d: 0.1, h: 0.08, color: gold }],
-  "heavy-plow": [{ x: 0.05, y: 0.35, z: 0.4, w: 0.8, d: 0.1, h: 0.1, color: wood }, { x: 0.6, y: 0, z: 0.35, w: 0.25, d: 0.2, h: 0.35, color: "#aab0a3" }, { x: 0.05, y: 0.45, z: 0.4, w: 0.08, d: 0.1, h: 0.3, color: wood }],
+  "horse-collar": [{ x: 0.15, y: 0, z: 0.4, w: 0.14, d: 0.14, h: 0.7, color: "#7a5c40" }, { x: 0.61, y: 0, z: 0.4, w: 0.14, d: 0.14, h: 0.7, color: "#7a5c40" }, { x: 0.15, y: 0.6, z: 0.4, w: 0.6, d: 0.14, h: 0.16, color: "#7a5c40" }, { x: 0.25, y: 0.1, z: 0.42, w: 0.4, d: 0.1, h: 0.08, color: gold2 }],
+  "heavy-plow": [{ x: 0.05, y: 0.35, z: 0.4, w: 0.8, d: 0.1, h: 0.1, color: wood5 }, { x: 0.6, y: 0, z: 0.35, w: 0.25, d: 0.2, h: 0.35, color: "#aab0a3" }, { x: 0.05, y: 0.45, z: 0.4, w: 0.08, d: 0.1, h: 0.3, color: wood5 }],
   "crop-rotation": [{ x: 0, y: 0, z: 0.05, w: 0.9, d: 0.25, h: 0.12, color: "#9bb65a" }, { x: 0, y: 0, z: 0.33, w: 0.9, d: 0.25, h: 0.12, color: "#d9c26a" }, { x: 0, y: 0, z: 0.61, w: 0.9, d: 0.25, h: 0.12, color: "#806b49" }, { x: 0.1, y: 0.12, z: 0.1, w: 0.7, d: 0.15, h: 0.1, color: "#7e985f" }]
 };
-var metal = ["#9a8c78", "#aab0a3", "#d8dcd6"];
-var band = (level) => Array.from({ length: level }, (_, i) => ({ x: 0.15 + i * 0.25, y: 0, z: 0.75, w: 0.18, d: 0.1, h: 0.08, color: gold }));
-var hammer = (l) => [{ x: 0.42, y: 0.1, z: 0.4, w: 0.08, d: 0.08, h: 0.75, color: wood }, { x: 0.25, y: 0.7, z: 0.34, w: 0.42, d: 0.2, h: 0.18, color: metal[l - 1] }, ...band(l)];
-var mail = (l) => [{ x: 0.2, y: 0.1, z: 0.35, w: 0.5, d: 0.2, h: 0.55, color: metal[l - 1] }, { x: 0.1, y: 0.5, z: 0.35, w: 0.7, d: 0.2, h: 0.15, color: metal[l - 1] }, { x: 0.35, y: 0.65, z: 0.35, w: 0.2, d: 0.2, h: 0.1, color: "#6e5438" }, ...band(l)];
-var barding = (l) => [{ x: 0.1, y: 0.15, z: 0.35, w: 0.7, d: 0.3, h: 0.3, color: metal[l - 1] }, { x: 0.65, y: 0.35, z: 0.35, w: 0.2, d: 0.3, h: 0.35, color: metal[l - 1] }, { x: 0.12, y: 0.45, z: 0.38, w: 0.5, d: 0.24, h: 0.08, color: team }, ...band(l)];
-var arrows = (l) => [...[0, 1, 2].map((i) => ({ x: 0.2 + i * 0.2, y: 0.1, z: 0.4, w: 0.05, d: 0.05, h: 0.65, color: wood })), ...[0, 1, 2].map((i) => ({ x: 0.17 + i * 0.2, y: 0.75, z: 0.37, w: 0.11, d: 0.11, h: 0.12, color: metal[l - 1] })), ...band(l)];
+var metal2 = ["#9a8c78", "#aab0a3", "#d8dcd6"];
+var band = (level) => Array.from({ length: level }, (_, i) => ({ x: 0.15 + i * 0.25, y: 0, z: 0.75, w: 0.18, d: 0.1, h: 0.08, color: gold2 }));
+var hammer = (l) => [{ x: 0.42, y: 0.1, z: 0.4, w: 0.08, d: 0.08, h: 0.75, color: wood5 }, { x: 0.25, y: 0.7, z: 0.34, w: 0.42, d: 0.2, h: 0.18, color: metal2[l - 1] }, ...band(l)];
+var mail = (l) => [{ x: 0.2, y: 0.1, z: 0.35, w: 0.5, d: 0.2, h: 0.55, color: metal2[l - 1] }, { x: 0.1, y: 0.5, z: 0.35, w: 0.7, d: 0.2, h: 0.15, color: metal2[l - 1] }, { x: 0.35, y: 0.65, z: 0.35, w: 0.2, d: 0.2, h: 0.1, color: "#6e5438" }, ...band(l)];
+var barding = (l) => [{ x: 0.1, y: 0.15, z: 0.35, w: 0.7, d: 0.3, h: 0.3, color: metal2[l - 1] }, { x: 0.65, y: 0.35, z: 0.35, w: 0.2, d: 0.3, h: 0.35, color: metal2[l - 1] }, { x: 0.12, y: 0.45, z: 0.38, w: 0.5, d: 0.24, h: 0.08, color: team }, ...band(l)];
+var arrows = (l) => [...[0, 1, 2].map((i) => ({ x: 0.2 + i * 0.2, y: 0.1, z: 0.4, w: 0.05, d: 0.05, h: 0.65, color: wood5 })), ...[0, 1, 2].map((i) => ({ x: 0.17 + i * 0.2, y: 0.75, z: 0.37, w: 0.11, d: 0.11, h: 0.12, color: metal2[l - 1] })), ...band(l)];
 var vest = (l) => [{ x: 0.2, y: 0.1, z: 0.35, w: 0.5, d: 0.2, h: 0.5, color: ["#b89a6a", "#8a6a45", "#aab0a3"][l - 1] }, { x: 0.25, y: 0.2, z: 0.33, w: 0.4, d: 0.04, h: 0.06, color: "#6e5438" }, { x: 0.25, y: 0.4, z: 0.33, w: 0.4, d: 0.04, h: 0.06, color: "#6e5438" }, ...band(l)];
-for (const [line, make] of [[["forging", "iron-casting", "blast-furnace"], hammer], [["scale-mail-armor", "chain-mail-armor", "plate-mail-armor"], mail], [["scale-barding-armor", "chain-barding-armor", "plate-barding-armor"], barding], [["fletching", "bodkin-arrow", "bracer"], arrows], [["padded-archer-armor", "leather-archer-armor", "ring-archer-armor"], vest]])
-  line.forEach((id, i) => {
+for (const [line2, make] of [[["forging", "iron-casting", "blast-furnace"], hammer], [["scale-mail-armor", "chain-mail-armor", "plate-mail-armor"], mail], [["scale-barding-armor", "chain-barding-armor", "plate-barding-armor"], barding], [["fletching", "bodkin-arrow", "bracer"], arrows], [["padded-archer-armor", "leather-archer-armor", "ring-archer-armor"], vest]])
+  line2.forEach((id, i) => {
     techIcons[id] = make(i + 1);
   });
-var metal2 = "#aab0a3";
-var dark = "#4a4740";
+var metal22 = "#aab0a3";
+var dark5 = "#4a4740";
 var green = "#5f9a6a";
 var grey = "#8d8c86";
 var felt = "#ece6d6";
-var sand = "#d8c9a6";
+var sand2 = "#d8c9a6";
 var red = "#b25441";
 var plus = (x, y) => [{ x: x + 0.09, y, z: 0.42, w: 0.08, d: 0.04, h: 0.26, color: green }, { x, y: y + 0.09, z: 0.42, w: 0.26, d: 0.04, h: 0.08, color: green }];
 var streaks = (x, y) => [0, 1, 2].map((i) => ({ x: x - i * 0.04, y: y + i * 0.14, z: 0.45, w: 0.18 + i * 0.06, d: 0.04, h: 0.05, color: "#efe6cc" }));
-var shaft = (x, y, len) => [{ x, y, z: 0.45, w: len, d: 0.04, h: 0.04, color: wood }, { x: x + len, y: y - 0.02, z: 0.44, w: 0.08, d: 0.06, h: 0.08, color: metal2 }];
-var merlons = (x, y, n, w = 0.14) => Array.from({ length: n }, (_, i) => ({ x: x + i * w * 2, y, z: 0.3, w, d: 0.36, h: 0.12, color: stone }));
+var shaft = (x, y, len) => [{ x, y, z: 0.45, w: len, d: 0.04, h: 0.04, color: wood5 }, { x: x + len, y: y - 0.02, z: 0.44, w: 0.08, d: 0.06, h: 0.08, color: metal22 }];
+var merlons = (x, y, n, w = 0.14) => Array.from({ length: n }, (_, i) => ({ x: x + i * w * 2, y, z: 0.3, w, d: 0.36, h: 0.12, color: stone5 }));
 Object.assign(techIcons, {
   // Yeomen: a tall longbow beside a tower top (archer range and tower attack).
-  yeomen: [{ x: 0, y: 0, z: 0.3, w: 0.45, d: 0.4, h: 0.6, color: stone }, ...merlons(0, 0.6, 2, 0.12), ...[[0, 0], [0.06, 0.18], [0.09, 0.36], [0.06, 0.54], [0, 0.72]].map(([dx, y]) => ({ x: 0.7 + dx, y, z: 0.4, w: 0.06, d: 0.06, h: 0.2, color: wood })), { x: 0.66, y: 0, z: 0.42, w: 0.02, d: 0.02, h: 0.92, color: "#d9cba4" }],
+  yeomen: [{ x: 0, y: 0, z: 0.3, w: 0.45, d: 0.4, h: 0.6, color: stone5 }, ...merlons(0, 0.6, 2, 0.12), ...[[0, 0], [0.06, 0.18], [0.09, 0.36], [0.06, 0.54], [0, 0.72]].map(([dx, y]) => ({ x: 0.7 + dx, y, z: 0.4, w: 0.06, d: 0.06, h: 0.2, color: wood5 })), { x: 0.66, y: 0, z: 0.42, w: 0.02, d: 0.02, h: 0.92, color: "#d9cba4" }],
   // Stronghold: a castle tower loosing arrows in quick succession.
-  stronghold: [{ x: 0, y: 0, z: 0.25, w: 0.5, d: 0.5, h: 0.75, color: stone }, ...merlons(0, 0.75, 2), { x: 0.18, y: 0.35, z: 0.74, w: 0.12, d: 0.02, h: 0.2, color: dark }, ...shaft(0.55, 0.62, 0.3), ...shaft(0.55, 0.42, 0.3), ...shaft(0.55, 0.22, 0.3)],
+  stronghold: [{ x: 0, y: 0, z: 0.25, w: 0.5, d: 0.5, h: 0.75, color: stone5 }, ...merlons(0, 0.75, 2), { x: 0.18, y: 0.35, z: 0.74, w: 0.12, d: 0.02, h: 0.2, color: dark5 }, ...shaft(0.55, 0.62, 0.3), ...shaft(0.55, 0.42, 0.3), ...shaft(0.55, 0.22, 0.3)],
   // Furor Celtica: a ram on its wheels under a green plus (siege hit points).
-  "furor-celtica": [{ x: 0, y: 0.12, z: 0.3, w: 0.9, d: 0.3, h: 0.18, color: wood }, { x: 0.1, y: 0, z: 0.25, w: 0.18, d: 0.4, h: 0.18, color: "#5c4a36" }, { x: 0.62, y: 0, z: 0.25, w: 0.18, d: 0.4, h: 0.18, color: "#5c4a36" }, { x: 0.85, y: 0.12, z: 0.32, w: 0.12, d: 0.26, h: 0.18, color: metal2 }, ...plus(0.32, 0.45)],
+  "furor-celtica": [{ x: 0, y: 0.12, z: 0.3, w: 0.9, d: 0.3, h: 0.18, color: wood5 }, { x: 0.1, y: 0, z: 0.25, w: 0.18, d: 0.4, h: 0.18, color: "#5c4a36" }, { x: 0.62, y: 0, z: 0.25, w: 0.18, d: 0.4, h: 0.18, color: "#5c4a36" }, { x: 0.85, y: 0.12, z: 0.32, w: 0.12, d: 0.26, h: 0.18, color: metal22 }, ...plus(0.32, 0.45)],
   // Chivalry: a horseshoe with gold nails and speed streaks (faster stable).
-  chivalry: [{ x: 0.1, y: 0, z: 0.1, w: 0.16, d: 0.7, h: 0.14, color: metal2 }, { x: 0.64, y: 0, z: 0.1, w: 0.16, d: 0.7, h: 0.14, color: metal2 }, { x: 0.1, y: 0, z: 0.1, w: 0.7, d: 0.16, h: 0.14, color: metal2 }, ...[0.14, 0.68].flatMap((x) => [0.35, 0.6].map((z) => ({ x: x + 0.04, y: 0.14, z, w: 0.06, d: 0.06, h: 0.04, color: gold }))), ...streaks(0.2, 0.3).map((p) => ({ ...p, y: 0, z: 0.85 + (p.y - 0.3) / 0.7, h: 0.04 }))],
+  chivalry: [{ x: 0.1, y: 0, z: 0.1, w: 0.16, d: 0.7, h: 0.14, color: metal22 }, { x: 0.64, y: 0, z: 0.1, w: 0.16, d: 0.7, h: 0.14, color: metal22 }, { x: 0.1, y: 0, z: 0.1, w: 0.7, d: 0.16, h: 0.14, color: metal22 }, ...[0.14, 0.68].flatMap((x) => [0.35, 0.6].map((z) => ({ x: x + 0.04, y: 0.14, z, w: 0.06, d: 0.06, h: 0.04, color: gold2 }))), ...streaks(0.2, 0.3).map((p) => ({ ...p, y: 0, z: 0.85 + (p.y - 0.3) / 0.7, h: 0.04 }))],
   // Bearded Axe: the francisca in flight, its path drawn out behind it (longer throw).
-  "bearded-axe": [{ x: 0.52, y: 0, z: 0.42, w: 0.08, d: 0.08, h: 0.8, color: wood }, { x: 0.6, y: 0.56, z: 0.41, w: 0.3, d: 0.1, h: 0.2, color: metal2 }, { x: 0.74, y: 0.38, z: 0.41, w: 0.16, d: 0.1, h: 0.2, color: metal2 }, { x: 0.44, y: 0.64, z: 0.41, w: 0.08, d: 0.1, h: 0.1, color: metal2 }, ...[0, 1, 2].map((i) => ({ x: 0.02 + i * 0.14, y: 0.3 + i * 0.12, z: 0.44, w: 0.1, d: 0.04, h: 0.05, color: "#efe6cc" }))],
+  "bearded-axe": [{ x: 0.52, y: 0, z: 0.42, w: 0.08, d: 0.08, h: 0.8, color: wood5 }, { x: 0.6, y: 0.56, z: 0.41, w: 0.3, d: 0.1, h: 0.2, color: metal22 }, { x: 0.74, y: 0.38, z: 0.41, w: 0.16, d: 0.1, h: 0.2, color: metal22 }, { x: 0.44, y: 0.64, z: 0.41, w: 0.08, d: 0.1, h: 0.1, color: metal22 }, ...[0, 1, 2].map((i) => ({ x: 0.02 + i * 0.14, y: 0.3 + i * 0.12, z: 0.44, w: 0.1, d: 0.04, h: 0.05, color: "#efe6cc" }))],
   // Anarchy: a barracks arch with a Huskarl's round shield in the doorway.
-  anarchy: [{ x: 0, y: 0, z: 0.2, w: 0.18, d: 0.4, h: 0.7, color: stone }, { x: 0.72, y: 0, z: 0.2, w: 0.18, d: 0.4, h: 0.7, color: stone }, { x: 0, y: 0.7, z: 0.2, w: 0.9, d: 0.4, h: 0.16, color: red }, { x: 0.27, y: 0.08, z: 0.52, w: 0.36, d: 0.05, h: 0.5, color: team }, { x: 0.2, y: 0.15, z: 0.52, w: 0.5, d: 0.05, h: 0.36, color: team }, { x: 0.4, y: 0.28, z: 0.57, w: 0.1, d: 0.03, h: 0.1, color: gold }],
+  anarchy: [{ x: 0, y: 0, z: 0.2, w: 0.18, d: 0.4, h: 0.7, color: stone5 }, { x: 0.72, y: 0, z: 0.2, w: 0.18, d: 0.4, h: 0.7, color: stone5 }, { x: 0, y: 0.7, z: 0.2, w: 0.9, d: 0.4, h: 0.16, color: red }, { x: 0.27, y: 0.08, z: 0.52, w: 0.36, d: 0.05, h: 0.5, color: team }, { x: 0.2, y: 0.15, z: 0.52, w: 0.5, d: 0.05, h: 0.36, color: team }, { x: 0.4, y: 0.28, z: 0.57, w: 0.1, d: 0.03, h: 0.1, color: gold2 }],
   // Perfusion: two helmets side by side (twice the training speed).
-  perfusion: [0, 0.46].flatMap((x) => [{ x: x + 0.06, y: 0, z: 0.35, w: 0.26, d: 0.2, h: 0.2, color: "#44514b" }, { x: x + 0.02, y: 0.2, z: 0.33, w: 0.34, d: 0.24, h: 0.3, color: team }, { x: x + 0.07, y: 0.5, z: 0.35, w: 0.24, d: 0.2, h: 0.2, color: "#dfbb7e" }, { x: x + 0.04, y: 0.7, z: 0.33, w: 0.3, d: 0.24, h: 0.08, color: metal2 }, { x: x + 0.36, y: 0.1, z: 0.42, w: 0.04, d: 0.04, h: 0.66, color: wood }]),
+  perfusion: [0, 0.46].flatMap((x) => [{ x: x + 0.06, y: 0, z: 0.35, w: 0.26, d: 0.2, h: 0.2, color: "#44514b" }, { x: x + 0.02, y: 0.2, z: 0.33, w: 0.34, d: 0.24, h: 0.3, color: team }, { x: x + 0.07, y: 0.5, z: 0.35, w: 0.24, d: 0.2, h: 0.2, color: "#dfbb7e" }, { x: x + 0.04, y: 0.7, z: 0.33, w: 0.3, d: 0.24, h: 0.08, color: metal22 }, { x: x + 0.36, y: 0.1, z: 0.42, w: 0.04, d: 0.04, h: 0.66, color: wood5 }]),
   // Ironclad: a ram under riveted iron plates (siege melee armour).
-  ironclad: [{ x: 0, y: 0, z: 0.3, w: 0.9, d: 0.3, h: 0.2, color: wood }, { x: 0.05, y: 0.2, z: 0.25, w: 0.8, d: 0.4, h: 0.14, color: metal2 }, { x: 0.15, y: 0.34, z: 0.3, w: 0.6, d: 0.3, h: 0.14, color: "#8f9896" }, ...[0.15, 0.4, 0.65].map((x) => ({ x, y: 0.24, z: 0.65, w: 0.06, d: 0.02, h: 0.06, color: gold }))],
+  ironclad: [{ x: 0, y: 0, z: 0.3, w: 0.9, d: 0.3, h: 0.2, color: wood5 }, { x: 0.05, y: 0.2, z: 0.25, w: 0.8, d: 0.4, h: 0.14, color: metal22 }, { x: 0.15, y: 0.34, z: 0.3, w: 0.6, d: 0.3, h: 0.14, color: "#8f9896" }, ...[0.15, 0.4, 0.65].map((x) => ({ x, y: 0.24, z: 0.65, w: 0.06, d: 0.02, h: 0.06, color: gold2 }))],
   // Crenellations: a crenellated wall with a helmeted defender between the merlons.
-  crenellations: [{ x: 0, y: 0, z: 0.3, w: 0.9, d: 0.36, h: 0.45, color: stone }, { x: 0, y: 0.45, z: 0.3, w: 0.16, d: 0.36, h: 0.2, color: stone }, { x: 0.74, y: 0.45, z: 0.3, w: 0.16, d: 0.36, h: 0.2, color: stone }, { x: 0.34, y: 0.45, z: 0.38, w: 0.22, d: 0.2, h: 0.16, color: "#dfbb7e" }, { x: 0.32, y: 0.61, z: 0.36, w: 0.26, d: 0.24, h: 0.1, color: metal2 }, ...shaft(0.55, 0.72, 0.3)],
+  crenellations: [{ x: 0, y: 0, z: 0.3, w: 0.9, d: 0.36, h: 0.45, color: stone5 }, { x: 0, y: 0.45, z: 0.3, w: 0.16, d: 0.36, h: 0.2, color: stone5 }, { x: 0.74, y: 0.45, z: 0.3, w: 0.16, d: 0.36, h: 0.2, color: stone5 }, { x: 0.34, y: 0.45, z: 0.38, w: 0.22, d: 0.2, h: 0.16, color: "#dfbb7e" }, { x: 0.32, y: 0.61, z: 0.36, w: 0.26, d: 0.24, h: 0.1, color: metal22 }, ...shaft(0.55, 0.72, 0.3)],
   // Chieftains: a helmet crowned with a gold circlet over a spear (infantry against horsemen).
-  chieftains: [{ x: 0.1, y: 0.05, z: 0.44, w: 0.8, d: 0.04, h: 0.04, color: wood }, { x: 0.86, y: 0.03, z: 0.43, w: 0.12, d: 0.06, h: 0.08, color: metal2 }, { x: 0.25, y: 0.2, z: 0.3, w: 0.4, d: 0.38, h: 0.3, color: metal2 }, { x: 0.23, y: 0.42, z: 0.28, w: 0.44, d: 0.42, h: 0.06, color: gold }, ...[0.25, 0.43, 0.61].map((x) => ({ x, y: 0.48, z: 0.45, w: 0.04, d: 0.04, h: 0.12, color: gold }))],
+  chieftains: [{ x: 0.1, y: 0.05, z: 0.44, w: 0.8, d: 0.04, h: 0.04, color: wood5 }, { x: 0.86, y: 0.03, z: 0.43, w: 0.12, d: 0.06, h: 0.08, color: metal22 }, { x: 0.25, y: 0.2, z: 0.3, w: 0.4, d: 0.38, h: 0.3, color: metal22 }, { x: 0.23, y: 0.42, z: 0.28, w: 0.44, d: 0.42, h: 0.06, color: gold2 }, ...[0.25, 0.43, 0.61].map((x) => ({ x, y: 0.48, z: 0.45, w: 0.04, d: 0.04, h: 0.12, color: gold2 }))],
   // Berserkergang: a wolf-pelt hood with a green plus (faster regeneration).
-  berserkergang: [{ x: 0.1, y: 0, z: 0.3, w: 0.5, d: 0.4, h: 0.45, color: "#8a8272" }, { x: 0.2, y: 0.2, z: 0.7, w: 0.3, d: 0.1, h: 0.15, color: "#8a8272" }, { x: 0.12, y: 0.45, z: 0.35, w: 0.1, d: 0.1, h: 0.14, color: "#8a8272" }, { x: 0.48, y: 0.45, z: 0.35, w: 0.1, d: 0.1, h: 0.14, color: "#8a8272" }, { x: 0.22, y: 0.3, z: 0.7, w: 0.06, d: 0.02, h: 0.04, color: dark }, { x: 0.42, y: 0.3, z: 0.7, w: 0.06, d: 0.02, h: 0.04, color: dark }, ...plus(0.64, 0.5)],
+  berserkergang: [{ x: 0.1, y: 0, z: 0.3, w: 0.5, d: 0.4, h: 0.45, color: "#8a8272" }, { x: 0.2, y: 0.2, z: 0.7, w: 0.3, d: 0.1, h: 0.15, color: "#8a8272" }, { x: 0.12, y: 0.45, z: 0.35, w: 0.1, d: 0.1, h: 0.14, color: "#8a8272" }, { x: 0.48, y: 0.45, z: 0.35, w: 0.1, d: 0.1, h: 0.14, color: "#8a8272" }, { x: 0.22, y: 0.3, z: 0.7, w: 0.06, d: 0.02, h: 0.04, color: dark5 }, { x: 0.42, y: 0.3, z: 0.7, w: 0.06, d: 0.02, h: 0.04, color: dark5 }, ...plus(0.64, 0.5)],
   // Logistica: a hoof over scattered bricks (trample damage around the target).
-  logistica: [{ x: 0.3, y: 0.18, z: 0.3, w: 0.3, d: 0.3, h: 0.5, color: "#6f5a44" }, { x: 0.26, y: 0.1, z: 0.26, w: 0.38, d: 0.38, h: 0.1, color: metal2 }, ...[[0, 0], [0.75, 0.05], [0.05, 0.6], [0.72, 0.62]].map(([x, z]) => ({ x, y: 0, z, w: 0.16, d: 0.14, h: 0.1, color: stone }))],
+  logistica: [{ x: 0.3, y: 0.18, z: 0.3, w: 0.3, d: 0.3, h: 0.5, color: "#6f5a44" }, { x: 0.26, y: 0.1, z: 0.26, w: 0.38, d: 0.38, h: 0.1, color: metal22 }, ...[[0, 0], [0.75, 0.05], [0.05, 0.6], [0.72, 0.62]].map(([x, z]) => ({ x, y: 0, z, w: 0.16, d: 0.14, h: 0.1, color: stone5 }))],
   // Kamandaran: a bow over a stack of logs (archers paid in wood).
-  kamandaran: [...[0, 1, 2].map((i) => ({ x: 0.05, y: i * 0.14, z: 0.3 + i % 2 * 0.04, w: 0.8, d: 0.14, h: 0.14, color: i === 1 ? "#6e5438" : wood })), ...[[0, 0], [0.05, 0.14], [0.07, 0.28], [0.05, 0.42], [0, 0.56]].map(([dx, y]) => ({ x: 0.4 + dx, y: 0.42 + y * 0.6, z: 0.5, w: 0.06, d: 0.06, h: 0.14, color: "#997447" })), { x: 0.38, y: 0.42, z: 0.52, w: 0.02, d: 0.02, h: 0.46, color: "#d9cba4" }],
+  kamandaran: [...[0, 1, 2].map((i) => ({ x: 0.05, y: i * 0.14, z: 0.3 + i % 2 * 0.04, w: 0.8, d: 0.14, h: 0.14, color: i === 1 ? "#6e5438" : wood5 })), ...[[0, 0], [0.05, 0.14], [0.07, 0.28], [0.05, 0.42], [0, 0.56]].map(([dx, y]) => ({ x: 0.4 + dx, y: 0.42 + y * 0.6, z: 0.5, w: 0.06, d: 0.06, h: 0.14, color: "#997447" })), { x: 0.38, y: 0.42, z: 0.52, w: 0.02, d: 0.02, h: 0.46, color: "#d9cba4" }],
   // Mahouts: an elephant's head with tusks and speed streaks.
-  mahouts: [{ x: 0.25, y: 0.3, z: 0.25, w: 0.5, d: 0.45, h: 0.5, color: grey }, { x: 0.05, y: 0.35, z: 0.35, w: 0.2, d: 0.08, h: 0.45, color: "#9a988f" }, { x: 0.75, y: 0.35, z: 0.35, w: 0.2, d: 0.08, h: 0.45, color: "#9a988f" }, { x: 0.28, y: 0.8, z: 0.3, w: 0.44, d: 0.36, h: 0.08, color: gold }, { x: 0.42, y: 0.12, z: 0.7, w: 0.16, d: 0.14, h: 0.4, color: grey }, { x: 0.43, y: 0, z: 0.78, w: 0.14, d: 0.18, h: 0.12, color: grey }, { x: 0.28, y: 0.3, z: 0.7, w: 0.07, d: 0.24, h: 0.07, color: "#efe8d2" }, { x: 0.65, y: 0.3, z: 0.7, w: 0.07, d: 0.24, h: 0.07, color: "#efe8d2" }, ...streaks(0.08, 0.4).map((p) => ({ ...p, z: 0.05 }))],
+  mahouts: [{ x: 0.25, y: 0.3, z: 0.25, w: 0.5, d: 0.45, h: 0.5, color: grey }, { x: 0.05, y: 0.35, z: 0.35, w: 0.2, d: 0.08, h: 0.45, color: "#9a988f" }, { x: 0.75, y: 0.35, z: 0.35, w: 0.2, d: 0.08, h: 0.45, color: "#9a988f" }, { x: 0.28, y: 0.8, z: 0.3, w: 0.44, d: 0.36, h: 0.08, color: gold2 }, { x: 0.42, y: 0.12, z: 0.7, w: 0.16, d: 0.14, h: 0.4, color: grey }, { x: 0.43, y: 0, z: 0.78, w: 0.14, d: 0.18, h: 0.12, color: grey }, { x: 0.28, y: 0.3, z: 0.7, w: 0.07, d: 0.24, h: 0.07, color: "#efe8d2" }, { x: 0.65, y: 0.3, z: 0.7, w: 0.07, d: 0.24, h: 0.07, color: "#efe8d2" }, ...streaks(0.08, 0.4).map((p) => ({ ...p, z: 0.05 }))],
   // Madrasah: a domed hall over a gold coin (gold back when a monk falls).
-  madrasah: [{ x: 0.05, y: 0, z: 0.25, w: 0.6, d: 0.5, h: 0.35, color: sand }, { x: 0.1, y: 0.35, z: 0.3, w: 0.5, d: 0.4, h: 0.12, color: felt }, { x: 0.18, y: 0.47, z: 0.36, w: 0.34, d: 0.28, h: 0.1, color: felt }, { x: 0.28, y: 0.57, z: 0.42, w: 0.14, d: 0.14, h: 0.08, color: felt }, { x: 0.33, y: 0.65, z: 0.47, w: 0.04, d: 0.04, h: 0.12, color: gold }, { x: 0.68, y: 0, z: 0.4, w: 0.26, d: 0.26, h: 0.08, color: gold }, { x: 0.72, y: 0.08, z: 0.44, w: 0.18, d: 0.18, h: 0.06, color: "#dec36f" }],
+  madrasah: [{ x: 0.05, y: 0, z: 0.25, w: 0.6, d: 0.5, h: 0.35, color: sand2 }, { x: 0.1, y: 0.35, z: 0.3, w: 0.5, d: 0.4, h: 0.12, color: felt }, { x: 0.18, y: 0.47, z: 0.36, w: 0.34, d: 0.28, h: 0.1, color: felt }, { x: 0.28, y: 0.57, z: 0.42, w: 0.14, d: 0.14, h: 0.08, color: felt }, { x: 0.33, y: 0.65, z: 0.47, w: 0.04, d: 0.04, h: 0.12, color: gold2 }, { x: 0.68, y: 0, z: 0.4, w: 0.26, d: 0.26, h: 0.08, color: gold2 }, { x: 0.72, y: 0.08, z: 0.44, w: 0.18, d: 0.18, h: 0.06, color: "#dec36f" }],
   // Zealotry: a camel with a green plus (camel and Mameluke hit points).
-  zealotry: [{ x: 0.1, y: 0.3, z: 0.35, w: 0.6, d: 0.3, h: 0.25, color: sand }, { x: 0.3, y: 0.55, z: 0.38, w: 0.2, d: 0.24, h: 0.14, color: sand }, { x: 0.66, y: 0.4, z: 0.4, w: 0.1, d: 0.2, h: 0.4, color: sand }, { x: 0.66, y: 0.8, z: 0.38, w: 0.22, d: 0.24, h: 0.1, color: sand }, ...[0.14, 0.56].map((x) => ({ x, y: 0, z: 0.4, w: 0.08, d: 0.12, h: 0.3, color: "#b8a074" })), { x: 0.14, y: 0.52, z: 0.33, w: 0.52, d: 0.34, h: 0.04, color: team }, ...plus(0, 0.62)],
+  zealotry: [{ x: 0.1, y: 0.3, z: 0.35, w: 0.6, d: 0.3, h: 0.25, color: sand2 }, { x: 0.3, y: 0.55, z: 0.38, w: 0.2, d: 0.24, h: 0.14, color: sand2 }, { x: 0.66, y: 0.4, z: 0.4, w: 0.1, d: 0.2, h: 0.4, color: sand2 }, { x: 0.66, y: 0.8, z: 0.38, w: 0.22, d: 0.24, h: 0.1, color: sand2 }, ...[0.14, 0.56].map((x) => ({ x, y: 0, z: 0.4, w: 0.08, d: 0.12, h: 0.3, color: "#b8a074" })), { x: 0.14, y: 0.52, z: 0.33, w: 0.52, d: 0.34, h: 0.04, color: team }, ...plus(0, 0.62)],
   // Great Wall: a long crenellated wall climbing to a watch tower (tougher walls and towers).
-  "great-wall": [{ x: 0, y: 0, z: 0.35, w: 0.62, d: 0.28, h: 0.3, color: stone }, ...merlons(0, 0.3, 3, 0.11), { x: 0.62, y: 0, z: 0.28, w: 0.34, d: 0.42, h: 0.7, color: stone }, { x: 0.58, y: 0.7, z: 0.24, w: 0.42, d: 0.5, h: 0.1, color: "#3f4a4c" }, { x: 0.7, y: 0.8, z: 0.36, w: 0.18, d: 0.26, h: 0.1, color: "#3f4a4c" }],
+  "great-wall": [{ x: 0, y: 0, z: 0.35, w: 0.62, d: 0.28, h: 0.3, color: stone5 }, ...merlons(0, 0.3, 3, 0.11), { x: 0.62, y: 0, z: 0.28, w: 0.34, d: 0.42, h: 0.7, color: stone5 }, { x: 0.58, y: 0.7, z: 0.24, w: 0.42, d: 0.5, h: 0.1, color: "#3f4a4c" }, { x: 0.7, y: 0.8, z: 0.36, w: 0.18, d: 0.26, h: 0.1, color: "#3f4a4c" }],
   // Rocketry: a bolt carrying a red powder tube with flame at its tail.
-  rocketry: [{ x: 0.05, y: 0.4, z: 0.45, w: 0.8, d: 0.05, h: 0.05, color: wood }, { x: 0.85, y: 0.38, z: 0.43, w: 0.1, d: 0.09, h: 0.09, color: metal2 }, { x: 0.3, y: 0.36, z: 0.41, w: 0.3, d: 0.13, h: 0.13, color: red }, { x: 0.1, y: 0.37, z: 0.42, w: 0.2, d: 0.11, h: 0.11, color: "#e0a040" }, { x: 0, y: 0.39, z: 0.44, w: 0.1, d: 0.07, h: 0.07, color: "#f5dc7a" }],
+  rocketry: [{ x: 0.05, y: 0.4, z: 0.45, w: 0.8, d: 0.05, h: 0.05, color: wood5 }, { x: 0.85, y: 0.38, z: 0.43, w: 0.1, d: 0.09, h: 0.09, color: metal22 }, { x: 0.3, y: 0.36, z: 0.41, w: 0.3, d: 0.13, h: 0.13, color: red }, { x: 0.1, y: 0.37, z: 0.42, w: 0.2, d: 0.11, h: 0.11, color: "#e0a040" }, { x: 0, y: 0.39, z: 0.44, w: 0.1, d: 0.07, h: 0.07, color: "#f5dc7a" }],
   // Yasama: a watch tower with three arrows fanning out (extra arrows).
-  yasama: [{ x: 0, y: 0, z: 0.3, w: 0.4, d: 0.4, h: 0.7, color: stone }, { x: -0.04, y: 0.7, z: 0.26, w: 0.48, d: 0.48, h: 0.1, color: "#3f4a4c" }, ...shaft(0.45, 0.75, 0.35), ...shaft(0.45, 0.5, 0.35), ...shaft(0.45, 0.25, 0.35)],
+  yasama: [{ x: 0, y: 0, z: 0.3, w: 0.4, d: 0.4, h: 0.7, color: stone5 }, { x: -0.04, y: 0.7, z: 0.26, w: 0.48, d: 0.48, h: 0.1, color: "#3f4a4c" }, ...shaft(0.45, 0.75, 0.35), ...shaft(0.45, 0.5, 0.35), ...shaft(0.45, 0.25, 0.35)],
   // Nomads: a round felt yurt with a team band (houses keep their population room).
   nomads: [{ x: 0.1, y: 0, z: 0.2, w: 0.7, d: 0.6, h: 0.35, color: felt }, { x: 0.05, y: 0.25, z: 0.15, w: 0.8, d: 0.7, h: 0.06, color: team }, { x: 0.18, y: 0.35, z: 0.28, w: 0.54, d: 0.44, h: 0.12, color: felt }, { x: 0.32, y: 0.47, z: 0.4, w: 0.26, d: 0.2, h: 0.08, color: felt }, { x: 0.38, y: 0, z: 0.8, w: 0.14, d: 0.02, h: 0.22, color: "#6e5438" }],
   // Drill: a siege wheel with speed streaks (faster siege).
-  drill: [{ x: 0.2, y: 0, z: 0.4, w: 0.5, d: 0.12, h: 0.5, color: "#6e5438" }, { x: 0.35, y: 0.15, z: 0.52, w: 0.2, d: 0.04, h: 0.2, color: gold }, { x: 0.12, y: 0.5, z: 0.35, w: 0.66, d: 0.2, h: 0.1, color: wood }, ...streaks(0.84, 0.05)]
+  drill: [{ x: 0.2, y: 0, z: 0.4, w: 0.5, d: 0.12, h: 0.5, color: "#6e5438" }, { x: 0.35, y: 0.15, z: 0.52, w: 0.2, d: 0.04, h: 0.2, color: gold2 }, { x: 0.12, y: 0.5, z: 0.35, w: 0.66, d: 0.2, h: 0.1, color: wood5 }, ...streaks(0.84, 0.05)],
+  // Warwolf: a trebuchet (frame, counterweight, arm with its stone) and the stone landing among scattered enemy helmets
+  // (the shot hits everyone around the impact).
+  warwolf: [
+    { x: 0.08, y: 0, z: 0.3, w: 0.08, d: 0.3, h: 0.55, color: wood5 },
+    { x: 0.3, y: 0, z: 0.3, w: 0.08, d: 0.3, h: 0.55, color: wood5 },
+    { x: 0.04, y: 0.55, z: 0.3, w: 0.38, d: 0.3, h: 0.07, color: wood5 },
+    ...[[0, 0.4], [0.09, 0.5], [0.18, 0.6], [0.27, 0.7], [0.36, 0.8]].map(([x, y]) => ({ x, y, z: 0.42, w: 0.1, d: 0.08, h: 0.1, color: "#8a6a45" })),
+    { x: -0.06, y: 0.22, z: 0.36, w: 0.16, d: 0.2, h: 0.18, color: dark5 },
+    { x: 0.42, y: 0.9, z: 0.4, w: 0.1, d: 0.1, h: 0.1, color: stone5 },
+    { x: 0.66, y: 0, z: 0.35, w: 0.22, d: 0.22, h: 0.2, color: "#a19f86" },
+    ...[[0.54, 0.2], [0.96, 0.25], [0.64, 0.68], [0.9, 0.66]].map(([x, z]) => ({ x: x - 0.05, y: 0, z, w: 0.12, d: 0.12, h: 0.1, color: metal22 })),
+    { x: 0.6, y: 0, z: 0.6, w: 0.34, d: 0.04, h: 0.04, color: red }
+  ],
+  // Kataparuto: a packed trebuchet on its wagon with speed streaks (it packs, unpacks and fires faster).
+  kataparuto: [{ x: 0.05, y: 0.14, z: 0.3, w: 0.8, d: 0.36, h: 0.1, color: wood5 }, ...[0.12, 0.64].map((x) => ({ x, y: 0, z: 0.25, w: 0.16, d: 0.46, h: 0.16, color: "#5c4a36" })), { x: 0.1, y: 0.24, z: 0.42, w: 0.75, d: 0.1, h: 0.1, color: "#8a6a45" }, { x: 0.55, y: 0.24, z: 0.32, w: 0.24, d: 0.3, h: 0.22, color: team }, { x: 0.6, y: 0.46, z: 0.37, w: 0.14, d: 0.2, h: 0.06, color: metal22 }, ...streaks(0.14, 0.5)],
+  // Sipahi: a horse archer (dark horse, team-clad rider, bow raised) with a green plus (cavalry archers gain hit points).
+  sipahi: [
+    { x: 0.1, y: 0.3, z: 0.3, w: 0.5, d: 0.26, h: 0.24, color: "#4a413a" },
+    { x: 0.56, y: 0.42, z: 0.33, w: 0.12, d: 0.2, h: 0.28, color: "#4a413a" },
+    { x: 0.58, y: 0.66, z: 0.32, w: 0.26, d: 0.22, h: 0.12, color: "#574a3f" },
+    { x: 0.02, y: 0.36, z: 0.4, w: 0.08, d: 0.06, h: 0.2, color: "#1f1b18" },
+    ...[0.12, 0.48].flatMap((x) => [0.3, 0.48].map((z) => ({ x, y: 0, z, w: 0.08, d: 0.08, h: 0.3, color: "#3d3631" }))),
+    { x: 0.22, y: 0.54, z: 0.31, w: 0.22, d: 0.3, h: 0.05, color: "#6b5238" },
+    { x: 0.25, y: 0.59, z: 0.34, w: 0.16, d: 0.2, h: 0.24, color: team },
+    { x: 0.26, y: 0.83, z: 0.36, w: 0.14, d: 0.16, h: 0.14, color: "#dfbb7e" },
+    { x: 0.25, y: 0.97, z: 0.35, w: 0.16, d: 0.18, h: 0.06, color: "#6b5238" },
+    ...[[0, 0], [0.04, 0.12], [0.06, 0.24], [0.04, 0.36], [0, 0.48]].map(([dx, y]) => ({ x: 0.44 + dx, y: 0.52 + y * 0.8, z: 0.5, w: 0.05, d: 0.05, h: 0.1, color: "#997447" })),
+    { x: 0.43, y: 0.52, z: 0.52, w: 0.02, d: 0.02, h: 0.48, color: "#d9cba4" },
+    ...plus(0.78, 0.04)
+  ]
+});
+var skin = "#dfbb7e";
+var flame3 = "#e0a040";
+var spark3 = "#f5dc7a";
+var glass2 = "#bcd3cf";
+var leaf = "#6f8a55";
+var hay = "#d9c26a";
+var iron5 = "#5b5e5c";
+var bar = (x, y, w, h2, color, z = 0.4, d = 0.1) => ({ x, y, z, w, d, h: h2, color });
+var backShaft = (x, y, len) => [{ x: x + 0.08, y, z: 0.45, w: len, d: 0.04, h: 0.04, color: wood5 }, { x, y: y - 0.02, z: 0.44, w: 0.08, d: 0.06, h: 0.08, color: metal22 }];
+var eye = (y) => [bar(0.2, y, 0.5, 0.08, "#efe9da"), bar(0.08, y + 0.08, 0.74, 0.16, "#efe9da"), bar(0.2, y + 0.24, 0.5, 0.08, "#efe9da"), bar(0.34, y + 0.06, 0.22, 0.22, team, 0.45, 0.06), bar(0.41, y + 0.13, 0.08, 0.08, "#1f1d1b", 0.5, 0.02)];
+Object.assign(techIcons, {
+  // Masonry: three courses of bonded bricks with a trowel on top (building hit points and armour).
+  masonry: [
+    bar(0.05, 0, 0.42, 0.2, stone5),
+    bar(0.48, 0, 0.42, 0.2, stone5),
+    bar(0.05, 0.2, 0.2, 0.2, stone5),
+    bar(0.26, 0.2, 0.42, 0.2, stone5),
+    bar(0.69, 0.2, 0.21, 0.2, stone5),
+    bar(0.05, 0.4, 0.42, 0.2, stone5),
+    bar(0.48, 0.4, 0.42, 0.2, stone5),
+    bar(0.3, 0.6, 0.34, 0.04, metal22, 0.35, 0.3),
+    bar(0.64, 0.6, 0.06, 0.1, wood5),
+    bar(0.7, 0.68, 0.2, 0.05, wood5)
+  ],
+  // Architecture: two columns under a lintel with a gilt keystone (buildings stronger again).
+  architecture: [bar(0.02, 0, 0.86, 0.08, stone5), ...[0.1, 0.62].flatMap((x) => [bar(x, 0.08, 0.18, 0.06, stone5), bar(x + 0.03, 0.14, 0.12, 0.5, "#e6dcc3"), bar(x - 0.02, 0.64, 0.22, 0.08, stone5)]), bar(0, 0.72, 0.9, 0.12, stone5), bar(0.37, 0.72, 0.16, 0.2, gold2, 0.38, 0.14)],
+  // Chemistry: a flask of green liquid over a small flame (gunpowder; missiles +1).
+  chemistry: [bar(0.34, 0, 0.22, 0.1, flame3), bar(0.4, 0.1, 0.1, 0.08, spark3), bar(0.15, 0.18, 0.6, 0.12, glass2), bar(0.1, 0.3, 0.7, 0.22, glass2), bar(0.13, 0.32, 0.64, 0.14, green, 0.45, 0.06), bar(0.2, 0.52, 0.5, 0.1, glass2), bar(0.38, 0.62, 0.14, 0.22, glass2), bar(0.36, 0.84, 0.18, 0.08, wood5)],
+  // Siege Engineers: a pair of dividers standing open with a long range arrow (siege range and building damage).
+  "siege-engineers": [bar(0.08, 0, 0.08, 0.1, metal22), bar(0.12, 0.1, 0.08, 0.2, metal22), bar(0.16, 0.3, 0.08, 0.2, metal22), bar(0.48, 0, 0.08, 0.1, metal22), bar(0.44, 0.1, 0.08, 0.2, metal22), bar(0.4, 0.3, 0.08, 0.2, metal22), bar(0.2, 0.5, 0.24, 0.1, metal22), bar(0.27, 0.6, 0.1, 0.1, gold2), ...shaft(0.05, 0.82, 0.8)],
+  // Guard Tower: a stone tower with a merloned lookout and a green plus (stronger towers).
+  "guard-tower": [bar(0.08, 0, 0.36, 0.7, stone5, 0.3, 0.36), bar(0.02, 0.7, 0.48, 0.1, stone5, 0.24, 0.48), ...merlons(0.02, 0.8, 2, 0.12), bar(0.22, 0.2, 0.08, 0.02, dark5, 0.66, 0.02), ...plus(0.62, 0.3)],
+  // Keep: a taller, wider tower on corbels under a team spire (towers stronger again).
+  keep: [bar(0.22, 0, 0.46, 0.66, stone5, 0.28, 0.4), ...[0.18, 0.62].map((x) => bar(x, 0.66, 0.1, 0.08, "#9d9a88", 0.26, 0.44)), bar(0.14, 0.74, 0.62, 0.12, stone5, 0.22, 0.52), bar(0.2, 0.86, 0.5, 0.1, team, 0.26, 0.44), bar(0.3, 0.96, 0.3, 0.1, team, 0.33, 0.3), bar(0.4, 1.06, 0.1, 0.12, gold2, 0.38, 0.1), bar(0.4, 0.3, 0.08, 0.2, dark5, 0.68, 0.02)],
+  // Treadmill Crane: an octagonal treadwheel under a jib lifting a stone (villagers build faster).
+  "treadmill-crane": [
+    bar(0.18, 0, 0.3, 0.08, wood5),
+    bar(0.08, 0.06, 0.12, 0.14, wood5),
+    bar(0.46, 0.06, 0.12, 0.14, wood5),
+    bar(0.02, 0.18, 0.1, 0.3, wood5),
+    bar(0.56, 0.18, 0.1, 0.3, wood5),
+    bar(0.08, 0.46, 0.12, 0.14, wood5),
+    bar(0.46, 0.46, 0.12, 0.14, wood5),
+    bar(0.18, 0.56, 0.3, 0.08, wood5),
+    bar(0.3, 0.08, 0.06, 0.48, dark5, 0.42, 0.06),
+    bar(0.7, 0, 0.08, 0.9, "#6e5438"),
+    bar(0.4, 0.9, 0.62, 0.07, "#6e5438"),
+    bar(0.94, 0.6, 0.02, 0.3, "#d8c48a"),
+    bar(0.86, 0.42, 0.18, 0.18, "#b5b29e")
+  ],
+  // Arrowslits: a stretch of wall pierced by two cross-shaped slits, an arrow leaving one (tower attack).
+  arrowslits: [bar(0, 0, 0.6, 0.8, stone5, 0.3, 0.3), ...[0.14, 0.38].flatMap((x) => [bar(x, 0.18, 0.06, 0.44, dark5, 0.6, 0.02), bar(x - 0.06, 0.36, 0.18, 0.06, dark5, 0.6, 0.02)]), ...shaft(0.5, 0.39, 0.42)],
+  // Supplies: a grain sack beside a militia helmet (cheaper militia line).
+  supplies: [bar(0.05, 0, 0.46, 0.5, hay, 0.3, 0.36), bar(0.12, 0.5, 0.32, 0.1, hay, 0.34, 0.28), bar(0.18, 0.6, 0.2, 0.06, "#7a5c40", 0.38, 0.2), bar(0.14, 0.66, 0.28, 0.12, hay, 0.36, 0.24), bar(0.58, 0, 0.36, 0.16, metal22, 0.32, 0.32), bar(0.62, 0.16, 0.28, 0.14, metal22, 0.34, 0.28), bar(0.72, 0.3, 0.08, 0.06, metal22, 0.42, 0.1)],
+  // Squires: a marching boot with speed streaks (infantry move faster).
+  squires: [bar(0.32, 0, 0.5, 0.12, "#5a4632", 0.32, 0.3), bar(0.32, 0.12, 0.2, 0.5, "#5a4632", 0.32, 0.3), bar(0.3, 0.62, 0.24, 0.08, "#8b6746", 0.3, 0.34), bar(0.52, 0.12, 0.16, 0.1, "#5a4632", 0.32, 0.3), ...streaks(0.12, 0.2)],
+  // Arson: a lit torch leaning on a burning house corner (infantry against buildings).
+  arson: [
+    bar(0.4, 0, 0.5, 0.45, stone5, 0.3, 0.4),
+    bar(0.36, 0.45, 0.58, 0.12, "#b8a074", 0.26, 0.48),
+    bar(0.5, 0.57, 0.3, 0.12, "#b8a074", 0.34, 0.32),
+    bar(0.6, 0.6, 0.16, 0.2, flame3, 0.36, 0.16),
+    bar(0.64, 0.8, 0.08, 0.12, spark3, 0.4, 0.08),
+    bar(0.12, 0, 0.08, 0.6, wood5, 0.5, 0.08),
+    bar(0.08, 0.6, 0.16, 0.14, flame3, 0.48, 0.12),
+    bar(0.11, 0.74, 0.1, 0.12, spark3, 0.5, 0.08)
+  ],
+  // Thumb Ring: a gilt ring on a drawing thumb with speed streaks (archers shoot faster).
+  "thumb-ring": [bar(0.42, 0, 0.26, 0.24, skin, 0.3, 0.3), bar(0.46, 0.24, 0.18, 0.5, skin, 0.36, 0.18), bar(0.42, 0.42, 0.26, 0.04, gold2, 0.32, 0.26), bar(0.42, 0.52, 0.26, 0.04, gold2, 0.32, 0.26), bar(0.42, 0.42, 0.04, 0.14, gold2, 0.32, 0.26), bar(0.64, 0.42, 0.04, 0.14, gold2, 0.32, 0.26), ...streaks(0.16, 0.3)],
+  // Parthian Tactics: a horse archer riding right and loosing an arrow back over the tail (cavalry archer armour and bonus).
+  "parthian-tactics": [
+    bar(0.4, 0.3, 0.48, 0.24, "#957350", 0.3, 0.26),
+    bar(0.84, 0.42, 0.12, 0.3, "#957350", 0.33, 0.2),
+    bar(0.86, 0.72, 0.22, 0.1, "#957350", 0.32, 0.2),
+    ...[0.44, 0.78].map((x) => bar(x, 0, 0.08, 0.3, "#7d5f42", 0.4, 0.08)),
+    bar(0.54, 0.54, 0.2, 0.22, team, 0.34, 0.2),
+    bar(0.56, 0.76, 0.16, 0.14, skin, 0.36, 0.16),
+    bar(0.48, 0.6, 0.06, 0.26, "#997447", 0.5, 0.05),
+    ...backShaft(0, 0.72, 0.44)
+  ],
+  // Bloodlines: a horse's head and neck with a green plus (mounted units gain hit points).
+  bloodlines: [bar(0.18, 0, 0.26, 0.5, "#957350", 0.3, 0.24), bar(0.18, 0.5, 0.46, 0.2, "#957350", 0.3, 0.24), bar(0.5, 0.42, 0.2, 0.14, "#957350", 0.32, 0.2), bar(0.2, 0.7, 0.08, 0.12, "#7d5f42", 0.36, 0.08), bar(0.12, 0.2, 0.08, 0.5, "#4a3b2a", 0.3, 0.24), bar(0.5, 0.6, 0.04, 0.04, "#1f1d1b", 0.55, 0.02), ...plus(0.66, 0.6)],
+  // Husbandry: a tied hay bale and a pitchfork (mounted units move faster).
+  husbandry: [bar(0.05, 0, 0.5, 0.36, hay, 0.3, 0.36), ...[0.15, 0.39].map((x) => bar(x, 0, 0.06, 0.37, "#7a5c40", 0.29, 0.38)), bar(0.06, 0.36, 0.48, 0.04, hay, 0.32, 0.32), bar(0.7, 0, 0.06, 0.8, wood5, 0.45, 0.06), bar(0.62, 0.8, 0.22, 0.05, metal22, 0.45, 0.06), ...[0.62, 0.7, 0.79].map((x) => bar(x, 0.85, 0.04, 0.14, metal22, 0.45, 0.06))],
+  // Town Watch: an open eye (buildings see farther); Town Patrol: the eye over a patrol's footprints (farther again).
+  "town-watch": [...eye(0.25), bar(0.38, 0, 0.14, 0.25, stone5, 0.4, 0.14)],
+  "town-patrol": [...eye(0.35), ...[[0.12, 0], [0.3, 0.12], [0.5, 0], [0.68, 0.12]].map(([x, z]) => bar(x, 0, 0.16, 0.06, "#5a4632", 0.25 + z, 0.26))],
+  // Fervor: a hooded monk striding with speed streaks (monks move faster).
+  fervor: [bar(0.4, 0, 0.36, 0.5, habit, 0.3, 0.3), bar(0.44, 0.5, 0.28, 0.22, skin, 0.33, 0.24), bar(0.4, 0.68, 0.36, 0.14, habit, 0.3, 0.3), bar(0.36, 0.4, 0.08, 0.1, "#d8c48a", 0.38, 0.14), ...streaks(0.18, 0.15)],
+  // Herbal Medicine: a stone mortar with a pestle and green leaves (garrisoned units heal faster).
+  "herbal-medicine": [bar(0.15, 0, 0.4, 0.1, stone5, 0.3, 0.36), bar(0.08, 0.1, 0.54, 0.24, stone5, 0.26, 0.44), bar(0.14, 0.34, 0.42, 0.04, leaf, 0.3, 0.32), bar(0.3, 0.36, 0.08, 0.44, wood5, 0.42, 0.08), bar(0.66, 0, 0.14, 0.3, leaf, 0.4, 0.1), bar(0.78, 0.24, 0.16, 0.1, leaf, 0.4, 0.1), bar(0.6, 0.28, 0.12, 0.14, leaf, 0.4, 0.1)],
+  // Hoardings: a curtain wall with a timber gallery cantilevered over its top and a green plus (stronger castles).
+  hoardings: [bar(0.08, 0, 0.5, 0.62, stone5, 0.3, 0.36), bar(0, 0.62, 0.66, 0.2, wood5, 0.24, 0.48), bar(0.02, 0.82, 0.62, 0.08, team, 0.26, 0.44), ...[0.1, 0.3, 0.5].map((x) => bar(x, 0.68, 0.06, 0.1, dark5, 0.72, 0.02)), ...plus(0.7, 0.25)],
+  // Sappers: a pick biting into a cracked wall (villagers against buildings).
+  sappers: [bar(0.4, 0, 0.5, 0.7, stone5, 0.3, 0.3), bar(0.6, 0.2, 0.04, 0.3, dark5, 0.6, 0.02), bar(0.64, 0.38, 0.12, 0.04, dark5, 0.6, 0.02), bar(0.5, 0.48, 0.12, 0.04, dark5, 0.6, 0.02), bar(0.18, 0.2, 0.08, 0.6, wood5, 0.45, 0.08), bar(0.04, 0.76, 0.4, 0.06, metal22, 0.44, 0.1), bar(0.44, 0.7, 0.06, 0.08, metal22, 0.44, 0.1)],
+  // Conscription: an hourglass between wooden plates, the sand mostly run (units train faster).
+  conscription: [bar(0.15, 0, 0.6, 0.08, wood5, 0.3, 0.36), bar(0.15, 0.86, 0.6, 0.08, wood5, 0.3, 0.36), ...[0.18, 0.66].map((x) => bar(x, 0.08, 0.06, 0.78, wood5, 0.4, 0.06)), bar(0.28, 0.08, 0.34, 0.14, glass2, 0.36, 0.24), bar(0.3, 0.08, 0.3, 0.12, gold2, 0.38, 0.2), bar(0.36, 0.22, 0.18, 0.14, glass2, 0.4, 0.16), bar(0.41, 0.36, 0.08, 0.14, glass2, 0.42, 0.08), bar(0.43, 0.36, 0.04, 0.14, gold2, 0.44, 0.04), bar(0.36, 0.5, 0.18, 0.14, glass2, 0.4, 0.16), bar(0.28, 0.64, 0.34, 0.22, glass2, 0.36, 0.24), bar(0.38, 0.72, 0.14, 0.08, gold2, 0.42, 0.08)],
+  // Artillery: a hooped bombard on its wheel with a long arrow (bombard cannon range).
+  artillery: [bar(0.12, 0, 0.12, 0.5, "#5c4a36", 0.24, 0.5), bar(0.04, 0.22, 0.64, 0.1, dark5, 0.36, 0.2), bar(0.2, 0.32, 0.5, 0.28, iron5, 0.35, 0.28), ...[0.3, 0.46, 0.62].map((x) => bar(x, 0.3, 0.04, 0.32, "#3f4240", 0.33, 0.32)), bar(0.68, 0.36, 0.04, 0.2, "#1f1d1b", 0.4, 0.2), ...shaft(0.3, 0.8, 0.66)]
+});
+var hull = (y, color, w = 0.84) => [bar(0.08, y, w, 0.18, color, 0.3, 0.4), bar(0.02, y + 0.08, 0.08, 0.12, color, 0.32, 0.36), bar(0.08 + w, y + 0.08, 0.08, 0.14, color, 0.32, 0.36), bar(0.16, y - 0.08, w - 0.16, 0.08, "#5c4a36", 0.36, 0.28)];
+var water = (y) => [bar(0, y, 1, 0.04, "#6fa2ae", 0.3, 0.44), bar(0.12, y + 0.04, 0.3, 0.03, "#9cc8d0", 0.4, 0.1), bar(0.6, y + 0.04, 0.26, 0.03, "#9cc8d0", 0.4, 0.1)];
+Object.assign(techIcons, {
+  // Gillnets: a net hung between two floats with a fish caught in it (fishing ships work faster).
+  gillnets: [...[0.14, 0.36, 0.58, 0.8].map((x) => bar(x, 0.12, 0.03, 0.62, "#7c8a78", 0.42, 0.03)), ...[0.2, 0.42, 0.64].map((y) => bar(0.12, y, 0.74, 0.03, "#7c8a78", 0.42, 0.03)), bar(0.06, 0.72, 0.16, 0.12, team, 0.4, 0.12), bar(0.72, 0.72, 0.16, 0.12, "#ece2c4", 0.4, 0.12), bar(0.34, 0.3, 0.28, 0.1, "#d5e7de", 0.46, 0.06), bar(0.62, 0.28, 0.08, 0.14, "#a9c2c0", 0.46, 0.06), ...water(0)],
+  // Careening: a hull hauled onto its side, an iron plate on its flank (ships take less from arrows).
+  careening: [...hull(0.2, wood5), bar(0.3, 0.24, 0.34, 0.26, iron5, 0.72, 0.04), bar(0.36, 0.3, 0.22, 0.04, metal22, 0.76, 0.02), bar(0.42, 0.26, 0.1, 0.2, metal22, 0.76, 0.02), ...water(0)],
+  // Dry Dock: a hull in a stone basin with speed streaks (ships faster, transports carry more).
+  "dry-dock": [bar(0, 0, 0.12, 0.5, stone5, 0.3, 0.4), bar(0.88, 0, 0.12, 0.5, stone5, 0.3, 0.4), bar(0.12, 0, 0.76, 0.08, stone5, 0.3, 0.4), ...hull(0.22, team, 0.6).map((p) => ({ ...p, x: p.x + 0.1 })), ...streaks(0.3, 0.6)],
+  // Shipwright: the ribs of a hull on the slip and a mallet (ships cheaper and quicker to build).
+  shipwright: [bar(0.06, 0, 0.8, 0.08, "#5c4a36", 0.3, 0.4), ...[0.12, 0.32, 0.52, 0.72].map((x) => bar(x, 0.08, 0.08, 0.42 - Math.abs(x - 0.42) * 0.4, wood5, 0.32, 0.36)), bar(0.08, 0.3, 0.76, 0.05, wood5, 0.3, 0.06), bar(0.66, 0.56, 0.06, 0.34, wood5, 0.45, 0.06), bar(0.58, 0.82, 0.24, 0.14, "#7c5a3a", 0.42, 0.14)],
+  // Caravan: a loaded cart wheel and bale with speed streaks (trade carts and cogs faster).
+  caravan: [bar(0.3, 0.2, 0.5, 0.12, wood5, 0.3, 0.4), bar(0.36, 0.32, 0.38, 0.3, "#d8c9a6", 0.32, 0.34), bar(0.34, 0.62, 0.42, 0.06, team, 0.3, 0.38), bar(0.44, 0, 0.1, 0.32, "#5c4a36", 0.72, 0.08), bar(0.46, 0.12, 0.06, 0.08, iron5, 0.8, 0.02), ...streaks(0.18, 0.25)],
+  // Guilds: a balance with a gold coin on one pan and a bale on the other, level (a lower market fee).
+  guilds: [bar(0.42, 0, 0.16, 0.08, wood5, 0.4, 0.2), bar(0.47, 0.08, 0.06, 0.64, wood5, 0.45, 0.06), bar(0.08, 0.72, 0.84, 0.05, metal22, 0.45, 0.06), ...[0.1, 0.84].map((x) => bar(x, 0.4, 0.03, 0.32, metal22, 0.46, 0.03)), bar(0.02, 0.36, 0.2, 0.04, metal22, 0.4, 0.16), bar(0.76, 0.36, 0.2, 0.04, metal22, 0.4, 0.16), bar(0.06, 0.4, 0.12, 0.06, gold2, 0.42, 0.12), bar(0.8, 0.4, 0.12, 0.1, "#d8c9a6", 0.42, 0.12)],
+  // Heated Shot: a red-hot ball in tongs over a brazier (towers hit ships harder).
+  "heated-shot": [bar(0.26, 0, 0.48, 0.1, dark5, 0.3, 0.4), bar(0.3, 0.1, 0.4, 0.18, iron5, 0.32, 0.36), bar(0.32, 0.28, 0.36, 0.1, flame3, 0.34, 0.32), bar(0.4, 0.38, 0.2, 0.2, "#d0603a", 0.4, 0.2), bar(0.44, 0.42, 0.12, 0.12, spark3, 0.44, 0.14), bar(0.12, 0.48, 0.32, 0.04, metal22, 0.48, 0.04), bar(0.56, 0.48, 0.32, 0.04, metal22, 0.48, 0.04)],
+  // Fortified Wall: a thick stone wall with merlons and a green plus (stronger walls and gates).
+  "fortified-wall": [bar(0.02, 0, 0.66, 0.5, stone5, 0.3, 0.36), bar(0.02, 0.46, 0.66, 0.06, "#9d9a88", 0.28, 0.4), ...merlons(0.02, 0.52, 3, 0.12), ...plus(0.68, 0.24)],
+  // Bombard Tower: a squat banded tower with a cannon run out of it (the tower itself).
+  "bombard-tower-tech": [bar(0.18, 0, 0.6, 0.66, stone5, 0.3, 0.36), bar(0.14, 0.3, 0.68, 0.06, iron5, 0.28, 0.4), bar(0.14, 0.66, 0.68, 0.08, "#9d9a88", 0.28, 0.4), ...merlons(0.14, 0.74, 3, 0.12), bar(0.4, 0.4, 0.16, 0.12, iron5, 0.66, 0.3), bar(0.38, 0.38, 0.2, 0.16, "#3f4240", 0.94, 0.03)],
+  // Greek Fire: a bronze siphon nozzle shooting a long jet of flame (fire ships reach farther).
+  "greek-fire": [bar(0, 0.2, 0.22, 0.24, "#b8964a", 0.36, 0.28), bar(0.22, 0.26, 0.16, 0.12, "#b8964a", 0.4, 0.12), bar(0.38, 0.24, 0.2, 0.16, flame3, 0.4, 0.16), bar(0.58, 0.26, 0.22, 0.12, flame3, 0.4, 0.14), bar(0.8, 0.28, 0.2, 0.08, spark3, 0.42, 0.1), bar(0.06, 0, 0.1, 0.2, wood5, 0.4, 0.1), ...shaft(0.3, 0.62, 0.5)]
 });
 
 // apps/web/unit-rig.ts
 var unitPoses = ["idle", "walk", "work", "attack", "hit", "death", "carry"];
-var unitTools = ["none", "axe", "pick", "sickle", "hammer", "basket", "sword", "spear", "bow", "staff", "longbow", "repeater", "musket", "throwing-axe", "great-sword", "war-axe", "katana", "scimitar"];
-var unitRoles = ["villager", "swordsman", "spearman", "archer", "monk", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "samurai", "janissary", "chu-ko-nu", "cataphract-rider", "mameluke-rider", "mangudai-rider", "mahout"];
-var roleTools = { swordsman: "sword", spearman: "spear", archer: "bow", monk: "staff", longbowman: "longbow", "woad-raider": "sword", "throwing-axeman": "throwing-axe", huskarl: "sword", "teutonic-knight": "great-sword", berserk: "war-axe", samurai: "katana", janissary: "musket", "chu-ko-nu": "repeater", "cataphract-rider": "spear", "mameluke-rider": "scimitar", "mangudai-rider": "bow", mahout: "spear" };
-var skin = "#dfbb7e";
+var unitTools = ["none", "axe", "pick", "sickle", "hammer", "basket", "sword", "spear", "bow", "staff", "longbow", "repeater", "musket", "throwing-axe", "great-sword", "war-axe", "katana", "scimitar", "powder-keg", "hand-cannon"];
+var unitRoles = ["villager", "swordsman", "spearman", "archer", "monk", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "samurai", "janissary", "chu-ko-nu", "cataphract-rider", "mameluke-rider", "mangudai-rider", "mahout", "cavalry-archer-rider", "camel-rider", "petard", "hand-cannoneer"];
+var roleTools = { swordsman: "sword", spearman: "spear", archer: "bow", monk: "staff", longbowman: "longbow", "woad-raider": "sword", "throwing-axeman": "throwing-axe", huskarl: "sword", "teutonic-knight": "great-sword", berserk: "war-axe", samurai: "katana", janissary: "musket", "chu-ko-nu": "repeater", "cataphract-rider": "spear", "mameluke-rider": "scimitar", "mangudai-rider": "bow", mahout: "spear", "cavalry-archer-rider": "bow", "camel-rider": "scimitar", petard: "powder-keg", "hand-cannoneer": "hand-cannon" };
+var riderLooks = ["two-handed-swordsman", "champion", "hussar", "heavy-cavalry-archer"];
+var skin2 = "#dfbb7e";
 var metal3 = "#9aa3a1";
 var leather = "#5a4632";
 var fur = "#7d6a52";
-var gold2 = "#c9a55a";
+var gold3 = "#c9a55a";
 var woad = "#3f5f95";
 var lacquer = "#3a3530";
 function samplePose(pose, time) {
@@ -1477,12 +3001,14 @@ function createUnitRig(T, player, box2, material) {
     socket.position.set(0, -0.31, 0.09);
     arm.add(socket);
   }
-  let seated = false;
+  let seated = false, worn = "villager";
   const outfits = /* @__PURE__ */ new Map();
   function dress(role) {
     if (!unitRoles.includes(role)) throw Error("\u672A\u77E5\u6A21\u578B\u8ECD\u7A2E");
     for (const outfit2 of outfits.values()) for (const g of outfit2) g.visible = false;
+    for (const look of grades.values()) for (const g of look) g.visible = false;
     shield.visible = false;
+    worn = role;
     if (role === "villager") {
       equip("none");
       return;
@@ -1521,22 +3047,22 @@ function createUnitRig(T, player, box2, material) {
         for (const x of [0.04, 0.12]) part(o, x, 0.9, -0.23, 0.03, 0.18, 0.03, "#e8e0c8");
       } else if (role === "chu-ko-nu") {
         part(o, 0, 0.42, 0, 0.48, 0.28, 0.34, "#5b4a3a");
-        part(o, 0, 0.66, 0, 0.3, 0.04, 0.35, gold2);
+        part(o, 0, 0.66, 0, 0.3, 0.04, 0.35, gold3);
         part(o, 0, 1.1, 0, 0.34, 0.08, 0.3, lacquer);
         part(o, 0, 1.18, -0.02, 0.12, 0.1, 0.12, lacquer);
       } else if (role === "janissary") {
         part(o, 0, 1.1, -0.02, 0.32, 0.36, 0.3, "#ece6d6");
         part(o, 0, 0.96, -0.2, 0.28, 0.4, 0.06, "#ece6d6");
-        part(o, 0, 1.1, 0, 0.34, 0.06, 0.34, gold2);
-        part(o, 0, 0.42, 0, 0.48, 0.07, 0.34, gold2);
+        part(o, 0, 1.1, 0, 0.34, 0.06, 0.34, gold3);
+        part(o, 0, 0.42, 0, 0.48, 0.07, 0.34, gold3);
       } else if (role === "woad-raider") {
-        part(o, 0, 0.44, 0, 0.475, 0.27, 0.335, skin);
+        part(o, 0, 0.44, 0, 0.475, 0.27, 0.335, skin2);
         for (const y of [0.5, 0.6]) part(o, 0, y, 0, 0.48, 0.04, 0.34, woad);
         part(o, 0, 0.42, 0, 0.49, 0.04, 0.345, leather);
         part(o, 0, 0.8, 0.15, 0.3, 0.04, 0.012, woad);
         part(o, 0, 1.1, 0, 0.4, 0.1, 0.36, "#ece6d2");
         for (const x of [-0.12, 0, 0.12]) part(o, x, 1.2, 0, 0.08, 0.14, 0.08, "#ece6d2");
-        arms(0, -0.3, 0, 0.12, 0.31, 0.18, skin);
+        arms(0, -0.3, 0, 0.12, 0.31, 0.18, skin2);
         arms(0, -0.2, 0, 0.125, 0.04, 0.185, woad);
       } else if (role === "throwing-axeman") {
         part(o, 0, 1.02, -0.03, 0.46, 0.14, 0.44, "#9a5a30");
@@ -1555,7 +3081,7 @@ function createUnitRig(T, player, box2, material) {
         part(o, 0, 0.3, 0, 0.48, 0.26, 0.34, metal3);
         part(la, -0.14, -0.6, 0.16, 0.06, 0.5, 0.3, team2);
         part(la, -0.14, -0.5, 0.16, 0.06, 0.3, 0.5, team2);
-        part(la, -0.18, -0.4, 0.16, 0.04, 0.1, 0.1, gold2);
+        part(la, -0.18, -0.4, 0.16, 0.04, 0.1, 0.1, gold3);
       } else if (role === "teutonic-knight") {
         part(o, 0, 0.7, 0, 0.47, 0.46, 0.44, metal3);
         part(o, 0, 0.9, 0.22, 0.36, 0.035, 0.012, "#2c2e2c");
@@ -1573,13 +3099,13 @@ function createUnitRig(T, player, box2, material) {
         part(o, 0, 0.62, -0.02, 0.54, 0.12, 0.38, fur);
         part(o, 0, 0.3, -0.2, 0.44, 0.36, 0.06, fur);
         part(o, 0, 0.71, 0.15, 0.26, 0.11, 0.05, "#a35f35");
-        arms(0, -0.3, 0, 0.12, 0.28, 0.18, skin);
+        arms(0, -0.3, 0, 0.12, 0.28, 0.18, skin2);
         arms(0, -0.3, 0, 0.125, 0.06, 0.185, leather);
       } else if (role === "samurai") {
         part(o, 0, 1.1, 0, 0.4, 0.14, 0.38, lacquer);
         part(o, 0, 0.92, -0.06, 0.52, 0.16, 0.36, lacquer);
-        for (const x of [-0.1, 0.1]) part(o, x, 1.16, 0.17, 0.04, 0.26, 0.02, gold2);
-        part(o, 0, 1.14, 0.2, 0.1, 0.08, 0.02, gold2);
+        for (const x of [-0.1, 0.1]) part(o, x, 1.16, 0.17, 0.04, 0.26, 0.02, gold3);
+        part(o, 0, 1.14, 0.2, 0.1, 0.08, 0.02, gold3);
         part(o, 0, 0.4, 0, 0.48, 0.3, 0.34, "#4a3a32");
         for (const y of [0.46, 0.58]) part(o, 0, y, 0, 0.49, 0.04, 0.345, team2);
         arms(0, -0.24, 0, 0.14, 0.24, 0.22, team2);
@@ -1593,17 +3119,57 @@ function createUnitRig(T, player, box2, material) {
       } else if (role === "mameluke-rider") {
         part(o, 0, 1.08, 0, 0.44, 0.14, 0.42, "#efe9da");
         part(o, 0, 1.12, 0, 0.46, 0.05, 0.44, team2);
-        part(o, 0, 1.22, 0, 0.12, 0.14, 0.12, gold2);
-        part(o, 0, 0.42, 0, 0.48, 0.05, 0.34, gold2);
+        part(o, 0, 1.22, 0, 0.12, 0.14, 0.12, gold3);
+        part(o, 0, 0.42, 0, 0.48, 0.05, 0.34, gold3);
       } else if (role === "mangudai-rider") {
         part(o, 0, 1.06, 0, 0.48, 0.1, 0.44, "#8a6a48");
         part(o, 0, 1.16, 0, 0.3, 0.14, 0.28, team2);
-        part(o, 0, 1.3, 0, 0.1, 0.06, 0.1, gold2);
+        part(o, 0, 1.3, 0, 0.1, 0.06, 0.1, gold3);
         part(o, 0.08, 0.44, 0.165, 0.14, 0.24, 0.02, "#d8c48a");
         part(o, 0.25, 0.3, -0.05, 0.1, 0.32, 0.14, "#8b6746");
+      } else if (role === "cavalry-archer-rider") {
+        const cap = "#6b5238";
+        part(o, 0, 1.01, 0, 0.46, 0.13, 0.44, cap);
+        part(o, 0, 1.14, 0, 0.32, 0.12, 0.3, cap);
+        part(o, 0, 1.26, 0, 0.14, 0.1, 0.14, cap);
+        for (const x of [-0.2, 0.2]) part(o, x, 0.84, 0, 0.04, 0.2, 0.2, cap);
+        part(o, 0, 0.36, -0.18, 0.42, 0.34, 0.04, team2);
+        part(o, -0.1, 0.4, -0.24, 0.12, 0.42, 0.1, "#8b6746");
+        for (const x of [-0.13, -0.07]) part(o, x, 0.82, -0.24, 0.03, 0.12, 0.03, "#efe9da");
+      } else if (role === "camel-rider") {
+        const cloth2 = "#cdb88e";
+        part(o, 0, 1, -0.01, 0.47, 0.16, 0.45, cloth2);
+        part(o, 0, 0.7, -0.2, 0.3, 0.34, 0.05, cloth2);
+        part(o, 0, 0.74, 0.16, 0.32, 0.1, 0.02, cloth2);
+        part(o, 0, 1.1, 0, 0.49, 0.04, 0.47, team2);
+        part(o, 0, 0.12, 0, 0.5, 0.2, 0.36, "#e8e0c8");
+        part(o, 0, 0.5, 0.17, 0.4, 0.06, 0.02, team2);
+      } else if (role === "petard") {
+        part(o, 0, 1.01, 0, 0.46, 0.15, 0.42, leather);
+        part(o, 0, 1.03, 0, 0.47, 0.04, 0.43, team2);
+        part(o, 0, 0.64, 0, 0.4, 0.06, 0.34, team2);
+        part(o, 0, 0.5, 0.17, 0.42, 0.05, 0.02, "#6e5438");
+        for (const x of [-0.12, 0.02, 0.14]) part(o, x, 0.36, 0.17, 0.06, 0.1, 0.05, "#b8964a");
+        part(la, 0, -0.52, 0.12, 0.03, 0.2, 0.03, "#6e5438");
+        part(la, 0, -0.34, 0.12, 0.045, 0.045, 0.045, "#e0a040");
+      } else if (role === "hand-cannoneer") {
+        const jack = "#b9a27a", stitch = "#9c8660";
+        part(o, 0, 1, 0, 0.46, 0.14, 0.42, "#3d3a34");
+        const beret = part(o, -0.04, 1.13, 0.01, 0.34, 0.06, 0.32, "#3d3a34");
+        beret.rotation.z = 0.14;
+        part(o, 0.14, 1.14, -0.1, 0.05, 0.22, 0.05, "#e8e0c8");
+        part(o, 0, 0.24, 0, 0.49, 0.4, 0.34, jack);
+        for (const y of [0.36, 0.5]) part(o, 0, y, 0, 0.495, 0.02, 0.345, stitch);
+        part(o, 0, 0.24, 0, 0.5, 0.05, 0.35, leather);
+        const rod = part(o, 0, 0.2, -0.2, 0.03, 0.8, 0.03, "#5a4632");
+        rod.rotation.z = 0.6;
+        part(o, -0.26, 0.3, 0.05, 0.06, 0.16, 0.08, "#e3d6b4");
+        part(o, -0.26, 0.44, 0.05, 0.07, 0.04, 0.09, "#6e5438");
+        part(o, 0.26, 0.26, 0.04, 0.08, 0.14, 0.12, leather);
+        arms(0, -0.14, 0, 0.12, 0.12, 0.18, jack);
       } else if (role === "mahout") {
         part(o, 0, 1.08, 0, 0.42, 0.12, 0.4, team2);
-        part(o, 0, 1.2, 0, 0.14, 0.06, 0.14, gold2);
+        part(o, 0, 1.2, 0, 0.14, 0.06, 0.14, gold3);
       } else {
         part(o, 0, 1.12, 0, 0.4, 0.14, 0.35, "#a5b0ad");
         part(o, 0, 0.4, 0.18, 0.36, 0.23, 0.055, "#a5b0ad");
@@ -1613,6 +3179,47 @@ function createUnitRig(T, player, box2, material) {
     for (const g of outfit) g.visible = true;
     shield.visible = role === "swordsman";
     equip(roleTools[role]);
+  }
+  const grades = /* @__PURE__ */ new Map();
+  function grade(look) {
+    for (const g2 of grades.values()) for (const x of g2) x.visible = false;
+    shield.visible = worn === "swordsman" && look !== "two-handed-swordsman" && look !== "champion";
+    if (!look || !riderLooks.includes(look)) return;
+    let g = grades.get(look);
+    if (!g) {
+      const o = new T.Group(), la = new T.Group(), ra = new T.Group();
+      o.name = `grade-${look}`;
+      la.name = `grade-${look}-arm-left`;
+      ra.name = `grade-${look}-arm-right`;
+      root.add(o);
+      leftArm.add(la);
+      rightArm.add(ra);
+      g = [o, la, ra];
+      grades.set(look, g);
+      const arms = (x, y, z, w, h2, d, color) => {
+        for (const a of [la, ra]) part(a, x, y, z, w, h2, d, color);
+      };
+      if (look === "two-handed-swordsman" || look === "champion") {
+        part(o, 0, 1.06, 0, 0.46, 0.2, 0.42, metal3);
+        part(o, 0, 0.88, 0.18, 0.36, 0.16, 0.03, metal3);
+        part(o, 0, 0.95, 0.196, 0.3, 0.03, 0.01, "#2c2e2c");
+        if (look === "champion") {
+          part(o, 0, 1.26, 0, 0.08, 0.2, 0.08, team2);
+          part(o, 0, 1.06, 0, 0.47, 0.03, 0.43, gold3);
+          arms(0, -0.12, 0, 0.16, 0.14, 0.21, metal3);
+        }
+      } else if (look === "hussar") {
+        part(o, 0, 1.08, 0, 0.42, 0.32, 0.38, "#3a3530");
+        part(o, 0.15, 1.4, 0, 0.06, 0.14, 0.06, team2);
+        part(o, 0, 0.5, -0.22, 0.05, 1, 0.05, "#6e5438");
+        for (const [y, z] of [[0.72, -0.27], [0.88, -0.29], [1.04, -0.3], [1.2, -0.29], [1.36, -0.27]]) part(o, 0, y, z, 0.04, 0.12, 0.1, "#efe9da");
+      } else if (look === "heavy-cavalry-archer") {
+        part(o, 0, 0.3, 0, 0.485, 0.32, 0.345, metal3);
+        part(o, 0, 0.62, 0, 0.36, 0.05, 0.33, metal3);
+        arms(0, -0.26, 0, 0.115, 0.24, 0.175, metal3);
+      }
+    }
+    for (const x of g) x.visible = true;
   }
   const shield = new T.Group();
   shield.name = "shield-left";
@@ -1679,6 +3286,21 @@ function createUnitRig(T, player, box2, material) {
       part(group, 0, 0.12, 0, 0.05, 0.24, 0.04, "#d2d8d4");
       part(group, 0, 0.34, 0.03, 0.07, 0.16, 0.04, "#d2d8d4");
       part(group, 0, 0.48, 0.07, 0.07, 0.1, 0.04, "#d2d8d4");
+    } else if (kind === "powder-keg") {
+      part(group, -0.19, -0.2, 0.13, 0.34, 0.38, 0.3, "#7a5a3a");
+      for (const y of [-0.12, 0.08]) part(group, -0.19, y, 0.13, 0.36, 0.04, 0.32, "#4a4a48");
+      part(group, -0.19, 0.18, 0.13, 0.26, 0.03, 0.22, "#6e5438");
+      part(group, -0.12, 0.21, 0.18, 0.03, 0.1, 0.03, "#d9cba4");
+      part(group, -0.12, 0.31, 0.18, 0.05, 0.05, 0.05, "#f5dc7a");
+    } else if (kind === "hand-cannon") {
+      part(group, 0, -0.02, 0, 0.05, 0.5, 0.05, "#8a6a45");
+      part(group, 0, -0.3, 0, 0.12, 0.28, 0.12, "#5b5e5c");
+      for (const y of [-0.24, -0.12]) part(group, 0, y, 0, 0.135, 0.035, 0.135, "#3f4240");
+      part(group, 0, -0.36, 0, 0.15, 0.06, 0.15, "#3f4240");
+      part(group, 0, -0.08, 0.06, 0.03, 0.03, 0.02, "#2c2e2c");
+      const flash = part(group, 0, -0.46, 0, 0.1, 0.1, 0.1, "#f2c25a");
+      flash.name = "tool-hand-cannon-flash";
+      flash.visible = false;
     } else if (kind !== "none") {
       part(group, 0, -0.08, 0, 0.055, 0.48, 0.06, kind === "sword" ? "#756449" : "#967447");
       if (kind === "axe") part(group, 0.08, 0.23, 0, 0.22, 0.15, 0.055, "#aab0a3");
@@ -1702,9 +3324,21 @@ function createUnitRig(T, player, box2, material) {
     selected2 = kind;
     if (kind !== "none") (toolMeshes.get(kind) ?? makeTool(kind)).visible = true;
   }
+  function aim(time) {
+    const t = Math.max(0, Number.isFinite(time) ? time : 0), f = t % 1400 / 1400, kick = f < 0.12 ? Math.sin(Math.PI * f / 0.12) : 0;
+    return { right: -1.5 - 0.3 * kick, left: -1.25 - 0.2 * kick, lean: -0.08 * kick || 0, flash: f < 0.07 };
+  }
   function pose(kind, time) {
     if (!unitPoses.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u59FF\u614B");
     const p = samplePose(kind, time);
+    const firing = kind === "attack" && selected2 === "hand-cannon" && !seated, shot = firing ? aim(time) : null;
+    if (shot) {
+      p.rightArm = shot.right;
+      p.leftArm = shot.left;
+      p.lean = shot.lean;
+    }
+    const flash = toolMeshes.get("hand-cannon")?.getObjectByName("tool-hand-cannon-flash");
+    if (flash) flash.visible = !!shot?.flash;
     leftLeg.rotation.x = seated ? 0 : p.leftLeg;
     rightLeg.rotation.x = seated ? 0 : p.rightLeg;
     leftLeg.position.x = seated ? -0.4 : -0.12;
@@ -1716,7 +3350,7 @@ function createUnitRig(T, player, box2, material) {
     root.position.y = 0.28 * Math.sin(p.fall);
     for (const [tool, mesh] of toolMeshes) mesh.visible = tool === selected2 && kind !== "death";
   }
-  return { root, sockets, equip, pose, dress, seat: (value) => {
+  return { root, sockets, equip, pose, dress, grade, seat: (value) => {
     seated = value;
   } };
 }
@@ -1725,7 +3359,7 @@ function createUnitRig(T, player, box2, material) {
 function createElephantMount(T, player, box2, material) {
   const root = new T.Group();
   root.name = "elephant-root";
-  const team2 = player === 0 ? "#45728c" : "#b25441", grey2 = "#8d8c86", ear = "#9a988f", ivory = "#efe8d2", gold3 = "#c9a55a", wood2 = "#6e5438";
+  const team2 = player === 0 ? "#45728c" : "#b25441", grey2 = "#8d8c86", ear = "#9a988f", ivory = "#efe8d2", gold4 = "#c9a55a", wood6 = "#6e5438";
   const part = (parent, x, y, z, w, h2, d, color) => {
     const m = new T.Mesh(box2(w, h2, d), material(color));
     m.position.set(x, y, z);
@@ -1747,7 +3381,7 @@ function createElephantMount(T, player, box2, material) {
   root.add(body);
   part(body, 0, 0.72, 0, 1, 0.86, 1.5, grey2);
   part(body, 0, 1.02, 0, 1.04, 0.58, 1.1, team2);
-  part(body, 0, 0.98, 0, 1.05, 0.06, 1.11, gold3);
+  part(body, 0, 0.98, 0, 1.05, 0.06, 1.11, gold4);
   part(body, 0, 1.02, 0.8, 0.72, 0.7, 0.46, grey2);
   part(body, 0, 1.72, 0.82, 0.5, 0.1, 0.34, grey2);
   for (const sx of [-1, 1]) {
@@ -1766,11 +3400,11 @@ function createElephantMount(T, player, box2, material) {
   part(trunk, 0, -0.66, 0.12, 0.17, 0.34, 0.17, grey2);
   part(trunk, 0, -0.86, 0.2, 0.14, 0.22, 0.14, grey2);
   part(trunk, 0, -0.88, 0.3, 0.12, 0.1, 0.12, grey2);
-  part(body, 0, 1.6, -0.12, 0.9, 0.1, 0.96, wood2);
+  part(body, 0, 1.6, -0.12, 0.9, 0.1, 0.96, wood6);
   for (const z of [0.3, -0.54]) part(body, 0, 1.7, z, 0.9, 0.3, 0.08, team2);
   for (const x of [-0.41, 0.41]) part(body, x, 1.7, -0.12, 0.08, 0.3, 0.76, team2);
-  for (const z of [0.3, -0.54]) part(body, 0, 2, z, 0.94, 0.05, 0.1, gold3);
-  for (const x of [-0.41, 0.41]) for (const z of [0.3, -0.54]) part(body, x, 2, z, 0.08, 0.3, 0.08, gold3);
+  for (const z of [0.3, -0.54]) part(body, 0, 2, z, 0.94, 0.05, 0.1, gold4);
+  for (const x of [-0.41, 0.41]) for (const z of [0.3, -0.54]) part(body, x, 2, z, 0.08, 0.3, 0.08, gold4);
   const saddle = new T.Group();
   saddle.name = "rider-saddle";
   saddle.position.set(0, 1.7, -0.12);
@@ -1789,22 +3423,117 @@ function createElephantMount(T, player, box2, material) {
   return { root, saddle, pose };
 }
 
+// apps/web/camel-rig.ts
+function createCamelMount(T, player, box2, material) {
+  const root = new T.Group();
+  root.name = "camel-root";
+  const team2 = player === 0 ? "#45728c" : "#b25441", coat = "#c8a46e", shade2 = "#a9844f", wood6 = "#6e5438";
+  const part = (parent, x, y, z, w, h2, d, color) => {
+    const m = new T.Mesh(box2(w, h2, d), material(color));
+    m.position.set(x, y, z);
+    m.castShadow = true;
+    parent.add(m);
+    return m;
+  };
+  const legs = [];
+  for (const x of [-0.17, 0.17]) for (const z of [-0.4, 0.42]) {
+    const leg = new T.Group();
+    leg.name = `camel-leg-${legs.length}`;
+    leg.position.set(x, 0.95, z);
+    root.add(leg);
+    legs.push(leg);
+    part(leg, 0, -0.9, 0, 0.12, 0.9, 0.13, coat);
+    part(leg, 0, -0.5, 0, 0.15, 0.1, 0.16, shade2);
+    part(leg, 0, -0.95, 0.02, 0.18, 0.07, 0.2, "#8a6a45");
+  }
+  const body = new T.Group();
+  root.add(body);
+  part(body, 0, 0.9, 0, 0.5, 0.42, 1.12, coat);
+  part(body, 0, 0.88, 0, 0.44, 0.06, 1, shade2);
+  part(body, 0, 1.32, -0.05, 0.38, 0.2, 0.52, coat);
+  part(body, 0, 1.52, -0.05, 0.24, 0.08, 0.32, coat);
+  part(body, 0, 0.98, -0.6, 0.06, 0.3, 0.06, shade2);
+  part(body, 0, 0.94, -0.6, 0.09, 0.07, 0.09, "#5c4a36");
+  part(body, 0, 1.06, -0.05, 0.52, 0.28, 0.6, team2);
+  part(body, 0, 1.05, -0.05, 0.53, 0.04, 0.61, "#d9bf6f");
+  part(body, 0, 1.56, -0.05, 0.4, 0.06, 0.42, wood6);
+  part(body, 0, 1.62, 0.17, 0.28, 0.14, 0.05, wood6);
+  part(body, 0, 1.62, -0.27, 0.28, 0.14, 0.05, wood6);
+  part(body, 0, 0.98, 0.6, 0.2, 0.3, 0.24, coat);
+  part(body, 0, 1.12, 0.78, 0.18, 0.3, 0.2, coat);
+  part(body, 0, 1.32, 0.9, 0.16, 0.36, 0.18, coat);
+  const head = new T.Group();
+  head.name = "camel-head";
+  head.position.set(0, 1.6, 0.96);
+  body.add(head);
+  part(head, 0, 0, 0.08, 0.2, 0.2, 0.36, coat);
+  part(head, 0, -0.02, 0.28, 0.16, 0.14, 0.12, shade2);
+  part(head, 0, 0.2, -0.04, 0.16, 0.06, 0.14, coat);
+  for (const sx of [-1, 1]) {
+    part(head, sx * 0.1, 0.12, 0.06, 0.02, 0.04, 0.05, "#2f3932");
+    part(head, sx * 0.07, 0.2, -0.06, 0.04, 0.08, 0.04, shade2);
+  }
+  part(head, 0, 0.04, 0.08, 0.22, 0.03, 0.2, team2);
+  const saddle = new T.Group();
+  saddle.name = "rider-saddle";
+  saddle.position.set(0, 1.62, -0.05);
+  body.add(saddle);
+  let armour = null;
+  function grade(look) {
+    if (look === "heavy-camel" && !armour) {
+      armour = new T.Group();
+      armour.name = "camel-armour";
+      body.add(armour);
+      part(armour, 0, 0.9, -0.05, 0.54, 0.34, 0.98, "#8a6a45");
+      for (const z of [-0.4, -0.1, 0.2]) part(armour, 0, 0.9, z, 0.55, 0.34, 0.04, team2);
+      part(armour, 0, 0.92, 0.55, 0.3, 0.3, 0.06, "#b8964a");
+      part(armour, 0, 1.4, 0.88, 0.18, 0.08, 0.22, "#b8964a");
+    }
+    if (armour) armour.visible = look === "heavy-camel";
+  }
+  function pose(kind, time) {
+    const t = Number.isFinite(time) ? Math.max(0, time) : 0, phase = t * 0.01, walking = kind === "walk";
+    legs.forEach((leg, i) => {
+      const swing = walking ? Math.sin(phase + (i < 2 ? 0 : Math.PI)) * 0.24 : 0;
+      leg.rotation.x = swing;
+      leg.position.y = 0.95 + Math.abs(Math.sin(swing)) * 0.12;
+    });
+    body.position.y = walking ? Math.abs(Math.sin(phase)) * 0.03 : 0;
+    head.rotation.x = walking ? Math.sin(phase * 2) * 0.08 : kind === "attack" ? -0.18 : 0;
+    head.rotation.y = kind === "idle" ? Math.sin(t * 15e-4) * 0.25 : 0;
+  }
+  return { root, saddle, pose, grade };
+}
+
 // apps/web/character-rig.ts
-var mountedRoles = ["cavalry", "cataphract", "mameluke", "mangudai", "war-elephant"];
+var mountedRoles = ["cavalry", "cataphract", "mameluke", "mangudai", "war-elephant", "cavalry-archer", "camel"];
 var isMounted = (role) => mountedRoles.includes(role);
 var mounts = {
-  cavalry: { rider: "swordsman", tool: "spear", horse: { coat: "#957350", head: "#a5835b", mane: "#64533d", barding: false } },
-  cataphract: { rider: "cataphract-rider", tool: "spear", horse: { coat: "#6f5a44", head: "#7c6550", mane: "#3e3326", barding: true } },
-  mameluke: { rider: "mameluke-rider", tool: "scimitar", horse: { coat: "#d6cdb9", head: "#e0d8c6", mane: "#8b8374", barding: false } },
-  mangudai: { rider: "mangudai-rider", tool: "bow", horse: { coat: "#7a5b3c", head: "#8a6a48", mane: "#3e3326", barding: false } },
-  "war-elephant": { rider: "mahout", tool: "spear", horse: null }
+  cavalry: { rider: "swordsman", tool: "spear", mount: "horse", horse: { coat: "#957350", head: "#a5835b", mane: "#64533d", barding: false } },
+  cataphract: { rider: "cataphract-rider", tool: "spear", mount: "horse", horse: { coat: "#6f5a44", head: "#7c6550", mane: "#3e3326", barding: true } },
+  mameluke: { rider: "mameluke-rider", tool: "scimitar", mount: "horse", horse: { coat: "#d6cdb9", head: "#e0d8c6", mane: "#8b8374", barding: false } },
+  mangudai: { rider: "mangudai-rider", tool: "bow", mount: "horse", horse: { coat: "#7a5b3c", head: "#8a6a48", mane: "#3e3326", barding: false } },
+  "war-elephant": { rider: "mahout", tool: "spear", mount: "elephant", horse: null },
+  // The cavalry archer rides a black horse (the Mangudai's is dun); the camel rider a camel.
+  "cavalry-archer": { rider: "cavalry-archer-rider", tool: "bow", mount: "horse", horse: { coat: "#3d3631", head: "#4a413a", mane: "#1f1b18", barding: false } },
+  camel: { rider: "camel-rider", tool: "scimitar", mount: "camel", horse: null }
 };
 function createCharacterRig(T, player, box2, material) {
   const root = new T.Group(), rider = createUnitRig(T, player, box2, material);
   root.add(rider.root);
   const team2 = player === 0 ? "#45728c" : "#b25441";
-  let horse = null, saddle = null, barding2 = null, mounted = null, elephant = null;
+  let horse = null, saddle = null, barding2 = null, gilt5 = null, mounted2 = null;
   const legs = [];
+  const beasts = /* @__PURE__ */ new Map();
+  const beast = (kind) => {
+    let b = beasts.get(kind);
+    if (!b) {
+      b = kind === "camel" ? createCamelMount(T, player, box2, material) : createElephantMount(T, player, box2, material);
+      root.add(b.root);
+      beasts.set(kind, b);
+    }
+    return b;
+  };
   const tints = { coat: [], head: [], mane: [] };
   const part = (parent, x, y, z, w, h2, d, color) => {
     const m = new T.Mesh(box2(w, h2, d), material(color));
@@ -1848,53 +3577,74 @@ function createCharacterRig(T, player, box2, material) {
     part(barding2, 0, 1.24, 0.86, 0.3, 0.24, 0.04, steel);
     part(barding2, 0, 1.48, 0.5, 0.06, 0.16, 0.06, team2);
   }
+  function makeGilt() {
+    gilt5 = new T.Group();
+    gilt5.name = "horse-gilt";
+    horse.add(gilt5);
+    const gold4 = "#c9a55a";
+    part(gilt5, 0, 0.98, 0, 0.61, 0.04, 1.2, gold4);
+    part(gilt5, 0, 1.48, 0.86, 0.08, 0.12, 0.05, gold4);
+    part(gilt5, 0, 1.33, 0.84, 0.31, 0.03, 0.05, gold4);
+  }
   function dress(role) {
     const next = isMounted(role) ? role : null;
-    mounted = next;
+    mounted2 = next;
+    for (const b of beasts.values()) {
+      b.root.visible = false;
+      b.grade?.(null);
+    }
+    if (gilt5) gilt5.visible = false;
     if (next) {
       const look = mounts[next];
       if (look.horse) {
         if (!horse) makeHorse();
         horse.visible = true;
-        if (elephant) elephant.root.visible = false;
         for (const k of ["coat", "head", "mane"]) for (const m of tints[k]) m.material = material(look.horse[k]);
         if (look.horse.barding && !barding2) makeBarding();
         if (barding2) barding2.visible = look.horse.barding;
         saddle.add(rider.root);
       } else {
-        if (!elephant) {
-          elephant = createElephantMount(T, player, box2, material);
-          root.add(elephant.root);
-        }
-        elephant.root.visible = true;
+        const b = beast(look.mount);
+        b.root.visible = true;
         if (horse) horse.visible = false;
-        elephant.saddle.add(rider.root);
+        b.saddle.add(rider.root);
       }
       rider.dress(look.rider);
       rider.equip(look.tool);
     } else {
       if (horse) horse.visible = false;
-      if (elephant) elephant.root.visible = false;
       root.add(rider.root);
       rider.dress(role);
     }
     rider.seat(!!next);
     pose("idle", 0);
   }
+  function grade(look) {
+    rider.grade(look);
+    const look0 = mounted2 ? mounts[mounted2] : null;
+    if (!look0) return;
+    if (look0.horse && horse) {
+      const armoured = look === "cavalier" || look === "paladin";
+      if (armoured && !barding2) makeBarding();
+      if (barding2) barding2.visible = look0.horse.barding || armoured;
+      if (look === "paladin" && !gilt5) makeGilt();
+      if (gilt5) gilt5.visible = look === "paladin";
+    } else beasts.get(look0.mount)?.grade?.(look);
+  }
   function pose(kind, time) {
-    if (mounted && !["idle", "walk", "attack"].includes(kind)) throw Error("\u9A0E\u4E58\u6A21\u578B\u76EE\u524D\u50C5\u652F\u63F4\u5F85\u547D\u3001\u884C\u8D70\u8207\u653B\u64CA\u59FF\u614B");
+    if (mounted2 && !["idle", "walk", "attack"].includes(kind)) throw Error("\u9A0E\u4E58\u6A21\u578B\u76EE\u524D\u50C5\u652F\u63F4\u5F85\u547D\u3001\u884C\u8D70\u8207\u653B\u64CA\u59FF\u614B");
     rider.pose(kind, time);
     if (horse) {
-      const phase = Number.isFinite(time) ? Math.max(0, time) * 0.012 : 0, walking = mounted && mounted !== "war-elephant" && kind === "walk";
+      const phase = Number.isFinite(time) ? Math.max(0, time) * 0.012 : 0, walking = mounted2 && mounts[mounted2].mount === "horse" && kind === "walk";
       legs.forEach((leg, i) => {
         const swing = walking ? Math.sin(phase + (i === 0 || i === 3 ? 0 : Math.PI)) * 0.26 : 0;
         leg.rotation.x = swing;
         leg.position.y = 0.62 + Math.abs(Math.sin(swing)) * 0.14;
       });
     }
-    if (elephant) elephant.pose(mounted === "war-elephant" ? kind : "idle", time);
+    for (const [kind0, b] of beasts) b.pose(mounted2 && mounts[mounted2].mount === kind0 ? kind : "idle", time);
   }
-  return { root, sockets: rider.sockets, equip: rider.equip, dress, pose };
+  return { root, sockets: rider.sockets, equip: rider.equip, dress, pose, grade };
 }
 
 // apps/web/animal-rig.ts
@@ -1961,6 +3711,7 @@ function createAnimalRig(T, kind, player, box2, material) {
   }
   return { root, sockets: { leftHand: new T.Group(), rightHand: new T.Group() }, equip: (_) => {
   }, dress: (_) => {
+  }, grade: (_) => {
   }, pose };
 }
 
@@ -1992,7 +3743,33 @@ var animalRules = {
 };
 
 // apps/web/rig-roles.ts
-var footUniques = ["longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "samurai", "janissary", "chu-ko-nu"];
+var footUniques = ["longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "samurai", "janissary", "chu-ko-nu", "petard", "hand-cannoneer"];
+var siegeKinds = ["ram", "mangonel", "scorpion", "trebuchet", "bombard-cannon"];
+var isSiege = (kind) => siegeKinds.includes(kind);
+var shipKinds = ["fishing-ship", "transport-ship", "trade-cog", "galley", "fire-galley", "demolition-raft", "cannon-galleon", "longboat"];
+var vesselKinds = [...shipKinds, "trade-cart"];
+var isVessel = (kind) => vesselKinds.includes(kind);
+var upgradeLooks = {
+  militia: ["two-handed-swordsman", "champion"],
+  scout: ["hussar"],
+  knight: ["cavalier", "paladin"],
+  "cavalry-archer": ["heavy-cavalry-archer"],
+  camel: ["heavy-camel"],
+  ram: ["capped-ram", "siege-ram"],
+  mangonel: ["onager", "siege-onager"],
+  scorpion: ["heavy-scorpion"],
+  // The dock's lines (War Galley turns all three Feudal ships at once).
+  galley: ["war-galley", "galleon"],
+  "fire-galley": ["war-galley", "fast-fire-ship"],
+  "demolition-raft": ["war-galley", "heavy-demolition-ship"],
+  "cannon-galleon": ["elite-cannon-galleon"],
+  longboat: ["elite-longboat"]
+};
+function lookOf(kind, techs2) {
+  const line2 = upgradeLooks[kind] ?? [];
+  for (let i = line2.length - 1; i >= 0; i--) if (techs2.includes(line2[i])) return line2[i];
+  return null;
+}
 function roleOf(kind) {
   return kind === "militia" ? "swordsman" : kind === "spearman" ? "spearman" : kind === "archer" || kind === "skirmisher" ? "archer" : kind === "scout" || kind === "knight" ? "cavalry" : kind === "monk" ? "monk" : footUniques.includes(kind) ? kind : isMounted(kind) ? kind : "villager";
 }
@@ -2060,7 +3837,7 @@ function createDetailController(T) {
 var economicBuildings = ["lumber-camp", "mining-camp", "mill", "farm", "town-center", "market", "smithy"];
 function economicBuildingParts(kind, v) {
   if (!economicBuildings.includes(kind) || ![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u7D93\u6FDF\u5EFA\u7BC9\u5916\u89C0");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood2 = "#94734c", stone2 = "#aaa994", brass = "#bca068", water = "#6a9297", height = 1.28 + (age - 1) * 0.16;
+  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", stone6 = "#aaa994", brass2 = "#bca068", water2 = "#6a9297", height = 1.28 + (age - 1) * 0.16;
   const add = (id, phase, x, z, y, w, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, kind === "farm" ? "#806b49" : "#b3aa8c");
   if (kind === "farm") {
@@ -2072,58 +3849,58 @@ function economicBuildingParts(kind, v) {
       }
     }
     if (age <= 2) {
-      add("boundary-back", 1, 0, 0, 0.16, 2.7, 0.08, 0.12, wood2);
-      add("boundary-front", 1, 0, 2.62, 0.16, 2.7, 0.08, 0.12, wood2);
+      add("boundary-back", 1, 0, 0, 0.16, 2.7, 0.08, 0.12, wood6);
+      add("boundary-front", 1, 0, 2.62, 0.16, 2.7, 0.08, 0.12, wood6);
     } else {
-      add("wall-back", 1, 0, 0, 0.16, 2.7, 0.08, 0.24, stone2);
-      for (const [x, w] of [[0, 1.08], [1.62, 1.08]]) add(`wall-front-${x}`, 1, x, 2.62, 0.16, w, 0.08, 0.24, stone2);
-      for (const x of [1.08, 1.46]) add(`gate-pier-${x}`, 1, x, 2.58, 0.16, 0.16, 0.16, 0.56, stone2, true);
+      add("wall-back", 1, 0, 0, 0.16, 2.7, 0.08, 0.24, stone6);
+      for (const [x, w] of [[0, 1.08], [1.62, 1.08]]) add(`wall-front-${x}`, 1, x, 2.62, 0.16, w, 0.08, 0.24, stone6);
+      for (const x of [1.08, 1.46]) add(`gate-pier-${x}`, 1, x, 2.58, 0.16, 0.16, 0.16, 0.56, stone6, true);
     }
     if (age >= 2) {
-      for (const x of [0, 2.62]) add(age >= 3 ? `wall-side-${x}` : `boundary-side-${x}`, 1, x, 0.08, 0.16, 0.08, 2.54, age >= 3 ? 0.24 : 0.12, age >= 3 ? stone2 : wood2);
-      for (const x of [-0.12, 2.72]) for (const z of [-0.12, 2.72]) add(`fence-post-${x}-${z}`, 1, x, z, 0.16, 0.1, 0.1, age >= 3 ? 0.56 : 0.45, age >= 3 ? stone2 : wood2);
+      for (const x of [0, 2.62]) add(age >= 3 ? `wall-side-${x}` : `boundary-side-${x}`, 1, x, 0.08, 0.16, 0.08, 2.54, age >= 3 ? 0.24 : 0.12, age >= 3 ? stone6 : wood6);
+      for (const x of [-0.12, 2.72]) for (const z of [-0.12, 2.72]) add(`fence-post-${x}-${z}`, 1, x, z, 0.16, 0.1, 0.1, age >= 3 ? 0.56 : 0.45, age >= 3 ? stone6 : wood6);
     }
     if (age === 4) {
       add("gate-lintel", 1, 1.08, 2.58, 0.72, 0.54, 0.16, 0.16, team2, true);
-      add("scarecrow-post", 3, 1.3, 1.24, 0.16, 0.06, 0.06, 0.64, wood2);
-      add("scarecrow-arms", 3, 1.1, 1.24, 0.8, 0.46, 0.06, 0.06, wood2);
+      add("scarecrow-post", 3, 1.3, 1.24, 0.16, 0.06, 0.06, 0.64, wood6);
+      add("scarecrow-arms", 3, 1.1, 1.24, 0.8, 0.46, 0.06, 0.06, wood6);
       add("scarecrow-head", 3, 1.25, 1.19, 0.86, 0.16, 0.16, 0.22, "#c7b27a");
       add("scarecrow-hat", 3, 1.2, 1.15, 1.08, 0.26, 0.24, 0.06, "#6d563d");
     }
   } else {
     const hallHeight = 1.6 + (age - 1) * 0.16, towerTop = 0.16 + (age >= 3 ? 6 : 5) * 0.4, roofY = kind === "mill" ? towerTop : kind === "town-center" ? hallHeight + 0.16 : height + 0.16, masonry = kind !== "town-center", postBase = masonry && age >= 2 ? 0.4 : 0.16;
-    for (const x of [0.1, 2.4]) for (const z of [0.1, 1.8]) add(`post-${x}-${z}`, 1, x, z, postBase, 0.16, 0.16, roofY - postBase, age >= 3 ? stone2 : wood2);
-    add("back-brace", 1, 0.1, 0.1, roofY - 0.24, 2.46, 0.14, 0.24, wood2);
+    for (const x of [0.1, 2.4]) for (const z of [0.1, 1.8]) add(`post-${x}-${z}`, 1, x, z, postBase, 0.16, 0.16, roofY - postBase, age >= 3 ? stone6 : wood6);
+    add("back-brace", 1, 0.1, 0.1, roofY - 0.24, 2.46, 0.14, 0.24, wood6);
     if (kind === "market") {
       for (let stripe = 0; stripe < 6; stripe++) add(`awning-${stripe}`, 2, -0.05 + stripe * 0.48, -0.05, roofY, 0.48, 2.25, 0.16, stripe % 2 ? "#e4d4ab" : team2);
     } else for (let level = 0; level < 3; level++) add(`roof-${level}`, 2, -0.05 + level * 0.28, -0.05, roofY + level * 0.16, 2.9 - level * 0.56, 2.25, 0.16, age === 1 ? "#b8a074" : team2, true);
-    if (masonry && age >= 2) for (const x of [0.1, 2.4]) for (const z of [0.1, 1.8]) add(`footing-${x}-${z}`, 1, x - 0.02, z - 0.02, 0.16, 0.2, 0.2, 0.24, stone2);
+    if (masonry && age >= 2) for (const x of [0.1, 2.4]) for (const z of [0.1, 1.8]) add(`footing-${x}-${z}`, 1, x - 0.02, z - 0.02, 0.16, 0.2, 0.2, 0.24, stone6);
     if (masonry && age >= 3) {
-      if (kind !== "smithy") add("stone-plinth", 1, 0.28, 0.1, 0.16, 2.1, 0.14, 0.48, stone2, true);
-      for (const x of [-0.04, 2.56]) for (const z of [0.3, 1.46]) add(`buttress-${x}-${z}`, 1, x, z, 0.16, 0.14, 0.3, roofY - 0.16, stone2);
+      if (kind !== "smithy") add("stone-plinth", 1, 0.28, 0.1, 0.16, 2.1, 0.14, 0.48, stone6, true);
+      for (const x of [-0.04, 2.56]) for (const z of [0.3, 1.46]) add(`buttress-${x}-${z}`, 1, x, z, 0.16, 0.14, 0.3, roofY - 0.16, stone6);
     }
     if (kind === "lumber-camp") {
-      for (let row = 0; row < 3; row++) for (let layer = 0; layer < 2; layer++) add(`log-${row}-${layer}`, 3, 0.25, 0.3 + row * 0.28, 0.16 + layer * 0.2, 1.6, 0.22, 0.2, wood2, true);
+      for (let row = 0; row < 3; row++) for (let layer = 0; layer < 2; layer++) add(`log-${row}-${layer}`, 3, 0.25, 0.3 + row * 0.28, 0.16 + layer * 0.2, 1.6, 0.22, 0.2, wood6, true);
       for (const x of [0.55, 1.75]) add(`saw-leg-${x}`, 3, x, 2.15, 0.16, 0.14, 0.32, 0.45, "#66563e");
-      add("saw-worktop", 3, 0.35, 2.08, 0.61, 1.8, 0.48, 0.12, wood2);
+      add("saw-worktop", 3, 0.35, 2.08, 0.61, 1.8, 0.48, 0.12, wood6);
       add("saw-blade", 3, 0.9, 2.24, 0.73, 0.85, 0.06, 0.14, "#b8c0b9");
       if (age >= 2) {
         add("chopping-block", 3, 2, 0.9, 0.16, 0.35, 0.35, 0.3, "#7c674b", true);
-        add("axe-handle", 3, 2.15, 1.05, 0.46, 0.05, 0.05, 0.4, wood2);
+        add("axe-handle", 3, 2.15, 1.05, 0.46, 0.05, 0.05, 0.4, wood6);
         add("axe-head", 3, 2.08, 1.04, 0.78, 0.2, 0.07, 0.08, "#b8c0b9");
       }
       if (age === 4) {
-        add("crane-mast", 3, 2.5, 2.3, 0.16, 0.16, 0.16, roofY + 0.32, wood2);
-        add("crane-jib", 3, 1.2, 2.3, roofY + 0.48, 1.46, 0.16, 0.16, wood2);
+        add("crane-mast", 3, 2.5, 2.3, 0.16, 0.16, 0.16, roofY + 0.32, wood6);
+        add("crane-jib", 3, 1.2, 2.3, roofY + 0.48, 1.46, 0.16, 0.16, wood6);
         add("crane-rope", 3, 1.34, 2.36, roofY - 0.32, 0.04, 0.04, 0.8, "#8c8879");
         add("crane-hook", 3, 1.28, 2.3, roofY - 0.44, 0.16, 0.16, 0.12, "#76817d");
       }
     } else if (kind === "mining-camp") {
-      add("hopper-base", 3, 0.35, 0.4, 0.16, 1.7, 0.9, 0.16, wood2);
-      for (const x of [0.35, 1.89]) add(`hopper-wall-${x}`, 3, x, 0.4, 0.32, 0.16, 0.9, 0.55, wood2);
-      add("hopper-back", 3, 0.35, 0.4, 0.32, 1.7, 0.16, 0.55, wood2);
-      for (let i = 0; i < 6; i++) add(`ore-${i}`, 3, 0.59 + i % 3 * 0.39, 0.62 + Math.floor(i / 3) * 0.32, 0.32, 0.3, 0.26, 0.25, i % 2 ? stone2 : "#c0a557", true);
-      add("pick-handle", 3, 2.42, 0.8, 0.16, 0.06, 0.06, 1.05, wood2);
+      add("hopper-base", 3, 0.35, 0.4, 0.16, 1.7, 0.9, 0.16, wood6);
+      for (const x of [0.35, 1.89]) add(`hopper-wall-${x}`, 3, x, 0.4, 0.32, 0.16, 0.9, 0.55, wood6);
+      add("hopper-back", 3, 0.35, 0.4, 0.32, 1.7, 0.16, 0.55, wood6);
+      for (let i = 0; i < 6; i++) add(`ore-${i}`, 3, 0.59 + i % 3 * 0.39, 0.62 + Math.floor(i / 3) * 0.32, 0.32, 0.3, 0.26, 0.25, i % 2 ? stone6 : "#c0a557", true);
+      add("pick-handle", 3, 2.42, 0.8, 0.16, 0.06, 0.06, 1.05, wood6);
       add("pick-head", 3, 2.2, 0.8, 1.12, 0.5, 0.08, 0.1, "#b8c0b9");
       if (age >= 2) {
         for (const z of [2.3, 2.62]) add(`rail-${z}`, 1, 0.7, z, 0.16, 1.1, 0.06, 0.06, "#76817d");
@@ -2131,16 +3908,16 @@ function economicBuildingParts(kind, v) {
         add("cart-ore", 3, 1.08, 2.34, 0.52, 0.34, 0.3, 0.12, "#c0a557", true);
       }
       if (age === 4) {
-        for (const x of [0.4, 1.94]) add(`headframe-leg-${x}`, 3, x, 2.42, 0.16, 0.16, 0.16, roofY + 0.12, wood2);
-        add("headframe-beam", 3, 0.4, 2.42, roofY + 0.28, 1.7, 0.16, 0.16, wood2);
+        for (const x of [0.4, 1.94]) add(`headframe-leg-${x}`, 3, x, 2.42, 0.16, 0.16, 0.16, roofY + 0.12, wood6);
+        add("headframe-beam", 3, 0.4, 2.42, roofY + 0.28, 1.7, 0.16, 0.16, wood6);
         add("headframe-wheel", 3, 1.1, 2.44, roofY + 0.44, 0.3, 0.12, 0.3, "#76817d");
         add("headframe-rope", 3, 1.23, 2.48, 1.2, 0.04, 0.04, roofY - 0.92, "#8c8879");
         add("headframe-bucket", 3, 1.13, 2.38, 0.96, 0.24, 0.24, 0.24, "#7c674b");
       }
     } else if (kind === "mill") {
-      for (let course = 0; course < (age >= 3 ? 6 : 5); course++) add(`mill-tower-${course}`, 1, 0.85, 0.6, 0.16 + course * 0.4, 1, 1, 0.4, course % 2 ? stone2 : "#c4bfa8", true);
+      for (let course = 0; course < (age >= 3 ? 6 : 5); course++) add(`mill-tower-${course}`, 1, 0.85, 0.6, 0.16 + course * 0.4, 1, 1, 0.4, course % 2 ? stone6 : "#c4bfa8", true);
       const hubY = towerTop - 0.5;
-      add("axle", 3, 1.28, 1.6, hubY, 0.14, 0.83, 0.14, wood2);
+      add("axle", 3, 1.28, 1.6, hubY, 0.14, 0.83, 0.14, wood6);
       add("blade-vertical", 3, 1.26, 2.37, hubY - 1.12, 0.18, 0.1, 2.4, "#d6c6a0");
       add("blade-horizontal", 3, 0.15, 2.48, hubY, 2.4, 0.1, 0.18, "#d6c6a0");
       add("hub", 3, 1.19, 2.33, hubY - 0.04, 0.32, 0.29, 0.28, "#7c674b");
@@ -2151,40 +3928,40 @@ function economicBuildingParts(kind, v) {
       }
       if (age === 4) {
         const base = roofY + 0.48;
-        add("cupola-base", 2, 1, 0.6, base, 0.8, 0.8, 0.16, stone2);
-        for (const x of [1, 1.68]) for (const z of [0.6, 1.28]) add(`cupola-post-${x}-${z}`, 3, x, z, base + 0.16, 0.12, 0.12, 0.4, stone2);
+        add("cupola-base", 2, 1, 0.6, base, 0.8, 0.8, 0.16, stone6);
+        for (const x of [1, 1.68]) for (const z of [0.6, 1.28]) add(`cupola-post-${x}-${z}`, 3, x, z, base + 0.16, 0.12, 0.12, 0.4, stone6);
         add("cupola-cap", 3, 0.92, 0.52, base + 0.56, 0.96, 0.96, 0.16, team2, true);
         add("vane-pole", 4, 1.38, 0.98, base + 0.72, 0.04, 0.04, 0.5, "#76817d");
-        add("vane-arrow", 4, 1.42, 0.98, base + 1.06, 0.3, 0.03, 0.12, brass);
+        add("vane-arrow", 4, 1.42, 0.98, base + 1.06, 0.3, 0.03, 0.12, brass2);
       }
     } else if (kind === "town-center") {
-      for (const x of [0.15, 2.05]) add(`hall-pier-${x}`, 1, x, 0.15, 0.16, 0.5, 1.5, hallHeight, stone2, true);
-      add("entrance-lintel", 1, 0.65, 1.5, 0.16, 1.4, 0.25, 1.6, stone2, false, "arch");
-      if (hallHeight > 1.6) add("entrance-course", 1, 0.65, 1.5, 1.76, 1.4, 0.25, hallHeight - 1.6, stone2);
+      for (const x of [0.15, 2.05]) add(`hall-pier-${x}`, 1, x, 0.15, 0.16, 0.5, 1.5, hallHeight, stone6, true);
+      add("entrance-lintel", 1, 0.65, 1.5, 0.16, 1.4, 0.25, 1.6, stone6, false, "arch");
+      if (hallHeight > 1.6) add("entrance-course", 1, 0.65, 1.5, 1.76, 1.4, 0.25, hallHeight - 1.6, stone6);
       add("entrance-paving", 3, 0.95, 1.75, 0.16, 0.8, 1.05, 0.02, "#c8bea4");
       if (age >= 2) {
         let towerBase = roofY + 0.48;
-        if (age >= 3) for (let course = 0; course < 2; course++) add(`tower-course-${course}`, 2, 0.87, 0.65, towerBase + course * 0.32, 0.96, 0.85, 0.32, stone2);
+        if (age >= 3) for (let course = 0; course < 2; course++) add(`tower-course-${course}`, 2, 0.87, 0.65, towerBase + course * 0.32, 0.96, 0.85, 0.32, stone6);
         if (age >= 3) towerBase += 0.64;
-        add("belfry-floor", 3, 0.87, 0.65, towerBase, 0.96, 0.85, 0.16, stone2, true);
-        for (const x of [0.91, 1.63]) for (const z of [0.69, 1.25]) add(`belfry-pillar-${x}-${z}`, 3, x, z, towerBase + 0.16, 0.12, 0.12, 0.65, stone2);
+        add("belfry-floor", 3, 0.87, 0.65, towerBase, 0.96, 0.85, 0.16, stone6, true);
+        for (const x of [0.91, 1.63]) for (const z of [0.69, 1.25]) add(`belfry-pillar-${x}-${z}`, 3, x, z, towerBase + 0.16, 0.12, 0.12, 0.65, stone6);
         add("belfry-top", 3, 0.8, 0.58, towerBase + 0.81, 1.1, 1, 0.16, team2, true);
-        add("bell-hanger", 3, 1.33, 0.98, towerBase + 0.55, 0.05, 0.05, 0.26, wood2);
-        add("bell", 3, 1.2, 0.88, towerBase + 0.4, 0.3, 0.28, 0.22, brass);
+        add("bell-hanger", 3, 1.33, 0.98, towerBase + 0.55, 0.05, 0.05, 0.26, wood6);
+        add("bell", 3, 1.2, 0.88, towerBase + 0.4, 0.3, 0.28, 0.22, brass2);
         if (age === 4) {
           const top = towerBase + 0.97;
           add("spire-0", 3, 0.95, 0.73, top, 0.8, 0.7, 0.16, team2, true);
           add("spire-1", 3, 1.1, 0.88, top + 0.16, 0.5, 0.4, 0.16, team2);
           add("spire-2", 3, 1.23, 0.98, top + 0.32, 0.24, 0.2, 0.24, team2);
-          add("spire-finial", 4, 1.31, 1.04, top + 0.56, 0.08, 0.08, 0.3, brass);
+          add("spire-finial", 4, 1.31, 1.04, top + 0.56, 0.08, 0.08, 0.3, brass2);
         }
       }
-      add("notice-board", 3, 0.14, 1.9, 0.72, 0.48, 0.08, 0.4, wood2);
+      add("notice-board", 3, 0.14, 1.9, 0.72, 0.48, 0.08, 0.4, wood6);
       add("notice-paper", 3, 0.2, 1.98, 0.78, 0.34, 0.025, 0.27, "#e5d9b3");
-      add("cargo-crate", 3, 2.1, 2.1, 0.16, 0.42, 0.42, 0.38, wood2, true);
+      add("cargo-crate", 3, 2.1, 2.1, 0.16, 0.42, 0.42, 0.38, wood6, true);
     } else if (kind === "market") {
       for (const x of [0.24, 1.94]) {
-        add(`stall-${x}`, 3, x, 0.35, 0.16, 0.52, 1.38, 0.48, wood2);
+        add(`stall-${x}`, 3, x, 0.35, 0.16, 0.52, 1.38, 0.48, wood6);
         for (let i = 0; i < 3; i++) add(`goods-${x}-${i}`, 3, x + 0.08, 0.48 + i * 0.4, 0.64, 0.34, 0.28, 0.18, i % 2 ? "#b9a76c" : "#8f9e5e", true);
       }
       add("scale-post", 3, 2.18, 1.48, 0.64, 0.04, 0.04, 0.46, "#8c8879");
@@ -2194,45 +3971,45 @@ function economicBuildingParts(kind, v) {
         add(`scale-pan-${x}`, 3, x - 0.05, 1.43, 0.87, 0.13, 0.13, 0.04, "#b8b3a0");
       }
       if (age >= 2) for (let stripe = 0; stripe < 6; stripe++) add(`valance-${stripe}`, 2, -0.05 + stripe * 0.48, 2.14, roofY - 0.12, 0.48, 0.06, 0.12, stripe % 2 ? team2 : "#e4d4ab");
-      if (age >= 3) add("arcade-arch", 1, 0.28, 1.8, 0.16, 2.1, 0.16, roofY - 0.16, stone2, false, "arch");
+      if (age >= 3) add("arcade-arch", 1, 0.28, 1.8, 0.16, 2.1, 0.16, roofY - 0.16, stone6, false, "arch");
       if (age === 4) {
         const base = roofY + 0.16;
-        add("pavilion-floor", 2, 0.95, 0.55, base, 0.9, 0.9, 0.12, stone2);
-        for (const x of [0.99, 1.69]) for (const z of [0.59, 1.29]) add(`pavilion-post-${x}-${z}`, 3, x, z, base + 0.12, 0.12, 0.12, 0.44, wood2);
+        add("pavilion-floor", 2, 0.95, 0.55, base, 0.9, 0.9, 0.12, stone6);
+        for (const x of [0.99, 1.69]) for (const z of [0.59, 1.29]) add(`pavilion-post-${x}-${z}`, 3, x, z, base + 0.12, 0.12, 0.12, 0.44, wood6);
         add("pavilion-roof", 3, 0.87, 0.47, base + 0.56, 1.06, 1.06, 0.16, team2, true);
-        add("pavilion-finial", 4, 1.36, 0.96, base + 0.72, 0.08, 0.08, 0.26, brass);
+        add("pavilion-finial", 4, 1.36, 0.96, base + 0.72, 0.08, 0.08, 0.26, brass2);
       }
     } else if (kind === "smithy") {
-      add("forge-back", 1, 0.28, 0.22, 0.16, 1.05, 0.3, 1.05, stone2, true);
-      for (const x of [0.28, 1.05]) add(`forge-side-${x}`, 1, x, 0.52, 0.16, 0.28, 0.7, 0.85, stone2);
-      add("forge-lintel", 1, 0.28, 0.52, 1.01, 1.05, 0.7, 0.2, stone2);
+      add("forge-back", 1, 0.28, 0.22, 0.16, 1.05, 0.3, 1.05, stone6, true);
+      for (const x of [0.28, 1.05]) add(`forge-side-${x}`, 1, x, 0.52, 0.16, 0.28, 0.7, 0.85, stone6);
+      add("forge-lintel", 1, 0.28, 0.52, 1.01, 1.05, 0.7, 0.2, stone6);
       add("cold-hearth", 3, 0.56, 0.52, 0.16, 0.49, 0.7, 0.16, "#4e514b");
-      add("chimney", 3, 0.55, 0.28, 1.21, 0.5, 0.5, roofY - 0.41, stone2, true);
+      add("chimney", 3, 0.55, 0.28, 1.21, 0.5, 0.5, roofY - 0.41, stone6, true);
       add("chimney-cap", 3, 0.49, 0.22, roofY + 0.8, 0.62, 0.62, 0.12, "#73786d");
-      add("anvil-base", 3, 1.7, 1.7, 0.16, 0.5, 0.45, 0.34, wood2);
+      add("anvil-base", 3, 1.7, 1.7, 0.16, 0.5, 0.45, 0.34, wood6);
       add("anvil-neck", 3, 1.83, 1.8, 0.5, 0.23, 0.25, 0.2, "#76817d");
       add("anvil-face", 3, 1.6, 1.71, 0.7, 0.7, 0.43, 0.12, "#a0aaa5");
       add("bellows", 3, 1.34, 0.56, 0.16, 0.65, 0.5, 0.25, "#927052");
       add("coal-bin", 3, 0.25, 2.14, 0.16, 0.65, 0.42, 0.22, "#665940");
       for (let i = 0; i < 3; i++) add(`coal-${i}`, 3, 0.31 + i * 0.17, 2.21, 0.38, 0.13, 0.22, 0.1, "#424944");
       if (age >= 2) {
-        add("quench-trough", 3, 1.2, 1.26, 0.16, 0.7, 0.36, 0.24, wood2);
-        add("quench-water", 3, 1.26, 1.32, 0.4, 0.58, 0.24, 0.02, water);
+        add("quench-trough", 3, 1.2, 1.26, 0.16, 0.7, 0.36, 0.24, wood6);
+        add("quench-water", 3, 1.26, 1.32, 0.4, 0.58, 0.24, 0.02, water2);
       }
-      if (age >= 3) add("side-wall", 1, 2.4, 0.28, 0.16, 0.16, 1.5, 0.8, stone2, true);
+      if (age >= 3) add("side-wall", 1, 2.4, 0.28, 0.16, 0.16, 1.5, 0.8, stone6, true);
       if (age === 4) {
-        add("race-channel", 1, 2.58, 0.62, 0.16, 0.26, 0.82, 0.08, wood2);
-        add("race-water", 1, 2.6, 0.64, 0.24, 0.22, 0.78, 0.04, water);
-        add("wheel-axle", 3, 2.56, 1.02, 0.66, 0.06, 0.08, 0.08, wood2);
-        add("wheel-paddle-vertical", 3, 2.62, 0.98, 0.28, 0.12, 0.16, 0.8, wood2);
-        add("wheel-paddle-horizontal", 3, 2.62, 0.68, 0.6, 0.12, 0.76, 0.16, wood2);
+        add("race-channel", 1, 2.58, 0.62, 0.16, 0.26, 0.82, 0.08, wood6);
+        add("race-water", 1, 2.6, 0.64, 0.24, 0.22, 0.78, 0.04, water2);
+        add("wheel-axle", 3, 2.56, 1.02, 0.66, 0.06, 0.08, 0.08, wood6);
+        add("wheel-paddle-vertical", 3, 2.62, 0.98, 0.28, 0.12, 0.16, 0.8, wood6);
+        add("wheel-paddle-horizontal", 3, 2.62, 0.68, 0.6, 0.12, 0.76, 0.16, wood6);
         add("wheel-hub", 3, 2.6, 0.94, 0.56, 0.16, 0.24, 0.24, "#76817d");
       }
     }
   }
-  add("marker-pole", 4, 2.65, 2.7, 0.16, 0.06, 0.06, kind === "farm" ? 0.65 : height + 0.6, wood2);
+  add("marker-pole", 4, 2.65, 2.7, 0.16, 0.06, 0.06, kind === "farm" ? 0.65 : height + 0.6, wood6);
   add("marker-flag", 4, 2.34, 2.7, kind === "farm" ? 0.61 : height + 0.44, 0.32, 0.05, 0.22, team2);
-  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: wood2, studs: false }))];
+  if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: wood6, studs: false }))];
   const built = p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20)));
   if (v.health >= 50) return built;
   const roofTop = built.find((a) => a.id === "roof-2"), loaded = roofTop && built.some((a) => a !== roofTop && Math.abs(a.y - roofTop.y - roofTop.h) < 1e-8 && a.x < roofTop.x + roofTop.w && a.x + a.w > roofTop.x && a.z < roofTop.z + roofTop.d && a.z + a.d > roofTop.z);
@@ -2290,13 +4067,13 @@ function buildingParts(visual) {
   return parts.filter((p) => p.phase <= phase).filter((p) => health >= 50 || !(p.id.startsWith("roof-") && Number(p.id.split("-")[2]) % 2 === 0 || p.id === "flag"));
 }
 var architectures = ["neutral", "west", "central", "mideast", "eastasia"];
-var slate = "#5d6670";
-var tar = "#4a3d30";
-var carved = "#6e5438";
-var lime = "#e9e1cf";
-var sand2 = "#d8c9a6";
-var tile = "#3f4a4c";
-var gilt = "#c9a55a";
+var slate2 = "#5d6670";
+var tar2 = "#4a3d30";
+var carved2 = "#6e5438";
+var lime2 = "#e9e1cf";
+var sand3 = "#d8c9a6";
+var tile2 = "#3f4a4c";
+var gilt4 = "#c9a55a";
 var eave = (id) => id === "roof" || /^roof-0(-|$)/.test(id) || /^(canopy-roof|awning-\d|keep-roof-0|keep-parapet|hoard-roof-.*)$/.test(id);
 var ornament = /flag|pole|pennant|banner|finial|vane|rope|bell|debris|style-/;
 function regionalParts(parts, style) {
@@ -2316,7 +4093,7 @@ function regionalParts(parts, style) {
       const cx = sx ? rx1 - c : rx0, cz = sz ? rz1 - c : rz0, under = tier.find((p) => p.x <= cx + 1e-8 && p.x + p.w >= cx + c - 1e-8 && p.z <= cz + 1e-8 && p.z + p.d >= cz + c - 1e-8);
       if (!under) continue;
       const ox = sx ? cx + c - 0.1 : cx, oz = sz ? cz + c - 0.1 : cz;
-      const stack = style === "eastasia" ? [{ x: cx, z: cz, y: top, w: c, d: c, h: 0.08, color: under.color }, { x: ox, z: oz, y: top + 0.08, w: 0.1, d: 0.1, h: 0.18, color: under.color }] : style === "west" ? [{ x: cx, z: cz, y: top, w: c, d: c, h: 0.3, color: slate }, { x: cx + 0.05, z: cz + 0.05, y: top + 0.3, w: 0.06, d: 0.06, h: 0.2, color: slate }] : style === "central" ? [{ x: cx + 0.02, z: cz + 0.02, y: top, w: 0.12, d: 0.12, h: 0.44, color: tar }, { x: ox, z: oz, y: top + 0.44, w: 0.1, d: 0.1, h: 0.12, color: carved }] : [{ x: cx, z: cz, y: top, w: c, d: c, h: 0.18, color: lime }, { x: cx + 0.04, z: cz + 0.04, y: top + 0.18, w: 0.08, d: 0.08, h: 0.1, color: lime }];
+      const stack = style === "eastasia" ? [{ x: cx, z: cz, y: top, w: c, d: c, h: 0.08, color: under.color }, { x: ox, z: oz, y: top + 0.08, w: 0.1, d: 0.1, h: 0.18, color: under.color }] : style === "west" ? [{ x: cx, z: cz, y: top, w: c, d: c, h: 0.3, color: slate2 }, { x: cx + 0.05, z: cz + 0.05, y: top + 0.3, w: 0.06, d: 0.06, h: 0.2, color: slate2 }] : style === "central" ? [{ x: cx + 0.02, z: cz + 0.02, y: top, w: 0.12, d: 0.12, h: 0.44, color: tar2 }, { x: ox, z: oz, y: top + 0.44, w: 0.1, d: 0.1, h: 0.12, color: carved2 }] : [{ x: cx, z: cz, y: top, w: c, d: c, h: 0.18, color: lime2 }, { x: cx + 0.04, z: cz + 0.04, y: top + 0.18, w: 0.08, d: 0.08, h: 0.1, color: lime2 }];
       place(`corner-${sx}${sz}`, under.phase, stack);
     }
   }
@@ -2327,17 +4104,17 @@ function regionalParts(parts, style) {
     let stack = [];
     if (style === "west") {
       const b = Math.min(0.6 * s, 0.6);
-      stack = [sq(b, top, 0.2, slate), sq(b * 0.66, top + 0.2, 0.28, slate), sq(b * 0.33, top + 0.48, 0.36, slate), sq(0.06, top + 0.84, 0.26, gilt)];
+      stack = [sq(b, top, 0.2, slate2), sq(b * 0.66, top + 0.2, 0.28, slate2), sq(b * 0.33, top + 0.48, 0.36, slate2), sq(0.06, top + 0.84, 0.26, gilt4)];
     } else if (style === "mideast") {
       const b = Math.min(0.7 * s, 0.7);
-      stack = [sq(b, top, 0.16, sand2), sq(b * 0.9, top + 0.16, 0.18, lime), sq(b * 0.72, top + 0.34, 0.14, lime), sq(b * 0.48, top + 0.48, 0.12, lime), sq(b * 0.24, top + 0.6, 0.08, lime), sq(0.06, top + 0.68, 0.26, gilt)];
+      stack = [sq(b, top, 0.16, sand3), sq(b * 0.9, top + 0.16, 0.18, lime2), sq(b * 0.72, top + 0.34, 0.14, lime2), sq(b * 0.48, top + 0.48, 0.12, lime2), sq(b * 0.24, top + 0.6, 0.08, lime2), sq(0.06, top + 0.68, 0.26, gilt4)];
     } else if (style === "eastasia") {
       const e = 0.1, px0 = Math.max(x0, crown.x - e), px1 = Math.min(x1, crown.x + crown.w + e), pz0 = Math.max(z0, crown.z - e), pz1 = Math.min(z1, crown.z + crown.d + e), t = 0.1;
-      stack = [{ x: px0, z: pz0, y: top, w: px1 - px0, d: pz1 - pz0, h: 0.08, color: tile }, ...[[px0, pz0], [px1 - t, pz0], [px0, pz1 - t], [px1 - t, pz1 - t]].map(([x, z]) => ({ x, z, y: top + 0.08, w: t, d: t, h: 0.16, color: tile })), sq(Math.min(0.6 * s, 0.6), top + 0.08, 0.2, tile), sq(Math.min(0.3 * s, 0.3), top + 0.28, 0.12, tile), sq(0.1, top + 0.4, 0.2, gilt)];
+      stack = [{ x: px0, z: pz0, y: top, w: px1 - px0, d: pz1 - pz0, h: 0.08, color: tile2 }, ...[[px0, pz0], [px1 - t, pz0], [px0, pz1 - t], [px1 - t, pz1 - t]].map(([x, z]) => ({ x, z, y: top + 0.08, w: t, d: t, h: 0.16, color: tile2 })), sq(Math.min(0.6 * s, 0.6), top + 0.08, 0.2, tile2), sq(Math.min(0.3 * s, 0.3), top + 0.28, 0.12, tile2), sq(0.1, top + 0.4, 0.2, gilt4)];
     } else {
       const alongX = crown.w >= crown.d, L = alongX ? crown.w : crown.d, r = Math.max(0.1, Math.min(0.4 * L, 0.5 * L - 0.12));
-      const bar = (a0, a1, y, h2, t, color) => alongX ? { x: cx + a0, z: cz - t / 2, y, w: a1 - a0, d: t, h: h2, color } : { x: cx - t / 2, z: cz + a0, y, w: t, d: a1 - a0, h: h2, color };
-      stack = [bar(-r, r, top, 0.1, 0.12, tar), bar(-r, -r + 0.1, top + 0.1, 0.5, 0.1, tar), bar(r - 0.1, r, top + 0.1, 0.5, 0.1, tar), bar(-r - 0.12, -r + 0.1, top + 0.6, 0.12, 0.1, carved), bar(r - 0.1, r + 0.12, top + 0.6, 0.12, 0.1, carved)];
+      const bar2 = (a0, a1, y, h2, t, color) => alongX ? { x: cx + a0, z: cz - t / 2, y, w: a1 - a0, d: t, h: h2, color } : { x: cx - t / 2, z: cz + a0, y, w: t, d: a1 - a0, h: h2, color };
+      stack = [bar2(-r, r, top, 0.1, 0.12, tar2), bar2(-r, -r + 0.1, top + 0.1, 0.5, 0.1, tar2), bar2(r - 0.1, r, top + 0.1, 0.5, 0.1, tar2), bar2(-r - 0.12, -r + 0.1, top + 0.6, 0.12, 0.1, carved2), bar2(r - 0.1, r + 0.12, top + 0.6, 0.12, 0.1, carved2)];
     }
     place(`crown-${k}`, crown.phase, stack);
   });
@@ -2379,7 +4156,7 @@ function makeMap(seed, layout = "meadow") {
   throw Error(`\u5730\u5716\u751F\u6210\u5931\u6557\uFF08${terrainRules.generationAttempts} \u6B21\uFF09\uFF1A${lastErrors.join("\uFF1B")}`);
 }
 function generateCandidate(seed, layout) {
-  if (layout === "open") return generateOpen(seed);
+  if (layout === "open" || layout === "lakes") return generateOpen(seed, layout === "lakes");
   let rng = seed || 1;
   let obstacles = [{ kind: "town-center", x: 265, y: 350 }, { kind: "town-center", x: 1065, y: 350, red: true }];
   const woods = [];
@@ -2450,9 +4227,13 @@ var openMapRules = {
   dirtPatches: 7,
   // Animals per base (kit flock, kit herd, a boar and two more sheep farther out) and the shared pond.
   animals: { sheep: 4, deer: 3, boarDistance: 950, farSheepDistance: 1050 },
-  pond: { size: 3, baseDistance: 1100, fairness: 300 }
+  pond: { size: 3, baseDistance: 1100, fairness: 300 },
+  // The 'lakes' variant: water within this radius of the centre (off the bases' aprons), deep-water fish for fishing
+  // ships, and the neutral mines on a ring round the lake.
+  // shore: tiles of open land kept round the lake (no mines or trees), so the walk round it is never one lane wide.
+  lake: { radius: 720, fish: 8, fishSpacing: 300, neutralRing: [1e3, 1250], shore: 2 }
 };
-function generateOpen(seed) {
+function generateOpen(seed, lake = false) {
   let rng = seed || 1;
   const random = () => {
     rng ^= rng << 13;
@@ -2481,6 +4262,24 @@ function generateOpen(seed) {
   const taken = /* @__PURE__ */ new Set(), aprons = centres.map((c) => [c.x + R.apron.left, c.y + R.apron.top, c.x + R.apron.right, c.y + R.apron.bottom]);
   for (const c of centres) for (let ty = Math.floor((c.y - 150) / 100); ty <= Math.floor((c.y + 150) / 100); ty++) for (let tx = Math.floor((c.x - 150) / 100); tx <= Math.floor((c.x + 150) / 100); tx++) taken.add(ty * size + tx);
   const free = (tx, ty) => tx >= 1 && ty >= 1 && tx < size - 1 && ty < size - 1 && !taken.has(ty * size + tx) && !aprons.some((b) => tx * 100 + 100 > b[0] && tx * 100 < b[2] && ty * 100 + 100 > b[1] && ty * 100 < b[3]);
+  const lakeTiles = [];
+  if (lake) {
+    for (let ty = 1; ty < size - 1; ty++) for (let tx = 1; tx < size - 1; tx++) if (Math.hypot(tx * 100 + 50 - mid, ty * 100 + 50 - mid) <= R.lake.radius && free(tx, ty)) {
+      lakeTiles.push(ty * size + tx);
+      taken.add(ty * size + tx);
+      Object.assign(tiles[ty * size + tx], { terrainType: "water", ...terrainDefinitions.water });
+    }
+  }
+  if (lake) {
+    const ring = R.lake.shore;
+    for (const t of lakeTiles) {
+      const tx = t % size, ty = Math.floor(t / size);
+      for (let dy = -ring; dy <= ring; dy++) for (let dx = -ring; dx <= ring; dx++) {
+        const x = tx + dx, y = ty + dy;
+        if (x >= 0 && y >= 0 && x < size && y < size) taken.add(y * size + x);
+      }
+    }
+  }
   const offset = { tree: 12, gold: 15, rock: 15, berries: 15, livestock: 15, hunt: 15 };
   const animals = [];
   let kitOwner = -1;
@@ -2495,8 +4294,8 @@ function generateOpen(seed) {
     for (const item of R.kit) {
       let placed = false;
       const d = Math.hypot(item.dx, item.dy), base = Math.atan2(item.dy, item.dx);
-      for (let step = 0; step < 24 && !placed; step++) {
-        const a = base + (step % 2 ? -1 : 1) * Math.ceil(step / 2) * 15 * Math.PI / 180, tx = Math.floor((c.x + Math.cos(a) * d) / 100), ty = Math.floor((c.y + Math.sin(a) * d) / 100);
+      for (let step2 = 0; step2 < 24 && !placed; step2++) {
+        const a = base + (step2 % 2 ? -1 : 1) * Math.ceil(step2 / 2) * 15 * Math.PI / 180, tx = Math.floor((c.x + Math.cos(a) * d) / 100), ty = Math.floor((c.y + Math.sin(a) * d) / 100);
         const cells = item.kind === "tree" ? [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 0], [0, -1]].slice(0, item.group ?? 1).map(([dx, dy]) => [tx + dx, ty + dy]) : [[tx, ty]];
         if (cells.every(([x, y]) => free(x, y))) {
           for (const [x, y] of cells) put(item.kind, x, y);
@@ -2508,7 +4307,7 @@ function generateOpen(seed) {
   });
   const far = (tx, ty, d) => centres.every((c) => Math.hypot(tx * 100 + 50 - c.x, ty * 100 + 50 - c.y) >= d);
   for (const [kind, count] of Object.entries(R.neutral)) for (let i = 0; i < count; i++) for (let k = 0; k < 40; k++) {
-    const a = random() * Math.PI * 2, d = random() * R.neutralRadius, tx = Math.floor((mid + Math.cos(a) * d) / 100), ty = Math.floor((mid + Math.sin(a) * d) / 100);
+    const a = random() * Math.PI * 2, d = lake ? R.lake.neutralRing[0] + random() * (R.lake.neutralRing[1] - R.lake.neutralRing[0]) : random() * R.neutralRadius, tx = Math.floor((mid + Math.cos(a) * d) / 100), ty = Math.floor((mid + Math.sin(a) * d) / 100);
     if (free(tx, ty) && far(tx, ty, R.clumpClearance)) {
       put(kind, tx, ty);
       break;
@@ -2543,7 +4342,7 @@ function generateOpen(seed) {
       obstacles.push({ kind: "tree", x: tx * 100 + 12, y: ty * 100 + 12 });
     }
   }
-  const pond = placePond(seed, size, taken, centres);
+  const pond = lake ? [] : placePond(seed, size, taken, centres);
   for (const t of pond) Object.assign(tiles[t], { terrainType: "water", ...terrainDefinitions.water });
   const map = { size, starts, scouts, obstacles, blocked: [], tiles, resources: [], navigationRevision: 0, generationAttempt: 0 };
   obstacles.forEach((o, index) => {
@@ -2562,6 +4361,20 @@ function generateOpen(seed) {
       const x = (tx + dx) * 100 + 50, y = (ty + dy) * 100 + 50, id = `resource-fish-${x}-${y}`, capacity = terrainRules.resourceCapacity.fish;
       map.resources.push({ id, kind: "fish", x, y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: null, depletedAt: null });
       map.tiles[tileAt(x, y, size)].resourceRefs.push(id);
+    }
+  }
+  if (lake) {
+    const deep = lakeTiles.filter((t) => [-size - 1, -size, -size + 1, -1, 1, size - 1, size, size + 1].every((d) => tiles[t + d]?.terrainType === "water")).sort((a, b) => Math.atan2(Math.floor(a / size) * 100 - mid, a % size * 100 - mid) - Math.atan2(Math.floor(b / size) * 100 - mid, b % size * 100 - mid) || a - b);
+    const picked = [];
+    for (const t of deep) {
+      if (picked.length >= R.lake.fish) break;
+      const x = t % size * 100 + 50, y = Math.floor(t / size) * 100 + 50;
+      if (picked.every((p) => Math.hypot(p % size * 100 + 50 - x, Math.floor(p / size) * 100 + 50 - y) >= R.lake.fishSpacing)) picked.push(t);
+    }
+    for (const t of picked) {
+      const x = t % size * 100 + 50, y = Math.floor(t / size) * 100 + 50, id = `resource-fish-${x}-${y}`, capacity = terrainRules.resourceCapacity.fish;
+      map.resources.push({ id, kind: "fish", x, y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: null, depletedAt: null });
+      map.tiles[t].resourceRefs.push(id);
     }
   }
   for (let i = 0; i < nodeTotal(map); i++) if (!clearSegment(map, position(map, i), position(map, i))) map.blocked.push(i);
@@ -2595,7 +4408,7 @@ function placePond(seed, size, taken, centres) {
   for (let dy = 0; dy < R.size; dy++) for (let dx = 0; dx < R.size; dx++) out.push(t0 + dy * size + dx);
   return out;
 }
-var buildingKinds = /* @__PURE__ */ new Set(["house", "town-center", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "blacksmith", "watch-tower", "siege-workshop"]);
+var buildingKinds = new Set(rules.entries.filter((e) => e.kind === "building").map((e) => e.id));
 function isBuilding(o) {
   return buildingKinds.has(o.kind);
 }
@@ -2608,10 +4421,10 @@ function clearSegment(map, a, b, movement = "land") {
   const maxStep = movement === "land" ? terrainRules.maxLandStep : 0, radius = navigationRules.radius;
   const tx0 = Math.max(0, Math.floor((Math.min(a.x, b.x) - radius) / 100) - 1), tx1 = Math.min(size - 1, Math.floor((Math.max(a.x, b.x) + radius) / 100) + 1), ty0 = Math.max(0, Math.floor((Math.min(a.y, b.y) - radius) / 100) - 1), ty1 = Math.min(size - 1, Math.floor((Math.max(a.y, b.y) + radius) / 100) + 1);
   for (let y = ty0; y <= ty1; y++) for (let x = tx0; x <= tx1; x++) {
-    const tile2 = map.tiles[y * size + x];
-    if (x < size - 1 && Math.abs(tile2.height - map.tiles[tile2.id + 1].height) > maxStep && intersects(a, b, [(x + 1) * 100 - radius, y * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
-    if (y < size - 1 && Math.abs(tile2.height - map.tiles[tile2.id + size].height) > maxStep && intersects(a, b, [x * 100 - radius, (y + 1) * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
-    if (!canTraverse(tile2, movement) && intersects(a, b, [x * 100 - radius, y * 100 - radius, x * 100 + 100 + radius, y * 100 + 100 + radius])) return false;
+    const tile3 = map.tiles[y * size + x];
+    if (x < size - 1 && Math.abs(tile3.height - map.tiles[tile3.id + 1].height) > maxStep && intersects(a, b, [(x + 1) * 100 - radius, y * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
+    if (y < size - 1 && Math.abs(tile3.height - map.tiles[tile3.id + size].height) > maxStep && intersects(a, b, [x * 100 - radius, (y + 1) * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
+    if (!canTraverse(tile3, movement) && intersects(a, b, [x * 100 - radius, y * 100 - radius, x * 100 + 100 + radius, y * 100 + 100 + radius])) return false;
   }
   for (const o of map.obstacles) for (const [x0, y0, x1, y1] of obstacleRects(o, navigationRules.radius)) {
     let lo = 0, hi = 1;
@@ -2650,10 +4463,10 @@ function validateMap(map) {
   const obstacles = new Set(map.obstacles.map((o) => o.id)), resources2 = new Set(map.resources.map((r) => r.id));
   if (obstacles.size !== map.obstacles.length || obstacles.has(void 0)) errors.push("\u969C\u7919 ID \u91CD\u8907\u6216\u7F3A\u5C11");
   if (resources2.size !== map.resources.length) errors.push("\u8CC7\u6E90 ID \u91CD\u8907");
-  for (const tile2 of map.tiles) {
-    if (!Number.isSafeInteger(tile2.height) || tile2.height < 0) errors.push(`\u5730\u683C ${tile2.id} \u9AD8\u5EA6\u7121\u6548`);
-    if (!["land", "water", "both", "blocked"].includes(tile2.walkClass) || typeof tile2.buildability !== "boolean") errors.push(`\u5730\u683C ${tile2.id} \u901A\u884C\u6216\u5EFA\u9020\u898F\u5247\u7121\u6548`);
-    if (tile2.resourceRefs.some((id) => !resources2.has(id)) || tile2.obstacleRefs.some((id) => !obstacles.has(id))) errors.push(`\u5730\u683C ${tile2.id} \u53C3\u7167\u5931\u6548`);
+  for (const tile3 of map.tiles) {
+    if (!Number.isSafeInteger(tile3.height) || tile3.height < 0) errors.push(`\u5730\u683C ${tile3.id} \u9AD8\u5EA6\u7121\u6548`);
+    if (!["land", "water", "both", "blocked"].includes(tile3.walkClass) || typeof tile3.buildability !== "boolean") errors.push(`\u5730\u683C ${tile3.id} \u901A\u884C\u6216\u5EFA\u9020\u898F\u5247\u7121\u6548`);
+    if (tile3.resourceRefs.some((id) => !resources2.has(id)) || tile3.obstacleRefs.some((id) => !obstacles.has(id))) errors.push(`\u5730\u683C ${tile3.id} \u53C3\u7167\u5931\u6548`);
   }
   for (const r of map.resources) {
     if (!resourceDefinitions[r.kind]) {
@@ -2786,12 +4599,13 @@ var uniqueWeapon = (kind) => {
   const role = roleOf(kind);
   return isMounted(role) ? mounts[role].tool : role === "villager" ? "none" : roleTools[role];
 };
-var iconUniques = ["longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "cataphract", "war-elephant", "mameluke", "janissary", "chu-ko-nu", "samurai", "mangudai"];
-var unitFrame = (kind) => {
-  const role = roleOf(kind);
-  return role === "war-elephant" ? { bar: 3.05, ring: 2.4 } : isMounted(role) ? { bar: 2.3, ring: 1.8 } : { bar: 1.42, ring: 1 };
-};
+var iconUniques = ["longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "cataphract", "war-elephant", "mameluke", "janissary", "chu-ko-nu", "samurai", "mangudai", "cavalry-archer", "camel", "petard", "hand-cannoneer"];
+var frameOfRole = (role) => role === "war-elephant" ? { bar: 3.05, ring: 2.4 } : role === "camel" ? { bar: 2.95, ring: 2 } : isMounted(role) ? { bar: 2.3, ring: 1.8 } : { bar: 1.42, ring: 1 };
+var siegeFrames = { ram: { bar: 1.35, ring: 1.6 }, mangonel: { bar: 1.45, ring: 1.8 }, scorpion: { bar: 1.2, ring: 1.5 }, trebuchet: { bar: 1.3, ring: 2.3 }, "bombard-cannon": { bar: 1.3, ring: 1.7 } };
+var unitFrame = (kind, unpacked = false) => kind === "trebuchet" && unpacked ? { bar: 2.9, ring: 2.4 } : siegeFrames[kind] ?? vesselFrames[kind] ?? frameOfRole(roleOf(kind));
+var gradedWeapon = (kind, look) => look === "two-handed-swordsman" || look === "champion" ? "great-sword" : weaponOf(kind);
 var architectureOf = (civs, player) => civById(civs?.[player] ?? "")?.architecture ?? "neutral";
+var drawnBuildings = ["house", "town-center", "barracks", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "blacksmith", "watch-tower", "siege-workshop", "castle", "university", "market", "dock", "fish-trap", "outpost", "bombard-tower", "wonder", "palisade-wall", "stone-wall", "palisade-gate", "gate"];
 var brickStyle = { studPitch: 0.5, plateHeight: 0.16, brickHeight: 0.32, bevel: 0.025, roughness: 0.62, provenance: "original_procedural" };
 function farmParts(progress, red2) {
   const out = [{ x: 0, y: 0, z: 0, w: 2, d: 2, h: 0.1, color: "#806b49", studs: false }];
@@ -2904,11 +4718,21 @@ async function createScene(canvas2, onFailure, options = {}) {
   }
   let previewBuildingKind = "house", previewStyle = "neutral";
   let previewBuilding = { ageVariant: 2, progress: 100, health: 100 };
-  function house(x, z, red2 = false, obstacleKind = "house", progress = 100, age = 2, health = 100, style = "neutral") {
-    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, health, ageVariant: Math.min(4, Math.max(1, age)) }, parts = regionalParts(kind === "house" ? buildingParts({ ...visual, red: red2 }) : kind === "monastery" ? monasteryParts({ ...visual, red: red2 }) : kind === "blacksmith" ? blacksmithParts({ ...visual, red: red2 }) : kind === "watch-tower" ? towerParts({ ...visual, red: red2 }) : kind === "siege-workshop" ? siegeWorkshopParts({ ...visual, red: red2 }) : kind === "castle" ? castleParts({ ...visual, red: red2 }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red: red2 }) : economicBuildingParts(kind, { ...visual, red: red2 }), kind === "farm" ? "neutral" : options.assetPreview ? previewStyle : style);
+  const ownTower = (view) => options.assetPreview ? null : towerGradeOf(view.economy?.techs ?? []);
+  function house(x, z, red2 = false, obstacleKind = "house", progress = 100, age = 2, health = 100, style = "neutral", tower = null, links = noLinks, land = 0) {
+    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, health, ageVariant: Math.min(4, Math.max(1, age)) };
+    const joined = options.assetPreview ? { ...noLinks, e: true, w: true } : links, styleOf = options.assetPreview ? previewStyle : style;
+    const parts = kind === "wonder" ? wonderParts({ ...visual, red: red2 }, styleOf) : regionalParts(kind === "house" ? buildingParts({ ...visual, red: red2 }) : kind === "palisade-wall" || kind === "stone-wall" ? wallParts(kind, { ...visual, red: red2 }, joined) : kind === "palisade-gate" || kind === "gate" ? gateParts(kind, { ...visual, red: red2 }, joined) : kind === "outpost" ? outpostParts({ ...visual, red: red2 }) : kind === "bombard-tower" ? bombardTowerParts({ ...visual, red: red2 }) : kind === "dock" ? dockParts({ ...visual, red: red2 }, options.assetPreview ? 0 : land) : kind === "fish-trap" ? fishTrapParts({ ...visual, red: red2 }) : kind === "monastery" ? monasteryParts({ ...visual, red: red2 }) : kind === "blacksmith" ? blacksmithParts({ ...visual, red: red2 }) : kind === "watch-tower" ? towerParts({ ...visual, red: red2 }, tower) : kind === "university" ? universityParts({ ...visual, red: red2 }) : kind === "siege-workshop" ? siegeWorkshopParts({ ...visual, red: red2 }) : kind === "castle" ? castleParts({ ...visual, red: red2 }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red: red2 }) : economicBuildingParts(kind, { ...visual, red: red2 }), kind === "farm" ? "neutral" : styleOf);
     for (const p of parts) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, false, p.shape);
     for (const stud of buildingStuds(parts)) staticPart(studGeo, stud.color, x + stud.x, stud.y, z + stud.z);
   }
+  const deepWater = (tiles, id) => {
+    const n = sizeOfTiles(tiles), x = id % n, z = Math.floor(id / n);
+    return [[1, 0], [-1, 0], [0, 1], [0, -1]].every(([dx, dz]) => {
+      const tx = x + dx, tz = z + dz;
+      return tx >= 0 && tz >= 0 && tx < n && tz < n && tiles[tz * n + tx].terrainType === "water";
+    });
+  };
   function buildWorld(view) {
     const seed = view.seed;
     scene2.remove(staticGroup);
@@ -2919,7 +4743,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     scene2.add(staticGroup);
     batches.clear();
     baseHeight = 0;
-    const map = options.assetPreview ? makeMap(seed, previewLayout) : { tiles: view.terrain.map((tile2, id) => ({ ...tile2, id, resourceRefs: [], obstacleRefs: [] })), obstacles: view.known.map((k) => k.obstacle), resources: view.resources };
+    const map = options.assetPreview ? makeMap(seed, previewLayout) : { tiles: view.terrain.map((tile3, id) => ({ ...tile3, id, resourceRefs: [], obstacleRefs: [] })), obstacles: view.known.map((k) => k.obstacle), resources: view.resources };
     worldTiles = map.tiles;
     board = sizeOfTiles(map.tiles);
     platforms = map.obstacles.flatMap((o) => {
@@ -2927,27 +4751,53 @@ async function createScene(canvas2, onFailure, options = {}) {
       return p ? [{ x0: o.x + p.rect[0], y0: o.y + p.rect[1], x1: o.x + p.rect[2], y1: o.y + p.rect[3], height: p.height }] : [];
     });
     let rng = seed || 1;
-    for (const tile2 of map.tiles) {
-      const x = tile2.id % board, z = Math.floor(tile2.id / board);
+    for (const tile3 of map.tiles) {
+      const x = tile3.id % board, z = Math.floor(tile3.id / board);
       rng ^= rng << 13;
       rng ^= rng >>> 17;
       rng ^= rng << 5;
       const n = (rng >>> 0) / 4294967296;
-      groundBlock(x, z, tile2.height / 100, !options.assetPreview && view.fog[tile2.id] !== 2 ? view.fog[tile2.id] === 1 ? "#626e64" : "#293e38" : tile2.terrainType === "cliff" ? "#8a8065" : tile2.terrainType === "stone" ? "#a1a28e" : tile2.terrainType === "highland" ? "#879d69" : tile2.terrainType === "water" ? "#4b8291" : tile2.terrainType === "shallow" ? "#86b7b8" : tile2.terrainType === "sand" ? "#d5c598" : tile2.terrainType === "road" ? "#c4b18a" : n < 0.2 ? "#a6b582" : n < 0.5 ? "#b5c493" : "#becda0");
+      groundBlock(x, z, tile3.height / 100, !options.assetPreview && view.fog[tile3.id] !== 2 ? view.fog[tile3.id] === 1 ? "#626e64" : "#293e38" : tile3.terrainType === "cliff" ? "#8a8065" : tile3.terrainType === "stone" ? "#a1a28e" : tile3.terrainType === "highland" ? "#879d69" : tile3.terrainType === "water" ? deepWater(map.tiles, tile3.id) ? "#41768a" : "#4b8291" : tile3.terrainType === "shallow" ? "#86b7b8" : tile3.terrainType === "sand" ? "#d5c598" : tile3.terrainType === "road" ? "#c4b18a" : n < 0.2 ? "#a6b582" : n < 0.5 ? "#b5c493" : "#becda0");
     }
+    for (const tile3 of map.tiles) if (tile3.terrainType === "water" && (options.assetPreview || view.fog[tile3.id] === 2)) {
+      const tx = tile3.id % board, tz = Math.floor(tile3.id / board);
+      let v = Math.imul(tx + 1, 73856093) ^ Math.imul(tz + 1, 19349663);
+      v = Math.imul(v ^ v >>> 16, 73244475);
+      v = (v ^ v >>> 16) >>> 0;
+      if (v % 3 === 0) brick(tx + 0.12 + (v >> 3 & 3) * 0.1, tz + 0.2 + (v >> 5 & 3) * 0.15, tile3.height / 100, 0.42, 0.06, 0.02, "#6fa2ae", false);
+      if (v % 5 === 1) brick(tx + 0.5 - (v >> 7 & 1) * 0.3, tz + 0.62, tile3.height / 100, 0.28, 0.05, 0.02, "#6fa2ae", false);
+    }
+    const fortAt = /* @__PURE__ */ new Map();
+    for (const o of map.obstacles) {
+      const f = wallFamily(o.kind);
+      if (f) fortAt.set(`${Math.floor(o.x / 100)},${Math.floor(o.y / 100)}`, `${f}:${o.red ? 1 : 0}`);
+    }
+    const linksOf = (o) => {
+      const tx = Math.floor(o.x / 100), tz = Math.floor(o.y / 100), me = fortAt.get(`${tx},${tz}`), at = (dx, dz) => fortAt.get(`${tx + dx},${tz + dz}`) === me;
+      return { n: at(0, -1), s: at(0, 1), e: at(1, 0), w: at(-1, 0), ne: at(1, -1), nw: at(-1, -1), se: at(1, 1), sw: at(-1, 1) };
+    };
+    const landOf = (o) => {
+      const tx = Math.floor(o.x / 100), tz = Math.floor(o.y / 100), dry = (x, z) => {
+        if (x < 0 || z < 0 || x >= board || z >= board) return 0;
+        const t = map.tiles[z * board + x];
+        return t.terrainType === "water" || t.terrainType === "shallow" ? 0 : 1;
+      };
+      const sides = [0, 1, 2].map((i) => [dry(tx + i, tz - 1), dry(tx + 3, tz + i), dry(tx + i, tz + 3), dry(tx - 1, tz + i)]).reduce((a, b) => a.map((v, i) => v + b[i]), [0, 0, 0, 0]);
+      return sides.indexOf(Math.max(...sides));
+    };
     for (const o of map.obstacles) {
       baseHeight = groundHeight(map.tiles, o.x, o.y) / 100;
       muted = !options.assetPreview && view.fog[tileAt(o.x, o.y, sizeOfTiles(map.tiles))] !== 2;
       const x = o.x / 100, z = o.y / 100;
       if (o.kind === "farm") for (const p of farmParts(o.progress ?? 100, o.red)) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, p.studs);
-      else if (o.kind === "house" || o.kind === "town-center" || o.kind === "barracks" || o.kind === "lumber-camp" || o.kind === "mining-camp" || o.kind === "mill" || o.kind === "stable" || o.kind === "archery-range" || o.kind === "monastery" || o.kind === "blacksmith" || o.kind === "watch-tower" || o.kind === "siege-workshop" || o.kind === "castle") house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100, options.assetPreview ? "neutral" : architectureOf(view.civs, o.red ? 1 : 0));
+      else if (drawnBuildings.includes(o.kind)) house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100, options.assetPreview ? "neutral" : architectureOf(view.civs, o.red ? 1 : 0), o.kind === "watch-tower" && !o.red ? ownTower(view) : null, wallFamily(o.kind) ? linksOf(o) : noLinks, o.kind === "dock" ? landOf(o) : 0);
       else if (o.kind === "tree") {
         let v = Math.imul(o.x | 0, 73856093) ^ Math.imul(o.y | 0, 19349663);
         v = Math.imul(v ^ v >>> 16, 73244475);
         v = (v ^ v >>> 16) >>> 0;
-        const lift = [0, 0.16, -0.12, 0.08][v & 3], leaf = v >> 2 & 1 ? "#5d824e" : "#67835a";
+        const lift = [0, 0.16, -0.12, 0.08][v & 3], leaf2 = v >> 2 & 1 ? "#5d824e" : "#67835a";
         brick(x + 0.15, z + 0.15, 0, 0.3, 0.3, 0.8 + lift, "#80664b", false);
-        brick(x - 0.2, z - 0.2, 0.7 + lift, 1, 1, 0.4, leaf);
+        brick(x - 0.2, z - 0.2, 0.7 + lift, 1, 1, 0.4, leaf2);
         brick(x - 0.075, z - 0.075, 1.1 + lift, 0.75, 0.75, 0.4, "#7e985f");
         if ((v & 3) !== 2) brick(x + 0.05, z + 0.05, 1.5 + lift, 0.5, 0.5, 0.3, "#91a970");
         if ((v >> 3) % 3 === 0) brick(x + 0.175, z + 0.175, (v & 3) === 2 ? 1.5 + lift : 1.8 + lift, 0.25, 0.25, 0.2, "#91a970", false);
@@ -2975,9 +4825,14 @@ async function createScene(canvas2, onFailure, options = {}) {
       const x = resource.x / 100, z = resource.y / 100;
       baseHeight = groundHeight(map.tiles, resource.x, resource.y) / 100;
       muted = false;
-      for (const offset of [0, 0.22]) {
-        brick(x - 0.2 + offset, z - 0.1 + offset, 0.025, 0.25, 0.1, 0.05, "#d5e7de", false);
-        brick(x - 0.27 + offset, z - 0.1 + offset, 0.025, 0.09, 0.15, 0.06, "#bad0ce", false);
+      let v = Math.imul(resource.x | 0, 73856093) ^ Math.imul(resource.y | 0, 19349663);
+      v = Math.imul(v ^ v >>> 16, 73244475);
+      v = (v ^ v >>> 16) >>> 0;
+      const n = 2 + Math.round(3 * Math.max(0, Math.min(1, resource.remaining / Math.max(1, resource.capacity))));
+      for (let i = 0; i < n; i++) {
+        const ox = [-0.26, 0.06, -0.08, 0.18, -0.3][i] + (v >> i & 1) * 0.04, oz = [-0.12, 0.1, -0.3, -0.22, 0.16][i], left = (v >> i + 3 & 1) === 1;
+        brick(x + ox, z + oz, 0.025, 0.24, 0.09, 0.05, i % 2 ? "#c6dcd6" : "#d5e7de", false);
+        brick(left ? x + ox + 0.24 : x + ox - 0.08, z + oz - 0.02, 0.025, 0.08, 0.13, 0.06, "#a9c2c0", false);
       }
     }
     baseHeight = 0;
@@ -2994,7 +4849,7 @@ async function createScene(canvas2, onFailure, options = {}) {
       staticGroup.add(mesh);
     }
   }
-  const units = /* @__PURE__ */ new Map();
+  const units2 = /* @__PURE__ */ new Map();
   function relic() {
     const g = new T.Group();
     g.name = "relic";
@@ -3014,19 +4869,19 @@ async function createScene(canvas2, onFailure, options = {}) {
   ringGeo.rotateX(-Math.PI / 2);
   geometry.set("ring", ringGeo);
   const ringMaterial = new T.MeshBasicMaterial({ color: "#fff2a1", side: T.DoubleSide });
-  function unit(id, player, kind = "villager") {
+  function unit2(id, player, kind = "villager") {
     const group = new T.Group();
     scene2.add(group);
-    const beast = isAnimal(kind), frame2 = unitFrame(kind), bar = new T.Group();
-    bar.position.y = beast ? kind === "deer" ? 1.3 : 0.95 : frame2.bar;
-    bar.visible = false;
+    const beast = isAnimal(kind), frame2 = unitFrame(kind), bar2 = new T.Group();
+    bar2.position.y = beast ? kind === "deer" ? 1.3 : 0.95 : frame2.bar;
+    bar2.visible = false;
     const back = new T.Mesh(barGeo, barBack);
     const fill = new T.Mesh(barGeo, new T.MeshBasicMaterial({ color: player === 0 ? "#5f9a6a" : player === 1 ? "#c0604c" : "#c9b27a" }));
     fill.position.z = 0.012;
-    bar.add(back, fill);
-    group.add(bar);
-    const rig = beast ? createAnimalRig(T, kind, player, box2, material) : kind === "ram" ? createRamRig(T, player, box2, material) : createCharacterRig(T, player, box2, material);
-    if (!beast && kind !== "ram") {
+    bar2.add(back, fill);
+    group.add(bar2);
+    const rig = beast ? createAnimalRig(T, kind, player, box2, material) : isSiege(kind) ? createSiegeRig(T, kind, player, box2, material) : isVessel(kind) ? createVesselRig(T, kind, player, box2, material) : createCharacterRig(T, player, box2, material);
+    if (!beast && !isSiege(kind) && !isVessel(kind)) {
       if (!options.assetPreview && kind !== "villager") rig.dress(roleOf(kind));
       rig.equip(previewTool);
     }
@@ -3036,10 +4891,23 @@ async function createScene(canvas2, onFailure, options = {}) {
     ring.position.y = 0.025;
     if (!beast) ring.scale.set(frame2.ring, 1, frame2.ring);
     group.add(ring);
-    units.set(id, { group, rig, ring, player, moving: false, activity: "idle", tool: "none", poseStart: 0, bar, fill, goal: null, kind, relic: null });
-    return units.get(id);
+    units2.set(id, { group, rig, ring, player, moving: false, activity: "idle", tool: "none", poseStart: 0, bar: bar2, fill, goal: null, kind, relic: null, look: null, unpacked: false });
+    return units2.get(id);
   }
   let previewRole = "villager";
+  const previewSiege = (role) => role === "trebuchet-packed" || role === "trebuchet-unpacked" ? "trebuchet" : isSiege(role) || isVessel(role) ? role : null;
+  function previewRig(u, family) {
+    u.rigs ??= /* @__PURE__ */ new Map([["character", u.rig]]);
+    let rig = u.rigs.get(family);
+    if (!rig) {
+      rig = family === "character" ? createCharacterRig(T, u.player, box2, material) : isVessel(family) ? createVesselRig(T, family, u.player, box2, material) : createSiegeRig(T, family, u.player, box2, material);
+      u.group.add(rig.root);
+      u.rigs.set(family, rig);
+    }
+    for (const r of u.rigs.values()) r.root.visible = r === rig;
+    u.rig = rig;
+    return rig;
+  }
   let previewPose = "idle", previewTool = "none", previewAnimated = false, poseStart = 0;
   const focus = { x: 8, y: 0, z: 8 };
   let worldKey = "", angle = Math.PI / 4, zoom = 1, width = 0, height = 0, selected2 = /* @__PURE__ */ new Set([1]), latest = null;
@@ -3077,7 +4945,7 @@ async function createScene(canvas2, onFailure, options = {}) {
   function update(view, ids) {
     latest = view;
     selected2 = new Set(typeof ids === "number" ? [ids] : ids);
-    const key = JSON.stringify([previewBuildingKind, previewBuilding, previewStyle, previewLayout, view.layout, view.seed, view.civs, view.fog, view.known?.map((k) => k.obstacle), view.resources]);
+    const key = JSON.stringify([previewBuildingKind, previewBuilding, previewStyle, previewLayout, view.layout, view.seed, view.civs, view.fog, view.known?.map((k) => k.obstacle), view.resources, ownTower(view)]);
     if (worldKey !== key) {
       worldKey = key;
       const t = performance.now();
@@ -3087,17 +4955,17 @@ async function createScene(canvas2, onFailure, options = {}) {
       canvas2.dataset.rebuildMs = (performance.now() - t).toFixed(1);
     }
     const alive = new Set(view.units.map((u) => u.id));
-    for (const [key2, u] of units) if (!alive.has(key2)) {
+    for (const [key2, u] of units2) if (!alive.has(key2)) {
       scene2.remove(u.group);
-      units.delete(key2);
+      units2.delete(key2);
     }
     for (const data of view.units) {
-      const kept = units.get(data.id);
+      const kept = units2.get(data.id);
       if (kept && kept.player !== data.player) {
         scene2.remove(kept.group);
-        units.delete(data.id);
+        units2.delete(data.id);
       }
-      const u = units.get(data.id) ?? unit(data.id, data.player, data.kind);
+      const u = units2.get(data.id) ?? unit2(data.id, data.player, data.kind);
       const goal = new T.Vector3(data.x / 100, (groundHeight(worldTiles, data.x, data.y) + standingLift(data.x, data.y)) / 100, data.y / 100), from = u.goal ?? u.group.position;
       const dx = goal.x - from.x, dz = goal.z - from.z;
       if (Math.abs(dx) + Math.abs(dz) > 1e-3) u.group.rotation.y = Math.atan2(dx, dz);
@@ -3107,9 +4975,24 @@ async function createScene(canvas2, onFailure, options = {}) {
       u.moving = data.navigation === "moving";
       if (!options.assetPreview && (data.work === "gathering" || data.work === "hunting" || data.action === 1) && !u.moving && data.target) u.group.rotation.y = Math.atan2(data.target.x / 100 - u.group.position.x, data.target.y / 100 - u.group.position.z);
       if (!options.assetPreview) {
+        const look = data.player === 0 ? lookOf(data.kind, view.economy?.techs ?? []) : null;
+        if (look !== u.look) {
+          u.look = look;
+          u.rig.grade(look);
+          u.tool = "";
+          detail.apply(u.group, zoom);
+        }
+        if (data.kind === "trebuchet" && !!data.unpacked !== u.unpacked) {
+          u.unpacked = !!data.unpacked;
+          u.rig.dress(u.unpacked ? "unpacked" : "packed");
+          const f = unitFrame("trebuchet", u.unpacked);
+          u.bar.position.y = f.bar;
+          u.ring.scale.set(f.ring, 1, f.ring);
+          detail.apply(u.group, zoom);
+        }
         const gathering = (data.work === "gathering" || data.work === "hunting") && !u.moving, activity2 = u.moving ? data.cargo ? "carry" : "walk" : gathering || data.rite ? "work" : "idle";
         const source = data.work === "gathering" && data.target ? view.resources.find((r) => r.x === data.target.x && r.y === data.target.y && !r.obstacleId) : void 0, food = data.work === "hunting" || source?.kind === "fish" ? "spear" : source ? "sickle" : "basket";
-        const weapon = weaponOf(data.kind), tool = data.cargo && activity2 !== "work" ? "basket" : gathering ? { wood: "axe", stone: "pick", gold: "pick", food }[data.workResource ?? "food"] : weapon;
+        const weapon = gradedWeapon(data.kind, u.look), tool = data.cargo && activity2 !== "work" ? "basket" : gathering ? { wood: "axe", stone: "pick", gold: "pick", food }[data.workResource ?? "food"] : weapon;
         if (tool !== u.tool) {
           u.rig.equip(tool);
           u.tool = tool;
@@ -3169,8 +5052,14 @@ async function createScene(canvas2, onFailure, options = {}) {
     }
     for (const c of view.corpses ?? []) if (!fallen.has(c.id)) {
       const group = new T.Group();
-      const rig = createCharacterRig(T, c.player, box2, material);
-      if (c.kind !== "villager") rig.dress(corpseRole(c.kind));
+      let rig;
+      if (isSiege(c.kind)) rig = createSiegeRig(T, c.kind, c.player, box2, material);
+      else if (isVessel(c.kind)) rig = createVesselRig(T, c.kind, c.player, box2, material);
+      else {
+        const body = createCharacterRig(T, c.player, box2, material);
+        if (c.kind !== "villager") body.dress(corpseRole(c.kind));
+        rig = body;
+      }
       group.add(rig.root);
       group.position.set(c.x / 100, groundHeight(worldTiles, c.x, c.y) / 100, c.y / 100);
       scene2.add(group);
@@ -3181,17 +5070,17 @@ async function createScene(canvas2, onFailure, options = {}) {
   function pick(clientX, clientY) {
     const r = canvas2.getBoundingClientRect();
     raycaster.setFromCamera(new T.Vector2((clientX - r.left) / r.width * 2 - 1, -(clientY - r.top) / r.height * 2 + 1), camera);
-    const hits = detail.withSelectionGeometry(scene2, () => visibleMeshHits(raycaster, [...units.values()].map((u) => u.group)));
+    const hits = detail.withSelectionGeometry(scene2, () => visibleMeshHits(raycaster, [...units2.values()].map((u) => u.group)));
     if (hits.length) {
       let obj = hits[0].object;
       while (obj.parent && obj.parent !== scene2) obj = obj.parent;
-      for (const [id, u] of units) if (u.group === obj) return { unitId: id };
+      for (const [id, u] of units2) if (u.group === obj) return { unitId: id };
     }
     const groundHit = raycaster.intersectObjects(staticGroup.children.filter((mesh) => mesh.userData.ground), false)[0];
     if (groundHit) return { x: groundHit.point.x, y: groundHit.point.z };
     return {};
   }
-  const buildingHeights = { "town-center": 2.6, barracks: 2.2, house: 1.9, farm: 0.25, "lumber-camp": 1.9, "mining-camp": 1.9, mill: 2.6, stable: 2.2, "archery-range": 2.2, blacksmith: 2.4, "watch-tower": 3.2, "siege-workshop": 2.2, monastery: 3.4, castle: 4.7 };
+  const buildingHeights = { "town-center": 2.6, barracks: 2.2, house: 1.9, farm: 0.25, "lumber-camp": 1.9, "mining-camp": 1.9, mill: 2.6, stable: 2.2, "archery-range": 2.2, blacksmith: 2.4, "watch-tower": 3.2, "siege-workshop": 2.2, monastery: 3.4, castle: 4.7, university: 3.6, market: 2.2, dock: 2.4, "fish-trap": 0.4, outpost: 2.1, "bombard-tower": 2.4, wonder: 4.6, "palisade-wall": 1.3, "stone-wall": 1.3, "palisade-gate": 1.5, gate: 1.6 };
   function pickBuilding(clientX, clientY) {
     if (!latest) return;
     const r = canvas2.getBoundingClientRect();
@@ -3199,7 +5088,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     let best, dist = Infinity;
     const hit2 = new T.Vector3();
     for (const { obstacle: o } of latest.known) {
-      const h2 = buildingHeights[o.kind];
+      const h2 = buildingHeights[o.kind] + (o.kind === "watch-tower" && !o.red ? towerLift(ownTower(latest)) : 0);
       if (!h2 || !o.id) continue;
       const [x0, y0, x1, y1] = obstacleBounds(o), base = groundHeight(worldTiles, o.x, o.y) / 100;
       if (raycaster.ray.intersectBox(new T.Box3(new T.Vector3(x0 / 100, base, y0 / 100), new T.Vector3(x1 / 100, base + h2, y1 / 100)), hit2)) {
@@ -3220,7 +5109,7 @@ async function createScene(canvas2, onFailure, options = {}) {
   }
   function unitsInRect(x0, y0, x1, y1) {
     const r = canvas2.getBoundingClientRect(), out = [], p = new T.Vector3();
-    for (const [id, u] of units) {
+    for (const [id, u] of units2) {
       if (!u.group.visible) continue;
       p.set(u.group.position.x, u.group.position.y + 0.55, u.group.position.z).project(camera);
       const sx = r.left + (p.x + 1) / 2 * r.width, sy = r.top + (1 - p.y) / 2 * r.height;
@@ -3243,15 +5132,15 @@ async function createScene(canvas2, onFailure, options = {}) {
       }
       cameraUpdate();
     }
-    for (const u of units.values()) if (u.goal) {
+    for (const u of units2.values()) if (u.goal) {
       if (u.group.position.distanceTo(u.goal) < 2e-3) u.group.position.copy(u.goal);
       else u.group.position.lerp(u.goal, ease);
     }
     stepMarker(time);
-    for (const u of units.values()) {
+    for (const u of units2.values()) {
       const pose = options.assetPreview ? previewPose : poseFor(u.kind, u.activity);
       u.rig.pose(pose, options.assetPreview ? previewAnimated ? time - poseStart : pose === "death" ? 700 : pose === "hit" ? 150 : 350 : pose === "hit" ? time - u.poseStart : time);
-      u.ring.visible = [...units].some(([id, v]) => v === u && selected2.has(id)) && pose !== "death";
+      u.ring.visible = [...units2].some(([id, v]) => v === u && selected2.has(id)) && pose !== "death";
     }
     for (const f of fallen.values()) f.rig.pose("death", time - f.start);
     renderer.render(scene2, camera);
@@ -3300,9 +5189,9 @@ async function createScene(canvas2, onFailure, options = {}) {
   }
   const rallyFlag = new T.Group();
   {
-    const pole = new T.Mesh(box2(0.05, 0.9, 0.05), material("#80674f")), cloth = new T.Mesh(box2(0.32, 0.2, 0.03), material("#456e87"));
-    cloth.position.set(0.17, 0.66, 0);
-    rallyFlag.add(pole, cloth);
+    const pole = new T.Mesh(box2(0.05, 0.9, 0.05), material("#80674f")), cloth2 = new T.Mesh(box2(0.32, 0.2, 0.03), material("#456e87"));
+    cloth2.position.set(0.17, 0.66, 0);
+    rallyFlag.add(pole, cloth2);
   }
   rallyFlag.visible = false;
   scene2.add(rallyFlag);
@@ -3320,6 +5209,23 @@ async function createScene(canvas2, onFailure, options = {}) {
     ghost.scale.set((x1 - x0) / 100, 1, (y1 - y0) / 100);
     ghost.position.set((x0 + x1) / 200, groundHeight(worldTiles, g.x, g.y) / 100 + 0.15, (y0 + y1) / 200);
     ghost.material.color.set(g.ok ? "#6f9d6a" : "#b8574a");
+  }
+  const wallGhosts = [];
+  function setGhosts(list) {
+    while (wallGhosts.length < list.length) {
+      const m = new T.Mesh(ghost.geometry, new T.MeshBasicMaterial({ color: "#6f9d6a", transparent: true, opacity: 0.42, depthWrite: false }));
+      scene2.add(m);
+      wallGhosts.push(m);
+    }
+    wallGhosts.forEach((m, i) => {
+      const g = list[i];
+      m.visible = !!g;
+      if (!g) return;
+      const [x0, y0, x1, y1] = obstacleBounds({ kind: g.kind, x: g.x, y: g.y });
+      m.scale.set((x1 - x0) / 100, 1, (y1 - y0) / 100);
+      m.position.set((x0 + x1) / 200, groundHeight(worldTiles, g.x, g.y) / 100 + 0.15, (y0 + y1) / 200);
+      m.material.color.set(g.ok ? "#6f9d6a" : "#b8574a");
+    });
   }
   function renderIcons(size = 160) {
     const off = document.createElement("canvas");
@@ -3373,13 +5279,22 @@ async function createScene(canvas2, onFailure, options = {}) {
       s.remove(g);
     };
     try {
-      {
-        const rig = createRamRig(T, 0, box2, material);
+      for (const kind of siegeKinds) {
+        const rig = createSiegeRig(T, kind, 0, box2, material);
+        if (kind === "trebuchet") rig.dress("unpacked");
         rig.pose("idle", 0);
         const g = new T.Group();
         g.add(rig.root);
-        shoot("ram", g, { angle: Math.PI / 4, lift: 0.5 });
-        shoot("ram-face", g, { angle: Math.PI / 4, lift: 0.5 });
+        shoot(kind, g, { angle: Math.PI / 4, lift: 0.5 });
+        shoot(`${kind}-face`, g, { angle: Math.PI / 4, lift: 0.5 });
+      }
+      for (const kind of vesselKinds) {
+        const rig = createVesselRig(T, kind, 0, box2, material);
+        rig.pose("idle", 0);
+        const g = new T.Group();
+        g.add(rig.root);
+        shoot(kind, g, { angle: Math.PI / 4, lift: 0.6 });
+        shoot(`${kind}-face`, g, { angle: Math.PI / 4, lift: 0.6 });
       }
       for (const kind of ["sheep", "deer", "boar"]) {
         const rig = createAnimalRig(T, kind, 0, box2, material);
@@ -3398,7 +5313,7 @@ async function createScene(canvas2, onFailure, options = {}) {
         g.add(rig.root);
         const role = roleOf(kind);
         shoot(kind, g, { angle: Math.PI / 7, lift: 0.35 });
-        shoot(`${kind}-face`, g, role === "war-elephant" ? { angle: Math.PI / 7, lift: 0.35, crop: 0.81, span: 0.15 } : role === "mameluke" || role === "mangudai" ? { angle: Math.PI / 7, lift: 0.35, crop: 0.84, span: 0.23 } : isMounted(role) ? { angle: Math.PI / 7, lift: 0.35, crop: 0.74, span: 0.21 } : { angle: Math.PI / 7, lift: 0.35, crop: 0.72 });
+        shoot(`${kind}-face`, g, role === "war-elephant" ? { angle: Math.PI / 7, lift: 0.35, crop: 0.81, span: 0.15 } : role === "camel" ? { angle: Math.PI / 7, lift: 0.35, crop: 0.89, span: 0.19 } : role === "mameluke" || role === "mangudai" || role === "cavalry-archer" ? { angle: Math.PI / 7, lift: 0.35, crop: 0.84, span: 0.23 } : isMounted(role) ? { angle: Math.PI / 7, lift: 0.35, crop: 0.74, span: 0.21 } : { angle: Math.PI / 7, lift: 0.35, crop: 0.72 });
       }
       const visual = (age) => ({ ageVariant: age, progress: 100, health: 100, red: false });
       for (const age of [1, 2, 3, 4]) {
@@ -3411,8 +5326,17 @@ async function createScene(canvas2, onFailure, options = {}) {
         shoot(`watch-tower-${age}`, parts(towerParts(visual(age))));
         shoot(`siege-workshop-${age}`, parts(siegeWorkshopParts(visual(age))));
         shoot(`castle-${age}`, parts(castleParts(visual(age))));
+        shoot(`university-${age}`, parts(universityParts(visual(age))));
         shoot(`town-center-${age}`, parts(economicBuildingParts("town-center", visual(age))));
-        for (const camp of ["lumber-camp", "mining-camp", "mill"]) shoot(`${camp}-${age}`, parts(economicBuildingParts(camp, visual(age))));
+        for (const camp of ["lumber-camp", "mining-camp", "mill", "market"]) shoot(`${camp}-${age}`, parts(economicBuildingParts(camp, visual(age))));
+        const run = { ...noLinks, e: true, w: true };
+        shoot(`dock-${age}`, parts(dockParts(visual(age))));
+        shoot(`fish-trap-${age}`, parts(fishTrapParts(visual(age))));
+        shoot(`outpost-${age}`, parts(outpostParts(visual(age))));
+        shoot(`bombard-tower-${age}`, parts(bombardTowerParts(visual(age))));
+        shoot(`wonder-${age}`, parts(wonderParts(visual(age))));
+        for (const k of ["palisade-wall", "stone-wall"]) shoot(`${k}-${age}`, parts(wallParts(k, visual(age), run)));
+        for (const k of ["palisade-gate", "gate"]) shoot(`${k}-${age}`, parts(gateParts(k, visual(age), run)));
       }
       shoot("farm", parts(farmParts(100, false), false));
       shoot("relic", parts(relicParts.map((p) => ({ ...p, x: p.x + 0.5, z: p.z + 0.5 })), false));
@@ -3459,10 +5383,11 @@ async function createScene(canvas2, onFailure, options = {}) {
     setQuality,
     unitsInRect,
     setGhost,
+    setGhosts,
     renderIcons,
     cameraView,
     setPreviewBuildingKind: (kind) => {
-      if (!options.assetPreview || kind !== "house" && kind !== "castle" && !economicBuildings.includes(kind) && !militaryBuildings.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5EFA\u7BC9");
+      if (!options.assetPreview || !drawnBuildings.includes(kind) && !economicBuildings.includes(kind) && !militaryBuildings.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5EFA\u7BC9");
       previewBuildingKind = kind;
       if (latest) update(latest, selected2);
     },
@@ -3472,13 +5397,25 @@ async function createScene(canvas2, onFailure, options = {}) {
       if (latest) update(latest, selected2);
     },
     setPreviewRole: (role) => {
-      if (!options.assetPreview || !unitRoles.includes(role) && !isMounted(role)) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u6709\u6548\u8ECD\u7A2E");
+      const siege = previewSiege(role);
+      if (!options.assetPreview || !unitRoles.includes(role) && !isMounted(role) && !siege) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u6709\u6548\u8ECD\u7A2E");
       previewRole = role;
       previewPose = "idle";
-      const ring = role === "war-elephant" ? 2.4 : isMounted(role) ? 1.8 : 1;
-      for (const u of units.values()) {
-        u.rig.dress(role);
-        u.ring.scale.set(ring, 1, ring);
+      const frame2 = siege ? unitFrame(siege, role === "trebuchet-unpacked") : frameOfRole(role);
+      for (const u of units2.values()) {
+        const rig = previewRig(u, siege ?? "character");
+        if (siege === "trebuchet") rig.dress(role === "trebuchet-unpacked" ? "unpacked" : "packed");
+        else if (!siege) rig.dress(role);
+        rig.grade(null);
+        u.ring.scale.set(frame2.ring, 1, frame2.ring);
+        detail.apply(u.group, zoom);
+      }
+    },
+    // Line-upgrade look on the inspected model ('' or null: the base look); dressing again clears it.
+    setPreviewGrade: (look) => {
+      if (!options.assetPreview || look && !Object.values(upgradeLooks).some((line2) => line2.includes(look))) throw Error("\u672A\u77E5\u5347\u7D1A\u5916\u89C0");
+      for (const u of units2.values()) {
+        u.rig.grade(look || null);
         detail.apply(u.group, zoom);
       }
     },
@@ -3499,7 +5436,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     },
     focusPreviewUnit: (id) => {
       if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u805A\u7126\u4EE3\u8868\u8CC7\u7522");
-      const u = units.get(id);
+      const u = units2.get(id);
       if (!u) throw Error("\u627E\u4E0D\u5230\u4EBA\u5076");
       focus.x = u.group.position.x;
       focus.y = u.group.position.y + 0.5;
@@ -3515,14 +5452,14 @@ async function createScene(canvas2, onFailure, options = {}) {
       previewTool = tool;
       previewAnimated = animated;
       poseStart = performance.now();
-      for (const u of units.values()) {
+      for (const u of units2.values()) {
         u.rig.equip(tool);
         detail.apply(u.group, zoom);
       }
     },
     setPreviewLayout: (layout) => {
       if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u5207\u63DB\u9A57\u6536\u5716");
-      if (!["meadow", "coast", "acceptance"].includes(layout)) throw Error("\u672A\u77E5\u5730\u5716\u6A21\u5F0F");
+      if (!["meadow", "coast", "acceptance", "lakes"].includes(layout)) throw Error("\u672A\u77E5\u5730\u5716\u6A21\u5F0F");
       previewLayout = layout;
       if (latest) update(latest, selected2);
     },
@@ -3545,9 +5482,9 @@ async function createScene(canvas2, onFailure, options = {}) {
     },
     // Screen-aligned pan (right, away from camera), scaled by zoom and clamped to the board.
     pan: (right, up) => {
-      const step = 1.2 / zoom, c = Math.cos(angle), s = Math.sin(angle);
-      focus.x = Math.max(0, Math.min(board, focus.x + (c * right - s * up) * step));
-      focus.z = Math.max(0, Math.min(board, focus.z + (-s * right - c * up) * step));
+      const step2 = 1.2 / zoom, c = Math.cos(angle), s = Math.sin(angle);
+      focus.x = Math.max(0, Math.min(board, focus.x + (c * right - s * up) * step2));
+      focus.z = Math.max(0, Math.min(board, focus.z + (-s * right - c * up) * step2));
       cameraUpdate();
     },
     // Opening view of a match: the home town centre, close enough that the base fills the window (wide or tall).
@@ -3586,7 +5523,22 @@ async function createScene(canvas2, onFailure, options = {}) {
 }
 
 // packages/sim/vision.ts
-var visionRules = { provenance: "design_default", unitRadius: 400, scoutRadius: 550, sheepRadius: 200, houseRadius: 300, townCenterRadius: 600, towerRadius: 700, shareVision: false, rememberStaticObjects: true };
+var visionRules = {
+  provenance: "design_default",
+  unitRadius: 400,
+  scoutRadius: 550,
+  sheepRadius: 200,
+  houseRadius: 300,
+  townCenterRadius: 600,
+  towerRadius: 700,
+  // The 建築 round: the outpost sees 6/8/10/12 tiles by age on aoetw.com, at the tower's 70 a tile (its 10 tiles -> 700);
+  // walls a little, the wonder like its 8 tiles; market, dock and gates like a house.
+  outpostRadius: [420, 560, 700, 840],
+  wallRadius: 200,
+  wonderRadius: 560,
+  shareVision: false,
+  rememberStaticObjects: true
+};
 
 // packages/sim/economy.ts
 var economyRules = {
@@ -3616,10 +5568,10 @@ var techRules = {
   // Villager hit points (Loom).
   villagerHp: { loom: 15 }
 };
-var sum = (table, techs) => techs.reduce((t, id) => t + (table[id] ?? 0), 0);
-var carryOf = (techs, base, farming = false) => base + sum(techRules.carry, techs) + (farming ? sum(techRules.farmerCarry, techs) : 0);
-var farmFoodOf = (techs, base) => base + sum(techRules.farmFood, techs);
-var villagerHpBonus = (techs) => sum(techRules.villagerHp, techs);
+var sum = (table, techs2) => techs2.reduce((t, id) => t + (table[id] ?? 0), 0);
+var carryOf = (techs2, base, farming = false) => base + sum(techRules.carry, techs2) + (farming ? sum(techRules.farmerCarry, techs2) : 0);
+var farmFoodOf = (techs2, base) => base + sum(techRules.farmFood, techs2);
+var villagerHpBonus = (techs2) => sum(techRules.villagerHp, techs2);
 var techEffectText = {
   loom: "\u6751\u6C11\u751F\u547D +15",
   "wheelbarrow": "\u6751\u6C11\u651C\u5E36\u91CF 10 \u2192 12",
@@ -3636,12 +5588,86 @@ var techEffectText = {
   "crop-rotation": "\u4E4B\u5F8C\u5EFA\u7684\u8FB2\u7530\u98DF\u7269 +175"
 };
 
+// packages/content/techs.ts
+var infantry2 = { classes: ["infantry"] };
+var mounted = { classes: ["cavalry", "camel"] };
+var ships = ["fishing-ship", "transport-ship", "trade-cog", "galley", "fire-galley", "demolition-raft", "cannon-galleon", "longboat"];
+var footArchers2 = { classes: ["archer"], exclude: ["skirmisher", "gunpowder", "cavalry-archer", "chu-ko-nu"] };
+var sighted = ["town-center", "house", "barracks", "watch-tower", "castle", "outpost", "bombard-tower", "market", "dock", "wonder", "palisade-wall", "stone-wall", "palisade-gate", "gate"];
+var techEffects = [
+  // University.
+  fx("masonry.hp", "buildingHp", {}, 1.1, "\u78DA\u74E6\u6280\u8853\uFF1A\u5EFA\u7BC9\u751F\u547D +10%", { tech: "masonry" }),
+  fx("masonry.melee", "buildingMeleeArmor", {}, 1, "\u78DA\u74E6\u6280\u8853\uFF1A\u5EFA\u7BC9\u8FD1\u6230\u8B77\u7532 +1", { tech: "masonry" }),
+  fx("masonry.pierce", "buildingPierceArmor", {}, 1, "\u78DA\u74E6\u6280\u8853\uFF1A\u5EFA\u7BC9\u9060\u7A0B\u8B77\u7532 +1", { tech: "masonry" }),
+  fx("architecture.hp", "buildingHp", {}, 1.1, "\u5EFA\u7BC9\u5B78\uFF1A\u5EFA\u7BC9\u751F\u547D\u518D +10%", { tech: "architecture" }),
+  fx("architecture.melee", "buildingMeleeArmor", {}, 1, "\u5EFA\u7BC9\u5B78\uFF1A\u5EFA\u7BC9\u8FD1\u6230\u8B77\u7532\u518D +1", { tech: "architecture" }),
+  fx("architecture.pierce", "buildingPierceArmor", {}, 1, "\u5EFA\u7BC9\u5B78\uFF1A\u5EFA\u7BC9\u9060\u7A0B\u8B77\u7532\u518D +1", { tech: "architecture" }),
+  fx("chemistry.missiles", "attack", { classes: ["archer", "siege", "warship"], exclude: ["gunpowder", "ram", "petard"] }, 1, "\u5316\u5B78\uFF1A\u5F13\u5175\u3001\u6295\u5C04\u653B\u57CE\u5668\u8207\u6230\u8239\u653B\u64CA +1\uFF08\u706B\u85E5\u55AE\u4F4D\u3001\u885D\u649E\u8ECA\u9664\u5916\uFF09", { tech: "chemistry" }),
+  fx("chemistry.buildings", "arrowDamage", { buildings: ["town-center", "watch-tower", "castle"] }, 1, "\u5316\u5B78\uFF1A\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u8207\u57CE\u5821\u7684\u7BAD +1", { tech: "chemistry" }),
+  fx("siege-engineers.range", "range", { classes: ["siege"], exclude: ["ram"] }, 50, "\u653B\u57CE\u5DE5\u7A0B\u5E2B\uFF1A\u653B\u57CE\u5668\u5C04\u7A0B +1\uFF08\u885D\u649E\u8ECA\u9664\u5916\uFF09", { tech: "siege-engineers" }),
+  fx("siege-engineers.buildings", "bonusScale", { classes: ["siege"] }, 1.2, "\u653B\u57CE\u5DE5\u7A0B\u5E2B\uFF1A\u653B\u57CE\u5668\u5C0D\u5EFA\u7BC9\u653B\u64CA +20%", { vs: "building", tech: "siege-engineers" }),
+  fx("guard-tower.hp", "buildingHp", { buildings: ["watch-tower"] }, 1.47, "\u9632\u79A6\u7BAD\u5854\uFF1A\u7BAD\u5854\u751F\u547D +47%\uFF08\u539F\u4F5C 1020 \u2192 1500\uFF09", { tech: "guard-tower" }),
+  fx("guard-tower.arrow", "arrowDamage", { buildings: ["watch-tower"] }, 1, "\u9632\u79A6\u7BAD\u5854\uFF1A\u7BAD\u5854\u653B\u64CA +1", { tech: "guard-tower" }),
+  fx("keep.hp", "buildingHp", { buildings: ["watch-tower"] }, 1.5, "\u5927\u578B\u7BAD\u5854\uFF1A\u7BAD\u5854\u751F\u547D\u518D +50%\uFF08\u539F\u4F5C 1500 \u2192 2250\uFF09", { tech: "keep" }),
+  fx("keep.arrow", "arrowDamage", { buildings: ["watch-tower"] }, 1, "\u5927\u578B\u7BAD\u5854\uFF1A\u7BAD\u5854\u653B\u64CA\u518D +1", { tech: "keep" }),
+  fx("treadmill-crane", "buildRate", {}, 20, "\u78E8\u574A\u6C34\u8ECA\uFF1A\u6751\u6C11\u5EFA\u9020\u901F\u5EA6 +20%", { tech: "treadmill-crane" }),
+  fx("arrowslits", "arrowDamage", { buildings: ["watch-tower"] }, 2, "\u7BAD\u72F9\u69FD\uFF1A\u7BAD\u5854\u653B\u64CA +2\uFF08\u539F\u4F5C\u4F9D\u5854\u7684\u7B49\u7D1A +1\uFF0F+2\uFF0F+3\uFF09", { tech: "arrowslits" }),
+  // Barracks.
+  fx("supplies", "cost", { entries: ["militia"] }, 0.75, "\u4F9B\u7D66\uFF1A\u6C11\u5175\u7CFB\u98DF\u7269 -15", { tech: "supplies", resource: "food" }),
+  fx("squires", "speed", infantry2, 1.1, "\u8B77\u885B\u6280\u8853\uFF1A\u6B65\u5175\u79FB\u52D5\u901F\u5EA6 +10%", { tech: "squires" }),
+  fx("arson", "bonus", infantry2, 2, "\u7E31\u706B\uFF1A\u6B65\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA +2", { vs: "building", tech: "arson" }),
+  // Archery range.
+  fx("thumb-ring.foot", "cooldown", footArchers2, 1 / 1.18, "\u62C7\u6307\u74B0\uFF1A\u5F92\u6B65\u5F13\u5175\u5C04\u901F +18%", { tech: "thumb-ring" }),
+  fx("thumb-ring.horse", "cooldown", { classes: ["cavalry-archer"] }, 1 / 1.11, "\u62C7\u6307\u74B0\uFF1A\u99AC\u5F13\u9A0E\u5175\u5C04\u901F +11%", { tech: "thumb-ring" }),
+  fx("thumb-ring.chu-ko-nu", "cooldown", { kinds: ["chu-ko-nu"] }, 1 / 1.25, "\u62C7\u6307\u74B0\uFF1A\u9023\u5F29\u5175\u5C04\u901F +25%", { tech: "thumb-ring" }),
+  fx("parthian.melee", "meleeArmor", { classes: ["cavalry-archer"] }, 1, "\u5B89\u606F\u4EBA\u6230\u8853\uFF1A\u99AC\u5F13\u9A0E\u5175\u8FD1\u6230\u8B77\u7532 +1", { tech: "parthian-tactics" }),
+  fx("parthian.pierce", "pierceArmor", { classes: ["cavalry-archer"] }, 2, "\u5B89\u606F\u4EBA\u6230\u8853\uFF1A\u99AC\u5F13\u9A0E\u5175\u9060\u7A0B\u8B77\u7532 +2", { tech: "parthian-tactics" }),
+  fx("parthian.spear", "bonus", { kinds: ["cavalry-archer"] }, 4, "\u5B89\u606F\u4EBA\u6230\u8853\uFF1A\u99AC\u5F13\u9A0E\u5175\u5C0D\u9577\u69CD\u5175 +4", { vs: "spear", tech: "parthian-tactics" }),
+  fx("parthian.spear-unique", "bonus", { kinds: ["mangudai"] }, 2, "\u5B89\u606F\u4EBA\u6230\u8853\uFF1A\u5176\u4ED6\u99AC\u5F13\u9A0E\u5175\uFF08\u8499\u53E4\u7A81\u9A0E\uFF09\u5C0D\u9577\u69CD\u5175 +2", { vs: "spear", tech: "parthian-tactics" }),
+  // Stable.
+  fx("bloodlines", "hp", mounted, 20, "\u54C1\u7A2E\uFF1A\u9A0E\u5175\u8207\u99F1\u99DD\u751F\u547D +20", { tech: "bloodlines", op: "add" }),
+  fx("husbandry", "speed", mounted, 1.1, "\u8015\u7A2E\u6280\u8853\uFF1A\u9A0E\u5175\u8207\u99F1\u99DD\u79FB\u52D5\u901F\u5EA6 +10%", { tech: "husbandry" }),
+  // Town centre: sight of every building (a tile of sight is 100 here).
+  fx("town-watch", "los", { buildings: sighted }, 400, "\u57CE\u93AE\u77AD\u671B\uFF1A\u5EFA\u7BC9\u8996\u91CE +4", { tech: "town-watch" }),
+  fx("town-patrol", "los", { buildings: sighted }, 400, "\u57CE\u93AE\u5DE1\u908F\uFF1A\u5EFA\u7BC9\u8996\u91CE\u518D +4", { tech: "town-patrol" }),
+  // Monastery.
+  fx("fervor", "speed", { kinds: ["monk"] }, 1.15, "\u5B97\u6559\u72C2\u71B1\uFF1A\u50E7\u4FB6\u79FB\u52D5\u901F\u5EA6 +15%", { tech: "fervor" }),
+  fx("herbal-medicine", "garrisonHeal", {}, 6, "\u8349\u85E5\u6CBB\u7642\uFF1A\u9032\u99D0\u55AE\u4F4D\u56DE\u8840\u5FEB 6 \u500D", { tech: "herbal-medicine" }),
+  // Castle.
+  fx("hoardings", "buildingHp", { buildings: ["castle"] }, 1.21, "\u570D\u7246\uFF1A\u57CE\u5821\u751F\u547D +21%", { tech: "hoardings" }),
+  fx("sappers", "bonus", { kinds: ["villager"] }, 15, "\u5175\u5DE5\u5B78\uFF1A\u6751\u6C11\u5C0D\u5EFA\u7BC9\u653B\u64CA +15", { vs: "building", tech: "sappers" }),
+  // University, the 建築 round: Heated Shot (towers and castles +125% against ships: the arrows' ship bonus here),
+  // Fortified Wall (stone walls 1800 -> 3000, gates 2750 -> 4000 hit points in the reference).
+  fx("heated-shot", "arrowBonus", { buildings: ["watch-tower", "castle"] }, 6, "\u706B\u7BAD\uFF1A\u7BAD\u5854\u8207\u57CE\u5821\u7684\u7BAD\u5C0D\u8239 +6\uFF08\u539F\u4F5C +125%\uFF09", { vs: "ship", tech: "heated-shot" }),
+  fx("fortified-wall.wall", "buildingHp", { buildings: ["stone-wall"] }, 5 / 3, "\u579B\u7246\uFF1A\u77F3\u7246\u751F\u547D +67%\uFF08\u539F\u4F5C 1800 \u2192 3000\uFF09", { tech: "fortified-wall" }),
+  fx("fortified-wall.gate", "buildingHp", { buildings: ["gate"] }, 4e3 / 2750, "\u579B\u7246\uFF1A\u57CE\u9580\u751F\u547D +45%\uFF08\u539F\u4F5C 2750 \u2192 4000\uFF09", { tech: "fortified-wall" }),
+  // Dock.
+  fx("gillnets", "gather", { kinds: ["fishing-ship"], sources: ["fish", "fish-trap"] }, 25, "\u6D41\u523A\u7DB2\uFF1A\u6F01\u8239\u5DE5\u4F5C\u901F\u5EA6 +25%", { tech: "gillnets" }),
+  fx("careening.armor", "pierceArmor", { classes: ["ship"] }, 1, "\u822A\u6D77\u6280\u8853\uFF1A\u8239\u96BB\u9060\u7A0B\u8B77\u7532 +1", { tech: "careening" }),
+  fx("careening.capacity", "transportCapacity", { kinds: ["transport-ship"] }, 5, "\u822A\u6D77\u6280\u8853\uFF1A\u904B\u8F38\u8239\u904B\u8F09 +5", { tech: "careening" }),
+  fx("dry-dock.speed", "speed", { classes: ["ship"] }, 1.15, "\u8239\u5862\uFF1A\u8239\u96BB\u79FB\u52D5\u901F\u5EA6 +15%", { tech: "dry-dock" }),
+  fx("dry-dock.capacity", "transportCapacity", { kinds: ["transport-ship"] }, 10, "\u8239\u5862\uFF1A\u904B\u8F38\u8239\u904B\u8F09 +10", { tech: "dry-dock" }),
+  fx("shipwright.cost", "cost", { entries: ships }, 0.8, "\u9020\u8239\u54E1\uFF1A\u8239\u96BB\u6728\u6750 -20%", { tech: "shipwright", resource: "wood" }),
+  fx("shipwright.time", "time", { entries: ships }, 0.65, "\u9020\u8239\u54E1\uFF1A\u8239\u96BB\u8A13\u7DF4\u6642\u9593 -35%", { tech: "shipwright" }),
+  // Market.
+  fx("caravan", "speed", { classes: ["trade"] }, 1.5, "\u5546\u968A\uFF1A\u8CBF\u6613\u8ECA\u968A\u8207\u8CBF\u6613\u5546\u8239\u79FB\u52D5\u901F\u5EA6 +50%", { tech: "caravan" }),
+  fx("guilds", "marketFee", {}, -15, "\u516C\u6703\u5236\u5EA6\uFF1A\u5E02\u96C6\u4EA4\u6613\u8CBB 30% \u2192 15%", { tech: "guilds" }),
+  fx("conscription", "workRate", { buildings: ["barracks", "archery-range", "stable", "castle"], allUnits: true }, 33, "\u5FB5\u5175\u6280\u8853\uFF1A\u5175\u71DF\u3001\u9776\u5834\u3001\u99AC\u5EC4\u8207\u57CE\u5821\u8A13\u7DF4\u901F\u5EA6 +33%\uFF08\u7814\u7A76\u4E0D\u8B8A\uFF09", { tech: "conscription" })
+];
+
 // packages/sim/civ.ts
+function ownerOf(s, player) {
+  return { civ: s.civs?.[player] ?? neutralCiv, age: s.ages?.[player] ?? 1, techs: s.techs?.[player] ?? [] };
+}
 var asOwner = (o) => Array.isArray(o) ? { civ: neutralCiv, age: 1, techs: o } : o;
 var byCiv = new Map(civDefs.map((c) => [c.id, c.effects]));
+var withTechs = /* @__PURE__ */ new Map();
 function activeEffects(o, kind) {
-  const list = byCiv.get(o.civ);
-  if (!list) return [];
+  let list = withTechs.get(o.civ);
+  if (!list) {
+    list = [...byCiv.get(o.civ) ?? [], ...techEffects];
+    withTechs.set(o.civ, list);
+  }
   return list.filter((e) => e.kind === kind && (e.trigger.age === void 0 || o.age >= e.trigger.age) && (e.trigger.tech === void 0 || o.techs.includes(e.trigger.tech)));
 }
 var valueOf = (e, o) => typeof e.value === "number" ? e.value : e.value[Math.min(3, Math.max(0, o.age - 1))];
@@ -3658,16 +5684,17 @@ function entryMatches(sel, entryId) {
 var buildingMatches = (sel, kind) => !sel.buildings || sel.buildings.includes(kind);
 var sum2 = (list, o) => list.reduce((t, e) => t + valueOf(e, o), 0);
 var product = (list, o) => list.reduce((t, e) => t * valueOf(e, o), 1);
-var unitSum = (o, kind, unit, classes, op = "add") => sum2(activeEffects(o, kind).filter((e) => e.op === op && unitMatches(e.select, unit, classes)), o);
-var unitProduct = (o, kind, unit, classes) => product(activeEffects(o, kind).filter((e) => e.op === "mul" && unitMatches(e.select, unit, classes)), o);
-function unitBonuses(o, unit, classes) {
+var unitSum = (o, kind, unit2, classes, op = "add") => sum2(activeEffects(o, kind).filter((e) => e.op === op && unitMatches(e.select, unit2, classes)), o);
+var unitProduct = (o, kind, unit2, classes) => product(activeEffects(o, kind).filter((e) => e.op === "mul" && unitMatches(e.select, unit2, classes)), o);
+function unitBonuses(o, unit2, classes) {
   const out = {};
-  for (const e of activeEffects(o, "bonus")) if (e.vs && unitMatches(e.select, unit, classes)) {
+  for (const e of activeEffects(o, "bonus")) if (e.vs && unitMatches(e.select, unit2, classes)) {
     const v = valueOf(e, o);
     if (v) out[e.vs] = (out[e.vs] ?? 0) + v;
   }
   return out;
 }
+var bonusScales = (o, unit2, classes) => activeEffects(o, "bonusScale").filter((e) => e.vs && unitMatches(e.select, unit2, classes)).map((e) => ({ vs: e.vs, scale: valueOf(e, o) }));
 function costOf(entryId, o) {
   const e = rules.entries.find((e2) => e2.id === entryId);
   const cost = { food: 0, wood: 0, gold: 0, stone: 0, ...e?.cost ?? {} };
@@ -3681,10 +5708,10 @@ function costOf(entryId, o) {
   }
   return cost;
 }
-function timeTicks(entryId, o, building) {
+function timeTicks(entryId, o, building2) {
   const e = rules.entries.find((e2) => e2.id === entryId);
   if (!e) return 0;
-  const scale = product(activeEffects(o, "time").filter((fx2) => entryMatches(fx2.select, entryId)), o), rate = sum2(activeEffects(o, "workRate").filter((fx2) => buildingMatches(fx2.select, building)), o);
+  const scale = product(activeEffects(o, "time").filter((fx2) => entryMatches(fx2.select, entryId)), o), rate = sum2(activeEffects(o, "workRate").filter((fx2) => buildingMatches(fx2.select, building2) && (!fx2.select.allUnits || e.kind === "unit")), o);
   return Math.round(e.time * rules.settings.tickHz * scale * 100 / (100 + rate));
 }
 function producersOf(entryId, o) {
@@ -3695,9 +5722,9 @@ function producersOf(entryId, o) {
   }
   return out;
 }
-function producedAt(building, o) {
-  const out = Object.entries(rules.production).filter(([, b]) => b === building).map(([id]) => id);
-  for (const fx2 of activeEffects(o, "producer")) if (fx2.select.buildings?.includes(building)) {
+function producedAt(building2, o) {
+  const out = Object.entries(rules.production).filter(([, b]) => b === building2).map(([id]) => id);
+  for (const fx2 of activeEffects(o, "producer")) if (fx2.select.buildings?.includes(building2)) {
     for (const id of fx2.select.entries ?? []) if (!out.includes(id)) out.push(id);
   }
   return out;
@@ -3706,18 +5733,22 @@ var civAvailable = (civ, entryId) => {
   const c = rules.civilizations.find((c2) => c2.id === civ) ?? rules.civilizations.find((c2) => c2.id === neutralCiv);
   return c.available.includes(entryId);
 };
-var buildingSum = (o, kind, building) => sum2(activeEffects(o, kind).filter((e) => buildingMatches(e.select, building)), o);
-var housingBonus = (o, building) => buildingSum(o, "housing", building);
-var garrisonBonus = (o, building) => buildingSum(o, "garrison", building);
-function arrowsOf(o, building) {
+var buildingSum = (o, kind, building2) => sum2(activeEffects(o, kind).filter((e) => buildingMatches(e.select, building2)), o);
+var buildingHpScale = (o, building2) => product(activeEffects(o, "buildingHp").filter((e) => buildingMatches(e.select, building2)), o);
+var housingBonus = (o, building2) => buildingSum(o, "housing", building2);
+var garrisonBonus = (o, building2) => buildingSum(o, "garrison", building2);
+var buildingArmorBonus = (o, building2) => [buildingSum(o, "buildingMeleeArmor", building2), buildingSum(o, "buildingPierceArmor", building2)];
+function arrowsOf(o, building2) {
   return {
-    extra: buildingSum(o, "arrows", building),
-    damage: buildingSum(o, "arrowDamage", building),
-    range: buildingSum(o, "arrowRange", building),
-    cooldown: product(activeEffects(o, "arrowCooldown").filter((e) => buildingMatches(e.select, building)), o),
-    garrisonClasses: activeEffects(o, "garrisonArrows").filter((e) => buildingMatches(e.select, building)).flatMap((e) => [...e.select.classes ?? []])
+    extra: buildingSum(o, "arrows", building2),
+    damage: buildingSum(o, "arrowDamage", building2),
+    range: buildingSum(o, "arrowRange", building2),
+    cooldown: product(activeEffects(o, "arrowCooldown").filter((e) => buildingMatches(e.select, building2)), o),
+    garrisonClasses: activeEffects(o, "garrisonArrows").filter((e) => buildingMatches(e.select, building2)).flatMap((e) => [...e.select.classes ?? []]),
+    bonus: activeEffects(o, "arrowBonus").filter((e) => e.vs && buildingMatches(e.select, building2)).reduce((t, e) => ({ ...t, [e.vs]: (t[e.vs] ?? 0) + valueOf(e, o) }), {})
   };
 }
+var marketFeeOf = (o, base) => Math.max(0, base + sum2(activeEffects(o, "marketFee"), o));
 
 // packages/sim/stats.ts
 var combatRules = {
@@ -3740,11 +5771,12 @@ var combatRules = {
     boar: { hp: 75, damage: 8, range: 50, cooldown: 40, sight: 0, attack: "melee", armor: [0, 0], classes: ["animal"], bonus: {} },
     // The counter units (after the reference's triangle): the spearman against cavalry, the skirmisher against archers,
     // the knight as heavy cavalry. Values design_default, in this game's scale.
-    spearman: { hp: 45, damage: 4, range: 50, cooldown: 30, sight: 350, attack: "melee", armor: [0, 0], classes: ["infantry", "spear"], bonus: { cavalry: 12 } },
+    // Camels are their own class (aoetw: 駱駝, not 騎兵); the spear line's camel bonus keeps the site's ratio to its cavalry one.
+    spearman: { hp: 45, damage: 4, range: 50, cooldown: 30, sight: 350, attack: "melee", armor: [0, 0], classes: ["infantry", "spear"], bonus: { cavalry: 12, camel: 10 } },
     skirmisher: { hp: 30, damage: 2, range: 200, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 3], classes: ["archer", "skirmisher"], bonus: { archer: 4, spear: 3 } },
     knight: { hp: 100, damage: 10, range: 50, cooldown: 18, sight: 350, attack: "melee", armor: [2, 2], classes: ["cavalry"], bonus: {} },
     // Battering ram: strikes buildings only (+40 against them), all but immune to arrows, slow.
-    ram: { hp: 175, damage: 2, range: 50, cooldown: 60, sight: 0, attack: "melee", armor: [0, 120], classes: ["siege"], bonus: { building: 40 } },
+    ram: { hp: 175, damage: 2, range: 50, cooldown: 60, sight: 0, attack: "melee", armor: [0, 120], classes: ["siege"], bonus: { building: 40 }, buildingsOnly: true },
     // Unique units (trained at the Castle): hit points, attack, armor and bonuses from aoetw.com's unit pages; range at
     // 50 units per tile over a 150 base (Longbowman 5 -> 300), melee cooldown = the reference's seconds x 10, ranged x 15.
     // Classes: 'unique' (the Samurai's bonus), 'gunpowder' (Turks), 'cavalry-archer' (Mongols); see docs/aoe2-rules-research.md.
@@ -3764,16 +5796,76 @@ var combatRules = {
     // Fires three arrows a shot: the first at full attack, the other two at 3 each.
     "chu-ko-nu": { hp: 45, damage: 8, range: 250, cooldown: 55, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "unique"], bonus: { spear: 2 }, extraShots: 2, extraDamage: 3 },
     samurai: { hp: 60, damage: 8, range: 50, cooldown: 19, sight: 350, attack: "melee", armor: [1, 1], classes: ["infantry", "unique"], bonus: { building: 2, unique: 10 } },
-    mangudai: { hp: 60, damage: 6, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "cavalry", "cavalry-archer", "unique"], bonus: { siege: 3, spear: 1 } }
+    mangudai: { hp: 60, damage: 6, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "cavalry", "cavalry-archer", "unique"], bonus: { siege: 3, spear: 1 } },
+    // The 單位 round (aoetw.com units pages). Ranges 50 + 50 a tile like the archers (mangonel 7 -> 400, below the
+    // castle's 400 as the site's 7 is below its 8), minimum ranges 50 a tile; building bonuses x0.32
+    // (the battering ram's 125 -> 40 here) so a trebuchet levels a castle in about as many shots as there; blast radii in
+    // this map's units (a node is 50).
+    "cavalry-archer": { hp: 50, damage: 6, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "cavalry", "cavalry-archer"], bonus: { spear: 2 } },
+    camel: { hp: 100, damage: 6, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 0], classes: ["camel"], bonus: { cavalry: 9, camel: 5 } },
+    // Hurls a stone that hits every enemy unit near the impact; cannot shoot closer than 3 tiles.
+    mangonel: { hp: 50, damage: 40, range: 400, cooldown: 60, sight: 500, attack: "melee", armor: [0, 6], classes: ["siege"], bonus: { building: 11 }, minRange: 150, blast: 75 },
+    // A bolt that goes on through the target: the units behind it on its path take half.
+    scorpion: { hp: 40, damage: 12, range: 400, cooldown: 54, sight: 500, attack: "pierce", armor: [0, 7], classes: ["siege"], bonus: { elephant: 6, building: 1 }, minRange: 100, passThrough: 200 },
+    // Strikes buildings only, from 16 tiles; unpacks before firing and packs before moving (7.5 s each).
+    trebuchet: { hp: 150, damage: 25, range: 850, cooldown: 100, sight: 0, attack: "melee", armor: [1, 8], classes: ["siege"], bonus: { building: 50 }, minRange: 200, buildingsOnly: true, setup: 150 },
+    // Spent by its charge; goes only where it is sent (no automatic fights).
+    // The 科技 round: the gunpowder units Chemistry opens (aoetw.com; no accuracy model, every shot hits).
+    "hand-cannoneer": { hp: 35, damage: 17, range: 400, cooldown: 52, sight: 450, attack: "pierce", armor: [1, 0], classes: ["archer", "gunpowder"], bonus: { infantry: 10, siege: 2, spear: 1 } },
+    // Heavy shot from 12 tiles (minimum 5); the site's half-tile blast is one node here (50).
+    "bombard-cannon": { hp: 80, damage: 40, range: 650, cooldown: 65, sight: 650, attack: "melee", armor: [2, 5], classes: ["siege", "gunpowder"], bonus: { building: 64, siege: 6 }, minRange: 250, blast: 50 },
+    petard: { hp: 50, damage: 25, range: 50, cooldown: 20, sight: 0, attack: "melee", armor: [0, 2], classes: ["petard"], bonus: { building: 55, siege: 19 }, selfDestruct: true },
+    // The 建築 round: the dock's ships and the market's trade cart (aoetw.com units pages). Same conversions as above;
+    // 'ship' puts a unit on the water layer (movement.ts layerOf). Fishing ships, transports and the trade units never
+    // fight. 'warship': the galley line and the Longboat, which take the archer attack lines (Fletching to Bracer).
+    "fishing-ship": { hp: 60, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 4], classes: ["ship", "fishing"], bonus: {} },
+    "transport-ship": { hp: 100, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [4, 8], classes: ["ship", "transport"], bonus: {} },
+    "trade-cog": { hp: 80, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 6], classes: ["ship", "trade"], bonus: {} },
+    "trade-cart": { hp: 70, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 0], classes: ["trade"], bonus: {} },
+    galley: { hp: 120, damage: 6, range: 300, cooldown: 46, sight: 400, attack: "pierce", armor: [0, 6], classes: ["ship", "warship", "galley"], bonus: { ship: 8, building: 2 } },
+    // Fire: a short-range stream four times a second (the reference's 0.25 s), strong only against ships.
+    "fire-galley": { hp: 100, damage: 1, range: 175, cooldown: 5, sight: 300, attack: "melee", armor: [0, 4], classes: ["ship", "fire"], bonus: { ship: 3 } },
+    // Spent by its blast (the petard's rule): every enemy unit within the radius of the target takes the hit.
+    "demolition-raft": { hp: 45, damage: 90, range: 50, cooldown: 20, sight: 0, attack: "melee", armor: [0, 2], classes: ["ship", "demolition"], bonus: { building: 58 }, blast: 125, selfDestruct: true },
+    "cannon-galleon": { hp: 120, damage: 35, range: 700, cooldown: 100, sight: 700, attack: "melee", armor: [0, 6], classes: ["ship", "gunpowder"], bonus: { building: 64, siege: 13 }, minRange: 150 },
+    // Four arrows a volley: the first at full attack, the other three at 1 each (aoetw).
+    longboat: { hp: 130, damage: 7, range: 350, cooldown: 50, sight: 400, attack: "pierce", armor: [0, 6], classes: ["ship", "warship", "unique"], bonus: { ship: 9, building: 2 }, extraShots: 3, extraDamage: 1 }
   },
   // Structures shrug off arrows: [melee, pierce] armor of every building.
   buildingArmor: [0, 2],
-  buildings: { "town-center": 400, house: 150, barracks: 300, farm: 100, "lumber-camp": 200, "mining-camp": 200, mill: 200, stable: 300, "archery-range": 300, monastery: 350, blacksmith: 300, "watch-tower": 250, "siege-workshop": 300, castle: 800 },
+  buildings: {
+    "town-center": 400,
+    house: 150,
+    barracks: 300,
+    farm: 100,
+    "lumber-camp": 200,
+    "mining-camp": 200,
+    mill: 200,
+    stable: 300,
+    "archery-range": 300,
+    monastery: 350,
+    blacksmith: 300,
+    "watch-tower": 250,
+    "siege-workshop": 300,
+    castle: 800,
+    university: 350,
+    // The 建築 round: about the site's hit points / 6 like the castle (4800 -> 800); the fish trap keeps a token 40.
+    market: 350,
+    dock: 300,
+    "fish-trap": 40,
+    outpost: 100,
+    "bombard-tower": 370,
+    wonder: 800,
+    "palisade-wall": 60,
+    "palisade-gate": 70,
+    "stone-wall": 300,
+    gate: 450
+  },
   corpseTicks: 40,
   hitFlashTicks: 6,
   // Movement per tick.
-  // Units always step at most this far and stop exactly on the next node, so any whole number works: a node takes
-  // ceil(50/speed) ticks (a civilization's speed multiplier rounds to the nearest whole step).
+  // A unit stops exactly on each node; what a step cut short there leaves over carries to the next tick while the walk
+  // goes on (movement.ts u.stride), so a walk covers speed x ticks for any speed to a hundredth (speedOf).
   speed: {
     villager: 5,
     militia: 5,
@@ -3799,17 +5891,51 @@ var combatRules = {
     janissary: 5,
     "chu-ko-nu": 5,
     samurai: 6,
-    mangudai: 10
+    mangudai: 10,
+    "cavalry-archer": 10,
+    camel: 10,
+    mangonel: 4,
+    scorpion: 4,
+    trebuchet: 5,
+    petard: 5,
+    "hand-cannoneer": 5,
+    "bombard-cannon": 4.4,
+    // Ships and the trade cart: the site's tiles a second x 6.25 (the villager's 0.8 -> 5).
+    "fishing-ship": 7.9,
+    "transport-ship": 9.1,
+    "trade-cog": 8.25,
+    "trade-cart": 6.25,
+    galley: 8.9,
+    "fire-galley": 8.1,
+    "demolition-raft": 9.4,
+    "cannon-galleon": 6.9,
+    longboat: 9.6
   }
 };
 var religionBonus = { sanctityHp: 15 };
 var lineUpgrades = [
   { id: "man-at-arms", kind: "militia", name: "\u91CD\u6B65\u5175", set: { hp: 55, damage: 8 } },
   { id: "long-swordsman", kind: "militia", name: "\u9577\u528D\u58EB", set: { hp: 60, damage: 9, armor: [1, 1] } },
-  { id: "pikeman", kind: "spearman", name: "\u9577\u77DB\u5175", set: { hp: 55, bonus: { cavalry: 18 } } },
+  { id: "pikeman", kind: "spearman", name: "\u9577\u77DB\u5175", set: { hp: 55, bonus: { cavalry: 18, camel: 15 } } },
   { id: "crossbowman", kind: "archer", name: "\u5F29\u624B", set: { hp: 35, damage: 5, range: 300 } },
   { id: "elite-skirmisher", kind: "skirmisher", name: "\u7CBE\u92B3\u6563\u5175", set: { hp: 35, damage: 3, armor: [0, 4] } },
   { id: "light-cavalry", kind: "scout", name: "\u8F15\u9A0E\u5175", set: { hp: 60, damage: 5 } },
+  // The 單位 round: each line's last upgrades (aoetw.com's numbers where this game's line already matched them; whole
+  // fields again, so armor and bonus are listed in full).
+  { id: "two-handed-swordsman", kind: "militia", name: "\u96D9\u624B\u528D\u5175", set: { hp: 65, damage: 12, armor: [1, 1] } },
+  { id: "champion", kind: "militia", name: "\u528D\u5175\u52C7\u58EB", set: { hp: 75, damage: 13, armor: [2, 1] } },
+  { id: "halberdier", kind: "spearman", name: "\u621F\u5175", set: { hp: 60, damage: 6, bonus: { cavalry: 26, camel: 21 } } },
+  { id: "arbalest", kind: "archer", name: "\u5F37\u5F29\u5175", set: { hp: 40, damage: 6, range: 300 } },
+  { id: "heavy-cavalry-archer", kind: "cavalry-archer", name: "\u91CD\u88DD\u99AC\u5F13\u9A0E\u5175", set: { hp: 60, damage: 7, armor: [1, 0] } },
+  { id: "hussar", kind: "scout", name: "\u5308\u7259\u5229\u8F15\u9A0E\u5175", set: { hp: 75, damage: 7 } },
+  { id: "cavalier", kind: "knight", name: "\u91CD\u88DD\u9A0E\u58EB", set: { hp: 120, damage: 12 } },
+  { id: "paladin", kind: "knight", name: "\u904A\u4FE0", set: { hp: 160, damage: 14, cooldown: 19, armor: [2, 3] } },
+  { id: "heavy-camel", kind: "camel", name: "\u91CD\u88DD\u99F1\u99DD\u9A0E\u5175", set: { hp: 120, damage: 7, bonus: { cavalry: 18, camel: 9 } } },
+  { id: "capped-ram", kind: "ram", name: "\u88DD\u7532\u885D\u649E\u8ECA", set: { hp: 200, damage: 3, bonus: { building: 48 } } },
+  { id: "siege-ram", kind: "ram", name: "\u91CD\u578B\u885D\u649E\u8ECA", set: { hp: 270, damage: 4, bonus: { building: 64 } } },
+  { id: "onager", kind: "mangonel", name: "\u4E2D\u578B\u6295\u77F3\u8ECA", set: { hp: 60, damage: 50, range: 450, armor: [0, 7], bonus: { building: 14 }, blast: 90 } },
+  { id: "siege-onager", kind: "mangonel", name: "\u91CD\u578B\u6295\u77F3\u8ECA", set: { hp: 70, damage: 75, range: 450, armor: [0, 8], bonus: { building: 19 }, blast: 110 } },
+  { id: "heavy-scorpion", kind: "scorpion", name: "\u91CD\u578B\u5F29\u7832", set: { hp: 50, damage: 16, bonus: { elephant: 8, building: 1 } } },
   // Elite unique units (aoetw.com's elite columns; armor and bonus are whole fields, so each lists both).
   { id: "elite-longbowman", kind: "longbowman", name: "\u7CBE\u92B3\u9577\u5F13\u5175", set: { hp: 40, damage: 7, range: 350, armor: [0, 1] } },
   { id: "elite-woad-raider", kind: "woad-raider", name: "\u7CBE\u92B3\u83D8\u85CD\u6B66\u58EB", set: { hp: 80, damage: 13, bonus: { building: 3 } } },
@@ -3823,31 +5949,40 @@ var lineUpgrades = [
   { id: "elite-janissary", kind: "janissary", name: "\u7CBE\u92B3\u571F\u8033\u5176\u706B\u69CD\u5175", set: { hp: 40, damage: 22, armor: [2, 0], bonus: { siege: 3 } } },
   { id: "elite-chu-ko-nu", kind: "chu-ko-nu", name: "\u7CBE\u92B3\u9023\u5F29\u5175", set: { hp: 50, cooldown: 58, extraShots: 4 } },
   { id: "elite-samurai", kind: "samurai", name: "\u7CBE\u92B3\u65E5\u672C\u6B66\u58EB", set: { hp: 80, damage: 12, bonus: { building: 3, unique: 12 } } },
-  { id: "elite-mangudai", kind: "mangudai", name: "\u7CBE\u92B3\u8499\u53E4\u7A81\u9A0E", set: { damage: 8, armor: [1, 0], bonus: { siege: 5, spear: 1 } } }
+  { id: "elite-mangudai", kind: "mangudai", name: "\u7CBE\u92B3\u8499\u53E4\u7A81\u9A0E", set: { damage: 8, armor: [1, 0], bonus: { siege: 5, spear: 1 } } },
+  // The dock's upgrades (aoetw.com). War Galley upgrades all three Feudal ships at once.
+  { id: "war-galley", kind: "galley", name: "\u5F29\u7832\u6230\u8239", set: { hp: 135, damage: 7, range: 350, bonus: { ship: 9, building: 2 } } },
+  { id: "galleon", kind: "galley", name: "\u91CD\u578B\u5F29\u7832\u6230\u8239", set: { hp: 165, damage: 8, range: 400, armor: [0, 8], bonus: { ship: 11, building: 3 } } },
+  { id: "war-galley", kind: "fire-galley", name: "\u706B\u6230\u8239", set: { hp: 120, damage: 2, armor: [0, 6] } },
+  { id: "fast-fire-ship", kind: "fire-galley", name: "\u91CD\u578B\u706B\u6230\u8239", set: { hp: 140, damage: 3, armor: [0, 8], bonus: { ship: 4 } } },
+  { id: "war-galley", kind: "demolition-raft", name: "\u7206\u7834\u8239", set: { hp: 60, damage: 110, armor: [0, 3], bonus: { building: 70 }, blast: 150 } },
+  { id: "heavy-demolition-ship", kind: "demolition-raft", name: "\u91CD\u578B\u7206\u7834\u8239", set: { hp: 70, damage: 140, armor: [0, 5], bonus: { building: 90 }, blast: 175 } },
+  { id: "elite-cannon-galleon", kind: "cannon-galleon", name: "\u7CBE\u92B3\u706B\u7832\u6230\u8239", set: { hp: 150, damage: 45, range: 800, armor: [0, 8], bonus: { building: 88, siege: 13 } } },
+  { id: "elite-longboat", kind: "longboat", name: "\u7CBE\u92B3\u7DAD\u4EAC\u5927\u6230\u8239", set: { hp: 160, damage: 8, range: 400, armor: [0, 8], bonus: { ship: 11, building: 3 } } }
 ];
 var blacksmith = {
-  forging: { classes: ["infantry", "cavalry"], exclude: ["cavalry-archer"], attack: 1 },
-  "iron-casting": { classes: ["infantry", "cavalry"], exclude: ["cavalry-archer"], attack: 1 },
-  "blast-furnace": { classes: ["infantry", "cavalry"], exclude: ["cavalry-archer"], attack: 2 },
+  forging: { classes: ["infantry", "cavalry", "camel"], exclude: ["cavalry-archer"], attack: 1 },
+  "iron-casting": { classes: ["infantry", "cavalry", "camel"], exclude: ["cavalry-archer"], attack: 1 },
+  "blast-furnace": { classes: ["infantry", "cavalry", "camel"], exclude: ["cavalry-archer"], attack: 2 },
   "scale-mail-armor": { classes: ["infantry"], melee: 1, pierce: 1 },
   "chain-mail-armor": { classes: ["infantry"], melee: 1, pierce: 1 },
   "plate-mail-armor": { classes: ["infantry"], melee: 1, pierce: 2 },
-  "scale-barding-armor": { classes: ["cavalry"], exclude: ["cavalry-archer"], melee: 1, pierce: 1 },
-  "chain-barding-armor": { classes: ["cavalry"], exclude: ["cavalry-archer"], melee: 1, pierce: 1 },
-  "plate-barding-armor": { classes: ["cavalry"], exclude: ["cavalry-archer"], melee: 1, pierce: 2 },
-  fletching: { classes: ["archer"], exclude: ["gunpowder"], attack: 1, range: 50 },
-  "bodkin-arrow": { classes: ["archer"], exclude: ["gunpowder"], attack: 1, range: 50 },
-  bracer: { classes: ["archer"], exclude: ["gunpowder"], attack: 1, range: 50 },
+  "scale-barding-armor": { classes: ["cavalry", "camel"], exclude: ["cavalry-archer"], melee: 1, pierce: 1 },
+  "chain-barding-armor": { classes: ["cavalry", "camel"], exclude: ["cavalry-archer"], melee: 1, pierce: 1 },
+  "plate-barding-armor": { classes: ["cavalry", "camel"], exclude: ["cavalry-archer"], melee: 1, pierce: 2 },
+  fletching: { classes: ["archer", "warship"], exclude: ["gunpowder"], attack: 1, range: 50 },
+  "bodkin-arrow": { classes: ["archer", "warship"], exclude: ["gunpowder"], attack: 1, range: 50 },
+  bracer: { classes: ["archer", "warship"], exclude: ["gunpowder"], attack: 1, range: 50 },
   "padded-archer-armor": { classes: ["archer"], melee: 1, pierce: 1 },
   "leather-archer-armor": { classes: ["archer"], melee: 1, pierce: 1 },
   "ring-archer-armor": { classes: ["archer"], melee: 1, pierce: 2 }
 };
 function statsOf(kind, who = []) {
-  const o = asOwner(who), techs = o.techs;
+  const o = asOwner(who), techs2 = o.techs;
   let st = { ...combatRules.units[kind] };
-  for (const up of lineUpgrades) if (up.kind === kind && techs.includes(up.id)) st = { ...st, ...up.set };
+  for (const up of lineUpgrades) if (up.kind === kind && techs2.includes(up.id)) st = { ...st, ...up.set };
   let [m, p] = st.armor;
-  for (const id of techs) {
+  for (const id of techs2) {
     const b = blacksmith[id];
     if (!b || !b.classes.some((c) => st.classes.includes(c))) continue;
     if (b.exclude?.some((c) => st.classes.includes(c))) continue;
@@ -3866,41 +6001,84 @@ function statsOf(kind, who = []) {
     for (const [c, v] of Object.entries(extra)) bonus[c] = (bonus[c] ?? 0) + v;
     st.bonus = bonus;
   }
+  for (const { vs, scale } of bonusScales(o, kind, cls)) if (st.bonus[vs]) {
+    st.bonus = { ...st.bonus, [vs]: Math.round(st.bonus[vs] * scale) };
+  }
   const pace = unitProduct(o, "cooldown", kind, cls);
   if (pace !== 1) st.cooldown = Math.max(1, Math.round(st.cooldown * pace));
-  for (const k of ["regen", "extraShots", "splash"]) {
+  for (const k of ["regen", "extraShots", "splash", "blast"]) {
     const v = unitSum(o, k, kind, cls);
     if (v) st[k] = (st[k] ?? 0) + v;
   }
-  st.hp = Math.round(st.hp * unitProduct(o, "hp", kind, cls)) + (kind === "monk" && techs.includes("sanctity") ? religionBonus.sanctityHp : 0) + (kind === "villager" ? villagerHpBonus(techs) : 0) + unitSum(o, "hp", kind, cls);
+  const pack = unitProduct(o, "setup", kind, cls);
+  if (st.setup && pack !== 1) st.setup = Math.max(1, Math.round(st.setup * pack));
+  st.hp = Math.round(st.hp * unitProduct(o, "hp", kind, cls)) + (kind === "monk" && techs2.includes("sanctity") ? religionBonus.sanctityHp : 0) + (kind === "villager" ? villagerHpBonus(techs2) : 0) + unitSum(o, "hp", kind, cls);
   return st;
 }
 function speedOf(kind, who = []) {
   const o = asOwner(who), base = combatRules.speed[kind];
   const scale = unitProduct(o, "speed", kind, combatRules.units[kind].classes);
-  return scale === 1 ? base : Math.max(1, Math.round(base * scale));
+  return scale === 1 ? base : Math.max(1, Math.round(base * scale * 100) / 100);
 }
-function lineName(kind, techs) {
+function buildingHpOf(kind, who = []) {
+  return Math.round((combatRules.buildings[kind] ?? 0) * buildingHpScale(asOwner(who), kind));
+}
+function lineName(kind, techs2) {
   let name = null;
-  for (const up of lineUpgrades) if (up.kind === kind && techs.includes(up.id)) name = up.name;
+  for (const up of lineUpgrades) if (up.kind === kind && techs2.includes(up.id)) name = up.name;
   return name;
 }
 var buildingTarget = { armor: combatRules.buildingArmor, classes: ["building"] };
+function buildingTargetOf(kind, who = []) {
+  const [m, p] = buildingArmorBonus(asOwner(who), kind);
+  return m || p ? { armor: [buildingTarget.armor[0] + m, buildingTarget.armor[1] + p], classes: buildingTarget.classes } : buildingTarget;
+}
 
 // packages/sim/movement.ts
 var navigationStates = ["idle", "searching", "moving", "waiting", "unreachable", "stuck"];
-var unitKinds = ["villager", "militia", "archer", "scout", "monk", "sheep", "deer", "boar", "spearman", "skirmisher", "knight", "ram", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "cataphract", "war-elephant", "mameluke", "janissary", "chu-ko-nu", "samurai", "mangudai"];
+var unitKinds = ["villager", "militia", "archer", "scout", "monk", "sheep", "deer", "boar", "spearman", "skirmisher", "knight", "ram", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "cataphract", "war-elephant", "mameluke", "janissary", "chu-ko-nu", "samurai", "mangudai", "cavalry-archer", "camel", "mangonel", "scorpion", "trebuchet", "petard", "hand-cannoneer", "bombard-cannon", "fishing-ship", "transport-ship", "trade-cog", "trade-cart", "galley", "fire-galley", "demolition-raft", "cannon-galleon", "longboat"];
+var layerOf = (kind) => kind in combatRules.units && combatRules.units[kind].classes.includes("ship") ? "water" : "land";
 
 // packages/sim/buildings.ts
-var buildKinds = ["house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "blacksmith", "watch-tower", "siege-workshop", "castle"];
+var buildKinds = [
+  "house",
+  "barracks",
+  "farm",
+  "lumber-camp",
+  "mining-camp",
+  "mill",
+  "stable",
+  "archery-range",
+  "monastery",
+  "blacksmith",
+  "watch-tower",
+  "siege-workshop",
+  "castle",
+  "university",
+  // The 建築 round (the town centre becomes buildable from the third age).
+  "town-center",
+  "market",
+  "dock",
+  "fish-trap",
+  "outpost",
+  "bombard-tower",
+  "wonder",
+  "palisade-wall",
+  "palisade-gate",
+  "stone-wall",
+  "gate"
+];
 var buildingRules = {
   provenance: "design_default",
-  capacity: { "town-center": 5, house: 5, barracks: 0, farm: 0, "lumber-camp": 0, "mining-camp": 0, mill: 0, stable: 0, "archery-range": 0, monastery: 0, blacksmith: 0, "watch-tower": 0, "siege-workshop": 0, castle: 10 },
+  capacity: { "town-center": 5, house: 5, barracks: 0, farm: 0, "lumber-camp": 0, "mining-camp": 0, mill: 0, stable: 0, "archery-range": 0, monastery: 0, blacksmith: 0, "watch-tower": 0, "siege-workshop": 0, castle: 10, university: 0, market: 0, dock: 0, "fish-trap": 0, outpost: 0, "bombard-tower": 0, wonder: 0, "palisade-wall": 0, "palisade-gate": 0, "stone-wall": 0, gate: 0 },
   grid: 10,
   required: Object.fromEntries(buildKinds.map((k) => [k, rules.entries.find((e) => e.id === k).time * rules.settings.tickHz]))
 };
 var overlap = (a, b) => Math.min(a[2], b[2]) - Math.max(a[0], b[0]) > 0 && Math.min(a[3], b[3]) - Math.max(a[1], b[1]) > 0;
-function placementProblem(input, kind, x, y) {
+var wallKinds2 = /* @__PURE__ */ new Set(["palisade-wall", "stone-wall"]);
+var wallGate = { "palisade-gate": "palisade-wall", gate: "stone-wall" };
+var replacesWall = (kind, o, owner) => wallGate[kind] === o.kind && (o.red ? 1 : 0) === owner;
+function placementProblem(input, kind, x, y, owner) {
   if (!buildKinds.includes(kind)) return "\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E";
   if (!Number.isSafeInteger(x) || !Number.isSafeInteger(y) || x % buildingRules.grid || y % buildingRules.grid) return `\u4F4D\u7F6E\u5FC5\u9808\u5C0D\u9F4A ${buildingRules.grid} \u55AE\u4F4D\u683C\u7DDA`;
   const box2 = obstacleBounds({ kind, x, y }), size = sizeOfTiles(input.tiles), world = size * 100;
@@ -3908,42 +6086,88 @@ function placementProblem(input, kind, x, y) {
   const tiles = [];
   for (let ty = Math.floor(box2[1] / 100); ty <= Math.floor((box2[3] - 1) / 100); ty++) for (let tx = Math.floor(box2[0] / 100); tx <= Math.floor((box2[2] - 1) / 100); tx++) tiles.push(ty * size + tx);
   if (tiles.some((t) => !input.explored(t))) return "\u5C1A\u672A\u63A2\u7D22\u7684\u5340\u57DF\u4E0D\u80FD\u5EFA\u9020";
-  if (tiles.some((t) => !input.tiles[t]?.buildability)) return "\u5730\u5F62\u4E0D\u53EF\u5EFA\u9020\uFF08\u6C34\u57DF\u3001\u61F8\u5D16\u3001\u5761\u9053\u6216\u6DFA\u7058\uFF09";
+  const wet = (t) => input.tiles[t]?.terrainType === "water" || input.tiles[t]?.terrainType === "shallow";
+  if (kind === "dock" && (x % 100 || y % 100)) return "\u78BC\u982D\u5FC5\u9808\u5C0D\u9F4A\u5730\u5716\u683C\u5B50";
+  if (kind === "dock" || kind === "fish-trap") {
+    if (tiles.some((t) => !wet(t))) return kind === "dock" ? "\u78BC\u982D\u5FC5\u9808\u84CB\u5728\u5CB8\u908A\u7684\u6C34\u9762\u4E0A" : "\u9B5A\u7DB2\u5FC5\u9808\u653E\u5728\u6C34\u9762\u4E0A";
+    if (kind === "dock" && !tiles.some((t) => {
+      const tx = t % size, ty = Math.floor(t / size);
+      return [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
+        const nx = tx + dx, ny = ty + dy, n = ny * size + nx;
+        return nx >= 0 && ny >= 0 && nx < size && ny < size && !tiles.includes(n) && !!input.tiles[n]?.buildability;
+      });
+    })) return "\u78BC\u982D\u5FC5\u9808\u7DCA\u9130\u53EF\u5EFA\u9020\u7684\u9678\u5730";
+  } else if (tiles.some((t) => !input.tiles[t]?.buildability)) return "\u5730\u5F62\u4E0D\u53EF\u5EFA\u9020\uFF08\u6C34\u57DF\u3001\u61F8\u5D16\u3001\u5761\u9053\u6216\u6DFA\u7058\uFF09";
   if (new Set(tiles.map((t) => input.tiles[t].height)).size > 1) return "\u5730\u9762\u9AD8\u5EA6\u4E0D\u4E00\u81F4";
-  if (input.obstacles.some((o) => (o.kind === "farm" ? [obstacleBounds(o)] : obstacleRects(o)).some((r2) => overlap(r2, box2)))) return "\u8207\u5EFA\u7BC9\u6216\u8CC7\u6E90\u91CD\u758A";
+  if (input.obstacles.some((o) => !(owner !== void 0 && replacesWall(kind, o, owner)) && (obstacleRects(o).length ? obstacleRects(o) : isBuilding(o) ? [obstacleBounds(o)] : []).some((r2) => overlap(r2, box2)))) return "\u8207\u5EFA\u7BC9\u6216\u8CC7\u6E90\u91CD\u758A";
   const r = navigationRules.radius;
-  if (kind !== "farm" && input.units.some((u) => u.x >= box2[0] - r && u.x <= box2[2] + r && u.y >= box2[1] - r && u.y <= box2[3] + r)) return "\u6709\u55AE\u4F4D\u7AD9\u5728\u9810\u5B9A\u5730\u4E0A";
+  if (kind !== "farm" && kind !== "fish-trap" && input.units.some((u) => u.x >= box2[0] - r && u.x <= box2[2] + r && u.y >= box2[1] - r && u.y <= box2[3] + r)) return "\u6709\u55AE\u4F4D\u7AD9\u5728\u9810\u5B9A\u5730\u4E0A";
   return null;
 }
-function buildRequirement(age, kind, own, civ = neutralCiv) {
+function buildRequirement(age, kind, own, civ = neutralCiv, techs2 = []) {
   const entry2 = rules.entries.find((e) => e.id === kind);
   if (!entry2) return "\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E";
   if (!civAvailable(civ, kind)) return "\u6B64\u6587\u660E\u4E0D\u80FD\u5EFA\u9020";
   for (const req of entry2.requires) {
     const need = rules.entries.find((e) => e.id === req), m = /^age-(\d)$/.exec(req);
     if (m && age < Number(m[1])) return `\u9700\u8981${need?.name ?? req}`;
+    if (!m && need?.kind === "technology" && !techs2.includes(req)) return `\u9700\u8981\u5148\u7814\u7A76\u300C${need.name}\u300D`;
     if (need?.kind === "building" && !own.some((b) => b.kind === req && b.complete)) return `\u9700\u8981\u5B8C\u5DE5\u7684${need.name}`;
   }
   return null;
 }
+var wallRules = { provenance: "design_default", maxSegments: 24, builderReach: 300 };
+function wallLine(from, to) {
+  let x = Math.floor(from.x / 100), y = Math.floor(from.y / 100);
+  const x1 = Math.floor(to.x / 100), y1 = Math.floor(to.y / 100), dx = Math.abs(x1 - x), dy = -Math.abs(y1 - y), sx = x < x1 ? 1 : -1, sy = y < y1 ? 1 : -1;
+  let err = dx + dy;
+  const out = [];
+  for (; ; ) {
+    out.push({ x: x * 100, y: y * 100 });
+    if (out.length >= wallRules.maxSegments || x === x1 && y === y1) break;
+    const e2 = 2 * err;
+    if (e2 >= dy) {
+      err += dy;
+      x += sx;
+    }
+    if (e2 <= dx) {
+      err += dx;
+      y += sy;
+    }
+  }
+  return out;
+}
 
 // packages/sim/work.ts
 var workPhases = ["none", "toSource", "gathering", "toDropoff", "toSite", "building", "hunting"];
-var dropoffRules = { provenance: "design_default", accepts: { "town-center": ["food", "wood", "gold", "stone"], "lumber-camp": ["wood"], "mining-camp": ["gold", "stone"], mill: ["food"] } };
+var dropoffRules = { provenance: "design_default", accepts: { "town-center": ["food", "wood", "gold", "stone"], "lumber-camp": ["wood"], "mining-camp": ["gold", "stone"], mill: ["food"] }, ships: { dock: ["food"] } };
 
 // packages/sim/defense.ts
 var defenseRules = {
   provenance: "design_default",
   // The Castle (design_default in this scale: the reference's castle holds 20 and outranges a town centre).
-  capacity: { "town-center": 15, "watch-tower": 5, castle: 20 },
-  arrows: { "town-center": { base: 1, range: 300, damage: 5, cooldown: 40 }, "watch-tower": { base: 1, range: 350, damage: 5, cooldown: 40 }, castle: { base: 4, range: 400, damage: 5, cooldown: 40 } },
+  // The bombard tower (the 建築 round, aoetw.com): holds 5 like a tower, but those inside add no shots (shots: false).
+  capacity: { "town-center": 15, "watch-tower": 5, castle: 20, "bombard-tower": 5 },
+  // bonus: extra damage against a class (aoetw: the town centre's +5 and the tower's +7 against ships). The bombard
+  // tower fires one cannonball (120 pierce, +40 against ships) every 6 s (cooldown x20 like the towers), from a tower's
+  // range; it outshoots nothing, it one-shots most units.
+  arrows: {
+    "town-center": { base: 1, range: 300, damage: 5, cooldown: 40, bonus: { ship: 5 } },
+    "watch-tower": { base: 1, range: 350, damage: 5, cooldown: 40, bonus: { ship: 7 } },
+    castle: { base: 4, range: 400, damage: 5, cooldown: 40 },
+    "bombard-tower": { base: 1, range: 350, damage: 120, cooldown: 120, bonus: { ship: 40 }, shots: false }
+  },
   // Who may go inside (foot units: no cavalry, no siege), and who adds an arrow while there.
-  canGarrison: ["villager", "militia", "spearman", "archer", "skirmisher", "monk", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "janissary", "chu-ko-nu", "samurai"],
-  addsArrow: ["villager", "archer", "skirmisher", "longbowman", "janissary", "chu-ko-nu"],
+  canGarrison: ["villager", "militia", "spearman", "archer", "skirmisher", "monk", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "janissary", "chu-ko-nu", "samurai", "hand-cannoneer"],
+  addsArrow: ["villager", "archer", "skirmisher", "longbowman", "janissary", "chu-ko-nu", "hand-cannoneer"],
   // Units inside heal one hit point every healTicks; a shot stays drawn for shotTicks.
   healTicks: 40,
   shotTicks: 10
 };
+function garrisonCapacity(s, b) {
+  const base = defenseRules.capacity[b.kind] ?? 0;
+  return base ? base + garrisonBonus(ownerOf(s, b.player), b.kind) : 0;
+}
 
 // packages/sim/production.ts
 var productionRules = { provenance: "design_default", queueLimit: 5 };
@@ -3992,9 +6216,28 @@ var religionRules = {
   attemptChance: 28,
   buildingTicks: { min: 360, max: 600 },
   rechargeTicks: 1240,
-  unconvertibleBuildings: ["town-center", "monastery", "farm", "castle"],
+  // Walls, gates and the wonder cannot be converted either (the reference).
+  unconvertibleBuildings: ["town-center", "monastery", "farm", "castle", "wonder", "palisade-wall", "stone-wall", "palisade-gate", "gate"],
   relics: { count: 5, goldTicks: 40, perMonastery: 10, victoryTicks: 2e4, baseDistance: 900, spacing: 600, fairness: 400, edge: 150 }
 };
+
+// packages/sim/market.ts
+var marketRules = {
+  provenance: "design_default",
+  start: { food: 100, wood: 100, stone: 130 },
+  lot: 100,
+  step: 2,
+  min: 20,
+  max: 9999,
+  fee: 30,
+  trade: { factor: 1.4, base: 0.3, cog: 0.75, reach: 100, retries: 3 }
+};
+var marketResources = ["food", "wood", "stone"];
+function marketQuote(prices, o, resource) {
+  const fee = marketFeeOf(o, marketRules.fee), p = prices[resource];
+  return { sell: Math.floor((p * (100 - fee) + 50) / 100), buy: Math.floor((p * (100 + fee) + 50) / 100), fee };
+}
+var tradeHome = { "trade-cart": "market", "trade-cog": "dock" };
 
 // packages/sim/ai.ts
 var aiRules = {
@@ -4023,6 +6266,8 @@ var aiRules = {
   siteRange: 900,
   siteSpread: 1.5,
   siteStep: 20,
+  siteChecks: 80,
+  worldStep: 50,
   halfMargin: 100,
   spill: 100,
   sourceMargin: 100,
@@ -4033,9 +6278,29 @@ var aiRules = {
   stoneWorkers: 3,
   castleBuilders: 3,
   castleMargin: 0,
-  research: { blacksmith: ["forging", "fletching", "scale-mail-armor", "padded-archer-armor", "iron-casting", "bodkin-arrow", "chain-mail-armor", "scale-barding-armor"], barracks: ["man-at-arms", "long-swordsman"], "archery-range": ["crossbowman"], "town-center": ["loom", "wheelbarrow", "hand-cart"], "lumber-camp": ["double-bit-axe", "bow-saw", "two-man-saw"], "mining-camp": ["gold-mining", "gold-shaft-mining"], mill: ["horse-collar", "heavy-plow", "crop-rotation"] }
+  // The 建築 round. Water (any map with a dock site within dockRange of the town centre, the lake map): a dock once the
+  // barracks stands and dockAtVillagers work, fishingShips on the deep fish, fish traps (at most fishTraps, within
+  // trapRange of the dock) once no fish is in sight, and from the third age warships galleys guarding navyRadius of
+  // the dock. The market in the third age with marketSpare wood beyond its cost: a resource above sellAbove is sold
+  // while gold is below goldShort, stone is bought for the castle while gold allows, and tradeCarts go to the
+  // opponent's market once red has seen one finished (trade needs the other player's market).
+  dockAtVillagers: 6,
+  dockRange: 1300,
+  fishingShips: 4,
+  fishTraps: 3,
+  trapRange: 700,
+  warships: 2,
+  navyRadius: 900,
+  marketSpare: 100,
+  sellAbove: 600,
+  goldShort: 100,
+  tradeCarts: 2,
+  research: { blacksmith: ["forging", "fletching", "scale-mail-armor", "padded-archer-armor", "iron-casting", "bodkin-arrow", "chain-mail-armor", "scale-barding-armor"], barracks: ["man-at-arms", "long-swordsman"], "archery-range": ["crossbowman"], "town-center": ["loom", "wheelbarrow", "hand-cart"], dock: ["gillnets"], "lumber-camp": ["double-bit-axe", "bow-saw", "two-man-saw"], "mining-camp": ["gold-mining", "gold-shaft-mining"], mill: ["horse-collar", "heavy-plow", "crop-rotation"] }
 };
 var soldierKinds = unitKinds.filter((k) => k !== "villager" && k !== "monk" && k !== "scout" && !isAnimal(k) && combatRules.units[k].attack !== "none");
+
+// packages/sim/naval.ts
+var navalRules = { provenance: "design_default", transportCapacity: 5, boardReach: 150, landReach: 150, repathTicks: 20 };
 
 // packages/sim/sim.ts
 function canonical(value) {
@@ -4050,15 +6315,15 @@ function hash(value) {
   }
   return (h2 >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, religion: religionRules, animals: animalRules, tech: techRules, defense: defenseRules, civs: civDefs, unitLines: { lineUpgrades, blacksmith, religionBonus }, simulationVersion: 27 });
+var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, naval: navalRules, market: marketRules, religion: religionRules, animals: animalRules, tech: techRules, defense: defenseRules, civs: civDefs, techs: techEffects, unitLines: { lineUpgrades, blacksmith, religionBonus }, simulationVersion: 30 });
 
 // packages/sim/protocol.ts
-var UNIT_STRIDE = 18;
+var UNIT_STRIDE = 19;
 var STRIDE = UNIT_STRIDE;
 function decodeView(r) {
-  const values = new Int32Array(r.positions), units = [];
-  for (let i = 0; i < values.length; i += STRIDE) units.push({ kind: unitKinds[values[i + 11]], hp: values[i + 12], maxHp: values[i + 13], action: values[i + 14], id: values[i], player: values[i + 1], x: values[i + 2], y: values[i + 3], navigation: navigationStates[values[i + 6]], target: values[i + 4] < 0 ? null : { x: values[i + 4], y: values[i + 5] }, work: values[i + 7] > 0 ? workPhases[values[i + 7]] : null, workResource: values[i + 10] < 0 ? null : resources[values[i + 10]], cargo: values[i + 8] < 0 ? null : { resource: resources[values[i + 8]], amount: values[i + 9] }, rite: [null, "convert", "heal"][values[i + 15]] ?? null, faith: values[i + 16] < 0 ? null : values[i + 16], relic: values[i + 17] === 1 });
-  return { seed: r.seed, layout: r.layout, size: r.size, opponent: r.opponent, civs: r.civs, terrain: r.terrain, tick: r.tick, stateHash: r.stateHash, economy: r.economy, corpses: r.corpses, outcome: r.outcome, buildings: r.buildings, transactions: r.transactions, fog: r.fog, known: r.known, resources: r.resources, relicSpots: r.relicSpots, relicsHeld: r.relicsHeld, relicTotal: r.relicTotal, relicVictory: r.relicVictory, shots: r.shots, units };
+  const values = new Int32Array(r.positions), units2 = [];
+  for (let i = 0; i < values.length; i += STRIDE) units2.push({ kind: unitKinds[values[i + 11]], hp: values[i + 12], maxHp: values[i + 13], action: values[i + 14], id: values[i], player: values[i + 1], x: values[i + 2], y: values[i + 3], navigation: navigationStates[values[i + 6]], target: values[i + 4] < 0 ? null : { x: values[i + 4], y: values[i + 5] }, work: values[i + 7] > 0 ? workPhases[values[i + 7]] : null, workResource: values[i + 10] < 0 ? null : resources[values[i + 10]], cargo: values[i + 8] < 0 ? null : { resource: resources[values[i + 8]], amount: values[i + 9] }, rite: [null, "convert", "heal"][values[i + 15]] ?? null, faith: values[i + 16] < 0 ? null : values[i + 16], relic: values[i + 17] === 1, unpacked: values[i + 18] === 1 });
+  return { seed: r.seed, layout: r.layout, size: r.size, opponent: r.opponent, civs: r.civs, terrain: r.terrain, tick: r.tick, stateHash: r.stateHash, economy: r.economy, corpses: r.corpses, outcome: r.outcome, buildings: r.buildings, transactions: r.transactions, fog: r.fog, known: r.known, resources: r.resources, relicSpots: r.relicSpots, relicsHeld: r.relicsHeld, relicTotal: r.relicTotal, relicVictory: r.relicVictory, shots: r.shots, market: r.market, transports: r.transports, trades: r.trades, wonders: r.wonders, wonderVictory: r.wonderVictory, units: units2 };
 }
 
 // apps/web/worker-client.ts
@@ -4240,7 +6505,8 @@ var uniqueUnitText = {
   janissary: "\u7B2C\u4E09\u6642\u4EE3\u5C31\u80FD\u8A13\u7DF4\u7684\u706B\u85E5\u6B65\u5175\uFF0C\u653B\u64CA\u9AD8\u3001\u5C04\u7A0B\u9060\uFF0C\u4F46\u751F\u547D\u504F\u4F4E\uFF1B\u6015\u5F13\u5175\u8207\u9A0E\u5175\u3002",
   "chu-ko-nu": "\u4E00\u6B21\u5C04\u51FA\u591A\u652F\u7BAD\u7684\u9023\u5F29\u624B\uFF0C\u53EA\u6709\u7B2C\u4E00\u652F\u662F\u5B8C\u6574\u50B7\u5BB3\uFF1B\u6210\u7FA4\u6642\u80FD\u8FC5\u901F\u62C6\u6389\u653B\u57CE\u69CC\uFF0C\u4F46\u5C04\u7A0B\u77ED\u3002",
   samurai: "\u653B\u64CA\u901F\u5EA6\u6975\u5FEB\u7684\u6B65\u5175\uFF0C\u5C0D\u6240\u6709\u7279\u6B8A\u55AE\u4F4D\u6709\u984D\u5916\u50B7\u5BB3\uFF1B\u6015\u5F13\u5175\u8207\u9A0E\u58EB\u3002",
-  mangudai: "\u5C04\u901F\u6975\u5FEB\u3001\u5C0D\u653B\u57CE\u5668\u6709\u52A0\u6210\u7684\u99AC\u5F13\u9A0E\u5175\uFF0C\u9069\u5408\u8972\u64CA\u6751\u6C11\u8207\u50E7\u4FB6\uFF1B\u6015\u9577\u69CD\u5175\u7CFB\u8207\u6210\u7FA4\u7684\u8F15\u9A0E\u5175\u3002"
+  mangudai: "\u5C04\u901F\u6975\u5FEB\u3001\u5C0D\u653B\u57CE\u5668\u6709\u52A0\u6210\u7684\u99AC\u5F13\u9A0E\u5175\uFF0C\u9069\u5408\u8972\u64CA\u6751\u6C11\u8207\u50E7\u4FB6\uFF1B\u6015\u9577\u69CD\u5175\u7CFB\u8207\u6210\u7FA4\u7684\u8F15\u9A0E\u5175\u3002",
+  longboat: "\u5728\u78BC\u982D\u5EFA\u9020\u7684\u7DAD\u4EAC\u6230\u8239\uFF0C\u4E00\u6B21\u5C04\u51FA\u597D\u5E7E\u652F\u7BAD\uFF0C\u53EA\u6709\u7B2C\u4E00\u652F\u662F\u5B8C\u6574\u50B7\u5BB3\uFF1B\u6BD4\u540C\u6642\u4EE3\u7684\u6230\u8239\u5FEB\u53C8\u4FBF\u5B9C\uFF0C\u6015\u706B\u8239\u8207\u5CB8\u4E0A\u7684\u7BAD\u5854\u3002"
 };
 var referenceOnlyNames = {
   hussar: "\u5308\u7259\u5229\u8F15\u9A0E\u5175",
@@ -4262,9 +6528,17 @@ var referenceOnlyNames = {
   "bombard-tower": "\u706B\u7832\u5854",
   "heated-shot": "\u706B\u7BAD\uFF08\u71D2\u71B1\u5F48\uFF09",
   shipwright: "\u9020\u8239\u54E1",
-  halberdier: "\u621F\u5175",
+  "hand-cannoneer": "\u706B\u69CD\u5175",
+  squires: "\u8B77\u885B\u6280\u8853",
+  husbandry: "\u8015\u7A2E\u6280\u8853",
+  sappers: "\u5DE5\u5175",
+  arson: "\u7E31\u706B",
+  "siege-engineers": "\u653B\u57CE\u5DE5\u7A0B\u5E2B",
+  "imperial-camel": "\u5E1D\u738B\u99F1\u99DD\u9A0E\u5175",
   "herbal-medicine": "\u8349\u85E5\u6CBB\u7642",
   "fire-ship": "\u706B\u6230\u8239",
+  guilds: "\u516C\u6703\u5236\u5EA6",
+  "dry-dock": "\u8239\u5862",
   "two-handed-swordsman": "\u96D9\u624B\u528D\u5175",
   champion: "\u528D\u5175\u52C7\u58EB"
 };
@@ -4282,7 +6556,731 @@ var classLabel = {
   elephant: "\u6230\u8C61",
   monk: "\u50E7\u4FB6",
   villager: "\u6751\u6C11",
-  animal: "\u52D5\u7269"
+  animal: "\u52D5\u7269",
+  camel: "\u99F1\u99DD\u9A0E\u5175",
+  petard: "\u70B8\u85E5\u6876",
+  ship: "\u8239\u96BB",
+  warship: "\u6230\u8266",
+  galley: "\u6230\u8239\u7CFB",
+  fishing: "\u6F01\u8239",
+  transport: "\u904B\u8F38\u8239",
+  trade: "\u8CBF\u6613\u55AE\u4F4D",
+  fire: "\u706B\u8239",
+  demolition: "\u81EA\u7206\u8239"
+};
+var unitsIntro = "\u55AE\u4F4D\u8CC7\u6599\u6574\u7406\u81EA aoetw.com\uFF08\u4E16\u7D00\u5E1D\u570B II \u7684\u7E41\u9AD4\u4E2D\u6587\u767E\u79D1\uFF0C\u5167\u5BB9\u4EE5 HD\uFF0FUserPatch \u5230\u65E9\u671F\u6C7A\u5B9A\u7248\u70BA\u6E96\uFF09\u3002\u672C\u4F5C\u7684\u6578\u503C\u662F\u4F9D\u672C\u4F5C\u6BD4\u4F8B\u81EA\u8A02\u7684 design_default\uFF0C\u4E0D\u662F\u539F\u4F5C\u6578\u64DA\uFF1A\u5C04\u7A0B\u8207\u8996\u91CE\u4EE5\u672C\u4F5C\u7684\u5730\u5716\u683C\u8A08\u7B97\uFF0C\u539F\u4F5C\u7684\u5C04\u7A0B\u5927\u7D04\u6298\u534A\u518D\u52A0\u4E0A\u4E00\u6BB5\u57FA\u790E\u8DDD\u96E2\uFF0C\u8996\u91CE\u683C\u6578\u5927\u81F4\u7167\u642C\uFF0C\u653B\u64CA\u9593\u9694\u63DB\u6210\u6A21\u64EC\u523B\u3002\u6D77\u8ECD\u55AE\u4F4D\u5728\u78BC\u982D\u5EFA\u9020\u3001\u53EA\u80FD\u5728\u6C34\u4E0A\u822A\u884C\uFF0C\u8981\u9078\u300C\u6E56\u7554\u300D\u9019\u985E\u6709\u5927\u7247\u6C34\u57DF\u7684\u5730\u5716\uFF1B\u706B\u69CD\u5175\u3001\u706B\u7832\u8207\u706B\u7832\u6230\u8239\u5728\u7B2C\u56DB\u6642\u4EE3\u65BC\u5B78\u9662\u7814\u7A76\u5316\u5B78\u5F8C\u89E3\u9396\u3002";
+var unitsNote = "\u55AE\u4F4D\u8CC7\u6599\u6574\u7406\u81EA aoetw.com\uFF08HD\uFF0FUserPatch \u5230\u65E9\u671F\u6C7A\u5B9A\u7248\uFF09\uFF0C\u8AAA\u660E\u5DF2\u6539\u7528\u672C\u4F5C\u7684\u55AE\u4F4D\u3001\u5EFA\u7BC9\u8207\u6642\u4EE3\u540D\u7A31\uFF1B\u6578\u503C\u4E00\u5F8B\u53D6\u81EA\u672C\u4F5C\u7684\u6A21\u64EC\uFF0C\u662F design_default\uFF0C\u4E0D\u662F\u539F\u4F5C\u6578\u64DA\u3002\u6A19\u793A\u300C\u5C1A\u672A\u5BE6\u4F5C\u300D\u7684\u55AE\u4F4D\u76EE\u524D\u4E0D\u5728\u904A\u6232\u88E1\u3002";
+var unitCategories = [
+  { id: "infantry", label: "\u6B65\u5175\u55AE\u4F4D", short: "\u6B65\u5175", text: "\u5F92\u6B65\u4F5C\u6230\u7684\u8FD1\u6230\u4E3B\u529B\uFF0C\u4FBF\u5B9C\u3001\u597D\u91CF\u7522\u3001\u65E9\u65E9\u5C31\u80FD\u8A13\u7DF4\uFF0C\u591A\u534A\u51FA\u81EA\u5175\u71DF\u3002\u666E\u904D\u6015\u5F13\u5175\u3001\u9A0E\u5175\u8207\u50E7\u4FB6\uFF0C\u4F46\u9577\u69CD\u5175\u7CFB\u5C08\u9580\u7528\u4F86\u53CD\u5236\u9A0E\u5175\u3002" },
+  { id: "ranged", label: "\u9060\u8DDD\u96E2\u55AE\u4F4D", short: "\u9060\u7A0B", text: "\u9776\u5834\u8A13\u7DF4\u7684\u5C04\u624B\u8207\u99AC\u5F13\u9A0E\u5175\uFF0C\u751F\u547D\u8207\u8B77\u7532\u504F\u4F4E\uFF0C\u537B\u80FD\u5728\u9060\u8655\u96C6\u706B\uFF0C\u64C5\u9577\u6536\u62FE\u6B65\u5175\u8207\u6751\u6C11\uFF1B\u6015\u6563\u5175\u3001\u6295\u77F3\u8ECA\uFF0C\u4EE5\u53CA\u7528\u653B\u57CE\u69CC\u63A9\u8B77\u63A8\u9032\u7684\u90E8\u968A\u3002" },
+  { id: "cavalry", label: "\u9A0E\u5175\u55AE\u4F4D", short: "\u9A0E\u5175", text: "\u99AC\u5EC4\u8A13\u7DF4\u7684\u9AD8\u901F\u90E8\u968A\uFF0C\u751F\u547D\u9AD8\uFF0C\u6B63\u9762\u885D\u92D2\u80FD\u64CA\u6F70\u5F13\u5175\u3001\u6B65\u5175\u8207\u653B\u57CE\u5668\uFF0C\u4F46\u666E\u904D\u6602\u8CB4\u53C8\u5403\u9EC3\u91D1\uFF1B\u9577\u69CD\u5175\u3001\u99F1\u99DD\u8207\u50E7\u4FB6\u662F\u4E3B\u8981\u524B\u661F\u3002" },
+  { id: "naval", label: "\u6D77\u8ECD\u55AE\u4F4D", short: "\u6D77\u8ECD", text: "\u78BC\u982D\u5EFA\u9020\u3001\u53EA\u80FD\u5728\u6C34\u4E0A\u884C\u52D5\u7684\u8239\u96BB\uFF0C\u901F\u5EA6\u5FEB\u3001\u9060\u7A0B\u8B77\u7532\u9AD8\uFF0C\u80FD\u6253\u5E36\u8DD1\u4E26\u653B\u64CA\u5CB8\u908A\u5EFA\u7BC9\uFF1B\u6015\u653B\u57CE\u5668\u3001\u50E7\u4FB6\u8207\u9632\u79A6\u5EFA\u7BC9\u3002" },
+  { id: "siege", label: "\u653B\u57CE\u5668\u55AE\u4F4D", short: "\u653B\u57CE\u5668", text: "\u7B2C\u4E09\u6642\u4EE3\u8D77\u51FA\u73FE\u7684\u6602\u8CB4\u6A5F\u68B0\uFF0C\u5C08\u9580\u62C6\u5EFA\u7BC9\uFF0C\u6216\u4EE5\u7BC4\u570D\u50B7\u5BB3\u5C0D\u4ED8\u6210\u7FA4\u7684\u6B65\u5175\u8207\u5F13\u5175\uFF1B\u591A\u534A\u4E0D\u80FD\u88AB\u50E7\u4FB6\u6CBB\u7642\u3002" },
+  { id: "unique", label: "\u7279\u6B8A\u55AE\u4F4D", short: "\u7279\u6B8A", text: "\u5404\u6587\u660E\u5C08\u5C6C\u7684\u5175\u7A2E\uFF0C\u5927\u591A\u5728\u57CE\u5821\u8A13\u7DF4\uFF1B\u5C11\u6578\u80FD\u5728\u57CE\u5821\u4EE5\u5916\u751F\u7522\uFF0C\u8B93\u6BCF\u500B\u6587\u660E\u767C\u5C55\u51FA\u81EA\u5DF1\u7684\u6253\u6CD5\u3002" },
+  { id: "gunpowder", label: "\u706B\u85E5\u55AE\u4F4D", short: "\u706B\u85E5", text: "\u4EE5\u706B\u85E5\u767C\u5C04\u5F48\u4E38\u7684\u5F8C\u671F\u55AE\u4F4D\uFF0C\u4E00\u822C\u8981\u5148\u5728\u5B78\u9662\u7814\u7A76\u5316\u5B78\uFF1B\u6587\u660E\u5C08\u5C6C\u7684\u706B\u85E5\u5175\u53EF\u4EE5\u63D0\u65E9\u5728\u7B2C\u4E09\u6642\u4EE3\u51FA\u73FE\u3002\u653B\u64CA\u5F37\uFF0C\u4F46\u547D\u4E2D\u8207\u5C04\u901F\u8F03\u5DEE\u3002" },
+  { id: "other", label: "\u5176\u4ED6\u55AE\u4F4D", short: "\u5176\u4ED6", text: "aoetw \u6C92\u6709\u6B78\u5165\u4E0A\u8FF0\u985E\u578B\u7684\u55AE\u4F4D\uFF1A\u8CA0\u8CAC\u7D93\u6FDF\u7684\u6751\u6C11\u3001\u8CA0\u8CAC\u5B97\u6559\u7684\u50E7\u4FB6\uFF0C\u4EE5\u53CA\u8DD1\u8CBF\u6613\u7684\u8CBF\u6613\u8ECA\u968A\u3002" }
+];
+var trashText = "\u5783\u573E\u5175\u6307\u4E0D\u9700\u8981\u9EC3\u91D1\u3001\u53EF\u4EE5\u5927\u91CF\u751F\u7522\u7684\u5EC9\u50F9\u5175\u7A2E\uFF08\u9577\u69CD\u5175\u7CFB\u3001\u6563\u5175\u7CFB\u3001\u65A5\u5019\u7CFB\u7B49\uFF09\uFF0C\u9069\u5408\u9577\u671F\u6230\u8207\u9EC3\u91D1\u8017\u76E1\u4E4B\u5F8C\u3002";
+var unitPendingReasons = { civ: "\u672C\u4F5C\u53EA\u6709 13 \u500B\u539F\u7248\u6587\u660E", expansion: "\u539F\u7248 13 \u6587\u660E\u6C92\u6709\u9019\u500B\u55AE\u4F4D" };
+var aoetwUnitExtras = { animals: 30, heroes: 123, editor: 23 };
+var aoetwUnits = [
+  { id: "arambai", slug: "Arambai", name: "\u98DB\u93E2\u9A0E\u5175", nameEn: "Arambai", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u7DEC\u7538", from: null, trash: false },
+  { id: "arbalest", slug: "Arbalester", name: "\u5F37\u5F29\u5175", nameEn: "Arbalester", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D"], at: "\u5C04\u7BAD\u5834", civ: null, from: "crossbowman", trash: false },
+  { id: "archer", slug: "Archer", name: "\u5F13\u5175", nameEn: "Archer", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D"], at: "\u5C04\u7BAD\u5834", civ: null, from: null, trash: false },
+  { id: "ballista-elephant", slug: "Ballista_Elephant", name: "\u5F29\u7832\u8C61", nameEn: "Ballista Elephant", categories: ["\u9A0E\u5175\u55AE\u4F4D", "\u653B\u57CE\u5668\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u9AD8\u68C9", from: null, trash: false },
+  { id: "ram", slug: "Battering_Ram", name: "\u8F15\u578B\u885D\u649E\u8ECA", nameEn: "Battering Ram", categories: ["\u653B\u57CE\u5668\u55AE\u4F4D"], at: "\u653B\u57CE\u5668\u88FD\u9020\u6240", civ: null, from: null, trash: false },
+  { id: "battle-elephant", slug: "Battle_Elephant", name: "\u77DB\u8C61\u4F15", nameEn: "Battle Elephant", categories: ["\u9A0E\u5175\u55AE\u4F4D"], at: "\u99AC\u5EC4", civ: null, from: null, trash: false },
+  { id: "berserk", slug: "Berserk", name: "\u72C2\u6230\u58EB", nameEn: "Berserk", categories: ["\u6B65\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u7DAD\u4EAC", from: null, trash: false },
+  { id: "bombard-cannon", slug: "Bombard_Cannon", name: "\u706B\u7832", nameEn: "Bombard Cannon", categories: ["\u653B\u57CE\u5668\u55AE\u4F4D", "\u706B\u85E5\u55AE\u4F4D"], at: "\u653B\u57CE\u5668\u88FD\u9020\u6240", civ: null, from: null, trash: false },
+  { id: "boyar", slug: "Boyar", name: "\u8CB4\u65CF\u9435\u9A0E", nameEn: "Boyar", categories: ["\u9A0E\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u65AF\u62C9\u592B", from: null, trash: false },
+  { id: "camel-archer", slug: "Camel_Archer", name: "\u99F1\u99DD\u5F13\u9A0E\u5175", nameEn: "Camel Archer", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u67CF\u67CF", from: null, trash: false },
+  { id: "camel", slug: "Camel_Rider", name: "\u99F1\u99DD\u9A0E\u5175", nameEn: "Camel Rider", categories: ["\u9A0E\u5175\u55AE\u4F4D"], at: "\u99AC\u5EC4", civ: null, from: null, trash: false },
+  { id: "cannon-galleon", slug: "Cannon_Galleon", name: "\u706B\u7832\u6230\u8239", nameEn: "Cannon Galleon", categories: ["\u6D77\u8ECD\u55AE\u4F4D", "\u706B\u85E5\u55AE\u4F4D"], at: "\u78BC\u982D", civ: null, from: null, trash: false },
+  { id: "capped-ram", slug: "Capped_Ram", name: "\u88DD\u7532\u885D\u649E\u8ECA", nameEn: "Capped Ram", categories: ["\u653B\u57CE\u5668\u55AE\u4F4D"], at: "\u653B\u57CE\u5668\u88FD\u9020\u6240", civ: null, from: "ram", trash: false },
+  { id: "caravel", slug: "Caravel", name: "\u5361\u62C9\u7DAD\u723E\u6230\u8239", nameEn: "Caravel", categories: ["\u6D77\u8ECD\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u78BC\u982D", civ: "\u8461\u8404\u7259", from: null, trash: false },
+  { id: "cataphract", slug: "Cataphract", name: "\u62DC\u5360\u5EAD\u8056\u9A0E\u5175", nameEn: "Cataphract", categories: ["\u9A0E\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u62DC\u5360\u5EAD", from: null, trash: false },
+  { id: "cavalier", slug: "Cavalier", name: "\u91CD\u88DD\u9A0E\u58EB", nameEn: "Cavalier", categories: ["\u9A0E\u5175\u55AE\u4F4D"], at: "\u99AC\u5EC4", civ: null, from: "knight", trash: false },
+  { id: "cavalry-archer", slug: "Cavalry_Archer", name: "\u99AC\u5F13\u9A0E\u5175", nameEn: "Cavalry Archer", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D"], at: "\u5C04\u7BAD\u5834", civ: null, from: null, trash: false },
+  { id: "champion", slug: "Champion", name: "\u528D\u5175\u52C7\u58EB", nameEn: "Champion", categories: ["\u6B65\u5175\u55AE\u4F4D"], at: "\u8ECD\u71DF", civ: null, from: "two-handed-swordsman", trash: false },
+  { id: "chu-ko-nu", slug: "Chu_Ko_Nu", name: "\u9023\u5F29\u5175", nameEn: "Chu Ko Nu", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u4E2D\u570B", from: null, trash: false },
+  { id: "condottiero", slug: "Condottiero", name: "\u50AD\u5175", nameEn: "Condottiero", categories: ["\u6B65\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u8ECD\u71DF", civ: "\u7FA9\u5927\u5229", from: null, trash: false },
+  { id: "conquistador", slug: "Conquistador", name: "\u897F\u73ED\u7259\u5F81\u670D\u8005", nameEn: "Conquistador", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D", "\u706B\u85E5\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u897F\u73ED\u7259", from: null, trash: false },
+  { id: "crossbowman", slug: "Crossbowman", name: "\u5F29\u5175", nameEn: "Crossbowman", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D"], at: "\u5C04\u7BAD\u5834", civ: null, from: "archer", trash: false },
+  { id: "demolition-raft", slug: "Demolition_Raft", name: "\u81EA\u7206\u7B4F", nameEn: "Demolition Raft", categories: ["\u6D77\u8ECD\u55AE\u4F4D"], at: "\u78BC\u982D", civ: null, from: null, trash: false },
+  { id: "demolition-ship", slug: "Demolition_Ship", name: "\u7206\u7834\u8239", nameEn: "Demolition Ship", categories: ["\u6D77\u8ECD\u55AE\u4F4D"], at: "\u78BC\u982D", civ: null, from: "demolition-raft", trash: false },
+  { id: "eagle-scout", slug: "Eagle_Scout", name: "\u9DF9\u65A5\u5019", nameEn: "Eagle Scout", categories: ["\u6B65\u5175\u55AE\u4F4D"], at: "\u8ECD\u71DF", civ: null, from: null, trash: false },
+  { id: "eagle-warrior", slug: "Eagle_Warrior", name: "\u9DF9\u52C7\u58EB", nameEn: "Eagle Warrior", categories: ["\u6B65\u5175\u55AE\u4F4D"], at: "\u8ECD\u71DF", civ: null, from: "eagle-scout", trash: false },
+  { id: "elephant-archer", slug: "Elephant_Archer", name: "\u8C61\u5F13\u9A0E\u5175", nameEn: "Elephant Archer", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u5370\u5EA6", from: null, trash: false },
+  { id: "elite-battle-elephant", slug: "Elite_Battle_Elephant", name: "\u7CBE\u92B3\u77DB\u8C61\u4F15", nameEn: "Elite Battle Elephant", categories: ["\u9A0E\u5175\u55AE\u4F4D"], at: "\u99AC\u5EC4", civ: null, from: "battle-elephant", trash: false },
+  { id: "elite-cannon-galleon", slug: "Elite_Cannon_Galleon", name: "\u7CBE\u92B3\u706B\u7832\u6230\u8239", nameEn: "Elite Cannon Galleon", categories: ["\u6D77\u8ECD\u55AE\u4F4D", "\u706B\u85E5\u55AE\u4F4D"], at: "\u78BC\u982D", civ: null, from: "cannon-galleon", trash: false },
+  { id: "elite-eagle-warrior", slug: "Elite_Eagle_Warrior", name: "\u7CBE\u92B3\u9DF9\u52C7\u58EB", nameEn: "Elite Eagle Warrior", categories: ["\u6B65\u5175\u55AE\u4F4D"], at: "\u8ECD\u71DF", civ: null, from: "eagle-warrior", trash: false },
+  { id: "elite-skirmisher", slug: "Elite_Skirmisher", name: "\u6230\u77DB\u5175", nameEn: "Elite Skirmisher", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D"], at: "\u5C04\u7BAD\u5834", civ: null, from: "skirmisher", trash: true },
+  { id: "elite-steppe-lancer", slug: "Elite_Steppe_Lancer", name: "\u7CBE\u92B3\u8349\u539F\u9A0E\u5175", nameEn: "Elite Steppe Lancer", categories: ["\u9A0E\u5175\u55AE\u4F4D"], at: "\u99AC\u5EC4", civ: null, from: "steppe-lancer", trash: false },
+  { id: "fast-fire-ship", slug: "Fast_Fire_Ship", name: "\u91CD\u578B\u706B\u6230\u8239", nameEn: "Fast Fire Ship", categories: ["\u6D77\u8ECD\u55AE\u4F4D"], at: "\u78BC\u982D", civ: null, from: "fire-ship", trash: false },
+  { id: "fire-galley", slug: "Fire_Galley", name: "\u706B\u8268\u825F", nameEn: "Fire Galley", categories: ["\u6D77\u8ECD\u55AE\u4F4D"], at: "\u78BC\u982D", civ: null, from: null, trash: false },
+  { id: "fire-ship", slug: "Fire_Ship", name: "\u706B\u6230\u8239", nameEn: "Fire Ship", categories: ["\u6D77\u8ECD\u55AE\u4F4D"], at: "\u78BC\u982D", civ: null, from: "fire-galley", trash: false },
+  { id: "fishing-ship", slug: "Fishing_Ship", name: "\u6F01\u8239", nameEn: "Fishing Ship", categories: ["\u6D77\u8ECD\u55AE\u4F4D"], at: "\u78BC\u982D", civ: null, from: null, trash: false },
+  { id: "flaming-camel", slug: "Flaming_Camel", name: "\u706B\u7130\u99F1\u99DD", nameEn: "Flaming Camel", categories: ["\u653B\u57CE\u5668\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u97C3\u977C", from: null, trash: false },
+  { id: "galleon", slug: "Galleon", name: "\u91CD\u578B\u5F29\u7832\u6230\u8239", nameEn: "Galleon", categories: ["\u6D77\u8ECD\u55AE\u4F4D"], at: "\u78BC\u982D", civ: null, from: "war-galley", trash: false },
+  { id: "galley", slug: "Galley", name: "\u6230\u8239", nameEn: "Galley", categories: ["\u6D77\u8ECD\u55AE\u4F4D"], at: "\u78BC\u982D", civ: null, from: null, trash: false },
+  { id: "gbeto", slug: "Gbeto", name: "\u98DB\u5200\u5973\u7375\u624B", nameEn: "Gbeto", categories: ["\u6B65\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u99AC\u5229", from: null, trash: false },
+  { id: "genitour", slug: "Genitour", name: "\u6A19\u69CD\u9A0E\u5175", nameEn: "Genitour", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u5C04\u7BAD\u5834", civ: "\u67CF\u67CF", from: null, trash: true },
+  { id: "genoese-crossbowman", slug: "Genoese_Crossbowman", name: "\u71B1\u90A3\u4E9E\u5F29\u624B", nameEn: "Genoese Crossbowman", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u7FA9\u5927\u5229", from: null, trash: false },
+  { id: "halberdier", slug: "Halberdier", name: "\u621F\u5175", nameEn: "Halberdier", categories: ["\u6B65\u5175\u55AE\u4F4D"], at: "\u8ECD\u71DF", civ: null, from: "pikeman", trash: true },
+  { id: "hand-cannoneer", slug: "Hand_Cannoneer", name: "\u706B\u69CD\u5175", nameEn: "Hand Cannoneer", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D", "\u706B\u85E5\u55AE\u4F4D"], at: "\u5C04\u7BAD\u5834", civ: null, from: null, trash: false },
+  { id: "heavy-camel", slug: "Heavy_Camel_Rider", name: "\u91CD\u88DD\u99F1\u99DD\u9A0E\u5175", nameEn: "Heavy Camel Rider", categories: ["\u9A0E\u5175\u55AE\u4F4D"], at: "\u99AC\u5EC4", civ: null, from: "camel", trash: false },
+  { id: "heavy-cavalry-archer", slug: "Heavy_Cavalry_Archer", name: "\u91CD\u88DD\u99AC\u5F13\u9A0E\u5175", nameEn: "Heavy Cavalry Archer", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D"], at: "\u5C04\u7BAD\u5834", civ: null, from: "cavalry-archer", trash: false },
+  { id: "heavy-demolition-ship", slug: "Heavy_Demolition_Ship", name: "\u91CD\u578B\u7206\u7834\u8239", nameEn: "Heavy Demolition Ship", categories: ["\u6D77\u8ECD\u55AE\u4F4D"], at: "\u78BC\u982D", civ: null, from: "demolition-ship", trash: false },
+  { id: "heavy-scorpion", slug: "Heavy_Scorpion", name: "\u91CD\u578B\u5F29\u7832", nameEn: "Heavy Scorpion", categories: ["\u653B\u57CE\u5668\u55AE\u4F4D"], at: "\u653B\u57CE\u5668\u88FD\u9020\u6240", civ: null, from: "scorpion", trash: false },
+  { id: "huskarl", slug: "Huskarl", name: "\u54E5\u5FB7\u885B\u968A", nameEn: "Huskarl", categories: ["\u6B65\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821\uFF0F\u8ECD\u71DF", civ: "\u54E5\u5FB7", from: null, trash: false },
+  { id: "hussar", slug: "Hussar", name: "\u5308\u7259\u5229\u8F15\u9A0E\u5175", nameEn: "Hussar", categories: ["\u9A0E\u5175\u55AE\u4F4D"], at: "\u99AC\u5EC4", civ: null, from: "light-cavalry", trash: true },
+  { id: "imperial-camel", slug: "Imperial_Camel_Rider", name: "\u5E1D\u738B\u99F1\u99DD\u9A0E\u5175", nameEn: "Imperial Camel Rider", categories: ["\u9A0E\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u99AC\u5EC4", civ: "\u5370\u5EA6", from: "heavy-camel", trash: false },
+  { id: "imperial-skirmisher", slug: "Imperial_Skirmisher", name: "\u5E1D\u738B\u6230\u77DB\u5175", nameEn: "Imperial Skirmisher", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u5C04\u7BAD\u5834", civ: "\u8D8A\u5357", from: "elite-skirmisher", trash: true },
+  { id: "jaguar-warrior", slug: "Jaguar_Warrior", name: "\u8C79\u52C7\u58EB", nameEn: "Jaguar Warrior", categories: ["\u6B65\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u963F\u8332\u7279\u514B", from: null, trash: false },
+  { id: "janissary", slug: "Janissary", name: "\u571F\u8033\u5176\u706B\u69CD\u5175", nameEn: "Janissary", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D", "\u706B\u85E5\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u571F\u8033\u5176", from: null, trash: false },
+  { id: "kamayuk", slug: "Kamayuk", name: "\u69CD\u968A\u9577", nameEn: "Kamayuk", categories: ["\u6B65\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u5370\u52A0", from: null, trash: false },
+  { id: "karambit-warrior", slug: "Karambit_Warrior", name: "\u722A\u5200\u52C7\u58EB", nameEn: "Karambit Warrior", categories: ["\u6B65\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u99AC\u4F86", from: null, trash: false },
+  { id: "keshik", slug: "Keshik", name: "\u602F\u859B", nameEn: "Keshik", categories: ["\u9A0E\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u97C3\u977C", from: null, trash: false },
+  { id: "kipchak", slug: "Kipchak", name: "\u6B3D\u5BDF", nameEn: "Kipchak", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u5EAB\u66FC", from: null, trash: false },
+  { id: "knight", slug: "Knight", name: "\u9A0E\u58EB", nameEn: "Knight", categories: ["\u9A0E\u5175\u55AE\u4F4D"], at: "\u99AC\u5EC4", civ: null, from: null, trash: false },
+  { id: "konnik", slug: "Konnik", name: "\u4FDD\u52A0\u5229\u4E9E\u9A0E\u5175", nameEn: "Konnik", categories: ["\u9A0E\u5175\u55AE\u4F4D", "\u6B65\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821\uFF0F\u71DF\u58D8", civ: "\u4FDD\u52A0\u5229\u4E9E", from: null, trash: false },
+  { id: "leitis", slug: "Leitis", name: "\u70C8\u5824\u53F8", nameEn: "Leitis", categories: ["\u9A0E\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u7ACB\u9676\u5B9B", from: null, trash: false },
+  { id: "light-cavalry", slug: "Light_Cavalry", name: "\u8F15\u9A0E\u5175", nameEn: "Light Cavalry", categories: ["\u9A0E\u5175\u55AE\u4F4D"], at: "\u99AC\u5EC4", civ: null, from: "scout", trash: true },
+  { id: "long-swordsman", slug: "Long_Swordsman", name: "\u9577\u528D\u5175", nameEn: "Long Swordsman", categories: ["\u6B65\u5175\u55AE\u4F4D"], at: "\u8ECD\u71DF", civ: null, from: "man-at-arms", trash: false },
+  { id: "longboat", slug: "Longboat", name: "\u7DAD\u4EAC\u5927\u6230\u8239", nameEn: "Longboat", categories: ["\u6D77\u8ECD\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u78BC\u982D", civ: "\u7DAD\u4EAC", from: null, trash: false },
+  { id: "longbowman", slug: "Longbowman", name: "\u9577\u5F13\u5175", nameEn: "Longbowman", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u4E0D\u5217\u985B", from: null, trash: false },
+  { id: "magyar-huszar", slug: "Magyar_Huszar", name: "\u99AC\u624E\u723E\u9A43\u9A0E\u5175", nameEn: "Magyar Huszar", categories: ["\u9A0E\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u99AC\u624E\u723E", from: null, trash: true },
+  { id: "mameluke", slug: "Mameluke", name: "\u963F\u62C9\u4F2F\u5974\u96B8\u5175", nameEn: "Mameluke", categories: ["\u9A0E\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u85A9\u62C9\u68EE", from: null, trash: false },
+  { id: "man-at-arms", slug: "Man-at-Arms", name: "\u88DD\u7532\u6B65\u5175", nameEn: "Man-at-Arms", categories: ["\u6B65\u5175\u55AE\u4F4D"], at: "\u8ECD\u71DF", civ: null, from: "militia", trash: false },
+  { id: "mangonel", slug: "Mangonel", name: "\u8F15\u578B\u6295\u77F3\u8ECA", nameEn: "Mangonel", categories: ["\u653B\u57CE\u5668\u55AE\u4F4D"], at: "\u653B\u57CE\u5668\u88FD\u9020\u6240", civ: null, from: null, trash: false },
+  { id: "mangudai", slug: "Mangudai", name: "\u8499\u53E4\u7A81\u9A0E", nameEn: "Mangudai", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u8499\u53E4", from: null, trash: false },
+  { id: "militia", slug: "Militia", name: "\u6C11\u5175", nameEn: "Militia", categories: ["\u6B65\u5175\u55AE\u4F4D"], at: "\u8ECD\u71DF", civ: null, from: null, trash: false },
+  { id: "missionary", slug: "Missionary", name: "\u50B3\u6559\u58EB", nameEn: "Missionary", categories: ["\u7279\u6B8A\u55AE\u4F4D"], at: "\u4FEE\u9053\u9662", civ: "\u897F\u73ED\u7259", from: null, trash: false },
+  { id: "monk", slug: "Monk", name: "\u50E7\u4FB6", nameEn: "Monk", categories: [], at: "\u4FEE\u9053\u9662", civ: null, from: null, trash: false },
+  { id: "onager", slug: "Onager", name: "\u4E2D\u578B\u6295\u77F3\u8ECA", nameEn: "Onager", categories: ["\u653B\u57CE\u5668\u55AE\u4F4D"], at: "\u653B\u57CE\u5668\u88FD\u9020\u6240", civ: null, from: "mangonel", trash: false },
+  { id: "organ-gun", slug: "Organ_Gun", name: "\u98A8\u7434\u7832", nameEn: "Organ Gun", categories: ["\u653B\u57CE\u5668\u55AE\u4F4D", "\u706B\u85E5\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u8461\u8404\u7259", from: null, trash: false },
+  { id: "paladin", slug: "Paladin", name: "\u904A\u4FE0", nameEn: "Paladin", categories: ["\u9A0E\u5175\u55AE\u4F4D"], at: "\u99AC\u5EC4", civ: null, from: "cavalier", trash: false },
+  { id: "petard", slug: "Petard", name: "\u70B8\u85E5\u6876", nameEn: "Petard", categories: ["\u653B\u57CE\u5668\u55AE\u4F4D"], at: "\u57CE\u5821", civ: null, from: null, trash: false },
+  { id: "pikeman", slug: "Pikeman", name: "\u91CD\u88DD\u9577\u69CD\u5175", nameEn: "Pikeman", categories: ["\u6B65\u5175\u55AE\u4F4D"], at: "\u8ECD\u71DF", civ: null, from: "spearman", trash: true },
+  { id: "plumed-archer", slug: "Plumed_Archer", name: "\u7FBD\u6BDB\u7BAD\u5C04\u624B", nameEn: "Plumed Archer", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u99AC\u96C5", from: null, trash: false },
+  { id: "rattan-archer", slug: "Rattan_Archer", name: "\u85E4\u7532\u5F13\u5175", nameEn: "Rattan Archer", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u8D8A\u5357", from: null, trash: false },
+  { id: "samurai", slug: "Samurai", name: "\u65E5\u672C\u6B66\u58EB", nameEn: "Samurai", categories: ["\u6B65\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u65E5\u672C", from: null, trash: false },
+  { id: "scorpion", slug: "Scorpion", name: "\u5F29\u7832", nameEn: "Scorpion", categories: ["\u653B\u57CE\u5668\u55AE\u4F4D"], at: "\u653B\u57CE\u5668\u88FD\u9020\u6240", civ: null, from: null, trash: false },
+  { id: "scout", slug: "Scout_Cavalry", name: "\u65A5\u5019", nameEn: "Scout Cavalry", categories: ["\u9A0E\u5175\u55AE\u4F4D"], at: "\u99AC\u5EC4", civ: null, from: null, trash: true },
+  { id: "serjeant", slug: "Serjeant", name: "\u85A9\u91D1\u7279\u885B\u5175", nameEn: "Serjeant", categories: ["\u6B65\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821\uFF0F\u57CE\u6A13", civ: "\u897F\u897F\u91CC", from: null, trash: false },
+  { id: "shotel-warrior", slug: "Shotel_Warrior", name: "\u5F4E\u5200\u52C7\u58EB", nameEn: "Shotel Warrior", categories: ["\u6B65\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u8863\u7D22\u6BD4\u4E9E", from: null, trash: false },
+  { id: "siege-onager", slug: "Siege_Onager", name: "\u91CD\u578B\u6295\u77F3\u8ECA", nameEn: "Siege Onager", categories: ["\u653B\u57CE\u5668\u55AE\u4F4D"], at: "\u653B\u57CE\u5668\u88FD\u9020\u6240", civ: null, from: "onager", trash: false },
+  { id: "siege-ram", slug: "Siege_Ram", name: "\u91CD\u578B\u885D\u649E\u8ECA", nameEn: "Siege Ram", categories: ["\u653B\u57CE\u5668\u55AE\u4F4D"], at: "\u653B\u57CE\u5668\u88FD\u9020\u6240", civ: null, from: "capped-ram", trash: false },
+  { id: "siege-tower", slug: "Siege_Tower", name: "\u653B\u57CE\u5854", nameEn: "Siege Tower", categories: ["\u653B\u57CE\u5668\u55AE\u4F4D"], at: "\u653B\u57CE\u5668\u88FD\u9020\u6240", civ: null, from: null, trash: false },
+  { id: "skirmisher", slug: "Skirmisher", name: "\u77DB\u5175", nameEn: "Skirmisher", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D"], at: "\u5C04\u7BAD\u5834", civ: null, from: null, trash: true },
+  { id: "slinger", slug: "Slinger", name: "\u6295\u77F3\u624B", nameEn: "Slinger", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u5C04\u7BAD\u5834", civ: "\u5370\u52A0", from: null, trash: false },
+  { id: "spearman", slug: "Spearman", name: "\u9577\u69CD\u5175", nameEn: "Spearman", categories: ["\u6B65\u5175\u55AE\u4F4D"], at: "\u8ECD\u71DF", civ: null, from: null, trash: true },
+  { id: "steppe-lancer", slug: "Steppe_Lancer", name: "\u8349\u539F\u9A0E\u5175", nameEn: "Steppe Lancer", categories: ["\u9A0E\u5175\u55AE\u4F4D"], at: "\u99AC\u5EC4", civ: null, from: null, trash: false },
+  { id: "tarkan", slug: "Tarkan", name: "\u7B54\u524C\u7F55\u9A0E\u5175", nameEn: "Tarkan", categories: ["\u9A0E\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821\uFF0F\u99AC\u5EC4", civ: "\u5308\u4EBA", from: null, trash: false },
+  { id: "teutonic-knight", slug: "Teutonic_Knight", name: "\u689D\u9813\u6B66\u58EB", nameEn: "Teutonic Knight", categories: ["\u6B65\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u689D\u9813", from: null, trash: false },
+  { id: "throwing-axeman", slug: "Throwing_Axeman", name: "\u64F2\u65A7\u5175", nameEn: "Throwing Axeman", categories: ["\u6B65\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u6CD5\u862D\u514B", from: null, trash: false },
+  { id: "trade-cart", slug: "Trade_Cart", name: "\u8CBF\u6613\u8ECA\u968A", nameEn: "Trade Cart", categories: [], at: "\u5E02\u96C6", civ: null, from: null, trash: false },
+  { id: "trade-cog", slug: "Trade_Cog", name: "\u8CBF\u6613\u5546\u65C5", nameEn: "Trade Cog", categories: ["\u6D77\u8ECD\u55AE\u4F4D"], at: "\u78BC\u982D", civ: null, from: null, trash: false },
+  { id: "transport-ship", slug: "Transport_Ship", name: "\u904B\u8F38\u8239", nameEn: "Transport Ship", categories: ["\u6D77\u8ECD\u55AE\u4F4D"], at: "\u78BC\u982D", civ: null, from: null, trash: false },
+  { id: "trebuchet", slug: "Trebuchet", name: "\u6295\u77F3\u6A5F", nameEn: "Trebuchet", categories: ["\u653B\u57CE\u5668\u55AE\u4F4D"], at: "\u57CE\u5821", civ: null, from: null, trash: false },
+  { id: "turtle-ship", slug: "Turtle_Ship", name: "\u9F9C\u7532\u8239", nameEn: "Turtle Ship", categories: ["\u6D77\u8ECD\u55AE\u4F4D", "\u706B\u85E5\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u78BC\u982D", civ: "\u671D\u9BAE", from: null, trash: false },
+  { id: "two-handed-swordsman", slug: "Two-Handed_Swordsman", name: "\u96D9\u624B\u528D\u5175", nameEn: "Two-Handed Swordsman", categories: ["\u6B65\u5175\u55AE\u4F4D"], at: "\u8ECD\u71DF", civ: null, from: "long-swordsman", trash: false },
+  { id: "villager", slug: "Villager", name: "\u6751\u6C11", nameEn: "Villager", categories: [], at: "\u57CE\u93AE\u4E2D\u5FC3", civ: null, from: null, trash: false },
+  { id: "war-elephant", slug: "War_Elephant", name: "\u6230\u8C61", nameEn: "War Elephant", categories: ["\u9A0E\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u6CE2\u65AF", from: null, trash: false },
+  { id: "war-galley", slug: "War_Galley", name: "\u5F29\u7832\u6230\u8239", nameEn: "War Galley", categories: ["\u6D77\u8ECD\u55AE\u4F4D"], at: "\u78BC\u982D", civ: null, from: "galley", trash: false },
+  { id: "war-wagon", slug: "War_Wagon", name: "\u99AC\u6230\u8ECA", nameEn: "War Wagon", categories: ["\u9060\u8DDD\u96E2\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u671D\u9BAE", from: null, trash: false },
+  { id: "woad-raider", slug: "Woad_Raider", name: "\u83D8\u85CD\u6B66\u58EB", nameEn: "Woad Raider", categories: ["\u6B65\u5175\u55AE\u4F4D", "\u7279\u6B8A\u55AE\u4F4D"], at: "\u57CE\u5821", civ: "\u585E\u723E\u7279", from: null, trash: false },
+  { id: "xolotl-warrior", slug: "Xolotl_Warrior", name: "\u7D22\u6D1B\u6258\u52C7\u58EB", nameEn: "Xolotl Warrior", categories: ["\u9A0E\u5175\u55AE\u4F4D"], at: "\u99AC\u5EC4", civ: null, from: null, trash: false }
+];
+var unitText = {
+  "arambai": "\u7DEC\u7538\u7684\u57CE\u5821\u7279\u6B8A\u55AE\u4F4D\uFF0C\u9A0E\u99AC\u6295\u64F2\u98DB\u93E2\u7684\u9060\u7A0B\u9A0E\u5175\uFF0C\u50B7\u5BB3\u9A5A\u4EBA\u3001\u5C04\u901F\u5FEB\u53C8\u6A5F\u52D5\uFF0C\u4F46\u6E96\u5EA6\u4E0D\u4F73\uFF0C\u5C0D\u885D\u649E\u8ECA\u6709\u984D\u5916\u50B7\u5BB3\u3002\u80FD\u8F15\u9B06\u6536\u62FE\u6B65\u5175\u3001\u5F13\u5175\u3001\u6751\u6C11\u8207\u50E7\u4FB6\uFF0C\u537B\u6015\u9577\u69CD\u5175\u3001\u99F1\u99DD\u9A0E\u5175\u3001\u963F\u62C9\u4F2F\u5974\u96B8\u5175\uFF0C\u4EE5\u53CA\u54E5\u5FB7\u885B\u968A\u3001\u9DF9\u52C7\u58EB\u9019\u985E\u8010\u7BAD\u55AE\u4F4D\u3002",
+  "arbalest": "\u7B2C\u56DB\u6642\u4EE3\u7684\u5F13\u5175\u7CFB\u6700\u7D42\u5347\u7D1A\uFF0C\u64C5\u9577\u5728\u9060\u8655\u6D88\u8017\u6B65\u5175\u8207\u6751\u6C11\u3002\u78B0\u4E0A\u6563\u5175\u3001\u6295\u77F3\u8ECA\u3001\u5F29\u7832\u3001\u9A0E\u5175\uFF0C\u6216\u54E5\u5FB7\u885B\u968A\u3001\u9DF9\u52C7\u58EB\u3001\u85E4\u7532\u5F13\u5175\u9019\u985E\u8010\u7BAD\u55AE\u4F4D\u5C31\u6703\u5403\u8667\u3002",
+  "archer": "\u7B2C\u4E8C\u6642\u4EE3\u5C31\u80FD\u8A13\u7DF4\u7684\u57FA\u790E\u9060\u7A0B\u5175\uFF0C\u8840\u91CF\u8207\u653B\u64CA\u90FD\u504F\u4F4E\uFF0C\u4F46\u9760\u5C04\u7A0B\u80FD\u5728\u65E9\u671F\u58D3\u5236\u6B65\u5175\u3001\u7375\u6BBA\u6751\u6C11\u3002\u5929\u6575\u662F\u6563\u5175\uFF0C\u6578\u91CF\u4E0D\u8DB3\u6642\u4E5F\u6015\u65A5\u5019\u8207\u9DF9\u65A5\u5019\u8FD1\u8EAB\u3002",
+  "ballista-elephant": "\u9AD8\u68C9\u7684\u57CE\u5821\u7279\u6B8A\u55AE\u4F4D\uFF0C\u80CC\u4E0A\u67B6\u8457\u5F29\u7832\u7684\u5927\u8C61\uFF0C\u540C\u6642\u7B97\u9A0E\u5175\u8207\u653B\u57CE\u5668\uFF0C\u7BAD\u77E2\u80FD\u8CAB\u7A7F\u6210\u6392\u6575\u4EBA\uFF0C\u9084\u80FD\u5C04\u5012\u6A39\u6728\u3002\u9069\u5408\u6E05\u7406\u5F13\u5175\u3001\u6B65\u5175\u3001\u5EFA\u7BC9\u8207\u9760\u5CB8\u8239\u8266\uFF0C\u4F46\u6015\u69CD\u968A\u9577\u3001\u621F\u5175\u3001\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u7B49\u8FD1\u6230\u524B\u661F\uFF0C\u4EE5\u53CA\u6295\u77F3\u8ECA\u3001\u706B\u7832\u8207\u99AC\u624E\u723E\u9A43\u9A0E\u5175\u3002",
+  "ram": "\u7121\u4EBA\u64CD\u4F5C\u7684\u653B\u57CE\u885D\u8ECA\uFF0C\u5C08\u62C6\u5EFA\u7BC9\u8207\u653B\u57CE\u5668\uFF0C\u9060\u7A0B\u8B77\u7532\u6975\u9AD8\u3001\u5E7E\u4E4E\u4E0D\u6015\u7BAD\uFF0C\u9084\u80FD\u8F09\u6B65\u5175\u63D0\u5347\u901F\u5EA6\u8207\u7834\u58DE\u529B\u3002\u79FB\u52D5\u975E\u5E38\u6162\u3001\u8FD1\u6230\u9632\u79A6\u5F88\u5DEE\uFF0C\u9023\u6751\u6C11\u90FD\u80FD\u62C6\u5B83\uFF1B\u6700\u6015\u8FD1\u6230\u9A0E\u5175\uFF08\u5C24\u5176\u99AC\u624E\u723E\u9A43\u9A0E\u5175\uFF09\u3001\u8499\u53E4\u7A81\u9A0E\u8207\u6295\u77F3\u8ECA\u3002",
+  "battle-elephant": "\u6771\u5357\u4E9E\u6587\u660E\u5728\u7B2C\u4E09\u6642\u4EE3\u7531\u99AC\u5EC4\u8A13\u7DF4\u7684\u6230\u9B25\u5927\u8C61\uFF0C\u985E\u4F3C\u6230\u8C61\u4F46\u5C0F\u4E00\u865F\uFF0C\u653B\u64CA\u6642\u6703\u8E10\u8E0F\u8EAB\u65C1\u6575\u4EBA\u3002\u64C5\u9577\u6253\u8FD1\u6230\u55AE\u4F4D\u8207\u5EFA\u7BC9\uFF0C\u4F46\u8D70\u5F97\u6162\u3001\u6613\u88AB\u50E7\u4FB6\u62DB\u964D\uFF0C\u9577\u77DB\u5175\u3001\u69CD\u968A\u9577\u3001\u99F1\u99DD\u9A0E\u5175\u3001\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u8207\u5F29\u7832\u90FD\u80FD\u524B\u5236\u5B83\u3002",
+  "berserk": "\u7DAD\u4EAC\u7684\u57CE\u5821\u7279\u6B8A\u6B65\u5175\uFF0C\u653B\u9632\u517C\u5099\u4E14\u6703\u81EA\u884C\u56DE\u8840\uFF0C\u7814\u767C\u914B\u9577\u5F8C\u5C0D\u9A0E\u5175\u4E5F\u6709\u52A0\u6210\u3002\u64C5\u9577\u780D\u6563\u5175\u3001\u621F\u5175\u3001\u99F1\u99DD\u3001\u9DF9\u52C7\u58EB\u8207\u5EFA\u7BC9\uFF0C\u4F46\u9047\u5230\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u3001\u8C79\u52C7\u58EB\u3001\u689D\u9813\u6B66\u58EB\u3001\u65E5\u672C\u6B66\u58EB\u7B49\u66F4\u5F37\u7684\u8FD1\u6230\uFF0C\u6216\u706B\u69CD\u5175\u3001\u6295\u77F3\u624B\u7B49\u9060\u7A0B\u53CD\u6B65\u5175\u5C31\u5C45\u4E0B\u98A8\u3002",
+  "bombard-cannon": "\u7B2C\u56DB\u6642\u4EE3\u7814\u767C\u5316\u5B78\u5F8C\u624D\u80FD\u751F\u7522\u7684\u706B\u85E5\u653B\u57CE\u7832\uFF0C\u5C04\u7A0B\u9577\u3001\u55AE\u767C\u50B7\u5BB3\u5927\u3002\u5C08\u9580\u8F5F\u64CA\u5EFA\u7BC9\uFF0C\u4E5F\u80FD\u9EDE\u6389\u5F29\u7832\u3001\u6295\u77F3\u8ECA\u3001\u5DE8\u578B\u6295\u77F3\u6A5F\u8207\u5F13\u5175\uFF1B\u4E00\u65E6\u88AB\u8FD1\u6230\u9A0E\u5175\u3001\u99AC\u624E\u723E\u9A43\u9A0E\u5175\u6216\u50AD\u5175\u8CBC\u8EAB\u5C31\u96E3\u4EE5\u81EA\u4FDD\u3002",
+  "boyar": "\u65AF\u62C9\u592B\u7684\u57CE\u5821\u7279\u6B8A\u91CD\u9A0E\u5175\uFF0C\u8FD1\u6230\u8B77\u7532\u6975\u539A\u3001\u653B\u64CA\u4E5F\u9AD8\uFF0C\u9069\u5408\u6B63\u9762\u786C\u78B0\u3002\u80FD\u58D3\u5236\u6563\u5175\u8207\u591A\u6578\u8FD1\u6230\u5175\u7A2E\uFF0C\u4F46\u6015\u9577\u77DB\u5175\u3001\u69CD\u968A\u9577\u3001\u99F1\u99DD\u9A0E\u5175\u3001\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u3001\u50E7\u4FB6\u8207\u5F13\u5175\u96C6\u706B\u3002",
+  "camel-archer": "\u67CF\u67CF\u5728\u975E\u6D32\u738B\u570B\u8CC7\u6599\u7247\u767B\u5834\u7684\u57CE\u5821\u7279\u6B8A\u55AE\u4F4D\uFF0C\u9A0E\u99F1\u99DD\u5C04\u7BAD\uFF0C\u5C0D\u99AC\u5F13\u9A0E\u5175\u985E\u6709\u984D\u5916\u50B7\u5BB3\u3002\u9069\u5408\u53CD\u5236\u99AC\u5F13\u9A0E\u5175\u3001\u8499\u53E4\u7A81\u9A0E\u8207\u884C\u52D5\u9072\u7DE9\u7684\u8FD1\u6230\u90E8\u968A\uFF0C\u4F46\u6015\u54E5\u5FB7\u885B\u968A\u3001\u7CBE\u92B3\u6563\u5175\u3001\u9DF9\u52C7\u58EB\u8207\u6295\u77F3\u8ECA\u3002",
+  "camel": "\u7B2C\u4E09\u6642\u4EE3\u7531\u99AC\u5EC4\u8A13\u7DF4\u7684\u99F1\u99DD\u5175\uFF0C\u5C0D\u9A0E\u5175\u6709\u5C08\u5C6C\u52A0\u6210\u3002\u5E38\u7528\u4F86\u53CD\u5236\u9A0E\u58EB\u3001\u99AC\u5F13\u9A0E\u5175\u3001\u653B\u57CE\u5668\u8207\u6563\u5175\uFF1B\u9047\u4E0A\u6B65\u5175\u3001\u5F13\u5175\u3001\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u6216\u9632\u79A6\u5EFA\u7BC9\u5247\u4E0D\u5229\u3002",
+  "cannon-galleon": "\u7B2C\u56DB\u6642\u4EE3\u7814\u767C\u5C0D\u61C9\u79D1\u6280\u5F8C\u5728\u78BC\u982D\u5EFA\u9020\u7684\u706B\u7832\u8239\uFF0C\u5C04\u7A0B\u9577\uFF0C\u5C08\u9580\u5F9E\u6D77\u4E0A\u8F5F\u64CA\u5CB8\u908A\u5EFA\u7BC9\u3002\u5C0D\u4ED8\u5176\u4ED6\u8239\u96BB\u53CD\u61C9\u9072\u920D\uFF0C\u5BB9\u6613\u88AB\u6230\u8239\u3001\u706B\u7832\u8207\u50E7\u4FB6\u89E3\u6C7A\u3002",
+  "capped-ram": "\u653B\u57CE\u69CC\u7684\u5F37\u5316\u7248\uFF0C\u62C6\u5EFA\u7BC9\u8207\u653B\u57CE\u5668\u66F4\u51F6\u3001\u9060\u9632\u4F9D\u820A\u6975\u9AD8\uFF0C\u5347\u7D1A\u4E5F\u4FBF\u5B9C\uFF0C\u662F\u5E1D\u738B\u521D\u671F\u6C92\u6709\u5DE8\u578B\u6295\u77F3\u6A5F\u6642\u63A8\u9032\u7684\u597D\u5E6B\u624B\u3002\u884C\u9032\u4ECD\u7136\u7DE9\u6162\u9700\u8981\u8B77\u9001\uFF0C\u6015\u8FD1\u6230\u55AE\u4F4D\uFF08\u7279\u5225\u662F\u99AC\u624E\u723E\u9A43\u9A0E\u5175\uFF09\u3001\u8499\u53E4\u7A81\u9A0E\u8207\u6295\u77F3\u8ECA\u3002",
+  "caravel": "\u8461\u8404\u7259\u7684\u7B2C\u4E8C\u7279\u6B8A\u55AE\u4F4D\uFF0C\u7B2C\u4E09\u6642\u4EE3\u5728\u78BC\u982D\u5EFA\u9020\uFF0C\u5C04\u51FA\u7684\u7BAD\u80FD\u50CF\u5F29\u7832\u4E00\u6A23\u8CAB\u7A7F\u591A\u500B\u76EE\u6A19\u3002\u64C5\u9577\u6253\u5BC6\u96C6\u8239\u968A\u3001\u904B\u8F38\u8239\u3001\u6F01\u8239\u8207\u706B\u7832\u6230\u8239\uFF0C\u4F46\u6015\u706B\u6230\u8239\u3001\u9F9C\u7532\u8239\u3001\u7DAD\u4EAC\u5927\u6230\u8239\uFF0C\u4EE5\u53CA\u5CB8\u4E0A\u7684\u7BAD\u5854\u3001\u57CE\u5821\u8207\u653B\u57CE\u5668\u3002",
+  "cataphract": "\u62DC\u5360\u5EAD\u7684\u57CE\u5821\u7279\u6B8A\u91CD\u9A0E\u5175\uFF0C\u5C0D\u6B65\u5175\u6709\u5927\u91CF\u52A0\u6210\u50B7\u5BB3\uFF0C\u9023\u9577\u69CD\u5175\u90FD\u96E3\u4EE5\u62DB\u67B6\u3002\u6B65\u5175\u3001\u6563\u5175\u3001\u653B\u57CE\u5668\u8207\u8F15\u9A0E\u5175\u90FD\u662F\u5B83\u7684\u7375\u7269\uFF0C\u4F46\u8A13\u7DF4\u8207\u5347\u7D1A\u6602\u8CB4\uFF0C\u78B0\u4E0A\u6230\u8C61\u3001\u8CB4\u65CF\u9435\u9A0E\u3001\u9A0E\u58EB\u6216\u5927\u91CF\u5F13\u5175\u5C31\u5403\u8667\u3002",
+  "cavalier": "\u9A0E\u58EB\u5728\u7B2C\u56DB\u6642\u4EE3\u7684\u5347\u7D1A\uFF0C\u4ECD\u662F\u5F8C\u671F\u6700\u5F37\u52E2\u7684\u4E3B\u529B\u4E4B\u4E00\uFF0C\u80FD\u78BE\u58D3\u6B65\u5175\u3001\u5F13\u5175\u3001\u6751\u6C11\u8207\u653B\u57CE\u5668\u3002\u5929\u6575\u4F9D\u7136\u662F\u9577\u69CD\u5175\u7CFB\u3001\u99F1\u99DD\u9A0E\u5175\u3001\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u8207\u50E7\u4FB6\uFF0C\u6230\u8C61\u3001\u8CB4\u65CF\u9435\u9A0E\u3001\u689D\u9813\u6B66\u58EB\u4E5F\u80FD\u6B63\u9762\u64CB\u4F4F\u5B83\u3002",
+  "cavalry-archer": "\u7B2C\u4E09\u6642\u4EE3\u65BC\u9776\u5834\u8A13\u7DF4\u7684\u9A0E\u99AC\u5C04\u624B\uFF0C\u901F\u5EA6\u5FEB\u53C8\u80FD\u9060\u7A0B\u653B\u64CA\uFF0C\u64C5\u9577\u908A\u9000\u908A\u5C04\u9A37\u64FE\u6B65\u5175\u8207\u6162\u901F\u8FD1\u6230\uFF1B\u7F8E\u6D32\u4E09\u570B\u7121\u6CD5\u8A13\u7DF4\u3002\u6015\u7CBE\u92B3\u6563\u5175\u3001\u9577\u69CD\u5175\u3001\u99F1\u99DD\u7CFB\u8207\u99F1\u99DD\u5F13\u9A0E\u5175\uFF0C\u71B1\u90A3\u4E9E\u5F29\u624B\u3001\u54E5\u5FB7\u885B\u968A\u3001\u9DF9\u52C7\u58EB\u3001\u6295\u77F3\u8ECA\u8207\u5F29\u7832\u4E5F\u80FD\u524B\u5B83\u3002",
+  "champion": "\u6C11\u5175\u7CFB\u7684\u6700\u9AD8\u7B49\u7D1A\uFF0C\u7B2C\u56DB\u6642\u4EE3\u65BC\u5175\u71DF\u5347\u7D1A\u7684\u6CDB\u7528\u91CD\u6B65\u5175\u3002\u80FD\u780D\u7FFB\u6563\u5175\u3001\u621F\u5175\u3001\u9DF9\u52C7\u58EB\u3001\u99F1\u99DD\u3001\u8F15\u9A0E\u5175\u8207\u5EFA\u7BC9\uFF1B\u4F46\u5F13\u5175\u3001\u5F29\u7832\u3001\u706B\u85E5\u55AE\u4F4D\u3001\u6295\u77F3\u624B\uFF0C\u4EE5\u53CA\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u3001\u689D\u9813\u6B66\u58EB\u3001\u8C79\u52C7\u58EB\u90FD\u662F\u5B83\u7684\u524B\u661F\u3002",
+  "chu-ko-nu": "\u4E2D\u570B\u7684\u57CE\u5821\u7279\u6B8A\u5F13\u5175\uFF0C\u4E00\u6B21\u9023\u5C04\u591A\u652F\u7BAD\uFF08\u666E\u901A\u4E09\u652F\u3001\u7CBE\u92B3\u4E94\u652F\uFF09\uFF0C\u4F46\u53EA\u6709\u7B2C\u4E00\u652F\u9020\u6210\u5B8C\u6574\u50B7\u5BB3\u3002\u8FD1\u8DDD\u96E2\u706B\u529B\u5BC6\u96C6\uFF0C\u64C5\u9577\u8655\u7406\u6B65\u5175\u3001\u5EFA\u7BC9\u8207\u885D\u649E\u8ECA\uFF1B\u6015\u6563\u5175\u3001\u5F29\u7832\u3001\u6295\u77F3\u8ECA\u3001\u9A0E\u5175\u3001\u54E5\u5FB7\u885B\u968A\u3001\u9DF9\u52C7\u58EB\u8207\u6A19\u69CD\u9A0E\u5175\u3002",
+  "condottiero": "\u7FA9\u5927\u5229\u7684\u7B2C\u4E8C\u7279\u6B8A\u55AE\u4F4D\uFF0C\u7FA9\u5927\u5229\u8207\u5176\u76DF\u53CB\u5728\u7B2C\u56DB\u6642\u4EE3\u5C31\u80FD\u65BC\u5175\u71DF\u8A13\u7DF4\uFF0C\u6C92\u6709\u7CBE\u92B3\u7248\u3002\u79FB\u52D5\u5FEB\u3001\u5C08\u9580\u53CD\u706B\u85E5\uFF0C\u706B\u69CD\u5175\u3001\u571F\u8033\u5176\u706B\u69CD\u5175\u3001\u897F\u73ED\u7259\u5F81\u670D\u8005\u3001\u706B\u7832\u8207\u653B\u57CE\u5668\u90FD\u6015\u5B83\uFF1B\u4F46\u5C0D\u5F13\u5175\u3001\u5F29\u7832\u8207\u689D\u9813\u6B66\u58EB\u3001\u65E5\u672C\u6B66\u58EB\u7B49\u91CD\u6B65\u5175\u5F88\u5403\u8667\u3002",
+  "conquistador": "\u897F\u73ED\u7259\u5728\u5F81\u670D\u8005\u5165\u4FB5\u767B\u5834\u7684\u57CE\u5821\u7279\u6B8A\u55AE\u4F4D\uFF0C\u662F\u9A0E\u99AC\u7684\u706B\u69CD\u624B\uFF0C\u8B77\u7532\u9AD8\u3001\u653B\u64CA\u5F37\u3001\u8DD1\u5F97\u5FEB\u3002\u5F88\u6703\u5C60\u6BBA\u6B65\u5175\u8207\u885D\u649E\u8ECA\uFF0C\u4F46\u6015\u7CBE\u92B3\u6563\u5175\u3001\u9577\u69CD\u5175\u3001\u99F1\u99DD\u9A0E\u5175\u3001\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u3001\u50AD\u5175\u3001\u54E5\u5FB7\u885B\u968A\u3001\u9DF9\u52C7\u58EB\u8207\u6295\u77F3\u8ECA\u3002",
+  "crossbowman": "\u5F13\u5175\u5728\u7B2C\u4E09\u6642\u4EE3\u7684\u5347\u7D1A\uFF0C\u80FD\u9AD8\u6548\u7387\u6D88\u6EC5\u6B65\u5175\u8207\u6751\u6C11\uFF1B\u897F\u73ED\u7259\u8207\u4FDD\u52A0\u5229\u4E9E\u6C92\u6709\u6B64\u55AE\u4F4D\u3002\u9047\u5230\u9A0E\u58EB\u3001\u6563\u5175\u3001\u653B\u57CE\u5668\uFF0C\u4EE5\u53CA\u8010\u7BAD\u7684\u54E5\u5FB7\u885B\u968A\u3001\u9DF9\u52C7\u58EB\u3001\u85E4\u7532\u5F13\u5175\u6642\u4E0D\u5229\u3002",
+  "demolition-raft": "\u975E\u6D32\u738B\u570B\u65B0\u589E\u7684\u7B2C\u4E8C\u6642\u4EE3\u81EA\u7206\u5C0F\u8239\uFF0C\u6EFF\u8F09\u70B8\u85E5\uFF0C\u649E\u4E0A\u6575\u8239\u3001\u78BC\u982D\u6216\u5CB8\u908A\u76EE\u6A19\u6642\u9020\u6210\u5927\u91CF\u50B7\u5BB3\uFF1B\u671D\u9BAE\u7121\u6CD5\u4F7F\u7528\u3002\u80FD\u70B8\u6BC0\u904B\u8F38\u8239\u3001\u6F01\u8239\u8207\u5CB8\u908A\u6216\u6DFA\u7058\u4E0A\u7684\u8FD1\u6230\u90E8\u968A\uFF0C\u4F46\u88AB\u7BAD\u5854\u6216\u5CB8\u4E0A\u9060\u7A0B\u55AE\u4F4D\u5C04\u64CA\u5C31\u96E3\u4EE5\u63A5\u8FD1\u3002",
+  "demolition-ship": "\u7B2C\u4E09\u6642\u4EE3\u7684\u7206\u7834\u8239\uFF0C\u6230\u8239\u5347\u7D1A\u70BA\u5F29\u7832\u6230\u8239\u6642\u7531\u81EA\u7206\u7B4F\u81EA\u52D5\u5347\u7D1A\u800C\u4F86\uFF0C\u885D\u9032\u6575\u8266\u6216\u5CB8\u908A\u76EE\u6A19\u5F8C\u5F15\u7206\uFF1B\u671D\u9BAE\u4E0D\u80FD\u8A13\u7DF4\u3002\u5C0D\u904B\u8F38\u8239\u3001\u6F01\u8239\u3001\u706B\u7832\u6230\u8239\u8207\u5CB8\u908A\u8FD1\u6230\u55AE\u4F4D\u6BBA\u50B7\u529B\u5927\uFF0C\u4F46\u6015\u9F9C\u7532\u8239\u3001\u7BAD\u5854\u3001\u57CE\u5821\u8207\u5CB8\u4E0A\u9060\u7A0B\u55AE\u4F4D\u3002",
+  "eagle-scout": "\u7F8E\u6D32\u4E09\u570B\u5C08\u7528\u7684\u6B65\u5175\u5075\u5BDF\u5175\uFF0C\u5931\u843D\u7684\u5E1D\u570B\u8D77\u7B2C\u4E8C\u6642\u4EE3\u5373\u53EF\u751F\u7522\uFF0C\u958B\u5C40\u90A3\u96BB\u6703\u81EA\u52D5\u63A2\u5716\u3002\u80FD\u6B3A\u8CA0\u6563\u5175\u3001\u65A5\u5019\u8207\u5F13\u5175\uFF0C\u4F46\u8207\u6B65\u5175\u6B63\u9762\u4EA4\u6230\u6703\u843D\u6557\u3002",
+  "eagle-warrior": "\u9DF9\u65A5\u5019\u5347\u7D1A\u800C\u6210\u7684\u7F8E\u6D32\u5FEB\u901F\u6B65\u5175\uFF0C\u7B2C\u4E09\u6642\u4EE3\u8D77\u53EF\u5347\u7D1A\uFF0C\u9060\u9632\u9AD8\u3001\u79FB\u52D5\u5FEB\u3002\u64C5\u9577\u8FFD\u6BBA\u5F13\u5175\u3001\u653B\u57CE\u5668\u8207\u50E7\u4FB6\uFF0C\u4F46\u6253\u4E0D\u904E\u5176\u4ED6\u6B65\u5175\uFF0C\u4E5F\u6015\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u3001\u8CB4\u65CF\u9435\u9A0E\u3001\u706B\u69CD\u5175\u8207\u6295\u77F3\u624B\u3002",
+  "elephant-archer": "\u5370\u5EA6\u7684\u57CE\u5821\u7279\u6B8A\u55AE\u4F4D\uFF0C\u9A0E\u5728\u5927\u8C61\u4E0A\u7684\u5C04\u624B\uFF0C\u901F\u5EA6\u6162\u4F46\u751F\u547D\u503C\u8207\u8B77\u7532\u90FD\u5F88\u9AD8\u3002\u64C5\u9577\u58D3\u5236\u6162\u901F\u8FD1\u6230\u3001\u5F13\u5175\u8207\u5EFA\u7BC9\uFF0C\u4F46\u88AB\u9577\u77DB\u5175\u3001\u69CD\u968A\u9577\u3001\u99F1\u99DD\u9A0E\u5175\u3001\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u3001\u54E5\u5FB7\u885B\u968A\u3001\u9DF9\u52C7\u58EB\u3001\u7CBE\u92B3\u6563\u5175\u3001\u65E5\u672C\u6B66\u58EB\u8207\u50E7\u4FB6\u53CD\u5236\u3002",
+  "elite-battle-elephant": "\u77DB\u8C61\u4F15\u5728\u7B2C\u56DB\u6642\u4EE3\u7684\u5347\u7D1A\uFF0C\u540C\u6A23\u6703\u5C0D\u8EAB\u65C1\u6575\u4EBA\u9020\u6210\u64F4\u6563\u8E10\u8E0F\u50B7\u5BB3\uFF0C\u53EA\u662F\u7BC4\u570D\u6BD4\u6230\u8C61\u5C0F\u3002\u8FD1\u6230\u55AE\u4F4D\u8207\u5EFA\u7BC9\u5F88\u96E3\u64CB\u4F4F\u5B83\uFF0C\u4F46\u884C\u52D5\u6162\u3001\u6613\u88AB\u62DB\u964D\uFF0C\u9577\u69CD\u5175\u7CFB\u3001\u69CD\u968A\u9577\u3001\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u3001\u99AC\u5F13\u9A0E\u5175\u8207\u5F29\u7832\u90FD\u80FD\u524B\u5236\u3002",
+  "elite-cannon-galleon": "\u706B\u7832\u6230\u8239\u5728\u7B2C\u56DB\u6642\u4EE3\u7684\u5347\u7D1A\uFF0C\u5C04\u7A0B\u66F4\u9060\u3001\u50B7\u5BB3\u66F4\u9AD8\uFF0C\u6700\u9069\u5408\u5F9E\u6D77\u4E0A\u6467\u6BC0\u9678\u5730\u5EFA\u7BC9\u3002\u61C9\u4ED8\u6575\u65B9\u8239\u8266\u4ECD\u4E0D\u9748\u6D3B\uFF0C\u6015\u6230\u8239\u3001\u706B\u7832\u8207\u50E7\u4FB6\u3002",
+  "elite-eagle-warrior": "\u9DF9\u65A5\u5019\u7CFB\u7684\u6700\u9AD8\u7D1A\uFF0C\u7F8E\u6D32\u4E09\u570B\u9650\u5B9A\u3002\u64C5\u9577\u7375\u6BBA\u5F13\u5175\u3001\u653B\u57CE\u5668\u8207\u50E7\u4FB6\uFF1B\u5176\u4ED6\u6B65\u5175\u3001\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u3001\u8CB4\u65CF\u9435\u9A0E\u3001\u571F\u8033\u5176\u706B\u69CD\u5175\u8207\u6295\u77F3\u624B\u5247\u662F\u5B83\u7684\u524B\u661F\u3002",
+  "elite-skirmisher": "\u7B2C\u4E09\u6642\u4EE3\u7684\u53CD\u5F13\u5175\u55AE\u4F4D\uFF0C\u5C0D\u5F13\u5175\u8207\u99AC\u5F13\u9A0E\u5175\u90FD\u6709\u52A0\u6210\uFF0C\u662F\u524B\u5236\u9060\u7A0B\u90E8\u968A\u7684\u5EC9\u50F9\u9078\u64C7\uFF1B\u571F\u8033\u5176\u6C92\u6709\u6B64\u55AE\u4F4D\u3002\u6015\u8FD1\u6230\u55AE\u4F4D\u8207\u653B\u57CE\u5668\uFF0C\u8D8A\u5357\u8207\u5176\u76DF\u53CB\u53EF\u518D\u5347\u7D1A\u70BA\u5E1D\u738B\u6230\u77DB\u5175\u3002",
+  "elite-steppe-lancer": "\u6C7A\u5B9A\u7248\u52A0\u5165\u7684\u7B2C\u56DB\u6642\u4EE3\u8F15\u578B\u9577\u77DB\u9A0E\u5175\uFF0C\u80FD\u9694\u4E00\u683C\u51FA\u624B\u653B\u64CA\u3002\u9069\u5408\u7375\u6BBA\u6751\u6C11\u3001\u5F13\u5175\u3001\u6563\u5175\u3001\u653B\u57CE\u5668\u8207\u8F15\u9A0E\u5175\uFF0C\u4F46\u9762\u5C0D\u91CD\u9A0E\u5175\u3001\u6B65\u5175\u8207\u99F1\u99DD\u90E8\u968A\u4E0D\u5229\u3002",
+  "fast-fire-ship": "\u706B\u6230\u8239\u7684\u7B2C\u56DB\u6642\u4EE3\u5347\u7D1A\uFF08\u820A\u7248\u8B6F\u4F5C\u5FEB\u901F\u706B\u6230\u8239\uFF09\uFF0C\u4EE5\u8FD1\u8DDD\u96E2\u5674\u706B\u653B\u64CA\uFF0C\u5C0D\u8239\u96BB\u6709\u52A0\u6210\uFF0C\u901F\u5EA6\u8DB3\u4EE5\u8FFD\u4E0A\u91CD\u578B\u5F29\u7832\u6230\u8239\u3002\u64C5\u9577\u71D2\u6BC0\u91CD\u578B\u5F29\u7832\u6230\u8239\u3001\u706B\u7832\u6230\u8239\u3001\u904B\u8F38\u8239\u8207\u6F01\u8239\uFF0C\u4F46\u6015\u81EA\u7206\u7B4F\u3001\u9F9C\u7532\u8239\u3001\u7DAD\u4EAC\u5927\u6230\u8239\u3001\u7BAD\u5854\u3001\u57CE\u5821\u8207\u5CB8\u4E0A\u653B\u57CE\u5668\u3002",
+  "fire-galley": "\u975E\u6D32\u738B\u570B\u65B0\u589E\u7684\u7B2C\u4E8C\u6642\u4EE3\u5674\u706B\u8239\uFF0C\u8B93\u65E9\u671F\u6D77\u6230\u4E0D\u518D\u53EA\u6709\u6230\u8239\u4E92\u5C04\uFF1B\u6230\u8239\u5347\u7D1A\u70BA\u5F29\u7832\u6230\u8239\u6642\u6703\u81EA\u52D5\u8B8A\u6210\u706B\u6230\u8239\uFF0C\u7DAD\u4EAC\u7121\u6CD5\u8A13\u7DF4\u3002\u80FD\u524B\u5236\u6230\u8239\u3001\u904B\u8F38\u8239\u8207\u6F01\u8239\uFF0C\u4F46\u6015\u81EA\u7206\u7B4F\u3001\u7BAD\u5854\u8207\u5CB8\u908A\u7684\u7BC4\u570D\u653B\u64CA\u3002",
+  "fire-ship": "\u7B2C\u4E09\u6642\u4EE3\u7684\u5674\u706B\u8239\uFF0C\u5FC5\u9808\u8CBC\u8FD1\u6575\u8266\u3001\u4EE5\u6975\u9AD8\u983B\u7387\u5674\u706B\uFF0C\u5C0D\u8239\u96BB\u6709\u984D\u5916\u50B7\u5BB3\uFF1B\u7DAD\u4EAC\u4E0D\u80FD\u8A13\u7DF4\u3002\u662F\u5F29\u7832\u6230\u8239\u3001\u706B\u7832\u6230\u8239\u3001\u904B\u8F38\u8239\u8207\u6F01\u8239\u7684\u524B\u661F\uFF0C\u4F46\u6015\u81EA\u7206\u7B4F\u3001\u9F9C\u7532\u8239\u3001\u7DAD\u4EAC\u5927\u6230\u8239\u53CA\u5CB8\u4E0A\u7684\u5854\u3001\u57CE\u5821\u8207\u653B\u57CE\u5668\u3002",
+  "fishing-ship": "\u78BC\u982D\u5EFA\u9020\u7684\u7D93\u6FDF\u8239\uFF0C\u8CA0\u8CAC\u6355\u9B5A\u6216\u642D\u5EFA\u6D77\u4E0A\u9B5A\u7DB2\u4F86\u4F9B\u61C9\u98DF\u7269\uFF1B\u65E5\u672C\u3001\u7FA9\u5927\u5229\u3001\u99AC\u4F86\u5C0D\u5B83\u5404\u6709\u52A0\u6210\u3002\u5B8C\u5168\u6C92\u6709\u6230\u9B25\u80FD\u529B\uFF0C\u4EFB\u4F55\u6575\u65B9\u55AE\u4F4D\u90FD\u80FD\u5A01\u8105\u5B83\u3002",
+  "flaming-camel": "\u97C3\u977C\u7684\u7B2C\u4E8C\u7279\u6B8A\u55AE\u4F4D\uFF0C\u7B2C\u56DB\u6642\u4EE3\u7814\u767C\u5E16\u6728\u5152\u653B\u57CE\u8853\u5F8C\u624D\u80FD\u5728\u57CE\u5821\u8A13\u7DF4\uFF0C\u662F\u80CC\u8457\u71C3\u71D2\u7A3B\u8349\u7684\u81EA\u7206\u99F1\u99DD\u3002\u885D\u9032\u6575\u9663\u6216\u88AB\u64CA\u6BBA\u6642\u6703\u7206\u70B8\uFF0C\u5C08\u9580\u5C0D\u4ED8\u9A0E\u5175\uFF08\u5C24\u5176\u5927\u8C61\uFF09\u8207\u5EFA\u7BC9\uFF1B\u6B65\u5175\u3001\u5F13\u5175\u3001\u57CE\u5821\u3001\u7BAD\u5854\u8207\u50E7\u4FB6\u80FD\u5728\u5B83\u63A5\u8FD1\u524D\u8655\u7406\u6389\u5B83\u3002",
+  "galleon": "\u7B2C\u56DB\u6642\u4EE3\u7684\u4E3B\u529B\u5F13\u7BAD\u6230\u8266\uFF0C\u6578\u91CF\u6C7A\u5B9A\u5236\u6D77\u6B0A\uFF0C\u80FD\u5FEB\u901F\u6E05\u9664\u6575\u8239\u8207\u78BC\u982D\uFF1B\u963F\u8332\u7279\u514B\u7121\u6CD5\u8A13\u7DF4\u3002\u64C5\u9577\u6253\u904B\u8F38\u8239\u3001\u6F01\u8239\u3001\u7206\u7834\u8239\u8207\u706B\u7832\u6230\u8239\uFF0C\u4F46\u88AB\u706B\u6230\u8239\u3001\u9F9C\u7532\u8239\u3001\u7DAD\u4EAC\u5927\u6230\u8239\u524B\u5236\uFF0C\u4E5F\u6015\u7BAD\u5854\u3001\u57CE\u5821\u8207\u5CB8\u4E0A\u653B\u57CE\u5668\u3002",
+  "galley": "\u7B2C\u4E8C\u6642\u4EE3\u7684\u5C0F\u578B\u5FEB\u901F\u6230\u8239\uFF0C\u7528\u4F86\u5075\u5BDF\u4E26\u7375\u6BBA\u6F01\u8239\u7B49\u5F31\u5C0F\u76EE\u6A19\u3002\u53EF\u6253\u904B\u8F38\u8239\u3001\u6F01\u8239\u8207\u5CB8\u908A\u8FD1\u6230\u55AE\u4F4D\uFF0C\u4F46\u6015\u706B\u6230\u8239\u3001\u7BAD\u5854\u3001\u57CE\u5821\u8207\u5CB8\u908A\u7684\u7BC4\u570D\u653B\u64CA\u3002",
+  "gbeto": "\u99AC\u5229\u7684\u57CE\u5821\u7279\u6B8A\u55AE\u4F4D\uFF0C\u6703\u6295\u64F2\u98DB\u5200\u7684\u5FEB\u901F\u9060\u7A0B\u6B65\u5175\uFF0C\u653B\u64CA\u9AD8\u4F46\u5C04\u901F\u6162\u3001\u8EAB\u677F\u8584\u3002\u64C5\u9577\u6253\u6563\u5175\u3001\u9577\u69CD\u5175\u3001\u6B65\u5175\u3001\u99AC\u5F13\u9A0E\u5175\u8207\u885D\u649E\u8ECA\uFF1B\u4F46\u6015\u6295\u77F3\u8ECA\u3001\u706B\u85E5\u55AE\u4F4D\u3001\u6295\u77F3\u624B\u3001\u7FBD\u6BDB\u7BAD\u5C04\u624B\u3001\u8C79\u52C7\u58EB\u3001\u65E5\u672C\u6B66\u58EB\u3001\u91CD\u9A0E\u5175\u8207\u50E7\u4FB6\u3002",
+  "genitour": "\u67CF\u67CF\u8207\u5176\u76DF\u53CB\u5171\u4EAB\u7684\u7279\u6B8A\u55AE\u4F4D\uFF0C\u7B2C\u4E09\u6642\u4EE3\u65BC\u9776\u5834\u8A13\u7DF4\uFF0C\u672C\u8CEA\u662F\u9A0E\u99AC\u7684\u6563\u5175\uFF0C\u4E0D\u82B1\u9EC3\u91D1\uFF0C\u7B2C\u56DB\u6642\u4EE3\u53EF\u5347\u7D1A\u70BA\u7CBE\u92B3\u7248\uFF08\u540C\u9801\u4ECB\u7D39\uFF09\u3002\u5C08\u9580\u53CD\u5236\u5F13\u5175\u8207\u99AC\u5F13\u9A0E\u5175\uFF0C\u4F46\u6015\u99F1\u99DD\u9A0E\u5175\u3001\u9577\u77DB\u5175\u3001\u653B\u57CE\u5668\u3001\u71B1\u90A3\u4E9E\u5F29\u624B\u3001\u54E5\u5FB7\u885B\u968A\u8207\u9DF9\u52C7\u58EB\u3002",
+  "genoese-crossbowman": "\u7FA9\u5927\u5229\u5728\u5931\u843D\u7684\u5E1D\u570B\u767B\u5834\u7684\u57CE\u5821\u7279\u6B8A\u55AE\u4F4D\uFF0C\u662F\u5C0D\u9A0E\u5175\u6709\u52A0\u6210\u7684\u91CD\u88DD\u5F29\u624B\u3002\u80FD\u5C04\u7A7F\u9A0E\u5175\u3001\u99AC\u5F13\u9A0E\u5175\u8207\u6B65\u5175\uFF0C\u4F46\u6015\u5176\u4ED6\u5F13\u5175\u3001\u5F29\u7832\u3001\u6295\u77F3\u8ECA\u3001\u54E5\u5FB7\u885B\u968A\u3001\u9DF9\u52C7\u58EB\u8207\u65E5\u672C\u6B66\u58EB\u3002",
+  "halberdier": "\u9577\u69CD\u5175\u7CFB\u5728\u7B2C\u56DB\u6642\u4EE3\u7684\u6700\u7D42\u5347\u7D1A\uFF0C\u5C08\u6253\u9A0E\u5175\uFF08\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u9664\u5916\uFF09\uFF0C\u5C0D\u5176\u4ED6\u76EE\u6A19\u50B7\u5BB3\u5F88\u4F4E\uFF1B\u4E0D\u82B1\u9EC3\u91D1\uFF0C\u5C6C\u65BC\u5783\u573E\u5175\u3002\u6015\u5F13\u5175\u3001\u706B\u85E5\u55AE\u4F4D\u3001\u6295\u77F3\u624B\u3001\u5F29\u7832\u3001\u50E7\u4FB6\u8207\u5176\u4ED6\u6B65\u5175\u3002",
+  "hand-cannoneer": "\u7B2C\u56DB\u6642\u4EE3\u7814\u767C\u5316\u5B78\u5F8C\u65BC\u9776\u5834\u8A13\u7DF4\u7684\u706B\u85E5\u55AE\u4F4D\uFF0C\u653B\u64CA\u5F88\u9AD8\u4F46\u547D\u4E2D\u7387\u8207\u5C04\u901F\u504F\u4F4E\uFF0C\u662F\u6B65\u5175\u7684\u524B\u661F\u3002\u6015\u6563\u5175\u3001\u5F29\u7832\u3001\u6295\u77F3\u8ECA\u3001\u91CD\u9A0E\u5175\u3001\u54E5\u5FB7\u885B\u968A\u8207\u50AD\u5175\u3002",
+  "heavy-camel": "\u99F1\u99DD\u9A0E\u5175\u5728\u7B2C\u56DB\u6642\u4EE3\u7684\u5347\u7D1A\uFF0C\u5C0D\u9A0E\u5175\u4FDD\u6709\u512A\u52E2\u3002\u64C5\u9577\u6253\u9A0E\u5175\u3001\u99AC\u5F13\u9A0E\u5175\u3001\u653B\u57CE\u5668\u8207\u6563\u5175\uFF0C\u4F46\u9762\u5C0D\u6B65\u5175\u3001\u5F13\u5175\u3001\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u8207\u9632\u79A6\u5EFA\u7BC9\u6703\u5403\u8667\u3002",
+  "heavy-cavalry-archer": "\u99AC\u5F13\u9A0E\u5175\u5728\u7B2C\u56DB\u6642\u4EE3\u7684\u5347\u7D1A\uFF0C\u4FDD\u6709\u9AD8\u901F\u8207\u9060\u7A0B\u653B\u64CA\uFF0C\u662F\u9A37\u64FE\u8207\u58D3\u5236\u6B65\u5175\u7684\u597D\u624B\u3002\u6015\u7CBE\u92B3\u6563\u5175\u8207\u9577\u69CD\u5175\uFF0C\u99F1\u99DD\u7CFB\u3001\u69CD\u968A\u9577\u3001\u71B1\u90A3\u4E9E\u5F29\u624B\u3001\u54E5\u5FB7\u885B\u968A\u3001\u9DF9\u52C7\u58EB\u3001\u4E2D\u578B\u6295\u77F3\u8ECA\u8207\u5F29\u7832\u4E5F\u80FD\u524B\u5B83\u3002",
+  "heavy-demolition-ship": "\u7206\u7834\u8239\u7684\u7B2C\u56DB\u6642\u4EE3\u5347\u7D1A\uFF0C\u8B77\u7532\u3001\u8840\u91CF\u8207\u7206\u70B8\u7BC4\u570D\u90FD\u66F4\u5927\uFF0C\u53EF\u8AAA\u662F\u6D77\u4E0A\u7684\u70B8\u85E5\u6876\u3002\u80FD\u70B8\u6BC0\u904B\u8F38\u8239\u3001\u6F01\u8239\u8207\u5CB8\u908A\u6216\u6DFA\u7058\u4E0A\u7684\u55AE\u4F4D\uFF0C\u4F46\u6015\u7BAD\u5854\u8207\u5CB8\u4E0A\u9060\u7A0B\u55AE\u4F4D\u3002",
+  "heavy-scorpion": "\u5F29\u7832\u7684\u5347\u7D1A\u7248\uFF0C\u5C04\u51FA\u80FD\u8CAB\u7A7F\u4E00\u6574\u6392\u6575\u4EBA\u7684\u5927\u578B\u7BAD\u77E2\uFF0C\u4E3B\u76EE\u6A19\u5403\u5168\u984D\u3001\u5176\u9918\u5403\u4E00\u534A\uFF0C\u800C\u4E14\u4E0D\u6703\u8AA4\u50B7\u53CB\u8ECD\u3002\u64C5\u9577\u6253\u6210\u7FA4\u7684\u5F13\u5175\u8207\u6162\u901F\u55AE\u4F4D\uFF0C\u4F46\u6015\u8FD1\u6230\u9A0E\u5175\u3001\u99AC\u624E\u723E\u9A43\u9A0E\u5175\u3001\u8499\u53E4\u7A81\u9A0E\u3001\u6295\u77F3\u8ECA\u3001\u9DF9\u52C7\u58EB\u3001\u83D8\u85CD\u6B66\u58EB\u3001\u54E5\u5FB7\u885B\u968A\u8207\u9060\u7A0B\u55AE\u4F4D\u3002",
+  "huskarl": "\u54E5\u5FB7\u7684\u7279\u6B8A\u6B65\u5175\uFF0C\u9060\u7A0B\u8B77\u7532\u6975\u9AD8\u3001\u5E7E\u4E4E\u4E0D\u6015\u7BAD\u77E2\uFF0C\u7814\u767C\u7121\u653F\u5E9C\u72C0\u614B\u5F8C\u4E5F\u80FD\u5728\u5175\u71DF\u8A13\u7DF4\u3002\u64C5\u9577\u6253\u5F13\u5175\u3001\u706B\u85E5\u55AE\u4F4D\u3001\u5F29\u7832\u3001\u9DF9\u52C7\u58EB\u8207\u5EFA\u7BC9\uFF0C\u4F46\u6015\u6295\u77F3\u8ECA\u8207\u5927\u591A\u6578\u8FD1\u6230\u55AE\u4F4D\u3002",
+  "hussar": "\u65A5\u5019\u7CFB\u5728\u7B2C\u56DB\u6642\u4EE3\u7684\u6700\u7D42\u5347\u7D1A\uFF08\u53C8\u7A31\u7FFC\u9A0E\u5175\uFF09\uFF0C\u53EA\u82B1\u98DF\u7269\uFF0C\u5C0D\u50E7\u4FB6\u3001\u9060\u7A0B\u5175\u7A2E\u8207\u653B\u57CE\u5668\u6709\u52A0\u6210\u3002\u9069\u5408\u7375\u6BBA\u6751\u6C11\u3001\u5F13\u5175\u3001\u653B\u57CE\u5668\u8207\u50E7\u4FB6\uFF0C\u4F46\u6B63\u9762\u6253\u4E0D\u904E\u9577\u69CD\u5175\u7CFB\u3001\u69CD\u968A\u9577\u3001\u99F1\u99DD\u9A0E\u5175\u3001\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u7B49\u8FD1\u6230\u55AE\u4F4D\u3002",
+  "imperial-camel": "\u5370\u5EA6\u9650\u5B9A\u7684\u99F1\u99DD\u9A0E\u5175\u518D\u5347\u7D1A\uFF0C\u7B2C\u56DB\u6642\u4EE3\u65BC\u99AC\u5EC4\u751F\u7522\uFF0C\u53CD\u9A0E\u5175\u80FD\u529B\u66F4\u5F37\uFF1B\u65E5\u672C\u6B66\u58EB\u5C0D\u5B83\u6C92\u6709\u7279\u6B8A\u55AE\u4F4D\u52A0\u6210\u3002\u80FD\u58D3\u5236\u9A0E\u5175\u3001\u99AC\u5F13\u9A0E\u5175\u3001\u653B\u57CE\u5668\u8207\u6563\u5175\uFF0C\u4F46\u6015\u9577\u77DB\u5175\u3001\u689D\u9813\u6B66\u58EB\u3001\u71B1\u90A3\u4E9E\u5F29\u624B\u8207\u72C2\u6230\u58EB\u3002",
+  "imperial-skirmisher": "\u8D8A\u5357\u8207\u5176\u76DF\u53CB\u5171\u4EAB\u7684\u7279\u6B8A\u55AE\u4F4D\uFF0C\u662F\u7CBE\u92B3\u6563\u5175\u5728\u7B2C\u56DB\u6642\u4EE3\u7684\u518D\u5347\u7D1A\uFF08\u571F\u8033\u5176\u9664\u5916\uFF09\u3002\u5C08\u9580\u53CD\u5236\u5F13\u5175\uFF0C\u4E5F\u80FD\u6D88\u8017\u9577\u77DB\u5175\uFF1B\u6015\u8FD1\u6230\u55AE\u4F4D\u8207\u653B\u57CE\u5668\u3002",
+  "jaguar-warrior": "\u963F\u8332\u7279\u514B\u7684\u57CE\u5821\u7279\u6B8A\u6B65\u5175\uFF0C\u8B77\u7532\u4E0D\u932F\u4E26\u5C0D\u5176\u4ED6\u6B65\u5175\u6709\u5927\u91CF\u52A0\u6210\u3002\u64C5\u9577\u6253\u6B65\u5175\u3001\u6563\u5175\u8207\u5EFA\u7BC9\uFF0C\u4F46\u6015\u5F13\u5175\u3001\u5F29\u7832\u3001\u6295\u77F3\u8ECA\u3001\u706B\u85E5\u55AE\u4F4D\u3001\u6295\u77F3\u624B\u3001\u9A0E\u58EB\uFF0C\u4EE5\u53CA\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u3001\u8CB4\u65CF\u9435\u9A0E\u3002",
+  "janissary": "\u571F\u8033\u5176\u7684\u57CE\u5821\u7279\u6B8A\u706B\u69CD\u5175\uFF0C\u653B\u64CA\u9AD8\u3001\u5C04\u7A0B\u9060\u4E26\u5E36\u8FD1\u6230\u8B77\u7532\uFF0C\u4E0D\u5FC5\u7814\u767C\u5316\u5B78\u5C31\u80FD\u5728\u7B2C\u4E09\u6642\u4EE3\u8A13\u7DF4\u3002\u80FD\u5FEB\u901F\u6253\u7206\u6B65\u5175\u8207\u5EFA\u7BC9\uFF0C\u4F46\u6015\u6563\u5175\u3001\u5F29\u7832\u3001\u6295\u77F3\u8ECA\u3001\u706B\u7832\u3001\u65E5\u672C\u6B66\u58EB\u3001\u54E5\u5FB7\u885B\u968A\u8207\u50AD\u5175\u3002",
+  "kamayuk": "\u5370\u52A0\u7684\u57CE\u5821\u7279\u6B8A\u55AE\u4F4D\uFF0C\u624B\u6301\u8D85\u9577\u69CD\u7684\u53CD\u9A0E\u5175\u6B65\u5175\uFF0C\u80FD\u9694\u8457\u4E00\u683C\u51FA\u624B\u3002\u80FD\u524B\u9A0E\u5175\u3001\u99AC\u5F13\u9A0E\u5175\u3001\u6563\u5175\u8207\u9577\u69CD\u5175\uFF0C\u4F46\u6015\u7FBD\u6BDB\u7BAD\u5C04\u624B\u3001\u6295\u77F3\u624B\u3001\u706B\u85E5\u55AE\u4F4D\u3001\u5F29\u7832\u3001\u6295\u77F3\u8ECA\u3001\u50E7\u4FB6\uFF0C\u4EE5\u53CA\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u3001\u689D\u9813\u6B66\u58EB\u3002",
+  "karambit-warrior": "\u99AC\u4F86\u7684\u57CE\u5821\u7279\u6B8A\u6B65\u5175\uFF0C\u4FBF\u5B9C\u53C8\u5FEB\uFF0C\u53EA\u4F54\u534A\u500B\u4EBA\u53E3\uFF0C\u9069\u5408\u5927\u91CF\u7206\u5175\uFF0C\u4F46\u500B\u9AD4\u975E\u5E38\u8106\u5F31\u3002\u53EF\u4EE5\u6DF9\u6C92\u6563\u5175\u3001\u621F\u5175\u3001\u9DF9\u52C7\u58EB\u8207\u885D\u649E\u8ECA\uFF0C\u537B\u6015\u5F13\u5175\u3001\u706B\u85E5\u55AE\u4F4D\u3001\u6295\u77F3\u624B\uFF0C\u4EE5\u53CA\u5404\u7A2E\u91CD\u6B65\u5175\u8207\u91CD\u9A0E\u5175\u3002",
+  "keshik": "\u97C3\u977C\u7684\u57CE\u5821\u7279\u6B8A\u9A0E\u5175\uFF0C\u4F5C\u6230\u6642\u6703\u7DE9\u6162\u8CFA\u53D6\u9EC3\u91D1\u3002\u80FD\u5C0D\u4ED8\u6B65\u5175\u3001\u5F13\u5175\u3001\u6751\u6C11\u3001\u653B\u57CE\u5668\u3001\u99AC\u5F13\u9A0E\u5175\u8207\u8F15\u9A0E\u5175\uFF0C\u4F46\u6015\u9577\u69CD\u5175\u7CFB\u3001\u99F1\u99DD\u9A0E\u5175\u3001\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u3001\u50E7\u4FB6\uFF0C\u4EE5\u53CA\u6230\u8C61\u3001\u8CB4\u65CF\u9435\u9A0E\u3001\u9A0E\u58EB\u3002",
+  "kipchak": "\u5EAB\u66FC\u7684\u57CE\u5821\u7279\u6B8A\u55AE\u4F4D\uFF0C\u4E00\u6B21\u5C04\u51FA\u591A\u652F\u7BAD\u7684\u99AC\u5F13\u9A0E\u5175\uFF08\u666E\u901A\u4E09\u767C\u3001\u7CBE\u92B3\u56DB\u767C\uFF09\uFF0C\u53EA\u6709\u7B2C\u4E00\u767C\u5403\u5B8C\u6574\u50B7\u5BB3\u8207\u653B\u64CA\u5347\u7D1A\u3002\u64C5\u9577\u9A37\u64FE\u6162\u901F\u8FD1\u6230\u8207\u885D\u649E\u8ECA\uFF0C\u4F46\u6015\u69CD\u968A\u9577\u3001\u71B1\u90A3\u4E9E\u5F29\u624B\u3001\u54E5\u5FB7\u885B\u968A\u3001\u621F\u5175\u3001\u9DF9\u52C7\u58EB\u3001\u6A19\u69CD\u9A0E\u5175\u3001\u99F1\u99DD\u7CFB\u3001\u85E4\u7532\u5F13\u5175\u8207\u6295\u77F3\u8ECA\u3001\u5F29\u7832\u3002",
+  "knight": "\u7B2C\u4E09\u6642\u4EE3\u99AC\u5EC4\u8A13\u7DF4\u7684\u4E3B\u529B\u91CD\u9A0E\u5175\uFF0C\u6CDB\u7528\u6027\u9AD8\u3001\u662F\u6700\u5E38\u898B\u7684\u5175\u7A2E\u4E4B\u4E00\u3002\u80FD\u58D3\u5236\u6B65\u5175\u3001\u5F13\u5175\u3001\u6751\u6C11\u3001\u653B\u57CE\u5668\u3001\u99AC\u5F13\u9A0E\u5175\u8207\u8F15\u9A0E\u5175\uFF0C\u4F46\u6015\u9577\u69CD\u5175\u7CFB\u3001\u99F1\u99DD\u9A0E\u5175\u3001\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u3001\u50E7\u4FB6\uFF0C\u4EE5\u53CA\u6230\u8C61\u3001\u8CB4\u65CF\u9435\u9A0E\u3001\u689D\u9813\u6B66\u58EB\u3002",
+  "konnik": "\u4FDD\u52A0\u5229\u4E9E\u7684\u7279\u6B8A\u9A0E\u5175\uFF0C\u53EF\u5728\u57CE\u5821\u6216\u71DF\u58D8\u8A13\u7DF4\uFF0C\u6230\u99AC\u5012\u4E0B\u5F8C\u6703\u4E0B\u99AC\u8B8A\u6210\u6B65\u5175\u7E7C\u7E8C\u4F5C\u6230\u3002\u9A0E\u4E58\u6642\u64C5\u9577\u6253\u6B65\u5175\u3001\u5F13\u5175\u3001\u6751\u6C11\u8207\u653B\u57CE\u5668\uFF1B\u9A0E\u5175\u72C0\u614B\u6015\u9577\u69CD\u5175\u3001\u99F1\u99DD\u7B49\u53CD\u9A0E\u5175\u55AE\u4F4D\uFF0C\u4E0B\u99AC\u5F8C\u5247\u6015\u5F13\u5175\u3002",
+  "leitis": "\u7ACB\u9676\u5B9B\u7684\u57CE\u5821\u7279\u6B8A\u9A0E\u5175\uFF0C\u653B\u64CA\u55AE\u4F4D\u6642\u6703\u7121\u8996\u5C0D\u65B9\u8B77\u7532\u3002\u7279\u5225\u9069\u5408\u5C0D\u4ED8\u689D\u9813\u6B66\u58EB\u3001\u8CB4\u65CF\u9435\u9A0E\u7B49\u9AD8\u7532\u90E8\u968A\u8207\u6563\u5175\uFF0C\u4F46\u6015\u9577\u69CD\u5175\u7CFB\u3001\u69CD\u968A\u9577\u3001\u99F1\u99DD\u9A0E\u5175\u3001\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u3001\u71B1\u90A3\u4E9E\u5F29\u624B\u3001\u6230\u8C61\u3001\u65E5\u672C\u6B66\u58EB\u8207\u50E7\u4FB6\u3002",
+  "light-cavalry": "\u65A5\u5019\u5728\u7B2C\u4E09\u6642\u4EE3\u7684\u5347\u7D1A\uFF0C\u5C0D\u50E7\u4FB6\u8207\u653B\u57CE\u5668\u6709\u52A0\u6210\uFF0C\u800C\u4E14\u4E0D\u82B1\u9EC3\u91D1\u3002\u9069\u5408\u63A0\u596A\u6751\u6C11\u3001\u5F13\u5175\u3001\u653B\u57CE\u5668\u8207\u50E7\u4FB6\uFF0C\u4F46\u8207\u6B65\u5175\u6216\u5176\u4ED6\u9A0E\u5175\u6B63\u9762\u5C0D\u6230\u6642\u5403\u8667\u3002",
+  "long-swordsman": "\u6C11\u5175\u7CFB\u5728\u7B2C\u4E09\u6642\u4EE3\u7684\u5347\u7D1A\uFF0C\u7531\u5175\u71DF\u8A13\u7DF4\u7684\u4E2D\u968E\u6B65\u5175\u3002\u80FD\u5C0D\u4ED8\u6563\u5175\u3001\u99F1\u99DD\u3001\u9DF9\u52C7\u58EB\u3001\u8F15\u9A0E\u5175\u8207\u9577\u77DB\u5175\uFF0C\u4F46\u6015\u5F13\u5175\u3001\u5F29\u7832\u3001\u706B\u85E5\u55AE\u4F4D\u3001\u6295\u77F3\u624B\uFF0C\u4EE5\u53CA\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u3001\u8C79\u52C7\u58EB\u3001\u689D\u9813\u6B66\u58EB\u3001\u8CB4\u65CF\u9435\u9A0E\u3002",
+  "longboat": "\u7DAD\u4EAC\u7684\u7B2C\u4E8C\u7279\u6B8A\u55AE\u4F4D\uFF0C\u7B2C\u4E09\u6642\u4EE3\u5728\u78BC\u982D\u5EFA\u9020\uFF0C\u4E00\u6B21\u5C04\u51FA\u591A\u652F\u7BAD\u7684\u6230\u8239\u3002\u80FD\u58D3\u5236\u904B\u8F38\u8239\u3001\u6F01\u8239\u3001\u5CB8\u908A\u5EFA\u7BC9\u8207\u55AE\u4F4D\uFF0C\u751A\u81F3\u52DD\u904E\u91CD\u578B\u5F29\u7832\u6230\u8239\u8207\u706B\u7832\u6230\u8239\uFF1B\u4F46\u6015\u706B\u6230\u8239\u3001\u9F9C\u7532\u8239\u3001\u7BAD\u5854\u3001\u57CE\u5821\u8207\u5CB8\u4E0A\u7684\u9060\u7A0B\u653B\u57CE\u5668\u3002",
+  "longbowman": "\u4E0D\u5217\u985B\u7684\u57CE\u5821\u7279\u6B8A\u5F13\u5175\uFF0C\u5C04\u7A0B\u6975\u9060\u4F46\u8840\u91CF\u504F\u4F4E\u3002\u80FD\u5728\u9060\u8655\u6D88\u8017\u6B65\u5175\u8207\u5176\u4ED6\u5F13\u5175\uFF0C\u4F46\u6015\u6563\u5175\u3001\u653B\u57CE\u5668\u3001\u9A0E\u5175\u3001\u65E5\u672C\u6B66\u58EB\u3001\u54E5\u5FB7\u885B\u968A\u3001\u9DF9\u52C7\u58EB\u8207\u6A19\u69CD\u9A0E\u5175\u3002",
+  "magyar-huszar": "\u99AC\u624E\u723E\u7684\u57CE\u5821\u7279\u6B8A\u8F15\u9A0E\u5175\uFF0C\u901F\u5EA6\u5FEB\u3001\u5C0D\u653B\u57CE\u5668\u6709\u52A0\u6210\uFF0C\u5A01\u529B\u8207\u9A0E\u58EB\u76F8\u8FD1\uFF1B\u7814\u767C\u79D1\u7DAD\u5C3C\u5B89\u8ECD\u968A\u5F8C\u4E0D\u518D\u82B1\u9EC3\u91D1\uFF0C\u56E0\u6B64\u88AB\u7576\u6210\u5783\u573E\u5175\u3002\u64C5\u9577\u8FFD\u6BBA\u5F13\u5175\u8207\u653B\u57CE\u5668\uFF0C\u4F46\u6015\u9577\u69CD\u5175\u7CFB\u3001\u69CD\u968A\u9577\u3001\u99F1\u99DD\u9A0E\u5175\u3001\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u3001\u689D\u9813\u6B66\u58EB\u3001\u65E5\u672C\u6B66\u58EB\u7B49\u3002",
+  "mameluke": "\u85A9\u62C9\u68EE\u7684\u57CE\u5821\u7279\u6B8A\u55AE\u4F4D\uFF0C\u9A0E\u99F1\u99DD\u3001\u4EE5\u77ED\u8DDD\u96E2\u6295\u64F2\u653B\u64CA\uFF08\u7B97\u8FD1\u6230\u50B7\u5BB3\uFF09\uFF0C\u5C0D\u9A0E\u5175\u6709\u984D\u5916\u52A0\u6210\u4F46\u9020\u50F9\u6602\u8CB4\u3002\u80FD\u6253\u9A0E\u5175\u3001\u99AC\u5F13\u9A0E\u5175\u3001\u5F92\u6B65\u5F13\u5175\u8207\u653B\u57CE\u5668\uFF0C\u4F46\u6015\u9577\u77DB\u5175\u3001\u69CD\u968A\u9577\u3001\u72C2\u6230\u58EB\u3001\u689D\u9813\u6B66\u58EB\u3001\u71B1\u90A3\u4E9E\u5F29\u624B\u3001\u99F1\u99DD\u9A0E\u5175\u8207\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u3002",
+  "man-at-arms": "\u6C11\u5175\u5728\u7B2C\u4E8C\u6642\u4EE3\u7684\u5347\u7D1A\uFF0C\u9762\u5C0D\u7B2C\u4E8C\u6642\u4EE3\u591A\u6578\u55AE\u4F4D\u90FD\u4F54\u512A\uFF0C\u5E38\u7528\u4F86\u9A37\u64FE\u5C0D\u624B\u7D93\u6FDF\u3002\u80FD\u64CA\u6557\u6563\u5175\u3001\u65A5\u5019\u3001\u9DF9\u65A5\u5019\u3001\u9577\u69CD\u5175\u8207\u6751\u6C11\uFF0C\u4F46\u6015\u5F13\u5175\u8207\u5F29\u7832\u3002",
+  "mangonel": "\u7B2C\u4E09\u6642\u4EE3\u7684\u9060\u7A0B\u653B\u57CE\u5668\uFF0C\u6295\u64F2\u9020\u6210\u7BC4\u570D\u50B7\u5BB3\u7684\u77F3\u5F48\uFF0C\u662F\u5BC6\u96C6\u5F13\u5175\u7684\u60E1\u5922\uFF0C\u9084\u80FD\u9810\u5224\u8D70\u4F4D\u7838\u5730\uFF1B\u7F3A\u9EDE\u662F\u5C04\u901F\u6162\u3001\u6709\u6700\u5C0F\u5C04\u7A0B\u3002\u80FD\u64CA\u788E\u6210\u7FA4\u55AE\u4F4D\u3001\u5F13\u5175\u3001\u6751\u6C11\u3001\u5F29\u7832\u8207\u5EFA\u7BC9\uFF0C\u4F46\u6015\u8FD1\u6230\u9A0E\u5175\u3001\u99AC\u624E\u723E\u9A43\u9A0E\u5175\u3001\u8499\u53E4\u7A81\u9A0E\u3001\u83D8\u85CD\u6B66\u58EB\u3001\u50AD\u5175\u8207\u9DF9\u52C7\u58EB\u7A81\u8972\u3002",
+  "mangudai": "\u8499\u53E4\u7684\u57CE\u5821\u7279\u6B8A\u99AC\u5F13\u9A0E\u5175\uFF0C\u5C04\u901F\u8207\u79FB\u52D5\u90FD\u5F88\u5FEB\uFF0C\u5C0D\u653B\u57CE\u5668\u6709\u52A0\u6210\u3002\u64C5\u9577\u5C60\u6BBA\u6B65\u5175\u3001\u6751\u6C11\u8207\u885D\u649E\u8ECA\uFF0C\u4F46\u6015\u99F1\u99DD\u7CFB\u3001\u99F1\u99DD\u5F13\u9A0E\u5175\u3001\u69CD\u968A\u9577\u3001\u621F\u5175\u3001\u71B1\u90A3\u4E9E\u5F29\u624B\u3001\u54E5\u5FB7\u885B\u968A\u3001\u9DF9\u52C7\u58EB\u3001\u6563\u5175\u8207\u65E5\u672C\u6B66\u58EB\u3002",
+  "militia": "\u7B2C\u4E00\u6642\u4EE3\u552F\u4E00\u80FD\u751F\u7522\u7684\u8ECD\u4E8B\u55AE\u4F4D\uFF0C\u662F\u5175\u71DF\u7684\u57FA\u790E\u6B65\u5175\u8207\u6C11\u5175\u7CFB\u7684\u8D77\u9EDE\u3002\u53EA\u80FD\u6B3A\u8CA0\u6563\u5175\u3001\u65A5\u5019\u3001\u9577\u69CD\u5175\u8207\u6751\u6C11\uFF0C\u5E7E\u4E4E\u6240\u6709\u5176\u4ED6\u55AE\u4F4D\u90FD\u80FD\u6253\u6557\u5B83\u3002",
+  "missionary": "\u897F\u73ED\u7259\u7684\u7B2C\u4E8C\u7279\u6B8A\u55AE\u4F4D\uFF0C\u5728\u4FEE\u9053\u9662\u8A13\u7DF4\u7684\u9A0E\u99AC\u50B3\u6559\u8005\uFF0C\u79FB\u52D5\u5FEB\u4F46\u6CBB\u7642\u8207\u62DB\u964D\u80FD\u529B\u4E0D\u5982\u50E7\u4FB6\uFF0C\u4E5F\u4E0D\u80FD\u64BF\u8056\u7269\u3002\u9069\u5408\u62DB\u964D\u9A0E\u58EB\u7B49\u6162\u901F\u3001\u7121\u5C04\u7A0B\u7684\u55AE\u4F4D\u53CA\u53EF\u62DB\u964D\u7684\u5EFA\u7BC9\uFF0C\u4F46\u6015\u5F13\u5175\u3001\u8F15\u9A0E\u5175\u3001\u99F1\u99DD\u9A0E\u5175\u3001\u621F\u5175\u3001\u9DF9\u52C7\u58EB\u3001\u71B1\u90A3\u4E9E\u5F29\u624B\u8207\u9632\u79A6\u5EFA\u7BC9\u3002",
+  "monk": "\u4FEE\u9053\u9662\u8A13\u7DF4\u7684\u5B97\u6559\u55AE\u4F4D\uFF0C\u672C\u8EAB\u6C92\u6709\u653B\u64CA\u529B\uFF0C\u537B\u80FD\u62DB\u964D\u6575\u8ECD\u3001\u6CBB\u7642\u53CB\u8ECD\uFF08\u8239\u96BB\u8207\u653B\u57CE\u5668\u9664\u5916\uFF09\u4E26\u904B\u9001\u8056\u7269\uFF0C\u7814\u767C\u4FEE\u9053\u9662\u79D1\u6280\u5F8C\u6703\u5927\u5E45\u8B8A\u5F37\u3002\u5929\u6575\u662F\u5C0D\u50E7\u4FB6\u6709\u52A0\u6210\u7684\u65A5\u5019\u7CFB\u8207\u9DF9\u65A5\u5019\u7CFB\uFF0C\u6A5F\u52D5\u6027\u9AD8\u7684\u55AE\u4F4D\u80FD\u5728\u62DB\u964D\u5B8C\u6210\u524D\u628A\u5B83\u780D\u5012\u3002",
+  "onager": "\u8F15\u578B\u6295\u77F3\u8ECA\u5728\u7B2C\u56DB\u6642\u4EE3\u7684\u5347\u7D1A\uFF0C\u5C04\u7A0B\u66F4\u9060\u3001\u7BC4\u570D\u50B7\u5BB3\u66F4\u5927\uFF0C\u80FD\u4E00\u64CA\u6253\u57AE\u6210\u7FA4\u7684\u8F15\u88DD\u5F13\u5175\uFF0C\u9084\u80FD\u7838\u6A39\u958B\u8DEF\uFF1B\u5308\u4EBA\u8207\u571F\u8033\u5176\u7121\u6CD5\u5347\u7D1A\u3002\u64C5\u9577\u6253\u6210\u7FA4\u55AE\u4F4D\u3001\u5F13\u5175\u3001\u6751\u6C11\u8207\u5EFA\u7BC9\uFF0C\u4F46\u6015\u8FD1\u6230\u9A0E\u5175\u3001\u99AC\u624E\u723E\u9A43\u9A0E\u5175\u3001\u8499\u53E4\u7A81\u9A0E\u3001\u83D8\u85CD\u6B66\u58EB\u3001\u50AD\u5175\u3001\u9DF9\u52C7\u58EB\u8207\u706B\u7832\u3002",
+  "organ-gun": "\u8461\u8404\u7259\u7684\u57CE\u5821\u7279\u6B8A\u55AE\u4F4D\uFF0C\u7B2C\u4E09\u6642\u4EE3\u5C31\u80FD\u751F\u7522\u7684\u706B\u85E5\u653B\u57CE\u5668\uFF0C\u671D\u524D\u65B9\u9F4A\u5C04\u9020\u6210\u7BC4\u570D\u50B7\u5BB3\uFF0C\u5C0D\u885D\u649E\u8ECA\u6709\u52A0\u6210\u3002\u64C5\u9577\u6383\u8569\u5BC6\u96C6\u90E8\u968A\u3001\u6751\u6C11\u8207\u6563\u5175\uFF0C\u4F46\u6015\u9A0E\u5175\u3001\u65E5\u672C\u6B66\u58EB\u3001\u50AD\u5175\u3001\u54E5\u5FB7\u885B\u968A\u3001\u706B\u7832\u3001\u6295\u77F3\u8ECA\u3001\u8499\u53E4\u7A81\u9A0E\u8207\u99AC\u624E\u723E\u9A43\u9A0E\u5175\u3002",
+  "paladin": "\u9A0E\u58EB\u7CFB\u7684\u6700\u7D42\u5347\u7D1A\uFF08\u65B0\u8B6F\u8056\u9A0E\u58EB\uFF09\uFF0C\u7B2C\u56DB\u6642\u4EE3\u6700\u5F37\u52E2\u7684\u5175\u7A2E\u4E4B\u4E00\u3002\u80FD\u78BE\u58D3\u6B65\u5175\u3001\u5F13\u5175\u3001\u6751\u6C11\u3001\u653B\u57CE\u5668\u3001\u99AC\u5F13\u9A0E\u5175\u8207\u8F15\u9A0E\u5175\uFF1B\u4F46\u9577\u69CD\u5175\u7CFB\u3001\u99F1\u99DD\u9A0E\u5175\u3001\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u3001\u50E7\u4FB6\uFF0C\u4EE5\u53CA\u6230\u8C61\u3001\u8CB4\u65CF\u9435\u9A0E\u3001\u689D\u9813\u6B66\u58EB\u4ECD\u80FD\u524B\u5236\u5B83\u3002",
+  "petard": "\u5728\u57CE\u5821\u8A13\u7DF4\u7684\u81EA\u7206\u653B\u57CE\u55AE\u4F4D\uFF0C\u6BD4\u591A\u6578\u653B\u57CE\u5668\u8DD1\u5F97\u5FEB\uFF0C\u4E00\u6B21\u5F15\u7206\u5C31\u80FD\u5C0D\u57CE\u7246\u3001\u5EFA\u7BC9\u8207\u653B\u57CE\u5668\u9020\u6210\u6BC0\u6EC5\u6027\u50B7\u5BB3\u3002\u6015\u5F13\u5175\u3001\u99AC\u5F13\u9A0E\u5175\u3001\u8499\u53E4\u7A81\u9A0E\u3001\u5F29\u7832\uFF0C\u4EE5\u53CA\u8FD1\u6230\u55AE\u4F4D\uFF08\u5C24\u5176\u99AC\u624E\u723E\u9A43\u9A0E\u5175\uFF09\u3002",
+  "pikeman": "\u9577\u69CD\u5175\u5728\u7B2C\u4E09\u6642\u4EE3\u7684\u5347\u7D1A\uFF0C\u5C08\u524B\u9A0E\u5175\uFF08\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u9664\u5916\uFF09\uFF0C\u4E0D\u82B1\u9EC3\u91D1\u5C6C\u5783\u573E\u5175\uFF1B\u571F\u8033\u5176\u6C92\u6709\u6B64\u55AE\u4F4D\u3002\u9664\u9A0E\u5175\u4EE5\u5916\u50B7\u5BB3\u90FD\u5F88\u4F4E\uFF0C\u6015\u6B65\u5175\u3001\u5F13\u5175\u3001\u5F29\u7832\u3001\u571F\u8033\u5176\u706B\u69CD\u5175\u3001\u6295\u77F3\u624B\u8207\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u3002",
+  "plumed-archer": "\u99AC\u96C5\u5728\u5F81\u670D\u8005\u5165\u4FB5\u767B\u5834\u7684\u57CE\u5821\u7279\u6B8A\u5F13\u5175\uFF0C\u901F\u5EA6\u5FEB\u3001\u8B77\u7532\u4F73\uFF0C\u642D\u914D\u99AC\u96C5\u7684\u6298\u6263\u6210\u70BA\u6027\u50F9\u6BD4\u6975\u9AD8\u7684\u5C04\u624B\u3002\u64C5\u9577\u6253\u6B65\u5175\u3001\u5176\u4ED6\u5F13\u5175\u8207\u706B\u69CD\u5175\uFF0C\u4F46\u6015\u6563\u5175\u3001\u5F29\u7832\u3001\u6295\u77F3\u8ECA\u3001\u9A0E\u5175\u3001\u54E5\u5FB7\u885B\u968A\u3001\u9DF9\u52C7\u58EB\u3001\u85E4\u7532\u5F13\u5175\u8207\u6A19\u69CD\u9A0E\u5175\u3002",
+  "rattan-archer": "\u8D8A\u5357\u5728\u738B\u8005\u5D1B\u8D77\u767B\u5834\u7684\u57CE\u5821\u7279\u6B8A\u5F13\u5175\uFF0C\u9060\u7A0B\u8B77\u7532\u975E\u5E38\u9AD8\uFF0C\u5C08\u9580\u53CD\u5236\u5176\u4ED6\u5C04\u624B\u3002\u80FD\u6253\u6B65\u5175\u8207\u5F13\u5175\uFF0C\u4F46\u6015\u9A0E\u5175\u3001\u54E5\u5FB7\u885B\u968A\u3001\u9DF9\u52C7\u58EB\u8207\u653B\u57CE\u5668\u3002",
+  "samurai": "\u65E5\u672C\u7684\u57CE\u5821\u7279\u6B8A\u6B65\u5175\uFF0C\u653B\u64CA\u901F\u5EA6\u5FEB\uFF0C\u5C0D\u5404\u570B\u7279\u6B8A\u55AE\u4F4D\u6709\u984D\u5916\u52A0\u6210\uFF08\u5E1D\u738B\u99F1\u99DD\u9A0E\u5175\u8207\u5E1D\u738B\u6230\u77DB\u5175\u9664\u5916\uFF09\u3002\u64C5\u9577\u7375\u6BBA\u7279\u6B8A\u55AE\u4F4D\u3001\u9DF9\u52C7\u58EB\u8207\u5EFA\u7BC9\uFF0C\u4F46\u6015\u5F13\u5175\u3001\u706B\u69CD\u5175\u8207\u9A0E\u58EB\u3002",
+  "scorpion": "\u653B\u57CE\u5668\u5DE5\u574A\u7684\u5F29\u7832\uFF0C\u5C04\u51FA\u80FD\u8CAB\u7A7F\u4E00\u6392\u6575\u4EBA\u7684\u5927\u7BAD\uFF0C\u4E0D\u6703\u8AA4\u50B7\u53CB\u8ECD\uFF0C\u9069\u5408\u5728\u6DF7\u6230\u4E2D\u652F\u63F4\u3002\u80FD\u6253\u6210\u7FA4\u5F13\u5175\u3001\u6751\u6C11\u3001\u6162\u901F\u55AE\u4F4D\u8207\u5EFA\u7BC9\uFF0C\u4F46\u6015\u8FD1\u6230\u9A0E\u5175\u3001\u99AC\u624E\u723E\u9A43\u9A0E\u5175\u3001\u8499\u53E4\u7A81\u9A0E\u3001\u6295\u77F3\u8ECA\u3001\u9DF9\u52C7\u58EB\u3001\u83D8\u85CD\u6B66\u58EB\u3001\u54E5\u5FB7\u885B\u968A\u8207\u9060\u7A0B\u55AE\u4F4D\u3002",
+  "scout": "\u7B2C\u4E8C\u6642\u4EE3\u7684\u5075\u5BDF\u9A0E\u5175\uFF0C\u8840\u91CF\u8207\u901F\u5EA6\u4F54\u512A\uFF0C\u958B\u5C40\u90A3\u96BB\u6703\u81EA\u52D5\u63A2\u8DEF\uFF0C\u5C0D\u50E7\u4FB6\u6709\u52A0\u6210\u4E14\u8F03\u96E3\u88AB\u62DB\u964D\uFF1B\u4E0D\u82B1\u9EC3\u91D1\u5C6C\u5783\u573E\u5175\uFF0C\u7F8E\u6D32\u4E09\u570B\u7121\u6CD5\u4F7F\u7528\u3002\u64C5\u9577\u9A37\u64FE\u6751\u6C11\u3001\u5F13\u5175\u3001\u653B\u57CE\u5668\u8207\u50E7\u4FB6\uFF0C\u4F46\u6253\u4E0D\u904E\u6B65\u5175\u8207\u5176\u4ED6\u9A0E\u5175\u3002",
+  "serjeant": "\u897F\u897F\u91CC\u7684\u7279\u6B8A\u91CD\u6B65\u5175\uFF0C\u7B2C\u4E8C\u6642\u4EE3\u8D77\u5373\u53EF\u5728\u57CE\u6A13\u6216\u57CE\u5821\u8A13\u7DF4\uFF0C\u9084\u80FD\u81EA\u884C\u5EFA\u9020\u57CE\u6A13\u3002\u80FD\u5C0D\u4ED8\u6751\u6C11\u3001\u6563\u5175\u3001\u621F\u5175\u3001\u8F15\u9A0E\u5175\u8207\u9DF9\u52C7\u58EB\uFF0C\u4F46\u6015\u5F29\u7832\u3001\u6295\u77F3\u8ECA\u3001\u706B\u85E5\u55AE\u4F4D\u3001\u6295\u77F3\u624B\uFF0C\u4EE5\u53CA\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u3001\u8C79\u52C7\u58EB\u3001\u65E5\u672C\u6B66\u58EB\u3001\u70C8\u5824\u53F8\u3001\u904A\u4FE0\u7B49\u3002",
+  "shotel-warrior": "\u8863\u7D22\u6BD4\u4E9E\u7684\u57CE\u5821\u7279\u6B8A\u6B65\u5175\uFF0C\u901F\u5EA6\u5FEB\u3001\u653B\u64CA\u9AD8\u3001\u8A13\u7DF4\u8FC5\u901F\uFF0C\u4F46\u8840\u91CF\u8207\u8B77\u7532\u90FD\u5F88\u8584\u3002\u64C5\u9577\u7A81\u8972\u6751\u6C11\u3001\u6563\u5175\u3001\u9577\u77DB\u5175\u3001\u653B\u57CE\u5668\u3001\u8F15\u9A0E\u5175\u8207\u50E7\u4FB6\uFF0C\u4F46\u6015\u99AC\u5F13\u9A0E\u5175\u3001\u6295\u77F3\u8ECA\u3001\u706B\u69CD\u5175\u3001\u91CD\u9A0E\u5175\u8207\u5176\u4ED6\u6B65\u5175\u3002",
+  "siege-onager": "\u4E2D\u578B\u6295\u77F3\u8ECA\u7684\u6700\u7D42\u5347\u7D1A\uFF0C\u7B2C\u56DB\u6642\u4EE3\u8981\u82B1\u5927\u91CF\u98DF\u7269\u8207\u9EC3\u91D1\u7814\u767C\uFF0C\u53EA\u6709\u5C11\u6578\u6587\u660E\u64C1\u6709\u3002\u7BC4\u570D\u50B7\u5BB3\u6975\u5F37\uFF0C\u64C5\u9577\u7838\u6BC0\u5EFA\u7BC9\u3001\u6751\u6C11\u3001\u5F13\u5175\u8207\u5BC6\u96C6\u90E8\u968A\uFF0C\u4F46\u6015\u8FD1\u6230\u9A0E\u5175\u3001\u99AC\u624E\u723E\u9A43\u9A0E\u5175\u3001\u8499\u53E4\u7A81\u9A0E\u3001\u83D8\u85CD\u6B66\u58EB\u3001\u50AD\u5175\u3001\u9DF9\u52C7\u58EB\u8207\u706B\u7832\u3002",
+  "siege-ram": "\u885D\u649E\u8ECA\u7CFB\u7684\u6700\u7D42\u5347\u7D1A\uFF08\u4FD7\u7A31\u5927\u885D\u8ECA\uFF09\uFF0C\u7B2C\u56DB\u6642\u4EE3\u7814\u767C\uFF0C\u62C6\u5EFA\u7BC9\u7684\u7834\u58DE\u529B\u9A5A\u4EBA\uFF0C\u5E38\u88AB\u8996\u70BA\u5224\u65B7\u6587\u660E\u5F8C\u671F\u5F37\u5F31\u7684\u6307\u6A19\uFF1B\u99D0\u7D2E\u6B65\u5175\u53EF\u63D0\u5347\u79FB\u52D5\u901F\u5EA6\u3002\u6015\u8FD1\u6230\u55AE\u4F4D\uFF08\u5C24\u5176\u99AC\u624E\u723E\u9A43\u9A0E\u5175\uFF09\u3001\u8499\u53E4\u7A81\u9A0E\u8207\u6295\u77F3\u8ECA\u3002",
+  "siege-tower": "\u5931\u843D\u7684\u5E1D\u570B\u52A0\u5165\u3001\u975E\u6D32\u738B\u570B\u8D77\u53EF\u5728\u653B\u57CE\u5668\u5DE5\u574A\u8A13\u7DF4\u7684\u904B\u5175\u653B\u57CE\u5854\uFF0C\u672C\u8EAB\u7121\u6CD5\u653B\u64CA\uFF0C\u7528\u4F86\u628A\u90E8\u968A\u9001\u904E\u57CE\u7246\u3002\u6C92\u6709\u64C5\u9577\u5C0D\u4ED8\u7684\u76EE\u6A19\uFF0C\u6015\u8FD1\u6230\u55AE\u4F4D\u3001\u99AC\u624E\u723E\u9A43\u9A0E\u5175\u8207\u9DF9\u52C7\u58EB\u3002",
+  "skirmisher": "\u7B2C\u4E8C\u6642\u4EE3\u65BC\u9776\u5834\u8A13\u7DF4\u7684\u6563\u5175\uFF0C\u4E0D\u82B1\u9EC3\u91D1\u7684\u5783\u573E\u5175\uFF0C\u5C08\u9580\u53CD\u5236\u5F13\u5175\u3002\u9762\u5C0D\u8FD1\u6230\u55AE\u4F4D\u8207\u653B\u57CE\u5668\u5247\u5E7E\u4E4E\u7121\u529B\u3002",
+  "slinger": "\u5370\u52A0\u7684\u7B2C\u4E8C\u7279\u6B8A\u55AE\u4F4D\uFF0C\u7B2C\u4E09\u6642\u4EE3\u65BC\u9776\u5834\u751F\u7522\uFF0C\u662F\u5C08\u9580\u53CD\u6B65\u5175\u7684\u9060\u7A0B\u55AE\u4F4D\uFF0C\u6C92\u6709\u7CBE\u92B3\u7248\u3002\u64C5\u9577\u6253\u6B65\u5175\u8207\u6751\u6C11\uFF0C\u4F46\u6015\u6563\u5175\u3001\u5F29\u7832\u3001\u6295\u77F3\u8ECA\u3001\u54E5\u5FB7\u885B\u968A\u3001\u9A0E\u5175\u3001\u6A19\u69CD\u9A0E\u5175\u8207\u85E4\u7532\u5F13\u5175\u3002",
+  "spearman": "\u7B2C\u4E8C\u6642\u4EE3\u5175\u71DF\u8A13\u7DF4\u7684\u9577\u69CD\u5175\uFF0C\u4FBF\u5B9C\u53C8\u4E0D\u82B1\u9EC3\u91D1\uFF0C\u662F\u65E9\u671F\u9632\u7BC4\u65A5\u5019\u7684\u4E3B\u529B\u3002\u5C08\u9580\u524B\u5236\u9A0E\u99AC\u55AE\u4F4D\uFF08\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u4F8B\u5916\uFF09\uFF0C\u4F46\u6703\u88AB\u6B65\u5175\u3001\u5F13\u5175\u8207\u5F29\u7832\u58D3\u5236\u3002",
+  "steppe-lancer": "\u6C7A\u5B9A\u7248\u65B0\u589E\u3001\u7B2C\u4E09\u6642\u4EE3\u65BC\u99AC\u5EC4\u8A13\u7DF4\u7684\u8F15\u578B\u9577\u77DB\u9A0E\u5175\uFF0C\u80FD\u9694\u8457\u4E00\u683C\u51FA\u624B\u3002\u64C5\u9577\u7375\u6BBA\u6751\u6C11\u3001\u5F13\u5175\u3001\u6563\u5175\u3001\u653B\u57CE\u5668\u8207\u8F15\u9A0E\u5175\uFF0C\u4F46\u5C0D\u4E0A\u91CD\u9A0E\u5175\u3001\u6B65\u5175\u8207\u99F1\u99DD\u90E8\u968A\u5403\u8667\u3002",
+  "tarkan": "\u5308\u4EBA\u7684\u57CE\u5821\u7279\u6B8A\u9A0E\u5175\uFF0C\u9060\u9632\u8207\u8840\u91CF\u9AD8\uFF0C\u5C08\u9577\u62C6\u5EFA\u7BC9\uFF0C\u7814\u767C\u63A0\u596A\u8005\u5F8C\u53EF\u5728\u99AC\u5EC4\u8A13\u7DF4\u3002\u80FD\u6253\u5F13\u5175\u3001\u653B\u57CE\u5668\u3001\u8F15\u9A0E\u5175\u8207\u5EFA\u7BC9\uFF0C\u4F46\u6015\u6B65\u5175\u3001\u91CD\u9A0E\u5175\u3001\u71B1\u90A3\u4E9E\u5F29\u624B\u3001\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u8207\u99F1\u99DD\u9A0E\u5175\u3002",
+  "teutonic-knight": "\u689D\u9813\u7684\u57CE\u5821\u7279\u6B8A\u6B65\u5175\uFF0C\u79FB\u52D5\u6975\u6162\uFF0C\u4F46\u653B\u64CA\u3001\u8B77\u7532\u8207\u8840\u91CF\u90FD\u975E\u5E38\u51FA\u8272\uFF0C\u8FD1\u6230\u5E7E\u4E4E\u96E3\u9022\u6575\u624B\uFF0C\u80FD\u89E3\u6C7A\u6563\u5175\u3001\u8FD1\u6230\u55AE\u4F4D\u8207\u5EFA\u7BC9\u3002\u5F13\u5175\u3001\u706B\u85E5\u55AE\u4F4D\u3001\u6295\u77F3\u624B\u3001\u5F29\u7832\u3001\u6295\u77F3\u8ECA\u8207\u50E7\u4FB6\u80FD\u5F9E\u9060\u8655\u524B\u5B83\uFF0C\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u3001\u8C79\u52C7\u58EB\u3001\u65E5\u672C\u6B66\u58EB\u8207\u70C8\u5824\u53F8\u4E5F\u4E0D\u6015\u5B83\u3002",
+  "throwing-axeman": "\u6CD5\u862D\u514B\u7684\u57CE\u5821\u7279\u6B8A\u6B65\u5175\uFF0C\u4EE5\u64F2\u65A7\u505A\u77ED\u8DDD\u96E2\u653B\u64CA\uFF0C\u4F46\u7AD9\u65B9\u4E0D\u628A\u5B83\u7B97\u4F5C\u9060\u8DDD\u96E2\u55AE\u4F4D\u3002\u80FD\u5C0D\u4ED8\u6563\u5175\u3001\u621F\u5175\u3001\u9DF9\u52C7\u58EB\u3001\u54E5\u5FB7\u885B\u968A\u3001\u99F1\u99DD\u3001\u8F15\u9A0E\u5175\u3001\u885D\u649E\u8ECA\u8207\u5EFA\u7BC9\uFF0C\u4F46\u6015\u5F13\u5175\u3001\u706B\u85E5\u55AE\u4F4D\u3001\u6295\u77F3\u624B\uFF0C\u4EE5\u53CA\u8C79\u52C7\u58EB\u3001\u65E5\u672C\u6B66\u58EB\u3001\u689D\u9813\u6B66\u58EB\u7B49\u91CD\u6B65\u5175\u8207\u91CD\u9A0E\u5175\u3002",
+  "trade-cart": "\u7B2C\u4E8C\u6642\u4EE3\u8D77\u65BC\u5E02\u96C6\u751F\u7522\u7684\u7D93\u6FDF\u55AE\u4F4D\uFF0C\u5F80\u8FD4\u5DF1\u65B9\u8207\u4ED6\u65B9\u5E02\u96C6\u8CFA\u53D6\u9EC3\u91D1\uFF0C\u8DDD\u96E2\u8D8A\u9060\u6536\u5165\u8D8A\u591A\uFF0C\u662F\u5F8C\u671F\u9EC3\u91D1\u7684\u91CD\u8981\u4F86\u6E90\u3002\u6C92\u6709\u6230\u9B25\u80FD\u529B\uFF0C\u4EFB\u4F55\u6575\u8ECD\u90FD\u80FD\u8F15\u6613\u64CA\u6BBA\uFF0C\u5FC5\u9808\u4FDD\u8B77\u8CBF\u6613\u8DEF\u7DDA\u3002",
+  "trade-cog": "\u7B2C\u4E8C\u6642\u4EE3\u7531\u78BC\u982D\u5EFA\u9020\u3001\u4E0D\u80FD\u653B\u64CA\u7684\u8CBF\u6613\u8239\uFF0C\u8D70\u6D77\u8DEF\u5F80\u8FD4\u78BC\u982D\u8CFA\u53D6\u9EC3\u91D1\u3002\u6BEB\u7121\u81EA\u4FDD\u80FD\u529B\uFF0C\u4EFB\u4F55\u6575\u65B9\u55AE\u4F4D\u90FD\u80FD\u5A01\u8105\u5B83\u3002",
+  "transport-ship": "\u5728\u78BC\u982D\u5EFA\u9020\u7684\u904B\u5175\u8239\uFF0C\u80FD\u8F09\u9678\u8ECD\u6E21\u6D77\u5077\u8972\uFF0C\u9060\u9632\u4E0D\u932F\u4F46\u8840\u91CF\u4F4E\uFF0C\u8F09\u91CF\u53EF\u9760\u79D1\u6280\u63D0\u5347\uFF1B\u6C89\u6C92\u6642\u8239\u4E0A\u90E8\u968A\u5168\u6578\u9663\u4EA1\u3002\u672C\u8EAB\u7121\u6CD5\u653B\u64CA\uFF0C\u9700\u8981\u6230\u8239\u6216\u706B\u6230\u8239\u8B77\u822A\u3002",
+  "trebuchet": "\u7B2C\u56DB\u6642\u4EE3\u65BC\u57CE\u5821\u751F\u7522\u7684\u5DE8\u578B\u6295\u77F3\u6A5F\uFF0C\u5C04\u7A0B\u6700\u9060\u3001\u5A01\u529B\u6700\u5F37\u7684\u653B\u57CE\u6B66\u5668\uFF0C\u80FD\u6467\u6BC0\u5E7E\u4E4E\u6240\u6709\u5EFA\u7BC9\uFF0C\u9700\u5148\u7D44\u88DD\u624D\u80FD\u653B\u64CA\u3002\u6015\u8FD1\u6230\u55AE\u4F4D\uFF08\u5C24\u5176\u99AC\u624E\u723E\u9A43\u9A0E\u5175\u8207\u9DF9\u52C7\u58EB\uFF09\u3001\u6295\u77F3\u8ECA\u8207\u706B\u7832\u3002",
+  "turtle-ship": "\u671D\u9BAE\u5728\u5F81\u670D\u8005\u5165\u4FB5\u767B\u5834\u7684\u7B2C\u4E8C\u7279\u6B8A\u55AE\u4F4D\uFF0C\u7B2C\u4E09\u6642\u4EE3\u65BC\u78BC\u982D\u5EFA\u9020\uFF0C\u662F\u88DD\u7532\u6975\u539A\u7684\u8FD1\u8DDD\u96E2\u706B\u7832\u8239\u3002\u64C5\u9577\u8FD1\u8DDD\u96E2\u64CA\u6C89\u8239\u96BB\u3001\u8F5F\u70B8\u5CB8\u908A\u5EFA\u7BC9\u8207\u55AE\u4F4D\uFF0C\u4F46\u6015\u706B\u7832\u3001\u5DE8\u578B\u6295\u77F3\u6A5F\u3001\u57CE\u5821\u3001\u7BAD\u5854\u8207\u50E7\u4FB6\u3002",
+  "two-handed-swordsman": "\u6C11\u5175\u7CFB\u5728\u7B2C\u56DB\u6642\u4EE3\u7684\u7B2C\u56DB\u7D1A\uFF0C\u9664\u6CE2\u65AF\u5916\u5404\u6587\u660E\u90FD\u80FD\u8A13\u7DF4\u3002\u80FD\u6253\u6563\u5175\u3001\u621F\u5175\u3001\u99F1\u99DD\u3001\u9DF9\u52C7\u58EB\u3001\u8F15\u9A0E\u5175\u8207\u5EFA\u7BC9\uFF0C\u4F46\u6015\u5F13\u5175\u3001\u5F29\u7832\u3001\u706B\u85E5\u55AE\u4F4D\u3001\u6295\u77F3\u624B\uFF0C\u4EE5\u53CA\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u3001\u8C79\u52C7\u58EB\u3001\u689D\u9813\u6B66\u58EB\u3001\u8CB4\u65CF\u9435\u9A0E\u3002",
+  "villager": "\u7B2C\u4E00\u6642\u4EE3\u5C31\u80FD\u5728\u57CE\u93AE\u4E2D\u5FC3\u8A13\u7DF4\uFF0C\u662F\u552F\u4E00\u80FD\u63A1\u96C6\u8CC7\u6E90\u8207\u5EFA\u9020\u5EFA\u7BC9\u7684\u6838\u5FC3\u55AE\u4F4D\uFF0C\u4E5F\u8CA0\u8CAC\u4FEE\u7406\u653B\u57CE\u5668\u8207\u5EFA\u7BC9\u3002\u6230\u9B25\u529B\u5F88\u5F31\uFF0C\u5E7E\u4E4E\u4EFB\u4F55\u8ECD\u968A\u90FD\u80FD\u8F15\u6613\u64CA\u6BBA\uFF0C\u4F46\u80FD\u62C6\u885D\u649E\u8ECA\u7CFB\u8207\u5DE8\u578B\u6295\u77F3\u6A5F\u3002",
+  "war-elephant": "\u6CE2\u65AF\u7684\u57CE\u5821\u7279\u6B8A\u55AE\u4F4D\uFF0C\u7DE9\u6162\u537B\u7834\u58DE\u529B\u9A5A\u4EBA\u7684\u5927\u8C61\u9A0E\u5175\uFF0C\u6703\u8E10\u8E0F\u5468\u570D\u6575\u4EBA\u4E26\u5C0D\u5EFA\u7BC9\u6709\u52A0\u6210\uFF0C\u540C\u6210\u672C\u4E0B\u751A\u81F3\u80FD\u64CA\u6557\u904A\u4FE0\u3002\u80FD\u58D3\u57AE\u5927\u90E8\u5206\u8FD1\u6230\u55AE\u4F4D\u3001\u6563\u5175\u3001\u706B\u7832\u8207\u5EFA\u7BC9\uFF0C\u4F46\u6015\u9577\u69CD\u5175\u7CFB\u3001\u69CD\u968A\u9577\u3001\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u3001\u99F1\u99DD\u9A0E\u5175\u3001\u71B1\u90A3\u4E9E\u5F29\u624B\u8207\u50E7\u4FB6\u3002",
+  "war-galley": "\u6230\u8239\u5728\u7B2C\u4E09\u6642\u4EE3\u7684\u5347\u7D1A\uFF0C\u653B\u64CA\u53EA\u6253\u55AE\u4E00\u76EE\u6A19\u3001\u6C92\u6709\u8CAB\u7A7F\u6548\u679C\u3002\u64C5\u9577\u6E05\u9664\u904B\u8F38\u8239\u3001\u6F01\u8239\u8207\u5CB8\u908A\u55AE\u4F4D\uFF0C\u4F46\u6015\u706B\u6230\u8239\u3001\u9F9C\u7532\u8239\u3001\u7DAD\u4EAC\u5927\u6230\u8239\u3001\u7BAD\u5854\u3001\u57CE\u5821\u8207\u5CB8\u4E0A\u653B\u57CE\u5668\u3002",
+  "war-wagon": "\u671D\u9BAE\u7684\u57CE\u5821\u7279\u6B8A\u55AE\u4F4D\uFF0C\u5C6C\u65BC\u99AC\u5F13\u9A0E\u5175\u985E\u7684\u6230\u8ECA\uFF0C\u9060\u9632\u8207\u8840\u91CF\u90FD\u5F88\u9AD8\u3002\u64C5\u9577\u58D3\u5236\u6B65\u5175\u8207\u5F13\u5175\uFF0C\u4F46\u6015\u9A0E\u5175\u3001\u9577\u69CD\u5175\u3001\u99F1\u99DD\u9A0E\u5175\u3001\u69CD\u968A\u9577\u3001\u7CBE\u92B3\u6563\u5175\u3001\u65E5\u672C\u6B66\u58EB\u3001\u9DF9\u52C7\u58EB\u3001\u6295\u77F3\u8ECA\u8207\u50E7\u4FB6\u3002",
+  "woad-raider": "\u585E\u723E\u7279\u7684\u57CE\u5821\u7279\u6B8A\u6B65\u5175\uFF0C\u8DD1\u5F97\u6975\u5FEB\u3001\u751F\u7522\u8FC5\u901F\uFF0C\u5C0D\u5EFA\u7BC9\u6709\u9AD8\u653B\u64CA\u3002\u64C5\u9577\u5077\u8972\u653B\u57CE\u5668\u3001\u6563\u5175\u3001\u621F\u5175\u3001\u9DF9\u52C7\u58EB\u3001\u54E5\u5FB7\u885B\u968A\u8207\u5EFA\u7BC9\uFF0C\u4F46\u6015\u5927\u91CF\u5F13\u5175\u3001\u706B\u85E5\u55AE\u4F4D\u3001\u6295\u77F3\u624B\u3001\u91CD\u9A0E\u5175\uFF0C\u4EE5\u53CA\u65E5\u672C\u6B66\u58EB\u3001\u689D\u9813\u6B66\u58EB\u7B49\u91CD\u6B65\u5175\u3002",
+  "xolotl-warrior": "\u6C7A\u5B9A\u7248\u52A0\u5165\u7684\u7F8E\u6D32\u9A0E\u5175\uFF0C\u6578\u503C\u8207\u9A0E\u58EB\u76F8\u540C\uFF0C\u53EA\u6709\u963F\u8332\u7279\u514B\u8207\u5370\u52A0\u80FD\u9760\u62DB\u964D\u6575\u65B9\u99AC\u5EC4\u4F86\u8A13\u7DF4\u3002\u80FD\u64CA\u6557\u6B65\u5175\u3001\u5F13\u5175\u3001\u6751\u6C11\u3001\u653B\u57CE\u5668\u8207\u8F15\u9A0E\u5175\uFF0C\u4F46\u6015\u9577\u69CD\u5175\u7CFB\u3001\u99F1\u99DD\u9A0E\u5175\u3001\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u3001\u50E7\u4FB6\u8207\u6230\u8C61\u7B49\u3002"
+};
+var stepAliases = { "fire-galley": { "war-galley": "fire-ship" }, "demolition-raft": { "war-galley": "demolition-ship" } };
+var unitCounters = {
+  villager: { strong: "\u63A1\u96C6\u3001\u5EFA\u9020\u8207\u4FEE\u7406\uFF1B\u6575\u8ECD\u4F86\u8972\u6642\u53EF\u4EE5\u8EB2\u9032\u57CE\u93AE\u4E2D\u5FC3\u4E00\u8D77\u5C04\u7BAD\u3002", weak: "\u5E7E\u4E4E\u6240\u6709\u8ECD\u968A\uFF0C\u5C24\u5176\u662F\u65A5\u5019\u7CFB\u8207\u99AC\u5F13\u9A0E\u5175\u7684\u9A37\u64FE\u3002" },
+  militia: { strong: "\u65E9\u671F\u7684\u5EFA\u7BC9\u8207\u6751\u6C11\uFF0C\u5347\u7D1A\u5230\u5F8C\u671F\u5F8C\u4E5F\u80FD\u6B63\u9762\u786C\u62DA\u6563\u5175\u3001\u9577\u69CD\u5175\u8207\u653B\u57CE\u5668\u3002", weak: "\u5F13\u5175\u7CFB\u8207\u9A0E\u5175\uFF1B\u884C\u52D5\u6162\uFF0C\u5BB9\u6613\u88AB\u653E\u98A8\u7B8F\u3002" },
+  spearman: { strong: "\u9A0E\u5175\u8207\u99F1\u99DD\uFF0C\u6230\u8C61\u8207\u9A0E\u58EB\u90FD\u6015\u5B83\u3002", weak: "\u5F13\u5175\u7CFB\u3001\u6C11\u5175\u7CFB\uFF0C\u4EE5\u53CA\u5C08\u524B\u6B65\u5175\u7684\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u3002" },
+  archer: { strong: "\u6B65\u5175\u3001\u9577\u69CD\u5175\u8207\u6751\u6C11\uFF0C\u6210\u7FA4\u6642\u80FD\u9060\u9060\u96C6\u706B\u3002", weak: "\u6563\u5175\u3001\u65A5\u5019\u7CFB\u8207\u9A0E\u58EB\u885D\u92D2\uFF0C\u4EE5\u53CA\u6295\u77F3\u8ECA\u7684\u7BC4\u570D\u50B7\u5BB3\u3002" },
+  skirmisher: { strong: "\u5F13\u5175\u7CFB\u8207\u9577\u69CD\u5175\uFF0C\u9060\u7A0B\u8B77\u7532\u9AD8\uFF0C\u4FBF\u5B9C\u53C8\u4E0D\u5403\u9EC3\u91D1\u3002", weak: "\u9A0E\u5175\u3001\u6C11\u5175\u7CFB\u8207\u653B\u57CE\u5668\uFF1B\u5C0D\u5176\u4ED6\u55AE\u4F4D\u50B7\u5BB3\u5F88\u4F4E\u3002" },
+  "cavalry-archer": { strong: "\u6B65\u5175\u3001\u9577\u69CD\u5175\u8207\u6751\u6C11\uFF0C\u80FD\u908A\u9000\u908A\u5C04\u3002", weak: "\u6563\u5175\u3001\u99F1\u99DD\u8207\u8F15\u9A0E\u5175\u8FFD\u64CA\uFF0C\u4E5F\u6015\u5F29\u7832\u8207\u6295\u77F3\u8ECA\u3002" },
+  scout: { strong: "\u6751\u6C11\u3001\u50E7\u4FB6\u3001\u653B\u57CE\u5668\u8207\u96F6\u6563\u7684\u5F13\u5175\uFF1B\u8DD1\u5F97\u5FEB\uFF0C\u9069\u5408\u5075\u5BDF\u8207\u9A37\u64FE\u3002", weak: "\u9577\u69CD\u5175\u7CFB\u8207\u99F1\u99DD\uFF0C\u4E5F\u6253\u4E0D\u904E\u9A0E\u58EB\u6B63\u9762\u4EA4\u92D2\u3002" },
+  knight: { strong: "\u5F13\u5175\u3001\u6563\u5175\u3001\u653B\u57CE\u5668\u8207\u591A\u6578\u6B65\u5175\uFF0C\u6B63\u9762\u885D\u92D2\u6700\u53EF\u9760\u3002", weak: "\u9577\u69CD\u5175\u7CFB\u3001\u99F1\u99DD\u8207\u50E7\u4FB6\u8F49\u5316\uFF1B\u6602\u8CB4\u53C8\u5403\u9EC3\u91D1\u3002" },
+  camel: { strong: "\u9A0E\u58EB\u7CFB\u8207\u5176\u4ED6\u9A0E\u5175\uFF0C\u4E5F\u80FD\u8FFD\u6BBA\u99AC\u5F13\u9A0E\u5175\u3002", weak: "\u9577\u69CD\u5175\u7CFB\u3001\u5F13\u5175\u8207\u6C11\u5175\u7CFB\uFF1B\u6253\u6B65\u5175\u8207\u5EFA\u7BC9\u90FD\u4E0D\u64C5\u9577\u3002" },
+  ram: { strong: "\u5EFA\u7BC9\uFF0C\u5E7E\u4E4E\u4E0D\u6015\u7BAD\u5854\u3001\u57CE\u5821\u8207\u5F13\u5175\u7684\u7BAD\u3002", weak: "\u8FD1\u6230\u6B65\u5175\u8207\u9A0E\u5175\uFF1B\u672C\u8EAB\u4E0D\u80FD\u653B\u64CA\u55AE\u4F4D\u3002" },
+  mangonel: { strong: "\u6210\u7FA4\u7684\u5F13\u5175\u8207\u6B65\u5175\uFF0C\u4E00\u767C\u77F3\u5F48\u5C31\u80FD\u6253\u4E2D\u6574\u5718\u3002", weak: "\u9A0E\u5175\u8207\u6C11\u5175\u7CFB\u8FD1\u8EAB\uFF1B\u76EE\u6A19\u592A\u8FD1\u6642\u7121\u6CD5\u958B\u706B\u3002" },
+  scorpion: { strong: "\u6210\u4E32\u7AD9\u4F4D\u7684\u6B65\u5175\u8207\u5F13\u5175\uFF0C\u5F29\u7BAD\u6703\u7A7F\u904E\u76EE\u6A19\u7E7C\u7E8C\u50B7\u4EBA\uFF1B\u5C0D\u6230\u8C61\u4E5F\u6709\u52A0\u6210\u3002", weak: "\u9A0E\u5175\u8FD1\u8EAB\u8207\u6295\u77F3\u8ECA\uFF1B\u76EE\u6A19\u592A\u8FD1\u6642\u7121\u6CD5\u958B\u706B\u3002" },
+  trebuchet: { strong: "\u57CE\u5821\u3001\u7BAD\u5854\u8207\u6240\u6709\u5EFA\u7BC9\uFF0C\u5C04\u7A0B\u9060\u5230\u80FD\u5728\u9632\u7DDA\u5916\u958B\u706B\u3002", weak: "\u4EFB\u4F55\u8FD1\u8EAB\u7684\u55AE\u4F4D\uFF1B\u67B6\u8A2D\u8207\u6536\u8D77\u90FD\u8981\u6642\u9593\uFF0C\u4E0D\u80FD\u653B\u64CA\u55AE\u4F4D\u3002" },
+  petard: { strong: "\u57CE\u9580\u3001\u7BAD\u5854\u8207\u57CE\u5821\uFF0C\u4EE5\u53CA\u505C\u5728\u4E00\u8D77\u7684\u653B\u57CE\u5668\u3002", weak: "\u63A5\u8FD1\u76EE\u6A19\u524D\u5C31\u88AB\u5C04\u5012\uFF1B\u70B8\u5B8C\u5373\u6D88\u8017\u3002" },
+  monk: { strong: "\u8F49\u5316\u9A0E\u58EB\u3001\u6230\u8C61\u3001\u653B\u57CE\u5668\u9019\u985E\u6602\u8CB4\u55AE\u4F4D\uFF0C\u4E26\u6CBB\u7642\u53CB\u8ECD\u3002", weak: "\u65A5\u5019\u7CFB\u8207\u5FEB\u901F\u9A0E\u5175\uFF0C\u4E5F\u6015\u6210\u7FA4\u5F13\u5175\u96C6\u706B\u3002" },
+  longbowman: { strong: "\u6B65\u5175\u8207\u9577\u69CD\u5175\uFF0C\u5C04\u7A0B\u9577\uFF0C\u80FD\u5728\u9632\u7DDA\u5F8C\u65B9\u8F38\u51FA\u3002", weak: "\u6563\u5175\u3001\u9A0E\u5175\u885D\u92D2\u8207\u6295\u77F3\u8ECA\u3002" },
+  "woad-raider": { strong: "\u5EFA\u7BC9\u3001\u653B\u57CE\u5668\u8207\u5F13\u5175\uFF0C\u8DD1\u5F97\u5FEB\u9069\u5408\u5077\u8972\u3002", weak: "\u9A0E\u58EB\u7CFB\u3001\u5F13\u5175\u96C6\u706B\u8207\u5F37\u529B\u8FD1\u6230\u6B65\u5175\u3002" },
+  "throwing-axeman": { strong: "\u9577\u69CD\u5175\u3001\u6B65\u5175\u8207\u653B\u57CE\u69CC\uFF0C\u80FD\u5728\u77ED\u8DDD\u96E2\u5916\u51FA\u624B\u3002", weak: "\u9A0E\u58EB\u7CFB\u8207\u5F13\u5175\u6253\u5E36\u8DD1\u3002" },
+  huskarl: { strong: "\u5F13\u5175\u7CFB\u8207\u5EFA\u7BC9\uFF0C\u5E7E\u4E4E\u4E0D\u6015\u7BAD\u3002", weak: "\u9A0E\u58EB\u7CFB\u3001\u689D\u9813\u6B66\u58EB\u8207\u65E5\u672C\u6B66\u58EB\u9019\u985E\u8FD1\u6230\u55AE\u4F4D\u3002" },
+  "teutonic-knight": { strong: "\u6B65\u5175\u3001\u9A0E\u5175\u8207\u5EFA\u7BC9\u7684\u6B63\u9762\u6D88\u8017\u6230\u3002", weak: "\u5F13\u5175\u7CFB\u6253\u5E36\u8DD1\u3001\u6563\u5175\u8207\u50E7\u4FB6\u8F49\u5316\uFF1B\u79FB\u52D5\u975E\u5E38\u6162\u3002" },
+  berserk: { strong: "\u9577\u69CD\u5175\u3001\u65A5\u5019\u7CFB\u8207\u5176\u4ED6\u6B65\u5175\uFF0C\u53D7\u50B7\u5F8C\u81EA\u5DF1\u56DE\u8840\u3002", weak: "\u5F13\u5175\u7CFB\u3001\u9A0E\u58EB\u7CFB\u8207\u65E5\u672C\u6B66\u58EB\u3002" },
+  cataphract: { strong: "\u6240\u6709\u6B65\u5175\uFF0C\u5C24\u5176\u662F\u9577\u69CD\u5175\u7CFB\uFF1B\u5F8C\u52E4\u8B93\u5B83\u9084\u80FD\u8E10\u8E0F\u5468\u570D\u6575\u5175\u3002", weak: "\u5F13\u5175\u7CFB\u3001\u99F1\u99DD\u8207\u50E7\u4FB6\u8F49\u5316\u3002" },
+  "war-elephant": { strong: "\u8FD1\u6230\u90E8\u968A\u8207\u5EFA\u7BC9\uFF0C\u751F\u547D\u6975\u9AD8\u3002", weak: "\u9577\u69CD\u5175\u7CFB\u3001\u50E7\u4FB6\u8F49\u5316\u8207\u653B\u57CE\u5668\uFF1B\u79FB\u52D5\u975E\u5E38\u6162\u3002" },
+  mameluke: { strong: "\u9A0E\u58EB\u7CFB\u3001\u99F1\u99DD\u8207\u5176\u4ED6\u9A0E\u5175\uFF0C\u80FD\u5728\u77ED\u8DDD\u96E2\u5916\u51FA\u624B\u3002", weak: "\u9577\u69CD\u5175\u7CFB\u3001\u5F13\u5175\u8207\u689D\u9813\u6B66\u58EB\u3002" },
+  janissary: { strong: "\u6B65\u5175\u3001\u9A0E\u5175\u8207\u653B\u57CE\u5668\uFF0C\u653B\u64CA\u9AD8\u3001\u5C04\u7A0B\u9060\u3002", weak: "\u5F13\u5175\u7CFB\u3001\u6563\u5175\u3001\u9A0E\u5175\u885D\u92D2\u8207\u6295\u77F3\u8ECA\uFF1B\u5C04\u901F\u6162\u3002" },
+  "chu-ko-nu": { strong: "\u6B65\u5175\u8207\u653B\u57CE\u69CC\uFF0C\u4E00\u6B21\u5C04\u51FA\u597D\u5E7E\u652F\u7BAD\u3002", weak: "\u6563\u5175\u3001\u9A0E\u5175\u885D\u92D2\u8207\u6295\u77F3\u8ECA\uFF1B\u5C04\u7A0B\u8F03\u77ED\u3002" },
+  samurai: { strong: "\u6240\u6709\u7279\u6B8A\u55AE\u4F4D\uFF0C\u653B\u64CA\u901F\u5EA6\u6975\u5FEB\u3002", weak: "\u5F13\u5175\u7CFB\u8207\u9A0E\u58EB\u7CFB\u3002" },
+  mangudai: { strong: "\u653B\u57CE\u5668\u3001\u6751\u6C11\u8207\u50E7\u4FB6\uFF0C\u5C04\u901F\u5FEB\u53C8\u6A5F\u52D5\u3002", weak: "\u6563\u5175\u3001\u9577\u69CD\u5175\u7CFB\u8207\u6210\u7FA4\u7684\u8F15\u9A0E\u5175\u3002" },
+  "hand-cannoneer": { strong: "\u6B65\u5175\u8207\u9577\u69CD\u5175\uFF0C\u4E00\u767C\u5C31\u6253\u6389\u4E00\u5927\u622A\u751F\u547D\u3002", weak: "\u6563\u5175\u3001\u5F13\u5175\u8207\u9A0E\u5175\u885D\u92D2\uFF0C\u4E5F\u6015\u6295\u77F3\u8ECA\uFF1B\u5C04\u901F\u6162\uFF0C\u8FD1\u8EAB\u5C31\u96E3\u4EE5\u81EA\u4FDD\u3002" },
+  "bombard-cannon": { strong: "\u57CE\u5821\u3001\u7BAD\u5854\u8207\u6240\u6709\u5EFA\u7BC9\uFF0C\u4E5F\u80FD\u9EDE\u6389\u6295\u77F3\u8ECA\u3001\u5F29\u7832\u9019\u985E\u653B\u57CE\u5668\u3002", weak: "\u4EFB\u4F55\u8CBC\u8EAB\u7684\u9A0E\u5175\u8207\u6B65\u5175\uFF1B\u79FB\u52D5\u6162\uFF0C\u8981\u6709\u90E8\u968A\u8B77\u9001\u3002" },
+  "fishing-ship": { strong: "\u6355\u6488\u6DF1\u6C34\u9B5A\u7FA4\u3001\u642D\u5EFA\u4E26\u63A1\u96C6\u9B5A\u7DB2\uFF0C\u628A\u98DF\u7269\u9001\u56DE\u78BC\u982D\u3002", weak: "\u6240\u6709\u6230\u8239\u8207\u5CB8\u908A\u7684\u5F13\u5175\uFF1B\u6C92\u6709\u4EFB\u4F55\u653B\u64CA\u80FD\u529B\u3002" },
+  "transport-ship": { strong: "\u8F09\u8457\u9678\u8ECD\u6E21\u6E56\uFF0C\u5F9E\u5C0D\u624B\u6C92\u9632\u5099\u7684\u5CB8\u908A\u767B\u9678\u3002", weak: "\u6230\u8239\u3001\u706B\u8239\u8207\u81EA\u7206\u8239\uFF1B\u6C89\u6C92\u6642\u8239\u4E0A\u7684\u90E8\u968A\u5168\u6578\u9663\u4EA1\u3002" },
+  "trade-cog": { strong: "\u5728\u5DF1\u65B9\u8207\u5C0D\u624B\u7684\u78BC\u982D\u4E4B\u9593\u5F80\u8FD4\uFF0C\u70BA\u5F8C\u671F\u63D0\u4F9B\u9EC3\u91D1\u3002", weak: "\u4EFB\u4F55\u6575\u65B9\u6230\u8239\uFF1B\u4E0D\u80FD\u653B\u64CA\uFF0C\u822A\u7DDA\u8981\u6709\u8B77\u822A\u3002" },
+  "trade-cart": { strong: "\u5728\u5DF1\u65B9\u8207\u5C0D\u624B\u7684\u5E02\u96C6\u4E4B\u9593\u5F80\u8FD4\uFF0C\u8DDD\u96E2\u8D8A\u9060\u6536\u5165\u8D8A\u591A\u3002", weak: "\u65A5\u5019\u7CFB\u8207\u4EFB\u4F55\u9A0E\u5175\uFF1B\u4E0D\u80FD\u653B\u64CA\uFF0C\u5546\u8DEF\u8981\u6709\u90E8\u968A\u4FDD\u8B77\u3002" },
+  galley: { strong: "\u6F01\u8239\u3001\u904B\u8F38\u8239\u8207\u5176\u4ED6\u8239\u96BB\uFF0C\u4E5F\u80FD\u5C04\u64CA\u5CB8\u908A\u7684\u55AE\u4F4D\u8207\u5EFA\u7BC9\u3002", weak: "\u706B\u8239\u8FD1\u8EAB\u5674\u706B\u3001\u81EA\u7206\u8239\u8207\u5CB8\u908A\u7684\u7BAD\u5854\u3001\u57CE\u5821\u3002" },
+  "fire-galley": { strong: "\u6230\u8239\u7CFB\u8207\u5176\u4ED6\u8239\u96BB\uFF0C\u8CBC\u8FD1\u5F8C\u4EE5\u6975\u5FEB\u7684\u983B\u7387\u5674\u706B\u3002", weak: "\u81EA\u7206\u8239\u8207\u5CB8\u4E0A\u7684\u7BAD\u5854\u3001\u57CE\u5821\uFF1B\u5C04\u7A0B\u5F88\u77ED\uFF0C\u6253\u5EFA\u7BC9\u8207\u9678\u5730\u55AE\u4F4D\u90FD\u4E0D\u64C5\u9577\u3002" },
+  "demolition-raft": { strong: "\u64E0\u5728\u4E00\u8D77\u7684\u8239\u968A\u3001\u78BC\u982D\u8207\u5CB8\u908A\u5EFA\u7BC9\uFF0C\u4E00\u6B21\u7206\u70B8\u6CE2\u53CA\u6574\u7247\u7BC4\u570D\u3002", weak: "\u6230\u8239\u5728\u9060\u8655\u628A\u5B83\u5C04\u6C89\uFF1B\u70B8\u5B8C\u5373\u6D88\u8017\u3002" },
+  "cannon-galleon": { strong: "\u5CB8\u908A\u7684\u5EFA\u7BC9\u8207\u653B\u57CE\u5668\uFF0C\u5C04\u7A0B\u9060\u5230\u80FD\u5728\u7BAD\u5854\u5C04\u7A0B\u5916\u958B\u706B\u3002", weak: "\u6230\u8239\u3001\u706B\u8239\u8207\u81EA\u7206\u8239\uFF1B\u8CBC\u8FD1\u7684\u76EE\u6A19\u6253\u4E0D\u5230\uFF0C\u5C04\u901F\u4E5F\u6162\u3002" },
+  longboat: { strong: "\u6F01\u8239\u3001\u904B\u8F38\u8239\u8207\u5176\u4ED6\u6230\u8239\uFF0C\u4E00\u6B21\u5C04\u51FA\u597D\u5E7E\u652F\u7BAD\u3002", weak: "\u706B\u8239\u8FD1\u8EAB\u5674\u706B\u3001\u81EA\u7206\u8239\u8207\u5CB8\u4E0A\u7684\u7BAD\u5854\u3001\u57CE\u5821\u3002" }
+};
+var techsIntro = "\u79D1\u6280\u8CC7\u6599\u6574\u7406\u81EA aoetw.com\uFF08\u4E16\u7D00\u5E1D\u570B II \u7684\u7E41\u9AD4\u4E2D\u6587\u767E\u79D1\uFF0C\u5167\u5BB9\u7D04\u5728 HD\uFF0FUserPatch \u5230\u65E9\u671F\u6C7A\u5B9A\u7248\u4E4B\u9593\uFF09\u3002\u5361\u7247\u4E0A\u7684\u50F9\u683C\u3001\u6642\u9593\u8207\u6548\u679C\u90FD\u53D6\u81EA\u672C\u4F5C\u7684\u6A21\u64EC\uFF0C\u662F\u4F9D\u672C\u4F5C\u6BD4\u4F8B\u81EA\u8A02\u7684 design_default\uFF0C\u4E0D\u662F\u539F\u4F5C\u6578\u64DA\u3002";
+var techsMissingText = "aoetw \u6536\u9304\u3001\u672C\u4F5C\u6C92\u6709\u7684\u79D1\u6280\u5404\u9644\u539F\u56E0\uFF1A\u5E02\u96C6\u7684\u88FD\u5716\u5B78\u3001\u9444\u5E63\u8853\u8207\u9280\u884C\u5236\u5EA6\u662F\u7D66\u76DF\u53CB\u5171\u4EAB\u8996\u91CE\u8207\u9032\u8CA2\u7528\u7684\uFF0C\u4E00\u5C0D\u4E00\u6C92\u6709\u76DF\u53CB\uFF1B\u672C\u4F5C\u6BCF\u4E00\u767C\u90FD\u6703\u547D\u4E2D\uFF0C\u5F48\u9053\u5B78\u8207\u62C7\u6307\u74B0\u7684\u547D\u4E2D\u6548\u679C\u6C92\u6709\u5C0D\u61C9\uFF1B\u7BAD\u5854\u6C92\u6709\u6700\u77ED\u5C04\u7A0B\uFF0C\u8FD1\u5C04\u5B54\u6C92\u6709\u4F5C\u7528\uFF1B\u8FFD\u8E64\u6280\u8853\u5728 aoetw \u7684\u7248\u672C\u5DF2\u4F75\u5165\u7B2C\u4E8C\u6642\u4EE3\uFF1B\u4E5F\u6C92\u6709\u5F12\u541B\u6A21\u5F0F\uFF0C\u9593\u8ADC\u8207\u53DB\u5F92\u4E0D\u6536\u9304\u3002";
+var techsNote = "\u79D1\u6280\u8CC7\u6599\u6574\u7406\u81EA aoetw.com\uFF08HD\uFF0FUserPatch \u5230\u65E9\u671F\u6C7A\u5B9A\u7248\uFF09\uFF0C\u8AAA\u660E\u5DF2\u6539\u7528\u672C\u4F5C\u7684\u55AE\u4F4D\u3001\u5EFA\u7BC9\u8207\u6642\u4EE3\u540D\u7A31\uFF1B\u50F9\u683C\u3001\u6642\u9593\u8207\u6548\u679C\u4E00\u5F8B\u53D6\u81EA\u672C\u4F5C\u7684\u6A21\u64EC\uFF0C\u662F design_default\uFF0C\u4E0D\u662F\u539F\u4F5C\u6578\u64DA\u3002\u6A19\u793A\u300C\u5C1A\u672A\u5BE6\u4F5C\u300D\u7684\u79D1\u6280\u76EE\u524D\u4E0D\u5728\u904A\u6232\u88E1\u3002";
+var techBuildingText = {
+  "town-center": "\u7814\u7A76\u6751\u6C11\u7684\u751F\u5B58\u529B\u3001\u642C\u904B\u91CF\u8207\u5EFA\u7BC9\u8996\u91CE\uFF0C\u4E5F\u662F\u5347\u7D1A\u6642\u4EE3\u7684\u5730\u65B9\u3002",
+  "lumber-camp": "\u7814\u7A76\u52A0\u5FEB\u6751\u6C11\u4F10\u6728\u7684\u79D1\u6280\u3002",
+  "mining-camp": "\u7814\u7A76\u52A0\u5FEB\u6751\u6C11\u63A1\u91D1\u8207\u63A1\u77F3\u7684\u79D1\u6280\u3002",
+  "mill": "\u7814\u7A76\u589E\u52A0\u8FB2\u7530\u98DF\u7269\u7684\u79D1\u6280\u3002",
+  barracks: "\u7814\u7A76\u6B65\u5175\u76F8\u95DC\u79D1\u6280\uFF1A\u79FB\u52D5\u901F\u5EA6\u3001\u6C11\u5175\u7CFB\u7684\u9020\u50F9\uFF0C\u4EE5\u53CA\u62C6\u9664\u5EFA\u7BC9\u7684\u80FD\u529B\u3002",
+  "archery-range": "\u7814\u7A76\u5F37\u5316\u5F13\u5175\u8207\u99AC\u5F13\u9A0E\u5175\u4F5C\u6230\u80FD\u529B\u7684\u79D1\u6280\u3002",
+  stable: "\u7814\u7A76\u63D0\u5347\u9A0E\u5175\u8207\u99F1\u99DD\u9A0E\u5175\u751F\u547D\u8207\u79FB\u52D5\u901F\u5EA6\u7684\u79D1\u6280\u3002",
+  blacksmith: "\u7814\u7A76\u6240\u6709\u8ECD\u4E8B\u55AE\u4F4D\u7684\u653B\u64CA\u8207\u8B77\u7532\u5347\u7D1A\u3002",
+  monastery: "\u7814\u7A76\u5F37\u5316\u50E7\u4FB6\u8F49\u5316\u3001\u751F\u5B58\u8207\u6A5F\u52D5\u7684\u5B97\u6559\u79D1\u6280\uFF0C\u4EE5\u53CA\u62B5\u6297\u6575\u65B9\u8F49\u5316\u7684\u79D1\u6280\u3002",
+  university: "\u7814\u7A76\u5EFA\u7BC9\u9632\u79A6\u3001\u653B\u57CE\u5668\u8207\u5316\u5B78\u3001\u7BAD\u5854\u8207\u57CE\u7246\u7684\u5347\u7D1A\uFF0C\u4EE5\u53CA\u706B\u7832\u5854\u3002",
+  castle: "\u7814\u7A76\u5404\u6587\u660E\u7684\u7279\u6B8A\u79D1\u6280\uFF0C\u4EE5\u53CA\u5FB5\u5175\u6280\u8853\u3001\u5175\u5DE5\u5B78\u3001\u570D\u7246\u9019\u4E9B\u7B2C\u56DB\u6642\u4EE3\u7684\u901A\u7528\u79D1\u6280\u3002",
+  market: "\u7814\u7A76\u52A0\u5FEB\u8CBF\u6613\u55AE\u4F4D\u8207\u964D\u4F4E\u8CB7\u8CE3\u624B\u7E8C\u8CBB\u7684\u7D93\u6FDF\u79D1\u6280\u3002",
+  dock: "\u7814\u7A76\u8239\u96BB\u8B77\u7532\u3001\u822A\u901F\u3001\u9020\u8239\u6210\u672C\u8207\u6F01\u8239\u6548\u7387\u7B49\u6D77\u8ECD\u79D1\u6280\uFF0C\u4EE5\u53CA\u5404\u8239\u7CFB\u7684\u5347\u7D1A\u3002"
+};
+var techPendingReasons = {
+  allies: "\u672C\u4F5C\u662F\u4E00\u5C0D\u4E00\u5C0D\u6230\uFF0C\u6C92\u6709\u76DF\u53CB\u53EF\u4EE5\u5171\u4EAB\u8996\u91CE\u6216\u9032\u8CA2",
+  accuracy: "\u672C\u4F5C\u6BCF\u4E00\u767C\u90FD\u6703\u547D\u4E2D\uFF0C\u6C92\u6709\u547D\u4E2D\u7387\u53EF\u4EE5\u63D0\u5347",
+  minRange: "\u672C\u4F5C\u7684\u7BAD\u5854\u8207\u57CE\u5821\u6C92\u6709\u6700\u77ED\u5C04\u7A0B",
+  tracking: "aoetw \u6536\u9304\u7684\u7248\u672C\u5DF2\u628A\u5B83\u4F75\u5165\u7B2C\u4E8C\u6642\u4EE3\uFF0C\u5347\u6642\u4EE3\u5C31\u81EA\u52D5\u751F\u6548",
+  regicide: "\u672C\u4F5C\u662F\u4E00\u5C0D\u4E00\u5C0D\u6230\uFF0C\u4E5F\u6C92\u6709\u5F12\u541B\u6A21\u5F0F",
+  civ: "\u672C\u4F5C\u53EA\u6709 13 \u500B\u539F\u7248\u6587\u660E"
+};
+var techPendingKind = {
+  tracking: "tracking",
+  cartography: "allies",
+  coinage: "allies",
+  banking: "allies",
+  spies: "regicide",
+  treason: "regicide",
+  ballistics: "accuracy",
+  "murder-holes": "minRange"
+};
+var techPartials = {
+  loom: "\u539F\u4F5C\u9084\u8B93\u6751\u6C11\u7684\u8FD1\u6230\u8207\u9060\u7A0B\u8B77\u7532\u63D0\u9AD8",
+  wheelbarrow: "\u539F\u4F5C\u9084\u8B93\u6751\u6C11\u8D70\u5F97\u66F4\u5FEB",
+  "hand-cart": "\u539F\u4F5C\u9084\u8B93\u6751\u6C11\u518D\u8D70\u5FEB\u4E00\u4E9B",
+  "thumb-ring": "\u539F\u4F5C\u9084\u8B93\u5F13\u5175\u5C0D\u975C\u6B62\u76EE\u6A19\u767E\u767C\u767E\u4E2D\uFF1B\u672C\u4F5C\u6BCF\u4E00\u767C\u90FD\u6703\u547D\u4E2D",
+  fletching: "\u539F\u4F5C\u4E5F\u52A0\u5F37\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u8207\u57CE\u5821\u7684\u7BAD\uFF1B\u672C\u4F5C\u53EA\u4F5C\u7528\u5728\u55AE\u4F4D\uFF08\u5F13\u5175\u8207\u6230\u8266\uFF09\u4E0A",
+  "bodkin-arrow": "\u539F\u4F5C\u4E5F\u52A0\u5F37\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u8207\u57CE\u5821\u7684\u7BAD\uFF1B\u672C\u4F5C\u53EA\u4F5C\u7528\u5728\u55AE\u4F4D\uFF08\u5F13\u5175\u8207\u6230\u8266\uFF09\u4E0A",
+  bracer: "\u539F\u4F5C\u4E5F\u52A0\u5F37\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u8207\u57CE\u5821\u7684\u7BAD\uFF1B\u672C\u4F5C\u53EA\u4F5C\u7528\u5728\u55AE\u4F4D\uFF08\u5F13\u5175\u8207\u6230\u8266\uFF09\u4E0A"
+};
+var aoetwTechs = [
+  { id: "tracking", name: "\u8FFD\u8E64\u6280\u8853", nameEn: "Tracking", at: "\u8ECD\u71DF", age: 2, kind: "generic", civ: null, page: "techs/Tracking" },
+  { id: "supplies", name: "\u4F9B\u7D66", nameEn: "Supplies", at: "\u8ECD\u71DF", age: 2, kind: "generic", civ: null, page: "techs/Supplies" },
+  { id: "squires", name: "\u8B77\u885B\u6280\u8853", nameEn: "Squires", at: "\u8ECD\u71DF", age: 3, kind: "generic", civ: null, page: "techs/Squires" },
+  { id: "arson", name: "\u7E31\u706B", nameEn: "Arson", at: "\u8ECD\u71DF", age: 3, kind: "generic", civ: null, page: "techs/Arson" },
+  { id: "thumb-ring", name: "\u62C7\u6307\u74B0", nameEn: "Thumb Ring", at: "\u5C04\u7BAD\u5834", age: 3, kind: "generic", civ: null, page: "techs/Thumb_Ring" },
+  { id: "parthian-tactics", name: "\u5B89\u606F\u4EBA\u6230\u8853", nameEn: "Parthian Tactics", at: "\u5C04\u7BAD\u5834", age: 4, kind: "generic", civ: null, page: "techs/Parthian_Tactics" },
+  { id: "bloodlines", name: "\u54C1\u7A2E", nameEn: "Bloodlines", at: "\u99AC\u5EC4", age: 2, kind: "generic", civ: null, page: "techs/Bloodlines" },
+  { id: "husbandry", name: "\u8015\u7A2E\u6280\u8853", nameEn: "Husbandry", at: "\u99AC\u5EC4", age: 3, kind: "generic", civ: null, page: "techs/Husbandry" },
+  { id: "loom", name: "\u7E54\u5E03\u6280\u8853", nameEn: "Loom", at: "\u57CE\u93AE\u4E2D\u5FC3", age: 1, kind: "generic", civ: null, page: "techs/Loom" },
+  { id: "wheelbarrow", name: "\u8F2A\u8EF8\u6280\u8853", nameEn: "Wheelbarrow", at: "\u57CE\u93AE\u4E2D\u5FC3", age: 2, kind: "generic", civ: null, page: "techs/Wheelbarrow" },
+  { id: "hand-cart", name: "\u624B\u63A8\u8ECA", nameEn: "Hand Cart", at: "\u57CE\u93AE\u4E2D\u5FC3", age: 3, kind: "generic", civ: null, page: "techs/Hand_Cart" },
+  { id: "town-watch", name: "\u57CE\u93AE\u77AD\u671B", nameEn: "Town Watch", at: "\u57CE\u93AE\u4E2D\u5FC3", age: 2, kind: "generic", civ: null, page: "techs/Town_Watch" },
+  { id: "town-patrol", name: "\u57CE\u93AE\u5DE1\u908F", nameEn: "Town Patrol", at: "\u57CE\u93AE\u4E2D\u5FC3", age: 3, kind: "generic", civ: null, page: "techs/Town_Patrol" },
+  { id: "redemption", name: "\u795E\u8056\u601D\u60F3", nameEn: "Redemption", at: "\u4FEE\u9053\u9662", age: 3, kind: "generic", civ: null, page: "techs/Redemption" },
+  { id: "atonement", name: "\u6551\u8D16\u601D\u60F3", nameEn: "Atonement", at: "\u4FEE\u9053\u9662", age: 3, kind: "generic", civ: null, page: "techs/Atonement" },
+  { id: "herbal-medicine", name: "\u8349\u85E5\u6CBB\u7642", nameEn: "Herbal Medicine", at: "\u4FEE\u9053\u9662", age: 3, kind: "generic", civ: null, page: "techs/Herbal_Medicine" },
+  { id: "heresy", name: "\u7570\u7AEF\u90AA\u8AAA", nameEn: "Heresy", at: "\u4FEE\u9053\u9662", age: 3, kind: "generic", civ: null, page: "techs/Heresy" },
+  { id: "sanctity", name: "\u8056\u6F54\u8654\u8AA0", nameEn: "Sanctity", at: "\u4FEE\u9053\u9662", age: 3, kind: "generic", civ: null, page: "techs/Sanctity" },
+  { id: "fervor", name: "\u5B97\u6559\u72C2\u71B1", nameEn: "Fervor", at: "\u4FEE\u9053\u9662", age: 3, kind: "generic", civ: null, page: "techs/Fervor" },
+  { id: "faith", name: "\u5FE0\u8AA0\u4FE1\u4EF0", nameEn: "Faith", at: "\u4FEE\u9053\u9662", age: 4, kind: "generic", civ: null, page: "techs/Faith" },
+  { id: "illumination", name: "\u555F\u793A\u601D\u60F3", nameEn: "Illumination", at: "\u4FEE\u9053\u9662", age: 4, kind: "generic", civ: null, page: "techs/Illumination" },
+  { id: "block-printing", name: "\u5370\u5237\u6280\u8853", nameEn: "Block Printing", at: "\u4FEE\u9053\u9662", age: 4, kind: "generic", civ: null, page: "techs/Block_Printing" },
+  { id: "theocracy", name: "\u795E\u6B0A\u7D71\u6CBB", nameEn: "Theocracy", at: "\u4FEE\u9053\u9662", age: 4, kind: "generic", civ: null, page: "techs/Theocracy" },
+  { id: "cartography", name: "\u88FD\u5716\u5B78", nameEn: "Cartography", at: "\u5E02\u96C6", age: 2, kind: "generic", civ: null, page: "techs/Cartography" },
+  { id: "caravan", name: "\u5546\u968A", nameEn: "Caravan", at: "\u5E02\u96C6", age: 3, kind: "generic", civ: null, page: "techs/Caravan" },
+  { id: "coinage", name: "\u9444\u5E63\u8853", nameEn: "Coinage", at: "\u5E02\u96C6", age: 3, kind: "generic", civ: null, page: "techs/Coinage" },
+  { id: "banking", name: "\u9280\u884C\u5236\u5EA6", nameEn: "Banking", at: "\u5E02\u96C6", age: 4, kind: "generic", civ: null, page: "techs/Banking" },
+  { id: "guilds", name: "\u516C\u6703\u5236\u5EA6", nameEn: "Guilds", at: "\u5E02\u96C6", age: 4, kind: "generic", civ: null, page: "techs/Guilds" },
+  { id: "spies", name: "\u9593\u8ADC", nameEn: "Spies", at: "\u57CE\u5821", age: 4, kind: "generic", civ: null, page: "techs/Spies" },
+  { id: "treason", name: "\u53DB\u5F92", nameEn: "Treason", at: "\u57CE\u5821", age: 4, kind: "generic", civ: null, page: null },
+  { id: "hoardings", name: "\u570D\u7246", nameEn: "Hoardings", at: "\u57CE\u5821", age: 4, kind: "generic", civ: null, page: "techs/Hoardings" },
+  { id: "sappers", name: "\u5175\u5DE5\u5B78", nameEn: "Sappers", at: "\u57CE\u5821", age: 4, kind: "generic", civ: null, page: "techs/Sappers" },
+  { id: "conscription", name: "\u5FB5\u5175\u6280\u8853", nameEn: "Conscription", at: "\u57CE\u5821", age: 4, kind: "generic", civ: null, page: "techs/Conscription" },
+  { id: "careening", name: "\u822A\u6D77\u6280\u8853", nameEn: "Careening", at: "\u78BC\u982D", age: 3, kind: "generic", civ: null, page: "techs/Careening" },
+  { id: "dry-dock", name: "\u8239\u5862", nameEn: "Dry Dock", at: "\u78BC\u982D", age: 4, kind: "generic", civ: null, page: "techs/Dry_Dock" },
+  { id: "shipwright", name: "\u9020\u8239\u54E1", nameEn: "Shipwright", at: "\u78BC\u982D", age: 4, kind: "generic", civ: null, page: "techs/Shipwright" },
+  { id: "gillnets", name: "\u6D41\u523A\u7DB2", nameEn: "Gillnets", at: "\u78BC\u982D", age: 3, kind: "generic", civ: null, page: "techs/Gillnets" },
+  { id: "masonry", name: "\u78DA\u74E6\u6280\u8853", nameEn: "Masonry", at: "\u5B78\u9662", age: 3, kind: "generic", civ: null, page: "techs/Masonry" },
+  { id: "ballistics", name: "\u5F48\u9053\u5B78", nameEn: "Ballistics", at: "\u5B78\u9662", age: 3, kind: "generic", civ: null, page: "techs/Ballistics" },
+  { id: "heated-shot", name: "\u706B\u7BAD", nameEn: "Heated Shot", at: "\u5B78\u9662", age: 3, kind: "generic", civ: null, page: "techs/Heated_Shot" },
+  { id: "murder-holes", name: "\u8FD1\u5C04\u5B54", nameEn: "Murder Holes", at: "\u5B78\u9662", age: 3, kind: "generic", civ: null, page: "techs/Murder_Holes" },
+  { id: "treadmill-crane", name: "\u78E8\u574A\u6C34\u8ECA", nameEn: "Treadmill Crane", at: "\u5B78\u9662", age: 3, kind: "generic", civ: null, page: "techs/Treadmill_Crane" },
+  { id: "architecture", name: "\u5EFA\u7BC9\u5B78", nameEn: "Architecture", at: "\u5B78\u9662", age: 4, kind: "generic", civ: null, page: "techs/Architecture" },
+  { id: "chemistry", name: "\u5316\u5B78", nameEn: "Chemistry", at: "\u5B78\u9662", age: 4, kind: "generic", civ: null, page: "techs/Chemistry" },
+  { id: "siege-engineers", name: "\u653B\u57CE\u5DE5\u7A0B\u5E2B", nameEn: "Siege Engineers", at: "\u5B78\u9662", age: 4, kind: "generic", civ: null, page: "techs/Siege_Engineers" },
+  { id: "arrowslits", name: "\u7BAD\u72F9\u69FD", nameEn: "Arrowslits", at: "\u5B78\u9662", age: 4, kind: "generic", civ: null, page: "techs/Arrowslits" },
+  { id: "padded-archer-armor", name: "\u5F13\u5175\u8B77\u7532", nameEn: "Padded Archer Armor", at: "\u5175\u5DE5\u5EE0", age: 2, kind: "generic", civ: null, page: "techs/Padded_Archer_Armor" },
+  { id: "leather-archer-armor", name: "\u5F13\u5175\u76AE\u7532", nameEn: "Leather Archer Armor", at: "\u5175\u5DE5\u5EE0", age: 3, kind: "generic", civ: null, page: "techs/Leather_Archer_Armor" },
+  { id: "ring-archer-armor", name: "\u5F13\u5175\u93C8\u7532", nameEn: "Ring Archer Armor", at: "\u5175\u5DE5\u5EE0", age: 4, kind: "generic", civ: null, page: "techs/Ring_Archer_Armor" },
+  { id: "fletching", name: "\u7D55\u4E16\u597D\u7BAD", nameEn: "Fletching", at: "\u5175\u5DE5\u5EE0", age: 2, kind: "generic", civ: null, page: "techs/Fletching" },
+  { id: "bodkin-arrow", name: "\u7FBD\u7BAD", nameEn: "Bodkin Arrow", at: "\u5175\u5DE5\u5EE0", age: 3, kind: "generic", civ: null, page: "techs/Bodkin_Arrow" },
+  { id: "bracer", name: "\u5F37\u529B\u8B77\u8155", nameEn: "Bracer", at: "\u5175\u5DE5\u5EE0", age: 4, kind: "generic", civ: null, page: "techs/Bracer" },
+  { id: "forging", name: "\u935B\u9020\u6280\u8853", nameEn: "Forging", at: "\u5175\u5DE5\u5EE0", age: 2, kind: "generic", civ: null, page: "techs/Forging" },
+  { id: "iron-casting", name: "\u9444\u9020\u6280\u8853", nameEn: "Iron Casting", at: "\u5175\u5DE5\u5EE0", age: 3, kind: "generic", civ: null, page: "techs/Iron_Casting" },
+  { id: "blast-furnace", name: "\u9F13\u98A8\u7210", nameEn: "Blast Furnace", at: "\u5175\u5DE5\u5EE0", age: 4, kind: "generic", civ: null, page: "techs/Blast_Furnace" },
+  { id: "scale-barding-armor", name: "\u9C57\u93A7\u7532", nameEn: "Scale Barding Armor", at: "\u5175\u5DE5\u5EE0", age: 2, kind: "generic", civ: null, page: "techs/Scale_Barding_Armor" },
+  { id: "chain-barding-armor", name: "\u93C8\u93A7\u7532", nameEn: "Chain Barding Armor", at: "\u5175\u5DE5\u5EE0", age: 3, kind: "generic", civ: null, page: "techs/Chain_Barding_Armor" },
+  { id: "plate-barding-armor", name: "\u9435\u93A7\u7532", nameEn: "Plate Barding Armor", at: "\u5175\u5DE5\u5EE0", age: 4, kind: "generic", civ: null, page: "techs/Plate_Barding_Armor" },
+  { id: "scale-mail-armor", name: "\u6B65\u5175\u9C57\u7532", nameEn: "Scale Mail Armor", at: "\u5175\u5DE5\u5EE0", age: 2, kind: "generic", civ: null, page: "techs/Scale_Mail_Armor" },
+  { id: "chain-mail-armor", name: "\u6B65\u5175\u93C8\u7532", nameEn: "Chain Mail Armor", at: "\u5175\u5DE5\u5EE0", age: 3, kind: "generic", civ: null, page: "techs/Chain_Mail_Armor" },
+  { id: "plate-mail-armor", name: "\u6B65\u5175\u677F\u7532", nameEn: "Plate Mail Armor", at: "\u5175\u5DE5\u5EE0", age: 4, kind: "generic", civ: null, page: "techs/Plate_Mail_Armor" },
+  { id: "gold-mining", name: "\u63A1\u91D1\u6280\u8853", nameEn: "Gold Mining", at: "\u63A1\u7926\u71DF\u5730", age: 2, kind: "generic", civ: null, page: "techs/Gold_Mining" },
+  { id: "stone-mining", name: "\u63A1\u77F3\u6280\u8853", nameEn: "Stone Mining", at: "\u63A1\u7926\u71DF\u5730", age: 2, kind: "generic", civ: null, page: "techs/Stone_Mining" },
+  { id: "gold-shaft-mining", name: "\u63A1\u91D1\u88DD\u7F6E", nameEn: "Gold Shaft Mining", at: "\u63A1\u7926\u71DF\u5730", age: 3, kind: "generic", civ: null, page: "techs/Gold_Shaft_Mining" },
+  { id: "stone-shaft-mining", name: "\u63A1\u77F3\u88DD\u7F6E", nameEn: "Stone Shaft Mining", at: "\u63A1\u7926\u71DF\u5730", age: 3, kind: "generic", civ: null, page: "techs/Stone_Shaft_Mining" },
+  { id: "double-bit-axe", name: "\u96D9\u9762\u65A7", nameEn: "Double-Bit Axe", at: "\u4F10\u6728\u5834", age: 2, kind: "generic", civ: null, page: "techs/Double-Bit_Axe" },
+  { id: "bow-saw", name: "\u5F13\u5F62\u92F8", nameEn: "Bow Saw", at: "\u4F10\u6728\u5834", age: 3, kind: "generic", civ: null, page: "techs/Bow_Saw" },
+  { id: "two-man-saw", name: "\u96D9\u4EBA\u92F8", nameEn: "Two-Man Saw", at: "\u4F10\u6728\u5834", age: 4, kind: "generic", civ: null, page: "techs/Two-Man_Saw" },
+  { id: "horse-collar", name: "\u7378\u8015\u6280\u8853", nameEn: "Horse Collar", at: "\u78E8\u574A", age: 2, kind: "generic", civ: null, page: "techs/Horse_Collar" },
+  { id: "heavy-plow", name: "\u91CD\u578B\u8015\u7281", nameEn: "Heavy Plow", at: "\u78E8\u574A", age: 3, kind: "generic", civ: null, page: "techs/Heavy_Plow" },
+  { id: "crop-rotation", name: "\u8F2A\u8015\u5236\u5EA6", nameEn: "Crop Rotation", at: "\u78E8\u574A", age: 4, kind: "generic", civ: null, page: "techs/Crop_Rotation" },
+  { id: "fortified-wall", name: "\u579B\u7246", nameEn: "Fortified Wall", at: "\u5B78\u9662", age: 3, kind: "generic", civ: null, page: "building/Fortified_Wall" },
+  { id: "guard-tower", name: "\u9632\u79A6\u7BAD\u5854", nameEn: "Guard Tower", at: "\u5B78\u9662", age: 3, kind: "generic", civ: null, page: "building/Guard_Tower" },
+  { id: "keep", name: "\u5927\u578B\u7BAD\u5854", nameEn: "Keep", at: "\u5B78\u9662", age: 4, kind: "generic", civ: null, page: "building/Keep" },
+  { id: "bombard-tower-tech", name: "\u706B\u7832\u5854", nameEn: "Bombard Tower", at: "\u5B78\u9662", age: 4, kind: "generic", civ: null, page: "building/Bombard_Tower" },
+  { id: "atlatl", name: "\u64F2\u77DB\u5668", nameEn: "Atlatl", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u963F\u8332\u7279\u514B", page: "techs/Atlatl" },
+  { id: "kasbah", name: "\u805A\u5C45\u5821\u58D8", nameEn: "Kasbah", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u67CF\u67CF", page: "techs/Kasbah" },
+  { id: "yeomen", name: "\u7FA9\u52C7\u9A0E\u5175", nameEn: "Yeomen", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u4E0D\u5217\u985B", page: "techs/Yeomen" },
+  { id: "howdah", name: "\u8C61\u8F4E", nameEn: "Howdah", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u7DEC\u7538", page: "techs/Howdah" },
+  { id: "greek-fire", name: "\u5E0C\u81D8\u4E4B\u706B", nameEn: "Greek Fire", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u62DC\u5360\u5EAD", page: "techs/Greek_Fire" },
+  { id: "stronghold", name: "\u5821\u58D8", nameEn: "Stronghold", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u585E\u723E\u7279", page: "techs/Stronghold" },
+  { id: "great-wall", name: "\u9577\u57CE", nameEn: "Great Wall", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u4E2D\u570B", page: "techs/Great_Wall" },
+  { id: "royal-heirs", name: "\u7687\u65CF\u8840\u8108", nameEn: "Royal Heirs", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u8863\u7D22\u6BD4\u4E9E", page: "techs/Royal_Heirs" },
+  { id: "chivalry", name: "\u9A0E\u58EB\u7CBE\u795E", nameEn: "Chivalry", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u6CD5\u862D\u514B", page: "techs/Chivalry" },
+  { id: "anarchy", name: "\u7121\u653F\u5E9C\u72C0\u614B", nameEn: "Anarchy", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u54E5\u5FB7", page: "techs/Anarchy" },
+  { id: "marauders", name: "\u63A0\u596A\u8005", nameEn: "Marauders", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u5308\u4EBA", page: "techs/Marauders" },
+  { id: "andean-sling", name: "\u5B89\u5730\u65AF\u5F48\u5F13", nameEn: "Andean Sling", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u5370\u52A0", page: "techs/Andean_Sling" },
+  { id: "sultans", name: "\u8607\u4E39", nameEn: "Sultans", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u5370\u5EA6", page: "techs/Sultans" },
+  { id: "pavise", name: "\u5DE8\u76FE", nameEn: "Pavise", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u7FA9\u5927\u5229", page: "techs/Pavise" },
+  { id: "yasama", name: "\u5C04\u7BAD\u5B54", nameEn: "Yasama", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u65E5\u672C", page: "techs/Yasama" },
+  { id: "tusk-swords", name: "\u8C61\u7259\u528D", nameEn: "Tusk Swords", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u9AD8\u68C9", page: "techs/Tusk_Swords" },
+  { id: "eupseong", name: "\u9091\u57CE", nameEn: "Eupseong", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u671D\u9BAE", page: "techs/Eupseong" },
+  { id: "corvinian-army", name: "\u79D1\u7DAD\u5C3C\u5B89\u8ECD\u968A", nameEn: "Corvinian Army", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u99AC\u624E\u723E", page: "techs/Corvinian_Army" },
+  { id: "thalassocracy", name: "\u6D77\u4E0A\u9738\u4E3B", nameEn: "Thalassocracy", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u99AC\u4F86", page: "techs/Thalassocracy" },
+  { id: "tigui", name: "\u90E8\u843D\u9818\u8896", nameEn: "Tigui", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u99AC\u5229", page: "techs/Tigui" },
+  { id: "nomads", name: "\u6E38\u7267", nameEn: "Nomads", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u8499\u53E4", page: "techs/Nomads" },
+  { id: "kamandaran", name: "\u6CE2\u65AF\u5F13\u5175", nameEn: "Kamandaran", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u6CE2\u65AF", page: "techs/Kamandaran" },
+  { id: "carrack", name: "\u514B\u62C9\u514B\u5E06\u8239", nameEn: "Carrack", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u8461\u8404\u7259", page: "techs/Carrack" },
+  { id: "madrasah", name: "\u7A46\u65AF\u6797\u5B78\u588A", nameEn: "Madrasah", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u85A9\u62C9\u68EE", page: "techs/Madrasah" },
+  { id: "orthodoxy", name: "\u6771\u6B63\u6559", nameEn: "Orthodoxy", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u65AF\u62C9\u592B", page: "techs/Orthodoxy" },
+  { id: "inquisition", name: "\u7570\u7AEF\u5BE9\u5224", nameEn: "Inquisition", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u897F\u73ED\u7259", page: "techs/Inquisition" },
+  { id: "ironclad", name: "\u92FC\u9435\u7532", nameEn: "Ironclad", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u689D\u9813", page: "techs/Ironclad" },
+  { id: "sipahi", name: "\u91C7\u9091\u9A0E\u5175", nameEn: "Sipahi", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u571F\u8033\u5176", page: "techs/Sipahi" },
+  { id: "chatras", name: "\u6070\u7279\u62C9\u5098", nameEn: "Chatras", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u8D8A\u5357", page: "techs/Chatras" },
+  { id: "chieftains", name: "\u914B\u9577", nameEn: "Chieftains", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u7DAD\u4EAC", page: "techs/Chieftains" },
+  { id: "stirrups", name: "\u99AC\u9419", nameEn: "Stirrups", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u4FDD\u52A0\u5229\u4E9E", page: "techs/Stirrups" },
+  { id: "steppe-husbandry", name: "\u5927\u8349\u539F\u8015\u7A2E\u6280\u8853", nameEn: "Steppe Husbandry", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u5EAB\u66FC", page: "techs/Steppe_Husbandry" },
+  { id: "hill-forts", name: "\u5C71\u57CE\u5821", nameEn: "Hill Forts", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u7ACB\u9676\u5B9B", page: "techs/Hill_Forts" },
+  { id: "silk-armor", name: "\u7D72\u8B77\u7532", nameEn: "Silk Armor", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u97C3\u977C", page: "techs/Silk_Armor" },
+  { id: "garland-wars", name: "\u69AE\u51A0\u6230\u722D", nameEn: "Garland Wars", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u963F\u8332\u7279\u514B", page: "techs/Garland_Wars" },
+  { id: "maghrabi-camels", name: "\u99AC\u683C\u62C9\u6BD4\u99F1\u99DD", nameEn: "Maghrabi Camels", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u67CF\u67CF", page: "techs/Maghrabi_Camels" },
+  { id: "warwolf", name: "\u6230\u72FC\u865F", nameEn: "Warwolf", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u4E0D\u5217\u985B", page: "techs/Warwolf" },
+  { id: "manipur-cavalry", name: "\u66FC\u5C3C\u666E\u723E\u9A0E\u5175", nameEn: "Manipur Cavalry", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u7DEC\u7538", page: "techs/Manipur_Cavalry" },
+  { id: "logistica", name: "\u5F8C\u52E4", nameEn: "Logistica", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u62DC\u5360\u5EAD", page: "techs/Logistica" },
+  { id: "furor-celtica", name: "\u585E\u723E\u7279\u72C2\u71B1", nameEn: "Furor Celtica", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u585E\u723E\u7279", page: "techs/Furor_Celtica" },
+  { id: "rocketry", name: "\u706B\u7BAD\u6280\u8853", nameEn: "Rocketry", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u4E2D\u570B", page: "techs/Rocketry" },
+  { id: "torsion-engines", name: "\u626D\u529B\u5F48\u5C04\u5668", nameEn: "Torsion Engines", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u8863\u7D22\u6BD4\u4E9E", page: "techs/Torsion_Engines" },
+  { id: "bearded-axe", name: "\u5012\u9264\u65A7", nameEn: "Bearded Axe", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u6CD5\u862D\u514B", page: "techs/Bearded_Axe" },
+  { id: "perfusion", name: "\u4E95\u5674", nameEn: "Perfusion", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u54E5\u5FB7", page: "techs/Perfusion" },
+  { id: "atheism", name: "\u7121\u795E\u8AD6", nameEn: "Atheism", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u5308\u4EBA", page: "techs/Atheism" },
+  { id: "fabric-shields", name: "\u7E54\u7269\u76FE", nameEn: "Fabric Shields", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u5370\u52A0", page: "techs/Fabric_Shields" },
+  { id: "shatagni", name: "\u5370\u5EA6\u706B\u9283", nameEn: "Shatagni", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u5370\u5EA6", page: "techs/Shatagni" },
+  { id: "silk-road", name: "\u7D72\u7DA2\u4E4B\u8DEF", nameEn: "Silk Road", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u7FA9\u5927\u5229", page: "techs/Silk_Road" },
+  { id: "kataparuto", name: "\u5F48\u5C04\u5668", nameEn: "Kataparuto", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u65E5\u672C", page: "techs/Kataparuto" },
+  { id: "double-crossbow", name: "\u96D9\u5F29\u7BAD", nameEn: "Double Crossbow", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u9AD8\u68C9", page: "techs/Double_Crossbow" },
+  { id: "shinkichon", name: "\u6295\u64F2\u5668", nameEn: "Shinkichon", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u671D\u9BAE", page: "techs/Shinkichon" },
+  { id: "recurve-bow", name: "\u53CD\u66F2\u5F13", nameEn: "Recurve Bow", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u99AC\u624E\u723E", page: "techs/Recurve_Bow" },
+  { id: "forced-levy", name: "\u5F37\u5236\u5FB5\u5175", nameEn: "Forced Levy", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u99AC\u4F86", page: "techs/Forced_Levy" },
+  { id: "farimba", name: "\u9A43\u608D\u7CBE\u795E", nameEn: "Farimba", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u99AC\u5229", page: "techs/Farimba" },
+  { id: "el-dorado", name: "\u9EC3\u91D1\u570B", nameEn: "El Dorado", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u99AC\u96C5", page: "techs/El_Dorado" },
+  { id: "drill", name: "\u947F\u5CA9\u6A5F", nameEn: "Drill", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u8499\u53E4", page: "techs/Drill" },
+  { id: "mahouts", name: "\u8C61\u4F15", nameEn: "Mahouts", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u6CE2\u65AF", page: "techs/Mahouts" },
+  { id: "arquebus", name: "\u706B\u7E69\u69CD", nameEn: "Arquebus", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u8461\u8404\u7259", page: "techs/Arquebus" },
+  { id: "zealotry", name: "\u72C2\u71B1", nameEn: "Zealotry", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u85A9\u62C9\u68EE", page: "techs/Zealotry" },
+  { id: "druzhina", name: "\u738B\u5BB6\u4F8D\u5F9E", nameEn: "Druzhina", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u65AF\u62C9\u592B", page: "techs/Druzhina" },
+  { id: "supremacy", name: "\u9738\u6B0A", nameEn: "Supremacy", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u897F\u73ED\u7259", page: "techs/Supremacy" },
+  { id: "crenellations", name: "\u7832\u9580\u579B\u53E3", nameEn: "Crenellations", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u689D\u9813", page: "techs/Crenellations" },
+  { id: "artillery", name: "\u7832\u5175", nameEn: "Artillery", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u571F\u8033\u5176", page: "techs/Artillery" },
+  { id: "paper-money", name: "\u7D19\u5E63", nameEn: "Paper Money", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u8D8A\u5357", page: "techs/Paper_Money" },
+  { id: "berserkergang", name: "\u72C2\u6230\u58EB\u5E6B", nameEn: "Berserkergang", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u7DAD\u4EAC", page: "techs/Berserkergang" },
+  { id: "bagains", name: "\u5354\u8B70", nameEn: "Bagains", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u4FDD\u52A0\u5229\u4E9E", page: "techs/Bagains" },
+  { id: "cuman-mercenaries", name: "\u5EAB\u66FC\u50AD\u5175", nameEn: "Cuman Mercenaries", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u5EAB\u66FC", page: "techs/Cuman_Mercenaries" },
+  { id: "tower-shields", name: "\u5854\u76FE", nameEn: "Tower Shields", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u7ACB\u9676\u5B9B", page: "techs/Tower_Shields" },
+  { id: "timurid-siegecraft", name: "\u5E16\u6728\u5152\u653B\u57CE\u8853", nameEn: "Timurid Siegecraft", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u97C3\u977C", page: "techs/Timurid_Siegecraft" },
+  { id: "hulche-javelineers", name: "\u80E1\u723E\u5207\u64F2\u77DB\u5175", nameEn: "Hul'che Javelineers", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u99AC\u96C5", page: null },
+  { id: "burgundian-vineyards", name: "\u52C3\u6839\u5730\u8461\u8404\u5712", nameEn: "Burgundian Vineyards", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u52C3\u6839\u5730", page: null },
+  { id: "first-crusade", name: "\u7B2C\u4E00\u6B21\u5341\u5B57\u8ECD\u6771\u5F81", nameEn: "First Crusade", at: "\u57CE\u5821", age: 3, kind: "unique", civ: "\u897F\u897F\u91CC", page: "techs/First_Crusade" },
+  { id: "flemish-revolution", name: "\u4F5B\u840A\u660E\u9769\u547D", nameEn: "Flemish Revolution", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u52C3\u6839\u5730", page: null },
+  { id: "scutage", name: "\u5175\u5F79\u514D\u9664\u7A05", nameEn: "Scutage", at: "\u57CE\u5821", age: 4, kind: "unique", civ: "\u897F\u897F\u91CC", page: null },
+  { id: "dark-age", name: "\u9ED1\u6697\u6642\u4EE3", nameEn: "Dark Age", at: "\u57CE\u93AE\u4E2D\u5FC3", age: 1, kind: "age", civ: null, page: "techs/age/Dark_Age" },
+  { id: "feudal-age", name: "\u5C01\u5EFA\u6642\u4EE3", nameEn: "Feudal Age", at: "\u57CE\u93AE\u4E2D\u5FC3", age: 2, kind: "age", civ: null, page: "techs/age/Feudal_Age" },
+  { id: "castle-age", name: "\u57CE\u5821\u6642\u4EE3", nameEn: "Castle Age", at: "\u57CE\u93AE\u4E2D\u5FC3", age: 3, kind: "age", civ: null, page: "techs/age/Castle_Age" },
+  { id: "imperial-age", name: "\u5E1D\u738B\u6642\u4EE3", nameEn: "Imperial Age", at: "\u57CE\u93AE\u4E2D\u5FC3", age: 4, kind: "age", civ: null, page: "techs/age/Imperial_Age" }
+];
+var techText = {
+  "tracking": "\u5347\u4E0A\u7B2C\u4E8C\u6642\u4EE3\u5F8C\u81EA\u52D5\u751F\u6548\uFF0C\u8B93\u6B65\u5175\u770B\u5F97\u66F4\u9060\uFF1B\u6C7A\u5B9A\u7248\u8D77\u4E0D\u5FC5\u53E6\u5916\u7814\u7A76\uFF0C\u5C6C\u65BC\u96A8\u6642\u4EE3\u9644\u5E36\u7684\u514D\u8CBB\u5F37\u5316\u3002",
+  "supplies": "\u964D\u4F4E\u6C11\u5175\u7CFB\u7684\u98DF\u7269\u82B1\u8CBB\uFF0C\u8B93\u5927\u91CF\u751F\u7522\u528D\u5175\u66F4\u7701\u8CC7\u6E90\uFF1B\u4EE5\u6B65\u5175\u70BA\u4E3B\u529B\u6216\u6253\u6C11\u5175\u5FEB\u653B\u6642\u503C\u5F97\u512A\u5148\u7814\u7A76\u3002",
+  "squires": "\u52A0\u5FEB\u6240\u6709\u6B65\u5175\u7684\u79FB\u52D5\u901F\u5EA6\uFF0C\u8B93\u884C\u52D5\u7DE9\u6162\u7684\u6B65\u5175\u66F4\u5BB9\u6613\u8FFD\u4E0A\u5F13\u5175\u3001\u8D95\u8D74\u6230\u5834\uFF1B\u6B65\u5175\u70BA\u4E3B\u529B\u6642\u5E7E\u4E4E\u5FC5\u9EDE\u3002",
+  "arson": "\u5F37\u5316\u6B65\u5175\u62C6\u9664\u4E00\u822C\u5EFA\u7BC9\u7684\u80FD\u529B\uFF0C\u9069\u5408\u7528\u6B65\u5175\u6DF1\u5165\u6575\u65B9\u57CE\u93AE\u3001\u6E05\u9664\u6C11\u5C45\u8207\u751F\u7522\u5EFA\u7BC9\u6642\u7814\u7A76\u3002",
+  "thumb-ring": "\u8B93\u5F13\u7BAD\u985E\u55AE\u4F4D\u5C04\u5F97\u66F4\u5FEB\uFF0C\u662F\u5F13\u5175\u4E3B\u529B\u7684\u91CD\u8981\u5347\u7D1A\uFF1B\u539F\u4F5C\u9084\u8B93\u5B83\u5011\u5C0D\u975C\u6B62\u76EE\u6A19\u767E\u767C\u767E\u4E2D\u3002",
+  "parthian-tactics": "\u5927\u5E45\u5F37\u5316\u99AC\u5F13\u9A0E\u5175\u7684\u8B77\u7532\uFF0C\u4E26\u8B93\u5B83\u5011\u66F4\u80FD\u524B\u5236\u9577\u69CD\u5175\uFF1B\u5F8C\u671F\u4EE5\u99AC\u5F13\u9A0E\u5175\u70BA\u4E3B\u529B\u6642\u662F\u95DC\u9375\u5347\u7D1A\u3002",
+  "bloodlines": "\u589E\u52A0\u6240\u6709\u9A0E\u4E58\u55AE\u4F4D\u7684\u751F\u547D\u503C\uFF0C\u8B93\u65A5\u5019\u8207\u9A0E\u58EB\u66F4\u8010\u6253\uFF1B\u4EE5\u9A0E\u5175\u70BA\u6838\u5FC3\u7684\u6253\u6CD5\u61C9\u76E1\u65E9\u7814\u7A76\u3002",
+  "husbandry": "\u52A0\u5FEB\u9A0E\u4E58\u55AE\u4F4D\u7684\u79FB\u52D5\u901F\u5EA6\uFF0C\u5C0D\u6253\u5E36\u8DD1\u7684\u99AC\u5F13\u9A0E\u5175\u3001\u6216\u9700\u8981\u8FFD\u64CA\u5C0D\u65B9\u6A5F\u52D5\u90E8\u968A\u7684\u9A0E\u5175\u5C24\u5176\u91CD\u8981\u3002",
+  "loom": "\u63D0\u9AD8\u6751\u6C11\u7684\u751F\u547D\uFF0C\u8B93\u4ED6\u5011\u4E0D\u6613\u88AB\u91CE\u7378\u6216\u65E9\u671F\u9A37\u64FE\u64CA\u6BBA\uFF1B\u9AD8\u624B\u591A\u534A\u5728\u5347\u7B2C\u4E8C\u6642\u4EE3\u524D\u624D\u7814\u7A76\uFF0C\u7375\u91CE\u8C6C\u6709\u98A8\u96AA\u6642\u53EF\u4EE5\u63D0\u65E9\u3002",
+  "wheelbarrow": "\u8B93\u6751\u6C11\u6BCF\u8D9F\u642C\u66F4\u591A\u8CC7\u6E90\uFF0C\u5168\u9762\u63D0\u5347\u63A1\u96C6\u6548\u7387\uFF1B\u901A\u5E38\u5728\u524D\u671F\u63A1\u96C6\u79D1\u6280\u9EDE\u5B8C\u3001\u6751\u6C11\u898F\u6A21\u6210\u5F62\u5F8C\u7814\u7A76\u3002",
+  "hand-cart": "\u624B\u63A8\u8ECA\u7684\u9032\u968E\u7248\uFF0C\u518D\u589E\u52A0\u6751\u6C11\u7684\u642C\u904B\u91CF\uFF1B\u6751\u6C11\u6578\u91CF\u63A5\u8FD1\u5F8C\u671F\u898F\u6A21\u6642\u7814\u7A76\u6700\u5212\u7B97\u3002",
+  "town-watch": "\u64F4\u5927\u6240\u6709\u5EFA\u7BC9\u7684\u8996\u91CE\uFF0C\u53CA\u65E9\u5BDF\u89BA\u4F86\u72AF\u7684\u6575\u8ECD\uFF1B\u6210\u672C\u4F4E\u5EC9\uFF0C\u64D4\u5FC3\u88AB\u5077\u8972\u6642\u53EF\u4EE5\u7814\u7A76\u3002",
+  "town-patrol": "\u57CE\u93AE\u77AD\u671B\u7684\u5EF6\u4F38\uFF0C\u518D\u6B21\u64F4\u5927\u5EFA\u7BC9\u8996\u91CE\uFF0C\u8B93\u9632\u5B88\u65B9\u66F4\u65E9\u638C\u63E1\u6575\u4EBA\u52D5\u5411\u3002",
+  "redemption": "\u8B93\u50E7\u4FB6\u80FD\u8F49\u5316\u5927\u90E8\u5206\u5EFA\u7BC9\uFF0C\u4EE5\u50E7\u4FB6\u642D\u914D\u8ECD\u968A\u6642\u5F88\u6709\u50F9\u503C\uFF0C\u6700\u597D\u5148\u88DC\u4E0A\u8056\u6F54\u3002",
+  "atonement": "\u8B93\u50E7\u4FB6\u80FD\u8F49\u5316\u6575\u65B9\u50E7\u4FB6\uFF0C\u5728\u96D9\u65B9\u5927\u91CF\u4F7F\u7528\u50E7\u4FB6\u7684\u5C0D\u5C40\u4E2D\u5F80\u5F80\u662F\u52DD\u8CA0\u95DC\u9375\u3002",
+  "herbal-medicine": "\u5927\u5E45\u52A0\u5FEB\u9032\u99D0\u5EFA\u7BC9\u5167\u55AE\u4F4D\u7684\u56DE\u8840\uFF0C\u8B93\u53D7\u50B7\u90E8\u968A\u8EB2\u9032\u57CE\u5821\u6216\u7BAD\u5854\u990A\u50B7\u5F8C\u518D\u51FA\u64CA\uFF0C\u9069\u5408\u4EE5\u9632\u5B88\u70BA\u4E3B\u7684\u5C40\u9762\u3002",
+  "heresy": "\u8B93\u88AB\u6575\u65B9\u8F49\u5316\u7684\u55AE\u4F4D\u76F4\u63A5\u9663\u4EA1\uFF0C\u907F\u514D\u6575\u4EBA\u85C9\u6B64\u58EF\u5927\uFF1B\u96D6\u7136\u6602\u8CB4\uFF0C\u5C0D\u624B\u5927\u91CF\u4F7F\u7528\u50E7\u4FB6\u6642\u5E7E\u4E4E\u5FC5\u9808\u7814\u7A76\u3002",
+  "sanctity": "\u589E\u52A0\u50E7\u4FB6\u7684\u751F\u547D\u503C\uFF0C\u8B93\u4ED6\u5011\u591A\u6490\u4E00\u767C\u6295\u77F3\u8ECA\u653B\u64CA\u3001\u722D\u53D6\u5B8C\u6210\u8F49\u5316\u7684\u6642\u9593\uFF1B\u4EE5\u50E7\u4FB6\u4F5C\u6230\u6642\u76F8\u7576\u95DC\u9375\u3002",
+  "fervor": "\u52A0\u5FEB\u50E7\u4FB6\u7684\u79FB\u52D5\u901F\u5EA6\uFF0C\u65B9\u4FBF\u4ED6\u5011\u8FFD\u4E0A\u76EE\u6A19\u3001\u6436\u64BF\u8056\u7269\u8207\u53CA\u6642\u64A4\u9000\u3002",
+  "faith": "\u8B93\u81EA\u5DF1\u7684\u55AE\u4F4D\u66F4\u96E3\u88AB\u8F49\u5316\uFF1B\u82B1\u8CBB\u9AD8\u6602\uFF0C\u4F46\u9762\u5C0D\u4EE5\u50E7\u4FB6\u70BA\u4E3B\u529B\u7684\u5C0D\u624B\u6642\u503C\u5F97\u7814\u7A76\u3002",
+  "illumination": "\u7E2E\u77ED\u50E7\u4FB6\u8F49\u5316\u5F8C\u6062\u5FA9\u4FE1\u4EF0\u6240\u9700\u7684\u6642\u9593\uFF0C\u8B93\u4ED6\u5011\u80FD\u66F4\u983B\u7E41\u5730\u51FA\u624B\uFF1B\u8D70\u50E7\u4FB6\u6230\u8853\u6642\uFF0C\u5347\u4E0A\u7B2C\u56DB\u6642\u4EE3\u61C9\u512A\u5148\u7814\u7A76\u3002",
+  "block-printing": "\u5EF6\u9577\u50E7\u4FB6\u7684\u8F49\u5316\u8DDD\u96E2\uFF0C\u8B93\u4ED6\u5011\u80FD\u5728\u653B\u57CE\u5668\u903C\u8FD1\u524D\u5C31\u51FA\u624B\uFF0C\u662F\u7B2C\u56DB\u6642\u4EE3\u6700\u91CD\u8981\u7684\u50E7\u4FB6\u79D1\u6280\u4E4B\u4E00\u3002",
+  "theocracy": "\u4E00\u7FA4\u50E7\u4FB6\u5408\u529B\u8F49\u5316\u6210\u529F\u5F8C\uFF0C\u53EA\u6709\u4E00\u4F4D\u9700\u8981\u4F11\u606F\u6062\u5FA9\uFF0C\u975E\u5E38\u9069\u5408\u5927\u6279\u50E7\u4FB6\u96C6\u9AD4\u8F49\u5316\u7684\u6253\u6CD5\uFF0C\u800C\u4E14\u50F9\u683C\u4FBF\u5B9C\u3002",
+  "cartography": "\u5171\u4EAB\u6240\u6709\u76DF\u53CB\u7684\u8996\u91CE\uFF0C\u800C\u4E14\u5B8C\u5168\u514D\u8CBB\uFF0C\u5718\u968A\u6230\u4E2D\u61C9\u76E1\u65E9\u7814\u7A76\u3002",
+  "caravan": "\u52A0\u5FEB\u9678\u4E0A\u8207\u6D77\u4E0A\u8CBF\u6613\u55AE\u4F4D\u7684\u79FB\u52D5\u901F\u5EA6\uFF0C\u7B49\u65BC\u63D0\u9AD8\u8CBF\u6613\u6536\u5165\u4E26\u964D\u4F4E\u88AB\u622A\u6BBA\u7684\u98A8\u96AA\uFF1B\u5F8C\u671F\u4EF0\u8CF4\u8CBF\u6613\u53D6\u5F97\u9EC3\u91D1\u6642\u5FC5\u9EDE\u3002",
+  "coinage": "\u964D\u4F4E\u9032\u8CA2\u8CC7\u6E90\u7D66\u76DF\u53CB\u6642\u7684\u624B\u7E8C\u8CBB\uFF0C\u5718\u968A\u9700\u8981\u4E92\u76F8\u652F\u63F4\u8CC7\u6E90\u6642\u5F88\u6709\u7528\uFF0C\u4E5F\u662F\u9280\u884C\u5236\u5EA6\u7684\u524D\u7F6E\u79D1\u6280\u3002",
+  "banking": "\u5B8C\u5168\u514D\u9664\u9032\u8CA2\u624B\u7E8C\u8CBB\uFF0C\u8B93\u76DF\u53CB\u4E4B\u9593\u4E92\u9001\u8CC7\u6E90\u6BEB\u7121\u640D\u8017\uFF1B\u6709\u983B\u7E41\u9032\u8CA2\u9700\u6C42\u6642\u5F37\u70C8\u5EFA\u8B70\u7814\u7A76\u3002",
+  "guilds": "\u964D\u4F4E\u5728\u5E02\u96C6\u8CB7\u8CE3\u8CC7\u6E90\u7684\u624B\u7E8C\u8CBB\uFF1B\u5F8C\u671F\u5730\u5716\u8CC7\u6E90\u67AF\u7AED\u3001\u5FC5\u9808\u9760\u5E02\u96C6\u63DB\u53D6\u8CC7\u6E90\u6642\u7279\u5225\u6709\u7528\u3002",
+  "spies": "\u8B93\u73A9\u5BB6\u6301\u7E8C\u770B\u898B\u6240\u6709\u6575\u4EBA\u7684\u8996\u91CE\uFF1B\u50F9\u683C\u96A8\u6575\u65B9\u6751\u6C11\u7B49\u55AE\u4F4D\u6578\u91CF\u800C\u5B9A\uFF0C\u6700\u9069\u5408\u5728\u6575\u4EBA\u7D93\u6FDF\u5DF2\u88AB\u6467\u6BC0\u3001\u6E96\u5099\u6536\u5C3E\u6642\u7814\u7A76\u3002",
+  "treason": "\u50C5\u5728\u5F12\u541B\u6A21\u5F0F\u51FA\u73FE\uFF0C\u7814\u7A76\u5F8C\u80FD\u77ED\u66AB\u770B\u5230\u6575\u65B9\u570B\u738B\u6240\u5728\u7684\u4F4D\u7F6E\uFF0C\u65B9\u4FBF\u627E\u51FA\u4E26\u72D9\u6BBA\u570B\u738B\u3002",
+  "hoardings": "\u5F37\u5316\u57CE\u5821\u7684\u8010\u4E45\u5EA6\uFF0C\u642D\u914D\u78DA\u74E6\u6280\u8853\u8207\u5EFA\u7BC9\u5B78\u8B93\u57CE\u5821\u66F4\u96E3\u653B\u7834\uFF1B\u4EE5\u57CE\u5821\u9632\u5B88\u6216\u5728\u524D\u7DDA\u7BC9\u57CE\u6642\u503C\u5F97\u7814\u7A76\u3002",
+  "sappers": "\u8B93\u6751\u6C11\u62C6\u9664\u5EFA\u7BC9\u7684\u80FD\u529B\u5927\u589E\uFF0C\u53EF\u4EE5\u7528\u4F86\u6E05\u6389\u84CB\u5728\u81EA\u5BB6\u8CC7\u6E90\u65C1\u7684\u6575\u65B9\u7BAD\u5854\u6216\u63A1\u96C6\u5EFA\u7BC9\uFF1B\u5C6C\u65BC\u7279\u5B9A\u60C5\u6CC1\u624D\u9700\u8981\u7684\u79D1\u6280\u3002",
+  "conscription": "\u52A0\u5FEB\u5175\u71DF\u3001\u9776\u5834\u3001\u99AC\u5EC4\u8207\u57CE\u5821\u7684\u751F\u7522\u901F\u5EA6\uFF0C\u8B93\u5F8C\u671F\u88DC\u5175\u8207\u5927\u91CF\u96C6\u7D50\u66F4\u6709\u6548\u7387\uFF0C\u5E7E\u4E4E\u662F\u7B2C\u56DB\u6642\u4EE3\u7684\u5FC5\u9EDE\u79D1\u6280\u3002",
+  "careening": "\u63D0\u5347\u8239\u96BB\u7684\u9060\u7A0B\u8B77\u7532\u4E26\u589E\u52A0\u904B\u8F38\u8239\u8F09\u91CF\uFF0C\u5C0D\u6D77\u6230\u8207\u8DE8\u6D77\u904B\u5175\u90FD\u6709\u5E6B\u52A9\uFF1B\u4E5F\u662F\u8239\u5862\u7684\u524D\u7F6E\u79D1\u6280\u3002",
+  "dry-dock": "\u52A0\u5FEB\u6240\u6709\u8239\u96BB\u7684\u822A\u884C\u901F\u5EA6\u4E26\u518D\u64F4\u5145\u904B\u8F38\u8239\u8F09\u91CF\uFF0C\u8B93\u8266\u968A\u8ABF\u5EA6\u8207\u767B\u9678\u4F5C\u6230\u66F4\u8FC5\u901F\u3002",
+  "shipwright": "\u964D\u4F4E\u8239\u96BB\u7684\u6728\u6750\u9020\u50F9\u4E26\u52A0\u5FEB\u9020\u8239\u901F\u5EA6\uFF0C\u5927\u898F\u6A21\u6D77\u6230\u6642\u80FD\u66F4\u5FEB\u88DC\u5145\u8266\u968A\u3002",
+  "gillnets": "\u63D0\u5347\u6F01\u8239\u6355\u9B5A\u8207\u5EFA\u9020\u6F01\u7DB2\u7684\u6548\u7387\uFF0C\u5728\u4EE5\u6D77\u6D0B\u70BA\u4E3B\u8981\u98DF\u7269\u4F86\u6E90\u7684\u5730\u5716\u4E0A\u5F88\u5212\u7B97\u3002",
+  "masonry": "\u63D0\u5347\u5EFA\u7BC9\u7684\u751F\u547D\u8207\u8B77\u7532\uFF0C\u8B93\u57CE\u93AE\u66F4\u7D93\u5F97\u8D77\u653B\u64CA\uFF1B\u4E5F\u662F\u5EFA\u7BC9\u5B78\u7684\u524D\u7F6E\u79D1\u6280\u3002",
+  "ballistics": "\u8B93\u5F13\u5175\u3001\u8239\u96BB\u8207\u9632\u79A6\u5EFA\u7BC9\u80FD\u547D\u4E2D\u79FB\u52D5\u4E2D\u7684\u76EE\u6A19\uFF0C\u4F7F\u6575\u4EBA\u7121\u6CD5\u518D\u9760\u8D70\u4F4D\u9583\u7BAD\uFF1B\u9060\u7A0B\u90E8\u968A\u7684\u6838\u5FC3\u79D1\u6280\uFF0C\u4E00\u822C\u6BD4\u62C7\u6307\u74B0\u66F4\u512A\u5148\u3002",
+  "heated-shot": "\u5F37\u5316\u7BAD\u5854\u8207\u57CE\u5821\u5C0D\u8239\u96BB\u7684\u50B7\u5BB3\uFF0C\u9069\u5408\u5728\u6D77\u5716\u4E0A\u9700\u8981\u5B88\u4F4F\u6D77\u5CB8\u6642\u7814\u7A76\u3002",
+  "murder-holes": "\u6D88\u9664\u7BAD\u5854\u8207\u57CE\u5821\u8CBC\u8EAB\u6642\u7684\u5C04\u64CA\u6B7B\u89D2\uFF1B\u5BE6\u6230\u4E2D\u591A\u534A\u6539\u7528\u4EA4\u53C9\u706B\u529B\u6216\u8FD1\u6230\u55AE\u4F4D\u63A9\u8B77\uFF0C\u5F88\u5C11\u6709\u4EBA\u7814\u7A76\u3002",
+  "treadmill-crane": "\u52A0\u5FEB\u6751\u6C11\u5EFA\u9020\u5EFA\u7BC9\u7684\u901F\u5EA6\uFF0C\u5927\u91CF\u8208\u5EFA\u57CE\u5821\u3001\u7BAD\u5854\u6216\u751F\u7522\u5EFA\u7BC9\u6642\u7279\u5225\u6709\u5E6B\u52A9\u3002",
+  "architecture": "\u78DA\u74E6\u6280\u8853\u7684\u9032\u968E\u7248\uFF0C\u518D\u5F37\u5316\u5EFA\u7BC9\u7684\u751F\u547D\u8207\u8B77\u7532\uFF0C\u7B2C\u56DB\u6642\u4EE3\u9762\u5C0D\u91CD\u578B\u653B\u57CE\u5668\u6642\u80FD\u8B93\u9632\u7DDA\u66F4\u7A69\u56FA\u3002",
+  "chemistry": "\u63D0\u5347\u5F13\u5175\u8207\u6295\u5C04\u653B\u57CE\u5668\u7684\u653B\u64CA\uFF0C\u4E26\u89E3\u9396\u706B\u85E5\u55AE\u4F4D\uFF1B\u60F3\u4F7F\u7528\u706B\u69CD\u5175\u8207\u706B\u7832\u5FC5\u9808\u5148\u7814\u7A76\u3002",
+  "siege-engineers": "\u5EF6\u9577\u653B\u57CE\u5668\u7684\u5C04\u7A0B\u4E26\u63D0\u9AD8\u5C0D\u5EFA\u7BC9\u7684\u50B7\u5BB3\uFF0C\u7B2C\u56DB\u6642\u4EE3\u4EE5\u653B\u57CE\u90E8\u968A\u63A8\u9032\u6642\u975E\u5E38\u91CD\u8981\u3002",
+  "arrowslits": "\u63D0\u5347\u7BAD\u5854\u7684\u653B\u64CA\u529B\uFF0C\u8B93\u4EE5\u7BAD\u5854\u9632\u5B88\u6216\u5854\u653B\u7684\u6253\u6CD5\u66F4\u5177\u5A01\u8105\u3002",
+  "padded-archer-armor": "\u589E\u52A0\u5F13\u5175\u8207\u99AC\u5F13\u9A0E\u5175\u7684\u8B77\u7532\uFF0C\u8B93\u9060\u7A0B\u90E8\u968A\u66F4\u8010\u6253\uFF1B\u7B2C\u4E8C\u6642\u4EE3\u5F13\u5175\u5C0D\u5C04\u6642\u7684\u57FA\u672C\u5347\u7D1A\u3002",
+  "leather-archer-armor": "\u7B2C\u4E8C\u7D1A\u5F13\u5175\u8B77\u7532\uFF0C\u5EF6\u7E8C\u5F37\u5316\u5F13\u5175\u8207\u99AC\u5F13\u9A0E\u5175\u7684\u9632\u79A6\u3002",
+  "ring-archer-armor": "\u6700\u9AD8\u4E00\u7D1A\u5F13\u5175\u8B77\u7532\uFF0C\u8B93\u5F8C\u671F\u9060\u7A0B\u90E8\u968A\u7684\u8010\u6253\u5EA6\u5927\u5E45\u63D0\u5347\u3002",
+  "fletching": "\u63D0\u9AD8\u5F13\u5175\u7684\u653B\u64CA\u8207\u5C04\u7A0B\uFF1B\u8D70\u5F13\u5175\u8DEF\u7DDA\u6642\uFF0C\u662F\u7B2C\u4E00\u500B\u8A72\u7814\u7A76\u7684\u653B\u64CA\u5347\u7D1A\u3002",
+  "bodkin-arrow": "\u7B2C\u4E8C\u7D1A\u9060\u7A0B\u653B\u64CA\u5347\u7D1A\uFF0C\u7E7C\u7E8C\u63D0\u5347\u5F13\u5175\u7684\u653B\u64CA\u8207\u5C04\u7A0B\u3002",
+  "bracer": "\u6700\u9AD8\u4E00\u7D1A\u9060\u7A0B\u653B\u64CA\u5347\u7D1A\uFF0C\u8B93\u5F8C\u671F\u5F13\u5175\u7684\u706B\u529B\u8207\u5C04\u7A0B\u66F4\u4E0A\u4E00\u5C64\u6A13\u3002",
+  "forging": "\u63D0\u5347\u6B65\u5175\u8207\u9A0E\u5175\u7684\u8FD1\u6230\u653B\u64CA\uFF0C\u662F\u7B2C\u4E8C\u6642\u4EE3\u8FD1\u6230\u90E8\u968A\u4EA4\u6230\u6642\u7684\u57FA\u672C\u5347\u7D1A\u3002",
+  "iron-casting": "\u7B2C\u4E8C\u7D1A\u8FD1\u6230\u653B\u64CA\u5347\u7D1A\uFF0C\u8B93\u6B65\u5175\u8207\u9A0E\u5175\u9020\u6210\u66F4\u591A\u50B7\u5BB3\u3002",
+  "blast-furnace": "\u6700\u9AD8\u4E00\u7D1A\u8FD1\u6230\u653B\u64CA\u5347\u7D1A\uFF0C\u5F8C\u671F\u4EE5\u6B65\u5175\u6216\u9A0E\u5175\u70BA\u4E3B\u529B\u6642\u4E0D\u53EF\u6216\u7F3A\u3002",
+  "scale-barding-armor": "\u589E\u52A0\u9A0E\u5175\u8B77\u7532\uFF0C\u8B93\u65A5\u5019\u7B49\u9A0E\u5175\u5728\u7B2C\u4E8C\u6642\u4EE3\u66F4\u8010\u6253\u3002",
+  "chain-barding-armor": "\u7B2C\u4E8C\u7D1A\u9A0E\u5175\u8B77\u7532\uFF0C\u662F\u7B2C\u4E09\u6642\u4EE3\u9A0E\u58EB\u7B49\u91CD\u9A0E\u5175\u7684\u91CD\u8981\u9632\u79A6\u5347\u7D1A\u3002",
+  "plate-barding-armor": "\u6700\u9AD8\u4E00\u7D1A\u9A0E\u5175\u8B77\u7532\uFF0C\u8B93\u5F8C\u671F\u9A0E\u5175\u9762\u5C0D\u8FD1\u6230\u8207\u5F13\u7BAD\u90FD\u66F4\u5805\u56FA\u3002",
+  "scale-mail-armor": "\u589E\u52A0\u6B65\u5175\u8B77\u7532\uFF0C\u8B93\u6C11\u5175\u8207\u9577\u69CD\u5175\u5728\u7B2C\u4E8C\u6642\u4EE3\u66F4\u8010\u6253\u3002",
+  "chain-mail-armor": "\u7B2C\u4E8C\u7D1A\u6B65\u5175\u8B77\u7532\uFF0C\u6301\u7E8C\u5F37\u5316\u6B65\u5175\u5C0D\u8FD1\u6230\u8207\u5F13\u7BAD\u7684\u62B5\u6297\u529B\u3002",
+  "plate-mail-armor": "\u6700\u9AD8\u4E00\u7D1A\u6B65\u5175\u8B77\u7532\uFF0C\u5F8C\u671F\u6B65\u5175\u9762\u5C0D\u5927\u91CF\u5F13\u5175\u6642\u5C24\u5176\u9700\u8981\u3002",
+  "gold-mining": "\u52A0\u5FEB\u6751\u6C11\u63A1\u91D1\u7684\u901F\u5EA6\uFF0C\u9700\u8981\u5927\u91CF\u9EC3\u91D1\u8A13\u7DF4\u90E8\u968A\u6216\u5347\u7D1A\u6642\u4EE3\u6642\u7814\u7A76\u3002",
+  "stone-mining": "\u52A0\u5FEB\u6751\u6C11\u63A1\u77F3\u7684\u901F\u5EA6\uFF0C\u6253\u7B97\u5854\u653B\u3001\u84CB\u57CE\u5821\u6216\u5927\u91CF\u5EFA\u9020\u57CE\u7246\u6642\u503C\u5F97\u7814\u7A76\u3002",
+  "gold-shaft-mining": "\u7B2C\u4E8C\u7D1A\u63A1\u91D1\u5347\u7D1A\uFF0C\u9032\u4E00\u6B65\u63D0\u5347\u9EC3\u91D1\u7522\u91CF\uFF0C\u9069\u5408\u4EF0\u8CF4\u9EC3\u91D1\u55AE\u4F4D\u7684\u4E2D\u5F8C\u671F\u3002",
+  "stone-shaft-mining": "\u7B2C\u4E8C\u7D1A\u63A1\u77F3\u5347\u7D1A\uFF0C\u9700\u8981\u6301\u7E8C\u8208\u5EFA\u57CE\u5821\u6216\u9632\u79A6\u5DE5\u4E8B\u6642\u624D\u6709\u5FC5\u8981\u3002",
+  "double-bit-axe": "\u52A0\u5FEB\u6751\u6C11\u4F10\u6728\uFF0C\u662F\u7B2C\u4E8C\u6642\u4EE3\u6700\u91CD\u8981\u7684\u7D93\u6FDF\u79D1\u6280\u4E4B\u4E00\uFF0C\u901A\u5E38\u4E00\u5347\u7B2C\u4E8C\u6642\u4EE3\u5C31\u7814\u7A76\uFF1B\u5FEB\u901F\u4E0A\u57CE\u5821\u7684\u6253\u6CD5\u53EF\u5EF6\u5230\u5347\u7B2C\u4E09\u6642\u4EE3\u4E4B\u5F8C\u3002",
+  "bow-saw": "\u7B2C\u4E8C\u7D1A\u4F10\u6728\u5347\u7D1A\uFF0C\u518D\u6B21\u63D0\u9AD8\u6728\u6750\u7522\u91CF\uFF1B\u689D\u4EF6\u5141\u8A31\u6642\uFF0C\u5347\u7B2C\u4E09\u6642\u4EE3\u5F8C\u61C9\u7ACB\u5373\u7814\u7A76\u3002",
+  "two-man-saw": "\u6700\u5F8C\u4E00\u7D1A\u4F10\u6728\u5347\u7D1A\uFF0C\u6548\u76CA\u4E0D\u5982\u524D\u5169\u7D1A\uFF0C\u53EF\u4EE5\u7B49\u5F8C\u671F\u7D93\u6FDF\u5BEC\u88D5\u6642\u518D\u7814\u7A76\u3002",
+  "horse-collar": "\u589E\u52A0\u65B0\u8FB2\u7530\u7684\u98DF\u7269\u7E3D\u91CF\uFF0C\u6E1B\u5C11\u91CD\u65B0\u64AD\u7A2E\u7684\u6728\u6750\u958B\u92B7\uFF1B\u958B\u59CB\u4EE5\u8FB2\u7530\u70BA\u4E3B\u8981\u98DF\u7269\u4F86\u6E90\u5F8C\u5C31\u8A72\u7814\u7A76\u3002",
+  "heavy-plow": "\u9032\u4E00\u6B65\u589E\u52A0\u8FB2\u7530\u7522\u91CF\uFF0C\u4E26\u8B93\u8FB2\u592B\u6BCF\u8D9F\u591A\u5E36\u4E00\u4E9B\u98DF\u7269\uFF0C\u63D0\u9AD8\u98DF\u7269\u7D93\u6FDF\u7684\u6548\u7387\u3002",
+  "crop-rotation": "\u6700\u9AD8\u4E00\u7D1A\u8FB2\u7530\u5347\u7D1A\uFF0C\u8B93\u8FB2\u7530\u66F4\u6301\u4E45\uFF0C\u5F8C\u671F\u9760\u5927\u91CF\u8FB2\u592B\u652F\u6490\u8ECD\u968A\u6642\u5F88\u5212\u7B97\u3002",
+  "fortified-wall": "\u628A\u77F3\u7246\u5347\u7D1A\u70BA\u66F4\u539A\u5BE6\u7684\u579B\u7246\uFF0C\u57CE\u9580\u4E5F\u4E00\u4F75\u5F37\u5316\uFF0C\u8B93\u57CE\u7246\u66F4\u96E3\u88AB\u653B\u7834\uFF1B\u4EE5\u57CE\u7246\u9632\u5B88\u6642\u503C\u5F97\u7814\u7A76\u3002",
+  "guard-tower": "\u628A\u7BAD\u5854\u5347\u7D1A\u70BA\u9632\u79A6\u7BAD\u5854\uFF0C\u63D0\u5347\u5854\u7684\u8010\u4E45\u8207\u706B\u529B\uFF0C\u4EE5\u7BAD\u5854\u9632\u5B88\u6216\u5854\u653B\u6642\u7814\u7A76\u3002",
+  "keep": "\u628A\u9632\u79A6\u7BAD\u5854\u518D\u5347\u7D1A\u70BA\u5927\u578B\u7BAD\u5854\uFF0C\u6210\u70BA\u7B2C\u56DB\u6642\u4EE3\u66F4\u5F37\u608D\u7684\u9632\u79A6\u5854\u3002",
+  "bombard-tower-tech": "\u89E3\u9396\u706B\u7832\u5854\u7684\u5EFA\u9020\uFF0C\u80FD\u6709\u6548\u6253\u64CA\u8239\u96BB\u8207\u653B\u57CE\u5668\uFF1B\u5FC5\u9808\u5148\u7814\u7A76\u5316\u5B78\u3002",
+  "atlatl": "\u63D0\u5347\u6563\u5175\u7CFB\u8207\u6A19\u69CD\u9A0E\u5175\u7684\u653B\u64CA\u8207\u5C04\u7A0B\uFF0C\u5F37\u5316\u963F\u8332\u7279\u514B\u53CD\u5F13\u5175\u90E8\u968A\u7684\u58D3\u5236\u529B\u3002",
+  "kasbah": "\u52A0\u5FEB\u5168\u968A\u57CE\u5821\u7684\u751F\u7522\u8207\u7814\u7A76\u901F\u5EA6\uFF0C\u65B9\u4FBF\u67CF\u67CF\u8207\u76DF\u53CB\u5927\u91CF\u7522\u51FA\u7279\u6B8A\u55AE\u4F4D\u3002",
+  "yeomen": "\u8B93\u5F92\u6B65\u5F13\u5175\u5C04\u5F97\u66F4\u9060\u4E26\u5F37\u5316\u7BAD\u5854\u706B\u529B\uFF0C\u9032\u4E00\u6B65\u653E\u5927\u4E0D\u5217\u985B\u7684\u9577\u5C04\u7A0B\u5F13\u5175\u512A\u52E2\u3002",
+  "howdah": "\u63D0\u5347\u77DB\u8C61\u4F15\u7684\u8B77\u7532\uFF0C\u8B93\u7DEC\u7538\u7684\u6230\u8C61\u90E8\u968A\u5728\u524D\u7DDA\u66F4\u8010\u6253\u3002",
+  "greek-fire": "\u5EF6\u9577\u706B\u6230\u8239\u7684\u5C04\u7A0B\uFF0C\u8B93\u62DC\u5360\u5EAD\u5728\u6D77\u6230\u4E2D\u66F4\u5BB9\u6613\u58D3\u5236\u6575\u65B9\u8239\u968A\u3002",
+  "stronghold": "\u52A0\u5FEB\u57CE\u5821\u8207\u7BAD\u5854\u7684\u5C04\u901F\uFF0C\u5F37\u5316\u585E\u723E\u7279\u7684\u9632\u5B88\u8207\u5854\u653B\u80FD\u529B\u3002",
+  "great-wall": "\u589E\u52A0\u57CE\u7246\u8207\u7BAD\u5854\u7684\u8010\u4E45\u5EA6\uFF1B\u6548\u679C\u504F\u5411\u88AB\u52D5\u9632\u5B88\uFF0C\u5BE6\u6230\u4E2D\u5F88\u5C11\u88AB\u512A\u5148\u7814\u7A76\u3002",
+  "royal-heirs": "\u5927\u5E45\u7E2E\u77ED\u5F4E\u5200\u52C7\u58EB\u7684\u8A13\u7DF4\u6642\u9593\uFF0C\u8B93\u8863\u7D22\u6BD4\u4E9E\u80FD\u8FC5\u901F\u88DC\u5145\u5927\u91CF\u7279\u6B8A\u55AE\u4F4D\u3002",
+  "chivalry": "\u52A0\u5FEB\u99AC\u5EC4\u7684\u5DE5\u4F5C\u901F\u5EA6\uFF0C\u8B93\u6CD5\u862D\u514B\u80FD\u66F4\u5FEB\u91CF\u7522\u9A0E\u58EB\uFF0C\u5F37\u5316\u9A0E\u5175\u6D77\u6230\u8853\u3002",
+  "anarchy": "\u8B93\u54E5\u5FB7\u885B\u968A\u53EF\u4EE5\u5728\u5175\u71DF\u8A13\u7DF4\uFF0C\u4E0D\u5FC5\u518D\u4F9D\u8CF4\u57CE\u5821\uFF0C\u65B9\u4FBF\u914D\u5408\u54E5\u5FB7\u7684\u6B65\u5175\u6D77\u6230\u8853\u5927\u91CF\u751F\u7522\u3002",
+  "marauders": "\u8B93\u7B54\u524C\u7F55\u9A0E\u5175\u53EF\u4EE5\u5728\u99AC\u5EC4\u8A13\u7DF4\uFF0C\u80FD\u5728\u77ED\u6642\u9593\u5167\u5927\u91CF\u751F\u7522\uFF0C\u7528\u4F86\u62C6\u9664\u6575\u65B9\u5EFA\u7BC9\u3002",
+  "andean-sling": "\u53D6\u6D88\u6563\u5175\u8207\u6295\u77F3\u624B\u7684\u6700\u5C0F\u5C04\u7A0B\uFF0C\u8B93\u5370\u52A0\u7684\u9060\u7A0B\u6B65\u5175\u88AB\u8CBC\u8EAB\u6642\u4ECD\u80FD\u9084\u64CA\u3002",
+  "sultans": "\u63D0\u5347\u63A1\u7926\u3001\u8CBF\u6613\u8207\u8056\u7269\u5E36\u4F86\u7684\u9EC3\u91D1\u6536\u5165\uFF0C\u5F37\u5316\u5370\u5EA6\u7684\u9EC3\u91D1\u7D93\u6FDF\u3002",
+  "pavise": "\u63D0\u5347\u5F92\u6B65\u5F13\u5175\u8207\u50AD\u5175\u7684\u8B77\u7532\uFF0C\u8B93\u7FA9\u5927\u5229\u7684\u5F13\u5175\u8207\u71B1\u90A3\u4E9E\u5F29\u5175\u66F4\u8010\u6253\u3002",
+  "yasama": "\u8B93\u7BAD\u5854\u6BCF\u6B21\u591A\u5C04\u51FA\u5E7E\u652F\u7BAD\uFF0C\u5F37\u5316\u65E5\u672C\u7684\u7BAD\u5854\u9632\u5B88\u3002",
+  "tusk-swords": "\u63D0\u9AD8\u77DB\u8C61\u4F15\u7684\u653B\u64CA\u529B\uFF0C\u5F37\u5316\u9AD8\u68C9\u6230\u8C61\u7684\u6B63\u9762\u885D\u64CA\u529B\u3002",
+  "eupseong": "\u5EF6\u9577\u7BAD\u5854\u7CFB\u7684\u5C04\u7A0B\uFF0C\u8B93\u671D\u9BAE\u7684\u7BAD\u5854\u9632\u7DDA\u6DB5\u84CB\u66F4\u5927\u7684\u7BC4\u570D\u3002",
+  "corvinian-army": "\u8B93\u99AC\u624E\u723E\u9A43\u9A0E\u5175\u4E0D\u518D\u9700\u8981\u9EC3\u91D1\uFF0C\u5373\u4F7F\u5230\u4E86\u9EC3\u91D1\u77ED\u7F3A\u7684\u5F8C\u671F\u4E5F\u80FD\u6301\u7E8C\u751F\u7522\u3002",
+  "thalassocracy": "\u628A\u78BC\u982D\u5347\u7D1A\u6210\u80FD\u653B\u64CA\u7684\u6D77\u6E2F\uFF0C\u5F37\u5316\u99AC\u4F86\u5728\u6C34\u5716\u7684\u6D77\u4E0A\u9632\u5B88\u3002",
+  "tigui": "\u8B93\u57CE\u93AE\u4E2D\u5FC3\u4E0D\u5FC5\u99D0\u5B88\u6751\u6C11\u5C31\u80FD\u81EA\u52D5\u653E\u7BAD\uFF0C\u63D0\u5347\u99AC\u5229\u62B5\u79A6\u5077\u8972\u7684\u80FD\u529B\u3002",
+  "nomads": "\u6C11\u5C45\u88AB\u6467\u6BC0\u6642\u4EBA\u53E3\u4E0A\u9650\u4E0D\u6703\u8DDF\u8457\u4E0B\u964D\uFF0C\u964D\u4F4E\u8499\u53E4\u906D\u9A37\u64FE\u6642\u7684\u640D\u5931\uFF0C\u800C\u4E14\u50F9\u683C\u4FBF\u5B9C\u3002",
+  "kamandaran": "\u8B93\u5F13\u5175\u7CFB\u6539\u7528\u984D\u5916\u6728\u6750\u53D6\u4EE3\u9EC3\u91D1\uFF0C\u4F7F\u6CE2\u65AF\u5728\u9EC3\u91D1\u5403\u7DCA\u6642\u4ECD\u80FD\u6301\u7E8C\u751F\u7522\u5F13\u5175\u3002",
+  "carrack": "\u63D0\u5347\u6240\u6709\u8239\u96BB\u7684\u8B77\u7532\uFF0C\u5F37\u5316\u8461\u8404\u7259\u8266\u968A\u7684\u8010\u4E45\u5EA6\u3002",
+  "madrasah": "\u50E7\u4FB6\u9663\u4EA1\u6642\u6703\u9000\u56DE\u90E8\u5206\u9EC3\u91D1\uFF0C\u964D\u4F4E\u85A9\u62C9\u68EE\u4EE5\u50E7\u4FB6\u4F5C\u6230\u7684\u6210\u672C\u3002",
+  "orthodoxy": "\u5927\u5E45\u63D0\u5347\u50E7\u4FB6\u8B77\u7532\uFF0C\u8B93\u65AF\u62C9\u592B\u7684\u50E7\u4FB6\u66F4\u4E0D\u5BB9\u6613\u88AB\u5F13\u5175\u6216\u9A0E\u5175\u64CA\u6BBA\u3002",
+  "inquisition": "\u52A0\u5FEB\u50E7\u4FB6\u8207\u50B3\u6559\u58EB\u7684\u8F49\u5316\u901F\u5EA6\uFF0C\u8B93\u897F\u73ED\u7259\u7684\u8F49\u5316\u6230\u8853\u66F4\u6709\u6548\u7387\u3002",
+  "ironclad": "\u63D0\u9AD8\u653B\u57CE\u5668\u7684\u8FD1\u6230\u8B77\u7532\uFF0C\u8B93\u689D\u9813\u7684\u885D\u649E\u8ECA\u8207\u6295\u77F3\u8ECA\u66F4\u80FD\u62B5\u64CB\u8FD1\u6230\u90E8\u968A\u7684\u62C6\u9664\u3002",
+  "sipahi": "\u589E\u52A0\u99AC\u5F13\u9A0E\u5175\u8207\u6A19\u69CD\u9A0E\u5175\u7684\u751F\u547D\u503C\uFF0C\u5F37\u5316\u571F\u8033\u5176\u7684\u9A0E\u5C04\u90E8\u968A\u3002",
+  "chatras": "\u589E\u52A0\u77DB\u8C61\u4F15\u7684\u751F\u547D\u503C\uFF0C\u8B93\u8D8A\u5357\u7684\u6230\u8C61\u66F4\u8010\u6253\u3002",
+  "chieftains": "\u8B93\u6B65\u5175\u5C0D\u9A0E\u5175\u8207\u99F1\u99DD\u9020\u6210\u984D\u5916\u50B7\u5BB3\uFF0C\u4F7F\u7DAD\u4EAC\u6B65\u5175\u66F4\u80FD\u5C0D\u6297\u6575\u65B9\u9A0E\u5175\u3002",
+  "stirrups": "\u52A0\u5FEB\u65A5\u5019\u7CFB\u3001\u9A0E\u58EB\u7CFB\u8207\u4FDD\u52A0\u5229\u4E9E\u9A0E\u5175\u7684\u653B\u64CA\u901F\u5EA6\uFF0C\u63D0\u5347\u4FDD\u52A0\u5229\u4E9E\u9A0E\u5175\u7684\u8F38\u51FA\u3002",
+  "steppe-husbandry": "\u52A0\u5FEB\u65A5\u5019\u7CFB\u3001\u8349\u539F\u9A0E\u5175\u8207\u99AC\u5F13\u9A0E\u5175\u7684\u8A13\u7DF4\u901F\u5EA6\uFF0C\u65B9\u4FBF\u5EAB\u66FC\u8FC5\u901F\u7D44\u6210\u6A5F\u52D5\u9A0E\u5175\u90E8\u968A\u3002",
+  "hill-forts": "\u5EF6\u9577\u57CE\u93AE\u4E2D\u5FC3\u7684\u5C04\u7A0B\uFF0C\u5F37\u5316\u7ACB\u9676\u5B9B\u7684\u5BB6\u5712\u9632\u5B88\u3002",
+  "silk-armor": "\u63D0\u5347\u8F15\u9A0E\u5175\u8207\u9A0E\u5C04\u55AE\u4F4D\u7684\u8FD1\u6230\u8207\u9060\u7A0B\u8B77\u7532\uFF0C\u8B93\u97C3\u977C\u9A0E\u5175\u66F4\u8010\u6253\u3002",
+  "garland-wars": "\u63D0\u9AD8\u6B65\u5175\u653B\u64CA\u529B\uFF0C\u5F37\u5316\u963F\u8332\u7279\u514B\u4EE5\u6B65\u5175\u70BA\u4E3B\u7684\u5F8C\u671F\u90E8\u968A\u3002",
+  "maghrabi-camels": "\u8B93\u99F1\u99DD\u90E8\u968A\u80FD\u81EA\u52D5\u56DE\u8840\uFF0C\u5EF6\u9577\u67CF\u67CF\u99F1\u99DD\u9A0E\u5175\u5728\u6230\u5834\u4E0A\u7684\u6301\u7E8C\u4F5C\u6230\u80FD\u529B\u3002",
+  "warwolf": "\u8B93\u5DE8\u578B\u6295\u77F3\u6A5F\u9020\u6210\u7BC4\u570D\u50B7\u5BB3\uFF0C\u53EF\u4EE5\u7528\u4F86\u8F5F\u64CA\u5BC6\u96C6\u7684\u90E8\u968A\uFF1B\u539F\u4F5C\u9084\u8B93\u5B83\u5FC5\u5B9A\u547D\u4E2D\u975C\u6B62\u76EE\u6A19\u3002",
+  "manipur-cavalry": "\u8B93\u9A0E\u5175\u8207\u98DB\u93E2\u9A0E\u5175\u5C0D\u5EFA\u7BC9\u9020\u6210\u66F4\u591A\u50B7\u5BB3\uFF0C\u65B9\u4FBF\u7DEC\u7538\u4EE5\u9A0E\u5175\u62C6\u9664\u6575\u65B9\u5EFA\u7BC9\u3002",
+  "logistica": "\u8B93\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u5E36\u6709\u8E10\u8E0F\u50B7\u5BB3\u4E26\u5F37\u5316\u5C0D\u6B65\u5175\u7684\u653B\u64CA\uFF0C\u66F4\u80FD\u61C9\u4ED8\u5BC6\u96C6\u6B65\u5175\u3002",
+  "furor-celtica": "\u5927\u5E45\u63D0\u5347\u653B\u57CE\u5668\u7684\u751F\u547D\u503C\uFF0C\u8B93\u585E\u723E\u7279\u7684\u653B\u57CE\u90E8\u968A\u66F4\u96E3\u88AB\u6467\u6BC0\u3002",
+  "rocketry": "\u63D0\u5347\u9023\u5F29\u5175\u8207\u5F29\u7832\u7684\u653B\u64CA\uFF0C\u5F37\u5316\u4E2D\u570B\u7684\u9060\u7A0B\u706B\u529B\u3002",
+  "torsion-engines": "\u64F4\u5927\u653B\u57CE\u5668\u7684\u7BC4\u570D\u50B7\u5BB3\uFF0C\u5728\u72F9\u7A84\u5730\u5716\u4E0A\u5C0D\u5BC6\u96C6\u90E8\u968A\u7279\u5225\u6709\u5A01\u8105\u3002",
+  "bearded-axe": "\u5EF6\u9577\u64F2\u65A7\u5175\u7684\u5C04\u7A0B\uFF0C\u8B93\u6CD5\u862D\u514B\u9019\u500B\u7279\u6B8A\u6B65\u5175\u80FD\u66F4\u5B89\u5168\u5730\u8F38\u51FA\u3002",
+  "perfusion": "\u5927\u5E45\u52A0\u5FEB\u5175\u71DF\u7684\u751F\u7522\u8207\u7814\u7A76\u901F\u5EA6\uFF0C\u8B93\u54E5\u5FB7\u80FD\u8FC5\u901F\u6E67\u51FA\u5927\u91CF\u6B65\u5175\u3002",
+  "atheism": "\u5EF6\u9577\u5C0D\u624B\u5947\u89C0\u8207\u8056\u7269\u52DD\u5229\u7684\u5012\u6578\u6642\u9593\uFF0C\u4E26\u8B93\u9593\u8ADC\u76F8\u95DC\u79D1\u6280\u8B8A\u4FBF\u5B9C\uFF1B\u5C6C\u65BC\u7279\u5B9A\u60C5\u5883\u624D\u7528\u5F97\u4E0A\u7684\u79D1\u6280\u3002",
+  "fabric-shields": "\u63D0\u5347\u69CD\u968A\u9577\u3001\u6295\u77F3\u624B\u8207\u9DF9\u52C7\u58EB\u7684\u8B77\u7532\uFF0C\u5F37\u5316\u5370\u52A0\u7684\u6B65\u5175\u6838\u5FC3\u90E8\u968A\u3002",
+  "shatagni": "\u5EF6\u9577\u706B\u69CD\u5175\u7684\u5C04\u7A0B\uFF0C\u5F37\u5316\u5370\u5EA6\u7684\u706B\u85E5\u6B65\u5175\u3002",
+  "silk-road": "\u8B93\u8CBF\u6613\u8ECA\u968A\u8207\u8CBF\u6613\u5546\u65C5\u7684\u9020\u50F9\u5927\u6E1B\uFF0C\u65B9\u4FBF\u7FA9\u5927\u5229\u5927\u898F\u6A21\u7D93\u71DF\u8CBF\u6613\u3002",
+  "kataparuto": "\u5927\u5E45\u52A0\u5FEB\u5DE8\u578B\u6295\u77F3\u6A5F\u7684\u67B6\u8A2D\u3001\u62C6\u6536\u8207\u5C04\u64CA\u901F\u5EA6\uFF0C\u63D0\u5347\u65E5\u672C\u7684\u653B\u57CE\u6548\u7387\u3002",
+  "double-crossbow": "\u8B93\u5F29\u7832\u8C61\u8207\u5F29\u7832\u4E00\u6B21\u5C04\u51FA\u5169\u767C\uFF0C\u5927\u5E45\u63D0\u5347\u9AD8\u68C9\u7684\u7BC4\u570D\u6BBA\u50B7\u529B\u3002",
+  "shinkichon": "\u5EF6\u9577\u6295\u77F3\u8ECA\u7CFB\u7684\u5C04\u7A0B\uFF0C\u8B93\u671D\u9BAE\u7684\u653B\u57CE\u90E8\u968A\u80FD\u5728\u66F4\u9060\u8655\u958B\u706B\u3002",
+  "recurve-bow": "\u63D0\u5347\u99AC\u5F13\u9A0E\u5175\u7684\u653B\u64CA\u8207\u5C04\u7A0B\uFF0C\u5F37\u5316\u99AC\u624E\u723E\u7684\u9A0E\u5C04\u6253\u6CD5\u3002",
+  "forced-levy": "\u8B93\u5175\u71DF\u6B65\u5175\u6539\u7528\u98DF\u7269\u53D6\u4EE3\u9EC3\u91D1\uFF0C\u4F7F\u99AC\u4F86\u5728\u9EC3\u91D1\u8017\u76E1\u7684\u5F8C\u671F\u4ECD\u80FD\u5927\u91CF\u751F\u7522\u6B65\u5175\u3002",
+  "farimba": "\u63D0\u5347\u99AC\u5EC4\u55AE\u4F4D\u7684\u653B\u64CA\u529B\uFF0C\u8B93\u99AC\u5229\u9A0E\u5175\u5728\u5F8C\u671F\u66F4\u5177\u6BBA\u50B7\u529B\u3002",
+  "el-dorado": "\u589E\u52A0\u9DF9\u52C7\u58EB\u7684\u751F\u547D\u503C\uFF0C\u8B93\u99AC\u96C5\u7684\u6838\u5FC3\u6B65\u5175\u66F4\u8010\u6253\u3002",
+  "drill": "\u5927\u5E45\u52A0\u5FEB\u653B\u57CE\u5668\u7684\u79FB\u52D5\u901F\u5EA6\uFF0C\u8B93\u8499\u53E4\u7684\u653B\u57CE\u90E8\u968A\u80FD\u5FEB\u901F\u8F49\u79FB\u6230\u7DDA\u3002",
+  "mahouts": "\u52A0\u5FEB\u6230\u8C61\u7684\u79FB\u52D5\u901F\u5EA6\uFF0C\u5F4C\u88DC\u6CE2\u65AF\u6230\u8C61\u884C\u52D5\u9072\u7DE9\u7684\u5F31\u9EDE\u3002",
+  "arquebus": "\u63D0\u9AD8\u706B\u85E5\u55AE\u4F4D\u5C0D\u79FB\u52D5\u76EE\u6A19\u7684\u547D\u4E2D\u7387\uFF0C\u8B93\u8461\u8404\u7259\u7684\u706B\u85E5\u90E8\u968A\u66F4\u53EF\u9760\u3002",
+  "zealotry": "\u589E\u52A0\u99F1\u99DD\u9A0E\u5175\u8207\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u7684\u751F\u547D\u503C\uFF0C\u5F37\u5316\u85A9\u62C9\u68EE\u7684\u4E3B\u529B\u90E8\u968A\u3002",
+  "druzhina": "\u8B93\u6B65\u5175\u653B\u64CA\u6642\u5C0D\u5468\u570D\u9020\u6210\u8E10\u8E0F\u50B7\u5BB3\uFF0C\u9069\u5408\u65AF\u62C9\u592B\u7528\u4F86\u5C0D\u4ED8\u5BC6\u96C6\u7684\u6575\u65B9\u6B65\u5175\u3002",
+  "supremacy": "\u5927\u5E45\u5F37\u5316\u6751\u6C11\u7684\u653B\u64CA\u3001\u8B77\u7532\u8207\u751F\u547D\u503C\uFF0C\u8B93\u897F\u73ED\u7259\u6751\u6C11\u5728\u5F8C\u671F\u4E5F\u80FD\u81EA\u4FDD\u751A\u81F3\u53C3\u6230\u3002",
+  "crenellations": "\u5EF6\u9577\u57CE\u5821\u5C04\u7A0B\uFF0C\u4E26\u8B93\u9032\u99D0\u5176\u4E2D\u7684\u6B65\u5175\u4E5F\u80FD\u653E\u7BAD\uFF0C\u6253\u9020\u689D\u9813\u66F4\u5F37\u7684\u57CE\u5821\u9632\u7DDA\u3002",
+  "artillery": "\u5EF6\u9577\u706B\u7832\u7684\u5C04\u7A0B\uFF1B\u539F\u4F5C\u9084\u4F5C\u7528\u5728\u706B\u7832\u5854\u8207\u706B\u7832\u6230\u8239\u4E0A\uFF0C\u5F37\u5316\u571F\u8033\u5176\u7684\u706B\u85E5\u653B\u57CE\u512A\u52E2\u3002",
+  "paper-money": "\u7814\u7A76\u5F8C\u7ACB\u523B\u70BA\u81EA\u5DF1\u8207\u76DF\u53CB\u5E36\u4F86\u4E00\u7B46\u9EC3\u91D1\uFF0C\u662F\u8D8A\u5357\u76F4\u63A5\u7684\u7D93\u6FDF\u652F\u63F4\u624B\u6BB5\u3002",
+  "berserkergang": "\u52A0\u5FEB\u72C2\u6230\u58EB\u7684\u81EA\u6211\u56DE\u8840\u901F\u5EA6\uFF0C\u8B93\u7DAD\u4EAC\u7684\u7279\u6B8A\u6B65\u5175\u80FD\u6301\u7E8C\u4F5C\u6230\u3002",
+  "bagains": "\u5927\u5E45\u63D0\u5347\u6C11\u5175\u7CFB\u7684\u8FD1\u6230\u8B77\u7532\uFF0C\u8B93\u4FDD\u52A0\u5229\u4E9E\u528D\u5175\u66F4\u80FD\u62B5\u64CB\u8FD1\u6230\u90E8\u968A\u3002",
+  "cuman-mercenaries": "\u8B93\u5168\u968A\u53EF\u4EE5\u5728\u57CE\u5821\u514D\u8CBB\u8A13\u7DF4\u4E00\u6279\u7CBE\u92B3\u6B3D\u5BDF\uFF0C\u70BA\u5718\u968A\u8FC5\u901F\u589E\u52A0\u9A0E\u5C04\u6230\u529B\u3002",
+  "tower-shields": "\u63D0\u5347\u9577\u69CD\u5175\u7CFB\u8207\u6563\u5175\u7684\u9060\u7A0B\u8B77\u7532\uFF0C\u8B93\u5B83\u5011\u66F4\u80FD\u62B5\u64CB\u5F13\u5175\u7684\u5C04\u64CA\u3002",
+  "timurid-siegecraft": "\u5EF6\u9577\u5DE8\u578B\u6295\u77F3\u6A5F\u7684\u5C04\u7A0B\u4E26\u89E3\u9396\u706B\u7130\u99F1\u99DD\uFF0C\u5F37\u5316\u97C3\u977C\u7684\u653B\u57CE\u80FD\u529B\u3002",
+  "hulche-javelineers": "\u8B93\u6563\u5175\u7CFB\u6BCF\u6B21\u653B\u64CA\u591A\u64F2\u51FA\u4E00\u6839\u9577\u77DB\uFF0C\u5927\u5E45\u63D0\u5347\u99AC\u96C5\u53CD\u5F13\u5175\u90E8\u968A\u7684\u706B\u529B\u3002",
+  "burgundian-vineyards": "\u628A\u624B\u4E0A\u7684\u98DF\u7269\u8F49\u63DB\u6210\u9EC3\u91D1\uFF0C\u4E26\u8B93\u8FB2\u592B\u7A2E\u7530\u6642\u9806\u5E36\u7522\u51FA\u5C11\u91CF\u9EC3\u91D1\uFF0C\u70BA\u52C3\u6839\u5730\u589E\u52A0\u9EC3\u91D1\u4F86\u6E90\u3002",
+  "first-crusade": "\u8B93\u57CE\u93AE\u4E2D\u5FC3\u4E00\u6B21\u6027\u751F\u51FA\u4E00\u6279\u85A9\u91D1\u7279\u885B\u5175\uFF0C\u53EF\u7ACB\u5373\u88DC\u5F37\u9632\u5B88\u6216\u767C\u52D5\u653B\u52E2\uFF0C\u4F46\u6574\u5834\u53EA\u80FD\u4F7F\u7528\u4E00\u6B21\u3002",
+  "flemish-revolution": "\u628A\u6240\u6709\u6751\u6C11\u8F49\u70BA\u4F5B\u840A\u660E\u6C11\u5175\uFF0C\u4E26\u958B\u653E\u5728\u57CE\u93AE\u4E2D\u5FC3\u8A13\u7DF4\uFF1B\u5C6C\u65BC\u653E\u68C4\u7D93\u6FDF\u3001\u5B64\u6CE8\u4E00\u64F2\u7684\u7D42\u5C40\u624B\u6BB5\u3002",
+  "scutage": "\u4F9D\u7167\u81EA\u5DF1\u8207\u76DF\u53CB\u64C1\u6709\u7684\u8ECD\u4E8B\u55AE\u4F4D\u6578\u91CF\u7ACB\u5373\u7372\u5F97\u9EC3\u91D1\uFF0C\u8ECD\u968A\u8D8A\u9F90\u5927\u6536\u76CA\u8D8A\u9AD8\u3002",
+  "dark-age": "\u904A\u6232\u7684\u8D77\u59CB\u6642\u4EE3\uFF0C\u73A9\u5BB6\u53EA\u6709\u5C11\u6578\u6751\u6C11\u3001\u4E00\u5EA7\u57CE\u93AE\u4E2D\u5FC3\u8207\u4E00\u540D\u5075\u5BDF\u55AE\u4F4D\uFF1B\u6B64\u6642\u4EE5\u64F4\u5F35\u7D93\u6FDF\u3001\u7D2F\u7A4D\u6751\u6C11\u70BA\u4E3B\uFF0C\u70BA\u5347\u7B2C\u4E8C\u6642\u4EE3\u505A\u6E96\u5099\u3002",
+  "feudal-age": "\u5728\u57CE\u93AE\u4E2D\u5FC3\u7814\u7A76\uFF0C\u9700\u8981\u5148\u84CB\u597D\u5169\u5EA7\u6307\u5B9A\u5EFA\u7BC9\uFF1B\u9032\u5165\u5F8C\u89E3\u9396\u9776\u5834\u3001\u99AC\u5EC4\u3001\u9435\u5320\u92EA\u8207\u5E02\u96C6\uFF0C\u524D\u671F\u8ECD\u4E8B\u885D\u7A81\u8207\u5FEB\u653B\u591A\u5F9E\u9019\u88E1\u5C55\u958B\u3002",
+  "castle-age": "\u9032\u5165\u5F8C\u53EF\u5EFA\u9020\u57CE\u5821\u3001\u4FEE\u9053\u9662\u3001\u5B78\u9662\u8207\u653B\u57CE\u5668\uFF0C\u5404\u6587\u660E\u7684\u7279\u6B8A\u55AE\u4F4D\u8207\u7279\u8272\u5728\u6B64\u767C\u63EE\uFF0C\u8A31\u591A\u4E3B\u529B\u6253\u6CD5\u5728\u9019\u500B\u6642\u4EE3\u6210\u5F62\u3002",
+  "imperial-age": "\u6700\u5F8C\u4E00\u500B\u6642\u4EE3\uFF0C\u958B\u653E\u706B\u85E5\u55AE\u4F4D\u3001\u91CD\u578B\u653B\u57CE\u5668\u8207\u4E16\u754C\u5947\u89C0\uFF0C\u6240\u6709\u5347\u7D1A\u5728\u6B64\u9054\u5230\u9802\u5CF0\uFF0C\u5927\u578B\u6C7A\u6230\u901A\u5E38\u767C\u751F\u5728\u9019\u500B\u968E\u6BB5\u3002"
+};
+var buildingsIntro = "\u5EFA\u7BC9\u8CC7\u6599\u6574\u7406\u81EA aoetw.com\uFF08\u4E16\u7D00\u5E1D\u570B II \u7684\u7E41\u9AD4\u4E2D\u6587\u767E\u79D1\uFF0C\u5167\u5BB9\u4EE5 HD\uFF0FUserPatch \u5230\u65E9\u671F\u6C7A\u5B9A\u7248\u70BA\u6E96\uFF09\u3002\u5361\u7247\u4E0A\u7684\u9020\u50F9\u3001\u5EFA\u9020\u6642\u9593\u3001\u751F\u547D\u3001\u8B77\u7532\u3001\u99D0\u8ECD\u8207\u7BAD\u77E2\u90FD\u53D6\u81EA\u672C\u4F5C\u7684\u6A21\u64EC\uFF0C\u662F\u4F9D\u672C\u4F5C\u6BD4\u4F8B\u81EA\u8A02\u7684 design_default\uFF0C\u4E0D\u662F\u539F\u4F5C\u6578\u64DA\uFF1A\u5EFA\u7BC9\u751F\u547D\u5927\u7D04\u662F\u539F\u4F5C\u7684\u516D\u5206\u4E4B\u4E00\uFF0C\u5EFA\u9020\u6642\u9593\u4E5F\u914D\u5408\u672C\u4F5C\u7684\u7BC0\u594F\u7E2E\u77ED\u3002";
+var buildingsNote = "\u5EFA\u7BC9\u8CC7\u6599\u6574\u7406\u81EA aoetw.com\uFF08HD\uFF0FUserPatch \u5230\u65E9\u671F\u6C7A\u5B9A\u7248\uFF09\uFF0C\u8AAA\u660E\u5DF2\u6539\u7528\u672C\u4F5C\u7684\u55AE\u4F4D\u3001\u5EFA\u7BC9\u8207\u6642\u4EE3\u540D\u7A31\uFF1B\u6578\u503C\u4E00\u5F8B\u53D6\u81EA\u672C\u4F5C\u7684\u6A21\u64EC\uFF0C\u662F design_default\uFF0C\u4E0D\u662F\u539F\u4F5C\u6578\u64DA\u3002\u6A19\u793A\u300C\u5C1A\u672A\u5BE6\u4F5C\u300D\u7684\u5EFA\u7BC9\u76EE\u524D\u4E0D\u5728\u904A\u6232\u88E1\u3002";
+var buildingsMissingText = "aoetw \u53E6\u6536\u9304\u56DB\u5EA7\u6587\u660E\u5C08\u5C6C\u5EFA\u7BC9\uFF1A\u99AC\u4F86\u7684\u6D77\u6E2F\u3001\u4FDD\u52A0\u5229\u4E9E\u7684\u71DF\u58D8\u3001\u8461\u8404\u7259\u7684\u6E2F\u7063\u5927\u5546\u7AD9\u8207\u897F\u897F\u91CC\u7684\u57CE\u6A13\uFF0C\u9019\u4E9B\u6587\u660E\u90FD\u4E0D\u5728\u672C\u4F5C\u7684\u539F\u7248\u5341\u4E09\u6587\u660E\u4E4B\u4E2D\u3002";
+var buildingGroups = [
+  { id: "economy", label: "\u7D93\u6FDF", text: "\u6751\u6C11\u4EA4\u4ED8\u8CC7\u6E90\u3001\u589E\u52A0\u4EBA\u53E3\u8207\u7814\u7A76\u63A1\u96C6\u79D1\u6280\u7684\u64DA\u9EDE\uFF0C\u6C7A\u5B9A\u6574\u500B\u5E1D\u570B\u7684\u767C\u5C55\u901F\u5EA6\uFF1B\u8CBC\u8FD1\u8CC7\u6E90\u64FA\u653E\uFF0C\u4E26\u96A8\u63A1\u96C6\u9EDE\u79FB\u52D5\u9069\u6642\u91CD\u5EFA\uFF0C\u6751\u6C11\u5C31\u80FD\u5C11\u8D70\u51A4\u6789\u8DEF\u3002" },
+  { id: "military", label: "\u8ECD\u4E8B", text: "\u8A13\u7DF4\u8207\u5347\u7D1A\u5404\u5175\u7A2E\u7684\u5730\u65B9\uFF0C\u6B65\u5175\u3001\u9060\u7A0B\u90E8\u968A\u3001\u9A0E\u5175\u8207\u653B\u57CE\u5668\u5404\u6709\u5C08\u5C6C\u7684\u7522\u5730\u3002\u4F9D\u5C0D\u624B\u7684\u90E8\u968A\u7D44\u6210\u6C7A\u5B9A\u5148\u84CB\u54EA\u4E00\u7A2E\uFF0C\u4E26\u653E\u5728\u65B9\u4FBF\u96C6\u7D50\u51FA\u64CA\u7684\u4F4D\u7F6E\u3002" },
+  { id: "defense", label: "\u9632\u79A6", text: "\u57CE\u7246\u3001\u57CE\u9580\u3001\u5404\u5F0F\u7BAD\u5854\u8207\u57CE\u5821\uFF0C\u80FD\u62D6\u5EF6\u6575\u8ECD\u3001\u4FDD\u8B77\u63A1\u96C6\u4E2D\u7684\u6751\u6C11\uFF0C\u6709\u4E9B\u9084\u6703\u5C04\u64CA\u6216\u751F\u7522\u90E8\u968A\uFF1B\u5E03\u7F6E\u5728\u9698\u53E3\u6216\u969C\u7919\u7269\u5F8C\u65B9\uFF0C\u4E26\u6E96\u5099\u8FD1\u6230\u90E8\u968A\u61C9\u4ED8\u4F86\u62C6\u7684\u653B\u57CE\u5668\u3002" },
+  { id: "other", label: "\u5176\u4ED6", text: "\u7814\u7A76\u79D1\u6280\u7684\u9435\u5320\u92EA\u8207\u5B78\u9662\u3001\u5B97\u6559\u7528\u9014\u7684\u4FEE\u9053\u9662\uFF0C\u4EE5\u53CA\u53E6\u4E00\u689D\u52DD\u5229\u9014\u5F91\u7684\u4E16\u754C\u5947\u89C0\uFF1B\u5B83\u5011\u4E0D\u63A1\u96C6\u4E5F\u4E0D\u4F5C\u6230\uFF0C\u537B\u63D0\u4F9B\u5DE6\u53F3\u6230\u5C40\u7684\u5347\u7D1A\u3002" }
+];
+var buildingPendingReasons = { civ: "\u672C\u4F5C\u53EA\u6709 13 \u500B\u539F\u7248\u6587\u660E" };
+var bd = (id, slug, name, nameEn, group, age, kind = "building", of = [], civ = null) => ({ id, slug, name, nameEn, group, age, civ, kind, of });
+var aoetwBuildings = [
+  bd("town-center", "Town_Center", "\u57CE\u93AE\u4E2D\u5FC3", "Town Center", "economy", 1),
+  bd("house", "House", "\u623F\u5C4B", "House", "economy", 1),
+  bd("mill", "Mill", "\u78E8\u574A", "Mill", "economy", 1),
+  bd("farm", "Farm", "\u8FB2\u7530", "Farm", "economy", 1),
+  bd("lumber-camp", "Lumber_Camp", "\u4F10\u6728\u5834", "Lumber Camp", "economy", 1),
+  bd("mining-camp", "Mining_Camp", "\u63A1\u7926\u71DF\u5730", "Mining Camp", "economy", 1),
+  bd("dock", "Dock", "\u78BC\u982D", "Dock", "economy", 1),
+  bd("barracks", "Barracks", "\u8ECD\u71DF", "Barracks", "military", 1),
+  bd("palisade-wall", "Palisade_Wall", "\u6728\u7246", "Palisade Wall", "defense", 1),
+  bd("palisade-gate", "Palisade_Gate", "\u6728\u9580", "Palisade Gate", "defense", 1),
+  bd("outpost", "Outpost", "\u54E8\u7AD9", "Outpost", "defense", 1),
+  bd("market", "Market", "\u5E02\u96C6", "Market", "economy", 2),
+  bd("blacksmith", "Blacksmith", "\u5175\u5DE5\u5EE0", "Blacksmith", "other", 2),
+  bd("fish-trap", "Fish_Trap", "\u6F01\u7DB2", "Fish Trap", "economy", 2),
+  bd("archery-range", "Archery_Range", "\u5C04\u7BAD\u5834", "Archery Range", "military", 2),
+  bd("stable", "Stable", "\u99AC\u5EC4", "Stable", "military", 2),
+  bd("stone-wall", "Stone_Wall", "\u77F3\u7246", "Stone Wall", "defense", 2),
+  bd("gate", "Gate", "\u57CE\u9580", "Gate", "defense", 2),
+  bd("watch-tower", "Watch_Tower", "\u77AD\u671B\u7BAD\u5854", "Watch Tower", "defense", 2),
+  bd("monastery", "Monastery", "\u4FEE\u9053\u9662", "Monastery", "other", 3),
+  bd("university", "University", "\u5B78\u9662", "University", "other", 3),
+  bd("siege-workshop", "Siege_Workshop", "\u653B\u57CE\u5668\u88FD\u9020\u6240", "Siege Workshop", "military", 3),
+  bd("castle", "Castle", "\u57CE\u5821", "Castle", "defense", 3),
+  bd("fortified-wall", "Fortified_Wall", "\u579B\u7246", "Fortified Wall", "defense", 3, "upgrade", ["stone-wall", "gate"]),
+  bd("guard-tower", "Guard_Tower", "\u9632\u79A6\u7BAD\u5854", "Guard Tower", "defense", 3, "upgrade", ["watch-tower"]),
+  bd("harbor", "Harbor", "\u6D77\u6E2F", "Harbor", "economy", 3, "other", [], "\u99AC\u4F86"),
+  bd("krepost", "Krepost", "\u71DF\u58D8", "Krepost", "defense", 3, "other", [], "\u4FDD\u52A0\u5229\u4E9E"),
+  bd("keep", "Keep", "\u5927\u578B\u7BAD\u5854", "Keep", "defense", 4, "upgrade", ["watch-tower"]),
+  bd("wonder", "Wonder", "\u4E16\u754C\u5947\u89C0", "Wonder", "other", 4),
+  bd("bombard-tower", "Bombard_Tower", "\u706B\u7832\u5854", "Bombard Tower", "defense", 4),
+  bd("feitoria", "Feitoriaicon_Feitoria", "\u6E2F\u7063\u5927\u5546\u7AD9", "Feitoria", "economy", 4, "other", [], "\u8461\u8404\u7259"),
+  bd("donjon", "Donjon", "\u57CE\u6A13", "Donjon", "defense", 2, "other", [], "\u897F\u897F\u91CC")
+];
+var buildingText = {
+  "town-center": "\u5E1D\u570B\u7684\u6838\u5FC3\uFF1A\u8A13\u7DF4\u6751\u6C11\u3001\u6536\u4E0B\u6240\u6709\u8CC7\u6E90\uFF0C\u6575\u8ECD\u4F86\u8972\u6642\u6572\u97FF\u9418\u8072\uFF0C\u8B93\u6751\u6C11\u8EB2\u9032\u53BB\u4E00\u8D77\u5C04\u7BAD\u3002\u958B\u5C40\u5404\u6709\u4E00\u5EA7\uFF0C\u7B2C\u4E09\u6642\u4EE3\u8D77\u53EF\u4EE5\u5728\u9060\u8655\u7684\u8CC7\u6E90\u65C1\u52A0\u84CB\uFF0C\u7E2E\u77ED\u6751\u6C11\u5F80\u8FD4\u7684\u8DEF\u7A0B\u3002",
+  house: "\u63D0\u4F9B\u4EBA\u53E3\u7A7A\u9593\uFF0C\u662F\u6301\u7E8C\u751F\u7522\u6751\u6C11\u8207\u8ECD\u968A\u7684\u524D\u63D0\uFF1B\u88AB\u62C6\u6BC0\u6642\u4EBA\u53E3\u4E0A\u9650\u4E5F\u8DDF\u8457\u4E0B\u964D\u3002\u4FBF\u5B9C\u53C8\u84CB\u5F97\u5FEB\uFF0C\u8981\u63D0\u65E9\u88DC\u8DB3\uFF0C\u4E5F\u5E38\u6392\u6210\u4E00\u5217\u5145\u7576\u81E8\u6642\u7684\u7246\u3002",
+  mill: "\u6751\u6C11\u5B58\u653E\u98DF\u7269\u7684\u5730\u65B9\uFF0C\u4E5F\u7814\u7A76\u589E\u52A0\u8FB2\u7530\u7522\u91CF\u7684\u79D1\u6280\uFF0C\u8017\u76E1\u7684\u8FB2\u7530\u53EF\u4EE5\u81EA\u52D5\u88DC\u7A2E\u3002\u84CB\u5728\u679C\u6A39\u53E2\u65C1\uFF0C\u4E4B\u5F8C\u7684\u8FB2\u7530\u5C31\u570D\u8457\u5B83\u64FA\u653E\u3002",
+  farm: "\u8B93\u4E00\u540D\u6751\u6C11\u6301\u7E8C\u8015\u7A2E\u7684\u7530\uFF0C\u662F\u4E2D\u5F8C\u671F\u6700\u7A69\u5B9A\u7684\u98DF\u7269\u4F86\u6E90\uFF0C\u55AE\u4F4D\u53EF\u4EE5\u76F4\u63A5\u8D70\u904E\u3002\u8CBC\u8457\u57CE\u93AE\u4E2D\u5FC3\u6216\u78E8\u574A\u64FA\u653E\u4EE5\u7E2E\u77ED\u5F80\u8FD4\uFF1B\u8FB2\u696D\u79D1\u6280\u7814\u7A76\u5B8C\u6210\u5F8C\u65B0\u84CB\u7684\u7530\u7522\u91CF\u66F4\u9AD8\u3002",
+  "lumber-camp": "\u6751\u6C11\u4EA4\u4ED8\u6728\u6750\u7684\u6536\u96C6\u9EDE\uFF0C\u4E5F\u7814\u7A76\u63D0\u5347\u4F10\u6728\u6548\u7387\u7684\u79D1\u6280\u3002\u84CB\u5728\u68EE\u6797\u908A\u7DE3\uFF0C\u780D\u4F10\u7DDA\u5F8C\u9000\u4E4B\u5F8C\u5C31\u63DB\u500B\u66F4\u8FD1\u7684\u4F4D\u7F6E\u518D\u84CB\u4E00\u5EA7\u3002",
+  "mining-camp": "\u8B93\u6751\u6C11\u5C31\u8FD1\u5B58\u653E\u9EC3\u91D1\u8207\u77F3\u982D\uFF0C\u4E26\u63D0\u4F9B\u958B\u63A1\u76F8\u95DC\u7684\u5347\u7D1A\u3002\u84CB\u5728\u91D1\u7926\u6216\u77F3\u7926\u65C1\uFF1B\u958B\u5C40\u8CC7\u6E90\u5403\u7DCA\u6642\uFF0C\u901A\u5E38\u5148\u84CB\u78E8\u574A\u8207\u4F10\u6728\u5834\u3002",
+  dock: "\u84CB\u5728\u5CB8\u908A\u6C34\u9762\u4E0A\uFF0C\u5EFA\u9020\u6F01\u8239\u3001\u904B\u8F38\u8239\u3001\u8CBF\u6613\u5546\u8239\u8207\u5404\u5F0F\u6230\u8239\uFF0C\u4E5F\u662F\u6F01\u8239\u4EA4\u4ED8\u98DF\u7269\u7684\u5730\u65B9\uFF0C\u4E26\u7814\u7A76\u6D77\u8ECD\u79D1\u6280\u3002\u5728\u6E56\u7554\u5730\u5716\u4E0A\u61C9\u53CA\u65E9\u5EFA\u9020\u4EE5\u767C\u5C55\u6F01\u696D\uFF0C\u6700\u597D\u6709\u7BAD\u5854\u6216\u57CE\u5821\u63A9\u8B77\u3002",
+  barracks: "\u8A13\u7DF4\u6C11\u5175\u7CFB\u8207\u9577\u69CD\u5175\u7CFB\u7B49\u6B65\u5175\u7684\u57FA\u672C\u8ECD\u4E8B\u5EFA\u7BC9\uFF0C\u4E5F\u662F\u9776\u5834\u8207\u99AC\u5EC4\u7684\u524D\u7F6E\u689D\u4EF6\uFF0C\u6B65\u5175\u76F8\u95DC\u7684\u5347\u7D1A\u5728\u9019\u88E1\u7814\u7A76\u3002",
+  "palisade-wall": "\u4FBF\u5B9C\u53C8\u5FEB\u7684\u6728\u982D\u570D\u6B04\uFF0C\u62D6\u51FA\u4E00\u6574\u6BB5\u6642\u6BCF\u4E00\u683C\u5C31\u662F\u4E00\u7BC0\u7246\u3002\u524D\u671F\u62FF\u4F86\u5C01\u9396\u7F3A\u53E3\u3001\u62D6\u5EF6\u6575\u8ECD\uFF0C\u6216\u8CBC\u8457\u5DF1\u65B9\u7BAD\u5854\u570D\u4E00\u5708\uFF1B\u5F8C\u671F\u9632\u5B88\u8981\u63DB\u6210\u77F3\u7246\u3002",
+  "palisade-gate": "\u5D4C\u5728\u6728\u7246\u88E1\u7684\u9580\uFF1A\u5DF1\u65B9\u55AE\u4F4D\u53EF\u4EE5\u81EA\u7531\u9032\u51FA\uFF0C\u6575\u8ECD\u5247\u88AB\u64CB\u5728\u5916\u9762\u3002\u53EF\u4EE5\u76F4\u63A5\u84CB\u5728\u5DF1\u65B9\u7684\u6728\u7246\u4E0A\u53D6\u4EE3\u90A3\u4E00\u7BC0\uFF0C\u5730\u57FA\u76F8\u7576\u8106\u5F31\u3002",
+  outpost: "\u6C92\u6709\u653B\u64CA\u529B\u7684\u77AD\u671B\u5EFA\u7BC9\uFF0C\u4FBF\u5B9C\u53C8\u84CB\u5F97\u5FEB\uFF0C\u7528\u4F86\u63D0\u65E9\u767C\u73FE\u4F86\u8972\u7684\u6575\u8ECD\u6216\u770B\u4F4F\u91CD\u8981\u7684\u8CC7\u6E90\u9EDE\uFF0C\u53EA\u8981\u82B1\u4E00\u9EDE\u77F3\u982D\u3002",
+  market: "\u7528\u9EC3\u91D1\u8CB7\u8CE3\u98DF\u7269\u3001\u6728\u6750\u8207\u77F3\u982D\uFF0C\u96D9\u65B9\u5171\u7528\u540C\u4E00\u7D44\u884C\u60C5\uFF0C\u8CB7\u5F97\u8D8A\u591A\u8D8A\u8CB4\u3001\u8CE3\u5F97\u8D8A\u591A\u8D8A\u4FBF\u5B9C\uFF1B\u4E5F\u751F\u7522\u8CBF\u6613\u8ECA\u968A\uFF0C\u5230\u5C0D\u624B\u7684\u5E02\u96C6\u5F80\u8FD4\u8CFA\u53D6\u9EC3\u91D1\uFF0C\u8DDD\u96E2\u8D8A\u9060\u6536\u5165\u8D8A\u591A\u3002",
+  blacksmith: "\u4E0D\u751F\u7522\u55AE\u4F4D\uFF0C\u537B\u63D0\u4F9B\u6B65\u5175\u3001\u9A0E\u5175\u8207\u5F13\u5175\u653B\u9632\u7684\u95DC\u9375\u5347\u7D1A\uFF0C\u4E5F\u662F\u653B\u57CE\u5668\u5DE5\u574A\u7684\u524D\u7F6E\u5EFA\u7BC9\u3002\u9032\u653B\u524D\u5148\u88DC\u4E0A\u8B77\u7532\u8207\u653B\u64CA\uFF0C\u5F80\u5F80\u6BD4\u591A\u8A13\u7DF4\u5E7E\u500B\u5175\u66F4\u6709\u6548\u3002",
+  "fish-trap": "\u84CB\u5728\u6C34\u4E0A\u7684\u8FB2\u7530\uFF0C\u53EA\u80FD\u7531\u6F01\u8239\u5EFA\u9020\u8207\u63A1\u96C6\uFF0C\u98DF\u7269\u4EA4\u5230\u78BC\u982D\u3002\u76E1\u91CF\u7DCA\u9130\u78BC\u982D\u64FA\u653E\uFF1B\u9678\u5730\u7A7A\u9593\u4E0D\u8DB3\u6216\u64C5\u9577\u6F01\u696D\u7684\u6587\u660E\u7279\u5225\u597D\u7528\u3002",
+  "archery-range": "\u8A13\u7DF4\u5F13\u5175\u3001\u6563\u5175\u8207\u99AC\u5F13\u9A0E\u5175\u7B49\u9060\u7A0B\u90E8\u968A\uFF0C\u4E26\u7814\u7A76\u5F37\u5316\u9060\u7A0B\u55AE\u4F4D\u7684\u79D1\u6280\uFF1B\u4EE5\u5F13\u5175\u70BA\u4E3B\u529B\u6642\uFF0C\u8A18\u5F97\u540C\u6B65\u5728\u9435\u5320\u92EA\u88DC\u9F4A\u5347\u7D1A\u3002",
+  stable: "\u8A13\u7DF4\u8207\u5347\u7D1A\u65A5\u5019\u7CFB\u3001\u9A0E\u58EB\u7CFB\u8207\u99F1\u99DD\u9A0E\u5175\u3002\u9A0E\u5175\u79FB\u52D5\u5FEB\uFF0C\u9069\u5408\u8972\u64FE\u5C0D\u624B\u7684\u63A1\u96C6\u9EDE\uFF0C\u6216\u885D\u53BB\u6467\u6BC0\u6B63\u5728\u653B\u57CE\u7684\u5668\u68B0\u3002",
+  "stone-wall": "\u6BD4\u6728\u7246\u5805\u56FA\u5F97\u591A\u7684\u57CE\u7246\uFF0C\u540C\u6A23\u62D6\u51FA\u4E00\u6574\u6BB5\u3002\u80FD\u5EF6\u7DE9\u6575\u8ECD\u63A8\u9032\u3001\u8B93\u7246\u5F8C\u7684\u9060\u7A0B\u55AE\u4F4D\u5B89\u5168\u8F38\u51FA\uFF1B\u6700\u597D\u8207\u68EE\u6797\u6216\u7926\u5340\u76F8\u9023\u5C01\u4F4F\u901A\u9053\uFF0C\u4E26\u914D\u5408\u57CE\u9580\u9032\u51FA\u3002",
+  gate: "\u5D4C\u5728\u77F3\u7246\u88E1\u7684\u9580\uFF0C\u5DF1\u65B9\u55AE\u4F4D\u80FD\u901A\u904E\u3001\u6575\u4EBA\u88AB\u64CB\u5728\u5916\u9762\uFF0C\u53EF\u4EE5\u76F4\u63A5\u84CB\u5728\u5DF1\u65B9\u77F3\u7246\u4E0A\u53D6\u4EE3\u90A3\u4E00\u7BC0\uFF1B\u7814\u7A76\u579B\u7246\u5F8C\u4E5F\u4E00\u4F75\u5F37\u5316\u3002",
+  "watch-tower": "\u57FA\u672C\u7684\u9632\u79A6\u5854\uFF0C\u80FD\u5728\u65E9\u671F\u4FDD\u8B77\u6751\u838A\uFF0C\u99D0\u7D2E\u6751\u6C11\u6216\u5F13\u5175\u9084\u80FD\u591A\u5C04\u5E7E\u652F\u7BAD\u3002\u9664\u4E86\u5B88\u5BB6\u4E5F\u5E38\u7528\u4F86\u5854\u653B\uFF1A\u5728\u5C0D\u624B\u7684\u8CC7\u6E90\u65C1\u5077\u5077\u84CB\u5854\u58D3\u5236\u63A1\u96C6\u3002",
+  monastery: "\u8A13\u7DF4\u50E7\u4FB6\u4E26\u7814\u7A76\u5B97\u6559\u79D1\u6280\uFF0C\u5B58\u653E\u8056\u7269\u9084\u6703\u6E90\u6E90\u4E0D\u7D55\u5730\u7522\u751F\u9EC3\u91D1\u3002\u5373\u4F7F\u4E0D\u6253\u50E7\u4FB6\u6230\u8853\u4E5F\u503C\u5F97\u84CB\u4E00\u5EA7\uFF0C\u7528\u4F86\u6536\u96C6\u8056\u7269\u4E26\u7814\u7A76\u62B5\u6297\u8F49\u5316\u7684\u79D1\u6280\u3002",
+  university: "\u7814\u7A76\u5F37\u5316\u5EFA\u7BC9\u3001\u7BAD\u5854\u3001\u57CE\u7246\u8207\u653B\u57CE\u5668\u7684\u79D1\u6280\uFF1B\u5316\u5B78\u4E5F\u5728\u9019\u88E1\uFF0C\u5B83\u958B\u653E\u706B\u85E5\u55AE\u4F4D\u8207\u706B\u7832\u5854\u3002",
+  "siege-workshop": "\u5C08\u9580\u751F\u7522\u885D\u649E\u8ECA\u3001\u6295\u77F3\u8ECA\u3001\u5F29\u7832\u8207\u706B\u7832\u7B49\u653B\u57CE\u5668\uFF0C\u5C0D\u5EFA\u7BC9\u6709\u6BC0\u6EC5\u6027\u7684\u7834\u58DE\u529B\uFF1B\u9700\u8981\u5148\u6709\u9435\u5320\u92EA\u3002",
+  castle: "\u4E2D\u5F8C\u671F\u6700\u5F37\u7684\u64DA\u9EDE\uFF1A\u5C04\u51FA\u5927\u91CF\u7BAD\u77E2\u3001\u53EF\u4EE5\u99D0\u8ECD\uFF0C\u8A13\u7DF4\u5404\u6587\u660E\u7684\u7279\u6B8A\u55AE\u4F4D\u3001\u5DE8\u578B\u6295\u77F3\u6A5F\u8207\u70B8\u85E5\u6876\uFF0C\u4E26\u7814\u7A76\u7279\u6B8A\u79D1\u6280\u3002\u6295\u77F3\u8ECA\u8207\u885D\u649E\u8ECA\u662F\u5B83\u7684\u5929\u6575\uFF0C\u8981\u6D3E\u90E8\u968A\u5728\u65C1\u8B77\u885B\u3002",
+  wonder: "\u5404\u6587\u660E\u7684\u4EE3\u8868\u6027\u5EFA\u7BC9\uFF0C\u84CB\u597D\u5F8C\u958B\u59CB\u5012\u6578\uFF0C\u5B88\u4F4F\u5B83\u76F4\u5230\u5012\u6578\u7D50\u675F\u5C31\u7372\u52DD\uFF0C\u88AB\u6467\u6BC0\u5247\u5012\u6578\u4E2D\u6B62\u3002\u52D5\u5DE5\u524D\u5148\u5099\u59A5\u8ECD\u968A\u8207\u9632\u7DDA\uFF0C\u6700\u597D\u4EE5\u591A\u5C64\u57CE\u7246\u5305\u570D\u3002",
+  "bombard-tower": "\u5728\u5B78\u9662\u7814\u7A76\u706B\u7832\u5854\u5F8C\u624D\u80FD\u5EFA\u9020\u7684\u706B\u85E5\u9632\u79A6\u5854\uFF0C\u7832\u5F48\u5A01\u529B\u6975\u5F37\u4F46\u5C04\u901F\u5F88\u6162\uFF0C\u5F80\u5F80\u4E00\u767C\u5C31\u80FD\u64CA\u5012\u6B65\u5175\u8207\u5F13\u5175\uFF0C\u5C0D\u8239\u96BB\u4E5F\u6709\u52A0\u6210\u3002\u5B9C\u67B6\u5728\u9698\u53E3\u6216\u5176\u4ED6\u9632\u79A6\u5EFA\u7BC9\u7684\u4EA4\u53C9\u706B\u529B\u5167\uFF0C\u4E26\u9632\u7BC4\u5F9E\u5C04\u7A0B\u5916\u8F5F\u64CA\u7684\u653B\u57CE\u5668\u3002",
+  "guard-tower": "\u5728\u5B78\u9662\u7814\u7A76\u5F8C\uFF0C\u6240\u6709\u7BAD\u5854\u5347\u7D1A\u70BA\u66F4\u8010\u6253\u3001\u653B\u64CA\u66F4\u5F37\u7684\u9632\u79A6\u7BAD\u5854\uFF0C\u5C0D\u4ED8\u6B65\u5175\u8207\u5F13\u5175\u5F88\u6709\u6548\uFF0C\u4F46\u4ECD\u6015\u9A0E\u5175\u8207\u653B\u57CE\u5668\u3002",
+  keep: "\u7B2C\u56DB\u6642\u4EE3\u5728\u5B78\u9662\u7814\u7A76\u7684\u9802\u7D1A\u7BAD\u5854\uFF0C\u751F\u547D\u8207\u653B\u64CA\u518D\u63D0\u5347\uFF1B\u4F9D\u7136\u8981\u642D\u914D\u8FD1\u6230\u90E8\u968A\u9632\u7BC4\u653B\u57CE\u5668\u3002",
+  "fortified-wall": "\u5728\u5B78\u9662\u7814\u7A76\u5F8C\uFF0C\u77F3\u7246\u5347\u7D1A\u70BA\u66F4\u539A\u5BE6\u7684\u579B\u7246\uFF0C\u57CE\u9580\u4E5F\u4E00\u4F75\u5F37\u5316\uFF0C\u5F88\u9069\u5408\u5B88\u8B77\u4E16\u754C\u5947\u89C0\u6216\u5B58\u653E\u8056\u7269\u7684\u4FEE\u9053\u9662\u3002",
+  harbor: "\u99AC\u4F86\u7814\u7A76\u7279\u6B8A\u79D1\u6280\u5F8C\u53D6\u4EE3\u78BC\u982D\u7684\u5EFA\u7BC9\uFF0C\u517C\u5177\u6536\u96C6\u8CC7\u6E90\u3001\u9020\u8239\u8207\u653E\u7BAD\u653B\u64CA\u7684\u80FD\u529B\u3002",
+  krepost: "\u4FDD\u52A0\u5229\u4E9E\u7684\u7E2E\u5C0F\u7248\u57CE\u5821\uFF0C\u80FD\u8A13\u7DF4\u4FDD\u52A0\u5229\u4E9E\u9A0E\u5175\u4E26\u63D0\u4F9B\u4EBA\u53E3\uFF0C\u84CB\u5F97\u6BD4\u57CE\u5821\u5FEB\u3001\u6210\u672C\u4E5F\u4F4E\uFF0C\u4F46\u4E0D\u80FD\u751F\u7522\u5DE8\u578B\u6295\u77F3\u6A5F\u3002",
+  feitoria: "\u8461\u8404\u7259\u5728\u6700\u5F8C\u4E00\u500B\u6642\u4EE3\u7684\u7279\u6B8A\u5EFA\u7BC9\uFF0C\u4E0D\u9700\u8981\u6751\u6C11\u5C31\u80FD\u6301\u7E8C\u7522\u51FA\u591A\u7A2E\u8CC7\u6E90\uFF0C\u4EE3\u50F9\u662F\u4F54\u7528\u5927\u91CF\u4EBA\u53E3\u3002",
+  donjon: "\u897F\u897F\u91CC\u7528\u4F86\u53D6\u4EE3\u7BAD\u5854\u7CFB\u7684\u7E2E\u5C0F\u7248\u57CE\u5821\uFF0C\u80FD\u8A13\u7DF4\u85A9\u91D1\u7279\u885B\u5175\uFF0C\u4E26\u96A8\u6642\u4EE3\u5347\u7D1A\u8B8A\u5F97\u66F4\u5805\u56FA\u3002"
+};
+var buildingPartials = {
+  gate: "\u539F\u4F5C\u7684\u57CE\u9580\u53EF\u4EE5\u4E0A\u9396\uFF0C\u9023\u5DF1\u65B9\u4E5F\u4E0D\u80FD\u901A\u904E\uFF1B\u672C\u4F5C\u7684\u57CE\u9580\u4E00\u5F8B\u53EA\u64CB\u6575\u8ECD",
+  "palisade-gate": "\u539F\u4F5C\u7684\u6728\u9580\u53EF\u4EE5\u4E0A\u9396\uFF0C\u9023\u5DF1\u65B9\u4E5F\u4E0D\u80FD\u901A\u904E\uFF1B\u672C\u4F5C\u7684\u6728\u9580\u4E00\u5F8B\u53EA\u64CB\u6575\u8ECD",
+  "fish-trap": "\u539F\u4F5C\u7684\u6575\u65B9\u6F01\u8239\u4E5F\u80FD\u63A1\u96C6\u5225\u4EBA\u7684\u9B5A\u7DB2\uFF1B\u672C\u4F5C\u53EA\u6709\u64C1\u6709\u8005\u80FD\u63A1\u96C6"
 };
 
 // apps/web/codex-model.ts
@@ -4318,7 +7316,13 @@ function statSheet(kind, o) {
     regen: st.regen ?? 0,
     extraShots: st.extraShots ?? 0,
     extraDamage: st.extraDamage ?? 0,
-    splash: st.splash ?? 0
+    splash: st.splash ?? 0,
+    minRange: st.minRange ?? 0,
+    blast: st.blast ?? 0,
+    passThrough: st.passThrough ?? 0,
+    buildingsOnly: !!st.buildingsOnly,
+    selfDestruct: !!st.selfDestruct,
+    setup: st.setup ?? 0
   };
 }
 var rangeText = (range) => range <= 50 ? "\u8FD1\u6230" : `\u5C04\u7A0B ${range / 100} \u683C`;
@@ -4327,7 +7331,7 @@ var secondsText = (s) => `${trim(s)} \u79D2`;
 var cooldownSeconds = (cooldown) => cooldown / tick2;
 var tilesPerSecond = (speed2) => speed2 * tick2 / 100;
 var numberText = trim;
-var seconds = (id, o) => timeTicks(id, o, "castle") / tick2;
+var seconds = (id, o) => timeTicks(id, o, rules.production[id] ?? "castle") / tick2;
 var deferredReason = (c, name) => c.omitted.find((o) => o.text.includes(`\u300C${name}\u300D`))?.reason ?? null;
 var partialOf = (c, name) => c.omitted.filter((o) => !o.text.includes(`\u300C${name}\u300D`) && o.text.startsWith(name));
 function civDetail(id, civs = []) {
@@ -4335,7 +7339,7 @@ function civDetail(id, civs = []) {
   const own = (age) => ({ civ: c.id, age, techs: [] });
   const utIds = new Set(c.uniqueTechs.map((t) => t.id));
   const general = c.effects.filter((e) => !(e.trigger.tech && utIds.has(e.trigger.tech)));
-  const units = c.uniqueUnits.map((kind) => {
+  const units2 = c.uniqueUnits.map((kind) => {
     const k = kind, elite = c.eliteUpgrades.find((u) => u === `elite-${kind}`) ?? null, o3 = own(3), o4 = { civ: c.id, age: 4, techs: elite ? [elite] : [] };
     return {
       id: kind,
@@ -4349,7 +7353,7 @@ function civDetail(id, civs = []) {
       elite: elite ? { id: elite, name: nameOf(elite), age: ageOf2(elite), at: producerName(elite), cost: costOf(elite, own(4)), seconds: seconds(elite, own(4)), stats: statSheet(k, o4) } : null
     };
   });
-  const techs = c.uniqueTechs.map((t) => {
+  const techs2 = c.uniqueTechs.map((t) => {
     const implemented = !!entryOf2(t.id) && !deferredTechs.includes(t.id), o = own(t.age);
     return {
       id: t.id,
@@ -4391,14 +7395,434 @@ function civDetail(id, civs = []) {
     bonuses: general.filter((e) => e.scope !== "team").map((e) => e.text),
     team: general.filter((e) => e.scope === "team").map((e) => e.text.replace(/^團隊加成：/, "")),
     omitted: c.omitted.filter((o) => !onCards.has(o)),
-    units,
-    techs,
+    units: units2,
+    techs: techs2,
     tree: [...groups2.values()].sort((a, b) => order(a) - order(b)),
     later: c.missingLater.map((x) => ({ id: x, name: referenceOnlyNames[x] ?? x })),
     sources: (prose?.sources ?? []).map((p) => `aoetw.com/${p}`)
   };
 }
 var costEntries = (cost) => resources.filter((r) => cost[r] > 0).map((r) => [r, cost[r]]);
+var codexSections = [{ id: "civs", label: "\u6587\u660E" }, { id: "units", label: "\u55AE\u4F4D" }, { id: "techs", label: "\u79D1\u6280" }, { id: "buildings", label: "\u5EFA\u7BC9" }];
+var catById = new Map(unitCategories.map((c) => [c.label, c.id]));
+var refById = new Map(aoetwUnits.map((u) => [u.id, u]));
+var categoriesOf = (u) => {
+  const out = (u?.categories ?? []).map((c) => catById.get(c)).filter(Boolean);
+  return out.length ? out : ["other"];
+};
+var primaryOf = (cats) => ["unique", "naval", "gunpowder"].find((c) => cats.includes(c)) ?? cats[0];
+function minAge(id, path = []) {
+  const e = entryOf2(id);
+  if (!e || path.includes(id)) return 1;
+  let age = 1;
+  const next = [...path, id];
+  for (const r of e.requires) age = Math.max(age, r.startsWith("age-") ? Number(r.slice(4)) : minAge(r, next));
+  const p = rules.production[id];
+  if (p) age = Math.max(age, minAge(p, next));
+  return age;
+}
+var unitLineKinds = () => unitKinds.filter((k) => !isAnimal(k));
+var lineStepIds = (kind) => [kind, ...lineUpgrades.filter((u) => u.kind === kind).map((u) => u.id)];
+var stepUnitId = (kind, tech2) => stepAliases[kind]?.[tech2] ?? tech2;
+var inGame = () => new Set(unitLineKinds().flatMap((k) => lineStepIds(k).map((t) => stepUnitId(k, t))));
+var stepOwner = (kind, i) => {
+  const ids = lineStepIds(kind);
+  return { civ: neutralCiv, age: minAge(ids[i]), techs: ids.slice(1, i + 1) };
+};
+var civsLacking = (id) => rules.civilizations.filter((c) => c.unavailable.includes(id)).map((c) => c.id);
+var stepLacking = (kind, tech2) => rules.civilizations.filter((c) => c.unavailable.includes(tech2) || c.unavailable.includes(kind)).map((c) => c.id);
+var gameCivNames = new Set(civDefs.map((c) => c.name));
+function pendingReason(u) {
+  if (u.civ && !gameCivNames.has(u.civ)) return unitPendingReasons.civ;
+  return unitPendingReasons.expansion;
+}
+var sourcesOf = (ids) => ids.flatMap((id) => {
+  const r = refById.get(id);
+  return r ? [`aoetw.com/units/${r.slug}`] : [];
+});
+var refBuilding = { "\u8ECD\u71DF": "barracks", "\u5C04\u7BAD\u5834": "archery-range", "\u99AC\u5EC4": "stable", "\u653B\u57CE\u5668\u88FD\u9020\u6240": "siege-workshop", "\u57CE\u5821": "castle", "\u4FEE\u9053\u9662": "monastery", "\u57CE\u93AE\u4E2D\u5FC3": "town-center" };
+function unitLine(kind) {
+  const ids = lineStepIds(kind), base = refById.get(kind), cats = categoriesOf(base), producer = rules.production[kind] ?? "", o0 = stepOwner(kind, 0), game = inGame();
+  const steps = ids.map((tech2, i) => {
+    const o = stepOwner(kind, i), id = stepUnitId(kind, tech2), ref = refById.get(id), name = i ? lineUpgrades.find((u) => u.id === tech2 && u.kind === kind).name : nameOf(kind);
+    const at = rules.production[tech2] ?? "";
+    return {
+      id,
+      tech: tech2,
+      name,
+      nameEn: ref?.nameEn ?? (id.startsWith("elite-") && base ? `Elite ${base.nameEn}` : id),
+      refName: ref && ref.name !== name ? ref.name : null,
+      text: i ? unitText[id] ?? "" : "",
+      age: o.age,
+      research: i ? { name: nameOf(tech2), at: nameOf(at), cost: costOf(tech2, o), seconds: timeTicks(tech2, o, at) / tick2 } : null,
+      stats: statSheet(kind, o),
+      lacks: stepLacking(kind, tech2)
+    };
+  });
+  const stepIds = steps.map((s) => s.id), later = aoetwUnits.filter((u) => u.from && stepIds.includes(u.from) && !game.has(u.id)).map((u) => ({ id: u.id, name: u.name, nameEn: u.nameEn, reason: pendingReason(u) }));
+  return {
+    id: kind,
+    name: nameOf(kind),
+    nameEn: base?.nameEn ?? kind,
+    text: unitText[kind] ?? uniqueUnitText[kind] ?? "",
+    categories: cats,
+    primary: primaryOf(cats),
+    trash: steps.some((s) => refById.get(s.id)?.trash),
+    producer,
+    at: nameOf(producer),
+    owner: uniqueUnitOwner[kind] ?? null,
+    classes: statsOf(kind, o0).classes.map((x) => classLabel[x] ?? x),
+    train: { age: o0.age, cost: costOf(kind, o0), seconds: timeTicks(kind, o0, producer) / tick2, population: entryOf2(kind)?.population ?? 1 },
+    steps,
+    strong: unitCounters[kind]?.strong ?? "",
+    weak: unitCounters[kind]?.weak ?? "",
+    later,
+    sources: sourcesOf(stepIds)
+  };
+}
+var unitLines = () => unitLineKinds().map(unitLine);
+function pendingLines() {
+  const game = inGame(), pending = aoetwUnits.filter((u) => !game.has(u.id)), ids = new Set(pending.map((u) => u.id));
+  return pending.filter((u) => !u.from || !ids.has(u.from)).map((root) => {
+    const chain = [root];
+    for (let next = pending.find((u) => u.from === root.id); next; next = pending.find((u) => u.from === chain.at(-1).id)) chain.push(next);
+    const cats = [...new Set(chain.flatMap((u) => categoriesOf(u)))], building2 = refBuilding[root.at.split("\uFF0F")[0]] ?? null;
+    return {
+      id: root.id,
+      name: root.name,
+      nameEn: root.nameEn,
+      text: unitText[root.id] ?? "",
+      categories: cats,
+      primary: primaryOf(categoriesOf(root)),
+      trash: chain.some((u) => u.trash),
+      at: building2 ? nameOf(building2) : root.at,
+      building: building2,
+      civ: root.civ,
+      reason: pendingReason(root),
+      steps: chain.map((u) => ({ id: u.id, name: u.name, nameEn: u.nameEn, text: unitText[u.id] ?? "" })),
+      sources: sourcesOf(chain.map((u) => u.id))
+    };
+  });
+}
+function unitGroups(by) {
+  const lines = unitLines(), pending = pendingLines();
+  const item = (l, p) => ({ id: l.id, name: l.name, pending: p, steps: l.steps.length });
+  if (by === "category") return unitCategories.map((c) => ({ id: c.id, label: c.label, items: [...lines.filter((l) => l.primary === c.id).map((l) => item(l, false)), ...pending.filter((l) => l.primary === c.id).map((l) => item(l, true))] })).filter((g) => g.items.length);
+  const order = rules.entries.filter((e) => e.kind === "building").map((e) => e.id), groups2 = /* @__PURE__ */ new Map();
+  const add = (key, label, it) => {
+    if (!groups2.has(key)) groups2.set(key, { id: key, label, items: [] });
+    groups2.get(key).items.push(it);
+  };
+  for (const b of order) {
+    for (const l of lines) if (l.producer === b) add(b, nameOf(b), item(l, false));
+    for (const l of pending) if (l.building === b) add(b, nameOf(b), item(l, true));
+  }
+  for (const l of pending) if (!l.building) add(l.at, l.at, item(l, true));
+  return [...groups2.values()];
+}
+function unitsOverview() {
+  const lines = unitLines(), pending = pendingLines();
+  return {
+    intro: unitsIntro,
+    trash: trashText,
+    lines: lines.length,
+    steps: lines.reduce((n, l) => n + l.steps.length, 0),
+    pending: pending.reduce((n, l) => n + l.steps.length, 0),
+    extras: { ...aoetwUnitExtras },
+    categories: unitCategories.map((c) => ({ ...c, lines: lines.filter((l) => l.categories.includes(c.id)).length, pending: pending.filter((l) => l.categories.includes(c.id)).length }))
+  };
+}
+var unitCategoryName = (id) => unitCategories.find((c) => c.id === id)?.label ?? id;
+var civName = (id) => civById(id)?.name ?? id;
+var tilesText = (units2) => `${trim(units2 / 100)} \u683C`;
+var refTech = new Map(aoetwTechs.map((t) => [t.id, t]));
+var siteBuildings = [
+  ["\u8ECD\u71DF", "barracks"],
+  ["\u5C04\u7BAD\u5834", "archery-range"],
+  ["\u99AC\u5EC4", "stable"],
+  ["\u57CE\u93AE\u4E2D\u5FC3", "town-center"],
+  ["\u4FEE\u9053\u9662", "monastery"],
+  ["\u5E02\u96C6", "market"],
+  ["\u57CE\u5821", "castle"],
+  ["\u78BC\u982D", "dock"],
+  ["\u5B78\u9662", "university"],
+  ["\u5175\u5DE5\u5EE0", "blacksmith"],
+  ["\u63A1\u7926\u71DF\u5730", "mining-camp"],
+  ["\u4F10\u6728\u5834", "lumber-camp"],
+  ["\u78E8\u574A", "mill"]
+];
+var siteBuilding = new Map(siteBuildings);
+var buildingLabel = (id) => entryOf2(id) ? nameOf(id) : siteBuildings.find(([, b]) => b === id)?.[0] ?? id;
+var techSources = (id) => {
+  const p = refTech.get(id)?.page;
+  return p ? [`aoetw.com/${p}`] : [];
+};
+var lineIds = new Set(lineUpgrades.map((u) => u.id));
+var genericTechIds = () => rules.entries.filter((e) => e.kind === "technology" && !e.id.startsWith("age-") && !lineIds.has(e.id) && !uniqueUnitOwner[e.id]).map((e) => e.id);
+var stripName = (text, name) => text.startsWith(`${name}\uFF1A`) ? text.slice(name.length + 1) : text;
+var labels2 = (ids) => ids.map((x) => classLabel[x] ?? x).join("\u3001");
+function blacksmithLine(b) {
+  const parts = [b.attack ? `\u653B\u64CA +${b.attack}` : "", b.range ? `\u5C04\u7A0B +${tilesText(b.range)}` : "", b.melee ? `\u8FD1\u6230\u8B77\u7532 +${b.melee}` : "", b.pierce ? `\u9060\u7A0B\u8B77\u7532 +${b.pierce}` : ""].filter(Boolean);
+  return `${labels2(b.classes)}${b.exclude?.length ? `\uFF08${labels2(b.exclude)}\u9664\u5916\uFF09` : ""}\uFF1A${parts.join("\u3001")}`;
+}
+var rel = religionRules;
+var secs = (ticks) => trim(ticks / tick2);
+var religionLines = {
+  redemption: () => `\u50E7\u4FB6\u53EF\u4EE5\u7AD9\u5728\u5EFA\u7BC9\u65C1\u8F49\u5316\u6575\u65B9\u5EFA\u7BC9\uFF08${rel.unconvertibleBuildings.map(nameOf).join("\u3001")}\u9664\u5916\uFF09\uFF0C\u6BCF\u5EA7\u8981 ${secs(rel.buildingTicks.min)}\uFF5E${secs(rel.buildingTicks.max)} \u79D2`,
+  atonement: () => "\u50E7\u4FB6\u53EF\u4EE5\u8F49\u5316\u6575\u65B9\u50E7\u4FB6",
+  sanctity: () => `\u50E7\u4FB6\u751F\u547D +${religionBonus.sanctityHp}`,
+  heresy: () => "\u88AB\u6575\u65B9\u8F49\u5316\u7684\u5DF1\u65B9\u55AE\u4F4D\u6539\u70BA\u6B7B\u4EA1\uFF0C\u5C0D\u624B\u5F97\u4E0D\u5230\u5B83",
+  illumination: () => `\u8F49\u5316\u5F8C\u6062\u5FA9\u4FE1\u4EF0\u7684\u901F\u5EA6\u52A0\u500D\uFF08\u539F\u672C ${secs(rel.rechargeTicks)} \u79D2\uFF09`,
+  "block-printing": () => `\u8F49\u5316\u5C04\u7A0B +${tilesText(rel.printingRange)}\uFF08${tilesText(rel.convertRange)} \u2192 ${tilesText(rel.convertRange + rel.printingRange)}\uFF09`,
+  theocracy: () => "\u4E00\u7FA4\u50E7\u4FB6\u8F49\u5316\u6210\u529F\u5F8C\uFF0C\u53EA\u6709\u51FA\u624B\u7684\u90A3\u4E00\u540D\u9700\u8981\u6062\u5FA9\u4FE1\u4EF0",
+  faith: () => `\u6575\u65B9\u50E7\u4FB6\u6700\u65E9\u7B2C ${rel.faithAttempts.min} \u6B21\u3001\u6700\u9072\u7B2C ${rel.faithAttempts.max} \u6B21\u5617\u8A66\u624D\u80FD\u8F49\u5316\u5DF1\u65B9\u55AE\u4F4D\uFF08\u539F\u672C\u7B2C ${rel.attempts.min}\uFF5E${rel.attempts.max} \u6B21\uFF09`
+};
+function techEffectLines(id) {
+  const name = nameOf(id), out = techEffects.filter((e) => e.trigger.tech === id).map((e) => stripName(e.text, name));
+  if (techEffectText[id]) out.push(techEffectText[id]);
+  if (blacksmith[id]) out.push(blacksmithLine(blacksmith[id]));
+  if (religionLines[id]) out.push(religionLines[id]());
+  for (const b of rules.entries) if (b.kind === "building" && b.requires.includes(id)) out.push(`\u53EF\u4EE5\u5EFA\u9020${b.name}`);
+  return out;
+}
+function prereqChain(id) {
+  const out = [], producer = rules.production[id];
+  const visit = (x, path) => {
+    for (const q of entryOf2(x)?.requires ?? []) if (!q.startsWith("age-") && !path.includes(q)) {
+      visit(q, [...path, q]);
+      if (!out.includes(q) && q !== producer) out.push(q);
+    }
+  };
+  visit(id, [id]);
+  return out.map((x) => ({ id: x, name: nameOf(x) }));
+}
+var neutralAt = (id) => ({ civ: neutralCiv, age: minAge(id), techs: [] });
+function techVariants(id) {
+  const at = rules.production[id] ?? "", base = neutralAt(id), cost = costOf(id, base), time = timeTicks(id, base, at), out = [];
+  for (const c of codexCivs()) {
+    if (c.id === neutralCiv || !civAvailable(c.id, id)) continue;
+    const o = { ...base, civ: c.id }, cc = costOf(id, o), t = timeTicks(id, o, at);
+    if (t === time && resources.every((x) => cc[x] === cost[x])) continue;
+    const texts = [...activeEffects(o, "cost"), ...activeEffects(o, "costShift"), ...activeEffects(o, "time")].filter((e) => entryMatches(e.select, id)).concat(activeEffects(o, "workRate").filter((e) => buildingMatches(e.select, at))).map((e) => e.text);
+    out.push({ civ: c.id, cost: cc, seconds: t / tick2, free: !costEntries(cc).length && !!costEntries(cost).length, texts });
+  }
+  return out;
+}
+function techPage(id) {
+  const ref = refTech.get(id), name = nameOf(id), at = rules.production[id] ?? "", o = neutralAt(id);
+  return {
+    id,
+    name,
+    nameEn: ref?.nameEn ?? id,
+    refName: ref && ref.name !== name ? ref.name : null,
+    text: techText[id] ?? "",
+    building: at,
+    at: nameOf(at),
+    age: o.age,
+    cost: costOf(id, o),
+    seconds: timeTicks(id, o, at) / tick2,
+    requires: prereqChain(id),
+    unlocks: rules.entries.filter((e) => e.requires.includes(id)).map((e) => ({ id: e.id, name: e.name })),
+    effects: techEffectLines(id),
+    partial: techPartials[id] ?? null,
+    civEffects: civDefs.flatMap((c) => c.effects.filter((e) => e.trigger.tech === id).map((e) => ({ civ: c.id, text: e.text }))),
+    variants: techVariants(id),
+    grants: civDefs.flatMap((c) => c.effects.filter((e) => e.kind === "grant" && e.select.entries?.includes(id)).map((e) => ({ civ: c.id, text: e.text }))),
+    lacks: civsLacking(id),
+    sources: techSources(id)
+  };
+}
+var techPages = () => genericTechIds().map(techPage);
+var uniqueTechPages = () => codexCivs().flatMap((c) => civDetail(c.id).techs.map((t) => {
+  const ref = refTech.get(t.id);
+  return { ...t, civ: c.id, refName: ref && ref.name !== t.name ? ref.name : null, text: techText[t.id] ?? "", sources: techSources(t.id) };
+}));
+function pendingTechs() {
+  const game = /* @__PURE__ */ new Set([...rules.entries.map((e) => e.id), ...civDefs.flatMap((c) => c.uniqueTechs.map((t) => t.id))]);
+  return aoetwTechs.filter((t) => t.kind !== "age" && !game.has(t.id)).map((t) => {
+    const building2 = siteBuilding.get(t.at) ?? "";
+    return {
+      id: t.id,
+      name: t.name,
+      nameEn: t.nameEn,
+      text: techText[t.id] ?? "",
+      building: building2,
+      at: buildingLabel(building2),
+      age: t.age,
+      civ: t.civ,
+      unique: t.kind === "unique",
+      reason: t.kind === "unique" ? techPendingReasons.civ : techPendingReasons[techPendingKind[t.id]] ?? "",
+      sources: techSources(t.id)
+    };
+  });
+}
+function techGroups(by) {
+  const gen = techPages(), uni = uniqueTechPages(), pend = pendingTechs();
+  const g = (t) => ({ id: t.id, name: t.name, sub: by === "age" ? t.at : ageName(t.age), pending: false });
+  const u = (t) => ({ id: t.id, name: t.name, sub: by === "age" ? civName(t.civ) : ageName(t.age), pending: !t.implemented });
+  const p = (t) => ({ id: t.id, name: t.name, sub: t.civ ?? (by === "age" ? t.at : ageName(t.age)), pending: true });
+  let groups2;
+  if (by === "age") groups2 = [1, 2, 3, 4].map((a) => ({ id: `age-${a}`, label: ageName(a), items: [...gen.filter((t) => t.age === a).map(g), ...uni.filter((t) => t.age === a).map(u), ...pend.filter((t) => t.age === a).map(p)] }));
+  else groups2 = [
+    ...siteBuildings.map(([, b]) => ({ id: b, label: buildingLabel(b), items: [...gen.filter((t) => t.building === b).map(g), ...pend.filter((t) => !t.unique && t.building === b).map(p)] })),
+    ...codexCivs().filter((c) => c.uniqueTechs.length).map((c) => ({ id: `civ-${c.id}`, label: `${c.name}\u7279\u6B8A\u79D1\u6280`, items: uni.filter((t) => t.civ === c.id).map(u) })),
+    { id: "civ-other", label: "\u5176\u4ED6\u6587\u660E\u7684\u7279\u6B8A\u79D1\u6280", items: pend.filter((t) => t.unique).map(p) }
+  ];
+  return groups2.filter((x) => x.items.length);
+}
+function techsOverview() {
+  const gen = techPages(), uni = uniqueTechPages(), pend = pendingTechs();
+  return {
+    intro: techsIntro,
+    missing: techsMissingText,
+    generic: gen.length,
+    unique: uni.filter((t) => t.implemented).length,
+    deferred: uni.filter((t) => !t.implemented).length,
+    pending: pend.length,
+    lineUpgrades: lineUpgrades.length,
+    ages: ["age-2", "age-3", "age-4"].map((id) => {
+      const o = neutralAt(id);
+      return { id, name: nameOf(id), cost: costOf(id, o), seconds: timeTicks(id, o, "town-center") / tick2 };
+    }),
+    buildings: siteBuildings.map(([, b]) => ({
+      id: b,
+      label: buildingLabel(b),
+      text: techBuildingText[b] ?? "",
+      techs: gen.filter((t) => t.building === b).length + (b === "castle" ? uni.filter((t) => t.implemented).length : 0),
+      pending: pend.filter((t) => t.building === b).length + (b === "castle" ? uni.filter((t) => !t.implemented).length : 0)
+    }))
+  };
+}
+var refBuildingById = new Map(aoetwBuildings.map((b) => [b.id, b]));
+function buildingSheet(kind, o) {
+  const def = defenseRules.arrows[kind];
+  let arrows2 = null;
+  if (def) {
+    const mod = arrowsOf(o, kind), bonus = { ...def.bonus ?? {} };
+    for (const [vs, v] of Object.entries(mod.bonus ?? {})) bonus[vs] = (bonus[vs] ?? 0) + v;
+    arrows2 = {
+      count: def.base + mod.extra,
+      damage: def.damage + mod.damage,
+      range: def.range + mod.range,
+      cooldown: Math.max(1, Math.round(def.cooldown * mod.cooldown)),
+      bonus: Object.entries(bonus).filter(([, v]) => v).map(([vs, value]) => ({ vs, label: classLabel[vs] ?? vs, value }))
+    };
+  }
+  return {
+    hp: buildingHpOf(kind, o),
+    armor: buildingTargetOf(kind, o).armor,
+    housing: buildingRules.capacity[kind] + housingBonus(o, kind),
+    garrison: garrisonCapacity({ civs: [o.civ], ages: [o.age], techs: [[...o.techs]] }, { kind, player: 0 }),
+    arrows: arrows2
+  };
+}
+var buildingFxKinds = /* @__PURE__ */ new Set(["buildingHp", "housing", "garrison", "arrows", "arrowDamage", "arrowRange", "arrowCooldown", "garrisonArrows", "buildingMeleeArmor", "buildingPierceArmor", "buildRate", "garrisonHeal", "workRate", "keepHousing", "arrowBonus", "los"]);
+function touchesBuilding(e, kind) {
+  if (e.kind === "cost" || e.kind === "costShift" || e.kind === "time") return entryMatches(e.select, kind);
+  if (!buildingFxKinds.has(e.kind)) return false;
+  if (e.kind === "los") return !!e.select.buildings?.includes(kind);
+  if ((e.kind === "garrisonHeal" || e.kind === "garrisonArrows") && !defenseRules.capacity[kind]) return false;
+  if (e.kind === "workRate" && !producedAt(kind, neutralOwner(1)).length) return false;
+  if (e.kind === "workRate" && !e.select.buildings) return false;
+  return buildingMatches(e.select, kind);
+}
+var neutralOwner = (age, techs2 = []) => ({ civ: neutralCiv, age, techs: techs2 });
+var groupLabel = (id) => buildingGroups.find((g) => g.id === id)?.label ?? id;
+var buildSeconds = (kind) => buildingRules.required[kind] / tick2;
+var buildingUpgrades = (kind) => aoetwBuildings.filter((b) => b.kind === "upgrade" && b.of.includes(kind) && entryOf2(b.id)).map((b) => b.id);
+var sameSheet = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+var sameCost = (a, b) => resources.every((r) => a[r] === b[r]);
+function buildingPage(kind) {
+  const ref = refBuildingById.get(kind), name = nameOf(kind), age = minAge(kind), o = neutralOwner(age), f = obstacleFootprints[kind];
+  const made = producedAt(kind, o).filter((id) => entryOf2(id)), plain = made.filter((id) => !uniqueUnitOwner[id]);
+  const ups = buildingUpgrades(kind), steps = ups.map((id, i) => {
+    const r = refBuildingById.get(id), at = rules.production[id] ?? "", so = neutralOwner(Math.max(age, minAge(id)), ups.slice(0, i + 1));
+    return {
+      id,
+      name: nameOf(id),
+      nameEn: r?.nameEn ?? id,
+      refName: r && r.name !== nameOf(id) ? r.name : null,
+      text: buildingText[id] ?? "",
+      age: minAge(id),
+      at: nameOf(at),
+      cost: costOf(id, neutralOwner(minAge(id))),
+      seconds: timeTicks(id, neutralOwner(minAge(id)), at) / tick2,
+      sheet: buildingSheet(kind, so)
+    };
+  });
+  const base = buildingSheet(kind, o), cost = costOf(kind, o), variants = [], later = [];
+  for (const c of codexCivs()) {
+    if (c.id === neutralCiv || !civAvailable(c.id, kind)) continue;
+    const fx2 = c.effects.filter((e) => touchesBuilding(e, kind));
+    if (!fx2.length) continue;
+    const co = { civ: c.id, age, techs: [] }, now = new Set([...activeEffects(co, "cost"), ...activeEffects(co, "costShift"), ...activeEffects(co, "time"), ...[...buildingFxKinds].flatMap((k) => activeEffects(co, k))].map((e) => e.id));
+    const sheet = buildingSheet(kind, co), cc = costOf(kind, co), active = fx2.filter((e) => now.has(e.id));
+    if (!sameSheet(sheet, base) || !sameCost(cc, cost)) variants.push({ civ: c.id, cost: cc, sheet, texts: active.map((e) => e.text) });
+    for (const e of fx2) if (!active.includes(e) || !variants.some((v) => v.civ === c.id)) later.push({ civ: c.id, text: e.text });
+  }
+  const techIds = [...new Set(techEffects.filter((e) => touchesBuilding(e, kind) && !ups.includes(e.trigger.tech)).map((e) => e.trigger.tech))];
+  return {
+    id: kind,
+    name,
+    nameEn: ref?.nameEn ?? kind,
+    refName: ref && ref.name !== name ? ref.name : null,
+    text: buildingText[kind] ?? "",
+    group: ref?.group ?? "other",
+    groupLabel: groupLabel(ref?.group ?? "other"),
+    age,
+    cost,
+    seconds: buildSeconds(kind),
+    builders: kind === "fish-trap" ? "\u6F01\u8239" : "\u6751\u6C11",
+    perSegment: kind === "palisade-wall" || kind === "stone-wall",
+    footprint: { width: f.width / 100, depth: f.depth / 100 },
+    sheet: base,
+    requires: prereqChain(kind),
+    trains: plain.filter((id) => entryOf2(id).kind === "unit").map((id) => ({ id, name: nameOf(id) })),
+    researches: plain.filter((id) => entryOf2(id).kind === "technology").map((id) => ({ id, name: nameOf(id) })),
+    uniqueHere: made.length > plain.length,
+    unique: codexCivs().map((c) => ({ civ: c.id, names: made.filter((id) => uniqueUnitOwner[id] === c.id).map(nameOf) })).filter((x) => x.names.length),
+    steps,
+    variants,
+    civEffects: later,
+    techs: techIds.map((id) => ({ id, name: nameOf(id), texts: techEffects.filter((e) => e.trigger.tech === id && touchesBuilding(e, kind)).map((e) => stripName(e.text, nameOf(id))) })),
+    partial: buildingPartials[kind] ?? null,
+    lacks: civsLacking(kind),
+    sources: [...[kind, ...ups].flatMap((id) => {
+      const r = refBuildingById.get(id);
+      return r ? [`aoetw.com/building/${r.slug}`] : [];
+    })]
+  };
+}
+var buildingPages = () => buildKinds.map(buildingPage);
+var pendingBuildings = () => aoetwBuildings.filter((b) => b.kind === "other").map((b) => ({
+  id: b.id,
+  name: b.name,
+  nameEn: b.nameEn,
+  text: buildingText[b.id] ?? "",
+  group: b.group,
+  age: b.age,
+  civ: b.civ,
+  reason: buildingPendingReasons.civ,
+  sources: [`aoetw.com/building/${b.slug}`]
+}));
+function buildingGroupsBy(by) {
+  const pages = buildingPages(), pend = pendingBuildings();
+  const g = (b) => ({ id: b.id, name: b.name, sub: by === "age" ? b.groupLabel : ageName(b.age), pending: false });
+  const p = (b) => ({ id: b.id, name: b.name, sub: b.civ ?? "", pending: true });
+  const groups2 = by === "group" ? buildingGroups.map((x) => ({ id: x.id, label: x.label, items: [...pages.filter((b) => b.group === x.id).map(g), ...pend.filter((b) => b.group === x.id).map(p)] })) : [1, 2, 3, 4].map((a) => ({ id: `age-${a}`, label: ageName(a), items: [...pages.filter((b) => b.age === a).map(g), ...pend.filter((b) => b.age === a).map(p)] }));
+  return groups2.filter((x) => x.items.length);
+}
+function buildingsOverview() {
+  const pages = buildingPages(), pend = pendingBuildings();
+  return {
+    intro: buildingsIntro,
+    missing: buildingsMissingText,
+    buildings: pages.length,
+    upgrades: pages.reduce((n, b) => n + b.steps.length, 0),
+    pending: pend.length,
+    groups: buildingGroups.map((x) => ({ ...x, buildings: pages.filter((b) => b.group === x.id).length, pending: pend.filter((b) => b.group === x.id).length }))
+  };
+}
 
 // apps/web/codex.ts
 var resourceNames = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
@@ -4410,7 +7834,10 @@ var css = `
 .cx-head{position:relative;display:flex;align-items:center;gap:10px 16px;padding:12px 16px 19px 20px;border-bottom:3px solid var(--plate-edge,#1f2a25)}
 .cx-head::after{content:"";position:absolute;left:0;right:0;bottom:4px;height:6px;background:radial-gradient(circle at 8px 3px,var(--plate-stud,#3b4d45) 3.5px,transparent 4px) 0 0/16px 6px repeat-x;pointer-events:none}
 .cx-head h2{margin:0;font-size:20px;line-height:1.2;color:var(--cx-gold);letter-spacing:.1em}
-.cx-cat{margin:0;font-size:14px;font-weight:650;color:var(--cx-cream)}.cx-cat::before{content:"/";margin-right:12px;color:var(--cx-muted);font-weight:400}
+.cx-tabs{display:flex;align-items:center;gap:4px}.cx-tabs::before{content:"/";margin-right:8px;color:var(--cx-muted)}
+.cx-tab{height:32px;padding:0 14px;background:transparent;border:0;border-bottom:3px solid transparent;border-radius:3px;font-size:14px;font-weight:650;color:var(--cx-muted)}
+.cx-tab:hover{color:var(--cx-cream);background:rgba(0,0,0,.14)}
+.cx-tab[aria-selected=true]{background:var(--cx-tile);border-bottom-color:var(--cx-edge);color:var(--cx-cream)}
 .cx-close{margin-left:auto;height:34px;padding:0 12px;display:inline-flex;align-items:center;gap:8px;background:var(--cx-tile);border:0;border-bottom:3px solid var(--cx-edge);border-radius:3px;font-weight:650;font-size:13px;color:var(--cx-cream)}
 .cx-close:hover{background:var(--tile-hover,#4c6155)}.cx-close:active{border-bottom-width:1px;padding-top:2px}.cx-close kbd{font:600 11px/1 system-ui,sans-serif;color:var(--cx-muted)}
 @media (pointer:coarse){.cx-close kbd{display:none}}
@@ -4418,11 +7845,13 @@ var css = `
 .cx-list{min-height:0;overflow:auto;background:var(--cx-well);padding:10px 10px 18px}
 .cx-group{margin:14px 4px 6px;font-size:12px;font-weight:600;color:var(--cx-muted)}.cx-grp:first-child .cx-group{margin-top:2px}
 .cx-list ul{list-style:none;margin:0;padding:0;display:grid;gap:5px}
-.cx-civ{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:0 8px;padding:7px 10px 6px;background:var(--cx-tile);border:0;border-bottom:3px solid var(--cx-edge);border-radius:3px;text-align:left;color:var(--cx-cream)}
-.cx-civ:hover{background:var(--tile-hover,#4c6155)}
-.cx-civ[aria-current=true]{background:#6f6034;border-bottom-color:#4a3f20;border-bottom-width:1px;padding-top:9px}
-.cx-civ b{font-size:15px;font-weight:650;white-space:nowrap}.cx-civ small{grid-column:1;font-size:12px;color:var(--cx-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cx-civ[aria-current=true] small{color:#e6d9b2}
-.cx-mark{grid-column:2;grid-row:1/3;font-size:11.5px;font-weight:650;white-space:nowrap}.cx-mark.self{color:#a8cbe0}.cx-mark.rival{color:#f2b4a4}.cx-mark.both{color:var(--cx-gold)}
+.cx-civ,.cx-uitem{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:0 8px;padding:7px 10px 6px;background:var(--cx-tile);border:0;border-bottom:3px solid var(--cx-edge);border-radius:3px;text-align:left;color:var(--cx-cream)}
+.cx-civ:hover,.cx-uitem:hover{background:var(--tile-hover,#4c6155)}
+.cx-uitem.off{background:#36473e}.cx-uitem.off:hover{background:#3f5248}.cx-uitem.off b{font-weight:600;color:#d6d8ca}
+.cx-civ[aria-current=true],.cx-uitem[aria-current=true],.cx-uitem.off[aria-current=true]{background:#6f6034;border-bottom-color:#4a3f20;border-bottom-width:1px;padding-top:9px}
+.cx-civ b{font-size:15px;font-weight:650;white-space:nowrap}.cx-civ small,.cx-uitem small{grid-column:1;font-size:12px;color:var(--cx-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cx-civ[aria-current=true] small,.cx-uitem[aria-current=true] small{color:#e6d9b2}
+.cx-uitem b{font-size:15px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cx-uitem[aria-current=true] b{color:var(--cx-cream)}
+.cx-mark{grid-column:2;grid-row:1/3;font-size:11.5px;font-weight:650;white-space:nowrap}.cx-mark.self{color:#a8cbe0}.cx-mark.rival{color:#f2b4a4}.cx-mark.both{color:var(--cx-gold)}.cx-mark.off{color:var(--cx-muted);font-weight:600}.cx-uitem[aria-current=true] .cx-mark.off{color:#e6d9b2}
 .cx-detail{min-width:0;min-height:0;overflow:auto;padding:20px 26px 30px;overscroll-behavior:contain}
 .cx-page{max-width:880px}
 @media (prefers-reduced-motion:no-preference){.cx-page{animation:cx-in .2s cubic-bezier(.2,.7,.2,1)}}
@@ -4458,6 +7887,24 @@ var css = `
 .cx-flag{color:#f3b19f;font-weight:650}
 .cx-tree{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 16px;margin:0}.cx-tree dt{color:var(--cx-muted)}.cx-tree dd{margin:0}
 .cx-later{margin-top:14px!important;font-size:13px;color:var(--cx-muted)}.cx-later b{font-weight:600;color:var(--cx-cream)}
+.cx-side{min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr);background:var(--cx-well)}.cx-side .cx-list{padding-top:6px}
+.cx-tools{display:flex;align-items:center;gap:6px;padding:10px 10px 4px}.cx-seg{display:flex;gap:3px}
+.cx-tool{height:30px;padding:0 10px;display:inline-flex;align-items:center;gap:7px;background:var(--cx-tile);border:0;border-bottom:3px solid var(--cx-edge);border-radius:3px;font-size:12.5px;font-weight:600;color:var(--cx-cream);white-space:nowrap}
+.cx-tool:hover{background:var(--tile-hover,#4c6155)}.cx-seg .cx-tool[aria-pressed=true]{background:#6f6034;border-bottom-color:#4a3f20;border-bottom-width:1px;padding-top:2px}
+.cx-tool.pend{margin-left:auto;background:transparent;border-bottom-color:transparent;color:var(--cx-muted)}.cx-tool.pend:hover{background:rgba(0,0,0,.14);color:var(--cx-cream)}
+.cx-tool.pend::before{content:"";flex:none;width:10px;height:7px;background:var(--cx-gold);border-radius:1.5px;box-shadow:inset 0 -2px 0 rgba(60,44,10,.45)}.cx-tool.pend[aria-pressed=false]::before{background:transparent;box-shadow:inset 0 0 0 1.5px var(--cx-muted)}
+.cx-uhero{display:grid;grid-template-columns:112px minmax(0,1fr);gap:0 18px;align-items:end}.cx-uhero.no-face{grid-template-columns:minmax(0,1fr)}.cx-uhero .cx-face{grid-row:auto}
+.cx-path{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.cx-path li{min-width:0;padding:12px 14px 14px;background:var(--cx-well);border-radius:3px}.cx-path b{font-size:16px;font-weight:650}
+.cx-path .cx-age{margin:1px 0 0;font-size:12.5px;color:var(--cx-muted)}.cx-path .cx-cost{margin-top:8px;font-size:13px}.cx-path .cx-ref{margin-top:6px;font-size:12px;color:var(--cx-muted)}
+.cx-path .cx-step{margin-top:8px;font-size:13px;line-height:1.65}
+.cx-scroll{max-width:100%;overflow-x:auto}.cx-scroll .cx-stats{width:auto;min-width:min(100%,560px);max-width:none}.cx-stats thead th{white-space:nowrap}
+.cx-ov{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}.cx-ov .cx-tech p{margin-top:6px;font-size:13px;line-height:1.65}
+.cx-count{font-variant-numeric:tabular-nums}
+.cx-tree dd .cx-cost{margin:0}.cx-tree dd small{display:block;margin-top:2px;font-size:12.5px;color:var(--cx-muted)}.cx-tree dd+dt{margin-top:4px}
+.cx-chain{margin:10px 0 0!important;font-size:13px;color:var(--cx-muted)}.cx-chain b{font-weight:600;color:var(--cx-cream)}
+.cx-ages{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 18px;align-items:center;margin:0}.cx-ages dt{color:var(--cx-muted)}.cx-ages dd{margin:0}.cx-ages .cx-cost{margin:0}
+.cx-jump{margin-top:12px}
 .cx-foot{margin-top:34px;padding-top:14px;border-top:3px solid rgba(0,0,0,.18);font-size:12.5px;color:var(--cx-muted);max-width:52em}.cx-foot p+p{margin-top:6px}
 @media (max-width:760px){
  .cx{width:100%;height:100%}
@@ -4465,7 +7912,11 @@ var css = `
  .cx-body{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
  .cx-list{display:flex;gap:5px;overflow-x:auto;overflow-y:hidden;padding:8px 16px 10px}
  .cx-grp,.cx-list ul,.cx-list li{display:contents}.cx-group{display:none}
- .cx-civ{flex:none;width:auto;padding:6px 12px 5px}.cx-civ[aria-current=true]{padding-top:8px}.cx-civ small{display:none}.cx-mark{grid-row:1}
+ .cx-civ,.cx-uitem{flex:none;width:auto;padding:6px 12px 5px}.cx-civ[aria-current=true],.cx-uitem[aria-current=true]{padding-top:8px}.cx-civ small,.cx-uitem small{display:none}.cx-mark{grid-row:1}
+ .cx-head{gap:10px;flex-wrap:wrap}.cx-head h2,.cx-tab,.cx-close{white-space:nowrap}.cx-tabs::before{margin-right:4px}.cx-close kbd{display:none}
+ .cx-tab{height:40px;padding:0 9px}.cx-side{grid-template-rows:auto auto}.cx-tools{padding:8px 16px 0}.cx-tool{height:40px;padding:0 12px}
+ .cx-side .cx-list{padding-top:8px}.cx-side .cx-group{display:block;flex:none;align-self:center;margin:0 2px 0 8px;white-space:nowrap}.cx-side .cx-grp:first-child .cx-group{margin-left:0}
+ .cx-uhero{grid-template-columns:72px minmax(0,1fr);gap:0 12px}.cx-uhero .cx-face{width:72px;height:72px}.cx-path,.cx-ov{grid-template-columns:minmax(0,1fr)}
  .cx-detail{padding:16px 16px 26px}.cx-page h3{font-size:24px}.cx-summary{font-size:14.5px}
  .cx-unit{grid-template-columns:72px minmax(0,1fr);gap:4px 12px;padding:12px}.cx-face{grid-row:1;width:72px;height:72px}.cx-ubody{grid-column:1/-1}
  .cx-stats{font-size:12.5px}.cx-stats th,.cx-stats td{padding-right:6px}.cx-stats tbody th{width:auto}
@@ -4479,6 +7930,16 @@ function h(tag, attrs, ...kids) {
 }
 var open = null;
 var chosen = null;
+var section = "civs";
+var unitChosen = "overview";
+var unitBy = "category";
+var showPending = true;
+var techChosen = "overview";
+var techBy = "building";
+var techPending = true;
+var buildingChosen = "overview";
+var buildingBy = "group";
+var buildingPending = true;
 var roleText = { self: "\u4F60\u7684\u6587\u660E", rival: "\u5C0D\u624B", both: "\u96D9\u65B9" };
 function costRow(icons2, cost, seconds2, extra) {
   const row = h("p", { class: "cx-cost" });
@@ -4501,6 +7962,12 @@ function specialText(s) {
   if (s.regen) out.push(`\u6BCF\u5206\u9418\u56DE\u5FA9 ${s.regen} \u751F\u547D`);
   if (s.extraShots) out.push(`\u6BCF\u6B21\u591A\u5C04 ${s.extraShots} \u652F\u7BAD\uFF08\u6BCF\u652F ${s.extraDamage}\uFF09`);
   if (s.splash) out.push(`\u76EE\u6A19\u65C1\u7684\u6575\u5175\u53D7 ${s.splash} \u9EDE\u8E10\u8E0F\u50B7\u5BB3`);
+  if (s.minRange) out.push(`\u6700\u77ED\u5C04\u7A0B ${tilesText(s.minRange)}`);
+  if (s.blast) out.push(`\u843D\u9EDE ${tilesText(s.blast)} \u5167\u7684\u6575\u5175\u540C\u53D7\u50B7\u5BB3`);
+  if (s.passThrough) out.push(`\u5F29\u7BAD\u7A7F\u904E\u76EE\u6A19\uFF0C\u518D\u98DB ${tilesText(s.passThrough)}`);
+  if (s.buildingsOnly) out.push("\u53EA\u80FD\u653B\u64CA\u5EFA\u7BC9");
+  if (s.setup) out.push(`\u67B6\u8A2D\u8207\u6536\u8D77\u5404 ${secondsText(cooldownSeconds(s.setup))}`);
+  if (s.selfDestruct) out.push("\u653B\u64CA\u5F8C\u81EA\u8EAB\u6D88\u8017");
   return out.join("\uFF1B");
 }
 function statTable(u) {
@@ -4592,6 +8059,9 @@ function reveal(list, b) {
   if (r.bottom > l.bottom - m) list.scrollTop += r.bottom - l.bottom + m;
   else if (r.top < l.top + m) list.scrollTop -= l.top + m - r.top;
 }
+function step(key, i, n) {
+  return key === "ArrowDown" || key === "ArrowRight" ? Math.min(n - 1, i + 1) : key === "ArrowUp" || key === "ArrowLeft" ? Math.max(0, i - 1) : key === "Home" ? 0 : key === "End" ? n - 1 : null;
+}
 function select(id, focus = false) {
   if (!open) return;
   chosen = id;
@@ -4607,6 +8077,554 @@ function select(id, focus = false) {
   open.detail.replaceChildren(page(civDetail(id, open.ctx.civs), open.ctx.icons));
   open.detail.scrollTop = 0;
 }
+function renderCivs(focus) {
+  if (!open) return;
+  const items = civList(open.ctx.civs), groups2 = [];
+  for (const c of items) {
+    const g = groups2.at(-1);
+    if (g && g.label === c.group) g.items.push(c);
+    else groups2.push({ label: c.group, items: [c] });
+  }
+  const list = h("nav", { class: "cx-list", "aria-label": "\u6587\u660E\u5217\u8868" }, ...groups2.map((g, i) => h("div", { class: "cx-grp" }, h("p", { class: "cx-group", id: `cx-g${i}` }, g.label), h("ul", { "aria-labelledby": `cx-g${i}` }, ...g.items.map(listItem)))));
+  const detail = h("div", { class: "cx-detail", role: "region", "aria-labelledby": "cx-civ-name", tabindex: "-1" });
+  list.addEventListener("click", (e) => {
+    const b = e.target.closest(".cx-civ");
+    if (b?.dataset.civ) select(b.dataset.civ);
+  });
+  list.addEventListener("keydown", (e) => {
+    const ids = codexCivs().map((c) => c.id), next = step(e.key, ids.indexOf(chosen ?? ids[0]), ids.length);
+    if (next === null) return;
+    e.preventDefault();
+    select(ids[next], true);
+  });
+  open.body.replaceChildren(list, detail);
+  open.list = list;
+  open.detail = detail;
+  const first = chosen && items.some((c) => c.id === chosen) ? chosen : items.find((c) => c.role === "self" || c.role === "both")?.id ?? items[0].id;
+  select(first, focus);
+}
+var unitData = null;
+var units = () => unitData ??= { lines: new Map(unitLines().map((l) => [l.id, l])), pending: new Map(pendingLines().map((l) => [l.id, l])) };
+var stepRange = (s) => s.attack === "none" ? "\u2014" : rangeText(s.range).replace("\u5C04\u7A0B ", "");
+function lineTable(l) {
+  const rows = [
+    ["\u751F\u547D", (s) => String(s.hp)],
+    ["\u653B\u64CA", attackText],
+    ["\u5C04\u7A0B", stepRange],
+    ["\u8B77\u7532", (s) => `${s.armor[0]}/${s.armor[1]}`, "\u8FD1\u6230\u8B77\u7532\uFF0F\u9060\u7A0B\u8B77\u7532"],
+    ["\u653B\u64CA\u9593\u9694", (s) => s.attack === "none" ? "\u2014" : secondsText(cooldownSeconds(s.cooldown))],
+    ["\u79FB\u52D5", (s) => `${numberText(tilesPerSecond(s.speed))} \u683C\uFF0F\u79D2`],
+    ["\u984D\u5916\u50B7\u5BB3", bonusText]
+  ];
+  if (l.steps.some((s) => specialText(s.stats))) rows.push(["\u7279\u6027", (s) => specialText(s) || "\u7121"]);
+  const many = l.steps.length > 1;
+  return h(
+    "table",
+    { class: "cx-stats" },
+    many ? h("thead", null, h("tr", null, h("td", null), ...l.steps.map((s) => h("th", { scope: "col" }, s.name)))) : null,
+    h("tbody", null, ...rows.map(([label, f, title]) => {
+      const cells = l.steps.map((s) => f(s.stats));
+      return h("tr", null, h("th", { scope: "row", ...title ? { title } : {} }, label), ...cells.map((c, i) => h("td", i && c !== cells[i - 1] ? { class: "up" } : null, c)));
+    }))
+  );
+}
+function stepTile(s, icons2) {
+  return h(
+    "li",
+    null,
+    h("b", null, s.name),
+    h("p", { class: "cx-age" }, ageName(s.age)),
+    // A research that upgrades several lines (War Galley) is named on the steps it reaches under another name.
+    s.research ? costRow(icons2, s.research.cost, s.research.seconds, s.research.name === s.name ? `\u65BC${s.research.at}\u7814\u7A76` : `\u7814\u7A76\u300C${s.research.name}\u300D\u30FB\u65BC${s.research.at}`) : h("p", { class: "cx-cost" }, h("span", { class: "t" }, "\u8D77\u59CB\u55AE\u4F4D")),
+    s.refName ? h("p", { class: "cx-ref" }, `aoetw \u8B6F\u540D\uFF1A${s.refName}`) : null,
+    s.text ? h("p", { class: "cx-step" }, s.text) : null
+  );
+}
+function civRows(l) {
+  if (l.owner) return h("p", { class: "cx-prose" }, `\u53EA\u6709${civName(l.owner)}\u80FD\u5728${l.at}\u8A13\u7DF4${l.steps.length > 1 ? `\u8207\u5347\u7D1A\u70BA${l.steps.at(-1).name}` : ""}\u3002`);
+  if (l.steps.every((s) => !s.lacks.length)) return h("p", { class: "cx-prose" }, l.steps.length > 1 ? "\u6BCF\u500B\u6587\u660E\u90FD\u80FD\u8A13\u7DF4\u8207\u5347\u7D1A\u3002" : "\u6BCF\u500B\u6587\u660E\u90FD\u80FD\u8A13\u7DF4\u3002");
+  return h("dl", { class: "cx-tree" }, ...l.steps.flatMap((s) => [h("dt", null, s.name), h("dd", null, s.lacks.length ? s.lacks.map(civName).join("\u3001") : "\u6BCF\u500B\u6587\u660E\u90FD\u6709")]));
+}
+function heroHead(name, nameEn, face, sub) {
+  return h(
+    "div",
+    { class: `cx-uhero${face ? "" : " no-face"}` },
+    face ? h("div", { class: "cx-face" }, h("img", { src: face, alt: "" })) : null,
+    h("div", null, h("h3", { id: "cx-unit-name" }, name, h("span", { lang: "en" }, nameEn)), h("p", { class: "cx-sub" }, ...sub))
+  );
+}
+function sourceFoot(sources) {
+  return h("footer", { class: "cx-foot" }, h("p", null, unitsNote), sources.length ? h("p", null, `\u8CC7\u6599\u4F86\u6E90\uFF1A${sources.join("\u3001")}`) : null);
+}
+function linePage(l, icons2) {
+  const p = h("div", { class: "cx-page" }), cats = l.categories.map(unitCategoryName).join("\u30FB");
+  p.append(
+    heroHead(l.name, l.nameEn, icons2[`${l.id}-face`], [`${cats}\u30FB${l.classes.join("\u30FB")}`, l.trash ? "\u30FB\u5783\u573E\u5175" : "", l.owner ? "\u30FB" : "", l.owner ? h("b", null, `${civName(l.owner)}\u7279\u6B8A\u55AE\u4F4D`) : null]),
+    h("p", { class: "cx-summary" }, l.text),
+    h("div", { class: "cx-cols" }, h("section", null, h("h4", null, "\u64C5\u9577\u5C0D\u4ED8"), h("p", { class: "cx-prose" }, l.strong)), h("section", null, h("h4", null, "\u5BB3\u6015"), h("p", { class: "cx-prose" }, l.weak))),
+    h("section", null, h("h4", null, "\u8A13\u7DF4"), costRow(icons2, l.train.cost, l.train.seconds, `${ageName(l.train.age)}\u8D77\u65BC${l.at}\u30FB\u4EBA\u53E3 ${l.train.population}`))
+  );
+  if (l.steps.length > 1) p.append(h("section", null, h("h4", null, "\u5347\u7D1A\u8DEF\u7DDA", h("small", null, "\u5347\u7D1A\u5F8C\uFF0C\u5834\u4E0A\u8207\u4E4B\u5F8C\u8A13\u7DF4\u7684\u55AE\u4F4D\u90FD\u63DB\u6210\u65B0\u6578\u503C")), h("ol", { class: "cx-path" }, ...l.steps.map((s) => stepTile(s, icons2)))));
+  p.append(h("section", null, h("h4", null, "\u6578\u503C", h("small", null, "\u7121\u6587\u660E\u52A0\u6210\u3001\u672A\u7814\u7A76\u9435\u5320\u92EA\u79D1\u6280\uFF1B\u6BCF\u6B04\u662F\u8A72\u6642\u4EE3\u5B8C\u6210\u6B64\u524D\u5347\u7D1A\u5F8C")), h("div", { class: "cx-scroll" }, lineTable(l))));
+  p.append(h("section", null, h("h4", null, l.owner ? "\u6587\u660E" : "\u7F3A\u5C11\u7684\u6587\u660E"), civRows(l)));
+  if (l.later.length) p.append(h("section", null, h("h4", null, "\u5C1A\u672A\u5BE6\u4F5C\u7684\u5347\u7D1A"), h("ul", { class: "cx-bricks off" }, ...l.later.map((x) => h("li", null, h("span", null, `${x.name}\uFF08${x.nameEn}\uFF09`, h("small", null, x.reason)))))));
+  p.append(sourceFoot(l.sources));
+  return p;
+}
+function pendingPage(l) {
+  const p = h("div", { class: "cx-page" }), cats = l.categories.map(unitCategoryName).join("\u30FB");
+  p.append(
+    heroHead(l.name, l.nameEn, void 0, [`${cats}\u30FB\u539F\u4F5C\u65BC${l.at}\u8A13\u7DF4`, l.civ ? `\u30FB${l.civ}\u7279\u6B8A\u55AE\u4F4D` : "", l.trash ? "\u30FB\u5783\u573E\u5175" : ""]),
+    h("p", { class: "cx-summary" }, h("span", { class: "cx-flag" }, "\u5C1A\u672A\u5BE6\u4F5C"), `\uFF1A${l.reason}\u3002`),
+    h("p", { class: "cx-summary", style: "margin-top:8px" }, l.text)
+  );
+  if (l.steps.length > 1) p.append(h("section", null, h("h4", null, "\u539F\u4F5C\u5347\u7D1A\u8DEF\u7DDA"), h("ol", { class: "cx-path" }, ...l.steps.map((s, i) => h("li", null, h("b", null, s.name), h("p", { class: "cx-age", lang: "en" }, s.nameEn), i ? h("p", { class: "cx-step" }, s.text) : null)))));
+  p.append(sourceFoot(l.sources));
+  return p;
+}
+function overviewPage() {
+  const o = unitsOverview(), p = h("div", { class: "cx-page" });
+  p.append(
+    h("h3", { id: "cx-unit-name" }, "\u55AE\u4F4D", h("span", { lang: "en" }, "Units")),
+    h("p", { class: "cx-summary" }, o.intro),
+    h("p", { class: "cx-sub cx-count" }, `\u672C\u4F5C\u6709 ${o.lines} \u689D\u5175\u7A2E\u7DDA\u3001\u5171 ${o.steps} \u500B\u55AE\u4F4D\u8207\u5347\u7D1A\uFF1Baoetw \u6536\u9304\u3001\u672C\u4F5C\u5C1A\u672A\u5BE6\u4F5C\u7684\u6709 ${o.pending} \u500B\u3002`),
+    h("section", null, h("h4", null, "\u985E\u578B"), h("div", { class: "cx-ov" }, ...o.categories.map((c) => h("article", { class: "cx-tech" }, h("h5", null, c.label, h("span", { class: "cx-count" }, `\u672C\u4F5C ${c.lines}\u30FB\u672A\u5BE6\u4F5C ${c.pending}`)), h("p", null, c.text))))),
+    h("section", null, h("h4", null, "\u5783\u573E\u5175"), h("p", { class: "cx-prose" }, o.trash)),
+    h("footer", { class: "cx-foot" }, h("p", null, `aoetw \u53E6\u6536\u9304 ${o.extras.animals} \u7A2E\u52D5\u7269\u3001${o.extras.heroes} \u4F4D\u82F1\u96C4\u8207 ${o.extras.editor} \u7A2E\u5730\u5716\u7DE8\u8F2F\u5668\u55AE\u4F4D\uFF0C\u672C\u767E\u79D1\u4E0D\u5217\u51FA\u3002`), h("p", null, "\u8CC7\u6599\u4F86\u6E90\uFF1Aaoetw.com/units"))
+  );
+  return p;
+}
+function unitItem(it) {
+  const d = units(), l = d.lines.get(it.id), q = d.pending.get(it.id);
+  const sub = l ? l.owner ? civName(l.owner) : l.steps.length > 1 ? `${l.steps.length} \u968E\u30FB${l.at}` : l.at : q?.civ ?? q?.at ?? "";
+  return h("li", null, h("button", { type: "button", class: `cx-uitem${it.pending ? " off" : ""}`, "data-unit": it.id, tabindex: "-1", "aria-current": "false" }, h("b", null, it.name), h("small", null, sub), it.pending ? h("span", { class: "cx-mark off" }, "\u672A\u5BE6\u4F5C") : null));
+}
+function fillUnitList(list) {
+  const groups2 = unitGroups(unitBy).map((g) => ({ ...g, items: g.items.filter((i) => showPending || !i.pending) })).filter((g) => g.items.length);
+  list.replaceChildren(
+    h("div", { class: "cx-grp" }, h("ul", null, h("li", null, h("button", {
+      type: "button",
+      class: "cx-uitem",
+      "data-unit": "overview",
+      tabindex: "-1",
+      "aria-current": "false"
+    }, h("b", null, "\u7E3D\u89BD"), h("small", null, "\u985E\u578B\u8207\u8CC7\u6599\u4F86\u6E90"))))),
+    ...groups2.map((g, i) => h("div", { class: "cx-grp" }, h("p", { class: "cx-group", id: `cx-ug${i}` }, g.label), h("ul", { "aria-labelledby": `cx-ug${i}` }, ...g.items.map(unitItem))))
+  );
+}
+function selectUnit(id, focus = false) {
+  if (!open) return;
+  const d = units();
+  if (id !== "overview" && !d.lines.has(id) && !(showPending && d.pending.has(id))) id = "overview";
+  unitChosen = id;
+  for (const b of Array.from(open.list.querySelectorAll(".cx-uitem"))) {
+    const on = b.dataset.unit === id;
+    b.setAttribute("aria-current", String(on));
+    b.tabIndex = on ? 0 : -1;
+    if (on) {
+      if (focus) b.focus({ preventScroll: true });
+      reveal(open.list, b);
+    }
+  }
+  const l = d.lines.get(id), q = d.pending.get(id);
+  open.detail.replaceChildren(l ? linePage(l, open.ctx.icons) : q ? pendingPage(q) : overviewPage());
+  open.detail.scrollTop = 0;
+}
+function renderUnits(focus) {
+  if (!open) return;
+  const seg = (by, label) => {
+    const b = h("button", { type: "button", class: "cx-tool", "aria-pressed": String(unitBy === by) }, label);
+    b.onclick = () => {
+      if (unitBy === by) return;
+      unitBy = by;
+      for (const x of Array.from(b.parentElement.children)) x.setAttribute("aria-pressed", String(x === b));
+      fillUnitList(list);
+      selectUnit(unitChosen);
+    };
+    return b;
+  };
+  const pend = h("button", { type: "button", class: "cx-tool pend", "aria-pressed": String(showPending), title: "\u5217\u51FA\u672C\u4F5C\u5C1A\u672A\u5BE6\u4F5C\u7684\u55AE\u4F4D" }, "\u672A\u5BE6\u4F5C");
+  pend.onclick = () => {
+    showPending = !showPending;
+    pend.setAttribute("aria-pressed", String(showPending));
+    fillUnitList(list);
+    selectUnit(unitChosen);
+  };
+  const tools = h("div", { class: "cx-tools" }, h("div", { class: "cx-seg", role: "group", "aria-label": "\u5206\u7D44\u65B9\u5F0F" }, seg("category", "\u4F9D\u985E\u578B"), seg("building", "\u4F9D\u5EFA\u7BC9")), pend);
+  const list = h("nav", { class: "cx-list", "aria-label": "\u55AE\u4F4D\u5217\u8868" });
+  const detail = h("div", { class: "cx-detail", role: "region", "aria-labelledby": "cx-unit-name", tabindex: "-1" });
+  list.addEventListener("click", (e) => {
+    const b = e.target.closest(".cx-uitem");
+    if (b?.dataset.unit) selectUnit(b.dataset.unit);
+  });
+  list.addEventListener("keydown", (e) => {
+    const ids = Array.from(list.querySelectorAll(".cx-uitem")).map((b) => b.dataset.unit), next = step(e.key, Math.max(0, ids.indexOf(unitChosen)), ids.length);
+    if (next === null) return;
+    e.preventDefault();
+    selectUnit(ids[next], true);
+  });
+  fillUnitList(list);
+  open.body.replaceChildren(h("div", { class: "cx-side" }, tools, list), detail);
+  open.list = list;
+  open.detail = detail;
+  selectUnit(unitChosen, focus);
+}
+var techData = null;
+var techs = () => techData ??= { gen: new Map(techPages().map((t) => [t.id, t])), uni: new Map(uniqueTechPages().map((t) => [t.id, t])), pend: new Map(pendingTechs().map((t) => [t.id, t])) };
+var bricks = (lines, off = false) => h("ul", { class: `cx-bricks${off ? " off" : ""}` }, ...lines.map((x) => h("li", null, h("span", null, x))));
+function techHead(name, nameEn, sub) {
+  return [h("h3", { id: "cx-tech-name" }, name, h("span", { lang: "en" }, nameEn)), h("p", { class: "cx-sub" }, ...sub)];
+}
+function techFoot(sources) {
+  return h("footer", { class: "cx-foot" }, h("p", null, techsNote), sources.length ? h("p", null, `\u8CC7\u6599\u4F86\u6E90\uFF1A${sources.join("\u3001")}`) : null);
+}
+function techPageView(t, icons2) {
+  const p = h("div", { class: "cx-page" });
+  p.append(
+    ...techHead(t.name, t.nameEn, [`${t.at}\u30FB${ageName(t.age)}`, t.refName ? `\u30FBaoetw \u8B6F\u540D\uFF1A${t.refName}` : ""]),
+    h("p", { class: "cx-summary" }, t.text),
+    h(
+      "section",
+      null,
+      h("h4", null, "\u6548\u679C", h("small", null, "\u672C\u4F5C\u7684\u6578\u503C")),
+      bricks(t.effects),
+      t.partial ? h("ul", { class: "cx-bricks off", style: "margin-top:6px" }, h("li", null, h("span", null, h("span", { class: "cx-flag" }, "\u5C1A\u672A\u5BE6\u4F5C"), `\uFF1A${t.partial}`))) : null
+    )
+  );
+  const research = h("section", null, h("h4", null, "\u7814\u7A76"), costRow(icons2, t.cost, t.seconds, `${ageName(t.age)}\u8D77\u65BC${t.at}\u7814\u7A76`));
+  if (t.requires.length) research.append(h("p", { class: "cx-chain" }, "\u9700\u8981\u5148\u5B8C\u6210\uFF1A", h("b", null, t.requires.map((r) => r.name).join(" \u2192 "))));
+  if (t.unlocks.length) research.append(h("p", { class: "cx-chain" }, "\u5B8C\u6210\u5F8C\u958B\u653E\uFF1A", h("b", null, t.unlocks.map((r) => r.name).join("\u3001"))));
+  p.append(research);
+  if (t.variants.length || t.grants.length || t.civEffects.length) {
+    const dl = h("dl", { class: "cx-tree" });
+    for (const v of t.variants) dl.append(h("dt", null, civName(v.civ)), h("dd", null, costRow(icons2, v.cost, v.seconds), h("small", null, v.texts.join("\uFF1B"))));
+    for (const g of t.grants) dl.append(h("dt", null, civName(g.civ)), h("dd", null, g.text));
+    for (const e of t.civEffects) dl.append(h("dt", null, civName(e.civ)), h("dd", null, e.text));
+    p.append(h("section", null, h("h4", null, "\u6587\u660E\u5DEE\u7570", h("small", null, "\u4EE5\u53EF\u7814\u7A76\u7684\u6700\u65E9\u6642\u4EE3\u8A08\u7B97")), dl));
+  }
+  p.append(h("section", null, h("h4", null, "\u7F3A\u5C11\u7684\u6587\u660E"), h("p", { class: "cx-prose" }, t.lacks.length ? t.lacks.map(civName).join("\u3001") : "\u6BCF\u500B\u6587\u660E\u90FD\u80FD\u7814\u7A76\u3002")), techFoot(t.sources));
+  return p;
+}
+function uniquePageView(t, icons2) {
+  const p = h("div", { class: "cx-page" });
+  p.append(...techHead(t.name, t.nameEn, [h("b", null, `${civName(t.civ)}\u7279\u6B8A\u79D1\u6280`), `\u30FB${t.at || "\u57CE\u5821"}\u30FB${ageName(t.age)}`, t.refName ? `\u30FBaoetw \u8B6F\u540D\uFF1A${t.refName}` : ""]), h("p", { class: "cx-summary" }, t.text));
+  if (t.implemented) {
+    p.append(
+      h(
+        "section",
+        null,
+        h("h4", null, "\u6548\u679C", h("small", null, "\u672C\u4F5C\u7684\u6578\u503C")),
+        bricks(t.effects),
+        t.partial.length ? h("ul", { class: "cx-bricks off", style: "margin-top:6px" }, ...t.partial.map((o) => h("li", null, h("span", null, h("span", { class: "cx-flag" }, "\u5C1A\u672A\u5BE6\u4F5C"), `\uFF1A${o.text}`, h("small", null, o.reason))))) : null
+      ),
+      h("section", null, h("h4", null, "\u7814\u7A76", h("small", null, `\u50F9\u683C\u5DF2\u542B${civName(t.civ)}\u7684\u6587\u660E\u52A0\u6210`)), costRow(icons2, t.cost, t.seconds, `\u65BC${t.at}\u7814\u7A76`))
+    );
+  } else p.append(h("p", { class: "cx-summary" }, h("span", { class: "cx-flag" }, "\u5C1A\u672A\u5BE6\u4F5C"), t.reason ? `\uFF1A${t.reason}` : ""), h("p", { class: "cx-note", style: "margin-top:8px!important" }, `\u539F\u4F5C\u6548\u679C\uFF1A${t.reference}`));
+  p.append(techFoot(t.sources));
+  return p;
+}
+function pendingTechView(t) {
+  const p = h("div", { class: "cx-page" });
+  p.append(
+    ...techHead(t.name, t.nameEn, [`\u539F\u4F5C\u65BC${t.at}\u7814\u7A76\u30FB${ageName(t.age)}`, t.civ ? `\u30FB${t.civ}\u7279\u6B8A\u79D1\u6280` : ""]),
+    h("p", { class: "cx-summary" }, h("span", { class: "cx-flag" }, "\u5C1A\u672A\u5BE6\u4F5C"), `\uFF1A${t.reason}\u3002`),
+    h("p", { class: "cx-summary", style: "margin-top:8px" }, t.text),
+    techFoot(t.sources)
+  );
+  return p;
+}
+function techOverview(icons2) {
+  const o = techsOverview(), p = h("div", { class: "cx-page" });
+  const jump = h("button", { type: "button", class: "cx-tool cx-jump" }, `\u5175\u7A2E\u5347\u7D1A ${o.lineUpgrades} \u9805\uFF1A\u770B\u300C\u55AE\u4F4D\u300D\u5206\u985E`);
+  jump.onclick = () => show("units", true);
+  p.append(
+    h("h3", { id: "cx-tech-name" }, "\u79D1\u6280", h("span", { lang: "en" }, "Technologies")),
+    h("p", { class: "cx-summary" }, o.intro),
+    h("p", { class: "cx-sub cx-count" }, `\u672C\u4F5C\u6709 ${o.generic} \u9805\u901A\u7528\u79D1\u6280\u3001${o.unique} \u9805\u6587\u660E\u7279\u6B8A\u79D1\u6280\uFF1Baoetw \u6536\u9304\u3001\u672C\u4F5C\u5C1A\u672A\u5BE6\u4F5C\u7684\u6709 ${o.pending + o.deferred} \u9805\u3002`),
+    h("section", null, h("h4", null, "\u672C\u4F5C\u6C92\u6709\u7684\u79D1\u6280"), h("p", { class: "cx-prose" }, o.missing)),
+    h("section", null, h("h4", null, "\u6642\u4EE3", h("small", null, "\u5728\u57CE\u93AE\u4E2D\u5FC3\u7814\u7A76\uFF0C\u7121\u6587\u660E\u52A0\u6210")), h("dl", { class: "cx-ages" }, ...o.ages.flatMap((a) => [h("dt", null, a.name), h("dd", null, costRow(icons2, a.cost, a.seconds))]))),
+    h("section", null, h("h4", null, "\u7814\u7A76\u5EFA\u7BC9"), h("div", { class: "cx-ov" }, ...o.buildings.map((b) => h(
+      "article",
+      { class: `cx-tech${b.techs ? "" : " off"}` },
+      h("h5", null, b.label, h("span", { class: "cx-count" }, b.techs ? `\u672C\u4F5C ${b.techs}\u30FB\u672A\u5BE6\u4F5C ${b.pending}` : `\u5C1A\u672A\u5BE6\u4F5C ${b.pending}`)),
+      h("p", null, b.text)
+    )))),
+    h("section", null, h("h4", null, "\u5175\u7A2E\u5347\u7D1A"), h("p", { class: "cx-prose" }, "\u5175\u71DF\u3001\u9776\u5834\u3001\u99AC\u5EC4\u3001\u653B\u57CE\u5668\u5DE5\u574A\u8207\u57CE\u5821\u7684\u5175\u7A2E\u5347\u7D1A\uFF08\u4F8B\u5982\u9577\u528D\u58EB\u3001\u7CBE\u92B3\u9577\u5F13\u5175\uFF09\u6539\u8B8A\u7684\u662F\u55AE\u4F4D\u672C\u8EAB\u7684\u6578\u503C\uFF0C\u5217\u5728\u5404\u5175\u7A2E\u7DDA\u7684\u5347\u7D1A\u8DEF\u7DDA\u4E0A\u3002"), jump),
+    h("footer", { class: "cx-foot" }, h("p", null, techsNote), h("p", null, "\u8CC7\u6599\u4F86\u6E90\uFF1Aaoetw.com/techs"))
+  );
+  return p;
+}
+function techItem(it) {
+  return h("li", null, h("button", { type: "button", class: `cx-uitem${it.pending ? " off" : ""}`, "data-tech": it.id, tabindex: "-1", "aria-current": "false" }, h("b", null, it.name), h("small", null, it.sub), it.pending ? h("span", { class: "cx-mark off" }, "\u672A\u5BE6\u4F5C") : null));
+}
+function fillTechList(list) {
+  const groups2 = techGroups(techBy).map((g) => ({ ...g, items: g.items.filter((i) => techPending || !i.pending) })).filter((g) => g.items.length);
+  list.replaceChildren(
+    h("div", { class: "cx-grp" }, h("ul", null, h("li", null, h("button", { type: "button", class: "cx-uitem", "data-tech": "overview", tabindex: "-1", "aria-current": "false" }, h("b", null, "\u7E3D\u89BD"), h("small", null, "\u6642\u4EE3\u3001\u7814\u7A76\u5EFA\u7BC9\u8207\u8CC7\u6599\u4F86\u6E90"))))),
+    ...groups2.map((g, i) => h("div", { class: "cx-grp" }, h("p", { class: "cx-group", id: `cx-tg${i}` }, g.label), h("ul", { "aria-labelledby": `cx-tg${i}` }, ...g.items.map(techItem))))
+  );
+}
+function selectTech(id, focus = false) {
+  if (!open) return;
+  const d = techs(), pending = d.pend.has(id) || d.uni.get(id)?.implemented === false;
+  if (id !== "overview" && !(d.gen.has(id) || d.uni.has(id) || d.pend.has(id)) || pending && !techPending) id = "overview";
+  techChosen = id;
+  for (const b of Array.from(open.list.querySelectorAll(".cx-uitem"))) {
+    const on = b.dataset.tech === id;
+    b.setAttribute("aria-current", String(on));
+    b.tabIndex = on ? 0 : -1;
+    if (on) {
+      if (focus) b.focus({ preventScroll: true });
+      reveal(open.list, b);
+    }
+  }
+  const g = d.gen.get(id), u = d.uni.get(id), q = d.pend.get(id), icons2 = open.ctx.icons;
+  open.detail.replaceChildren(g ? techPageView(g, icons2) : u ? uniquePageView(u, icons2) : q ? pendingTechView(q) : techOverview(icons2));
+  open.detail.scrollTop = 0;
+}
+function renderTechs(focus) {
+  if (!open) return;
+  const seg = (by, label) => {
+    const b = h("button", { type: "button", class: "cx-tool", "aria-pressed": String(techBy === by) }, label);
+    b.onclick = () => {
+      if (techBy === by) return;
+      techBy = by;
+      for (const x of Array.from(b.parentElement.children)) x.setAttribute("aria-pressed", String(x === b));
+      fillTechList(list);
+      selectTech(techChosen);
+    };
+    return b;
+  };
+  const pend = h("button", { type: "button", class: "cx-tool pend", "aria-pressed": String(techPending), title: "\u5217\u51FA aoetw \u6536\u9304\u3001\u672C\u4F5C\u5C1A\u672A\u5BE6\u4F5C\u7684\u79D1\u6280" }, "\u672A\u5BE6\u4F5C");
+  pend.onclick = () => {
+    techPending = !techPending;
+    pend.setAttribute("aria-pressed", String(techPending));
+    fillTechList(list);
+    selectTech(techChosen);
+  };
+  const tools = h("div", { class: "cx-tools" }, h("div", { class: "cx-seg", role: "group", "aria-label": "\u5206\u7D44\u65B9\u5F0F" }, seg("building", "\u4F9D\u5EFA\u7BC9"), seg("age", "\u4F9D\u6642\u4EE3")), pend);
+  const list = h("nav", { class: "cx-list", "aria-label": "\u79D1\u6280\u5217\u8868" });
+  const detail = h("div", { class: "cx-detail", role: "region", "aria-labelledby": "cx-tech-name", tabindex: "-1" });
+  list.addEventListener("click", (e) => {
+    const b = e.target.closest(".cx-uitem");
+    if (b?.dataset.tech) selectTech(b.dataset.tech);
+  });
+  list.addEventListener("keydown", (e) => {
+    const ids = Array.from(list.querySelectorAll(".cx-uitem")).map((b) => b.dataset.tech), next = step(e.key, Math.max(0, ids.indexOf(techChosen)), ids.length);
+    if (next === null) return;
+    e.preventDefault();
+    selectTech(ids[next], true);
+  });
+  fillTechList(list);
+  open.body.replaceChildren(h("div", { class: "cx-side" }, tools, list), detail);
+  open.list = list;
+  open.detail = detail;
+  selectTech(techChosen, focus);
+}
+var buildingData = null;
+var buildings = () => buildingData ??= { pages: new Map(buildingPages().map((b) => [b.id, b])), pend: new Map(pendingBuildings().map((b) => [b.id, b])) };
+var arrowBonusText = (s) => s.arrows?.bonus.length ? s.arrows.bonus.map((b) => `\u5C0D${b.label} +${b.value}`).join("\u3001") : "\u7121";
+function buildingRows(sheets) {
+  const rows = [["\u751F\u547D", (s) => String(s.hp)], ["\u8B77\u7532", (s) => `${s.armor[0]}/${s.armor[1]}`, "\u8FD1\u6230\u8B77\u7532\uFF0F\u9060\u7A0B\u8B77\u7532"]];
+  if (sheets.some((s) => s.housing)) rows.push(["\u4EBA\u53E3", (s) => `+${s.housing}`]);
+  if (sheets.some((s) => s.garrison)) rows.push(["\u99D0\u8ECD", (s) => `${s.garrison} \u540D`]);
+  if (sheets.some((s) => s.arrows)) rows.push(
+    ["\u6BCF\u8F2A\u7BAD\u6578", (s) => s.arrows ? `${s.arrows.count} \u652F` : "\u2014"],
+    ["\u6BCF\u652F\u653B\u64CA", (s) => s.arrows ? `${s.arrows.damage}\uFF08\u9060\u7A0B\uFF09` : "\u2014"],
+    ["\u5C04\u7A0B", (s) => s.arrows ? tilesText(s.arrows.range) : "\u2014"],
+    ["\u5C04\u64CA\u9593\u9694", (s) => s.arrows ? secondsText(cooldownSeconds(s.arrows.cooldown)) : "\u2014"],
+    ["\u984D\u5916\u50B7\u5BB3", arrowBonusText]
+  );
+  return rows;
+}
+function buildingTable(b) {
+  const cols = [{ name: b.name, sheet: b.sheet }, ...b.steps.map((s) => ({ name: s.name, sheet: s.sheet }))], rows = buildingRows(cols.map((c) => c.sheet));
+  return h(
+    "table",
+    { class: "cx-stats" },
+    cols.length > 1 ? h("thead", null, h("tr", null, h("td", null), ...cols.map((c) => h("th", { scope: "col" }, c.name)))) : null,
+    h("tbody", null, ...rows.map(([label, f, title]) => {
+      const cells = cols.map((c) => f(c.sheet));
+      return h("tr", null, h("th", { scope: "row", ...title ? { title } : {} }, label), ...cells.map((c, i) => h("td", i && c !== cells[i - 1] ? { class: "up" } : null, c)));
+    }))
+  );
+}
+function sheetDiff(base, s) {
+  const out = [];
+  if (s.hp !== base.hp) out.push(`\u751F\u547D ${s.hp}`);
+  if (s.housing !== base.housing) out.push(`\u4EBA\u53E3 +${s.housing}`);
+  if (s.garrison !== base.garrison) out.push(`\u99D0\u8ECD ${s.garrison} \u540D`);
+  if (s.arrows && base.arrows) {
+    if (s.arrows.count !== base.arrows.count) out.push(`\u6BCF\u8F2A ${s.arrows.count} \u652F\u7BAD`);
+    if (s.arrows.damage !== base.arrows.damage) out.push(`\u6BCF\u652F\u653B\u64CA ${s.arrows.damage}`);
+    if (s.arrows.range !== base.arrows.range) out.push(`\u5C04\u7A0B ${tilesText(s.arrows.range)}`);
+    if (s.arrows.cooldown !== base.arrows.cooldown) out.push(`\u5C04\u64CA\u9593\u9694 ${secondsText(cooldownSeconds(s.arrows.cooldown))}`);
+  }
+  return out.join("\u30FB");
+}
+function buildingHead(name, nameEn, sub) {
+  return [h("h3", { id: "cx-building-name" }, name, h("span", { lang: "en" }, nameEn)), h("p", { class: "cx-sub" }, ...sub)];
+}
+function buildingFoot(sources) {
+  return h("footer", { class: "cx-foot" }, h("p", null, buildingsNote), sources.length ? h("p", null, `\u8CC7\u6599\u4F86\u6E90\uFF1A${sources.join("\u3001")}`) : null);
+}
+function buildingPageView(b, icons2) {
+  const p = h("div", { class: "cx-page" });
+  p.append(...buildingHead(b.name, b.nameEn, [`${b.groupLabel}\u30FB${ageName(b.age)}\u8D77`, b.refName ? `\u30FBaoetw \u8B6F\u540D\uFF1A${b.refName}` : ""]), h("p", { class: "cx-summary" }, b.text));
+  const build2 = h("section", null, h("h4", null, "\u5EFA\u9020"), costRow(icons2, b.cost, b.seconds, `${b.perSegment ? "\u6BCF\u4E00\u683C\u30FB" : ""}\u4E00\u540D${b.builders}\u7684\u5EFA\u9020\u6642\u9593`));
+  if (b.requires.length) build2.append(h("p", { class: "cx-chain" }, "\u9700\u8981\u5148\u5B8C\u6210\uFF1A", h("b", null, b.requires.map((r) => r.name).join(" \u2192 "))));
+  build2.append(h("p", { class: "cx-chain" }, "\u5360\u5730\uFF1A", h("b", null, `${numberText(b.footprint.width)} \xD7 ${numberText(b.footprint.depth)} \u683C`), b.perSegment ? "\uFF08\u62D6\u51FA\u4E00\u6BB5\u7246\u6642\u6BCF\u683C\u5404\u7B97\u4E00\u7BC0\uFF09" : ""));
+  p.append(build2);
+  if (b.steps.length) p.append(h(
+    "section",
+    null,
+    h("h4", null, "\u5347\u7D1A\u8DEF\u7DDA", h("small", null, "\u7814\u7A76\u5F8C\uFF0C\u5834\u4E0A\u8207\u4E4B\u5F8C\u84CB\u7684\u90FD\u63DB\u6210\u65B0\u6578\u503C")),
+    h(
+      "ol",
+      { class: "cx-path" },
+      h("li", null, h("b", null, b.name), h("p", { class: "cx-age" }, ageName(b.age)), h("p", { class: "cx-cost" }, h("span", { class: "t" }, "\u8D77\u59CB\u5EFA\u7BC9"))),
+      ...b.steps.map((s) => h(
+        "li",
+        null,
+        h("b", null, s.name),
+        h("p", { class: "cx-age" }, ageName(s.age)),
+        costRow(icons2, s.cost, s.seconds, `\u65BC${s.at}\u7814\u7A76`),
+        s.refName ? h("p", { class: "cx-ref" }, `aoetw \u8B6F\u540D\uFF1A${s.refName}`) : null,
+        s.text ? h("p", { class: "cx-step" }, s.text) : null
+      ))
+    )
+  ));
+  p.append(h(
+    "section",
+    null,
+    h("h4", null, "\u6578\u503C", h("small", null, b.steps.length ? "\u7121\u6587\u660E\u52A0\u6210\uFF1B\u6BCF\u6B04\u662F\u5B8C\u6210\u6B64\u524D\u5347\u7D1A\u5F8C" : "\u7121\u6587\u660E\u52A0\u6210\u3001\u672A\u7814\u7A76\u4EFB\u4F55\u79D1\u6280")),
+    h("div", { class: "cx-scroll" }, buildingTable(b)),
+    b.partial ? h("ul", { class: "cx-bricks off", style: "margin-top:10px" }, h("li", null, h("span", null, h("span", { class: "cx-flag" }, "\u5C1A\u672A\u5BE6\u4F5C"), `\uFF1A${b.partial}`))) : null
+  ));
+  if (b.trains.length || b.researches.length || b.uniqueHere) {
+    const dl = h("dl", { class: "cx-tree" });
+    if (b.trains.length) dl.append(h("dt", null, "\u8A13\u7DF4"), h("dd", null, b.trains.map((x) => x.name).join("\u3001")));
+    if (b.researches.length) dl.append(h("dt", null, "\u7814\u7A76"), h("dd", null, b.researches.map((x) => x.name).join("\u3001")));
+    if (b.unique.length > 2) dl.append(h("dt", null, "\u6587\u660E\u5C08\u5C6C"), h("dd", null, "\u5404\u6587\u660E\u7684\u7279\u6B8A\u55AE\u4F4D\u8207\u7279\u6B8A\u79D1\u6280\uFF0C\u898B\u300C\u6587\u660E\u300D\u5206\u985E"));
+    else for (const u of b.unique) dl.append(h("dt", null, `${civName(u.civ)}\u5C08\u5C6C`), h("dd", null, u.names.join("\u3001")));
+    p.append(h("section", null, h("h4", null, "\u751F\u7522\u8207\u7814\u7A76"), dl));
+  }
+  if (b.techs.length) p.append(h("section", null, h("h4", null, "\u76F8\u95DC\u79D1\u6280", h("small", null, "\u5728\u5176\u4ED6\u5EFA\u7BC9\u7814\u7A76\u3001\u6703\u6539\u8B8A\u9019\u5EA7\u5EFA\u7BC9\u7684\u901A\u7528\u79D1\u6280")), bricks(b.techs.map((t) => `${t.name}\uFF1A${t.texts.join("\uFF1B")}`))));
+  if (b.variants.length || b.civEffects.length) {
+    const dl = h("dl", { class: "cx-tree" });
+    for (const v of b.variants) {
+      const diff = sheetDiff(b.sheet, v.sheet);
+      dl.append(h("dt", null, civName(v.civ)), h("dd", null, costRow(icons2, v.cost, null, diff), h("small", null, v.texts.join("\uFF1B"))));
+    }
+    for (const e of b.civEffects) dl.append(h("dt", null, civName(e.civ)), h("dd", null, e.text));
+    p.append(h("section", null, h("h4", null, "\u6587\u660E\u5DEE\u7570", h("small", null, `\u50F9\u683C\u8207\u6578\u503C\u4EE5${ageName(b.age)}\u8A08\u7B97`)), dl));
+  }
+  p.append(h("section", null, h("h4", null, "\u7F3A\u5C11\u7684\u6587\u660E"), h("p", { class: "cx-prose" }, b.lacks.length ? b.lacks.map(civName).join("\u3001") : "\u6BCF\u500B\u6587\u660E\u90FD\u80FD\u5EFA\u9020\u3002")), buildingFoot(b.sources));
+  return p;
+}
+function pendingBuildingView(b) {
+  const p = h("div", { class: "cx-page" });
+  p.append(
+    ...buildingHead(b.name, b.nameEn, [`\u539F\u4F5C\u30FB${ageName(b.age)}`, b.civ ? `\u30FB${b.civ}\u7279\u6B8A\u5EFA\u7BC9` : ""]),
+    h("p", { class: "cx-summary" }, h("span", { class: "cx-flag" }, "\u5C1A\u672A\u5BE6\u4F5C"), `\uFF1A${b.reason}\u3002`),
+    h("p", { class: "cx-summary", style: "margin-top:8px" }, b.text),
+    buildingFoot(b.sources)
+  );
+  return p;
+}
+function buildingOverview() {
+  const o = buildingsOverview(), p = h("div", { class: "cx-page" });
+  p.append(
+    h("h3", { id: "cx-building-name" }, "\u5EFA\u7BC9", h("span", { lang: "en" }, "Buildings")),
+    h("p", { class: "cx-summary" }, o.intro),
+    h("p", { class: "cx-sub cx-count" }, `\u672C\u4F5C\u6709 ${o.buildings} \u7A2E\u5EFA\u7BC9\u8207 ${o.upgrades} \u9805\u5EFA\u7BC9\u5347\u7D1A\uFF1Baoetw \u6536\u9304\u3001\u672C\u4F5C\u6C92\u6709\u7684\u6709 ${o.pending} \u5EA7\u3002`),
+    h("section", null, h("h4", null, "\u985E\u578B"), h("div", { class: "cx-ov" }, ...o.groups.map((g) => h("article", { class: "cx-tech" }, h("h5", null, g.label, h("span", { class: "cx-count" }, `\u672C\u4F5C ${g.buildings}\u30FB\u672A\u5BE6\u4F5C ${g.pending}`)), h("p", null, g.text))))),
+    h("section", null, h("h4", null, "\u672C\u4F5C\u6C92\u6709\u7684\u5EFA\u7BC9"), h("p", { class: "cx-prose" }, o.missing)),
+    h("footer", { class: "cx-foot" }, h("p", null, buildingsNote), h("p", null, "\u8CC7\u6599\u4F86\u6E90\uFF1Aaoetw.com/building"))
+  );
+  return p;
+}
+function buildingItem(it) {
+  return h("li", null, h("button", { type: "button", class: `cx-uitem${it.pending ? " off" : ""}`, "data-building": it.id, tabindex: "-1", "aria-current": "false" }, h("b", null, it.name), h("small", null, it.sub), it.pending ? h("span", { class: "cx-mark off" }, "\u672A\u5BE6\u4F5C") : null));
+}
+function fillBuildingList(list) {
+  const groups2 = buildingGroupsBy(buildingBy).map((g) => ({ ...g, items: g.items.filter((i) => buildingPending || !i.pending) })).filter((g) => g.items.length);
+  list.replaceChildren(
+    h("div", { class: "cx-grp" }, h("ul", null, h("li", null, h("button", { type: "button", class: "cx-uitem", "data-building": "overview", tabindex: "-1", "aria-current": "false" }, h("b", null, "\u7E3D\u89BD"), h("small", null, "\u985E\u578B\u8207\u8CC7\u6599\u4F86\u6E90"))))),
+    ...groups2.map((g, i) => h("div", { class: "cx-grp" }, h("p", { class: "cx-group", id: `cx-bg${i}` }, g.label), h("ul", { "aria-labelledby": `cx-bg${i}` }, ...g.items.map(buildingItem))))
+  );
+}
+function selectBuilding(id, focus = false) {
+  if (!open) return;
+  const d = buildings();
+  if (id !== "overview" && !d.pages.has(id) && !(buildingPending && d.pend.has(id))) id = "overview";
+  buildingChosen = id;
+  for (const b of Array.from(open.list.querySelectorAll(".cx-uitem"))) {
+    const on = b.dataset.building === id;
+    b.setAttribute("aria-current", String(on));
+    b.tabIndex = on ? 0 : -1;
+    if (on) {
+      if (focus) b.focus({ preventScroll: true });
+      reveal(open.list, b);
+    }
+  }
+  const g = d.pages.get(id), q = d.pend.get(id);
+  open.detail.replaceChildren(g ? buildingPageView(g, open.ctx.icons) : q ? pendingBuildingView(q) : buildingOverview());
+  open.detail.scrollTop = 0;
+}
+function renderBuildings(focus) {
+  if (!open) return;
+  const seg = (by, label) => {
+    const b = h("button", { type: "button", class: "cx-tool", "aria-pressed": String(buildingBy === by) }, label);
+    b.onclick = () => {
+      if (buildingBy === by) return;
+      buildingBy = by;
+      for (const x of Array.from(b.parentElement.children)) x.setAttribute("aria-pressed", String(x === b));
+      fillBuildingList(list);
+      selectBuilding(buildingChosen);
+    };
+    return b;
+  };
+  const pend = h("button", { type: "button", class: "cx-tool pend", "aria-pressed": String(buildingPending), title: "\u5217\u51FA aoetw \u6536\u9304\u3001\u672C\u4F5C\u6C92\u6709\u7684\u5EFA\u7BC9" }, "\u672A\u5BE6\u4F5C");
+  pend.onclick = () => {
+    buildingPending = !buildingPending;
+    pend.setAttribute("aria-pressed", String(buildingPending));
+    fillBuildingList(list);
+    selectBuilding(buildingChosen);
+  };
+  const tools = h("div", { class: "cx-tools" }, h("div", { class: "cx-seg", role: "group", "aria-label": "\u5206\u7D44\u65B9\u5F0F" }, seg("group", "\u4F9D\u985E\u578B"), seg("age", "\u4F9D\u6642\u4EE3")), pend);
+  const list = h("nav", { class: "cx-list", "aria-label": "\u5EFA\u7BC9\u5217\u8868" });
+  const detail = h("div", { class: "cx-detail", role: "region", "aria-labelledby": "cx-building-name", tabindex: "-1" });
+  list.addEventListener("click", (e) => {
+    const b = e.target.closest(".cx-uitem");
+    if (b?.dataset.building) selectBuilding(b.dataset.building);
+  });
+  list.addEventListener("keydown", (e) => {
+    const ids = Array.from(list.querySelectorAll(".cx-uitem")).map((b) => b.dataset.building), next = step(e.key, Math.max(0, ids.indexOf(buildingChosen)), ids.length);
+    if (next === null) return;
+    e.preventDefault();
+    selectBuilding(ids[next], true);
+  });
+  fillBuildingList(list);
+  open.body.replaceChildren(h("div", { class: "cx-side" }, tools, list), detail);
+  open.list = list;
+  open.detail = detail;
+  selectBuilding(buildingChosen, focus);
+}
+function show(id, focus) {
+  if (!open) return;
+  section = id;
+  for (const t of open.tabs) {
+    const on = t.dataset.section === id;
+    t.setAttribute("aria-selected", String(on));
+    t.tabIndex = on ? 0 : -1;
+  }
+  open.body.setAttribute("aria-labelledby", `cx-tab-${id}`);
+  if (id === "units") renderUnits(focus);
+  else if (id === "techs") renderTechs(focus);
+  else if (id === "buildings") renderBuildings(focus);
+  else renderCivs(focus);
+}
 function injectStyle() {
   if (document.getElementById("cx-style")) return;
   const s = document.createElement("style");
@@ -4618,36 +8636,31 @@ function openCodex(host, ctx) {
   injectStyle();
   const prev = open?.prev ?? document.activeElement;
   open = null;
-  const items = civList(ctx.civs), groups2 = [];
-  for (const c of items) {
-    const g = groups2.at(-1);
-    if (g && g.label === c.group) g.items.push(c);
-    else groups2.push({ label: c.group, items: [c] });
-  }
-  const list = h("nav", { class: "cx-list", "aria-label": "\u6587\u660E\u5217\u8868" }, ...groups2.map((g, i) => h("div", { class: "cx-grp" }, h("p", { class: "cx-group", id: `cx-g${i}` }, g.label), h("ul", { "aria-labelledby": `cx-g${i}` }, ...g.items.map(listItem)))));
-  const detail = h("div", { class: "cx-detail", role: "region", "aria-labelledby": "cx-civ-name", tabindex: "-1" });
   const close = h("button", { type: "button", class: "cx-close" }, "\u95DC\u9589", h("kbd", null, "Esc"));
   close.onclick = () => closeCodex();
-  list.addEventListener("click", (e) => {
-    const b = e.target.closest(".cx-civ");
-    if (b?.dataset.civ) select(b.dataset.civ);
+  const tabs = codexSections.map((s) => h("button", { type: "button", role: "tab", class: "cx-tab", id: `cx-tab-${s.id}`, "data-section": s.id, "aria-controls": "cx-panel", "aria-selected": "false", tabindex: "-1" }, s.label));
+  const tablist = h("div", { class: "cx-tabs", role: "tablist", "aria-label": "\u767E\u79D1\u5206\u985E" }, ...tabs);
+  tablist.addEventListener("click", (e) => {
+    const t = e.target.closest(".cx-tab");
+    if (t && t.dataset.section !== section) show(t.dataset.section, false);
   });
-  list.addEventListener("keydown", (e) => {
-    const ids = codexCivs().map((c) => c.id), i = ids.indexOf(chosen ?? ids[0]);
-    const next = e.key === "ArrowDown" || e.key === "ArrowRight" ? Math.min(ids.length - 1, i + 1) : e.key === "ArrowUp" || e.key === "ArrowLeft" ? Math.max(0, i - 1) : e.key === "Home" ? 0 : e.key === "End" ? ids.length - 1 : null;
+  tablist.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") return;
+    const i = tabs.findIndex((t) => t.dataset.section === section), next = step(e.key, i, tabs.length);
     if (next === null) return;
     e.preventDefault();
-    select(ids[next], true);
+    tabs[next].focus();
+    if (next !== i) show(codexSections[next].id, false);
   });
+  const body = h("div", { class: "cx-body", id: "cx-panel", role: "tabpanel" });
   host.classList.add("cx-host");
   if (!host.hasAttribute("role")) host.setAttribute("role", "dialog");
   host.setAttribute("aria-modal", "true");
   host.setAttribute("aria-labelledby", "cx-title");
-  host.replaceChildren(h("div", { class: "cx" }, h("header", { class: "cx-head" }, h("h2", { id: "cx-title" }, "\u767E\u79D1"), h("p", { class: "cx-cat" }, "\u6587\u660E"), close), h("div", { class: "cx-body" }, list, detail)));
+  host.replaceChildren(h("div", { class: "cx" }, h("header", { class: "cx-head" }, h("h2", { id: "cx-title" }, "\u767E\u79D1"), tablist, close), body));
   host.hidden = false;
-  open = { host, ctx, prev, list, detail };
-  const first = chosen && items.some((c) => c.id === chosen) ? chosen : items.find((c) => c.role === "self" || c.role === "both")?.id ?? items[0].id;
-  select(first, true);
+  open = { host, ctx, prev, tabs, body, list: body, detail: body };
+  show(section, true);
 }
 function closeCodex() {
   if (!open) return;
@@ -4664,13 +8677,14 @@ var el = (id) => document.getElementById(id);
 var debug = new URLSearchParams(location.search).has("debug");
 el("debug").hidden = !debug;
 var startCivs = debug ? [neutralCiv, neutralCiv] : ["britons", "franks"];
-var state = { seed: rules.settings.seed, layout: debug ? "meadow" : "open", size: debug ? 16 : 32, opponent: debug ? "idle" : "ai", civs: [...startCivs], terrain: [], tick: 0, units: [], corpses: [], outcome: null, economy: { stock: { food: 0, wood: 0, gold: 0, stone: 0 }, populationUsed: 0, populationReserved: 0, populationCap: 0, age: 1, techs: [], reseed: true }, buildings: [], transactions: [], fog: [], known: [], resources: [], stateHash: "\u2014", shots: [], relicSpots: [], relicsHeld: [0, 0], relicTotal: 0, relicVictory: null };
+var state = { seed: rules.settings.seed, layout: debug ? "meadow" : "open", size: debug ? 16 : 32, opponent: debug ? "idle" : "ai", civs: [...startCivs], terrain: [], tick: 0, units: [], corpses: [], outcome: null, economy: { stock: { food: 0, wood: 0, gold: 0, stone: 0 }, populationUsed: 0, populationReserved: 0, populationCap: 0, age: 1, techs: [], reseed: true }, buildings: [], transactions: [], fog: [], known: [], resources: [], stateHash: "\u2014", shots: [], relicSpots: [], relicsHeld: [0, 0], relicTotal: 0, relicVictory: null, market: { prices: { ...marketRules.start }, fee: marketRules.fee }, transports: [], trades: [], wonders: [], wonderVictory: null };
 var resourceNames2 = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
 var workLabel = { toSource: "\u524D\u5F80\u63A1\u96C6", gathering: "\u63A1\u96C6\u4E2D", toDropoff: "\u9001\u8FD4\u57CE\u93AE\u4E2D\u5FC3", toSite: "\u524D\u5F80\u5DE5\u5730", building: "\u65BD\u5DE5\u4E2D", hunting: "\u72E9\u7375\u4E2D" };
 var buildingNames2 = { castle: "\u57CE\u5821", "watch-tower": "\u7BAD\u5854", "siege-workshop": "\u653B\u57CE\u5668\u5DE5\u574A", blacksmith: "\u9435\u5320\u92EA", house: "\u4F4F\u5B85", barracks: "\u5175\u71DF", farm: "\u8FB2\u7530", "lumber-camp": "\u4F10\u6728\u5834", "mining-camp": "\u63A1\u7926\u5834", mill: "\u78E8\u574A", stable: "\u99AC\u5EC4", "archery-range": "\u9776\u5834", monastery: "\u4FEE\u9053\u9662", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
-var homeKinds = /* @__PURE__ */ new Set(["castle", "watch-tower", "siege-workshop", "blacksmith", "house", "barracks", "farm", "lumber-camp", "mining-camp", "mill", "stable", "archery-range", "monastery", "town-center"]);
-var layoutNames = { meadow: "\u8349\u7538", coast: "\u6D77\u5CB8", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058", open: "\u66E0\u91CE" };
-var civName = (id) => civById(id ?? neutralCiv)?.name ?? id ?? "";
+for (const k of buildKinds) if (!(k in buildingNames2)) buildingNames2[k] = rules.entries.find((e) => e.id === k)?.name ?? k;
+var homeKinds = /* @__PURE__ */ new Set([...buildKinds, "town-center"]);
+var layoutNames = { meadow: "\u8349\u7538", coast: "\u6D77\u5CB8", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058", open: "\u66E0\u91CE", lakes: "\u6E56\u7554" };
+var civName2 = (id) => civById(id ?? neutralCiv)?.name ?? id ?? "";
 var myCiv = () => state.civs[0] ?? neutralCiv;
 var mine = () => ({ civ: myCiv(), age: state.economy.age, techs: state.economy.techs });
 var placing = null;
@@ -4768,7 +8782,7 @@ function render() {
     }
   }
   el("fog-status").textContent = `\u53EF\u898B ${state.fog.filter((v) => v === 2).length} \u683C \xB7 \u5DF2\u63A2\u7D22\u820A\u8996\u91CE ${state.fog.filter((v) => v === 1).length} \u683C \xB7 \u672A\u63A2\u7D22 ${state.fog.filter((v) => v === 0).length} \u683C`;
-  el("world-label").textContent = { meadow: "\u8349\u7538\u8A66\u9A57\u5834", coast: "\u6D77\u5CB8\u8A66\u9A57\u5834", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058\u9A57\u6536\u5834", open: "\u66E0\u91CE\u5C0D\u6230\u5716" }[state.layout];
+  el("world-label").textContent = { meadow: "\u8349\u7538\u8A66\u9A57\u5834", coast: "\u6D77\u5CB8\u8A66\u9A57\u5834", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058\u9A57\u6536\u5834", open: "\u66E0\u91CE\u5C0D\u6230\u5716", lakes: "\u6E56\u7554\u5C0D\u6230\u5716" }[state.layout];
   el("tick").textContent = String(state.tick);
   el("hash").textContent = state.stateHash;
   const e = state.economy;
@@ -4812,15 +8826,33 @@ function renderTop() {
       box2.title = `\u8056\u7269\uFF1A\u85CD\u65B9 ${state.relicsHeld[0]}\u3001\u7D05\u65B9 ${state.relicsHeld[1]}\uFF0C\u5171 ${state.relicTotal} \u500B${v ? `\uFF1B${v.player === 0 ? "\u85CD\u65B9" : "\u7D05\u65B9"}\u6301\u6709\u5168\u90E8\u8056\u7269\uFF0C${mmss} \u5F8C\u7372\u52DD` : ""}`;
     }
   }
+  {
+    const box2 = el("wonder"), v = state.wonderVictory;
+    box2.hidden = !v;
+    if (v) {
+      el("res-wonder").textContent = clockOf(v.endsTick - state.tick);
+      box2.classList.toggle("full", v.player === 1);
+      box2.title = `\u4E16\u754C\u5947\u89C0\uFF1A${state.wonders.map((w) => `${w.player === 0 ? "\u85CD\u65B9" : "\u7D05\u65B9"}\u5728 (${(w.x / 100).toFixed(0)}, ${(w.y / 100).toFixed(0)}) \u9084\u5269 ${clockOf(w.endsTick - state.tick)}`).join("\uFF1B")}\uFF1B\u6700\u5148\u5012\u6578\u5B8C\u7684\u4E00\u65B9\u7372\u52DD\uFF0C\u5947\u89C0\u88AB\u6467\u6BC0\u5C31\u505C\u6B62`;
+    }
+  }
   el("pop").classList.toggle("full", e.populationCap > 0 && e.populationUsed + e.populationReserved >= e.populationCap);
   el("pop").title = `\u4EBA\u53E3 ${e.populationUsed}\uFF0F\u4E0A\u9650 ${e.populationCap}${e.populationReserved ? `\uFF08\u4F47\u5217\u4FDD\u7559 ${e.populationReserved}\uFF09` : ""}`;
-  el("civ-name").textContent = civName(myCiv());
+  el("civ-name").textContent = civName2(myCiv());
   el("age-name").textContent = ageNames2[e.age];
   const t = Math.floor(state.tick / rules.settings.tickHz), mm = Math.floor(t / 60), ss = t % 60;
   el("clock").textContent = `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
-  el("sel-empty-title").textContent = `\u85CD\u65B9\uFF08${civName(myCiv())}\uFF09 \xB7 ${layoutNames[state.layout]} \xB7 \u5C0D\u624B\uFF1A${state.opponent === "ai" ? "\u96FB\u8166" : "\u4E0D\u884C\u52D5"}\uFF08${civName(state.civs[1])}\uFF09`;
+  el("sel-empty-title").textContent = `\u85CD\u65B9\uFF08${civName2(myCiv())}\uFF09 \xB7 ${layoutNames[state.layout]} \xB7 \u5C0D\u624B\uFF1A${state.opponent === "ai" ? "\u96FB\u8166" : "\u4E0D\u884C\u52D5"}\uFF08${civName2(state.civs[1])}\uFF09`;
 }
-var doing = (u) => u.relic && !u.rite ? "\u651C\u5E36\u8056\u7269" : u.rite ? u.rite === "convert" ? "\u8F49\u5316\u4E2D" : "\u6CBB\u7642\u4E2D" : u.faith !== null && u.faith < 100 ? `\u4FE1\u4EF0\u6062\u5FA9\u4E2D ${u.faith}%` : u.action === 1 ? "\u653B\u64CA\u4E2D" : u.work && u.navigation !== "waiting" && u.navigation !== "stuck" ? workLabel[u.work] : statusLabel[u.navigation];
+var packState = (u) => !combatRules.units[u.kind]?.setup ? null : u.unpacked ? u.navigation === "idle" ? "\u5DF2\u67B6\u8A2D" : "\u6536\u8D77\u4E2D" : u.navigation === "idle" && u.target && u.action !== 1 ? "\u67B6\u8A2D\u4E2D" : "\u79FB\u52D5\u72C0\u614B";
+var doing = (u) => {
+  const pack = packState(u);
+  return pack === "\u6536\u8D77\u4E2D" || pack === "\u67B6\u8A2D\u4E2D" ? pack : doingNow(u);
+};
+var doingNow = (u) => {
+  const tr = state.trades.find((t) => t.unitId === u.id);
+  return tr ? tr.leg === "out" ? `\u8CBF\u6613\uFF1A\u524D\u5F80\u7D05\u65B9${u.kind === "trade-cog" ? "\u78BC\u982D" : "\u5E02\u96C6"}` : "\u8CBF\u6613\uFF1A\u8F09\u8457\u8CA8\u7269\u8FD4\u56DE" : doingPlain(u);
+};
+var doingPlain = (u) => u.relic && !u.rite ? "\u651C\u5E36\u8056\u7269" : u.rite ? u.rite === "convert" ? "\u8F49\u5316\u4E2D" : "\u6CBB\u7642\u4E2D" : u.faith !== null && u.faith < 100 ? `\u4FE1\u4EF0\u6062\u5FA9\u4E2D ${u.faith}%` : u.action === 1 ? "\u653B\u64CA\u4E2D" : u.work && u.navigation !== "waiting" && u.navigation !== "stuck" ? workLabel[u.work] : statusLabel[u.navigation];
 function activity(u) {
   const life = u.hp < u.maxHp ? ` \xB7 \u751F\u547D ${u.hp}/${u.maxHp}` : "";
   return (u.cargo ? `${doing(u)} \xB7 \u651C\u5E36${resourceNames2[u.cargo.resource]} ${u.cargo.amount}` : doing(u)) + life;
@@ -4852,17 +8884,18 @@ async function deposit(monkIds, buildingId) {
     notice(reason(e));
   }
 }
+var buildingsOnly = (k) => !!k && k in combatRules.units && !!combatRules.units[k].buildingsOnly;
 async function attack(target, label) {
   const unitIds = [...selected].filter((id) => {
     const k = state.units.find((u) => u.id === id)?.kind;
-    return k !== "monk" && !isAnimal(k ?? "") && !(k === "ram" && target.kind === "unit");
+    return k !== "monk" && !isAnimal(k ?? "") && !unarmed(k) && !(buildingsOnly(k) && target.kind === "unit");
   }).sort((a, b) => a - b);
-  if (!unitIds.length && [...selected].some((id) => state.units.find((u) => u.id === id)?.kind === "ram")) {
-    notice("\u653B\u57CE\u69CC\u53EA\u80FD\u653B\u64CA\u5EFA\u7BC9\u3002");
+  if (!unitIds.length && [...selected].some((id) => buildingsOnly(state.units.find((u) => u.id === id)?.kind))) {
+    notice("\u653B\u57CE\u69CC\u8207\u5DE8\u578B\u6295\u77F3\u6A5F\u53EA\u80FD\u653B\u64CA\u5EFA\u7BC9\u3002");
     return;
   }
   if (!unitIds.length) {
-    notice(selected.size ? "\u50E7\u4FB6\u8207\u7272\u755C\u4E0D\u80FD\u653B\u64CA\uFF1A\u53F3\u9375\u6575\u65B9\u55AE\u4F4D\u6539\u70BA\u8F49\u5316\u3002" : "\u8ACB\u5148\u9078\u53D6\u55AE\u4F4D\u3002");
+    notice(selected.size ? "\u6240\u9078\u55AE\u4F4D\u4E0D\u80FD\u653B\u64CA\uFF08\u50E7\u4FB6\u6539\u70BA\u8F49\u5316\uFF1B\u6F01\u8239\u3001\u904B\u8F38\u8239\u8207\u8CBF\u6613\u55AE\u4F4D\u6C92\u6709\u6B66\u5668\uFF09\u3002" : "\u8ACB\u5148\u9078\u53D6\u55AE\u4F4D\u3002");
     return;
   }
   try {
@@ -4935,28 +8968,74 @@ var costText = (k) => Object.entries(costOf2(k)).filter(([, v]) => v > 0).map(([
 var entryName = (k) => entryOf3(k)?.name ?? k;
 var ageNames2 = ["", "\u7B2C\u4E00\u6642\u4EE3", entryName("age-2"), entryName("age-3"), entryName("age-4")];
 var uniqueKinds = civDefs.flatMap((c) => c.uniqueUnits);
-var unitNames = { villager: "\u6751\u6C11", militia: "\u8FD1\u6230\u6C11\u5175", archer: "\u5F13\u624B", scout: "\u65A5\u5019", monk: "\u50E7\u4FB6", sheep: "\u7F8A", deer: "\u9E7F", boar: "\u91CE\u8C6C", spearman: "\u9577\u69CD\u5175", skirmisher: "\u6563\u5175", knight: "\u9A0E\u58EB", ram: "\u653B\u57CE\u69CC", ...Object.fromEntries(uniqueKinds.map((k) => [k, entryName(k)])) };
+var unitNames = { villager: "\u6751\u6C11", militia: "\u8FD1\u6230\u6C11\u5175", archer: "\u5F13\u624B", scout: "\u65A5\u5019", monk: "\u50E7\u4FB6", sheep: "\u7F8A", deer: "\u9E7F", boar: "\u91CE\u8C6C", spearman: "\u9577\u69CD\u5175", skirmisher: "\u6563\u5175", knight: "\u9A0E\u58EB", ram: "\u653B\u57CE\u69CC" };
+for (const k of Object.keys(combatRules.units)) if (!(k in unitNames) && entryOf3(k)?.kind === "unit") unitNames[k] = entryName(k);
 var ownName = (kind) => lineName(kind, state.economy.techs) ?? unitNames[kind];
 var nameOf2 = (u) => u.player === 0 ? ownName(u.kind) : unitNames[u.kind];
-var soldierKinds2 = /* @__PURE__ */ new Set(["militia", "archer", "spearman", "skirmisher", "knight", "ram", ...uniqueKinds]);
+var combatKinds = Object.keys(combatRules.units);
+var soldierKinds2 = new Set(combatKinds.filter((k) => k !== "villager" && k !== "monk" && k !== "scout" && !isAnimal(k) && combatRules.units[k].attack !== "none"));
 var villagersIn = (ids) => [...ids].filter((id) => state.units.find((u) => u.id === id)?.kind === "villager").sort((a, b) => a - b);
+var fishersIn = (ids) => [...ids].filter((id) => state.units.find((u) => u.id === id)?.kind === "fishing-ship").sort((a, b) => a - b);
+var buildersOf = (k) => k === "fish-trap" ? fishersIn(selected) : villagersIn(selected);
+var buildMode = () => villagersIn(selected).length ? "villager" : fishersIn(selected).length ? "fisher" : null;
+var isShip = (k) => !!k && layerOf(k) === "water";
+var unarmed = (k) => !!k && k in combatRules.units && combatRules.units[k].attack === "none";
 var leftOut = (ids) => {
   const n = selected.size - ids.length;
   return n > 0 ? `\uFF08\u5176\u9918 ${n} \u500B\u9078\u53D6\u55AE\u4F4D\u4E0D\u662F\u6751\u6C11\uFF0C\u672A\u6D3E\u51FA\uFF09` : "";
 };
 function buildBlocker(k) {
-  if (!villagersIn(selected).length) return "\u5148\u9078\u53D6\u6751\u6C11";
-  const req = buildRequirement(state.economy.age, k, state.buildings, myCiv());
+  if (!buildersOf(k).length) return k === "fish-trap" ? "\u5148\u9078\u53D6\u6F01\u8239" : "\u5148\u9078\u53D6\u6751\u6C11";
+  const req = buildRequirement(state.economy.age, k, state.buildings, myCiv(), state.economy.techs);
   if (req) return req;
   const st = state.economy.stock, c = costOf2(k), short = Object.keys(c).filter((r) => st[r] < c[r]);
   return short.length ? short.map((r) => `${resourceNames2[r]}\u4E0D\u8DB3\uFF1A\u9700\u8981 ${c[r]}\uFF0C\u76EE\u524D ${st[r]}`).join("\uFF1B") : null;
 }
-var ownBuildKinds = () => buildKinds.filter((k) => civAvailable(myCiv(), k));
+var ownBuildKinds = () => buildKinds.filter((k) => civAvailable(myCiv(), k) && (buildMode() === "fisher" ? k === "fish-trap" : k !== "fish-trap"));
+var buildPage = 0;
+var fortKinds = /* @__PURE__ */ new Set(["palisade-wall", "palisade-gate", "stone-wall", "gate", "outpost", "bombard-tower"]);
+var pageOf = (k) => k === "fish-trap" ? buildPage : fortKinds.has(k) || entryOf3(k)?.requires.some((r) => ageOf(r) >= 3) ? 1 : 0;
+var pageNames = ["\u57FA\u672C\u5EFA\u7BC9", "\u9632\u79A6\u8207\u7B2C\u4E09\u6642\u4EE3\u5EFA\u7BC9"];
+var tileOrder = [
+  "house",
+  "barracks",
+  "farm",
+  "lumber-camp",
+  "mining-camp",
+  "mill",
+  "stable",
+  "archery-range",
+  "blacksmith",
+  "watch-tower",
+  "dock",
+  "market",
+  "fish-trap",
+  "palisade-wall",
+  "stone-wall",
+  "palisade-gate",
+  "gate",
+  "outpost",
+  "bombard-tower",
+  "town-center",
+  "monastery",
+  "siege-workshop",
+  "university",
+  "castle",
+  "wonder"
+];
 function renderBuild() {
-  const show = !selectedBuilding && villagersIn(selected).length > 0, kinds = ownBuildKinds();
+  const show2 = !selectedBuilding && !!buildMode(), kinds = ownBuildKinds();
+  {
+    const t = el("build-page"), next = 1 - buildPage, other = kinds.filter((k) => pageOf(k) === next);
+    t.hidden = !show2 || !other.length;
+    t.dataset.tip = pageNames[next];
+    t.setAttribute("aria-label", `${pageNames[next]}\uFF08N\uFF09\uFF1A${other.map((k) => buildingNames2[k]).join("\u3001")}`);
+    t.querySelector(".roman").textContent = next ? "II" : "I";
+  }
   for (const k of buildKinds) {
     const b = el(`build-${k}`), why = buildBlocker(k);
-    b.hidden = !show || !kinds.includes(k);
+    b.style.order = String(tileOrder.indexOf(k));
+    b.hidden = !show2 || !kinds.includes(k) || pageOf(k) !== buildPage;
     b.disabled = !connected || graphicsFailed || !!why;
     b.setAttribute("aria-label", `${buildingNames2[k]}\uFF08${costText(k)}\uFF09${why ? `\uFF1A${why}` : ""}`);
     b.setAttribute("aria-pressed", String(placing === k));
@@ -4965,7 +9044,7 @@ function renderBuild() {
     setImg(img, img.dataset.icon);
   }
   const reasons = kinds.map((k) => [k, buildBlocker(k)]).filter(([, w]) => w);
-  el("build-reason").textContent = placing ? preview?.problem ? `\u4E0D\u80FD\u653E\u5728\u9019\u88E1\uFF1A${preview.problem}` : `\u5DE6\u9375\u653E\u7F6E${buildingNames2[placing]}\uFF1BShift\uFF0B\u5DE6\u9375\u9023\u7E8C\u653E\u7F6E\uFF1B\u53F3\u9375\u6216 Esc \u53D6\u6D88\u3002` : reasons.length === kinds.length && reasons[0][1] === "\u5148\u9078\u53D6\u6751\u6C11" ? "\u5148\u9078\u53D6\u6751\u6C11\u624D\u80FD\u5EFA\u9020\u3002" : reasons.map(([k, w]) => `${buildingNames2[k]}\uFF1A${w}`).join("\u3000");
+  el("build-reason").textContent = placing ? wallPlan ? wallPlan.note : preview?.problem ? `\u4E0D\u80FD\u653E\u5728\u9019\u88E1\uFF1A${preview.problem}` : wallKinds2.has(placing) ? `\u5728\u8D77\u9EDE\u6309\u4E0B\u5DE6\u9375\uFF0C\u62D6\u5230\u7D42\u9EDE\u653E\u958B\uFF08\u6216\u518D\u9EDE\u4E00\u6B21\u7D42\u9EDE\uFF09\uFF1A\u4E00\u6B21\u4E00\u5217\uFF0C\u6BCF\u683C\u4E00\u6BB5\uFF1B\u53F3\u9375\u6216 Esc \u53D6\u6D88\u3002` : `\u5DE6\u9375\u653E\u7F6E${buildingNames2[placing]}\uFF1BShift\uFF0B\u5DE6\u9375\u9023\u7E8C\u653E\u7F6E\uFF1B\u53F3\u9375\u6216 Esc \u53D6\u6D88\u3002` : reasons.length === kinds.length && (reasons[0][1] === "\u5148\u9078\u53D6\u6751\u6C11" || reasons[0][1] === "\u5148\u9078\u53D6\u6F01\u8239") ? "\u5148\u9078\u53D6\u6751\u6C11\u624D\u80FD\u5EFA\u9020\u3002" : reasons.filter(([k]) => pageOf(k) === buildPage).map(([k, w]) => `${buildingNames2[k]}\uFF1A${w}`).join("\u3000");
   el("stop").hidden = !!selectedBuilding || !chosenUnits().length;
   {
     const g = el("garrison-cmd"), fit = chosenUnits().filter((u) => canShelter.has(u.kind));
@@ -4973,6 +9052,10 @@ function renderBuild() {
     g.disabled = !connected || graphicsFailed || !state.buildings.some((b) => b.complete && b.capacity > b.garrison);
   }
 }
+var buildingTitle = (k) => {
+  const t = state.economy.techs;
+  return k === "watch-tower" && t.includes("keep") ? entryName("keep") : k === "watch-tower" && t.includes("guard-tower") ? entryName("guard-tower") : buildingNames2[k] ?? k;
+};
 function renderBuilding() {
   const panel = el("building-panel"), b = state.buildings.find((b2) => b2.id === selectedBuilding);
   panel.hidden = !b;
@@ -4985,19 +9068,81 @@ function renderBuilding() {
     return;
   }
   const builders = state.units.filter((u) => u.work === "building" || u.work === "toSite").length;
-  el("building-title").textContent = buildingNames2[b.kind] ?? b.kind;
-  el("building-owner").textContent = `\u85CD\u65B9 \xB7 ${civName(myCiv())}`;
+  el("building-title").textContent = buildingTitle(b.kind);
+  el("building-owner").textContent = `\u85CD\u65B9 \xB7 ${civName2(myCiv())}`;
   const housing = (buildingRules.capacity[b.kind] ?? 0) + housingBonus(mine(), b.kind);
   setImg(el("building-portrait"), b.kind === "farm" ? "farm" : `${b.kind}-${state.economy.age}`);
   el("building-hp").textContent = `${b.hp}/${b.maxHp}`;
+  {
+    const [m, p] = buildingTargetOf(b.kind, mine()).armor;
+    el("building-armor").textContent = `\u8B77\u7532 ${m}/${p}`;
+  }
   el("building-hp-bar").style.width = `${Math.max(0, b.hp) * 100 / Math.max(1, b.maxHp)}%`;
-  const field = b.kind === "farm" ? state.resources.find((r) => r.id === `resource-${b.id}`) : void 0;
-  el("building-status").textContent = (b.hp < b.maxHp ? `\u751F\u547D ${b.hp}/${b.maxHp} \xB7 ` : "") + (b.complete && b.capacity ? `\u9032\u99D0 ${b.garrison}/${b.capacity} \xB7 ` : "") + (b.complete ? housing ? `\u5DF2\u5B8C\u5DE5 \xB7 \u63D0\u4F9B\u4EBA\u53E3 ${housing}` : field ? `\u5269\u9918\u98DF\u7269 ${field.remaining}/${field.capacity}\uFF08\u53F3\u9375\u6D3E\u6751\u6C11\u8015\u4F5C\uFF09` : b.kind === "monastery" ? `\u5DF2\u5B8C\u5DE5 \xB7 \u8056\u7269 ${b.relics}/10\uFF08\u6BCF\u5206\u9418 +${b.relics * 30} \u9EC3\u91D1\uFF09` : "\u5DF2\u5B8C\u5DE5" : `\u65BD\u5DE5\u4E2D ${Math.floor(b.work * 100 / b.required)}%\uFF08\u5168\u9AD4\u65BD\u5DE5\u4E2D\u7684\u6751\u6C11\uFF1A${builders} \u540D\uFF09`);
+  const field = b.kind === "farm" || b.kind === "fish-trap" ? state.resources.find((r) => r.id === `resource-${b.id}`) : void 0;
+  el("building-status").textContent = (b.hp < b.maxHp ? `\u751F\u547D ${b.hp}/${b.maxHp} \xB7 ` : "") + (b.complete && b.capacity ? `\u9032\u99D0 ${b.garrison}/${b.capacity} \xB7 ` : "") + (b.complete ? housing ? `\u5DF2\u5B8C\u5DE5 \xB7 \u63D0\u4F9B\u4EBA\u53E3 ${housing}` : field ? `\u5269\u9918\u98DF\u7269 ${field.remaining}/${field.capacity}\uFF08\u53F3\u9375\u6D3E${b.kind === "fish-trap" ? "\u6F01\u8239\u6355\u6488" : "\u6751\u6C11\u8015\u4F5C"}\uFF09` : b.kind === "monastery" ? `\u5DF2\u5B8C\u5DE5 \xB7 \u8056\u7269 ${b.relics}/10\uFF08\u6BCF\u5206\u9418 +${b.relics * 30} \u9EC3\u91D1\uFF09` : b.kind === "market" ? `\u6BCF\u6B21 ${marketRules.lot} \u55AE\u4F4D\uFF0C\u50F9\u683C\u4EE5\u9EC3\u91D1\u8A08 \xB7 \u624B\u7E8C\u8CBB ${state.market.fee}%` : b.kind === "wonder" ? wonderLine(b.id) : "\u5DF2\u5B8C\u5DE5" : `\u65BD\u5DE5\u4E2D ${Math.floor(b.work * 100 / b.required)}%\uFF08\u5168\u9AD4\u65BD\u5DE5\u4E2D\u7684\u6751\u6C11\uFF1A${builders} \u540D\uFF09`);
+  renderMarket(b);
   renderProduction(b);
   const refund = b.kind in buildingNames2 && !b.complete ? `\u53D6\u6D88\u5EFA\u9020\uFF08\u9000\u56DE ${costText(b.kind)}\uFF09` : "\u53D6\u6D88\u5EFA\u9020";
   cancel.setAttribute("aria-label", refund);
   cancel.dataset.tip = refund;
 }
+var marketKey = "";
+function renderMarket(b) {
+  const box2 = el("market-panel"), on = b.kind === "market" && b.complete;
+  box2.hidden = !on;
+  if (!on) {
+    marketKey = "";
+    return;
+  }
+  if (marketKey !== b.id) {
+    marketKey = b.id;
+    box2.replaceChildren(...["sell", "buy"].map((action) => {
+      const row = document.createElement("div"), label = document.createElement("span");
+      row.className = "mk";
+      label.textContent = action === "sell" ? "\u8CE3\u51FA" : "\u8CB7\u5165";
+      row.append(label);
+      for (const r of marketResources) {
+        const btn = document.createElement("button"), icon = document.createElement("img"), n = document.createElement("b");
+        btn.className = action;
+        btn.dataset.market = `${action}:${r}`;
+        icon.alt = resourceNames2[r];
+        setImg(icon, r);
+        btn.append(icon, n);
+        btn.onclick = () => void market(action, r);
+        row.append(btn);
+      }
+      return row;
+    }));
+  }
+  const st = state.economy.stock;
+  for (const btn of Array.from(box2.querySelectorAll("button[data-market]"))) {
+    const [action, r] = btn.dataset.market.split(":"), q = marketQuote(state.market.prices, mine(), r), price = action === "sell" ? q.sell : q.buy;
+    const why = action === "sell" ? st[r] < marketRules.lot ? `${resourceNames2[r]}\u4E0D\u8DB3 ${marketRules.lot}` : "" : st.gold < price ? `\u9EC3\u91D1\u4E0D\u8DB3 ${price}` : "";
+    btn.querySelector("b").textContent = String(price);
+    btn.disabled = !connected || graphicsFailed || !!why;
+    const label = action === "sell" ? `\u8CE3\u51FA ${marketRules.lot} ${resourceNames2[r]}\uFF0C\u5F97 ${price} \u9EC3\u91D1` : `\u4EE5 ${price} \u9EC3\u91D1\u8CB7\u5165 ${marketRules.lot} ${resourceNames2[r]}`;
+    btn.title = why ? `${label}\uFF1A${why}` : label;
+    btn.setAttribute("aria-label", btn.title);
+  }
+}
+async function market(action, resource) {
+  const q = marketQuote(state.market.prices, mine(), resource);
+  try {
+    await client.request({ kind: "market", action, resource });
+    audio.play("order");
+    notice(action === "sell" ? `\u8CE3\u51FA ${marketRules.lot} ${resourceNames2[resource]}\uFF0C\u5F97 ${q.sell} \u9EC3\u91D1\uFF08tick ${state.tick + 1} \u6210\u4EA4\uFF09\u3002` : `\u4EE5 ${q.buy} \u9EC3\u91D1\u8CB7\u5165 ${marketRules.lot} ${resourceNames2[resource]}\uFF08tick ${state.tick + 1} \u6210\u4EA4\uFF09\u3002`);
+  } catch (e) {
+    notice(reason(e));
+  }
+}
+var clockOf = (ticks) => {
+  const t = Math.max(0, Math.floor(ticks / rules.settings.tickHz));
+  return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+};
+var wonderLine = (id) => {
+  const w = state.wonders.find((w2) => w2.building === id);
+  return w ? `\u5DF2\u5B8C\u5DE5 \xB7 \u5B88\u4F4F ${clockOf(w.endsTick - state.tick)} \u5373\u53EF\u7372\u52DD` : "\u5DF2\u5B8C\u5DE5";
+};
 var classNames = {
   cavalry: "\u9A0E\u5175",
   archer: "\u5F13\u5175",
@@ -5012,10 +9157,18 @@ var classNames = {
   skirmisher: "\u6563\u5175",
   monk: "\u50E7\u4FB6",
   villager: "\u6751\u6C11",
-  animal: "\u52D5\u7269"
+  animal: "\u52D5\u7269",
+  camel: "\u99F1\u99DD\u9A0E\u5175",
+  petard: "\u70B8\u85E5\u6876"
 };
 function extrasOf(st) {
   const out = [];
+  if (st.buildingsOnly) out.push("\u53EA\u80FD\u653B\u64CA\u5EFA\u7BC9");
+  if (st.minRange) out.push(`\u6700\u8FD1\u5C04\u7A0B ${st.minRange / 100} \u683C`);
+  if (st.blast) out.push(`\u843D\u9EDE ${st.blast / 100} \u683C\u5167\u7684\u6575\u5175\u4E00\u4F75\u53D7\u64CA`);
+  if (st.passThrough) out.push(`\u8CAB\u7A7F\uFF1A\u76EE\u6A19\u5F8C\u65B9 ${st.passThrough / 100} \u683C\u5167\u6CBF\u9014\u7684\u6575\u5175\u53D7\u534A\u50B7`);
+  if (st.setup) out.push(`\u67B6\u8A2D\u3001\u6536\u8D77\u5404 ${st.setup / rules.settings.tickHz} \u79D2`);
+  if (st.selfDestruct) out.push("\u653B\u64CA\u4E00\u6B21\u5373\u81EA\u6BC0");
   if (st.regen) out.push(`\u6BCF\u5206\u9418\u56DE\u5FA9\u751F\u547D ${st.regen}`);
   if (st.extraShots) out.push(`\u6BCF\u6B21\u591A\u5C04 ${st.extraShots} \u652F\u7BAD\uFF08\u5404 ${st.extraDamage ?? 1} \u50B7\u5BB3\uFF09`);
   if (st.splash) out.push(`\u8E10\u8E0F\uFF1A\u76EE\u6A19\u65C1\u7684\u6575\u5175\u53D7 ${st.splash} \u50B7\u5BB3`);
@@ -5026,6 +9179,10 @@ function statLine(st) {
   return [`\u751F\u547D ${st.hp}`, `\u653B\u64CA ${st.damage}`, st.range <= 50 ? "\u8FD1\u6230" : `\u5C04\u7A0B ${st.range / 100} \u683C`, `\u8B77\u7532 ${st.armor[0]}/${st.armor[1]}`, bonusText2(st), ...extrasOf(st)].filter(Boolean).join("\u3001");
 }
 var groupKey = "";
+{
+  const box2 = el("unit-facts");
+  box2.addEventListener("scroll", () => box2.classList.toggle("more", box2.scrollWidth - box2.scrollLeft > box2.clientWidth + 1), { passive: true });
+}
 function renderSelection() {
   const chosen2 = chosenUnits(), b = state.buildings.find((v) => v.id === selectedBuilding);
   el("sel-empty").hidden = !!b || chosen2.length > 0;
@@ -5035,10 +9192,10 @@ function renderSelection() {
     const u = chosen2[0], stats = statsOf(u.kind, mine());
     setImg(el("unit-portrait"), `${u.kind}-face`);
     el("unit-name").textContent = nameOf2(u);
-    el("unit-owner").textContent = isAnimal(u.kind) ? "\u85CD\u65B9\u7684\u7272\u755C" : `\u85CD\u65B9 \xB7 ${civName(myCiv())} \xB7 #${u.id}`;
+    el("unit-owner").textContent = isAnimal(u.kind) ? "\u85CD\u65B9\u7684\u7272\u755C" : `\u85CD\u65B9 \xB7 ${civName2(myCiv())} \xB7 #${u.id}`;
     el("unit-hp").textContent = `${u.hp}/${u.maxHp}`;
     el("unit-hp-bar").style.width = `${Math.max(0, u.hp) * 100 / Math.max(1, u.maxHp)}%`;
-    const facts = `${u.kind}|${u.faith ?? ""}|${statLine(stats)}|${u.cargo ? `${u.cargo.resource}:${u.cargo.amount}` : ""}`;
+    const pack = packState(u) === null ? null : u.unpacked ? "\u5DF2\u67B6\u8A2D" : "\u79FB\u52D5\u72C0\u614B", facts = `${u.kind}|${u.faith ?? ""}|${statLine(stats)}|${JSON.stringify(state.transports.find((t) => t.id === u.id) ?? "")}|${JSON.stringify(state.trades.find((t) => t.unitId === u.id) ?? "")}|${u.cargo ? `${u.cargo.resource}:${u.cargo.amount}` : ""}|${pack ?? ""}`;
     const box2 = el("unit-facts");
     if (box2.dataset.key !== facts) {
       box2.dataset.key = facts;
@@ -5061,6 +9218,30 @@ function renderSelection() {
       } else if (u.kind === "monk") {
         add(`\u8F49\u5316\u5C04\u7A0B ${religionRules.convertRange / 100} \u683C`);
         add(`\u4FE1\u4EF0 ${u.faith ?? 100}%`);
+      } else if (unarmed(u.kind)) {
+        add(`\u8B77\u7532 ${stats.armor[0]}/${stats.armor[1]}`).title = "\u8FD1\u6230\u8B77\u7532\uFF0F\u9060\u7A0B\u8B77\u7532";
+        add("\u6C92\u6709\u6B66\u5668").className = "dim";
+        const t = state.transports.find((t2) => t2.id === u.id);
+        if (t) {
+          const s = add(`\u4E58\u5BA2 ${t.passengers.length}/${t.capacity}`);
+          s.title = "\u53F3\u9375\u5DF1\u65B9\u904B\u8F38\u8239\u8B93\u9678\u4E0A\u55AE\u4F4D\u767B\u8239\uFF1B\u9078\u53D6\u904B\u8F38\u8239\u5F8C\u53F3\u9375\u9678\u5730\u5378\u4E0B";
+          if (t.passengers.length) {
+            const row = document.createElement("span");
+            row.className = "riders";
+            for (const p of t.passengers) {
+              const i = document.createElement("img");
+              i.alt = unitNames[p.kind] ?? p.kind;
+              i.title = `${ownName(p.kind)} ${p.id} \xB7 \u751F\u547D ${p.hp}/${p.maxHp}`;
+              setImg(i, `${p.kind}-face`);
+              row.append(i);
+            }
+            box2.append(row);
+          }
+        }
+        const tr = state.trades.find((t2) => t2.unitId === u.id);
+        if (tr) add(`\u6BCF\u8D9F ${tr.gold}`, "gold").title = "\u56DE\u5230\u5DF1\u65B9\u6642\u5165\u5E33";
+        else if (u.kind in tradeHome) add(u.kind === "trade-cog" ? "\u53F3\u9375\u7D05\u65B9\u78BC\u982D\u958B\u59CB\u8CBF\u6613" : "\u53F3\u9375\u7D05\u65B9\u5E02\u96C6\u958B\u59CB\u8CBF\u6613").className = "dim";
+        if (u.kind === "fishing-ship") add("\u53F3\u9375\u9B5A\u7FA4\u6216\u9B5A\u7DB2\u6355\u9B5A\uFF0C\u9001\u56DE\u78BC\u982D").className = "dim";
       } else {
         add(`\u653B\u64CA ${stats.damage}`);
         add(stats.range <= 50 ? "\u8FD1\u6230" : `\u5C04\u7A0B ${stats.range / 100} \u683C`);
@@ -5068,10 +9249,12 @@ function renderSelection() {
         const edge = bonusText2(stats);
         if (edge) add(edge);
         for (const x of extrasOf(stats)) add(x);
-        if (stats.classes.includes("unique")) add(`${civName(myCiv())}\u7279\u6B8A\u55AE\u4F4D`).className = "dim";
+        if (pack) add(pack).title = "\u67B6\u8A2D\u5F8C\u624D\u80FD\u5C04\u64CA\uFF0C\u6536\u8D77\u5F8C\u624D\u80FD\u79FB\u52D5";
+        if (stats.classes.includes("unique")) add(`${civName2(myCiv())}\u7279\u6B8A\u55AE\u4F4D`).className = "dim";
       }
-      if (u.cargo) add(`${u.cargo.amount}/${carryOf(state.economy.techs, economyRules.carryCapacity)}`, u.cargo.resource);
+      if (u.cargo) add(`${u.cargo.amount}/${u.kind === "villager" ? carryOf(state.economy.techs, economyRules.carryCapacity) : economyRules.carryCapacity}`, u.cargo.resource);
     }
+    box2.classList.toggle("more", box2.scrollWidth - box2.scrollLeft > box2.clientWidth + 1);
     el("unit-status").textContent = doing(u);
   }
   if (!b && chosen2.length > 1) {
@@ -5092,9 +9275,9 @@ function renderSelection() {
         const img = document.createElement("img");
         img.alt = "";
         setImg(img, `${u.kind}-face`);
-        const bar = document.createElement("i"), fill = document.createElement("i");
-        bar.append(fill);
-        btn.append(img, bar);
+        const bar2 = document.createElement("i"), fill = document.createElement("i");
+        bar2.append(fill);
+        btn.append(img, bar2);
         btn.onclick = (e) => {
           if (e.shiftKey) toggle(u.id);
           else choose(u.id);
@@ -5128,7 +9311,7 @@ function renderOutcome() {
     audio.play(o.reason === "resign" && !won ? "resign" : won ? "victory" : "defeat");
   }
   el("result-title").textContent = won ? "\u52DD\u5229" : o.winner === null ? "\u96D9\u65B9\u540C\u6B78\u65BC\u76E1" : "\u6230\u6557";
-  const why = o.reason === "resign" ? won ? "\u7D05\u65B9\u6295\u964D\u3002" : "\u4F60\u5DF2\u6295\u964D\u3002" : o.reason === "relic" ? won ? "\u85CD\u65B9\u6301\u6709\u5168\u90E8\u8056\u7269 200 \u5E74\u3002" : "\u7D05\u65B9\u6301\u6709\u5168\u90E8\u8056\u7269 200 \u5E74\u3002" : won ? "\u7D05\u65B9\u5DF2\u6C92\u6709\u4EFB\u4F55\u55AE\u4F4D\u8207\u5EFA\u7BC9\u3002" : "\u85CD\u65B9\u5DF2\u6C92\u6709\u4EFB\u4F55\u55AE\u4F4D\u8207\u5EFA\u7BC9\u3002";
+  const why = o.reason === "resign" ? won ? "\u7D05\u65B9\u6295\u964D\u3002" : "\u4F60\u5DF2\u6295\u964D\u3002" : o.reason === "relic" ? won ? "\u85CD\u65B9\u6301\u6709\u5168\u90E8\u8056\u7269 200 \u5E74\u3002" : "\u7D05\u65B9\u6301\u6709\u5168\u90E8\u8056\u7269 200 \u5E74\u3002" : o.reason === "wonder" ? won ? "\u85CD\u65B9\u7684\u4E16\u754C\u5947\u89C0\u5C79\u7ACB 200 \u5E74\u3002" : "\u7D05\u65B9\u7684\u4E16\u754C\u5947\u89C0\u5C79\u7ACB 200 \u5E74\u3002" : won ? "\u7D05\u65B9\u5DF2\u6C92\u6709\u4EFB\u4F55\u55AE\u4F4D\u8207\u5EFA\u7BC9\u3002" : "\u85CD\u65B9\u5DF2\u6C92\u6709\u4EFB\u4F55\u55AE\u4F4D\u8207\u5EFA\u7BC9\u3002";
   el("result-detail").textContent = `${el("clock").textContent}\uFF08tick ${o.tick}\uFF09\uFF1A${why}`;
   if (running) setRunning(false);
   renderPaused();
@@ -5163,10 +9346,15 @@ function reportEvents() {
   }
   for (const t of state.economy.techs) if (!before.economy.techs.includes(t)) {
     feed(`\u5DF2\u7814\u7A76\u300C${entryName(t)}\u300D`);
-    audio.play("age");
+    audio.play("research");
   }
   if (state.relicVictory && !before.relicVictory) feed(state.relicVictory.player === 0 ? "\u85CD\u65B9\u6301\u6709\u5168\u90E8\u8056\u7269\uFF1A\u5B88\u4F4F 200 \u5E74\u5373\u53EF\u7372\u52DD" : "\u7D05\u65B9\u6301\u6709\u5168\u90E8\u8056\u7269\uFF1A200 \u5E74\u5F8C\u7D05\u65B9\u7372\u52DD", state.relicVictory.player === 0 ? "info" : "alarm");
   if (!state.relicVictory && before.relicVictory) feed("\u8056\u7269\u52DD\u5229\u5012\u6578\u4E2D\u6B62");
+  for (const w of state.wonders) if (w.player === 1 && !before.wonders.some((v) => v.building === w.building)) {
+    feed(`\u7D05\u65B9\u5EFA\u6210\u4E16\u754C\u5947\u89C0\uFF1A${clockOf(w.endsTick - state.tick)} \u5167\u6467\u6BC0\u5B83\uFF0C\u5426\u5247\u7D05\u65B9\u7372\u52DD`, "alarm");
+    audio.play("alarm");
+  }
+  for (const w of before.wonders) if (!state.wonders.some((v) => v.building === w.building)) feed(w.player === 0 ? "\u85CD\u65B9\u7684\u4E16\u754C\u5947\u89C0\u5012\u4E0B\u4E86" : "\u7D05\u65B9\u7684\u4E16\u754C\u5947\u89C0\u88AB\u6467\u6BC0", "info");
   const side = new Map(before.units.map((u) => [u.id, u.player]));
   for (const u of state.units) {
     const was = side.get(u.id);
@@ -5209,6 +9397,9 @@ function reportEvents() {
   }
   const lastHp = new Map(before.units.map((u) => [u.id, u.hp]));
   if (state.units.some((u) => (lastHp.get(u.id) ?? u.hp) > u.hp)) audio.play("hit");
+  const acting = new Set(before.units.filter((u) => u.action === 1).map((u) => u.id)), fired = state.units.filter((u) => u.action === 1 && !acting.has(u.id)).map((u) => combatRules.units[u.kind]).filter(Boolean);
+  if (fired.some((r) => r.classes.includes("gunpowder"))) audio.play("gunshot");
+  if (fired.some((r) => !r.classes.includes("gunpowder") && (r.blast || r.setup))) audio.play("launch");
   const hp = new Map([...before.units.filter((u) => u.player === 0 && !isAnimal(u.kind)).map((u) => [`u${u.id}`, u.hp]), ...before.buildings.map((b) => [`b${b.id}`, b.hp])]);
   const hurt = [...ownUnits().filter((u) => (hp.get(`u${u.id}`) ?? u.hp) > u.hp).map((u) => ({ x: u.x, y: u.y })), ...state.buildings.filter((b) => (hp.get(`b${b.id}`) ?? b.hp) > b.hp).map((b) => ({ x: b.x + 100, y: b.y + 100 }))];
   const boar = hurt.length && state.units.some((u) => u.kind === "boar" && Math.max(Math.abs(u.x - hurt[0].x), Math.abs(u.y - hurt[0].y)) <= 100);
@@ -5227,7 +9418,7 @@ function reportTransactions() {
     if (!t.ok) notice(`\u6307\u4EE4\u5728 tick ${t.tick} \u672A\u57F7\u884C\uFF1A${t.error}`);
   }
 }
-function selectBuilding(id) {
+function selectBuilding2(id) {
   if (id && id !== selectedBuilding) audio.play("order");
   selectedBuilding = id;
   if (id) select2([]);
@@ -5245,35 +9436,55 @@ function buildingAt(x, y, id) {
   })());
 }
 function placeAt(k, gx, gy) {
-  const [x0, y0, x1, y1] = obstacleBounds({ kind: k, x: 0, y: 0 }), g = buildingRules.grid, x = Math.round((gx * 100 - (x0 + x1) / 2) / g) * g, y = Math.round((gy * 100 - (y0 + y1) / 2) / g) * g;
-  const problem = placementProblem({ tiles: state.terrain, obstacles: state.known.map((o) => o.obstacle), units: state.units, explored: (t) => (state.fog[t] ?? 0) > 0 }, k, x, y);
-  return { x, y, problem };
+  const [x0, y0, x1, y1] = obstacleBounds({ kind: k, x: 0, y: 0 }), g = k === "dock" ? 100 : buildingRules.grid, x = Math.round((gx * 100 - (x0 + x1) / 2) / g) * g, y = Math.round((gy * 100 - (y0 + y1) / 2) / g) * g;
+  return { x, y, problem: segmentProblem(k, x, y) };
+}
+var segmentProblem = (k, x, y) => placementProblem({ tiles: state.terrain, obstacles: state.known.map((o) => o.obstacle), units: k === "fish-trap" ? [] : state.units.filter((u) => !isShip(u.kind)), explored: (t) => (state.fog[t] ?? 0) > 0 }, k, x, y, 0);
+var wallStart = null;
+var wallPlan = null;
+function planWall(k, gx, gy) {
+  if (!wallStart) return null;
+  const to = { x: Math.floor(gx) * 100, y: Math.floor(gy) * 100 }, cost = costOf2(k), stock = { ...state.economy.stock };
+  let fit = 0, first = null;
+  const segments = wallLine(wallStart, to).map((p) => {
+    const why = segmentProblem(k, p.x, p.y), afford = !why && resources.every((r) => stock[r] >= cost[r]);
+    if (afford) {
+      for (const r of resources) stock[r] -= cost[r];
+      fit++;
+    } else first ??= why ?? "\u8CC7\u6E90\u4E0D\u8DB3";
+    return { ...p, ok: afford };
+  });
+  const total = resources.filter((r) => cost[r] > 0).map((r) => `${resourceNames2[r]} ${cost[r] * fit}`).join("\u3001");
+  return { to, segments, note: fit ? `${buildingNames2[k]} ${fit} \u6BB5\uFF0C\u5171 ${total}${fit < segments.length ? `\uFF1B${segments.length - fit} \u6BB5\u7565\u904E\uFF08${first}\uFF09` : ""}\u3002\u653E\u958B\u6216\u518D\u9EDE\u4E00\u6B21\u78BA\u5B9A\uFF1B\u53F3\u9375\u6216 Esc \u53D6\u6D88\u3002` : `\u4E0D\u80FD\u653E\u5728\u9019\u88E1\uFF1A${first}` };
 }
 function stopPlacing(message) {
   placing = null;
   preview = null;
+  wallStart = null;
+  wallPlan = null;
   scene?.setGhost(null);
+  scene?.setGhosts([]);
   if (message) notice(message);
   render();
 }
-async function build(k, x, y) {
-  const unitIds = villagersIn(selected);
+async function build(k, x, y, to) {
+  const unitIds = buildersOf(k);
   if (!unitIds.length) {
-    notice("\u6240\u9078\u55AE\u4F4D\u4E2D\u6C92\u6709\u6751\u6C11\u3002");
+    notice(k === "fish-trap" ? "\u6240\u9078\u55AE\u4F4D\u4E2D\u6C92\u6709\u6F01\u8239\u3002" : "\u6240\u9078\u55AE\u4F4D\u4E2D\u6C92\u6709\u6751\u6C11\u3002");
     return;
   }
   try {
-    await client.request({ kind: "build", unitIds, building: k, x, y });
+    await client.request({ kind: "build", unitIds, building: k, x, y, ...to ? { to } : {} });
     audio.play("place");
-    notice(`${names2(unitIds)} \u524D\u5F80\u5EFA\u9020${buildingNames2[k]}\uFF1B\u653E\u7F6E\u6642\u6263\u9664 ${costText(k)}\u3002${leftOut(unitIds)}`);
+    notice(`${names2(unitIds)} \u524D\u5F80\u5EFA\u9020${buildingNames2[k]}${to ? "\uFF08\u6574\u5217\u57CE\u7246\uFF0C\u9010\u6BB5\u6263\u6B3E\uFF09" : `\uFF1B\u653E\u7F6E\u6642\u6263\u9664 ${costText(k)}`}\u3002${k === "fish-trap" ? "" : leftOut(unitIds)}`);
   } catch (e) {
     notice(reason(e));
   }
 }
 async function construct(buildingId) {
-  const unitIds = villagersIn(selected);
+  const trap = state.buildings.find((b) => b.id === buildingId)?.kind === "fish-trap", unitIds = trap ? fishersIn(selected) : villagersIn(selected);
   if (!unitIds.length) {
-    notice("\u6240\u9078\u55AE\u4F4D\u4E2D\u6C92\u6709\u6751\u6C11\uFF0C\u4E0D\u80FD\u65BD\u5DE5\u3002");
+    notice(trap ? "\u9B5A\u7DB2\u53EA\u80FD\u7531\u6F01\u8239\u65BD\u5DE5\u3002" : "\u6240\u9078\u55AE\u4F4D\u4E2D\u6C92\u6709\u6751\u6C11\uFF0C\u4E0D\u80FD\u65BD\u5DE5\u3002");
     return;
   }
   try {
@@ -5285,28 +9496,31 @@ async function construct(buildingId) {
 }
 var productionKey = "";
 var queueKey = "";
+var unitRole = {
+  spearman: "\u9577\u69CD\u6B65\u5175\uFF0C\u4FBF\u5B9C",
+  skirmisher: "\u64F2\u6A19\u69CD\uFF0C\u9060\u7A0B\u8B77\u7532\u9AD8",
+  knight: "\u91CD\u9A0E\u5175\uFF0C\u79FB\u52D5\u5FEB",
+  ram: "\u5E7E\u4E4E\u4E0D\u53D7\u5F13\u7BAD\u50B7\u5BB3\uFF0C\u79FB\u52D5\u5F88\u6162",
+  "cavalry-archer": "\u9A0E\u99AC\u5C04\u7BAD\uFF0C\u79FB\u52D5\u5FEB",
+  camel: "\u524B\u9A0E\u5175\uFF0C\u79FB\u52D5\u5FEB",
+  mangonel: "\u6295\u77F3\u7838\u5411\u6575\u7FA4",
+  scorpion: "\u5F29\u7BAD\u8CAB\u7A7F\u6210\u5217\u7684\u6575\u5175",
+  trebuchet: "\u9060\u8DDD\u653B\u57CE\uFF0C\u5C04\u64CA\u524D\u8981\u67B6\u8A2D\u3001\u79FB\u52D5\u524D\u8981\u6536\u8D77",
+  petard: "\u885D\u5230\u76EE\u6A19\u65C1\u5F15\u7206\uFF0C\u5C08\u70B8\u5EFA\u7BC9\u8207\u653B\u57CE\u5668",
+  "hand-cannoneer": "\u706B\u85E5\u6B65\u5175\uFF0C\u524B\u6B65\u5175",
+  "bombard-cannon": "\u706B\u85E5\u653B\u57CE\u7832\uFF0C\u9060\u8DDD\u8F5F\u64CA\u5EFA\u7BC9"
+};
 var militaryText = {
-  ram: "\u53EA\u80FD\u653B\u64CA\u5EFA\u7BC9\uFF08\u5C0D\u5EFA\u7BC9 +40\uFF09\uFF0C\u5E7E\u4E4E\u4E0D\u53D7\u5F13\u7BAD\u50B7\u5BB3\uFF0C\u79FB\u52D5\u5F88\u6162",
   "watch-tower": "\u81EA\u52D5\u5C04\u7BAD\uFF08\u5C04\u7A0B 3.5 \u683C\uFF09\uFF1B\u53EF\u9032\u99D0 5 \u540D\uFF0C\u6751\u6C11\u8207\u5F13\u5175\u5404\u591A 1 \u652F\u7BAD",
-  "siege-workshop": "\u8A13\u7DF4\u653B\u57CE\u69CC",
-  spearman: "\u9577\u69CD\u6B65\u5175\uFF1A\u5C0D\u9A0E\u5175 +12 \u50B7\u5BB3\uFF0C\u4FBF\u5B9C",
-  skirmisher: "\u64F2\u6A19\u69CD\uFF1A\u5C0D\u5F13\u5175 +4\u3001\u5C0D\u9577\u69CD\u5175 +3\uFF0C\u9060\u7A0B\u8B77\u7532\u9AD8",
-  knight: "\u91CD\u9A0E\u5175\uFF1A\u751F\u547D 100\u3001\u653B\u64CA 10\u3001\u8B77\u7532 2/2\uFF0C\u79FB\u52D5\u5FEB",
-  "man-at-arms": "\u8FD1\u6230\u6C11\u5175\u5347\u7D1A\u70BA\u91CD\u6B65\u5175\uFF1A\u751F\u547D 55\u3001\u653B\u64CA 8",
-  "long-swordsman": "\u91CD\u6B65\u5175\u5347\u7D1A\u70BA\u9577\u528D\u58EB\uFF1A\u751F\u547D 60\u3001\u653B\u64CA 9\u3001\u8B77\u7532 1/1",
-  pikeman: "\u9577\u69CD\u5175\u5347\u7D1A\u70BA\u9577\u77DB\u5175\uFF1A\u751F\u547D 55\u3001\u5C0D\u9A0E\u5175 +18",
-  crossbowman: "\u5F13\u624B\u5347\u7D1A\u70BA\u5F29\u624B\uFF1A\u751F\u547D 35\u3001\u653B\u64CA 5\u3001\u5C04\u7A0B 3 \u683C",
-  "elite-skirmisher": "\u6563\u5175\u5347\u7D1A\u70BA\u7CBE\u92B3\u6563\u5175\uFF1A\u751F\u547D 35\u3001\u653B\u64CA 3\u3001\u9060\u7A0B\u8B77\u7532 4",
-  "light-cavalry": "\u65A5\u5019\u5347\u7D1A\u70BA\u8F15\u9A0E\u5175\uFF1A\u751F\u547D 60\u3001\u653B\u64CA 5",
-  forging: "\u6B65\u5175\u8207\u9A0E\u5175\u653B\u64CA +1",
-  "iron-casting": "\u6B65\u5175\u8207\u9A0E\u5175\u653B\u64CA\u518D +1",
-  "blast-furnace": "\u6B65\u5175\u8207\u9A0E\u5175\u653B\u64CA\u518D +2",
+  forging: "\u6B65\u5175\u3001\u9A0E\u5175\u8207\u99F1\u99DD\u9A0E\u5175\u653B\u64CA +1",
+  "iron-casting": "\u6B65\u5175\u3001\u9A0E\u5175\u8207\u99F1\u99DD\u9A0E\u5175\u653B\u64CA\u518D +1",
+  "blast-furnace": "\u6B65\u5175\u3001\u9A0E\u5175\u8207\u99F1\u99DD\u9A0E\u5175\u653B\u64CA\u518D +2",
   "scale-mail-armor": "\u6B65\u5175\u8B77\u7532 +1/+1",
   "chain-mail-armor": "\u6B65\u5175\u8B77\u7532\u518D +1/+1",
   "plate-mail-armor": "\u6B65\u5175\u8B77\u7532\u518D +1/+2",
-  "scale-barding-armor": "\u9A0E\u5175\u8B77\u7532 +1/+1",
-  "chain-barding-armor": "\u9A0E\u5175\u8B77\u7532\u518D +1/+1",
-  "plate-barding-armor": "\u9A0E\u5175\u8B77\u7532\u518D +1/+2",
+  "scale-barding-armor": "\u9A0E\u5175\u8207\u99F1\u99DD\u9A0E\u5175\u8B77\u7532 +1/+1",
+  "chain-barding-armor": "\u9A0E\u5175\u8207\u99F1\u99DD\u9A0E\u5175\u8B77\u7532\u518D +1/+1",
+  "plate-barding-armor": "\u9A0E\u5175\u8207\u99F1\u99DD\u9A0E\u5175\u8B77\u7532\u518D +1/+2",
   fletching: "\u5F13\u5175\u653B\u64CA +1\u3001\u5C04\u7A0B +0.5 \u683C",
   "bodkin-arrow": "\u5F13\u5175\u653B\u64CA\u518D +1\u3001\u5C04\u7A0B +0.5 \u683C",
   bracer: "\u5F13\u5175\u653B\u64CA\u518D +1\u3001\u5C04\u7A0B +0.5 \u683C",
@@ -5315,7 +9529,7 @@ var militaryText = {
   "ring-archer-armor": "\u5F13\u5175\u8B77\u7532\u518D +1/+2",
   blacksmith: "\u7814\u7A76\u6B65\u5175\u3001\u9A0E\u5175\u3001\u5F13\u5175\u7684\u653B\u64CA\u8207\u8B77\u7532"
 };
-var techEffects = {
+var techEffects2 = {
   ...techEffectText,
   ...militaryText,
   redemption: "\u50E7\u4FB6\u53EF\u4EE5\u8F49\u5316\u6575\u65B9\u5EFA\u7BC9\uFF08\u57CE\u93AE\u4E2D\u5FC3\u3001\u4FEE\u9053\u9662\u3001\u8FB2\u7530\u9664\u5916\uFF09\uFF0C\u5FC5\u9808\u7AD9\u5728\u65C1\u908A",
@@ -5327,28 +9541,43 @@ var techEffects = {
   theocracy: "\u4E00\u7FA4\u50E7\u4FB6\u8F49\u5316\u6210\u529F\u5F8C\uFF0C\u53EA\u6709\u4E00\u540D\u9700\u8981\u6062\u5FA9\u4FE1\u4EF0",
   faith: "\u5DF1\u65B9\u55AE\u4F4D\u66F4\u96E3\u88AB\u8F49\u5316\uFF08\u7B2C 6 \u6B21\u624D\u53EF\u80FD\u6210\u529F\uFF0C\u6700\u9072\u7B2C 14 \u6B21\uFF09"
 };
-var stripName = (text, name) => text.startsWith(`${name}\uFF1A`) ? text.slice(name.length + 1) : text;
+var stripName2 = (text, name) => text.startsWith(`${name}\uFF1A`) ? text.slice(name.length + 1) : text;
 function civText(id) {
   const o = mine(), civ = civDefs.find((c) => c.uniqueUnits.includes(id) || c.eliteUpgrades.includes(id) || c.uniqueTechs.some((t) => t.id === id));
-  if (uniqueKinds.includes(id)) return `${civName(civ?.id)}\u7279\u6B8A\u55AE\u4F4D\uFF1A${statLine(statsOf(id, o))}`;
+  if (uniqueKinds.includes(id)) return `${civName2(civ?.id)}\u7279\u6B8A\u55AE\u4F4D\uFF1A${statLine(statsOf(id, o))}`;
   const up = lineUpgrades.find((u) => u.id === id);
-  if (up && civ) return `${unitNames[up.kind]}\u5347\u7D1A\u70BA${up.name}\uFF1A${statLine(statsOf(up.kind, { ...o, techs: [...o.techs, id] }))}`;
+  if (up) return `${ownName(up.kind)}\u5347\u7D1A\u70BA${up.name}\uFF1A${statLine(statsOf(up.kind, { ...o, techs: [...o.techs, id] }))}`;
+  if (id in combatRules.units && combatRules.units[id].attack !== "none") {
+    const role = unitRole[id];
+    return `${role ? `${role}\uFF1B` : ""}${statLine(statsOf(id, o))}`;
+  }
   const ut = civ?.uniqueTechs.find((t) => t.id === id);
   if (ut) {
-    const own = civ.effects.filter((e) => e.trigger.tech === id).map((e) => stripName(e.text, ut.name));
-    return `${civName(civ.id)}\u7279\u6B8A\u79D1\u6280\uFF1A${own.length ? own.join("\uFF1B") : ut.effectText}`;
+    const own = civ.effects.filter((e) => e.trigger.tech === id).map((e) => stripName2(e.text, ut.name));
+    return `${civName2(civ.id)}\u7279\u6B8A\u79D1\u6280\uFF1A${own.length ? own.join("\uFF1B") : ut.effectText}`;
   }
   if (id === "castle") {
-    const a = defenseRules.arrows.castle, x = arrowsOf(o, "castle"), units = civById(myCiv())?.uniqueUnits.map((k) => unitNames[k]).join("\u3001");
-    return `${units ? `\u8A13\u7DF4${units}\u3001` : ""}\u7814\u7A76\u7279\u6B8A\u79D1\u6280\uFF1B\u81EA\u52D5\u5C04 ${a.base + x.extra} \u652F\u7BAD\uFF08\u5C04\u7A0B ${(a.range + x.range) / 100} \u683C\uFF09\uFF1B\u53EF\u9032\u99D0 ${defenseRules.capacity.castle + garrisonBonus(o, "castle")} \u540D\uFF0C\u6751\u6C11\u8207\u5F13\u5175\u5404\u591A 1 \u652F\u7BAD`;
+    const a = defenseRules.arrows.castle, x = arrowsOf(o, "castle"), units2 = trainsAt("castle").join("\u3001");
+    return `${units2 ? `\u8A13\u7DF4${units2}\u3001` : ""}\u7814\u7A76\u7279\u6B8A\u79D1\u6280\uFF1B\u81EA\u52D5\u5C04 ${a.base + x.extra} \u652F\u7BAD\uFF08\u5C04\u7A0B ${(a.range + x.range) / 100} \u683C\uFF09\uFF1B\u53EF\u9032\u99D0 ${defenseRules.capacity.castle + garrisonBonus(o, "castle")} \u540D\uFF0C\u6751\u6C11\u8207\u5F13\u5175\u5404\u591A 1 \u652F\u7BAD`;
   }
-  return "";
+  if (entryOf3(id)?.kind !== "building") return "";
+  const trains = trainsAt(id);
+  if (trains.length) return `\u8A13\u7DF4${trains.join("\u3001")}`;
+  const research = producedAt(id, mine()).filter((k) => civAvailable(myCiv(), k) && entryOf3(k)?.kind === "technology").map(entryName);
+  return research.length ? `\u7814\u7A76${research.join("\u3001")}` : "";
 }
+function techText2(id) {
+  if (entryOf3(id)?.kind !== "technology" || ageOf(id)) return "";
+  const own = techEffects.filter((e) => e.trigger.tech === id && (!e.select.kinds || !!e.select.classes?.length || e.select.kinds.some((k) => civAvailable(myCiv(), k)))).map((e) => stripName2(e.text, entryName(id)));
+  const opens = rules.entries.filter((e) => e.kind === "unit" && e.requires.includes(id) && civAvailable(myCiv(), e.id)).map((e) => e.name);
+  return [...own, opens.length ? `\u89E3\u9396${opens.join("\u3001")}` : ""].filter(Boolean).join("\uFF1B");
+}
+var trainsAt = (building2) => producedAt(building2, mine()).filter((k) => civAvailable(myCiv(), k) && entryOf3(k)?.kind === "unit").map(ownName);
 var civExtra = (id) => {
   const civ = civById(myCiv());
   return !civ || civ.uniqueTechs.some((t) => t.id === id) ? "" : civ.effects.filter((e) => e.trigger.tech === id).map((e) => e.text).join("\uFF1B");
 };
-var trainKeys = ["Q", "W", "E", "R", "T", "A", "D", "Z", "X", "C"];
+var trainKeys = ["Q", "W", "E", "R", "T", "A", "D", "Z", "X", "C", "V", "B", "Y"];
 var entryIcon = (id) => {
   const up = lineUpgrades.find((u) => u.id === id);
   return ageOf(id) ? `town-center-${ageOf(id)}` : up ? `${up.kind}-face` : entryOf3(id)?.kind === "technology" ? `tech-${id}` : `${id}-face`;
@@ -5493,10 +9722,10 @@ function renderProduction(b) {
       cancel.onclick = () => void cancelTrain(b.id, q.id);
       row.append(img, label, cancel);
       if (i === 0) {
-        const bar = document.createElement("div");
-        bar.className = "q-bar";
-        bar.append(document.createElement("i"));
-        row.append(bar);
+        const bar2 = document.createElement("div");
+        bar2.className = "q-bar";
+        bar2.append(document.createElement("i"));
+        row.append(bar2);
       }
       return row;
     }));
@@ -5509,11 +9738,11 @@ function renderProduction(b) {
     const fill = label.parentElement.querySelector(".q-bar i");
     if (fill) fill.style.width = `${Math.min(100, q.work * 100 / q.required)}%`;
   }
-  el("rally-hint").textContent = b.complete && entries.some((id) => entryOf3(id)?.kind === "unit") ? `\u96C6\u7D50\u9EDE\uFF1A${b.rally ? `(${(b.rally.x / 100).toFixed(1)}, ${(b.rally.y / 100).toFixed(1)})` : "\u672A\u8A2D\u5B9A"}\uFF08\u53F3\u9375\u5730\u9762\u8A2D\u5B9A\uFF09` : "";
+  el("rally-hint").textContent = b.complete && entries.some((id) => entryOf3(id)?.kind === "unit") ? `\u96C6\u7D50\u9EDE\uFF1A${b.rally ? `(${(b.rally.x / 100).toFixed(1)}, ${(b.rally.y / 100).toFixed(1)})` : "\u672A\u8A2D\u5B9A"}\uFF08\u53F3\u9375${b.kind === "dock" ? "\u6C34\u9762" : "\u5730\u9762"}\u8A2D\u5B9A\uFF09` : "";
 }
 var tipTile = null;
 function tileCard(btn) {
-  const card = document.createDocumentFragment(), line = (cls, text) => {
+  const card = document.createDocumentFragment(), line2 = (cls, text) => {
     const p = document.createElement("span");
     p.className = cls;
     p.textContent = text;
@@ -5525,14 +9754,14 @@ function tileCard(btn) {
   card.append(title);
   if (!id) {
     title.textContent = `${btn.dataset.tip}\uFF08${btn.dataset.key ?? (btn.id === "stop" ? "S" : "Del")}\uFF09`;
-    line("meta", btn.id === "garrison-cmd" ? "\u6240\u9078\u7684\u6751\u6C11\u3001\u6B65\u5175\u3001\u5F92\u6B65\u5F13\u5175\u8207\u50E7\u4FB6\u8D70\u9032\u6700\u8FD1\u3001\u9084\u6709\u7A7A\u4F4D\u7684\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u6216\u57CE\u5821\u3002" : btn.id === "ungarrison" ? "\u88E1\u9762\u7684\u55AE\u4F4D\u8D70\u51FA\u4F86\uFF1B\u88AB\u9418\u8072\u53EB\u9032\u53BB\u7684\u6751\u6C11\u6703\u56DE\u5230\u539F\u672C\u7684\u5DE5\u4F5C\u3002" : btn.id === "bell" ? "\u6240\u6709\u6751\u6C11\u8EB2\u9032\u6700\u8FD1\u3001\u9084\u6709\u7A7A\u4F4D\u7684\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u6216\u57CE\u5821\uFF0C\u4E26\u8A18\u4F4F\u539F\u672C\u7684\u5DE5\u4F5C\uFF1B\u518D\u6309\u4E00\u6B21\u56DE\u53BB\u5DE5\u4F5C\u3002" : btn.id === "reseed" ? `\u8FB2\u7530\u8017\u76E1\u6642\uFF0C\u8FB2\u592B\u7ACB\u523B\u5728\u539F\u5730\u91CD\u5EFA\uFF08\u6263\u6728\u6750 ${costOf2("farm").wood}\uFF09\uFF0C\u5B8C\u5DE5\u5F8C\u7E7C\u7E8C\u8015\u4F5C\uFF1B\u6728\u6750\u4E0D\u8DB3\u6642\u5C31\u4E0D\u88DC\u7A2E\u3002\u6309\u4E00\u4E0B\u5207\u63DB\u3002` : btn.id === "stop" ? "\u6240\u9078\u55AE\u4F4D\u5728\u4E0B\u4E00\u500B\u7BC0\u9EDE\u505C\u4E0B\uFF0C\u4E26\u653E\u4E0B\u76EE\u524D\u7684\u5DE5\u4F5C\u3002" : "\u62C6\u9664\u5730\u57FA\uFF1B\u8CBB\u7528\u5168\u984D\u9000\u56DE\u3002");
+    line2("meta", btn.id === "garrison-cmd" ? "\u6240\u9078\u7684\u6751\u6C11\u3001\u6B65\u5175\u3001\u5F92\u6B65\u5F13\u5175\u8207\u50E7\u4FB6\u8D70\u9032\u6700\u8FD1\u3001\u9084\u6709\u7A7A\u4F4D\u7684\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u6216\u57CE\u5821\u3002" : btn.id === "ungarrison" ? "\u88E1\u9762\u7684\u55AE\u4F4D\u8D70\u51FA\u4F86\uFF1B\u88AB\u9418\u8072\u53EB\u9032\u53BB\u7684\u6751\u6C11\u6703\u56DE\u5230\u539F\u672C\u7684\u5DE5\u4F5C\u3002" : btn.id === "bell" ? "\u6240\u6709\u6751\u6C11\u8EB2\u9032\u6700\u8FD1\u3001\u9084\u6709\u7A7A\u4F4D\u7684\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u6216\u57CE\u5821\uFF0C\u4E26\u8A18\u4F4F\u539F\u672C\u7684\u5DE5\u4F5C\uFF1B\u518D\u6309\u4E00\u6B21\u56DE\u53BB\u5DE5\u4F5C\u3002" : btn.id === "build-page" ? `${ownBuildKinds().filter((k) => pageOf(k) !== buildPage).map((k) => buildingNames2[k]).join("\u3001")}\u3002\u5EFA\u7BC9\u7684\u5B57\u6BCD\u9375\u5728\u54EA\u4E00\u9801\u90FD\u80FD\u76F4\u63A5\u6309\u3002` : btn.id === "reseed" ? `\u8FB2\u7530\u8017\u76E1\u6642\uFF0C\u8FB2\u592B\u7ACB\u523B\u5728\u539F\u5730\u91CD\u5EFA\uFF08\u6263\u6728\u6750 ${costOf2("farm").wood}\uFF09\uFF0C\u5B8C\u5DE5\u5F8C\u7E7C\u7E8C\u8015\u4F5C\uFF1B\u6728\u6750\u4E0D\u8DB3\u6642\u5C31\u4E0D\u88DC\u7A2E\u3002\u6309\u4E00\u4E0B\u5207\u63DB\u3002` : btn.id === "stop" ? "\u6240\u9078\u55AE\u4F4D\u5728\u4E0B\u4E00\u500B\u7BC0\u9EDE\u505C\u4E0B\uFF0C\u4E26\u653E\u4E0B\u76EE\u524D\u7684\u5DE5\u4F5C\u3002" : "\u62C6\u9664\u5730\u57FA\uFF1B\u8CBB\u7528\u5168\u984D\u9000\u56DE\u3002");
     return card;
   }
   const e = entryOf3(id), why = btn.dataset.train ? trainBlocker(trainInput(state.buildings.find((v) => v.id === selectedBuilding)), id) : buildBlocker(id);
-  title.textContent = `${btn.dataset.build ? buildingNames2[id] : entryName(id)}\uFF08${btn.dataset.key}\uFF09`;
+  title.textContent = `${btn.dataset.build ? buildingTitle(id) : lineName(id, state.economy.techs) ?? entryName(id)}\uFF08${btn.dataset.key}\uFF09`;
   const cost = document.createElement("span");
   cost.className = "cost";
-  const price = costOf2(id), at = btn.dataset.train ? state.buildings.find((v) => v.id === selectedBuilding) : void 0, secs = at ? Math.round(timeTicks(id, mine(), at.kind) / rules.settings.tickHz) : e.time;
+  const price = costOf2(id), at = btn.dataset.train ? state.buildings.find((v) => v.id === selectedBuilding) : void 0, secs2 = at ? Math.round(timeTicks(id, mine(), at.kind) / rules.settings.tickHz) : e.time;
   for (const r of resources) if (price[r] > 0) {
     const s = document.createElement("span"), i = document.createElement("img");
     i.alt = resourceNames2[r];
@@ -5543,20 +9772,40 @@ function tileCard(btn) {
   }
   card.append(cost);
   const housing = (buildingRules.capacity[id] ?? 0) + (btn.dataset.build ? housingBonus(mine(), id) : 0);
-  line("meta", [`${secs} \u79D2`, e.population ? `\u4EBA\u53E3 ${e.population}` : "", housing ? `\u63D0\u4F9B\u4EBA\u53E3 ${housing}` : "", id === "farm" ? `\u5B8C\u5DE5\u5F8C\u53EF\u8015\u4F5C ${farmFoodOf(state.economy.techs, terrainRules.resourceCapacity.farm)} \u98DF\u7269\uFF0C\u53EF\u4EE5\u8D70\u4E0A\u53BB\uFF1B\u5EFA\u9020\u7684\u6751\u6C11\u6703\u63A5\u8457\u8015\u4F5C` : "", { "lumber-camp": "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u6728\u6750", "mining-camp": "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u9EC3\u91D1\u8207\u77F3\u982D", mill: "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u98DF\u7269", monastery: "\u8A13\u7DF4\u50E7\u4FB6\uFF1A\u8F49\u5316\u6575\u65B9\u55AE\u4F4D\u3001\u6CBB\u7642\u5DF1\u65B9\u55AE\u4F4D\uFF1B\u5B58\u653E\u8056\u7269\uFF08\u6BCF\u500B\u6BCF\u5206\u9418 30 \u9EC3\u91D1\uFF09", ...techEffects }[id] ?? civText(id)].filter(Boolean).join(" \xB7 "));
+  line2("meta", [`${secs2} \u79D2`, e.population ? `\u4EBA\u53E3 ${e.population}` : "", housing ? `\u63D0\u4F9B\u4EBA\u53E3 ${housing}` : "", id === "farm" ? `\u5B8C\u5DE5\u5F8C\u53EF\u8015\u4F5C ${farmFoodOf(state.economy.techs, terrainRules.resourceCapacity.farm)} \u98DF\u7269\uFF0C\u53EF\u4EE5\u8D70\u4E0A\u53BB\uFF1B\u5EFA\u9020\u7684\u6751\u6C11\u6703\u63A5\u8457\u8015\u4F5C` : "", techText2(id) || buildNote(id) || { "lumber-camp": "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u6728\u6750", "mining-camp": "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u9EC3\u91D1\u8207\u77F3\u982D", mill: "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u98DF\u7269", monastery: "\u8A13\u7DF4\u50E7\u4FB6\uFF1A\u8F49\u5316\u6575\u65B9\u55AE\u4F4D\u3001\u6CBB\u7642\u5DF1\u65B9\u55AE\u4F4D\uFF1B\u5B58\u653E\u8056\u7269\uFF08\u6BCF\u500B\u6BCF\u5206\u9418 30 \u9EC3\u91D1\uFF09", ...techEffects2 }[id] || civText(id)].filter(Boolean).join(" \xB7 "));
   {
     const x = civExtra(id);
-    if (x) line("meta", `${civName(myCiv())}\uFF1A${x}`);
+    if (x) line2("meta", `${civName2(myCiv())}\uFF1A${x}`);
   }
-  if (why) line("why", why);
+  if (why) line2("why", why);
   return card;
+}
+function buildNote(id) {
+  const shot = (k) => {
+    const a = defenseRules.arrows[k], x = arrowsOf(mine(), k);
+    return `\u653B\u64CA ${a.damage + x.damage}\u3001\u5C04\u7A0B ${(a.range + x.range) / 100} \u683C${a.bonus?.ship ? `\u3001\u5C0D\u8239 +${a.bonus.ship + (x.bonus.ship ?? 0)}` : ""}`;
+  };
+  const wall = "\u6309\u4F4F\u5DE6\u9375\u5F9E\u8D77\u9EDE\u62D6\u5230\u7D42\u9EDE\uFF08\u6216\u9EDE\u5169\u4E0B\uFF09\uFF0C\u4E00\u6B21\u84CB\u4E00\u6574\u5217\uFF0C\u6BCF\u683C\u4E00\u6BB5", gate = "\u5DF1\u65B9\u55AE\u4F4D\u53EF\u4EE5\u901A\u904E\uFF0C\u6575\u65B9\u4E0D\u884C\uFF1B\u53EF\u76F4\u63A5\u84CB\u5728\u5DF1\u65B9\u540C\u6750\u8CEA\u7684\u57CE\u7246\u4E0A\uFF0C\u53D6\u4EE3\u90A3\u4E00\u6BB5";
+  return {
+    dock: `\u84CB\u5728\u7DCA\u9130\u9678\u5730\u7684\u6C34\u9762\u4E0A\uFF1B\u6F01\u8239\u5728\u6B64\u9001\u4EA4\u9B5A\uFF1B${civText("dock")}`,
+    market: `\u4EE5\u9EC3\u91D1\u8CB7\u8CE3\u98DF\u7269\u3001\u6728\u6750\u3001\u77F3\u982D\uFF08\u6BCF\u6B21 ${marketRules.lot} \u55AE\u4F4D\uFF0C\u50F9\u683C\u5169\u65B9\u5171\u7528\uFF09\uFF1B${civText("market")}\uFF0C\u5F80\u8FD4\u7D05\u65B9\u5E02\u96C6\u8CFA\u9EC3\u91D1`,
+    "fish-trap": `\u7531\u6F01\u8239\u653E\u5728\u6C34\u9762\u4E0A\uFF1B\u5B8C\u5DE5\u5F8C\u53EA\u6709\u81EA\u5DF1\u7684\u6F01\u8239\u80FD\u6355\u6488 ${terrainRules.resourceCapacity["fish-trap"]} \u98DF\u7269`,
+    outpost: "\u53EA\u63D0\u4F9B\u8996\u91CE\uFF0C\u4E0D\u6703\u5C04\u64CA",
+    "palisade-wall": wall,
+    "stone-wall": wall,
+    "palisade-gate": gate,
+    gate,
+    "bombard-tower": `\u81EA\u52D5\u767C\u5C04\u7832\u5F48\uFF08${shot("bombard-tower")}\uFF09\uFF1B\u53EF\u9032\u99D0 ${defenseRules.capacity["bombard-tower"]} \u540D\uFF0C\u4F46\u4E0D\u6703\u591A\u5C04`,
+    "town-center": `\u8A13\u7DF4\u6751\u6C11\u3001\u7814\u7A76\u7D93\u6FDF\u79D1\u6280\uFF0C\u6240\u6709\u8CC7\u6E90\u90FD\u80FD\u9001\u4EA4\u9019\u88E1\uFF1B\u81EA\u52D5\u5C04\u7BAD\uFF08${shot("town-center")}\uFF09`,
+    wonder: `\u5B8C\u5DE5\u5F8C\u5B88\u4F4F ${clockOf(religionRules.relics.victoryTicks)}\uFF08200 \u5E74\uFF09\u5373\u53EF\u7372\u52DD\uFF1B\u5169\u65B9\u90FD\u6703\u88AB\u544A\u77E5\u4F4D\u7F6E`
+  }[id] ?? "";
 }
 function renderNote() {
   const box2 = el("cmd-note"), tip = el("tip"), build2 = el("build-reason"), prod = el("production-reason");
-  const live = tipTile && !tipTile.hidden && tipTile.isConnected ? tipTile : null;
+  const live = tipTile && tipTile.isConnected && !tipTile.closest("[hidden]") ? tipTile : null;
   tip.hidden = !live;
   if (live) tip.replaceChildren(tileCard(live));
-  build2.hidden = !!live || !!selectedBuilding || !villagersIn(selected).length || !build2.textContent;
+  build2.hidden = !!live || !!selectedBuilding || !buildMode() || !build2.textContent;
   prod.hidden = !!live || !selectedBuilding || !prod.textContent;
   box2.hidden = tip.hidden && build2.hidden && prod.hidden;
 }
@@ -5661,7 +9910,7 @@ async function cancelTrain(buildingId, itemId) {
   }
 }
 async function rally(buildingId, x, y) {
-  const to = openPoint(x, y);
+  const to = openPoint(x, y, state.buildings.find((b) => b.id === buildingId)?.kind === "dock" ? "water" : "land");
   scene?.setMarker("rally", to.x / 100, to.y / 100);
   try {
     await client.request({ kind: "rally", buildingId, x: to.x, y: to.y });
@@ -5757,14 +10006,14 @@ async function connect() {
 el("worker-retry").onclick = () => void connect();
 var kindOf = (id) => ownName(state.units.find((u) => u.id === id)?.kind ?? "villager");
 var names2 = (ids) => ids.length > 3 ? `${ids.length} \u540D\u55AE\u4F4D` : ids.map((id) => `${kindOf(id)} ${id}`).join("\u3001");
-function openPoint(x, y) {
+function openPoint(x, y, movement = "land") {
   const map = { obstacles: state.known.map((k) => k.obstacle), tiles: state.terrain.map((t, id) => ({ ...t, id, resourceRefs: [], obstacleRefs: [] })) }, p0 = { x: Math.round(x * 100), y: Math.round(y * 100) };
   const edge = state.size * 100 - 50;
   for (let r = 0; r <= 300; r += 25) for (let dy = -r; dy <= r; dy += 25) for (let dx = -r; dx <= r; dx += 25) {
     if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
     const p = { x: p0.x + dx, y: p0.y + dy };
     if (p.x < 50 || p.y < 50 || p.x > edge || p.y > edge) continue;
-    if (clearSegment(map, p, p)) return p;
+    if (clearSegment(map, p, p, movement)) return p;
   }
   return p0;
 }
@@ -5774,7 +10023,12 @@ async function move(x, y, exact = false) {
     notice("\u8ACB\u5148\u9078\u53D6\u55AE\u4F4D\uFF1A\u5DE6\u9375\u9EDE\u9078\u6216\u62D6\u66F3\u6846\u9078\u3002");
     return;
   }
-  const to = exact ? { x: Math.round(x * 100), y: Math.round(y * 100) } : openPoint(x, y);
+  const ships2 = unitIds.map((id) => state.units.find((u) => u.id === id)), loaded = state.transports.filter((t) => t.passengers.length && unitIds.includes(t.id));
+  if (!exact && loaded.length && ships2.every((u) => u?.kind === "transport-ship") && landAt(x, y)) {
+    void unload(loaded.map((t) => t.id), x, y);
+    return;
+  }
+  const to = exact ? { x: Math.round(x * 100), y: Math.round(y * 100) } : openPoint(x, y, ships2.every((u) => isShip(u?.kind)) ? "water" : "land");
   scene?.setMarker("move", to.x / 100, to.y / 100);
   try {
     await client.request({ kind: "move", unitIds, x: to.x, y: to.y });
@@ -5785,15 +10039,17 @@ async function move(x, y, exact = false) {
   }
 }
 async function gather(resourceId) {
-  const unitIds = villagersIn(selected);
-  if (!unitIds.length) {
-    notice(selected.size ? "\u6240\u9078\u55AE\u4F4D\u4E2D\u6C92\u6709\u6751\u6C11\uFF0C\u4E0D\u80FD\u63A1\u96C6\u3002" : "\u8ACB\u5148\u9078\u53D6\u6751\u6C11\u3002");
+  const r = state.resources.find((r2) => r2.id === resourceId), wet = r?.kind === "fish" || r?.kind === "fish-trap", fishers = wet ? fishersIn(selected) : [], unitIds = r?.kind === "fish-trap" || fishers.length ? [] : villagersIn(selected);
+  if (!unitIds.length && !fishers.length) {
+    notice(!selected.size ? "\u8ACB\u5148\u9078\u53D6\u6751\u6C11\u3002" : wet ? "\u6240\u9078\u55AE\u4F4D\u4E2D\u6C92\u6709\u6F01\u8239\u6216\u6751\u6C11\uFF0C\u4E0D\u80FD\u6355\u9B5A\u3002" : "\u6240\u9078\u55AE\u4F4D\u4E2D\u6C92\u6709\u6751\u6C11\uFF0C\u4E0D\u80FD\u63A1\u96C6\u3002");
     return;
   }
   try {
-    await client.request({ kind: "gather", unitIds, resourceId });
+    if (fishers.length) await client.request({ kind: "gather", unitIds: fishers, resourceId });
+    if (unitIds.length) await client.request({ kind: "gather", unitIds, resourceId });
     audio.play("order");
-    notice(`${names2(unitIds)} \u524D\u5F80\u63A1\u96C6\u3002${leftOut(unitIds)}${running ? "" : resumeHint()}`);
+    const all = [...fishers, ...unitIds];
+    notice(`${names2(all)} \u524D\u5F80${wet ? "\u6355\u9B5A" : "\u63A1\u96C6"}\u3002${all.length < selected.size ? `\uFF08\u5176\u9918 ${selected.size - all.length} \u500B\u9078\u53D6\u55AE\u4F4D\u4E0D\u80FD\u63A1\u96C6\uFF0C\u672A\u6D3E\u51FA\uFF09` : ""}${running ? "" : resumeHint()}`);
   } catch (e) {
     notice(reason(e));
   }
@@ -5806,6 +10062,40 @@ function resourceAt(x, y) {
     const [x0, y0, x1, y1] = obstacleBounds({ kind, x: r.x, y: r.y }, 10);
     return p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1;
   });
+}
+var landAt = (x, y) => {
+  const t = state.terrain[Math.floor(y) * state.size + Math.floor(x)];
+  return !!t && t.terrainType !== "water";
+};
+async function load(unitIds, ship2) {
+  const t = state.transports.find((t2) => t2.id === ship2.id), room = t ? t.capacity - t.passengers.length : 0;
+  try {
+    await client.request({ kind: "load", unitIds, transportId: ship2.id });
+    audio.play("order");
+    notice(`${names2(unitIds)} \u767B\u4E0A\u904B\u8F38\u8239 ${ship2.id}\uFF08${t ? `${t.passengers.length}/${t.capacity}` : ""}\uFF09\u3002${unitIds.length > room ? `\uFF08\u7A7A\u4F4D\u53EA\u5269 ${room}\uFF09` : ""}${running ? "" : resumeHint()}`);
+  } catch (e) {
+    notice(reason(e));
+  }
+}
+async function unload(transportIds, x, y) {
+  const p = { x: Math.round(x * 100), y: Math.round(y * 100) };
+  scene?.setMarker("move", x, y);
+  try {
+    for (const id of transportIds) await client.request({ kind: "unload", transportId: id, x: p.x, y: p.y });
+    audio.play("order");
+    notice(`\u904B\u8F38\u8239\u99DB\u5411 (${x.toFixed(1)}, ${y.toFixed(1)}) \u9644\u8FD1\u7684\u5CB8\u908A\u5378\u4E0B\u4E58\u5BA2\u3002${running ? "" : resumeHint()}`);
+  } catch (e) {
+    notice(reason(e));
+  }
+}
+async function trade(unitIds, buildingId, label) {
+  try {
+    await client.request({ kind: "trade", unitIds, buildingId });
+    audio.play("order");
+    notice(`${names2(unitIds)} \u958B\u59CB\u8207${label}\u8CBF\u6613\uFF1A\u6BCF\u8D9F\u56DE\u5230\u5DF1\u65B9${unitIds.some((id) => state.units.find((u) => u.id === id)?.kind === "trade-cog") ? "\u78BC\u982D" : "\u5E02\u96C6"}\u6642\u5165\u5E33\u9EC3\u91D1\u3002${running ? "" : resumeHint()}`);
+  } catch (e) {
+    notice(reason(e));
+  }
 }
 async function stop() {
   const unitIds = [...selected].sort((a, b) => a - b);
@@ -5846,7 +10136,7 @@ function homeTownCenter() {
     return;
   }
   const o = state.known.find((k) => k.obstacle.id === tc.id)?.obstacle;
-  selectBuilding(tc.id);
+  selectBuilding2(tc.id);
   if (o && scene) {
     const [x0, y0, x1, y1] = obstacleBounds(o);
     scene.focusOn((x0 + x1) / 200, (y0 + y1) / 200);
@@ -5872,10 +10162,37 @@ canvas.addEventListener("pointermove", (e) => {
     scene.setGhost(null);
     return;
   }
+  if (wallStart) {
+    const k = placing;
+    wallPlan = planWall(k, g.x, g.y);
+    scene.setGhost(null);
+    scene.setGhosts(wallPlan?.segments.map((p) => ({ kind: k, x: p.x, y: p.y, ok: p.ok })) ?? []);
+    renderBuild();
+    renderNote();
+    return;
+  }
   preview = placeAt(placing, g.x, g.y);
   scene.setGhost({ kind: placing, x: preview.x, y: preview.y, ok: !preview.problem });
   renderBuild();
   renderNote();
+});
+function commitWall(gx, gy) {
+  if (!placing || !wallStart) return;
+  const k = placing, from = wallStart, plan = planWall(k, gx, gy);
+  if (!plan) return;
+  if (!plan.segments.some((p) => p.ok)) {
+    notice(plan.note);
+    return;
+  }
+  stopPlacing();
+  void build(k, from.x, from.y, plan.to);
+}
+canvas.addEventListener("pointerup", (e) => {
+  if (!placing || !wallStart || !scene || e.button !== 0) return;
+  const g = scene.pickGround(e.clientX, e.clientY);
+  if (g.x === void 0 || g.y === void 0) return;
+  if (Math.floor(g.x) * 100 === wallStart.x && Math.floor(g.y) * 100 === wallStart.y) return;
+  commitWall(g.x, g.y);
 });
 function orderAtGround(x, y) {
   if (selectedBuilding && !selected.size) {
@@ -5897,6 +10214,17 @@ canvas.addEventListener("pointerdown", (e) => {
     }
     const g = scene.pickGround(e.clientX, e.clientY);
     if (g.x === void 0 || g.y === void 0) return;
+    if (wallKinds2.has(placing)) {
+      if (!wallStart) {
+        wallStart = { x: Math.floor(g.x) * 100, y: Math.floor(g.y) * 100 };
+        const k2 = placing;
+        wallPlan = planWall(k2, g.x, g.y);
+        scene.setGhost(null);
+        scene.setGhosts(wallPlan?.segments.map((p2) => ({ kind: k2, x: p2.x, y: p2.y, ok: p2.ok })) ?? []);
+        render();
+      } else commitWall(g.x, g.y);
+      return;
+    }
     const p = placeAt(placing, g.x, g.y);
     if (p.problem) {
       notice(`\u4E0D\u80FD\u653E\u5728\u9019\u88E1\uFF1A${p.problem}`);
@@ -5946,6 +10274,17 @@ canvas.addEventListener("pointerdown", (e) => {
         if (monks.length < selected.size) void attack({ kind: "unit", id: foe.id }, `\u7D05\u65B9${unitNames[foe.kind]}`);
         return;
       }
+      {
+        const ship2 = u.unitId !== void 0 ? ownUnits().find((v) => v.id === u.unitId && v.kind === "transport-ship") : void 0, riders = [...selected].filter((id) => {
+          const k = state.units.find((v) => v.id === id)?.kind;
+          return !!k && !isShip(k) && !isAnimal(k);
+        }).sort((a, b) => a - b);
+        if (ship2 && riders.length) {
+          scene.setMarker("gather", ship2.x / 100, ship2.y / 100);
+          void load(riders, ship2);
+          return;
+        }
+      }
       const friend = u.unitId !== void 0 ? ownUnits().find((v) => v.id === u.unitId) : void 0;
       if (friend && monks.length && friend.kind !== "monk" && friend.hp < friend.maxHp) {
         scene.setMarker("gather", friend.x / 100, friend.y / 100);
@@ -5966,6 +10305,13 @@ canvas.addEventListener("pointerdown", (e) => {
           scene.setMarker("attack", (x0 + x1) / 200, (y0 + y1) / 200);
         }
         const label = `\u7D05\u65B9${buildingNames2[fort.kind]}`;
+        const traders = [...selected].filter((id) => tradeHome[state.units.find((u2) => u2.id === id)?.kind ?? ""] === fort.kind).sort((a, b) => a - b);
+        if (traders.length) void trade(traders, fort.id, label);
+        if (traders.length === selected.size) return;
+        if ([...selected].every((id) => unarmed(state.units.find((u2) => u2.id === id)?.kind))) {
+          notice([...selected].some((id) => (state.units.find((u2) => u2.id === id)?.kind ?? "") in tradeHome) ? "\u8CBF\u6613\u8ECA\u968A\u53EA\u80FD\u524D\u5F80\u5C0D\u624B\u7684\u5E02\u96C6\uFF0C\u8CBF\u6613\u5546\u8239\u53EA\u80FD\u524D\u5F80\u5C0D\u624B\u7684\u78BC\u982D\u3002" : "\u6240\u9078\u55AE\u4F4D\u6C92\u6709\u6B66\u5668\uFF0C\u4E0D\u80FD\u653B\u64CA\u3002");
+          return;
+        }
         if (monks.length && state.economy.techs.includes("redemption")) void riteOn(monks, fort.id, label);
         if (monks.length < selected.size || !state.economy.techs.includes("redemption")) void attack({ kind: "building", id: fort.id }, label);
         return;
@@ -5983,7 +10329,7 @@ canvas.addEventListener("pointerdown", (e) => {
       void construct(own.id);
       return;
     }
-    if (own && own.complete && (own.kind === "watch-tower" || own.kind === "castle") && selected.size) {
+    if (own && own.complete && (own.kind === "watch-tower" || own.kind === "castle" || own.kind === "bombard-tower") && selected.size) {
       void garrison(own);
       return;
     }
@@ -6020,14 +10366,14 @@ canvas.addEventListener("pointerup", (e) => {
   }
   const hit2 = scene.pick(e.clientX, e.clientY);
   if (hit2.unitId !== void 0) {
-    const unit = state.units.find((u) => u.id === hit2.unitId);
-    if (unit?.player === 0) {
-      if (e.shiftKey) toggle(unit.id);
-      else choose(unit.id);
-    } else if (unit && isAnimal(unit.kind)) {
-      if (e.pointerType === "touch" && villagersIn(selected).length) void hunt(villagersIn(selected), unit);
-      else notice(animalNote(unit));
-    } else if (unit && unit.kind in combatRules.units) notice(`\u7D05\u65B9${unitNames[unit.kind]}\uFF08${civName(state.civs[1])}\uFF09 \xB7 \u751F\u547D ${unit.hp}/${unit.maxHp} \xB7 \u57FA\u672C\u6578\u503C\uFF1A${statLine(statsOf(unit.kind, { civ: state.civs[1] ?? neutralCiv, age: 1, techs: [] }))}\u3002\u7D05\u65B9\u55AE\u4F4D\u4E0D\u53EF\u7531\u85CD\u65B9\u63A7\u5236\u3002`);
+    const unit2 = state.units.find((u) => u.id === hit2.unitId);
+    if (unit2?.player === 0) {
+      if (e.shiftKey) toggle(unit2.id);
+      else choose(unit2.id);
+    } else if (unit2 && isAnimal(unit2.kind)) {
+      if (e.pointerType === "touch" && villagersIn(selected).length) void hunt(villagersIn(selected), unit2);
+      else notice(animalNote(unit2));
+    } else if (unit2 && unit2.kind in combatRules.units) notice(`\u7D05\u65B9${unitNames[unit2.kind]}\uFF08${civName2(state.civs[1])}\uFF09 \xB7 \u751F\u547D ${unit2.hp}/${unit2.maxHp} \xB7 \u57FA\u672C\u6578\u503C\uFF1A${statLine(statsOf(unit2.kind, { civ: state.civs[1] ?? neutralCiv, age: 1, techs: [] }))}\u3002\u7D05\u65B9\u55AE\u4F4D\u4E0D\u53EF\u7531\u85CD\u65B9\u63A7\u5236\u3002`);
     else notice("\u7D05\u65B9\u55AE\u4F4D\u4E0D\u53EF\u7531\u85CD\u65B9\u63A7\u5236\u3002");
     return;
   }
@@ -6040,7 +10386,7 @@ canvas.addEventListener("pointerup", (e) => {
         void construct(own.id);
         return;
       }
-      selectBuilding(site2.id);
+      selectBuilding2(site2.id);
       notice(`\u5DF2\u9078\u53D6${buildingNames2[site2.kind]}\u3002`);
       return;
     }
@@ -6058,7 +10404,7 @@ canvas.addEventListener("pointerup", (e) => {
     const g = scene.pickGround(e.clientX, e.clientY), roof = scene.pickBuilding(e.clientX, e.clientY);
     const site2 = g.x !== void 0 && g.y !== void 0 ? buildingAt(g.x, g.y, roof) : roof ? buildingAt(-1, -1, roof) : void 0;
     if (site2 && !e.shiftKey && e.pointerType !== "touch") {
-      selectBuilding(site2.id);
+      selectBuilding2(site2.id);
       notice(`\u5DF2\u9078\u53D6${buildingNames2[site2.kind]}\u3002`);
       return;
     }
@@ -6066,7 +10412,7 @@ canvas.addEventListener("pointerup", (e) => {
   if (!e.shiftKey && selected.size) {
     select2([]);
     notice("\u5DF2\u53D6\u6D88\u9078\u53D6\u3002\u79FB\u52D5\u6307\u4EE4\u8ACB\u5C0D\u5730\u9762\u6309\u53F3\u9375\uFF08\u89F8\u63A7\uFF1A\u9078\u53D6\u5F8C\u8F15\u89F8\u5730\u9762\uFF09\u3002");
-  } else if (!e.shiftKey && selectedBuilding) selectBuilding(null);
+  } else if (!e.shiftKey && selectedBuilding) selectBuilding2(null);
 });
 var mini = el("minimap");
 var mctx = mini.getContext("2d");
@@ -6257,12 +10603,12 @@ function renderGroups() {
   el("groups").textContent = groups.size ? "\u7DE8\u7D44 " + [...groups].sort((a, b) => a[0] - b[0]).map(([n, ids]) => `${n}\uFF1D${ids.join("\u3001")}`).join("\uFF1B") : "\u5C1A\u672A\u7DE8\u7D44\uFF08Ctrl\uFF0B\u6578\u5B57\uFF09\u3002";
 }
 function commandKey(letter) {
-  const tile2 = Array.from(el("commands").querySelectorAll("button.tile")).find((b) => !b.hidden && b.dataset.key === letter);
-  if (!tile2) return false;
-  if (tile2.disabled) {
-    const why = tile2.getAttribute("aria-label")?.split("\uFF1A").slice(1).join("\uFF1A");
-    notice(why ? `${tile2.getAttribute("aria-label").split("\uFF08")[0]}\uFF1A${why}` : "\u9019\u500B\u6307\u4EE4\u76EE\u524D\u4E0D\u80FD\u4F7F\u7528\u3002");
-  } else tile2.click();
+  const tile3 = Array.from(el("commands").querySelectorAll("button.tile")).find((b) => !b.hidden && b.dataset.key === letter);
+  if (!tile3) return false;
+  if (tile3.disabled) {
+    const why = tile3.getAttribute("aria-label")?.split("\uFF1A").slice(1).join("\uFF1A");
+    notice(why ? `${tile3.getAttribute("aria-label").split("\uFF08")[0]}\uFF1A${why}` : "\u9019\u500B\u6307\u4EE4\u76EE\u524D\u4E0D\u80FD\u4F7F\u7528\u3002");
+  } else tile3.click();
   return true;
 }
 document.addEventListener("keydown", (e) => {
@@ -6297,7 +10643,7 @@ document.addEventListener("keydown", (e) => {
       return;
     }
     if (selectedBuilding) {
-      selectBuilding(null);
+      selectBuilding2(null);
       return;
     }
     if (selected.size) {
@@ -6348,8 +10694,15 @@ document.addEventListener("keydown", (e) => {
     notice(`\u5DF2\u9078\u53D6\u5168\u90E8\u8ECD\u968A\uFF1A${army.length} \u540D\u3002`);
     return;
   }
-  const letter = /^Key([QWERTADZXCVBGY])$/.exec(e.code);
+  const letter = /^Key([QWERTADZXCVBGYUN])$/.exec(e.code);
   if (letter && !e.ctrlKey) {
+    if (!selectedBuilding && buildMode() === "villager") {
+      const kinds = ownBuildKinds().filter((k) => el(`build-${k}`).dataset.key === letter[1]);
+      if (kinds.length && !kinds.some((k) => pageOf(k) === buildPage)) {
+        buildPage = pageOf(kinds[0]);
+        renderBuild();
+      }
+    }
     if (commandKey(letter[1])) e.preventDefault();
     return;
   }
@@ -6395,6 +10748,10 @@ document.querySelectorAll("[data-unit]").forEach((b) => b.onclick = (e) => {
   else choose(id);
 });
 el("stop").onclick = () => void stop();
+el("build-page").onclick = () => {
+  buildPage = 1 - buildPage;
+  render();
+};
 el("garrison-cmd").onclick = garrisonNearest;
 renderGroups();
 el("result-restart").onclick = () => el("restart").click();
@@ -6411,7 +10768,7 @@ el("cancel-build").onclick = async () => {
   try {
     await client.request({ kind: "cancelBuild", buildingId: b.id });
     notice(`\u5DF2\u53D6\u6D88${buildingNames2[b.kind]}\uFF0C\u9000\u56DE ${costText(b.kind)}\u3002`);
-    selectBuilding(null);
+    selectBuilding2(null);
   } catch (e) {
     notice(reason(e));
   }
@@ -6446,11 +10803,12 @@ el("restart").onclick = async () => {
     if (input.value === "") throw Error("\u8ACB\u8F38\u5165\u7A2E\u5B50");
     const civs = chosenCivs(Number(input.value));
     await client.request({ kind: "reset", seed: Number(input.value), layout: el("layout").value, opponent: el("opponent").value, civs });
+    buildPage = 0;
     choose(1);
     lastTransaction = 0;
     previous = null;
     el("events").replaceChildren();
-    notice(`\u5DF2\u5EFA\u7ACB\u65B0\u6C99\u76D2\uFF1A${civName(state.civs[0])}\u5C0D${civName(state.civs[1])}\uFF0C\u65B0\u904A\u6232\u958B\u59CB\u3002\u5148\u524D\u7684\u624B\u52D5\u5B58\u6A94\u4ECD\u7136\u4FDD\u7559\u3002`);
+    notice(`\u5DF2\u5EFA\u7ACB\u65B0\u6C99\u76D2\uFF1A${civName2(state.civs[0])}\u5C0D${civName2(state.civs[1])}\uFF0C\u65B0\u904A\u6232\u958B\u59CB\u3002\u5148\u524D\u7684\u624B\u52D5\u5B58\u6A94\u4ECD\u7136\u4FDD\u7559\u3002`);
     autoStart();
   } catch (e) {
     notice(reason(e));
@@ -6477,6 +10835,7 @@ el("load").onclick = async () => {
     el("seed").value = String(state.seed);
     el("layout").value = state.layout;
     el("opponent").value = state.opponent;
+    buildPage = 0;
     setCivPicks(state.civs);
     choose(1);
     previous = null;

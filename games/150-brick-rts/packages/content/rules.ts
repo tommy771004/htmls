@@ -23,34 +23,108 @@ const castleEntries:Entry[]=[entry('castle','building','城堡',0,0,0,300,['age-
  upgrade('logistica','後勤',1000,0,600,0,4,50),upgrade('kamandaran','波斯弓兵',400,0,300,0,3,40),upgrade('mahouts','象伕',300,0,300,0,4,50),upgrade('madrasah','穆斯林學墊',200,0,100,0,3,30),
  upgrade('zealotry','狂熱',750,0,700,0,4,50),upgrade('great-wall','長城',0,400,0,200,3,40),upgrade('rocketry','火箭技術',0,750,750,0,4,60),upgrade('yasama','射箭孔',300,300,0,0,3,40),
  upgrade('nomads','游牧',0,300,150,0,3,40),upgrade('drill','鑿岩機',500,0,450,0,4,60)];
+// The 單位 round (aoetw.com units pages, 2026-10-01): the generic lines' last upgrades and the new land units. Costs and
+// times as the site gives them, design_default in this ruleset. upgrade(...) researches at the producing building.
+const unit=(id:string,name:string,food:number,wood:number,gold:number,age:2|3|4,time:number)=>entry(id,'unit',name,food,wood,gold,0,[`age-${age}`],1,time,aoetw);
+const line=(id:string,name:string,food:number,wood:number,gold:number,after:string|null,time:number)=>entry(id,'technology',name,food,wood,gold,0,after?['age-4',after]:['age-4'],0,time,aoetw);
+const unitEntries:Entry[]=[
+ line('two-handed-swordsman','雙手劍兵',300,0,100,'long-swordsman',75),line('champion','劍兵勇士',750,0,350,'two-handed-swordsman',100),line('halberdier','戟兵',300,0,600,'pikeman',50),
+ line('arbalest','強弩兵',350,0,300,'crossbowman',50),unit('cavalry-archer','馬弓騎兵',0,40,60,3,34),line('heavy-cavalry-archer','重裝馬弓騎兵',900,0,500,null,50),
+ line('hussar','匈牙利輕騎兵',500,0,600,'light-cavalry',50),line('cavalier','重裝騎士',300,0,300,null,100),line('paladin','遊俠',1300,0,750,'cavalier',170),
+ unit('camel','駱駝騎兵',55,0,60,3,22),line('heavy-camel','重裝駱駝騎兵',325,0,365,null,105),
+ line('capped-ram','裝甲衝撞車',300,0,0,null,50),line('siege-ram','重型衝撞車',1000,0,0,'capped-ram',75),
+ unit('mangonel','輕型投石車',0,160,135,3,46),line('onager','中型投石車',800,0,500,null,75),line('siege-onager','重型投石車',1450,0,1000,'onager',150),
+ unit('scorpion','弩砲',0,75,75,3,30),line('heavy-scorpion','重型弩砲',1000,1100,0,null,50),
+ unit('trebuchet','巨型投石機',0,200,200,4,50),unit('petard','炸藥桶',65,0,20,3,25),
+ // Unique techs whose targets exist from this round on (they were deferred in the civilization round).
+ upgrade('warwolf','戰狼號',0,800,400,0,4,40),upgrade('kataparuto','彈射器',0,750,400,0,4,60),upgrade('sipahi','采邑騎兵',350,0,150,0,3,60)];
+const unitProducers:Record<string,string>={'two-handed-swordsman':'barracks',champion:'barracks',halberdier:'barracks',arbalest:'archery-range','cavalry-archer':'archery-range','heavy-cavalry-archer':'archery-range',
+ hussar:'stable',cavalier:'stable',paladin:'stable',camel:'stable','heavy-camel':'stable','capped-ram':'siege-workshop','siege-ram':'siege-workshop',mangonel:'siege-workshop',onager:'siege-workshop','siege-onager':'siege-workshop',
+ scorpion:'siege-workshop','heavy-scorpion':'siege-workshop',trebuchet:'castle',petard:'castle',warwolf:'castle',kataparuto:'castle',sipahi:'castle'};
+// The 科技 round (aoetw.com techs pages, 2026-10-01): generic technologies at their buildings, the University that
+// researches the defensive and siege ones, and the gunpowder units Chemistry opens. Effects in packages/content/techs.ts.
+const tech=(id:string,name:string,food:number,wood:number,gold:number,stone:number,requires:string[],time:number)=>entry(id,'technology',name,food,wood,gold,stone,requires,0,time,aoetw);
+const techEntries:Entry[]=[
+ entry('university','building','學院',0,200,0,0,['age-3'],0,40,'aoetw.com/building/University; 40 s is design_default like the other buildings'),
+ tech('masonry','磚瓦技術',150,175,0,0,['age-3'],50),tech('architecture','建築學',300,200,0,0,['age-4','masonry'],70),tech('chemistry','化學',300,0,200,0,['age-4'],100),
+ tech('siege-engineers','攻城工程師',500,600,0,0,['age-4'],45),tech('guard-tower','防禦箭塔',100,250,0,0,['age-3'],30),tech('keep','大型箭塔',500,350,0,0,['age-4','guard-tower'],75),
+ tech('treadmill-crane','磨坊水車',300,200,0,0,['age-3'],50),tech('arrowslits','箭狹槽',250,250,0,0,['age-4'],25),
+ tech('supplies','供給',150,0,100,0,['age-2'],35),tech('squires','護衛技術',100,0,0,0,['age-3'],40),tech('arson','縱火',150,0,50,0,['age-3'],25),
+ tech('thumb-ring','拇指環',300,250,0,0,['age-3'],45),tech('parthian-tactics','安息人戰術',200,0,250,0,['age-4'],65),
+ tech('bloodlines','品種',150,0,100,0,['age-2'],50),tech('husbandry','耕種技術',150,0,0,0,['age-3'],40),
+ tech('town-watch','城鎮瞭望',75,0,0,0,['age-2'],25),tech('town-patrol','城鎮巡邏',300,0,100,0,['age-3','town-watch'],40),
+ tech('fervor','宗教狂熱',0,0,140,0,['age-3'],50),tech('herbal-medicine','草藥治療',0,0,350,0,['age-3'],35),
+ tech('hoardings','圍牆',400,400,0,0,['age-4'],75),tech('sappers','兵工學',400,0,200,0,['age-4'],10),tech('conscription','徵兵技術',150,0,150,0,['age-4'],60),
+ entry('hand-cannoneer','unit','火槍兵',45,0,50,0,['age-4','chemistry'],1,34,aoetw),entry('bombard-cannon','unit','火砲',0,225,225,0,['age-4','chemistry'],1,56,aoetw),
+ // Turks' Artillery: its bombard cannon exists from this round on.
+ upgrade('artillery','砲兵',0,0,500,450,4,40)];
+const techProducers:Record<string,string>={masonry:'university',architecture:'university',chemistry:'university','siege-engineers':'university','guard-tower':'university',keep:'university','treadmill-crane':'university',arrowslits:'university',
+ supplies:'barracks',squires:'barracks',arson:'barracks','thumb-ring':'archery-range','parthian-tactics':'archery-range',bloodlines:'stable',husbandry:'stable','town-watch':'town-center','town-patrol':'town-center',
+ fervor:'monastery','herbal-medicine':'monastery',hoardings:'castle',sappers:'castle',conscription:'castle','hand-cannoneer':'archery-range','bombard-cannon':'siege-workshop',artillery:'castle'};
+// The 建築 round (aoetw.com building, units and techs pages, 2026-10-01): the remaining buildings (the town centre
+// above becomes buildable from the third age), the dock and its ships, the market and its trade, walls and gates, the
+// outpost, the bombard tower and the wonder. Unit and technology costs and times as the site gives them; building times
+// are design_default in this game's pace (about the site's divided by 2.5, like the other buildings here), the wonder's
+// cost is scaled to the map's stone and gold (one 250-stone and one 250-gold mine per base, two more in the middle).
+const building=(id:string,name:string,wood:number,gold:number,stone:number,requires:string[],time:number,page:string)=>entry(id,'building',name,0,wood,gold,stone,requires,0,time,`aoetw.com/building/${page}; build time design_default`);
+const ship=(id:string,name:string,wood:number,gold:number,requires:string[],time:number)=>entry(id,'unit',name,0,wood,gold,0,requires,1,time,aoetw);
+const buildingEntries:Entry[]=[
+ building('dock','碼頭',150,0,0,[],15,'Dock'),building('fish-trap','魚網',100,0,0,['age-2','dock'],15,'Fish_Trap'),
+ building('market','市集',175,0,0,['age-2'],25,'Market'),building('outpost','哨站',25,0,5,[],6,'Outpost'),
+ building('palisade-wall','木牆',2,0,0,[],3,'Palisade_Wall'),building('palisade-gate','木門',30,0,0,[],12,'Palisade_Gate'),
+ building('stone-wall','石牆',0,0,5,['age-2'],4,'Stone_Wall'),building('gate','城門',0,0,30,['age-2'],12,'Gate'),
+ building('bombard-tower','火砲塔',0,100,125,['age-4','bombard-tower-tech'],30,'Bombard_Tower'),
+ entry('wonder','building','世界奇觀',0,1000,500,500,['age-4'],0,600,'aoetw.com/building/Wonder (1000 wood, gold and stone, 3500 s); cost and time scaled to this map, design_default'),
+ // Ships (the dock) and the trade cart (the market).
+ ship('fishing-ship','漁船',75,0,[],40),ship('transport-ship','運輸船',125,0,[],46),ship('trade-cog','貿易商船',100,50,['age-2'],36),
+ ship('galley','戰船',90,30,['age-2'],60),ship('fire-galley','火艨艟',75,45,['age-2'],60),ship('demolition-raft','自爆筏',70,50,['age-2'],45),
+ ship('cannon-galleon','火砲戰船',200,150,['age-4','chemistry'],46),ship('longboat','維京大戰船',100,50,['age-3'],25),
+ entry('trade-cart','unit','貿易車隊',0,100,50,0,['age-2'],1,51,aoetw),
+ // Dock upgrades: War Galley also turns fire galleys into fire ships and demolition rafts into demolition ships.
+ tech('war-galley','弩砲戰船',230,0,100,0,['age-3'],50),tech('galleon','重型弩砲戰船',400,0,315,0,['age-4','war-galley'],65),
+ tech('fast-fire-ship','重型火戰船',280,0,250,0,['age-4','war-galley'],50),tech('heavy-demolition-ship','重型爆破船',0,200,300,0,['age-4','war-galley'],50),
+ tech('elite-cannon-galleon','精銳火砲戰船',0,525,500,0,['age-4','chemistry'],30),upgrade('elite-longboat','精銳維京大戰船',750,0,475,0,4,60),
+ tech('gillnets','流刺網',150,0,200,0,['age-3'],45),tech('careening','航海技術',250,0,150,0,['age-3'],50),
+ tech('dry-dock','船塢',600,0,400,0,['age-4','careening'],60),tech('shipwright','造船員',1000,0,300,0,['age-4'],60),
+ // The market's and the university's.
+ tech('caravan','商隊',200,0,200,0,['age-3'],40),tech('guilds','公會制度',300,0,200,0,['age-4'],50),
+ tech('heated-shot','火箭',350,0,100,0,['age-3'],30),tech('fortified-wall','垛牆',200,100,0,0,['age-3'],50),
+ tech('bombard-tower-tech','火砲塔技術',800,400,0,0,['age-4','chemistry'],60),
+ // Byzantines' Greek Fire: its fire ships exist from this round on.
+ upgrade('greek-fire','希臘之火',250,0,300,0,3,40)];
+const dockItems=['fishing-ship','transport-ship','trade-cog','galley','fire-galley','demolition-raft','cannon-galleon','longboat','war-galley','galleon','fast-fire-ship','heavy-demolition-ship','elite-cannon-galleon','elite-longboat','gillnets','careening','dry-dock','shipwright'];
+const buildingProducers:Record<string,string>={...Object.fromEntries(dockItems.map(id=>[id,'dock'])),'trade-cart':'market',caravan:'market',guilds:'market','heated-shot':'university','fortified-wall':'university','bombard-tower-tech':'university','greek-fire':'castle'};
 // Per-civ availability from civs.ts: what the civ's tree lacks, the other civs' unique content, and the Castle for a
 // civ without a unique unit (the neutral test civ).
 function civilizationsOf(entries:Entry[]){
  const ids=entries.map(e=>e.id),uniqueIds=new Set(civDefs.flatMap(c=>[...c.uniqueUnits,...c.eliteUpgrades,...c.uniqueTechs.map(t=>t.id)]));
  return civDefs.map(c=>{const own=new Set([...c.uniqueUnits,...c.eliteUpgrades,...c.uniqueTechs.map(t=>t.id)]);
   const unavailable=ids.filter(id=>c.missing.includes(id)||uniqueIds.has(id)&&!own.has(id)||id==='castle'&&!c.uniqueUnits.length);
-  return {id:c.id,available:ids.filter(id=>!unavailable.includes(id)),unavailable};});
+  // Whatever needs a building or technology the civ lacks is out too (the neutral civ has no Castle, so no trebuchet).
+  for(let grew=true;grew;){grew=false;for(const e of entries){if(unavailable.includes(e.id))continue;const producer=rules.production[e.id];
+   if(producer&&unavailable.includes(producer)||e.requires.some(r=>unavailable.includes(r))){unavailable.push(e.id);grew=true;}}}
+  return {id:c.id,available:ids.filter(id=>!unavailable.includes(id)),unavailable:ids.filter(id=>unavailable.includes(id))};});
 }
 export const rules: Rules = {
  schemaVersion:1,id:'brick-foundation-0.1',
  reference:{game:'Age of Empires II: Definitive Edition',version:null,build:null,contentPacks:[],verificationStatus:'unverified',sourceEvidence:[]},
  coverage:{contentDenominator:null,exactReferenceCoveragePercent:null},
  settings:{tickHz:20,populationCap:40,mapSize:16,speed:1,mode:'command-sandbox',seed:260925,platform:'desktop browser',provenance:'design_default'},
- entries:[entry('villager','unit','村民',50,0,0,0,[],1),entry('town-center','building','城鎮中心',0,200,0,100),entry('house','building','民居',0,30),entry('barracks','building','兵營',0,150),entry('farm','building','農田',0,60),entry('lumber-camp','building','伐木場',0,100),entry('mining-camp','building','採礦場',0,100),entry('mill','building','磨坊',0,100),entry('stable','building','馬廄',0,175,0,0,['age-2','barracks']),entry('archery-range','building','靶場',0,175,0,0,['age-2','barracks']),entry('monastery','building','修道院',0,175,0,0,['age-3']),entry('militia','unit','近戰民兵',60,0,20,0,['barracks'],1),entry('archer','unit','弓手',0,40,30,0,['age-2'],1),entry('ram','unit','攻城槌',0,160,75,0,['age-3'],3),entry('watch-tower','building','箭塔',0,25,0,125,['age-2']),entry('siege-workshop','building','攻城器工坊',0,200,0,0,['age-3','blacksmith']),entry('scout','unit','斥候',80,0,0,0,['stable'],1),entry('monk','unit','僧侶',0,0,100,0,['monastery'],1),entry('redemption','technology','救贖',0,0,475,0,['monastery','age-3']),entry('atonement','technology','贖罪',0,0,325,0,['monastery','age-3']),entry('sanctity','technology','聖潔',0,0,175,0,['monastery','age-3']),entry('heresy','technology','異端',0,0,1000,0,['monastery','age-3']),entry('illumination','technology','啟蒙',0,0,120,0,['monastery','age-4']),entry('block-printing','technology','活字印刷',0,0,200,0,['monastery','age-4']),entry('theocracy','technology','神權政治',0,0,200,0,['monastery','age-4']),entry('faith','technology','信仰',550,0,750,0,['monastery','age-4']),entry('spearman','unit','長槍兵',35,25,0,0,['age-2'],1),entry('skirmisher','unit','散兵',25,35,0,0,['age-2'],1),entry('knight','unit','騎士',60,0,75,0,['age-3'],1),entry('blacksmith','building','鐵匠鋪',0,150),
+ entries:[entry('villager','unit','村民',50,0,0,0,[],1),entry('town-center','building','城鎮中心',0,275,0,100,['age-3'],0,60,'aoetw.com/building/Town_Center (275 wood, 100 stone, Castle Age); 60 s is design_default'),entry('house','building','民居',0,30),entry('barracks','building','兵營',0,150),entry('farm','building','農田',0,60),entry('lumber-camp','building','伐木場',0,100),entry('mining-camp','building','採礦場',0,100),entry('mill','building','磨坊',0,100),entry('stable','building','馬廄',0,175,0,0,['age-2','barracks']),entry('archery-range','building','靶場',0,175,0,0,['age-2','barracks']),entry('monastery','building','修道院',0,175,0,0,['age-3']),entry('militia','unit','近戰民兵',60,0,20,0,['barracks'],1),entry('archer','unit','弓手',0,40,30,0,['age-2'],1),entry('ram','unit','攻城槌',0,160,75,0,['age-3'],3),entry('watch-tower','building','箭塔',0,25,0,125,['age-2']),entry('siege-workshop','building','攻城器工坊',0,200,0,0,['age-3','blacksmith']),entry('scout','unit','斥候',80,0,0,0,['stable'],1),entry('monk','unit','僧侶',0,0,100,0,['monastery'],1),entry('redemption','technology','救贖',0,0,475,0,['monastery','age-3']),entry('atonement','technology','贖罪',0,0,325,0,['monastery','age-3']),entry('sanctity','technology','聖潔',0,0,175,0,['monastery','age-3']),entry('heresy','technology','異端',0,0,1000,0,['monastery','age-3']),entry('illumination','technology','啟蒙',0,0,120,0,['monastery','age-4']),entry('block-printing','technology','活字印刷',0,0,200,0,['monastery','age-4']),entry('theocracy','technology','神權政治',0,0,200,0,['monastery','age-4']),entry('faith','technology','信仰',550,0,750,0,['monastery','age-4']),entry('spearman','unit','長槍兵',35,25,0,0,['age-2'],1),entry('skirmisher','unit','散兵',25,35,0,0,['age-2'],1),entry('knight','unit','騎士',60,0,75,0,['age-3'],1),entry('blacksmith','building','鐵匠鋪',0,150),
 entry('man-at-arms','technology','重步兵',100,0,40,0,['age-2']),entry('long-swordsman','technology','長劍士',200,0,65,0,['age-3','man-at-arms']),entry('pikeman','technology','長矛兵',215,0,90,0,['age-3']),entry('crossbowman','technology','弩手',125,0,75,0,['age-3']),entry('elite-skirmisher','technology','精銳散兵',0,250,160,0,['age-3']),entry('light-cavalry','technology','輕騎兵',150,0,50,0,['age-3']),
 entry('forging','technology','鍛造',150,0,0,0,['age-2']),entry('iron-casting','technology','鑄鐵',220,0,120,0,['age-3','forging']),entry('blast-furnace','technology','高爐',275,0,225,0,['age-4','iron-casting']),
 entry('scale-mail-armor','technology','鱗甲',100,0,0,0,['age-2']),entry('chain-mail-armor','technology','鎖子甲',200,0,100,0,['age-3','scale-mail-armor']),entry('plate-mail-armor','technology','板甲',300,0,150,0,['age-4','chain-mail-armor']),
 entry('scale-barding-armor','technology','鱗片馬鎧',150,0,0,0,['age-2']),entry('chain-barding-armor','technology','鎖子馬鎧',250,0,150,0,['age-3','scale-barding-armor']),entry('plate-barding-armor','technology','板甲馬鎧',350,0,200,0,['age-4','chain-barding-armor']),
 entry('fletching','technology','羽箭',100,0,50,0,['age-2']),entry('bodkin-arrow','technology','錐形箭',200,0,100,0,['age-3','fletching']),entry('bracer','technology','護腕',300,0,200,0,['age-4','bodkin-arrow']),
 entry('padded-archer-armor','technology','襯墊弓手甲',100,0,0,0,['age-2']),entry('leather-archer-armor','technology','皮革弓手甲',150,0,150,0,['age-3','padded-archer-armor']),entry('ring-archer-armor','technology','環甲弓手甲',250,0,250,0,['age-4','leather-archer-armor']),
-entry('loom','technology','織布機',0,0,50),entry('wheelbarrow','technology','手推車',175,50,0,0,['age-2']),entry('hand-cart','technology','手拉車',300,200,0,0,['age-3','wheelbarrow']),entry('double-bit-axe','technology','雙刃斧',100,50,0,0,['age-2']),entry('bow-saw','technology','弓鋸',150,100,0,0,['age-3','double-bit-axe']),entry('two-man-saw','technology','雙人鋸',300,200,0,0,['age-4','bow-saw']),entry('gold-mining','technology','採金術',100,75,0,0,['age-2']),entry('gold-shaft-mining','technology','豎井採金',200,100,0,0,['age-3','gold-mining']),entry('stone-mining','technology','採石術',100,75,0,0,['age-2']),entry('stone-shaft-mining','technology','豎井採石',200,100,0,0,['age-3','stone-mining']),entry('horse-collar','technology','馬軛',75,75,0,0,['age-2']),entry('heavy-plow','technology','重犁',125,125,0,0,['age-3','horse-collar']),entry('crop-rotation','technology','輪耕',250,250,0,0,['age-4','heavy-plow']),entry('age-2','technology','第二時代',300),entry('age-3','technology','第三時代',500,0,200,0,['age-2']),entry('age-4','technology','第四時代',800,0,400,0,['age-3']),...castleEntries],
+entry('loom','technology','織布機',0,0,50),entry('wheelbarrow','technology','手推車',175,50,0,0,['age-2']),entry('hand-cart','technology','手拉車',300,200,0,0,['age-3','wheelbarrow']),entry('double-bit-axe','technology','雙刃斧',100,50,0,0,['age-2']),entry('bow-saw','technology','弓鋸',150,100,0,0,['age-3','double-bit-axe']),entry('two-man-saw','technology','雙人鋸',300,200,0,0,['age-4','bow-saw']),entry('gold-mining','technology','採金術',100,75,0,0,['age-2']),entry('gold-shaft-mining','technology','豎井採金',200,100,0,0,['age-3','gold-mining']),entry('stone-mining','technology','採石術',100,75,0,0,['age-2']),entry('stone-shaft-mining','technology','豎井採石',200,100,0,0,['age-3','stone-mining']),entry('horse-collar','technology','馬軛',75,75,0,0,['age-2']),entry('heavy-plow','technology','重犁',125,125,0,0,['age-3','horse-collar']),entry('crop-rotation','technology','輪耕',250,250,0,0,['age-4','heavy-plow']),entry('age-2','technology','第二時代',300),entry('age-3','technology','第三時代',500,0,200,0,['age-2']),entry('age-4','technology','第四時代',800,0,400,0,['age-3']),...castleEntries,...unitEntries,...techEntries,...buildingEntries],
  // Which building produces each unit/technology (design_default). null = defined but not producible yet.
  production:{villager:'town-center',militia:'barracks','man-at-arms':'barracks','long-swordsman':'barracks',spearman:'barracks',pikeman:'barracks',archer:'archery-range',crossbowman:'archery-range',skirmisher:'archery-range','elite-skirmisher':'archery-range',ram:'siege-workshop',scout:'stable','light-cavalry':'stable',knight:'stable',
  forging:'blacksmith','iron-casting':'blacksmith','blast-furnace':'blacksmith','scale-mail-armor':'blacksmith','chain-mail-armor':'blacksmith','plate-mail-armor':'blacksmith','scale-barding-armor':'blacksmith','chain-barding-armor':'blacksmith','plate-barding-armor':'blacksmith',fletching:'blacksmith','bodkin-arrow':'blacksmith',bracer:'blacksmith','padded-archer-armor':'blacksmith','leather-archer-armor':'blacksmith','ring-archer-armor':'blacksmith',monk:'monastery',redemption:'monastery',atonement:'monastery',sanctity:'monastery',heresy:'monastery',illumination:'monastery','block-printing':'monastery',theocracy:'monastery',faith:'monastery','double-bit-axe':'lumber-camp','bow-saw':'lumber-camp','two-man-saw':'lumber-camp','gold-mining':'mining-camp','gold-shaft-mining':'mining-camp','stone-mining':'mining-camp','stone-shaft-mining':'mining-camp','horse-collar':'mill','heavy-plow':'mill','crop-rotation':'mill','age-2':'town-center','age-3':'town-center','age-4':'town-center',
  // After the ages, so the town centre's age-up keeps its tile and hotkey.
  loom:'town-center',wheelbarrow:'town-center','hand-cart':'town-center',
  // The Castle: unique units, their elite upgrades and the unique technologies.
- ...Object.fromEntries(castleEntries.filter(e=>e.kind!=='building').map(e=>[e.id,'castle']))},
+ ...Object.fromEntries(castleEntries.filter(e=>e.kind!=='building').map(e=>[e.id,'castle'])),...unitProducers,...techProducers,...buildingProducers},
  civilizations:[]
 };
 rules.civilizations=civilizationsOf(rules.entries);

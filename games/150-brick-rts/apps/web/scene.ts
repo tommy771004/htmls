@@ -4,16 +4,25 @@ import {militaryBuildingParts,militaryBuildings} from './military-building.ts';
 import type {MilitaryBuilding} from './military-building.ts';
 import {monasteryParts} from './monastery-building.ts';
 import {blacksmithParts} from './blacksmith-building.ts';
-import {towerParts,siegeWorkshopParts} from './defense-building.ts';
+import {towerParts,siegeWorkshopParts,towerGradeOf,towerLift} from './defense-building.ts';
+import type {TowerGrade} from './defense-building.ts';
+import {universityParts} from './university-building.ts';
 import {castleParts} from './castle-building.ts';
-import {createRamRig} from './siege-rig.ts';
+import {createSiegeRig} from './siege-rig.ts';
+import {createVesselRig,vesselFrames} from './vessel-rig.ts';
+import type {VesselRig} from './vessel-rig.ts';
+import {wallParts,gateParts,outpostParts,bombardTowerParts,wallFamily,noLinks} from './fortification-building.ts';
+import type {WallLinks,WallKind,GateKind} from './fortification-building.ts';
+import {dockParts,fishTrapParts} from './harbor-building.ts';
+import {wonderParts} from './wonder-building.ts';
+import type {SiegeRig} from './siege-rig.ts';
 import {relicParts} from './relic-model.ts';
 import {techIcons} from './tech-icons.ts';
 import {createCharacterRig,isMounted,mounts} from './character-rig.ts';
 import {createAnimalRig,carcassParts} from './animal-rig.ts';
 import type {AnimalLook} from './animal-rig.ts';
 import {isAnimal,animalRules} from '../../packages/sim/fauna.ts';
-import {roleOf,poseFor,corpseRole} from './rig-roles.ts';
+import {roleOf,poseFor,corpseRole,isSiege,siegeKinds,isVessel,vesselKinds,lookOf,upgradeLooks} from './rig-roles.ts';
 import {visibleMeshHits} from './picking.ts';
 import {createDetailController,detailLevel} from './lod.ts';
 import {economicBuildingParts,economicBuildings} from './economic-building.ts';
@@ -33,12 +42,22 @@ import type {BuildKind} from '../../packages/sim/buildings.ts';
 // the weapon its dress arrives with (a mounted one, its rider's).
 export const weaponOf=(kind:string):UnitTool=>kind==='militia'||kind==='knight'?'sword':kind==='archer'?'bow':kind==='scout'||kind==='spearman'||kind==='skirmisher'?'spear':kind==='monk'?'staff':uniqueWeapon(kind);
 const uniqueWeapon=(kind:string):UnitTool=>{const role=roleOf(kind);return isMounted(role)?mounts[role].tool:role==='villager'?'none':roleTools[role];};
-// Unique units with HUD portraits (the unit kinds appended in packages/sim/movement.ts).
-const iconUniques=['longbowman','woad-raider','throwing-axeman','huskarl','teutonic-knight','berserk','cataphract','war-elephant','mameluke','janissary','chu-ko-nu','samurai','mangudai'] as const;
-// Health bar height and selection ring size by body: horses raise the rider, the war elephant carries a howdah.
-export const unitFrame=(kind:string)=>{const role=roleOf(kind);return role==='war-elephant'?{bar:3.05,ring:2.4}:isMounted(role)?{bar:2.3,ring:1.8}:{bar:1.42,ring:1};};
+// Unique units with HUD portraits (the unit kinds appended in packages/sim/movement.ts), then the 單位 round's kinds
+// that wear a dress (the siege engines are shot with their own rigs).
+const iconUniques=['longbowman','woad-raider','throwing-axeman','huskarl','teutonic-knight','berserk','cataphract','war-elephant','mameluke','janissary','chu-ko-nu','samurai','mangudai','cavalry-archer','camel','petard','hand-cannoneer'] as const;
+// Health bar height and selection ring size by body: horses raise the rider, the war elephant carries a howdah, the
+// camel rider sits on the hump; siege engines by their frame (a standing trebuchet is far taller than a packed one).
+const frameOfRole=(role:string)=>role==='war-elephant'?{bar:3.05,ring:2.4}:role==='camel'?{bar:2.95,ring:2}:isMounted(role)?{bar:2.3,ring:1.8}:{bar:1.42,ring:1};
+const siegeFrames:Record<string,{bar:number;ring:number}>={ram:{bar:1.35,ring:1.6},mangonel:{bar:1.45,ring:1.8},scorpion:{bar:1.2,ring:1.5},trebuchet:{bar:1.3,ring:2.3},'bombard-cannon':{bar:1.3,ring:1.7}};
+export const unitFrame=(kind:string,unpacked=false)=>kind==='trebuchet'&&unpacked?{bar:2.9,ring:2.4}:siegeFrames[kind]??vesselFrames[kind]??frameOfRole(roleOf(kind));
+// The two-handed swordsman and the champion (own units) take up the great sword and drop the shield.
+const gradedWeapon=(kind:string,look:string|null):UnitTool=>look==='two-handed-swordsman'||look==='champion'?'great-sword':weaponOf(kind);
 // Regional architecture group of a player's civilization (neutral when unknown: the settlers or an old save).
 export const architectureOf=(civs:readonly string[]|undefined,player:number):Architecture=>civById(civs?.[player]??'')?.architecture??'neutral';
+// Every obstacle kind drawn as a building (the 建築 round adds the market, the dock and fish trap, walls and gates, the
+// outpost, the bombard tower and the wonder; the town centre is buildable too).
+export const drawnBuildings=['house','town-center','barracks','lumber-camp','mining-camp','mill','stable','archery-range','monastery','blacksmith','watch-tower','siege-workshop','castle','university','market','dock','fish-trap','outpost','bombard-tower','wonder','palisade-wall','stone-wall','palisade-gate','gate'] as const;
+export type DrawnBuilding=typeof drawnBuildings[number];
 export const brickStyle={studPitch:.5,plateHeight:.16,brickHeight:.32,bevel:.025,roughness:.62,provenance:'original_procedural'} as const;
 // Farm: a 2x2 soil plate with crop rows (walkable in the sim). Foundations show bare soil and a corner stake.
 export function farmParts(progress:number,red?:boolean){const out:{x:number;y:number;z:number;w:number;d:number;h:number;color:string;studs:boolean}[]=[{x:0,y:0,z:0,w:2,d:2,h:.1,color:'#806b49',studs:false}];
@@ -81,16 +100,34 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
   // board reads as joined plates instead of one printed sheet. Own cache key: never shared with building parts (picking).
   const b=.03,shape=new T.Shape();shape.moveTo(-.5+b,-.5+b);shape.lineTo(.5-b,-.5+b);shape.lineTo(.5-b,.5-b);shape.lineTo(-.5+b,.5-b);shape.closePath();
   const geo=new T.ExtrudeGeometry(shape,{depth:h-2*b,bevelEnabled:true,bevelSize:b,bevelThickness:b,bevelSegments:1,steps:1,curveSegments:1});geo.rotateX(-Math.PI/2);geo.translate(0,b,0);geometry.set(key,geo);groundGeometries.add(geo);}staticPart(geometry.get(key),color,x+.5,-.24,z+.5);}
- let previewBuildingKind:'house'|EconomicBuilding|MilitaryBuilding|'castle'='house',previewStyle:Architecture='neutral';
+ let previewBuildingKind:DrawnBuilding|EconomicBuilding|MilitaryBuilding='house',previewStyle:Architecture='neutral';
  let previewBuilding:Omit<BuildingVisual,'red'>={ageVariant:2,progress:100,health:100};
+ // Own watch towers show the University's tower upgrade researched (the enemy's research is not projected).
+ const ownTower=(view:View):TowerGrade|null=>options.assetPreview?null:towerGradeOf(view.economy?.techs??[]);
  // The model page swaps in the inspected kind and style; the sandbox draws each obstacle as itself in its owner's regional style.
- function house(x:number,z:number,red=false,obstacleKind:'house'|'town-center'|'barracks'|'lumber-camp'|'mining-camp'|'mill'|'stable'|'archery-range'|'monastery'|'blacksmith'|'watch-tower'|'siege-workshop'|'castle'='house',progress=100,age=2,health=100,style:Architecture='neutral'){const kind=options.assetPreview?previewBuildingKind:obstacleKind,visual=options.assetPreview?previewBuilding:{...previewBuilding,progress,health,ageVariant:Math.min(4,Math.max(1,age)) as 1|2|3|4},parts=regionalParts(kind==='house'?buildingParts({...visual,red}):kind==='monastery'?monasteryParts({...visual,red}):kind==='blacksmith'?blacksmithParts({...visual,red}):kind==='watch-tower'?towerParts({...visual,red}):kind==='siege-workshop'?siegeWorkshopParts({...visual,red}):kind==='castle'?castleParts({...visual,red}):militaryBuildings.includes(kind as MilitaryBuilding)?militaryBuildingParts(kind as MilitaryBuilding,{...visual,red}):economicBuildingParts(kind as EconomicBuilding,{...visual,red}),kind==='farm'?'neutral':options.assetPreview?previewStyle:style);
+ // links: a wall's or gate's same-material neighbours; land: the dock's quarter turns toward the shore.
+ function house(x:number,z:number,red=false,obstacleKind:DrawnBuilding='house',progress=100,age=2,health=100,style:Architecture='neutral',tower:TowerGrade|null=null,links:WallLinks=noLinks,land=0){const kind=options.assetPreview?previewBuildingKind:obstacleKind,visual=options.assetPreview?previewBuilding:{...previewBuilding,progress,health,ageVariant:Math.min(4,Math.max(1,age)) as 1|2|3|4};
+ // The model page shows a wall or gate as part of a straight east-west run.
+ const joined=options.assetPreview?{...noLinks,e:true,w:true}:links,styleOf=options.assetPreview?previewStyle:style;
+ const parts=kind==='wonder'?wonderParts({...visual,red},styleOf):regionalParts(kind==='house'?buildingParts({...visual,red}):kind==='palisade-wall'||kind==='stone-wall'?wallParts(kind as WallKind,{...visual,red},joined):kind==='palisade-gate'||kind==='gate'?gateParts(kind as GateKind,{...visual,red},joined):kind==='outpost'?outpostParts({...visual,red}):kind==='bombard-tower'?bombardTowerParts({...visual,red}):kind==='dock'?dockParts({...visual,red},options.assetPreview?0:land):kind==='fish-trap'?fishTrapParts({...visual,red}):kind==='monastery'?monasteryParts({...visual,red}):kind==='blacksmith'?blacksmithParts({...visual,red}):kind==='watch-tower'?towerParts({...visual,red},tower):kind==='university'?universityParts({...visual,red}):kind==='siege-workshop'?siegeWorkshopParts({...visual,red}):kind==='castle'?castleParts({...visual,red}):militaryBuildings.includes(kind as MilitaryBuilding)?militaryBuildingParts(kind as MilitaryBuilding,{...visual,red}):economicBuildingParts(kind as EconomicBuilding,{...visual,red}),kind==='farm'?'neutral':styleOf);
  for(const p of parts)brick(x+p.x,z+p.z,p.y,p.w,p.d,p.h,p.color,false,p.shape);
  for(const stud of buildingStuds(parts))staticPart(studGeo,stud.color,x+stud.x,stud.y,z+stud.z);}
+ // A water tile whose four neighbours are water too: the open lake, drawn a shade deeper than its shore.
+ const deepWater=(tiles:{terrainType:string}[],id:number)=>{const n=sizeOfTiles(tiles as any),x=id%n,z=Math.floor(id/n);return [[1,0],[-1,0],[0,1],[0,-1]].every(([dx,dz])=>{const tx=x+dx,tz=z+dz;return tx>=0&&tz>=0&&tx<n&&tz<n&&tiles[tz*n+tx].terrainType==='water';});};
  function buildWorld(view:View){const seed=view.seed;scene.remove(staticGroup);staticGroup.traverse((o:any)=>{if(o.isInstancedMesh)o.dispose();});staticGroup=new T.Group();scene.add(staticGroup);batches.clear();baseHeight=0;
- const map=options.assetPreview?makeMap(seed,previewLayout):{tiles:view.terrain.map((tile,id)=>({...tile,id,resourceRefs:[],obstacleRefs:[]})),obstacles:view.known.map(k=>k.obstacle),resources:view.resources};worldTiles=map.tiles;board=sizeOfTiles(map.tiles);platforms=map.obstacles.flatMap(o=>{const p=walkablePlatforms[o.kind];return p?[{x0:o.x+p.rect[0],y0:o.y+p.rect[1],x1:o.x+p.rect[2],y1:o.y+p.rect[3],height:p.height}]:[];});let rng=seed||1;for(const tile of map.tiles){const x=tile.id%board,z=Math.floor(tile.id/board);rng^=rng<<13;rng^=rng>>>17;rng^=rng<<5;const n=(rng>>>0)/4294967296;groundBlock(x,z,tile.height/100,!options.assetPreview&&view.fog[tile.id]!==2?(view.fog[tile.id]===1?'#626e64':'#293e38'):tile.terrainType==='cliff'?'#8a8065':tile.terrainType==='stone'?'#a1a28e':tile.terrainType==='highland'?'#879d69':tile.terrainType==='water'?'#4b8291':tile.terrainType==='shallow'?'#86b7b8':tile.terrainType==='sand'?'#d5c598':tile.terrainType==='road'?'#c4b18a':n<.2?'#a6b582':n<.5?'#b5c493':'#becda0');}
+ const map=options.assetPreview?makeMap(seed,previewLayout):{tiles:view.terrain.map((tile,id)=>({...tile,id,resourceRefs:[],obstacleRefs:[]})),obstacles:view.known.map(k=>k.obstacle),resources:view.resources};worldTiles=map.tiles;board=sizeOfTiles(map.tiles);platforms=map.obstacles.flatMap(o=>{const p=walkablePlatforms[o.kind];return p?[{x0:o.x+p.rect[0],y0:o.y+p.rect[1],x1:o.x+p.rect[2],y1:o.y+p.rect[3],height:p.height}]:[];});let rng=seed||1;for(const tile of map.tiles){const x=tile.id%board,z=Math.floor(tile.id/board);rng^=rng<<13;rng^=rng>>>17;rng^=rng<<5;const n=(rng>>>0)/4294967296;groundBlock(x,z,tile.height/100,!options.assetPreview&&view.fog[tile.id]!==2?(view.fog[tile.id]===1?'#626e64':'#293e38'):tile.terrainType==='cliff'?'#8a8065':tile.terrainType==='stone'?'#a1a28e':tile.terrainType==='highland'?'#879d69':tile.terrainType==='water'?(deepWater(map.tiles,tile.id)?'#41768a':'#4b8291'):tile.terrainType==='shallow'?'#86b7b8':tile.terrainType==='sand'?'#d5c598':tile.terrainType==='road'?'#c4b18a':n<.2?'#a6b582':n<.5?'#b5c493':'#becda0');}
+ // Open water: a few lighter ripple plates on the tiles in view (hashed per tile, so they stay put across rebuilds).
+ for(const tile of map.tiles)if(tile.terrainType==='water'&&(options.assetPreview||view.fog[tile.id]===2)){const tx=tile.id%board,tz=Math.floor(tile.id/board);let v=Math.imul(tx+1,73856093)^Math.imul(tz+1,19349663);v=Math.imul(v^v>>>16,0x45d9f3b);v=(v^v>>>16)>>>0;
+  if(v%3===0)brick(tx+.12+(v>>3&3)*.1,tz+.2+(v>>5&3)*.15,tile.height/100,.42,.06,.02,'#6fa2ae',false);if(v%5===1)brick(tx+.5-(v>>7&1)*.3,tz+.62,tile.height/100,.28,.05,.02,'#6fa2ae',false);}
+ // Walls and gates join their same-material neighbours: tile -> material family of the fortification standing there.
+ const fortAt=new Map<string,string>();for(const o of map.obstacles){const f=wallFamily(o.kind);if(f)fortAt.set(`${Math.floor(o.x/100)},${Math.floor(o.y/100)}`,`${f}:${o.red?1:0}`);}
+ const linksOf=(o:{kind:string;x:number;y:number;red?:boolean}):WallLinks=>{const tx=Math.floor(o.x/100),tz=Math.floor(o.y/100),me=fortAt.get(`${tx},${tz}`),at=(dx:number,dz:number)=>fortAt.get(`${tx+dx},${tz+dz}`)===me;
+  return {n:at(0,-1),s:at(0,1),e:at(1,0),w:at(-1,0),ne:at(1,-1),nw:at(-1,-1),se:at(1,1),sw:at(-1,1)};};
+ // The dock turns its shed toward the side with the most land along its edge (ties: north, east, south, west).
+ const landOf=(o:{x:number;y:number}):number=>{const tx=Math.floor(o.x/100),tz=Math.floor(o.y/100),dry=(x:number,z:number)=>{if(x<0||z<0||x>=board||z>=board)return 0;const t=map.tiles[z*board+x];return t.terrainType==='water'||t.terrainType==='shallow'?0:1;};
+  const sides=[0,1,2].map(i=>[dry(tx+i,tz-1),dry(tx+3,tz+i),dry(tx+i,tz+3),dry(tx-1,tz+i)]).reduce((a,b)=>a.map((v,i)=>v+b[i]),[0,0,0,0]);return sides.indexOf(Math.max(...sides));};
  for(const o of map.obstacles){baseHeight=groundHeight(map.tiles,o.x,o.y)/100;muted=!options.assetPreview&&view.fog[tileAt(o.x,o.y,sizeOfTiles(map.tiles))]!==2;const x=o.x/100,z=o.y/100;if(o.kind==='farm')for(const p of farmParts(o.progress??100,o.red))brick(x+p.x,z+p.z,p.y,p.w,p.d,p.h,p.color,p.studs);
- else if(o.kind==='house'||o.kind==='town-center'||o.kind==='barracks'||o.kind==='lumber-camp'||o.kind==='mining-camp'||o.kind==='mill'||o.kind==='stable'||o.kind==='archery-range'||o.kind==='monastery'||o.kind==='blacksmith'||o.kind==='watch-tower'||o.kind==='siege-workshop'||o.kind==='castle')house(x,z,o.red,o.kind,o.progress??100,o.age??2,o.damaged?35:100,options.assetPreview?'neutral':architectureOf(view.civs,o.red?1:0));else if(o.kind==='tree'){
+ else if((drawnBuildings as readonly string[]).includes(o.kind))house(x,z,o.red,o.kind as DrawnBuilding,o.progress??100,o.age??2,o.damaged?35:100,options.assetPreview?'neutral':architectureOf(view.civs,o.red?1:0),o.kind==='watch-tower'&&!o.red?ownTower(view):null,wallFamily(o.kind)?linksOf(o):noLinks,o.kind==='dock'?landOf(o):0);else if(o.kind==='tree'){
   // A grove is not one tree repeated: the tile position picks trunk height, crown tiers and leaf shade (same brick sizes, same footprint).
   // Hashed from the position, so a tree keeps its shape when fog or known objects rebuild the world.
   let v=Math.imul(o.x|0,73856093)^Math.imul(o.y|0,19349663);v=Math.imul(v^v>>>16,0x45d9f3b);v=(v^v>>>16)>>>0;const lift=[0,.16,-.12,.08][v&3],leaf=(v>>2)&1?'#5d824e':'#67835a';
@@ -98,26 +135,40 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
   if((v&3)!==2)brick(x+.05,z+.05,1.5+lift,.5,.5,.3,'#91a970');if((v>>3)%3===0)brick(x+.175,z+.175,(v&3)===2?1.5+lift:1.8+lift,.25,.25,.2,'#91a970',false);}else if(o.kind==='hunt'||o.kind==='livestock'){const color=o.kind==='hunt'?'#99714e':'#e7e2cc';for(const dx of [.1,.45])for(const dz of [.1,.5])brick(x+dx,z+dz,0,.09,.09,.28,'#615643',false);brick(x+.04,z+.06,.25,.54,.55,.35,color,false);brick(x+.16,z+.48,.47,.28,.2,.26,color,false);if(o.kind==='hunt')for(const dx of [.18,.36])brick(x+dx,z+.51,.73,.04,.04,.2,'#715a40',false);}else if(o.kind==='berries'){brick(x+.05,z+.05,0,.55,.55,.45,'#5d824e');for(const dx of [.12,.36])for(const dz of [.12,.36])brick(x+dx,z+dz,.45,.12,.12,.12,'#a84e59',false);}else{brick(x,z,0,.65,.7,.3,o.kind==='gold'?'#b59a48':'#a19f86');brick(x+.15,z+.15,.3,.35,.4,.18,o.kind==='gold'?'#dec36f':'#b8b39c',false);}}
  // Carcasses: the animal lying on its side, shrinking as it is eaten (which animal: by the food it started with).
  for(const resource of map.resources??[])if((resource.kind==='hunt'||resource.kind==='livestock')&&!resource.obstacleId&&resource.status==='available'){const kind=(Object.keys(animalRules.food) as AnimalLook[]).find(k=>animalRules.food[k]===resource.capacity)??'sheep';baseHeight=groundHeight(map.tiles,resource.x,resource.y)/100;muted=false;for(const p of carcassParts(kind,resource.remaining/resource.capacity))brick(resource.x/100+p.x,resource.y/100+p.z,p.y,p.w,p.d,p.h,p.color,false);}
- for(const resource of map.resources??[])if(resource.kind==='fish'&&resource.status==='available'){const x=resource.x/100,z=resource.y/100;baseHeight=groundHeight(map.tiles,resource.x,resource.y)/100;muted=false;for(const offset of [0,.22]){brick(x-.2+offset,z-.1+offset,.025,.25,.1,.05,'#d5e7de',false);brick(x-.27+offset,z-.1+offset,.025,.09,.15,.06,'#bad0ce',false);}}
+ // Fish: a school in the water, thinning as it is fished (two to five fish), each a body and a tail fin; schools face
+ // alternate ways and sit at offsets hashed from the spot, so neighbouring schools do not look stamped.
+ for(const resource of map.resources??[])if(resource.kind==='fish'&&resource.status==='available'){const x=resource.x/100,z=resource.y/100;baseHeight=groundHeight(map.tiles,resource.x,resource.y)/100;muted=false;
+  let v=Math.imul(resource.x|0,73856093)^Math.imul(resource.y|0,19349663);v=Math.imul(v^v>>>16,0x45d9f3b);v=(v^v>>>16)>>>0;const n=2+Math.round(3*Math.max(0,Math.min(1,resource.remaining/Math.max(1,resource.capacity))));
+  for(let i=0;i<n;i++){const ox=[-.26,.06,-.08,.18,-.3][i]+((v>>i)&1)*.04,oz=[-.12,.1,-.3,-.22,.16][i],left=((v>>(i+3))&1)===1;
+   brick(x+ox,z+oz,.025,.24,.09,.05,i%2?'#c6dcd6':'#d5e7de',false);brick(left?x+ox+.24:x+ox-.08,z+oz-.02,.025,.08,.13,.06,'#a9c2c0',false);}}
  baseHeight=0;muted=false;for(const {geo,color,matrices} of batches.values()){const mesh=new T.InstancedMesh(geo,material(color),matrices.length);matrices.forEach((m,i)=>mesh.setMatrixAt(i,m));mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();mesh.userData.studs=geo===studGeo;mesh.userData.ground=groundGeometries.has(geo);mesh.castShadow=true;mesh.receiveShadow=true;staticGroup.add(mesh);}
  }
  // goal: the latest simulated position; the drawn position eases toward it every frame (sim runs at 20 Hz, screens faster).
- const units=new Map<number,{group:any;rig:ReturnType<typeof createCharacterRig>|ReturnType<typeof createAnimalRig>|ReturnType<typeof createRamRig>;ring:any;player:number;moving:boolean;activity:string;tool:string;poseStart:number;bar:any;fill:any;goal:any;kind:string;relic:any}>();
+ // look: the line-upgrade look shown (own units); unpacked: a trebuchet's state; rigs: the model viewer's rigs by family.
+ type AnyRig=ReturnType<typeof createCharacterRig>|ReturnType<typeof createAnimalRig>|SiegeRig|VesselRig;
+ const units=new Map<number,{group:any;rig:AnyRig;ring:any;player:number;moving:boolean;activity:string;tool:string;poseStart:number;bar:any;fill:any;goal:any;kind:string;relic:any;look:string|null;unpacked:boolean;rigs?:Map<string,AnyRig>}>();
  // Relics: small dynamic groups, on the ground where the player saw them or on a carrying monk's back.
  function relic(){const g=new T.Group();g.name='relic';for(const p of relicParts){const m=new T.Mesh(box(p.w,p.h,p.d),material(p.color));m.position.set(p.x+p.w/2,p.y,p.z+p.d/2);m.castShadow=true;g.add(m);}return g;}
  const relics=new Map<number,any>();
  const arrows=new Map<string,any>(),arrowGeo=new T.BoxGeometry(.04,.04,1),arrowMaterial=new T.MeshBasicMaterial({color:'#4a3b2a'});
  // Fallen units: short-lived rigs in the death pose, keyed by unit id (sim corpses, visual only).
- const fallen=new Map<number,{group:any;rig:ReturnType<typeof createCharacterRig>;start:number}>();
+ const fallen=new Map<number,{group:any;rig:ReturnType<typeof createCharacterRig>|SiegeRig|VesselRig;start:number}>();
  const barBack=new T.MeshBasicMaterial({color:'#2d3a33'}),barGeo=new T.BoxGeometry(.5,.05,.05);
  const ringGeo=new T.RingGeometry(.4,.47,32);ringGeo.rotateX(-Math.PI/2);geometry.set('ring',ringGeo);const ringMaterial=new T.MeshBasicMaterial({color:'#fff2a1',side:T.DoubleSide});
  function unit(id:number,player:number,kind='villager'){const group=new T.Group();scene.add(group);
  // Animals: their own brick rig, a lower health bar, a neutral bar colour while wild.
  const beast=isAnimal(kind),frame=unitFrame(kind),bar=new T.Group();bar.position.y=beast?(kind==='deer'?1.3:.95):frame.bar;bar.visible=false;const back=new T.Mesh(barGeo,barBack);const fill=new T.Mesh(barGeo,new T.MeshBasicMaterial({color:player===0?'#5f9a6a':player===1?'#c0604c':'#c9b27a'}));fill.position.z=.012;bar.add(back,fill);group.add(bar);
- const rig=beast?createAnimalRig(T,kind as AnimalLook,player,box,material):kind==='ram'?createRamRig(T,player,box,material):createCharacterRig(T,player,box,material);if(!beast&&kind!=='ram'){if(!options.assetPreview&&kind!=='villager')rig.dress(roleOf(kind) as any);rig.equip(previewTool);}group.add(rig.root);detail.apply(group,zoom);
- const ring=new T.Mesh(ringGeo,ringMaterial);ring.position.y=.025;if(!beast)ring.scale.set(frame.ring,1,frame.ring);group.add(ring);units.set(id,{group,rig,ring,player,moving:false,activity:'idle',tool:'none',poseStart:0,bar,fill,goal:null,kind,relic:null as any});return units.get(id)!;
+ const rig=beast?createAnimalRig(T,kind as AnimalLook,player,box,material):isSiege(kind)?createSiegeRig(T,kind,player,box,material):isVessel(kind)?createVesselRig(T,kind,player,box,material):createCharacterRig(T,player,box,material);if(!beast&&!isSiege(kind)&&!isVessel(kind)){if(!options.assetPreview&&kind!=='villager')rig.dress(roleOf(kind) as any);rig.equip(previewTool);}group.add(rig.root);detail.apply(group,zoom);
+ const ring=new T.Mesh(ringGeo,ringMaterial);ring.position.y=.025;if(!beast)ring.scale.set(frame.ring,1,frame.ring);group.add(ring);units.set(id,{group,rig,ring,player,moving:false,activity:'idle',tool:'none',poseStart:0,bar,fill,goal:null,kind,relic:null as any,look:null,unpacked:false});return units.get(id)!;
  }
  let previewRole='villager';
+ // Model viewer: a siege preview id ('trebuchet-packed'/'trebuchet-unpacked' pick the trebuchet's state) or null.
+ const previewSiege=(role:string)=>role==='trebuchet-packed'||role==='trebuchet-unpacked'?'trebuchet':isSiege(role)||isVessel(role)?role:null;
+ // The viewer swaps a unit between the character rig and a siege rig; each is built once and kept (hidden) in the group,
+ // so returning to a character shows exactly the rig it left.
+ function previewRig(u:{group:any;rig:AnyRig;player:number;rigs?:Map<string,AnyRig>},family:string){u.rigs??=new Map([['character',u.rig]]);let rig=u.rigs.get(family);
+  if(!rig){rig=family==='character'?createCharacterRig(T,u.player,box,material):isVessel(family)?createVesselRig(T,family,u.player,box,material):createSiegeRig(T,family,u.player,box,material);u.group.add(rig.root);u.rigs.set(family,rig);}
+  for(const r of u.rigs.values())r.root.visible=r===rig;u.rig=rig;return rig;}
  let previewPose:UnitPose='idle',previewTool:UnitTool='none',previewAnimated=false,poseStart=0;const focus={x:8,y:0,z:8};let worldKey='',angle=Math.PI/4,zoom=1,width=0,height=0,selected=new Set<number>([1]),latest:View|null=null;
  // board: tiles per side of the current map (16 on the test grounds, 32 on the match map); set in buildWorld.
  let board=16;const minZoom=()=>Math.min(.7,.7*16/board);
@@ -127,7 +178,7 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
  // Read by browser flows to aim the pointer at world points: focus x, focus z, half view height, heading.
  canvas.dataset.camera=`${focus.x.toFixed(4)},${focus.z.toFixed(4)},${halfH.toFixed(4)},${angle.toFixed(4)}`;}
  function resize(){const r=canvas.getBoundingClientRect();if(r.width!==width||r.height!==height){width=r.width;height=r.height;renderer.setSize(width,height,false);cameraUpdate();}}
- function update(view:View,ids:number|Iterable<number>){latest=view;selected=new Set(typeof ids==='number'?[ids]:ids);const key=JSON.stringify([previewBuildingKind,previewBuilding,previewStyle,previewLayout,view.layout,view.seed,view.civs,view.fog,view.known?.map(k=>k.obstacle),view.resources]);if(worldKey!==key){worldKey=key;const t=performance.now();buildWorld(view);cameraUpdate();
+ function update(view:View,ids:number|Iterable<number>){latest=view;selected=new Set(typeof ids==='number'?[ids]:ids);const key=JSON.stringify([previewBuildingKind,previewBuilding,previewStyle,previewLayout,view.layout,view.seed,view.civs,view.fog,view.known?.map(k=>k.obstacle),view.resources,ownTower(view)]);if(worldKey!==key){worldKey=key;const t=performance.now();buildWorld(view);cameraUpdate();
   // Read by performance checks: how often the static world is rebuilt (fog, known objects) and the last cost.
   canvas.dataset.rebuilds=String(Number(canvas.dataset.rebuilds??0)+1);canvas.dataset.rebuildMs=(performance.now()-t).toFixed(1);}const alive=new Set(view.units.map(u=>u.id));for(const [key,u] of units)if(!alive.has(key)){scene.remove(u.group);units.delete(key);}
  for(const data of view.units){
@@ -139,10 +190,15 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
   if(!u.goal||options.assetPreview||u.group.position.distanceTo(goal)>1.5)u.group.position.copy(goal);u.goal=goal;u.ring.visible=selected.has(data.id);u.moving=data.navigation==='moving';
   // Sim state drives the pose: gathering works with the resource's tool, returning cargo walks with a basket.
   if(!options.assetPreview&&(data.work==='gathering'||data.work==='hunting'||data.action===1)&&!u.moving&&data.target)u.group.rotation.y=Math.atan2(data.target.x/100-u.group.position.x,data.target.y/100-u.group.position.z);
-  if(!options.assetPreview){const gathering=(data.work==='gathering'||data.work==='hunting')&&!u.moving,activity=u.moving?(data.cargo?'carry':'walk'):gathering||data.rite?'work':'idle';
+  if(!options.assetPreview){
+   // Own units wear their line's latest researched upgrade (the enemy's research is not projected); a trebuchet shows
+   // the state the sim projects, packed on its wagon or standing unpacked (cached rigs toggle, nothing is rebuilt).
+   const look=data.player===0?lookOf(data.kind,view.economy?.techs??[]):null;if(look!==u.look){u.look=look;u.rig.grade(look);u.tool='';detail.apply(u.group,zoom);}
+   if(data.kind==='trebuchet'&&!!data.unpacked!==u.unpacked){u.unpacked=!!data.unpacked;(u.rig as SiegeRig).dress(u.unpacked?'unpacked':'packed');const f=unitFrame('trebuchet',u.unpacked);u.bar.position.y=f.bar;u.ring.scale.set(f.ring,1,f.ring);detail.apply(u.group,zoom);}
+   const gathering=(data.work==='gathering'||data.work==='hunting')&&!u.moving,activity=u.moving?(data.cargo?'carry':'walk'):gathering||data.rite?'work':'idle';
    // Food by its source: a spear for the hunt and for shore fish, a knife (sickle) for a carcass, the basket for bushes and fields.
    const source=data.work==='gathering'&&data.target?view.resources.find(r=>r.x===data.target!.x&&r.y===data.target!.y&&!r.obstacleId):undefined,food:UnitTool=data.work==='hunting'||source?.kind==='fish'?'spear':source?'sickle':'basket';
-   const weapon:UnitTool=weaponOf(data.kind),tool=data.cargo&&activity!=='work'?'basket':gathering?({wood:'axe',stone:'pick',gold:'pick',food} as Record<string,UnitTool>)[data.workResource??'food']:weapon;
+   const weapon:UnitTool=gradedWeapon(data.kind,u.look),tool=data.cargo&&activity!=='work'?'basket':gathering?({wood:'axe',stone:'pick',gold:'pick',food} as Record<string,UnitTool>)[data.workResource??'food']:weapon;
    if(tool!==u.tool){u.rig.equip(tool as UnitTool);u.tool=tool;}
    // A carried relic rides on the monk's back.
    if(data.relic&&!u.relic){u.relic=relic();u.relic.position.set(0,.98,-.3);u.group.add(u.relic);}else if(!data.relic&&u.relic){u.group.remove(u.relic);u.relic=null;}
@@ -158,17 +214,18 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
    const m=new T.Mesh(arrowGeo,arrowMaterial);m.position.copy(a).lerp(b,.5);m.scale.z=a.distanceTo(b);m.lookAt(b);scene.add(m);arrows.set(k,m);}
   // Corpses: create once, pose from the moment they appear, remove when the sim drops them.
   const lying=new Set((view.corpses??[]).map(c=>c.id));for(const [id,f] of fallen)if(!lying.has(id)){scene.remove(f.group);fallen.delete(id);}
-  for(const c of view.corpses??[])if(!fallen.has(c.id)){const group=new T.Group();const rig=createCharacterRig(T,c.player,box,material);if(c.kind!=='villager')rig.dress(corpseRole(c.kind));group.add(rig.root);group.position.set(c.x/100,groundHeight(worldTiles,c.x,c.y)/100,c.y/100);scene.add(group);fallen.set(c.id,{group,rig,start:performance.now()});}
+  // A destroyed siege engine tips over as a wreck (its own rig); everyone else falls on foot.
+  for(const c of view.corpses??[])if(!fallen.has(c.id)){const group=new T.Group();let rig:ReturnType<typeof createCharacterRig>|SiegeRig|VesselRig;if(isSiege(c.kind))rig=createSiegeRig(T,c.kind,c.player,box,material);else if(isVessel(c.kind))rig=createVesselRig(T,c.kind,c.player,box,material);else{const body=createCharacterRig(T,c.player,box,material);if(c.kind!=='villager')body.dress(corpseRole(c.kind));rig=body;}group.add(rig.root);group.position.set(c.x/100,groundHeight(worldTiles,c.x,c.y)/100,c.y/100);scene.add(group);fallen.set(c.id,{group,rig,start:performance.now()});}
  }
  const raycaster=new T.Raycaster(),ground=new T.Plane(new T.Vector3(0,1,0),0);
  function pick(clientX:number,clientY:number):{unitId?:number;x?:number;y?:number}{const r=canvas.getBoundingClientRect();raycaster.setFromCamera(new T.Vector2((clientX-r.left)/r.width*2-1,-(clientY-r.top)/r.height*2+1),camera);
  const hits=detail.withSelectionGeometry(scene,()=>visibleMeshHits(raycaster,[...units.values()].map(u=>u.group)));if(hits.length){let obj=hits[0].object;while(obj.parent&&obj.parent!==scene)obj=obj.parent;for(const [id,u] of units)if(u.group===obj)return {unitId:id};}
  const groundHit=raycaster.intersectObjects(staticGroup.children.filter((mesh:any)=>mesh.userData.ground),false)[0];if(groundHit)return {x:groundHit.point.x,y:groundHit.point.z};return {};}
  // Buildings by their volume (footprint x model height), so a click on a roof means that building, not the ground behind it.
- const buildingHeights:Record<string,number>={'town-center':2.6,barracks:2.2,house:1.9,farm:.25,'lumber-camp':1.9,'mining-camp':1.9,mill:2.6,stable:2.2,'archery-range':2.2,blacksmith:2.4,'watch-tower':3.2,'siege-workshop':2.2,monastery:3.4,castle:4.7};
+ const buildingHeights:Record<string,number>={'town-center':2.6,barracks:2.2,house:1.9,farm:.25,'lumber-camp':1.9,'mining-camp':1.9,mill:2.6,stable:2.2,'archery-range':2.2,blacksmith:2.4,'watch-tower':3.2,'siege-workshop':2.2,monastery:3.4,castle:4.7,university:3.6,market:2.2,dock:2.4,'fish-trap':.4,outpost:2.1,'bombard-tower':2.4,wonder:4.6,'palisade-wall':1.3,'stone-wall':1.3,'palisade-gate':1.5,gate:1.6};
  function pickBuilding(clientX:number,clientY:number):string|undefined{if(!latest)return;const r=canvas.getBoundingClientRect();raycaster.setFromCamera(new T.Vector2((clientX-r.left)/r.width*2-1,-(clientY-r.top)/r.height*2+1),camera);
   let best:string|undefined,dist=Infinity;const hit=new T.Vector3();
-  for(const {obstacle:o} of latest.known){const h=buildingHeights[o.kind];if(!h||!o.id)continue;const [x0,y0,x1,y1]=obstacleBounds(o),base=groundHeight(worldTiles,o.x,o.y)/100;
+  for(const {obstacle:o} of latest.known){const h=buildingHeights[o.kind]+(o.kind==='watch-tower'&&!o.red?towerLift(ownTower(latest)):0);if(!h||!o.id)continue;const [x0,y0,x1,y1]=obstacleBounds(o),base=groundHeight(worldTiles,o.x,o.y)/100;
    if(raycaster.ray.intersectBox(new T.Box3(new T.Vector3(x0/100,base,y0/100),new T.Vector3(x1/100,base+h,y1/100)),hit)){const d=hit.distanceTo(raycaster.ray.origin);if(d<dist){dist=d;best=o.id;}}}
   return best;}
  // Ground only, ignoring units: the target of a move order.
@@ -199,6 +256,11 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
  const ghost=new T.Mesh(new T.BoxGeometry(1,.3,1),new T.MeshBasicMaterial({color:'#6f9d6a',transparent:true,opacity:.42,depthWrite:false}));ghost.visible=false;scene.add(ghost);
  function setGhost(g:{kind:BuildKind;x:number;y:number;ok:boolean}|null){ghost.visible=!!g;if(!g)return;const [x0,y0,x1,y1]=obstacleBounds({kind:g.kind,x:g.x,y:g.y});
   ghost.scale.set((x1-x0)/100,1,(y1-y0)/100);ghost.position.set((x0+x1)/200,groundHeight(worldTiles,g.x,g.y)/100+.15,(y0+y1)/200);ghost.material.color.set(g.ok?'#6f9d6a':'#b8574a');}
+ // A dragged wall: one slab per segment (pooled), each green or red on its own.
+ const wallGhosts:InstanceType<typeof T.Mesh>[]=[];
+ function setGhosts(list:{kind:BuildKind;x:number;y:number;ok:boolean}[]){
+  while(wallGhosts.length<list.length){const m=new T.Mesh(ghost.geometry,new T.MeshBasicMaterial({color:'#6f9d6a',transparent:true,opacity:.42,depthWrite:false}));scene.add(m);wallGhosts.push(m);}
+  wallGhosts.forEach((m,i)=>{const g=list[i];m.visible=!!g;if(!g)return;const [x0,y0,x1,y1]=obstacleBounds({kind:g.kind,x:g.x,y:g.y});m.scale.set((x1-x0)/100,1,(y1-y0)/100);m.position.set((x0+x1)/200,groundHeight(worldTiles,g.x,g.y)/100+.15,(y0+y1)/200);(m.material as InstanceType<typeof T.MeshBasicMaterial>).color.set(g.ok?'#6f9d6a':'#b8574a');});}
  // HUD art: the same brick parts and rigs rendered once into small transparent PNGs (no icon packs, no network).
  // A second, short-lived WebGL context keeps the battlefield renderer's size and state untouched.
  function renderIcons(size=160):Record<string,string>{
@@ -217,14 +279,20 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
    const half=view.crop?(y1-y0)*(view.span??.36):Math.max(x1-x0,y1-y0)/2*1.06,cx=(x0+x1)/2,cy=view.crop?0:(y0+y1)/2;
    Object.assign(cam,{left:cx-half,right:cx+half,top:cy+half,bottom:cy-half});cam.updateProjectionMatrix();r.render(s,cam);out[name]=off.toDataURL('image/png');s.remove(g);};
   try{
-   {const rig=createRamRig(T,0,box,material);rig.pose('idle',0);const g=new T.Group();g.add(rig.root);shoot('ram',g,{angle:Math.PI/4,lift:.5});shoot('ram-face',g,{angle:Math.PI/4,lift:.5});}
+   // Siege engines: the whole engine for both tiles (the trebuchet standing unpacked, its recognisable state).
+   for(const kind of siegeKinds){const rig=createSiegeRig(T,kind,0,box,material);if(kind==='trebuchet')rig.dress('unpacked');rig.pose('idle',0);const g=new T.Group();g.add(rig.root);shoot(kind,g,{angle:Math.PI/4,lift:.5});shoot(`${kind}-face`,g,{angle:Math.PI/4,lift:.5});}
+   // Ships and the trade cart: three-quarter view from a little higher (a hull reads by its deck).
+   for(const kind of vesselKinds){const rig=createVesselRig(T,kind,0,box,material);rig.pose('idle',0);const g=new T.Group();g.add(rig.root);shoot(kind,g,{angle:Math.PI/4,lift:.6});shoot(`${kind}-face`,g,{angle:Math.PI/4,lift:.6});}
    for(const kind of ['sheep','deer','boar'] as const){const rig=createAnimalRig(T,kind,0,box,material);rig.pose('idle',0);const g=new T.Group();g.add(rig.root);shoot(kind,g,{angle:Math.PI/3,lift:.35});shoot(`${kind}-face`,g,{angle:Math.PI/3,lift:.35});}
-   for(const kind of ['villager','militia','archer','scout','monk','spearman','skirmisher','knight',...iconUniques]){const rig=createCharacterRig(T,0,box,material);if(kind!=='villager')rig.dress(roleOf(kind));rig.equip(weaponOf(kind));rig.pose('idle',0);
+   for(const kind of ['villager','militia','archer','scout','monk','spearman','skirmisher','knight',...iconUniques]){const rig=createCharacterRig(T,0,box,material);if(kind!=='villager')rig.dress(roleOf(kind) as any);rig.equip(weaponOf(kind));rig.pose('idle',0);
     const g=new T.Group();g.add(rig.root);const role=roleOf(kind);shoot(kind,g,{angle:Math.PI/7,lift:.35});// A rider's face sits high above the horse (higher still in the howdah): frame the upper part tighter.
     // Crops measured so the head sits where the scout's does; the shorter scimitar and bow leave the light riders' box lower.
-    shoot(`${kind}-face`,g,role==='war-elephant'?{angle:Math.PI/7,lift:.35,crop:.81,span:.15}:role==='mameluke'||role==='mangudai'?{angle:Math.PI/7,lift:.35,crop:.84,span:.23}:isMounted(role)?{angle:Math.PI/7,lift:.35,crop:.74,span:.21}:{angle:Math.PI/7,lift:.35,crop:.72});}
+    shoot(`${kind}-face`,g,role==='war-elephant'?{angle:Math.PI/7,lift:.35,crop:.81,span:.15}:role==='camel'?{angle:Math.PI/7,lift:.35,crop:.89,span:.19}:role==='mameluke'||role==='mangudai'||role==='cavalry-archer'?{angle:Math.PI/7,lift:.35,crop:.84,span:.23}:isMounted(role)?{angle:Math.PI/7,lift:.35,crop:.74,span:.21}:{angle:Math.PI/7,lift:.35,crop:.72});}
    const visual=(age:number)=>({ageVariant:age as 1|2|3|4,progress:100,health:100,red:false});
-   for(const age of [1,2,3,4]){shoot(`house-${age}`,parts(buildingParts(visual(age))));shoot(`barracks-${age}`,parts(militaryBuildingParts('barracks',visual(age))));shoot(`stable-${age}`,parts(militaryBuildingParts('stable',visual(age))));shoot(`archery-range-${age}`,parts(militaryBuildingParts('archery-range',visual(age))));shoot(`monastery-${age}`,parts(monasteryParts(visual(age))));shoot(`blacksmith-${age}`,parts(blacksmithParts(visual(age))));shoot(`watch-tower-${age}`,parts(towerParts(visual(age))));shoot(`siege-workshop-${age}`,parts(siegeWorkshopParts(visual(age))));shoot(`castle-${age}`,parts(castleParts(visual(age))));shoot(`town-center-${age}`,parts(economicBuildingParts('town-center',visual(age))));for(const camp of ['lumber-camp','mining-camp','mill'] as const)shoot(`${camp}-${age}`,parts(economicBuildingParts(camp,visual(age))));}
+   for(const age of [1,2,3,4]){shoot(`house-${age}`,parts(buildingParts(visual(age))));shoot(`barracks-${age}`,parts(militaryBuildingParts('barracks',visual(age))));shoot(`stable-${age}`,parts(militaryBuildingParts('stable',visual(age))));shoot(`archery-range-${age}`,parts(militaryBuildingParts('archery-range',visual(age))));shoot(`monastery-${age}`,parts(monasteryParts(visual(age))));shoot(`blacksmith-${age}`,parts(blacksmithParts(visual(age))));shoot(`watch-tower-${age}`,parts(towerParts(visual(age))));shoot(`siege-workshop-${age}`,parts(siegeWorkshopParts(visual(age))));shoot(`castle-${age}`,parts(castleParts(visual(age))));shoot(`university-${age}`,parts(universityParts(visual(age))));shoot(`town-center-${age}`,parts(economicBuildingParts('town-center',visual(age))));for(const camp of ['lumber-camp','mining-camp','mill','market'] as const)shoot(`${camp}-${age}`,parts(economicBuildingParts(camp,visual(age))));
+    // The 建築 round's buildings (walls and gates shown in a straight run).
+    const run={...noLinks,e:true,w:true};shoot(`dock-${age}`,parts(dockParts(visual(age))));shoot(`fish-trap-${age}`,parts(fishTrapParts(visual(age))));shoot(`outpost-${age}`,parts(outpostParts(visual(age))));shoot(`bombard-tower-${age}`,parts(bombardTowerParts(visual(age))));shoot(`wonder-${age}`,parts(wonderParts(visual(age))));
+    for(const k of ['palisade-wall','stone-wall'] as const)shoot(`${k}-${age}`,parts(wallParts(k,visual(age),run)));for(const k of ['palisade-gate','gate'] as const)shoot(`${k}-${age}`,parts(gateParts(k,visual(age),run)));}
    shoot('farm',parts(farmParts(100,false),false));shoot('relic',parts(relicParts.map(p=>({...p,x:p.x+.5,z:p.z+.5})),false));for(const [id,list] of Object.entries(techIcons))shoot(`tech-${id}`,parts(list,false));
    const bush=[{x:.05,y:0,z:.05,w:.55,d:.55,h:.45,color:'#5d824e'},...[.12,.36].flatMap(x=>[.12,.36].map(z=>({x,y:.45,z,w:.12,d:.12,h:.12,color:'#a84e59'})))];
    const tree=[{x:.15,y:0,z:.15,w:.3,d:.3,h:.8,color:'#80664b'},{x:-.2,y:.7,z:-.2,w:1,d:1,h:.4,color:'#67835a'},{x:-.075,y:1.1,z:-.075,w:.75,d:.75,h:.4,color:'#7e985f'},{x:.05,y:1.5,z:.05,w:.5,d:.5,h:.3,color:'#91a970'}];
@@ -242,7 +310,11 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
   const shadows=level!=='low',size=level==='high'?2048:1024;
   if(renderer.shadowMap.enabled!==shadows||sun.shadow.mapSize.x!==size){renderer.shadowMap.enabled=shadows;sun.castShadow=shadows;sun.shadow.mapSize.set(size,size);sun.shadow.map?.dispose();sun.shadow.map=null;for(const m of materials.values())m.needsUpdate=true;table.material.needsUpdate=true;}
   canvas.dataset.quality=level;}
- return {update,draw,pick,pickGround,pickBuilding,setMarker,setRally,setQuality,unitsInRect,setGhost,renderIcons,cameraView,setPreviewBuildingKind:(kind:'house'|EconomicBuilding|MilitaryBuilding|'castle')=>{if(!options.assetPreview||(kind!=='house'&&kind!=='castle'&&!economicBuildings.includes(kind as EconomicBuilding)&&!militaryBuildings.includes(kind as MilitaryBuilding)))throw Error('未知模型建築');previewBuildingKind=kind;if(latest)update(latest,selected);},setPreviewStyle:(style:Architecture)=>{if(!options.assetPreview||!architectures.includes(style))throw Error('未知建築風格');previewStyle=style;if(latest)update(latest,selected);},setPreviewRole:(role:any)=>{if(!options.assetPreview||(!unitRoles.includes(role)&&!isMounted(role)))throw Error('僅模型檢視可指定有效軍種');previewRole=role;previewPose='idle';const ring=role==='war-elephant'?2.4:isMounted(role)?1.8:1;for(const u of units.values()){u.rig.dress(role);u.ring.scale.set(ring,1,ring);detail.apply(u.group,zoom);}},setPreviewBuilding:(visual:Omit<BuildingVisual,'red'>)=>{if(!options.assetPreview)throw Error('僅模型檢視可指定建築外觀');buildingParts({...visual,red:false});previewBuilding={...visual};if(latest)update(latest,selected);},focusPreviewHouse:()=>{if(!options.assetPreview)throw Error('僅模型檢視可聚焦建築');focus.x=4;focus.y=1;focus.z=4.85;zoomGoal=null;zoom=2.5;cameraUpdate();},focusPreviewUnit:(id:number)=>{if(!options.assetPreview)throw Error('僅模型檢視可聚焦代表資產');const u=units.get(id);if(!u)throw Error('找不到人偶');focus.x=u.group.position.x;focus.y=u.group.position.y+.5;focus.z=u.group.position.z;zoomGoal=null;zoom=2.5;cameraUpdate();},setPreviewMotion:(pose:UnitPose,tool:UnitTool,animated:boolean)=>{if(!options.assetPreview)throw Error('僅模型檢視可指定姿態');if((isMounted(previewRole)&&!['idle','walk','attack'].includes(pose))||!unitPoses.includes(pose)||!unitTools.includes(tool))throw Error('未知模型姿態或工具');previewPose=pose;previewTool=tool;previewAnimated=animated;poseStart=performance.now();for(const u of units.values()){u.rig.equip(tool);detail.apply(u.group,zoom);}},setPreviewLayout:(layout:MapLayout)=>{if(!options.assetPreview)throw Error('僅模型檢視可切換驗收圖');if(!['meadow','coast','acceptance'].includes(layout))throw Error('未知地圖模式');previewLayout=layout;if(latest)update(latest,selected);},zoom:(delta:number)=>{zoomGoal=null;zoom=Math.max(minZoom(),Math.min(2.5,zoom+delta));cameraUpdate();},wheelZoom:(delta:number)=>{const goal=Math.max(minZoom(),Math.min(2.5,(zoomGoal??zoom)+delta));if(matchMedia('(prefers-reduced-motion: reduce)').matches){zoomGoal=null;zoom=goal;cameraUpdate();}else zoomGoal=goal;},rotate:()=>{angle+=Math.PI/2;cameraUpdate();},
+ return {update,draw,pick,pickGround,pickBuilding,setMarker,setRally,setQuality,unitsInRect,setGhost,setGhosts,renderIcons,cameraView,setPreviewBuildingKind:(kind:DrawnBuilding|EconomicBuilding|MilitaryBuilding)=>{if(!options.assetPreview||(!(drawnBuildings as readonly string[]).includes(kind)&&!economicBuildings.includes(kind as EconomicBuilding)&&!militaryBuildings.includes(kind as MilitaryBuilding)))throw Error('未知模型建築');previewBuildingKind=kind;if(latest)update(latest,selected);},setPreviewStyle:(style:Architecture)=>{if(!options.assetPreview||!architectures.includes(style))throw Error('未知建築風格');previewStyle=style;if(latest)update(latest,selected);},setPreviewRole:(role:any)=>{const siege=previewSiege(role);if(!options.assetPreview||(!unitRoles.includes(role)&&!isMounted(role)&&!siege))throw Error('僅模型檢視可指定有效軍種');previewRole=role;previewPose='idle';
+  const frame=siege?unitFrame(siege,role==='trebuchet-unpacked'):frameOfRole(role);
+  for(const u of units.values()){const rig=previewRig(u,siege??'character');if(siege==='trebuchet')(rig as SiegeRig).dress(role==='trebuchet-unpacked'?'unpacked':'packed');else if(!siege)(rig as ReturnType<typeof createCharacterRig>).dress(role);rig.grade(null);u.ring.scale.set(frame.ring,1,frame.ring);detail.apply(u.group,zoom);}},
+ // Line-upgrade look on the inspected model ('' or null: the base look); dressing again clears it.
+ setPreviewGrade:(look:string|null)=>{if(!options.assetPreview||(look&&!Object.values(upgradeLooks).some(line=>line.includes(look))))throw Error('未知升級外觀');for(const u of units.values()){u.rig.grade(look||null);detail.apply(u.group,zoom);}},setPreviewBuilding:(visual:Omit<BuildingVisual,'red'>)=>{if(!options.assetPreview)throw Error('僅模型檢視可指定建築外觀');buildingParts({...visual,red:false});previewBuilding={...visual};if(latest)update(latest,selected);},focusPreviewHouse:()=>{if(!options.assetPreview)throw Error('僅模型檢視可聚焦建築');focus.x=4;focus.y=1;focus.z=4.85;zoomGoal=null;zoom=2.5;cameraUpdate();},focusPreviewUnit:(id:number)=>{if(!options.assetPreview)throw Error('僅模型檢視可聚焦代表資產');const u=units.get(id);if(!u)throw Error('找不到人偶');focus.x=u.group.position.x;focus.y=u.group.position.y+.5;focus.z=u.group.position.z;zoomGoal=null;zoom=2.5;cameraUpdate();},setPreviewMotion:(pose:UnitPose,tool:UnitTool,animated:boolean)=>{if(!options.assetPreview)throw Error('僅模型檢視可指定姿態');if((isMounted(previewRole)&&!['idle','walk','attack'].includes(pose))||!unitPoses.includes(pose)||!unitTools.includes(tool))throw Error('未知模型姿態或工具');previewPose=pose;previewTool=tool;previewAnimated=animated;poseStart=performance.now();for(const u of units.values()){u.rig.equip(tool);detail.apply(u.group,zoom);}},setPreviewLayout:(layout:MapLayout)=>{if(!options.assetPreview)throw Error('僅模型檢視可切換驗收圖');if(!['meadow','coast','acceptance','lakes'].includes(layout))throw Error('未知地圖模式');previewLayout=layout;if(latest)update(latest,selected);},zoom:(delta:number)=>{zoomGoal=null;zoom=Math.max(minZoom(),Math.min(2.5,zoom+delta));cameraUpdate();},wheelZoom:(delta:number)=>{const goal=Math.max(minZoom(),Math.min(2.5,(zoomGoal??zoom)+delta));if(matchMedia('(prefers-reduced-motion: reduce)').matches){zoomGoal=null;zoom=goal;cameraUpdate();}else zoomGoal=goal;},rotate:()=>{angle+=Math.PI/2;cameraUpdate();},
  // Screen-aligned pan (right, away from camera), scaled by zoom and clamped to the board.
  pan:(right:number,up:number)=>{const step=1.2/zoom,c=Math.cos(angle),s=Math.sin(angle);focus.x=Math.max(0,Math.min(board,focus.x+(c*right-s*up)*step));focus.z=Math.max(0,Math.min(board,focus.z+(-s*right-c*up)*step));cameraUpdate();},
  // Opening view of a match: the home town centre, close enough that the base fills the window (wide or tall).

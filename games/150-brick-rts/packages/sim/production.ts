@@ -1,8 +1,9 @@
 import {obstacleBounds} from '../content/footprints.ts';
 import {rules,resources} from '../content/rules.ts';
 import {reserve,cancelReservation,commitReservation} from './economy.ts';
-import {position,navigationRules,nearest,blockedTable,nodesNear} from './navigation.ts';
-import {makeUnit,commandMove,unitKinds} from './movement.ts';
+import {position,navigationRules,nearest,blockedFor,nodesNear} from './navigation.ts';
+import {makeUnit,commandMove,unitKinds,layerOf} from './movement.ts';
+import type {Layer} from './movement.ts';
 import type {UnitKind,MovementState} from './movement.ts';
 import type {Building,BuildingState} from './buildings.ts';
 import {recomputeCapacity} from './buildings.ts';
@@ -57,13 +58,14 @@ export function dequeue(s:ProductionState,player:number,buildingId:string,itemId
  const item=b.queue.find(q=>q.id===itemId);if(!item)throw Error('佇列項目已完成或不存在');
  cancelReservation(s.accounts[player],item.reservationId);b.queue=b.queue.filter(q=>q!==item);
 }
-// Free nodes on the ring just outside the footprint, nearest to the rally point (or the front) first.
-function exitNode(s:ProductionState,b:Building):number{
+// Free nodes on the ring just outside the footprint, nearest to the rally point (or the front) first. A ship leaves
+// onto the water ring (the dock's water side), anything else onto land.
+function exitNode(s:ProductionState,b:Building,layer:Layer='land'):number{
  const o=s.map.obstacles.find(o=>o.id===b.id)!,box=obstacleBounds(o,navigationRules.radius);
  const held=new Set(s.units.flatMap(u=>u.next===null?[u.node]:[u.node,u.next]));
  const aim=b.rally??{x:(box[0]+box[2])/2,y:box[3]+50};
  let best=-1,dist=Infinity;
- const closed=blockedTable(s.map);for(const n of nodesNear(s.map,box,50)){if(closed[n]||held.has(n))continue;const p=position(s.map,n),g=Math.max(box[0]-p.x,0,p.x-box[2])+Math.max(box[1]-p.y,0,p.y-box[3]);if(g<=0||g>50)continue;
+ const closed=blockedFor(s.map,layer);for(const n of nodesNear(s.map,box,50)){if(closed[n]||held.has(n))continue;const p=position(s.map,n),g=Math.max(box[0]-p.x,0,p.x-box[2])+Math.max(box[1]-p.y,0,p.y-box[3]);if(g<=0||g>50)continue;
   const d=Math.abs(p.x-aim.x)+Math.abs(p.y-aim.y);if(d<dist){dist=d;best=n;}}
  return best;
 }
@@ -96,10 +98,11 @@ export function stepProduction(s:ProductionState){
   if(entryOf(item.entryId)?.kind==='technology'){commitReservation(s.accounts[b.player],item.reservationId);b.queue.shift();const before={...ownerOf(s,b.player),techs:[...s.techs[b.player]]};s.techs[b.player].push(item.entryId);
    refreshOwner(s,b.player,before);continue;}
   // A blocked exit keeps the finished unit waiting at 100% until a ring node frees up.
-  const node=exitNode(s,b);if(node<0)continue;
+  const layer=layerOf(unitKindOf(item.entryId)),node=exitNode(s,b,layer);if(node<0)continue;
   commitReservation(s.accounts[b.player],item.reservationId);b.queue.shift();
   const p=position(s.map,node),u=makeUnit(s.map,s.nextUnitId++,b.player,p.x,p.y,unitKindOf(item.entryId));u.hp=maxHpOf(u.kind as keyof typeof combatRules.units,ownerOf(s,b.player));s.units.push(u);
   // A rally point later covered by a building (or otherwise unstandable) is skipped, never an error.
-  if(b.rally&&nearest(s.map,b.rally,false)>=0)commandMove(s,[u.id],b.rally);
+  // A ship heads for the water nearest the rally point instead.
+  if(b.rally&&nearest(s.map,b.rally,false,layer)>=0)commandMove(s,[u.id],b.rally);
  }
 }

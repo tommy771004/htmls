@@ -1,6 +1,7 @@
 // Evaluates the civilization effects of packages/content/civs.ts for one player (civ, age, research). Pure: shared by
 // the sim, the AI and the page. Every rule that a civilization can change asks here; nothing branches on a civ name.
 import {civDefs,neutralCiv} from '../content/civs.ts';
+import {techEffects} from '../content/techs.ts';
 import type {Effect,EffectKind,Selector,Resource} from '../content/civs.ts';
 import {rules,resources} from '../content/rules.ts';
 export type Owner={civ:string;age:number;techs:readonly string[]};
@@ -12,9 +13,12 @@ export function ownerOf(s:{civs?:readonly string[];ages?:readonly number[];techs
 export const asOwner=(o:Owner|readonly string[]):Owner=>Array.isArray(o)?{civ:neutralCiv,age:1,techs:o as readonly string[]}:o as Owner;
 const byCiv=new Map(civDefs.map(c=>[c.id,c.effects]));
 export const civExists=(id:unknown)=>typeof id==='string'&&byCiv.has(id);
+// Per kind: the effects of a civ plus the generic technologies, cached (activeEffects runs inside statsOf).
 // Effects of this kind in force for the owner: its civ's, from their age and once their technology is researched.
+const withTechs=new Map<string,Effect[]>();
+// Generic technologies (packages/content/techs.ts) work the same way for every civilization.
 export function activeEffects(o:Owner,kind:EffectKind):Effect[]{
- const list=byCiv.get(o.civ);if(!list)return [];
+ let list=withTechs.get(o.civ);if(!list){list=[...(byCiv.get(o.civ)??[]),...techEffects];withTechs.set(o.civ,list);}
  return list.filter(e=>e.kind===kind&&(e.trigger.age===undefined||o.age>=e.trigger.age)&&(e.trigger.tech===undefined||o.techs.includes(e.trigger.tech)));}
 export const valueOf=(e:Effect,o:Owner)=>typeof e.value==='number'?e.value:e.value[Math.min(3,Math.max(0,o.age-1))];
 const hit=(list:readonly string[]|undefined,values:readonly string[])=>!!list&&values.some(v=>list.includes(v));
@@ -32,9 +36,10 @@ const product=(list:Effect[],o:Owner)=>list.reduce((t,e)=>t*valueOf(e,o),1);
 // Unit numbers: additive effects summed, multipliers multiplied (callers round).
 export const unitSum=(o:Owner,kind:EffectKind,unit:string,classes:readonly string[],op:'add'|'mul'='add')=>sum(activeEffects(o,kind).filter(e=>e.op===op&&unitMatches(e.select,unit,classes)),o);
 export const unitProduct=(o:Owner,kind:EffectKind,unit:string,classes:readonly string[])=>product(activeEffects(o,kind).filter(e=>e.op==='mul'&&unitMatches(e.select,unit,classes)),o);
-// Bonus damage added per target class.
+// Bonus damage added per target class, then scaled per class (Siege Engineers against buildings).
 export function unitBonuses(o:Owner,unit:string,classes:readonly string[]):Record<string,number>{
  const out:Record<string,number>={};for(const e of activeEffects(o,'bonus'))if(e.vs&&unitMatches(e.select,unit,classes)){const v=valueOf(e,o);if(v)out[e.vs]=(out[e.vs]??0)+v;}return out;}
+export const bonusScales=(o:Owner,unit:string,classes:readonly string[])=>activeEffects(o,'bonusScale').filter(e=>e.vs&&unitMatches(e.select,unit,classes)).map(e=>({vs:e.vs!,scale:valueOf(e,o)}));
 // What an entry costs this owner now (age tiers at the moment of queueing): multipliers per resource, then shifts
 // (Kamandaran moves the gold onto wood). Whole units, never negative.
 export function costOf(entryId:string,o:Owner):Record<Resource,number>{
@@ -46,7 +51,7 @@ export function costOf(entryId:string,o:Owner):Record<Resource,number>{
 // Work ticks for an item queued at this building: the entry's time, its time multipliers and the building's work rate.
 export function timeTicks(entryId:string,o:Owner,building:string){
  const e=rules.entries.find(e=>e.id===entryId);if(!e)return 0;
- const scale=product(activeEffects(o,'time').filter(fx=>entryMatches(fx.select,entryId)),o),rate=sum(activeEffects(o,'workRate').filter(fx=>buildingMatches(fx.select,building)),o);
+ const scale=product(activeEffects(o,'time').filter(fx=>entryMatches(fx.select,entryId)),o),rate=sum(activeEffects(o,'workRate').filter(fx=>buildingMatches(fx.select,building)&&(!fx.select.allUnits||e.kind==='unit')),o);
  return Math.round(e.time*rules.settings.tickHz*scale*100/(100+rate));}
 // The buildings that train or research an entry for this owner (Anarchy adds the barracks for the Huskarl).
 export function producersOf(entryId:string,o:Owner):string[]{
@@ -60,7 +65,8 @@ export function producedAt(building:string,o:Owner):string[]{
  return out;}
 export const civAvailable=(civ:string,entryId:string)=>{const c=rules.civilizations.find(c=>c.id===civ)??rules.civilizations.find(c=>c.id===neutralCiv)!;return c.available.includes(entryId);};
 // Economy.
-export const gatherBonus=(o:Owner,yieldKind:string,source:string)=>sum(activeEffects(o,'gather').filter(e=>e.select.resources?.includes(yieldKind)||e.select.sources?.includes(source)),o);
+// kind: the gatherer (an effect that names kinds, the fishing ships', applies to those only).
+export const gatherBonus=(o:Owner,yieldKind:string,source:string,kind='villager')=>sum(activeEffects(o,'gather').filter(e=>(!e.select.kinds||e.select.kinds.includes(kind))&&(e.select.resources?.includes(yieldKind)||e.select.sources?.includes(source))),o);
 export const carryBonus=(o:Owner,source:string)=>sum(activeEffects(o,'carry').filter(e=>e.select.sources?.includes(source)),o);
 export const farmFoodBonus=(o:Owner)=>sum(activeEffects(o,'farmFood'),o);
 export const huntDamageBonus=(o:Owner,prey:string)=>sum(activeEffects(o,'huntDamage').filter(e=>!e.select.prey||e.select.prey.includes(prey)),o);
@@ -70,11 +76,19 @@ export const buildingHpScale=(o:Owner,building:string)=>product(activeEffects(o,
 export const housingBonus=(o:Owner,building:string)=>buildingSum(o,'housing',building);
 export const garrisonBonus=(o:Owner,building:string)=>buildingSum(o,'garrison',building);
 export const popCapBonus=(o:Owner)=>sum(activeEffects(o,'popCap'),o);
+export const buildingArmorBonus=(o:Owner,building:string)=>[buildingSum(o,'buildingMeleeArmor',building),buildingSum(o,'buildingPierceArmor',building)] as const;
+export const buildRateBonus=(o:Owner,building:string)=>buildingSum(o,'buildRate',building);
+export const garrisonHealScale=(o:Owner,building:string)=>product(activeEffects(o,'garrisonHeal').filter(e=>buildingMatches(e.select,building)),o);
 export const keepsHousing=(o:Owner,building:string)=>activeEffects(o,'keepHousing').some(e=>buildingMatches(e.select,building));
 export function arrowsOf(o:Owner,building:string){
  return {extra:buildingSum(o,'arrows',building),damage:buildingSum(o,'arrowDamage',building),range:buildingSum(o,'arrowRange',building),
   cooldown:product(activeEffects(o,'arrowCooldown').filter(e=>buildingMatches(e.select,building)),o),
-  garrisonClasses:activeEffects(o,'garrisonArrows').filter(e=>buildingMatches(e.select,building)).flatMap(e=>[...(e.select.classes??[])])};}
+  garrisonClasses:activeEffects(o,'garrisonArrows').filter(e=>buildingMatches(e.select,building)).flatMap(e=>[...(e.select.classes??[])]),
+  bonus:activeEffects(o,'arrowBonus').filter(e=>e.vs&&buildingMatches(e.select,building)).reduce((t,e)=>({...t,[e.vs!]:(t[e.vs!]??0)+valueOf(e,o)}),{} as Record<string,number>)};}
+// The market: the fee in percent (30 by default; Guilds, the Saracens), never below 0.
+export const marketFeeOf=(o:Owner,base:number)=>Math.max(0,base+sum(activeEffects(o,'marketFee'),o));
+// Units a transport ship carries for this owner (Careening, Dry Dock, the Saracens).
+export const transportCapacityOf=(o:Owner,base:number)=>base+sum(activeEffects(o,'transportCapacity').filter(e=>unitMatches(e.select,'transport-ship',['ship','transport'])),o);
 // Sight radius added to a unit kind or a building kind.
 export const losBonus=(o:Owner,kind:string,classes:readonly string[]=[])=>sum(activeEffects(o,'los').filter(e=>e.select.buildings?e.select.buildings.includes(kind):unitMatches(e.select,kind,classes)),o);
 // Monks.

@@ -9,9 +9,12 @@ import type {View} from '../../packages/sim/protocol.ts';
 import {obstacleBounds} from '../../packages/content/footprints.ts';
 import {clearSegment} from '../../packages/sim/navigation.ts';
 import type {ObstacleKind} from '../../packages/content/footprints.ts';
-import {placementProblem,buildKinds,buildingRules,buildRequirement} from '../../packages/sim/buildings.ts';
+import {placementProblem,buildKinds,buildingRules,buildRequirement,wallKinds,wallLine} from '../../packages/sim/buildings.ts';
+import {layerOf} from '../../packages/sim/movement.ts';
+import {marketRules,marketResources,tradeHome,marketQuote} from '../../packages/sim/market.ts';
+import type {MarketResource} from '../../packages/sim/market.ts';
 import {trainBlocker,ageOf} from '../../packages/sim/production.ts';
-import {combatRules,statsOf,lineName,lineUpgrades} from '../../packages/sim/stats.ts';
+import {combatRules,statsOf,lineName,lineUpgrades,buildingTargetOf} from '../../packages/sim/stats.ts';
 import type {UnitStats,CombatUnitKind} from '../../packages/sim/stats.ts';
 import {costOf as civCost,producedAt,civAvailable,timeTicks,housingBonus,garrisonBonus,arrowsOf} from '../../packages/sim/civ.ts';
 import type {Owner} from '../../packages/sim/civ.ts';
@@ -23,18 +26,21 @@ import {economyRules} from '../../packages/sim/economy.ts';
 import type {BuildKind} from '../../packages/sim/buildings.ts';
 import {isAnimal,animalRules} from '../../packages/sim/fauna.ts';
 import {carryOf,techEffectText,farmFoodOf} from '../../packages/sim/tech.ts';
+import {techEffects as genericTechEffects} from '../../packages/content/techs.ts';
 const el=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 // ?debug=1 shows the engineering drawer (step, hash, coordinates, fog and rules tools) and starts paused;
 // a normal visit is only the game screen and the match starts running as soon as the simulation connects.
 const debug=new URLSearchParams(location.search).has('debug');el('debug').hidden=!debug;
 // Civilizations of a first visit: the debug sandbox keeps the neutral rules; a normal match starts as Britons against Franks.
 const startCivs:readonly string[]=debug?[neutralCiv,neutralCiv]:['britons','franks'];
-let state:View={seed:rules.settings.seed,layout:debug?'meadow':'open',size:debug?16:32,opponent:debug?'idle':'ai',civs:[...startCivs],terrain:[],tick:0,units:[],corpses:[],outcome:null,economy:{stock:{food:0,wood:0,gold:0,stone:0},populationUsed:0,populationReserved:0,populationCap:0,age:1,techs:[],reseed:true},buildings:[],transactions:[],fog:[],known:[],resources:[],stateHash:'—',shots:[],relicSpots:[],relicsHeld:[0,0],relicTotal:0,relicVictory:null};
+let state:View={seed:rules.settings.seed,layout:debug?'meadow':'open',size:debug?16:32,opponent:debug?'idle':'ai',civs:[...startCivs],terrain:[],tick:0,units:[],corpses:[],outcome:null,economy:{stock:{food:0,wood:0,gold:0,stone:0},populationUsed:0,populationReserved:0,populationCap:0,age:1,techs:[],reseed:true},buildings:[],transactions:[],fog:[],known:[],resources:[],stateHash:'—',shots:[],relicSpots:[],relicsHeld:[0,0],relicTotal:0,relicVictory:null,market:{prices:{...marketRules.start},fee:marketRules.fee},transports:[],trades:[],wonders:[],wonderVictory:null};
 const resourceNames:Record<string,string>={food:'食物',wood:'木材',gold:'黃金',stone:'石頭'};
 const workLabel:Record<string,string>={toSource:'前往採集',gathering:'採集中',toDropoff:'送返城鎮中心',toSite:'前往工地',building:'施工中',hunting:'狩獵中'};
 const buildingNames:Record<string,string>={castle:'城堡','watch-tower':'箭塔','siege-workshop':'攻城器工坊',blacksmith:'鐵匠鋪',house:'住宅',barracks:'兵營',farm:'農田','lumber-camp':'伐木場','mining-camp':'採礦場',mill:'磨坊',stable:'馬廄','archery-range':'靶場',monastery:'修道院','town-center':'城鎮中心'};
-const homeKinds=new Set(['castle','watch-tower','siege-workshop','blacksmith','house','barracks','farm','lumber-camp','mining-camp','mill','stable','archery-range','monastery','town-center']);
-const layoutNames:Record<MapLayout,string>={meadow:'草甸',coast:'海岸',acceptance:'高地與淺灘',open:'曠野'};
+// Buildings added later (the 科技 round's university …) go by their ruleset entry name.
+for(const k of buildKinds)if(!(k in buildingNames))buildingNames[k]=rules.entries.find(e=>e.id===k)?.name??k;
+const homeKinds=new Set<string>([...buildKinds,'town-center']);
+const layoutNames:Record<MapLayout,string>={meadow:'草甸',coast:'海岸',acceptance:'高地與淺灘',open:'曠野',lakes:'湖畔'};
 // Civilizations: both sides' are public (as in the original); the page asks civ.ts for every civ-dependent number.
 const civName=(id:string|undefined)=>civById(id??neutralCiv)?.name??id??'';
 const myCiv=()=>state.civs[0]??neutralCiv;
@@ -71,7 +77,7 @@ function render(){
  fogDebugger.update();
  if(!graphicsFailed){try{scene?.update(state,selected);}catch(error){graphicsError(`3D 場景更新失敗：${(error as Error).message}`);}}
  el('fog-status').textContent=`可見 ${state.fog.filter(v=>v===2).length} 格 · 已探索舊視野 ${state.fog.filter(v=>v===1).length} 格 · 未探索 ${state.fog.filter(v=>v===0).length} 格`;
- el('world-label').textContent=({meadow:'草甸試驗場',coast:'海岸試驗場',acceptance:'高地與淺灘驗收場',open:'曠野對戰圖'} as Record<MapLayout,string>)[state.layout];
+ el('world-label').textContent=({meadow:'草甸試驗場',coast:'海岸試驗場',acceptance:'高地與淺灘驗收場',open:'曠野對戰圖',lakes:'湖畔對戰圖'} as Record<MapLayout,string>)[state.layout];
  el('tick').textContent=String(state.tick);el('hash').textContent=state.stateHash;
  // HUD numbers come straight from the Worker's account projection; nothing is counted in the page.
  const e=state.economy;el('stock').textContent=state.stateHash==='—'?'資源載入中…':`${ageNames[e.age]} · 食物 ${e.stock.food} · 木材 ${e.stock.wood} · 黃金 ${e.stock.gold} · 石頭 ${e.stock.stone} · 人口 ${e.populationUsed}/${e.populationCap}`;
@@ -89,12 +95,20 @@ function renderTop(){const e=state.economy;for(const r of resources)el(`res-${r}
  // Relics: own and red's count in monasteries out of all on the map, and the relic-victory countdown when one runs.
  {const box=el('relics');box.hidden=!state.relicTotal;if(state.relicTotal){const v=state.relicVictory,left=v?Math.max(0,v.endsTick-state.tick):0,mmss=`${String(Math.floor(left/1200)).padStart(2,'0')}:${String(Math.floor(left/20)%60).padStart(2,'0')}`;
   el('res-relics').textContent=`${state.relicsHeld[0]}·${state.relicsHeld[1]}/${state.relicTotal}${v?` ${mmss}`:''}`;box.classList.toggle('full',!!v&&v.player===1);
-  box.title=`聖物：藍方 ${state.relicsHeld[0]}、紅方 ${state.relicsHeld[1]}，共 ${state.relicTotal} 個${v?`；${v.player===0?'藍方':'紅方'}持有全部聖物，${mmss} 後獲勝`:''}`;}}el('pop').classList.toggle('full',e.populationCap>0&&e.populationUsed+e.populationReserved>=e.populationCap);
+  box.title=`聖物：藍方 ${state.relicsHeld[0]}、紅方 ${state.relicsHeld[1]}，共 ${state.relicTotal} 個${v?`；${v.player===0?'藍方':'紅方'}持有全部聖物，${mmss} 後獲勝`:''}`;}}{const box=el('wonder'),v=state.wonderVictory;box.hidden=!v;if(v){el('res-wonder').textContent=clockOf(v.endsTick-state.tick);box.classList.toggle('full',v.player===1);
+   box.title=`世界奇觀：${state.wonders.map(w=>`${w.player===0?'藍方':'紅方'}在 (${(w.x/100).toFixed(0)}, ${(w.y/100).toFixed(0)}) 還剩 ${clockOf(w.endsTick-state.tick)}`).join('；')}；最先倒數完的一方獲勝，奇觀被摧毀就停止`;}}
+  el('pop').classList.toggle('full',e.populationCap>0&&e.populationUsed+e.populationReserved>=e.populationCap);
  el('pop').title=`人口 ${e.populationUsed}／上限 ${e.populationCap}${e.populationReserved?`（佇列保留 ${e.populationReserved}）`:''}`;
  el('civ-name').textContent=civName(myCiv());el('age-name').textContent=ageNames[e.age];const t=Math.floor(state.tick/rules.settings.tickHz),mm=Math.floor(t/60),ss=t%60;el('clock').textContent=`${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
  el('sel-empty-title').textContent=`藍方（${civName(myCiv())}） · ${layoutNames[state.layout]} · 對手：${state.opponent==='ai'?'電腦':'不行動'}（${civName(state.civs[1])}）`;}
 // A monk also shows its faith (conversion needs a full charge).
-const doing=(u:View['units'][number])=>u.relic&&!u.rite?'攜帶聖物':u.rite?(u.rite==='convert'?'轉化中':'治療中'):u.faith!==null&&u.faith<100?`信仰恢復中 ${u.faith}%`:u.action===1?'攻擊中':u.work&&u.navigation!=='waiting'&&u.navigation!=='stuck'?workLabel[u.work]:statusLabel[u.navigation];
+// A trebuchet (stats.ts setup) is unpacked to fire and packed to move: 已架設 standing unpacked, 收起中 unpacked with a
+// path (movement.ts packs it first), 架設中 packed and standing at its target, 移動狀態 otherwise (UnitView.unpacked).
+// The status line shows the two transitions; the unit panel's facts show the posture (已架設 or 移動狀態).
+const packState=(u:View['units'][number]):string|null=>!combatRules.units[u.kind as CombatUnitKind]?.setup?null:u.unpacked?(u.navigation==='idle'?'已架設':'收起中'):u.navigation==='idle'&&u.target&&u.action!==1?'架設中':'移動狀態';
+const doing=(u:View['units'][number])=>{const pack=packState(u);return pack==='收起中'||pack==='架設中'?pack:doingNow(u);};
+const doingNow=(u:View['units'][number])=>{const tr=state.trades.find(t=>t.unitId===u.id);return tr?(tr.leg==='out'?`貿易：前往紅方${u.kind==='trade-cog'?'碼頭':'市集'}`:'貿易：載著貨物返回'):doingPlain(u);};
+const doingPlain=(u:View['units'][number])=>u.relic&&!u.rite?'攜帶聖物':u.rite?(u.rite==='convert'?'轉化中':'治療中'):u.faith!==null&&u.faith<100?`信仰恢復中 ${u.faith}%`:u.action===1?'攻擊中':u.work&&u.navigation!=='waiting'&&u.navigation!=='stuck'?workLabel[u.work]:statusLabel[u.navigation];
 function activity(u:View['units'][number]){const life=u.hp<u.maxHp?` · 生命 ${u.hp}/${u.maxHp}`:'';return (u.cargo?`${doing(u)} · 攜帶${resourceNames[u.cargo.resource]} ${u.cargo.amount}`:doing(u))+life;}
 // Monks: convert an enemy unit, or heal an own one. Other selected units are left to the caller.
 async function rite(kind:'convert'|'heal'|'relic',monkIds:number[],targetId:number,label:string){
@@ -103,7 +117,9 @@ async function riteOn(monkIds:number[],buildingId:string,label:string){
  try{await client.request({kind:'convert',unitIds:monkIds,buildingId});audio.play('convert');notice(`${names(monkIds)} 轉化${label}。${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
 async function deposit(monkIds:number[],buildingId:string){
  try{await client.request({kind:'deposit',unitIds:monkIds,buildingId});audio.play('order');notice(`${names(monkIds)} 把聖物送進修道院。${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
-async function attack(target:{kind:'unit';id:number}|{kind:'building';id:string},label:string){const unitIds=[...selected].filter(id=>{const k=state.units.find(u=>u.id===id)?.kind;return k!=='monk'&&!isAnimal(k??'')&&!(k==='ram'&&target.kind==='unit');}).sort((a,b)=>a-b);if(!unitIds.length&&[...selected].some(id=>state.units.find(u=>u.id===id)?.kind==='ram')){notice('攻城槌只能攻擊建築。');return;}if(!unitIds.length){notice(selected.size?'僧侶與牲畜不能攻擊：右鍵敵方單位改為轉化。':'請先選取單位。');return;}
+// Rams and trebuchets strike buildings only (stats.ts buildingsOnly).
+const buildingsOnly=(k:string|undefined)=>!!k&&k in combatRules.units&&!!combatRules.units[k as keyof typeof combatRules.units].buildingsOnly;
+async function attack(target:{kind:'unit';id:number}|{kind:'building';id:string},label:string){const unitIds=[...selected].filter(id=>{const k=state.units.find(u=>u.id===id)?.kind;return k!=='monk'&&!isAnimal(k??'')&&!unarmed(k)&&!(buildingsOnly(k)&&target.kind==='unit');}).sort((a,b)=>a-b);if(!unitIds.length&&[...selected].some(id=>buildingsOnly(state.units.find(u=>u.id===id)?.kind))){notice('攻城槌與巨型投石機只能攻擊建築。');return;}if(!unitIds.length){notice(selected.size?'所選單位不能攻擊（僧侶改為轉化；漁船、運輸船與貿易單位沒有武器）。':'請先選取單位。');return;}
  try{await client.request({kind:'attack',unitIds,target});audio.play('order-attack');notice(`${names(unitIds)} 攻擊${label}。${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
 // Villagers hunt: a sheep of one's own is slaughtered where it stands, a deer or a boar is chased down first.
 async function hunt(unitIds:number[],animal:View['units'][number]){try{await client.request({kind:'hunt',unitIds,animalId:animal.id});audio.play('order');notice(`${names(unitIds)} ${animal.kind==='sheep'?'前往宰羊':`前往獵${unitNames[animal.kind]}`}${animal.kind==='boar'?'（野豬會反擊，多派幾名村民）':''}。${leftOut(unitIds)}${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
@@ -129,53 +145,105 @@ const costText=(k:string)=>Object.entries(costOf(k)).filter(([,v])=>v>0).map(([r
 const entryName=(k:string)=>entryOf(k)?.name??k;
 const ageNames=['','第一時代',entryName('age-2'),entryName('age-3'),entryName('age-4')];
 const uniqueKinds=civDefs.flatMap(c=>c.uniqueUnits);
-const unitNames:Record<string,string>={villager:'村民',militia:'近戰民兵',archer:'弓手',scout:'斥候',monk:'僧侶',sheep:'羊',deer:'鹿',boar:'野豬',spearman:'長槍兵',skirmisher:'散兵',knight:'騎士',ram:'攻城槌',...Object.fromEntries(uniqueKinds.map(k=>[k,entryName(k)]))};
+const unitNames:Record<string,string>={villager:'村民',militia:'近戰民兵',archer:'弓手',scout:'斥候',monk:'僧侶',sheep:'羊',deer:'鹿',boar:'野豬',spearman:'長槍兵',skirmisher:'散兵',knight:'騎士',ram:'攻城槌'};
+// Every other trainable kind (unique units, the 單位 round's camel, siege and petard) goes by its ruleset entry name.
+for(const k of Object.keys(combatRules.units))if(!(k in unitNames)&&entryOf(k)?.kind==='unit')unitNames[k]=entryName(k);
 // Own units go by their upgraded name (重步兵, 弩手 …); the enemy's research is not known to the page.
 const ownName=(kind:string)=>lineName(kind,state.economy.techs)??unitNames[kind];
 const nameOf=(u:{kind:string;player:number})=>u.player===0?ownName(u.kind):unitNames[u.kind];
-const soldierKinds=new Set(['militia','archer','spearman','skirmisher','knight','ram',...uniqueKinds]);
+// The ',' army: every fighting kind but villagers, monks, the scout and animals (as packages/sim/ai.ts soldierKinds).
+const combatKinds=Object.keys(combatRules.units) as CombatUnitKind[];
+const soldierKinds=new Set<string>(combatKinds.filter(k=>k!=='villager'&&k!=='monk'&&k!=='scout'&&!isAnimal(k)&&combatRules.units[k].attack!=='none'));
 const villagersIn=(ids:Iterable<number>)=>[...ids].filter(id=>state.units.find(u=>u.id===id)?.kind==='villager').sort((a,b)=>a-b);
+// Fishing ships fish and lay fish traps (and nothing else); villagers build everything else.
+const fishersIn=(ids:Iterable<number>)=>[...ids].filter(id=>state.units.find(u=>u.id===id)?.kind==='fishing-ship').sort((a,b)=>a-b);
+const buildersOf=(k:BuildKind)=>k==='fish-trap'?fishersIn(selected):villagersIn(selected);
+// Which grid the build tiles show: villagers' (everything but the fish trap) or, with only fishing ships, the trap.
+const buildMode=():'villager'|'fisher'|null=>villagersIn(selected).length?'villager':fishersIn(selected).length?'fisher':null;
+const isShip=(k:string|undefined)=>!!k&&layerOf(k)==='water';
+const unarmed=(k:string|undefined)=>!!k&&k in combatRules.units&&combatRules.units[k as CombatUnitKind].attack==='none';
 const leftOut=(ids:number[])=>{const n=selected.size-ids.length;return n>0?`（其餘 ${n} 個選取單位不是村民，未派出）`:'';};
-function buildBlocker(k:BuildKind){if(!villagersIn(selected).length)return '先選取村民';const req=buildRequirement(state.economy.age,k,state.buildings,myCiv());if(req)return req;const st=state.economy.stock,c=costOf(k),short=(Object.keys(c) as (keyof typeof c)[]).filter(r=>st[r]<c[r]);return short.length?short.map(r=>`${resourceNames[r]}不足：需要 ${c[r]}，目前 ${st[r]}`).join('；'):null;}
+function buildBlocker(k:BuildKind){if(!buildersOf(k).length)return k==='fish-trap'?'先選取漁船':'先選取村民';const req=buildRequirement(state.economy.age,k,state.buildings,myCiv(),state.economy.techs);if(req)return req;const st=state.economy.stock,c=costOf(k),short=(Object.keys(c) as (keyof typeof c)[]).filter(r=>st[r]<c[r]);return short.length?short.map(r=>`${resourceNames[r]}不足：需要 ${c[r]}，目前 ${st[r]}`).join('；'):null;}
 // Buildings outside this civilization's tree (the Castle for the neutral settlers) get no tile at all.
-const ownBuildKinds=()=>buildKinds.filter(k=>civAvailable(myCiv(),k));
-function renderBuild(){const show=!selectedBuilding&&villagersIn(selected).length>0,kinds=ownBuildKinds();
- for(const k of buildKinds){const b=el<HTMLButtonElement>(`build-${k}`),why=buildBlocker(k);b.hidden=!show||!kinds.includes(k);b.disabled=!connected||graphicsFailed||!!why;b.setAttribute('aria-label',`${buildingNames[k]}（${costText(k)}）${why?`：${why}`:''}`);b.setAttribute('aria-pressed',String(placing===k));
+const ownBuildKinds=()=>buildKinds.filter(k=>civAvailable(myCiv(),k)&&(buildMode()==='fisher'?k==='fish-trap':k!=='fish-trap'));
+// The villager's build grid has two pages of 12 tiles over the fixed bottom row (page switch, garrison, stop):
+// page 0 the economy and the first two ages' military buildings, page 1 the fortifications (walls, gates, outpost,
+// bombard tower) and whatever needs the third age or later (read from each building's age requirement in the ruleset).
+// N switches. A letter means the tile on the page shown; a letter found only on the other page turns to it.
+// Fishing ships get one tile, the fish trap.
+let buildPage=0;
+const fortKinds=new Set<string>(['palisade-wall','palisade-gate','stone-wall','gate','outpost','bombard-tower']);
+const pageOf=(k:BuildKind)=>k==='fish-trap'?buildPage:fortKinds.has(k)||entryOf(k)?.requires.some(r=>ageOf(r)>=3)?1:0;
+const pageNames=['基本建築','防禦與第三時代建築'];
+// Tile order within each page (CSS order; the markup keeps the older tiles first): letters run Q W E R T / A D … as on page 0.
+const tileOrder=['house','barracks','farm','lumber-camp','mining-camp','mill','stable','archery-range','blacksmith','watch-tower','dock','market','fish-trap',
+ 'palisade-wall','stone-wall','palisade-gate','gate','outpost','bombard-tower','town-center','monastery','siege-workshop','university','castle','wonder'];
+function renderBuild(){const show=!selectedBuilding&&!!buildMode(),kinds=ownBuildKinds();
+ {const t=el<HTMLButtonElement>('build-page'),next=1-buildPage,other=kinds.filter(k=>pageOf(k)===next);t.hidden=!show||!other.length;t.dataset.tip=pageNames[next];t.setAttribute('aria-label',`${pageNames[next]}（N）：${other.map(k=>buildingNames[k]).join('、')}`);t.querySelector('.roman')!.textContent=next?'II':'I';}
+ for(const k of buildKinds){const b=el<HTMLButtonElement>(`build-${k}`),why=buildBlocker(k);b.style.order=String(tileOrder.indexOf(k));b.hidden=!show||!kinds.includes(k)||pageOf(k)!==buildPage;b.disabled=!connected||graphicsFailed||!!why;b.setAttribute('aria-label',`${buildingNames[k]}（${costText(k)}）${why?`：${why}`:''}`);b.setAttribute('aria-pressed',String(placing===k));
   const img=b.querySelector('img')!;img.dataset.icon=k==='farm'?'farm':`${k}-${state.economy.age}`;setImg(img,img.dataset.icon);}
  const reasons=kinds.map(k=>[k,buildBlocker(k)] as const).filter(([,w])=>w);
- el('build-reason').textContent=placing?(preview?.problem?`不能放在這裡：${preview.problem}`:`左鍵放置${buildingNames[placing]}；Shift＋左鍵連續放置；右鍵或 Esc 取消。`):reasons.length===kinds.length&&reasons[0][1]==='先選取村民'?'先選取村民才能建造。':reasons.map(([k,w])=>`${buildingNames[k]}：${w}`).join('　');
+ el('build-reason').textContent=placing?(wallPlan?wallPlan.note:preview?.problem?`不能放在這裡：${preview.problem}`:wallKinds.has(placing)?`在起點按下左鍵，拖到終點放開（或再點一次終點）：一次一列，每格一段；右鍵或 Esc 取消。`:`左鍵放置${buildingNames[placing]}；Shift＋左鍵連續放置；右鍵或 Esc 取消。`):reasons.length===kinds.length&&(reasons[0][1]==='先選取村民'||reasons[0][1]==='先選取漁船')?'先選取村民才能建造。':reasons.filter(([k])=>pageOf(k)===buildPage).map(([k,w])=>`${buildingNames[k]}：${w}`).join('　');
  el('stop').hidden=!!selectedBuilding||!chosenUnits().length;
  {const g=el<HTMLButtonElement>('garrison-cmd'),fit=chosenUnits().filter(u=>canShelter.has(u.kind));g.hidden=!!selectedBuilding||!fit.length;g.disabled=!connected||graphicsFailed||!state.buildings.some(b=>b.complete&&b.capacity>b.garrison);}}
+// A researched tower upgrade renames the player's towers in their panel (箭塔 → 防禦箭塔 → 大型箭塔); the ruleset keeps 箭塔.
+const buildingTitle=(k:string)=>{const t=state.economy.techs;return k==='watch-tower'&&t.includes('keep')?entryName('keep'):k==='watch-tower'&&t.includes('guard-tower')?entryName('guard-tower'):buildingNames[k]??k;};
 function renderBuilding(){const panel=el('building-panel'),b=state.buildings.find(b=>b.id===selectedBuilding);panel.hidden=!b;scene?.setRally(b?.rally?{x:b.rally.x/100,z:b.rally.y/100}:null);
  const cancel=el<HTMLButtonElement>('cancel-build');cancel.hidden=!b||b.complete;el('production').hidden=!b;if(!b){el('production-reason').textContent='';return;}
  const builders=state.units.filter(u=>u.work==='building'||u.work==='toSite').length;
- el('building-title').textContent=buildingNames[b.kind]??b.kind;el('building-owner').textContent=`藍方 · ${civName(myCiv())}`;const housing=(buildingRules.capacity[b.kind as keyof typeof buildingRules.capacity]??0)+housingBonus(mine(),b.kind);
+ el('building-title').textContent=buildingTitle(b.kind);el('building-owner').textContent=`藍方 · ${civName(myCiv())}`;const housing=(buildingRules.capacity[b.kind as keyof typeof buildingRules.capacity]??0)+housingBonus(mine(),b.kind);
  setImg(el<HTMLImageElement>('building-portrait'),b.kind==='farm'?'farm':`${b.kind}-${state.economy.age}`);
- el('building-hp').textContent=`${b.hp}/${b.maxHp}`;el('building-hp-bar').style.width=`${Math.max(0,b.hp)*100/Math.max(1,b.maxHp)}%`;
- const field=b.kind==='farm'?state.resources.find(r=>r.id===`resource-${b.id}`):undefined;
- el('building-status').textContent=(b.hp<b.maxHp?`生命 ${b.hp}/${b.maxHp} · `:'')+(b.complete&&b.capacity?`進駐 ${b.garrison}/${b.capacity} · `:'')+(b.complete?(housing?`已完工 · 提供人口 ${housing}`:field?`剩餘食物 ${field.remaining}/${field.capacity}（右鍵派村民耕作）`:b.kind==='monastery'?`已完工 · 聖物 ${b.relics}/10（每分鐘 +${b.relics*30} 黃金）`:'已完工'):`施工中 ${Math.floor(b.work*100/b.required)}%（全體施工中的村民：${builders} 名）`);
- renderProduction(b);const refund=b.kind in buildingNames&&!b.complete?`取消建造（退回 ${costText(b.kind as BuildKind)}）`:'取消建造';cancel.setAttribute('aria-label',refund);cancel.dataset.tip=refund;}
+ el('building-hp').textContent=`${b.hp}/${b.maxHp}`;{const [m,p]=buildingTargetOf(b.kind,mine()).armor;el('building-armor').textContent=`護甲 ${m}/${p}`;}el('building-hp-bar').style.width=`${Math.max(0,b.hp)*100/Math.max(1,b.maxHp)}%`;
+const field=b.kind==='farm'||b.kind==='fish-trap'?state.resources.find(r=>r.id===`resource-${b.id}`):undefined;
+ el('building-status').textContent=(b.hp<b.maxHp?`生命 ${b.hp}/${b.maxHp} · `:'')+(b.complete&&b.capacity?`進駐 ${b.garrison}/${b.capacity} · `:'')+(b.complete?(housing?`已完工 · 提供人口 ${housing}`:field?`剩餘食物 ${field.remaining}/${field.capacity}（右鍵派${b.kind==='fish-trap'?'漁船捕撈':'村民耕作'}）`:b.kind==='monastery'?`已完工 · 聖物 ${b.relics}/10（每分鐘 +${b.relics*30} 黃金）`:b.kind==='market'?`每次 ${marketRules.lot} 單位，價格以黃金計 · 手續費 ${state.market.fee}%`:b.kind==='wonder'?wonderLine(b.id):'已完工'):`施工中 ${Math.floor(b.work*100/b.required)}%（全體施工中的村民：${builders} 名）`);
+renderMarket(b);renderProduction(b);const refund=b.kind in buildingNames&&!b.complete?`取消建造（退回 ${costText(b.kind as BuildKind)}）`:'取消建造';cancel.setAttribute('aria-label',refund);cancel.dataset.tip=refund;}
+// The market's trades (the selected market only): sell or buy 100 units of food, wood or stone for gold at the shared
+// price; the buttons say what this player gets or pays now (marketQuote: the fee is this civilization's).
+let marketKey='';
+function renderMarket(b:View['buildings'][number]){const box=el('market-panel'),on=b.kind==='market'&&b.complete;box.hidden=!on;if(!on){marketKey='';return;}
+ // Two rows, 賣出 and 買入, a button per good: the good's icon and the gold it brings or costs.
+ if(marketKey!==b.id){marketKey=b.id;box.replaceChildren(...(['sell','buy'] as const).map(action=>{const row=document.createElement('div'),label=document.createElement('span');row.className='mk';label.textContent=action==='sell'?'賣出':'買入';row.append(label);
+  for(const r of marketResources){const btn=document.createElement('button'),icon=document.createElement('img'),n=document.createElement('b');btn.className=action;btn.dataset.market=`${action}:${r}`;icon.alt=resourceNames[r];setImg(icon,r);btn.append(icon,n);btn.onclick=()=>void market(action,r);row.append(btn);}return row;}));}
+ const st=state.economy.stock;for(const btn of Array.from(box.querySelectorAll<HTMLButtonElement>('button[data-market]'))){const [action,r]=btn.dataset.market!.split(':') as ['sell'|'buy',MarketResource],q=marketQuote(state.market.prices,mine(),r),price=action==='sell'?q.sell:q.buy;
+  const why=action==='sell'?(st[r]<marketRules.lot?`${resourceNames[r]}不足 ${marketRules.lot}`:''):st.gold<price?`黃金不足 ${price}`:'';btn.querySelector('b')!.textContent=String(price);btn.disabled=!connected||graphicsFailed||!!why;
+  const label=action==='sell'?`賣出 ${marketRules.lot} ${resourceNames[r]}，得 ${price} 黃金`:`以 ${price} 黃金買入 ${marketRules.lot} ${resourceNames[r]}`;btn.title=why?`${label}：${why}`:label;btn.setAttribute('aria-label',btn.title);}}
+async function market(action:'buy'|'sell',resource:MarketResource){const q=marketQuote(state.market.prices,mine(),resource);
+ try{await client.request({kind:'market',action,resource});audio.play('order');notice(action==='sell'?`賣出 ${marketRules.lot} ${resourceNames[resource]}，得 ${q.sell} 黃金（tick ${state.tick+1} 成交）。`:`以 ${q.buy} 黃金買入 ${marketRules.lot} ${resourceNames[resource]}（tick ${state.tick+1} 成交）。`);}catch(e){notice(reason(e));}}
+// The wonder: how long until it wins (game time, from the Worker's clock).
+const clockOf=(ticks:number)=>{const t=Math.max(0,Math.floor(ticks/rules.settings.tickHz));return `${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;};
+const wonderLine=(id:string)=>{const w=state.wonders.find(w=>w.building===id);return w?`已完工 · 守住 ${clockOf(w.endsTick-state.tick)} 即可獲勝`:'已完工';};
 // Unit classes as bonus targets and labels (stats.ts class ids).
 const classNames:Record<string,string>={cavalry:'騎兵',archer:'弓兵',spear:'長槍兵',infantry:'步兵',building:'建築',siege:'攻城器',unique:'特殊單位',gunpowder:'火藥',
- 'cavalry-archer':'馬弓騎兵',elephant:'戰象',skirmisher:'散兵',monk:'僧侶',villager:'村民',animal:'動物'};
-// The extras some units carry (regeneration, extra arrows, trample), as short phrases.
-function extrasOf(st:UnitStats){const out:string[]=[];if(st.regen)out.push(`每分鐘回復生命 ${st.regen}`);if(st.extraShots)out.push(`每次多射 ${st.extraShots} 支箭（各 ${st.extraDamage??1} 傷害）`);if(st.splash)out.push(`踐踏：目標旁的敵兵受 ${st.splash} 傷害`);return out;}
+ 'cavalry-archer':'馬弓騎兵',elephant:'戰象',skirmisher:'散兵',monk:'僧侶',villager:'村民',animal:'動物',camel:'駱駝騎兵',petard:'炸藥桶'};
+// The extras some units carry (regeneration, extra arrows, trample, the siege rules of the 單位 round), as short phrases;
+// every number is the unit's own (stats.ts), distances in tiles of 100 units, setup in seconds.
+function extrasOf(st:UnitStats){const out:string[]=[];if(st.buildingsOnly)out.push('只能攻擊建築');if(st.minRange)out.push(`最近射程 ${st.minRange/100} 格`);
+ if(st.blast)out.push(`落點 ${st.blast/100} 格內的敵兵一併受擊`);if(st.passThrough)out.push(`貫穿：目標後方 ${st.passThrough/100} 格內沿途的敵兵受半傷`);
+ if(st.setup)out.push(`架設、收起各 ${st.setup/rules.settings.tickHz} 秒`);if(st.selfDestruct)out.push('攻擊一次即自毀');if(st.regen)out.push(`每分鐘回復生命 ${st.regen}`);if(st.extraShots)out.push(`每次多射 ${st.extraShots} 支箭（各 ${st.extraDamage??1} 傷害）`);if(st.splash)out.push(`踐踏：目標旁的敵兵受 ${st.splash} 傷害`);return out;}
 const bonusText=(st:UnitStats)=>Object.entries(st.bonus).map(([c,n])=>`對${classNames[c]??c} +${n}`).join('、');
 // One line of a unit's numbers for tile cards and notices; every number comes from statsOf.
 function statLine(st:UnitStats){return [`生命 ${st.hp}`,`攻擊 ${st.damage}`,st.range<=50?'近戰':`射程 ${st.range/100} 格`,`護甲 ${st.armor[0]}/${st.armor[1]}`,bonusText(st),...extrasOf(st)].filter(Boolean).join('、');}
 // Selection panel: one unit gets a portrait and its numbers; a group gets a portrait grid; nothing selected shows the controls.
 let groupKey='';
+{const box=el('unit-facts');box.addEventListener('scroll',()=>box.classList.toggle('more',box.scrollWidth-box.scrollLeft>box.clientWidth+1),{passive:true});}
 function renderSelection(){const chosen=chosenUnits(),b=state.buildings.find(v=>v.id===selectedBuilding);
  el('sel-empty').hidden=!!b||chosen.length>0;el('sel-unit').hidden=!!b||chosen.length!==1;el('sel-group').hidden=!!b||chosen.length<2;
  if(!b&&chosen.length===1){const u=chosen[0],stats=statsOf(u.kind as CombatUnitKind,mine());
   setImg(el<HTMLImageElement>('unit-portrait'),`${u.kind}-face`);el('unit-name').textContent=nameOf(u);el('unit-owner').textContent=isAnimal(u.kind)?'藍方的牲畜':`藍方 · ${civName(myCiv())} · #${u.id}`;
   el('unit-hp').textContent=`${u.hp}/${u.maxHp}`;el('unit-hp-bar').style.width=`${Math.max(0,u.hp)*100/Math.max(1,u.maxHp)}%`;
-  const facts=`${u.kind}|${u.faith??''}|${statLine(stats)}|${u.cargo?`${u.cargo.resource}:${u.cargo.amount}`:''}`;const box=el('unit-facts');
+  const pack=packState(u)===null?null:u.unpacked?'已架設':'移動狀態',facts=`${u.kind}|${u.faith??''}|${statLine(stats)}|${JSON.stringify(state.transports.find(t=>t.id===u.id)??'')}|${JSON.stringify(state.trades.find(t=>t.unitId===u.id)??'')}|${u.cargo?`${u.cargo.resource}:${u.cargo.amount}`:''}|${pack??''}`;const box=el('unit-facts');
   if(box.dataset.key!==facts){box.dataset.key=facts;box.replaceChildren();const add=(text:string,icon?:string)=>{const s=document.createElement('span');if(icon){const i=document.createElement('img');i.alt=resourceNames[icon];setImg(i,icon);s.append(i);}s.append(text);box.append(s);return s;};
    if(isAnimal(u.kind)){add(`食物 ${animalRules.food[u.kind]}`,'food');add(u.kind==='sheep'?'右鍵地面可趕到別處':u.kind==='boar'?'會反擊獵人':'受驚會逃跑');}
-   else if(u.kind==='monk'){add(`轉化射程 ${religionRules.convertRange/100} 格`);add(`信仰 ${u.faith??100}%`);}else{add(`攻擊 ${stats.damage}`);add(stats.range<=50?'近戰':`射程 ${stats.range/100} 格`);add(`護甲 ${stats.armor[0]}/${stats.armor[1]}`).title='近戰護甲／遠程護甲';const edge=bonusText(stats);if(edge)add(edge);for(const x of extrasOf(stats))add(x);
-    if(stats.classes.includes('unique'))add(`${civName(myCiv())}特殊單位`).className='dim';}if(u.cargo)add(`${u.cargo.amount}/${carryOf(state.economy.techs,economyRules.carryCapacity)}`,u.cargo.resource);}
-  el('unit-status').textContent=doing(u);}
+   else if(u.kind==='monk'){add(`轉化射程 ${religionRules.convertRange/100} 格`);add(`信仰 ${u.faith??100}%`);}
+    else if(unarmed(u.kind)){add(`護甲 ${stats.armor[0]}/${stats.armor[1]}`).title='近戰護甲／遠程護甲';add('沒有武器').className='dim';
+     // A transport: who is aboard (portraits) and how many fit; a trade unit: its route and the gold a round trip pays.
+     const t=state.transports.find(t=>t.id===u.id);if(t){const s=add(`乘客 ${t.passengers.length}/${t.capacity}`);s.title='右鍵己方運輸船讓陸上單位登船；選取運輸船後右鍵陸地卸下';if(t.passengers.length){const row=document.createElement('span');row.className='riders';for(const p of t.passengers){const i=document.createElement('img');i.alt=unitNames[p.kind]??p.kind;i.title=`${ownName(p.kind)} ${p.id} · 生命 ${p.hp}/${p.maxHp}`;setImg(i,`${p.kind}-face`);row.append(i);}box.append(row);}}
+     const tr=state.trades.find(t=>t.unitId===u.id);if(tr)add(`每趟 ${tr.gold}`,'gold').title='回到己方時入帳';else if(u.kind in tradeHome)add(u.kind==='trade-cog'?'右鍵紅方碼頭開始貿易':'右鍵紅方市集開始貿易').className='dim';
+     if(u.kind==='fishing-ship')add('右鍵魚群或魚網捕魚，送回碼頭').className='dim';}
+    else{add(`攻擊 ${stats.damage}`);add(stats.range<=50?'近戰':`射程 ${stats.range/100} 格`);add(`護甲 ${stats.armor[0]}/${stats.armor[1]}`).title='近戰護甲／遠程護甲';const edge=bonusText(stats);if(edge)add(edge);for(const x of extrasOf(stats))add(x);
+    if(pack)add(pack).title='架設後才能射擊，收起後才能移動';
+    if(stats.classes.includes('unique'))add(`${civName(myCiv())}特殊單位`).className='dim';}if(u.cargo)add(`${u.cargo.amount}/${u.kind==='villager'?carryOf(state.economy.techs,economyRules.carryCapacity):economyRules.carryCapacity}`,u.cargo.resource);}
+  box.classList.toggle('more',box.scrollWidth-box.scrollLeft>box.clientWidth+1);el('unit-status').textContent=doing(u);}
  if(!b&&chosen.length>1){const counts=new Map<string,number>();for(const u of chosen)counts.set(u.kind,(counts.get(u.kind)??0)+1);
   el('group-summary').textContent=`已選取 ${chosen.length} 名 · `+[...counts].map(([k,n])=>`${ownName(k)} ×${n}`).join(' · ');
   // Only as many portraits as the panel holds; the rest become one "+N" tile, never a clipped row.
@@ -188,7 +256,7 @@ let outcomeHeard=-1;
 function renderOutcome(){const o=state.outcome,box=el('result');box.hidden=!o;if(!o){outcomeHeard=-1;return;}const won=o.winner===0;
  if(outcomeHeard!==o.tick){outcomeHeard=o.tick;audio.play(o.reason==='resign'&&!won?'resign':won?'victory':'defeat');}
  el('result-title').textContent=won?'勝利':o.winner===null?'雙方同歸於盡':'戰敗';
- const why=o.reason==='resign'?(won?'紅方投降。':'你已投降。'):o.reason==='relic'?(won?'藍方持有全部聖物 200 年。':'紅方持有全部聖物 200 年。'):won?'紅方已沒有任何單位與建築。':'藍方已沒有任何單位與建築。';el('result-detail').textContent=`${el('clock').textContent}（tick ${o.tick}）：${why}`;if(running)setRunning(false);renderPaused();}
+ const why=o.reason==='resign'?(won?'紅方投降。':'你已投降。'):o.reason==='relic'?(won?'藍方持有全部聖物 200 年。':'紅方持有全部聖物 200 年。'):o.reason==='wonder'?(won?'藍方的世界奇觀屹立 200 年。':'紅方的世界奇觀屹立 200 年。'):won?'紅方已沒有任何單位與建築。':'藍方已沒有任何單位與建築。';el('result-detail').textContent=`${el('clock').textContent}（tick ${o.tick}）：${why}`;if(running)setRunning(false);renderPaused();}
 // Event feed (top left, like the original): what happened to the player's side since the last view.
 let previous:View|null=null,lastAlarm=-1e9;
 function feed(text:string,kind='info'){const list=el('events'),li=document.createElement('li');li.textContent=text;li.dataset.kind=kind;list.append(li);while(list.children.length>5)list.firstElementChild!.remove();window.setTimeout(()=>li.remove(),12000);}
@@ -197,9 +265,12 @@ function reportEvents(){const before=previous;previous=state;if(!before||state.t
  // Relics picked up or stored, technologies researched, the relic countdown starting or stopping.
  const carried=new Set(before.units.filter(u=>u.relic).map(u=>u.id));for(const u of ownUnits())if(u.relic&&!carried.has(u.id)){feed('僧侶撿起了聖物');audio.play('relic');}
  if(state.relicsHeld[0]>before.relicsHeld[0]){feed(`聖物已存入修道院（${state.relicsHeld[0]}/${state.relicTotal}）`);audio.play('relic');}
- for(const t of state.economy.techs)if(!before.economy.techs.includes(t)){feed(`已研究「${entryName(t)}」`);audio.play('age');}
+ for(const t of state.economy.techs)if(!before.economy.techs.includes(t)){feed(`已研究「${entryName(t)}」`);audio.play('research');}
  if(state.relicVictory&&!before.relicVictory)feed(state.relicVictory.player===0?'藍方持有全部聖物：守住 200 年即可獲勝':'紅方持有全部聖物：200 年後紅方獲勝',state.relicVictory.player===0?'info':'alarm');
- if(!state.relicVictory&&before.relicVictory)feed('聖物勝利倒數中止');
+if(!state.relicVictory&&before.relicVictory)feed('聖物勝利倒數中止');
+  // Wonders: both sides are told when one stands (it wins in 200 years) and when one falls.
+  for(const w of state.wonders)if(w.player===1&&!before.wonders.some(v=>v.building===w.building)){feed(`紅方建成世界奇觀：${clockOf(w.endsTick-state.tick)} 內摧毀它，否則紅方獲勝`,'alarm');audio.play('alarm');}
+  for(const w of before.wonders)if(!state.wonders.some(v=>v.building===w.building))feed(w.player===0?'藍方的世界奇觀倒下了':'紅方的世界奇觀被摧毀','info');
  // Conversions: a unit that changed sides between two views.
  const side=new Map(before.units.map(u=>[u.id,u.player]));
  // Sheep change hands by standing near them (herding), not by conversion.
@@ -212,6 +283,12 @@ function reportEvents(){const before=previous;previous=state;if(!before||state.t
  if(state.economy.age>before.economy.age){feed(`已升上${ageNames[state.economy.age]}`);audio.play('age');}
  // Any visible unit losing health this view is a hit (the sound spaces itself out).
  const lastHp=new Map(before.units.map(u=>[u.id,u.hp]));if(state.units.some(u=>(lastHp.get(u.id)??u.hp)>u.hp))audio.play('hit');
+ // A visible stone thrower that just fired (its action turned to attacking): the mangonel line (blast) and the
+ // trebuchet (setup) thud as they let go.
+ // Gunpowder (hand cannoneers, bombard cannons, janissaries) cracks instead.
+ const acting=new Set(before.units.filter(u=>u.action===1).map(u=>u.id)),fired=state.units.filter(u=>u.action===1&&!acting.has(u.id)).map(u=>combatRules.units[u.kind as CombatUnitKind]).filter(Boolean);
+ if(fired.some(r=>r.classes.includes('gunpowder')))audio.play('gunshot');
+ if(fired.some(r=>!r.classes.includes('gunpowder')&&(r.blast||r.setup)))audio.play('launch');
  // Under attack: any own unit or building lost health; at most one warning every 10 seconds.
  const hp=new Map([...before.units.filter(u=>u.player===0&&!isAnimal(u.kind)).map(u=>[`u${u.id}`,u.hp] as const),...before.buildings.map(b=>[`b${b.id}`,b.hp] as const)]);
  const hurt=[...ownUnits().filter(u=>(hp.get(`u${u.id}`)??u.hp)>u.hp).map(u=>({x:u.x,y:u.y})),...state.buildings.filter(b=>(hp.get(`b${b.id}`)??b.hp)>b.hp).map(b=>({x:b.x+100,y:b.y+100}))];
@@ -222,20 +299,33 @@ let ping:{x:number;z:number;until:number}|null=null;
 function reportTransactions(){for(const t of state.transactions)if(t.sequence>lastTransaction){lastTransaction=t.sequence;if(!t.ok)notice(`指令在 tick ${t.tick} 未執行：${t.error}`);}}
 function selectBuilding(id:string|null){if(id&&id!==selectedBuilding)audio.play('order');selectedBuilding=id;if(id)select([]);render();}
 function buildingAt(x:number,y:number,id?:string){if(id){const o=state.known.map(k=>k.obstacle).find(o=>o.id===id&&!o.red);if(o)return o;}const p={x:Math.round(x*100),y:Math.round(y*100)};return state.known.map(k=>k.obstacle).find(o=>homeKinds.has(o.kind)&&!o.red&&(()=>{const [x0,y0,x1,y1]=obstacleBounds(o);return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1;})());}
-function placeAt(k:BuildKind,gx:number,gy:number){const [x0,y0,x1,y1]=obstacleBounds({kind:k,x:0,y:0}),g=buildingRules.grid,x=Math.round((gx*100-(x0+x1)/2)/g)*g,y=Math.round((gy*100-(y0+y1)/2)/g)*g;
- const problem=placementProblem({tiles:state.terrain,obstacles:state.known.map(o=>o.obstacle),units:state.units,explored:t=>(state.fog[t]??0)>0},k,x,y);return {x,y,problem};}
-function stopPlacing(message?:string){placing=null;preview=null;scene?.setGhost(null);if(message)notice(message);render();}
-async function build(k:BuildKind,x:number,y:number){const unitIds=villagersIn(selected);if(!unitIds.length){notice('所選單位中沒有村民。');return;}
- try{await client.request({kind:'build',unitIds,building:k,x,y});audio.play('place');notice(`${names(unitIds)} 前往建造${buildingNames[k]}；放置時扣除 ${costText(k)}。${leftOut(unitIds)}`);}catch(e){notice(reason(e));}}
-async function construct(buildingId:string){const unitIds=villagersIn(selected);if(!unitIds.length){notice('所選單位中沒有村民，不能施工。');return;}try{await client.request({kind:'construct',unitIds,buildingId});notice(`${names(unitIds)} 前往協助施工。${leftOut(unitIds)}`);}catch(e){notice(reason(e));}}
+function placeAt(k:BuildKind,gx:number,gy:number){const [x0,y0,x1,y1]=obstacleBounds({kind:k,x:0,y:0}),g=k==='dock'?100:buildingRules.grid,x=Math.round((gx*100-(x0+x1)/2)/g)*g,y=Math.round((gy*100-(y0+y1)/2)/g)*g;
+  return {x,y,problem:segmentProblem(k,x,y)};}
+// The page's own check of one spot (the Worker re-checks): a gate may replace one of the player's own walls.
+const segmentProblem=(k:BuildKind,x:number,y:number)=>placementProblem({tiles:state.terrain,obstacles:state.known.map(o=>o.obstacle),units:k==='fish-trap'?[]:state.units.filter(u=>!isShip(u.kind)),explored:t=>(state.fog[t]??0)>0},k,x,y,0);
+// A dragged wall: the start tile (set by the first press) and the segments up to the cursor, each checked on its own;
+// segments the player cannot pay for are marked like blocked ones (the Worker places the rest in order and skips them).
+let wallStart:{x:number;y:number}|null=null,wallPlan:{to:{x:number;y:number};segments:{x:number;y:number;ok:boolean}[];note:string}|null=null;
+function planWall(k:BuildKind,gx:number,gy:number){if(!wallStart)return null;const to={x:Math.floor(gx)*100,y:Math.floor(gy)*100},cost=costOf(k),stock={...state.economy.stock};let fit=0,first:string|null=null;
+ const segments=wallLine(wallStart,to).map(p=>{const why=segmentProblem(k,p.x,p.y),afford=!why&&resources.every(r=>stock[r]>=cost[r]);if(afford){for(const r of resources)stock[r]-=cost[r];fit++;}else first??=why??'資源不足';return {...p,ok:afford};});
+ const total=resources.filter(r=>cost[r]>0).map(r=>`${resourceNames[r]} ${cost[r]*fit}`).join('、');
+ return {to,segments,note:fit?`${buildingNames[k]} ${fit} 段，共 ${total}${fit<segments.length?`；${segments.length-fit} 段略過（${first}）`:''}。放開或再點一次確定；右鍵或 Esc 取消。`:`不能放在這裡：${first}`};}
+function stopPlacing(message?:string){placing=null;preview=null;wallStart=null;wallPlan=null;scene?.setGhost(null);scene?.setGhosts([]);if(message)notice(message);render();}
+async function build(k:BuildKind,x:number,y:number,to?:{x:number;y:number}){const unitIds=buildersOf(k);if(!unitIds.length){notice(k==='fish-trap'?'所選單位中沒有漁船。':'所選單位中沒有村民。');return;}
+ try{await client.request({kind:'build',unitIds,building:k,x,y,...(to?{to}:{})});audio.play('place');notice(`${names(unitIds)} 前往建造${buildingNames[k]}${to?'（整列城牆，逐段扣款）':`；放置時扣除 ${costText(k)}`}。${k==='fish-trap'?'':leftOut(unitIds)}`);}catch(e){notice(reason(e));}}
+async function construct(buildingId:string){const trap=state.buildings.find(b=>b.id===buildingId)?.kind==='fish-trap',unitIds=trap?fishersIn(selected):villagersIn(selected);if(!unitIds.length){notice(trap?'魚網只能由漁船施工。':'所選單位中沒有村民，不能施工。');return;}try{await client.request({kind:'construct',unitIds,buildingId});notice(`${names(unitIds)} 前往協助施工。${leftOut(unitIds)}`);}catch(e){notice(reason(e));}}
 // Production tiles: rebuilt only when the building or its queue changes, so a click is never lost.
 let productionKey='',queueKey='';
 // What each monastery technology does (reference effects; see aoe2-rules-research.md).
 // Soldiers, unit-line upgrades and blacksmith research (what the tile card says; numbers from stats.ts).
-const militaryText:Record<string,string>={ram:'只能攻擊建築（對建築 +40），幾乎不受弓箭傷害，移動很慢','watch-tower':'自動射箭（射程 3.5 格）；可進駐 5 名，村民與弓兵各多 1 支箭','siege-workshop':'訓練攻城槌',spearman:'長槍步兵：對騎兵 +12 傷害，便宜',skirmisher:'擲標槍：對弓兵 +4、對長槍兵 +3，遠程護甲高',knight:'重騎兵：生命 100、攻擊 10、護甲 2/2，移動快',
- 'man-at-arms':'近戰民兵升級為重步兵：生命 55、攻擊 8','long-swordsman':'重步兵升級為長劍士：生命 60、攻擊 9、護甲 1/1',pikeman:'長槍兵升級為長矛兵：生命 55、對騎兵 +18',crossbowman:'弓手升級為弩手：生命 35、攻擊 5、射程 3 格','elite-skirmisher':'散兵升級為精銳散兵：生命 35、攻擊 3、遠程護甲 4','light-cavalry':'斥候升級為輕騎兵：生命 60、攻擊 5',
- forging:'步兵與騎兵攻擊 +1','iron-casting':'步兵與騎兵攻擊再 +1','blast-furnace':'步兵與騎兵攻擊再 +2','scale-mail-armor':'步兵護甲 +1/+1','chain-mail-armor':'步兵護甲再 +1/+1','plate-mail-armor':'步兵護甲再 +1/+2',
- 'scale-barding-armor':'騎兵護甲 +1/+1','chain-barding-armor':'騎兵護甲再 +1/+1','plate-barding-armor':'騎兵護甲再 +1/+2',fletching:'弓兵攻擊 +1、射程 +0.5 格','bodkin-arrow':'弓兵攻擊再 +1、射程 +0.5 格',bracer:'弓兵攻擊再 +1、射程 +0.5 格',
+// Units and line upgrades are described by civText from statsOf (the numbers this player gets now); only the role
+// of a unit is written here, in front of its numbers.
+const unitRole:Record<string,string>={spearman:'長槍步兵，便宜',skirmisher:'擲標槍，遠程護甲高',knight:'重騎兵，移動快',ram:'幾乎不受弓箭傷害，移動很慢',
+ 'cavalry-archer':'騎馬射箭，移動快',camel:'剋騎兵，移動快',mangonel:'投石砸向敵群',scorpion:'弩箭貫穿成列的敵兵',trebuchet:'遠距攻城，射擊前要架設、移動前要收起',petard:'衝到目標旁引爆，專炸建築與攻城器',
+ 'hand-cannoneer':'火藥步兵，剋步兵','bombard-cannon':'火藥攻城砲，遠距轟擊建築'};
+const militaryText:Record<string,string>={'watch-tower':'自動射箭（射程 3.5 格）；可進駐 5 名，村民與弓兵各多 1 支箭',
+ forging:'步兵、騎兵與駱駝騎兵攻擊 +1','iron-casting':'步兵、騎兵與駱駝騎兵攻擊再 +1','blast-furnace':'步兵、騎兵與駱駝騎兵攻擊再 +2','scale-mail-armor':'步兵護甲 +1/+1','chain-mail-armor':'步兵護甲再 +1/+1','plate-mail-armor':'步兵護甲再 +1/+2',
+ 'scale-barding-armor':'騎兵與駱駝騎兵護甲 +1/+1','chain-barding-armor':'騎兵與駱駝騎兵護甲再 +1/+1','plate-barding-armor':'騎兵與駱駝騎兵護甲再 +1/+2',fletching:'弓兵攻擊 +1、射程 +0.5 格','bodkin-arrow':'弓兵攻擊再 +1、射程 +0.5 格',bracer:'弓兵攻擊再 +1、射程 +0.5 格',
  'padded-archer-armor':'弓兵護甲 +1/+1','leather-archer-armor':'弓兵護甲再 +1/+1','ring-archer-armor':'弓兵護甲再 +1/+2',blacksmith:'研究步兵、騎兵、弓兵的攻擊與護甲'};
 const techEffects:Record<string,string>={...techEffectText,...militaryText,redemption:'僧侶可以轉化敵方建築（城鎮中心、修道院、農田除外），必須站在旁邊',atonement:'僧侶可以轉化敵方僧侶',sanctity:'僧侶生命 +15',heresy:'被敵方轉化的己方單位改為死亡',illumination:'轉化後信仰恢復速度加倍',
  'block-printing':'轉化射程 +3（本作 +1.2 格）',theocracy:'一群僧侶轉化成功後，只有一名需要恢復信仰',faith:'己方單位更難被轉化（第 6 次才可能成功，最遲第 14 次）'};
@@ -246,14 +336,29 @@ const stripName=(text:string,name:string)=>text.startsWith(`${name}：`)?text.sl
 function civText(id:string):string{
  const o=mine(),civ=civDefs.find(c=>c.uniqueUnits.includes(id)||c.eliteUpgrades.includes(id)||c.uniqueTechs.some(t=>t.id===id));
  if(uniqueKinds.includes(id))return `${civName(civ?.id)}特殊單位：${statLine(statsOf(id as CombatUnitKind,o))}`;
- const up=lineUpgrades.find(u=>u.id===id);if(up&&civ)return `${unitNames[up.kind]}升級為${up.name}：${statLine(statsOf(up.kind,{...o,techs:[...o.techs,id]}))}`;
+ // A line upgrade names the unit as the player has it now (雙手劍兵升級為劍兵勇士).
+ const up=lineUpgrades.find(u=>u.id===id);if(up)return `${ownName(up.kind)}升級為${up.name}：${statLine(statsOf(up.kind,{...o,techs:[...o.techs,id]}))}`;
+ if(id in combatRules.units&&combatRules.units[id as CombatUnitKind].attack!=='none'){const role=unitRole[id];return `${role?`${role}；`:''}${statLine(statsOf(id as CombatUnitKind,o))}`;}
  const ut=civ?.uniqueTechs.find(t=>t.id===id);if(ut){const own=civ!.effects.filter(e=>e.trigger.tech===id).map(e=>stripName(e.text,ut.name));return `${civName(civ!.id)}特殊科技：${own.length?own.join('；'):ut.effectText}`;}
- if(id==='castle'){const a=defenseRules.arrows.castle,x=arrowsOf(o,'castle'),units=civById(myCiv())?.uniqueUnits.map(k=>unitNames[k]).join('、');
+ if(id==='castle'){const a=defenseRules.arrows.castle,x=arrowsOf(o,'castle'),units=trainsAt('castle').join('、');
   return `${units?`訓練${units}、`:''}研究特殊科技；自動射 ${a.base+x.extra} 支箭（射程 ${(a.range+x.range)/100} 格）；可進駐 ${defenseRules.capacity.castle+garrisonBonus(o,'castle')} 名，村民與弓兵各多 1 支箭`;}
- return '';}
+ // Other buildings: the units this civilization trains there (the siege workshop's ram, mangonel and scorpion …).
+ // A building that trains nothing (the university) lists what it researches for this civilization.
+ if(entryOf(id)?.kind!=='building')return '';const trains=trainsAt(id);if(trains.length)return `訓練${trains.join('、')}`;
+ const research=producedAt(id,mine()).filter(k=>civAvailable(myCiv(),k)&&entryOf(k)?.kind==='technology').map(entryName);return research.length?`研究${research.join('、')}`:'';}
+// A generic technology of the 科技 round (packages/content/techs.ts) is described by the texts of its own effects, the
+// ones that can matter to this civilization (Thumb Ring's Chu Ko Nu line only for the Chinese), plus the units it opens.
+function techText(id:string):string{if(entryOf(id)?.kind!=='technology'||ageOf(id))return '';
+ const own=genericTechEffects.filter(e=>e.trigger.tech===id&&(!e.select.kinds||!!e.select.classes?.length||e.select.kinds.some(k=>civAvailable(myCiv(),k)))).map(e=>stripName(e.text,entryName(id)));
+ const opens=rules.entries.filter(e=>e.kind==='unit'&&e.requires.includes(id)&&civAvailable(myCiv(),e.id)).map(e=>e.name);
+ return [...own,opens.length?`解鎖${opens.join('、')}`:''].filter(Boolean).join('；');}
+// The units a building trains for this player, by the names they go by now.
+const trainsAt=(building:string)=>producedAt(building,mine()).filter(k=>civAvailable(myCiv(),k)&&entryOf(k)?.kind==='unit').map(ownName);
 // A standard entry this civilization changes (Mongol light cavalry, Viking free wheelbarrow …): its own effect texts.
 const civExtra=(id:string)=>{const civ=civById(myCiv());return !civ||civ.uniqueTechs.some(t=>t.id===id)?'':civ.effects.filter(e=>e.trigger.tech===id).map(e=>e.text).join('；');};
-const trainKeys=['Q','W','E','R','T','A','D','Z','X','C'];
+// Production letters in tile order: 13 covers the largest grid (a monastery with every technology: 11 tiles; a town
+// centre: 7 plus release and bell), and all of them are free while a building is selected (the build tiles are hidden).
+const trainKeys=['Q','W','E','R','T','A','D','Z','X','C','V','B','Y'];
 // Ages show the town centre of that age; other technologies their own brick emblem (tech-icons.ts).
 // Unit-line upgrades show the unit they improve.
 const entryIcon=(id:string)=>{const up=lineUpgrades.find(u=>u.id===id);return ageOf(id)?`town-center-${ageOf(id)}`:up?`${up.kind}-face`:entryOf(id)?.kind==='technology'?`tech-${id}`:`${id}-face`;};
@@ -285,22 +390,31 @@ function renderProduction(b:View['buildings'][number]){
   if(i===0){const bar=document.createElement('div');bar.className='q-bar';bar.append(document.createElement('i'));row.append(bar);}return row;}));}
  for(const label of Array.from(el('queue').querySelectorAll<HTMLElement>('span[data-item]'))){const q=b.queue.find(q=>q.id===Number(label.dataset.item));if(!q)continue;const first=b.queue[0]===q;label.textContent=`${entryName(q.entryId)} · ${first?(q.work>=q.required?'完成，等待出口空位':`${Math.floor(q.work*100/q.required)}%`):'排隊中'}`;
   const fill=label.parentElement!.querySelector<HTMLElement>('.q-bar i');if(fill)fill.style.width=`${Math.min(100,q.work*100/q.required)}%`;}
- el('rally-hint').textContent=b.complete&&entries.some(id=>entryOf(id)?.kind==='unit')?`集結點：${b.rally?`(${(b.rally.x/100).toFixed(1)}, ${(b.rally.y/100).toFixed(1)})`:'未設定'}（右鍵地面設定）`:'';
+ el('rally-hint').textContent=b.complete&&entries.some(id=>entryOf(id)?.kind==='unit')?`集結點：${b.rally?`(${(b.rally.x/100).toFixed(1)}, ${(b.rally.y/100).toFixed(1)})`:'未設定'}（右鍵${b.kind==='dock'?'水面':'地面'}設定）`:'';
 }
 // Command note over the battlefield's lower-left corner: the hovered tile's card, otherwise why tiles are disabled.
 let tipTile:HTMLButtonElement|null=null;
 function tileCard(btn:HTMLButtonElement){const card=document.createDocumentFragment(),line=(cls:string,text:string)=>{const p=document.createElement('span');p.className=cls;p.textContent=text;p.style.display='block';card.append(p);};
  const id=btn.dataset.train??btn.dataset.build;const title=document.createElement('strong');card.append(title);
- if(!id){title.textContent=`${btn.dataset.tip}（${btn.dataset.key??(btn.id==='stop'?'S':'Del')}）`;line('meta',btn.id==='garrison-cmd'?'所選的村民、步兵、徒步弓兵與僧侶走進最近、還有空位的城鎮中心、箭塔或城堡。':btn.id==='ungarrison'?'裡面的單位走出來；被鐘聲叫進去的村民會回到原本的工作。':btn.id==='bell'?'所有村民躲進最近、還有空位的城鎮中心、箭塔或城堡，並記住原本的工作；再按一次回去工作。':btn.id==='reseed'?`農田耗盡時，農夫立刻在原地重建（扣木材 ${costOf('farm').wood}），完工後繼續耕作；木材不足時就不補種。按一下切換。`:btn.id==='stop'?'所選單位在下一個節點停下，並放下目前的工作。':'拆除地基；費用全額退回。');return card;}
+ if(!id){title.textContent=`${btn.dataset.tip}（${btn.dataset.key??(btn.id==='stop'?'S':'Del')}）`;line('meta',btn.id==='garrison-cmd'?'所選的村民、步兵、徒步弓兵與僧侶走進最近、還有空位的城鎮中心、箭塔或城堡。':btn.id==='ungarrison'?'裡面的單位走出來；被鐘聲叫進去的村民會回到原本的工作。':btn.id==='bell'?'所有村民躲進最近、還有空位的城鎮中心、箭塔或城堡，並記住原本的工作；再按一次回去工作。':btn.id==='build-page'?`${ownBuildKinds().filter(k=>pageOf(k)!==buildPage).map(k=>buildingNames[k]).join('、')}。建築的字母鍵在哪一頁都能直接按。`:btn.id==='reseed'?`農田耗盡時，農夫立刻在原地重建（扣木材 ${costOf('farm').wood}），完工後繼續耕作；木材不足時就不補種。按一下切換。`:btn.id==='stop'?'所選單位在下一個節點停下，並放下目前的工作。':'拆除地基；費用全額退回。');return card;}
  const e=entryOf(id)!,why=btn.dataset.train?trainBlocker(trainInput(state.buildings.find(v=>v.id===selectedBuilding)!),id):buildBlocker(id as BuildKind);
- title.textContent=`${btn.dataset.build?buildingNames[id]:entryName(id)}（${btn.dataset.key}）`;const cost=document.createElement('span');cost.className='cost';
+ title.textContent=`${btn.dataset.build?buildingTitle(id):lineName(id,state.economy.techs)??entryName(id)}（${btn.dataset.key}）`;const cost=document.createElement('span');cost.className='cost';
  const price=costOf(id),at=btn.dataset.train?state.buildings.find(v=>v.id===selectedBuilding):undefined,secs=at?Math.round(timeTicks(id,mine(),at.kind)/rules.settings.tickHz):e.time;
  for(const r of resources)if(price[r]>0){const s=document.createElement('span'),i=document.createElement('img');i.alt=resourceNames[r];setImg(i,r);s.append(i,String(price[r]));if(state.economy.stock[r]<price[r])s.style.color='#f3b19f';cost.append(s);}
  card.append(cost);const housing=(buildingRules.capacity[id as keyof typeof buildingRules.capacity]??0)+(btn.dataset.build?housingBonus(mine(),id):0);
- line('meta',[`${secs} 秒`,e.population?`人口 ${e.population}`:'',housing?`提供人口 ${housing}`:'',id==='farm'?`完工後可耕作 ${farmFoodOf(state.economy.techs,terrainRules.resourceCapacity.farm)} 食物，可以走上去；建造的村民會接著耕作`:'',({'lumber-camp':'村民可在此送交木材','mining-camp':'村民可在此送交黃金與石頭',mill:'村民可在此送交食物',monastery:'訓練僧侶：轉化敵方單位、治療己方單位；存放聖物（每個每分鐘 30 黃金）',...techEffects} as Record<string,string>)[id]??civText(id)].filter(Boolean).join(' · '));{const x=civExtra(id);if(x)line('meta',`${civName(myCiv())}：${x}`);}if(why)line('why',why);return card;}
+ line('meta',[`${secs} 秒`,e.population?`人口 ${e.population}`:'',housing?`提供人口 ${housing}`:'',id==='farm'?`完工後可耕作 ${farmFoodOf(state.economy.techs,terrainRules.resourceCapacity.farm)} 食物，可以走上去；建造的村民會接著耕作`:'',techText(id)||buildNote(id)||({'lumber-camp':'村民可在此送交木材','mining-camp':'村民可在此送交黃金與石頭',mill:'村民可在此送交食物',monastery:'訓練僧侶：轉化敵方單位、治療己方單位；存放聖物（每個每分鐘 30 黃金）',...techEffects} as Record<string,string>)[id]||civText(id)].filter(Boolean).join(' · '));{const x=civExtra(id);if(x)line('meta',`${civName(myCiv())}：${x}`);}if(why)line('why',why);return card;}
+// The 建築 round's buildings on their tile card; every number from the sim modules.
+function buildNote(id:string):string{const shot=(k:string)=>{const a=defenseRules.arrows[k],x=arrowsOf(mine(),k);return `攻擊 ${a.damage+x.damage}、射程 ${(a.range+x.range)/100} 格${a.bonus?.ship?`、對船 +${a.bonus.ship+(x.bonus.ship??0)}`:''}`;};
+ const wall='按住左鍵從起點拖到終點（或點兩下），一次蓋一整列，每格一段',gate='己方單位可以通過，敵方不行；可直接蓋在己方同材質的城牆上，取代那一段';
+ return ({dock:`蓋在緊鄰陸地的水面上；漁船在此送交魚；${civText('dock')}`,market:`以黃金買賣食物、木材、石頭（每次 ${marketRules.lot} 單位，價格兩方共用）；${civText('market')}，往返紅方市集賺黃金`,
+  'fish-trap':`由漁船放在水面上；完工後只有自己的漁船能捕撈 ${terrainRules.resourceCapacity['fish-trap']} 食物`,outpost:'只提供視野，不會射擊','palisade-wall':wall,'stone-wall':wall,'palisade-gate':gate,gate,
+  'bombard-tower':`自動發射砲彈（${shot('bombard-tower')}）；可進駐 ${defenseRules.capacity['bombard-tower']} 名，但不會多射`,
+  'town-center':`訓練村民、研究經濟科技，所有資源都能送交這裡；自動射箭（${shot('town-center')}）`,
+  wonder:`完工後守住 ${clockOf(religionRules.relics.victoryTicks)}（200 年）即可獲勝；兩方都會被告知位置`} as Record<string,string>)[id]??'';}
 function renderNote(){const box=el('cmd-note'),tip=el('tip'),build=el('build-reason'),prod=el('production-reason');
- const live=tipTile&&!tipTile.hidden&&tipTile.isConnected?tipTile:null;tip.hidden=!live;if(live)tip.replaceChildren(tileCard(live));
- build.hidden=!!live||!!selectedBuilding||!villagersIn(selected).length||!build.textContent;prod.hidden=!!live||!selectedBuilding||!prod.textContent;box.hidden=tip.hidden&&build.hidden&&prod.hidden;}
+ // A tile inside a hidden grid (the production tiles once their building is deselected) has no card.
+ const live=tipTile&&tipTile.isConnected&&!tipTile.closest('[hidden]')?tipTile:null;tip.hidden=!live;if(live)tip.replaceChildren(tileCard(live));
+ build.hidden=!!live||!!selectedBuilding||!buildMode()||!build.textContent;prod.hidden=!!live||!selectedBuilding||!prod.textContent;box.hidden=tip.hidden&&build.hidden&&prod.hidden;}
 function tileAtPoint(x:number,y:number){return Array.from(el('commands').querySelectorAll<HTMLButtonElement>('button.tile')).find(b=>{if(b.hidden)return false;const r=b.getBoundingClientRect();return r.width>0&&x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom;})??null;}
 // Disabled buttons do not reliably receive pointer events, so hovering is resolved from the grid's own geometry.
 el('commands').addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;const t=tileAtPoint(e.clientX,e.clientY);if(t!==tipTile){tipTile=t;renderNote();}});
@@ -321,7 +435,7 @@ async function bell(){const ring=!state.buildings.some(b=>b.belled>0);try{await 
 async function toggleReseed(){const on=!state.economy.reseed;try{await client.request({kind:'reseed',enabled:on});audio.play('order');notice(`自動補種已${on?'開啟':'關閉'}。`);}catch(e){notice(reason(e));}}
 async function train(buildingId:string,entryId:string){try{await client.request({kind:'train',buildingId,entryId});audio.play('order');notice(`${entryName(entryId)}將在 tick ${state.tick+1} 加入佇列並扣除 ${costText(entryId)}。${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
 async function cancelTrain(buildingId:string,itemId:number){try{const q=state.buildings.find(b=>b.id===buildingId)?.queue.find(q=>q.id===itemId);await client.request({kind:'cancelTrain',buildingId,itemId});notice(`已取消${q?entryName(q.entryId):'項目'}，全額退回。`);}catch(e){notice(reason(e));}}
-async function rally(buildingId:string,x:number,y:number){const to=openPoint(x,y);scene?.setMarker('rally',to.x/100,to.y/100);try{await client.request({kind:'rally',buildingId,x:to.x,y:to.y});notice(`集結點設在 (${(to.x/100).toFixed(1)}, ${(to.y/100).toFixed(1)})。`);}catch(e){notice(reason(e));}}
+async function rally(buildingId:string,x:number,y:number){const to=openPoint(x,y,state.buildings.find(b=>b.id===buildingId)?.kind==='dock'?'water':'land');scene?.setMarker('rally',to.x/100,to.y/100);try{await client.request({kind:'rally',buildingId,x:to.x,y:to.y});notice(`集結點設在 (${(to.x/100).toFixed(1)}, ${(to.y/100).toFixed(1)})。`);}catch(e){notice(reason(e));}}
 function toggle(id:number){const next=new Set(selected);if(next.has(id))next.delete(id);else next.add(id);select(next);}
 el<HTMLSelectElement>('opponent').value=debug?'idle':'ai';el<HTMLSelectElement>('layout').value=debug?'meadow':'open';
 // New-game civilizations: the thirteen civs, then the neutral settlers; red may also be random. Random is resolved here
@@ -350,17 +464,31 @@ const kindOf=(id:number)=>ownName(state.units.find(u=>u.id===id)?.kind??'village
 const names=(ids:number[])=>ids.length>3?`${ids.length} 名單位`:ids.map(id=>`${kindOf(id)} ${id}`).join('、');
 // A move or rally point inside something solid walks as close as it can, as in the original: the nearest open point
 // by what the player knows (seen obstacles and terrain). The Worker still validates the result.
-function openPoint(x:number,y:number){const map={obstacles:state.known.map(k=>k.obstacle),tiles:state.terrain.map((t,id)=>({...t,id,resourceRefs:[],obstacleRefs:[]}))} as unknown as Parameters<typeof clearSegment>[0],p0={x:Math.round(x*100),y:Math.round(y*100)};
- const edge=state.size*100-50;for(let r=0;r<=300;r+=25)for(let dy=-r;dy<=r;dy+=25)for(let dx=-r;dx<=r;dx+=25){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;const p={x:p0.x+dx,y:p0.y+dy};if(p.x<50||p.y<50||p.x>edge||p.y>edge)continue;if(clearSegment(map,p,p))return p;}
+function openPoint(x:number,y:number,movement:'land'|'water'='land'){const map={obstacles:state.known.map(k=>k.obstacle),tiles:state.terrain.map((t,id)=>({...t,id,resourceRefs:[],obstacleRefs:[]}))} as unknown as Parameters<typeof clearSegment>[0],p0={x:Math.round(x*100),y:Math.round(y*100)};
+ const edge=state.size*100-50;for(let r=0;r<=300;r+=25)for(let dy=-r;dy<=r;dy+=25)for(let dx=-r;dx<=r;dx+=25){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;const p={x:p0.x+dx,y:p0.y+dy};if(p.x<50||p.y<50||p.x>edge||p.y>edge)continue;if(clearSegment(map,p,p,movement))return p;}
  return p0;}
 async function move(x:number,y:number,exact=false){const unitIds=[...selected].sort((a,b)=>a-b);if(!unitIds.length){notice('請先選取單位：左鍵點選或拖曳框選。');return;}
+ // Transports alone, sent onto land: they sail to the nearest shore there and set their passengers down.
+ const ships=unitIds.map(id=>state.units.find(u=>u.id===id)),loaded=state.transports.filter(t=>t.passengers.length&&unitIds.includes(t.id));
+ if(!exact&&loaded.length&&ships.every(u=>u?.kind==='transport-ship')&&landAt(x,y)){void unload(loaded.map(t=>t.id),x,y);return;}
  // The debug coordinate button sends exactly what was typed, so the Worker's own validation stays reachable.
- const to=exact?{x:Math.round(x*100),y:Math.round(y*100)}:openPoint(x,y);scene?.setMarker('move',to.x/100,to.y/100);
+ const to=exact?{x:Math.round(x*100),y:Math.round(y*100)}:openPoint(x,y,ships.every(u=>isShip(u?.kind))?'water':'land');scene?.setMarker('move',to.x/100,to.y/100);
  try{await client.request({kind:'move',unitIds,x:to.x,y:to.y});audio.play('order');notice(`${names(unitIds)} 的移動指令已排入 tick ${state.tick+1}。${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
-async function gather(resourceId:string){const unitIds=villagersIn(selected);if(!unitIds.length){notice(selected.size?'所選單位中沒有村民，不能採集。':'請先選取村民。');return;}
- try{await client.request({kind:'gather',unitIds,resourceId});audio.play('order');notice(`${names(unitIds)} 前往採集。${leftOut(unitIds)}${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
+async function gather(resourceId:string){const r=state.resources.find(r=>r.id===resourceId),wet=r?.kind==='fish'||r?.kind==='fish-trap',fishers=wet?fishersIn(selected):[],unitIds=r?.kind==='fish-trap'||fishers.length?[]:villagersIn(selected);
+ if(!unitIds.length&&!fishers.length){notice(!selected.size?'請先選取村民。':wet?'所選單位中沒有漁船或村民，不能捕魚。':'所選單位中沒有村民，不能採集。');return;}
+ // Fish: the selected fishing ships go (villagers only fish from the shore, and only when no ship is selected).
+ try{if(fishers.length)await client.request({kind:'gather',unitIds:fishers,resourceId});if(unitIds.length)await client.request({kind:'gather',unitIds,resourceId});audio.play('order');const all=[...fishers,...unitIds];notice(`${names(all)} 前往${wet?'捕魚':'採集'}。${all.length<selected.size?`（其餘 ${selected.size-all.length} 個選取單位不能採集，未派出）`:''}${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
 // A right-click inside a visible resource's footprint is a gather order; ground elsewhere is a move.
 function resourceAt(x:number,y:number){const p={x:Math.round(x*100),y:Math.round(y*100)};return state.resources.find(r=>{const kind=(r.kind==='stone'?'rock':r.kind) as ObstacleKind;if(r.kind==='fish'||!r.obstacleId)return Math.abs(p.x-r.x)<=50&&Math.abs(p.y-r.y)<=50;const [x0,y0,x1,y1]=obstacleBounds({kind,x:r.x,y:r.y},10);return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1;});}
+// Land or water under a point (the terrain the page was sent).
+const landAt=(x:number,y:number)=>{const t=state.terrain[Math.floor(y)*state.size+Math.floor(x)];return !!t&&t.terrainType!=='water';};
+// Transports: land units walk aboard; a transport sails to a shore and lets everyone off there.
+async function load(unitIds:number[],ship:View['units'][number]){const t=state.transports.find(t=>t.id===ship.id),room=t?t.capacity-t.passengers.length:0;
+ try{await client.request({kind:'load',unitIds,transportId:ship.id});audio.play('order');notice(`${names(unitIds)} 登上運輸船 ${ship.id}（${t?`${t.passengers.length}/${t.capacity}`:''}）。${unitIds.length>room?`（空位只剩 ${room}）`:''}${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
+async function unload(transportIds:number[],x:number,y:number){const p={x:Math.round(x*100),y:Math.round(y*100)};scene?.setMarker('move',x,y);
+ try{for(const id of transportIds)await client.request({kind:'unload',transportId:id,x:p.x,y:p.y});audio.play('order');notice(`運輸船駛向 (${x.toFixed(1)}, ${y.toFixed(1)}) 附近的岸邊卸下乘客。${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
+// Trade carts and cogs: to the other player's market or dock, and back home for gold, until given another order.
+async function trade(unitIds:number[],buildingId:string,label:string){try{await client.request({kind:'trade',unitIds,buildingId});audio.play('order');notice(`${names(unitIds)} 開始與${label}貿易：每趟回到己方${unitIds.some(id=>state.units.find(u=>u.id===id)?.kind==='trade-cog')?'碼頭':'市集'}時入帳黃金。${running?'':resumeHint()}`);}catch(e){notice(reason(e));}}
 async function stop(){const unitIds=[...selected].sort((a,b)=>a-b);if(!unitIds.length){notice('請先選取要停止的單位。');return;}
  try{await client.request({kind:'stop',unitIds});notice(`${names(unitIds)} 將在下一個節點停下（tick ${state.tick+1}）。`);}catch(e){notice(reason(e));}}
 // Idle villagers: the '.' key and the button next to the minimap cycle through them and centre the camera.
@@ -375,13 +503,21 @@ function showBox(x0:number,y0:number,x1:number,y1:number){const r=canvas.getBoun
 function endDrag(){drag=null;box.hidden=true;}
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('pointermove',e=>{if(!placing||!scene)return;const g=scene.pickGround(e.clientX,e.clientY);if(g.x===undefined||g.y===undefined){scene.setGhost(null);return;}
+ if(wallStart){const k=placing;wallPlan=planWall(k,g.x,g.y);scene.setGhost(null);scene.setGhosts(wallPlan?.segments.map(p=>({kind:k,x:p.x,y:p.y,ok:p.ok}))??[]);renderBuild();renderNote();return;}
  preview=placeAt(placing,g.x,g.y);scene.setGhost({kind:placing,x:preview.x,y:preview.y,ok:!preview.problem});renderBuild();renderNote();});
+// The wall is sent once the end is chosen: one build order with the start and end tiles.
+function commitWall(gx:number,gy:number){if(!placing||!wallStart)return;const k=placing,from=wallStart,plan=planWall(k,gx,gy);if(!plan)return;
+ if(!plan.segments.some(p=>p.ok)){notice(plan.note);return;}stopPlacing();void build(k,from.x,from.y,plan.to);}
+canvas.addEventListener('pointerup',e=>{if(!placing||!wallStart||!scene||e.button!==0)return;const g=scene.pickGround(e.clientX,e.clientY);if(g.x===undefined||g.y===undefined)return;
+ // Released on the start tile: the end is chosen by a second click instead.
+ if(Math.floor(g.x)*100===wallStart.x&&Math.floor(g.y)*100===wallStart.y)return;commitWall(g.x,g.y);});
 function orderAtGround(x:number,y:number){
  if(selectedBuilding&&!selected.size){const b=state.buildings.find(b=>b.id===selectedBuilding);if(b?.complete&&producedAt(b.kind,mine()).some(id=>entryOf(id)?.kind==='unit'&&civAvailable(myCiv(),id)))void rally(b.id,x,y);else notice('這棟建築沒有集結點。');return;}
  void move(x,y);}
 canvas.addEventListener('pointerdown',e=>{if(!scene||graphicsFailed||!e.isPrimary)return;canvas.focus({preventScroll:true});
  if(placing){e.preventDefault();if(e.button!==0){stopPlacing('已取消放置。');return;}const g=scene.pickGround(e.clientX,e.clientY);if(g.x===undefined||g.y===undefined)return;
-  const p=placeAt(placing,g.x,g.y);if(p.problem){notice(`不能放在這裡：${p.problem}`);return;}const k=placing;if(!e.shiftKey)stopPlacing();void build(k,p.x,p.y);return;}
+   if(wallKinds.has(placing)){if(!wallStart){wallStart={x:Math.floor(g.x)*100,y:Math.floor(g.y)*100};const k=placing;wallPlan=planWall(k,g.x,g.y);scene.setGhost(null);scene.setGhosts(wallPlan?.segments.map(p=>({kind:k,x:p.x,y:p.y,ok:p.ok}))??[]);render();}else commitWall(g.x,g.y);return;}
+   const p=placeAt(placing,g.x,g.y);if(p.problem){notice(`不能放在這裡：${p.problem}`);return;}const k=placing;if(!e.shiftKey)stopPlacing();void build(k,p.x,p.y);return;}
  if(e.button===2&&state.outcome){e.preventDefault();notice('對局已結束：按「再開一局」開始新遊戲。');return;}
  if(e.button===2){e.preventDefault();endDrag();const hit=scene.pickGround(e.clientX,e.clientY);if(hit.x===undefined||hit.y===undefined||hit.x<.5||hit.x>state.size-.5||hit.y<.5||hit.y>state.size-.5){notice('請在地圖內側的地面按右鍵。');return;}
   if(selectedBuilding&&!selected.size){orderAtGround(hit.x,hit.y);return;}// Enemy unit under the cursor, then enemy building: attack orders.
@@ -392,13 +528,18 @@ canvas.addEventListener('pointerdown',e=>{if(!scene||graphicsFailed||!e.isPrimar
      if(hunters.length)void hunt(hunters,beast);if(fighters.length&&beast.player!==0)void attack({kind:'unit',id:beast.id},unitNames[beast.kind]);if(!hunters.length&&!(fighters.length&&beast.player!==0))void move(hit.x,hit.y);return;}
     const foe=u.unitId!==undefined?state.units.find(v=>v.id===u.unitId&&v.player!==0):undefined;const monks=[...selected].filter(id=>state.units.find(u=>u.id===id)?.kind==='monk').sort((a,b)=>a-b);
     if(foe){scene.setMarker('attack',foe.x/100,foe.y/100);if(monks.length)void rite('convert',monks,foe.id,`紅方${unitNames[foe.kind]}`);if(monks.length<selected.size)void attack({kind:'unit',id:foe.id},`紅方${unitNames[foe.kind]}`);return;}
-    // Monks heal a wounded own unit under the cursor (not themselves, not another monk).
+     // An own transport under the cursor: the selected land units go aboard.
+     {const ship=u.unitId!==undefined?ownUnits().find(v=>v.id===u.unitId&&v.kind==='transport-ship'):undefined,riders=[...selected].filter(id=>{const k=state.units.find(v=>v.id===id)?.kind;return !!k&&!isShip(k)&&!isAnimal(k);}).sort((a,b)=>a-b);
+      if(ship&&riders.length){scene.setMarker('gather',ship.x/100,ship.y/100);void load(riders,ship);return;}}
+     // Monks heal a wounded own unit under the cursor (not themselves, not another monk).
     const friend=u.unitId!==undefined?ownUnits().find(v=>v.id===u.unitId):undefined;if(friend&&monks.length&&friend.kind!=='monk'&&friend.hp<friend.maxHp){scene.setMarker('gather',friend.x/100,friend.y/100);void rite('heal',monks,friend.id,`${unitNames[friend.kind]} ${friend.id}`);return;}
    // A relic on the ground: free monks go and pick it up.
    const holy=state.relicSpots.find(r=>Math.max(Math.abs(r.x/100-hit.x!),Math.abs(r.y/100-hit.y!))<=.45),free=monks.filter(id=>!state.units.find(u=>u.id===id)?.relic);
    if(holy&&monks.length){scene.setMarker('gather',holy.x/100,holy.y/100);if(free.length)void rite('relic',free,holy.id,'聖物');else notice('所選僧侶已經攜帶聖物：右鍵己方修道院存放。');return;}
    // Enemy building: monks convert it once Redemption is researched (other soldiers attack it).
    const fort=enemyBuildingAt(hit.x,hit.y,scene.pickBuilding(e.clientX,e.clientY));if(fort){{const [x0,y0,x1,y1]=obstacleBounds(fort);scene.setMarker('attack',(x0+x1)/200,(y0+y1)/200);}const label=`紅方${buildingNames[fort.kind]}`;
+     const traders=[...selected].filter(id=>tradeHome[state.units.find(u=>u.id===id)?.kind??'']===fort.kind).sort((a,b)=>a-b);if(traders.length)void trade(traders,fort.id!,label);
+     if(traders.length===selected.size)return;if([...selected].every(id=>unarmed(state.units.find(u=>u.id===id)?.kind))){notice([...selected].some(id=>(state.units.find(u=>u.id===id)?.kind??'') in tradeHome)?'貿易車隊只能前往對手的市集，貿易商船只能前往對手的碼頭。':'所選單位沒有武器，不能攻擊。');return;}
     if(monks.length&&state.economy.techs.includes('redemption'))void riteOn(monks,fort.id!,label);if(monks.length<selected.size||!state.economy.techs.includes('redemption'))void attack({kind:'building',id:fort.id!},label);return;}
    // Own monastery: monks carrying relics store them there.
    {const site=buildingAt(hit.x,hit.y,scene.pickBuilding(e.clientX,e.clientY)),carriers=monks.filter(id=>state.units.find(u=>u.id===id)?.relic);
@@ -406,7 +547,7 @@ canvas.addEventListener('pointerdown',e=>{if(!scene||graphicsFailed||!e.isPrimar
   const site=buildingAt(hit.x,hit.y,scene.pickBuilding(e.clientX,e.clientY)),own=site?state.buildings.find(b=>b.id===site.id):undefined;if(own&&!own.complete&&selected.size){void construct(own.id);return;}
   // An own tower or castle: the selected villagers, foot soldiers, archers and monks go inside. (The town centre's hall
   // is walkable, so a right-click there still moves; its garrison is the G tile, the bell or the tile card.)
-  if(own&&own.complete&&(own.kind==='watch-tower'||own.kind==='castle')&&selected.size){void garrison(own);return;}
+if(own&&own.complete&&(own.kind==='watch-tower'||own.kind==='castle'||own.kind==='bombard-tower')&&selected.size){void garrison(own);return;}
   const r=resourceAt(hit.x,hit.y);if(r){scene.setMarker('gather',hit.x,hit.y);void gather(r.id);return;}void move(hit.x,hit.y);return;}
  if(e.button!==0)return;drag={x:e.clientX,y:e.clientY,id:e.pointerId,box:false};canvas.setPointerCapture(e.pointerId);});
 canvas.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;if(!drag.box&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>=4)drag.box=true;if(drag.box)showBox(drag.x,drag.y,e.clientX,e.clientY);});
@@ -495,7 +636,10 @@ document.addEventListener('keydown',e=>{const t=e.target as HTMLElement;if(!code
  if(e.key==='.'){nextIdle();return;}
  // ',' selects every own soldier (militia and archers; the scout scouts and villagers work).
  if(e.key===','){const army=ownUnits().filter(u=>soldierKinds.has(u.kind)).map(u=>u.id);if(!army.length){notice('沒有軍隊。');return;}select(army);notice(`已選取全部軍隊：${army.length} 名。`);return;}
- const letter=/^Key([QWERTADZXCVBGY])$/.exec(e.code);if(letter&&!e.ctrlKey){if(commandKey(letter[1]))e.preventDefault();return;}
+ const letter=/^Key([QWERTADZXCVBGYUN])$/.exec(e.code);if(letter&&!e.ctrlKey){
+  // A building's letter works from either page of the villager grid: the grid turns to that building's page first.
+  if(!selectedBuilding&&buildMode()==='villager'){const kinds=ownBuildKinds().filter(k=>el(`build-${k}`).dataset.key===letter[1]);if(kinds.length&&!kinds.some(k=>pageOf(k)===buildPage)){buildPage=pageOf(kinds[0]);renderBuild();}}
+  if(commandKey(letter[1]))e.preventDefault();return;}
  const digit=/^Digit([1-9])$/.exec(e.code);if(!digit)return;const n=Number(digit[1]);e.preventDefault();
  if(e.ctrlKey){const ids=[...selected].sort((a,b)=>a-b);if(!ids.length){notice('請先選取單位再編組。');return;}groups.set(n,ids);renderGroups();notice(`編組 ${n}：${names(ids)}。按 ${n} 叫回。`);return;}
  const ids=groups.get(n);if(!ids){notice(`編組 ${n} 尚未建立：選取後按 Ctrl＋${n}。`);return;}select(ids);notice(`已叫回編組 ${n}：${names(ids)}。`);});
@@ -504,7 +648,7 @@ window.addEventListener('blur',endDrag);
 canvas.addEventListener('wheel',e=>{e.preventDefault();if(!graphicsFailed){const px=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?400:1);scene?.wheelZoom(Math.max(-.25,Math.min(.25,-px*(e.ctrlKey?.004:.0012))));}},{passive:false});
 el('zoom-in').onclick=()=>scene?.zoom(.2);el('zoom-out').onclick=()=>scene?.zoom(-.2);el('rotate-view').onclick=()=>scene?.rotate();el('reset-view').onclick=()=>scene?.resetCamera();el('idle-villager').onclick=nextIdle;
 document.querySelectorAll<HTMLButtonElement>('[data-unit]').forEach(b=>b.onclick=e=>{const id=Number(b.dataset.unit);if(e.shiftKey)toggle(id);else choose(id);});
-el('stop').onclick=()=>void stop();el('garrison-cmd').onclick=garrisonNearest;renderGroups();
+el('stop').onclick=()=>void stop();el('build-page').onclick=()=>{buildPage=1-buildPage;render();};el('garrison-cmd').onclick=garrisonNearest;renderGroups();
 el('result-restart').onclick=()=>el('restart').click();
 for(const k of buildKinds)el(`build-${k}`).onclick=()=>{if(buildBlocker(k))return;placing=k;preview=null;notice(`在戰場上移動滑鼠選擇${buildingNames[k]}的位置。`);render();};
 el('cancel-build').onclick=async()=>{const b=state.buildings.find(b=>b.id===selectedBuilding);if(!b)return;try{await client.request({kind:'cancelBuild',buildingId:b.id});notice(`已取消${buildingNames[b.kind]}，退回 ${costText(b.kind as BuildKind)}。`);selectBuilding(null);}catch(e){notice(reason(e));}};
@@ -512,9 +656,9 @@ el('move').onclick=()=>{const x=el<HTMLInputElement>('target-x'),y=el<HTMLInputE
 el('pause').onclick=()=>{if(!state.outcome)setRunning(!running);};
 el<HTMLSelectElement>('speed').onchange=e=>{speed=Number((e.target as HTMLSelectElement).value);accumulator=0;if(running)setRunning(true);notice(`遊戲速度 ${speed}×（每秒 ${20*speed} ticks，不跳過任何 tick）。`);};
 el('step').onclick=async()=>{try{await client.request({kind:'advance',count:1});}catch(e){setRunning(false);notice(reason(e));}};
-el('restart').onclick=async()=>{closeMenu(false);setRunning(false);try{const input=el<HTMLInputElement>('seed');if(input.value==='')throw Error('請輸入種子');const civs=chosenCivs(Number(input.value));await client.request({kind:'reset',seed:Number(input.value),layout:el<HTMLSelectElement>('layout').value as MapLayout,opponent:el<HTMLSelectElement>('opponent').value as 'ai'|'idle',civs});choose(1);lastTransaction=0;previous=null;el('events').replaceChildren();notice(`已建立新沙盒：${civName(state.civs[0])}對${civName(state.civs[1])}，新遊戲開始。先前的手動存檔仍然保留。`);autoStart();}catch(e){notice(reason(e));}};
+el('restart').onclick=async()=>{closeMenu(false);setRunning(false);try{const input=el<HTMLInputElement>('seed');if(input.value==='')throw Error('請輸入種子');const civs=chosenCivs(Number(input.value));await client.request({kind:'reset',seed:Number(input.value),layout:el<HTMLSelectElement>('layout').value as MapLayout,opponent:el<HTMLSelectElement>('opponent').value as 'ai'|'idle',civs});buildPage=0;choose(1);lastTransaction=0;previous=null;el('events').replaceChildren();notice(`已建立新沙盒：${civName(state.civs[0])}對${civName(state.civs[1])}，新遊戲開始。先前的手動存檔仍然保留。`);autoStart();}catch(e){notice(reason(e));}};
 el('save').onclick=async()=>{try{const result=await client.request({kind:'snapshot'});localStorage.setItem('brick-rts:sandbox:1',result.snapshot!);notice(`已儲存 tick ${result.tick} 的遊戲。`);}catch(e){notice(`儲存失敗：${(e as Error).message}。先前存檔保留。`);}closeMenu();};
-el('load').onclick=async()=>{closeMenu(false);setRunning(false);try{const raw=localStorage.getItem('brick-rts:sandbox:1');if(!raw)throw Error('尚無手動存檔。');notice('讀取中：依存檔的指令紀錄重新推導對局，長的對局需要幾秒。');await client.request({kind:'restore',snapshot:raw});el<HTMLInputElement>('seed').value=String(state.seed);el<HTMLSelectElement>('layout').value=state.layout;el<HTMLSelectElement>('opponent').value=state.opponent;setCivPicks(state.civs);choose(1);previous=null;el('events').replaceChildren();notice(`已恢復 tick ${state.tick} 的遊戲。`);autoStart();}catch(e){notice(`讀取失敗：${(e as Error).message}。目前遊戲保留。`);}};
+el('load').onclick=async()=>{closeMenu(false);setRunning(false);try{const raw=localStorage.getItem('brick-rts:sandbox:1');if(!raw)throw Error('尚無手動存檔。');notice('讀取中：依存檔的指令紀錄重新推導對局，長的對局需要幾秒。');await client.request({kind:'restore',snapshot:raw});el<HTMLInputElement>('seed').value=String(state.seed);el<HTMLSelectElement>('layout').value=state.layout;el<HTMLSelectElement>('opponent').value=state.opponent;buildPage=0;setCivPicks(state.civs);choose(1);previous=null;el('events').replaceChildren();notice(`已恢復 tick ${state.tick} 的遊戲。`);autoStart();}catch(e){notice(`讀取失敗：${(e as Error).message}。目前遊戲保留。`);}};
 // Resign: the first press arms the button for four seconds, the second press concedes (no browser dialog).
 let resignTimer=0;
 el('resign').onclick=async()=>{const b=el('resign');if(!b.dataset.armed){b.dataset.armed='1';b.textContent='再按一次確認投降';resignTimer=window.setTimeout(()=>{delete b.dataset.armed;b.textContent='投降';},4000);return;}

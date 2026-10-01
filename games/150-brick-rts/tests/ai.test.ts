@@ -7,6 +7,7 @@ import {dropoffNodes} from '../packages/sim/work.ts';
 import {obstacleBounds} from '../packages/content/footprints.ts';
 import {isAnimal} from '../packages/sim/fauna.ts';
 import {nodeTotal,position} from '../packages/sim/navigation.ts';
+import {placeBuilding,addWork,authoritativeProblem} from '../packages/sim/buildings.ts';
 function order(s:State,commandType:string,payload:any){submit(s,{protocolVersion:1,rulesetHash,playerId:0,sequence:s.sequence[0]+1,targetTick:s.tick+1,commandType,payload} as any);}
 const run=(s:State,n:number)=>{for(let i=0;i<n&&!s.outcome;i++)tick(s);return s;};
 // Blue's own berries: the bush nearest blue's first villager (on the match map the bases are placed at random).
@@ -137,4 +138,40 @@ test('the computer with civilizations is deterministic across save/load and repl
  assert.equal(hash(replay(straight.seed,straight.log,straight.tick,straight.layout,'ai',straight.civs)),hash(straight));
  // Recovery without the civilizations would rebuild a different match.
  assert.notEqual(hash(replay(straight.seed,straight.log,straight.tick,straight.layout,'ai')),hash(straight));
+});
+
+// The 建築 round: water and the market.
+const fishing=(s:State)=>s.units.filter(u=>u.player===1&&u.kind==='fishing-ship');
+const fishOn=(s:State,u:{id:number},kind:string)=>{const w=s.works[u.id];return w?.kind==='gather'&&s.map.resources.find(r=>r.id===w.resourceId)?.kind===kind;};
+test('on the lake map the computer builds a dock and puts fishing ships on the deep fish, deterministically',()=>{
+ const s=createState(260925,'lakes','ai');let at=0;
+ for(;s.tick<9000&&!s.outcome;tick(s))if(fishing(s).filter(u=>fishOn(s,u,'fish')).length>=2){at=s.tick;break;}
+ assert.ok(at>0,'two fishing ships at work on fish');
+ const dock=s.buildings.find(b=>b.player===1&&b.kind==='dock');assert.ok(dock?.complete,'a finished dock');
+ assert.equal(hash(replay(s.seed,s.log,s.tick,'lakes','ai')),hash(s));
+ // No water near the base: no dock on the open map.
+ assert.ok(!run(createState(260925,'open','ai'),4000).buildings.some(b=>b.kind==='dock'));
+});
+test('with the fish gone the computer lays fish traps and its fishing ships work them',()=>{
+ const s=createState(260925,'lakes','ai');s.ages[1]=2;Object.assign(s.accounts[1].stock,{food:1500,wood:5000,gold:800});
+ for(const r of s.map.resources)if(r.kind==='fish')r.remaining=10;
+ let ok=false;for(;s.tick<7000&&!s.outcome&&!ok;tick(s))ok=fishing(s).some(u=>fishOn(s,u,'fish-trap'));
+ assert.ok(ok,'a fishing ship works a trap');
+ const traps=s.buildings.filter(b=>b.player===1&&b.kind==='fish-trap');assert.ok(traps.length>=1&&traps.length<=aiRules.fishTraps);
+});
+test('in the third age the computer builds a market, trades with blue\'s market and sells surplus when gold runs short',()=>{
+ const s=createState(260925,'lakes','ai');s.ages[1]=3;s.ages[0]=2;Object.assign(s.accounts[1].stock,{food:3000,wood:3000,gold:1500,stone:300});Object.assign(s.accounts[0].stock,{wood:1000});
+ // Blue's finished market near its town centre.
+ const tc=s.buildings.find(b=>b.player===0&&b.kind==='town-center')!;s.vision[0].explored=[...Array(s.map.size**2).keys()];
+ let market:ReturnType<typeof placeBuilding>|null=null;
+ outer:for(let r=300;r<=900;r+=50)for(let dx=-r;dx<=r;dx+=50)for(let dy=-r;dy<=r;dy+=50){const x=Math.round((tc.x+dx)/10)*10,y=Math.round((tc.y+dy)/10)*10;if(!authoritativeProblem(s,0,'market',x,y)){market=placeBuilding(s,0,'market',x,y,'0:market');break outer;}}
+ assert.ok(market);while(!addWork(s,market!));
+ // A cart reaches blue's market and turns for home (the gold on arrival is the market tests').
+ let turned=false;for(;s.tick<6000&&!s.outcome&&!turned;tick(s))turned=Object.entries(s.trades).some(([id,t])=>t.target===market!.id&&t.leg==='back'&&s.units.find(u=>u.id===Number(id))?.player===1);
+ assert.ok(s.buildings.some(b=>b.player===1&&b.kind==='market'&&b.complete),'red market');
+ assert.ok(turned,'a red trade cart reached blue\'s market');
+ assert.ok(s.units.filter(u=>u.player===1&&u.kind==='trade-cart').length<=aiRules.tradeCarts);
+ // Gold short, food plentiful: it sells.
+ Object.assign(s.accounts[1].stock,{gold:0,food:2000});const before=s.market.food;run(s,40);
+ assert.ok(s.accounts[1].ledger.market.gold>0&&s.market.food<before,'sold food for gold');
 });

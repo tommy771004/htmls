@@ -19,5 +19,5 @@ test('every technology a building offers has its own brick emblem (elite upgrade
  for(const e of techs){const icon=techIcons[e.id];assert.ok(icon?.length,`${e.id} emblem`);assert.ok(icon.every(p=>[p.x,p.y,p.z,p.w,p.d,p.h].every(Number.isFinite)&&p.w>0&&p.h>0&&p.d>0&&p.y>=0&&p.x>=-.1&&p.x+p.w<=1.1),e.id);}
  // Distinct emblems (gold and stone mining share a shape and differ by the ore colour).
  const shapes=techs.map(e=>JSON.stringify(techIcons[e.id]));assert.equal(new Set(shapes).size,shapes.length);
- for(const id of ['yeomen','crenellations','great-wall','drill','nomads'])assert.ok(techs.some(e=>e.id===id),id);
+ for(const id of ['yeomen','crenellations','great-wall','drill','nomads','masonry','keep','treadmill-crane','town-patrol','conscription','artillery'])assert.ok(techs.some(e=>e.id===id),id);
 });

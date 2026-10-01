@@ -4,7 +4,7 @@ import {routeTo,cancelMovement} from './movement.ts';
 import type {Unit} from './movement.ts';
 import {blockedTable,nodesNear,position,navigationRules} from './navigation.ts';
 import {maxHpOf,combatRules} from './stats.ts';
-import {ownerOf,garrisonBonus,arrowsOf} from './civ.ts';
+import {ownerOf,garrisonBonus,arrowsOf,garrisonHealScale} from './civ.ts';
 import type {UnitStats,CombatUnitKind} from './stats.ts';
 import {commandGather,commandHunt,commandBuild} from './work.ts';
 import type {Work} from './work.ts';
@@ -15,11 +15,16 @@ import {tileAt} from './terrain.ts';
 // centre and a tower shoot on their own, and each villager or archer inside adds an arrow).
 export const defenseRules={provenance:'design_default',
  // The Castle (design_default in this scale: the reference's castle holds 20 and outranges a town centre).
- capacity:{'town-center':15,'watch-tower':5,castle:20} as Record<string,number>,
- arrows:{'town-center':{base:1,range:300,damage:5,cooldown:40},'watch-tower':{base:1,range:350,damage:5,cooldown:40},castle:{base:4,range:400,damage:5,cooldown:40}} as Record<string,{base:number;range:number;damage:number;cooldown:number}>,
+ // The bombard tower (the 建築 round, aoetw.com): holds 5 like a tower, but those inside add no shots (shots: false).
+ capacity:{'town-center':15,'watch-tower':5,castle:20,'bombard-tower':5} as Record<string,number>,
+ // bonus: extra damage against a class (aoetw: the town centre's +5 and the tower's +7 against ships). The bombard
+ // tower fires one cannonball (120 pierce, +40 against ships) every 6 s (cooldown x20 like the towers), from a tower's
+ // range; it outshoots nothing, it one-shots most units.
+ arrows:{'town-center':{base:1,range:300,damage:5,cooldown:40,bonus:{ship:5}},'watch-tower':{base:1,range:350,damage:5,cooldown:40,bonus:{ship:7}},castle:{base:4,range:400,damage:5,cooldown:40},
+  'bombard-tower':{base:1,range:350,damage:120,cooldown:120,bonus:{ship:40},shots:false}} as Record<string,{base:number;range:number;damage:number;cooldown:number;bonus?:Record<string,number>;shots?:false}>,
  // Who may go inside (foot units: no cavalry, no siege), and who adds an arrow while there.
- canGarrison:['villager','militia','spearman','archer','skirmisher','monk','longbowman','woad-raider','throwing-axeman','huskarl','teutonic-knight','berserk','janissary','chu-ko-nu','samurai'],
- addsArrow:['villager','archer','skirmisher','longbowman','janissary','chu-ko-nu'],
+ canGarrison:['villager','militia','spearman','archer','skirmisher','monk','longbowman','woad-raider','throwing-axeman','huskarl','teutonic-knight','berserk','janissary','chu-ko-nu','samurai','hand-cannoneer'],
+ addsArrow:['villager','archer','skirmisher','longbowman','janissary','chu-ko-nu','hand-cannoneer'],
  // Units inside heal one hit point every healTicks; a shot stays drawn for shotTicks.
  healTicks:40,shotTicks:10} as const;
 // Inside a building: the unit itself (out of the world) and, when the town bell sent it, the work to go back to.
@@ -86,7 +91,11 @@ export function stepDefense(s:DefenseState){
  // A building that fell or changed sides lets everyone out where it stood.
  for(const id of Object.keys(s.garrison).sort()){const g=s.garrison[id],b=s.buildings.find(b=>b.id===id);if(!b||b.player!==g.units[0]?.unit.player)release(s,id);}
  // Inside, units slowly heal.
- if(s.tick%defenseRules.healTicks===0)for(const g of Object.values(s.garrison))for(const e of g.units){const max=maxHpOf(e.unit.kind as CombatUnitKind,ownerOf(s,e.unit.player));if(e.unit.hp<max)e.unit.hp++;}
+ // Herbal Medicine heals the units inside faster (the building owner's research).
+ // scale hit points every healTicks, spread evenly (6 in 40 ticks with it, not one every round(40/6) = 7 ticks).
+ for(const [id,g] of Object.entries(s.garrison)){const b=s.buildings.find(b=>b.id===id),scale=b?garrisonHealScale(ownerOf(s,b.player),b.kind):1;
+  const heal=Math.floor(s.tick*scale/defenseRules.healTicks)-Math.floor((s.tick-1)*scale/defenseRules.healTicks);if(heal<=0)continue;
+  for(const e of g.units){const max=maxHpOf(e.unit.kind as CombatUnitKind,ownerOf(s,e.unit.player));if(e.unit.hp<max)e.unit.hp=Math.min(max,e.unit.hp+heal);}}
  // Arrows: at the nearest visible enemy (not animals) in range, one per volley plus one per villager or archer inside.
  s.shots=s.shots.filter(v=>s.tick-v.tick<defenseRules.shotTicks);
  // With the opponent set to 'idle' (practice), red does nothing at all: its buildings do not shoot either.
@@ -98,10 +107,11 @@ export function stepDefense(s:DefenseState){
   const mod=arrowsOf(ownerOf(s,b.player),b.kind),range=def.range+mod.range;
   const target=s.units.filter(u=>u.player!==b.player&&!isAnimal(u.kind)&&seen.has(tileAt(u.x,u.y,s.map.size))&&reach(u,box)<=range).sort((p,q)=>reach(p,box)-reach(q,box)||p.id-q.id)[0];
   if(!target)continue;
-  const cooldown=Math.max(1,Math.round(def.cooldown*mod.cooldown)),arrow:UnitStats={hp:0,damage:def.damage+mod.damage,range,cooldown,sight:0,attack:'pierce',armor:[0,0],classes:[],bonus:{}};
+  const bonus:Record<string,number>={...def.bonus};for(const [c,v] of Object.entries(mod.bonus))bonus[c]=(bonus[c]??0)+v;
+  const cooldown=Math.max(1,Math.round(def.cooldown*mod.cooldown)),arrow:UnitStats={hp:0,damage:def.damage+mod.damage,range,cooldown,sight:0,attack:'pierce',armor:[0,0],classes:[],bonus};
   // One arrow per volley plus one per villager or foot archer inside (and per unit of a class a technology adds).
   const shooter=(k:string)=>(defenseRules.addsArrow as readonly string[]).includes(k)||(k in combatRules.units&&combatRules.units[k as CombatUnitKind].classes.some(c=>mod.garrisonClasses.includes(c)));
-  const count=def.base+mod.extra+(s.garrison[b.id]?.units.filter(e=>shooter(e.unit.kind)).length??0);
+  const count=def.base+mod.extra+(def.shots===false?0:s.garrison[b.id]?.units.filter(e=>shooter(e.unit.kind)).length??0);
   for(let i=0;i<count&&s.units.includes(target);i++)strike(s,{kind:'unit',id:target.id},damageOn(s,arrow,{kind:'unit',id:target.id}),-1);
   s.volleys[b.id]=cooldown;s.shots.push({player:b.player,from:{x:Math.round((box[0]+box[2])/2),y:Math.round((box[1]+box[3])/2)},to:{x:target.x,y:target.y},tick:s.tick});}
 }

@@ -64,7 +64,12 @@ try{
  await page.waitForTimeout(1800);await page.locator(`#group-grid [data-pick="${scout.id}"]`).click();await page.keyboard.press('KeyS');note('斥候停手',await text('notice'));
  await page.waitForFunction(()=>/轉化了紅方村民/.test(document.querySelector('#events').textContent),undefined,{timeout:60000});note('轉化結果',await text('events'));await page.screenshot({path:out+'monastery-converted.png'});
  // 5. The converted villager is wounded; the idle monk heals it back to full health.
- q=await screenOf(red.x/100,.6,red.y/100);await page.mouse.click(q.x,q.y);assert.equal(await text('unit-name'),'村民');const hurt=await text('unit-hp');note('轉化後的村民',hurt);
+ // The scout stopped on top of the villager: the still-selected scout starts riding two tiles off (a brief wait, so the
+ // idle monk has not healed the villager yet), then the villager is
+ // picked (a few points on its body, in case the scout still covers part of it).
+ {const off=await screenOf(red.x/100+2.5,0,red.y/100);await page.mouse.click(off.x,off.y,{button:'right'});await page.waitForTimeout(400);}
+ for(const [dx,h] of [[0,.6],[0,.3],[0,.9],[-.15,.5],[.15,.5],[0,1.2]]){q=await screenOf(red.x/100+dx,h,red.y/100+dx);await page.mouse.click(q.x,q.y);await page.waitForTimeout(120);if(await text('unit-name')==='村民')break;}
+ assert.equal(await text('unit-name'),'村民');const hurt=await text('unit-hp');note('轉化後的村民',hurt);
  assert.notEqual(hurt,'25/25','the scout wounded it before the conversion');
  await page.waitForFunction(()=>document.querySelector('#unit-hp').textContent==='25/25',undefined,{timeout:60000});note('治療後',await text('unit-hp'));
  // 6. Recall group 1, keep only the monk, and fetch the remembered relic nearest to it.

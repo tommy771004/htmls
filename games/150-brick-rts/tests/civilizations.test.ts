@@ -82,7 +82,7 @@ test('the neutral civilization changes nothing: the default match is it, and eve
  for(const e of rules.entries)for(let age=1;age<=4;age++){assert.deepEqual(costOf(e.id,own(neutralCiv,age)),e.cost,e.id);if(rules.production[e.id])assert.equal(timeTicks(e.id,own(neutralCiv,age),rules.production[e.id]!),e.time*rules.settings.tickHz);}
  for(const [kind,hp] of Object.entries(combatRules.buildings))for(let age=1;age<=4;age++)assert.equal(buildingHpOf(kind,own(neutralCiv,age)),hp);
  const settlers=rules.civilizations.find(c=>c.id===neutralCiv)!,unique=new Set(civDefs.flatMap(c=>[...c.uniqueUnits,...c.eliteUpgrades,...c.uniqueTechs.map(t=>t.id)]));
- assert.deepEqual([...settlers.unavailable].sort(),rules.entries.map(e=>e.id).filter(id=>id==='castle'||unique.has(id)).sort(),'only the Castle and its content are missing');
+ assert.deepEqual([...settlers.unavailable].sort(),rules.entries.map(e=>e.id).filter(id=>id==='castle'||rules.production[id]==='castle'||unique.has(id)).sort(),'only the Castle and its content are missing');
 });
 
 test('civilization starts: Chinese villagers and housing, Persian stock and town centre, Byzantine town centre; the other side keeps the base',()=>{
@@ -181,11 +181,17 @@ test('the Castle: villagers build it for 300 stone; 800 hit points, houses 10, h
 test('every civilization trains its own unique unit at its Castle at full health, and nobody else\'s',()=>{
  for(const c of civDefs.filter(c=>c.uniqueUnits.length)){const {s,castle}=castleFor(c.id);const kind=c.uniqueUnits[0] as UnitKind;
   s.accounts[0].stock={food:5000,wood:5000,gold:5000,stone:5000};
-  for(const other of civDefs)for(const u of other.uniqueUnits)assert.equal(trainable(s,0,castle,u),u===kind?null:'此文明不能生產',`${c.id}: ${u}`);
+  // A civilization's other unique units are trained elsewhere (the Vikings' Longboat at the dock).
+  for(const other of civDefs)for(const u of other.uniqueUnits)assert.equal(trainable(s,0,castle,u),u===kind?null:c.uniqueUnits.includes(u)?'這棟建築不能生產這個項目':'此文明不能生產',`${c.id}: ${u}`);
   for(const t of c.uniqueTechs.filter(t=>!deferredTechs.includes(t.id)))assert.equal(trainable(s,0,castle,t.id),t.age===3?null:'需要第四時代',`${c.id}: ${t.id}`);
   research(s,castle,kind);run(s,1000,()=>s.units.some(u=>u.player===0&&u.kind===kind));
   const u=s.units.find(u=>u.player===0&&u.kind===kind)!;assert.ok(u,`${c.id} trained ${kind}`);assert.equal(u.hp,maxHpOf(kind as CombatUnitKind,own(c.id,3)),kind);
-  assert.deepEqual(producedAt('castle',ownerOf(s,0)).filter(id=>trainable(s,0,castle,id)!=='此文明不能生產').sort(),[kind,...c.eliteUpgrades,...c.uniqueTechs.map(t=>t.id).filter(id=>!deferredTechs.includes(id))].sort());}
+  // The 科技 round's Castle technologies (fourth age), where the civilization's tree has them (Turks' Artillery is
+  // among its unique technologies above).
+  const generic=['hoardings','sappers','conscription'].filter(id=>!c.missing.includes(id));
+  for(const id of generic)assert.equal(trainable(s,0,castle,id),'需要第四時代',`${c.id}: ${id}`);
+  for(const id of ['hoardings','sappers','conscription'].filter(id=>c.missing.includes(id)))assert.equal(trainable(s,0,castle,id),'此文明不能生產',`${c.id} lacks ${id}`);
+  assert.deepEqual(producedAt('castle',ownerOf(s,0)).filter(id=>trainable(s,0,castle,id)!=='此文明不能生產').sort(),[kind,...c.eliteUpgrades.filter(id=>rules.production[id]==='castle'),...c.uniqueTechs.map(t=>t.id).filter(id=>!deferredTechs.includes(id)),'trebuchet','petard',...generic].sort());}
 });
 
 test('elite upgrades rename and restat the unique units already in the field, keeping their damage',()=>{
@@ -371,12 +377,15 @@ test('Goths: 10 more population in the fourth age, even without a new building',
   assert.equal(s.accounts[1].populationCap,5);}
 });
 
-test('Celt infantry step 6 a tick from the second age (a node in 9 ticks instead of 10); the woad raider 8',()=>{
- assert.equal(speedOf('militia',own('celts',1)),5);assert.equal(speedOf('militia',own('celts',2)),6);assert.equal(speedOf('woad-raider',own('celts',2)),8);assert.equal(speedOf('archer',own('celts',2)),5);assert.equal(speedOf('knight',own('celts',4)),10);
+test('Celt infantry move 5.75 a tick from the second age (the fraction carries over), the woad raider 8.05',()=>{
+ assert.equal(speedOf('militia',own('celts',1)),5);assert.equal(speedOf('militia',own('celts',2)),5.75);assert.equal(speedOf('woad-raider',own('celts',2)),8.05);assert.equal(speedOf('archer',own('celts',2)),5);assert.equal(speedOf('knight',own('celts',4)),10);
  const walk=(civ:string,age:number)=>{const s=match(civ);ageTo(s,age);const at=row(s,9,700,1400),m=spawn(s,0,'militia',at.x,at.y);order(s,'move',{unitIds:[m.id],x:at.x+400,y:at.y});
   const steps:number[]=[];let x=m.x;run(s,300,()=>{if(m.x!==x){steps.push(m.x-x);x=m.x;}return m.x===at.x+400&&m.next===null;});assert.equal(m.x,at.x+400);assert.equal(m.y,at.y);return steps;};
  const celt=walk('celts',2),plain=walk(neutralCiv,2),early=walk('celts',1);
- assert.equal(Math.max(...celt),6);assert.equal(celt.length,8*Math.ceil(50/6));assert.equal(plain.length,8*10);assert.equal(early.length,8*10);
+ // 400 units at 5.75 a tick: steps of 5 and 6, and after each node the part of a step cut short there (under one
+ // step) carries on, so the walk ends in exactly ceil(400/5.75) = 70 ticks.
+ assert.ok(Math.max(...celt)<=2*6,`${Math.max(...celt)}`);assert.equal(celt.reduce((t,d)=>t+d,0),400);
+ assert.equal(celt.length,Math.ceil(400/5.75),`${celt.length}`);assert.equal(plain.length,8*10);assert.equal(early.length,8*10);assert.deepEqual(new Set(plain),new Set([5]));
 });
 
 test('Japanese infantry attack faster by age; the fourth-age militia strikes every 15 ticks in a real fight',()=>{
@@ -435,7 +444,7 @@ test('unit numbers by civilization: each bonus on its target kinds and ages only
  // Franks: stable units +20% from the second age; Bearded Axe.
  assert.deepEqual([1,2].map(a=>st('franks','knight',a).hp),[100,120]);assert.equal(st('franks','scout',2).hp,54);assert.equal(st('franks','militia',4).hp,45);assert.equal(st('franks','throwing-axeman',4,['bearded-axe']).range,250);
  // Persians: knights against archers; Mahouts.
- assert.equal(hitDamage(st('persians','knight'),st(neutralCiv,'archer')),10+2);assert.equal(hitDamage(st('persians','knight'),st(neutralCiv,'militia')),10);assert.equal(speedOf('war-elephant',own('persians',4,['mahouts'])),5);assert.equal(speedOf('war-elephant',own('persians',4)),4);
+ assert.equal(hitDamage(st('persians','knight'),st(neutralCiv,'archer')),10+2);assert.equal(hitDamage(st('persians','knight'),st(neutralCiv,'militia')),10);assert.equal(speedOf('war-elephant',own('persians',4,['mahouts'])),5.2);assert.equal(speedOf('war-elephant',own('persians',4)),4);
  // Celts: siege fire rate; Mongols: Drill.
  assert.equal(st('celts','ram').cooldown,48);assert.equal(st('celts','militia').cooldown,20);assert.equal(speedOf('ram',own('mongols',4,['drill'])),3);assert.equal(speedOf('ram',own('mongols',4)),2);
  // Byzantines: Logistica's bonus on the cataphract only.

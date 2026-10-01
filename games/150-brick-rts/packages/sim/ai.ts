@@ -1,8 +1,8 @@
-import {obstacleBounds} from '../content/footprints.ts';
+import {obstacleBounds,obstacleRects} from '../content/footprints.ts';
 import {rules} from '../content/rules.ts';
 import type {Resource} from '../content/rules.ts';
 import {resourceDefinitions,tileAt} from './terrain.ts';
-import {clearSegment,isBuilding,position,blockedTable,nodesNear} from './navigation.ts';
+import {clearSegment,isBuilding,position,blockedTable,nodesNear,navigationRules} from './navigation.ts';
 import {placementProblem,buildKinds,farmOwner,buildingRules,buildRequirement} from './buildings.ts';
 import type {Building,BuildKind} from './buildings.ts';
 import {trainable} from './production.ts';
@@ -15,7 +15,9 @@ import type {Unit} from './movement.ts';
 import type {PlayerVision} from './vision.ts';
 import {faithOf,carrying,riteProblem} from './religion.ts';
 import type {DefenseState} from './defense.ts';
-import {unitKinds} from './movement.ts';
+import {unitKinds,layerOf} from './movement.ts';
+import {marketQuote,marketResources,marketRules} from './market.ts';
+import type {Prices} from './market.ts';
 import {combatRules} from './stats.ts';
 import type {CombatUnitKind} from './stats.ts';
 import {ownerOf,costOf,civAvailable,producersOf} from './civ.ts';
@@ -32,11 +34,19 @@ import {civDefs} from '../content/civs.ts';
 // keeps halfMargin it may stand anywhere on red's own half (the 4x4 keep rarely finds room otherwise on a grown base).
 export const aiRules={provenance:'design_default',player:1,thinkTicks:20,thinkOffset:7,villagerTarget:12,
  gatherWeights:{food:4,wood:3,gold:2,stone:0},houseMargin:2,barracksAtVillagers:3,ageUpAtVillagers:9,
- waveSize:5,firstWaveTick:4800,herdRadius:450,rams:2,bellFoes:3,bellRadius:450,penSize:3,wildFoodWorkers:6,wildRange:650,engageRange:500,defendRadius:700,baseMargin:110,laneGap:110,siteRange:900,siteSpread:1.5,siteStep:20,halfMargin:100,spill:100,sourceMargin:100,campDistance:350,campWorkers:2,monkTarget:2,
+ waveSize:5,firstWaveTick:4800,herdRadius:450,rams:2,bellFoes:3,bellRadius:450,penSize:3,wildFoodWorkers:6,wildRange:650,engageRange:500,defendRadius:700,baseMargin:110,laneGap:110,siteRange:900,siteSpread:1.5,siteStep:20,siteChecks:80,worldStep:50,halfMargin:100,spill:100,sourceMargin:100,campDistance:350,campWorkers:2,monkTarget:2,
  uniqueTarget:5,stoneWorkers:3,castleBuilders:3,castleMargin:0,
- research:{blacksmith:['forging','fletching','scale-mail-armor','padded-archer-armor','iron-casting','bodkin-arrow','chain-mail-armor','scale-barding-armor'],barracks:['man-at-arms','long-swordsman'],'archery-range':['crossbowman'],'town-center':['loom','wheelbarrow','hand-cart'],'lumber-camp':['double-bit-axe','bow-saw','two-man-saw'],'mining-camp':['gold-mining','gold-shaft-mining'],mill:['horse-collar','heavy-plow','crop-rotation']}} as const;
-export type AIState=DefenseState&ProductionState&{tick:number;ages:number[];vision:PlayerVision[]};
-export type Order=(commandType:'bell'|'hunt'|'move'|'gather'|'build'|'construct'|'train'|'attack'|'resign'|'convert'|'relic'|'deposit',payload:Record<string,unknown>)=>boolean;
+ // The 建築 round. Water (any map with a dock site within dockRange of the town centre, the lake map): a dock once the
+ // barracks stands and dockAtVillagers work, fishingShips on the deep fish, fish traps (at most fishTraps, within
+ // trapRange of the dock) once no fish is in sight, and from the third age warships galleys guarding navyRadius of
+ // the dock. The market in the third age with marketSpare wood beyond its cost: a resource above sellAbove is sold
+ // while gold is below goldShort, stone is bought for the castle while gold allows, and tradeCarts go to the
+ // opponent's market once red has seen one finished (trade needs the other player's market).
+ dockAtVillagers:6,dockRange:1300,fishingShips:4,fishTraps:3,trapRange:700,warships:2,navyRadius:900,
+ marketSpare:100,sellAbove:600,goldShort:100,tradeCarts:2,
+ research:{blacksmith:['forging','fletching','scale-mail-armor','padded-archer-armor','iron-casting','bodkin-arrow','chain-mail-armor','scale-barding-armor'],barracks:['man-at-arms','long-swordsman'],'archery-range':['crossbowman'],'town-center':['loom','wheelbarrow','hand-cart'],dock:['gillnets'],'lumber-camp':['double-bit-axe','bow-saw','two-man-saw'],'mining-camp':['gold-mining','gold-shaft-mining'],mill:['horse-collar','heavy-plow','crop-rotation']}} as const;
+export type AIState=DefenseState&ProductionState&{tick:number;ages:number[];vision:PlayerVision[];market?:Prices;trades?:Record<number,unknown>};
+export type Order=(commandType:'bell'|'hunt'|'move'|'gather'|'build'|'construct'|'train'|'attack'|'resign'|'convert'|'relic'|'deposit'|'market'|'trade'|'rally',payload:Record<string,unknown>)=>boolean;
 type Box=number[];
 // Soldiers: every unit that can fight except villagers, monks, animals and the scout (it explores on its own).
 export const soldierKinds:readonly string[]=unitKinds.filter(k=>k!=='villager'&&k!=='monk'&&k!=='scout'&&!isAnimal(k)&&combatRules.units[k as CombatUnitKind].attack!=='none');
@@ -49,16 +59,25 @@ function castlePlan(o:Owner){const civ=civDefs.find(c=>c.id===o.civ),unit=civ?.u
 const gap=(a:Box,b:Box)=>Math.max(a[0]-b[2],b[0]-a[2],a[1]-b[3],b[1]-a[3],0);
 const centre=(b:Box)=>({x:(b[0]+b[2])/2,y:(b[1]+b[3])/2});
 const dist=(a:{x:number;y:number},b:{x:number;y:number})=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));
+// Sites ordered this pass: the orders are admitted only next tick, so later placements in the same pass must keep
+// clear of them (two orders for one site left all but the first refused). Reset at the start of every pass.
+let claimed:Box[]=[];
+// lane: the spacing kept from them (the lane gap between buildings; 0 = only no overlap, for farms and water sites).
+const clashes=(box:Box,lane=0)=>claimed.some(c=>lane?gap(box,c)<lane:Math.min(box[2],c[2])>Math.max(box[0],c[0])&&Math.min(box[3],c[3])>Math.max(box[1],c[1]));
+// An admitted build order claims its footprint for the rest of the pass.
+function claim(ok:boolean,kind:BuildKind,x:number,y:number){if(ok)claimed.push(obstacleBounds({kind,x,y}));return ok;}
 export function stepAI(s:AIState,order:Order){
  if(s.outcome||s.tick%aiRules.thinkTicks!==aiRules.thinkOffset)return;
+ claimed=[];
  const P=aiRules.player,vision=s.vision[P],seen=new Set(vision.visible),explored=new Set(vision.explored);
  const busy=new Set(s.pathJobs.flatMap(j=>j.kind==='group'?j.unitIds:[j.unitId]));
  const idle=(u:Unit)=>!s.works[u.id]&&!s.attacks[u.id]&&u.next===null&&!u.path.length&&!busy.has(u.id);
- const mine=s.units.filter(u=>u.player===P).sort((a,b)=>a.id-b.id),villagers=mine.filter(u=>u.kind==='villager'),soldiers=mine.filter(u=>soldierKinds.includes(u.kind)),scout=mine.find(u=>u.kind==='scout');
+ // Warships keep to the lake (navy below); the land army is everything else that fights.
+ const mine=s.units.filter(u=>u.player===P).sort((a,b)=>a.id-b.id),villagers=mine.filter(u=>u.kind==='villager'),soldiers=mine.filter(u=>soldierKinds.includes(u.kind)&&layerOf(u.kind)==='land'),warships=mine.filter(u=>soldierKinds.includes(u.kind)&&layerOf(u.kind)==='water'),scout=mine.find(u=>u.kind==='scout');
  const own=s.buildings.filter(b=>b.player===P),tc=own.find(b=>b.kind==='town-center'),tcBox=tc?boxOf(s,tc):null;
  const foes=s.units.filter(u=>u.player!==P&&!isAnimal(u.kind)&&seen.has(tileAt(u.x,u.y,s.map.size))).sort((a,b)=>a.id-b.id);
  // Concede when nothing can turn the game: no town centre (it cannot be rebuilt) and no soldiers left.
- if(!tc&&!soldiers.length){order('resign',{});return;}
+ if(!tc&&!soldiers.length&&!warships.length){order('resign',{});return;}
  army(s,order,soldiers,foes,tcBox,idle,explored);
  // The town bell: enough enemy soldiers at the town centre and fewer own soldiers there send the villagers inside; once
  // no enemy is left near, they go back to work.
@@ -67,7 +86,8 @@ export function stepAI(s:AIState,order:Order){
   if(!belled&&raiders>=aiRules.bellFoes&&guards<raiders)order('bell',{ring:true});else if(belled&&!foes.some(f=>dist(f,home)<=aiRules.bellRadius+150))order('bell',{ring:false});}
  // The scout explores: whenever idle it rides to the nearest tile red has never seen, so waves can aim at
  // buildings it actually found (the point reflection stays the fallback when nothing is known).
- if(scout&&idle(scout)){const size=s.map.size;let best=-1,far=Infinity;for(let t=0;t<size*size;t++){if(explored.has(t))continue;const d=Math.hypot((t%size)*100+50-scout.x,Math.floor(t/size)*100+50-scout.y);if(d<far){far=d;best=t;}}
+ // Open water is left to the ships (a lake's middle would otherwise send the scout to its shore again every pass).
+ if(scout&&idle(scout)){const size=s.map.size;let best=-1,far=Infinity;for(let t=0;t<size*size;t++){if(explored.has(t)||s.map.tiles[t].terrainType==='water')continue;const d=Math.hypot((t%size)*100+50-scout.x,Math.floor(t/size)*100+50-scout.y);if(d<far){far=d;best=t;}}
   if(best>=0)march(s,order,[scout],{x:(best%size)*100+50,y:Math.floor(best/size)*100+50});}
  if(!tc||!tcBox)return;
  const account=s.accounts[P],stock=account.stock,owner=ownerOf(s,P),cost=(id:string)=>costOf(id,owner);
@@ -90,17 +110,20 @@ export function stepAI(s:AIState,order:Order){
  // wait: held back, it found no room at all once the castle stood on this map.
  const holdForCastle=!!plan&&!castle&&(stock.stone<cost('castle').stone||place(s,order,'castle',villagers,idle,tcBox,own));
  // In the second age an archery range follows (it needs the finished barracks).
- if(s.ages[P]>=3&&!own.some(b=>b.kind==='monastery')&&stock.wood>=cost('monastery').wood)place(s,order,'monastery',villagers,idle,tcBox,own);
+ const monasteryLost=s.ages[P]>=3&&!own.some(b=>b.kind==='monastery')&&stock.wood>=cost('monastery').wood&&!place(s,order,'monastery',villagers,idle,tcBox,own);
  // The second age adds a blacksmith (after the range); the third a stable for knights.
  if(s.ages[P]>=2&&own.some(b=>b.kind==='archery-range'&&b.complete)&&!own.some(b=>b.kind==='blacksmith')&&stock.wood>=cost('blacksmith').wood)place(s,order,'blacksmith',villagers,idle,tcBox,own);
  if(s.ages[P]>=3&&!holdForCastle&&own.some(b=>b.kind==='blacksmith'&&b.complete)&&!own.some(b=>b.kind==='siege-workshop')&&stock.wood>=cost('siege-workshop').wood)place(s,order,'siege-workshop',villagers,idle,tcBox,own);
  if(s.ages[P]>=3&&!holdForCastle&&!own.some(b=>b.kind==='stable')&&stock.wood>=cost('stable').wood)place(s,order,'stable',villagers,idle,tcBox,own);
  if(s.ages[P]>=2&&!own.some(b=>b.kind==='archery-range')&&!buildRequirement(s.ages[P],'archery-range',own,owner.civ)&&stock.wood>=cost('archery-range').wood)place(s,order,'archery-range',villagers,idle,tcBox,own);
- if(room<=aiRules.houseMargin&&account.populationCap<rules.settings.populationCap&&!pending('house')&&(!barracksDue||room<=0))place(s,order,'house',villagers,idle,tcBox,own);
+ // The monastery comes first in the third age: until it stands (or a pass finds no site for it), houses wait for a full
+ // population and no camp goes up, so the wood and the room near the base go to it.
+ const monasteryDue=s.ages[P]>=3&&civAvailable(owner.civ,'monastery')&&!own.some(b=>b.kind==='monastery')&&!monasteryLost;
+ if(room<=(monasteryDue?0:aiRules.houseMargin)&&account.populationCap<rules.settings.populationCap&&!pending('house')&&(!barracksDue||room<=0))place(s,order,'house',villagers,idle,tcBox,own);
  // Drop-off camps: when two or more villagers carry wood (gold/stone, natural food) from farther than campDistance to the
  // nearest drop-off that takes it, a camp goes up next to that source.
  const accepts=dropoffRules.accepts as Record<string,readonly string[]>,drops=own.filter(b=>b.complete&&accepts[b.kind]).map(b=>({kinds:accepts[b.kind],box:boxOf(s,b)!})).filter(d=>d.box);
- for(const [camp,kinds] of [['lumber-camp',['wood']],['mining-camp',['gold','stone']],['mill',['food']]] as const){if(own.some(b=>b.kind===camp&&!b.complete))continue;
+ for(const [camp,kinds] of [['lumber-camp',['wood']],['mining-camp',['gold','stone']],['mill',['food']]] as const){if(monasteryDue||own.some(b=>b.kind===camp&&!b.complete))continue;
   // A mill goes next to far natural food (bushes, carcasses, fish), never next to a farm.
   const far=villagers.map(u=>s.works[u.id]).filter(w=>w?.kind==='gather').map(w=>s.map.resources.find(r=>r.id===(w as {resourceId:string}).resourceId)).filter((r):r is NonNullable<typeof r>=>!!r&&r.kind!=='farm'&&(kinds as readonly string[]).includes(resourceDefinitions[r.kind].yield)&&Math.min(...drops.filter(d=>d.kinds.includes(resourceDefinitions[r.kind].yield)).map(d=>gap([r.x,r.y,r.x,r.y],d.box)))>aiRules.campDistance);
   // A camp that finds no site (e.g. by a mine on the far side) does not hold up the next kind.
@@ -138,6 +161,8 @@ export function stepAI(s:AIState,order:Order){
  if(!savingForAge&&!savingForCastle)for(const b of own.filter(b=>b.complete&&!b.queue.length)){
   if(b.kind==='town-center'&&villagers.length+queued('villager')<aiRules.villagerTarget)continue;
   const next=research[b.kind]?.find(id=>!trainable(s,P,b,id)&&spare(id));if(next)order('train',{buildingId:b.id,entryId:next});}
+ water(s,order,{own,mine,villagers,warships,idle,tcBox,cost,queued,spare,explored,foes});
+ trade(s,order,{own,mine,villagers,idle,tcBox,cost,queued,saving:savingForAge||savingForCastle||monasteryDue,stoneDue:!!plan&&!castle&&stock.stone<cost('castle').stone});
  // Monks: a carried relic goes to the monastery; with full faith a monk converts the nearest enemy unit that comes
  // near the town centre; otherwise idle monks fetch relics red has seen (one monk per relic). Healing is automatic.
  const monastery=own.find(b=>b.kind==='monastery'&&b.complete),home=tcBox?centre(tcBox):null,fetching=new Set(Object.values(s.rites).filter(r=>r.kind==='relic').map(r=>r.target));
@@ -181,6 +206,70 @@ export function stepAI(s:AIState,order:Order){
    if(kind==='food'&&!source&&!own.some(b=>b.kind==='farm'&&!b.complete)&&place(s,order,'farm',villagers,idle,tcBox,own,u))break;}
  }
 }
+type Ctx={own:Building[];mine:Unit[];villagers:Unit[];idle:(u:Unit)=>boolean;tcBox:Box;cost:(id:string)=>Record<Resource,number>;queued:(id:string)=>number};
+const affords=(s:AIState,c:Record<Resource,number>,extra=0)=>(Object.keys(c) as Resource[]).every(r=>s.accounts[aiRules.player].stock[r]>=c[r]+(c[r]?extra:0));
+// Placement input as the player knows it (same check as a human's order).
+function knownInput(s:AIState){const explored=new Set(s.vision[aiRules.player].explored),bodies=[...s.units.flatMap(u=>[{x:u.x,y:u.y},...(u.next===null?[]:[position(s.map,u.next)])]),...s.relics.filter(r=>r.carrier===null&&r.monastery===null).map(r=>({x:r.x,y:r.y}))];
+ return {tiles:s.map.tiles,obstacles:s.map.obstacles,units:bodies,explored:(t:number)=>explored.has(t)};}
+// Tile-aligned sites for a building on the water (dock, fish trap) whose footprint touches water, nearest to near first;
+// the first that passes the placement check (only tiles are scanned, so a map without water costs one pass over them).
+function waterSite(s:AIState,kind:'dock'|'fish-trap',near:{x:number;y:number},range:number){
+ const size=s.map.size,[,,w,d]=obstacleBounds({kind,x:0,y:0}),n=w/100,sites:{x:number;y:number;d:number}[]=[];
+ const wet=(t:number)=>s.map.tiles[t]?.terrainType==='water'||s.map.tiles[t]?.terrainType==='shallow';
+ for(let ty=0;ty+d/100<=size;ty++)for(let tx=0;tx+n<=size;tx++){if(!wet(ty*size+tx))continue;const c={x:tx*100+w/2,y:ty*100+d/2},dd=dist(c,near);if(dd<=range)sites.push({x:tx*100,y:ty*100,d:dd});}
+ sites.sort((a,b)=>a.d-b.d||a.y-b.y||a.x-b.x);const input=knownInput(s);
+ return sites.find(v=>!clashes(obstacleBounds({kind,x:v.x,y:v.y}))&&!placementProblem(input,kind,v.x,v.y))??null;}
+// The lake: a dock, fishing ships on the deep fish (fish traps when none is left in sight), a few warships guarding it.
+function water(s:AIState,order:Order,c:Ctx&{warships:Unit[];spare:(id:string)=>boolean;explored:Set<number>;foes:Unit[]}){
+ const P=aiRules.player,owner=ownerOf(s,P),docks=c.own.filter(b=>b.kind==='dock'),dock=docks.find(b=>b.complete),home=centre(c.tcBox);
+ if(!docks.length){if(civAvailable(owner.civ,'dock')&&c.villagers.length>=aiRules.dockAtVillagers&&c.own.some(b=>b.kind==='barracks')&&affords(s,c.cost('dock'))){const site=waterSite(s,'dock',home,aiRules.dockRange);
+   const builder=site&&pickBuilder(s,c.villagers,c.idle,{x:site.x+150,y:site.y+150});if(site&&builder)claim(order('build',{unitIds:[builder.id],kind:'dock',x:site.x,y:site.y}),'dock',site.x,site.y);}return;}
+ if(!dock)return;const dockBox=boxOf(s,dock)!,at=centre(dockBox),ships=c.mine.filter(u=>u.kind==='fishing-ship');
+ // Training: fishing ships first, then (third age) the warships; one item at a time.
+ if(!dock.queue.length){const pick=ships.length+c.queued('fishing-ship')<aiRules.fishingShips?'fishing-ship':s.ages[P]>=3&&c.warships.length+c.queued('galley')<aiRules.warships&&c.spare('galley')?'galley':null;
+  if(pick&&!trainable(s,P,dock,pick))order('train',{buildingId:dock.id,entryId:pick});}
+ // Fishing: the nearest explored fish or an own idle trap; without any, an idle ship lays a trap (wood allowing) or
+ // sails towards the nearest unexplored water.
+ const worked=new Set(c.mine.map(u=>s.works[u.id]).filter(w=>w?.kind==='gather').map(w=>(w as {resourceId:string}).resourceId));
+ const traps=c.own.filter(b=>b.kind==='fish-trap').length;let laid=false;
+ for(const u of ships.filter(c.idle)){
+  const source=s.map.resources.filter(r=>(r.kind==='fish'||r.kind==='fish-trap'&&farmOwner(s,r.id)===P&&!worked.has(r.id))&&c.explored.has(tileAt(r.x,r.y,s.map.size))&&!gatherable(s.map,r.id,'water')).sort((a,b)=>dist(u,a)-dist(u,b)||(a.id<b.id?-1:1))[0];
+  if(source){if(order('gather',{unitIds:[u.id],resourceId:source.id})&&source.kind==='fish-trap')worked.add(source.id);continue;}
+  const sighted=s.map.resources.some(r=>r.kind==='fish'&&r.collectible&&c.explored.has(tileAt(r.x,r.y,s.map.size)));
+  if(!sighted&&!laid&&traps<aiRules.fishTraps&&civAvailable(owner.civ,'fish-trap')&&s.ages[P]>=2&&affords(s,c.cost('fish-trap'),50)){const site=waterSite(s,'fish-trap',at,aiRules.trapRange);
+   if(site&&claim(order('build',{unitIds:[u.id],kind:'fish-trap',x:site.x,y:site.y}),'fish-trap',site.x,site.y)){laid=true;continue;}}
+  const size=s.map.size;let best=-1,far=Infinity;for(let t=0;t<size*size;t++){if(c.explored.has(t)||s.map.tiles[t].terrainType!=='water')continue;const d=Math.hypot((t%size)*100+50-u.x,Math.floor(t/size)*100+50-u.y);if(d<far){far=d;best=t;}}
+  if(best>=0)order('move',{unitIds:[u.id],x:(best%size)*100+50,y:Math.floor(best/size)*100+50});}
+ // Warships: the nearest enemy unit on the water (or the nearest seen enemy dock) within navyRadius of the own dock;
+ // otherwise idle ones wait by it.
+ const prey=c.foes.filter(f=>layerOf(f.kind)==='water'&&dist(f,at)<=aiRules.navyRadius).sort((a,b)=>dist(a,at)-dist(b,at)||a.id-b.id)[0];
+ const enemyDock=prey?undefined:s.buildings.filter(b=>b.player!==P&&b.kind==='dock').map(b=>({b,box:boxOf(s,b)})).filter(v=>v.box&&dist(centre(v.box),at)<=aiRules.navyRadius&&!targetProblem(s,P,{kind:'building',id:v.b.id})).sort((a,b)=>dist(centre(a.box!),at)-dist(centre(b.box!),at)||(a.b.id<b.b.id?-1:1))[0];
+ const target:Target|null=prey?{kind:'unit',id:prey.id}:enemyDock?{kind:'building',id:enemyDock.b.id}:null;
+ const free=c.warships.filter(u=>!s.attacks[u.id]);
+ if(target&&free.length)order('attack',{unitIds:free.map(u=>u.id),target});
+ else{const away=free.filter(u=>c.idle(u)&&dist(u,at)>400);if(away.length)order('move',{unitIds:away.map(u=>u.id),x:Math.round(at.x),y:Math.round(at.y)});}
+}
+// The market: built in the third age, used to turn surplus into gold (or gold into the castle's stone), and the base of
+// trade carts once the opponent's finished market is known.
+function trade(s:AIState,order:Order,c:Ctx&{saving:boolean;stoneDue:boolean}){
+ const P=aiRules.player,owner=ownerOf(s,P),stock=s.accounts[P].stock,markets=c.own.filter(b=>b.kind==='market'),market=markets.find(b=>b.complete);
+ if(!markets.length){if(s.ages[P]>=3&&!c.saving&&civAvailable(owner.civ,'market')&&stock.wood>=c.cost('market').wood+aiRules.marketSpare)place(s,order,'market',c.villagers,c.idle,c.tcBox,c.own);return;}
+ if(!market)return;
+ // Its carts leave on the town centre's side (the ring node nearest the rally point): a market by the map's edge
+ // otherwise put them in the pocket between it and the border woods.
+ if(!market.rally){const box=boxOf(s,market)!,m=centre(box),h=centre(c.tcBox),d=Math.hypot(h.x-m.x,h.y-m.y)||1,k=Math.min(d,(box[2]-box[0])/2+150)/d;
+  const spot=standable(s,{x:m.x+(h.x-m.x)*k,y:m.y+(h.y-m.y)*k});if(spot)order('rally',{buildingId:market.id,x:spot.x,y:spot.y});}
+ // One exchange a pass: stone for the castle first, else the largest surplus sold while gold is short.
+ if(s.market&&c.stoneDue&&stock.gold>=marketQuote(s.market,owner,'stone').buy+aiRules.goldShort)order('market',{action:'buy',resource:'stone'});
+ else if(stock.gold<aiRules.goldShort){const surplus=[...marketResources].filter(r=>stock[r]>=aiRules.sellAbove+marketRules.lot).sort((a,b)=>stock[b]-stock[a]||(a<b?-1:1))[0];if(surplus)order('market',{action:'sell',resource:surplus});}
+ // Trade carts go to the nearest finished enemy market red remembers.
+ const theirs=s.vision[P].known.map(k=>k.obstacle).filter(o=>o.kind==='market'&&!o.red&&o.progress===undefined).map(o=>({id:o.id!,c:centre(obstacleBounds(o))})).sort((a,b)=>dist(a.c,centre(c.tcBox))-dist(b.c,centre(c.tcBox))||(a.id<b.id?-1:1))[0];
+ if(!theirs||!civAvailable(owner.civ,'trade-cart'))return;
+ const carts=c.mine.filter(u=>u.kind==='trade-cart');
+ if(!market.queue.length&&!c.saving&&carts.length+c.queued('trade-cart')<aiRules.tradeCarts&&!trainable(s,P,market,'trade-cart'))order('train',{buildingId:market.id,entryId:'trade-cart'});
+ const idleCarts=carts.filter(u=>c.idle(u)&&!s.trades?.[u.id]);
+ if(idleCarts.length)order('trade',{unitIds:idleCarts.map(u=>u.id),buildingId:theirs.id});
+}
 // The pen: the side of the town centre (150 beyond its footprint; the gate side last) with the most open nodes round
 // it, so a carcass there lies a few steps from the drop-off ring and clear of the base's own buildings.
 function penSpot(s:AIState,tcBox:Box){const c=centre(tcBox),closed=blockedTable(s.map),edge=s.map.size*100-100;let best={x:c.x,y:c.y},room=-1;
@@ -209,23 +298,40 @@ function place(s:AIState,order:Order,kind:BuildKind,villagers:Unit[],idle:(u:Uni
  const explored=new Set(s.vision[aiRules.player].explored),bodies=[...s.units.flatMap(u=>[{x:u.x,y:u.y},...(u.next===null?[]:[position(s.map,u.next)])]),...s.relics.filter(r=>r.carrier===null&&r.monastery===null).map(r=>({x:r.x,y:r.y}))];
  const input={tiles:s.map.tiles,obstacles:s.map.obstacles,units:bodies,explored:(t:number)=>explored.has(t)},sites:{x:number;y:number;d:number;half:number}[]=[];
  const g=buildingRules.grid,from=(v:number)=>Math.ceil(-v/g)*g;
- // Only the window within siteRange of the town centre is scanned; a crowded base widens it once (siteSpread). The
- // castle keeps only sites that pass the placement check and may widen to the whole own half: a grown base often has
- // no free 4x4 block left near the town centre.
- for(const range of kind==='farm'?[aiRules.siteRange]:kind==='castle'?[aiRules.siteRange,aiRules.siteRange*aiRules.siteSpread,world]:[aiRules.siteRange,aiRules.siteRange*aiRules.siteSpread]){if(sites.length)break;
+ // The placement check's own tests, done cheaply per candidate (tiles bucket the obstacles and the units): explored
+ // ground of one height that can carry it, no obstacle or unit in the way. A lake by the base or a crowded one otherwise
+ // filled the window with sites that all failed the placement check, and the window never widened.
+ const size=s.map.size,r=navigationRules.radius,bucket=new Map<number,Box[]>(),put=(b:Box)=>{for(let ty=Math.max(0,Math.floor(b[1]/100));ty<=Math.min(size-1,Math.floor(b[3]/100));ty++)for(let tx=Math.max(0,Math.floor(b[0]/100));tx<=Math.min(size-1,Math.floor(b[2]/100));tx++){const k=ty*size+tx;(bucket.get(k)??bucket.set(k,[]).get(k)!).push(b);}};
+ for(const o of s.map.obstacles){const rects=obstacleRects(o);for(const b of rects.length?rects:isBuilding(o)?[obstacleBounds(o)]:[])put(b);}
+ // Units (kept clear by the radius, inclusive like the check) are marked by a negative right edge.
+ const bodies2=kind==='farm'?[]:bodies.map(u=>[u.x-r,u.y-r,u.x+r,u.y+r] as Box);
+ const bodyBucket=new Map<number,Box[]>();for(const b of bodies2){const k=Math.floor(b[1]/100)*size+Math.floor(b[0]/100);for(const dk of [0,1,size,size+1]){const key=k+dk;(bodyBucket.get(key)??bodyBucket.set(key,[]).get(key)!).push(b);}}
+ const dry=(box:Box)=>{let h:number|null=null;for(let ty=Math.floor(box[1]/100);ty<=Math.floor((box[3]-1)/100);ty++)for(let tx=Math.floor(box[0]/100);tx<=Math.floor((box[2]-1)/100);tx++){const t=ty*size+tx,tile=s.map.tiles[t];
+   if(!tile?.buildability||!explored.has(t)||h!==null&&tile.height!==h)return false;h=tile.height;
+   if(bucket.get(t)?.some(o=>Math.min(o[2],box[2])>Math.max(o[0],box[0])&&Math.min(o[3],box[3])>Math.max(o[1],box[1])))return false;
+   if(bodyBucket.get(t)?.some(o=>o[2]>=box[0]&&o[0]<=box[2]&&o[3]>=box[1]&&o[1]<=box[3]))return false;}return true;};
+ // Only the window within siteRange of the town centre (a camp's resource) is scanned; a crowded base widens it once
+ // (siteSpread; never for farms and camps, which serve what is near), and the castle, houses, the market and the
+ // monastery may then widen to the whole own half (a grown base often has no free 4x4 block left near the town centre
+ // for the castle; on the lake map red stayed at its population cap and never got its market up).
+ // A window widens whenever none of its sites passes the placement check; at most siteChecks are checked a window
+ // (nearest first), which bounds a pass that finds nothing.
+ for(const range of kind==='farm'||kind==='lumber-camp'||kind==='mining-camp'||kind==='mill'?[aiRules.siteRange]:kind==='castle'?[aiRules.siteRange,aiRules.siteRange*aiRules.siteSpread,world]:[aiRules.siteRange,aiRules.siteRange*aiRules.siteSpread]){sites.length=0;
+  // The whole own half is scanned coarser (worldStep), so a pass that finds nothing there stays cheap.
+  const step=range===world?aiRules.worldStep:aiRules.siteStep;
  const lo=(v:number,o:number)=>Math.max(from(o),Math.ceil((v-range)/g)*g),hi=(v:number,o:number)=>Math.min(world-o,v+range);
- for(let x=lo(c.x,x0);x<=hi(c.x,x1);x+=aiRules.siteStep)for(let y=lo(c.y,y0);y<=hi(c.y,y1);y+=aiRules.siteStep){const box=[x+x0,y+y0,x+x1,y+y1],mid=centre(box);
+ for(let x=lo(c.x,x0);x<=hi(c.x,x1);x+=step)for(let y=lo(c.y,y0);y<=hi(c.y,y1);y+=step){const box=[x+x0,y+y0,x+x1,y+y1],mid=centre(box);
   // Buildings that train soldiers keep a buffer from the centre line so fresh soldiers do not start inside enemy sight;
   // houses and farms may reach a little past it (the 16x16 map leaves little room once a base grows). The castle
   // prefers halfMargin but settles for castleMargin (sorted below).
   const margin=kind==='castle'?aiRules.castleMargin:kind==='barracks'||kind==='archery-range'||kind==='monastery'||kind==='stable'||kind==='siege-workshop'?aiRules.halfMargin:-aiRules.spill,half=Math.min(side(box[0],box[1]),side(box[2],box[1]),side(box[0],box[3]),side(box[2],box[3])),ownHalf=half>=margin;
-  if(!ownHalf||dist(mid,c)>range||gap(box,tcBox)<(kind==='farm'?50:aiRules.baseMargin)||(kind!=='farm'&&(others.some(o=>gap(box,o)<aiRules.laneGap)||sources.some(o=>gap(box,o)<aiRules.sourceMargin)))||kind==='castle'&&placementProblem(input,kind,x,y))continue;sites.push({x,y,d:dist(mid,c),half});}
+  if(!ownHalf||dist(mid,c)>range||!dry(box)||gap(box,tcBox)<(kind==='farm'?50:aiRules.baseMargin)||(kind!=='farm'&&(others.some(o=>gap(box,o)<aiRules.laneGap)||sources.some(o=>gap(box,o)<aiRules.sourceMargin)))||kind==='castle'&&placementProblem(input,kind,x,y))continue;sites.push({x,y,d:dist(mid,c),half});}
+  const short=(v:{half:number})=>kind==='castle'&&v.half<aiRules.halfMargin?1:0;
+  sites.sort((a,b)=>short(a)-short(b)||a.d-b.d||a.y-b.y||a.x-b.x);let checks=0;
+  for(const site of sites){if(clashes(obstacleBounds({kind,x:site.x,y:site.y}),kind==='farm'?0:aiRules.laneGap))continue;if(++checks>aiRules.siteChecks)break;if(placementProblem(input,kind,site.x,site.y))continue;
+   const builder=worker??pickBuilder(s,villagers,idle,site);if(!builder)return false;
+   return claim(order('build',{unitIds:[builder.id],kind,x:site.x,y:site.y}),kind,site.x,site.y);}
  }
- const short=(v:{half:number})=>kind==='castle'&&v.half<aiRules.halfMargin?1:0;
- sites.sort((a,b)=>short(a)-short(b)||a.d-b.d||a.y-b.y||a.x-b.x);
- for(const site of sites){if(placementProblem(input,kind,site.x,site.y))continue;
-  const builder=worker??pickBuilder(s,villagers,idle,site);if(!builder)return false;
-  return order('build',{unitIds:[builder.id],kind,x:site.x,y:site.y});}
  return false;
 }
 function army(s:AIState,order:Order,soldiers:Unit[],foes:Unit[],tcBox:Box|null,idle:(u:Unit)=>boolean,explored:Set<number>){
@@ -237,7 +343,7 @@ function army(s:AIState,order:Order,soldiers:Unit[],foes:Unit[],tcBox:Box|null,i
  for(const u of soldiers){if(s.attacks[u.id])continue;
   // Defend the base first, then the nearest enemy in reach (marching soldiers do not auto-engage).
   // Before the first wave is due, soldiers only fight inside the home area.
-  const foe=u.kind==='ram'?undefined:intruder??foes.filter(f=>dist(f,u)<=aiRules.engageRange&&(offensive||home&&dist(f,home)<=aiRules.defendRadius)).sort((a,b)=>dist(a,u)-dist(b,u)||a.id-b.id)[0];
+  const foe=combatRules.units[u.kind as CombatUnitKind]?.buildingsOnly?undefined:intruder??foes.filter(f=>dist(f,u)<=aiRules.engageRange&&(offensive||home&&dist(f,home)<=aiRules.defendRadius)).sort((a,b)=>dist(a,u)-dist(b,u)||a.id-b.id)[0];
   if(foe){assign(u,{kind:'unit',id:foe.id});continue;}
   // Buildings are attacked only by soldiers already out on a wave, never by one trickling from home.
   const site=offensive&&idle(u)&&dist(u,home??u)>aiRules.defendRadius?enemyBuildings.sort((a,b)=>dist(centre(a.box!),u)-dist(centre(b.box!),u)||(a.b.id<b.b.id?-1:1))[0]:undefined;
@@ -260,6 +366,11 @@ function objective(s:AIState,home:{x:number;y:number},explored:Set<number>,wave:
  const size=s.map.size,count=size*size;for(let t=0;t<count;t++){const id=(t*97)%count;if(!explored.has(id))return {x:(id%size)*100+50,y:Math.floor(id/size)*100+50};}
  return mirror;
 }
+// The nearest standable node point to a spot (rings of 50 out to 200), or null.
+function standable(s:AIState,goal:{x:number;y:number}){const edge=s.map.size*100-50;
+ for(let r=0;r<=200;r+=50)for(let dy=-r;dy<=r;dy+=50)for(let dx=-r;dx<=r;dx+=50){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;
+  const p={x:Math.round((goal.x+dx)/50)*50,y:Math.round((goal.y+dy)/50)*50};if(p.x>=50&&p.y>=50&&p.x<=edge&&p.y<=edge&&clearSegment(s.map,p,p))return p;}
+ return null;}
 // Moves a group to the nearest standable point around the goal (the same check a human move order gets).
 function march(s:AIState,order:Order,units:Unit[],goal:{x:number;y:number}){
  for(let r=0;r<=400;r+=50)for(let dy=-r;dy<=r;dy+=50)for(let dx=-r;dx<=r;dx+=50){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;

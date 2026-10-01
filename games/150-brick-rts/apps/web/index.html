@@ -31,7 +31,7 @@ canvas#map{position:absolute;inset:0;width:100%;height:100%;display:block;touch-
 .slots,#commands{display:grid;grid-template-columns:repeat(5,48px);grid-template-rows:repeat(3,48px);gap:5px}.slots{position:absolute;inset:8px;pointer-events:none}.slots i{background:#222d28;border-radius:3px}
 #production{display:contents}#production[hidden]{display:none}img:not([src]){visibility:hidden}#cmd-note p{margin:0}.tile{position:relative;width:48px;height:48px;padding:0;background:var(--tile);border:0;border-bottom:4px solid var(--tile-edge);border-radius:3px;display:grid;place-items:center;overflow:hidden}.tile:hover:not(:disabled){background:var(--tile-hover)}.tile:active:not(:disabled){border-bottom-width:2px;padding-top:2px}.tile[hidden]{display:none}.tile:disabled{cursor:default}.tile:disabled img{filter:grayscale(1) brightness(.62)}.tile[aria-pressed=true]{background:#6f6034;border-bottom-color:#4a3f20}
 .tile img{width:40px;height:40px;object-fit:contain;pointer-events:none}.tile img:not([src]){display:none}.tile img:not([src])+.label{display:block}.tile kbd{position:absolute;right:3px;top:1px;font:700 10.5px/1.2 system-ui,sans-serif;color:var(--cream);opacity:.85}.tile .label{display:none;font-size:11px;line-height:1.1;padding:0 2px}.no-icons .tile img{display:none}.no-icons .tile .label{display:block}.tile .roman{position:absolute;left:3px;bottom:0;font:700 11px/1.3 Georgia,serif;color:var(--gold)}.tile svg{width:24px;height:24px;fill:var(--cream)}
-#stop{grid-area:3/5}#cancel-build{grid-area:3/5}
+#stop{grid-area:3/5}#cancel-build{grid-area:3/5}#garrison-cmd{grid-area:3/4}#build-page{grid-area:3/3}
 .sel{min-width:0;background:var(--well);border-radius:3px;padding:10px 14px;overflow:hidden}
 .sel-view{display:flex;gap:14px;height:100%;min-width:0}.sel-view[hidden]{display:none}
 .portrait{flex:none;width:112px;height:112px;background:#384a41;border-bottom:4px solid var(--tile-edge);border-radius:3px;display:grid;place-items:center;overflow:hidden}.portrait img{width:100%;height:100%;object-fit:contain}
@@ -41,7 +41,9 @@ canvas#map{position:absolute;inset:0;width:100%;height:100%;display:block;touch-
 .sel-empty{display:flex;flex-direction:column;justify-content:center;gap:6px;height:100%;color:var(--muted);font-size:13px}.sel-empty b{color:var(--cream);font-size:15px}
 #sel-group{flex-direction:column;gap:6px}#group-summary{font-size:13px;color:var(--muted)}#group-grid{display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start;overflow:hidden}
 .mini-unit{position:relative;width:46px;height:52px;padding:0 0 6px;background:#384a41;border:0;border-bottom:3px solid var(--tile-edge);border-radius:3px}.mini-unit img{width:46px;height:44px;object-fit:contain;display:block}.mini-unit i{position:absolute;left:4px;right:4px;bottom:3px;height:4px;background:#1b2420}.mini-unit i i{position:absolute;left:0;right:auto;top:0;bottom:0;height:auto;background:var(--hp)}.mini-unit:hover{background:#44584d}.mini-more{width:46px;height:52px;display:grid;place-items:center;background:#2f3d36;border-radius:3px;font-weight:700;color:var(--muted)}#group-grid{flex:1;min-height:0}
-#building-panel{gap:14px}#building-status{font-size:13px}#rally-hint{font-size:12px;color:var(--muted);margin:0}
+#building-panel{gap:14px}
+#market-panel{display:flex;flex-direction:column;gap:4px}#market-panel[hidden]{display:none}.mk{display:flex;align-items:center;gap:4px}.mk>span{width:3em;flex:none;white-space:nowrap;font-size:12px;color:var(--muted)}.mk button{height:26px;min-width:62px;display:inline-flex;align-items:center;gap:4px;padding:0 8px 0 5px;background:var(--tile);border:0;border-bottom:3px solid var(--tile-edge);border-radius:3px;font-size:12.5px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}.mk button:hover:not(:disabled){background:var(--tile-hover)}.mk button:active:not(:disabled){border-bottom-width:1px;margin-top:2px}.mk button:disabled{opacity:.45;cursor:default}.mk button img{width:18px;height:18px;object-fit:contain}.mk .sell b{color:#ecd391}.mk .buy b{color:var(--cream)}
+.riders{display:inline-flex;gap:2px}.riders img{width:22px;height:22px;background:#384a41;border-radius:2px}#building-hp,#building-armor{white-space:nowrap}#building-status{font-size:13px}#rally-hint{font-size:12px;color:var(--muted);margin:0}
 #queue{display:flex;flex-direction:column;gap:4px;min-width:0;width:min(260px,40%);flex:none}#queue>div{display:grid;grid-template-columns:28px minmax(0,1fr) 26px;align-items:center;gap:6px;background:#2f3d36;border-radius:3px;padding:2px 3px;font-size:12px}#queue>div img{width:28px;height:28px;object-fit:contain}#queue>div span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#queue>div button{width:26px;height:24px;padding:0;background:var(--tile);border:0;border-bottom:2px solid var(--tile-edge);border-radius:2px;font-size:14px;line-height:1}#queue>div button:hover{background:#6d3a2d}
 #queue>div:first-child{grid-template-columns:36px minmax(0,1fr) 26px;padding:4px}#queue>div:first-child img{width:36px;height:36px}.q-bar{grid-column:2/3;height:5px;background:#1b2420;border-radius:2px;overflow:hidden;margin-top:-2px}.q-bar i{display:block;height:100%;background:var(--gold)}
 .mini{display:flex;gap:6px;align-items:stretch}.mini-map{position:relative;width:236px;background:#16201c;border-radius:3px}#minimap{display:block;width:100%;height:100%;cursor:crosshair;touch-action:none}
@@ -66,7 +68,7 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
  .topbar{flex-wrap:wrap;align-content:center;gap:4px 10px;padding:4px 10px}.res{width:100%;justify-content:space-between;gap:6px}.r{gap:3px;font-size:13px}.r img{width:20px;height:20px}.r b{min-width:0}.age{position:static;transform:none;flex:1;text-align:left;font-size:13px}.sys{gap:6px}.bar-btn,#speed{height:30px}
  .hud{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"sel sel" "cmd mini";gap:8px;padding:10px 10px 10px}.sel{grid-area:sel;height:84px;padding:8px 10px}.mini-unit{width:34px;height:40px}.mini-unit img{width:34px;height:32px}.mini-more{width:34px;height:40px}#sel-group{gap:3px}.cmd{grid-area:cmd;padding:6px}.mini{grid-area:mini;justify-content:flex-end}
  .slots,#commands{grid-template-columns:repeat(5,38px);grid-template-rows:repeat(3,38px);gap:4px}.slots{inset:6px}.tile{width:38px;height:38px}.tile img{width:32px;height:32px}.tile kbd{display:none}
- .portrait{width:66px;height:66px}.sel-main h2{font-size:15px}.sel-main{gap:3px}.facts{font-size:12px;gap:2px 10px}.hp i{width:110px}#queue{width:44%}#queue>div:not(:first-child){display:none}#rally-hint{display:none}.sel-empty{font-size:12px}.sel-empty span{display:none}
+ .portrait{width:66px;height:66px}.sel-main h2{font-size:15px}.sel-main{gap:3px}.facts{font-size:12px;gap:2px 10px}#sel-unit .sel-main{gap:1px}#sel-unit .hp,#sel-unit .facts{line-height:15px}#unit-facts{flex:none;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;overscroll-behavior-x:contain}#unit-facts::-webkit-scrollbar{display:none}#unit-facts span{flex:none;white-space:nowrap}#unit-facts.more{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}.hp i{width:110px}#queue{width:44%}#queue>div:not(:first-child){display:none}#rally-hint{display:none}#building-armor{display:none}#building-panel:has(#market-panel:not([hidden])) :is(#building-status,.hp,#queue,h2 small){display:none}.mk button{height:24px;min-width:52px;padding:0 5px 0 3px}.mk>span{width:2.4em}.sel-empty{font-size:12px}.sel-empty span{display:none}
  .mini-map{width:auto;flex:1;max-width:190px;min-height:110px}.mini-tools{gap:4px}.mini-tools button{width:30px;height:28px}
  #notice{font-size:12px}.feed{top:8px;left:10px;max-width:calc(100% - 20px)}#events{font-size:11.5px}#cmd-note{left:10px;bottom:8px;width:calc(100% - 20px);font-size:12px}.field{flex-direction:column}#debug{width:auto;height:40%;border-left:0;border-top:3px solid var(--plate-edge)}}
 @media (prefers-reduced-motion:reduce){#notice{transition:none}}
@@ -82,7 +84,8 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
   <span class="r" title="黃金"><span class="ico"><img data-icon="gold" alt="黃金"><i id="crew-gold"></i></span><b id="res-gold">0</b></span>
   <span class="r" title="石頭"><span class="ico"><img data-icon="stone" alt="石頭"><i id="crew-stone"></i></span><b id="res-stone">0</b></span>
   <span class="r" id="pop" title="人口（已用／上限）"><img data-icon="villager-face" alt="人口"><b id="res-pop">0/0</b></span>
-  <span class="r" id="relics" title="聖物" hidden><img data-icon="relic" alt="聖物"><b id="res-relics">0·0/0</b></span>
+<span class="r" id="relics" title="聖物" hidden><img data-icon="relic" alt="聖物"><b id="res-relics">0·0/0</b></span>
+  <span class="r" id="wonder" title="世界奇觀" hidden><img data-icon="wonder-4" alt="世界奇觀"><b id="res-wonder"></b></span>
  </div>
  <div class="age"><span id="civ-name"></span><span id="age-name">第一時代</span></div>
  <div class="sys"><span id="clock" title="遊戲時間">00:00</span><label><span class="sr">遊戲速度</span><select id="speed" title="遊戲速度"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select></label><button id="pause" class="bar-btn" aria-pressed="false" aria-label="開始（F3）" title="開始／暫停（F3）"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg></button><button id="menu-open" class="bar-btn" aria-haspopup="dialog" title="選單（F10）">選單</button></div>
@@ -127,6 +130,19 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
    <button id="build-watch-tower" class="tile" data-build="watch-tower" data-key="V" hidden><img data-icon="watch-tower-2" alt=""><span class="label">箭塔</span><kbd>V</kbd></button>
    <button id="build-siege-workshop" class="tile" data-build="siege-workshop" data-key="B" hidden><img data-icon="siege-workshop-3" alt=""><span class="label">攻城器工坊</span><kbd>B</kbd></button>
    <button id="build-castle" class="tile" data-build="castle" data-key="Y" hidden><img data-icon="castle-3" alt=""><span class="label">城堡</span><kbd>Y</kbd></button>
+<button id="build-university" class="tile" data-build="university" data-key="U" hidden><img data-icon="university-3" alt=""><span class="label">學院</span><kbd>U</kbd></button>
+   <button id="build-dock" class="tile" data-build="dock" data-key="X" hidden><img data-icon="dock-1" alt=""><span class="label">碼頭</span><kbd>X</kbd></button>
+   <button id="build-market" class="tile" data-build="market" data-key="B" hidden><img data-icon="market-2" alt=""><span class="label">市集</span><kbd>B</kbd></button>
+   <button id="build-palisade-wall" class="tile" data-build="palisade-wall" data-key="Q" hidden><img data-icon="palisade-wall-1" alt=""><span class="label">木牆</span><kbd>Q</kbd></button>
+   <button id="build-stone-wall" class="tile" data-build="stone-wall" data-key="W" hidden><img data-icon="stone-wall-2" alt=""><span class="label">石牆</span><kbd>W</kbd></button>
+   <button id="build-palisade-gate" class="tile" data-build="palisade-gate" data-key="E" hidden><img data-icon="palisade-gate-1" alt=""><span class="label">木門</span><kbd>E</kbd></button>
+   <button id="build-gate" class="tile" data-build="gate" data-key="R" hidden><img data-icon="gate-2" alt=""><span class="label">城門</span><kbd>R</kbd></button>
+   <button id="build-outpost" class="tile" data-build="outpost" data-key="T" hidden><img data-icon="outpost-1" alt=""><span class="label">哨站</span><kbd>T</kbd></button>
+   <button id="build-bombard-tower" class="tile" data-build="bombard-tower" data-key="A" hidden><img data-icon="bombard-tower-4" alt=""><span class="label">火砲塔</span><kbd>A</kbd></button>
+   <button id="build-town-center" class="tile" data-build="town-center" data-key="D" hidden><img data-icon="town-center-3" alt=""><span class="label">城鎮中心</span><kbd>D</kbd></button>
+   <button id="build-wonder" class="tile" data-build="wonder" data-key="Z" hidden><img data-icon="wonder-4" alt=""><span class="label">世界奇觀</span><kbd>Z</kbd></button>
+   <button id="build-fish-trap" class="tile" data-build="fish-trap" data-key="Q" hidden><img data-icon="fish-trap-2" alt=""><span class="label">魚網</span><kbd>Q</kbd></button>
+   <button id="build-page" class="tile" data-key="N" hidden aria-label="切換建築頁（N）" data-tip="切換建築頁"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2h2v2h3V2h2v2h2v6H10V4h2zM5 11h2v2h3v-2h2v2h2v6H3v-6h2zm11 4h3v-2.5l3.5 3.5-3.5 3.5V17h-3z"/></svg><span class="roman">III</span><kbd>N</kbd></button>
    <div id="production"></div>
    <button id="cancel-build" class="tile" hidden aria-label="取消建造" data-tip="取消建造"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.3 4.2 12 9.9l5.7-5.7 2.1 2.1-5.7 5.7 5.7 5.7-2.1 2.1-5.7-5.7-5.7 5.7-2.1-2.1 5.7-5.7-5.7-5.7z"/></svg><kbd>Del</kbd></button>
    <button id="garrison-cmd" class="tile" hidden aria-label="進駐（G）" data-tip="進駐" data-key="G"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V9l8-6 8 6v12h-5v-6H9v6z"/></svg><kbd>G</kbd></button>
@@ -136,7 +152,7 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
   <div class="sel-view sel-empty" id="sel-empty"><b id="sel-empty-title">藍方 · 草甸</b><span>左鍵選取、拖曳框選；右鍵地面移動、右鍵資源採集、右鍵紅方目標攻擊。</span><span>方向鍵移動鏡頭 · H 城鎮中心 · . 閒置村民 · F3 暫停 · F10 選單</span></div>
   <div class="sel-view" id="sel-unit" hidden><div class="portrait"><img id="unit-portrait" alt=""></div><div class="sel-main"><h2><span id="unit-name"></span><small id="unit-owner">藍方</small></h2><div class="hp"><i><i id="unit-hp-bar"></i></i><span id="unit-hp"></span></div><div class="facts" id="unit-facts"></div><div class="facts"><span id="unit-status"></span></div></div></div>
   <div class="sel-view" id="sel-group" hidden><div id="group-summary"></div><div id="group-grid"></div></div>
-  <div class="sel-view" id="building-panel" hidden><div class="portrait"><img id="building-portrait" alt=""></div><div class="sel-main"><h2><span id="building-title"></span><small id="building-owner">藍方</small></h2><div class="hp"><i><i id="building-hp-bar"></i></i><span id="building-hp"></span></div><span id="building-status"></span><p id="rally-hint"></p></div><div id="queue" aria-label="生產佇列"></div></div>
+  <div class="sel-view" id="building-panel" hidden><div class="portrait"><img id="building-portrait" alt=""></div><div class="sel-main"><h2><span id="building-title"></span><small id="building-owner">藍方</small></h2><div class="hp"><i><i id="building-hp-bar"></i></i><span id="building-hp"></span><span id="building-armor" title="近戰護甲／遠程護甲"></span></div><span id="building-status"></span><div id="market-panel" role="group" aria-label="市集交易（每次 100 單位）" hidden></div><p id="rally-hint"></p></div><div id="queue" aria-label="生產佇列"></div></div>
  </div>
  <div class="mini"><div class="mini-map"><canvas id="minimap" aria-label="小地圖：左鍵移動鏡頭，右鍵對選取單位下達移動"></canvas></div>
   <div class="mini-tools"><button id="idle-villager" title="下一名閒置村民（.）" aria-label="下一名閒置村民"><img data-icon="villager-face" alt=""><span id="idle-count"></span></button><button id="zoom-in" title="拉近" aria-label="拉近鏡頭">+</button><button id="zoom-out" title="拉遠" aria-label="拉遠鏡頭">−</button><button id="rotate-view" title="旋轉視角" aria-label="旋轉視角 90 度"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a8 8 0 0 1 7.7 5.9H22l-3.5 4.6L15 9.9h2.5A5.8 5.8 0 1 0 17 15.8l1.9 1.2A8 8 0 1 1 12 4z"/></svg></button></div></div>
@@ -154,7 +170,7 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
   <label class="menu-row">音量 <span class="volume"><input id="volume" type="range" min="0" max="100" step="5" value="60"><output id="volume-value" for="volume">60%</output></span></label>
  </fieldset>
  <fieldset><legend>新遊戲</legend>
-  <label class="menu-row">地圖 <select id="layout"><option value="open">曠野（32×32，隨機出生）</option><option value="meadow">草甸</option><option value="coast">海岸</option><option value="acceptance">高地與淺灘</option></select></label>
+  <label class="menu-row">地圖 <select id="layout"><option value="open">曠野（32×32，隨機出生）</option><option value="lakes">湖畔（32×32，中央大湖，可造船）</option><option value="meadow">草甸</option><option value="coast">海岸</option><option value="acceptance">高地與淺灘</option></select></label>
   <label class="menu-row">藍方文明 <select id="civ-blue"></select></label>
   <label class="menu-row">紅方文明 <select id="civ-red"></select></label>
   <p class="civ-note" id="civ-note" aria-live="polite"></p>
@@ -167,7 +183,8 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
   <li><b>左鍵</b> 選取 · <b>拖曳</b> 框選 · <b>Shift</b> 加減選</li>
   <li><b>右鍵</b> 地面移動、資源採集（含己方農田）、未完工建築施工、紅方目標攻擊</li>
   <li><b>選取建築時右鍵</b> 設定集結點</li>
-  <li><b>Q W E R T A D Z X C V B Y</b> 指令格（<b>Y</b> 城堡） · <b>G</b> 進駐 · <b>S</b> 停止 · <b>Del</b> 取消建造</li>
+  <li><b>Q W E R T A D Z X C V B Y U</b> 村民的建造格（<b>Y</b> 城堡、<b>U</b> 學院；不在目前這頁也能直接按） · <b>N</b> 切換建築頁：第一、二時代／第三時代起</li>
+  <li>選取建築時 <b>Q W E R T A D Z X C V B Y</b> 依序對應生產與研究格 · <b>G</b> 進駐 · <b>S</b> 停止 · <b>Del</b> 取消建造</li>
   <li><b>Ctrl＋數字</b> 編組 · <b>數字</b> 叫回</li>
   <li><b>方向鍵</b> 移動鏡頭 · <b>F</b> 對準選取 · <b>H</b> 城鎮中心 · <b>.</b> 閒置村民 · <b>,</b> 全部軍隊</li>
   <li><b>觸控</b> 輕觸選取，選取後輕觸地面移動或採集</li>
@@ -176,4 +193,4 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
 </div></div>
 <div id="codex" role="dialog" aria-modal="true" aria-label="百科" tabindex="-1" hidden></div>
 <noscript>請啟用 JavaScript 才能遊玩。</noscript>
-<script type="module" src="./assets/150-brick-rts/main.js?v=20260930-civs-1"></script><script>window.addEventListener('error',function(e){if(e.target&&e.target.tagName==='SCRIPT'){var box=document.getElementById('boot-error');box.hidden=false;box.textContent='模組載入失敗。請透過 HTTP 伺服器開啟，並確認已執行 npm run build。'}},true);</script></body></html>
+<script type="module" src="./assets/150-brick-rts/main.js?v=20261001-tech-1"></script><script>window.addEventListener('error',function(e){if(e.target&&e.target.tagName==='SCRIPT'){var box=document.getElementById('boot-error');box.hidden=false;box.textContent='模組載入失敗。請透過 HTTP 伺服器開啟，並確認已執行 npm run build。'}},true);</script></body></html>

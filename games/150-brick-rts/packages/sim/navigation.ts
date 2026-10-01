@@ -1,5 +1,6 @@
 import {obstacleBounds,obstacleRects} from '../content/footprints.ts';
 import type {ObstacleKind} from '../content/footprints.ts';
+import {rules} from '../content/rules.ts';
 // Engineering defaults, not values from the reference game.
 import {createTiles,tileAt,canTraverse,terrainRules,extractResource,resourceDefinitions,mapSizes,terrainDefinitions} from './terrain.ts';
 import type {Tile,ResourceNode,MapLayout,ResourceKind} from './terrain.ts';
@@ -32,8 +33,21 @@ export function nodesNear(map:{size:number},box:readonly number[],pad:number):nu
  const x0=Math.max(0,Math.ceil((box[0]-pad-50)/50)),x1=Math.min(side-1,Math.floor((box[2]+pad-50)/50)),y0=Math.max(0,Math.ceil((box[1]-pad-50)/50)),y1=Math.min(side-1,Math.floor((box[3]+pad-50)/50));
  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)out.push(y*side+x);return out;}
 // Areas changed since the movement layer last rebuilt its edge table (derived data, never saved).
+// Kept as a log so each movement layer (land, water) can catch up from its own cursor (see movement.ts graph).
 const dirtyAreas=new WeakMap<MapData,[number,number,number,number][]>();
+export function dirtyLog(map:MapData){return dirtyAreas.get(map)??dirtyAreas.set(map,[]).get(map)!;}
 export function takeDirtyAreas(map:MapData){const list=dirtyAreas.get(map)??[];dirtyAreas.delete(map);return list;}
+// Nodes ships cannot stand on: off water, or inside an obstacle (a dock, a fish trap). A node with no water or
+// shallow tile round it is closed without the full segment test. Rebuilt per navigation revision.
+const waterTables=new WeakMap<MapData,{revision:number;table:Uint8Array}>();
+export function waterBlockedTable(map:MapData):Uint8Array{let t=waterTables.get(map);
+ if(!t||t.revision!==map.navigationRevision){const n=nodeTotal(map),table=new Uint8Array(n),side=sideOf(map),size=map.size;
+  for(let id=0;id<n;id++){const x=id%side,y=Math.floor(id/side),tx=x>>1,ty=y>>1;let wet=false;
+   for(const [a,b] of [[tx,ty],[tx+(x&1),ty],[tx,ty+(y&1)],[tx+(x&1),ty+(y&1)]]){const tile=map.tiles[Math.min(size-1,b)*size+Math.min(size-1,a)];if(tile&&(tile.walkClass==='water'||tile.walkClass==='both'))wet=true;}
+   table[id]=wet&&clearSegment(map,position(map,id),position(map,id),'water')?0:1;}
+  t={revision:map.navigationRevision,table};waterTables.set(map,t);}
+ return t.table;}
+export const blockedFor=(map:MapData,layer:'land'|'water')=>layer==='water'?waterBlockedTable(map):blockedTable(map);
 // Shared search budget per tick, scaled with the node count so a search covers the same share of any map
 // (961 nodes: exactly expansionsPerTick; the 3969-node match map: about four times as many).
 export const searchBudget=(map:{size:number})=>Math.round(navigationRules.expansionsPerTick*nodeTotal(map)/961);
@@ -51,7 +65,7 @@ export function makeMap(seed:number,layout:MapLayout='meadow'):MapData{
  throw Error(`地圖生成失敗（${terrainRules.generationAttempts} 次）：${lastErrors.join('；')}`);
 }
 function generateCandidate(seed:number,layout:MapLayout):MapData{
- if(layout==='open')return generateOpen(seed);
+ if(layout==='open'||layout==='lakes')return generateOpen(seed,layout==='lakes');
  let rng=seed||1;// Starting town centers: gate centers sit on grid columns 400/1200 and face the spawn row, 65 units clear.
  let obstacles:Obstacle[]=[{kind:'town-center',x:265,y:350},{kind:'town-center',x:1065,y:350,red:true}];
  // Border woods are drawn for the west half and mirrored to the east, so both bases get the same room.
@@ -100,8 +114,12 @@ export const openMapRules={provenance:'design_default',size:32,radius:[.29,.34],
  margin:{left:-700,top:-760,right:700,bottom:900},
  forestClumps:10,clumpTrees:[6,13],clumpClearance:1050,borderWood:.45,borderClearance:750,neutral:{gold:2,rock:2},neutralRadius:650,dirtPatches:7,
  // Animals per base (kit flock, kit herd, a boar and two more sheep farther out) and the shared pond.
- animals:{sheep:4,deer:3,boarDistance:950,farSheepDistance:1050},pond:{size:3,baseDistance:1100,fairness:300}} as const;
-function generateOpen(seed:number):MapData{
+ animals:{sheep:4,deer:3,boarDistance:950,farSheepDistance:1050},pond:{size:3,baseDistance:1100,fairness:300},
+ // The 'lakes' variant: water within this radius of the centre (off the bases' aprons), deep-water fish for fishing
+ // ships, and the neutral mines on a ring round the lake.
+ // shore: tiles of open land kept round the lake (no mines or trees), so the walk round it is never one lane wide.
+ lake:{radius:720,fish:8,fishSpacing:300,neutralRing:[1000,1250],shore:2}} as const;
+function generateOpen(seed:number,lake=false):MapData{
  let rng=seed||1;const random=()=>{rng^=rng<<13;rng^=rng>>>17;rng^=rng<<5;return (rng>>>0)/4294967296;};
  const R=openMapRules,size=R.size,world=size*100,mid=world/2,tiles=createTiles('open',seed);
  // Dirt patches (walkable, buildable): small random blobs for texture only.
@@ -116,6 +134,10 @@ function generateOpen(seed:number):MapData{
  const taken=new Set<number>(),aprons=centres.map(c=>[c.x+R.apron.left,c.y+R.apron.top,c.x+R.apron.right,c.y+R.apron.bottom]);
  for(const c of centres)for(let ty=Math.floor((c.y-150)/100);ty<=Math.floor((c.y+150)/100);ty++)for(let tx=Math.floor((c.x-150)/100);tx<=Math.floor((c.x+150)/100);tx++)taken.add(ty*size+tx);
  const free=(tx:number,ty:number)=>tx>=1&&ty>=1&&tx<size-1&&ty<size-1&&!taken.has(ty*size+tx)&&!aprons.some(b=>tx*100+100>b[0]&&tx*100<b[2]&&ty*100+100>b[1]&&ty*100<b[3]);
+ // The lake (only on 'lakes'; no random draws, so the open map's stream is untouched): tiles near the centre that no
+ // base needs become water and are taken before anything else is placed.
+ const lakeTiles:number[]=[];if(lake)for(let ty=1;ty<size-1;ty++)for(let tx=1;tx<size-1;tx++)if(Math.hypot(tx*100+50-mid,ty*100+50-mid)<=R.lake.radius&&free(tx,ty)){lakeTiles.push(ty*size+tx);taken.add(ty*size+tx);Object.assign(tiles[ty*size+tx],{terrainType:'water',...terrainDefinitions.water});}
+ if(lake){const ring=R.lake.shore;for(const t of lakeTiles){const tx=t%size,ty=Math.floor(t/size);for(let dy=-ring;dy<=ring;dy++)for(let dx=-ring;dx<=ring;dx++){const x=tx+dx,y=ty+dy;if(x>=0&&y>=0&&x<size&&y<size)taken.add(y*size+x);}}}
  const offset:Record<string,number>={tree:12,gold:15,rock:15,berries:15,livestock:15,hunt:15};
  // Kit animals: the centre of the tile they were given (livestock: a flock of sheep, hunt: a deer herd).
  const animals:{kind:'hunt'|'livestock';x:number;y:number;base:number}[]=[];let kitOwner=-1;
@@ -130,7 +152,7 @@ function generateOpen(seed:number):MapData{
    if(!placed)continue;}});
  const far=(tx:number,ty:number,d:number)=>centres.every(c=>Math.hypot(tx*100+50-c.x,ty*100+50-c.y)>=d);
  // Neutral mines near the middle, away from both bases.
- for(const [kind,count] of Object.entries(R.neutral))for(let i=0;i<count;i++)for(let k=0;k<40;k++){const a=random()*Math.PI*2,d=random()*R.neutralRadius,tx=Math.floor((mid+Math.cos(a)*d)/100),ty=Math.floor((mid+Math.sin(a)*d)/100);if(free(tx,ty)&&far(tx,ty,R.clumpClearance)){put(kind,tx,ty);break;}}
+ for(const [kind,count] of Object.entries(R.neutral))for(let i=0;i<count;i++)for(let k=0;k<40;k++){const a=random()*Math.PI*2,d=lake?R.lake.neutralRing[0]+random()*(R.lake.neutralRing[1]-R.lake.neutralRing[0]):random()*R.neutralRadius,tx=Math.floor((mid+Math.cos(a)*d)/100),ty=Math.floor((mid+Math.sin(a)*d)/100);if(free(tx,ty)&&far(tx,ty,R.clumpClearance)){put(kind,tx,ty);break;}}
  // Forest clumps grown by a seeded random walk, away from bases.
  for(let i=0;i<R.forestClumps;i++){let tx=0,ty=0,ok=false;for(let k=0;k<60&&!ok;k++){tx=1+Math.floor(random()*(size-2));ty=1+Math.floor(random()*(size-2));ok=free(tx,ty)&&far(tx,ty,R.clumpClearance);}
   if(!ok)continue;const want=R.clumpTrees[0]+Math.floor(random()*(R.clumpTrees[1]-R.clumpTrees[0]+1));
@@ -139,12 +161,16 @@ function generateOpen(seed:number):MapData{
  for(let ty=0;ty<size;ty++)for(let tx=0;tx<size;tx++){if(tx>0&&ty>0&&tx<size-1&&ty<size-1)continue;const v=random();if(v<R.borderWood&&!taken.has(ty*size+tx)&&far(tx,ty,R.borderClearance)){taken.add(ty*size+tx);obstacles.push({kind:'tree',x:tx*100+12,y:ty*100+12});}}
  // A pond with shore fish, on open ground about as far from both town centres (its own seeded stream, so the
  // rest of the map is exactly what it was before ponds existed).
- const pond=placePond(seed,size,taken,centres);for(const t of pond)Object.assign(tiles[t],{terrainType:'water',...terrainDefinitions.water});
+ const pond=lake?[]:placePond(seed,size,taken,centres);for(const t of pond)Object.assign(tiles[t],{terrainType:'water',...terrainDefinitions.water});
  const map:MapData={size,starts,scouts,obstacles,blocked:[],tiles,resources:[],navigationRevision:0,generationAttempt:0};
  obstacles.forEach((o,index)=>{o.id=`obstacle-${index}`;map.tiles[tileAt(o.x,o.y,size)].obstacleRefs.push(o.id);
   if(!isBuilding(o)){const kind=(o.kind==='rock'?'stone':o.kind) as ResourceKind;const id=`resource-${index}`,capacity=terrainRules.resourceCapacity[kind];map.resources.push({id,kind,x:o.x,y:o.y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId:o.id,depletedAt:null});map.tiles[tileAt(o.x,o.y,size)].resourceRefs.push(id);}});
  // Shore fish: the middle tile of each side of the pond.
  if(pond.length){const [t0]=pond,tx=t0%size,ty=Math.floor(t0/size);for(const [dx,dy] of [[1,0],[0,1],[2,1],[1,2]]){const x=(tx+dx)*100+50,y=(ty+dy)*100+50,id=`resource-fish-${x}-${y}`,capacity=terrainRules.resourceCapacity.fish;map.resources.push({id,kind:'fish',x,y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId:null,depletedAt:null});map.tiles[tileAt(x,y,size)].resourceRefs.push(id);}}
+ // Deep-water fish in the lake (all eight neighbours water, so only fishing ships reach them), spread apart.
+ if(lake){const deep=lakeTiles.filter(t=>[-size-1,-size,-size+1,-1,1,size-1,size,size+1].every(d=>tiles[t+d]?.terrainType==='water')).sort((a,b)=>Math.atan2(Math.floor(a/size)*100-mid,(a%size)*100-mid)-Math.atan2(Math.floor(b/size)*100-mid,(b%size)*100-mid)||a-b);
+  const picked:number[]=[];for(const t of deep){if(picked.length>=R.lake.fish)break;const x=(t%size)*100+50,y=Math.floor(t/size)*100+50;if(picked.every(p=>Math.hypot((p%size)*100+50-x,Math.floor(p/size)*100+50-y)>=R.lake.fishSpacing))picked.push(t);}
+  for(const t of picked){const x=(t%size)*100+50,y=Math.floor(t/size)*100+50,id=`resource-fish-${x}-${y}`,capacity=terrainRules.resourceCapacity.fish;map.resources.push({id,kind:'fish',x,y,capacity,remaining:capacity,collectible:true,status:'available',obstacleId:null,depletedAt:null});map.tiles[t].resourceRefs.push(id);}}
  for(let i=0;i<nodeTotal(map);i++)if(!clearSegment(map,position(map,i),position(map,i)))map.blocked.push(i);
  map.animals=[];for(const {kind,x,y,base} of animals)kind==='livestock'?flock(map,'sheep',x,y,R.animals.sheep,200,base):flock(map,'deer',x,y,R.animals.deer);
  // Each base also gets a boar and a pair of sheep farther out, placed the same way for both (turned to the base's
@@ -162,7 +188,8 @@ function placePond(seed:number,size:number,taken:Set<number>,centres:{x:number;y
  if(!spots.length)return [];let n=(seed^0x9e3779b9)>>>0||1;n^=n<<13;n^=n>>>17;n^=n<<5;n>>>=0;
  const t0=spots[n%spots.length],out:number[]=[];for(let dy=0;dy<R.size;dy++)for(let dx=0;dx<R.size;dx++)out.push(t0+dy*size+dx);return out;
 }
-export const buildingKinds=new Set(['house','town-center','barracks','farm','lumber-camp','mining-camp','mill','stable','archery-range','monastery','blacksmith','watch-tower','siege-workshop']);
+// Every building entry of the rules (the town centre included); everything else on the map is a resource or a rock.
+export const buildingKinds=new Set(rules.entries.filter(e=>e.kind==='building').map(e=>e.id));
 export function isBuilding(o:Obstacle){return buildingKinds.has(o.kind);}
 function bounds(o:Obstacle):[number,number,number,number]{return obstacleBounds(o,navigationRules.radius);}
 // Slab intersection includes contact: center-lines cannot clip expanded footprints.
@@ -255,7 +282,8 @@ function connector(map:MapData,a:Point,b:Point,movement:'land'|'water'){const el
 export function nearest(map:MapData,p:Point,outbound=true,movement:'land'|'water'='land'):number{
  const closed=blockedTable(map);let best=-1,distance=Infinity;for(let i=0;i<nodeTotal(map);i++){const q=position(map,i),d=Math.abs(p.x-q.x)+Math.abs(p.y-q.y);if(d<distance&&!(movement==='land'?closed[i]:!clearSegment(map,q,q,movement))&&(outbound?connector(map,p,q,movement):connector(map,q,p,movement))){best=i;distance=d;}}return best;
 }
-export function nearestOpen(map:MapData,p:Point):number{const closed=blockedTable(map);let best=-1,distance=Infinity;for(let i=0;i<nodeTotal(map);i++){if(closed[i])continue;const q=position(map,i),d=Math.abs(p.x-q.x)+Math.abs(p.y-q.y);if(d<distance){best=i;distance=d;}}return best;}
+// layer 'water': the nearest open water node (a ship sent onto land heads for the water nearest the point).
+export function nearestOpen(map:MapData,p:Point,layer:'land'|'water'='land'):number{const closed=blockedFor(map,layer);let best=-1,distance=Infinity;for(let i=0;i<nodeTotal(map);i++){if(closed[i])continue;const q=position(map,i),d=Math.abs(p.x-q.x)+Math.abs(p.y-q.y);if(d<distance){best=i;distance=d;}}return best;}
 export function createPathJob(map:MapData,unitId:number,from:Point,target:Point,movement:'land'|'water'='land'):PathJob{
  const start=nearest(map,from,true,movement),goal=nearest(map,target,false,movement),parents=Array(nodeTotal(map)).fill(-2);if(start>=0)parents[start]=-1;
  return {...(movement==='water'?{movement}:{}),unitId,start,goal,target:{...target},frontier:start<0?[]:[start],head:0,parents,status:start<0||goal<0?'unreachable':'searching',path:[]};

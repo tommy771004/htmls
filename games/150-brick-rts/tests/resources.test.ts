@@ -5,8 +5,8 @@ import {resourceDefinitions,terrainRules} from '../packages/sim/terrain.ts';
 import {createVision,updateVision,projectVision} from '../packages/sim/vision.ts';
 import {makeCarcass,animalRules} from '../packages/sim/fauna.ts';
 test('coastal resources cover five natural kinds with explicit method, yield and finite capacity; animals start as units',()=>{
- const map=makeMap(260925,'coast');// Farms are player-built (buildings.ts); hunt and livestock are carcasses of animals (fauna.ts).
- assert.deepEqual([...new Set(map.resources.map(r=>r.kind))].sort(),Object.keys(resourceDefinitions).filter(k=>!['farm','hunt','livestock'].includes(k)).sort());
+ const map=makeMap(260925,'coast');// Farms and fish traps are player-built (buildings.ts); hunt and livestock are carcasses of animals (fauna.ts).
+ assert.deepEqual([...new Set(map.resources.map(r=>r.kind))].sort(),Object.keys(resourceDefinitions).filter(k=>!['farm','fish-trap','hunt','livestock'].includes(k)).sort());
  assert.deepEqual([...new Set(map.animals!.map(a=>a.kind))].sort(),['deer','sheep']);assert.ok(map.animals!.every(a=>clearSegment(map,a,a)));
  for(const r of map.resources){assert.equal(r.capacity,terrainRules.resourceCapacity[r.kind]);const amount=harvestMapResource(map,r.id,r.capacity+1,10);assert.equal(amount.amount,r.capacity);assert.equal(harvestMapResource(map,r.id,1,11).amount,0);assert.equal(r.collectible,false);}
  assert.deepEqual(validateMap(map),[]);

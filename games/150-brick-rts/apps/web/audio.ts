@@ -1,11 +1,11 @@
 // Sound effects, synthesised with WebAudio at play time (no audio files, no network). The context starts only
 // after a user gesture (browser autoplay rules); until then play() is a no-op. Volume 0 mutes.
-export type Sound='select-villager'|'select-soldier'|'order'|'order-attack'|'place'|'built'|'trained'|'hit'|'alarm'|'age'|'victory'|'defeat'|'collapse'|'resign'|'convert'|'converted'|'relic'|'castle'|'unique';
+export type Sound='select-villager'|'select-soldier'|'order'|'order-attack'|'place'|'built'|'trained'|'hit'|'alarm'|'age'|'victory'|'defeat'|'collapse'|'resign'|'convert'|'converted'|'relic'|'castle'|'unique'|'launch'|'research'|'gunshot';
 export function createAudio(report:(name:string,count:number)=>void=()=>{}){
  let ctx:AudioContext|null=null,master:GainNode|null=null,volume=.6,count=0,noise:AudioBuffer|null=null;
  const lastPlayed=new Map<Sound,number>();
  // Minimum gap per sound, so a battle's many hits or a burst of orders never pile up into noise.
- const spacing:Partial<Record<Sound,number>>={hit:140,order:60,'order-attack':80,trained:250,built:250,castle:600,unique:250,alarm:3000,convert:400};
+ const spacing:Partial<Record<Sound,number>>={hit:140,order:60,'order-attack':80,trained:250,built:250,castle:600,unique:250,launch:220,gunshot:160,research:300,alarm:3000,convert:400};
  function unlock(){
   if(!ctx){const Ctor=window.AudioContext??(window as unknown as {webkitAudioContext?:typeof AudioContext}).webkitAudioContext;if(!Ctor)return;
    ctx=new Ctor();master=ctx.createGain();master.gain.value=volume;master.connect(ctx.destination);
@@ -48,6 +48,12 @@ export function createAudio(report:(name:string,count:number)=>void=()=>{}){
   castle:()=>{burst('lowpass',300,0,.45,.3);tone('sine',70,0,.5,.18,48);[196,262,392].forEach((f,i)=>tone('triangle',f,.12+i*.18,.55,.09));},
   // A unique unit ready: the trained chime with a brass-like sawtooth underneath.
   unique:()=>{tone('sawtooth',330,0,.32,.035,392);tone('sine',660,.05,.4,.1);tone('sine',990,.12,.4,.06);},
+ // A mangonel or trebuchet letting go: the arm's wooden knock, then a low thump falling away.
+ launch:()=>{burst('bandpass',700,0,.07,.22);tone('sine',110,.02,.32,.2,46);burst('lowpass',260,.03,.3,.18);},
+ // A technology researched: two quick wooden-block taps and a short rising third (lighter than the age fanfare).
+ research:()=>{burst('bandpass',2400,0,.04,.12);burst('bandpass',2000,.07,.04,.1);tone('triangle',659,.12,.28,.08);tone('triangle',831,.2,.32,.07);},
+ // Gunpowder firing: a bright crack, then a low powder boom with a noisy tail.
+ gunshot:()=>{burst('highpass',2600,0,.05,.32);burst('lowpass',900,0,.35,.28);tone('sine',80,0,.3,.22,40);},
  };
  function play(name:Sound){
   const now=performance.now(),gap=spacing[name]??0;if(gap&&now-(lastPlayed.get(name)??-1e9)<gap)return;lastPlayed.set(name,now);

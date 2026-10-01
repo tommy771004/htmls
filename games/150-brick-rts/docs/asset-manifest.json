@@ -257,7 +257,7 @@
       "animations": [
         "static"
       ],
-      "status": "representative resource; work/hunt/herd/fish gameplay pending"
+      "status": "shore fish worked by villagers from land; deep-water fish (lakes map) drawn as a school of two to five that thins as it is fished, worked only by fishing ships (v30)"
     },
     {
       "id": "lumber-camp",
@@ -396,8 +396,8 @@
         3,
         3
       ],
-      "selectionBounds": "inspector only; no gameplay selection",
-      "collisionProxy": "not integrated; must define authority footprint before gameplay placement",
+      "selectionBounds": "pick volume 3x3 tiles (scene.ts buildingHeights)",
+      "collisionProxy": "packages/content/footprints.ts market 3x3 rectangle",
       "attachmentPoints": [],
       "animations": [
         "static"
@@ -407,7 +407,7 @@
         "intact/damaged/bounded rubble/restored",
         "four structural age variants: open stalls; footings and awning valance; masonry plinth, side piers and open front arcade; roof pavilion"
       ],
-      "status": "four original structural age silhouettes; ART_DETAIL_MATRIX near detail and work states still pending; inspector only, no production/trade/research, navigation or work animation"
+      "status": "four original structural age silhouettes, drawn for built and damaged markets in the match (v30); buying, selling and trade are simulation rules (packages/sim/market.ts), not animated"
     },
     {
       "id": "smithy",
@@ -568,6 +568,33 @@
       "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
     },
     {
+      "id": "university",
+      "source": "apps/web/university-building.ts; apps/web/scene.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "foundation lower corner at (-0.15,0,-0.15)",
+      "footprint": [
+        3,
+        3
+      ],
+      "selectionBounds": "pick volume 3x3 tiles x 3.6 (scene.ts buildingHeights)",
+      "collisionProxy": "packages/content/footprints.ts university 3x3 rectangle",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "previewOnlyStates": [
+        "five construction phases",
+        "intact/damaged (flag, telescope, armillary, crane load and one porch column drop)/12-piece bounded rubble/restored",
+        "four structural age variants: plastered timber hall under straw with a wooden lookout; sandstone hall on a stone plinth under a team roof with a stone tower; taller walls with arched windows, observatory drum with a brass telescope, crane mast, jib and hanging stone; stepped team dome with a gilt finial, armillary ring and a clock face"
+      ],
+      "gameState": "drawn for built and damaged universities in the match with the owner's regional style; HUD icons university-1..university-4 stay neutral",
+      "status": "original brick university: lecture hall behind a four-column porch with a lectern and open book, scroll rack on the side wall, observatory tower, treadwheel crane (two octagonal rims, spokes, axle, treads); research is a simulation rule, not animated",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
       "id": "unique-units",
       "source": "apps/web/unit-rig.ts; apps/web/character-rig.ts; apps/web/rig-roles.ts; apps/web/scene.ts",
       "type": "procedural articulated Three.js mesh (outfits and tools on the shared body rig)",
@@ -657,6 +684,130 @@
       "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
     },
     {
+      "id": "cavalry-archer-camel-petard",
+      "source": "apps/web/unit-rig.ts; apps/web/character-rig.ts; apps/web/camel-rig.ts; apps/web/rig-roles.ts; apps/web/scene.ts",
+      "type": "procedural articulated Three.js mesh (outfits and tools on the shared body rig; the camel is its own mount body)",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "feet center (mounted: mount feet center)",
+      "kinds": {
+        "cavalry-archer": "black horse; peaked leather cap with ear flaps, team cape, quiver across the back, bow",
+        "camel": "camel mount (long legs, hump under a team saddle cloth, stepped neck, long head; paces with both legs of a side together); rider in a headcloth with a team cord and veil, scimitar",
+        "petard": "foot sapper: leather cap with team band, team neckerchief, bandolier of powder flasks, lit slow match, powder keg (tool powder-keg) hugged against the belly"
+      },
+      "selectionBounds": "visible mesh raycast; ring scale 1.8 and health bar 2.3 (horse), ring 2 and bar 2.95 (camel), foot 1 / 1.42",
+      "collisionProxy": "simulation unit radius (packages/sim); visual size does not change collision",
+      "attachmentPoints": [
+        "hand-left",
+        "hand-right",
+        "rider-saddle"
+      ],
+      "mountedAnimations": [
+        "idle (camel looks around)",
+        "walk (horse trot, camel pace with head nod)",
+        "attack"
+      ],
+      "hudIcons": "`${kind}` and `${kind}-face` rendered by scene.renderIcons (camel face crop measured for the hump saddle)",
+      "status": "fallen riders lie dismounted in their rider dress; the petard's blast is not animated (the unit is removed by the sim)",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
+      "id": "siege-engines",
+      "source": "apps/web/siege-rig.ts; apps/web/rig-roles.ts; apps/web/scene.ts",
+      "type": "procedural articulated Three.js mesh ({root,sockets,equip,dress,pose,grade})",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "ground center under the frame, facing +z",
+      "kinds": {
+        "ram": "timber frame on four wheels under a team roof; the log swings out on attack",
+        "mangonel": "low frame on four wheels, rope torsion skein, throwing arm with bucket resting over the windlass; the arm snaps up against the team-padded crossbar on attack and is wound back down",
+        "scorpion": "torsion crossbow on a pedestal on a four-wheeled cart behind a team-panelled mantlet; the bolt flies and the bow kicks on attack",
+        "trebuchet": "two states from UnitView.unpacked via dress('packed'|'unpacked'): packed = arm, folded frame and team-covered counterweight on a four-wheeled wagon; unpacked = two braced uprights carrying the arm with a team-banded counterweight and a ground-resting sling; the arm swings over the frame on attack"
+      },
+      "selectionBounds": "visible mesh raycast; ring/bar: ram 1.6/1.35, mangonel 1.8/1.45, scorpion 1.5/1.2, trebuchet packed 2.3/1.3, unpacked 2.4/2.9 (scene.unitFrame)",
+      "collisionProxy": "simulation unit radius (packages/sim); visual size does not change collision",
+      "attachmentPoints": [],
+      "animations": [
+        "idle",
+        "walk (spokes turn inside the wheel rims, the body sways and lifts so no wheel enters the ground)",
+        "attack (looped on the absolute clock)",
+        "hit (rock)",
+        "death (tips onto its side; destroyed engines are drawn as this wreck from the sim's corpses)"
+      ],
+      "gameState": "scene caches units by id; a trebuchet toggles its cached packed/unpacked groups when the projected state changes and moves its health bar and ring with it",
+      "hudIcons": "`${kind}` and `${kind}-face` (the whole engine; the trebuchet unpacked)",
+      "status": "no packing/unpacking transition animation (the state switches when the sim flips it); no projectile flight for stones; blast and pass-through damage are sim rules, not drawn",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
+      "id": "hand-cannoneer-bombard-cannon",
+      "source": "apps/web/unit-rig.ts; apps/web/siege-rig.ts; apps/web/rig-roles.ts; apps/web/scene.ts",
+      "type": "procedural articulated Three.js mesh (outfit and tool on the shared body rig; the bombard cannon is its own siege rig)",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "feet center / ground center under the carriage, facing +z",
+      "kinds": {
+        "hand-cannoneer": "foot gunner: tilted charcoal beret with a pale plume, quilted buff jack with stitched bands, ramrod across the back, powder horn and shot bag; tool hand-cannon = wooden tiller up the forearm and a short fat iron tube with bands and a flared muzzle beyond the fist (no smoke)",
+        "bombard-cannon": "fat hooped iron barrel (wide bore ahead of a narrower chamber) on a timber bed between two tall wheels, team boards on the cheeks, stepped trail with two stone shot"
+      },
+      "selectionBounds": "visible mesh raycast; hand cannoneer ring 1 / bar 1.42 (foot); bombard cannon ring 1.7 / bar 1.3 (scene.unitFrame)",
+      "collisionProxy": "simulation unit radius (packages/sim); visual size does not change collision",
+      "attachmentPoints": [
+        "hand-left",
+        "hand-right"
+      ],
+      "animations": [
+        "hand cannoneer attack: both arms level, the tiller braced under the arm, a kick up and back with a brief muzzle flash every 1.4 s, aim held while reloading",
+        "bombard attack: the barrel slams back along the bed (6%), the carriage jolts, a brief muzzle flash, then the barrel is run forward again (1.6 s loop)",
+        "bombard walk: spokes turn, body sways; hit: rock",
+        "bombard death: tips onto its side and the barrel slides off the carriage (wreck drawn from the sim's corpses)"
+      ],
+      "hudIcons": "`hand-cannoneer`, `hand-cannoneer-face`, `bombard-cannon`, `bombard-cannon-face` rendered by scene.renderIcons",
+      "status": "no projectile flight or smoke; the bombard's blast radius is a sim rule, not drawn",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
+      "id": "line-upgrade-looks",
+      "source": "apps/web/rig-roles.ts upgradeLooks/lookOf; apps/web/unit-rig.ts; apps/web/character-rig.ts; apps/web/camel-rig.ts; apps/web/siege-rig.ts; apps/web/scene.ts",
+      "type": "grade(look) overlays on the existing rigs (groups named grade-*, never outfit-*)",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "looks": {
+        "two-handed-swordsman": "deep visored sallet, great sword, no shield",
+        "champion": "the same with a team plume, gilt rim and steel pauldrons",
+        "hussar": "tall fur busby with a team plume and a feathered wing behind the shoulders",
+        "cavalier": "steel barding on the knight's horse",
+        "paladin": "barding with gilt edges and a gilt chamfron crest",
+        "heavy-cavalry-archer": "mail coat and sleeves",
+        "heavy-camel": "quilted caparison with team bands and a bronze chest plate",
+        "capped-ram": "iron plates along the roof",
+        "siege-ram": "roof plates, iron side walls and a heavier ram head",
+        "onager": "longer arm, bigger bucket and stone, frame lengthened behind",
+        "siege-onager": "the onager with an iron-banded arm and iron-faced posts",
+        "heavy-scorpion": "iron-faced mantlet and iron caps on the bow arms"
+      },
+      "gameState": "own units only (View.economy.techs is player 0's); the latest researched upgrade of the unit's line; enemy units always show the base look",
+      "status": "earlier tiers (man-at-arms, long swordsman, pikeman, crossbowman, elite skirmisher, light cavalry, halberdier, arbalest) and elite unique units have no separate look; HUD portraits stay the base look",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
+      "id": "watch-tower-upgrades",
+      "source": "apps/web/defense-building.ts towerParts(visual, grade), towerGradeOf, towerLift; apps/web/scene.ts",
+      "type": "grade parameter on the watch tower model",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "looks": {
+        "guard-tower": "shaft 0.32 taller, stone lookout and posts, stone merlons between the posts",
+        "keep": "shaft 0.64 taller, stone lookout on corbels, merlons, a team spire above the roof carrying the flag"
+      },
+      "gameState": "own watch towers show the latest of Guard Tower / Keep researched (view.economy.techs; the enemy's research is not projected); the static world rebuilds when the grade changes; the pick volume grows with the tower",
+      "status": "no model-page control for the tower grades (unit tests cover geometry, support, damage and regional styles)",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
       "id": "regional-architecture",
       "source": "apps/web/building-parts.ts regionalParts(); apps/web/scene.ts",
       "type": "procedural post-pass adding parts to every building model",
@@ -702,9 +853,198 @@
         "rocketry",
         "yasama",
         "nomads",
-        "drill"
+        "drill",
+        "warwolf",
+        "kataparuto",
+        "sipahi"
       ],
       "status": "one emblem per implemented unique technology (the unit or building affected plus a sign of the effect); elite upgrades reuse the unit portrait",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
+      "id": "technology-emblems-tech-round",
+      "source": "apps/web/tech-icons.ts",
+      "type": "procedural brick emblems rendered to HUD PNGs (tech-${id})",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "ids": [
+        "masonry",
+        "architecture",
+        "chemistry",
+        "siege-engineers",
+        "guard-tower",
+        "keep",
+        "treadmill-crane",
+        "arrowslits",
+        "supplies",
+        "squires",
+        "arson",
+        "thumb-ring",
+        "parthian-tactics",
+        "bloodlines",
+        "husbandry",
+        "town-watch",
+        "town-patrol",
+        "fervor",
+        "herbal-medicine",
+        "hoardings",
+        "sappers",
+        "conscription",
+        "artillery"
+      ],
+      "status": "one distinct emblem per technology of the \u79d1\u6280 round and the Turks' Artillery: the thing changed plus a sign of the effect (green plus for hit points, streaks for speed, an arrow for range or attack)",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
+      "id": "dock-fish-trap",
+      "source": "apps/web/harbor-building.ts; apps/web/scene.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "footprint lower corner (0,0,0); the dock is turned so its quay faces the side with the most land",
+      "footprint": {
+        "dock": [
+          3,
+          3
+        ],
+        "fish-trap": [
+          2,
+          2
+        ]
+      },
+      "selectionBounds": "pick volume per footprint (scene.ts buildingHeights)",
+      "collisionProxy": "packages/content/footprints.ts dock 3x3 rectangle; fish trap has no blocking rectangle (ships sail over it)",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "previewOnlyStates": [
+        "five construction phases",
+        "intact/damaged/bounded rubble/restored",
+        "dock age variants: plank deck with boat shed, mooring piles, bollards and a crane with a net of fish; later a stone quay, then a lighthouse"
+      ],
+      "gameState": "drawn for built and damaged docks and fish traps in the match; HUD icons per age",
+      "status": "original brick dock on the water and fish trap (log ring, stakes, team-coloured floats, fish in the mesh); fishing and production are simulation rules, not animated",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
+      "id": "walls-gates-outpost-bombard-tower",
+      "source": "apps/web/fortification-building.ts; apps/web/scene.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "tile lower corner (0,0,0)",
+      "footprint": [
+        1,
+        1
+      ],
+      "selectionBounds": "pick volume one tile (scene.ts buildingHeights)",
+      "collisionProxy": "packages/content/footprints.ts one-tile rectangles; gates have none (closed to the enemy by the sim's gate overlay)",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "kinds": {
+        "palisade-wall": "stake post with arms to every linked neighbour of the same material, lashing in team colour",
+        "stone-wall": "stone pier with arms to linked neighbours (diagonals step toward the corner in overlapping blocks), painted team shield",
+        "palisade-gate": "timber gate turned to follow the wall line",
+        "gate": "stone gatehouse turned to follow the wall line",
+        "outpost": "timber lookout on legs with a ladder and a lit torch; later ages raise it and add a roof",
+        "bombard-tower": "squat stone tower with an iron band, a cannon in the front embrasure and a bombard on the roof, distinct from the watch tower grades"
+      },
+      "gameState": "wall and gate links are worked out from neighbouring tiles of the same material each time the scene draws them",
+      "status": "original brick fortifications; gates do not open or close visibly; the bombard tower's shot is drawn like the other tower shots",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
+      "id": "wonder",
+      "source": "apps/web/wonder-building.ts; apps/web/scene.ts",
+      "type": "procedural Three.js mesh",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "footprint lower corner (0,0,0)",
+      "footprint": [
+        5,
+        5
+      ],
+      "selectionBounds": "pick volume 5x5 tiles (scene.ts buildingHeights)",
+      "collisionProxy": "packages/content/footprints.ts wonder 5x5 rectangle",
+      "attachmentPoints": [],
+      "animations": [
+        "static"
+      ],
+      "kinds": {
+        "neutral": "stepped ziggurat with a shrine on top",
+        "west": "cathedral with twin spires and a rose window",
+        "central": "stave church with stacked timber roofs",
+        "mideast": "dome with four minarets",
+        "eastasia": "five-storey pagoda"
+      },
+      "previewOnlyStates": [
+        "five construction phases",
+        "intact/damaged/bounded rubble/restored"
+      ],
+      "gameState": "drawn with the owner's regional style; the countdown is a simulation rule",
+      "status": "original brick wonder, one form per regional style",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
+      "id": "ships-trade-cart",
+      "source": "apps/web/vessel-rig.ts; apps/web/rig-roles.ts; apps/web/scene.ts",
+      "type": "procedural articulated Three.js mesh ({root,sockets,equip,dress,pose,grade}, the siege rigs' interface)",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "waterline centre under the hull, bow toward +z (the trade cart: ground centre)",
+      "kinds": {
+        "fishing-ship": "small boat with a net boom; the net dips on work",
+        "transport-ship": "broad open hold with cargo",
+        "trade-cog": "tall hull, stern castle, big square sail",
+        "galley": "oars, bronze ram, deck ballista; war galley: forecastle, two masts, shields; galleon: stern castle, three masts, gilt trim",
+        "fire-galley": "brazier and bow siphon; fire ship: covered siphon housing; fast fire ship: sleek hull, iron prow",
+        "demolition-raft": "log raft with powder kegs and a lit fuse; demolition ship: small boat full of kegs; heavy: bigger boat, iron-banded kegs",
+        "cannon-galleon": "cannons run out of both sides and the bow; elite: second gun deck",
+        "longboat": "dragon prow and tail, striped sail, shield row; elite: gilt and larger",
+        "trade-cart": "an ox pulling a two-wheeled cart under a team-coloured canvas"
+      },
+      "selectionBounds": "visible mesh raycast; own selection rings and health bars per kind (scene.unitFrame)",
+      "collisionProxy": "simulation unit radius (packages/sim) on the water layer; visual size does not change collision",
+      "attachmentPoints": [],
+      "animations": [
+        "idle (slow bob and roll)",
+        "walk (oars row, sails fill; the cart's wheels turn and the ox walks)",
+        "work (the fishing ship's net dips)",
+        "attack (bolt, fire stream or cannon flash, looped)",
+        "hit (the hull jolts)",
+        "death (sinks bow-up; drawn as this wreck from the sim's corpses)"
+      ],
+      "gameState": "each line upgrade swaps in a distinct build via grade(look), never a recolour; the keel sits below the waterline so the water tile hides it",
+      "hudIcons": "`${kind}` portraits for the ships and the cart; ship line upgrades use their unit's portrait",
+      "status": "no boarding or unloading animation; passengers are not drawn aboard",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
+      "id": "technology-emblems-building-round",
+      "source": "apps/web/tech-icons.ts",
+      "type": "procedural brick emblems rendered to HUD PNGs (tech-${id})",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "ids": [
+        "gillnets",
+        "careening",
+        "dry-dock",
+        "shipwright",
+        "caravan",
+        "guilds",
+        "heated-shot",
+        "fortified-wall",
+        "bombard-tower-tech",
+        "greek-fire"
+      ],
+      "status": "one distinct emblem per technology of the \u5efa\u7bc9 round and the Byzantines' Greek Fire; the dock's line upgrades use the unit portrait like the other line upgrades",
       "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
     }
   ],
