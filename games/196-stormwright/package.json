@@ -1,0 +1,22 @@
+{
+  "name": "stormwright",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "築嵐島 · STORMWRIGHT：第三人稱建造大逃殺（作品 196）",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "accept": "node tools/accept.mjs ../../web/196-stormwright.html",
+    "shot": "node tools/shot.mjs",
+    "test": "node tools/check-integ.mjs ../../web/196-stormwright.html --out dist/integ"
+  },
+  "dependencies": {
+    "three": "0.186.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

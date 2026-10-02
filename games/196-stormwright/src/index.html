@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>築嵐島 · STORMWRIGHT</title>
+<meta name="description" content="第三人稱建造大逃殺：30 名玩家從飛艇跳下，搜刮槍枝、採集材料、蓋牆與斜坡，在紫色風暴縮圈中活到最後。">
+<meta name="theme-color" content="#1f7fe0">
+<link rel="icon" href="../favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script>
+/* Google Fonts（Anton）以 JS 動態插入，載不到時退回系統粗體字，不阻塞遊戲啟動 */
+(function () { var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=Anton&display=swap'; document.head.appendChild(l); })();
+</script>
+<style>
+:root {
+  --sky: #6fb6ee; --panel: rgba(14, 30, 78, .74); --panel-edge: rgba(255, 255, 255, .24); --navy: #0f1d45;
+  --ink: #fff; --yellow: #ffe14d; --hp: #3fcb4f; --shield: #2f95ee; --danger: #ff4a5a; --storm: #b56cff;
+  --u: clamp(11px, 8px + .55vw, 17px);
+  --f: "Anton", "Arial Narrow", "PingFang TC", "Heiti TC", "Microsoft JhengHei", sans-serif;
+  --safe-t: env(safe-area-inset-top, 0px); --safe-r: env(safe-area-inset-right, 0px); --safe-b: env(safe-area-inset-bottom, 0px); --safe-l: env(safe-area-inset-left, 0px);
+  --ease-out: cubic-bezier(.2, .8, .2, 1); --ease-pop: cubic-bezier(.3, 1.6, .5, 1);
+  /* 觸控區（手機）：#touch 的搖桿／按鈕佔用這些區域，HUD 版面會避開 */
+  --touch-left-zone: 132px; --touch-right-zone: 200px; --touch-bottom-zone: 78px;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; overflow: hidden; background: var(--sky); }
+body { font-family: var(--f); font-weight: 900; font-synthesis: style; color: var(--ink); -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+#app { position: fixed; inset: 0; overflow: hidden; }
+#game, #game canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none; touch-action: none; }
+.hud { position: absolute; inset: 0; pointer-events: none; font-size: var(--u); line-height: 1.1; }
+.hud button, .screen button, .screen input, .screen select, .screen label { pointer-events: auto; font-family: inherit; }
+.txt { text-shadow: 0 .09em 0 #0f1d45, 0 -.04em 0 #0f1d45, .06em 0 0 #0f1d45, -.06em 0 0 #0f1d45; }
+.sk { transform: skewX(-8deg); }
+.panel { background: var(--panel); border-radius: .5em; box-shadow: inset 0 0 0 1px var(--panel-edge), 0 .3em 1em rgba(8, 20, 60, .3); }
+svg { display: block; }
+
+/* ---------- 螢幕效果 ---------- */
+#vigStorm, #vigHurt, #vigLow, #flash { position: absolute; inset: 0; opacity: 0; }
+#vigStorm { background: radial-gradient(ellipse at center, rgba(150, 60, 230, 0) 34%, rgba(130, 40, 210, .62) 100%); transition: opacity .35s; }
+#vigStorm.pulse { animation: stormPulse 1.1s ease-in-out infinite; }
+@keyframes stormPulse { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.55); } }
+#vigHurt { background: radial-gradient(ellipse at center, rgba(255, 0, 40, 0) 38%, rgba(255, 20, 50, .68) 100%); transition: opacity .12s; }
+#vigLow { background: radial-gradient(ellipse at center, rgba(255, 0, 30, 0) 52%, rgba(220, 0, 30, .5) 100%); }
+#vigLow.on { animation: lowPulse 1.2s ease-in-out infinite; }
+@keyframes lowPulse { 0%, 100% { opacity: .25; } 50% { opacity: .95; } }
+#flash { background: radial-gradient(ellipse at 60% 30%, rgba(255, 255, 255, .9), rgba(205, 170, 255, .55) 60%, rgba(160, 90, 255, .25)); mix-blend-mode: screen; }
+#flash.on { animation: flashA .55s ease-out; }
+@keyframes flashA { 0% { opacity: .95; } 12% { opacity: .2; } 22% { opacity: .75; } 100% { opacity: 0; } }
+#hitdir { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
+#hitdir .hd { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+#hitdir svg { position: absolute; left: -11em; top: -11em; width: 22em; height: 22em; overflow: visible; filter: drop-shadow(0 0 .5em rgba(255, 30, 50, .85)); }
+
+/* ---------- 右上：小地圖與統計 ---------- */
+#mapwrap { position: absolute; top: calc(var(--safe-t) + 1em); right: calc(var(--safe-r) + 1em); width: 15.4em; height: 15.4em; padding: .28em; border-radius: 1.1em; background: #fff; box-shadow: 0 .3em 1em rgba(8, 20, 60, .5), 0 0 0 .14em var(--navy); }
+#minimap { width: 100%; height: 100%; border-radius: .85em; background: #58b8e8; display: block; }
+#stats { position: absolute; top: calc(var(--safe-t) + 17.2em); right: calc(var(--safe-r) + 1em); width: 15.4em; display: flex; gap: .35em; }
+.pill { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: .35em; padding: .4em .35em; font-size: 1.22em; border-radius: .5em; background: var(--panel); box-shadow: inset 0 0 0 1px var(--panel-edge); }
+.pill svg { width: 1.15em; height: 1.15em; flex: none; }
+#pStorm.shrink { background: rgba(130, 40, 210, .85); animation: shrinkBlink 1s steps(2) infinite; }
+@keyframes shrinkBlink { 50% { background: rgba(190, 80, 255, .9); } }
+
+/* ---------- 頂部橫幅、風暴警告 ---------- */
+#banner { position: absolute; left: 50%; top: calc(var(--safe-t) + 1.6em); display: flex; align-items: center; gap: .7em; padding: .55em 2.2em .55em 1.4em; transform: translateX(-50%) scale(.85); opacity: 0; transition: opacity .3s, transform .35s var(--ease-pop); white-space: nowrap; background: linear-gradient(90deg, rgba(110, 30, 200, 0), rgba(110, 30, 200, .92) 14%, rgba(150, 50, 230, .92) 86%, rgba(110, 30, 200, 0)); }
+#banner.on { opacity: 1; transform: translateX(-50%) scale(1); }
+#banner .ic { width: 2.6em; height: 2.6em; flex: none; animation: spin 4s linear infinite; }
+#banner b { display: block; font-size: 1.9em; letter-spacing: .05em; } #banner small { display: block; font-size: 1.05em; opacity: .9; margin-top: .2em; letter-spacing: .1em; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#stormWarn { position: absolute; left: 50%; top: calc(var(--safe-t) + 6.8em); transform: translateX(-50%); padding: .45em 1.2em; font-size: 1.3em; background: rgba(120, 30, 200, .88); border-radius: .5em; display: flex; gap: .6em; align-items: center; animation: warnBeat 1s ease-in-out infinite; white-space: nowrap; }
+#stormWarn svg { width: 1.3em; height: 1.3em; }
+@keyframes warnBeat { 50% { transform: translateX(-50%) scale(1.05); background: rgba(180, 60, 255, .92); } }
+
+/* ---------- 擊殺訊息／通知 ---------- */
+#killfeed { position: absolute; left: calc(var(--safe-l) + 1em); top: 26%; display: flex; flex-direction: column; gap: .3em; max-width: 26em; }
+#killfeed .kf { display: flex; align-items: center; gap: .5em; padding: .35em .8em; font-size: 1.05em; animation: kfIn .35s var(--ease-out); border-left: .3em solid rgba(255, 255, 255, .5); white-space: nowrap; transition: opacity .4s; }
+#killfeed .kf.me { border-left-color: var(--yellow); background: rgba(70, 50, 10, .78); }
+#killfeed .kf.dead { border-left-color: var(--danger); }
+#killfeed .kf.out { opacity: 0; }
+#killfeed .kf svg { height: 1.35em; width: auto; max-width: 3.3em; flex: none; }
+#killfeed .kf .hs { width: 1.1em; height: 1.1em; }
+#killfeed b { color: var(--yellow); }
+#killfeed .kf .v { opacity: .92; } #killfeed .kf .vb { opacity: .85; font-size: .92em; }
+@keyframes kfIn { from { opacity: 0; transform: translateX(-2em); } to { opacity: 1; transform: none; } }
+#notices { position: absolute; right: calc(var(--safe-r) + 1em); top: 46%; display: flex; flex-direction: column; gap: .3em; align-items: flex-end; }
+#notices .nt { display: flex; gap: .5em; align-items: center; padding: .35em .8em; font-size: 1.05em; border-right: .3em solid #aaa; animation: ntIn .3s var(--ease-out); transition: opacity .4s; }
+#notices .nt svg { height: 1.4em; width: auto; max-width: 3em; }
+#notices .nt.out { opacity: 0; }
+@keyframes ntIn { from { opacity: 0; transform: translateX(2em); } to { opacity: 1; transform: none; } }
+
+/* ---------- 準心、命中、傷害數字 ---------- */
+#cross { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
+#cross i { position: absolute; background: #fff; box-shadow: 0 0 0 1.5px rgba(10, 20, 50, .85); }
+#cross .t { left: -1px; width: 2px; height: .85em; margin-top: calc(-.85em - var(--g, 8px)); }
+#cross .b { left: -1px; width: 2px; height: .85em; margin-top: var(--g, 8px); }
+#cross .l { top: -1px; height: 2px; width: .85em; margin-left: calc(-.85em - var(--g, 8px)); }
+#cross .r { top: -1px; height: 2px; width: .85em; margin-left: var(--g, 8px); }
+#cross .dot { left: -1.5px; top: -1.5px; width: 3px; height: 3px; border-radius: 50%; }
+#cross .ring { display: none; border: 2px solid #fff; border-radius: 50%; left: calc(var(--g, 30px) * -1); top: calc(var(--g, 30px) * -1); width: calc(var(--g, 30px) * 2); height: calc(var(--g, 30px) * 2); background: none; box-shadow: 0 0 0 1.5px rgba(10, 20, 50, .7), inset 0 0 0 1.5px rgba(10, 20, 50, .45); }
+#cross.shotgun .t, #cross.shotgun .b, #cross.shotgun .l, #cross.shotgun .r { display: none; }
+#cross.shotgun .ring { display: block; }
+#cross.pick .t, #cross.pick .b, #cross.pick .l, #cross.pick .r, #cross.build .t, #cross.build .b, #cross.build .l, #cross.build .r { display: none; }
+#cross.build { opacity: .55; }
+#cross.heal { opacity: .0; }
+#hitmark { position: absolute; left: 50%; top: 50%; width: 0; height: 0; opacity: 0; }
+#hitmark i { position: absolute; left: -.13em; top: -.13em; width: .26em; height: .9em; background: #fff; box-shadow: 0 0 0 1.5px rgba(10, 20, 50, .8); border-radius: .1em; }
+#hitmark i:nth-child(1) { transform: rotate(45deg) translateY(-1.05em); } #hitmark i:nth-child(2) { transform: rotate(135deg) translateY(-1.05em); }
+#hitmark i:nth-child(3) { transform: rotate(225deg) translateY(-1.05em); } #hitmark i:nth-child(4) { transform: rotate(315deg) translateY(-1.05em); }
+#hitmark.head i { background: var(--yellow); height: 1.15em; } #hitmark.kill i { background: #ff4a5a; height: 1.3em; }
+#scope { position: absolute; inset: 0; opacity: 0; transition: opacity .12s; --sr: 41vmin; background: radial-gradient(circle at 50% 50%, transparent 0, transparent var(--sr), #000 calc(var(--sr) + 1.5px)); }
+#scope.on { opacity: 1; }
+#scope .blur { position: absolute; inset: 0; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent calc(var(--sr) - 11vmin), #000 calc(var(--sr) - 1vmin)); mask-image: radial-gradient(circle at 50% 50%, transparent calc(var(--sr) - 11vmin), #000 calc(var(--sr) - 1vmin)); }
+#scope svg { position: absolute; left: 50%; top: 50%; width: calc(var(--sr) * 2); height: calc(var(--sr) * 2); transform: translate(-50%, -50%); }
+#dmg { position: absolute; inset: 0; overflow: hidden; }
+#dmg span { position: absolute; left: 0; top: 0; font-size: 1.55em; will-change: transform, opacity; white-space: nowrap; text-shadow: 0 .08em 0 #0f1d45, .07em 0 0 #0f1d45, -.07em 0 0 #0f1d45, 0 -.07em 0 #0f1d45; }
+#killpop { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); text-align: center; pointer-events: none; opacity: 0; }
+#killpop.on { animation: killPop 2.1s var(--ease-out) forwards; }
+#killpop small { display: block; font-size: 1.1em; letter-spacing: .5em; text-indent: .5em; color: #ffb3bb; }
+#killpop b { display: block; font-size: 3em; letter-spacing: .08em; color: #fff; line-height: 1.05; -webkit-text-stroke: .16em #0f1d45; paint-order: stroke fill; text-shadow: 0 .08em 0 #b01030; }
+#killpop span { display: inline-block; margin-top: .3em; padding: .15em .8em; font-size: 1.3em; background: rgba(15, 29, 69, .8); border-radius: .4em; color: var(--yellow); }
+@keyframes killPop { 0% { opacity: 0; transform: translateX(-50%) scale(1.7); } 10% { opacity: 1; transform: translateX(-50%) scale(1); } 80% { opacity: 1; transform: translateX(-50%) scale(1); } 100% { opacity: 0; transform: translateX(-50%) translateY(-1.5em) scale(.95); } }
+
+/* ---------- 互動提示、進度條 ---------- */
+#prompt { position: absolute; left: calc(50% + 3.6em); top: 54%; display: flex; align-items: stretch; gap: .75em; padding: .5em 1.1em .5em .5em; font-size: 1.1em; border-left: .4em solid var(--rc, #aaa); white-space: nowrap; animation: pIn .2s var(--ease-out); }
+@keyframes pIn { from { opacity: 0; transform: translateX(-.8em); } to { opacity: 1; transform: none; } }
+#prompt .pic { position: relative; width: 3.4em; height: 3.4em; flex: none; border-radius: .4em; background: linear-gradient(160deg, color-mix(in srgb, var(--rc, #aaa) 70%, #1b2a55), color-mix(in srgb, var(--rc, #aaa) 25%, #101a3c)); display: flex; align-items: center; justify-content: center; padding: .25em; }
+#prompt .pic svg { width: 100%; height: 100%; }
+#prompt .pt { display: flex; flex-direction: column; justify-content: center; gap: .25em; }
+#prompt .pt small { font-size: .78em; color: var(--rc, #ccc); letter-spacing: .08em; }
+#prompt .pt b { font-size: 1.15em; }
+#prompt kbd { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 1.7em; height: 1.7em; margin-right: .35em; background: #fff; color: var(--navy); border-radius: .3em; font: inherit; text-shadow: none; box-shadow: 0 .12em 0 #9ab; vertical-align: middle; }
+#prompt .hold { position: relative; display: none; width: 3.4em; height: 3.4em; flex: none; align-items: center; justify-content: center; }
+#prompt .hold svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+#prompt .hold circle { fill: none; stroke-width: 4.4; }
+#prompt .hold .bg { stroke: rgba(255, 255, 255, .25); } #prompt .hold .fg { stroke: var(--yellow); stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; }
+#prompt .hold kbd { margin: 0; }
+#prompt.chest .hold { display: flex; } #prompt.chest .pic, #prompt.chest .pt kbd { display: none; }
+#act { position: absolute; left: 50%; top: 72%; transform: translateX(-50%); width: 15em; text-align: center; }
+#act .lbl { display: flex; justify-content: space-between; font-size: 1em; margin-bottom: .3em; padding: 0 .3em; }
+#act .trk { height: 1.05em; border-radius: .55em; background: rgba(10, 20, 50, .7); overflow: hidden; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .45); }
+#act .trk i { display: block; height: 100%; width: 0; background: linear-gradient(#fff6a8, var(--yellow)); border-radius: .55em; }
+#act.heal .trk i { background: linear-gradient(#b9ffb0, #3fcb4f); } #act.shield .trk i { background: linear-gradient(#bfe6ff, #2f95ee); } #act.reload .trk i { background: linear-gradient(#fff, #cfd8ea); }
+#busmsg { position: absolute; left: 50%; top: 26%; transform: translateX(-50%); text-align: center; padding: .55em 1.5em .65em; display: flex; flex-direction: column; align-items: center; gap: .15em; min-width: 14em; }
+#busmsg small { font-size: 1em; opacity: .9; letter-spacing: .12em; }
+#busmsg .big { font-size: 2.2em; line-height: 1.05; }
+#busmsg .big.cd { font-size: 4.6em; color: var(--yellow); }
+#busmsg kbd { display: inline-block; padding: .05em .55em; background: #fff; color: var(--navy); border-radius: .3em; font: inherit; text-shadow: none; box-shadow: 0 .1em 0 #9ab; animation: kbdBeat .8s ease-in-out infinite; }
+@keyframes kbdBeat { 50% { transform: translateY(.1em) scale(1.06); } }
+#altbox { position: absolute; left: 50%; bottom: calc(var(--safe-b) + 2em); transform: translateX(-50%); display: flex; gap: 1.2em; padding: .35em 1.2em; font-size: 1.2em; }
+#altbox span { display: flex; flex-direction: column; align-items: center; } #altbox small { font-size: .65em; opacity: .8; letter-spacing: .1em; }
+#spectate { position: absolute; left: 50%; top: calc(var(--safe-t) + 1em); transform: translateX(-50%); display: flex; align-items: center; gap: .5em; padding: .35em .5em; font-size: 1.15em; pointer-events: auto; }
+#spectate .nm { display: flex; flex-direction: column; align-items: center; padding: 0 1em; min-width: 11em; } #spectate .nm small { font-size: .7em; color: var(--yellow); letter-spacing: .25em; text-indent: .25em; }
+#spectate .arr { width: 2em; height: 2em; border: 0; border-radius: .35em; background: rgba(255, 255, 255, .16); color: #fff; cursor: pointer; font-size: 1em; }
+#spectate .arr:hover { background: rgba(255, 255, 255, .32); }
+#spectate .hp { width: 100%; height: .38em; margin-top: .3em; border-radius: .2em; background: rgba(0, 0, 0, .4); overflow: hidden; } #spectate .hp i { display: block; height: 100%; background: var(--hp); }
+#specBtns { position: absolute; left: 50%; bottom: calc(var(--safe-b) + 1.4em); transform: translateX(-50%); display: flex; gap: .6em; pointer-events: auto; }
+.mini { white-space: nowrap; background: linear-gradient(#ffe97a, var(--yellow)); color: var(--navy); border: 0; border-radius: .45em; padding: .55em 1.3em; font-size: 1.15em; cursor: pointer; box-shadow: 0 .16em 0 #b8900a, 0 .4em .8em rgba(0, 0, 0, .25); font-weight: 900; transform: skewX(-6deg); }
+.mini.alt { background: linear-gradient(#f2f7ff, #bcd0f0); box-shadow: 0 .16em 0 #7f95b8, 0 .4em .8em rgba(0, 0, 0, .25); }
+.mini:active { transform: skewX(-6deg) translateY(2px); }
+
+/* ---------- 左下：護盾與血量 ---------- */
+#bl { position: absolute; left: calc(var(--safe-l) + 1em); bottom: calc(var(--safe-b) + 1em); width: 22em; display: flex; flex-direction: column; gap: .4em; }
+.bar { display: flex; align-items: center; gap: .55em; height: 2em; }
+.bar .ico { width: 1.8em; height: 1.8em; flex: none; filter: drop-shadow(0 .08em 0 rgba(0, 0, 0, .4)); }
+.bar .ico svg { width: 100%; height: 100%; }
+.bar .trk { position: relative; flex: 1; height: 100%; background: rgba(10, 18, 48, .74); transform: skewX(-14deg); border-radius: .28em; overflow: hidden; box-shadow: inset 0 0 0 .13em rgba(255, 255, 255, .38), 0 .15em .5em rgba(0, 0, 0, .35); }
+.bar .fl, .bar .gh { position: absolute; inset: .17em auto .17em .17em; width: calc(100% - .34em); border-radius: .12em; transform-origin: left; }
+.bar .fl { transition: transform .16s var(--ease-out); } .bar .gh { background: #fff; opacity: .65; transition: transform .7s .3s ease-out; }
+.bar .seg { position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0, transparent calc(25% - .1em), rgba(10, 18, 48, .75) calc(25% - .1em), rgba(10, 18, 48, .75) 25%); }
+.bar .shine { position: absolute; left: 0; right: 0; top: .17em; height: .5em; background: linear-gradient(rgba(255, 255, 255, .5), rgba(255, 255, 255, 0)); }
+.bar b { font-size: 1.5em; min-width: 2.1em; text-align: right; }
+#shBar .fl { background: linear-gradient(#9bdcff, #2f95ee); } #hpBar .fl { background: linear-gradient(#b4f79a, #36c24a); }
+#hpBar.low .fl { background: linear-gradient(#ff9aa6, #ff3d55); } #hpBar.low .trk { animation: lowBar .8s ease-in-out infinite; }
+@keyframes lowBar { 50% { box-shadow: inset 0 0 0 .13em #ff4a5a, 0 0 .9em rgba(255, 60, 80, .8); } }
+.bar.flash .trk { animation: heal .5s ease-out; } @keyframes heal { 0% { filter: brightness(2.2); } 100% { filter: none; } }
+.bar.hit .trk { animation: barHit .3s ease-out; } @keyframes barHit { 0% { transform: skewX(-14deg) translateX(.5em); } 100% { transform: skewX(-14deg); } }
+
+/* ---------- 右下：彈藥、材料、物品列 ---------- */
+#br { position: absolute; right: calc(var(--safe-r) + 1em); bottom: calc(var(--safe-b) + 1em); display: flex; flex-direction: column; align-items: flex-end; gap: .55em; }
+#ammo { display: flex; align-items: flex-end; gap: .7em; padding: .25em .9em .3em; border-radius: .5em; background: linear-gradient(90deg, rgba(14, 30, 78, 0), rgba(14, 30, 78, .78) 30%); }
+#ammo .wn { text-align: right; line-height: 1; } #ammo .wn small { display: block; font-size: .8em; letter-spacing: .08em; } #ammo .wn b { font-size: 1.15em; }
+#ammo .cnt { display: flex; align-items: baseline; gap: .3em; } #ammo .cnt b { font-size: 2.5em; line-height: .9; } #ammo .cnt i { font-style: normal; opacity: .8; font-size: 1.5em; }
+#ammo .cnt svg { width: .7em; height: 1.4em; align-self: center; }
+#ammo.empty .cnt b { color: var(--danger); }
+#mats { display: flex; gap: .35em; }
+#mats .m { display: flex; gap: .4em; align-items: center; padding: .28em .65em .28em .45em; font-size: 1.1em; border-radius: .45em; background: var(--panel); box-shadow: inset 0 0 0 1px var(--panel-edge); transition: transform .12s var(--ease-out); }
+#mats .m svg { width: 1.45em; height: 1.45em; }
+#mats .m.cur { box-shadow: inset 0 0 0 .16em var(--yellow); background: rgba(255, 225, 77, .26); transform: translateY(-.15em); }
+#mats .m.pulse { animation: matPulse .35s var(--ease-pop); } @keyframes matPulse { 40% { transform: scale(1.22); } }
+#hotbar { display: flex; gap: .35em; align-items: flex-end; transition: opacity .2s; }
+body.building #hotbar { opacity: .5; }
+.slot { position: relative; width: 4.7em; height: 4.7em; border-radius: .42em; background: rgba(14, 30, 78, .6); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .2); pointer-events: auto; cursor: pointer; transition: transform .14s var(--ease-pop), box-shadow .14s; overflow: hidden; }
+.slot.has { background: linear-gradient(160deg, color-mix(in srgb, var(--rc) 78%, #1b2a55) 0%, color-mix(in srgb, var(--rc) 28%, #0f1a3c) 100%); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rc) 60%, #fff); }
+.slot::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: .32em; background: var(--rc, transparent); }
+.slot.sel { transform: translateY(-.6em) scale(1.14); box-shadow: 0 0 0 .2em #fff, 0 .5em 1em rgba(0, 0, 0, .4); z-index: 2; }
+.slot .ic { position: absolute; inset: .45em .3em 1.2em; display: flex; align-items: center; justify-content: center; filter: drop-shadow(0 .12em .1em rgba(0, 0, 0, .35)); }
+.slot .ic svg { width: 100%; height: 100%; }
+.slot .k { position: absolute; left: .4em; top: .25em; font-size: .85em; opacity: .9; }
+.slot .a { position: absolute; right: .4em; bottom: .5em; font-size: .9em; line-height: 1; }
+.slot .a em { font-style: normal; opacity: .75; font-size: .85em; }
+.slot.legend::before { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, .35) 50%, transparent 65%); background-size: 250% 100%; animation: shimmer 2.8s linear infinite; }
+@keyframes shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+#buildbar { position: absolute; left: 50%; bottom: calc(var(--safe-b) + 1em); transform: translateX(-50%); display: flex; gap: .5em; align-items: flex-end; }
+#buildbar .bp { position: relative; width: 5.6em; height: 5.8em; padding: .35em; text-align: center; border-radius: .5em; background: var(--panel); box-shadow: inset 0 0 0 1px var(--panel-edge); transition: transform .14s var(--ease-pop); }
+#buildbar .bp svg { width: 3.1em; height: 3.1em; margin: 0 auto; }
+#buildbar .bp .nm { display: block; font-size: .95em; margin-top: .1em; } #buildbar .bp small { position: absolute; left: .4em; top: .3em; font-size: .85em; opacity: .9; }
+#buildbar .bp .cost { position: absolute; right: .4em; top: .3em; font-size: .85em; color: var(--yellow); }
+#buildbar .bp.sel { transform: translateY(-.5em) scale(1.1); box-shadow: 0 0 0 .2em var(--yellow), 0 .4em .8em rgba(0, 0, 0, .35); background: rgba(255, 225, 77, .3); }
+#buildbar .bp.poor .cost { color: var(--danger); }
+#buildbar .bm { display: flex; flex-direction: column; gap: .3em; margin-left: .3em; }
+#buildbar .bm .m { display: flex; gap: .3em; align-items: center; padding: .2em .55em .2em .35em; font-size: .95em; border-radius: .4em; background: var(--panel); box-shadow: inset 0 0 0 1px var(--panel-edge); }
+#buildbar .bm .m svg { width: 1.3em; height: 1.3em; } #buildbar .bm .m.cur { box-shadow: inset 0 0 0 .15em var(--yellow); background: rgba(255, 225, 77, .26); }
+#buildbar .bm .hint { font-size: .75em; opacity: .85; text-align: center; letter-spacing: .06em; }
+
+/* ---------- 畫面：選單、結算、暫停 ---------- */
+.screen { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 1em; overflow: auto; z-index: 20; }
+#menu { background: radial-gradient(ellipse at 50% 40%, rgba(10, 20, 60, 0) 20%, rgba(10, 20, 60, .5) 100%), linear-gradient(180deg, rgba(20, 50, 130, .15), rgba(10, 16, 56, .55)); }
+#menu .badge { display: flex; gap: .5em; margin-bottom: .6em; font-size: clamp(11px, 1.6vw, 17px); letter-spacing: .25em; }
+#menu .badge span { padding: .3em .9em; border-radius: 2em; background: rgba(15, 29, 69, .6); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .3); }
+#menu h1 { margin: 0; font-size: clamp(60px, 15vw, 170px); line-height: .95; letter-spacing: .05em; color: var(--yellow); text-shadow: 0 .05em 0 #f29a1a, 0 .1em 0 #b8600a, 0 .15em 0 #0f1d45, .05em 0 0 #0f1d45, -.05em 0 0 #0f1d45, 0 -.04em 0 #0f1d45; transform: skewX(-6deg) rotate(-1.5deg); animation: titleIn .9s var(--ease-pop); }
+@keyframes titleIn { from { opacity: 0; transform: skewX(-6deg) rotate(-1.5deg) scale(1.5); } }
+#menu h2 { position: relative; z-index: 1; display: flex; align-items: center; gap: .5em; margin: .55em 0 1em; font-size: clamp(18px, 3.6vw, 40px); letter-spacing: .42em; text-indent: .42em; }
+#menu h2 svg { width: 1.3em; height: 1.3em; animation: spin 6s linear infinite; }
+.btn { background: linear-gradient(#ffe97a, var(--yellow)); color: var(--navy); border: 0; border-radius: .4em; padding: .5em 2em; font-size: clamp(22px, 3.4vw, 34px); cursor: pointer; box-shadow: 0 .18em 0 #b8900a, 0 .5em 1em rgba(0, 0, 0, .3); transform: skewX(-6deg); transition: transform .12s var(--ease-out); font-weight: 900; letter-spacing: .08em; }
+.btn:hover { transform: skewX(-6deg) translateY(-2px) scale(1.03); } .btn:active { transform: skewX(-6deg) translateY(2px); box-shadow: 0 .05em 0 #b8900a; }
+.btn.alt { background: linear-gradient(#f2f7ff, #bcd0f0); box-shadow: 0 .18em 0 #7f95b8, 0 .5em 1em rgba(0, 0, 0, .3); font-size: clamp(16px, 2.2vw, 22px); padding: .5em 1.4em; }
+#menu .row { margin-top: 1em; display: flex; gap: .7em; flex-wrap: wrap; justify-content: center; }
+#menu .help { margin: 1em auto 0; max-width: 44em; padding: .9em 1.3em; font-size: clamp(12px, 1.4vw, 15px); line-height: 1.8; text-align: left; font-weight: 700; }
+#menu .help b { color: var(--yellow); }
+#menu .help kbd { display: inline-block; min-width: 1.7em; padding: 0 .4em; margin: 0 .1em; text-align: center; background: #fff; color: var(--navy); border-radius: .3em; font: inherit; font-size: .92em; box-shadow: 0 .1em 0 #9ab; }
+#menu .ver { position: absolute; left: 1em; bottom: calc(1em + var(--safe-b)); font-size: 12px; opacity: .75; letter-spacing: .2em; }
+#end { background: rgba(8, 16, 56, .42); }
+#end h1 { margin: 0; font-size: clamp(64px, 14vw, 170px); line-height: 1; color: var(--yellow); text-shadow: 0 .06em 0 #b8700a, 0 .12em 0 #0f1d45, .05em 0 0 #0f1d45, -.05em 0 0 #0f1d45, 0 -.04em 0 #0f1d45; transform: skewX(-6deg); animation: endIn .8s var(--ease-pop); }
+@keyframes endIn { from { opacity: 0; transform: skewX(-6deg) scale(2); } }
+#end.lose h1 { color: #fff; font-size: clamp(56px, 11vw, 130px); }
+#end .crown { width: clamp(80px, 14vw, 170px); margin-bottom: -.2em; animation: crownIn 1s var(--ease-pop), crownBob 2.4s 1s ease-in-out infinite; filter: drop-shadow(0 .4em .5em rgba(0, 0, 0, .4)); }
+@keyframes crownIn { from { opacity: 0; transform: translateY(-3em) scale(.4) rotate(-20deg); } }
+@keyframes crownBob { 50% { transform: translateY(-.15em) rotate(2deg); } }
+#end .sub { font-size: clamp(16px, 2.6vw, 30px); margin: .35em 0 .2em; letter-spacing: .3em; text-indent: .3em; }
+#end .why { font-size: clamp(13px, 1.8vw, 20px); opacity: .92; margin-bottom: .7em; }
+#end .grid { display: grid; grid-template-columns: repeat(6, minmax(5.2em, 1fr)); gap: .55em; margin: .6em 0 1.3em; width: min(46em, 94vw); animation: statsIn .5s .2s var(--ease-out) both; }
+@keyframes statsIn { from { opacity: 0; transform: translateY(1.5em); } }
+#end .grid div { padding: .65em .4em; font-size: clamp(11px, 1.3vw, 15px); border-radius: .5em; background: var(--panel); box-shadow: inset 0 0 0 1px var(--panel-edge); } #end .grid b { display: block; font-size: 2em; color: var(--yellow); margin-bottom: .1em; }
+#end .btns { display: flex; gap: .8em; flex-wrap: wrap; justify-content: center; animation: statsIn .5s .35s var(--ease-out) both; }
+#end.win { background: radial-gradient(ellipse at 50% 45%, rgba(255, 220, 90, .0), rgba(10, 16, 56, .45) 85%); justify-content: flex-start; padding-top: 4vh; padding-bottom: 4vh; } #end.win .grid { margin-top: auto; margin-bottom: .8em; }
+#confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+#confetti i { position: absolute; top: -5%; width: .7em; height: 1.1em; opacity: .95; animation: fall linear infinite; }
+@keyframes fall { to { transform: translateY(115vh) rotate(720deg); } }
+#pause { background: rgba(8, 16, 56, .62); } #pause.fromMenu { background: rgba(8, 16, 56, .93); }
+#pause .box { max-height: calc(100vh - 12px); overflow-y: auto; padding: 1.3em 1.7em; display: flex; flex-direction: column; gap: .9em; width: min(26em, 92vw); font-size: 16px; text-align: left; }
+#pause h3 { margin: 0 0 .1em; font-size: 1.8em; letter-spacing: .15em; text-align: center; }
+#pause .set { display: flex; justify-content: space-between; align-items: center; gap: 1em; }
+#pause .set .v { min-width: 2.6em; text-align: right; color: var(--yellow); }
+#pause input[type=range] { flex: none; width: 11em; accent-color: var(--yellow); }
+#pause .tg { position: relative; width: 3.2em; height: 1.7em; border-radius: 1em; background: rgba(255, 255, 255, .22); cursor: pointer; transition: background .15s; flex: none; }
+#pause .tg::after { content: ""; position: absolute; left: .2em; top: .2em; width: 1.3em; height: 1.3em; border-radius: 50%; background: #fff; transition: transform .18s var(--ease-pop); }
+#pause .tg.on { background: var(--hp); } #pause .tg.on::after { transform: translateX(1.5em); }
+#pause .segs { display: flex; gap: .25em; } #pause .segs button { border: 0; padding: .35em .7em; border-radius: .35em; background: rgba(255, 255, 255, .18); color: #fff; font-size: .9em; cursor: pointer; font-weight: 900; }
+#pause .segs button.on { background: var(--yellow); color: var(--navy); }
+#pause .btns { display: flex; flex-direction: column; gap: .6em; margin-top: .3em; } #pause .btn { font-size: 20px; text-align: center; }
+#pause.fromMenu .ingame { display: none; } #pause:not(.fromMenu) .menuonly { display: none; }
+#bigmap { position: absolute; inset: 0; background: rgba(8, 18, 56, .8); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: .8em; z-index: 15; pointer-events: auto; font-size: 15px; }
+#bigmapc { width: min(82vh, 94vw); height: min(82vh, 94vw); border-radius: .8em; box-shadow: 0 0 0 .28em #fff, 0 1em 3em rgba(0, 0, 0, .5); }
+#bigmap .legend { display: flex; flex-wrap: wrap; gap: .4em 1.4em; justify-content: center; font-size: .95em; padding: 0 1em; } #bigmap .legend span { display: flex; align-items: center; gap: .45em; } #bigmap .legend i { width: .9em; height: .9em; border-radius: 50%; display: block; border: .15em solid #fff; }
+
+/* 建材血條、無法放置提示 */
+#shp { position: absolute; left: 50%; top: 57%; transform: translateX(-50%); min-width: 11em; padding: .35em .8em .45em; text-align: center; pointer-events: none; font-size: .95em; }
+#shp small { display: block; font-size: 1em; letter-spacing: .12em; margin-bottom: .25em; }
+#shp .trk { position: relative; height: .7em; border-radius: .2em; background: rgba(0, 0, 0, .45); overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25); }
+#shp .trk i { position: absolute; inset: 0; transform-origin: left; background: #d9984a; transition: transform .12s linear; }
+#shp[data-m=stone] .trk i { background: #9fb0c6; } #shp[data-m=metal] .trk i { background: #d8e1ea; } #shp .trk i.grow { background: repeating-linear-gradient(45deg, #6cc4ff, #6cc4ff .4em, #4a9fe0 .4em, #4a9fe0 .8em); }
+#shp span { display: block; margin-top: .2em; font-size: .85em; opacity: .9; letter-spacing: .06em; }
+#bhint { position: absolute; left: 50%; bottom: calc(var(--safe-b) + 9em); transform: translateX(-50%); padding: .3em .9em; border-radius: .4em; background: rgba(120, 20, 36, .82); color: #fff; font-size: 1em; letter-spacing: .08em; pointer-events: none; white-space: nowrap; box-shadow: 0 0 0 1px rgba(255, 140, 150, .6); }
+
+/* 觸控 */
+#touch { position: absolute; inset: 0; pointer-events: none; display: none; z-index: 8; }
+#touch.show { display: block; }
+@media (max-width: 820px), (max-height: 520px) and (pointer: coarse) {
+  :root { --u: 11.5px; }
+  #mapwrap { width: 9.4em; height: 9.4em; top: calc(var(--safe-t) + .6em); right: calc(var(--safe-r) + .6em); padding: .22em; border-radius: .8em; } #minimap { border-radius: .6em; }
+  #stats { top: calc(var(--safe-t) + .6em); left: calc(var(--safe-l) + .6em); right: auto; width: 14em; } .pill { font-size: 1.1em; padding: .3em .2em; }
+  #killfeed { top: calc(var(--safe-t) + 8.6em); left: calc(var(--safe-l) + .6em); max-width: 16em; font-size: .88em; }
+  #notices { top: 44%; right: calc(var(--safe-r) + .6em); font-size: .9em; }
+  #banner { top: calc(var(--safe-t) + 3.4em); left: calc(var(--safe-l) + .6em); transform: scale(.9); transform-origin: left center; font-size: .72em; white-space: normal; max-width: 36em; padding-right: 1.2em; } #banner.on { transform: none; } #stormWarn { top: calc(var(--safe-t) + 12.2em); font-size: 1em; }
+  #br { display: contents; }
+  #ammo { display: none; }
+  #mats { position: absolute; left: calc(var(--safe-l) + .6em); top: 40%; flex-direction: column; }
+  #mats .m { font-size: .95em; padding: .2em .5em .2em .35em; }
+  #hotbar { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(var(--safe-b) + .5em); gap: .3em; }
+  .slot { width: 4em; height: 4em; } .slot.sel { transform: translateY(-.4em) scale(1.1); } .slot .k { font-size: .75em; } .slot .a { font-size: .78em; bottom: .45em; }
+  #bl { left: 50%; transform: translateX(-50%); bottom: calc(var(--safe-b) + var(--touch-bottom-zone) - 18px); width: min(15em, calc(100vw - 12px)); gap: .2em; }
+  .bar { height: 1.3em; gap: .35em; } .bar .ico { width: 1.25em; height: 1.25em; } .bar b { font-size: 1.1em; min-width: 1.8em; }
+  #buildbar { bottom: calc(var(--safe-b) + .5em); gap: .3em; } #buildbar .bp { width: 4.2em; height: 4.4em; } #buildbar .bp svg { width: 2.4em; height: 2.4em; } #buildbar .bm { display: none; }
+  body.building #hotbar { display: none; }
+  body.building #bl { bottom: calc(var(--safe-b) + 5.8em); }
+  #prompt { left: 50%; transform: none; top: 56%; margin-left: -8em; font-size: 1em; }
+  #act { top: 68%; } #bhint { bottom: auto; top: 52%; font-size: .95em; }
+  #busmsg { top: 22%; font-size: .85em; } #altbox { bottom: auto; top: calc(var(--safe-t) + 7.4em); left: calc(var(--safe-l) + .6em); transform: none; font-size: 1em; }
+  #spectate { top: calc(var(--safe-t) + 3.6em); left: calc(var(--safe-l) + .6em); transform: none; font-size: 1em; } #specBtns { bottom: calc(var(--safe-b) + 1em); font-size: .85em; }
+  #end .grid { grid-template-columns: repeat(3, 1fr); } #menu .help { font-size: 11.5px; }
+}
+/* 橫向手機：血盾與物品列放在左右觸控區之間 */
+@media (max-height: 520px) and (pointer: coarse) {
+  :root { --touch-right-zone: 300px; }
+  .slot { width: 3.1em; height: 3.1em; } #hotbar { gap: .2em; } .slot .k { font-size: .62em; } .slot .a { font-size: .62em; bottom: .3em; } .slot.sel { transform: translateY(-.3em) scale(1.08); }
+  #buildbar .bp { width: 3.6em; height: 3.8em; }
+  #bl { left: calc(var(--touch-left-zone) + var(--safe-l)); right: calc(var(--touch-right-zone) + var(--safe-r)); transform: none; width: auto; bottom: calc(var(--safe-b) + 4.6em); }
+  #mats { top: calc(var(--safe-t) + 5.8em); gap: .15em; } #mats .m { font-size: .8em; padding: .1em .4em .1em .3em; }
+  #pause .box { padding: .5em 1em; gap: .3em; font-size: 12px; width: min(30em, 94vw); } #pause h3 { font-size: 1.4em; } #pause .btns { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: .4em; margin-top: .1em; } #pause .btn { font-size: 14px; padding: .35em 1em; } #pause .set { gap: .6em; }
+  #banner { top: calc(var(--safe-t) + 3em); }
+  #hotbar { left: calc(var(--touch-left-zone) + (100vw - var(--touch-left-zone) - var(--touch-right-zone)) / 2); }
+}
+@media (max-height: 560px) and (min-width: 821px) { :root { --u: 11px; } #menu h1 { font-size: 80px; } }
+#hud.spec #banner { top: calc(var(--safe-t) + 5.4em); }
+@media (max-width: 820px), (max-height: 520px) and (pointer: coarse) { #hud.spec #banner { top: calc(var(--safe-t) + 10.5em); } }
+#hud.spec #bl, #hud.spec #br, #hud.spec #cross, #hud.spec #prompt, #hud.spec #act, #hud.spec #buildbar, #hud.spec #scope, #hud.spec #vigLow, #hud.spec #vigHurt, #hud.spec #hitmark, #hud.spec #stormWarn { display: none; }
+@media (prefers-reduced-motion: reduce) { #killfeed .kf, #notices .nt, #prompt, #confetti i, #banner .ic, #menu h2 svg { animation: none !important; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="game"></div>
+  <div id="hud" class="hud" hidden>
+    <div id="vigStorm"></div><div id="vigHurt"></div><div id="vigLow"></div><div id="flash"></div><div id="hitdir"></div>
+    <div id="scope"><div class="blur"></div>
+      <svg viewBox="-100 -100 200 200" xmlns="http://www.w3.org/2000/svg"><g stroke="#000" fill="#000">
+        <path d="M-100 0 H-14 M14 0 H100 M0 -100 V-14 M0 14 V100" stroke-width=".35" fill="none"/>
+        <path d="M-100 -1.6 H-62 V1.6 H-100Z M100 -1.6 H62 V1.6 H100Z M-1.6 -100 V-62 H1.6 V-100Z M-1.6 100 V62 H1.6 V100Z" stroke="none"/>
+        <path d="M-62 -1.1 V1.1 M62 -1.1 V1.1 M-1.1 -62 H1.1 M-1.1 62 H1.1" stroke-width=".6"/>
+        <g stroke="none"><circle cx="-24" cy="0" r=".9"/><circle cx="-36" cy="0" r=".9"/><circle cx="-48" cy="0" r=".9"/><circle cx="24" cy="0" r=".9"/><circle cx="36" cy="0" r=".9"/><circle cx="48" cy="0" r=".9"/><circle cx="0" cy="24" r=".9"/><circle cx="0" cy="36" r=".9"/><circle cx="0" cy="48" r=".9"/></g>
+      </g><circle r=".8" fill="#ff2a3a"/></svg></div>
+    <div id="banner" class="txt"><span class="ic"></span><div><b id="bannerT"></b><small id="bannerS"></small></div></div>
+    <div id="stormWarn" class="txt" hidden></div>
+    <div id="mapwrap"><canvas id="minimap" width="400" height="400"></canvas></div>
+    <div id="stats" class="txt">
+      <div class="pill" id="pStorm"><span id="stormIcon"></span><span id="stormT">--</span></div>
+      <div class="pill"><span id="aliveIcon"></span><span id="aliveN">30</span></div>
+      <div class="pill"><span id="killIcon"></span><span id="killN">0</span></div>
+    </div>
+    <div id="killfeed" class="txt"></div>
+    <div id="notices" class="txt"></div>
+    <div id="cross"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i><i class="dot"></i><i class="ring"></i></div>
+    <div id="hitmark"><i></i><i></i><i></i><i></i></div>
+    <div id="dmg"></div>
+    <div id="shp" class="panel txt" hidden><small id="shpName"></small><div class="trk"><i id="shpFill"></i></div><span id="shpHp"></span></div>
+    <div id="bhint" class="txt" hidden></div>
+    <div id="killpop" class="txt"><small>淘汰</small><b id="kpName"></b><span id="kpN"></span></div>
+    <div id="prompt" class="panel txt" hidden>
+      <div class="pic" id="promptIc"></div>
+      <div class="hold"><svg viewBox="0 0 40 40"><circle class="bg" cx="20" cy="20" r="16"/><circle class="fg" id="holdFg" cx="20" cy="20" r="16" pathLength="100"/></svg><kbd id="holdKey">E</kbd></div>
+      <div class="pt"><small id="promptSub"></small><b><kbd id="promptKey">E</kbd><span id="promptTxt"></span></b></div>
+    </div>
+    <div id="act" class="txt" hidden><div class="lbl"><span id="actLbl"></span><span id="actT"></span></div><div class="trk"><i></i></div></div>
+    <div id="busmsg" class="panel txt" hidden></div>
+    <div id="altbox" class="panel txt" hidden><span><b id="altV">0</b><small>高度 m</small></span><span><b id="spdV">0</b><small>時速 km/h</small></span></div>
+    <div id="spectate" class="panel txt" hidden><button class="arr" id="specPrev">◀</button><div class="nm"><small id="specLbl">觀戰中</small><b id="specName"></b><div class="hp"><i id="specHp"></i></div></div><button class="arr" id="specNext">▶</button></div>
+    <div id="specBtns" hidden><button class="mini alt" id="btnReport">結算</button><button class="mini" id="btnAgain2">再來一局</button><button class="mini alt" id="btnLobby3">回大廳</button></div>
+    <div id="bl" class="txt">
+      <div class="bar" id="shBar"><div class="ico" id="icShield"></div><div class="trk"><i class="gh"></i><i class="fl"></i><i class="shine"></i><i class="seg"></i></div><b>0</b></div>
+      <div class="bar" id="hpBar"><div class="ico" id="icHeart"></div><div class="trk"><i class="gh"></i><i class="fl"></i><i class="shine"></i><i class="seg"></i></div><b>100</b></div>
+    </div>
+    <div id="buildbar" class="txt" hidden></div>
+    <div id="br" class="txt">
+      <div id="ammo" hidden><div class="wn"><small id="ammoRar"></small><b id="ammoName"></b></div><div class="cnt"><span id="ammoIc"></span><b id="ammoMag">0</b><i>/</i><i id="ammoRes">0</i></div></div>
+      <div id="mats"></div>
+      <div id="hotbar"></div>
+    </div>
+  </div>
+  <div id="touch"></div>
+  <section id="menu" class="screen">
+    <div class="badge txt"><span>建造</span><span>搜刮</span><span>活到最後</span></div>
+    <h1>築嵐島</h1><h2 class="txt"><span id="menuStorm"></span>STORMWRIGHT</h2>
+    <button class="btn" id="btnStart">開始對戰</button>
+    <div class="row"><button class="btn alt" id="btnSettings">設定</button><button class="btn alt" id="btnHelp">操作說明</button></div>
+    <div class="help panel" id="help" hidden>
+      <b>目標</b>　30 人從飛艇跳下，搜刮、建造，在紫色風暴縮圈中活到最後。<br>
+      <b>移動</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>　<b>衝刺</b> <kbd>Shift</kbd>　<b>跳</b> <kbd>空白</kbd>（飛艇上＝跳下，空中＝開滑翔翼）　<b>蹲</b> <kbd>Ctrl</kbd>/<kbd>V</kbd><br>
+      <b>開火</b> 左鍵　<b>瞄準</b> 右鍵　<b>換彈</b> <kbd>R</kbd>　<b>撿取／開箱</b> <kbd>E</kbd>　<b>物品</b> <kbd>1</kbd>–<kbd>6</kbd> 或滾輪　<b>地圖</b> <kbd>M</kbd><br>
+      <b>建造</b> <kbd>Q</kbd> 切換　<kbd>Z</kbd> 牆　<kbd>X</kbd> 地板　<kbd>C</kbd> 斜坡（建造中 <kbd>R</kbd> 換材料，左鍵放置，按住連續蓋）<br>
+      手持十字鎬（1）打樹、岩石、房屋採集木／石／金屬。手機：左搖桿移動、右側拖曳轉視角。
+    </div>
+    <div class="ver txt">STORMWRIGHT · 作品 196</div>
+  </section>
+  <section id="end" class="screen" hidden>
+    <div id="confetti"></div>
+    <div class="crown" id="endCrown"></div>
+    <h1 id="endTitle">#1</h1><div class="sub txt" id="endSub"></div><div class="why txt" id="endWhy"></div>
+    <div class="grid txt" id="endGrid"></div>
+    <div class="btns"><button class="btn alt" id="btnSpec">觀戰</button><button class="btn" id="btnAgain">再來一局</button><button class="btn alt" id="btnLobby">回到大廳</button></div>
+  </section>
+  <section id="pause" class="screen" hidden>
+    <div class="box panel txt">
+      <h3 id="setTitle">暫停</h3>
+      <div class="set"><span>滑鼠靈敏度</span><input type="range" id="rngSens" min="0.3" max="2.5" step="0.05" value="1"><span class="v" id="valSens">1.0</span></div>
+      <div class="set"><span>音量</span><input type="range" id="rngVol" min="0" max="1" step="0.05" value="0.7"><span class="v" id="valVol">70</span></div>
+      <div class="set"><span>視野 FOV</span><input type="range" id="rngFov" min="60" max="100" step="1" value="75"><span class="v" id="valFov">75</span></div>
+      <div class="set"><span>自動衝刺</span><div class="tg on" id="tgAuto" role="switch" tabindex="0"></div></div>
+      <div class="set"><span>反轉 Y 軸</span><div class="tg" id="tgInv" role="switch" tabindex="0"></div></div>
+      <div class="set"><span>小地圖跟隨旋轉</span><div class="tg on" id="tgRot" role="switch" tabindex="0"></div></div>
+      <div class="set"><span>畫質</span><div class="segs" id="segQ"><button data-q="low">低</button><button data-q="medium">中</button><button data-q="high">高</button><button data-q="epic">極致</button></div></div>
+      <div class="btns">
+        <button class="btn ingame" id="btnResume">繼續</button><button class="btn menuonly" id="btnBack">返回</button>
+        <button class="btn alt ingame" id="btnRestart">重新開始</button><button class="btn alt ingame" id="btnLobby2">回大廳</button>
+      </div>
+    </div>
+  </section>
+  <div id="bigmap" hidden><canvas id="bigmapc" width="1000" height="1000"></canvas>
+    <div class="legend txt"><span><i style="background:#ffe14d"></i>你的位置</span><span><i style="background:#b56cff"></i>風暴</span><span><i style="background:#fff"></i>下一個安全區</span><span><i style="background:#ff5a5a"></i>飛艇航線</span><span>按 M 或點一下關閉</span></div></div>
+</div>
+<!--BUNDLE-->
+</body>
+</html>
