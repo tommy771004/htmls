@@ -13,21 +13,25 @@ export type UnitKind='villager'|'militia'|'archer'|'scout'|'monk'|'sheep'|'deer'
 export const unitKinds:readonly UnitKind[]=['villager','militia','archer','scout','monk','sheep','deer','boar','spearman','skirmisher','knight','ram','longbowman','woad-raider','throwing-axeman','huskarl','teutonic-knight','berserk','cataphract','war-elephant','mameluke','janissary','chu-ko-nu','samurai','mangudai','cavalry-archer','camel','mangonel','scorpion','trebuchet','petard','hand-cannoneer','bombard-cannon','fishing-ship','transport-ship','trade-cog','trade-cart','galley','fire-galley','demolition-raft','cannon-galleon','longboat'];
 import {combatRules,speedOf,statsOf} from './stats.ts';
 import {ownerOf} from './civ.ts';
+import {carriedSpeedScale} from './garrison.ts';
 import {isAnimal} from './fauna.ts';
 // hp: current hit points (combatRules.units[kind].hp at spawn); hitTick: last tick it took damage.
 // stride: distance carried over to the next tick (a fractional speed's remainder, a step cut short on a node mid-walk).
-export type Unit={stride?:number;id:number;player:number;kind:UnitKind;hp:number;hitTick:number;x:number;y:number;node:number;next:number|null;path:number[];goal:number|null;target:Point|null;navigation:Navigation;wait:number;detours:number;partial:boolean;order:number;outcome:'stuck'|null};
+// spread: on its way to a spread-move station (no early settling beside a group-mate, see tryReserve).
+export type Unit={spread?:true;stride?:number;id:number;player:number;kind:UnitKind;hp:number;hitTick:number;x:number;y:number;node:number;next:number|null;path:number[];goal:number|null;target:Point|null;navigation:Navigation;wait:number;detours:number;partial:boolean;order:number;outcome:'stuck'|null};
 type Search={frontier:number[];head:number;parent:number[]};
 // layer: the graph the search walks (ships: water); player: whose gates open (land).
-export type GroupJob=Search&{layer?:'water';player?:number;kind:'group';id:number;unitIds:number[];goal:number;starts:number[];held:number[];slots:number[];status:'searching'|'done'};
+// spread: stations only on every other node (two nodes apart: the 分散 formation of the 戰術技巧 round).
+export type GroupJob=Search&{spread?:true;layer?:'water';player?:number;kind:'group';id:number;unitIds:number[];goal:number;starts:number[];held:number[];slots:number[];status:'searching'|'done'};
 // targets: any of these nodes ends the search (work slots, drop-off ring); found is the one reached.
 export type UnitJob=Search&{layer?:'water';player?:number;kind:'unit';id:number;unitId:number;start:number;goal:number;excluded:number[];best:number;keep:number[];targets:number[]|null;found:number;status:'searching'|'done'};
 export type Job=GroupJob|UnitJob;
 // navigationSeen: last map.navigationRevision the movement layer has reconciled paths against.
 export type MovementState={map:MapData;units:Unit[];pathJobs:Job[];nextJobId:number;navigationSeen:number};
-// Which graph a unit walks: ships (class 'ship') sail the water layer, everything else the land layer.
+// Which graph a unit walks: ships (class 'ship' or 'fishing-ship') sail the water layer, everything else the land layer.
 export type Layer='land'|'water';
-export const layerOf=(kind:string):Layer=>kind in combatRules.units&&combatRules.units[kind as keyof typeof combatRules.units].classes.includes('ship')?'water':'land';
+// Fishing ships are their own armor class (aoetw.com: ship bonuses need a separate fishing-ship bonus) but sail too.
+export const layerOf=(kind:string):Layer=>kind in combatRules.units&&combatRules.units[kind as keyof typeof combatRules.units].classes.some(c=>c==='ship'||c==='fishing-ship')?'water':'land';
 // Derived edge tables per layer, rebuilt when navigation changes; never serialized. Each layer catches up on the map's
 // dirty-area log from its own cursor; a new map object (or a revision bumped by hand) rebuilds the whole table.
 type Graph={revision:number;cursor:number;blocked:Uint8Array;open:Uint8Array};
@@ -83,21 +87,21 @@ function cancel(s:MovementState,id:number){
  for(const job of s.pathJobs)if(job.kind==='group')job.unitIds=job.unitIds.filter(u=>u!==id);
  s.pathJobs=s.pathJobs.filter(j=>j.kind==='group'?j.unitIds.length>0:j.unitId!==id);
 }
-export function commandMove(s:MovementState,unitIds:number[],target:Point){
+export function commandMove(s:MovementState,unitIds:number[],target:Point,spread=false){
  // Ships and land units of one order travel as separate groups, each on its own layer.
  const all=unitIds.map(id=>s.units.find(u=>u.id===id)!),layers=[...new Set(all.map(u=>layerOf(u.kind)))];
  for(const layer of layers){const units=all.filter(u=>layerOf(u.kind)===layer),ids=units.map(u=>u.id);
   // Nearest node with a clear straight line to the target; for a target inside something solid, the nearest open node.
   const near=nearest(s.map,target,false,layer),goal=near>=0?near:nearestOpen(s.map,target,layer);if(goal<0)throw Error(layer==='water'?'目標附近沒有可航行的水面':'目標附近沒有可站立的節點');
   const group=new Set(ids),player=units[0].player;
-  for(const u of units){cancel(s,u.id);Object.assign(u,{path:[],goal:null,target:null,navigation:'searching',wait:0,detours:0,partial:false,order:s.nextJobId,outcome:null});}
+  for(const u of units){cancel(s,u.id);delete u.spread;Object.assign(u,{path:[],goal:null,target:null,navigation:'searching',wait:0,detours:0,partial:false,order:s.nextJobId,outcome:null});}
   // Stations are chosen from nodes nobody outside the group currently holds.
-  s.pathJobs.push({kind:'group',id:s.nextJobId++,...(layer==='water'?{layer}:{}),...(layer==='land'&&gatesExist(s.map)?{player}:{}),unitIds:[...ids],goal,starts:units.map(u=>u.next??u.node),held:held(s.units,group),slots:[],status:'searching',...search(s.map,goal)});}
+  s.pathJobs.push({kind:'group',id:s.nextJobId++,...(spread?{spread:true as const}:{}),...(layer==='water'?{layer}:{}),...(layer==='land'&&gatesExist(s.map)?{player}:{}),unitIds:[...ids],goal,starts:units.map(u=>u.next??u.node),held:held(s.units,group),slots:[],status:'searching',...search(s.map,goal)});}
 }
 // Gates only matter for searches once a gate stands (older saves and gate-free matches keep their exact jobs).
 const gatesExist=(map:MapData)=>map.obstacles.some(o=>gateKinds.has(o.kind));
 export function commandStop(s:MovementState,unitIds:number[]){
- for(const id of unitIds){const u=s.units.find(u=>u.id===id)!;cancel(s,id);Object.assign(u,{path:[],goal:null,target:null,wait:0,detours:0,partial:false,outcome:null,navigation:u.next===null?'idle':'moving'});}
+ for(const id of unitIds){const u=s.units.find(u=>u.id===id)!;cancel(s,id);delete u.spread;Object.assign(u,{path:[],goal:null,target:null,wait:0,detours:0,partial:false,outcome:null,navigation:u.next===null?'idle':'moving'});}
 }
 function advance(s:MovementState,job:Job,budget:number):number{
  let used=0;
@@ -105,7 +109,8 @@ function advance(s:MovementState,job:Job,budget:number):number{
   if(job.kind==='group'&&job.slots.length>=job.unitIds.length&&job.starts.every(n=>job.parent[n]!==-2)){job.status='done';break;}
   if(job.head===job.frontier.length){job.status='done';break;}
   const id=job.frontier[job.head++];used++;
-  if(job.kind==='group'){if(job.slots.length<job.unitIds.length&&!job.held.includes(id)&&!closedFor(s.map,id,job.layer??'land',job.player??-1))job.slots.push(id);}
+  if(job.kind==='group'){const SIDE=sideOf(s.map),even=!job.spread||((id%SIDE-job.goal%SIDE)%2===0&&(Math.floor(id/SIDE)-Math.floor(job.goal/SIDE))%2===0);
+   if(even&&job.slots.length<job.unitIds.length&&!job.held.includes(id)&&!closedFor(s.map,id,job.layer??'land',job.player??-1))job.slots.push(id);}
   else{const SIDE=sideOf(s.map),g=job.goal,d=(n:number)=>Math.abs(n%SIDE-g%SIDE)+Math.abs(Math.floor(n/SIDE)-Math.floor(g/SIDE));if(d(id)<d(job.best))job.best=id;if(job.targets?job.targets.includes(id):id===g){job.found=id;job.status='done';break;}}
   for(const next of neighbours(s.map,id,job.layer??'land',job.player??-1))if(job.parent[next]===-2&&!(job.kind==='unit'&&job.excluded.includes(next))){job.parent[next]=id;job.frontier.push(next);}
  }
@@ -124,6 +129,9 @@ function finishGroup(s:MovementState,job:GroupJob){
  reached.forEach((u,i)=>{
   const slot=slots[i];
   if(slot===undefined){Object.assign(u,{navigation:u.next===null?'unreachable':'moving',partial:true});return;}
+  // A spread move: each unit searches its own route to its station around the others' stations (the group tree would
+  // lead it past a settled mate's station, where it would stop beside it).
+  if(job.spread){u.spread=true;Object.assign(u,{goal:slot,target:position(s.map,slot),partial:false,navigation:'searching'});s.pathJobs.push(unitJob(s,u,slot,slots.filter(n=>n!==slot).sort((a,b)=>a-b),[]));return;}
   const up=chain(job.parent,start(u)),down=chain(job.parent,slot),index=new Map(down.map((n,k)=>[n,k]));
   let i2=0;while(!index.has(up[i2]))i2++;
   u.path=[...up.slice(1,i2+1),...down.slice(0,index.get(up[i2])).reverse()];
@@ -136,7 +144,7 @@ function unitJob(s:MovementState,u:Unit,goal:number,excluded:number[],keep:numbe
 // Route one unit to the nearest reachable node of a set (used by work legs). Keeps cargo/work; resets movement state.
 export function routeTo(s:MovementState,u:Unit,targets:number[]){
  if(!targets.length)throw Error('沒有可用的目標節點');
- cancel(s,u.id);Object.assign(u,{path:[],goal:null,target:null,navigation:'searching',wait:0,detours:0,partial:false,order:s.nextJobId,outcome:null});
+ cancel(s,u.id);delete u.spread;Object.assign(u,{path:[],goal:null,target:null,navigation:'searching',wait:0,detours:0,partial:false,order:s.nextJobId,outcome:null});
  s.pathJobs.push(unitJob(s,u,targets[0],[],[],[...targets].sort((a,b)=>a-b)));
 }
 export function cancelMovement(s:MovementState,id:number){cancel(s,id);}
@@ -180,7 +188,7 @@ export function stepMovement(s:MovementState):{expanded:number}{
   const settledMate=idleFriend&&b.order===u.order&&(b.navigation==='idle'||b.navigation==='stuck');
   const toGoal=u.goal===null?Infinity:Math.abs(position(s.map,u.goal).x-position(s.map,u.node).x)+Math.abs(position(s.map,u.goal).y-position(s.map,u.node).y);
   // 1. Arrival radius: close to its station and blocked by a group-mate who has settled, settle here.
-  if(settledMate&&toGoal<=navigationRules.arrivalRadius){Object.assign(u,{path:[],goal:null,target:null,navigation:'idle',wait:0});return;}
+  if(settledMate&&!u.spread&&toGoal<=navigationRules.arrivalRadius){Object.assign(u,{path:[],goal:null,target:null,navigation:'idle',wait:0});return;}
   // 2. An idle friendly unit steps off the requester's route. In single file (no side step) a settled
   //    group-mate trades stations: it walks on to the requester's station and the requester stops here.
   if(idleFriend){
@@ -220,7 +228,7 @@ export function stepMovement(s:MovementState):{expanded:number}{
   // of a fractional speed, and the part of a step cut short by arriving on a node while the walk goes on. So a walk
   // covers speed x ticks (minus under one step) whatever the speed (Squires' 5.5, Husbandry's 11); speeds that divide
   // the 50-unit node spacing never carry anything and keep no stride. A unit that stops on a node drops its carry.
-  const target=position(s.map,u.next),speed=speedOf(u.kind,ownerOf(s as {civs?:string[];ages?:number[];techs?:string[][]},u.player));
+  const target=position(s.map,u.next),speed=Math.round(speedOf(u.kind,ownerOf(s as {civs?:string[];ages?:number[];techs?:string[][]},u.player))*carriedSpeedScale(s,u)*100)/100;
   const acc=Math.round(((u.stride??0)+speed)*100),step=Math.min(Math.floor(acc/100),Math.max(Math.abs(target.x-u.x),Math.abs(target.y-u.y))),rest=acc-step*100;
   if(rest)u.stride=rest/100;else delete u.stride;
   const p={x:u.x+Math.sign(target.x-u.x)*Math.min(step,Math.abs(target.x-u.x)),y:u.y+Math.sign(target.y-u.y)*Math.min(step,Math.abs(target.y-u.y))};
@@ -230,7 +238,7 @@ export function stepMovement(s:MovementState):{expanded:number}{
    if(owner[u.node]===u.id)owner[u.node]=0;u.node=u.next;u.next=null;
    if(u.path.length)tryReserve(u);
    else if(!searching.has(u.id)){// A stuck unit that stepped aside for someone keeps reporting its failed order.
-    u.navigation=u.outcome==='stuck'?'stuck':u.partial?'unreachable':'idle';u.target=null;u.goal=null;u.wait=0;}
+    u.navigation=u.outcome==='stuck'?'stuck':u.partial?'unreachable':'idle';u.target=null;u.goal=null;u.wait=0;delete u.spread;}
    if(u.next===null)delete u.stride;
   }
  }

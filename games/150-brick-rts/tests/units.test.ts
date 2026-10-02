@@ -20,6 +20,7 @@ import {reach} from '../packages/sim/combat.ts';
 import {createService,decodeView} from '../packages/sim/protocol.ts';
 import {rules,resources} from '../packages/content/rules.ts';
 import {civDefs,neutralCiv} from '../packages/content/civs.ts';
+import {settle} from './flight.ts';
 import {castleAgeMatch} from './castle-age-fixture.ts';
 
 const SEED=260925;
@@ -159,18 +160,21 @@ test('line upgrades restat and rename the units already in the field and the one
 // ---------------------------------------------------------------------------------------------------------------
 // Siege mechanics
 
-test('a mangonel stone hits every enemy unit within the blast of the impact and spares its own (onager and siege onager reach farther)',()=>{
+// The 遊戲元素 round: the stone hits own units too (aoetw.com 擴散範圍 marks the mangonel line *), and the line has +4 against
+// siege (the site's +12 x0.32).
+test('a mangonel stone hits every unit within the blast of the impact, its own too (onager and siege onager reach farther)',()=>{
  for(const [techs,blast,damage] of [[[],75,40],[['onager'],90,50],[['onager','siege-onager'],110,75]] as [string[],number,number][]){
   const s=match(neutralCiv);clearRed(s);s.techs[0].push(...techs);// fixture: the research itself is covered above
   const st=statsOf('mangonel',ownerOf(s,0));assert.equal(st.blast,blast);assert.equal(st.damage,damage);
   const m=spawn(s,0,'mangonel',300,Y),target=spawn(s,1,'trebuchet',600,Y),near=spawn(s,1,'ram',650,Y),diagonal=spawn(s,1,'ram',650,Y+50),two=spawn(s,1,'ram',700,Y),three=spawn(s,1,'ram',750,Y),mine=spawn(s,0,'ram',550,Y);
-  order(s,'attack',{unitIds:[m.id],target:{kind:'unit',id:target.id}});run(s,1);
-  assert.equal(target.hp,150-(damage-1),'the target: attack minus its melee armor 1');
-  assert.equal(near.hp,175-damage,'50 away');assert.equal(diagonal.hp,175-damage,'50 away diagonally (Chebyshev)');
-  assert.equal(two.hp,blast>=100?175-damage:175,'100 away: only inside the siege onager blast');assert.equal(three.hp,175,'150 away: outside every blast');
-  assert.equal(mine.hp,175,'own units are spared');
+  // The stone leaves on the first tick and is counted where it lands (shots fly from the 戰術技巧 round on).
+  order(s,'attack',{unitIds:[m.id],target:{kind:'unit',id:target.id}});run(s,1);const thrown=s.attacks[m.id].firedTick;assert.equal(thrown,s.tick);settle(s,see);
+  const hit=damage+4;assert.equal(target.hp,150-(hit-1),'the target: attack minus its melee armor 1, +4 against siege');
+  assert.equal(near.hp,175-hit,'50 away');assert.equal(diagonal.hp,175-hit,'50 away diagonally (Chebyshev)');
+  assert.equal(two.hp,blast>=100?175-hit:175,'100 away: only inside the siege onager blast');assert.equal(three.hp,175,'150 away: outside every blast');
+  assert.equal(mine.hp,175-hit,'an own unit inside the blast is hit too');assert.equal(m.hp,statsOf('mangonel',ownerOf(s,0)).hp,'never the mangonel itself');
   // The next stone after the cooldown, not before.
-  run(s,st.cooldown-1);assert.equal(target.hp,150-(damage-1));run(s,1);assert.equal(target.hp,150-2*(damage-1));
+  run(s,st.cooldown-1);assert.equal(s.attacks[m.id].firedTick,thrown);run(s,1);assert.equal(s.attacks[m.id].firedTick,s.tick);settle(s,see);assert.equal(target.hp,150-2*(hit-1));
  }
 });
 
@@ -180,7 +184,9 @@ test('a scorpion bolt flies on through its target: enemies along the path take h
   assert.equal(statsOf('scorpion',ownerOf(s,0)).damage,damage);const half=Math.round(damage/2);
   const sc=spawn(s,0,'scorpion',300,Y),between=spawn(s,1,'villager',400,Y),target=spawn(s,1,'villager',500,Y),behind=spawn(s,1,'villager',550,Y),mine=spawn(s,0,'villager',600,Y),
    edge=spawn(s,1,'villager',700,Y),beyond=spawn(s,1,'villager',750,Y),aside=spawn(s,1,'villager',550,Y+50),back=spawn(s,1,'villager',250,Y);
-  order(s,'attack',{unitIds:[sc.id],target:{kind:'unit',id:target.id}});run(s,1);
+  // The first bolt after its aim (frame delay: 42 ticks, the heavy scorpion 26).
+  order(s,'attack',{unitIds:[sc.id],target:{kind:'unit',id:target.id}});run(s,1+(statsOf('scorpion',ownerOf(s,0)).frameDelay??0));
+  assert.equal(s.attacks[sc.id].firedTick,s.tick,'shot after the aim');settle(s,see);
   assert.equal(target.hp,25-damage,'the target takes the whole bolt (villager pierce armor 0)');
   assert.equal(behind.hp,25-half,'one node behind: half');assert.equal(edge.hp,25-half,'200 behind the target: still on the bolt');
   assert.equal(beyond.hp,25,'250 behind: the bolt has stopped');assert.equal(aside.hp,25,'one node off the line');assert.equal(back.hp,25,'behind the shooter');
@@ -195,18 +201,19 @@ test('minimum range: no shot inside it, automatic fights skip or drop such targe
  {const s=match(neutralCiv);clearRed(s);const m=spawn(s,0,'mangonel',300,Y),ram=spawn(s,1,'ram',400,Y);run(s,100);assert.equal(s.attacks[m.id],undefined);assert.equal(ram.hp,175);}
  {const s=match(neutralCiv);clearRed(s);const sc=spawn(s,0,'scorpion',300,Y),v=spawn(s,1,'villager',350,Y);run(s,100);assert.equal(s.attacks[sc.id],undefined);assert.equal(v.hp,25);
   // From 100 (its minimum) on, it picks the villager.
-  const w=spawn(s,1,'villager',400,Y+100);run(s,2);assert.equal(s.attacks[sc.id]?.target.id,w.id);assert.equal(w.hp,25-12);}
+  const w=spawn(s,1,'villager',400,Y+100);run(s,2);assert.equal(s.attacks[sc.id]?.target.id,w.id);run(s,42);assert.ok(s.attacks[sc.id].firedTick>=0,'shot by the end of its 42-tick aim');settle(s,see);assert.equal(w.hp,25-12);}
  // An automatic fight whose target comes inside the minimum range is dropped (and no stone is thrown at it there).
  {const s=match(neutralCiv);clearRed(s);const m=spawn(s,0,'mangonel',300,Y),ram=spawn(s,1,'ram',600,Y);run(s,2);
-  assert.equal(s.attacks[m.id]?.auto,true,'picked at 300');assert.equal(ram.hp,135,'and hit');
-  order(s,'move',{unitIds:[ram.id],x:350,y:Y},1);let inside=-1,hpInside=-1;
-  run(s,400,()=>{if(inside<0&&reach(m,ram)<150){inside=s.tick;hpInside=ram.hp;}return inside>=0&&s.tick>inside+150;});
-  assert.ok(inside>0,'the ram came inside');assert.equal(s.attacks[m.id],undefined,'the fight is dropped');assert.equal(ram.hp,hpInside,'no stone inside the minimum range');assert.ok(ram.hp>0);}
+  assert.equal(s.attacks[m.id]?.auto,true,'picked at 300');settle(s,see);assert.equal(ram.hp,131,'and hit (40 + 4 against siege)');
+  // Stones already in the air may still land; what matters is that none is thrown once the ram is inside.
+  order(s,'move',{unitIds:[ram.id],x:350,y:Y},1);let inside=-1;const thrown:number[]=[];
+  run(s,400,()=>{const f=s.attacks[m.id]?.firedTick;if(f!==undefined&&f>=0&&!thrown.includes(f))thrown.push(f);if(inside<0&&reach(m,ram)<150)inside=s.tick;return inside>=0&&s.tick>inside+150;});
+  assert.ok(inside>0,'the ram came inside');assert.equal(s.attacks[m.id],undefined,'the fight is dropped');assert.ok(thrown.every(f=>f<inside),'no stone thrown inside the minimum range');assert.ok(ram.hp>0);}
  // Ordered at a target inside the minimum range: the mangonel walks back out and shoots from 150 or more.
  {const s=match(neutralCiv);clearRed(s);const m=spawn(s,0,'mangonel',300,Y),ram=spawn(s,1,'ram',400,Y),start={x:m.x,y:m.y};
   order(s,'attack',{unitIds:[m.id],target:{kind:'unit',id:ram.id}});let from=-1;
   run(s,600,()=>{if(ram.hp<175){from=reach(m,ram);return true;}return false;});
-  assert.equal(ram.hp,135,'one stone');assert.ok(from>=150&&from<=500,`shot from ${from}`);assert.notDeepEqual({x:m.x,y:m.y},start,'it moved away first');}
+  assert.equal(ram.hp,131,'one stone');assert.ok(from>=150&&from<=500,`shot from ${from}`);assert.notDeepEqual({x:m.x,y:m.y},start,'it moved away first');}
 });
 
 test('a trebuchet unpacks before its first shot and packs before its first step',()=>{
@@ -214,22 +221,25 @@ test('a trebuchet unpacks before its first shot and packs before its first step'
  assert.equal(st.setup,150);assert.equal(st.cooldown,100);const hit=hitDamage(st,buildingTarget);assert.equal(hit,75,'25 melee + 50 against buildings');
  order(s,'attack',{unitIds:[tre.id],target:{kind:'building',id:red.id}});
  run(s,st.setup-1);assert.equal(red.hp,400,'no damage while it unpacks');assert.equal(s.setups[tre.id]?.unpacked,false);assert.equal(s.setups[tre.id].progress,st.setup-1);
- run(s,1);assert.equal(red.hp,400-hit,'the first shot on the last setup tick');assert.deepEqual(s.setups[tre.id],{unpacked:true,progress:0});
- run(s,st.cooldown-1);assert.equal(red.hp,400-hit);run(s,1);assert.equal(red.hp,400-2*hit,'then every cooldown');
+ // Unpacked on the last setup tick, it then aims (frame delay 24) before the first stone.
+ // A stone leaves when the attack's firedTick is set; it flies and is counted where it lands (the 戰術技巧 round).
+ run(s,1);assert.equal(red.hp,400);assert.deepEqual(s.setups[tre.id],{unpacked:true,progress:0});run(s,st.frameDelay!-1);assert.equal(s.attacks[tre.id].firedTick,-1);run(s,1);assert.equal(s.attacks[tre.id].firedTick,s.tick,'the first shot after setup and aim');
+ settle(s,see);assert.equal(red.hp,400-hit);const first=s.attacks[tre.id].firedTick;
+ run(s,st.cooldown-1);assert.equal(s.attacks[tre.id].firedTick,first);run(s,1);assert.equal(s.attacks[tre.id].firedTick,s.tick,'then every cooldown');settle(s,see);assert.equal(red.hp,400-2*hit);
  // Moving: it stands still for the setup ticks after its route is ready, then steps; packed afterwards.
  const at={x:tre.x,y:tre.y},hp=red.hp;order(s,'move',{unitIds:[tre.id],x:1200,y:Y+150});let ready=-1,moved=-1;
  run(s,400,()=>{if(ready<0&&tre.path.length)ready=s.tick;if(tre.x!==at.x||tre.y!==at.y){moved=s.tick;return true;}return false;});
  assert.ok(ready>0&&moved>0);assert.equal(moved-ready,st.setup-1,'the first step on the setup-th tick of a ready route');assert.equal(s.setups[tre.id],undefined,'packed');assert.equal(red.hp,hp,'no shots while packing');
  // Back in range after the walk: it unpacks again before shooting.
  run(s,200,()=>tre.x===1200&&tre.y===Y+150&&tre.next===null);order(s,'attack',{unitIds:[tre.id],target:{kind:'building',id:red.id}});
- run(s,st.setup-1);assert.equal(red.hp,hp);run(s,1);assert.equal(red.hp,hp-hit);
+ run(s,st.setup-1+st.frameDelay!);assert.equal(s.attacks[tre.id].firedTick,-1);run(s,1);assert.equal(s.attacks[tre.id].firedTick,s.tick);settle(s,see);assert.equal(red.hp,hp-hit);
 });
 
 test('a trebuchet that stops packing to shoot again packs from the start the next time',()=>{
  const s=match('franks');clearRed(s);const red=tcOf(s,1),tre=spawn(s,0,'trebuchet',1200,Y),st=trebuchetOf(s);
  order(s,'attack',{unitIds:[tre.id],target:{kind:'building',id:red.id}});run(s,st.setup);assert.equal(s.setups[tre.id].unpacked,true);
  order(s,'move',{unitIds:[tre.id],x:1200,y:Y+150});run(s,100);assert.ok(s.setups[tre.id].progress>50,'half packed');
- order(s,'attack',{unitIds:[tre.id],target:{kind:'building',id:red.id}});const hp=red.hp;run(s,2);assert.equal(red.hp,hp-75,'still unpacked: it shoots at once');
+ order(s,'attack',{unitIds:[tre.id],target:{kind:'building',id:red.id}});const hp=red.hp;run(s,1+st.frameDelay!);assert.equal(s.attacks[tre.id].firedTick,s.tick,'still unpacked: no setup, only the aim');settle(s,see);assert.equal(red.hp,hp-75);
  const at={x:tre.x,y:tre.y};order(s,'move',{unitIds:[tre.id],x:1200,y:Y+150});let ready=-1,moved=-1;
  run(s,400,()=>{if(ready<0&&tre.path.length)ready=s.tick;if(tre.x!==at.x||tre.y!==at.y){moved=s.tick;return true;}return false;});
  assert.equal(moved-ready,st.setup-1,'a whole packing time again');
@@ -242,28 +252,32 @@ test('an unpacked trebuchet sent at a building out of its range packs, walks, un
  for(const k of resources)s.accounts[1].stock[k]+=100;const house=placeBuilding(s,1,'house',site!.x,site!.y,'fixture:house');while(!house.complete)addWork(s,house);
  order(s,'attack',{unitIds:[tre.id],target:{kind:'building',id:red.id}});run(s,st.setup);assert.equal(s.setups[tre.id].unpacked,true);
  const t0=s.tick,at={x:tre.x,y:tre.y};order(s,'attack',{unitIds:[tre.id],target:{kind:'building',id:house.id}});let moved=-1,arrived=-1,hit=-1;
- run(s,1500,()=>{if(moved<0&&(tre.x!==at.x||tre.y!==at.y))moved=s.tick;if(arrived<0&&moved>0&&s.setups[tre.id]?.unpacked===false)arrived=s.tick;if(house.hp<house.maxHp){hit=s.tick;return true;}return false;});
+ run(s,1500,()=>{if(moved<0&&(tre.x!==at.x||tre.y!==at.y))moved=s.tick;if(arrived<0&&moved>0&&s.setups[tre.id]?.unpacked===false)arrived=s.tick;if((s.attacks[tre.id]?.firedTick??-1)>t0){hit=s.tick;return true;}return false;});settle(s,see);
  assert.ok(moved-t0>=st.setup&&moved-t0<=st.setup+3,`packed first (first step ${moved-t0} ticks after the order)`);
- assert.ok(arrived>moved,'unpacking again once in range');assert.equal(hit-arrived,st.setup-1,'a whole setup before the shot');assert.equal(house.hp,house.maxHp-75);
+ assert.ok(arrived>moved,'unpacking again once in range');assert.equal(hit-arrived,st.setup-1+st.frameDelay!,'a whole setup and the aim before the shot');assert.equal(house.hp,house.maxHp-75);
 });
 
 test('Kataparuto (Japanese): the trebuchet sets up in a quarter of the time and shoots a third faster',()=>{
  const s=match('japanese');clearRed(s);ageTo(s,4);const castle=building(s,'castle'),before=statsOf('trebuchet',ownerOf(s,0));research(s,castle,'kataparuto');
  const st=trebuchetOf(s);assert.equal(before.setup,150);assert.equal(st.setup,38,'150 x 0.25 = 37.5, rounded');assert.equal(st.cooldown,75);
  const red=tcOf(s,1),tre=spawn(s,0,'trebuchet',1200,Y);order(s,'attack',{unitIds:[tre.id],target:{kind:'building',id:red.id}});
- run(s,st.setup-1);assert.equal(red.hp,400);run(s,1);assert.equal(red.hp,325);run(s,st.cooldown);assert.equal(red.hp,250);
+ run(s,st.setup-1+st.frameDelay!);assert.equal(s.attacks[tre.id].firedTick,-1);run(s,1);assert.equal(s.attacks[tre.id].firedTick,s.tick);settle(s,see);assert.equal(red.hp,325);
+ run(s,st.cooldown);assert.equal(s.attacks[tre.id].firedTick,s.tick);settle(s,see);assert.equal(red.hp,250);
  const at={x:tre.x,y:tre.y};order(s,'move',{unitIds:[tre.id],x:1200,y:Y+150});let ready=-1,moved=-1;
  run(s,200,()=>{if(ready<0&&tre.path.length)ready=s.tick;if(tre.x!==at.x||tre.y!==at.y){moved=s.tick;return true;}return false;});assert.equal(moved-ready,st.setup-1);
 });
 
-test('rams and trebuchets only attack buildings: the order is refused and they never pick a fight',()=>{
- const s=match('franks');clearRed(s);const tre=spawn(s,0,'trebuchet',300,Y),ram=spawn(s,0,'ram',300,Y+100),mil=spawn(s,0,'militia',300,Y+50),foe=spawn(s,1,'trebuchet',600,Y);
+// The 遊戲元素 round: rams may also be ordered on siege weapons (aoetw.com: their bonus against siege).
+test('trebuchets only attack buildings, rams buildings and siege: other orders are refused and they never pick a fight',()=>{
+ const s=match('franks');clearRed(s);const tre=spawn(s,0,'trebuchet',300,Y),ram=spawn(s,0,'ram',300,Y+100),mil=spawn(s,0,'militia',300,Y+50),foe=spawn(s,1,'trebuchet',600,Y),foot=spawn(s,1,'villager',600,Y+300);
  assert.throws(()=>order(s,'attack',{unitIds:[tre.id],target:{kind:'unit',id:foe.id}}),/巨型投石機只能攻擊建築/);
- assert.throws(()=>order(s,'attack',{unitIds:[ram.id],target:{kind:'unit',id:foe.id}}),/攻城槌只能攻擊建築/);
+ assert.throws(()=>order(s,'attack',{unitIds:[ram.id],target:{kind:'unit',id:foot.id}}),/攻城槌只能攻擊建築與攻城器/);
  assert.throws(()=>order(s,'attack',{unitIds:[tre.id,mil.id].sort((a,b)=>a-b),target:{kind:'unit',id:foe.id}}),/巨型投石機只能攻擊建築/,'a mixed group is refused as a whole');
  const before=s.sequence[0];assert.equal(before,0,'nothing was accepted');
  s.units=s.units.filter(u=>u!==mil);run(s,100);
  assert.equal(s.attacks[tre.id],undefined);assert.equal(s.attacks[ram.id],undefined);assert.equal(foe.hp,150);assert.equal(s.setups[tre.id],undefined,'it did not unpack either');
+ // Ordered, the ram goes for the trebuchet: 2 melee - 1 armor + 13 against siege.
+ order(s,'attack',{unitIds:[ram.id],target:{kind:'unit',id:foe.id}});run(s,300,()=>foe.hp<150);assert.equal(foe.hp,150-14);
 });
 
 test('a petard is spent by its charge: it blows a hole in a building and dies',()=>{
@@ -357,7 +371,7 @@ test('Britons: Warwolf gives the trebuchet a blast around the building it strike
  // The tech is given (fixture): a Castle's arrows would reach the rams next to red's town centre.
  for(const warwolf of [false,true]){const s=match('britons');clearRed(s);ageTo(s,4);if(warwolf)s.techs[0].push('warwolf');
   const red=tcOf(s,1),tre=spawn(s,0,'trebuchet',1200,Y),next=spawn(s,1,'ram',1200,700),farther=spawn(s,1,'ram',1200,750),mine=spawn(s,0,'ram',1100,700);
-  order(s,'attack',{unitIds:[tre.id],target:{kind:'building',id:red.id}});run(s,150);
+  order(s,'attack',{unitIds:[tre.id],target:{kind:'building',id:red.id}});run(s,150+24);assert.equal(s.attacks[tre.id].firedTick,s.tick);settle(s,see);
   assert.equal(red.hp,400-75);assert.equal(next.hp,warwolf?175-25:175,'65 from the footprint: 25 melee, no bonus against units');assert.equal(farther.hp,175,'115 from the footprint');assert.equal(mine.hp,175,'own units spared');}
 });
 

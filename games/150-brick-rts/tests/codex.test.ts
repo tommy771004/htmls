@@ -90,8 +90,9 @@ import {lineUpgrades} from '../packages/sim/stats.ts';
 import {unitKinds} from '../packages/sim/movement.ts';
 import {isAnimal} from '../packages/sim/fauna.ts';
 
-test('the category switch offers only the categories the book has: 文明, 單位, 科技 and 建築', ()=>{
- assert.deepEqual(codexSections.map(s=>s.label),['文明','單位','科技','建築']);assert.deepEqual(codexSections.map(s=>s.id),['civs','units','techs','buildings']);
+// The 遊戲元素 round adds its category after 建築.
+test('the category switch offers only the categories the book has: 文明, 單位, 科技, 建築, 遊戲元素, 戰術技巧 and 科技樹', ()=>{
+ assert.deepEqual(codexSections.map(s=>s.label),['文明','單位','科技','建築','遊戲元素','戰術技巧','科技樹']);assert.deepEqual(codexSections.map(s=>s.id),['civs','units','techs','buildings','elements','tactics','tree']);
 });
 test('every unit kind but the animals, and every line upgrade, appears exactly once', ()=>{
  const lines=unitLines(),kinds=unitKinds.filter(k=>!isAnimal(k));
@@ -233,7 +234,9 @@ test('aoetw technologies the game lacks are listed once, each with a reason', ()
  const reasons=Object.values(techPendingReasons) as string[];
  for(const p of pend){assert.ok(reasons.includes(p.reason),`${p.id} reason`);assert.ok(p.text.length>10,`${p.id} text`);assert.ok(p.at,`${p.id} building`);}
  const reason=(id:string)=>pend.find(p=>p.id===id)!.reason;
- for(const id of ['cartography','coinage','banking'])assert.equal(reason(id),techPendingReasons.allies,id);assert.equal(reason('ballistics'),techPendingReasons.accuracy);
+ for(const id of ['cartography','coinage','banking'])assert.equal(reason(id),techPendingReasons.allies,id);
+ // Ballistics is in the game from the 戰術技巧 round.
+ assert.ok(techPages().some(t=>t.id==='ballistics')&&!pend.some(p=>p.id==='ballistics'),'ballistics');
  assert.equal(reason('murder-holes'),techPendingReasons.minRange);
  // The dock's, the market's and the university's other technologies are in the game now.
  for(const id of ['guilds','caravan','careening','dry-dock','shipwright','gillnets','heated-shot','fortified-wall','bombard-tower-tech'])assert.ok(techPages().some(t=>t.id===id)&&!pend.some(p=>p.id===id),id);
@@ -330,4 +333,191 @@ test('building prose: an intro, every page a text without numbers, in this game\
  for(const g of buildingGroups){assert.ok(g.text.length>10);assert.doesNotMatch(g.text,/\d/,g.id);}
  for(const [id,t] of Object.entries(buildingPartials)){assert.ok(buildKinds.includes(id as never),id);assert.equal(buildingPage(id).partial,t);}
  for(const b of buildingPages())assert.ok(b.sources.length&&b.text,b.id);
+});
+// ── 遊戲元素 (the 遊戲元素 round) ─────────────────────────────────────────────────────────────────────────────────
+import {elementIds,elementPage,elementPages,elementGroups,classRows,armorExamples,unitSteps,fireRows,fireGroups,frameRows,garrisonRows,repairPerSecond,repairCostOf,repairExamples,
+ tauntRows,relicFacts,conversionFacts,spreadRows,teamRows,hpRange,regenRows} from '../apps/web/codex-elements.ts';
+import {elementProse,elementLacks,elementsIntro,elementsNote} from '../packages/content/codex.ts';
+import {hitDamage,buildingClassArmor} from '../packages/sim/stats.ts';
+import {repairRules} from '../packages/sim/repair.ts';
+import {carrierRules} from '../packages/sim/garrison.ts';
+import {taunts} from '../packages/content/taunts.ts';
+import {religionRules} from '../packages/sim/religion.ts';
+test('the 遊戲元素 tab follows the 建築 tab and has one page per aoetw element, menu order first, each once',()=>{
+ assert.deepEqual(codexSections.map(s=>s.id).slice(0,5),['civs','units','techs','buildings','elements']);assert.equal(codexSections[4].label,'遊戲元素');
+ assert.deepEqual(elementIds(),['armor','regeneration','garrison','hit-points','attack','rate-of-fire','frame-delay','area-of-effect','team-bonus','relic','taunts','conversion','line-of-sight']);
+ assert.deepEqual(elementGroups().map(g=>g.items.map(i=>i.id)),[elementIds().slice(0,11),['conversion','line-of-sight']]);
+ assert.equal(new Set(elementPages().map(p=>p.name)).size,elementIds().length);
+ for(const p of elementPages()){assert.ok(p.blocks.length,`${p.id} has tables`);assert.equal(p.source,`aoetw.com/${p.slug}`);assert.ok(Array.isArray(elementLacks[p.id]),`${p.id} lacks listed`);}
+ assert.equal(elementPage('nope'),null);
+});
+test('遊戲元素 prose has no digits; every number is on the tables',()=>{
+ for(const t of [elementsIntro,elementsNote])assert.ok(!/\d/.test(t),t);
+ for(const p of elementProse){for(const t of [p.name,p.summary,p.text])assert.ok(!/\d/.test(t),`${p.id}: ${t}`);assert.ok(p.text.length>=60,`${p.id} text`);}
+ for(const [id,lacks] of Object.entries(elementLacks))for(const l of lacks)assert.ok(!/\d/.test(l.name+l.reason)&&l.reason.length,`${id}: ${l.name}`);
+});
+test('防禦類型: bonuses and class armor are the simulation numbers; the worked examples are hitDamage',()=>{
+ const rows=new Map(classRows().map(r=>[r.id,r]));
+ const steps=unitSteps(),step=(kind:string,tech:string)=>steps.find(s=>s.kind===kind&&s.tech===tech)!;
+ for(const tech of ['spearman','pikeman','halberdier'])assert.ok(rows.get('cavalry')!.bonuses.includes(`${step('spearman',tech).name} +${step('spearman',tech).stats.bonus.cavalry}`),tech);
+ assert.ok(rows.get('cavalry')!.armor.includes(`${step('cataphract','cataphract').name} +${step('cataphract','cataphract').stats.classArmor!.cavalry}`));
+ for(const [b,v] of Object.entries(buildingClassArmor))assert.ok(rows.get('building')!.armor.includes(`${rules.entries.find(e=>e.id===b)!.name} +${v}`),b);
+ assert.ok(rows.get('castle')!.buildings.includes('城堡')&&rows.get('wall-gate')!.buildings.length===4);
+ // Every listed class has an attacker or an armor; every unit bonus of every step appears under its class.
+ for(const r of rows.values())assert.ok(r.bonuses.length||r.armor.length,r.id);
+ for(const s of steps)for(const [c,v] of Object.entries(s.stats.bonus))if(v)assert.ok(rows.get(c)?.bonuses.some(b=>b.endsWith(` +${v}`)),`${s.name} vs ${c}`);
+ for(const ex of armorExamples()){const [a,t]=ex.title.split('打');const sa=steps.find(s=>s.name===a)!,st=steps.find(s=>s.name===t)!;assert.ok(sa&&st,ex.title);
+  assert.equal(ex.total,hitDamage(sa.stats,st.stats),ex.title);assert.ok(ex.lines.at(-1)!.includes(String(ex.total)));}
+ assert.ok(armorExamples()[1].lines.some(l=>l.includes('騎兵護甲')),'the cataphract example shows class armor');
+});
+test('射速, 開火間隔, 擴散範圍: intervals, aims and radii are the simulation numbers',()=>{
+ const steps=unitSteps();
+ for(const r of fireRows()){const s=steps.find(s=>s.name===r.name);if(s)assert.equal(r.ticks,s.stats.cooldown,r.name);}
+ assert.equal(fireRows().length,steps.filter(s=>s.stats.attack!=='none').length+Object.keys(defenseRules.arrows).length);
+ assert.deepEqual(fireGroups().flatMap(g=>g.names).sort(),fireRows().map(r=>r.name).sort());
+ for(let i=1;i<fireGroups().length;i++)assert.ok(fireGroups()[i].ticks>fireGroups()[i-1].ticks);
+ assert.deepEqual(frameRows().map(r=>r.name).sort(),steps.filter(s=>(s.stats.frameDelay??0)>0).map(s=>s.name).sort());
+ for(const r of frameRows())assert.equal(r.ticks,steps.find(s=>s.name===r.name)!.stats.frameDelay);
+ const spread=spreadRows();
+ for(const s of steps.filter(s=>s.stats.blast))assert.ok(spread.some(r=>r.name===s.name&&r.effect==='範圍傷害'&&r.radius===`${s.stats.blast!/100} 格`&&r.who.startsWith(s.stats.friendlyFire?'敵我不分':'只傷敵人')),s.name);
+ assert.ok(spread.some(r=>r.name.includes('後勤'))&&spread.some(r=>r.name.includes('戰狼號')),'unique technologies that add a spread');
+});
+test('駐軍, 血量, 回血: capacities, repair rates and costs, heal rates from the simulation',()=>{
+ const rows=garrisonRows(),cap=(name:string)=>rows.find(r=>r.place===name)!.capacity;
+ for(const k of Object.keys(defenseRules.capacity))assert.equal(cap(rules.entries.find(e=>e.id===k)!.name),String(garrisonCapacity({civs:[neutralCiv],ages:[4],techs:[[]]},{kind:k,player:0})),k);
+ for(const [k,n] of Object.entries(defenseRules.rallyGarrison))assert.equal(cap(rules.entries.find(e=>e.id===k)!.name),String(n),k);
+ const ram=carrierRules.ram.capacity;assert.ok(rows.at(-1)!.capacity===`${ram.ram}／${ram['capped-ram']}／${ram['siege-ram']}`);
+ assert.deepEqual(repairPerSecond('building'),{first:repairRules.buildingRate*tick/100,extra:repairRules.buildingRate*tick/200});
+ assert.deepEqual(repairPerSecond('unit'),{first:repairRules.unitRate*tick/100,extra:repairRules.unitRate*tick/200});
+ for(const e of repairExamples){const c=costOf(e,{civ:neutralCiv,age:4,techs:[]}),r=repairCostOf(e);
+  assert.equal(r.wood,Math.floor((e==='town-center'?c.wood*2:c.wood)*repairRules.costShare),e);assert.equal(r.stone,e==='town-center'?0:Math.floor(c.stone*repairRules.costShare),e);}
+ const hp=hpRange();assert.equal(hp.buildingHigh.hp,Math.max(...buildKinds.map(b=>buildingHpOf(b))));assert.equal(hp.unitLow.hp,Math.min(...unitSteps().map(s=>s.stats.hp)));
+ const regen=regenRows();assert.equal(regen[0].rate,`每分鐘 ${statsOf('berserk',{civ:'vikings',age:4,techs:[]}).regen} 點`);
+ assert.equal(regen[1].rate,`每分鐘 ${60*tick/defenseRules.healTicks} 點`);assert.equal(regen[2].rate,`每分鐘 ${60*tick/defenseRules.healTicks*defenseRules.healRate.castle} 點`);
+});
+test('團隊加分, 聖物, 嘲諷語音, 招降: from the civilizations, religion rules and the taunt table',()=>{
+ const team=teamRows();assert.equal(team.length,civDefs.length-1);
+ for(const c of civDefs.filter(c=>c.id!==neutralCiv))assert.equal(team.find(t=>t.civ===c.name)!.texts.length,c.effects.filter(e=>e.scope==='team').length,c.id);
+ assert.deepEqual(relicFacts(),{count:religionRules.relics.count,goldEvery:religionRules.relics.goldTicks/tick,perMonastery:religionRules.relics.perMonastery,victory:relicFacts().victory});
+ assert.equal(relicFacts().victory,`${Math.floor(religionRules.relics.victoryTicks/tick/60)} 分 ${religionRules.relics.victoryTicks/tick%60} 秒`);
+ assert.equal(tauntRows().length,42);assert.deepEqual(tauntRows().map(t=>[t.n,t.zh,t.en]),taunts.map(t=>[t.n,t.zh,t.en]));
+ assert.deepEqual(tauntRows().filter(t=>!t.spoken).map(t=>t.n),[11,39,40,41]);
+ const c=conversionFacts();assert.deepEqual([c.min,c.max,c.chance,c.faithMin,c.faithMax],[religionRules.attempts.min,religionRules.attempts.max,religionRules.attemptChance,religionRules.faithAttempts.min,religionRules.faithAttempts.max]);
+ assert.equal(c.never.length,religionRules.unconvertibleBuildings.length);
+});
+
+// ── 戰術技巧 ────────────────────────────────────────────────────────────────────────────────────────────────────────
+import {tacticIds,tacticGroups,tacticPage,tacticPages,stepPhases,infobox,planFacts,civsText,shotRows,buildingShotRows,stanceRows,ballisticsFacts,phaseNames,coachText} from '../apps/web/codex-tactics.ts';
+import {tacticProse,tacticLacks,tacticsIntro,tacticsNote,basicUpgradesText} from '../packages/content/codex.ts';
+import {openings,unavailableOpenings} from '../packages/content/openings.ts';
+import {shotOf,buildingShotOf,projectileRules} from '../packages/sim/stats.ts';
+import {stances,tacticsRules} from '../packages/sim/combat.ts';
+test('the 戰術技巧 tab follows 遊戲元素; openings in the site\'s list order, then the micro techniques, each once',()=>{
+ // The 科技樹 round's tab comes after it.
+ assert.deepEqual(codexSections.map(s=>s.id).slice(-3,-1),['elements','tactics']);assert.equal(codexSections.at(-2)!.label,'戰術技巧');
+ assert.deepEqual(tacticIds(),['armstower','scrush','archerstar','armstar','brushtof','brushfc','towerrush','eglerush','fontrush','bbrush','pull','surround','focus','clump','spread','dodge','split','block']);
+ assert.deepEqual(tacticGroups().map(g=>g.items.map(i=>i.id)),[tacticIds().slice(0,10),tacticIds().slice(10)]);
+ // Every playable opening has a page, the eagle opening is listed but not playable, and nothing else is.
+ assert.deepEqual(tacticGroups()[0].items.filter(i=>i.available).map(i=>i.id).sort(),openings.map(o=>o.id).sort());
+ assert.deepEqual(tacticGroups()[0].items.filter(i=>!i.available).map(i=>i.id),unavailableOpenings.map(u=>u.id));
+ for(const p of tacticPages()){assert.ok(p.blocks.length,p.id);assert.ok(Array.isArray(tacticLacks[p.id]),`${p.id} lacks listed`);assert.equal(p.available,p.group==='micro'||!!openings.find(o=>o.id===p.id),p.id);}
+ const egle=tacticPage('eglerush')!;assert.equal(egle.reason,unavailableOpenings[0].reason);assert.equal(tacticPage('nope'),null);
+});
+test('戰術技巧 prose has no digits; the step labels and numbers come from the data',()=>{
+ for(const t of [tacticsIntro,tacticsNote,basicUpgradesText,coachText])assert.ok(!/\d/.test(t),t);
+ for(const p of tacticProse){for(const t of [p.name,p.summary,p.text,p.how??''])assert.ok(!/\d/.test(t),`${p.id}: ${t}`);assert.ok(p.text.length>=60,`${p.id} text`);assert.equal(!!p.how,p.group==='micro',p.id);}
+ for(const [id,lacks] of Object.entries(tacticLacks))for(const l of lacks)assert.ok(!/\d/.test(l.name+l.reason)&&l.reason.length,`${id}: ${l.name}`);
+});
+test('opening pages: infobox, steps, allocation, counters and the computer\'s plan are the opening data',()=>{
+ for(const o of openings){const p=tacticPage(o.id)!,block=(t:string)=>p.blocks.find(b=>b.title===t)!;
+  const steps=block('流程') as Extract<typeof p.blocks[number],{kind:'steps'}>;
+  assert.deepEqual(steps.phases.flatMap(g=>g.steps.map(s=>[g.label,s.label,s.check])),o.steps.map(s=>[phaseNames[s.phase],s.label,!!s.done]),o.id);
+  assert.deepEqual(steps.phases,stepPhases(o));
+  assert.deepEqual((block('資訊框') as {items:{label:string;value:string}[]}).items.map(i=>[i.label,i.value]),infobox(o));
+  assert.ok(infobox(o).some(([l,v])=>l==='適合文明'&&v===civsText(o.civs)));
+  assert.deepEqual((block('升級前配置') as {items:{value:string}[]}).items.map(i=>i.value),[o.allocation,o.siteAllocation]);
+  assert.deepEqual((block('反制') as {items:string[]}).items,[...o.counters]);
+  const plan=planFacts(o);assert.deepEqual((block('電腦怎麼打') as {items:{label:string;value:string}[]}).items.map(i=>[i.label,i.value]),plan);
+  assert.ok(plan.some(([l,v])=>l==='村民目標'&&v===`${o.plan.villagers} 名`)&&plan.some(([l,v])=>l==='升第二時代'&&v.includes(`村民 ${o.plan.clickAt} 名`)),o.id);
+  if(o.plan.towers)assert.ok(plan.some(([l,v])=>l==='前置箭塔'&&v.includes(`蓋 ${o.plan.towers!.count} 座`)),o.id);
+  if(o.plan.raid)assert.ok(plan.some(([l,v])=>l==='騷擾'&&v.includes(`${o.plan.raid!.sendAt} 隻`)),o.id);}
+});
+test('micro pages: accuracy, projectile speed, Ballistics and stances are the simulation numbers',()=>{
+ const rows=shotRows();assert.ok(rows.length>=20);
+ for(const r of rows){const s=unitSteps().find(s=>s.name===r.name)!,o=stepOwner(s.kind,lineStepIds(s.kind).indexOf(s.tech)),shot=shotOf(s.kind,o)!;
+  assert.deepEqual([r.accuracy,r.speed],[shot.accuracy,shot.speed],r.name);assert.equal(r.lead,shotOf(s.kind,{...o,techs:[...o.techs,'ballistics']})!.lead,r.name);}
+ // Thumb Ring makes the archer sure of a standing target; Warwolf the trebuchet; the hand cannoneer never.
+ assert.equal(rows.find(r=>r.kind==='archer')!.steady,100);assert.equal(rows.find(r=>r.kind==='trebuchet')!.steady,100);assert.equal(rows.find(r=>r.kind==='hand-cannoneer')!.steady,null);
+ assert.equal(rows.find(r=>r.kind==='archer')!.lead,true);assert.equal(rows.find(r=>r.kind==='hand-cannoneer')!.lead,false);
+ for(const b of buildingShotRows())assert.deepEqual([b.accuracy,b.speed,b.lead],[buildingShotOf(b.kind).accuracy,buildingShotOf(b.kind).speed,buildingShotOf(b.kind,['ballistics']).lead]);
+ const dodge=tacticPage('dodge')!.blocks.find(b=>b.title==='遠程單位') as {rows:string[][]};
+ assert.equal(dodge.rows.length,rows.length);assert.equal(dodge.rows[0][3],`${rows[0].speed*tick/100} 格/秒`);
+ const miss=tacticPage('dodge')!.blocks.find(b=>b.title==='命中與落空') as {items:{value:string}[]};assert.ok(miss.items[0].value.includes(`${projectileRules.hitRadius/100} 格`));
+ assert.deepEqual(stanceRows().map(r=>r.stance),[...stances]);assert.ok(stanceRows()[1].chase.includes(`${tacticsRules.defensiveLeash/100} 格`));
+ const b=ballisticsFacts();assert.equal(b[1][1],`木材 ${costOf('ballistics',{civ:neutralCiv,age:3,techs:[]}).wood}、黃金 ${costOf('ballistics',{civ:neutralCiv,age:3,techs:[]}).gold}`);
+});
+// ── 科技樹 (the 科技樹 round) ─────────────────────────────────────────────────────────────────────────────────────────
+import {civTree,treeNodes,treeMark,treeBlockOrder,treeIntro,treeNote} from '../apps/web/codex-tree.ts';
+import type {TreeMatch} from '../apps/web/codex-tree.ts';
+import {lineUpgrades as treeLines} from '../packages/sim/stats.ts';
+const treeEntries=(civ:string)=>rules.entries.filter(e=>!uniqueUnitOwner[e.id]||uniqueUnitOwner[e.id]===civ).map(e=>e.id).sort();
+test('the 科技樹 tab: every entry of a civilization\'s tree appears exactly once, in the site\'s block order',()=>{
+ assert.equal(codexSections.at(-1)!.id,'tree');assert.equal(codexSections.at(-1)!.label,'科技樹');
+ assert.doesNotMatch(treeIntro,/\d/);assert.ok(treeNote.includes('aoetw.com'));
+ // The site's fourteen blocks in page order, with the villagers' build block after the town centre.
+ assert.deepEqual([...treeBlockOrder],['barracks','archery-range','stable','siege-workshop','castle','town-center','build','mill','lumber-camp','mining-camp','dock','blacksmith','market','monastery','university']);
+ for(const c of civDefs){const t=civTree(c.id),nodes=treeNodes(t).filter(n=>!n.alias&&n.kind!=='ref'),ids=nodes.map(n=>n.id);
+  for(const id of treeEntries(c.id))assert.equal(ids.filter(x=>x===id).length,1,`${c.id} ${id}`);
+  // Anything else is another civilization's unique item the site shows greyed in a common block (the dock's longboat).
+  for(const n of nodes.filter(n=>!treeEntries(c.id).includes(n.id))){assert.ok(uniqueUnitOwner[n.id]&&uniqueUnitOwner[n.id]!==c.id,`${c.id} ${n.id}`);assert.equal(n.available,false);}
+  assert.deepEqual(t.blocks.map(b=>b.id),[...treeBlockOrder],c.id);}
+ // The castle shows the civilization's own unique unit and technologies; the neutral civilization has none.
+ const castle=(civ:string)=>civTree(civ).blocks.find(b=>b.id==='castle')!.columns.flat().flatMap(c=>c.nodes).map(n=>n.id);
+ for(const id of ['longbowman','elite-longbowman','yeomen','warwolf'])assert.ok(castle('britons').includes(id),id);
+ assert.ok(!castle('britons').includes('berserk'));assert.ok(!treeNodes(civTree(neutralCiv)).some(n=>n.unique&&n.available));
+});
+test('科技樹 availability marks equal the rules for every civilization; reference items are marked, not playable',()=>{
+ for(const c of civDefs){const t=civTree(c.id);
+  for(const n of treeNodes(t)){if(n.kind==='ref'){assert.equal(n.available,false,n.id);assert.ok(n.reason,n.id);continue;}
+   const want=n.alias?civAvailable(c.id,n.id)&&civAvailable(c.id,treeLines.find(l=>l.id===n.id&&n.key.endsWith(`:${n.id}`)&&n.key.startsWith(`${l.kind}:`))!.kind):civAvailable(c.id,n.id);
+   assert.equal(n.available,want,`${c.id} ${n.key}`);}}
+ // Without reference items nothing faint is drawn.
+ assert.ok(!treeNodes(civTree('britons',false)).some(n=>n.kind==='ref'));
+ assert.ok(treeNodes(civTree('britons')).some(n=>n.id==='eagle-scout'&&n.kind==='ref'));
+});
+test('科技樹 follows the site\'s grid; every connector drawn is a real prerequisite or line step',()=>{
+ const lineOf=(kind:string)=>[kind,...treeLines.filter(l=>l.kind===kind).map(l=>l.id)];
+ const holds=(a:any,b:any)=>a.kind==='ref'&&b.kind==='ref'||!!rules.entries.find(e=>e.id===b.id)?.requires.includes(a.id)||
+  treeLines.some(l=>l.id===b.id&&lineOf(l.kind).indexOf(b.id)===lineOf(l.kind).indexOf(a.id)+1&&lineOf(l.kind).includes(a.id));
+ for(const c of civDefs)for(const b of civTree(c.id).blocks)for(const col of b.columns){
+  col.forEach((cell,r)=>{cell.links.forEach((on,i)=>{if(on)assert.ok(holds(cell.nodes[i],cell.nodes[i+1]),`${c.id} ${cell.nodes[i].id}→${cell.nodes[i+1].id}`);});
+   if(cell.down){const below=col.findIndex((x,rr)=>rr>r&&x.nodes.length);assert.ok(below>r&&col[below].up,`${c.id} ${b.id} down`);
+    assert.ok(holds(cell.nodes.at(-1),col[below].nodes[0]),`${c.id} ${cell.nodes.at(-1)!.id}↓${col[below].nodes[0].id}`);
+    for(let rr=r+1;rr<below;rr++)assert.ok(col[rr].pipe&&!col[rr].nodes.length);}});}
+ const cells=(civ:string,block:string)=>{const b=civTree(civ).blocks.find(x=>x.id===block)!;return b.ages.map((age,r)=>[age,b.columns.map(col=>col[r].nodes.map(n=>`${n.name}${n.alias?'*':''}`).join('|'))] as [number,string[]]);};
+ // War Galley is one research: the galley's column shows it, the fire galley's and demolition raft's what it makes of them.
+ assert.deepEqual(cells('britons','dock').find(([age])=>age===3)![1].slice(0,3),['火戰船*','爆破船*','弩砲戰船']);
+ // The town centre's rows from the Dark Age; the build block by age.
+ assert.deepEqual(civTree('britons').blocks.find(b=>b.id==='town-center')!.ages,[1,2,3]);
+ assert.deepEqual(cells('britons','build'),[[1,['民居','木牆','木門','哨站']],[2,['箭塔','石牆','城門','']],[4,['火砲塔','世界奇觀','','']]]);
+ // Cross-block notes: Chemistry for the gunpowder units, the bombard tower's technology, the towers' University upgrades.
+ const node=(id:string)=>treeNodes(civTree('turks')).find(n=>n.id===id&&!n.alias)!;
+ for(const id of ['hand-cannoneer','bombard-cannon','cannon-galleon'])assert.deepEqual(node(id).needs,['化學'],id);
+ assert.deepEqual(node('bombard-tower').needs,['火砲塔技術']);assert.deepEqual(node('watch-tower').leads,['防禦箭塔','大型箭塔']);
+ // The site's arrow from Cartography to Caravan is not a prerequisite here: not drawn.
+ const market=civTree('britons').blocks.find(b=>b.id==='market')!;assert.equal(market.columns[0][0].down,false);
+});
+test('科技樹 match marks: researched, owned, in progress, possible now, short of resources, not yet, not in the tree',()=>{
+ const m:TreeMatch={civ:'britons',age:2,techs:['loom','fletching'],stock:{food:120,wood:100,gold:40,stone:0},
+  buildings:[{kind:'town-center',complete:true,queue:[{entryId:'villager'}]},{kind:'barracks',complete:true,queue:[]},{kind:'archery-range',complete:false,queue:[]},{kind:'blacksmith',complete:true,queue:[]}],units:{villager:6,militia:2}};
+ const t=civTree('britons'),node=(id:string)=>treeNodes(t).find(n=>n.id===id&&!n.alias)!,state=(id:string)=>treeMark(node(id),m);
+ assert.equal(state('loom').state,'done');assert.equal(state('age-2').state,'done');assert.equal(state('fletching').state,'done');
+ assert.equal(state('villager').state,'queued');assert.deepEqual([state('militia').state,state('militia').count],['owned',2]);
+ assert.equal(state('archery-range').state,'queued');assert.deepEqual([state('barracks').state,state('barracks').count],['owned',1]);
+ // Man-at-Arms: a standing barracks, the second age, 100 food 40 gold: possible now; Feudal-age Forging lacks food.
+ assert.equal(state('man-at-arms').state,'ready');assert.equal(state('forging').state,'short');
+ // The Castle and the Crossbowman need the third age: not yet.
+ assert.equal(state('castle').state,'later');assert.equal(state('crossbowman').state,'later');
+ // Not in the Britons' tree, and not in this game.
+ assert.equal(state('hussar').state,'off');assert.equal(treeMark(treeNodes(t).find(n=>n.id==='eagle-scout')!,m).state,'ref');
 });

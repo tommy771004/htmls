@@ -19,7 +19,9 @@ export type PlayerVision={explored:number[];visible:number[];known:KnownObstacle
 export function createVision():PlayerVision[]{return Array.from({length:2},()=>({explored:[],visible:[],known:[],resources:[]}));}
 // Policy is explicit: callers may only supply allies after diplomacy/technology validation.
 // extra: sight a player's civilization adds to a unit or building kind (packages/sim/civ.ts losBonus).
-export function updateVision(visions:PlayerVision[],map:MapData,units:Observer[],tick:number,sharing:number[][]=[[0],[1]],extra:(player:number,kind:string)=>number=()=>0):void{
+// reveals: tiles a player sees for now regardless of its units (the shooter that just hit it from out of sight,
+// combat.ts reveal).
+export function updateVision(visions:PlayerVision[],map:MapData,units:Observer[],tick:number,sharing:number[][]=[[0],[1]],extra:(player:number,kind:string)=>number=()=>0,reveals:readonly {player:number;tile:number}[]=[],everything=false):void{
  if(sharing.length!==2||sharing.some((members,p)=>!members.includes(p)||members.some(id=>!Number.isInteger(id)||id<0||id>1)))throw Error('無效共享視野規則');
  const own=[new Set<number>(),new Set<number>()];
  // Tile centres within the radius; only the tiles in the radius' bounding box are tested.
@@ -36,6 +38,9 @@ export function updateVision(visions:PlayerVision[],map:MapData,units:Observer[]
  else if(o.kind==='watch-tower'&&o.progress===undefined)reveal(o.red?1:0,o.x+50,o.y+50,visionRules.towerRadius+extra(o.red?1:0,o.kind));
  // The Castle sees as far as a tower, from its centre.
  else if(o.kind==='castle'&&o.progress===undefined)reveal(o.red?1:0,o.x+185,o.y+185,visionRules.towerRadius+extra(o.red?1:0,o.kind));
+ for(const r of reveals)if(r.player===0||r.player===1)own[r.player].add(r.tile);
+ // The lobby's 全部顯示: both players see every tile all the time.
+ if(everything)for(let t=0;t<size*size;t++){own[0].add(t);own[1].add(t);}
  for(let player=0;player<2;player++){
  const vision=visions[player],visible=new Set(sharing[player].flatMap(id=>[...own[id]]));
  vision.resources=map.resources.filter(r=>r.status==='available'&&visible.has(tileAt(r.x,r.y,size))).map(r=>({...r}));

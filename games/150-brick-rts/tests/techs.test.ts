@@ -22,6 +22,7 @@ import {reach} from '../packages/sim/combat.ts';
 import {obstacleBounds} from '../packages/content/footprints.ts';
 import {rules,resources} from '../packages/content/rules.ts';
 import {civDefs,neutralCiv} from '../packages/content/civs.ts';
+import {settle} from './flight.ts';
 import {castleAgeMatch} from './castle-age-fixture.ts';
 
 const SEED=260925;
@@ -91,7 +92,7 @@ test('the University: refused before the third age, 350 hit points, researches t
  assert.throws(()=>order(s,'build',{unitIds:[1],kind:'university',x:700,y:Y}),/需要第三時代/);
  ageTo(s,3);const u=raise(s,0,'university');assert.equal(u.maxHp,350);assert.equal(u.hp,350);assert.equal(buildingHpOf('university'),350);
  // The 建築 round added Heated Shot, Fortified Wall and the Bombard Tower technology.
- assert.deepEqual(producedAt('university',ownerOf(s,0)).sort(),[...techTable.filter(t=>t[1]==='university').map(t=>t[0]),'heated-shot','fortified-wall','bombard-tower-tech'].sort());
+ assert.deepEqual(producedAt('university',ownerOf(s,0)).sort(),[...techTable.filter(t=>t[1]==='university').map(t=>t[0]),'heated-shot','fortified-wall','bombard-tower-tech','ballistics'].sort());
  // Every civilization may build it.
  for(const c of rules.civilizations)assert.ok(c.available.includes('university'),c.id);
 });
@@ -197,14 +198,16 @@ test('the new technologies\' numbers',()=>{
  assert.equal(statsOf('bombard-cannon',own('turks',4,['siege-engineers','artillery'])).range,800);
  assert.deepEqual(costOf('militia',n(['supplies'])),{food:45,wood:0,gold:20,stone:0});
  assert.deepEqual(['militia','spearman','woad-raider','huskarl','teutonic-knight'].map(k=>speedOf(k as CombatUnitKind,n(['squires']))),[5.5,5.5,7.7,6.6,4.4]);
- assert.deepEqual(['militia','huskarl'].map(k=>statsOf(k as CombatUnitKind,n(['arson'])).bonus.building),[2,4]);
- assert.deepEqual(['archer','longbowman','cavalry-archer','mangudai','chu-ko-nu','skirmisher','hand-cannoneer'].map(k=>statsOf(k as CombatUnitKind,n(['thumb-ring'])).cooldown),[25,25,27,27,44,30,52]);
+ // The 遊戲元素 round: infantry bonuses against buildings are against standard buildings (aoetw.com armor classes).
+ assert.deepEqual(['militia','huskarl'].map(k=>statsOf(k as CombatUnitKind,n(['arson'])).bonus['standard-building']),[2,4]);
+ assert.deepEqual(['archer','longbowman','cavalry-archer','mangudai','chu-ko-nu','skirmisher','hand-cannoneer'].map(k=>statsOf(k as CombatUnitKind,n(['thumb-ring'])).cooldown),[25,25,27,25,44,30,52]);
+ // (The 戰術技巧 round: the Mangudai takes the foot archers' +18%, per aoetw.com Thumb Ring, not the horse archers' +11%.)
  assert.deepEqual([statsOf('cavalry-archer',n(['parthian-tactics'])).armor,statsOf('cavalry-archer',n(['parthian-tactics'])).bonus.spear,statsOf('mangudai',n(['parthian-tactics'])).bonus.spear],[[1,2],6,3]);
  assert.deepEqual(['scout','knight','camel','cavalry-archer','war-elephant'].map(k=>maxHpOf(k as CombatUnitKind,n(['bloodlines']))),[65,120,120,70,470]);
  assert.deepEqual(['scout','knight','war-elephant'].map(k=>speedOf(k as CombatUnitKind,n(['husbandry']))),[11,11,4.4]);
  assert.deepEqual([losBonus(n(['town-watch']),'town-center'),losBonus(n(['town-watch','town-patrol']),'house'),losBonus(n(['town-watch']),'stable'),losBonus(n(['town-watch']),'archer',['archer'])],[400,800,0,0]);
  assert.equal(speedOf('monk',n(['fervor'])),5.75);assert.equal(garrisonHealScale(n(['herbal-medicine']),'town-center'),6);
- assert.equal(statsOf('villager',n(['sappers'])).bonus.building,15);assert.equal(buildRateBonus(n(['treadmill-crane']),'house'),20);
+ assert.equal(statsOf('villager',n(['sappers'])).bonus.building,1+15);assert.equal(buildRateBonus(n(['treadmill-crane']),'house'),20);
  assert.deepEqual([timeTicks('militia',n(['conscription']),'barracks'),timeTicks('militia',n([]),'barracks'),timeTicks('masonry',n(['conscription']),'university'),timeTicks('villager',n(['conscription']),'town-center')],[301,400,1000,400]);
  // Gunpowder: the site's numbers; Turks' health, free Chemistry and faster training.
  assert.deepEqual([costOf('hand-cannoneer',n([])),costOf('bombard-cannon',n([]))],[{food:45,wood:0,gold:50,stone:0},{food:0,wood:225,gold:225,stone:0}]);
@@ -244,7 +247,8 @@ test('Guard Tower, Keep, Arrowslits and Chemistry: a tower\'s arrow hits for 5 +
  const hit=(kind:UnitKind,tech:string,at:BuildKind)=>{const before=hitOf(kind);research(t,building(t,at),tech);return [before,hitOf(kind)];};
  const hitOf=(kind:UnitKind)=>{const u=spawn(t,0,kind,(rbox[0]+rbox[2])/2,rbox[3]+50,false);order(t,'attack',{unitIds:[u.id],target:{kind:'building',id:red.id}});
   const hp=red.hp;run(t,200,()=>red.hp!==hp);const d=hp-red.hp;t.units=t.units.filter(v=>v!==u);delete t.attacks[u.id];t.accounts[0].populationUsed--;return d;};
- assert.deepEqual(hit('militia','arson','barracks'),[6,8]);assert.deepEqual(hit('villager','sappers','castle'),[1,16]);
+ // The 遊戲元素 round: a villager has +1 against buildings of its own (the site's +3 x0.32).
+ assert.deepEqual(hit('militia','arson','barracks'),[6,8]);assert.deepEqual(hit('villager','sappers','castle'),[2,17]);
 });
 
 
@@ -252,9 +256,11 @@ test('Siege Engineers in a fight: a ram strikes 2 + 48, a mangonel throws from 4
  const s=match(neutralCiv);clearRed(s);ageTo(s,4);const school=raise(s,0,'university');research(s,school,'siege-engineers');
  const red=tcOf(s,1),box=obstacleBounds(s.map.obstacles.find(o=>o.id===red.id)!),ram=spawn(s,0,'ram',(box[0]+box[2])/2,box[3]+50,false);
  order(s,'attack',{unitIds:[ram.id],target:{kind:'building',id:red.id}});run(s,200,()=>red.hp<400);assert.equal(red.hp,400-(2+48));
- // A mangonel 450 from a red ram (beyond its old 400) throws at once, for its 40 (no bonus against siege).
+ // A mangonel 450 from a red ram (beyond its old 400) throws at once, for its 40 + 4 against siege (the 遊戲元素 round:
+ // the site's +12 x0.32).
  const m=spawn(s,0,'mangonel',300,Y),foe=spawn(s,1,'ram',750,Y);order(s,'attack',{unitIds:[m.id],target:{kind:'unit',id:foe.id}});run(s,1);
- assert.equal(reach(m,foe),450);assert.equal(foe.hp,175-40);
+ // It throws on the first tick; the stone flies (the 戰術技巧 round) and lands on the standing ram.
+ assert.equal(reach(m,foe),450);assert.equal(s.attacks[m.id].firedTick,s.tick);settle(s,see);assert.equal(foe.hp,175-44);
  // Thumb Ring: fired ticks of a real archer before and after.
  const interval=(techs:string[])=>{const t=match(neutralCiv);clearRed(t);ageTo(t,3);if(techs.length)research(t,building(t,'archery-range'),techs[0]);
   // A ram never strikes back (the archer takes 1 off it a shot).
@@ -334,13 +340,20 @@ test('the hand cannoneer and the bombard cannon are trained only after Chemistry
 test('gunpowder fights: the hand cannoneer\'s 26 against infantry, the bombard cannon\'s minimum range, one-node blast and 104 against buildings',()=>{
  // The fights on the open band south of the bases, in a match without buildings there (Chemistry given: its research is above).
  const s=match(neutralCiv);clearRed(s);s.ages[0]=4;s.techs[0].push('chemistry');
- // Hand cannoneer: 17 pierce - 1 + 10 against infantry, from 400, every 52 ticks.
- {const a=spawn(s,0,'hand-cannoneer',300,Y),foe=spawn(s,1,'militia',700,Y);order(s,'attack',{unitIds:[a.id],target:{kind:'unit',id:foe.id}});run(s,1);
-  assert.equal(reach(a,foe),400);assert.equal(foe.hp,45-26);run(s,51);assert.equal(foe.hp,45-26);run(s,1);assert.ok(!s.units.includes(foe),'the second ball kills it');s.units=s.units.filter(v=>v!==a);}
+ // Hand cannoneer: 17 pierce - 1 + 10 against infantry, from 400, every 52 ticks; the first ball after its 5-tick aim
+ // (the 遊戲元素 round's frame delay).
+ // The 戰術技巧 round: balls fly and hit 65% of the time (the militia holds still); every ball that lands takes 26, the
+ // second one that lands kills it, and the shots leave every 52 ticks.
+ {const a=spawn(s,0,'hand-cannoneer',300,Y),foe=spawn(s,1,'militia',700,Y);s.stances[foe.id]='passive';order(s,'attack',{unitIds:[a.id],target:{kind:'unit',id:foe.id}});run(s,1+5);
+  assert.equal(reach(a,foe),400);assert.equal(s.attacks[a.id].firedTick,s.tick,'the first ball after the aim');
+  const hits:number[]=[],fired=[s.tick];let last=45;run(s,1200,()=>{const f=s.attacks[a.id]?.firedTick;if(f!==undefined&&f>fired.at(-1)!)fired.push(f);if(foe.hp<last&&s.units.includes(foe)){hits.push(last-foe.hp);last=foe.hp;}return !s.units.includes(foe);});
+  assert.deepEqual(hits,[26]);assert.ok(!s.units.includes(foe),'the second ball that lands kills it');assert.ok(fired.slice(1).every((f,i)=>f-fired[i]===52),'every 52 ticks');s.units=s.units.filter(v=>v!==a);}
  // Bombard cannon: 40 melee + 6 against siege; the enemy one node away takes the blast too (50), the one beyond does not.
  {const b=spawn(s,0,'bombard-cannon',200,Y),foe=spawn(s,1,'ram',800,Y),next=spawn(s,1,'ram',850,Y),side=spawn(s,1,'ram',900,Y);
-  assert.equal(statsOf('bombard-cannon',ownerOf(s,0)).blast,50);order(s,'attack',{unitIds:[b.id],target:{kind:'unit',id:foe.id}});run(s,1);
-  assert.equal(foe.hp,175-46);assert.equal(next.hp,175-46);assert.equal(side.hp,175);run(s,64);assert.equal(foe.hp,175-46);run(s,1);assert.equal(foe.hp,175-92,'every 65 ticks');
+  assert.equal(statsOf('bombard-cannon',ownerOf(s,0)).blast,50);order(s,'attack',{unitIds:[b.id],target:{kind:'unit',id:foe.id}});run(s,1+7);
+  // The ball flies (the 戰術技巧 round): counted where it lands; the next leaves 65 ticks after the first.
+  const first=s.attacks[b.id].firedTick;assert.equal(first,s.tick);run(s,400,()=>foe.hp<175);
+  assert.equal(foe.hp,175-46);assert.equal(next.hp,175-46);assert.equal(side.hp,175);run(s,first+65-s.tick);assert.equal(s.attacks[b.id].firedTick,first+65,'every 65 ticks');
   for(const u of [b,foe,next,side])s.units=s.units.filter(v=>v!==u);}
  // Its minimum range: a target 200 away is never picked automatically; ordered, it walks out to 250 or more first.
  {const b=spawn(s,0,'bombard-cannon',300,Y),foe=spawn(s,1,'ram',500,Y);run(s,60);assert.equal(s.attacks[b.id],undefined);assert.equal(foe.hp,175);

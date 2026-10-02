@@ -74,15 +74,17 @@ commandMove(s,[blue.id],{x:at.x+150,y:at.y+50});commandMove(s,[red.id],{x:at.x+1
 });
 
 test('the bombard tower: one 120 shot a volley, nobody inside adds shots; heated shot adds to the arrows against ships',()=>{
- const s=createState(SEED,'meadow','ai');s.ages=[4,4];s.techs[0].push('chemistry','bombard-tower-tech');see(s);s.units=s.units.filter(u=>u.player!==1);
+ // Red idle: its computer would walk the targets out from under the slow cannonball (shots fly from the 戰術技巧 round on).
+ const s=createState(SEED,'meadow','idle');s.ages=[4,4];s.techs[0].push('chemistry','bombard-tower-tech');see(s);s.units=s.units.filter(u=>u.player!==1);
  const tc=tcOf(s),tower=raise(s,0,'bombard-tower',{x:tc.x+500,y:tc.y+600}),watch=raise(s,0,'watch-tower',{x:tc.x-300,y:tc.y+700});
  for(let i=0;i<5;i++){const v=spawn(s,0,'villager',tower.x+150,tower.y+150+i*50);order(s,'garrison',{unitIds:[v.id],buildingId:tower.id});}
  run(s,300,()=>(s.garrison[tower.id]?.units.length??0)===5);assert.equal(s.garrison[tower.id]?.units.length,5);
- const elephant=spawn(s,1,'war-elephant',tower.x+50,tower.y+300),full=elephant.hp;s.attacks={};
+ // The targets hold still (no attack stance): shots fly from the 戰術技巧 round on, and a walking target dodges them.
+ const elephant=spawn(s,1,'war-elephant',tower.x+50,tower.y+300),full=elephant.hp;s.attacks={};s.stances[elephant.id]='passive';
  run(s,200,()=>elephant.hp<full);assert.equal(full-elephant.hp,120-2,'one cannonball: 120 less pierce armor 2');
  const after=elephant.hp;run(s,60);assert.equal(elephant.hp,after,'and nothing until it reloads');
  s.techs[0].push('heated-shot');assert.equal(arrowsOf(ownerOf(s,0),'watch-tower').bonus.ship,6);assert.equal(arrowsOf(ownerOf(s,0),'town-center').bonus.ship,undefined);
- const galley=spawn(s,1,'galley',watch.x+50,watch.y+250),hp=galley.hp;
+ const galley=spawn(s,1,'galley',watch.x+50,watch.y+250),hp=galley.hp;s.stances[galley.id]='passive';
  run(s,100,()=>galley.hp<hp);assert.equal(hp-galley.hp,5+1+7+6-6,'tower arrow 5 (+1 Chemistry), +7 against ships, +6 heated shot, less pierce armor 6');
 });
 

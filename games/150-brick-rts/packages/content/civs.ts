@@ -35,7 +35,12 @@ export type EffectKind=
  |'healRange'|'healRate'|'conversionResist'
  // the 建築 round: marketFee (add, percent points of the market's 30% fee), transportCapacity (add, units a transport
  // ship carries), arrowBonus (add, a building's arrows against the class in vs)
- |'marketFee'|'transportCapacity'|'arrowBonus';
+ |'marketFee'|'transportCapacity'|'arrowBonus'
+ // the 遊戲元素 round: buildingClassArmor (add, the building's armor against bonuses keyed on 'building')
+ |'buildingClassArmor'
+ // the 戰術技巧 round: lead (Ballistics: shots from these units or buildings aim where a moving target will be), accuracy
+ // (set, percent: Thumb Ring and Warwolf make shots at a standing target sure)
+ |'lead'|'accuracy';
 export type Resource='food'|'wood'|'gold'|'stone';
 // trigger: active from that age and/or once that technology is researched. stacking: every active effect of a kind
 // applies (add sums, mul multiplies); the age tiers of one effect never stack. priority orders the layers: 0 base
@@ -66,7 +71,7 @@ export const neutralCiv='settlers';
 export const civDefs:readonly CivDef[]=[
  {id:neutralCiv,name:'拓荒者',nameEn:'Settlers',type:'無加成（均衡測試）',architecture:'neutral',missing:[],missingLater:[],uniqueUnits:[],eliteUpgrades:[],uniqueTechs:[],effects:[],omitted:[],sources:['本作原創：沒有文明加成與城堡，作為測試與練習的基準']},
  {id:'britons',name:'不列顛',nameEn:'Britons',type:'弓兵文明',architecture:'west',
-  missing:['crop-rotation','stone-shaft-mining','redemption','atonement','heresy','hussar','paladin','camel','heavy-camel','siege-ram','siege-onager','treadmill-crane','bloodlines','thumb-ring','parthian-tactics','hand-cannoneer','bombard-cannon','elite-cannon-galleon','bombard-tower'],missingLater:['missionary'],
+  missing:['crop-rotation','stone-shaft-mining','redemption','atonement','heresy','hussar','paladin','camel','heavy-camel','siege-ram','siege-onager','treadmill-crane','bloodlines','thumb-ring','parthian-tactics','hand-cannoneer','bombard-cannon','elite-cannon-galleon','bombard-tower','bombard-tower-tech'],missingLater:['missionary'],
   uniqueUnits:['longbowman'],eliteUpgrades:['elite-longbowman'],
   uniqueTechs:[{id:'yeomen',name:'義勇騎兵',nameEn:'Yeomen',age:3,effectText:'徒步弓兵射程 +1，箭塔攻擊 +2'},{id:'warwolf',name:'戰狼號',nameEn:'Warwolf',age:4,effectText:'巨型投石機獲得範圍傷害'}],
   effects:[
@@ -77,11 +82,13 @@ export const civDefs:readonly CivDef[]=[
    fx('britons.yeomen-range','range',{classes:['archer'],exclude:['gunpowder','cavalry-archer']},50,'義勇騎兵：徒步弓兵（含散兵）射程 +1',{tech:'yeomen'}),
    fx('britons.yeomen-tower','arrowDamage',{buildings:['watch-tower']},2,'義勇騎兵：箭塔攻擊 +2',{tech:'yeomen'}),
    fx('britons.warwolf','blast',{kinds:['trebuchet']},75,'戰狼號：巨型投石機的石彈波及落點周圍的敵兵',{tech:'warwolf'}),
+   // aoetw: 100% against standing targets; here the trebuchet strikes buildings only, which always stand.
+   fx('britons.warwolf-accuracy','accuracy',{kinds:['trebuchet']},100,'戰狼號：巨型投石機射擊靜止目標必中',{tech:'warwolf'}),
   ],
-  omitted:[{text:'戰狼號對靜止單位 100% 命中',reason:'本作的巨型投石機只打建築，也沒有命中率'}],
+  omitted:[],
   sources:[site('civs/Britons'),site('units/Longbowman'),site('techs/Yeomen'),site('techs/Warwolf'),site('tree/bri')]},
  {id:'celts',name:'塞爾特',nameEn:'Celts',type:'步兵與攻城器文明',architecture:'west',
-  missing:['two-man-saw','crop-rotation','bracer','ring-archer-armor','plate-barding-armor','redemption','atonement','illumination','block-printing','theocracy','arbalest','camel','heavy-camel','architecture','bloodlines','thumb-ring','parthian-tactics','squires','hand-cannoneer','bombard-cannon','bombard-tower','elite-cannon-galleon','fast-fire-ship'],missingLater:['missionary'],
+  missing:['two-man-saw','crop-rotation','bracer','ring-archer-armor','plate-barding-armor','redemption','atonement','illumination','block-printing','theocracy','arbalest','camel','heavy-camel','architecture','bloodlines','thumb-ring','parthian-tactics','squires','hand-cannoneer','bombard-cannon','bombard-tower','bombard-tower-tech','elite-cannon-galleon','fast-fire-ship'],missingLater:['missionary'],
   uniqueUnits:['woad-raider'],eliteUpgrades:['elite-woad-raider'],
   uniqueTechs:[{id:'stronghold',name:'堡壘',nameEn:'Stronghold',age:3,effectText:'城堡與箭塔射速 +25%'},{id:'furor-celtica',name:'塞爾特狂熱',nameEn:'Furor Celtica',age:4,effectText:'攻城器工坊的單位生命 +40%'}],
   effects:[
@@ -95,7 +102,7 @@ export const civDefs:readonly CivDef[]=[
   omitted:[{text:'可在對手單位視野內搶走對手的羊',reason:'本作的搶羊規則不看視野（己方建築 4 格內的羊本來就不會被搶）'}],
   sources:[site('civs/Celts'),site('units/Woad_Raider'),site('techs/Stronghold'),site('techs/Furor_Celtica'),site('tree/cel')]},
  {id:'franks',name:'法蘭克',nameEn:'Franks',type:'騎兵文明',architecture:'west',
-  missing:['two-man-saw','stone-shaft-mining','bracer','ring-archer-armor','redemption','arbalest','hussar','camel','heavy-camel','siege-ram','siege-onager','keep','bloodlines','thumb-ring','parthian-tactics','sappers','bombard-tower','heated-shot','shipwright','elite-cannon-galleon','guilds'],missingLater:['missionary'],
+  missing:['two-man-saw','stone-shaft-mining','bracer','ring-archer-armor','redemption','arbalest','hussar','camel','heavy-camel','siege-ram','siege-onager','keep','bloodlines','thumb-ring','parthian-tactics','sappers','bombard-tower','bombard-tower-tech','heated-shot','shipwright','elite-cannon-galleon','guilds'],missingLater:['missionary'],
   uniqueUnits:['throwing-axeman'],eliteUpgrades:['elite-throwing-axeman'],
   uniqueTechs:[{id:'chivalry',name:'騎士精神',nameEn:'Chivalry',age:3,effectText:'馬廄生產速度 +40%'},{id:'bearded-axe',name:'倒鉤斧',nameEn:'Bearded Axe',age:4,effectText:'擲斧兵射程 +1'}],
   effects:[
@@ -110,7 +117,7 @@ export const civDefs:readonly CivDef[]=[
   omitted:[],
   sources:[site('civs/Franks'),site('units/Throwing_Axeman'),site('techs/Chivalry'),site('techs/Bearded_Axe'),site('tree/fra')]},
  {id:'goths',name:'哥德',nameEn:'Goths',type:'步兵文明',architecture:'central',
-  missing:['gold-shaft-mining','plate-mail-armor','plate-barding-armor','redemption','atonement','heresy','block-printing','arbalest','paladin','camel','heavy-camel','siege-ram','siege-onager','siege-engineers','guard-tower','keep','treadmill-crane','arrowslits','thumb-ring','parthian-tactics','arson','hoardings','bombard-tower','elite-cannon-galleon','dry-dock','fortified-wall'],missingLater:['missionary'],
+  missing:['gold-shaft-mining','plate-mail-armor','plate-barding-armor','redemption','atonement','heresy','block-printing','arbalest','paladin','camel','heavy-camel','siege-ram','siege-onager','siege-engineers','guard-tower','keep','treadmill-crane','arrowslits','thumb-ring','parthian-tactics','arson','hoardings','bombard-tower','bombard-tower-tech','elite-cannon-galleon','dry-dock','fortified-wall'],missingLater:['missionary'],
   uniqueUnits:['huskarl'],eliteUpgrades:['elite-huskarl'],
   uniqueTechs:[{id:'anarchy',name:'無政府狀態',nameEn:'Anarchy',age:3,effectText:'兵營也能訓練哥德衛隊'},{id:'perfusion',name:'井噴',nameEn:'Perfusion',age:4,effectText:'兵營生產速度 +100%'}],
   effects:[
@@ -145,7 +152,7 @@ export const civDefs:readonly CivDef[]=[
   omitted:[{text:'免費近射孔',reason:'本作的箭塔沒有最近射程，近射孔沒有作用'}],
   sources:[site('civs/Teutons'),site('units/Teutonic_Knight'),site('techs/Ironclad'),site('techs/Crenellations'),site('tree/teu')]},
  {id:'vikings',name:'維京',nameEn:'Vikings',type:'步兵與海軍文明',architecture:'central',
-  missing:['stone-shaft-mining','plate-barding-armor','redemption','sanctity','illumination','theocracy','halberdier','heavy-cavalry-archer','hussar','paladin','camel','heavy-camel','siege-onager','keep','bloodlines','husbandry','parthian-tactics','herbal-medicine','hand-cannoneer','bombard-cannon','bombard-tower','fire-galley','fast-fire-ship','elite-cannon-galleon','shipwright','guilds'],missingLater:['missionary'],
+  missing:['stone-shaft-mining','plate-barding-armor','redemption','sanctity','illumination','theocracy','halberdier','heavy-cavalry-archer','hussar','paladin','camel','heavy-camel','siege-onager','keep','bloodlines','husbandry','parthian-tactics','herbal-medicine','hand-cannoneer','bombard-cannon','bombard-tower','bombard-tower-tech','fire-galley','fast-fire-ship','elite-cannon-galleon','shipwright','guilds'],missingLater:['missionary'],
   uniqueUnits:['berserk','longboat'],eliteUpgrades:['elite-berserk','elite-longboat'],
   uniqueTechs:[{id:'chieftains',name:'酋長',nameEn:'Chieftains',age:3,effectText:'步兵對騎兵攻擊 +5'},{id:'berserkergang',name:'狂戰士幫',nameEn:'Berserkergang',age:4,effectText:'狂戰士回血速度兩倍'}],
   effects:[
@@ -161,7 +168,7 @@ export const civDefs:readonly CivDef[]=[
   omitted:[],
   sources:[site('civs/Vikings'),site('units/Berserk'),site('units/Longboat'),site('techs/Chieftains'),site('techs/Berserkergang'),site('tree/vik')]},
  {id:'byzantines',name:'拜占庭',nameEn:'Byzantines',type:'防禦文明',architecture:'mideast',
-  missing:['masonry','architecture','blast-furnace','siege-onager','heavy-scorpion','siege-engineers','treadmill-crane','bloodlines','parthian-tactics','sappers','herbal-medicine','heated-shot','bombard-tower'],missingLater:['missionary'],
+  missing:['masonry','architecture','blast-furnace','siege-onager','heavy-scorpion','siege-engineers','treadmill-crane','bloodlines','parthian-tactics','sappers','herbal-medicine','heated-shot','bombard-tower','bombard-tower-tech'],missingLater:['missionary'],
   uniqueUnits:['cataphract'],eliteUpgrades:['elite-cataphract'],
   uniqueTechs:[{id:'greek-fire',name:'希臘之火',nameEn:'Greek Fire',age:3,effectText:'火戰船射程 +1'},{id:'logistica',name:'後勤',nameEn:'Logistica',age:4,effectText:'拜占庭聖騎兵踐踏傷害，對步兵 +6'}],
   effects:[
@@ -178,7 +185,7 @@ export const civDefs:readonly CivDef[]=[
   omitted:[],
   sources:[site('civs/Byzantines'),site('units/Cataphract'),site('techs/Greek_Fire'),site('techs/Logistica'),site('tree/byz')]},
  {id:'persians',name:'波斯',nameEn:'Persians',type:'騎兵文明',architecture:'mideast',
-  missing:['bracer','redemption','atonement','heresy','sanctity','illumination','two-handed-swordsman','champion','arbalest','siege-onager','siege-engineers','keep','treadmill-crane','arrowslits','shipwright','bombard-tower','fortified-wall'],missingLater:['missionary'],
+  missing:['bracer','redemption','atonement','heresy','sanctity','illumination','two-handed-swordsman','champion','arbalest','siege-onager','siege-engineers','keep','treadmill-crane','arrowslits','shipwright','bombard-tower','bombard-tower-tech','fortified-wall'],missingLater:['missionary'],
   uniqueUnits:['war-elephant'],eliteUpgrades:['elite-war-elephant'],
   uniqueTechs:[{id:'kamandaran',name:'波斯弓兵',nameEn:'Kamandaran',age:3,effectText:'弓手改用木材支付原本的黃金'},{id:'mahouts',name:'象伕',nameEn:'Mahouts',age:4,effectText:'戰象移動速度 +30%'}],
   effects:[
@@ -193,7 +200,7 @@ export const civDefs:readonly CivDef[]=[
   omitted:[],
   sources:[site('civs/Persians'),site('units/War_Elephant'),site('techs/Kamandaran'),site('techs/Mahouts'),site('tree/pre')]},
  {id:'saracens',name:'薩拉森',nameEn:'Saracens',type:'駱駝與海軍文明',architecture:'mideast',
-  missing:['crop-rotation','stone-shaft-mining','halberdier','cavalier','paladin','heavy-scorpion','architecture','sappers','bombard-tower','heated-shot','shipwright','guilds','fast-fire-ship'],missingLater:['missionary'],
+  missing:['crop-rotation','stone-shaft-mining','halberdier','cavalier','paladin','heavy-scorpion','architecture','sappers','bombard-tower','bombard-tower-tech','heated-shot','shipwright','guilds','fast-fire-ship'],missingLater:['missionary'],
   uniqueUnits:['mameluke'],eliteUpgrades:['elite-mameluke'],
   uniqueTechs:[{id:'madrasah',name:'穆斯林學墊',nameEn:'Madrasah',age:3,effectText:'僧侶死亡時返還 33 黃金'},{id:'zealotry',name:'狂熱',nameEn:'Zealotry',age:4,effectText:'駱駝騎兵與阿拉伯奴隸兵生命 +30'}],
   effects:[
@@ -248,7 +255,7 @@ export const civDefs:readonly CivDef[]=[
   omitted:[],
   sources:[site('civs/Chinese'),site('units/Chu_Ko_Nu'),site('techs/Great_Wall'),site('techs/Rocketry'),site('tree/chi')]},
  {id:'japanese',name:'日本',nameEn:'Japanese',type:'步兵文明',architecture:'eastasia',
-  missing:['crop-rotation','stone-shaft-mining','plate-barding-armor','heresy','paladin','camel','heavy-camel','siege-ram','siege-onager','architecture','hoardings','bombard-cannon','bombard-tower','heated-shot','guilds','heavy-demolition-ship'],missingLater:['missionary'],
+  missing:['crop-rotation','stone-shaft-mining','plate-barding-armor','heresy','paladin','camel','heavy-camel','siege-ram','siege-onager','architecture','hoardings','bombard-cannon','bombard-tower','bombard-tower-tech','heated-shot','guilds','heavy-demolition-ship'],missingLater:['missionary'],
   uniqueUnits:['samurai'],eliteUpgrades:['elite-samurai'],
   uniqueTechs:[{id:'yasama',name:'射箭孔',nameEn:'Yasama',age:3,effectText:'箭塔多射兩支箭'},{id:'kataparuto',name:'彈射器',nameEn:'Kataparuto',age:4,effectText:'巨型投石機組裝與射速提升'}],
   effects:[
@@ -265,7 +272,7 @@ export const civDefs:readonly CivDef[]=[
   omitted:[],
   sources:[site('civs/Japanese'),site('units/Samurai'),site('techs/Yasama'),site('techs/Kataparuto'),site('tree/jap')]},
  {id:'mongols',name:'蒙古',nameEn:'Mongols',type:'馬弓騎兵文明',architecture:'eastasia',
-  missing:['halberdier','two-man-saw','crop-rotation','plate-barding-armor','ring-archer-armor','redemption','sanctity','faith','block-printing','paladin','architecture','keep','treadmill-crane','arrowslits','bombard-cannon','bombard-tower','elite-cannon-galleon','heated-shot','guilds','dry-dock'],missingLater:[],
+  missing:['halberdier','two-man-saw','crop-rotation','plate-barding-armor','ring-archer-armor','redemption','sanctity','faith','block-printing','paladin','architecture','keep','treadmill-crane','arrowslits','bombard-cannon','bombard-tower','bombard-tower-tech','elite-cannon-galleon','heated-shot','guilds','dry-dock'],missingLater:[],
   uniqueUnits:['mangudai'],eliteUpgrades:['elite-mangudai'],
   uniqueTechs:[{id:'nomads',name:'游牧',nameEn:'Nomads',age:3,effectText:'民居被摧毀後人口上限不下降'},{id:'drill',name:'鑿岩機',nameEn:'Drill',age:4,effectText:'攻城器工坊的單位移動速度 +50%'}],
   effects:[

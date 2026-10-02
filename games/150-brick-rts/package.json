@@ -27,7 +27,13 @@
     "test:full": "node --experimental-strip-types tests/first-use-full.mjs",
     "test:civs": "node --experimental-strip-types tests/first-use-civs.mjs",
     "test:naval": "node --experimental-strip-types tests/first-use-naval.mjs",
-    "test:market": "node --experimental-strip-types tests/first-use-market.mjs"
+    "test:market": "node --experimental-strip-types tests/first-use-market.mjs",
+    "test:taunts": "node --experimental-strip-types tests/first-use-taunts.mjs",
+    "test:elements": "node --experimental-strip-types tests/first-use-elements.mjs",
+    "test:openings": "node --experimental-strip-types tests/first-use-openings.mjs",
+    "test:micro": "node --experimental-strip-types tests/first-use-micro.mjs",
+    "test:tree": "node --experimental-strip-types tests/first-use-tree.mjs",
+    "test:lobby": "node --experimental-strip-types tests/first-use-lobby.mjs"
   },
   "devDependencies": {
     "esbuild": "0.25.10",

@@ -30,7 +30,7 @@ const browser=await chromium.launch({headless:true});const errors=[],external=[]
 try{
  page=await browser.newPage({viewport:{width:1440,height:900}});
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('request',r=>{if(!r.url().startsWith(origin)&&!r.url().startsWith('data:')&&!r.url().startsWith('blob:'))external.push(r.url());});
- await page.goto(origin+'/web/150-brick-rts.html');await page.waitForFunction(()=>Number(document.querySelector('#tick').textContent)>2);
+ await page.goto(origin+'/web/150-brick-rts.html?play=1');await page.waitForFunction(()=>Number(document.querySelector('#tick').textContent)>2);
  const text=id=>page.locator('#'+id).innerText();
  // 2. Load the save from the menu (the page re-derives it from the command log).
  await page.evaluate(v=>localStorage.setItem('brick-rts:sandbox:1',v),serialize(s));

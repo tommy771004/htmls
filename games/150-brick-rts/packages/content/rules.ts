@@ -49,6 +49,8 @@ const techEntries:Entry[]=[
  tech('masonry','磚瓦技術',150,175,0,0,['age-3'],50),tech('architecture','建築學',300,200,0,0,['age-4','masonry'],70),tech('chemistry','化學',300,0,200,0,['age-4'],100),
  tech('siege-engineers','攻城工程師',500,600,0,0,['age-4'],45),tech('guard-tower','防禦箭塔',100,250,0,0,['age-3'],30),tech('keep','大型箭塔',500,350,0,0,['age-4','guard-tower'],75),
  tech('treadmill-crane','磨坊水車',300,200,0,0,['age-3'],50),tech('arrowslits','箭狹槽',250,250,0,0,['age-4'],25),
+ // The 戰術技巧 round (aoetw.com techs/Ballistics): every civilization of this game has it.
+ tech('ballistics','彈道學',0,300,175,0,['age-3'],60),
  tech('supplies','供給',150,0,100,0,['age-2'],35),tech('squires','護衛技術',100,0,0,0,['age-3'],40),tech('arson','縱火',150,0,50,0,['age-3'],25),
  tech('thumb-ring','拇指環',300,250,0,0,['age-3'],45),tech('parthian-tactics','安息人戰術',200,0,250,0,['age-4'],65),
  tech('bloodlines','品種',150,0,100,0,['age-2'],50),tech('husbandry','耕種技術',150,0,0,0,['age-3'],40),
@@ -58,7 +60,7 @@ const techEntries:Entry[]=[
  entry('hand-cannoneer','unit','火槍兵',45,0,50,0,['age-4','chemistry'],1,34,aoetw),entry('bombard-cannon','unit','火砲',0,225,225,0,['age-4','chemistry'],1,56,aoetw),
  // Turks' Artillery: its bombard cannon exists from this round on.
  upgrade('artillery','砲兵',0,0,500,450,4,40)];
-const techProducers:Record<string,string>={masonry:'university',architecture:'university',chemistry:'university','siege-engineers':'university','guard-tower':'university',keep:'university','treadmill-crane':'university',arrowslits:'university',
+const techProducers:Record<string,string>={masonry:'university',architecture:'university',chemistry:'university','siege-engineers':'university','guard-tower':'university',keep:'university','treadmill-crane':'university',arrowslits:'university',ballistics:'university',
  supplies:'barracks',squires:'barracks',arson:'barracks','thumb-ring':'archery-range','parthian-tactics':'archery-range',bloodlines:'stable',husbandry:'stable','town-watch':'town-center','town-patrol':'town-center',
  fervor:'monastery','herbal-medicine':'monastery',hoardings:'castle',sappers:'castle',conscription:'castle','hand-cannoneer':'archery-range','bombard-cannon':'siege-workshop',artillery:'castle'};
 // The 建築 round (aoetw.com building, units and techs pages, 2026-10-01): the remaining buildings (the town centre
@@ -96,10 +98,11 @@ const dockItems=['fishing-ship','transport-ship','trade-cog','galley','fire-gall
 const buildingProducers:Record<string,string>={...Object.fromEntries(dockItems.map(id=>[id,'dock'])),'trade-cart':'market',caravan:'market',guilds:'market','heated-shot':'university','fortified-wall':'university','bombard-tower-tech':'university','greek-fire':'castle'};
 // Per-civ availability from civs.ts: what the civ's tree lacks, the other civs' unique content, and the Castle for a
 // civ without a unique unit (the neutral test civ).
-function civilizationsOf(entries:Entry[]){
+// allTechs: the lobby's 所有科技 (every civ keeps its own unique content, nobody else's; the tree gaps are lifted).
+function civilizationsOf(entries:Entry[],allTechs=false){
  const ids=entries.map(e=>e.id),uniqueIds=new Set(civDefs.flatMap(c=>[...c.uniqueUnits,...c.eliteUpgrades,...c.uniqueTechs.map(t=>t.id)]));
  return civDefs.map(c=>{const own=new Set([...c.uniqueUnits,...c.eliteUpgrades,...c.uniqueTechs.map(t=>t.id)]);
-  const unavailable=ids.filter(id=>c.missing.includes(id)||uniqueIds.has(id)&&!own.has(id)||id==='castle'&&!c.uniqueUnits.length);
+  const unavailable=ids.filter(id=>!allTechs&&c.missing.includes(id)||uniqueIds.has(id)&&!own.has(id)||id==='castle'&&!c.uniqueUnits.length);
   // Whatever needs a building or technology the civ lacks is out too (the neutral civ has no Castle, so no trebuchet).
   for(let grew=true;grew;){grew=false;for(const e of entries){if(unavailable.includes(e.id))continue;const producer=rules.production[e.id];
    if(producer&&unavailable.includes(producer)||e.requires.some(r=>unavailable.includes(r))){unavailable.push(e.id);grew=true;}}}
@@ -128,6 +131,8 @@ entry('loom','technology','織布機',0,0,50),entry('wheelbarrow','technology','
  civilizations:[]
 };
 rules.civilizations=civilizationsOf(rules.entries);
+// Availability under the lobby's 所有科技 setting (packages/sim/settings.ts).
+export const allTechCivilizations=civilizationsOf(rules.entries,true);
 // Runtime validator deliberately accepts unknown: pasted JSON is an untrusted boundary.
 export function validateRules(value: unknown, exact=false): string[] {
  const errors: string[]=[];

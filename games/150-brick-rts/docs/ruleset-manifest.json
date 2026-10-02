@@ -3701,6 +3701,31 @@
       "testEvidence": [
         "tests/foundation.test.ts (data validation only)"
       ],
+      "id": "ballistics",
+      "kind": "technology",
+      "name": "彈道學",
+      "cost": {
+        "food": 0,
+        "wood": 300,
+        "gold": 175,
+        "stone": 0
+      },
+      "time": 60,
+      "population": 0,
+      "requires": [
+        "age-3"
+      ],
+      "verificationStatus": "design_default"
+    },
+    {
+      "referenceVersion": null,
+      "sourceEvidence": [
+        "aoetw.com via github.com/webrsb/aoetw (2026-09-30), design_default in this ruleset"
+      ],
+      "implementationStatus": "not_started",
+      "testEvidence": [
+        "tests/foundation.test.ts (data validation only)"
+      ],
       "id": "supplies",
       "kind": "technology",
       "name": "供給",
@@ -5126,6 +5151,7 @@
     "keep": "university",
     "treadmill-crane": "university",
     "arrowslits": "university",
+    "ballistics": "university",
     "supplies": "barracks",
     "squires": "barracks",
     "arson": "barracks",
@@ -5267,6 +5293,7 @@
         "keep",
         "treadmill-crane",
         "arrowslits",
+        "ballistics",
         "supplies",
         "squires",
         "arson",
@@ -5468,6 +5495,7 @@
         "guard-tower",
         "keep",
         "arrowslits",
+        "ballistics",
         "supplies",
         "squires",
         "arson",
@@ -5507,8 +5535,7 @@
         "caravan",
         "guilds",
         "heated-shot",
-        "fortified-wall",
-        "bombard-tower-tech"
+        "fortified-wall"
       ],
       "unavailable": [
         "redemption",
@@ -5579,6 +5606,7 @@
         "longboat",
         "elite-cannon-galleon",
         "elite-longboat",
+        "bombard-tower-tech",
         "greek-fire"
       ]
     },
@@ -5672,6 +5700,7 @@
         "keep",
         "treadmill-crane",
         "arrowslits",
+        "ballistics",
         "supplies",
         "arson",
         "husbandry",
@@ -5709,8 +5738,7 @@
         "caravan",
         "guilds",
         "heated-shot",
-        "fortified-wall",
-        "bombard-tower-tech"
+        "fortified-wall"
       ],
       "unavailable": [
         "redemption",
@@ -5785,6 +5813,7 @@
         "fast-fire-ship",
         "elite-cannon-galleon",
         "elite-longboat",
+        "bombard-tower-tech",
         "greek-fire"
       ]
     },
@@ -5880,6 +5909,7 @@
         "guard-tower",
         "treadmill-crane",
         "arrowslits",
+        "ballistics",
         "supplies",
         "squires",
         "arson",
@@ -5917,8 +5947,7 @@
         "careening",
         "dry-dock",
         "caravan",
-        "fortified-wall",
-        "bombard-tower-tech"
+        "fortified-wall"
       ],
       "unavailable": [
         "redemption",
@@ -5991,6 +6020,7 @@
         "shipwright",
         "guilds",
         "heated-shot",
+        "bombard-tower-tech",
         "greek-fire"
       ]
     },
@@ -6080,6 +6110,7 @@
         "masonry",
         "architecture",
         "chemistry",
+        "ballistics",
         "supplies",
         "squires",
         "bloodlines",
@@ -6118,8 +6149,7 @@
         "shipwright",
         "caravan",
         "guilds",
-        "heated-shot",
-        "bombard-tower-tech"
+        "heated-shot"
       ],
       "unavailable": [
         "redemption",
@@ -6197,6 +6227,7 @@
         "elite-longboat",
         "dry-dock",
         "fortified-wall",
+        "bombard-tower-tech",
         "greek-fire"
       ]
     },
@@ -6294,6 +6325,7 @@
         "keep",
         "treadmill-crane",
         "arrowslits",
+        "ballistics",
         "supplies",
         "squires",
         "arson",
@@ -6496,6 +6528,7 @@
         "guard-tower",
         "treadmill-crane",
         "arrowslits",
+        "ballistics",
         "supplies",
         "squires",
         "arson",
@@ -6532,8 +6565,7 @@
         "dry-dock",
         "caravan",
         "heated-shot",
-        "fortified-wall",
-        "bombard-tower-tech"
+        "fortified-wall"
       ],
       "unavailable": [
         "redemption",
@@ -6609,6 +6641,7 @@
         "elite-cannon-galleon",
         "shipwright",
         "guilds",
+        "bombard-tower-tech",
         "greek-fire"
       ]
     },
@@ -6708,6 +6741,7 @@
         "guard-tower",
         "keep",
         "arrowslits",
+        "ballistics",
         "supplies",
         "squires",
         "arson",
@@ -6749,7 +6783,6 @@
         "caravan",
         "guilds",
         "fortified-wall",
-        "bombard-tower-tech",
         "greek-fire"
       ],
       "unavailable": [
@@ -6815,7 +6848,8 @@
         "bombard-tower",
         "longboat",
         "elite-longboat",
-        "heated-shot"
+        "heated-shot",
+        "bombard-tower-tech"
       ]
     },
     {
@@ -6908,6 +6942,7 @@
         "architecture",
         "chemistry",
         "guard-tower",
+        "ballistics",
         "supplies",
         "squires",
         "arson",
@@ -6951,8 +6986,7 @@
         "dry-dock",
         "caravan",
         "guilds",
-        "heated-shot",
-        "bombard-tower-tech"
+        "heated-shot"
       ],
       "unavailable": [
         "redemption",
@@ -7021,6 +7055,7 @@
         "elite-longboat",
         "shipwright",
         "fortified-wall",
+        "bombard-tower-tech",
         "greek-fire"
       ]
     },
@@ -7121,6 +7156,7 @@
         "keep",
         "treadmill-crane",
         "arrowslits",
+        "ballistics",
         "supplies",
         "squires",
         "arson",
@@ -7161,8 +7197,7 @@
         "careening",
         "dry-dock",
         "caravan",
-        "fortified-wall",
-        "bombard-tower-tech"
+        "fortified-wall"
       ],
       "unavailable": [
         "stone-shaft-mining",
@@ -7227,6 +7262,7 @@
         "shipwright",
         "guilds",
         "heated-shot",
+        "bombard-tower-tech",
         "greek-fire"
       ]
     },
@@ -7322,6 +7358,7 @@
         "keep",
         "treadmill-crane",
         "arrowslits",
+        "ballistics",
         "supplies",
         "squires",
         "arson",
@@ -7533,6 +7570,7 @@
         "keep",
         "treadmill-crane",
         "arrowslits",
+        "ballistics",
         "supplies",
         "squires",
         "arson",
@@ -7736,6 +7774,7 @@
         "keep",
         "treadmill-crane",
         "arrowslits",
+        "ballistics",
         "supplies",
         "squires",
         "arson",
@@ -7776,8 +7815,7 @@
         "dry-dock",
         "shipwright",
         "caravan",
-        "fortified-wall",
-        "bombard-tower-tech"
+        "fortified-wall"
       ],
       "unavailable": [
         "heresy",
@@ -7845,6 +7883,7 @@
         "elite-longboat",
         "guilds",
         "heated-shot",
+        "bombard-tower-tech",
         "greek-fire"
       ]
     },
@@ -7938,6 +7977,7 @@
         "chemistry",
         "siege-engineers",
         "guard-tower",
+        "ballistics",
         "supplies",
         "squires",
         "arson",
@@ -7978,8 +8018,7 @@
         "careening",
         "shipwright",
         "caravan",
-        "fortified-wall",
-        "bombard-tower-tech"
+        "fortified-wall"
       ],
       "unavailable": [
         "redemption",
@@ -8051,6 +8090,7 @@
         "dry-dock",
         "guilds",
         "heated-shot",
+        "bombard-tower-tech",
         "greek-fire"
       ]
     }

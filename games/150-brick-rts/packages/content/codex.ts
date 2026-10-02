@@ -64,7 +64,9 @@ export const referenceOnlyNames:Readonly<Record<string,string>>={
 // Unit and bonus classes as the panels name them.
 export const classLabel:Readonly<Record<string,string>>={infantry:'步兵',cavalry:'騎兵',archer:'弓兵',spear:'長槍兵',skirmisher:'散兵',building:'建築',siege:'攻城器',
  unique:'特殊單位',gunpowder:'火藥單位','cavalry-archer':'馬弓騎兵',elephant:'戰象',monk:'僧侶',villager:'村民',animal:'動物',camel:'駱駝騎兵',petard:'炸藥桶',
- ship:'船隻',warship:'戰艦',galley:'戰船系',fishing:'漁船',transport:'運輸船',trade:'貿易單位',fire:'火船',demolition:'自爆船'};
+ ship:'船隻',warship:'戰艦',galley:'戰船系',fishing:'漁船',transport:'運輸船',trade:'貿易單位',fire:'火船',demolition:'自爆船',
+ // The 遊戲元素 round's armor classes (aoetw.com 防禦類型).
+ 'fishing-ship':'漁船',ram:'衝撞車',mameluke:'阿拉伯奴隸兵','standard-building':'標準建築','stone-defense':'石造防禦','wall-gate':'城牆與城門',castle:'城堡'};
 
 // ── Category 單位 ──────────────────────────────────────────────────────────────────────────────────────────────────
 // aoetw.com's unit catalog (pages/units/*.vue of github.com/webrsb/aoetw, read 2026-10-01): every unit page except the
@@ -782,3 +784,138 @@ export const buildingPartials:Readonly<Record<string,string>>={
  'palisade-gate':'原作的木門可以上鎖，連己方也不能通過；本作的木門一律只擋敵軍',
  'fish-trap':'原作的敵方漁船也能採集別人的魚網；本作只有擁有者能採集',
 };
+// ── Category 遊戲元素 (the 遊戲元素 round) ─────────────────────────────────────────────────────────────────────────
+// aoetw.com's 遊戲元素 menu in its order, then the two element pages the menu leaves out (Conversion, Line of Sight).
+// Prose only (no digits): every number on these pages is read from the simulation by apps/web/codex-elements.ts.
+export type ElementProse={id:string;name:string;nameEn:string;refName:string|null;slug:string;menu:boolean;summary:string;text:string};
+export const elementsIntro='遊戲元素整理自 aoetw.com 的「遊戲元素」選單：防禦類型、回血、駐軍、血量、攻擊、射速、開火間隔、擴散範圍、團隊加分、遺跡與嘲諷語音，另加選單沒有列出的招降與視野兩頁。每一頁先說明本作怎麼做，再列出取自模擬的表格；數字依本作比例自訂，是 design_default，不是原作數據。';
+export const elementsNote='遊戲元素整理自 aoetw.com（HD／UserPatch 到早期決定版）；表格裡的每個數字都即時取自本作的模擬，以未加文明加成、依該兵種升級步驟的數值為準。距離以格計（一格是地圖上的一個方格），時間以本作的秒計。';
+export const elementProse:readonly ElementProse[]=[
+ {id:'armor',name:'防禦類型',nameEn:'Armor classes',refName:null,slug:'armor',menu:true,summary:'每個單位與建築屬於哪些類型，誰對它有加成。',
+  text:'傷害先算攻擊減去對應的近戰或遠程護甲，不足時算作零；再把攻擊者對目標每個類型的加成各自扣掉目標在該類型的護甲後加上去，最後至少一點。多數單位的類型護甲是零，只表示它屬於這個類型；拜占庭聖騎兵、阿拉伯奴隸兵等少數單位有正的騎兵護甲，長槍兵系的加成打在牠們身上就打了折扣。建築也分成標準建築、石造防禦、城牆與城門、城堡等類型，攻城器與村民對不同類型的加成不一樣。'},
+ {id:'regeneration',name:'回血',nameEn:'Regeneration',refName:null,slug:'elements/Regeneration',menu:true,summary:'不靠僧侶自己恢復生命的方式。',
+  text:'本作只有維京的狂戰士天生會回血，研究狂戰士幫後更快。其他受傷的單位要靠僧侶治療，或躲進城鎮中心、箭塔、城堡與生產建築慢慢回復；城堡回得比城鎮中心和箭塔快一倍，修道院的草藥治療讓所有駐軍回得更快。攻城器與船隻不會回血，也不能被僧侶治療，只能由村民修理。'},
+ {id:'garrison',name:'駐軍',nameEn:'Garrison',refName:null,slug:'elements/Garrison',menu:true,summary:'哪些建築與單位可以讓單位躲進去。',
+  text:'城鎮中心、箭塔、火砲塔與城堡可以讓村民和徒步單位躲進去，村民與徒步弓兵還會增加射出的箭；鐘聲會把村民叫進最近的建築。兵營、靶場、馬廄、攻城器工坊、修道院與碼頭只收自己訓練的單位：把集結點設在建築本身，新兵就直接進駐，出來後不能再命令回去。運輸船載運陸上單位，衝撞車可以載步兵與徒步弓兵，步兵越多衝撞車越快、打建築越痛。建築受損到只剩少許生命時，裡面的單位全部被趕出來，也不能再進去。'},
+ {id:'hit-points',name:'血量',nameEn:'Hit points',refName:null,slug:'elements/Hit_points',menu:true,summary:'生命值，以及受傷後怎麼補回來。',
+  text:'生命歸零的單位陣亡、建築倒塌。單位的生命大致照原作，建築的生命大約是原作的六分之一，配合本作較短的對局。補回生命有三種方式：僧侶治療單位、駐軍時慢慢回復，以及村民修理建築、攻城器與船隻。修理要花錢，修滿一次大約是原價的一半，邊修邊扣；城鎮中心修理不花石頭但木材加倍。'},
+ {id:'attack',name:'攻擊',nameEn:'Attack',refName:null,slug:'elements/Attack',menu:true,summary:'近戰與遠程兩種攻擊，以及攻擊加成。',
+  text:'攻擊分近戰與遠程：近戰扣目標的近戰護甲，遠程扣遠程護甲。兵營、馬廄與多數攻城器打近戰，射箭場的單位、弩砲、戰船與所有會射箭的建築打遠程。加成照防禦類型計算，一個目標同時屬於幾個類型時，各類型的加成會一起算進去。本作沒有命中率：每一發都會打中。'},
+ {id:'rate-of-fire',name:'射速',nameEn:'Rate of fire',refName:null,slug:'elements/Rate_of_Fire',menu:true,summary:'兩次攻擊之間的間隔。',
+  text:'射速是兩次攻擊之間要等多久，數字越小打得越快。近戰的間隔照原作的秒數乘以一個比例，遠程照另一個比例換算成本作的節拍，所以兩者的相對快慢與原作一致。火戰船近距離連續噴火，是全遊戲最快的；攻城器與火藥單位最慢。拇指環、日本步兵與蒙古馬弓騎兵等科技與文明加成會讓間隔變短。'},
+ {id:'frame-delay',name:'開火間隔',nameEn:'Frame delay',refName:null,slug:'elements/Frame_delay',menu:true,summary:'遠程單位對新目標的第一發要先瞄準多久。',
+  text:'開火間隔只影響對新目標的第一發：遠程單位開始攻擊一個剛選上的目標時要先站定瞄準，之後的每一發就照射速。瞄準時只要一走動就得重來，所以邊打邊退的拉打戰術有代價，近戰單位追得上遠程單位。近戰單位與船隻沒有開火間隔。'},
+ {id:'area-of-effect',name:'擴散範圍',nameEn:'Area of effect',refName:null,slug:'elements/Area_of_Effect',menu:true,summary:'一次傷害到好幾個目標的攻擊。',
+  text:'投石車系與火砲的砲彈落地時，範圍內的單位都會受傷，連自己人也不例外（射擊者本身除外）；爆破船系、戰狼號等其他範圍攻擊只傷敵人。戰象踐踏目標旁的敵兵，拜占庭聖騎兵研究後勤後也會踐踏；弩砲的弩箭會貫穿，打到後方路線上的敵兵；裝甲衝撞車與重型衝撞車撞擊建築時，附近的敵方建築也一起受損。'},
+ {id:'team-bonus',name:'團隊加分',nameEn:'Team bonus',refName:'團隊加分',slug:'elements/Team_Bonus',menu:true,summary:'原作與盟友共享的文明加成。',
+  text:'原作的團隊加分會分享給同盟的所有玩家。本作是一對一，沒有盟友，所以團隊加分只對自己生效；每個文明的團隊加分照常列在文明頁，效果與一般加成一起計算。'},
+ {id:'relic',name:'聖物',nameEn:'Relic',refName:'遺跡',slug:'elements/Relic',menu:true,summary:'僧侶搬進修道院後持續產生黃金。',
+  text:'對戰圖上散落著聖物，只有僧侶能搬，搬著聖物的僧侶不能轉化。聖物放進修道院後會持續產生黃金，修道院被摧毀或轉化時聖物掉在原地。收集到地圖上所有的聖物後開始倒數，撐到倒數結束就獲勝。'},
+ {id:'taunts',name:'嘲諷語音',nameEn:'Taunts',refName:null,slug:'elements/Taunts',menu:true,summary:'用編號送出的語音訊息。',
+  text:'在戰場上按輸入鍵打開聊天列，輸入編號後再按一次就送出；編號要放在最前面，後面的文字會略過。雙方都看得到訊息，電腦也會在發現敵人、出兵或城鎮中心告急時嘲諷。本作沒有錄音，只在電腦上有中文語音時朗讀，括號內的聲音不朗讀；選單裡可以關掉朗讀。'},
+ {id:'conversion',name:'招降',nameEn:'Conversion',refName:'招降',slug:'elements/Conversion',menu:false,summary:'僧侶把敵方單位變成自己的。',
+  text:'僧侶走到射程內後開始招降，每一次嘗試約一秒：前幾次一定失敗，之後每次都有固定機會成功，到上限時保證成功。成功後僧侶的信仰歸零，要等一段時間才能再招降。研究救贖才能招降建築，研究贖罪才能招降僧侶；城鎮中心、城堡、修道院、農田、城牆與奇觀永遠不能招降。忠誠信仰與條頓的團隊加分讓單位更難被招降。'},
+ {id:'line-of-sight',name:'視野',nameEn:'Line of sight',refName:null,slug:'elements/Line_of_Sight',menu:false,summary:'單位與建築能看多遠，以及戰爭迷霧。',
+  text:'每個單位與建築都會揭開周圍的戰爭迷霧；看過的地方會記住當時看到的建築，但看不到之後的變化。被看不到的敵人打到時，會短暫看見攻擊者所在的位置。城鎮瞭望與城鎮巡邏讓建築看得更遠，一些文明的加成也會增加特定單位或建築的視野。'},
+];
+// What the reference has for each element that this game lacks, and why.
+export const elementLacks:Readonly<Record<string,readonly {name:string;reason:string}[]>>={
+ armor:[{name:'鷹勇士、傭兵、龜甲船等防禦類型',reason:'本作只有原版十三個文明，這些類型的單位不在遊戲裡'}],
+ regeneration:[{name:'英雄回血',reason:'本作沒有戰役與英雄'},{name:'柏柏的駱駝回血（馬格拉比駱駝）',reason:'柏柏不在本作的文明裡'}],
+ garrison:[{name:'攻城塔',reason:'本作照原版的單位表，攻城塔是後來的資料片才加入'},{name:'高棉的民居進駐',reason:'高棉不在本作的文明裡'},{name:'村民進駐衝撞車',reason:'本作照原版規則，只有步兵與徒步弓兵能上衝撞車'}],
+ 'hit-points':[{name:'攻城器修理改花黃金',reason:'本作的單位修理一律照原價各資源的一半計算'}],
+ attack:[{name:'命中率與彈道學',reason:'本作每一發都會打中，沒有失準的彈道'}],
+ 'rate-of-fire':[{name:'風琴砲、熱那亞弩手等單位',reason:'本作只有原版十三個文明'}],
+ 'frame-delay':[],
+ 'area-of-effect':[{name:'斯拉夫步兵的踐踏、矛象伕、衣索比亞的扭力彈射器',reason:'這些文明不在本作'},{name:'投石車打倒樹木',reason:'本作的範圍傷害只打單位與建築'}],
+ 'team-bonus':[{name:'與盟友共享加成',reason:'本作是一對一，沒有盟友'},{name:'其他文明的團隊加分',reason:'本作只有原版十三個文明'}],
+ relic:[{name:'與盟友一起達成聖物勝利',reason:'本作是一對一'},{name:'緬甸的聖物位置、阿茲特克的聖物加成',reason:'這些文明不在本作'}],
+ taunts:[{name:'錄製的語音',reason:'本作不載入外部檔案，只用電腦本機的中文語音朗讀'}],
+ conversion:[{name:'西班牙的異端審判與傳教士',reason:'西班牙不在本作的文明裡'},{name:'斥候系與鷹勇士的招降抗性等級',reason:'本作的招降只用次數，不分抗性等級'}],
+ 'line-of-sight':[{name:'製圖學（分享盟友視野）',reason:'本作是一對一，沒有盟友'},{name:'追蹤（步兵視野）',reason:'網站所在年代已併入第二時代'}],
+};
+// ── Category 戰術技巧 (the 戰術技巧 round) ──────────────────────────────────────────────────────────────────────────
+// aoetw.com/ar (fetched 2026-10-02 from github.com/webrsb/aoetw): the openings and the micro techniques. Prose has no
+// digits; the build-order steps, the computer's plan and every number come from packages/content/openings.ts and the
+// simulation (apps/web/codex-tactics.ts).
+export type TacticProse={id:string;name:string;nameEn:string;slug:string;group:'opening'|'micro';summary:string;text:string;
+ // how: how this game does it (micro techniques only).
+ how:string|null};
+export const tacticsIntro='戰術技巧整理自 aoetw.com 的「戰術技巧」頁：基礎升級、阿拉伯地圖的主流打法與控兵技巧。每種打法列出網站的資訊框、照本作比例換算的流程、反制方法，以及電腦在本作怎麼打；控兵技巧說明網站的意思，再說明在本作怎麼做。網站的流程以兩百人口、升第二時代五百食物計算，本作的人口上限與升級費用不同，村民數約為網站的一半，是 design_default，不是原作數據。';
+export const tacticsNote='戰術技巧整理自 aoetw.com（阿拉伯一對一，網站標示為未完成的頁面）；流程與電腦的打法取自本作的開局資料，命中率、彈道速度與姿態的數字即時取自模擬。距離以格計（一格是地圖上的一個方格），時間以本作的秒計。';
+export const basicUpgradesText='網站目錄的「基礎升級」列了標準升封建、標準升城堡、封快升級教學與城快升級教學，但都沒有獨立的頁面：前兩項只是目錄上的文字，後兩項是兩段影片的標題。本作不收錄影片；各打法頁的流程就是照網站開局換算的升級步驟，練習升級可以從那裡開始。';
+export const basicUpgradeItems=['標準升封建','標準升城堡','封快升級教學','城快升級教學'] as const;
+export const tacticProse:readonly TacticProse[]=[
+ // 主流打法, in the order of the site's list.
+ {id:'armstower',name:'裝甲塔',nameEn:'Men-at-arms into towers',slug:'ar/armstower',group:'opening',how:null,summary:'重步兵掩護村民到對方資源點蓋箭塔，高風險高報酬。',
+  text:'上第二時代後用重步兵掩護前置的村民，在對方的果樹、黃金或石頭旁蓋箭塔封鎖資源，再一座接一座地插下去，讓對方的經濟癱瘓。對方資源靠外、對方失誤，或對方想直接上城堡時最適合出手；對方的資源都在家裡時就不該打。箭塔缺乏保護時容易被村民拆掉，網站建議養成在塔下蓋牆的習慣。'},
+ {id:'scrush',name:'肉馬開局',nameEn:'Scout rush',slug:'ar/scrush',group:'opening',how:null,summary:'第二時代出斥候騷擾，機動高、好上手、打法靈活。',
+  text:'斥候是第二時代機動最強的兵種，殺村民快，也剋散兵與少量弓兵。上第二時代後蓋馬廄，出幾隻斥候騷擾對方的資源點，遇到前置塔攻可以配合村民強拆，對方龜家搶城堡也能前置斥候加塔。對方把家圍死、出很多長槍兵，或是打裝甲塔時，就要果斷轉散兵或弓兵。'},
+ {id:'archerstar',name:'小弓開局',nameEn:'Archer opening',slug:'ar/archerstar',group:'opening',how:null,summary:'兩座靶場出弓手，不花食物，可以一路接上城堡時代。',
+  text:'弓手不花食物，可以一邊進攻一邊存錢上城堡；成形慢但後勁大，上城堡後升級弩手繼續打，也比斥候不怕木牆。一開始一兩隻弓手幾乎沒有攻擊力，容易被斥候搶攻，所以通常先出一隻長槍兵。對手出散兵時，要適時調整經濟，混進長槍兵或散兵。'},
+ {id:'armstar',name:'裝甲開局',nameEn:'Men-at-arms opening',slug:'ar/armstar',group:'opening',how:null,summary:'升第二時代時出民兵騷擾，上去後升級重步兵。',
+  text:'點下第二時代就出三隻民兵去騷擾對方的經濟，可以擋下對方的前置與黑快，運氣好還能抓到正在蓋建築的村民，就算沒殺到人，也會讓對方的經濟大亂。上第二時代後民兵沒折損太多就研究重步兵，家裡改蓋靶場或馬廄，配弓兵或斥候繼續攻擊。重步兵怕弓兵，第二時代中後期因為走得慢逐漸沒用。'},
+ {id:'brushtof',name:'黑快轉封',nameEn:'Drush into Feudal',slug:'ar/brushtof',group:'opening',how:null,summary:'黑暗時代派民兵騷擾，再以較好的經濟上第二時代。',
+  text:'黑暗時代派三隻民兵騷擾，經濟配置到較多人口才升第二時代，既提早攻擊、讓對方手忙腳亂，又能正常上封建決戰，也能防止對方大圍家。上第二時代後民兵還多就轉重步兵，再看對方配兵轉長槍兵或弓兵；經濟較好，可以很快蓋兩座靶場加鐵匠鋪升級羽箭。控好黑暗時代的民兵，這個打法才成立。'},
+ {id:'brushfc',name:'黑快搶城',nameEn:'Drush fast castle',slug:'ar/brushfc',group:'opening',how:null,summary:'民兵在前面爭取時間，家裡快速升到城堡時代。',
+  text:'黑暗時代出三隻以上的民兵干擾對手，盡量拖延時間，自己趁機圍家、存錢，安全且快速地升上城堡時代，再用優勢的時代兵種取勝。地形要非常好才打，黃金和樹木不好守的空曠地圖不適合。發現對方很晚才上封建，通常就是在搶城，前置箭塔、家裡挖石頭是常見的反制；搶城很怕裝甲塔。'},
+ {id:'towerrush',name:'純塔',nameEn:'Tower rush',slug:'ar/towerrush',group:'opening',how:null,summary:'只派村民前置蓋箭塔，不出其他兵種。',
+  text:'不蓋兵營、不出兵，把省下的資源換成更多村民與箭塔：點封後派村民到對方家，在石頭或其他資源區同時起兩座塔互相掩護，再一座接一座地插下去。對方來拆塔時要立刻在塔下蓋木牆，很吃手速。對手資源都在外面時效果最好，地形好時就塔不到東西；反制是早點找到前置的村民，或者挖石頭、研究城鎮瞭望，以塔守塔。'},
+ {id:'eglerush',name:'老鷹開局',nameEn:'Eagle scout opening',slug:'ar/eglerush',group:'opening',how:null,summary:'第二時代出鷹斥候，是中美洲文明的專屬打法。',
+  text:'上第二時代後蓋兩座兵營出鷹斥候，適時搭配長槍兵或散兵騷擾對手；鷹斥候吃的食物少，可以很快上城堡升級鷹勇士。弓手成形後與把家圍死都能剋制它。這是中美洲三國的專屬打法，本作的原版文明都沒有鷹斥候，所以不能玩。'},
+ {id:'fontrush',name:'前置槍矛',nameEn:'Forward spears and skirmishers',slug:'ar/fontrush',group:'opening',how:null,summary:'在對方附近前置兵營，用長槍兵與散兵壓迫。',
+  text:'點封後派村民到對方附近前置兵營，上第二時代先出長槍兵，再蓋兩座靶場出散兵，村民持續在對方資源區插塔，用槍矛掩護推進，還算能剋制傳統的斥候與弓手開局。壓迫感很強，但風險高、報酬不如裝甲塔；黑暗民兵轉重步兵抓到前置的村民就能化解。網站的「矛兵」是本作的散兵，「槍兵」是長槍兵。'},
+ {id:'bbrush',name:'黑暗爆民兵',nameEn:'Dark Age militia rush',slug:'ar/bbrush',group:'opening',how:null,summary:'停在黑暗時代不斷出民兵，用人海騷擾對手。',
+  text:'提早蓋兵營，村民和民兵不斷生產，用人海戰術騷擾對手、牽制對方的封建進攻，自己一邊種田、圍牆，能上封建就上，短暫停留後跳城堡。自己升級大失誤時，例如打獵死了村民、被偷了野豬，乾脆留在黑暗時代打一波。缺點是很好防守，木牆就擋得住，對方上封建後出弓兵即可化解。'},
+ // 控兵技巧, in the site's order.
+ {id:'pull',name:'拉兵',nameEn:'Pulling back',slug:'ar',group:'micro',summary:'把被圍毆的兵拉走，讓敵人追著牠跑。',
+  text:'對方圍攻你的兵時，把血少、被鎖定的那隻拉走，讓敵人追著牠跑卻打不到，其他兵趁機上前包圍；騎士五對五時，一隻被三隻追著往後拉，就變成四打二。遠程部隊互射時也能把被射的兵拉開，或讓牠在敵人面前左右移動，讓對方的箭落空；對方研究彈道學後效果就小了。',
+  how:'選取被追的單位，右鍵把牠拉到後方，其他單位再右鍵攻擊追兵。本作的箭會飛一段時間，沒有彈道學時瞄準的是發射當下的位置，所以移動中的單位常常躲得掉；不還擊姿態讓單位不會停下來回擊，左右移動時也不會被拖住。'},
+ {id:'surround',name:'包圍',nameEn:'Surrounding',slug:'ar',group:'micro',summary:'騎兵散開、繞到弓兵前方，擋住對方走位。',
+  text:'遠程部隊會一邊走位一邊點射追來的近戰單位，只在後面追趕只會一隻隻被點掉。騎兵遇到整群弓兵時要分散隊形，預判對方的去向，衝到他們前面擋住走位、打亂隊形；衝進去前先用不還擊姿態加巡邏，就定位後再改回自動攻擊。',
+  how:'選取騎兵切成不還擊姿態，用分散移動或巡邏繞到弓兵的前方；到位後切回攻擊姿態，騎兵就會自動找附近的敵人打。單位彼此不能穿過，擋在弓兵前面的騎兵會真的堵住他們的路。'},
+ {id:'focus',name:'點射',nameEn:'Focus fire',slug:'ar',group:'micro',summary:'所有遠程兵集中火力，先打死一個目標。',
+  text:'控弩手、馬弓騎兵等遠程兵的基本功：讓所有遠程兵一起攻擊同一個目標，打死再換下一個，把火力用到最大，最有效率地殺傷敵人。分散攻擊時每個目標都只受一點傷，敵人一隻也沒少，反擊的火力也就沒有減弱。',
+  how:'框選所有遠程兵，右鍵同一個敵人；目標倒下後，攻擊姿態的單位會自動找最近的敵人。換新目標時遠程兵要重新瞄準，頻繁換目標會損失輸出；命中率不到百分之百的單位，集火時也會有幾發落空。'},
+ {id:'clump',name:'合兵',nameEn:'Clumping',slug:'ar',group:'micro',summary:'讓遠程兵擠在一起，縮小受攻擊的面。',
+  text:'讓遠程兵合在一起，受攻擊的表面最小、存活率較高。可以利用樹木之間、水岸邊或兩棟建築之間的屏障；空地上則用堅守位置加巡邏再停止，讓兵疊在一起。遇到敵方的投石車時，合兵會很吃虧。',
+  how:'本作的單位一格只站一個，彼此不能重疊，做不到網站說的把兵疊在一起；能做的是把遠程兵帶到樹林或建築之間的窄處，用堅守姿態站好，只讓前排面對敵人。擠成一團時，投石車與火砲的爆炸會一次打中很多隻，自己的砲也會誤傷。'},
+ {id:'spread',name:'分散',nameEn:'Spreading out',slug:'ar',group:'micro',summary:'散開閃躲攻擊，閃過再收合。',
+  text:'閃躲對方攻擊時，用分散與集中的快捷鍵讓兵往兩側散開再收回；初期一群斥候躲避敵人的箭時很好用，遠程部隊閃躲投石車時更是必備。',
+  how:'移動時選擇分散移動，單位之間會多空一格站開；投石車的石頭要飛一段時間，落在發射時瞄準的位置，看到它發射就散開，石頭就會落空或只打到少數。要收合時用一般移動即可。'},
+ {id:'dodge',name:'閃躲',nameEn:'Dodging',slug:'ar',group:'micro',summary:'對方沒有彈道學時，橫向移動就能躲開箭。',
+  text:'在對方研究彈道學之前，箭矢很容易閃躲：讓單位對著射擊者橫向移動，就能把傷害降到最低。初期斥候探圖經過敵人的城鎮中心被放箭時一定要用。',
+  how:'本作的箭與砲彈都會飛。沒有彈道學時，箭瞄準發射當下目標所在的位置，飛到時目標已經走開就落空；研究彈道學後，弓兵、戰船與防禦建築會預判移動的方向。下表列出每種遠程單位的命中率、彈道速度與彈道學是否有效；沒命中的箭落在目標附近，可能打到旁邊的敵人。'},
+ {id:'split',name:'分兵',nameEn:'Splitting',slug:'ar',group:'micro',summary:'被追時把被鎖定的兵拉開，其他兵回頭打。',
+  text:'和分散、拉兵的道理相同：敵人追著我方單位跑時，把被鎖定的那隻拉開，其他單位向前攻擊，讓追兵一路被打死。初期斥候殺村民被長槍兵追趕時經常使用。',
+  how:'把被追的斥候往遠處拉，其他斥候右鍵攻擊追兵；追兵會一直追原本的目標。防禦姿態的單位追不遠就回頭，攻擊姿態的會一路追下去，所以引誘對方之前先看清楚對方是哪一種。'},
+ {id:'block',name:'卡位',nameEn:'Body blocking',slug:'ar',group:'micro',summary:'用單位的身體擋住敵人的去路。',
+  text:'與包圍有點相關，但用途很多：斥候發現對方村民在打獵時，擋住村民的去路，讓野豬咬他；民兵追不上逃回城鎮的村民時，用斥候卡在前面，讓民兵追上去打倒村民。',
+  how:'本作的單位彼此不能穿過，每個單位佔一格，擋在路上的單位真的會讓對方繞路或停下。把斥候移到對方逃跑方向的前方即可；窄路、樹林邊與建築之間最好卡。'},
+];
+// What the site's pages describe that this game cannot do, per page (no digits).
+export const tacticLacks:Readonly<Record<string,readonly {name:string;reason:string}[]>>={
+ armstower:[{name:'趕鹿',reason:'本作的鹿只會從打牠的獵人身邊逃開，趕不動'},{name:'網站點名的緬甸、阿茲特克、印加、馬扎爾',reason:'這些文明不在本作的原版文明裡'},{name:'電腦在塔下蓋牆',reason:'電腦不蓋牆，網站的建議只留在流程裡'}],
+ scrush:[{name:'網站點名的匈人、馬扎爾、印度',reason:'這些文明不在本作的原版文明裡'}],
+ archerstar:[{name:'網站點名的越南、衣索比亞、馬雅',reason:'這些文明不在本作的原版文明裡'}],
+ armstar:[{name:'網站資訊框的匈人、馬扎爾',reason:'這些文明不在本作；而且這一欄是從肉馬開局複製來的'}],
+ brushtof:[{name:'趕鹿',reason:'本作的鹿只會從打牠的獵人身邊逃開，趕不動'},{name:'網站資訊框的匈人',reason:'匈人不在本作的原版文明裡'}],
+ brushfc:[{name:'趕鹿',reason:'本作的鹿只會從打牠的獵人身邊逃開，趕不動'},{name:'網站點名的匈人、馬雅、印加、阿茲特克',reason:'這些文明不在本作的原版文明裡'},{name:'電腦圍家',reason:'電腦不蓋牆，網站的建議只留在流程裡'}],
+ towerrush:[{name:'趕鹿',reason:'本作的鹿只會從打牠的獵人身邊逃開，趕不動'},{name:'網站點名的朝鮮、西班牙、印加、馬來',reason:'這些文明不在本作的原版文明裡'}],
+ eglerush:[{name:'鷹斥候與鷹勇士',reason:'中美洲三國的單位，本作的原版文明都沒有'}],
+ fontrush:[{name:'趕鹿',reason:'本作的鹿只會從打牠的獵人身邊逃開，趕不動'},{name:'網站點名的匈人、緬甸、馬扎爾',reason:'這些文明不在本作的原版文明裡'}],
+ bbrush:[{name:'網站提到的緬甸與西班牙城堡兵',reason:'這些文明不在本作的原版文明裡'},{name:'電腦圍牆',reason:'電腦不蓋牆，網站的建議只留在流程裡'}],
+ pull:[],surround:[],focus:[],
+ clump:[{name:'把兵疊在一起',reason:'本作一格只站一個單位，單位不能重疊'}],
+ spread:[{name:'分散與集中的快捷鍵',reason:'本作用分散移動代替，收合用一般移動'}],
+ dodge:[],split:[],block:[],
+};
+// 老鷹開局's infobox as the site gives it (aoetw.com/ar/eglerush); the opening cannot be played here.
+export const eagleOpeningInfobox={age:2,power:'強',difficulty:'普',pros:'弱點少，但成形慢，可銜接城堡',cons:'成形慢，弓手一多就不怕老鷹，怕圍死',civs:'南美國（阿茲特克、馬雅、印加）'} as const;
+// ── 科技樹 (the 科技樹 round) ───────────────────────────────────────────────────────────────────────────────────────
+export const treeIntro='科技樹照 aoetw.com 各文明的科技樹頁排列：每座建築一塊，由上往下是黑暗、封建、城堡、帝王時代，同一欄由上往下是升級的先後。這個文明沒有的項目變暗並標「沒有」，本作沒有的參考項目（例如鷹斥候、攻城塔）可以顯示成淡色。對局中打開時，會標出你已研究、已擁有、正在進行，以及現在就能做的項目。';
+export const treeNote='科技樹的排列取自 aoetw.com 的文明科技樹頁；每個項目能不能用、費用與前置都即時取自本作的規則，點項目會打開它在百科的那一頁。';
+// Reference items the game lacks, placed in the site's tree by age (aoetw.com tree pages): the ages of each line's
+// steps, and the technology a reference technology follows in its column.
+export const treeRefAges:Readonly<Record<string,readonly number[]>>={'eagle-scout':[2,3,4],'battle-elephant':[3,4],'steppe-lancer':[3,4],'xolotl-warrior':[3],'siege-tower':[3]};
+export const treeRefChains:Readonly<Record<string,string>>={banking:'coinage'};

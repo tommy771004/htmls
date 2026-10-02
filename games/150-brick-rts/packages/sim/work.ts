@@ -16,13 +16,16 @@ import type {ResourceNode} from './terrain.ts';
 import {animalRules,carcassId,isAnimal} from './fauna.ts';
 import {approach,reach,strike} from './combat.ts';
 import type {CombatState} from './combat.ts';
+import {stepRepairer} from './repair.ts';
+import type {RepairWork} from './repair.ts';
 // Villager work (gather → carry → deposit → resume). Engineering rules are design_default in economyRules.
 // hunting: striking a live animal (prey) whose carcass (resourceId) does not exist yet. Appended: index-projected.
-export type WorkPhase='toSource'|'gathering'|'toDropoff'|'toSite'|'building'|'hunting';
-export const workPhases:readonly (WorkPhase|'none')[]=['none','toSource','gathering','toDropoff','toSite','building','hunting'];
+export type WorkPhase='toSource'|'gathering'|'toDropoff'|'toSite'|'building'|'hunting'|'toRepair'|'repairing';
+export const workPhases:readonly (WorkPhase|'none')[]=['none','toSource','gathering','toDropoff','toSite','building','hunting','toRepair','repairing'];
 export type GatherWork={kind:'gather';resourceId:string;phase:'toSource'|'gathering'|'toDropoff'|'hunting';progress:number;retries:number;prey?:number};
 export type BuildWork={kind:'build';buildingId:string;phase:'toSite'|'building';retries:number};
-export type Work=GatherWork|BuildWork;
+// RepairWork: repair.ts (the 遊戲元素 round).
+export type Work=GatherWork|BuildWork|RepairWork;
 export type Cargo={resource:Resource;amount:number};
 // techs: each player's researched technologies (gather rate, carry); reseed: each player's automatic farm reseeding.
 export type WorkState=MovementState&BuildingState&{civs?:string[];tick:number;works:Record<number,Work>;cargo:Record<number,Cargo>;techs:string[][];reseed:boolean[]};
@@ -151,10 +154,11 @@ function stepHunt(s:CombatState,u:Unit,w:GatherWork){
  w.phase='toSource';routeTo(s,u,nodes);
 }
 export function stepWork(s:CombatState){
- const busy=new Set(s.pathJobs.flatMap(j=>j.kind==='group'?j.unitIds:[j.unitId]));
+ const busy=new Set(s.pathJobs.flatMap(j=>j.kind==='group'?j.unitIds:[j.unitId])),credited=new Set<string>();
  for(const u of [...s.units].sort((a,b)=>a.id-b.id)){
   const w=s.works[u.id];if(!w||busy.has(u.id)||u.next!==null||u.path.length)continue;
   if(w.kind==='build'){stepBuilder(s,u,w);continue;}
+  if(w.kind==='repair'){stepRepairer(s,u,w,credited);continue;}
   if(w.prey!==undefined&&w.phase!=='toDropoff'){stepHunt(s,u,w);continue;}
   const resource=s.map.resources.find(r=>r.id===w.resourceId);
   // Carrying home from a hunt that has not dropped anything yet: deposit, then the hunt resumes.

@@ -1,14 +1,15 @@
 // Evaluates the civilization effects of packages/content/civs.ts for one player (civ, age, research). Pure: shared by
 // the sim, the AI and the page. Every rule that a civilization can change asks here; nothing branches on a civ name.
 import {civDefs,neutralCiv} from '../content/civs.ts';
-import {techEffects} from '../content/techs.ts';
+import {techEffects,ageEffects} from '../content/techs.ts';
 import type {Effect,EffectKind,Selector,Resource} from '../content/civs.ts';
-import {rules,resources} from '../content/rules.ts';
-export type Owner={civ:string;age:number;techs:readonly string[]};
+import {rules,resources,allTechCivilizations} from '../content/rules.ts';
+// allTechs: the match's 所有科技 setting (availability only; bonuses are the civ's own).
+export type Owner={civ:string;age:number;techs:readonly string[];allTechs?:boolean};
 export const neutralOwner:Owner={civ:neutralCiv,age:1,techs:[]};
 // The player's context from any state that carries civs, ages and techs (older fixtures carry only techs).
-export function ownerOf(s:{civs?:readonly string[];ages?:readonly number[];techs?:readonly (readonly string[])[]},player:number):Owner{
- return {civ:s.civs?.[player]??neutralCiv,age:s.ages?.[player]??1,techs:s.techs?.[player]??[]};}
+export function ownerOf(s:{civs?:readonly string[];ages?:readonly number[];techs?:readonly (readonly string[])[];settings?:{allTechs:boolean}},player:number):Owner{
+ const o:Owner={civ:s.civs?.[player]??neutralCiv,age:s.ages?.[player]??1,techs:s.techs?.[player]??[]};if(s.settings?.allTechs)o.allTechs=true;return o;}
 // A bare technology list (tests, older callers) means the neutral civilization in the Dark Age.
 export const asOwner=(o:Owner|readonly string[]):Owner=>Array.isArray(o)?{civ:neutralCiv,age:1,techs:o as readonly string[]}:o as Owner;
 const byCiv=new Map(civDefs.map(c=>[c.id,c.effects]));
@@ -18,7 +19,7 @@ export const civExists=(id:unknown)=>typeof id==='string'&&byCiv.has(id);
 const withTechs=new Map<string,Effect[]>();
 // Generic technologies (packages/content/techs.ts) work the same way for every civilization.
 export function activeEffects(o:Owner,kind:EffectKind):Effect[]{
- let list=withTechs.get(o.civ);if(!list){list=[...(byCiv.get(o.civ)??[]),...techEffects];withTechs.set(o.civ,list);}
+ let list=withTechs.get(o.civ);if(!list){list=[...(byCiv.get(o.civ)??[]),...techEffects,...ageEffects];withTechs.set(o.civ,list);}
  return list.filter(e=>e.kind===kind&&(e.trigger.age===undefined||o.age>=e.trigger.age)&&(e.trigger.tech===undefined||o.techs.includes(e.trigger.tech)));}
 export const valueOf=(e:Effect,o:Owner)=>typeof e.value==='number'?e.value:e.value[Math.min(3,Math.max(0,o.age-1))];
 const hit=(list:readonly string[]|undefined,values:readonly string[])=>!!list&&values.some(v=>list.includes(v));
@@ -63,7 +64,9 @@ export function producedAt(building:string,o:Owner):string[]{
  const out=Object.entries(rules.production).filter(([,b])=>b===building).map(([id])=>id);
  for(const fx of activeEffects(o,'producer'))if(fx.select.buildings?.includes(building))for(const id of fx.select.entries??[])if(!out.includes(id))out.push(id);
  return out;}
-export const civAvailable=(civ:string,entryId:string)=>{const c=rules.civilizations.find(c=>c.id===civ)??rules.civilizations.find(c=>c.id===neutralCiv)!;return c.available.includes(entryId);};
+export const civAvailable=(civ:string,entryId:string,allTechs=false)=>{const list=allTechs?allTechCivilizations:rules.civilizations,c=list.find(c=>c.id===civ)??list.find(c=>c.id===neutralCiv)!;return c.available.includes(entryId);};
+// The same for an owner (its match may have 所有科技 on).
+export const ownerAvailable=(o:Owner,entryId:string)=>civAvailable(o.civ,entryId,!!o.allTechs);
 // Economy.
 // kind: the gatherer (an effect that names kinds, the fishing ships', applies to those only).
 export const gatherBonus=(o:Owner,yieldKind:string,source:string,kind='villager')=>sum(activeEffects(o,'gather').filter(e=>(!e.select.kinds||e.select.kinds.includes(kind))&&(e.select.resources?.includes(yieldKind)||e.select.sources?.includes(source))),o);
@@ -78,6 +81,7 @@ export const garrisonBonus=(o:Owner,building:string)=>buildingSum(o,'garrison',b
 export const popCapBonus=(o:Owner)=>sum(activeEffects(o,'popCap'),o);
 export const buildingArmorBonus=(o:Owner,building:string)=>[buildingSum(o,'buildingMeleeArmor',building),buildingSum(o,'buildingPierceArmor',building)] as const;
 export const buildRateBonus=(o:Owner,building:string)=>buildingSum(o,'buildRate',building);
+export const buildingClassArmorBonus=(o:Owner,building:string)=>buildingSum(o,'buildingClassArmor',building);
 export const garrisonHealScale=(o:Owner,building:string)=>product(activeEffects(o,'garrisonHeal').filter(e=>buildingMatches(e.select,building)),o);
 export const keepsHousing=(o:Owner,building:string)=>activeEffects(o,'keepHousing').some(e=>buildingMatches(e.select,building));
 export function arrowsOf(o:Owner,building:string){
@@ -101,3 +105,8 @@ export function startStock(o:Owner):Record<Resource,number>{const out={food:0,wo
 export const startVillagers=(o:Owner)=>sum(activeEffects(o,'startVillagers'),o);
 // Technologies granted for free by now (Vikings: Wheelbarrow with the second age, Hand Cart with the third).
 export const grantsOf=(o:Owner)=>activeEffects(o,'grant').flatMap(e=>[...(e.select.entries??[])]).filter(id=>!o.techs.includes(id));
+// The 戰術技巧 round. Ballistics: this unit or building leads moving targets; accuracy: the sure-shot percent an effect
+// gives against a standing target (Thumb Ring, Warwolf), 0 when none applies.
+export const leadsUnit=(o:Owner,unit:string,classes:readonly string[])=>activeEffects(o,'lead').some(e=>!e.select.buildings&&unitMatches(e.select,unit,classes));
+export const leadsBuilding=(o:Owner,building:string)=>activeEffects(o,'lead').some(e=>!!e.select.buildings&&e.select.buildings.includes(building));
+export const steadyAccuracy=(o:Owner,unit:string,classes:readonly string[])=>Math.max(0,...activeEffects(o,'accuracy').filter(e=>unitMatches(e.select,unit,classes)).map(e=>valueOf(e,o)));

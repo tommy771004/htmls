@@ -9,6 +9,7 @@ import {reach} from './combat.ts';
 import type {CombatState} from './combat.ts';
 import {ownerOf,transportCapacityOf} from './civ.ts';
 import {isAnimal} from './fauna.ts';
+import {ramCapacity,ridesRam} from './garrison.ts';
 // boardReach: how close (Chebyshev, centre to centre) a unit steps in from; landReach: how far from the transport the
 // passengers may be set down; repathTicks: how often a boarding unit re-aims at a transport that moved.
 export const navalRules={provenance:'design_default',transportCapacity:5,boardReach:150,landReach:150,repathTicks:20} as const;
@@ -16,12 +17,15 @@ export const navalRules={provenance:'design_default',transportCapacity:5,boardRe
 // transports sailing to set their passengers down at a point.
 export type NavalState=CombatState&{transports:Record<number,Unit[]>;boarding:Record<number,{transportId:number;repath:number}>;unloading:Record<number,{x:number;y:number}>};
 const naval=(s:CombatState)=>{const n=s as NavalState;n.transports??={};n.boarding??={};n.unloading??={};return n;};
-export const capacityOf=(s:CombatState,t:Unit)=>transportCapacityOf(ownerOf(s,t.player),navalRules.transportCapacity);
+// A ram (the 遊戲元素 round, garrison.ts) carries 4/5/6 infantry and foot archers in the same store.
+export const capacityOf=(s:CombatState,t:Unit)=>t.kind==='ram'?ramCapacity(s,t.player):transportCapacityOf(ownerOf(s,t.player),navalRules.transportCapacity);
 const room=(s:NavalState,t:Unit)=>capacityOf(s,t)-(s.transports[t.id]?.length??0)-Object.values(s.boarding).filter(b=>b.transportId===t.id).length;
 // Why these units cannot board this transport (null when they can).
 export function loadProblem(s:CombatState,player:number,transportId:number,unitIds:number[]):string|null{
- const n=naval(s),t=s.units.find(u=>u.id===transportId);if(!t||t.player!==player||t.kind!=='transport-ship')return '只能登上己方的運輸船';
+ const n=naval(s),t=s.units.find(u=>u.id===transportId);
+ if(t?.kind==='ram'){if(t.player!==player)return '只能進駐己方的衝撞車';}else if(!t||t.player!==player||t.kind!=='transport-ship')return '只能登上己方的運輸船';
  const units=unitIds.map(id=>s.units.find(u=>u.id===id));
+ if(t.kind==='ram'&&units.some(u=>!u||!ridesRam(u.kind)))return '只有步兵與徒步弓兵能進駐衝撞車';
  if(units.some(u=>!u||layerOf(u.kind)!=='land'||isAnimal(u.kind)))return '只有陸上單位能登船';
  const relics=(s as {relics?:{carrier:number|null}[]}).relics??[];if(units.some(u=>u&&relics.some(r=>r.carrier===u.id)))return '攜帶聖物的僧侶不能登船';
  const free=room(n,t)+unitIds.filter(id=>n.boarding[id]?.transportId===t.id).length;if(free<unitIds.length)return `空位不足：還能登船 ${Math.max(0,free)} 名`;
@@ -31,7 +35,8 @@ export function commandLoad(s:CombatState,unitIds:number[],transportId:number){
  const n=naval(s),t=s.units.find(u=>u.id===transportId)!;
  for(const id of unitIds){cancelMovement(s,id);delete s.works[id];delete s.attacks[id];n.boarding[id]={transportId,repath:0};}
  // The transport comes to the shore by the first of them (as in the reference, both sides close in).
- const first=s.units.find(u=>u.id===unitIds[0]);if(first&&reach(first,t)>navalRules.boardReach){delete n.unloading[t.id];commandMove(s,[t.id],{x:first.x,y:first.y});}
+ // A ram waits where it is.
+ const first=s.units.find(u=>u.id===unitIds[0]);if(t.kind!=='ram'&&first&&reach(first,t)>navalRules.boardReach){delete n.unloading[t.id];commandMove(s,[t.id],{x:first.x,y:first.y});}
 }
 export function unloadProblem(s:CombatState,player:number,transportId:number,x:unknown,y:unknown):string|null{
  const n=naval(s),t=s.units.find(u=>u.id===transportId);if(!t||t.player!==player||t.kind!=='transport-ship')return '找不到這艘己方運輸船';
@@ -72,6 +77,17 @@ export function stepNaval(s:CombatState){
    Object.assign(u,{x:p.x,y:p.y,node,next:null,path:[],goal:null,target:null,navigation:'idle',wait:0});s.units.push(u);out.push(u);}
   n.transports[id]=n.transports[id].filter(u=>!out.includes(u));if(!n.transports[id].length)delete n.transports[id];
   if(out.length)s.units.sort((a,b)=>a.id-b.id);}
+}
+// Lets everyone the carrier can set down out onto the free land round it now (the ungarrison order for a ram or a
+// beached transport, and a ram that falls: its passengers survive). Returns those left inside (no free ground).
+export function releaseCarried(s:CombatState,carrierId:number,at?:{x:number;y:number;player:number}){
+ const n=naval(s),t=s.units.find(u=>u.id===carrierId),from=t??(at?{...at,id:carrierId} as unknown as Unit:undefined),list=n.transports[carrierId];
+ if(!from||!list?.length)return 0;
+ delete n.unloading[carrierId];const spots=landing(n,from,{x:from.x,y:from.y}),out:Unit[]=[];
+ for(const u of list){const node=spots.shift();if(node===undefined)break;const p=position(s.map,node);
+  Object.assign(u,{x:p.x,y:p.y,node,next:null,path:[],goal:null,target:null,navigation:'idle',wait:0});s.units.push(u);out.push(u);}
+ n.transports[carrierId]=list.filter(u=>!out.includes(u));if(!n.transports[carrierId].length)delete n.transports[carrierId];
+ if(out.length)s.units.sort((a,b)=>a.id-b.id);return n.transports[carrierId]?.length??0;
 }
 // Everyone inside a transport (conquest counts them; the page shows the load).
 export const passengers=(s:CombatState,transportId:number)=>(s as Partial<NavalState>).transports?.[transportId]??[];

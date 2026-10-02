@@ -10,6 +10,7 @@ import {defenseRules} from '../packages/sim/defense.ts';
 import {authoritativeProblem} from '../packages/sim/buildings.ts';
 import {obstacleBounds} from '../packages/content/footprints.ts';
 import {isAnimal} from '../packages/sim/fauna.ts';
+import {settle} from './flight.ts';
 function order(s:State,commandType:string,payload:any,playerId=0){submit(s,{protocolVersion:1,rulesetHash,playerId,sequence:s.sequence[playerId]+1,targetTick:s.tick+1,commandType,payload} as any);}
 const run=(s:State,n:number,stop=()=>false)=>{for(let i=0;i<n&&!stop();i++)tick(s);};
 function spawn(s:State,player:number,kind:UnitKind,x:number,y:number){const closed=blockedTable(s.map),held=new Set(s.units.map(u=>u.node));let best=-1,d=Infinity;
@@ -22,7 +23,11 @@ const see=(s:State)=>{for(const v of s.vision){v.visible=Array.from({length:256}
 test('a town centre shoots the nearest visible enemy in range and nothing out of range',()=>{
  const s=createState(260925);s.units=s.units.filter(u=>!isAnimal(u.kind));const box=boxOf(s,tcOf(s,0).id);
  const near=spawn(s,1,'militia',box[2]+150,(box[1]+box[3])/2),far=spawn(s,1,'militia',box[2]+450,(box[1]+box[3])/2);see(s);
+ // They hold still (no attack stance): arrows without Ballistics fly where a target was, and a walking one would dodge.
+ s.stances[near.id]='passive';s.stances[far.id]='passive';
  run(s,defenseRules.arrows['town-center'].cooldown+2,()=>{see(s);return false;});
+ // Both volleys are in the air or down by now; they hit once they land (the 戰術技巧 round's flying arrows).
+ settle(s);
  assert.equal(near.hp,45-2*(5-1),'two volleys of one arrow, 5 pierce against armor 1');assert.equal(far.hp,45);
  assert.ok(s.shots.length<=1&&s.shots.every(v=>v.player===0));
 });
@@ -32,7 +37,7 @@ test('villagers and archers inside add arrows; cavalry and relic carriers cannot
  order(s,'garrison',{unitIds:[1,2,3],buildingId:tc.id});run(s,200,()=>s.garrison[tc.id]?.units.length===3);
  assert.equal(s.garrison[tc.id].units.length,3);assert.ok(![1,2,3].some(id=>s.units.some(u=>u.id===id)),'inside means out of the world');assert.equal(s.accounts[0].populationUsed,3,'still counted');
  const knight=spawn(s,0,'knight',box[2]+100,box[3]+100);assert.throws(()=>order(s,'garrison',{unitIds:[knight.id],buildingId:tc.id}),/只有村民、步兵、徒步弓兵與僧侶/);
- const foe=spawn(s,1,'militia',box[2]+150,(box[1]+box[3])/2);see(s);s.volleys[tc.id]=0;tick(s);
+ const foe=spawn(s,1,'militia',box[2]+150,(box[1]+box[3])/2);s.stances[foe.id]='passive';see(s);s.volleys[tc.id]=0;tick(s);settle(s);
  assert.equal(foe.hp,45-4*4,'one arrow plus one per villager inside');
  assert.equal(defenseRules.capacity['town-center'],15);
 });
@@ -71,7 +76,7 @@ test('a watch tower needs the second age, costs stone, and shoots once built',()
  assert.throws(()=>order(s,'build',{unitIds:[1],kind:'watch-tower',...site}),/需要第二時代/);
  s.ages[0]=2;s.accounts[0].stock.stone=200;order(s,'build',{unitIds:[1,2,3],kind:'watch-tower',...site});run(s,2000,()=>s.buildings.some(b=>b.kind==='watch-tower'&&b.complete));
  const tower=s.buildings.find(b=>b.kind==='watch-tower'&&b.complete)!;assert.ok(tower);assert.equal(s.accounts[0].stock.stone,75);
- const foe=spawn(s,1,'militia',site!.x+300,site!.y+50);see(s);run(s,defenseRules.arrows['watch-tower'].cooldown+2,()=>{see(s);return false;});assert.ok(foe.hp<45,'the tower shot');
+ const foe=spawn(s,1,'militia',site!.x+300,site!.y+50);see(s);run(s,defenseRules.arrows['watch-tower'].cooldown+2,()=>{see(s);return false;});settle(s);assert.ok(foe.hp<45,'the tower shot');
 });
 
 test('practice mode: with red idle its town centre does not shoot; against the computer it does',()=>{

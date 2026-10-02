@@ -25,7 +25,7 @@ const tick=page=>page.evaluate(()=>Number(document.querySelector('#tick').textCo
 let page;
 try{
  page=await browser.newPage({viewport:{width:1440,height:900}});watch(page);const t0=Date.now();
- await page.goto(origin+'/web/150-brick-rts.html');await page.waitForFunction(()=>Number(document.querySelector('#tick').textContent)>2);
+ await page.goto(origin+'/web/150-brick-rts.html?play=1');await page.waitForFunction(()=>Number(document.querySelector('#tick').textContent)>2);
  const text=id=>page.locator('#'+id).innerText();
  const act=async fn=>{const old=await text('notice');await fn();await page.waitForFunction(o=>document.querySelector('#notice').textContent!==o,old,{timeout:5000}).catch(()=>{});return text('notice');};
  note('首次進站',`${Date.now()-t0} ms 內開始運行；${await text('notice')}`);
@@ -81,7 +81,7 @@ try{
  await page.close();
  // 8. Phone: same screen, compact HUD, tap to select and tap to move.
  const phone=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true});const small=await phone.newPage();watch(small);
- await small.goto(origin+'/web/150-brick-rts.html');await small.waitForFunction(()=>Number(document.querySelector('#tick').textContent)>2);
+ await small.goto(origin+'/web/150-brick-rts.html?play=1');await small.waitForFunction(()=>Number(document.querySelector('#tick').textContent)>2);
  const [sHud,sMap]=await Promise.all(['.hud','#map'].map(s=>small.locator(s).boundingBox()));note('390 版面',`戰場高 ${Math.round(sMap.height)}，HUD 高 ${Math.round(sHud.height)}`);
  assert.equal(await small.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight),true,'no overflow at 390');assert.ok(sHud.height<=844*.32,'HUD stays under a third of the phone screen');
  await small.locator('#pause').tap();const villager=world.units.find(u=>u.player===0);let q=await screenOf(small,villager.x/100,.55,villager.y/100);await small.touchscreen.tap(q.x,q.y);await small.waitForFunction(()=>!document.querySelector('#sel-unit').hidden,undefined,{timeout:3000}).catch(()=>{});

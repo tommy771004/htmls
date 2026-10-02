@@ -109,7 +109,7 @@ var civDefs = [
     nameEn: "Britons",
     type: "\u5F13\u5175\u6587\u660E",
     architecture: "west",
-    missing: ["crop-rotation", "stone-shaft-mining", "redemption", "atonement", "heresy", "hussar", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "treadmill-crane", "bloodlines", "thumb-ring", "parthian-tactics", "hand-cannoneer", "bombard-cannon", "elite-cannon-galleon", "bombard-tower"],
+    missing: ["crop-rotation", "stone-shaft-mining", "redemption", "atonement", "heresy", "hussar", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "treadmill-crane", "bloodlines", "thumb-ring", "parthian-tactics", "hand-cannoneer", "bombard-cannon", "elite-cannon-galleon", "bombard-tower", "bombard-tower-tech"],
     missingLater: ["missionary"],
     uniqueUnits: ["longbowman"],
     eliteUpgrades: ["elite-longbowman"],
@@ -121,9 +121,11 @@ var civDefs = [
       fx("britons.team-range", "workRate", { buildings: ["archery-range"] }, 20, "\u5718\u968A\u52A0\u6210\uFF1A\u9776\u5834\u751F\u7522\u901F\u5EA6 +20%", { team: true }),
       fx("britons.yeomen-range", "range", { classes: ["archer"], exclude: ["gunpowder", "cavalry-archer"] }, 50, "\u7FA9\u52C7\u9A0E\u5175\uFF1A\u5F92\u6B65\u5F13\u5175\uFF08\u542B\u6563\u5175\uFF09\u5C04\u7A0B +1", { tech: "yeomen" }),
       fx("britons.yeomen-tower", "arrowDamage", { buildings: ["watch-tower"] }, 2, "\u7FA9\u52C7\u9A0E\u5175\uFF1A\u7BAD\u5854\u653B\u64CA +2", { tech: "yeomen" }),
-      fx("britons.warwolf", "blast", { kinds: ["trebuchet"] }, 75, "\u6230\u72FC\u865F\uFF1A\u5DE8\u578B\u6295\u77F3\u6A5F\u7684\u77F3\u5F48\u6CE2\u53CA\u843D\u9EDE\u5468\u570D\u7684\u6575\u5175", { tech: "warwolf" })
+      fx("britons.warwolf", "blast", { kinds: ["trebuchet"] }, 75, "\u6230\u72FC\u865F\uFF1A\u5DE8\u578B\u6295\u77F3\u6A5F\u7684\u77F3\u5F48\u6CE2\u53CA\u843D\u9EDE\u5468\u570D\u7684\u6575\u5175", { tech: "warwolf" }),
+      // aoetw: 100% against standing targets; here the trebuchet strikes buildings only, which always stand.
+      fx("britons.warwolf-accuracy", "accuracy", { kinds: ["trebuchet"] }, 100, "\u6230\u72FC\u865F\uFF1A\u5DE8\u578B\u6295\u77F3\u6A5F\u5C04\u64CA\u975C\u6B62\u76EE\u6A19\u5FC5\u4E2D", { tech: "warwolf" })
     ],
-    omitted: [{ text: "\u6230\u72FC\u865F\u5C0D\u975C\u6B62\u55AE\u4F4D 100% \u547D\u4E2D", reason: "\u672C\u4F5C\u7684\u5DE8\u578B\u6295\u77F3\u6A5F\u53EA\u6253\u5EFA\u7BC9\uFF0C\u4E5F\u6C92\u6709\u547D\u4E2D\u7387" }],
+    omitted: [],
     sources: [site("civs/Britons"), site("units/Longbowman"), site("techs/Yeomen"), site("techs/Warwolf"), site("tree/bri")]
   },
   {
@@ -132,7 +134,7 @@ var civDefs = [
     nameEn: "Celts",
     type: "\u6B65\u5175\u8207\u653B\u57CE\u5668\u6587\u660E",
     architecture: "west",
-    missing: ["two-man-saw", "crop-rotation", "bracer", "ring-archer-armor", "plate-barding-armor", "redemption", "atonement", "illumination", "block-printing", "theocracy", "arbalest", "camel", "heavy-camel", "architecture", "bloodlines", "thumb-ring", "parthian-tactics", "squires", "hand-cannoneer", "bombard-cannon", "bombard-tower", "elite-cannon-galleon", "fast-fire-ship"],
+    missing: ["two-man-saw", "crop-rotation", "bracer", "ring-archer-armor", "plate-barding-armor", "redemption", "atonement", "illumination", "block-printing", "theocracy", "arbalest", "camel", "heavy-camel", "architecture", "bloodlines", "thumb-ring", "parthian-tactics", "squires", "hand-cannoneer", "bombard-cannon", "bombard-tower", "bombard-tower-tech", "elite-cannon-galleon", "fast-fire-ship"],
     missingLater: ["missionary"],
     uniqueUnits: ["woad-raider"],
     eliteUpgrades: ["elite-woad-raider"],
@@ -154,7 +156,7 @@ var civDefs = [
     nameEn: "Franks",
     type: "\u9A0E\u5175\u6587\u660E",
     architecture: "west",
-    missing: ["two-man-saw", "stone-shaft-mining", "bracer", "ring-archer-armor", "redemption", "arbalest", "hussar", "camel", "heavy-camel", "siege-ram", "siege-onager", "keep", "bloodlines", "thumb-ring", "parthian-tactics", "sappers", "bombard-tower", "heated-shot", "shipwright", "elite-cannon-galleon", "guilds"],
+    missing: ["two-man-saw", "stone-shaft-mining", "bracer", "ring-archer-armor", "redemption", "arbalest", "hussar", "camel", "heavy-camel", "siege-ram", "siege-onager", "keep", "bloodlines", "thumb-ring", "parthian-tactics", "sappers", "bombard-tower", "bombard-tower-tech", "heated-shot", "shipwright", "elite-cannon-galleon", "guilds"],
     missingLater: ["missionary"],
     uniqueUnits: ["throwing-axeman"],
     eliteUpgrades: ["elite-throwing-axeman"],
@@ -177,7 +179,7 @@ var civDefs = [
     nameEn: "Goths",
     type: "\u6B65\u5175\u6587\u660E",
     architecture: "central",
-    missing: ["gold-shaft-mining", "plate-mail-armor", "plate-barding-armor", "redemption", "atonement", "heresy", "block-printing", "arbalest", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "siege-engineers", "guard-tower", "keep", "treadmill-crane", "arrowslits", "thumb-ring", "parthian-tactics", "arson", "hoardings", "bombard-tower", "elite-cannon-galleon", "dry-dock", "fortified-wall"],
+    missing: ["gold-shaft-mining", "plate-mail-armor", "plate-barding-armor", "redemption", "atonement", "heresy", "block-printing", "arbalest", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "siege-engineers", "guard-tower", "keep", "treadmill-crane", "arrowslits", "thumb-ring", "parthian-tactics", "arson", "hoardings", "bombard-tower", "bombard-tower-tech", "elite-cannon-galleon", "dry-dock", "fortified-wall"],
     missingLater: ["missionary"],
     uniqueUnits: ["huskarl"],
     eliteUpgrades: ["elite-huskarl"],
@@ -228,7 +230,7 @@ var civDefs = [
     nameEn: "Vikings",
     type: "\u6B65\u5175\u8207\u6D77\u8ECD\u6587\u660E",
     architecture: "central",
-    missing: ["stone-shaft-mining", "plate-barding-armor", "redemption", "sanctity", "illumination", "theocracy", "halberdier", "heavy-cavalry-archer", "hussar", "paladin", "camel", "heavy-camel", "siege-onager", "keep", "bloodlines", "husbandry", "parthian-tactics", "herbal-medicine", "hand-cannoneer", "bombard-cannon", "bombard-tower", "fire-galley", "fast-fire-ship", "elite-cannon-galleon", "shipwright", "guilds"],
+    missing: ["stone-shaft-mining", "plate-barding-armor", "redemption", "sanctity", "illumination", "theocracy", "halberdier", "heavy-cavalry-archer", "hussar", "paladin", "camel", "heavy-camel", "siege-onager", "keep", "bloodlines", "husbandry", "parthian-tactics", "herbal-medicine", "hand-cannoneer", "bombard-cannon", "bombard-tower", "bombard-tower-tech", "fire-galley", "fast-fire-ship", "elite-cannon-galleon", "shipwright", "guilds"],
     missingLater: ["missionary"],
     uniqueUnits: ["berserk", "longboat"],
     eliteUpgrades: ["elite-berserk", "elite-longboat"],
@@ -252,7 +254,7 @@ var civDefs = [
     nameEn: "Byzantines",
     type: "\u9632\u79A6\u6587\u660E",
     architecture: "mideast",
-    missing: ["masonry", "architecture", "blast-furnace", "siege-onager", "heavy-scorpion", "siege-engineers", "treadmill-crane", "bloodlines", "parthian-tactics", "sappers", "herbal-medicine", "heated-shot", "bombard-tower"],
+    missing: ["masonry", "architecture", "blast-furnace", "siege-onager", "heavy-scorpion", "siege-engineers", "treadmill-crane", "bloodlines", "parthian-tactics", "sappers", "herbal-medicine", "heated-shot", "bombard-tower", "bombard-tower-tech"],
     missingLater: ["missionary"],
     uniqueUnits: ["cataphract"],
     eliteUpgrades: ["elite-cataphract"],
@@ -277,7 +279,7 @@ var civDefs = [
     nameEn: "Persians",
     type: "\u9A0E\u5175\u6587\u660E",
     architecture: "mideast",
-    missing: ["bracer", "redemption", "atonement", "heresy", "sanctity", "illumination", "two-handed-swordsman", "champion", "arbalest", "siege-onager", "siege-engineers", "keep", "treadmill-crane", "arrowslits", "shipwright", "bombard-tower", "fortified-wall"],
+    missing: ["bracer", "redemption", "atonement", "heresy", "sanctity", "illumination", "two-handed-swordsman", "champion", "arbalest", "siege-onager", "siege-engineers", "keep", "treadmill-crane", "arrowslits", "shipwright", "bombard-tower", "bombard-tower-tech", "fortified-wall"],
     missingLater: ["missionary"],
     uniqueUnits: ["war-elephant"],
     eliteUpgrades: ["elite-war-elephant"],
@@ -300,7 +302,7 @@ var civDefs = [
     nameEn: "Saracens",
     type: "\u99F1\u99DD\u8207\u6D77\u8ECD\u6587\u660E",
     architecture: "mideast",
-    missing: ["crop-rotation", "stone-shaft-mining", "halberdier", "cavalier", "paladin", "heavy-scorpion", "architecture", "sappers", "bombard-tower", "heated-shot", "shipwright", "guilds", "fast-fire-ship"],
+    missing: ["crop-rotation", "stone-shaft-mining", "halberdier", "cavalier", "paladin", "heavy-scorpion", "architecture", "sappers", "bombard-tower", "bombard-tower-tech", "heated-shot", "shipwright", "guilds", "fast-fire-ship"],
     missingLater: ["missionary"],
     uniqueUnits: ["mameluke"],
     eliteUpgrades: ["elite-mameluke"],
@@ -379,7 +381,7 @@ var civDefs = [
     nameEn: "Japanese",
     type: "\u6B65\u5175\u6587\u660E",
     architecture: "eastasia",
-    missing: ["crop-rotation", "stone-shaft-mining", "plate-barding-armor", "heresy", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "architecture", "hoardings", "bombard-cannon", "bombard-tower", "heated-shot", "guilds", "heavy-demolition-ship"],
+    missing: ["crop-rotation", "stone-shaft-mining", "plate-barding-armor", "heresy", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "architecture", "hoardings", "bombard-cannon", "bombard-tower", "bombard-tower-tech", "heated-shot", "guilds", "heavy-demolition-ship"],
     missingLater: ["missionary"],
     uniqueUnits: ["samurai"],
     eliteUpgrades: ["elite-samurai"],
@@ -404,7 +406,7 @@ var civDefs = [
     nameEn: "Mongols",
     type: "\u99AC\u5F13\u9A0E\u5175\u6587\u660E",
     architecture: "eastasia",
-    missing: ["halberdier", "two-man-saw", "crop-rotation", "plate-barding-armor", "ring-archer-armor", "redemption", "sanctity", "faith", "block-printing", "paladin", "architecture", "keep", "treadmill-crane", "arrowslits", "bombard-cannon", "bombard-tower", "elite-cannon-galleon", "heated-shot", "guilds", "dry-dock"],
+    missing: ["halberdier", "two-man-saw", "crop-rotation", "plate-barding-armor", "ring-archer-armor", "redemption", "sanctity", "faith", "block-printing", "paladin", "architecture", "keep", "treadmill-crane", "arrowslits", "bombard-cannon", "bombard-tower", "bombard-tower-tech", "elite-cannon-galleon", "heated-shot", "guilds", "dry-dock"],
     missingLater: [],
     uniqueUnits: ["mangudai"],
     eliteUpgrades: ["elite-mangudai"],
@@ -543,6 +545,8 @@ var techEntries = [
   tech("keep", "\u5927\u578B\u7BAD\u5854", 500, 350, 0, 0, ["age-4", "guard-tower"], 75),
   tech("treadmill-crane", "\u78E8\u574A\u6C34\u8ECA", 300, 200, 0, 0, ["age-3"], 50),
   tech("arrowslits", "\u7BAD\u72F9\u69FD", 250, 250, 0, 0, ["age-4"], 25),
+  // The 戰術技巧 round (aoetw.com techs/Ballistics): every civilization of this game has it.
+  tech("ballistics", "\u5F48\u9053\u5B78", 0, 300, 175, 0, ["age-3"], 60),
   tech("supplies", "\u4F9B\u7D66", 150, 0, 100, 0, ["age-2"], 35),
   tech("squires", "\u8B77\u885B\u6280\u8853", 100, 0, 0, 0, ["age-3"], 40),
   tech("arson", "\u7E31\u706B", 150, 0, 50, 0, ["age-3"], 25),
@@ -571,6 +575,7 @@ var techProducers = {
   keep: "university",
   "treadmill-crane": "university",
   arrowslits: "university",
+  ballistics: "university",
   supplies: "barracks",
   squires: "barracks",
   arson: "barracks",
@@ -634,11 +639,11 @@ var buildingEntries = [
 ];
 var dockItems = ["fishing-ship", "transport-ship", "trade-cog", "galley", "fire-galley", "demolition-raft", "cannon-galleon", "longboat", "war-galley", "galleon", "fast-fire-ship", "heavy-demolition-ship", "elite-cannon-galleon", "elite-longboat", "gillnets", "careening", "dry-dock", "shipwright"];
 var buildingProducers = { ...Object.fromEntries(dockItems.map((id) => [id, "dock"])), "trade-cart": "market", caravan: "market", guilds: "market", "heated-shot": "university", "fortified-wall": "university", "bombard-tower-tech": "university", "greek-fire": "castle" };
-function civilizationsOf(entries) {
+function civilizationsOf(entries, allTechs = false) {
   const ids = entries.map((e) => e.id), uniqueIds = new Set(civDefs.flatMap((c) => [...c.uniqueUnits, ...c.eliteUpgrades, ...c.uniqueTechs.map((t) => t.id)]));
   return civDefs.map((c) => {
     const own = /* @__PURE__ */ new Set([...c.uniqueUnits, ...c.eliteUpgrades, ...c.uniqueTechs.map((t) => t.id)]);
-    const unavailable = ids.filter((id) => c.missing.includes(id) || uniqueIds.has(id) && !own.has(id) || id === "castle" && !c.uniqueUnits.length);
+    const unavailable = ids.filter((id) => !allTechs && c.missing.includes(id) || uniqueIds.has(id) && !own.has(id) || id === "castle" && !c.uniqueUnits.length);
     for (let grew = true; grew; ) {
       grew = false;
       for (const e of entries) {
@@ -798,6 +803,7 @@ var rules = {
   civilizations: []
 };
 rules.civilizations = civilizationsOf(rules.entries);
+var allTechCivilizations = civilizationsOf(rules.entries, true);
 
 // packages/sim/terrain.ts
 var terrainRules = { provenance: "design_default", size: 16, tileSize: 100, maxLandStep: 25, resourceCapacity: { tree: 300, stone: 250, gold: 250, berries: 150, hunt: 120, livestock: 100, fish: 200, farm: 250, "fish-trap": 1e3 }, generationAttempts: 8 };
@@ -1015,7 +1021,7 @@ var openMapRules = {
 };
 function generateOpen(seed, lake = false) {
   let rng = seed || 1;
-  const random2 = () => {
+  const random3 = () => {
     rng ^= rng << 13;
     rng ^= rng >>> 17;
     rng ^= rng << 5;
@@ -1023,16 +1029,16 @@ function generateOpen(seed, lake = false) {
   };
   const R = openMapRules, size = R.size, world = size * 100, mid = world / 2, tiles = createTiles("open", seed);
   for (let i = 0; i < R.dirtPatches; i++) {
-    let tx = 2 + Math.floor(random2() * (size - 4)), ty = 2 + Math.floor(random2() * (size - 4));
-    for (let k = 0; k < 4 + Math.floor(random2() * 6); k++) {
+    let tx = 2 + Math.floor(random3() * (size - 4)), ty = 2 + Math.floor(random3() * (size - 4));
+    for (let k = 0; k < 4 + Math.floor(random3() * 6); k++) {
       const t = tiles[ty * size + tx];
       Object.assign(t, { terrainType: "sand", ...terrainDefinitions.sand });
-      tx = Math.min(size - 2, Math.max(1, tx + Math.floor(random2() * 3) - 1));
-      ty = Math.min(size - 2, Math.max(1, ty + Math.floor(random2() * 3) - 1));
+      tx = Math.min(size - 2, Math.max(1, tx + Math.floor(random3() * 3) - 1));
+      ty = Math.min(size - 2, Math.max(1, ty + Math.floor(random3() * 3) - 1));
     }
   }
-  const a0 = random2() * Math.PI * 2, angles = [a0, a0 + Math.PI + (random2() * 2 - 1) * R.oppositeJitter], centres = angles.map((a) => {
-    const r = world * (R.radius[0] + random2() * (R.radius[1] - R.radius[0]));
+  const a0 = random3() * Math.PI * 2, angles = [a0, a0 + Math.PI + (random3() * 2 - 1) * R.oppositeJitter], centres = angles.map((a) => {
+    const r = world * (R.radius[0] + random3() * (R.radius[1] - R.radius[0]));
     const cx = Math.min(world - R.margin.right, Math.max(-R.margin.left, mid + Math.cos(a) * r)), cy = Math.min(world - R.margin.bottom, Math.max(-R.margin.top, mid + Math.sin(a) * r));
     const ax = Math.round((cx - 135 - 15) / 50) * 50 + 15, ay = Math.round((cy - 135) / 50) * 50;
     return { ax, ay, x: ax + 135, y: ay + 135 };
@@ -1087,7 +1093,7 @@ function generateOpen(seed, lake = false) {
   });
   const far = (tx, ty, d) => centres.every((c) => Math.hypot(tx * 100 + 50 - c.x, ty * 100 + 50 - c.y) >= d);
   for (const [kind, count] of Object.entries(R.neutral)) for (let i = 0; i < count; i++) for (let k = 0; k < 40; k++) {
-    const a = random2() * Math.PI * 2, d = lake ? R.lake.neutralRing[0] + random2() * (R.lake.neutralRing[1] - R.lake.neutralRing[0]) : random2() * R.neutralRadius, tx = Math.floor((mid + Math.cos(a) * d) / 100), ty = Math.floor((mid + Math.sin(a) * d) / 100);
+    const a = random3() * Math.PI * 2, d = lake ? R.lake.neutralRing[0] + random3() * (R.lake.neutralRing[1] - R.lake.neutralRing[0]) : random3() * R.neutralRadius, tx = Math.floor((mid + Math.cos(a) * d) / 100), ty = Math.floor((mid + Math.sin(a) * d) / 100);
     if (free(tx, ty) && far(tx, ty, R.clumpClearance)) {
       put(kind, tx, ty);
       break;
@@ -1096,18 +1102,18 @@ function generateOpen(seed, lake = false) {
   for (let i = 0; i < R.forestClumps; i++) {
     let tx = 0, ty = 0, ok = false;
     for (let k = 0; k < 60 && !ok; k++) {
-      tx = 1 + Math.floor(random2() * (size - 2));
-      ty = 1 + Math.floor(random2() * (size - 2));
+      tx = 1 + Math.floor(random3() * (size - 2));
+      ty = 1 + Math.floor(random3() * (size - 2));
       ok = free(tx, ty) && far(tx, ty, R.clumpClearance);
     }
     if (!ok) continue;
-    const want = R.clumpTrees[0] + Math.floor(random2() * (R.clumpTrees[1] - R.clumpTrees[0] + 1));
+    const want = R.clumpTrees[0] + Math.floor(random3() * (R.clumpTrees[1] - R.clumpTrees[0] + 1));
     for (let n = 0, k = 0; n < want && k < want * 6; k++) {
       if (free(tx, ty) && far(tx, ty, R.clumpClearance)) {
         put("tree", tx, ty);
         n++;
       }
-      const dir = Math.floor(random2() * 4);
+      const dir = Math.floor(random3() * 4);
       tx += dir === 0 ? 1 : dir === 1 ? -1 : 0;
       ty += dir === 2 ? 1 : dir === 3 ? -1 : 0;
       tx = Math.min(size - 2, Math.max(1, tx));
@@ -1116,7 +1122,7 @@ function generateOpen(seed, lake = false) {
   }
   for (let ty = 0; ty < size; ty++) for (let tx = 0; tx < size; tx++) {
     if (tx > 0 && ty > 0 && tx < size - 1 && ty < size - 1) continue;
-    const v = random2();
+    const v = random3();
     if (v < R.borderWood && !taken.has(ty * size + tx) && far(tx, ty, R.borderClearance)) {
       taken.add(ty * size + tx);
       obstacles.push({ kind: "tree", x: tx * 100 + 12, y: ty * 100 + 12 });
@@ -1455,10 +1461,10 @@ var sighted = {
 function createVision() {
   return Array.from({ length: 2 }, () => ({ explored: [], visible: [], known: [], resources: [] }));
 }
-function updateVision(visions, map, units, tick2, sharing = [[0], [1]], extra = () => 0) {
+function updateVision(visions, map, units, tick2, sharing = [[0], [1]], extra = () => 0, reveals2 = [], everything = false) {
   if (sharing.length !== 2 || sharing.some((members, p) => !members.includes(p) || members.some((id) => !Number.isInteger(id) || id < 0 || id > 1))) throw Error("\u7121\u6548\u5171\u4EAB\u8996\u91CE\u898F\u5247");
   const own = [/* @__PURE__ */ new Set(), /* @__PURE__ */ new Set()];
-  const size = map.size, reveal = (player, x, y, radius) => {
+  const size = map.size, reveal2 = (player, x, y, radius) => {
     const t0 = Math.max(0, Math.floor((x - radius) / 100)), t1 = Math.min(size - 1, Math.floor((x + radius) / 100)), u0 = Math.max(0, Math.floor((y - radius) / 100)), u1 = Math.min(size - 1, Math.floor((y + radius) / 100));
     for (let ty = u0; ty <= u1; ty++) for (let tx = t0; tx <= t1; tx++) {
       const dx = tx * 100 + 50 - x, dy = ty * 100 + 50 - y;
@@ -1467,15 +1473,20 @@ function updateVision(visions, map, units, tick2, sharing = [[0], [1]], extra = 
   };
   for (const u of units) {
     if (u.player !== 0 && u.player !== 1) continue;
-    reveal(u.player, u.x, u.y, (u.kind === "scout" ? visionRules.scoutRadius : u.kind === "sheep" ? visionRules.sheepRadius : visionRules.unitRadius) + (u.kind ? extra(u.player, u.kind) : 0));
+    reveal2(u.player, u.x, u.y, (u.kind === "scout" ? visionRules.scoutRadius : u.kind === "sheep" ? visionRules.sheepRadius : visionRules.unitRadius) + (u.kind ? extra(u.player, u.kind) : 0));
   }
-  for (const o of map.obstacles) if (o.kind === "house" || o.kind === "barracks") reveal(o.red ? 1 : 0, o.x + 100, o.y + 100, visionRules.houseRadius + (o.progress === void 0 ? extra(o.red ? 1 : 0, o.kind) : 0));
-  else if (o.kind === "town-center" && o.progress === void 0) reveal(o.red ? 1 : 0, o.x + 135, o.y + 135, visionRules.townCenterRadius + extra(o.red ? 1 : 0, o.kind));
+  for (const o of map.obstacles) if (o.kind === "house" || o.kind === "barracks") reveal2(o.red ? 1 : 0, o.x + 100, o.y + 100, visionRules.houseRadius + (o.progress === void 0 ? extra(o.red ? 1 : 0, o.kind) : 0));
+  else if (o.kind === "town-center" && o.progress === void 0) reveal2(o.red ? 1 : 0, o.x + 135, o.y + 135, visionRules.townCenterRadius + extra(o.red ? 1 : 0, o.kind));
   else if (o.progress === void 0 && o.kind in sighted || o.kind === "town-center") {
     const [x0, y0, x1, y1] = obstacleBounds(o), p = o.red ? 1 : 0, r = o.kind === "town-center" ? visionRules.houseRadius : sighted[o.kind](o.age ?? 1);
-    reveal(p, (x0 + x1) / 2, (y0 + y1) / 2, r + (o.kind === "town-center" ? 0 : extra(p, o.kind)));
-  } else if (o.kind === "watch-tower" && o.progress === void 0) reveal(o.red ? 1 : 0, o.x + 50, o.y + 50, visionRules.towerRadius + extra(o.red ? 1 : 0, o.kind));
-  else if (o.kind === "castle" && o.progress === void 0) reveal(o.red ? 1 : 0, o.x + 185, o.y + 185, visionRules.towerRadius + extra(o.red ? 1 : 0, o.kind));
+    reveal2(p, (x0 + x1) / 2, (y0 + y1) / 2, r + (o.kind === "town-center" ? 0 : extra(p, o.kind)));
+  } else if (o.kind === "watch-tower" && o.progress === void 0) reveal2(o.red ? 1 : 0, o.x + 50, o.y + 50, visionRules.towerRadius + extra(o.red ? 1 : 0, o.kind));
+  else if (o.kind === "castle" && o.progress === void 0) reveal2(o.red ? 1 : 0, o.x + 185, o.y + 185, visionRules.towerRadius + extra(o.red ? 1 : 0, o.kind));
+  for (const r of reveals2) if (r.player === 0 || r.player === 1) own[r.player].add(r.tile);
+  if (everything) for (let t = 0; t < size * size; t++) {
+    own[0].add(t);
+    own[1].add(t);
+  }
   for (let player = 0; player < 2; player++) {
     const vision = visions[player], visible = new Set(sharing[player].flatMap((id) => [...own[id]]));
     vision.resources = map.resources.filter((r) => r.status === "available" && visible.has(tileAt(r.x, r.y, size))).map((r) => ({ ...r }));
@@ -1494,6 +1505,43 @@ function unitVisible(vision, unit2, player, size) {
   return unit2.player === player || vision.visible.includes(tileAt(unit2.x, unit2.y, size));
 }
 
+// packages/sim/settings.ts
+var defaultSettings = { difficulty: "standard", resources: "standard", popCap: 40, reveal: "normal", startAge: 1, victory: "standard", allTechs: false };
+var settingRules = {
+  provenance: "design_default",
+  // Starting stock per player before civilization bonuses; 'standard' is this game's usual 200/200/100/100. The others
+  // follow AoE II's low / medium / high presets in spirit (low: no gold or stone; medium and high: a big head start).
+  resources: { low: { food: 100, wood: 100, gold: 0, stone: 0 }, standard: { food: 200, wood: 200, gold: 100, stone: 100 }, medium: { food: 500, wood: 500, gold: 300, stone: 300 }, high: { food: 1e3, wood: 1e3, gold: 700, stone: 700 } },
+  // Population ceilings offered (40 is the game's usual cap; civilization bonuses such as the Goths' still add).
+  popCaps: [25, 40, 75, 100],
+  // The computer: how often it thinks (ticks between passes), how many villagers it keeps, how large an attack wave
+  // must be and the earliest tick of the first wave. 'standard' is exactly the existing aiRules values.
+  difficulty: {
+    easy: { thinkTicks: 40, villagerTarget: 8, waveSize: 8, firstWaveTick: 9600 },
+    standard: { thinkTicks: 20, villagerTarget: 12, waveSize: 5, firstWaveTick: 4800 },
+    hard: { thinkTicks: 20, villagerTarget: 14, waveSize: 4, firstWaveTick: 3600 },
+    hardest: { thinkTicks: 10, villagerTarget: 16, waveSize: 4, firstWaveTick: 2400 }
+  }
+};
+var difficulties = ["easy", "standard", "hard", "hardest"];
+var levels = ["low", "standard", "medium", "high"];
+var reveals = ["normal", "explored", "all"];
+var victories = ["standard", "conquest"];
+function matchSettings(v = {}) {
+  if (!v || typeof v !== "object" || Array.isArray(v)) throw Error("\u7121\u6548\u7684\u5C0D\u5C40\u8A2D\u5B9A");
+  const o = { ...defaultSettings, ...v };
+  if (!difficulties.includes(o.difficulty)) throw Error("\u672A\u77E5\u7684\u96E3\u6613\u5EA6");
+  if (!levels.includes(o.resources)) throw Error("\u672A\u77E5\u7684\u8CC7\u6E90\u8A2D\u5B9A");
+  if (!settingRules.popCaps.includes(o.popCap)) throw Error("\u672A\u77E5\u7684\u4EBA\u53E3\u4E0A\u9650");
+  if (!reveals.includes(o.reveal)) throw Error("\u672A\u77E5\u7684\u5730\u5716\u986F\u793A\u8A2D\u5B9A");
+  if (![1, 2, 3, 4].includes(o.startAge)) throw Error("\u672A\u77E5\u7684\u958B\u59CB\u6642\u4EE3");
+  if (!victories.includes(o.victory)) throw Error("\u672A\u77E5\u7684\u52DD\u5229\u689D\u4EF6");
+  if (typeof o.allTechs !== "boolean") throw Error("\u6240\u6709\u79D1\u6280\u8A2D\u5B9A\u7121\u6548");
+  return { difficulty: o.difficulty, resources: o.resources, popCap: o.popCap, reveal: o.reveal, startAge: o.startAge, victory: o.victory, allTechs: o.allTechs };
+}
+var settingsOf = (s) => s.settings ?? defaultSettings;
+var aiTuning = (s) => settingRules.difficulty[settingsOf(s).difficulty];
+
 // packages/sim/economy.ts
 var economyRules = {
   provenance: "design_default",
@@ -1509,7 +1557,7 @@ var economyRules = {
 };
 var zero = () => ({ food: 0, wood: 0, gold: 0, stone: 0 });
 function createAccount(populationUsed) {
-  return { stock: { ...economyRules.initialStock }, populationUsed, populationReserved: 0, populationCap: economyRules.populationCap, reservations: [], ledger: { extracted: zero(), deposited: zero(), lost: zero(), relic: zero(), refund: zero(), market: zero(), trade: zero() } };
+  return { stock: { ...economyRules.initialStock }, populationUsed, populationReserved: 0, populationCap: economyRules.populationCap, reservations: [], ledger: { extracted: zero(), deposited: zero(), lost: zero(), relic: zero(), refund: zero(), market: zero(), trade: zero(), repair: zero() } };
 }
 function reserve(account, id, entryId, cost) {
   const found = rules.entries.find((e) => e.id === entryId), entry2 = found && cost ? { ...found, cost } : found;
@@ -1574,12 +1622,14 @@ var techEffects = [
   fx("masonry.hp", "buildingHp", {}, 1.1, "\u78DA\u74E6\u6280\u8853\uFF1A\u5EFA\u7BC9\u751F\u547D +10%", { tech: "masonry" }),
   fx("masonry.melee", "buildingMeleeArmor", {}, 1, "\u78DA\u74E6\u6280\u8853\uFF1A\u5EFA\u7BC9\u8FD1\u6230\u8B77\u7532 +1", { tech: "masonry" }),
   fx("masonry.pierce", "buildingPierceArmor", {}, 1, "\u78DA\u74E6\u6280\u8853\uFF1A\u5EFA\u7BC9\u9060\u7A0B\u8B77\u7532 +1", { tech: "masonry" }),
+  fx("masonry.class", "buildingClassArmor", {}, 1, "\u78DA\u74E6\u6280\u8853\uFF1A\u5EFA\u7BC9\u7684\u5EFA\u7BC9\u985E\u8B77\u7532 +1\uFF08\u539F\u4F5C +3\uFF0C\u653B\u57CE\u52A0\u6210 \xD70.32\uFF09", { tech: "masonry" }),
   fx("architecture.hp", "buildingHp", {}, 1.1, "\u5EFA\u7BC9\u5B78\uFF1A\u5EFA\u7BC9\u751F\u547D\u518D +10%", { tech: "architecture" }),
   fx("architecture.melee", "buildingMeleeArmor", {}, 1, "\u5EFA\u7BC9\u5B78\uFF1A\u5EFA\u7BC9\u8FD1\u6230\u8B77\u7532\u518D +1", { tech: "architecture" }),
   fx("architecture.pierce", "buildingPierceArmor", {}, 1, "\u5EFA\u7BC9\u5B78\uFF1A\u5EFA\u7BC9\u9060\u7A0B\u8B77\u7532\u518D +1", { tech: "architecture" }),
-  fx("chemistry.missiles", "attack", { classes: ["archer", "siege", "warship"], exclude: ["gunpowder", "ram", "petard"] }, 1, "\u5316\u5B78\uFF1A\u5F13\u5175\u3001\u6295\u5C04\u653B\u57CE\u5668\u8207\u6230\u8239\u653B\u64CA +1\uFF08\u706B\u85E5\u55AE\u4F4D\u3001\u885D\u649E\u8ECA\u9664\u5916\uFF09", { tech: "chemistry" }),
+  fx("architecture.class", "buildingClassArmor", {}, 1, "\u5EFA\u7BC9\u5B78\uFF1A\u5EFA\u7BC9\u7684\u5EFA\u7BC9\u985E\u8B77\u7532\u518D +1", { tech: "architecture" }),
+  fx("chemistry.missiles", "attack", { kinds: ["mangonel", "scorpion", "trebuchet"], classes: ["archer", "warship"], exclude: ["gunpowder"] }, 1, "\u5316\u5B78\uFF1A\u5F13\u5175\u3001\u6295\u5C04\u653B\u57CE\u5668\u8207\u6230\u8239\u653B\u64CA +1\uFF08\u706B\u85E5\u55AE\u4F4D\u3001\u885D\u649E\u8ECA\u9664\u5916\uFF09", { tech: "chemistry" }),
   fx("chemistry.buildings", "arrowDamage", { buildings: ["town-center", "watch-tower", "castle"] }, 1, "\u5316\u5B78\uFF1A\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u8207\u57CE\u5821\u7684\u7BAD +1", { tech: "chemistry" }),
-  fx("siege-engineers.range", "range", { classes: ["siege"], exclude: ["ram"] }, 50, "\u653B\u57CE\u5DE5\u7A0B\u5E2B\uFF1A\u653B\u57CE\u5668\u5C04\u7A0B +1\uFF08\u885D\u649E\u8ECA\u9664\u5916\uFF09", { tech: "siege-engineers" }),
+  fx("siege-engineers.range", "range", { kinds: ["mangonel", "scorpion", "trebuchet", "bombard-cannon"] }, 50, "\u653B\u57CE\u5DE5\u7A0B\u5E2B\uFF1A\u653B\u57CE\u5668\u5C04\u7A0B +1\uFF08\u885D\u649E\u8ECA\u9664\u5916\uFF09", { tech: "siege-engineers" }),
   fx("siege-engineers.buildings", "bonusScale", { classes: ["siege"] }, 1.2, "\u653B\u57CE\u5DE5\u7A0B\u5E2B\uFF1A\u653B\u57CE\u5668\u5C0D\u5EFA\u7BC9\u653B\u64CA +20%", { vs: "building", tech: "siege-engineers" }),
   fx("guard-tower.hp", "buildingHp", { buildings: ["watch-tower"] }, 1.47, "\u9632\u79A6\u7BAD\u5854\uFF1A\u7BAD\u5854\u751F\u547D +47%\uFF08\u539F\u4F5C 1020 \u2192 1500\uFF09", { tech: "guard-tower" }),
   fx("guard-tower.arrow", "arrowDamage", { buildings: ["watch-tower"] }, 1, "\u9632\u79A6\u7BAD\u5854\uFF1A\u7BAD\u5854\u653B\u64CA +1", { tech: "guard-tower" }),
@@ -1590,10 +1640,14 @@ var techEffects = [
   // Barracks.
   fx("supplies", "cost", { entries: ["militia"] }, 0.75, "\u4F9B\u7D66\uFF1A\u6C11\u5175\u7CFB\u98DF\u7269 -15", { tech: "supplies", resource: "food" }),
   fx("squires", "speed", infantry2, 1.1, "\u8B77\u885B\u6280\u8853\uFF1A\u6B65\u5175\u79FB\u52D5\u901F\u5EA6 +10%", { tech: "squires" }),
-  fx("arson", "bonus", infantry2, 2, "\u7E31\u706B\uFF1A\u6B65\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA +2", { vs: "building", tech: "arson" }),
+  fx("arson", "bonus", infantry2, 2, "\u7E31\u706B\uFF1A\u6B65\u5175\u5C0D\u6A19\u6E96\u5EFA\u7BC9\u653B\u64CA +2", { vs: "standard-building", tech: "arson" }),
   // Archery range.
   fx("thumb-ring.foot", "cooldown", footArchers2, 1 / 1.18, "\u62C7\u6307\u74B0\uFF1A\u5F92\u6B65\u5F13\u5175\u5C04\u901F +18%", { tech: "thumb-ring" }),
-  fx("thumb-ring.horse", "cooldown", { classes: ["cavalry-archer"] }, 1 / 1.11, "\u62C7\u6307\u74B0\uFF1A\u99AC\u5F13\u9A0E\u5175\u5C04\u901F +11%", { tech: "thumb-ring" }),
+  fx("thumb-ring.horse", "cooldown", { classes: ["cavalry-archer"], exclude: ["mangudai"] }, 1 / 1.11, "\u62C7\u6307\u74B0\uFF1A\u99AC\u5F13\u9A0E\u5175\u5C04\u901F +11%", { tech: "thumb-ring" }),
+  // The 戰術技巧 round: the Mangudai takes the foot archers' +18% (aoetw.com Thumb Ring), not the horse archers' +11%.
+  fx("thumb-ring.mangudai", "cooldown", { kinds: ["mangudai"] }, 1 / 1.18, "\u62C7\u6307\u74B0\uFF1A\u8499\u53E4\u7A81\u9A0E\u5C04\u901F +18%", { tech: "thumb-ring" }),
+  // And sure shots at a standing target for the archer, skirmisher and horse archer lines, the Chu Ko Nu and the Mangudai.
+  fx("thumb-ring.accuracy", "accuracy", { classes: ["archer"], exclude: ["gunpowder"] }, 100, "\u62C7\u6307\u74B0\uFF1A\u5F13\u5175\u5C04\u64CA\u975C\u6B62\u76EE\u6A19\u5FC5\u4E2D", { tech: "thumb-ring" }),
   fx("thumb-ring.chu-ko-nu", "cooldown", { kinds: ["chu-ko-nu"] }, 1 / 1.25, "\u62C7\u6307\u74B0\uFF1A\u9023\u5F29\u5175\u5C04\u901F +25%", { tech: "thumb-ring" }),
   fx("parthian.melee", "meleeArmor", { classes: ["cavalry-archer"] }, 1, "\u5B89\u606F\u4EBA\u6230\u8853\uFF1A\u99AC\u5F13\u9A0E\u5175\u8FD1\u6230\u8B77\u7532 +1", { tech: "parthian-tactics" }),
   fx("parthian.pierce", "pierceArmor", { classes: ["cavalry-archer"] }, 2, "\u5B89\u606F\u4EBA\u6230\u8853\uFF1A\u99AC\u5F13\u9A0E\u5175\u9060\u7A0B\u8B77\u7532 +2", { tech: "parthian-tactics" }),
@@ -1614,25 +1668,36 @@ var techEffects = [
   // University, the 建築 round: Heated Shot (towers and castles +125% against ships: the arrows' ship bonus here),
   // Fortified Wall (stone walls 1800 -> 3000, gates 2750 -> 4000 hit points in the reference).
   fx("heated-shot", "arrowBonus", { buildings: ["watch-tower", "castle"] }, 6, "\u706B\u7BAD\uFF1A\u7BAD\u5854\u8207\u57CE\u5821\u7684\u7BAD\u5C0D\u8239 +6\uFF08\u539F\u4F5C +125%\uFF09", { vs: "ship", tech: "heated-shot" }),
+  fx("heated-shot.fishing", "arrowBonus", { buildings: ["watch-tower", "castle"] }, 6, "\u706B\u7BAD\uFF1A\u7BAD\u5854\u8207\u57CE\u5821\u7684\u7BAD\u5C0D\u6F01\u8239 +6", { vs: "fishing-ship", tech: "heated-shot" }),
   fx("fortified-wall.wall", "buildingHp", { buildings: ["stone-wall"] }, 5 / 3, "\u579B\u7246\uFF1A\u77F3\u7246\u751F\u547D +67%\uFF08\u539F\u4F5C 1800 \u2192 3000\uFF09", { tech: "fortified-wall" }),
+  fx("fortified-wall.class", "buildingClassArmor", { buildings: ["stone-wall"] }, 3, "\u579B\u7246\uFF1A\u77F3\u7246\u7684\u5EFA\u7BC9\u985E\u8B77\u7532 5 \u2192 8\uFF08\u539F\u4F5C 16 \u2192 24\uFF09", { tech: "fortified-wall" }),
   fx("fortified-wall.gate", "buildingHp", { buildings: ["gate"] }, 4e3 / 2750, "\u579B\u7246\uFF1A\u57CE\u9580\u751F\u547D +45%\uFF08\u539F\u4F5C 2750 \u2192 4000\uFF09", { tech: "fortified-wall" }),
   // Dock.
   fx("gillnets", "gather", { kinds: ["fishing-ship"], sources: ["fish", "fish-trap"] }, 25, "\u6D41\u523A\u7DB2\uFF1A\u6F01\u8239\u5DE5\u4F5C\u901F\u5EA6 +25%", { tech: "gillnets" }),
-  fx("careening.armor", "pierceArmor", { classes: ["ship"] }, 1, "\u822A\u6D77\u6280\u8853\uFF1A\u8239\u96BB\u9060\u7A0B\u8B77\u7532 +1", { tech: "careening" }),
+  fx("careening.armor", "pierceArmor", { classes: ["ship", "fishing-ship"] }, 1, "\u822A\u6D77\u6280\u8853\uFF1A\u8239\u96BB\u9060\u7A0B\u8B77\u7532 +1", { tech: "careening" }),
   fx("careening.capacity", "transportCapacity", { kinds: ["transport-ship"] }, 5, "\u822A\u6D77\u6280\u8853\uFF1A\u904B\u8F38\u8239\u904B\u8F09 +5", { tech: "careening" }),
-  fx("dry-dock.speed", "speed", { classes: ["ship"] }, 1.15, "\u8239\u5862\uFF1A\u8239\u96BB\u79FB\u52D5\u901F\u5EA6 +15%", { tech: "dry-dock" }),
+  fx("dry-dock.speed", "speed", { classes: ["ship", "fishing-ship"] }, 1.15, "\u8239\u5862\uFF1A\u8239\u96BB\u79FB\u52D5\u901F\u5EA6 +15%", { tech: "dry-dock" }),
   fx("dry-dock.capacity", "transportCapacity", { kinds: ["transport-ship"] }, 10, "\u8239\u5862\uFF1A\u904B\u8F38\u8239\u904B\u8F09 +10", { tech: "dry-dock" }),
   fx("shipwright.cost", "cost", { entries: ships }, 0.8, "\u9020\u8239\u54E1\uFF1A\u8239\u96BB\u6728\u6750 -20%", { tech: "shipwright", resource: "wood" }),
   fx("shipwright.time", "time", { entries: ships }, 0.65, "\u9020\u8239\u54E1\uFF1A\u8239\u96BB\u8A13\u7DF4\u6642\u9593 -35%", { tech: "shipwright" }),
   // Market.
   fx("caravan", "speed", { classes: ["trade"] }, 1.5, "\u5546\u968A\uFF1A\u8CBF\u6613\u8ECA\u968A\u8207\u8CBF\u6613\u5546\u8239\u79FB\u52D5\u901F\u5EA6 +50%", { tech: "caravan" }),
   fx("guilds", "marketFee", {}, -15, "\u516C\u6703\u5236\u5EA6\uFF1A\u5E02\u96C6\u4EA4\u6613\u8CBB 30% \u2192 15%", { tech: "guilds" }),
+  // The 戰術技巧 round. Ballistics (University): shots aim where a moving target will be when they land, for the archers
+  // (not gunpowder), the galley line, the Longboat and fire ships, and the buildings that shoot (aoetw.com Ballistics).
+  fx("ballistics.units", "lead", { classes: ["archer", "warship", "fire"], exclude: ["gunpowder"] }, 1, "\u5F48\u9053\u5B78\uFF1A\u5F13\u5175\u3001\u6230\u8239\u8207\u706B\u6230\u8239\u7684\u7BAD\u6703\u9810\u5224\u79FB\u52D5\u4E2D\u7684\u76EE\u6A19", { tech: "ballistics" }),
+  fx("ballistics.buildings", "lead", { buildings: ["town-center", "watch-tower", "castle", "bombard-tower"] }, 1, "\u5F48\u9053\u5B78\uFF1A\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u3001\u57CE\u5821\u8207\u706B\u7832\u5854\u6703\u9810\u5224\u79FB\u52D5\u4E2D\u7684\u76EE\u6A19", { tech: "ballistics" }),
   fx("conscription", "workRate", { buildings: ["barracks", "archery-range", "stable", "castle"], allUnits: true }, 33, "\u5FB5\u5175\u6280\u8853\uFF1A\u5175\u71DF\u3001\u9776\u5834\u3001\u99AC\u5EC4\u8207\u57CE\u5821\u8A13\u7DF4\u901F\u5EA6 +33%\uFF08\u7814\u7A76\u4E0D\u8B8A\uFF09", { tech: "conscription" })
+];
+var ageEffects = [
+  fx("tracking", "los", { classes: ["infantry"] }, 200, "\u8FFD\u8E64\uFF1A\u7B2C\u4E8C\u6642\u4EE3\u8D77\u6B65\u5175\u8996\u91CE +2", { age: 2 })
 ];
 
 // packages/sim/civ.ts
 function ownerOf(s, player) {
-  return { civ: s.civs?.[player] ?? neutralCiv, age: s.ages?.[player] ?? 1, techs: s.techs?.[player] ?? [] };
+  const o = { civ: s.civs?.[player] ?? neutralCiv, age: s.ages?.[player] ?? 1, techs: s.techs?.[player] ?? [] };
+  if (s.settings?.allTechs) o.allTechs = true;
+  return o;
 }
 var asOwner = (o) => Array.isArray(o) ? { civ: neutralCiv, age: 1, techs: o } : o;
 var byCiv = new Map(civDefs.map((c) => [c.id, c.effects]));
@@ -1641,7 +1706,7 @@ var withTechs = /* @__PURE__ */ new Map();
 function activeEffects(o, kind) {
   let list = withTechs.get(o.civ);
   if (!list) {
-    list = [...byCiv.get(o.civ) ?? [], ...techEffects];
+    list = [...byCiv.get(o.civ) ?? [], ...techEffects, ...ageEffects];
     withTechs.set(o.civ, list);
   }
   return list.filter((e) => e.kind === kind && (e.trigger.age === void 0 || o.age >= e.trigger.age) && (e.trigger.tech === void 0 || o.techs.includes(e.trigger.tech)));
@@ -1698,10 +1763,11 @@ function producersOf(entryId, o) {
   }
   return out;
 }
-var civAvailable = (civ, entryId) => {
-  const c = rules.civilizations.find((c2) => c2.id === civ) ?? rules.civilizations.find((c2) => c2.id === neutralCiv);
+var civAvailable = (civ, entryId, allTechs = false) => {
+  const list = allTechs ? allTechCivilizations : rules.civilizations, c = list.find((c2) => c2.id === civ) ?? list.find((c2) => c2.id === neutralCiv);
   return c.available.includes(entryId);
 };
+var ownerAvailable = (o, entryId) => civAvailable(o.civ, entryId, !!o.allTechs);
 var gatherBonus = (o, yieldKind, source, kind = "villager") => sum2(activeEffects(o, "gather").filter((e) => (!e.select.kinds || e.select.kinds.includes(kind)) && (e.select.resources?.includes(yieldKind) || e.select.sources?.includes(source))), o);
 var carryBonus = (o, source) => sum2(activeEffects(o, "carry").filter((e) => e.select.sources?.includes(source)), o);
 var farmFoodBonus = (o) => sum2(activeEffects(o, "farmFood"), o);
@@ -1713,6 +1779,7 @@ var garrisonBonus = (o, building2) => buildingSum(o, "garrison", building2);
 var popCapBonus = (o) => sum2(activeEffects(o, "popCap"), o);
 var buildingArmorBonus = (o, building2) => [buildingSum(o, "buildingMeleeArmor", building2), buildingSum(o, "buildingPierceArmor", building2)];
 var buildRateBonus = (o, building2) => buildingSum(o, "buildRate", building2);
+var buildingClassArmorBonus = (o, building2) => buildingSum(o, "buildingClassArmor", building2);
 var garrisonHealScale = (o, building2) => product(activeEffects(o, "garrisonHeal").filter((e) => buildingMatches(e.select, building2)), o);
 var keepsHousing = (o, building2) => activeEffects(o, "keepHousing").some((e) => buildingMatches(e.select, building2));
 function arrowsOf(o, building2) {
@@ -1739,6 +1806,9 @@ function startStock(o) {
 }
 var startVillagers = (o) => sum2(activeEffects(o, "startVillagers"), o);
 var grantsOf = (o) => activeEffects(o, "grant").flatMap((e) => [...e.select.entries ?? []]).filter((id) => !o.techs.includes(id));
+var leadsUnit = (o, unit2, classes) => activeEffects(o, "lead").some((e) => !e.select.buildings && unitMatches(e.select, unit2, classes));
+var leadsBuilding = (o, building2) => activeEffects(o, "lead").some((e) => !!e.select.buildings && e.select.buildings.includes(building2));
+var steadyAccuracy = (o, unit2, classes) => Math.max(0, ...activeEffects(o, "accuracy").filter((e) => unitMatches(e.select, unit2, classes)).map((e) => valueOf(e, o)));
 
 // packages/sim/stats.ts
 var combatRules = {
@@ -1746,13 +1816,13 @@ var combatRules = {
   // attack: melee or pierce (arrows, javelins); armor: [melee, pierce], subtracted from that kind of attack; classes:
   // what bonus damage keys on; bonus: extra damage against a class. Final damage = max(1, attack - armor + bonuses).
   units: {
-    villager: { hp: 25, damage: 1, range: 50, cooldown: 30, sight: 0, attack: "melee", armor: [0, 0], classes: ["villager"], bonus: {} },
+    villager: { hp: 25, damage: 1, range: 50, cooldown: 30, sight: 0, attack: "melee", armor: [0, 0], classes: ["villager"], bonus: { building: 1, "stone-defense": 2 } },
     militia: { hp: 45, damage: 6, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 1], classes: ["infantry"], bonus: {} },
-    archer: { hp: 30, damage: 4, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer"], bonus: { spear: 3 } },
+    archer: { hp: 30, damage: 4, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer"], bonus: { spear: 3 }, frameDelay: 5 },
     // Scout: the reference's standard start includes one (research doc); these numbers are design_default.
     // sight here is the automatic-engage radius (vision is visionRules): 0 means the unit only fights when ordered.
     // The scout scouts; it attacks only on an explicit order.
-    scout: { hp: 45, damage: 3, range: 50, cooldown: 40, sight: 0, attack: "melee", armor: [0, 2], classes: ["cavalry"], bonus: {} },
+    scout: { hp: 45, damage: 3, range: 50, cooldown: 40, sight: 0, attack: "melee", armor: [0, 2], classes: ["cavalry"], bonus: { monk: 6 } },
     // Monk: hit points 30 as in the reference; no attack (converts and heals instead, see religion.ts).
     monk: { hp: 30, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 0], classes: ["monk"], bonus: {} },
     // Animals (fauna.ts): sheep and deer never fight; a boar only strikes back at whoever hunts it.
@@ -1762,64 +1832,64 @@ var combatRules = {
     // The counter units (after the reference's triangle): the spearman against cavalry, the skirmisher against archers,
     // the knight as heavy cavalry. Values design_default, in this game's scale.
     // Camels are their own class (aoetw: 駱駝, not 騎兵); the spear line's camel bonus keeps the site's ratio to its cavalry one.
-    spearman: { hp: 45, damage: 4, range: 50, cooldown: 30, sight: 350, attack: "melee", armor: [0, 0], classes: ["infantry", "spear"], bonus: { cavalry: 12, camel: 10 } },
-    skirmisher: { hp: 30, damage: 2, range: 200, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 3], classes: ["archer", "skirmisher"], bonus: { archer: 4, spear: 3 } },
+    spearman: { hp: 45, damage: 4, range: 50, cooldown: 30, sight: 350, attack: "melee", armor: [0, 0], classes: ["infantry", "spear"], bonus: { cavalry: 12, camel: 10, elephant: 12, ship: 7, "fishing-ship": 7, mameluke: 3, "standard-building": 1 } },
+    skirmisher: { hp: 30, damage: 2, range: 200, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 3], classes: ["archer", "skirmisher"], bonus: { archer: 3, spear: 3 }, frameDelay: 5 },
     knight: { hp: 100, damage: 10, range: 50, cooldown: 18, sight: 350, attack: "melee", armor: [2, 2], classes: ["cavalry"], bonus: {} },
     // Battering ram: strikes buildings only (+40 against them), all but immune to arrows, slow.
-    ram: { hp: 175, damage: 2, range: 50, cooldown: 60, sight: 0, attack: "melee", armor: [0, 120], classes: ["siege"], bonus: { building: 40 }, buildingsOnly: true },
+    ram: { hp: 175, damage: 2, range: 50, cooldown: 60, sight: 0, attack: "melee", armor: [0, 120], classes: ["siege", "ram"], bonus: { building: 40, siege: 13 }, buildingsOnly: true, alsoSiege: true },
     // Unique units (trained at the Castle): hit points, attack, armor and bonuses from aoetw.com's unit pages; range at
     // 50 units per tile over a 150 base (Longbowman 5 -> 300), melee cooldown = the reference's seconds x 10, ranged x 15.
     // Classes: 'unique' (the Samurai's bonus), 'gunpowder' (Turks), 'cavalry-archer' (Mongols); see docs/aoe2-rules-research.md.
-    longbowman: { hp: 35, damage: 6, range: 300, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "unique"], bonus: { spear: 2 } },
-    "woad-raider": { hp: 65, damage: 8, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 1], classes: ["infantry", "unique"], bonus: { building: 2 } },
+    longbowman: { hp: 35, damage: 6, range: 300, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "unique"], bonus: { spear: 2 }, frameDelay: 5 },
+    "woad-raider": { hp: 65, damage: 8, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 1], classes: ["infantry", "unique"], bonus: { "standard-building": 2 } },
     // Its axes are thrown: a melee attack from 3 tiles.
-    "throwing-axeman": { hp: 60, damage: 7, range: 200, cooldown: 20, sight: 350, attack: "melee", armor: [0, 0], classes: ["infantry", "unique"], bonus: { building: 1 } },
-    huskarl: { hp: 60, damage: 10, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 6], classes: ["infantry", "unique"], bonus: { building: 2, archer: 6 } },
-    "teutonic-knight": { hp: 80, damage: 12, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [5, 2], classes: ["infantry", "unique"], bonus: { building: 4 } },
+    "throwing-axeman": { hp: 60, damage: 7, range: 200, cooldown: 20, sight: 350, attack: "melee", armor: [0, 0], classes: ["infantry", "unique"], bonus: { "standard-building": 1 }, frameDelay: 10 },
+    huskarl: { hp: 60, damage: 10, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 6], classes: ["infantry", "unique"], bonus: { "standard-building": 2, archer: 6 } },
+    "teutonic-knight": { hp: 80, damage: 12, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [5, 2], classes: ["infantry", "unique"], bonus: { "standard-building": 4 } },
     // Regains 20 hit points a minute (Berserkergang: 40).
-    berserk: { hp: 54, damage: 9, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 1], classes: ["infantry", "unique"], bonus: { building: 2 }, regen: 20 },
-    cataphract: { hp: 110, damage: 9, range: 50, cooldown: 18, sight: 350, attack: "melee", armor: [2, 1], classes: ["cavalry", "unique"], bonus: { infantry: 9 } },
-    "war-elephant": { hp: 450, damage: 15, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [1, 2], classes: ["cavalry", "unique", "elephant"], bonus: { building: 7 } },
+    berserk: { hp: 54, damage: 9, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 1], classes: ["infantry", "unique"], bonus: { "standard-building": 2 }, regen: 20 },
+    cataphract: { hp: 110, damage: 9, range: 50, cooldown: 18, sight: 350, attack: "melee", armor: [2, 1], classes: ["cavalry", "unique"], bonus: { infantry: 9 }, classArmor: { cavalry: 10 } },
+    "war-elephant": { hp: 450, damage: 15, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [1, 2], classes: ["cavalry", "unique", "elephant"], bonus: { building: 7, "stone-defense": 7 }, trample: 0.5 },
     // A melee attack from 3 tiles, like the Throwing Axeman.
-    mameluke: { hp: 65, damage: 8, range: 200, cooldown: 20, sight: 350, attack: "melee", armor: [0, 0], classes: ["cavalry", "unique"], bonus: { cavalry: 9 } },
-    janissary: { hp: 35, damage: 17, range: 450, cooldown: 50, sight: 450, attack: "pierce", armor: [1, 0], classes: ["archer", "gunpowder", "unique"], bonus: { siege: 2 } },
+    mameluke: { hp: 65, damage: 8, range: 200, cooldown: 20, sight: 350, attack: "melee", armor: [0, 0], classes: ["cavalry", "unique", "mameluke"], bonus: { cavalry: 9 }, classArmor: { cavalry: 9 }, frameDelay: 24 },
+    janissary: { hp: 35, damage: 17, range: 450, cooldown: 50, sight: 450, attack: "pierce", armor: [1, 0], classes: ["archer", "gunpowder", "unique"], bonus: { ram: 2 }, frameDelay: 4 },
     // Fires three arrows a shot: the first at full attack, the other two at 3 each.
-    "chu-ko-nu": { hp: 45, damage: 8, range: 250, cooldown: 55, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "unique"], bonus: { spear: 2 }, extraShots: 2, extraDamage: 3 },
-    samurai: { hp: 60, damage: 8, range: 50, cooldown: 19, sight: 350, attack: "melee", armor: [1, 1], classes: ["infantry", "unique"], bonus: { building: 2, unique: 10 } },
-    mangudai: { hp: 60, damage: 6, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "cavalry", "cavalry-archer", "unique"], bonus: { siege: 3, spear: 1 } },
+    "chu-ko-nu": { hp: 45, damage: 8, range: 250, cooldown: 55, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "unique"], bonus: { spear: 2 }, extraShots: 2, extraDamage: 3, frameDelay: 3 },
+    samurai: { hp: 60, damage: 8, range: 50, cooldown: 19, sight: 350, attack: "melee", armor: [1, 1], classes: ["infantry", "unique"], bonus: { "standard-building": 2, unique: 10 } },
+    mangudai: { hp: 60, damage: 6, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "cavalry", "cavalry-archer", "unique"], bonus: { siege: 3, spear: 1 }, frameDelay: 5 },
     // The 單位 round (aoetw.com units pages). Ranges 50 + 50 a tile like the archers (mangonel 7 -> 400, below the
     // castle's 400 as the site's 7 is below its 8), minimum ranges 50 a tile; building bonuses x0.32
     // (the battering ram's 125 -> 40 here) so a trebuchet levels a castle in about as many shots as there; blast radii in
     // this map's units (a node is 50).
-    "cavalry-archer": { hp: 50, damage: 6, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "cavalry", "cavalry-archer"], bonus: { spear: 2 } },
-    camel: { hp: 100, damage: 6, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 0], classes: ["camel"], bonus: { cavalry: 9, camel: 5 } },
+    "cavalry-archer": { hp: 50, damage: 6, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "cavalry", "cavalry-archer"], bonus: { spear: 2 }, frameDelay: 10 },
+    camel: { hp: 100, damage: 6, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 0], classes: ["camel"], bonus: { cavalry: 9, camel: 5, ship: 5, "fishing-ship": 5 } },
     // Hurls a stone that hits every enemy unit near the impact; cannot shoot closer than 3 tiles.
-    mangonel: { hp: 50, damage: 40, range: 400, cooldown: 60, sight: 500, attack: "melee", armor: [0, 6], classes: ["siege"], bonus: { building: 11 }, minRange: 150, blast: 75 },
+    mangonel: { hp: 50, damage: 40, range: 400, cooldown: 60, sight: 500, attack: "melee", armor: [0, 6], classes: ["siege"], bonus: { building: 11, siege: 4 }, minRange: 150, blast: 75, friendlyFire: true },
     // A bolt that goes on through the target: the units behind it on its path take half.
-    scorpion: { hp: 40, damage: 12, range: 400, cooldown: 54, sight: 500, attack: "pierce", armor: [0, 7], classes: ["siege"], bonus: { elephant: 6, building: 1 }, minRange: 100, passThrough: 200 },
+    scorpion: { hp: 40, damage: 12, range: 400, cooldown: 54, sight: 500, attack: "pierce", armor: [0, 7], classes: ["siege"], bonus: { elephant: 6, building: 1, ram: 1 }, minRange: 100, passThrough: 200, frameDelay: 42 },
     // Strikes buildings only, from 16 tiles; unpacks before firing and packs before moving (7.5 s each).
-    trebuchet: { hp: 150, damage: 25, range: 850, cooldown: 100, sight: 0, attack: "melee", armor: [1, 8], classes: ["siege"], bonus: { building: 50 }, minRange: 200, buildingsOnly: true, setup: 150 },
+    trebuchet: { hp: 150, damage: 25, range: 850, cooldown: 100, sight: 0, attack: "melee", armor: [1, 8], classes: ["siege", "ram"], bonus: { building: 50 }, minRange: 200, buildingsOnly: true, setup: 150, frameDelay: 24 },
     // Spent by its charge; goes only where it is sent (no automatic fights).
     // The 科技 round: the gunpowder units Chemistry opens (aoetw.com; no accuracy model, every shot hits).
-    "hand-cannoneer": { hp: 35, damage: 17, range: 400, cooldown: 52, sight: 450, attack: "pierce", armor: [1, 0], classes: ["archer", "gunpowder"], bonus: { infantry: 10, siege: 2, spear: 1 } },
+    "hand-cannoneer": { hp: 35, damage: 17, range: 400, cooldown: 52, sight: 450, attack: "pierce", armor: [1, 0], classes: ["archer", "gunpowder"], bonus: { infantry: 10, ram: 2, spear: 1 }, frameDelay: 5 },
     // Heavy shot from 12 tiles (minimum 5); the site's half-tile blast is one node here (50).
-    "bombard-cannon": { hp: 80, damage: 40, range: 650, cooldown: 65, sight: 650, attack: "melee", armor: [2, 5], classes: ["siege", "gunpowder"], bonus: { building: 64, siege: 6 }, minRange: 250, blast: 50 },
-    petard: { hp: 50, damage: 25, range: 50, cooldown: 20, sight: 0, attack: "melee", armor: [0, 2], classes: ["petard"], bonus: { building: 55, siege: 19 }, selfDestruct: true },
+    "bombard-cannon": { hp: 80, damage: 40, range: 650, cooldown: 65, sight: 650, attack: "melee", armor: [2, 5], classes: ["siege", "gunpowder"], bonus: { building: 64, siege: 6, "stone-defense": 13, ship: 13, "fishing-ship": 13 }, minRange: 250, blast: 50, friendlyFire: true, frameDelay: 7 },
+    petard: { hp: 50, damage: 25, range: 50, cooldown: 20, sight: 0, attack: "melee", armor: [0, 2], classes: ["petard"], bonus: { building: 55, siege: 19, "wall-gate": 99, castle: 11 }, selfDestruct: true },
     // The 建築 round: the dock's ships and the market's trade cart (aoetw.com units pages). Same conversions as above;
     // 'ship' puts a unit on the water layer (movement.ts layerOf). Fishing ships, transports and the trade units never
     // fight. 'warship': the galley line and the Longboat, which take the archer attack lines (Fletching to Bracer).
-    "fishing-ship": { hp: 60, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 4], classes: ["ship", "fishing"], bonus: {} },
+    "fishing-ship": { hp: 60, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 4], classes: ["fishing-ship"], bonus: {} },
     "transport-ship": { hp: 100, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [4, 8], classes: ["ship", "transport"], bonus: {} },
     "trade-cog": { hp: 80, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 6], classes: ["ship", "trade"], bonus: {} },
     "trade-cart": { hp: 70, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 0], classes: ["trade"], bonus: {} },
-    galley: { hp: 120, damage: 6, range: 300, cooldown: 46, sight: 400, attack: "pierce", armor: [0, 6], classes: ["ship", "warship", "galley"], bonus: { ship: 8, building: 2 } },
+    galley: { hp: 120, damage: 6, range: 300, cooldown: 46, sight: 400, attack: "pierce", armor: [0, 6], classes: ["ship", "warship", "galley"], bonus: { ship: 8, "fishing-ship": 8, building: 2, ram: 3 } },
     // Fire: a short-range stream four times a second (the reference's 0.25 s), strong only against ships.
-    "fire-galley": { hp: 100, damage: 1, range: 175, cooldown: 5, sight: 300, attack: "melee", armor: [0, 4], classes: ["ship", "fire"], bonus: { ship: 3 } },
+    "fire-galley": { hp: 100, damage: 1, range: 175, cooldown: 5, sight: 300, attack: "melee", armor: [0, 4], classes: ["ship", "fire"], bonus: { ship: 3, "fishing-ship": 1 }, classArmor: { ship: 6 } },
     // Spent by its blast (the petard's rule): every enemy unit within the radius of the target takes the hit.
-    "demolition-raft": { hp: 45, damage: 90, range: 50, cooldown: 20, sight: 0, attack: "melee", armor: [0, 2], classes: ["ship", "demolition"], bonus: { building: 58 }, blast: 125, selfDestruct: true },
-    "cannon-galleon": { hp: 120, damage: 35, range: 700, cooldown: 100, sight: 700, attack: "melee", armor: [0, 6], classes: ["ship", "gunpowder"], bonus: { building: 64, siege: 13 }, minRange: 150 },
+    "demolition-raft": { hp: 45, damage: 90, range: 50, cooldown: 20, sight: 0, attack: "melee", armor: [0, 2], classes: ["ship", "demolition"], bonus: { building: 58 }, blast: 125, selfDestruct: true, classArmor: { ship: 1 } },
+    "cannon-galleon": { hp: 120, damage: 35, range: 700, cooldown: 100, sight: 700, attack: "melee", armor: [0, 6], classes: ["ship", "gunpowder"], bonus: { building: 64, siege: 13, infantry: 15, archer: 15, cavalry: 15, mameluke: 4 }, minRange: 150 },
     // Four arrows a volley: the first at full attack, the other three at 1 each (aoetw).
-    longboat: { hp: 130, damage: 7, range: 350, cooldown: 50, sight: 400, attack: "pierce", armor: [0, 6], classes: ["ship", "warship", "unique"], bonus: { ship: 9, building: 2 }, extraShots: 3, extraDamage: 1 }
+    longboat: { hp: 130, damage: 7, range: 350, cooldown: 50, sight: 400, attack: "pierce", armor: [0, 6], classes: ["ship", "warship", "unique"], bonus: { ship: 9, "fishing-ship": 9, building: 2, ram: 4 }, extraShots: 3, extraDamage: 1 }
   },
   // Structures shrug off arrows: [melee, pierce] armor of every building.
   buildingArmor: [0, 2],
@@ -1903,52 +1973,94 @@ var combatRules = {
   }
 };
 var religionBonus = { sanctityHp: 15 };
+var projectileRules = {
+  provenance: "aoetw.com accuracy and projectile speed; design_default hit radius, miss spread and melee reach",
+  hitRadius: 30,
+  missSpread: [40, 100],
+  meleeReach: 75,
+  units: {
+    archer: { accuracy: 80, speed: 17.5 },
+    skirmisher: { accuracy: 90, speed: 17.5 },
+    "cavalry-archer": { accuracy: 50, speed: 17.5 },
+    longbowman: { accuracy: 70, speed: 17.5 },
+    "chu-ko-nu": { accuracy: 85, speed: 17.5 },
+    mangudai: { accuracy: 95, speed: 17.5 },
+    "throwing-axeman": { accuracy: 100, speed: 17.5 },
+    mameluke: { accuracy: 100, speed: 17.5 },
+    "hand-cannoneer": { accuracy: 65, speed: 13.75 },
+    janissary: { accuracy: 50, speed: 13.75 },
+    scorpion: { accuracy: 100, speed: 15 },
+    mangonel: { accuracy: 100, speed: 8.75 },
+    trebuchet: { accuracy: 80, speed: 8.75 },
+    "bombard-cannon": { accuracy: 92, speed: 10 },
+    galley: { accuracy: 100, speed: 15 },
+    longboat: { accuracy: 100, speed: 15 },
+    "fire-galley": { accuracy: 100, speed: 7.5 },
+    "cannon-galleon": { accuracy: 50, speed: 4.875 }
+  },
+  // Line upgrades that change the accuracy (the others keep their line's).
+  steps: { crossbowman: 85, arbalest: 90, "elite-longbowman": 80 },
+  buildings: { "town-center": { accuracy: 100, speed: 17.5 }, "watch-tower": { accuracy: 100, speed: 17.5 }, castle: { accuracy: 100, speed: 17.5 }, "bombard-tower": { accuracy: 92, speed: 7.5 } }
+};
+function shotOf(kind, who = []) {
+  const base = projectileRules.units[kind];
+  if (!base) return null;
+  const o = asOwner(who);
+  let accuracy = base.accuracy;
+  for (const up2 of lineUpgrades) if (up2.kind === kind && o.techs.includes(up2.id) && projectileRules.steps[up2.id]) accuracy = projectileRules.steps[up2.id];
+  const classes = combatRules.units[kind]?.classes ?? [];
+  return { accuracy, speed: base.speed, steady: steadyAccuracy(o, kind, classes), lead: leadsUnit(o, kind, classes) };
+}
+function buildingShotOf(kind, who = []) {
+  const base = projectileRules.buildings[kind] ?? { accuracy: 100, speed: 17.5 };
+  return { accuracy: base.accuracy, speed: base.speed, steady: 0, lead: leadsBuilding(asOwner(who), kind) };
+}
 var lineUpgrades = [
-  { id: "man-at-arms", kind: "militia", name: "\u91CD\u6B65\u5175", set: { hp: 55, damage: 8 } },
-  { id: "long-swordsman", kind: "militia", name: "\u9577\u528D\u58EB", set: { hp: 60, damage: 9, armor: [1, 1] } },
-  { id: "pikeman", kind: "spearman", name: "\u9577\u77DB\u5175", set: { hp: 55, bonus: { cavalry: 18, camel: 15 } } },
+  { id: "man-at-arms", kind: "militia", name: "\u91CD\u6B65\u5175", set: { hp: 55, damage: 8, bonus: { "standard-building": 2 } } },
+  { id: "long-swordsman", kind: "militia", name: "\u9577\u528D\u58EB", set: { hp: 60, damage: 9, armor: [1, 1], bonus: { "standard-building": 3 } } },
+  { id: "pikeman", kind: "spearman", name: "\u9577\u77DB\u5175", set: { hp: 55, bonus: { cavalry: 18, camel: 15, elephant: 20, ship: 13, "fishing-ship": 13, mameluke: 9, "standard-building": 1 } } },
   { id: "crossbowman", kind: "archer", name: "\u5F29\u624B", set: { hp: 35, damage: 5, range: 300 } },
-  { id: "elite-skirmisher", kind: "skirmisher", name: "\u7CBE\u92B3\u6563\u5175", set: { hp: 35, damage: 3, armor: [0, 4] } },
-  { id: "light-cavalry", kind: "scout", name: "\u8F15\u9A0E\u5175", set: { hp: 60, damage: 5 } },
+  { id: "elite-skirmisher", kind: "skirmisher", name: "\u7CBE\u92B3\u6563\u5175", set: { hp: 35, damage: 3, armor: [0, 4], bonus: { archer: 4, spear: 3, "cavalry-archer": 2 } } },
+  { id: "light-cavalry", kind: "scout", name: "\u8F15\u9A0E\u5175", set: { hp: 60, damage: 5, bonus: { monk: 10 } } },
   // The 單位 round: each line's last upgrades (aoetw.com's numbers where this game's line already matched them; whole
   // fields again, so armor and bonus are listed in full).
-  { id: "two-handed-swordsman", kind: "militia", name: "\u96D9\u624B\u528D\u5175", set: { hp: 65, damage: 12, armor: [1, 1] } },
-  { id: "champion", kind: "militia", name: "\u528D\u5175\u52C7\u58EB", set: { hp: 75, damage: 13, armor: [2, 1] } },
-  { id: "halberdier", kind: "spearman", name: "\u621F\u5175", set: { hp: 60, damage: 6, bonus: { cavalry: 26, camel: 21 } } },
+  { id: "two-handed-swordsman", kind: "militia", name: "\u96D9\u624B\u528D\u5175", set: { hp: 65, damage: 12, armor: [1, 1], bonus: { "standard-building": 4 } } },
+  { id: "champion", kind: "militia", name: "\u528D\u5175\u52C7\u58EB", set: { hp: 75, damage: 13, armor: [2, 1], bonus: { "standard-building": 4 } } },
+  { id: "halberdier", kind: "spearman", name: "\u621F\u5175", set: { hp: 60, damage: 6, bonus: { cavalry: 26, camel: 21, elephant: 22, ship: 14, "fishing-ship": 14, mameluke: 9, "standard-building": 1 } } },
   { id: "arbalest", kind: "archer", name: "\u5F37\u5F29\u5175", set: { hp: 40, damage: 6, range: 300 } },
   { id: "heavy-cavalry-archer", kind: "cavalry-archer", name: "\u91CD\u88DD\u99AC\u5F13\u9A0E\u5175", set: { hp: 60, damage: 7, armor: [1, 0] } },
-  { id: "hussar", kind: "scout", name: "\u5308\u7259\u5229\u8F15\u9A0E\u5175", set: { hp: 75, damage: 7 } },
+  { id: "hussar", kind: "scout", name: "\u5308\u7259\u5229\u8F15\u9A0E\u5175", set: { hp: 75, damage: 7, bonus: { monk: 12 } } },
   { id: "cavalier", kind: "knight", name: "\u91CD\u88DD\u9A0E\u58EB", set: { hp: 120, damage: 12 } },
   { id: "paladin", kind: "knight", name: "\u904A\u4FE0", set: { hp: 160, damage: 14, cooldown: 19, armor: [2, 3] } },
-  { id: "heavy-camel", kind: "camel", name: "\u91CD\u88DD\u99F1\u99DD\u9A0E\u5175", set: { hp: 120, damage: 7, bonus: { cavalry: 18, camel: 9 } } },
-  { id: "capped-ram", kind: "ram", name: "\u88DD\u7532\u885D\u649E\u8ECA", set: { hp: 200, damage: 3, bonus: { building: 48 } } },
-  { id: "siege-ram", kind: "ram", name: "\u91CD\u578B\u885D\u649E\u8ECA", set: { hp: 270, damage: 4, bonus: { building: 64 } } },
-  { id: "onager", kind: "mangonel", name: "\u4E2D\u578B\u6295\u77F3\u8ECA", set: { hp: 60, damage: 50, range: 450, armor: [0, 7], bonus: { building: 14 }, blast: 90 } },
-  { id: "siege-onager", kind: "mangonel", name: "\u91CD\u578B\u6295\u77F3\u8ECA", set: { hp: 70, damage: 75, range: 450, armor: [0, 8], bonus: { building: 19 }, blast: 110 } },
-  { id: "heavy-scorpion", kind: "scorpion", name: "\u91CD\u578B\u5F29\u7832", set: { hp: 50, damage: 16, bonus: { elephant: 8, building: 1 } } },
+  { id: "heavy-camel", kind: "camel", name: "\u91CD\u88DD\u99F1\u99DD\u9A0E\u5175", set: { hp: 120, damage: 7, bonus: { cavalry: 18, camel: 9, ship: 9, "fishing-ship": 9, mameluke: 7 } } },
+  { id: "capped-ram", kind: "ram", name: "\u88DD\u7532\u885D\u649E\u8ECA", set: { hp: 200, damage: 3, bonus: { building: 48, siege: 16 }, classArmor: { ram: 1 }, buildingSplash: 75 } },
+  { id: "siege-ram", kind: "ram", name: "\u91CD\u578B\u885D\u649E\u8ECA", set: { hp: 270, damage: 4, bonus: { building: 64, siege: 21 }, classArmor: { ram: 2 }, buildingSplash: 100 } },
+  { id: "onager", kind: "mangonel", name: "\u4E2D\u578B\u6295\u77F3\u8ECA", set: { hp: 60, damage: 50, range: 450, armor: [0, 7], bonus: { building: 14, siege: 4 }, blast: 90 } },
+  { id: "siege-onager", kind: "mangonel", name: "\u91CD\u578B\u6295\u77F3\u8ECA", set: { hp: 70, damage: 75, range: 450, armor: [0, 8], bonus: { building: 19, siege: 4 }, blast: 110 } },
+  { id: "heavy-scorpion", kind: "scorpion", name: "\u91CD\u578B\u5F29\u7832", set: { hp: 50, damage: 16, bonus: { elephant: 8, building: 1, ram: 2 }, frameDelay: 26 } },
   // Elite unique units (aoetw.com's elite columns; armor and bonus are whole fields, so each lists both).
   { id: "elite-longbowman", kind: "longbowman", name: "\u7CBE\u92B3\u9577\u5F13\u5175", set: { hp: 40, damage: 7, range: 350, armor: [0, 1] } },
-  { id: "elite-woad-raider", kind: "woad-raider", name: "\u7CBE\u92B3\u83D8\u85CD\u6B66\u58EB", set: { hp: 80, damage: 13, bonus: { building: 3 } } },
-  { id: "elite-throwing-axeman", kind: "throwing-axeman", name: "\u7CBE\u92B3\u64F2\u65A7\u5175", set: { hp: 70, damage: 8, range: 250, armor: [1, 0], bonus: { building: 2 } } },
-  { id: "elite-huskarl", kind: "huskarl", name: "\u7CBE\u92B3\u54E5\u5FB7\u885B\u968A", set: { hp: 70, damage: 12, armor: [0, 8], bonus: { building: 3, archer: 10 } } },
+  { id: "elite-woad-raider", kind: "woad-raider", name: "\u7CBE\u92B3\u83D8\u85CD\u6B66\u58EB", set: { hp: 80, damage: 13, bonus: { "standard-building": 3 } } },
+  { id: "elite-throwing-axeman", kind: "throwing-axeman", name: "\u7CBE\u92B3\u64F2\u65A7\u5175", set: { hp: 70, damage: 8, range: 250, armor: [1, 0], bonus: { "standard-building": 2 }, frameDelay: 8 } },
+  { id: "elite-huskarl", kind: "huskarl", name: "\u7CBE\u92B3\u54E5\u5FB7\u885B\u968A", set: { hp: 70, damage: 12, armor: [0, 8], bonus: { "standard-building": 3, archer: 10 } } },
   { id: "elite-teutonic-knight", kind: "teutonic-knight", name: "\u7CBE\u92B3\u689D\u9813\u6B66\u58EB", set: { hp: 100, damage: 17, armor: [10, 2] } },
-  { id: "elite-berserk", kind: "berserk", name: "\u7CBE\u92B3\u72C2\u6230\u58EB", set: { hp: 62, damage: 14, armor: [2, 1], bonus: { building: 3 } } },
-  { id: "elite-cataphract", kind: "cataphract", name: "\u7CBE\u92B3\u62DC\u5360\u5EAD\u8056\u9A0E\u5175", set: { hp: 150, damage: 12, cooldown: 17, bonus: { infantry: 12 } } },
-  { id: "elite-war-elephant", kind: "war-elephant", name: "\u7CBE\u92B3\u6230\u8C61", set: { hp: 600, damage: 20, armor: [1, 3], bonus: { building: 10 } } },
-  { id: "elite-mameluke", kind: "mameluke", name: "\u7CBE\u92B3\u963F\u62C9\u4F2F\u5974\u96B8\u5175", set: { hp: 80, damage: 10, armor: [1, 0], bonus: { cavalry: 12 } } },
-  { id: "elite-janissary", kind: "janissary", name: "\u7CBE\u92B3\u571F\u8033\u5176\u706B\u69CD\u5175", set: { hp: 40, damage: 22, armor: [2, 0], bonus: { siege: 3 } } },
+  { id: "elite-berserk", kind: "berserk", name: "\u7CBE\u92B3\u72C2\u6230\u58EB", set: { hp: 62, damage: 14, armor: [2, 1], bonus: { "standard-building": 3 } } },
+  { id: "elite-cataphract", kind: "cataphract", name: "\u7CBE\u92B3\u62DC\u5360\u5EAD\u8056\u9A0E\u5175", set: { hp: 150, damage: 12, cooldown: 17, bonus: { infantry: 12 }, classArmor: { cavalry: 13 } } },
+  { id: "elite-war-elephant", kind: "war-elephant", name: "\u7CBE\u92B3\u6230\u8C61", set: { hp: 600, damage: 20, armor: [1, 3], bonus: { building: 10, "stone-defense": 10 } } },
+  { id: "elite-mameluke", kind: "mameluke", name: "\u7CBE\u92B3\u963F\u62C9\u4F2F\u5974\u96B8\u5175", set: { hp: 80, damage: 10, armor: [1, 0], bonus: { cavalry: 12, mameluke: 1 }, frameDelay: 12 } },
+  { id: "elite-janissary", kind: "janissary", name: "\u7CBE\u92B3\u571F\u8033\u5176\u706B\u69CD\u5175", set: { hp: 40, damage: 22, armor: [2, 0], bonus: { ram: 3 }, frameDelay: 0 } },
   { id: "elite-chu-ko-nu", kind: "chu-ko-nu", name: "\u7CBE\u92B3\u9023\u5F29\u5175", set: { hp: 50, cooldown: 58, extraShots: 4 } },
-  { id: "elite-samurai", kind: "samurai", name: "\u7CBE\u92B3\u65E5\u672C\u6B66\u58EB", set: { hp: 80, damage: 12, bonus: { building: 3, unique: 12 } } },
+  { id: "elite-samurai", kind: "samurai", name: "\u7CBE\u92B3\u65E5\u672C\u6B66\u58EB", set: { hp: 80, damage: 12, bonus: { "standard-building": 3, unique: 12 } } },
   { id: "elite-mangudai", kind: "mangudai", name: "\u7CBE\u92B3\u8499\u53E4\u7A81\u9A0E", set: { damage: 8, armor: [1, 0], bonus: { siege: 5, spear: 1 } } },
   // The dock's upgrades (aoetw.com). War Galley upgrades all three Feudal ships at once.
-  { id: "war-galley", kind: "galley", name: "\u5F29\u7832\u6230\u8239", set: { hp: 135, damage: 7, range: 350, bonus: { ship: 9, building: 2 } } },
-  { id: "galleon", kind: "galley", name: "\u91CD\u578B\u5F29\u7832\u6230\u8239", set: { hp: 165, damage: 8, range: 400, armor: [0, 8], bonus: { ship: 11, building: 3 } } },
-  { id: "war-galley", kind: "fire-galley", name: "\u706B\u6230\u8239", set: { hp: 120, damage: 2, armor: [0, 6] } },
-  { id: "fast-fire-ship", kind: "fire-galley", name: "\u91CD\u578B\u706B\u6230\u8239", set: { hp: 140, damage: 3, armor: [0, 8], bonus: { ship: 4 } } },
-  { id: "war-galley", kind: "demolition-raft", name: "\u7206\u7834\u8239", set: { hp: 60, damage: 110, armor: [0, 3], bonus: { building: 70 }, blast: 150 } },
-  { id: "heavy-demolition-ship", kind: "demolition-raft", name: "\u91CD\u578B\u7206\u7834\u8239", set: { hp: 70, damage: 140, armor: [0, 5], bonus: { building: 90 }, blast: 175 } },
-  { id: "elite-cannon-galleon", kind: "cannon-galleon", name: "\u7CBE\u92B3\u706B\u7832\u6230\u8239", set: { hp: 150, damage: 45, range: 800, armor: [0, 8], bonus: { building: 88, siege: 13 } } },
-  { id: "elite-longboat", kind: "longboat", name: "\u7CBE\u92B3\u7DAD\u4EAC\u5927\u6230\u8239", set: { hp: 160, damage: 8, range: 400, armor: [0, 8], bonus: { ship: 11, building: 3 } } }
+  { id: "war-galley", kind: "galley", name: "\u5F29\u7832\u6230\u8239", set: { hp: 135, damage: 7, range: 350, bonus: { ship: 9, "fishing-ship": 9, building: 2, ram: 4 } } },
+  { id: "galleon", kind: "galley", name: "\u91CD\u578B\u5F29\u7832\u6230\u8239", set: { hp: 165, damage: 8, range: 400, armor: [0, 8], bonus: { ship: 11, "fishing-ship": 11, building: 3, ram: 4 } } },
+  { id: "war-galley", kind: "fire-galley", name: "\u706B\u6230\u8239", set: { hp: 120, damage: 2, armor: [0, 6], bonus: { ship: 3, "fishing-ship": 3, building: 1 } } },
+  { id: "fast-fire-ship", kind: "fire-galley", name: "\u91CD\u578B\u706B\u6230\u8239", set: { hp: 140, damage: 3, armor: [0, 8], bonus: { ship: 4, "fishing-ship": 4, building: 1 }, classArmor: { ship: 9 } } },
+  { id: "war-galley", kind: "demolition-raft", name: "\u7206\u7834\u8239", set: { hp: 60, damage: 110, armor: [0, 3], bonus: { building: 70 }, blast: 150, classArmor: { ship: 3 } } },
+  { id: "heavy-demolition-ship", kind: "demolition-raft", name: "\u91CD\u578B\u7206\u7834\u8239", set: { hp: 70, damage: 140, armor: [0, 5], bonus: { building: 90 }, blast: 175, classArmor: { ship: 5 } } },
+  { id: "elite-cannon-galleon", kind: "cannon-galleon", name: "\u7CBE\u92B3\u706B\u7832\u6230\u8239", set: { hp: 150, damage: 45, range: 800, armor: [0, 8], bonus: { building: 88, siege: 13, infantry: 15, archer: 15, cavalry: 15, mameluke: 4 } } },
+  { id: "elite-longboat", kind: "longboat", name: "\u7CBE\u92B3\u7DAD\u4EAC\u5927\u6230\u8239", set: { hp: 160, damage: 8, range: 400, armor: [0, 8], bonus: { ship: 11, "fishing-ship": 11, building: 3, ram: 4 } } }
 ];
 var blacksmith = {
   forging: { classes: ["infantry", "cavalry", "camel"], exclude: ["cavalry-archer"], attack: 1 },
@@ -1970,7 +2082,7 @@ var blacksmith = {
 function statsOf(kind, who = []) {
   const o = asOwner(who), techs = o.techs;
   let st = { ...combatRules.units[kind] };
-  for (const up of lineUpgrades) if (up.kind === kind && techs.includes(up.id)) st = { ...st, ...up.set };
+  for (const up2 of lineUpgrades) if (up2.kind === kind && techs.includes(up2.id)) st = { ...st, ...up2.set };
   let [m, p] = st.armor;
   for (const id of techs) {
     const b = blacksmith[id];
@@ -2018,13 +2130,461 @@ function buildingHpOf(kind, who = []) {
 }
 function hitDamage(attacker, target) {
   if (attacker.attack === "none") return 0;
-  const armor = attacker.attack === "pierce" ? target.armor[1] : target.armor[0], bonus = target.classes.reduce((t, c) => t + (attacker.bonus[c] ?? 0), 0);
-  return Math.max(1, attacker.damage - armor + bonus);
+  const armor = attacker.attack === "pierce" ? target.armor[1] : target.armor[0];
+  const bonus = target.classes.reduce((t, c) => t + (attacker.bonus[c] ? Math.max(0, attacker.bonus[c] - (target.classArmor?.[c] ?? 0)) : 0), 0);
+  return Math.max(1, Math.max(0, attacker.damage - armor) + bonus);
 }
-var buildingTarget = { armor: combatRules.buildingArmor, classes: ["building"] };
+var stoneDefense = /* @__PURE__ */ new Set(["stone-wall", "gate", "watch-tower", "bombard-tower"]);
+var wallGate = /* @__PURE__ */ new Set(["palisade-wall", "stone-wall", "palisade-gate", "gate"]);
+function buildingClassesOf(kind) {
+  return ["building", ...kind === "wonder" ? [] : ["standard-building"], ...stoneDefense.has(kind) ? ["stone-defense"] : [], ...wallGate.has(kind) ? ["wall-gate"] : [], ...kind === "castle" ? ["castle"] : []];
+}
+var buildingClassArmor = { castle: 3, "stone-wall": 5, gate: 6 };
+var buildingTarget = { armor: combatRules.buildingArmor, classes: ["building", "standard-building"] };
 function buildingTargetOf(kind, who = []) {
-  const [m, p] = buildingArmorBonus(asOwner(who), kind);
-  return m || p ? { armor: [buildingTarget.armor[0] + m, buildingTarget.armor[1] + p], classes: buildingTarget.classes } : buildingTarget;
+  const o = asOwner(who), [m, p] = buildingArmorBonus(o, kind), c = (buildingClassArmor[kind] ?? 0) + buildingClassArmorBonus(o, kind);
+  return { armor: [buildingTarget.armor[0] + m, buildingTarget.armor[1] + p], classes: buildingClassesOf(kind), ...c ? { classArmor: { building: c } } : {} };
+}
+
+// packages/content/openings.ts
+var gatherKinds = ["sheep", "hunt", "berries", "wood", "gold", "stone", "farm"];
+var all = ["britons", "celts", "franks", "goths", "teutons", "vikings", "byzantines", "persians", "saracens", "turks", "chinese", "japanese", "mongols"];
+var w = (food, wood, gold = 0, stone = 0) => ({ food, wood, gold, stone });
+var site2 = (page) => `aoetw.com/ar/${page}`;
+var opening = [
+  { label: "\u6751\u6C11 1\u20133\uFF1A3 \u4EBA\u63A1\u7F8A\u8089", phase: "dark", done: { villagers: 3, gather: { sheep: 3 } } },
+  { label: "\u6751\u6C11 4\u20135\uFF1A2 \u4EBA\u4F10\u6728", phase: "dark", done: { villagers: 5, gather: { wood: 2 } } },
+  { label: "\u6751\u6C11 6\uFF1A1 \u4EBA\u6253\u7375\uFF08\u91CE\u8C6C\u6216\u9E7F\uFF09", phase: "dark", done: { villagers: 6, gather: { hunt: 1 } } },
+  { label: "\u6751\u6C11 7\u20138\uFF1A2 \u4EBA\u63A1\u679C\u6A39", phase: "dark", done: { villagers: 8, gather: { berries: 2 } } }
+];
+var loom = { label: "\u7814\u7A76\u7E54\u5E03\u6A5F", phase: "dark", done: { techs: ["loom"] } };
+var up = (n) => ({ label: `\u6751\u6C11 ${n} \u4EBA\uFF1A\u5347\u7B2C\u4E8C\u6642\u4EE3`, phase: "dark", done: { villagers: n, clicked: 2 } });
+var standardOpening = "standard";
+var randomOpening = "random";
+var openings = [
+  {
+    id: "scrush",
+    zh: "\u8089\u99AC\u958B\u5C40",
+    en: "Scout rush",
+    page: site2("scrush"),
+    age: 2,
+    power: "\u666E",
+    difficulty: "\u63A7\u7D93\u6FDF\u7C21\u55AE\u3001\u63A7\u99AC\u8F03\u96E3",
+    pros: "\u5E7E\u4E4E\u4EFB\u4F55\u6587\u660E\u53EF\u7528\uFF0C\u9748\u6D3B\u5EA6\u9AD8",
+    cons: "\u9047\u5230\u570D\u6B7B\u6216\u88DD\u7532\u5854\u6703\u5403\u8667",
+    civs: all,
+    best: ["mongols"],
+    counters: ["\u628A\u5BB6\u570D\u6B7B", "\u88DD\u7532\u5854", "\u5927\u91CF\u5F13\u5175", "\u5927\u91CF\u9577\u69CD\u5175\uFF08\u9019\u6642\u8F49\u6563\u5175\u6216\u5F13\u5175\uFF09"],
+    allocation: "\u5347\u7D1A\u524D\uFF1A\u98DF\u7269 5\uFF08\u7F8A\u3001\u679C\u6A39\u3001\u8FB2\u7530\uFF09\u3001\u6728\u6750 5",
+    siteAllocation: "5\u7F8A2\u75304\u679C10\u6728\uFF0822 \u4EBA\u53E3\uFF09",
+    steps: [
+      ...opening,
+      { label: "\u6751\u6C11 9\u201310\uFF1A2 \u4EBA\u4F10\u6728", phase: "dark", done: { villagers: 10, gather: { wood: 4 } } },
+      loom,
+      up(10),
+      { label: "\u5347\u7D1A\u4E2D\u84CB\u5175\u71DF", phase: "up", done: { buildings: { barracks: 1 } } },
+      { label: "\u7B2C\u4E8C\u6642\u4EE3\uFF1A\u84CB\u99AC\u5EC4", phase: "feudal", done: { age: 2, buildings: { stable: 1 } } },
+      { label: "\u7814\u7A76\u96D9\u5203\u65A7\u8207\u99AC\u8EDB", phase: "feudal", done: { techs: ["double-bit-axe", "horse-collar"] } },
+      { label: "\u8A13\u7DF4 3 \u96BB\u65A5\u5019\uFF0C\u9A37\u64FE\u5C0D\u65B9\u7684\u63A1\u96C6\u9EDE", phase: "feudal", done: { units: { scout: 4 }, raiding: 1 } },
+      { label: "\u65B0\u6751\u6C11\u53BB\u7A2E\u7530", phase: "feudal", done: { gather: { farm: 3 } } },
+      { label: "\u5C0D\u65B9\u51FA\u9577\u69CD\u5175\u5C31\u8F49\u6563\u5175\u6216\u5F13\u5175", phase: "feudal", done: null }
+    ],
+    plan: {
+      villagers: 12,
+      clickAt: 10,
+      loom: true,
+      barracks: "up",
+      weights: { dark: w(5, 5), up: w(5, 5), feudal: w(8, 3, 1) },
+      train: { feudal: { scout: 4 } },
+      build: [{ kind: "stable", count: 1 }],
+      research: ["double-bit-axe", "horse-collar"],
+      raid: { kinds: ["scout"], sendAt: 2, reinforce: true },
+      towers: null,
+      castle: false,
+      until: { tick: 9600 }
+    },
+    notes: ["\u65A5\u5019\u4EBA\u53E3\u542B\u958B\u5C40\u65A5\u5019\uFF1A\u8A13\u7DF4 3 \u96BB\u5F8C\u5171 4 \u96BB\uFF0C\u958B\u5C40\u90A3\u96BB\u7E7C\u7E8C\u5075\u5BDF\u3002"]
+  },
+  {
+    id: "archerstar",
+    zh: "\u5C0F\u5F13\u958B\u5C40",
+    en: "Archer opening",
+    page: site2("archerstar"),
+    age: 2,
+    power: "\u5F37",
+    difficulty: "\u666E",
+    pros: "\u5A01\u529B\u5F37\uFF0C\u4F46\u6210\u5F62\u6162",
+    cons: "\u6210\u5F62\u6162\uFF0C\u5BB9\u6613\u88AB\u8089\u99AC\u8F49\u77DB\u6253\u6B7B",
+    civs: all,
+    best: ["britons"],
+    counters: ["\u6563\u5175", "\u5148\u7528\u65A5\u5019\u6436\u653B\uFF0C\u518D\u8F49\u6563\u5175"],
+    allocation: "\u5347\u7D1A\u524D\uFF1A\u98DF\u7269 5\uFF08\u7F8A\u3001\u679C\u6A39\u3001\u8FB2\u7530\uFF09\u3001\u6728\u6750 5\uFF1B\u9EDE\u5C01\u5F8C 2 \u4EBA\u6316\u91D1",
+    siteAllocation: "12\u67284\u91D14\u679C2\u7530",
+    steps: [
+      ...opening,
+      { label: "\u6751\u6C11 9\u201310\uFF1A2 \u4EBA\u7A2E\u7530", phase: "dark", done: { villagers: 10, gather: { farm: 2 } } },
+      loom,
+      up(10),
+      { label: "\u9EDE\u5C01\u5F8C 2 \u4EBA\u6316\u91D1", phase: "up", done: { gather: { gold: 2 } } },
+      { label: "\u5347\u7D1A\u4E2D\u84CB\u5175\u71DF", phase: "up", done: { buildings: { barracks: 1 } } },
+      { label: "\u7B2C\u4E8C\u6642\u4EE3\uFF1A\u84CB\u5169\u5EA7\u9776\u5834", phase: "feudal", done: { age: 2, buildings: { "archery-range": 2 } } },
+      { label: "\u5148\u51FA 1 \u96BB\u9577\u69CD\u5175\u9632\u65A5\u5019", phase: "feudal", done: { units: { spearman: 1 } } },
+      { label: "\u5F13\u624B 6 \u540D\u5F8C\u51FA\u64CA", phase: "feudal", done: { units: { archer: 6 }, raiding: 1 } },
+      { label: "\u5C0D\u65B9\u51FA\u6563\u5175\u5C31\u6DF7\u9577\u69CD\u5175\u6216\u6563\u5175", phase: "feudal", done: null }
+    ],
+    plan: {
+      villagers: 12,
+      clickAt: 10,
+      loom: true,
+      barracks: "up",
+      weights: { dark: w(5, 5), up: w(3, 5, 2), feudal: w(2, 6, 3) },
+      train: { feudal: { spearman: 1, archer: 12 } },
+      build: [{ kind: "archery-range", count: 2 }],
+      research: [],
+      raid: { kinds: ["archer"], sendAt: 6, reinforce: true },
+      towers: null,
+      castle: false,
+      until: { tick: 9600 }
+    },
+    notes: ["\u7DB2\u7AD9\u7684\u8CC7\u8A0A\u6846\u5BEB\u300C\u5F13\u5175\u570B\u300D\uFF0C\u5167\u6587\u5BEB\u6240\u6709\u6587\u660E\u90FD\u9069\u5408\uFF1B\u9019\u88E1\u7167\u5167\u6587\u3002"]
+  },
+  {
+    id: "armstar",
+    zh: "\u88DD\u7532\u958B\u5C40",
+    en: "Men-at-arms opening",
+    page: site2("armstar"),
+    age: 2,
+    power: "\u666E",
+    difficulty: "\u666E",
+    pros: "\u5C01\u5EFA\u521D\u671F\u8FD1\u6230\u6700\u5F37\uFF0C\u53EF\u64CB\u524D\u7F6E\u8207\u9ED1\u5FEB",
+    cons: "\u6015\u5F13\u5175\uFF0C\u5C01\u5EFA\u4E2D\u5F8C\u671F\u8D70\u5F97\u6162",
+    civs: all,
+    best: [],
+    counters: ["\u5F13\u5175", "\u628A\u5BB6\u570D\u6B7B"],
+    allocation: "\u5347\u7D1A\u524D\uFF1A\u98DF\u7269 5\u3001\u6728\u6750 4\u3001\u9EC3\u91D1 1",
+    siteAllocation: "5\u7F8A2\u75304\u679C8\u67282\u91D1",
+    steps: [
+      ...opening,
+      { label: "\u6751\u6C11 9\uFF1A1 \u4EBA\u6316\u91D1", phase: "dark", done: { villagers: 9, gather: { gold: 1 } } },
+      { label: "\u84CB\u5175\u71DF", phase: "dark", done: { buildings: { barracks: 1 } } },
+      { label: "\u6751\u6C11 10\uFF1A\u4F10\u6728", phase: "dark", done: { villagers: 10, gather: { wood: 3 } } },
+      loom,
+      up(10),
+      { label: "\u9EDE\u5C01\u5F8C\u7ACB\u523B\u51FA 3 \u96BB\u6C11\u5175\u53BB\u9A37\u64FE", phase: "up", done: { units: { militia: 3 }, raiding: 1 } },
+      { label: "\u7B2C\u4E8C\u6642\u4EE3\uFF1A\u6C11\u5175\u9084\u6D3B\u8457\u5C31\u7814\u7A76\u91CD\u6B65\u5175", phase: "feudal", done: { age: 2, techs: ["man-at-arms"] } },
+      { label: "\u5BB6\u88E1\u6539\u84CB\u9776\u5834\u6216\u99AC\u5EC4", phase: "feudal", done: { buildings: { "archery-range": 1 } } },
+      { label: "\u63A5\u8457\u914D\u5F13\u5175\u6216\u65A5\u5019\u9032\u653B", phase: "feudal", done: null }
+    ],
+    plan: {
+      villagers: 12,
+      clickAt: 10,
+      loom: true,
+      barracks: "dark",
+      barracksAt: 9,
+      weights: { dark: w(5, 4, 1), up: w(5, 3, 2), feudal: w(5, 4, 2) },
+      train: { up: { militia: 3 }, feudal: { militia: 3 } },
+      build: [{ kind: "archery-range", count: 1 }],
+      research: ["man-at-arms"],
+      raid: { kinds: ["militia"], sendAt: 3, reinforce: false },
+      towers: null,
+      castle: false,
+      until: { tick: 9600 }
+    },
+    notes: ["\u7DB2\u7AD9\u9019\u9801\u7684\u8CC7\u8A0A\u6846\uFF08\u9069\u5408\u6587\u660E\u3001\u96E3\u5EA6\u3001\u512A\u7F3A\u9EDE\uFF09\u662F\u5F9E\u8089\u99AC\u958B\u5C40\u8907\u88FD\u4F86\u7684\uFF1B\u9019\u88E1\u7684\u512A\u7F3A\u9EDE\u7167\u5167\u6587\u3002"]
+  },
+  {
+    id: "armstower",
+    zh: "\u88DD\u7532\u5854",
+    en: "Men-at-arms into towers",
+    page: site2("armstower"),
+    age: 2,
+    power: "\u975E\u5E38\u5F37",
+    difficulty: "\u96E3",
+    pros: "\u5E7E\u4E4E\u4EFB\u4F55\u6587\u660E\u53EF\u7528\uFF0C\u5A01\u529B\u6975\u5927",
+    cons: "\u5403\u63A7\u5236\u529B\u8207\u904B\u6C23",
+    civs: all,
+    best: ["japanese", "goths", "celts"],
+    counters: ["\u9ED1\u6697\u6C11\u5175\u6216\u65A5\u5019\u6293\u524D\u7F6E\u7684\u6751\u6C11", "\u6751\u6C11\u570D\u4F4F\u5854\u4E0B\u62C6\u5854"],
+    allocation: "\u5347\u7D1A\u524D\uFF1A\u98DF\u7269 5\u3001\u6728\u6750 2\u3001\u9EC3\u91D1 1\uFF1B\u9EDE\u5C01\u5F8C 2 \u4EBA\u63A1\u77F3\u30012 \u4EBA\u524D\u7F6E",
+    siteAllocation: "\u9EDE\u5C01\u5F8C 3\uFF5E4 \u4EBA\u524D\u7F6E\u30014 \u4EBA\u63A1\u77F3",
+    steps: [
+      ...opening,
+      { label: "\u6751\u6C11 9\uFF1A\u84CB\u5175\u71DF", phase: "dark", done: { villagers: 9, buildings: { barracks: 1 } } },
+      { label: "\u6751\u6C11 10\uFF1A1 \u4EBA\u6316\u91D1", phase: "dark", done: { villagers: 10, gather: { gold: 1 } } },
+      loom,
+      up(10),
+      { label: "\u9EDE\u5C01\u5F8C\u51FA 3 \u96BB\u6C11\u5175", phase: "up", done: { units: { militia: 3 } } },
+      { label: "2 \u4EBA\u63A1\u77F3\u982D", phase: "up", done: { gather: { stone: 2 } } },
+      { label: "2 \u540D\u6751\u6C11\u524D\u5F80\u5C0D\u65B9\u5BB6", phase: "up", done: { forward: { villager: 2 } } },
+      { label: "\u7B2C\u4E8C\u6642\u4EE3\uFF1A\u7814\u7A76\u91CD\u6B65\u5175", phase: "feudal", done: { age: 2, techs: ["man-at-arms"] } },
+      { label: "\u5728\u5C0D\u65B9\u7684\u8CC7\u6E90\u9EDE\u84CB\u7BAD\u5854", phase: "feudal", done: { forward: { "watch-tower": 1 } } },
+      { label: "\u9023\u74B0\u63D2\u5854", phase: "feudal", done: { forward: { "watch-tower": 2 } } },
+      { label: "\u65B0\u6751\u6C11\u53BB\u7A2E\u7530", phase: "feudal", done: { gather: { farm: 2 } } }
+    ],
+    plan: {
+      villagers: 12,
+      clickAt: 10,
+      loom: true,
+      barracks: "dark",
+      barracksAt: 9,
+      weights: { dark: w(5, 2, 1), up: w(4, 2, 1, 2), feudal: w(4, 3, 1, 2) },
+      train: { up: { militia: 3 }, feudal: { militia: 3 } },
+      build: [],
+      research: ["man-at-arms"],
+      raid: { kinds: ["militia"], sendAt: 3, reinforce: false },
+      towers: { builders: 2, count: 2, prefer: ["berries", "gold", "stone"], leave: "click" },
+      castle: false,
+      until: { tick: 10800 }
+    },
+    notes: ["\u7DB2\u7AD9\u8AAA\u7B2C\u4E00\u5EA7\u5854\u84CB\u5728\u597D\u5C01\u9396\u7684\u5730\u65B9\uFF0C\u5C0D\u99AC\u570B\u5148\u5C01\u679C\u6A39\uFF0C\u5C0D\u5F13\u5175\u570B\u5148\u5C01\u9EC3\u91D1\uFF1B\u96FB\u8166\u4F9D\u679C\u6A39\u3001\u9EC3\u91D1\u3001\u77F3\u982D\u7684\u9806\u5E8F\u627E\u3002", "\u7DB2\u7AD9\u5EFA\u8B70\u5854\u4E0B\u84CB\u7246\uFF0C\u96FB\u8166\u4E0D\u84CB\u3002"]
+  },
+  {
+    id: "towerrush",
+    zh: "\u7D14\u5854",
+    en: "Tower rush",
+    page: site2("towerrush"),
+    age: 2,
+    power: "\u770B\u5730\u5F62",
+    difficulty: "\u96E3",
+    pros: "\u5E7E\u4E4E\u4EFB\u4F55\u6587\u660E\u53EF\u7528",
+    cons: "\u5403\u904B\u6C23\u8207\u5730\u5F62",
+    civs: all,
+    best: ["mongols", "teutons"],
+    counters: ["\u5075\u5BDF\u627E\u51FA\u524D\u7F6E\u7684\u6751\u6C11\uFF0C\u5728\u7B2C\u4E00\u5EA7\u5854\u84CB\u597D\u524D\u6253\u6389", "\u5854\u84CB\u597D\u4E86\u5C31\u6316\u77F3\u982D\u3001\u7814\u7A76\u57CE\u93AE\u77AD\u671B\uFF0C\u4EE5\u5854\u5B88\u5854", "\u5C0D\u65B9\u5BB6\u88E1\u7A7A\u865B\uFF0C\u6D3E\u65A5\u5019\u6216\u5F13\u5175\u53CD\u6253"],
+    allocation: "\u5347\u7D1A\u524D\uFF1A\u98DF\u7269 4\u3001\u6728\u6750 1\u3001\u77F3\u982D 3\uFF1B\u9EDE\u5C01\u5F8C 3 \u4EBA\u524D\u7F6E",
+    siteAllocation: "7\u4EBA\u524D\u7F6E2\u67285\u77F35\u679C",
+    steps: [
+      opening[0],
+      { label: "\u6751\u6C11 4\uFF1A1 \u4EBA\u4F10\u6728", phase: "dark", done: { villagers: 4, gather: { wood: 1 } } },
+      { label: "\u6751\u6C11 5\uFF1A1 \u4EBA\u6253\u7375", phase: "dark", done: { villagers: 5, gather: { hunt: 1 } } },
+      { label: "\u6751\u6C11 6\u20137\uFF1A2 \u4EBA\u63A1\u679C\u6A39", phase: "dark", done: { villagers: 7, gather: { berries: 2 } } },
+      { label: "\u6751\u6C11 8\u20139\uFF1A\u84CB\u63A1\u7926\u5834\u63A1\u77F3\u982D", phase: "dark", done: { villagers: 9, buildings: { "mining-camp": 1 }, gather: { stone: 2 } } },
+      loom,
+      up(9),
+      { label: "\u9EDE\u5C01\u5F8C 3 \u540D\u6751\u6C11\u524D\u5F80\u5C0D\u65B9\u5BB6", phase: "up", done: { forward: { villager: 3 } } },
+      { label: "\u7B2C\u4E8C\u6642\u4EE3\uFF1A\u5728\u5C0D\u65B9\u7684\u77F3\u982D\u6216\u8CC7\u6E90\u5340\u540C\u6642\u84CB\u5169\u5EA7\u5854", phase: "feudal", done: { age: 2, forward: { "watch-tower": 2 } } },
+      { label: "\u7E7C\u7E8C\u9023\u74B0\u63D2\u5854", phase: "feudal", done: { forward: { "watch-tower": 3 } } },
+      { label: "\u5C0D\u65B9\u4F86\u62C6\u5854\u6642\u7ACB\u523B\u5728\u5854\u4E0B\u84CB\u6728\u7246", phase: "feudal", done: null }
+    ],
+    plan: {
+      villagers: 12,
+      clickAt: 9,
+      loom: true,
+      barracks: "none",
+      weights: { dark: w(4, 1, 0, 3), up: w(3, 1, 0, 3), feudal: w(4, 2, 0, 3) },
+      train: {},
+      build: [],
+      research: [],
+      raid: null,
+      towers: { builders: 3, count: 3, prefer: ["stone", "gold", "berries"], leave: "click" },
+      castle: false,
+      until: { tick: 10800 }
+    },
+    notes: ["\u7DB2\u7AD9 20 \u4EBA\u53E3\uFF0819 \u540D\u6751\u6C11\uFF09\u9EDE\u5C01\u5EFA\uFF0C\u9019\u88E1 9 \u540D\u3002", "\u4E0D\u84CB\u5175\u71DF\uFF0C\u7701\u4E0B\u7684\u6728\u6750\u7D66\u5854\u3002"]
+  },
+  {
+    id: "bbrush",
+    zh: "\u9ED1\u6697\u7206\u6C11\u5175",
+    en: "Dark Age militia rush",
+    page: site2("bbrush"),
+    age: 1,
+    power: "\u5F31",
+    difficulty: "\u666E",
+    pros: "\u5347\u7D1A\u6642\u653E\u9577\u69CD\u5175\u53EF\u4EE5\u7121\u7E2B\u63A5\u8ECC",
+    cons: "\u5F88\u597D\u9632\uFF0C\u6728\u7246\u5C31\u64CB\u5F97\u4F4F",
+    civs: all,
+    best: [],
+    counters: ["\u6709\u6548\u7684\u570D\u7246", "\u4E0A\u5C01\u5EFA\u5F8C\u51FA\u5F13\u5175"],
+    allocation: "\u5347\u7D1A\u524D\uFF1A\u98DF\u7269 5\u3001\u6728\u6750 3\u3001\u9EC3\u91D1 2\uFF0C\u5175\u71DF\u4E0D\u505C\u51FA\u6C11\u5175",
+    siteAllocation: "19\uFF5E20p \u84CB\u8ECD\u71DF\uFF0C\u4E4B\u5F8C\u6751\u6C11\u548C\u6C11\u5175\u4E0D\u65B7",
+    steps: [
+      ...opening,
+      { label: "\u6751\u6C11 9\uFF1A1 \u4EBA\u6316\u91D1", phase: "dark", done: { villagers: 9, gather: { gold: 1 } } },
+      { label: "\u84CB\u5175\u71DF\uFF08\u53EF\u524D\u7F6E\u6216\u5F8C\u7F6E\uFF09", phase: "dark", done: { buildings: { barracks: 1 } } },
+      { label: "\u6751\u6C11\u8207\u6C11\u5175\u4E0D\u65B7\u751F\u7522", phase: "dark", done: { units: { militia: 3 } } },
+      { label: "\u6C11\u5175 3 \u96BB\u5F8C\u53BB\u9A37\u64FE\uFF0C\u512A\u5148\u6253\u9EC3\u91D1\u5340", phase: "dark", done: { raiding: 1 } },
+      { label: "\u98DF\u7269\u5230 300 \u5C31\u5347\u7B2C\u4E8C\u6642\u4EE3", phase: "dark", done: { clicked: 2 } },
+      { label: "\u5BB6\u88E1\u9069\u6642\u84CB\u6728\u7246", phase: "dark", done: { buildings: { "palisade-wall": 3 } } },
+      { label: "\u4E0A\u5C01\u5EFA\u5F8C\u77ED\u66AB\u505C\u7559\uFF0C\u76F4\u63A5\u8DF3\u57CE\u5821", phase: "feudal", done: null }
+    ],
+    plan: {
+      villagers: 10,
+      clickAt: 9,
+      clickOnFood: true,
+      loom: false,
+      barracks: "dark",
+      barracksAt: 9,
+      weights: { dark: w(5, 3, 2), up: w(5, 3, 2), feudal: w(5, 3, 2) },
+      train: { dark: { militia: 6 }, up: { militia: 6 } },
+      build: [],
+      research: [],
+      raid: { kinds: ["militia"], sendAt: 3, reinforce: true },
+      towers: null,
+      castle: false,
+      until: { tick: 8400 }
+    },
+    notes: ["\u7DB2\u7AD9\u5BEB\u300C\u98DF\u7269\u9054 500 \u5373\u9EDE\u5C01\u5EFA\u300D\uFF0C\u672C\u4F5C\u7B2C\u4E8C\u6642\u4EE3 300 \u98DF\u7269\u3002", "\u96FB\u8166\u4E0D\u84CB\u7246\u3002"]
+  },
+  {
+    id: "brushtof",
+    zh: "\u9ED1\u5FEB\u8F49\u5C01",
+    en: "Drush into Feudal",
+    page: site2("brushtof"),
+    age: 2,
+    power: "\u666E",
+    difficulty: "\u96E3",
+    pros: "\u7D93\u6FDF\u6BD4 22 \u4EBA\u53E3\u4E0A\u5C01\u5EFA\u66F4\u597D\uFF0C\u6253\u6CD5\u9748\u6D3B",
+    cons: "\u5F88\u5403\u63A7\u5236\u529B",
+    civs: all,
+    best: [],
+    counters: ["\u5BB6\u88E1\u5C0F\u570D\uFF0C\u4E0D\u8B93\u6C11\u5175\u9B27\u5230", "\u4E0A\u5C01\u5EFA\u5F8C\u65A5\u5019\u914D\u6751\u6C11\u6E05\u6389\u6C11\u5175\uFF0C\u518D\u53CD\u6253"],
+    allocation: "\u9ED1\u6697\u51FA 3 \u96BB\u6C11\u5175\uFF0C\u6751\u6C11\u5230 12 \u540D\u9EDE\u5C01\u5EFA\uFF0C2 \u4EBA\u6316\u91D1",
+    siteAllocation: "28 \u4EBA\u53E3\uFF08\u542B 3 \u6C11\u5175\uFF09\u9EDE\u5C01\u5EFA\uFF0C\u6316\u91D1 1\uFF5E4 \u4EBA",
+    steps: [
+      ...opening,
+      { label: "\u6751\u6C11 9\uFF1A1 \u4EBA\u6316\u91D1", phase: "dark", done: { villagers: 9, gather: { gold: 1 } } },
+      { label: "\u6751\u6C11 10\uFF1A\u84CB\u5175\u71DF", phase: "dark", done: { villagers: 10, buildings: { barracks: 1 } } },
+      { label: "\u51FA 3 \u96BB\u6C11\u5175\u51FA\u767C\u9A37\u64FE", phase: "dark", done: { units: { militia: 3 }, raiding: 1 } },
+      { label: "\u6316\u91D1\u589E\u52A0\u5230 2 \u4EBA", phase: "dark", done: { gather: { gold: 2 } } },
+      up(12),
+      { label: "\u7B2C\u4E8C\u6642\u4EE3\uFF1A\u6C11\u5175\u9084\u591A\u5C31\u7814\u7A76\u91CD\u6B65\u5175", phase: "feudal", done: { age: 2, techs: ["man-at-arms"] } },
+      { label: "\u770B\u5C0D\u65B9\u914D\u5175\u8F49\u9577\u69CD\u5175\u6216\u5F13\u5175\uFF08\u84CB\u9776\u5834\uFF09", phase: "feudal", done: { buildings: { "archery-range": 1 } } }
+    ],
+    plan: {
+      villagers: 12,
+      clickAt: 12,
+      loom: true,
+      barracks: "dark",
+      barracksAt: 10,
+      weights: { dark: w(5, 3, 2), up: w(5, 3, 2), feudal: w(5, 4, 2) },
+      train: { dark: { militia: 3 }, up: { militia: 3 }, feudal: { militia: 3 } },
+      build: [{ kind: "archery-range", count: 1 }],
+      research: ["man-at-arms"],
+      raid: { kinds: ["militia"], sendAt: 3, reinforce: false },
+      towers: null,
+      castle: false,
+      until: { tick: 10800 }
+    },
+    notes: ["\u7DB2\u7AD9 28 \u4EBA\u53E3\uFF0825 \u540D\u6751\u6C11\uFF09\u9EDE\u5C01\u5EFA\uFF0C\u9019\u88E1 12 \u540D\u3002", "\u7DB2\u7AD9\u5BEB\u300C\u4E00\u5B9A\u8981\u8D95\u9E7F\u300D\uFF0C\u672C\u4F5C\u7684\u9E7F\u8D95\u4E0D\u52D5\u3002", "\u7DB2\u7AD9\u9019\u9801\u7684\u8CC7\u8A0A\u6846\u662F\u5F9E\u9ED1\u5FEB\u6436\u57CE\u8907\u88FD\u4F86\u7684\uFF1B\u9019\u88E1\u7684\u512A\u7F3A\u9EDE\u7167\u5167\u6587\u3002"]
+  },
+  {
+    id: "brushfc",
+    zh: "\u9ED1\u5FEB\u6436\u57CE",
+    en: "Drush fast castle",
+    page: site2("brushfc"),
+    age: 3,
+    power: "\u666E",
+    difficulty: "\u96E3",
+    pros: "\u5730\u5F62\u597D\u7684\u8A71\u975E\u5E38\u597D\u6253",
+    cons: "\u5730\u5F62\u5DEE\u7684\u8A71\u5C0D\u65B9\u975E\u5E38\u597D\u6253\uFF0C\u5F88\u6015\u88DD\u7532\u5854",
+    civs: all,
+    best: ["britons", "vikings"],
+    counters: ["\u770B\u5230\u5C0D\u65B9\u5F88\u665A\u4E0A\u5C01\u5EFA\uFF0C\u5C31\u6D3E 3 \u540D\u6751\u6C11\u524D\u7F6E\u7BAD\u5854\uFF0C\u5BB6\u88E1\u6316\u77F3\u982D", "\u5C0D\u65B9\u570D\u6B7B\u5C31\u8DDF\u8457\u570D\u5BB6\uFF0C\u6BD4\u8AB0\u5148\u5230\u57CE\u5821\u6642\u4EE3"],
+    allocation: "\u9ED1\u6697\u51FA 3 \u96BB\u6C11\u5175\uFF0C\u6751\u6C11\u5230 15 \u540D\u9EDE\u5C01\u5EFA\uFF0C3 \u4EBA\u6316\u91D1",
+    siteAllocation: "\u7E3D\u4EBA\u53E3 33\uFF0C\u6316\u91D1 4\uFF5E6 \u4EBA",
+    steps: [
+      ...opening,
+      { label: "\u6751\u6C11 9\uFF1A1 \u4EBA\u6316\u91D1", phase: "dark", done: { villagers: 9, gather: { gold: 1 } } },
+      { label: "\u6751\u6C11 10\uFF1A\u84CB\u5175\u71DF", phase: "dark", done: { villagers: 10, buildings: { barracks: 1 } } },
+      { label: "\u51FA 3 \u96BB\u6C11\u5175\u51FA\u767C\u722D\u53D6\u6642\u9593", phase: "dark", done: { units: { militia: 3 }, raiding: 1 } },
+      { label: "\u6316\u91D1\u589E\u52A0\u5230 3 \u4EBA", phase: "dark", done: { gather: { gold: 3 } } },
+      up(15),
+      { label: "\u8D81\u5C0D\u65B9\u5C01\u5EFA\u9032\u653B\u524D\u628A\u5BB6\u570D\u597D", phase: "up", done: null },
+      { label: "\u7B2C\u4E8C\u6642\u4EE3\uFF1A\u7ACB\u523B\u5347\u7B2C\u4E09\u6642\u4EE3", phase: "feudal", done: { clicked: 3 } },
+      { label: "\u7B2C\u4E09\u6642\u4EE3\uFF1A\u51FA\u9A0E\u58EB\u6216\u57CE\u5821\u5175\u6253\u5C0D\u65B9\u7D93\u6FDF", phase: "castle", done: { age: 3, buildings: { stable: 1 } } }
+    ],
+    plan: {
+      villagers: 15,
+      clickAt: 15,
+      loom: true,
+      barracks: "dark",
+      barracksAt: 10,
+      weights: { dark: w(6, 4, 2), up: w(6, 4, 3), feudal: w(6, 4, 3) },
+      train: { dark: { militia: 3 } },
+      build: [],
+      research: [],
+      raid: { kinds: ["militia"], sendAt: 3, reinforce: false },
+      towers: null,
+      castle: true,
+      until: { tick: 14400, age: 3 }
+    },
+    notes: ["\u7DB2\u7AD9\u7E3D\u4EBA\u53E3 33\uFF08\u7D04 29 \u540D\u6751\u6C11\uFF09\uFF0C\u9019\u88E1 15 \u540D\u6751\u6C11\u3002", "\u7DB2\u7AD9\u7684\u8CC7\u8A0A\u6846\u5BEB\u5C01\u5EFA\u6642\u4EE3\uFF0C\u5176\u5BE6\u662F\u6436\u57CE\u5821\u7684\u6253\u6CD5\u3002", "\u96FB\u8166\u4E0D\u570D\u5BB6\uFF0C\u4E0A\u57CE\u5821\u5F8C\u7531\u4E00\u822C\u6253\u6CD5\u63A5\u624B\uFF08\u57CE\u5821\u3001\u7279\u6B8A\u55AE\u4F4D\u3001\u9A0E\u58EB\uFF09\u3002"]
+  },
+  {
+    id: "fontrush",
+    zh: "\u524D\u7F6E\u69CD\u77DB",
+    en: "Forward spears and skirmishers",
+    page: site2("fontrush"),
+    age: 2,
+    power: "\u5F37",
+    difficulty: "\u666E",
+    pros: "\u58D3\u8FEB\u611F\u5F37\uFF0C\u9084\u7B97\u80FD\u524B\u8089\u99AC\u8207\u5C0F\u5F13\u958B\u5C40",
+    cons: "\u98A8\u96AA\u9AD8\uFF0C\u5831\u916C\u4E0D\u5982\u88DD\u7532\u5854",
+    civs: all,
+    best: ["byzantines"],
+    counters: ["\u9ED1\u6697\u6C11\u5175\u8F49\u88DD\u7532\u6293\u524D\u7F6E\u7684\u6751\u6C11", "\u6C92\u6293\u5230\u5C31\u56E4\u65A5\u5019\u52A0\u6563\u5175\u53CD\u6253"],
+    allocation: "\u5347\u7D1A\u524D\uFF1A\u98DF\u7269 5\u3001\u6728\u6750 5\uFF1B\u9EDE\u5C01\u5F8C 2 \u4EBA\u524D\u7F6E\u30012 \u4EBA\u63A1\u77F3",
+    siteAllocation: "12\u67284\u91D16\u679C\uFF0C\u9EDE\u5C01\u5F8C 3 \u4EBA\u524D\u7F6E",
+    steps: [
+      ...opening,
+      { label: "\u6751\u6C11 9\u201310\uFF1A2 \u4EBA\u4F10\u6728", phase: "dark", done: { villagers: 10, gather: { wood: 4 } } },
+      loom,
+      up(10),
+      { label: "\u9EDE\u5C01\u5F8C 2 \u540D\u6751\u6C11\u524D\u7F6E\u5175\u71DF", phase: "up", done: { forward: { barracks: 1 } } },
+      { label: "2 \u4EBA\u6316\u77F3\u982D", phase: "up", done: { gather: { stone: 2 } } },
+      { label: "\u7B2C\u4E8C\u6642\u4EE3\uFF1A\u5148\u51FA\u9577\u69CD\u5175", phase: "feudal", done: { age: 2, units: { spearman: 2 } } },
+      { label: "\u84CB\u5169\u5EA7\u9776\u5834\u51FA\u6563\u5175", phase: "feudal", done: { buildings: { "archery-range": 2 }, units: { skirmisher: 3 } } },
+      { label: "\u5728\u5C0D\u65B9\u8CC7\u6E90\u5340\u63D2\u7BAD\u5854\uFF0C\u69CD\u77DB\u63A9\u8B77\u63A8\u9032", phase: "feudal", done: { forward: { "watch-tower": 1 }, raiding: 1 } }
+    ],
+    plan: {
+      villagers: 12,
+      clickAt: 10,
+      loom: true,
+      barracks: "none",
+      forwardBarracks: 2,
+      weights: { dark: w(5, 5), up: w(4, 4, 1, 2), feudal: w(4, 4, 2, 2) },
+      train: { feudal: { spearman: 3, skirmisher: 6 } },
+      build: [{ kind: "archery-range", count: 2 }],
+      research: [],
+      raid: { kinds: ["spearman", "skirmisher"], sendAt: 5, reinforce: true },
+      towers: { builders: 2, count: 1, prefer: ["gold", "berries", "stone"], leave: "click" },
+      castle: false,
+      until: { tick: 10800 }
+    },
+    notes: ["\u7DB2\u7AD9\u7684\u300C\u77DB\u5175\u300D\u662F\u672C\u4F5C\u7684\u6563\u5175\uFF0C\u300C\u69CD\u5175\u300D\u662F\u9577\u69CD\u5175\u3002", "\u7DB2\u7AD9\u9019\u9801\u7684\u512A\u7F3A\u9EDE\u662F\u5F9E\u5C0F\u5F13\u958B\u5C40\u8907\u88FD\u4F86\u7684\uFF1B\u9019\u88E1\u7167\u5167\u6587\u3002"]
+  }
+];
+var unavailableOpenings = [
+  { id: "eglerush", zh: "\u8001\u9DF9\u958B\u5C40", en: "Eagle scout opening", page: site2("eglerush"), reason: "\u8981\u7528\u9DF9\u65A5\u5019\uFF0C\u90A3\u662F\u4E2D\u7F8E\u6D32\u4E09\u570B\u7684\u55AE\u4F4D\uFF1B\u672C\u4F5C\u7684 13 \u500B\u539F\u7248\u6587\u660E\u90FD\u6C92\u6709" }
+];
+var openingById = (id) => openings.find((o) => o.id === id);
+var openingChoices = [standardOpening, randomOpening, ...openings.map((o) => o.id)];
+function pickOpening(seed, civ) {
+  const best = openings.filter((o) => o.best.includes(civ)), pool = best.length ? best : openings;
+  return pool[(Math.imul(seed >>> 0, 2654435761) >>> 0) % pool.length].id;
+}
+
+// packages/sim/garrison.ts
+var carrierRules = {
+  provenance: "aoetw.com (capacities, who boards, the per-infantry boosts); design_default for the conversions",
+  ram: { capacity: { ram: 4, "capped-ram": 5, "siege-ram": 6 }, speedPerInfantry: 0.1, buildingPerInfantry: 3, buildingCap: { ram: 13, "capped-ram": 16, "siege-ram": 19 } }
+};
+var classesOf = (kind) => kind in combatRules.units ? combatRules.units[kind].classes : [];
+var ridesRam = (kind) => {
+  const c = classesOf(kind);
+  return c.includes("infantry") || c.includes("archer") && !c.includes("cavalry") && !c.includes("cavalry-archer");
+};
+var ramStep = (techs = []) => techs.includes("siege-ram") ? "siege-ram" : techs.includes("capped-ram") ? "capped-ram" : "ram";
+var ramCapacity = (s, player) => carrierRules.ram.capacity[ramStep(s.techs?.[player])];
+var infantryIn = (s, id) => (s.transports?.[id] ?? []).filter((u) => classesOf(u.kind).includes("infantry")).length;
+var carriedSpeedScale = (s, u) => u.kind === "ram" ? 1 + carrierRules.ram.speedPerInfantry * infantryIn(s, u.id) : 1;
+function withCarried(state, u, st) {
+  const s = state;
+  if (u.kind !== "ram") return st;
+  const n = infantryIn(s, u.id);
+  if (!n) return st;
+  const extra = Math.min(carrierRules.ram.buildingCap[ramStep(s.techs?.[u.player])], carrierRules.ram.buildingPerInfantry * n);
+  return { ...st, bonus: { ...st.bonus, building: (st.bonus.building ?? 0) + extra } };
 }
 
 // packages/sim/fauna.ts
@@ -2065,11 +2625,11 @@ function makeCarcass(map, animal) {
 // packages/sim/movement.ts
 var navigationStates = ["idle", "searching", "moving", "waiting", "unreachable", "stuck"];
 var unitKinds = ["villager", "militia", "archer", "scout", "monk", "sheep", "deer", "boar", "spearman", "skirmisher", "knight", "ram", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "cataphract", "war-elephant", "mameluke", "janissary", "chu-ko-nu", "samurai", "mangudai", "cavalry-archer", "camel", "mangonel", "scorpion", "trebuchet", "petard", "hand-cannoneer", "bombard-cannon", "fishing-ship", "transport-ship", "trade-cog", "trade-cart", "galley", "fire-galley", "demolition-raft", "cannon-galleon", "longboat"];
-var layerOf = (kind) => kind in combatRules.units && combatRules.units[kind].classes.includes("ship") ? "water" : "land";
+var layerOf = (kind) => kind in combatRules.units && combatRules.units[kind].classes.some((c) => c === "ship" || c === "fishing-ship") ? "water" : "land";
 var graphs = /* @__PURE__ */ new WeakMap();
 function graph(map, layer = "land") {
-  const all = graphs.get(map) ?? graphs.set(map, {}).get(map);
-  let g = all[layer];
+  const all2 = graphs.get(map) ?? graphs.set(map, {}).get(map);
+  let g = all2[layer];
   if (!g || g.revision !== map.navigationRevision) {
     const SIDE = sideOf(map), NODES = nodeTotal(map), blocked = blockedFor(map, layer).slice(), log = dirtyLog(map);
     const areas = g && g.open.length === NODES * 2 ? log.slice(g.cursor) : null, open = areas ? g.open : new Uint8Array(NODES * 2);
@@ -2089,10 +2649,10 @@ function graph(map, layer = "land") {
       }
     } else for (let id = 0; id < NODES; id++) edges(id);
     g = { revision: map.navigationRevision, cursor: log.length, blocked, open };
-    all[layer] = g;
-    if (log.length > 4096 && Object.values(all).every((v) => v.cursor === log.length)) {
+    all2[layer] = g;
+    if (log.length > 4096 && Object.values(all2).every((v) => v.cursor === log.length)) {
       log.length = 0;
-      for (const v of Object.values(all)) v.cursor = 0;
+      for (const v of Object.values(all2)) v.cursor = 0;
     }
   }
   return g;
@@ -2104,8 +2664,8 @@ function landFor(map, player) {
   if (player < 0) return base;
   const gates = map.obstacles.filter((o) => gateKinds.has(o.kind) && o.progress === void 0 && (o.red ? 1 : 0) !== player);
   if (!gates.length) return base;
-  const all = gateGraphs.get(map) ?? gateGraphs.set(map, {}).get(map);
-  let g = all[player];
+  const all2 = gateGraphs.get(map) ?? gateGraphs.set(map, {}).get(map);
+  let g = all2[player];
   if (!g || g.revision !== map.navigationRevision) {
     const SIDE = sideOf(map), open = base.open.slice(), blocked = base.blocked.slice();
     for (const o of gates) for (const id of nodesNear(map, obstacleBounds(o, navigationRules.radius), 0)) {
@@ -2116,7 +2676,7 @@ function landFor(map, player) {
       if (id >= SIDE) open[(id - SIDE) * 2 + 1] = 0;
     }
     g = { revision: map.navigationRevision, open, blocked };
-    all[player] = g;
+    all2[player] = g;
   }
   return g;
 }
@@ -2154,18 +2714,19 @@ function cancel(s, id) {
   for (const job of s.pathJobs) if (job.kind === "group") job.unitIds = job.unitIds.filter((u) => u !== id);
   s.pathJobs = s.pathJobs.filter((j) => j.kind === "group" ? j.unitIds.length > 0 : j.unitId !== id);
 }
-function commandMove(s, unitIds, target) {
-  const all = unitIds.map((id) => s.units.find((u) => u.id === id)), layers = [...new Set(all.map((u) => layerOf(u.kind)))];
+function commandMove(s, unitIds, target, spread = false) {
+  const all2 = unitIds.map((id) => s.units.find((u) => u.id === id)), layers = [...new Set(all2.map((u) => layerOf(u.kind)))];
   for (const layer of layers) {
-    const units = all.filter((u) => layerOf(u.kind) === layer), ids = units.map((u) => u.id);
+    const units = all2.filter((u) => layerOf(u.kind) === layer), ids = units.map((u) => u.id);
     const near = nearest(s.map, target, false, layer), goal = near >= 0 ? near : nearestOpen(s.map, target, layer);
     if (goal < 0) throw Error(layer === "water" ? "\u76EE\u6A19\u9644\u8FD1\u6C92\u6709\u53EF\u822A\u884C\u7684\u6C34\u9762" : "\u76EE\u6A19\u9644\u8FD1\u6C92\u6709\u53EF\u7AD9\u7ACB\u7684\u7BC0\u9EDE");
     const group = new Set(ids), player = units[0].player;
     for (const u of units) {
       cancel(s, u.id);
+      delete u.spread;
       Object.assign(u, { path: [], goal: null, target: null, navigation: "searching", wait: 0, detours: 0, partial: false, order: s.nextJobId, outcome: null });
     }
-    s.pathJobs.push({ kind: "group", id: s.nextJobId++, ...layer === "water" ? { layer } : {}, ...layer === "land" && gatesExist(s.map) ? { player } : {}, unitIds: [...ids], goal, starts: units.map((u) => u.next ?? u.node), held: held(s.units, group), slots: [], status: "searching", ...search(s.map, goal) });
+    s.pathJobs.push({ kind: "group", id: s.nextJobId++, ...spread ? { spread: true } : {}, ...layer === "water" ? { layer } : {}, ...layer === "land" && gatesExist(s.map) ? { player } : {}, unitIds: [...ids], goal, starts: units.map((u) => u.next ?? u.node), held: held(s.units, group), slots: [], status: "searching", ...search(s.map, goal) });
   }
 }
 var gatesExist = (map) => map.obstacles.some((o) => gateKinds.has(o.kind));
@@ -2173,6 +2734,7 @@ function commandStop(s, unitIds) {
   for (const id of unitIds) {
     const u = s.units.find((u2) => u2.id === id);
     cancel(s, id);
+    delete u.spread;
     Object.assign(u, { path: [], goal: null, target: null, wait: 0, detours: 0, partial: false, outcome: null, navigation: u.next === null ? "idle" : "moving" });
   }
 }
@@ -2190,7 +2752,8 @@ function advance(s, job, budget) {
     const id = job.frontier[job.head++];
     used++;
     if (job.kind === "group") {
-      if (job.slots.length < job.unitIds.length && !job.held.includes(id) && !closedFor(s.map, id, job.layer ?? "land", job.player ?? -1)) job.slots.push(id);
+      const SIDE = sideOf(s.map), even = !job.spread || (id % SIDE - job.goal % SIDE) % 2 === 0 && (Math.floor(id / SIDE) - Math.floor(job.goal / SIDE)) % 2 === 0;
+      if (even && job.slots.length < job.unitIds.length && !job.held.includes(id) && !closedFor(s.map, id, job.layer ?? "land", job.player ?? -1)) job.slots.push(id);
     } else {
       const SIDE = sideOf(s.map), g = job.goal, d = (n) => Math.abs(n % SIDE - g % SIDE) + Math.abs(Math.floor(n / SIDE) - Math.floor(g / SIDE));
       if (d(id) < d(job.best)) job.best = id;
@@ -2218,17 +2781,23 @@ function finishGroup(s, job) {
   const reached = units.filter((u) => order.has(start(u))).sort((a, b) => order.get(start(a)) - order.get(start(b)) || a.id - b.id);
   const cx = reached.reduce((t, u) => t + position(s.map, start(u)).x, 0) / Math.max(1, reached.length), cy = reached.reduce((t, u) => t + position(s.map, start(u)).y, 0) / Math.max(1, reached.length);
   const far = (n) => Math.abs(position(s.map, n).x - cx) + Math.abs(position(s.map, n).y - cy);
-  const slots = job.slots.slice(0, reached.length).sort((a, b) => far(b) - far(a) || order.get(a) - order.get(b));
+  const slots2 = job.slots.slice(0, reached.length).sort((a, b) => far(b) - far(a) || order.get(a) - order.get(b));
   reached.forEach((u, i) => {
-    const slot = slots[i];
+    const slot = slots2[i];
     if (slot === void 0) {
       Object.assign(u, { navigation: u.next === null ? "unreachable" : "moving", partial: true });
       return;
     }
-    const up = chain(job.parent, start(u)), down = chain(job.parent, slot), index = new Map(down.map((n, k) => [n, k]));
+    if (job.spread) {
+      u.spread = true;
+      Object.assign(u, { goal: slot, target: position(s.map, slot), partial: false, navigation: "searching" });
+      s.pathJobs.push(unitJob(s, u, slot, slots2.filter((n) => n !== slot).sort((a, b) => a - b), []));
+      return;
+    }
+    const up2 = chain(job.parent, start(u)), down = chain(job.parent, slot), index = new Map(down.map((n, k) => [n, k]));
     let i2 = 0;
-    while (!index.has(up[i2])) i2++;
-    u.path = [...up.slice(1, i2 + 1), ...down.slice(0, index.get(up[i2])).reverse()];
+    while (!index.has(up2[i2])) i2++;
+    u.path = [...up2.slice(1, i2 + 1), ...down.slice(0, index.get(up2[i2])).reverse()];
     Object.assign(u, { goal: slot, target: position(s.map, slot), partial: false, navigation: u.path.length || u.next !== null ? "moving" : "idle" });
   });
   for (const u of units) if (!order.has(start(u))) s.pathJobs.push(unitJob(s, u, job.goal, [], []));
@@ -2240,6 +2809,7 @@ function unitJob(s, u, goal, excluded, keep, targets = null) {
 function routeTo(s, u, targets) {
   if (!targets.length) throw Error("\u6C92\u6709\u53EF\u7528\u7684\u76EE\u6A19\u7BC0\u9EDE");
   cancel(s, u.id);
+  delete u.spread;
   Object.assign(u, { path: [], goal: null, target: null, navigation: "searching", wait: 0, detours: 0, partial: false, order: s.nextJobId, outcome: null });
   s.pathJobs.push(unitJob(s, u, targets[0], [], [], [...targets].sort((a, b) => a - b)));
 }
@@ -2323,7 +2893,7 @@ function stepMovement(s) {
     const b = byId.get(o), idleFriend = (b.player === u.player || isAnimal(b.kind)) && b.next === null && !b.path.length && !searching.has(b.id);
     const settledMate = idleFriend && b.order === u.order && (b.navigation === "idle" || b.navigation === "stuck");
     const toGoal = u.goal === null ? Infinity : Math.abs(position(s.map, u.goal).x - position(s.map, u.node).x) + Math.abs(position(s.map, u.goal).y - position(s.map, u.node).y);
-    if (settledMate && toGoal <= navigationRules.arrivalRadius) {
+    if (settledMate && !u.spread && toGoal <= navigationRules.arrivalRadius) {
       Object.assign(u, { path: [], goal: null, target: null, navigation: "idle", wait: 0 });
       return;
     }
@@ -2369,7 +2939,7 @@ function stepMovement(s) {
     }
     if (u.next === null) tryReserve(u);
     if (u.next === null) continue;
-    const target = position(s.map, u.next), speed = speedOf(u.kind, ownerOf(s, u.player));
+    const target = position(s.map, u.next), speed = Math.round(speedOf(u.kind, ownerOf(s, u.player)) * carriedSpeedScale(s, u) * 100) / 100;
     const acc = Math.round(((u.stride ?? 0) + speed) * 100), step = Math.min(Math.floor(acc / 100), Math.max(Math.abs(target.x - u.x), Math.abs(target.y - u.y))), rest2 = acc - step * 100;
     if (rest2) u.stride = rest2 / 100;
     else delete u.stride;
@@ -2387,6 +2957,7 @@ function stepMovement(s) {
         u.target = null;
         u.goal = null;
         u.wait = 0;
+        delete u.spread;
       }
       if (u.next === null) delete u.stride;
     }
@@ -2431,8 +3002,8 @@ var buildingRules = {
 };
 var overlap = (a, b) => Math.min(a[2], b[2]) - Math.max(a[0], b[0]) > 0 && Math.min(a[3], b[3]) - Math.max(a[1], b[1]) > 0;
 var wallKinds = /* @__PURE__ */ new Set(["palisade-wall", "stone-wall"]);
-var wallGate = { "palisade-gate": "palisade-wall", gate: "stone-wall" };
-var replacesWall = (kind, o, owner) => wallGate[kind] === o.kind && (o.red ? 1 : 0) === owner;
+var wallGate2 = { "palisade-gate": "palisade-wall", gate: "stone-wall" };
+var replacesWall = (kind, o, owner) => wallGate2[kind] === o.kind && (o.red ? 1 : 0) === owner;
 function placementProblem(input, kind, x, y, owner) {
   if (!buildKinds.includes(kind)) return "\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E";
   if (!Number.isSafeInteger(x) || !Number.isSafeInteger(y) || x % buildingRules.grid || y % buildingRules.grid) return `\u4F4D\u7F6E\u5FC5\u9808\u5C0D\u9F4A ${buildingRules.grid} \u55AE\u4F4D\u683C\u7DDA`;
@@ -2485,10 +3056,10 @@ function closeFarm(s, buildingId, tick2) {
 function farmOwner(s, resourceId) {
   return s.buildings.find((b) => farmResourceId(b.id) === resourceId)?.player ?? null;
 }
-function buildRequirement(age, kind, own, civ = neutralCiv, techs = []) {
+function buildRequirement(age, kind, own, civ = neutralCiv, techs = [], allTechs = false) {
   const entry2 = rules.entries.find((e) => e.id === kind);
   if (!entry2) return "\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E";
-  if (!civAvailable(civ, kind)) return "\u6B64\u6587\u660E\u4E0D\u80FD\u5EFA\u9020";
+  if (!civAvailable(civ, kind, allTechs)) return "\u6B64\u6587\u660E\u4E0D\u80FD\u5EFA\u9020";
   for (const req of entry2.requires) {
     const need = rules.entries.find((e) => e.id === req), m = /^age-(\d)$/.exec(req);
     if (m && age < Number(m[1])) return `\u9700\u8981${need?.name ?? req}`;
@@ -2506,7 +3077,7 @@ function obstacleOf(s, b) {
 var housingOf = (s, player, kind) => buildingRules.capacity[kind] + housingBonus(ownerOf(s, player), kind);
 function recomputeCapacity(s, player) {
   const owner = ownerOf(s, player), housed = s.buildings.filter((b) => b.player === player && b.complete).reduce((t, b) => t + housingOf(s, player, b.kind), 0) + (s.keptHousing?.[player] ?? 0);
-  s.accounts[player].populationCap = Math.min(rules.settings.populationCap + popCapBonus(owner), housed);
+  s.accounts[player].populationCap = Math.min((s.settings?.popCap ?? rules.settings.populationCap) + popCapBonus(owner), housed);
 }
 function initBuildings(s) {
   for (const o of s.map.obstacles) if (o.kind === "town-center") {
@@ -2519,14 +3090,14 @@ function initBuildings(s) {
   for (const p of [0, 1]) recomputeCapacity(s, p);
 }
 function placeBuilding(s, player, kind, x, y, reservationId) {
-  const owner = ownerOf(s, player), problem = authoritativeProblem(s, player, kind, x, y) ?? buildRequirement(s.ages[player], kind, s.buildings.filter((b2) => b2.player === player), owner.civ, owner.techs);
+  const owner = ownerOf(s, player), problem = authoritativeProblem(s, player, kind, x, y) ?? buildRequirement(s.ages[player], kind, s.buildings.filter((b2) => b2.player === player), owner.civ, owner.techs, !!owner.allTechs);
   if (problem) throw Error(problem);
   reserve(s.accounts[player], reservationId, kind, costOf(kind, owner));
-  if (kind in wallGate) {
+  if (kind in wallGate2) {
     const box = obstacleBounds({ kind, x, y });
-    for (const w of s.buildings.filter((w2) => w2.player === player && w2.kind === wallGate[kind])) {
-      const o2 = obstacleOf(s, w);
-      if (o2 && overlap(obstacleBounds(o2), box)) removeBuilding(s, w);
+    for (const w2 of s.buildings.filter((w3) => w3.player === player && w3.kind === wallGate2[kind])) {
+      const o2 = obstacleOf(s, w2);
+      if (o2 && overlap(obstacleBounds(o2), box)) removeBuilding(s, w2);
     }
   }
   const b = { id: `building-${s.nextBuildingId++}`, kind, player, x, y, work: 0, required: buildingRules.required[kind], complete: false, reservationId, queue: [], rally: null, hp: 1, maxHp: buildingHpOf(kind, owner) };
@@ -2633,7 +3204,147 @@ function cancelBuilding(s, player, id) {
   refreshNavigation(s.map, obstacleBounds(o, navigationRules.radius));
 }
 
+// packages/sim/naval.ts
+var navalRules = { provenance: "design_default", transportCapacity: 5, boardReach: 150, landReach: 150, repathTicks: 20 };
+var naval = (s) => {
+  const n = s;
+  n.transports ??= {};
+  n.boarding ??= {};
+  n.unloading ??= {};
+  return n;
+};
+var capacityOf = (s, t) => t.kind === "ram" ? ramCapacity(s, t.player) : transportCapacityOf(ownerOf(s, t.player), navalRules.transportCapacity);
+var room = (s, t) => capacityOf(s, t) - (s.transports[t.id]?.length ?? 0) - Object.values(s.boarding).filter((b) => b.transportId === t.id).length;
+function loadProblem(s, player, transportId, unitIds) {
+  const n = naval(s), t = s.units.find((u) => u.id === transportId);
+  if (t?.kind === "ram") {
+    if (t.player !== player) return "\u53EA\u80FD\u9032\u99D0\u5DF1\u65B9\u7684\u885D\u649E\u8ECA";
+  } else if (!t || t.player !== player || t.kind !== "transport-ship") return "\u53EA\u80FD\u767B\u4E0A\u5DF1\u65B9\u7684\u904B\u8F38\u8239";
+  const units = unitIds.map((id) => s.units.find((u) => u.id === id));
+  if (t.kind === "ram" && units.some((u) => !u || !ridesRam(u.kind))) return "\u53EA\u6709\u6B65\u5175\u8207\u5F92\u6B65\u5F13\u5175\u80FD\u9032\u99D0\u885D\u649E\u8ECA";
+  if (units.some((u) => !u || layerOf(u.kind) !== "land" || isAnimal(u.kind))) return "\u53EA\u6709\u9678\u4E0A\u55AE\u4F4D\u80FD\u767B\u8239";
+  const relics = s.relics ?? [];
+  if (units.some((u) => u && relics.some((r) => r.carrier === u.id))) return "\u651C\u5E36\u8056\u7269\u7684\u50E7\u4FB6\u4E0D\u80FD\u767B\u8239";
+  const free = room(n, t) + unitIds.filter((id) => n.boarding[id]?.transportId === t.id).length;
+  if (free < unitIds.length) return `\u7A7A\u4F4D\u4E0D\u8DB3\uFF1A\u9084\u80FD\u767B\u8239 ${Math.max(0, free)} \u540D`;
+  return null;
+}
+function commandLoad(s, unitIds, transportId) {
+  const n = naval(s), t = s.units.find((u) => u.id === transportId);
+  for (const id of unitIds) {
+    cancelMovement(s, id);
+    delete s.works[id];
+    delete s.attacks[id];
+    n.boarding[id] = { transportId, repath: 0 };
+  }
+  const first = s.units.find((u) => u.id === unitIds[0]);
+  if (t.kind !== "ram" && first && reach(first, t) > navalRules.boardReach) {
+    delete n.unloading[t.id];
+    commandMove(s, [t.id], { x: first.x, y: first.y });
+  }
+}
+function unloadProblem(s, player, transportId, x, y) {
+  const n = naval(s), t = s.units.find((u) => u.id === transportId);
+  if (!t || t.player !== player || t.kind !== "transport-ship") return "\u627E\u4E0D\u5230\u9019\u8258\u5DF1\u65B9\u904B\u8F38\u8239";
+  if (!n.transports[t.id]?.length) return "\u904B\u8F38\u8239\u4E0A\u6C92\u6709\u55AE\u4F4D";
+  if (!Number.isSafeInteger(x) || !Number.isSafeInteger(y) || x < 50 || y < 50 || x > s.map.size * 100 - 50 || y > s.map.size * 100 - 50) return "\u76EE\u6A19\u8D85\u51FA\u5730\u5716";
+  return null;
+}
+function commandUnload(s, transportId, x, y) {
+  const n = naval(s);
+  n.unloading[transportId] = { x, y };
+  commandMove(s, [transportId], { x, y });
+}
+function clearNaval(s, unitIds) {
+  const n = naval(s);
+  for (const id of unitIds) {
+    delete n.boarding[id];
+    delete n.unloading[id];
+  }
+}
+function landing(s, t, aim) {
+  const closed = blockedOf(s.map, "land", t.player), held2 = new Set(s.units.flatMap((u) => u.next === null ? [u.node] : [u.node, u.next]));
+  return nodesNear(s.map, [t.x, t.y, t.x, t.y], navalRules.landReach).filter((id) => !closed[id] && !held2.has(id) && reach(position(s.map, id), t) <= navalRules.landReach).sort((a, b) => {
+    const p = position(s.map, a), q = position(s.map, b);
+    return Math.abs(p.x - aim.x) + Math.abs(p.y - aim.y) - (Math.abs(q.x - aim.x) + Math.abs(q.y - aim.y)) || a - b;
+  });
+}
+function stepNaval(s) {
+  const n = naval(s), busy = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId]));
+  for (const id of Object.keys(n.boarding).map(Number).sort((a, b) => a - b)) {
+    const b = n.boarding[id], u = s.units.find((u2) => u2.id === id), t = s.units.find((v) => v.id === b.transportId);
+    if (!u || !t || t.player !== u.player || (n.transports[t.id]?.length ?? 0) >= capacityOf(s, t)) {
+      delete n.boarding[id];
+      if (u && !u.path.length && u.next === null) u.navigation = "idle";
+      continue;
+    }
+    if (u.next !== null) continue;
+    if (reach(u, t) <= navalRules.boardReach) {
+      delete n.boarding[id];
+      cancelMovement(s, u.id);
+      Object.assign(u, { path: [], goal: null, target: null, next: null, navigation: "idle", wait: 0 });
+      delete u.stride;
+      s.units = s.units.filter((v) => v !== u);
+      (n.transports[t.id] ??= []).push(u);
+      continue;
+    }
+    if (b.repath > 0 && (u.path.length || busy.has(u.id))) {
+      b.repath--;
+      continue;
+    }
+    const closed = blockedOf(s.map, "land", u.player), nodes = nodesNear(s.map, [t.x, t.y, t.x, t.y], navalRules.boardReach).filter((id2) => !closed[id2] && reach(position(s.map, id2), t) <= navalRules.boardReach);
+    if (!nodes.length) {
+      b.repath = navalRules.repathTicks;
+      continue;
+    }
+    routeTo(s, u, nodes);
+    b.repath = navalRules.repathTicks;
+  }
+  for (const id of Object.keys(n.unloading).map(Number).sort((a, b) => a - b)) {
+    const t = s.units.find((u) => u.id === id), aim = n.unloading[id];
+    if (!t || !n.transports[id]?.length) {
+      delete n.unloading[id];
+      continue;
+    }
+    if (t.next !== null || t.path.length || busy.has(t.id)) continue;
+    delete n.unloading[id];
+    const spots = landing(n, t, aim), out = [];
+    for (const u of n.transports[id]) {
+      const node = spots.shift();
+      if (node === void 0) break;
+      const p = position(s.map, node);
+      Object.assign(u, { x: p.x, y: p.y, node, next: null, path: [], goal: null, target: null, navigation: "idle", wait: 0 });
+      s.units.push(u);
+      out.push(u);
+    }
+    n.transports[id] = n.transports[id].filter((u) => !out.includes(u));
+    if (!n.transports[id].length) delete n.transports[id];
+    if (out.length) s.units.sort((a, b) => a.id - b.id);
+  }
+}
+function releaseCarried(s, carrierId, at) {
+  const n = naval(s), t = s.units.find((u) => u.id === carrierId), from = t ?? (at ? { ...at, id: carrierId } : void 0), list = n.transports[carrierId];
+  if (!from || !list?.length) return 0;
+  delete n.unloading[carrierId];
+  const spots = landing(n, from, { x: from.x, y: from.y }), out = [];
+  for (const u of list) {
+    const node = spots.shift();
+    if (node === void 0) break;
+    const p = position(s.map, node);
+    Object.assign(u, { x: p.x, y: p.y, node, next: null, path: [], goal: null, target: null, navigation: "idle", wait: 0 });
+    s.units.push(u);
+    out.push(u);
+  }
+  n.transports[carrierId] = list.filter((u) => !out.includes(u));
+  if (!n.transports[carrierId].length) delete n.transports[carrierId];
+  if (out.length) s.units.sort((a, b) => a.id - b.id);
+  return n.transports[carrierId]?.length ?? 0;
+}
+var passengers = (s, transportId) => s.transports?.[transportId] ?? [];
+
 // packages/sim/combat.ts
+var stances = ["aggressive", "defensive", "stand", "passive"];
+var tacticsRules = { provenance: "design_default (aoetw.com names the stances and patrol but gives no numbers)", defensiveLeash: 300, patrolTurn: 100, patrolRetry: 20 };
 var REPATH = 20;
 function buildingBox(s, b) {
   const o = s.map.obstacles.find((o2) => o2.id === b.id);
@@ -2717,9 +3428,11 @@ function killUnit(s, u) {
     a.ledger.refund.gold += refund;
   }
   const naval2 = s, aboard = naval2.transports?.[u.id];
-  if (aboard) {
+  if (aboard && u.kind === "ram") releaseCarried(s, u.id);
+  const left = naval2.transports?.[u.id];
+  if (left) {
     delete naval2.transports[u.id];
-    for (const v of aboard) {
+    for (const v of left) {
       v.x = u.x;
       v.y = u.y;
       killUnit(s, v);
@@ -2730,6 +3443,8 @@ function killUnit(s, u) {
   delete s.works[u.id];
   delete s.attacks[u.id];
   if (s.setups) delete s.setups[u.id];
+  if (s.stances) delete s.stances[u.id];
+  if (s.patrols) delete s.patrols[u.id];
   cancelMovement(s, u.id);
   a.populationUsed--;
   s.units = s.units.filter((v) => v !== u);
@@ -2750,7 +3465,20 @@ function destroyBuilding(s, b) {
   refreshNavigation(s.map, obstacleBounds(o, navigationRules.radius));
   recomputeCapacity(s, b.player);
 }
-function strike(s, t, amount, attacker) {
+var revealTicks = 40;
+function reveal(s, victim, from) {
+  if (victim !== 0 && victim !== 1) return;
+  const tile = tileAt(from.x, from.y, s.map.size);
+  if (s.vision[victim].visible.includes(tile)) return;
+  const list = s.reveals ??= [], old = list.find((r) => r.player === victim && r.tile === tile);
+  if (old) old.until = s.tick + revealTicks;
+  else list.push({ player: victim, tile, until: s.tick + revealTicks });
+}
+function strike(s, t, amount, attacker, from) {
+  if (from) {
+    const p = t.kind === "unit" ? s.units.find((u) => u.id === t.id)?.player : s.buildings.find((b2) => b2.id === t.id)?.player;
+    if (p !== void 0) reveal(s, p, from);
+  }
   if (t.kind === "unit") {
     const u = s.units.find((u2) => u2.id === t.id);
     u.hp -= amount;
@@ -2765,32 +3493,150 @@ function strike(s, t, amount, attacker) {
   if (b.hp * 2 < b.maxHp) o.damaged = true;
   if (b.hp <= 0) destroyBuilding(s, b);
 }
-function volley(s, u, stats, t) {
-  const at = t.kind === "unit" ? s.units.find((v) => v.id === t.id) : void 0, where = at ? { x: at.x, y: at.y } : null;
-  const box = t.kind === "building" ? (() => {
-    const b = s.buildings.find((b2) => b2.id === t.id);
-    return b ? buildingBox(s, b) : null;
-  })() : null;
-  const foes = () => [...s.units].sort((a, b) => a.id - b.id).filter((v) => v.id !== t.id && v.player !== u.player && !isAnimal(v.kind));
-  const line2 = stats.passThrough && where ? { x0: u.x, y0: u.y, x1: where.x, y1: where.y } : null;
-  strike(s, t, damageOn(s, stats, t), u.id);
+function land(s, shooter, stats, t, where, box, from, extras) {
+  const tid = t ? t.id : void 0;
+  const foes = () => [...s.units].sort((a, b) => a.id - b.id).filter((v) => v.id !== tid && v.player !== shooter.player && !isAnimal(v.kind));
+  const line2 = stats.passThrough && where ? { x0: from.x, y0: from.y, x1: where.x, y1: where.y } : null;
+  const near = stats.trample && where && t?.kind === "unit" ? foes().filter((v) => reach(where, v) <= 50) : [];
+  if (t) strike(s, t, damageOn(s, stats, t), shooter.id, from);
+  const blasted = () => stats.friendlyFire ? [...s.units].sort((a, b) => a.id - b.id).filter((v) => v.id !== shooter.id && v.id !== tid && !isAnimal(v.kind)) : foes();
   if (stats.blast && (where || box)) {
-    for (const v of foes()) if (s.units.includes(v) && reach(v, where ?? box) <= stats.blast) strike(s, { kind: "unit", id: v.id }, damageOn(s, stats, { kind: "unit", id: v.id }), u.id);
+    for (const v of blasted()) if (s.units.includes(v) && reach(v, box ?? where) <= stats.blast) strike(s, { kind: "unit", id: v.id }, damageOn(s, stats, { kind: "unit", id: v.id }), shooter.id, from);
+  }
+  for (const v of near) if (s.units.includes(v)) strike(s, { kind: "unit", id: v.id }, Math.max(1, Math.round(damageOn(s, stats, { kind: "unit", id: v.id }) * stats.trample)), shooter.id, from);
+  if (stats.buildingSplash && box) for (const b of [...s.buildings].sort((a, b2) => a.id < b2.id ? -1 : 1)) {
+    if (b.id === tid || b.player === shooter.player || !s.buildings.includes(b)) continue;
+    const o = buildingBox(s, b);
+    if (o && Math.max(o[0] - box[2], box[0] - o[2], o[1] - box[3], box[1] - o[3], 0) <= stats.buildingSplash) strike(s, { kind: "building", id: b.id }, damageOn(s, stats, { kind: "building", id: b.id }), shooter.id, from);
   }
   if (line2) {
     const dx = line2.x1 - line2.x0, dy = line2.y1 - line2.y0, len = Math.hypot(dx, dy) || 1, end = len + stats.passThrough;
     for (const v of foes()) {
       if (!s.units.includes(v)) continue;
       const along = ((v.x - line2.x0) * dx + (v.y - line2.y0) * dy) / len, off = Math.abs((v.x - line2.x0) * dy - (v.y - line2.y0) * dx) / len;
-      if (along > 0 && along <= end && off <= 25) strike(s, { kind: "unit", id: v.id }, damageOn(s, { ...stats, damage: Math.max(1, Math.round(stats.damage / 2)) }, { kind: "unit", id: v.id }), u.id);
+      if (along > 0 && along <= end && off <= 25) strike(s, { kind: "unit", id: v.id }, damageOn(s, { ...stats, damage: Math.max(1, Math.round(stats.damage / 2)) }, { kind: "unit", id: v.id }), shooter.id, from);
     }
   }
-  for (let i = 0; i < (stats.extraShots ?? 0); i++) {
+  if (extras && t) for (let i = 0; i < (stats.extraShots ?? 0); i++) {
     if (t.kind === "unit" && !s.units.some((v) => v.id === t.id)) break;
-    strike(s, t, damageOn(s, { ...stats, damage: stats.extraDamage ?? 1, bonus: {} }, t), u.id);
+    strike(s, t, damageOn(s, { ...stats, damage: stats.extraDamage ?? 1, bonus: {} }, t), shooter.id, from);
   }
-  if (stats.splash && where) {
-    for (const v of [...s.units].sort((a, b) => a.id - b.id)) if (v.id !== t.id && v.player !== u.player && !isAnimal(v.kind) && reach(where, v) <= 50 && s.units.includes(v)) strike(s, { kind: "unit", id: v.id }, damageOn(s, { ...stats, damage: stats.splash, bonus: {} }, { kind: "unit", id: v.id }), u.id);
+  if (stats.splash && where && t) {
+    for (const v of [...s.units].sort((a, b) => a.id - b.id)) if (v.id !== tid && v.player !== shooter.player && !isAnimal(v.kind) && reach(where, v) <= 50 && s.units.includes(v)) strike(s, { kind: "unit", id: v.id }, damageOn(s, { ...stats, damage: stats.splash, bonus: {} }, { kind: "unit", id: v.id }), shooter.id, from);
+  }
+}
+function random(s) {
+  let n = (s.rng ?? 1) || 1;
+  n ^= n << 13;
+  n ^= n >>> 17;
+  n ^= n << 5;
+  s.rng = n >>> 0;
+  return s.rng;
+}
+var moving = (u) => u.next !== null || u.path.length > 0;
+function aimAt(s, t, from, speed, lead) {
+  if (t.kind === "building") {
+    const b = s.buildings.find((b2) => b2.id === t.id), box = b && buildingBox(s, b);
+    return box ? { x: Math.round((box[0] + box[2]) / 2), y: Math.round((box[1] + box[3]) / 2) } : null;
+  }
+  const v = s.units.find((u) => u.id === t.id);
+  if (!v) return null;
+  if (!lead || v.next === null) return { x: v.x, y: v.y };
+  const n = position(s.map, v.next), dx = n.x - v.x, dy = n.y - v.y, len = Math.hypot(dx, dy) || 1, pace = v.kind in combatRules.units ? speedOf(v.kind, ownerOf(s, v.player)) : 0;
+  const flight = Math.hypot(v.x - from.x, v.y - from.y) / speed, ahead = pace * flight;
+  return { x: Math.round(v.x + dx / len * ahead), y: Math.round(v.y + dy / len * ahead) };
+}
+function launch(s, shooter, stats, t, rule, extra = false) {
+  const from = { x: shooter.x, y: shooter.y }, aim = aimAt(s, t, from, rule.speed, rule.lead);
+  if (!aim) return;
+  const tv = t.kind === "unit" ? s.units.find((u) => u.id === t.id) : void 0, standing = !tv || !moving(tv);
+  const chance = standing && rule.steady ? Math.max(rule.accuracy, rule.steady) : rule.accuracy, sure = chance >= 100 || random(s) % 100 < chance;
+  let to = aim;
+  if (!sure) {
+    const [lo, hi] = projectileRules.missSpread, a = random(s) % 3600 * Math.PI / 1800, d = lo + random(s) % (hi - lo + 1);
+    to = { x: Math.round(aim.x + Math.cos(a) * d), y: Math.round(aim.y + Math.sin(a) * d) };
+  }
+  (s.projectiles ??= []).push({ id: s.nextProjectileId = (s.nextProjectileId ?? 0) + 1, player: shooter.player, attacker: shooter.id, kind: shooter.kind, from, x: from.x, y: from.y, to, speed: rule.speed, target: t, sure, stats, ...extra ? { extra } : {}, tick: s.tick });
+}
+function stepProjectiles(s) {
+  if (!s.projectiles?.length) return;
+  const R = projectileRules.hitRadius, done = /* @__PURE__ */ new Set();
+  for (const p of [...s.projectiles].sort((a, b) => a.id - b.id)) {
+    const dx = p.to.x - p.x, dy = p.to.y - p.y, d = Math.hypot(dx, dy), arrived = d <= p.speed;
+    if (arrived) {
+      p.x = p.to.x;
+      p.y = p.to.y;
+    } else {
+      p.x += dx / d * p.speed;
+      p.y += dy / d * p.speed;
+    }
+    const shooter = { id: p.attacker, player: p.player };
+    if (p.sure && p.target.kind === "unit") {
+      const v = s.units.find((u) => u.id === p.target.id);
+      if (v && Math.hypot(v.x - p.x, v.y - p.y) <= R) {
+        done.add(p.id);
+        land(s, shooter, p.stats, p.target, { x: v.x, y: v.y }, null, p.from, false);
+        continue;
+      }
+    }
+    if (!arrived) continue;
+    done.add(p.id);
+    const at = { x: p.to.x, y: p.to.y };
+    if (p.target.kind === "building") {
+      const b = s.buildings.find((b2) => b2.id === p.target.id), box = b && buildingBox(s, b);
+      if (box && reach(at, box) <= R) {
+        land(s, shooter, p.stats, p.target, null, box, p.from, false);
+        continue;
+      }
+    }
+    const hit2 = [...s.units].filter((v) => v.player !== p.player && !isAnimal(v.kind) && Math.hypot(v.x - at.x, v.y - at.y) <= R).sort((a, b) => Math.hypot(a.x - at.x, a.y - at.y) - Math.hypot(b.x - at.x, b.y - at.y) || a.id - b.id)[0];
+    if (p.extra) {
+      if (hit2) strike(s, { kind: "unit", id: hit2.id }, damageOn(s, p.stats, { kind: "unit", id: hit2.id }), p.attacker, p.from);
+      continue;
+    }
+    land(s, shooter, p.stats, hit2 ? { kind: "unit", id: hit2.id } : null, hit2 ? { x: hit2.x, y: hit2.y } : at, null, p.from, false);
+  }
+  s.projectiles = s.projectiles.filter((p) => !done.has(p.id));
+}
+function volley(s, u, stats, t) {
+  const from = { x: u.x, y: u.y }, rule = stats.range > projectileRules.meleeReach ? shotOf(u.kind, ownerOf(s, u.player)) : null;
+  if (rule) {
+    const shooter = { id: u.id, player: u.player, kind: u.kind, x: u.x, y: u.y };
+    launch(s, shooter, stats, t, rule);
+    for (let i = 0; i < (stats.extraShots ?? 0); i++) launch(s, shooter, { ...stats, damage: stats.extraDamage ?? 1, bonus: {} }, t, rule, true);
+    return;
+  }
+  const at = t.kind === "unit" ? s.units.find((v) => v.id === t.id) : void 0, where = at ? { x: at.x, y: at.y } : null;
+  const box = t.kind === "building" ? (() => {
+    const b = s.buildings.find((b2) => b2.id === t.id);
+    return b ? buildingBox(s, b) : null;
+  })() : null;
+  land(s, { id: u.id, player: u.player }, stats, t, where, box, from, true);
+}
+function stepPatrols(s, busy) {
+  for (const id of Object.keys(s.patrols ?? {}).map(Number).sort((a, b) => a - b)) {
+    const p = s.patrols[id], u = s.units.find((u2) => u2.id === id);
+    if (!u) {
+      delete s.patrols[id];
+      continue;
+    }
+    if (p.wait > 0) {
+      p.wait--;
+      continue;
+    }
+    if (s.attacks[id] || u.next !== null || u.path.length || busy.has(id)) continue;
+    let goal = p.leg === "out" ? p.to : p.from;
+    if (reach(u, goal) <= tacticsRules.patrolTurn) {
+      p.leg = p.leg === "out" ? "back" : "out";
+      goal = p.leg === "out" ? p.to : p.from;
+    }
+    try {
+      commandMove(s, [id], goal);
+    } catch {
+      delete s.patrols[id];
+      continue;
+    }
+    p.wait = tacticsRules.patrolRetry;
   }
 }
 function regenerate(s) {
@@ -2804,11 +3650,15 @@ function regenerate(s) {
 }
 function stepCombat(s) {
   regenerate(s);
+  stepProjectiles(s);
   s.corpses = s.corpses.filter((c) => s.tick - c.tick < combatRules.corpseTicks);
   const busy = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId]));
+  stepPatrols(s, busy);
   for (const u of [...s.units].sort((a, b) => a.id - b.id)) {
-    const own = statsOf(u.kind, ownerOf(s, u.player)), sight = own.sight;
-    if (!sight || own.buildingsOnly || s.attacks[u.id] || s.works[u.id] || u.next !== null || u.path.length || busy.has(u.id)) continue;
+    const own = statsOf(u.kind, ownerOf(s, u.player)), stance = s.stances?.[u.id] ?? "aggressive", patrolling = !!s.patrols?.[u.id];
+    if (stance === "passive" || own.buildingsOnly || s.attacks[u.id] || s.works[u.id] || !patrolling && (u.next !== null || u.path.length || busy.has(u.id))) continue;
+    const sight = stance === "stand" ? Math.min(own.sight, own.range) : own.sight;
+    if (!sight) continue;
     const seen2 = new Set(s.vision[u.player].visible);
     let best = null, dist2 = Infinity;
     const layer = layerOf(u.kind), across = own.range >= 150;
@@ -2819,7 +3669,7 @@ function stepCombat(s) {
         dist2 = d;
       }
     }
-    if (best) s.attacks[u.id] = { target: { kind: "unit", id: best.id }, cooldown: 0, auto: true, repath: 0, firedTick: -1 };
+    if (best) s.attacks[u.id] = { target: { kind: "unit", id: best.id }, cooldown: 0, auto: true, repath: 0, firedTick: -1, ...stance === "defensive" ? { anchor: { x: u.x, y: u.y } } : {} };
   }
   for (const id of Object.keys(s.attacks).map(Number).sort((a, b) => a - b)) {
     const a = s.attacks[id], u = s.units.find((u2) => u2.id === id);
@@ -2840,15 +3690,28 @@ function stepCombat(s) {
       }
       continue;
     }
-    const owner = ownerOf(s, u.player), stats = statsOf(u.kind, owner);
+    const owner = ownerOf(s, u.player), stats = withCarried(s, u, statsOf(u.kind, owner));
     if (a.cooldown > 0) a.cooldown--;
-    const d = reach(u, r.shape), min = nearest2(u, owner);
+    const d = reach(u, r.shape), min = nearest2(u, owner), stance = s.stances?.[u.id] ?? "aggressive";
     if (d < min && a.auto) {
       delete s.attacks[id];
       continue;
     }
+    if (a.auto && stance === "stand" && d > limit(u, r.shape, owner)) {
+      delete s.attacks[id];
+      continue;
+    }
+    if (a.auto && a.anchor && reach(u, a.anchor) > tacticsRules.defensiveLeash) {
+      const home = a.anchor;
+      delete s.attacks[id];
+      commandMove(s, [u.id], home);
+      continue;
+    }
     if (d <= limit(u, r.shape, owner) && d >= min) {
-      if (u.next !== null) continue;
+      if (u.next !== null) {
+        delete a.windup;
+        continue;
+      }
       if (u.path.length || busy.has(u.id)) {
         cancelMovement(s, u.id);
         u.path = [];
@@ -2865,6 +3728,10 @@ function stepCombat(s) {
           a.cooldown = 0;
         } else st.progress = 0;
       }
+      if (stats.frameDelay && a.windup !== 0) {
+        a.windup = a.windup === void 0 ? stats.frameDelay : a.windup - 1;
+        if (a.windup > 0) continue;
+      }
       if (a.cooldown === 0) {
         a.cooldown = stats.cooldown;
         a.firedTick = s.tick;
@@ -2876,6 +3743,7 @@ function stepCombat(s) {
       }
       continue;
     }
+    delete a.windup;
     if (u.next !== null) continue;
     if (a.repath > 0 && (u.path.length || busy.has(u.id))) {
       a.repath--;
@@ -2896,8 +3764,122 @@ function stepCombat(s) {
   }
 }
 
+// packages/sim/repair.ts
+var repairRules = {
+  provenance: "aoetw.com for the cost share, the extra-villager share and what can be repaired; design_default for the rates in this scale",
+  buildingRate: 26,
+  unitRate: 16,
+  costShare: 0.5,
+  siegeReach: 75,
+  shipReach: 100,
+  retries: 3,
+  unrepairable: ["farm", "fish-trap"]
+};
+var keyOf = (t) => t.kind === "building" ? `b:${t.id}` : `u:${t.id}`;
+var classesOf2 = (kind) => kind in combatRules.units ? combatRules.units[kind].classes : [];
+var repairableUnit = (kind) => classesOf2(kind).some((c) => c === "siege" || c === "ship");
+function resolve2(s, t) {
+  if (t.kind === "building") {
+    const b = s.buildings.find((b2) => b2.id === t.id);
+    return b ? { player: b.player, hp: b.hp, max: b.maxHp, entry: b.kind, building: b, unit: null } : null;
+  }
+  const u = s.units.find((u2) => u2.id === t.id);
+  return u && u.kind in combatRules.units ? { player: u.player, hp: u.hp, max: maxHpOf(u.kind, ownerOf(s, u.player)), entry: u.kind, building: null, unit: u } : null;
+}
+function repairProblem(s, player, t) {
+  const target = t;
+  if (!target || target.kind !== "building" && target.kind !== "unit" || target.kind === "building" && typeof target.id !== "string" || target.kind === "unit" && !Number.isSafeInteger(target.id)) return "\u7121\u6548\u7684\u4FEE\u7406\u76EE\u6A19";
+  const r = resolve2(s, target);
+  if (!r || r.player !== player) return "\u53EA\u80FD\u4FEE\u7406\u5DF1\u65B9\u7684\u5EFA\u7BC9\u3001\u653B\u57CE\u5668\u8207\u8239\u96BB";
+  if (r.building) {
+    if (!r.building.complete) return "\u5EFA\u7BC9\u5C1A\u672A\u5B8C\u5DE5\uFF1A\u7528\u5EFA\u9020\u7E7C\u7E8C\u65BD\u5DE5";
+    if (repairRules.unrepairable.includes(r.building.kind)) return "\u8FB2\u7530\u8207\u9B5A\u7DB2\u4E0D\u80FD\u4FEE\u7406";
+  } else if (!repairableUnit(r.entry)) return "\u53EA\u80FD\u4FEE\u7406\u5EFA\u7BC9\u3001\u653B\u57CE\u5668\u8207\u8239\u96BB\uFF1A\u5176\u4ED6\u55AE\u4F4D\u7531\u50E7\u4FB6\u6CBB\u7642";
+  if (r.hp >= r.max) return "\u6C92\u6709\u53D7\u640D\uFF0C\u4E0D\u9700\u8981\u4FEE\u7406";
+  return null;
+}
+function repairBase(s, player, entry2) {
+  const c = { ...costOf(entry2, ownerOf(s, player)) };
+  if (entry2 === "town-center") {
+    c.wood *= 2;
+    c.stone = 0;
+  }
+  return c;
+}
+function slots(s, t) {
+  if (t.kind === "building") {
+    const b = s.buildings.find((b2) => b2.id === t.id);
+    return b ? buildSlots(s.map, b, "land") : [];
+  }
+  const u = s.units.find((u2) => u2.id === t.id);
+  if (!u) return [];
+  const range = classesOf2(u.kind).includes("ship") ? repairRules.shipReach : repairRules.siegeReach, closed = blockedFor(s.map, "land");
+  return nodesNear(s.map, [u.x, u.y, u.x, u.y], range).filter((n) => {
+    if (closed[n]) return false;
+    const d = reach(position(s.map, n), u);
+    return d > 0 && d <= range;
+  });
+}
+var stop = (s, u) => {
+  delete s.works[u.id];
+  if (u.navigation !== "moving") u.navigation = "idle";
+};
+function goTo(s, u, w2) {
+  const t = slots(s, w2.target);
+  if (!t.length) return stop(s, u);
+  const held2 = new Set(s.units.filter((v) => v !== u && v.next === null && !v.path.length).map((v) => v.node)), free = t.filter((n) => !held2.has(n));
+  w2.phase = "toRepair";
+  routeTo(s, u, free.length ? free : t);
+}
+function commandRepair(s, unitIds, target) {
+  for (const id of unitIds) {
+    const u = s.units.find((u2) => u2.id === id);
+    cancelMovement(s, id);
+    const w2 = { kind: "repair", target: { ...target }, phase: "toRepair", retries: 0 };
+    s.works[id] = w2;
+    goTo(s, u, w2);
+  }
+}
+function stepRepairer(state, u, w2, credited) {
+  const s = state, r = resolve2(s, w2.target);
+  if (!r || r.player !== u.player || r.hp >= r.max || r.building && !r.building.complete) {
+    if (r && r.hp >= r.max) delete s.repairs?.[keyOf(w2.target)];
+    return stop(s, u);
+  }
+  if (!slots(s, w2.target).includes(u.node)) {
+    if (++w2.retries > repairRules.retries) return stop(s, u);
+    return goTo(s, u, w2);
+  }
+  w2.phase = "repairing";
+  w2.retries = 0;
+  u.navigation = "idle";
+  const key = keyOf(w2.target), led = (s.repairs ??= {})[key] ??= { pool: 0, owed: { food: 0, wood: 0, gold: 0, stone: 0 } }, rate = r.building ? repairRules.buildingRate : repairRules.unitRate;
+  led.pool += credited.has(key) ? rate / 2 : rate;
+  credited.add(key);
+  const base = repairBase(s, r.player, r.entry), stock = s.accounts[r.player].stock, unit2 = Math.round(r.max / repairRules.costShare);
+  while (led.pool >= 100 && (r.building ? r.building.hp : r.unit.hp) < r.max) {
+    const due = Object.fromEntries(resources.map((k) => [k, Math.floor((led.owed[k] + base[k]) / unit2)]));
+    if (resources.some((k) => stock[k] < due[k])) {
+      led.pool = Math.min(led.pool, 99);
+      return stop(s, u);
+    }
+    for (const k of resources) {
+      led.owed[k] += base[k] - due[k] * unit2;
+      stock[k] -= due[k];
+      s.accounts[r.player].ledger.repair[k] += due[k];
+    }
+    led.pool -= 100;
+    if (r.building) r.building.hp++;
+    else r.unit.hp++;
+  }
+  if ((r.building ? r.building.hp : r.unit.hp) >= r.max) {
+    delete s.repairs[key];
+    stop(s, u);
+  }
+}
+
 // packages/sim/work.ts
-var workPhases = ["none", "toSource", "gathering", "toDropoff", "toSite", "building", "hunting"];
+var workPhases = ["none", "toSource", "gathering", "toDropoff", "toSite", "building", "hunting", "toRepair", "repairing"];
 var gap = (p, [x0, y0, x1, y1]) => Math.max(x0 - p.x, 0, p.x - x1) + Math.max(y0 - p.y, 0, p.y - y1);
 function ring(map, o, reach2, layer = "land") {
   const box = obstacleBounds(o, 25), out = [], closed = blockedFor(map, layer);
@@ -2953,35 +3935,35 @@ function huntProblem(s, player, animalId) {
   return null;
 }
 function sourceTargets(s, u, resourceId) {
-  const slots = workSlots(s.map, resourceId, layerOf(u.kind)), taken = /* @__PURE__ */ new Set();
+  const slots2 = workSlots(s.map, resourceId, layerOf(u.kind)), taken = /* @__PURE__ */ new Set();
   for (const v of s.units) if (v !== u) {
     {
-      const w = s.works[v.id];
-      if (v.goal !== null && w?.kind === "gather" && w.resourceId === resourceId) taken.add(v.goal);
+      const w2 = s.works[v.id];
+      if (v.goal !== null && w2?.kind === "gather" && w2.resourceId === resourceId) taken.add(v.goal);
     }
     if (v.next === null && !v.path.length) taken.add(v.node);
   }
-  const free = slots.filter((n) => !taken.has(n));
-  return free.length ? free : slots;
+  const free = slots2.filter((n) => !taken.has(n));
+  return free.length ? free : slots2;
 }
-function goToSource(s, u, w) {
-  if (w.prey !== void 0 && !s.map.resources.some((r) => r.id === w.resourceId)) {
-    w.phase = "toSource";
+function goToSource(s, u, w2) {
+  if (w2.prey !== void 0 && !s.map.resources.some((r) => r.id === w2.resourceId)) {
+    w2.phase = "toSource";
     return;
   }
-  const t = sourceTargets(s, u, w.resourceId);
+  const t = sourceTargets(s, u, w2.resourceId);
   if (!t.length) return stopWork(s, u);
-  w.phase = "toSource";
+  w2.phase = "toSource";
   routeTo(s, u, t);
 }
-var cargoOf = (s, w) => {
-  const r = s.map.resources.find((r2) => r2.id === w.resourceId);
-  return r ? resourceDefinitions[r.kind].yield : w.prey !== void 0 ? "food" : void 0;
+var cargoOf = (s, w2) => {
+  const r = s.map.resources.find((r2) => r2.id === w2.resourceId);
+  return r ? resourceDefinitions[r.kind].yield : w2.prey !== void 0 ? "food" : void 0;
 };
-function goToDropoff(s, u, w) {
-  const t = dropoffNodes(s.map, u.player, s.cargo[u.id]?.resource ?? cargoOf(s, w), layerOf(u.kind));
+function goToDropoff(s, u, w2) {
+  const t = dropoffNodes(s.map, u.player, s.cargo[u.id]?.resource ?? cargoOf(s, w2), layerOf(u.kind));
   if (!t.length) return stopWork(s, u);
-  w.phase = "toDropoff";
+  w2.phase = "toDropoff";
   routeTo(s, u, t);
 }
 function stopWork(s, u) {
@@ -2992,21 +3974,21 @@ function commandGather(s, unitIds, resourceId) {
   for (const id of unitIds) {
     const u = s.units.find((u2) => u2.id === id);
     cancelMovement(s, id);
-    const w = { kind: "gather", resourceId, phase: "toSource", progress: 0, retries: 0 };
-    s.works[id] = w;
+    const w2 = { kind: "gather", resourceId, phase: "toSource", progress: 0, retries: 0 };
+    s.works[id] = w2;
     const kind = resourceDefinitions[s.map.resources.find((r) => r.id === resourceId).kind].yield, cargo = s.cargo[id];
-    if (cargo && cargo.resource !== kind) goToDropoff(s, u, w);
-    else goToSource(s, u, w);
+    if (cargo && cargo.resource !== kind) goToDropoff(s, u, w2);
+    else goToSource(s, u, w2);
   }
 }
 function commandHunt(s, unitIds, animalId) {
   for (const id of unitIds) {
     const u = s.units.find((u2) => u2.id === id);
     cancelMovement(s, id);
-    const w = { kind: "gather", resourceId: carcassId(animalId), phase: "toSource", progress: 0, retries: 0, prey: animalId };
-    s.works[id] = w;
+    const w2 = { kind: "gather", resourceId: carcassId(animalId), phase: "toSource", progress: 0, retries: 0, prey: animalId };
+    s.works[id] = w2;
     const cargo = s.cargo[id];
-    if (cargo && cargo.resource !== "food") goToDropoff(s, u, w);
+    if (cargo && cargo.resource !== "food") goToDropoff(s, u, w2);
   }
 }
 function clearWork(s, unitIds) {
@@ -3059,56 +4041,56 @@ function buildSlots(map, b, layer = "land") {
   const o = map.obstacles.find((o2) => o2.id === b.id);
   return o ? ring(map, o, economyRules.workReach, layer) : [];
 }
-function goToSite(s, u, w) {
-  const b = s.buildings.find((b2) => b2.id === w.buildingId);
+function goToSite(s, u, w2) {
+  const b = s.buildings.find((b2) => b2.id === w2.buildingId);
   const t = b ? buildSlots(s.map, b, layerOf(u.kind)) : [];
   if (!t.length) return stopWork(s, u);
   const held2 = new Set(s.units.filter((v) => v !== u && v.next === null && !v.path.length).map((v) => v.node)), free = t.filter((n) => !held2.has(n));
-  w.phase = "toSite";
+  w2.phase = "toSite";
   routeTo(s, u, free.length ? free : t);
 }
 function commandBuild(s, unitIds, buildingId) {
   for (const id of unitIds) {
     const u = s.units.find((u2) => u2.id === id);
     cancelMovement(s, id);
-    const w = { kind: "build", buildingId, phase: "toSite", retries: 0 };
-    s.works[id] = w;
-    goToSite(s, u, w);
+    const w2 = { kind: "build", buildingId, phase: "toSite", retries: 0 };
+    s.works[id] = w2;
+    goToSite(s, u, w2);
   }
 }
-function stepBuilder(s, u, w) {
-  const b = s.buildings.find((b2) => b2.id === w.buildingId);
+function stepBuilder(s, u, w2) {
+  const b = s.buildings.find((b2) => b2.id === w2.buildingId);
   if (b?.complete && (b.kind === "farm" || b.kind === "fish-trap") && s.map.resources.some((r) => r.id === farmResourceId(b.id) && r.collectible) && !s.units.some((v) => v !== u && s.works[v.id]?.resourceId === farmResourceId(b.id))) {
     const g = { kind: "gather", resourceId: farmResourceId(b.id), phase: "toSource", progress: 0, retries: 0 };
     s.works[u.id] = g;
     return goToSource(s, u, g);
   }
-  if (b?.complete && (wallKinds.has(b.kind) || b.kind in wallGate)) {
-    const next = s.buildings.filter((v) => v.player === u.player && !v.complete && (wallKinds.has(v.kind) || v.kind in wallGate) && Math.max(Math.abs(v.x - b.x), Math.abs(v.y - b.y)) <= wallRules.builderReach).sort((p, q) => Math.max(Math.abs(p.x - b.x), Math.abs(p.y - b.y)) - Math.max(Math.abs(q.x - b.x), Math.abs(q.y - b.y)) || (p.id < q.id ? -1 : 1))[0];
+  if (b?.complete && (wallKinds.has(b.kind) || b.kind in wallGate2)) {
+    const next = s.buildings.filter((v) => v.player === u.player && !v.complete && (wallKinds.has(v.kind) || v.kind in wallGate2) && Math.max(Math.abs(v.x - b.x), Math.abs(v.y - b.y)) <= wallRules.builderReach).sort((p, q) => Math.max(Math.abs(p.x - b.x), Math.abs(p.y - b.y)) - Math.max(Math.abs(q.x - b.x), Math.abs(q.y - b.y)) || (p.id < q.id ? -1 : 1))[0];
     if (next) {
-      w.buildingId = next.id;
-      w.retries = 0;
-      return goToSite(s, u, w);
+      w2.buildingId = next.id;
+      w2.retries = 0;
+      return goToSite(s, u, w2);
     }
   }
   if (!b || b.complete) return stopWork(s, u);
   if (!buildSlots(s.map, b, layerOf(u.kind)).includes(u.node)) {
-    if (++w.retries > 3) return stopWork(s, u);
-    return goToSite(s, u, w);
+    if (++w2.retries > 3) return stopWork(s, u);
+    return goToSite(s, u, w2);
   }
-  w.phase = "building";
-  w.retries = 0;
+  w2.phase = "building";
+  w2.retries = 0;
   u.navigation = "idle";
   addWork(s, b);
 }
 var ticksFor = (r, kind) => economyRules.sourceTicks[r.kind] ?? economyRules.gatherTicks[kind];
-function stepHunt(s, u, w) {
-  const prey = s.units.find((a) => a.id === w.prey);
+function stepHunt(s, u, w2) {
+  const prey = s.units.find((a) => a.id === w2.prey);
   if (!prey) {
-    if (s.map.resources.some((r) => r.id === w.resourceId)) {
-      delete w.prey;
-      w.progress = 0;
-      goToSource(s, u, w);
+    if (s.map.resources.some((r) => r.id === w2.resourceId)) {
+      delete w2.prey;
+      w2.progress = 0;
+      goToSource(s, u, w2);
     } else stopWork(s, u);
     return;
   }
@@ -3118,57 +4100,61 @@ function stepHunt(s, u, w) {
   }
   const range = animalRules.hunt.range[prey.kind];
   if (reach(u, prey) <= range) {
-    w.phase = "hunting";
-    w.retries = 0;
+    w2.phase = "hunting";
+    w2.retries = 0;
     u.navigation = "idle";
-    if (w.progress > 0) {
-      w.progress--;
+    if (w2.progress > 0) {
+      w2.progress--;
       return;
     }
     strike(s, { kind: "unit", id: prey.id }, animalRules.hunt.damage + huntDamageBonus(ownerOf(s, u.player), prey.kind), u.id);
-    w.progress = animalRules.hunt.cooldown;
+    w2.progress = animalRules.hunt.cooldown;
     if (!s.units.includes(prey)) {
-      delete w.prey;
-      w.progress = 0;
-      goToSource(s, u, w);
+      delete w2.prey;
+      w2.progress = 0;
+      goToSource(s, u, w2);
     }
     return;
   }
   const nodes = approach(s, u, { x: prey.x, y: prey.y }, range);
   if (!nodes.length) {
-    if (++w.retries > 3) stopWork(s, u);
+    if (++w2.retries > 3) stopWork(s, u);
     return;
   }
-  w.phase = "toSource";
+  w2.phase = "toSource";
   routeTo(s, u, nodes);
 }
 function stepWork(s) {
-  const busy = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId]));
+  const busy = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId])), credited = /* @__PURE__ */ new Set();
   for (const u of [...s.units].sort((a, b) => a.id - b.id)) {
-    const w = s.works[u.id];
-    if (!w || busy.has(u.id) || u.next !== null || u.path.length) continue;
-    if (w.kind === "build") {
-      stepBuilder(s, u, w);
+    const w2 = s.works[u.id];
+    if (!w2 || busy.has(u.id) || u.next !== null || u.path.length) continue;
+    if (w2.kind === "build") {
+      stepBuilder(s, u, w2);
       continue;
     }
-    if (w.prey !== void 0 && w.phase !== "toDropoff") {
-      stepHunt(s, u, w);
+    if (w2.kind === "repair") {
+      stepRepairer(s, u, w2, credited);
       continue;
     }
-    const resource = s.map.resources.find((r) => r.id === w.resourceId);
+    if (w2.prey !== void 0 && w2.phase !== "toDropoff") {
+      stepHunt(s, u, w2);
+      continue;
+    }
+    const resource = s.map.resources.find((r) => r.id === w2.resourceId);
     if (!resource) {
-      if (w.phase === "toDropoff" && w.prey !== void 0) {
+      if (w2.phase === "toDropoff" && w2.prey !== void 0) {
         if (!dropoffNodes(s.map, u.player, s.cargo[u.id]?.resource ?? "food").includes(u.node)) {
-          if (++w.retries > 3) {
+          if (++w2.retries > 3) {
             stopWork(s, u);
             continue;
           }
-          goToDropoff(s, u, w);
+          goToDropoff(s, u, w2);
           continue;
         }
         deposit(s, u);
-        w.retries = 0;
-        w.phase = "toSource";
+        w2.retries = 0;
+        w2.phase = "toSource";
         continue;
       }
       stopWork(s, u);
@@ -3176,22 +4162,22 @@ function stepWork(s) {
     }
     const kind = resourceDefinitions[resource.kind].yield;
     const follow = (next) => {
-      w.resourceId = next.resourceId;
-      if (next.prey !== void 0) w.prey = next.prey;
-      else delete w.prey;
-      w.progress = 0;
+      w2.resourceId = next.resourceId;
+      if (next.prey !== void 0) w2.prey = next.prey;
+      else delete w2.prey;
+      w2.progress = 0;
     };
-    if (w.phase === "toDropoff") {
+    if (w2.phase === "toDropoff") {
       if (!dropoffNodes(s.map, u.player, s.cargo[u.id]?.resource ?? kind, layerOf(u.kind)).includes(u.node)) {
-        if (++w.retries > 3) {
+        if (++w2.retries > 3) {
           stopWork(s, u);
           continue;
         }
-        goToDropoff(s, u, w);
+        goToDropoff(s, u, w2);
         continue;
       }
       deposit(s, u);
-      w.retries = 0;
+      w2.retries = 0;
       if (!resource.collectible) {
         const next = nextSource(s, u, resource, kind);
         if (!next) {
@@ -3199,17 +4185,17 @@ function stepWork(s) {
           continue;
         }
         follow(next);
-        if (w.prey !== void 0) {
-          w.phase = "toSource";
+        if (w2.prey !== void 0) {
+          w2.phase = "toSource";
           continue;
         }
       }
-      goToSource(s, u, w);
+      goToSource(s, u, w2);
       continue;
     }
     if (!resource.collectible) {
       if (s.cargo[u.id]) {
-        goToDropoff(s, u, w);
+        goToDropoff(s, u, w2);
         continue;
       }
       const next = nextSource(s, u, resource, kind);
@@ -3218,29 +4204,29 @@ function stepWork(s) {
         continue;
       }
       follow(next);
-      if (w.prey !== void 0) {
-        w.phase = "toSource";
+      if (w2.prey !== void 0) {
+        w2.phase = "toSource";
         continue;
       }
-      goToSource(s, u, w);
+      goToSource(s, u, w2);
       continue;
     }
-    if (!workSlots(s.map, w.resourceId, layerOf(u.kind)).includes(u.node)) {
-      if (++w.retries > 3) {
+    if (!workSlots(s.map, w2.resourceId, layerOf(u.kind)).includes(u.node)) {
+      if (++w2.retries > 3) {
         stopWork(s, u);
         continue;
       }
-      goToSource(s, u, w);
+      goToSource(s, u, w2);
       continue;
     }
-    w.phase = "gathering";
-    w.retries = 0;
+    w2.phase = "gathering";
+    w2.retries = 0;
     u.navigation = "idle";
     const owner = ownerOf(s, u.player), ship2 = u.kind === "fishing-ship";
-    w.progress += (ship2 ? 100 : gatherRate(s.techs[u.player], kind)) + gatherBonus(owner, kind, resource.kind, u.kind);
-    if (w.progress < ticksFor(resource, kind) * 100) continue;
-    w.progress -= ticksFor(resource, kind) * 100;
-    const got = harvestMapResource(s.map, w.resourceId, 1, s.tick).amount;
+    w2.progress += (ship2 ? 100 : gatherRate(s.techs[u.player], kind)) + gatherBonus(owner, kind, resource.kind, u.kind);
+    if (w2.progress < ticksFor(resource, kind) * 100) continue;
+    w2.progress -= ticksFor(resource, kind) * 100;
+    const got = harvestMapResource(s.map, w2.resourceId, 1, s.tick).amount;
     let reseeded = null;
     if (resource.kind === "fish-trap" && resource.status === "depleted") {
       const old = s.buildings.find((b) => farmResourceId(b.id) === resource.id);
@@ -3267,7 +4253,7 @@ function stepWork(s) {
       goToSite(s, u, b);
       continue;
     }
-    if ((s.cargo[u.id]?.amount ?? 0) >= (ship2 ? economyRules.carryCapacity : carryOf(s.techs[u.player], economyRules.carryCapacity, resource.kind === "farm")) + carryBonus(owner, resource.kind)) goToDropoff(s, u, w);
+    if ((s.cargo[u.id]?.amount ?? 0) >= (ship2 ? economyRules.carryCapacity : carryOf(s.techs[u.player], economyRules.carryCapacity, resource.kind === "farm")) + carryBonus(owner, resource.kind)) goToDropoff(s, u, w2);
   }
 }
 
@@ -3362,18 +4348,26 @@ var defenseRules = {
   // bonus: extra damage against a class (aoetw: the town centre's +5 and the tower's +7 against ships). The bombard
   // tower fires one cannonball (120 pierce, +40 against ships) every 6 s (cooldown x20 like the towers), from a tower's
   // range; it outshoots nothing, it one-shots most units.
+  // Arrows against ships hit fishing ships as hard (aoetw.com: the fishing-ship armor class takes the towers' ship bonus).
   arrows: {
-    "town-center": { base: 1, range: 300, damage: 5, cooldown: 40, bonus: { ship: 5 } },
-    "watch-tower": { base: 1, range: 350, damage: 5, cooldown: 40, bonus: { ship: 7 } },
+    "town-center": { base: 1, range: 300, damage: 5, cooldown: 40, bonus: { ship: 5, "fishing-ship": 5 } },
+    "watch-tower": { base: 1, range: 350, damage: 5, cooldown: 40, bonus: { ship: 7, "fishing-ship": 7 } },
     castle: { base: 4, range: 400, damage: 5, cooldown: 40 },
-    "bombard-tower": { base: 1, range: 350, damage: 120, cooldown: 120, bonus: { ship: 40 }, shots: false }
+    "bombard-tower": { base: 1, range: 350, damage: 120, cooldown: 120, bonus: { ship: 40, "fishing-ship": 40 }, shots: false }
   },
   // Who may go inside (foot units: no cavalry, no siege), and who adds an arrow while there.
   canGarrison: ["villager", "militia", "spearman", "archer", "skirmisher", "monk", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "janissary", "chu-ko-nu", "samurai", "hand-cannoneer"],
   addsArrow: ["villager", "archer", "skirmisher", "longbowman", "janissary", "chu-ko-nu", "hand-cannoneer"],
   // Units inside heal one hit point every healTicks; a shot stays drawn for shotTicks.
   healTicks: 40,
-  shotTicks: 10
+  shotTicks: 10,
+  // The 遊戲元素 round (aoetw.com elements/Garrison, Regeneration): the castle heals those inside twice as fast as a town
+  // centre or a tower (12 against 6 hit points a minute there); a building at ejectPercent of its hit points or less
+  // lets everyone out and takes nobody in. Production buildings hold 10 of the units they train, who go in only by the
+  // building's rally point set on the building itself (and cannot be ordered back in once out).
+  healRate: { castle: 2 },
+  ejectPercent: 20,
+  rallyGarrison: { barracks: 10, "archery-range": 10, stable: 10, "siege-workshop": 10, monastery: 10, dock: 10 }
 };
 var boxOf = (s, id) => {
   const o = s.map.obstacles.find((o2) => o2.id === id);
@@ -3381,32 +4375,41 @@ var boxOf = (s, id) => {
 };
 function garrisonCapacity(s, b) {
   const base = defenseRules.capacity[b.kind] ?? 0;
-  return base ? base + garrisonBonus(ownerOf(s, b.player), b.kind) : 0;
+  return base ? base + garrisonBonus(ownerOf(s, b.player), b.kind) : defenseRules.rallyGarrison[b.kind] ?? 0;
 }
-var room = (s, b) => garrisonCapacity(s, b) - (s.garrison[b.id]?.units.length ?? 0) - Object.values(s.entering).filter((e) => e.buildingId === b.id).length;
+var battered = (b) => b.hp * 100 <= b.maxHp * defenseRules.ejectPercent;
+function rallyInside(s, b, p) {
+  if (!(b.kind in defenseRules.rallyGarrison)) return false;
+  const o = s.map.obstacles.find((o2) => o2.id === b.id);
+  if (!o) return false;
+  const [x0, y0, x1, y1] = obstacleBounds(o);
+  return p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1;
+}
+var room2 = (s, b) => garrisonCapacity(s, b) - (s.garrison[b.id]?.units.length ?? 0) - Object.values(s.entering).filter((e) => e.buildingId === b.id).length;
 function garrisonProblem(s, player, buildingId, unitIds) {
   const b = s.buildings.find((b2) => b2.id === buildingId);
   if (!b || b.player !== player) return "\u53EA\u80FD\u9032\u99D0\u5DF1\u65B9\u7684\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u6216\u57CE\u5821";
-  if (!(b.kind in defenseRules.capacity)) return "\u53EA\u80FD\u9032\u99D0\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u6216\u57CE\u5821";
+  if (!(b.kind in defenseRules.capacity)) return b.kind in defenseRules.rallyGarrison ? "\u9019\u68DF\u5EFA\u7BC9\u53EA\u6536\u81EA\u5DF1\u8A13\u7DF4\u7684\u55AE\u4F4D\uFF1A\u628A\u96C6\u7D50\u9EDE\u8A2D\u5728\u5EFA\u7BC9\u4E0A" : "\u53EA\u80FD\u9032\u99D0\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u6216\u57CE\u5821";
   if (!b.complete) return "\u5EFA\u7BC9\u5C1A\u672A\u5B8C\u5DE5";
+  if (battered(b)) return `\u5EFA\u7BC9\u53D7\u640D\u56B4\u91CD\uFF08\u751F\u547D ${defenseRules.ejectPercent}% \u4EE5\u4E0B\uFF09\uFF0C\u7121\u6CD5\u9032\u99D0`;
   const units = unitIds.map((id) => s.units.find((u) => u.id === id));
   if (units.some((u) => !u || !defenseRules.canGarrison.includes(u.kind))) return "\u53EA\u6709\u6751\u6C11\u3001\u6B65\u5175\u3001\u5F92\u6B65\u5F13\u5175\u8207\u50E7\u4FB6\u80FD\u9032\u99D0";
   if (units.some((u) => u && s.relics.some((r) => r.carrier === u.id))) return "\u651C\u5E36\u8056\u7269\u7684\u50E7\u4FB6\u4E0D\u80FD\u9032\u99D0";
-  if (room(s, b) < unitIds.length) return `\u7A7A\u4F4D\u4E0D\u8DB3\uFF1A\u9084\u80FD\u9032\u99D0 ${Math.max(0, room(s, b))} \u540D`;
+  if (room2(s, b) < unitIds.length) return `\u7A7A\u4F4D\u4E0D\u8DB3\uFF1A\u9084\u80FD\u9032\u99D0 ${Math.max(0, room2(s, b))} \u540D`;
   return null;
 }
 function commandGarrison(s, unitIds, buildingId, bell = false) {
   for (const id of unitIds) {
-    const w = s.works[id];
+    const w2 = s.works[id];
     cancelMovement(s, id);
     delete s.works[id];
     delete s.attacks[id];
     delete s.rites[id];
-    s.entering[id] = { buildingId, repath: 0, work: bell ? w ?? null : null, bell };
+    s.entering[id] = { buildingId, repath: 0, work: bell ? w2 ?? null : null, bell };
   }
 }
-function doorNodes(s, box, from = 50, to = 100) {
-  const closed = blockedTable(s.map), r = navigationRules.radius;
+function doorNodes(s, box, from = 50, to = 100, layer = "land") {
+  const closed = blockedFor(s.map, layer), r = navigationRules.radius;
   return nodesNear(s.map, box, to + r).filter((n) => {
     if (closed[n]) return false;
     const d = reach(position(s.map, n), box);
@@ -3426,14 +4429,21 @@ function release(s, id, which = () => true) {
   const out = g.units.filter(which);
   if (!out.length) return;
   const held2 = new Set(s.units.flatMap((u) => u.next === null ? [u.node] : [u.node, u.next]));
-  let free = [];
-  for (let to = 100; to <= 400 && free.length < out.length; to += 100) free = doorNodes(s, g.box, 50, to).filter((n) => !held2.has(n));
-  const c = { x: (g.box[0] + g.box[2]) / 2, y: g.box[3] + 50 };
-  free.sort((a, b) => Math.abs(position(s.map, a).x - c.x) + Math.abs(position(s.map, a).y - c.y) - (Math.abs(position(s.map, b).x - c.x) + Math.abs(position(s.map, b).y - c.y)) || a - b);
+  const c = { x: (g.box[0] + g.box[2]) / 2, y: g.box[3] + 50 }, need = {}, frees = {};
+  for (const e of out) {
+    const l = layerOf(e.unit.kind);
+    need[l] = (need[l] ?? 0) + 1;
+  }
+  for (const l of Object.keys(need)) {
+    let free = [];
+    for (let to = 100; to <= 400 && free.length < need[l]; to += 100) free = doorNodes(s, g.box, 50, to, l).filter((n) => !held2.has(n));
+    free.sort((a, b) => Math.abs(position(s.map, a).x - c.x) + Math.abs(position(s.map, a).y - c.y) - (Math.abs(position(s.map, b).x - c.x) + Math.abs(position(s.map, b).y - c.y)) || a - b);
+    frees[l] = free;
+  }
   const left = [];
   for (const e of g.units) {
     if (!out.includes(e)) continue;
-    const n = free.shift();
+    const n = frees[layerOf(e.unit.kind)].shift();
     if (n === void 0) {
       left.push(e);
       continue;
@@ -3441,11 +4451,11 @@ function release(s, id, which = () => true) {
     const p = position(s.map, n);
     Object.assign(e.unit, { x: p.x, y: p.y, node: n, next: null, path: [], goal: null, target: null, navigation: "idle" });
     s.units.push(e.unit);
-    const w = e.work;
-    if (w?.kind === "gather") {
-      if (w.prey !== void 0 && s.units.some((a) => a.id === w.prey)) commandHunt(s, [e.unit.id], w.prey);
-      else if (s.map.resources.some((r) => r.id === w.resourceId && r.collectible)) commandGather(s, [e.unit.id], w.resourceId);
-    } else if (w?.kind === "build" && s.buildings.some((b) => b.id === w.buildingId && !b.complete)) commandBuild(s, [e.unit.id], w.buildingId);
+    const w2 = e.work;
+    if (w2?.kind === "gather") {
+      if (w2.prey !== void 0 && s.units.some((a) => a.id === w2.prey)) commandHunt(s, [e.unit.id], w2.prey);
+      else if (s.map.resources.some((r) => r.id === w2.resourceId && r.collectible)) commandGather(s, [e.unit.id], w2.resourceId);
+    } else if (w2?.kind === "build" && s.buildings.some((b) => b.id === w2.buildingId && !b.complete)) commandBuild(s, [e.unit.id], w2.buildingId);
   }
   s.units.sort((a, b) => a.id - b.id);
   g.units = g.units.filter((e) => !out.includes(e) || left.includes(e));
@@ -3460,9 +4470,9 @@ function ringBell(s, player, ring2) {
     for (const [id, e] of Object.entries(s.entering)) if (e.bell && s.units.find((u) => u.id === Number(id))?.player === player) delete s.entering[Number(id)];
     return;
   }
-  const shelters = s.buildings.filter((b) => b.player === player && b.complete && b.kind in defenseRules.capacity).map((b) => ({ b, box: boxOf(s, b.id) })).filter((v) => v.box);
+  const shelters = s.buildings.filter((b) => b.player === player && b.complete && !battered(b) && b.kind in defenseRules.capacity).map((b) => ({ b, box: boxOf(s, b.id) })).filter((v) => v.box);
   for (const u of s.units.filter((u2) => u2.player === player && u2.kind === "villager" && !s.entering[u2.id]).sort((a, b) => a.id - b.id)) {
-    const best = shelters.filter((v) => room(s, v.b) > 0).sort((p, q) => reach(u, p.box) - reach(u, q.box) || (p.b.id < q.b.id ? -1 : 1))[0];
+    const best = shelters.filter((v) => room2(s, v.b) > 0).sort((p, q) => reach(u, p.box) - reach(u, q.box) || (p.b.id < q.b.id ? -1 : 1))[0];
     if (best) commandGarrison(s, [u.id], best.b.id, true);
   }
 }
@@ -3470,7 +4480,7 @@ function stepDefense(s) {
   const busy = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId]));
   for (const id of Object.keys(s.entering).map(Number).sort((a, b) => a - b)) {
     const e = s.entering[id], u = s.units.find((u2) => u2.id === id), b = s.buildings.find((b2) => b2.id === e.buildingId), box = b && boxOf(s, b.id);
-    if (!u || !b || !box || b.player !== u.player || !b.complete || (s.garrison[b.id]?.units.length ?? 0) >= garrisonCapacity(s, b)) {
+    if (!u || !b || !box || b.player !== u.player || !b.complete || battered(b) || (s.garrison[b.id]?.units.length ?? 0) >= garrisonCapacity(s, b)) {
       delete s.entering[id];
       if (u && !u.path.length && u.next === null) u.navigation = "idle";
       continue;
@@ -3495,10 +4505,10 @@ function stepDefense(s) {
   }
   for (const id of Object.keys(s.garrison).sort()) {
     const g = s.garrison[id], b = s.buildings.find((b2) => b2.id === id);
-    if (!b || b.player !== g.units[0]?.unit.player) release(s, id);
+    if (!b || b.player !== g.units[0]?.unit.player || battered(b)) release(s, id);
   }
   for (const [id, g] of Object.entries(s.garrison)) {
-    const b = s.buildings.find((b2) => b2.id === id), scale = b ? garrisonHealScale(ownerOf(s, b.player), b.kind) : 1;
+    const b = s.buildings.find((b2) => b2.id === id), scale = b ? garrisonHealScale(ownerOf(s, b.player), b.kind) * (defenseRules.healRate[b.kind] ?? 1) : 1;
     const heal = Math.floor(s.tick * scale / defenseRules.healTicks) - Math.floor((s.tick - 1) * scale / defenseRules.healTicks);
     if (heal <= 0) continue;
     for (const e of g.units) {
@@ -3526,7 +4536,9 @@ function stepDefense(s) {
     const cooldown = Math.max(1, Math.round(def.cooldown * mod.cooldown)), arrow = { hp: 0, damage: def.damage + mod.damage, range, cooldown, sight: 0, attack: "pierce", armor: [0, 0], classes: [], bonus };
     const shooter = (k) => defenseRules.addsArrow.includes(k) || k in combatRules.units && combatRules.units[k].classes.some((c) => mod.garrisonClasses.includes(c));
     const count = def.base + mod.extra + (def.shots === false ? 0 : s.garrison[b.id]?.units.filter((e) => shooter(e.unit.kind)).length ?? 0);
-    for (let i = 0; i < count && s.units.includes(target); i++) strike(s, { kind: "unit", id: target.id }, damageOn(s, arrow, { kind: "unit", id: target.id }), -1);
+    const from = { x: Math.round((box[0] + box[2]) / 2), y: Math.round((box[1] + box[3]) / 2) };
+    const shot = buildingShotOf(b.kind, ownerOf(s, b.player));
+    for (let i = 0; i < count; i++) launch(s, { id: -1, player: b.player, kind: b.kind, ...from }, arrow, { kind: "unit", id: target.id }, shot);
     s.volleys[b.id] = cooldown;
     s.shots.push({ player: b.player, from: { x: Math.round((box[0] + box[2]) / 2), y: Math.round((box[1] + box[3]) / 2) }, to: { x: target.x, y: target.y }, tick: s.tick });
   }
@@ -3541,9 +4553,9 @@ function ageOf(entryId) {
 }
 var entryOf = (id) => rules.entries.find((e) => e.id === id);
 function trainBlocker(i, entryId) {
-  const e = entryOf(entryId), owner = { civ: i.civ ?? neutralCiv, age: i.age, techs: i.techs };
+  const e = entryOf(entryId), owner = { civ: i.civ ?? neutralCiv, age: i.age, techs: i.techs, ...i.allTechs ? { allTechs: true } : {} };
   if (!e || e.kind === "building") return "\u672A\u77E5\u7684\u751F\u7522\u9805\u76EE";
-  if (!civAvailable(owner.civ, entryId)) return "\u6B64\u6587\u660E\u4E0D\u80FD\u751F\u7522";
+  if (!civAvailable(owner.civ, entryId, !!i.allTechs)) return "\u6B64\u6587\u660E\u4E0D\u80FD\u751F\u7522";
   if (!i.building.complete) return "\u5EFA\u7BC9\u5C1A\u672A\u5B8C\u5DE5";
   if (!producersOf(entryId, owner).includes(i.building.kind)) return "\u9019\u68DF\u5EFA\u7BC9\u4E0D\u80FD\u751F\u7522\u9019\u500B\u9805\u76EE";
   for (const req of e.requires) {
@@ -3566,7 +4578,8 @@ function trainBlocker(i, entryId) {
 function trainable(s, player, b, entryId) {
   if (b.player !== player) return "\u4E0D\u80FD\u64CD\u4F5C\u6575\u65B9\u5EFA\u7BC9";
   const a = s.accounts[player];
-  return trainBlocker({ player, civ: ownerOf(s, player).civ, age: s.ages[player], techs: s.techs[player], building: b, ownBuildings: s.buildings.filter((v) => v.player === player), stock: a.stock, populationUsed: a.populationUsed, populationReserved: a.populationReserved, populationCap: a.populationCap }, entryId);
+  const o = ownerOf(s, player);
+  return trainBlocker({ ...o.allTechs ? { allTechs: true } : {}, player, civ: o.civ, age: s.ages[player], techs: s.techs[player], building: b, ownBuildings: s.buildings.filter((v) => v.player === player), stock: a.stock, populationUsed: a.populationUsed, populationReserved: a.populationReserved, populationCap: a.populationCap }, entryId);
 }
 function enqueue(s, player, buildingId, entryId, reservationId) {
   const b = s.buildings.find((v) => v.id === buildingId);
@@ -3653,6 +4666,16 @@ function stepProduction(s) {
       refreshOwner(s, b.player, before);
       continue;
     }
+    const g = s.garrison;
+    if (b.rally?.inside && g && !battered(b) && (g[b.id]?.units.length ?? 0) < garrisonCapacity(s, b)) {
+      commitReservation(s.accounts[b.player], item.reservationId);
+      b.queue.shift();
+      const box = obstacleBounds(s.map.obstacles.find((o) => o.id === b.id));
+      const u2 = makeUnit(s.map, s.nextUnitId++, b.player, Math.round((box[0] + box[2]) / 100) * 50, Math.round((box[1] + box[3]) / 100) * 50, unitKindOf(item.entryId));
+      u2.hp = maxHpOf(u2.kind, ownerOf(s, b.player));
+      (g[b.id] ??= { box, units: [] }).units.push({ unit: u2, work: null, bell: false });
+      continue;
+    }
     const layer = layerOf(unitKindOf(item.entryId)), node = exitNode(s, b, layer);
     if (node < 0) continue;
     commitReservation(s.accounts[b.player], item.reservationId);
@@ -3660,7 +4683,7 @@ function stepProduction(s) {
     const p = position(s.map, node), u = makeUnit(s.map, s.nextUnitId++, b.player, p.x, p.y, unitKindOf(item.entryId));
     u.hp = maxHpOf(u.kind, ownerOf(s, b.player));
     s.units.push(u);
-    if (b.rally && nearest(s.map, b.rally, false, layer) >= 0) commandMove(s, [u.id], b.rally);
+    if (b.rally && !b.rally.inside && nearest(s.map, b.rally, false, layer) >= 0) commandMove(s, [u.id], b.rally);
   }
 }
 
@@ -3683,7 +4706,7 @@ var religionRules = {
   unconvertibleBuildings: ["town-center", "monastery", "farm", "castle", "wonder", "palisade-wall", "stone-wall", "palisade-gate", "gate"],
   relics: { count: 5, goldTicks: 40, perMonastery: 10, victoryTicks: 2e4, baseDistance: 900, spacing: 600, fairness: 400, edge: 150 }
 };
-var random = (s) => {
+var random2 = (s) => {
   let n = s.rng;
   n ^= n << 13;
   n ^= n >>> 17;
@@ -3700,6 +4723,7 @@ function faithOf(s, monkId) {
 var convertRangeOf = (s, player) => religionRules.convertRange + (has(s, player, "block-printing") ? religionRules.printingRange : 0);
 var carrying = (s, monkId) => s.relics.some((r) => r.carrier === monkId);
 var maxHp = (s, u) => maxHpOf(u.kind, ownerOf(s, u.player));
+var healable = (kind) => !(kind in combatRules.units) || !combatRules.units[kind].classes.some((c) => c === "siege" || c === "ship");
 var healRangeOf = (s, player) => Math.round(religionRules.healRange * healRangeScale(ownerOf(s, player)));
 var healTicksOf = (s, player) => Math.max(1, Math.round(religionRules.healTicks / healRateScale(ownerOf(s, player))));
 var seen = (s, player, x, y) => new Set(s.vision[player].visible).has(tileAt(x, y, s.map.size));
@@ -3744,6 +4768,7 @@ function riteProblem(s, player, kind, target) {
   if (kind === "heal") {
     if (t.player !== player) return "\u53EA\u80FD\u6CBB\u7642\u5DF1\u65B9\u55AE\u4F4D";
     if (t.kind === "monk") return "\u50E7\u4FB6\u4E0D\u80FD\u88AB\u6CBB\u7642";
+    if (!healable(t.kind)) return "\u653B\u57CE\u5668\u8207\u8239\u96BB\u4E0D\u80FD\u88AB\u6CBB\u7642\uFF1A\u6D3E\u6751\u6C11\u4FEE\u7406";
     return null;
   }
   if (t.player === player) return "\u4E0D\u80FD\u8F49\u5316\u5DF1\u65B9\u55AE\u4F4D";
@@ -3870,7 +4895,7 @@ function stepRelics(s) {
     }
   }
   const owners = new Set(held2.map((b) => b ? b.player : -1));
-  if (s.relics.length && owners.size === 1 && !owners.has(-1)) {
+  if (s.settings?.victory !== "conquest" && s.relics.length && owners.size === 1 && !owners.has(-1)) {
     const player = [...owners][0];
     if (!s.relicVictory || s.relicVictory.player !== player) s.relicVictory = { player, endsTick: s.tick + R.victoryTicks };
     if (!s.outcome && s.tick >= s.relicVictory.endsTick) s.outcome = { winner: player, defeated: [1 - player], tick: s.tick, reason: "relic" };
@@ -3883,7 +4908,7 @@ function stepReligion(s) {
   for (const m of monks) {
     if (s.rites[m.id] || s.attacks[m.id] || m.next !== null || m.path.length || busy.has(m.id)) continue;
     let best = null, dist2 = Infinity;
-    for (const u of s.units) if (u !== m && u.player === m.player && u.kind !== "monk" && !isAnimal(u.kind) && u.hp < maxHp(s, u)) {
+    for (const u of s.units) if (u !== m && u.player === m.player && u.kind !== "monk" && !isAnimal(u.kind) && healable(u.kind) && u.hp < maxHp(s, u)) {
       const d = reach(m, u);
       if (d <= religionRules.healSight && (d < dist2 || d === dist2 && best && u.id < best.id)) {
         best = u;
@@ -3978,7 +5003,7 @@ function stepReligion(s) {
       if (typeof r.target === "string") {
         if (r.needed === 0) {
           const { min: min2, max: max2 } = religionRules.buildingTicks;
-          r.needed = min2 + random(s) % (max2 - min2 + 1);
+          r.needed = min2 + random2(s) % (max2 - min2 + 1);
         }
         if (++r.progress >= r.needed) {
           convertBuilding(s, m, s.buildings.find((b) => b.id === r.target));
@@ -3989,7 +5014,7 @@ function stepReligion(s) {
       if (++r.progress % religionRules.attemptTicks !== 0) continue;
       const t = s.units.find((u) => u.id === r.target), base = has(s, t.player, "faith") ? religionRules.faithAttempts : religionRules.attempts, resist = conversionResist(ownerOf(s, t.player)), min = base.min + resist, max = base.max + resist;
       r.attempt++;
-      if (r.attempt >= min && (r.attempt >= max || random(s) % 100 < religionRules.attemptChance)) {
+      if (r.attempt >= min && (r.attempt >= max || random2(s) % 100 < religionRules.attemptChance)) {
         convertUnit(s, m, t);
         delete s.rites[m.id];
       }
@@ -4151,6 +5176,11 @@ function stepTrade(s) {
 }
 function stepWonders(s) {
   const T = religionRules.relics.victoryTicks;
+  if (s.settings?.victory === "conquest") {
+    s.wonders = {};
+    s.wonderVictory = null;
+    return;
+  }
   for (const id of Object.keys(s.wonders)) if (!s.buildings.some((b) => b.id === id && b.kind === "wonder" && b.complete)) delete s.wonders[id];
   for (const b of [...s.buildings].sort((a, b2) => a.id < b2.id ? -1 : 1)) if (b.kind === "wonder" && b.complete && !(b.id in s.wonders)) s.wonders[b.id] = s.tick + T;
   let best = null;
@@ -4166,6 +5196,8 @@ function stepWonders(s) {
 var aiRules = {
   provenance: "design_default",
   player: 1,
+  tauntGap: 3600,
+  tauntQuiet: 600,
   thinkTicks: 20,
   thinkOffset: 7,
   villagerTarget: 12,
@@ -4218,14 +5250,19 @@ var aiRules = {
   sellAbove: 600,
   goldShort: 100,
   tradeCarts: 2,
+  // The 遊戲元素 round: a town centre or castle below repairBelow percent of its hit points gets up to repairers
+  // villagers within repairRange (idle ones first, never builders) to repair it.
+  repairBelow: 70,
+  repairers: 2,
+  repairRange: 600,
   research: { blacksmith: ["forging", "fletching", "scale-mail-armor", "padded-archer-armor", "iron-casting", "bodkin-arrow", "chain-mail-armor", "scale-barding-armor"], barracks: ["man-at-arms", "long-swordsman"], "archery-range": ["crossbowman"], "town-center": ["loom", "wheelbarrow", "hand-cart"], dock: ["gillnets"], "lumber-camp": ["double-bit-axe", "bow-saw", "two-man-saw"], "mining-camp": ["gold-mining", "gold-shaft-mining"], mill: ["horse-collar", "heavy-plow", "crop-rotation"] }
 };
 var soldierKinds = unitKinds.filter((k) => k !== "villager" && k !== "monk" && k !== "scout" && !isAnimal(k) && combatRules.units[k].attack !== "none");
-var classesOf = (kind) => combatRules.units[kind]?.classes ?? [];
+var classesOf3 = (kind) => combatRules.units[kind]?.classes ?? [];
 function castlePlan(o) {
-  const civ = civDefs.find((c) => c.id === o.civ), unit2 = civ?.uniqueUnits.find((k) => civAvailable(o.civ, k) && soldierKinds.includes(k));
-  if (!civ || !unit2 || !civAvailable(o.civ, "castle")) return null;
-  return { unit: unit2, techs: civ.uniqueTechs.filter((t) => t.age === 3 && civAvailable(o.civ, t.id) && rules.entries.some((e) => e.id === t.id)).map((t) => t.id) };
+  const civ = civDefs.find((c) => c.id === o.civ), unit2 = civ?.uniqueUnits.find((k) => ownerAvailable(o, k) && soldierKinds.includes(k));
+  if (!civ || !unit2 || !ownerAvailable(o, "castle")) return null;
+  return { unit: unit2, techs: civ.uniqueTechs.filter((t) => t.age === 3 && ownerAvailable(o, t.id) && rules.entries.some((e) => e.id === t.id)).map((t) => t.id) };
 }
 var gap2 = (a, b) => Math.max(a[0] - b[2], b[0] - a[2], a[1] - b[3], b[1] - a[3], 0);
 var centre2 = (b) => ({ x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2 });
@@ -4237,19 +5274,22 @@ function claim(ok, kind, x, y) {
   return ok;
 }
 function stepAI(s, order) {
-  if (s.outcome || s.tick % aiRules.thinkTicks !== aiRules.thinkOffset) return;
+  if (s.outcome || s.tick % aiTuning(s).thinkTicks !== aiRules.thinkOffset) return;
   claimed = [];
   const P = aiRules.player, vision = s.vision[P], seen2 = new Set(vision.visible), explored = new Set(vision.explored);
   const busy = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId]));
   const idle = (u) => !s.works[u.id] && !s.attacks[u.id] && u.next === null && !u.path.length && !busy.has(u.id);
-  const mine = s.units.filter((u) => u.player === P).sort((a, b) => a.id - b.id), villagers = mine.filter((u) => u.kind === "villager"), soldiers = mine.filter((u) => soldierKinds.includes(u.kind) && layerOf(u.kind) === "land"), warships = mine.filter((u) => soldierKinds.includes(u.kind) && layerOf(u.kind) === "water"), scout = mine.find((u) => u.kind === "scout");
+  const mine = s.units.filter((u) => u.player === P).sort((a, b) => a.id - b.id), allVillagers = mine.filter((u) => u.kind === "villager"), soldiers = mine.filter((u) => soldierKinds.includes(u.kind) && layerOf(u.kind) === "land"), warships = mine.filter((u) => soldierKinds.includes(u.kind) && layerOf(u.kind) === "water"), scout = mine.find((u) => u.kind === "scout");
   const own = s.buildings.filter((b) => b.player === P), tc = own.find((b) => b.kind === "town-center"), tcBox = tc ? boxOf4(s, tc) : null;
   const foes = s.units.filter((u) => u.player !== P && !isAnimal(u.kind) && seen2.has(tileAt(u.x, u.y, s.map.size))).sort((a, b) => a.id - b.id);
   if (!tc && !soldiers.length && !warships.length) {
     order("resign", {});
     return;
   }
-  army(s, order, soldiers, foes, tcBox, idle, explored);
+  const op = activeOpening(s), phase = op ? openingPhase(s, own) : null, half = tcBox ? sideFrom(s, centre2(tcBox)) : null;
+  const raiding = op && half && tcBox ? raid(s, order, op, mine, scout, foes, idle, centre2(tcBox), half, explored) : /* @__PURE__ */ new Set();
+  const wave = army(s, order, soldiers.filter((u) => !raiding.has(u.id)), foes, tcBox, idle, explored);
+  taunt(s, order, wave, tc, tcBox, foes);
   if (tcBox) {
     const home2 = centre2(tcBox), raiders = foes.filter((f) => f.kind !== "villager" && dist(f, home2) <= aiRules.bellRadius).length, guards = soldiers.filter((u) => dist(u, home2) <= aiRules.bellRadius).length;
     const belled = Object.values(s.garrison).some((g) => g.units.some((e) => e.bell && e.unit.player === P));
@@ -4270,68 +5310,96 @@ function stepAI(s, order) {
     if (best >= 0) march(s, order, [scout], { x: best % size * 100 + 50, y: Math.floor(best / size) * 100 + 50 });
   }
   if (!tc || !tcBox) return;
+  const forward = op && half ? forwardWork(s, order, op, allVillagers, own, idle, centre2(tcBox), half, explored) : /* @__PURE__ */ new Set(), villagers = allVillagers.filter((u) => !forward.has(u.id));
   const account = s.accounts[P], stock = account.stock, owner = ownerOf(s, P), cost = (id) => costOf(id, owner);
   const queued = (id) => own.reduce((t, b) => t + b.queue.filter((q) => q.entryId === id).length, 0);
   const plan = s.ages[P] >= 3 ? castlePlan(owner) : null, castle = own.find((b) => b.kind === "castle");
   const stoneDue = !!plan && stock.stone < (castle ? 0 : cost("castle").stone) + plan.techs.filter((id) => !s.techs[P].includes(id) && !queued(id)).reduce((t, id) => t + cost(id).stone, 0);
-  for (const b of own.filter((b2) => !b2.complete)) {
-    if (villagers.filter((u) => {
-      const w = s.works[u.id];
-      return w?.kind === "build" && w.buildingId === b.id;
+  for (const b of own.filter((b2) => !b2.complete && !(op && half && half(centre2(boxOf4(s, b2))) < 0))) {
+    if (allVillagers.filter((u) => {
+      const w2 = s.works[u.id];
+      return w2?.kind === "build" && w2.buildingId === b.id;
     }).length >= (b.kind === "castle" ? aiRules.castleBuilders : 1)) continue;
     const builder = pickBuilder(s, villagers, idle, centre2(boxOf4(s, b)));
     if (builder) order("construct", { unitIds: [builder.id], buildingId: b.id });
   }
   const pending = (k) => own.some((b) => b.kind === k && !b.complete);
   const room3 = account.populationCap - account.populationUsed - account.populationReserved;
-  const barracksDue = villagers.length >= aiRules.barracksAtVillagers && !own.some((b) => b.kind === "barracks");
+  const barracksDue = !own.some((b) => b.kind === "barracks") && (op ? op.plan.barracks === "dark" ? allVillagers.length >= (op.plan.barracksAt ?? aiRules.barracksAtVillagers) : op.plan.barracks === "up" && phase !== "dark" : villagers.length >= aiRules.barracksAtVillagers);
   if (barracksDue) place(s, order, "barracks", villagers, idle, tcBox, own);
   const holdForCastle = !!plan && !castle && (stock.stone < cost("castle").stone || place(s, order, "castle", villagers, idle, tcBox, own));
   const monasteryLost = s.ages[P] >= 3 && !own.some((b) => b.kind === "monastery") && stock.wood >= cost("monastery").wood && !place(s, order, "monastery", villagers, idle, tcBox, own);
-  if (s.ages[P] >= 2 && own.some((b) => b.kind === "archery-range" && b.complete) && !own.some((b) => b.kind === "blacksmith") && stock.wood >= cost("blacksmith").wood) place(s, order, "blacksmith", villagers, idle, tcBox, own);
+  if (!op && s.ages[P] >= 2 && own.some((b) => b.kind === "archery-range" && b.complete) && !own.some((b) => b.kind === "blacksmith") && stock.wood >= cost("blacksmith").wood) place(s, order, "blacksmith", villagers, idle, tcBox, own);
   if (s.ages[P] >= 3 && !holdForCastle && own.some((b) => b.kind === "blacksmith" && b.complete) && !own.some((b) => b.kind === "siege-workshop") && stock.wood >= cost("siege-workshop").wood) place(s, order, "siege-workshop", villagers, idle, tcBox, own);
   if (s.ages[P] >= 3 && !holdForCastle && !own.some((b) => b.kind === "stable") && stock.wood >= cost("stable").wood) place(s, order, "stable", villagers, idle, tcBox, own);
-  if (s.ages[P] >= 2 && !own.some((b) => b.kind === "archery-range") && !buildRequirement(s.ages[P], "archery-range", own, owner.civ) && stock.wood >= cost("archery-range").wood) place(s, order, "archery-range", villagers, idle, tcBox, own);
-  const monasteryDue = s.ages[P] >= 3 && civAvailable(owner.civ, "monastery") && !own.some((b) => b.kind === "monastery") && !monasteryLost;
-  if (room3 <= (monasteryDue ? 0 : aiRules.houseMargin) && account.populationCap < rules.settings.populationCap && !pending("house") && (!barracksDue || room3 <= 0)) place(s, order, "house", villagers, idle, tcBox, own);
+  if (!op && s.ages[P] >= 2 && !own.some((b) => b.kind === "archery-range") && !buildRequirement(s.ages[P], "archery-range", own, owner.civ, s.techs[P], !!owner.allTechs) && stock.wood >= cost("archery-range").wood) place(s, order, "archery-range", villagers, idle, tcBox, own);
+  if (op && s.ages[P] >= 2) for (const { kind, count } of op.plan.build) {
+    const k = kind;
+    if (own.filter((b) => b.kind === k).length >= count || own.some((b) => b.kind === k && !b.complete) || buildRequirement(s.ages[P], k, own, owner.civ, s.techs[P], !!owner.allTechs)) continue;
+    if (place(s, order, k, villagers, idle, tcBox, own)) break;
+  }
+  const monasteryDue = s.ages[P] >= 3 && ownerAvailable(owner, "monastery") && !own.some((b) => b.kind === "monastery") && !monasteryLost;
+  if (room3 <= (monasteryDue ? 0 : aiRules.houseMargin) && account.populationCap < settingsOf(s).popCap && !pending("house") && (!barracksDue || room3 <= 0)) place(s, order, "house", villagers, idle, tcBox, own);
   const accepts = dropoffRules.accepts, drops = own.filter((b) => b.complete && accepts[b.kind]).map((b) => ({ kinds: accepts[b.kind], box: boxOf4(s, b) })).filter((d) => d.box);
   for (const [camp, kinds] of [["lumber-camp", ["wood"]], ["mining-camp", ["gold", "stone"]], ["mill", ["food"]]]) {
     if (monasteryDue || own.some((b) => b.kind === camp && !b.complete)) continue;
-    const far = villagers.map((u) => s.works[u.id]).filter((w) => w?.kind === "gather").map((w) => s.map.resources.find((r) => r.id === w.resourceId)).filter((r) => !!r && r.kind !== "farm" && kinds.includes(resourceDefinitions[r.kind].yield) && Math.min(...drops.filter((d) => d.kinds.includes(resourceDefinitions[r.kind].yield)).map((d) => gap2([r.x, r.y, r.x, r.y], d.box))) > aiRules.campDistance);
+    const far = villagers.map((u) => s.works[u.id]).filter((w2) => w2?.kind === "gather").map((w2) => s.map.resources.find((r) => r.id === w2.resourceId)).filter((r) => !!r && r.kind !== "farm" && kinds.includes(resourceDefinitions[r.kind].yield) && Math.min(...drops.filter((d) => d.kinds.includes(resourceDefinitions[r.kind].yield)).map((d) => gap2([r.x, r.y, r.x, r.y], d.box))) > aiRules.campDistance);
     if (far.length >= aiRules.campWorkers && place(s, order, camp, villagers, idle, tcBox, own, void 0, { x: far[0].x, y: far[0].y })) break;
   }
-  if (tc.complete && !tc.queue.length) {
-    if (villagers.length + queued("villager") < aiRules.villagerTarget && !trainable(s, P, tc, "villager")) order("train", { buildingId: tc.id, entryId: "villager" });
+  const villagerCount = allVillagers.length + queued("villager");
+  if (op && tc.complete && !tc.queue.length) {
+    const plan2 = op.plan, clicked = phase !== "dark", ready = allVillagers.length >= plan2.clickAt;
+    if (!clicked && ready && (!plan2.clickOnFood || stock.food >= cost("age-2").food)) {
+      const next = plan2.loom && !s.techs[P].includes("loom") ? "loom" : "age-2";
+      if (!trainable(s, P, tc, next)) order("train", { buildingId: tc.id, entryId: next });
+    } else if (villagerCount < (clicked ? Math.max(plan2.villagers, aiTuning(s).villagerTarget) : plan2.clickOnFood ? plan2.villagers : plan2.clickAt) && !trainable(s, P, tc, "villager")) order("train", { buildingId: tc.id, entryId: "villager" });
+    else if (plan2.castle && s.ages[P] === 2 && !trainable(s, P, tc, "age-3")) order("train", { buildingId: tc.id, entryId: "age-3" });
+  } else if (tc.complete && !tc.queue.length) {
+    if (villagers.length + queued("villager") < aiTuning(s).villagerTarget && !trainable(s, P, tc, "villager")) order("train", { buildingId: tc.id, entryId: "villager" });
     else if (s.ages[P] < 2 && villagers.length >= aiRules.ageUpAtVillagers && own.some((b) => b.kind === "barracks" && b.complete) && !trainable(s, P, tc, "age-2")) order("train", { buildingId: tc.id, entryId: "age-2" });
-    else if (s.ages[P] === 2 && villagers.length >= aiRules.villagerTarget && own.some((b) => b.kind === "archery-range" && b.complete) && !trainable(s, P, tc, "age-3")) order("train", { buildingId: tc.id, entryId: "age-3" });
+    else if (s.ages[P] === 2 && villagers.length >= aiTuning(s).villagerTarget && own.some((b) => b.kind === "archery-range" && b.complete) && !trainable(s, P, tc, "age-3")) order("train", { buildingId: tc.id, entryId: "age-3" });
   }
-  const savingForAge = s.ages[P] < 2 && villagers.length >= aiRules.ageUpAtVillagers && stock.food < cost("age-2").food + 60;
-  const savingForCastle = s.ages[P] === 2 && villagers.length >= aiRules.villagerTarget && own.some((b) => b.kind === "archery-range" && b.complete) && !own.some((b) => b.queue.some((q) => q.entryId === "age-3")) && (stock.food < cost("age-3").food + 60 || stock.gold < cost("age-3").gold + 30);
-  const monks = mine.filter((u) => u.kind === "monk"), seenCavalry = foes.some((u) => classesOf(u.kind).includes("cavalry") && (u.kind !== "scout" || s.tick > aiRules.firstWaveTick)), seenArchers = foes.filter((u) => classesOf(u.kind).includes("archer") && !classesOf(u.kind).includes("skirmisher")).length;
-  const slots = plan && castle ? Math.max(0, aiRules.uniqueTarget - mine.filter((u) => u.kind === plan.unit).length - queued(plan.unit)) : 0, unitCost = plan ? cost(plan.unit) : null;
-  const reserve2 = (r) => !slots || !unitCost ? 0 : r === "gold" ? slots * unitCost.gold : unitCost[r], left = { ...stock };
+  const savingForAge = op ? phase === "dark" && allVillagers.length >= op.plan.clickAt && !op.plan.clickOnFood : s.ages[P] < 2 && villagers.length >= aiRules.ageUpAtVillagers && stock.food < cost("age-2").food + 60;
+  const savingForCastle = s.ages[P] === 2 && !own.some((b) => b.queue.some((q) => q.entryId === "age-3")) && (op ? op.plan.castle : villagers.length >= aiTuning(s).villagerTarget && own.some((b) => b.kind === "archery-range" && b.complete)) && (stock.food < cost("age-3").food + 60 || stock.gold < cost("age-3").gold + 30);
+  const planned = op ? Object.entries(op.plan.train[phase === "castle" ? "feudal" : phase] ?? {}) : null;
+  const buildingsDue = !!op && s.ages[P] >= 2 && op.plan.build.some(({ kind, count }) => own.filter((b) => b.kind === kind).length < count && !buildRequirement(s.ages[P], kind, own, owner.civ, s.techs[P], !!owner.allTechs));
+  const monks = mine.filter((u) => u.kind === "monk"), seenCavalry = foes.some((u) => classesOf3(u.kind).includes("cavalry") && (u.kind !== "scout" || s.tick > aiTuning(s).firstWaveTick)), seenArchers = foes.filter((u) => classesOf3(u.kind).includes("archer") && !classesOf3(u.kind).includes("skirmisher")).length;
+  const slots2 = plan && castle ? Math.max(0, aiRules.uniqueTarget - mine.filter((u) => u.kind === plan.unit).length - queued(plan.unit)) : 0, unitCost = plan ? cost(plan.unit) : null;
+  const reserve2 = (r) => !slots2 || !unitCost ? 0 : r === "gold" ? slots2 * unitCost.gold : unitCost[r], left = { ...stock };
   const spare = (id) => {
     const c = cost(id);
-    return !slots || Object.keys(c).every((r) => left[r] >= reserve2(r) + c[r]);
+    return !slots2 || Object.keys(c).every((r) => left[r] >= reserve2(r) + c[r]);
   };
   let open = room3;
   for (const b of own.filter((b2) => b2.complete && b2.queue.length < 2)) {
-    const unique2 = plan && slots && producersOf(plan.unit, owner).includes(b.kind) ? plan.unit : null;
+    if (planned && !b.kind.startsWith("castle") && b.kind !== "town-center") {
+      if (savingForAge || savingForCastle) continue;
+      const pick2 = planned.find(([k, n]) => producersOf(k, owner).includes(b.kind) && mine.filter((u) => u.kind === k).length + queued(k) < n && !(buildingsDue && cost(k).wood > 0) && !trainable(s, P, b, k))?.[0];
+      if (pick2) order("train", { buildingId: b.id, entryId: pick2 });
+      continue;
+    }
+    const unique2 = plan && slots2 && producersOf(plan.unit, owner).includes(b.kind) ? plan.unit : null;
     const pick = unique2 ?? (savingForCastle && b.kind !== "monastery" ? null : b.kind === "barracks" && !savingForAge ? seenCavalry ? "spearman" : "militia" : b.kind === "archery-range" ? seenArchers >= 2 ? "skirmisher" : "archer" : b.kind === "stable" && s.ages[P] >= 3 ? "knight" : b.kind === "siege-workshop" && mine.filter((u) => u.kind === "ram").length + queued("ram") < aiRules.rams ? "ram" : b.kind === "monastery" && monks.length + queued("monk") < aiRules.monkTarget ? "monk" : null);
-    if (pick && pick !== unique2 && slots && (open <= slots || !spare(pick))) continue;
-    if (pick && !trainable(s, P, b, pick) && order("train", { buildingId: b.id, entryId: pick }) && slots && pick !== unique2) {
+    if (pick && pick !== unique2 && slots2 && (open <= slots2 || !spare(pick))) continue;
+    if (pick && !trainable(s, P, b, pick) && order("train", { buildingId: b.id, entryId: pick }) && slots2 && pick !== unique2) {
       open--;
       const c = cost(pick);
       for (const r of Object.keys(c)) left[r] -= c[r];
     }
   }
   const research = { ...aiRules.research, ...plan ? { castle: plan.techs } : {} };
+  if (op) for (const id of op.plan.research) for (const b of producersOf(id, owner)) {
+    const list = research[b] ?? [];
+    if (!list.includes(id)) research[b] = [id, ...list];
+  }
+  if (op) for (const k of Object.keys(research)) research[k] = research[k].filter((id) => op.plan.research.includes(id));
   if (!savingForAge && !savingForCastle) for (const b of own.filter((b2) => b2.complete && !b2.queue.length)) {
-    if (b.kind === "town-center" && villagers.length + queued("villager") < aiRules.villagerTarget) continue;
+    if (b.kind === "town-center" && villagers.length + queued("villager") < aiTuning(s).villagerTarget) continue;
     const next = research[b.kind]?.find((id) => !trainable(s, P, b, id) && spare(id));
     if (next) order("train", { buildingId: b.id, entryId: next });
   }
   water(s, order, { own, mine, villagers, warships, idle, tcBox, cost, queued, spare, explored, foes });
+  repairHome(s, order, own, villagers, idle);
   trade(s, order, { own, mine, villagers, idle, tcBox, cost, queued, saving: savingForAge || savingForCastle || monasteryDue, stoneDue: !!plan && !castle && stock.stone < cost("castle").stone });
   const monastery = own.find((b) => b.kind === "monastery" && b.complete), home = tcBox ? centre2(tcBox) : null, fetching = new Set(Object.values(s.rites).filter((r) => r.kind === "relic").map((r) => r.target));
   for (const m of monks) {
@@ -4356,15 +5424,15 @@ function stepAI(s, order) {
   const hunted = /* @__PURE__ */ new Set();
   let wild = 0;
   for (const u of villagers) {
-    const w = s.works[u.id];
-    if (w?.kind === "gather") {
-      if (w.prey !== void 0) {
+    const w2 = s.works[u.id];
+    if (w2?.kind === "gather") {
+      if (w2.prey !== void 0) {
         staff.food++;
         wild++;
-        hunted.add(w.prey);
+        hunted.add(w2.prey);
         continue;
       }
-      const r = s.map.resources.find((r2) => r2.id === w.resourceId);
+      const r = s.map.resources.find((r2) => r2.id === w2.resourceId);
       if (r) {
         staff[resourceDefinitions[r.kind].yield]++;
         if (r.kind === "farm") farmers.add(r.id);
@@ -4378,9 +5446,9 @@ function stepAI(s, order) {
     if (stray.length) march(s, order, stray, pen);
   }
   const yieldOf = (u) => {
-    const w = s.works[u.id];
-    if (w?.kind !== "gather" || w.prey !== void 0) return null;
-    const r = s.map.resources.find((r2) => r2.id === w.resourceId);
+    const w2 = s.works[u.id];
+    if (w2?.kind !== "gather" || w2.prey !== void 0) return null;
+    const r = s.map.resources.find((r2) => r2.id === w2.resourceId);
     return r ? resourceDefinitions[r.kind].yield : null;
   };
   if (stoneDue && staff.stone < aiRules.stoneWorkers) {
@@ -4393,8 +5461,10 @@ function stepAI(s, order) {
       }
     }
   }
-  for (const u of villagers.filter((u2) => idle(u2) || !stoneDue && yieldOf(u2) === "stone")) {
-    const kinds = Object.keys(aiRules.gatherWeights).filter((k) => aiRules.gatherWeights[k] > 0).sort((a, b) => staff[a] / aiRules.gatherWeights[a] - staff[b] / aiRules.gatherWeights[b]);
+  const towersLeft = op?.plan.towers ? Math.max(0, op.plan.towers.count - own.filter((b) => b.kind === "watch-tower").length) : 0, planWeights = op ? op.plan.weights[phase === "castle" ? "feudal" : phase] : null;
+  const weights = planWeights ? { ...planWeights, stone: stock.stone >= towersLeft * cost("watch-tower").stone ? 0 : planWeights.stone } : aiRules.gatherWeights;
+  for (const u of villagers.filter((u2) => idle(u2) || !stoneDue && !weights.stone && yieldOf(u2) === "stone")) {
+    const kinds = Object.keys(weights).filter((k) => weights[k] > 0).sort((a, b) => staff[a] / weights[a] - staff[b] / weights[b]);
     for (const kind of kinds) {
       const natural = wild < aiRules.wildFoodWorkers && s.ages[P] < 2, source = s.map.resources.filter((r) => resourceDefinitions[r.kind].yield === kind && (kind !== "food" || natural || r.kind === "farm") && explored.has(tileAt(r.x, r.y, s.map.size)) && (kind !== "food" || dist(r, centre2(tcBox)) <= (r.kind === "farm" ? aiRules.siteRange : aiRules.wildRange)) && !gatherable(s.map, r.id) && (r.kind !== "farm" || farmOwner(s, r.id) === P && !farmers.has(r.id))).sort((a, b) => dist(u, a) - dist(u, b) || (a.id < b.id ? -1 : 1))[0];
       if (kind === "food" && natural) {
@@ -4422,11 +5492,11 @@ function knownInput(s) {
   return { tiles: s.map.tiles, obstacles: s.map.obstacles, units: bodies, explored: (t) => explored.has(t) };
 }
 function waterSite(s, kind, near, range) {
-  const size = s.map.size, [, , w, d] = obstacleBounds({ kind, x: 0, y: 0 }), n = w / 100, sites = [];
+  const size = s.map.size, [, , w2, d] = obstacleBounds({ kind, x: 0, y: 0 }), n = w2 / 100, sites = [];
   const wet = (t) => s.map.tiles[t]?.terrainType === "water" || s.map.tiles[t]?.terrainType === "shallow";
   for (let ty = 0; ty + d / 100 <= size; ty++) for (let tx = 0; tx + n <= size; tx++) {
     if (!wet(ty * size + tx)) continue;
-    const c = { x: tx * 100 + w / 2, y: ty * 100 + d / 2 }, dd = dist(c, near);
+    const c = { x: tx * 100 + w2 / 2, y: ty * 100 + d / 2 }, dd = dist(c, near);
     if (dd <= range) sites.push({ x: tx * 100, y: ty * 100, d: dd });
   }
   sites.sort((a, b) => a.d - b.d || a.y - b.y || a.x - b.x);
@@ -4436,10 +5506,10 @@ function waterSite(s, kind, near, range) {
 function water(s, order, c) {
   const P = aiRules.player, owner = ownerOf(s, P), docks = c.own.filter((b) => b.kind === "dock"), dock = docks.find((b) => b.complete), home = centre2(c.tcBox);
   if (!docks.length) {
-    if (civAvailable(owner.civ, "dock") && c.villagers.length >= aiRules.dockAtVillagers && c.own.some((b) => b.kind === "barracks") && affords(s, c.cost("dock"))) {
-      const site2 = waterSite(s, "dock", home, aiRules.dockRange);
-      const builder = site2 && pickBuilder(s, c.villagers, c.idle, { x: site2.x + 150, y: site2.y + 150 });
-      if (site2 && builder) claim(order("build", { unitIds: [builder.id], kind: "dock", x: site2.x, y: site2.y }), "dock", site2.x, site2.y);
+    if (ownerAvailable(owner, "dock") && c.villagers.length >= aiRules.dockAtVillagers && c.own.some((b) => b.kind === "barracks") && affords(s, c.cost("dock"))) {
+      const site3 = waterSite(s, "dock", home, aiRules.dockRange);
+      const builder = site3 && pickBuilder(s, c.villagers, c.idle, { x: site3.x + 150, y: site3.y + 150 });
+      if (site3 && builder) claim(order("build", { unitIds: [builder.id], kind: "dock", x: site3.x, y: site3.y }), "dock", site3.x, site3.y);
     }
     return;
   }
@@ -4449,7 +5519,7 @@ function water(s, order, c) {
     const pick = ships2.length + c.queued("fishing-ship") < aiRules.fishingShips ? "fishing-ship" : s.ages[P] >= 3 && c.warships.length + c.queued("galley") < aiRules.warships && c.spare("galley") ? "galley" : null;
     if (pick && !trainable(s, P, dock, pick)) order("train", { buildingId: dock.id, entryId: pick });
   }
-  const worked = new Set(c.mine.map((u) => s.works[u.id]).filter((w) => w?.kind === "gather").map((w) => w.resourceId));
+  const worked = new Set(c.mine.map((u) => s.works[u.id]).filter((w2) => w2?.kind === "gather").map((w2) => w2.resourceId));
   const traps = c.own.filter((b) => b.kind === "fish-trap").length;
   let laid = false;
   for (const u of ships2.filter(c.idle)) {
@@ -4459,9 +5529,9 @@ function water(s, order, c) {
       continue;
     }
     const sighted3 = s.map.resources.some((r) => r.kind === "fish" && r.collectible && c.explored.has(tileAt(r.x, r.y, s.map.size)));
-    if (!sighted3 && !laid && traps < aiRules.fishTraps && civAvailable(owner.civ, "fish-trap") && s.ages[P] >= 2 && affords(s, c.cost("fish-trap"), 50)) {
-      const site2 = waterSite(s, "fish-trap", at, aiRules.trapRange);
-      if (site2 && claim(order("build", { unitIds: [u.id], kind: "fish-trap", x: site2.x, y: site2.y }), "fish-trap", site2.x, site2.y)) {
+    if (!sighted3 && !laid && traps < aiRules.fishTraps && ownerAvailable(owner, "fish-trap") && s.ages[P] >= 2 && affords(s, c.cost("fish-trap"), 50)) {
+      const site3 = waterSite(s, "fish-trap", at, aiRules.trapRange);
+      if (site3 && claim(order("build", { unitIds: [u.id], kind: "fish-trap", x: site3.x, y: site3.y }), "fish-trap", site3.x, site3.y)) {
         laid = true;
         continue;
       }
@@ -4491,7 +5561,7 @@ function water(s, order, c) {
 function trade(s, order, c) {
   const P = aiRules.player, owner = ownerOf(s, P), stock = s.accounts[P].stock, markets = c.own.filter((b) => b.kind === "market"), market = markets.find((b) => b.complete);
   if (!markets.length) {
-    if (s.ages[P] >= 3 && !c.saving && civAvailable(owner.civ, "market") && stock.wood >= c.cost("market").wood + aiRules.marketSpare) place(s, order, "market", c.villagers, c.idle, c.tcBox, c.own);
+    if (s.ages[P] >= 3 && !c.saving && ownerAvailable(owner, "market") && stock.wood >= c.cost("market").wood + aiRules.marketSpare) place(s, order, "market", c.villagers, c.idle, c.tcBox, c.own);
     return;
   }
   if (!market) return;
@@ -4506,11 +5576,26 @@ function trade(s, order, c) {
     if (surplus) order("market", { action: "sell", resource: surplus });
   }
   const theirs = s.vision[P].known.map((k) => k.obstacle).filter((o) => o.kind === "market" && !o.red && o.progress === void 0).map((o) => ({ id: o.id, c: centre2(obstacleBounds(o)) })).sort((a, b) => dist(a.c, centre2(c.tcBox)) - dist(b.c, centre2(c.tcBox)) || (a.id < b.id ? -1 : 1))[0];
-  if (!theirs || !civAvailable(owner.civ, "trade-cart")) return;
+  if (!theirs || !ownerAvailable(owner, "trade-cart")) return;
   const carts = c.mine.filter((u) => u.kind === "trade-cart");
   if (!market.queue.length && !c.saving && carts.length + c.queued("trade-cart") < aiRules.tradeCarts && !trainable(s, P, market, "trade-cart")) order("train", { buildingId: market.id, entryId: "trade-cart" });
   const idleCarts = carts.filter((u) => c.idle(u) && !s.trades?.[u.id]);
   if (idleCarts.length) order("trade", { unitIds: idleCarts.map((u) => u.id), buildingId: theirs.id });
+}
+function repairHome(s, order, own, villagers, idle) {
+  const hurt = own.filter((b) => (b.kind === "town-center" || b.kind === "castle") && b.complete && b.hp * 100 < b.maxHp * aiRules.repairBelow).sort((a, b) => a.hp * b.maxHp - b.hp * a.maxHp || (a.id < b.id ? -1 : 1))[0];
+  const box = hurt && boxOf4(s, hurt);
+  if (!hurt || !box) return;
+  const on = villagers.filter((v) => {
+    const w2 = s.works[v.id];
+    return w2?.kind === "repair" && w2.target?.id === hurt.id;
+  }).length;
+  const dist2 = (v) => Math.max(box[0] - v.x, 0, v.x - box[2], box[1] - v.y, 0, v.y - box[3]), busy = (v) => {
+    const k = s.works[v.id]?.kind;
+    return k === "build" || k === "repair";
+  };
+  const free = villagers.filter((v) => !busy(v) && dist2(v) <= aiRules.repairRange).sort((a, b) => Number(idle(b)) - Number(idle(a)) || dist2(a) - dist2(b) || a.id - b.id).slice(0, Math.max(0, aiRules.repairers - on));
+  if (free.length) order("repair", { unitIds: free.map((v) => v.id).sort((a, b) => a - b), target: { kind: "building", id: hurt.id } });
 }
 function penSpot(s, tcBox) {
   const c = centre2(tcBox), closed = blockedTable(s.map), edge = s.map.size * 100 - 100;
@@ -4537,7 +5622,7 @@ function pickBuilder(s, villagers, idle, near) {
 }
 function place(s, order, kind, villagers, idle, tcBox, own, worker, near) {
   const owner = ownerOf(s, aiRules.player), cost = costOf(kind, owner), stock = s.accounts[aiRules.player].stock;
-  if (Object.keys(cost).some((r2) => stock[r2] < cost[r2]) || !buildKinds.includes(kind) || !civAvailable(owner.civ, kind)) return false;
+  if (Object.keys(cost).some((r2) => stock[r2] < cost[r2]) || !buildKinds.includes(kind) || !ownerAvailable(owner, kind)) return false;
   const home = centre2(tcBox), c = near ?? home, others = own.filter((b) => b.kind !== "farm" && b.kind !== "town-center").map((b) => boxOf4(s, b)).filter((b) => b !== null), [x0, y0, x1, y1] = obstacleBounds({ kind, x: 0, y: 0 }), world = s.map.size * 100, sources = s.map.obstacles.filter((o) => o.kind === "gold" || o.kind === "rock" || o.kind === "berries" || o.kind === "hunt" || o.kind === "livestock").map((o) => obstacleBounds(o)), middle = world / 2, axis = Math.hypot(home.x - middle, home.y - middle) || 1, ux = (home.x - middle) / axis, uy = (home.y - middle) / axis;
   const side = (x, y) => (x - middle) * ux + (y - middle) * uy;
   const explored = new Set(s.vision[aiRules.player].explored), bodies = [...s.units.flatMap((u) => [{ x: u.x, y: u.y }, ...u.next === null ? [] : [position(s.map, u.next)]]), ...s.relics.filter((r2) => r2.carrier === null && r2.monastery === null).map((r2) => ({ x: r2.x, y: r2.y }))];
@@ -4586,13 +5671,13 @@ function place(s, order, kind, villagers, idle, tcBox, own, worker, near) {
     const short = (v) => kind === "castle" && v.half < aiRules.halfMargin ? 1 : 0;
     sites.sort((a, b) => short(a) - short(b) || a.d - b.d || a.y - b.y || a.x - b.x);
     let checks = 0;
-    for (const site2 of sites) {
-      if (clashes(obstacleBounds({ kind, x: site2.x, y: site2.y }), kind === "farm" ? 0 : aiRules.laneGap)) continue;
+    for (const site3 of sites) {
+      if (clashes(obstacleBounds({ kind, x: site3.x, y: site3.y }), kind === "farm" ? 0 : aiRules.laneGap)) continue;
       if (++checks > aiRules.siteChecks) break;
-      if (placementProblem(input, kind, site2.x, site2.y)) continue;
-      const builder = worker ?? pickBuilder(s, villagers, idle, site2);
+      if (placementProblem(input, kind, site3.x, site3.y)) continue;
+      const builder = worker ?? pickBuilder(s, villagers, idle, site3);
       if (!builder) return false;
-      return claim(order("build", { unitIds: [builder.id], kind, x: site2.x, y: site2.y }), kind, site2.x, site2.y);
+      return claim(order("build", { unitIds: [builder.id], kind, x: site3.x, y: site3.y }), kind, site3.x, site3.y);
     }
   }
   return false;
@@ -4606,7 +5691,7 @@ function army(s, order, soldiers, foes, tcBox, idle, explored) {
   };
   const home = tcBox ? centre2(tcBox) : null, intruder = home ? foes.filter((f) => dist(f, home) <= aiRules.defendRadius).sort((a, b) => dist(a, home) - dist(b, home) || a.id - b.id)[0] : void 0;
   const enemyBuildings = s.buildings.filter((b) => b.player !== P).map((b) => ({ b, box: boxOf4(s, b) })).filter((v) => v.box && !targetProblem(s, P, { kind: "building", id: v.b.id }));
-  const free = [], offensive = s.tick >= aiRules.firstWaveTick;
+  const free = [], offensive = s.tick >= aiTuning(s).firstWaveTick;
   for (const u of soldiers) {
     if (s.attacks[u.id]) continue;
     const foe = combatRules.units[u.kind]?.buildingsOnly ? void 0 : intruder ?? foes.filter((f) => dist(f, u) <= aiRules.engageRange && (offensive || home && dist(f, home) <= aiRules.defendRadius)).sort((a, b) => dist(a, u) - dist(b, u) || a.id - b.id)[0];
@@ -4614,9 +5699,9 @@ function army(s, order, soldiers, foes, tcBox, idle, explored) {
       assign(u, { kind: "unit", id: foe.id });
       continue;
     }
-    const site2 = offensive && idle(u) && dist(u, home ?? u) > aiRules.defendRadius ? enemyBuildings.sort((a, b) => dist(centre2(a.box), u) - dist(centre2(b.box), u) || (a.b.id < b.b.id ? -1 : 1))[0] : void 0;
-    if (site2) {
-      assign(u, { kind: "building", id: site2.b.id });
+    const site3 = offensive && idle(u) && dist(u, home ?? u) > aiRules.defendRadius ? enemyBuildings.sort((a, b) => dist(centre2(a.box), u) - dist(centre2(b.box), u) || (a.b.id < b.b.id ? -1 : 1))[0] : void 0;
+    if (site3) {
+      assign(u, { kind: "building", id: site3.b.id });
       continue;
     }
     if (idle(u)) free.push(u);
@@ -4624,8 +5709,25 @@ function army(s, order, soldiers, foes, tcBox, idle, explored) {
   for (const { target, ids } of attackers.values()) order("attack", { unitIds: ids.sort((a, b) => a - b), target });
   if (!free.length || !home) return;
   const atHome = free.filter((u) => dist(u, home) <= aiRules.defendRadius), away = free.filter((u) => dist(u, home) > aiRules.defendRadius);
-  if (s.tick >= aiRules.firstWaveTick && atHome.length >= aiRules.waveSize) march(s, order, atHome, objective(s, home, explored, true));
+  let wave = false;
+  if (s.tick >= aiTuning(s).firstWaveTick && atHome.length >= aiTuning(s).waveSize) {
+    march(s, order, atHome, objective(s, home, explored, true));
+    wave = true;
+  }
   if (away.length) march(s, order, away, offensive ? objective(s, home, explored, false) : { x: home.x, y: home.y + 250 });
+  return wave;
+}
+function taunt(s, order, wave, tc, tcBox, foes) {
+  const P = aiRules.player, mine = (s.chat ?? []).filter((m) => m.player === P), last = (n) => Math.max(-Infinity, ...mine.filter((m) => n === void 0 || m.taunt === n).map((m) => m.tick));
+  if (s.tick - last() < aiRules.tauntQuiet) return;
+  const say = (n) => s.tick - last(n) >= aiRules.tauntGap && order("taunt", { number: n });
+  const home = tcBox ? centre2(tcBox) : null, raiders = home ? foes.filter((f) => f.kind !== "villager" && dist(f, home) <= aiRules.defendRadius) : [];
+  if (wave && say(23)) return;
+  if (tc && tc.hp * 2 < tc.maxHp && raiders.length && say(12)) return;
+  if (Object.keys(s.wonders ?? {}).some((id) => s.buildings.some((b) => b.id === id && b.player !== P)) && say(26)) return;
+  const towns = new Set(s.buildings.filter((b) => b.player !== P && b.kind === "town-center").map((b) => b.id));
+  if (Object.entries(s.attacks).some(([id, a]) => a.target.kind === "building" && towns.has(a.target.id) && s.units.some((u) => u.id === Number(id) && u.player === P)) && say(21)) return;
+  if (raiders.length) say(16);
 }
 function objective(s, home, explored, wave) {
   const P = aiRules.player, known = s.vision[P].known.map((k) => k.obstacle).filter((o) => isBuilding(o) && !o.red).map((o) => centre2(obstacleBounds(o)));
@@ -4657,123 +5759,191 @@ function march(s, order, units, goal) {
     if (order("move", { unitIds: units.map((u) => u.id).sort((a, b) => a - b).slice(0, 40), x: p.x, y: p.y })) return;
   }
 }
+function activeOpening(s) {
+  const o = openingById(s.aiOpening ?? "");
+  if (!o) return null;
+  const u = o.plan.until;
+  return s.tick >= u.tick || u.age !== void 0 && s.ages[aiRules.player] >= u.age ? null : o;
+}
+function openingPhase(s, own) {
+  const P = aiRules.player;
+  if (s.ages[P] >= 3) return "castle";
+  if (s.ages[P] >= 2) return "feudal";
+  return own.some((b) => b.queue.some((q) => ageOf(q.entryId) === 2)) ? "up" : "dark";
+}
+function sideFrom(s, home) {
+  const middle = s.map.size * 50, axis = Math.hypot(home.x - middle, home.y - middle) || 1, ux = (home.x - middle) / axis, uy = (home.y - middle) / axis;
+  return (p) => (p.x - middle) * ux + (p.y - middle) * uy;
+}
+function enemyHome(s, home) {
+  const P = aiRules.player, known = s.vision[P].known.map((k) => k.obstacle).filter((o) => o.kind === "town-center" && !!o.red !== (P === 1)).map((o) => centre2(obstacleBounds(o))).sort((a, b) => dist(a, home) - dist(b, home))[0];
+  return known ? { at: known, known: true } : { at: { x: s.map.size * 100 - home.x, y: s.map.size * 100 - home.y }, known: false };
+}
+function raid(s, order, op, mine, explorer, foes, idle, home, half, explored) {
+  const r = op.plan.raid, out = /* @__PURE__ */ new Set();
+  if (!r) return out;
+  const units = mine.filter((u) => r.kinds.includes(u.kind) && u !== explorer), away = (u) => half(u) < 0 || !!u.target && half(u.target) < 0 || !!s.attacks[u.id] && dist(u, home) > aiRules.defendRadius;
+  const gone = units.filter(away), ready = units.filter((u) => !away(u) && idle(u) && !s.attacks[u.id]);
+  const leave = ready.length >= r.sendAt || r.reinforce && gone.length > 0 && ready.length > 0 ? ready : [];
+  for (const u of [...gone, ...leave]) out.add(u.id);
+  const prey = foes.filter((f) => f.kind === "villager"), target = enemyHome(s, home).at;
+  for (const u of [...gone.filter((u2) => idle(u2) && !s.attacks[u2.id]), ...leave]) {
+    const v = prey.filter((f) => !targetProblem(s, aiRules.player, { kind: "unit", id: f.id })).sort((a, b) => dist(a, u) - dist(b, u) || a.id - b.id)[0];
+    if (v) order("attack", { unitIds: [u.id], target: { kind: "unit", id: v.id } });
+  }
+  const marching = leave.filter((u) => !prey.length);
+  if (marching.length) march(s, order, marching, target);
+  const lost = gone.filter((u) => idle(u) && !s.attacks[u.id] && !prey.length && dist(u, target) < 300);
+  if (lost.length) march(s, order, lost, objective(s, home, explored, false));
+  return out;
+}
+function forwardWork(s, order, op, villagers, own, idle, home, half, explored) {
+  const P = aiRules.player, plan = op.plan, towers = plan.towers, need = towers?.builders ?? plan.forwardBarracks ?? 0, out = /* @__PURE__ */ new Set();
+  if (!need) return out;
+  const phase = openingPhase(s, own);
+  if (phase === "dark" && towers?.leave !== "start") return out;
+  const enemy = enemyHome(s, home), farOwn = (k) => own.filter((b) => b.kind === k && half(centre2(boxOf4(s, b))) < 0);
+  const barracksDone = !plan.forwardBarracks || farOwn("barracks").length > 0, towersDone = !towers || farOwn("watch-tower").length >= towers.count;
+  const building2 = (u) => {
+    const w2 = s.works[u.id];
+    if (w2?.kind !== "build") return false;
+    const b = own.find((b2) => b2.id === w2.buildingId);
+    return !!b && half(centre2(boxOf4(s, b))) < 0;
+  };
+  const members = villagers.filter((u) => half(u) < 0 || !!u.target && half(u.target) < 0 || building2(u));
+  if (barracksDone && towersDone && !members.some(building2)) return out;
+  for (const u of members) out.add(u.id);
+  const res = towers ? s.map.resources.filter((r) => r.collectible && towers.prefer.includes(r.kind) && explored.has(tileAt(r.x, r.y, s.map.size)) && dist(r, enemy.at) <= 800).sort((a, b) => towers.prefer.indexOf(a.kind) - towers.prefer.indexOf(b.kind) || dist(a, enemy.at) - dist(b, enemy.at) || (a.id < b.id ? -1 : 1))[0] : void 0;
+  const away = (p) => {
+    if (!enemy.known) return p;
+    const d = Math.hypot(p.x - enemy.at.x, p.y - enemy.at.y) || 1;
+    return d >= openingRules.towerGap ? p : { x: Math.round(enemy.at.x + (p.x - enemy.at.x) * openingRules.towerGap / d), y: Math.round(enemy.at.y + (p.y - enemy.at.y) * openingRules.towerGap / d) };
+  };
+  const spot = !barracksDone ? { x: home.x + (enemy.at.x - home.x) * 0.6, y: home.y + (enemy.at.y - home.y) * 0.6 } : away(res ? { x: res.x, y: res.y } : { x: (home.x + enemy.at.x * 2) / 3, y: (home.y + enemy.at.y * 2) / 3 });
+  const yieldOf = (u) => {
+    const w2 = s.works[u.id];
+    const r = w2?.kind === "gather" ? s.map.resources.find((r2) => r2.id === w2.resourceId) : void 0;
+    return r ? resourceDefinitions[r.kind].yield : null;
+  };
+  const extra = villagers.filter((u) => !out.has(u.id) && s.works[u.id]?.kind !== "build").sort((a, b) => Number(yieldOf(b) === "wood" || yieldOf(b) === "gold") - Number(yieldOf(a) === "wood" || yieldOf(a) === "gold") || a.id - b.id).slice(0, Math.max(0, need - members.length));
+  if (extra.length) {
+    march(s, order, extra, spot);
+    for (const u of extra) out.add(u.id);
+  }
+  const strays = members.filter((u) => idle(u) && dist(u, spot) > 500);
+  if (strays.length) march(s, order, strays, spot);
+  const free = members.filter((u) => idle(u) && dist(u, spot) <= 500);
+  if (!free.length) return out;
+  const site3 = own.find((b) => !b.complete && half(centre2(boxOf4(s, b))) < 0);
+  if (site3) {
+    order("construct", { unitIds: free.map((u) => u.id), buildingId: site3.id });
+    return out;
+  }
+  const owner = ownerOf(s, P), kind = !barracksDone ? "barracks" : !towersDone && s.ages[P] >= 2 ? "watch-tower" : null;
+  if (kind && affords(s, costOf(kind, owner))) {
+    const at = forwardSite(s, kind, spot, enemy.known ? enemy.at : null);
+    if (at && claim(order("build", { unitIds: free.map((u) => u.id), kind, x: at.x, y: at.y }), kind, at.x, at.y)) return out;
+  }
+  return out;
+}
+function forwardSite(s, kind, spot, enemyTc) {
+  const input = knownInput(s), [x0, y0, x1, y1] = obstacleBounds({ kind, x: 0, y: 0 }), world = s.map.size * 100, sites = [];
+  for (let dy = -400; dy <= 400; dy += 50) for (let dx = -400; dx <= 400; dx += 50) {
+    const x = Math.round((spot.x + dx - (x1 + x0) / 2) / 100) * 100, y = Math.round((spot.y + dy - (y1 + y0) / 2) / 100) * 100;
+    if (x + x0 < 0 || y + y0 < 0 || x + x1 > world || y + y1 > world) continue;
+    const c = { x: x + (x0 + x1) / 2, y: y + (y0 + y1) / 2 };
+    sites.push({ x, y, d: dist(c, spot), safe: enemyTc && dist(c, enemyTc) < openingRules.towerGap ? 1 : 0 });
+  }
+  sites.sort((a, b) => a.safe - b.safe || a.d - b.d || a.y - b.y || a.x - b.x);
+  const seen2 = /* @__PURE__ */ new Set();
+  for (const v of sites) {
+    const k = v.x + "," + v.y;
+    if (seen2.has(k)) continue;
+    seen2.add(k);
+    if (!clashes(obstacleBounds({ kind, x: v.x, y: v.y })) && !placementProblem(input, kind, v.x, v.y)) return v;
+  }
+  return null;
+}
+var openingRules = { provenance: "design_default", towerGap: 600 };
+function openingView(s, player) {
+  const own = s.buildings.filter((b) => b.player === player), tc = own.find((b) => b.kind === "town-center"), box = tc ? boxOf4(s, tc) : null;
+  const half = box ? sideFrom(s, centre2(box)) : null, mine = s.units.filter((u) => u.player === player);
+  const gather = Object.fromEntries(gatherKinds.map((k) => [k, 0])), count = (list) => list.reduce((t, v) => ({ ...t, [v.kind]: (t[v.kind] ?? 0) + 1 }), {});
+  for (const u of mine) {
+    const w2 = s.works[u.id];
+    if (w2?.kind !== "gather") continue;
+    if (w2.prey !== void 0) {
+      const a = s.units.find((a2) => a2.id === w2.prey);
+      gather[a?.kind === "sheep" ? "sheep" : "hunt"]++;
+      continue;
+    }
+    const r = s.map.resources.find((r2) => r2.id === w2.resourceId);
+    if (!r) continue;
+    const k = r.kind === "livestock" ? "sheep" : r.kind === "hunt" ? "hunt" : r.kind === "tree" ? "wood" : r.kind === "berries" || r.kind === "gold" || r.kind === "stone" || r.kind === "farm" ? r.kind : null;
+    if (k) gather[k]++;
+  }
+  const far = half ? { ...count(own.filter((b) => half(centre2(boxOf4(s, b) ?? [b.x, b.y, b.x, b.y])) < 0)), villager: mine.filter((u) => u.kind === "villager" && half(u) < 0).length } : {};
+  const fighters = half ? mine.filter((u) => soldierKinds.includes(u.kind) && half(u) < 0).length : 0, scoutsOut = half ? mine.filter((u) => u.kind === "scout" && half(u) < 0).length : 0;
+  return {
+    age: s.ages[player],
+    clicking: Math.max(0, ...own.flatMap((b) => b.queue.map((q) => ageOf(q.entryId)))),
+    villagers: mine.filter((u) => u.kind === "villager").length,
+    gather,
+    buildings: count(own),
+    forward: far,
+    units: count(mine),
+    techs: [...s.techs[player]],
+    raiding: fighters + Math.max(0, scoutsOut - 1)
+  };
+}
 
-// packages/sim/naval.ts
-var navalRules = { provenance: "design_default", transportCapacity: 5, boardReach: 150, landReach: 150, repathTicks: 20 };
-var naval = (s) => {
-  const n = s;
-  n.transports ??= {};
-  n.boarding ??= {};
-  n.unloading ??= {};
-  return n;
-};
-var capacityOf = (s, t) => transportCapacityOf(ownerOf(s, t.player), navalRules.transportCapacity);
-var room2 = (s, t) => capacityOf(s, t) - (s.transports[t.id]?.length ?? 0) - Object.values(s.boarding).filter((b) => b.transportId === t.id).length;
-function loadProblem(s, player, transportId, unitIds) {
-  const n = naval(s), t = s.units.find((u) => u.id === transportId);
-  if (!t || t.player !== player || t.kind !== "transport-ship") return "\u53EA\u80FD\u767B\u4E0A\u5DF1\u65B9\u7684\u904B\u8F38\u8239";
-  const units = unitIds.map((id) => s.units.find((u) => u.id === id));
-  if (units.some((u) => !u || layerOf(u.kind) !== "land" || isAnimal(u.kind))) return "\u53EA\u6709\u9678\u4E0A\u55AE\u4F4D\u80FD\u767B\u8239";
-  const relics = s.relics ?? [];
-  if (units.some((u) => u && relics.some((r) => r.carrier === u.id))) return "\u651C\u5E36\u8056\u7269\u7684\u50E7\u4FB6\u4E0D\u80FD\u767B\u8239";
-  const free = room2(n, t) + unitIds.filter((id) => n.boarding[id]?.transportId === t.id).length;
-  if (free < unitIds.length) return `\u7A7A\u4F4D\u4E0D\u8DB3\uFF1A\u9084\u80FD\u767B\u8239 ${Math.max(0, free)} \u540D`;
-  return null;
-}
-function commandLoad(s, unitIds, transportId) {
-  const n = naval(s), t = s.units.find((u) => u.id === transportId);
-  for (const id of unitIds) {
-    cancelMovement(s, id);
-    delete s.works[id];
-    delete s.attacks[id];
-    n.boarding[id] = { transportId, repath: 0 };
-  }
-  const first = s.units.find((u) => u.id === unitIds[0]);
-  if (first && reach(first, t) > navalRules.boardReach) {
-    delete n.unloading[t.id];
-    commandMove(s, [t.id], { x: first.x, y: first.y });
-  }
-}
-function unloadProblem(s, player, transportId, x, y) {
-  const n = naval(s), t = s.units.find((u) => u.id === transportId);
-  if (!t || t.player !== player || t.kind !== "transport-ship") return "\u627E\u4E0D\u5230\u9019\u8258\u5DF1\u65B9\u904B\u8F38\u8239";
-  if (!n.transports[t.id]?.length) return "\u904B\u8F38\u8239\u4E0A\u6C92\u6709\u55AE\u4F4D";
-  if (!Number.isSafeInteger(x) || !Number.isSafeInteger(y) || x < 50 || y < 50 || x > s.map.size * 100 - 50 || y > s.map.size * 100 - 50) return "\u76EE\u6A19\u8D85\u51FA\u5730\u5716";
-  return null;
-}
-function commandUnload(s, transportId, x, y) {
-  const n = naval(s);
-  n.unloading[transportId] = { x, y };
-  commandMove(s, [transportId], { x, y });
-}
-function clearNaval(s, unitIds) {
-  const n = naval(s);
-  for (const id of unitIds) {
-    delete n.boarding[id];
-    delete n.unloading[id];
-  }
-}
-function landing(s, t, aim) {
-  const closed = blockedOf(s.map, "land", t.player), held2 = new Set(s.units.flatMap((u) => u.next === null ? [u.node] : [u.node, u.next]));
-  return nodesNear(s.map, [t.x, t.y, t.x, t.y], navalRules.landReach).filter((id) => !closed[id] && !held2.has(id) && reach(position(s.map, id), t) <= navalRules.landReach).sort((a, b) => {
-    const p = position(s.map, a), q = position(s.map, b);
-    return Math.abs(p.x - aim.x) + Math.abs(p.y - aim.y) - (Math.abs(q.x - aim.x) + Math.abs(q.y - aim.y)) || a - b;
-  });
-}
-function stepNaval(s) {
-  const n = naval(s), busy = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId]));
-  for (const id of Object.keys(n.boarding).map(Number).sort((a, b) => a - b)) {
-    const b = n.boarding[id], u = s.units.find((u2) => u2.id === id), t = s.units.find((v) => v.id === b.transportId);
-    if (!u || !t || t.player !== u.player || (n.transports[t.id]?.length ?? 0) >= capacityOf(s, t)) {
-      delete n.boarding[id];
-      if (u && !u.path.length && u.next === null) u.navigation = "idle";
-      continue;
-    }
-    if (u.next !== null) continue;
-    if (reach(u, t) <= navalRules.boardReach) {
-      delete n.boarding[id];
-      cancelMovement(s, u.id);
-      Object.assign(u, { path: [], goal: null, target: null, next: null, navigation: "idle", wait: 0 });
-      delete u.stride;
-      s.units = s.units.filter((v) => v !== u);
-      (n.transports[t.id] ??= []).push(u);
-      continue;
-    }
-    if (b.repath > 0 && (u.path.length || busy.has(u.id))) {
-      b.repath--;
-      continue;
-    }
-    const closed = blockedOf(s.map, "land", u.player), nodes = nodesNear(s.map, [t.x, t.y, t.x, t.y], navalRules.boardReach).filter((id2) => !closed[id2] && reach(position(s.map, id2), t) <= navalRules.boardReach);
-    if (!nodes.length) {
-      b.repath = navalRules.repathTicks;
-      continue;
-    }
-    routeTo(s, u, nodes);
-    b.repath = navalRules.repathTicks;
-  }
-  for (const id of Object.keys(n.unloading).map(Number).sort((a, b) => a - b)) {
-    const t = s.units.find((u) => u.id === id), aim = n.unloading[id];
-    if (!t || !n.transports[id]?.length) {
-      delete n.unloading[id];
-      continue;
-    }
-    if (t.next !== null || t.path.length || busy.has(t.id)) continue;
-    delete n.unloading[id];
-    const spots = landing(n, t, aim), out = [];
-    for (const u of n.transports[id]) {
-      const node = spots.shift();
-      if (node === void 0) break;
-      const p = position(s.map, node);
-      Object.assign(u, { x: p.x, y: p.y, node, next: null, path: [], goal: null, target: null, navigation: "idle", wait: 0 });
-      s.units.push(u);
-      out.push(u);
-    }
-    n.transports[id] = n.transports[id].filter((u) => !out.includes(u));
-    if (!n.transports[id].length) delete n.transports[id];
-    if (out.length) s.units.sort((a, b) => a.id - b.id);
-  }
-}
-var passengers = (s, transportId) => s.transports?.[transportId] ?? [];
+// packages/content/taunts.ts
+var taunts = [
+  { n: 1, zh: "\u597D\u3002", en: "Yes." },
+  { n: 2, zh: "\u4E0D\u3002", en: "No." },
+  { n: 3, zh: "\u8ACB\u7D66\u6211\u98DF\u7269\u3002", en: "Food please." },
+  { n: 4, zh: "\u8ACB\u7D66\u6211\u6728\u6750\u3002", en: "Wood please." },
+  { n: 5, zh: "\u8ACB\u7D66\u6211\u9EC3\u91D1\u3002", en: "Gold please." },
+  { n: 6, zh: "\u8ACB\u7D66\u6211\u77F3\u982D\u3002", en: "Stone please." },
+  { n: 7, zh: "\u5509~~\u6B38......", en: "Ahh!" },
+  { n: 8, zh: "\u55E8~\u8089\u8173\u4F60\u5011\u597D\u554A", en: "All hail, king of the losers!" },
+  { n: 9, zh: "\u55DA~~\u8036", en: "Ooh!" },
+  { n: 10, zh: "\u770B\u6211\u628A\u4F60\u6253\u56DE\u4E16\u7D00\u5E1D\u570B\u4E00\u4EE3\u53BB", en: "I'll beat you back to Age of Empires." },
+  { n: 11, zh: "\uFF08\u5978\u7B11\uFF09", en: "(Herb laugh)" },
+  { n: 12, zh: "\u6211\u5FEB\u62DB\u67B6\u4E0D\u4F4F\u4E86......", en: "Ah! Being rushed." },
+  { n: 13, zh: "\u53BB\u602A\u4F60\u7684\u7DB2\u8DEF\u516C\u53F8\u5427\uFF01", en: "Sure, blame it on your ISP." },
+  { n: 14, zh: "\u6B38\uFF01\u904A\u6232\u5DF2\u7D93\u958B\u59CB\u56C9\uFF01", en: "Start the game already!" },
+  { n: 15, zh: "\u62DC\u8A17\uFF01\u4E0D\u8981\u7528\u90A3\u500B\u6771\u897F\u6307\u8457\u6211\u597D\u55CE\uFF1F", en: "Don't point that thing at me!" },
+  { n: 16, zh: "\u767C\u73FE\u6575\u4EBA\u3002", en: "Enemy sighted!" },
+  { n: 17, zh: "\u5750\u4E0A\u738B\u4F4D\u7684\u611F\u89BA\u771F\u597D\u3002", en: "It is good to be the king." },
+  { n: 18, zh: "\u6211\u9084\u5C11\u500B\u50E7\u4FB6\u3002", en: "Monk! I need a monk!" },
+  { n: 19, zh: "\u6709\u4E00\u9663\u5B50\u6C92\u4EA4\u624B\u56C9\uFF1F", en: "Long time, no siege." },
+  { n: 20, zh: "\u6B38\u4F60\u4E5F\u5E6B\u5E6B\u5FD9\uFF0C\u9023\u6211\u963F\u5B24\u90FD\u6BD4\u4F60\u884C\u3002", en: "My granny could scrap better than that." },
+  { n: 21, zh: "\u597D\u5730\u65B9\uFF0C\u6211\u8981\u5B9A\u4E86\uFF01", en: "Nice town, I'll take it." },
+  { n: 22, zh: "\u5225\u518D\u6253\u6211\u4E86\u5566\uFF01", en: "Quit touching me!" },
+  { n: 23, zh: "\u5927\u4F19\u9032\u653B\u56C9\uFF01", en: "Raiding party!" },
+  { n: 24, zh: "\u539A\uFF01\u771F\u96D6\uFF01", en: "Dadgum." },
+  { n: 25, zh: "\u4F60\u6562\u5C31\u4F86\u554A\uFF1F", en: "Eh, smite me." },
+  { n: 26, zh: "\u7CDF\u4E86\uFF01\u662F\u4E16\u754C\u5947\u89C0\uFF01", en: "The wonder, the wonder, the... no!" },
+  { n: 27, zh: "\u6B38\uFF0C\u4F60\u73A9\u9019\u9EBC\u4E45\u624D\u73A9\u9019\u6A23\u5594\uFF1F", en: "You played two hours to die like this?" },
+  { n: 28, zh: "\u9084\u6709\u4EBA\u6BD4\u4F60\u66F4\u6158\u52D2\u3002", en: "Yeah, well, you should see the other guy." },
+  { n: 29, zh: "\u8089\u8173\u3002", en: "Roggan." },
+  { n: 30, zh: "\u55DA~~\u547C~~~", en: "Wololo." },
+  { n: 31, zh: "\u653B\u64CA\u6575\u4EBA\uFF0C\u885D\u554A\uFF01", en: "Attack an enemy now." },
+  { n: 32, zh: "\u505C\u6B62\u751F\u7522\u984D\u5916\u7684\u6751\u6C11\u3002", en: "Cease creating extra villagers." },
+  { n: 33, zh: "\u751F\u7522\u984D\u5916\u6751\u6C11\u3002", en: "Create extra villagers." },
+  { n: 34, zh: "\u5EFA\u7ACB\u6D77\u8ECD\u3002", en: "Build a navy." },
+  { n: 35, zh: "\u505C\u6B62\u5EFA\u7ACB\u6D77\u8ECD\u3002", en: "Stop building a navy." },
+  { n: 36, zh: "\u7B49\u6211\u4E0B\u4EE4\u653B\u64CA", en: "Wait for my signal to attack." },
+  { n: 37, zh: "\u5EFA\u9020\u4E16\u754C\u5947\u89C0\u3002", en: "Build a wonder." },
+  { n: 38, zh: "\u8ACB\u4F60\u628A\u591A\u7684\u8CC7\u6E90\u7D66\u6211\u3002", en: "Give me your extra resources." },
+  { n: 39, zh: "\uFF08\u540C\u76DF\u8072\u97F3\uFF09", en: "(Ally sound)" },
+  { n: 40, zh: "\uFF08\u6575\u4EBA\u8072\u97F3\uFF09", en: "(Enemy sound)" },
+  { n: 41, zh: "\uFF08\u4E2D\u7ACB\u8072\u97F3\uFF09", en: "(Neutral sound)" },
+  { n: 42, zh: "\u4F60\u5728\u54EA\u4E00\u500B\u6642\u4EE3\u554A\uFF1F", en: "What age are you in?" }
+];
+var tauntRules = { provenance: "design_default", keep: 20, everyTicks: 20 };
+var tauntOf = (n) => taunts.find((t) => t.n === n);
 
 // packages/sim/sim.ts
 function canonical(value) {
@@ -4788,13 +5958,18 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, naval: navalRules, market: marketRules, religion: religionRules, animals: animalRules, tech: techRules, defense: defenseRules, civs: civDefs, techs: techEffects, unitLines: { lineUpgrades, blacksmith, religionBonus }, simulationVersion: 30 });
-function createState(seed, layout = "meadow", opponent = "idle", civs = [neutralCiv, neutralCiv]) {
+var rulesetHash = hash({ openings, repair: repairRules, carriers: carrierRules, taunts: tauntRules, rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, naval: navalRules, market: marketRules, religion: religionRules, animals: animalRules, tech: techRules, defense: defenseRules, civs: civDefs, techs: techEffects, unitLines: { lineUpgrades, blacksmith, religionBonus }, projectiles: projectileRules, tactics: tacticsRules, settings: settingRules, simulationVersion: 33 });
+var settingKeys = ["difficulty", "resources", "popCap", "reveal", "startAge", "victory", "allTechs"];
+var pickSettings = (o) => Object.fromEntries(settingKeys.filter((k) => k in o).map((k) => [k, o[k]]));
+function createState(seed, layout = "meadow", opponent = "idle", civs = [neutralCiv, neutralCiv], aiOpening = standardOpening, options = {}) {
+  if (layout && typeof layout === "object") return createState(seed, layout.layout ?? "meadow", layout.opponent ?? "idle", layout.civs ?? [neutralCiv, neutralCiv], layout.aiOpening ?? standardOpening, pickSettings(layout));
+  const settings = matchSettings(pickSettings(options));
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 4294967295) throw Error("seed \u5FC5\u9808\u70BA uint32");
   if (opponent !== "ai" && opponent !== "idle") throw Error("\u672A\u77E5\u7684\u5C0D\u624B\u8A2D\u5B9A");
   if (!Array.isArray(civs) || civs.length !== 2 || !civs.every(civExists)) throw Error("\u672A\u77E5\u7684\u6587\u660E");
+  if (!openingChoices.includes(aiOpening)) throw Error("\u672A\u77E5\u7684\u96FB\u8166\u958B\u5C40");
   const map = makeMap(seed, layout);
-  const state = { buildings: [], nextBuildingId: 1, ages: [1, 1], nextUnitId: 5, nextQueueId: 1, attacks: {}, corpses: [], outcome: null, rites: {}, faith: {}, techs: [[], []], relics: layout === "open" || layout === "lakes" ? placeRelics(map, seed) : [], relicMemory: [[], []], relicVictory: null, market: startPrices(), trades: {}, wonders: {}, wonderVictory: null, transports: {}, boarding: {}, unloading: {}, beasts: {}, reseed: [true, true], garrison: {}, entering: {}, volleys: {}, shots: [], version: 30, opponent, civs: [...civs], keptHousing: [0, 0], setups: {}, works: {}, cargo: {}, layout, vision: createVision(), accounts: [createAccount(3), createAccount(opponent === "ai" ? 3 : 1)], transactions: [], map, pathJobs: [], nextJobId: 1, navigationSeen: 0, seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [...map.starts[0].map((p, i) => makeUnit(map, 1 + i, 0, p.x, p.y)), makeUnit(map, 4, 1, map.starts[1][0].x, map.starts[1][0].y)], queue: [], log: [] };
+  const state = { settings, aiOpening: aiOpening === randomOpening ? pickOpening(seed, civs[1]) : aiOpening, buildings: [], nextBuildingId: 1, ages: [1, 1], nextUnitId: 5, nextQueueId: 1, attacks: {}, corpses: [], outcome: null, rites: {}, faith: {}, techs: [[], []], relics: layout === "open" || layout === "lakes" ? placeRelics(map, seed) : [], relicMemory: [[], []], relicVictory: null, market: startPrices(), trades: {}, wonders: {}, wonderVictory: null, transports: {}, boarding: {}, unloading: {}, beasts: {}, reseed: [true, true], garrison: {}, entering: {}, volleys: {}, shots: [], version: 33, repairs: {}, chat: [], opponent, civs: [...civs], keptHousing: [0, 0], reveals: [], projectiles: [], nextProjectileId: 0, stances: {}, patrols: {}, setups: {}, works: {}, cargo: {}, layout, vision: createVision(), accounts: [createAccount(3), createAccount(opponent === "ai" ? 3 : 1)], transactions: [], map, pathJobs: [], nextJobId: 1, navigationSeen: 0, seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [...map.starts[0].map((p, i) => makeUnit(map, 1 + i, 0, p.x, p.y)), makeUnit(map, 4, 1, map.starts[1][0].x, map.starts[1][0].y)], queue: [], log: [] };
   if (opponent === "ai") {
     state.units.push(...map.starts[1].slice(1).map((p, i) => makeUnit(map, 5 + i, 1, p.x, p.y)));
     state.nextUnitId = 5 + map.starts[1].length - 1;
@@ -4807,6 +5982,11 @@ function createState(seed, layout = "meadow", opponent = "idle", civs = [neutral
     }
   }
   (map.animals ?? []).forEach((a, i) => state.units.push(makeUnit(map, animalRules.firstId + i, a.owner ?? GAIA, a.x, a.y, a.kind)));
+  for (const a of state.accounts) a.stock = { ...settingRules.resources[settings.resources] };
+  if (settings.startAge > 1) {
+    state.ages = [settings.startAge, settings.startAge];
+    for (const p of [0, 1]) grantTechs(state, p);
+  }
   for (const p of [0, 1]) {
     const o = ownerOf(state, p), stock = startStock(o), a = state.accounts[p];
     for (const k of ["food", "wood", "gold", "stone"]) a.stock[k] = Math.max(0, a.stock[k] + stock[k]);
@@ -4826,8 +6006,15 @@ function createState(seed, layout = "meadow", opponent = "idle", civs = [neutral
   state.units.sort((a, b) => a.id - b.id);
   for (const u of state.units) if (u.player === 0 || u.player === 1) u.hp = maxHpOf(u.kind, ownerOf(state, u.player));
   initBuildings(state);
+  if (settings.startAge > 1) {
+    for (const o of state.map.obstacles) if (o.kind === "town-center") o.age = settings.startAge;
+  }
   claimSheep(state);
-  updateVision(state.vision, state.map, state.units, 0, void 0, sightOf(state));
+  updateVision(state.vision, state.map, state.units, 0, void 0, sightOf(state), [], settings.reveal === "all");
+  if (settings.reveal === "explored") {
+    const all2 = [...Array(state.map.size ** 2).keys()];
+    for (const v of state.vision) v.explored = all2;
+  }
   return state;
 }
 function sightOf(s) {
@@ -4847,7 +6034,7 @@ function submit(state, c, record = true) {
   if (!Number.isSafeInteger(c.targetTick) || c.targetTick <= state.tick || c.targetTick > state.tick + 200) throw Error("\u547D\u4EE4\u5DF2\u904E\u671F\u6216\u904E\u9060");
   if (!c.payload) throw Error("\u7F3A\u5C11 payload");
   if (state.outcome) throw Error("\u5C0D\u5C40\u5DF2\u7D50\u675F\uFF1A\u8ACB\u518D\u958B\u4E00\u5C40");
-  if (c.commandType === "move" || c.commandType === "stop" || c.commandType === "gather" || c.commandType === "hunt" || c.commandType === "garrison" || c.commandType === "build" || c.commandType === "construct" || c.commandType === "attack" || c.commandType === "convert" || c.commandType === "heal" || c.commandType === "relic" || c.commandType === "deposit" || c.commandType === "trade" || c.commandType === "load") {
+  if (c.commandType === "move" || c.commandType === "stop" || c.commandType === "gather" || c.commandType === "hunt" || c.commandType === "garrison" || c.commandType === "build" || c.commandType === "construct" || c.commandType === "attack" || c.commandType === "convert" || c.commandType === "heal" || c.commandType === "relic" || c.commandType === "deposit" || c.commandType === "trade" || c.commandType === "load" || c.commandType === "repair" || c.commandType === "stance" || c.commandType === "patrol") {
     const ids = c.payload.unitIds;
     if (!Array.isArray(ids) || !ids.length || ids.length > navigationRules.maxGroupSize || !ids.every((id, i) => Number.isSafeInteger(id) && (i === 0 || id > ids[i - 1]))) throw Error(`\u55AE\u4F4D\u6E05\u55AE\u9700\u70BA 1\u2013${navigationRules.maxGroupSize} \u500B\u905E\u589E\u4E14\u4E0D\u91CD\u8907\u7684 ID`);
     for (const id of ids) {
@@ -4859,15 +6046,25 @@ function submit(state, c, record = true) {
         if (u.kind === "monk") throw Error("\u50E7\u4FB6\u4E0D\u80FD\u653B\u64CA\uFF1A\u53F3\u9375\u6575\u65B9\u55AE\u4F4D\u6539\u70BA\u8F49\u5316");
         if (isAnimal(u.kind)) throw Error("\u52D5\u7269\u4E0D\u80FD\u653B\u64CA");
         if (statsOf(u.kind, ownerOf(state, u.player)).attack === "none") throw Error(`${rules.entries.find((e) => e.id === u.kind)?.name ?? u.kind}\u4E0D\u80FD\u653B\u64CA`);
-        if (statsOf(u.kind, ownerOf(state, u.player)).buildingsOnly && c.payload.target?.kind !== "building") throw Error(`${rules.entries.find((e) => e.id === u.kind)?.name ?? u.kind}\u53EA\u80FD\u653B\u64CA\u5EFA\u7BC9`);
+        {
+          const st = statsOf(u.kind, ownerOf(state, u.player)), t = c.payload.target, v = t?.kind === "unit" ? state.units.find((x) => x.id === t.id) : void 0;
+          const siege = !!v && v.kind in combatRules.units && combatRules.units[v.kind].classes.includes("siege");
+          if (st.buildingsOnly && t?.kind !== "building" && !(st.alsoSiege && siege)) throw Error(`${rules.entries.find((e) => e.id === u.kind)?.name ?? u.kind}\u53EA\u80FD\u653B\u64CA\u5EFA\u7BC9${st.alsoSiege ? "\u8207\u653B\u57CE\u5668" : ""}`);
+        }
       } else if (c.commandType === "garrison" || c.commandType === "trade") {
+      } else if (c.commandType === "repair") {
+        if (u.kind !== "villager") throw Error("\u53EA\u6709\u6751\u6C11\u80FD\u4FEE\u7406");
+      } else if (c.commandType === "stance") {
+        if (u.kind === "villager" || u.kind === "monk" || isAnimal(u.kind) || !(u.kind in combatRules.units) || statsOf(u.kind, ownerOf(state, u.player)).attack === "none") throw Error("\u53EA\u6709\u6230\u9B25\u55AE\u4F4D\u6709\u6230\u9B25\u59FF\u614B");
+      } else if (c.commandType === "patrol") {
       } else if (c.commandType === "load" || (c.commandType === "gather" || c.commandType === "build" || c.commandType === "construct") && u.kind === "fishing-ship") {
       } else if (c.commandType !== "move" && c.commandType !== "stop" && u.kind !== "villager") throw Error("\u53EA\u6709\u6751\u6C11\u80FD\u63A1\u96C6\u6216\u5EFA\u9020");
     }
     if ((c.commandType === "gather" || c.commandType === "build" || c.commandType === "construct") && new Set(ids.map((id) => state.units.find((u) => u.id === id).kind)).size > 1) throw Error("\u6F01\u8239\u8207\u6751\u6C11\u4E0D\u80FD\u4E00\u8D77\u63A1\u96C6\u6216\u5EFA\u9020");
   }
-  if (c.commandType === "move") {
+  if (c.commandType === "move" || c.commandType === "patrol") {
     for (const k of ["x", "y"]) if (!Number.isSafeInteger(c.payload[k]) || c.payload[k] < 50 || c.payload[k] > state.map.size * 100 - 50) throw Error("\u76EE\u6A19\u8D85\u51FA\u5730\u5716");
+    if (c.commandType === "move" && c.payload.spread !== void 0 && typeof c.payload.spread !== "boolean") throw Error("\u5206\u6563\u8A2D\u5B9A\u7121\u6548");
   } else if (c.commandType === "stop") {
   } else if (c.commandType === "convert" || c.commandType === "heal" || c.commandType === "relic" || c.commandType === "deposit") {
     const t = riteTarget(c);
@@ -4894,7 +6091,7 @@ function submit(state, c, record = true) {
       if (ship2 !== (kind === "fish-trap")) throw Error(ship2 ? "\u6F01\u8239\u53EA\u80FD\u653E\u7F6E\u9B5A\u7DB2" : "\u9B5A\u7DB2\u53EA\u80FD\u7531\u6F01\u8239\u653E\u7F6E");
     }
     if (to !== void 0 && (!wallKinds.has(kind) || !to || !Number.isSafeInteger(to.x) || !Number.isSafeInteger(to.y) || to.x < 0 || to.y < 0 || to.x >= state.map.size * 100 || to.y >= state.map.size * 100)) throw Error(wallKinds.has(kind) ? "\u57CE\u7246\u7D42\u9EDE\u8D85\u51FA\u5730\u5716" : "\u53EA\u6709\u57CE\u7246\u53EF\u4EE5\u62D6\u66F3\u6210\u4E00\u5217");
-    const problem = buildRequirement(state.ages[c.playerId], kind, state.buildings.filter((b) => b.player === c.playerId), state.civs[c.playerId], state.techs[c.playerId]) ?? (to ? wallProblem(state, c.playerId, kind, { x, y }, to) : authoritativeProblem(state, c.playerId, kind, x, y));
+    const problem = buildRequirement(state.ages[c.playerId], kind, state.buildings.filter((b) => b.player === c.playerId), state.civs[c.playerId], state.techs[c.playerId], settingsOf(state).allTechs) ?? (to ? wallProblem(state, c.playerId, kind, { x, y }, to) : authoritativeProblem(state, c.playerId, kind, x, y));
     if (problem) throw Error(problem);
     const cost = costOf(kind, ownerOf(state, c.playerId)), stock = state.accounts[c.playerId].stock, short = Object.keys(cost).filter((k) => stock[k] < cost[k]);
     if (short.length) throw Error(`\u8CC7\u6E90\u4E0D\u8DB3\uFF1A${short.map((k) => `${{ food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" }[k]}\u9700\u8981 ${cost[k]}\uFF0C\u76EE\u524D ${stock[k]}`).join("\uFF1B")}`);
@@ -4909,7 +6106,7 @@ function submit(state, c, record = true) {
     } else {
       if (!b.complete) throw Error("\u5EFA\u7BC9\u5C1A\u672A\u5B8C\u5DE5");
       for (const k of ["x", "y"]) if (!Number.isSafeInteger(c.payload[k]) || c.payload[k] < 50 || c.payload[k] > state.map.size * 100 - 50) throw Error("\u96C6\u7D50\u9EDE\u8D85\u51FA\u5730\u5716");
-      if (!clearSegment(state.map, c.payload, c.payload, b.kind === "dock" ? "water" : "land")) throw Error(b.kind === "dock" ? "\u78BC\u982D\u7684\u96C6\u7D50\u9EDE\u8981\u8A2D\u5728\u6C34\u9762\u4E0A" : "\u96C6\u7D50\u9EDE\u4E0D\u80FD\u8A2D\u5728\u5EFA\u7BC9\u3001\u8CC7\u6E90\u6216\u4E0D\u53EF\u901A\u884C\u5730\u5F62\u4E0A");
+      if (!rallyInside(state, b, c.payload) && !clearSegment(state.map, c.payload, c.payload, b.kind === "dock" ? "water" : "land")) throw Error(b.kind === "dock" ? "\u78BC\u982D\u7684\u96C6\u7D50\u9EDE\u8981\u8A2D\u5728\u6C34\u9762\u4E0A" : "\u96C6\u7D50\u9EDE\u4E0D\u80FD\u8A2D\u5728\u5EFA\u7BC9\u3001\u8CC7\u6E90\u6216\u4E0D\u53EF\u901A\u884C\u5730\u5F62\u4E0A");
     }
   } else if (c.commandType === "construct" || c.commandType === "cancelBuild") {
     const b = state.buildings.find((b2) => b2.id === c.payload.buildingId);
@@ -4934,12 +6131,23 @@ function submit(state, c, record = true) {
     const problem = garrisonProblem(state, c.playerId, c.payload.buildingId, c.payload.unitIds);
     if (problem) throw Error(problem);
   } else if (c.commandType === "ungarrison") {
-    const b = state.buildings.find((b2) => b2.id === c.payload.buildingId);
-    if (!b || b.player !== c.playerId) throw Error("\u627E\u4E0D\u5230\u9019\u68DF\u5DF1\u65B9\u5EFA\u7BC9");
-    if (!state.garrison[b.id]?.units.length) throw Error("\u5EFA\u7BC9\u88E1\u6C92\u6709\u9032\u99D0\u7684\u55AE\u4F4D");
+    if (c.payload.unitId !== void 0) {
+      const u = Number.isSafeInteger(c.payload.unitId) ? state.units.find((u2) => u2.id === c.payload.unitId) : void 0;
+      if (!u || u.player !== c.playerId) throw Error("\u627E\u4E0D\u5230\u9019\u500B\u5DF1\u65B9\u55AE\u4F4D");
+      if (!passengers(state, u.id).length) throw Error("\u88E1\u9762\u6C92\u6709\u55AE\u4F4D");
+    } else {
+      const b = state.buildings.find((b2) => b2.id === c.payload.buildingId);
+      if (!b || b.player !== c.playerId) throw Error("\u627E\u4E0D\u5230\u9019\u68DF\u5DF1\u65B9\u5EFA\u7BC9");
+      if (!state.garrison[b.id]?.units.length) throw Error("\u5EFA\u7BC9\u88E1\u6C92\u6709\u9032\u99D0\u7684\u55AE\u4F4D");
+    }
+  } else if (c.commandType === "repair") {
+    const problem = repairProblem(state, c.playerId, c.payload.target);
+    if (problem) throw Error(problem);
   } else if (c.commandType === "bell") {
     if (typeof c.payload.ring !== "boolean") throw Error("\u9418\u8072\u8A2D\u5B9A\u7121\u6548");
     if (c.payload.ring && !state.buildings.some((b) => b.player === c.playerId && b.complete && b.kind in defenseRules.capacity)) throw Error("\u6C92\u6709\u53EF\u4EE5\u8EB2\u7684\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u6216\u57CE\u5821");
+  } else if (c.commandType === "stance") {
+    if (!stances.includes(c.payload.stance)) throw Error("\u672A\u77E5\u7684\u6230\u9B25\u59FF\u614B");
   } else if (c.commandType === "reseed") {
     if (typeof c.payload.enabled !== "boolean") throw Error("\u81EA\u52D5\u88DC\u7A2E\u8A2D\u5B9A\u7121\u6548");
   } else if (c.commandType === "load") {
@@ -4951,6 +6159,11 @@ function submit(state, c, record = true) {
     const problem = unloadProblem(state, c.playerId, c.payload.transportId, c.payload.x, c.payload.y);
     if (problem) throw Error(problem);
   } else if (c.commandType === "resign") {
+  } else if (c.commandType === "taunt") {
+    const n = c.payload.number;
+    if (!Number.isSafeInteger(n) || !tauntOf(n)) throw Error(`\u5632\u8AF7\u7DE8\u865F\u662F 1\u2013${taunts.length}`);
+    const last = Math.max(-Infinity, ...state.chat.filter((m) => m.player === c.playerId).map((m) => m.tick), ...state.queue.filter((q) => q.playerId === c.playerId && q.commandType === "taunt").map((q) => q.targetTick));
+    if (c.targetTick - last < tauntRules.everyTicks) throw Error("\u5632\u8AF7\u592A\u983B\u7E41\uFF1A\u6BCF\u79D2\u6700\u591A\u4E00\u5247");
   } else if (c.commandType === "market") {
     const problem = marketProblem(state, c.playerId, c.payload.action, c.payload.resource);
     if (problem) throw Error(problem);
@@ -4984,13 +6197,23 @@ function tick(s) {
       continue;
     }
     if (c.commandType === "ungarrison") {
-      release(s, c.payload.buildingId);
+      if (c.payload.unitId !== void 0) releaseCarried(s, c.payload.unitId);
+      else release(s, c.payload.buildingId);
       continue;
     }
     if (c.commandType === "bell") {
       ringBell(s, c.playerId, c.payload.ring);
       continue;
     }
+    if (c.commandType === "stance") {
+      for (const id of c.payload.unitIds) {
+        if (c.payload.stance === "aggressive") delete s.stances[id];
+        else s.stances[id] = c.payload.stance;
+        if ((c.payload.stance === "passive" || c.payload.stance === "stand") && s.attacks[id]?.auto) delete s.attacks[id];
+      }
+      continue;
+    }
+    if ("unitIds" in c.payload && Array.isArray(c.payload.unitIds)) for (const id of c.payload.unitIds) delete s.patrols[id];
     if ("unitIds" in c.payload && Array.isArray(c.payload.unitIds)) for (const id of c.payload.unitIds) {
       delete s.entering[id];
       delete s.trades[id];
@@ -5039,6 +6262,11 @@ function tick(s) {
       else commandStop(s, c.payload.unitIds);
       continue;
     }
+    if (c.commandType === "taunt") {
+      s.chat.push({ player: c.playerId, taunt: c.payload.number, tick: s.tick });
+      if (s.chat.length > tauntRules.keep) s.chat.splice(0, s.chat.length - tauntRules.keep);
+      continue;
+    }
     if (c.commandType === "resign") {
       if (!s.outcome) s.outcome = { winner: 1 - c.playerId, defeated: [c.playerId], tick: s.tick, reason: "resign" };
       continue;
@@ -5072,7 +6300,24 @@ function tick(s) {
     }
     if (c.commandType === "move") {
       clearWork(s, c.payload.unitIds);
-      commandMove(s, c.payload.unitIds, { x: c.payload.x, y: c.payload.y });
+      commandMove(s, c.payload.unitIds, { x: c.payload.x, y: c.payload.y }, c.payload.spread === true);
+      continue;
+    }
+    if (c.commandType === "patrol") {
+      clearWork(s, c.payload.unitIds);
+      clearAttacks(s, c.payload.unitIds);
+      clearRites(s, c.payload.unitIds);
+      const to = { x: c.payload.x, y: c.payload.y };
+      try {
+        commandMove(s, c.payload.unitIds, to);
+      } catch {
+        commandStop(s, c.payload.unitIds);
+        continue;
+      }
+      for (const id of c.payload.unitIds) {
+        const u = s.units.find((u2) => u2.id === id);
+        s.patrols[id] = { from: { x: u.x, y: u.y }, to, leg: "out", wait: tacticsRules.patrolRetry };
+      }
       continue;
     }
     if (c.commandType === "stop") {
@@ -5090,7 +6335,15 @@ function tick(s) {
     }
     if (c.commandType === "rally") {
       const b = s.buildings.find((b2) => b2.id === c.payload.buildingId);
-      if (b) b.rally = { x: c.payload.x, y: c.payload.y };
+      if (b) b.rally = { x: c.payload.x, y: c.payload.y, ...rallyInside(s, b, c.payload) ? { inside: true } : {} };
+      continue;
+    }
+    if (c.commandType === "repair") {
+      clearWork(s, c.payload.unitIds);
+      clearAttacks(s, c.payload.unitIds);
+      clearRites(s, c.payload.unitIds);
+      if (!repairProblem(s, c.playerId, c.payload.target)) commandRepair(s, c.payload.unitIds, c.payload.target);
+      else commandStop(s, c.payload.unitIds);
       continue;
     }
     if (c.commandType === "train" || c.commandType === "cancelTrain") {
@@ -5152,7 +6405,8 @@ function tick(s) {
   stepWork(s);
   stepTrade(s);
   stepWonders(s);
-  updateVision(s.vision, s.map, s.units, s.tick, void 0, sightOf(s));
+  s.reveals = s.reveals.filter((r) => r.until > s.tick);
+  updateVision(s.vision, s.map, s.units, s.tick, void 0, sightOf(s), s.reveals, settingsOf(s).reveal === "all");
   if (s.opponent === "ai") stepAI(s, (commandType, payload) => {
     try {
       submit(s, { protocolVersion: 1, rulesetHash, playerId: aiRules.player, sequence: s.sequence[aiRules.player] + 1, targetTick: s.tick + 1, commandType, payload }, false);
@@ -5163,9 +6417,9 @@ function tick(s) {
   });
   return stats;
 }
-function replay(seed, commands, ticks, layout = "meadow", opponent = "idle", civs = [neutralCiv, neutralCiv]) {
+function replay(seed, commands, ticks, layout = "meadow", opponent = "idle", civs = [neutralCiv, neutralCiv], aiOpening = standardOpening, options = {}) {
   if (!Number.isSafeInteger(ticks) || ticks < 0 || ticks > 1e5 || !Array.isArray(commands) || commands.length > 1e4) throw Error("\u7121\u6548\u91CD\u64AD\u7BC4\u570D");
-  const s = createState(seed, layout, opponent, civs);
+  const s = createState(seed, layout, opponent, civs, aiOpening, options);
   let previousTick = 0;
   for (const c of commands) {
     if (!c || !Number.isSafeInteger(c.acceptedTick) || c.acceptedTick < previousTick || c.acceptedTick > ticks) throw Error("\u7121\u6548\u547D\u4EE4\u63A5\u6536\u6642\u9593");
@@ -5178,14 +6432,21 @@ function replay(seed, commands, ticks, layout = "meadow", opponent = "idle", civ
 }
 function serialize(s) {
   if (s.tick > 1e5 || s.log.length > 1e4) throw Error("\u5DF2\u8D85\u904E\u6B64\u968E\u6BB5\u6C99\u76D2\u5B58\u6A94\u5BB9\u91CF\uFF08100000 ticks / 10000 \u6307\u4EE4\uFF09");
-  return JSON.stringify({ format: "brick-sandbox-30", rulesetHash, state: s, checksum: hash(s) });
+  return JSON.stringify({ format: "brick-sandbox-33", rulesetHash, state: s, checksum: hash(s) });
 }
 function deserialize(raw) {
   const v = JSON.parse(raw);
-  if (!v || v.format !== "brick-sandbox-30" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
+  if (!v || v.format !== "brick-sandbox-33" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
   const s = v.state;
-  if (s.version !== 30 || s.opponent !== "ai" && s.opponent !== "idle" || !Array.isArray(s.civs) || s.civs.length !== 2 || !s.civs.every(civExists) || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
-  const rebuilt = replay(s.seed, s.log, s.tick, s.layout, s.opponent, s.civs);
+  if (s.version !== 33 || s.opponent !== "ai" && s.opponent !== "idle" || !Array.isArray(s.civs) || s.civs.length !== 2 || !s.civs.every(civExists) || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
+  if (typeof s.aiOpening !== "string" || s.aiOpening === randomOpening || !openingChoices.includes(s.aiOpening)) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
+  let settings;
+  try {
+    settings = matchSettings(s.settings);
+  } catch {
+    throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
+  }
+  const rebuilt = replay(s.seed, s.log, s.tick, s.layout, s.opponent, s.civs, s.aiOpening, settings);
   if (hash(rebuilt) !== hash(s)) throw Error("\u5B58\u6A94\u72C0\u614B\u7121\u6CD5\u7531\u547D\u4EE4\u91CD\u5EFA");
   return structuredClone(s);
 }
@@ -5197,7 +6458,7 @@ function navalView(state) {
   const o = ownerOf(state, 0), hp = (u) => maxHpOf(u.kind, ownerOf(state, u.player));
   return {
     market: { prices: { ...state.market }, fee: marketQuote(state.market, o, "food").fee },
-    transports: state.units.filter((u) => u.player === 0 && u.kind === "transport-ship").map((t) => ({ id: t.id, capacity: capacityOf(state, t), passengers: passengers(state, t.id).map((p) => ({ id: p.id, kind: p.kind, hp: p.hp, maxHp: hp(p) })) })),
+    transports: state.units.filter((u) => u.player === 0 && (u.kind === "transport-ship" || u.kind === "ram")).map((t) => ({ id: t.id, capacity: capacityOf(state, t), passengers: passengers(state, t.id).map((p) => ({ id: p.id, kind: p.kind, hp: p.hp, maxHp: hp(p) })) })),
     trades: Object.entries(state.trades).map(([id, t]) => ({ id: Number(id), t, u: state.units.find((u) => u.id === Number(id)) })).filter((v) => v.u?.player === 0).map(({ id, t, u }) => {
       const a = state.map.obstacles.find((o2) => o2.id === t.home), b = state.map.obstacles.find((o2) => o2.id === t.target);
       return { unitId: id, home: t.home, target: t.target, leg: t.leg, gold: a && b ? tradeGold(state, u.kind, obstacleBounds(a), obstacleBounds(b)) : 0 };
@@ -5206,7 +6467,12 @@ function navalView(state) {
       const b = state.buildings.find((b2) => b2.id === id);
       return b ? [{ player: b.player, building: id, x: b.x, y: b.y, endsTick }] : [];
     }).sort((a, b) => a.endsTick - b.endsTick),
-    wonderVictory: state.wonderVictory ? { ...state.wonderVictory } : null
+    wonderVictory: state.wonderVictory ? { ...state.wonderVictory } : null,
+    chat: state.chat.map((m) => ({ ...m })),
+    repairs: Object.entries(state.works).flatMap(([id, w2]) => {
+      const r = w2;
+      return r.kind === "repair" && r.target && state.units.some((u) => u.id === Number(id) && u.player === 0) ? [{ villager: Number(id), target: { ...r.target } }] : [];
+    })
   };
 }
 function createService(initial) {
@@ -5220,6 +6486,10 @@ function createService(initial) {
       if (!op || typeof op.kind !== "string") throw Error("\u7F3A\u5C11 operation");
       let accepted, commands, snapshot, replayMatches;
       switch (op.kind) {
+        case "stance":
+        case "patrol":
+        case "repair":
+        case "taunt":
         case "market":
         case "trade":
         case "load":
@@ -5247,7 +6517,7 @@ function createService(initial) {
           if (state.log.length >= 1e4) throw Error("\u5DF2\u9054\u6C99\u76D2 10000 \u6307\u4EE4\u4E0A\u9650\uFF0C\u8ACB\u5132\u5B58\u6216\u91CD\u5EFA");
           {
             const envelope = { acceptedTick: state.tick, protocolVersion: 1, rulesetHash, playerId: 0, sequence: state.sequence[0] + 1, targetTick: state.tick + 1 };
-            const command = op.kind === "load" ? { ...envelope, commandType: "load", payload: { unitIds: op.unitIds, transportId: op.transportId } } : op.kind === "unload" ? { ...envelope, commandType: "unload", payload: { transportId: op.transportId, x: op.x, y: op.y } } : op.kind === "garrison" ? { ...envelope, commandType: "garrison", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "ungarrison" ? { ...envelope, commandType: "ungarrison", payload: { buildingId: op.buildingId } } : op.kind === "bell" ? { ...envelope, commandType: "bell", payload: { ring: op.ring } } : op.kind === "reseed" ? { ...envelope, commandType: "reseed", payload: { enabled: op.enabled } } : op.kind === "hunt" ? { ...envelope, commandType: "hunt", payload: { unitIds: op.unitIds, animalId: op.animalId } } : op.kind === "convert" || op.kind === "heal" ? { ...envelope, commandType: op.kind, payload: op.buildingId !== void 0 ? { unitIds: op.unitIds, buildingId: op.buildingId } : { unitIds: op.unitIds, targetId: op.targetId } } : op.kind === "relic" ? { ...envelope, commandType: "relic", payload: { unitIds: op.unitIds, relicId: op.relicId } } : op.kind === "deposit" ? { ...envelope, commandType: "deposit", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "resign" ? { ...envelope, commandType: "resign", payload: {} } : op.kind === "attack" ? { ...envelope, commandType: "attack", payload: { unitIds: op.unitIds, target: op.target } } : op.kind === "move" ? { ...envelope, commandType: "move", payload: { unitIds: op.unitIds, x: op.x, y: op.y } } : op.kind === "gather" ? { ...envelope, commandType: "gather", payload: { unitIds: op.unitIds, resourceId: op.resourceId } } : op.kind === "build" ? { ...envelope, commandType: "build", payload: { unitIds: op.unitIds, kind: op.building, x: op.x, y: op.y, ...op.to ? { to: { x: op.to.x, y: op.to.y } } : {} } } : op.kind === "market" ? { ...envelope, commandType: "market", payload: { action: op.action, resource: op.resource } } : op.kind === "trade" ? { ...envelope, commandType: "trade", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "construct" ? { ...envelope, commandType: "construct", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "cancelBuild" ? { ...envelope, commandType: "cancelBuild", payload: { buildingId: op.buildingId } } : op.kind === "train" ? { ...envelope, commandType: "train", payload: { buildingId: op.buildingId, entryId: op.entryId } } : op.kind === "cancelTrain" ? { ...envelope, commandType: "cancelTrain", payload: { buildingId: op.buildingId, itemId: op.itemId } } : op.kind === "rally" ? { ...envelope, commandType: "rally", payload: { buildingId: op.buildingId, x: op.x, y: op.y } } : { ...envelope, commandType: "stop", payload: { unitIds: op.unitIds } };
+            const command = op.kind === "stance" ? { ...envelope, commandType: "stance", payload: { unitIds: op.unitIds, stance: op.stance } } : op.kind === "patrol" ? { ...envelope, commandType: "patrol", payload: { unitIds: op.unitIds, x: op.x, y: op.y } } : op.kind === "taunt" ? { ...envelope, commandType: "taunt", payload: { number: op.number } } : op.kind === "load" ? { ...envelope, commandType: "load", payload: { unitIds: op.unitIds, transportId: op.transportId } } : op.kind === "unload" ? { ...envelope, commandType: "unload", payload: { transportId: op.transportId, x: op.x, y: op.y } } : op.kind === "garrison" ? { ...envelope, commandType: "garrison", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "ungarrison" ? { ...envelope, commandType: "ungarrison", payload: op.unitId !== void 0 ? { unitId: op.unitId } : { buildingId: op.buildingId } } : op.kind === "repair" ? { ...envelope, commandType: "repair", payload: { unitIds: op.unitIds, target: op.target } } : op.kind === "bell" ? { ...envelope, commandType: "bell", payload: { ring: op.ring } } : op.kind === "reseed" ? { ...envelope, commandType: "reseed", payload: { enabled: op.enabled } } : op.kind === "hunt" ? { ...envelope, commandType: "hunt", payload: { unitIds: op.unitIds, animalId: op.animalId } } : op.kind === "convert" || op.kind === "heal" ? { ...envelope, commandType: op.kind, payload: op.buildingId !== void 0 ? { unitIds: op.unitIds, buildingId: op.buildingId } : { unitIds: op.unitIds, targetId: op.targetId } } : op.kind === "relic" ? { ...envelope, commandType: "relic", payload: { unitIds: op.unitIds, relicId: op.relicId } } : op.kind === "deposit" ? { ...envelope, commandType: "deposit", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "resign" ? { ...envelope, commandType: "resign", payload: {} } : op.kind === "attack" ? { ...envelope, commandType: "attack", payload: { unitIds: op.unitIds, target: op.target } } : op.kind === "move" ? { ...envelope, commandType: "move", payload: { unitIds: op.unitIds, x: op.x, y: op.y, ...op.spread ? { spread: true } : {} } } : op.kind === "gather" ? { ...envelope, commandType: "gather", payload: { unitIds: op.unitIds, resourceId: op.resourceId } } : op.kind === "build" ? { ...envelope, commandType: "build", payload: { unitIds: op.unitIds, kind: op.building, x: op.x, y: op.y, ...op.to ? { to: { x: op.to.x, y: op.to.y } } : {} } } : op.kind === "market" ? { ...envelope, commandType: "market", payload: { action: op.action, resource: op.resource } } : op.kind === "trade" ? { ...envelope, commandType: "trade", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "construct" ? { ...envelope, commandType: "construct", payload: { unitIds: op.unitIds, buildingId: op.buildingId } } : op.kind === "cancelBuild" ? { ...envelope, commandType: "cancelBuild", payload: { buildingId: op.buildingId } } : op.kind === "train" ? { ...envelope, commandType: "train", payload: { buildingId: op.buildingId, entryId: op.entryId } } : op.kind === "cancelTrain" ? { ...envelope, commandType: "cancelTrain", payload: { buildingId: op.buildingId, itemId: op.itemId } } : op.kind === "rally" ? { ...envelope, commandType: "rally", payload: { buildingId: op.buildingId, x: op.x, y: op.y } } : { ...envelope, commandType: "stop", payload: { unitIds: op.unitIds } };
             submit(state, command);
             accepted = command;
           }
@@ -5257,7 +6527,7 @@ function createService(initial) {
           for (let i = 0; i < op.count; i++) tick(state);
           break;
         case "reset":
-          state = createState(op.seed, op.layout, op.opponent, op.civs);
+          state = createState(op.seed, op.layout, op.opponent, op.civs, op.aiOpening, op.settings ?? {});
           commands = [];
           break;
         case "restore":
@@ -5266,7 +6536,7 @@ function createService(initial) {
           break;
         case "recover": {
           if (!op.checkpoint) throw Error("\u7F3A\u5C11\u6062\u5FA9\u9EDE");
-          const candidate = replay(op.checkpoint.seed, op.checkpoint.commands, op.checkpoint.ticks, op.checkpoint.layout, op.checkpoint.opponent, op.checkpoint.civs);
+          const candidate = replay(op.checkpoint.seed, op.checkpoint.commands, op.checkpoint.ticks, op.checkpoint.layout, op.checkpoint.opponent, op.checkpoint.civs, op.checkpoint.aiOpening, op.checkpoint.settings ?? {});
           state = candidate;
           commands = structuredClone(state.log);
           break;
@@ -5275,7 +6545,7 @@ function createService(initial) {
           snapshot = serialize(state);
           break;
         case "replay":
-          replayMatches = hash(replay(state.seed, state.log, state.tick, state.layout, state.opponent, state.civs)) === hash(state);
+          replayMatches = hash(replay(state.seed, state.log, state.tick, state.layout, state.opponent, state.civs, state.aiOpening, state.settings)) === hash(state);
           break;
         default:
           throw Error("\u4E0D\u652F\u63F4\u7684 operation");
@@ -5283,17 +6553,52 @@ function createService(initial) {
       const visibleUnits = state.units.filter((u) => unitVisible(state.vision[0], u, 0, state.map.size));
       const positions = new Int32Array(visibleUnits.length * STRIDE);
       visibleUnits.forEach((u, i) => {
-        const own = u.player === 0, w = own ? state.works[u.id] : void 0, c = own ? state.cargo[u.id] : void 0;
-        const src = w?.kind === "gather" && w.phase === "gathering" ? state.map.resources.find((r) => r.id === w.resourceId) : void 0, box = src?.obstacleId ? state.map.obstacles.find((o) => o.id === src.obstacleId) : void 0, [bx0, by0, bx1, by1] = box ? obstacleBounds(box) : [0, 0, 0, 0];
-        const fight = state.attacks[u.id], foe = fight?.target.kind === "unit" ? state.units.find((v) => v.id === fight.target.id) : void 0, site2 = fight?.target.kind === "building" ? state.map.obstacles.find((o) => o.id === fight.target.id) : void 0, sb = site2 ? obstacleBounds(site2) : null;
+        const own = u.player === 0, w2 = own ? state.works[u.id] : void 0, c = own ? state.cargo[u.id] : void 0;
+        const src = w2?.kind === "gather" && w2.phase === "gathering" ? state.map.resources.find((r) => r.id === w2.resourceId) : void 0, box = src?.obstacleId ? state.map.obstacles.find((o) => o.id === src.obstacleId) : void 0, [bx0, by0, bx1, by1] = box ? obstacleBounds(box) : [0, 0, 0, 0];
+        const fight = state.attacks[u.id], foe = fight?.target.kind === "unit" ? state.units.find((v) => v.id === fight.target.id) : void 0, site3 = fight?.target.kind === "building" ? state.map.obstacles.find((o) => o.id === fight.target.id) : void 0, sb = site3 ? obstacleBounds(site3) : null;
         const flock2 = state.rites[u.id] ? state.units.find((v) => v.id === state.rites[u.id].target) : void 0;
-        const prey = w?.kind === "gather" && w.prey !== void 0 ? state.units.find((v) => v.id === w.prey) : state.beasts[u.id] ? state.units.find((v) => v.id === state.beasts[u.id].foe) : void 0;
+        const prey = w2?.kind === "gather" && w2.prey !== void 0 ? state.units.find((v) => v.id === w2.prey) : state.beasts[u.id] ? state.units.find((v) => v.id === state.beasts[u.id].foe) : void 0;
         const target = box ? { x: Math.round((bx0 + bx1) / 2), y: Math.round((by0 + by1) / 2) } : src ? { x: src.x, y: src.y } : prey ? { x: prey.x, y: prey.y } : foe ? { x: foe.x, y: foe.y } : flock2 ? { x: flock2.x, y: flock2.y } : sb ? { x: Math.round((sb[0] + sb[2]) / 2), y: Math.round((sb[1] + sb[3]) / 2) } : u.target;
-        const rite = state.rites[u.id], beast = state.beasts[u.id], action = fight && fight.firedTick >= 0 && state.tick - fight.firedTick < 10 || u.kind === "boar" && beast && beast.cooldown > combatRules.units.boar.cooldown - 10 || w?.kind === "gather" && w.phase === "hunting" && w.progress > animalRules.hunt.cooldown - 10 ? 1 : u.hitTick >= 0 && state.tick - u.hitTick < combatRules.hitFlashTicks ? 2 : 0;
-        positions.set([u.id, u.player, u.x, u.y, target?.x ?? -1, target?.y ?? -1, navigationStates.indexOf(u.navigation), w ? workPhases.indexOf(w.phase) : 0, c ? resources.indexOf(c.resource) : -1, c?.amount ?? 0, w?.kind === "gather" ? resources.indexOf(w.prey !== void 0 ? "food" : resourceDefinitions[state.map.resources.find((r) => r.id === w.resourceId)?.kind ?? "berries"].yield) : -1, unitKinds.indexOf(u.kind), u.hp, maxHpOf(u.kind, ownerOf(state, u.player)), action, rite?.kind === "convert" ? 1 : rite?.kind === "heal" ? 2 : 0, own && u.kind === "monk" ? Math.floor(faithOf(state, u.id) * 100) : -1, carrying(state, u.id) ? 1 : 0, state.setups[u.id]?.unpacked ? 1 : 0], i * STRIDE);
+        const rite = state.rites[u.id], beast = state.beasts[u.id], action = fight && fight.firedTick >= 0 && state.tick - fight.firedTick < 10 || u.kind === "boar" && beast && beast.cooldown > combatRules.units.boar.cooldown - 10 || w2?.kind === "gather" && w2.phase === "hunting" && w2.progress > animalRules.hunt.cooldown - 10 ? 1 : u.hitTick >= 0 && state.tick - u.hitTick < combatRules.hitFlashTicks ? 2 : 0;
+        positions.set([u.id, u.player, u.x, u.y, target?.x ?? -1, target?.y ?? -1, navigationStates.indexOf(u.navigation), w2 ? workPhases.indexOf(w2.phase) : 0, c ? resources.indexOf(c.resource) : -1, c?.amount ?? 0, w2?.kind === "gather" ? resources.indexOf(w2.prey !== void 0 ? "food" : resourceDefinitions[state.map.resources.find((r) => r.id === w2.resourceId)?.kind ?? "berries"].yield) : -1, unitKinds.indexOf(u.kind), u.hp, maxHpOf(u.kind, ownerOf(state, u.player)), action, rite?.kind === "convert" ? 1 : rite?.kind === "heal" ? 2 : 0, own && u.kind === "monk" ? Math.floor(faithOf(state, u.id) * 100) : -1, carrying(state, u.id) ? 1 : 0, state.setups[u.id]?.unpacked ? 1 : 0], i * STRIDE);
       });
       const account = state.accounts[0], economy = { stock: { ...account.stock }, populationUsed: account.populationUsed, populationReserved: account.populationReserved, populationCap: account.populationCap, age: state.ages[0], techs: [...state.techs[0]], reseed: state.reseed[0] };
-      return { protocol: 1, id: req.id, ok: true, seed: state.seed, layout: state.layout, size: state.map.size, opponent: state.opponent, civs: [...state.civs], terrain: state.map.tiles.map(({ terrainType, height, walkClass, buildability }) => ({ terrainType, height, walkClass, buildability })), tick: state.tick, stateHash: hash(state), positions: positions.buffer, economy, corpses: state.corpses.filter((c) => c.player === 0 || state.vision[0].visible.includes(tileAt(c.x, c.y, state.map.size))).map((c) => ({ ...c })), outcome: state.outcome ? { ...state.outcome } : null, buildings: state.buildings.filter((b) => b.player === 0).map(({ id, kind, x, y, work, required, complete, queue, rally, hp, maxHp: maxHp2 }) => ({ id, kind, x, y, work, required, complete, hp, maxHp: maxHp2, garrison: state.garrison[id]?.units.length ?? 0, capacity: garrisonCapacity(state, { kind, player: 0 }), belled: state.garrison[id]?.units.filter((e) => e.bell).length ?? 0, queue: queue.map(({ id: id2, entryId, work: work2, required: required2 }) => ({ id: id2, entryId, work: work2, required: required2 })), rally, relics: state.relics.filter((r) => r.monastery === id).length })), relicSpots: state.relicMemory[0].map((r) => ({ ...r })), relicsHeld: [0, 1].map((p) => state.relics.filter((r) => r.monastery !== null && state.buildings.find((b) => b.id === r.monastery)?.player === p).length), relicTotal: state.relics.length, relicVictory: state.relicVictory ? { ...state.relicVictory } : null, shots: state.shots.filter((v) => v.player === 0 || state.vision[0].visible.includes(tileAt(v.to.x, v.to.y, state.map.size)) || state.vision[0].visible.includes(tileAt(v.from.x, v.from.y, state.map.size))).map((v) => structuredClone(v)), ...navalView(state), transactions: state.transactions.filter((t) => t.playerId === 0).slice(-5).map(({ sequence, tick: tick2, ok, error }) => ({ sequence, tick: tick2, ok, ...error ? { error } : {} })), ...projectVision(state.vision[0], state.map.size), accepted, commands, snapshot, replayMatches };
+      return {
+        protocol: 1,
+        id: req.id,
+        ok: true,
+        settings: settingsOf(state),
+        aiOpening: state.aiOpening,
+        coach: openingView(state, 0),
+        seed: state.seed,
+        layout: state.layout,
+        size: state.map.size,
+        opponent: state.opponent,
+        civs: [...state.civs],
+        terrain: state.map.tiles.map(({ terrainType, height, walkClass, buildability }) => ({ terrainType, height, walkClass, buildability })),
+        tick: state.tick,
+        stateHash: hash(state),
+        positions: positions.buffer,
+        economy,
+        corpses: state.corpses.filter((c) => c.player === 0 || state.vision[0].visible.includes(tileAt(c.x, c.y, state.map.size))).map((c) => ({ ...c })),
+        outcome: state.outcome ? { ...state.outcome } : null,
+        buildings: state.buildings.filter((b) => b.player === 0).map(({ id, kind, x, y, work, required, complete, queue, rally, hp, maxHp: maxHp2 }) => ({ id, kind, x, y, work, required, complete, hp, maxHp: maxHp2, garrison: state.garrison[id]?.units.length ?? 0, capacity: garrisonCapacity(state, { kind, player: 0 }), belled: state.garrison[id]?.units.filter((e) => e.bell).length ?? 0, queue: queue.map(({ id: id2, entryId, work: work2, required: required2 }) => ({ id: id2, entryId, work: work2, required: required2 })), rally, relics: state.relics.filter((r) => r.monastery === id).length, inside: (state.garrison[id]?.units ?? []).map(({ unit: u }) => ({ id: u.id, kind: u.kind, hp: u.hp, maxHp: maxHpOf(u.kind, ownerOf(state, u.player)) })) })),
+        relicSpots: state.relicMemory[0].map((r) => ({ ...r })),
+        relicsHeld: [0, 1].map((p) => state.relics.filter((r) => r.monastery !== null && state.buildings.find((b) => b.id === r.monastery)?.player === p).length),
+        relicTotal: state.relics.length,
+        relicVictory: state.relicVictory ? { ...state.relicVictory } : null,
+        projectiles: state.projectiles.filter((p) => p.player === 0 || state.vision[0].visible.includes(tileAt(Math.round(p.x), Math.round(p.y), state.map.size))).map((p) => ({ id: p.id, from: { ...p.from }, x: Math.round(p.x), y: Math.round(p.y), to: { ...p.to }, player: p.player, kind: p.kind })),
+        stances: Object.fromEntries(Object.entries(state.stances).filter(([id]) => state.units.some((u) => u.id === Number(id) && u.player === 0))),
+        patrols: Object.fromEntries(Object.entries(state.patrols).filter(([id]) => state.units.some((u) => u.id === Number(id) && u.player === 0)).map(([id, p]) => [id, { from: { ...p.from }, to: { ...p.to } }])),
+        shots: state.shots.filter((v) => v.player === 0 || state.vision[0].visible.includes(tileAt(v.to.x, v.to.y, state.map.size)) || state.vision[0].visible.includes(tileAt(v.from.x, v.from.y, state.map.size))).map((v) => structuredClone(v)),
+        ...navalView(state),
+        transactions: state.transactions.filter((t) => t.playerId === 0).slice(-5).map(({ sequence, tick: tick2, ok, error }) => ({ sequence, tick: tick2, ok, ...error ? { error } : {} })),
+        ...projectVision(state.vision[0], state.map.size),
+        accepted,
+        commands,
+        snapshot,
+        replayMatches
+      };
     } catch (error) {
       return { protocol: 1, id: Number.isSafeInteger(req?.id) ? req.id : 0, ok: false, tick: state.tick, message: error.message, entityId: ["garrison", "hunt", "attack", "move", "stop", "gather", "build", "construct", "convert", "heal", "relic", "deposit"].includes(req?.operation?.kind) ? req.operation.unitIds?.[0] : void 0 };
     }

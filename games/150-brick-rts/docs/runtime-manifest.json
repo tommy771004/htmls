@@ -1,6 +1,6 @@
 {
   "schemaVersion": 15,
-  "rulesetHash": "0d1395f6",
+  "rulesetHash": "c6ca515c",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
@@ -484,7 +484,10 @@
         "classes": [
           "villager"
         ],
-        "bonus": {}
+        "bonus": {
+          "building": 1,
+          "stone-defense": 2
+        }
       },
       "militia": {
         "hp": 45,
@@ -518,7 +521,8 @@
         ],
         "bonus": {
           "spear": 3
-        }
+        },
+        "frameDelay": 5
       },
       "scout": {
         "hp": 45,
@@ -534,7 +538,9 @@
         "classes": [
           "cavalry"
         ],
-        "bonus": {}
+        "bonus": {
+          "monk": 6
+        }
       },
       "monk": {
         "hp": 30,
@@ -617,7 +623,12 @@
         ],
         "bonus": {
           "cavalry": 12,
-          "camel": 10
+          "camel": 10,
+          "elephant": 12,
+          "ship": 7,
+          "fishing-ship": 7,
+          "mameluke": 3,
+          "standard-building": 1
         }
       },
       "skirmisher": {
@@ -636,9 +647,10 @@
           "skirmisher"
         ],
         "bonus": {
-          "archer": 4,
+          "archer": 3,
           "spear": 3
-        }
+        },
+        "frameDelay": 5
       },
       "knight": {
         "hp": 100,
@@ -668,12 +680,15 @@
           120
         ],
         "classes": [
-          "siege"
+          "siege",
+          "ram"
         ],
         "bonus": {
-          "building": 40
+          "building": 40,
+          "siege": 13
         },
-        "buildingsOnly": true
+        "buildingsOnly": true,
+        "alsoSiege": true
       },
       "longbowman": {
         "hp": 35,
@@ -692,7 +707,8 @@
         ],
         "bonus": {
           "spear": 2
-        }
+        },
+        "frameDelay": 5
       },
       "woad-raider": {
         "hp": 65,
@@ -710,7 +726,7 @@
           "unique"
         ],
         "bonus": {
-          "building": 2
+          "standard-building": 2
         }
       },
       "throwing-axeman": {
@@ -729,8 +745,9 @@
           "unique"
         ],
         "bonus": {
-          "building": 1
-        }
+          "standard-building": 1
+        },
+        "frameDelay": 10
       },
       "huskarl": {
         "hp": 60,
@@ -748,7 +765,7 @@
           "unique"
         ],
         "bonus": {
-          "building": 2,
+          "standard-building": 2,
           "archer": 6
         }
       },
@@ -768,7 +785,7 @@
           "unique"
         ],
         "bonus": {
-          "building": 4
+          "standard-building": 4
         }
       },
       "berserk": {
@@ -787,7 +804,7 @@
           "unique"
         ],
         "bonus": {
-          "building": 2
+          "standard-building": 2
         },
         "regen": 20
       },
@@ -808,6 +825,9 @@
         ],
         "bonus": {
           "infantry": 9
+        },
+        "classArmor": {
+          "cavalry": 10
         }
       },
       "war-elephant": {
@@ -827,8 +847,10 @@
           "elephant"
         ],
         "bonus": {
-          "building": 7
-        }
+          "building": 7,
+          "stone-defense": 7
+        },
+        "trample": 0.5
       },
       "mameluke": {
         "hp": 65,
@@ -843,11 +865,16 @@
         ],
         "classes": [
           "cavalry",
-          "unique"
+          "unique",
+          "mameluke"
         ],
         "bonus": {
           "cavalry": 9
-        }
+        },
+        "classArmor": {
+          "cavalry": 9
+        },
+        "frameDelay": 24
       },
       "janissary": {
         "hp": 35,
@@ -866,8 +893,9 @@
           "unique"
         ],
         "bonus": {
-          "siege": 2
-        }
+          "ram": 2
+        },
+        "frameDelay": 4
       },
       "chu-ko-nu": {
         "hp": 45,
@@ -888,7 +916,8 @@
           "spear": 2
         },
         "extraShots": 2,
-        "extraDamage": 3
+        "extraDamage": 3,
+        "frameDelay": 3
       },
       "samurai": {
         "hp": 60,
@@ -906,7 +935,7 @@
           "unique"
         ],
         "bonus": {
-          "building": 2,
+          "standard-building": 2,
           "unique": 10
         }
       },
@@ -930,7 +959,8 @@
         "bonus": {
           "siege": 3,
           "spear": 1
-        }
+        },
+        "frameDelay": 5
       },
       "cavalry-archer": {
         "hp": 50,
@@ -950,7 +980,8 @@
         ],
         "bonus": {
           "spear": 2
-        }
+        },
+        "frameDelay": 10
       },
       "camel": {
         "hp": 100,
@@ -968,7 +999,9 @@
         ],
         "bonus": {
           "cavalry": 9,
-          "camel": 5
+          "camel": 5,
+          "ship": 5,
+          "fishing-ship": 5
         }
       },
       "mangonel": {
@@ -986,10 +1019,12 @@
           "siege"
         ],
         "bonus": {
-          "building": 11
+          "building": 11,
+          "siege": 4
         },
         "minRange": 150,
-        "blast": 75
+        "blast": 75,
+        "friendlyFire": true
       },
       "scorpion": {
         "hp": 40,
@@ -1007,10 +1042,12 @@
         ],
         "bonus": {
           "elephant": 6,
-          "building": 1
+          "building": 1,
+          "ram": 1
         },
         "minRange": 100,
-        "passThrough": 200
+        "passThrough": 200,
+        "frameDelay": 42
       },
       "trebuchet": {
         "hp": 150,
@@ -1024,14 +1061,16 @@
           8
         ],
         "classes": [
-          "siege"
+          "siege",
+          "ram"
         ],
         "bonus": {
           "building": 50
         },
         "minRange": 200,
         "buildingsOnly": true,
-        "setup": 150
+        "setup": 150,
+        "frameDelay": 24
       },
       "hand-cannoneer": {
         "hp": 35,
@@ -1050,9 +1089,10 @@
         ],
         "bonus": {
           "infantry": 10,
-          "siege": 2,
+          "ram": 2,
           "spear": 1
-        }
+        },
+        "frameDelay": 5
       },
       "bombard-cannon": {
         "hp": 80,
@@ -1071,10 +1111,15 @@
         ],
         "bonus": {
           "building": 64,
-          "siege": 6
+          "siege": 6,
+          "stone-defense": 13,
+          "ship": 13,
+          "fishing-ship": 13
         },
         "minRange": 250,
-        "blast": 50
+        "blast": 50,
+        "friendlyFire": true,
+        "frameDelay": 7
       },
       "petard": {
         "hp": 50,
@@ -1092,7 +1137,9 @@
         ],
         "bonus": {
           "building": 55,
-          "siege": 19
+          "siege": 19,
+          "wall-gate": 99,
+          "castle": 11
         },
         "selfDestruct": true
       },
@@ -1108,8 +1155,7 @@
           4
         ],
         "classes": [
-          "ship",
-          "fishing"
+          "fishing-ship"
         ],
         "bonus": {}
       },
@@ -1181,7 +1227,9 @@
         ],
         "bonus": {
           "ship": 8,
-          "building": 2
+          "fishing-ship": 8,
+          "building": 2,
+          "ram": 3
         }
       },
       "fire-galley": {
@@ -1200,7 +1248,11 @@
           "fire"
         ],
         "bonus": {
-          "ship": 3
+          "ship": 3,
+          "fishing-ship": 1
+        },
+        "classArmor": {
+          "ship": 6
         }
       },
       "demolition-raft": {
@@ -1222,7 +1274,10 @@
           "building": 58
         },
         "blast": 125,
-        "selfDestruct": true
+        "selfDestruct": true,
+        "classArmor": {
+          "ship": 1
+        }
       },
       "cannon-galleon": {
         "hp": 120,
@@ -1241,7 +1296,11 @@
         ],
         "bonus": {
           "building": 64,
-          "siege": 13
+          "siege": 13,
+          "infantry": 15,
+          "archer": 15,
+          "cavalry": 15,
+          "mameluke": 4
         },
         "minRange": 150
       },
@@ -1263,7 +1322,9 @@
         ],
         "bonus": {
           "ship": 9,
-          "building": 2
+          "fishing-ship": 9,
+          "building": 2,
+          "ram": 4
         },
         "extraShots": 3,
         "extraDamage": 1

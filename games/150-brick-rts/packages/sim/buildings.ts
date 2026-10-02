@@ -19,14 +19,15 @@ export const buildKinds:readonly BuildKind[]=['house','barracks','farm','lumber-
 // queue: production/research in order (only the first advances); rally: where finished units walk.
 export type QueueItem={id:number;entryId:string;reservationId:string;work:number;required:number};
 // hp: structure points; a foundation starts at 1 and gains hit points in step with construction work.
-export type Building={boost?:number;id:string;kind:BuildKind|'town-center';player:number;x:number;y:number;work:number;required:number;complete:boolean;reservationId:string|null;queue:QueueItem[];rally:{x:number;y:number}|null;hp:number;maxHp:number};
+export type Building={boost?:number;id:string;kind:BuildKind|'town-center';player:number;x:number;y:number;work:number;required:number;complete:boolean;reservationId:string|null;queue:QueueItem[];rally:{x:number;y:number;inside?:true}|null;hp:number;maxHp:number};
 // capacity: population housed when complete (hard cap rules.settings.populationCap). One builder adds one
 // work point per tick; required = entry time (s) x tick rate. Positions snap to a 10-unit grid, fine enough
 // that the mirror image of any site (the maps are left-right symmetric) is also a legal position.
 export const buildingRules={provenance:'design_default',capacity:{'town-center':5,house:5,barracks:0,farm:0,'lumber-camp':0,'mining-camp':0,mill:0,stable:0,'archery-range':0,monastery:0,blacksmith:0,'watch-tower':0,'siege-workshop':0,castle:10,university:0,market:0,dock:0,'fish-trap':0,outpost:0,'bombard-tower':0,wonder:0,'palisade-wall':0,'palisade-gate':0,'stone-wall':0,gate:0},grid:10,
  required:Object.fromEntries(buildKinds.map(k=>[k,rules.entries.find(e=>e.id===k)!.time*rules.settings.tickHz])) as Record<BuildKind,number>} as const;
 // civs: each player's civilization; keptHousing: housing that destroyed houses leave behind (Mongol Nomads).
-export type BuildingState={map:MapData;units:Unit[];accounts:Account[];buildings:Building[];nextBuildingId:number;vision:{explored:number[]}[];ages:number[];civs?:string[];keptHousing?:number[]};
+// settings: the lobby's match settings (packages/sim/settings.ts; the population ceiling).
+export type BuildingState={settings?:{popCap:number;allTechs:boolean};map:MapData;units:Unit[];accounts:Account[];buildings:Building[];nextBuildingId:number;vision:{explored:number[]}[];ages:number[];civs?:string[];keptHousing?:number[]};
 const overlap=(a:number[],b:number[])=>Math.min(a[2],b[2])-Math.max(a[0],b[0])>0&&Math.min(a[3],b[3])-Math.max(a[1],b[1])>0;
 // Shared by the Worker (authoritative, full map) and the page (preview, only what the player knows).
 // Walls are dragged as a line of one-tile segments; a gate (same material) can replace a segment of its owner's wall.
@@ -82,9 +83,9 @@ export function farmOwner(s:BuildingState,resourceId:string){return s.buildings.
 // range and the stable need a barracks). Shared by the Worker and the page, so both give the same reason.
 // civ: the builder's civilization (the neutral one when absent); a building outside its tree is refused.
 // techs: the builder's research (the bombard tower needs its University technology).
-export function buildRequirement(age:number,kind:string,own:readonly {kind:string;complete:boolean}[],civ:string=neutralCiv,techs:readonly string[]=[]):string|null{
+export function buildRequirement(age:number,kind:string,own:readonly {kind:string;complete:boolean}[],civ:string=neutralCiv,techs:readonly string[]=[],allTechs=false):string|null{
  const entry=rules.entries.find(e=>e.id===kind);if(!entry)return '未知的建築種類';
- if(!civAvailable(civ,kind))return '此文明不能建造';
+ if(!civAvailable(civ,kind,allTechs))return '此文明不能建造';
  for(const req of entry.requires){const need=rules.entries.find(e=>e.id===req),m=/^age-(\d)$/.exec(req);
   if(m&&age<Number(m[1]))return `需要${need?.name??req}`;
   if(!m&&need?.kind==='technology'&&!techs.includes(req))return `需要先研究「${need.name}」`;
@@ -96,7 +97,7 @@ function obstacleOf(s:BuildingState,b:Building){return s.map.obstacles.find(o=>o
 export const housingOf=(s:BuildingState,player:number,kind:BuildKind|'town-center')=>buildingRules.capacity[kind]+housingBonus(ownerOf(s,player),kind);
 export function recomputeCapacity(s:BuildingState,player:number){
  const owner=ownerOf(s,player),housed=s.buildings.filter(b=>b.player===player&&b.complete).reduce((t,b)=>t+housingOf(s,player,b.kind),0)+(s.keptHousing?.[player]??0);
- s.accounts[player].populationCap=Math.min(rules.settings.populationCap+popCapBonus(owner),housed);
+ s.accounts[player].populationCap=Math.min((s.settings?.popCap??rules.settings.populationCap)+popCapBonus(owner),housed);
 }
 export function initBuildings(s:BuildingState){
  for(const o of s.map.obstacles)if(o.kind==='town-center'){{const p=o.red?1:0,hp=buildingHpOf('town-center',ownerOf(s,p));s.buildings.push({id:o.id!,kind:'town-center',player:p,x:o.x,y:o.y,work:0,required:0,complete:true,reservationId:null,queue:[],rally:null,hp,maxHp:hp});}o.age=s.ages[o.red?1:0];}
@@ -104,7 +105,7 @@ export function initBuildings(s:BuildingState){
 }
 // Pays up front (reservation), places a blocking foundation and updates navigation. Throws before any change.
 export function placeBuilding(s:BuildingState,player:number,kind:BuildKind,x:number,y:number,reservationId:string):Building{
- const owner=ownerOf(s,player),problem=authoritativeProblem(s,player,kind,x,y)??buildRequirement(s.ages[player],kind,s.buildings.filter(b=>b.player===player),owner.civ,owner.techs);if(problem)throw Error(problem);
+ const owner=ownerOf(s,player),problem=authoritativeProblem(s,player,kind,x,y)??buildRequirement(s.ages[player],kind,s.buildings.filter(b=>b.player===player),owner.civ,owner.techs,!!owner.allTechs);if(problem)throw Error(problem);
  reserve(s.accounts[player],reservationId,kind,costOf(kind,owner));
  // A gate takes the place of the owner's wall segments under it (no refund; a wall foundation's payment is kept).
  if(kind in wallGate){const box=obstacleBounds({kind,x,y});for(const w of s.buildings.filter(w=>w.player===player&&w.kind===wallGate[kind])){const o=obstacleOf(s,w);if(o&&overlap(obstacleBounds(o),box))removeBuilding(s,w);}}

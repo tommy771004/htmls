@@ -1836,6 +1836,16 @@ Object.assign(techIcons, {
   // Bombard Tower: a squat banded tower with a cannon run out of it (the tower itself).
   "bombard-tower-tech": [bar(0.18, 0, 0.6, 0.66, stone5, 0.3, 0.36), bar(0.14, 0.3, 0.68, 0.06, iron5, 0.28, 0.4), bar(0.14, 0.66, 0.68, 0.08, "#9d9a88", 0.28, 0.4), ...merlons(0.14, 0.74, 3, 0.12), bar(0.4, 0.4, 0.16, 0.12, iron5, 0.66, 0.3), bar(0.38, 0.38, 0.2, 0.16, "#3f4240", 0.94, 0.03)],
   // Greek Fire: a bronze siphon nozzle shooting a long jet of flame (fire ships reach farther).
+  // Ballistics (the 戰術技巧 round): an arrow's dotted arc leading a running target, landing on it (shots lead moving units).
+  ballistics: [
+    ...[[0, 0.08], [0.1, 0.3], [0.22, 0.46], [0.35, 0.55], [0.48, 0.56]].map(([x, y]) => bar(x, y, 0.08, 0.05, wood5, 0.45, 0.04)),
+    bar(0.58, 0.48, 0.08, 0.08, metal22, 0.44, 0.06),
+    bar(0.7, 0, 0.06, 0.3, wood5, 0.32, 0.06),
+    bar(0.66, 0.3, 0.3, 0.4, "#ece2c4", 0.3, 0.08),
+    bar(0.72, 0.38, 0.18, 0.24, team, 0.38, 0.03),
+    bar(0.77, 0.45, 0.08, 0.1, gold2, 0.41, 0.03),
+    ...[0, 1, 2].map((i) => bar(0.96 - i * 0.02, 0.1 + i * 0.12, 0.1, 0.04, "#efe6cc", 0.45, 0.04))
+  ],
   "greek-fire": [bar(0, 0.2, 0.22, 0.24, "#b8964a", 0.36, 0.28), bar(0.22, 0.26, 0.16, 0.12, "#b8964a", 0.4, 0.12), bar(0.38, 0.24, 0.2, 0.16, flame3, 0.4, 0.16), bar(0.58, 0.26, 0.22, 0.12, flame3, 0.4, 0.14), bar(0.8, 0.28, 0.2, 0.08, spark3, 0.42, 0.1), bar(0.06, 0, 0.1, 0.2, wood5, 0.4, 0.1), ...shaft(0.3, 0.62, 0.5)]
 });
 
@@ -3065,7 +3075,7 @@ var civDefs = [
     nameEn: "Britons",
     type: "\u5F13\u5175\u6587\u660E",
     architecture: "west",
-    missing: ["crop-rotation", "stone-shaft-mining", "redemption", "atonement", "heresy", "hussar", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "treadmill-crane", "bloodlines", "thumb-ring", "parthian-tactics", "hand-cannoneer", "bombard-cannon", "elite-cannon-galleon", "bombard-tower"],
+    missing: ["crop-rotation", "stone-shaft-mining", "redemption", "atonement", "heresy", "hussar", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "treadmill-crane", "bloodlines", "thumb-ring", "parthian-tactics", "hand-cannoneer", "bombard-cannon", "elite-cannon-galleon", "bombard-tower", "bombard-tower-tech"],
     missingLater: ["missionary"],
     uniqueUnits: ["longbowman"],
     eliteUpgrades: ["elite-longbowman"],
@@ -3077,9 +3087,11 @@ var civDefs = [
       fx("britons.team-range", "workRate", { buildings: ["archery-range"] }, 20, "\u5718\u968A\u52A0\u6210\uFF1A\u9776\u5834\u751F\u7522\u901F\u5EA6 +20%", { team: true }),
       fx("britons.yeomen-range", "range", { classes: ["archer"], exclude: ["gunpowder", "cavalry-archer"] }, 50, "\u7FA9\u52C7\u9A0E\u5175\uFF1A\u5F92\u6B65\u5F13\u5175\uFF08\u542B\u6563\u5175\uFF09\u5C04\u7A0B +1", { tech: "yeomen" }),
       fx("britons.yeomen-tower", "arrowDamage", { buildings: ["watch-tower"] }, 2, "\u7FA9\u52C7\u9A0E\u5175\uFF1A\u7BAD\u5854\u653B\u64CA +2", { tech: "yeomen" }),
-      fx("britons.warwolf", "blast", { kinds: ["trebuchet"] }, 75, "\u6230\u72FC\u865F\uFF1A\u5DE8\u578B\u6295\u77F3\u6A5F\u7684\u77F3\u5F48\u6CE2\u53CA\u843D\u9EDE\u5468\u570D\u7684\u6575\u5175", { tech: "warwolf" })
+      fx("britons.warwolf", "blast", { kinds: ["trebuchet"] }, 75, "\u6230\u72FC\u865F\uFF1A\u5DE8\u578B\u6295\u77F3\u6A5F\u7684\u77F3\u5F48\u6CE2\u53CA\u843D\u9EDE\u5468\u570D\u7684\u6575\u5175", { tech: "warwolf" }),
+      // aoetw: 100% against standing targets; here the trebuchet strikes buildings only, which always stand.
+      fx("britons.warwolf-accuracy", "accuracy", { kinds: ["trebuchet"] }, 100, "\u6230\u72FC\u865F\uFF1A\u5DE8\u578B\u6295\u77F3\u6A5F\u5C04\u64CA\u975C\u6B62\u76EE\u6A19\u5FC5\u4E2D", { tech: "warwolf" })
     ],
-    omitted: [{ text: "\u6230\u72FC\u865F\u5C0D\u975C\u6B62\u55AE\u4F4D 100% \u547D\u4E2D", reason: "\u672C\u4F5C\u7684\u5DE8\u578B\u6295\u77F3\u6A5F\u53EA\u6253\u5EFA\u7BC9\uFF0C\u4E5F\u6C92\u6709\u547D\u4E2D\u7387" }],
+    omitted: [],
     sources: [site("civs/Britons"), site("units/Longbowman"), site("techs/Yeomen"), site("techs/Warwolf"), site("tree/bri")]
   },
   {
@@ -3088,7 +3100,7 @@ var civDefs = [
     nameEn: "Celts",
     type: "\u6B65\u5175\u8207\u653B\u57CE\u5668\u6587\u660E",
     architecture: "west",
-    missing: ["two-man-saw", "crop-rotation", "bracer", "ring-archer-armor", "plate-barding-armor", "redemption", "atonement", "illumination", "block-printing", "theocracy", "arbalest", "camel", "heavy-camel", "architecture", "bloodlines", "thumb-ring", "parthian-tactics", "squires", "hand-cannoneer", "bombard-cannon", "bombard-tower", "elite-cannon-galleon", "fast-fire-ship"],
+    missing: ["two-man-saw", "crop-rotation", "bracer", "ring-archer-armor", "plate-barding-armor", "redemption", "atonement", "illumination", "block-printing", "theocracy", "arbalest", "camel", "heavy-camel", "architecture", "bloodlines", "thumb-ring", "parthian-tactics", "squires", "hand-cannoneer", "bombard-cannon", "bombard-tower", "bombard-tower-tech", "elite-cannon-galleon", "fast-fire-ship"],
     missingLater: ["missionary"],
     uniqueUnits: ["woad-raider"],
     eliteUpgrades: ["elite-woad-raider"],
@@ -3110,7 +3122,7 @@ var civDefs = [
     nameEn: "Franks",
     type: "\u9A0E\u5175\u6587\u660E",
     architecture: "west",
-    missing: ["two-man-saw", "stone-shaft-mining", "bracer", "ring-archer-armor", "redemption", "arbalest", "hussar", "camel", "heavy-camel", "siege-ram", "siege-onager", "keep", "bloodlines", "thumb-ring", "parthian-tactics", "sappers", "bombard-tower", "heated-shot", "shipwright", "elite-cannon-galleon", "guilds"],
+    missing: ["two-man-saw", "stone-shaft-mining", "bracer", "ring-archer-armor", "redemption", "arbalest", "hussar", "camel", "heavy-camel", "siege-ram", "siege-onager", "keep", "bloodlines", "thumb-ring", "parthian-tactics", "sappers", "bombard-tower", "bombard-tower-tech", "heated-shot", "shipwright", "elite-cannon-galleon", "guilds"],
     missingLater: ["missionary"],
     uniqueUnits: ["throwing-axeman"],
     eliteUpgrades: ["elite-throwing-axeman"],
@@ -3133,7 +3145,7 @@ var civDefs = [
     nameEn: "Goths",
     type: "\u6B65\u5175\u6587\u660E",
     architecture: "central",
-    missing: ["gold-shaft-mining", "plate-mail-armor", "plate-barding-armor", "redemption", "atonement", "heresy", "block-printing", "arbalest", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "siege-engineers", "guard-tower", "keep", "treadmill-crane", "arrowslits", "thumb-ring", "parthian-tactics", "arson", "hoardings", "bombard-tower", "elite-cannon-galleon", "dry-dock", "fortified-wall"],
+    missing: ["gold-shaft-mining", "plate-mail-armor", "plate-barding-armor", "redemption", "atonement", "heresy", "block-printing", "arbalest", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "siege-engineers", "guard-tower", "keep", "treadmill-crane", "arrowslits", "thumb-ring", "parthian-tactics", "arson", "hoardings", "bombard-tower", "bombard-tower-tech", "elite-cannon-galleon", "dry-dock", "fortified-wall"],
     missingLater: ["missionary"],
     uniqueUnits: ["huskarl"],
     eliteUpgrades: ["elite-huskarl"],
@@ -3184,7 +3196,7 @@ var civDefs = [
     nameEn: "Vikings",
     type: "\u6B65\u5175\u8207\u6D77\u8ECD\u6587\u660E",
     architecture: "central",
-    missing: ["stone-shaft-mining", "plate-barding-armor", "redemption", "sanctity", "illumination", "theocracy", "halberdier", "heavy-cavalry-archer", "hussar", "paladin", "camel", "heavy-camel", "siege-onager", "keep", "bloodlines", "husbandry", "parthian-tactics", "herbal-medicine", "hand-cannoneer", "bombard-cannon", "bombard-tower", "fire-galley", "fast-fire-ship", "elite-cannon-galleon", "shipwright", "guilds"],
+    missing: ["stone-shaft-mining", "plate-barding-armor", "redemption", "sanctity", "illumination", "theocracy", "halberdier", "heavy-cavalry-archer", "hussar", "paladin", "camel", "heavy-camel", "siege-onager", "keep", "bloodlines", "husbandry", "parthian-tactics", "herbal-medicine", "hand-cannoneer", "bombard-cannon", "bombard-tower", "bombard-tower-tech", "fire-galley", "fast-fire-ship", "elite-cannon-galleon", "shipwright", "guilds"],
     missingLater: ["missionary"],
     uniqueUnits: ["berserk", "longboat"],
     eliteUpgrades: ["elite-berserk", "elite-longboat"],
@@ -3208,7 +3220,7 @@ var civDefs = [
     nameEn: "Byzantines",
     type: "\u9632\u79A6\u6587\u660E",
     architecture: "mideast",
-    missing: ["masonry", "architecture", "blast-furnace", "siege-onager", "heavy-scorpion", "siege-engineers", "treadmill-crane", "bloodlines", "parthian-tactics", "sappers", "herbal-medicine", "heated-shot", "bombard-tower"],
+    missing: ["masonry", "architecture", "blast-furnace", "siege-onager", "heavy-scorpion", "siege-engineers", "treadmill-crane", "bloodlines", "parthian-tactics", "sappers", "herbal-medicine", "heated-shot", "bombard-tower", "bombard-tower-tech"],
     missingLater: ["missionary"],
     uniqueUnits: ["cataphract"],
     eliteUpgrades: ["elite-cataphract"],
@@ -3233,7 +3245,7 @@ var civDefs = [
     nameEn: "Persians",
     type: "\u9A0E\u5175\u6587\u660E",
     architecture: "mideast",
-    missing: ["bracer", "redemption", "atonement", "heresy", "sanctity", "illumination", "two-handed-swordsman", "champion", "arbalest", "siege-onager", "siege-engineers", "keep", "treadmill-crane", "arrowslits", "shipwright", "bombard-tower", "fortified-wall"],
+    missing: ["bracer", "redemption", "atonement", "heresy", "sanctity", "illumination", "two-handed-swordsman", "champion", "arbalest", "siege-onager", "siege-engineers", "keep", "treadmill-crane", "arrowslits", "shipwright", "bombard-tower", "bombard-tower-tech", "fortified-wall"],
     missingLater: ["missionary"],
     uniqueUnits: ["war-elephant"],
     eliteUpgrades: ["elite-war-elephant"],
@@ -3256,7 +3268,7 @@ var civDefs = [
     nameEn: "Saracens",
     type: "\u99F1\u99DD\u8207\u6D77\u8ECD\u6587\u660E",
     architecture: "mideast",
-    missing: ["crop-rotation", "stone-shaft-mining", "halberdier", "cavalier", "paladin", "heavy-scorpion", "architecture", "sappers", "bombard-tower", "heated-shot", "shipwright", "guilds", "fast-fire-ship"],
+    missing: ["crop-rotation", "stone-shaft-mining", "halberdier", "cavalier", "paladin", "heavy-scorpion", "architecture", "sappers", "bombard-tower", "bombard-tower-tech", "heated-shot", "shipwright", "guilds", "fast-fire-ship"],
     missingLater: ["missionary"],
     uniqueUnits: ["mameluke"],
     eliteUpgrades: ["elite-mameluke"],
@@ -3335,7 +3347,7 @@ var civDefs = [
     nameEn: "Japanese",
     type: "\u6B65\u5175\u6587\u660E",
     architecture: "eastasia",
-    missing: ["crop-rotation", "stone-shaft-mining", "plate-barding-armor", "heresy", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "architecture", "hoardings", "bombard-cannon", "bombard-tower", "heated-shot", "guilds", "heavy-demolition-ship"],
+    missing: ["crop-rotation", "stone-shaft-mining", "plate-barding-armor", "heresy", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "architecture", "hoardings", "bombard-cannon", "bombard-tower", "bombard-tower-tech", "heated-shot", "guilds", "heavy-demolition-ship"],
     missingLater: ["missionary"],
     uniqueUnits: ["samurai"],
     eliteUpgrades: ["elite-samurai"],
@@ -3360,7 +3372,7 @@ var civDefs = [
     nameEn: "Mongols",
     type: "\u99AC\u5F13\u9A0E\u5175\u6587\u660E",
     architecture: "eastasia",
-    missing: ["halberdier", "two-man-saw", "crop-rotation", "plate-barding-armor", "ring-archer-armor", "redemption", "sanctity", "faith", "block-printing", "paladin", "architecture", "keep", "treadmill-crane", "arrowslits", "bombard-cannon", "bombard-tower", "elite-cannon-galleon", "heated-shot", "guilds", "dry-dock"],
+    missing: ["halberdier", "two-man-saw", "crop-rotation", "plate-barding-armor", "ring-archer-armor", "redemption", "sanctity", "faith", "block-printing", "paladin", "architecture", "keep", "treadmill-crane", "arrowslits", "bombard-cannon", "bombard-tower", "bombard-tower-tech", "elite-cannon-galleon", "heated-shot", "guilds", "dry-dock"],
     missingLater: [],
     uniqueUnits: ["mangudai"],
     eliteUpgrades: ["elite-mangudai"],
@@ -3567,6 +3579,8 @@ var techEntries = [
   tech("keep", "\u5927\u578B\u7BAD\u5854", 500, 350, 0, 0, ["age-4", "guard-tower"], 75),
   tech("treadmill-crane", "\u78E8\u574A\u6C34\u8ECA", 300, 200, 0, 0, ["age-3"], 50),
   tech("arrowslits", "\u7BAD\u72F9\u69FD", 250, 250, 0, 0, ["age-4"], 25),
+  // The 戰術技巧 round (aoetw.com techs/Ballistics): every civilization of this game has it.
+  tech("ballistics", "\u5F48\u9053\u5B78", 0, 300, 175, 0, ["age-3"], 60),
   tech("supplies", "\u4F9B\u7D66", 150, 0, 100, 0, ["age-2"], 35),
   tech("squires", "\u8B77\u885B\u6280\u8853", 100, 0, 0, 0, ["age-3"], 40),
   tech("arson", "\u7E31\u706B", 150, 0, 50, 0, ["age-3"], 25),
@@ -3595,6 +3609,7 @@ var techProducers = {
   keep: "university",
   "treadmill-crane": "university",
   arrowslits: "university",
+  ballistics: "university",
   supplies: "barracks",
   squires: "barracks",
   arson: "barracks",
@@ -3658,11 +3673,11 @@ var buildingEntries = [
 ];
 var dockItems = ["fishing-ship", "transport-ship", "trade-cog", "galley", "fire-galley", "demolition-raft", "cannon-galleon", "longboat", "war-galley", "galleon", "fast-fire-ship", "heavy-demolition-ship", "elite-cannon-galleon", "elite-longboat", "gillnets", "careening", "dry-dock", "shipwright"];
 var buildingProducers = { ...Object.fromEntries(dockItems.map((id) => [id, "dock"])), "trade-cart": "market", caravan: "market", guilds: "market", "heated-shot": "university", "fortified-wall": "university", "bombard-tower-tech": "university", "greek-fire": "castle" };
-function civilizationsOf(entries) {
+function civilizationsOf(entries, allTechs = false) {
   const ids = entries.map((e) => e.id), uniqueIds = new Set(civDefs.flatMap((c) => [...c.uniqueUnits, ...c.eliteUpgrades, ...c.uniqueTechs.map((t) => t.id)]));
   return civDefs.map((c) => {
     const own = /* @__PURE__ */ new Set([...c.uniqueUnits, ...c.eliteUpgrades, ...c.uniqueTechs.map((t) => t.id)]);
-    const unavailable = ids.filter((id) => c.missing.includes(id) || uniqueIds.has(id) && !own.has(id) || id === "castle" && !c.uniqueUnits.length);
+    const unavailable = ids.filter((id) => !allTechs && c.missing.includes(id) || uniqueIds.has(id) && !own.has(id) || id === "castle" && !c.uniqueUnits.length);
     for (let grew = true; grew; ) {
       grew = false;
       for (const e of entries) {
@@ -3822,6 +3837,7 @@ var rules = {
   civilizations: []
 };
 rules.civilizations = civilizationsOf(rules.entries);
+var allTechCivilizations = civilizationsOf(rules.entries, true);
 
 // packages/sim/navigation.ts
 var navigationRules = { provenance: "design_default", spacing: 50, size: 31, radius: 25, expansionsPerTick: 128, speedPerTick: 5, maxGroupSize: 40, waitLimit: 8, queueWaitFactor: 4, detourLimit: 12, stuckTicks: 300, arrivalRadius: 150 };
@@ -4421,10 +4437,10 @@ async function createScene(canvas, onFailure, options = {}) {
   let previewBuildingKind = "house", previewStyle = "neutral";
   let previewBuilding = { ageVariant: 2, progress: 100, health: 100 };
   const ownTower = (view) => options.assetPreview ? null : towerGradeOf(view.economy?.techs ?? []);
-  function house(x, z, red2 = false, obstacleKind = "house", progress = 100, age = 2, health = 100, style = "neutral", tower = null, links = noLinks, land = 0) {
+  function house(x, z, red2 = false, obstacleKind = "house", progress = 100, age = 2, health = 100, style = "neutral", tower = null, links = noLinks, land2 = 0) {
     const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, health, ageVariant: Math.min(4, Math.max(1, age)) };
     const joined = options.assetPreview ? { ...noLinks, e: true, w: true } : links, styleOf = options.assetPreview ? previewStyle : style;
-    const parts = kind === "wonder" ? wonderParts({ ...visual, red: red2 }, styleOf) : regionalParts(kind === "house" ? buildingParts({ ...visual, red: red2 }) : kind === "palisade-wall" || kind === "stone-wall" ? wallParts(kind, { ...visual, red: red2 }, joined) : kind === "palisade-gate" || kind === "gate" ? gateParts(kind, { ...visual, red: red2 }, joined) : kind === "outpost" ? outpostParts({ ...visual, red: red2 }) : kind === "bombard-tower" ? bombardTowerParts({ ...visual, red: red2 }) : kind === "dock" ? dockParts({ ...visual, red: red2 }, options.assetPreview ? 0 : land) : kind === "fish-trap" ? fishTrapParts({ ...visual, red: red2 }) : kind === "monastery" ? monasteryParts({ ...visual, red: red2 }) : kind === "blacksmith" ? blacksmithParts({ ...visual, red: red2 }) : kind === "watch-tower" ? towerParts({ ...visual, red: red2 }, tower) : kind === "university" ? universityParts({ ...visual, red: red2 }) : kind === "siege-workshop" ? siegeWorkshopParts({ ...visual, red: red2 }) : kind === "castle" ? castleParts({ ...visual, red: red2 }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red: red2 }) : economicBuildingParts(kind, { ...visual, red: red2 }), kind === "farm" ? "neutral" : styleOf);
+    const parts = kind === "wonder" ? wonderParts({ ...visual, red: red2 }, styleOf) : regionalParts(kind === "house" ? buildingParts({ ...visual, red: red2 }) : kind === "palisade-wall" || kind === "stone-wall" ? wallParts(kind, { ...visual, red: red2 }, joined) : kind === "palisade-gate" || kind === "gate" ? gateParts(kind, { ...visual, red: red2 }, joined) : kind === "outpost" ? outpostParts({ ...visual, red: red2 }) : kind === "bombard-tower" ? bombardTowerParts({ ...visual, red: red2 }) : kind === "dock" ? dockParts({ ...visual, red: red2 }, options.assetPreview ? 0 : land2) : kind === "fish-trap" ? fishTrapParts({ ...visual, red: red2 }) : kind === "monastery" ? monasteryParts({ ...visual, red: red2 }) : kind === "blacksmith" ? blacksmithParts({ ...visual, red: red2 }) : kind === "watch-tower" ? towerParts({ ...visual, red: red2 }, tower) : kind === "university" ? universityParts({ ...visual, red: red2 }) : kind === "siege-workshop" ? siegeWorkshopParts({ ...visual, red: red2 }) : kind === "castle" ? castleParts({ ...visual, red: red2 }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red: red2 }) : economicBuildingParts(kind, { ...visual, red: red2 }), kind === "farm" ? "neutral" : styleOf);
     for (const p of parts) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, false, p.shape);
     for (const stud of buildingStuds(parts)) staticPart(studGeo, stud.color, x + stud.x, stud.y, z + stud.z);
   }
@@ -4565,6 +4581,54 @@ async function createScene(canvas, onFailure, options = {}) {
   }
   const relics = /* @__PURE__ */ new Map();
   const arrows2 = /* @__PURE__ */ new Map(), arrowGeo = new T.BoxGeometry(0.04, 0.04, 1), arrowMaterial = new T.MeshBasicMaterial({ color: "#4a3b2a" });
+  const shapeOf = (kind) => kind === "mangonel" || kind === "trebuchet" ? "stone" : kind === "bombard-cannon" || kind === "cannon-galleon" || kind === "bombard-tower" ? "ball" : kind === "hand-cannoneer" || kind === "janissary" ? "shot" : kind === "scorpion" ? "bolt" : kind === "throwing-axeman" ? "axe" : kind === "mameluke" ? "javelin" : kind === "fire-galley" ? "fire" : "arrow";
+  const shapes = {
+    arrow: { geo: new T.BoxGeometry(0.055, 0.055, 0.42), mat: material("#4d3a26"), arc: 0.45, long: true, puff: 0.18 },
+    bolt: { geo: new T.BoxGeometry(0.06, 0.06, 0.56), mat: material("#4a3b2a"), arc: 0.2, long: true, puff: 0.22 },
+    javelin: { geo: new T.BoxGeometry(0.04, 0.04, 0.5), mat: material("#7a5c40"), arc: 0.5, long: true, puff: 0.18 },
+    axe: { geo: new T.BoxGeometry(0.16, 0.05, 0.14), mat: material("#8f969a"), arc: 0.4, long: false, puff: 0.18 },
+    stone: { geo: new T.BoxGeometry(0.2, 0.18, 0.2), mat: material("#9d9583"), arc: 1.8, long: false, puff: 0.55 },
+    ball: { geo: new T.SphereGeometry(0.09, 10, 8), mat: material("#2b2a28"), arc: 0.7, long: false, puff: 0.45 },
+    shot: { geo: new T.SphereGeometry(0.035, 6, 5), mat: material("#2b2a28"), arc: 0.1, long: false, puff: 0.14 },
+    fire: { geo: new T.BoxGeometry(0.16, 0.14, 0.3), mat: new T.MeshBasicMaterial({ color: "#f0883e", transparent: true, opacity: 0.85, depthWrite: false }), arc: 0.15, long: true, puff: 0 }
+  };
+  const launchLift = { "town-center": 2, "watch-tower": 2.6, castle: 3.4, "bombard-tower": 2.1, trebuchet: 1.4, mangonel: 0.7 };
+  const flights = /* @__PURE__ */ new Map(), flightPool = /* @__PURE__ */ new Map();
+  const puffGeo = new T.SphereGeometry(0.5, 8, 6), puffs = [], puffPool = [];
+  function puff(x, y, size, color) {
+    if (size <= 0) return;
+    const m = puffPool.pop() ?? new T.Mesh(puffGeo, new T.MeshBasicMaterial({ transparent: true, depthWrite: false }));
+    m.material.color.set(color);
+    m.material.opacity = 0.55;
+    m.position.set(x / 100, groundHeight(worldTiles, x, y) / 100 + 0.08, y / 100);
+    m.scale.setScalar(size * 0.3);
+    scene.add(m);
+    puffs.push({ mesh: m, start: 0, size });
+  }
+  function land(f) {
+    scene.remove(f.mesh);
+    (flightPool.get(f.shape) ?? flightPool.set(f.shape, []).get(f.shape)).push(f.mesh);
+    puff(f.to.x, f.to.y, shapes[f.shape].puff, "#cdbf9f");
+  }
+  const flightPoint = new T.Vector3(), flightAhead = new T.Vector3();
+  function flightHeight(f, x, y) {
+    const total = Math.hypot(f.to.x - f.from.x, f.to.y - f.from.y) || 1, t = Math.min(1, Math.max(0, Math.hypot(x - f.from.x, y - f.from.y) / total));
+    const start = groundHeight(worldTiles, f.from.x, f.from.y) / 100 + f.lift, end = groundHeight(worldTiles, f.to.x, f.to.y) / 100 + 0.15;
+    return start + (end - start) * t + shapes[f.shape].arc * Math.min(1, total / 400) * 4 * t * (1 - t);
+  }
+  function placeFlight(f, time) {
+    const ldx = f.to.x - f.from.x, ldy = f.to.y - f.from.y, ll = Math.hypot(ldx, ldy) || 1;
+    flightPoint.set((f.at.x - ldy / ll * f.fan) / 100, flightHeight(f, f.at.x, f.at.y), (f.at.y + ldx / ll * f.fan) / 100);
+    f.mesh.position.copy(flightPoint);
+    if (shapes[f.shape].long) {
+      const dx = f.to.x - f.from.x, dy = f.to.y - f.from.y, len = Math.hypot(dx, dy) || 1, ax = f.at.x + dx / len * 12, ay = f.at.y + dy / len * 12;
+      flightAhead.set((ax - ldy / ll * f.fan) / 100, flightHeight(f, ax, ay), (ay + ldx / ll * f.fan) / 100);
+      f.mesh.lookAt(flightAhead);
+    } else {
+      f.mesh.rotation.x = time / 90;
+      f.mesh.rotation.z = time / 130;
+    }
+  }
   const fallen = /* @__PURE__ */ new Map();
   const barBack = new T.MeshBasicMaterial({ color: "#2d3a33" }), barGeo = new T.BoxGeometry(0.5, 0.05, 0.05);
   const ringGeo = new T.RingGeometry(0.4, 0.47, 32);
@@ -4731,12 +4795,31 @@ async function createScene(canvas, onFailure, options = {}) {
       }
       g.position.set(r.x / 100, (groundHeight(worldTiles, r.x, r.y) + standingLift(r.x, r.y)) / 100, r.y / 100);
     }
-    const flying = new Set((view.shots ?? []).map((v) => `${v.tick}:${v.from.x},${v.from.y}>${v.to.x},${v.to.y}`));
+    const inAir = new Set((view.projectiles ?? []).map((p) => p.id));
+    for (const [id, f] of flights) if (!inAir.has(id)) {
+      land(f);
+      flights.delete(id);
+    }
+    for (const p of view.projectiles ?? []) {
+      let f = flights.get(p.id);
+      if (!f) {
+        const shape = shapeOf(p.kind), mesh = flightPool.get(shape)?.pop() ?? new T.Mesh(shapes[shape].geo, shapes[shape].mat);
+        scene.add(mesh);
+        f = { mesh, shape, from: { ...p.from }, to: { ...p.to }, goal: { x: p.x, y: p.y }, at: { ...p.from }, lift: launchLift[p.kind] ?? 0.62, fan: (p.id * 37 % 9 - 4) * 5 };
+        flights.set(p.id, f);
+        if (shape === "ball" || shape === "shot") puff(p.from.x, p.from.y, shape === "ball" ? 0.4 : 0.16, "#e9e4d8");
+        placeFlight(f, 0);
+      }
+      f.goal = { x: p.x, y: p.y };
+      f.to = { ...p.to };
+    }
+    canvas.dataset.flights = String(flights.size);
+    const flying = new Set((view.projectiles ? [] : view.shots ?? []).map((v) => `${v.tick}:${v.from.x},${v.from.y}>${v.to.x},${v.to.y}`));
     for (const [k, m] of arrows2) if (!flying.has(k)) {
       scene.remove(m);
       arrows2.delete(k);
     }
-    for (const v of view.shots ?? []) {
+    for (const v of view.projectiles ? [] : view.shots ?? []) {
       const k = `${v.tick}:${v.from.x},${v.from.y}>${v.to.x},${v.to.y}`;
       if (arrows2.has(k)) continue;
       const a = new T.Vector3(v.from.x / 100, groundHeight(worldTiles, v.from.x, v.from.y) / 100 + 2.2, v.from.y / 100), b = new T.Vector3(v.to.x / 100, groundHeight(worldTiles, v.to.x, v.to.y) / 100 + 0.6, v.to.y / 100);
@@ -4838,6 +4921,24 @@ async function createScene(canvas, onFailure, options = {}) {
       if (u.group.position.distanceTo(u.goal) < 2e-3) u.group.position.copy(u.goal);
       else u.group.position.lerp(u.goal, ease);
     }
+    for (const f of flights.values()) {
+      f.at.x += (f.goal.x - f.at.x) * ease;
+      f.at.y += (f.goal.y - f.at.y) * ease;
+      placeFlight(f, time);
+    }
+    for (let i = puffs.length - 1; i >= 0; i--) {
+      const p = puffs[i];
+      if (!p.start) p.start = time;
+      const k = (time - p.start) / 380;
+      if (k >= 1) {
+        scene.remove(p.mesh);
+        puffPool.push(p.mesh);
+        puffs.splice(i, 1);
+        continue;
+      }
+      p.mesh.scale.setScalar(p.size * (0.3 + 0.7 * k));
+      p.mesh.material.opacity = 0.55 * (1 - k);
+    }
     stepMarker(time);
     for (const u of units.values()) {
       const pose = options.assetPreview ? previewPose : poseFor(u.kind, u.activity);
@@ -4927,6 +5028,30 @@ async function createScene(canvas, onFailure, options = {}) {
       m.scale.set((x1 - x0) / 100, 1, (y1 - y0) / 100);
       m.position.set((x0 + x1) / 200, groundHeight(worldTiles, g.x, g.y) / 100 + 0.15, (y0 + y1) / 200);
       m.material.color.set(g.ok ? "#6f9d6a" : "#b8574a");
+    });
+  }
+  const patrolDash = new T.BoxGeometry(0.2, 0.03, 0.09), patrolLook = new T.MeshBasicMaterial({ color: "#2f5f73", transparent: true, opacity: 0.72, depthWrite: false }), patrolDashes = [];
+  function setPatrols(routes) {
+    const spots = [];
+    for (const r of routes) {
+      const dx = r.to.x - r.from.x, dz = r.to.z - r.from.z, len = Math.hypot(dx, dz), n = Math.min(60, Math.floor(len / 0.36));
+      for (let i = 0; i <= n; i++) {
+        const t = n ? i / n : 0;
+        spots.push({ x: r.from.x + dx * t, z: r.from.z + dz * t, a: Math.atan2(-dz, dx) });
+      }
+    }
+    while (patrolDashes.length < spots.length) {
+      const m = new T.Mesh(patrolDash, patrolLook);
+      scene.add(m);
+      patrolDashes.push(m);
+    }
+    canvas.dataset.patrol = String(spots.length);
+    patrolDashes.forEach((m, i) => {
+      const p = spots[i];
+      m.visible = !!p;
+      if (!p) return;
+      m.position.set(p.x, (groundHeight(worldTiles, p.x * 100, p.z * 100) + standingLift(p.x * 100, p.z * 100)) / 100 + 0.07, p.z);
+      m.rotation.y = p.a;
     });
   }
   function renderIcons(size = 160) {
@@ -5086,6 +5211,7 @@ async function createScene(canvas, onFailure, options = {}) {
     unitsInRect,
     setGhost,
     setGhosts,
+    setPatrols,
     renderIcons,
     cameraView,
     setPreviewBuildingKind: (kind) => {

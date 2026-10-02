@@ -1,6 +1,6 @@
 # 資料模型與權威邊界
 
-目前權威 State／snapshot 為 v30（本頁寫到 v22、v27–v30；v23–v26 見 first-use-023～026），支援五種地圖、有限資源資料、三態視野、移動、存讀與重播，起始建築是有可通行入口的城鎮中心。下文保留各版本演進，不表示舊格式仍可載入。新增模型、LOD、除錯介面及幾何占地共用不增加玩法狀態。
+目前權威 State／snapshot 為 v33（本頁寫到 v22、v27–v33；v23–v26 見 first-use-023～026），支援五種地圖、有限資源資料、三態視野、移動、存讀與重播，起始建築是有可通行入口的城鎮中心。下文保留各版本演進，不表示舊格式仍可載入。新增模型、LOD、除錯介面及幾何占地共用不增加玩法狀態。
 
 ## 初始資料模型（歷史 v1，後續演進見下文）
 
@@ -506,7 +506,7 @@ packages/content/footprints.ts 是目前七種障礙物物理矩形的唯一來�
 - **Worker**：投影不變，`UNIT_STRIDE` 仍是 19；`stride`、`boost` 不投影。頁面的護甲與箭塔名稱由頁面依自己的科技計算（`buildingTargetOf`、`economy.techs`）。
 - simulationVersion、State.version 與 snapshot 格式升為 29；`rulesetHash` 因規則資料與科技效果改變而換掉。
 
-## 建築：碼頭、船、市集、城牆與奇觀 v30（目前版本）
+## 建築：碼頭、船、市集、城牆與奇觀 v30
 
 - **State**：
   - `version: 30`；snapshot 格式 `brick-sandbox-30`。v29 存檔明確拒絕（沒有遷移）。
@@ -534,3 +534,85 @@ packages/content/footprints.ts 是目前七種障礙物物理矩形的唯一來�
 - **規則常數**：`marketRules`（`market.ts`）、`navalRules`（`naval.ts`）、`dropoffRules.ships`（碼頭只收漁船的食物）、`defenseRules` 的火砲塔與箭的 `bonus`（對船）、`visionRules` 的哨站、城牆與奇觀視野、`aiRules` 的碼頭、漁船、魚網、戰船、市集與貿易車隊常數，都在 `rulesetHash` 裡。
 - **Worker**：快照多了 `NavalView`（市集價格與自己的交易費、自己的運輸船與乘客、自己的貿易路線與每趟黃金、雙方完工的奇觀與倒數）；`Operation` 多了 `load`、`unload`、`market`、`trade`，`build` 多了 `to`。
 - simulationVersion、State.version 與 snapshot 格式升為 30；`rulesetHash` 因規則資料改變而換掉。
+
+## 遊戲元素：防禦類型、駐軍、修理與嘲諷 v31
+
+- **State**：
+  - `version: 31`；snapshot 格式 `brick-sandbox-31`。v30 存檔明確拒絕（沒有遷移）。
+  - `reveals: {player, tile, until}[]`：被看不見的攻擊者打到時，受害方可以看到攻擊者所在的格子到 `until`（命中 tick + `revealTicks` 40）。同一位玩家、同一格再被打到時延長；過期的在 `updateVision` 前刪除，`updateVision` 多了這個參數。
+  - `repairs: Record<'b:<buildingId>'|'u:<unitId>', {pool, owed}>`：每個修理目標累計的百分之一生命（`pool`）與各資源欠款（以 1／(2 × 最大生命) 為單位，湊滿整數才扣），讓修滿的總價恰好是原價一半。
+  - `chat: {player, taunt, tick}[]`：嘲諷紀錄，只保留最後 20 則（`tauntRules.keep`）。
+  - `Attack.windup?`：開火間隔的倒數（tick）；有值時單位還不能開第一發，移動就重設。
+  - `Building.rally` 多了選填的 `inside: true`：生產建築的集結點設在建築本身，新訓練的單位直接進駐。改設到建築外會清掉。
+  - `transports` 也存衝撞車裡的步兵與徒步弓兵（key 是衝撞車的單位 id）；衝撞車被毀時乘客下到附近的空地，沒有空地的才陣亡（運輸船沉沒仍全滅）。
+  - `Account.ledger` 多了 `repair`（修理花掉的資源）。
+- **單位資料**（`stats.ts` 的 `UnitStats`）：`classArmor`（類型護甲，例：拜占庭聖騎兵 `{cavalry: 10}`）、`frameDelay`（開火間隔 tick）、`friendlyFire`（範圍傷害也打自己的單位：投石車系、火砲）、`trample`（相鄰敵方單位受到的比例：戰象 0.5）、`buildingSplash`（附近敵方建築也受同一擊的半徑：裝甲衝撞車 75、重型 100）、`alsoSiege`（只打建築的單位也能被下令打攻城器：攻城槌系）。類別新增 `ram`（攻城槌系、巨型投石機）、`mameluke`、`fishing-ship`（取代漁船原本的 `ship`／`fishing`；`layerOf` 也接受它）。
+- **建築的類型**：`buildingClassesOf(kind)`：都有 `building`，奇觀以外有 `standard-building`，石牆、城門、箭塔、火砲塔有 `stone-defense`，城牆與城門有 `wall-gate`，城堡有 `castle`。`buildingTargetOf` 回傳類別與建築類護甲。
+- **傷害公式**：`hitDamage = max(1, max(0, 攻擊 − 護甲) + Σ max(0, 加成_c − 類型護甲_c))`，只算攻擊者有加成、目標也有的類別 c。
+- **效果資料**：新的 `EffectKind` `buildingClassArmor`（加，建築對 `building` 加成的類型護甲；磚瓦技術、建築學各 +1，垛牆讓石牆 +3）。化學與攻城工程師的選擇器改成明確的單位種類。
+- **規則常數**：`defenseRules` 多了 `ejectPercent` 20（生命 ≤20% 時撤出、不能進駐）、`healRate` `{castle: 2}`、`rallyGarrison`（兵營、靶場、馬廄、攻城器工坊、修道院、碼頭各 10）；`carrierRules`（`garrison.ts`：衝撞車載量 4／5／6、每名步兵速度 +10%、對建築 +3、上限 13／16／19）；`repairRules`（`repair.ts`：建築每 tick 0.26、攻城器與船 0.16、之後每名村民一半、費用一半、攻城器 75 內、船 100 內、農田與魚網不能修）；`tauntRules`（`taunts.ts`：保留 20 則、每 20 tick 一則）；`revealTicks` 40；`aiRules` 的修理與嘲諷常數。都在 `rulesetHash` 裡。
+- **命令**：
+  - `taunt {number}`：1～42；同一位玩家每 20 tick 最多一則（已排隊未執行的也算）。
+  - `repair {unitIds, target: {kind: 'building', id} | {kind: 'unit', id}}`：只限村民；目標是自己完工的建築（農田、魚網除外）、攻城器或船。資源不夠就停工。
+  - `ungarrison` 接受 `{buildingId}` 或 `{unitId}`：`unitId` 讓衝撞車（或靠岸的運輸船）放出乘客。
+  - `load {unitIds, transportId}` 的 `transportId` 可以是自己的衝撞車（只收步兵與徒步弓兵，載量依升級）。
+  - `rally` 的點在自己的生產建築本身時設成 `inside`；手動對這些建築下 `garrison` 會被拒。
+  - `attack`：攻城槌系可以對攻城器下令（`alsoSiege`）。
+- **Worker**：快照多了 `chat`、`BuildingView.rally.inside` 與 `BuildingView.inside`（裡面單位的種類與生命，給頭像用），`transports` 也列出衝撞車；`Operation` 多了 `taunt`、`repair`，`ungarrison` 多了 `unitId`。`Attack.windup` 與 `reveals` 不進快照（視野直接反映在可見格子裡）。
+- simulationVersion、State.version 與 snapshot 格式升為 31；`rulesetHash` 因規則資料改變而換掉。
+
+## 戰術技巧：投射物、姿態、巡邏與開局 v32
+
+- **State**：
+  - `version: 32`；snapshot 格式 `brick-sandbox-32`。v31 存檔明確拒絕（沒有遷移）。
+  - `projectiles: Projectile[]`、`nextProjectileId`：飛行中的投射物。`Projectile` 有 `id`、`player`、`attacker`（開火的單位 id，建築的箭是 -1）、`kind`（開火者的單位或建築種類）、`from`、目前位置 `x`/`y`、落點 `to`、每 tick 的 `speed`、`target`、`sure`（開火時的命中判定）、開火當下的 `stats`（傷害、加成、範圍等）、`extra?`（連發的額外箭）與發射 `tick`。依 id 順序推進；開火者死掉後仍會落地。
+  - `stances: Record<unitId, Stance>`：`Stance` 是 `'aggressive' | 'defensive' | 'stand' | 'passive'`；只存非預設的（預設攻擊）。
+  - `patrols: Record<unitId, {from, to, leg: 'out' | 'back', wait}>`：巡邏的兩端、目前的方向與重試倒數。
+  - `aiOpening: string`：電腦的開局，`'standard'`（之前的電腦）或 `openings.ts` 的開局 id；建立時傳 `'random'` 會依種子與紅方文明解析成實際的 id 才存。不認得的 id 會被拒絕（「未知的電腦開局」）；`deserialize` 也檢查並用它重播。
+  - `Attack.anchor?`：防禦姿態自動開打時站的位置，離開超過 `defensiveLeash` 就走回去。
+- **函式簽名**：`createState(seed, layout, opponent, civs, aiOpening = 'standard')` 與 `replay(…, aiOpening = 'standard')`；舊的呼叫照樣可用。
+- **投射物規則**（`stats.ts` 的 `projectileRules`）：`hitRadius` 30、`missSpread` [40, 100]、`meleeReach` 75，各單位與建築的命中率與彈速，以及改變命中率的兵種升級（弩手 85、強弩兵 90、精銳長弓兵 80）。`shotOf(kind, owner)` 與 `buildingShotOf(kind, owner)` 回傳 `{accuracy, speed, steady, lead}`：`steady` 是射擊靜止目標時被效果提高的命中率（拇指環、戰狼號），`lead` 是彈道學。
+- **效果資料**：新的 `EffectKind` `lead`（預判移動中的目標：單位用 classes、建築用 buildings）與 `accuracy`（射擊靜止目標的命中率）。`techs.ts` 多了 `ageEffects`（依時代自動生效、不屬於任何科技的效果，目前只有追蹤：第二時代起步兵視野 +200），由 `civ.ts` 的 `activeEffects` 一起評估。新的科技項目 `ballistics`（學院、第三時代、木材 300 黃金 175、60 秒）。
+- **戰術規則**（`combat.ts` 的 `tacticsRules`）：`defensiveLeash` 300、`patrolTurn` 100、`patrolRetry` 20。
+- **開局資料**（`packages/content/openings.ts`）：
+  - `openings`：9 種可玩的開局，每種有 `id`（網站頁面的代號）、中英文名稱、網站頁面、時代、威力、難度、優缺點、`civs`（13 個文明都可以）、`best`（網站點名的文明）、反制、本作與網站的升級前配置、`steps`、`plan` 與 `notes`。
+  - `unavailableOpenings`：老鷹開局與原因。
+  - `steps`：`{label, phase: 'dark' | 'up' | 'feudal' | 'castle', done: Need | null}`；`null` 是建議，沒有勾選框。`Need` 欄位：`villagers`、`gather`（羊、打獵、果樹、木材、黃金、石頭、農田的人數）、`buildings`、`forward`（村民或某種建築在對方半邊）、`units`、`techs`、`age`、`clicked`（已點升級）、`raiding`（出擊中的兵數）。`needMet(need, view)` 是純函式。
+  - `plan`：村民目標與點升級的村民數、`clickOnFood`、織布機、兵營時機（`dark` 幾名村民時、`up`、`none`）、`forwardBarracks`、各階段的採集權重、各階段要維持的兵數（含開局斥候）、封建時代的額外建築與研究、`raid`（兵種、幾隻出發、是否補兵）、`towers`（前線村民數、座數、偏好的資源、離開時機）、`castle` 與 `until`（tick 與時代）。
+  - 輔助：`openingChoices`（`standard`、`random` 與 9 種 id）、`pickOpening(seed, civ)`、`openingById`、`gatherKinds`、`gatherNames`。
+  - `ai.ts` 匯出 `openingView(s, player)`（從 State 算出 `needMet` 要的觀測）與 `openingRules`（`towerGap` 600）。
+- **規則常數與 hash**：`rulesetHash` 加入 `projectileRules`、`tacticsRules` 與 `openings`。
+- **命令**：
+  - `stance {unitIds, stance}`：只限戰鬥單位（「只有戰鬥單位有戰鬥姿態」）；不認得的姿態「未知的戰鬥姿態」。只改姿態，不影響其他命令；改成不還擊或堅守時放下自己開打的戰鬥。
+  - `patrol {unitIds, x, y}`：之後的任何命令都會結束巡邏。
+  - `move` 多了選填的 `spread: true`。
+- **Worker**：
+  - `Operation` 多了 `stance`、`patrol`；`reset`、`Recovery`（還原檢查點）多了 `aiOpening`，`recover` 與 `replay` 照傳。
+  - 每個回應多了 `aiOpening`（存的 id）與 `coach`（`openingView(state, 0)`，頁面自己跑 `needMet`）。
+  - `View` 多了選填的 `projectiles`（藍方發射的或目前看得到的：`{id, from, x, y, to, player, kind}`）、`stances`（藍方單位的非預設姿態）與 `patrols`（藍方巡邏中的單位 id）。只有沒有 `projectiles` 的舊快照才畫建築箭的直線。
+  - 單位投影的 stride 仍是 19。
+- simulationVersion、State.version 與 snapshot 格式升為 32；`rulesetHash` 因規則資料改變而換掉。
+
+## 科技樹與對局設定 v33（目前版本）
+
+- **State**：
+  - `version: 33`；snapshot 格式 `brick-sandbox-33`。v32 存檔明確拒絕（沒有遷移）。
+  - `settings: MatchSettings`（`packages/sim/settings.ts`）：`{difficulty: 'easy' | 'standard' | 'hard' | 'hardest', resources: 'low' | 'standard' | 'medium' | 'high', popCap: 25 | 40 | 75 | 100, reveal: 'normal' | 'explored' | 'all', startAge: 1 | 2 | 3 | 4, victory: 'standard' | 'conquest', allTechs: boolean}`。預設 `defaultSettings` 就是之前的對局（標準、200／200／100／100、40、戰爭迷霧、黑暗時代、標準勝利、不開所有科技）。`settingsOf(s)` 讓沒有這個欄位的舊測試資料照預設跑。
+- **函式簽名**：
+  - `createState(seed, options)`：`options` 是 `MatchOptions`（`Partial<MatchSettings>` 加上 `layout`、`opponent`、`civs`、`aiOpening`）。舊的位置參數照樣可用：`createState(seed, layout, opponent, civs, aiOpening, settings?)`，第六個參數是選填的設定。
+  - `replay(seed, commands, ticks, layoutOrOptions, …)` 同樣接受 options 物件或舊的位置參數。
+  - `matchSettings(value)` 補上預設並拒絕不認得的值（「無效的對局設定」「未知的難易度」「未知的資源設定」「未知的人口上限」「未知的地圖顯示設定」「未知的開始時代」「未知的勝利條件」「所有科技設定無效」）；`deserialize` 用它檢查存檔（無效的給「無效存檔狀態」）並用存的設定重播。
+- **設定生效的地方**：
+  - 資源：`createState` 用 `settingRules.resources` 當起始存量，再加文明的開局加成。
+  - 人口：`buildings.ts` 的 `recomputeCapacity` 用 `settings.popCap` 取代 `rules.settings.populationCap`；電腦也讀它。
+  - 顯示地圖：`explored` 在建立時把兩方的 `vision.explored` 設成整張地圖；`all` 讓 `updateVision` 的新參數 `everything` 每個 tick 都給兩方全部可見。
+  - 開始時代：`ages` 設成那個時代，`grantTechs` 給該時代的免費科技，城鎮中心的 `age` 外觀跟著改。
+  - 勝利：`conquest` 時 `religion.ts` 不啟動聖物倒數、`market.ts` 清掉奇觀倒數。
+  - 所有科技：`Owner.allTechs`（`ownerOf` 從 `settings` 帶入）、`civAvailable(civ, id, allTechs)` 改查 `rules.ts` 的 `allTechCivilizations`（每個文明都可用全部共通項目，特殊單位與特殊科技仍依文明）；`TrainInput.allTechs`、`buildRequirement(…, allTechs)` 與電腦都照這個查。
+  - 難易度：`ai.ts` 用 `aiTuning(state)` 讀 `settingRules.difficulty` 的 `thinkTicks`、`villagerTarget`、`waveSize`、`firstWaveTick`；`standard` 與之前的 `aiRules` 完全相同。
+- **可用性資料**：`civs.ts` 中沒有火砲塔的 10 個文明的 `missing` 加上 `bombard-tower-tech`（科技樹稽核的修正）。
+- **科技樹版面**：`packages/content/tree-layout.ts` 的 `treeLayout: TreeLayoutBlock[]`，每塊 `{id, rows: {age, cells: TreeLayoutItem[][]}[]}`，`TreeLayoutItem` 是 `{id?}`（本作的項目）或 `{ref, path}`（本作沒有的網站項目）加上 `down?`（網站的往下箭頭）；城堡的特殊單位與特殊科技格用 `'@unique-unit'`、`'@unique-tech'` 代表。只有排列，可用性一律讀 `rules.ts`。頁面的模型在 `apps/web/codex-tree.ts`（村民建造區塊、弩砲戰船的別名、需化學與需火砲塔技術的註記、只畫真的前置的箭頭）。
+- **百科的介面**：`CodexContext` 多了 `section`（`'tree'` 直接開在科技樹）、`match?: TreeMatch`（對局中的文明、時代、研究、存量、己方建築與佇列、單位數，用來標記）與 `treeCiv?`（設定畫面開科技樹時預選的文明）；`codexSections` 多了 `{id: 'tree', label: '科技樹'}`。
+- **Worker**：`reset` 多了 `settings`；`Recovery`（還原檢查點）、每個 `Response` 與 `View` 都帶 `settings`；`worker-client` 把它存進檢查點，`recover` 與 `replay` 照傳。單位投影的 stride 仍是 19。
+- **頁面**：設定畫面在 `apps/web/lobby.ts`；上次的選擇與玩家名稱存在 localStorage；「記錄遊戲」勾選時每一遊戲分鐘存一次 `brick-rts:autosave:1`。這些都只在頁面，不進 State。
+- simulationVersion、State.version 與 snapshot 格式升為 33；`rulesetHash` 加入 `settingRules`（難易度表、資源預設與人口上限的數值改了，舊存檔與命令就不再相符），也因規則資料改變而換掉。

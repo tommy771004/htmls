@@ -20,7 +20,8 @@ function arena(){const s=createState(260925);s.units=s.units.filter(u=>!isAnimal
 test('damage is attack minus the matching armor plus class bonuses, never below 1',()=>{
  assert.equal(hitDamage(statsOf('spearman'),statsOf('knight')),4+12-2,'spearman against a knight');
  assert.equal(hitDamage(statsOf('archer'),statsOf('militia')),4-1,'arrows meet pierce armor');
- assert.equal(hitDamage(statsOf('skirmisher'),statsOf('archer')),2+4,'skirmisher against an archer');
+ // The 遊戲元素 round: the skirmisher's bonus against archers is the site's 3 (4 from the Elite Skirmisher on).
+ assert.equal(hitDamage(statsOf('skirmisher'),statsOf('archer')),2+3,'skirmisher against an archer');
  assert.equal(hitDamage(statsOf('archer'),statsOf('spearman')),4+3,'archer against a spearman');
  assert.equal(hitDamage(statsOf('archer'),buildingTarget),2,'buildings shrug off arrows');assert.equal(hitDamage(statsOf('militia'),buildingTarget),6);
  assert.equal(hitDamage(statsOf('villager'),statsOf('knight')),1,'at least 1');

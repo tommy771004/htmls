@@ -133,9 +133,9 @@ function createTiles(layout = "meadow", seed = 0) {
     return tile3;
   });
 }
-var sizeOfTiles = (tiles) => Math.round(Math.sqrt(tiles.length));
-function groundHeight(tiles, x, y) {
-  return tiles[tileAt(x, y, sizeOfTiles(tiles))]?.height ?? 0;
+var sizeOfTiles = (tiles3) => Math.round(Math.sqrt(tiles3.length));
+function groundHeight(tiles3, x, y) {
+  return tiles3[tileAt(x, y, sizeOfTiles(tiles3))]?.height ?? 0;
 }
 function tileAt(x, y, size) {
   return Math.floor(y / 100) * size + Math.floor(x / 100);
@@ -199,7 +199,7 @@ function createAudio(report = () => {
 }) {
   let ctx = null, master = null, volume = 0.6, count = 0, noise = null;
   const lastPlayed = /* @__PURE__ */ new Map();
-  const spacing = { hit: 140, order: 60, "order-attack": 80, trained: 250, built: 250, castle: 600, unique: 250, launch: 220, gunshot: 160, research: 300, alarm: 3e3, convert: 400 };
+  const spacing = { hit: 140, order: 60, "order-attack": 80, trained: 250, built: 250, castle: 600, unique: 250, launch: 220, gunshot: 160, research: 300, alarm: 3e3, convert: 400, taunt: 400, laugh: 400 };
   function unlock() {
     if (!ctx) {
       const Ctor = window.AudioContext ?? window.webkitAudioContext;
@@ -338,6 +338,15 @@ function createAudio(report = () => {
       burst("highpass", 2600, 0, 0.05, 0.32);
       burst("lowpass", 900, 0, 0.35, 0.28);
       tone("sine", 80, 0, 0.3, 0.22, 40);
+    },
+    // A taunt arriving: a short two-note call, a fourth up (heard under the voice, or alone without one).
+    taunt: () => {
+      tone("triangle", 587, 0, 0.12, 0.07);
+      tone("triangle", 784, 0.1, 0.16, 0.06);
+    },
+    // Taunt 11 (a laugh in the reference): four staccato notes falling, like a chuckle.
+    laugh: () => {
+      [523, 494, 440, 392].forEach((f, i) => tone("square", f, i * 0.09, 0.06, 0.035, f * 0.92));
     }
   };
   function play(name) {
@@ -385,7 +394,7 @@ var civDefs = [
     nameEn: "Britons",
     type: "\u5F13\u5175\u6587\u660E",
     architecture: "west",
-    missing: ["crop-rotation", "stone-shaft-mining", "redemption", "atonement", "heresy", "hussar", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "treadmill-crane", "bloodlines", "thumb-ring", "parthian-tactics", "hand-cannoneer", "bombard-cannon", "elite-cannon-galleon", "bombard-tower"],
+    missing: ["crop-rotation", "stone-shaft-mining", "redemption", "atonement", "heresy", "hussar", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "treadmill-crane", "bloodlines", "thumb-ring", "parthian-tactics", "hand-cannoneer", "bombard-cannon", "elite-cannon-galleon", "bombard-tower", "bombard-tower-tech"],
     missingLater: ["missionary"],
     uniqueUnits: ["longbowman"],
     eliteUpgrades: ["elite-longbowman"],
@@ -397,9 +406,11 @@ var civDefs = [
       fx("britons.team-range", "workRate", { buildings: ["archery-range"] }, 20, "\u5718\u968A\u52A0\u6210\uFF1A\u9776\u5834\u751F\u7522\u901F\u5EA6 +20%", { team: true }),
       fx("britons.yeomen-range", "range", { classes: ["archer"], exclude: ["gunpowder", "cavalry-archer"] }, 50, "\u7FA9\u52C7\u9A0E\u5175\uFF1A\u5F92\u6B65\u5F13\u5175\uFF08\u542B\u6563\u5175\uFF09\u5C04\u7A0B +1", { tech: "yeomen" }),
       fx("britons.yeomen-tower", "arrowDamage", { buildings: ["watch-tower"] }, 2, "\u7FA9\u52C7\u9A0E\u5175\uFF1A\u7BAD\u5854\u653B\u64CA +2", { tech: "yeomen" }),
-      fx("britons.warwolf", "blast", { kinds: ["trebuchet"] }, 75, "\u6230\u72FC\u865F\uFF1A\u5DE8\u578B\u6295\u77F3\u6A5F\u7684\u77F3\u5F48\u6CE2\u53CA\u843D\u9EDE\u5468\u570D\u7684\u6575\u5175", { tech: "warwolf" })
+      fx("britons.warwolf", "blast", { kinds: ["trebuchet"] }, 75, "\u6230\u72FC\u865F\uFF1A\u5DE8\u578B\u6295\u77F3\u6A5F\u7684\u77F3\u5F48\u6CE2\u53CA\u843D\u9EDE\u5468\u570D\u7684\u6575\u5175", { tech: "warwolf" }),
+      // aoetw: 100% against standing targets; here the trebuchet strikes buildings only, which always stand.
+      fx("britons.warwolf-accuracy", "accuracy", { kinds: ["trebuchet"] }, 100, "\u6230\u72FC\u865F\uFF1A\u5DE8\u578B\u6295\u77F3\u6A5F\u5C04\u64CA\u975C\u6B62\u76EE\u6A19\u5FC5\u4E2D", { tech: "warwolf" })
     ],
-    omitted: [{ text: "\u6230\u72FC\u865F\u5C0D\u975C\u6B62\u55AE\u4F4D 100% \u547D\u4E2D", reason: "\u672C\u4F5C\u7684\u5DE8\u578B\u6295\u77F3\u6A5F\u53EA\u6253\u5EFA\u7BC9\uFF0C\u4E5F\u6C92\u6709\u547D\u4E2D\u7387" }],
+    omitted: [],
     sources: [site("civs/Britons"), site("units/Longbowman"), site("techs/Yeomen"), site("techs/Warwolf"), site("tree/bri")]
   },
   {
@@ -408,7 +419,7 @@ var civDefs = [
     nameEn: "Celts",
     type: "\u6B65\u5175\u8207\u653B\u57CE\u5668\u6587\u660E",
     architecture: "west",
-    missing: ["two-man-saw", "crop-rotation", "bracer", "ring-archer-armor", "plate-barding-armor", "redemption", "atonement", "illumination", "block-printing", "theocracy", "arbalest", "camel", "heavy-camel", "architecture", "bloodlines", "thumb-ring", "parthian-tactics", "squires", "hand-cannoneer", "bombard-cannon", "bombard-tower", "elite-cannon-galleon", "fast-fire-ship"],
+    missing: ["two-man-saw", "crop-rotation", "bracer", "ring-archer-armor", "plate-barding-armor", "redemption", "atonement", "illumination", "block-printing", "theocracy", "arbalest", "camel", "heavy-camel", "architecture", "bloodlines", "thumb-ring", "parthian-tactics", "squires", "hand-cannoneer", "bombard-cannon", "bombard-tower", "bombard-tower-tech", "elite-cannon-galleon", "fast-fire-ship"],
     missingLater: ["missionary"],
     uniqueUnits: ["woad-raider"],
     eliteUpgrades: ["elite-woad-raider"],
@@ -430,7 +441,7 @@ var civDefs = [
     nameEn: "Franks",
     type: "\u9A0E\u5175\u6587\u660E",
     architecture: "west",
-    missing: ["two-man-saw", "stone-shaft-mining", "bracer", "ring-archer-armor", "redemption", "arbalest", "hussar", "camel", "heavy-camel", "siege-ram", "siege-onager", "keep", "bloodlines", "thumb-ring", "parthian-tactics", "sappers", "bombard-tower", "heated-shot", "shipwright", "elite-cannon-galleon", "guilds"],
+    missing: ["two-man-saw", "stone-shaft-mining", "bracer", "ring-archer-armor", "redemption", "arbalest", "hussar", "camel", "heavy-camel", "siege-ram", "siege-onager", "keep", "bloodlines", "thumb-ring", "parthian-tactics", "sappers", "bombard-tower", "bombard-tower-tech", "heated-shot", "shipwright", "elite-cannon-galleon", "guilds"],
     missingLater: ["missionary"],
     uniqueUnits: ["throwing-axeman"],
     eliteUpgrades: ["elite-throwing-axeman"],
@@ -453,7 +464,7 @@ var civDefs = [
     nameEn: "Goths",
     type: "\u6B65\u5175\u6587\u660E",
     architecture: "central",
-    missing: ["gold-shaft-mining", "plate-mail-armor", "plate-barding-armor", "redemption", "atonement", "heresy", "block-printing", "arbalest", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "siege-engineers", "guard-tower", "keep", "treadmill-crane", "arrowslits", "thumb-ring", "parthian-tactics", "arson", "hoardings", "bombard-tower", "elite-cannon-galleon", "dry-dock", "fortified-wall"],
+    missing: ["gold-shaft-mining", "plate-mail-armor", "plate-barding-armor", "redemption", "atonement", "heresy", "block-printing", "arbalest", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "siege-engineers", "guard-tower", "keep", "treadmill-crane", "arrowslits", "thumb-ring", "parthian-tactics", "arson", "hoardings", "bombard-tower", "bombard-tower-tech", "elite-cannon-galleon", "dry-dock", "fortified-wall"],
     missingLater: ["missionary"],
     uniqueUnits: ["huskarl"],
     eliteUpgrades: ["elite-huskarl"],
@@ -504,7 +515,7 @@ var civDefs = [
     nameEn: "Vikings",
     type: "\u6B65\u5175\u8207\u6D77\u8ECD\u6587\u660E",
     architecture: "central",
-    missing: ["stone-shaft-mining", "plate-barding-armor", "redemption", "sanctity", "illumination", "theocracy", "halberdier", "heavy-cavalry-archer", "hussar", "paladin", "camel", "heavy-camel", "siege-onager", "keep", "bloodlines", "husbandry", "parthian-tactics", "herbal-medicine", "hand-cannoneer", "bombard-cannon", "bombard-tower", "fire-galley", "fast-fire-ship", "elite-cannon-galleon", "shipwright", "guilds"],
+    missing: ["stone-shaft-mining", "plate-barding-armor", "redemption", "sanctity", "illumination", "theocracy", "halberdier", "heavy-cavalry-archer", "hussar", "paladin", "camel", "heavy-camel", "siege-onager", "keep", "bloodlines", "husbandry", "parthian-tactics", "herbal-medicine", "hand-cannoneer", "bombard-cannon", "bombard-tower", "bombard-tower-tech", "fire-galley", "fast-fire-ship", "elite-cannon-galleon", "shipwright", "guilds"],
     missingLater: ["missionary"],
     uniqueUnits: ["berserk", "longboat"],
     eliteUpgrades: ["elite-berserk", "elite-longboat"],
@@ -528,7 +539,7 @@ var civDefs = [
     nameEn: "Byzantines",
     type: "\u9632\u79A6\u6587\u660E",
     architecture: "mideast",
-    missing: ["masonry", "architecture", "blast-furnace", "siege-onager", "heavy-scorpion", "siege-engineers", "treadmill-crane", "bloodlines", "parthian-tactics", "sappers", "herbal-medicine", "heated-shot", "bombard-tower"],
+    missing: ["masonry", "architecture", "blast-furnace", "siege-onager", "heavy-scorpion", "siege-engineers", "treadmill-crane", "bloodlines", "parthian-tactics", "sappers", "herbal-medicine", "heated-shot", "bombard-tower", "bombard-tower-tech"],
     missingLater: ["missionary"],
     uniqueUnits: ["cataphract"],
     eliteUpgrades: ["elite-cataphract"],
@@ -553,7 +564,7 @@ var civDefs = [
     nameEn: "Persians",
     type: "\u9A0E\u5175\u6587\u660E",
     architecture: "mideast",
-    missing: ["bracer", "redemption", "atonement", "heresy", "sanctity", "illumination", "two-handed-swordsman", "champion", "arbalest", "siege-onager", "siege-engineers", "keep", "treadmill-crane", "arrowslits", "shipwright", "bombard-tower", "fortified-wall"],
+    missing: ["bracer", "redemption", "atonement", "heresy", "sanctity", "illumination", "two-handed-swordsman", "champion", "arbalest", "siege-onager", "siege-engineers", "keep", "treadmill-crane", "arrowslits", "shipwright", "bombard-tower", "bombard-tower-tech", "fortified-wall"],
     missingLater: ["missionary"],
     uniqueUnits: ["war-elephant"],
     eliteUpgrades: ["elite-war-elephant"],
@@ -576,7 +587,7 @@ var civDefs = [
     nameEn: "Saracens",
     type: "\u99F1\u99DD\u8207\u6D77\u8ECD\u6587\u660E",
     architecture: "mideast",
-    missing: ["crop-rotation", "stone-shaft-mining", "halberdier", "cavalier", "paladin", "heavy-scorpion", "architecture", "sappers", "bombard-tower", "heated-shot", "shipwright", "guilds", "fast-fire-ship"],
+    missing: ["crop-rotation", "stone-shaft-mining", "halberdier", "cavalier", "paladin", "heavy-scorpion", "architecture", "sappers", "bombard-tower", "bombard-tower-tech", "heated-shot", "shipwright", "guilds", "fast-fire-ship"],
     missingLater: ["missionary"],
     uniqueUnits: ["mameluke"],
     eliteUpgrades: ["elite-mameluke"],
@@ -655,7 +666,7 @@ var civDefs = [
     nameEn: "Japanese",
     type: "\u6B65\u5175\u6587\u660E",
     architecture: "eastasia",
-    missing: ["crop-rotation", "stone-shaft-mining", "plate-barding-armor", "heresy", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "architecture", "hoardings", "bombard-cannon", "bombard-tower", "heated-shot", "guilds", "heavy-demolition-ship"],
+    missing: ["crop-rotation", "stone-shaft-mining", "plate-barding-armor", "heresy", "paladin", "camel", "heavy-camel", "siege-ram", "siege-onager", "architecture", "hoardings", "bombard-cannon", "bombard-tower", "bombard-tower-tech", "heated-shot", "guilds", "heavy-demolition-ship"],
     missingLater: ["missionary"],
     uniqueUnits: ["samurai"],
     eliteUpgrades: ["elite-samurai"],
@@ -680,7 +691,7 @@ var civDefs = [
     nameEn: "Mongols",
     type: "\u99AC\u5F13\u9A0E\u5175\u6587\u660E",
     architecture: "eastasia",
-    missing: ["halberdier", "two-man-saw", "crop-rotation", "plate-barding-armor", "ring-archer-armor", "redemption", "sanctity", "faith", "block-printing", "paladin", "architecture", "keep", "treadmill-crane", "arrowslits", "bombard-cannon", "bombard-tower", "elite-cannon-galleon", "heated-shot", "guilds", "dry-dock"],
+    missing: ["halberdier", "two-man-saw", "crop-rotation", "plate-barding-armor", "ring-archer-armor", "redemption", "sanctity", "faith", "block-printing", "paladin", "architecture", "keep", "treadmill-crane", "arrowslits", "bombard-cannon", "bombard-tower", "bombard-tower-tech", "elite-cannon-galleon", "heated-shot", "guilds", "dry-dock"],
     missingLater: [],
     uniqueUnits: ["mangudai"],
     eliteUpgrades: ["elite-mangudai"],
@@ -821,6 +832,8 @@ var techEntries = [
   tech("keep", "\u5927\u578B\u7BAD\u5854", 500, 350, 0, 0, ["age-4", "guard-tower"], 75),
   tech("treadmill-crane", "\u78E8\u574A\u6C34\u8ECA", 300, 200, 0, 0, ["age-3"], 50),
   tech("arrowslits", "\u7BAD\u72F9\u69FD", 250, 250, 0, 0, ["age-4"], 25),
+  // The 戰術技巧 round (aoetw.com techs/Ballistics): every civilization of this game has it.
+  tech("ballistics", "\u5F48\u9053\u5B78", 0, 300, 175, 0, ["age-3"], 60),
   tech("supplies", "\u4F9B\u7D66", 150, 0, 100, 0, ["age-2"], 35),
   tech("squires", "\u8B77\u885B\u6280\u8853", 100, 0, 0, 0, ["age-3"], 40),
   tech("arson", "\u7E31\u706B", 150, 0, 50, 0, ["age-3"], 25),
@@ -849,6 +862,7 @@ var techProducers = {
   keep: "university",
   "treadmill-crane": "university",
   arrowslits: "university",
+  ballistics: "university",
   supplies: "barracks",
   squires: "barracks",
   arson: "barracks",
@@ -912,11 +926,11 @@ var buildingEntries = [
 ];
 var dockItems = ["fishing-ship", "transport-ship", "trade-cog", "galley", "fire-galley", "demolition-raft", "cannon-galleon", "longboat", "war-galley", "galleon", "fast-fire-ship", "heavy-demolition-ship", "elite-cannon-galleon", "elite-longboat", "gillnets", "careening", "dry-dock", "shipwright"];
 var buildingProducers = { ...Object.fromEntries(dockItems.map((id) => [id, "dock"])), "trade-cart": "market", caravan: "market", guilds: "market", "heated-shot": "university", "fortified-wall": "university", "bombard-tower-tech": "university", "greek-fire": "castle" };
-function civilizationsOf(entries) {
+function civilizationsOf(entries, allTechs2 = false) {
   const ids = entries.map((e) => e.id), uniqueIds = new Set(civDefs.flatMap((c) => [...c.uniqueUnits, ...c.eliteUpgrades, ...c.uniqueTechs.map((t) => t.id)]));
   return civDefs.map((c) => {
     const own = /* @__PURE__ */ new Set([...c.uniqueUnits, ...c.eliteUpgrades, ...c.uniqueTechs.map((t) => t.id)]);
-    const unavailable = ids.filter((id) => c.missing.includes(id) || uniqueIds.has(id) && !own.has(id) || id === "castle" && !c.uniqueUnits.length);
+    const unavailable = ids.filter((id) => !allTechs2 && c.missing.includes(id) || uniqueIds.has(id) && !own.has(id) || id === "castle" && !c.uniqueUnits.length);
     for (let grew = true; grew; ) {
       grew = false;
       for (const e of entries) {
@@ -1076,6 +1090,7 @@ var rules = {
   civilizations: []
 };
 rules.civilizations = civilizationsOf(rules.entries);
+var allTechCivilizations = civilizationsOf(rules.entries, true);
 function validateRules(value, exact = false) {
   const errors = [];
   const obj = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -1211,7 +1226,7 @@ var militaryBuildings = ["barracks", "archery-range", "stable"];
 function militaryBuildingParts(kind, v) {
   if (!militaryBuildings.includes(kind) || ![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u8ECD\u4E8B\u5EFA\u7BC9\u5916\u89C0");
   const p = [], team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", stone6 = "#b5b29e", top = 1.44 + (v.ageVariant - 1) * 0.16;
-  const add = (id, phase, x, z, y, w, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
+  const add = (id, phase, x, z, y, w2, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs, ...shape ? { shape } : {} });
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
   if (kind === "archery-range") {
     for (const x of [0.1, 2.5]) {
@@ -1301,7 +1316,7 @@ function militaryBuildingParts(kind, v) {
 function monasteryParts(v) {
   if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u4FEE\u9053\u9662\u5916\u89C0");
   const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", lime3 = "#d8cfb6", stone6 = "#b9b39d", roof = age === 1 ? "#b8a074" : team2;
-  const add = (id, phase, x, z, y, w, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
+  const add = (id, phase, x, z, y, w2, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs, ...shape ? { shape } : {} });
   const wallTop = 1.12 + (age >= 3 ? 0.32 : 0), towerTop = age <= 2 ? 2.24 : 2.56 + (age === 4 ? 0.32 : 0);
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
   add("nave", 1, 0.2, 0.3, 0.16, 1.6, 2.2, wallTop - 0.16, lime3);
@@ -1340,7 +1355,7 @@ function monasteryParts(v) {
 function blacksmithParts(v) {
   if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u9435\u5320\u92EA\u5916\u89C0");
   const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", stone6 = "#a9a693", dark6 = "#5d5a52", roof = age === 1 ? "#b8a074" : team2;
-  const add = (id, phase, x, z, y, w, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
+  const add = (id, phase, x, z, y, w2, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs, ...shape ? { shape } : {} });
   const top = 1.28 + (age >= 3 ? 0.16 : 0);
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
   add("back-wall", 1, 0.1, 0.1, 0.16, 2.5, 0.2, top - 0.16, stone6);
@@ -1387,7 +1402,7 @@ function towerParts(v, grade = null) {
   check2(v, "\u7BAD\u5854");
   if (grade !== null && !towerGrades.includes(grade)) throw Error("\u7121\u6548\u7BAD\u5854\u5347\u7D1A\u5916\u89C0");
   const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", stone6 = "#b5b29e", roof = age === 1 ? "#b8a074" : team2;
-  const add = (id, phase, x, z, y, w, d, h2, color, studs = false) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs });
+  const add = (id, phase, x, z, y, w2, d, h2, color, studs = false) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs });
   const shaft2 = 1.6 + (age - 1) * 0.24 + towerLift(grade), top = grade ? stone6 : wood6;
   add("foundation", 0, -0.05, -0.05, 0, 1.1, 1.1, 0.12, "#b3aa8c");
   add("shaft", 1, 0.08, 0.08, 0.12, 0.84, 0.84, shaft2 * 0.55, stone6);
@@ -1395,8 +1410,8 @@ function towerParts(v, grade = null) {
   add("door", 1, 0.36, 0.9, 0.12, 0.28, 0.04, 0.4, "#6e5a44");
   add("lookout", 3, 0, 0, 0.12 + shaft2, 1, 1, 0.14, top);
   for (const [x, z] of [[0, 0], [0.84, 0], [0, 0.84], [0.84, 0.84]]) add(`post-${x}-${z}`, 3, x, z, 0.26 + shaft2, 0.16, 0.16, 0.36, top);
-  if (grade) for (const [x, z, w, d] of [[0.16, 0, 0.18, 0.08], [0.66, 0, 0.18, 0.08], [0.16, 0.92, 0.18, 0.08], [0.66, 0.92, 0.18, 0.08], [0, 0.16, 0.08, 0.18], [0, 0.66, 0.08, 0.18], [0.92, 0.16, 0.08, 0.18], [0.92, 0.66, 0.08, 0.18]]) add(`${grade}-merlon-${x}-${z}`, 3, x, z, 0.26 + shaft2, w, d, 0.16, stone6);
-  if (grade === "keep") for (const [x, z, w, d] of [[0.08, 0, 0.84, 0.08], [0.08, 0.92, 0.84, 0.08], [0, 0.08, 0.08, 0.84], [0.92, 0.08, 0.08, 0.84]]) add(`keep-corbel-${x}-${z}`, 3, x, z, shaft2, w, d, 0.12, "#9d9a88");
+  if (grade) for (const [x, z, w2, d] of [[0.16, 0, 0.18, 0.08], [0.66, 0, 0.18, 0.08], [0.16, 0.92, 0.18, 0.08], [0.66, 0.92, 0.18, 0.08], [0, 0.16, 0.08, 0.18], [0, 0.66, 0.08, 0.18], [0.92, 0.16, 0.08, 0.18], [0.92, 0.66, 0.08, 0.18]]) add(`${grade}-merlon-${x}-${z}`, 3, x, z, 0.26 + shaft2, w2, d, 0.16, stone6);
+  if (grade === "keep") for (const [x, z, w2, d] of [[0.08, 0, 0.84, 0.08], [0.08, 0.92, 0.84, 0.08], [0, 0.08, 0.08, 0.84], [0.92, 0.08, 0.08, 0.84]]) add(`keep-corbel-${x}-${z}`, 3, x, z, shaft2, w2, d, 0.12, "#9d9a88");
   add("roof", 4, -0.06, -0.06, 0.62 + shaft2, 1.12, 1.12, 0.14, roof, true);
   add("roof-top", 4, 0.2, 0.2, 0.76 + shaft2, 0.6, 0.6, 0.14, roof, true);
   if (grade === "keep") add("roof-spire", 4, 0.35, 0.35, 0.9 + shaft2, 0.3, 0.3, 0.2, roof);
@@ -1412,7 +1427,7 @@ function towerParts(v, grade = null) {
 function siegeWorkshopParts(v) {
   check2(v, "\u653B\u57CE\u5668\u5DE5\u574A");
   const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", dark6 = "#6e5438", roof = age === 1 ? "#b8a074" : team2;
-  const add = (id, phase, x, z, y, w, d, h2, color, studs = false) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs });
+  const add = (id, phase, x, z, y, w2, d, h2, color, studs = false) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs });
   const top = 1.44;
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
   for (const x of [0.1, 2.44]) for (const z of [0.1, 1.65]) add(`post-${x}-${z}`, 1, x, z, 0.16, 0.16, 0.16, top - 0.16, wood6);
@@ -1436,7 +1451,7 @@ function universityParts(v) {
   if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u5B78\u9662\u5916\u89C0");
   const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87";
   const wood6 = "#94734c", oak3 = "#6e5438", plaster = "#e3d7b8", sand4 = "#d6b77e", stone6 = "#c4bba2", straw3 = "#b8a074", dark6 = "#4a4740", brass2 = "#b8964a", gilt5 = "#c9a55a", paper = "#efe6cc", leather2 = "#7a4a32";
-  const add = (id, phase, x, z, y, w, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
+  const add = (id, phase, x, z, y, w2, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs, ...shape ? { shape } : {} });
   const f = obstacleFootprints.university;
   add("foundation", 0, f.x / 100, f.y / 100, 0, f.width / 100, f.depth / 100, 0.16, "#b3aa8c");
   const wall = age === 1 ? plaster : sand4, roof = age === 1 ? straw3 : team2, trim2 = age === 1 ? wood6 : stone6;
@@ -1513,7 +1528,7 @@ function universityParts(v) {
 function castleParts(v) {
   if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u57CE\u5821\u5916\u89C0");
   const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", straw3 = "#b8a074", stone6 = "#b5b29e", dark6 = "#4a4740", oak3 = "#5a4632";
-  const add = (id, phase, x, z, y, w, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
+  const add = (id, phase, x, z, y, w2, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs, ...shape ? { shape } : {} });
   const f = obstacleFootprints.castle;
   add("foundation", 0, f.x / 100, f.y / 100, 0, f.width / 100, f.depth / 100, 0.16, "#b3aa8c");
   const wallH = 1.12 + (age >= 3 ? 0.32 : 0), wallTop = 0.16 + wallH, towerTop = wallTop + 0.64, keepTop = 0.16 + [1.6, 1.92, 2.24, 2.24][age - 1];
@@ -1541,10 +1556,10 @@ function castleParts(v) {
   add("wall-front-l", 1, 0.8, 3.17, 0.16, 0.6, 0.36, wallH, stone6);
   add("wall-front-r", 1, 2.3, 3.17, 0.16, 0.6, 0.36, wallH, stone6);
   for (let i = 0; i < 5; i++) {
-    const at = 0.9 + i * 0.4;
-    crest(`back-${i}`, at, 0.17, wallTop, true);
-    crest(`left-${i}`, 0.17, at, wallTop, false);
-    crest(`right-${i}`, 3.17, at, wallTop, false);
+    const at2 = 0.9 + i * 0.4;
+    crest(`back-${i}`, at2, 0.17, wallTop, true);
+    crest(`left-${i}`, 0.17, at2, wallTop, false);
+    crest(`right-${i}`, 3.17, at2, wallTop, false);
   }
   for (const x of [0.88, 1.16, 2.36, 2.64]) crest(`front-${x}`, x, 3.17, wallTop, true);
   add("gate-arch", 1, 1.4, 3.1, 0.16, 0.9, 0.5, wallH, stone6, false, "arch");
@@ -1596,8 +1611,8 @@ var stone = "#a19f86";
 var gold = "#c9a55a";
 var teamOf = (player) => player === 0 ? "#45728c" : "#b25441";
 function kit(T, box2, material) {
-  const part = (parent, x, y, z, w, h2, d, color) => {
-    const m = new T.Mesh(box2(w, h2, d), material(color));
+  const part = (parent, x, y, z, w2, h2, d, color) => {
+    const m = new T.Mesh(box2(w2, h2, d), material(color));
     m.position.set(x, y, z);
     m.castShadow = true;
     parent.add(m);
@@ -1934,8 +1949,8 @@ var keg = "#7c5a3a";
 var teamOf2 = (player) => player === 0 ? "#45728c" : "#b25441";
 var clock2 = (time) => Number.isFinite(time) ? Math.max(0, time) : 0;
 function kit2(T, box2, material) {
-  const part = (parent, x, y, z, w, h2, d, color) => {
-    const m = new T.Mesh(box2(w, h2, d), material(color));
+  const part = (parent, x, y, z, w2, h2, d, color) => {
+    const m = new T.Mesh(box2(w2, h2, d), material(color));
     m.position.set(x, y, z);
     m.castShadow = true;
     parent.add(m);
@@ -1957,12 +1972,12 @@ function kit2(T, box2, material) {
     for (const x of [-1, 1]) part(g, x * (B / 2 - 0.025), H, 0, 0.05, 0.05, L * 0.6, trim2);
     return H + 0.02;
   };
-  const sail = (r, z, deckY, mastH, w, h2, color, stripe) => {
+  const sail = (r, z, deckY, mastH, w2, h2, color, stripe) => {
     part(r.group, 0, deckY, z, 0.06, mastH, 0.06, wood2);
     const g = group(r.group, "sail", 0, 0, z);
-    part(g, 0, deckY + mastH - 0.06, 0, w + 0.12, 0.04, 0.04, wood2);
-    part(g, 0, deckY + mastH - 0.08 - h2, 0.04, w, h2, 0.02, color);
-    part(g, 0, deckY + mastH - 0.08 - h2 * 0.62, 0.055, w, h2 * 0.24, 0.02, stripe);
+    part(g, 0, deckY + mastH - 0.06, 0, w2 + 0.12, 0.04, 0.04, wood2);
+    part(g, 0, deckY + mastH - 0.08 - h2, 0.04, w2, h2, 0.02, color);
+    part(g, 0, deckY + mastH - 0.08 - h2 * 0.62, 0.055, w2, h2 * 0.24, 0.02, stripe);
     r.sails.push({ g, z });
   };
   const oars = (r, n, B, deckY, z0, step2, len = 0.42) => {
@@ -2191,11 +2206,11 @@ function createShipRig(T, kind, player, box2, material) {
       part(r.group, 0, y - 0.02, -L * 0.47, 0.06, 0.14, 0.06, color);
       part(r.group, 0, y + 0.12, -L * 0.47 - 0.06, 0.05, 0.06, 0.1, color);
     };
-    const striped = (r, y, mast, w, h2) => {
+    const striped = (r, y, mast, w2, h2) => {
       part(r.group, 0, y, 0, 0.06, mast, 0.06, wood2);
       const g = group(r.group, "sail", 0, 0, 0);
-      part(g, 0, y + mast - 0.06, 0, w + 0.12, 0.04, 0.04, wood2);
-      for (let i = 0; i < 5; i++) part(g, -w / 2 + w * (i + 0.5) / 5, y + mast - 0.08 - h2, 0.04, w / 5, h2, 0.02, i % 2 ? cloth : team2);
+      part(g, 0, y + mast - 0.06, 0, w2 + 0.12, 0.04, 0.04, wood2);
+      for (let i = 0; i < 5; i++) part(g, -w2 / 2 + w2 * (i + 0.5) / 5, y + mast - 0.08 - h2, 0.04, w2 / 5, h2, 0.02, i % 2 ? cloth : team2);
       r.sails.push({ g, z: 0 });
     };
     look(null, (r) => {
@@ -2310,8 +2325,8 @@ var straw = "#b8a074";
 var gilt2 = "#c9a55a";
 function builder() {
   const p = [];
-  const add = (id, phase, x, z, y, w, d, h2, color, studs = false) => {
-    p.push({ id, phase, x, z, y, w, d, h: h2, color, studs });
+  const add = (id, phase, x, z, y, w2, d, h2, color, studs = false) => {
+    p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs });
   };
   return { p, add };
 }
@@ -2325,9 +2340,9 @@ function wallParts(kind, v, links = noLinks) {
   if (!wallKinds.includes(kind)) throw Error("\u672A\u77E5\u57CE\u7246");
   const { p, add } = builder(), age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87";
   if (kind === "palisade-wall") {
-    const H2 = 1.04 + (age >= 3 ? 0.12 : 0), stake = (id, x, z, y, h2, w, d) => {
-      add(id, 1, x, z, y, w, d, h2, wood3);
-      add(`${id}-tip`, 2, x + w * 0.25, z + d * 0.25, y + h2, w * 0.5, d * 0.5, 0.14, oak);
+    const H2 = 1.04 + (age >= 3 ? 0.12 : 0), stake = (id, x, z, y, h2, w2, d) => {
+      add(id, 1, x, z, y, w2, d, h2, wood3);
+      add(`${id}-tip`, 2, x + w2 * 0.25, z + d * 0.25, y + h2, w2 * 0.5, d * 0.5, 0.14, oak);
     };
     add("foundation", 0, 0.32, 0.32, 0, 0.36, 0.36, 0.06, soil);
     stake("stake-c", 0.4, 0.4, 0.06, H2 + 0.04, 0.2, 0.2);
@@ -2344,8 +2359,8 @@ function wallParts(kind, v, links = noLinks) {
   add("pier", 1, 0.22, 0.22, 0.08, 0.56, 0.56, H, stone2, true);
   for (const z of [0.2, 0.78]) add(`shield-${z}`, 3, 0.42, z, 0.42, 0.16, 0.02, 0.2, team2);
   for (const [dir, dx, dz] of [["e", 1, 0], ["w", -1, 0], ["s", 0, 1], ["n", 0, -1]]) if (links[dir]) {
-    const x = dx > 0 ? 0.78 : dx < 0 ? 0 : 0.25, z = dz > 0 ? 0.78 : dz < 0 ? 0 : 0.25, w = dx ? 0.22 : 0.5, d = dz ? 0.22 : 0.5;
-    add(`arm-${dir}`, 1, x, z, 0, w, d, top, stone2, true);
+    const x = dx > 0 ? 0.78 : dx < 0 ? 0 : 0.25, z = dz > 0 ? 0.78 : dz < 0 ? 0 : 0.25, w2 = dx ? 0.22 : 0.5, d = dz ? 0.22 : 0.5;
+    add(`arm-${dir}`, 1, x, z, 0, w2, d, top, stone2, true);
     add(`merlon-${dir}`, 2, dx > 0 ? 0.84 : dx < 0 ? 0 : 0.37, dz > 0 ? 0.84 : dz < 0 ? 0 : 0.37, top, dx ? 0.16 : 0.26, dz ? 0.16 : 0.26, 0.2, stone2);
     if (age >= 3) add(`slit-${dir}`, 3, dx ? x + 0.06 : 0.24, dz ? z + 0.06 : 0.24, 0.5, dx ? 0.1 : 0.02, dz ? 0.1 : 0.02, 0.24, dark3);
   }
@@ -2398,7 +2413,7 @@ function outpostParts(v) {
   for (const [x, z] of [[0.14, 0.14], [0.74, 0.14], [0.14, 0.74], [0.74, 0.74]]) add(`leg-${x}-${z}`, 1, x, z, 0.1, 0.12, 0.12, deckY - 0.1, wood3);
   for (const y of [0.5, 0.9]) add(`brace-${y}`, 1, 0.26, 0.14, y, 0.48, 0.04, 0.06, oak);
   add("deck", 2, 0.06, 0.06, deckY, 0.88, 0.88, 0.08, wood3, true);
-  for (const [x, z, w, d] of [[0.06, 0.06, 0.88, 0.06], [0.06, 0.88, 0.88, 0.06], [0.06, 0.12, 0.06, 0.76], [0.88, 0.12, 0.06, 0.76]]) add(`rail-${x}-${z}`, 3, x, z, deckY + 0.08, w, d, 0.2, oak);
+  for (const [x, z, w2, d] of [[0.06, 0.06, 0.88, 0.06], [0.06, 0.88, 0.88, 0.06], [0.06, 0.12, 0.06, 0.76], [0.88, 0.12, 0.06, 0.76]]) add(`rail-${x}-${z}`, 3, x, z, deckY + 0.08, w2, d, 0.2, oak);
   for (const x of [0.36, 0.58]) add(`ladder-rail-${x}`, 1, x, 0.88, 0.1, 0.04, 0.04, deckY - 0.1, oak);
   for (let i = 0; i < 4; i++) add(`rung-${i}`, 1, 0.4, 0.88, 0.3 + i * (deckY - 0.4) / 4, 0.18, 0.04, 0.04, oak);
   add("torch-post", 3, 0.8, 0.8, deckY + 0.08, 0.06, 0.06, 0.42, oak);
@@ -2469,7 +2484,7 @@ function finish3(p, v, debris, lost, size) {
 function dockParts(v, landSide = 0) {
   check4(v, "\u78BC\u982D");
   const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87";
-  const add = (id, phase, x, z, y2, w, d, h2, color, studs = false) => p.push({ id, phase, x, z, y: y2, w, d, h: h2, color, studs });
+  const add = (id, phase, x, z, y2, w2, d, h2, color, studs = false) => p.push({ id, phase, x, z, y: y2, w: w2, d, h: h2, color, studs });
   add("foundation", 0, 0, 0, 0, 3, 3, 0.16, deck2);
   for (let i = 0; i < 6; i++) add(`plank-${i}`, 1, 0.04, 0.04 + i * 0.49, 0.16, 2.92, 0.47, 0.03, i % 2 ? plank2 : deck2);
   const y = 0.19;
@@ -2517,7 +2532,7 @@ function dockParts(v, landSide = 0) {
 function fishTrapParts(v) {
   check4(v, "\u9B5A\u7DB2");
   const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87";
-  const add = (id, phase, x, z, y, w, d, h2, color, studs = false) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs });
+  const add = (id, phase, x, z, y, w2, d, h2, color, studs = false) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs });
   add("foundation", 0, 0.12, 0.12, 0, 1.76, 1.76, 0.03, net);
   add("log-n", 1, 0, 0, 0, 2, 0.14, 0.1, wood4);
   add("log-s", 1, 0, 1.86, 0, 2, 0.14, 0.1, wood4);
@@ -2563,7 +2578,7 @@ function wonderParts(v, style = "neutral") {
   check5(v);
   if (!wonderStyles.includes(style)) throw Error("\u672A\u77E5\u5EFA\u7BC9\u98A8\u683C");
   const p = [], team2 = v.red ? "#b85c47" : "#456e87";
-  const add = (id, phase, x, z, y, w, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
+  const add = (id, phase, x, z, y, w2, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs, ...shape ? { shape } : {} });
   const sq = (id, phase, c, y, s, h2, color, studs = false) => add(id, phase, c - s / 2, c - s / 2, y, s, s, h2, color, studs);
   add("foundation", 0, 0, 0, 0, 5, 5, 0.16, stoneDark3);
   add("step-0", 1, 0.2, 0.2, 0.16, 4.6, 4.6, 0.24, stone4, true);
@@ -2728,7 +2743,7 @@ var red = "#b25441";
 var plus = (x, y) => [{ x: x + 0.09, y, z: 0.42, w: 0.08, d: 0.04, h: 0.26, color: green }, { x, y: y + 0.09, z: 0.42, w: 0.26, d: 0.04, h: 0.08, color: green }];
 var streaks = (x, y) => [0, 1, 2].map((i) => ({ x: x - i * 0.04, y: y + i * 0.14, z: 0.45, w: 0.18 + i * 0.06, d: 0.04, h: 0.05, color: "#efe6cc" }));
 var shaft = (x, y, len) => [{ x, y, z: 0.45, w: len, d: 0.04, h: 0.04, color: wood5 }, { x: x + len, y: y - 0.02, z: 0.44, w: 0.08, d: 0.06, h: 0.08, color: metal22 }];
-var merlons = (x, y, n, w = 0.14) => Array.from({ length: n }, (_, i) => ({ x: x + i * w * 2, y, z: 0.3, w, d: 0.36, h: 0.12, color: stone5 }));
+var merlons = (x, y, n, w2 = 0.14) => Array.from({ length: n }, (_, i) => ({ x: x + i * w2 * 2, y, z: 0.3, w: w2, d: 0.36, h: 0.12, color: stone5 }));
 Object.assign(techIcons, {
   // Yeomen: a tall longbow beside a tower top (archer range and tower attack).
   yeomen: [{ x: 0, y: 0, z: 0.3, w: 0.45, d: 0.4, h: 0.6, color: stone5 }, ...merlons(0, 0.6, 2, 0.12), ...[[0, 0], [0.06, 0.18], [0.09, 0.36], [0.06, 0.54], [0, 0.72]].map(([dx, y]) => ({ x: 0.7 + dx, y, z: 0.4, w: 0.06, d: 0.06, h: 0.2, color: wood5 })), { x: 0.66, y: 0, z: 0.42, w: 0.02, d: 0.02, h: 0.92, color: "#d9cba4" }],
@@ -2810,7 +2825,7 @@ var glass2 = "#bcd3cf";
 var leaf = "#6f8a55";
 var hay = "#d9c26a";
 var iron5 = "#5b5e5c";
-var bar = (x, y, w, h2, color, z = 0.4, d = 0.1) => ({ x, y, z, w, d, h: h2, color });
+var bar = (x, y, w2, h2, color, z = 0.4, d = 0.1) => ({ x, y, z, w: w2, d, h: h2, color });
 var backShaft = (x, y, len) => [{ x: x + 0.08, y, z: 0.45, w: len, d: 0.04, h: 0.04, color: wood5 }, { x, y: y - 0.02, z: 0.44, w: 0.08, d: 0.06, h: 0.08, color: metal22 }];
 var eye = (y) => [bar(0.2, y, 0.5, 0.08, "#efe9da"), bar(0.08, y + 0.08, 0.74, 0.16, "#efe9da"), bar(0.2, y + 0.24, 0.5, 0.08, "#efe9da"), bar(0.34, y + 0.06, 0.22, 0.22, team, 0.45, 0.06), bar(0.41, y + 0.13, 0.08, 0.08, "#1f1d1b", 0.5, 0.02)];
 Object.assign(techIcons, {
@@ -2903,7 +2918,7 @@ Object.assign(techIcons, {
   // Artillery: a hooped bombard on its wheel with a long arrow (bombard cannon range).
   artillery: [bar(0.12, 0, 0.12, 0.5, "#5c4a36", 0.24, 0.5), bar(0.04, 0.22, 0.64, 0.1, dark5, 0.36, 0.2), bar(0.2, 0.32, 0.5, 0.28, iron5, 0.35, 0.28), ...[0.3, 0.46, 0.62].map((x) => bar(x, 0.3, 0.04, 0.32, "#3f4240", 0.33, 0.32)), bar(0.68, 0.36, 0.04, 0.2, "#1f1d1b", 0.4, 0.2), ...shaft(0.3, 0.8, 0.66)]
 });
-var hull = (y, color, w = 0.84) => [bar(0.08, y, w, 0.18, color, 0.3, 0.4), bar(0.02, y + 0.08, 0.08, 0.12, color, 0.32, 0.36), bar(0.08 + w, y + 0.08, 0.08, 0.14, color, 0.32, 0.36), bar(0.16, y - 0.08, w - 0.16, 0.08, "#5c4a36", 0.36, 0.28)];
+var hull = (y, color, w2 = 0.84) => [bar(0.08, y, w2, 0.18, color, 0.3, 0.4), bar(0.02, y + 0.08, 0.08, 0.12, color, 0.32, 0.36), bar(0.08 + w2, y + 0.08, 0.08, 0.14, color, 0.32, 0.36), bar(0.16, y - 0.08, w2 - 0.16, 0.08, "#5c4a36", 0.36, 0.28)];
 var water = (y) => [bar(0, y, 1, 0.04, "#6fa2ae", 0.3, 0.44), bar(0.12, y + 0.04, 0.3, 0.03, "#9cc8d0", 0.4, 0.1), bar(0.6, y + 0.04, 0.26, 0.03, "#9cc8d0", 0.4, 0.1)];
 Object.assign(techIcons, {
   // Gillnets: a net hung between two floats with a fish caught in it (fishing ships work faster).
@@ -2925,6 +2940,16 @@ Object.assign(techIcons, {
   // Bombard Tower: a squat banded tower with a cannon run out of it (the tower itself).
   "bombard-tower-tech": [bar(0.18, 0, 0.6, 0.66, stone5, 0.3, 0.36), bar(0.14, 0.3, 0.68, 0.06, iron5, 0.28, 0.4), bar(0.14, 0.66, 0.68, 0.08, "#9d9a88", 0.28, 0.4), ...merlons(0.14, 0.74, 3, 0.12), bar(0.4, 0.4, 0.16, 0.12, iron5, 0.66, 0.3), bar(0.38, 0.38, 0.2, 0.16, "#3f4240", 0.94, 0.03)],
   // Greek Fire: a bronze siphon nozzle shooting a long jet of flame (fire ships reach farther).
+  // Ballistics (the 戰術技巧 round): an arrow's dotted arc leading a running target, landing on it (shots lead moving units).
+  ballistics: [
+    ...[[0, 0.08], [0.1, 0.3], [0.22, 0.46], [0.35, 0.55], [0.48, 0.56]].map(([x, y]) => bar(x, y, 0.08, 0.05, wood5, 0.45, 0.04)),
+    bar(0.58, 0.48, 0.08, 0.08, metal22, 0.44, 0.06),
+    bar(0.7, 0, 0.06, 0.3, wood5, 0.32, 0.06),
+    bar(0.66, 0.3, 0.3, 0.4, "#ece2c4", 0.3, 0.08),
+    bar(0.72, 0.38, 0.18, 0.24, team, 0.38, 0.03),
+    bar(0.77, 0.45, 0.08, 0.1, gold2, 0.41, 0.03),
+    ...[0, 1, 2].map((i) => bar(0.96 - i * 0.02, 0.1 + i * 0.12, 0.1, 0.04, "#efe6cc", 0.45, 0.04))
+  ],
   "greek-fire": [bar(0, 0.2, 0.22, 0.24, "#b8964a", 0.36, 0.28), bar(0.22, 0.26, 0.16, 0.12, "#b8964a", 0.4, 0.12), bar(0.38, 0.24, 0.2, 0.16, flame3, 0.4, 0.16), bar(0.58, 0.26, 0.22, 0.12, flame3, 0.4, 0.14), bar(0.8, 0.28, 0.2, 0.08, spark3, 0.42, 0.1), bar(0.06, 0, 0.1, 0.2, wood5, 0.4, 0.1), ...shaft(0.3, 0.62, 0.5)]
 });
 
@@ -2971,8 +2996,8 @@ function samplePose(pose, time) {
 function createUnitRig(T, player, box2, material) {
   const root = new T.Group();
   root.name = "body-root";
-  const part = (parent, x, y, z, w, h2, d, color) => {
-    const mesh = new T.Mesh(box2(w, h2, d), material(color));
+  const part = (parent, x, y, z, w2, h2, d, color) => {
+    const mesh = new T.Mesh(box2(w2, h2, d), material(color));
     mesh.position.set(x, y, z);
     mesh.castShadow = true;
     parent.add(mesh);
@@ -3024,8 +3049,8 @@ function createUnitRig(T, player, box2, material) {
       rightArm.add(ra);
       outfit = [o, la, ra];
       outfits.set(role, outfit);
-      const arms = (x, y, z, w, h2, d, color) => {
-        for (const a of [la, ra]) part(a, x, y, z, w, h2, d, color);
+      const arms = (x, y, z, w2, h2, d, color) => {
+        for (const a of [la, ra]) part(a, x, y, z, w2, h2, d, color);
       };
       if (role === "monk") {
         const habit2 = "#7a5c40";
@@ -3196,8 +3221,8 @@ function createUnitRig(T, player, box2, material) {
       rightArm.add(ra);
       g = [o, la, ra];
       grades.set(look, g);
-      const arms = (x, y, z, w, h2, d, color) => {
-        for (const a of [la, ra]) part(a, x, y, z, w, h2, d, color);
+      const arms = (x, y, z, w2, h2, d, color) => {
+        for (const a of [la, ra]) part(a, x, y, z, w2, h2, d, color);
       };
       if (look === "two-handed-swordsman" || look === "champion") {
         part(o, 0, 1.06, 0, 0.46, 0.2, 0.42, metal3);
@@ -3360,8 +3385,8 @@ function createElephantMount(T, player, box2, material) {
   const root = new T.Group();
   root.name = "elephant-root";
   const team2 = player === 0 ? "#45728c" : "#b25441", grey2 = "#8d8c86", ear = "#9a988f", ivory = "#efe8d2", gold4 = "#c9a55a", wood6 = "#6e5438";
-  const part = (parent, x, y, z, w, h2, d, color) => {
-    const m = new T.Mesh(box2(w, h2, d), material(color));
+  const part = (parent, x, y, z, w2, h2, d, color) => {
+    const m = new T.Mesh(box2(w2, h2, d), material(color));
     m.position.set(x, y, z);
     m.castShadow = true;
     parent.add(m);
@@ -3428,8 +3453,8 @@ function createCamelMount(T, player, box2, material) {
   const root = new T.Group();
   root.name = "camel-root";
   const team2 = player === 0 ? "#45728c" : "#b25441", coat = "#c8a46e", shade2 = "#a9844f", wood6 = "#6e5438";
-  const part = (parent, x, y, z, w, h2, d, color) => {
-    const m = new T.Mesh(box2(w, h2, d), material(color));
+  const part = (parent, x, y, z, w2, h2, d, color) => {
+    const m = new T.Mesh(box2(w2, h2, d), material(color));
     m.position.set(x, y, z);
     m.castShadow = true;
     parent.add(m);
@@ -3535,8 +3560,8 @@ function createCharacterRig(T, player, box2, material) {
     return b;
   };
   const tints = { coat: [], head: [], mane: [] };
-  const part = (parent, x, y, z, w, h2, d, color) => {
-    const m = new T.Mesh(box2(w, h2, d), material(color));
+  const part = (parent, x, y, z, w2, h2, d, color) => {
+    const m = new T.Mesh(box2(w2, h2, d), material(color));
     m.position.set(x, y, z);
     m.castShadow = true;
     parent.add(m);
@@ -3796,8 +3821,8 @@ function detailLevel(zoom) {
 }
 function createDetailController(T) {
   const detailed = /* @__PURE__ */ new Map(), simple = /* @__PURE__ */ new Map();
-  function register(geometry, w, h2, d) {
-    const low = new T.BoxGeometry(w, h2, d);
+  function register(geometry, w2, h2, d) {
+    const low = new T.BoxGeometry(w2, h2, d);
     low.translate(0, h2 / 2, 0);
     detailed.set(geometry, geometry);
     detailed.set(low, geometry);
@@ -3838,7 +3863,7 @@ var economicBuildings = ["lumber-camp", "mining-camp", "mill", "farm", "town-cen
 function economicBuildingParts(kind, v) {
   if (!economicBuildings.includes(kind) || ![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u7D93\u6FDF\u5EFA\u7BC9\u5916\u89C0");
   const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", stone6 = "#aaa994", brass2 = "#bca068", water2 = "#6a9297", height = 1.28 + (age - 1) * 0.16;
-  const add = (id, phase, x, z, y, w, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
+  const add = (id, phase, x, z, y, w2, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs, ...shape ? { shape } : {} });
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, kind === "farm" ? "#806b49" : "#b3aa8c");
   if (kind === "farm") {
     for (let row = 0; row < 4; row++) {
@@ -3853,7 +3878,7 @@ function economicBuildingParts(kind, v) {
       add("boundary-front", 1, 0, 2.62, 0.16, 2.7, 0.08, 0.12, wood6);
     } else {
       add("wall-back", 1, 0, 0, 0.16, 2.7, 0.08, 0.24, stone6);
-      for (const [x, w] of [[0, 1.08], [1.62, 1.08]]) add(`wall-front-${x}`, 1, x, 2.62, 0.16, w, 0.08, 0.24, stone6);
+      for (const [x, w2] of [[0, 1.08], [1.62, 1.08]]) add(`wall-front-${x}`, 1, x, 2.62, 0.16, w2, 0.08, 0.24, stone6);
       for (const x of [1.08, 1.46]) add(`gate-pier-${x}`, 1, x, 2.58, 0.16, 0.16, 0.16, 0.56, stone6, true);
     }
     if (age >= 2) {
@@ -4021,7 +4046,7 @@ function buildingParts(visual) {
   const { ageVariant: age, progress, health, red: red2 } = visual;
   if (![1, 2, 3, 4].includes(age) || ![progress, health].every((v) => Number.isFinite(v) && v >= 0 && v <= 100)) throw Error("\u7121\u6548\u5EFA\u7BC9\u5916\u89C0\u72C0\u614B");
   const parts = [], team2 = red2 ? "#b85c47" : "#456e87";
-  const add = (id, phase2, x, z, y, w, d, h2, color, studs = false, shape) => parts.push({ id, phase: phase2, x, z, y, w, d, h: h2, color, studs, ...shape ? { shape } : {} });
+  const add = (id, phase2, x, z, y, w2, d, h2, color, studs = false, shape) => parts.push({ id, phase: phase2, x, z, y, w: w2, d, h: h2, color, studs, ...shape ? { shape } : {} });
   const footprint = obstacleFootprints.house;
   add("foundation", 0, footprint.x / 100, footprint.y / 100, 0, footprint.width / 100, footprint.depth / 100, 0.16, "#b3aa8c");
   const courses = age + 2, wallTop = 0.16 + courses * 0.32, wall = age <= 2 ? "#dec59b" : "#b7b6a5";
@@ -4034,8 +4059,8 @@ function buildingParts(visual) {
   }
   if (age <= 2) for (const x of [0, 0.64, 1.3, 1.94]) add(`timber-${x}`, 1, x, 1.98, 0.16, 0.06, 0.06, wallTop - 0.16, "#80674f");
   else for (const x of [-0.05, 1.73]) add(`buttress-${x}`, 1, x, 1.78, 0.16, 0.32, 0.3, wallTop - 0.16, "#999e92");
-  const roofBase = wallTop, roof = age === 1 ? "#b8a074" : age === 2 ? team2 : "#677681", levels = age === 1 ? 3 : 4;
-  for (let level = 0; level < levels; level++) for (let row = 0; row < 5; row++) add(`roof-${level}-${row}`, 2, -0.2 + level * 0.25, -0.2 + row * 0.5, roofBase + level * 0.18, 2.5 - level * 0.5, 0.5, 0.18, roof, true);
+  const roofBase = wallTop, roof = age === 1 ? "#b8a074" : age === 2 ? team2 : "#677681", levels2 = age === 1 ? 3 : 4;
+  for (let level = 0; level < levels2; level++) for (let row = 0; row < 5; row++) add(`roof-${level}-${row}`, 2, -0.2 + level * 0.25, -0.2 + row * 0.5, roofBase + level * 0.18, 2.5 - level * 0.5, 0.5, 0.18, roof, true);
   add("door", 3, 0.76, 1.98, 0.16, 0.48, 0.06, 0.92, "#685740");
   add("door-handle", 3, 0.81, 2.04, 0.61, 0.055, 0.03, 0.07, "#c2a664");
   for (const x of [0.13, 1.47]) {
@@ -4100,7 +4125,7 @@ function regionalParts(parts, style) {
   const peak = Math.max(...parts.map((p) => p.y + p.h)), free = parts.slice(1).filter((p) => p.w >= 0.2 && p.d >= 0.2 && !ornament.test(p.id) && p.y + p.h >= 0.6 * peak && !parts.some((o) => o !== p && Math.abs(o.y - p.y - p.h) < 1e-8 && o.x < p.x + p.w && o.x + o.w > p.x && o.z < p.z + p.d && o.z + o.d > p.z)).sort((a, b) => b.y + b.h - (a.y + a.h) || b.w * b.d - a.w * a.d);
   const crowns = free.filter((p) => free.length && Math.abs(p.y + p.h - free[0].y - free[0].h) < 1e-6 && Math.abs(p.w * p.d - free[0].w * free[0].d) < 1e-6);
   crowns.forEach((crown, k) => {
-    const top = crown.y + crown.h, cx = crown.x + crown.w / 2, cz = crown.z + crown.d / 2, s = Math.min(crown.w, crown.d), sq = (w, y, h2, color) => ({ x: cx - w / 2, z: cz - w / 2, y, w, d: w, h: h2, color });
+    const top = crown.y + crown.h, cx = crown.x + crown.w / 2, cz = crown.z + crown.d / 2, s = Math.min(crown.w, crown.d), sq = (w2, y, h2, color) => ({ x: cx - w2 / 2, z: cz - w2 / 2, y, w: w2, d: w2, h: h2, color });
     let stack = [];
     if (style === "west") {
       const b = Math.min(0.6 * s, 0.6);
@@ -4128,9 +4153,9 @@ var tables = /* @__PURE__ */ new WeakMap();
 function blockedTable(map) {
   let t = tables.get(map);
   if (!t || t.list !== map.blocked || t.length !== map.blocked.length || t.revision !== map.navigationRevision) {
-    const table = new Uint8Array(nodeTotal(map));
-    for (const n of map.blocked) table[n] = 1;
-    t = { list: map.blocked, length: map.blocked.length, revision: map.navigationRevision, table };
+    const table3 = new Uint8Array(nodeTotal(map));
+    for (const n of map.blocked) table3[n] = 1;
+    t = { list: map.blocked, length: map.blocked.length, revision: map.navigationRevision, table: table3 };
     tables.set(map, t);
   }
   return t.table;
@@ -4241,11 +4266,11 @@ function generateOpen(seed, lake = false) {
     rng ^= rng << 5;
     return (rng >>> 0) / 4294967296;
   };
-  const R = openMapRules, size = R.size, world = size * 100, mid = world / 2, tiles = createTiles("open", seed);
+  const R = openMapRules, size = R.size, world = size * 100, mid = world / 2, tiles3 = createTiles("open", seed);
   for (let i = 0; i < R.dirtPatches; i++) {
     let tx = 2 + Math.floor(random() * (size - 4)), ty = 2 + Math.floor(random() * (size - 4));
     for (let k = 0; k < 4 + Math.floor(random() * 6); k++) {
-      const t = tiles[ty * size + tx];
+      const t = tiles3[ty * size + tx];
       Object.assign(t, { terrainType: "sand", ...terrainDefinitions.sand });
       tx = Math.min(size - 2, Math.max(1, tx + Math.floor(random() * 3) - 1));
       ty = Math.min(size - 2, Math.max(1, ty + Math.floor(random() * 3) - 1));
@@ -4267,7 +4292,7 @@ function generateOpen(seed, lake = false) {
     for (let ty = 1; ty < size - 1; ty++) for (let tx = 1; tx < size - 1; tx++) if (Math.hypot(tx * 100 + 50 - mid, ty * 100 + 50 - mid) <= R.lake.radius && free(tx, ty)) {
       lakeTiles.push(ty * size + tx);
       taken.add(ty * size + tx);
-      Object.assign(tiles[ty * size + tx], { terrainType: "water", ...terrainDefinitions.water });
+      Object.assign(tiles3[ty * size + tx], { terrainType: "water", ...terrainDefinitions.water });
     }
   }
   if (lake) {
@@ -4343,8 +4368,8 @@ function generateOpen(seed, lake = false) {
     }
   }
   const pond = lake ? [] : placePond(seed, size, taken, centres);
-  for (const t of pond) Object.assign(tiles[t], { terrainType: "water", ...terrainDefinitions.water });
-  const map = { size, starts, scouts, obstacles, blocked: [], tiles, resources: [], navigationRevision: 0, generationAttempt: 0 };
+  for (const t of pond) Object.assign(tiles3[t], { terrainType: "water", ...terrainDefinitions.water });
+  const map = { size, starts, scouts, obstacles, blocked: [], tiles: tiles3, resources: [], navigationRevision: 0, generationAttempt: 0 };
   obstacles.forEach((o, index) => {
     o.id = `obstacle-${index}`;
     map.tiles[tileAt(o.x, o.y, size)].obstacleRefs.push(o.id);
@@ -4364,7 +4389,7 @@ function generateOpen(seed, lake = false) {
     }
   }
   if (lake) {
-    const deep = lakeTiles.filter((t) => [-size - 1, -size, -size + 1, -1, 1, size - 1, size, size + 1].every((d) => tiles[t + d]?.terrainType === "water")).sort((a, b) => Math.atan2(Math.floor(a / size) * 100 - mid, a % size * 100 - mid) - Math.atan2(Math.floor(b / size) * 100 - mid, b % size * 100 - mid) || a - b);
+    const deep = lakeTiles.filter((t) => [-size - 1, -size, -size + 1, -1, 1, size - 1, size, size + 1].every((d) => tiles3[t + d]?.terrainType === "water")).sort((a, b) => Math.atan2(Math.floor(a / size) * 100 - mid, a % size * 100 - mid) - Math.atan2(Math.floor(b / size) * 100 - mid, b % size * 100 - mid) || a - b);
     const picked = [];
     for (const t of deep) {
       if (picked.length >= R.lake.fish) break;
@@ -4617,7 +4642,7 @@ function farmParts(progress, red2) {
   out.push({ x: 0.05, y: 0.1, z: 0.05, w: 0.08, d: 0.08, h: 0.4, color: red2 ? "#b85c47" : "#456e87", studs: false });
   return out;
 }
-async function createScene(canvas2, onFailure, options = {}) {
+async function createScene(canvas2, onFailure, options2 = {}) {
   const T = await import(new URL("../../../vendor/three-0.186.0/three.module.js", import.meta.url).href);
   if (!canvas2.getContext("webgl2")) throw Error("\u6B64\u88DD\u7F6E\u7121\u6CD5\u5EFA\u7ACB WebGL2\uFF0C\u8ACB\u4F7F\u7528\u652F\u63F4 WebGL2 \u7684\u700F\u89BD\u5668\u3002");
   let contextLost = false, previewLayout = "meadow";
@@ -4644,32 +4669,32 @@ async function createScene(canvas2, onFailure, options = {}) {
   scene2.add(sun);
   sun.target.position.set(8, 0, 8);
   scene2.add(sun.target);
-  const table = new T.Mesh(new T.PlaneGeometry(400, 400), new T.ShadowMaterial({ opacity: 0.24 }));
-  table.rotation.x = -Math.PI / 2;
-  table.position.y = -0.25;
-  table.receiveShadow = true;
-  scene2.add(table);
+  const table3 = new T.Mesh(new T.PlaneGeometry(400, 400), new T.ShadowMaterial({ opacity: 0.24 }));
+  table3.rotation.x = -Math.PI / 2;
+  table3.position.y = -0.25;
+  table3.receiveShadow = true;
+  scene2.add(table3);
   const groundGeometries = /* @__PURE__ */ new Set();
   const geometry = /* @__PURE__ */ new Map(), materials = /* @__PURE__ */ new Map();
   function material(color) {
     if (!materials.has(color)) materials.set(color, new T.MeshStandardMaterial({ color, roughness: brickStyle.roughness }));
     return materials.get(color);
   }
-  function box2(w, h2, d) {
-    const key = `${w}:${h2}:${d}`;
-    if (geometry.has(key)) return geometry.get(key);
-    const b = Math.min(brickStyle.bevel, w / 8, h2 / 8, d / 8);
+  function box2(w2, h2, d) {
+    const key2 = `${w2}:${h2}:${d}`;
+    if (geometry.has(key2)) return geometry.get(key2);
+    const b = Math.min(brickStyle.bevel, w2 / 8, h2 / 8, d / 8);
     const shape = new T.Shape();
-    shape.moveTo(-w / 2 + b, -d / 2 + b);
-    shape.lineTo(w / 2 - b, -d / 2 + b);
-    shape.lineTo(w / 2 - b, d / 2 - b);
-    shape.lineTo(-w / 2 + b, d / 2 - b);
+    shape.moveTo(-w2 / 2 + b, -d / 2 + b);
+    shape.lineTo(w2 / 2 - b, -d / 2 + b);
+    shape.lineTo(w2 / 2 - b, d / 2 - b);
+    shape.lineTo(-w2 / 2 + b, d / 2 - b);
     shape.closePath();
     const geo = new T.ExtrudeGeometry(shape, { depth: Math.max(1e-3, h2 - 2 * b), bevelEnabled: true, bevelSize: b, bevelThickness: b, bevelSegments: 1, steps: 1, curveSegments: 1 });
     geo.rotateX(-Math.PI / 2);
     geo.translate(0, b, 0);
-    geometry.set(key, geo);
-    detail.register(geo, w, h2, d);
+    geometry.set(key2, geo);
+    detail.register(geo, w2, h2, d);
     return geo;
   }
   const studGeo = new T.CylinderGeometry(studStyle.radius, studStyle.radius, studStyle.height, 10);
@@ -4686,22 +4711,22 @@ async function createScene(canvas2, onFailure, options = {}) {
   }
   function staticPart(geo, color, x, y, z) {
     if (muted) color = "#737b72";
-    const key = geo.uuid + color + "@" + Math.floor(x / 8) + "," + Math.floor(z / 8);
-    if (!batches.has(key)) batches.set(key, { geo, color, matrices: [] });
-    batches.get(key).matrices.push(new T.Matrix4().makeTranslation(x, y + baseHeight, z));
+    const key2 = geo.uuid + color + "@" + Math.floor(x / 8) + "," + Math.floor(z / 8);
+    if (!batches.has(key2)) batches.set(key2, { geo, color, matrices: [] });
+    batches.get(key2).matrices.push(new T.Matrix4().makeTranslation(x, y + baseHeight, z));
   }
-  function arch(w, h2, d) {
-    const key = `arch:${w}:${h2}:${d}`;
-    if (!geometry.has(key)) geometry.set(key, createArchGeometry(T, w, h2, d));
-    return geometry.get(key);
+  function arch(w2, h2, d) {
+    const key2 = `arch:${w2}:${h2}:${d}`;
+    if (!geometry.has(key2)) geometry.set(key2, createArchGeometry(T, w2, h2, d));
+    return geometry.get(key2);
   }
-  function brick(x, z, y, w, d, h2, color, studs = true, shape) {
-    staticPart(shape === "arch" ? arch(w - 0.018, h2, d - 0.018) : box2(w - 0.018, h2, d - 0.018), color, x + w / 2, y, z + d / 2);
-    if (studs) for (let a = 0.25; a < w; a += 0.5) for (let b = 0.25; b < d; b += 0.5) staticPart(studGeo, color, x + a, y + h2 + 0.04, z + b);
+  function brick(x, z, y, w2, d, h2, color, studs = true, shape) {
+    staticPart(shape === "arch" ? arch(w2 - 0.018, h2, d - 0.018) : box2(w2 - 0.018, h2, d - 0.018), color, x + w2 / 2, y, z + d / 2);
+    if (studs) for (let a = 0.25; a < w2; a += 0.5) for (let b = 0.25; b < d; b += 0.5) staticPart(studGeo, color, x + a, y + h2 + 0.04, z + b);
   }
   function groundBlock(x, z, height2, color) {
-    const h2 = height2 + 0.24, key = `ground:${h2}`;
-    if (!geometry.has(key)) {
+    const h2 = height2 + 0.24, key2 = `ground:${h2}`;
+    if (!geometry.has(key2)) {
       const b = 0.03, shape = new T.Shape();
       shape.moveTo(-0.5 + b, -0.5 + b);
       shape.lineTo(0.5 - b, -0.5 + b);
@@ -4711,26 +4736,26 @@ async function createScene(canvas2, onFailure, options = {}) {
       const geo = new T.ExtrudeGeometry(shape, { depth: h2 - 2 * b, bevelEnabled: true, bevelSize: b, bevelThickness: b, bevelSegments: 1, steps: 1, curveSegments: 1 });
       geo.rotateX(-Math.PI / 2);
       geo.translate(0, b, 0);
-      geometry.set(key, geo);
+      geometry.set(key2, geo);
       groundGeometries.add(geo);
     }
-    staticPart(geometry.get(key), color, x + 0.5, -0.24, z + 0.5);
+    staticPart(geometry.get(key2), color, x + 0.5, -0.24, z + 0.5);
   }
   let previewBuildingKind = "house", previewStyle = "neutral";
   let previewBuilding = { ageVariant: 2, progress: 100, health: 100 };
-  const ownTower = (view) => options.assetPreview ? null : towerGradeOf(view.economy?.techs ?? []);
-  function house(x, z, red2 = false, obstacleKind = "house", progress = 100, age = 2, health = 100, style = "neutral", tower = null, links = noLinks, land = 0) {
-    const kind = options.assetPreview ? previewBuildingKind : obstacleKind, visual = options.assetPreview ? previewBuilding : { ...previewBuilding, progress, health, ageVariant: Math.min(4, Math.max(1, age)) };
-    const joined = options.assetPreview ? { ...noLinks, e: true, w: true } : links, styleOf = options.assetPreview ? previewStyle : style;
-    const parts = kind === "wonder" ? wonderParts({ ...visual, red: red2 }, styleOf) : regionalParts(kind === "house" ? buildingParts({ ...visual, red: red2 }) : kind === "palisade-wall" || kind === "stone-wall" ? wallParts(kind, { ...visual, red: red2 }, joined) : kind === "palisade-gate" || kind === "gate" ? gateParts(kind, { ...visual, red: red2 }, joined) : kind === "outpost" ? outpostParts({ ...visual, red: red2 }) : kind === "bombard-tower" ? bombardTowerParts({ ...visual, red: red2 }) : kind === "dock" ? dockParts({ ...visual, red: red2 }, options.assetPreview ? 0 : land) : kind === "fish-trap" ? fishTrapParts({ ...visual, red: red2 }) : kind === "monastery" ? monasteryParts({ ...visual, red: red2 }) : kind === "blacksmith" ? blacksmithParts({ ...visual, red: red2 }) : kind === "watch-tower" ? towerParts({ ...visual, red: red2 }, tower) : kind === "university" ? universityParts({ ...visual, red: red2 }) : kind === "siege-workshop" ? siegeWorkshopParts({ ...visual, red: red2 }) : kind === "castle" ? castleParts({ ...visual, red: red2 }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red: red2 }) : economicBuildingParts(kind, { ...visual, red: red2 }), kind === "farm" ? "neutral" : styleOf);
+  const ownTower = (view) => options2.assetPreview ? null : towerGradeOf(view.economy?.techs ?? []);
+  function house(x, z, red2 = false, obstacleKind = "house", progress = 100, age = 2, health = 100, style = "neutral", tower = null, links = noLinks, land2 = 0) {
+    const kind = options2.assetPreview ? previewBuildingKind : obstacleKind, visual = options2.assetPreview ? previewBuilding : { ...previewBuilding, progress, health, ageVariant: Math.min(4, Math.max(1, age)) };
+    const joined = options2.assetPreview ? { ...noLinks, e: true, w: true } : links, styleOf = options2.assetPreview ? previewStyle : style;
+    const parts = kind === "wonder" ? wonderParts({ ...visual, red: red2 }, styleOf) : regionalParts(kind === "house" ? buildingParts({ ...visual, red: red2 }) : kind === "palisade-wall" || kind === "stone-wall" ? wallParts(kind, { ...visual, red: red2 }, joined) : kind === "palisade-gate" || kind === "gate" ? gateParts(kind, { ...visual, red: red2 }, joined) : kind === "outpost" ? outpostParts({ ...visual, red: red2 }) : kind === "bombard-tower" ? bombardTowerParts({ ...visual, red: red2 }) : kind === "dock" ? dockParts({ ...visual, red: red2 }, options2.assetPreview ? 0 : land2) : kind === "fish-trap" ? fishTrapParts({ ...visual, red: red2 }) : kind === "monastery" ? monasteryParts({ ...visual, red: red2 }) : kind === "blacksmith" ? blacksmithParts({ ...visual, red: red2 }) : kind === "watch-tower" ? towerParts({ ...visual, red: red2 }, tower) : kind === "university" ? universityParts({ ...visual, red: red2 }) : kind === "siege-workshop" ? siegeWorkshopParts({ ...visual, red: red2 }) : kind === "castle" ? castleParts({ ...visual, red: red2 }) : militaryBuildings.includes(kind) ? militaryBuildingParts(kind, { ...visual, red: red2 }) : economicBuildingParts(kind, { ...visual, red: red2 }), kind === "farm" ? "neutral" : styleOf);
     for (const p of parts) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, false, p.shape);
     for (const stud of buildingStuds(parts)) staticPart(studGeo, stud.color, x + stud.x, stud.y, z + stud.z);
   }
-  const deepWater = (tiles, id) => {
-    const n = sizeOfTiles(tiles), x = id % n, z = Math.floor(id / n);
+  const deepWater = (tiles3, id) => {
+    const n = sizeOfTiles(tiles3), x = id % n, z = Math.floor(id / n);
     return [[1, 0], [-1, 0], [0, 1], [0, -1]].every(([dx, dz]) => {
       const tx = x + dx, tz = z + dz;
-      return tx >= 0 && tz >= 0 && tx < n && tz < n && tiles[tz * n + tx].terrainType === "water";
+      return tx >= 0 && tz >= 0 && tx < n && tz < n && tiles3[tz * n + tx].terrainType === "water";
     });
   };
   function buildWorld(view) {
@@ -4743,7 +4768,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     scene2.add(staticGroup);
     batches.clear();
     baseHeight = 0;
-    const map = options.assetPreview ? makeMap(seed, previewLayout) : { tiles: view.terrain.map((tile3, id) => ({ ...tile3, id, resourceRefs: [], obstacleRefs: [] })), obstacles: view.known.map((k) => k.obstacle), resources: view.resources };
+    const map = options2.assetPreview ? makeMap(seed, previewLayout) : { tiles: view.terrain.map((tile3, id) => ({ ...tile3, id, resourceRefs: [], obstacleRefs: [] })), obstacles: view.known.map((k) => k.obstacle), resources: view.resources };
     worldTiles = map.tiles;
     board = sizeOfTiles(map.tiles);
     platforms = map.obstacles.flatMap((o) => {
@@ -4757,9 +4782,9 @@ async function createScene(canvas2, onFailure, options = {}) {
       rng ^= rng >>> 17;
       rng ^= rng << 5;
       const n = (rng >>> 0) / 4294967296;
-      groundBlock(x, z, tile3.height / 100, !options.assetPreview && view.fog[tile3.id] !== 2 ? view.fog[tile3.id] === 1 ? "#626e64" : "#293e38" : tile3.terrainType === "cliff" ? "#8a8065" : tile3.terrainType === "stone" ? "#a1a28e" : tile3.terrainType === "highland" ? "#879d69" : tile3.terrainType === "water" ? deepWater(map.tiles, tile3.id) ? "#41768a" : "#4b8291" : tile3.terrainType === "shallow" ? "#86b7b8" : tile3.terrainType === "sand" ? "#d5c598" : tile3.terrainType === "road" ? "#c4b18a" : n < 0.2 ? "#a6b582" : n < 0.5 ? "#b5c493" : "#becda0");
+      groundBlock(x, z, tile3.height / 100, !options2.assetPreview && view.fog[tile3.id] !== 2 ? view.fog[tile3.id] === 1 ? "#626e64" : "#293e38" : tile3.terrainType === "cliff" ? "#8a8065" : tile3.terrainType === "stone" ? "#a1a28e" : tile3.terrainType === "highland" ? "#879d69" : tile3.terrainType === "water" ? deepWater(map.tiles, tile3.id) ? "#41768a" : "#4b8291" : tile3.terrainType === "shallow" ? "#86b7b8" : tile3.terrainType === "sand" ? "#d5c598" : tile3.terrainType === "road" ? "#c4b18a" : n < 0.2 ? "#a6b582" : n < 0.5 ? "#b5c493" : "#becda0");
     }
-    for (const tile3 of map.tiles) if (tile3.terrainType === "water" && (options.assetPreview || view.fog[tile3.id] === 2)) {
+    for (const tile3 of map.tiles) if (tile3.terrainType === "water" && (options2.assetPreview || view.fog[tile3.id] === 2)) {
       const tx = tile3.id % board, tz = Math.floor(tile3.id / board);
       let v = Math.imul(tx + 1, 73856093) ^ Math.imul(tz + 1, 19349663);
       v = Math.imul(v ^ v >>> 16, 73244475);
@@ -4773,8 +4798,8 @@ async function createScene(canvas2, onFailure, options = {}) {
       if (f) fortAt.set(`${Math.floor(o.x / 100)},${Math.floor(o.y / 100)}`, `${f}:${o.red ? 1 : 0}`);
     }
     const linksOf = (o) => {
-      const tx = Math.floor(o.x / 100), tz = Math.floor(o.y / 100), me = fortAt.get(`${tx},${tz}`), at = (dx, dz) => fortAt.get(`${tx + dx},${tz + dz}`) === me;
-      return { n: at(0, -1), s: at(0, 1), e: at(1, 0), w: at(-1, 0), ne: at(1, -1), nw: at(-1, -1), se: at(1, 1), sw: at(-1, 1) };
+      const tx = Math.floor(o.x / 100), tz = Math.floor(o.y / 100), me = fortAt.get(`${tx},${tz}`), at2 = (dx, dz) => fortAt.get(`${tx + dx},${tz + dz}`) === me;
+      return { n: at2(0, -1), s: at2(0, 1), e: at2(1, 0), w: at2(-1, 0), ne: at2(1, -1), nw: at2(-1, -1), se: at2(1, 1), sw: at2(-1, 1) };
     };
     const landOf = (o) => {
       const tx = Math.floor(o.x / 100), tz = Math.floor(o.y / 100), dry = (x, z) => {
@@ -4787,10 +4812,10 @@ async function createScene(canvas2, onFailure, options = {}) {
     };
     for (const o of map.obstacles) {
       baseHeight = groundHeight(map.tiles, o.x, o.y) / 100;
-      muted = !options.assetPreview && view.fog[tileAt(o.x, o.y, sizeOfTiles(map.tiles))] !== 2;
+      muted = !options2.assetPreview && view.fog[tileAt(o.x, o.y, sizeOfTiles(map.tiles))] !== 2;
       const x = o.x / 100, z = o.y / 100;
       if (o.kind === "farm") for (const p of farmParts(o.progress ?? 100, o.red)) brick(x + p.x, z + p.z, p.y, p.w, p.d, p.h, p.color, p.studs);
-      else if (drawnBuildings.includes(o.kind)) house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100, options.assetPreview ? "neutral" : architectureOf(view.civs, o.red ? 1 : 0), o.kind === "watch-tower" && !o.red ? ownTower(view) : null, wallFamily(o.kind) ? linksOf(o) : noLinks, o.kind === "dock" ? landOf(o) : 0);
+      else if (drawnBuildings.includes(o.kind)) house(x, z, o.red, o.kind, o.progress ?? 100, o.age ?? 2, o.damaged ? 35 : 100, options2.assetPreview ? "neutral" : architectureOf(view.civs, o.red ? 1 : 0), o.kind === "watch-tower" && !o.red ? ownTower(view) : null, wallFamily(o.kind) ? linksOf(o) : noLinks, o.kind === "dock" ? landOf(o) : 0);
       else if (o.kind === "tree") {
         let v = Math.imul(o.x | 0, 73856093) ^ Math.imul(o.y | 0, 19349663);
         v = Math.imul(v ^ v >>> 16, 73244475);
@@ -4863,6 +4888,54 @@ async function createScene(canvas2, onFailure, options = {}) {
   }
   const relics = /* @__PURE__ */ new Map();
   const arrows2 = /* @__PURE__ */ new Map(), arrowGeo = new T.BoxGeometry(0.04, 0.04, 1), arrowMaterial = new T.MeshBasicMaterial({ color: "#4a3b2a" });
+  const shapeOf = (kind) => kind === "mangonel" || kind === "trebuchet" ? "stone" : kind === "bombard-cannon" || kind === "cannon-galleon" || kind === "bombard-tower" ? "ball" : kind === "hand-cannoneer" || kind === "janissary" ? "shot" : kind === "scorpion" ? "bolt" : kind === "throwing-axeman" ? "axe" : kind === "mameluke" ? "javelin" : kind === "fire-galley" ? "fire" : "arrow";
+  const shapes = {
+    arrow: { geo: new T.BoxGeometry(0.055, 0.055, 0.42), mat: material("#4d3a26"), arc: 0.45, long: true, puff: 0.18 },
+    bolt: { geo: new T.BoxGeometry(0.06, 0.06, 0.56), mat: material("#4a3b2a"), arc: 0.2, long: true, puff: 0.22 },
+    javelin: { geo: new T.BoxGeometry(0.04, 0.04, 0.5), mat: material("#7a5c40"), arc: 0.5, long: true, puff: 0.18 },
+    axe: { geo: new T.BoxGeometry(0.16, 0.05, 0.14), mat: material("#8f969a"), arc: 0.4, long: false, puff: 0.18 },
+    stone: { geo: new T.BoxGeometry(0.2, 0.18, 0.2), mat: material("#9d9583"), arc: 1.8, long: false, puff: 0.55 },
+    ball: { geo: new T.SphereGeometry(0.09, 10, 8), mat: material("#2b2a28"), arc: 0.7, long: false, puff: 0.45 },
+    shot: { geo: new T.SphereGeometry(0.035, 6, 5), mat: material("#2b2a28"), arc: 0.1, long: false, puff: 0.14 },
+    fire: { geo: new T.BoxGeometry(0.16, 0.14, 0.3), mat: new T.MeshBasicMaterial({ color: "#f0883e", transparent: true, opacity: 0.85, depthWrite: false }), arc: 0.15, long: true, puff: 0 }
+  };
+  const launchLift = { "town-center": 2, "watch-tower": 2.6, castle: 3.4, "bombard-tower": 2.1, trebuchet: 1.4, mangonel: 0.7 };
+  const flights = /* @__PURE__ */ new Map(), flightPool = /* @__PURE__ */ new Map();
+  const puffGeo = new T.SphereGeometry(0.5, 8, 6), puffs = [], puffPool = [];
+  function puff(x, y, size, color) {
+    if (size <= 0) return;
+    const m = puffPool.pop() ?? new T.Mesh(puffGeo, new T.MeshBasicMaterial({ transparent: true, depthWrite: false }));
+    m.material.color.set(color);
+    m.material.opacity = 0.55;
+    m.position.set(x / 100, groundHeight(worldTiles, x, y) / 100 + 0.08, y / 100);
+    m.scale.setScalar(size * 0.3);
+    scene2.add(m);
+    puffs.push({ mesh: m, start: 0, size });
+  }
+  function land(f) {
+    scene2.remove(f.mesh);
+    (flightPool.get(f.shape) ?? flightPool.set(f.shape, []).get(f.shape)).push(f.mesh);
+    puff(f.to.x, f.to.y, shapes[f.shape].puff, "#cdbf9f");
+  }
+  const flightPoint = new T.Vector3(), flightAhead = new T.Vector3();
+  function flightHeight(f, x, y) {
+    const total = Math.hypot(f.to.x - f.from.x, f.to.y - f.from.y) || 1, t = Math.min(1, Math.max(0, Math.hypot(x - f.from.x, y - f.from.y) / total));
+    const start = groundHeight(worldTiles, f.from.x, f.from.y) / 100 + f.lift, end = groundHeight(worldTiles, f.to.x, f.to.y) / 100 + 0.15;
+    return start + (end - start) * t + shapes[f.shape].arc * Math.min(1, total / 400) * 4 * t * (1 - t);
+  }
+  function placeFlight(f, time) {
+    const ldx = f.to.x - f.from.x, ldy = f.to.y - f.from.y, ll = Math.hypot(ldx, ldy) || 1;
+    flightPoint.set((f.at.x - ldy / ll * f.fan) / 100, flightHeight(f, f.at.x, f.at.y), (f.at.y + ldx / ll * f.fan) / 100);
+    f.mesh.position.copy(flightPoint);
+    if (shapes[f.shape].long) {
+      const dx = f.to.x - f.from.x, dy = f.to.y - f.from.y, len = Math.hypot(dx, dy) || 1, ax = f.at.x + dx / len * 12, ay = f.at.y + dy / len * 12;
+      flightAhead.set((ax - ldy / ll * f.fan) / 100, flightHeight(f, ax, ay), (ay + ldx / ll * f.fan) / 100);
+      f.mesh.lookAt(flightAhead);
+    } else {
+      f.mesh.rotation.x = time / 90;
+      f.mesh.rotation.z = time / 130;
+    }
+  }
   const fallen = /* @__PURE__ */ new Map();
   const barBack = new T.MeshBasicMaterial({ color: "#2d3a33" }), barGeo = new T.BoxGeometry(0.5, 0.05, 0.05);
   const ringGeo = new T.RingGeometry(0.4, 0.47, 32);
@@ -4882,7 +4955,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     group.add(bar2);
     const rig = beast ? createAnimalRig(T, kind, player, box2, material) : isSiege(kind) ? createSiegeRig(T, kind, player, box2, material) : isVessel(kind) ? createVesselRig(T, kind, player, box2, material) : createCharacterRig(T, player, box2, material);
     if (!beast && !isSiege(kind) && !isVessel(kind)) {
-      if (!options.assetPreview && kind !== "villager") rig.dress(roleOf(kind));
+      if (!options2.assetPreview && kind !== "villager") rig.dress(roleOf(kind));
       rig.equip(previewTool);
     }
     group.add(rig.root);
@@ -4945,9 +5018,9 @@ async function createScene(canvas2, onFailure, options = {}) {
   function update(view, ids) {
     latest = view;
     selected2 = new Set(typeof ids === "number" ? [ids] : ids);
-    const key = JSON.stringify([previewBuildingKind, previewBuilding, previewStyle, previewLayout, view.layout, view.seed, view.civs, view.fog, view.known?.map((k) => k.obstacle), view.resources, ownTower(view)]);
-    if (worldKey !== key) {
-      worldKey = key;
+    const key2 = JSON.stringify([previewBuildingKind, previewBuilding, previewStyle, previewLayout, view.layout, view.seed, view.civs, view.fog, view.known?.map((k) => k.obstacle), view.resources, ownTower(view)]);
+    if (worldKey !== key2) {
+      worldKey = key2;
       const t = performance.now();
       buildWorld(view);
       cameraUpdate();
@@ -4955,9 +5028,9 @@ async function createScene(canvas2, onFailure, options = {}) {
       canvas2.dataset.rebuildMs = (performance.now() - t).toFixed(1);
     }
     const alive = new Set(view.units.map((u) => u.id));
-    for (const [key2, u] of units2) if (!alive.has(key2)) {
+    for (const [key3, u] of units2) if (!alive.has(key3)) {
       scene2.remove(u.group);
-      units2.delete(key2);
+      units2.delete(key3);
     }
     for (const data of view.units) {
       const kept = units2.get(data.id);
@@ -4969,12 +5042,12 @@ async function createScene(canvas2, onFailure, options = {}) {
       const goal = new T.Vector3(data.x / 100, (groundHeight(worldTiles, data.x, data.y) + standingLift(data.x, data.y)) / 100, data.y / 100), from = u.goal ?? u.group.position;
       const dx = goal.x - from.x, dz = goal.z - from.z;
       if (Math.abs(dx) + Math.abs(dz) > 1e-3) u.group.rotation.y = Math.atan2(dx, dz);
-      if (!u.goal || options.assetPreview || u.group.position.distanceTo(goal) > 1.5) u.group.position.copy(goal);
+      if (!u.goal || options2.assetPreview || u.group.position.distanceTo(goal) > 1.5) u.group.position.copy(goal);
       u.goal = goal;
       u.ring.visible = selected2.has(data.id);
       u.moving = data.navigation === "moving";
-      if (!options.assetPreview && (data.work === "gathering" || data.work === "hunting" || data.action === 1) && !u.moving && data.target) u.group.rotation.y = Math.atan2(data.target.x / 100 - u.group.position.x, data.target.y / 100 - u.group.position.z);
-      if (!options.assetPreview) {
+      if (!options2.assetPreview && (data.work === "gathering" || data.work === "hunting" || data.action === 1) && !u.moving && data.target) u.group.rotation.y = Math.atan2(data.target.x / 100 - u.group.position.x, data.target.y / 100 - u.group.position.z);
+      if (!options2.assetPreview) {
         const look = data.player === 0 ? lookOf(data.kind, view.economy?.techs ?? []) : null;
         if (look !== u.look) {
           u.look = look;
@@ -5029,12 +5102,31 @@ async function createScene(canvas2, onFailure, options = {}) {
       }
       g.position.set(r.x / 100, (groundHeight(worldTiles, r.x, r.y) + standingLift(r.x, r.y)) / 100, r.y / 100);
     }
-    const flying = new Set((view.shots ?? []).map((v) => `${v.tick}:${v.from.x},${v.from.y}>${v.to.x},${v.to.y}`));
+    const inAir = new Set((view.projectiles ?? []).map((p) => p.id));
+    for (const [id, f] of flights) if (!inAir.has(id)) {
+      land(f);
+      flights.delete(id);
+    }
+    for (const p of view.projectiles ?? []) {
+      let f = flights.get(p.id);
+      if (!f) {
+        const shape = shapeOf(p.kind), mesh = flightPool.get(shape)?.pop() ?? new T.Mesh(shapes[shape].geo, shapes[shape].mat);
+        scene2.add(mesh);
+        f = { mesh, shape, from: { ...p.from }, to: { ...p.to }, goal: { x: p.x, y: p.y }, at: { ...p.from }, lift: launchLift[p.kind] ?? 0.62, fan: (p.id * 37 % 9 - 4) * 5 };
+        flights.set(p.id, f);
+        if (shape === "ball" || shape === "shot") puff(p.from.x, p.from.y, shape === "ball" ? 0.4 : 0.16, "#e9e4d8");
+        placeFlight(f, 0);
+      }
+      f.goal = { x: p.x, y: p.y };
+      f.to = { ...p.to };
+    }
+    canvas2.dataset.flights = String(flights.size);
+    const flying = new Set((view.projectiles ? [] : view.shots ?? []).map((v) => `${v.tick}:${v.from.x},${v.from.y}>${v.to.x},${v.to.y}`));
     for (const [k, m] of arrows2) if (!flying.has(k)) {
       scene2.remove(m);
       arrows2.delete(k);
     }
-    for (const v of view.shots ?? []) {
+    for (const v of view.projectiles ? [] : view.shots ?? []) {
       const k = `${v.tick}:${v.from.x},${v.from.y}>${v.to.x},${v.to.y}`;
       if (arrows2.has(k)) continue;
       const a = new T.Vector3(v.from.x / 100, groundHeight(worldTiles, v.from.x, v.from.y) / 100 + 2.2, v.from.y / 100), b = new T.Vector3(v.to.x / 100, groundHeight(worldTiles, v.to.x, v.to.y) / 100 + 0.6, v.to.y / 100);
@@ -5136,10 +5228,28 @@ async function createScene(canvas2, onFailure, options = {}) {
       if (u.group.position.distanceTo(u.goal) < 2e-3) u.group.position.copy(u.goal);
       else u.group.position.lerp(u.goal, ease);
     }
+    for (const f of flights.values()) {
+      f.at.x += (f.goal.x - f.at.x) * ease;
+      f.at.y += (f.goal.y - f.at.y) * ease;
+      placeFlight(f, time);
+    }
+    for (let i = puffs.length - 1; i >= 0; i--) {
+      const p = puffs[i];
+      if (!p.start) p.start = time;
+      const k = (time - p.start) / 380;
+      if (k >= 1) {
+        scene2.remove(p.mesh);
+        puffPool.push(p.mesh);
+        puffs.splice(i, 1);
+        continue;
+      }
+      p.mesh.scale.setScalar(p.size * (0.3 + 0.7 * k));
+      p.mesh.material.opacity = 0.55 * (1 - k);
+    }
     stepMarker(time);
     for (const u of units2.values()) {
-      const pose = options.assetPreview ? previewPose : poseFor(u.kind, u.activity);
-      u.rig.pose(pose, options.assetPreview ? previewAnimated ? time - poseStart : pose === "death" ? 700 : pose === "hit" ? 150 : 350 : pose === "hit" ? time - u.poseStart : time);
+      const pose = options2.assetPreview ? previewPose : poseFor(u.kind, u.activity);
+      u.rig.pose(pose, options2.assetPreview ? previewAnimated ? time - poseStart : pose === "death" ? 700 : pose === "hit" ? 150 : 350 : pose === "hit" ? time - u.poseStart : time);
       u.ring.visible = [...units2].some(([id, v]) => v === u && selected2.has(id)) && pose !== "death";
     }
     for (const f of fallen.values()) f.rig.pose("death", time - f.start);
@@ -5154,7 +5264,7 @@ async function createScene(canvas2, onFailure, options = {}) {
     event.preventDefault();
     contextLost = true;
     canvas2.dataset.renderState = "context-lost";
-    onFailure(options.assetPreview ? "\u6A21\u578B\u7E6A\u5716\u9023\u7DDA\u4E2D\u65B7\uFF0C\u8ACB\u91CD\u65B0\u8F09\u5165\u6A21\u578B\u9801\u3002" : "3D \u7E6A\u5716\u9023\u7DDA\u4E2D\u65B7\uFF0C\u6A21\u64EC\u5DF2\u66AB\u505C\uFF1B\u8ACB\u91CD\u65B0\u8F09\u5165\u9801\u9762\u5F8C\u8B80\u53D6\u624B\u52D5\u5B58\u6A94\u3002");
+    onFailure(options2.assetPreview ? "\u6A21\u578B\u7E6A\u5716\u9023\u7DDA\u4E2D\u65B7\uFF0C\u8ACB\u91CD\u65B0\u8F09\u5165\u6A21\u578B\u9801\u3002" : "3D \u7E6A\u5716\u9023\u7DDA\u4E2D\u65B7\uFF0C\u6A21\u64EC\u5DF2\u66AB\u505C\uFF1B\u8ACB\u91CD\u65B0\u8F09\u5165\u9801\u9762\u5F8C\u8B80\u53D6\u624B\u52D5\u5B58\u6A94\u3002");
   });
   canvas2.dataset.renderer = "webgl2";
   canvas2.dataset.renderState = "ready";
@@ -5211,20 +5321,44 @@ async function createScene(canvas2, onFailure, options = {}) {
     ghost.material.color.set(g.ok ? "#6f9d6a" : "#b8574a");
   }
   const wallGhosts = [];
-  function setGhosts(list) {
-    while (wallGhosts.length < list.length) {
+  function setGhosts(list3) {
+    while (wallGhosts.length < list3.length) {
       const m = new T.Mesh(ghost.geometry, new T.MeshBasicMaterial({ color: "#6f9d6a", transparent: true, opacity: 0.42, depthWrite: false }));
       scene2.add(m);
       wallGhosts.push(m);
     }
     wallGhosts.forEach((m, i) => {
-      const g = list[i];
+      const g = list3[i];
       m.visible = !!g;
       if (!g) return;
       const [x0, y0, x1, y1] = obstacleBounds({ kind: g.kind, x: g.x, y: g.y });
       m.scale.set((x1 - x0) / 100, 1, (y1 - y0) / 100);
       m.position.set((x0 + x1) / 200, groundHeight(worldTiles, g.x, g.y) / 100 + 0.15, (y0 + y1) / 200);
       m.material.color.set(g.ok ? "#6f9d6a" : "#b8574a");
+    });
+  }
+  const patrolDash = new T.BoxGeometry(0.2, 0.03, 0.09), patrolLook = new T.MeshBasicMaterial({ color: "#2f5f73", transparent: true, opacity: 0.72, depthWrite: false }), patrolDashes = [];
+  function setPatrols(routes) {
+    const spots = [];
+    for (const r of routes) {
+      const dx = r.to.x - r.from.x, dz = r.to.z - r.from.z, len = Math.hypot(dx, dz), n = Math.min(60, Math.floor(len / 0.36));
+      for (let i = 0; i <= n; i++) {
+        const t = n ? i / n : 0;
+        spots.push({ x: r.from.x + dx * t, z: r.from.z + dz * t, a: Math.atan2(-dz, dx) });
+      }
+    }
+    while (patrolDashes.length < spots.length) {
+      const m = new T.Mesh(patrolDash, patrolLook);
+      scene2.add(m);
+      patrolDashes.push(m);
+    }
+    canvas2.dataset.patrol = String(spots.length);
+    patrolDashes.forEach((m, i) => {
+      const p = spots[i];
+      m.visible = !!p;
+      if (!p) return;
+      m.position.set(p.x, (groundHeight(worldTiles, p.x * 100, p.z * 100) + standingLift(p.x * 100, p.z * 100)) / 100 + 0.07, p.z);
+      m.rotation.y = p.a;
     });
   }
   function renderIcons(size = 160) {
@@ -5237,18 +5371,18 @@ async function createScene(canvas2, onFailure, options = {}) {
     r.setClearColor(0, 0);
     const s = new T.Scene();
     s.add(new T.HemisphereLight("#fff5dc", "#819b75", 2.6));
-    const key = new T.DirectionalLight("#fff1d8", 3);
-    key.position.set(-4, 20, 12);
-    s.add(key);
+    const key2 = new T.DirectionalLight("#fff1d8", 3);
+    key2.position.set(-4, 20, 12);
+    s.add(key2);
     const cam = new T.OrthographicCamera(-1, 1, 1, -1, 0.1, 200), out = {}, corner = new T.Vector3();
-    const parts = (list, studs = true) => {
+    const parts = (list3, studs = true) => {
       const g = new T.Group();
-      for (const p of list) {
+      for (const p of list3) {
         const m = new T.Mesh(p.shape === "arch" ? arch(p.w - 0.018, p.h, p.d - 0.018) : box2(p.w - 0.018, p.h, p.d - 0.018), material(p.color));
         m.position.set(p.x + p.w / 2, p.y, p.z + p.d / 2);
         g.add(m);
       }
-      if (studs) for (const st of buildingStuds(list)) {
+      if (studs) for (const st of buildingStuds(list3)) {
         const m = new T.Mesh(studGeo, material(st.color));
         m.position.set(st.x, st.y, st.z);
         g.add(m);
@@ -5340,7 +5474,7 @@ async function createScene(canvas2, onFailure, options = {}) {
       }
       shoot("farm", parts(farmParts(100, false), false));
       shoot("relic", parts(relicParts.map((p) => ({ ...p, x: p.x + 0.5, z: p.z + 0.5 })), false));
-      for (const [id, list] of Object.entries(techIcons)) shoot(`tech-${id}`, parts(list, false));
+      for (const [id, list3] of Object.entries(techIcons)) shoot(`tech-${id}`, parts(list3, false));
       const bush = [{ x: 0.05, y: 0, z: 0.05, w: 0.55, d: 0.55, h: 0.45, color: "#5d824e" }, ...[0.12, 0.36].flatMap((x) => [0.12, 0.36].map((z) => ({ x, y: 0.45, z, w: 0.12, d: 0.12, h: 0.12, color: "#a84e59" })))];
       const tree = [{ x: 0.15, y: 0, z: 0.15, w: 0.3, d: 0.3, h: 0.8, color: "#80664b" }, { x: -0.2, y: 0.7, z: -0.2, w: 1, d: 1, h: 0.4, color: "#67835a" }, { x: -0.075, y: 1.1, z: -0.075, w: 0.75, d: 0.75, h: 0.4, color: "#7e985f" }, { x: 0.05, y: 1.5, z: 0.05, w: 0.5, d: 0.5, h: 0.3, color: "#91a970" }];
       const ore = (a, b) => [{ x: 0, y: 0, z: 0, w: 0.65, d: 0.7, h: 0.3, color: a }, { x: 0.15, y: 0.3, z: 0.15, w: 0.35, d: 0.4, h: 0.18, color: b }];
@@ -5368,7 +5502,7 @@ async function createScene(canvas2, onFailure, options = {}) {
       sun.shadow.map?.dispose();
       sun.shadow.map = null;
       for (const m of materials.values()) m.needsUpdate = true;
-      table.material.needsUpdate = true;
+      table3.material.needsUpdate = true;
     }
     canvas2.dataset.quality = level;
   }
@@ -5384,21 +5518,22 @@ async function createScene(canvas2, onFailure, options = {}) {
     unitsInRect,
     setGhost,
     setGhosts,
+    setPatrols,
     renderIcons,
     cameraView,
     setPreviewBuildingKind: (kind) => {
-      if (!options.assetPreview || !drawnBuildings.includes(kind) && !economicBuildings.includes(kind) && !militaryBuildings.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5EFA\u7BC9");
+      if (!options2.assetPreview || !drawnBuildings.includes(kind) && !economicBuildings.includes(kind) && !militaryBuildings.includes(kind)) throw Error("\u672A\u77E5\u6A21\u578B\u5EFA\u7BC9");
       previewBuildingKind = kind;
       if (latest) update(latest, selected2);
     },
     setPreviewStyle: (style) => {
-      if (!options.assetPreview || !architectures.includes(style)) throw Error("\u672A\u77E5\u5EFA\u7BC9\u98A8\u683C");
+      if (!options2.assetPreview || !architectures.includes(style)) throw Error("\u672A\u77E5\u5EFA\u7BC9\u98A8\u683C");
       previewStyle = style;
       if (latest) update(latest, selected2);
     },
     setPreviewRole: (role) => {
       const siege = previewSiege(role);
-      if (!options.assetPreview || !unitRoles.includes(role) && !isMounted(role) && !siege) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u6709\u6548\u8ECD\u7A2E");
+      if (!options2.assetPreview || !unitRoles.includes(role) && !isMounted(role) && !siege) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u6709\u6548\u8ECD\u7A2E");
       previewRole = role;
       previewPose = "idle";
       const frame2 = siege ? unitFrame(siege, role === "trebuchet-unpacked") : frameOfRole(role);
@@ -5413,20 +5548,20 @@ async function createScene(canvas2, onFailure, options = {}) {
     },
     // Line-upgrade look on the inspected model ('' or null: the base look); dressing again clears it.
     setPreviewGrade: (look) => {
-      if (!options.assetPreview || look && !Object.values(upgradeLooks).some((line2) => line2.includes(look))) throw Error("\u672A\u77E5\u5347\u7D1A\u5916\u89C0");
+      if (!options2.assetPreview || look && !Object.values(upgradeLooks).some((line2) => line2.includes(look))) throw Error("\u672A\u77E5\u5347\u7D1A\u5916\u89C0");
       for (const u of units2.values()) {
         u.rig.grade(look || null);
         detail.apply(u.group, zoom);
       }
     },
     setPreviewBuilding: (visual) => {
-      if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u5EFA\u7BC9\u5916\u89C0");
+      if (!options2.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u5EFA\u7BC9\u5916\u89C0");
       buildingParts({ ...visual, red: false });
       previewBuilding = { ...visual };
       if (latest) update(latest, selected2);
     },
     focusPreviewHouse: () => {
-      if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u805A\u7126\u5EFA\u7BC9");
+      if (!options2.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u805A\u7126\u5EFA\u7BC9");
       focus.x = 4;
       focus.y = 1;
       focus.z = 4.85;
@@ -5435,7 +5570,7 @@ async function createScene(canvas2, onFailure, options = {}) {
       cameraUpdate();
     },
     focusPreviewUnit: (id) => {
-      if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u805A\u7126\u4EE3\u8868\u8CC7\u7522");
+      if (!options2.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u805A\u7126\u4EE3\u8868\u8CC7\u7522");
       const u = units2.get(id);
       if (!u) throw Error("\u627E\u4E0D\u5230\u4EBA\u5076");
       focus.x = u.group.position.x;
@@ -5446,7 +5581,7 @@ async function createScene(canvas2, onFailure, options = {}) {
       cameraUpdate();
     },
     setPreviewMotion: (pose, tool, animated) => {
-      if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u59FF\u614B");
+      if (!options2.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u6307\u5B9A\u59FF\u614B");
       if (isMounted(previewRole) && !["idle", "walk", "attack"].includes(pose) || !unitPoses.includes(pose) || !unitTools.includes(tool)) throw Error("\u672A\u77E5\u6A21\u578B\u59FF\u614B\u6216\u5DE5\u5177");
       previewPose = pose;
       previewTool = tool;
@@ -5458,7 +5593,7 @@ async function createScene(canvas2, onFailure, options = {}) {
       }
     },
     setPreviewLayout: (layout) => {
-      if (!options.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u5207\u63DB\u9A57\u6536\u5716");
+      if (!options2.assetPreview) throw Error("\u50C5\u6A21\u578B\u6AA2\u8996\u53EF\u5207\u63DB\u9A57\u6536\u5716");
       if (!["meadow", "coast", "acceptance", "lakes"].includes(layout)) throw Error("\u672A\u77E5\u5730\u5716\u6A21\u5F0F");
       previewLayout = layout;
       if (latest) update(latest, selected2);
@@ -5481,10 +5616,10 @@ async function createScene(canvas2, onFailure, options = {}) {
       cameraUpdate();
     },
     // Screen-aligned pan (right, away from camera), scaled by zoom and clamped to the board.
-    pan: (right, up) => {
+    pan: (right, up2) => {
       const step2 = 1.2 / zoom, c = Math.cos(angle), s = Math.sin(angle);
-      focus.x = Math.max(0, Math.min(board, focus.x + (c * right - s * up) * step2));
-      focus.z = Math.max(0, Math.min(board, focus.z + (-s * right - c * up) * step2));
+      focus.x = Math.max(0, Math.min(board, focus.x + (c * right - s * up2) * step2));
+      focus.z = Math.max(0, Math.min(board, focus.z + (-s * right - c * up2) * step2));
       cameraUpdate();
     },
     // Opening view of a match: the home town centre, close enough that the base fills the window (wide or tall).
@@ -5540,6 +5675,41 @@ var visionRules = {
   rememberStaticObjects: true
 };
 
+// packages/sim/settings.ts
+var defaultSettings = { difficulty: "standard", resources: "standard", popCap: 40, reveal: "normal", startAge: 1, victory: "standard", allTechs: false };
+var settingRules = {
+  provenance: "design_default",
+  // Starting stock per player before civilization bonuses; 'standard' is this game's usual 200/200/100/100. The others
+  // follow AoE II's low / medium / high presets in spirit (low: no gold or stone; medium and high: a big head start).
+  resources: { low: { food: 100, wood: 100, gold: 0, stone: 0 }, standard: { food: 200, wood: 200, gold: 100, stone: 100 }, medium: { food: 500, wood: 500, gold: 300, stone: 300 }, high: { food: 1e3, wood: 1e3, gold: 700, stone: 700 } },
+  // Population ceilings offered (40 is the game's usual cap; civilization bonuses such as the Goths' still add).
+  popCaps: [25, 40, 75, 100],
+  // The computer: how often it thinks (ticks between passes), how many villagers it keeps, how large an attack wave
+  // must be and the earliest tick of the first wave. 'standard' is exactly the existing aiRules values.
+  difficulty: {
+    easy: { thinkTicks: 40, villagerTarget: 8, waveSize: 8, firstWaveTick: 9600 },
+    standard: { thinkTicks: 20, villagerTarget: 12, waveSize: 5, firstWaveTick: 4800 },
+    hard: { thinkTicks: 20, villagerTarget: 14, waveSize: 4, firstWaveTick: 3600 },
+    hardest: { thinkTicks: 10, villagerTarget: 16, waveSize: 4, firstWaveTick: 2400 }
+  }
+};
+var difficulties = ["easy", "standard", "hard", "hardest"];
+var levels = ["low", "standard", "medium", "high"];
+var reveals = ["normal", "explored", "all"];
+var victories = ["standard", "conquest"];
+function matchSettings(v = {}) {
+  if (!v || typeof v !== "object" || Array.isArray(v)) throw Error("\u7121\u6548\u7684\u5C0D\u5C40\u8A2D\u5B9A");
+  const o = { ...defaultSettings, ...v };
+  if (!difficulties.includes(o.difficulty)) throw Error("\u672A\u77E5\u7684\u96E3\u6613\u5EA6");
+  if (!levels.includes(o.resources)) throw Error("\u672A\u77E5\u7684\u8CC7\u6E90\u8A2D\u5B9A");
+  if (!settingRules.popCaps.includes(o.popCap)) throw Error("\u672A\u77E5\u7684\u4EBA\u53E3\u4E0A\u9650");
+  if (!reveals.includes(o.reveal)) throw Error("\u672A\u77E5\u7684\u5730\u5716\u986F\u793A\u8A2D\u5B9A");
+  if (![1, 2, 3, 4].includes(o.startAge)) throw Error("\u672A\u77E5\u7684\u958B\u59CB\u6642\u4EE3");
+  if (!victories.includes(o.victory)) throw Error("\u672A\u77E5\u7684\u52DD\u5229\u689D\u4EF6");
+  if (typeof o.allTechs !== "boolean") throw Error("\u6240\u6709\u79D1\u6280\u8A2D\u5B9A\u7121\u6548");
+  return { difficulty: o.difficulty, resources: o.resources, popCap: o.popCap, reveal: o.reveal, startAge: o.startAge, victory: o.victory, allTechs: o.allTechs };
+}
+
 // packages/sim/economy.ts
 var economyRules = {
   provenance: "design_default",
@@ -5568,7 +5738,7 @@ var techRules = {
   // Villager hit points (Loom).
   villagerHp: { loom: 15 }
 };
-var sum = (table, techs2) => techs2.reduce((t, id) => t + (table[id] ?? 0), 0);
+var sum = (table3, techs2) => techs2.reduce((t, id) => t + (table3[id] ?? 0), 0);
 var carryOf = (techs2, base, farming = false) => base + sum(techRules.carry, techs2) + (farming ? sum(techRules.farmerCarry, techs2) : 0);
 var farmFoodOf = (techs2, base) => base + sum(techRules.farmFood, techs2);
 var villagerHpBonus = (techs2) => sum(techRules.villagerHp, techs2);
@@ -5599,12 +5769,14 @@ var techEffects = [
   fx("masonry.hp", "buildingHp", {}, 1.1, "\u78DA\u74E6\u6280\u8853\uFF1A\u5EFA\u7BC9\u751F\u547D +10%", { tech: "masonry" }),
   fx("masonry.melee", "buildingMeleeArmor", {}, 1, "\u78DA\u74E6\u6280\u8853\uFF1A\u5EFA\u7BC9\u8FD1\u6230\u8B77\u7532 +1", { tech: "masonry" }),
   fx("masonry.pierce", "buildingPierceArmor", {}, 1, "\u78DA\u74E6\u6280\u8853\uFF1A\u5EFA\u7BC9\u9060\u7A0B\u8B77\u7532 +1", { tech: "masonry" }),
+  fx("masonry.class", "buildingClassArmor", {}, 1, "\u78DA\u74E6\u6280\u8853\uFF1A\u5EFA\u7BC9\u7684\u5EFA\u7BC9\u985E\u8B77\u7532 +1\uFF08\u539F\u4F5C +3\uFF0C\u653B\u57CE\u52A0\u6210 \xD70.32\uFF09", { tech: "masonry" }),
   fx("architecture.hp", "buildingHp", {}, 1.1, "\u5EFA\u7BC9\u5B78\uFF1A\u5EFA\u7BC9\u751F\u547D\u518D +10%", { tech: "architecture" }),
   fx("architecture.melee", "buildingMeleeArmor", {}, 1, "\u5EFA\u7BC9\u5B78\uFF1A\u5EFA\u7BC9\u8FD1\u6230\u8B77\u7532\u518D +1", { tech: "architecture" }),
   fx("architecture.pierce", "buildingPierceArmor", {}, 1, "\u5EFA\u7BC9\u5B78\uFF1A\u5EFA\u7BC9\u9060\u7A0B\u8B77\u7532\u518D +1", { tech: "architecture" }),
-  fx("chemistry.missiles", "attack", { classes: ["archer", "siege", "warship"], exclude: ["gunpowder", "ram", "petard"] }, 1, "\u5316\u5B78\uFF1A\u5F13\u5175\u3001\u6295\u5C04\u653B\u57CE\u5668\u8207\u6230\u8239\u653B\u64CA +1\uFF08\u706B\u85E5\u55AE\u4F4D\u3001\u885D\u649E\u8ECA\u9664\u5916\uFF09", { tech: "chemistry" }),
+  fx("architecture.class", "buildingClassArmor", {}, 1, "\u5EFA\u7BC9\u5B78\uFF1A\u5EFA\u7BC9\u7684\u5EFA\u7BC9\u985E\u8B77\u7532\u518D +1", { tech: "architecture" }),
+  fx("chemistry.missiles", "attack", { kinds: ["mangonel", "scorpion", "trebuchet"], classes: ["archer", "warship"], exclude: ["gunpowder"] }, 1, "\u5316\u5B78\uFF1A\u5F13\u5175\u3001\u6295\u5C04\u653B\u57CE\u5668\u8207\u6230\u8239\u653B\u64CA +1\uFF08\u706B\u85E5\u55AE\u4F4D\u3001\u885D\u649E\u8ECA\u9664\u5916\uFF09", { tech: "chemistry" }),
   fx("chemistry.buildings", "arrowDamage", { buildings: ["town-center", "watch-tower", "castle"] }, 1, "\u5316\u5B78\uFF1A\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u8207\u57CE\u5821\u7684\u7BAD +1", { tech: "chemistry" }),
-  fx("siege-engineers.range", "range", { classes: ["siege"], exclude: ["ram"] }, 50, "\u653B\u57CE\u5DE5\u7A0B\u5E2B\uFF1A\u653B\u57CE\u5668\u5C04\u7A0B +1\uFF08\u885D\u649E\u8ECA\u9664\u5916\uFF09", { tech: "siege-engineers" }),
+  fx("siege-engineers.range", "range", { kinds: ["mangonel", "scorpion", "trebuchet", "bombard-cannon"] }, 50, "\u653B\u57CE\u5DE5\u7A0B\u5E2B\uFF1A\u653B\u57CE\u5668\u5C04\u7A0B +1\uFF08\u885D\u649E\u8ECA\u9664\u5916\uFF09", { tech: "siege-engineers" }),
   fx("siege-engineers.buildings", "bonusScale", { classes: ["siege"] }, 1.2, "\u653B\u57CE\u5DE5\u7A0B\u5E2B\uFF1A\u653B\u57CE\u5668\u5C0D\u5EFA\u7BC9\u653B\u64CA +20%", { vs: "building", tech: "siege-engineers" }),
   fx("guard-tower.hp", "buildingHp", { buildings: ["watch-tower"] }, 1.47, "\u9632\u79A6\u7BAD\u5854\uFF1A\u7BAD\u5854\u751F\u547D +47%\uFF08\u539F\u4F5C 1020 \u2192 1500\uFF09", { tech: "guard-tower" }),
   fx("guard-tower.arrow", "arrowDamage", { buildings: ["watch-tower"] }, 1, "\u9632\u79A6\u7BAD\u5854\uFF1A\u7BAD\u5854\u653B\u64CA +1", { tech: "guard-tower" }),
@@ -5615,10 +5787,14 @@ var techEffects = [
   // Barracks.
   fx("supplies", "cost", { entries: ["militia"] }, 0.75, "\u4F9B\u7D66\uFF1A\u6C11\u5175\u7CFB\u98DF\u7269 -15", { tech: "supplies", resource: "food" }),
   fx("squires", "speed", infantry2, 1.1, "\u8B77\u885B\u6280\u8853\uFF1A\u6B65\u5175\u79FB\u52D5\u901F\u5EA6 +10%", { tech: "squires" }),
-  fx("arson", "bonus", infantry2, 2, "\u7E31\u706B\uFF1A\u6B65\u5175\u5C0D\u5EFA\u7BC9\u653B\u64CA +2", { vs: "building", tech: "arson" }),
+  fx("arson", "bonus", infantry2, 2, "\u7E31\u706B\uFF1A\u6B65\u5175\u5C0D\u6A19\u6E96\u5EFA\u7BC9\u653B\u64CA +2", { vs: "standard-building", tech: "arson" }),
   // Archery range.
   fx("thumb-ring.foot", "cooldown", footArchers2, 1 / 1.18, "\u62C7\u6307\u74B0\uFF1A\u5F92\u6B65\u5F13\u5175\u5C04\u901F +18%", { tech: "thumb-ring" }),
-  fx("thumb-ring.horse", "cooldown", { classes: ["cavalry-archer"] }, 1 / 1.11, "\u62C7\u6307\u74B0\uFF1A\u99AC\u5F13\u9A0E\u5175\u5C04\u901F +11%", { tech: "thumb-ring" }),
+  fx("thumb-ring.horse", "cooldown", { classes: ["cavalry-archer"], exclude: ["mangudai"] }, 1 / 1.11, "\u62C7\u6307\u74B0\uFF1A\u99AC\u5F13\u9A0E\u5175\u5C04\u901F +11%", { tech: "thumb-ring" }),
+  // The 戰術技巧 round: the Mangudai takes the foot archers' +18% (aoetw.com Thumb Ring), not the horse archers' +11%.
+  fx("thumb-ring.mangudai", "cooldown", { kinds: ["mangudai"] }, 1 / 1.18, "\u62C7\u6307\u74B0\uFF1A\u8499\u53E4\u7A81\u9A0E\u5C04\u901F +18%", { tech: "thumb-ring" }),
+  // And sure shots at a standing target for the archer, skirmisher and horse archer lines, the Chu Ko Nu and the Mangudai.
+  fx("thumb-ring.accuracy", "accuracy", { classes: ["archer"], exclude: ["gunpowder"] }, 100, "\u62C7\u6307\u74B0\uFF1A\u5F13\u5175\u5C04\u64CA\u975C\u6B62\u76EE\u6A19\u5FC5\u4E2D", { tech: "thumb-ring" }),
   fx("thumb-ring.chu-ko-nu", "cooldown", { kinds: ["chu-ko-nu"] }, 1 / 1.25, "\u62C7\u6307\u74B0\uFF1A\u9023\u5F29\u5175\u5C04\u901F +25%", { tech: "thumb-ring" }),
   fx("parthian.melee", "meleeArmor", { classes: ["cavalry-archer"] }, 1, "\u5B89\u606F\u4EBA\u6230\u8853\uFF1A\u99AC\u5F13\u9A0E\u5175\u8FD1\u6230\u8B77\u7532 +1", { tech: "parthian-tactics" }),
   fx("parthian.pierce", "pierceArmor", { classes: ["cavalry-archer"] }, 2, "\u5B89\u606F\u4EBA\u6230\u8853\uFF1A\u99AC\u5F13\u9A0E\u5175\u9060\u7A0B\u8B77\u7532 +2", { tech: "parthian-tactics" }),
@@ -5639,39 +5815,50 @@ var techEffects = [
   // University, the 建築 round: Heated Shot (towers and castles +125% against ships: the arrows' ship bonus here),
   // Fortified Wall (stone walls 1800 -> 3000, gates 2750 -> 4000 hit points in the reference).
   fx("heated-shot", "arrowBonus", { buildings: ["watch-tower", "castle"] }, 6, "\u706B\u7BAD\uFF1A\u7BAD\u5854\u8207\u57CE\u5821\u7684\u7BAD\u5C0D\u8239 +6\uFF08\u539F\u4F5C +125%\uFF09", { vs: "ship", tech: "heated-shot" }),
+  fx("heated-shot.fishing", "arrowBonus", { buildings: ["watch-tower", "castle"] }, 6, "\u706B\u7BAD\uFF1A\u7BAD\u5854\u8207\u57CE\u5821\u7684\u7BAD\u5C0D\u6F01\u8239 +6", { vs: "fishing-ship", tech: "heated-shot" }),
   fx("fortified-wall.wall", "buildingHp", { buildings: ["stone-wall"] }, 5 / 3, "\u579B\u7246\uFF1A\u77F3\u7246\u751F\u547D +67%\uFF08\u539F\u4F5C 1800 \u2192 3000\uFF09", { tech: "fortified-wall" }),
+  fx("fortified-wall.class", "buildingClassArmor", { buildings: ["stone-wall"] }, 3, "\u579B\u7246\uFF1A\u77F3\u7246\u7684\u5EFA\u7BC9\u985E\u8B77\u7532 5 \u2192 8\uFF08\u539F\u4F5C 16 \u2192 24\uFF09", { tech: "fortified-wall" }),
   fx("fortified-wall.gate", "buildingHp", { buildings: ["gate"] }, 4e3 / 2750, "\u579B\u7246\uFF1A\u57CE\u9580\u751F\u547D +45%\uFF08\u539F\u4F5C 2750 \u2192 4000\uFF09", { tech: "fortified-wall" }),
   // Dock.
   fx("gillnets", "gather", { kinds: ["fishing-ship"], sources: ["fish", "fish-trap"] }, 25, "\u6D41\u523A\u7DB2\uFF1A\u6F01\u8239\u5DE5\u4F5C\u901F\u5EA6 +25%", { tech: "gillnets" }),
-  fx("careening.armor", "pierceArmor", { classes: ["ship"] }, 1, "\u822A\u6D77\u6280\u8853\uFF1A\u8239\u96BB\u9060\u7A0B\u8B77\u7532 +1", { tech: "careening" }),
+  fx("careening.armor", "pierceArmor", { classes: ["ship", "fishing-ship"] }, 1, "\u822A\u6D77\u6280\u8853\uFF1A\u8239\u96BB\u9060\u7A0B\u8B77\u7532 +1", { tech: "careening" }),
   fx("careening.capacity", "transportCapacity", { kinds: ["transport-ship"] }, 5, "\u822A\u6D77\u6280\u8853\uFF1A\u904B\u8F38\u8239\u904B\u8F09 +5", { tech: "careening" }),
-  fx("dry-dock.speed", "speed", { classes: ["ship"] }, 1.15, "\u8239\u5862\uFF1A\u8239\u96BB\u79FB\u52D5\u901F\u5EA6 +15%", { tech: "dry-dock" }),
+  fx("dry-dock.speed", "speed", { classes: ["ship", "fishing-ship"] }, 1.15, "\u8239\u5862\uFF1A\u8239\u96BB\u79FB\u52D5\u901F\u5EA6 +15%", { tech: "dry-dock" }),
   fx("dry-dock.capacity", "transportCapacity", { kinds: ["transport-ship"] }, 10, "\u8239\u5862\uFF1A\u904B\u8F38\u8239\u904B\u8F09 +10", { tech: "dry-dock" }),
   fx("shipwright.cost", "cost", { entries: ships }, 0.8, "\u9020\u8239\u54E1\uFF1A\u8239\u96BB\u6728\u6750 -20%", { tech: "shipwright", resource: "wood" }),
   fx("shipwright.time", "time", { entries: ships }, 0.65, "\u9020\u8239\u54E1\uFF1A\u8239\u96BB\u8A13\u7DF4\u6642\u9593 -35%", { tech: "shipwright" }),
   // Market.
   fx("caravan", "speed", { classes: ["trade"] }, 1.5, "\u5546\u968A\uFF1A\u8CBF\u6613\u8ECA\u968A\u8207\u8CBF\u6613\u5546\u8239\u79FB\u52D5\u901F\u5EA6 +50%", { tech: "caravan" }),
   fx("guilds", "marketFee", {}, -15, "\u516C\u6703\u5236\u5EA6\uFF1A\u5E02\u96C6\u4EA4\u6613\u8CBB 30% \u2192 15%", { tech: "guilds" }),
+  // The 戰術技巧 round. Ballistics (University): shots aim where a moving target will be when they land, for the archers
+  // (not gunpowder), the galley line, the Longboat and fire ships, and the buildings that shoot (aoetw.com Ballistics).
+  fx("ballistics.units", "lead", { classes: ["archer", "warship", "fire"], exclude: ["gunpowder"] }, 1, "\u5F48\u9053\u5B78\uFF1A\u5F13\u5175\u3001\u6230\u8239\u8207\u706B\u6230\u8239\u7684\u7BAD\u6703\u9810\u5224\u79FB\u52D5\u4E2D\u7684\u76EE\u6A19", { tech: "ballistics" }),
+  fx("ballistics.buildings", "lead", { buildings: ["town-center", "watch-tower", "castle", "bombard-tower"] }, 1, "\u5F48\u9053\u5B78\uFF1A\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u3001\u57CE\u5821\u8207\u706B\u7832\u5854\u6703\u9810\u5224\u79FB\u52D5\u4E2D\u7684\u76EE\u6A19", { tech: "ballistics" }),
   fx("conscription", "workRate", { buildings: ["barracks", "archery-range", "stable", "castle"], allUnits: true }, 33, "\u5FB5\u5175\u6280\u8853\uFF1A\u5175\u71DF\u3001\u9776\u5834\u3001\u99AC\u5EC4\u8207\u57CE\u5821\u8A13\u7DF4\u901F\u5EA6 +33%\uFF08\u7814\u7A76\u4E0D\u8B8A\uFF09", { tech: "conscription" })
+];
+var ageEffects = [
+  fx("tracking", "los", { classes: ["infantry"] }, 200, "\u8FFD\u8E64\uFF1A\u7B2C\u4E8C\u6642\u4EE3\u8D77\u6B65\u5175\u8996\u91CE +2", { age: 2 })
 ];
 
 // packages/sim/civ.ts
 function ownerOf(s, player) {
-  return { civ: s.civs?.[player] ?? neutralCiv, age: s.ages?.[player] ?? 1, techs: s.techs?.[player] ?? [] };
+  const o = { civ: s.civs?.[player] ?? neutralCiv, age: s.ages?.[player] ?? 1, techs: s.techs?.[player] ?? [] };
+  if (s.settings?.allTechs) o.allTechs = true;
+  return o;
 }
 var asOwner = (o) => Array.isArray(o) ? { civ: neutralCiv, age: 1, techs: o } : o;
 var byCiv = new Map(civDefs.map((c) => [c.id, c.effects]));
 var withTechs = /* @__PURE__ */ new Map();
 function activeEffects(o, kind) {
-  let list = withTechs.get(o.civ);
-  if (!list) {
-    list = [...byCiv.get(o.civ) ?? [], ...techEffects];
-    withTechs.set(o.civ, list);
+  let list3 = withTechs.get(o.civ);
+  if (!list3) {
+    list3 = [...byCiv.get(o.civ) ?? [], ...techEffects, ...ageEffects];
+    withTechs.set(o.civ, list3);
   }
-  return list.filter((e) => e.kind === kind && (e.trigger.age === void 0 || o.age >= e.trigger.age) && (e.trigger.tech === void 0 || o.techs.includes(e.trigger.tech)));
+  return list3.filter((e) => e.kind === kind && (e.trigger.age === void 0 || o.age >= e.trigger.age) && (e.trigger.tech === void 0 || o.techs.includes(e.trigger.tech)));
 }
 var valueOf = (e, o) => typeof e.value === "number" ? e.value : e.value[Math.min(3, Math.max(0, o.age - 1))];
-var hit = (list, values) => !!list && values.some((v) => list.includes(v));
+var hit = (list3, values) => !!list3 && values.some((v) => list3.includes(v));
 function unitMatches(sel, kind, classes) {
   if (hit(sel.exclude, [kind, ...classes])) return false;
   return hit(sel.kinds, [kind]) || hit(sel.classes, classes);
@@ -5682,8 +5869,8 @@ function entryMatches(sel, entryId) {
   return !!sel.entries?.includes(entryId) || !!e && (sel.allUnits && e.kind === "unit" || sel.allTechs && e.kind === "technology");
 }
 var buildingMatches = (sel, kind) => !sel.buildings || sel.buildings.includes(kind);
-var sum2 = (list, o) => list.reduce((t, e) => t + valueOf(e, o), 0);
-var product = (list, o) => list.reduce((t, e) => t * valueOf(e, o), 1);
+var sum2 = (list3, o) => list3.reduce((t, e) => t + valueOf(e, o), 0);
+var product = (list3, o) => list3.reduce((t, e) => t * valueOf(e, o), 1);
 var unitSum = (o, kind, unit2, classes, op = "add") => sum2(activeEffects(o, kind).filter((e) => e.op === op && unitMatches(e.select, unit2, classes)), o);
 var unitProduct = (o, kind, unit2, classes) => product(activeEffects(o, kind).filter((e) => e.op === "mul" && unitMatches(e.select, unit2, classes)), o);
 function unitBonuses(o, unit2, classes) {
@@ -5729,8 +5916,8 @@ function producedAt(building2, o) {
   }
   return out;
 }
-var civAvailable = (civ, entryId) => {
-  const c = rules.civilizations.find((c2) => c2.id === civ) ?? rules.civilizations.find((c2) => c2.id === neutralCiv);
+var civAvailable = (civ, entryId, allTechs2 = false) => {
+  const list3 = allTechs2 ? allTechCivilizations : rules.civilizations, c = list3.find((c2) => c2.id === civ) ?? list3.find((c2) => c2.id === neutralCiv);
   return c.available.includes(entryId);
 };
 var buildingSum = (o, kind, building2) => sum2(activeEffects(o, kind).filter((e) => buildingMatches(e.select, building2)), o);
@@ -5738,6 +5925,8 @@ var buildingHpScale = (o, building2) => product(activeEffects(o, "buildingHp").f
 var housingBonus = (o, building2) => buildingSum(o, "housing", building2);
 var garrisonBonus = (o, building2) => buildingSum(o, "garrison", building2);
 var buildingArmorBonus = (o, building2) => [buildingSum(o, "buildingMeleeArmor", building2), buildingSum(o, "buildingPierceArmor", building2)];
+var buildingClassArmorBonus = (o, building2) => buildingSum(o, "buildingClassArmor", building2);
+var garrisonHealScale = (o, building2) => product(activeEffects(o, "garrisonHeal").filter((e) => buildingMatches(e.select, building2)), o);
 function arrowsOf(o, building2) {
   return {
     extra: buildingSum(o, "arrows", building2),
@@ -5749,6 +5938,11 @@ function arrowsOf(o, building2) {
   };
 }
 var marketFeeOf = (o, base) => Math.max(0, base + sum2(activeEffects(o, "marketFee"), o));
+var transportCapacityOf = (o, base) => base + sum2(activeEffects(o, "transportCapacity").filter((e) => unitMatches(e.select, "transport-ship", ["ship", "transport"])), o);
+var healRateScale = (o) => product(activeEffects(o, "healRate"), o);
+var leadsUnit = (o, unit2, classes) => activeEffects(o, "lead").some((e) => !e.select.buildings && unitMatches(e.select, unit2, classes));
+var leadsBuilding = (o, building2) => activeEffects(o, "lead").some((e) => !!e.select.buildings && e.select.buildings.includes(building2));
+var steadyAccuracy = (o, unit2, classes) => Math.max(0, ...activeEffects(o, "accuracy").filter((e) => unitMatches(e.select, unit2, classes)).map((e) => valueOf(e, o)));
 
 // packages/sim/stats.ts
 var combatRules = {
@@ -5756,13 +5950,13 @@ var combatRules = {
   // attack: melee or pierce (arrows, javelins); armor: [melee, pierce], subtracted from that kind of attack; classes:
   // what bonus damage keys on; bonus: extra damage against a class. Final damage = max(1, attack - armor + bonuses).
   units: {
-    villager: { hp: 25, damage: 1, range: 50, cooldown: 30, sight: 0, attack: "melee", armor: [0, 0], classes: ["villager"], bonus: {} },
+    villager: { hp: 25, damage: 1, range: 50, cooldown: 30, sight: 0, attack: "melee", armor: [0, 0], classes: ["villager"], bonus: { building: 1, "stone-defense": 2 } },
     militia: { hp: 45, damage: 6, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 1], classes: ["infantry"], bonus: {} },
-    archer: { hp: 30, damage: 4, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer"], bonus: { spear: 3 } },
+    archer: { hp: 30, damage: 4, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer"], bonus: { spear: 3 }, frameDelay: 5 },
     // Scout: the reference's standard start includes one (research doc); these numbers are design_default.
     // sight here is the automatic-engage radius (vision is visionRules): 0 means the unit only fights when ordered.
     // The scout scouts; it attacks only on an explicit order.
-    scout: { hp: 45, damage: 3, range: 50, cooldown: 40, sight: 0, attack: "melee", armor: [0, 2], classes: ["cavalry"], bonus: {} },
+    scout: { hp: 45, damage: 3, range: 50, cooldown: 40, sight: 0, attack: "melee", armor: [0, 2], classes: ["cavalry"], bonus: { monk: 6 } },
     // Monk: hit points 30 as in the reference; no attack (converts and heals instead, see religion.ts).
     monk: { hp: 30, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 0], classes: ["monk"], bonus: {} },
     // Animals (fauna.ts): sheep and deer never fight; a boar only strikes back at whoever hunts it.
@@ -5772,64 +5966,64 @@ var combatRules = {
     // The counter units (after the reference's triangle): the spearman against cavalry, the skirmisher against archers,
     // the knight as heavy cavalry. Values design_default, in this game's scale.
     // Camels are their own class (aoetw: 駱駝, not 騎兵); the spear line's camel bonus keeps the site's ratio to its cavalry one.
-    spearman: { hp: 45, damage: 4, range: 50, cooldown: 30, sight: 350, attack: "melee", armor: [0, 0], classes: ["infantry", "spear"], bonus: { cavalry: 12, camel: 10 } },
-    skirmisher: { hp: 30, damage: 2, range: 200, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 3], classes: ["archer", "skirmisher"], bonus: { archer: 4, spear: 3 } },
+    spearman: { hp: 45, damage: 4, range: 50, cooldown: 30, sight: 350, attack: "melee", armor: [0, 0], classes: ["infantry", "spear"], bonus: { cavalry: 12, camel: 10, elephant: 12, ship: 7, "fishing-ship": 7, mameluke: 3, "standard-building": 1 } },
+    skirmisher: { hp: 30, damage: 2, range: 200, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 3], classes: ["archer", "skirmisher"], bonus: { archer: 3, spear: 3 }, frameDelay: 5 },
     knight: { hp: 100, damage: 10, range: 50, cooldown: 18, sight: 350, attack: "melee", armor: [2, 2], classes: ["cavalry"], bonus: {} },
     // Battering ram: strikes buildings only (+40 against them), all but immune to arrows, slow.
-    ram: { hp: 175, damage: 2, range: 50, cooldown: 60, sight: 0, attack: "melee", armor: [0, 120], classes: ["siege"], bonus: { building: 40 }, buildingsOnly: true },
+    ram: { hp: 175, damage: 2, range: 50, cooldown: 60, sight: 0, attack: "melee", armor: [0, 120], classes: ["siege", "ram"], bonus: { building: 40, siege: 13 }, buildingsOnly: true, alsoSiege: true },
     // Unique units (trained at the Castle): hit points, attack, armor and bonuses from aoetw.com's unit pages; range at
     // 50 units per tile over a 150 base (Longbowman 5 -> 300), melee cooldown = the reference's seconds x 10, ranged x 15.
     // Classes: 'unique' (the Samurai's bonus), 'gunpowder' (Turks), 'cavalry-archer' (Mongols); see docs/aoe2-rules-research.md.
-    longbowman: { hp: 35, damage: 6, range: 300, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "unique"], bonus: { spear: 2 } },
-    "woad-raider": { hp: 65, damage: 8, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 1], classes: ["infantry", "unique"], bonus: { building: 2 } },
+    longbowman: { hp: 35, damage: 6, range: 300, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "unique"], bonus: { spear: 2 }, frameDelay: 5 },
+    "woad-raider": { hp: 65, damage: 8, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 1], classes: ["infantry", "unique"], bonus: { "standard-building": 2 } },
     // Its axes are thrown: a melee attack from 3 tiles.
-    "throwing-axeman": { hp: 60, damage: 7, range: 200, cooldown: 20, sight: 350, attack: "melee", armor: [0, 0], classes: ["infantry", "unique"], bonus: { building: 1 } },
-    huskarl: { hp: 60, damage: 10, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 6], classes: ["infantry", "unique"], bonus: { building: 2, archer: 6 } },
-    "teutonic-knight": { hp: 80, damage: 12, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [5, 2], classes: ["infantry", "unique"], bonus: { building: 4 } },
+    "throwing-axeman": { hp: 60, damage: 7, range: 200, cooldown: 20, sight: 350, attack: "melee", armor: [0, 0], classes: ["infantry", "unique"], bonus: { "standard-building": 1 }, frameDelay: 10 },
+    huskarl: { hp: 60, damage: 10, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 6], classes: ["infantry", "unique"], bonus: { "standard-building": 2, archer: 6 } },
+    "teutonic-knight": { hp: 80, damage: 12, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [5, 2], classes: ["infantry", "unique"], bonus: { "standard-building": 4 } },
     // Regains 20 hit points a minute (Berserkergang: 40).
-    berserk: { hp: 54, damage: 9, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 1], classes: ["infantry", "unique"], bonus: { building: 2 }, regen: 20 },
-    cataphract: { hp: 110, damage: 9, range: 50, cooldown: 18, sight: 350, attack: "melee", armor: [2, 1], classes: ["cavalry", "unique"], bonus: { infantry: 9 } },
-    "war-elephant": { hp: 450, damage: 15, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [1, 2], classes: ["cavalry", "unique", "elephant"], bonus: { building: 7 } },
+    berserk: { hp: 54, damage: 9, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 1], classes: ["infantry", "unique"], bonus: { "standard-building": 2 }, regen: 20 },
+    cataphract: { hp: 110, damage: 9, range: 50, cooldown: 18, sight: 350, attack: "melee", armor: [2, 1], classes: ["cavalry", "unique"], bonus: { infantry: 9 }, classArmor: { cavalry: 10 } },
+    "war-elephant": { hp: 450, damage: 15, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [1, 2], classes: ["cavalry", "unique", "elephant"], bonus: { building: 7, "stone-defense": 7 }, trample: 0.5 },
     // A melee attack from 3 tiles, like the Throwing Axeman.
-    mameluke: { hp: 65, damage: 8, range: 200, cooldown: 20, sight: 350, attack: "melee", armor: [0, 0], classes: ["cavalry", "unique"], bonus: { cavalry: 9 } },
-    janissary: { hp: 35, damage: 17, range: 450, cooldown: 50, sight: 450, attack: "pierce", armor: [1, 0], classes: ["archer", "gunpowder", "unique"], bonus: { siege: 2 } },
+    mameluke: { hp: 65, damage: 8, range: 200, cooldown: 20, sight: 350, attack: "melee", armor: [0, 0], classes: ["cavalry", "unique", "mameluke"], bonus: { cavalry: 9 }, classArmor: { cavalry: 9 }, frameDelay: 24 },
+    janissary: { hp: 35, damage: 17, range: 450, cooldown: 50, sight: 450, attack: "pierce", armor: [1, 0], classes: ["archer", "gunpowder", "unique"], bonus: { ram: 2 }, frameDelay: 4 },
     // Fires three arrows a shot: the first at full attack, the other two at 3 each.
-    "chu-ko-nu": { hp: 45, damage: 8, range: 250, cooldown: 55, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "unique"], bonus: { spear: 2 }, extraShots: 2, extraDamage: 3 },
-    samurai: { hp: 60, damage: 8, range: 50, cooldown: 19, sight: 350, attack: "melee", armor: [1, 1], classes: ["infantry", "unique"], bonus: { building: 2, unique: 10 } },
-    mangudai: { hp: 60, damage: 6, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "cavalry", "cavalry-archer", "unique"], bonus: { siege: 3, spear: 1 } },
+    "chu-ko-nu": { hp: 45, damage: 8, range: 250, cooldown: 55, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "unique"], bonus: { spear: 2 }, extraShots: 2, extraDamage: 3, frameDelay: 3 },
+    samurai: { hp: 60, damage: 8, range: 50, cooldown: 19, sight: 350, attack: "melee", armor: [1, 1], classes: ["infantry", "unique"], bonus: { "standard-building": 2, unique: 10 } },
+    mangudai: { hp: 60, damage: 6, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "cavalry", "cavalry-archer", "unique"], bonus: { siege: 3, spear: 1 }, frameDelay: 5 },
     // The 單位 round (aoetw.com units pages). Ranges 50 + 50 a tile like the archers (mangonel 7 -> 400, below the
     // castle's 400 as the site's 7 is below its 8), minimum ranges 50 a tile; building bonuses x0.32
     // (the battering ram's 125 -> 40 here) so a trebuchet levels a castle in about as many shots as there; blast radii in
     // this map's units (a node is 50).
-    "cavalry-archer": { hp: 50, damage: 6, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "cavalry", "cavalry-archer"], bonus: { spear: 2 } },
-    camel: { hp: 100, damage: 6, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 0], classes: ["camel"], bonus: { cavalry: 9, camel: 5 } },
+    "cavalry-archer": { hp: 50, damage: 6, range: 250, cooldown: 30, sight: 400, attack: "pierce", armor: [0, 0], classes: ["archer", "cavalry", "cavalry-archer"], bonus: { spear: 2 }, frameDelay: 10 },
+    camel: { hp: 100, damage: 6, range: 50, cooldown: 20, sight: 350, attack: "melee", armor: [0, 0], classes: ["camel"], bonus: { cavalry: 9, camel: 5, ship: 5, "fishing-ship": 5 } },
     // Hurls a stone that hits every enemy unit near the impact; cannot shoot closer than 3 tiles.
-    mangonel: { hp: 50, damage: 40, range: 400, cooldown: 60, sight: 500, attack: "melee", armor: [0, 6], classes: ["siege"], bonus: { building: 11 }, minRange: 150, blast: 75 },
+    mangonel: { hp: 50, damage: 40, range: 400, cooldown: 60, sight: 500, attack: "melee", armor: [0, 6], classes: ["siege"], bonus: { building: 11, siege: 4 }, minRange: 150, blast: 75, friendlyFire: true },
     // A bolt that goes on through the target: the units behind it on its path take half.
-    scorpion: { hp: 40, damage: 12, range: 400, cooldown: 54, sight: 500, attack: "pierce", armor: [0, 7], classes: ["siege"], bonus: { elephant: 6, building: 1 }, minRange: 100, passThrough: 200 },
+    scorpion: { hp: 40, damage: 12, range: 400, cooldown: 54, sight: 500, attack: "pierce", armor: [0, 7], classes: ["siege"], bonus: { elephant: 6, building: 1, ram: 1 }, minRange: 100, passThrough: 200, frameDelay: 42 },
     // Strikes buildings only, from 16 tiles; unpacks before firing and packs before moving (7.5 s each).
-    trebuchet: { hp: 150, damage: 25, range: 850, cooldown: 100, sight: 0, attack: "melee", armor: [1, 8], classes: ["siege"], bonus: { building: 50 }, minRange: 200, buildingsOnly: true, setup: 150 },
+    trebuchet: { hp: 150, damage: 25, range: 850, cooldown: 100, sight: 0, attack: "melee", armor: [1, 8], classes: ["siege", "ram"], bonus: { building: 50 }, minRange: 200, buildingsOnly: true, setup: 150, frameDelay: 24 },
     // Spent by its charge; goes only where it is sent (no automatic fights).
     // The 科技 round: the gunpowder units Chemistry opens (aoetw.com; no accuracy model, every shot hits).
-    "hand-cannoneer": { hp: 35, damage: 17, range: 400, cooldown: 52, sight: 450, attack: "pierce", armor: [1, 0], classes: ["archer", "gunpowder"], bonus: { infantry: 10, siege: 2, spear: 1 } },
+    "hand-cannoneer": { hp: 35, damage: 17, range: 400, cooldown: 52, sight: 450, attack: "pierce", armor: [1, 0], classes: ["archer", "gunpowder"], bonus: { infantry: 10, ram: 2, spear: 1 }, frameDelay: 5 },
     // Heavy shot from 12 tiles (minimum 5); the site's half-tile blast is one node here (50).
-    "bombard-cannon": { hp: 80, damage: 40, range: 650, cooldown: 65, sight: 650, attack: "melee", armor: [2, 5], classes: ["siege", "gunpowder"], bonus: { building: 64, siege: 6 }, minRange: 250, blast: 50 },
-    petard: { hp: 50, damage: 25, range: 50, cooldown: 20, sight: 0, attack: "melee", armor: [0, 2], classes: ["petard"], bonus: { building: 55, siege: 19 }, selfDestruct: true },
+    "bombard-cannon": { hp: 80, damage: 40, range: 650, cooldown: 65, sight: 650, attack: "melee", armor: [2, 5], classes: ["siege", "gunpowder"], bonus: { building: 64, siege: 6, "stone-defense": 13, ship: 13, "fishing-ship": 13 }, minRange: 250, blast: 50, friendlyFire: true, frameDelay: 7 },
+    petard: { hp: 50, damage: 25, range: 50, cooldown: 20, sight: 0, attack: "melee", armor: [0, 2], classes: ["petard"], bonus: { building: 55, siege: 19, "wall-gate": 99, castle: 11 }, selfDestruct: true },
     // The 建築 round: the dock's ships and the market's trade cart (aoetw.com units pages). Same conversions as above;
     // 'ship' puts a unit on the water layer (movement.ts layerOf). Fishing ships, transports and the trade units never
     // fight. 'warship': the galley line and the Longboat, which take the archer attack lines (Fletching to Bracer).
-    "fishing-ship": { hp: 60, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 4], classes: ["ship", "fishing"], bonus: {} },
+    "fishing-ship": { hp: 60, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 4], classes: ["fishing-ship"], bonus: {} },
     "transport-ship": { hp: 100, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [4, 8], classes: ["ship", "transport"], bonus: {} },
     "trade-cog": { hp: 80, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 6], classes: ["ship", "trade"], bonus: {} },
     "trade-cart": { hp: 70, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 0], classes: ["trade"], bonus: {} },
-    galley: { hp: 120, damage: 6, range: 300, cooldown: 46, sight: 400, attack: "pierce", armor: [0, 6], classes: ["ship", "warship", "galley"], bonus: { ship: 8, building: 2 } },
+    galley: { hp: 120, damage: 6, range: 300, cooldown: 46, sight: 400, attack: "pierce", armor: [0, 6], classes: ["ship", "warship", "galley"], bonus: { ship: 8, "fishing-ship": 8, building: 2, ram: 3 } },
     // Fire: a short-range stream four times a second (the reference's 0.25 s), strong only against ships.
-    "fire-galley": { hp: 100, damage: 1, range: 175, cooldown: 5, sight: 300, attack: "melee", armor: [0, 4], classes: ["ship", "fire"], bonus: { ship: 3 } },
+    "fire-galley": { hp: 100, damage: 1, range: 175, cooldown: 5, sight: 300, attack: "melee", armor: [0, 4], classes: ["ship", "fire"], bonus: { ship: 3, "fishing-ship": 1 }, classArmor: { ship: 6 } },
     // Spent by its blast (the petard's rule): every enemy unit within the radius of the target takes the hit.
-    "demolition-raft": { hp: 45, damage: 90, range: 50, cooldown: 20, sight: 0, attack: "melee", armor: [0, 2], classes: ["ship", "demolition"], bonus: { building: 58 }, blast: 125, selfDestruct: true },
-    "cannon-galleon": { hp: 120, damage: 35, range: 700, cooldown: 100, sight: 700, attack: "melee", armor: [0, 6], classes: ["ship", "gunpowder"], bonus: { building: 64, siege: 13 }, minRange: 150 },
+    "demolition-raft": { hp: 45, damage: 90, range: 50, cooldown: 20, sight: 0, attack: "melee", armor: [0, 2], classes: ["ship", "demolition"], bonus: { building: 58 }, blast: 125, selfDestruct: true, classArmor: { ship: 1 } },
+    "cannon-galleon": { hp: 120, damage: 35, range: 700, cooldown: 100, sight: 700, attack: "melee", armor: [0, 6], classes: ["ship", "gunpowder"], bonus: { building: 64, siege: 13, infantry: 15, archer: 15, cavalry: 15, mameluke: 4 }, minRange: 150 },
     // Four arrows a volley: the first at full attack, the other three at 1 each (aoetw).
-    longboat: { hp: 130, damage: 7, range: 350, cooldown: 50, sight: 400, attack: "pierce", armor: [0, 6], classes: ["ship", "warship", "unique"], bonus: { ship: 9, building: 2 }, extraShots: 3, extraDamage: 1 }
+    longboat: { hp: 130, damage: 7, range: 350, cooldown: 50, sight: 400, attack: "pierce", armor: [0, 6], classes: ["ship", "warship", "unique"], bonus: { ship: 9, "fishing-ship": 9, building: 2, ram: 4 }, extraShots: 3, extraDamage: 1 }
   },
   // Structures shrug off arrows: [melee, pierce] armor of every building.
   buildingArmor: [0, 2],
@@ -5913,52 +6107,94 @@ var combatRules = {
   }
 };
 var religionBonus = { sanctityHp: 15 };
+var projectileRules = {
+  provenance: "aoetw.com accuracy and projectile speed; design_default hit radius, miss spread and melee reach",
+  hitRadius: 30,
+  missSpread: [40, 100],
+  meleeReach: 75,
+  units: {
+    archer: { accuracy: 80, speed: 17.5 },
+    skirmisher: { accuracy: 90, speed: 17.5 },
+    "cavalry-archer": { accuracy: 50, speed: 17.5 },
+    longbowman: { accuracy: 70, speed: 17.5 },
+    "chu-ko-nu": { accuracy: 85, speed: 17.5 },
+    mangudai: { accuracy: 95, speed: 17.5 },
+    "throwing-axeman": { accuracy: 100, speed: 17.5 },
+    mameluke: { accuracy: 100, speed: 17.5 },
+    "hand-cannoneer": { accuracy: 65, speed: 13.75 },
+    janissary: { accuracy: 50, speed: 13.75 },
+    scorpion: { accuracy: 100, speed: 15 },
+    mangonel: { accuracy: 100, speed: 8.75 },
+    trebuchet: { accuracy: 80, speed: 8.75 },
+    "bombard-cannon": { accuracy: 92, speed: 10 },
+    galley: { accuracy: 100, speed: 15 },
+    longboat: { accuracy: 100, speed: 15 },
+    "fire-galley": { accuracy: 100, speed: 7.5 },
+    "cannon-galleon": { accuracy: 50, speed: 4.875 }
+  },
+  // Line upgrades that change the accuracy (the others keep their line's).
+  steps: { crossbowman: 85, arbalest: 90, "elite-longbowman": 80 },
+  buildings: { "town-center": { accuracy: 100, speed: 17.5 }, "watch-tower": { accuracy: 100, speed: 17.5 }, castle: { accuracy: 100, speed: 17.5 }, "bombard-tower": { accuracy: 92, speed: 7.5 } }
+};
+function shotOf(kind, who = []) {
+  const base = projectileRules.units[kind];
+  if (!base) return null;
+  const o = asOwner(who);
+  let accuracy = base.accuracy;
+  for (const up2 of lineUpgrades) if (up2.kind === kind && o.techs.includes(up2.id) && projectileRules.steps[up2.id]) accuracy = projectileRules.steps[up2.id];
+  const classes = combatRules.units[kind]?.classes ?? [];
+  return { accuracy, speed: base.speed, steady: steadyAccuracy(o, kind, classes), lead: leadsUnit(o, kind, classes) };
+}
+function buildingShotOf(kind, who = []) {
+  const base = projectileRules.buildings[kind] ?? { accuracy: 100, speed: 17.5 };
+  return { accuracy: base.accuracy, speed: base.speed, steady: 0, lead: leadsBuilding(asOwner(who), kind) };
+}
 var lineUpgrades = [
-  { id: "man-at-arms", kind: "militia", name: "\u91CD\u6B65\u5175", set: { hp: 55, damage: 8 } },
-  { id: "long-swordsman", kind: "militia", name: "\u9577\u528D\u58EB", set: { hp: 60, damage: 9, armor: [1, 1] } },
-  { id: "pikeman", kind: "spearman", name: "\u9577\u77DB\u5175", set: { hp: 55, bonus: { cavalry: 18, camel: 15 } } },
+  { id: "man-at-arms", kind: "militia", name: "\u91CD\u6B65\u5175", set: { hp: 55, damage: 8, bonus: { "standard-building": 2 } } },
+  { id: "long-swordsman", kind: "militia", name: "\u9577\u528D\u58EB", set: { hp: 60, damage: 9, armor: [1, 1], bonus: { "standard-building": 3 } } },
+  { id: "pikeman", kind: "spearman", name: "\u9577\u77DB\u5175", set: { hp: 55, bonus: { cavalry: 18, camel: 15, elephant: 20, ship: 13, "fishing-ship": 13, mameluke: 9, "standard-building": 1 } } },
   { id: "crossbowman", kind: "archer", name: "\u5F29\u624B", set: { hp: 35, damage: 5, range: 300 } },
-  { id: "elite-skirmisher", kind: "skirmisher", name: "\u7CBE\u92B3\u6563\u5175", set: { hp: 35, damage: 3, armor: [0, 4] } },
-  { id: "light-cavalry", kind: "scout", name: "\u8F15\u9A0E\u5175", set: { hp: 60, damage: 5 } },
+  { id: "elite-skirmisher", kind: "skirmisher", name: "\u7CBE\u92B3\u6563\u5175", set: { hp: 35, damage: 3, armor: [0, 4], bonus: { archer: 4, spear: 3, "cavalry-archer": 2 } } },
+  { id: "light-cavalry", kind: "scout", name: "\u8F15\u9A0E\u5175", set: { hp: 60, damage: 5, bonus: { monk: 10 } } },
   // The 單位 round: each line's last upgrades (aoetw.com's numbers where this game's line already matched them; whole
   // fields again, so armor and bonus are listed in full).
-  { id: "two-handed-swordsman", kind: "militia", name: "\u96D9\u624B\u528D\u5175", set: { hp: 65, damage: 12, armor: [1, 1] } },
-  { id: "champion", kind: "militia", name: "\u528D\u5175\u52C7\u58EB", set: { hp: 75, damage: 13, armor: [2, 1] } },
-  { id: "halberdier", kind: "spearman", name: "\u621F\u5175", set: { hp: 60, damage: 6, bonus: { cavalry: 26, camel: 21 } } },
+  { id: "two-handed-swordsman", kind: "militia", name: "\u96D9\u624B\u528D\u5175", set: { hp: 65, damage: 12, armor: [1, 1], bonus: { "standard-building": 4 } } },
+  { id: "champion", kind: "militia", name: "\u528D\u5175\u52C7\u58EB", set: { hp: 75, damage: 13, armor: [2, 1], bonus: { "standard-building": 4 } } },
+  { id: "halberdier", kind: "spearman", name: "\u621F\u5175", set: { hp: 60, damage: 6, bonus: { cavalry: 26, camel: 21, elephant: 22, ship: 14, "fishing-ship": 14, mameluke: 9, "standard-building": 1 } } },
   { id: "arbalest", kind: "archer", name: "\u5F37\u5F29\u5175", set: { hp: 40, damage: 6, range: 300 } },
   { id: "heavy-cavalry-archer", kind: "cavalry-archer", name: "\u91CD\u88DD\u99AC\u5F13\u9A0E\u5175", set: { hp: 60, damage: 7, armor: [1, 0] } },
-  { id: "hussar", kind: "scout", name: "\u5308\u7259\u5229\u8F15\u9A0E\u5175", set: { hp: 75, damage: 7 } },
+  { id: "hussar", kind: "scout", name: "\u5308\u7259\u5229\u8F15\u9A0E\u5175", set: { hp: 75, damage: 7, bonus: { monk: 12 } } },
   { id: "cavalier", kind: "knight", name: "\u91CD\u88DD\u9A0E\u58EB", set: { hp: 120, damage: 12 } },
   { id: "paladin", kind: "knight", name: "\u904A\u4FE0", set: { hp: 160, damage: 14, cooldown: 19, armor: [2, 3] } },
-  { id: "heavy-camel", kind: "camel", name: "\u91CD\u88DD\u99F1\u99DD\u9A0E\u5175", set: { hp: 120, damage: 7, bonus: { cavalry: 18, camel: 9 } } },
-  { id: "capped-ram", kind: "ram", name: "\u88DD\u7532\u885D\u649E\u8ECA", set: { hp: 200, damage: 3, bonus: { building: 48 } } },
-  { id: "siege-ram", kind: "ram", name: "\u91CD\u578B\u885D\u649E\u8ECA", set: { hp: 270, damage: 4, bonus: { building: 64 } } },
-  { id: "onager", kind: "mangonel", name: "\u4E2D\u578B\u6295\u77F3\u8ECA", set: { hp: 60, damage: 50, range: 450, armor: [0, 7], bonus: { building: 14 }, blast: 90 } },
-  { id: "siege-onager", kind: "mangonel", name: "\u91CD\u578B\u6295\u77F3\u8ECA", set: { hp: 70, damage: 75, range: 450, armor: [0, 8], bonus: { building: 19 }, blast: 110 } },
-  { id: "heavy-scorpion", kind: "scorpion", name: "\u91CD\u578B\u5F29\u7832", set: { hp: 50, damage: 16, bonus: { elephant: 8, building: 1 } } },
+  { id: "heavy-camel", kind: "camel", name: "\u91CD\u88DD\u99F1\u99DD\u9A0E\u5175", set: { hp: 120, damage: 7, bonus: { cavalry: 18, camel: 9, ship: 9, "fishing-ship": 9, mameluke: 7 } } },
+  { id: "capped-ram", kind: "ram", name: "\u88DD\u7532\u885D\u649E\u8ECA", set: { hp: 200, damage: 3, bonus: { building: 48, siege: 16 }, classArmor: { ram: 1 }, buildingSplash: 75 } },
+  { id: "siege-ram", kind: "ram", name: "\u91CD\u578B\u885D\u649E\u8ECA", set: { hp: 270, damage: 4, bonus: { building: 64, siege: 21 }, classArmor: { ram: 2 }, buildingSplash: 100 } },
+  { id: "onager", kind: "mangonel", name: "\u4E2D\u578B\u6295\u77F3\u8ECA", set: { hp: 60, damage: 50, range: 450, armor: [0, 7], bonus: { building: 14, siege: 4 }, blast: 90 } },
+  { id: "siege-onager", kind: "mangonel", name: "\u91CD\u578B\u6295\u77F3\u8ECA", set: { hp: 70, damage: 75, range: 450, armor: [0, 8], bonus: { building: 19, siege: 4 }, blast: 110 } },
+  { id: "heavy-scorpion", kind: "scorpion", name: "\u91CD\u578B\u5F29\u7832", set: { hp: 50, damage: 16, bonus: { elephant: 8, building: 1, ram: 2 }, frameDelay: 26 } },
   // Elite unique units (aoetw.com's elite columns; armor and bonus are whole fields, so each lists both).
   { id: "elite-longbowman", kind: "longbowman", name: "\u7CBE\u92B3\u9577\u5F13\u5175", set: { hp: 40, damage: 7, range: 350, armor: [0, 1] } },
-  { id: "elite-woad-raider", kind: "woad-raider", name: "\u7CBE\u92B3\u83D8\u85CD\u6B66\u58EB", set: { hp: 80, damage: 13, bonus: { building: 3 } } },
-  { id: "elite-throwing-axeman", kind: "throwing-axeman", name: "\u7CBE\u92B3\u64F2\u65A7\u5175", set: { hp: 70, damage: 8, range: 250, armor: [1, 0], bonus: { building: 2 } } },
-  { id: "elite-huskarl", kind: "huskarl", name: "\u7CBE\u92B3\u54E5\u5FB7\u885B\u968A", set: { hp: 70, damage: 12, armor: [0, 8], bonus: { building: 3, archer: 10 } } },
+  { id: "elite-woad-raider", kind: "woad-raider", name: "\u7CBE\u92B3\u83D8\u85CD\u6B66\u58EB", set: { hp: 80, damage: 13, bonus: { "standard-building": 3 } } },
+  { id: "elite-throwing-axeman", kind: "throwing-axeman", name: "\u7CBE\u92B3\u64F2\u65A7\u5175", set: { hp: 70, damage: 8, range: 250, armor: [1, 0], bonus: { "standard-building": 2 }, frameDelay: 8 } },
+  { id: "elite-huskarl", kind: "huskarl", name: "\u7CBE\u92B3\u54E5\u5FB7\u885B\u968A", set: { hp: 70, damage: 12, armor: [0, 8], bonus: { "standard-building": 3, archer: 10 } } },
   { id: "elite-teutonic-knight", kind: "teutonic-knight", name: "\u7CBE\u92B3\u689D\u9813\u6B66\u58EB", set: { hp: 100, damage: 17, armor: [10, 2] } },
-  { id: "elite-berserk", kind: "berserk", name: "\u7CBE\u92B3\u72C2\u6230\u58EB", set: { hp: 62, damage: 14, armor: [2, 1], bonus: { building: 3 } } },
-  { id: "elite-cataphract", kind: "cataphract", name: "\u7CBE\u92B3\u62DC\u5360\u5EAD\u8056\u9A0E\u5175", set: { hp: 150, damage: 12, cooldown: 17, bonus: { infantry: 12 } } },
-  { id: "elite-war-elephant", kind: "war-elephant", name: "\u7CBE\u92B3\u6230\u8C61", set: { hp: 600, damage: 20, armor: [1, 3], bonus: { building: 10 } } },
-  { id: "elite-mameluke", kind: "mameluke", name: "\u7CBE\u92B3\u963F\u62C9\u4F2F\u5974\u96B8\u5175", set: { hp: 80, damage: 10, armor: [1, 0], bonus: { cavalry: 12 } } },
-  { id: "elite-janissary", kind: "janissary", name: "\u7CBE\u92B3\u571F\u8033\u5176\u706B\u69CD\u5175", set: { hp: 40, damage: 22, armor: [2, 0], bonus: { siege: 3 } } },
+  { id: "elite-berserk", kind: "berserk", name: "\u7CBE\u92B3\u72C2\u6230\u58EB", set: { hp: 62, damage: 14, armor: [2, 1], bonus: { "standard-building": 3 } } },
+  { id: "elite-cataphract", kind: "cataphract", name: "\u7CBE\u92B3\u62DC\u5360\u5EAD\u8056\u9A0E\u5175", set: { hp: 150, damage: 12, cooldown: 17, bonus: { infantry: 12 }, classArmor: { cavalry: 13 } } },
+  { id: "elite-war-elephant", kind: "war-elephant", name: "\u7CBE\u92B3\u6230\u8C61", set: { hp: 600, damage: 20, armor: [1, 3], bonus: { building: 10, "stone-defense": 10 } } },
+  { id: "elite-mameluke", kind: "mameluke", name: "\u7CBE\u92B3\u963F\u62C9\u4F2F\u5974\u96B8\u5175", set: { hp: 80, damage: 10, armor: [1, 0], bonus: { cavalry: 12, mameluke: 1 }, frameDelay: 12 } },
+  { id: "elite-janissary", kind: "janissary", name: "\u7CBE\u92B3\u571F\u8033\u5176\u706B\u69CD\u5175", set: { hp: 40, damage: 22, armor: [2, 0], bonus: { ram: 3 }, frameDelay: 0 } },
   { id: "elite-chu-ko-nu", kind: "chu-ko-nu", name: "\u7CBE\u92B3\u9023\u5F29\u5175", set: { hp: 50, cooldown: 58, extraShots: 4 } },
-  { id: "elite-samurai", kind: "samurai", name: "\u7CBE\u92B3\u65E5\u672C\u6B66\u58EB", set: { hp: 80, damage: 12, bonus: { building: 3, unique: 12 } } },
+  { id: "elite-samurai", kind: "samurai", name: "\u7CBE\u92B3\u65E5\u672C\u6B66\u58EB", set: { hp: 80, damage: 12, bonus: { "standard-building": 3, unique: 12 } } },
   { id: "elite-mangudai", kind: "mangudai", name: "\u7CBE\u92B3\u8499\u53E4\u7A81\u9A0E", set: { damage: 8, armor: [1, 0], bonus: { siege: 5, spear: 1 } } },
   // The dock's upgrades (aoetw.com). War Galley upgrades all three Feudal ships at once.
-  { id: "war-galley", kind: "galley", name: "\u5F29\u7832\u6230\u8239", set: { hp: 135, damage: 7, range: 350, bonus: { ship: 9, building: 2 } } },
-  { id: "galleon", kind: "galley", name: "\u91CD\u578B\u5F29\u7832\u6230\u8239", set: { hp: 165, damage: 8, range: 400, armor: [0, 8], bonus: { ship: 11, building: 3 } } },
-  { id: "war-galley", kind: "fire-galley", name: "\u706B\u6230\u8239", set: { hp: 120, damage: 2, armor: [0, 6] } },
-  { id: "fast-fire-ship", kind: "fire-galley", name: "\u91CD\u578B\u706B\u6230\u8239", set: { hp: 140, damage: 3, armor: [0, 8], bonus: { ship: 4 } } },
-  { id: "war-galley", kind: "demolition-raft", name: "\u7206\u7834\u8239", set: { hp: 60, damage: 110, armor: [0, 3], bonus: { building: 70 }, blast: 150 } },
-  { id: "heavy-demolition-ship", kind: "demolition-raft", name: "\u91CD\u578B\u7206\u7834\u8239", set: { hp: 70, damage: 140, armor: [0, 5], bonus: { building: 90 }, blast: 175 } },
-  { id: "elite-cannon-galleon", kind: "cannon-galleon", name: "\u7CBE\u92B3\u706B\u7832\u6230\u8239", set: { hp: 150, damage: 45, range: 800, armor: [0, 8], bonus: { building: 88, siege: 13 } } },
-  { id: "elite-longboat", kind: "longboat", name: "\u7CBE\u92B3\u7DAD\u4EAC\u5927\u6230\u8239", set: { hp: 160, damage: 8, range: 400, armor: [0, 8], bonus: { ship: 11, building: 3 } } }
+  { id: "war-galley", kind: "galley", name: "\u5F29\u7832\u6230\u8239", set: { hp: 135, damage: 7, range: 350, bonus: { ship: 9, "fishing-ship": 9, building: 2, ram: 4 } } },
+  { id: "galleon", kind: "galley", name: "\u91CD\u578B\u5F29\u7832\u6230\u8239", set: { hp: 165, damage: 8, range: 400, armor: [0, 8], bonus: { ship: 11, "fishing-ship": 11, building: 3, ram: 4 } } },
+  { id: "war-galley", kind: "fire-galley", name: "\u706B\u6230\u8239", set: { hp: 120, damage: 2, armor: [0, 6], bonus: { ship: 3, "fishing-ship": 3, building: 1 } } },
+  { id: "fast-fire-ship", kind: "fire-galley", name: "\u91CD\u578B\u706B\u6230\u8239", set: { hp: 140, damage: 3, armor: [0, 8], bonus: { ship: 4, "fishing-ship": 4, building: 1 }, classArmor: { ship: 9 } } },
+  { id: "war-galley", kind: "demolition-raft", name: "\u7206\u7834\u8239", set: { hp: 60, damage: 110, armor: [0, 3], bonus: { building: 70 }, blast: 150, classArmor: { ship: 3 } } },
+  { id: "heavy-demolition-ship", kind: "demolition-raft", name: "\u91CD\u578B\u7206\u7834\u8239", set: { hp: 70, damage: 140, armor: [0, 5], bonus: { building: 90 }, blast: 175, classArmor: { ship: 5 } } },
+  { id: "elite-cannon-galleon", kind: "cannon-galleon", name: "\u7CBE\u92B3\u706B\u7832\u6230\u8239", set: { hp: 150, damage: 45, range: 800, armor: [0, 8], bonus: { building: 88, siege: 13, infantry: 15, archer: 15, cavalry: 15, mameluke: 4 } } },
+  { id: "elite-longboat", kind: "longboat", name: "\u7CBE\u92B3\u7DAD\u4EAC\u5927\u6230\u8239", set: { hp: 160, damage: 8, range: 400, armor: [0, 8], bonus: { ship: 11, "fishing-ship": 11, building: 3, ram: 4 } } }
 ];
 var blacksmith = {
   forging: { classes: ["infantry", "cavalry", "camel"], exclude: ["cavalry-archer"], attack: 1 },
@@ -5980,7 +6216,7 @@ var blacksmith = {
 function statsOf(kind, who = []) {
   const o = asOwner(who), techs2 = o.techs;
   let st = { ...combatRules.units[kind] };
-  for (const up of lineUpgrades) if (up.kind === kind && techs2.includes(up.id)) st = { ...st, ...up.set };
+  for (const up2 of lineUpgrades) if (up2.kind === kind && techs2.includes(up2.id)) st = { ...st, ...up2.set };
   let [m, p] = st.armor;
   for (const id of techs2) {
     const b = blacksmith[id];
@@ -6025,19 +6261,455 @@ function buildingHpOf(kind, who = []) {
 }
 function lineName(kind, techs2) {
   let name = null;
-  for (const up of lineUpgrades) if (up.kind === kind && techs2.includes(up.id)) name = up.name;
+  for (const up2 of lineUpgrades) if (up2.kind === kind && techs2.includes(up2.id)) name = up2.name;
   return name;
 }
-var buildingTarget = { armor: combatRules.buildingArmor, classes: ["building"] };
-function buildingTargetOf(kind, who = []) {
-  const [m, p] = buildingArmorBonus(asOwner(who), kind);
-  return m || p ? { armor: [buildingTarget.armor[0] + m, buildingTarget.armor[1] + p], classes: buildingTarget.classes } : buildingTarget;
+var stoneDefense = /* @__PURE__ */ new Set(["stone-wall", "gate", "watch-tower", "bombard-tower"]);
+var wallGate = /* @__PURE__ */ new Set(["palisade-wall", "stone-wall", "palisade-gate", "gate"]);
+function buildingClassesOf(kind) {
+  return ["building", ...kind === "wonder" ? [] : ["standard-building"], ...stoneDefense.has(kind) ? ["stone-defense"] : [], ...wallGate.has(kind) ? ["wall-gate"] : [], ...kind === "castle" ? ["castle"] : []];
 }
+var buildingClassArmor = { castle: 3, "stone-wall": 5, gate: 6 };
+var buildingTarget = { armor: combatRules.buildingArmor, classes: ["building", "standard-building"] };
+function buildingTargetOf(kind, who = []) {
+  const o = asOwner(who), [m, p] = buildingArmorBonus(o, kind), c = (buildingClassArmor[kind] ?? 0) + buildingClassArmorBonus(o, kind);
+  return { armor: [buildingTarget.armor[0] + m, buildingTarget.armor[1] + p], classes: buildingClassesOf(kind), ...c ? { classArmor: { building: c } } : {} };
+}
+
+// packages/content/openings.ts
+var gatherNames = { sheep: "\u7F8A\u8089", hunt: "\u6253\u7375", berries: "\u679C\u6A39", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D", farm: "\u8FB2\u7530" };
+var all = ["britons", "celts", "franks", "goths", "teutons", "vikings", "byzantines", "persians", "saracens", "turks", "chinese", "japanese", "mongols"];
+var w = (food, wood6, gold4 = 0, stone6 = 0) => ({ food, wood: wood6, gold: gold4, stone: stone6 });
+var site2 = (page2) => `aoetw.com/ar/${page2}`;
+var opening = [
+  { label: "\u6751\u6C11 1\u20133\uFF1A3 \u4EBA\u63A1\u7F8A\u8089", phase: "dark", done: { villagers: 3, gather: { sheep: 3 } } },
+  { label: "\u6751\u6C11 4\u20135\uFF1A2 \u4EBA\u4F10\u6728", phase: "dark", done: { villagers: 5, gather: { wood: 2 } } },
+  { label: "\u6751\u6C11 6\uFF1A1 \u4EBA\u6253\u7375\uFF08\u91CE\u8C6C\u6216\u9E7F\uFF09", phase: "dark", done: { villagers: 6, gather: { hunt: 1 } } },
+  { label: "\u6751\u6C11 7\u20138\uFF1A2 \u4EBA\u63A1\u679C\u6A39", phase: "dark", done: { villagers: 8, gather: { berries: 2 } } }
+];
+var loom = { label: "\u7814\u7A76\u7E54\u5E03\u6A5F", phase: "dark", done: { techs: ["loom"] } };
+var up = (n) => ({ label: `\u6751\u6C11 ${n} \u4EBA\uFF1A\u5347\u7B2C\u4E8C\u6642\u4EE3`, phase: "dark", done: { villagers: n, clicked: 2 } });
+var standardOpening = "standard";
+var randomOpening = "random";
+var openings = [
+  {
+    id: "scrush",
+    zh: "\u8089\u99AC\u958B\u5C40",
+    en: "Scout rush",
+    page: site2("scrush"),
+    age: 2,
+    power: "\u666E",
+    difficulty: "\u63A7\u7D93\u6FDF\u7C21\u55AE\u3001\u63A7\u99AC\u8F03\u96E3",
+    pros: "\u5E7E\u4E4E\u4EFB\u4F55\u6587\u660E\u53EF\u7528\uFF0C\u9748\u6D3B\u5EA6\u9AD8",
+    cons: "\u9047\u5230\u570D\u6B7B\u6216\u88DD\u7532\u5854\u6703\u5403\u8667",
+    civs: all,
+    best: ["mongols"],
+    counters: ["\u628A\u5BB6\u570D\u6B7B", "\u88DD\u7532\u5854", "\u5927\u91CF\u5F13\u5175", "\u5927\u91CF\u9577\u69CD\u5175\uFF08\u9019\u6642\u8F49\u6563\u5175\u6216\u5F13\u5175\uFF09"],
+    allocation: "\u5347\u7D1A\u524D\uFF1A\u98DF\u7269 5\uFF08\u7F8A\u3001\u679C\u6A39\u3001\u8FB2\u7530\uFF09\u3001\u6728\u6750 5",
+    siteAllocation: "5\u7F8A2\u75304\u679C10\u6728\uFF0822 \u4EBA\u53E3\uFF09",
+    steps: [
+      ...opening,
+      { label: "\u6751\u6C11 9\u201310\uFF1A2 \u4EBA\u4F10\u6728", phase: "dark", done: { villagers: 10, gather: { wood: 4 } } },
+      loom,
+      up(10),
+      { label: "\u5347\u7D1A\u4E2D\u84CB\u5175\u71DF", phase: "up", done: { buildings: { barracks: 1 } } },
+      { label: "\u7B2C\u4E8C\u6642\u4EE3\uFF1A\u84CB\u99AC\u5EC4", phase: "feudal", done: { age: 2, buildings: { stable: 1 } } },
+      { label: "\u7814\u7A76\u96D9\u5203\u65A7\u8207\u99AC\u8EDB", phase: "feudal", done: { techs: ["double-bit-axe", "horse-collar"] } },
+      { label: "\u8A13\u7DF4 3 \u96BB\u65A5\u5019\uFF0C\u9A37\u64FE\u5C0D\u65B9\u7684\u63A1\u96C6\u9EDE", phase: "feudal", done: { units: { scout: 4 }, raiding: 1 } },
+      { label: "\u65B0\u6751\u6C11\u53BB\u7A2E\u7530", phase: "feudal", done: { gather: { farm: 3 } } },
+      { label: "\u5C0D\u65B9\u51FA\u9577\u69CD\u5175\u5C31\u8F49\u6563\u5175\u6216\u5F13\u5175", phase: "feudal", done: null }
+    ],
+    plan: {
+      villagers: 12,
+      clickAt: 10,
+      loom: true,
+      barracks: "up",
+      weights: { dark: w(5, 5), up: w(5, 5), feudal: w(8, 3, 1) },
+      train: { feudal: { scout: 4 } },
+      build: [{ kind: "stable", count: 1 }],
+      research: ["double-bit-axe", "horse-collar"],
+      raid: { kinds: ["scout"], sendAt: 2, reinforce: true },
+      towers: null,
+      castle: false,
+      until: { tick: 9600 }
+    },
+    notes: ["\u65A5\u5019\u4EBA\u53E3\u542B\u958B\u5C40\u65A5\u5019\uFF1A\u8A13\u7DF4 3 \u96BB\u5F8C\u5171 4 \u96BB\uFF0C\u958B\u5C40\u90A3\u96BB\u7E7C\u7E8C\u5075\u5BDF\u3002"]
+  },
+  {
+    id: "archerstar",
+    zh: "\u5C0F\u5F13\u958B\u5C40",
+    en: "Archer opening",
+    page: site2("archerstar"),
+    age: 2,
+    power: "\u5F37",
+    difficulty: "\u666E",
+    pros: "\u5A01\u529B\u5F37\uFF0C\u4F46\u6210\u5F62\u6162",
+    cons: "\u6210\u5F62\u6162\uFF0C\u5BB9\u6613\u88AB\u8089\u99AC\u8F49\u77DB\u6253\u6B7B",
+    civs: all,
+    best: ["britons"],
+    counters: ["\u6563\u5175", "\u5148\u7528\u65A5\u5019\u6436\u653B\uFF0C\u518D\u8F49\u6563\u5175"],
+    allocation: "\u5347\u7D1A\u524D\uFF1A\u98DF\u7269 5\uFF08\u7F8A\u3001\u679C\u6A39\u3001\u8FB2\u7530\uFF09\u3001\u6728\u6750 5\uFF1B\u9EDE\u5C01\u5F8C 2 \u4EBA\u6316\u91D1",
+    siteAllocation: "12\u67284\u91D14\u679C2\u7530",
+    steps: [
+      ...opening,
+      { label: "\u6751\u6C11 9\u201310\uFF1A2 \u4EBA\u7A2E\u7530", phase: "dark", done: { villagers: 10, gather: { farm: 2 } } },
+      loom,
+      up(10),
+      { label: "\u9EDE\u5C01\u5F8C 2 \u4EBA\u6316\u91D1", phase: "up", done: { gather: { gold: 2 } } },
+      { label: "\u5347\u7D1A\u4E2D\u84CB\u5175\u71DF", phase: "up", done: { buildings: { barracks: 1 } } },
+      { label: "\u7B2C\u4E8C\u6642\u4EE3\uFF1A\u84CB\u5169\u5EA7\u9776\u5834", phase: "feudal", done: { age: 2, buildings: { "archery-range": 2 } } },
+      { label: "\u5148\u51FA 1 \u96BB\u9577\u69CD\u5175\u9632\u65A5\u5019", phase: "feudal", done: { units: { spearman: 1 } } },
+      { label: "\u5F13\u624B 6 \u540D\u5F8C\u51FA\u64CA", phase: "feudal", done: { units: { archer: 6 }, raiding: 1 } },
+      { label: "\u5C0D\u65B9\u51FA\u6563\u5175\u5C31\u6DF7\u9577\u69CD\u5175\u6216\u6563\u5175", phase: "feudal", done: null }
+    ],
+    plan: {
+      villagers: 12,
+      clickAt: 10,
+      loom: true,
+      barracks: "up",
+      weights: { dark: w(5, 5), up: w(3, 5, 2), feudal: w(2, 6, 3) },
+      train: { feudal: { spearman: 1, archer: 12 } },
+      build: [{ kind: "archery-range", count: 2 }],
+      research: [],
+      raid: { kinds: ["archer"], sendAt: 6, reinforce: true },
+      towers: null,
+      castle: false,
+      until: { tick: 9600 }
+    },
+    notes: ["\u7DB2\u7AD9\u7684\u8CC7\u8A0A\u6846\u5BEB\u300C\u5F13\u5175\u570B\u300D\uFF0C\u5167\u6587\u5BEB\u6240\u6709\u6587\u660E\u90FD\u9069\u5408\uFF1B\u9019\u88E1\u7167\u5167\u6587\u3002"]
+  },
+  {
+    id: "armstar",
+    zh: "\u88DD\u7532\u958B\u5C40",
+    en: "Men-at-arms opening",
+    page: site2("armstar"),
+    age: 2,
+    power: "\u666E",
+    difficulty: "\u666E",
+    pros: "\u5C01\u5EFA\u521D\u671F\u8FD1\u6230\u6700\u5F37\uFF0C\u53EF\u64CB\u524D\u7F6E\u8207\u9ED1\u5FEB",
+    cons: "\u6015\u5F13\u5175\uFF0C\u5C01\u5EFA\u4E2D\u5F8C\u671F\u8D70\u5F97\u6162",
+    civs: all,
+    best: [],
+    counters: ["\u5F13\u5175", "\u628A\u5BB6\u570D\u6B7B"],
+    allocation: "\u5347\u7D1A\u524D\uFF1A\u98DF\u7269 5\u3001\u6728\u6750 4\u3001\u9EC3\u91D1 1",
+    siteAllocation: "5\u7F8A2\u75304\u679C8\u67282\u91D1",
+    steps: [
+      ...opening,
+      { label: "\u6751\u6C11 9\uFF1A1 \u4EBA\u6316\u91D1", phase: "dark", done: { villagers: 9, gather: { gold: 1 } } },
+      { label: "\u84CB\u5175\u71DF", phase: "dark", done: { buildings: { barracks: 1 } } },
+      { label: "\u6751\u6C11 10\uFF1A\u4F10\u6728", phase: "dark", done: { villagers: 10, gather: { wood: 3 } } },
+      loom,
+      up(10),
+      { label: "\u9EDE\u5C01\u5F8C\u7ACB\u523B\u51FA 3 \u96BB\u6C11\u5175\u53BB\u9A37\u64FE", phase: "up", done: { units: { militia: 3 }, raiding: 1 } },
+      { label: "\u7B2C\u4E8C\u6642\u4EE3\uFF1A\u6C11\u5175\u9084\u6D3B\u8457\u5C31\u7814\u7A76\u91CD\u6B65\u5175", phase: "feudal", done: { age: 2, techs: ["man-at-arms"] } },
+      { label: "\u5BB6\u88E1\u6539\u84CB\u9776\u5834\u6216\u99AC\u5EC4", phase: "feudal", done: { buildings: { "archery-range": 1 } } },
+      { label: "\u63A5\u8457\u914D\u5F13\u5175\u6216\u65A5\u5019\u9032\u653B", phase: "feudal", done: null }
+    ],
+    plan: {
+      villagers: 12,
+      clickAt: 10,
+      loom: true,
+      barracks: "dark",
+      barracksAt: 9,
+      weights: { dark: w(5, 4, 1), up: w(5, 3, 2), feudal: w(5, 4, 2) },
+      train: { up: { militia: 3 }, feudal: { militia: 3 } },
+      build: [{ kind: "archery-range", count: 1 }],
+      research: ["man-at-arms"],
+      raid: { kinds: ["militia"], sendAt: 3, reinforce: false },
+      towers: null,
+      castle: false,
+      until: { tick: 9600 }
+    },
+    notes: ["\u7DB2\u7AD9\u9019\u9801\u7684\u8CC7\u8A0A\u6846\uFF08\u9069\u5408\u6587\u660E\u3001\u96E3\u5EA6\u3001\u512A\u7F3A\u9EDE\uFF09\u662F\u5F9E\u8089\u99AC\u958B\u5C40\u8907\u88FD\u4F86\u7684\uFF1B\u9019\u88E1\u7684\u512A\u7F3A\u9EDE\u7167\u5167\u6587\u3002"]
+  },
+  {
+    id: "armstower",
+    zh: "\u88DD\u7532\u5854",
+    en: "Men-at-arms into towers",
+    page: site2("armstower"),
+    age: 2,
+    power: "\u975E\u5E38\u5F37",
+    difficulty: "\u96E3",
+    pros: "\u5E7E\u4E4E\u4EFB\u4F55\u6587\u660E\u53EF\u7528\uFF0C\u5A01\u529B\u6975\u5927",
+    cons: "\u5403\u63A7\u5236\u529B\u8207\u904B\u6C23",
+    civs: all,
+    best: ["japanese", "goths", "celts"],
+    counters: ["\u9ED1\u6697\u6C11\u5175\u6216\u65A5\u5019\u6293\u524D\u7F6E\u7684\u6751\u6C11", "\u6751\u6C11\u570D\u4F4F\u5854\u4E0B\u62C6\u5854"],
+    allocation: "\u5347\u7D1A\u524D\uFF1A\u98DF\u7269 5\u3001\u6728\u6750 2\u3001\u9EC3\u91D1 1\uFF1B\u9EDE\u5C01\u5F8C 2 \u4EBA\u63A1\u77F3\u30012 \u4EBA\u524D\u7F6E",
+    siteAllocation: "\u9EDE\u5C01\u5F8C 3\uFF5E4 \u4EBA\u524D\u7F6E\u30014 \u4EBA\u63A1\u77F3",
+    steps: [
+      ...opening,
+      { label: "\u6751\u6C11 9\uFF1A\u84CB\u5175\u71DF", phase: "dark", done: { villagers: 9, buildings: { barracks: 1 } } },
+      { label: "\u6751\u6C11 10\uFF1A1 \u4EBA\u6316\u91D1", phase: "dark", done: { villagers: 10, gather: { gold: 1 } } },
+      loom,
+      up(10),
+      { label: "\u9EDE\u5C01\u5F8C\u51FA 3 \u96BB\u6C11\u5175", phase: "up", done: { units: { militia: 3 } } },
+      { label: "2 \u4EBA\u63A1\u77F3\u982D", phase: "up", done: { gather: { stone: 2 } } },
+      { label: "2 \u540D\u6751\u6C11\u524D\u5F80\u5C0D\u65B9\u5BB6", phase: "up", done: { forward: { villager: 2 } } },
+      { label: "\u7B2C\u4E8C\u6642\u4EE3\uFF1A\u7814\u7A76\u91CD\u6B65\u5175", phase: "feudal", done: { age: 2, techs: ["man-at-arms"] } },
+      { label: "\u5728\u5C0D\u65B9\u7684\u8CC7\u6E90\u9EDE\u84CB\u7BAD\u5854", phase: "feudal", done: { forward: { "watch-tower": 1 } } },
+      { label: "\u9023\u74B0\u63D2\u5854", phase: "feudal", done: { forward: { "watch-tower": 2 } } },
+      { label: "\u65B0\u6751\u6C11\u53BB\u7A2E\u7530", phase: "feudal", done: { gather: { farm: 2 } } }
+    ],
+    plan: {
+      villagers: 12,
+      clickAt: 10,
+      loom: true,
+      barracks: "dark",
+      barracksAt: 9,
+      weights: { dark: w(5, 2, 1), up: w(4, 2, 1, 2), feudal: w(4, 3, 1, 2) },
+      train: { up: { militia: 3 }, feudal: { militia: 3 } },
+      build: [],
+      research: ["man-at-arms"],
+      raid: { kinds: ["militia"], sendAt: 3, reinforce: false },
+      towers: { builders: 2, count: 2, prefer: ["berries", "gold", "stone"], leave: "click" },
+      castle: false,
+      until: { tick: 10800 }
+    },
+    notes: ["\u7DB2\u7AD9\u8AAA\u7B2C\u4E00\u5EA7\u5854\u84CB\u5728\u597D\u5C01\u9396\u7684\u5730\u65B9\uFF0C\u5C0D\u99AC\u570B\u5148\u5C01\u679C\u6A39\uFF0C\u5C0D\u5F13\u5175\u570B\u5148\u5C01\u9EC3\u91D1\uFF1B\u96FB\u8166\u4F9D\u679C\u6A39\u3001\u9EC3\u91D1\u3001\u77F3\u982D\u7684\u9806\u5E8F\u627E\u3002", "\u7DB2\u7AD9\u5EFA\u8B70\u5854\u4E0B\u84CB\u7246\uFF0C\u96FB\u8166\u4E0D\u84CB\u3002"]
+  },
+  {
+    id: "towerrush",
+    zh: "\u7D14\u5854",
+    en: "Tower rush",
+    page: site2("towerrush"),
+    age: 2,
+    power: "\u770B\u5730\u5F62",
+    difficulty: "\u96E3",
+    pros: "\u5E7E\u4E4E\u4EFB\u4F55\u6587\u660E\u53EF\u7528",
+    cons: "\u5403\u904B\u6C23\u8207\u5730\u5F62",
+    civs: all,
+    best: ["mongols", "teutons"],
+    counters: ["\u5075\u5BDF\u627E\u51FA\u524D\u7F6E\u7684\u6751\u6C11\uFF0C\u5728\u7B2C\u4E00\u5EA7\u5854\u84CB\u597D\u524D\u6253\u6389", "\u5854\u84CB\u597D\u4E86\u5C31\u6316\u77F3\u982D\u3001\u7814\u7A76\u57CE\u93AE\u77AD\u671B\uFF0C\u4EE5\u5854\u5B88\u5854", "\u5C0D\u65B9\u5BB6\u88E1\u7A7A\u865B\uFF0C\u6D3E\u65A5\u5019\u6216\u5F13\u5175\u53CD\u6253"],
+    allocation: "\u5347\u7D1A\u524D\uFF1A\u98DF\u7269 4\u3001\u6728\u6750 1\u3001\u77F3\u982D 3\uFF1B\u9EDE\u5C01\u5F8C 3 \u4EBA\u524D\u7F6E",
+    siteAllocation: "7\u4EBA\u524D\u7F6E2\u67285\u77F35\u679C",
+    steps: [
+      opening[0],
+      { label: "\u6751\u6C11 4\uFF1A1 \u4EBA\u4F10\u6728", phase: "dark", done: { villagers: 4, gather: { wood: 1 } } },
+      { label: "\u6751\u6C11 5\uFF1A1 \u4EBA\u6253\u7375", phase: "dark", done: { villagers: 5, gather: { hunt: 1 } } },
+      { label: "\u6751\u6C11 6\u20137\uFF1A2 \u4EBA\u63A1\u679C\u6A39", phase: "dark", done: { villagers: 7, gather: { berries: 2 } } },
+      { label: "\u6751\u6C11 8\u20139\uFF1A\u84CB\u63A1\u7926\u5834\u63A1\u77F3\u982D", phase: "dark", done: { villagers: 9, buildings: { "mining-camp": 1 }, gather: { stone: 2 } } },
+      loom,
+      up(9),
+      { label: "\u9EDE\u5C01\u5F8C 3 \u540D\u6751\u6C11\u524D\u5F80\u5C0D\u65B9\u5BB6", phase: "up", done: { forward: { villager: 3 } } },
+      { label: "\u7B2C\u4E8C\u6642\u4EE3\uFF1A\u5728\u5C0D\u65B9\u7684\u77F3\u982D\u6216\u8CC7\u6E90\u5340\u540C\u6642\u84CB\u5169\u5EA7\u5854", phase: "feudal", done: { age: 2, forward: { "watch-tower": 2 } } },
+      { label: "\u7E7C\u7E8C\u9023\u74B0\u63D2\u5854", phase: "feudal", done: { forward: { "watch-tower": 3 } } },
+      { label: "\u5C0D\u65B9\u4F86\u62C6\u5854\u6642\u7ACB\u523B\u5728\u5854\u4E0B\u84CB\u6728\u7246", phase: "feudal", done: null }
+    ],
+    plan: {
+      villagers: 12,
+      clickAt: 9,
+      loom: true,
+      barracks: "none",
+      weights: { dark: w(4, 1, 0, 3), up: w(3, 1, 0, 3), feudal: w(4, 2, 0, 3) },
+      train: {},
+      build: [],
+      research: [],
+      raid: null,
+      towers: { builders: 3, count: 3, prefer: ["stone", "gold", "berries"], leave: "click" },
+      castle: false,
+      until: { tick: 10800 }
+    },
+    notes: ["\u7DB2\u7AD9 20 \u4EBA\u53E3\uFF0819 \u540D\u6751\u6C11\uFF09\u9EDE\u5C01\u5EFA\uFF0C\u9019\u88E1 9 \u540D\u3002", "\u4E0D\u84CB\u5175\u71DF\uFF0C\u7701\u4E0B\u7684\u6728\u6750\u7D66\u5854\u3002"]
+  },
+  {
+    id: "bbrush",
+    zh: "\u9ED1\u6697\u7206\u6C11\u5175",
+    en: "Dark Age militia rush",
+    page: site2("bbrush"),
+    age: 1,
+    power: "\u5F31",
+    difficulty: "\u666E",
+    pros: "\u5347\u7D1A\u6642\u653E\u9577\u69CD\u5175\u53EF\u4EE5\u7121\u7E2B\u63A5\u8ECC",
+    cons: "\u5F88\u597D\u9632\uFF0C\u6728\u7246\u5C31\u64CB\u5F97\u4F4F",
+    civs: all,
+    best: [],
+    counters: ["\u6709\u6548\u7684\u570D\u7246", "\u4E0A\u5C01\u5EFA\u5F8C\u51FA\u5F13\u5175"],
+    allocation: "\u5347\u7D1A\u524D\uFF1A\u98DF\u7269 5\u3001\u6728\u6750 3\u3001\u9EC3\u91D1 2\uFF0C\u5175\u71DF\u4E0D\u505C\u51FA\u6C11\u5175",
+    siteAllocation: "19\uFF5E20p \u84CB\u8ECD\u71DF\uFF0C\u4E4B\u5F8C\u6751\u6C11\u548C\u6C11\u5175\u4E0D\u65B7",
+    steps: [
+      ...opening,
+      { label: "\u6751\u6C11 9\uFF1A1 \u4EBA\u6316\u91D1", phase: "dark", done: { villagers: 9, gather: { gold: 1 } } },
+      { label: "\u84CB\u5175\u71DF\uFF08\u53EF\u524D\u7F6E\u6216\u5F8C\u7F6E\uFF09", phase: "dark", done: { buildings: { barracks: 1 } } },
+      { label: "\u6751\u6C11\u8207\u6C11\u5175\u4E0D\u65B7\u751F\u7522", phase: "dark", done: { units: { militia: 3 } } },
+      { label: "\u6C11\u5175 3 \u96BB\u5F8C\u53BB\u9A37\u64FE\uFF0C\u512A\u5148\u6253\u9EC3\u91D1\u5340", phase: "dark", done: { raiding: 1 } },
+      { label: "\u98DF\u7269\u5230 300 \u5C31\u5347\u7B2C\u4E8C\u6642\u4EE3", phase: "dark", done: { clicked: 2 } },
+      { label: "\u5BB6\u88E1\u9069\u6642\u84CB\u6728\u7246", phase: "dark", done: { buildings: { "palisade-wall": 3 } } },
+      { label: "\u4E0A\u5C01\u5EFA\u5F8C\u77ED\u66AB\u505C\u7559\uFF0C\u76F4\u63A5\u8DF3\u57CE\u5821", phase: "feudal", done: null }
+    ],
+    plan: {
+      villagers: 10,
+      clickAt: 9,
+      clickOnFood: true,
+      loom: false,
+      barracks: "dark",
+      barracksAt: 9,
+      weights: { dark: w(5, 3, 2), up: w(5, 3, 2), feudal: w(5, 3, 2) },
+      train: { dark: { militia: 6 }, up: { militia: 6 } },
+      build: [],
+      research: [],
+      raid: { kinds: ["militia"], sendAt: 3, reinforce: true },
+      towers: null,
+      castle: false,
+      until: { tick: 8400 }
+    },
+    notes: ["\u7DB2\u7AD9\u5BEB\u300C\u98DF\u7269\u9054 500 \u5373\u9EDE\u5C01\u5EFA\u300D\uFF0C\u672C\u4F5C\u7B2C\u4E8C\u6642\u4EE3 300 \u98DF\u7269\u3002", "\u96FB\u8166\u4E0D\u84CB\u7246\u3002"]
+  },
+  {
+    id: "brushtof",
+    zh: "\u9ED1\u5FEB\u8F49\u5C01",
+    en: "Drush into Feudal",
+    page: site2("brushtof"),
+    age: 2,
+    power: "\u666E",
+    difficulty: "\u96E3",
+    pros: "\u7D93\u6FDF\u6BD4 22 \u4EBA\u53E3\u4E0A\u5C01\u5EFA\u66F4\u597D\uFF0C\u6253\u6CD5\u9748\u6D3B",
+    cons: "\u5F88\u5403\u63A7\u5236\u529B",
+    civs: all,
+    best: [],
+    counters: ["\u5BB6\u88E1\u5C0F\u570D\uFF0C\u4E0D\u8B93\u6C11\u5175\u9B27\u5230", "\u4E0A\u5C01\u5EFA\u5F8C\u65A5\u5019\u914D\u6751\u6C11\u6E05\u6389\u6C11\u5175\uFF0C\u518D\u53CD\u6253"],
+    allocation: "\u9ED1\u6697\u51FA 3 \u96BB\u6C11\u5175\uFF0C\u6751\u6C11\u5230 12 \u540D\u9EDE\u5C01\u5EFA\uFF0C2 \u4EBA\u6316\u91D1",
+    siteAllocation: "28 \u4EBA\u53E3\uFF08\u542B 3 \u6C11\u5175\uFF09\u9EDE\u5C01\u5EFA\uFF0C\u6316\u91D1 1\uFF5E4 \u4EBA",
+    steps: [
+      ...opening,
+      { label: "\u6751\u6C11 9\uFF1A1 \u4EBA\u6316\u91D1", phase: "dark", done: { villagers: 9, gather: { gold: 1 } } },
+      { label: "\u6751\u6C11 10\uFF1A\u84CB\u5175\u71DF", phase: "dark", done: { villagers: 10, buildings: { barracks: 1 } } },
+      { label: "\u51FA 3 \u96BB\u6C11\u5175\u51FA\u767C\u9A37\u64FE", phase: "dark", done: { units: { militia: 3 }, raiding: 1 } },
+      { label: "\u6316\u91D1\u589E\u52A0\u5230 2 \u4EBA", phase: "dark", done: { gather: { gold: 2 } } },
+      up(12),
+      { label: "\u7B2C\u4E8C\u6642\u4EE3\uFF1A\u6C11\u5175\u9084\u591A\u5C31\u7814\u7A76\u91CD\u6B65\u5175", phase: "feudal", done: { age: 2, techs: ["man-at-arms"] } },
+      { label: "\u770B\u5C0D\u65B9\u914D\u5175\u8F49\u9577\u69CD\u5175\u6216\u5F13\u5175\uFF08\u84CB\u9776\u5834\uFF09", phase: "feudal", done: { buildings: { "archery-range": 1 } } }
+    ],
+    plan: {
+      villagers: 12,
+      clickAt: 12,
+      loom: true,
+      barracks: "dark",
+      barracksAt: 10,
+      weights: { dark: w(5, 3, 2), up: w(5, 3, 2), feudal: w(5, 4, 2) },
+      train: { dark: { militia: 3 }, up: { militia: 3 }, feudal: { militia: 3 } },
+      build: [{ kind: "archery-range", count: 1 }],
+      research: ["man-at-arms"],
+      raid: { kinds: ["militia"], sendAt: 3, reinforce: false },
+      towers: null,
+      castle: false,
+      until: { tick: 10800 }
+    },
+    notes: ["\u7DB2\u7AD9 28 \u4EBA\u53E3\uFF0825 \u540D\u6751\u6C11\uFF09\u9EDE\u5C01\u5EFA\uFF0C\u9019\u88E1 12 \u540D\u3002", "\u7DB2\u7AD9\u5BEB\u300C\u4E00\u5B9A\u8981\u8D95\u9E7F\u300D\uFF0C\u672C\u4F5C\u7684\u9E7F\u8D95\u4E0D\u52D5\u3002", "\u7DB2\u7AD9\u9019\u9801\u7684\u8CC7\u8A0A\u6846\u662F\u5F9E\u9ED1\u5FEB\u6436\u57CE\u8907\u88FD\u4F86\u7684\uFF1B\u9019\u88E1\u7684\u512A\u7F3A\u9EDE\u7167\u5167\u6587\u3002"]
+  },
+  {
+    id: "brushfc",
+    zh: "\u9ED1\u5FEB\u6436\u57CE",
+    en: "Drush fast castle",
+    page: site2("brushfc"),
+    age: 3,
+    power: "\u666E",
+    difficulty: "\u96E3",
+    pros: "\u5730\u5F62\u597D\u7684\u8A71\u975E\u5E38\u597D\u6253",
+    cons: "\u5730\u5F62\u5DEE\u7684\u8A71\u5C0D\u65B9\u975E\u5E38\u597D\u6253\uFF0C\u5F88\u6015\u88DD\u7532\u5854",
+    civs: all,
+    best: ["britons", "vikings"],
+    counters: ["\u770B\u5230\u5C0D\u65B9\u5F88\u665A\u4E0A\u5C01\u5EFA\uFF0C\u5C31\u6D3E 3 \u540D\u6751\u6C11\u524D\u7F6E\u7BAD\u5854\uFF0C\u5BB6\u88E1\u6316\u77F3\u982D", "\u5C0D\u65B9\u570D\u6B7B\u5C31\u8DDF\u8457\u570D\u5BB6\uFF0C\u6BD4\u8AB0\u5148\u5230\u57CE\u5821\u6642\u4EE3"],
+    allocation: "\u9ED1\u6697\u51FA 3 \u96BB\u6C11\u5175\uFF0C\u6751\u6C11\u5230 15 \u540D\u9EDE\u5C01\u5EFA\uFF0C3 \u4EBA\u6316\u91D1",
+    siteAllocation: "\u7E3D\u4EBA\u53E3 33\uFF0C\u6316\u91D1 4\uFF5E6 \u4EBA",
+    steps: [
+      ...opening,
+      { label: "\u6751\u6C11 9\uFF1A1 \u4EBA\u6316\u91D1", phase: "dark", done: { villagers: 9, gather: { gold: 1 } } },
+      { label: "\u6751\u6C11 10\uFF1A\u84CB\u5175\u71DF", phase: "dark", done: { villagers: 10, buildings: { barracks: 1 } } },
+      { label: "\u51FA 3 \u96BB\u6C11\u5175\u51FA\u767C\u722D\u53D6\u6642\u9593", phase: "dark", done: { units: { militia: 3 }, raiding: 1 } },
+      { label: "\u6316\u91D1\u589E\u52A0\u5230 3 \u4EBA", phase: "dark", done: { gather: { gold: 3 } } },
+      up(15),
+      { label: "\u8D81\u5C0D\u65B9\u5C01\u5EFA\u9032\u653B\u524D\u628A\u5BB6\u570D\u597D", phase: "up", done: null },
+      { label: "\u7B2C\u4E8C\u6642\u4EE3\uFF1A\u7ACB\u523B\u5347\u7B2C\u4E09\u6642\u4EE3", phase: "feudal", done: { clicked: 3 } },
+      { label: "\u7B2C\u4E09\u6642\u4EE3\uFF1A\u51FA\u9A0E\u58EB\u6216\u57CE\u5821\u5175\u6253\u5C0D\u65B9\u7D93\u6FDF", phase: "castle", done: { age: 3, buildings: { stable: 1 } } }
+    ],
+    plan: {
+      villagers: 15,
+      clickAt: 15,
+      loom: true,
+      barracks: "dark",
+      barracksAt: 10,
+      weights: { dark: w(6, 4, 2), up: w(6, 4, 3), feudal: w(6, 4, 3) },
+      train: { dark: { militia: 3 } },
+      build: [],
+      research: [],
+      raid: { kinds: ["militia"], sendAt: 3, reinforce: false },
+      towers: null,
+      castle: true,
+      until: { tick: 14400, age: 3 }
+    },
+    notes: ["\u7DB2\u7AD9\u7E3D\u4EBA\u53E3 33\uFF08\u7D04 29 \u540D\u6751\u6C11\uFF09\uFF0C\u9019\u88E1 15 \u540D\u6751\u6C11\u3002", "\u7DB2\u7AD9\u7684\u8CC7\u8A0A\u6846\u5BEB\u5C01\u5EFA\u6642\u4EE3\uFF0C\u5176\u5BE6\u662F\u6436\u57CE\u5821\u7684\u6253\u6CD5\u3002", "\u96FB\u8166\u4E0D\u570D\u5BB6\uFF0C\u4E0A\u57CE\u5821\u5F8C\u7531\u4E00\u822C\u6253\u6CD5\u63A5\u624B\uFF08\u57CE\u5821\u3001\u7279\u6B8A\u55AE\u4F4D\u3001\u9A0E\u58EB\uFF09\u3002"]
+  },
+  {
+    id: "fontrush",
+    zh: "\u524D\u7F6E\u69CD\u77DB",
+    en: "Forward spears and skirmishers",
+    page: site2("fontrush"),
+    age: 2,
+    power: "\u5F37",
+    difficulty: "\u666E",
+    pros: "\u58D3\u8FEB\u611F\u5F37\uFF0C\u9084\u7B97\u80FD\u524B\u8089\u99AC\u8207\u5C0F\u5F13\u958B\u5C40",
+    cons: "\u98A8\u96AA\u9AD8\uFF0C\u5831\u916C\u4E0D\u5982\u88DD\u7532\u5854",
+    civs: all,
+    best: ["byzantines"],
+    counters: ["\u9ED1\u6697\u6C11\u5175\u8F49\u88DD\u7532\u6293\u524D\u7F6E\u7684\u6751\u6C11", "\u6C92\u6293\u5230\u5C31\u56E4\u65A5\u5019\u52A0\u6563\u5175\u53CD\u6253"],
+    allocation: "\u5347\u7D1A\u524D\uFF1A\u98DF\u7269 5\u3001\u6728\u6750 5\uFF1B\u9EDE\u5C01\u5F8C 2 \u4EBA\u524D\u7F6E\u30012 \u4EBA\u63A1\u77F3",
+    siteAllocation: "12\u67284\u91D16\u679C\uFF0C\u9EDE\u5C01\u5F8C 3 \u4EBA\u524D\u7F6E",
+    steps: [
+      ...opening,
+      { label: "\u6751\u6C11 9\u201310\uFF1A2 \u4EBA\u4F10\u6728", phase: "dark", done: { villagers: 10, gather: { wood: 4 } } },
+      loom,
+      up(10),
+      { label: "\u9EDE\u5C01\u5F8C 2 \u540D\u6751\u6C11\u524D\u7F6E\u5175\u71DF", phase: "up", done: { forward: { barracks: 1 } } },
+      { label: "2 \u4EBA\u6316\u77F3\u982D", phase: "up", done: { gather: { stone: 2 } } },
+      { label: "\u7B2C\u4E8C\u6642\u4EE3\uFF1A\u5148\u51FA\u9577\u69CD\u5175", phase: "feudal", done: { age: 2, units: { spearman: 2 } } },
+      { label: "\u84CB\u5169\u5EA7\u9776\u5834\u51FA\u6563\u5175", phase: "feudal", done: { buildings: { "archery-range": 2 }, units: { skirmisher: 3 } } },
+      { label: "\u5728\u5C0D\u65B9\u8CC7\u6E90\u5340\u63D2\u7BAD\u5854\uFF0C\u69CD\u77DB\u63A9\u8B77\u63A8\u9032", phase: "feudal", done: { forward: { "watch-tower": 1 }, raiding: 1 } }
+    ],
+    plan: {
+      villagers: 12,
+      clickAt: 10,
+      loom: true,
+      barracks: "none",
+      forwardBarracks: 2,
+      weights: { dark: w(5, 5), up: w(4, 4, 1, 2), feudal: w(4, 4, 2, 2) },
+      train: { feudal: { spearman: 3, skirmisher: 6 } },
+      build: [{ kind: "archery-range", count: 2 }],
+      research: [],
+      raid: { kinds: ["spearman", "skirmisher"], sendAt: 5, reinforce: true },
+      towers: { builders: 2, count: 1, prefer: ["gold", "berries", "stone"], leave: "click" },
+      castle: false,
+      until: { tick: 10800 }
+    },
+    notes: ["\u7DB2\u7AD9\u7684\u300C\u77DB\u5175\u300D\u662F\u672C\u4F5C\u7684\u6563\u5175\uFF0C\u300C\u69CD\u5175\u300D\u662F\u9577\u69CD\u5175\u3002", "\u7DB2\u7AD9\u9019\u9801\u7684\u512A\u7F3A\u9EDE\u662F\u5F9E\u5C0F\u5F13\u958B\u5C40\u8907\u88FD\u4F86\u7684\uFF1B\u9019\u88E1\u7167\u5167\u6587\u3002"]
+  }
+];
+var unavailableOpenings = [
+  { id: "eglerush", zh: "\u8001\u9DF9\u958B\u5C40", en: "Eagle scout opening", page: site2("eglerush"), reason: "\u8981\u7528\u9DF9\u65A5\u5019\uFF0C\u90A3\u662F\u4E2D\u7F8E\u6D32\u4E09\u570B\u7684\u55AE\u4F4D\uFF1B\u672C\u4F5C\u7684 13 \u500B\u539F\u7248\u6587\u660E\u90FD\u6C92\u6709" }
+];
+var openingById = (id) => openings.find((o) => o.id === id);
+var openingChoices = [standardOpening, randomOpening, ...openings.map((o) => o.id)];
+function needMet(need, v) {
+  const atLeast = (have, want) => !want || Object.entries(want).every(([k, n]) => (have[k] ?? 0) >= n);
+  return (need.villagers === void 0 || v.villagers >= need.villagers) && (need.age === void 0 || v.age >= need.age) && (need.clicked === void 0 || Math.max(v.age, v.clicking) >= need.clicked) && (need.raiding === void 0 || v.raiding >= need.raiding) && (!need.techs || need.techs.every((t) => v.techs.includes(t))) && atLeast(v.gather, need.gather) && atLeast(v.buildings, need.buildings) && atLeast(v.forward, need.forward) && atLeast(v.units, need.units);
+}
+
+// packages/sim/garrison.ts
+var carrierRules = {
+  provenance: "aoetw.com (capacities, who boards, the per-infantry boosts); design_default for the conversions",
+  ram: { capacity: { ram: 4, "capped-ram": 5, "siege-ram": 6 }, speedPerInfantry: 0.1, buildingPerInfantry: 3, buildingCap: { ram: 13, "capped-ram": 16, "siege-ram": 19 } }
+};
+var classesOf = (kind) => kind in combatRules.units ? combatRules.units[kind].classes : [];
+var ridesRam = (kind) => {
+  const c = classesOf(kind);
+  return c.includes("infantry") || c.includes("archer") && !c.includes("cavalry") && !c.includes("cavalry-archer");
+};
+var ramStep = (techs2 = []) => techs2.includes("siege-ram") ? "siege-ram" : techs2.includes("capped-ram") ? "capped-ram" : "ram";
 
 // packages/sim/movement.ts
 var navigationStates = ["idle", "searching", "moving", "waiting", "unreachable", "stuck"];
 var unitKinds = ["villager", "militia", "archer", "scout", "monk", "sheep", "deer", "boar", "spearman", "skirmisher", "knight", "ram", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "cataphract", "war-elephant", "mameluke", "janissary", "chu-ko-nu", "samurai", "mangudai", "cavalry-archer", "camel", "mangonel", "scorpion", "trebuchet", "petard", "hand-cannoneer", "bombard-cannon", "fishing-ship", "transport-ship", "trade-cog", "trade-cart", "galley", "fire-galley", "demolition-raft", "cannon-galleon", "longboat"];
-var layerOf = (kind) => kind in combatRules.units && combatRules.units[kind].classes.includes("ship") ? "water" : "land";
+var layerOf = (kind) => kind in combatRules.units && combatRules.units[kind].classes.some((c) => c === "ship" || c === "fishing-ship") ? "water" : "land";
 
 // packages/sim/buildings.ts
 var buildKinds = [
@@ -6076,38 +6748,38 @@ var buildingRules = {
 };
 var overlap = (a, b) => Math.min(a[2], b[2]) - Math.max(a[0], b[0]) > 0 && Math.min(a[3], b[3]) - Math.max(a[1], b[1]) > 0;
 var wallKinds2 = /* @__PURE__ */ new Set(["palisade-wall", "stone-wall"]);
-var wallGate = { "palisade-gate": "palisade-wall", gate: "stone-wall" };
-var replacesWall = (kind, o, owner) => wallGate[kind] === o.kind && (o.red ? 1 : 0) === owner;
+var wallGate2 = { "palisade-gate": "palisade-wall", gate: "stone-wall" };
+var replacesWall = (kind, o, owner) => wallGate2[kind] === o.kind && (o.red ? 1 : 0) === owner;
 function placementProblem(input, kind, x, y, owner) {
   if (!buildKinds.includes(kind)) return "\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E";
   if (!Number.isSafeInteger(x) || !Number.isSafeInteger(y) || x % buildingRules.grid || y % buildingRules.grid) return `\u4F4D\u7F6E\u5FC5\u9808\u5C0D\u9F4A ${buildingRules.grid} \u55AE\u4F4D\u683C\u7DDA`;
   const box2 = obstacleBounds({ kind, x, y }), size = sizeOfTiles(input.tiles), world = size * 100;
   if (box2[0] < 0 || box2[1] < 0 || box2[2] > world || box2[3] > world) return "\u8D85\u51FA\u5730\u5716\u7BC4\u570D";
-  const tiles = [];
-  for (let ty = Math.floor(box2[1] / 100); ty <= Math.floor((box2[3] - 1) / 100); ty++) for (let tx = Math.floor(box2[0] / 100); tx <= Math.floor((box2[2] - 1) / 100); tx++) tiles.push(ty * size + tx);
-  if (tiles.some((t) => !input.explored(t))) return "\u5C1A\u672A\u63A2\u7D22\u7684\u5340\u57DF\u4E0D\u80FD\u5EFA\u9020";
+  const tiles3 = [];
+  for (let ty = Math.floor(box2[1] / 100); ty <= Math.floor((box2[3] - 1) / 100); ty++) for (let tx = Math.floor(box2[0] / 100); tx <= Math.floor((box2[2] - 1) / 100); tx++) tiles3.push(ty * size + tx);
+  if (tiles3.some((t) => !input.explored(t))) return "\u5C1A\u672A\u63A2\u7D22\u7684\u5340\u57DF\u4E0D\u80FD\u5EFA\u9020";
   const wet = (t) => input.tiles[t]?.terrainType === "water" || input.tiles[t]?.terrainType === "shallow";
   if (kind === "dock" && (x % 100 || y % 100)) return "\u78BC\u982D\u5FC5\u9808\u5C0D\u9F4A\u5730\u5716\u683C\u5B50";
   if (kind === "dock" || kind === "fish-trap") {
-    if (tiles.some((t) => !wet(t))) return kind === "dock" ? "\u78BC\u982D\u5FC5\u9808\u84CB\u5728\u5CB8\u908A\u7684\u6C34\u9762\u4E0A" : "\u9B5A\u7DB2\u5FC5\u9808\u653E\u5728\u6C34\u9762\u4E0A";
-    if (kind === "dock" && !tiles.some((t) => {
+    if (tiles3.some((t) => !wet(t))) return kind === "dock" ? "\u78BC\u982D\u5FC5\u9808\u84CB\u5728\u5CB8\u908A\u7684\u6C34\u9762\u4E0A" : "\u9B5A\u7DB2\u5FC5\u9808\u653E\u5728\u6C34\u9762\u4E0A";
+    if (kind === "dock" && !tiles3.some((t) => {
       const tx = t % size, ty = Math.floor(t / size);
       return [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
         const nx = tx + dx, ny = ty + dy, n = ny * size + nx;
-        return nx >= 0 && ny >= 0 && nx < size && ny < size && !tiles.includes(n) && !!input.tiles[n]?.buildability;
+        return nx >= 0 && ny >= 0 && nx < size && ny < size && !tiles3.includes(n) && !!input.tiles[n]?.buildability;
       });
     })) return "\u78BC\u982D\u5FC5\u9808\u7DCA\u9130\u53EF\u5EFA\u9020\u7684\u9678\u5730";
-  } else if (tiles.some((t) => !input.tiles[t]?.buildability)) return "\u5730\u5F62\u4E0D\u53EF\u5EFA\u9020\uFF08\u6C34\u57DF\u3001\u61F8\u5D16\u3001\u5761\u9053\u6216\u6DFA\u7058\uFF09";
-  if (new Set(tiles.map((t) => input.tiles[t].height)).size > 1) return "\u5730\u9762\u9AD8\u5EA6\u4E0D\u4E00\u81F4";
+  } else if (tiles3.some((t) => !input.tiles[t]?.buildability)) return "\u5730\u5F62\u4E0D\u53EF\u5EFA\u9020\uFF08\u6C34\u57DF\u3001\u61F8\u5D16\u3001\u5761\u9053\u6216\u6DFA\u7058\uFF09";
+  if (new Set(tiles3.map((t) => input.tiles[t].height)).size > 1) return "\u5730\u9762\u9AD8\u5EA6\u4E0D\u4E00\u81F4";
   if (input.obstacles.some((o) => !(owner !== void 0 && replacesWall(kind, o, owner)) && (obstacleRects(o).length ? obstacleRects(o) : isBuilding(o) ? [obstacleBounds(o)] : []).some((r2) => overlap(r2, box2)))) return "\u8207\u5EFA\u7BC9\u6216\u8CC7\u6E90\u91CD\u758A";
   const r = navigationRules.radius;
   if (kind !== "farm" && kind !== "fish-trap" && input.units.some((u) => u.x >= box2[0] - r && u.x <= box2[2] + r && u.y >= box2[1] - r && u.y <= box2[3] + r)) return "\u6709\u55AE\u4F4D\u7AD9\u5728\u9810\u5B9A\u5730\u4E0A";
   return null;
 }
-function buildRequirement(age, kind, own, civ = neutralCiv, techs2 = []) {
+function buildRequirement(age, kind, own, civ = neutralCiv, techs2 = [], allTechs2 = false) {
   const entry2 = rules.entries.find((e) => e.id === kind);
   if (!entry2) return "\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E";
-  if (!civAvailable(civ, kind)) return "\u6B64\u6587\u660E\u4E0D\u80FD\u5EFA\u9020";
+  if (!civAvailable(civ, kind, allTechs2)) return "\u6B64\u6587\u660E\u4E0D\u80FD\u5EFA\u9020";
   for (const req of entry2.requires) {
     const need = rules.entries.find((e) => e.id === req), m = /^age-(\d)$/.exec(req);
     if (m && age < Number(m[1])) return `\u9700\u8981${need?.name ?? req}`;
@@ -6138,8 +6810,30 @@ function wallLine(from, to) {
   return out;
 }
 
+// packages/sim/naval.ts
+var navalRules = { provenance: "design_default", transportCapacity: 5, boardReach: 150, landReach: 150, repathTicks: 20 };
+
+// packages/sim/combat.ts
+var stances = ["aggressive", "defensive", "stand", "passive"];
+var tacticsRules = { provenance: "design_default (aoetw.com names the stances and patrol but gives no numbers)", defensiveLeash: 300, patrolTurn: 100, patrolRetry: 20 };
+var revealTicks = 40;
+
+// packages/sim/repair.ts
+var repairRules = {
+  provenance: "aoetw.com for the cost share, the extra-villager share and what can be repaired; design_default for the rates in this scale",
+  buildingRate: 26,
+  unitRate: 16,
+  costShare: 0.5,
+  siegeReach: 75,
+  shipReach: 100,
+  retries: 3,
+  unrepairable: ["farm", "fish-trap"]
+};
+var classesOf2 = (kind) => kind in combatRules.units ? combatRules.units[kind].classes : [];
+var repairableUnit = (kind) => classesOf2(kind).some((c) => c === "siege" || c === "ship");
+
 // packages/sim/work.ts
-var workPhases = ["none", "toSource", "gathering", "toDropoff", "toSite", "building", "hunting"];
+var workPhases = ["none", "toSource", "gathering", "toDropoff", "toSite", "building", "hunting", "toRepair", "repairing"];
 var dropoffRules = { provenance: "design_default", accepts: { "town-center": ["food", "wood", "gold", "stone"], "lumber-camp": ["wood"], "mining-camp": ["gold", "stone"], mill: ["food"] }, ships: { dock: ["food"] } };
 
 // packages/sim/defense.ts
@@ -6151,23 +6845,32 @@ var defenseRules = {
   // bonus: extra damage against a class (aoetw: the town centre's +5 and the tower's +7 against ships). The bombard
   // tower fires one cannonball (120 pierce, +40 against ships) every 6 s (cooldown x20 like the towers), from a tower's
   // range; it outshoots nothing, it one-shots most units.
+  // Arrows against ships hit fishing ships as hard (aoetw.com: the fishing-ship armor class takes the towers' ship bonus).
   arrows: {
-    "town-center": { base: 1, range: 300, damage: 5, cooldown: 40, bonus: { ship: 5 } },
-    "watch-tower": { base: 1, range: 350, damage: 5, cooldown: 40, bonus: { ship: 7 } },
+    "town-center": { base: 1, range: 300, damage: 5, cooldown: 40, bonus: { ship: 5, "fishing-ship": 5 } },
+    "watch-tower": { base: 1, range: 350, damage: 5, cooldown: 40, bonus: { ship: 7, "fishing-ship": 7 } },
     castle: { base: 4, range: 400, damage: 5, cooldown: 40 },
-    "bombard-tower": { base: 1, range: 350, damage: 120, cooldown: 120, bonus: { ship: 40 }, shots: false }
+    "bombard-tower": { base: 1, range: 350, damage: 120, cooldown: 120, bonus: { ship: 40, "fishing-ship": 40 }, shots: false }
   },
   // Who may go inside (foot units: no cavalry, no siege), and who adds an arrow while there.
   canGarrison: ["villager", "militia", "spearman", "archer", "skirmisher", "monk", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "janissary", "chu-ko-nu", "samurai", "hand-cannoneer"],
   addsArrow: ["villager", "archer", "skirmisher", "longbowman", "janissary", "chu-ko-nu", "hand-cannoneer"],
   // Units inside heal one hit point every healTicks; a shot stays drawn for shotTicks.
   healTicks: 40,
-  shotTicks: 10
+  shotTicks: 10,
+  // The 遊戲元素 round (aoetw.com elements/Garrison, Regeneration): the castle heals those inside twice as fast as a town
+  // centre or a tower (12 against 6 hit points a minute there); a building at ejectPercent of its hit points or less
+  // lets everyone out and takes nobody in. Production buildings hold 10 of the units they train, who go in only by the
+  // building's rally point set on the building itself (and cannot be ordered back in once out).
+  healRate: { castle: 2 },
+  ejectPercent: 20,
+  rallyGarrison: { barracks: 10, "archery-range": 10, stable: 10, "siege-workshop": 10, monastery: 10, dock: 10 }
 };
 function garrisonCapacity(s, b) {
   const base = defenseRules.capacity[b.kind] ?? 0;
-  return base ? base + garrisonBonus(ownerOf(s, b.player), b.kind) : 0;
+  return base ? base + garrisonBonus(ownerOf(s, b.player), b.kind) : defenseRules.rallyGarrison[b.kind] ?? 0;
 }
+var battered = (b) => b.hp * 100 <= b.maxHp * defenseRules.ejectPercent;
 
 // packages/sim/production.ts
 var productionRules = { provenance: "design_default", queueLimit: 5 };
@@ -6178,9 +6881,9 @@ function ageOf(entryId) {
 }
 var entryOf = (id) => rules.entries.find((e) => e.id === id);
 function trainBlocker(i, entryId) {
-  const e = entryOf(entryId), owner = { civ: i.civ ?? neutralCiv, age: i.age, techs: i.techs };
+  const e = entryOf(entryId), owner = { civ: i.civ ?? neutralCiv, age: i.age, techs: i.techs, ...i.allTechs ? { allTechs: true } : {} };
   if (!e || e.kind === "building") return "\u672A\u77E5\u7684\u751F\u7522\u9805\u76EE";
-  if (!civAvailable(owner.civ, entryId)) return "\u6B64\u6587\u660E\u4E0D\u80FD\u751F\u7522";
+  if (!civAvailable(owner.civ, entryId, !!i.allTechs)) return "\u6B64\u6587\u660E\u4E0D\u80FD\u751F\u7522";
   if (!i.building.complete) return "\u5EFA\u7BC9\u5C1A\u672A\u5B8C\u5DE5";
   if (!producersOf(entryId, owner).includes(i.building.kind)) return "\u9019\u68DF\u5EFA\u7BC9\u4E0D\u80FD\u751F\u7522\u9019\u500B\u9805\u76EE";
   for (const req of e.requires) {
@@ -6220,6 +6923,42 @@ var religionRules = {
   unconvertibleBuildings: ["town-center", "monastery", "farm", "castle", "wonder", "palisade-wall", "stone-wall", "palisade-gate", "gate"],
   relics: { count: 5, goldTicks: 40, perMonastery: 10, victoryTicks: 2e4, baseDistance: 900, spacing: 600, fairness: 400, edge: 150 }
 };
+function placeRelics(map, seed) {
+  const R = religionRules.relics, centres = [false, true].map((red2) => {
+    const o = map.obstacles.find((o2) => o2.kind === "town-center" && !!o2.red === red2), b = obstacleBounds(o);
+    return { x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2 };
+  });
+  const closed = blockedTable(map), world = map.size * 100;
+  let n = (seed ^ 1540483477) >>> 0 || 1;
+  const next = () => {
+    n ^= n << 13;
+    n ^= n >>> 17;
+    n ^= n << 5;
+    n >>>= 0;
+    return n;
+  };
+  const candidates = [];
+  for (let id = 0; id < nodeTotal(map); id++) {
+    if (closed[id]) continue;
+    const p = position(map, id);
+    if (p.x < R.edge || p.y < R.edge || p.x > world - R.edge || p.y > world - R.edge) continue;
+    const [d0, d1] = centres.map((c) => Math.hypot(p.x - c.x, p.y - c.y));
+    if (Math.min(d0, d1) >= R.baseDistance && Math.abs(d0 - d1) <= R.fairness) candidates.push(p);
+  }
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = next() % (i + 1);
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+  for (let spacing = R.spacing; spacing >= 100; spacing -= 100) {
+    const relics = [];
+    for (const p of candidates) {
+      if (relics.length === R.count) break;
+      if (relics.every((r) => Math.hypot(r.x - p.x, r.y - p.y) >= spacing)) relics.push({ id: relics.length + 1, x: p.x, y: p.y, carrier: null, monastery: null });
+    }
+    if (relics.length === R.count) return relics;
+  }
+  return [];
+}
 
 // packages/sim/market.ts
 var marketRules = {
@@ -6243,6 +6982,8 @@ var tradeHome = { "trade-cart": "market", "trade-cog": "dock" };
 var aiRules = {
   provenance: "design_default",
   player: 1,
+  tauntGap: 3600,
+  tauntQuiet: 600,
   thinkTicks: 20,
   thinkOffset: 7,
   villagerTarget: 12,
@@ -6295,12 +7036,68 @@ var aiRules = {
   sellAbove: 600,
   goldShort: 100,
   tradeCarts: 2,
+  // The 遊戲元素 round: a town centre or castle below repairBelow percent of its hit points gets up to repairers
+  // villagers within repairRange (idle ones first, never builders) to repair it.
+  repairBelow: 70,
+  repairers: 2,
+  repairRange: 600,
   research: { blacksmith: ["forging", "fletching", "scale-mail-armor", "padded-archer-armor", "iron-casting", "bodkin-arrow", "chain-mail-armor", "scale-barding-armor"], barracks: ["man-at-arms", "long-swordsman"], "archery-range": ["crossbowman"], "town-center": ["loom", "wheelbarrow", "hand-cart"], dock: ["gillnets"], "lumber-camp": ["double-bit-axe", "bow-saw", "two-man-saw"], "mining-camp": ["gold-mining", "gold-shaft-mining"], mill: ["horse-collar", "heavy-plow", "crop-rotation"] }
 };
 var soldierKinds = unitKinds.filter((k) => k !== "villager" && k !== "monk" && k !== "scout" && !isAnimal(k) && combatRules.units[k].attack !== "none");
 
-// packages/sim/naval.ts
-var navalRules = { provenance: "design_default", transportCapacity: 5, boardReach: 150, landReach: 150, repathTicks: 20 };
+// packages/content/taunts.ts
+var taunts = [
+  { n: 1, zh: "\u597D\u3002", en: "Yes." },
+  { n: 2, zh: "\u4E0D\u3002", en: "No." },
+  { n: 3, zh: "\u8ACB\u7D66\u6211\u98DF\u7269\u3002", en: "Food please." },
+  { n: 4, zh: "\u8ACB\u7D66\u6211\u6728\u6750\u3002", en: "Wood please." },
+  { n: 5, zh: "\u8ACB\u7D66\u6211\u9EC3\u91D1\u3002", en: "Gold please." },
+  { n: 6, zh: "\u8ACB\u7D66\u6211\u77F3\u982D\u3002", en: "Stone please." },
+  { n: 7, zh: "\u5509~~\u6B38......", en: "Ahh!" },
+  { n: 8, zh: "\u55E8~\u8089\u8173\u4F60\u5011\u597D\u554A", en: "All hail, king of the losers!" },
+  { n: 9, zh: "\u55DA~~\u8036", en: "Ooh!" },
+  { n: 10, zh: "\u770B\u6211\u628A\u4F60\u6253\u56DE\u4E16\u7D00\u5E1D\u570B\u4E00\u4EE3\u53BB", en: "I'll beat you back to Age of Empires." },
+  { n: 11, zh: "\uFF08\u5978\u7B11\uFF09", en: "(Herb laugh)" },
+  { n: 12, zh: "\u6211\u5FEB\u62DB\u67B6\u4E0D\u4F4F\u4E86......", en: "Ah! Being rushed." },
+  { n: 13, zh: "\u53BB\u602A\u4F60\u7684\u7DB2\u8DEF\u516C\u53F8\u5427\uFF01", en: "Sure, blame it on your ISP." },
+  { n: 14, zh: "\u6B38\uFF01\u904A\u6232\u5DF2\u7D93\u958B\u59CB\u56C9\uFF01", en: "Start the game already!" },
+  { n: 15, zh: "\u62DC\u8A17\uFF01\u4E0D\u8981\u7528\u90A3\u500B\u6771\u897F\u6307\u8457\u6211\u597D\u55CE\uFF1F", en: "Don't point that thing at me!" },
+  { n: 16, zh: "\u767C\u73FE\u6575\u4EBA\u3002", en: "Enemy sighted!" },
+  { n: 17, zh: "\u5750\u4E0A\u738B\u4F4D\u7684\u611F\u89BA\u771F\u597D\u3002", en: "It is good to be the king." },
+  { n: 18, zh: "\u6211\u9084\u5C11\u500B\u50E7\u4FB6\u3002", en: "Monk! I need a monk!" },
+  { n: 19, zh: "\u6709\u4E00\u9663\u5B50\u6C92\u4EA4\u624B\u56C9\uFF1F", en: "Long time, no siege." },
+  { n: 20, zh: "\u6B38\u4F60\u4E5F\u5E6B\u5E6B\u5FD9\uFF0C\u9023\u6211\u963F\u5B24\u90FD\u6BD4\u4F60\u884C\u3002", en: "My granny could scrap better than that." },
+  { n: 21, zh: "\u597D\u5730\u65B9\uFF0C\u6211\u8981\u5B9A\u4E86\uFF01", en: "Nice town, I'll take it." },
+  { n: 22, zh: "\u5225\u518D\u6253\u6211\u4E86\u5566\uFF01", en: "Quit touching me!" },
+  { n: 23, zh: "\u5927\u4F19\u9032\u653B\u56C9\uFF01", en: "Raiding party!" },
+  { n: 24, zh: "\u539A\uFF01\u771F\u96D6\uFF01", en: "Dadgum." },
+  { n: 25, zh: "\u4F60\u6562\u5C31\u4F86\u554A\uFF1F", en: "Eh, smite me." },
+  { n: 26, zh: "\u7CDF\u4E86\uFF01\u662F\u4E16\u754C\u5947\u89C0\uFF01", en: "The wonder, the wonder, the... no!" },
+  { n: 27, zh: "\u6B38\uFF0C\u4F60\u73A9\u9019\u9EBC\u4E45\u624D\u73A9\u9019\u6A23\u5594\uFF1F", en: "You played two hours to die like this?" },
+  { n: 28, zh: "\u9084\u6709\u4EBA\u6BD4\u4F60\u66F4\u6158\u52D2\u3002", en: "Yeah, well, you should see the other guy." },
+  { n: 29, zh: "\u8089\u8173\u3002", en: "Roggan." },
+  { n: 30, zh: "\u55DA~~\u547C~~~", en: "Wololo." },
+  { n: 31, zh: "\u653B\u64CA\u6575\u4EBA\uFF0C\u885D\u554A\uFF01", en: "Attack an enemy now." },
+  { n: 32, zh: "\u505C\u6B62\u751F\u7522\u984D\u5916\u7684\u6751\u6C11\u3002", en: "Cease creating extra villagers." },
+  { n: 33, zh: "\u751F\u7522\u984D\u5916\u6751\u6C11\u3002", en: "Create extra villagers." },
+  { n: 34, zh: "\u5EFA\u7ACB\u6D77\u8ECD\u3002", en: "Build a navy." },
+  { n: 35, zh: "\u505C\u6B62\u5EFA\u7ACB\u6D77\u8ECD\u3002", en: "Stop building a navy." },
+  { n: 36, zh: "\u7B49\u6211\u4E0B\u4EE4\u653B\u64CA", en: "Wait for my signal to attack." },
+  { n: 37, zh: "\u5EFA\u9020\u4E16\u754C\u5947\u89C0\u3002", en: "Build a wonder." },
+  { n: 38, zh: "\u8ACB\u4F60\u628A\u591A\u7684\u8CC7\u6E90\u7D66\u6211\u3002", en: "Give me your extra resources." },
+  { n: 39, zh: "\uFF08\u540C\u76DF\u8072\u97F3\uFF09", en: "(Ally sound)" },
+  { n: 40, zh: "\uFF08\u6575\u4EBA\u8072\u97F3\uFF09", en: "(Enemy sound)" },
+  { n: 41, zh: "\uFF08\u4E2D\u7ACB\u8072\u97F3\uFF09", en: "(Neutral sound)" },
+  { n: 42, zh: "\u4F60\u5728\u54EA\u4E00\u500B\u6642\u4EE3\u554A\uFF1F", en: "What age are you in?" }
+];
+var tauntRules = { provenance: "design_default", keep: 20, everyTicks: 20 };
+var tauntOf = (n) => taunts.find((t) => t.n === n);
+function parseTaunt(text) {
+  const m = /^\s*(\d{1,2})(?!\d)/.exec(text);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return tauntOf(n) ? n : null;
+}
 
 // packages/sim/sim.ts
 function canonical(value) {
@@ -6315,7 +7112,7 @@ function hash(value) {
   }
   return (h2 >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, naval: navalRules, market: marketRules, religion: religionRules, animals: animalRules, tech: techRules, defense: defenseRules, civs: civDefs, techs: techEffects, unitLines: { lineUpgrades, blacksmith, religionBonus }, simulationVersion: 30 });
+var rulesetHash = hash({ openings, repair: repairRules, carriers: carrierRules, taunts: tauntRules, rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, naval: navalRules, market: marketRules, religion: religionRules, animals: animalRules, tech: techRules, defense: defenseRules, civs: civDefs, techs: techEffects, unitLines: { lineUpgrades, blacksmith, religionBonus }, projectiles: projectileRules, tactics: tacticsRules, settings: settingRules, simulationVersion: 33 });
 
 // packages/sim/protocol.ts
 var UNIT_STRIDE = 19;
@@ -6323,7 +7120,7 @@ var STRIDE = UNIT_STRIDE;
 function decodeView(r) {
   const values = new Int32Array(r.positions), units2 = [];
   for (let i = 0; i < values.length; i += STRIDE) units2.push({ kind: unitKinds[values[i + 11]], hp: values[i + 12], maxHp: values[i + 13], action: values[i + 14], id: values[i], player: values[i + 1], x: values[i + 2], y: values[i + 3], navigation: navigationStates[values[i + 6]], target: values[i + 4] < 0 ? null : { x: values[i + 4], y: values[i + 5] }, work: values[i + 7] > 0 ? workPhases[values[i + 7]] : null, workResource: values[i + 10] < 0 ? null : resources[values[i + 10]], cargo: values[i + 8] < 0 ? null : { resource: resources[values[i + 8]], amount: values[i + 9] }, rite: [null, "convert", "heal"][values[i + 15]] ?? null, faith: values[i + 16] < 0 ? null : values[i + 16], relic: values[i + 17] === 1, unpacked: values[i + 18] === 1 });
-  return { seed: r.seed, layout: r.layout, size: r.size, opponent: r.opponent, civs: r.civs, terrain: r.terrain, tick: r.tick, stateHash: r.stateHash, economy: r.economy, corpses: r.corpses, outcome: r.outcome, buildings: r.buildings, transactions: r.transactions, fog: r.fog, known: r.known, resources: r.resources, relicSpots: r.relicSpots, relicsHeld: r.relicsHeld, relicTotal: r.relicTotal, relicVictory: r.relicVictory, shots: r.shots, market: r.market, transports: r.transports, trades: r.trades, wonders: r.wonders, wonderVictory: r.wonderVictory, units: units2 };
+  return { settings: r.settings, aiOpening: r.aiOpening, coach: r.coach, seed: r.seed, layout: r.layout, size: r.size, opponent: r.opponent, civs: r.civs, terrain: r.terrain, tick: r.tick, stateHash: r.stateHash, economy: r.economy, corpses: r.corpses, outcome: r.outcome, buildings: r.buildings, transactions: r.transactions, fog: r.fog, known: r.known, resources: r.resources, relicSpots: r.relicSpots, relicsHeld: r.relicsHeld, relicTotal: r.relicTotal, relicVictory: r.relicVictory, shots: r.shots, projectiles: r.projectiles, stances: r.stances, patrols: r.patrols, market: r.market, transports: r.transports, trades: r.trades, wonders: r.wonders, wonderVictory: r.wonderVictory, chat: r.chat, repairs: r.repairs, units: units2 };
 }
 
 // apps/web/worker-client.ts
@@ -6365,6 +7162,8 @@ var SimulationClient = class {
       this.checkpoint.layout = response.layout;
       this.checkpoint.opponent = response.opponent;
       this.checkpoint.civs = response.civs;
+      this.checkpoint.aiOpening = response.aiOpening;
+      this.checkpoint.settings = response.settings;
       this.checkpoint.seed = response.seed;
       this.checkpoint.ticks = response.tick;
       this.update(decodeView(response));
@@ -6566,7 +7365,15 @@ var classLabel = {
   transport: "\u904B\u8F38\u8239",
   trade: "\u8CBF\u6613\u55AE\u4F4D",
   fire: "\u706B\u8239",
-  demolition: "\u81EA\u7206\u8239"
+  demolition: "\u81EA\u7206\u8239",
+  // The 遊戲元素 round's armor classes (aoetw.com 防禦類型).
+  "fishing-ship": "\u6F01\u8239",
+  ram: "\u885D\u649E\u8ECA",
+  mameluke: "\u963F\u62C9\u4F2F\u5974\u96B8\u5175",
+  "standard-building": "\u6A19\u6E96\u5EFA\u7BC9",
+  "stone-defense": "\u77F3\u9020\u9632\u79A6",
+  "wall-gate": "\u57CE\u7246\u8207\u57CE\u9580",
+  castle: "\u57CE\u5821"
 };
 var unitsIntro = "\u55AE\u4F4D\u8CC7\u6599\u6574\u7406\u81EA aoetw.com\uFF08\u4E16\u7D00\u5E1D\u570B II \u7684\u7E41\u9AD4\u4E2D\u6587\u767E\u79D1\uFF0C\u5167\u5BB9\u4EE5 HD\uFF0FUserPatch \u5230\u65E9\u671F\u6C7A\u5B9A\u7248\u70BA\u6E96\uFF09\u3002\u672C\u4F5C\u7684\u6578\u503C\u662F\u4F9D\u672C\u4F5C\u6BD4\u4F8B\u81EA\u8A02\u7684 design_default\uFF0C\u4E0D\u662F\u539F\u4F5C\u6578\u64DA\uFF1A\u5C04\u7A0B\u8207\u8996\u91CE\u4EE5\u672C\u4F5C\u7684\u5730\u5716\u683C\u8A08\u7B97\uFF0C\u539F\u4F5C\u7684\u5C04\u7A0B\u5927\u7D04\u6298\u534A\u518D\u52A0\u4E0A\u4E00\u6BB5\u57FA\u790E\u8DDD\u96E2\uFF0C\u8996\u91CE\u683C\u6578\u5927\u81F4\u7167\u642C\uFF0C\u653B\u64CA\u9593\u9694\u63DB\u6210\u6A21\u64EC\u523B\u3002\u6D77\u8ECD\u55AE\u4F4D\u5728\u78BC\u982D\u5EFA\u9020\u3001\u53EA\u80FD\u5728\u6C34\u4E0A\u822A\u884C\uFF0C\u8981\u9078\u300C\u6E56\u7554\u300D\u9019\u985E\u6709\u5927\u7247\u6C34\u57DF\u7684\u5730\u5716\uFF1B\u706B\u69CD\u5175\u3001\u706B\u7832\u8207\u706B\u7832\u6230\u8239\u5728\u7B2C\u56DB\u6642\u4EE3\u65BC\u5B78\u9662\u7814\u7A76\u5316\u5B78\u5F8C\u89E3\u9396\u3002";
 var unitsNote = "\u55AE\u4F4D\u8CC7\u6599\u6574\u7406\u81EA aoetw.com\uFF08HD\uFF0FUserPatch \u5230\u65E9\u671F\u6C7A\u5B9A\u7248\uFF09\uFF0C\u8AAA\u660E\u5DF2\u6539\u7528\u672C\u4F5C\u7684\u55AE\u4F4D\u3001\u5EFA\u7BC9\u8207\u6642\u4EE3\u540D\u7A31\uFF1B\u6578\u503C\u4E00\u5F8B\u53D6\u81EA\u672C\u4F5C\u7684\u6A21\u64EC\uFF0C\u662F design_default\uFF0C\u4E0D\u662F\u539F\u4F5C\u6578\u64DA\u3002\u6A19\u793A\u300C\u5C1A\u672A\u5BE6\u4F5C\u300D\u7684\u55AE\u4F4D\u76EE\u524D\u4E0D\u5728\u904A\u6232\u88E1\u3002";
@@ -7282,6 +8089,366 @@ var buildingPartials = {
   "palisade-gate": "\u539F\u4F5C\u7684\u6728\u9580\u53EF\u4EE5\u4E0A\u9396\uFF0C\u9023\u5DF1\u65B9\u4E5F\u4E0D\u80FD\u901A\u904E\uFF1B\u672C\u4F5C\u7684\u6728\u9580\u4E00\u5F8B\u53EA\u64CB\u6575\u8ECD",
   "fish-trap": "\u539F\u4F5C\u7684\u6575\u65B9\u6F01\u8239\u4E5F\u80FD\u63A1\u96C6\u5225\u4EBA\u7684\u9B5A\u7DB2\uFF1B\u672C\u4F5C\u53EA\u6709\u64C1\u6709\u8005\u80FD\u63A1\u96C6"
 };
+var elementsIntro = "\u904A\u6232\u5143\u7D20\u6574\u7406\u81EA aoetw.com \u7684\u300C\u904A\u6232\u5143\u7D20\u300D\u9078\u55AE\uFF1A\u9632\u79A6\u985E\u578B\u3001\u56DE\u8840\u3001\u99D0\u8ECD\u3001\u8840\u91CF\u3001\u653B\u64CA\u3001\u5C04\u901F\u3001\u958B\u706B\u9593\u9694\u3001\u64F4\u6563\u7BC4\u570D\u3001\u5718\u968A\u52A0\u5206\u3001\u907A\u8DE1\u8207\u5632\u8AF7\u8A9E\u97F3\uFF0C\u53E6\u52A0\u9078\u55AE\u6C92\u6709\u5217\u51FA\u7684\u62DB\u964D\u8207\u8996\u91CE\u5169\u9801\u3002\u6BCF\u4E00\u9801\u5148\u8AAA\u660E\u672C\u4F5C\u600E\u9EBC\u505A\uFF0C\u518D\u5217\u51FA\u53D6\u81EA\u6A21\u64EC\u7684\u8868\u683C\uFF1B\u6578\u5B57\u4F9D\u672C\u4F5C\u6BD4\u4F8B\u81EA\u8A02\uFF0C\u662F design_default\uFF0C\u4E0D\u662F\u539F\u4F5C\u6578\u64DA\u3002";
+var elementsNote = "\u904A\u6232\u5143\u7D20\u6574\u7406\u81EA aoetw.com\uFF08HD\uFF0FUserPatch \u5230\u65E9\u671F\u6C7A\u5B9A\u7248\uFF09\uFF1B\u8868\u683C\u88E1\u7684\u6BCF\u500B\u6578\u5B57\u90FD\u5373\u6642\u53D6\u81EA\u672C\u4F5C\u7684\u6A21\u64EC\uFF0C\u4EE5\u672A\u52A0\u6587\u660E\u52A0\u6210\u3001\u4F9D\u8A72\u5175\u7A2E\u5347\u7D1A\u6B65\u9A5F\u7684\u6578\u503C\u70BA\u6E96\u3002\u8DDD\u96E2\u4EE5\u683C\u8A08\uFF08\u4E00\u683C\u662F\u5730\u5716\u4E0A\u7684\u4E00\u500B\u65B9\u683C\uFF09\uFF0C\u6642\u9593\u4EE5\u672C\u4F5C\u7684\u79D2\u8A08\u3002";
+var elementProse = [
+  {
+    id: "armor",
+    name: "\u9632\u79A6\u985E\u578B",
+    nameEn: "Armor classes",
+    refName: null,
+    slug: "armor",
+    menu: true,
+    summary: "\u6BCF\u500B\u55AE\u4F4D\u8207\u5EFA\u7BC9\u5C6C\u65BC\u54EA\u4E9B\u985E\u578B\uFF0C\u8AB0\u5C0D\u5B83\u6709\u52A0\u6210\u3002",
+    text: "\u50B7\u5BB3\u5148\u7B97\u653B\u64CA\u6E1B\u53BB\u5C0D\u61C9\u7684\u8FD1\u6230\u6216\u9060\u7A0B\u8B77\u7532\uFF0C\u4E0D\u8DB3\u6642\u7B97\u4F5C\u96F6\uFF1B\u518D\u628A\u653B\u64CA\u8005\u5C0D\u76EE\u6A19\u6BCF\u500B\u985E\u578B\u7684\u52A0\u6210\u5404\u81EA\u6263\u6389\u76EE\u6A19\u5728\u8A72\u985E\u578B\u7684\u8B77\u7532\u5F8C\u52A0\u4E0A\u53BB\uFF0C\u6700\u5F8C\u81F3\u5C11\u4E00\u9EDE\u3002\u591A\u6578\u55AE\u4F4D\u7684\u985E\u578B\u8B77\u7532\u662F\u96F6\uFF0C\u53EA\u8868\u793A\u5B83\u5C6C\u65BC\u9019\u500B\u985E\u578B\uFF1B\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u3001\u963F\u62C9\u4F2F\u5974\u96B8\u5175\u7B49\u5C11\u6578\u55AE\u4F4D\u6709\u6B63\u7684\u9A0E\u5175\u8B77\u7532\uFF0C\u9577\u69CD\u5175\u7CFB\u7684\u52A0\u6210\u6253\u5728\u7260\u5011\u8EAB\u4E0A\u5C31\u6253\u4E86\u6298\u6263\u3002\u5EFA\u7BC9\u4E5F\u5206\u6210\u6A19\u6E96\u5EFA\u7BC9\u3001\u77F3\u9020\u9632\u79A6\u3001\u57CE\u7246\u8207\u57CE\u9580\u3001\u57CE\u5821\u7B49\u985E\u578B\uFF0C\u653B\u57CE\u5668\u8207\u6751\u6C11\u5C0D\u4E0D\u540C\u985E\u578B\u7684\u52A0\u6210\u4E0D\u4E00\u6A23\u3002"
+  },
+  {
+    id: "regeneration",
+    name: "\u56DE\u8840",
+    nameEn: "Regeneration",
+    refName: null,
+    slug: "elements/Regeneration",
+    menu: true,
+    summary: "\u4E0D\u9760\u50E7\u4FB6\u81EA\u5DF1\u6062\u5FA9\u751F\u547D\u7684\u65B9\u5F0F\u3002",
+    text: "\u672C\u4F5C\u53EA\u6709\u7DAD\u4EAC\u7684\u72C2\u6230\u58EB\u5929\u751F\u6703\u56DE\u8840\uFF0C\u7814\u7A76\u72C2\u6230\u58EB\u5E6B\u5F8C\u66F4\u5FEB\u3002\u5176\u4ED6\u53D7\u50B7\u7684\u55AE\u4F4D\u8981\u9760\u50E7\u4FB6\u6CBB\u7642\uFF0C\u6216\u8EB2\u9032\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u3001\u57CE\u5821\u8207\u751F\u7522\u5EFA\u7BC9\u6162\u6162\u56DE\u5FA9\uFF1B\u57CE\u5821\u56DE\u5F97\u6BD4\u57CE\u93AE\u4E2D\u5FC3\u548C\u7BAD\u5854\u5FEB\u4E00\u500D\uFF0C\u4FEE\u9053\u9662\u7684\u8349\u85E5\u6CBB\u7642\u8B93\u6240\u6709\u99D0\u8ECD\u56DE\u5F97\u66F4\u5FEB\u3002\u653B\u57CE\u5668\u8207\u8239\u96BB\u4E0D\u6703\u56DE\u8840\uFF0C\u4E5F\u4E0D\u80FD\u88AB\u50E7\u4FB6\u6CBB\u7642\uFF0C\u53EA\u80FD\u7531\u6751\u6C11\u4FEE\u7406\u3002"
+  },
+  {
+    id: "garrison",
+    name: "\u99D0\u8ECD",
+    nameEn: "Garrison",
+    refName: null,
+    slug: "elements/Garrison",
+    menu: true,
+    summary: "\u54EA\u4E9B\u5EFA\u7BC9\u8207\u55AE\u4F4D\u53EF\u4EE5\u8B93\u55AE\u4F4D\u8EB2\u9032\u53BB\u3002",
+    text: "\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u3001\u706B\u7832\u5854\u8207\u57CE\u5821\u53EF\u4EE5\u8B93\u6751\u6C11\u548C\u5F92\u6B65\u55AE\u4F4D\u8EB2\u9032\u53BB\uFF0C\u6751\u6C11\u8207\u5F92\u6B65\u5F13\u5175\u9084\u6703\u589E\u52A0\u5C04\u51FA\u7684\u7BAD\uFF1B\u9418\u8072\u6703\u628A\u6751\u6C11\u53EB\u9032\u6700\u8FD1\u7684\u5EFA\u7BC9\u3002\u5175\u71DF\u3001\u9776\u5834\u3001\u99AC\u5EC4\u3001\u653B\u57CE\u5668\u5DE5\u574A\u3001\u4FEE\u9053\u9662\u8207\u78BC\u982D\u53EA\u6536\u81EA\u5DF1\u8A13\u7DF4\u7684\u55AE\u4F4D\uFF1A\u628A\u96C6\u7D50\u9EDE\u8A2D\u5728\u5EFA\u7BC9\u672C\u8EAB\uFF0C\u65B0\u5175\u5C31\u76F4\u63A5\u9032\u99D0\uFF0C\u51FA\u4F86\u5F8C\u4E0D\u80FD\u518D\u547D\u4EE4\u56DE\u53BB\u3002\u904B\u8F38\u8239\u8F09\u904B\u9678\u4E0A\u55AE\u4F4D\uFF0C\u885D\u649E\u8ECA\u53EF\u4EE5\u8F09\u6B65\u5175\u8207\u5F92\u6B65\u5F13\u5175\uFF0C\u6B65\u5175\u8D8A\u591A\u885D\u649E\u8ECA\u8D8A\u5FEB\u3001\u6253\u5EFA\u7BC9\u8D8A\u75DB\u3002\u5EFA\u7BC9\u53D7\u640D\u5230\u53EA\u5269\u5C11\u8A31\u751F\u547D\u6642\uFF0C\u88E1\u9762\u7684\u55AE\u4F4D\u5168\u90E8\u88AB\u8D95\u51FA\u4F86\uFF0C\u4E5F\u4E0D\u80FD\u518D\u9032\u53BB\u3002"
+  },
+  {
+    id: "hit-points",
+    name: "\u8840\u91CF",
+    nameEn: "Hit points",
+    refName: null,
+    slug: "elements/Hit_points",
+    menu: true,
+    summary: "\u751F\u547D\u503C\uFF0C\u4EE5\u53CA\u53D7\u50B7\u5F8C\u600E\u9EBC\u88DC\u56DE\u4F86\u3002",
+    text: "\u751F\u547D\u6B78\u96F6\u7684\u55AE\u4F4D\u9663\u4EA1\u3001\u5EFA\u7BC9\u5012\u584C\u3002\u55AE\u4F4D\u7684\u751F\u547D\u5927\u81F4\u7167\u539F\u4F5C\uFF0C\u5EFA\u7BC9\u7684\u751F\u547D\u5927\u7D04\u662F\u539F\u4F5C\u7684\u516D\u5206\u4E4B\u4E00\uFF0C\u914D\u5408\u672C\u4F5C\u8F03\u77ED\u7684\u5C0D\u5C40\u3002\u88DC\u56DE\u751F\u547D\u6709\u4E09\u7A2E\u65B9\u5F0F\uFF1A\u50E7\u4FB6\u6CBB\u7642\u55AE\u4F4D\u3001\u99D0\u8ECD\u6642\u6162\u6162\u56DE\u5FA9\uFF0C\u4EE5\u53CA\u6751\u6C11\u4FEE\u7406\u5EFA\u7BC9\u3001\u653B\u57CE\u5668\u8207\u8239\u96BB\u3002\u4FEE\u7406\u8981\u82B1\u9322\uFF0C\u4FEE\u6EFF\u4E00\u6B21\u5927\u7D04\u662F\u539F\u50F9\u7684\u4E00\u534A\uFF0C\u908A\u4FEE\u908A\u6263\uFF1B\u57CE\u93AE\u4E2D\u5FC3\u4FEE\u7406\u4E0D\u82B1\u77F3\u982D\u4F46\u6728\u6750\u52A0\u500D\u3002"
+  },
+  {
+    id: "attack",
+    name: "\u653B\u64CA",
+    nameEn: "Attack",
+    refName: null,
+    slug: "elements/Attack",
+    menu: true,
+    summary: "\u8FD1\u6230\u8207\u9060\u7A0B\u5169\u7A2E\u653B\u64CA\uFF0C\u4EE5\u53CA\u653B\u64CA\u52A0\u6210\u3002",
+    text: "\u653B\u64CA\u5206\u8FD1\u6230\u8207\u9060\u7A0B\uFF1A\u8FD1\u6230\u6263\u76EE\u6A19\u7684\u8FD1\u6230\u8B77\u7532\uFF0C\u9060\u7A0B\u6263\u9060\u7A0B\u8B77\u7532\u3002\u5175\u71DF\u3001\u99AC\u5EC4\u8207\u591A\u6578\u653B\u57CE\u5668\u6253\u8FD1\u6230\uFF0C\u5C04\u7BAD\u5834\u7684\u55AE\u4F4D\u3001\u5F29\u7832\u3001\u6230\u8239\u8207\u6240\u6709\u6703\u5C04\u7BAD\u7684\u5EFA\u7BC9\u6253\u9060\u7A0B\u3002\u52A0\u6210\u7167\u9632\u79A6\u985E\u578B\u8A08\u7B97\uFF0C\u4E00\u500B\u76EE\u6A19\u540C\u6642\u5C6C\u65BC\u5E7E\u500B\u985E\u578B\u6642\uFF0C\u5404\u985E\u578B\u7684\u52A0\u6210\u6703\u4E00\u8D77\u7B97\u9032\u53BB\u3002\u672C\u4F5C\u6C92\u6709\u547D\u4E2D\u7387\uFF1A\u6BCF\u4E00\u767C\u90FD\u6703\u6253\u4E2D\u3002"
+  },
+  {
+    id: "rate-of-fire",
+    name: "\u5C04\u901F",
+    nameEn: "Rate of fire",
+    refName: null,
+    slug: "elements/Rate_of_Fire",
+    menu: true,
+    summary: "\u5169\u6B21\u653B\u64CA\u4E4B\u9593\u7684\u9593\u9694\u3002",
+    text: "\u5C04\u901F\u662F\u5169\u6B21\u653B\u64CA\u4E4B\u9593\u8981\u7B49\u591A\u4E45\uFF0C\u6578\u5B57\u8D8A\u5C0F\u6253\u5F97\u8D8A\u5FEB\u3002\u8FD1\u6230\u7684\u9593\u9694\u7167\u539F\u4F5C\u7684\u79D2\u6578\u4E58\u4EE5\u4E00\u500B\u6BD4\u4F8B\uFF0C\u9060\u7A0B\u7167\u53E6\u4E00\u500B\u6BD4\u4F8B\u63DB\u7B97\u6210\u672C\u4F5C\u7684\u7BC0\u62CD\uFF0C\u6240\u4EE5\u5169\u8005\u7684\u76F8\u5C0D\u5FEB\u6162\u8207\u539F\u4F5C\u4E00\u81F4\u3002\u706B\u6230\u8239\u8FD1\u8DDD\u96E2\u9023\u7E8C\u5674\u706B\uFF0C\u662F\u5168\u904A\u6232\u6700\u5FEB\u7684\uFF1B\u653B\u57CE\u5668\u8207\u706B\u85E5\u55AE\u4F4D\u6700\u6162\u3002\u62C7\u6307\u74B0\u3001\u65E5\u672C\u6B65\u5175\u8207\u8499\u53E4\u99AC\u5F13\u9A0E\u5175\u7B49\u79D1\u6280\u8207\u6587\u660E\u52A0\u6210\u6703\u8B93\u9593\u9694\u8B8A\u77ED\u3002"
+  },
+  {
+    id: "frame-delay",
+    name: "\u958B\u706B\u9593\u9694",
+    nameEn: "Frame delay",
+    refName: null,
+    slug: "elements/Frame_delay",
+    menu: true,
+    summary: "\u9060\u7A0B\u55AE\u4F4D\u5C0D\u65B0\u76EE\u6A19\u7684\u7B2C\u4E00\u767C\u8981\u5148\u7784\u6E96\u591A\u4E45\u3002",
+    text: "\u958B\u706B\u9593\u9694\u53EA\u5F71\u97FF\u5C0D\u65B0\u76EE\u6A19\u7684\u7B2C\u4E00\u767C\uFF1A\u9060\u7A0B\u55AE\u4F4D\u958B\u59CB\u653B\u64CA\u4E00\u500B\u525B\u9078\u4E0A\u7684\u76EE\u6A19\u6642\u8981\u5148\u7AD9\u5B9A\u7784\u6E96\uFF0C\u4E4B\u5F8C\u7684\u6BCF\u4E00\u767C\u5C31\u7167\u5C04\u901F\u3002\u7784\u6E96\u6642\u53EA\u8981\u4E00\u8D70\u52D5\u5C31\u5F97\u91CD\u4F86\uFF0C\u6240\u4EE5\u908A\u6253\u908A\u9000\u7684\u62C9\u6253\u6230\u8853\u6709\u4EE3\u50F9\uFF0C\u8FD1\u6230\u55AE\u4F4D\u8FFD\u5F97\u4E0A\u9060\u7A0B\u55AE\u4F4D\u3002\u8FD1\u6230\u55AE\u4F4D\u8207\u8239\u96BB\u6C92\u6709\u958B\u706B\u9593\u9694\u3002"
+  },
+  {
+    id: "area-of-effect",
+    name: "\u64F4\u6563\u7BC4\u570D",
+    nameEn: "Area of effect",
+    refName: null,
+    slug: "elements/Area_of_Effect",
+    menu: true,
+    summary: "\u4E00\u6B21\u50B7\u5BB3\u5230\u597D\u5E7E\u500B\u76EE\u6A19\u7684\u653B\u64CA\u3002",
+    text: "\u6295\u77F3\u8ECA\u7CFB\u8207\u706B\u7832\u7684\u7832\u5F48\u843D\u5730\u6642\uFF0C\u7BC4\u570D\u5167\u7684\u55AE\u4F4D\u90FD\u6703\u53D7\u50B7\uFF0C\u9023\u81EA\u5DF1\u4EBA\u4E5F\u4E0D\u4F8B\u5916\uFF08\u5C04\u64CA\u8005\u672C\u8EAB\u9664\u5916\uFF09\uFF1B\u7206\u7834\u8239\u7CFB\u3001\u6230\u72FC\u865F\u7B49\u5176\u4ED6\u7BC4\u570D\u653B\u64CA\u53EA\u50B7\u6575\u4EBA\u3002\u6230\u8C61\u8E10\u8E0F\u76EE\u6A19\u65C1\u7684\u6575\u5175\uFF0C\u62DC\u5360\u5EAD\u8056\u9A0E\u5175\u7814\u7A76\u5F8C\u52E4\u5F8C\u4E5F\u6703\u8E10\u8E0F\uFF1B\u5F29\u7832\u7684\u5F29\u7BAD\u6703\u8CAB\u7A7F\uFF0C\u6253\u5230\u5F8C\u65B9\u8DEF\u7DDA\u4E0A\u7684\u6575\u5175\uFF1B\u88DD\u7532\u885D\u649E\u8ECA\u8207\u91CD\u578B\u885D\u649E\u8ECA\u649E\u64CA\u5EFA\u7BC9\u6642\uFF0C\u9644\u8FD1\u7684\u6575\u65B9\u5EFA\u7BC9\u4E5F\u4E00\u8D77\u53D7\u640D\u3002"
+  },
+  {
+    id: "team-bonus",
+    name: "\u5718\u968A\u52A0\u5206",
+    nameEn: "Team bonus",
+    refName: "\u5718\u968A\u52A0\u5206",
+    slug: "elements/Team_Bonus",
+    menu: true,
+    summary: "\u539F\u4F5C\u8207\u76DF\u53CB\u5171\u4EAB\u7684\u6587\u660E\u52A0\u6210\u3002",
+    text: "\u539F\u4F5C\u7684\u5718\u968A\u52A0\u5206\u6703\u5206\u4EAB\u7D66\u540C\u76DF\u7684\u6240\u6709\u73A9\u5BB6\u3002\u672C\u4F5C\u662F\u4E00\u5C0D\u4E00\uFF0C\u6C92\u6709\u76DF\u53CB\uFF0C\u6240\u4EE5\u5718\u968A\u52A0\u5206\u53EA\u5C0D\u81EA\u5DF1\u751F\u6548\uFF1B\u6BCF\u500B\u6587\u660E\u7684\u5718\u968A\u52A0\u5206\u7167\u5E38\u5217\u5728\u6587\u660E\u9801\uFF0C\u6548\u679C\u8207\u4E00\u822C\u52A0\u6210\u4E00\u8D77\u8A08\u7B97\u3002"
+  },
+  {
+    id: "relic",
+    name: "\u8056\u7269",
+    nameEn: "Relic",
+    refName: "\u907A\u8DE1",
+    slug: "elements/Relic",
+    menu: true,
+    summary: "\u50E7\u4FB6\u642C\u9032\u4FEE\u9053\u9662\u5F8C\u6301\u7E8C\u7522\u751F\u9EC3\u91D1\u3002",
+    text: "\u5C0D\u6230\u5716\u4E0A\u6563\u843D\u8457\u8056\u7269\uFF0C\u53EA\u6709\u50E7\u4FB6\u80FD\u642C\uFF0C\u642C\u8457\u8056\u7269\u7684\u50E7\u4FB6\u4E0D\u80FD\u8F49\u5316\u3002\u8056\u7269\u653E\u9032\u4FEE\u9053\u9662\u5F8C\u6703\u6301\u7E8C\u7522\u751F\u9EC3\u91D1\uFF0C\u4FEE\u9053\u9662\u88AB\u6467\u6BC0\u6216\u8F49\u5316\u6642\u8056\u7269\u6389\u5728\u539F\u5730\u3002\u6536\u96C6\u5230\u5730\u5716\u4E0A\u6240\u6709\u7684\u8056\u7269\u5F8C\u958B\u59CB\u5012\u6578\uFF0C\u6490\u5230\u5012\u6578\u7D50\u675F\u5C31\u7372\u52DD\u3002"
+  },
+  {
+    id: "taunts",
+    name: "\u5632\u8AF7\u8A9E\u97F3",
+    nameEn: "Taunts",
+    refName: null,
+    slug: "elements/Taunts",
+    menu: true,
+    summary: "\u7528\u7DE8\u865F\u9001\u51FA\u7684\u8A9E\u97F3\u8A0A\u606F\u3002",
+    text: "\u5728\u6230\u5834\u4E0A\u6309\u8F38\u5165\u9375\u6253\u958B\u804A\u5929\u5217\uFF0C\u8F38\u5165\u7DE8\u865F\u5F8C\u518D\u6309\u4E00\u6B21\u5C31\u9001\u51FA\uFF1B\u7DE8\u865F\u8981\u653E\u5728\u6700\u524D\u9762\uFF0C\u5F8C\u9762\u7684\u6587\u5B57\u6703\u7565\u904E\u3002\u96D9\u65B9\u90FD\u770B\u5F97\u5230\u8A0A\u606F\uFF0C\u96FB\u8166\u4E5F\u6703\u5728\u767C\u73FE\u6575\u4EBA\u3001\u51FA\u5175\u6216\u57CE\u93AE\u4E2D\u5FC3\u544A\u6025\u6642\u5632\u8AF7\u3002\u672C\u4F5C\u6C92\u6709\u9304\u97F3\uFF0C\u53EA\u5728\u96FB\u8166\u4E0A\u6709\u4E2D\u6587\u8A9E\u97F3\u6642\u6717\u8B80\uFF0C\u62EC\u865F\u5167\u7684\u8072\u97F3\u4E0D\u6717\u8B80\uFF1B\u9078\u55AE\u88E1\u53EF\u4EE5\u95DC\u6389\u6717\u8B80\u3002"
+  },
+  {
+    id: "conversion",
+    name: "\u62DB\u964D",
+    nameEn: "Conversion",
+    refName: "\u62DB\u964D",
+    slug: "elements/Conversion",
+    menu: false,
+    summary: "\u50E7\u4FB6\u628A\u6575\u65B9\u55AE\u4F4D\u8B8A\u6210\u81EA\u5DF1\u7684\u3002",
+    text: "\u50E7\u4FB6\u8D70\u5230\u5C04\u7A0B\u5167\u5F8C\u958B\u59CB\u62DB\u964D\uFF0C\u6BCF\u4E00\u6B21\u5617\u8A66\u7D04\u4E00\u79D2\uFF1A\u524D\u5E7E\u6B21\u4E00\u5B9A\u5931\u6557\uFF0C\u4E4B\u5F8C\u6BCF\u6B21\u90FD\u6709\u56FA\u5B9A\u6A5F\u6703\u6210\u529F\uFF0C\u5230\u4E0A\u9650\u6642\u4FDD\u8B49\u6210\u529F\u3002\u6210\u529F\u5F8C\u50E7\u4FB6\u7684\u4FE1\u4EF0\u6B78\u96F6\uFF0C\u8981\u7B49\u4E00\u6BB5\u6642\u9593\u624D\u80FD\u518D\u62DB\u964D\u3002\u7814\u7A76\u6551\u8D16\u624D\u80FD\u62DB\u964D\u5EFA\u7BC9\uFF0C\u7814\u7A76\u8D16\u7F6A\u624D\u80FD\u62DB\u964D\u50E7\u4FB6\uFF1B\u57CE\u93AE\u4E2D\u5FC3\u3001\u57CE\u5821\u3001\u4FEE\u9053\u9662\u3001\u8FB2\u7530\u3001\u57CE\u7246\u8207\u5947\u89C0\u6C38\u9060\u4E0D\u80FD\u62DB\u964D\u3002\u5FE0\u8AA0\u4FE1\u4EF0\u8207\u689D\u9813\u7684\u5718\u968A\u52A0\u5206\u8B93\u55AE\u4F4D\u66F4\u96E3\u88AB\u62DB\u964D\u3002"
+  },
+  {
+    id: "line-of-sight",
+    name: "\u8996\u91CE",
+    nameEn: "Line of sight",
+    refName: null,
+    slug: "elements/Line_of_Sight",
+    menu: false,
+    summary: "\u55AE\u4F4D\u8207\u5EFA\u7BC9\u80FD\u770B\u591A\u9060\uFF0C\u4EE5\u53CA\u6230\u722D\u8FF7\u9727\u3002",
+    text: "\u6BCF\u500B\u55AE\u4F4D\u8207\u5EFA\u7BC9\u90FD\u6703\u63ED\u958B\u5468\u570D\u7684\u6230\u722D\u8FF7\u9727\uFF1B\u770B\u904E\u7684\u5730\u65B9\u6703\u8A18\u4F4F\u7576\u6642\u770B\u5230\u7684\u5EFA\u7BC9\uFF0C\u4F46\u770B\u4E0D\u5230\u4E4B\u5F8C\u7684\u8B8A\u5316\u3002\u88AB\u770B\u4E0D\u5230\u7684\u6575\u4EBA\u6253\u5230\u6642\uFF0C\u6703\u77ED\u66AB\u770B\u898B\u653B\u64CA\u8005\u6240\u5728\u7684\u4F4D\u7F6E\u3002\u57CE\u93AE\u77AD\u671B\u8207\u57CE\u93AE\u5DE1\u908F\u8B93\u5EFA\u7BC9\u770B\u5F97\u66F4\u9060\uFF0C\u4E00\u4E9B\u6587\u660E\u7684\u52A0\u6210\u4E5F\u6703\u589E\u52A0\u7279\u5B9A\u55AE\u4F4D\u6216\u5EFA\u7BC9\u7684\u8996\u91CE\u3002"
+  }
+];
+var elementLacks = {
+  armor: [{ name: "\u9DF9\u52C7\u58EB\u3001\u50AD\u5175\u3001\u9F9C\u7532\u8239\u7B49\u9632\u79A6\u985E\u578B", reason: "\u672C\u4F5C\u53EA\u6709\u539F\u7248\u5341\u4E09\u500B\u6587\u660E\uFF0C\u9019\u4E9B\u985E\u578B\u7684\u55AE\u4F4D\u4E0D\u5728\u904A\u6232\u88E1" }],
+  regeneration: [{ name: "\u82F1\u96C4\u56DE\u8840", reason: "\u672C\u4F5C\u6C92\u6709\u6230\u5F79\u8207\u82F1\u96C4" }, { name: "\u67CF\u67CF\u7684\u99F1\u99DD\u56DE\u8840\uFF08\u99AC\u683C\u62C9\u6BD4\u99F1\u99DD\uFF09", reason: "\u67CF\u67CF\u4E0D\u5728\u672C\u4F5C\u7684\u6587\u660E\u88E1" }],
+  garrison: [{ name: "\u653B\u57CE\u5854", reason: "\u672C\u4F5C\u7167\u539F\u7248\u7684\u55AE\u4F4D\u8868\uFF0C\u653B\u57CE\u5854\u662F\u5F8C\u4F86\u7684\u8CC7\u6599\u7247\u624D\u52A0\u5165" }, { name: "\u9AD8\u68C9\u7684\u6C11\u5C45\u9032\u99D0", reason: "\u9AD8\u68C9\u4E0D\u5728\u672C\u4F5C\u7684\u6587\u660E\u88E1" }, { name: "\u6751\u6C11\u9032\u99D0\u885D\u649E\u8ECA", reason: "\u672C\u4F5C\u7167\u539F\u7248\u898F\u5247\uFF0C\u53EA\u6709\u6B65\u5175\u8207\u5F92\u6B65\u5F13\u5175\u80FD\u4E0A\u885D\u649E\u8ECA" }],
+  "hit-points": [{ name: "\u653B\u57CE\u5668\u4FEE\u7406\u6539\u82B1\u9EC3\u91D1", reason: "\u672C\u4F5C\u7684\u55AE\u4F4D\u4FEE\u7406\u4E00\u5F8B\u7167\u539F\u50F9\u5404\u8CC7\u6E90\u7684\u4E00\u534A\u8A08\u7B97" }],
+  attack: [{ name: "\u547D\u4E2D\u7387\u8207\u5F48\u9053\u5B78", reason: "\u672C\u4F5C\u6BCF\u4E00\u767C\u90FD\u6703\u6253\u4E2D\uFF0C\u6C92\u6709\u5931\u6E96\u7684\u5F48\u9053" }],
+  "rate-of-fire": [{ name: "\u98A8\u7434\u7832\u3001\u71B1\u90A3\u4E9E\u5F29\u624B\u7B49\u55AE\u4F4D", reason: "\u672C\u4F5C\u53EA\u6709\u539F\u7248\u5341\u4E09\u500B\u6587\u660E" }],
+  "frame-delay": [],
+  "area-of-effect": [{ name: "\u65AF\u62C9\u592B\u6B65\u5175\u7684\u8E10\u8E0F\u3001\u77DB\u8C61\u4F15\u3001\u8863\u7D22\u6BD4\u4E9E\u7684\u626D\u529B\u5F48\u5C04\u5668", reason: "\u9019\u4E9B\u6587\u660E\u4E0D\u5728\u672C\u4F5C" }, { name: "\u6295\u77F3\u8ECA\u6253\u5012\u6A39\u6728", reason: "\u672C\u4F5C\u7684\u7BC4\u570D\u50B7\u5BB3\u53EA\u6253\u55AE\u4F4D\u8207\u5EFA\u7BC9" }],
+  "team-bonus": [{ name: "\u8207\u76DF\u53CB\u5171\u4EAB\u52A0\u6210", reason: "\u672C\u4F5C\u662F\u4E00\u5C0D\u4E00\uFF0C\u6C92\u6709\u76DF\u53CB" }, { name: "\u5176\u4ED6\u6587\u660E\u7684\u5718\u968A\u52A0\u5206", reason: "\u672C\u4F5C\u53EA\u6709\u539F\u7248\u5341\u4E09\u500B\u6587\u660E" }],
+  relic: [{ name: "\u8207\u76DF\u53CB\u4E00\u8D77\u9054\u6210\u8056\u7269\u52DD\u5229", reason: "\u672C\u4F5C\u662F\u4E00\u5C0D\u4E00" }, { name: "\u7DEC\u7538\u7684\u8056\u7269\u4F4D\u7F6E\u3001\u963F\u8332\u7279\u514B\u7684\u8056\u7269\u52A0\u6210", reason: "\u9019\u4E9B\u6587\u660E\u4E0D\u5728\u672C\u4F5C" }],
+  taunts: [{ name: "\u9304\u88FD\u7684\u8A9E\u97F3", reason: "\u672C\u4F5C\u4E0D\u8F09\u5165\u5916\u90E8\u6A94\u6848\uFF0C\u53EA\u7528\u96FB\u8166\u672C\u6A5F\u7684\u4E2D\u6587\u8A9E\u97F3\u6717\u8B80" }],
+  conversion: [{ name: "\u897F\u73ED\u7259\u7684\u7570\u7AEF\u5BE9\u5224\u8207\u50B3\u6559\u58EB", reason: "\u897F\u73ED\u7259\u4E0D\u5728\u672C\u4F5C\u7684\u6587\u660E\u88E1" }, { name: "\u65A5\u5019\u7CFB\u8207\u9DF9\u52C7\u58EB\u7684\u62DB\u964D\u6297\u6027\u7B49\u7D1A", reason: "\u672C\u4F5C\u7684\u62DB\u964D\u53EA\u7528\u6B21\u6578\uFF0C\u4E0D\u5206\u6297\u6027\u7B49\u7D1A" }],
+  "line-of-sight": [{ name: "\u88FD\u5716\u5B78\uFF08\u5206\u4EAB\u76DF\u53CB\u8996\u91CE\uFF09", reason: "\u672C\u4F5C\u662F\u4E00\u5C0D\u4E00\uFF0C\u6C92\u6709\u76DF\u53CB" }, { name: "\u8FFD\u8E64\uFF08\u6B65\u5175\u8996\u91CE\uFF09", reason: "\u7DB2\u7AD9\u6240\u5728\u5E74\u4EE3\u5DF2\u4F75\u5165\u7B2C\u4E8C\u6642\u4EE3" }]
+};
+var tacticsIntro = "\u6230\u8853\u6280\u5DE7\u6574\u7406\u81EA aoetw.com \u7684\u300C\u6230\u8853\u6280\u5DE7\u300D\u9801\uFF1A\u57FA\u790E\u5347\u7D1A\u3001\u963F\u62C9\u4F2F\u5730\u5716\u7684\u4E3B\u6D41\u6253\u6CD5\u8207\u63A7\u5175\u6280\u5DE7\u3002\u6BCF\u7A2E\u6253\u6CD5\u5217\u51FA\u7DB2\u7AD9\u7684\u8CC7\u8A0A\u6846\u3001\u7167\u672C\u4F5C\u6BD4\u4F8B\u63DB\u7B97\u7684\u6D41\u7A0B\u3001\u53CD\u5236\u65B9\u6CD5\uFF0C\u4EE5\u53CA\u96FB\u8166\u5728\u672C\u4F5C\u600E\u9EBC\u6253\uFF1B\u63A7\u5175\u6280\u5DE7\u8AAA\u660E\u7DB2\u7AD9\u7684\u610F\u601D\uFF0C\u518D\u8AAA\u660E\u5728\u672C\u4F5C\u600E\u9EBC\u505A\u3002\u7DB2\u7AD9\u7684\u6D41\u7A0B\u4EE5\u5169\u767E\u4EBA\u53E3\u3001\u5347\u7B2C\u4E8C\u6642\u4EE3\u4E94\u767E\u98DF\u7269\u8A08\u7B97\uFF0C\u672C\u4F5C\u7684\u4EBA\u53E3\u4E0A\u9650\u8207\u5347\u7D1A\u8CBB\u7528\u4E0D\u540C\uFF0C\u6751\u6C11\u6578\u7D04\u70BA\u7DB2\u7AD9\u7684\u4E00\u534A\uFF0C\u662F design_default\uFF0C\u4E0D\u662F\u539F\u4F5C\u6578\u64DA\u3002";
+var tacticsNote = "\u6230\u8853\u6280\u5DE7\u6574\u7406\u81EA aoetw.com\uFF08\u963F\u62C9\u4F2F\u4E00\u5C0D\u4E00\uFF0C\u7DB2\u7AD9\u6A19\u793A\u70BA\u672A\u5B8C\u6210\u7684\u9801\u9762\uFF09\uFF1B\u6D41\u7A0B\u8207\u96FB\u8166\u7684\u6253\u6CD5\u53D6\u81EA\u672C\u4F5C\u7684\u958B\u5C40\u8CC7\u6599\uFF0C\u547D\u4E2D\u7387\u3001\u5F48\u9053\u901F\u5EA6\u8207\u59FF\u614B\u7684\u6578\u5B57\u5373\u6642\u53D6\u81EA\u6A21\u64EC\u3002\u8DDD\u96E2\u4EE5\u683C\u8A08\uFF08\u4E00\u683C\u662F\u5730\u5716\u4E0A\u7684\u4E00\u500B\u65B9\u683C\uFF09\uFF0C\u6642\u9593\u4EE5\u672C\u4F5C\u7684\u79D2\u8A08\u3002";
+var basicUpgradesText = "\u7DB2\u7AD9\u76EE\u9304\u7684\u300C\u57FA\u790E\u5347\u7D1A\u300D\u5217\u4E86\u6A19\u6E96\u5347\u5C01\u5EFA\u3001\u6A19\u6E96\u5347\u57CE\u5821\u3001\u5C01\u5FEB\u5347\u7D1A\u6559\u5B78\u8207\u57CE\u5FEB\u5347\u7D1A\u6559\u5B78\uFF0C\u4F46\u90FD\u6C92\u6709\u7368\u7ACB\u7684\u9801\u9762\uFF1A\u524D\u5169\u9805\u53EA\u662F\u76EE\u9304\u4E0A\u7684\u6587\u5B57\uFF0C\u5F8C\u5169\u9805\u662F\u5169\u6BB5\u5F71\u7247\u7684\u6A19\u984C\u3002\u672C\u4F5C\u4E0D\u6536\u9304\u5F71\u7247\uFF1B\u5404\u6253\u6CD5\u9801\u7684\u6D41\u7A0B\u5C31\u662F\u7167\u7DB2\u7AD9\u958B\u5C40\u63DB\u7B97\u7684\u5347\u7D1A\u6B65\u9A5F\uFF0C\u7DF4\u7FD2\u5347\u7D1A\u53EF\u4EE5\u5F9E\u90A3\u88E1\u958B\u59CB\u3002";
+var basicUpgradeItems = ["\u6A19\u6E96\u5347\u5C01\u5EFA", "\u6A19\u6E96\u5347\u57CE\u5821", "\u5C01\u5FEB\u5347\u7D1A\u6559\u5B78", "\u57CE\u5FEB\u5347\u7D1A\u6559\u5B78"];
+var tacticProse = [
+  // 主流打法, in the order of the site's list.
+  {
+    id: "armstower",
+    name: "\u88DD\u7532\u5854",
+    nameEn: "Men-at-arms into towers",
+    slug: "ar/armstower",
+    group: "opening",
+    how: null,
+    summary: "\u91CD\u6B65\u5175\u63A9\u8B77\u6751\u6C11\u5230\u5C0D\u65B9\u8CC7\u6E90\u9EDE\u84CB\u7BAD\u5854\uFF0C\u9AD8\u98A8\u96AA\u9AD8\u5831\u916C\u3002",
+    text: "\u4E0A\u7B2C\u4E8C\u6642\u4EE3\u5F8C\u7528\u91CD\u6B65\u5175\u63A9\u8B77\u524D\u7F6E\u7684\u6751\u6C11\uFF0C\u5728\u5C0D\u65B9\u7684\u679C\u6A39\u3001\u9EC3\u91D1\u6216\u77F3\u982D\u65C1\u84CB\u7BAD\u5854\u5C01\u9396\u8CC7\u6E90\uFF0C\u518D\u4E00\u5EA7\u63A5\u4E00\u5EA7\u5730\u63D2\u4E0B\u53BB\uFF0C\u8B93\u5C0D\u65B9\u7684\u7D93\u6FDF\u7671\u7613\u3002\u5C0D\u65B9\u8CC7\u6E90\u9760\u5916\u3001\u5C0D\u65B9\u5931\u8AA4\uFF0C\u6216\u5C0D\u65B9\u60F3\u76F4\u63A5\u4E0A\u57CE\u5821\u6642\u6700\u9069\u5408\u51FA\u624B\uFF1B\u5C0D\u65B9\u7684\u8CC7\u6E90\u90FD\u5728\u5BB6\u88E1\u6642\u5C31\u4E0D\u8A72\u6253\u3002\u7BAD\u5854\u7F3A\u4E4F\u4FDD\u8B77\u6642\u5BB9\u6613\u88AB\u6751\u6C11\u62C6\u6389\uFF0C\u7DB2\u7AD9\u5EFA\u8B70\u990A\u6210\u5728\u5854\u4E0B\u84CB\u7246\u7684\u7FD2\u6163\u3002"
+  },
+  {
+    id: "scrush",
+    name: "\u8089\u99AC\u958B\u5C40",
+    nameEn: "Scout rush",
+    slug: "ar/scrush",
+    group: "opening",
+    how: null,
+    summary: "\u7B2C\u4E8C\u6642\u4EE3\u51FA\u65A5\u5019\u9A37\u64FE\uFF0C\u6A5F\u52D5\u9AD8\u3001\u597D\u4E0A\u624B\u3001\u6253\u6CD5\u9748\u6D3B\u3002",
+    text: "\u65A5\u5019\u662F\u7B2C\u4E8C\u6642\u4EE3\u6A5F\u52D5\u6700\u5F37\u7684\u5175\u7A2E\uFF0C\u6BBA\u6751\u6C11\u5FEB\uFF0C\u4E5F\u524B\u6563\u5175\u8207\u5C11\u91CF\u5F13\u5175\u3002\u4E0A\u7B2C\u4E8C\u6642\u4EE3\u5F8C\u84CB\u99AC\u5EC4\uFF0C\u51FA\u5E7E\u96BB\u65A5\u5019\u9A37\u64FE\u5C0D\u65B9\u7684\u8CC7\u6E90\u9EDE\uFF0C\u9047\u5230\u524D\u7F6E\u5854\u653B\u53EF\u4EE5\u914D\u5408\u6751\u6C11\u5F37\u62C6\uFF0C\u5C0D\u65B9\u9F9C\u5BB6\u6436\u57CE\u5821\u4E5F\u80FD\u524D\u7F6E\u65A5\u5019\u52A0\u5854\u3002\u5C0D\u65B9\u628A\u5BB6\u570D\u6B7B\u3001\u51FA\u5F88\u591A\u9577\u69CD\u5175\uFF0C\u6216\u662F\u6253\u88DD\u7532\u5854\u6642\uFF0C\u5C31\u8981\u679C\u65B7\u8F49\u6563\u5175\u6216\u5F13\u5175\u3002"
+  },
+  {
+    id: "archerstar",
+    name: "\u5C0F\u5F13\u958B\u5C40",
+    nameEn: "Archer opening",
+    slug: "ar/archerstar",
+    group: "opening",
+    how: null,
+    summary: "\u5169\u5EA7\u9776\u5834\u51FA\u5F13\u624B\uFF0C\u4E0D\u82B1\u98DF\u7269\uFF0C\u53EF\u4EE5\u4E00\u8DEF\u63A5\u4E0A\u57CE\u5821\u6642\u4EE3\u3002",
+    text: "\u5F13\u624B\u4E0D\u82B1\u98DF\u7269\uFF0C\u53EF\u4EE5\u4E00\u908A\u9032\u653B\u4E00\u908A\u5B58\u9322\u4E0A\u57CE\u5821\uFF1B\u6210\u5F62\u6162\u4F46\u5F8C\u52C1\u5927\uFF0C\u4E0A\u57CE\u5821\u5F8C\u5347\u7D1A\u5F29\u624B\u7E7C\u7E8C\u6253\uFF0C\u4E5F\u6BD4\u65A5\u5019\u4E0D\u6015\u6728\u7246\u3002\u4E00\u958B\u59CB\u4E00\u5169\u96BB\u5F13\u624B\u5E7E\u4E4E\u6C92\u6709\u653B\u64CA\u529B\uFF0C\u5BB9\u6613\u88AB\u65A5\u5019\u6436\u653B\uFF0C\u6240\u4EE5\u901A\u5E38\u5148\u51FA\u4E00\u96BB\u9577\u69CD\u5175\u3002\u5C0D\u624B\u51FA\u6563\u5175\u6642\uFF0C\u8981\u9069\u6642\u8ABF\u6574\u7D93\u6FDF\uFF0C\u6DF7\u9032\u9577\u69CD\u5175\u6216\u6563\u5175\u3002"
+  },
+  {
+    id: "armstar",
+    name: "\u88DD\u7532\u958B\u5C40",
+    nameEn: "Men-at-arms opening",
+    slug: "ar/armstar",
+    group: "opening",
+    how: null,
+    summary: "\u5347\u7B2C\u4E8C\u6642\u4EE3\u6642\u51FA\u6C11\u5175\u9A37\u64FE\uFF0C\u4E0A\u53BB\u5F8C\u5347\u7D1A\u91CD\u6B65\u5175\u3002",
+    text: "\u9EDE\u4E0B\u7B2C\u4E8C\u6642\u4EE3\u5C31\u51FA\u4E09\u96BB\u6C11\u5175\u53BB\u9A37\u64FE\u5C0D\u65B9\u7684\u7D93\u6FDF\uFF0C\u53EF\u4EE5\u64CB\u4E0B\u5C0D\u65B9\u7684\u524D\u7F6E\u8207\u9ED1\u5FEB\uFF0C\u904B\u6C23\u597D\u9084\u80FD\u6293\u5230\u6B63\u5728\u84CB\u5EFA\u7BC9\u7684\u6751\u6C11\uFF0C\u5C31\u7B97\u6C92\u6BBA\u5230\u4EBA\uFF0C\u4E5F\u6703\u8B93\u5C0D\u65B9\u7684\u7D93\u6FDF\u5927\u4E82\u3002\u4E0A\u7B2C\u4E8C\u6642\u4EE3\u5F8C\u6C11\u5175\u6C92\u6298\u640D\u592A\u591A\u5C31\u7814\u7A76\u91CD\u6B65\u5175\uFF0C\u5BB6\u88E1\u6539\u84CB\u9776\u5834\u6216\u99AC\u5EC4\uFF0C\u914D\u5F13\u5175\u6216\u65A5\u5019\u7E7C\u7E8C\u653B\u64CA\u3002\u91CD\u6B65\u5175\u6015\u5F13\u5175\uFF0C\u7B2C\u4E8C\u6642\u4EE3\u4E2D\u5F8C\u671F\u56E0\u70BA\u8D70\u5F97\u6162\u9010\u6F38\u6C92\u7528\u3002"
+  },
+  {
+    id: "brushtof",
+    name: "\u9ED1\u5FEB\u8F49\u5C01",
+    nameEn: "Drush into Feudal",
+    slug: "ar/brushtof",
+    group: "opening",
+    how: null,
+    summary: "\u9ED1\u6697\u6642\u4EE3\u6D3E\u6C11\u5175\u9A37\u64FE\uFF0C\u518D\u4EE5\u8F03\u597D\u7684\u7D93\u6FDF\u4E0A\u7B2C\u4E8C\u6642\u4EE3\u3002",
+    text: "\u9ED1\u6697\u6642\u4EE3\u6D3E\u4E09\u96BB\u6C11\u5175\u9A37\u64FE\uFF0C\u7D93\u6FDF\u914D\u7F6E\u5230\u8F03\u591A\u4EBA\u53E3\u624D\u5347\u7B2C\u4E8C\u6642\u4EE3\uFF0C\u65E2\u63D0\u65E9\u653B\u64CA\u3001\u8B93\u5C0D\u65B9\u624B\u5FD9\u8173\u4E82\uFF0C\u53C8\u80FD\u6B63\u5E38\u4E0A\u5C01\u5EFA\u6C7A\u6230\uFF0C\u4E5F\u80FD\u9632\u6B62\u5C0D\u65B9\u5927\u570D\u5BB6\u3002\u4E0A\u7B2C\u4E8C\u6642\u4EE3\u5F8C\u6C11\u5175\u9084\u591A\u5C31\u8F49\u91CD\u6B65\u5175\uFF0C\u518D\u770B\u5C0D\u65B9\u914D\u5175\u8F49\u9577\u69CD\u5175\u6216\u5F13\u5175\uFF1B\u7D93\u6FDF\u8F03\u597D\uFF0C\u53EF\u4EE5\u5F88\u5FEB\u84CB\u5169\u5EA7\u9776\u5834\u52A0\u9435\u5320\u92EA\u5347\u7D1A\u7FBD\u7BAD\u3002\u63A7\u597D\u9ED1\u6697\u6642\u4EE3\u7684\u6C11\u5175\uFF0C\u9019\u500B\u6253\u6CD5\u624D\u6210\u7ACB\u3002"
+  },
+  {
+    id: "brushfc",
+    name: "\u9ED1\u5FEB\u6436\u57CE",
+    nameEn: "Drush fast castle",
+    slug: "ar/brushfc",
+    group: "opening",
+    how: null,
+    summary: "\u6C11\u5175\u5728\u524D\u9762\u722D\u53D6\u6642\u9593\uFF0C\u5BB6\u88E1\u5FEB\u901F\u5347\u5230\u57CE\u5821\u6642\u4EE3\u3002",
+    text: "\u9ED1\u6697\u6642\u4EE3\u51FA\u4E09\u96BB\u4EE5\u4E0A\u7684\u6C11\u5175\u5E72\u64FE\u5C0D\u624B\uFF0C\u76E1\u91CF\u62D6\u5EF6\u6642\u9593\uFF0C\u81EA\u5DF1\u8D81\u6A5F\u570D\u5BB6\u3001\u5B58\u9322\uFF0C\u5B89\u5168\u4E14\u5FEB\u901F\u5730\u5347\u4E0A\u57CE\u5821\u6642\u4EE3\uFF0C\u518D\u7528\u512A\u52E2\u7684\u6642\u4EE3\u5175\u7A2E\u53D6\u52DD\u3002\u5730\u5F62\u8981\u975E\u5E38\u597D\u624D\u6253\uFF0C\u9EC3\u91D1\u548C\u6A39\u6728\u4E0D\u597D\u5B88\u7684\u7A7A\u66E0\u5730\u5716\u4E0D\u9069\u5408\u3002\u767C\u73FE\u5C0D\u65B9\u5F88\u665A\u624D\u4E0A\u5C01\u5EFA\uFF0C\u901A\u5E38\u5C31\u662F\u5728\u6436\u57CE\uFF0C\u524D\u7F6E\u7BAD\u5854\u3001\u5BB6\u88E1\u6316\u77F3\u982D\u662F\u5E38\u898B\u7684\u53CD\u5236\uFF1B\u6436\u57CE\u5F88\u6015\u88DD\u7532\u5854\u3002"
+  },
+  {
+    id: "towerrush",
+    name: "\u7D14\u5854",
+    nameEn: "Tower rush",
+    slug: "ar/towerrush",
+    group: "opening",
+    how: null,
+    summary: "\u53EA\u6D3E\u6751\u6C11\u524D\u7F6E\u84CB\u7BAD\u5854\uFF0C\u4E0D\u51FA\u5176\u4ED6\u5175\u7A2E\u3002",
+    text: "\u4E0D\u84CB\u5175\u71DF\u3001\u4E0D\u51FA\u5175\uFF0C\u628A\u7701\u4E0B\u7684\u8CC7\u6E90\u63DB\u6210\u66F4\u591A\u6751\u6C11\u8207\u7BAD\u5854\uFF1A\u9EDE\u5C01\u5F8C\u6D3E\u6751\u6C11\u5230\u5C0D\u65B9\u5BB6\uFF0C\u5728\u77F3\u982D\u6216\u5176\u4ED6\u8CC7\u6E90\u5340\u540C\u6642\u8D77\u5169\u5EA7\u5854\u4E92\u76F8\u63A9\u8B77\uFF0C\u518D\u4E00\u5EA7\u63A5\u4E00\u5EA7\u5730\u63D2\u4E0B\u53BB\u3002\u5C0D\u65B9\u4F86\u62C6\u5854\u6642\u8981\u7ACB\u523B\u5728\u5854\u4E0B\u84CB\u6728\u7246\uFF0C\u5F88\u5403\u624B\u901F\u3002\u5C0D\u624B\u8CC7\u6E90\u90FD\u5728\u5916\u9762\u6642\u6548\u679C\u6700\u597D\uFF0C\u5730\u5F62\u597D\u6642\u5C31\u5854\u4E0D\u5230\u6771\u897F\uFF1B\u53CD\u5236\u662F\u65E9\u9EDE\u627E\u5230\u524D\u7F6E\u7684\u6751\u6C11\uFF0C\u6216\u8005\u6316\u77F3\u982D\u3001\u7814\u7A76\u57CE\u93AE\u77AD\u671B\uFF0C\u4EE5\u5854\u5B88\u5854\u3002"
+  },
+  {
+    id: "eglerush",
+    name: "\u8001\u9DF9\u958B\u5C40",
+    nameEn: "Eagle scout opening",
+    slug: "ar/eglerush",
+    group: "opening",
+    how: null,
+    summary: "\u7B2C\u4E8C\u6642\u4EE3\u51FA\u9DF9\u65A5\u5019\uFF0C\u662F\u4E2D\u7F8E\u6D32\u6587\u660E\u7684\u5C08\u5C6C\u6253\u6CD5\u3002",
+    text: "\u4E0A\u7B2C\u4E8C\u6642\u4EE3\u5F8C\u84CB\u5169\u5EA7\u5175\u71DF\u51FA\u9DF9\u65A5\u5019\uFF0C\u9069\u6642\u642D\u914D\u9577\u69CD\u5175\u6216\u6563\u5175\u9A37\u64FE\u5C0D\u624B\uFF1B\u9DF9\u65A5\u5019\u5403\u7684\u98DF\u7269\u5C11\uFF0C\u53EF\u4EE5\u5F88\u5FEB\u4E0A\u57CE\u5821\u5347\u7D1A\u9DF9\u52C7\u58EB\u3002\u5F13\u624B\u6210\u5F62\u5F8C\u8207\u628A\u5BB6\u570D\u6B7B\u90FD\u80FD\u524B\u5236\u5B83\u3002\u9019\u662F\u4E2D\u7F8E\u6D32\u4E09\u570B\u7684\u5C08\u5C6C\u6253\u6CD5\uFF0C\u672C\u4F5C\u7684\u539F\u7248\u6587\u660E\u90FD\u6C92\u6709\u9DF9\u65A5\u5019\uFF0C\u6240\u4EE5\u4E0D\u80FD\u73A9\u3002"
+  },
+  {
+    id: "fontrush",
+    name: "\u524D\u7F6E\u69CD\u77DB",
+    nameEn: "Forward spears and skirmishers",
+    slug: "ar/fontrush",
+    group: "opening",
+    how: null,
+    summary: "\u5728\u5C0D\u65B9\u9644\u8FD1\u524D\u7F6E\u5175\u71DF\uFF0C\u7528\u9577\u69CD\u5175\u8207\u6563\u5175\u58D3\u8FEB\u3002",
+    text: "\u9EDE\u5C01\u5F8C\u6D3E\u6751\u6C11\u5230\u5C0D\u65B9\u9644\u8FD1\u524D\u7F6E\u5175\u71DF\uFF0C\u4E0A\u7B2C\u4E8C\u6642\u4EE3\u5148\u51FA\u9577\u69CD\u5175\uFF0C\u518D\u84CB\u5169\u5EA7\u9776\u5834\u51FA\u6563\u5175\uFF0C\u6751\u6C11\u6301\u7E8C\u5728\u5C0D\u65B9\u8CC7\u6E90\u5340\u63D2\u5854\uFF0C\u7528\u69CD\u77DB\u63A9\u8B77\u63A8\u9032\uFF0C\u9084\u7B97\u80FD\u524B\u5236\u50B3\u7D71\u7684\u65A5\u5019\u8207\u5F13\u624B\u958B\u5C40\u3002\u58D3\u8FEB\u611F\u5F88\u5F37\uFF0C\u4F46\u98A8\u96AA\u9AD8\u3001\u5831\u916C\u4E0D\u5982\u88DD\u7532\u5854\uFF1B\u9ED1\u6697\u6C11\u5175\u8F49\u91CD\u6B65\u5175\u6293\u5230\u524D\u7F6E\u7684\u6751\u6C11\u5C31\u80FD\u5316\u89E3\u3002\u7DB2\u7AD9\u7684\u300C\u77DB\u5175\u300D\u662F\u672C\u4F5C\u7684\u6563\u5175\uFF0C\u300C\u69CD\u5175\u300D\u662F\u9577\u69CD\u5175\u3002"
+  },
+  {
+    id: "bbrush",
+    name: "\u9ED1\u6697\u7206\u6C11\u5175",
+    nameEn: "Dark Age militia rush",
+    slug: "ar/bbrush",
+    group: "opening",
+    how: null,
+    summary: "\u505C\u5728\u9ED1\u6697\u6642\u4EE3\u4E0D\u65B7\u51FA\u6C11\u5175\uFF0C\u7528\u4EBA\u6D77\u9A37\u64FE\u5C0D\u624B\u3002",
+    text: "\u63D0\u65E9\u84CB\u5175\u71DF\uFF0C\u6751\u6C11\u548C\u6C11\u5175\u4E0D\u65B7\u751F\u7522\uFF0C\u7528\u4EBA\u6D77\u6230\u8853\u9A37\u64FE\u5C0D\u624B\u3001\u727D\u5236\u5C0D\u65B9\u7684\u5C01\u5EFA\u9032\u653B\uFF0C\u81EA\u5DF1\u4E00\u908A\u7A2E\u7530\u3001\u570D\u7246\uFF0C\u80FD\u4E0A\u5C01\u5EFA\u5C31\u4E0A\uFF0C\u77ED\u66AB\u505C\u7559\u5F8C\u8DF3\u57CE\u5821\u3002\u81EA\u5DF1\u5347\u7D1A\u5927\u5931\u8AA4\u6642\uFF0C\u4F8B\u5982\u6253\u7375\u6B7B\u4E86\u6751\u6C11\u3001\u88AB\u5077\u4E86\u91CE\u8C6C\uFF0C\u4E7E\u8106\u7559\u5728\u9ED1\u6697\u6642\u4EE3\u6253\u4E00\u6CE2\u3002\u7F3A\u9EDE\u662F\u5F88\u597D\u9632\u5B88\uFF0C\u6728\u7246\u5C31\u64CB\u5F97\u4F4F\uFF0C\u5C0D\u65B9\u4E0A\u5C01\u5EFA\u5F8C\u51FA\u5F13\u5175\u5373\u53EF\u5316\u89E3\u3002"
+  },
+  // 控兵技巧, in the site's order.
+  {
+    id: "pull",
+    name: "\u62C9\u5175",
+    nameEn: "Pulling back",
+    slug: "ar",
+    group: "micro",
+    summary: "\u628A\u88AB\u570D\u6BC6\u7684\u5175\u62C9\u8D70\uFF0C\u8B93\u6575\u4EBA\u8FFD\u8457\u7260\u8DD1\u3002",
+    text: "\u5C0D\u65B9\u570D\u653B\u4F60\u7684\u5175\u6642\uFF0C\u628A\u8840\u5C11\u3001\u88AB\u9396\u5B9A\u7684\u90A3\u96BB\u62C9\u8D70\uFF0C\u8B93\u6575\u4EBA\u8FFD\u8457\u7260\u8DD1\u537B\u6253\u4E0D\u5230\uFF0C\u5176\u4ED6\u5175\u8D81\u6A5F\u4E0A\u524D\u5305\u570D\uFF1B\u9A0E\u58EB\u4E94\u5C0D\u4E94\u6642\uFF0C\u4E00\u96BB\u88AB\u4E09\u96BB\u8FFD\u8457\u5F80\u5F8C\u62C9\uFF0C\u5C31\u8B8A\u6210\u56DB\u6253\u4E8C\u3002\u9060\u7A0B\u90E8\u968A\u4E92\u5C04\u6642\u4E5F\u80FD\u628A\u88AB\u5C04\u7684\u5175\u62C9\u958B\uFF0C\u6216\u8B93\u7260\u5728\u6575\u4EBA\u9762\u524D\u5DE6\u53F3\u79FB\u52D5\uFF0C\u8B93\u5C0D\u65B9\u7684\u7BAD\u843D\u7A7A\uFF1B\u5C0D\u65B9\u7814\u7A76\u5F48\u9053\u5B78\u5F8C\u6548\u679C\u5C31\u5C0F\u4E86\u3002",
+    how: "\u9078\u53D6\u88AB\u8FFD\u7684\u55AE\u4F4D\uFF0C\u53F3\u9375\u628A\u7260\u62C9\u5230\u5F8C\u65B9\uFF0C\u5176\u4ED6\u55AE\u4F4D\u518D\u53F3\u9375\u653B\u64CA\u8FFD\u5175\u3002\u672C\u4F5C\u7684\u7BAD\u6703\u98DB\u4E00\u6BB5\u6642\u9593\uFF0C\u6C92\u6709\u5F48\u9053\u5B78\u6642\u7784\u6E96\u7684\u662F\u767C\u5C04\u7576\u4E0B\u7684\u4F4D\u7F6E\uFF0C\u6240\u4EE5\u79FB\u52D5\u4E2D\u7684\u55AE\u4F4D\u5E38\u5E38\u8EB2\u5F97\u6389\uFF1B\u4E0D\u9084\u64CA\u59FF\u614B\u8B93\u55AE\u4F4D\u4E0D\u6703\u505C\u4E0B\u4F86\u56DE\u64CA\uFF0C\u5DE6\u53F3\u79FB\u52D5\u6642\u4E5F\u4E0D\u6703\u88AB\u62D6\u4F4F\u3002"
+  },
+  {
+    id: "surround",
+    name: "\u5305\u570D",
+    nameEn: "Surrounding",
+    slug: "ar",
+    group: "micro",
+    summary: "\u9A0E\u5175\u6563\u958B\u3001\u7E5E\u5230\u5F13\u5175\u524D\u65B9\uFF0C\u64CB\u4F4F\u5C0D\u65B9\u8D70\u4F4D\u3002",
+    text: "\u9060\u7A0B\u90E8\u968A\u6703\u4E00\u908A\u8D70\u4F4D\u4E00\u908A\u9EDE\u5C04\u8FFD\u4F86\u7684\u8FD1\u6230\u55AE\u4F4D\uFF0C\u53EA\u5728\u5F8C\u9762\u8FFD\u8D95\u53EA\u6703\u4E00\u96BB\u96BB\u88AB\u9EDE\u6389\u3002\u9A0E\u5175\u9047\u5230\u6574\u7FA4\u5F13\u5175\u6642\u8981\u5206\u6563\u968A\u5F62\uFF0C\u9810\u5224\u5C0D\u65B9\u7684\u53BB\u5411\uFF0C\u885D\u5230\u4ED6\u5011\u524D\u9762\u64CB\u4F4F\u8D70\u4F4D\u3001\u6253\u4E82\u968A\u5F62\uFF1B\u885D\u9032\u53BB\u524D\u5148\u7528\u4E0D\u9084\u64CA\u59FF\u614B\u52A0\u5DE1\u908F\uFF0C\u5C31\u5B9A\u4F4D\u5F8C\u518D\u6539\u56DE\u81EA\u52D5\u653B\u64CA\u3002",
+    how: "\u9078\u53D6\u9A0E\u5175\u5207\u6210\u4E0D\u9084\u64CA\u59FF\u614B\uFF0C\u7528\u5206\u6563\u79FB\u52D5\u6216\u5DE1\u908F\u7E5E\u5230\u5F13\u5175\u7684\u524D\u65B9\uFF1B\u5230\u4F4D\u5F8C\u5207\u56DE\u653B\u64CA\u59FF\u614B\uFF0C\u9A0E\u5175\u5C31\u6703\u81EA\u52D5\u627E\u9644\u8FD1\u7684\u6575\u4EBA\u6253\u3002\u55AE\u4F4D\u5F7C\u6B64\u4E0D\u80FD\u7A7F\u904E\uFF0C\u64CB\u5728\u5F13\u5175\u524D\u9762\u7684\u9A0E\u5175\u6703\u771F\u7684\u5835\u4F4F\u4ED6\u5011\u7684\u8DEF\u3002"
+  },
+  {
+    id: "focus",
+    name: "\u9EDE\u5C04",
+    nameEn: "Focus fire",
+    slug: "ar",
+    group: "micro",
+    summary: "\u6240\u6709\u9060\u7A0B\u5175\u96C6\u4E2D\u706B\u529B\uFF0C\u5148\u6253\u6B7B\u4E00\u500B\u76EE\u6A19\u3002",
+    text: "\u63A7\u5F29\u624B\u3001\u99AC\u5F13\u9A0E\u5175\u7B49\u9060\u7A0B\u5175\u7684\u57FA\u672C\u529F\uFF1A\u8B93\u6240\u6709\u9060\u7A0B\u5175\u4E00\u8D77\u653B\u64CA\u540C\u4E00\u500B\u76EE\u6A19\uFF0C\u6253\u6B7B\u518D\u63DB\u4E0B\u4E00\u500B\uFF0C\u628A\u706B\u529B\u7528\u5230\u6700\u5927\uFF0C\u6700\u6709\u6548\u7387\u5730\u6BBA\u50B7\u6575\u4EBA\u3002\u5206\u6563\u653B\u64CA\u6642\u6BCF\u500B\u76EE\u6A19\u90FD\u53EA\u53D7\u4E00\u9EDE\u50B7\uFF0C\u6575\u4EBA\u4E00\u96BB\u4E5F\u6C92\u5C11\uFF0C\u53CD\u64CA\u7684\u706B\u529B\u4E5F\u5C31\u6C92\u6709\u6E1B\u5F31\u3002",
+    how: "\u6846\u9078\u6240\u6709\u9060\u7A0B\u5175\uFF0C\u53F3\u9375\u540C\u4E00\u500B\u6575\u4EBA\uFF1B\u76EE\u6A19\u5012\u4E0B\u5F8C\uFF0C\u653B\u64CA\u59FF\u614B\u7684\u55AE\u4F4D\u6703\u81EA\u52D5\u627E\u6700\u8FD1\u7684\u6575\u4EBA\u3002\u63DB\u65B0\u76EE\u6A19\u6642\u9060\u7A0B\u5175\u8981\u91CD\u65B0\u7784\u6E96\uFF0C\u983B\u7E41\u63DB\u76EE\u6A19\u6703\u640D\u5931\u8F38\u51FA\uFF1B\u547D\u4E2D\u7387\u4E0D\u5230\u767E\u5206\u4E4B\u767E\u7684\u55AE\u4F4D\uFF0C\u96C6\u706B\u6642\u4E5F\u6703\u6709\u5E7E\u767C\u843D\u7A7A\u3002"
+  },
+  {
+    id: "clump",
+    name: "\u5408\u5175",
+    nameEn: "Clumping",
+    slug: "ar",
+    group: "micro",
+    summary: "\u8B93\u9060\u7A0B\u5175\u64E0\u5728\u4E00\u8D77\uFF0C\u7E2E\u5C0F\u53D7\u653B\u64CA\u7684\u9762\u3002",
+    text: "\u8B93\u9060\u7A0B\u5175\u5408\u5728\u4E00\u8D77\uFF0C\u53D7\u653B\u64CA\u7684\u8868\u9762\u6700\u5C0F\u3001\u5B58\u6D3B\u7387\u8F03\u9AD8\u3002\u53EF\u4EE5\u5229\u7528\u6A39\u6728\u4E4B\u9593\u3001\u6C34\u5CB8\u908A\u6216\u5169\u68DF\u5EFA\u7BC9\u4E4B\u9593\u7684\u5C4F\u969C\uFF1B\u7A7A\u5730\u4E0A\u5247\u7528\u5805\u5B88\u4F4D\u7F6E\u52A0\u5DE1\u908F\u518D\u505C\u6B62\uFF0C\u8B93\u5175\u758A\u5728\u4E00\u8D77\u3002\u9047\u5230\u6575\u65B9\u7684\u6295\u77F3\u8ECA\u6642\uFF0C\u5408\u5175\u6703\u5F88\u5403\u8667\u3002",
+    how: "\u672C\u4F5C\u7684\u55AE\u4F4D\u4E00\u683C\u53EA\u7AD9\u4E00\u500B\uFF0C\u5F7C\u6B64\u4E0D\u80FD\u91CD\u758A\uFF0C\u505A\u4E0D\u5230\u7DB2\u7AD9\u8AAA\u7684\u628A\u5175\u758A\u5728\u4E00\u8D77\uFF1B\u80FD\u505A\u7684\u662F\u628A\u9060\u7A0B\u5175\u5E36\u5230\u6A39\u6797\u6216\u5EFA\u7BC9\u4E4B\u9593\u7684\u7A84\u8655\uFF0C\u7528\u5805\u5B88\u59FF\u614B\u7AD9\u597D\uFF0C\u53EA\u8B93\u524D\u6392\u9762\u5C0D\u6575\u4EBA\u3002\u64E0\u6210\u4E00\u5718\u6642\uFF0C\u6295\u77F3\u8ECA\u8207\u706B\u7832\u7684\u7206\u70B8\u6703\u4E00\u6B21\u6253\u4E2D\u5F88\u591A\u96BB\uFF0C\u81EA\u5DF1\u7684\u7832\u4E5F\u6703\u8AA4\u50B7\u3002"
+  },
+  {
+    id: "spread",
+    name: "\u5206\u6563",
+    nameEn: "Spreading out",
+    slug: "ar",
+    group: "micro",
+    summary: "\u6563\u958B\u9583\u8EB2\u653B\u64CA\uFF0C\u9583\u904E\u518D\u6536\u5408\u3002",
+    text: "\u9583\u8EB2\u5C0D\u65B9\u653B\u64CA\u6642\uFF0C\u7528\u5206\u6563\u8207\u96C6\u4E2D\u7684\u5FEB\u6377\u9375\u8B93\u5175\u5F80\u5169\u5074\u6563\u958B\u518D\u6536\u56DE\uFF1B\u521D\u671F\u4E00\u7FA4\u65A5\u5019\u8EB2\u907F\u6575\u4EBA\u7684\u7BAD\u6642\u5F88\u597D\u7528\uFF0C\u9060\u7A0B\u90E8\u968A\u9583\u8EB2\u6295\u77F3\u8ECA\u6642\u66F4\u662F\u5FC5\u5099\u3002",
+    how: "\u79FB\u52D5\u6642\u9078\u64C7\u5206\u6563\u79FB\u52D5\uFF0C\u55AE\u4F4D\u4E4B\u9593\u6703\u591A\u7A7A\u4E00\u683C\u7AD9\u958B\uFF1B\u6295\u77F3\u8ECA\u7684\u77F3\u982D\u8981\u98DB\u4E00\u6BB5\u6642\u9593\uFF0C\u843D\u5728\u767C\u5C04\u6642\u7784\u6E96\u7684\u4F4D\u7F6E\uFF0C\u770B\u5230\u5B83\u767C\u5C04\u5C31\u6563\u958B\uFF0C\u77F3\u982D\u5C31\u6703\u843D\u7A7A\u6216\u53EA\u6253\u5230\u5C11\u6578\u3002\u8981\u6536\u5408\u6642\u7528\u4E00\u822C\u79FB\u52D5\u5373\u53EF\u3002"
+  },
+  {
+    id: "dodge",
+    name: "\u9583\u8EB2",
+    nameEn: "Dodging",
+    slug: "ar",
+    group: "micro",
+    summary: "\u5C0D\u65B9\u6C92\u6709\u5F48\u9053\u5B78\u6642\uFF0C\u6A6B\u5411\u79FB\u52D5\u5C31\u80FD\u8EB2\u958B\u7BAD\u3002",
+    text: "\u5728\u5C0D\u65B9\u7814\u7A76\u5F48\u9053\u5B78\u4E4B\u524D\uFF0C\u7BAD\u77E2\u5F88\u5BB9\u6613\u9583\u8EB2\uFF1A\u8B93\u55AE\u4F4D\u5C0D\u8457\u5C04\u64CA\u8005\u6A6B\u5411\u79FB\u52D5\uFF0C\u5C31\u80FD\u628A\u50B7\u5BB3\u964D\u5230\u6700\u4F4E\u3002\u521D\u671F\u65A5\u5019\u63A2\u5716\u7D93\u904E\u6575\u4EBA\u7684\u57CE\u93AE\u4E2D\u5FC3\u88AB\u653E\u7BAD\u6642\u4E00\u5B9A\u8981\u7528\u3002",
+    how: "\u672C\u4F5C\u7684\u7BAD\u8207\u7832\u5F48\u90FD\u6703\u98DB\u3002\u6C92\u6709\u5F48\u9053\u5B78\u6642\uFF0C\u7BAD\u7784\u6E96\u767C\u5C04\u7576\u4E0B\u76EE\u6A19\u6240\u5728\u7684\u4F4D\u7F6E\uFF0C\u98DB\u5230\u6642\u76EE\u6A19\u5DF2\u7D93\u8D70\u958B\u5C31\u843D\u7A7A\uFF1B\u7814\u7A76\u5F48\u9053\u5B78\u5F8C\uFF0C\u5F13\u5175\u3001\u6230\u8239\u8207\u9632\u79A6\u5EFA\u7BC9\u6703\u9810\u5224\u79FB\u52D5\u7684\u65B9\u5411\u3002\u4E0B\u8868\u5217\u51FA\u6BCF\u7A2E\u9060\u7A0B\u55AE\u4F4D\u7684\u547D\u4E2D\u7387\u3001\u5F48\u9053\u901F\u5EA6\u8207\u5F48\u9053\u5B78\u662F\u5426\u6709\u6548\uFF1B\u6C92\u547D\u4E2D\u7684\u7BAD\u843D\u5728\u76EE\u6A19\u9644\u8FD1\uFF0C\u53EF\u80FD\u6253\u5230\u65C1\u908A\u7684\u6575\u4EBA\u3002"
+  },
+  {
+    id: "split",
+    name: "\u5206\u5175",
+    nameEn: "Splitting",
+    slug: "ar",
+    group: "micro",
+    summary: "\u88AB\u8FFD\u6642\u628A\u88AB\u9396\u5B9A\u7684\u5175\u62C9\u958B\uFF0C\u5176\u4ED6\u5175\u56DE\u982D\u6253\u3002",
+    text: "\u548C\u5206\u6563\u3001\u62C9\u5175\u7684\u9053\u7406\u76F8\u540C\uFF1A\u6575\u4EBA\u8FFD\u8457\u6211\u65B9\u55AE\u4F4D\u8DD1\u6642\uFF0C\u628A\u88AB\u9396\u5B9A\u7684\u90A3\u96BB\u62C9\u958B\uFF0C\u5176\u4ED6\u55AE\u4F4D\u5411\u524D\u653B\u64CA\uFF0C\u8B93\u8FFD\u5175\u4E00\u8DEF\u88AB\u6253\u6B7B\u3002\u521D\u671F\u65A5\u5019\u6BBA\u6751\u6C11\u88AB\u9577\u69CD\u5175\u8FFD\u8D95\u6642\u7D93\u5E38\u4F7F\u7528\u3002",
+    how: "\u628A\u88AB\u8FFD\u7684\u65A5\u5019\u5F80\u9060\u8655\u62C9\uFF0C\u5176\u4ED6\u65A5\u5019\u53F3\u9375\u653B\u64CA\u8FFD\u5175\uFF1B\u8FFD\u5175\u6703\u4E00\u76F4\u8FFD\u539F\u672C\u7684\u76EE\u6A19\u3002\u9632\u79A6\u59FF\u614B\u7684\u55AE\u4F4D\u8FFD\u4E0D\u9060\u5C31\u56DE\u982D\uFF0C\u653B\u64CA\u59FF\u614B\u7684\u6703\u4E00\u8DEF\u8FFD\u4E0B\u53BB\uFF0C\u6240\u4EE5\u5F15\u8A98\u5C0D\u65B9\u4E4B\u524D\u5148\u770B\u6E05\u695A\u5C0D\u65B9\u662F\u54EA\u4E00\u7A2E\u3002"
+  },
+  {
+    id: "block",
+    name: "\u5361\u4F4D",
+    nameEn: "Body blocking",
+    slug: "ar",
+    group: "micro",
+    summary: "\u7528\u55AE\u4F4D\u7684\u8EAB\u9AD4\u64CB\u4F4F\u6575\u4EBA\u7684\u53BB\u8DEF\u3002",
+    text: "\u8207\u5305\u570D\u6709\u9EDE\u76F8\u95DC\uFF0C\u4F46\u7528\u9014\u5F88\u591A\uFF1A\u65A5\u5019\u767C\u73FE\u5C0D\u65B9\u6751\u6C11\u5728\u6253\u7375\u6642\uFF0C\u64CB\u4F4F\u6751\u6C11\u7684\u53BB\u8DEF\uFF0C\u8B93\u91CE\u8C6C\u54AC\u4ED6\uFF1B\u6C11\u5175\u8FFD\u4E0D\u4E0A\u9003\u56DE\u57CE\u93AE\u7684\u6751\u6C11\u6642\uFF0C\u7528\u65A5\u5019\u5361\u5728\u524D\u9762\uFF0C\u8B93\u6C11\u5175\u8FFD\u4E0A\u53BB\u6253\u5012\u6751\u6C11\u3002",
+    how: "\u672C\u4F5C\u7684\u55AE\u4F4D\u5F7C\u6B64\u4E0D\u80FD\u7A7F\u904E\uFF0C\u6BCF\u500B\u55AE\u4F4D\u4F54\u4E00\u683C\uFF0C\u64CB\u5728\u8DEF\u4E0A\u7684\u55AE\u4F4D\u771F\u7684\u6703\u8B93\u5C0D\u65B9\u7E5E\u8DEF\u6216\u505C\u4E0B\u3002\u628A\u65A5\u5019\u79FB\u5230\u5C0D\u65B9\u9003\u8DD1\u65B9\u5411\u7684\u524D\u65B9\u5373\u53EF\uFF1B\u7A84\u8DEF\u3001\u6A39\u6797\u908A\u8207\u5EFA\u7BC9\u4E4B\u9593\u6700\u597D\u5361\u3002"
+  }
+];
+var tacticLacks = {
+  armstower: [{ name: "\u8D95\u9E7F", reason: "\u672C\u4F5C\u7684\u9E7F\u53EA\u6703\u5F9E\u6253\u7260\u7684\u7375\u4EBA\u8EAB\u908A\u9003\u958B\uFF0C\u8D95\u4E0D\u52D5" }, { name: "\u7DB2\u7AD9\u9EDE\u540D\u7684\u7DEC\u7538\u3001\u963F\u8332\u7279\u514B\u3001\u5370\u52A0\u3001\u99AC\u624E\u723E", reason: "\u9019\u4E9B\u6587\u660E\u4E0D\u5728\u672C\u4F5C\u7684\u539F\u7248\u6587\u660E\u88E1" }, { name: "\u96FB\u8166\u5728\u5854\u4E0B\u84CB\u7246", reason: "\u96FB\u8166\u4E0D\u84CB\u7246\uFF0C\u7DB2\u7AD9\u7684\u5EFA\u8B70\u53EA\u7559\u5728\u6D41\u7A0B\u88E1" }],
+  scrush: [{ name: "\u7DB2\u7AD9\u9EDE\u540D\u7684\u5308\u4EBA\u3001\u99AC\u624E\u723E\u3001\u5370\u5EA6", reason: "\u9019\u4E9B\u6587\u660E\u4E0D\u5728\u672C\u4F5C\u7684\u539F\u7248\u6587\u660E\u88E1" }],
+  archerstar: [{ name: "\u7DB2\u7AD9\u9EDE\u540D\u7684\u8D8A\u5357\u3001\u8863\u7D22\u6BD4\u4E9E\u3001\u99AC\u96C5", reason: "\u9019\u4E9B\u6587\u660E\u4E0D\u5728\u672C\u4F5C\u7684\u539F\u7248\u6587\u660E\u88E1" }],
+  armstar: [{ name: "\u7DB2\u7AD9\u8CC7\u8A0A\u6846\u7684\u5308\u4EBA\u3001\u99AC\u624E\u723E", reason: "\u9019\u4E9B\u6587\u660E\u4E0D\u5728\u672C\u4F5C\uFF1B\u800C\u4E14\u9019\u4E00\u6B04\u662F\u5F9E\u8089\u99AC\u958B\u5C40\u8907\u88FD\u4F86\u7684" }],
+  brushtof: [{ name: "\u8D95\u9E7F", reason: "\u672C\u4F5C\u7684\u9E7F\u53EA\u6703\u5F9E\u6253\u7260\u7684\u7375\u4EBA\u8EAB\u908A\u9003\u958B\uFF0C\u8D95\u4E0D\u52D5" }, { name: "\u7DB2\u7AD9\u8CC7\u8A0A\u6846\u7684\u5308\u4EBA", reason: "\u5308\u4EBA\u4E0D\u5728\u672C\u4F5C\u7684\u539F\u7248\u6587\u660E\u88E1" }],
+  brushfc: [{ name: "\u8D95\u9E7F", reason: "\u672C\u4F5C\u7684\u9E7F\u53EA\u6703\u5F9E\u6253\u7260\u7684\u7375\u4EBA\u8EAB\u908A\u9003\u958B\uFF0C\u8D95\u4E0D\u52D5" }, { name: "\u7DB2\u7AD9\u9EDE\u540D\u7684\u5308\u4EBA\u3001\u99AC\u96C5\u3001\u5370\u52A0\u3001\u963F\u8332\u7279\u514B", reason: "\u9019\u4E9B\u6587\u660E\u4E0D\u5728\u672C\u4F5C\u7684\u539F\u7248\u6587\u660E\u88E1" }, { name: "\u96FB\u8166\u570D\u5BB6", reason: "\u96FB\u8166\u4E0D\u84CB\u7246\uFF0C\u7DB2\u7AD9\u7684\u5EFA\u8B70\u53EA\u7559\u5728\u6D41\u7A0B\u88E1" }],
+  towerrush: [{ name: "\u8D95\u9E7F", reason: "\u672C\u4F5C\u7684\u9E7F\u53EA\u6703\u5F9E\u6253\u7260\u7684\u7375\u4EBA\u8EAB\u908A\u9003\u958B\uFF0C\u8D95\u4E0D\u52D5" }, { name: "\u7DB2\u7AD9\u9EDE\u540D\u7684\u671D\u9BAE\u3001\u897F\u73ED\u7259\u3001\u5370\u52A0\u3001\u99AC\u4F86", reason: "\u9019\u4E9B\u6587\u660E\u4E0D\u5728\u672C\u4F5C\u7684\u539F\u7248\u6587\u660E\u88E1" }],
+  eglerush: [{ name: "\u9DF9\u65A5\u5019\u8207\u9DF9\u52C7\u58EB", reason: "\u4E2D\u7F8E\u6D32\u4E09\u570B\u7684\u55AE\u4F4D\uFF0C\u672C\u4F5C\u7684\u539F\u7248\u6587\u660E\u90FD\u6C92\u6709" }],
+  fontrush: [{ name: "\u8D95\u9E7F", reason: "\u672C\u4F5C\u7684\u9E7F\u53EA\u6703\u5F9E\u6253\u7260\u7684\u7375\u4EBA\u8EAB\u908A\u9003\u958B\uFF0C\u8D95\u4E0D\u52D5" }, { name: "\u7DB2\u7AD9\u9EDE\u540D\u7684\u5308\u4EBA\u3001\u7DEC\u7538\u3001\u99AC\u624E\u723E", reason: "\u9019\u4E9B\u6587\u660E\u4E0D\u5728\u672C\u4F5C\u7684\u539F\u7248\u6587\u660E\u88E1" }],
+  bbrush: [{ name: "\u7DB2\u7AD9\u63D0\u5230\u7684\u7DEC\u7538\u8207\u897F\u73ED\u7259\u57CE\u5821\u5175", reason: "\u9019\u4E9B\u6587\u660E\u4E0D\u5728\u672C\u4F5C\u7684\u539F\u7248\u6587\u660E\u88E1" }, { name: "\u96FB\u8166\u570D\u7246", reason: "\u96FB\u8166\u4E0D\u84CB\u7246\uFF0C\u7DB2\u7AD9\u7684\u5EFA\u8B70\u53EA\u7559\u5728\u6D41\u7A0B\u88E1" }],
+  pull: [],
+  surround: [],
+  focus: [],
+  clump: [{ name: "\u628A\u5175\u758A\u5728\u4E00\u8D77", reason: "\u672C\u4F5C\u4E00\u683C\u53EA\u7AD9\u4E00\u500B\u55AE\u4F4D\uFF0C\u55AE\u4F4D\u4E0D\u80FD\u91CD\u758A" }],
+  spread: [{ name: "\u5206\u6563\u8207\u96C6\u4E2D\u7684\u5FEB\u6377\u9375", reason: "\u672C\u4F5C\u7528\u5206\u6563\u79FB\u52D5\u4EE3\u66FF\uFF0C\u6536\u5408\u7528\u4E00\u822C\u79FB\u52D5" }],
+  dodge: [],
+  split: [],
+  block: []
+};
+var eagleOpeningInfobox = { age: 2, power: "\u5F37", difficulty: "\u666E", pros: "\u5F31\u9EDE\u5C11\uFF0C\u4F46\u6210\u5F62\u6162\uFF0C\u53EF\u929C\u63A5\u57CE\u5821", cons: "\u6210\u5F62\u6162\uFF0C\u5F13\u624B\u4E00\u591A\u5C31\u4E0D\u6015\u8001\u9DF9\uFF0C\u6015\u570D\u6B7B", civs: "\u5357\u7F8E\u570B\uFF08\u963F\u8332\u7279\u514B\u3001\u99AC\u96C5\u3001\u5370\u52A0\uFF09" };
+var treeIntro = "\u79D1\u6280\u6A39\u7167 aoetw.com \u5404\u6587\u660E\u7684\u79D1\u6280\u6A39\u9801\u6392\u5217\uFF1A\u6BCF\u5EA7\u5EFA\u7BC9\u4E00\u584A\uFF0C\u7531\u4E0A\u5F80\u4E0B\u662F\u9ED1\u6697\u3001\u5C01\u5EFA\u3001\u57CE\u5821\u3001\u5E1D\u738B\u6642\u4EE3\uFF0C\u540C\u4E00\u6B04\u7531\u4E0A\u5F80\u4E0B\u662F\u5347\u7D1A\u7684\u5148\u5F8C\u3002\u9019\u500B\u6587\u660E\u6C92\u6709\u7684\u9805\u76EE\u8B8A\u6697\u4E26\u6A19\u300C\u6C92\u6709\u300D\uFF0C\u672C\u4F5C\u6C92\u6709\u7684\u53C3\u8003\u9805\u76EE\uFF08\u4F8B\u5982\u9DF9\u65A5\u5019\u3001\u653B\u57CE\u5854\uFF09\u53EF\u4EE5\u986F\u793A\u6210\u6DE1\u8272\u3002\u5C0D\u5C40\u4E2D\u6253\u958B\u6642\uFF0C\u6703\u6A19\u51FA\u4F60\u5DF2\u7814\u7A76\u3001\u5DF2\u64C1\u6709\u3001\u6B63\u5728\u9032\u884C\uFF0C\u4EE5\u53CA\u73FE\u5728\u5C31\u80FD\u505A\u7684\u9805\u76EE\u3002";
+var treeNote = "\u79D1\u6280\u6A39\u7684\u6392\u5217\u53D6\u81EA aoetw.com \u7684\u6587\u660E\u79D1\u6280\u6A39\u9801\uFF1B\u6BCF\u500B\u9805\u76EE\u80FD\u4E0D\u80FD\u7528\u3001\u8CBB\u7528\u8207\u524D\u7F6E\u90FD\u5373\u6642\u53D6\u81EA\u672C\u4F5C\u7684\u898F\u5247\uFF0C\u9EDE\u9805\u76EE\u6703\u6253\u958B\u5B83\u5728\u767E\u79D1\u7684\u90A3\u4E00\u9801\u3002";
 
 // apps/web/codex-model.ts
 var tick2 = rules.settings.tickHz;
@@ -7377,9 +8544,9 @@ function civDetail(id, civs = []) {
     if (owner && owner !== c.id) continue;
     const e = entryOf2(eid);
     if (!e) continue;
-    const at = e.kind === "building" ? "" : rules.production[eid] ?? "", key = at || "-";
-    if (!groups2.has(key)) groups2.set(key, { building: at, name: at ? nameOf(at) : "\u5EFA\u7BC9", entries: [] });
-    groups2.get(key).entries.push({ id: eid, name: e.name });
+    const at2 = e.kind === "building" ? "" : rules.production[eid] ?? "", key2 = at2 || "-";
+    if (!groups2.has(key2)) groups2.set(key2, { building: at2, name: at2 ? nameOf(at2) : "\u5EFA\u7BC9", entries: [] });
+    groups2.get(key2).entries.push({ id: eid, name: e.name });
   }
   const order = (g) => g.building ? rules.entries.findIndex((e) => e.id === g.building) : -1;
   return {
@@ -7403,7 +8570,7 @@ function civDetail(id, civs = []) {
   };
 }
 var costEntries = (cost) => resources.filter((r) => cost[r] > 0).map((r) => [r, cost[r]]);
-var codexSections = [{ id: "civs", label: "\u6587\u660E" }, { id: "units", label: "\u55AE\u4F4D" }, { id: "techs", label: "\u79D1\u6280" }, { id: "buildings", label: "\u5EFA\u7BC9" }];
+var codexSections = [{ id: "civs", label: "\u6587\u660E" }, { id: "units", label: "\u55AE\u4F4D" }, { id: "techs", label: "\u79D1\u6280" }, { id: "buildings", label: "\u5EFA\u7BC9" }, { id: "elements", label: "\u904A\u6232\u5143\u7D20" }, { id: "tactics", label: "\u6230\u8853\u6280\u5DE7" }, { id: "tree", label: "\u79D1\u6280\u6A39" }];
 var catById = new Map(unitCategories.map((c) => [c.label, c.id]));
 var refById = new Map(aoetwUnits.map((u) => [u.id, u]));
 var categoriesOf = (u) => {
@@ -7445,7 +8612,7 @@ function unitLine(kind) {
   const ids = lineStepIds(kind), base = refById.get(kind), cats = categoriesOf(base), producer = rules.production[kind] ?? "", o0 = stepOwner(kind, 0), game = inGame();
   const steps = ids.map((tech2, i) => {
     const o = stepOwner(kind, i), id = stepUnitId(kind, tech2), ref = refById.get(id), name = i ? lineUpgrades.find((u) => u.id === tech2 && u.kind === kind).name : nameOf(kind);
-    const at = rules.production[tech2] ?? "";
+    const at2 = rules.production[tech2] ?? "";
     return {
       id,
       tech: tech2,
@@ -7454,7 +8621,7 @@ function unitLine(kind) {
       refName: ref && ref.name !== name ? ref.name : null,
       text: i ? unitText[id] ?? "" : "",
       age: o.age,
-      research: i ? { name: nameOf(tech2), at: nameOf(at), cost: costOf(tech2, o), seconds: timeTicks(tech2, o, at) / tick2 } : null,
+      research: i ? { name: nameOf(tech2), at: nameOf(at2), cost: costOf(tech2, o), seconds: timeTicks(tech2, o, at2) / tick2 } : null,
       stats: statSheet(kind, o),
       lacks: stepLacking(kind, tech2)
     };
@@ -7509,9 +8676,9 @@ function unitGroups(by) {
   const item = (l, p) => ({ id: l.id, name: l.name, pending: p, steps: l.steps.length });
   if (by === "category") return unitCategories.map((c) => ({ id: c.id, label: c.label, items: [...lines.filter((l) => l.primary === c.id).map((l) => item(l, false)), ...pending.filter((l) => l.primary === c.id).map((l) => item(l, true))] })).filter((g) => g.items.length);
   const order = rules.entries.filter((e) => e.kind === "building").map((e) => e.id), groups2 = /* @__PURE__ */ new Map();
-  const add = (key, label, it) => {
-    if (!groups2.has(key)) groups2.set(key, { id: key, label, items: [] });
-    groups2.get(key).items.push(it);
+  const add = (key2, label2, it) => {
+    if (!groups2.has(key2)) groups2.set(key2, { id: key2, label: label2, items: [] });
+    groups2.get(key2).items.push(it);
   };
   for (const b of order) {
     for (const l of lines) if (l.producer === b) add(b, nameOf(b), item(l, false));
@@ -7598,29 +8765,29 @@ function prereqChain(id) {
 }
 var neutralAt = (id) => ({ civ: neutralCiv, age: minAge(id), techs: [] });
 function techVariants(id) {
-  const at = rules.production[id] ?? "", base = neutralAt(id), cost = costOf(id, base), time = timeTicks(id, base, at), out = [];
+  const at2 = rules.production[id] ?? "", base = neutralAt(id), cost = costOf(id, base), time = timeTicks(id, base, at2), out = [];
   for (const c of codexCivs()) {
     if (c.id === neutralCiv || !civAvailable(c.id, id)) continue;
-    const o = { ...base, civ: c.id }, cc = costOf(id, o), t = timeTicks(id, o, at);
+    const o = { ...base, civ: c.id }, cc = costOf(id, o), t = timeTicks(id, o, at2);
     if (t === time && resources.every((x) => cc[x] === cost[x])) continue;
-    const texts = [...activeEffects(o, "cost"), ...activeEffects(o, "costShift"), ...activeEffects(o, "time")].filter((e) => entryMatches(e.select, id)).concat(activeEffects(o, "workRate").filter((e) => buildingMatches(e.select, at))).map((e) => e.text);
+    const texts = [...activeEffects(o, "cost"), ...activeEffects(o, "costShift"), ...activeEffects(o, "time")].filter((e) => entryMatches(e.select, id)).concat(activeEffects(o, "workRate").filter((e) => buildingMatches(e.select, at2))).map((e) => e.text);
     out.push({ civ: c.id, cost: cc, seconds: t / tick2, free: !costEntries(cc).length && !!costEntries(cost).length, texts });
   }
   return out;
 }
 function techPage(id) {
-  const ref = refTech.get(id), name = nameOf(id), at = rules.production[id] ?? "", o = neutralAt(id);
+  const ref = refTech.get(id), name = nameOf(id), at2 = rules.production[id] ?? "", o = neutralAt(id);
   return {
     id,
     name,
     nameEn: ref?.nameEn ?? id,
     refName: ref && ref.name !== name ? ref.name : null,
     text: techText[id] ?? "",
-    building: at,
-    at: nameOf(at),
+    building: at2,
+    at: nameOf(at2),
     age: o.age,
     cost: costOf(id, o),
-    seconds: timeTicks(id, o, at) / tick2,
+    seconds: timeTicks(id, o, at2) / tick2,
     requires: prereqChain(id),
     unlocks: rules.entries.filter((e) => e.requires.includes(id)).map((e) => ({ id: e.id, name: e.name })),
     effects: techEffectLines(id),
@@ -7736,7 +8903,7 @@ function buildingPage(kind) {
   const ref = refBuildingById.get(kind), name = nameOf(kind), age = minAge(kind), o = neutralOwner(age), f = obstacleFootprints[kind];
   const made = producedAt(kind, o).filter((id) => entryOf2(id)), plain = made.filter((id) => !uniqueUnitOwner[id]);
   const ups = buildingUpgrades(kind), steps = ups.map((id, i) => {
-    const r = refBuildingById.get(id), at = rules.production[id] ?? "", so = neutralOwner(Math.max(age, minAge(id)), ups.slice(0, i + 1));
+    const r = refBuildingById.get(id), at2 = rules.production[id] ?? "", so = neutralOwner(Math.max(age, minAge(id)), ups.slice(0, i + 1));
     return {
       id,
       name: nameOf(id),
@@ -7744,9 +8911,9 @@ function buildingPage(kind) {
       refName: r && r.name !== nameOf(id) ? r.name : null,
       text: buildingText[id] ?? "",
       age: minAge(id),
-      at: nameOf(at),
+      at: nameOf(at2),
       cost: costOf(id, neutralOwner(minAge(id))),
-      seconds: timeTicks(id, neutralOwner(minAge(id)), at) / tick2,
+      seconds: timeTicks(id, neutralOwner(minAge(id)), at2) / tick2,
       sheet: buildingSheet(kind, so)
     };
   });
@@ -7824,12 +8991,736 @@ function buildingsOverview() {
   };
 }
 
-// apps/web/codex.ts
+// apps/web/codex-elements.ts
+var tick3 = rules.settings.tickHz;
+var nameOf2 = (id) => rules.entries.find((e) => e.id === id)?.name ?? id;
+var label = (c) => classLabel[c] ?? c;
+var tiles = (units2) => `${numberText(units2 / 100)} \u683C`;
+var secs2 = (ticks) => `${numberText(ticks / tick3)} \u79D2`;
+var perMinute = (everyTicks) => numberText(60 * tick3 / everyTicks);
+var neutral = (age = 4, techs2 = []) => ({ civ: neutralCiv, age, techs: techs2 });
+var table = (title, head, rows, note = null) => ({ kind: "table", title, note, head, rows });
+var facts = (title, items, note = null) => ({ kind: "facts", title, note, items: items.map(([label2, value]) => ({ label: label2, value })) });
+var list = (title, items, note = null) => ({ kind: "list", title, note, items });
+function unitSteps() {
+  return unitLineKinds().flatMap((kind) => lineStepIds(kind).map((tech2, i) => ({ kind, tech: tech2, name: i ? lineUpgrades.find((u) => u.id === tech2 && u.kind === kind).name : nameOf2(kind), stats: statsOf(kind, stepOwner(kind, i)) })));
+}
+function perStep(steps, value, fmt) {
+  const out = [];
+  let last2 = null;
+  for (const s of steps) {
+    const v = value(s);
+    if (!v) {
+      last2 = { kind: s.kind, v };
+      continue;
+    }
+    if (last2 && last2.kind === s.kind && last2.v === v) continue;
+    out.push(`${s.name} ${fmt(v)}`);
+    last2 = { kind: s.kind, v };
+  }
+  return out;
+}
+var signed = (v) => v > 0 ? `+${v}` : String(v);
+function armorClasses() {
+  const steps = unitSteps(), seen = /* @__PURE__ */ new Set();
+  for (const s of steps) for (const c of s.stats.classes) seen.add(c);
+  for (const b of buildKinds) for (const c of buildingClassesOf(b)) seen.add(c);
+  const order = Object.keys(classLabel);
+  return [...seen].filter((c) => c !== "animal").sort((a, b) => (order.indexOf(a) + 1 || 999) - (order.indexOf(b) + 1 || 999) || (a < b ? -1 : 1));
+}
+function classRows() {
+  const steps = unitSteps();
+  return armorClasses().map((c) => {
+    const units2 = [...new Set(steps.filter((s) => s.stats.classes.includes(c)).map((s) => nameOf2(s.kind)))];
+    const buildings2 = buildKinds.filter((b) => buildingClassesOf(b).includes(c)).map(nameOf2);
+    const bonuses = [
+      ...perStep(steps, (s) => s.stats.bonus[c] ?? 0, (v) => `+${v}`),
+      ...Object.entries(defenseRules.arrows).filter(([, a]) => a.bonus?.[c]).map(([b, a]) => `${nameOf2(b)}\u7684\u7BAD +${a.bonus[c]}`)
+    ];
+    const armor = [
+      ...perStep(steps, (s) => s.stats.classArmor?.[c] ?? 0, signed),
+      ...c === "building" ? Object.entries(buildingClassArmor).map(([b, v]) => `${nameOf2(b)} ${signed(v)}`) : []
+    ];
+    return { id: c, label: label(c), units: units2, buildings: buildings2, bonuses, armor };
+  }).filter((r) => r.bonuses.length || r.armor.length);
+}
+function damageExample(attacker, target) {
+  const a = attacker.stats, t = target.stats, kind = a.attack === "pierce" ? "\u9060\u7A0B" : "\u8FD1\u6230", armor = a.attack === "pierce" ? t.armor[1] : t.armor[0], base = Math.max(0, a.damage - armor);
+  const lines = [`\u653B\u64CA ${a.damage} \u2212 ${kind}\u8B77\u7532 ${armor} = ${base}`];
+  let sum3 = base;
+  for (const c of t.classes) {
+    const b = a.bonus[c];
+    if (!b) continue;
+    const ca = t.classArmor?.[c] ?? 0, part = Math.max(0, b - ca);
+    sum3 += part;
+    lines.push(`\u5C0D${label(c)} +${b}${ca ? ` \u2212 ${label(c)}\u8B77\u7532 ${ca} = ${part}` : ""}`);
+  }
+  const total = Math.max(1, sum3);
+  lines.push(`\u5408\u8A08 ${total}${total !== sum3 ? "\uFF08\u81F3\u5C11\u4E00\u9EDE\uFF09" : ""}`);
+  return { kind: "example", title: `${attacker.name}\u6253${target.name}`, note: null, attacker: attacker.name, target: target.name, lines, total };
+}
+var stepOf = (kind, tech2) => {
+  const i = lineStepIds(kind).indexOf(tech2);
+  return { name: i ? lineUpgrades.find((u) => u.id === tech2 && u.kind === kind).name : nameOf2(kind), stats: statsOf(kind, stepOwner(kind, Math.max(0, i))) };
+};
+var armorExamples = () => [damageExample(stepOf("spearman", "halberdier"), stepOf("war-elephant", "war-elephant")), damageExample(stepOf("spearman", "pikeman"), stepOf("cataphract", "cataphract"))];
+function armorPage() {
+  const rows = classRows();
+  return [table(
+    "\u985E\u578B\u4E00\u89BD",
+    ["\u985E\u578B", "\u55AE\u4F4D", "\u5EFA\u7BC9", "\u6709\u52A0\u6210\u7684\u653B\u64CA\u8005", "\u985E\u578B\u8B77\u7532"],
+    rows.map((r) => [r.label, r.units.join("\u3001") || "\u2014", r.buildings.join("\u3001") || "\u2014", r.bonuses.join("\u3001") || "\u2014", r.armor.join("\u3001") || "\u2014"]),
+    "\u53EA\u5217\u6709\u653B\u64CA\u8005\u52A0\u6210\u6216\u985E\u578B\u8B77\u7532\u7684\u985E\u578B\uFF1B\u6578\u503C\u5BEB\u5230\u8A72\u5175\u7A2E\u7684\u5347\u7D1A\u6B65\u9A5F\uFF0C\u300C\u985E\u578B\u8B77\u7532\u300D\u53EA\u5217\u4E0D\u662F\u96F6\u7684"
+  ), ...armorExamples()];
+}
+function attackGroups() {
+  const kinds = unitLineKinds(), base = (k) => statsOf(k, neutral(1)).attack;
+  return {
+    melee: kinds.filter((k) => base(k) === "melee").map(nameOf2),
+    pierce: kinds.filter((k) => base(k) === "pierce").map(nameOf2),
+    none: kinds.filter((k) => base(k) === "none").map(nameOf2),
+    buildings: Object.keys(defenseRules.arrows).map(nameOf2)
+  };
+}
+function attackExtremes() {
+  const armed = unitSteps().filter((s) => s.stats.attack !== "none"), hi = armed.reduce((a, b) => b.stats.damage > a.stats.damage ? b : a), lo = armed.reduce((a, b) => b.stats.damage < a.stats.damage ? b : a);
+  const arrows2 = Object.entries(defenseRules.arrows), bhi = arrows2.reduce((a, b) => b[1].damage > a[1].damage ? b : a), blo = arrows2.reduce((a, b) => b[1].damage < a[1].damage ? b : a);
+  return { highest: { name: hi.name, value: hi.stats.damage }, lowest: { name: lo.name, value: lo.stats.damage }, building: { name: nameOf2(bhi[0]), value: bhi[1].damage }, buildingLow: { name: nameOf2(blo[0]), value: blo[1].damage } };
+}
+function attackPage() {
+  const g = attackGroups(), x = attackExtremes();
+  return [
+    table("\u8FD1\u6230\u8207\u9060\u7A0B", ["\u653B\u64CA\u65B9\u5F0F", "\u55AE\u4F4D\u8207\u5EFA\u7BC9"], [["\u8FD1\u6230\uFF08\u6263\u8FD1\u6230\u8B77\u7532\uFF09", g.melee.join("\u3001")], ["\u9060\u7A0B\uFF08\u6263\u9060\u7A0B\u8B77\u7532\uFF09", [...g.pierce, ...g.buildings.map((b) => `${b}\u7684\u7BAD`)].join("\u3001")], ["\u6C92\u6709\u653B\u64CA", g.none.join("\u3001")]]),
+    facts("\u6700\u9AD8\u8207\u6700\u4F4E", [["\u55AE\u4F4D\u653B\u64CA\u6700\u9AD8", `${x.highest.name} ${x.highest.value}`], ["\u55AE\u4F4D\u653B\u64CA\u6700\u4F4E", `${x.lowest.name} ${x.lowest.value}`], ["\u5EFA\u7BC9\u653B\u64CA\u6700\u9AD8", `${x.building.name} ${x.building.value}`], ["\u5EFA\u7BC9\u653B\u64CA\u6700\u4F4E", `${x.buildingLow.name} ${x.buildingLow.value}`]], "\u672A\u7814\u7A76\u4EFB\u4F55\u79D1\u6280\u3001\u4E0D\u52A0\u6587\u660E\u52A0\u6210")
+  ];
+}
+function fireRows() {
+  const units2 = unitSteps().filter((s) => s.stats.attack !== "none").map((s) => ({ name: s.name, ticks: s.stats.cooldown }));
+  const buildings2 = Object.entries(defenseRules.arrows).map(([b, a]) => ({ name: `${nameOf2(b)}\uFF08\u7BAD\uFF09`, ticks: a.cooldown }));
+  return [...units2, ...buildings2].sort((a, b) => a.ticks - b.ticks || (a.name < b.name ? -1 : 1));
+}
+function fireGroups() {
+  const out = [];
+  for (const r of fireRows()) {
+    const last2 = out[out.length - 1];
+    if (last2 && last2.ticks === r.ticks) last2.names.push(r.name);
+    else out.push({ ticks: r.ticks, names: [r.name] });
+  }
+  return out;
+}
+function firePage() {
+  return [table("\u5C04\u64CA\u9593\u9694", ["\u5169\u6B21\u653B\u64CA\u9593\u9694", "\u55AE\u4F4D"], fireGroups().map((g) => [secs2(g.ticks), g.names.join("\u3001")]), "\u7531\u5FEB\u5230\u6162\uFF1B\u6BCF\u4E00\u6B65\u5347\u7D1A\u5404\u5217\u4E00\u6B21\uFF0C\u672A\u7814\u7A76\u5C04\u901F\u79D1\u6280")];
+}
+var frameRows = () => unitSteps().filter((s) => (s.stats.frameDelay ?? 0) > 0).map((s) => ({ name: s.name, ticks: s.stats.frameDelay })).sort((a, b) => a.ticks - b.ticks || (a.name < b.name ? -1 : 1));
+function framePage() {
+  const rows = frameRows();
+  return [
+    table("\u6709\u958B\u706B\u9593\u9694\u7684\u55AE\u4F4D", ["\u55AE\u4F4D", "\u7B2C\u4E00\u767C\u524D\u7684\u7784\u6E96"], rows.map((r) => [r.name, secs2(r.ticks)])),
+    list("\u6C92\u6709\u958B\u706B\u9593\u9694", ["\u6240\u6709\u8FD1\u6230\u55AE\u4F4D", "\u6240\u6709\u8239\u96BB", "\u6703\u5C04\u7BAD\u7684\u5EFA\u7BC9"])
+  ];
+}
+var spreadOf = (name, st) => {
+  const out = [];
+  if (st.blast) out.push({ name, effect: "\u7BC4\u570D\u50B7\u5BB3", radius: tiles(st.blast), who: st.friendlyFire ? "\u6575\u6211\u4E0D\u5206\uFF08\u5C04\u64CA\u8005\u9664\u5916\uFF09" : "\u53EA\u50B7\u6575\u4EBA" });
+  if (st.trample) out.push({ name, effect: `\u8E10\u8E0F\uFF08\u76EE\u6A19\u50B7\u5BB3\u7684 ${numberText(st.trample * 100)}%\uFF09`, radius: tiles(50), who: "\u53EA\u50B7\u6575\u4EBA" });
+  if (st.splash) out.push({ name, effect: `\u8E10\u8E0F ${st.splash} \u9EDE`, radius: tiles(50), who: "\u53EA\u50B7\u6575\u4EBA" });
+  if (st.passThrough) out.push({ name, effect: "\u8CAB\u7A7F\uFF08\u5F8C\u65B9\u6575\u5175\u53D7\u4E00\u534A\u653B\u64CA\uFF09", radius: `\u76EE\u6A19\u5F8C ${tiles(st.passThrough)}`, who: "\u53EA\u50B7\u6575\u4EBA" });
+  if (st.buildingSplash) out.push({ name, effect: "\u649E\u64CA\u5EFA\u7BC9\u6642\u6CE2\u53CA", radius: tiles(st.buildingSplash), who: "\u53EA\u50B7\u6575\u65B9\u5EFA\u7BC9" });
+  return out;
+};
+var spreadKey = (st) => JSON.stringify([st.blast ?? 0, !!st.friendlyFire, st.trample ?? 0, st.splash ?? 0, st.passThrough ?? 0, st.buildingSplash ?? 0]);
+function spreadRows() {
+  const out = unitSteps().flatMap((s) => spreadOf(s.name, s.stats));
+  for (const c of civDefs) for (const t of c.uniqueTechs) for (const kind of unitLineKinds()) {
+    const o = { civ: c.id, age: 4, techs: [t.id] }, with_ = statsOf(kind, o), without = statsOf(kind, { ...o, techs: [] });
+    if (spreadKey(with_) !== spreadKey(without)) out.push(...spreadOf(`${nameOf2(kind)}\uFF08${c.name}\u30FB${t.name}\uFF09`, with_).filter((r) => !spreadOf("", without).some((w2) => w2.effect === r.effect && w2.radius === r.radius)));
+  }
+  return out;
+}
+function spreadPage() {
+  const rows = spreadRows();
+  return [table("\u6709\u7BC4\u570D\u6548\u679C\u7684\u653B\u64CA", ["\u55AE\u4F4D", "\u6548\u679C", "\u7BC4\u570D", "\u5C0D\u8C61"], rows.map((r) => [r.name, r.effect, r.radius, r.who]))];
+}
+function hpRange() {
+  const steps = unitSteps(), lo = steps.reduce((a, b) => b.stats.hp < a.stats.hp ? b : a), hi = steps.reduce((a, b) => b.stats.hp > a.stats.hp ? b : a);
+  const bs = buildKinds.map((b) => ({ name: nameOf2(b), hp: buildingHpOf(b) })), blo = bs.reduce((a, b) => b.hp < a.hp ? b : a), bhi = bs.reduce((a, b) => b.hp > a.hp ? b : a);
+  return { unitLow: { name: lo.name, hp: lo.stats.hp }, unitHigh: { name: hi.name, hp: hi.stats.hp }, buildingLow: blo, buildingHigh: bhi };
+}
+var repairPerSecond = (kind) => {
+  const r = (kind === "building" ? repairRules.buildingRate : repairRules.unitRate) * tick3 / 100;
+  return { first: r, extra: r / 2 };
+};
+function repairCostOf(entry2) {
+  const c = { ...costOf(entry2, neutral()) };
+  if (entry2 === "town-center") {
+    c.wood *= 2;
+    c.stone = 0;
+  }
+  return Object.fromEntries(Object.entries(c).map(([k, v]) => [k, Math.floor(v * repairRules.costShare)]));
+}
+var resNames = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
+var costText = (c) => Object.entries(c).filter(([, v]) => v > 0).map(([k, v]) => `${resNames[k]} ${v}`).join("\u3001") || "\u514D\u8CBB";
+var repairExamples = ["house", "castle", "town-center", "ram", "galley"];
+function hpPage() {
+  const x = hpRange(), b = repairPerSecond("building"), u = repairPerSecond("unit");
+  return [
+    facts("\u751F\u547D\u7684\u7BC4\u570D", [["\u55AE\u4F4D\u6700\u5C11", `${x.unitLow.name} ${x.unitLow.hp}`], ["\u55AE\u4F4D\u6700\u591A", `${x.unitHigh.name} ${x.unitHigh.hp}`], ["\u5EFA\u7BC9\u6700\u5C11", `${x.buildingLow.name} ${x.buildingLow.hp}`], ["\u5EFA\u7BC9\u6700\u591A", `${x.buildingHigh.name} ${x.buildingHigh.hp}`]], "\u672A\u7814\u7A76\u4EFB\u4F55\u79D1\u6280\u3001\u4E0D\u52A0\u6587\u660E\u52A0\u6210"),
+    facts("\u4FEE\u7406", [
+      ["\u5EFA\u7BC9", `\u7B2C\u4E00\u540D\u6751\u6C11\u6BCF\u79D2 ${numberText(b.first)} \u9EDE\uFF0C\u6BCF\u591A\u4E00\u540D\u518D\u52A0 ${numberText(b.extra)} \u9EDE`],
+      ["\u653B\u57CE\u5668\u8207\u8239\u96BB", `\u7B2C\u4E00\u540D\u6751\u6C11\u6BCF\u79D2 ${numberText(u.first)} \u9EDE\uFF0C\u6BCF\u591A\u4E00\u540D\u518D\u52A0 ${numberText(u.extra)} \u9EDE`],
+      ["\u8CBB\u7528", `\u4FEE\u6EFF\u4E00\u6B21\u662F\u539F\u50F9\u7684 ${numberText(repairRules.costShare * 100)}%\uFF0C\u4F9D\u4FEE\u56DE\u7684\u751F\u547D\u9010\u9EDE\u6263\u6B3E`],
+      ["\u57CE\u93AE\u4E2D\u5FC3", "\u4E0D\u6536\u77F3\u982D\uFF0C\u6728\u6750\u52A0\u500D"],
+      ["\u8DDD\u96E2", `\u653B\u57CE\u5668 ${tiles(repairRules.siegeReach)}\u4EE5\u5167\uFF0C\u8239\u96BB\u5728\u5CB8\u4E0A ${tiles(repairRules.shipReach)}\u4EE5\u5167`],
+      ["\u4E0D\u80FD\u4FEE\u7406", repairRules.unrepairable.map(nameOf2).join("\u3001")]
+    ]),
+    table("\u4FEE\u6EFF\u4E00\u6B21\u7684\u8CBB\u7528", ["\u4FEE\u7406\u5C0D\u8C61", "\u8CBB\u7528"], repairExamples.map((e) => [nameOf2(e), costText(repairCostOf(e))]), "\u62D3\u8352\u8005\uFF08\u7121\u6587\u660E\u52A0\u6210\uFF09")
+  ];
+}
+function regenRows() {
+  const tc = defenseRules.healTicks, castle = tc / (defenseRules.healRate.castle ?? 1), herbal = garrisonHealScale(neutral(3, ["herbal-medicine"]), "town-center");
+  const berserk = statsOf("berserk", { civ: "vikings", age: 4, techs: [] }).regen ?? 0, gang = statsOf("berserk", { civ: "vikings", age: 4, techs: ["berserkergang"] }).regen ?? 0;
+  const monk = religionRules.healTicks, byz = healRateScale({ civ: "byzantines", age: 3, techs: [] });
+  return [
+    { source: nameOf2("berserk"), rate: `\u6BCF\u5206\u9418 ${berserk} \u9EDE`, note: `\u7814\u7A76\u72C2\u6230\u58EB\u5E6B\u5F8C\u6BCF\u5206\u9418 ${gang} \u9EDE` },
+    { source: "\u99D0\u8ECD\uFF1A\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u3001\u706B\u7832\u5854\u3001\u751F\u7522\u5EFA\u7BC9", rate: `\u6BCF\u5206\u9418 ${perMinute(tc)} \u9EDE`, note: `\u8349\u85E5\u6CBB\u7642\u5F8C \xD7${numberText(herbal)}` },
+    { source: "\u99D0\u8ECD\uFF1A\u57CE\u5821", rate: `\u6BCF\u5206\u9418 ${perMinute(castle)} \u9EDE`, note: `\u8349\u85E5\u6CBB\u7642\u5F8C \xD7${numberText(herbal)}` },
+    { source: "\u50E7\u4FB6\u6CBB\u7642\uFF08\u6BCF\u540D\u50E7\u4FB6\uFF09", rate: `\u6BCF\u5206\u9418 ${perMinute(monk)} \u9EDE`, note: `\u62DC\u5360\u5EAD\u7684\u5718\u968A\u52A0\u6210 \xD7${numberText(byz)}\uFF1B\u653B\u57CE\u5668\u8207\u8239\u96BB\u4E0D\u80FD\u6CBB\u7642` }
+  ];
+}
+function regenPage() {
+  return [table("\u56DE\u5FA9\u751F\u547D\u7684\u65B9\u5F0F", ["\u4F86\u6E90", "\u901F\u5EA6", "\u5099\u8A3B"], regenRows().map((r) => [r.source, r.rate, r.note]))];
+}
+var at = (kind, civ = neutralCiv) => garrisonCapacity({ civs: [civ], ages: [4], techs: [[]] }, { kind, player: 0 });
+function garrisonRows() {
+  const rows = Object.keys(defenseRules.capacity).map((k) => ({ place: nameOf2(k), capacity: String(at(k)), who: "\u6751\u6C11\u8207\u5F92\u6B65\u55AE\u4F4D\uFF08\u898B\u4E0B\u65B9\uFF09", arrows: defenseRules.arrows[k]?.shots === false ? "\u88E1\u9762\u7684\u55AE\u4F4D\u4E0D\u52A0\u7832\u5F48" : "\u6751\u6C11\u8207\u5F92\u6B65\u5F13\u5175\u52A0\u7BAD\uFF08\u898B\u4E0B\u65B9\uFF09" }));
+  for (const [k, n] of Object.entries(defenseRules.rallyGarrison)) rows.push({ place: nameOf2(k), capacity: String(n), who: "\u53EA\u6536\u81EA\u5DF1\u8A13\u7DF4\u7684\u55AE\u4F4D\uFF08\u628A\u96C6\u7D50\u9EDE\u8A2D\u5728\u5EFA\u7BC9\u4E0A\uFF09", arrows: "\u2014" });
+  const t = transportCapacityOf(neutral(4, []), navalRules.transportCapacity), t2 = transportCapacityOf(neutral(4, ["careening"]), navalRules.transportCapacity), t3 = transportCapacityOf(neutral(4, ["careening", "dry-dock"]), navalRules.transportCapacity);
+  rows.push({ place: nameOf2("transport-ship"), capacity: `${t}\uFF08\u822A\u6D77\u6280\u8853 ${t2}\u3001\u8239\u5862 ${t3}\uFF09`, who: "\u9678\u4E0A\u55AE\u4F4D", arrows: "\u2014" });
+  const ram = carrierRules.ram;
+  rows.push({
+    place: `${nameOf2("ram")}\uFF0F${lineUpgrades.find((u) => u.id === "capped-ram").name}\uFF0F${lineUpgrades.find((u) => u.id === "siege-ram").name}`,
+    capacity: `${ram.capacity.ram}\uFF0F${ram.capacity["capped-ram"]}\uFF0F${ram.capacity["siege-ram"]}`,
+    who: "\u6B65\u5175\u8207\u5F92\u6B65\u5F13\u5175",
+    arrows: `\u6BCF\u540D\u6B65\u5175\uFF1A\u901F\u5EA6 +${numberText(ram.speedPerInfantry * 100)}%\u3001\u5C0D\u5EFA\u7BC9 +${ram.buildingPerInfantry}\uFF08\u4E0A\u9650 ${ram.buildingCap.ram}\uFF0F${ram.buildingCap["capped-ram"]}\uFF0F${ram.buildingCap["siege-ram"]}\uFF09`
+  });
+  return rows;
+}
+function garrisonPage() {
+  const teutons = Object.keys(defenseRules.capacity).filter((k) => at(k, "teutons") !== at(k)).map((k) => `${nameOf2(k)} ${at(k, "teutons")}`);
+  return [
+    table("\u53EF\u4EE5\u9032\u99D0\u7684\u5730\u65B9", ["\u5730\u65B9", "\u5BB9\u91CF", "\u8AB0\u80FD\u9032\u53BB", "\u9032\u99D0\u7684\u6548\u679C"], garrisonRows().map((r) => [r.place, r.capacity, r.who, r.arrows])),
+    facts("\u898F\u5247", [
+      ["\u53D7\u640D\u64A4\u51FA", `\u5EFA\u7BC9\u751F\u547D\u5269 ${defenseRules.ejectPercent}% \u4EE5\u4E0B\u6642\u5168\u90E8\u64A4\u51FA\uFF0C\u4E5F\u4E0D\u80FD\u9032\u99D0`],
+      ["\u9418\u8072", "\u6751\u6C11\u8EB2\u9032\u6700\u8FD1\u3001\u9084\u6709\u7A7A\u4F4D\u7684\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u6216\u57CE\u5821\uFF1B\u518D\u6309\u4E00\u6B21\u56DE\u53BB\u5DE5\u4F5C"],
+      ["\u689D\u9813", teutons.length ? `\u5BB9\u91CF\u8B8A\u6210 ${teutons.join("\u3001")}` : "\u2014"]
+    ]),
+    list("\u53EF\u4EE5\u9032\u99D0\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u3001\u706B\u7832\u5854\u8207\u57CE\u5821\u7684\u55AE\u4F4D", defenseRules.canGarrison.map(nameOf2)),
+    list("\u9032\u99D0\u5F8C\u6BCF\u540D\u591A\u5C04\u4E00\u652F\u7BAD", defenseRules.addsArrow.map(nameOf2), "\u706B\u7832\u5854\u9664\u5916")
+  ];
+}
+var teamRows = () => civDefs.filter((c) => c.id !== neutralCiv).map((c) => ({ civ: c.name, texts: c.effects.filter((e) => e.scope === "team").map((e) => e.text.replace(/^團隊加成：/, "")) }));
+function teamPage() {
+  return [table("\u5404\u6587\u660E\u7684\u5718\u968A\u52A0\u5206", ["\u6587\u660E", "\u5718\u968A\u52A0\u5206"], teamRows().map((r) => [r.civ, r.texts.join("\uFF1B") || "\u2014"]), "\u4E00\u5C0D\u4E00\u6C92\u6709\u76DF\u53CB\uFF1A\u53EA\u5C0D\u81EA\u5DF1\u751F\u6548")];
+}
+var clock3 = (ticks) => {
+  const s = Math.round(ticks / tick3), m = Math.floor(s / 60);
+  return `${m} \u5206 ${s % 60} \u79D2`;
+};
+var relicFacts = () => {
+  const r = religionRules.relics;
+  return { count: r.count, goldEvery: r.goldTicks / tick3, perMonastery: r.perMonastery, victory: clock3(r.victoryTicks) };
+};
+function relicPage() {
+  const r = relicFacts();
+  return [facts("\u8056\u7269", [["\u5730\u5716\u4E0A\u7684\u6578\u91CF", `\u5C0D\u6230\u5716 ${r.count} \u500B`], ["\u7522\u751F\u9EC3\u91D1", `\u6BCF\u500B\u8056\u7269\u6BCF ${numberText(r.goldEvery)} \u79D2 1 \u9EC3\u91D1`], ["\u6BCF\u5EA7\u4FEE\u9053\u9662", `\u6700\u591A\u653E ${r.perMonastery} \u500B`], ["\u8056\u7269\u52DD\u5229", `\u6536\u9F4A\u5F8C\u6490\u904E ${r.victory}`], ["\u642C\u904B", "\u53EA\u6709\u50E7\u4FB6\u80FD\u642C\uFF1B\u642C\u8457\u8056\u7269\u4E0D\u80FD\u8F49\u5316\u6216\u9032\u99D0"]])];
+}
+var tauntRows = () => taunts.map((t) => ({ n: t.n, zh: t.zh, en: t.en, spoken: !/^（.*）$/.test(t.zh) }));
+function tauntPage() {
+  return [{ kind: "taunts", title: `\u5168\u90E8 ${taunts.length} \u53E5`, note: "\u6309\u8F38\u5165\u9375\u6253\u958B\u804A\u5929\u5217\uFF0C\u7DE8\u865F\u653E\u5728\u6700\u524D\u9762", rows: tauntRows() }];
+}
+function conversionFacts() {
+  const r = religionRules, s = r.attemptTicks / tick3;
+  return {
+    range: r.convertRange,
+    printing: r.printingRange,
+    attempt: s,
+    min: r.attempts.min,
+    max: r.attempts.max,
+    chance: r.attemptChance,
+    faithMin: r.faithAttempts.min,
+    faithMax: r.faithAttempts.max,
+    building: [r.buildingTicks.min / tick3, r.buildingTicks.max / tick3],
+    recharge: r.rechargeTicks / tick3,
+    never: r.unconvertibleBuildings.map(nameOf2)
+  };
+}
+function conversionPage() {
+  const c = conversionFacts();
+  const teuton = civDefs.find((x) => x.id === "teutons")?.effects.find((e) => e.kind === "conversionResist");
+  const monastery = techPages().filter((t) => t.building === "monastery");
+  return [
+    facts("\u62DB\u964D\u7684\u6B65\u9A5F", [
+      ["\u5C04\u7A0B", `${tiles(c.range)}\uFF08\u6D3B\u5B57\u5370\u5237 +${tiles(c.printing)}\uFF09`],
+      ["\u6BCF\u6B21\u5617\u8A66", `\u7D04 ${numberText(c.attempt)} \u79D2`],
+      ["\u55AE\u4F4D", `\u7B2C ${c.min} \u6B21\u8D77\u6BCF\u6B21 ${c.chance}% \u6210\u529F\uFF0C\u7B2C ${c.max} \u6B21\u4E00\u5B9A\u6210\u529F`],
+      ["\u7814\u7A76\u4E86\u5FE0\u8AA0\u4FE1\u4EF0\u7684\u5C0D\u624B", `\u7B2C ${c.faithMin} \u6B21\u8D77\u3001\u7B2C ${c.faithMax} \u6B21\u4E00\u5B9A\u6210\u529F`],
+      ["\u5EFA\u7BC9\uFF08\u8981\u7814\u7A76\u6551\u8D16\uFF09", `${numberText(c.building[0])}\u2013${numberText(c.building[1])} \u79D2`],
+      ["\u4FE1\u4EF0\u6062\u5FA9", `${numberText(c.recharge)} \u79D2\uFF08\u555F\u8499\u6E1B\u534A\uFF09`],
+      ["\u6C38\u9060\u4E0D\u80FD\u62DB\u964D", c.never.join("\u3001")],
+      ["\u689D\u9813", teuton ? teuton.text.replace(/^團隊加成：/, "") : "\u2014"]
+    ]),
+    list("\u4FEE\u9053\u9662\u7684\u76F8\u95DC\u79D1\u6280", monastery.map((t) => `${t.name}\uFF1A${t.effects.join("\uFF1B") || t.text}`))
+  ];
+}
+function sightRows() {
+  const v = visionRules;
+  return [
+    ["\u4E00\u822C\u55AE\u4F4D", tiles(v.unitRadius)],
+    [nameOf2("scout"), tiles(v.scoutRadius)],
+    ["\u7F8A", tiles(v.sheepRadius)],
+    [`${nameOf2("house")}\u3001${nameOf2("barracks")}\u3001${nameOf2("market")}\u3001${nameOf2("dock")}\u3001\u57CE\u9580`, tiles(v.houseRadius)],
+    [nameOf2("town-center"), tiles(v.townCenterRadius)],
+    [`${nameOf2("watch-tower")}\u3001${nameOf2("bombard-tower")}\u3001${nameOf2("castle")}`, tiles(v.towerRadius)],
+    [nameOf2("outpost"), v.outpostRadius.map((r, i) => `${ageName(i + 1)} ${tiles(r)}`).join("\u3001")],
+    ["\u57CE\u7246", tiles(v.wallRadius)],
+    [nameOf2("wonder"), tiles(v.wonderRadius)]
+  ];
+}
+function sightPage() {
+  const techs2 = techEffects.filter((e) => e.kind === "los").map((e) => e.text), civs = civDefs.flatMap((c) => c.effects.filter((e) => e.kind === "los").map((e) => `${c.name}\uFF1A${e.text}`));
+  return [
+    table("\u770B\u5F97\u591A\u9060", ["\u55AE\u4F4D\u6216\u5EFA\u7BC9", "\u8996\u91CE\u534A\u5F91"], sightRows()),
+    list("\u589E\u52A0\u8996\u91CE\u7684\u79D1\u6280", techs2),
+    list("\u589E\u52A0\u8996\u91CE\u7684\u6587\u660E\u52A0\u6210", civs),
+    facts("\u88AB\u770B\u4E0D\u5230\u7684\u6575\u4EBA\u6253\u5230\u6642", [["\u770B\u898B\u653B\u64CA\u8005", `${secs2(revealTicks)}\uFF0C\u653B\u64CA\u8005\u6240\u5728\u7684\u90A3\u4E00\u683C`]])
+  ];
+}
+var builders = {
+  armor: armorPage,
+  regeneration: regenPage,
+  garrison: garrisonPage,
+  "hit-points": hpPage,
+  attack: attackPage,
+  "rate-of-fire": firePage,
+  "frame-delay": framePage,
+  "area-of-effect": spreadPage,
+  "team-bonus": teamPage,
+  relic: relicPage,
+  taunts: tauntPage,
+  conversion: conversionPage,
+  "line-of-sight": sightPage
+};
+function elementPage(id) {
+  const p = elementProse.find((p2) => p2.id === id);
+  if (!p) return null;
+  return { ...p, blocks: builders[p.id](), lacks: elementLacks[p.id] ?? [], source: `aoetw.com/${p.slug}` };
+}
+var elementGroups = () => [{ label: "\u7DB2\u7AD9\u9078\u55AE", items: elementProse.filter((p) => p.menu) }, { label: "\u5176\u4ED6\u689D\u76EE", items: elementProse.filter((p) => !p.menu) }];
+
+// apps/web/codex-tactics.ts
+var tick4 = rules.settings.tickHz;
+var nameOf3 = (id) => rules.entries.find((e) => e.id === id)?.name ?? id;
+var civName2 = (id) => civDefs.find((c) => c.id === id)?.name ?? id;
+var playable = civDefs.filter((c) => c.id !== neutralCiv).map((c) => c.id);
+var tiles2 = (units2) => `${numberText(units2 / 100)} \u683C`;
+var secs3 = (ticks) => `${numberText(ticks / tick4)} \u79D2`;
+var clock4 = (ticks) => {
+  const s = Math.round(ticks / tick4);
+  return `${Math.floor(s / 60)} \u5206${s % 60 ? ` ${s % 60} \u79D2` : ""}`;
+};
 var resourceNames = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
+var costText2 = (c) => Object.entries(c).filter(([, v]) => v > 0).map(([r, v]) => `${resourceNames[r]} ${v}`).join("\u3001");
+var facts2 = (title, items, note = null) => ({ kind: "facts", title, note, items: items.map(([label2, value]) => ({ label: label2, value })) });
+var table2 = (title, head, rows, note = null) => ({ kind: "table", title, note, head, rows });
+var list2 = (title, items, note = null) => ({ kind: "list", title, note, items });
+function tacticGroups() {
+  const item = (p) => ({ id: p.id, name: p.name, nameEn: p.nameEn, summary: p.summary, available: p.group === "micro" || !!openings.find((o) => o.id === p.id) });
+  return [{ id: "opening", label: "\u4E3B\u6D41\u6253\u6CD5\uFF08\u963F\u62C9\u4F2F\uFF09", items: tacticProse.filter((p) => p.group === "opening").map(item) }, { id: "micro", label: "\u63A7\u5175\u6280\u5DE7", items: tacticProse.filter((p) => p.group === "micro").map(item) }];
+}
+var phaseNames = { dark: "\u9ED1\u6697\u6642\u4EE3", up: "\u5347\u7B2C\u4E8C\u6642\u4EE3\u4E2D", feudal: "\u7B2C\u4E8C\u6642\u4EE3", castle: "\u7B2C\u4E09\u6642\u4EE3" };
+function stepPhases(o) {
+  const out = [];
+  for (const s of o.steps) {
+    const label2 = phaseNames[s.phase];
+    let g = out.at(-1);
+    if (!g || g.label !== label2) {
+      g = { label: label2, steps: [] };
+      out.push(g);
+    }
+    g.steps.push({ label: s.label, check: !!s.done });
+  }
+  return out;
+}
+var civsText = (ids) => playable.every((c) => ids.includes(c)) ? `\u672C\u4F5C ${playable.length} \u500B\u6587\u660E\u90FD\u53EF\u4EE5` : ids.map(civName2).join("\u3001");
+function infobox(o) {
+  return [
+    ["\u6642\u4EE3", ageName(o.age)],
+    ["\u5A01\u529B", o.power],
+    ["\u64CD\u63A7\u96E3\u6613\u5EA6", o.difficulty],
+    ["\u512A\u9EDE", o.pros],
+    ["\u7F3A\u9EDE", o.cons],
+    ["\u9069\u5408\u6587\u660E", civsText(o.civs)],
+    ["\u7279\u5225\u9069\u5408", o.best.length ? o.best.map(civName2).join("\u3001") : "\u7DB2\u7AD9\u6C92\u6709\u9EDE\u540D\u672C\u4F5C\u7684\u6587\u660E"],
+    ["\u7DB2\u7AD9\u9801\u9762", o.page]
+  ];
+}
+var trainText = (t) => t && Object.keys(t).length ? Object.entries(t).map(([k, n]) => `${nameOf3(k)} ${n}`).join("\u3001") : null;
+var preferText = (p) => p.map((r) => gatherNames[r] ?? nameOf3(r)).join("\u3001");
+function planFacts(o) {
+  const p = o.plan, out = [["\u6751\u6C11\u76EE\u6A19", `${p.villagers} \u540D`], ["\u5347\u7B2C\u4E8C\u6642\u4EE3", p.clickOnFood ? `\u6751\u6C11 ${p.clickAt} \u540D\u8D77\uFF0C\u98DF\u7269\u4E00\u5920\u5C31\u9EDE` : `\u6751\u6C11 ${p.clickAt} \u540D\u6642\u9EDE`], ["\u7E54\u5E03\u6A5F", p.loom ? "\u5347\u7D1A\u524D\u5148\u7814\u7A76" : "\u4E0D\u7814\u7A76"]];
+  out.push(["\u5175\u71DF", p.forwardBarracks ? `\u9EDE\u5C01\u5F8C\u6D3E ${p.forwardBarracks} \u540D\u6751\u6C11\u5230\u5C0D\u65B9\u9644\u8FD1\u84CB` : p.barracks === "dark" ? `\u9ED1\u6697\u6642\u4EE3\uFF0C\u6751\u6C11 ${p.barracksAt} \u540D\u6642\u84CB` : p.barracks === "up" ? "\u5347\u7D1A\u4E2D\u84CB" : "\u958B\u5C40\u671F\u9593\u4E0D\u84CB"]);
+  for (const [phase, label2] of [["dark", "\u9ED1\u6697\u6642\u4EE3\u7684\u90E8\u968A"], ["up", "\u5347\u7D1A\u4E2D\u7684\u90E8\u968A"], ["feudal", "\u7B2C\u4E8C\u6642\u4EE3\u7684\u90E8\u968A"]]) {
+    const t = trainText(p.train[phase]);
+    if (t) out.push([label2, t]);
+  }
+  if (p.build.length) out.push(["\u7B2C\u4E8C\u6642\u4EE3\u52A0\u84CB", p.build.map((b) => `${nameOf3(b.kind)} ${b.count} \u5EA7`).join("\u3001")]);
+  if (p.research.length) out.push(["\u512A\u5148\u7814\u7A76", p.research.map(nameOf3).join("\u3001")]);
+  out.push(["\u9A37\u64FE", p.raid ? `${p.raid.kinds.map(nameOf3).join("\u8207")}\u6E4A\u5230 ${p.raid.sendAt} \u96BB\u5C31\u51FA\u767C${p.raid.reinforce ? "\uFF0C\u5F8C\u7E8C\u7684\u9678\u7E8C\u8DDF\u4E0A" : ""}` : "\u4E0D\u6D3E\u5175\u9A37\u64FE"]);
+  if (p.towers) out.push(["\u524D\u7F6E\u7BAD\u5854", `${p.towers.builders} \u540D\u6751\u6C11${p.towers.leave === "click" ? "\u9EDE\u5C01\u5F8C" : "\u958B\u5C40\u5C31"}\u51FA\u767C\uFF0C\u84CB ${p.towers.count} \u5EA7\uFF0C\u4F9D\u5E8F\u627E\u5C0D\u65B9\u7684${preferText(p.towers.prefer)}`]);
+  if (p.castle) out.push(["\u57CE\u5821\u6642\u4EE3", "\u4E0A\u7B2C\u4E8C\u6642\u4EE3\u5F8C\u7ACB\u523B\u5347\u7B2C\u4E09\u6642\u4EE3"]);
+  out.push(["\u4EA4\u7D66\u4E00\u822C\u6253\u6CD5", `${clock4(p.until.tick)}${p.until.age ? `\u6216\u5230${ageName(p.until.age)}` : ""}\u4E4B\u5F8C`]);
+  return out;
+}
+var coachText = "\u5728\u9078\u55AE\u7684\u300C\u7DF4\u7FD2\u958B\u5C40\u300D\u9078\u9019\u500B\u6253\u6CD5\uFF0C\u756B\u9762\u6703\u7167\u4E0A\u9762\u7684\u6D41\u7A0B\u9010\u6B65\u6253\u52FE\uFF1B\u6709\u6253\u52FE\u8A18\u865F\u7684\u6B65\u9A5F\u6703\u81EA\u52D5\u6AA2\u67E5\uFF0C\u6C92\u6709\u7684\u662F\u63D0\u9192\u3002";
+function openingPage(p, o) {
+  const blocks2 = [
+    facts2("\u8CC7\u8A0A\u6846", infobox(o), "\u53D6\u81EA\u7DB2\u7AD9\u7684\u8CC7\u8A0A\u6846\uFF1B\u6587\u660E\u63DB\u6210\u672C\u4F5C\u6709\u7684"),
+    { kind: "steps", title: "\u6D41\u7A0B", note: "\u4F9D\u672C\u4F5C\u6BD4\u4F8B\u63DB\u7B97\uFF08\u6751\u6C11\u6578\u7D04\u70BA\u7DB2\u7AD9\u7684\u4E00\u534A\uFF09", phases: stepPhases(o) },
+    facts2("\u5347\u7D1A\u524D\u914D\u7F6E", [["\u672C\u4F5C", o.allocation], ["\u7DB2\u7AD9", o.siteAllocation]]),
+    list2("\u53CD\u5236", [...o.counters]),
+    facts2("\u96FB\u8166\u600E\u9EBC\u6253", planFacts(o), "\u9078\u55AE\u53EF\u4EE5\u6307\u5B9A\u96FB\u8166\u7528\u9019\u500B\u958B\u5C40"),
+    list2("\u7DF4\u7FD2", [coachText])
+  ];
+  if (o.notes.length) blocks2.push(list2("\u88DC\u8A3B", [...o.notes]));
+  return { ...p, available: true, reason: null, blocks: blocks2, lacks: tacticLacks[p.id] ?? [], source: `aoetw.com/${p.slug}` };
+}
+function unavailablePage(p) {
+  const u = unavailableOpenings.find((u2) => u2.id === p.id), e = eagleOpeningInfobox;
+  return {
+    ...p,
+    available: false,
+    reason: u.reason,
+    blocks: [facts2("\u8CC7\u8A0A\u6846", [["\u6642\u4EE3", ageName(e.age)], ["\u5A01\u529B", e.power], ["\u64CD\u63A7\u96E3\u6613\u5EA6", e.difficulty], ["\u512A\u9EDE", e.pros], ["\u7F3A\u9EDE", e.cons], ["\u7DB2\u7AD9\u7684\u9069\u5408\u6587\u660E", e.civs], ["\u7DB2\u7AD9\u9801\u9762", u.page]], "\u7DB2\u7AD9\u7684\u8CC7\u8A0A\u6846\uFF1B\u672C\u4F5C\u4E0D\u80FD\u73A9")],
+    lacks: tacticLacks[p.id] ?? [],
+    source: `aoetw.com/${p.slug}`
+  };
+}
+var stanceNames = { aggressive: "\u653B\u64CA", defensive: "\u9632\u79A6", stand: "\u5805\u5B88", passive: "\u4E0D\u9084\u64CA" };
+function stanceRows() {
+  const what = {
+    aggressive: ["\u770B\u5230\u5C31\u6253", "\u4E00\u8DEF\u8FFD\u4E0B\u53BB"],
+    defensive: ["\u770B\u5230\u5C31\u6253", `\u96E2\u539F\u5730 ${tiles2(tacticsRules.defensiveLeash)}\u5C31\u653E\u68C4\u3001\u8D70\u56DE\u539F\u5730`],
+    stand: ["\u53EA\u6253\u5C04\u7A0B\u5167\u7684", "\u4E0D\u79FB\u52D5"],
+    passive: ["\u4E0D\u4E3B\u52D5\u3001\u4E0D\u9084\u64CA", "\u4E0D\u79FB\u52D5\uFF08\u4E0B\u653B\u64CA\u547D\u4EE4\u4ECD\u6703\u6253\uFF09"]
+  };
+  return stances.map((s) => ({ stance: s, name: stanceNames[s], engage: what[s][0], chase: what[s][1] }));
+}
+var ballistics = () => ({ cost: costOf("ballistics", { civ: neutralCiv, age: 3, techs: [] }), seconds: timeTicks("ballistics", { civ: neutralCiv, age: 3, techs: [] }, "university") / tick4 });
+var ballisticsFacts = () => {
+  const b = ballistics(), e = rules.entries.find((e2) => e2.id === "ballistics");
+  return [["\u7814\u7A76", `${nameOf3(rules.production.ballistics)}\u30FB${ageName(Number(e.requires.find((r) => r.startsWith("age-")).slice(4)))}`], ["\u8CBB\u7528", costText2(b.cost)], ["\u6642\u9593", `${numberText(b.seconds)} \u79D2`]];
+};
+function shotRows() {
+  const out = [];
+  for (const s of unitSteps()) {
+    const i = lineStepIds(s.kind).indexOf(s.tech), o = stepOwner(s.kind, i), base = shotOf(s.kind, o);
+    if (!base) continue;
+    const steady = Math.max(...civDefs.map((c) => shotOf(s.kind, { ...o, civ: c.id, techs: [...o.techs, "thumb-ring", ...c.uniqueTechs.map((t) => t.id)] }).steady)), led = shotOf(s.kind, { ...o, techs: [...o.techs, "ballistics"] });
+    out.push({ name: s.name, kind: s.kind, accuracy: base.accuracy, steady: steady > base.accuracy ? steady : null, speed: base.speed, lead: led.lead });
+  }
+  return out;
+}
+function buildingShotRows() {
+  return Object.keys(projectileRules.buildings).map((k) => {
+    const b = buildingShotOf(k, []), led = buildingShotOf(k, ["ballistics"]);
+    return { name: nameOf3(k), kind: k, accuracy: b.accuracy, speed: b.speed, lead: led.lead };
+  });
+}
+var perSecond = (speed2) => `${numberText(Math.round(speed2 * tick4 / 100 * 100) / 100)} \u683C/\u79D2`;
+function shotTable(rows, title, note) {
+  return table2(title, ["\u55AE\u4F4D", "\u547D\u4E2D\u7387", "\u975C\u6B62\u76EE\u6A19", "\u5F48\u9053\u901F\u5EA6", "\u5F48\u9053\u5B78"], rows.map((r) => [r.name, `${r.accuracy}%`, r.steady ? `${r.steady}%` : "\u2014", perSecond(r.speed), r.lead ? "\u6703\u9810\u5224" : "\u7121\u6548"]), note);
+}
+var spacingFacts = () => [["\u55AE\u4F4D\u7684\u8EAB\u9AD4", `\u534A\u5F91 ${tiles2(navigationRules.radius)}`], ["\u7AD9\u4F4D\u9593\u8DDD", `${tiles2(navigationRules.spacing)}\uFF0C\u4E00\u500B\u4F4D\u7F6E\u53EA\u7AD9\u4E00\u500B\u55AE\u4F4D`], ["\u5206\u6563\u79FB\u52D5", `\u6BCF\u9694\u4E00\u500B\u4F4D\u7F6E\u7AD9\u4E00\u500B\uFF08\u9593\u8DDD ${tiles2(navigationRules.spacing * 2)}\uFF09`]];
+var missFacts = () => [
+  ["\u547D\u4E2D\u5224\u5B9A", `\u7BAD\u843D\u5730\u6642\uFF0C\u76EE\u6A19\u4E2D\u5FC3\u5728 ${tiles2(projectileRules.hitRadius)} \u4EE5\u5167\u624D\u7B97\u6253\u4E2D`],
+  ["\u504F\u6389\u7684\u7BAD", `\u843D\u5728\u7784\u6E96\u9EDE\u5916 ${tiles2(projectileRules.missSpread[0])}\uFF5E${tiles2(projectileRules.missSpread[1])}\uFF0C\u6253\u4E2D\u843D\u9EDE\u4E0A\u7684\u6575\u4EBA`],
+  ["\u8FD1\u6230", `\u5C04\u7A0B ${tiles2(projectileRules.meleeReach)} \u4EE5\u5167\u7684\u653B\u64CA\u7ACB\u523B\u547D\u4E2D\uFF0C\u4E0D\u6703\u98DB`]
+];
+function microBlocks(id) {
+  const blasts = spreadRows().filter((r) => r.effect === "\u7BC4\u570D\u50B7\u5BB3");
+  if (id === "pull") return [facts2("\u672C\u4F5C\u7684\u6578\u5B57", missFacts()), facts2("\u5F48\u9053\u5B78", ballisticsFacts(), "\u7814\u7A76\u5F8C\u5F13\u5175\u3001\u6230\u8239\u8207\u9632\u79A6\u5EFA\u7BC9\u6703\u9810\u5224\u79FB\u52D5\u7684\u76EE\u6A19")];
+  if (id === "surround") return [
+    table2("\u59FF\u614B", ["\u59FF\u614B", "\u81EA\u52D5\u63A5\u6230", "\u8FFD\u64CA"], stanceRows().map((r) => [r.name, r.engage, r.chase])),
+    facts2("\u5DE1\u908F\u8207\u5206\u6563", [["\u5DE1\u908F", `\u5728\u51FA\u767C\u9EDE\u8207\u76EE\u6A19\u9EDE\u4E4B\u9593\u4F86\u56DE\uFF0C\u96E2\u7AEF\u9EDE ${tiles2(tacticsRules.patrolTurn)}\u5C31\u6298\u8FD4\uFF0C\u8DEF\u4E0A\u7167\u59FF\u614B\u63A5\u6230`], spacingFacts()[2]])
+  ];
+  if (id === "focus") return [
+    table2("\u63DB\u76EE\u6A19\u8981\u91CD\u65B0\u7784\u6E96\u7684\u55AE\u4F4D", ["\u55AE\u4F4D", "\u7B2C\u4E00\u767C\u524D\u7684\u7784\u6E96"], frameRows().map((r) => [r.name, secs3(r.ticks)]), "\u540C\u4E00\u500B\u76EE\u6A19\u9023\u7E8C\u5C04\u64CA\u4E0D\u5FC5\u518D\u7784\u6E96"),
+    table2("\u547D\u4E2D\u7387\u4E0D\u5230\u767E\u5206\u4E4B\u767E\u7684\u55AE\u4F4D", ["\u55AE\u4F4D", "\u547D\u4E2D\u7387"], shotRows().filter((r) => r.accuracy < 100).map((r) => [r.name, `${r.accuracy}%`]))
+  ];
+  if (id === "clump") return [facts2("\u7AD9\u4F4D", spacingFacts().slice(0, 2)), table2("\u6703\u4E00\u6B21\u6253\u4E2D\u5F88\u591A\u96BB\u7684\u653B\u64CA", ["\u55AE\u4F4D", "\u7BC4\u570D", "\u5C0D\u8C61"], blasts.map((r) => [r.name, r.radius, r.who]))];
+  if (id === "spread") {
+    const slow = shotRows().filter((r) => statsOf(r.kind).blast);
+    return [facts2("\u5206\u6563\u79FB\u52D5", [spacingFacts()[2]]), table2("\u6703\u7206\u70B8\u7684\u7832\u5F48\u8981\u98DB\u591A\u4E45", ["\u55AE\u4F4D", "\u5F48\u9053\u901F\u5EA6", "\u7206\u70B8\u7BC4\u570D"], slow.map((r) => [r.name, perSecond(r.speed), blasts.find((b) => b.name === r.name)?.radius ?? "\u2014"]))];
+  }
+  if (id === "dodge") return [
+    shotTable(shotRows(), "\u9060\u7A0B\u55AE\u4F4D", "\u975C\u6B62\u76EE\u6A19\uFF1A\u7814\u7A76\u62C7\u6307\u74B0\uFF08\u5DE8\u578B\u6295\u77F3\u6A5F\u662F\u6230\u72FC\u865F\uFF09\u5F8C\uFF0C\u6253\u975C\u6B62\u76EE\u6A19\u7684\u547D\u4E2D\u7387"),
+    table2("\u9632\u79A6\u5EFA\u7BC9", ["\u5EFA\u7BC9", "\u547D\u4E2D\u7387", "\u5F48\u9053\u901F\u5EA6", "\u5F48\u9053\u5B78"], buildingShotRows().map((r) => [r.name, `${r.accuracy}%`, perSecond(r.speed), r.lead ? "\u6703\u9810\u5224" : "\u7121\u6548"])),
+    facts2("\u547D\u4E2D\u8207\u843D\u7A7A", missFacts()),
+    facts2("\u5F48\u9053\u5B78", ballisticsFacts())
+  ];
+  if (id === "split") return [table2("\u59FF\u614B", ["\u59FF\u614B", "\u81EA\u52D5\u63A5\u6230", "\u8FFD\u64CA"], stanceRows().map((r) => [r.name, r.engage, r.chase]), "\u5C0D\u65B9\u7684\u55AE\u4F4D\u7528\u54EA\u7A2E\u59FF\u614B\uFF0C\u6C7A\u5B9A\u5B83\u6703\u8FFD\u591A\u9060")];
+  return [facts2("\u5361\u4F4D", [...spacingFacts().slice(0, 2), ["\u7A7F\u8D8A", "\u55AE\u4F4D\u5F7C\u6B64\u4E0D\u80FD\u7A7F\u904E\uFF0C\u53EA\u80FD\u7E5E\u8DEF\u6216\u7B49\u5F85"]])];
+}
+function microPage(p) {
+  return { ...p, available: true, reason: null, blocks: microBlocks(p.id), lacks: tacticLacks[p.id] ?? [], source: "aoetw.com/ar\uFF08\u63A7\u5175\u6280\u5DE7\uFF09" };
+}
+function tacticPage(id) {
+  const p = tacticProse.find((p2) => p2.id === id);
+  if (!p) return null;
+  if (p.group === "micro") return microPage(p);
+  const o = openings.find((o2) => o2.id === id);
+  return o ? openingPage(p, o) : unavailablePage(p);
+}
+
+// packages/content/tree-layout.ts
+var treeLayout = [
+  { id: "barracks", rows: [
+    { age: 1, cells: [[{ id: "militia", down: true }], [], [], [], []] },
+    { age: 2, cells: [[{ id: "man-at-arms", down: true }], [{ id: "spearman", down: true }], [{ ref: "\u9DF9\u65A5\u5019", path: "/units/Eagle_Scout", down: true }], [{ id: "supplies" }], []] },
+    { age: 3, cells: [[{ id: "long-swordsman", down: true }], [{ id: "pikeman", down: true }], [{ ref: "\u9DF9\u52C7\u58EB", path: "/units/Eagle_Warrior", down: true }], [{ id: "squires" }], [{ id: "arson" }]] },
+    { age: 4, cells: [[{ id: "two-handed-swordsman", down: true }, { id: "champion" }], [{ id: "halberdier" }], [{ ref: "\u7CBE\u92B3\u9DF9\u52C7\u58EB", path: "/units/Elite_Eagle_Warrior" }], [{ ref: "\u50AD\u5175", path: "/units/Condottiero" }], []] }
+  ] },
+  { id: "archery-range", rows: [
+    { age: 2, cells: [[{ id: "archer", down: true }], [{ id: "skirmisher", down: true }], [], [], [], []] },
+    { age: 3, cells: [[{ id: "crossbowman", down: true }], [{ id: "elite-skirmisher", down: true }], [{ id: "cavalry-archer", down: true }], [{ ref: "\u6295\u77F3\u624B", path: "/units/Slinger" }], [{ ref: "\u6A19\u69CD\u9A0E\u5175", path: "/units/Genitour", down: true }], [{ id: "thumb-ring" }]] },
+    { age: 4, cells: [[{ id: "arbalest" }], [{ ref: "\u5E1D\u738B\u6230\u77DB\u5175", path: "/units/Imperial_Skirmisher" }], [{ id: "heavy-cavalry-archer" }], [{ id: "hand-cannoneer" }], [{ ref: "\u7CBE\u92B3\u6A19\u69CD\u9A0E\u5175", path: "/units/Genitour" }], [{ id: "parthian-tactics" }]] }
+  ] },
+  { id: "stable", rows: [
+    { age: 2, cells: [[{ id: "scout", down: true }], [{ id: "bloodlines" }], [], [], []] },
+    { age: 3, cells: [[{ id: "light-cavalry", down: true }], [{ id: "knight", down: true }], [{ id: "camel", down: true }], [{ ref: "\u77DB\u8C61\u4F15", path: "/units/Battle_Elephant", down: true }], [{ id: "husbandry" }]] },
+    { age: 4, cells: [[{ id: "hussar" }], [{ id: "cavalier", down: true }, { id: "paladin" }], [{ id: "heavy-camel", down: true }, { ref: "\u5E1D\u738B\u99F1\u99DD\u9A0E\u5175", path: "/units/Imperial_Camel_Rider" }], [{ ref: "\u7CBE\u92B3\u77DB\u8C61\u4F15", path: "/units/Elite_Battle_Elephant" }], []] }
+  ] },
+  { id: "siege-workshop", rows: [
+    { age: 3, cells: [[{ id: "ram", down: true }], [{ id: "mangonel", down: true }], [{ id: "scorpion", down: true }], [{ ref: "\u653B\u57CE\u5854", path: "/units/Siege_Tower" }]] },
+    { age: 4, cells: [[{ id: "capped-ram", down: true }, { id: "siege-ram" }], [{ id: "onager", down: true }, { id: "siege-onager" }], [{ id: "heavy-scorpion" }], [{ id: "bombard-cannon" }]] }
+  ] },
+  { id: "castle", rows: [
+    { age: 3, cells: [[{ id: "@unique-unit" }], [{ id: "petard" }], [{ id: "@unique-tech" }], [], [], [], [], []] },
+    { age: 4, cells: [[{ id: "@unique-unit" }], [{ id: "trebuchet" }], [{ id: "@unique-tech" }], [{ id: "hoardings" }], [{ id: "sappers" }], [{ id: "conscription" }], [{ ref: "\u9593\u8ADC", path: "/techs/Spies" }]] }
+  ] },
+  { id: "town-center", rows: [
+    { age: 1, cells: [[{ id: "villager" }], [{ id: "age-2", down: true }], [{ id: "loom" }], []] },
+    { age: 2, cells: [[{ id: "town-watch", down: true }], [{ id: "age-3", down: true }], [{ id: "wheelbarrow", down: true }], []] },
+    { age: 3, cells: [[{ id: "town-patrol" }], [{ id: "age-4" }], [{ id: "hand-cart" }], []] }
+  ] },
+  { id: "mill", rows: [
+    { age: 1, cells: [[{ id: "farm" }], [], [], []] },
+    { age: 2, cells: [[{ id: "horse-collar", down: true }], [], [], []] },
+    { age: 3, cells: [[{ id: "heavy-plow", down: true }], [], [], []] },
+    { age: 4, cells: [[{ id: "crop-rotation" }], [], [], []] }
+  ] },
+  { id: "lumber-camp", rows: [
+    { age: 2, cells: [[{ id: "double-bit-axe", down: true }], [], [], []] },
+    { age: 3, cells: [[{ id: "bow-saw", down: true }], [], [], []] },
+    { age: 4, cells: [[{ id: "two-man-saw" }], [], [], []] }
+  ] },
+  { id: "mining-camp", rows: [
+    { age: 2, cells: [[{ id: "gold-mining", down: true }], [{ id: "stone-mining", down: true }], [], []] },
+    { age: 3, cells: [[{ id: "gold-shaft-mining" }], [{ id: "stone-shaft-mining" }], [], []] }
+  ] },
+  { id: "dock", rows: [
+    { age: 1, cells: [[{ id: "fishing-ship" }], [{ id: "transport-ship" }], [], [], [], [], [], [], []] },
+    { age: 2, cells: [[{ id: "fire-galley", down: true }], [{ id: "demolition-raft", down: true }], [{ id: "galley", down: true }], [{ id: "trade-cog" }], [], [], [], [], [{ id: "fish-trap" }]] },
+    { age: 3, cells: [[{ id: "war-galley", down: true }], [{ id: "war-galley", down: true }], [{ id: "war-galley", down: true }], [{ id: "longboat", down: true }], [{ ref: "\u9F9C\u7532\u8239", path: "/units/Turtle_Ship", down: true }], [{ ref: "\u5361\u62C9\u7DAD\u723E\u6230\u8239", path: "/units/Caravel", down: true }], [{ id: "gillnets" }], [{ id: "careening", down: true }], [], []] },
+    { age: 4, cells: [[{ id: "fast-fire-ship" }], [{ id: "heavy-demolition-ship" }], [{ id: "galleon" }], [{ id: "elite-longboat" }], [{ ref: "\u7CBE\u92B3\u9F9C\u7532\u8239", path: "/units/Turtle_Ship" }], [{ ref: "\u7CBE\u92B3\u5361\u62C9\u7DAD\u723E\u6230\u8239", path: "/units/Caravel" }], [{ id: "cannon-galleon", down: true }, { id: "elite-cannon-galleon" }], [{ id: "dry-dock" }], [{ id: "shipwright" }]] }
+  ] },
+  { id: "blacksmith", rows: [
+    { age: 2, cells: [[{ id: "padded-archer-armor" }], [{ id: "fletching", down: true }], [{ id: "forging", down: true }], [{ id: "scale-barding-armor", down: true }], [{ id: "scale-mail-armor", down: true }]] },
+    { age: 3, cells: [[{ id: "leather-archer-armor", down: true }], [{ id: "bodkin-arrow", down: true }], [{ id: "iron-casting", down: true }], [{ id: "chain-barding-armor", down: true }], [{ id: "chain-mail-armor", down: true }]] },
+    { age: 4, cells: [[{ id: "ring-archer-armor" }], [{ id: "bracer" }], [{ id: "blast-furnace" }], [{ id: "plate-barding-armor" }], [{ id: "plate-mail-armor" }]] }
+  ] },
+  { id: "market", rows: [
+    { age: 2, cells: [[{ ref: "\u88FD\u5716\u5B78", path: "/techs/Cartography", down: true }], [{ id: "trade-cart" }], [], []] },
+    { age: 3, cells: [[{ id: "caravan" }], [{ ref: "\u9444\u5E63\u8853", path: "/techs/Coinage", down: true }], [], []] },
+    { age: 4, cells: [[{ id: "guilds" }], [{ ref: "\u9280\u884C\u5236\u5EA6", path: "/techs/Banking" }], [], []] }
+  ] },
+  { id: "monastery", rows: [
+    { age: 3, cells: [[{ id: "monk" }], [{ ref: "\u50B3\u6559\u58EB", path: "/units/Missionary" }], [{ id: "redemption" }], [{ id: "atonement" }], [{ id: "herbal-medicine" }], [{ id: "heresy" }], [{ id: "sanctity" }], [{ id: "fervor" }]] },
+    { age: 4, cells: [[{ id: "faith" }], [{ id: "illumination" }], [{ id: "block-printing" }], [{ id: "theocracy" }], [], [], [], []] }
+  ] },
+  { id: "university", rows: [
+    { age: 3, cells: [[{ id: "masonry", down: true }], [{ id: "fortified-wall" }], [{ id: "ballistics" }], [{ id: "guard-tower", down: true }], [{ id: "heated-shot" }], [{ ref: "\u8FD1\u5C04\u5B54", path: "/techs/Murder_Holes" }], [{ id: "treadmill-crane" }], []] },
+    { age: 4, cells: [[{ id: "architecture" }], [{ id: "chemistry", down: true }, { id: "bombard-tower-tech" }], [{ id: "siege-engineers" }], [{ id: "keep" }], [{ id: "arrowslits" }], [], [], []] }
+  ] }
+];
+var treeBuildBlock = { id: "build", rows: [
+  { age: 1, cells: [[{ id: "house" }], [{ id: "palisade-wall" }], [{ id: "palisade-gate" }], [{ id: "outpost" }]] },
+  { age: 2, cells: [[{ id: "watch-tower" }], [{ id: "stone-wall" }], [{ id: "gate" }], []] },
+  { age: 4, cells: [[{ id: "bombard-tower" }], [{ id: "wonder" }], [], []] }
+] };
+var treeLeads = { "watch-tower": ["guard-tower", "keep"] };
+
+// apps/web/codex-tree.ts
+var entryOf3 = (id) => rules.entries.find((e) => e.id === id);
+var nameOf4 = (id) => entryOf3(id)?.name ?? id;
+var ageOf3 = (id) => {
+  const m = /^age-(\d)$/.exec(id);
+  return m ? Number(m[1]) : 0;
+};
+var blocks = treeLayout.flatMap((b) => b.id === "town-center" ? [b, treeBuildBlock] : [b]);
+var treeBlockOrder = blocks.map((b) => b.id);
+var unitIcon = (id) => [`${id}-face`];
+var buildingIcons = (id, age) => id === "farm" ? ["farm"] : [`${id}-${age}`, `${id}-${Math.max(age, 2)}`, `${id}-3`, `${id}-4`, `${id}-2`, `${id}-1`];
+function entryAge(id, path = []) {
+  const e = entryOf3(id);
+  if (!e || path.includes(id)) return 1;
+  let age = 1;
+  for (const r of e.requires) age = Math.max(age, ageOf3(r) || entryAge(r, [...path, id]));
+  return age;
+}
+function needsOf(id, block2) {
+  return (entryOf3(id)?.requires ?? []).filter((r) => !ageOf3(r) && entryOf3(r)?.kind === "technology" && rules.production[r] !== block2).map(nameOf4);
+}
+function entryNode(id, civ, age, block2) {
+  const e = entryOf3(id), up2 = lineUpgrades.find((u) => u.id === id), available = civAvailable(civ, id), unique2 = !!uniqueUnitOwner[id];
+  const base = { key: id, id, age, available, alias: false, unique: unique2, reason: null, needs: needsOf(id, block2), leads: (treeLeads[id] ?? []).map(nameOf4) };
+  if (ageOf3(id)) return { ...base, name: e.name, kind: "age", icons: [`town-center-${ageOf3(id)}`], link: null };
+  if (up2) return { ...base, name: up2.name, kind: "unit", icons: unitIcon(up2.kind), link: { section: "units", id: up2.kind } };
+  if (e.kind === "unit") return { ...base, name: e.name, kind: "unit", icons: unitIcon(id), link: { section: "units", id } };
+  if (e.kind === "building") return { ...base, name: e.name, kind: "building", icons: buildingIcons(id, age), link: { section: "buildings", id } };
+  return { ...base, name: e.name, kind: "technology", icons: [`tech-${id}`], link: { section: "techs", id } };
+}
+function refNode(it, age, key2) {
+  const u = aoetwUnits.find((x) => `/units/${x.slug}` === it.path), line2 = u ? pendingLines().find((l) => l.steps.some((s) => s.id === u.id)) : void 0;
+  const t = aoetwTechs.find((x) => `/${x.page}` === it.path), tech2 = t ? pendingTechs().find((p) => p.id === t.id) : void 0;
+  return {
+    key: key2,
+    id: u?.id ?? t?.id ?? it.path,
+    name: it.ref,
+    kind: "ref",
+    age,
+    icons: [],
+    available: false,
+    alias: false,
+    unique: false,
+    needs: [],
+    leads: [],
+    reason: line2?.reason ?? tech2?.reason ?? "\u672C\u4F5C\u6C92\u6709\u9019\u500B\u9805\u76EE",
+    link: line2 ? { section: "units", id: line2.id } : tech2 ? { section: "techs", id: tech2.id } : null
+  };
+}
+var nextStep = (lines, a, b) => {
+  const k = lines.get(a);
+  if (!k || lines.get(b) !== k) return false;
+  const ids = lineStepIds(k), i = ids.indexOf(a.id);
+  return i >= 0 && ids[i + 1] === b.id;
+};
+var realArrow = (lines, a, b) => a.kind === "ref" || b.kind === "ref" ? a.kind === "ref" && b.kind === "ref" : (entryOf3(b.id)?.requires.includes(a.id) ?? false) || nextStep(lines, a, b);
+var emptyCell = () => ({ nodes: [], links: [], down: false, up: false, pipe: false });
+function block(b, civ, refs, placed) {
+  const c = civById(civ), ages = b.rows.map((r) => r.age), cols = Math.max(...b.rows.map((r) => r.cells.length));
+  const unit2 = c.uniqueUnits.find((u) => rules.production[u] === "castle") ?? null, elite = unit2 ? lineUpgrades.find((l) => l.kind === unit2)?.id ?? null : null;
+  const grid = Array.from({ length: cols }, () => ages.map(() => []));
+  b.rows.forEach((row, r) => row.cells.forEach((items, col) => {
+    for (const [i, it] of items.entries()) {
+      if (it.ref) {
+        if (refs) grid[col][r].push({ node: refNode(it, row.age, `ref:${b.id}:${r}:${col}:${i}`), down: !!it.down });
+        continue;
+      }
+      const ids = it.id === "@unique-unit" ? [row.age < 4 ? unit2 : elite] : it.id === "@unique-tech" ? c.uniqueTechs.filter((t) => t.age === row.age && entryOf3(t.id)).map((t) => t.id) : [it.id];
+      for (const id of ids) if (id && entryOf3(id)) grid[col][r].push({ node: entryNode(id, civ, row.age, b.id), down: it.id === "@unique-unit" ? row.age < 4 : !!it.down });
+    }
+  }));
+  const lines = /* @__PURE__ */ new Map();
+  grid.forEach((colCells) => {
+    const seen = [];
+    for (const cell of colCells) for (const p of cell) {
+      const n = p.node;
+      if (n.kind === "ref") {
+        seen.push(n);
+        continue;
+      }
+      if (entryOf3(n.id)?.kind === "unit") lines.set(n, n.id);
+      else if (lineUpgrades.some((l) => l.id === n.id)) {
+        const above = [...seen].reverse().find((m) => lines.has(m) && lineUpgrades.some((l) => l.id === n.id && l.kind === lines.get(m)));
+        lines.set(n, above ? lines.get(above) : lineUpgrades.find((l) => l.id === n.id).kind);
+      }
+      seen.push(n);
+    }
+  });
+  for (const [n, kind] of lines) {
+    if (n.id === kind) continue;
+    const mine2 = lineUpgrades.find((l) => l.id === n.id && l.kind === kind), first = lineUpgrades.find((l) => l.id === n.id);
+    if (first.kind !== kind) Object.assign(n, { key: `${kind}:${n.id}`, name: mine2.name, alias: true, icons: unitIcon(kind), link: { section: "units", id: kind }, available: civAvailable(civ, n.id) && civAvailable(civ, kind) });
+    else n.available = n.available && civAvailable(civ, kind);
+  }
+  for (const colCells of grid) for (const cell of colCells) for (const p of cell) if (p.node.kind !== "ref" && !p.node.alias) placed.add(p.node.id);
+  const columns = grid.map((colCells) => colCells.map((cell) => ({ ...emptyCell(), nodes: cell.map((p) => p.node), links: cell.slice(1).map(() => false) })));
+  grid.forEach((colCells, col) => {
+    colCells.forEach((cell, r) => cell.forEach((p, i) => {
+      if (!p.down) return;
+      if (i < cell.length - 1) {
+        if (realArrow(lines, p.node, cell[i + 1].node)) columns[col][r].links[i] = true;
+        return;
+      }
+      const below = colCells.findIndex((x, rr) => rr > r && x.length > 0);
+      if (below < 0 || !realArrow(lines, p.node, colCells[below][0].node)) return;
+      columns[col][r].down = true;
+      columns[col][below].up = true;
+      for (let rr = r + 1; rr < below; rr++) columns[col][rr].pipe = true;
+    }));
+  });
+  const head = b.id === "build" ? null : entryNode(b.id, civ, entryAge(b.id), b.id);
+  if (head) placed.add(b.id);
+  return { id: b.id, name: head?.name ?? "\u6751\u6C11\u5EFA\u9020", head, ages, columns: columns.filter((col) => col.some((cell) => cell.nodes.length)) };
+}
+function appendRest(t, civ, placed) {
+  for (const e of rules.entries) {
+    if (placed.has(e.id) || uniqueUnitOwner[e.id] && uniqueUnitOwner[e.id] !== civ) continue;
+    const b = t.find((x) => x.id === rules.production[e.id]) ?? t.find((x) => x.id === "build"), age = entryAge(e.id);
+    if (!b.ages.includes(age)) {
+      const i = b.ages.findIndex((a) => a > age), at2 = i < 0 ? b.ages.length : i;
+      b.ages.splice(at2, 0, age);
+      for (const col of b.columns) col.splice(at2, 0, emptyCell());
+    }
+    const r = b.ages.indexOf(age);
+    b.columns.push(b.ages.map((_, rr) => rr === r ? { ...emptyCell(), nodes: [entryNode(e.id, civ, age, b.id)] } : emptyCell()));
+    placed.add(e.id);
+  }
+}
+function civTree(civ, refs = true) {
+  const c = civById(civ) ?? civById(neutralCiv), d = civDetail(c.id), placed = /* @__PURE__ */ new Set();
+  const t = blocks.map((b) => block(b, c.id, refs, placed));
+  appendRest(t, c.id, placed);
+  return { civ: c.id, name: c.name, type: c.type, bonuses: d.bonuses, team: d.team, blocks: t };
+}
+var treeMarkLabels = { done: "\u5DF2\u5B8C\u6210", owned: "\u5DF2\u64C1\u6709", queued: "\u9032\u884C\u4E2D", ready: "\u73FE\u5728\u53EF\u505A", short: "\u8CC7\u6E90\u4E0D\u8DB3", later: "\u689D\u4EF6\u672A\u5230", off: "\u6B64\u6587\u660E\u6C92\u6709", ref: "\u672C\u4F5C\u6C92\u6709" };
+function treeMark(n, m) {
+  if (n.kind === "ref") return { state: "ref", count: 0, cost: null };
+  if (!n.available) return { state: "off", count: 0, cost: null };
+  const id = n.id, e = entryOf3(id), o = { civ: m.civ, age: m.age, techs: [...m.techs] }, cost = costOf(id, o);
+  const own = (kind) => m.buildings.some((b) => b.kind === kind && b.complete);
+  const queued = m.buildings.some((b) => b.queue.some((q) => q.entryId === id)) || e.kind === "building" && m.buildings.some((b) => b.kind === id && !b.complete);
+  const count = e.kind === "building" ? m.buildings.filter((b) => b.kind === id && b.complete).length : e.kind === "unit" ? m.units[id] ?? 0 : 0;
+  if (ageOf3(id) ? m.age >= ageOf3(id) : e.kind === "technology" && m.techs.includes(id)) return { state: "done", count, cost };
+  if (queued) return { state: "queued", count, cost };
+  const met = e.requires.every((r) => {
+    const a = ageOf3(r);
+    if (a) return m.age >= a;
+    const q = entryOf3(r);
+    return q?.kind === "technology" ? m.techs.includes(r) : q?.kind === "building" ? own(r) : true;
+  }) && (e.kind === "building" || own(rules.production[id] ?? ""));
+  if (count > 0) return { state: "owned", count, cost };
+  if (!met) return { state: "later", count, cost };
+  return { state: resources.every((r) => m.stock[r] >= cost[r]) ? "ready" : "short", count, cost };
+}
+
+// apps/web/codex.ts
+var resourceNames2 = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
 var css = `
 .cx-host{display:grid;place-items:center;padding:16px}.cx-host[hidden]{display:none}
 .cx{--cx-well:var(--well,#26332d);--cx-tile:var(--tile,#415349);--cx-edge:var(--tile-edge,#27342e);--cx-gold:var(--gold,#d8b45a);--cx-muted:var(--muted,#a9b4a4);--cx-cream:var(--cream,#efe6cf);
- width:min(1100px,100%);height:min(820px,100%);display:grid;grid-template-rows:auto minmax(0,1fr);background:var(--plate,#2f3f38);border-bottom:6px solid var(--plate-edge,#1f2a25);border-radius:4px;overflow:hidden;color:var(--cx-cream);font-size:14px;line-height:1.55}
+ width:min(1100px,100%);height:min(820px,100%);display:grid;grid-template-rows:auto minmax(0,1fr);grid-template-columns:minmax(0,1fr);background:var(--plate,#2f3f38);border-bottom:6px solid var(--plate-edge,#1f2a25);border-radius:4px;overflow:hidden;color:var(--cx-cream);font-size:14px;line-height:1.55}
 .cx *{box-sizing:border-box}
 .cx-head{position:relative;display:flex;align-items:center;gap:10px 16px;padding:12px 16px 19px 20px;border-bottom:3px solid var(--plate-edge,#1f2a25)}
 .cx-head::after{content:"";position:absolute;left:0;right:0;bottom:4px;height:6px;background:radial-gradient(circle at 8px 3px,var(--plate-stud,#3b4d45) 3.5px,transparent 4px) 0 0/16px 6px repeat-x;pointer-events:none}
@@ -7905,7 +9796,43 @@ var css = `
 .cx-chain{margin:10px 0 0!important;font-size:13px;color:var(--cx-muted)}.cx-chain b{font-weight:600;color:var(--cx-cream)}
 .cx-ages{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 18px;align-items:center;margin:0}.cx-ages dt{color:var(--cx-muted)}.cx-ages dd{margin:0}.cx-ages .cx-cost{margin:0}
 .cx-jump{margin-top:12px}
+.cx-eq{list-style:none;margin:0;padding:12px 16px;display:grid;gap:4px;background:var(--cx-well);border-radius:3px;font-variant-numeric:tabular-nums;max-width:560px}.cx-eq li:last-child{margin-top:4px;padding-top:6px;border-top:2px solid rgba(0,0,0,.2);font-weight:650;color:var(--cx-gold)}
+.cx-ex{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px 18px}.cx-ex h5{margin:0 0 6px;font-size:14px;font-weight:650}
+.cx-phases{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}.cx-phases h5{margin:0 0 10px;font-size:14px;font-weight:650;color:var(--cx-cream)}
+.cx-steps{gap:7px}.cx-steps li{font-size:13.5px;line-height:1.55}.cx-steps li.tip{color:var(--cx-muted)}.cx-steps li.tip::before{background:transparent;box-shadow:inset 0 0 0 1.5px var(--cx-muted)}
+.cx-why{margin-top:12px;color:#f2b4a4}.cx-basic{margin-top:10px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.cx-stats td.n{white-space:nowrap;color:var(--cx-gold);font-weight:650}.cx-stats td.en{color:var(--cx-muted)}.cx-stats td.say{width:1%;padding-right:0}
+.cx-say{height:28px;padding:0 10px;background:var(--cx-tile);border:0;border-bottom:3px solid var(--cx-edge);border-radius:3px;font-size:12.5px;font-weight:600;color:var(--cx-cream);white-space:nowrap}.cx-say:hover{background:var(--tile-hover,#4c6155)}.cx-say:active{border-bottom-width:1px;margin-top:2px}
+.cx-wide td{min-width:7em}.cx-wide td:nth-child(4),.cx-wide td:nth-child(2){min-width:12em}
 .cx-foot{margin-top:34px;padding-top:14px;border-top:3px solid rgba(0,0,0,.18);font-size:12.5px;color:var(--cx-muted);max-width:52em}.cx-foot p+p{margin-top:6px}
+.cx-page.cx-wide-page{max-width:none}
+.cx-tools.cx-tree-tools{flex-wrap:wrap;padding:0;margin:20px 0 0;gap:8px 14px}.cx-tree-tools .cx-tool.pend{margin-left:0}
+.cx-legend{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--cx-muted)}.cx-legend li{display:inline-flex;align-items:center;gap:6px}
+.cx-legend i{width:16px;height:12px;border-radius:2px;background:var(--cx-tile);box-shadow:inset 0 -3px 0 var(--cx-edge)}
+.cx-tblocks{display:flex;flex-wrap:wrap;align-items:flex-start;gap:26px 30px;margin-top:22px}
+.cx-tblock{min-width:0;max-width:100%}.cx-tblock h4{margin:0 0 10px;display:flex;align-items:center;gap:10px}
+.cx-tblock h4 img{width:34px;height:34px;object-fit:contain}.cx-tblock h4 button{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:10px;border-radius:3px}.cx-tblock h4 button:hover{color:var(--cx-cream)}.cx-tblock h4 button:focus-visible{outline:2px solid var(--cx-gold);outline-offset:3px}
+.cx-tgrid{display:grid;grid-auto-rows:minmax(92px,auto);column-gap:8px;row-gap:16px;padding:2px 2px 6px}
+.cx-tage{align-self:center;padding-right:6px;font-size:12px;font-weight:600;color:var(--cx-muted);white-space:nowrap}
+.cx-tcell{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px}
+.cx-tcell.down::after,.cx-tcell.pipe::after{content:"";position:absolute;left:50%;width:6px;margin-left:-3px;background:#22302a;border-radius:3px}
+.cx-tcell.down::after{top:calc(100% - 4px);height:24px}.cx-tcell.pipe::after{top:-12px;bottom:-12px}
+.cx-tnode{position:relative;width:92px;min-height:88px;padding:6px 4px 7px;display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--cx-tile);border:0;border-bottom:3px solid var(--cx-edge);border-radius:3px;color:var(--cx-cream);font:inherit;text-align:center}
+button.cx-tnode{cursor:pointer}button.cx-tnode:hover{background:var(--tile-hover,#4c6155)}button.cx-tnode:focus-visible{outline:2px solid var(--cx-gold);outline-offset:2px}
+.cx-tcell .cx-tnode.linked::before{content:"";position:absolute;left:50%;top:-12px;width:6px;height:10px;margin-left:-3px;background:#22302a;border-radius:3px}
+.cx-tnode img{width:42px;height:42px;object-fit:contain}.cx-tnode .nm{font-size:12.5px;font-weight:600;line-height:1.3}
+.cx-tnode .mk{font-size:11px;font-weight:600;line-height:1.2;color:var(--cx-muted);font-variant-numeric:tabular-nums}
+.cx-tnode .nd{font-size:10.5px;line-height:1.25;color:#c9b98a}
+.cx-tnode.uniq{background:#4d4a33;border-bottom-color:#332f1d}button.cx-tnode.uniq:hover{background:#5a5639}
+.cx-tnode.off{background:#2a3631;border-bottom-color:#1f2925;color:#8f9a8c}.cx-tnode.off img{filter:grayscale(1) brightness(.75);opacity:.55}
+.cx-tnode.ref{background:transparent;border-bottom-color:transparent;box-shadow:inset 0 0 0 1.5px #4a5a51;color:var(--cx-muted)}button.cx-tnode.ref:hover{background:rgba(0,0,0,.14)}
+.cx-tnode.ref .nm{font-weight:500}.cx-tnode.ref .noimg,.cx-tnode .noimg{width:42px;height:42px;display:grid;place-items:center;font-size:20px;color:#5f6f66}
+.cx-tnode.s-done{background:#5d5330;border-bottom-color:#3c3520}.cx-tnode.s-done .mk{color:#e9d79c}
+.cx-tnode.s-owned{background:#3f5a5f;border-bottom-color:#283b3e}.cx-tnode.s-owned .mk{color:#bfe0e6}
+.cx-tnode.s-queued{box-shadow:inset 0 0 0 2px #b79b52}.cx-tnode.s-queued .mk{color:#e6cf8a}
+.cx-tnode.s-ready .mk{color:var(--cx-cream)}.cx-tnode.s-ready{box-shadow:inset 0 0 0 1.5px #c9b679}
+.cx-tnode.s-later{color:#b8c1b3}.cx-tnode.s-later img{opacity:.7}
+.cx-legend .s-done{background:#5d5330;box-shadow:inset 0 -3px 0 #3c3520}.cx-legend .s-owned{background:#3f5a5f;box-shadow:inset 0 -3px 0 #283b3e}.cx-legend .s-queued{box-shadow:inset 0 0 0 2px #b79b52}.cx-legend .s-ready{box-shadow:inset 0 0 0 1.5px #c9b679}.cx-legend .s-off{background:#2a3631;box-shadow:inset 0 -3px 0 #1f2925}.cx-legend .s-ref{background:transparent;box-shadow:inset 0 0 0 1.5px #4a5a51}.cx-legend .s-uniq{background:#4d4a33;box-shadow:inset 0 -3px 0 #332f1d}
 @media (max-width:760px){
  .cx{width:100%;height:100%}
  .cx-head{padding:10px 16px 17px}.cx-head h2{font-size:18px}
@@ -7914,13 +9841,16 @@ var css = `
  .cx-grp,.cx-list ul,.cx-list li{display:contents}.cx-group{display:none}
  .cx-civ,.cx-uitem{flex:none;width:auto;padding:6px 12px 5px}.cx-civ[aria-current=true],.cx-uitem[aria-current=true]{padding-top:8px}.cx-civ small,.cx-uitem small{display:none}.cx-mark{grid-row:1}
  .cx-head{gap:10px;flex-wrap:wrap}.cx-head h2,.cx-tab,.cx-close{white-space:nowrap}.cx-tabs::before{margin-right:4px}.cx-close kbd{display:none}
- .cx-tab{height:40px;padding:0 9px}.cx-side{grid-template-rows:auto auto}.cx-tools{padding:8px 16px 0}.cx-tool{height:40px;padding:0 12px}
+ .cx-tab{height:40px;padding:0 9px}
+ /* Five categories: title and close share the first row, the tabs get the next row to themselves (scrolling if they ever outgrow it). */
+ .cx-tabs{order:3;flex:1 0 100%;overflow-x:auto;scrollbar-width:none}.cx-tabs::before{display:none}.cx-tabs .cx-tab:first-child{margin-left:-9px}.cx-side{grid-template-rows:auto auto}.cx-tools{padding:8px 16px 0}.cx-tool{height:40px;padding:0 12px}
  .cx-side .cx-list{padding-top:8px}.cx-side .cx-group{display:block;flex:none;align-self:center;margin:0 2px 0 8px;white-space:nowrap}.cx-side .cx-grp:first-child .cx-group{margin-left:0}
  .cx-uhero{grid-template-columns:72px minmax(0,1fr);gap:0 12px}.cx-uhero .cx-face{width:72px;height:72px}.cx-path,.cx-ov{grid-template-columns:minmax(0,1fr)}
  .cx-detail{padding:16px 16px 26px}.cx-page h3{font-size:24px}.cx-summary{font-size:14.5px}
  .cx-unit{grid-template-columns:72px minmax(0,1fr);gap:4px 12px;padding:12px}.cx-face{grid-row:1;width:72px;height:72px}.cx-ubody{grid-column:1/-1}
  .cx-stats{font-size:12.5px}.cx-stats th,.cx-stats td{padding-right:6px}.cx-stats tbody th{width:auto}
  .cx-cols{grid-template-columns:minmax(0,1fr)}.cx-techs{grid-template-columns:minmax(0,1fr)}
+ .cx-tblocks{display:grid;grid-template-columns:minmax(0,1fr)}.cx-tnode{width:84px}.cx-tblock .cx-scroll{overscroll-behavior-x:contain}
 }`;
 function h(tag, attrs, ...kids) {
   const e = document.createElement(tag);
@@ -7940,13 +9870,17 @@ var techPending = true;
 var buildingChosen = "overview";
 var buildingBy = "group";
 var buildingPending = true;
+var elementChosen = "overview";
+var tacticChosen = "overview";
+var treeChosen = null;
+var treeRefs = true;
 var roleText = { self: "\u4F60\u7684\u6587\u660E", rival: "\u5C0D\u624B", both: "\u96D9\u65B9" };
 function costRow(icons2, cost, seconds2, extra) {
   const row = h("p", { class: "cx-cost" });
   for (const [r, v] of costEntries(cost)) {
     const s = h("span", null);
-    if (icons2[r]) s.append(h("img", { src: icons2[r], alt: resourceNames[r] }));
-    else s.append(`${resourceNames[r]} `);
+    if (icons2[r]) s.append(h("img", { src: icons2[r], alt: resourceNames2[r] }));
+    else s.append(`${resourceNames2[r]} `);
     s.append(String(v));
     row.append(s);
   }
@@ -7986,9 +9920,9 @@ function statTable(u) {
     "table",
     { class: "cx-stats" },
     h("thead", null, h("tr", null, h("td", null), h("th", { scope: "col" }, "\u7B2C\u4E09\u6642\u4EE3"), elite ? h("th", { scope: "col" }, "\u7CBE\u92B3\u30FB\u7B2C\u56DB\u6642\u4EE3") : null)),
-    h("tbody", null, ...rows.map(([label, f, title]) => {
+    h("tbody", null, ...rows.map(([label2, f, title]) => {
       const a = f(u.stats), b = elite ? f(elite) : null;
-      return h("tr", null, h("th", { scope: "row", ...title ? { title } : {} }, label), h("td", null, a), b !== null ? h("td", b !== a ? { class: "up" } : null, b) : null);
+      return h("tr", null, h("th", { scope: "row", ...title ? { title } : {} }, label2), h("td", null, a), b !== null ? h("td", b !== a ? { class: "up" } : null, b) : null);
     }))
   );
 }
@@ -8052,15 +9986,15 @@ function page(d, icons2) {
 function listItem(c) {
   return h("li", null, h("button", { type: "button", class: "cx-civ", "data-civ": c.id, tabindex: "-1", "aria-current": "false" }, h("b", null, c.name), h("small", null, c.type), c.role ? h("span", { class: `cx-mark ${c.role}` }, roleText[c.role]) : null));
 }
-function reveal(list, b) {
-  const l = list.getBoundingClientRect(), r = b.getBoundingClientRect(), m = 16;
-  if (r.right > l.right - m) list.scrollLeft += r.right - l.right + m;
-  else if (r.left < l.left + m) list.scrollLeft -= l.left + m - r.left;
-  if (r.bottom > l.bottom - m) list.scrollTop += r.bottom - l.bottom + m;
-  else if (r.top < l.top + m) list.scrollTop -= l.top + m - r.top;
+function reveal(list3, b) {
+  const l = list3.getBoundingClientRect(), r = b.getBoundingClientRect(), m = 16;
+  if (r.right > l.right - m) list3.scrollLeft += r.right - l.right + m;
+  else if (r.left < l.left + m) list3.scrollLeft -= l.left + m - r.left;
+  if (r.bottom > l.bottom - m) list3.scrollTop += r.bottom - l.bottom + m;
+  else if (r.top < l.top + m) list3.scrollTop -= l.top + m - r.top;
 }
-function step(key, i, n) {
-  return key === "ArrowDown" || key === "ArrowRight" ? Math.min(n - 1, i + 1) : key === "ArrowUp" || key === "ArrowLeft" ? Math.max(0, i - 1) : key === "Home" ? 0 : key === "End" ? n - 1 : null;
+function step(key2, i, n) {
+  return key2 === "ArrowDown" || key2 === "ArrowRight" ? Math.min(n - 1, i + 1) : key2 === "ArrowUp" || key2 === "ArrowLeft" ? Math.max(0, i - 1) : key2 === "Home" ? 0 : key2 === "End" ? n - 1 : null;
 }
 function select(id, focus = false) {
   if (!open) return;
@@ -8085,20 +10019,20 @@ function renderCivs(focus) {
     if (g && g.label === c.group) g.items.push(c);
     else groups2.push({ label: c.group, items: [c] });
   }
-  const list = h("nav", { class: "cx-list", "aria-label": "\u6587\u660E\u5217\u8868" }, ...groups2.map((g, i) => h("div", { class: "cx-grp" }, h("p", { class: "cx-group", id: `cx-g${i}` }, g.label), h("ul", { "aria-labelledby": `cx-g${i}` }, ...g.items.map(listItem)))));
+  const list3 = h("nav", { class: "cx-list", "aria-label": "\u6587\u660E\u5217\u8868" }, ...groups2.map((g, i) => h("div", { class: "cx-grp" }, h("p", { class: "cx-group", id: `cx-g${i}` }, g.label), h("ul", { "aria-labelledby": `cx-g${i}` }, ...g.items.map(listItem)))));
   const detail = h("div", { class: "cx-detail", role: "region", "aria-labelledby": "cx-civ-name", tabindex: "-1" });
-  list.addEventListener("click", (e) => {
+  list3.addEventListener("click", (e) => {
     const b = e.target.closest(".cx-civ");
     if (b?.dataset.civ) select(b.dataset.civ);
   });
-  list.addEventListener("keydown", (e) => {
+  list3.addEventListener("keydown", (e) => {
     const ids = codexCivs().map((c) => c.id), next = step(e.key, ids.indexOf(chosen ?? ids[0]), ids.length);
     if (next === null) return;
     e.preventDefault();
     select(ids[next], true);
   });
-  open.body.replaceChildren(list, detail);
-  open.list = list;
+  open.body.replaceChildren(list3, detail);
+  open.list = list3;
   open.detail = detail;
   const first = chosen && items.some((c) => c.id === chosen) ? chosen : items.find((c) => c.role === "self" || c.role === "both")?.id ?? items[0].id;
   select(first, focus);
@@ -8122,9 +10056,9 @@ function lineTable(l) {
     "table",
     { class: "cx-stats" },
     many ? h("thead", null, h("tr", null, h("td", null), ...l.steps.map((s) => h("th", { scope: "col" }, s.name)))) : null,
-    h("tbody", null, ...rows.map(([label, f, title]) => {
+    h("tbody", null, ...rows.map(([label2, f, title]) => {
       const cells = l.steps.map((s) => f(s.stats));
-      return h("tr", null, h("th", { scope: "row", ...title ? { title } : {} }, label), ...cells.map((c, i) => h("td", i && c !== cells[i - 1] ? { class: "up" } : null, c)));
+      return h("tr", null, h("th", { scope: "row", ...title ? { title } : {} }, label2), ...cells.map((c, i) => h("td", i && c !== cells[i - 1] ? { class: "up" } : null, c)));
     }))
   );
 }
@@ -8199,9 +10133,9 @@ function unitItem(it) {
   const sub = l ? l.owner ? civName(l.owner) : l.steps.length > 1 ? `${l.steps.length} \u968E\u30FB${l.at}` : l.at : q?.civ ?? q?.at ?? "";
   return h("li", null, h("button", { type: "button", class: `cx-uitem${it.pending ? " off" : ""}`, "data-unit": it.id, tabindex: "-1", "aria-current": "false" }, h("b", null, it.name), h("small", null, sub), it.pending ? h("span", { class: "cx-mark off" }, "\u672A\u5BE6\u4F5C") : null));
 }
-function fillUnitList(list) {
+function fillUnitList(list3) {
   const groups2 = unitGroups(unitBy).map((g) => ({ ...g, items: g.items.filter((i) => showPending || !i.pending) })).filter((g) => g.items.length);
-  list.replaceChildren(
+  list3.replaceChildren(
     h("div", { class: "cx-grp" }, h("ul", null, h("li", null, h("button", {
       type: "button",
       class: "cx-uitem",
@@ -8232,13 +10166,13 @@ function selectUnit(id, focus = false) {
 }
 function renderUnits(focus) {
   if (!open) return;
-  const seg = (by, label) => {
-    const b = h("button", { type: "button", class: "cx-tool", "aria-pressed": String(unitBy === by) }, label);
+  const seg = (by, label2) => {
+    const b = h("button", { type: "button", class: "cx-tool", "aria-pressed": String(unitBy === by) }, label2);
     b.onclick = () => {
       if (unitBy === by) return;
       unitBy = by;
       for (const x of Array.from(b.parentElement.children)) x.setAttribute("aria-pressed", String(x === b));
-      fillUnitList(list);
+      fillUnitList(list3);
       selectUnit(unitChosen);
     };
     return b;
@@ -8247,25 +10181,25 @@ function renderUnits(focus) {
   pend.onclick = () => {
     showPending = !showPending;
     pend.setAttribute("aria-pressed", String(showPending));
-    fillUnitList(list);
+    fillUnitList(list3);
     selectUnit(unitChosen);
   };
   const tools = h("div", { class: "cx-tools" }, h("div", { class: "cx-seg", role: "group", "aria-label": "\u5206\u7D44\u65B9\u5F0F" }, seg("category", "\u4F9D\u985E\u578B"), seg("building", "\u4F9D\u5EFA\u7BC9")), pend);
-  const list = h("nav", { class: "cx-list", "aria-label": "\u55AE\u4F4D\u5217\u8868" });
+  const list3 = h("nav", { class: "cx-list", "aria-label": "\u55AE\u4F4D\u5217\u8868" });
   const detail = h("div", { class: "cx-detail", role: "region", "aria-labelledby": "cx-unit-name", tabindex: "-1" });
-  list.addEventListener("click", (e) => {
+  list3.addEventListener("click", (e) => {
     const b = e.target.closest(".cx-uitem");
     if (b?.dataset.unit) selectUnit(b.dataset.unit);
   });
-  list.addEventListener("keydown", (e) => {
-    const ids = Array.from(list.querySelectorAll(".cx-uitem")).map((b) => b.dataset.unit), next = step(e.key, Math.max(0, ids.indexOf(unitChosen)), ids.length);
+  list3.addEventListener("keydown", (e) => {
+    const ids = Array.from(list3.querySelectorAll(".cx-uitem")).map((b) => b.dataset.unit), next = step(e.key, Math.max(0, ids.indexOf(unitChosen)), ids.length);
     if (next === null) return;
     e.preventDefault();
     selectUnit(ids[next], true);
   });
-  fillUnitList(list);
-  open.body.replaceChildren(h("div", { class: "cx-side" }, tools, list), detail);
-  open.list = list;
+  fillUnitList(list3);
+  open.body.replaceChildren(h("div", { class: "cx-side" }, tools, list3), detail);
+  open.list = list3;
   open.detail = detail;
   selectUnit(unitChosen, focus);
 }
@@ -8357,9 +10291,9 @@ function techOverview(icons2) {
 function techItem(it) {
   return h("li", null, h("button", { type: "button", class: `cx-uitem${it.pending ? " off" : ""}`, "data-tech": it.id, tabindex: "-1", "aria-current": "false" }, h("b", null, it.name), h("small", null, it.sub), it.pending ? h("span", { class: "cx-mark off" }, "\u672A\u5BE6\u4F5C") : null));
 }
-function fillTechList(list) {
+function fillTechList(list3) {
   const groups2 = techGroups(techBy).map((g) => ({ ...g, items: g.items.filter((i) => techPending || !i.pending) })).filter((g) => g.items.length);
-  list.replaceChildren(
+  list3.replaceChildren(
     h("div", { class: "cx-grp" }, h("ul", null, h("li", null, h("button", { type: "button", class: "cx-uitem", "data-tech": "overview", tabindex: "-1", "aria-current": "false" }, h("b", null, "\u7E3D\u89BD"), h("small", null, "\u6642\u4EE3\u3001\u7814\u7A76\u5EFA\u7BC9\u8207\u8CC7\u6599\u4F86\u6E90"))))),
     ...groups2.map((g, i) => h("div", { class: "cx-grp" }, h("p", { class: "cx-group", id: `cx-tg${i}` }, g.label), h("ul", { "aria-labelledby": `cx-tg${i}` }, ...g.items.map(techItem))))
   );
@@ -8384,13 +10318,13 @@ function selectTech(id, focus = false) {
 }
 function renderTechs(focus) {
   if (!open) return;
-  const seg = (by, label) => {
-    const b = h("button", { type: "button", class: "cx-tool", "aria-pressed": String(techBy === by) }, label);
+  const seg = (by, label2) => {
+    const b = h("button", { type: "button", class: "cx-tool", "aria-pressed": String(techBy === by) }, label2);
     b.onclick = () => {
       if (techBy === by) return;
       techBy = by;
       for (const x of Array.from(b.parentElement.children)) x.setAttribute("aria-pressed", String(x === b));
-      fillTechList(list);
+      fillTechList(list3);
       selectTech(techChosen);
     };
     return b;
@@ -8399,25 +10333,25 @@ function renderTechs(focus) {
   pend.onclick = () => {
     techPending = !techPending;
     pend.setAttribute("aria-pressed", String(techPending));
-    fillTechList(list);
+    fillTechList(list3);
     selectTech(techChosen);
   };
   const tools = h("div", { class: "cx-tools" }, h("div", { class: "cx-seg", role: "group", "aria-label": "\u5206\u7D44\u65B9\u5F0F" }, seg("building", "\u4F9D\u5EFA\u7BC9"), seg("age", "\u4F9D\u6642\u4EE3")), pend);
-  const list = h("nav", { class: "cx-list", "aria-label": "\u79D1\u6280\u5217\u8868" });
+  const list3 = h("nav", { class: "cx-list", "aria-label": "\u79D1\u6280\u5217\u8868" });
   const detail = h("div", { class: "cx-detail", role: "region", "aria-labelledby": "cx-tech-name", tabindex: "-1" });
-  list.addEventListener("click", (e) => {
+  list3.addEventListener("click", (e) => {
     const b = e.target.closest(".cx-uitem");
     if (b?.dataset.tech) selectTech(b.dataset.tech);
   });
-  list.addEventListener("keydown", (e) => {
-    const ids = Array.from(list.querySelectorAll(".cx-uitem")).map((b) => b.dataset.tech), next = step(e.key, Math.max(0, ids.indexOf(techChosen)), ids.length);
+  list3.addEventListener("keydown", (e) => {
+    const ids = Array.from(list3.querySelectorAll(".cx-uitem")).map((b) => b.dataset.tech), next = step(e.key, Math.max(0, ids.indexOf(techChosen)), ids.length);
     if (next === null) return;
     e.preventDefault();
     selectTech(ids[next], true);
   });
-  fillTechList(list);
-  open.body.replaceChildren(h("div", { class: "cx-side" }, tools, list), detail);
-  open.list = list;
+  fillTechList(list3);
+  open.body.replaceChildren(h("div", { class: "cx-side" }, tools, list3), detail);
+  open.list = list3;
   open.detail = detail;
   selectTech(techChosen, focus);
 }
@@ -8443,9 +10377,9 @@ function buildingTable(b) {
     "table",
     { class: "cx-stats" },
     cols.length > 1 ? h("thead", null, h("tr", null, h("td", null), ...cols.map((c) => h("th", { scope: "col" }, c.name)))) : null,
-    h("tbody", null, ...rows.map(([label, f, title]) => {
+    h("tbody", null, ...rows.map(([label2, f, title]) => {
       const cells = cols.map((c) => f(c.sheet));
-      return h("tr", null, h("th", { scope: "row", ...title ? { title } : {} }, label), ...cells.map((c, i) => h("td", i && c !== cells[i - 1] ? { class: "up" } : null, c)));
+      return h("tr", null, h("th", { scope: "row", ...title ? { title } : {} }, label2), ...cells.map((c, i) => h("td", i && c !== cells[i - 1] ? { class: "up" } : null, c)));
     }))
   );
 }
@@ -8547,9 +10481,9 @@ function buildingOverview() {
 function buildingItem(it) {
   return h("li", null, h("button", { type: "button", class: `cx-uitem${it.pending ? " off" : ""}`, "data-building": it.id, tabindex: "-1", "aria-current": "false" }, h("b", null, it.name), h("small", null, it.sub), it.pending ? h("span", { class: "cx-mark off" }, "\u672A\u5BE6\u4F5C") : null));
 }
-function fillBuildingList(list) {
+function fillBuildingList(list3) {
   const groups2 = buildingGroupsBy(buildingBy).map((g) => ({ ...g, items: g.items.filter((i) => buildingPending || !i.pending) })).filter((g) => g.items.length);
-  list.replaceChildren(
+  list3.replaceChildren(
     h("div", { class: "cx-grp" }, h("ul", null, h("li", null, h("button", { type: "button", class: "cx-uitem", "data-building": "overview", tabindex: "-1", "aria-current": "false" }, h("b", null, "\u7E3D\u89BD"), h("small", null, "\u985E\u578B\u8207\u8CC7\u6599\u4F86\u6E90"))))),
     ...groups2.map((g, i) => h("div", { class: "cx-grp" }, h("p", { class: "cx-group", id: `cx-bg${i}` }, g.label), h("ul", { "aria-labelledby": `cx-bg${i}` }, ...g.items.map(buildingItem))))
   );
@@ -8574,13 +10508,13 @@ function selectBuilding(id, focus = false) {
 }
 function renderBuildings(focus) {
   if (!open) return;
-  const seg = (by, label) => {
-    const b = h("button", { type: "button", class: "cx-tool", "aria-pressed": String(buildingBy === by) }, label);
+  const seg = (by, label2) => {
+    const b = h("button", { type: "button", class: "cx-tool", "aria-pressed": String(buildingBy === by) }, label2);
     b.onclick = () => {
       if (buildingBy === by) return;
       buildingBy = by;
       for (const x of Array.from(b.parentElement.children)) x.setAttribute("aria-pressed", String(x === b));
-      fillBuildingList(list);
+      fillBuildingList(list3);
       selectBuilding(buildingChosen);
     };
     return b;
@@ -8589,27 +10523,367 @@ function renderBuildings(focus) {
   pend.onclick = () => {
     buildingPending = !buildingPending;
     pend.setAttribute("aria-pressed", String(buildingPending));
-    fillBuildingList(list);
+    fillBuildingList(list3);
     selectBuilding(buildingChosen);
   };
   const tools = h("div", { class: "cx-tools" }, h("div", { class: "cx-seg", role: "group", "aria-label": "\u5206\u7D44\u65B9\u5F0F" }, seg("group", "\u4F9D\u985E\u578B"), seg("age", "\u4F9D\u6642\u4EE3")), pend);
-  const list = h("nav", { class: "cx-list", "aria-label": "\u5EFA\u7BC9\u5217\u8868" });
+  const list3 = h("nav", { class: "cx-list", "aria-label": "\u5EFA\u7BC9\u5217\u8868" });
   const detail = h("div", { class: "cx-detail", role: "region", "aria-labelledby": "cx-building-name", tabindex: "-1" });
-  list.addEventListener("click", (e) => {
+  list3.addEventListener("click", (e) => {
     const b = e.target.closest(".cx-uitem");
     if (b?.dataset.building) selectBuilding(b.dataset.building);
   });
-  list.addEventListener("keydown", (e) => {
-    const ids = Array.from(list.querySelectorAll(".cx-uitem")).map((b) => b.dataset.building), next = step(e.key, Math.max(0, ids.indexOf(buildingChosen)), ids.length);
+  list3.addEventListener("keydown", (e) => {
+    const ids = Array.from(list3.querySelectorAll(".cx-uitem")).map((b) => b.dataset.building), next = step(e.key, Math.max(0, ids.indexOf(buildingChosen)), ids.length);
     if (next === null) return;
     e.preventDefault();
     selectBuilding(ids[next], true);
   });
-  fillBuildingList(list);
-  open.body.replaceChildren(h("div", { class: "cx-side" }, tools, list), detail);
-  open.list = list;
+  fillBuildingList(list3);
+  open.body.replaceChildren(h("div", { class: "cx-side" }, tools, list3), detail);
+  open.list = list3;
   open.detail = detail;
   selectBuilding(buildingChosen, focus);
+}
+var elementCache = /* @__PURE__ */ new Map();
+var element = (id) => {
+  let p = elementCache.get(id);
+  if (!p) {
+    const q = elementPage(id);
+    if (q) {
+      p = q;
+      elementCache.set(id, p);
+    }
+  }
+  return p ?? null;
+};
+function elementBlock(b, speak) {
+  const head = h("h4", null, b.title, b.note ? h("small", null, b.note) : null);
+  if (b.kind === "table") return h("section", null, head, h("div", { class: "cx-scroll" }, h(
+    "table",
+    { class: `cx-stats${b.head.length > 3 ? " cx-wide" : ""}` },
+    h("thead", null, h("tr", null, ...b.head.map((c) => h("th", { scope: "col" }, c)))),
+    h("tbody", null, ...b.rows.map((r) => h("tr", null, h("th", { scope: "row" }, r[0]), ...r.slice(1).map((c) => h("td", null, c)))))
+  )));
+  if (b.kind === "facts") {
+    const dl = h("dl", { class: "cx-tree" });
+    for (const i of b.items) dl.append(h("dt", null, i.label), h("dd", null, i.value));
+    return h("section", null, head, dl);
+  }
+  if (b.kind === "list") return h("section", null, head, bricks(b.items));
+  if (b.kind === "example") return h("article", null, h("h5", null, b.title), h("ol", { class: "cx-eq" }, ...b.lines.map((l) => h("li", null, l))));
+  return h("section", null, head, h("div", { class: "cx-scroll" }, h(
+    "table",
+    { class: "cx-stats" },
+    h("thead", null, h("tr", null, h("th", { scope: "col" }, "\u7DE8\u865F"), h("th", { scope: "col" }, "\u4E2D\u6587"), h("th", { scope: "col" }, "\u82F1\u6587"), speak ? h("td", null) : null)),
+    h("tbody", null, ...b.rows.map((t) => {
+      const row = h("tr", null, h("td", { class: "n" }, String(t.n)), h("td", null, t.zh), h("td", { class: "en", lang: "en" }, t.en));
+      if (speak) {
+        const cell = h("td", { class: "say" });
+        if (t.spoken) {
+          const btn = h("button", { type: "button", class: "cx-say", "aria-label": `\u6717\u8B80\u7B2C ${t.n} \u53E5\uFF1A${t.zh}` }, "\u6717\u8B80");
+          btn.onclick = () => speak(t.n);
+          cell.append(btn);
+        }
+        row.append(cell);
+      }
+      return row;
+    }))
+  )));
+}
+function elementView(p, speak) {
+  const page2 = h("div", { class: "cx-page" });
+  page2.append(
+    h("h3", { id: "cx-element-name" }, p.name, h("span", { lang: "en" }, p.nameEn)),
+    h("p", { class: "cx-sub" }, p.menu ? "aoetw \u904A\u6232\u5143\u7D20\u9078\u55AE" : "aoetw \u904A\u6232\u5143\u7D20\uFF08\u9078\u55AE\u4EE5\u5916\u7684\u689D\u76EE\uFF09", p.refName && p.refName !== p.name ? `\u30FBaoetw \u8B6F\u540D\uFF1A${p.refName}` : ""),
+    h("p", { class: "cx-summary" }, p.text)
+  );
+  const examples = p.blocks.filter((b) => b.kind === "example");
+  for (const b of p.blocks) if (b.kind !== "example") page2.append(elementBlock(b, speak));
+  if (examples.length) page2.append(h("section", null, h("h4", null, "\u7B97\u4E00\u6B21\u50B7\u5BB3", h("small", null, "\u53D6\u81EA\u6A21\u64EC\u7684\u5BE6\u969B\u6578\u5B57")), h("div", { class: "cx-ex" }, ...examples.map((b) => elementBlock(b, speak)))));
+  page2.append(
+    h("section", null, h("h4", null, "\u672C\u4F5C\u6C92\u6709\u7684\u90E8\u5206"), p.lacks.length ? h("ul", { class: "cx-bricks off" }, ...p.lacks.map((l) => h("li", null, h("span", null, l.name, h("small", null, l.reason))))) : h("p", { class: "cx-prose" }, "\u6C92\u6709\uFF1A\u7DB2\u7AD9\u9019\u4E00\u9801\u8AAA\u7684\u672C\u4F5C\u90FD\u6709\u3002")),
+    h("footer", { class: "cx-foot" }, h("p", null, elementsNote), h("p", null, `\u8CC7\u6599\u4F86\u6E90\uFF1A${p.source}`))
+  );
+  return page2;
+}
+function elementOverview() {
+  const p = h("div", { class: "cx-page" });
+  p.append(
+    h("h3", { id: "cx-element-name" }, "\u904A\u6232\u5143\u7D20", h("span", { lang: "en" }, "Game elements")),
+    h("p", { class: "cx-summary" }, elementsIntro),
+    ...elementGroups().map((g) => h("section", null, h("h4", null, g.label), h("div", { class: "cx-ov" }, ...g.items.map((e) => h("article", { class: "cx-tech" }, h("h5", null, e.name, h("span", { lang: "en" }, e.nameEn)), h("p", null, e.summary)))))),
+    h("footer", { class: "cx-foot" }, h("p", null, elementsNote), h("p", null, "\u8CC7\u6599\u4F86\u6E90\uFF1Aaoetw.com \u904A\u6232\u5143\u7D20\u9078\u55AE\u3001elements/Conversion\u3001elements/Line_of_Sight"))
+  );
+  return p;
+}
+function fillElementList(list3) {
+  list3.replaceChildren(
+    h("div", { class: "cx-grp" }, h("ul", null, h("li", null, h("button", { type: "button", class: "cx-uitem", "data-element": "overview", tabindex: "-1", "aria-current": "false" }, h("b", null, "\u7E3D\u89BD"), h("small", null, "\u689D\u76EE\u8207\u8CC7\u6599\u4F86\u6E90"))))),
+    ...elementGroups().map((g, i) => h("div", { class: "cx-grp" }, h("p", { class: "cx-group", id: `cx-eg${i}` }, g.label), h(
+      "ul",
+      { "aria-labelledby": `cx-eg${i}` },
+      ...g.items.map((e) => h("li", null, h("button", { type: "button", class: "cx-uitem", "data-element": e.id, tabindex: "-1", "aria-current": "false" }, h("b", null, e.name), h("small", null, e.nameEn))))
+    )))
+  );
+}
+function selectElement(id, focus = false) {
+  if (!open) return;
+  const p = id === "overview" ? null : element(id);
+  if (!p) id = "overview";
+  elementChosen = id;
+  for (const b of Array.from(open.list.querySelectorAll(".cx-uitem"))) {
+    const on = b.dataset.element === id;
+    b.setAttribute("aria-current", String(on));
+    b.tabIndex = on ? 0 : -1;
+    if (on) {
+      if (focus) b.focus({ preventScroll: true });
+      reveal(open.list, b);
+    }
+  }
+  open.detail.replaceChildren(p ? elementView(p, open.ctx.speakTaunt) : elementOverview());
+  open.detail.scrollTop = 0;
+}
+function renderElements(focus) {
+  if (!open) return;
+  const list3 = h("nav", { class: "cx-list", "aria-label": "\u904A\u6232\u5143\u7D20\u5217\u8868" });
+  const detail = h("div", { class: "cx-detail", role: "region", "aria-labelledby": "cx-element-name", tabindex: "-1" });
+  list3.addEventListener("click", (e) => {
+    const b = e.target.closest(".cx-uitem");
+    if (b?.dataset.element) selectElement(b.dataset.element);
+  });
+  list3.addEventListener("keydown", (e) => {
+    const ids = Array.from(list3.querySelectorAll(".cx-uitem")).map((b) => b.dataset.element), next = step(e.key, Math.max(0, ids.indexOf(elementChosen)), ids.length);
+    if (next === null) return;
+    e.preventDefault();
+    selectElement(ids[next], true);
+  });
+  fillElementList(list3);
+  open.body.replaceChildren(list3, detail);
+  open.list = list3;
+  open.detail = detail;
+  selectElement(elementChosen, focus);
+}
+var tacticCache = /* @__PURE__ */ new Map();
+var tactic = (id) => {
+  let p = tacticCache.get(id);
+  if (!p) {
+    const q = tacticPage(id);
+    if (q) {
+      p = q;
+      tacticCache.set(id, p);
+    }
+  }
+  return p ?? null;
+};
+function tacticBlock(b) {
+  if (b.kind !== "steps") return elementBlock(b, void 0);
+  return h("section", null, h("h4", null, b.title, b.note ? h("small", null, b.note) : null), h(
+    "div",
+    { class: "cx-phases" },
+    ...b.phases.map((g) => h("article", { class: "cx-tech" }, h("h5", null, g.label), h("ol", { class: "cx-bricks cx-steps" }, ...g.steps.map((st) => h("li", st.check ? null : { class: "tip" }, h("span", null, st.label))))))
+  ));
+}
+function tacticView(p) {
+  const page2 = h("div", { class: "cx-page" });
+  page2.append(
+    h("h3", { id: "cx-tactic-name" }, p.name, h("span", { lang: "en" }, p.nameEn)),
+    h("p", { class: "cx-sub" }, p.group === "opening" ? "aoetw \u6230\u8853\u6280\u5DE7\u30FB\u4E3B\u6D41\u6253\u6CD5\uFF08\u963F\u62C9\u4F2F\uFF09" : "aoetw \u6230\u8853\u6280\u5DE7\u30FB\u63A7\u5175\u6280\u5DE7", p.available ? "" : h("b", null, "\u30FB\u672A\u5BE6\u4F5C")),
+    h("p", { class: "cx-summary" }, p.text)
+  );
+  if (p.reason) page2.append(h("p", { class: "cx-prose cx-why" }, `\u672C\u4F5C\u4E0D\u80FD\u73A9\uFF1A${p.reason}\u3002`));
+  if (p.how) page2.append(h("section", null, h("h4", null, "\u5728\u672C\u4F5C\u600E\u9EBC\u505A"), h("p", { class: "cx-prose" }, p.how)));
+  for (const b of p.blocks) page2.append(tacticBlock(b));
+  page2.append(
+    h("section", null, h("h4", null, "\u672C\u4F5C\u6C92\u6709\u7684\u90E8\u5206"), p.lacks.length ? h("ul", { class: "cx-bricks off" }, ...p.lacks.map((l) => h("li", null, h("span", null, l.name, h("small", null, l.reason))))) : h("p", { class: "cx-prose" }, "\u6C92\u6709\uFF1A\u7DB2\u7AD9\u9019\u4E00\u9801\u8AAA\u7684\u672C\u4F5C\u90FD\u505A\u5F97\u5230\u3002")),
+    h("footer", { class: "cx-foot" }, h("p", null, tacticsNote), h("p", null, `\u8CC7\u6599\u4F86\u6E90\uFF1A${p.source}`))
+  );
+  return page2;
+}
+function tacticOverview() {
+  const p = h("div", { class: "cx-page" });
+  p.append(
+    h("h3", { id: "cx-tactic-name" }, "\u6230\u8853\u6280\u5DE7", h("span", { lang: "en" }, "Tactics")),
+    h("p", { class: "cx-summary" }, tacticsIntro),
+    h("section", null, h("h4", null, "\u57FA\u790E\u5347\u7D1A"), h("p", { class: "cx-prose" }, basicUpgradesText), h("ul", { class: "cx-bricks off cx-basic" }, ...basicUpgradeItems.map((i) => h("li", null, h("span", null, i))))),
+    ...tacticGroups().map((g) => h("section", null, h("h4", null, g.label), h("div", { class: "cx-ov" }, ...g.items.map((e) => h("article", { class: `cx-tech${e.available ? "" : " off"}` }, h("h5", null, e.name, h("span", { lang: "en" }, e.nameEn)), h("p", null, e.available ? e.summary : `${e.summary}\uFF08\u672A\u5BE6\u4F5C\uFF09`)))))),
+    h("footer", { class: "cx-foot" }, h("p", null, tacticsNote), h("p", null, "\u8CC7\u6599\u4F86\u6E90\uFF1Aaoetw.com/ar \u8207\u5404\u6253\u6CD5\u9801"))
+  );
+  return p;
+}
+function fillTacticList(list3) {
+  list3.replaceChildren(
+    h("div", { class: "cx-grp" }, h("ul", null, h("li", null, h("button", { type: "button", class: "cx-uitem", "data-tactic": "overview", tabindex: "-1", "aria-current": "false" }, h("b", null, "\u7E3D\u89BD"), h("small", null, "\u57FA\u790E\u5347\u7D1A\u8207\u76EE\u9304"))))),
+    ...tacticGroups().map((g, i) => h("div", { class: "cx-grp" }, h("p", { class: "cx-group", id: `cx-tg${i}` }, g.label), h(
+      "ul",
+      { "aria-labelledby": `cx-tg${i}` },
+      ...g.items.map((e) => h("li", null, h("button", { type: "button", class: `cx-uitem${e.available ? "" : " off"}`, "data-tactic": e.id, tabindex: "-1", "aria-current": "false" }, h("b", null, e.name), h("small", null, e.available ? e.nameEn : "\u672A\u5BE6\u4F5C"))))
+    )))
+  );
+}
+function selectTactic(id, focus = false) {
+  if (!open) return;
+  const p = id === "overview" ? null : tactic(id);
+  if (!p) id = "overview";
+  tacticChosen = id;
+  for (const b of Array.from(open.list.querySelectorAll(".cx-uitem"))) {
+    const on = b.dataset.tactic === id;
+    b.setAttribute("aria-current", String(on));
+    b.tabIndex = on ? 0 : -1;
+    if (on) {
+      if (focus) b.focus({ preventScroll: true });
+      reveal(open.list, b);
+    }
+  }
+  open.detail.replaceChildren(p ? tacticView(p) : tacticOverview());
+  open.detail.scrollTop = 0;
+}
+function renderTactics(focus) {
+  if (!open) return;
+  const list3 = h("nav", { class: "cx-list", "aria-label": "\u6230\u8853\u6280\u5DE7\u5217\u8868" });
+  const detail = h("div", { class: "cx-detail", role: "region", "aria-labelledby": "cx-tactic-name", tabindex: "-1" });
+  list3.addEventListener("click", (e) => {
+    const b = e.target.closest(".cx-uitem");
+    if (b?.dataset.tactic) selectTactic(b.dataset.tactic);
+  });
+  list3.addEventListener("keydown", (e) => {
+    const ids = Array.from(list3.querySelectorAll(".cx-uitem")).map((b) => b.dataset.tactic), next = step(e.key, Math.max(0, ids.indexOf(tacticChosen)), ids.length);
+    if (next === null) return;
+    e.preventDefault();
+    selectTactic(ids[next], true);
+  });
+  fillTacticList(list3);
+  open.body.replaceChildren(list3, detail);
+  open.list = list3;
+  open.detail = detail;
+  selectTactic(tacticChosen, focus);
+}
+var treeCache = /* @__PURE__ */ new Map();
+var treeOf = (civ) => {
+  const k = `${civ}:${treeRefs}`;
+  let t = treeCache.get(k);
+  if (!t) {
+    t = civTree(civ, treeRefs);
+    treeCache.set(k, t);
+  }
+  return t;
+};
+var iconOf = (icons2, keys) => keys.map((k) => icons2[k]).find(Boolean) ?? null;
+function treeNode(n, icons2, mark, linked = false) {
+  const src = iconOf(icons2, n.icons), cls = ["cx-tnode", linked ? "linked" : "", n.kind === "ref" ? "ref" : n.available ? "" : "off", n.unique && n.available ? "uniq" : "", mark && n.available && n.kind !== "ref" ? `s-${mark.state}` : ""].filter(Boolean).join(" ");
+  const status = n.kind === "ref" ? "\u672C\u4F5C\u6C92\u6709" : !n.available ? "\u6C92\u6709" : mark ? mark.state === "owned" ? `\u64C1\u6709 ${mark.count}` : treeMarkLabels[mark.state] : n.alias ? "\u540C\u4E00\u9805\u7814\u7A76" : "";
+  const note = [n.needs.length ? `\u9700${n.needs.join("\u3001")}` : "", n.leads.length ? `\u5347\u7D1A\uFF1A${n.leads.join("\u3001")}` : ""].filter(Boolean).join("\uFF1B");
+  const label2 = [n.name, status, note, n.reason].filter(Boolean).join("\uFF1A");
+  const kids = [src ? h("img", { src, alt: "" }) : h("span", { class: "noimg", "aria-hidden": "true" }, "\xB7"), h("span", { class: "nm" }, n.name), note ? h("span", { class: "nd" }, note) : null, status ? h("span", { class: "mk" }, status) : null];
+  return n.link ? h("button", { type: "button", class: cls, "data-section": n.link.section, "data-page": n.link.id, "aria-label": label2, title: label2 }, ...kids) : h("div", { class: cls, role: "img", "aria-label": label2, title: label2 }, ...kids);
+}
+function treeBlockView(b, icons2, marks) {
+  const head = b.head ? (() => {
+    const src = iconOf(icons2, b.head.icons), m = marks(b.head), st = !b.head.available ? "\uFF08\u6B64\u6587\u660E\u6C92\u6709\uFF09" : m && (m.state === "owned" || m.state === "queued") ? `\uFF08${m.state === "owned" ? `\u64C1\u6709 ${m.count}` : "\u5EFA\u9020\u4E2D"}\uFF09` : "";
+    return h("button", { type: "button", "data-section": "buildings", "data-page": b.head.id, ...m ? { "data-state": m.state } : {} }, src ? h("img", { src, alt: "" }) : null, h("span", null, b.name), st ? h("small", null, st) : null);
+  })() : h("span", null, b.name);
+  const grid = h("div", { class: "cx-tgrid", style: `grid-template-columns:auto repeat(${b.columns.length},max-content)` });
+  b.ages.forEach((age, r) => {
+    grid.append(h("div", { class: "cx-tage" }, ageName(age)));
+    for (const col of b.columns) {
+      const c = col[r];
+      grid.append(h("div", { class: ["cx-tcell", c.down ? "down" : "", c.pipe ? "pipe" : ""].filter(Boolean).join(" ") }, ...c.nodes.map((n, i) => treeNode(n, icons2, marks(n), i > 0 && c.links[i - 1]))));
+    }
+  });
+  return h("section", { class: "cx-tblock", "aria-label": b.name }, h("h4", null, head), h("div", { class: "cx-scroll" }, grid));
+}
+function treeView(civ) {
+  if (!open) return h("div", null);
+  const t = treeOf(civ), icons2 = open.ctx.icons, m = open.ctx.match && open.ctx.match.civ === civ ? open.ctx.match : null;
+  const marks = (n) => m ? treeMark(n, m) : null, page2 = h("div", { class: "cx-page cx-wide-page" });
+  page2.append(
+    h("h3", { id: "cx-tree-name" }, `${t.name}\u30FB\u79D1\u6280\u6A39`, h("span", { lang: "en" }, "Technology tree")),
+    h("p", { class: "cx-sub" }, t.type, m ? h("b", null, `\u30FB\u76EE\u524D\u5C0D\u5C40\uFF1A${ageName(m.age)}`) : open.ctx.match ? "\u30FB\u4E0D\u662F\u4F60\u9019\u5C40\u7684\u6587\u660E\uFF08\u4E0D\u6A19\u5C0D\u5C40\u9032\u5EA6\uFF09" : ""),
+    h("p", { class: "cx-summary" }, treeIntro)
+  );
+  if (t.bonuses.length || t.team.length) page2.append(h("section", null, h("h4", null, "\u6587\u660E\u52A0\u6210"), h(
+    "div",
+    { class: "cx-cols" },
+    t.bonuses.length ? h("ul", { class: "cx-bricks" }, ...t.bonuses.map((x) => h("li", null, h("span", null, x)))) : null,
+    t.team.length ? h("div", null, h("p", { class: "cx-note" }, "\u5718\u968A\u52A0\u6210"), h("ul", { class: "cx-bricks" }, ...t.team.map((x) => h("li", null, h("span", null, x))))) : null
+  )));
+  const refBtn = h("button", { type: "button", class: "cx-tool pend", "aria-pressed": String(treeRefs) }, "\u986F\u793A\u672C\u4F5C\u6C92\u6709\u7684\u9805\u76EE");
+  refBtn.onclick = () => {
+    treeRefs = !treeRefs;
+    const y = open?.detail.scrollTop ?? 0;
+    selectTree(civ);
+    if (open) open.detail.scrollTop = y;
+  };
+  const states = m ? ["done", "owned", "queued", "ready", "short", "later", "off", "ref"] : ["off", "ref"];
+  page2.append(h("div", { class: "cx-tools cx-tree-tools" }, refBtn, h(
+    "ul",
+    { class: "cx-legend", "aria-label": "\u5716\u4F8B" },
+    h("li", null, h("i", { class: "s-uniq" }), "\u7279\u6B8A\u55AE\u4F4D\u8207\u79D1\u6280"),
+    ...states.filter((s) => s !== "ref" || treeRefs).map((s) => h("li", null, h("i", { class: `s-${s}` }), treeMarkLabels[s]))
+  )));
+  page2.append(
+    h("div", { class: "cx-tblocks" }, ...t.blocks.map((b) => treeBlockView(b, icons2, marks))),
+    h("footer", { class: "cx-foot" }, h("p", null, treeNote), h("p", null, "\u8CC7\u6599\u4F86\u6E90\uFF1Aaoetw.com/tree"))
+  );
+  return page2;
+}
+function selectTree(id, focus = false) {
+  if (!open) return;
+  treeChosen = id;
+  for (const b of Array.from(open.list.querySelectorAll(".cx-civ"))) {
+    const on = b.dataset.civ === id;
+    b.setAttribute("aria-current", String(on));
+    b.tabIndex = on ? 0 : -1;
+    if (on) {
+      if (focus) b.focus({ preventScroll: true });
+      reveal(open.list, b);
+    }
+  }
+  open.detail.replaceChildren(treeView(id));
+  open.detail.scrollTop = 0;
+}
+function renderTree(focus) {
+  if (!open) return;
+  const items = civList(open.ctx.civs), groups2 = [];
+  for (const c of items) {
+    const g = groups2.at(-1);
+    if (g && g.label === c.group) g.items.push(c);
+    else groups2.push({ label: c.group, items: [c] });
+  }
+  const list3 = h("nav", { class: "cx-list", "aria-label": "\u79D1\u6280\u6A39\u6587\u660E\u5217\u8868" }, ...groups2.map((g, i) => h("div", { class: "cx-grp" }, h("p", { class: "cx-group", id: `cx-tr${i}` }, g.label), h("ul", { "aria-labelledby": `cx-tr${i}` }, ...g.items.map(listItem)))));
+  const detail = h("div", { class: "cx-detail", role: "region", "aria-labelledby": "cx-tree-name", tabindex: "-1" });
+  list3.addEventListener("click", (e) => {
+    const b = e.target.closest(".cx-civ");
+    if (b?.dataset.civ) selectTree(b.dataset.civ);
+  });
+  list3.addEventListener("keydown", (e) => {
+    const ids = items.map((c) => c.id), next = step(e.key, Math.max(0, ids.indexOf(treeChosen ?? ids[0])), ids.length);
+    if (next === null) return;
+    e.preventDefault();
+    selectTree(ids[next], true);
+  });
+  detail.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-page]");
+    if (b?.dataset.section && b.dataset.page) go(b.dataset.section, b.dataset.page);
+  });
+  open.body.replaceChildren(list3, detail);
+  open.list = list3;
+  open.detail = detail;
+  selectTree(treeChosen ?? open.ctx.match?.civ ?? items[0].id, focus);
+}
+function go(id, page2) {
+  if (id === "units") {
+    unitChosen = page2;
+    showPending = true;
+  } else if (id === "techs") {
+    techChosen = page2;
+    techPending = true;
+  } else if (id === "buildings") {
+    buildingChosen = page2;
+    buildingPending = true;
+  }
+  show(id, false);
+  open?.detail.focus({ preventScroll: true });
 }
 function show(id, focus) {
   if (!open) return;
@@ -8618,11 +10892,15 @@ function show(id, focus) {
     const on = t.dataset.section === id;
     t.setAttribute("aria-selected", String(on));
     t.tabIndex = on ? 0 : -1;
+    if (on && t.parentElement) reveal(t.parentElement, t);
   }
   open.body.setAttribute("aria-labelledby", `cx-tab-${id}`);
   if (id === "units") renderUnits(focus);
   else if (id === "techs") renderTechs(focus);
   else if (id === "buildings") renderBuildings(focus);
+  else if (id === "elements") renderElements(focus);
+  else if (id === "tactics") renderTactics(focus);
+  else if (id === "tree") renderTree(focus);
   else renderCivs(focus);
 }
 function injectStyle() {
@@ -8660,6 +10938,10 @@ function openCodex(host, ctx) {
   host.replaceChildren(h("div", { class: "cx" }, h("header", { class: "cx-head" }, h("h2", { id: "cx-title" }, "\u767E\u79D1"), tablist, close), body));
   host.hidden = false;
   open = { host, ctx, prev, tabs, body, list: body, detail: body };
+  if (ctx.section) {
+    section = ctx.section;
+    if (ctx.section === "tree" && (ctx.match || ctx.treeCiv)) treeChosen = ctx.match?.civ ?? ctx.treeCiv;
+  }
   show(section, true);
 }
 function closeCodex() {
@@ -8672,19 +10954,360 @@ function closeCodex() {
   ctx.onClose();
 }
 
+// apps/web/lobby.ts
+var key = "brick-rts:lobby:1";
+var layouts = [["open", "\u66E0\u91CE", "32\xD732\uFF0C\u96A8\u6A5F\u51FA\u751F"], ["lakes", "\u6E56\u7554", "32\xD732\uFF0C\u4E2D\u592E\u5927\u6E56\uFF0C\u53EF\u9020\u8239"], ["meadow", "\u8349\u7538", "16\xD716 \u7DF4\u7FD2\u5834"], ["coast", "\u6D77\u5CB8", "16\xD716\uFF0C\u5357\u908A\u662F\u6D77"], ["acceptance", "\u9AD8\u5730\u8207\u6DFA\u7058", "16\xD716\uFF0C\u5761\u5730\u8207\u6DFA\u7058"]];
+var options = {
+  difficulty: [["easy", "\u7C21\u55AE"], ["standard", "\u6A19\u6E96"], ["hard", "\u56F0\u96E3"], ["hardest", "\u6700\u96E3"]],
+  resources: [["low", "\u4F4E"], ["standard", "\u6A19\u6E96"], ["medium", "\u4E2D"], ["high", "\u9AD8"]],
+  reveal: [["normal", "\u6A19\u6E96\uFF08\u6230\u722D\u8FF7\u9727\uFF09"], ["explored", "\u5DF2\u63A2\u7D22"], ["all", "\u5168\u90E8\u986F\u793A"]],
+  startAge: [["1", "\u9ED1\u6697\u6642\u4EE3"], ["2", "\u5C01\u5EFA\u6642\u4EE3"], ["3", "\u57CE\u5821\u6642\u4EE3"], ["4", "\u5E1D\u738B\u6642\u4EE3"]],
+  victory: [["standard", "\u6A19\u6E96"], ["conquest", "\u5F81\u670D"]]
+};
+var hints = {
+  difficulty: { easy: "\u96FB\u8166\u601D\u8003\u6162\u4E00\u500D\u3001\u6751\u6C11\u5C11\u3001\u5175\u529B\u516B\u540D\u624D\u51FA\u64CA\uFF0C\u7B2C\u4E00\u6CE2\u6700\u65E9\u516B\u5206\u9418", standard: "\u539F\u672C\u7684\u96FB\u8166", hard: "\u6751\u6C11\u591A\u3001\u56DB\u540D\u5C31\u51FA\u64CA\uFF0C\u7B2C\u4E00\u6CE2\u6700\u65E9\u4E09\u5206\u9418", hardest: "\u601D\u8003\u5FEB\u4E00\u500D\u3001\u6751\u6C11\u6700\u591A\uFF0C\u7B2C\u4E00\u6CE2\u6700\u65E9\u5169\u5206\u9418" },
+  resources: {},
+  reveal: { normal: "\u53EA\u770B\u5F97\u5230\u55AE\u4F4D\u8207\u5EFA\u7BC9\u9644\u8FD1", explored: "\u6574\u5F35\u5730\u5716\u4E00\u958B\u59CB\u5C31\u5DF2\u63A2\u7D22\uFF0C\u4ECD\u6709\u6230\u722D\u8FF7\u9727", all: "\u96D9\u65B9\u4E00\u76F4\u770B\u5F97\u5230\u6574\u5F35\u5730\u5716\uFF08\u96FB\u8166\u4E5F\u662F\uFF09" },
+  startAge: { "1": "", "2": "\u96D9\u65B9\u5F9E\u9019\u500B\u6642\u4EE3\u958B\u59CB\uFF0C\u6642\u4EE3\u52A0\u6210\u8207\u514D\u8CBB\u79D1\u6280\u7167\u6A23\u751F\u6548", "3": "\u96D9\u65B9\u5F9E\u9019\u500B\u6642\u4EE3\u958B\u59CB\uFF0C\u6642\u4EE3\u52A0\u6210\u8207\u514D\u8CBB\u79D1\u6280\u7167\u6A23\u751F\u6548", "4": "\u96D9\u65B9\u5F9E\u9019\u500B\u6642\u4EE3\u958B\u59CB\uFF0C\u6642\u4EE3\u52A0\u6210\u8207\u514D\u8CBB\u79D1\u6280\u7167\u6A23\u751F\u6548" },
+  victory: { standard: "\u6D88\u6EC5\u5C0D\u624B\uFF0C\u6216\u6301\u6709\u5168\u90E8\u8056\u7269\u3001\u5947\u89C0\u6490\u904E\u5012\u6578", conquest: "\u53EA\u6709\u6D88\u6EC5\u5C0D\u624B\u624D\u7B97\u52DD\u5229" }
+};
+var stock = (r) => {
+  const s = settingRules.resources[r];
+  return `\u98DF\u7269 ${s.food}\u30FB\u6728\u6750 ${s.wood}\u30FB\u9EC3\u91D1 ${s.gold}\u30FB\u77F3\u982D ${s.stone}`;
+};
+for (const [v] of options.resources) hints.resources[v] = stock(v);
+var playable2 = civDefs.filter((c) => c.id !== neutralCiv);
+var randomCiv = (seed, salt) => playable2[(Math.imul(seed >>> 0 ^ salt, 2246822507) >>> 0) % playable2.length].id;
+var resolveCivs = (blue, red2, seed) => [blue === "random" ? randomCiv(seed, 1540483477) : blue, red2 === "random" ? randomCiv(seed, 2654435769) : red2];
+function defaultPrefs() {
+  return { name: "\u85CD\u65B9", blue: "britons", red: "franks", opponent: "ai", aiOpening: standardOpening, layout: "open", seed: "260925", settings: { ...defaultSettings }, record: false };
+}
+function loadPrefs() {
+  const d = defaultPrefs();
+  try {
+    const v = JSON.parse(localStorage.getItem(key) ?? "null");
+    if (!v || typeof v !== "object") return d;
+    const civOk = (c) => c === "random" || typeof c === "string" && !!civById(c);
+    let settings2 = d.settings;
+    try {
+      settings2 = matchSettings(v.settings ?? {});
+    } catch {
+    }
+    return {
+      name: typeof v.name === "string" && v.name.trim() ? v.name.trim().slice(0, 16) : d.name,
+      blue: civOk(v.blue) ? v.blue : d.blue,
+      red: civOk(v.red) ? v.red : d.red,
+      opponent: v.opponent === "idle" ? "idle" : "ai",
+      aiOpening: [standardOpening, randomOpening, ...openings.map((o) => o.id)].includes(v.aiOpening) ? v.aiOpening : d.aiOpening,
+      layout: layouts.some(([l]) => l === v.layout) ? v.layout : d.layout,
+      seed: typeof v.seed === "string" && /^\d{0,10}$/.test(v.seed) ? v.seed : d.seed,
+      settings: settings2,
+      record: v.record === true
+    };
+  } catch {
+    return d;
+  }
+}
+var savePrefs = (p) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(p));
+  } catch {
+  }
+};
+function createLobby(deps) {
+  const el2 = (id) => document.getElementById(id);
+  const root = el2("lobby"), status = el2("lobby-status"), canvas2 = el2("lobby-preview"), ctx = canvas2.getContext("2d");
+  let prefs = loadPrefs(), returnable = false, busy = false, previewKey = "", sweep = 0;
+  const fill = (id, list3, title) => {
+    const sel2 = el2(id);
+    sel2.replaceChildren(...list3.map(([v, t]) => {
+      const o = document.createElement("option");
+      o.value = v;
+      o.textContent = t;
+      if (title?.[v]) o.title = title[v];
+      return o;
+    }));
+  };
+  const civList2 = (random) => [...random ? [["random", "\u96A8\u6A5F"]] : [], ...playable2.map((c) => [c.id, c.name]), [neutralCiv, `${civById(neutralCiv).name}\uFF08\u7121\u52A0\u6210\uFF09`]];
+  fill("lobby-blue", [["random", "\u96A8\u6A5F"], ...civList2(false)]);
+  fill("lobby-red", civList2(true));
+  fill("lobby-opponent", [["ai", "\u96FB\u8166"], ["idle", "\u4E0D\u884C\u52D5\uFF08\u7DF4\u7FD2\uFF09"]]);
+  fill("lobby-opening", [[standardOpening, "\u6A19\u6E96"], [randomOpening, "\u96A8\u6A5F\uFF08\u5C0D\u5C40\u5F8C\u63ED\u66C9\uFF09"], ...openings.map((o) => [o.id, o.zh])]);
+  fill("lobby-layout", layouts.map(([v, t]) => [v, t]), Object.fromEntries(layouts.map(([v, , h2]) => [v, h2])));
+  for (const k of ["difficulty", "resources", "reveal", "startAge", "victory"]) fill(`lobby-${k}`, options[k], hints[k]);
+  fill("lobby-popCap", settingRules.popCaps.map((n) => [String(n), String(n)]));
+  const sel = (id) => el2(id);
+  function write() {
+    el2("lobby-name").value = prefs.name;
+    sel("lobby-blue").value = prefs.blue;
+    sel("lobby-red").value = prefs.red;
+    sel("lobby-opponent").value = prefs.opponent;
+    sel("lobby-opening").value = prefs.aiOpening;
+    sel("lobby-layout").value = prefs.layout;
+    el2("lobby-seed").value = prefs.seed;
+    const s = prefs.settings;
+    sel("lobby-difficulty").value = s.difficulty;
+    sel("lobby-resources").value = s.resources;
+    sel("lobby-popCap").value = String(s.popCap);
+    sel("lobby-reveal").value = s.reveal;
+    sel("lobby-startAge").value = String(s.startAge);
+    sel("lobby-victory").value = s.victory;
+    el2("lobby-allTechs").checked = s.allTechs;
+    el2("lobby-record").checked = prefs.record;
+  }
+  function read() {
+    const n = el2("lobby-name").value.trim().slice(0, 16);
+    return {
+      name: n || "\u85CD\u65B9",
+      blue: sel("lobby-blue").value,
+      red: sel("lobby-red").value,
+      opponent: sel("lobby-opponent").value === "idle" ? "idle" : "ai",
+      aiOpening: sel("lobby-opening").value,
+      layout: sel("lobby-layout").value,
+      seed: el2("lobby-seed").value.trim(),
+      record: el2("lobby-record").checked,
+      settings: matchSettings({ difficulty: sel("lobby-difficulty").value, resources: sel("lobby-resources").value, popCap: Number(sel("lobby-popCap").value), reveal: sel("lobby-reveal").value, startAge: Number(sel("lobby-startAge").value), victory: sel("lobby-victory").value, allTechs: el2("lobby-allTechs").checked })
+    };
+  }
+  const seedOf = (p) => {
+    const v = p.seed === "" ? NaN : Number(p.seed);
+    return Number.isSafeInteger(v) && v >= 0 && v <= 4294967295 ? v : null;
+  };
+  function notes() {
+    const p = read(), seed = seedOf(p), [b, r] = resolveCivs(p.blue, p.red, seed ?? 0), ai = p.opponent === "ai";
+    const civ = (id, picked) => {
+      const c = civById(id);
+      return `${picked === "random" ? seed === null ? "\u96A8\u6A5F\uFF08\u8F38\u5165\u7A2E\u5B50\u5F8C\u6C7A\u5B9A\uFF09" : `\u96A8\u6A5F\uFF1A${c?.name}` : c?.name ?? id}\u30FB${c?.type ?? ""}`;
+    };
+    el2("lobby-blue-note").textContent = civ(b, p.blue);
+    el2("lobby-red-note").textContent = civ(r, p.red);
+    for (const id of ["lobby-opening", "lobby-difficulty"]) sel(id).disabled = !ai;
+    el2("lobby-red-row").dataset.idle = String(!ai);
+    for (const k of ["difficulty", "resources", "reveal", "startAge", "victory"]) {
+      const v = k === "startAge" ? String(p.settings.startAge) : p.settings[k];
+      el2(`lobby-${k}-note`).textContent = k === "difficulty" && !ai ? "\u7D05\u65B9\u4E0D\u884C\u52D5\u6642\u4E0D\u9069\u7528" : hints[k][v] ?? "";
+    }
+    el2("lobby-popCap-note").textContent = `\u4EBA\u53E3\u4E0A\u9650 ${p.settings.popCap}\uFF08\u6587\u660E\u52A0\u6210\u53E6\u8A08\uFF09`;
+    el2("lobby-allTechs-note").textContent = p.settings.allTechs ? "\u6BCF\u500B\u6587\u660E\u90FD\u80FD\u7528\u6240\u6709\u5171\u7528\u7684\u5175\u7A2E\u3001\u5EFA\u7BC9\u8207\u79D1\u6280\uFF1B\u7279\u6B8A\u55AE\u4F4D\u4ECD\u5C6C\u5404\u81EA\u7684\u6587\u660E" : "\u7167\u5404\u6587\u660E\u7684\u79D1\u6280\u6A39";
+    el2("lobby-record-note").textContent = p.record ? "\u5C0D\u5C40\u4E2D\u6BCF\u4E00\u5206\u9418\u81EA\u52D5\u5B58\u6A94\u4E00\u6B21\uFF08\u8F09\u5165\u904A\u6232\u88E1\u7684\u300C\u81EA\u52D5\u5B58\u6A94\u300D\uFF09" : "\u4E0D\u81EA\u52D5\u5B58\u6A94\uFF08\u9078\u55AE\u4ECD\u53EF\u624B\u52D5\u5132\u5B58\uFF09";
+    el2("lobby-start").disabled = busy || seed === null;
+    el2("lobby-seed-note").textContent = seed === null ? "\u7A2E\u5B50\u8981\u662F 0\uFF5E4294967295 \u7684\u6574\u6578" : "\u540C\u4E00\u500B\u7A2E\u5B50\u8207\u5730\u5716\uFF0C\u6BCF\u6B21\u751F\u6210\u540C\u4E00\u5F35\u5716";
+    drawPreview(p.layout, seed);
+  }
+  function drawPreview(layout, seed) {
+    if (!ctx) return;
+    const k = `${layout}|${seed}`;
+    if (k === previewKey && canvas2.width) return;
+    previewKey = k;
+    if (seed === null) {
+      ctx.clearRect(0, 0, canvas2.width, canvas2.height);
+      return;
+    }
+    const map = makeMap(seed, layout), relics = layout === "open" || layout === "lakes" ? placeRelics(map, seed) : [], N = map.size;
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches, start = performance.now(), id = ++sweep;
+    const paint = (now) => {
+      if (id !== sweep || !ctx) return;
+      const r = canvas2.getBoundingClientRect(), dpr = Math.min(devicePixelRatio, 2), W = Math.max(1, Math.round(r.width * dpr)), H = Math.max(1, Math.round(r.height * dpr));
+      if (canvas2.width !== W || canvas2.height !== H) {
+        canvas2.width = W;
+        canvas2.height = H;
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const w2 = r.width, h2 = r.height;
+      ctx.clearRect(0, 0, w2, h2);
+      const s = Math.min(w2 / (2 * N), h2 / N) * 0.96, ox = w2 / 2, oy = (h2 - N * s) / 2, P = (x, z) => [ox + (x - z) * s, oy + (x + z) * s / 2];
+      const done = reduce ? Infinity : (now - start) / 420 * 2 * N;
+      const quad = (x0, z0, x1, z1) => {
+        ctx.beginPath();
+        for (const [i, [x, z]] of [[x0, z0], [x1, z0], [x1, z1], [x0, z1]].entries()) {
+          const [px, py] = P(x, z);
+          if (i) ctx.lineTo(px, py);
+          else ctx.moveTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+      };
+      const shade2 = (hex, f) => {
+        const n = parseInt(hex.slice(1), 16);
+        return `rgb(${Math.min(255, Math.round((n >> 16 & 255) * f))},${Math.min(255, Math.round((n >> 8 & 255) * f))},${Math.min(255, Math.round((n & 255) * f))})`;
+      };
+      map.tiles.forEach((t, i) => {
+        const x = i % N, z = Math.floor(i / N);
+        if (x + z > done) return;
+        const base = deps.colors.terrain[t.terrainType] ?? deps.colors.grass;
+        ctx.fillStyle = shade2(base, 0.9);
+        quad(x, z, x + 1, z + 1);
+        ctx.fillStyle = base;
+        quad(x + 0.06, z + 0.06, x + 0.94, z + 0.94);
+        if (s >= 5) {
+          const [cx, cy] = P(x + 0.5, z + 0.5);
+          ctx.fillStyle = shade2(base, 1.12);
+          ctx.beginPath();
+          ctx.ellipse(cx, cy - s * 0.08, s * 0.28, s * 0.14, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+      for (const o of map.obstacles) {
+        const [x0, z0, x1, z1] = obstacleBounds(o);
+        if (x0 / 100 + z0 / 100 > done) continue;
+        ctx.fillStyle = o.kind === "town-center" ? o.red ? "#d0664c" : "#5d93b6" : deps.colors.obstacle[o.kind] ?? "#c8c2a8";
+        quad(x0 / 100, z0 / 100, x1 / 100, z1 / 100);
+      }
+      for (const rel2 of relics) {
+        if (rel2.x / 100 + rel2.y / 100 > done) continue;
+        const [px, py] = P(rel2.x / 100, rel2.y / 100);
+        ctx.fillStyle = "#f2d66b";
+        ctx.strokeStyle = "#15201b";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(px, py, Math.max(2.5, s * 0.4), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+      if (done < 2 * N + 2) requestAnimationFrame(paint);
+    };
+    paint(reduce ? start : performance.now());
+  }
+  async function begin() {
+    const p = read(), seed = seedOf(p);
+    if (seed === null || busy) return;
+    busy = true;
+    notes();
+    prefs = p;
+    savePrefs(p);
+    status.textContent = "\u5EFA\u7ACB\u5C0D\u5C40\u4E2D\u2026";
+    try {
+      await deps.start({ name: p.name, seed, layout: p.layout, opponent: p.opponent, civs: resolveCivs(p.blue, p.red, seed), aiOpening: p.opponent === "ai" ? p.aiOpening : standardOpening, settings: p.settings, record: p.record });
+      status.textContent = "";
+      close();
+    } catch (e) {
+      status.textContent = `\u7121\u6CD5\u958B\u59CB\uFF1A${e.message}`;
+    } finally {
+      busy = false;
+      notes();
+    }
+  }
+  function listSaves() {
+    const box2 = el2("lobby-saves"), slots = deps.saves();
+    box2.hidden = !box2.hidden;
+    el2("lobby-load").setAttribute("aria-expanded", String(!box2.hidden));
+    if (box2.hidden) return;
+    if (!slots.length) {
+      box2.replaceChildren(Object.assign(document.createElement("p"), { className: "lobby-empty", textContent: "\u9019\u500B\u700F\u89BD\u5668\u9084\u6C92\u6709\u5B58\u6A94\uFF1A\u5C0D\u5C40\u4E2D\u5F9E\u9078\u55AE\u300C\u5132\u5B58\u904A\u6232\u300D\uFF0C\u6216\u52FE\u9078\u300C\u8A18\u9304\u904A\u6232\u300D\u81EA\u52D5\u5B58\u6A94\u3002" }));
+      return;
+    }
+    box2.replaceChildren(...slots.map((slot) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "lobby-save";
+      const t = document.createElement("b");
+      t.textContent = slot.label;
+      const d = document.createElement("span");
+      d.textContent = slot.detail;
+      b.append(t, d);
+      b.onclick = async () => {
+        if (busy) return;
+        busy = true;
+        status.textContent = `\u8B80\u53D6\u300C${slot.label}\u300D\uFF1A\u4F9D\u6307\u4EE4\u7D00\u9304\u91CD\u65B0\u63A8\u5C0E\u5C0D\u5C40\u2026`;
+        try {
+          await deps.load(slot);
+          status.textContent = "";
+          close();
+        } catch (e) {
+          status.textContent = `\u8B80\u53D6\u5931\u6557\uFF1A${e.message}`;
+        } finally {
+          busy = false;
+          notes();
+        }
+      };
+      return b;
+    }));
+  }
+  function open2(canReturn) {
+    returnable = canReturn;
+    prefs = loadPrefs();
+    write();
+    el2("lobby-saves").hidden = true;
+    el2("lobby-load").setAttribute("aria-expanded", "false");
+    el2("lobby-cancel").hidden = !returnable;
+    status.textContent = "";
+    root.hidden = false;
+    previewKey = "";
+    notes();
+    el2("lobby-start").focus({ preventScroll: true, focusVisible: false });
+  }
+  function close() {
+    root.hidden = true;
+    deps.onClose();
+  }
+  for (const id of ["lobby-name", "lobby-seed"]) el2(id).addEventListener("input", notes);
+  for (const id of ["lobby-blue", "lobby-red", "lobby-opponent", "lobby-opening", "lobby-layout", "lobby-difficulty", "lobby-resources", "lobby-popCap", "lobby-reveal", "lobby-startAge", "lobby-victory", "lobby-allTechs", "lobby-record"]) el2(id).addEventListener("change", notes);
+  el2("lobby-reroll").onclick = () => {
+    const v = new Uint32Array(1);
+    crypto.getRandomValues(v);
+    el2("lobby-seed").value = String(v[0]);
+    notes();
+  };
+  el2("lobby-start").onclick = () => void begin();
+  el2("lobby-load").onclick = listSaves;
+  el2("lobby-tree").onclick = () => {
+    const p = read(), [b] = resolveCivs(p.blue, p.red, seedOf(p) ?? 0);
+    deps.openTree(b);
+  };
+  el2("lobby-cancel").onclick = () => {
+    if (returnable) close();
+  };
+  root.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && returnable) {
+      e.preventDefault();
+      close();
+    } else if (e.key === "Enter" && e.target.tagName !== "BUTTON" && e.target.tagName !== "SELECT") {
+      e.preventDefault();
+      void begin();
+    }
+  });
+  new ResizeObserver(() => {
+    if (!root.hidden) {
+      previewKey = "";
+      const p = read();
+      drawPreview(p.layout, seedOf(p));
+    }
+  }).observe(canvas2);
+  return { open: open2, close, isOpen: () => !root.hidden, prefs: () => prefs };
+}
+
 // apps/web/main.ts
 var el = (id) => document.getElementById(id);
 var debug = new URLSearchParams(location.search).has("debug");
+var lobbyOpen = !debug && !new URLSearchParams(location.search).has("play");
+var playerName = "\u85CD\u65B9";
+var recordGame = false;
+var lastAutosave = 0;
 el("debug").hidden = !debug;
 var startCivs = debug ? [neutralCiv, neutralCiv] : ["britons", "franks"];
-var state = { seed: rules.settings.seed, layout: debug ? "meadow" : "open", size: debug ? 16 : 32, opponent: debug ? "idle" : "ai", civs: [...startCivs], terrain: [], tick: 0, units: [], corpses: [], outcome: null, economy: { stock: { food: 0, wood: 0, gold: 0, stone: 0 }, populationUsed: 0, populationReserved: 0, populationCap: 0, age: 1, techs: [], reseed: true }, buildings: [], transactions: [], fog: [], known: [], resources: [], stateHash: "\u2014", shots: [], relicSpots: [], relicsHeld: [0, 0], relicTotal: 0, relicVictory: null, market: { prices: { ...marketRules.start }, fee: marketRules.fee }, transports: [], trades: [], wonders: [], wonderVictory: null };
-var resourceNames2 = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
-var workLabel = { toSource: "\u524D\u5F80\u63A1\u96C6", gathering: "\u63A1\u96C6\u4E2D", toDropoff: "\u9001\u8FD4\u57CE\u93AE\u4E2D\u5FC3", toSite: "\u524D\u5F80\u5DE5\u5730", building: "\u65BD\u5DE5\u4E2D", hunting: "\u72E9\u7375\u4E2D" };
+var state = { seed: rules.settings.seed, layout: debug ? "meadow" : "open", size: debug ? 16 : 32, opponent: debug ? "idle" : "ai", civs: [...startCivs], terrain: [], tick: 0, units: [], corpses: [], outcome: null, economy: { stock: { food: 0, wood: 0, gold: 0, stone: 0 }, populationUsed: 0, populationReserved: 0, populationCap: 0, age: 1, techs: [], reseed: true }, buildings: [], transactions: [], fog: [], known: [], resources: [], stateHash: "\u2014", shots: [], relicSpots: [], relicsHeld: [0, 0], relicTotal: 0, relicVictory: null, market: { prices: { ...marketRules.start }, fee: marketRules.fee }, transports: [], trades: [], wonders: [], wonderVictory: null, chat: [], repairs: [] };
+var allTechs = () => !!state.settings?.allTechs;
+var resourceNames3 = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
+var workLabel = { toSource: "\u524D\u5F80\u63A1\u96C6", gathering: "\u63A1\u96C6\u4E2D", toDropoff: "\u9001\u8FD4\u57CE\u93AE\u4E2D\u5FC3", toSite: "\u524D\u5F80\u5DE5\u5730", building: "\u65BD\u5DE5\u4E2D", hunting: "\u72E9\u7375\u4E2D", toRepair: "\u524D\u5F80\u4FEE\u7406", repairing: "\u4FEE\u7406\u4E2D" };
 var buildingNames2 = { castle: "\u57CE\u5821", "watch-tower": "\u7BAD\u5854", "siege-workshop": "\u653B\u57CE\u5668\u5DE5\u574A", blacksmith: "\u9435\u5320\u92EA", house: "\u4F4F\u5B85", barracks: "\u5175\u71DF", farm: "\u8FB2\u7530", "lumber-camp": "\u4F10\u6728\u5834", "mining-camp": "\u63A1\u7926\u5834", mill: "\u78E8\u574A", stable: "\u99AC\u5EC4", "archery-range": "\u9776\u5834", monastery: "\u4FEE\u9053\u9662", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
 for (const k of buildKinds) if (!(k in buildingNames2)) buildingNames2[k] = rules.entries.find((e) => e.id === k)?.name ?? k;
 var homeKinds = /* @__PURE__ */ new Set([...buildKinds, "town-center"]);
 var layoutNames = { meadow: "\u8349\u7538", coast: "\u6D77\u5CB8", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058", open: "\u66E0\u91CE", lakes: "\u6E56\u7554" };
-var civName2 = (id) => civById(id ?? neutralCiv)?.name ?? id ?? "";
+var civName3 = (id) => civById(id ?? neutralCiv)?.name ?? id ?? "";
+function rulesNote() {
+  const m = state.settings;
+  if (!m) return "";
+  const out = [
+    ...m.difficulty !== "standard" && state.opponent === "ai" ? [`\u96FB\u8166${{ easy: "\u7C21\u55AE", standard: "\u6A19\u6E96", hard: "\u56F0\u96E3", hardest: "\u6700\u96E3" }[m.difficulty]}`] : [],
+    ...m.resources !== "standard" ? [`\u8CC7\u6E90${{ low: "\u4F4E", standard: "\u6A19\u6E96", medium: "\u4E2D", high: "\u9AD8" }[m.resources]}`] : [],
+    ...m.popCap !== 40 ? [`\u4EBA\u53E3 ${m.popCap}`] : [],
+    ...m.startAge > 1 ? [`\u5F9E${["", "\u9ED1\u6697", "\u5C01\u5EFA", "\u57CE\u5821", "\u5E1D\u738B"][m.startAge]}\u6642\u4EE3\u958B\u59CB`] : [],
+    ...m.reveal !== "normal" ? [m.reveal === "all" ? "\u5168\u90E8\u986F\u793A" : "\u5730\u5716\u5DF2\u63A2\u7D22"] : [],
+    ...m.victory === "conquest" ? ["\u53EA\u7B97\u5F81\u670D"] : [],
+    ...m.allTechs ? ["\u6240\u6709\u79D1\u6280"] : []
+  ];
+  return out.length ? ` \xB7 ${out.join("\u3001")}` : "";
+}
 var myCiv = () => state.civs[0] ?? neutralCiv;
 var mine = () => ({ civ: myCiv(), age: state.economy.age, techs: state.economy.techs });
 var placing = null;
@@ -8726,10 +11349,10 @@ var settingsKey = "brick-rts:settings:1";
 function loadSettings() {
   try {
     const v = JSON.parse(localStorage.getItem(settingsKey) ?? "null");
-    if (v && ["high", "medium", "low"].includes(v.quality) && Number.isFinite(v.volume)) return { quality: v.quality, volume: Math.max(0, Math.min(100, v.volume)) };
+    if (v && ["high", "medium", "low"].includes(v.quality) && Number.isFinite(v.volume)) return { quality: v.quality, volume: Math.max(0, Math.min(100, v.volume)), voice: v.voice !== false };
   } catch {
   }
-  return { quality: "high", volume: 60 };
+  return { quality: "high", volume: 60, voice: true };
 }
 var settings = loadSettings();
 function saveSettings() {
@@ -8739,6 +11362,7 @@ function saveSettings() {
   }
 }
 function applySettings() {
+  el("taunt-voice").checked = settings.voice;
   el("quality").value = settings.quality;
   el("volume").value = String(settings.volume);
   el("volume-value").textContent = `${settings.volume}%`;
@@ -8757,10 +11381,37 @@ el("volume").addEventListener("input", () => {
   applySettings();
 });
 el("volume").addEventListener("change", () => audio.play("order"));
+el("taunt-voice").addEventListener("change", () => {
+  settings.voice = el("taunt-voice").checked;
+  saveSettings();
+});
+var speech = typeof speechSynthesis === "undefined" ? null : speechSynthesis;
+function tauntVoice() {
+  if (!speech) return null;
+  const local = speech.getVoices().filter((v) => v.localService);
+  return local.find((v) => /^zh[-_]TW/i.test(v.lang)) ?? local.find((v) => /^zh/i.test(v.lang)) ?? null;
+}
+function renderVoiceNote() {
+  const voice = tauntVoice(), box2 = el("taunt-voice");
+  box2.disabled = !voice;
+  el("taunt-voice-note").textContent = voice ? `\uFF08${voice.name}\uFF09` : "\uFF08\u9019\u53F0\u88DD\u7F6E\u6C92\u6709\u4E2D\u6587\u8A9E\u97F3\uFF0C\u53EA\u986F\u793A\u6587\u5B57\uFF09";
+}
+speech?.addEventListener?.("voiceschanged", renderVoiceNote);
+renderVoiceNote();
+function speakTaunt(n) {
+  const t = tauntOf(n), voice = tauntVoice();
+  if (!t || !speech || !voice || !settings.voice || !settings.volume || /^（.*）$/.test(t.zh)) return;
+  const u = new SpeechSynthesisUtterance(t.zh.replace(/[~.…]+/g, "\uFF0C"));
+  u.voice = voice;
+  u.lang = voice.lang;
+  u.volume = settings.volume / 100;
+  speech.cancel();
+  speech.speak(u);
+}
 applySettings();
 var fogDebugger = mountFogDebugger(el("fog-debug"), () => state);
-function setImg(img, key) {
-  const src = icons[key];
+function setImg(img, key2) {
+  const src = icons[key2];
   if (!src) {
     img.removeAttribute("src");
     return;
@@ -8796,14 +11447,15 @@ function render() {
   reportEvents();
   renderOutcome();
   renderIdle();
+  renderCoach();
   const chosen2 = chosenUnits();
-  el("selection-list").textContent = chosen2.length > 1 ? chosen2.map((u2) => `${nameOf2(u2)} ${u2.id} (${(u2.x / 100).toFixed(1)}, ${(u2.y / 100).toFixed(1)})\uFF1A${activity(u2)}`).join("\u3000") : "";
+  el("selection-list").textContent = chosen2.length > 1 ? chosen2.map((u2) => `${nameOf5(u2)} ${u2.id} (${(u2.x / 100).toFixed(1)}, ${(u2.y / 100).toFixed(1)})\uFF1A${activity(u2)}`).join("\u3000") : "";
   const u = chosen2[0];
   if (!u) {
     el("position").textContent = "\u672A\u9078\u53D6\u55AE\u4F4D";
     return;
   }
-  el("position").textContent = `${chosen2.length > 1 ? `${chosen2.length} \u540D\u9078\u53D6 \xB7 ` : ""}${nameOf2(u)} ${u.id} \xB7 (${(u.x / 100).toFixed(1)}, ${(u.y / 100).toFixed(1)}) \xB7 ${activity(u)}`;
+  el("position").textContent = `${chosen2.length > 1 ? `${chosen2.length} \u540D\u9078\u53D6 \xB7 ` : ""}${nameOf5(u)} ${u.id} \xB7 (${(u.x / 100).toFixed(1)}, ${(u.y / 100).toFixed(1)}) \xB7 ${activity(u)}`;
 }
 function renderTop() {
   const e = state.economy;
@@ -8813,7 +11465,7 @@ function renderTop() {
   for (const r of resources) {
     const c = el(`crew-${r}`);
     c.textContent = crews[r] ? String(crews[r]) : "";
-    c.title = `${crews[r]} \u540D\u6751\u6C11\u63A1${resourceNames2[r]}`;
+    c.title = `${crews[r]} \u540D\u6751\u6C11\u63A1${resourceNames3[r]}`;
   }
   el("res-pop").textContent = `${e.populationUsed}/${e.populationCap}`;
   {
@@ -8832,16 +11484,16 @@ function renderTop() {
     if (v) {
       el("res-wonder").textContent = clockOf(v.endsTick - state.tick);
       box2.classList.toggle("full", v.player === 1);
-      box2.title = `\u4E16\u754C\u5947\u89C0\uFF1A${state.wonders.map((w) => `${w.player === 0 ? "\u85CD\u65B9" : "\u7D05\u65B9"}\u5728 (${(w.x / 100).toFixed(0)}, ${(w.y / 100).toFixed(0)}) \u9084\u5269 ${clockOf(w.endsTick - state.tick)}`).join("\uFF1B")}\uFF1B\u6700\u5148\u5012\u6578\u5B8C\u7684\u4E00\u65B9\u7372\u52DD\uFF0C\u5947\u89C0\u88AB\u6467\u6BC0\u5C31\u505C\u6B62`;
+      box2.title = `\u4E16\u754C\u5947\u89C0\uFF1A${state.wonders.map((w2) => `${w2.player === 0 ? "\u85CD\u65B9" : "\u7D05\u65B9"}\u5728 (${(w2.x / 100).toFixed(0)}, ${(w2.y / 100).toFixed(0)}) \u9084\u5269 ${clockOf(w2.endsTick - state.tick)}`).join("\uFF1B")}\uFF1B\u6700\u5148\u5012\u6578\u5B8C\u7684\u4E00\u65B9\u7372\u52DD\uFF0C\u5947\u89C0\u88AB\u6467\u6BC0\u5C31\u505C\u6B62`;
     }
   }
   el("pop").classList.toggle("full", e.populationCap > 0 && e.populationUsed + e.populationReserved >= e.populationCap);
   el("pop").title = `\u4EBA\u53E3 ${e.populationUsed}\uFF0F\u4E0A\u9650 ${e.populationCap}${e.populationReserved ? `\uFF08\u4F47\u5217\u4FDD\u7559 ${e.populationReserved}\uFF09` : ""}`;
-  el("civ-name").textContent = civName2(myCiv());
+  el("civ-name").textContent = civName3(myCiv());
   el("age-name").textContent = ageNames2[e.age];
   const t = Math.floor(state.tick / rules.settings.tickHz), mm = Math.floor(t / 60), ss = t % 60;
   el("clock").textContent = `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
-  el("sel-empty-title").textContent = `\u85CD\u65B9\uFF08${civName2(myCiv())}\uFF09 \xB7 ${layoutNames[state.layout]} \xB7 \u5C0D\u624B\uFF1A${state.opponent === "ai" ? "\u96FB\u8166" : "\u4E0D\u884C\u52D5"}\uFF08${civName2(state.civs[1])}\uFF09`;
+  el("sel-empty-title").textContent = `${playerName}\uFF08${civName3(myCiv())}\uFF09 \xB7 ${layoutNames[state.layout]} \xB7 \u5C0D\u624B\uFF1A${state.opponent === "ai" ? "\u96FB\u8166" : "\u4E0D\u884C\u52D5"}\uFF08${civName3(state.civs[1])}\uFF09${rulesNote()}`;
 }
 var packState = (u) => !combatRules.units[u.kind]?.setup ? null : u.unpacked ? u.navigation === "idle" ? "\u5DF2\u67B6\u8A2D" : "\u6536\u8D77\u4E2D" : u.navigation === "idle" && u.target && u.action !== 1 ? "\u67B6\u8A2D\u4E2D" : "\u79FB\u52D5\u72C0\u614B";
 var doing = (u) => {
@@ -8850,27 +11502,28 @@ var doing = (u) => {
 };
 var doingNow = (u) => {
   const tr = state.trades.find((t) => t.unitId === u.id);
+  if (state.patrols?.[u.id] && u.action !== 1) return "\u5DE1\u908F\u4E2D";
   return tr ? tr.leg === "out" ? `\u8CBF\u6613\uFF1A\u524D\u5F80\u7D05\u65B9${u.kind === "trade-cog" ? "\u78BC\u982D" : "\u5E02\u96C6"}` : "\u8CBF\u6613\uFF1A\u8F09\u8457\u8CA8\u7269\u8FD4\u56DE" : doingPlain(u);
 };
 var doingPlain = (u) => u.relic && !u.rite ? "\u651C\u5E36\u8056\u7269" : u.rite ? u.rite === "convert" ? "\u8F49\u5316\u4E2D" : "\u6CBB\u7642\u4E2D" : u.faith !== null && u.faith < 100 ? `\u4FE1\u4EF0\u6062\u5FA9\u4E2D ${u.faith}%` : u.action === 1 ? "\u653B\u64CA\u4E2D" : u.work && u.navigation !== "waiting" && u.navigation !== "stuck" ? workLabel[u.work] : statusLabel[u.navigation];
 function activity(u) {
   const life = u.hp < u.maxHp ? ` \xB7 \u751F\u547D ${u.hp}/${u.maxHp}` : "";
-  return (u.cargo ? `${doing(u)} \xB7 \u651C\u5E36${resourceNames2[u.cargo.resource]} ${u.cargo.amount}` : doing(u)) + life;
+  return (u.cargo ? `${doing(u)} \xB7 \u651C\u5E36${resourceNames3[u.cargo.resource]} ${u.cargo.amount}` : doing(u)) + life;
 }
-async function rite(kind, monkIds, targetId, label) {
+async function rite(kind, monkIds, targetId, label2) {
   try {
     await client.request(kind === "relic" ? { kind, unitIds: monkIds, relicId: targetId } : { kind, unitIds: monkIds, targetId });
     audio.play(kind === "convert" ? "convert" : "order");
-    notice(`${names2(monkIds)} ${{ convert: "\u8F49\u5316", heal: "\u6CBB\u7642", relic: "\u524D\u5F80\u64BF\u8D77" }[kind]}${label}\u3002${running ? "" : resumeHint()}`);
+    notice(`${names2(monkIds)} ${{ convert: "\u8F49\u5316", heal: "\u6CBB\u7642", relic: "\u524D\u5F80\u64BF\u8D77" }[kind]}${label2}\u3002${running ? "" : resumeHint()}`);
   } catch (e) {
     notice(reason(e));
   }
 }
-async function riteOn(monkIds, buildingId, label) {
+async function riteOn(monkIds, buildingId, label2) {
   try {
     await client.request({ kind: "convert", unitIds: monkIds, buildingId });
     audio.play("convert");
-    notice(`${names2(monkIds)} \u8F49\u5316${label}\u3002${running ? "" : resumeHint()}`);
+    notice(`${names2(monkIds)} \u8F49\u5316${label2}\u3002${running ? "" : resumeHint()}`);
   } catch (e) {
     notice(reason(e));
   }
@@ -8885,7 +11538,7 @@ async function deposit(monkIds, buildingId) {
   }
 }
 var buildingsOnly = (k) => !!k && k in combatRules.units && !!combatRules.units[k].buildingsOnly;
-async function attack(target, label) {
+async function attack(target, label2) {
   const unitIds = [...selected].filter((id) => {
     const k = state.units.find((u) => u.id === id)?.kind;
     return k !== "monk" && !isAnimal(k ?? "") && !unarmed(k) && !(buildingsOnly(k) && target.kind === "unit");
@@ -8901,7 +11554,7 @@ async function attack(target, label) {
   try {
     await client.request({ kind: "attack", unitIds, target });
     audio.play("order-attack");
-    notice(`${names2(unitIds)} \u653B\u64CA${label}\u3002${running ? "" : resumeHint()}`);
+    notice(`${names2(unitIds)} \u653B\u64CA${label2}\u3002${running ? "" : resumeHint()}`);
   } catch (e) {
     notice(reason(e));
   }
@@ -8962,16 +11615,16 @@ function select2(ids) {
 function choose(id) {
   select2([id]);
 }
-var entryOf3 = (k) => rules.entries.find((e) => e.id === k);
+var entryOf4 = (k) => rules.entries.find((e) => e.id === k);
 var costOf2 = (k) => costOf(k, mine());
-var costText = (k) => Object.entries(costOf2(k)).filter(([, v]) => v > 0).map(([r, v]) => `${resourceNames2[r]} ${v}`).join("\u3001");
-var entryName = (k) => entryOf3(k)?.name ?? k;
+var costText3 = (k) => Object.entries(costOf2(k)).filter(([, v]) => v > 0).map(([r, v]) => `${resourceNames3[r]} ${v}`).join("\u3001");
+var entryName = (k) => entryOf4(k)?.name ?? k;
 var ageNames2 = ["", "\u7B2C\u4E00\u6642\u4EE3", entryName("age-2"), entryName("age-3"), entryName("age-4")];
 var uniqueKinds = civDefs.flatMap((c) => c.uniqueUnits);
 var unitNames = { villager: "\u6751\u6C11", militia: "\u8FD1\u6230\u6C11\u5175", archer: "\u5F13\u624B", scout: "\u65A5\u5019", monk: "\u50E7\u4FB6", sheep: "\u7F8A", deer: "\u9E7F", boar: "\u91CE\u8C6C", spearman: "\u9577\u69CD\u5175", skirmisher: "\u6563\u5175", knight: "\u9A0E\u58EB", ram: "\u653B\u57CE\u69CC" };
-for (const k of Object.keys(combatRules.units)) if (!(k in unitNames) && entryOf3(k)?.kind === "unit") unitNames[k] = entryName(k);
+for (const k of Object.keys(combatRules.units)) if (!(k in unitNames) && entryOf4(k)?.kind === "unit") unitNames[k] = entryName(k);
 var ownName = (kind) => lineName(kind, state.economy.techs) ?? unitNames[kind];
-var nameOf2 = (u) => u.player === 0 ? ownName(u.kind) : unitNames[u.kind];
+var nameOf5 = (u) => u.player === 0 ? ownName(u.kind) : unitNames[u.kind];
 var combatKinds = Object.keys(combatRules.units);
 var soldierKinds2 = new Set(combatKinds.filter((k) => k !== "villager" && k !== "monk" && k !== "scout" && !isAnimal(k) && combatRules.units[k].attack !== "none"));
 var villagersIn = (ids) => [...ids].filter((id) => state.units.find((u) => u.id === id)?.kind === "villager").sort((a, b) => a - b);
@@ -8986,15 +11639,15 @@ var leftOut = (ids) => {
 };
 function buildBlocker(k) {
   if (!buildersOf(k).length) return k === "fish-trap" ? "\u5148\u9078\u53D6\u6F01\u8239" : "\u5148\u9078\u53D6\u6751\u6C11";
-  const req = buildRequirement(state.economy.age, k, state.buildings, myCiv(), state.economy.techs);
+  const req = buildRequirement(state.economy.age, k, state.buildings, myCiv(), state.economy.techs, allTechs());
   if (req) return req;
   const st = state.economy.stock, c = costOf2(k), short = Object.keys(c).filter((r) => st[r] < c[r]);
-  return short.length ? short.map((r) => `${resourceNames2[r]}\u4E0D\u8DB3\uFF1A\u9700\u8981 ${c[r]}\uFF0C\u76EE\u524D ${st[r]}`).join("\uFF1B") : null;
+  return short.length ? short.map((r) => `${resourceNames3[r]}\u4E0D\u8DB3\uFF1A\u9700\u8981 ${c[r]}\uFF0C\u76EE\u524D ${st[r]}`).join("\uFF1B") : null;
 }
-var ownBuildKinds = () => buildKinds.filter((k) => civAvailable(myCiv(), k) && (buildMode() === "fisher" ? k === "fish-trap" : k !== "fish-trap"));
+var ownBuildKinds = () => buildKinds.filter((k) => civAvailable(myCiv(), k, allTechs()) && (buildMode() === "fisher" ? k === "fish-trap" : k !== "fish-trap"));
 var buildPage = 0;
 var fortKinds = /* @__PURE__ */ new Set(["palisade-wall", "palisade-gate", "stone-wall", "gate", "outpost", "bombard-tower"]);
-var pageOf = (k) => k === "fish-trap" ? buildPage : fortKinds.has(k) || entryOf3(k)?.requires.some((r) => ageOf(r) >= 3) ? 1 : 0;
+var pageOf = (k) => k === "fish-trap" ? buildPage : fortKinds.has(k) || entryOf4(k)?.requires.some((r) => ageOf(r) >= 3) ? 1 : 0;
 var pageNames = ["\u57FA\u672C\u5EFA\u7BC9", "\u9632\u79A6\u8207\u7B2C\u4E09\u6642\u4EE3\u5EFA\u7BC9"];
 var tileOrder = [
   "house",
@@ -9037,20 +11690,119 @@ function renderBuild() {
     b.style.order = String(tileOrder.indexOf(k));
     b.hidden = !show2 || !kinds.includes(k) || pageOf(k) !== buildPage;
     b.disabled = !connected || graphicsFailed || !!why;
-    b.setAttribute("aria-label", `${buildingNames2[k]}\uFF08${costText(k)}\uFF09${why ? `\uFF1A${why}` : ""}`);
+    b.setAttribute("aria-label", `${buildingNames2[k]}\uFF08${costText3(k)}\uFF09${why ? `\uFF1A${why}` : ""}`);
     b.setAttribute("aria-pressed", String(placing === k));
     const img = b.querySelector("img");
     img.dataset.icon = k === "farm" ? "farm" : `${k}-${state.economy.age}`;
     setImg(img, img.dataset.icon);
   }
-  const reasons = kinds.map((k) => [k, buildBlocker(k)]).filter(([, w]) => w);
-  el("build-reason").textContent = placing ? wallPlan ? wallPlan.note : preview?.problem ? `\u4E0D\u80FD\u653E\u5728\u9019\u88E1\uFF1A${preview.problem}` : wallKinds2.has(placing) ? `\u5728\u8D77\u9EDE\u6309\u4E0B\u5DE6\u9375\uFF0C\u62D6\u5230\u7D42\u9EDE\u653E\u958B\uFF08\u6216\u518D\u9EDE\u4E00\u6B21\u7D42\u9EDE\uFF09\uFF1A\u4E00\u6B21\u4E00\u5217\uFF0C\u6BCF\u683C\u4E00\u6BB5\uFF1B\u53F3\u9375\u6216 Esc \u53D6\u6D88\u3002` : `\u5DE6\u9375\u653E\u7F6E${buildingNames2[placing]}\uFF1BShift\uFF0B\u5DE6\u9375\u9023\u7E8C\u653E\u7F6E\uFF1B\u53F3\u9375\u6216 Esc \u53D6\u6D88\u3002` : reasons.length === kinds.length && (reasons[0][1] === "\u5148\u9078\u53D6\u6751\u6C11" || reasons[0][1] === "\u5148\u9078\u53D6\u6F01\u8239") ? "\u5148\u9078\u53D6\u6751\u6C11\u624D\u80FD\u5EFA\u9020\u3002" : reasons.filter(([k]) => pageOf(k) === buildPage).map(([k, w]) => `${buildingNames2[k]}\uFF1A${w}`).join("\u3000");
+  const reasons = kinds.map((k) => [k, buildBlocker(k)]).filter(([, w2]) => w2);
+  el("build-reason").textContent = placing ? wallPlan ? wallPlan.note : preview?.problem ? `\u4E0D\u80FD\u653E\u5728\u9019\u88E1\uFF1A${preview.problem}` : wallKinds2.has(placing) ? `\u5728\u8D77\u9EDE\u6309\u4E0B\u5DE6\u9375\uFF0C\u62D6\u5230\u7D42\u9EDE\u653E\u958B\uFF08\u6216\u518D\u9EDE\u4E00\u6B21\u7D42\u9EDE\uFF09\uFF1A\u4E00\u6B21\u4E00\u5217\uFF0C\u6BCF\u683C\u4E00\u6BB5\uFF1B\u53F3\u9375\u6216 Esc \u53D6\u6D88\u3002` : `\u5DE6\u9375\u653E\u7F6E${buildingNames2[placing]}\uFF1BShift\uFF0B\u5DE6\u9375\u9023\u7E8C\u653E\u7F6E\uFF1B\u53F3\u9375\u6216 Esc \u53D6\u6D88\u3002` : reasons.length === kinds.length && (reasons[0][1] === "\u5148\u9078\u53D6\u6751\u6C11" || reasons[0][1] === "\u5148\u9078\u53D6\u6F01\u8239") ? "\u5148\u9078\u53D6\u6751\u6C11\u624D\u80FD\u5EFA\u9020\u3002" : reasons.filter(([k]) => pageOf(k) === buildPage).map(([k, w2]) => `${buildingNames2[k]}\uFF1A${w2}`).join("\u3000");
   el("stop").hidden = !!selectedBuilding || !chosenUnits().length;
   {
     const g = el("garrison-cmd"), fit = chosenUnits().filter((u) => canShelter.has(u.kind));
     g.hidden = !!selectedBuilding || !fit.length;
     g.disabled = !connected || graphicsFailed || !state.buildings.some((b) => b.complete && b.capacity > b.garrison);
   }
+  {
+    const t = el("unload-cmd"), rams = loadedRams();
+    t.hidden = !!selectedBuilding || !chosenUnits().some((u) => u.kind === "ram") || villagersIn(selected).length > 0;
+    t.disabled = !connected || graphicsFailed || !rams.length;
+    t.dataset.tip = rams.length ? `\u653E\u51FA\u653B\u57CE\u69CC\u7684\u4E58\u5BA2\uFF08${rams.reduce((n, r) => n + r.passengers.length, 0)} \u540D\uFF09` : "\u653B\u57CE\u69CC\u88E1\u6C92\u6709\u4E58\u5BA2";
+    t.setAttribute("aria-label", `${t.dataset.tip}\uFF08U\uFF09`);
+  }
+  renderMicro();
+}
+var loadedRams = () => state.transports.filter((t) => t.passengers.length && selected.has(t.id) && state.units.some((u) => u.id === t.id && u.kind === "ram"));
+var stanceNames2 = { aggressive: "\u653B\u64CA\u59FF\u614B", defensive: "\u9632\u79A6\u59FF\u614B", stand: "\u5805\u5B88\u4F4D\u7F6E", passive: "\u4E0D\u9084\u64CA" };
+var stanceTips = {
+  aggressive: "\u770B\u5230\u6575\u4EBA\u5C31\u4E3B\u52D5\u653B\u64CA\u4E26\u4E00\u8DEF\u8FFD\u64CA\uFF08\u9810\u8A2D\uFF09\u3002",
+  defensive: `\u6703\u8FCE\u64CA\u9644\u8FD1\u7684\u6575\u4EBA\uFF0C\u4F46\u96E2\u539F\u5730\u8D85\u904E ${tacticsRules.defensiveLeash / 100} \u683C\u5C31\u653E\u68C4\u8FFD\u64CA\u3001\u8D70\u56DE\u539F\u5730\u3002`,
+  stand: "\u4E0D\u96E2\u958B\u539F\u5730\uFF1A\u53EA\u653B\u64CA\u5DF2\u7D93\u5728\u5C04\u7A0B\u5167\u7684\u6575\u4EBA\u3002\u9060\u7A0B\u5175\u62C9\u6253\u3001\u5B88\u4F4F\u7F3A\u53E3\u6642\u7528\u3002",
+  passive: "\u4E0D\u4E3B\u52D5\u653B\u64CA\u4E5F\u4E0D\u9084\u624B\uFF1B\u76F4\u63A5\u4E0B\u4EE4\u653B\u64CA\u6642\u4ECD\u6703\u7167\u505A\u3002\u5305\u570D\u6216\u8ABF\u52D5\u6642\u7528\u3002"
+};
+var canStance = (kind) => kind in combatRules.units && kind !== "villager" && kind !== "monk" && !isAnimal(kind) && statsOf(kind, mine()).attack !== "none";
+var stanceOf = (u) => state.stances?.[u.id] ?? "aggressive";
+var stanceUnits = () => chosenUnits().filter((u) => canStance(u.kind));
+var patrolUnits = () => chosenUnits().filter((u) => u.kind !== "villager" && !isAnimal(u.kind));
+var patrolArmed = false;
+var spreadMode = false;
+var moveSpread = false;
+function renderMicro() {
+  const free = !selectedBuilding && !buildMode(), fighters = stanceUnits(), walkers = patrolUnits();
+  for (const st of stances) {
+    const b = el(`stance-${st}`), n = fighters.filter((u) => stanceOf(u) === st).length;
+    b.hidden = !free || !fighters.length;
+    b.disabled = !connected || graphicsFailed;
+    b.setAttribute("aria-pressed", !n ? "false" : n === fighters.length ? "true" : "mixed");
+    b.setAttribute("aria-label", `${stanceNames2[st]}\uFF08${b.dataset.key}\uFF09${n && n < fighters.length ? `\uFF1A${n}/${fighters.length} \u540D` : ""}`);
+  }
+  {
+    const b = el("patrol-cmd");
+    b.hidden = !free || !walkers.length;
+    b.disabled = !connected || graphicsFailed;
+    b.setAttribute("aria-pressed", String(patrolArmed));
+    b.setAttribute("aria-label", "\u5DE1\u908F\uFF08A\uFF09");
+  }
+  {
+    const b = el("spread-cmd");
+    b.hidden = !free || !walkers.length;
+    b.disabled = !connected || graphicsFailed;
+    b.setAttribute("aria-pressed", String(spreadMode));
+    b.setAttribute("aria-label", `\u5206\u6563\u968A\u5F62\uFF08D\uFF09\uFF1A${spreadMode ? "\u958B" : "\u95DC"}`);
+  }
+  if (patrolArmed && (!free || !walkers.length)) patrolArmed = false;
+  scene?.setPatrols(chosenUnits().flatMap((u) => {
+    const p = state.patrols?.[u.id];
+    return p ? [{ from: { x: p.from.x / 100, z: p.from.y / 100 }, to: { x: p.to.x / 100, z: p.to.y / 100 } }] : [];
+  }));
+}
+async function setStance(st) {
+  const ids = stanceUnits().map((u) => u.id).sort((a, b) => a - b);
+  if (!ids.length) {
+    notice("\u5148\u9078\u53D6\u6230\u9B25\u55AE\u4F4D\u3002");
+    return;
+  }
+  try {
+    await client.request({ kind: "stance", unitIds: ids, stance: st });
+    audio.play("order");
+    notice(`${names2(ids)}\uFF1A${stanceNames2[st]}\u3002${running ? "" : resumeHint()}`);
+  } catch (e) {
+    notice(reason(e));
+  }
+}
+function armPatrol() {
+  if (!patrolUnits().length) {
+    notice("\u5148\u9078\u53D6\u8981\u5DE1\u908F\u7684\u55AE\u4F4D\u3002");
+    return;
+  }
+  if (placing) stopPlacing();
+  patrolArmed = !patrolArmed;
+  notice(patrolArmed ? "\u5DE1\u908F\uFF1A\u5728\u5730\u9762\u6309\u4E00\u4E0B\u5DE1\u908F\u7684\u53E6\u4E00\u7AEF\uFF08\u5F9E\u76EE\u524D\u4F4D\u7F6E\u4F86\u56DE\uFF09\uFF1B\u53F3\u9375\u6216 Esc \u53D6\u6D88\u3002" : "\u5DF2\u53D6\u6D88\u5DE1\u908F\u3002");
+  render();
+}
+async function patrol(x, y) {
+  patrolArmed = false;
+  const ids = patrolUnits().map((u) => u.id).sort((a, b) => a - b);
+  if (!ids.length) {
+    render();
+    return;
+  }
+  const to = openPoint(x, y, ids.every((id) => isShip(state.units.find((u) => u.id === id)?.kind)) ? "water" : "land");
+  scene?.setMarker("move", to.x / 100, to.y / 100);
+  try {
+    await client.request({ kind: "patrol", unitIds: ids, x: to.x, y: to.y });
+    audio.play("order");
+    notice(`${names2(ids)} \u958B\u59CB\u5DE1\u908F\uFF1A\u5728\u76EE\u524D\u4F4D\u7F6E\u8207 (${(to.x / 100).toFixed(1)}, ${(to.y / 100).toFixed(1)}) \u4E4B\u9593\u4F86\u56DE\uFF0C\u9014\u4E2D\u4F9D\u59FF\u614B\u8FCE\u6575\u3002${running ? "" : resumeHint()}`);
+  } catch (e) {
+    notice(reason(e));
+  }
+  render();
+}
+function toggleSpread() {
+  spreadMode = !spreadMode;
+  notice(spreadMode ? "\u5206\u6563\u968A\u5F62\uFF1A\u4E4B\u5F8C\u7684\u79FB\u52D5\u8B93\u55AE\u4F4D\u5F7C\u6B64\u9694\u958B\uFF0C\u9583\u907F\u6295\u77F3\u8ECA\u8207\u706B\u7832\u3002" : "\u96C6\u4E2D\u968A\u5F62\uFF1A\u4E4B\u5F8C\u7684\u79FB\u52D5\u8B93\u55AE\u4F4D\u9760\u650F\u3002");
+  render();
 }
 var buildingTitle = (k) => {
   const t = state.economy.techs;
@@ -9067,9 +11819,9 @@ function renderBuilding() {
     el("production-reason").textContent = "";
     return;
   }
-  const builders = state.units.filter((u) => u.work === "building" || u.work === "toSite").length;
+  const builders2 = state.units.filter((u) => u.work === "building" || u.work === "toSite").length;
   el("building-title").textContent = buildingTitle(b.kind);
-  el("building-owner").textContent = `\u85CD\u65B9 \xB7 ${civName2(myCiv())}`;
+  el("building-owner").textContent = `\u85CD\u65B9 \xB7 ${civName3(myCiv())}`;
   const housing = (buildingRules.capacity[b.kind] ?? 0) + housingBonus(mine(), b.kind);
   setImg(el("building-portrait"), b.kind === "farm" ? "farm" : `${b.kind}-${state.economy.age}`);
   el("building-hp").textContent = `${b.hp}/${b.maxHp}`;
@@ -9079,10 +11831,21 @@ function renderBuilding() {
   }
   el("building-hp-bar").style.width = `${Math.max(0, b.hp) * 100 / Math.max(1, b.maxHp)}%`;
   const field = b.kind === "farm" || b.kind === "fish-trap" ? state.resources.find((r) => r.id === `resource-${b.id}`) : void 0;
-  el("building-status").textContent = (b.hp < b.maxHp ? `\u751F\u547D ${b.hp}/${b.maxHp} \xB7 ` : "") + (b.complete && b.capacity ? `\u9032\u99D0 ${b.garrison}/${b.capacity} \xB7 ` : "") + (b.complete ? housing ? `\u5DF2\u5B8C\u5DE5 \xB7 \u63D0\u4F9B\u4EBA\u53E3 ${housing}` : field ? `\u5269\u9918\u98DF\u7269 ${field.remaining}/${field.capacity}\uFF08\u53F3\u9375\u6D3E${b.kind === "fish-trap" ? "\u6F01\u8239\u6355\u6488" : "\u6751\u6C11\u8015\u4F5C"}\uFF09` : b.kind === "monastery" ? `\u5DF2\u5B8C\u5DE5 \xB7 \u8056\u7269 ${b.relics}/10\uFF08\u6BCF\u5206\u9418 +${b.relics * 30} \u9EC3\u91D1\uFF09` : b.kind === "market" ? `\u6BCF\u6B21 ${marketRules.lot} \u55AE\u4F4D\uFF0C\u50F9\u683C\u4EE5\u9EC3\u91D1\u8A08 \xB7 \u624B\u7E8C\u8CBB ${state.market.fee}%` : b.kind === "wonder" ? wonderLine(b.id) : "\u5DF2\u5B8C\u5DE5" : `\u65BD\u5DE5\u4E2D ${Math.floor(b.work * 100 / b.required)}%\uFF08\u5168\u9AD4\u65BD\u5DE5\u4E2D\u7684\u6751\u6C11\uFF1A${builders} \u540D\uFF09`);
+  el("building-status").textContent = (b.hp < b.maxHp ? `\u751F\u547D ${b.hp}/${b.maxHp} \xB7 ` : "") + (b.complete && b.hp < b.maxHp ? (() => {
+    const n = repairersOf({ kind: "building", id: b.id });
+    return n ? `${n} \u540D\u6751\u6C11\u4FEE\u7406\u4E2D \xB7 ` : repairRules.unrepairable.includes(b.kind) ? "" : `\u53EF\u4FEE\u7406\uFF08\u4FEE\u6EFF ${repairCostText(b.kind)}\uFF09 \xB7 `;
+  })() : "") + (b.complete && b.capacity ? battered(b) ? `\u53D7\u640D\u56B4\u91CD\uFF1A\u7121\u6CD5\u9032\u99D0\uFF08\u751F\u547D ${defenseRules.ejectPercent}% \u4EE5\u4E0B\uFF09 \xB7 ` : `\u9032\u99D0 ${b.garrison}/${b.capacity} \xB7 ` : "") + (b.complete ? housing ? `\u5DF2\u5B8C\u5DE5 \xB7 \u63D0\u4F9B\u4EBA\u53E3 ${housing}` : field ? `\u5269\u9918\u98DF\u7269 ${field.remaining}/${field.capacity}\uFF08\u53F3\u9375\u6D3E${b.kind === "fish-trap" ? "\u6F01\u8239\u6355\u6488" : "\u6751\u6C11\u8015\u4F5C"}\uFF09` : b.kind === "monastery" ? `\u5DF2\u5B8C\u5DE5 \xB7 \u8056\u7269 ${b.relics}/10\uFF08\u6BCF\u5206\u9418 +${b.relics * 30} \u9EC3\u91D1\uFF09` : b.kind === "market" ? `\u6BCF\u6B21 ${marketRules.lot} \u55AE\u4F4D\uFF0C\u50F9\u683C\u4EE5\u9EC3\u91D1\u8A08 \xB7 \u624B\u7E8C\u8CBB ${state.market.fee}%` : b.kind === "wonder" ? wonderLine(b.id) : "\u5DF2\u5B8C\u5DE5" : `\u65BD\u5DE5\u4E2D ${Math.floor(b.work * 100 / b.required)}%\uFF08\u5168\u9AD4\u65BD\u5DE5\u4E2D\u7684\u6751\u6C11\uFF1A${builders2} \u540D\uFF09`);
+  {
+    const row = el("building-riders"), key2 = b.inside.map((p) => `${p.id}:${p.hp}`).join();
+    if (row.dataset.key !== key2) {
+      row.dataset.key = key2;
+      row.replaceChildren(...b.inside.length ? Array.from(ridersRow(b.inside).childNodes) : []);
+    }
+    row.hidden = !b.inside.length;
+  }
   renderMarket(b);
   renderProduction(b);
-  const refund = b.kind in buildingNames2 && !b.complete ? `\u53D6\u6D88\u5EFA\u9020\uFF08\u9000\u56DE ${costText(b.kind)}\uFF09` : "\u53D6\u6D88\u5EFA\u9020";
+  const refund = b.kind in buildingNames2 && !b.complete ? `\u53D6\u6D88\u5EFA\u9020\uFF08\u9000\u56DE ${costText3(b.kind)}\uFF09` : "\u53D6\u6D88\u5EFA\u9020";
   cancel.setAttribute("aria-label", refund);
   cancel.dataset.tip = refund;
 }
@@ -9097,15 +11860,15 @@ function renderMarket(b) {
   if (marketKey !== b.id) {
     marketKey = b.id;
     box2.replaceChildren(...["sell", "buy"].map((action) => {
-      const row = document.createElement("div"), label = document.createElement("span");
+      const row = document.createElement("div"), label2 = document.createElement("span");
       row.className = "mk";
-      label.textContent = action === "sell" ? "\u8CE3\u51FA" : "\u8CB7\u5165";
-      row.append(label);
+      label2.textContent = action === "sell" ? "\u8CE3\u51FA" : "\u8CB7\u5165";
+      row.append(label2);
       for (const r of marketResources) {
         const btn = document.createElement("button"), icon = document.createElement("img"), n = document.createElement("b");
         btn.className = action;
         btn.dataset.market = `${action}:${r}`;
-        icon.alt = resourceNames2[r];
+        icon.alt = resourceNames3[r];
         setImg(icon, r);
         btn.append(icon, n);
         btn.onclick = () => void market(action, r);
@@ -9117,11 +11880,11 @@ function renderMarket(b) {
   const st = state.economy.stock;
   for (const btn of Array.from(box2.querySelectorAll("button[data-market]"))) {
     const [action, r] = btn.dataset.market.split(":"), q = marketQuote(state.market.prices, mine(), r), price = action === "sell" ? q.sell : q.buy;
-    const why = action === "sell" ? st[r] < marketRules.lot ? `${resourceNames2[r]}\u4E0D\u8DB3 ${marketRules.lot}` : "" : st.gold < price ? `\u9EC3\u91D1\u4E0D\u8DB3 ${price}` : "";
+    const why = action === "sell" ? st[r] < marketRules.lot ? `${resourceNames3[r]}\u4E0D\u8DB3 ${marketRules.lot}` : "" : st.gold < price ? `\u9EC3\u91D1\u4E0D\u8DB3 ${price}` : "";
     btn.querySelector("b").textContent = String(price);
     btn.disabled = !connected || graphicsFailed || !!why;
-    const label = action === "sell" ? `\u8CE3\u51FA ${marketRules.lot} ${resourceNames2[r]}\uFF0C\u5F97 ${price} \u9EC3\u91D1` : `\u4EE5 ${price} \u9EC3\u91D1\u8CB7\u5165 ${marketRules.lot} ${resourceNames2[r]}`;
-    btn.title = why ? `${label}\uFF1A${why}` : label;
+    const label2 = action === "sell" ? `\u8CE3\u51FA ${marketRules.lot} ${resourceNames3[r]}\uFF0C\u5F97 ${price} \u9EC3\u91D1` : `\u4EE5 ${price} \u9EC3\u91D1\u8CB7\u5165 ${marketRules.lot} ${resourceNames3[r]}`;
+    btn.title = why ? `${label2}\uFF1A${why}` : label2;
     btn.setAttribute("aria-label", btn.title);
   }
 }
@@ -9130,7 +11893,7 @@ async function market(action, resource) {
   try {
     await client.request({ kind: "market", action, resource });
     audio.play("order");
-    notice(action === "sell" ? `\u8CE3\u51FA ${marketRules.lot} ${resourceNames2[resource]}\uFF0C\u5F97 ${q.sell} \u9EC3\u91D1\uFF08tick ${state.tick + 1} \u6210\u4EA4\uFF09\u3002` : `\u4EE5 ${q.buy} \u9EC3\u91D1\u8CB7\u5165 ${marketRules.lot} ${resourceNames2[resource]}\uFF08tick ${state.tick + 1} \u6210\u4EA4\uFF09\u3002`);
+    notice(action === "sell" ? `\u8CE3\u51FA ${marketRules.lot} ${resourceNames3[resource]}\uFF0C\u5F97 ${q.sell} \u9EC3\u91D1\uFF08tick ${state.tick + 1} \u6210\u4EA4\uFF09\u3002` : `\u4EE5 ${q.buy} \u9EC3\u91D1\u8CB7\u5165 ${marketRules.lot} ${resourceNames3[resource]}\uFF08tick ${state.tick + 1} \u6210\u4EA4\uFF09\u3002`);
   } catch (e) {
     notice(reason(e));
   }
@@ -9140,43 +11903,52 @@ var clockOf = (ticks) => {
   return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
 };
 var wonderLine = (id) => {
-  const w = state.wonders.find((w2) => w2.building === id);
-  return w ? `\u5DF2\u5B8C\u5DE5 \xB7 \u5B88\u4F4F ${clockOf(w.endsTick - state.tick)} \u5373\u53EF\u7372\u52DD` : "\u5DF2\u5B8C\u5DE5";
+  const w2 = state.wonders.find((w3) => w3.building === id);
+  return w2 ? `\u5DF2\u5B8C\u5DE5 \xB7 \u5B88\u4F4F ${clockOf(w2.endsTick - state.tick)} \u5373\u53EF\u7372\u52DD` : "\u5DF2\u5B8C\u5DE5";
 };
-var classNames = {
-  cavalry: "\u9A0E\u5175",
-  archer: "\u5F13\u5175",
-  spear: "\u9577\u69CD\u5175",
-  infantry: "\u6B65\u5175",
-  building: "\u5EFA\u7BC9",
-  siege: "\u653B\u57CE\u5668",
-  unique: "\u7279\u6B8A\u55AE\u4F4D",
-  gunpowder: "\u706B\u85E5",
-  "cavalry-archer": "\u99AC\u5F13\u9A0E\u5175",
-  elephant: "\u6230\u8C61",
-  skirmisher: "\u6563\u5175",
-  monk: "\u50E7\u4FB6",
-  villager: "\u6751\u6C11",
-  animal: "\u52D5\u7269",
-  camel: "\u99F1\u99DD\u9A0E\u5175",
-  petard: "\u70B8\u85E5\u6876"
-};
+var classNames = classLabel;
 function extrasOf(st) {
   const out = [];
-  if (st.buildingsOnly) out.push("\u53EA\u80FD\u653B\u64CA\u5EFA\u7BC9");
+  if (st.buildingsOnly) out.push(st.alsoSiege ? "\u53EA\u80FD\u653B\u64CA\u5EFA\u7BC9\u8207\u653B\u57CE\u5668" : "\u53EA\u80FD\u653B\u64CA\u5EFA\u7BC9");
   if (st.minRange) out.push(`\u6700\u8FD1\u5C04\u7A0B ${st.minRange / 100} \u683C`);
-  if (st.blast) out.push(`\u843D\u9EDE ${st.blast / 100} \u683C\u5167\u7684\u6575\u5175\u4E00\u4F75\u53D7\u64CA`);
+  if (st.blast) out.push(st.friendlyFire ? `\u843D\u9EDE ${st.blast / 100} \u683C\u5167\u7684\u55AE\u4F4D\u4E00\u4F75\u53D7\u64CA\uFF08\u6575\u6211\u4E0D\u5206\uFF09` : `\u843D\u9EDE ${st.blast / 100} \u683C\u5167\u7684\u6575\u5175\u4E00\u4F75\u53D7\u64CA`);
   if (st.passThrough) out.push(`\u8CAB\u7A7F\uFF1A\u76EE\u6A19\u5F8C\u65B9 ${st.passThrough / 100} \u683C\u5167\u6CBF\u9014\u7684\u6575\u5175\u53D7\u534A\u50B7`);
   if (st.setup) out.push(`\u67B6\u8A2D\u3001\u6536\u8D77\u5404 ${st.setup / rules.settings.tickHz} \u79D2`);
   if (st.selfDestruct) out.push("\u653B\u64CA\u4E00\u6B21\u5373\u81EA\u6BC0");
   if (st.regen) out.push(`\u6BCF\u5206\u9418\u56DE\u5FA9\u751F\u547D ${st.regen}`);
   if (st.extraShots) out.push(`\u6BCF\u6B21\u591A\u5C04 ${st.extraShots} \u652F\u7BAD\uFF08\u5404 ${st.extraDamage ?? 1} \u50B7\u5BB3\uFF09`);
   if (st.splash) out.push(`\u8E10\u8E0F\uFF1A\u76EE\u6A19\u65C1\u7684\u6575\u5175\u53D7 ${st.splash} \u50B7\u5BB3`);
+  if (st.trample) out.push(`\u8E10\u8E0F\uFF1A\u76EE\u6A19\u65C1\u7684\u6575\u5175\u53D7 ${Math.round(st.trample * 100)}% \u50B7\u5BB3`);
+  if (st.buildingSplash) out.push(`\u649E\u64CA\u6642 ${st.buildingSplash / 100} \u683C\u5167\u7684\u6575\u65B9\u5EFA\u7BC9\u4E00\u4F75\u53D7\u640D`);
+  if (st.frameDelay) out.push(`\u63DB\u76EE\u6A19\u9996\u767C\u524D\u7784\u6E96 ${st.frameDelay / rules.settings.tickHz} \u79D2`);
+  for (const [c, v] of Object.entries(st.classArmor ?? {})) if (v) out.push(`${classNames[c] ?? c}\u8B77\u7532 ${v}`);
   return out;
 }
 var bonusText2 = (st) => Object.entries(st.bonus).map(([c, n]) => `\u5C0D${classNames[c] ?? c} +${n}`).join("\u3001");
 function statLine(st) {
   return [`\u751F\u547D ${st.hp}`, `\u653B\u64CA ${st.damage}`, st.range <= 50 ? "\u8FD1\u6230" : `\u5C04\u7A0B ${st.range / 100} \u683C`, `\u8B77\u7532 ${st.armor[0]}/${st.armor[1]}`, bonusText2(st), ...extrasOf(st)].filter(Boolean).join("\u3001");
+}
+function repairCostText(entry2) {
+  const c = { ...costOf(entry2, mine()) };
+  if (entry2 === "town-center") {
+    c.wood *= 2;
+    c.stone = 0;
+  }
+  const parts = resources.filter((r) => Math.floor(c[r] * repairRules.costShare) > 0).map((r) => `${resourceNames3[r]} ${Math.floor(c[r] * repairRules.costShare)}`);
+  return parts.length ? parts.join("\u3001") : "\u514D\u8CBB";
+}
+var repairersOf = (t) => state.repairs.filter((r) => r.target.kind === t.kind && r.target.id === t.id).length;
+function ridersRow(list3) {
+  const row = document.createElement("span");
+  row.className = "riders";
+  for (const p of list3) {
+    const i = document.createElement("img");
+    i.alt = unitNames[p.kind] ?? p.kind;
+    i.title = `${ownName(p.kind)} ${p.id} \xB7 \u751F\u547D ${p.hp}/${p.maxHp}`;
+    setImg(i, `${p.kind}-face`);
+    row.append(i);
+  }
+  return row;
 }
 var groupKey = "";
 {
@@ -9191,20 +11963,23 @@ function renderSelection() {
   if (!b && chosen2.length === 1) {
     const u = chosen2[0], stats = statsOf(u.kind, mine());
     setImg(el("unit-portrait"), `${u.kind}-face`);
-    el("unit-name").textContent = nameOf2(u);
-    el("unit-owner").textContent = isAnimal(u.kind) ? "\u85CD\u65B9\u7684\u7272\u755C" : `\u85CD\u65B9 \xB7 ${civName2(myCiv())} \xB7 #${u.id}`;
+    el("unit-name").textContent = nameOf5(u);
+    el("unit-owner").textContent = isAnimal(u.kind) ? "\u85CD\u65B9\u7684\u7272\u755C" : `\u85CD\u65B9 \xB7 ${civName3(myCiv())} \xB7 #${u.id}`;
     el("unit-hp").textContent = `${u.hp}/${u.maxHp}`;
     el("unit-hp-bar").style.width = `${Math.max(0, u.hp) * 100 / Math.max(1, u.maxHp)}%`;
-    const pack = packState(u) === null ? null : u.unpacked ? "\u5DF2\u67B6\u8A2D" : "\u79FB\u52D5\u72C0\u614B", facts = `${u.kind}|${u.faith ?? ""}|${statLine(stats)}|${JSON.stringify(state.transports.find((t) => t.id === u.id) ?? "")}|${JSON.stringify(state.trades.find((t) => t.unitId === u.id) ?? "")}|${u.cargo ? `${u.cargo.resource}:${u.cargo.amount}` : ""}|${pack ?? ""}`;
+    const pack = packState(u) === null ? null : u.unpacked ? "\u5DF2\u67B6\u8A2D" : "\u79FB\u52D5\u72C0\u614B", facts3 = `${u.kind}|${u.faith ?? ""}|${statLine(stats)}|${JSON.stringify(state.transports.find((t) => t.id === u.id) ?? "")}|${JSON.stringify(state.trades.find((t) => t.unitId === u.id) ?? "")}|${JSON.stringify(state.repairs.filter((r) => r.villager === u.id || r.target.kind === "unit" && r.target.id === u.id))}|${u.hp}|${(() => {
+      const j = state.repairs.find((r) => r.villager === u.id);
+      return !j ? "" : j.target.kind === "building" ? state.buildings.find((b2) => b2.id === j.target.id)?.hp : state.units.find((v) => v.id === j.target.id)?.hp;
+    })()}|${u.cargo ? `${u.cargo.resource}:${u.cargo.amount}` : ""}|${pack ?? ""}`;
     const box2 = el("unit-facts");
-    if (box2.dataset.key !== facts) {
-      box2.dataset.key = facts;
+    if (box2.dataset.key !== facts3) {
+      box2.dataset.key = facts3;
       box2.replaceChildren();
       const add = (text, icon) => {
         const s = document.createElement("span");
         if (icon) {
           const i = document.createElement("img");
-          i.alt = resourceNames2[icon];
+          i.alt = resourceNames3[icon];
           setImg(i, icon);
           s.append(i);
         }
@@ -9225,24 +12000,25 @@ function renderSelection() {
         if (t) {
           const s = add(`\u4E58\u5BA2 ${t.passengers.length}/${t.capacity}`);
           s.title = "\u53F3\u9375\u5DF1\u65B9\u904B\u8F38\u8239\u8B93\u9678\u4E0A\u55AE\u4F4D\u767B\u8239\uFF1B\u9078\u53D6\u904B\u8F38\u8239\u5F8C\u53F3\u9375\u9678\u5730\u5378\u4E0B";
-          if (t.passengers.length) {
-            const row = document.createElement("span");
-            row.className = "riders";
-            for (const p of t.passengers) {
-              const i = document.createElement("img");
-              i.alt = unitNames[p.kind] ?? p.kind;
-              i.title = `${ownName(p.kind)} ${p.id} \xB7 \u751F\u547D ${p.hp}/${p.maxHp}`;
-              setImg(i, `${p.kind}-face`);
-              row.append(i);
-            }
-            box2.append(row);
-          }
+          if (t.passengers.length) box2.append(ridersRow(t.passengers));
         }
         const tr = state.trades.find((t2) => t2.unitId === u.id);
         if (tr) add(`\u6BCF\u8D9F ${tr.gold}`, "gold").title = "\u56DE\u5230\u5DF1\u65B9\u6642\u5165\u5E33";
         else if (u.kind in tradeHome) add(u.kind === "trade-cog" ? "\u53F3\u9375\u7D05\u65B9\u78BC\u982D\u958B\u59CB\u8CBF\u6613" : "\u53F3\u9375\u7D05\u65B9\u5E02\u96C6\u958B\u59CB\u8CBF\u6613").className = "dim";
         if (u.kind === "fishing-ship") add("\u53F3\u9375\u9B5A\u7FA4\u6216\u9B5A\u7DB2\u6355\u9B5A\uFF0C\u9001\u56DE\u78BC\u982D").className = "dim";
       } else {
+        {
+          const t = u.kind === "ram" ? state.transports.find((t2) => t2.id === u.id) : void 0;
+          if (t) {
+            const s = add(`\u4E58\u5BA2 ${t.passengers.length}/${t.capacity}`);
+            s.title = "\u9078\u53D6\u6B65\u5175\u6216\u5F92\u6B65\u5F13\u5175\u5F8C\u53F3\u9375\u5DF1\u65B9\u653B\u57CE\u69CC\u767B\u4E0A\uFF1BU \u653E\u51FA";
+            if (t.passengers.length) {
+              box2.append(ridersRow(t.passengers));
+              const inf = t.passengers.filter((p) => combatRules.units[p.kind]?.classes.includes("infantry")).length;
+              if (inf) add(`\u6B65\u5175 ${inf} \u540D\uFF1A\u901F\u5EA6 +${Math.round(carrierRules.ram.speedPerInfantry * inf * 100)}%\u3001\u5C0D\u5EFA\u7BC9 +${Math.min(carrierRules.ram.buildingCap[ramStep(state.economy.techs)], carrierRules.ram.buildingPerInfantry * inf)}`).title = `\u6BCF\u540D\u6B65\u5175\u901F\u5EA6 +${carrierRules.ram.speedPerInfantry * 100}%\u3001\u5C0D\u5EFA\u7BC9 +${carrierRules.ram.buildingPerInfantry}\uFF08\u4E0A\u9650 ${carrierRules.ram.buildingCap[ramStep(state.economy.techs)]}\uFF09`;
+            }
+          }
+        }
         add(`\u653B\u64CA ${stats.damage}`);
         add(stats.range <= 50 ? "\u8FD1\u6230" : `\u5C04\u7A0B ${stats.range / 100} \u683C`);
         add(`\u8B77\u7532 ${stats.armor[0]}/${stats.armor[1]}`).title = "\u8FD1\u6230\u8B77\u7532\uFF0F\u9060\u7A0B\u8B77\u7532";
@@ -9250,21 +12026,35 @@ function renderSelection() {
         if (edge) add(edge);
         for (const x of extrasOf(stats)) add(x);
         if (pack) add(pack).title = "\u67B6\u8A2D\u5F8C\u624D\u80FD\u5C04\u64CA\uFF0C\u6536\u8D77\u5F8C\u624D\u80FD\u79FB\u52D5";
-        if (stats.classes.includes("unique")) add(`${civName2(myCiv())}\u7279\u6B8A\u55AE\u4F4D`).className = "dim";
+        if (stats.classes.includes("unique")) add(`${civName3(myCiv())}\u7279\u6B8A\u55AE\u4F4D`).className = "dim";
       }
       if (u.cargo) add(`${u.cargo.amount}/${u.kind === "villager" ? carryOf(state.economy.techs, economyRules.carryCapacity) : economyRules.carryCapacity}`, u.cargo.resource);
+      {
+        const job = state.repairs.find((r) => r.villager === u.id);
+        if (job) {
+          const b2 = job.target.kind === "building" ? state.buildings.find((v2) => v2.id === job.target.id) : void 0, v = job.target.kind === "unit" ? state.units.find((w2) => w2.id === job.target.id) : void 0;
+          if (b2 || v) add(`\u4FEE\u7406${b2 ? buildingNames2[b2.kind] : ownName(v.kind)}\uFF1A\u751F\u547D ${b2 ? b2.hp : v.hp}/${b2 ? b2.maxHp : v.maxHp}`).title = "\u4FEE\u6EFF\u7D04\u9700\u539F\u50F9\u4E00\u534A\uFF0C\u908A\u4FEE\u908A\u6263\uFF1B\u8CC7\u6E90\u4E0D\u8DB3\u6642\u505C\u5DE5";
+        }
+        if (repairableUnit(u.kind) && u.hp < u.maxHp) {
+          const n = repairersOf({ kind: "unit", id: u.id });
+          add(n ? `${n} \u540D\u6751\u6C11\u4FEE\u7406\u4E2D` : `\u53EF\u4FEE\u7406\uFF1A\u4FEE\u6EFF ${repairCostText(u.kind)}`).className = n ? "" : "dim";
+        }
+      }
     }
     box2.classList.toggle("more", box2.scrollWidth - box2.scrollLeft > box2.clientWidth + 1);
-    el("unit-status").textContent = doing(u);
+    el("unit-status").textContent = doing(u) + (u.player === 0 && canStance(u.kind) ? ` \xB7 ${stanceNames2[stanceOf(u)]}` : "");
   }
   if (!b && chosen2.length > 1) {
     const counts = /* @__PURE__ */ new Map();
     for (const u of chosen2) counts.set(u.kind, (counts.get(u.kind) ?? 0) + 1);
-    el("group-summary").textContent = `\u5DF2\u9078\u53D6 ${chosen2.length} \u540D \xB7 ` + [...counts].map(([k, n]) => `${ownName(k)} \xD7${n}`).join(" \xB7 ");
+    const posture = /* @__PURE__ */ new Map();
+    for (const u of chosen2) if (u.player === 0 && canStance(u.kind)) posture.set(stanceOf(u), (posture.get(stanceOf(u)) ?? 0) + 1);
+    const patrolling = chosen2.filter((u) => state.patrols?.[u.id]).length;
+    el("group-summary").textContent = `\u5DF2\u9078\u53D6 ${chosen2.length} \u540D \xB7 ` + [...counts].map(([k, n]) => `${ownName(k)} \xD7${n}`).join(" \xB7 ") + (posture.size ? ` \uFF5C ` + [...posture].map(([st, n]) => posture.size > 1 ? `${stanceNames2[st]} ${n}` : stanceNames2[st]).join("\u3001") : "") + (patrolling ? ` \uFF5C \u5DE1\u908F\u4E2D ${patrolling}` : "");
     const grid = el("group-grid"), small = matchMedia("(max-width:760px)").matches, [tw, th] = small ? [34, 40] : [46, 52], cols = Math.max(1, Math.floor((grid.clientWidth + 4) / (tw + 4))), rows = Math.max(1, Math.floor((grid.clientHeight + 4) / (th + 4))), room = cols * rows;
-    const shown = chosen2.length > room ? chosen2.slice(0, room - 1) : chosen2, key = shown.map((u) => u.id + u.kind).join() + "|" + chosen2.length;
-    if (key !== groupKey) {
-      groupKey = key;
+    const shown = chosen2.length > room ? chosen2.slice(0, room - 1) : chosen2, key2 = shown.map((u) => u.id + u.kind).join() + "|" + chosen2.length;
+    if (key2 !== groupKey) {
+      groupKey = key2;
       const more = chosen2.length - shown.length;
       grid.replaceChildren(...shown.map((u) => {
         const btn = document.createElement("button");
@@ -9312,18 +12102,34 @@ function renderOutcome() {
   }
   el("result-title").textContent = won ? "\u52DD\u5229" : o.winner === null ? "\u96D9\u65B9\u540C\u6B78\u65BC\u76E1" : "\u6230\u6557";
   const why = o.reason === "resign" ? won ? "\u7D05\u65B9\u6295\u964D\u3002" : "\u4F60\u5DF2\u6295\u964D\u3002" : o.reason === "relic" ? won ? "\u85CD\u65B9\u6301\u6709\u5168\u90E8\u8056\u7269 200 \u5E74\u3002" : "\u7D05\u65B9\u6301\u6709\u5168\u90E8\u8056\u7269 200 \u5E74\u3002" : o.reason === "wonder" ? won ? "\u85CD\u65B9\u7684\u4E16\u754C\u5947\u89C0\u5C79\u7ACB 200 \u5E74\u3002" : "\u7D05\u65B9\u7684\u4E16\u754C\u5947\u89C0\u5C79\u7ACB 200 \u5E74\u3002" : won ? "\u7D05\u65B9\u5DF2\u6C92\u6709\u4EFB\u4F55\u55AE\u4F4D\u8207\u5EFA\u7BC9\u3002" : "\u85CD\u65B9\u5DF2\u6C92\u6709\u4EFB\u4F55\u55AE\u4F4D\u8207\u5EFA\u7BC9\u3002";
-  el("result-detail").textContent = `${el("clock").textContent}\uFF08tick ${o.tick}\uFF09\uFF1A${why}`;
+  el("result-detail").textContent = `${el("clock").textContent}\uFF08tick ${o.tick}\uFF09\uFF1A${why}${state.opponent === "ai" && state.aiOpening && state.aiOpening !== standardOpening ? ` \u96FB\u8166\u958B\u5C40\uFF1A${openingName(state.aiOpening)}\u3002` : ""}`;
   if (running) setRunning(false);
   renderPaused();
 }
 var previous = null;
 var lastAlarm = -1e9;
+function chatLine(m) {
+  const t = tauntOf(m.taunt);
+  if (!t) return;
+  const list3 = el("events"), li = document.createElement("li"), who = document.createElement("b"), num = document.createElement("small");
+  li.dataset.kind = "chat";
+  li.dataset.side = m.player === 0 ? "blue" : "red";
+  who.textContent = m.player === 0 ? playerName : "\u7D05\u65B9";
+  num.textContent = String(t.n);
+  li.append(who, num, t.zh);
+  li.title = t.en;
+  list3.append(li);
+  while (list3.children.length > 5) list3.firstElementChild.remove();
+  window.setTimeout(() => li.remove(), 12e3);
+  audio.play(t.n === 11 ? "laugh" : "taunt");
+  speakTaunt(t.n);
+}
 function feed(text, kind = "info") {
-  const list = el("events"), li = document.createElement("li");
+  const list3 = el("events"), li = document.createElement("li");
   li.textContent = text;
   li.dataset.kind = kind;
-  list.append(li);
-  while (list.children.length > 5) list.firstElementChild.remove();
+  list3.append(li);
+  while (list3.children.length > 5) list3.firstElementChild.remove();
   window.setTimeout(() => li.remove(), 12e3);
 }
 function reportEvents() {
@@ -9332,7 +12138,7 @@ function reportEvents() {
   if (!before || state.tick <= before.tick || state.seed !== before.seed) return;
   const had = new Set(before.units.map((u) => u.id));
   for (const u of ownUnits()) if (!had.has(u.id) && !isAnimal(u.kind)) {
-    feed(`${nameOf2(u)}\u5DF2\u751F\u7522`);
+    feed(`${nameOf5(u)}\u5DF2\u751F\u7522`);
     audio.play(uniqueKinds.includes(u.kind) ? "unique" : "trained");
   }
   const carried = new Set(before.units.filter((u) => u.relic).map((u) => u.id));
@@ -9350,11 +12156,13 @@ function reportEvents() {
   }
   if (state.relicVictory && !before.relicVictory) feed(state.relicVictory.player === 0 ? "\u85CD\u65B9\u6301\u6709\u5168\u90E8\u8056\u7269\uFF1A\u5B88\u4F4F 200 \u5E74\u5373\u53EF\u7372\u52DD" : "\u7D05\u65B9\u6301\u6709\u5168\u90E8\u8056\u7269\uFF1A200 \u5E74\u5F8C\u7D05\u65B9\u7372\u52DD", state.relicVictory.player === 0 ? "info" : "alarm");
   if (!state.relicVictory && before.relicVictory) feed("\u8056\u7269\u52DD\u5229\u5012\u6578\u4E2D\u6B62");
-  for (const w of state.wonders) if (w.player === 1 && !before.wonders.some((v) => v.building === w.building)) {
-    feed(`\u7D05\u65B9\u5EFA\u6210\u4E16\u754C\u5947\u89C0\uFF1A${clockOf(w.endsTick - state.tick)} \u5167\u6467\u6BC0\u5B83\uFF0C\u5426\u5247\u7D05\u65B9\u7372\u52DD`, "alarm");
+  for (const w2 of state.wonders) if (w2.player === 1 && !before.wonders.some((v) => v.building === w2.building)) {
+    feed(`\u7D05\u65B9\u5EFA\u6210\u4E16\u754C\u5947\u89C0\uFF1A${clockOf(w2.endsTick - state.tick)} \u5167\u6467\u6BC0\u5B83\uFF0C\u5426\u5247\u7D05\u65B9\u7372\u52DD`, "alarm");
     audio.play("alarm");
   }
-  for (const w of before.wonders) if (!state.wonders.some((v) => v.building === w.building)) feed(w.player === 0 ? "\u85CD\u65B9\u7684\u4E16\u754C\u5947\u89C0\u5012\u4E0B\u4E86" : "\u7D05\u65B9\u7684\u4E16\u754C\u5947\u89C0\u88AB\u6467\u6BC0", "info");
+  const heard = new Set((before.chat ?? []).map((m) => `${m.player}:${m.tick}:${m.taunt}`));
+  for (const m of state.chat ?? []) if (!heard.has(`${m.player}:${m.tick}:${m.taunt}`)) chatLine(m);
+  for (const w2 of before.wonders) if (!state.wonders.some((v) => v.building === w2.building)) feed(w2.player === 0 ? "\u85CD\u65B9\u7684\u4E16\u754C\u5947\u89C0\u5012\u4E0B\u4E86" : "\u7D05\u65B9\u7684\u4E16\u754C\u5947\u89C0\u88AB\u6467\u6BC0", "info");
   const side = new Map(before.units.map((u) => [u.id, u.player]));
   for (const u of state.units) {
     const was = side.get(u.id);
@@ -9444,17 +12252,17 @@ var wallStart = null;
 var wallPlan = null;
 function planWall(k, gx, gy) {
   if (!wallStart) return null;
-  const to = { x: Math.floor(gx) * 100, y: Math.floor(gy) * 100 }, cost = costOf2(k), stock = { ...state.economy.stock };
+  const to = { x: Math.floor(gx) * 100, y: Math.floor(gy) * 100 }, cost = costOf2(k), stock2 = { ...state.economy.stock };
   let fit = 0, first = null;
   const segments = wallLine(wallStart, to).map((p) => {
-    const why = segmentProblem(k, p.x, p.y), afford = !why && resources.every((r) => stock[r] >= cost[r]);
+    const why = segmentProblem(k, p.x, p.y), afford = !why && resources.every((r) => stock2[r] >= cost[r]);
     if (afford) {
-      for (const r of resources) stock[r] -= cost[r];
+      for (const r of resources) stock2[r] -= cost[r];
       fit++;
     } else first ??= why ?? "\u8CC7\u6E90\u4E0D\u8DB3";
     return { ...p, ok: afford };
   });
-  const total = resources.filter((r) => cost[r] > 0).map((r) => `${resourceNames2[r]} ${cost[r] * fit}`).join("\u3001");
+  const total = resources.filter((r) => cost[r] > 0).map((r) => `${resourceNames3[r]} ${cost[r] * fit}`).join("\u3001");
   return { to, segments, note: fit ? `${buildingNames2[k]} ${fit} \u6BB5\uFF0C\u5171 ${total}${fit < segments.length ? `\uFF1B${segments.length - fit} \u6BB5\u7565\u904E\uFF08${first}\uFF09` : ""}\u3002\u653E\u958B\u6216\u518D\u9EDE\u4E00\u6B21\u78BA\u5B9A\uFF1B\u53F3\u9375\u6216 Esc \u53D6\u6D88\u3002` : `\u4E0D\u80FD\u653E\u5728\u9019\u88E1\uFF1A${first}` };
 }
 function stopPlacing(message) {
@@ -9476,7 +12284,7 @@ async function build(k, x, y, to) {
   try {
     await client.request({ kind: "build", unitIds, building: k, x, y, ...to ? { to } : {} });
     audio.play("place");
-    notice(`${names2(unitIds)} \u524D\u5F80\u5EFA\u9020${buildingNames2[k]}${to ? "\uFF08\u6574\u5217\u57CE\u7246\uFF0C\u9010\u6BB5\u6263\u6B3E\uFF09" : `\uFF1B\u653E\u7F6E\u6642\u6263\u9664 ${costText(k)}`}\u3002${k === "fish-trap" ? "" : leftOut(unitIds)}`);
+    notice(`${names2(unitIds)} \u524D\u5F80\u5EFA\u9020${buildingNames2[k]}${to ? "\uFF08\u6574\u5217\u57CE\u7246\uFF0C\u9010\u6BB5\u6263\u6B3E\uFF09" : `\uFF1B\u653E\u7F6E\u6642\u6263\u9664 ${costText3(k)}`}\u3002${k === "fish-trap" ? "" : leftOut(unitIds)}`);
   } catch (e) {
     notice(reason(e));
   }
@@ -9544,9 +12352,9 @@ var techEffects2 = {
 var stripName2 = (text, name) => text.startsWith(`${name}\uFF1A`) ? text.slice(name.length + 1) : text;
 function civText(id) {
   const o = mine(), civ = civDefs.find((c) => c.uniqueUnits.includes(id) || c.eliteUpgrades.includes(id) || c.uniqueTechs.some((t) => t.id === id));
-  if (uniqueKinds.includes(id)) return `${civName2(civ?.id)}\u7279\u6B8A\u55AE\u4F4D\uFF1A${statLine(statsOf(id, o))}`;
-  const up = lineUpgrades.find((u) => u.id === id);
-  if (up) return `${ownName(up.kind)}\u5347\u7D1A\u70BA${up.name}\uFF1A${statLine(statsOf(up.kind, { ...o, techs: [...o.techs, id] }))}`;
+  if (uniqueKinds.includes(id)) return `${civName3(civ?.id)}\u7279\u6B8A\u55AE\u4F4D\uFF1A${statLine(statsOf(id, o))}`;
+  const up2 = lineUpgrades.find((u) => u.id === id);
+  if (up2) return `${ownName(up2.kind)}\u5347\u7D1A\u70BA${up2.name}\uFF1A${statLine(statsOf(up2.kind, { ...o, techs: [...o.techs, id] }))}`;
   if (id in combatRules.units && combatRules.units[id].attack !== "none") {
     const role = unitRole[id];
     return `${role ? `${role}\uFF1B` : ""}${statLine(statsOf(id, o))}`;
@@ -9554,50 +12362,50 @@ function civText(id) {
   const ut = civ?.uniqueTechs.find((t) => t.id === id);
   if (ut) {
     const own = civ.effects.filter((e) => e.trigger.tech === id).map((e) => stripName2(e.text, ut.name));
-    return `${civName2(civ.id)}\u7279\u6B8A\u79D1\u6280\uFF1A${own.length ? own.join("\uFF1B") : ut.effectText}`;
+    return `${civName3(civ.id)}\u7279\u6B8A\u79D1\u6280\uFF1A${own.length ? own.join("\uFF1B") : ut.effectText}`;
   }
   if (id === "castle") {
     const a = defenseRules.arrows.castle, x = arrowsOf(o, "castle"), units2 = trainsAt("castle").join("\u3001");
     return `${units2 ? `\u8A13\u7DF4${units2}\u3001` : ""}\u7814\u7A76\u7279\u6B8A\u79D1\u6280\uFF1B\u81EA\u52D5\u5C04 ${a.base + x.extra} \u652F\u7BAD\uFF08\u5C04\u7A0B ${(a.range + x.range) / 100} \u683C\uFF09\uFF1B\u53EF\u9032\u99D0 ${defenseRules.capacity.castle + garrisonBonus(o, "castle")} \u540D\uFF0C\u6751\u6C11\u8207\u5F13\u5175\u5404\u591A 1 \u652F\u7BAD`;
   }
-  if (entryOf3(id)?.kind !== "building") return "";
+  if (entryOf4(id)?.kind !== "building") return "";
   const trains = trainsAt(id);
   if (trains.length) return `\u8A13\u7DF4${trains.join("\u3001")}`;
-  const research = producedAt(id, mine()).filter((k) => civAvailable(myCiv(), k) && entryOf3(k)?.kind === "technology").map(entryName);
+  const research = producedAt(id, mine()).filter((k) => civAvailable(myCiv(), k, allTechs()) && entryOf4(k)?.kind === "technology").map(entryName);
   return research.length ? `\u7814\u7A76${research.join("\u3001")}` : "";
 }
 function techText2(id) {
-  if (entryOf3(id)?.kind !== "technology" || ageOf(id)) return "";
-  const own = techEffects.filter((e) => e.trigger.tech === id && (!e.select.kinds || !!e.select.classes?.length || e.select.kinds.some((k) => civAvailable(myCiv(), k)))).map((e) => stripName2(e.text, entryName(id)));
-  const opens = rules.entries.filter((e) => e.kind === "unit" && e.requires.includes(id) && civAvailable(myCiv(), e.id)).map((e) => e.name);
+  if (entryOf4(id)?.kind !== "technology" || ageOf(id)) return "";
+  const own = techEffects.filter((e) => e.trigger.tech === id && (!e.select.kinds || !!e.select.classes?.length || e.select.kinds.some((k) => civAvailable(myCiv(), k, allTechs())))).map((e) => stripName2(e.text, entryName(id)));
+  const opens = rules.entries.filter((e) => e.kind === "unit" && e.requires.includes(id) && civAvailable(myCiv(), e.id, allTechs())).map((e) => e.name);
   return [...own, opens.length ? `\u89E3\u9396${opens.join("\u3001")}` : ""].filter(Boolean).join("\uFF1B");
 }
-var trainsAt = (building2) => producedAt(building2, mine()).filter((k) => civAvailable(myCiv(), k) && entryOf3(k)?.kind === "unit").map(ownName);
+var trainsAt = (building2) => producedAt(building2, mine()).filter((k) => civAvailable(myCiv(), k, allTechs()) && entryOf4(k)?.kind === "unit").map(ownName);
 var civExtra = (id) => {
   const civ = civById(myCiv());
   return !civ || civ.uniqueTechs.some((t) => t.id === id) ? "" : civ.effects.filter((e) => e.trigger.tech === id).map((e) => e.text).join("\uFF1B");
 };
 var trainKeys = ["Q", "W", "E", "R", "T", "A", "D", "Z", "X", "C", "V", "B", "Y"];
 var entryIcon = (id) => {
-  const up = lineUpgrades.find((u) => u.id === id);
-  return ageOf(id) ? `town-center-${ageOf(id)}` : up ? `${up.kind}-face` : entryOf3(id)?.kind === "technology" ? `tech-${id}` : `${id}-face`;
+  const up2 = lineUpgrades.find((u) => u.id === id);
+  return ageOf(id) ? `town-center-${ageOf(id)}` : up2 ? `${up2.kind}-face` : entryOf4(id)?.kind === "technology" ? `tech-${id}` : `${id}-face`;
 };
 function trainInput(b) {
   const e = state.economy;
-  return { player: 0, civ: myCiv(), age: e.age, techs: e.techs, building: b, ownBuildings: state.buildings, stock: e.stock, populationUsed: e.populationUsed, populationReserved: e.populationReserved, populationCap: e.populationCap };
+  return { allTechs: allTechs(), player: 0, civ: myCiv(), age: e.age, techs: e.techs, building: b, ownBuildings: state.buildings, stock: e.stock, populationUsed: e.populationUsed, populationReserved: e.populationReserved, populationCap: e.populationCap };
 }
 function renderProduction(b) {
-  const entries = producedAt(b.kind, mine()).filter((id) => civAvailable(myCiv(), id)), box2 = el("production");
+  const entries = producedAt(b.kind, mine()).filter((id) => civAvailable(myCiv(), id, allTechs())), box2 = el("production");
   const slot = /* @__PURE__ */ new Map(), before = /* @__PURE__ */ new Map();
   let heads = 0;
   for (const id of entries) {
-    const pred = entryOf3(id)?.requires.find((r) => entries.includes(r) && !ageOf(r));
+    const pred = entryOf4(id)?.requires.find((r) => entries.includes(r) && !ageOf(r));
     if (pred !== void 0) before.set(id, pred);
     slot.set(id, pred !== void 0 ? slot.get(pred) : heads++);
   }
-  const key = b.id + ":" + entries.join();
-  if (key !== productionKey) {
-    productionKey = key;
+  const key2 = b.id + ":" + entries.join();
+  if (key2 !== productionKey) {
+    productionKey = key2;
     box2.replaceChildren(...entries.map((id) => {
       const i = slot.get(id);
       const btn = document.createElement("button");
@@ -9609,12 +12417,12 @@ function renderProduction(b) {
       img.alt = "";
       img.dataset.icon = entryIcon(id);
       setImg(img, img.dataset.icon);
-      const label = document.createElement("span");
-      label.className = "label";
-      label.textContent = entryName(id);
+      const label2 = document.createElement("span");
+      label2.className = "label";
+      label2.textContent = entryName(id);
       const kbd = document.createElement("kbd");
       kbd.textContent = trainKeys[i];
-      btn.append(img, label, kbd);
+      btn.append(img, label2, kbd);
       if (ageOf(id)) {
         const roman = document.createElement("span");
         roman.className = "roman";
@@ -9633,12 +12441,12 @@ function renderProduction(b) {
       img.alt = "";
       img.dataset.icon = icon;
       setImg(img, icon);
-      const label = document.createElement("span");
-      label.className = "label";
-      label.textContent = text;
+      const label2 = document.createElement("span");
+      label2.className = "label";
+      label2.textContent = text;
       const kbd = document.createElement("kbd");
       kbd.textContent = k;
-      btn.append(img, label, kbd);
+      btn.append(img, label2, kbd);
       box2.append(btn);
     };
     if (b.capacity > 0) {
@@ -9658,12 +12466,12 @@ function renderProduction(b) {
       img.alt = "";
       img.dataset.icon = "farm";
       setImg(img, "farm");
-      const label = document.createElement("span");
-      label.className = "label";
-      label.textContent = "\u81EA\u52D5\u88DC\u7A2E";
+      const label2 = document.createElement("span");
+      label2.className = "label";
+      label2.textContent = "\u81EA\u52D5\u88DC\u7A2E";
       const kbd = document.createElement("kbd");
       kbd.textContent = k;
-      btn.append(img, label, kbd);
+      btn.append(img, label2, kbd);
       box2.append(btn);
     }
   }
@@ -9704,7 +12512,7 @@ function renderProduction(b) {
     const pred = before.get(id);
     btn.hidden = !b.complete || why === "\u5DF2\u7814\u7A76" || pred !== void 0 && !state.economy.techs.includes(pred);
     btn.disabled = !connected || graphicsFailed || !!why;
-    btn.setAttribute("aria-label", `${entryName(id)}\uFF08${costText(id)}\uFF09${why ? `\uFF1A${why}` : ""}`);
+    btn.setAttribute("aria-label", `${entryName(id)}\uFF08${costText3(id)}\uFF09${why ? `\uFF1A${why}` : ""}`);
     if (why && !btn.hidden) reasons.push(`${entryName(id)}\uFF1A${why}`);
   }
   el("production-reason").textContent = b.complete ? reasons.join("\u3000") : "";
@@ -9712,15 +12520,15 @@ function renderProduction(b) {
   if (qkey !== queueKey) {
     queueKey = qkey;
     el("queue").replaceChildren(...b.queue.map((q, i) => {
-      const row = document.createElement("div"), img = document.createElement("img"), label = document.createElement("span"), cancel = document.createElement("button");
+      const row = document.createElement("div"), img = document.createElement("img"), label2 = document.createElement("span"), cancel = document.createElement("button");
       img.alt = "";
       setImg(img, entryIcon(q.entryId));
-      label.dataset.item = String(q.id);
+      label2.dataset.item = String(q.id);
       cancel.textContent = "\xD7";
       cancel.setAttribute("aria-label", `\u53D6\u6D88${entryName(q.entryId)}`);
       cancel.title = "\u53D6\u6D88\u4E26\u5168\u984D\u9000\u56DE";
       cancel.onclick = () => void cancelTrain(b.id, q.id);
-      row.append(img, label, cancel);
+      row.append(img, label2, cancel);
       if (i === 0) {
         const bar2 = document.createElement("div");
         bar2.className = "q-bar";
@@ -9730,15 +12538,15 @@ function renderProduction(b) {
       return row;
     }));
   }
-  for (const label of Array.from(el("queue").querySelectorAll("span[data-item]"))) {
-    const q = b.queue.find((q2) => q2.id === Number(label.dataset.item));
+  for (const label2 of Array.from(el("queue").querySelectorAll("span[data-item]"))) {
+    const q = b.queue.find((q2) => q2.id === Number(label2.dataset.item));
     if (!q) continue;
     const first = b.queue[0] === q;
-    label.textContent = `${entryName(q.entryId)} \xB7 ${first ? q.work >= q.required ? "\u5B8C\u6210\uFF0C\u7B49\u5F85\u51FA\u53E3\u7A7A\u4F4D" : `${Math.floor(q.work * 100 / q.required)}%` : "\u6392\u968A\u4E2D"}`;
-    const fill = label.parentElement.querySelector(".q-bar i");
+    label2.textContent = `${entryName(q.entryId)} \xB7 ${first ? q.work >= q.required ? "\u5B8C\u6210\uFF0C\u7B49\u5F85\u51FA\u53E3\u7A7A\u4F4D" : `${Math.floor(q.work * 100 / q.required)}%` : "\u6392\u968A\u4E2D"}`;
+    const fill = label2.parentElement.querySelector(".q-bar i");
     if (fill) fill.style.width = `${Math.min(100, q.work * 100 / q.required)}%`;
   }
-  el("rally-hint").textContent = b.complete && entries.some((id) => entryOf3(id)?.kind === "unit") ? `\u96C6\u7D50\u9EDE\uFF1A${b.rally ? `(${(b.rally.x / 100).toFixed(1)}, ${(b.rally.y / 100).toFixed(1)})` : "\u672A\u8A2D\u5B9A"}\uFF08\u53F3\u9375${b.kind === "dock" ? "\u6C34\u9762" : "\u5730\u9762"}\u8A2D\u5B9A\uFF09` : "";
+  el("rally-hint").textContent = b.complete && entries.some((id) => entryOf4(id)?.kind === "unit") ? b.rally?.inside ? `\u96C6\u7D50\uFF1A\u9032\u99D0\u5EFA\u7BC9\u5167\uFF08\u65B0\u5175\u76F4\u63A5\u9032\u99D0\uFF0C\u6700\u591A ${b.capacity} \u540D\uFF1B\u53F3\u9375${b.kind === "dock" ? "\u6C34\u9762" : "\u5730\u9762"}\u6539\u56DE\uFF09` : `\u96C6\u7D50\u9EDE\uFF1A${b.rally ? `(${(b.rally.x / 100).toFixed(1)}, ${(b.rally.y / 100).toFixed(1)})` : "\u672A\u8A2D\u5B9A"}\uFF08\u53F3\u9375${b.kind === "dock" ? "\u6C34\u9762" : "\u5730\u9762"}\u8A2D\u5B9A${b.kind in defenseRules.rallyGarrison ? "\uFF1B\u53F3\u9375\u5EFA\u7BC9\u672C\u8EAB\u8B93\u65B0\u5175\u9032\u99D0" : ""}\uFF09` : "";
 }
 var tipTile = null;
 function tileCard(btn) {
@@ -9754,17 +12562,17 @@ function tileCard(btn) {
   card.append(title);
   if (!id) {
     title.textContent = `${btn.dataset.tip}\uFF08${btn.dataset.key ?? (btn.id === "stop" ? "S" : "Del")}\uFF09`;
-    line2("meta", btn.id === "garrison-cmd" ? "\u6240\u9078\u7684\u6751\u6C11\u3001\u6B65\u5175\u3001\u5F92\u6B65\u5F13\u5175\u8207\u50E7\u4FB6\u8D70\u9032\u6700\u8FD1\u3001\u9084\u6709\u7A7A\u4F4D\u7684\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u6216\u57CE\u5821\u3002" : btn.id === "ungarrison" ? "\u88E1\u9762\u7684\u55AE\u4F4D\u8D70\u51FA\u4F86\uFF1B\u88AB\u9418\u8072\u53EB\u9032\u53BB\u7684\u6751\u6C11\u6703\u56DE\u5230\u539F\u672C\u7684\u5DE5\u4F5C\u3002" : btn.id === "bell" ? "\u6240\u6709\u6751\u6C11\u8EB2\u9032\u6700\u8FD1\u3001\u9084\u6709\u7A7A\u4F4D\u7684\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u6216\u57CE\u5821\uFF0C\u4E26\u8A18\u4F4F\u539F\u672C\u7684\u5DE5\u4F5C\uFF1B\u518D\u6309\u4E00\u6B21\u56DE\u53BB\u5DE5\u4F5C\u3002" : btn.id === "build-page" ? `${ownBuildKinds().filter((k) => pageOf(k) !== buildPage).map((k) => buildingNames2[k]).join("\u3001")}\u3002\u5EFA\u7BC9\u7684\u5B57\u6BCD\u9375\u5728\u54EA\u4E00\u9801\u90FD\u80FD\u76F4\u63A5\u6309\u3002` : btn.id === "reseed" ? `\u8FB2\u7530\u8017\u76E1\u6642\uFF0C\u8FB2\u592B\u7ACB\u523B\u5728\u539F\u5730\u91CD\u5EFA\uFF08\u6263\u6728\u6750 ${costOf2("farm").wood}\uFF09\uFF0C\u5B8C\u5DE5\u5F8C\u7E7C\u7E8C\u8015\u4F5C\uFF1B\u6728\u6750\u4E0D\u8DB3\u6642\u5C31\u4E0D\u88DC\u7A2E\u3002\u6309\u4E00\u4E0B\u5207\u63DB\u3002` : btn.id === "stop" ? "\u6240\u9078\u55AE\u4F4D\u5728\u4E0B\u4E00\u500B\u7BC0\u9EDE\u505C\u4E0B\uFF0C\u4E26\u653E\u4E0B\u76EE\u524D\u7684\u5DE5\u4F5C\u3002" : "\u62C6\u9664\u5730\u57FA\uFF1B\u8CBB\u7528\u5168\u984D\u9000\u56DE\u3002");
+    line2("meta", btn.dataset.stance ? stanceTips[btn.dataset.stance] : btn.id === "patrol-cmd" ? `\u6309\u4E0B\u5F8C\u5728\u5730\u9762\u9EDE\u5DE1\u908F\u7684\u53E6\u4E00\u7AEF\uFF1A\u5728\u76EE\u524D\u4F4D\u7F6E\u8207\u90A3\u4E00\u9EDE\u4E4B\u9593\u4F86\u56DE\uFF0C\u9014\u4E2D\u4F9D\u59FF\u614B\u8FCE\u6575\uFF08\u96E2\u7AEF\u9EDE ${tacticsRules.patrolTurn / 100} \u683C\u5167\u5C31\u6298\u8FD4\uFF09\u3002` : btn.id === "spread-cmd" ? `\u958B\u555F\u5F8C\uFF0C\u79FB\u52D5\u6307\u4EE4\u8B93\u55AE\u4F4D\u5F7C\u6B64\u9694\u958B\u81F3\u5C11\u4E00\u683C\uFF08\u96C6\u4E2D\u6642\u534A\u683C\uFF09\uFF0C\u9583\u907F\u6295\u77F3\u8ECA\u3001\u706B\u7832\u7B49\u7BC4\u570D\u50B7\u5BB3\uFF1BAlt\uFF0B\u53F3\u9375\u53EA\u5206\u6563\u9019\u4E00\u6B21\u3002\u76EE\u524D\uFF1A${spreadMode ? "\u958B" : "\u95DC"}\u3002` : btn.id === "unload-cmd" ? "\u653B\u57CE\u69CC\u88E1\u7684\u6B65\u5175\u8207\u5F92\u6B65\u5F13\u5175\u5728\u539F\u5730\u4E0B\u4F86\u3002" : btn.id === "garrison-cmd" ? "\u6240\u9078\u7684\u6751\u6C11\u3001\u6B65\u5175\u3001\u5F92\u6B65\u5F13\u5175\u8207\u50E7\u4FB6\u8D70\u9032\u6700\u8FD1\u3001\u9084\u6709\u7A7A\u4F4D\u7684\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u6216\u57CE\u5821\u3002" : btn.id === "ungarrison" ? "\u88E1\u9762\u7684\u55AE\u4F4D\u8D70\u51FA\u4F86\uFF1B\u88AB\u9418\u8072\u53EB\u9032\u53BB\u7684\u6751\u6C11\u6703\u56DE\u5230\u539F\u672C\u7684\u5DE5\u4F5C\u3002" : btn.id === "bell" ? "\u6240\u6709\u6751\u6C11\u8EB2\u9032\u6700\u8FD1\u3001\u9084\u6709\u7A7A\u4F4D\u7684\u57CE\u93AE\u4E2D\u5FC3\u3001\u7BAD\u5854\u6216\u57CE\u5821\uFF0C\u4E26\u8A18\u4F4F\u539F\u672C\u7684\u5DE5\u4F5C\uFF1B\u518D\u6309\u4E00\u6B21\u56DE\u53BB\u5DE5\u4F5C\u3002" : btn.id === "build-page" ? `${ownBuildKinds().filter((k) => pageOf(k) !== buildPage).map((k) => buildingNames2[k]).join("\u3001")}\u3002\u5EFA\u7BC9\u7684\u5B57\u6BCD\u9375\u5728\u54EA\u4E00\u9801\u90FD\u80FD\u76F4\u63A5\u6309\u3002` : btn.id === "reseed" ? `\u8FB2\u7530\u8017\u76E1\u6642\uFF0C\u8FB2\u592B\u7ACB\u523B\u5728\u539F\u5730\u91CD\u5EFA\uFF08\u6263\u6728\u6750 ${costOf2("farm").wood}\uFF09\uFF0C\u5B8C\u5DE5\u5F8C\u7E7C\u7E8C\u8015\u4F5C\uFF1B\u6728\u6750\u4E0D\u8DB3\u6642\u5C31\u4E0D\u88DC\u7A2E\u3002\u6309\u4E00\u4E0B\u5207\u63DB\u3002` : btn.id === "stop" ? "\u6240\u9078\u55AE\u4F4D\u5728\u4E0B\u4E00\u500B\u7BC0\u9EDE\u505C\u4E0B\uFF0C\u4E26\u653E\u4E0B\u76EE\u524D\u7684\u5DE5\u4F5C\u3002" : "\u62C6\u9664\u5730\u57FA\uFF1B\u8CBB\u7528\u5168\u984D\u9000\u56DE\u3002");
     return card;
   }
-  const e = entryOf3(id), why = btn.dataset.train ? trainBlocker(trainInput(state.buildings.find((v) => v.id === selectedBuilding)), id) : buildBlocker(id);
+  const e = entryOf4(id), why = btn.dataset.train ? trainBlocker(trainInput(state.buildings.find((v) => v.id === selectedBuilding)), id) : buildBlocker(id);
   title.textContent = `${btn.dataset.build ? buildingTitle(id) : lineName(id, state.economy.techs) ?? entryName(id)}\uFF08${btn.dataset.key}\uFF09`;
   const cost = document.createElement("span");
   cost.className = "cost";
-  const price = costOf2(id), at = btn.dataset.train ? state.buildings.find((v) => v.id === selectedBuilding) : void 0, secs2 = at ? Math.round(timeTicks(id, mine(), at.kind) / rules.settings.tickHz) : e.time;
+  const price = costOf2(id), at2 = btn.dataset.train ? state.buildings.find((v) => v.id === selectedBuilding) : void 0, secs4 = at2 ? Math.round(timeTicks(id, mine(), at2.kind) / rules.settings.tickHz) : e.time;
   for (const r of resources) if (price[r] > 0) {
     const s = document.createElement("span"), i = document.createElement("img");
-    i.alt = resourceNames2[r];
+    i.alt = resourceNames3[r];
     setImg(i, r);
     s.append(i, String(price[r]));
     if (state.economy.stock[r] < price[r]) s.style.color = "#f3b19f";
@@ -9772,10 +12580,10 @@ function tileCard(btn) {
   }
   card.append(cost);
   const housing = (buildingRules.capacity[id] ?? 0) + (btn.dataset.build ? housingBonus(mine(), id) : 0);
-  line2("meta", [`${secs2} \u79D2`, e.population ? `\u4EBA\u53E3 ${e.population}` : "", housing ? `\u63D0\u4F9B\u4EBA\u53E3 ${housing}` : "", id === "farm" ? `\u5B8C\u5DE5\u5F8C\u53EF\u8015\u4F5C ${farmFoodOf(state.economy.techs, terrainRules.resourceCapacity.farm)} \u98DF\u7269\uFF0C\u53EF\u4EE5\u8D70\u4E0A\u53BB\uFF1B\u5EFA\u9020\u7684\u6751\u6C11\u6703\u63A5\u8457\u8015\u4F5C` : "", techText2(id) || buildNote(id) || { "lumber-camp": "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u6728\u6750", "mining-camp": "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u9EC3\u91D1\u8207\u77F3\u982D", mill: "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u98DF\u7269", monastery: "\u8A13\u7DF4\u50E7\u4FB6\uFF1A\u8F49\u5316\u6575\u65B9\u55AE\u4F4D\u3001\u6CBB\u7642\u5DF1\u65B9\u55AE\u4F4D\uFF1B\u5B58\u653E\u8056\u7269\uFF08\u6BCF\u500B\u6BCF\u5206\u9418 30 \u9EC3\u91D1\uFF09", ...techEffects2 }[id] || civText(id)].filter(Boolean).join(" \xB7 "));
+  line2("meta", [`${secs4} \u79D2`, e.population ? `\u4EBA\u53E3 ${e.population}` : "", housing ? `\u63D0\u4F9B\u4EBA\u53E3 ${housing}` : "", id === "farm" ? `\u5B8C\u5DE5\u5F8C\u53EF\u8015\u4F5C ${farmFoodOf(state.economy.techs, terrainRules.resourceCapacity.farm)} \u98DF\u7269\uFF0C\u53EF\u4EE5\u8D70\u4E0A\u53BB\uFF1B\u5EFA\u9020\u7684\u6751\u6C11\u6703\u63A5\u8457\u8015\u4F5C` : "", techText2(id) || buildNote(id) || { "lumber-camp": "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u6728\u6750", "mining-camp": "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u9EC3\u91D1\u8207\u77F3\u982D", mill: "\u6751\u6C11\u53EF\u5728\u6B64\u9001\u4EA4\u98DF\u7269", monastery: "\u8A13\u7DF4\u50E7\u4FB6\uFF1A\u8F49\u5316\u6575\u65B9\u55AE\u4F4D\u3001\u6CBB\u7642\u5DF1\u65B9\u55AE\u4F4D\uFF1B\u5B58\u653E\u8056\u7269\uFF08\u6BCF\u500B\u6BCF\u5206\u9418 30 \u9EC3\u91D1\uFF09", ...techEffects2 }[id] || civText(id)].filter(Boolean).join(" \xB7 "));
   {
     const x = civExtra(id);
-    if (x) line2("meta", `${civName2(myCiv())}\uFF1A${x}`);
+    if (x) line2("meta", `${civName3(myCiv())}\uFF1A${x}`);
   }
   if (why) line2("why", why);
   return card;
@@ -9895,7 +12703,7 @@ async function train(buildingId, entryId) {
   try {
     await client.request({ kind: "train", buildingId, entryId });
     audio.play("order");
-    notice(`${entryName(entryId)}\u5C07\u5728 tick ${state.tick + 1} \u52A0\u5165\u4F47\u5217\u4E26\u6263\u9664 ${costText(entryId)}\u3002${running ? "" : resumeHint()}`);
+    notice(`${entryName(entryId)}\u5C07\u5728 tick ${state.tick + 1} \u52A0\u5165\u4F47\u5217\u4E26\u6263\u9664 ${costText3(entryId)}\u3002${running ? "" : resumeHint()}`);
   } catch (e) {
     notice(reason(e));
   }
@@ -9919,6 +12727,41 @@ async function rally(buildingId, x, y) {
     notice(reason(e));
   }
 }
+async function rallyIn(b) {
+  const o = state.known.find((k) => k.obstacle.id === b.id)?.obstacle;
+  if (!o) return;
+  const [x0, y0, x1, y1] = obstacleBounds(o), c = { x: Math.round((x0 + x1) / 2), y: Math.round((y0 + y1) / 2) };
+  scene?.setMarker("rally", c.x / 100, c.y / 100);
+  try {
+    await client.request({ kind: "rally", buildingId: b.id, x: c.x, y: c.y });
+    notice(`${buildingNames2[b.kind]}\u7684\u65B0\u5175\u5C07\u76F4\u63A5\u9032\u99D0\u5EFA\u7BC9\uFF08\u6700\u591A ${b.capacity} \u540D\uFF0C\u5728\u88E1\u9762\u6162\u6162\u56DE\u8840\uFF09\u3002`);
+  } catch (e) {
+    notice(reason(e));
+  }
+}
+async function repair(target, label2, entry2) {
+  const unitIds = villagersIn(selected);
+  if (!unitIds.length) {
+    notice("\u53EA\u6709\u6751\u6C11\u80FD\u4FEE\u7406\u3002");
+    return;
+  }
+  try {
+    await client.request({ kind: "repair", unitIds, target });
+    audio.play("order");
+    notice(`${names2(unitIds)} \u524D\u5F80\u4FEE\u7406${label2}\uFF1A\u4FEE\u6EFF\u7D04\u9700 ${repairCostText(entry2)}\uFF08\u539F\u50F9\u4E00\u534A\uFF0C\u908A\u4FEE\u908A\u6263\uFF09\u3002${running ? "" : resumeHint()}`);
+  } catch (e) {
+    notice(reason(e));
+  }
+}
+async function unloadRam(ram) {
+  try {
+    await client.request({ kind: "ungarrison", unitId: ram.id });
+    audio.play("order");
+    notice(`\u653B\u57CE\u69CC ${ram.id} \u7684\u4E58\u5BA2\u4E0B\u4F86\u4E86\u3002`);
+  } catch (e) {
+    notice(reason(e));
+  }
+}
 function toggle(id) {
   const next = new Set(selected);
   if (next.has(id)) next.delete(id);
@@ -9927,8 +12770,8 @@ function toggle(id) {
 }
 el("opponent").value = debug ? "idle" : "ai";
 el("layout").value = debug ? "meadow" : "open";
-var playable = civDefs.filter((c) => c.id !== neutralCiv);
-var randomCiv = (seed) => playable[(Math.imul(seed >>> 0 ^ 2654435769, 2246822507) >>> 0) % playable.length].id;
+var playable3 = civDefs.filter((c) => c.id !== neutralCiv);
+var randomCiv2 = (seed) => playable3[(Math.imul(seed >>> 0 ^ 2654435769, 2246822507) >>> 0) % playable3.length].id;
 for (const [id, random] of [["civ-blue", false], ["civ-red", true]]) {
   const sel = el(id), opt = (value, text, title) => {
     const o = document.createElement("option");
@@ -9938,7 +12781,7 @@ for (const [id, random] of [["civ-blue", false], ["civ-red", true]]) {
     sel.append(o);
   };
   if (random) opt("random", "\u96A8\u6A5F", "\u4F9D\u5730\u5716\u7A2E\u5B50\u6C7A\u5B9A");
-  for (const c of playable) opt(c.id, c.name, c.type);
+  for (const c of playable3) opt(c.id, c.name, c.type);
   const n = civById(neutralCiv);
   opt(n.id, `${n.name}\uFF08\u7121\u52A0\u6210\uFF09`, n.type);
 }
@@ -9949,23 +12792,135 @@ function setCivPicks(civs) {
 }
 function chosenCivs(seed) {
   const red2 = el("civ-red").value;
-  return [el("civ-blue").value, red2 === "random" ? randomCiv(seed) : red2];
+  return [el("civ-blue").value, red2 === "random" ? randomCiv2(seed) : red2];
 }
 function renderCivNote() {
   const box2 = el("civ-note"), seed = el("seed").value, red2 = el("civ-red").value, [b, r] = chosenCivs(Number(seed) || 0);
-  const side = (label, id, extra = "") => {
+  const side = (label2, id, extra = "") => {
     const c = civById(id);
-    const w = document.createElement("b");
-    w.textContent = `${label} ${c?.name ?? id}`;
-    return [w, ` ${c?.type ?? ""}${extra}`];
+    const w2 = document.createElement("b");
+    w2.textContent = `${label2} ${c?.name ?? id}`;
+    return [w2, ` ${c?.type ?? ""}${extra}`];
   };
   box2.replaceChildren(...side("\u85CD\u65B9", b), "\u3000", ...side("\u7D05\u65B9", r, red2 === "random" ? seed === "" ? "\uFF08\u96A8\u6A5F\uFF1A\u8F38\u5165\u7A2E\u5B50\u5F8C\u6C7A\u5B9A\uFF09" : `\uFF08\u96A8\u6A5F\uFF0C\u7A2E\u5B50 ${seed}\uFF09` : ""));
 }
 for (const id of ["civ-blue", "civ-red", "seed"]) el(id).addEventListener(id === "seed" ? "input" : "change", renderCivNote);
 setCivPicks(startCivs);
+var openingName = (id) => id === standardOpening ? "\u6A19\u6E96" : openingById(id ?? "")?.zh ?? id ?? "";
+var aiPick = standardOpening;
+{
+  const sel = el("ai-opening"), add = (value, text, title = "") => {
+    const o = document.createElement("option");
+    o.value = value;
+    o.textContent = text;
+    o.title = title;
+    sel.append(o);
+  };
+  add(standardOpening, "\u6A19\u6E96\uFF08\u4E0D\u7167\u958B\u5C40\uFF09", "\u96FB\u8166\u7167\u539F\u672C\u7684\u8A08\u756B\u767C\u5C55");
+  add(randomOpening, "\u96A8\u6A5F\uFF08\u5C0D\u5C40\u5F8C\u63ED\u66C9\uFF09", "\u4F9D\u7A2E\u5B50\u8207\u7D05\u65B9\u6587\u660E\u6311\u4E00\u7A2E\u958B\u5C40");
+  for (const o of openings) add(o.id, o.zh, o.best.length ? `\u9069\u5408\uFF1A${o.best.map((c) => civById(c)?.name ?? c).join("\u3001")}` : "\u5404\u6587\u660E\u7686\u53EF");
+  const sync = () => {
+    sel.disabled = el("opponent").value !== "ai";
+  };
+  el("opponent").addEventListener("change", sync);
+  sync();
+}
+var practiceKey = "brick-rts:practice:1";
+var practice = (() => {
+  try {
+    const v = localStorage.getItem(practiceKey) ?? "";
+    return openingById(v) ? v : "";
+  } catch {
+    return "";
+  }
+})();
+var coachOpen = !matchMedia("(max-width:760px)").matches;
+var coachTicks = [];
+var coachSeen = -1;
+var coachKey = "";
+{
+  const sel = el("practice"), add = (value, text) => {
+    const o = document.createElement("option");
+    o.value = value;
+    o.textContent = text;
+    sel.append(o);
+  };
+  add("", "\u4E0D\u7DF4\u7FD2");
+  for (const o of openings) add(o.id, o.zh);
+  sel.value = practice;
+  sel.addEventListener("change", () => {
+    practice = sel.value;
+    try {
+      localStorage.setItem(practiceKey, practice);
+    } catch {
+    }
+    coachTicks = [];
+    coachKey = "";
+    coachOpen = true;
+    renderCoach();
+  });
+}
+function toggleCoach() {
+  if (!openingById(practice)) {
+    notice("\u9078\u55AE\u7684\u300C\u7DF4\u7FD2\u958B\u5C40\u300D\u9078\u4E00\u7A2E\u958B\u5C40\uFF0C\u5C31\u6703\u986F\u793A\u6B65\u9A5F\u6E05\u55AE\u3002");
+    return;
+  }
+  coachOpen = !coachOpen;
+  coachKey = "";
+  renderCoach();
+}
+el("coach-toggle").onclick = () => toggleCoach();
+var phaseNames2 = { dark: "\u9ED1\u6697\u6642\u4EE3", up: "\u5347\u7B2C\u4E8C\u6642\u4EE3\u4E2D", feudal: "\u7B2C\u4E8C\u6642\u4EE3", castle: "\u7B2C\u4E09\u6642\u4EE3" };
+function renderCoach() {
+  const box2 = el("coach"), o = openingById(practice);
+  box2.hidden = !o;
+  if (!o) return;
+  if (state.tick < coachSeen) coachTicks = [];
+  coachSeen = state.tick;
+  const v = state.coach;
+  o.steps.forEach((st, i) => {
+    if (st.done && coachTicks[i] == null && v && needMet(st.done, v)) coachTicks[i] = state.tick;
+  });
+  const now = o.steps.findIndex((st, i) => st.done && coachTicks[i] == null), checks = o.steps.filter((st) => st.done).length, done = o.steps.filter((st, i) => st.done && coachTicks[i] != null).length;
+  const key2 = `${o.id}|${coachOpen}|${now}|${coachTicks.join(",")}`;
+  if (key2 === coachKey) return;
+  coachKey = key2;
+  box2.dataset.open = String(coachOpen);
+  el("coach-toggle").setAttribute("aria-expanded", String(coachOpen));
+  el("coach-title").textContent = `\u7DF4\u7FD2\uFF1A${o.zh}`;
+  el("coach-count").textContent = `${done}/${checks}`;
+  const body = el("coach-body");
+  body.replaceChildren();
+  let list3 = null, phase = "";
+  o.steps.forEach((st, i) => {
+    if (st.phase !== phase) {
+      phase = st.phase;
+      const h2 = document.createElement("h4");
+      h2.textContent = phaseNames2[st.phase];
+      list3 = document.createElement("ol");
+      body.append(h2, list3);
+    }
+    const li = document.createElement("li"), label2 = document.createElement("span");
+    label2.textContent = st.label;
+    li.append(label2);
+    li.dataset.state = !st.done ? "advice" : coachTicks[i] != null ? "done" : i === now ? "now" : "todo";
+    if (st.done && coachTicks[i] != null) {
+      const t = document.createElement("time");
+      t.textContent = clockOf(coachTicks[i]);
+      li.append(t);
+    }
+    if (i === now) li.setAttribute("aria-current", "step");
+    list3.append(li);
+  });
+  const foot = document.createElement("p");
+  foot.className = "coach-foot";
+  foot.textContent = o.allocation;
+  body.append(foot);
+}
 var client = new SimulationClient(rules.settings.seed, debug ? "meadow" : "open", debug ? "idle" : "ai", [...startCivs], (v) => {
   state = v;
   render();
+  autosave();
 }, (reason2) => {
   connected = false;
   setRunning(false);
@@ -9978,7 +12933,7 @@ function toggleControls() {
   for (const id of ["move", "stop", "pause", "step", "restart", "save", "load", "replay", "resign"]) el(id).disabled = !connected || graphicsFailed && id !== "save" || id === "step" && running;
 }
 function autoStart() {
-  if (debug || !connected || graphicsFailed) return;
+  if (debug || lobbyOpen || !connected || graphicsFailed) return;
   homeCamera();
   if (!state.outcome) setRunning(true);
 }
@@ -10030,10 +12985,12 @@ async function move(x, y, exact = false) {
   }
   const to = exact ? { x: Math.round(x * 100), y: Math.round(y * 100) } : openPoint(x, y, ships2.every((u) => isShip(u?.kind)) ? "water" : "land");
   scene?.setMarker("move", to.x / 100, to.y / 100);
+  const spread = (spreadMode || moveSpread) && unitIds.length > 1;
+  moveSpread = false;
   try {
-    await client.request({ kind: "move", unitIds, x: to.x, y: to.y });
+    await client.request({ kind: "move", unitIds, x: to.x, y: to.y, ...spread ? { spread: true } : {} });
     audio.play("order");
-    notice(`${names2(unitIds)} \u7684\u79FB\u52D5\u6307\u4EE4\u5DF2\u6392\u5165 tick ${state.tick + 1}\u3002${running ? "" : resumeHint()}`);
+    notice(`${names2(unitIds)} \u7684${spread ? "\u5206\u6563" : ""}\u79FB\u52D5\u6307\u4EE4\u5DF2\u6392\u5165 tick ${state.tick + 1}\u3002${running ? "" : resumeHint()}`);
   } catch (e) {
     notice(reason(e));
   }
@@ -10048,8 +13005,8 @@ async function gather(resourceId) {
     if (fishers.length) await client.request({ kind: "gather", unitIds: fishers, resourceId });
     if (unitIds.length) await client.request({ kind: "gather", unitIds, resourceId });
     audio.play("order");
-    const all = [...fishers, ...unitIds];
-    notice(`${names2(all)} \u524D\u5F80${wet ? "\u6355\u9B5A" : "\u63A1\u96C6"}\u3002${all.length < selected.size ? `\uFF08\u5176\u9918 ${selected.size - all.length} \u500B\u9078\u53D6\u55AE\u4F4D\u4E0D\u80FD\u63A1\u96C6\uFF0C\u672A\u6D3E\u51FA\uFF09` : ""}${running ? "" : resumeHint()}`);
+    const all2 = [...fishers, ...unitIds];
+    notice(`${names2(all2)} \u524D\u5F80${wet ? "\u6355\u9B5A" : "\u63A1\u96C6"}\u3002${all2.length < selected.size ? `\uFF08\u5176\u9918 ${selected.size - all2.length} \u500B\u9078\u53D6\u55AE\u4F4D\u4E0D\u80FD\u63A1\u96C6\uFF0C\u672A\u6D3E\u51FA\uFF09` : ""}${running ? "" : resumeHint()}`);
   } catch (e) {
     notice(reason(e));
   }
@@ -10072,7 +13029,7 @@ async function load(unitIds, ship2) {
   try {
     await client.request({ kind: "load", unitIds, transportId: ship2.id });
     audio.play("order");
-    notice(`${names2(unitIds)} \u767B\u4E0A\u904B\u8F38\u8239 ${ship2.id}\uFF08${t ? `${t.passengers.length}/${t.capacity}` : ""}\uFF09\u3002${unitIds.length > room ? `\uFF08\u7A7A\u4F4D\u53EA\u5269 ${room}\uFF09` : ""}${running ? "" : resumeHint()}`);
+    notice(`${names2(unitIds)} \u767B\u4E0A${ownName(ship2.kind)} ${ship2.id}\uFF08${t ? `${t.passengers.length}/${t.capacity}` : ""}\uFF09\u3002${unitIds.length > room ? `\uFF08\u7A7A\u4F4D\u53EA\u5269 ${room}\uFF09` : ""}${running ? "" : resumeHint()}`);
   } catch (e) {
     notice(reason(e));
   }
@@ -10088,11 +13045,11 @@ async function unload(transportIds, x, y) {
     notice(reason(e));
   }
 }
-async function trade(unitIds, buildingId, label) {
+async function trade(unitIds, buildingId, label2) {
   try {
     await client.request({ kind: "trade", unitIds, buildingId });
     audio.play("order");
-    notice(`${names2(unitIds)} \u958B\u59CB\u8207${label}\u8CBF\u6613\uFF1A\u6BCF\u8D9F\u56DE\u5230\u5DF1\u65B9${unitIds.some((id) => state.units.find((u) => u.id === id)?.kind === "trade-cog") ? "\u78BC\u982D" : "\u5E02\u96C6"}\u6642\u5165\u5E33\u9EC3\u91D1\u3002${running ? "" : resumeHint()}`);
+    notice(`${names2(unitIds)} \u958B\u59CB\u8207${label2}\u8CBF\u6613\uFF1A\u6BCF\u8D9F\u56DE\u5230\u5DF1\u65B9${unitIds.some((id) => state.units.find((u) => u.id === id)?.kind === "trade-cog") ? "\u78BC\u982D" : "\u5E02\u96C6"}\u6642\u5165\u5E33\u9EC3\u91D1\u3002${running ? "" : resumeHint()}`);
   } catch (e) {
     notice(reason(e));
   }
@@ -10197,7 +13154,7 @@ canvas.addEventListener("pointerup", (e) => {
 function orderAtGround(x, y) {
   if (selectedBuilding && !selected.size) {
     const b = state.buildings.find((b2) => b2.id === selectedBuilding);
-    if (b?.complete && producedAt(b.kind, mine()).some((id) => entryOf3(id)?.kind === "unit" && civAvailable(myCiv(), id))) void rally(b.id, x, y);
+    if (b?.complete && producedAt(b.kind, mine()).some((id) => entryOf4(id)?.kind === "unit" && civAvailable(myCiv(), id, allTechs()))) void rally(b.id, x, y);
     else notice("\u9019\u68DF\u5EFA\u7BC9\u6C92\u6709\u96C6\u7D50\u9EDE\u3002");
     return;
   }
@@ -10206,6 +13163,23 @@ function orderAtGround(x, y) {
 canvas.addEventListener("pointerdown", (e) => {
   if (!scene || graphicsFailed || !e.isPrimary) return;
   canvas.focus({ preventScroll: true });
+  if (patrolArmed) {
+    e.preventDefault();
+    if (e.button === 2) {
+      patrolArmed = false;
+      notice("\u5DF2\u53D6\u6D88\u5DE1\u908F\u3002");
+      render();
+      return;
+    }
+    const g = scene.pickGround(e.clientX, e.clientY);
+    if (g.x === void 0 || g.y === void 0 || g.x < 0.5 || g.x > state.size - 0.5 || g.y < 0.5 || g.y > state.size - 0.5) {
+      notice("\u8ACB\u5728\u5730\u5716\u5167\u5074\u7684\u5730\u9762\u9EDE\u5DE1\u908F\u7684\u53E6\u4E00\u7AEF\u3002");
+      return;
+    }
+    void patrol(g.x, g.y);
+    return;
+  }
+  moveSpread = e.button === 2 && e.altKey;
   if (placing) {
     e.preventDefault();
     if (e.button !== 0) {
@@ -10249,6 +13223,11 @@ canvas.addEventListener("pointerdown", (e) => {
       return;
     }
     if (selectedBuilding && !selected.size) {
+      const self = buildingAt(hit2.x, hit2.y, scene.pickBuilding(e.clientX, e.clientY)), b = state.buildings.find((v) => v.id === selectedBuilding);
+      if (b && self?.id === b.id && b.complete && b.kind in defenseRules.rallyGarrison) {
+        void rallyIn(b);
+        return;
+      }
       orderAtGround(hit2.x, hit2.y);
       return;
     }
@@ -10285,6 +13264,23 @@ canvas.addEventListener("pointerdown", (e) => {
           return;
         }
       }
+      {
+        const mine2 = u.unitId !== void 0 ? ownUnits().find((v) => v.id === u.unitId) : void 0;
+        if (mine2 && mine2.kind === "ram") {
+          const riders = [...selected].filter((id) => ridesRam(state.units.find((v) => v.id === id)?.kind ?? "")).sort((a, b) => a - b), fix = villagersIn(selected).length && mine2.hp < mine2.maxHp;
+          if (riders.length) {
+            scene.setMarker("gather", mine2.x / 100, mine2.y / 100);
+            void load(riders, mine2);
+          }
+          if (fix) void repair({ kind: "unit", id: mine2.id }, `\u653B\u57CE\u69CC ${mine2.id}`, mine2.kind);
+          if (riders.length || fix) return;
+        }
+        if (mine2 && repairableUnit(mine2.kind) && mine2.hp < mine2.maxHp && villagersIn(selected).length) {
+          scene.setMarker("gather", mine2.x / 100, mine2.y / 100);
+          void repair({ kind: "unit", id: mine2.id }, `${ownName(mine2.kind)} ${mine2.id}`, mine2.kind);
+          return;
+        }
+      }
       const friend = u.unitId !== void 0 ? ownUnits().find((v) => v.id === u.unitId) : void 0;
       if (friend && monks.length && friend.kind !== "monk" && friend.hp < friend.maxHp) {
         scene.setMarker("gather", friend.x / 100, friend.y / 100);
@@ -10304,29 +13300,35 @@ canvas.addEventListener("pointerdown", (e) => {
           const [x0, y0, x1, y1] = obstacleBounds(fort);
           scene.setMarker("attack", (x0 + x1) / 200, (y0 + y1) / 200);
         }
-        const label = `\u7D05\u65B9${buildingNames2[fort.kind]}`;
+        const label2 = `\u7D05\u65B9${buildingNames2[fort.kind]}`;
         const traders = [...selected].filter((id) => tradeHome[state.units.find((u2) => u2.id === id)?.kind ?? ""] === fort.kind).sort((a, b) => a - b);
-        if (traders.length) void trade(traders, fort.id, label);
+        if (traders.length) void trade(traders, fort.id, label2);
         if (traders.length === selected.size) return;
         if ([...selected].every((id) => unarmed(state.units.find((u2) => u2.id === id)?.kind))) {
           notice([...selected].some((id) => (state.units.find((u2) => u2.id === id)?.kind ?? "") in tradeHome) ? "\u8CBF\u6613\u8ECA\u968A\u53EA\u80FD\u524D\u5F80\u5C0D\u624B\u7684\u5E02\u96C6\uFF0C\u8CBF\u6613\u5546\u8239\u53EA\u80FD\u524D\u5F80\u5C0D\u624B\u7684\u78BC\u982D\u3002" : "\u6240\u9078\u55AE\u4F4D\u6C92\u6709\u6B66\u5668\uFF0C\u4E0D\u80FD\u653B\u64CA\u3002");
           return;
         }
-        if (monks.length && state.economy.techs.includes("redemption")) void riteOn(monks, fort.id, label);
-        if (monks.length < selected.size || !state.economy.techs.includes("redemption")) void attack({ kind: "building", id: fort.id }, label);
+        if (monks.length && state.economy.techs.includes("redemption")) void riteOn(monks, fort.id, label2);
+        if (monks.length < selected.size || !state.economy.techs.includes("redemption")) void attack({ kind: "building", id: fort.id }, label2);
         return;
       }
       {
-        const site3 = buildingAt(hit2.x, hit2.y, scene.pickBuilding(e.clientX, e.clientY)), carriers = monks.filter((id) => state.units.find((u2) => u2.id === id)?.relic);
-        if (site3?.kind === "monastery" && carriers.length) {
-          void deposit(carriers, site3.id);
+        const site4 = buildingAt(hit2.x, hit2.y, scene.pickBuilding(e.clientX, e.clientY)), carriers = monks.filter((id) => state.units.find((u2) => u2.id === id)?.relic);
+        if (site4?.kind === "monastery" && carriers.length) {
+          void deposit(carriers, site4.id);
           return;
         }
       }
     }
-    const site2 = buildingAt(hit2.x, hit2.y, scene.pickBuilding(e.clientX, e.clientY)), own = site2 ? state.buildings.find((b) => b.id === site2.id) : void 0;
+    const site3 = buildingAt(hit2.x, hit2.y, scene.pickBuilding(e.clientX, e.clientY)), own = site3 ? state.buildings.find((b) => b.id === site3.id) : void 0;
     if (own && !own.complete && selected.size) {
       void construct(own.id);
+      return;
+    }
+    if (own && own.complete && own.hp < own.maxHp && villagersIn(selected).length && !repairRules.unrepairable.includes(own.kind)) {
+      const [x0, y0, x1, y1] = obstacleBounds(site3);
+      scene.setMarker("gather", (x0 + x1) / 200, (y0 + y1) / 200);
+      void repair({ kind: "building", id: own.id }, buildingNames2[own.kind], own.kind);
       return;
     }
     if (own && own.complete && (own.kind === "watch-tower" || own.kind === "castle" || own.kind === "bombard-tower") && selected.size) {
@@ -10373,21 +13375,21 @@ canvas.addEventListener("pointerup", (e) => {
     } else if (unit2 && isAnimal(unit2.kind)) {
       if (e.pointerType === "touch" && villagersIn(selected).length) void hunt(villagersIn(selected), unit2);
       else notice(animalNote(unit2));
-    } else if (unit2 && unit2.kind in combatRules.units) notice(`\u7D05\u65B9${unitNames[unit2.kind]}\uFF08${civName2(state.civs[1])}\uFF09 \xB7 \u751F\u547D ${unit2.hp}/${unit2.maxHp} \xB7 \u57FA\u672C\u6578\u503C\uFF1A${statLine(statsOf(unit2.kind, { civ: state.civs[1] ?? neutralCiv, age: 1, techs: [] }))}\u3002\u7D05\u65B9\u55AE\u4F4D\u4E0D\u53EF\u7531\u85CD\u65B9\u63A7\u5236\u3002`);
+    } else if (unit2 && unit2.kind in combatRules.units) notice(`\u7D05\u65B9${unitNames[unit2.kind]}\uFF08${civName3(state.civs[1])}\uFF09 \xB7 \u751F\u547D ${unit2.hp}/${unit2.maxHp} \xB7 \u57FA\u672C\u6578\u503C\uFF1A${statLine(statsOf(unit2.kind, { civ: state.civs[1] ?? neutralCiv, age: 1, techs: [] }))}\u3002\u7D05\u65B9\u55AE\u4F4D\u4E0D\u53EF\u7531\u85CD\u65B9\u63A7\u5236\u3002`);
     else notice("\u7D05\u65B9\u55AE\u4F4D\u4E0D\u53EF\u7531\u85CD\u65B9\u63A7\u5236\u3002");
     return;
   }
   if (e.pointerType === "touch") {
     const g = scene.pickGround(e.clientX, e.clientY), roof = scene.pickBuilding(e.clientX, e.clientY);
-    const site2 = g.x !== void 0 && g.y !== void 0 ? buildingAt(g.x, g.y, roof) : roof ? buildingAt(-1, -1, roof) : void 0;
-    if (site2) {
-      const own = state.buildings.find((b) => b.id === site2.id);
+    const site3 = g.x !== void 0 && g.y !== void 0 ? buildingAt(g.x, g.y, roof) : roof ? buildingAt(-1, -1, roof) : void 0;
+    if (site3) {
+      const own = state.buildings.find((b) => b.id === site3.id);
       if (own && !own.complete && selected.size) {
         void construct(own.id);
         return;
       }
-      selectBuilding2(site2.id);
-      notice(`\u5DF2\u9078\u53D6${buildingNames2[site2.kind]}\u3002`);
+      selectBuilding2(site3.id);
+      notice(`\u5DF2\u9078\u53D6${buildingNames2[site3.kind]}\u3002`);
       return;
     }
   }
@@ -10402,10 +13404,10 @@ canvas.addEventListener("pointerup", (e) => {
   }
   {
     const g = scene.pickGround(e.clientX, e.clientY), roof = scene.pickBuilding(e.clientX, e.clientY);
-    const site2 = g.x !== void 0 && g.y !== void 0 ? buildingAt(g.x, g.y, roof) : roof ? buildingAt(-1, -1, roof) : void 0;
-    if (site2 && !e.shiftKey && e.pointerType !== "touch") {
-      selectBuilding2(site2.id);
-      notice(`\u5DF2\u9078\u53D6${buildingNames2[site2.kind]}\u3002`);
+    const site3 = g.x !== void 0 && g.y !== void 0 ? buildingAt(g.x, g.y, roof) : roof ? buildingAt(-1, -1, roof) : void 0;
+    if (site3 && !e.shiftKey && e.pointerType !== "touch") {
+      selectBuilding2(site3.id);
+      notice(`\u5DF2\u9078\u53D6${buildingNames2[site3.kind]}\u3002`);
       return;
     }
   }
@@ -10431,16 +13433,16 @@ function miniGeometry() {
   } };
 }
 function miniWorld(clientX, clientY) {
-  const g = miniGeometry(), u = (clientX - g.r.left - g.r.width / 2) / g.s, w = (clientY - g.r.top - g.r.height / 2) / (g.K * g.s);
-  return { x: g.h + u * g.c + w * g.sn, z: g.h - u * g.sn + w * g.c };
+  const g = miniGeometry(), u = (clientX - g.r.left - g.r.width / 2) / g.s, w2 = (clientY - g.r.top - g.r.height / 2) / (g.K * g.s);
+  return { x: g.h + u * g.c + w2 * g.sn, z: g.h - u * g.sn + w2 * g.c };
 }
 function drawMinimap() {
   if (!scene || graphicsFailed || !mctx) return;
   const g = miniGeometry();
   if (g.r.width < 2 || g.r.height < 2) return;
-  const key = [state.stateHash, state.tick, g.v.x, g.v.z, g.v.angle, g.v.halfW, g.v.halfH, g.r.width, g.r.height, [...selected].join()].join("|");
-  if (key === miniKey) return;
-  miniKey = key;
+  const key2 = [state.stateHash, state.tick, g.v.x, g.v.z, g.v.angle, g.v.halfW, g.v.halfH, g.r.width, g.r.height, [...selected].join()].join("|");
+  if (key2 === miniKey) return;
+  miniKey = key2;
   const dpr = Math.min(devicePixelRatio, 2), W = Math.round(g.r.width * dpr), H = Math.round(g.r.height * dpr);
   if (mini.width !== W || mini.height !== H) {
     mini.width = W;
@@ -10520,13 +13522,14 @@ mini.addEventListener("contextmenu", (e) => e.preventDefault());
 mini.addEventListener("pointerdown", (e) => {
   if (!scene || graphicsFailed) return;
   e.preventDefault();
-  const w = miniWorld(e.clientX, e.clientY);
+  const w2 = miniWorld(e.clientX, e.clientY);
   if (e.button === 2 && state.outcome) {
     notice("\u5C0D\u5C40\u5DF2\u7D50\u675F\uFF1A\u6309\u300C\u518D\u958B\u4E00\u5C40\u300D\u958B\u59CB\u65B0\u904A\u6232\u3002");
     return;
   }
   if (e.button === 2) {
-    if (w.x < 0.5 || w.x > state.size - 0.5 || w.z < 0.5 || w.z > state.size - 0.5) {
+    moveSpread = e.altKey;
+    if (w2.x < 0.5 || w2.x > state.size - 0.5 || w2.z < 0.5 || w2.z > state.size - 0.5) {
       notice("\u8ACB\u5728\u5C0F\u5730\u5716\u7684\u5730\u5716\u7BC4\u570D\u5167\u6309\u53F3\u9375\u3002");
       return;
     }
@@ -10534,18 +13537,18 @@ mini.addEventListener("pointerdown", (e) => {
       notice("\u8ACB\u5148\u9078\u53D6\u55AE\u4F4D\u3002");
       return;
     }
-    orderAtGround(w.x, w.z);
+    orderAtGround(w2.x, w2.z);
     return;
   }
   if (e.button !== 0) return;
   miniDrag = e.pointerId;
   mini.setPointerCapture(e.pointerId);
-  scene.focusOn(w.x, w.z);
+  scene.focusOn(w2.x, w2.z);
 });
 mini.addEventListener("pointermove", (e) => {
   if (e.pointerId !== miniDrag || !scene) return;
-  const w = miniWorld(e.clientX, e.clientY);
-  scene.focusOn(w.x, w.z);
+  const w2 = miniWorld(e.clientX, e.clientY);
+  scene.focusOn(w2.x, w2.z);
 });
 mini.addEventListener("pointerup", () => {
   miniDrag = -1;
@@ -10569,30 +13572,83 @@ function closeMenu(resume = true) {
   menuResume = false;
   el("menu-open").focus();
 }
+function openChat() {
+  const form = el("chat");
+  form.hidden = false;
+  renderChat();
+  el("chat-input").focus();
+}
+function closeChat() {
+  const form = el("chat");
+  if (form.hidden) return;
+  form.hidden = true;
+  el("chat-input").value = "";
+  canvas.focus({ preventScroll: true });
+}
+function renderChat() {
+  const n = parseTaunt(el("chat-input").value), out = el("chat-preview"), raw = el("chat-input").value.trim();
+  out.textContent = n ? tauntOf(n).zh : raw ? `\u6C92\u6709\u9019\u500B\u7DE8\u865F\uFF1A1\u2013${taunts.length}` : `\u8F38\u5165\u7DE8\u865F 1\u2013${taunts.length}\uFF0C\u4F8B\u5982 11`;
+  out.dataset.state = n ? "ok" : raw ? "bad" : "hint";
+}
+el("chat-input").addEventListener("input", renderChat);
+el("chat-input").addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    e.preventDefault();
+    e.stopPropagation();
+    closeChat();
+  }
+});
+el("chat").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const n = parseTaunt(el("chat-input").value);
+  if (!n) {
+    renderChat();
+    return;
+  }
+  try {
+    await client.request({ kind: "taunt", number: n });
+    closeChat();
+    if (!running && !state.outcome) notice("\u904A\u6232\u66AB\u505C\u4E2D\uFF1A\u5632\u8AF7\u6703\u5728\u7E7C\u7E8C\u5F8C\u9001\u51FA\u3002");
+  } catch (err) {
+    notice(reason(err));
+  }
+});
+canvas.addEventListener("pointerdown", closeChat);
+el("chat-open").onclick = () => {
+  closeMenu();
+  openChat();
+};
 el("menu-open").onclick = openMenu;
 el("menu-close").onclick = () => closeMenu();
 el("menu").addEventListener("pointerdown", (e) => {
   if (e.target === el("menu")) closeMenu();
 });
 var codexHost = el("codex");
-function openCodexView() {
+function treeMatch() {
+  const units2 = {};
+  for (const u of state.units) if (u.player === 0) units2[u.kind] = (units2[u.kind] ?? 0) + 1;
+  return { civ: myCiv(), age: state.economy.age, techs: [...state.economy.techs], stock: { ...state.economy.stock }, buildings: state.buildings.map((b) => ({ kind: b.kind, complete: b.complete, queue: b.queue })), units: units2 };
+}
+function openCodexView(section2, civ) {
   if (!codexHost.hidden) return;
   codexHost.hidden = false;
-  openCodex(codexHost, { civs: [...state.civs], icons, onClose: hideCodex });
+  openCodex(codexHost, { civs: civ ? [civ, state.civs[1]] : [...state.civs], icons, onClose: hideCodex, speakTaunt: (n) => speakTaunt(n), ...civ ? { treeCiv: civ } : { match: treeMatch() }, ...section2 ? { section: section2 } : {} });
   if (!codexHost.contains(document.activeElement)) codexHost.focus();
 }
 function hideCodex() {
   if (codexHost.hidden) return;
   codexHost.hidden = true;
   closeCodex();
-  el("codex-open").focus();
+  if (lobbyOpen) el("lobby-tree").focus();
+  else if (!el("menu").hidden) el("codex-open").focus();
 }
-el("codex-open").onclick = openCodexView;
+el("codex-open").onclick = () => openCodexView();
+el("tree-open").onclick = () => openCodexView("tree");
 codexHost.addEventListener("pointerdown", (e) => {
   if (e.target === codexHost) hideCodex();
 });
 document.addEventListener("keydown", (e) => {
-  if (codexHost.hidden || e.key !== "Escape" && e.key !== "F10") return;
+  if (codexHost.hidden || e.key !== "Escape" && e.key !== "F10" && e.key !== "F4") return;
   e.preventDefault();
   e.stopImmediatePropagation();
   hideCodex();
@@ -10613,7 +13669,7 @@ function commandKey(letter) {
 }
 document.addEventListener("keydown", (e) => {
   const t = e.target;
-  if (!codexHost.hidden) return;
+  if (!codexHost.hidden || lobbyOpen) return;
   if (e.key === "F10") {
     e.preventDefault();
     if (el("menu").hidden) openMenu();
@@ -10628,12 +13684,33 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if (t.closest("input,textarea,select,[contenteditable]") || e.altKey || e.metaKey) return;
+  if (e.key === "Enter" && !e.isComposing && !e.ctrlKey && !e.shiftKey) {
+    e.preventDefault();
+    openChat();
+    return;
+  }
   if (e.key === "F3" || e.key === "Pause") {
     e.preventDefault();
     if (connected && !graphicsFailed && !state.outcome) setRunning(!running);
     return;
   }
+  if (e.key === "F2") {
+    e.preventDefault();
+    toggleCoach();
+    return;
+  }
+  if (e.key === "F4") {
+    e.preventDefault();
+    openCodexView("tree");
+    return;
+  }
   if (e.key === "Escape") {
+    if (patrolArmed) {
+      patrolArmed = false;
+      notice("\u5DF2\u53D6\u6D88\u5DE1\u908F\u3002");
+      render();
+      return;
+    }
     if (placing) {
       stopPlacing("\u5DF2\u53D6\u6D88\u653E\u7F6E\u3002");
       return;
@@ -10747,12 +13824,18 @@ document.querySelectorAll("[data-unit]").forEach((b) => b.onclick = (e) => {
   if (e.shiftKey) toggle(id);
   else choose(id);
 });
+for (const st of stances) el(`stance-${st}`).onclick = () => void setStance(st);
+el("patrol-cmd").onclick = armPatrol;
+el("spread-cmd").onclick = toggleSpread;
 el("stop").onclick = () => void stop();
 el("build-page").onclick = () => {
   buildPage = 1 - buildPage;
   render();
 };
 el("garrison-cmd").onclick = garrisonNearest;
+el("unload-cmd").onclick = () => {
+  for (const r of loadedRams()) void unloadRam(r);
+};
 renderGroups();
 el("result-restart").onclick = () => el("restart").click();
 for (const k of buildKinds) el(`build-${k}`).onclick = () => {
@@ -10767,7 +13850,7 @@ el("cancel-build").onclick = async () => {
   if (!b) return;
   try {
     await client.request({ kind: "cancelBuild", buildingId: b.id });
-    notice(`\u5DF2\u53D6\u6D88${buildingNames2[b.kind]}\uFF0C\u9000\u56DE ${costText(b.kind)}\u3002`);
+    notice(`\u5DF2\u53D6\u6D88${buildingNames2[b.kind]}\uFF0C\u9000\u56DE ${costText3(b.kind)}\u3002`);
     selectBuilding2(null);
   } catch (e) {
     notice(reason(e));
@@ -10802,13 +13885,17 @@ el("restart").onclick = async () => {
     const input = el("seed");
     if (input.value === "") throw Error("\u8ACB\u8F38\u5165\u7A2E\u5B50");
     const civs = chosenCivs(Number(input.value));
-    await client.request({ kind: "reset", seed: Number(input.value), layout: el("layout").value, opponent: el("opponent").value, civs });
+    await client.request({ kind: "reset", seed: Number(input.value), layout: el("layout").value, opponent: el("opponent").value, civs, aiOpening: el("ai-opening").value, ...state.settings ? { settings: state.settings } : {} });
+    lastAutosave = 0;
+    aiPick = el("ai-opening").value;
+    coachTicks = [];
+    coachKey = "";
     buildPage = 0;
     choose(1);
     lastTransaction = 0;
     previous = null;
     el("events").replaceChildren();
-    notice(`\u5DF2\u5EFA\u7ACB\u65B0\u6C99\u76D2\uFF1A${civName2(state.civs[0])}\u5C0D${civName2(state.civs[1])}\uFF0C\u65B0\u904A\u6232\u958B\u59CB\u3002\u5148\u524D\u7684\u624B\u52D5\u5B58\u6A94\u4ECD\u7136\u4FDD\u7559\u3002`);
+    notice(`\u5DF2\u5EFA\u7ACB\u65B0\u6C99\u76D2\uFF1A${civName3(state.civs[0])}\u5C0D${civName3(state.civs[1])}${state.opponent !== "ai" ? "" : aiPick === randomOpening ? "\uFF0C\u96FB\u8166\u958B\u5C40\u96A8\u6A5F\uFF08\u5C0D\u5C40\u7D50\u675F\u5F8C\u63ED\u66C9\uFF09" : aiPick === standardOpening ? "" : `\uFF0C\u96FB\u8166\u958B\u5C40\uFF1A${openingName(aiPick)}`}\uFF0C\u65B0\u904A\u6232\u958B\u59CB\u3002\u5148\u524D\u7684\u624B\u52D5\u5B58\u6A94\u4ECD\u7136\u4FDD\u7559\u3002`);
     autoStart();
   } catch (e) {
     notice(reason(e));
@@ -10824,23 +13911,31 @@ el("save").onclick = async () => {
   }
   closeMenu();
 };
+async function restoreSave(raw) {
+  notice("\u8B80\u53D6\u4E2D\uFF1A\u4F9D\u5B58\u6A94\u7684\u6307\u4EE4\u7D00\u9304\u91CD\u65B0\u63A8\u5C0E\u5C0D\u5C40\uFF0C\u9577\u7684\u5C0D\u5C40\u9700\u8981\u5E7E\u79D2\u3002");
+  await client.request({ kind: "restore", snapshot: raw });
+  el("seed").value = String(state.seed);
+  el("layout").value = state.layout;
+  el("opponent").value = state.opponent;
+  buildPage = 0;
+  setCivPicks(state.civs);
+  aiPick = state.aiOpening ?? standardOpening;
+  el("ai-opening").value = aiPick;
+  coachTicks = [];
+  coachKey = "";
+  choose(1);
+  previous = null;
+  lastAutosave = state.tick;
+  el("events").replaceChildren();
+  notice(`\u5DF2\u6062\u5FA9 tick ${state.tick} \u7684\u904A\u6232\u3002`);
+}
 el("load").onclick = async () => {
   closeMenu(false);
   setRunning(false);
   try {
     const raw = localStorage.getItem("brick-rts:sandbox:1");
     if (!raw) throw Error("\u5C1A\u7121\u624B\u52D5\u5B58\u6A94\u3002");
-    notice("\u8B80\u53D6\u4E2D\uFF1A\u4F9D\u5B58\u6A94\u7684\u6307\u4EE4\u7D00\u9304\u91CD\u65B0\u63A8\u5C0E\u5C0D\u5C40\uFF0C\u9577\u7684\u5C0D\u5C40\u9700\u8981\u5E7E\u79D2\u3002");
-    await client.request({ kind: "restore", snapshot: raw });
-    el("seed").value = String(state.seed);
-    el("layout").value = state.layout;
-    el("opponent").value = state.opponent;
-    buildPage = 0;
-    setCivPicks(state.civs);
-    choose(1);
-    previous = null;
-    el("events").replaceChildren();
-    notice(`\u5DF2\u6062\u5FA9 tick ${state.tick} \u7684\u904A\u6232\u3002`);
+    await restoreSave(raw);
     autoStart();
   } catch (e) {
     notice(`\u8B80\u53D6\u5931\u6557\uFF1A${e.message}\u3002\u76EE\u524D\u904A\u6232\u4FDD\u7559\u3002`);
@@ -10966,6 +14061,78 @@ function graphicsError(message) {
   box2.textContent = message;
   notice("3D \u756B\u9762\u66AB\u4E0D\u53EF\u7528\u3002\u53EF\u5F9E\u9078\u55AE\u5132\u5B58\u76EE\u524D\u904A\u6232\uFF0C\u518D\u91CD\u65B0\u8F09\u5165\u9801\u9762\u3002");
 }
+async function newMatch(m) {
+  if (!connected) throw Error("\u6A21\u64EC\u5C1A\u672A\u9023\u7DDA\uFF0C\u8ACB\u7A0D\u5019\u518D\u8A66");
+  setRunning(false);
+  await client.request({ kind: "reset", seed: m.seed, layout: m.layout, opponent: m.opponent, civs: m.civs, aiOpening: m.aiOpening, settings: m.settings });
+  playerName = m.name;
+  recordGame = m.record;
+  lastAutosave = 0;
+  el("seed").value = String(m.seed);
+  el("layout").value = m.layout;
+  el("opponent").value = m.opponent;
+  el("opponent").dispatchEvent(new Event("change"));
+  setCivPicks(m.civs);
+  aiPick = m.aiOpening;
+  el("ai-opening").value = aiPick;
+  coachTicks = [];
+  coachKey = "";
+  buildPage = 0;
+  choose(1);
+  lastTransaction = 0;
+  previous = null;
+  el("events").replaceChildren();
+  const rules2 = [`\u8CC7\u6E90${{ low: "\u4F4E", standard: "\u6A19\u6E96", medium: "\u4E2D", high: "\u9AD8" }[m.settings.resources]}`, `\u4EBA\u53E3 ${m.settings.popCap}`, ...m.settings.startAge > 1 ? [`\u5F9E${["", "\u9ED1\u6697", "\u5C01\u5EFA", "\u57CE\u5821", "\u5E1D\u738B"][m.settings.startAge]}\u6642\u4EE3\u958B\u59CB`] : [], ...m.settings.reveal !== "normal" ? [m.settings.reveal === "all" ? "\u5168\u90E8\u986F\u793A" : "\u5730\u5716\u5DF2\u63A2\u7D22"] : [], ...m.settings.victory === "conquest" ? ["\u53EA\u7B97\u5F81\u670D"] : [], ...m.settings.allTechs ? ["\u6240\u6709\u79D1\u6280"] : [], ...m.opponent === "ai" ? [`\u96FB\u8166${{ easy: "\u7C21\u55AE", standard: "\u6A19\u6E96", hard: "\u56F0\u96E3", hardest: "\u6700\u96E3" }[m.settings.difficulty]}`] : []];
+  notice(`${playerName}\uFF08${civName3(m.civs[0])}\uFF09\u5C0D${m.opponent === "ai" ? "\u96FB\u8166" : "\u7D05\u65B9"}\uFF08${civName3(m.civs[1])}\uFF09\uFF1A${rules2.join("\u3001")}${m.opponent !== "ai" ? "" : aiPick === randomOpening ? "\uFF0C\u96FB\u8166\u958B\u5C40\u96A8\u6A5F\uFF08\u5C0D\u5C40\u7D50\u675F\u5F8C\u63ED\u66C9\uFF09" : aiPick === standardOpening ? "" : `\uFF0C\u96FB\u8166\u958B\u5C40\uFF1A${openingName(aiPick)}`}\u3002`);
+}
+var saveSlots = () => {
+  const out = [];
+  for (const [key2, label2] of [["brick-rts:sandbox:1", "\u624B\u52D5\u5B58\u6A94"], ["brick-rts:autosave:1", "\u81EA\u52D5\u5B58\u6A94"]]) {
+    try {
+      const raw = localStorage.getItem(key2);
+      if (!raw) continue;
+      const st = JSON.parse(raw).state;
+      const t = Math.floor((st?.tick ?? 0) / 20);
+      out.push({ key: key2, label: label2, raw, detail: `${civName3(st?.civs?.[0])} \u5C0D ${civName3(st?.civs?.[1])}\u30FB${layoutNames[st?.layout ?? "open"] ?? ""}\u30FB${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}` });
+    } catch {
+    }
+  }
+  return out;
+};
+var lobby = createLobby({
+  start: newMatch,
+  saves: saveSlots,
+  load: async (slot) => {
+    if (!connected) throw Error("\u6A21\u64EC\u5C1A\u672A\u9023\u7DDA\uFF0C\u8ACB\u7A0D\u5019\u518D\u8A66");
+    setRunning(false);
+    await restoreSave(slot.raw);
+  },
+  openTree: (civ) => openCodexView("tree", civ),
+  onClose: () => {
+    lobbyOpen = false;
+    el("menu-open").focus();
+    autoStart();
+  },
+  colors: { terrain: terrainColor, obstacle: obstacleColor, grass: "#b5c493" }
+});
+el("lobby-open").onclick = () => {
+  closeMenu(false);
+  setRunning(false);
+  lobbyOpen = true;
+  lobby.open(true);
+};
+function autosave() {
+  if (!recordGame || !connected || state.outcome || state.tick - lastAutosave < 1200) return;
+  lastAutosave = state.tick;
+  void client.request({ kind: "snapshot" }).then((r) => {
+    try {
+      localStorage.setItem("brick-rts:autosave:1", r.snapshot);
+    } catch {
+    }
+  }).catch(() => {
+  });
+}
+if (lobbyOpen) lobby.open(false);
 setRunning(false);
 toggleControls();
 render();

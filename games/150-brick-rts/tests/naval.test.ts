@@ -18,6 +18,7 @@ import {workSlots,gatherable} from '../packages/sim/work.ts';
 import {capacityOf,passengers} from '../packages/sim/naval.ts';
 import {resources} from '../packages/content/rules.ts';
 import {neutralCiv} from '../packages/content/civs.ts';
+import {settle} from './flight.ts';
 import {tileAt} from '../packages/sim/terrain.ts';
 
 const SEED=260925;
@@ -148,7 +149,8 @@ test('ships fight from the water: galley against galley, and a galley against a 
  run(s,600,()=>b.hp<maxHpOf('galley',ownerOf(s,1)));assert.equal((maxHpOf('galley',ownerOf(s,1))-b.hp)%hit,0,'hits of 8');
  run(s,3000,()=>!s.units.includes(a)||!s.units.includes(b));
  assert.ok(!s.units.includes(a)||!s.units.includes(b),'one galley sank');
- const g=s.units.includes(a)?a:b;g.hp=500;
+ // Shots still in the air land after their galley sank (the 戰術技巧 round's flying shots): both may go down.
+ settle(s,see);const g=[a,b].find(x=>s.units.includes(x))??spawn(s,0,'galley',a.x,a.y);g.hp=500;
  // A villager of the other side on the first free land node within the galley's range.
  const land=blockedTable(s.map);let shore=-1;
  for(let n=0;n<nodeTotal(s.map)&&shore<0;n++){if(land[n]||s.units.some(u=>u.node===n))continue;const p=position(s.map,n);if(Math.max(Math.abs(p.x-g.x),Math.abs(p.y-g.y))<=250)shore=n;}

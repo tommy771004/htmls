@@ -24,6 +24,7 @@ import {animalRules,GAIA} from '../packages/sim/fauna.ts';
 import {rules,resources} from '../packages/content/rules.ts';
 import {civDefs,neutralCiv,deferredTechs} from '../packages/content/civs.ts';
 import {obstacleBounds} from '../packages/content/footprints.ts';
+import {settle} from './flight.ts';
 
 const SEED=260925;
 function order(s:State,commandType:string,payload:any,playerId=0){submit(s,{protocolVersion:1,rulesetHash,playerId,sequence:s.sequence[playerId]+1,targetTick:s.tick+1,commandType,payload} as any);}
@@ -165,9 +166,10 @@ test('the Castle: villagers build it for 300 stone; 800 hit points, houses 10, h
  assert.equal(garrisonCapacity(s,castle),20);assert.equal(garrisonCapacity(s,tcOf(s)),15);
  // Four arrows a volley (5 pierce against militia armor 1); a villager inside adds one.
  const box=boxOf(s,castle.id),tc=boxOf(s,tcOf(s).id);const at=(()=>{for(let n=0;n<nodeTotal(s.map);n++){const p=position(s.map,n);if(!blockedTable(s.map)[n]&&reach(p,box)>=150&&reach(p,box)<=350&&reach(p,tc)>400&&!s.units.some(u=>u.node===n))return p;}throw Error('no spot');})();
- clearRed(s);const foe=spawn(s,1,'militia',at.x,at.y);see(s);tick(s);assert.equal(foe.hp,45-4*4);assert.equal(s.volleys[castle.id],40);
+ // Targets hold still (no attack stance) and are counted once the arrows land (they fly from the 戰術技巧 round on).
+ clearRed(s);const foe=spawn(s,1,'militia',at.x,at.y);s.stances[foe.id]='passive';see(s);tick(s);settle(s);assert.equal(foe.hp,45-4*4);assert.equal(s.volleys[castle.id],40);
  order(s,'garrison',{unitIds:[1],buildingId:castle.id});run(s,400,()=>{see(s);return !!s.garrison[castle.id];});assert.equal(s.garrison[castle.id].units.length,1);
- const second=spawn(s,1,'militia',at.x,at.y);see(s);s.volleys[castle.id]=0;s.units=s.units.filter(u=>u===second||u.player!==1||u.kind!=='militia');tick(s);assert.equal(second.hp,45-5*4);
+ const second=spawn(s,1,'militia',at.x,at.y);s.stances[second.id]='passive';see(s);s.volleys[castle.id]=0;s.units=s.units.filter(u=>u===second||u.player!==1||u.kind!=='militia');tick(s);settle(s);assert.equal(second.hp,45-5*4);
  // The unique unit: paid as listed, trained in its time, with the Britons' third-age range.
  s.accounts[0].stock.wood+=35;s.accounts[0].stock.gold+=40;const before={...stock};order(s,'train',{buildingId:castle.id,entryId:'longbowman'});tick(s);
  assert.equal(stock.wood,before.wood-35);assert.equal(stock.gold,before.gold-40);assert.equal(castle.queue[0].required,18*20);
@@ -214,7 +216,7 @@ test('Yeomen: foot archers already in the field shoot farther and towers hit har
  s.units=s.units.filter(u=>![archer,skirm,lb].includes(u));clearRed(s);
  const tower=raise(s,0,'watch-tower',{x:300,y:1300}),box=boxOf(s,tower.id),foe=spawn(s,1,'militia',box[2]+150,box[3]+50);
  assert.ok(reach(foe,box)<=350&&reach(foe,boxOf(s,castle.id))>400&&reach(foe,boxOf(s,tcOf(s).id))>300,'only the tower reaches');
- see(s);tick(s);assert.equal(foe.hp,45-(5+2-1));
+ s.stances[foe.id]='passive';see(s);tick(s);settle(s);assert.equal(foe.hp,45-(5+2-1));
 });
 
 test('Furor Celtica, Zealotry, Rocketry: units in the field take the new maximum at once; other kinds do not',()=>{
@@ -238,18 +240,18 @@ test('Crenellations: the Castle outranges by 3 tiles and infantry inside add arr
  const {s,castle}=castleFor('teutons',4);clearRed(s);const box=boxOf(s,castle.id),tc=boxOf(s,tcOf(s).id);
  const spot=(lo:number,hi:number)=>{for(let n=0;n<nodeTotal(s.map);n++){const p=position(s.map,n);if(!blockedTable(s.map)[n]&&reach(p,box)>=lo&&reach(p,box)<=hi&&reach(p,tc)>450&&!s.units.some(u=>u.node===n))return p;}throw Error('no spot');};
  const far=spot(450,540),near=spot(150,350);
- const a=spawn(s,1,'militia',far.x,far.y);see(s);tick(s);assert.equal(a.hp,45,'out of range before');
+ const a=spawn(s,1,'militia',far.x,far.y);s.stances[a.id]='passive';see(s);tick(s);settle(s);assert.equal(a.hp,45,'out of range before');
  const inf=spawn(s,0,'militia',box[0]-60,box[3]+60);see(s);order(s,'garrison',{unitIds:[inf.id],buildingId:castle.id});run(s,300,()=>{see(s);return !!s.garrison[castle.id];});assert.ok(s.garrison[castle.id]);
- s.units=s.units.filter(u=>u!==a);const b=spawn(s,1,'militia',near.x,near.y);see(s);s.volleys[castle.id]=0;tick(s);assert.equal(b.hp,45-4*4,'a militia inside adds nothing yet');
+ s.units=s.units.filter(u=>u!==a);const b=spawn(s,1,'militia',near.x,near.y);s.stances[b.id]='passive';see(s);s.volleys[castle.id]=0;tick(s);settle(s);assert.equal(b.hp,45-4*4,'a militia inside adds nothing yet');
  research(s,castle,'crenellations');assert.equal(arrowsOf(ownerOf(s,0),'castle').range,150);
- s.units=s.units.filter(u=>u!==b);const c=spawn(s,1,'militia',near.x,near.y);see(s);s.volleys[castle.id]=0;tick(s);assert.equal(c.hp,45-5*4,'one more arrow for the infantry inside');
- s.units=s.units.filter(u=>u!==c);const d=spawn(s,1,'militia',far.x,far.y);see(s);s.volleys[castle.id]=0;tick(s);assert.equal(d.hp,45-5*4,'hit at 3 tiles more');
+ s.units=s.units.filter(u=>u!==b);const c=spawn(s,1,'militia',near.x,near.y);s.stances[c.id]='passive';see(s);s.volleys[castle.id]=0;tick(s);settle(s);assert.equal(c.hp,45-5*4,'one more arrow for the infantry inside');
+ s.units=s.units.filter(u=>u!==c);const d=spawn(s,1,'militia',far.x,far.y);s.stances[d.id]='passive';see(s);s.volleys[castle.id]=0;tick(s);settle(s);assert.equal(d.hp,45-5*4,'hit at 3 tiles more');
  // Celts: Stronghold fires every 32 ticks instead of 40.
- {const {s,castle}=castleFor('celts');clearRed(s);research(s,castle,'stronghold');const box=boxOf(s,castle.id);const foe=spawn(s,1,'militia',box[2]+150,box[3]+150);see(s);s.volleys[castle.id]=0;tick(s);
+ {const {s,castle}=castleFor('celts');clearRed(s);research(s,castle,'stronghold');const box=boxOf(s,castle.id);const foe=spawn(s,1,'militia',box[2]+150,box[3]+150);s.stances[foe.id]='passive';see(s);s.volleys[castle.id]=0;tick(s);settle(s);
   assert.equal(foe.hp,45-16);assert.equal(s.volleys[castle.id],32);}
  // Japanese: Yasama gives towers two more arrows.
  {const {s,castle}=castleFor('japanese');research(s,castle,'yasama');const tower=raise(s,0,'watch-tower',{x:300,y:1300}),box=boxOf(s,tower.id);const foe=spawn(s,1,'militia',box[2]+150,box[3]+50);
-  assert.ok(reach(foe,boxOf(s,castle.id))>400&&reach(foe,boxOf(s,tcOf(s).id))>300);see(s);tick(s);assert.equal(foe.hp,45-3*4);}
+  assert.ok(reach(foe,boxOf(s,castle.id))>400&&reach(foe,boxOf(s,tcOf(s).id))>300);s.stances[foe.id]='passive';see(s);tick(s);settle(s);assert.equal(foe.hp,45-3*4);}
 });
 
 test('Anarchy lets the barracks train Huskarls; Perfusion and Chivalry speed up production queued after them',()=>{
@@ -298,10 +300,14 @@ test('the Berserk regains 20 hit points a minute, 40 with Berserkergang',()=>{
 
 test('Chu Ko Nu fires extra arrows; Logistica tramples the enemy next to the target; the Samurai hits unique units harder',()=>{
  const volley=(civ:string,kind:UnitKind,techs:string[],victim:UnitKind,neighbours=false)=>{const {s,castle}=castleFor(civ,techs.length?4:3);for(const t of techs)research(s,castle,t);
+  // The Chu Ko Nu's arrows fly (the 戰術技巧 round): its target holds still and Thumb Ring makes every arrow at it land.
+  const ranged=kind==='chu-ko-nu';if(ranged)s.techs[0].push('thumb-ring');
   const at=row(s,5,700,1400),atk=spawn(s,0,kind,at.x,at.y),target=spawn(s,1,victim,at.x+(kind==='chu-ko-nu'?200:50),at.y);
   const side=neighbours?spawn(s,1,'militia',target.x+50,at.y):null,far=neighbours?spawn(s,1,'militia',target.x+100,at.y+50):null,friend=neighbours?spawn(s,0,'villager',target.x,target.y+50):null;
   // Red's militias are sent at the attacker, not at the villager beside them: what the villager loses could only be splash.
-  see(s);order(s,'attack',{unitIds:[atk.id],target:{kind:'unit',id:target.id}});order(s,'attack',{unitIds:[target,side,far].flatMap(u=>u?[u.id]:[]),target:{kind:'unit',id:atk.id}},1);tick(s);
+  see(s);order(s,'attack',{unitIds:[atk.id],target:{kind:'unit',id:target.id}});{const foes=[ranged?null:target,side,far].flatMap(u=>u?[u.id]:[]);if(foes.length)order(s,'attack',{unitIds:foes,target:{kind:'unit',id:atk.id}},1);}
+  // The first shot waits out the frame delay (the 遊戲元素 round: the Chu Ko Nu aims 3 ticks); one volley in all.
+  for(let i=0;i<=(statsOf(kind as CombatUnitKind,ownerOf(s,0)).frameDelay??0);i++)tick(s);if(ranged){s.stances[target.id]='passive';settle(s);}
   return {lost:maxHpOf(victim as CombatUnitKind,ownerOf(s,1))-target.hp,side:side?45-side.hp:0,far:far?45-far.hp:0,friend:friend?25-friend.hp:0};};
  assert.equal(volley('chinese','chu-ko-nu',[],'militia').lost,(8-1)+2*(3-1));
  assert.equal(volley('chinese','chu-ko-nu',['rocketry'],'militia').lost,(10-1)+2*(3-1));

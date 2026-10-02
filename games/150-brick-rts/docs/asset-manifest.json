@@ -1046,6 +1046,38 @@
       ],
       "status": "one distinct emblem per technology of the \u5efa\u7bc9 round and the Byzantines' Greek Fire; the dock's line upgrades use the unit portrait like the other line upgrades",
       "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
+      "id": "projectiles-in-flight",
+      "source": "apps/web/scene.ts",
+      "type": "procedural pooled meshes for shots in flight (View.projectiles) and landing dust puffs",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "kinds": [
+        "arrow dart (archers, towers, castle, town centre, galleys, longboat)",
+        "scorpion bolt",
+        "mameluke javelin",
+        "throwing-axe head",
+        "mangonel and trebuchet stone",
+        "bombard cannonball with muzzle puff",
+        "hand-cannoneer pellet",
+        "fire-galley flame burst",
+        "landing dust puff"
+      ],
+      "status": "one pooled mesh per shot on a parabola from the launch height to the landing point, interpolated between snapshots; a volley fans slightly by shot id; the old straight tower-arrow lines are drawn only for views without projectiles",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
+      "id": "technology-emblem-ballistics",
+      "source": "apps/web/tech-icons.ts",
+      "type": "procedural brick emblem rendered to a HUD PNG (tech-ballistics)",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "ids": [
+        "ballistics"
+      ],
+      "status": "an arrow's dotted arc ahead of a running target with speed streaks",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
     }
   ],
   "remaining": [

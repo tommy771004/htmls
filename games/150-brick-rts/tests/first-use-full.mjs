@@ -35,7 +35,7 @@ try{
  const context=await browser.newContext({viewport:{width:1440,height:900}});
  const open=async()=>{page=await context.newPage();
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('request',r=>{if(!r.url().startsWith(origin)&&!r.url().startsWith('data:')&&!r.url().startsWith('blob:'))external.push(r.url());});
-  await page.goto(origin+'/web/150-brick-rts.html');await page.waitForFunction(()=>Number(document.querySelector('#tick').textContent)>2);
+  await page.goto(origin+'/web/150-brick-rts.html?play=1');await page.waitForFunction(()=>Number(document.querySelector('#tick').textContent)>2);
   // Test instrumentation only: collect every sound name the page records on <body>.
   await page.evaluate(()=>{window.heard=[];new MutationObserver(()=>window.heard.push(document.body.dataset.lastSound)).observe(document.body,{attributes:true,attributeFilter:['data-sounds']});});};
  const text=id=>page.locator('#'+id).innerText(),tick=()=>page.evaluate(()=>Number(document.querySelector('#tick').textContent)),num=async id=>Number(await text(id));

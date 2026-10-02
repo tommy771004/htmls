@@ -2,7 +2,8 @@ import {routeTo,cancelMovement} from './movement.ts';
 import type {Unit} from './movement.ts';
 import {approach,reach,killUnit} from './combat.ts';
 import type {CombatState} from './combat.ts';
-import {maxHpOf} from './stats.ts';
+import {maxHpOf,combatRules} from './stats.ts';
+import type {CombatUnitKind} from './stats.ts';
 import {ownerOf,healRangeScale,healRateScale,conversionResist} from './civ.ts';
 import {tileAt} from './terrain.ts';
 import {obstacleBounds} from '../content/footprints.ts';
@@ -43,6 +44,8 @@ export const convertRangeOf=(s:{techs:string[][]},player:number)=>religionRules.
 export const carrying=(s:{relics:Relic[]},monkId:number)=>s.relics.some(r=>r.carrier===monkId);
 const maxHp=(s:ReligionState,u:Unit)=>maxHpOf(u.kind,ownerOf(s,u.player));
 // The monk owner's civilization: healing range (Teutons) and pace (the Byzantine team bonus).
+// Siege weapons and ships are repaired by villagers, never healed by monks (aoetw: elements/Hit_points).
+export const healable=(kind:string)=>!(kind in combatRules.units)||!combatRules.units[kind as CombatUnitKind].classes.some(c=>c==='siege'||c==='ship');
 const healRangeOf=(s:ReligionState,player:number)=>Math.round(religionRules.healRange*healRangeScale(ownerOf(s,player)));
 const healTicksOf=(s:ReligionState,player:number)=>Math.max(1,Math.round(religionRules.healTicks/healRateScale(ownerOf(s,player))));
 const seen=(s:ReligionState,player:number,x:number,y:number)=>new Set(s.vision[player].visible).has(tileAt(x,y,s.map.size));
@@ -66,7 +69,7 @@ export function riteProblem(s:ReligionState,player:number,kind:RiteKind,target:n
   if(!b.complete)return '只能轉化完工的建築';return null;}
  const t=s.units.find(u=>u.id===target);if(!t)return '找不到目標';
  if(isAnimal(t.kind))return kind==='heal'?'動物不能被治療':'動物不能被轉化：村民可以右鍵羊隻放牧';
- if(kind==='heal'){if(t.player!==player)return '只能治療己方單位';if(t.kind==='monk')return '僧侶不能被治療';return null;}
+ if(kind==='heal'){if(t.player!==player)return '只能治療己方單位';if(t.kind==='monk')return '僧侶不能被治療';if(!healable(t.kind))return '攻城器與船隻不能被治療：派村民修理';return null;}
  if(t.player===player)return '不能轉化己方單位';
  if(!seen(s,player,t.x,t.y))return '找不到目標';
  if(t.kind==='monk'&&!has(s,player,'atonement'))return '需要研究「贖罪」才能轉化僧侶';
@@ -131,7 +134,8 @@ function stepRelics(s:ReligionState){
  if(s.tick%R.goldTicks===0)for(const b of held)if(b){const a=s.accounts[b.player];a.stock.gold++;a.ledger.relic.gold++;}
  // Relic victory: one side holds every relic in its monasteries for the countdown.
  const owners=new Set(held.map(b=>b?b.player:-1));
- if(s.relics.length&&owners.size===1&&!owners.has(-1)){const player=[...owners][0];
+ // The lobby's 征服 setting: no relic victory (the relics still pay gold).
+ if((s as {settings?:{victory:string}}).settings?.victory!=='conquest'&&s.relics.length&&owners.size===1&&!owners.has(-1)){const player=[...owners][0];
   if(!s.relicVictory||s.relicVictory.player!==player)s.relicVictory={player,endsTick:s.tick+R.victoryTicks};
   if(!s.outcome&&s.tick>=s.relicVictory.endsTick)s.outcome={winner:player,defeated:[1-player],tick:s.tick,reason:'relic'};}
  else s.relicVictory=null;
@@ -143,7 +147,7 @@ export function stepReligion(s:ReligionState){
  // An idle monk heals the nearest wounded own unit it can see (lowest id on ties); conversion is by order only.
  for(const m of monks){if(s.rites[m.id]||s.attacks[m.id]||m.next!==null||m.path.length||busy.has(m.id))continue;
   let best:Unit|null=null,dist=Infinity;
-  for(const u of s.units)if(u!==m&&u.player===m.player&&u.kind!=='monk'&&!isAnimal(u.kind)&&u.hp<maxHp(s,u)){const d=reach(m,u);if(d<=religionRules.healSight&&(d<dist||d===dist&&best&&u.id<best.id)){best=u;dist=d;}}
+  for(const u of s.units)if(u!==m&&u.player===m.player&&u.kind!=='monk'&&!isAnimal(u.kind)&&healable(u.kind)&&u.hp<maxHp(s,u)){const d=reach(m,u);if(d<=religionRules.healSight&&(d<dist||d===dist&&best&&u.id<best.id)){best=u;dist=d;}}
   if(best)s.rites[m.id]={kind:'heal',target:best.id,progress:0,needed:0,repath:0,attempt:0};}
  for(const m of monks){const r=s.rites[m.id];if(!r)continue;
   const done=()=>{delete s.rites[m.id];cancelMovement(s,m.id);Object.assign(m,{path:[],goal:null,target:null,navigation:m.next===null?'idle':'moving'});};

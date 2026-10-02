@@ -1,4 +1,4 @@
-// The in-game encyclopedia (「百科」): categories 文明, 單位, 科技 and 建築 (a switch in the header), each a list and a detail pane
+// The in-game encyclopedia (「百科」): categories 文明, 單位, 科技, 建築, 遊戲元素 and 戰術技巧 (a switch in the header), each a list and a detail pane
 // rendered into the page's #codex overlay. DOM only; every value comes from codex-model.ts (pure, node-tested). Styles
 // are injected once and scoped under .cx-; they reuse the page's tokens (plate, tile, gold) so the book reads as one of
 // the game's panels.
@@ -6,14 +6,23 @@ import {civList,civDetail,codexCivs,codexIntro,rangeText,secondsText,cooldownSec
  codexSections,unitsNote,unitLines,pendingLines,unitGroups,unitsOverview,unitCategoryName,civName,tilesText,
  techsNote,techPages,uniqueTechPages,pendingTechs,techGroups,techsOverview,
  buildingsNote,buildingPages,pendingBuildings,buildingGroupsBy,buildingsOverview} from './codex-model.ts';
+import {elementPage,elementGroups,elementsIntro,elementsNote} from './codex-elements.ts';
+import type {ElementPage,ElementBlock} from './codex-elements.ts';
+import {tacticPage,tacticGroups,tacticsIntro,tacticsNote,basicUpgradesText,basicUpgradeItems} from './codex-tactics.ts';
+import type {TacticPage,TacticBlock} from './codex-tactics.ts';
+import {civTree,treeIntro,treeNote,treeMark,treeMarkLabels} from './codex-tree.ts';
+import type {CivTree,TreeBlock,TreeCell,TreeNode,TreeMatch,TreeMark} from './codex-tree.ts';
 import type {CivDetail,CivListItem,StatSheet,UnitCard,TechCard,Cost,CodexSection,UnitLine,PendingLine,LineStep,TechPage,UniqueTechPage,PendingTech,TechItem,
  BuildingPage,BuildingSheet,PendingBuilding,BuildingItem} from './codex-model.ts';
-export type CodexContext={civs:string[];icons:Record<string,string>;onClose:()=>void};
+// speakTaunt: the page's own taunt voice (local voices only); without it the taunts table is text only.
+// section: the category to open on (the page's 科技樹 key opens the book on its tree); match: the player's own state, which
+// the tree marks (researched, owned, in progress, possible now).
+export type CodexContext={civs:string[];icons:Record<string,string>;onClose:()=>void;speakTaunt?:(n:number)=>void;section?:CodexSection;match?:TreeMatch;treeCiv?:string};
 const resourceNames:Record<string,string>={food:'食物',wood:'木材',gold:'黃金',stone:'石頭'};
 const css=`
 .cx-host{display:grid;place-items:center;padding:16px}.cx-host[hidden]{display:none}
 .cx{--cx-well:var(--well,#26332d);--cx-tile:var(--tile,#415349);--cx-edge:var(--tile-edge,#27342e);--cx-gold:var(--gold,#d8b45a);--cx-muted:var(--muted,#a9b4a4);--cx-cream:var(--cream,#efe6cf);
- width:min(1100px,100%);height:min(820px,100%);display:grid;grid-template-rows:auto minmax(0,1fr);background:var(--plate,#2f3f38);border-bottom:6px solid var(--plate-edge,#1f2a25);border-radius:4px;overflow:hidden;color:var(--cx-cream);font-size:14px;line-height:1.55}
+ width:min(1100px,100%);height:min(820px,100%);display:grid;grid-template-rows:auto minmax(0,1fr);grid-template-columns:minmax(0,1fr);background:var(--plate,#2f3f38);border-bottom:6px solid var(--plate-edge,#1f2a25);border-radius:4px;overflow:hidden;color:var(--cx-cream);font-size:14px;line-height:1.55}
 .cx *{box-sizing:border-box}
 .cx-head{position:relative;display:flex;align-items:center;gap:10px 16px;padding:12px 16px 19px 20px;border-bottom:3px solid var(--plate-edge,#1f2a25)}
 .cx-head::after{content:"";position:absolute;left:0;right:0;bottom:4px;height:6px;background:radial-gradient(circle at 8px 3px,var(--plate-stud,#3b4d45) 3.5px,transparent 4px) 0 0/16px 6px repeat-x;pointer-events:none}
@@ -89,7 +98,43 @@ const css=`
 .cx-chain{margin:10px 0 0!important;font-size:13px;color:var(--cx-muted)}.cx-chain b{font-weight:600;color:var(--cx-cream)}
 .cx-ages{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 18px;align-items:center;margin:0}.cx-ages dt{color:var(--cx-muted)}.cx-ages dd{margin:0}.cx-ages .cx-cost{margin:0}
 .cx-jump{margin-top:12px}
+.cx-eq{list-style:none;margin:0;padding:12px 16px;display:grid;gap:4px;background:var(--cx-well);border-radius:3px;font-variant-numeric:tabular-nums;max-width:560px}.cx-eq li:last-child{margin-top:4px;padding-top:6px;border-top:2px solid rgba(0,0,0,.2);font-weight:650;color:var(--cx-gold)}
+.cx-ex{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px 18px}.cx-ex h5{margin:0 0 6px;font-size:14px;font-weight:650}
+.cx-phases{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}.cx-phases h5{margin:0 0 10px;font-size:14px;font-weight:650;color:var(--cx-cream)}
+.cx-steps{gap:7px}.cx-steps li{font-size:13.5px;line-height:1.55}.cx-steps li.tip{color:var(--cx-muted)}.cx-steps li.tip::before{background:transparent;box-shadow:inset 0 0 0 1.5px var(--cx-muted)}
+.cx-why{margin-top:12px;color:#f2b4a4}.cx-basic{margin-top:10px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.cx-stats td.n{white-space:nowrap;color:var(--cx-gold);font-weight:650}.cx-stats td.en{color:var(--cx-muted)}.cx-stats td.say{width:1%;padding-right:0}
+.cx-say{height:28px;padding:0 10px;background:var(--cx-tile);border:0;border-bottom:3px solid var(--cx-edge);border-radius:3px;font-size:12.5px;font-weight:600;color:var(--cx-cream);white-space:nowrap}.cx-say:hover{background:var(--tile-hover,#4c6155)}.cx-say:active{border-bottom-width:1px;margin-top:2px}
+.cx-wide td{min-width:7em}.cx-wide td:nth-child(4),.cx-wide td:nth-child(2){min-width:12em}
 .cx-foot{margin-top:34px;padding-top:14px;border-top:3px solid rgba(0,0,0,.18);font-size:12.5px;color:var(--cx-muted);max-width:52em}.cx-foot p+p{margin-top:6px}
+.cx-page.cx-wide-page{max-width:none}
+.cx-tools.cx-tree-tools{flex-wrap:wrap;padding:0;margin:20px 0 0;gap:8px 14px}.cx-tree-tools .cx-tool.pend{margin-left:0}
+.cx-legend{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--cx-muted)}.cx-legend li{display:inline-flex;align-items:center;gap:6px}
+.cx-legend i{width:16px;height:12px;border-radius:2px;background:var(--cx-tile);box-shadow:inset 0 -3px 0 var(--cx-edge)}
+.cx-tblocks{display:flex;flex-wrap:wrap;align-items:flex-start;gap:26px 30px;margin-top:22px}
+.cx-tblock{min-width:0;max-width:100%}.cx-tblock h4{margin:0 0 10px;display:flex;align-items:center;gap:10px}
+.cx-tblock h4 img{width:34px;height:34px;object-fit:contain}.cx-tblock h4 button{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:10px;border-radius:3px}.cx-tblock h4 button:hover{color:var(--cx-cream)}.cx-tblock h4 button:focus-visible{outline:2px solid var(--cx-gold);outline-offset:3px}
+.cx-tgrid{display:grid;grid-auto-rows:minmax(92px,auto);column-gap:8px;row-gap:16px;padding:2px 2px 6px}
+.cx-tage{align-self:center;padding-right:6px;font-size:12px;font-weight:600;color:var(--cx-muted);white-space:nowrap}
+.cx-tcell{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px}
+.cx-tcell.down::after,.cx-tcell.pipe::after{content:"";position:absolute;left:50%;width:6px;margin-left:-3px;background:#22302a;border-radius:3px}
+.cx-tcell.down::after{top:calc(100% - 4px);height:24px}.cx-tcell.pipe::after{top:-12px;bottom:-12px}
+.cx-tnode{position:relative;width:92px;min-height:88px;padding:6px 4px 7px;display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--cx-tile);border:0;border-bottom:3px solid var(--cx-edge);border-radius:3px;color:var(--cx-cream);font:inherit;text-align:center}
+button.cx-tnode{cursor:pointer}button.cx-tnode:hover{background:var(--tile-hover,#4c6155)}button.cx-tnode:focus-visible{outline:2px solid var(--cx-gold);outline-offset:2px}
+.cx-tcell .cx-tnode.linked::before{content:"";position:absolute;left:50%;top:-12px;width:6px;height:10px;margin-left:-3px;background:#22302a;border-radius:3px}
+.cx-tnode img{width:42px;height:42px;object-fit:contain}.cx-tnode .nm{font-size:12.5px;font-weight:600;line-height:1.3}
+.cx-tnode .mk{font-size:11px;font-weight:600;line-height:1.2;color:var(--cx-muted);font-variant-numeric:tabular-nums}
+.cx-tnode .nd{font-size:10.5px;line-height:1.25;color:#c9b98a}
+.cx-tnode.uniq{background:#4d4a33;border-bottom-color:#332f1d}button.cx-tnode.uniq:hover{background:#5a5639}
+.cx-tnode.off{background:#2a3631;border-bottom-color:#1f2925;color:#8f9a8c}.cx-tnode.off img{filter:grayscale(1) brightness(.75);opacity:.55}
+.cx-tnode.ref{background:transparent;border-bottom-color:transparent;box-shadow:inset 0 0 0 1.5px #4a5a51;color:var(--cx-muted)}button.cx-tnode.ref:hover{background:rgba(0,0,0,.14)}
+.cx-tnode.ref .nm{font-weight:500}.cx-tnode.ref .noimg,.cx-tnode .noimg{width:42px;height:42px;display:grid;place-items:center;font-size:20px;color:#5f6f66}
+.cx-tnode.s-done{background:#5d5330;border-bottom-color:#3c3520}.cx-tnode.s-done .mk{color:#e9d79c}
+.cx-tnode.s-owned{background:#3f5a5f;border-bottom-color:#283b3e}.cx-tnode.s-owned .mk{color:#bfe0e6}
+.cx-tnode.s-queued{box-shadow:inset 0 0 0 2px #b79b52}.cx-tnode.s-queued .mk{color:#e6cf8a}
+.cx-tnode.s-ready .mk{color:var(--cx-cream)}.cx-tnode.s-ready{box-shadow:inset 0 0 0 1.5px #c9b679}
+.cx-tnode.s-later{color:#b8c1b3}.cx-tnode.s-later img{opacity:.7}
+.cx-legend .s-done{background:#5d5330;box-shadow:inset 0 -3px 0 #3c3520}.cx-legend .s-owned{background:#3f5a5f;box-shadow:inset 0 -3px 0 #283b3e}.cx-legend .s-queued{box-shadow:inset 0 0 0 2px #b79b52}.cx-legend .s-ready{box-shadow:inset 0 0 0 1.5px #c9b679}.cx-legend .s-off{background:#2a3631;box-shadow:inset 0 -3px 0 #1f2925}.cx-legend .s-ref{background:transparent;box-shadow:inset 0 0 0 1.5px #4a5a51}.cx-legend .s-uniq{background:#4d4a33;box-shadow:inset 0 -3px 0 #332f1d}
 @media (max-width:760px){
  .cx{width:100%;height:100%}
  .cx-head{padding:10px 16px 17px}.cx-head h2{font-size:18px}
@@ -98,13 +143,16 @@ const css=`
  .cx-grp,.cx-list ul,.cx-list li{display:contents}.cx-group{display:none}
  .cx-civ,.cx-uitem{flex:none;width:auto;padding:6px 12px 5px}.cx-civ[aria-current=true],.cx-uitem[aria-current=true]{padding-top:8px}.cx-civ small,.cx-uitem small{display:none}.cx-mark{grid-row:1}
  .cx-head{gap:10px;flex-wrap:wrap}.cx-head h2,.cx-tab,.cx-close{white-space:nowrap}.cx-tabs::before{margin-right:4px}.cx-close kbd{display:none}
- .cx-tab{height:40px;padding:0 9px}.cx-side{grid-template-rows:auto auto}.cx-tools{padding:8px 16px 0}.cx-tool{height:40px;padding:0 12px}
+ .cx-tab{height:40px;padding:0 9px}
+ /* Five categories: title and close share the first row, the tabs get the next row to themselves (scrolling if they ever outgrow it). */
+ .cx-tabs{order:3;flex:1 0 100%;overflow-x:auto;scrollbar-width:none}.cx-tabs::before{display:none}.cx-tabs .cx-tab:first-child{margin-left:-9px}.cx-side{grid-template-rows:auto auto}.cx-tools{padding:8px 16px 0}.cx-tool{height:40px;padding:0 12px}
  .cx-side .cx-list{padding-top:8px}.cx-side .cx-group{display:block;flex:none;align-self:center;margin:0 2px 0 8px;white-space:nowrap}.cx-side .cx-grp:first-child .cx-group{margin-left:0}
  .cx-uhero{grid-template-columns:72px minmax(0,1fr);gap:0 12px}.cx-uhero .cx-face{width:72px;height:72px}.cx-path,.cx-ov{grid-template-columns:minmax(0,1fr)}
  .cx-detail{padding:16px 16px 26px}.cx-page h3{font-size:24px}.cx-summary{font-size:14.5px}
  .cx-unit{grid-template-columns:72px minmax(0,1fr);gap:4px 12px;padding:12px}.cx-face{grid-row:1;width:72px;height:72px}.cx-ubody{grid-column:1/-1}
  .cx-stats{font-size:12.5px}.cx-stats th,.cx-stats td{padding-right:6px}.cx-stats tbody th{width:auto}
  .cx-cols{grid-template-columns:minmax(0,1fr)}.cx-techs{grid-template-columns:minmax(0,1fr)}
+ .cx-tblocks{display:grid;grid-template-columns:minmax(0,1fr)}.cx-tnode{width:84px}.cx-tblock .cx-scroll{overscroll-behavior-x:contain}
 }`;
 type Kid=Node|string|null|undefined|false;
 function h<K extends keyof HTMLElementTagNameMap>(tag:K,attrs:Record<string,string>|null,...kids:Kid[]):HTMLElementTagNameMap[K]{
@@ -117,6 +165,11 @@ let section:CodexSection='civs',unitChosen='overview',unitBy:'category'|'buildin
 let techChosen='overview',techBy:'building'|'age'='building',techPending=true;
 // …and in 建築, the page, grouping and whether aoetw buildings the game lacks are listed.
 let buildingChosen='overview',buildingBy:'group'|'age'='group',buildingPending=true;
+let elementChosen='overview';
+// …and in 戰術技巧, the page.
+let tacticChosen='overview';
+// …and in 科技樹, the civilization (null: the player's own, else the first) and whether reference items are drawn.
+let treeChosen:string|null=null,treeRefs=true;
 const roleText={self:'你的文明',rival:'對手',both:'雙方'} as const;
 function costRow(icons:Record<string,string>,cost:Cost,seconds:number|null,extra?:string){
  const row=h('p',{class:'cx-cost'});
@@ -449,14 +502,169 @@ function renderBuildings(focus:boolean){
   if(next===null)return;e.preventDefault();selectBuilding(ids[next],true);});
  fillBuildingList(list);open.body.replaceChildren(h('div',{class:'cx-side'},tools,list),detail);open.list=list;open.detail=detail;
  selectBuilding(buildingChosen,focus);}
+// ── Category 遊戲元素 ─────────────────────────────────────────────────────────────────────────────────────────────
+const elementCache=new Map<string,ElementPage>();
+const element=(id:string)=>{let p=elementCache.get(id);if(!p){const q=elementPage(id);if(q){p=q;elementCache.set(id,p);}}return p??null;};
+function elementBlock(b:ElementBlock,speak:((n:number)=>void)|undefined):HTMLElement{
+ const head=h('h4',null,b.title,b.note?h('small',null,b.note):null);
+ if(b.kind==='table')return h('section',null,head,h('div',{class:'cx-scroll'},h('table',{class:`cx-stats${b.head.length>3?' cx-wide':''}`},
+  h('thead',null,h('tr',null,...b.head.map(c=>h('th',{scope:'col'},c)))),h('tbody',null,...b.rows.map(r=>h('tr',null,h('th',{scope:'row'},r[0]),...r.slice(1).map(c=>h('td',null,c))))))));
+ if(b.kind==='facts'){const dl=h('dl',{class:'cx-tree'});for(const i of b.items)dl.append(h('dt',null,i.label),h('dd',null,i.value));return h('section',null,head,dl);}
+ if(b.kind==='list')return h('section',null,head,bricks(b.items));
+ if(b.kind==='example')return h('article',null,h('h5',null,b.title),h('ol',{class:'cx-eq'},...b.lines.map(l=>h('li',null,l))));
+ // The taunts: number, the site's Chinese line, the English original; a voice button only when the page lends one.
+ return h('section',null,head,h('div',{class:'cx-scroll'},h('table',{class:'cx-stats'},h('thead',null,h('tr',null,h('th',{scope:'col'},'編號'),h('th',{scope:'col'},'中文'),h('th',{scope:'col'},'英文'),speak?h('td',null):null)),
+  h('tbody',null,...b.rows.map(t=>{const row=h('tr',null,h('td',{class:'n'},String(t.n)),h('td',null,t.zh),h('td',{class:'en',lang:'en'},t.en));
+   if(speak){const cell=h('td',{class:'say'});if(t.spoken){const btn=h('button',{type:'button',class:'cx-say','aria-label':`朗讀第 ${t.n} 句：${t.zh}`},'朗讀');btn.onclick=()=>speak(t.n);cell.append(btn);}row.append(cell);}
+   return row;})))));}
+function elementView(p:ElementPage,speak:((n:number)=>void)|undefined){
+ const page=h('div',{class:'cx-page'});
+ page.append(h('h3',{id:'cx-element-name'},p.name,h('span',{lang:'en'},p.nameEn)),h('p',{class:'cx-sub'},p.menu?'aoetw 遊戲元素選單':'aoetw 遊戲元素（選單以外的條目）',p.refName&&p.refName!==p.name?`・aoetw 譯名：${p.refName}`:''),
+  h('p',{class:'cx-summary'},p.text));
+ // Worked examples sit side by side under one heading.
+ const examples=p.blocks.filter(b=>b.kind==='example');
+ for(const b of p.blocks)if(b.kind!=='example')page.append(elementBlock(b,speak));
+ if(examples.length)page.append(h('section',null,h('h4',null,'算一次傷害',h('small',null,'取自模擬的實際數字')),h('div',{class:'cx-ex'},...examples.map(b=>elementBlock(b,speak)))));
+ page.append(h('section',null,h('h4',null,'本作沒有的部分'),p.lacks.length?h('ul',{class:'cx-bricks off'},...p.lacks.map(l=>h('li',null,h('span',null,l.name,h('small',null,l.reason))))):h('p',{class:'cx-prose'},'沒有：網站這一頁說的本作都有。')),
+  h('footer',{class:'cx-foot'},h('p',null,elementsNote),h('p',null,`資料來源：${p.source}`)));
+ return page;}
+function elementOverview(){
+ const p=h('div',{class:'cx-page'});
+ p.append(h('h3',{id:'cx-element-name'},'遊戲元素',h('span',{lang:'en'},'Game elements')),h('p',{class:'cx-summary'},elementsIntro),
+  ...elementGroups().map(g=>h('section',null,h('h4',null,g.label),h('div',{class:'cx-ov'},...g.items.map(e=>h('article',{class:'cx-tech'},h('h5',null,e.name,h('span',{lang:'en'},e.nameEn)),h('p',null,e.summary)))))),
+  h('footer',{class:'cx-foot'},h('p',null,elementsNote),h('p',null,'資料來源：aoetw.com 遊戲元素選單、elements/Conversion、elements/Line_of_Sight')));
+ return p;}
+function fillElementList(list:HTMLElement){
+ list.replaceChildren(h('div',{class:'cx-grp'},h('ul',null,h('li',null,h('button',{type:'button',class:'cx-uitem','data-element':'overview',tabindex:'-1','aria-current':'false'},h('b',null,'總覽'),h('small',null,'條目與資料來源'))))),
+  ...elementGroups().map((g,i)=>h('div',{class:'cx-grp'},h('p',{class:'cx-group',id:`cx-eg${i}`},g.label),h('ul',{'aria-labelledby':`cx-eg${i}`},
+   ...g.items.map(e=>h('li',null,h('button',{type:'button',class:'cx-uitem','data-element':e.id,tabindex:'-1','aria-current':'false'},h('b',null,e.name),h('small',null,e.nameEn))))))));}
+function selectElement(id:string,focus=false){
+ if(!open)return;const p=id==='overview'?null:element(id);if(!p)id='overview';elementChosen=id;
+ for(const b of Array.from(open.list.querySelectorAll<HTMLButtonElement>('.cx-uitem'))){const on=b.dataset.element===id;b.setAttribute('aria-current',String(on));b.tabIndex=on?0:-1;
+  if(on){if(focus)b.focus({preventScroll:true});reveal(open.list,b);}}
+ open.detail.replaceChildren(p?elementView(p,open.ctx.speakTaunt):elementOverview());open.detail.scrollTop=0;}
+function renderElements(focus:boolean){
+ if(!open)return;
+ const list=h('nav',{class:'cx-list','aria-label':'遊戲元素列表'});
+ const detail=h('div',{class:'cx-detail',role:'region','aria-labelledby':'cx-element-name',tabindex:'-1'});
+ list.addEventListener('click',e=>{const b=(e.target as Element).closest<HTMLButtonElement>('.cx-uitem');if(b?.dataset.element)selectElement(b.dataset.element);});
+ list.addEventListener('keydown',e=>{const ids=Array.from(list.querySelectorAll<HTMLButtonElement>('.cx-uitem')).map(b=>b.dataset.element!),next=step(e.key,Math.max(0,ids.indexOf(elementChosen)),ids.length);
+  if(next===null)return;e.preventDefault();selectElement(ids[next],true);});
+ fillElementList(list);open.body.replaceChildren(list,detail);open.list=list;open.detail=detail;
+ selectElement(elementChosen,focus);}
+// ── Category 戰術技巧 ─────────────────────────────────────────────────────────────────────────────────────────────
+const tacticCache=new Map<string,TacticPage>();
+const tactic=(id:string)=>{let p=tacticCache.get(id);if(!p){const q=tacticPage(id);if(q){p=q;tacticCache.set(id,p);}}return p??null;};
+// An opening's build order: one well per phase; a filled brick is a step the coach checks, an outlined one advice.
+function tacticBlock(b:TacticBlock):HTMLElement{
+ if(b.kind!=='steps')return elementBlock(b,undefined);
+ return h('section',null,h('h4',null,b.title,b.note?h('small',null,b.note):null),h('div',{class:'cx-phases'},
+  ...b.phases.map(g=>h('article',{class:'cx-tech'},h('h5',null,g.label),h('ol',{class:'cx-bricks cx-steps'},...g.steps.map(st=>h('li',st.check?null:{class:'tip'},h('span',null,st.label))))))));}
+function tacticView(p:TacticPage){
+ const page=h('div',{class:'cx-page'});
+ page.append(h('h3',{id:'cx-tactic-name'},p.name,h('span',{lang:'en'},p.nameEn)),
+  h('p',{class:'cx-sub'},p.group==='opening'?'aoetw 戰術技巧・主流打法（阿拉伯）':'aoetw 戰術技巧・控兵技巧',p.available?'':h('b',null,'・未實作')),
+  h('p',{class:'cx-summary'},p.text));
+ if(p.reason)page.append(h('p',{class:'cx-prose cx-why'},`本作不能玩：${p.reason}。`));
+ if(p.how)page.append(h('section',null,h('h4',null,'在本作怎麼做'),h('p',{class:'cx-prose'},p.how)));
+ for(const b of p.blocks)page.append(tacticBlock(b));
+ page.append(h('section',null,h('h4',null,'本作沒有的部分'),p.lacks.length?h('ul',{class:'cx-bricks off'},...p.lacks.map(l=>h('li',null,h('span',null,l.name,h('small',null,l.reason))))):h('p',{class:'cx-prose'},'沒有：網站這一頁說的本作都做得到。')),
+  h('footer',{class:'cx-foot'},h('p',null,tacticsNote),h('p',null,`資料來源：${p.source}`)));
+ return page;}
+function tacticOverview(){
+ const p=h('div',{class:'cx-page'});
+ p.append(h('h3',{id:'cx-tactic-name'},'戰術技巧',h('span',{lang:'en'},'Tactics')),h('p',{class:'cx-summary'},tacticsIntro),
+  h('section',null,h('h4',null,'基礎升級'),h('p',{class:'cx-prose'},basicUpgradesText),h('ul',{class:'cx-bricks off cx-basic'},...basicUpgradeItems.map(i=>h('li',null,h('span',null,i))))),
+  ...tacticGroups().map(g=>h('section',null,h('h4',null,g.label),h('div',{class:'cx-ov'},...g.items.map(e=>h('article',{class:`cx-tech${e.available?'':' off'}`},h('h5',null,e.name,h('span',{lang:'en'},e.nameEn)),h('p',null,e.available?e.summary:`${e.summary}（未實作）`)))))),
+  h('footer',{class:'cx-foot'},h('p',null,tacticsNote),h('p',null,'資料來源：aoetw.com/ar 與各打法頁')));
+ return p;}
+function fillTacticList(list:HTMLElement){
+ list.replaceChildren(h('div',{class:'cx-grp'},h('ul',null,h('li',null,h('button',{type:'button',class:'cx-uitem','data-tactic':'overview',tabindex:'-1','aria-current':'false'},h('b',null,'總覽'),h('small',null,'基礎升級與目錄'))))),
+  ...tacticGroups().map((g,i)=>h('div',{class:'cx-grp'},h('p',{class:'cx-group',id:`cx-tg${i}`},g.label),h('ul',{'aria-labelledby':`cx-tg${i}`},
+   ...g.items.map(e=>h('li',null,h('button',{type:'button',class:`cx-uitem${e.available?'':' off'}`,'data-tactic':e.id,tabindex:'-1','aria-current':'false'},h('b',null,e.name),h('small',null,e.available?e.nameEn:'未實作'))))))));}
+function selectTactic(id:string,focus=false){
+ if(!open)return;const p=id==='overview'?null:tactic(id);if(!p)id='overview';tacticChosen=id;
+ for(const b of Array.from(open.list.querySelectorAll<HTMLButtonElement>('.cx-uitem'))){const on=b.dataset.tactic===id;b.setAttribute('aria-current',String(on));b.tabIndex=on?0:-1;
+  if(on){if(focus)b.focus({preventScroll:true});reveal(open.list,b);}}
+ open.detail.replaceChildren(p?tacticView(p):tacticOverview());open.detail.scrollTop=0;}
+function renderTactics(focus:boolean){
+ if(!open)return;
+ const list=h('nav',{class:'cx-list','aria-label':'戰術技巧列表'});
+ const detail=h('div',{class:'cx-detail',role:'region','aria-labelledby':'cx-tactic-name',tabindex:'-1'});
+ list.addEventListener('click',e=>{const b=(e.target as Element).closest<HTMLButtonElement>('.cx-uitem');if(b?.dataset.tactic)selectTactic(b.dataset.tactic);});
+ list.addEventListener('keydown',e=>{const ids=Array.from(list.querySelectorAll<HTMLButtonElement>('.cx-uitem')).map(b=>b.dataset.tactic!),next=step(e.key,Math.max(0,ids.indexOf(tacticChosen)),ids.length);
+  if(next===null)return;e.preventDefault();selectTactic(ids[next],true);});
+ fillTacticList(list);open.body.replaceChildren(list,detail);open.list=list;open.detail=detail;
+ selectTactic(tacticChosen,focus);}
+// ── Category 科技樹 ───────────────────────────────────────────────────────────────────────────────────────────────
+// The tree of one civilization, like aoetw.com's civ tree pages: a block per building (its own picture opens its page),
+// ages down, a column per line; in a match, the player's own tree is marked with what they have done and can do now.
+const treeCache=new Map<string,CivTree>();
+const treeOf=(civ:string)=>{const k=`${civ}:${treeRefs}`;let t=treeCache.get(k);if(!t){t=civTree(civ,treeRefs);treeCache.set(k,t);}return t;};
+const iconOf=(icons:Record<string,string>,keys:readonly string[])=>keys.map(k=>icons[k]).find(Boolean)??null;
+function treeNode(n:TreeNode,icons:Record<string,string>,mark:TreeMark|null,linked=false):HTMLElement{
+ const src=iconOf(icons,n.icons),cls=['cx-tnode',linked?'linked':'',n.kind==='ref'?'ref':n.available?'':'off',n.unique&&n.available?'uniq':'',mark&&n.available&&n.kind!=='ref'?`s-${mark.state}`:''].filter(Boolean).join(' ');
+ const status=n.kind==='ref'?'本作沒有':!n.available?'沒有':mark?mark.state==='owned'?`擁有 ${mark.count}`:treeMarkLabels[mark.state]:n.alias?'同一項研究':'';
+ // Prerequisites from another block (Chemistry) and upgrades elsewhere (the University's towers) as a short note.
+ const note=[n.needs.length?`需${n.needs.join('、')}`:'',n.leads.length?`升級：${n.leads.join('、')}`:''].filter(Boolean).join('；');
+ const label=[n.name,status,note,n.reason].filter(Boolean).join('：');
+ const kids=[src?h('img',{src,alt:''}):h('span',{class:'noimg','aria-hidden':'true'},'·'),h('span',{class:'nm'},n.name),note?h('span',{class:'nd'},note):null,status?h('span',{class:'mk'},status):null];
+ return n.link?h('button',{type:'button',class:cls,'data-section':n.link.section,'data-page':n.link.id,'aria-label':label,title:label},...kids):h('div',{class:cls,role:'img','aria-label':label,title:label},...kids);}
+function treeBlockView(b:TreeBlock,icons:Record<string,string>,marks:(n:TreeNode)=>TreeMark|null):HTMLElement{
+ const head=b.head?(()=>{const src=iconOf(icons,b.head.icons),m=marks(b.head),st=!b.head.available?'（此文明沒有）':m&&(m.state==='owned'||m.state==='queued')?`（${m.state==='owned'?`擁有 ${m.count}`:'建造中'}）`:'';
+  return h('button',{type:'button','data-section':'buildings','data-page':b.head.id,...(m?{'data-state':m.state}:{})},src?h('img',{src,alt:''}):null,h('span',null,b.name),st?h('small',null,st):null);})():h('span',null,b.name);
+ const grid=h('div',{class:'cx-tgrid',style:`grid-template-columns:auto repeat(${b.columns.length},max-content)`});
+ b.ages.forEach((age,r)=>{grid.append(h('div',{class:'cx-tage'},ageName(age)));
+  for(const col of b.columns){const c:TreeCell=col[r];grid.append(h('div',{class:['cx-tcell',c.down?'down':'',c.pipe?'pipe':''].filter(Boolean).join(' ')},...c.nodes.map((n,i)=>treeNode(n,icons,marks(n),i>0&&c.links[i-1]))));}});
+ return h('section',{class:'cx-tblock','aria-label':b.name},h('h4',null,head),h('div',{class:'cx-scroll'},grid));}
+function treeView(civ:string){
+ if(!open)return h('div',null);const t=treeOf(civ),icons=open.ctx.icons,m=open.ctx.match&&open.ctx.match.civ===civ?open.ctx.match:null;
+ const marks=(n:TreeNode)=>m?treeMark(n,m):null,page=h('div',{class:'cx-page cx-wide-page'});
+ page.append(h('h3',{id:'cx-tree-name'},`${t.name}・科技樹`,h('span',{lang:'en'},'Technology tree')),
+  h('p',{class:'cx-sub'},t.type,m?h('b',null,`・目前對局：${ageName(m.age)}`):open.ctx.match?'・不是你這局的文明（不標對局進度）':''),
+  h('p',{class:'cx-summary'},treeIntro));
+ if(t.bonuses.length||t.team.length)page.append(h('section',null,h('h4',null,'文明加成'),h('div',{class:'cx-cols'},
+  t.bonuses.length?h('ul',{class:'cx-bricks'},...t.bonuses.map(x=>h('li',null,h('span',null,x)))):null,
+  t.team.length?h('div',null,h('p',{class:'cx-note'},'團隊加成'),h('ul',{class:'cx-bricks'},...t.team.map(x=>h('li',null,h('span',null,x))))):null)));
+ const refBtn=h('button',{type:'button',class:'cx-tool pend','aria-pressed':String(treeRefs)},'顯示本作沒有的項目');
+ refBtn.onclick=()=>{treeRefs=!treeRefs;const y=open?.detail.scrollTop??0;selectTree(civ);if(open)open.detail.scrollTop=y;};
+ const states:TreeMark['state'][]=m?['done','owned','queued','ready','short','later','off','ref']:['off','ref'];
+ page.append(h('div',{class:'cx-tools cx-tree-tools'},refBtn,h('ul',{class:'cx-legend','aria-label':'圖例'},h('li',null,h('i',{class:'s-uniq'}),'特殊單位與科技'),
+  ...states.filter(s=>s!=='ref'||treeRefs).map(s=>h('li',null,h('i',{class:`s-${s}`}),treeMarkLabels[s])))));
+ page.append(h('div',{class:'cx-tblocks'},...t.blocks.map(b=>treeBlockView(b,icons,marks))),
+  h('footer',{class:'cx-foot'},h('p',null,treeNote),h('p',null,'資料來源：aoetw.com/tree')));
+ return page;}
+function selectTree(id:string,focus=false){
+ if(!open)return;treeChosen=id;
+ for(const b of Array.from(open.list.querySelectorAll<HTMLButtonElement>('.cx-civ'))){const on=b.dataset.civ===id;b.setAttribute('aria-current',String(on));b.tabIndex=on?0:-1;
+  if(on){if(focus)b.focus({preventScroll:true});reveal(open.list,b);}}
+ open.detail.replaceChildren(treeView(id));open.detail.scrollTop=0;}
+function renderTree(focus:boolean){
+ if(!open)return;
+ const items=civList(open.ctx.civs),groups:{label:string;items:CivListItem[]}[]=[];
+ for(const c of items){const g=groups.at(-1);if(g&&g.label===c.group)g.items.push(c);else groups.push({label:c.group,items:[c]});}
+ const list=h('nav',{class:'cx-list','aria-label':'科技樹文明列表'},...groups.map((g,i)=>h('div',{class:'cx-grp'},h('p',{class:'cx-group',id:`cx-tr${i}`},g.label),h('ul',{'aria-labelledby':`cx-tr${i}`},...g.items.map(listItem)))));
+ const detail=h('div',{class:'cx-detail',role:'region','aria-labelledby':'cx-tree-name',tabindex:'-1'});
+ list.addEventListener('click',e=>{const b=(e.target as Element).closest<HTMLButtonElement>('.cx-civ');if(b?.dataset.civ)selectTree(b.dataset.civ);});
+ list.addEventListener('keydown',e=>{const ids=items.map(c=>c.id),next=step(e.key,Math.max(0,ids.indexOf(treeChosen??ids[0])),ids.length);
+  if(next===null)return;e.preventDefault();selectTree(ids[next],true);});
+ // An item opens its own page in its category (a unit's line, a technology, a building, a reference item).
+ detail.addEventListener('click',e=>{const b=(e.target as Element).closest<HTMLElement>('[data-page]');if(b?.dataset.section&&b.dataset.page)go(b.dataset.section as CodexSection,b.dataset.page);});
+ open.body.replaceChildren(list,detail);open.list=list;open.detail=detail;
+ selectTree(treeChosen??open.ctx.match?.civ??items[0].id,focus);}
+// Opens a page in another category (from the tree): reference items need that category's 未實作 list switched on.
+function go(id:CodexSection,page:string){
+ if(id==='units'){unitChosen=page;showPending=true;}else if(id==='techs'){techChosen=page;techPending=true;}else if(id==='buildings'){buildingChosen=page;buildingPending=true;}
+ show(id,false);open?.detail.focus({preventScroll:true});}
 // ── The book ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 function show(id:CodexSection,focus:boolean){
  if(!open)return;section=id;
- for(const t of open.tabs){const on=t.dataset.section===id;t.setAttribute('aria-selected',String(on));t.tabIndex=on?0:-1;}
+ // The chosen tab stays in view (on a phone the tab row scrolls: 科技樹 opened by F4 sits past its edge).
+ for(const t of open.tabs){const on=t.dataset.section===id;t.setAttribute('aria-selected',String(on));t.tabIndex=on?0:-1;if(on&&t.parentElement)reveal(t.parentElement,t);}
  open.body.setAttribute('aria-labelledby',`cx-tab-${id}`);
- if(id==='units')renderUnits(focus);else if(id==='techs')renderTechs(focus);else if(id==='buildings')renderBuildings(focus);else renderCivs(focus);}
+ if(id==='units')renderUnits(focus);else if(id==='techs')renderTechs(focus);else if(id==='buildings')renderBuildings(focus);else if(id==='elements')renderElements(focus);else if(id==='tactics')renderTactics(focus);else if(id==='tree')renderTree(focus);else renderCivs(focus);}
 function injectStyle(){if(document.getElementById('cx-style'))return;const s=document.createElement('style');s.id='cx-style';s.textContent=css;document.head.append(s);}
-export function openCodex(host:HTMLElement,ctx:{civs:string[];icons:Record<string,string>;onClose:()=>void}){
+export function openCodex(host:HTMLElement,ctx:CodexContext){
  injectStyle();const prev=open?.prev??document.activeElement;open=null;
  const close=h('button',{type:'button',class:'cx-close'},'關閉',h('kbd',null,'Esc'));close.onclick=()=>closeCodex();
  // The category switch: tabs with roving focus; arrow keys, Home and End move and show, as do clicks.
@@ -469,6 +677,8 @@ export function openCodex(host:HTMLElement,ctx:{civs:string[];icons:Record<strin
  host.classList.add('cx-host');if(!host.hasAttribute('role'))host.setAttribute('role','dialog');host.setAttribute('aria-modal','true');host.setAttribute('aria-labelledby','cx-title');
  host.replaceChildren(h('div',{class:'cx'},h('header',{class:'cx-head'},h('h2',{id:'cx-title'},'百科'),tablist,close),body));
  host.hidden=false;open={host,ctx,prev,tabs,body,list:body,detail:body};
+ // Opened on the tree in a match: the player's own civilization.
+ if(ctx.section){section=ctx.section;if(ctx.section==='tree'&&(ctx.match||ctx.treeCiv))treeChosen=ctx.match?.civ??ctx.treeCiv!;}
  show(section,true);}
 // Closes the book (its button, or the page on Esc): clears the overlay, returns focus, then tells the page once.
 export function closeCodex(){

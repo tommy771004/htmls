@@ -151,6 +151,36 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
  function relic(){const g=new T.Group();g.name='relic';for(const p of relicParts){const m=new T.Mesh(box(p.w,p.h,p.d),material(p.color));m.position.set(p.x+p.w/2,p.y,p.z+p.d/2);m.castShadow=true;g.add(m);}return g;}
  const relics=new Map<number,any>();
  const arrows=new Map<string,any>(),arrowGeo=new T.BoxGeometry(.04,.04,1),arrowMaterial=new T.MeshBasicMaterial({color:'#4a3b2a'});
+ // Shots in flight (the 戰術技巧 round): one pooled mesh per projectile, by shape, gliding between snapshots along an
+ // arc from where it left to where it will land; a puff where it comes down (and at a gun's mouth when it fires).
+ type Flight={mesh:any;shape:string;from:{x:number;y:number};to:{x:number;y:number};goal:{x:number;y:number};at:{x:number;y:number};lift:number;fan:number};
+ const shapeOf=(kind:string)=>kind==='mangonel'||kind==='trebuchet'?'stone':kind==='bombard-cannon'||kind==='cannon-galleon'||kind==='bombard-tower'?'ball':kind==='hand-cannoneer'||kind==='janissary'?'shot':kind==='scorpion'?'bolt':kind==='throwing-axeman'?'axe':kind==='mameluke'?'javelin':kind==='fire-galley'?'fire':'arrow';
+ // arc: the peak above the straight line, in tiles; long: the mesh points along its flight (darts) or tumbles (stones, balls).
+ const shapes:Record<string,{geo:any;mat:any;arc:number;long:boolean;puff:number}>={
+  arrow:{geo:new T.BoxGeometry(.055,.055,.42),mat:material('#4d3a26'),arc:.45,long:true,puff:.18},
+  bolt:{geo:new T.BoxGeometry(.06,.06,.56),mat:material('#4a3b2a'),arc:.2,long:true,puff:.22},
+  javelin:{geo:new T.BoxGeometry(.04,.04,.5),mat:material('#7a5c40'),arc:.5,long:true,puff:.18},
+  axe:{geo:new T.BoxGeometry(.16,.05,.14),mat:material('#8f969a'),arc:.4,long:false,puff:.18},
+  stone:{geo:new T.BoxGeometry(.2,.18,.2),mat:material('#9d9583'),arc:1.8,long:false,puff:.55},
+  ball:{geo:new T.SphereGeometry(.09,10,8),mat:material('#2b2a28'),arc:.7,long:false,puff:.45},
+  shot:{geo:new T.SphereGeometry(.035,6,5),mat:material('#2b2a28'),arc:.1,long:false,puff:.14},
+  fire:{geo:new T.BoxGeometry(.16,.14,.3),mat:new T.MeshBasicMaterial({color:'#f0883e',transparent:true,opacity:.85,depthWrite:false}),arc:.15,long:true,puff:0},
+ };
+ // Where a shot leaves: a unit's chest, a ship's deck, a building's roof or loopholes.
+ const launchLift:Record<string,number>={'town-center':2,'watch-tower':2.6,castle:3.4,'bombard-tower':2.1,trebuchet:1.4,mangonel:.7};
+ const flights=new Map<number,Flight>(),flightPool=new Map<string,any[]>();
+ const puffGeo=new T.SphereGeometry(.5,8,6),puffs:{mesh:any;start:number;size:number}[]=[],puffPool:any[]=[];
+ function puff(x:number,y:number,size:number,color:string){if(size<=0)return;const m=puffPool.pop()??new T.Mesh(puffGeo,new T.MeshBasicMaterial({transparent:true,depthWrite:false}));m.material.color.set(color);m.material.opacity=.55;
+  m.position.set(x/100,groundHeight(worldTiles,x,y)/100+.08,y/100);m.scale.setScalar(size*.3);scene.add(m);puffs.push({mesh:m,start:0,size});}
+ function land(f:Flight){scene.remove(f.mesh);(flightPool.get(f.shape)??flightPool.set(f.shape,[]).get(f.shape)!).push(f.mesh);puff(f.to.x,f.to.y,shapes[f.shape].puff,'#cdbf9f');}
+ const flightPoint=new T.Vector3(),flightAhead=new T.Vector3();
+ // Height on the arc at ground position (x, y): straight from launch to the ground, plus a parabola over the flight.
+ function flightHeight(f:Flight,x:number,y:number){const total=Math.hypot(f.to.x-f.from.x,f.to.y-f.from.y)||1,t=Math.min(1,Math.max(0,Math.hypot(x-f.from.x,y-f.from.y)/total));
+  const start=groundHeight(worldTiles,f.from.x,f.from.y)/100+f.lift,end=groundHeight(worldTiles,f.to.x,f.to.y)/100+.15;return start+(end-start)*t+shapes[f.shape].arc*Math.min(1,total/400)*4*t*(1-t);}
+ // fan: a few units sideways to the line of flight (by shot id), so the arrows of one volley read as several.
+ function placeFlight(f:Flight,time:number){const ldx=f.to.x-f.from.x,ldy=f.to.y-f.from.y,ll=Math.hypot(ldx,ldy)||1;flightPoint.set((f.at.x-ldy/ll*f.fan)/100,flightHeight(f,f.at.x,f.at.y),(f.at.y+ldx/ll*f.fan)/100);f.mesh.position.copy(flightPoint);
+  if(shapes[f.shape].long){const dx=f.to.x-f.from.x,dy=f.to.y-f.from.y,len=Math.hypot(dx,dy)||1,ax=f.at.x+dx/len*12,ay=f.at.y+dy/len*12;flightAhead.set((ax-ldy/ll*f.fan)/100,flightHeight(f,ax,ay),(ay+ldx/ll*f.fan)/100);f.mesh.lookAt(flightAhead);}
+  else{f.mesh.rotation.x=time/90;f.mesh.rotation.z=time/130;}}
  // Fallen units: short-lived rigs in the death pose, keyed by unit id (sim corpses, visual only).
  const fallen=new Map<number,{group:any;rig:ReturnType<typeof createCharacterRig>|SiegeRig|VesselRig;start:number}>();
  const barBack=new T.MeshBasicMaterial({color:'#2d3a33'}),barGeo=new T.BoxGeometry(.5,.05,.05);
@@ -207,9 +237,17 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
    const share=Math.max(0,data.hp)/Math.max(1,data.maxHp);u.bar.visible=share<1;u.fill.scale.x=Math.max(.001,share);u.fill.position.x=-.25*(1-share);u.bar.rotation.y=angle-u.group.rotation.y;}}
   const spots=new Set((view.relicSpots??[]).map(r=>r.id));for(const [id,g] of relics)if(!spots.has(id)){scene.remove(g);relics.delete(id);}
   for(const r of view.relicSpots??[]){let g=relics.get(r.id);if(!g){g=relic();scene.add(g);relics.set(r.id,g);}g.position.set(r.x/100,(groundHeight(worldTiles,r.x,r.y)+standingLift(r.x,r.y))/100,r.y/100);}
-  // Arrows from town centres and towers: a thin shaft from the roof to the target, for the few ticks the sim keeps it.
-  const flying=new Set((view.shots??[]).map(v=>`${v.tick}:${v.from.x},${v.from.y}>${v.to.x},${v.to.y}`));for(const [k,m] of arrows)if(!flying.has(k)){scene.remove(m);arrows.delete(k);}
-  for(const v of view.shots??[]){const k=`${v.tick}:${v.from.x},${v.from.y}>${v.to.x},${v.to.y}`;if(arrows.has(k))continue;
+  // Shots in flight: new ones take a pooled mesh at their launch point; the ones the view no longer lists have landed.
+  const inAir=new Set((view.projectiles??[]).map(p=>p.id));for(const [id,f] of flights)if(!inAir.has(id)){land(f);flights.delete(id);}
+  for(const p of view.projectiles??[]){let f=flights.get(p.id);
+   if(!f){const shape=shapeOf(p.kind),mesh=flightPool.get(shape)?.pop()??new T.Mesh(shapes[shape].geo,shapes[shape].mat);scene.add(mesh);
+    f={mesh,shape,from:{...p.from},to:{...p.to},goal:{x:p.x,y:p.y},at:{...p.from},lift:launchLift[p.kind]??.62,fan:((p.id*37)%9-4)*5};flights.set(p.id,f);
+    if(shape==='ball'||shape==='shot')puff(p.from.x,p.from.y,shape==='ball'?.4:.16,'#e9e4d8');placeFlight(f,0);}
+   f.goal={x:p.x,y:p.y};f.to={...p.to};}
+  canvas.dataset.flights=String(flights.size);
+  // Arrows from town centres and towers as straight lines: only for a view without flights (older snapshots).
+  const flying=new Set((view.projectiles?[]:view.shots??[]).map(v=>`${v.tick}:${v.from.x},${v.from.y}>${v.to.x},${v.to.y}`));for(const [k,m] of arrows)if(!flying.has(k)){scene.remove(m);arrows.delete(k);}
+  for(const v of view.projectiles?[]:view.shots??[]){const k=`${v.tick}:${v.from.x},${v.from.y}>${v.to.x},${v.to.y}`;if(arrows.has(k))continue;
    const a=new T.Vector3(v.from.x/100,groundHeight(worldTiles,v.from.x,v.from.y)/100+2.2,v.from.y/100),b=new T.Vector3(v.to.x/100,groundHeight(worldTiles,v.to.x,v.to.y)/100+.6,v.to.y/100);
    const m=new T.Mesh(arrowGeo,arrowMaterial);m.position.copy(a).lerp(b,.5);m.scale.z=a.distanceTo(b);m.lookAt(b);scene.add(m);arrows.set(k,m);}
   // Corpses: create once, pose from the moment they appear, remove when the sim drops them.
@@ -238,6 +276,8 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
  function draw(time:number){if(contextLost)return;resize();const dt=lastDraw?Math.min(100,Math.max(0,time-lastDraw)):0,ease=1-Math.exp(-dt/60);lastDraw=time;
   if(zoomGoal!==null){zoom+=(zoomGoal-zoom)*(1-Math.exp(-dt/70));if(Math.abs(zoomGoal-zoom)<.002){zoom=zoomGoal;zoomGoal=null;}cameraUpdate();}
   for(const u of units.values())if(u.goal){if(u.group.position.distanceTo(u.goal)<.002)u.group.position.copy(u.goal);else u.group.position.lerp(u.goal,ease);}
+  for(const f of flights.values()){f.at.x+=(f.goal.x-f.at.x)*ease;f.at.y+=(f.goal.y-f.at.y)*ease;placeFlight(f,time);}
+  for(let i=puffs.length-1;i>=0;i--){const p=puffs[i];if(!p.start)p.start=time;const k=(time-p.start)/380;if(k>=1){scene.remove(p.mesh);puffPool.push(p.mesh);puffs.splice(i,1);continue;}p.mesh.scale.setScalar(p.size*(.3+.7*k));p.mesh.material.opacity=.55*(1-k);}
   stepMarker(time);
   for(const u of units.values()){const pose=options.assetPreview?previewPose:poseFor(u.kind,u.activity as UnitPose);u.rig.pose(pose,options.assetPreview?(previewAnimated?time-poseStart:pose==='death'?700:pose==='hit'?150:350):pose==='hit'?time-u.poseStart:time);u.ring.visible=[...units].some(([id,v])=>v===u&&selected.has(id))&&pose!=='death';}for(const f of fallen.values())f.rig.pose('death',time-f.start);renderer.render(scene,camera);if(++frames%30===0){canvas.dataset.draws=String(renderer.info.render.calls);canvas.dataset.triangles=String(renderer.info.render.triangles);}}
  let frames=0;
@@ -261,6 +301,14 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
  function setGhosts(list:{kind:BuildKind;x:number;y:number;ok:boolean}[]){
   while(wallGhosts.length<list.length){const m=new T.Mesh(ghost.geometry,new T.MeshBasicMaterial({color:'#6f9d6a',transparent:true,opacity:.42,depthWrite:false}));scene.add(m);wallGhosts.push(m);}
   wallGhosts.forEach((m,i)=>{const g=list[i];m.visible=!!g;if(!g)return;const [x0,y0,x1,y1]=obstacleBounds({kind:g.kind,x:g.x,y:g.y});m.scale.set((x1-x0)/100,1,(y1-y0)/100);m.position.set((x0+x1)/200,groundHeight(worldTiles,g.x,g.y)/100+.15,(y0+y1)/200);(m.material as InstanceType<typeof T.MeshBasicMaterial>).color.set(g.ok?'#6f9d6a':'#b8574a');});}
+ // Patrol routes of the selected units: a faint dashed track between the two ends (pooled dashes, one shared material).
+ const patrolDash=new T.BoxGeometry(.2,.03,.09),patrolLook=new T.MeshBasicMaterial({color:'#2f5f73',transparent:true,opacity:.72,depthWrite:false}),patrolDashes:InstanceType<typeof T.Mesh>[]=[];
+ function setPatrols(routes:{from:{x:number;z:number};to:{x:number;z:number}}[]){
+  const spots:{x:number;z:number;a:number}[]=[];
+  for(const r of routes){const dx=r.to.x-r.from.x,dz=r.to.z-r.from.z,len=Math.hypot(dx,dz),n=Math.min(60,Math.floor(len/.36));for(let i=0;i<=n;i++){const t=n?i/n:0;spots.push({x:r.from.x+dx*t,z:r.from.z+dz*t,a:Math.atan2(-dz,dx)});}}
+  while(patrolDashes.length<spots.length){const m=new T.Mesh(patrolDash,patrolLook);scene.add(m);patrolDashes.push(m);}
+  canvas.dataset.patrol=String(spots.length);
+  patrolDashes.forEach((m,i)=>{const p=spots[i];m.visible=!!p;if(!p)return;m.position.set(p.x,(groundHeight(worldTiles,p.x*100,p.z*100)+standingLift(p.x*100,p.z*100))/100+.07,p.z);m.rotation.y=p.a;});}
  // HUD art: the same brick parts and rigs rendered once into small transparent PNGs (no icon packs, no network).
  // A second, short-lived WebGL context keeps the battlefield renderer's size and state untouched.
  function renderIcons(size=160):Record<string,string>{
@@ -310,7 +358,7 @@ export async function createScene(canvas:HTMLCanvasElement,onFailure:(message:st
   const shadows=level!=='low',size=level==='high'?2048:1024;
   if(renderer.shadowMap.enabled!==shadows||sun.shadow.mapSize.x!==size){renderer.shadowMap.enabled=shadows;sun.castShadow=shadows;sun.shadow.mapSize.set(size,size);sun.shadow.map?.dispose();sun.shadow.map=null;for(const m of materials.values())m.needsUpdate=true;table.material.needsUpdate=true;}
   canvas.dataset.quality=level;}
- return {update,draw,pick,pickGround,pickBuilding,setMarker,setRally,setQuality,unitsInRect,setGhost,setGhosts,renderIcons,cameraView,setPreviewBuildingKind:(kind:DrawnBuilding|EconomicBuilding|MilitaryBuilding)=>{if(!options.assetPreview||(!(drawnBuildings as readonly string[]).includes(kind)&&!economicBuildings.includes(kind as EconomicBuilding)&&!militaryBuildings.includes(kind as MilitaryBuilding)))throw Error('未知模型建築');previewBuildingKind=kind;if(latest)update(latest,selected);},setPreviewStyle:(style:Architecture)=>{if(!options.assetPreview||!architectures.includes(style))throw Error('未知建築風格');previewStyle=style;if(latest)update(latest,selected);},setPreviewRole:(role:any)=>{const siege=previewSiege(role);if(!options.assetPreview||(!unitRoles.includes(role)&&!isMounted(role)&&!siege))throw Error('僅模型檢視可指定有效軍種');previewRole=role;previewPose='idle';
+ return {update,draw,pick,pickGround,pickBuilding,setMarker,setRally,setQuality,unitsInRect,setGhost,setGhosts,setPatrols,renderIcons,cameraView,setPreviewBuildingKind:(kind:DrawnBuilding|EconomicBuilding|MilitaryBuilding)=>{if(!options.assetPreview||(!(drawnBuildings as readonly string[]).includes(kind)&&!economicBuildings.includes(kind as EconomicBuilding)&&!militaryBuildings.includes(kind as MilitaryBuilding)))throw Error('未知模型建築');previewBuildingKind=kind;if(latest)update(latest,selected);},setPreviewStyle:(style:Architecture)=>{if(!options.assetPreview||!architectures.includes(style))throw Error('未知建築風格');previewStyle=style;if(latest)update(latest,selected);},setPreviewRole:(role:any)=>{const siege=previewSiege(role);if(!options.assetPreview||(!unitRoles.includes(role)&&!isMounted(role)&&!siege))throw Error('僅模型檢視可指定有效軍種');previewRole=role;previewPose='idle';
   const frame=siege?unitFrame(siege,role==='trebuchet-unpacked'):frameOfRole(role);
   for(const u of units.values()){const rig=previewRig(u,siege??'character');if(siege==='trebuchet')(rig as SiegeRig).dress(role==='trebuchet-unpacked'?'unpacked':'packed');else if(!siege)(rig as ReturnType<typeof createCharacterRig>).dress(role);rig.grade(null);u.ring.scale.set(frame.ring,1,frame.ring);detail.apply(u.group,zoom);}},
  // Line-upgrade look on the inspected model ('' or null: the base look); dressing again clears it.

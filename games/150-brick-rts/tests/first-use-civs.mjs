@@ -42,7 +42,7 @@ const browser=await chromium.launch({headless:true});const errors=[],external=[]
 const watch=p=>{p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text());});p.on('request',r=>{if(!r.url().startsWith(origin)&&!r.url().startsWith('data:')&&!r.url().startsWith('blob:'))external.push(r.url());});};
 try{
  page=await browser.newPage({viewport:{width:1440,height:900}});watch(page);
- await page.goto(origin+'/web/150-brick-rts.html');await page.waitForFunction(()=>Number(document.querySelector('#tick').textContent)>2);
+ await page.goto(origin+'/web/150-brick-rts.html?play=1');await page.waitForFunction(()=>Number(document.querySelector('#tick').textContent)>2);
  const text=id=>page.locator('#'+id).innerText();
  // 2. First visit: the default civ in the top bar; both pickers list every civ, settlers last, 隨機 first for red.
  assert.equal(await text('civ-name'),'不列顛');note('頂列',`${await text('civ-name')}｜${await text('age-name')}`);note('場景重建（首次進站）',`${await page.locator('canvas').first().getAttribute('data-rebuild-ms')} ms`);
@@ -60,7 +60,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('#civ-name').textContent==='條頓');
  await page.keyboard.press('F10');await page.locator('#save').click();await page.waitForFunction(()=>/已儲存 tick/.test(document.querySelector('#notice').textContent));
  const saved=JSON.parse(await page.evaluate(()=>localStorage.getItem('brick-rts:sandbox:1')));
- assert.equal(saved.format,'brick-sandbox-30');assert.deepEqual(saved.state.civs,['teutons','japanese']);note('頁面存檔',`${saved.format}，文明 ${saved.state.civs.join(' 對 ')}，tick ${saved.state.tick}`);
+ assert.equal(saved.format,'brick-sandbox-33');assert.deepEqual(saved.state.civs,['teutons','japanese']);note('頁面存檔',`${saved.format}，文明 ${saved.state.civs.join(' 對 ')}，tick ${saved.state.tick}`);
  // 4. The encyclopedia from the menu: 14 civs, the player's own first; the Britons' page matches the simulation.
  await page.keyboard.press('F10');await page.locator('#codex-open').click();await page.waitForFunction(()=>!document.querySelector('#codex').hidden&&document.querySelector('#cx-civ-name'));
  const civButtons=await page.locator('#codex .cx-civ').evaluateAll(b=>b.map(x=>({id:x.dataset.civ,current:x.getAttribute('aria-current'),mark:x.querySelector('.cx-mark')?.textContent??''})));
@@ -132,7 +132,7 @@ try{
  await page.keyboard.press('KeyF');await page.waitForTimeout(500);await page.screenshot({path:out+'civs-longbowman.png'});
  // 8. Phone: the book open at 390×844 does not scroll the page or the overlay sideways (its civ strip scrolls by design).
  const phone=await browser.newPage({viewport:{width:390,height:844}});watch(phone);
- await phone.goto(origin+'/web/150-brick-rts.html');await phone.waitForFunction(()=>Number(document.querySelector('#tick').textContent)>2);
+ await phone.goto(origin+'/web/150-brick-rts.html?play=1');await phone.waitForFunction(()=>Number(document.querySelector('#tick').textContent)>2);
  await phone.keyboard.press('F10');await phone.locator('#codex-open').click();await phone.waitForFunction(()=>!document.querySelector('#codex').hidden&&document.querySelector('#cx-civ-name'));
  await phone.locator('#codex .cx-civ[data-civ="britons"]').click();await phone.waitForTimeout(300);
  const fit=await phone.evaluate(()=>{const c=document.querySelector('#codex'),cx=c.querySelector('.cx'),d=c.querySelector('.cx-detail');

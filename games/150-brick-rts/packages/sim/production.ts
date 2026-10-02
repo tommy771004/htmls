@@ -4,7 +4,8 @@ import {reserve,cancelReservation,commitReservation} from './economy.ts';
 import {position,navigationRules,nearest,blockedFor,nodesNear} from './navigation.ts';
 import {makeUnit,commandMove,unitKinds,layerOf} from './movement.ts';
 import type {Layer} from './movement.ts';
-import type {UnitKind,MovementState} from './movement.ts';
+import type {UnitKind,MovementState,Unit} from './movement.ts';
+import {battered,garrisonCapacity} from './defense.ts';
 import type {Building,BuildingState} from './buildings.ts';
 import {recomputeCapacity} from './buildings.ts';
 import {combatRules,maxHpOf,buildingHpOf} from './stats.ts';
@@ -20,11 +21,12 @@ export function ageOf(entryId:string){const m=/^age-(\d)$/.exec(entryId);return 
 const entryOf=(id:string)=>rules.entries.find(e=>e.id===id);
 // Pure check shared by the Worker (authoritative) and the page (button reasons), from plain data only.
 // civ: the player's civilization (the neutral one when absent).
-export type TrainInput={player:number;civ?:string;age:number;techs:readonly string[];building:{kind:string;complete:boolean;queue:{entryId:string}[]};ownBuildings:{kind:string;complete:boolean;queue:{entryId:string}[]}[];stock:Record<string,number>;populationUsed:number;populationReserved:number;populationCap:number};
+// allTechs: the match's 所有科技 setting.
+export type TrainInput={allTechs?:boolean;player:number;civ?:string;age:number;techs:readonly string[];building:{kind:string;complete:boolean;queue:{entryId:string}[]};ownBuildings:{kind:string;complete:boolean;queue:{entryId:string}[]}[];stock:Record<string,number>;populationUsed:number;populationReserved:number;populationCap:number};
 export function trainBlocker(i:TrainInput,entryId:string):string|null{
- const e=entryOf(entryId),owner:Owner={civ:i.civ??neutralCiv,age:i.age,techs:i.techs};
+ const e=entryOf(entryId),owner:Owner={civ:i.civ??neutralCiv,age:i.age,techs:i.techs,...(i.allTechs?{allTechs:true}:{})};
  if(!e||e.kind==='building')return '未知的生產項目';
- if(!civAvailable(owner.civ,entryId))return '此文明不能生產';
+ if(!civAvailable(owner.civ,entryId,!!i.allTechs))return '此文明不能生產';
  if(!i.building.complete)return '建築尚未完工';
  if(!producersOf(entryId,owner).includes(i.building.kind))return '這棟建築不能生產這個項目';
  for(const req of e.requires){
@@ -45,7 +47,7 @@ export function trainBlocker(i:TrainInput,entryId:string):string|null{
 export function trainable(s:ProductionState,player:number,b:Building,entryId:string):string|null{
  if(b.player!==player)return '不能操作敵方建築';
  const a=s.accounts[player];
- return trainBlocker({player,civ:ownerOf(s,player).civ,age:s.ages[player],techs:s.techs[player],building:b,ownBuildings:s.buildings.filter(v=>v.player===player),stock:a.stock,populationUsed:a.populationUsed,populationReserved:a.populationReserved,populationCap:a.populationCap},entryId);
+ const o=ownerOf(s,player);return trainBlocker({...(o.allTechs?{allTechs:true}:{}),player,civ:o.civ,age:s.ages[player],techs:s.techs[player],building:b,ownBuildings:s.buildings.filter(v=>v.player===player),stock:a.stock,populationUsed:a.populationUsed,populationReserved:a.populationReserved,populationCap:a.populationCap},entryId);
 }
 export function enqueue(s:ProductionState,player:number,buildingId:string,entryId:string,reservationId:string){
  const b=s.buildings.find(v=>v.id===buildingId);if(!b)throw Error('找不到這棟建築');
@@ -97,12 +99,19 @@ export function stepProduction(s:ProductionState){
   // Units already in the field gain whatever health the research adds (Sanctity for monks, Loom for villagers).
   if(entryOf(item.entryId)?.kind==='technology'){commitReservation(s.accounts[b.player],item.reservationId);b.queue.shift();const before={...ownerOf(s,b.player),techs:[...s.techs[b.player]]};s.techs[b.player].push(item.entryId);
    refreshOwner(s,b.player,before);continue;}
+  // A rally point on the building itself (the 遊戲元素 round, defense.ts rallyGarrison): the new unit goes straight
+  // inside while there is room and the building is not badly damaged; otherwise it comes out as usual.
+  const g=(s as {garrison?:Record<string,{box:number[];units:{unit:Unit;work:null;bell:boolean}[]}>}).garrison;
+  if(b.rally?.inside&&g&&!battered(b)&&(g[b.id]?.units.length??0)<garrisonCapacity(s,b)){
+   commitReservation(s.accounts[b.player],item.reservationId);b.queue.shift();const box=obstacleBounds(s.map.obstacles.find(o=>o.id===b.id)!);
+   const u=makeUnit(s.map,s.nextUnitId++,b.player,Math.round((box[0]+box[2])/100)*50,Math.round((box[1]+box[3])/100)*50,unitKindOf(item.entryId));u.hp=maxHpOf(u.kind as keyof typeof combatRules.units,ownerOf(s,b.player));
+   (g[b.id]??={box,units:[]}).units.push({unit:u,work:null,bell:false});continue;}
   // A blocked exit keeps the finished unit waiting at 100% until a ring node frees up.
   const layer=layerOf(unitKindOf(item.entryId)),node=exitNode(s,b,layer);if(node<0)continue;
   commitReservation(s.accounts[b.player],item.reservationId);b.queue.shift();
   const p=position(s.map,node),u=makeUnit(s.map,s.nextUnitId++,b.player,p.x,p.y,unitKindOf(item.entryId));u.hp=maxHpOf(u.kind as keyof typeof combatRules.units,ownerOf(s,b.player));s.units.push(u);
   // A rally point later covered by a building (or otherwise unstandable) is skipped, never an error.
   // A ship heads for the water nearest the rally point instead.
-  if(b.rally&&nearest(s.map,b.rally,false,layer)>=0)commandMove(s,[u.id],b.rally);
+  if(b.rally&&!b.rally.inside&&nearest(s.map,b.rally,false,layer)>=0)commandMove(s,[u.id],b.rally);
  }
 }

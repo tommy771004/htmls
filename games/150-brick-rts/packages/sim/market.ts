@@ -92,6 +92,8 @@ export function stepTrade(s:MarketState){
 // each wonder keeps its own clock (from its completion), the earliest decides.
 export function stepWonders(s:MarketState){
  const T=religionRules.relics.victoryTicks;
+ // The lobby's 征服 setting: wonders stand without a countdown.
+ if((s as {settings?:{victory:string}}).settings?.victory==='conquest'){s.wonders={};s.wonderVictory=null;return;}
  for(const id of Object.keys(s.wonders))if(!s.buildings.some(b=>b.id===id&&b.kind==='wonder'&&b.complete))delete s.wonders[id];
  for(const b of [...s.buildings].sort((a,b)=>a.id<b.id?-1:1))if(b.kind==='wonder'&&b.complete&&!(b.id in s.wonders))s.wonders[b.id]=s.tick+T;
  let best:WonderVictory|null=null;

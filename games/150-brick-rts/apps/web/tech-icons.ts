@@ -200,5 +200,8 @@ Object.assign(techIcons,{
  // Bombard Tower: a squat banded tower with a cannon run out of it (the tower itself).
  'bombard-tower-tech':[bar(.18,0,.6,.66,stone,.3,.36),bar(.14,.3,.68,.06,iron,.28,.4),bar(.14,.66,.68,.08,'#9d9a88',.28,.4),...merlons(.14,.74,3,.12),bar(.4,.4,.16,.12,iron,.66,.3),bar(.38,.38,.2,.16,'#3f4240',.94,.03)],
  // Greek Fire: a bronze siphon nozzle shooting a long jet of flame (fire ships reach farther).
+ // Ballistics (the 戰術技巧 round): an arrow's dotted arc leading a running target, landing on it (shots lead moving units).
+ ballistics:[...[[0,.08],[.1,.3],[.22,.46],[.35,.55],[.48,.56]].map(([x,y])=>bar(x,y,.08,.05,wood,.45,.04)),bar(.58,.48,.08,.08,metal2,.44,.06),
+  bar(.7,0,.06,.3,wood,.32,.06),bar(.66,.3,.3,.4,'#ece2c4',.3,.08),bar(.72,.38,.18,.24,team,.38,.03),bar(.77,.45,.08,.1,gold,.41,.03),...[0,1,2].map(i=>bar(.96-i*.02,.1+i*.12,.1,.04,'#efe6cc',.45,.04))],
  'greek-fire':[bar(0,.2,.22,.24,'#b8964a',.36,.28),bar(.22,.26,.16,.12,'#b8964a',.4,.12),bar(.38,.24,.2,.16,flame,.4,.16),bar(.58,.26,.22,.12,flame,.4,.14),bar(.8,.28,.2,.08,spark,.42,.1),bar(.06,0,.1,.2,wood,.4,.1),...shaft(.3,.62,.5)],
 } as Record<string,Part[]>);
