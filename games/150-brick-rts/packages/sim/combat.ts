@@ -10,9 +10,9 @@ import {combatRules,statsOf,hitDamage,buildingTargetOf,shotOf,projectileRules,sp
 import type {CombatUnitKind,UnitStats,ShotRule} from './stats.ts';
 import {ownerOf,deathRefund,keepsHousing} from './civ.ts';
 import type {Owner} from './civ.ts';
-import {tileAt} from './terrain.ts';
+import {tileAt,groundHeight} from './terrain.ts';
 import type {KnownObstacle} from './vision.ts';
-import {isAnimal,makeCarcass} from './fauna.ts';
+import {isAnimal,isHostile,makeCarcass} from './fauna.ts';
 import {withCarried} from './garrison.ts';
 import {releaseCarried} from './naval.ts';
 import type {AnimalKind} from './fauna.ts';
@@ -111,8 +111,18 @@ function reveal(s:CombatState,victim:number,from:{x:number;y:number}){
  const list=((s as {reveals?:Reveal[]}).reveals??=[]),old=list.find(r=>r.player===victim&&r.tile===tile);
  if(old)old.until=s.tick+revealTicks;else list.push({player:victim,tile,until:s.tick+revealTicks});
 }
-// attacker: who struck (a struck animal remembers the first one, see animals.ts); from: where the blow came from.
+// Fighting from higher ground (the 地圖 round): a blow or shot from a tile higher than the target's tile does bonus times
+// the damage. aoetw.com gives one base-rule number, on its Mongolia page: 高地打低地攻擊加成50%; it mentions no penalty
+// for shooting uphill (classic AoK is x1.25 from above and x0.75 from below; the site's other +50% lines are the DE
+// Tatars' civ bonus). design_default after the site.
+export const elevationRules={provenance:'aoetw.com maps/Mongolia (高地打低地攻擊加成 50%); no uphill penalty on the site',bonus:1.5} as const;
+function heightOf(s:CombatState,t:Target){if(t.kind==='unit'){const u=s.units.find(u=>u.id===t.id);return u?groundHeight(s.map.tiles,u.x,u.y):0;}
+ const b=s.buildings.find(b=>b.id===t.id),box=b&&buildingBox(s,b);return box?groundHeight(s.map.tiles,Math.floor((box[0]+box[2])/2),Math.floor((box[1]+box[3])/2)):0;}
+export const elevated=(s:CombatState,from:{x:number;y:number},t:Target)=>groundHeight(s.map.tiles,from.x,from.y)>heightOf(s,t);
+// attacker: who struck (a struck animal remembers the first one, see animals.ts); from: where the blow came from (a
+// higher tile than the target's adds elevationRules.bonus).
 export function strike(s:CombatState,t:Target,amount:number,attacker:number,from?:{x:number;y:number}){
+ if(from&&amount>0&&elevated(s,from,t))amount=Math.max(1,Math.round(amount*elevationRules.bonus));
  if(from){const p=t.kind==='unit'?s.units.find(u=>u.id===t.id)?.player:s.buildings.find(b=>b.id===t.id)?.player;if(p!==undefined)reveal(s,p,from);}
  if(t.kind==='unit'){const u=s.units.find(u=>u.id===t.id)!;u.hp-=amount;u.hitTick=s.tick;if(isAnimal(u.kind)&&!s.beasts[u.id])s.beasts[u.id]={foe:attacker,cooldown:0,repath:0};if(u.hp<=0)killUnit(s,u);return;}
  const b=s.buildings.find(b=>b.id===t.id)!;b.hp-=amount;const o=s.map.obstacles.find(o=>o.id===b.id)!;
@@ -230,7 +240,8 @@ export function stepCombat(s:CombatState){
   // Across the shore (a ship and a land unit) only units that shoot pick each other (range 150 and up): a swordsman
   // never locks onto a galley it cannot reach.
   const layer=layerOf(u.kind),across=own.range>=150;
-  for(const e of s.units)if(e.player!==u.player&&!isAnimal(e.kind)&&(across||layerOf(e.kind)===layer)&&seen.has(tileAt(e.x,e.y,s.map.size))){const d=reach(u,e);if(d<=sight&&d>=(own.minRange??0)&&(d<dist||d===dist&&best&&e.id<best.id)){best=e;dist=d;}}
+  // Wolves and jaguars (the 地圖 round) are fought like enemies; other animals are never picked automatically.
+  for(const e of s.units)if(e.player!==u.player&&(!isAnimal(e.kind)||isHostile(e.kind))&&(across||layerOf(e.kind)===layer)&&seen.has(tileAt(e.x,e.y,s.map.size))){const d=reach(u,e);if(d<=sight&&d>=(own.minRange??0)&&(d<dist||d===dist&&best&&e.id<best.id)){best=e;dist=d;}}
   if(best)s.attacks[u.id]={target:{kind:'unit',id:best.id},cooldown:0,auto:true,repath:0,firedTick:-1,...(stance==='defensive'?{anchor:{x:u.x,y:u.y}}:{})};
  }
  for(const id of Object.keys(s.attacks).map(Number).sort((a,b)=>a-b)){

@@ -33,7 +33,8 @@
     "test:openings": "node --experimental-strip-types tests/first-use-openings.mjs",
     "test:micro": "node --experimental-strip-types tests/first-use-micro.mjs",
     "test:tree": "node --experimental-strip-types tests/first-use-tree.mjs",
-    "test:lobby": "node --experimental-strip-types tests/first-use-lobby.mjs"
+    "test:lobby": "node --experimental-strip-types tests/first-use-lobby.mjs",
+    "test:maps": "node --experimental-strip-types tests/first-use-maps.mjs"
   },
   "devDependencies": {
     "esbuild": "0.25.10",

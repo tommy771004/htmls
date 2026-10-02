@@ -3,9 +3,8 @@
 // 遊戲開始 sends a reset with these choices, 載入遊戲 lists the saves the page keeps. Only settings that change the real
 // match are offered (the game is one against one on a fixed-size map: no teams, positions or extra players).
 import {makeMap} from '../../packages/sim/navigation.ts';
-import {placeRelics} from '../../packages/sim/religion.ts';
-import {obstacleBounds} from '../../packages/content/footprints.ts';
-import type {ObstacleKind} from '../../packages/content/footprints.ts';
+import {mapChoices,allChoices,mapRelics} from './map-info.ts';
+import {paintMap} from './map-preview.ts';
 import {civDefs,civById,neutralCiv} from '../../packages/content/civs.ts';
 import {openings,standardOpening,randomOpening} from '../../packages/content/openings.ts';
 import {defaultSettings,matchSettings,settingRules} from '../../packages/sim/settings.ts';
@@ -14,10 +13,10 @@ import type {MapLayout} from '../../packages/sim/terrain.ts';
 export type LobbyPrefs={name:string;blue:string;red:string;opponent:'ai'|'idle';aiOpening:string;layout:MapLayout;seed:string;settings:MatchSettings;record:boolean};
 export type LobbyStart={name:string;seed:number;layout:MapLayout;opponent:'ai'|'idle';civs:[string,string];aiOpening:string;settings:MatchSettings;record:boolean};
 export type SaveSlot={key:string;label:string;detail:string;raw:string};
-export type LobbyDeps={start:(m:LobbyStart)=>Promise<void>;saves:()=>SaveSlot[];load:(slot:SaveSlot)=>Promise<void>;openTree:(civ:string)=>void;onClose:()=>void;
- colors:{terrain:Record<string,string>;obstacle:Record<string,string>;grass:string}};
+export type LobbyDeps={start:(m:LobbyStart)=>Promise<void>;saves:()=>SaveSlot[];load:(slot:SaveSlot)=>Promise<void>;openTree:(civ:string)=>void;onClose:()=>void};
 const key='brick-rts:lobby:1';
-const layouts:[MapLayout,string,string][]=[['open','曠野','32×32，隨機出生'],['lakes','湖畔','32×32，中央大湖，可造船'],['meadow','草甸','16×16 練習場'],['coast','海岸','16×16，南邊是海'],['acceptance','高地與淺灘','16×16，坡地與淺灘']];
+// The map select: the site's playable maps by expansion, then this game's own and practice maps (map-info.ts).
+const layouts=allChoices();
 const options={difficulty:[['easy','簡單'],['standard','標準'],['hard','困難'],['hardest','最難']],resources:[['low','低'],['standard','標準'],['medium','中'],['high','高']],
  reveal:[['normal','標準（戰爭迷霧）'],['explored','已探索'],['all','全部顯示']],startAge:[['1','黑暗時代'],['2','封建時代'],['3','城堡時代'],['4','帝王時代']],victory:[['standard','標準'],['conquest','征服']]} as const;
 const hints:Record<string,Record<string,string>>={
@@ -36,7 +35,7 @@ export function defaultPrefs():LobbyPrefs{return {name:'藍方',blue:'britons',r
 export function loadPrefs():LobbyPrefs{const d=defaultPrefs();try{const v=JSON.parse(localStorage.getItem(key)??'null');if(!v||typeof v!=='object')return d;
  const civOk=(c:unknown)=>c==='random'||typeof c==='string'&&!!civById(c);let settings=d.settings;try{settings=matchSettings(v.settings??{});}catch{}
  return {name:typeof v.name==='string'&&v.name.trim()?v.name.trim().slice(0,16):d.name,blue:civOk(v.blue)?v.blue:d.blue,red:civOk(v.red)?v.red:d.red,opponent:v.opponent==='idle'?'idle':'ai',
-  aiOpening:[standardOpening,randomOpening,...openings.map(o=>o.id)].includes(v.aiOpening)?v.aiOpening:d.aiOpening,layout:layouts.some(([l])=>l===v.layout)?v.layout:d.layout,
+  aiOpening:[standardOpening,randomOpening,...openings.map(o=>o.id)].includes(v.aiOpening)?v.aiOpening:d.aiOpening,layout:layouts.some(m=>m.layout===v.layout)?v.layout:d.layout,
   seed:typeof v.seed==='string'&&/^\d{0,10}$/.test(v.seed)?v.seed:d.seed,settings,record:v.record===true};}catch{return d;}}
 const savePrefs=(p:LobbyPrefs)=>{try{localStorage.setItem(key,JSON.stringify(p));}catch{}};
 export function createLobby(deps:LobbyDeps){
@@ -48,7 +47,8 @@ export function createLobby(deps:LobbyDeps){
  fill('lobby-blue',[['random','隨機'],...civList(false)]);fill('lobby-red',civList(true));
  fill('lobby-opponent',[['ai','電腦'],['idle','不行動（練習）']]);
  fill('lobby-opening',[[standardOpening,'標準'],[randomOpening,'隨機（對局後揭曉）'],...openings.map(o=>[o.id,o.zh] as [string,string])]);
- fill('lobby-layout',layouts.map(([v,t])=>[v,t]),Object.fromEntries(layouts.map(([v,,h])=>[v,h])));
+ {const s=el<HTMLSelectElement>('lobby-layout');s.replaceChildren(...mapChoices().map(g=>{const og=document.createElement('optgroup');og.label=g.label;
+  og.append(...g.maps.map(m=>{const o=document.createElement('option');o.value=m.layout;o.textContent=m.zh;o.title=m.note;return o;}));return og;}));}
  for(const k of ['difficulty','resources','reveal','startAge','victory'] as const)fill(`lobby-${k}`,options[k],hints[k]);
  fill('lobby-popCap',settingRules.popCaps.map(n=>[String(n),String(n)]));
  const sel=(id:string)=>el<HTMLSelectElement>(id);
@@ -71,25 +71,19 @@ export function createLobby(deps:LobbyDeps){
   el('lobby-allTechs-note').textContent=p.settings.allTechs?'每個文明都能用所有共用的兵種、建築與科技；特殊單位仍屬各自的文明':'照各文明的科技樹';
   el('lobby-record-note').textContent=p.record?'對局中每一分鐘自動存檔一次（載入遊戲裡的「自動存檔」）':'不自動存檔（選單仍可手動儲存）';
   el<HTMLButtonElement>('lobby-start').disabled=busy||seed===null;el('lobby-seed-note').textContent=seed===null?'種子要是 0～4294967295 的整數':'同一個種子與地圖，每次生成同一張圖';
+  el('lobby-layout-note').textContent=layouts.find(m=>m.layout===p.layout)?.note??'';
   drawPreview(p.layout,seed);}
  // The preview: the generated baseplate seen like the minimap (a diamond), one brick a tile with its stud, then the
  // forests, mines, berries, relics and both town centres. A new map sweeps in from the north corner.
  function drawPreview(layout:MapLayout,seed:number|null){if(!ctx)return;const k=`${layout}|${seed}`;if(k===previewKey&&canvas.width)return;previewKey=k;
   if(seed===null){ctx.clearRect(0,0,canvas.width,canvas.height);return;}
-  const map=makeMap(seed,layout),relics=layout==='open'||layout==='lakes'?placeRelics(map,seed):[],N=map.size;
+  let map:ReturnType<typeof makeMap>;try{map=makeMap(seed,layout);}catch(e){ctx.clearRect(0,0,canvas.width,canvas.height);status.textContent=`這個種子生成地圖失敗：${(e as Error).message}；請換一個種子。`;return;}
+  if(status.textContent.startsWith('這個種子生成地圖失敗'))status.textContent='';
+  const relics=mapRelics(map,seed),N=map.size;
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches,start=performance.now(),id=++sweep;
   const paint=(now:number)=>{if(id!==sweep||!ctx)return;const r=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio,2),W=Math.max(1,Math.round(r.width*dpr)),H=Math.max(1,Math.round(r.height*dpr));
-   if(canvas.width!==W||canvas.height!==H){canvas.width=W;canvas.height=H;}ctx.setTransform(dpr,0,0,dpr,0,0);const w=r.width,h=r.height;ctx.clearRect(0,0,w,h);
-   const s=Math.min(w/(2*N),h/N)*.96,ox=w/2,oy=(h-N*s)/2,P=(x:number,z:number):[number,number]=>[ox+(x-z)*s,oy+(x+z)*s/2];
-   const done=reduce?Infinity:(now-start)/420*2*N;
-   const quad=(x0:number,z0:number,x1:number,z1:number)=>{ctx.beginPath();for(const [i,[x,z]] of ([[x0,z0],[x1,z0],[x1,z1],[x0,z1]] as const).entries()){const [px,py]=P(x,z);if(i)ctx.lineTo(px,py);else ctx.moveTo(px,py);}ctx.closePath();ctx.fill();};
-   const shade=(hex:string,f:number)=>{const n=parseInt(hex.slice(1),16);return `rgb(${Math.min(255,Math.round((n>>16&255)*f))},${Math.min(255,Math.round((n>>8&255)*f))},${Math.min(255,Math.round((n&255)*f))})`;};
-   map.tiles.forEach((t,i)=>{const x=i%N,z=Math.floor(i/N);if(x+z>done)return;const base=deps.colors.terrain[t.terrainType]??deps.colors.grass;
-    ctx.fillStyle=shade(base,.9);quad(x,z,x+1,z+1);ctx.fillStyle=base;quad(x+.06,z+.06,x+.94,z+.94);
-    if(s>=5){const [cx,cy]=P(x+.5,z+.5);ctx.fillStyle=shade(base,1.12);ctx.beginPath();ctx.ellipse(cx,cy-s*.08,s*.28,s*.14,0,0,Math.PI*2);ctx.fill();}});
-   for(const o of map.obstacles){const [x0,z0,x1,z1]=obstacleBounds(o as {kind:ObstacleKind;x:number;y:number});if(x0/100+z0/100>done)continue;
-    ctx.fillStyle=o.kind==='town-center'?(o.red?'#d0664c':'#5d93b6'):deps.colors.obstacle[o.kind]??'#c8c2a8';quad(x0/100,z0/100,x1/100,z1/100);}
-   for(const rel of relics){if(rel.x/100+rel.y/100>done)continue;const [px,py]=P(rel.x/100,rel.y/100);ctx.fillStyle='#f2d66b';ctx.strokeStyle='#15201b';ctx.lineWidth=1;ctx.beginPath();ctx.arc(px,py,Math.max(2.5,s*.4),0,Math.PI*2);ctx.fill();ctx.stroke();}
+   if(canvas.width!==W||canvas.height!==H){canvas.width=W;canvas.height=H;}ctx.setTransform(dpr,0,0,dpr,0,0);
+   const done=reduce?Infinity:(now-start)/420*2*N;paintMap(ctx,map,relics,r.width,r.height,done);
    if(done<2*N+2)requestAnimationFrame(paint);};
   paint(reduce?start:performance.now());}
  async function begin(){const p=read(),seed=seedOf(p);if(seed===null||busy)return;busy=true;notes();prefs=p;savePrefs(p);status.textContent='建立對局中…';

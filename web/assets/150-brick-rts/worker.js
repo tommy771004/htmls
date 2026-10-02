@@ -820,7 +820,8 @@ var resourceDefinitions = {
   // game's farm factor 250/175 -> 1000, design_default).
   "fish-trap": { yield: "food", method: "fish", movement: "water" }
 };
-var mapSizes = { meadow: 16, coast: 16, acceptance: 16, open: 32, lakes: 32 };
+var matchMapLayouts = ["arabia", "black-forest", "coastal", "mediterranean", "baltic", "continental", "rivers", "highland", "ghost-lake", "mongolia", "oasis", "scandinavia", "yucatan", "gold-rush", "crater-lake", "salt-marsh", "fortress", "arena", "nomad", "migration", "islands", "archipelago", "team-islands"];
+var mapSizes = { meadow: 16, coast: 16, acceptance: 16, open: 32, lakes: 32, ...Object.fromEntries(matchMapLayouts.map((l) => [l, 32])) };
 var terrainDefinitions = {
   grass: { walkClass: "land", buildability: true, height: 0 },
   road: { walkClass: "land", buildability: true, height: 0 },
@@ -829,14 +830,16 @@ var terrainDefinitions = {
   highland: { walkClass: "land", buildability: true, height: 100 },
   cliff: { walkClass: "blocked", buildability: false, height: 100 },
   water: { walkClass: "water", buildability: false, height: 0 },
-  shallow: { walkClass: "both", buildability: false, height: 0 }
+  shallow: { walkClass: "both", buildability: false, height: 0 },
+  ice: { walkClass: "land", buildability: false, height: 0 },
+  snow: { walkClass: "land", buildability: true, height: 0 }
 };
 function createTiles(layout = "meadow", seed = 0) {
   if (!(layout in mapSizes)) throw Error("\u672A\u77E5\u5730\u5716\u6A21\u5F0F");
   const size = mapSizes[layout];
   return Array.from({ length: size * size }, (_, id) => {
     const x = id % size, y = Math.floor(id / size);
-    let terrainType = layout !== "open" && layout !== "lakes" && y === 8 ? "road" : "grass";
+    let terrainType = size === 16 && y === 8 ? "road" : "grass";
     if (layout === "coast") {
       const edge = 12 + (seed >>> 0 >>> Math.floor(x / 4) & 1);
       if (y >= edge) terrainType = "water";
@@ -863,6 +866,9 @@ function createTiles(layout = "meadow", seed = 0) {
   });
 }
 var sizeOfTiles = (tiles) => Math.round(Math.sqrt(tiles.length));
+function groundHeight(tiles, x, y) {
+  return tiles[tileAt(x, y, sizeOfTiles(tiles))]?.height ?? 0;
+}
 function tileAt(x, y, size) {
   return Math.floor(y / 100) * size + Math.floor(x / 100);
 }
@@ -881,6 +887,1021 @@ function extractResource(node, amount, tick2) {
   }
   return yieldAmount;
 }
+
+// packages/sim/maps/toolkit.ts
+var standardKit = [
+  { kind: "tree", dx: 0, dy: -560, group: 6 },
+  { kind: "gold", dx: 520, dy: -60 },
+  { kind: "rock", dx: -520, dy: -60 },
+  { kind: "berries", dx: 480, dy: 360 },
+  { kind: "livestock", dx: -480, dy: 340, count: 4 },
+  { kind: "hunt", dx: 0, dy: 780, count: 3 },
+  { kind: "boar", dx: 760, dy: 620 },
+  { kind: "livestock", dx: -760, dy: -620, count: 2 }
+];
+var apron = 420;
+var MapBuilder = class {
+  size = 32;
+  world = 3200;
+  mid = 1600;
+  tiles;
+  taken = /* @__PURE__ */ new Set();
+  obstacles = [];
+  spots = [];
+  fish = [];
+  // mines: gold and stone pairs as tile ids (finish() makes sure each can be reached on foot); isolated: mines meant to
+  // be out of reach by land (an island's), skipped by that check.
+  mines = [];
+  isolated = /* @__PURE__ */ new Set();
+  centres = [];
+  starts = [];
+  scouts;
+  separate = false;
+  rng;
+  salt;
+  // Special starts (MapData walled / nomad / lean).
+  walled = false;
+  nomad = false;
+  lean;
+  symmetry;
+  constructor(seed, symmetry, layout) {
+    this.symmetry = symmetry;
+    this.rng = seed || 1;
+    this.salt = (seed ^ 2654435769) >>> 0;
+    this.tiles = createTiles(layout, seed);
+  }
+  random() {
+    let n = this.rng;
+    n ^= n << 13;
+    n ^= n >>> 17;
+    n ^= n << 5;
+    this.rng = n >>> 0;
+    return this.rng / 4294967296;
+  }
+  int(lo, hi) {
+    return lo + Math.floor(this.random() * (hi - lo + 1));
+  }
+  inside(tx, ty) {
+    return tx >= 0 && ty >= 0 && tx < this.size && ty < this.size;
+  }
+  mirrorTile(tx, ty) {
+    return this.symmetry === "rotate" ? [this.size - 1 - tx, this.size - 1 - ty] : [this.size - 1 - tx, ty];
+  }
+  mirrorPoint(x, y) {
+    return this.symmetry === "rotate" ? { x: this.world - x, y: this.world - y } : { x: this.world - x, y };
+  }
+  tile(tx, ty) {
+    return this.tiles[ty * this.size + tx];
+  }
+  // A value in [0,1) per tile that is the same on a tile and its mirror (salted by the seed), for irregular shapes.
+  noise(tx, ty) {
+    const [mx, my] = this.mirrorTile(tx, ty), a = ty * this.size + tx, b = my * this.size + mx;
+    let v = Math.imul(Math.min(a, b) + 1, 2654435761) ^ this.salt;
+    v = Math.imul(v ^ v >>> 16, 73244475);
+    v = Math.imul(v ^ v >>> 16, 73244475);
+    return ((v ^ v >>> 16) >>> 0) / 4294967296;
+  }
+  // Smooth noise: the average of the tile's noise and its neighbours' (blobs and shorelines without single-tile specks).
+  smooth(tx, ty) {
+    let t = 0, n = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const x = tx + dx, y = ty + dy;
+      if (this.inside(x, y)) {
+        t += this.noise(x, y);
+        n++;
+      }
+    }
+    return t / n;
+  }
+  // Sets a tile and its mirror (height: a plateau or ramp tile's height; otherwise the terrain's own).
+  set(tx, ty, type, height, buildable) {
+    for (const [x, y] of [[tx, ty], this.mirrorTile(tx, ty)]) {
+      const t = this.tile(x, y);
+      Object.assign(t, { terrainType: type, ...terrainDefinitions[type] });
+      if (height !== void 0) t.height = height;
+      if (buildable !== void 0) t.buildability = buildable;
+    }
+  }
+  // Paints every tile the function names (evaluated on the tile and applied to it and its mirror).
+  paint(f) {
+    for (let ty = 0; ty < this.size; ty++) for (let tx = 0; tx < this.size; tx++) {
+      const [mx, my] = this.mirrorTile(tx, ty);
+      if (my * this.size + mx < ty * this.size + tx) continue;
+      const r = f(tx, ty, Math.hypot(tx * 100 + 50 - this.mid, ty * 100 + 50 - this.mid));
+      if (!r) continue;
+      const v = typeof r === "string" ? { type: r } : r;
+      this.set(tx, ty, v.type, v.height, v.buildable);
+    }
+  }
+  // Distance (tile centre) to the nearest town centre's centre.
+  baseDistance(tx, ty) {
+    return Math.min(...this.centres.map((c) => Math.hypot(tx * 100 + 50 - c.x, ty * 100 + 50 - c.y)), Infinity);
+  }
+  // The two town centres: the first player at the angle (random when null) and a distance from the map centre (a share
+  // of the map's width), the second on the mirrored spot. Anchors snap to the grid the town centre needs (x = 50k + 15,
+  // y = 50k), so the second centre may sit up to half a node off the exact mirror.
+  bases(angle, distance) {
+    const a = angle ?? this.random() * Math.PI * 2, r = this.world * (distance[0] + this.random() * (distance[1] - distance[0]));
+    const c0 = { x: this.mid + Math.cos(a) * r, y: this.mid + Math.sin(a) * r }, c1 = this.mirrorPoint(c0.x, c0.y);
+    this.centres = [c0, c1].map((c) => {
+      const cx = Math.min(this.world - 650, Math.max(650, c.x)), cy = Math.min(this.world - 750, Math.max(650, c.y)), ax = Math.round((cx - 150) / 50) * 50 + 15, ay = Math.round((cy - 135) / 50) * 50;
+      return { ax, ay, x: ax + 135, y: ay + 135 };
+    });
+    this.starts = this.centres.map((c) => [{ x: c.ax + 85, y: c.ay + 350 }, { x: c.ax + 185, y: c.ay + 350 }, { x: c.ax + 135, y: c.ay + 450 }]);
+    this.scouts = this.centres.map((c) => ({ x: c.ax + 235, y: c.ay + 450 }));
+    this.centres.forEach((c, p) => {
+      this.obstacles.push({ kind: "town-center", x: c.ax, y: c.ay, ...p ? { red: true } : {} });
+      for (let ty = Math.floor((c.y - 150) / 100); ty <= Math.floor((c.y + 150) / 100); ty++) for (let tx = Math.floor((c.x - 150) / 100); tx <= Math.floor((c.x + 150) / 100); tx++) this.taken.add(ty * this.size + tx);
+    });
+  }
+  inApron(tx, ty) {
+    return this.centres.some((c) => Math.max(Math.abs(tx * 100 + 50 - c.x), Math.abs(ty * 100 + 50 - c.y)) < apron + 50);
+  }
+  // Free for a resource or a tree: inside the border, not used, off the aprons, on buildable land.
+  free(tx, ty, edge = 1) {
+    if (tx < edge || ty < edge || tx >= this.size - edge || ty >= this.size - edge) return false;
+    const t = this.tile(tx, ty);
+    return !this.taken.has(ty * this.size + tx) && !this.inApron(tx, ty) && t.walkClass === "land" && t.buildability;
+  }
+  // Both a tile and its mirror free (and not the same tile), so a placement is always made in pairs.
+  pairFree(tx, ty, edge = 1) {
+    const [mx, my] = this.mirrorTile(tx, ty);
+    return (mx !== tx || my !== ty) && this.free(tx, ty, edge) && this.free(mx, my, edge);
+  }
+  add(kind, tx, ty, owner, count = 1) {
+    this.taken.add(ty * this.size + tx);
+    const cx = tx * 100 + 50, cy = ty * 100 + 50;
+    if (kind === "livestock") this.spots.push({ kind: "sheep", x: cx, y: cy, count, within: 200, ...owner === void 0 ? {} : { owner }, open: 0 });
+    else if (kind === "hunt") this.spots.push({ kind: "deer", x: cx, y: cy, count, within: 200, open: 0 });
+    else if (kind === "boar" || kind === "wolf" || kind === "jaguar") this.spots.push({ kind, x: cx, y: cy, count, within: 400, open: 16 });
+    else this.obstacles.push({ kind, x: tx * 100 + (kind === "tree" ? 12 : 15), y: ty * 100 + (kind === "tree" ? 12 : 15) });
+  }
+  // Places a resource on a tile and its mirror (the owner of a sheep flock goes to the base whose kit it is).
+  pair(kind, tx, ty, owner, count = 1) {
+    const [mx, my] = this.mirrorTile(tx, ty);
+    if (kind === "gold" || kind === "rock") this.mines.push([ty * this.size + tx, my * this.size + mx]);
+    this.add(kind, tx, ty, owner, count);
+    this.add(kind, mx, my, owner === void 0 ? void 0 : 1 - owner, count);
+  }
+  // Each base's kit: the first player's items at their offsets (a blocked spot turns round the centre in 15-degree
+  // steps, keeping the distance), each on its mirrored tile for the second player. An item with no room is left out
+  // (validateStartingResources then rejects the candidate and makeMap retries).
+  // With no room at the item's distance, it tries closer in (85%, then 70% of it) before giving up.
+  kit(items) {
+    const c = this.centres[0];
+    for (const item of items) {
+      const base = Math.atan2(item.dy, item.dx);
+      let placed = false;
+      for (const scale of [1, 0.85, 0.7]) {
+        const d = Math.hypot(item.dx, item.dy) * scale;
+        for (let step = 0; step < 24 && !placed; step++) {
+          const a = base + (step % 2 ? -1 : 1) * Math.ceil(step / 2) * 15 * Math.PI / 180, tx = Math.floor((c.x + Math.cos(a) * d) / 100), ty = Math.floor((c.y + Math.sin(a) * d) / 100);
+          const cells = item.kind === "tree" ? [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 0], [0, -1], [-1, 1], [1, -1]].slice(0, item.group ?? 1).map(([dx, dy]) => [tx + dx, ty + dy]) : [[tx, ty]];
+          if (cells.every(([x, y]) => this.pairFree(x, y, 1))) {
+            for (const [x, y] of cells) this.pair(item.kind, x, y, item.kind === "livestock" ? 0 : void 0, item.count ?? 1);
+            placed = true;
+          }
+        }
+        if (placed) break;
+      }
+    }
+  }
+  // A tile at a random angle and a distance (tiles' centres, from the map centre or a given point) that passes the test.
+  pick(test, ring2, from = { x: this.mid, y: this.mid }, tries = 60) {
+    for (let k = 0; k < tries; k++) {
+      const a = this.random() * Math.PI * 2, d = ring2[0] + this.random() * (ring2[1] - ring2[0]), tx = Math.floor((from.x + Math.cos(a) * d) / 100), ty = Math.floor((from.y + Math.sin(a) * d) / 100);
+      if (this.inside(tx, ty) && test(tx, ty)) return [tx, ty];
+    }
+    return null;
+  }
+  // Neutral resources: count pairs on a ring round the centre, at least clearance from both town centres.
+  neutral(kind, pairs, ring2, clearance = 900, cluster = 1) {
+    for (let i = 0; i < pairs; i++) {
+      const at = this.pick((x, y) => this.pairFree(x, y, 2) && this.baseDistance(x, y) >= clearance, ring2);
+      if (!at) continue;
+      const [tx, ty] = at;
+      for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 0], [0, -1]].slice(0, cluster)) if (this.pairFree(tx + dx, ty + dy, 2)) this.pair(kind, tx + dx, ty + dy);
+    }
+  }
+  // Forest clumps grown by a seeded random walk (both mirrored), away from bases; test limits where trees may stand.
+  forests(clumps, size, clearance, test = () => true) {
+    for (let i = 0; i < clumps; i++) {
+      const at = this.pick((x, y) => this.pairFree(x, y, 1) && this.baseDistance(x, y) >= clearance && test(x, y), [0, this.world * 0.72]);
+      if (!at) continue;
+      let [tx, ty] = at;
+      const want = this.int(size[0], size[1]);
+      for (let n = 0, k = 0; n < want && k < want * 6; k++) {
+        if (this.pairFree(tx, ty, 1) && this.baseDistance(tx, ty) >= clearance && test(tx, ty)) {
+          this.pair("tree", tx, ty);
+          n++;
+        }
+        const dir = Math.floor(this.random() * 4);
+        tx += dir === 0 ? 1 : dir === 1 ? -1 : 0;
+        ty += dir === 2 ? 1 : dir === 3 ? -1 : 0;
+        tx = Math.min(this.size - 2, Math.max(1, tx));
+        ty = Math.min(this.size - 2, Math.max(1, ty));
+      }
+    }
+  }
+  // Trees on the outermost ring of tiles, thinned near bases.
+  border(density, clearance) {
+    for (let ty = 0; ty < this.size; ty++) for (let tx = 0; tx < this.size; tx++) {
+      if (tx > 0 && ty > 0 && tx < this.size - 1 && ty < this.size - 1) continue;
+      const [mx, my] = this.mirrorTile(tx, ty);
+      if (my * this.size + mx < ty * this.size + tx) continue;
+      if (this.noise(tx, ty) < density && this.pairFree(tx, ty, 0) && this.baseDistance(tx, ty) >= clearance) this.pair("tree", tx, ty);
+    }
+  }
+  // Wild animals (deer, boar, wolves, jaguars): pairs of flocks on tiles passing the test.
+  animals(kind, pairs, count, ring2, test = () => true, clearance = 900) {
+    for (let i = 0; i < pairs; i++) {
+      const at = this.pick((x, y) => this.pairFree(x, y, 1) && this.baseDistance(x, y) >= clearance && test(x, y), ring2);
+      if (at) this.pair(kind, at[0], at[1], void 0, count);
+    }
+  }
+  // Water tiles: deep (all eight neighbours water, ships only) or shore (next to land a villager can stand on).
+  water(tx, ty) {
+    const t = this.inside(tx, ty) ? this.tile(tx, ty) : null;
+    return !!t && t.terrainType === "water";
+  }
+  deep(tx, ty) {
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (!this.water(tx + dx, ty + dy)) return false;
+    return true;
+  }
+  shore(tx, ty) {
+    if (!this.water(tx, ty)) return false;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const x = tx + dx, y = ty + dy;
+      if (this.inside(x, y) && this.tile(x, y).walkClass === "land" && this.tile(x, y).height === this.tile(tx, ty).height) return true;
+    }
+    return false;
+  }
+  // Fish: pairs on water tiles of the given kind, spacing apart, optionally inside a region.
+  fishIn(pairs, kind, spacing = 300, test = () => true) {
+    const cands = [];
+    for (let ty = 1; ty < this.size - 1; ty++) for (let tx = 1; tx < this.size - 1; tx++) {
+      const [mx, my] = this.mirrorTile(tx, ty);
+      if (mx === tx && my === ty || !test(tx, ty)) continue;
+      if ((kind === "deep" ? this.deep(tx, ty) && this.deep(mx, my) : this.shore(tx, ty) && this.shore(mx, my)) && !this.taken.has(ty * this.size + tx)) cands.push(ty * this.size + tx);
+    }
+    for (let i = cands.length - 1; i > 0; i--) {
+      const j = Math.floor(this.random() * (i + 1));
+      [cands[i], cands[j]] = [cands[j], cands[i]];
+    }
+    let placed = 0;
+    for (const t of cands) {
+      if (placed >= pairs) break;
+      const tx = t % this.size, ty = Math.floor(t / this.size), [mx, my] = this.mirrorTile(tx, ty), m = my * this.size + mx;
+      const far = (a) => this.fish.every((f) => Math.hypot((f % this.size - a % this.size) * 100, (Math.floor(f / this.size) - Math.floor(a / this.size)) * 100) >= spacing);
+      if (this.taken.has(m) || !far(t) || !far(m)) continue;
+      this.fish.push(t, m);
+      this.taken.add(t);
+      this.taken.add(m);
+      placed++;
+    }
+  }
+  // A prebuilt building for a player (special starts: walls, towers, houses, farms; packages/sim/buildings.ts
+  // initBuildings turns every building obstacle into a finished building of its owner).
+  building(kind, x, y, player) {
+    this.obstacles.push({ kind, x, y, ...player ? { red: true } : {} });
+  }
+  // A prebuilt building for the first player at (x, y) and the same building on the mirrored footprint for the second;
+  // the tiles under both are taken.
+  pairBuilding(kind, x, y) {
+    const f = obstacleBounds({ kind, x, y }), a = this.mirrorPoint(f[0], f[1]), c = this.mirrorPoint(f[2], f[3]);
+    const spots = [[x, y], [Math.min(a.x, c.x) + x - f[0], Math.min(a.y, c.y) + y - f[1]]];
+    spots.forEach(([px, py], p) => {
+      this.building(kind, px, py, p);
+      const b = obstacleBounds({ kind, x: px, y: py });
+      for (let ty = Math.floor(b[1] / 100); ty <= Math.floor((b[3] - 1) / 100); ty++) for (let tx = Math.floor(b[0] / 100); tx <= Math.floor((b[2] - 1) / 100); tx++) if (this.inside(tx, ty)) this.taken.add(ty * this.size + tx);
+    });
+  }
+  // Everything into MapData: obstacle and resource ids, the fish, blocked nodes, then the flocks on free nodes.
+  // Mines out of reach on foot (walled in by trees, a cliff or the shore): the trees round such a pair are cleared, and a
+  // pair still out of reach is taken off the map (both mines, so the map stays fair). Reach is measured from the first
+  // base's villagers over the land nodes, as a unit walks.
+  reachMines() {
+    const size = this.size, flood = () => {
+      for (const t of this.tiles) t.obstacleRefs = [];
+      this.obstacles.forEach((o, i) => {
+        o.id = `obstacle-${i}`;
+        this.tiles[tileAt(o.x, o.y, size)].obstacleRefs.push(o.id);
+      });
+      const map = { size, tiles: this.tiles, obstacles: this.walled ? this.obstacles.filter((o) => !["stone-wall", "palisade-wall"].includes(o.kind)) : this.obstacles, blocked: [], starts: this.starts, resources: [], navigationRevision: 0, generationAttempt: 0 }, side = sideOf(map), total = nodeTotal(map), open = new Uint8Array(total), seen2 = new Uint8Array(total);
+      for (let i = 0; i < total; i++) open[i] = clearSegment(map, position(map, i), position(map, i)) ? 1 : 0;
+      const start = nearest(map, this.starts[0][0]);
+      if (start < 0) return { map, seen: seen2 };
+      const q = [start];
+      seen2[start] = 1;
+      for (let h = 0; h < q.length; h++) {
+        const id = q[h], x = id % side, y = Math.floor(id / side);
+        for (const n of [x < side - 1 ? id + 1 : -1, y < side - 1 ? id + side : -1, x > 0 ? id - 1 : -1, y > 0 ? id - side : -1]) if (n >= 0 && !seen2[n] && open[n] && clearSegment(map, position(map, id), position(map, n))) {
+          seen2[n] = 1;
+          q.push(n);
+        }
+      }
+      return { map, seen: seen2 };
+    };
+    const mineAt = (t) => this.obstacles.find((o) => (o.kind === "gold" || o.kind === "rock") && Math.floor(o.y / 100) * size + Math.floor(o.x / 100) === t);
+    const reached = (f, t) => {
+      const o = mineAt(t);
+      if (!o) return true;
+      const b = obstacleBounds(o);
+      for (let i = 0; i < f.seen.length; i++) {
+        if (!f.seen[i]) continue;
+        const p = position(f.map, i), gap3 = Math.max(b[0] - p.x, 0, p.x - b[2]) + Math.max(b[1] - p.y, 0, p.y - b[3]);
+        if (gap3 > 0 && gap3 <= 75) return true;
+      }
+      return false;
+    };
+    const out = (f) => this.mines.filter(([a, b]) => !this.isolated.has(a) && (this.separate ? !reached(f, a) && !reached(f, b) : !reached(f, a) || !reached(f, b)));
+    let lost = out(flood());
+    if (!lost.length) return;
+    const near = /* @__PURE__ */ new Set();
+    for (const pair of lost) for (const t of pair) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) near.add(t + dy * size + dx);
+    this.obstacles = this.obstacles.filter((o) => o.kind !== "tree" || !near.has(Math.floor(o.y / 100) * size + Math.floor(o.x / 100)));
+    lost = out(flood());
+    const gone = new Set(lost.flat());
+    this.obstacles = this.obstacles.filter((o) => !((o.kind === "gold" || o.kind === "rock") && gone.has(Math.floor(o.y / 100) * size + Math.floor(o.x / 100))));
+    this.mines = this.mines.filter(([a]) => !gone.has(a));
+  }
+  finish() {
+    this.reachMines();
+    for (const t of this.tiles) t.obstacleRefs = [];
+    const size = this.size, map = { size, starts: this.starts, ...this.scouts ? { scouts: this.scouts } : {}, obstacles: this.obstacles, blocked: [], tiles: this.tiles, resources: [], navigationRevision: 0, generationAttempt: 0, ...this.separate ? { separate: true } : {}, ...this.walled ? { walled: true } : {}, ...this.nomad ? { nomad: true } : {}, ...this.lean ? { lean: [...this.lean] } : {} };
+    this.obstacles.forEach((o, index) => {
+      o.id = `obstacle-${index}`;
+      map.tiles[tileAt(o.x, o.y, size)].obstacleRefs.push(o.id);
+      if (!isBuilding(o)) {
+        const kind = o.kind === "rock" ? "stone" : o.kind;
+        const id = `resource-${index}`, capacity = terrainRules.resourceCapacity[kind];
+        map.resources.push({ id, kind, x: o.x, y: o.y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: o.id, depletedAt: null });
+        map.tiles[tileAt(o.x, o.y, size)].resourceRefs.push(id);
+      }
+    });
+    for (const t of this.fish) {
+      const x = t % size * 100 + 50, y = Math.floor(t / size) * 100 + 50, id = `resource-fish-${x}-${y}`, capacity = terrainRules.resourceCapacity.fish;
+      map.resources.push({ id, kind: "fish", x, y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: null, depletedAt: null });
+      map.tiles[t].resourceRefs.push(id);
+    }
+    for (let i = 0; i < nodeTotal(map); i++) if (!clearSegment(map, position(map, i), position(map, i))) map.blocked.push(i);
+    map.animals = [];
+    const closed = blockedTable(map);
+    for (let i = 0; i < this.spots.length; i++) {
+      const s = this.spots[i], before = map.animals.length;
+      flock(map, s.kind, s.x, s.y, s.count, s.within, s.owner, s.open);
+      const twin = this.spots[i + 1], m = this.mirrorPoint(s.x, s.y);
+      if (!twin || twin.kind !== s.kind || twin.count !== s.count || twin.x !== m.x || twin.y !== m.y) continue;
+      const held2 = new Set([...map.starts.flat(), ...map.scouts ?? [], ...map.animals].map((p) => nodeAt(map, p))), mirrored = map.animals.slice(before).map((a) => ({ kind: a.kind, ...this.mirrorPoint(a.x, a.y), ...twin.owner === void 0 ? {} : { owner: twin.owner } }));
+      if (mirrored.length && mirrored.every((a) => {
+        const n = nodeAt(map, a);
+        return n >= 0 && !closed[n] && !held2.has(n);
+      })) {
+        map.animals.push(...mirrored);
+        i++;
+      }
+    }
+    return map;
+  }
+};
+
+// packages/sim/maps/land.ts
+var landMapRules = {
+  provenance: "design_default after aoetw.com maps pages (2026-10-02)",
+  // 阿拉伯: the site's 8 sheep, 2 boar, 3-4 deer, 3 gold and 2 stone at this game's scale is the standard kit with its
+  // second boar and four deer; little wood (fewer, smaller clumps), no water, desert patches.
+  arabia: { bases: [0.29, 0.34], sand: 0.6, forests: { clumps: 6, size: [5, 9], clearance: 1e3 }, border: 0.25, neutral: { gold: 1, rock: 1, ring: [0, 700] } },
+  // 黑森林: forest everywhere but each base's clearing, a clearing in the middle and a winding road from each base to it.
+  "black-forest": { bases: [0.3, 0.33], kitScale: 0.8, clearing: 820, middle: 400, road: 150, density: 0.9, neutral: { gold: 1, rock: 1, ring: [0, 350] } },
+  // 蒙古高原: plateaus (height 100, cliffs round them) each with one ramp, some carrying gold or stone.
+  mongolia: { bases: [0.3, 0.34], plateaus: 3, radius: [2, 3], ring: [650, 1350], clearance: 950, forests: { clumps: 8, size: [5, 10], clearance: 1e3 }, border: 0.35 },
+  // 淘金潮: bases near the edge with their kit's single gold pile; a desert centre with a big gold field and many wolves.
+  "gold-rush": { bases: [0.37, 0.4], desert: 750, gold: { pairs: 5, ring: [0, 450] }, wolves: { pairs: 4, ring: [450, 900] }, stone: 1, forests: { clumps: 8, size: [5, 10], clearance: 950 }, border: 0.4 },
+  // 猶加敦: more food by each town centre (deer, sheep, berries), jaguars, thick jungle.
+  yucatan: { bases: [0.3, 0.34], forests: { clumps: 12, size: [6, 12], clearance: 1e3 }, border: 0.5, jaguars: { pairs: 2, ring: [0, 1500] }, neutral: { gold: 1, rock: 1, ring: [0, 700] } },
+  // 鬼湖: a frozen lake in the middle (ice: walkable, nothing built or found on it), fewer deer, more gold and stone,
+  // wood in small clumps, wolves; the ground is snow.
+  "ghost-lake": { bases: [0.34, 0.37], ice: 650, forests: { clumps: 16, size: [3, 5], clearance: 900 }, border: 0.25, neutral: { gold: 2, rock: 2, ring: [800, 1300] }, wolves: { pairs: 2, ring: [700, 1400] } },
+  // 火山湖 (no page on the site; the classic map): a mountain in the middle with a lake in its crater, two ramps up.
+  "crater-lake": { bases: [0.33, 0.37], mountain: 650, crater: 260, fish: 2, gold: { pairs: 2, ring: [350, 600] }, forests: { clumps: 9, size: [5, 10], clearance: 1e3 }, border: 0.4 }
+};
+var arabiaKit = () => [...standardKit.map((i) => i.kind === "hunt" ? { ...i, count: 4 } : i), { kind: "boar", dx: -760, dy: 620 }];
+function arabia(seed) {
+  const R = landMapRules.arabia, b = new MapBuilder(seed, "rotate", "arabia");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y) => b.smooth(x, y) > R.sand ? "sand" : null);
+  b.kit(arabiaKit());
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function blackForest(seed) {
+  const R = landMapRules["black-forest"], b = new MapBuilder(seed, "rotate", "black-forest");
+  b.bases(null, [...R.bases]);
+  b.kit(standardKit.map((i) => {
+    const k = Math.max(R.kitScale, 520 / Math.hypot(i.dx, i.dy));
+    return { ...i, dx: Math.round(i.dx * k), dy: Math.round(i.dy * k) };
+  }));
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring], 600);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring], 600);
+  const road = (tx, ty) => {
+    const px = tx * 100 + 50, py = ty * 100 + 50;
+    for (const base of b.centres) {
+      const dx = b.mid - base.x, dy = b.mid - base.y, len = Math.hypot(dx, dy), t = Math.max(0, Math.min(1, ((px - base.x) * dx + (py - base.y) * dy) / (len * len))), bend = (b.noise(tx >> 1, ty >> 1) - 0.5) * 120;
+      if (Math.hypot(px - (base.x + dx * t), py - (base.y + dy * t)) <= R.road + bend) return true;
+    }
+    return false;
+  };
+  for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) {
+    const d = Math.hypot(tx * 100 + 50 - b.mid, ty * 100 + 50 - b.mid);
+    if (b.baseDistance(tx, ty) < R.clearing || d < R.middle || road(tx, ty) || b.noise(tx, ty) > R.density) continue;
+    if (b.pairFree(tx, ty, 0)) b.pair("tree", tx, ty);
+  }
+  return b.finish();
+}
+function plateau(b, cx, cy, r) {
+  for (let ty = cy - r - 1; ty <= cy + r + 1; ty++) for (let tx = cx - r - 1; tx <= cx + r + 1; tx++) if (b.inside(tx, ty) && Math.hypot(tx - cx, ty - cy) <= r + 0.4 * (b.noise(tx, ty) - 0.5)) b.set(tx, ty, "highland", 100);
+  const vx = b.mid / 100 - 0.5 - cx, vy = b.mid / 100 - 0.5 - cy, dx = Math.abs(vx) >= Math.abs(vy) ? Math.sign(vx) || 1 : 0, dy = dx ? 0 : Math.sign(vy) || 1;
+  let x = cx, y = cy;
+  while (b.inside(x, y) && b.tile(x, y).height === 100) {
+    x += dx;
+    y += dy;
+  }
+  for (let k = 0; k < 3; k++) for (let w2 = 0; w2 < 2; w2++) {
+    const tx = x + dx * k + (dx ? 0 : w2), ty = y + dy * k + (dy ? 0 : w2);
+    if (b.inside(tx, ty)) b.set(tx, ty, "highland", 75 - 25 * k, false);
+  }
+}
+function mongolia(seed) {
+  const R = landMapRules.mongolia, b = new MapBuilder(seed, "rotate", "mongolia");
+  b.bases(null, [...R.bases]);
+  const tops = [];
+  for (let i = 0; i < R.plateaus; i++) {
+    const at = b.pick((x, y) => b.baseDistance(x, y) >= R.clearance + R.radius[1] * 100 && tops.every(([px, py]) => Math.hypot(px - x, py - y) > R.radius[1] * 2 + 3) && (() => {
+      const [mx, my] = b.mirrorTile(x, y);
+      return Math.hypot(mx - x, my - y) > R.radius[1] * 2 + 4;
+    })(), [...R.ring]);
+    if (!at) continue;
+    const r = b.int(R.radius[0], R.radius[1]);
+    plateau(b, at[0], at[1], r);
+    tops.push(at);
+  }
+  b.kit(standardKit);
+  tops.forEach(([x, y], i) => {
+    if (b.pairFree(x, y, 2)) b.pair(i % 2 ? "rock" : "gold", x, y);
+  });
+  b.neutral("gold", 1, [0, 700]);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function goldRush(seed) {
+  const R = landMapRules["gold-rush"], b = new MapBuilder(seed, "rotate", "gold-rush");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y, d) => d < R.desert + 120 * (b.noise(x, y) - 0.5) ? "sand" : null);
+  b.kit(standardKit);
+  b.neutral("gold", R.gold.pairs, [...R.gold.ring], 900, 2);
+  b.neutral("rock", R.stone, [600, 1100]);
+  b.animals("wolf", R.wolves.pairs, 1, [...R.wolves.ring], () => true, 800);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, (x, y) => Math.hypot(x * 100 + 50 - b.mid, y * 100 + 50 - b.mid) > R.desert);
+  b.border(R.border, 700);
+  return b.finish();
+}
+var yucatanKit = () => [...standardKit, { kind: "berries", dx: 560, dy: 380 }, { kind: "livestock", dx: 420, dy: -600, count: 2 }, { kind: "hunt", dx: -700, dy: 760, count: 3 }];
+function yucatan(seed) {
+  const R = landMapRules.yucatan, b = new MapBuilder(seed, "rotate", "yucatan");
+  b.bases(null, [...R.bases]);
+  b.kit(yucatanKit());
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.animals("jaguar", R.jaguars.pairs, 1, [...R.jaguars.ring]);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+var ghostKit = () => standardKit.map((i) => i.kind === "hunt" ? { ...i, count: 2 } : i);
+function ghostLake(seed) {
+  const R = landMapRules["ghost-lake"], b = new MapBuilder(seed, "rotate", "ghost-lake");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y, d) => d < R.ice + 140 * (b.smooth(x, y) - 0.5) ? "ice" : "snow");
+  b.kit(ghostKit());
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.animals("wolf", R.wolves.pairs, 1, [...R.wolves.ring]);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 700);
+  return b.finish();
+}
+function craterLake(seed) {
+  const R = landMapRules["crater-lake"], b = new MapBuilder(seed, "rotate", "crater-lake");
+  b.bases(null, [...R.bases]);
+  b.paint((x2, y2, d) => d < R.crater ? { type: "water", height: 100 } : d < R.mountain + 90 * (b.noise(x2, y2) - 0.5) ? { type: "highland", height: 100 } : null);
+  const c = b.centres[0], across = Math.abs(c.x - b.mid) >= Math.abs(c.y - b.mid), dx = across ? 0 : c.x >= b.mid ? 1 : -1, dy = across ? c.y >= b.mid ? 1 : -1 : 0;
+  let x = Math.floor(b.mid / 100) - (dx < 0 ? 1 : 0), y = Math.floor(b.mid / 100) - (dy < 0 ? 1 : 0);
+  while (b.inside(x, y) && b.tile(x, y).height === 100) {
+    x += dx;
+    y += dy;
+  }
+  for (let k = 0; k < 3; k++) for (let w2 = -1; w2 <= 0; w2++) {
+    const tx = x + dx * k + (dx ? 0 : w2), ty = y + dy * k + (dy ? 0 : w2);
+    if (b.inside(tx, ty)) b.set(tx, ty, "highland", 75 - 25 * k, false);
+  }
+  b.kit(standardKit);
+  b.fishIn(R.fish, "shore", 200, (tx, ty) => b.tile(tx, ty).height === 100);
+  b.neutral("gold", R.gold.pairs, [...R.gold.ring], 700);
+  b.neutral("rock", 1, [700, 1100]);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, (tx, ty) => b.tile(tx, ty).height === 0);
+  b.border(R.border, 750);
+  return b.finish();
+}
+
+// packages/sim/maps/water.ts
+var waterMapRules = {
+  provenance: "design_default after aoetw.com maps pages (2026-10-02)",
+  // 沿海: the sea along one side (half the map the site says; here the south third), both bases on the land side.
+  coastal: { angle: [200, 235], bases: [0.3, 0.34], sea: 21, shoreJitter: 3, beach: 4, fish: { shore: 3, deep: 3 }, forests: { clumps: 9, size: [5, 10], clearance: 850 }, border: 0.4 },
+  // 地中海: a sea in the middle, land all round it.
+  mediterranean: { bases: [0.36, 0.4], sea: 780, shoreRoad: 400, fish: { shore: 2, deep: 4 }, neutral: { gold: 1, rock: 1, ring: [1e3, 1400] }, forests: { clumps: 10, size: [5, 10], clearance: 1e3 }, border: 0.45 },
+  // 波羅的海: most of the map is sea; the bases sit in opposite corners of the narrow land strip round it.
+  baltic: { bases: [0.42, 0.44], sea: 1e3, keep: 800, corner: 650, shoreRoad: 500, fish: { shore: 3, deep: 5 }, forests: { clumps: 8, size: [4, 8], clearance: 900 }, border: 0.35 },
+  // 大陸: a continent ringed by sea, with an isolated island in a lake in the middle (gold on it); more gold, little wood.
+  continental: { bases: [0.28, 0.32], edge: 3, lake: 430, island: 190, fish: { shore: 2, deep: 3 }, neutral: { gold: 2, rock: 1, ring: [600, 1100] }, forests: { clumps: 6, size: [5, 9], clearance: 950 } },
+  // 河流: a river down the middle and a branch on each side, crossed by shallow fords.
+  rivers: { bases: [0.3, 0.33], fords: [[5, 7], [15, 16], [25, 27]], branchFord: 2, fish: { shore: 3 }, forests: { clumps: 9, size: [5, 10], clearance: 1e3 }, border: 0.4 },
+  // 高地 (高原): one river with two fords, plateaus with cliffs, thick forest.
+  highland: { bases: [0.3, 0.33], fords: [[8, 10], [22, 24]], plateaus: 2, fish: { shore: 2 }, forests: { clumps: 14, size: [7, 13], clearance: 1e3 }, border: 0.6 },
+  // 綠洲: desert, a lake in the middle ringed by palms (four gaps), little wood elsewhere.
+  oasis: { bases: [0.34, 0.38], lake: 350, ring: [450, 820], palms: 0.22, fish: { shore: 2 }, forests: { clumps: 3, size: [4, 7], clearance: 1e3 }, border: 0.15 },
+  // 斯堪地維亞: two long fjords with fish at the edges, three boar and many deer per base, gold in the middle, low stone.
+  scandinavia: { bases: [0.3, 0.34], fjord: { length: 10, from: [6, 12] }, fish: { shore: 3 }, gold: { pairs: 2, ring: [0, 400] }, forests: { clumps: 12, size: [7, 12], clearance: 1e3 }, border: 0.6 },
+  // 鹽沼地: marsh: shallows everywhere (walkable, not buildable) and pools of water, land islands with woods.
+  "salt-marsh": { bases: [0.3, 0.34], shallow: [0.5, 0.62], keep: 900, fish: { shore: 2 }, forests: { clumps: 10, size: [5, 9], clearance: 950 }, border: 0.3 }
+};
+function coastal(seed) {
+  const R = waterMapRules.coastal, b = new MapBuilder(seed, "mirrorX", "coastal");
+  b.bases((R.angle[0] + b.random() * (R.angle[1] - R.angle[0])) * Math.PI / 180, [...R.bases]);
+  const sea = (tx) => R.sea + Math.floor(b.smooth(Math.min(tx, b.size - 1 - tx), R.sea) * R.shoreJitter);
+  b.paint((tx, ty) => ty >= sea(tx) ? "water" : ty === sea(tx) - 1 ? "sand" : null);
+  b.kit(standardKit);
+  b.neutral("gold", 1, [300, 900]);
+  b.neutral("rock", 1, [300, 900]);
+  b.fishIn(R.fish.shore, "shore");
+  b.fishIn(R.fish.deep, "deep");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, (tx, ty) => ty < sea(tx) - R.beach);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function mediterranean(seed) {
+  const R = waterMapRules.mediterranean, b = new MapBuilder(seed, "rotate", "mediterranean");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y, d) => b.baseDistance(x, y) < 750 ? null : d < R.sea + 160 * (b.smooth(x, y) - 0.5) ? "water" : d < R.sea + 160 * (b.smooth(x, y) - 0.5) + 100 ? "sand" : null);
+  b.kit(standardKit);
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.fishIn(R.fish.shore, "shore");
+  b.fishIn(R.fish.deep, "deep");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, (x, y) => Math.hypot(x * 100 + 50 - b.mid, y * 100 + 50 - b.mid) > R.sea + R.shoreRoad);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function baltic(seed) {
+  const R = waterMapRules.baltic, b = new MapBuilder(seed, "rotate", "baltic");
+  b.bases((45 + 90 * Math.floor(b.random() * 4)) * Math.PI / 180, [...R.bases]);
+  b.paint((x, y, d) => d < R.sea + 140 * (b.smooth(x, y) - 0.5) && b.baseDistance(x, y) > R.keep ? "water" : null);
+  b.kit(standardKit);
+  b.neutral("gold", 1, [1200, 1700]);
+  b.neutral("rock", 1, [1200, 1700]);
+  b.fishIn(R.fish.shore, "shore");
+  b.fishIn(R.fish.deep, "deep");
+  const corner = (x, y) => Math.min(Math.abs(x * 100 + 50 - b.mid), Math.abs(y * 100 + 50 - b.mid)) > R.corner && Math.hypot(x * 100 + 50 - b.mid, y * 100 + 50 - b.mid) > R.sea + R.shoreRoad;
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, corner);
+  for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) if ((tx === 0 || ty === 0 || tx === b.size - 1 || ty === b.size - 1) && corner(tx, ty) && b.noise(tx, ty) < R.border && b.pairFree(tx, ty, 0) && b.baseDistance(tx, ty) >= 700) b.pair("tree", tx, ty);
+  return b.finish();
+}
+function continental(seed) {
+  const R = waterMapRules.continental, b = new MapBuilder(seed, "rotate", "continental");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y, d) => {
+    const edge = Math.min(x, y, b.size - 1 - x, b.size - 1 - y);
+    return edge < R.edge + Math.floor(b.smooth(x, y) * 2) ? "water" : d < R.island ? "grass" : d < R.lake ? "water" : null;
+  });
+  b.kit(standardKit);
+  for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) if (Math.hypot(tx * 100 + 50 - b.mid, ty * 100 + 50 - b.mid) < R.island && b.pairFree(tx, ty, 0) && (tx + ty) % 2 === 0) {
+    b.pair("gold", tx, ty);
+    b.isolated.add(ty * b.size + tx);
+  }
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.fishIn(R.fish.shore, "shore", 200, (x, y) => Math.hypot(x * 100 + 50 - b.mid, y * 100 + 50 - b.mid) < R.lake + 100);
+  b.fishIn(R.fish.deep, "deep");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  return b.finish();
+}
+function river(b, fords) {
+  b.paint((tx, ty) => {
+    const wide = b.smooth(15, ty) > 0.55, half = wide ? 2 : 1;
+    if (Math.abs(tx + 0.5 - b.size / 2) > half) return null;
+    return fords.some(([a, z]) => ty >= a && ty <= z) ? "shallow" : "water";
+  });
+}
+function rivers(seed) {
+  const R = waterMapRules.rivers, b = new MapBuilder(seed, "mirrorX", "rivers");
+  b.bases((170 + b.random() * 20) * Math.PI / 180, [...R.bases]);
+  river(b, R.fords);
+  const c = b.centres[0], cy = Math.floor(c.y / 100), row = cy >= b.size / 2 ? Math.max(3, cy - 8) : Math.min(b.size - 5, cy + 8), ford = b.int(3, 9);
+  for (let tx = 0; tx < 15; tx++) for (const ty of [row, row + 1]) b.set(tx, ty, tx >= ford && tx < ford + R.branchFord ? "shallow" : "water");
+  b.kit(standardKit);
+  b.neutral("gold", 1, [400, 1200]);
+  b.neutral("rock", 1, [400, 1200]);
+  b.fishIn(R.fish.shore, "shore");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function highland(seed) {
+  const R = waterMapRules.highland, b = new MapBuilder(seed, "mirrorX", "highland");
+  b.bases((170 + b.random() * 20) * Math.PI / 180, [...R.bases]);
+  river(b, R.fords);
+  for (let i = 0; i < R.plateaus; i++) {
+    const at = b.pick((x, y) => x >= 3 && x <= 10 && y >= 3 && y <= b.size - 4 && b.baseDistance(x, y) >= 850, [400, 1500], void 0, 120);
+    if (!at) continue;
+    const [cx, cy] = at;
+    for (let ty = cy - 2; ty <= cy + 2; ty++) for (let tx = cx - 2; tx <= cx + 2; tx++) if (b.inside(tx, ty) && Math.hypot(tx - cx, ty - cy) <= 2.2) b.set(tx, ty, "highland", 100);
+    for (let k = 0; k < 3; k++) for (const ty of [cy, cy + 1]) if (b.inside(cx + 3 + k, ty)) b.set(cx + 3 + k, ty, "highland", 75 - 25 * k, false);
+  }
+  b.kit(standardKit);
+  b.neutral("gold", 1, [500, 1300]);
+  b.neutral("rock", 1, [500, 1300]);
+  b.fishIn(R.fish.shore, "shore");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function oasis(seed) {
+  const R = waterMapRules.oasis, b = new MapBuilder(seed, "rotate", "oasis");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y, d) => d < R.lake ? "water" : "sand");
+  b.kit(standardKit);
+  for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) {
+    const x = tx * 100 + 50 - b.mid, y = ty * 100 + 50 - b.mid, d = Math.hypot(x, y), a = Math.atan2(y, x), gap3 = Math.abs(Math.sin(2 * a)) < 0.3;
+    if (d >= R.ring[0] && d <= R.ring[1] && !gap3 && b.noise(tx, ty) > R.palms && b.pairFree(tx, ty, 1) && b.baseDistance(tx, ty) >= 600) b.pair("tree", tx, ty);
+  }
+  b.neutral("gold", 1, [900, 1400]);
+  b.neutral("rock", 1, [900, 1400]);
+  b.fishIn(R.fish.shore, "shore", 200);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, (x, y) => Math.hypot(x * 100 + 50 - b.mid, y * 100 + 50 - b.mid) > R.ring[1]);
+  b.border(R.border, 750);
+  return b.finish();
+}
+var scandinaviaKit = () => [...standardKit, { kind: "boar", dx: -760, dy: 620 }, { kind: "boar", dx: 0, dy: -960 }, { kind: "hunt", dx: 640, dy: -720, count: 3 }];
+function scandinavia(seed) {
+  const R = waterMapRules.scandinavia, b = new MapBuilder(seed, "rotate", "scandinavia");
+  b.bases(null, [...R.bases]);
+  const cy = Math.floor(b.centres[0].y / 100), cx = Math.floor(b.centres[0].x / 100), rows = [R.fjord.from[0], R.fjord.from[1], b.size - 1 - R.fjord.from[1], b.size - 1 - R.fjord.from[0]];
+  const row = rows.sort((p, q) => Math.abs(q - cy) - Math.abs(p - cy) || p - q)[0], west = cx >= b.size / 2;
+  for (let k = 0; k < R.fjord.length; k++) for (const ty of [row, row + 1]) {
+    const tx = west ? k : b.size - 1 - k;
+    b.set(tx, ty, "water");
+  }
+  b.kit(scandinaviaKit());
+  b.neutral("gold", R.gold.pairs, [...R.gold.ring], 900, 2);
+  b.fishIn(R.fish.shore, "shore", 200);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function saltMarsh(seed) {
+  const R = waterMapRules["salt-marsh"], b = new MapBuilder(seed, "rotate", "salt-marsh");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y) => {
+    if (b.baseDistance(x, y) < R.keep) return null;
+    const n = b.smooth(x, y);
+    return n > R.shallow[1] ? "water" : n > R.shallow[0] ? "shallow" : null;
+  });
+  b.kit(standardKit);
+  b.neutral("gold", 1, [300, 1100]);
+  b.neutral("rock", 1, [300, 1100]);
+  b.fishIn(R.fish.shore, "shore", 200);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+
+// packages/sim/maps/special.ts
+var nomadStock = { wood: 275, stone: 100 };
+var specialMapRules = {
+  provenance: "design_default after aoetw.com maps pages (2026-10-02)",
+  nomadStock,
+  // 堡壘: a stone wall ring (Chebyshev `ring` tiles from the town centre's tile; the map edge closes it where it leaves the
+  // map) with, inside, the site's 5 farms, 4 watch towers, 4 houses and a barracks (top-left tiles from the town centre's
+  // tile; the second player's town is the same turned half round). No gates: the players build them (the site names none).
+  // Columns within two tiles of the town centre stay clear north and south of it: both players' villagers start south of
+  // their own town centre, which on the turned second town is north. Farms (walkable) lie south of the first's.
+  fortress: {
+    bases: [0.3, 0.33],
+    ring: 7,
+    kitRadius: 560,
+    barracks: [[-5, -3]],
+    houses: [[3, -4], [3, 0], [-5, 1], [-5, -6]],
+    farms: [[-3, 3], [-1, 3], [1, 3], [-2, 5], [0, 5]],
+    towers: [[-6, -6], [6, -6], [-6, 6], [6, 6]],
+    neutral: { gold: 2, rock: 1, ring: [0, 800] },
+    deer: { pairs: 2, count: 3, ring: [500, 1300] },
+    forests: { clumps: 8, size: [5, 10], clearance: 1e3 },
+    border: 0.35
+  },
+  // 圍城: the same walled town in a forest that fills the map but for an open middle (the only way between the bases),
+  // a lane from each wall to it, gold and stone just outside each wall on that side, and small pockets with more.
+  // (A ring a tile wider than Fortress's: the town has to find room for its own barracks inside.)
+  arena: {
+    bases: [0.3, 0.33],
+    ring: 8,
+    kitRadius: 640,
+    gap: 150,
+    open: 700,
+    lane: 160,
+    density: 0.12,
+    outside: 450,
+    pockets: { pairs: 2, radius: 130, ring: [850, 1250] },
+    neutral: { gold: 2, rock: 1, berries: 1, ring: [0, 500] },
+    deer: { pairs: 2, count: 3, ring: [0, 600] }
+  },
+  // 游牧: sea on three sides (north, west, east: `sea` tiles), no town centre; each side's three villagers stand apart
+  // (offsets from where its kit lies) and there is no scout (the site: like Mountain Pass, no scout).
+  nomad: { bases: [0.25, 0.28], angle: [172, 188], sea: 3, jitter: 2, scatter: [[-200, -300], [340, -220], [100, 330]], fish: { shore: 3, deep: 3 }, neutral: { gold: 1, rock: 1, ring: [300, 1100] }, forests: { clumps: 9, size: [5, 10], clearance: 900 }, border: 0.3 },
+  // 移民: each side on a small islet near a corner, a mainland in the middle (no boar; the sheep are far, on the
+  // mainland's shore facing each islet). The islets carry wood, berries and shore fish only: gold and stone are the
+  // mainland's.
+  migration: { bases: [0.45, 0.46], islet: 540, strait: 260, edge: 2, trees: 10, fish: { shore: 3, deep: 3 }, mainlandSheep: { pairs: 2, count: 4 }, deer: { pairs: 2, count: 3 }, neutral: { gold: 2, rock: 2, berries: 1 }, forests: { clumps: 9, size: [5, 10] } },
+  // 島嶼: each side's own island; two islets (a mirrored pair, across the base axis) with gold and stone.
+  islands: { bases: [0.33, 0.35], island: 920, kitScale: 1, islets: [{ at: 1150, radius: 260, goods: ["gold", "rock"] }], fish: { shore: 3, deep: 4 }, forests: { clumps: 7, size: [5, 9], clearance: 480 } },
+  // 群島: smaller home islands and four islets: one pair bare, one pair rich (gold, stone, wood and food).
+  archipelago: { bases: [0.33, 0.35], island: 820, kitScale: 1, islets: [{ at: 1250, radius: 200, goods: [] }, { at: 620, radius: 250, goods: ["gold", "rock", "tree", "berries"] }], fish: { shore: 4, deep: 4 }, forests: { clumps: 6, size: [4, 8], clearance: 480 } },
+  // 團隊群島: with one player a side, each side's team island is a whole half of the map, split by a channel through the
+  // middle and ringed by sea.
+  "team-islands": { bases: [0.3, 0.33], edge: 2, channel: 1.6, fish: { shore: 4, deep: 4 }, neutral: { gold: 1, rock: 1 }, forests: { clumps: 9, size: [5, 10], clearance: 950 }, border: 0.35 }
+};
+function walledKit(radius) {
+  const at = (deg) => ({ dx: Math.round(Math.cos(deg * Math.PI / 180) * radius), dy: Math.round(Math.sin(deg * Math.PI / 180) * radius) });
+  return [
+    { kind: "tree", ...at(-90), group: 2 },
+    { kind: "tree", ...at(-130), group: 2 },
+    { kind: "tree", ...at(-50), group: 2 },
+    { kind: "gold", ...at(0) },
+    { kind: "rock", ...at(180) },
+    { kind: "berries", ...at(40) },
+    { kind: "livestock", ...at(140), count: 4 },
+    { kind: "boar", ...at(70) },
+    { kind: "livestock", ...at(110), count: 2 }
+  ];
+}
+var homeTile = (b) => {
+  const c = b.centres[0];
+  return [Math.floor(c.x / 100), Math.floor(c.y / 100)];
+};
+function wallRing(b, ring2) {
+  const [cx, cy] = homeTile(b);
+  for (let ty = cy - ring2; ty <= cy + ring2; ty++) for (let tx = cx - ring2; tx <= cx + ring2; tx++) if (Math.max(Math.abs(tx - cx), Math.abs(ty - cy)) === ring2 && b.inside(tx, ty)) b.pairBuilding("stone-wall", tx * 100, ty * 100);
+}
+var insideRing = (b, ring2) => (tx, ty) => {
+  const [cx, cy] = homeTile(b), [mx, my] = b.mirrorTile(cx, cy);
+  return Math.max(Math.abs(tx - cx), Math.abs(ty - cy)) < ring2 || Math.max(Math.abs(tx - mx), Math.abs(ty - my)) < ring2;
+};
+function fortress(seed) {
+  const R = specialMapRules.fortress, b = new MapBuilder(seed, "rotate", "fortress");
+  b.bases(null, [...R.bases]);
+  b.walled = true;
+  wallRing(b, R.ring);
+  const [cx, cy] = homeTile(b);
+  for (const [dx, dy] of R.barracks) b.pairBuilding("barracks", (cx + dx) * 100 + 15, (cy + dy) * 100 + 15);
+  for (const [dx, dy] of R.houses) b.pairBuilding("house", (cx + dx) * 100 + 15, (cy + dy) * 100 + 15);
+  for (const [dx, dy] of R.farms) b.pairBuilding("farm", (cx + dx) * 100, (cy + dy) * 100);
+  for (const [dx, dy] of R.towers) b.pairBuilding("watch-tower", (cx + dx) * 100, (cy + dy) * 100);
+  b.kit(walledKit(R.kitRadius));
+  const inside = insideRing(b, R.ring + 1);
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.animals("hunt", R.deer.pairs, R.deer.count, [...R.deer.ring], (x, y) => !inside(x, y));
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, (x, y) => !inside(x, y));
+  b.border(R.border, 900);
+  return b.finish();
+}
+function arena(seed) {
+  const R = specialMapRules.arena, b = new MapBuilder(seed, "rotate", "arena");
+  b.bases(null, [...R.bases]);
+  b.walled = true;
+  wallRing(b, R.ring);
+  b.kit(walledKit(R.kitRadius));
+  const inside = insideRing(b, R.ring + 1), c0 = b.centres[0];
+  const toMid = Math.atan2(b.mid - c0.y, b.mid - c0.x), out = (d, turn) => [Math.floor((c0.x + Math.cos(toMid + turn) * d) / 100), Math.floor((c0.y + Math.sin(toMid + turn) * d) / 100)];
+  for (const [kind, turn] of [["gold", -0.5], ["rock", 0.5]]) {
+    for (const extra of [0, 100, 200]) {
+      const [tx, ty] = out(R.ring * 100 + R.outside - 300 + extra, turn);
+      if (b.pairFree(tx, ty, 1) && !inside(tx, ty)) {
+        b.pair(kind, tx, ty);
+        break;
+      }
+    }
+  }
+  const pockets = [];
+  for (let i = 0; i < R.pockets.pairs; i++) {
+    const at = b.pick((x, y) => b.pairFree(x, y, 2) && b.baseDistance(x, y) >= 1e3 && !inside(x, y), [...R.pockets.ring]);
+    if (!at) continue;
+    b.pair(i % 2 ? "rock" : "gold", at[0], at[1]);
+    pockets.push({ x: at[0] * 100 + 50, y: at[1] * 100 + 50 });
+  }
+  const nearSegment = (px, py, a, z, w2) => {
+    const dx = z.x - a.x, dy = z.y - a.y, len = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((px - a.x) * dx + (py - a.y) * dy) / len));
+    return Math.hypot(px - (a.x + dx * t), py - (a.y + dy * t)) <= w2;
+  };
+  const middle = { x: b.mid, y: b.mid }, bases = b.centres.map((c) => ({ x: c.x, y: c.y })), pocketsAll = pockets.flatMap((p) => [p, b.mirrorPoint(p.x, p.y)]);
+  const clear = (tx, ty) => {
+    const px = tx * 100 + 50, py = ty * 100 + 50;
+    if (Math.hypot(px - b.mid, py - b.mid) < R.open) return true;
+    if (b.baseDistance(tx, ty) < R.ring * 100 + R.gap + 150) return true;
+    if (bases.some((c) => nearSegment(px, py, c, middle, R.lane))) return true;
+    return pocketsAll.some((p) => Math.hypot(px - p.x, py - p.y) <= R.pockets.radius + 60 || nearSegment(px, py, p, middle, 60));
+  };
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring], 800);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring], 800);
+  b.neutral("berries", R.neutral.berries, [...R.neutral.ring], 800);
+  b.animals("hunt", R.deer.pairs, R.deer.count, [...R.deer.ring], void 0, 800);
+  for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) {
+    const [mx, my] = b.mirrorTile(tx, ty);
+    if (my * b.size + mx < ty * b.size + tx || clear(tx, ty) || b.noise(tx, ty) < R.density) continue;
+    if (b.pairFree(tx, ty, 0)) b.pair("tree", tx, ty);
+  }
+  return b.finish();
+}
+function nomad(seed) {
+  const R = specialMapRules.nomad, b = new MapBuilder(seed, "mirrorX", "nomad");
+  b.bases((R.angle[0] + b.random() * (R.angle[1] - R.angle[0])) * Math.PI / 180, [...R.bases]);
+  b.nomad = true;
+  b.paint((tx, ty) => {
+    const j = Math.floor(b.smooth(Math.min(tx, b.size - 1 - tx), ty) * R.jitter);
+    return Math.min(tx, b.size - 1 - tx) < R.sea + j || ty < R.sea + j ? "water" : null;
+  });
+  b.kit(standardKit);
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.fishIn(R.fish.shore, "shore");
+  b.fishIn(R.fish.deep, "deep");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  b.obstacles = b.obstacles.filter((o) => o.kind !== "town-center");
+  b.scouts = void 0;
+  const c = b.centres[0], grid = (p) => ({ x: Math.round(p.x / 50) * 50, y: Math.round(p.y / 50) * 50 });
+  const first = R.scatter.map(([dx, dy]) => grid({ x: c.x + dx, y: c.y + dy }));
+  b.starts = [first, first.map((p) => grid(b.mirrorPoint(p.x, p.y)))];
+  return b.finish();
+}
+var disc = (b, tx, ty, x, y, r, rag = 120) => Math.hypot(tx * 100 + 50 - x, ty * 100 + 50 - y) < r + rag * (b.smooth(tx, ty) - 0.5);
+function migration(seed) {
+  const R = specialMapRules.migration, b = new MapBuilder(seed, "rotate", "migration");
+  b.bases((45 + 90 * Math.floor(b.random() * 4)) * Math.PI / 180, [...R.bases]);
+  b.separate = true;
+  b.lean = ["gold", "stone"];
+  const c0 = b.centres[0], c1 = b.centres[1];
+  const main = (tx, ty) => Math.min(tx, ty, b.size - 1 - tx, b.size - 1 - ty) >= R.edge && [c0, c1].every((c) => Math.hypot(tx * 100 + 50 - c.x, ty * 100 + 50 - c.y) >= R.islet + 40 + R.strait);
+  b.paint((tx, ty) => disc(b, tx, ty, c0.x, c0.y, R.islet, 80) || disc(b, tx, ty, c1.x, c1.y, R.islet, 80) || main(tx, ty) ? null : "water");
+  const islet = [];
+  for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) {
+    const d = Math.hypot(tx * 100 + 50 - c0.x, ty * 100 + 50 - c0.y);
+    if (d < R.islet + 60 && d > 260 && b.tile(tx, ty).walkClass === "land" && !b.taken.has(ty * b.size + tx)) islet.push([tx, ty]);
+  }
+  const away = (tx, ty) => {
+    const a = Math.atan2(ty * 100 + 50 - c0.y, tx * 100 + 50 - c0.x), south = Math.PI / 2;
+    return Math.abs(Math.atan2(Math.sin(a - south), Math.cos(a - south))) > 0.9;
+  };
+  const spots = islet.filter(([x, y]) => away(x, y)).sort((p, q) => Math.atan2(p[1] * 100 + 50 - c0.y, p[0] * 100 + 50 - c0.x) - Math.atan2(q[1] * 100 + 50 - c0.y, q[0] * 100 + 50 - c0.x));
+  let trees = 0, berries = false;
+  for (const [tx, ty] of spots) {
+    const [mx, my] = b.mirrorTile(tx, ty);
+    if (b.taken.has(ty * b.size + tx) || b.taken.has(my * b.size + mx)) continue;
+    if (!berries) {
+      b.pair("berries", tx, ty);
+      berries = true;
+      continue;
+    }
+    if (trees < R.trees) {
+      b.pair("tree", tx, ty);
+      trees++;
+    }
+  }
+  b.fishIn(R.fish.shore, "shore", 200, (x, y) => disc(b, x, y, c0.x, c0.y, R.islet + 250, 0) || disc(b, x, y, c1.x, c1.y, R.islet + 250, 0));
+  b.fishIn(R.fish.deep, "deep");
+  const onMain = (x, y) => main(x, y) && [c0, c1].every((c) => Math.hypot(x * 100 + 50 - c.x, y * 100 + 50 - c.y) >= R.islet + R.strait + 160);
+  for (let i = 0; i < R.mainlandSheep.pairs; i++) {
+    const at = b.pick((x, y) => onMain(x, y) && b.pairFree(x, y, 1) && Math.hypot(x * 100 + 50 - c0.x, y * 100 + 50 - c0.y) < Math.hypot(x * 100 + 50 - c1.x, y * 100 + 50 - c1.y), [R.islet + R.strait + 250, R.islet + R.strait + 600], { x: c0.x, y: c0.y });
+    if (at) b.pair("livestock", at[0], at[1], void 0, R.mainlandSheep.count);
+  }
+  for (const [kind, pairs] of [["gold", R.neutral.gold], ["rock", R.neutral.rock], ["berries", R.neutral.berries]]) for (let i = 0; i < pairs; i++) {
+    const at = b.pick((x, y) => onMain(x, y) && b.pairFree(x, y, 1), [0, 1500]);
+    if (at) b.pair(kind, at[0], at[1]);
+  }
+  b.animals("hunt", R.deer.pairs, R.deer.count, [0, 1500], onMain, 0);
+  b.forests(R.forests.clumps, [...R.forests.size], 0, onMain);
+  for (const [a, z] of b.mines) {
+    b.isolated.add(a);
+    b.isolated.add(z);
+  }
+  return b.finish();
+}
+function islandMap(b, R) {
+  b.bases(null, [...R.bases]);
+  b.separate = true;
+  const c0 = b.centres[0], c1 = b.centres[1], axis = Math.atan2(c0.y - b.mid, c0.x - b.mid);
+  const islets = R.islets.map((i) => {
+    const a = axis + Math.PI / 2 + (i.turn ?? 0);
+    return { ...i, x: b.mid + Math.cos(a) * i.at, y: b.mid + Math.sin(a) * i.at };
+  });
+  const both = islets.flatMap((i) => [i, { ...i, ...b.mirrorPoint(i.x, i.y) }]);
+  const ux = Math.cos(axis), uy = Math.sin(axis), strait = (tx, ty) => Math.abs((tx * 100 + 50 - b.mid) * ux + (ty * 100 + 50 - b.mid) * uy) < 200;
+  const offIslets = (tx, ty) => both.every((i) => Math.hypot(tx * 100 + 50 - i.x, ty * 100 + 50 - i.y) >= i.radius + 260);
+  b.paint((tx, ty) => !strait(tx, ty) && offIslets(tx, ty) && (disc(b, tx, ty, c0.x, c0.y, R.island) || disc(b, tx, ty, c1.x, c1.y, R.island)) || both.some((i) => disc(b, tx, ty, i.x, i.y, i.radius, 60)) ? null : "water");
+  b.kit(standardKit.map((k) => ({ ...k, dx: Math.round(k.dx * R.kitScale), dy: Math.round(k.dy * R.kitScale) })));
+  const home = (x, y) => Math.hypot(x * 100 + 50 - c0.x, y * 100 + 50 - c0.y) < R.island - 150 || Math.hypot(x * 100 + 50 - c1.x, y * 100 + 50 - c1.y) < R.island - 150;
+  for (const i of islets) {
+    const tiles = [];
+    for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) if (Math.hypot(tx * 100 + 50 - i.x, ty * 100 + 50 - i.y) < i.radius - 40 && b.pairFree(tx, ty, 1)) tiles.push([tx, ty]);
+    tiles.sort((p, q) => Math.hypot(p[0] * 100 + 50 - i.x, p[1] * 100 + 50 - i.y) - Math.hypot(q[0] * 100 + 50 - i.x, q[1] * 100 + 50 - i.y) || p[0] - q[0] || p[1] - q[1]);
+    let k = 0;
+    for (const kind of i.goods) for (const [tx, ty] of tiles.slice(k)) {
+      k++;
+      if (!b.pairFree(tx, ty, 1)) continue;
+      b.pair(kind === "berries" ? "berries" : kind, tx, ty);
+      if (kind === "gold" || kind === "rock") {
+        b.isolated.add(ty * b.size + tx);
+        const [mx, my] = b.mirrorTile(tx, ty);
+        b.isolated.add(my * b.size + mx);
+      }
+      break;
+    }
+  }
+  b.fishIn(R.fish.shore, "shore");
+  b.fishIn(R.fish.deep, "deep");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, home);
+  return b.finish();
+}
+function islands(seed) {
+  return islandMap(new MapBuilder(seed, "rotate", "islands"), specialMapRules.islands);
+}
+function archipelago(seed) {
+  return islandMap(new MapBuilder(seed, "rotate", "archipelago"), specialMapRules.archipelago);
+}
+function teamIslands(seed) {
+  const R = specialMapRules["team-islands"], b = new MapBuilder(seed, "rotate", "team-islands");
+  b.bases(null, [...R.bases]);
+  b.separate = true;
+  const c0 = b.centres[0], axis = Math.atan2(c0.y - b.mid, c0.x - b.mid), ux = Math.cos(axis), uy = Math.sin(axis);
+  b.paint((tx, ty) => {
+    const edge = Math.min(tx, ty, b.size - 1 - tx, b.size - 1 - ty), along = (tx * 100 + 50 - b.mid) * ux + (ty * 100 + 50 - b.mid) * uy;
+    return edge < R.edge || Math.abs(along) < R.channel * 100 + 60 * (b.smooth(tx, ty) - 0.5) ? "water" : null;
+  });
+  b.kit(standardKit);
+  const own = (x, y) => Math.abs((x * 100 + 50 - b.mid) * ux + (y * 100 + 50 - b.mid) * uy) > R.channel * 100 + 200;
+  b.neutral("gold", R.neutral.gold, [300, 1300]);
+  b.neutral("rock", R.neutral.rock, [300, 1300]);
+  b.fishIn(R.fish.shore, "shore");
+  b.fishIn(R.fish.deep, "deep");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, own);
+  b.border(R.border, 750);
+  return b.finish();
+}
+
+// packages/sim/maps/index.ts
+var generators = {
+  arabia,
+  "black-forest": blackForest,
+  coastal,
+  mediterranean,
+  baltic,
+  continental,
+  rivers,
+  highland,
+  "ghost-lake": ghostLake,
+  mongolia,
+  oasis,
+  scandinavia,
+  yucatan,
+  "gold-rush": goldRush,
+  "crater-lake": craterLake,
+  "salt-marsh": saltMarsh,
+  fortress,
+  arena,
+  nomad,
+  migration,
+  islands,
+  archipelago,
+  "team-islands": teamIslands
+};
+var isMatchMap = (layout) => matchMapLayouts.includes(layout);
+function generateMatchMap(seed, layout) {
+  return generators[layout](seed);
+}
+var matchMapRules = () => ({ standardKit, apron, land: landMapRules, water: waterMapRules, special: specialMapRules });
 
 // packages/sim/navigation.ts
 var navigationRules = { provenance: "design_default", spacing: 50, size: 31, radius: 25, expansionsPerTick: 128, speedPerTick: 5, maxGroupSize: 40, waitLimit: 8, queueWaitFactor: 4, detourLimit: 12, stuckTicks: 300, arrivalRadius: 150 };
@@ -943,6 +1964,7 @@ function makeMap(seed, layout = "meadow") {
 }
 function generateCandidate(seed, layout) {
   if (layout === "open" || layout === "lakes") return generateOpen(seed, layout === "lakes");
+  if (isMatchMap(layout)) return generateMatchMap(seed, layout);
   let rng = seed || 1;
   let obstacles = [{ kind: "town-center", x: 265, y: 350 }, { kind: "town-center", x: 1065, y: 350, red: true }];
   const woods = [];
@@ -1212,7 +2234,7 @@ function clearSegment(map, a, b, movement = "land") {
     if (y < size - 1 && Math.abs(tile.height - map.tiles[tile.id + size].height) > maxStep && intersects(a, b, [x * 100 - radius, (y + 1) * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
     if (!canTraverse(tile, movement) && intersects(a, b, [x * 100 - radius, y * 100 - radius, x * 100 + 100 + radius, y * 100 + 100 + radius])) return false;
   }
-  for (const o of map.obstacles) for (const [x0, y0, x1, y1] of obstacleRects(o, navigationRules.radius)) {
+  for (const o of obstaclesNear(map, a, b)) for (const [x0, y0, x1, y1] of obstacleRects(o, navigationRules.radius)) {
     let lo = 0, hi = 1;
     for (const [start, delta, min, max] of [[a.x, b.x - a.x, x0, x1], [a.y, b.y - a.y, y0, y1]]) {
       if (delta === 0) {
@@ -1229,6 +2251,26 @@ function clearSegment(map, a, b, movement = "land") {
     if (lo <= hi) return false;
   }
   return true;
+}
+var obstacleIndex = /* @__PURE__ */ new WeakMap();
+function obstaclesNear(map, a, b) {
+  let idx = obstacleIndex.get(map.obstacles);
+  if (!idx || idx.length !== map.obstacles.length) {
+    let refs = 0;
+    for (const t of map.tiles) refs += t.obstacleRefs.length;
+    const byId = /* @__PURE__ */ new Map();
+    for (const o of map.obstacles) if (o.id !== void 0) byId.set(o.id, o);
+    idx = { length: map.obstacles.length, byId: refs === map.obstacles.length && byId.size === map.obstacles.length && map.obstacles.length > 32 ? byId : null };
+    obstacleIndex.set(map.obstacles, idx);
+  }
+  if (!idx.byId) return map.obstacles;
+  const r = navigationRules.radius, size = map.size, tx0 = Math.max(0, Math.floor((Math.min(a.x, b.x) - r - 500) / 100)), tx1 = Math.min(size - 1, Math.floor((Math.max(a.x, b.x) + r + 20) / 100)), ty0 = Math.max(0, Math.floor((Math.min(a.y, b.y) - r - 500) / 100)), ty1 = Math.min(size - 1, Math.floor((Math.max(a.y, b.y) + r + 20) / 100));
+  const out = [];
+  for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) for (const id of map.tiles[ty * size + tx].obstacleRefs) {
+    const o = idx.byId.get(id);
+    if (o) out.push(o);
+  }
+  return out;
 }
 function intersects(a, b, box) {
   let lo = 0, hi = 1;
@@ -1300,12 +2342,17 @@ function validateMap(map) {
   }
   const spawns = [...map.starts.flat(), ...map.scouts ?? [], ...map.animals ?? []];
   if (spawns.some((p) => !clearSegment(map, p, p))) errors.push("\u51FA\u751F\u9EDE\u4E0D\u53EF\u901A\u884C");
-  else {
-    const job = createPathJob(map, 0, map.starts[0][0], map.starts[1][0]);
-    advancePathJob(map, job, nodeTotal(map));
+  else if (!map.separate) {
+    const open = map.walled ? withoutWalls(map) : map, job = createPathJob(open, 0, open.starts[0][0], open.starts[1][0]);
+    advancePathJob(open, job, nodeTotal(open));
     if (job.status !== "found") errors.push("\u73A9\u5BB6\u51FA\u751F\u5340\u4E92\u4E0D\u9023\u901A");
   }
   return errors;
+}
+var wallKinds = /* @__PURE__ */ new Set(["palisade-wall", "stone-wall", "palisade-gate", "gate"]);
+function withoutWalls(map) {
+  const gone = new Set(map.obstacles.filter((o) => wallKinds.has(o.kind)).map((o) => o.id));
+  return { ...map, obstacles: map.obstacles.filter((o) => !gone.has(o.id)), tiles: map.tiles.map((t) => ({ ...t, obstacleRefs: t.obstacleRefs.filter((r) => !gone.has(r)) })), blocked: [] };
 }
 function position(map, id) {
   const side = sideOf(map);
@@ -1331,7 +2378,7 @@ function validateStartingResources(map) {
         frontier.push(next);
       }
     }
-    const access = Object.entries(startingResourceRules.minimum).map(([kind, minimum]) => {
+    const access = Object.entries(startingResourceRules.minimum).filter(([kind]) => !map.lean?.includes(kind)).map(([kind, minimum]) => {
       const nodes = map.resources.filter((r) => r.kind === kind && r.collectible && r.remaining > 0).map((resource) => {
         const obstacle = map.obstacles.find((o) => o.id === resource.obstacleId);
         if (!obstacle) return { id: resource.id, remaining: resource.remaining, distance: Infinity, approach: null };
@@ -1562,7 +2609,7 @@ function createAccount(populationUsed) {
 function reserve(account, id, entryId, cost) {
   const found = rules.entries.find((e) => e.id === entryId), entry2 = found && cost ? { ...found, cost } : found;
   if (!entry2 || typeof id !== "string" || !id || account.reservations.some((r) => r.id === id)) throw Error("\u7121\u6548\u6216\u91CD\u8907\u7684\u9810\u7559\u9805\u76EE");
-  if (account.populationUsed + account.populationReserved + entry2.population > account.populationCap) throw Error("\u4EBA\u53E3\u5BB9\u91CF\u4E0D\u8DB3");
+  if (entry2.population > 0 && account.populationUsed + account.populationReserved + entry2.population > account.populationCap) throw Error("\u4EBA\u53E3\u5BB9\u91CF\u4E0D\u8DB3");
   for (const key of resources) if (!Number.isSafeInteger(account.stock[key]) || account.stock[key] < entry2.cost[key]) throw Error(`\u8CC7\u6E90\u4E0D\u8DB3\uFF1A${key}`);
   const record = { id, entryId, cost: { ...entry2.cost }, population: entry2.population, status: "reserved" };
   for (const key of resources) account.stock[key] -= record.cost[key];
@@ -1829,6 +2876,10 @@ var combatRules = {
     sheep: { hp: 7, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 0], classes: ["animal"], bonus: {} },
     deer: { hp: 5, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 0], classes: ["animal"], bonus: {} },
     boar: { hp: 75, damage: 8, range: 50, cooldown: 40, sight: 0, attack: "melee", armor: [0, 0], classes: ["animal"], bonus: {} },
+    // Wolf and jaguar (aoetw.com units/Wolf: 25 hit points, 3 melee attack, a blow every 2 s -> 20 ticks); they pick
+    // their own fights (animals.ts), so sight here stays 0 like the other animals.
+    wolf: { hp: 25, damage: 3, range: 50, cooldown: 20, sight: 0, attack: "melee", armor: [0, 0], classes: ["animal"], bonus: {} },
+    jaguar: { hp: 25, damage: 3, range: 50, cooldown: 20, sight: 0, attack: "melee", armor: [0, 0], classes: ["animal"], bonus: {} },
     // The counter units (after the reference's triangle): the spearman against cavalry, the skirmisher against archers,
     // the knight as heavy cavalry. Values design_default, in this game's scale.
     // Camels are their own class (aoetw: 駱駝, not 騎兵); the spear line's camel bonus keeps the site's ratio to its cavalry one.
@@ -1935,6 +2986,8 @@ var combatRules = {
     sheep: 5,
     deer: 10,
     boar: 5,
+    wolf: 8.75,
+    jaguar: 8.75,
     spearman: 5,
     skirmisher: 5,
     knight: 10,
@@ -2588,14 +3641,16 @@ function withCarried(state, u, st) {
 }
 
 // packages/sim/fauna.ts
-var animalKinds = ["sheep", "deer", "boar"];
+var animalKinds = ["sheep", "deer", "boar", "wolf", "jaguar"];
+var hostileKinds = ["wolf", "jaguar"];
+var isHostile = (kind) => hostileKinds.includes(kind);
 var GAIA = 2;
 var isAnimal = (kind) => animalKinds.includes(kind);
 var animalRules = {
   provenance: "design_default",
   // Food in the carcass; which resource kind the carcass is (sheep herd, the others hunt).
-  food: { sheep: 100, deer: 140, boar: 340 },
-  carcass: { sheep: "livestock", deer: "hunt", boar: "hunt" },
+  food: { sheep: 100, deer: 140, boar: 340, wolf: 0, jaguar: 0 },
+  carcass: { sheep: "livestock", deer: "hunt", boar: "hunt", wolf: "hunt", jaguar: "hunt" },
   // A sheep belongs to the only player with a unit (other than an animal) within captureRange; with both sides near it
   // keeps its owner. An owned sheep lets its owner see a little ground round it (visionRules.sheepRadius).
   // A sheep within holdRange of one of its owner's buildings cannot be taken.
@@ -2605,7 +3660,13 @@ var animalRules = {
   fleeDistance: 350,
   boarLeash: 700,
   // Villager hunting: damage per strike, ticks between strikes, reach (Chebyshev, to the animal's centre).
-  hunt: { damage: 3, cooldown: 30, range: { sheep: 50, deer: 150, boar: 150 } },
+  hunt: { damage: 3, cooldown: 30, range: { sheep: 50, deer: 150, boar: 150, wolf: 50, jaguar: 50 } },
+  // Hostile animals (aoetw.com units/Wolf): sight 4 / 6 / 12 tiles by difficulty (簡單 / 標準 / 困難 and 最難), a tile of
+  // sight being 100 here; they never go for monks, the scout line or siege, and never for buildings; they chase up to
+  // hostileLeash from where they started the chase, then give up.
+  hostileSight: { easy: 400, standard: 600, hard: 1200, hardest: 1200 },
+  hostileIgnore: ["monk", "scout"],
+  hostileLeash: 900,
   // A carcass loses one food every decayTicks, whether or not anyone is working it.
   decayTicks: 100,
   // Villagers stand this close (Chebyshev) to a carcass or a shore fish to work it.
@@ -2617,14 +3678,14 @@ var animalRules = {
 var carcassId = (animalId) => `resource-carcass-${animalId}`;
 function makeCarcass(map, animal) {
   const id = carcassId(animal.id), capacity = animalRules.food[animal.kind];
-  if (map.resources.some((r) => r.id === id)) return;
+  if (!capacity || map.resources.some((r) => r.id === id)) return;
   map.resources.push({ id, kind: animalRules.carcass[animal.kind], x: animal.x, y: animal.y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: null, depletedAt: null });
   map.tiles[Math.floor(animal.y / 100) * map.size + Math.floor(animal.x / 100)].resourceRefs.push(id);
 }
 
 // packages/sim/movement.ts
 var navigationStates = ["idle", "searching", "moving", "waiting", "unreachable", "stuck"];
-var unitKinds = ["villager", "militia", "archer", "scout", "monk", "sheep", "deer", "boar", "spearman", "skirmisher", "knight", "ram", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "cataphract", "war-elephant", "mameluke", "janissary", "chu-ko-nu", "samurai", "mangudai", "cavalry-archer", "camel", "mangonel", "scorpion", "trebuchet", "petard", "hand-cannoneer", "bombard-cannon", "fishing-ship", "transport-ship", "trade-cog", "trade-cart", "galley", "fire-galley", "demolition-raft", "cannon-galleon", "longboat"];
+var unitKinds = ["villager", "militia", "archer", "scout", "monk", "sheep", "deer", "boar", "spearman", "skirmisher", "knight", "ram", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "cataphract", "war-elephant", "mameluke", "janissary", "chu-ko-nu", "samurai", "mangudai", "cavalry-archer", "camel", "mangonel", "scorpion", "trebuchet", "petard", "hand-cannoneer", "bombard-cannon", "fishing-ship", "transport-ship", "trade-cog", "trade-cart", "galley", "fire-galley", "demolition-raft", "cannon-galleon", "longboat", "wolf", "jaguar"];
 var layerOf = (kind) => kind in combatRules.units && combatRules.units[kind].classes.some((c) => c === "ship" || c === "fishing-ship") ? "water" : "land";
 var graphs = /* @__PURE__ */ new WeakMap();
 function graph(map, layer = "land") {
@@ -3001,7 +4062,7 @@ var buildingRules = {
   required: Object.fromEntries(buildKinds.map((k) => [k, rules.entries.find((e) => e.id === k).time * rules.settings.tickHz]))
 };
 var overlap = (a, b) => Math.min(a[2], b[2]) - Math.max(a[0], b[0]) > 0 && Math.min(a[3], b[3]) - Math.max(a[1], b[1]) > 0;
-var wallKinds = /* @__PURE__ */ new Set(["palisade-wall", "stone-wall"]);
+var wallKinds2 = /* @__PURE__ */ new Set(["palisade-wall", "stone-wall"]);
 var wallGate2 = { "palisade-gate": "palisade-wall", gate: "stone-wall" };
 var replacesWall = (kind, o, owner) => wallGate2[kind] === o.kind && (o.red ? 1 : 0) === owner;
 function placementProblem(input, kind, x, y, owner) {
@@ -3056,18 +4117,19 @@ function closeFarm(s, buildingId, tick2) {
 function farmOwner(s, resourceId) {
   return s.buildings.find((b) => farmResourceId(b.id) === resourceId)?.player ?? null;
 }
-function buildRequirement(age, kind, own, civ = neutralCiv, techs = [], allTechs = false) {
+function buildRequirement(age, kind, own, civ = neutralCiv, techs = [], allTechs = false, nomadTownCenter = false) {
   const entry2 = rules.entries.find((e) => e.id === kind);
   if (!entry2) return "\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E";
   if (!civAvailable(civ, kind, allTechs)) return "\u6B64\u6587\u660E\u4E0D\u80FD\u5EFA\u9020";
   for (const req of entry2.requires) {
     const need = rules.entries.find((e) => e.id === req), m = /^age-(\d)$/.exec(req);
-    if (m && age < Number(m[1])) return `\u9700\u8981${need?.name ?? req}`;
+    if (m && age < Number(m[1]) && !(nomadTownCenter && kind === "town-center")) return `\u9700\u8981${need?.name ?? req}`;
     if (!m && need?.kind === "technology" && !techs.includes(req)) return `\u9700\u8981\u5148\u7814\u7A76\u300C${need.name}\u300D`;
     if (need?.kind === "building" && !own.some((b) => b.kind === req && b.complete)) return `\u9700\u8981\u5B8C\u5DE5\u7684${need.name}`;
   }
   return null;
 }
+var nomadWaiver = (map, own) => !!map.nomad && !own.some((b) => b.kind === "town-center");
 function stageOf(b) {
   return b.complete ? 100 : Math.min(80, Math.floor(b.work * 5 / b.required) * 20);
 }
@@ -3080,17 +4142,17 @@ function recomputeCapacity(s, player) {
   s.accounts[player].populationCap = Math.min((s.settings?.popCap ?? rules.settings.populationCap) + popCapBonus(owner), housed);
 }
 function initBuildings(s) {
-  for (const o of s.map.obstacles) if (o.kind === "town-center") {
-    {
-      const p = o.red ? 1 : 0, hp = buildingHpOf("town-center", ownerOf(s, p));
-      s.buildings.push({ id: o.id, kind: "town-center", player: p, x: o.x, y: o.y, work: 0, required: 0, complete: true, reservationId: null, queue: [], rally: null, hp, maxHp: hp });
-    }
-    o.age = s.ages[o.red ? 1 : 0];
+  for (const o of s.map.obstacles) if (isBuilding(o)) {
+    const p = o.red ? 1 : 0, kind = o.kind, hp = buildingHpOf(kind, ownerOf(s, p));
+    const b = { id: o.id, kind, player: p, x: o.x, y: o.y, work: 0, required: 0, complete: true, reservationId: null, queue: [], rally: null, hp, maxHp: hp };
+    s.buildings.push(b);
+    o.age = s.ages[p];
+    if (kind === "farm") openFarm(s, b);
   }
   for (const p of [0, 1]) recomputeCapacity(s, p);
 }
 function placeBuilding(s, player, kind, x, y, reservationId) {
-  const owner = ownerOf(s, player), problem = authoritativeProblem(s, player, kind, x, y) ?? buildRequirement(s.ages[player], kind, s.buildings.filter((b2) => b2.player === player), owner.civ, owner.techs, !!owner.allTechs);
+  const owner = ownerOf(s, player), problem = authoritativeProblem(s, player, kind, x, y) ?? buildRequirement(s.ages[player], kind, s.buildings.filter((b2) => b2.player === player), owner.civ, owner.techs, !!owner.allTechs, nomadWaiver(s.map, s.buildings.filter((b2) => b2.player === player)));
   if (problem) throw Error(problem);
   reserve(s.accounts[player], reservationId, kind, costOf(kind, owner));
   if (kind in wallGate2) {
@@ -3474,7 +4536,18 @@ function reveal(s, victim, from) {
   if (old) old.until = s.tick + revealTicks;
   else list.push({ player: victim, tile, until: s.tick + revealTicks });
 }
+var elevationRules = { provenance: "aoetw.com maps/Mongolia (\u9AD8\u5730\u6253\u4F4E\u5730\u653B\u64CA\u52A0\u6210 50%); no uphill penalty on the site", bonus: 1.5 };
+function heightOf(s, t) {
+  if (t.kind === "unit") {
+    const u = s.units.find((u2) => u2.id === t.id);
+    return u ? groundHeight(s.map.tiles, u.x, u.y) : 0;
+  }
+  const b = s.buildings.find((b2) => b2.id === t.id), box = b && buildingBox(s, b);
+  return box ? groundHeight(s.map.tiles, Math.floor((box[0] + box[2]) / 2), Math.floor((box[1] + box[3]) / 2)) : 0;
+}
+var elevated = (s, from, t) => groundHeight(s.map.tiles, from.x, from.y) > heightOf(s, t);
 function strike(s, t, amount, attacker, from) {
+  if (from && amount > 0 && elevated(s, from, t)) amount = Math.max(1, Math.round(amount * elevationRules.bonus));
   if (from) {
     const p = t.kind === "unit" ? s.units.find((u) => u.id === t.id)?.player : s.buildings.find((b2) => b2.id === t.id)?.player;
     if (p !== void 0) reveal(s, p, from);
@@ -3660,13 +4733,13 @@ function stepCombat(s) {
     const sight = stance === "stand" ? Math.min(own.sight, own.range) : own.sight;
     if (!sight) continue;
     const seen2 = new Set(s.vision[u.player].visible);
-    let best = null, dist2 = Infinity;
+    let best = null, dist3 = Infinity;
     const layer = layerOf(u.kind), across = own.range >= 150;
-    for (const e of s.units) if (e.player !== u.player && !isAnimal(e.kind) && (across || layerOf(e.kind) === layer) && seen2.has(tileAt(e.x, e.y, s.map.size))) {
+    for (const e of s.units) if (e.player !== u.player && (!isAnimal(e.kind) || isHostile(e.kind)) && (across || layerOf(e.kind) === layer) && seen2.has(tileAt(e.x, e.y, s.map.size))) {
       const d = reach(u, e);
-      if (d <= sight && d >= (own.minRange ?? 0) && (d < dist2 || d === dist2 && best && e.id < best.id)) {
+      if (d <= sight && d >= (own.minRange ?? 0) && (d < dist3 || d === dist3 && best && e.id < best.id)) {
         best = e;
-        dist2 = d;
+        dist3 = d;
       }
     }
     if (best) s.attacks[u.id] = { target: { kind: "unit", id: best.id }, cooldown: 0, auto: true, repath: 0, firedTick: -1, ...stance === "defensive" ? { anchor: { x: u.x, y: u.y } } : {} };
@@ -3931,6 +5004,7 @@ function gatherable(map, resourceId, layer = "land") {
 function huntProblem(s, player, animalId) {
   const a = s.units.find((u) => u.id === animalId);
   if (!a || !isAnimal(a.kind) || !s.vision[player].visible.includes(Math.floor(a.y / 100) * s.map.size + Math.floor(a.x / 100))) return "\u627E\u4E0D\u5230\u9019\u96BB\u52D5\u7269";
+  if (isHostile(a.kind)) return "\u72FC\u8207\u7F8E\u6D32\u8C79\u4E0D\u80FD\u72E9\u7375\uFF08\u6C92\u6709\u98DF\u7269\uFF09\uFF1A\u9078\u58EB\u5175\u53F3\u9375\u653B\u64CA\u7260";
   if (a.kind === "sheep" && a.player !== player) return a.player === 1 - player ? "\u9019\u96BB\u7F8A\u5C6C\u65BC\u5C0D\u624B\uFF1A\u8B93\u4F60\u7684\u55AE\u4F4D\u9760\u8FD1\u7260\u3001\u5C0D\u624B\u7684\u55AE\u4F4D\u96E2\u958B\uFF0C\u5C31\u80FD\u6436\u904E\u4F86" : "\u9019\u96BB\u7F8A\u9084\u6C92\u6709\u4E3B\u4EBA\uFF1A\u6D3E\u4EFB\u4F55\u55AE\u4F4D\u8D70\u5230\u7260\u65C1\u908A\u5C31\u80FD\u53D6\u5F97";
   return null;
 }
@@ -4005,20 +5079,20 @@ function deposit(s, u) {
 }
 function nextSource(s, u, from, kind) {
   if (resourceDefinitions[from.kind].method !== "gather") {
-    let best = null, dist2 = Infinity;
+    let best = null, dist3 = Infinity;
     for (const r of s.map.resources) if (r.collectible && r.kind === from.kind && r.kind !== "fish-trap" && (r.kind !== "fish" || workSlots(s.map, r.id, layerOf(u.kind)).length)) {
       const d = Math.abs(r.x - from.x) + Math.abs(r.y - from.y);
-      if (d <= 600 && (d < dist2 || d === dist2 && best !== null && r.id < best.resourceId)) {
+      if (d <= 600 && (d < dist3 || d === dist3 && best !== null && r.id < best.resourceId)) {
         best = { resourceId: r.id };
-        dist2 = d;
+        dist3 = d;
       }
     }
     if (best || from.kind !== "livestock") return best;
     for (const a of s.units) if (a.kind === "sheep" && a.player === u.player) {
       const d = Math.abs(a.x - from.x) + Math.abs(a.y - from.y);
-      if (d <= 600 && (d < dist2 || d === dist2 && best !== null && a.id < best.prey)) {
+      if (d <= 600 && (d < dist3 || d === dist3 && best !== null && a.id < best.prey)) {
         best = { resourceId: carcassId(a.id), prey: a.id };
-        dist2 = d;
+        dist3 = d;
       }
     }
     return best;
@@ -4027,12 +5101,12 @@ function nextSource(s, u, from, kind) {
   return id ? { resourceId: id } : null;
 }
 function nearestGather(s, from, kind) {
-  let best = null, dist2 = Infinity;
+  let best = null, dist3 = Infinity;
   for (const r of s.map.resources) if (r.collectible && r.kind !== "farm" && resourceDefinitions[r.kind].method === "gather" && resourceDefinitions[r.kind].yield === kind) {
     const d = Math.abs(r.x - from.x) + Math.abs(r.y - from.y);
-    if (d <= 600 && (d < dist2 || d === dist2 && best !== null && r.id < best)) {
+    if (d <= 600 && (d < dist3 || d === dist3 && best !== null && r.id < best)) {
       best = r.id;
-      dist2 = d;
+      dist3 = d;
     }
   }
   return best;
@@ -4065,8 +5139,8 @@ function stepBuilder(s, u, w2) {
     s.works[u.id] = g;
     return goToSource(s, u, g);
   }
-  if (b?.complete && (wallKinds.has(b.kind) || b.kind in wallGate2)) {
-    const next = s.buildings.filter((v) => v.player === u.player && !v.complete && (wallKinds.has(v.kind) || v.kind in wallGate2) && Math.max(Math.abs(v.x - b.x), Math.abs(v.y - b.y)) <= wallRules.builderReach).sort((p, q) => Math.max(Math.abs(p.x - b.x), Math.abs(p.y - b.y)) - Math.max(Math.abs(q.x - b.x), Math.abs(q.y - b.y)) || (p.id < q.id ? -1 : 1))[0];
+  if (b?.complete && (wallKinds2.has(b.kind) || b.kind in wallGate2)) {
+    const next = s.buildings.filter((v) => v.player === u.player && !v.complete && (wallKinds2.has(v.kind) || v.kind in wallGate2) && Math.max(Math.abs(v.x - b.x), Math.abs(v.y - b.y)) <= wallRules.builderReach).sort((p, q) => Math.max(Math.abs(p.x - b.x), Math.abs(p.y - b.y)) - Math.max(Math.abs(q.x - b.x), Math.abs(q.y - b.y)) || (p.id < q.id ? -1 : 1))[0];
     if (next) {
       w2.buildingId = next.id;
       w2.retries = 0;
@@ -4277,10 +5351,17 @@ function claimSheep(s) {
     halt(s, sheep);
   }
 }
+var prey_ok = (u) => layerOf(u.kind) === "land" && !animalRules.hostileIgnore.includes(u.kind) && !(u.kind in combatRules.units && combatRules.units[u.kind].classes.includes("siege"));
 function stepAnimals(s) {
   const animals = s.units.filter((u) => isAnimal(u.kind)).sort((a, b) => a.id - b.id), busy = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId]));
   for (const id of Object.keys(s.beasts).map(Number)) if (!animals.some((a) => a.id === id)) delete s.beasts[id];
   claimSheep(s);
+  const sight = animalRules.hostileSight[settingsOf(s).difficulty];
+  for (const a of animals) {
+    if (!isHostile(a.kind) || s.beasts[a.id]) continue;
+    const prey = s.units.filter((u) => (u.player === 0 || u.player === 1) && !isAnimal(u.kind) && prey_ok(u) && Math.hypot(u.x - a.x, u.y - a.y) <= sight).sort((p, q) => Math.hypot(p.x - a.x, p.y - a.y) - Math.hypot(q.x - a.x, q.y - a.y) || p.id - q.id)[0];
+    if (prey) s.beasts[a.id] = { foe: prey.id, cooldown: 0, repath: 0 };
+  }
   for (const a of animals) {
     const b = s.beasts[a.id];
     if (!b) continue;
@@ -4299,7 +5380,7 @@ function stepAnimals(s) {
       }
       continue;
     }
-    let target = foe && reach(a, foe) <= animalRules.boarLeash ? foe : void 0;
+    let target = foe && reach(a, foe) <= (isHostile(a.kind) ? animalRules.hostileLeash : animalRules.boarLeash) ? foe : void 0;
     if (!target) {
       target = s.units.filter((u) => !isAnimal(u.kind) && reach(a, u) <= animalRules.boarLeash && (s.works[u.id]?.prey === a.id || s.attacks[u.id]?.target.kind === "unit" && s.attacks[u.id].target.id === a.id)).sort((p, q) => reach(a, p) - reach(a, q) || p.id - q.id)[0];
       if (!target) {
@@ -4309,7 +5390,7 @@ function stepAnimals(s) {
       }
       b.foe = target.id;
     }
-    const stats = statsOf("boar");
+    const stats = statsOf(isHostile(a.kind) ? a.kind : "boar");
     if (b.cooldown > 0) b.cooldown--;
     if (reach(a, target) <= stats.range) {
       if (a.next !== null) continue;
@@ -4529,7 +5610,7 @@ function stepDefense(s) {
     if (!box) continue;
     const seen2 = new Set(s.vision[b.player].visible);
     const mod = arrowsOf(ownerOf(s, b.player), b.kind), range = def.range + mod.range;
-    const target = s.units.filter((u) => u.player !== b.player && !isAnimal(u.kind) && seen2.has(tileAt(u.x, u.y, s.map.size)) && reach(u, box) <= range).sort((p, q) => reach(p, box) - reach(q, box) || p.id - q.id)[0];
+    const target = s.units.filter((u) => u.player !== b.player && (!isAnimal(u.kind) || isHostile(u.kind)) && seen2.has(tileAt(u.x, u.y, s.map.size)) && reach(u, box) <= range).sort((p, q) => reach(p, box) - reach(q, box) || p.id - q.id)[0];
     if (!target) continue;
     const bonus = { ...def.bonus };
     for (const [c, v] of Object.entries(mod.bonus)) bonus[c] = (bonus[c] ?? 0) + v;
@@ -4602,15 +5683,15 @@ function exitNode(s, b, layer = "land") {
   const o = s.map.obstacles.find((o2) => o2.id === b.id), box = obstacleBounds(o, navigationRules.radius);
   const held2 = new Set(s.units.flatMap((u) => u.next === null ? [u.node] : [u.node, u.next]));
   const aim = b.rally ?? { x: (box[0] + box[2]) / 2, y: box[3] + 50 };
-  let best = -1, dist2 = Infinity;
+  let best = -1, dist3 = Infinity;
   const closed = blockedFor(s.map, layer);
   for (const n of nodesNear(s.map, box, 50)) {
     if (closed[n] || held2.has(n)) continue;
     const p = position(s.map, n), g = Math.max(box[0] - p.x, 0, p.x - box[2]) + Math.max(box[1] - p.y, 0, p.y - box[3]);
     if (g <= 0 || g > 50) continue;
     const d = Math.abs(p.x - aim.x) + Math.abs(p.y - aim.y);
-    if (d < dist2) {
-      dist2 = d;
+    if (d < dist3) {
+      dist3 = d;
       best = n;
     }
   }
@@ -4833,8 +5914,10 @@ function convertBuilding(s, monk, b) {
   recomputeCapacity(s, monk.player);
 }
 function placeRelics(map, seed) {
-  const R = religionRules.relics, centres = [false, true].map((red) => {
-    const o = map.obstacles.find((o2) => o2.kind === "town-center" && !!o2.red === red), b = obstacleBounds(o);
+  const R = religionRules.relics, centres = [false, true].map((red, p) => {
+    const o = map.obstacles.find((o2) => o2.kind === "town-center" && !!o2.red === red);
+    if (!o) return map.starts[p][0];
+    const b = obstacleBounds(o);
     return { x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2 };
   });
   const closed = blockedTable(map), world = map.size * 100;
@@ -4907,12 +5990,12 @@ function stepReligion(s) {
   for (const id of Object.keys(s.faith).map(Number)) if (!monks.some((m) => m.id === id)) delete s.faith[id];
   for (const m of monks) {
     if (s.rites[m.id] || s.attacks[m.id] || m.next !== null || m.path.length || busy.has(m.id)) continue;
-    let best = null, dist2 = Infinity;
+    let best = null, dist3 = Infinity;
     for (const u of s.units) if (u !== m && u.player === m.player && u.kind !== "monk" && !isAnimal(u.kind) && healable(u.kind) && u.hp < maxHp(s, u)) {
       const d = reach(m, u);
-      if (d <= religionRules.healSight && (d < dist2 || d === dist2 && best && u.id < best.id)) {
+      if (d <= religionRules.healSight && (d < dist3 || d === dist3 && best && u.id < best.id)) {
         best = u;
-        dist2 = d;
+        dist3 = d;
       }
     }
     if (best) s.rites[m.id] = { kind: "heal", target: best.id, progress: 0, needed: 0, repath: 0, attempt: 0 };
@@ -5090,15 +6173,15 @@ var boxOf3 = (s, id) => {
 var centre = (b) => ({ x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2 });
 function homeOf(s, u) {
   const kind = tradeHome[u.kind];
-  let best = null, dist2 = Infinity;
+  let best = null, dist3 = Infinity;
   for (const b of s.buildings) {
     if (b.player !== u.player || b.kind !== kind || !b.complete) continue;
     const box = boxOf3(s, b.id);
     if (!box) continue;
     const d = reach(u, box);
-    if (d < dist2 || d === dist2 && best && b.id < best.id) {
+    if (d < dist3 || d === dist3 && best && b.id < best.id) {
       best = b;
-      dist2 = d;
+      dist3 = d;
     }
   }
   return best;
@@ -5192,6 +6275,206 @@ function stepWonders(s) {
   if (best && !s.outcome && s.tick >= best.endsTick) s.outcome = { winner: best.player, defeated: [1 - best.player], tick: s.tick, reason: "wonder" };
 }
 
+// packages/sim/ai-maps.ts
+var mapAIRules = {
+  provenance: "design_default",
+  // Nomad: the town centre's site within siteRange of the villagers, scored by the explored resources within reach of
+  // it (weights per kind) less its distance.
+  nomad: { siteRange: 900, step: 50, reach: 700, weights: { berries: 3, hunt: 3, livestock: 3, gold: 2, stone: 1, tree: 0.4 }, distance: 0.5 },
+  // Wolves: a villager a wolf goes for shelters in the town centre (or runs to it); soldiers and the scout kill wolves
+  // within guard of the town centre.
+  wolves: { guard: 800 },
+  // Over water: transports kept, the expansion party's size and from how many villagers it leaves.
+  // dockAt: the dock goes up from this many villagers (no barracks needed first: on an islet there may be no room).
+  ferry: { transports: 1, expandAt: 4, expanders: 4, returnRange: 400, dockAt: 3, campWood: 200 },
+  // A walled start: the gate goes into the own wall from the second age (a stone gate needs it).
+  gateAge: 2
+};
+var centre2 = (b) => ({ x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2 });
+var dist = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+var boxOf4 = (s, b) => {
+  const o = s.map.obstacles.find((o2) => o2.id === b.id);
+  return o ? obstacleBounds(o) : null;
+};
+var lands = /* @__PURE__ */ new WeakMap();
+function landOf(map) {
+  let out = lands.get(map);
+  if (out) return out;
+  const n = map.size, land2 = new Int32Array(n * n).fill(-1);
+  let id = 0;
+  for (let t = 0; t < n * n; t++) {
+    if (land2[t] >= 0 || !canTraverse(map.tiles[t], "land")) continue;
+    land2[t] = id;
+    const q = [t];
+    for (let h = 0; h < q.length; h++) {
+      const c = q[h], x = c % n, y = Math.floor(c / n);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= n || ny >= n) continue;
+        const m = ny * n + nx;
+        if (land2[m] >= 0 || !canTraverse(map.tiles[m], "land") || Math.abs(map.tiles[m].height - map.tiles[c].height) > terrainRules.maxLandStep) continue;
+        land2[m] = id;
+        q.push(m);
+      }
+    }
+    id++;
+  }
+  lands.set(map, out = land2);
+  return land2;
+}
+var landAt = (map, p) => landOf(map)[tileAt(Math.min(map.size * 100 - 1, Math.max(0, p.x)), Math.min(map.size * 100 - 1, Math.max(0, p.y)), map.size)];
+var knownInput = (s, P) => {
+  const explored = new Set(s.vision[P].explored), bodies = s.units.flatMap((u) => [{ x: u.x, y: u.y }, ...u.next === null ? [] : [position(s.map, u.next)]]);
+  return { tiles: s.map.tiles, obstacles: s.map.obstacles, units: bodies, explored: (t) => explored.has(t) };
+};
+function nomadStart(s, order, P, villagers, own) {
+  if (!s.map.nomad || own.some((b) => b.kind === "town-center") || !villagers.length) return;
+  const R = mapAIRules.nomad, stock = s.accounts[P].stock, cost = costOf("town-center", ownerOf(s, P));
+  if (Object.keys(cost).some((k) => stock[k] < cost[k])) return;
+  const c = { x: villagers.reduce((t, u) => t + u.x, 0) / villagers.length, y: villagers.reduce((t, u) => t + u.y, 0) / villagers.length }, explored = new Set(s.vision[P].explored), input = knownInput(s, P);
+  const known = s.map.resources.filter((r) => r.collectible && explored.has(tileAt(r.x, r.y, s.map.size)) && R.weights[r.kind]);
+  let best = null;
+  for (let x = Math.ceil((c.x - R.siteRange) / 50) * 50; x <= c.x + R.siteRange; x += R.step) for (let y = Math.ceil((c.y - R.siteRange) / 50) * 50; y <= c.y + R.siteRange; y += R.step) {
+    const box = obstacleBounds({ kind: "town-center", x, y }), m = centre2(box);
+    if (box[0] < 100 || box[1] < 100 || box[2] > s.map.size * 100 - 100 || box[3] > s.map.size * 100 - 100) continue;
+    const score = known.reduce((t, r) => {
+      const d = Math.hypot(r.x - m.x, r.y - m.y);
+      return d <= R.reach && d >= 200 ? t + R.weights[r.kind] * r.remaining / 100 : t;
+    }, 0) - Math.hypot(m.x - c.x, m.y - c.y) * R.distance / 100;
+    if (best && score <= best.score) continue;
+    if (placementProblem(input, "town-center", x, y)) continue;
+    best = { x, y, score };
+  }
+  if (best) order("build", { unitIds: villagers.map((u) => u.id).sort((a, b) => a - b), kind: "town-center", x: best.x, y: best.y });
+}
+function wolves(s, order, P, mine, tc, idle) {
+  const box = tc && boxOf4(s, tc);
+  if (!box) return;
+  const home = centre2(box), hunters = /* @__PURE__ */ new Map();
+  for (const [id, b] of Object.entries(s.beasts)) {
+    const w2 = s.units.find((u) => u.id === Number(id));
+    if (w2 && isHostile(w2.kind)) hunters.set(w2.id, b.foe);
+  }
+  const chased = mine.filter((u) => u.kind === "villager" && [...hunters.values()].includes(u.id)).sort((a, b) => a.id - b.id);
+  if (chased.length) {
+    const room3 = tc.complete ? garrisonCapacity(s, tc) - (s.garrison[tc.id]?.units.length ?? 0) : 0;
+    if (room3 > 0) order("garrison", { unitIds: chased.slice(0, room3).map((u) => u.id), buildingId: tc.id });
+    else order("move", { unitIds: chased.map((u) => u.id), x: Math.round(home.x / 50) * 50, y: Math.round((box[3] + 100) / 50) * 50 });
+  }
+  const near = s.units.filter((u) => isHostile(u.kind) && dist(u, home) <= mapAIRules.wolves.guard).sort((a, b) => dist(a, home) - dist(b, home) || a.id - b.id)[0];
+  if (!near) return;
+  const guards = mine.filter((u) => (u.kind === "scout" || u.kind === "militia" || u.kind === "spearman" || u.kind === "archer" || u.kind === "knight") && idle(u) && dist(u, home) <= mapAIRules.wolves.guard);
+  if (guards.length) order("attack", { unitIds: guards.map((u) => u.id).sort((a, b) => a - b), target: { kind: "unit", id: near.id } });
+}
+function breakout(s, order, P, own, villagers, tc, goal) {
+  if (!s.map.walled || s.ages[P] < mapAIRules.gateAge || !tc) return;
+  const box = boxOf4(s, tc);
+  if (!box) return;
+  const home = centre2(box);
+  if (own.some((b) => b.kind === "gate")) return;
+  const cost = costOf("gate", ownerOf(s, P)), stock = s.accounts[P].stock;
+  if (Object.keys(cost).some((k) => stock[k] < cost[k])) return;
+  const size = s.map.size, input = knownInput(s, P), occupied = new Set(s.map.obstacles.map((o) => tileAt(o.x, o.y, size)));
+  const walls = own.filter((b) => b.kind === "stone-wall" && b.complete).map((b) => ({ b, c: { x: b.x + 50, y: b.y + 50 } }));
+  const out = (c) => {
+    const dx = Math.sign(Math.round((c.x - home.x) / 100)), dy = Math.sign(Math.round((c.y - home.y) / 100)), tx = Math.floor(c.x / 100) + dx, ty = Math.floor(c.y / 100) + dy;
+    if (tx < 0 || ty < 0 || tx >= size || ty >= size) return false;
+    const t = ty * size + tx;
+    return canTraverse(s.map.tiles[t], "land") && !occupied.has(t);
+  };
+  const pick = walls.filter((w2) => out(w2.c) && !placementProblem(input, "gate", w2.b.x, w2.b.y, P)).sort((a, b) => Math.hypot(a.c.x - goal.x, a.c.y - goal.y) - Math.hypot(b.c.x - goal.x, b.c.y - goal.y) || (a.b.id < b.b.id ? -1 : 1))[0];
+  if (!pick) return;
+  const builder = villagers.filter((u) => s.works[u.id]?.kind !== "build").sort((a, b) => dist(a, pick.c) - dist(b, pick.c) || a.id - b.id)[0];
+  if (builder) order("build", { unitIds: [builder.id], kind: "gate", x: pick.b.x, y: pick.b.y });
+}
+function campNear(s, order, P, kind, near, builders) {
+  const stock = s.accounts[P].stock, cost = costOf(kind, ownerOf(s, P));
+  if (Object.keys(cost).some((k) => stock[k] < cost[k])) return;
+  const input = knownInput(s, P);
+  const sites = [];
+  for (let x = Math.round((near.x - 650) / 50) * 50; x <= near.x + 650; x += 50) for (let y = Math.round((near.y - 650) / 50) * 50; y <= near.y + 650; y += 50) {
+    const b = obstacleBounds({ kind, x, y }), m = centre2(b), d = Math.hypot(m.x - near.x, m.y - near.y);
+    if (d >= 130 && d <= 650) sites.push({ x, y, d });
+  }
+  sites.sort((a, b) => a.d - b.d || a.y - b.y || a.x - b.x);
+  for (const v of sites) {
+    if (placementProblem(input, kind, v.x, v.y)) continue;
+    const builder = builders.filter((u) => s.works[u.id]?.kind !== "build").sort((a, b) => dist(a, v) - dist(b, v) || a.id - b.id)[0];
+    if (builder) order("build", { unitIds: [builder.id], kind, x: v.x, y: v.y });
+    return;
+  }
+}
+function landBlocked(s, own, home, goal) {
+  if (s.map.walled && !own.some((b2) => b2.kind === "gate" && b2.complete)) return true;
+  if (!s.map.separate) return false;
+  const a = landAt(s.map, home), b = landAt(s.map, goal);
+  return a < 0 || b < 0 || a !== b;
+}
+var sameLand = (s, a, b) => {
+  if (!s.map.separate) return true;
+  const x = landAt(s.map, a), y = landAt(s.map, b);
+  return x < 0 || y < 0 || x === y;
+};
+function ferry(s, order, P, c) {
+  if (!s.map.separate) return;
+  const R = mapAIRules.ferry, dock = c.own.find((b) => b.kind === "dock" && b.complete), homeLand = landAt(s.map, c.home);
+  const transports = c.mine.filter((u) => u.kind === "transport-ship"), boarding = (id) => Object.values(s.boarding ?? {}).some((b) => b.transportId === id);
+  const sailing = new Set(Object.keys(s.unloading ?? {}).map(Number));
+  const explored = new Set(s.vision[P].explored), onLand = (r, land2) => landAt(s.map, r) === land2;
+  const mines = s.map.resources.filter((r) => (r.kind === "gold" || r.kind === "stone") && r.collectible);
+  const lacking = !mines.some((r) => onLand(r, homeLand));
+  const expanders = c.villagers.filter((u) => landAt(s.map, u) !== homeLand);
+  if (expanders.length) {
+    const land2 = landAt(s.map, expanders[0]), camp = c.own.some((b) => b.kind === "mining-camp" && landAt(s.map, { x: b.x + 100, y: b.y + 100 }) === land2);
+    const target = mines.filter((r) => onLand(r, land2) && explored.has(tileAt(r.x, r.y, s.map.size))).sort((a, b) => dist(a, expanders[0]) - dist(b, expanders[0]) || (a.id < b.id ? -1 : 1))[0];
+    if (!camp && target && !c.place("mining-camp", { x: target.x, y: target.y }, expanders)) campNear(s, order, P, "mining-camp", { x: target.x, y: target.y }, expanders);
+    const cutting = expanders.filter((u) => {
+      const w2 = s.works[u.id];
+      return w2?.kind === "gather" && s.map.resources.find((r) => r.id === w2.resourceId)?.kind === "tree";
+    });
+    if (cutting.length && !c.own.some((b) => b.kind === "lumber-camp" && landAt(s.map, { x: b.x + 100, y: b.y + 100 }) === land2)) {
+      const w2 = s.works[cutting[0].id], tree = s.map.resources.find((r) => r.id === w2.resourceId);
+      if (tree) campNear(s, order, P, "lumber-camp", { x: tree.x, y: tree.y }, expanders);
+    }
+  }
+  if (!dock) return;
+  const at = { x: dock.x + 150, y: dock.y + 150 };
+  const wanted = lacking && !expanders.length && c.villagers.length >= R.expandAt || c.offensive;
+  if (wanted && transports.length < R.transports && !dock.queue.some((q) => q.entryId === "transport-ship") && dock.queue.length < 2) {
+    const cost = costOf("transport-ship", ownerOf(s, P)), stock = s.accounts[P].stock;
+    if (Object.keys(cost).every((k) => stock[k] >= cost[k])) order("train", { buildingId: dock.id, entryId: "transport-ship" });
+  }
+  for (const t of transports.sort((a, b) => a.id - b.id)) {
+    if (sailing.has(t.id)) continue;
+    const aboard = passengers(s, t.id), cap = capacityOf(s, t), busy = boarding(t.id);
+    if (aboard.length) {
+      if (busy) continue;
+      const settlers = aboard.every((u) => u.kind === "villager");
+      let to = c.goal;
+      if (settlers) {
+        const target = mines.filter((r) => landAt(s.map, r) !== homeLand && explored.has(tileAt(r.x, r.y, s.map.size))).sort((a, b) => dist(a, at) - dist(b, at) || (a.id < b.id ? -1 : 1))[0];
+        to = target ? { x: target.x, y: target.y } : { x: s.map.size * 50, y: s.map.size * 50 };
+      }
+      order("unload", { transportId: t.id, x: Math.round(to.x), y: Math.round(to.y) });
+      const escorts = c.mine.filter((u) => layerOf(u.kind) === "water" && u.kind !== "transport-ship" && u.kind !== "fishing-ship" && c.idle(u));
+      if (escorts.length) order("move", { unitIds: escorts.map((u) => u.id).sort((a, b) => a - b), x: Math.round(to.x / 50) * 50, y: Math.round(to.y / 50) * 50 });
+      continue;
+    }
+    if (busy) continue;
+    if (dist(t, at) > R.returnRange && c.idle(t)) {
+      order("move", { unitIds: [t.id], x: Math.round(at.x / 50) * 50, y: Math.round(at.y / 50) * 50 });
+      continue;
+    }
+    if (lacking && !expanders.length && c.villagers.length >= R.expandAt) {
+      if (s.accounts[P].stock.wood < R.campWood) continue;
+      const party = c.villagers.filter((u) => landAt(s.map, u) === homeLand && s.works[u.id]?.kind !== "build").sort((a, b) => Number(c.idle(b)) - Number(c.idle(a)) || a.id - b.id).slice(0, Math.min(cap, R.expanders));
+      if (party.length) order("load", { unitIds: party.map((u) => u.id).sort((a, b) => a - b), transportId: t.id });
+      continue;
+    }
+    if (c.offensive && c.wave.length >= Math.min(c.waveSize, cap)) order("load", { unitIds: c.wave.slice(0, cap).map((u) => u.id).sort((a, b) => a - b), transportId: t.id });
+  }
+}
+
 // packages/sim/ai.ts
 var aiRules = {
   provenance: "design_default",
@@ -5265,8 +6548,8 @@ function castlePlan(o) {
   return { unit: unit2, techs: civ.uniqueTechs.filter((t) => t.age === 3 && ownerAvailable(o, t.id) && rules.entries.some((e) => e.id === t.id)).map((t) => t.id) };
 }
 var gap2 = (a, b) => Math.max(a[0] - b[2], b[0] - a[2], a[1] - b[3], b[1] - a[3], 0);
-var centre2 = (b) => ({ x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2 });
-var dist = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+var centre3 = (b) => ({ x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2 });
+var dist2 = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 var claimed = [];
 var clashes = (box, lane = 0) => claimed.some((c) => lane ? gap2(box, c) < lane : Math.min(box[2], c[2]) > Math.max(box[0], c[0]) && Math.min(box[3], c[3]) > Math.max(box[1], c[1]));
 function claim(ok, kind, x, y) {
@@ -5280,21 +6563,23 @@ function stepAI(s, order) {
   const busy = new Set(s.pathJobs.flatMap((j) => j.kind === "group" ? j.unitIds : [j.unitId]));
   const idle = (u) => !s.works[u.id] && !s.attacks[u.id] && u.next === null && !u.path.length && !busy.has(u.id);
   const mine = s.units.filter((u) => u.player === P).sort((a, b) => a.id - b.id), allVillagers = mine.filter((u) => u.kind === "villager"), soldiers = mine.filter((u) => soldierKinds.includes(u.kind) && layerOf(u.kind) === "land"), warships = mine.filter((u) => soldierKinds.includes(u.kind) && layerOf(u.kind) === "water"), scout = mine.find((u) => u.kind === "scout");
-  const own = s.buildings.filter((b) => b.player === P), tc = own.find((b) => b.kind === "town-center"), tcBox = tc ? boxOf4(s, tc) : null;
+  const own = s.buildings.filter((b) => b.player === P), tc = own.find((b) => b.kind === "town-center"), tcBox = tc ? boxOf5(s, tc) : null;
   const foes = s.units.filter((u) => u.player !== P && !isAnimal(u.kind) && seen2.has(tileAt(u.x, u.y, s.map.size))).sort((a, b) => a.id - b.id);
-  if (!tc && !soldiers.length && !warships.length) {
+  if (!tc && !soldiers.length && !warships.length && !(s.map.nomad && allVillagers.length)) {
     order("resign", {});
     return;
   }
-  const op = activeOpening(s), phase = op ? openingPhase(s, own) : null, half = tcBox ? sideFrom(s, centre2(tcBox)) : null;
-  const raiding = op && half && tcBox ? raid(s, order, op, mine, scout, foes, idle, centre2(tcBox), half, explored) : /* @__PURE__ */ new Set();
-  const wave = army(s, order, soldiers.filter((u) => !raiding.has(u.id)), foes, tcBox, idle, explored);
+  const op = activeOpening(s), phase = op ? openingPhase(s, own) : null, half = tcBox ? sideFrom(s, centre3(tcBox)) : null;
+  const raiding = op && half && tcBox ? raid(s, order, op, mine, scout, foes, idle, centre3(tcBox), half, explored) : /* @__PURE__ */ new Set();
+  const goal = tcBox ? objective(s, centre3(tcBox), explored, true) : null, blocked = !!goal && !!tcBox && landBlocked(s, own, centre3(tcBox), goal);
+  const wave = army(s, order, soldiers.filter((u) => !raiding.has(u.id)), foes, tcBox, idle, explored, blocked);
+  wolves(s, order, P, mine, tc, idle);
   taunt(s, order, wave, tc, tcBox, foes);
   if (tcBox) {
-    const home2 = centre2(tcBox), raiders = foes.filter((f) => f.kind !== "villager" && dist(f, home2) <= aiRules.bellRadius).length, guards = soldiers.filter((u) => dist(u, home2) <= aiRules.bellRadius).length;
+    const home2 = centre3(tcBox), raiders = foes.filter((f) => f.kind !== "villager" && dist2(f, home2) <= aiRules.bellRadius).length, guards = soldiers.filter((u) => dist2(u, home2) <= aiRules.bellRadius).length;
     const belled = Object.values(s.garrison).some((g) => g.units.some((e) => e.bell && e.unit.player === P));
     if (!belled && raiders >= aiRules.bellFoes && guards < raiders) order("bell", { ring: true });
-    else if (belled && !foes.some((f) => dist(f, home2) <= aiRules.bellRadius + 150)) order("bell", { ring: false });
+    else if (belled && !foes.some((f) => dist2(f, home2) <= aiRules.bellRadius + 150)) order("bell", { ring: false });
   }
   if (scout && idle(scout)) {
     const size = s.map.size;
@@ -5309,18 +6594,19 @@ function stepAI(s, order) {
     }
     if (best >= 0) march(s, order, [scout], { x: best % size * 100 + 50, y: Math.floor(best / size) * 100 + 50 });
   }
+  nomadStart(s, order, P, allVillagers, own);
   if (!tc || !tcBox) return;
-  const forward = op && half ? forwardWork(s, order, op, allVillagers, own, idle, centre2(tcBox), half, explored) : /* @__PURE__ */ new Set(), villagers = allVillagers.filter((u) => !forward.has(u.id));
+  const forward = op && half ? forwardWork(s, order, op, allVillagers, own, idle, centre3(tcBox), half, explored) : /* @__PURE__ */ new Set(), villagers = allVillagers.filter((u) => !forward.has(u.id));
   const account = s.accounts[P], stock = account.stock, owner = ownerOf(s, P), cost = (id) => costOf(id, owner);
   const queued = (id) => own.reduce((t, b) => t + b.queue.filter((q) => q.entryId === id).length, 0);
   const plan = s.ages[P] >= 3 ? castlePlan(owner) : null, castle = own.find((b) => b.kind === "castle");
   const stoneDue = !!plan && stock.stone < (castle ? 0 : cost("castle").stone) + plan.techs.filter((id) => !s.techs[P].includes(id) && !queued(id)).reduce((t, id) => t + cost(id).stone, 0);
-  for (const b of own.filter((b2) => !b2.complete && !(op && half && half(centre2(boxOf4(s, b2))) < 0))) {
+  for (const b of own.filter((b2) => !b2.complete && !(op && half && half(centre3(boxOf5(s, b2))) < 0))) {
     if (allVillagers.filter((u) => {
       const w2 = s.works[u.id];
       return w2?.kind === "build" && w2.buildingId === b.id;
     }).length >= (b.kind === "castle" ? aiRules.castleBuilders : 1)) continue;
-    const builder = pickBuilder(s, villagers, idle, centre2(boxOf4(s, b)));
+    const builder = pickBuilder(s, villagers, idle, centre3(boxOf5(s, b)));
     if (builder) order("construct", { unitIds: [builder.id], buildingId: b.id });
   }
   const pending = (k) => own.some((b) => b.kind === k && !b.complete);
@@ -5340,7 +6626,7 @@ function stepAI(s, order) {
   }
   const monasteryDue = s.ages[P] >= 3 && ownerAvailable(owner, "monastery") && !own.some((b) => b.kind === "monastery") && !monasteryLost;
   if (room3 <= (monasteryDue ? 0 : aiRules.houseMargin) && account.populationCap < settingsOf(s).popCap && !pending("house") && (!barracksDue || room3 <= 0)) place(s, order, "house", villagers, idle, tcBox, own);
-  const accepts = dropoffRules.accepts, drops = own.filter((b) => b.complete && accepts[b.kind]).map((b) => ({ kinds: accepts[b.kind], box: boxOf4(s, b) })).filter((d) => d.box);
+  const accepts = dropoffRules.accepts, drops = own.filter((b) => b.complete && accepts[b.kind]).map((b) => ({ kinds: accepts[b.kind], box: boxOf5(s, b) })).filter((d) => d.box);
   for (const [camp, kinds] of [["lumber-camp", ["wood"]], ["mining-camp", ["gold", "stone"]], ["mill", ["food"]]]) {
     if (monasteryDue || own.some((b) => b.kind === camp && !b.complete)) continue;
     const far = villagers.map((u) => s.works[u.id]).filter((w2) => w2?.kind === "gather").map((w2) => s.map.resources.find((r) => r.id === w2.resourceId)).filter((r) => !!r && r.kind !== "farm" && kinds.includes(resourceDefinitions[r.kind].yield) && Math.min(...drops.filter((d) => d.kinds.includes(resourceDefinitions[r.kind].yield)).map((d) => gap2([r.x, r.y, r.x, r.y], d.box))) > aiRules.campDistance);
@@ -5355,7 +6641,7 @@ function stepAI(s, order) {
     } else if (villagerCount < (clicked ? Math.max(plan2.villagers, aiTuning(s).villagerTarget) : plan2.clickOnFood ? plan2.villagers : plan2.clickAt) && !trainable(s, P, tc, "villager")) order("train", { buildingId: tc.id, entryId: "villager" });
     else if (plan2.castle && s.ages[P] === 2 && !trainable(s, P, tc, "age-3")) order("train", { buildingId: tc.id, entryId: "age-3" });
   } else if (tc.complete && !tc.queue.length) {
-    if (villagers.length + queued("villager") < aiTuning(s).villagerTarget && !trainable(s, P, tc, "villager")) order("train", { buildingId: tc.id, entryId: "villager" });
+    if (villagers.length + queued("villager") < aiTuning(s).villagerTarget && !(s.map.separate && !mine.some((u) => u.kind === "transport-ship") && !queued("transport-ship") && room3 <= 1 && own.some((b) => b.kind === "dock")) && !trainable(s, P, tc, "villager")) order("train", { buildingId: tc.id, entryId: "villager" });
     else if (s.ages[P] < 2 && villagers.length >= aiRules.ageUpAtVillagers && own.some((b) => b.kind === "barracks" && b.complete) && !trainable(s, P, tc, "age-2")) order("train", { buildingId: tc.id, entryId: "age-2" });
     else if (s.ages[P] === 2 && villagers.length >= aiTuning(s).villagerTarget && own.some((b) => b.kind === "archery-range" && b.complete) && !trainable(s, P, tc, "age-3")) order("train", { buildingId: tc.id, entryId: "age-3" });
   }
@@ -5371,7 +6657,8 @@ function stepAI(s, order) {
     return !slots2 || Object.keys(c).every((r) => left[r] >= reserve2(r) + c[r]);
   };
   let open = room3;
-  for (const b of own.filter((b2) => b2.complete && b2.queue.length < 2)) {
+  const holdForFerry = s.map.separate && !mine.some((u) => u.kind === "transport-ship") && !queued("transport-ship") && room3 <= 1;
+  for (const b of own.filter((b2) => b2.complete && b2.queue.length < 2 && !(holdForFerry && b2.kind !== "dock"))) {
     if (planned && !b.kind.startsWith("castle") && b.kind !== "town-center") {
       if (savingForAge || savingForCastle) continue;
       const pick2 = planned.find(([k, n]) => producersOf(k, owner).includes(b.kind) && mine.filter((u) => u.kind === k).length + queued(k) < n && !(buildingsDue && cost(k).wood > 0) && !trainable(s, P, b, k))?.[0];
@@ -5399,9 +6686,25 @@ function stepAI(s, order) {
     if (next) order("train", { buildingId: b.id, entryId: next });
   }
   water(s, order, { own, mine, villagers, warships, idle, tcBox, cost, queued, spare, explored, foes });
+  {
+    const home2 = centre3(tcBox), wave2 = soldiers.filter((u) => idle(u) && !s.attacks[u.id] && dist2(u, home2) <= aiRules.defendRadius && sameLand(s, u, home2)).sort((a, b) => a.id - b.id);
+    ferry(s, order, P, {
+      own,
+      mine,
+      villagers: allVillagers,
+      wave: wave2,
+      idle,
+      home: home2,
+      goal: goal ?? home2,
+      waveSize: aiTuning(s).waveSize,
+      offensive: s.tick >= aiTuning(s).firstWaveTick,
+      place: (kind, near, party) => place(s, order, kind, party, idle, tcBox, own, void 0, near)
+    });
+    breakout(s, order, P, own, villagers, tc, goal ?? home2);
+  }
   repairHome(s, order, own, villagers, idle);
   trade(s, order, { own, mine, villagers, idle, tcBox, cost, queued, saving: savingForAge || savingForCastle || monasteryDue, stoneDue: !!plan && !castle && stock.stone < cost("castle").stone });
-  const monastery = own.find((b) => b.kind === "monastery" && b.complete), home = tcBox ? centre2(tcBox) : null, fetching = new Set(Object.values(s.rites).filter((r) => r.kind === "relic").map((r) => r.target));
+  const monastery = own.find((b) => b.kind === "monastery" && b.complete), home = tcBox ? centre3(tcBox) : null, fetching = new Set(Object.values(s.rites).filter((r) => r.kind === "relic").map((r) => r.target));
   for (const m of monks) {
     const rite = s.rites[m.id];
     if (carrying(s, m.id)) {
@@ -5409,12 +6712,12 @@ function stepAI(s, order) {
       continue;
     }
     if (rite?.kind === "convert" || rite?.kind === "relic") continue;
-    const intruder = home && faithOf(s, m.id) >= 1 ? foes.filter((u) => dist(u, home) <= aiRules.defendRadius && !riteProblem(s, P, "convert", u.id)).sort((a, b) => dist(a, m) - dist(b, m) || a.id - b.id)[0] : void 0;
+    const intruder = home && faithOf(s, m.id) >= 1 ? foes.filter((u) => dist2(u, home) <= aiRules.defendRadius && !riteProblem(s, P, "convert", u.id)).sort((a, b) => dist2(a, m) - dist2(b, m) || a.id - b.id)[0] : void 0;
     if (intruder) {
       order("convert", { unitIds: [m.id], targetId: intruder.id });
       continue;
     }
-    const relic = s.relicMemory[P].filter((r) => !fetching.has(r.id)).sort((a, b) => dist(a, m) - dist(b, m) || a.id - b.id)[0];
+    const relic = s.relicMemory[P].filter((r) => !fetching.has(r.id)).sort((a, b) => dist2(a, m) - dist2(b, m) || a.id - b.id)[0];
     if (relic && !rite && monastery) {
       order("relic", { unitIds: [m.id], relicId: relic.id });
       fetching.add(relic.id);
@@ -5441,8 +6744,8 @@ function stepAI(s, order) {
     }
   }
   {
-    const home2 = centre2(tcBox), pen = penSpot(s, tcBox), sheep = mine.filter((u) => u.kind === "sheep"), penned = sheep.filter((u) => dist(u, home2) <= aiRules.herdRadius || !idle(u)).length;
-    const stray = sheep.filter((u) => idle(u) && !hunted.has(u.id) && dist(u, home2) > aiRules.herdRadius).sort((a, b) => dist(a, home2) - dist(b, home2) || a.id - b.id).slice(0, Math.max(0, aiRules.penSize - penned));
+    const home2 = centre3(tcBox), pen = penSpot(s, tcBox), sheep = mine.filter((u) => u.kind === "sheep"), penned = sheep.filter((u) => dist2(u, home2) <= aiRules.herdRadius || !idle(u)).length;
+    const stray = sheep.filter((u) => idle(u) && !hunted.has(u.id) && dist2(u, home2) > aiRules.herdRadius).sort((a, b) => dist2(a, home2) - dist2(b, home2) || a.id - b.id).slice(0, Math.max(0, aiRules.penSize - penned));
     if (stray.length) march(s, order, stray, pen);
   }
   const yieldOf = (u) => {
@@ -5452,8 +6755,8 @@ function stepAI(s, order) {
     return r ? resourceDefinitions[r.kind].yield : null;
   };
   if (stoneDue && staff.stone < aiRules.stoneWorkers) {
-    const home2 = centre2(tcBox), rock = s.map.resources.filter((r) => resourceDefinitions[r.kind].yield === "stone" && explored.has(tileAt(r.x, r.y, s.map.size)) && !gatherable(s.map, r.id)).sort((a, b) => dist(a, home2) - dist(b, home2) || (a.id < b.id ? -1 : 1))[0];
-    if (rock) for (const kind of ["wood", "gold"]) for (const u of villagers.filter((u2) => yieldOf(u2) === kind).sort((a, b) => dist(a, rock) - dist(b, rock) || a.id - b.id)) {
+    const home2 = centre3(tcBox), rock = s.map.resources.filter((r) => resourceDefinitions[r.kind].yield === "stone" && explored.has(tileAt(r.x, r.y, s.map.size)) && !gatherable(s.map, r.id)).sort((a, b) => dist2(a, home2) - dist2(b, home2) || (a.id < b.id ? -1 : 1))[0];
+    if (rock) for (const kind of ["wood", "gold"]) for (const u of villagers.filter((u2) => yieldOf(u2) === kind).sort((a, b) => dist2(a, rock) - dist2(b, rock) || a.id - b.id)) {
       if (staff.stone >= aiRules.stoneWorkers) break;
       if (order("gather", { unitIds: [u.id], resourceId: rock.id })) {
         staff.stone++;
@@ -5466,10 +6769,10 @@ function stepAI(s, order) {
   for (const u of villagers.filter((u2) => idle(u2) || !stoneDue && !weights.stone && yieldOf(u2) === "stone")) {
     const kinds = Object.keys(weights).filter((k) => weights[k] > 0).sort((a, b) => staff[a] / weights[a] - staff[b] / weights[b]);
     for (const kind of kinds) {
-      const natural = wild < aiRules.wildFoodWorkers && s.ages[P] < 2, source = s.map.resources.filter((r) => resourceDefinitions[r.kind].yield === kind && (kind !== "food" || natural || r.kind === "farm") && explored.has(tileAt(r.x, r.y, s.map.size)) && (kind !== "food" || dist(r, centre2(tcBox)) <= (r.kind === "farm" ? aiRules.siteRange : aiRules.wildRange)) && !gatherable(s.map, r.id) && (r.kind !== "farm" || farmOwner(s, r.id) === P && !farmers.has(r.id))).sort((a, b) => dist(u, a) - dist(u, b) || (a.id < b.id ? -1 : 1))[0];
+      const natural = wild < aiRules.wildFoodWorkers && s.ages[P] < 2, source = s.map.resources.filter((r) => resourceDefinitions[r.kind].yield === kind && (kind !== "food" || natural || r.kind === "farm") && explored.has(tileAt(r.x, r.y, s.map.size)) && (kind !== "food" || dist2(r, centre3(tcBox)) <= (r.kind === "farm" ? aiRules.siteRange : aiRules.wildRange)) && !gatherable(s.map, r.id) && sameLand(s, u, r) && (r.kind !== "farm" || farmOwner(s, r.id) === P && !farmers.has(r.id))).sort((a, b) => dist2(u, a) - dist2(u, b) || (a.id < b.id ? -1 : 1))[0];
       if (kind === "food" && natural) {
-        const prey = s.units.filter((a) => (a.kind === "sheep" ? dist(a, centre2(tcBox)) <= aiRules.herdRadius + 50 : a.kind === "deer" && dist(a, centre2(tcBox)) <= aiRules.wildRange) && !huntProblem(s, P, a.id) && !s.map.resources.some((r) => r.id === carcassId(a.id))).sort((a, b) => Number(hunted.has(a.id)) - Number(hunted.has(b.id)) || dist(u, a) - dist(u, b) || a.id - b.id)[0];
-        if (prey && (!source || source.kind === "farm" || dist(u, prey) < dist(u, source)) && order("hunt", { unitIds: [u.id], animalId: prey.id })) {
+        const prey = s.units.filter((a) => (a.kind === "sheep" ? dist2(a, centre3(tcBox)) <= aiRules.herdRadius + 50 : a.kind === "deer" && dist2(a, centre3(tcBox)) <= aiRules.wildRange) && !huntProblem(s, P, a.id) && !s.map.resources.some((r) => r.id === carcassId(a.id))).sort((a, b) => Number(hunted.has(a.id)) - Number(hunted.has(b.id)) || dist2(u, a) - dist2(u, b) || a.id - b.id)[0];
+        if (prey && (!source || source.kind === "farm" || dist2(u, prey) < dist2(u, source)) && order("hunt", { unitIds: [u.id], animalId: prey.id })) {
           staff.food++;
           wild++;
           hunted.add(prey.id);
@@ -5487,7 +6790,7 @@ function stepAI(s, order) {
   }
 }
 var affords = (s, c, extra = 0) => Object.keys(c).every((r) => s.accounts[aiRules.player].stock[r] >= c[r] + (c[r] ? extra : 0));
-function knownInput(s) {
+function knownInput2(s) {
   const explored = new Set(s.vision[aiRules.player].explored), bodies = [...s.units.flatMap((u) => [{ x: u.x, y: u.y }, ...u.next === null ? [] : [position(s.map, u.next)]]), ...s.relics.filter((r) => r.carrier === null && r.monastery === null).map((r) => ({ x: r.x, y: r.y }))];
   return { tiles: s.map.tiles, obstacles: s.map.obstacles, units: bodies, explored: (t) => explored.has(t) };
 }
@@ -5496,17 +6799,21 @@ function waterSite(s, kind, near, range) {
   const wet = (t) => s.map.tiles[t]?.terrainType === "water" || s.map.tiles[t]?.terrainType === "shallow";
   for (let ty = 0; ty + d / 100 <= size; ty++) for (let tx = 0; tx + n <= size; tx++) {
     if (!wet(ty * size + tx)) continue;
-    const c = { x: tx * 100 + w2 / 2, y: ty * 100 + d / 2 }, dd = dist(c, near);
+    const c = { x: tx * 100 + w2 / 2, y: ty * 100 + d / 2 }, dd = dist2(c, near);
     if (dd <= range) sites.push({ x: tx * 100, y: ty * 100, d: dd });
   }
   sites.sort((a, b) => a.d - b.d || a.y - b.y || a.x - b.x);
-  const input = knownInput(s);
-  return sites.find((v) => !clashes(obstacleBounds({ kind, x: v.x, y: v.y })) && !placementProblem(input, kind, v.x, v.y)) ?? null;
+  const input = knownInput2(s);
+  const covers = (b) => s.map.resources.some((r) => !r.obstacleId && r.status === "available" && r.x > b[0] && r.x < b[2] && r.y > b[1] && r.y < b[3]);
+  return sites.find((v) => {
+    const b = obstacleBounds({ kind, x: v.x, y: v.y });
+    return !clashes(b) && !covers(b) && !placementProblem(input, kind, v.x, v.y);
+  }) ?? null;
 }
 function water(s, order, c) {
-  const P = aiRules.player, owner = ownerOf(s, P), docks = c.own.filter((b) => b.kind === "dock"), dock = docks.find((b) => b.complete), home = centre2(c.tcBox);
+  const P = aiRules.player, owner = ownerOf(s, P), docks = c.own.filter((b) => b.kind === "dock"), dock = docks.find((b) => b.complete), home = centre3(c.tcBox);
   if (!docks.length) {
-    if (ownerAvailable(owner, "dock") && c.villagers.length >= aiRules.dockAtVillagers && c.own.some((b) => b.kind === "barracks") && affords(s, c.cost("dock"))) {
+    if (ownerAvailable(owner, "dock") && c.villagers.length >= (s.map.separate ? mapAIRules.ferry.dockAt : aiRules.dockAtVillagers) && (s.map.separate || c.own.some((b) => b.kind === "barracks")) && affords(s, c.cost("dock"))) {
       const site3 = waterSite(s, "dock", home, aiRules.dockRange);
       const builder = site3 && pickBuilder(s, c.villagers, c.idle, { x: site3.x + 150, y: site3.y + 150 });
       if (site3 && builder) claim(order("build", { unitIds: [builder.id], kind: "dock", x: site3.x, y: site3.y }), "dock", site3.x, site3.y);
@@ -5514,16 +6821,17 @@ function water(s, order, c) {
     return;
   }
   if (!dock) return;
-  const dockBox = boxOf4(s, dock), at = centre2(dockBox), ships2 = c.mine.filter((u) => u.kind === "fishing-ship");
+  const dockBox = boxOf5(s, dock), at = centre3(dockBox), ships2 = c.mine.filter((u) => u.kind === "fishing-ship");
+  const ferryFirst = s.map.separate && !c.mine.some((u) => u.kind === "transport-ship") && !c.queued("transport-ship") && ownerAvailable(owner, "transport-ship");
   if (!dock.queue.length) {
-    const pick = ships2.length + c.queued("fishing-ship") < aiRules.fishingShips ? "fishing-ship" : s.ages[P] >= 3 && c.warships.length + c.queued("galley") < aiRules.warships && c.spare("galley") ? "galley" : null;
+    const pick = ferryFirst ? "transport-ship" : ships2.length + c.queued("fishing-ship") < aiRules.fishingShips ? "fishing-ship" : s.ages[P] >= 3 && c.warships.length + c.queued("galley") < aiRules.warships && c.spare("galley") ? "galley" : null;
     if (pick && !trainable(s, P, dock, pick)) order("train", { buildingId: dock.id, entryId: pick });
   }
   const worked = new Set(c.mine.map((u) => s.works[u.id]).filter((w2) => w2?.kind === "gather").map((w2) => w2.resourceId));
   const traps = c.own.filter((b) => b.kind === "fish-trap").length;
   let laid = false;
   for (const u of ships2.filter(c.idle)) {
-    const source = s.map.resources.filter((r) => (r.kind === "fish" || r.kind === "fish-trap" && farmOwner(s, r.id) === P && !worked.has(r.id)) && c.explored.has(tileAt(r.x, r.y, s.map.size)) && !gatherable(s.map, r.id, "water")).sort((a, b) => dist(u, a) - dist(u, b) || (a.id < b.id ? -1 : 1))[0];
+    const source = s.map.resources.filter((r) => (r.kind === "fish" || r.kind === "fish-trap" && farmOwner(s, r.id) === P && !worked.has(r.id)) && c.explored.has(tileAt(r.x, r.y, s.map.size)) && !gatherable(s.map, r.id, "water")).sort((a, b) => dist2(u, a) - dist2(u, b) || (a.id < b.id ? -1 : 1))[0];
     if (source) {
       if (order("gather", { unitIds: [u.id], resourceId: source.id }) && source.kind === "fish-trap") worked.add(source.id);
       continue;
@@ -5548,13 +6856,13 @@ function water(s, order, c) {
     }
     if (best >= 0) order("move", { unitIds: [u.id], x: best % size * 100 + 50, y: Math.floor(best / size) * 100 + 50 });
   }
-  const prey = c.foes.filter((f) => layerOf(f.kind) === "water" && dist(f, at) <= aiRules.navyRadius).sort((a, b) => dist(a, at) - dist(b, at) || a.id - b.id)[0];
-  const enemyDock = prey ? void 0 : s.buildings.filter((b) => b.player !== P && b.kind === "dock").map((b) => ({ b, box: boxOf4(s, b) })).filter((v) => v.box && dist(centre2(v.box), at) <= aiRules.navyRadius && !targetProblem(s, P, { kind: "building", id: v.b.id })).sort((a, b) => dist(centre2(a.box), at) - dist(centre2(b.box), at) || (a.b.id < b.b.id ? -1 : 1))[0];
+  const prey = c.foes.filter((f) => layerOf(f.kind) === "water" && dist2(f, at) <= aiRules.navyRadius).sort((a, b) => dist2(a, at) - dist2(b, at) || a.id - b.id)[0];
+  const enemyDock = prey ? void 0 : s.buildings.filter((b) => b.player !== P && b.kind === "dock").map((b) => ({ b, box: boxOf5(s, b) })).filter((v) => v.box && dist2(centre3(v.box), at) <= aiRules.navyRadius && !targetProblem(s, P, { kind: "building", id: v.b.id })).sort((a, b) => dist2(centre3(a.box), at) - dist2(centre3(b.box), at) || (a.b.id < b.b.id ? -1 : 1))[0];
   const target = prey ? { kind: "unit", id: prey.id } : enemyDock ? { kind: "building", id: enemyDock.b.id } : null;
   const free = c.warships.filter((u) => !s.attacks[u.id]);
   if (target && free.length) order("attack", { unitIds: free.map((u) => u.id), target });
   else {
-    const away = free.filter((u) => c.idle(u) && dist(u, at) > 400);
+    const away = free.filter((u) => c.idle(u) && dist2(u, at) > 400);
     if (away.length) order("move", { unitIds: away.map((u) => u.id), x: Math.round(at.x), y: Math.round(at.y) });
   }
 }
@@ -5566,7 +6874,7 @@ function trade(s, order, c) {
   }
   if (!market) return;
   if (!market.rally) {
-    const box = boxOf4(s, market), m = centre2(box), h = centre2(c.tcBox), d = Math.hypot(h.x - m.x, h.y - m.y) || 1, k = Math.min(d, (box[2] - box[0]) / 2 + 150) / d;
+    const box = boxOf5(s, market), m = centre3(box), h = centre3(c.tcBox), d = Math.hypot(h.x - m.x, h.y - m.y) || 1, k = Math.min(d, (box[2] - box[0]) / 2 + 150) / d;
     const spot = standable(s, { x: m.x + (h.x - m.x) * k, y: m.y + (h.y - m.y) * k });
     if (spot) order("rally", { buildingId: market.id, x: spot.x, y: spot.y });
   }
@@ -5575,7 +6883,7 @@ function trade(s, order, c) {
     const surplus = [...marketResources].filter((r) => stock[r] >= aiRules.sellAbove + marketRules.lot).sort((a, b) => stock[b] - stock[a] || (a < b ? -1 : 1))[0];
     if (surplus) order("market", { action: "sell", resource: surplus });
   }
-  const theirs = s.vision[P].known.map((k) => k.obstacle).filter((o) => o.kind === "market" && !o.red && o.progress === void 0).map((o) => ({ id: o.id, c: centre2(obstacleBounds(o)) })).sort((a, b) => dist(a.c, centre2(c.tcBox)) - dist(b.c, centre2(c.tcBox)) || (a.id < b.id ? -1 : 1))[0];
+  const theirs = s.vision[P].known.map((k) => k.obstacle).filter((o) => o.kind === "market" && !o.red && o.progress === void 0).map((o) => ({ id: o.id, c: centre3(obstacleBounds(o)) })).sort((a, b) => dist2(a.c, centre3(c.tcBox)) - dist2(b.c, centre3(c.tcBox)) || (a.id < b.id ? -1 : 1))[0];
   if (!theirs || !ownerAvailable(owner, "trade-cart")) return;
   const carts = c.mine.filter((u) => u.kind === "trade-cart");
   if (!market.queue.length && !c.saving && carts.length + c.queued("trade-cart") < aiRules.tradeCarts && !trainable(s, P, market, "trade-cart")) order("train", { buildingId: market.id, entryId: "trade-cart" });
@@ -5584,21 +6892,21 @@ function trade(s, order, c) {
 }
 function repairHome(s, order, own, villagers, idle) {
   const hurt = own.filter((b) => (b.kind === "town-center" || b.kind === "castle") && b.complete && b.hp * 100 < b.maxHp * aiRules.repairBelow).sort((a, b) => a.hp * b.maxHp - b.hp * a.maxHp || (a.id < b.id ? -1 : 1))[0];
-  const box = hurt && boxOf4(s, hurt);
+  const box = hurt && boxOf5(s, hurt);
   if (!hurt || !box) return;
   const on = villagers.filter((v) => {
     const w2 = s.works[v.id];
     return w2?.kind === "repair" && w2.target?.id === hurt.id;
   }).length;
-  const dist2 = (v) => Math.max(box[0] - v.x, 0, v.x - box[2], box[1] - v.y, 0, v.y - box[3]), busy = (v) => {
+  const dist3 = (v) => Math.max(box[0] - v.x, 0, v.x - box[2], box[1] - v.y, 0, v.y - box[3]), busy = (v) => {
     const k = s.works[v.id]?.kind;
     return k === "build" || k === "repair";
   };
-  const free = villagers.filter((v) => !busy(v) && dist2(v) <= aiRules.repairRange).sort((a, b) => Number(idle(b)) - Number(idle(a)) || dist2(a) - dist2(b) || a.id - b.id).slice(0, Math.max(0, aiRules.repairers - on));
+  const free = villagers.filter((v) => !busy(v) && dist3(v) <= aiRules.repairRange).sort((a, b) => Number(idle(b)) - Number(idle(a)) || dist3(a) - dist3(b) || a.id - b.id).slice(0, Math.max(0, aiRules.repairers - on));
   if (free.length) order("repair", { unitIds: free.map((v) => v.id).sort((a, b) => a - b), target: { kind: "building", id: hurt.id } });
 }
 function penSpot(s, tcBox) {
-  const c = centre2(tcBox), closed = blockedTable(s.map), edge = s.map.size * 100 - 100;
+  const c = centre3(tcBox), closed = blockedTable(s.map), edge = s.map.size * 100 - 100;
   let best = { x: c.x, y: c.y }, room3 = -1;
   for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [-1, -1], [1, -1], [-1, 1], [1, 1], [0, 1]]) {
     const x = Math.round(dx < 0 ? tcBox[0] - 150 : dx > 0 ? tcBox[2] + 150 : c.x), y = Math.round(dy < 0 ? tcBox[1] - 150 : dy > 0 ? tcBox[3] + 150 : c.y);
@@ -5611,19 +6919,20 @@ function penSpot(s, tcBox) {
   }
   return best;
 }
-function boxOf4(s, b) {
+function boxOf5(s, b) {
   const o = s.map.obstacles.find((o2) => o2.id === b.id);
   return o ? obstacleBounds(o) : null;
 }
 function pickBuilder(s, villagers, idle, near) {
-  const free = villagers.filter(idle).sort((a, b) => dist(a, near) - dist(b, near) || a.id - b.id)[0];
+  const here = villagers.filter((u) => sameLand(s, u, near));
+  const free = here.filter(idle).sort((a, b) => dist2(a, near) - dist2(b, near) || a.id - b.id)[0];
   if (free) return free;
-  return villagers.filter((u) => s.works[u.id]?.kind !== "build").sort((a, b) => dist(a, near) - dist(b, near) || a.id - b.id)[0];
+  return here.filter((u) => s.works[u.id]?.kind !== "build").sort((a, b) => dist2(a, near) - dist2(b, near) || a.id - b.id)[0];
 }
 function place(s, order, kind, villagers, idle, tcBox, own, worker, near) {
   const owner = ownerOf(s, aiRules.player), cost = costOf(kind, owner), stock = s.accounts[aiRules.player].stock;
   if (Object.keys(cost).some((r2) => stock[r2] < cost[r2]) || !buildKinds.includes(kind) || !ownerAvailable(owner, kind)) return false;
-  const home = centre2(tcBox), c = near ?? home, others = own.filter((b) => b.kind !== "farm" && b.kind !== "town-center").map((b) => boxOf4(s, b)).filter((b) => b !== null), [x0, y0, x1, y1] = obstacleBounds({ kind, x: 0, y: 0 }), world = s.map.size * 100, sources = s.map.obstacles.filter((o) => o.kind === "gold" || o.kind === "rock" || o.kind === "berries" || o.kind === "hunt" || o.kind === "livestock").map((o) => obstacleBounds(o)), middle = world / 2, axis = Math.hypot(home.x - middle, home.y - middle) || 1, ux = (home.x - middle) / axis, uy = (home.y - middle) / axis;
+  const home = centre3(tcBox), c = near ?? home, others = own.filter((b) => b.kind !== "farm" && b.kind !== "town-center").map((b) => boxOf5(s, b)).filter((b) => b !== null), [x0, y0, x1, y1] = obstacleBounds({ kind, x: 0, y: 0 }), world = s.map.size * 100, sources = s.map.obstacles.filter((o) => o.kind === "gold" || o.kind === "rock" || o.kind === "berries" || o.kind === "hunt" || o.kind === "livestock").map((o) => obstacleBounds(o)), middle = world / 2, axis = Math.hypot(home.x - middle, home.y - middle) || 1, ux = (home.x - middle) / axis, uy = (home.y - middle) / axis;
   const side = (x, y) => (x - middle) * ux + (y - middle) * uy;
   const explored = new Set(s.vision[aiRules.player].explored), bodies = [...s.units.flatMap((u) => [{ x: u.x, y: u.y }, ...u.next === null ? [] : [position(s.map, u.next)]]), ...s.relics.filter((r2) => r2.carrier === null && r2.monastery === null).map((r2) => ({ x: r2.x, y: r2.y }))];
   const input = { tiles: s.map.tiles, obstacles: s.map.obstacles, units: bodies, explored: (t) => explored.has(t) }, sites = [];
@@ -5663,10 +6972,10 @@ function place(s, order, kind, villagers, idle, tcBox, own, worker, near) {
     const step = range === world ? aiRules.worldStep : aiRules.siteStep;
     const lo = (v, o) => Math.max(from(o), Math.ceil((v - range) / g) * g), hi = (v, o) => Math.min(world - o, v + range);
     for (let x = lo(c.x, x0); x <= hi(c.x, x1); x += step) for (let y = lo(c.y, y0); y <= hi(c.y, y1); y += step) {
-      const box = [x + x0, y + y0, x + x1, y + y1], mid = centre2(box);
+      const box = [x + x0, y + y0, x + x1, y + y1], mid = centre3(box);
       const margin = kind === "castle" ? aiRules.castleMargin : kind === "barracks" || kind === "archery-range" || kind === "monastery" || kind === "stable" || kind === "siege-workshop" ? aiRules.halfMargin : -aiRules.spill, half = Math.min(side(box[0], box[1]), side(box[2], box[1]), side(box[0], box[3]), side(box[2], box[3])), ownHalf = half >= margin;
-      if (!ownHalf || dist(mid, c) > range || !dry(box) || gap2(box, tcBox) < (kind === "farm" ? 50 : aiRules.baseMargin) || kind !== "farm" && (others.some((o) => gap2(box, o) < aiRules.laneGap) || sources.some((o) => gap2(box, o) < aiRules.sourceMargin)) || kind === "castle" && placementProblem(input, kind, x, y)) continue;
-      sites.push({ x, y, d: dist(mid, c), half });
+      if (!ownHalf || dist2(mid, c) > range || !dry(box) || gap2(box, tcBox) < (kind === "farm" ? 50 : aiRules.baseMargin) || kind !== "farm" && (others.some((o) => gap2(box, o) < aiRules.laneGap) || sources.some((o) => gap2(box, o) < aiRules.sourceMargin)) || kind === "castle" && placementProblem(input, kind, x, y)) continue;
+      sites.push({ x, y, d: dist2(mid, c), half });
     }
     const short = (v) => kind === "castle" && v.half < aiRules.halfMargin ? 1 : 0;
     sites.sort((a, b) => short(a) - short(b) || a.d - b.d || a.y - b.y || a.x - b.x);
@@ -5682,24 +6991,24 @@ function place(s, order, kind, villagers, idle, tcBox, own, worker, near) {
   }
   return false;
 }
-function army(s, order, soldiers, foes, tcBox, idle, explored) {
+function army(s, order, soldiers, foes, tcBox, idle, explored, blocked = false) {
   const P = aiRules.player, attackers = /* @__PURE__ */ new Map();
   const assign = (u, target) => {
     const key = target.kind + ":" + target.id;
     if (!attackers.has(key)) attackers.set(key, { target, ids: [] });
     attackers.get(key).ids.push(u.id);
   };
-  const home = tcBox ? centre2(tcBox) : null, intruder = home ? foes.filter((f) => dist(f, home) <= aiRules.defendRadius).sort((a, b) => dist(a, home) - dist(b, home) || a.id - b.id)[0] : void 0;
-  const enemyBuildings = s.buildings.filter((b) => b.player !== P).map((b) => ({ b, box: boxOf4(s, b) })).filter((v) => v.box && !targetProblem(s, P, { kind: "building", id: v.b.id }));
+  const home = tcBox ? centre3(tcBox) : null, intruder = home ? foes.filter((f) => dist2(f, home) <= aiRules.defendRadius).sort((a, b) => dist2(a, home) - dist2(b, home) || a.id - b.id)[0] : void 0;
+  const enemyBuildings = s.buildings.filter((b) => b.player !== P).map((b) => ({ b, box: boxOf5(s, b) })).filter((v) => v.box && !targetProblem(s, P, { kind: "building", id: v.b.id }));
   const free = [], offensive = s.tick >= aiTuning(s).firstWaveTick;
   for (const u of soldiers) {
     if (s.attacks[u.id]) continue;
-    const foe = combatRules.units[u.kind]?.buildingsOnly ? void 0 : intruder ?? foes.filter((f) => dist(f, u) <= aiRules.engageRange && (offensive || home && dist(f, home) <= aiRules.defendRadius)).sort((a, b) => dist(a, u) - dist(b, u) || a.id - b.id)[0];
+    const foe = combatRules.units[u.kind]?.buildingsOnly ? void 0 : intruder ?? foes.filter((f) => dist2(f, u) <= aiRules.engageRange && (offensive || home && dist2(f, home) <= aiRules.defendRadius)).sort((a, b) => dist2(a, u) - dist2(b, u) || a.id - b.id)[0];
     if (foe) {
       assign(u, { kind: "unit", id: foe.id });
       continue;
     }
-    const site3 = offensive && idle(u) && dist(u, home ?? u) > aiRules.defendRadius ? enemyBuildings.sort((a, b) => dist(centre2(a.box), u) - dist(centre2(b.box), u) || (a.b.id < b.b.id ? -1 : 1))[0] : void 0;
+    const site3 = offensive && idle(u) && dist2(u, home ?? u) > aiRules.defendRadius ? enemyBuildings.sort((a, b) => dist2(centre3(a.box), u) - dist2(centre3(b.box), u) || (a.b.id < b.b.id ? -1 : 1))[0] : void 0;
     if (site3) {
       assign(u, { kind: "building", id: site3.b.id });
       continue;
@@ -5708,9 +7017,9 @@ function army(s, order, soldiers, foes, tcBox, idle, explored) {
   }
   for (const { target, ids } of attackers.values()) order("attack", { unitIds: ids.sort((a, b) => a - b), target });
   if (!free.length || !home) return;
-  const atHome = free.filter((u) => dist(u, home) <= aiRules.defendRadius), away = free.filter((u) => dist(u, home) > aiRules.defendRadius);
+  const atHome = free.filter((u) => dist2(u, home) <= aiRules.defendRadius), away = free.filter((u) => dist2(u, home) > aiRules.defendRadius);
   let wave = false;
-  if (s.tick >= aiTuning(s).firstWaveTick && atHome.length >= aiTuning(s).waveSize) {
+  if (!blocked && s.tick >= aiTuning(s).firstWaveTick && atHome.length >= aiTuning(s).waveSize) {
     march(s, order, atHome, objective(s, home, explored, true));
     wave = true;
   }
@@ -5721,7 +7030,7 @@ function taunt(s, order, wave, tc, tcBox, foes) {
   const P = aiRules.player, mine = (s.chat ?? []).filter((m) => m.player === P), last = (n) => Math.max(-Infinity, ...mine.filter((m) => n === void 0 || m.taunt === n).map((m) => m.tick));
   if (s.tick - last() < aiRules.tauntQuiet) return;
   const say = (n) => s.tick - last(n) >= aiRules.tauntGap && order("taunt", { number: n });
-  const home = tcBox ? centre2(tcBox) : null, raiders = home ? foes.filter((f) => f.kind !== "villager" && dist(f, home) <= aiRules.defendRadius) : [];
+  const home = tcBox ? centre3(tcBox) : null, raiders = home ? foes.filter((f) => f.kind !== "villager" && dist2(f, home) <= aiRules.defendRadius) : [];
   if (wave && say(23)) return;
   if (tc && tc.hp * 2 < tc.maxHp && raiders.length && say(12)) return;
   if (Object.keys(s.wonders ?? {}).some((id) => s.buildings.some((b) => b.id === id && b.player !== P)) && say(26)) return;
@@ -5730,8 +7039,8 @@ function taunt(s, order, wave, tc, tcBox, foes) {
   if (raiders.length) say(16);
 }
 function objective(s, home, explored, wave) {
-  const P = aiRules.player, known = s.vision[P].known.map((k) => k.obstacle).filter((o) => isBuilding(o) && !o.red).map((o) => centre2(obstacleBounds(o)));
-  if (known.length) return known.sort((a, b) => dist(a, home) - dist(b, home))[0];
+  const P = aiRules.player, known = s.vision[P].known.map((k) => k.obstacle).filter((o) => isBuilding(o) && !o.red).map((o) => centre3(obstacleBounds(o)));
+  if (known.length) return known.sort((a, b) => dist2(a, home) - dist2(b, home))[0];
   const middle = s.map.size * 50, mirror = { x: 2 * middle - home.x, y: 2 * middle - home.y };
   if (wave && !explored.has(tileAt(mirror.x, mirror.y, s.map.size))) return mirror;
   const size = s.map.size, count = size * size;
@@ -5776,24 +7085,24 @@ function sideFrom(s, home) {
   return (p) => (p.x - middle) * ux + (p.y - middle) * uy;
 }
 function enemyHome(s, home) {
-  const P = aiRules.player, known = s.vision[P].known.map((k) => k.obstacle).filter((o) => o.kind === "town-center" && !!o.red !== (P === 1)).map((o) => centre2(obstacleBounds(o))).sort((a, b) => dist(a, home) - dist(b, home))[0];
+  const P = aiRules.player, known = s.vision[P].known.map((k) => k.obstacle).filter((o) => o.kind === "town-center" && !!o.red !== (P === 1)).map((o) => centre3(obstacleBounds(o))).sort((a, b) => dist2(a, home) - dist2(b, home))[0];
   return known ? { at: known, known: true } : { at: { x: s.map.size * 100 - home.x, y: s.map.size * 100 - home.y }, known: false };
 }
 function raid(s, order, op, mine, explorer, foes, idle, home, half, explored) {
   const r = op.plan.raid, out = /* @__PURE__ */ new Set();
   if (!r) return out;
-  const units = mine.filter((u) => r.kinds.includes(u.kind) && u !== explorer), away = (u) => half(u) < 0 || !!u.target && half(u.target) < 0 || !!s.attacks[u.id] && dist(u, home) > aiRules.defendRadius;
+  const units = mine.filter((u) => r.kinds.includes(u.kind) && u !== explorer), away = (u) => half(u) < 0 || !!u.target && half(u.target) < 0 || !!s.attacks[u.id] && dist2(u, home) > aiRules.defendRadius;
   const gone = units.filter(away), ready = units.filter((u) => !away(u) && idle(u) && !s.attacks[u.id]);
   const leave = ready.length >= r.sendAt || r.reinforce && gone.length > 0 && ready.length > 0 ? ready : [];
   for (const u of [...gone, ...leave]) out.add(u.id);
   const prey = foes.filter((f) => f.kind === "villager"), target = enemyHome(s, home).at;
   for (const u of [...gone.filter((u2) => idle(u2) && !s.attacks[u2.id]), ...leave]) {
-    const v = prey.filter((f) => !targetProblem(s, aiRules.player, { kind: "unit", id: f.id })).sort((a, b) => dist(a, u) - dist(b, u) || a.id - b.id)[0];
+    const v = prey.filter((f) => !targetProblem(s, aiRules.player, { kind: "unit", id: f.id })).sort((a, b) => dist2(a, u) - dist2(b, u) || a.id - b.id)[0];
     if (v) order("attack", { unitIds: [u.id], target: { kind: "unit", id: v.id } });
   }
   const marching = leave.filter((u) => !prey.length);
   if (marching.length) march(s, order, marching, target);
-  const lost = gone.filter((u) => idle(u) && !s.attacks[u.id] && !prey.length && dist(u, target) < 300);
+  const lost = gone.filter((u) => idle(u) && !s.attacks[u.id] && !prey.length && dist2(u, target) < 300);
   if (lost.length) march(s, order, lost, objective(s, home, explored, false));
   return out;
 }
@@ -5802,18 +7111,18 @@ function forwardWork(s, order, op, villagers, own, idle, home, half, explored) {
   if (!need) return out;
   const phase = openingPhase(s, own);
   if (phase === "dark" && towers?.leave !== "start") return out;
-  const enemy = enemyHome(s, home), farOwn = (k) => own.filter((b) => b.kind === k && half(centre2(boxOf4(s, b))) < 0);
+  const enemy = enemyHome(s, home), farOwn = (k) => own.filter((b) => b.kind === k && half(centre3(boxOf5(s, b))) < 0);
   const barracksDone = !plan.forwardBarracks || farOwn("barracks").length > 0, towersDone = !towers || farOwn("watch-tower").length >= towers.count;
   const building2 = (u) => {
     const w2 = s.works[u.id];
     if (w2?.kind !== "build") return false;
     const b = own.find((b2) => b2.id === w2.buildingId);
-    return !!b && half(centre2(boxOf4(s, b))) < 0;
+    return !!b && half(centre3(boxOf5(s, b))) < 0;
   };
   const members = villagers.filter((u) => half(u) < 0 || !!u.target && half(u.target) < 0 || building2(u));
   if (barracksDone && towersDone && !members.some(building2)) return out;
   for (const u of members) out.add(u.id);
-  const res = towers ? s.map.resources.filter((r) => r.collectible && towers.prefer.includes(r.kind) && explored.has(tileAt(r.x, r.y, s.map.size)) && dist(r, enemy.at) <= 800).sort((a, b) => towers.prefer.indexOf(a.kind) - towers.prefer.indexOf(b.kind) || dist(a, enemy.at) - dist(b, enemy.at) || (a.id < b.id ? -1 : 1))[0] : void 0;
+  const res = towers ? s.map.resources.filter((r) => r.collectible && towers.prefer.includes(r.kind) && explored.has(tileAt(r.x, r.y, s.map.size)) && dist2(r, enemy.at) <= 800).sort((a, b) => towers.prefer.indexOf(a.kind) - towers.prefer.indexOf(b.kind) || dist2(a, enemy.at) - dist2(b, enemy.at) || (a.id < b.id ? -1 : 1))[0] : void 0;
   const away = (p) => {
     if (!enemy.known) return p;
     const d = Math.hypot(p.x - enemy.at.x, p.y - enemy.at.y) || 1;
@@ -5830,11 +7139,11 @@ function forwardWork(s, order, op, villagers, own, idle, home, half, explored) {
     march(s, order, extra, spot);
     for (const u of extra) out.add(u.id);
   }
-  const strays = members.filter((u) => idle(u) && dist(u, spot) > 500);
+  const strays = members.filter((u) => idle(u) && dist2(u, spot) > 500);
   if (strays.length) march(s, order, strays, spot);
-  const free = members.filter((u) => idle(u) && dist(u, spot) <= 500);
+  const free = members.filter((u) => idle(u) && dist2(u, spot) <= 500);
   if (!free.length) return out;
-  const site3 = own.find((b) => !b.complete && half(centre2(boxOf4(s, b))) < 0);
+  const site3 = own.find((b) => !b.complete && half(centre3(boxOf5(s, b))) < 0);
   if (site3) {
     order("construct", { unitIds: free.map((u) => u.id), buildingId: site3.id });
     return out;
@@ -5847,12 +7156,12 @@ function forwardWork(s, order, op, villagers, own, idle, home, half, explored) {
   return out;
 }
 function forwardSite(s, kind, spot, enemyTc) {
-  const input = knownInput(s), [x0, y0, x1, y1] = obstacleBounds({ kind, x: 0, y: 0 }), world = s.map.size * 100, sites = [];
+  const input = knownInput2(s), [x0, y0, x1, y1] = obstacleBounds({ kind, x: 0, y: 0 }), world = s.map.size * 100, sites = [];
   for (let dy = -400; dy <= 400; dy += 50) for (let dx = -400; dx <= 400; dx += 50) {
     const x = Math.round((spot.x + dx - (x1 + x0) / 2) / 100) * 100, y = Math.round((spot.y + dy - (y1 + y0) / 2) / 100) * 100;
     if (x + x0 < 0 || y + y0 < 0 || x + x1 > world || y + y1 > world) continue;
     const c = { x: x + (x0 + x1) / 2, y: y + (y0 + y1) / 2 };
-    sites.push({ x, y, d: dist(c, spot), safe: enemyTc && dist(c, enemyTc) < openingRules.towerGap ? 1 : 0 });
+    sites.push({ x, y, d: dist2(c, spot), safe: enemyTc && dist2(c, enemyTc) < openingRules.towerGap ? 1 : 0 });
   }
   sites.sort((a, b) => a.safe - b.safe || a.d - b.d || a.y - b.y || a.x - b.x);
   const seen2 = /* @__PURE__ */ new Set();
@@ -5866,8 +7175,8 @@ function forwardSite(s, kind, spot, enemyTc) {
 }
 var openingRules = { provenance: "design_default", towerGap: 600 };
 function openingView(s, player) {
-  const own = s.buildings.filter((b) => b.player === player), tc = own.find((b) => b.kind === "town-center"), box = tc ? boxOf4(s, tc) : null;
-  const half = box ? sideFrom(s, centre2(box)) : null, mine = s.units.filter((u) => u.player === player);
+  const own = s.buildings.filter((b) => b.player === player), tc = own.find((b) => b.kind === "town-center"), box = tc ? boxOf5(s, tc) : null;
+  const half = box ? sideFrom(s, centre3(box)) : null, mine = s.units.filter((u) => u.player === player);
   const gather = Object.fromEntries(gatherKinds.map((k) => [k, 0])), count = (list) => list.reduce((t, v) => ({ ...t, [v.kind]: (t[v.kind] ?? 0) + 1 }), {});
   for (const u of mine) {
     const w2 = s.works[u.id];
@@ -5882,7 +7191,7 @@ function openingView(s, player) {
     const k = r.kind === "livestock" ? "sheep" : r.kind === "hunt" ? "hunt" : r.kind === "tree" ? "wood" : r.kind === "berries" || r.kind === "gold" || r.kind === "stone" || r.kind === "farm" ? r.kind : null;
     if (k) gather[k]++;
   }
-  const far = half ? { ...count(own.filter((b) => half(centre2(boxOf4(s, b) ?? [b.x, b.y, b.x, b.y])) < 0)), villager: mine.filter((u) => u.kind === "villager" && half(u) < 0).length } : {};
+  const far = half ? { ...count(own.filter((b) => half(centre3(boxOf5(s, b) ?? [b.x, b.y, b.x, b.y])) < 0)), villager: mine.filter((u) => u.kind === "villager" && half(u) < 0).length } : {};
   const fighters = half ? mine.filter((u) => soldierKinds.includes(u.kind) && half(u) < 0).length : 0, scoutsOut = half ? mine.filter((u) => u.kind === "scout" && half(u) < 0).length : 0;
   return {
     age: s.ages[player],
@@ -5958,7 +7267,7 @@ function hash(value) {
   }
   return (h >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ openings, repair: repairRules, carriers: carrierRules, taunts: tauntRules, rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, naval: navalRules, market: marketRules, religion: religionRules, animals: animalRules, tech: techRules, defense: defenseRules, civs: civDefs, techs: techEffects, unitLines: { lineUpgrades, blacksmith, religionBonus }, projectiles: projectileRules, tactics: tacticsRules, settings: settingRules, simulationVersion: 33 });
+var rulesetHash = hash({ openings, repair: repairRules, carriers: carrierRules, taunts: tauntRules, rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules, match: matchMapRules(), elevation: elevationRules }, dropoffs: dropoffRules, naval: navalRules, market: marketRules, religion: religionRules, animals: animalRules, tech: techRules, defense: defenseRules, civs: civDefs, techs: techEffects, unitLines: { lineUpgrades, blacksmith, religionBonus }, projectiles: projectileRules, tactics: tacticsRules, settings: settingRules, simulationVersion: 34 });
 var settingKeys = ["difficulty", "resources", "popCap", "reveal", "startAge", "victory", "allTechs"];
 var pickSettings = (o) => Object.fromEntries(settingKeys.filter((k) => k in o).map((k) => [k, o[k]]));
 function createState(seed, layout = "meadow", opponent = "idle", civs = [neutralCiv, neutralCiv], aiOpening = standardOpening, options = {}) {
@@ -5969,7 +7278,7 @@ function createState(seed, layout = "meadow", opponent = "idle", civs = [neutral
   if (!Array.isArray(civs) || civs.length !== 2 || !civs.every(civExists)) throw Error("\u672A\u77E5\u7684\u6587\u660E");
   if (!openingChoices.includes(aiOpening)) throw Error("\u672A\u77E5\u7684\u96FB\u8166\u958B\u5C40");
   const map = makeMap(seed, layout);
-  const state = { settings, aiOpening: aiOpening === randomOpening ? pickOpening(seed, civs[1]) : aiOpening, buildings: [], nextBuildingId: 1, ages: [1, 1], nextUnitId: 5, nextQueueId: 1, attacks: {}, corpses: [], outcome: null, rites: {}, faith: {}, techs: [[], []], relics: layout === "open" || layout === "lakes" ? placeRelics(map, seed) : [], relicMemory: [[], []], relicVictory: null, market: startPrices(), trades: {}, wonders: {}, wonderVictory: null, transports: {}, boarding: {}, unloading: {}, beasts: {}, reseed: [true, true], garrison: {}, entering: {}, volleys: {}, shots: [], version: 33, repairs: {}, chat: [], opponent, civs: [...civs], keptHousing: [0, 0], reveals: [], projectiles: [], nextProjectileId: 0, stances: {}, patrols: {}, setups: {}, works: {}, cargo: {}, layout, vision: createVision(), accounts: [createAccount(3), createAccount(opponent === "ai" ? 3 : 1)], transactions: [], map, pathJobs: [], nextJobId: 1, navigationSeen: 0, seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [...map.starts[0].map((p, i) => makeUnit(map, 1 + i, 0, p.x, p.y)), makeUnit(map, 4, 1, map.starts[1][0].x, map.starts[1][0].y)], queue: [], log: [] };
+  const state = { settings, aiOpening: aiOpening === randomOpening ? pickOpening(seed, civs[1]) : aiOpening, buildings: [], nextBuildingId: 1, ages: [1, 1], nextUnitId: 5, nextQueueId: 1, attacks: {}, corpses: [], outcome: null, rites: {}, faith: {}, techs: [[], []], relics: mapSizes[layout] === 32 ? placeRelics(map, seed) : [], relicMemory: [[], []], relicVictory: null, market: startPrices(), trades: {}, wonders: {}, wonderVictory: null, transports: {}, boarding: {}, unloading: {}, beasts: {}, reseed: [true, true], garrison: {}, entering: {}, volleys: {}, shots: [], version: 34, repairs: {}, chat: [], opponent, civs: [...civs], keptHousing: [0, 0], reveals: [], projectiles: [], nextProjectileId: 0, stances: {}, patrols: {}, setups: {}, works: {}, cargo: {}, layout, vision: createVision(), accounts: [createAccount(3), createAccount(opponent === "ai" ? 3 : 1)], transactions: [], map, pathJobs: [], nextJobId: 1, navigationSeen: 0, seed, rng: seed || 1, tick: 0, sequence: [0, 0], units: [...map.starts[0].map((p, i) => makeUnit(map, 1 + i, 0, p.x, p.y)), makeUnit(map, 4, 1, map.starts[1][0].x, map.starts[1][0].y)], queue: [], log: [] };
   if (opponent === "ai") {
     state.units.push(...map.starts[1].slice(1).map((p, i) => makeUnit(map, 5 + i, 1, p.x, p.y)));
     state.nextUnitId = 5 + map.starts[1].length - 1;
@@ -5983,6 +7292,10 @@ function createState(seed, layout = "meadow", opponent = "idle", civs = [neutral
   }
   (map.animals ?? []).forEach((a, i) => state.units.push(makeUnit(map, animalRules.firstId + i, a.owner ?? GAIA, a.x, a.y, a.kind)));
   for (const a of state.accounts) a.stock = { ...settingRules.resources[settings.resources] };
+  if (map.nomad) for (const a of state.accounts) {
+    a.stock.wood += nomadStock.wood;
+    a.stock.stone += nomadStock.stone;
+  }
   if (settings.startAge > 1) {
     state.ages = [settings.startAge, settings.startAge];
     for (const p of [0, 1]) grantTechs(state, p);
@@ -6090,8 +7403,8 @@ function submit(state, c, record = true) {
       const ship2 = state.units.some((u) => u.id === c.payload.unitIds[0] && u.kind === "fishing-ship");
       if (ship2 !== (kind === "fish-trap")) throw Error(ship2 ? "\u6F01\u8239\u53EA\u80FD\u653E\u7F6E\u9B5A\u7DB2" : "\u9B5A\u7DB2\u53EA\u80FD\u7531\u6F01\u8239\u653E\u7F6E");
     }
-    if (to !== void 0 && (!wallKinds.has(kind) || !to || !Number.isSafeInteger(to.x) || !Number.isSafeInteger(to.y) || to.x < 0 || to.y < 0 || to.x >= state.map.size * 100 || to.y >= state.map.size * 100)) throw Error(wallKinds.has(kind) ? "\u57CE\u7246\u7D42\u9EDE\u8D85\u51FA\u5730\u5716" : "\u53EA\u6709\u57CE\u7246\u53EF\u4EE5\u62D6\u66F3\u6210\u4E00\u5217");
-    const problem = buildRequirement(state.ages[c.playerId], kind, state.buildings.filter((b) => b.player === c.playerId), state.civs[c.playerId], state.techs[c.playerId], settingsOf(state).allTechs) ?? (to ? wallProblem(state, c.playerId, kind, { x, y }, to) : authoritativeProblem(state, c.playerId, kind, x, y));
+    if (to !== void 0 && (!wallKinds2.has(kind) || !to || !Number.isSafeInteger(to.x) || !Number.isSafeInteger(to.y) || to.x < 0 || to.y < 0 || to.x >= state.map.size * 100 || to.y >= state.map.size * 100)) throw Error(wallKinds2.has(kind) ? "\u57CE\u7246\u7D42\u9EDE\u8D85\u51FA\u5730\u5716" : "\u53EA\u6709\u57CE\u7246\u53EF\u4EE5\u62D6\u66F3\u6210\u4E00\u5217");
+    const problem = buildRequirement(state.ages[c.playerId], kind, state.buildings.filter((b) => b.player === c.playerId), state.civs[c.playerId], state.techs[c.playerId], settingsOf(state).allTechs, nomadWaiver(state.map, state.buildings.filter((b) => b.player === c.playerId))) ?? (to ? wallProblem(state, c.playerId, kind, { x, y }, to) : authoritativeProblem(state, c.playerId, kind, x, y));
     if (problem) throw Error(problem);
     const cost = costOf(kind, ownerOf(state, c.playerId)), stock = state.accounts[c.playerId].stock, short = Object.keys(cost).filter((k) => stock[k] < cost[k]);
     if (short.length) throw Error(`\u8CC7\u6E90\u4E0D\u8DB3\uFF1A${short.map((k) => `${{ food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" }[k]}\u9700\u8981 ${cost[k]}\uFF0C\u76EE\u524D ${stock[k]}`).join("\uFF1B")}`);
@@ -6432,13 +7745,13 @@ function replay(seed, commands, ticks, layout = "meadow", opponent = "idle", civ
 }
 function serialize(s) {
   if (s.tick > 1e5 || s.log.length > 1e4) throw Error("\u5DF2\u8D85\u904E\u6B64\u968E\u6BB5\u6C99\u76D2\u5B58\u6A94\u5BB9\u91CF\uFF08100000 ticks / 10000 \u6307\u4EE4\uFF09");
-  return JSON.stringify({ format: "brick-sandbox-33", rulesetHash, state: s, checksum: hash(s) });
+  return JSON.stringify({ format: "brick-sandbox-34", rulesetHash, state: s, checksum: hash(s) });
 }
 function deserialize(raw) {
   const v = JSON.parse(raw);
-  if (!v || v.format !== "brick-sandbox-33" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
+  if (!v || v.format !== "brick-sandbox-34" || v.rulesetHash !== rulesetHash || !v.state || v.checksum !== hash(v.state)) throw Error("\u5B58\u6A94\u7248\u672C\u4E0D\u7B26\u6216\u5167\u5BB9\u640D\u58DE");
   const s = v.state;
-  if (s.version !== 33 || s.opponent !== "ai" && s.opponent !== "idle" || !Array.isArray(s.civs) || s.civs.length !== 2 || !s.civs.every(civExists) || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
+  if (s.version !== 34 || s.opponent !== "ai" && s.opponent !== "idle" || !Array.isArray(s.civs) || s.civs.length !== 2 || !s.civs.every(civExists) || !Number.isSafeInteger(s.tick) || s.tick < 0 || s.tick > 1e5 || !Array.isArray(s.log) || s.log.length > 1e4) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
   if (typeof s.aiOpening !== "string" || s.aiOpening === randomOpening || !openingChoices.includes(s.aiOpening)) throw Error("\u7121\u6548\u5B58\u6A94\u72C0\u614B");
   let settings;
   try {
@@ -6567,6 +7880,7 @@ function createService(initial) {
         protocol: 1,
         id: req.id,
         ok: true,
+        nomad: !!state.map.nomad,
         settings: settingsOf(state),
         aiOpening: state.aiOpening,
         coach: openingView(state, 0),

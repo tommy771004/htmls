@@ -106,7 +106,8 @@ function convertBuilding(s:ReligionState,monk:Unit,b:Building){
 }
 // Relic placement for the open map: away from both town centres by about the same distance, spread apart.
 export function placeRelics(map:MapData,seed:number):Relic[]{
- const R=religionRules.relics,centres=[false,true].map(red=>{const o=map.obstacles.find(o=>o.kind==='town-center'&&!!o.red===red)!,b=obstacleBounds(o);return {x:(b[0]+b[2])/2,y:(b[1]+b[3])/2};});
+ // Without town centres (a nomad start) each side's first villager stands for its base.
+ const R=religionRules.relics,centres=[false,true].map((red,p)=>{const o=map.obstacles.find(o=>o.kind==='town-center'&&!!o.red===red);if(!o)return map.starts[p][0];const b=obstacleBounds(o);return {x:(b[0]+b[2])/2,y:(b[1]+b[3])/2};});
  const closed=blockedTable(map),world=map.size*100;let n=(seed^0x5bd1e995)>>>0||1;const next=()=>{n^=n<<13;n^=n>>>17;n^=n<<5;n>>>=0;return n;};
  const candidates:{x:number;y:number}[]=[];
  for(let id=0;id<nodeTotal(map);id++){if(closed[id])continue;const p=position(map,id);if(p.x<R.edge||p.y<R.edge||p.x>world-R.edge||p.y>world-R.edge)continue;

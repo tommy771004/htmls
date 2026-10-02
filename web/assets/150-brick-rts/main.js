@@ -91,7 +91,8 @@ var resourceDefinitions = {
   // game's farm factor 250/175 -> 1000, design_default).
   "fish-trap": { yield: "food", method: "fish", movement: "water" }
 };
-var mapSizes = { meadow: 16, coast: 16, acceptance: 16, open: 32, lakes: 32 };
+var matchMapLayouts = ["arabia", "black-forest", "coastal", "mediterranean", "baltic", "continental", "rivers", "highland", "ghost-lake", "mongolia", "oasis", "scandinavia", "yucatan", "gold-rush", "crater-lake", "salt-marsh", "fortress", "arena", "nomad", "migration", "islands", "archipelago", "team-islands"];
+var mapSizes = { meadow: 16, coast: 16, acceptance: 16, open: 32, lakes: 32, ...Object.fromEntries(matchMapLayouts.map((l) => [l, 32])) };
 var terrainDefinitions = {
   grass: { walkClass: "land", buildability: true, height: 0 },
   road: { walkClass: "land", buildability: true, height: 0 },
@@ -100,14 +101,16 @@ var terrainDefinitions = {
   highland: { walkClass: "land", buildability: true, height: 100 },
   cliff: { walkClass: "blocked", buildability: false, height: 100 },
   water: { walkClass: "water", buildability: false, height: 0 },
-  shallow: { walkClass: "both", buildability: false, height: 0 }
+  shallow: { walkClass: "both", buildability: false, height: 0 },
+  ice: { walkClass: "land", buildability: false, height: 0 },
+  snow: { walkClass: "land", buildability: true, height: 0 }
 };
 function createTiles(layout = "meadow", seed = 0) {
   if (!(layout in mapSizes)) throw Error("\u672A\u77E5\u5730\u5716\u6A21\u5F0F");
   const size = mapSizes[layout];
   return Array.from({ length: size * size }, (_, id) => {
     const x = id % size, y = Math.floor(id / size);
-    let terrainType = layout !== "open" && layout !== "lakes" && y === 8 ? "road" : "grass";
+    let terrainType = size === 16 && y === 8 ? "road" : "grass";
     if (layout === "coast") {
       const edge = 12 + (seed >>> 0 >>> Math.floor(x / 4) & 1);
       if (y >= edge) terrainType = "water";
@@ -360,6 +363,64 @@ function createAudio(report = () => {
   }
   return { unlock, setVolume, play, state: () => ctx?.state ?? "locked", volume: () => volume };
 }
+
+// packages/content/maps.ts
+var mapExpansions = [{ id: "aok", zh: "\u5E1D\u738B\u4E16\u7D00" }, { id: "aoc", zh: "\u5F81\u670D\u8005\u5165\u4FB5" }, { id: "aof", zh: "\u5931\u843D\u7684\u5E1D\u570B" }, { id: "ak", zh: "\u975E\u6D32\u738B\u570B" }, { id: "aor", zh: "\u738B\u8005\u5D1B\u8D77" }, { id: "de", zh: "\u6C7A\u5B9A\u7248" }];
+var mapCatalog = [
+  { site: "Arabia", zh: "\u963F\u62C9\u4F2F", en: "Arabia", expansion: "aok", page: true, layout: "arabia", planned: null, summary: "\u958B\u653E\u5730\u5716\uFF0C\u8CC7\u6E90\u6BD4\u5176\u4ED6\u5716\u7A00\u5C11\uFF0C\u6613\u653B\u96E3\u5B88\u3002\u6728\u982D\u901A\u5E38\u5F88\u5C11\uFF0C\u65E9\u671F\u5C01\u4F4F\u5C0D\u65B9\u6728\u5340\u5373\u53EF\u53D6\u5F97\u512A\u52E2\uFF0C\u7BAD\u5854\uFF08\u5854\u653B\uFF09\u6230\u8853\u6D41\u884C\u3002\u8CC7\u6E90\u56FA\u5B9A\u70BA8\u7F8A2\u8C6C3\u62164\u9E7F\u30013\u584A\u9EC3\u91D1\u30012\u584A\u77F3\u982D\u3002\u73FE\u4ECA\u6BD4\u8CFD\u5E7E\u4E4E\u90FD\u4EE5\u963F\u62C9\u4F2F\u70BA\u4E3B\u3002" },
+  { site: "Archipelago", zh: "\u7FA4\u5CF6", en: "Archipelago", expansion: "aok", page: true, layout: "archipelago", planned: null, summary: "\u7531\u5927\u6D77\u74B0\u7E5E\u7684\u4E00\u7CFB\u5217\u5C0F\u5CF6\u7D44\u6210\uFF0C\u8CC7\u6E90\u6709\u9650\uFF0C\u5F8C\u671F\u5E38\u898B\u5783\u573E\u5175\uFF08\u6230\u77DB\u5175\u3001\u91CD\u88DD\u9577\u69CD\u5175\u3001\u8F15\u9A0E\u5175\uFF09\u6230\u722D\u3002\u6709\u4E9B\u73A9\u5BB6\u7368\u5360\u4E00\u5CF6\uFF0C\u6709\u4E9B\u5171\u4EAB\u4E00\u5CF6\u3002\u98DF\u7269\u5927\u591A\u4F86\u81EA\u6D77\u4E0A\uFF0C\u6C34\u57DF\u63A7\u5236\u91CD\u8981\uFF1B\u53E6\u6709\u56DB\u500B\u984D\u5916\u5C0F\u5CF6\uFF0C\u5169\u500B\u7A7A\u5CF6\u3001\u5169\u500B\u5BCC\u542B\u91D1\u6728\u98DF\u77F3\u3002" },
+  { site: "Baltic", zh: "\u6CE2\u7F85\u7684\u6D77", en: "Baltic", expansion: "aok", page: true, layout: "baltic", planned: null, summary: "\u56DB\u9762\u9678\u5730\u3001\u4E2D\u9593\u70BA\u6D77\u7684\u4E2D\u7B49\u5927\u5C0F\u5730\u5716\uFF0C\u91CD\u8996\u968A\u53CB\u8207\u6D77\u9678\u8ECD\u5354\u8ABF\u3002\u5EFA\u8B70\u4EE5\u6F01\u8239\u800C\u975E\u8FB2\u7530\u70BA\u4E3B\u8981\u98DF\u7269\u4F86\u6E90\u4EE5\u7BC0\u7701\u6728\u6750\u3002\u5206\u9694\u73A9\u5BB6\u7684\u9678\u5730\u72F9\u9577\uFF0C\u9069\u5408\u570D\u7246\uFF1B\u9694\u96E2\u5C0D\u624B\u5F8C\u4EE5\u904B\u8F38\u8239\u8207\u6230\u8239\u8DE8\u6D77\u653B\u64CA\u3002" },
+  { site: "Black_Forest", zh: "\u9ED1\u68EE\u6797", en: "Black Forest", expansion: "aok", page: true, layout: "black-forest", planned: null, summary: "\u88AB\u5927\u91CF\u6A39\u6728\u5305\u8986\u7684\u5C01\u9589\u5730\u5716\uFF0C\u53EF\u5728\u5BB6\u7206\u7D93\u6FDF\uFF0C\u61C9\u76E1\u65E9\u570D\u7246\uFF1B\u6BD4\u8CFD\u591A\u8A2D\u5B9A\u70BA\u5DF2\u63A2\u7D22\u3002\u9069\u5408\u5F8C\u671F\u5F37\u529B\u5175\u7A2E\uFF08\u5982\u91CD\u578B\u6295\u77F3\u8ECA\uFF09\u7684\u6587\u660E\uFF0C\u5E38\u6253\u5230\u5927\u5F8C\u671F\uFF0C\u5165\u9580\u73A9\u5BB6\u559C\u611B\u3002" },
+  { site: "Crater_Lake", zh: "\u706B\u5C71\u6E56", en: "Crater Lake", expansion: "aok", page: false, layout: "crater-lake", planned: null, summary: "" },
+  { site: "Coastal", zh: "\u6CBF\u6D77", en: "Coastal", expansion: "aok", page: true, layout: "coastal", planned: null, summary: "\u4E00\u534A\u6C34\u57DF\u4E00\u534A\u9678\u5730\u3002\u9678\u4E0A\u98DF\u7269\u8017\u76E1\u5F8C\u61C9\u4EE5\u6F01\u8239\u8207\u6230\u8239\u63A7\u5236\u6C34\u57DF\u53D6\u5F97\u98DF\u7269\u4E26\u53EF\u6CBF\u6D77\u7A81\u8972\uFF1B\u5931\u53BB\u5236\u6D77\u6B0A\u6642\u53EF\u65BC\u5C01\u5EFA\u665A\u671F\uFF0F\u57CE\u5821\u521D\u671F\u5FEB\u653B\u9A37\u64FE\u5C0D\u65B9\u8CC7\u6E90\u3002\u5718\u6230\u4E2D\u6700\u9760\u6D77\u7684\u73A9\u5BB6\u61C9\u76E1\u5FEB\u63A7\u6D77\u3002" },
+  { site: "Continental", zh: "\u5927\u9678", en: "Continental", expansion: "aok", page: true, layout: "continental", planned: null, summary: "\u5927\u7247\u9678\u5730\u88AB\u6C34\u57DF\u74B0\u7E5E\uFF0C\u6709\u6642\u6CB3\u6D41\u5206\u9694\u96D9\u65B9\uFF0C\u5730\u5716\u4E2D\u9593\u6709\u4E00\u5EA7\u5B64\u7ACB\u5CF6\u5DBC\u3002\u6728\u982D\u5C11\u4E14\u5448\u5C0F\u53E2\u5206\u5E03\uFF0C\u9EC3\u91D1\u8F03\u8C50\u5BCC\uFF0C\u77F3\u982D\u8207\u98DF\u7269\u5E73\u5747\u3002\u5FEB\u653B\u9700\u6D77\u904B\u4E0D\u6613\u6210\u529F\uFF1B\u5EFA\u8B70\u8FB2\u7530\u8207\u6F01\u8239\u5404\u534A\uFF0C\u91CD\u9EDE\u5728\u6CBF\u5CB8\u9632\u79A6\uFF08\u653B\u57CE\u6B66\u5668\u3001\u54E8\u7AD9\u3001\u7BAD\u5854\uFF09\u3002" },
+  { site: "Fortress", zh: "\u5821\u58D8", en: "Fortress", expansion: "aok", page: true, layout: "fortress", planned: null, summary: "\u8207\u570D\u57CE\u985E\u4F3C\uFF0C\u73A9\u5BB6\u958B\u5C40\u6709\u88AB\u77F3\u7246\u570D\u7E5E\u7684\u57CE\u93AE\uFF0C\u53E6\u67095\u7247\u8FB2\u7530\u30014\u5EA7\u77AD\u671B\u7BAD\u5854\u30014\u68DF\u623F\u5C4B\u82071\u5EA7\u8ECD\u71DF\u3002\u5404\u73A9\u5BB6\u7BAD\u5854\u914D\u7F6E\u76F8\u540C\uFF0C\u56E0\u6B64\u6709\u7684\u7BAD\u5854\u80FD\u8B77\u7246\u3001\u6709\u7684\u6BEB\u7121\u4F5C\u7528\u3002\u63D2\u5821\u3001\u5E1D\u5FEB\u3001\u57CE\u5FEB\u7686\u9069\u7528\u3002" },
+  { site: "Gold_Rush", zh: "\u6DD8\u91D1\u6F6E", en: "Gold Rush", expansion: "aok", page: true, layout: "gold-rush", planned: null, summary: "\u73A9\u5BB6\u5206\u5E03\u5728\u5730\u5716\u908A\u7DE3\uFF0C\u53EA\u6709\u5C11\u91CF\u9EC3\u91D1\uFF1B\u5730\u5716\u6B63\u4E2D\u592E\u6C99\u6F20\u6709\u5927\u91CF\u9EC3\u91D1\uFF0C\u5468\u570D\u6709\u8A31\u591A\u72FC\u3002\u5FC5\u9808\u76E1\u65E9\u63A7\u5236\u4E2D\u592E\u4E26\u4EE5\u57CE\u5821\u3001\u7BAD\u5854\u5B88\u4F4F\u9EC3\u91D1\uFF1B\u521D\u671F\u5F37\u52E2\u6587\u660E\u8207\u53EF\u4E00\u64CA\u6BBA\u72FC\u7684\u99AC\u624E\u723E\u6709\u5229\u3002" },
+  { site: "Highland", zh: "\u9AD8\u5730", en: "Highland", expansion: "aok", page: true, layout: "highland", planned: null, summary: "\uFF08\u9801\u9762\u6A19\u984C\u4F5C\u300C\u9AD8\u539F\u300D\uFF09\u591A\u61F8\u5D16\u3001\u68EE\u6797\u8302\u5BC6\uFF0C\u6709\u4E00\u6216\u591A\u689D\u6CB3\u6D41\u7A7F\u904E\uFF1B\u6CB3\u6D41\u6709\u6DFA\u7058\u9023\u63A5\uFF0C\u4E5F\u53EF\u80FD\u6709\u5C0F\u9678\u8DEF\u3002\u53EF\u570D\u7246\u64CB\u4F4F\uFF0C\u4F46\u5C0D\u65B9\u80FD\u4EE5\u904B\u8F38\u8239\u5077\u6E21\u3002\u5FEB\u653B\u8207\u9F9C\u7D93\u6FDF\u7686\u53EF\uFF0C\u6D77\u9678\u517C\u5F37\u6587\u660E\uFF08\u897F\u73ED\u7259\u3001\u671D\u9BAE\u3001\u99AC\u4F86\u3001\u7DAD\u4EAC\uFF09\u6709\u5229\u3002" },
+  { site: "Islands", zh: "\u5CF6\u5DBC", en: "Islands", expansion: "aok", page: true, layout: "islands", planned: null, summary: "\u6BCF\u4F4D\u73A9\u5BB6\u7368\u5360\u4E00\u5EA7\u5CF6\uFF0C\u5CF6\u4E0A\u53EF\u80FD\u6709\u9E7F\u8207\u4E00\u4E9B\u7DBF\u7F8A\uFF1B\u5730\u5F62\u53EF\u80FD\u70BA\u6C99\u6F20\u3001\u8349\u539F\u6216\u7F8E\u6D32\u53E2\u6797\u3002\u53E6\u6709\u7121\u4EBA\u5C0F\u5CF6\u53EF\u80FD\u860A\u85CF\u8C50\u5BCC\u91D1\u77F3\u3002\u6D77\u6B0A\u6975\u91CD\u8981\uFF0C\u61C9\u767C\u5C55\u6D77\u8ECD\u3001\u6436\u4F54\u8CC7\u6E90\u5C0F\u5CF6\u4E26\u53EF\u7528\u904B\u8F38\u8239\u5FEB\u653B\uFF1B\u99AC\u4F86\u3001\u85A9\u62C9\u68EE\u6709\u512A\u52E2\u3002" },
+  { site: "Mediterranean", zh: "\u5730\u4E2D\u6D77", en: "Mediterranean", expansion: "aok", page: true, layout: "mediterranean", planned: null, summary: "\u9678\u5730\u4E2D\u9593\u5305\u570D\u4E00\u5927\u7247\u6D77\uFF0C\u9678\u6D77\u6BD4\u4F8B\u975E\u5E38\u4E0D\u5C0D\u7A31\uFF0C\u8D77\u59CB\u4F4D\u7F6E\u8207\u6D77\u7684\u8DDD\u96E2\u5F71\u97FF\u7B56\u7565\u3002\u5FC5\u9808\u63A7\u5236\u4E2D\u592E\u6D77\u57DF\uFF1A\u65E2\u662F\u9F90\u5927\u98DF\u7269\u4F86\u6E90\uFF0C\u4E5F\u80FD\u4EE5\u904B\u8F38\u8239\u5077\u6E21\u5947\u8972\uFF0C\u540C\u6642\u8981\u63D0\u9632\u6D77\u4E0A\u8972\u64CA\u3002" },
+  { site: "Migration", zh: "\u79FB\u6C11", en: "Migration", expansion: "aok", page: true, layout: "migration", planned: null, summary: "\u9801\u9762\u7A31\u53EA\u51FA\u73FE\u5728\u591A\u4EBA\u9023\u7DDA\u904A\u6232\u4E2D\u3002\u5730\u5716\u4E0A\u6C92\u6709\u91CE\u8C6C\uFF0C\u7DBF\u7F8A\u96E2\u57CE\u93AE\u4E2D\u5FC3\u5F88\u9060\uFF0C\u53EF\u6D3E\u4E00\u540D\u6751\u6C11\u627E\u7F8A\u3002\u99AC\u4F86\u3001\u65E5\u672C\u7B49\u6D77\u8ECD\u5F37\u76DB\u6587\u660E\u8868\u73FE\u4E0D\u932F\u3002" },
+  { site: "Rivers", zh: "\u6CB3\u6D41", en: "Rivers", expansion: "aok", page: true, layout: "rivers", planned: null, summary: "\u8207\u9AD8\u539F\u76F8\u4F3C\uFF0C\u6709\u8A31\u591A\u6CB3\u6D41\u5206\u9694\u73A9\u5BB6\uFF0C\u4E5F\u6709\u6DFA\u7058\u9023\u63A5\u9678\u5730\u3002\u53EF\u7BC9\u7246\u64CB\u4F4F\u6DFA\u7058\uFF0C\u4F46\u4ECD\u9700\u63D0\u9632\u6575\u65B9\u5077\u6E21\u6751\u6C11\u6216\u8ECD\u968A\u5FEB\u653B\u3002" },
+  { site: "Team_Islands", zh: "\u5718\u968A\u7FA4\u5CF6", en: "Team Islands", expansion: "aok", page: true, layout: "team-islands", planned: null, summary: "\u540C\u76DF\u73A9\u5BB6\u958B\u5C40\u90FD\u5728\u81EA\u5DF1\u968A\u4F0D\u7684\u5CF6\u4E0A\uFF0C\u5730\u5716\u4E3B\u8981\u7531\u6C34\u57DF\u5305\u570D\u4F46\u591A\u6578\u6230\u9B25\u5728\u9678\u5730\u3002\u9632\u6B62\u6575\u65B9\u904B\u8F38\u8239\u767B\u9678\u662F\u95DC\u9375\uFF1B\u4E16\u754C\u5947\u89C0\u662F\u71B1\u9580\u52DD\u5229\u65B9\u5F0F\uFF08\u5308\u4EBA\u7121\u795E\u8AD6\u5EF6\u9577\u6575\u5947\u89C0\u5012\u6578100\u5E74\uFF09\u3002\u6D77\u8ECD\u5F37\u76DB\u6587\u660E\uFF08\u7DAD\u4EAC\u3001\u6CE2\u65AF\u3001\u671D\u9BAE\u3001\u7FA9\u5927\u5229\u3001\u85A9\u62C9\u68EE\uFF09\u6709\u512A\u52E2\u3002" },
+  { site: "Arena", zh: "\u570D\u57CE", en: "Arena", expansion: "aoc", page: true, layout: "arena", planned: null, summary: "\u6BCF\u4F4D\u73A9\u5BB6\u6709\u88AB\u570D\u7246\u570D\u4F4F\u7684\u57CE\u93AE\uFF0C\u5730\u5716\u4E2D\u592E\u70BA\u8CC7\u6E90\u8C50\u5BCC\u7684\u958B\u653E\u5340\u57DF\uFF0C\u6574\u5F35\u5730\u5716\u88AB\u6A39\u74B0\u7E5E\uFF0C\u552F\u4E00\u9032\u653B\u8DEF\u5F91\u662F\u4E2D\u592E\u958B\u95CA\u5340\u3002\u6575\u65B9\u9580\u5916\u7684\u91D1\u6216\u77F3\u662F\u9996\u8981\u9A37\u64FE\u76EE\u6A19\uFF1B\u5C0F\u578B\u534A\u5C01\u9589\u5340\u57DF\u53EF\u80FD\u6709\u984D\u5916\u91D1\u77F3\u3002\u9069\u5408\u57CE\u5FEB\u3001\u5E1D\u5FEB\uFF0C\u57CE\u5821\u524D\u5FEB\u653B\u56E0\u57CE\u7246\u4E0D\u6613\u6210\u529F\uFF0C\u4F46\u5854\u653B\u4ECD\u53EF\u884C\u3002" },
+  { site: "Ghost_Lake", zh: "\u9B3C\u6E56", en: "Ghost Lake", expansion: "aoc", page: true, layout: "ghost-lake", planned: null, summary: "\u7D50\u51B0\u7248\u7684\u5730\u4E2D\u6D77\uFF0C\u4E2D\u592E\u7D50\u51B0\u5340\u6C92\u6709\u8CC7\u6E90\u4E5F\u4E0D\u80FD\u84CB\u5EFA\u7BC9\u3002\u6F3F\u679C\u8207\u9E7F\u6BD4\u4E00\u822C\u5716\u5C11\uFF0C\u9EC3\u91D1\u3001\u77F3\u7926\u548C\u72FC\u7A0D\u591A\uFF0C\u6728\u982D\u5448\u5C0F\u53E2\u6563\u843D\u3002\u53EF\u5229\u7528\u6A39\u53E2\u570D\u5BB6\uFF0C\u4F46\u9760\u8FD1\u51B0\u5340\u7684\u57FA\u5730\u96E3\u570D\uFF1B\u4E2D\u671F\u5F37\u76DB\u6587\u660E\uFF08\u585E\u723E\u7279\u3001\u65E5\u672C\u3001\u671D\u9BAE\uFF09\u512A\u65BC\u665A\u671F\u6587\u660E\uFF08\u897F\u73ED\u7259\uFF09\u3002" },
+  { site: "Mongolia", zh: "\u8499\u53E4\u9AD8\u539F", en: "Mongolia", expansion: "aoc", page: true, layout: "mongolia", planned: null, summary: "\u5730\u5F62\u9AD8\u4F4E\u8D77\u4F0F\uFF0C\u8A31\u591A\u5929\u7136\u5730\u5F62\u7C21\u55AE\u570D\u8D77\u5373\u53EF\u64CB\u5FEB\u653B\uFF0C\u4E5F\u6709\u975E\u5E38\u958B\u95CA\u96E3\u570D\u8655\u3002\u5584\u7528\u9AD8\u5730\u512A\u52E2\uFF08\u9801\u9762\u5BEB\u9AD8\u6253\u4F4E\u653B\u64CA\u52A0\u621050%\uFF09\uFF0C\u7BAD\u5854\u53EF\u84CB\u5728\u6575\u4EBA\u96E3\u4EE5\u5230\u9054\u7684\u61F8\u5D16\u4E0A\u3002\u91D1\u77F3\u6709\u6642\u88AB\u5305\u5728\u61F8\u5D16\u5C0F\u9053\u4E0A\uFF0C\u570D\u8D77\u4F86\u53EF\u8B93\u6575\u4EBA\u7121\u8CC7\u6E90\u53EF\u7528\u3002" },
+  { site: "Nomad", zh: "\u6E38\u7267", en: "Nomad", expansion: "aoc", page: true, layout: "nomad", planned: null, summary: "\u4E09\u9762\u74B0\u6D77\uFF0C\u6709\u6642\u4E2D\u9593\u6709\u6CB3\u6D41\uFF1B\u5730\u5F62\u70BA\u677E\u6A39\u8349\u5730\u7684\u6EAB\u5E36\u6216\u68D5\u6ADA\u6C99\u5730\u7684\u6C99\u6F20\u3002\u73A9\u5BB6\u958B\u5C40\u4E09\u540D\u6751\u6C11\u3001\u6C92\u6709\u57CE\u93AE\u4E2D\u5FC3\uFF0C\u8981\u9078\u64C7\u6709\u98DF\u7269\u8207\u5927\u91CF\u91D1\u7926\u7684\u9EDE\u5EFA\u57CE\u93AE\u4E2D\u5FC3\uFF0C\u4E0D\u80FD\u592A\u665A\u3002\u5718\u968A\u53EF\u806F\u5408\u6751\u6C11\u65E9\u671F\u7A81\u8972\uFF08\u9AD8\u98A8\u96AA\uFF09\uFF0C\u6216\u628A\u57FA\u5730\u5EFA\u5F97\u5F88\u8FD1\uFF0C\u751A\u81F3\u5728\u6575\u65B9\u6751\u6C11\u9644\u8FD1\u84CB\u57CE\u93AE\u4E2D\u5FC3\u99D0\u7D2E\u653B\u64CA\u3002" },
+  { site: "Oasis", zh: "\u7DA0\u6D32", en: "Oasis", expansion: "aoc", page: true, layout: "oasis", planned: null, summary: "\u4E2D\u592E\u6709\u5DE8\u5927\u6C34\u5751\uFF0C\u5468\u570D\u4E00\u5708\u5DE8\u5927\u68D5\u6ADA\u6A39\u6797\uFF1B\u4E2D\u5FC3\u5916\u6A39\u6728\u6709\u9650\u3001\u4E2D\u5FC3\u5167\u975E\u5E38\u8C50\u5BCC\uFF0C\u68EE\u6797\u8986\u84CB\u4E0D\u5C0D\u7A31\u3002\u68EE\u6797\u8F03\u8584\u8655\u662F\u7406\u60F3\u4F10\u6728\u9EDE\u4E14\u53EF\u901A\u5F80\u4E2D\u592E\u6E56\u6CCA\u6355\u9B5A\uFF1B\u76EE\u6A19\u662F\u63A7\u5236\u91D1\u3001\u98DF\u7269\u3001\u77F3\u982D\u8C50\u5BCC\u7684\u6C99\u6F20\u4E26\u5229\u7528\u7DA0\u6D32\u8CC7\u6E90\u3002" },
+  { site: "Salt_Marsh", zh: "\u9E7D\u6CBC\u5730", en: "Salt Marsh", expansion: "aoc", page: true, layout: "salt-marsh", planned: null, summary: "\u53EF\u80FD\u662F\u738B\u8005\u5D1B\u8D77\u524D\u7B2C\u4E00\u500B\u5169\u68F2\u5730\u5716\uFF0C\u534A\u6C34\u534A\u9678\uFF0C\u6709\u8A31\u591A\u6DFA\u7058\u3001\u6CBC\u6FA4\u8207\u53EF\u901A\u884C\u6C34\u57DF\u3002\u6A39\u6728\u8207\u6C34\u57DF\u63D0\u4F9B\u5929\u7136\u5C4F\u969C\uFF0C\u4F46\u6DFA\u7058\u8B93\u7A81\u8972\u96E3\u4EE5\u5C01\u9396\u3002\u5F37\u70C8\u5EFA\u8B70\u6295\u8CC7\u6D77\u8ECD\uFF1B\u7206\u7834\u8239\u53EF\u4F0F\u64CA\u904E\u6DFA\u7058\u7684\u55AE\u4F4D\uFF0C\u904B\u8F38\u8239\u53EF\u7E5E\u5F8C\u5947\u8972\u3002" },
+  { site: "Scandinavia", zh: "\u65AF\u582A\u5730\u7DAD\u4E9E", en: "Scandinavia", expansion: "aoc", page: true, layout: "scandinavia", planned: null, summary: "\u57CE\u93AE\u4E2D\u5FC3\u5468\u570D\u6709\u8A31\u591A\u9E7F\uFF0C\u4EE5\u53CA\u5927\u591A\u6578\u5730\u5716\u6C92\u6709\u7684\u7B2C\u4E09\u96BB\u91CE\u8C6C\uFF1B\u5730\u5716\u908A\u7DE3\u6709\u5169\u689D\u6975\u9577\u3001\u6709\u9B5A\u7684\u5CFD\u7063\u3002\u6728\u982D\u5206\u6563\u4F46\u8C50\u5BCC\uFF0C\u9EC3\u91D1\u666E\u901A\u3001\u77F3\u982D\u8F03\u5C11\uFF08\u96E3\u84CB\u7B2C\u4E8C\u5EA7\u57CE\u5821\u6216\u7B2C\u4E09\u500B\u57CE\u93AE\u4E2D\u5FC3\uFF09\uFF0C\u885D\u7A81\u591A\u5728\u722D\u596A\u4E2D\u9593\u7684\u9EC3\u91D1\u3002" },
+  { site: "Yucatan", zh: "\u7336\u52A0\u6566", en: "Yucatan", expansion: "aoc", page: true, layout: "yucatan", planned: null, summary: "\u98DF\u7269\u8CC7\u6E90\u8C50\u5BCC\uFF0C\u57CE\u93AE\u4E2D\u5FC3\u9644\u8FD1\u6709\u66F4\u591A\u9E7F\u3001\u7DBF\u7F8A\u53CA\u6F3F\u679C\u53E2\uFF0C\u53EF\u9032\u884C\u5927\u898F\u6A21\u6230\u9B25\uFF1B\u665A\u671F\u5F37\u76DB\u6587\u660E\uFF08\u897F\u73ED\u7259\u3001\u62DC\u5360\u5EAD\uFF09\u6216\u5F8C\u671F\u5F37\u5175\u6587\u660E\u8F03\u6709\u512A\u52E2\u3002" },
+  { site: "Acropolis", zh: "\u96C5\u5178\u885B\u57CE", en: "Acropolis", expansion: "aof", page: true, layout: null, planned: null, summary: "\u975E\u5E38\u958B\u653E\u7684\u5730\u5716\uFF0C\u4E2D\u9593\u6709\u4E00\u5C0F\u5708\u6C60\u5858\u3002\u73A9\u5BB6\u5728\u7279\u6B8A\u7684\u5C71\u4E18\u4E0A\u958B\u5C40\uFF0C\u7070\u8272\u7D0B\u7406\u659C\u5761\u7121\u6CD5\u5EFA\u9020\u4EFB\u4F55\u5EFA\u7BC9\uFF0C\u5E7E\u4E4E\u4E0D\u53EF\u80FD\u570D\u597D\u57FA\u5730\uFF1B\u5FC5\u9808\u4E0B\u5C71\u722D\u596A\u9EC3\u91D1\u8207\u77F3\u7926\u3002" },
+  { site: "Budapest", zh: "\u5E03\u9054\u4F69\u65AF", en: "Budapest", expansion: "aof", page: true, layout: null, planned: null, summary: "\u73A9\u5BB6\u958B\u5C40\u5C31\u6709\u5169\u5EA7\u76F8\u8DDD\u4E0D\u9060\u7684\u57CE\u93AE\u4E2D\u5FC3\uFF0C\u53EF\u7522\u51FA\u66F4\u591A\u6751\u6C11\uFF1B\u6709\u57CE\u93AE\u4E2D\u5FC3\u6216\u6751\u6C11\u512A\u52E2\u7684\u6587\u660E\uFF08\u6CE2\u65AF\u3001\u5370\u5EA6\u3001\u99AC\u4F86\u3001\u7DAD\u4EAC\uFF09\u8301\u58EF\uFF0C\u958B\u5C40\u984D\u5916\u55AE\u4F4D\u7684\u6587\u660E\uFF08\u99AC\u96C5\u3001\u4E2D\u570B\u3001\u5370\u52A0\uFF09\u4E5F\u7372\u5F97\u5169\u500D\u521D\u59CB\u55AE\u4F4D\u3002\u6E56\u6CCA\u4E4B\u9593\u4E92\u4E0D\u76F8\u9023\uFF0C\u6D77\u8ECD\u53EA\u9700\u5C11\u91CF\u9632\u5B88\u3002" },
+  { site: "Cenotes", zh: "\u5CA9\u5751\u6C60", en: "Cenotes", expansion: "aof", page: true, layout: null, planned: null, summary: "\u8CC7\u6E90\u6BD4\u591A\u6578\u5730\u5716\u5C11\uFF0C\u8207\u963F\u62C9\u4F2F\u76F8\u4F3C\u4F46\u6709\u6CBF\u5CB8\u9B5A\u7684\u6C34\u6C60\uFF0C\u61F8\u5D16\u8B93\u9632\u5B88\u6BD4\u963F\u62C9\u4F2F\u5BB9\u6613\u3002\u5F37\u70C8\u5EFA\u8B70\u5FEB\u653B\u8207\u65E9\u671F\u5854\u653B\uFF1B\u6728\u5340\u5206\u6563\u96E3\u5B88\uFF0C\u91D1\u77F3\u8981\u597D\u597D\u4FDD\u8B77\u3002" },
+  { site: "Land_of_Lakes", zh: "\u767E\u6E56\u4E4B\u57CE", en: "Land of Lakes", expansion: "aof", page: true, layout: null, planned: null, summary: "\u73A9\u5BB6\u5F9E\u534A\u5CF6\u4E00\u89D2\u958B\u5C40\uFF0C\u5718\u6230\u540C\u968A\u5171\u4EAB\u534A\u5CF6\uFF1B\u5730\u5F62\u5E73\u5766\u3002\u5927\u91CF\u4E92\u4E0D\u76F8\u9023\u7684\u6E56\u6CCA\u8207\u6C60\u5858\uFF0C\u5728\u932F\u8AA4\u7684\u6E56\u8A13\u7DF4\u6D77\u8ECD\u53EF\u80FD\u5F92\u52DE\uFF1B\u534A\u5CF6\u4E09\u9762\u74B0\u6E56\u6613\u9810\u5224\u6575\u4EBA\u9032\u653B\u65B9\u5411\u3002\u907A\u8DE1\u5728\u9023\u63A5\u534A\u5CF6\u7684\u72F9\u7A84\u5CFD\u8C37\u4E2D\u3002" },
+  { site: "Golden_Pit", zh: "\u91D1\u7926\u8C37", en: "Golden Pit", expansion: "aof", page: true, layout: null, planned: null, summary: "\u56DB\u5468\u7DA0\u610F\u76CE\u7136\u3001\u4E2D\u592E\u5927\u5751\u4E7E\u71E5\u8CA7\u7620\u4F46\u6709\u5927\u91CF\u91D1\u7926\uFF0C\u73A9\u5BB6\u88AB\u5927\u5751\u9694\u958B\u3002\u5751\u7DE3\u70BA\u6C99\u5730\u659C\u5761\uFF0C\u5F13\u5175\u53EF\u85C9\u9AD8\u5730\u512A\u52E2\u5C04\u64CA\uFF1B\u4EE5\u57CE\u93AE\u4E2D\u5FC3\u3001\u57CE\u5821\u3001\u7BAD\u5854\u4FDD\u8B77\u63A1\u91D1\u6751\u6C11\u3002" },
+  { site: "Hideout", zh: "\u85CF\u8EAB\u4E4B\u8655", en: "Hideout", expansion: "aof", page: true, layout: null, planned: null, summary: "\u985E\u4F3C\u570D\u57CE\uFF0C\u4F46\u57CE\u93AE\u88AB\u6728\u7246\u800C\u975E\u77F3\u7246\u570D\u7E5E\uFF0C\u8CC7\u6E90\u5728\u5730\u5716\u5916\u90E8\uFF0C\u5927\u90E8\u5206\u6728\u6750\u5728\u4E2D\u592E\u5206\u9694\u73A9\u5BB6\u3002\u6728\u7246\u8840\u5C11\uFF0C\u5EFA\u8B70\u518D\u52A0\u4E00\u5C64\u6728\uFF0F\u77F3\u7246\u6216\u623F\u5C4B\u9632\u5C01\u5EFA\u5FEB\u653B\uFF1B\u5F8C\u671F\u53EF\u6CBF\u6797\u7DDA\u5EFA\u57CE\u5821\u3001\u7BAD\u5854\u5C01\u6728\uFF0C\u4E2D\u578B\u6295\u77F3\u8ECA\u53EF\u7A7F\u6A39\u5077\u8972\u3002" },
+  { site: "Hill_Fort", zh: "\u5C71\u5BE8", en: "Hill Fort", expansion: "aof", page: false, layout: null, planned: null, summary: "" },
+  { site: "Lombardia", zh: "\u502B\u5DF4\u5730", en: "Lombardia", expansion: "aof", page: true, layout: null, planned: null, summary: "\u6A39\u6728\u53E2\u751F\u3001\u6D77\u62D4\u8B8A\u5316\u5927\u3001\u5730\u4E0A\u6709\u7A4D\u96EA\uFF1B\u540C\u968A\u73A9\u5BB6\u958B\u5C40\u805A\u5728\u540C\u4E00\u5074\uFF0C\u6575\u4EBA\u4E0D\u6613\u5FEB\u653B\uFF0C\u5178\u578B\u6253\u6CD5\u70BA\u57CE\u5FEB\u6216\u5E1D\u5FEB\u3002\u4E2D\u9593\u6728\u6750\u9700\u722D\u596A\uFF0C\u6728\u5340\u8F03\u5C0F\u4E5F\u8F03\u96E3\u570D\u57FA\u5730\u3002" },
+  { site: "Steppe", zh: "\u4E7E\u8349\u539F", en: "Steppe", expansion: "aof", page: true, layout: null, planned: null, summary: "\u53EF\u8AAA\u662F\u91D1\u7926\u8C37\u7684\u6E38\u7267\u7248\uFF0C\u4E2D\u592E\u662F\u5927\u91CF\u53EF\u72E9\u7375\u52D5\u7269\uFF08\u9E7F\u7FA4\uFF09\u800C\u975E\u91D1\u7926\u3002\u958B\u5C40\u67093\u20134\u500B\u53EF\u5BB9\u7D0D5\u4EBA\u53E3\u7684\u8499\u53E4\u5305\u8207\u53EF\u755C\u990A\u52D5\u7269\uFF08\u4F9D\u6BD4\u8CFD\u53EF\u80FD\u662F\u8349\u5C3C\u99AC\u3001\u7DBF\u7F8A\u6216\u4E73\u725B\uFF09\uFF0C\u53EF\u81EA\u9078\u57CE\u93AE\u4E2D\u5FC3\u4F4D\u7F6E\u3002\u4E2D\u592E\u8349\u539F\u6975\u5E73\u5766\uFF0C\u5468\u570D\u5C0F\u4E18\uFF0C\u6709\u6642\u6709\u6C38\u4E45\u51CD\u571F\uFF1B\u5728\u4E2D\u592E\u6253\u7375\u7684\u6751\u6C11\u96E3\u4EE5\u8EB2\u85CF\u3002" },
+  { site: "Valley", zh: "\u5CFD\u8C37", en: "Valley", expansion: "aof", page: true, layout: null, planned: null, summary: "\u6709\u51B0\u51CD\u82D4\u539F\u3001\u8302\u5BC6\u53E2\u6797\u3001\u958B\u95CA\u71B1\u5E36\u8349\u539F\u4E09\u7A2E\u74B0\u5883\uFF08\u4EE5\u8349\u539F\u70BA\u4E3B\uFF09\u3002\u73A9\u5BB6\u5728\u4E2D\u592E\u4E7E\u6DB8\u6CB3\u5E8A\u9644\u8FD1\u7684\u5FAE\u4E18\u9675\u958B\u5C40\uFF0C\u6575\u6211\u8DDD\u96E2\u8F03\u8FD1\uFF1B\u4E7E\u6CB3\u5E8A\u4E0D\u80FD\u5EFA\u9020\u4EFB\u4F55\u5EFA\u7BC9\uFF0C\u6CB3\u5E8A\u5167\u6C34\u5751\u9644\u8FD1\u6709\u5927\u91CF\u53EF\u6355\u7375\u52D5\u7269\uFF0C\u958B\u95CA\u5340\u57DF\u4F7F\u570D\u7246\u8207\u5854\u9632\u6548\u7387\u4F4E\u3002" },
+  { site: "Megarandom", zh: "\u8D85\u7D1A\u96A8\u6A5F", en: "MegaRandom", expansion: "aof", page: true, layout: null, planned: null, summary: "\u6C38\u9060\u4E0D\u77E5\u9053\u6703\u9047\u5230\u4EC0\u9EBC\u5730\u5716\uFF0C\u958B\u5C40\u53EF\u80FD\u6709\u77DB\u5175\u3001\u9577\u69CD\u5175\u3001\u99F1\u99DD\u9A0E\u5175\u6216\u706B\u7832\u5854\u7B49\u55AE\u4F4D\u3002\u5E38\u9762\u81E8\u9EC3\u91D1\u77ED\u7F3A\uFF0C\u5E02\u5834\u5F88\u91CD\u8981\uFF1B\u5075\u5BDF\u81F3\u95DC\u91CD\u8981\uFF0C\u5730\u5716\u591A\u534A\u958B\u653E\u3001\u4E2D\u592E\u5E38\u6709\u68EE\u6797\u6216\u5C71\u8108\u7B49\u5927\u578B\u969C\u7919\u3002" },
+  { site: "Hamburger", zh: "\u6F22\u5821\u5305", en: "Hamburger", expansion: "aof", page: true, layout: null, planned: null, summary: "\u73A9\u5BB6\u958B\u5C40\u5728\u4E2D\u592E\u5CF6\u4E0A\uFF0C\u88AB\u4E00\u6392\u6A39\u6728\u9694\u958B\uFF0C\u5CF6\u4E0A\u6709\u5DE8\u5927\u91D1\u77F3\u7926\uFF1B\u5CF6\u5916\u8B77\u57CE\u6CB3\u9B5A\u591A\u3002\u5730\u5716\u5916\u7DE3\u7121\u98DF\u7269\u4F46\u6709\u8A31\u591A\u91D1\u3001\u77F3\u3001\u6728\u5C0F\u5340\u584A\u8207\u907A\u8DE1\uFF0C\u5FC5\u9808\u76E1\u5FEB\u5F80\u5916\u767C\u5C55\uFF1B\u8D77\u59CB\u5CF6\u53EA\u6709\u4E00\u689D\u6728\u7DDA\uFF0C\u5B9C\u5FEB\u901F\u5C01\u5EFA\u5854\u653B\u5C01\u6728\u3002" },
+  { site: "Kilimanjaro", zh: "\u5409\u529B\u99AC\u672D\u7F85\u5C71", en: "Kilimanjaro", expansion: "ak", page: true, layout: null, planned: null, summary: "\u6C92\u6709\u7279\u8272\u7684\u5927\u8349\u539F\uFF0C\u6A39\u6728\u5C11\uFF08\u76F8\u601D\u6A39\uFF09\uFF0C\u6709\u4E9B\u4E0D\u542B\u9B5A\u7684\u6C60\u5858\uFF0C\u91D1\u77F3\u5927\u91CF\u3002\u53EF\u7375\u6591\u99AC\uFF0F\u9D15\u9CE5\u8207\u5927\u8C61\uFF0C\u53E6\u6709\u5C71\u7F8A\u53EF\u653E\u7267\uFF1B\u8207\u963F\u62C9\u4F2F\u76F8\u4F3C\uFF0C\u5730\u5F62\u958B\u95CA\u6613\u653B\u96E3\u5B88\u3002" },
+  { site: "Mountain_Pass", zh: "\u96EA\u5C71\u5730", en: "Mountain Pass", expansion: "ak", page: true, layout: null, planned: null, summary: "\u975E\u6D32\u738B\u570B\u552F\u4E00\u4E0D\u5728\u975E\u6D32\u7684\u5730\u5716\uFF0C\u6709\u7A4D\u96EA\u5C71\u982D\u3001\u7D50\u51B0\u6C60\u5858\u8207\u68EE\u6797\uFF0C\u4F46\u5927\u591A\u662F\u5EE3\u95CA\u5E73\u5730\u3002\u958B\u5C40\u985E\u4F3C\u6E38\u7267\uFF1A\u6C92\u6709\u57CE\u93AE\u4E2D\u5FC3\u3001\u6751\u6C11\u6563\u843D\u5404\u5730\u3001\u6C92\u6709\u65A5\u5019\u3002\u6C92\u6709\u6F3F\u679C\u6216\u91CE\u8C6C\uFF0C\u4F46\u6709\u76F8\u7576\u6578\u91CF\u7684\u7DBF\u7F8A\u548C\u9E7F\uFF1B\u6A39\u591A\u3001\u91D1\u77F3\u5C11\u3002" },
+  { site: "Nile_Delta", zh: "\u5C3C\u7F85\u6CB3\u4E09\u89D2\u6D32", en: "Nile Delta", expansion: "ak", page: true, layout: null, planned: null, summary: "\u73A9\u5BB6\u958B\u5C40\u5728\u5927\u6CB3\u53E3\u6700\u5317\u7AEF\u7684\u5C0F\u5CF6\uFF08\u4E09\u89D2\u6D32\uFF09\u4E0A\uFF0C\u5CF6\u4E0A\u53EA\u67094\u96BB\u5C71\u7F8A\u548C\u4E00\u4E9B\u6A39\u3001\u5E7E\u4E4E\u6C92\u6709\u91D1\u77F3\uFF1B\u9808\u76E1\u5FEB\u7528\u904B\u8F38\u8239\u628A\u6751\u6C11\u9001\u5230\u8CC7\u6E90\u8C50\u5BCC\u7684\u5916\u570D\u9678\u5730\u3002\u5C3C\u7F85\u6CB3\u9B5A\u591A\uFF0C\u6D77\u8ECD\u5F37\u52E2\u6587\u660E\u5403\u9999\uFF1B\u91CE\u751F\u52D5\u7269\u6709\u5927\u8C61\u8207\u9D15\u9CE5\u3002" },
+  { site: "Serengeti", zh: "\u585E\u502B\u84CB\u63D0\u5E73\u539F", en: "Serengeti", expansion: "ak", page: true, layout: null, planned: null, summary: "\u963F\u62C9\u4F2F\u7684\u975E\u6D32\u7248\u672C\uFF0C\u8CC7\u6E90\u6BD4\u591A\u6578\u5730\u5716\u5C11\uFF0C\u6613\u653B\u96E3\u5B88\uFF1B\u71DF\u5730\u5916\u7684\u91D1\u77F3\u662F\u5FEB\u653B\u9996\u8981\u76EE\u6A19\u3002\u91CE\u751F\u52D5\u7269\u6709\u6591\u99AC\u3001\u9D15\u9CE5\u3001\u5927\u8C61\u8207\u7345\u5B50\uFF0C\u53E6\u6709\u5C71\u7F8A\u653E\u7267\uFF1B\u5730\u5716\u4E0A\u6709\u5DE8\u5927\u5CA9\u67F1\u3002" },
+  { site: "Socotra", zh: "\u7D22\u79D1\u7279\u62C9\u5CF6", en: "Socotra", expansion: "ak", page: true, layout: null, planned: null, summary: "\u975E\u5E38\u5C0F\u7684\u5CF6\u5DBC\uFF0C\u5B8C\u5168\u88AB\u61F8\u5D16\u74B0\u7E5E\uFF0C\u5916\u70BA\u7121\u8CC7\u6E90\u7684\u5370\u5EA6\u6D0B\u3002\u73A9\u5BB6\u958B\u5C40\u67093\u9593\u623F\u5C4B\u300113\u500B\u6751\u6C11\u548C\u4E00\u500B\u65A5\u5019\uFF1B\u73A9\u5BB6\u5F7C\u6B64\u975E\u5E38\u63A5\u8FD1\u3001\u6A39\u7DDA\u7A00\u758F\u3001\u8CC7\u6E90\u7A00\u5C11\uFF0C\u6230\u9B25\u5F88\u65E9\u958B\u59CB\u4E26\u6C7A\u5B9A\u52DD\u8CA0\u3002\u6709\u5927\u8C61\u3001\u6591\u99AC\u3001\u9D15\u9CE5\u8207\u9F8D\u8840\u6A39\u3002" },
+  { site: "Bog_Islands", zh: "\u7981\u9589\u5CF6", en: "Bog Islands", expansion: "aor", page: true, layout: null, planned: null, summary: "\uFF08\u9801\u9762\u6A19\u984C\u4F5C\u300C\u6CBC\u6FA4\u300D\uFF09\u73A9\u5BB6\u5F9E\u88AB\u5EE3\u95CA\u53EF\u901A\u884C\u3001\u53EF\u5EFA\u9020\u6DFA\u7058\u570D\u7E5E\u7684\u300C\u5CF6\u5DBC\u300D\u958B\u59CB\uFF0C\u4E2D\u592E\u662F\u9678\u8ECD\u4E0D\u80FD\u901A\u904E\u3001\u9B5A\u591A\u7684\u6C34\u9AD4\u3002\u88AB\u8996\u70BA\u6C34\u4E0A\u7684\u963F\u62C9\u4F2F\uFF0C\u6D77\u9678\u8ECD\u53EF\u4E92\u76F8\u652F\u63F4\uFF0C\u7206\u7834\u8239\u6975\u4F73\u3002\u9678\u5730\u88AB\u96E8\u6797\u8986\u84CB\uFF0C\u6DFA\u7058\u4E0A\u6709\u66F4\u591A\u91D1\u77F3\uFF1B\u6709\u7280\u725B\u3001\u6C34\u725B\u8207\u9B5A\u6C60\u3002" },
+  { site: "Mangrove_Jungle", zh: "\u7D05\u6A39\u6797", en: "Mangrove Jungle", expansion: "aor", page: true, layout: null, planned: null, summary: "\u57FA\u5730\u5468\u570D\u9664\u4E86\u9E7F\u3001\u6C34\u725B\u3001\u7280\u725B\u5916\u90FD\u88AB\u7D05\u6A39\u6797\u5305\u570D\uFF0C\u6CBF\u6DFA\u7058\u53EF\u62B5\u9054\u6575\u71DF\u3002\u7926\u7522\u975E\u5E38\u591A\u4F46\u90FD\u88AB\u7D05\u6A39\u6797\u570D\u4F4F\uFF0C\u9700\u66F4\u591A\u4F10\u6728\u5DE5\u6216\u4E2D\u578B\u6295\u77F3\u8ECA\u958B\u8DEF\u3002" },
+  { site: "Pacific_Islands", zh: "\u592A\u5E73\u6D0B\u7FA4\u5CF6", en: "Pacific Islands", expansion: "aor", page: true, layout: null, planned: null, summary: "\u5169\u68F2\u5730\u5F62\uFF0C\u73A9\u5BB6\u5F9E\u81EA\u5DF1\u7684\u6C99\u6D32\u958B\u59CB\uFF08\u5718\u6230\u8207\u968A\u53CB\u5171\u4EAB\uFF09\uFF0C\u56DB\u5468\u6709\u6DFA\u7058\u4F9B\u9678\u6D77\u55AE\u4F4D\u901A\u884C\uFF0C\u7206\u7834\u8239\u597D\u7528\u3002\u53EF\u8AAA\u662F\u5DE8\u5927\u7248\u6CBC\u6FA4\uFF0C\u4F46\u9678\u5730\u66F4\u591A\u3001\u6DFA\u7058\u66F4\u5C11\uFF1B\u8CC7\u6E90\u8F03\u5C11\uFF0C\u6709\u6C34\u725B\u3001\u9E7F\u3001\u7280\u725B\u8207\u8001\u864E\uFF0C\u6728\u982D\u7A00\u5C11\u4E14\u6613\u53D7\u6D77\u4E0A\u9A37\u64FE\u3002" },
+  { site: "Sandbank", zh: "\u6C99\u6D32", en: "Sandbank", expansion: "aor", page: true, layout: null, planned: null, summary: "\u5169\u68F2\u5730\u5F62\uFF0C\u73A9\u5BB6\u5F9E\u81EA\u5DF1\u7684\u6C99\u6D32\u958B\u59CB\uFF0C\u6C99\u6D32\u5F62\u72C0\u4E0D\u56FA\u5B9A\u4E14\u6709\u72F9\u9577\u5CFD\u7063\uFF1B\u6C99\u6D32\u88AB\u5BEC\u95CA\u6CB3\u9053\u8207\u7D05\u6A39\u6797\u9694\u958B\uFF0C\u9700\u904B\u8F38\u8239\u624D\u80FD\u62B5\u9054\u6575\u5CF6\uFF0C\u908A\u7DE3\u6DFA\u7058\u9678\u8ECD\u53EF\u904E\u3002\u6709\u6C34\u725B\u3001\u9E7F\u3001\u7280\u725B\u8207\u8001\u864E\uFF1B\u6D77\u4E0A\u8CC7\u6E90\u8F03\u5C11\uFF0C\u4F46\u91D1\u77F3\u96E2\u57CE\u93AE\u5F88\u8FD1\uFF0C\u4E2D\u592E\u7D05\u6A39\u6797\u5340\u6709\u73CD\u8CB4\u7926\u7522\u3002" },
+  { site: "Water_Nomad", zh: "\u6C34\u4E0A\u6E38\u7267", en: "Water Nomad", expansion: "aor", page: true, layout: null, planned: null, summary: "\u5169\u68F2\u5730\u5716\uFF0C\u5C11\u91CF\u9678\u5730\u3001\u8A31\u591A\u53EF\u5EFA\u9020\u6DFA\u7058\u8207\u6DF1\u6C34\uFF1B\u7D05\u6A39\u6797\u3001\u6C34\u725B\u3001\u6D3B\u6D77\u9F9C\u8207\u9B5A\u591A\u3002\u958B\u5C40\u5982\u6E38\u7267\u4F46\u8CC7\u6E90\u66F4\u591A\uFF1A\u6C92\u6709\u57CE\u93AE\u4E2D\u5FC3\u8207\u65A5\u5019\uFF0C\u67097\u4F4D\u6751\u6C11\u82076\u8258\u6F01\u8239\u3002\u9808\u96C6\u7D50\u6563\u843D\u6751\u6C11\u8207\u6F01\u8239\u4E26\u627E\u591A\u91CD\u8CC7\u6E90\u9EDE\u84CB\u57CE\u93AE\u4E2D\u5FC3\uFF1B\u7206\u7834\u8239\u5947\u6548\uFF0C\u99AC\u4F86\u3001\u67CF\u67CF\u3001\u65E5\u672C\u597D\u7528\u3002" },
+  { site: "Alpine_Lakes", zh: "\u9AD8\u5C71\u6E56\u6CCA", en: "Alpine Lakes", expansion: "de", page: false, layout: null, planned: null, summary: "" },
+  { site: "Bogland", zh: "\u6CBC\u6FA4", en: "Bogland", expansion: "de", page: false, layout: null, planned: null, summary: "" },
+  { site: "Four_Lakes", zh: "\u56DB\u5EA7\u6E56\u6CCA", en: "Four Lakes", expansion: "de", page: true, layout: null, planned: null, summary: "\u958B\u653E\u5730\u5716\uFF0C\u4F48\u6EFF\u6728\u982D\u8207\u4EE5\u5C71\u7F8A\u70BA\u4E3B\u7684\u52D5\u7269\uFF1B\u56DB\u89D2\u5404\u6709\u4E00\u500B\u9B5A\u591A\u7684\u6E56\u6CCA\u3002\u958B\u653E\u5730\u5716\u6230\u8853\u7686\u9069\u7528\uFF0C\u71B1\u9580\u6230\u8853\u662F\u5077\u8DD1\u5230\u6575\u65B9\u6E56\u6CCA\u5EFA\u78BC\u982D\u51FA\u706B\u8268\u825F\u9A37\u64FE\u6F01\u8239\u3002\u958B\u5C40\u8CC7\u6E90\u5927\u591A\u70BA8\u7F8A2\u8C6C4\u9E7F1\u679C\u30012\u584A\u9EC3\u91D1\u82072\u584A\u77F3\u982D\u3002" },
+  { site: "Golden_Swamp", zh: "\u91D1\u6CBC\u6FA4", en: "Golden Swamp", expansion: "de", page: false, layout: null, planned: null, summary: "" },
+  { site: "Land_Nomad", zh: "\u9678\u5730\u6E38\u7267", en: "Land Nomad", expansion: "de", page: false, layout: null, planned: null, summary: "" },
+  { site: "Mountain_Ridge", zh: "\u5C71\u810A", en: "Mountain Ridge", expansion: "de", page: false, layout: null, planned: null, summary: "" },
+  { site: "Ravines", zh: "\u5C71\u6F97", en: "Ravines", expansion: "de", page: false, layout: null, planned: null, summary: "" },
+  { site: "Wolf_Hill", zh: "\u72FC\u5C71", en: "Wolf Hill", expansion: "de", page: false, layout: null, planned: null, summary: "" }
+];
 
 // packages/content/civs.ts
 var mulKinds = ["bonusScale", "garrisonHeal", "setup", "hp", "cooldown", "speed", "cost", "time", "buildingHp", "arrowCooldown", "healRange", "healRate"];
@@ -1225,7 +1286,7 @@ function createArchGeometry(T, width, height, depth) {
 var militaryBuildings = ["barracks", "archery-range", "stable"];
 function militaryBuildingParts(kind, v) {
   if (!militaryBuildings.includes(kind) || ![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u8ECD\u4E8B\u5EFA\u7BC9\u5916\u89C0");
-  const p = [], team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", stone6 = "#b5b29e", top = 1.44 + (v.ageVariant - 1) * 0.16;
+  const p = [], team3 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", stone6 = "#b5b29e", top = 1.44 + (v.ageVariant - 1) * 0.16;
   const add = (id, phase, x, z, y, w2, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs, ...shape ? { shape } : {} });
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
   if (kind === "archery-range") {
@@ -1244,7 +1305,7 @@ function militaryBuildingParts(kind, v) {
   } else {
     for (const x of [0.1, 2.44]) for (const z of [0.1, 1.65]) add(`post-${x}-${z}`, 1, x, z, 0.16, 0.16, 0.16, top - 0.16, v.ageVariant >= 3 ? stone6 : wood6);
     add("back-wall", 1, 0.1, 0.1, 0.16, 2.5, 0.15, top - 0.16, kind === "stable" ? wood6 : stone6);
-    for (let level = 0; level < 3; level++) add(`roof-${level}`, 2, -0.05 + level * 0.28, -0.05, top + level * 0.16, 2.9 - level * 0.56, 1.98, 0.16, v.ageVariant === 1 ? "#b8a074" : team2, true);
+    for (let level = 0; level < 3; level++) add(`roof-${level}`, 2, -0.05 + level * 0.28, -0.05, top + level * 0.16, 2.9 - level * 0.56, 1.98, 0.16, v.ageVariant === 1 ? "#b8a074" : team3, true);
     if (kind === "barracks") {
       add("drill-floor", 1, 0.3, 1.85, 0.16, 2.1, 0.85, 0.08, "#a59a76");
       add("weapon-rack", 3, 0.3, 0.5, 0.16, 0.15, 1.1, 0.75, wood6);
@@ -1254,7 +1315,7 @@ function militaryBuildingParts(kind, v) {
       }
       for (const x of [0.5, 1.05, 1.6]) {
         add(`shield-support-${x}`, 3, x, 1.9, 0.24, 0.08, 0.15, 0.62, wood6);
-        add(`shield-${x}`, 3, x - 0.08, 2.02, 0.43, 0.36, 0.08, 0.44, team2);
+        add(`shield-${x}`, 3, x - 0.08, 2.02, 0.43, 0.36, 0.08, 0.44, team3);
         add(`shield-boss-${x}`, 3, x + 0.04, 2.1, 0.57, 0.1, 0.04, 0.12, "#bca36f");
       }
     } else {
@@ -1274,11 +1335,11 @@ function militaryBuildingParts(kind, v) {
     if (kind === "archery-range") {
       for (const x of [0.1, 2.44]) add(`canopy-post-${x}`, 1, x, 0.12, 0.16, 0.16, 0.18, top - 0.16, wood6);
       add("canopy-beam", 1, 0.1, 0.12, top, 2.5, 0.18, 0.16, wood6);
-      add("canopy-roof", 2, -0.05, -0.02, top + 0.16, 2.8, 0.7, 0.16, team2, true);
+      add("canopy-roof", 2, -0.05, -0.02, top + 0.16, 2.8, 0.7, 0.16, team3, true);
     } else {
       for (const x of [0.1, 2.44]) add(`porch-foot-${x}`, 1, x - 0.07, 1.58, 0.16, 0.3, 0.3, 0.32, stone6);
       add("porch-beam", 1, 0.1, 1.65, top - 0.16, 2.5, 0.16, 0.16, wood6);
-      add("ridge-cap", 2, 0.79, -0.05, top + 0.48, 1.22, 1.98, 0.16, team2, true);
+      add("ridge-cap", 2, 0.79, -0.05, top + 0.48, 1.22, 1.98, 0.16, team3, true);
     }
   }
   if (v.ageVariant >= 3) {
@@ -1296,18 +1357,18 @@ function militaryBuildingParts(kind, v) {
       for (const x of [0.1, 2.2]) {
         add(`turret-base-${x}`, 2, x, 0.05, top + 0.32, 0.4, 0.4, 0.16, stone6);
         for (const dx of [0, 0.28]) add(`turret-post-${x}-${dx}`, 3, x + dx, 0.05, top + 0.48, 0.12, 0.4, 0.48, stone6);
-        add(`turret-cap-${x}`, 3, x - 0.05, 0, top + 0.96, 0.5, 0.5, 0.16, team2, true);
+        add(`turret-cap-${x}`, 3, x - 0.05, 0, top + 0.96, 0.5, 0.5, 0.16, team3, true);
       }
     } else {
       const base = top + 0.64;
       add("vent-base", 2, 0.91, 0.5, base, 0.96, 0.8, 0.16, stone6);
       for (const x of [0.91, 1.71]) for (const z of [0.5, 1.14]) add(`vent-post-${x}-${z}`, 3, x, z, base + 0.16, 0.16, 0.16, 0.48, stone6);
-      add("vent-cap", 3, 0.83, 0.42, base + 0.64, 1.12, 0.96, 0.16, team2, true);
-      add("vent-crown", 4, 1.07, 0.58, base + 0.8, 0.64, 0.64, 0.16, team2, true);
+      add("vent-cap", 3, 0.83, 0.42, base + 0.64, 1.12, 0.96, 0.16, team3, true);
+      add("vent-crown", 4, 1.07, 0.58, base + 0.8, 0.64, 0.64, 0.16, team3, true);
     }
   }
   add("flag-pole", 4, 2.67, 2.63, 0.16, 0.06, 0.06, 1.6, wood6);
-  add("flag", 4, 2.24, 2.63, 1.42, 0.44, 0.05, 0.28, team2);
+  add("flag", 4, 2.24, 2.63, 1.42, 0.44, 0.05, 0.28, team3);
   if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: wood6, studs: false }))];
   return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "flag" || a.id.startsWith("target-center") || a.id === "vent-crown" || a.id.startsWith("backstop-crenel")));
 }
@@ -1315,7 +1376,7 @@ function militaryBuildingParts(kind, v) {
 // apps/web/monastery-building.ts
 function monasteryParts(v) {
   if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u4FEE\u9053\u9662\u5916\u89C0");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", lime3 = "#d8cfb6", stone6 = "#b9b39d", roof = age === 1 ? "#b8a074" : team2;
+  const p = [], age = v.ageVariant, team3 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", lime3 = "#d8cfb6", stone6 = "#b9b39d", roof = age === 1 ? "#b8a074" : team3;
   const add = (id, phase, x, z, y, w2, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs, ...shape ? { shape } : {} });
   const wallTop = 1.12 + (age >= 3 ? 0.32 : 0), towerTop = age <= 2 ? 2.24 : 2.56 + (age === 4 ? 0.32 : 0);
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
@@ -1346,7 +1407,7 @@ function monasteryParts(v) {
     add("rose-window", 3, 0.84, 2.5, wallTop - 0.46, 0.32, 0.03, 0.32, "#c9a55a");
   }
   add("flag-pole", 4, 0.02, 2.63, 0.16, 0.06, 0.06, 1.6, wood6);
-  add("flag", 4, 0.08, 2.63, 1.42, 0.44, 0.05, 0.28, team2);
+  add("flag", 4, 0.08, 2.63, 1.42, 0.44, 0.05, 0.28, team3);
   if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: lime3, studs: false }))];
   return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "flag" || a.id === "bell" || a.id === "bell-rope" || a.id === "finial"));
 }
@@ -1354,7 +1415,7 @@ function monasteryParts(v) {
 // apps/web/blacksmith-building.ts
 function blacksmithParts(v) {
   if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u9435\u5320\u92EA\u5916\u89C0");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", stone6 = "#a9a693", dark6 = "#5d5a52", roof = age === 1 ? "#b8a074" : team2;
+  const p = [], age = v.ageVariant, team3 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", stone6 = "#a9a693", dark6 = "#5d5a52", roof = age === 1 ? "#b8a074" : team3;
   const add = (id, phase, x, z, y, w2, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs, ...shape ? { shape } : {} });
   const top = 1.28 + (age >= 3 ? 0.16 : 0);
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
@@ -1382,7 +1443,7 @@ function blacksmithParts(v) {
     add("ridge-crest", 4, 0.9, 0.4, top + 0.32, 1, 1.2, 0.16, roof, true);
   }
   add("flag-pole", 4, 2.67, 2.63, 0.16, 0.06, 0.06, 1.6, wood6);
-  add("flag", 4, 2.24, 2.63, 1.42, 0.44, 0.05, 0.28, team2);
+  add("flag", 4, 2.24, 2.63, 1.42, 0.44, 0.05, 0.28, team3);
   if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: stone6, studs: false }))];
   return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "flag" || a.id === "hearth-fire" || a.id === "chimney-cap"));
 }
@@ -1401,7 +1462,7 @@ var towerLift = (grade) => grade === "keep" ? 0.64 : grade === "guard-tower" ? 0
 function towerParts(v, grade = null) {
   check2(v, "\u7BAD\u5854");
   if (grade !== null && !towerGrades.includes(grade)) throw Error("\u7121\u6548\u7BAD\u5854\u5347\u7D1A\u5916\u89C0");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", stone6 = "#b5b29e", roof = age === 1 ? "#b8a074" : team2;
+  const p = [], age = v.ageVariant, team3 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", stone6 = "#b5b29e", roof = age === 1 ? "#b8a074" : team3;
   const add = (id, phase, x, z, y, w2, d, h2, color, studs = false) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs });
   const shaft2 = 1.6 + (age - 1) * 0.24 + towerLift(grade), top = grade ? stone6 : wood6;
   add("foundation", 0, -0.05, -0.05, 0, 1.1, 1.1, 0.12, "#b3aa8c");
@@ -1421,12 +1482,12 @@ function towerParts(v, grade = null) {
   }
   const flagBase = grade === "keep" ? 1.1 + shaft2 : 0.9 + shaft2;
   add("flag", 4, 0.46, 0.46, flagBase, 0.06, 0.06, 0.5, wood6);
-  add("pennant", 4, 0.52, 0.46, flagBase + 0.32, 0.3, 0.04, 0.16, team2);
+  add("pennant", 4, 0.52, 0.46, flagBase + 0.32, 0.3, 0.04, 0.16, team3);
   return finish(p, v, stone6, (id) => !(id === "pennant" || id === "roof-top" || id === "flag" || id === "roof-spire"));
 }
 function siegeWorkshopParts(v) {
   check2(v, "\u653B\u57CE\u5668\u5DE5\u574A");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", dark6 = "#6e5438", roof = age === 1 ? "#b8a074" : team2;
+  const p = [], age = v.ageVariant, team3 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", dark6 = "#6e5438", roof = age === 1 ? "#b8a074" : team3;
   const add = (id, phase, x, z, y, w2, d, h2, color, studs = false) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs });
   const top = 1.44;
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, "#b3aa8c");
@@ -1442,19 +1503,19 @@ function siegeWorkshopParts(v) {
   add("wheel-hub", 3, 2.08, 2.2, 0.36, 0.18, 0.2, 0.2, "#c9a55a");
   if (age >= 3) add("crane-arm", 4, 2.2, 0.3, top - 0.1, 0.14, 1.2, 0.14, wood6);
   add("flag-pole", 4, 2.67, 2.63, 0.16, 0.06, 0.06, 1.6, wood6);
-  add("flag", 4, 2.24, 2.63, 1.42, 0.44, 0.05, 0.28, team2);
+  add("flag", 4, 2.24, 2.63, 1.42, 0.44, 0.05, 0.28, team3);
   return finish(p, v, wood6, (id) => !(id === "flag" || id === "crane-arm"));
 }
 
 // apps/web/university-building.ts
 function universityParts(v) {
   if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u5B78\u9662\u5916\u89C0");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87";
+  const p = [], age = v.ageVariant, team3 = v.red ? "#b85c47" : "#456e87";
   const wood6 = "#94734c", oak3 = "#6e5438", plaster = "#e3d7b8", sand4 = "#d6b77e", stone6 = "#c4bba2", straw3 = "#b8a074", dark6 = "#4a4740", brass2 = "#b8964a", gilt5 = "#c9a55a", paper = "#efe6cc", leather2 = "#7a4a32";
   const add = (id, phase, x, z, y, w2, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs, ...shape ? { shape } : {} });
   const f = obstacleFootprints.university;
   add("foundation", 0, f.x / 100, f.y / 100, 0, f.width / 100, f.depth / 100, 0.16, "#b3aa8c");
-  const wall = age === 1 ? plaster : sand4, roof = age === 1 ? straw3 : team2, trim2 = age === 1 ? wood6 : stone6;
+  const wall = age === 1 ? plaster : sand4, roof = age === 1 ? straw3 : team3, trim2 = age === 1 ? wood6 : stone6;
   const wallTop = 1.28 + (age >= 3 ? 0.32 : 0), beamY = wallTop - 0.36, towerTop = [1.9, 2.2, 2.5, 2.8][age - 1];
   add("hall", 1, 0.05, 0.1, 0.16, 2, 1.4, wallTop - 0.16, wall);
   if (age === 1) {
@@ -1503,7 +1564,7 @@ function universityParts(v) {
     add("clock-hand", 3, 2.44, 0.73, towerTop - 0.56, 0.03, 0.02, 0.14, dark6);
     const r = wallTop + tiers * 0.16;
     add("dome-drum", 3, 0.75, 0.5, r, 0.6, 0.6, 0.2, stone6);
-    for (const [i, s] of [0.5, 0.36, 0.22].entries()) add(`dome-${i}`, 3, 1.05 - s / 2, 0.8 - s / 2, r + 0.2 + [0, 0.14, 0.26][i], s, s, [0.14, 0.12, 0.1][i], team2);
+    for (const [i, s] of [0.5, 0.36, 0.22].entries()) add(`dome-${i}`, 3, 1.05 - s / 2, 0.8 - s / 2, r + 0.2 + [0, 0.14, 0.26][i], s, s, [0.14, 0.12, 0.1][i], team3);
     add("dome-finial", 4, 1.01, 0.76, r + 0.56, 0.08, 0.08, 0.2, gilt5);
   }
   add("crane-sill", 1, 2.12, 1.62, 0.16, 0.66, 1.2, 0.08, oak3);
@@ -1518,7 +1579,7 @@ function universityParts(v) {
     add("crane-load", 4, 2.66, 2.62, 1.14, 0.19, 0.22, 0.22, "#b5b29e");
   }
   add("flag-pole", 4, -0.12, 2.72, 0.16, 0.06, 0.06, 1.6, wood6);
-  add("flag", 4, -0.06, 2.72, 1.48, 0.44, 0.05, 0.28, team2);
+  add("flag", 4, -0.06, 2.72, 1.48, 0.44, 0.05, 0.28, team3);
   if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.1 + i % 4 * 0.65, z: 0.15 + Math.floor(i / 4) * 0.85, y: 0.16, w: 0.36, d: 0.3, h: 0.12, color: i % 3 ? wall : stone6, studs: false }))];
   const lost = /^(flag|telescope|telescope-lens|armillary-.*|crane-rope|crane-load|column-1|dome-finial|clock-hand)$/;
   return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !lost.test(a.id));
@@ -1527,7 +1588,7 @@ function universityParts(v) {
 // apps/web/castle-building.ts
 function castleParts(v) {
   if (![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u57CE\u5821\u5916\u89C0");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", straw3 = "#b8a074", stone6 = "#b5b29e", dark6 = "#4a4740", oak3 = "#5a4632";
+  const p = [], age = v.ageVariant, team3 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", straw3 = "#b8a074", stone6 = "#b5b29e", dark6 = "#4a4740", oak3 = "#5a4632";
   const add = (id, phase, x, z, y, w2, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs, ...shape ? { shape } : {} });
   const f = obstacleFootprints.castle;
   add("foundation", 0, f.x / 100, f.y / 100, 0, f.width / 100, f.depth / 100, 0.16, "#b3aa8c");
@@ -1545,9 +1606,9 @@ function castleParts(v) {
     if (age >= 3) add(`slit-${id}`, 3, x + 0.6, z < 0 ? z - 0.03 : z + 0.9, towerTop - 1, 0.1, 0.03, 0.32, dark6);
     if (age === 4) {
       add(`drum-${id}`, 3, x + 0.2, z + 0.2, towerTop, 0.5, 0.5, 0.32, stone6);
-      add(`cone-0-${id}`, 3, x + 0.1, z + 0.1, towerTop + 0.32, 0.7, 0.7, 0.16, team2, true);
-      add(`cone-1-${id}`, 3, x + 0.22, z + 0.22, towerTop + 0.48, 0.46, 0.46, 0.16, team2);
-      add(`cone-2-${id}`, 4, x + 0.34, z + 0.34, towerTop + 0.64, 0.22, 0.22, 0.2, team2);
+      add(`cone-0-${id}`, 3, x + 0.1, z + 0.1, towerTop + 0.32, 0.7, 0.7, 0.16, team3, true);
+      add(`cone-1-${id}`, 3, x + 0.22, z + 0.22, towerTop + 0.48, 0.46, 0.46, 0.16, team3);
+      add(`cone-2-${id}`, 4, x + 0.34, z + 0.34, towerTop + 0.64, 0.22, 0.22, 0.2, team3);
     }
   }
   add("wall-back", 1, 0.8, 0.17, 0.16, 2.1, 0.36, wallH, stone6);
@@ -1568,7 +1629,7 @@ function castleParts(v) {
   if (age >= 2) for (const x of [1.4, 1.75, 2.1]) add(`gate-merlon-${x}`, 3, x, 3.4, wallTop + 0.32, 0.2, 0.2, 0.24, stone6);
   if (age === 4) for (const x of [1.4, 2.04]) {
     add(`gate-turret-${x}`, 3, x, 3.1, wallTop + 0.32, 0.26, 0.26, 0.4, stone6);
-    add(`gate-turret-cap-${x}`, 4, x - 0.02, 3.08, wallTop + 0.72, 0.3, 0.3, 0.12, team2);
+    add(`gate-turret-cap-${x}`, 4, x - 0.02, 3.08, wallTop + 0.72, 0.3, 0.3, 0.12, team3);
   }
   add("keep", 1, 1.25, 1.1, 0.16, 1.2, 1.2, keepTop - 0.16, stone6);
   let crown = keepTop;
@@ -1583,20 +1644,20 @@ function castleParts(v) {
   }
   if (age >= 3) {
     add("keep-turret", 2, 1.55, 1.4, crown, 0.6, 0.6, 0.64, stone6);
-    add("keep-turret-cap", 3, 1.5, 1.35, crown + 0.64, 0.7, 0.7, 0.16, team2, true);
+    add("keep-turret-cap", 3, 1.5, 1.35, crown + 0.64, 0.7, 0.7, 0.16, team3, true);
     crown += 0.8;
   }
   if (age === 4) {
-    add("keep-spire-0", 3, 1.65, 1.5, crown, 0.4, 0.4, 0.16, team2);
-    add("keep-spire-1", 4, 1.75, 1.6, crown + 0.16, 0.2, 0.2, 0.2, team2);
+    add("keep-spire-0", 3, 1.65, 1.5, crown, 0.4, 0.4, 0.16, team3);
+    add("keep-spire-1", 4, 1.75, 1.6, crown + 0.16, 0.2, 0.2, 0.2, team3);
     crown += 0.36;
   }
   for (const x of [1.4, 2]) {
-    add(`banner-keep-${x}`, 3, x, 2.3, keepTop - 1, 0.3, 0.04, 0.8, team2);
+    add(`banner-keep-${x}`, 3, x, 2.3, keepTop - 1, 0.3, 0.04, 0.8, team3);
   }
-  for (const x of [0, 3]) add(`banner-tower-${x}`, 3, x, 3.8, towerTop - 1.1, 0.3, 0.04, 0.7, team2);
+  for (const x of [0, 3]) add(`banner-tower-${x}`, 3, x, 3.8, towerTop - 1.1, 0.3, 0.04, 0.7, team3);
   add("flag-pole", 4, 1.82, 1.67, crown, 0.06, 0.06, 0.9, wood6);
-  add("flag", 4, 1.88, 1.67, crown + 0.5, 0.5, 0.05, 0.3, team2);
+  add("flag", 4, 1.88, 1.67, crown + 0.5, 0.5, 0.05, 0.3, team3);
   if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.9, z: 0.2 + Math.floor(i / 4) * 1.2, y: 0.16, w: 0.4, d: 0.34, h: 0.12, color: stone6, studs: false }))];
   return p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20))).filter((a) => v.health >= 50 || !(a.id === "flag" || a.id.startsWith("banner-") || /^(merlon|stake)-.*-[13]$/.test(a.id) || a.id.startsWith("cone-2-") || a.id.startsWith("hoard-cap-")));
 }
@@ -1653,13 +1714,13 @@ var noSockets = (T) => ({ leftHand: new T.Group(), rightHand: new T.Group() });
 function createRamRig(T, player, box2, material) {
   const root = new T.Group();
   root.name = "siege-ram";
-  const team2 = teamOf(player), { part, group } = kit(T, box2, material);
+  const team3 = teamOf(player), { part, group } = kit(T, box2, material);
   const body = group(root, "siege-body");
   part(body, 0, 0.22, 0, 0.76, 0.1, 1.3, dark);
   for (const x of [-0.36, 0.36]) for (const z of [-0.45, 0.45]) part(body, x, 0, z, 0.1, 0.36, 0.36, "#5c4a36");
   for (const x of [-0.3, 0.3]) part(body, x, 0.32, 0, 0.1, 0.55, 1.2, wood);
-  part(body, 0, 0.86, 0, 0.86, 0.1, 1.36, team2);
-  part(body, 0, 0.96, 0, 0.5, 0.1, 1.36, team2);
+  part(body, 0, 0.86, 0, 0.86, 0.1, 1.36, team3);
+  part(body, 0, 0.96, 0, 0.5, 0.1, 1.36, team3);
   const log = group(body, "ram-log");
   part(log, 0, 0.4, 0.2, 0.24, 0.24, 1.2, "#8a6a45");
   part(log, 0, 0.38, 0.82, 0.3, 0.28, 0.12, iron);
@@ -1696,12 +1757,12 @@ function createRamRig(T, player, box2, material) {
 function createMangonelRig(T, player, box2, material) {
   const root = new T.Group();
   root.name = "siege-mangonel";
-  const team2 = teamOf(player), { part, group, wheel, spokes } = kit(T, box2, material);
+  const team3 = teamOf(player), { part, group, wheel, spokes } = kit(T, box2, material);
   const body = group(root, "siege-body");
   for (const z of [-0.62, 0.3]) for (const x of [-0.36, 0.36]) wheel(body, x, z, 0.34);
   for (const x of [-0.26, 0.26]) {
     part(body, x, 0.22, -0.25, 0.1, 0.12, 1.6, wood);
-    part(body, x * 1.21, 0.25, -0.25, 0.02, 0.06, 1.4, team2);
+    part(body, x * 1.21, 0.25, -0.25, 0.02, 0.06, 1.4, team3);
   }
   for (const z of [0.45, -0.85]) part(body, 0, 0.22, z, 0.62, 0.1, 0.1, dark);
   for (const x of [-0.2, 0.2]) {
@@ -1710,7 +1771,7 @@ function createMangonelRig(T, player, box2, material) {
     brace.rotation.x = -0.75;
   }
   part(body, 0, 0.86, -0.12, 0.5, 0.12, 0.12, wood);
-  part(body, 0, 0.84, -0.2, 0.36, 0.16, 0.04, team2);
+  part(body, 0, 0.84, -0.2, 0.36, 0.16, 0.04, team3);
   part(body, 0, 0.34, -0.3, 0.44, 0.18, 0.18, rope);
   part(body, 0, 0.34, -0.95, 0.5, 0.1, 0.1, "#5c4a36");
   for (const x of [-0.29, 0.29]) part(body, x, 0.28, -0.95, 0.04, 0.22, 0.04, dark);
@@ -1762,12 +1823,12 @@ function createMangonelRig(T, player, box2, material) {
 function createScorpionRig(T, player, box2, material) {
   const root = new T.Group();
   root.name = "siege-scorpion";
-  const team2 = teamOf(player), { part, group, wheel, spokes } = kit(T, box2, material);
+  const team3 = teamOf(player), { part, group, wheel, spokes } = kit(T, box2, material);
   const body = group(root, "siege-body");
   for (const z of [-0.35, 0.35]) for (const x of [-0.32, 0.32]) wheel(body, x, z, 0.28);
   part(body, 0, 0.2, 0, 0.56, 0.08, 0.9, dark);
   part(body, 0, 0.28, 0.46, 0.62, 0.36, 0.05, wood);
-  part(body, 0, 0.33, 0.49, 0.44, 0.24, 0.02, team2);
+  part(body, 0, 0.33, 0.49, 0.44, 0.24, 0.02, team3);
   part(body, 0, 0.28, -0.05, 0.14, 0.36, 0.14, wood);
   part(body, 0, 0.28, -0.05, 0.26, 0.06, 0.26, dark);
   const bow = group(body, "scorpion-bow", 0, 0.64, -0.05);
@@ -1820,7 +1881,7 @@ var trebuchetStates = ["packed", "unpacked"];
 function createTrebuchetRig(T, player, box2, material) {
   const root = new T.Group();
   root.name = "siege-trebuchet";
-  const team2 = teamOf(player), { part, group, wheel, spokes } = kit(T, box2, material);
+  const team3 = teamOf(player), { part, group, wheel, spokes } = kit(T, box2, material);
   const body = group(root, "siege-body");
   const packed = group(body, "trebuchet-packed");
   for (const z of [-0.7, 0.7]) for (const x of [-0.4, 0.4]) wheel(packed, x, z, 0.4);
@@ -1830,8 +1891,8 @@ function createTrebuchetRig(T, player, box2, material) {
   part(packed, -0.16, 0.4, -0.1, 0.12, 0.12, 1.6, wood);
   part(packed, -0.16, 0.52, -0.1, 0.12, 0.12, 1.4, wood);
   part(packed, 0.05, 0.4, 0.55, 0.5, 0.4, 0.45, "#5c4a36");
-  part(packed, 0.05, 0.8, 0.55, 0.54, 0.06, 0.5, team2);
-  part(packed, 0.05, 0.52, 0.79, 0.4, 0.28, 0.02, team2);
+  part(packed, 0.05, 0.8, 0.55, 0.54, 0.06, 0.5, team3);
+  part(packed, 0.05, 0.52, 0.79, 0.4, 0.28, 0.02, team3);
   part(packed, 0.14, 0.54, -0.95, 0.18, 0.06, 0.18, "#c9b27a");
   part(packed, 0, 0.3, 1.12, 0.08, 0.08, 0.4, wood);
   const standing = group(body, "trebuchet-unpacked");
@@ -1846,12 +1907,12 @@ function createTrebuchetRig(T, player, box2, material) {
   for (const z of [-0.9, 0.9]) part(standing, 0, 0, z, 0.98, 0.12, 0.14, dark);
   part(standing, 0, 1.95, 0, 1, 0.1, 0.1, iron);
   part(standing, 0.42, 2.04, 0, 0.03, 0.42, 0.03, dark);
-  part(standing, 0.53, 2.28, 0, 0.2, 0.14, 0.02, team2);
+  part(standing, 0.53, 2.28, 0, 0.2, 0.14, 0.02, team3);
   const arm = group(standing, "trebuchet-arm", 0, 2, 0);
   part(arm, 0, -0.06, -0.7, 0.12, 0.12, 2.6, "#8a6a45");
   for (const z of [-1.6, -0.9, -0.2]) part(arm, 0, -0.07, z, 0.14, 0.14, 0.04, iron);
   part(arm, 0, -0.7, 0.5, 0.5, 0.55, 0.5, "#5c4a36");
-  part(arm, 0, -0.5, 0.5, 0.52, 0.14, 0.52, team2);
+  part(arm, 0, -0.5, 0.5, 0.52, 0.14, 0.52, team3);
   for (const x of [-0.15, 0.15]) part(arm, x, -0.15, 0.5, 0.04, 0.15, 0.04, metal);
   part(arm, 0, -0.45, -2, 0.03, 0.45, 0.03, "#c9b27a");
   part(arm, 0, -0.55, -2, 0.14, 0.1, 0.18, "#8b6746");
@@ -1884,14 +1945,14 @@ function createTrebuchetRig(T, player, box2, material) {
 function createBombardRig(T, player, box2, material) {
   const root = new T.Group();
   root.name = "siege-bombard-cannon";
-  const team2 = teamOf(player), { part, group, wheel, spokes } = kit(T, box2, material);
+  const team3 = teamOf(player), { part, group, wheel, spokes } = kit(T, box2, material);
   const body = group(root, "siege-body");
   for (const x of [-0.42, 0.42]) wheel(body, x, 0, 0.62);
   part(body, 0, 0.27, 0, 0.92, 0.08, 0.08, iron);
   part(body, 0, 0.3, -0.05, 0.5, 0.1, 1.1, dark);
   for (const x of [-0.27, 0.27]) {
     part(body, x, 0.4, -0.05, 0.06, 0.14, 1, wood);
-    part(body, x * 1.13, 0.42, -0.05, 0.02, 0.1, 0.8, team2);
+    part(body, x * 1.13, 0.42, -0.05, 0.02, 0.1, 0.8, team3);
   }
   part(body, 0, 0.1, -0.66, 0.16, 0.2, 0.12, dark);
   part(body, 0, 0, -1, 0.2, 0.1, 0.66, dark);
@@ -2027,7 +2088,7 @@ function animate(r, kind, t) {
 function createShipRig(T, kind, player, box2, material) {
   const root = new T.Group();
   root.name = `ship-${kind}`;
-  const team2 = teamOf2(player), k = kit2(T, box2, material), { part, group, hull: hull2, sail, oars } = k;
+  const team3 = teamOf2(player), k = kit2(T, box2, material), { part, group, hull: hull2, sail, oars } = k;
   const body = group(root, "ship-body");
   const looks = /* @__PURE__ */ new Map();
   const look = (name, build2) => {
@@ -2043,17 +2104,17 @@ function createShipRig(T, kind, player, box2, material) {
     r.bolt = { m, z };
   };
   const shields = (r, B, y, z0, n, step2) => {
-    for (const side of [-1, 1]) for (let i = 0; i < n; i++) part(r.group, side * (B / 2 + 0.015), y - 0.1, z0 + i * step2, 0.03, 0.14, 0.14, i % 2 ? cloth : team2);
+    for (const side of [-1, 1]) for (let i = 0; i < n; i++) part(r.group, side * (B / 2 + 0.015), y - 0.1, z0 + i * step2, 0.03, 0.14, 0.14, i % 2 ? cloth : team3);
   };
   if (kind === "fishing-ship") {
     look(null, (r) => {
       const y = hull2(r.group, 0.9, 0.42, 0.24, wood2, dark2);
-      sail(r, 0.08, y, 0.62, 0.34, 0.32, cloth, team2);
+      sail(r, 0.08, y, 0.62, 0.34, 0.32, cloth, team3);
       part(r.group, 0, y, -0.22, 0.3, 0.1, 0.16, keg);
       const net2 = group(r.group, "net", 0.2, y + 0.36, -0.12);
       part(net2, 0, 0, 0, 0.04, 0.04, 0.36, wood2);
       part(net2, 0.02, -0.3, 0.16, 0.16, 0.3, 0.04, "#9aa08a");
-      part(net2, 0.02, -0.3, 0.16, 0.18, 0.04, 0.05, team2);
+      part(net2, 0.02, -0.3, 0.16, 0.18, 0.04, 0.05, team3);
       r.net = net2;
       for (const z of [-0.08, 0.02]) part(r.group, -0.1, y, z, 0.12, 0.06, 0.08, "#bad0ce");
     });
@@ -2063,12 +2124,12 @@ function createShipRig(T, kind, player, box2, material) {
       part(r.group, 0, y, -0.1, 0.44, 0.04, 0.56, dark2);
       for (const [x, z] of [[-0.1, -0.24], [0.12, -0.02]]) part(r.group, x, y + 0.04, z, 0.18, 0.16, 0.18, plank);
       part(r.group, 0, y, 0.48, 0.36, 0.05, 0.12, deck);
-      sail(r, 0.18, y, 0.58, 0.4, 0.28, cloth, team2);
+      sail(r, 0.18, y, 0.58, 0.4, 0.28, cloth, team3);
       oars(r, 2, 0.62, y, -0.2, 0.3);
     });
   } else if (kind === "trade-cog") {
     look(null, (r) => {
-      const y = hull2(r.group, 1.1, 0.58, 0.4, wood2, team2);
+      const y = hull2(r.group, 1.1, 0.58, 0.4, wood2, team3);
       part(r.group, 0, y, -0.38, 0.5, 0.18, 0.22, plank);
       part(r.group, 0, y + 0.18, -0.38, 0.54, 0.04, 0.26, dark2);
       sail(r, 0.08, y, 0.9, 0.48, 0.52, cloth, gilt);
@@ -2080,16 +2141,16 @@ function createShipRig(T, kind, player, box2, material) {
     look(null, (r) => {
       const y = hull2(r.group, 1.45, 0.48, 0.26, wood2, dark2);
       part(r.group, 0, -0.04, 0.74, 0.12, 0.1, 0.14, "#a07c4a");
-      sail(r, -0.05, y, 0.78, 0.42, 0.38, team2, cloth);
+      sail(r, -0.05, y, 0.78, 0.42, 0.38, team3, cloth);
       oars(r, 3, 0.48, y, -0.36, 0.22);
       ballista(r, y, 0.42);
     });
     look("war-galley", (r) => {
-      const y = hull2(r.group, 1.55, 0.52, 0.3, wood2, team2);
+      const y = hull2(r.group, 1.55, 0.52, 0.3, wood2, team3);
       part(r.group, 0, -0.04, 0.8, 0.14, 0.12, 0.16, iron2);
       part(r.group, 0, y, 0.4, 0.42, 0.12, 0.3, plank);
-      sail(r, -0.12, y, 0.86, 0.46, 0.42, team2, cloth);
-      sail(r, 0.24, y + 0.12, 0.56, 0.28, 0.24, cloth, team2);
+      sail(r, -0.12, y, 0.86, 0.46, 0.42, team3, cloth);
+      sail(r, 0.24, y + 0.12, 0.56, 0.28, 0.24, cloth, team3);
       oars(r, 3, 0.52, y, -0.4, 0.22);
       shields(r, 0.52, y, -0.42, 4, 0.2);
       ballista(r, y + 0.12, 0.48);
@@ -2099,9 +2160,9 @@ function createShipRig(T, kind, player, box2, material) {
       part(r.group, 0, y, -0.52, 0.52, 0.26, 0.36, wood2);
       part(r.group, 0, y + 0.26, -0.52, 0.56, 0.04, 0.4, gilt);
       part(r.group, 0, y, 0.48, 0.46, 0.12, 0.26, plank);
-      sail(r, -0.22, y, 1.1, 0.52, 0.48, team2, cloth);
-      sail(r, 0.12, y, 0.96, 0.48, 0.42, cloth, team2);
-      sail(r, 0.42, y + 0.12, 0.6, 0.3, 0.26, team2, cloth);
+      sail(r, -0.22, y, 1.1, 0.52, 0.48, team3, cloth);
+      sail(r, 0.12, y, 0.96, 0.48, 0.42, cloth, team3);
+      sail(r, 0.42, y + 0.12, 0.6, 0.3, 0.26, team3, cloth);
       shields(r, 0.6, y, -0.3, 4, 0.2);
       ballista(r, y + 0.12, 0.56, 0.36);
       part(r.group, 0, y + 1.1, -0.22, 0.14, 0.08, 0.04, gilt);
@@ -2114,26 +2175,26 @@ function createShipRig(T, kind, player, box2, material) {
     };
     look(null, (r) => {
       const y = hull2(r.group, 1.2, 0.42, 0.22, wood2, dark2);
-      sail(r, -0.12, y, 0.6, 0.32, 0.28, cloth, team2);
+      sail(r, -0.12, y, 0.6, 0.32, 0.28, cloth, team3);
       oars(r, 2, 0.42, y, -0.28, 0.24);
       part(r.group, 0, y, 0, 0.16, 0.1, 0.16, iron2);
       part(r.group, 0, y + 0.1, 0, 0.1, 0.08, 0.1, flame);
       siphon(r, y, 0.38, 0.12);
     });
     look("war-galley", (r) => {
-      const y = hull2(r.group, 1.35, 0.48, 0.26, wood2, team2);
-      sail(r, -0.16, y, 0.7, 0.38, 0.32, team2, cloth);
+      const y = hull2(r.group, 1.35, 0.48, 0.26, wood2, team3);
+      sail(r, -0.16, y, 0.7, 0.38, 0.32, team3, cloth);
       oars(r, 3, 0.48, y, -0.36, 0.2);
       part(r.group, 0, y, 0.3, 0.3, 0.18, 0.2, iron2);
-      part(r.group, 0, y + 0.18, 0.3, 0.34, 0.04, 0.24, team2);
+      part(r.group, 0, y + 0.18, 0.3, 0.34, 0.04, 0.24, team3);
       for (const z of [-0.04, 0.14]) part(r.group, 0, y, z, 0.12, 0.12, 0.12, flame);
       siphon(r, y + 0.04, 0.42, 0.14);
     });
     look("fast-fire-ship", (r) => {
       const y = hull2(r.group, 1.5, 0.46, 0.26, dark2, gilt);
       part(r.group, 0, -0.04, 0.76, 0.12, 0.12, 0.14, iron2);
-      sail(r, -0.2, y, 0.8, 0.38, 0.36, team2, flame);
-      sail(r, 0.2, y, 0.5, 0.24, 0.2, cloth, team2);
+      sail(r, -0.2, y, 0.8, 0.38, 0.36, team3, flame);
+      sail(r, 0.2, y, 0.5, 0.24, 0.2, cloth, team3);
       oars(r, 4, 0.46, y, -0.46, 0.2);
       for (const x of [-0.08, 0.08]) part(r.group, x, y, 0.44, 0.06, 0.06, 0.18, iron2);
       part(r.group, 0, y, 0.32, 0.28, 0.14, 0.14, iron2);
@@ -2153,11 +2214,11 @@ function createShipRig(T, kind, player, box2, material) {
       for (const z of [-0.28, 0.28]) part(r.group, 0, 0.06, z, 0.72, 0.04, 0.06, rope2);
       kegs(r, 0.06, [[-0.14, -0.12], [0.1, -0.12], [-0.02, 0.12]], false);
       part(r.group, 0.24, 0.06, 0.2, 0.04, 0.5, 0.04, wood2);
-      part(r.group, 0.24, 0.38, 0.24, 0.02, 0.14, 0.14, team2);
+      part(r.group, 0.24, 0.38, 0.24, 0.02, 0.14, 0.14, team3);
       oars(r, 1, 0.7, 0.1, -0.16, 0, 0.34);
     });
     look("war-galley", (r) => {
-      const y = hull2(r.group, 0.95, 0.46, 0.2, wood2, team2);
+      const y = hull2(r.group, 0.95, 0.46, 0.2, wood2, team3);
       kegs(r, y, [[-0.1, -0.16], [0.1, -0.16], [-0.1, 0.04], [0.1, 0.04], [0, 0.24]], false);
       part(r.group, 0, y, -0.38, 0.06, 0.36, 0.06, wood2);
       part(r.group, 0, y + 0.36, -0.38, 0.08, 0.08, 0.08, flame);
@@ -2166,7 +2227,7 @@ function createShipRig(T, kind, player, box2, material) {
       const y = hull2(r.group, 1.1, 0.52, 0.24, dark2, iron2);
       kegs(r, y, [[-0.12, -0.24], [0.12, -0.24], [-0.12, -0.04], [0.12, -0.04], [-0.12, 0.16], [0.12, 0.16], [0, 0.34]], true);
       for (const z of [-0.14, 0.06]) part(r.group, 0, y + 0.16, z, 0.34, 0.04, 0.04, iron2);
-      sail(r, -0.42, y, 0.5, 0.24, 0.22, team2, keg);
+      sail(r, -0.42, y, 0.5, 0.24, 0.22, team3, keg);
     });
   } else if (kind === "cannon-galleon") {
     const gun = (r, x, y, z, along) => {
@@ -2176,26 +2237,26 @@ function createShipRig(T, kind, player, box2, material) {
       return m;
     };
     look(null, (r) => {
-      const y = hull2(r.group, 1.55, 0.64, 0.34, dark2, team2);
+      const y = hull2(r.group, 1.55, 0.64, 0.34, dark2, team3);
       part(r.group, 0, y, -0.5, 0.54, 0.24, 0.34, wood2);
-      part(r.group, 0, y + 0.24, -0.5, 0.58, 0.04, 0.38, team2);
+      part(r.group, 0, y + 0.24, -0.5, 0.58, 0.04, 0.38, team3);
       for (const z of [-0.12, 0.18]) for (const x of [-0.34, 0.34]) gun(r, x, y - 0.16, z, false);
       gun(r, 0, y, 0.5, true);
-      sail(r, -0.06, y, 1, 0.52, 0.46, cloth, team2);
-      sail(r, 0.3, y, 0.7, 0.32, 0.28, team2, cloth);
+      sail(r, -0.06, y, 1, 0.52, 0.46, cloth, team3);
+      sail(r, 0.3, y, 0.7, 0.32, 0.28, team3, cloth);
     });
     look("elite-cannon-galleon", (r) => {
       const y = hull2(r.group, 1.7, 0.7, 0.4, dark2, gilt);
       part(r.group, 0, y, -0.56, 0.6, 0.34, 0.4, wood2);
       part(r.group, 0, y + 0.34, -0.56, 0.64, 0.04, 0.44, gilt);
-      part(r.group, 0, y + 0.38, -0.62, 0.3, 0.16, 0.2, team2);
+      part(r.group, 0, y + 0.38, -0.62, 0.3, 0.16, 0.2, team3);
       for (const z of [-0.2, 0.06, 0.32]) for (const x of [-0.37, 0.37]) {
         gun(r, x, y - 0.2, z, false);
       }
       for (const z of [-0.06, 0.2]) for (const x of [-0.37, 0.37]) gun(r, x, y - 0.08, z, false);
       gun(r, 0, y, 0.56, true);
-      sail(r, -0.12, y, 1.16, 0.58, 0.52, team2, cloth);
-      sail(r, 0.32, y, 0.8, 0.36, 0.32, cloth, team2);
+      sail(r, -0.12, y, 1.16, 0.58, 0.52, team3, cloth);
+      sail(r, 0.32, y, 0.8, 0.36, 0.32, cloth, team3);
       part(r.group, 0, y + 1.16, -0.12, 0.16, 0.08, 0.04, gilt);
     });
   } else if (kind === "longboat") {
@@ -2210,7 +2271,7 @@ function createShipRig(T, kind, player, box2, material) {
       part(r.group, 0, y, 0, 0.06, mast, 0.06, wood2);
       const g = group(r.group, "sail", 0, 0, 0);
       part(g, 0, y + mast - 0.06, 0, w2 + 0.12, 0.04, 0.04, wood2);
-      for (let i = 0; i < 5; i++) part(g, -w2 / 2 + w2 * (i + 0.5) / 5, y + mast - 0.08 - h2, 0.04, w2 / 5, h2, 0.02, i % 2 ? cloth : team2);
+      for (let i = 0; i < 5; i++) part(g, -w2 / 2 + w2 * (i + 0.5) / 5, y + mast - 0.08 - h2, 0.04, w2 / 5, h2, 0.02, i % 2 ? cloth : team3);
       r.sails.push({ g, z: 0 });
     };
     look(null, (r) => {
@@ -2251,7 +2312,7 @@ function createShipRig(T, kind, player, box2, material) {
 function createTradeCartRig(T, player, box2, material) {
   const root = new T.Group();
   root.name = "vessel-trade-cart";
-  const team2 = teamOf2(player), { part, group } = kit2(T, box2, material);
+  const team3 = teamOf2(player), { part, group } = kit2(T, box2, material);
   const body = group(root, "cart-body"), hide = "#8b6a4c", horn = "#efe6d2";
   const ox = group(body, "ox", 0, 0, 0.5);
   part(ox, 0, 0.3, 0, 0.32, 0.3, 0.56, hide);
@@ -2281,7 +2342,7 @@ function createTradeCartRig(T, player, box2, material) {
   part(body, 0.12, 0.34, -0.2, 0.16, 0.16, 0.16, keg);
   part(body, 0.1, 0.34, -0.46, 0.16, 0.12, 0.16, deck);
   for (const z of [-0.58, -0.02]) for (const x of [-0.25, 0.25]) part(body, x, 0.46, z, 0.03, 0.3, 0.03, wood2);
-  part(body, 0, 0.76, -0.3, 0.56, 0.05, 0.62, team2);
+  part(body, 0, 0.76, -0.3, 0.56, 0.05, 0.62, team3);
   part(body, 0, 0.81, -0.3, 0.36, 0.04, 0.62, cloth);
   function pose(kind, time) {
     const t = clock2(time), moving = kind === "walk" || kind === "carry", fall = kind === "death" ? Math.min(t / 700, 1) : 0;
@@ -2338,7 +2399,7 @@ var diagonals = [["ne", 1, -1], ["nw", -1, -1], ["se", 1, 1], ["sw", -1, 1]];
 function wallParts(kind, v, links = noLinks) {
   check3(v, "\u57CE\u7246");
   if (!wallKinds.includes(kind)) throw Error("\u672A\u77E5\u57CE\u7246");
-  const { p, add } = builder(), age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87";
+  const { p, add } = builder(), age = v.ageVariant, team3 = v.red ? "#b85c47" : "#456e87";
   if (kind === "palisade-wall") {
     const H2 = 1.04 + (age >= 3 ? 0.12 : 0), stake = (id, x, z, y, h2, w2, d) => {
       add(id, 1, x, z, y, w2, d, h2, wood3);
@@ -2346,7 +2407,7 @@ function wallParts(kind, v, links = noLinks) {
     };
     add("foundation", 0, 0.32, 0.32, 0, 0.36, 0.36, 0.06, soil);
     stake("stake-c", 0.4, 0.4, 0.06, H2 + 0.04, 0.2, 0.2);
-    add("lashing", 3, 0.39, 0.39, 0.62, 0.22, 0.22, 0.08, team2);
+    add("lashing", 3, 0.39, 0.39, 0.62, 0.22, 0.22, 0.08, team3);
     for (const [dir, dx, dz] of [["e", 1, 0], ["w", -1, 0], ["s", 0, 1], ["n", 0, -1]]) if (links[dir]) {
       for (let i = 1; i <= 2; i++) stake(`stake-${dir}-${i}`, dx ? 0.4 + 0.2 * i * dx : 0.41, dz ? 0.4 + 0.2 * i * dz : 0.41, 0, H2 - i % 2 * 0.06, dx ? 0.2 : 0.18, dz ? 0.2 : 0.18);
       add(`rail-${dir}`, 2, dx > 0 ? 0.6 : dx < 0 ? 0 : 0.45, dz > 0 ? 0.6 : dz < 0 ? 0 : 0.45, 0.52, dx ? 0.4 : 0.1, dz ? 0.4 : 0.1, 0.08, oak);
@@ -2357,7 +2418,7 @@ function wallParts(kind, v, links = noLinks) {
   const H = 0.96 + (age >= 3 ? 0.16 : 0), top = 0.08 + H;
   add("foundation", 0, 0.2, 0.2, 0, 0.6, 0.6, 0.08, stoneDark);
   add("pier", 1, 0.22, 0.22, 0.08, 0.56, 0.56, H, stone2, true);
-  for (const z of [0.2, 0.78]) add(`shield-${z}`, 3, 0.42, z, 0.42, 0.16, 0.02, 0.2, team2);
+  for (const z of [0.2, 0.78]) add(`shield-${z}`, 3, 0.42, z, 0.42, 0.16, 0.02, 0.2, team3);
   for (const [dir, dx, dz] of [["e", 1, 0], ["w", -1, 0], ["s", 0, 1], ["n", 0, -1]]) if (links[dir]) {
     const x = dx > 0 ? 0.78 : dx < 0 ? 0 : 0.25, z = dz > 0 ? 0.78 : dz < 0 ? 0 : 0.25, w2 = dx ? 0.22 : 0.5, d = dz ? 0.22 : 0.5;
     add(`arm-${dir}`, 1, x, z, 0, w2, d, top, stone2, true);
@@ -2372,7 +2433,7 @@ function wallParts(kind, v, links = noLinks) {
 function gateParts(kind, v, links = noLinks) {
   check3(v, "\u57CE\u9580");
   if (!gateKinds.includes(kind)) throw Error("\u672A\u77E5\u57CE\u9580");
-  const { p, add } = builder(), age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87";
+  const { p, add } = builder(), age = v.ageVariant, team3 = v.red ? "#b85c47" : "#456e87";
   if (kind === "gate") {
     const H = 1.32 + (age >= 3 ? 0.16 : 0);
     add("foundation", 0, 0, 0.22, 0, 1, 0.56, 0.06, stoneDark);
@@ -2380,7 +2441,7 @@ function gateParts(kind, v, links = noLinks) {
       add(`tower-${i}`, 1, x, 0.2, 0.06, 0.26, 0.6, H, stone2, true);
       for (const z of [0.2, 0.66]) add(`merlon-${i}-${z}`, 2, x + 0.06, z, 0.06 + H, 0.14, 0.14, 0.18, stone2);
       if (age === 4) {
-        add(`cap-${i}`, 3, x + 0.02, 0.36, 0.06 + H, 0.22, 0.28, 0.12, team2, true);
+        add(`cap-${i}`, 3, x + 0.02, 0.36, 0.06 + H, 0.22, 0.28, 0.12, team3, true);
         add(`finial-${i}`, 4, x + 0.09, 0.46, 0.18 + H, 0.08, 0.08, 0.16, gilt2);
       }
     }
@@ -2388,7 +2449,7 @@ function gateParts(kind, v, links = noLinks) {
     add("door-l", 3, 0.26, 0.46, 0.06, 0.24, 0.08, 0.88, oak);
     add("door-r", 3, 0.5, 0.46, 0.06, 0.24, 0.08, 0.88, oak);
     for (const y of [0.24, 0.62]) add(`band-${y}`, 3, 0.28, 0.44, y, 0.44, 0.02, 0.06, iron3);
-    add("crest", 3, 0.42, 0.42, 0.98, 0.16, 0.04, 0.18, team2);
+    add("crest", 3, 0.42, 0.42, 0.98, 0.16, 0.04, 0.18, team3);
   } else {
     const H = 1.2 + (age >= 3 ? 0.12 : 0);
     add("foundation", 0, 0, 0.3, 0, 1, 0.4, 0.04, soil);
@@ -2400,7 +2461,7 @@ function gateParts(kind, v, links = noLinks) {
     add("door-l", 3, 0.22, 0.44, 0.04, 0.28, 0.1, H - 0.2, wood3);
     add("door-r", 3, 0.5, 0.44, 0.04, 0.28, 0.1, H - 0.2, wood3);
     for (const [i, y] of [0.22, 0.7].entries()) add(`brace-${i}`, 3, 0.24, 0.42, y, 0.52, 0.02, 0.06, oak);
-    add("pennant", 4, 0.48, 0.5, 0.04 + H - 0.02, 0.06, 0.04, 0.28, team2);
+    add("pennant", 4, 0.48, 0.5, 0.04 + H - 0.02, 0.06, 0.04, 0.28, team3);
   }
   const alongZ = !(links.e || links.w) && (links.n || links.s);
   const turned = alongZ ? p.map((a) => ({ ...a, x: a.z, z: a.x, w: a.d, d: a.w })) : p;
@@ -2408,7 +2469,7 @@ function gateParts(kind, v, links = noLinks) {
 }
 function outpostParts(v) {
   check3(v, "\u54E8\u7AD9");
-  const { p, add } = builder(), age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", deckY = 1.18 + (age - 1) * 0.14;
+  const { p, add } = builder(), age = v.ageVariant, team3 = v.red ? "#b85c47" : "#456e87", deckY = 1.18 + (age - 1) * 0.14;
   add("foundation", 0, 0.1, 0.1, 0, 0.8, 0.8, 0.1, age >= 2 ? stoneDark : soil);
   for (const [x, z] of [[0.14, 0.14], [0.74, 0.14], [0.14, 0.74], [0.74, 0.74]]) add(`leg-${x}-${z}`, 1, x, z, 0.1, 0.12, 0.12, deckY - 0.1, wood3);
   for (const y of [0.5, 0.9]) add(`brace-${y}`, 1, 0.26, 0.14, y, 0.48, 0.04, 0.06, oak);
@@ -2422,15 +2483,15 @@ function outpostParts(v) {
   add("torch-spark", 4, 0.815, 0.815, deckY + 0.68, 0.03, 0.03, 0.06, spark2);
   if (age >= 2) {
     for (const [x, z] of [[0.08, 0.08], [0.08, 0.8]]) add(`roof-post-${z}`, 3, x, z, deckY + 0.08, 0.06, 0.06, 0.5, oak);
-    add("roof", 3, 0, 0.04, deckY + 0.58, 0.6, 0.9, 0.08, age >= 3 ? team2 : straw, true);
+    add("roof", 3, 0, 0.04, deckY + 0.58, 0.6, 0.9, 0.08, age >= 3 ? team3 : straw, true);
   }
   add("pennant-pole", 4, 0.12, 0.12, deckY + (age >= 2 ? 0.66 : 0.08), 0.04, 0.04, 0.34, oak);
-  add("pennant", 4, 0.16, 0.12, deckY + (age >= 2 ? 0.86 : 0.28), 0.22, 0.03, 0.12, team2);
+  add("pennant", 4, 0.16, 0.12, deckY + (age >= 2 ? 0.86 : 0.28), 0.22, 0.03, 0.12, team3);
   return finish2(p, v, wood3, /^(pennant|torch-spark|torch-flame)/);
 }
 function bombardTowerParts(v) {
   check3(v, "\u706B\u7832\u5854");
-  const { p, add } = builder(), team2 = v.red ? "#b85c47" : "#456e87", H = 0.86;
+  const { p, add } = builder(), team3 = v.red ? "#b85c47" : "#456e87", H = 0.86;
   add("foundation", 0, 0, 0, 0, 1, 1, 0.12, stoneDark);
   add("batter", 1, 0.02, 0.02, 0.12, 0.96, 0.96, 0.26, stoneDark, true);
   const y0 = 0.38;
@@ -2449,7 +2510,7 @@ function bombardTowerParts(v) {
   for (const z of [0.44, 0.66]) add(`barrel-band-${z}`, 3, 0.34, z, top + 0.06, 0.32, 0.06, 0.28, "#3f4240");
   add("barrel-mouth", 3, 0.38, 0.92, top + 0.1, 0.24, 0.04, 0.2, "#1f1d1b");
   add("cap-post", 3, 0.06, 0.44, top, 0.08, 0.08, 0.5, "#6e5438");
-  add("cap", 4, 0.02, 0.4, top + 0.5, 0.24, 0.2, 0.06, team2, true);
+  add("cap", 4, 0.02, 0.4, top + 0.5, 0.24, 0.2, 0.06, team3, true);
   for (const [x, z] of [[0, 0], [0.84, 0]]) add(`keg-${x}`, 3, x, z, 0.12, 0.16, 0.16, 0.18, "#7c5a3a");
   return finish2(p, v, stone2, /^(cap|barrel-mouth|barrel-band-0\.66|merlon-0\.4-0)$/);
 }
@@ -2483,7 +2544,7 @@ function finish3(p, v, debris, lost, size) {
 }
 function dockParts(v, landSide = 0) {
   check4(v, "\u78BC\u982D");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87";
+  const p = [], age = v.ageVariant, team3 = v.red ? "#b85c47" : "#456e87";
   const add = (id, phase, x, z, y2, w2, d, h2, color, studs = false) => p.push({ id, phase, x, z, y: y2, w: w2, d, h: h2, color, studs });
   add("foundation", 0, 0, 0, 0, 3, 3, 0.16, deck2);
   for (let i = 0; i < 6; i++) add(`plank-${i}`, 1, 0.04, 0.04 + i * 0.49, 0.16, 2.92, 0.47, 0.03, i % 2 ? plank2 : deck2);
@@ -2503,7 +2564,7 @@ function dockParts(v, landSide = 0) {
   add("shed-front-r", 1, 1.2, 1.12, base, 0.36, 0.16, wallH, shed);
   add("shed-lintel", 1, 0.64, 1.12, base + 0.62, 0.56, 0.16, wallH - 0.62, shed);
   add("shed-door", 3, 0.64, 1.24, base, 0.56, 0.04, 0.6, oak2);
-  const roofY = base + wallH, roof = age === 1 ? straw2 : team2;
+  const roofY = base + wallH, roof = age === 1 ? straw2 : team3;
   for (let i = 0; i < 3; i++) add(`roof-${i}`, 2, 0.04 + i * 0.26, 0.06 + i * 0.16, roofY + i * 0.16, 1.8 - i * 0.52, 1.36 - i * 0.32, 0.16, roof, true);
   add("barrel-0", 3, 1.86, 0.3, y, 0.22, 0.22, 0.28, keg2);
   add("barrel-1", 3, 1.86, 0.56, y, 0.22, 0.22, 0.22, keg2);
@@ -2522,16 +2583,16 @@ function dockParts(v, landSide = 0) {
   if (age === 4) {
     add("light-base", 3, 0.1, 2.2, y, 0.5, 0.5, 1.2, stone3, true);
     add("light-room", 3, 0.16, 2.26, y + 1.2, 0.38, 0.38, 0.26, lamp);
-    add("light-cap", 4, 0.12, 2.22, y + 1.46, 0.46, 0.46, 0.12, team2, true);
+    add("light-cap", 4, 0.12, 2.22, y + 1.46, 0.46, 0.46, 0.12, team3, true);
     add("light-top", 4, 0.26, 2.36, y + 1.58, 0.18, 0.18, 0.14, brass);
   }
   add("flag-pole", 4, 2.82, 0.02, y, 0.06, 0.06, 1.3, wood4);
-  add("flag", 4, 2.42, 0.02, y + 1.04, 0.4, 0.05, 0.24, team2);
+  add("flag", 4, 2.42, 0.02, y + 1.04, 0.4, 0.05, 0.24, team3);
   return turnParts(finish3(p, v, plank2, /^(flag|crane-net|crane-fish|crane-rope|light-top|roof-2|rope-.*)$/, 3), 3, landSide);
 }
 function fishTrapParts(v) {
   check4(v, "\u9B5A\u7DB2");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87";
+  const p = [], age = v.ageVariant, team3 = v.red ? "#b85c47" : "#456e87";
   const add = (id, phase, x, z, y, w2, d, h2, color, studs = false) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs });
   add("foundation", 0, 0.12, 0.12, 0, 1.76, 1.76, 0.03, net);
   add("log-n", 1, 0, 0, 0, 2, 0.14, 0.1, wood4);
@@ -2540,8 +2601,8 @@ function fishTrapParts(v) {
   add("log-e", 1, 1.86, 0.14, 0, 0.14, 1.72, 0.1, wood4);
   for (const [x, z] of [[0, 0], [1.86, 0], [0, 1.86], [1.86, 1.86]]) add(`stake-${x}-${z}`, 2, x + 0.02, z + 0.02, 0.1, 0.1, 0.1, 0.42, oak2);
   for (const [i, x] of [0.5, 0.95, 1.4].entries()) {
-    add(`float-n-${i}`, 3, x, 0.02, 0.1, 0.1, 0.1, 0.08, i % 2 ? "#ece2c4" : team2);
-    add(`float-s-${i}`, 3, x, 1.88, 0.1, 0.1, 0.1, 0.08, i % 2 ? "#ece2c4" : team2);
+    add(`float-n-${i}`, 3, x, 0.02, 0.1, 0.1, 0.1, 0.08, i % 2 ? "#ece2c4" : team3);
+    add(`float-s-${i}`, 3, x, 1.88, 0.1, 0.1, 0.1, 0.08, i % 2 ? "#ece2c4" : team3);
   }
   if (age >= 2) for (const t of [0.62, 1.02, 1.42]) {
     add(`mesh-x-${t}`, 3, 0.14, t - 0.02, 0.03, 1.72, 0.04, 0.02, "#5d6b5f");
@@ -2553,7 +2614,7 @@ function fishTrapParts(v) {
     add("lantern-cap", 4, 1.86, 1.86, 0.62, 0.1, 0.1, 0.04, iron4);
   }
   add("pennant", 4, 0.04, 0.04, 0.52, 0.04, 0.04, 0.26, oak2);
-  add("pennant-cloth", 4, 0.08, 0.04, 0.66, 0.18, 0.03, 0.1, team2);
+  add("pennant-cloth", 4, 0.08, 0.04, 0.66, 0.18, 0.03, 0.1, team3);
   return finish3(p, v, wood4, /^(pennant.*|lantern.*|float-.-1)$/, 2);
 }
 
@@ -2577,7 +2638,7 @@ var wonderStyles = ["neutral", "west", "central", "mideast", "eastasia"];
 function wonderParts(v, style = "neutral") {
   check5(v);
   if (!wonderStyles.includes(style)) throw Error("\u672A\u77E5\u5EFA\u7BC9\u98A8\u683C");
-  const p = [], team2 = v.red ? "#b85c47" : "#456e87";
+  const p = [], team3 = v.red ? "#b85c47" : "#456e87";
   const add = (id, phase, x, z, y, w2, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs, ...shape ? { shape } : {} });
   const sq = (id, phase, c, y, s, h2, color, studs = false) => add(id, phase, c - s / 2, c - s / 2, y, s, s, h2, color, studs);
   add("foundation", 0, 0, 0, 0, 5, 5, 0.16, stoneDark3);
@@ -2591,8 +2652,8 @@ function wonderParts(v, style = "neutral") {
     const y = top + 1.5;
     sq("shrine", 2, 2.5, y, 1.2, 0.7, lime);
     add("shrine-door", 3, 2.25, 3.1, y, 0.5, 0.02, 0.5, dark4);
-    sq("shrine-roof", 2, 2.5, y + 0.7, 1.4, 0.16, team2, true);
-    sq("shrine-roof-1", 3, 2.5, y + 0.86, 0.8, 0.16, team2);
+    sq("shrine-roof", 2, 2.5, y + 0.7, 1.4, 0.16, team3, true);
+    sq("shrine-roof-1", 3, 2.5, y + 0.86, 0.8, 0.16, team3);
     sq("finial", 4, 2.5, y + 1.02, 0.16, 0.4, gilt3);
     for (const [x, z] of [[0.22, 0.22], [4.58, 0.22], [0.22, 4.58], [4.58, 4.58]]) {
       add(`brazier-${x}-${z}`, 3, x, z, 0.4, 0.2, 0.2, 0.26, dark4);
@@ -2660,7 +2721,7 @@ function wonderParts(v, style = "neutral") {
   }
   for (const x of [0.7, 3.9]) {
     add(`banner-pole-${x}`, 3, x, 4.4, 0.4, 0.08, 0.08, 1.6, carved);
-    add(`banner-${x}`, 4, x + 0.08, 4.42, 1.2, 0.36, 0.04, 0.7, team2);
+    add(`banner-${x}`, 4, x + 0.08, 4.42, 1.2, 0.36, 0.04, 0.7, team3);
   }
   if (v.health === 0) return [p[0], ...Array.from({ length: 16 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.3 + i % 4 * 1.15, z: 0.3 + Math.floor(i / 4) * 1.15, y: 0.16, w: 0.5, d: 0.42, h: 0.14, color: i % 3 ? stone4 : sand, studs: false }))];
   const lost = /^(banner-.*|finial|cross-\d|crossing-tip|minaret-tip-.*|ring-2|fire-.*|spire-\d-2|rose-ring)$/;
@@ -3003,7 +3064,7 @@ function createUnitRig(T, player, box2, material) {
     parent.add(mesh);
     return mesh;
   };
-  const team2 = player === 0 ? "#45728c" : "#b25441";
+  const team3 = player === 0 ? "#45728c" : "#b25441";
   function joint(name, x, y, z) {
     const group = new T.Group();
     group.name = name;
@@ -3013,14 +3074,14 @@ function createUnitRig(T, player, box2, material) {
   }
   const leftLeg = joint("hip-left", -0.12, 0.3, 0), rightLeg = joint("hip-right", 0.12, 0.3, 0);
   for (const leg of [leftLeg, rightLeg]) part(leg, 0, -0.3, 0, 0.19, 0.3, 0.24, "#44514b");
-  part(root, 0, 0.3, 0, 0.46, 0.4, 0.32, team2);
+  part(root, 0, 0.3, 0, 0.46, 0.4, 0.32, team3);
   part(root, 0, 0.71, 0, 0.34, 0.3, 0.3, "#dfbb7e");
   part(root, 0, 1.02, 0, 0.44, 0.11, 0.4, player === 0 ? "#cbbc94" : "#835243");
   for (const dx of [-0.075, 0.075]) part(root, dx, 0.86, 0.155, 0.035, 0.04, 0.018, "#3e3a2e");
   const leftArm = joint("shoulder-left", -0.19, 0.67, 0), rightArm = joint("shoulder-right", 0.19, 0.67, 0);
   const sockets = { leftHand: new T.Group(), rightHand: new T.Group() };
   for (const [arm, socket, name] of [[leftArm, sockets.leftHand, "hand-left"], [rightArm, sockets.rightHand, "hand-right"]]) {
-    part(arm, 0, -0.28, 0, 0.1, 0.28, 0.16, team2);
+    part(arm, 0, -0.28, 0, 0.1, 0.28, 0.16, team3);
     part(arm, 0, -0.38, 0, 0.1, 0.14, 0.17, "#dfbb7e");
     socket.name = name;
     socket.position.set(0, -0.31, 0.09);
@@ -3056,7 +3117,7 @@ function createUnitRig(T, player, box2, material) {
         const habit2 = "#7a5c40";
         part(o, 0, 0.3, 0, 0.5, 0.42, 0.36, habit2);
         part(o, 0, 0.06, 0, 0.44, 0.26, 0.34, habit2);
-        for (const x of [-0.09, 0.09]) part(o, x, 0.34, 0.185, 0.07, 0.38, 0.02, team2);
+        for (const x of [-0.09, 0.09]) part(o, x, 0.34, 0.185, 0.07, 0.38, 0.02, team3);
         part(o, 0, 0.36, 0, 0.52, 0.04, 0.38, "#d8c48a");
         part(o, 0, 0.99, -0.01, 0.47, 0.14, 0.43, habit2);
         part(o, 0, 0.74, -0.17, 0.4, 0.3, 0.06, habit2);
@@ -3104,17 +3165,17 @@ function createUnitRig(T, player, box2, material) {
         part(o, 0, 1.24, 0, 0.24, 0.08, 0.22, metal3);
         part(o, 0, 0.86, 0.16, 0.05, 0.24, 0.03, metal3);
         part(o, 0, 0.3, 0, 0.48, 0.26, 0.34, metal3);
-        part(la, -0.14, -0.6, 0.16, 0.06, 0.5, 0.3, team2);
-        part(la, -0.14, -0.5, 0.16, 0.06, 0.3, 0.5, team2);
+        part(la, -0.14, -0.6, 0.16, 0.06, 0.5, 0.3, team3);
+        part(la, -0.14, -0.5, 0.16, 0.06, 0.3, 0.5, team3);
         part(la, -0.18, -0.4, 0.16, 0.04, 0.1, 0.1, gold3);
       } else if (role === "teutonic-knight") {
         part(o, 0, 0.7, 0, 0.47, 0.46, 0.44, metal3);
         part(o, 0, 0.9, 0.22, 0.36, 0.035, 0.012, "#2c2e2c");
-        part(o, 0, 1.16, 0, 0.08, 0.08, 0.32, team2);
+        part(o, 0, 1.16, 0, 0.08, 0.08, 0.32, team3);
         part(o, 0, 0.3, 0, 0.48, 0.4, 0.34, "#ece8dc");
         for (const z of [0.17, -0.17]) {
-          part(o, 0, 0.34, z, 0.08, 0.3, 0.012, team2);
-          part(o, 0, 0.5, z, 0.26, 0.08, 0.012, team2);
+          part(o, 0, 0.34, z, 0.08, 0.3, 0.012, team3);
+          part(o, 0, 0.5, z, 0.26, 0.08, 0.012, team3);
         }
         arms(0, -0.12, 0, 0.15, 0.14, 0.2, metal3);
       } else if (role === "berserk") {
@@ -3132,23 +3193,23 @@ function createUnitRig(T, player, box2, material) {
         for (const x of [-0.1, 0.1]) part(o, x, 1.16, 0.17, 0.04, 0.26, 0.02, gold3);
         part(o, 0, 1.14, 0.2, 0.1, 0.08, 0.02, gold3);
         part(o, 0, 0.4, 0, 0.48, 0.3, 0.34, "#4a3a32");
-        for (const y of [0.46, 0.58]) part(o, 0, y, 0, 0.49, 0.04, 0.345, team2);
-        arms(0, -0.24, 0, 0.14, 0.24, 0.22, team2);
+        for (const y of [0.46, 0.58]) part(o, 0, y, 0, 0.49, 0.04, 0.345, team3);
+        arms(0, -0.24, 0, 0.14, 0.24, 0.22, team3);
         arms(0, -0.16, 0, 0.145, 0.03, 0.225, lacquer);
       } else if (role === "cataphract-rider") {
         part(o, 0, 0.3, 0, 0.48, 0.4, 0.34, "#a89a6a");
-        part(o, 0, 0.32, -0.19, 0.4, 0.4, 0.04, team2);
+        part(o, 0, 0.32, -0.19, 0.4, 0.4, 0.04, team3);
         part(o, 0, 1.1, 0, 0.4, 0.12, 0.36, "#a5b0ad");
         part(o, 0, 1.22, 0, 0.24, 0.1, 0.22, "#a5b0ad");
-        part(o, 0, 1.32, 0, 0.06, 0.22, 0.06, team2);
+        part(o, 0, 1.32, 0, 0.06, 0.22, 0.06, team3);
       } else if (role === "mameluke-rider") {
         part(o, 0, 1.08, 0, 0.44, 0.14, 0.42, "#efe9da");
-        part(o, 0, 1.12, 0, 0.46, 0.05, 0.44, team2);
+        part(o, 0, 1.12, 0, 0.46, 0.05, 0.44, team3);
         part(o, 0, 1.22, 0, 0.12, 0.14, 0.12, gold3);
         part(o, 0, 0.42, 0, 0.48, 0.05, 0.34, gold3);
       } else if (role === "mangudai-rider") {
         part(o, 0, 1.06, 0, 0.48, 0.1, 0.44, "#8a6a48");
-        part(o, 0, 1.16, 0, 0.3, 0.14, 0.28, team2);
+        part(o, 0, 1.16, 0, 0.3, 0.14, 0.28, team3);
         part(o, 0, 1.3, 0, 0.1, 0.06, 0.1, gold3);
         part(o, 0.08, 0.44, 0.165, 0.14, 0.24, 0.02, "#d8c48a");
         part(o, 0.25, 0.3, -0.05, 0.1, 0.32, 0.14, "#8b6746");
@@ -3158,7 +3219,7 @@ function createUnitRig(T, player, box2, material) {
         part(o, 0, 1.14, 0, 0.32, 0.12, 0.3, cap);
         part(o, 0, 1.26, 0, 0.14, 0.1, 0.14, cap);
         for (const x of [-0.2, 0.2]) part(o, x, 0.84, 0, 0.04, 0.2, 0.2, cap);
-        part(o, 0, 0.36, -0.18, 0.42, 0.34, 0.04, team2);
+        part(o, 0, 0.36, -0.18, 0.42, 0.34, 0.04, team3);
         part(o, -0.1, 0.4, -0.24, 0.12, 0.42, 0.1, "#8b6746");
         for (const x of [-0.13, -0.07]) part(o, x, 0.82, -0.24, 0.03, 0.12, 0.03, "#efe9da");
       } else if (role === "camel-rider") {
@@ -3166,13 +3227,13 @@ function createUnitRig(T, player, box2, material) {
         part(o, 0, 1, -0.01, 0.47, 0.16, 0.45, cloth2);
         part(o, 0, 0.7, -0.2, 0.3, 0.34, 0.05, cloth2);
         part(o, 0, 0.74, 0.16, 0.32, 0.1, 0.02, cloth2);
-        part(o, 0, 1.1, 0, 0.49, 0.04, 0.47, team2);
+        part(o, 0, 1.1, 0, 0.49, 0.04, 0.47, team3);
         part(o, 0, 0.12, 0, 0.5, 0.2, 0.36, "#e8e0c8");
-        part(o, 0, 0.5, 0.17, 0.4, 0.06, 0.02, team2);
+        part(o, 0, 0.5, 0.17, 0.4, 0.06, 0.02, team3);
       } else if (role === "petard") {
         part(o, 0, 1.01, 0, 0.46, 0.15, 0.42, leather);
-        part(o, 0, 1.03, 0, 0.47, 0.04, 0.43, team2);
-        part(o, 0, 0.64, 0, 0.4, 0.06, 0.34, team2);
+        part(o, 0, 1.03, 0, 0.47, 0.04, 0.43, team3);
+        part(o, 0, 0.64, 0, 0.4, 0.06, 0.34, team3);
         part(o, 0, 0.5, 0.17, 0.42, 0.05, 0.02, "#6e5438");
         for (const x of [-0.12, 0.02, 0.14]) part(o, x, 0.36, 0.17, 0.06, 0.1, 0.05, "#b8964a");
         part(la, 0, -0.52, 0.12, 0.03, 0.2, 0.03, "#6e5438");
@@ -3193,12 +3254,12 @@ function createUnitRig(T, player, box2, material) {
         part(o, 0.26, 0.26, 0.04, 0.08, 0.14, 0.12, leather);
         arms(0, -0.14, 0, 0.12, 0.12, 0.18, jack);
       } else if (role === "mahout") {
-        part(o, 0, 1.08, 0, 0.42, 0.12, 0.4, team2);
+        part(o, 0, 1.08, 0, 0.42, 0.12, 0.4, team3);
         part(o, 0, 1.2, 0, 0.14, 0.06, 0.14, gold3);
       } else {
         part(o, 0, 1.12, 0, 0.4, 0.14, 0.35, "#a5b0ad");
         part(o, 0, 0.4, 0.18, 0.36, 0.23, 0.055, "#a5b0ad");
-        if (role === "spearman") part(o, 0, 1.26, 0, 0.065, 0.15, 0.25, team2);
+        if (role === "spearman") part(o, 0, 1.26, 0, 0.065, 0.15, 0.25, team3);
       }
     }
     for (const g of outfit) g.visible = true;
@@ -3229,13 +3290,13 @@ function createUnitRig(T, player, box2, material) {
         part(o, 0, 0.88, 0.18, 0.36, 0.16, 0.03, metal3);
         part(o, 0, 0.95, 0.196, 0.3, 0.03, 0.01, "#2c2e2c");
         if (look === "champion") {
-          part(o, 0, 1.26, 0, 0.08, 0.2, 0.08, team2);
+          part(o, 0, 1.26, 0, 0.08, 0.2, 0.08, team3);
           part(o, 0, 1.06, 0, 0.47, 0.03, 0.43, gold3);
           arms(0, -0.12, 0, 0.16, 0.14, 0.21, metal3);
         }
       } else if (look === "hussar") {
         part(o, 0, 1.08, 0, 0.42, 0.32, 0.38, "#3a3530");
-        part(o, 0.15, 1.4, 0, 0.06, 0.14, 0.06, team2);
+        part(o, 0.15, 1.4, 0, 0.06, 0.14, 0.06, team3);
         part(o, 0, 0.5, -0.22, 0.05, 1, 0.05, "#6e5438");
         for (const [y, z] of [[0.72, -0.27], [0.88, -0.29], [1.04, -0.3], [1.2, -0.29], [1.36, -0.27]]) part(o, 0, y, z, 0.04, 0.12, 0.1, "#efe9da");
       } else if (look === "heavy-cavalry-archer") {
@@ -3251,7 +3312,7 @@ function createUnitRig(T, player, box2, material) {
   sockets.leftHand.add(shield);
   shield.visible = false;
   part(shield, -0.12, -0.17, 0.07, 0.08, 0.48, 0.4, "#9d885b");
-  part(shield, -0.17, -0.11, 0.07, 0.03, 0.34, 0.28, team2);
+  part(shield, -0.17, -0.11, 0.07, 0.03, 0.34, 0.28, team3);
   const toolMeshes = /* @__PURE__ */ new Map();
   let selected2 = "none";
   function makeTool(kind) {
@@ -3384,7 +3445,7 @@ function createUnitRig(T, player, box2, material) {
 function createElephantMount(T, player, box2, material) {
   const root = new T.Group();
   root.name = "elephant-root";
-  const team2 = player === 0 ? "#45728c" : "#b25441", grey2 = "#8d8c86", ear = "#9a988f", ivory = "#efe8d2", gold4 = "#c9a55a", wood6 = "#6e5438";
+  const team3 = player === 0 ? "#45728c" : "#b25441", grey2 = "#8d8c86", ear = "#9a988f", ivory = "#efe8d2", gold4 = "#c9a55a", wood6 = "#6e5438";
   const part = (parent, x, y, z, w2, h2, d, color) => {
     const m = new T.Mesh(box2(w2, h2, d), material(color));
     m.position.set(x, y, z);
@@ -3405,7 +3466,7 @@ function createElephantMount(T, player, box2, material) {
   const body = new T.Group();
   root.add(body);
   part(body, 0, 0.72, 0, 1, 0.86, 1.5, grey2);
-  part(body, 0, 1.02, 0, 1.04, 0.58, 1.1, team2);
+  part(body, 0, 1.02, 0, 1.04, 0.58, 1.1, team3);
   part(body, 0, 0.98, 0, 1.05, 0.06, 1.11, gold4);
   part(body, 0, 1.02, 0.8, 0.72, 0.7, 0.46, grey2);
   part(body, 0, 1.72, 0.82, 0.5, 0.1, 0.34, grey2);
@@ -3426,8 +3487,8 @@ function createElephantMount(T, player, box2, material) {
   part(trunk, 0, -0.86, 0.2, 0.14, 0.22, 0.14, grey2);
   part(trunk, 0, -0.88, 0.3, 0.12, 0.1, 0.12, grey2);
   part(body, 0, 1.6, -0.12, 0.9, 0.1, 0.96, wood6);
-  for (const z of [0.3, -0.54]) part(body, 0, 1.7, z, 0.9, 0.3, 0.08, team2);
-  for (const x of [-0.41, 0.41]) part(body, x, 1.7, -0.12, 0.08, 0.3, 0.76, team2);
+  for (const z of [0.3, -0.54]) part(body, 0, 1.7, z, 0.9, 0.3, 0.08, team3);
+  for (const x of [-0.41, 0.41]) part(body, x, 1.7, -0.12, 0.08, 0.3, 0.76, team3);
   for (const z of [0.3, -0.54]) part(body, 0, 2, z, 0.94, 0.05, 0.1, gold4);
   for (const x of [-0.41, 0.41]) for (const z of [0.3, -0.54]) part(body, x, 2, z, 0.08, 0.3, 0.08, gold4);
   const saddle = new T.Group();
@@ -3452,7 +3513,7 @@ function createElephantMount(T, player, box2, material) {
 function createCamelMount(T, player, box2, material) {
   const root = new T.Group();
   root.name = "camel-root";
-  const team2 = player === 0 ? "#45728c" : "#b25441", coat = "#c8a46e", shade2 = "#a9844f", wood6 = "#6e5438";
+  const team3 = player === 0 ? "#45728c" : "#b25441", coat = "#c8a46e", shade3 = "#a9844f", wood6 = "#6e5438";
   const part = (parent, x, y, z, w2, h2, d, color) => {
     const m = new T.Mesh(box2(w2, h2, d), material(color));
     m.position.set(x, y, z);
@@ -3468,18 +3529,18 @@ function createCamelMount(T, player, box2, material) {
     root.add(leg);
     legs.push(leg);
     part(leg, 0, -0.9, 0, 0.12, 0.9, 0.13, coat);
-    part(leg, 0, -0.5, 0, 0.15, 0.1, 0.16, shade2);
+    part(leg, 0, -0.5, 0, 0.15, 0.1, 0.16, shade3);
     part(leg, 0, -0.95, 0.02, 0.18, 0.07, 0.2, "#8a6a45");
   }
   const body = new T.Group();
   root.add(body);
   part(body, 0, 0.9, 0, 0.5, 0.42, 1.12, coat);
-  part(body, 0, 0.88, 0, 0.44, 0.06, 1, shade2);
+  part(body, 0, 0.88, 0, 0.44, 0.06, 1, shade3);
   part(body, 0, 1.32, -0.05, 0.38, 0.2, 0.52, coat);
   part(body, 0, 1.52, -0.05, 0.24, 0.08, 0.32, coat);
-  part(body, 0, 0.98, -0.6, 0.06, 0.3, 0.06, shade2);
+  part(body, 0, 0.98, -0.6, 0.06, 0.3, 0.06, shade3);
   part(body, 0, 0.94, -0.6, 0.09, 0.07, 0.09, "#5c4a36");
-  part(body, 0, 1.06, -0.05, 0.52, 0.28, 0.6, team2);
+  part(body, 0, 1.06, -0.05, 0.52, 0.28, 0.6, team3);
   part(body, 0, 1.05, -0.05, 0.53, 0.04, 0.61, "#d9bf6f");
   part(body, 0, 1.56, -0.05, 0.4, 0.06, 0.42, wood6);
   part(body, 0, 1.62, 0.17, 0.28, 0.14, 0.05, wood6);
@@ -3492,13 +3553,13 @@ function createCamelMount(T, player, box2, material) {
   head.position.set(0, 1.6, 0.96);
   body.add(head);
   part(head, 0, 0, 0.08, 0.2, 0.2, 0.36, coat);
-  part(head, 0, -0.02, 0.28, 0.16, 0.14, 0.12, shade2);
+  part(head, 0, -0.02, 0.28, 0.16, 0.14, 0.12, shade3);
   part(head, 0, 0.2, -0.04, 0.16, 0.06, 0.14, coat);
   for (const sx of [-1, 1]) {
     part(head, sx * 0.1, 0.12, 0.06, 0.02, 0.04, 0.05, "#2f3932");
-    part(head, sx * 0.07, 0.2, -0.06, 0.04, 0.08, 0.04, shade2);
+    part(head, sx * 0.07, 0.2, -0.06, 0.04, 0.08, 0.04, shade3);
   }
-  part(head, 0, 0.04, 0.08, 0.22, 0.03, 0.2, team2);
+  part(head, 0, 0.04, 0.08, 0.22, 0.03, 0.2, team3);
   const saddle = new T.Group();
   saddle.name = "rider-saddle";
   saddle.position.set(0, 1.62, -0.05);
@@ -3510,7 +3571,7 @@ function createCamelMount(T, player, box2, material) {
       armour.name = "camel-armour";
       body.add(armour);
       part(armour, 0, 0.9, -0.05, 0.54, 0.34, 0.98, "#8a6a45");
-      for (const z of [-0.4, -0.1, 0.2]) part(armour, 0, 0.9, z, 0.55, 0.34, 0.04, team2);
+      for (const z of [-0.4, -0.1, 0.2]) part(armour, 0, 0.9, z, 0.55, 0.34, 0.04, team3);
       part(armour, 0, 0.92, 0.55, 0.3, 0.3, 0.06, "#b8964a");
       part(armour, 0, 1.4, 0.88, 0.18, 0.08, 0.22, "#b8964a");
     }
@@ -3546,7 +3607,7 @@ var mounts = {
 function createCharacterRig(T, player, box2, material) {
   const root = new T.Group(), rider = createUnitRig(T, player, box2, material);
   root.add(rider.root);
-  const team2 = player === 0 ? "#45728c" : "#b25441";
+  const team3 = player === 0 ? "#45728c" : "#b25441";
   let horse = null, saddle = null, barding2 = null, gilt5 = null, mounted2 = null;
   const legs = [];
   const beasts = /* @__PURE__ */ new Map();
@@ -3576,7 +3637,7 @@ function createCharacterRig(T, player, box2, material) {
     tints.mane.push(part(horse, 0, 1.5, 0.5, 0.3, 0.14, 0.12, "#64533d"));
     for (const x of [-0.2, 0.2]) part(horse, x, 1.39, 0.67, 0.03, 0.04, 0.05, "#2f3932");
     tints.mane.push(part(horse, 0, 0.72, -0.66, 0.16, 0.4, 0.15, "#64533d"));
-    part(horse, 0, 1.12, 0, 0.68, 0.08, 0.5, team2);
+    part(horse, 0, 1.12, 0, 0.68, 0.08, 0.5, team3);
     for (const x of [-0.19, 0.19]) for (const z of [-0.42, 0.42]) {
       const leg = new T.Group();
       leg.name = `horse-leg-${legs.length}`;
@@ -3597,10 +3658,10 @@ function createCharacterRig(T, player, box2, material) {
     horse.add(barding2);
     const steel = "#8f9896";
     part(barding2, 0, 0.58, 0, 0.6, 0.42, 1.19, steel);
-    part(barding2, 0, 0.56, 0, 0.62, 0.06, 1.21, team2);
+    part(barding2, 0, 0.56, 0, 0.62, 0.06, 1.21, team3);
     part(barding2, 0, 0.84, 0.43, 0.4, 0.5, 0.36, steel);
     part(barding2, 0, 1.24, 0.86, 0.3, 0.24, 0.04, steel);
-    part(barding2, 0, 1.48, 0.5, 0.06, 0.16, 0.06, team2);
+    part(barding2, 0, 1.48, 0.5, 0.06, 0.16, 0.06, team3);
   }
   function makeGilt() {
     gilt5 = new T.Group();
@@ -3691,6 +3752,19 @@ var animalLooks = {
     body: [{ x: 0, y: 0.2, z: 0, w: 0.5, h: 0.42, d: 0.86, color: "#5d4a36" }, { x: 0, y: 0.62, z: 0.02, w: 0.14, h: 0.08, d: 0.6, color: "#3f3226" }],
     head: [{ x: 0, y: 0.26, z: 0.48, w: 0.34, h: 0.3, d: 0.24, color: "#5d4a36" }, { x: 0, y: 0.3, z: 0.66, w: 0.18, h: 0.14, d: 0.12, color: "#b89078" }, { x: -0.12, y: 0.32, z: 0.66, w: 0.04, h: 0.12, d: 0.04, color: "#f1ead6" }, { x: 0.12, y: 0.32, z: 0.66, w: 0.04, h: 0.12, d: 0.04, color: "#f1ead6" }],
     collar: null
+  },
+  // The 地圖 round's hostile animals: a grey wolf and a spotted jaguar, low and long, built like the boar.
+  wolf: {
+    legs: { h: 0.3, w: 0.08, x: 0.13, z: 0.26, color: "#5b5a55" },
+    body: [{ x: 0, y: 0.3, z: 0, w: 0.34, h: 0.3, d: 0.78, color: "#7d7b74" }, { x: 0, y: 0.44, z: -0.46, w: 0.08, h: 0.08, d: 0.22, color: "#5b5a55" }],
+    head: [{ x: 0, y: 0.44, z: 0.44, w: 0.24, h: 0.22, d: 0.22, color: "#7d7b74" }, { x: 0, y: 0.44, z: 0.6, w: 0.12, h: 0.1, d: 0.14, color: "#cfcabb" }, { x: -0.08, y: 0.66, z: 0.44, w: 0.05, h: 0.1, d: 0.04, color: "#5b5a55" }, { x: 0.08, y: 0.66, z: 0.44, w: 0.05, h: 0.1, d: 0.04, color: "#5b5a55" }],
+    collar: null
+  },
+  jaguar: {
+    legs: { h: 0.26, w: 0.09, x: 0.14, z: 0.28, color: "#b07a2e" },
+    body: [{ x: 0, y: 0.26, z: 0, w: 0.36, h: 0.3, d: 0.86, color: "#d29a3c" }, { x: -0.1, y: 0.56, z: 0.1, w: 0.08, h: 0.02, d: 0.08, color: "#3d2a17" }, { x: 0.08, y: 0.56, z: -0.18, w: 0.08, h: 0.02, d: 0.08, color: "#3d2a17" }, { x: 0, y: 0.4, z: -0.5, w: 0.07, h: 0.07, d: 0.3, color: "#b07a2e" }],
+    head: [{ x: 0, y: 0.36, z: 0.48, w: 0.26, h: 0.22, d: 0.22, color: "#d29a3c" }, { x: 0, y: 0.36, z: 0.62, w: 0.14, h: 0.1, d: 0.1, color: "#efe0bd" }, { x: -0.09, y: 0.58, z: 0.46, w: 0.06, h: 0.06, d: 0.04, color: "#b07a2e" }, { x: 0.09, y: 0.58, z: 0.46, w: 0.06, h: 0.06, d: 0.04, color: "#b07a2e" }],
+    collar: null
   }
 };
 function carcassParts(kind, share) {
@@ -3741,13 +3815,13 @@ function createAnimalRig(T, kind, player, box2, material) {
 }
 
 // packages/sim/fauna.ts
-var animalKinds = ["sheep", "deer", "boar"];
+var animalKinds = ["sheep", "deer", "boar", "wolf", "jaguar"];
 var isAnimal = (kind) => animalKinds.includes(kind);
 var animalRules = {
   provenance: "design_default",
   // Food in the carcass; which resource kind the carcass is (sheep herd, the others hunt).
-  food: { sheep: 100, deer: 140, boar: 340 },
-  carcass: { sheep: "livestock", deer: "hunt", boar: "hunt" },
+  food: { sheep: 100, deer: 140, boar: 340, wolf: 0, jaguar: 0 },
+  carcass: { sheep: "livestock", deer: "hunt", boar: "hunt", wolf: "hunt", jaguar: "hunt" },
   // A sheep belongs to the only player with a unit (other than an animal) within captureRange; with both sides near it
   // keeps its owner. An owned sheep lets its owner see a little ground round it (visionRules.sheepRadius).
   // A sheep within holdRange of one of its owner's buildings cannot be taken.
@@ -3757,7 +3831,13 @@ var animalRules = {
   fleeDistance: 350,
   boarLeash: 700,
   // Villager hunting: damage per strike, ticks between strikes, reach (Chebyshev, to the animal's centre).
-  hunt: { damage: 3, cooldown: 30, range: { sheep: 50, deer: 150, boar: 150 } },
+  hunt: { damage: 3, cooldown: 30, range: { sheep: 50, deer: 150, boar: 150, wolf: 50, jaguar: 50 } },
+  // Hostile animals (aoetw.com units/Wolf): sight 4 / 6 / 12 tiles by difficulty (簡單 / 標準 / 困難 and 最難), a tile of
+  // sight being 100 here; they never go for monks, the scout line or siege, and never for buildings; they chase up to
+  // hostileLeash from where they started the chase, then give up.
+  hostileSight: { easy: 400, standard: 600, hard: 1200, hardest: 1200 },
+  hostileIgnore: ["monk", "scout"],
+  hostileLeash: 900,
   // A carcass loses one food every decayTicks, whether or not anyone is working it.
   decayTicks: 100,
   // Villagers stand this close (Chebyshev) to a carcass or a shore fish to work it.
@@ -3862,7 +3942,7 @@ function createDetailController(T) {
 var economicBuildings = ["lumber-camp", "mining-camp", "mill", "farm", "town-center", "market", "smithy"];
 function economicBuildingParts(kind, v) {
   if (!economicBuildings.includes(kind) || ![1, 2, 3, 4].includes(v.ageVariant) || ![v.progress, v.health].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw Error("\u7121\u6548\u7D93\u6FDF\u5EFA\u7BC9\u5916\u89C0");
-  const p = [], age = v.ageVariant, team2 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", stone6 = "#aaa994", brass2 = "#bca068", water2 = "#6a9297", height = 1.28 + (age - 1) * 0.16;
+  const p = [], age = v.ageVariant, team3 = v.red ? "#b85c47" : "#456e87", wood6 = "#94734c", stone6 = "#aaa994", brass2 = "#bca068", water2 = "#6a9297", height = 1.28 + (age - 1) * 0.16;
   const add = (id, phase, x, z, y, w2, d, h2, color, studs = false, shape) => p.push({ id, phase, x, z, y, w: w2, d, h: h2, color, studs, ...shape ? { shape } : {} });
   add("foundation", 0, -0.15, -0.15, 0, 3, 3, 0.16, kind === "farm" ? "#806b49" : "#b3aa8c");
   if (kind === "farm") {
@@ -3886,7 +3966,7 @@ function economicBuildingParts(kind, v) {
       for (const x of [-0.12, 2.72]) for (const z of [-0.12, 2.72]) add(`fence-post-${x}-${z}`, 1, x, z, 0.16, 0.1, 0.1, age >= 3 ? 0.56 : 0.45, age >= 3 ? stone6 : wood6);
     }
     if (age === 4) {
-      add("gate-lintel", 1, 1.08, 2.58, 0.72, 0.54, 0.16, 0.16, team2, true);
+      add("gate-lintel", 1, 1.08, 2.58, 0.72, 0.54, 0.16, 0.16, team3, true);
       add("scarecrow-post", 3, 1.3, 1.24, 0.16, 0.06, 0.06, 0.64, wood6);
       add("scarecrow-arms", 3, 1.1, 1.24, 0.8, 0.46, 0.06, 0.06, wood6);
       add("scarecrow-head", 3, 1.25, 1.19, 0.86, 0.16, 0.16, 0.22, "#c7b27a");
@@ -3897,8 +3977,8 @@ function economicBuildingParts(kind, v) {
     for (const x of [0.1, 2.4]) for (const z of [0.1, 1.8]) add(`post-${x}-${z}`, 1, x, z, postBase, 0.16, 0.16, roofY - postBase, age >= 3 ? stone6 : wood6);
     add("back-brace", 1, 0.1, 0.1, roofY - 0.24, 2.46, 0.14, 0.24, wood6);
     if (kind === "market") {
-      for (let stripe = 0; stripe < 6; stripe++) add(`awning-${stripe}`, 2, -0.05 + stripe * 0.48, -0.05, roofY, 0.48, 2.25, 0.16, stripe % 2 ? "#e4d4ab" : team2);
-    } else for (let level = 0; level < 3; level++) add(`roof-${level}`, 2, -0.05 + level * 0.28, -0.05, roofY + level * 0.16, 2.9 - level * 0.56, 2.25, 0.16, age === 1 ? "#b8a074" : team2, true);
+      for (let stripe = 0; stripe < 6; stripe++) add(`awning-${stripe}`, 2, -0.05 + stripe * 0.48, -0.05, roofY, 0.48, 2.25, 0.16, stripe % 2 ? "#e4d4ab" : team3);
+    } else for (let level = 0; level < 3; level++) add(`roof-${level}`, 2, -0.05 + level * 0.28, -0.05, roofY + level * 0.16, 2.9 - level * 0.56, 2.25, 0.16, age === 1 ? "#b8a074" : team3, true);
     if (masonry && age >= 2) for (const x of [0.1, 2.4]) for (const z of [0.1, 1.8]) add(`footing-${x}-${z}`, 1, x - 0.02, z - 0.02, 0.16, 0.2, 0.2, 0.24, stone6);
     if (masonry && age >= 3) {
       if (kind !== "smithy") add("stone-plinth", 1, 0.28, 0.1, 0.16, 2.1, 0.14, 0.48, stone6, true);
@@ -3955,7 +4035,7 @@ function economicBuildingParts(kind, v) {
         const base = roofY + 0.48;
         add("cupola-base", 2, 1, 0.6, base, 0.8, 0.8, 0.16, stone6);
         for (const x of [1, 1.68]) for (const z of [0.6, 1.28]) add(`cupola-post-${x}-${z}`, 3, x, z, base + 0.16, 0.12, 0.12, 0.4, stone6);
-        add("cupola-cap", 3, 0.92, 0.52, base + 0.56, 0.96, 0.96, 0.16, team2, true);
+        add("cupola-cap", 3, 0.92, 0.52, base + 0.56, 0.96, 0.96, 0.16, team3, true);
         add("vane-pole", 4, 1.38, 0.98, base + 0.72, 0.04, 0.04, 0.5, "#76817d");
         add("vane-arrow", 4, 1.42, 0.98, base + 1.06, 0.3, 0.03, 0.12, brass2);
       }
@@ -3970,14 +4050,14 @@ function economicBuildingParts(kind, v) {
         if (age >= 3) towerBase += 0.64;
         add("belfry-floor", 3, 0.87, 0.65, towerBase, 0.96, 0.85, 0.16, stone6, true);
         for (const x of [0.91, 1.63]) for (const z of [0.69, 1.25]) add(`belfry-pillar-${x}-${z}`, 3, x, z, towerBase + 0.16, 0.12, 0.12, 0.65, stone6);
-        add("belfry-top", 3, 0.8, 0.58, towerBase + 0.81, 1.1, 1, 0.16, team2, true);
+        add("belfry-top", 3, 0.8, 0.58, towerBase + 0.81, 1.1, 1, 0.16, team3, true);
         add("bell-hanger", 3, 1.33, 0.98, towerBase + 0.55, 0.05, 0.05, 0.26, wood6);
         add("bell", 3, 1.2, 0.88, towerBase + 0.4, 0.3, 0.28, 0.22, brass2);
         if (age === 4) {
           const top = towerBase + 0.97;
-          add("spire-0", 3, 0.95, 0.73, top, 0.8, 0.7, 0.16, team2, true);
-          add("spire-1", 3, 1.1, 0.88, top + 0.16, 0.5, 0.4, 0.16, team2);
-          add("spire-2", 3, 1.23, 0.98, top + 0.32, 0.24, 0.2, 0.24, team2);
+          add("spire-0", 3, 0.95, 0.73, top, 0.8, 0.7, 0.16, team3, true);
+          add("spire-1", 3, 1.1, 0.88, top + 0.16, 0.5, 0.4, 0.16, team3);
+          add("spire-2", 3, 1.23, 0.98, top + 0.32, 0.24, 0.2, 0.24, team3);
           add("spire-finial", 4, 1.31, 1.04, top + 0.56, 0.08, 0.08, 0.3, brass2);
         }
       }
@@ -3995,13 +4075,13 @@ function economicBuildingParts(kind, v) {
         add(`scale-wire-${x}`, 3, x, 1.48, 0.9, 0.025, 0.025, 0.2, "#8c8879");
         add(`scale-pan-${x}`, 3, x - 0.05, 1.43, 0.87, 0.13, 0.13, 0.04, "#b8b3a0");
       }
-      if (age >= 2) for (let stripe = 0; stripe < 6; stripe++) add(`valance-${stripe}`, 2, -0.05 + stripe * 0.48, 2.14, roofY - 0.12, 0.48, 0.06, 0.12, stripe % 2 ? team2 : "#e4d4ab");
+      if (age >= 2) for (let stripe = 0; stripe < 6; stripe++) add(`valance-${stripe}`, 2, -0.05 + stripe * 0.48, 2.14, roofY - 0.12, 0.48, 0.06, 0.12, stripe % 2 ? team3 : "#e4d4ab");
       if (age >= 3) add("arcade-arch", 1, 0.28, 1.8, 0.16, 2.1, 0.16, roofY - 0.16, stone6, false, "arch");
       if (age === 4) {
         const base = roofY + 0.16;
         add("pavilion-floor", 2, 0.95, 0.55, base, 0.9, 0.9, 0.12, stone6);
         for (const x of [0.99, 1.69]) for (const z of [0.59, 1.29]) add(`pavilion-post-${x}-${z}`, 3, x, z, base + 0.12, 0.12, 0.12, 0.44, wood6);
-        add("pavilion-roof", 3, 0.87, 0.47, base + 0.56, 1.06, 1.06, 0.16, team2, true);
+        add("pavilion-roof", 3, 0.87, 0.47, base + 0.56, 1.06, 1.06, 0.16, team3, true);
         add("pavilion-finial", 4, 1.36, 0.96, base + 0.72, 0.08, 0.08, 0.26, brass2);
       }
     } else if (kind === "smithy") {
@@ -4033,7 +4113,7 @@ function economicBuildingParts(kind, v) {
     }
   }
   add("marker-pole", 4, 2.65, 2.7, 0.16, 0.06, 0.06, kind === "farm" ? 0.65 : height + 0.6, wood6);
-  add("marker-flag", 4, 2.34, 2.7, kind === "farm" ? 0.61 : height + 0.44, 0.32, 0.05, 0.22, team2);
+  add("marker-flag", 4, 2.34, 2.7, kind === "farm" ? 0.61 : height + 0.44, 0.32, 0.05, 0.22, team3);
   if (v.health === 0) return [p[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.2 + i % 4 * 0.6, z: 0.2 + Math.floor(i / 4) * 0.7, y: 0.16, w: 0.34, d: 0.3, h: 0.12, color: wood6, studs: false }))];
   const built = p.filter((a) => a.phase <= Math.min(4, Math.floor(v.progress / 20)));
   if (v.health >= 50) return built;
@@ -4045,7 +4125,7 @@ function economicBuildingParts(kind, v) {
 function buildingParts(visual) {
   const { ageVariant: age, progress, health, red: red2 } = visual;
   if (![1, 2, 3, 4].includes(age) || ![progress, health].every((v) => Number.isFinite(v) && v >= 0 && v <= 100)) throw Error("\u7121\u6548\u5EFA\u7BC9\u5916\u89C0\u72C0\u614B");
-  const parts = [], team2 = red2 ? "#b85c47" : "#456e87";
+  const parts = [], team3 = red2 ? "#b85c47" : "#456e87";
   const add = (id, phase2, x, z, y, w2, d, h2, color, studs = false, shape) => parts.push({ id, phase: phase2, x, z, y, w: w2, d, h: h2, color, studs, ...shape ? { shape } : {} });
   const footprint = obstacleFootprints.house;
   add("foundation", 0, footprint.x / 100, footprint.y / 100, 0, footprint.width / 100, footprint.depth / 100, 0.16, "#b3aa8c");
@@ -4059,7 +4139,7 @@ function buildingParts(visual) {
   }
   if (age <= 2) for (const x of [0, 0.64, 1.3, 1.94]) add(`timber-${x}`, 1, x, 1.98, 0.16, 0.06, 0.06, wallTop - 0.16, "#80674f");
   else for (const x of [-0.05, 1.73]) add(`buttress-${x}`, 1, x, 1.78, 0.16, 0.32, 0.3, wallTop - 0.16, "#999e92");
-  const roofBase = wallTop, roof = age === 1 ? "#b8a074" : age === 2 ? team2 : "#677681", levels2 = age === 1 ? 3 : 4;
+  const roofBase = wallTop, roof = age === 1 ? "#b8a074" : age === 2 ? team3 : "#677681", levels2 = age === 1 ? 3 : 4;
   for (let level = 0; level < levels2; level++) for (let row = 0; row < 5; row++) add(`roof-${level}-${row}`, 2, -0.2 + level * 0.25, -0.2 + row * 0.5, roofBase + level * 0.18, 2.5 - level * 0.5, 0.5, 0.18, roof, true);
   add("door", 3, 0.76, 1.98, 0.16, 0.48, 0.06, 0.92, "#685740");
   add("door-handle", 3, 0.81, 2.04, 0.61, 0.055, 0.03, 0.07, "#c2a664");
@@ -4073,18 +4153,18 @@ function buildingParts(visual) {
   }
   if (age >= 3) {
     add("stone-door-header", 3, 0.6, 1.97, 0.16, 0.8, 0.15, 1.28, "#d0ceba", false, "arch");
-    add("roof-ridge", 3, 0.7, -0.2, roofBase + 0.72, 0.7, 2.5, 0.16, team2, true);
+    add("roof-ridge", 3, 0.7, -0.2, roofBase + 0.72, 0.7, 2.5, 0.16, team3, true);
   }
   if (age === 4) {
     for (const z of [0.05, 1.55]) {
       add(`dormer-base-${z}`, 3, 0.5, z, roofBase + 0.36, 0.5, 0.4, 0.64, "#c9c4ae");
-      add(`dormer-cap-${z}`, 3, 0.45, z - 0.04, roofBase + 1, 0.6, 0.48, 0.16, team2, true);
+      add(`dormer-cap-${z}`, 3, 0.45, z - 0.04, roofBase + 1, 0.6, 0.48, 0.16, team3, true);
     }
     add("cargo-platform", 3, 0.75, 0.7, 0.16, 0.5, 0.6, 0.12, "#96764c");
   }
   const poleBase = roofBase + 0.36;
   add("flag-pole", 4, 0.27, 0.25, poleBase, 0.07, 0.07, 0.9, "#786849");
-  add("flag", 4, 0.34, 0.25, poleBase + 0.58, 0.6, 0.04, 0.3, team2);
+  add("flag", 4, 0.34, 0.25, poleBase + 0.58, 0.6, 0.04, 0.3, team3);
   if (health === 0) {
     return [parts[0], ...Array.from({ length: 12 }, (_, i) => ({ id: `debris-${i}`, phase: 0, x: 0.1 + i % 4 * 0.43, z: 0.12 + Math.floor(i / 4) * 0.53, y: 0.16, w: 0.32, d: 0.27, h: 0.12, color: i % 3 ? wall : roof, studs: false }))];
   }
@@ -4146,6 +4226,1021 @@ function regionalParts(parts, style) {
   return out;
 }
 
+// packages/sim/maps/toolkit.ts
+var standardKit = [
+  { kind: "tree", dx: 0, dy: -560, group: 6 },
+  { kind: "gold", dx: 520, dy: -60 },
+  { kind: "rock", dx: -520, dy: -60 },
+  { kind: "berries", dx: 480, dy: 360 },
+  { kind: "livestock", dx: -480, dy: 340, count: 4 },
+  { kind: "hunt", dx: 0, dy: 780, count: 3 },
+  { kind: "boar", dx: 760, dy: 620 },
+  { kind: "livestock", dx: -760, dy: -620, count: 2 }
+];
+var apron = 420;
+var MapBuilder = class {
+  size = 32;
+  world = 3200;
+  mid = 1600;
+  tiles;
+  taken = /* @__PURE__ */ new Set();
+  obstacles = [];
+  spots = [];
+  fish = [];
+  // mines: gold and stone pairs as tile ids (finish() makes sure each can be reached on foot); isolated: mines meant to
+  // be out of reach by land (an island's), skipped by that check.
+  mines = [];
+  isolated = /* @__PURE__ */ new Set();
+  centres = [];
+  starts = [];
+  scouts;
+  separate = false;
+  rng;
+  salt;
+  // Special starts (MapData walled / nomad / lean).
+  walled = false;
+  nomad = false;
+  lean;
+  symmetry;
+  constructor(seed, symmetry, layout) {
+    this.symmetry = symmetry;
+    this.rng = seed || 1;
+    this.salt = (seed ^ 2654435769) >>> 0;
+    this.tiles = createTiles(layout, seed);
+  }
+  random() {
+    let n = this.rng;
+    n ^= n << 13;
+    n ^= n >>> 17;
+    n ^= n << 5;
+    this.rng = n >>> 0;
+    return this.rng / 4294967296;
+  }
+  int(lo, hi) {
+    return lo + Math.floor(this.random() * (hi - lo + 1));
+  }
+  inside(tx, ty) {
+    return tx >= 0 && ty >= 0 && tx < this.size && ty < this.size;
+  }
+  mirrorTile(tx, ty) {
+    return this.symmetry === "rotate" ? [this.size - 1 - tx, this.size - 1 - ty] : [this.size - 1 - tx, ty];
+  }
+  mirrorPoint(x, y) {
+    return this.symmetry === "rotate" ? { x: this.world - x, y: this.world - y } : { x: this.world - x, y };
+  }
+  tile(tx, ty) {
+    return this.tiles[ty * this.size + tx];
+  }
+  // A value in [0,1) per tile that is the same on a tile and its mirror (salted by the seed), for irregular shapes.
+  noise(tx, ty) {
+    const [mx, my] = this.mirrorTile(tx, ty), a = ty * this.size + tx, b = my * this.size + mx;
+    let v = Math.imul(Math.min(a, b) + 1, 2654435761) ^ this.salt;
+    v = Math.imul(v ^ v >>> 16, 73244475);
+    v = Math.imul(v ^ v >>> 16, 73244475);
+    return ((v ^ v >>> 16) >>> 0) / 4294967296;
+  }
+  // Smooth noise: the average of the tile's noise and its neighbours' (blobs and shorelines without single-tile specks).
+  smooth(tx, ty) {
+    let t = 0, n = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const x = tx + dx, y = ty + dy;
+      if (this.inside(x, y)) {
+        t += this.noise(x, y);
+        n++;
+      }
+    }
+    return t / n;
+  }
+  // Sets a tile and its mirror (height: a plateau or ramp tile's height; otherwise the terrain's own).
+  set(tx, ty, type, height, buildable) {
+    for (const [x, y] of [[tx, ty], this.mirrorTile(tx, ty)]) {
+      const t = this.tile(x, y);
+      Object.assign(t, { terrainType: type, ...terrainDefinitions[type] });
+      if (height !== void 0) t.height = height;
+      if (buildable !== void 0) t.buildability = buildable;
+    }
+  }
+  // Paints every tile the function names (evaluated on the tile and applied to it and its mirror).
+  paint(f) {
+    for (let ty = 0; ty < this.size; ty++) for (let tx = 0; tx < this.size; tx++) {
+      const [mx, my] = this.mirrorTile(tx, ty);
+      if (my * this.size + mx < ty * this.size + tx) continue;
+      const r = f(tx, ty, Math.hypot(tx * 100 + 50 - this.mid, ty * 100 + 50 - this.mid));
+      if (!r) continue;
+      const v = typeof r === "string" ? { type: r } : r;
+      this.set(tx, ty, v.type, v.height, v.buildable);
+    }
+  }
+  // Distance (tile centre) to the nearest town centre's centre.
+  baseDistance(tx, ty) {
+    return Math.min(...this.centres.map((c) => Math.hypot(tx * 100 + 50 - c.x, ty * 100 + 50 - c.y)), Infinity);
+  }
+  // The two town centres: the first player at the angle (random when null) and a distance from the map centre (a share
+  // of the map's width), the second on the mirrored spot. Anchors snap to the grid the town centre needs (x = 50k + 15,
+  // y = 50k), so the second centre may sit up to half a node off the exact mirror.
+  bases(angle, distance) {
+    const a = angle ?? this.random() * Math.PI * 2, r = this.world * (distance[0] + this.random() * (distance[1] - distance[0]));
+    const c0 = { x: this.mid + Math.cos(a) * r, y: this.mid + Math.sin(a) * r }, c1 = this.mirrorPoint(c0.x, c0.y);
+    this.centres = [c0, c1].map((c) => {
+      const cx = Math.min(this.world - 650, Math.max(650, c.x)), cy = Math.min(this.world - 750, Math.max(650, c.y)), ax = Math.round((cx - 150) / 50) * 50 + 15, ay = Math.round((cy - 135) / 50) * 50;
+      return { ax, ay, x: ax + 135, y: ay + 135 };
+    });
+    this.starts = this.centres.map((c) => [{ x: c.ax + 85, y: c.ay + 350 }, { x: c.ax + 185, y: c.ay + 350 }, { x: c.ax + 135, y: c.ay + 450 }]);
+    this.scouts = this.centres.map((c) => ({ x: c.ax + 235, y: c.ay + 450 }));
+    this.centres.forEach((c, p) => {
+      this.obstacles.push({ kind: "town-center", x: c.ax, y: c.ay, ...p ? { red: true } : {} });
+      for (let ty = Math.floor((c.y - 150) / 100); ty <= Math.floor((c.y + 150) / 100); ty++) for (let tx = Math.floor((c.x - 150) / 100); tx <= Math.floor((c.x + 150) / 100); tx++) this.taken.add(ty * this.size + tx);
+    });
+  }
+  inApron(tx, ty) {
+    return this.centres.some((c) => Math.max(Math.abs(tx * 100 + 50 - c.x), Math.abs(ty * 100 + 50 - c.y)) < apron + 50);
+  }
+  // Free for a resource or a tree: inside the border, not used, off the aprons, on buildable land.
+  free(tx, ty, edge = 1) {
+    if (tx < edge || ty < edge || tx >= this.size - edge || ty >= this.size - edge) return false;
+    const t = this.tile(tx, ty);
+    return !this.taken.has(ty * this.size + tx) && !this.inApron(tx, ty) && t.walkClass === "land" && t.buildability;
+  }
+  // Both a tile and its mirror free (and not the same tile), so a placement is always made in pairs.
+  pairFree(tx, ty, edge = 1) {
+    const [mx, my] = this.mirrorTile(tx, ty);
+    return (mx !== tx || my !== ty) && this.free(tx, ty, edge) && this.free(mx, my, edge);
+  }
+  add(kind, tx, ty, owner, count = 1) {
+    this.taken.add(ty * this.size + tx);
+    const cx = tx * 100 + 50, cy = ty * 100 + 50;
+    if (kind === "livestock") this.spots.push({ kind: "sheep", x: cx, y: cy, count, within: 200, ...owner === void 0 ? {} : { owner }, open: 0 });
+    else if (kind === "hunt") this.spots.push({ kind: "deer", x: cx, y: cy, count, within: 200, open: 0 });
+    else if (kind === "boar" || kind === "wolf" || kind === "jaguar") this.spots.push({ kind, x: cx, y: cy, count, within: 400, open: 16 });
+    else this.obstacles.push({ kind, x: tx * 100 + (kind === "tree" ? 12 : 15), y: ty * 100 + (kind === "tree" ? 12 : 15) });
+  }
+  // Places a resource on a tile and its mirror (the owner of a sheep flock goes to the base whose kit it is).
+  pair(kind, tx, ty, owner, count = 1) {
+    const [mx, my] = this.mirrorTile(tx, ty);
+    if (kind === "gold" || kind === "rock") this.mines.push([ty * this.size + tx, my * this.size + mx]);
+    this.add(kind, tx, ty, owner, count);
+    this.add(kind, mx, my, owner === void 0 ? void 0 : 1 - owner, count);
+  }
+  // Each base's kit: the first player's items at their offsets (a blocked spot turns round the centre in 15-degree
+  // steps, keeping the distance), each on its mirrored tile for the second player. An item with no room is left out
+  // (validateStartingResources then rejects the candidate and makeMap retries).
+  // With no room at the item's distance, it tries closer in (85%, then 70% of it) before giving up.
+  kit(items) {
+    const c = this.centres[0];
+    for (const item2 of items) {
+      const base = Math.atan2(item2.dy, item2.dx);
+      let placed = false;
+      for (const scale of [1, 0.85, 0.7]) {
+        const d = Math.hypot(item2.dx, item2.dy) * scale;
+        for (let step2 = 0; step2 < 24 && !placed; step2++) {
+          const a = base + (step2 % 2 ? -1 : 1) * Math.ceil(step2 / 2) * 15 * Math.PI / 180, tx = Math.floor((c.x + Math.cos(a) * d) / 100), ty = Math.floor((c.y + Math.sin(a) * d) / 100);
+          const cells = item2.kind === "tree" ? [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 0], [0, -1], [-1, 1], [1, -1]].slice(0, item2.group ?? 1).map(([dx, dy]) => [tx + dx, ty + dy]) : [[tx, ty]];
+          if (cells.every(([x, y]) => this.pairFree(x, y, 1))) {
+            for (const [x, y] of cells) this.pair(item2.kind, x, y, item2.kind === "livestock" ? 0 : void 0, item2.count ?? 1);
+            placed = true;
+          }
+        }
+        if (placed) break;
+      }
+    }
+  }
+  // A tile at a random angle and a distance (tiles' centres, from the map centre or a given point) that passes the test.
+  pick(test, ring, from = { x: this.mid, y: this.mid }, tries = 60) {
+    for (let k = 0; k < tries; k++) {
+      const a = this.random() * Math.PI * 2, d = ring[0] + this.random() * (ring[1] - ring[0]), tx = Math.floor((from.x + Math.cos(a) * d) / 100), ty = Math.floor((from.y + Math.sin(a) * d) / 100);
+      if (this.inside(tx, ty) && test(tx, ty)) return [tx, ty];
+    }
+    return null;
+  }
+  // Neutral resources: count pairs on a ring round the centre, at least clearance from both town centres.
+  neutral(kind, pairs, ring, clearance = 900, cluster = 1) {
+    for (let i = 0; i < pairs; i++) {
+      const at2 = this.pick((x, y) => this.pairFree(x, y, 2) && this.baseDistance(x, y) >= clearance, ring);
+      if (!at2) continue;
+      const [tx, ty] = at2;
+      for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 0], [0, -1]].slice(0, cluster)) if (this.pairFree(tx + dx, ty + dy, 2)) this.pair(kind, tx + dx, ty + dy);
+    }
+  }
+  // Forest clumps grown by a seeded random walk (both mirrored), away from bases; test limits where trees may stand.
+  forests(clumps, size, clearance, test = () => true) {
+    for (let i = 0; i < clumps; i++) {
+      const at2 = this.pick((x, y) => this.pairFree(x, y, 1) && this.baseDistance(x, y) >= clearance && test(x, y), [0, this.world * 0.72]);
+      if (!at2) continue;
+      let [tx, ty] = at2;
+      const want = this.int(size[0], size[1]);
+      for (let n = 0, k = 0; n < want && k < want * 6; k++) {
+        if (this.pairFree(tx, ty, 1) && this.baseDistance(tx, ty) >= clearance && test(tx, ty)) {
+          this.pair("tree", tx, ty);
+          n++;
+        }
+        const dir = Math.floor(this.random() * 4);
+        tx += dir === 0 ? 1 : dir === 1 ? -1 : 0;
+        ty += dir === 2 ? 1 : dir === 3 ? -1 : 0;
+        tx = Math.min(this.size - 2, Math.max(1, tx));
+        ty = Math.min(this.size - 2, Math.max(1, ty));
+      }
+    }
+  }
+  // Trees on the outermost ring of tiles, thinned near bases.
+  border(density, clearance) {
+    for (let ty = 0; ty < this.size; ty++) for (let tx = 0; tx < this.size; tx++) {
+      if (tx > 0 && ty > 0 && tx < this.size - 1 && ty < this.size - 1) continue;
+      const [mx, my] = this.mirrorTile(tx, ty);
+      if (my * this.size + mx < ty * this.size + tx) continue;
+      if (this.noise(tx, ty) < density && this.pairFree(tx, ty, 0) && this.baseDistance(tx, ty) >= clearance) this.pair("tree", tx, ty);
+    }
+  }
+  // Wild animals (deer, boar, wolves, jaguars): pairs of flocks on tiles passing the test.
+  animals(kind, pairs, count, ring, test = () => true, clearance = 900) {
+    for (let i = 0; i < pairs; i++) {
+      const at2 = this.pick((x, y) => this.pairFree(x, y, 1) && this.baseDistance(x, y) >= clearance && test(x, y), ring);
+      if (at2) this.pair(kind, at2[0], at2[1], void 0, count);
+    }
+  }
+  // Water tiles: deep (all eight neighbours water, ships only) or shore (next to land a villager can stand on).
+  water(tx, ty) {
+    const t = this.inside(tx, ty) ? this.tile(tx, ty) : null;
+    return !!t && t.terrainType === "water";
+  }
+  deep(tx, ty) {
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (!this.water(tx + dx, ty + dy)) return false;
+    return true;
+  }
+  shore(tx, ty) {
+    if (!this.water(tx, ty)) return false;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const x = tx + dx, y = ty + dy;
+      if (this.inside(x, y) && this.tile(x, y).walkClass === "land" && this.tile(x, y).height === this.tile(tx, ty).height) return true;
+    }
+    return false;
+  }
+  // Fish: pairs on water tiles of the given kind, spacing apart, optionally inside a region.
+  fishIn(pairs, kind, spacing = 300, test = () => true) {
+    const cands = [];
+    for (let ty = 1; ty < this.size - 1; ty++) for (let tx = 1; tx < this.size - 1; tx++) {
+      const [mx, my] = this.mirrorTile(tx, ty);
+      if (mx === tx && my === ty || !test(tx, ty)) continue;
+      if ((kind === "deep" ? this.deep(tx, ty) && this.deep(mx, my) : this.shore(tx, ty) && this.shore(mx, my)) && !this.taken.has(ty * this.size + tx)) cands.push(ty * this.size + tx);
+    }
+    for (let i = cands.length - 1; i > 0; i--) {
+      const j = Math.floor(this.random() * (i + 1));
+      [cands[i], cands[j]] = [cands[j], cands[i]];
+    }
+    let placed = 0;
+    for (const t of cands) {
+      if (placed >= pairs) break;
+      const tx = t % this.size, ty = Math.floor(t / this.size), [mx, my] = this.mirrorTile(tx, ty), m = my * this.size + mx;
+      const far = (a) => this.fish.every((f) => Math.hypot((f % this.size - a % this.size) * 100, (Math.floor(f / this.size) - Math.floor(a / this.size)) * 100) >= spacing);
+      if (this.taken.has(m) || !far(t) || !far(m)) continue;
+      this.fish.push(t, m);
+      this.taken.add(t);
+      this.taken.add(m);
+      placed++;
+    }
+  }
+  // A prebuilt building for a player (special starts: walls, towers, houses, farms; packages/sim/buildings.ts
+  // initBuildings turns every building obstacle into a finished building of its owner).
+  building(kind, x, y, player) {
+    this.obstacles.push({ kind, x, y, ...player ? { red: true } : {} });
+  }
+  // A prebuilt building for the first player at (x, y) and the same building on the mirrored footprint for the second;
+  // the tiles under both are taken.
+  pairBuilding(kind, x, y) {
+    const f = obstacleBounds({ kind, x, y }), a = this.mirrorPoint(f[0], f[1]), c = this.mirrorPoint(f[2], f[3]);
+    const spots = [[x, y], [Math.min(a.x, c.x) + x - f[0], Math.min(a.y, c.y) + y - f[1]]];
+    spots.forEach(([px, py], p) => {
+      this.building(kind, px, py, p);
+      const b = obstacleBounds({ kind, x: px, y: py });
+      for (let ty = Math.floor(b[1] / 100); ty <= Math.floor((b[3] - 1) / 100); ty++) for (let tx = Math.floor(b[0] / 100); tx <= Math.floor((b[2] - 1) / 100); tx++) if (this.inside(tx, ty)) this.taken.add(ty * this.size + tx);
+    });
+  }
+  // Everything into MapData: obstacle and resource ids, the fish, blocked nodes, then the flocks on free nodes.
+  // Mines out of reach on foot (walled in by trees, a cliff or the shore): the trees round such a pair are cleared, and a
+  // pair still out of reach is taken off the map (both mines, so the map stays fair). Reach is measured from the first
+  // base's villagers over the land nodes, as a unit walks.
+  reachMines() {
+    const size = this.size, flood = () => {
+      for (const t of this.tiles) t.obstacleRefs = [];
+      this.obstacles.forEach((o, i) => {
+        o.id = `obstacle-${i}`;
+        this.tiles[tileAt(o.x, o.y, size)].obstacleRefs.push(o.id);
+      });
+      const map = { size, tiles: this.tiles, obstacles: this.walled ? this.obstacles.filter((o) => !["stone-wall", "palisade-wall"].includes(o.kind)) : this.obstacles, blocked: [], starts: this.starts, resources: [], navigationRevision: 0, generationAttempt: 0 }, side = sideOf(map), total = nodeTotal(map), open2 = new Uint8Array(total), seen = new Uint8Array(total);
+      for (let i = 0; i < total; i++) open2[i] = clearSegment(map, position(map, i), position(map, i)) ? 1 : 0;
+      const start = nearest(map, this.starts[0][0]);
+      if (start < 0) return { map, seen };
+      const q = [start];
+      seen[start] = 1;
+      for (let h2 = 0; h2 < q.length; h2++) {
+        const id = q[h2], x = id % side, y = Math.floor(id / side);
+        for (const n of [x < side - 1 ? id + 1 : -1, y < side - 1 ? id + side : -1, x > 0 ? id - 1 : -1, y > 0 ? id - side : -1]) if (n >= 0 && !seen[n] && open2[n] && clearSegment(map, position(map, id), position(map, n))) {
+          seen[n] = 1;
+          q.push(n);
+        }
+      }
+      return { map, seen };
+    };
+    const mineAt = (t) => this.obstacles.find((o) => (o.kind === "gold" || o.kind === "rock") && Math.floor(o.y / 100) * size + Math.floor(o.x / 100) === t);
+    const reached = (f, t) => {
+      const o = mineAt(t);
+      if (!o) return true;
+      const b = obstacleBounds(o);
+      for (let i = 0; i < f.seen.length; i++) {
+        if (!f.seen[i]) continue;
+        const p = position(f.map, i), gap = Math.max(b[0] - p.x, 0, p.x - b[2]) + Math.max(b[1] - p.y, 0, p.y - b[3]);
+        if (gap > 0 && gap <= 75) return true;
+      }
+      return false;
+    };
+    const out = (f) => this.mines.filter(([a, b]) => !this.isolated.has(a) && (this.separate ? !reached(f, a) && !reached(f, b) : !reached(f, a) || !reached(f, b)));
+    let lost = out(flood());
+    if (!lost.length) return;
+    const near = /* @__PURE__ */ new Set();
+    for (const pair of lost) for (const t of pair) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) near.add(t + dy * size + dx);
+    this.obstacles = this.obstacles.filter((o) => o.kind !== "tree" || !near.has(Math.floor(o.y / 100) * size + Math.floor(o.x / 100)));
+    lost = out(flood());
+    const gone = new Set(lost.flat());
+    this.obstacles = this.obstacles.filter((o) => !((o.kind === "gold" || o.kind === "rock") && gone.has(Math.floor(o.y / 100) * size + Math.floor(o.x / 100))));
+    this.mines = this.mines.filter(([a]) => !gone.has(a));
+  }
+  finish() {
+    this.reachMines();
+    for (const t of this.tiles) t.obstacleRefs = [];
+    const size = this.size, map = { size, starts: this.starts, ...this.scouts ? { scouts: this.scouts } : {}, obstacles: this.obstacles, blocked: [], tiles: this.tiles, resources: [], navigationRevision: 0, generationAttempt: 0, ...this.separate ? { separate: true } : {}, ...this.walled ? { walled: true } : {}, ...this.nomad ? { nomad: true } : {}, ...this.lean ? { lean: [...this.lean] } : {} };
+    this.obstacles.forEach((o, index) => {
+      o.id = `obstacle-${index}`;
+      map.tiles[tileAt(o.x, o.y, size)].obstacleRefs.push(o.id);
+      if (!isBuilding(o)) {
+        const kind = o.kind === "rock" ? "stone" : o.kind;
+        const id = `resource-${index}`, capacity = terrainRules.resourceCapacity[kind];
+        map.resources.push({ id, kind, x: o.x, y: o.y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: o.id, depletedAt: null });
+        map.tiles[tileAt(o.x, o.y, size)].resourceRefs.push(id);
+      }
+    });
+    for (const t of this.fish) {
+      const x = t % size * 100 + 50, y = Math.floor(t / size) * 100 + 50, id = `resource-fish-${x}-${y}`, capacity = terrainRules.resourceCapacity.fish;
+      map.resources.push({ id, kind: "fish", x, y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: null, depletedAt: null });
+      map.tiles[t].resourceRefs.push(id);
+    }
+    for (let i = 0; i < nodeTotal(map); i++) if (!clearSegment(map, position(map, i), position(map, i))) map.blocked.push(i);
+    map.animals = [];
+    const closed = blockedTable(map);
+    for (let i = 0; i < this.spots.length; i++) {
+      const s = this.spots[i], before = map.animals.length;
+      flock(map, s.kind, s.x, s.y, s.count, s.within, s.owner, s.open);
+      const twin = this.spots[i + 1], m = this.mirrorPoint(s.x, s.y);
+      if (!twin || twin.kind !== s.kind || twin.count !== s.count || twin.x !== m.x || twin.y !== m.y) continue;
+      const held = new Set([...map.starts.flat(), ...map.scouts ?? [], ...map.animals].map((p) => nodeAt(map, p))), mirrored = map.animals.slice(before).map((a) => ({ kind: a.kind, ...this.mirrorPoint(a.x, a.y), ...twin.owner === void 0 ? {} : { owner: twin.owner } }));
+      if (mirrored.length && mirrored.every((a) => {
+        const n = nodeAt(map, a);
+        return n >= 0 && !closed[n] && !held.has(n);
+      })) {
+        map.animals.push(...mirrored);
+        i++;
+      }
+    }
+    return map;
+  }
+};
+
+// packages/sim/maps/land.ts
+var landMapRules = {
+  provenance: "design_default after aoetw.com maps pages (2026-10-02)",
+  // 阿拉伯: the site's 8 sheep, 2 boar, 3-4 deer, 3 gold and 2 stone at this game's scale is the standard kit with its
+  // second boar and four deer; little wood (fewer, smaller clumps), no water, desert patches.
+  arabia: { bases: [0.29, 0.34], sand: 0.6, forests: { clumps: 6, size: [5, 9], clearance: 1e3 }, border: 0.25, neutral: { gold: 1, rock: 1, ring: [0, 700] } },
+  // 黑森林: forest everywhere but each base's clearing, a clearing in the middle and a winding road from each base to it.
+  "black-forest": { bases: [0.3, 0.33], kitScale: 0.8, clearing: 820, middle: 400, road: 150, density: 0.9, neutral: { gold: 1, rock: 1, ring: [0, 350] } },
+  // 蒙古高原: plateaus (height 100, cliffs round them) each with one ramp, some carrying gold or stone.
+  mongolia: { bases: [0.3, 0.34], plateaus: 3, radius: [2, 3], ring: [650, 1350], clearance: 950, forests: { clumps: 8, size: [5, 10], clearance: 1e3 }, border: 0.35 },
+  // 淘金潮: bases near the edge with their kit's single gold pile; a desert centre with a big gold field and many wolves.
+  "gold-rush": { bases: [0.37, 0.4], desert: 750, gold: { pairs: 5, ring: [0, 450] }, wolves: { pairs: 4, ring: [450, 900] }, stone: 1, forests: { clumps: 8, size: [5, 10], clearance: 950 }, border: 0.4 },
+  // 猶加敦: more food by each town centre (deer, sheep, berries), jaguars, thick jungle.
+  yucatan: { bases: [0.3, 0.34], forests: { clumps: 12, size: [6, 12], clearance: 1e3 }, border: 0.5, jaguars: { pairs: 2, ring: [0, 1500] }, neutral: { gold: 1, rock: 1, ring: [0, 700] } },
+  // 鬼湖: a frozen lake in the middle (ice: walkable, nothing built or found on it), fewer deer, more gold and stone,
+  // wood in small clumps, wolves; the ground is snow.
+  "ghost-lake": { bases: [0.34, 0.37], ice: 650, forests: { clumps: 16, size: [3, 5], clearance: 900 }, border: 0.25, neutral: { gold: 2, rock: 2, ring: [800, 1300] }, wolves: { pairs: 2, ring: [700, 1400] } },
+  // 火山湖 (no page on the site; the classic map): a mountain in the middle with a lake in its crater, two ramps up.
+  "crater-lake": { bases: [0.33, 0.37], mountain: 650, crater: 260, fish: 2, gold: { pairs: 2, ring: [350, 600] }, forests: { clumps: 9, size: [5, 10], clearance: 1e3 }, border: 0.4 }
+};
+var arabiaKit = () => [...standardKit.map((i) => i.kind === "hunt" ? { ...i, count: 4 } : i), { kind: "boar", dx: -760, dy: 620 }];
+function arabia(seed) {
+  const R = landMapRules.arabia, b = new MapBuilder(seed, "rotate", "arabia");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y) => b.smooth(x, y) > R.sand ? "sand" : null);
+  b.kit(arabiaKit());
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function blackForest(seed) {
+  const R = landMapRules["black-forest"], b = new MapBuilder(seed, "rotate", "black-forest");
+  b.bases(null, [...R.bases]);
+  b.kit(standardKit.map((i) => {
+    const k = Math.max(R.kitScale, 520 / Math.hypot(i.dx, i.dy));
+    return { ...i, dx: Math.round(i.dx * k), dy: Math.round(i.dy * k) };
+  }));
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring], 600);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring], 600);
+  const road = (tx, ty) => {
+    const px = tx * 100 + 50, py = ty * 100 + 50;
+    for (const base of b.centres) {
+      const dx = b.mid - base.x, dy = b.mid - base.y, len = Math.hypot(dx, dy), t = Math.max(0, Math.min(1, ((px - base.x) * dx + (py - base.y) * dy) / (len * len))), bend = (b.noise(tx >> 1, ty >> 1) - 0.5) * 120;
+      if (Math.hypot(px - (base.x + dx * t), py - (base.y + dy * t)) <= R.road + bend) return true;
+    }
+    return false;
+  };
+  for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) {
+    const d = Math.hypot(tx * 100 + 50 - b.mid, ty * 100 + 50 - b.mid);
+    if (b.baseDistance(tx, ty) < R.clearing || d < R.middle || road(tx, ty) || b.noise(tx, ty) > R.density) continue;
+    if (b.pairFree(tx, ty, 0)) b.pair("tree", tx, ty);
+  }
+  return b.finish();
+}
+function plateau(b, cx, cy, r) {
+  for (let ty = cy - r - 1; ty <= cy + r + 1; ty++) for (let tx = cx - r - 1; tx <= cx + r + 1; tx++) if (b.inside(tx, ty) && Math.hypot(tx - cx, ty - cy) <= r + 0.4 * (b.noise(tx, ty) - 0.5)) b.set(tx, ty, "highland", 100);
+  const vx = b.mid / 100 - 0.5 - cx, vy = b.mid / 100 - 0.5 - cy, dx = Math.abs(vx) >= Math.abs(vy) ? Math.sign(vx) || 1 : 0, dy = dx ? 0 : Math.sign(vy) || 1;
+  let x = cx, y = cy;
+  while (b.inside(x, y) && b.tile(x, y).height === 100) {
+    x += dx;
+    y += dy;
+  }
+  for (let k = 0; k < 3; k++) for (let w2 = 0; w2 < 2; w2++) {
+    const tx = x + dx * k + (dx ? 0 : w2), ty = y + dy * k + (dy ? 0 : w2);
+    if (b.inside(tx, ty)) b.set(tx, ty, "highland", 75 - 25 * k, false);
+  }
+}
+function mongolia(seed) {
+  const R = landMapRules.mongolia, b = new MapBuilder(seed, "rotate", "mongolia");
+  b.bases(null, [...R.bases]);
+  const tops = [];
+  for (let i = 0; i < R.plateaus; i++) {
+    const at2 = b.pick((x, y) => b.baseDistance(x, y) >= R.clearance + R.radius[1] * 100 && tops.every(([px, py]) => Math.hypot(px - x, py - y) > R.radius[1] * 2 + 3) && (() => {
+      const [mx, my] = b.mirrorTile(x, y);
+      return Math.hypot(mx - x, my - y) > R.radius[1] * 2 + 4;
+    })(), [...R.ring]);
+    if (!at2) continue;
+    const r = b.int(R.radius[0], R.radius[1]);
+    plateau(b, at2[0], at2[1], r);
+    tops.push(at2);
+  }
+  b.kit(standardKit);
+  tops.forEach(([x, y], i) => {
+    if (b.pairFree(x, y, 2)) b.pair(i % 2 ? "rock" : "gold", x, y);
+  });
+  b.neutral("gold", 1, [0, 700]);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function goldRush(seed) {
+  const R = landMapRules["gold-rush"], b = new MapBuilder(seed, "rotate", "gold-rush");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y, d) => d < R.desert + 120 * (b.noise(x, y) - 0.5) ? "sand" : null);
+  b.kit(standardKit);
+  b.neutral("gold", R.gold.pairs, [...R.gold.ring], 900, 2);
+  b.neutral("rock", R.stone, [600, 1100]);
+  b.animals("wolf", R.wolves.pairs, 1, [...R.wolves.ring], () => true, 800);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, (x, y) => Math.hypot(x * 100 + 50 - b.mid, y * 100 + 50 - b.mid) > R.desert);
+  b.border(R.border, 700);
+  return b.finish();
+}
+var yucatanKit = () => [...standardKit, { kind: "berries", dx: 560, dy: 380 }, { kind: "livestock", dx: 420, dy: -600, count: 2 }, { kind: "hunt", dx: -700, dy: 760, count: 3 }];
+function yucatan(seed) {
+  const R = landMapRules.yucatan, b = new MapBuilder(seed, "rotate", "yucatan");
+  b.bases(null, [...R.bases]);
+  b.kit(yucatanKit());
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.animals("jaguar", R.jaguars.pairs, 1, [...R.jaguars.ring]);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+var ghostKit = () => standardKit.map((i) => i.kind === "hunt" ? { ...i, count: 2 } : i);
+function ghostLake(seed) {
+  const R = landMapRules["ghost-lake"], b = new MapBuilder(seed, "rotate", "ghost-lake");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y, d) => d < R.ice + 140 * (b.smooth(x, y) - 0.5) ? "ice" : "snow");
+  b.kit(ghostKit());
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.animals("wolf", R.wolves.pairs, 1, [...R.wolves.ring]);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 700);
+  return b.finish();
+}
+function craterLake(seed) {
+  const R = landMapRules["crater-lake"], b = new MapBuilder(seed, "rotate", "crater-lake");
+  b.bases(null, [...R.bases]);
+  b.paint((x2, y2, d) => d < R.crater ? { type: "water", height: 100 } : d < R.mountain + 90 * (b.noise(x2, y2) - 0.5) ? { type: "highland", height: 100 } : null);
+  const c = b.centres[0], across = Math.abs(c.x - b.mid) >= Math.abs(c.y - b.mid), dx = across ? 0 : c.x >= b.mid ? 1 : -1, dy = across ? c.y >= b.mid ? 1 : -1 : 0;
+  let x = Math.floor(b.mid / 100) - (dx < 0 ? 1 : 0), y = Math.floor(b.mid / 100) - (dy < 0 ? 1 : 0);
+  while (b.inside(x, y) && b.tile(x, y).height === 100) {
+    x += dx;
+    y += dy;
+  }
+  for (let k = 0; k < 3; k++) for (let w2 = -1; w2 <= 0; w2++) {
+    const tx = x + dx * k + (dx ? 0 : w2), ty = y + dy * k + (dy ? 0 : w2);
+    if (b.inside(tx, ty)) b.set(tx, ty, "highland", 75 - 25 * k, false);
+  }
+  b.kit(standardKit);
+  b.fishIn(R.fish, "shore", 200, (tx, ty) => b.tile(tx, ty).height === 100);
+  b.neutral("gold", R.gold.pairs, [...R.gold.ring], 700);
+  b.neutral("rock", 1, [700, 1100]);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, (tx, ty) => b.tile(tx, ty).height === 0);
+  b.border(R.border, 750);
+  return b.finish();
+}
+
+// packages/sim/maps/water.ts
+var waterMapRules = {
+  provenance: "design_default after aoetw.com maps pages (2026-10-02)",
+  // 沿海: the sea along one side (half the map the site says; here the south third), both bases on the land side.
+  coastal: { angle: [200, 235], bases: [0.3, 0.34], sea: 21, shoreJitter: 3, beach: 4, fish: { shore: 3, deep: 3 }, forests: { clumps: 9, size: [5, 10], clearance: 850 }, border: 0.4 },
+  // 地中海: a sea in the middle, land all round it.
+  mediterranean: { bases: [0.36, 0.4], sea: 780, shoreRoad: 400, fish: { shore: 2, deep: 4 }, neutral: { gold: 1, rock: 1, ring: [1e3, 1400] }, forests: { clumps: 10, size: [5, 10], clearance: 1e3 }, border: 0.45 },
+  // 波羅的海: most of the map is sea; the bases sit in opposite corners of the narrow land strip round it.
+  baltic: { bases: [0.42, 0.44], sea: 1e3, keep: 800, corner: 650, shoreRoad: 500, fish: { shore: 3, deep: 5 }, forests: { clumps: 8, size: [4, 8], clearance: 900 }, border: 0.35 },
+  // 大陸: a continent ringed by sea, with an isolated island in a lake in the middle (gold on it); more gold, little wood.
+  continental: { bases: [0.28, 0.32], edge: 3, lake: 430, island: 190, fish: { shore: 2, deep: 3 }, neutral: { gold: 2, rock: 1, ring: [600, 1100] }, forests: { clumps: 6, size: [5, 9], clearance: 950 } },
+  // 河流: a river down the middle and a branch on each side, crossed by shallow fords.
+  rivers: { bases: [0.3, 0.33], fords: [[5, 7], [15, 16], [25, 27]], branchFord: 2, fish: { shore: 3 }, forests: { clumps: 9, size: [5, 10], clearance: 1e3 }, border: 0.4 },
+  // 高地 (高原): one river with two fords, plateaus with cliffs, thick forest.
+  highland: { bases: [0.3, 0.33], fords: [[8, 10], [22, 24]], plateaus: 2, fish: { shore: 2 }, forests: { clumps: 14, size: [7, 13], clearance: 1e3 }, border: 0.6 },
+  // 綠洲: desert, a lake in the middle ringed by palms (four gaps), little wood elsewhere.
+  oasis: { bases: [0.34, 0.38], lake: 350, ring: [450, 820], palms: 0.22, fish: { shore: 2 }, forests: { clumps: 3, size: [4, 7], clearance: 1e3 }, border: 0.15 },
+  // 斯堪地維亞: two long fjords with fish at the edges, three boar and many deer per base, gold in the middle, low stone.
+  scandinavia: { bases: [0.3, 0.34], fjord: { length: 10, from: [6, 12] }, fish: { shore: 3 }, gold: { pairs: 2, ring: [0, 400] }, forests: { clumps: 12, size: [7, 12], clearance: 1e3 }, border: 0.6 },
+  // 鹽沼地: marsh: shallows everywhere (walkable, not buildable) and pools of water, land islands with woods.
+  "salt-marsh": { bases: [0.3, 0.34], shallow: [0.5, 0.62], keep: 900, fish: { shore: 2 }, forests: { clumps: 10, size: [5, 9], clearance: 950 }, border: 0.3 }
+};
+function coastal(seed) {
+  const R = waterMapRules.coastal, b = new MapBuilder(seed, "mirrorX", "coastal");
+  b.bases((R.angle[0] + b.random() * (R.angle[1] - R.angle[0])) * Math.PI / 180, [...R.bases]);
+  const sea = (tx) => R.sea + Math.floor(b.smooth(Math.min(tx, b.size - 1 - tx), R.sea) * R.shoreJitter);
+  b.paint((tx, ty) => ty >= sea(tx) ? "water" : ty === sea(tx) - 1 ? "sand" : null);
+  b.kit(standardKit);
+  b.neutral("gold", 1, [300, 900]);
+  b.neutral("rock", 1, [300, 900]);
+  b.fishIn(R.fish.shore, "shore");
+  b.fishIn(R.fish.deep, "deep");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, (tx, ty) => ty < sea(tx) - R.beach);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function mediterranean(seed) {
+  const R = waterMapRules.mediterranean, b = new MapBuilder(seed, "rotate", "mediterranean");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y, d) => b.baseDistance(x, y) < 750 ? null : d < R.sea + 160 * (b.smooth(x, y) - 0.5) ? "water" : d < R.sea + 160 * (b.smooth(x, y) - 0.5) + 100 ? "sand" : null);
+  b.kit(standardKit);
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.fishIn(R.fish.shore, "shore");
+  b.fishIn(R.fish.deep, "deep");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, (x, y) => Math.hypot(x * 100 + 50 - b.mid, y * 100 + 50 - b.mid) > R.sea + R.shoreRoad);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function baltic(seed) {
+  const R = waterMapRules.baltic, b = new MapBuilder(seed, "rotate", "baltic");
+  b.bases((45 + 90 * Math.floor(b.random() * 4)) * Math.PI / 180, [...R.bases]);
+  b.paint((x, y, d) => d < R.sea + 140 * (b.smooth(x, y) - 0.5) && b.baseDistance(x, y) > R.keep ? "water" : null);
+  b.kit(standardKit);
+  b.neutral("gold", 1, [1200, 1700]);
+  b.neutral("rock", 1, [1200, 1700]);
+  b.fishIn(R.fish.shore, "shore");
+  b.fishIn(R.fish.deep, "deep");
+  const corner = (x, y) => Math.min(Math.abs(x * 100 + 50 - b.mid), Math.abs(y * 100 + 50 - b.mid)) > R.corner && Math.hypot(x * 100 + 50 - b.mid, y * 100 + 50 - b.mid) > R.sea + R.shoreRoad;
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, corner);
+  for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) if ((tx === 0 || ty === 0 || tx === b.size - 1 || ty === b.size - 1) && corner(tx, ty) && b.noise(tx, ty) < R.border && b.pairFree(tx, ty, 0) && b.baseDistance(tx, ty) >= 700) b.pair("tree", tx, ty);
+  return b.finish();
+}
+function continental(seed) {
+  const R = waterMapRules.continental, b = new MapBuilder(seed, "rotate", "continental");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y, d) => {
+    const edge = Math.min(x, y, b.size - 1 - x, b.size - 1 - y);
+    return edge < R.edge + Math.floor(b.smooth(x, y) * 2) ? "water" : d < R.island ? "grass" : d < R.lake ? "water" : null;
+  });
+  b.kit(standardKit);
+  for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) if (Math.hypot(tx * 100 + 50 - b.mid, ty * 100 + 50 - b.mid) < R.island && b.pairFree(tx, ty, 0) && (tx + ty) % 2 === 0) {
+    b.pair("gold", tx, ty);
+    b.isolated.add(ty * b.size + tx);
+  }
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.fishIn(R.fish.shore, "shore", 200, (x, y) => Math.hypot(x * 100 + 50 - b.mid, y * 100 + 50 - b.mid) < R.lake + 100);
+  b.fishIn(R.fish.deep, "deep");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  return b.finish();
+}
+function river(b, fords) {
+  b.paint((tx, ty) => {
+    const wide = b.smooth(15, ty) > 0.55, half = wide ? 2 : 1;
+    if (Math.abs(tx + 0.5 - b.size / 2) > half) return null;
+    return fords.some(([a, z]) => ty >= a && ty <= z) ? "shallow" : "water";
+  });
+}
+function rivers(seed) {
+  const R = waterMapRules.rivers, b = new MapBuilder(seed, "mirrorX", "rivers");
+  b.bases((170 + b.random() * 20) * Math.PI / 180, [...R.bases]);
+  river(b, R.fords);
+  const c = b.centres[0], cy = Math.floor(c.y / 100), row = cy >= b.size / 2 ? Math.max(3, cy - 8) : Math.min(b.size - 5, cy + 8), ford = b.int(3, 9);
+  for (let tx = 0; tx < 15; tx++) for (const ty of [row, row + 1]) b.set(tx, ty, tx >= ford && tx < ford + R.branchFord ? "shallow" : "water");
+  b.kit(standardKit);
+  b.neutral("gold", 1, [400, 1200]);
+  b.neutral("rock", 1, [400, 1200]);
+  b.fishIn(R.fish.shore, "shore");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function highland(seed) {
+  const R = waterMapRules.highland, b = new MapBuilder(seed, "mirrorX", "highland");
+  b.bases((170 + b.random() * 20) * Math.PI / 180, [...R.bases]);
+  river(b, R.fords);
+  for (let i = 0; i < R.plateaus; i++) {
+    const at2 = b.pick((x, y) => x >= 3 && x <= 10 && y >= 3 && y <= b.size - 4 && b.baseDistance(x, y) >= 850, [400, 1500], void 0, 120);
+    if (!at2) continue;
+    const [cx, cy] = at2;
+    for (let ty = cy - 2; ty <= cy + 2; ty++) for (let tx = cx - 2; tx <= cx + 2; tx++) if (b.inside(tx, ty) && Math.hypot(tx - cx, ty - cy) <= 2.2) b.set(tx, ty, "highland", 100);
+    for (let k = 0; k < 3; k++) for (const ty of [cy, cy + 1]) if (b.inside(cx + 3 + k, ty)) b.set(cx + 3 + k, ty, "highland", 75 - 25 * k, false);
+  }
+  b.kit(standardKit);
+  b.neutral("gold", 1, [500, 1300]);
+  b.neutral("rock", 1, [500, 1300]);
+  b.fishIn(R.fish.shore, "shore");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function oasis(seed) {
+  const R = waterMapRules.oasis, b = new MapBuilder(seed, "rotate", "oasis");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y, d) => d < R.lake ? "water" : "sand");
+  b.kit(standardKit);
+  for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) {
+    const x = tx * 100 + 50 - b.mid, y = ty * 100 + 50 - b.mid, d = Math.hypot(x, y), a = Math.atan2(y, x), gap = Math.abs(Math.sin(2 * a)) < 0.3;
+    if (d >= R.ring[0] && d <= R.ring[1] && !gap && b.noise(tx, ty) > R.palms && b.pairFree(tx, ty, 1) && b.baseDistance(tx, ty) >= 600) b.pair("tree", tx, ty);
+  }
+  b.neutral("gold", 1, [900, 1400]);
+  b.neutral("rock", 1, [900, 1400]);
+  b.fishIn(R.fish.shore, "shore", 200);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, (x, y) => Math.hypot(x * 100 + 50 - b.mid, y * 100 + 50 - b.mid) > R.ring[1]);
+  b.border(R.border, 750);
+  return b.finish();
+}
+var scandinaviaKit = () => [...standardKit, { kind: "boar", dx: -760, dy: 620 }, { kind: "boar", dx: 0, dy: -960 }, { kind: "hunt", dx: 640, dy: -720, count: 3 }];
+function scandinavia(seed) {
+  const R = waterMapRules.scandinavia, b = new MapBuilder(seed, "rotate", "scandinavia");
+  b.bases(null, [...R.bases]);
+  const cy = Math.floor(b.centres[0].y / 100), cx = Math.floor(b.centres[0].x / 100), rows = [R.fjord.from[0], R.fjord.from[1], b.size - 1 - R.fjord.from[1], b.size - 1 - R.fjord.from[0]];
+  const row = rows.sort((p, q) => Math.abs(q - cy) - Math.abs(p - cy) || p - q)[0], west = cx >= b.size / 2;
+  for (let k = 0; k < R.fjord.length; k++) for (const ty of [row, row + 1]) {
+    const tx = west ? k : b.size - 1 - k;
+    b.set(tx, ty, "water");
+  }
+  b.kit(scandinaviaKit());
+  b.neutral("gold", R.gold.pairs, [...R.gold.ring], 900, 2);
+  b.fishIn(R.fish.shore, "shore", 200);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function saltMarsh(seed) {
+  const R = waterMapRules["salt-marsh"], b = new MapBuilder(seed, "rotate", "salt-marsh");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y) => {
+    if (b.baseDistance(x, y) < R.keep) return null;
+    const n = b.smooth(x, y);
+    return n > R.shallow[1] ? "water" : n > R.shallow[0] ? "shallow" : null;
+  });
+  b.kit(standardKit);
+  b.neutral("gold", 1, [300, 1100]);
+  b.neutral("rock", 1, [300, 1100]);
+  b.fishIn(R.fish.shore, "shore", 200);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+
+// packages/sim/maps/special.ts
+var nomadStock = { wood: 275, stone: 100 };
+var specialMapRules = {
+  provenance: "design_default after aoetw.com maps pages (2026-10-02)",
+  nomadStock,
+  // 堡壘: a stone wall ring (Chebyshev `ring` tiles from the town centre's tile; the map edge closes it where it leaves the
+  // map) with, inside, the site's 5 farms, 4 watch towers, 4 houses and a barracks (top-left tiles from the town centre's
+  // tile; the second player's town is the same turned half round). No gates: the players build them (the site names none).
+  // Columns within two tiles of the town centre stay clear north and south of it: both players' villagers start south of
+  // their own town centre, which on the turned second town is north. Farms (walkable) lie south of the first's.
+  fortress: {
+    bases: [0.3, 0.33],
+    ring: 7,
+    kitRadius: 560,
+    barracks: [[-5, -3]],
+    houses: [[3, -4], [3, 0], [-5, 1], [-5, -6]],
+    farms: [[-3, 3], [-1, 3], [1, 3], [-2, 5], [0, 5]],
+    towers: [[-6, -6], [6, -6], [-6, 6], [6, 6]],
+    neutral: { gold: 2, rock: 1, ring: [0, 800] },
+    deer: { pairs: 2, count: 3, ring: [500, 1300] },
+    forests: { clumps: 8, size: [5, 10], clearance: 1e3 },
+    border: 0.35
+  },
+  // 圍城: the same walled town in a forest that fills the map but for an open middle (the only way between the bases),
+  // a lane from each wall to it, gold and stone just outside each wall on that side, and small pockets with more.
+  // (A ring a tile wider than Fortress's: the town has to find room for its own barracks inside.)
+  arena: {
+    bases: [0.3, 0.33],
+    ring: 8,
+    kitRadius: 640,
+    gap: 150,
+    open: 700,
+    lane: 160,
+    density: 0.12,
+    outside: 450,
+    pockets: { pairs: 2, radius: 130, ring: [850, 1250] },
+    neutral: { gold: 2, rock: 1, berries: 1, ring: [0, 500] },
+    deer: { pairs: 2, count: 3, ring: [0, 600] }
+  },
+  // 游牧: sea on three sides (north, west, east: `sea` tiles), no town centre; each side's three villagers stand apart
+  // (offsets from where its kit lies) and there is no scout (the site: like Mountain Pass, no scout).
+  nomad: { bases: [0.25, 0.28], angle: [172, 188], sea: 3, jitter: 2, scatter: [[-200, -300], [340, -220], [100, 330]], fish: { shore: 3, deep: 3 }, neutral: { gold: 1, rock: 1, ring: [300, 1100] }, forests: { clumps: 9, size: [5, 10], clearance: 900 }, border: 0.3 },
+  // 移民: each side on a small islet near a corner, a mainland in the middle (no boar; the sheep are far, on the
+  // mainland's shore facing each islet). The islets carry wood, berries and shore fish only: gold and stone are the
+  // mainland's.
+  migration: { bases: [0.45, 0.46], islet: 540, strait: 260, edge: 2, trees: 10, fish: { shore: 3, deep: 3 }, mainlandSheep: { pairs: 2, count: 4 }, deer: { pairs: 2, count: 3 }, neutral: { gold: 2, rock: 2, berries: 1 }, forests: { clumps: 9, size: [5, 10] } },
+  // 島嶼: each side's own island; two islets (a mirrored pair, across the base axis) with gold and stone.
+  islands: { bases: [0.33, 0.35], island: 920, kitScale: 1, islets: [{ at: 1150, radius: 260, goods: ["gold", "rock"] }], fish: { shore: 3, deep: 4 }, forests: { clumps: 7, size: [5, 9], clearance: 480 } },
+  // 群島: smaller home islands and four islets: one pair bare, one pair rich (gold, stone, wood and food).
+  archipelago: { bases: [0.33, 0.35], island: 820, kitScale: 1, islets: [{ at: 1250, radius: 200, goods: [] }, { at: 620, radius: 250, goods: ["gold", "rock", "tree", "berries"] }], fish: { shore: 4, deep: 4 }, forests: { clumps: 6, size: [4, 8], clearance: 480 } },
+  // 團隊群島: with one player a side, each side's team island is a whole half of the map, split by a channel through the
+  // middle and ringed by sea.
+  "team-islands": { bases: [0.3, 0.33], edge: 2, channel: 1.6, fish: { shore: 4, deep: 4 }, neutral: { gold: 1, rock: 1 }, forests: { clumps: 9, size: [5, 10], clearance: 950 }, border: 0.35 }
+};
+function walledKit(radius) {
+  const at2 = (deg) => ({ dx: Math.round(Math.cos(deg * Math.PI / 180) * radius), dy: Math.round(Math.sin(deg * Math.PI / 180) * radius) });
+  return [
+    { kind: "tree", ...at2(-90), group: 2 },
+    { kind: "tree", ...at2(-130), group: 2 },
+    { kind: "tree", ...at2(-50), group: 2 },
+    { kind: "gold", ...at2(0) },
+    { kind: "rock", ...at2(180) },
+    { kind: "berries", ...at2(40) },
+    { kind: "livestock", ...at2(140), count: 4 },
+    { kind: "boar", ...at2(70) },
+    { kind: "livestock", ...at2(110), count: 2 }
+  ];
+}
+var homeTile = (b) => {
+  const c = b.centres[0];
+  return [Math.floor(c.x / 100), Math.floor(c.y / 100)];
+};
+function wallRing(b, ring) {
+  const [cx, cy] = homeTile(b);
+  for (let ty = cy - ring; ty <= cy + ring; ty++) for (let tx = cx - ring; tx <= cx + ring; tx++) if (Math.max(Math.abs(tx - cx), Math.abs(ty - cy)) === ring && b.inside(tx, ty)) b.pairBuilding("stone-wall", tx * 100, ty * 100);
+}
+var insideRing = (b, ring) => (tx, ty) => {
+  const [cx, cy] = homeTile(b), [mx, my] = b.mirrorTile(cx, cy);
+  return Math.max(Math.abs(tx - cx), Math.abs(ty - cy)) < ring || Math.max(Math.abs(tx - mx), Math.abs(ty - my)) < ring;
+};
+function fortress(seed) {
+  const R = specialMapRules.fortress, b = new MapBuilder(seed, "rotate", "fortress");
+  b.bases(null, [...R.bases]);
+  b.walled = true;
+  wallRing(b, R.ring);
+  const [cx, cy] = homeTile(b);
+  for (const [dx, dy] of R.barracks) b.pairBuilding("barracks", (cx + dx) * 100 + 15, (cy + dy) * 100 + 15);
+  for (const [dx, dy] of R.houses) b.pairBuilding("house", (cx + dx) * 100 + 15, (cy + dy) * 100 + 15);
+  for (const [dx, dy] of R.farms) b.pairBuilding("farm", (cx + dx) * 100, (cy + dy) * 100);
+  for (const [dx, dy] of R.towers) b.pairBuilding("watch-tower", (cx + dx) * 100, (cy + dy) * 100);
+  b.kit(walledKit(R.kitRadius));
+  const inside = insideRing(b, R.ring + 1);
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.animals("hunt", R.deer.pairs, R.deer.count, [...R.deer.ring], (x, y) => !inside(x, y));
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, (x, y) => !inside(x, y));
+  b.border(R.border, 900);
+  return b.finish();
+}
+function arena(seed) {
+  const R = specialMapRules.arena, b = new MapBuilder(seed, "rotate", "arena");
+  b.bases(null, [...R.bases]);
+  b.walled = true;
+  wallRing(b, R.ring);
+  b.kit(walledKit(R.kitRadius));
+  const inside = insideRing(b, R.ring + 1), c0 = b.centres[0];
+  const toMid = Math.atan2(b.mid - c0.y, b.mid - c0.x), out = (d, turn) => [Math.floor((c0.x + Math.cos(toMid + turn) * d) / 100), Math.floor((c0.y + Math.sin(toMid + turn) * d) / 100)];
+  for (const [kind, turn] of [["gold", -0.5], ["rock", 0.5]]) {
+    for (const extra of [0, 100, 200]) {
+      const [tx, ty] = out(R.ring * 100 + R.outside - 300 + extra, turn);
+      if (b.pairFree(tx, ty, 1) && !inside(tx, ty)) {
+        b.pair(kind, tx, ty);
+        break;
+      }
+    }
+  }
+  const pockets = [];
+  for (let i = 0; i < R.pockets.pairs; i++) {
+    const at2 = b.pick((x, y) => b.pairFree(x, y, 2) && b.baseDistance(x, y) >= 1e3 && !inside(x, y), [...R.pockets.ring]);
+    if (!at2) continue;
+    b.pair(i % 2 ? "rock" : "gold", at2[0], at2[1]);
+    pockets.push({ x: at2[0] * 100 + 50, y: at2[1] * 100 + 50 });
+  }
+  const nearSegment = (px, py, a, z, w2) => {
+    const dx = z.x - a.x, dy = z.y - a.y, len = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((px - a.x) * dx + (py - a.y) * dy) / len));
+    return Math.hypot(px - (a.x + dx * t), py - (a.y + dy * t)) <= w2;
+  };
+  const middle = { x: b.mid, y: b.mid }, bases = b.centres.map((c) => ({ x: c.x, y: c.y })), pocketsAll = pockets.flatMap((p) => [p, b.mirrorPoint(p.x, p.y)]);
+  const clear = (tx, ty) => {
+    const px = tx * 100 + 50, py = ty * 100 + 50;
+    if (Math.hypot(px - b.mid, py - b.mid) < R.open) return true;
+    if (b.baseDistance(tx, ty) < R.ring * 100 + R.gap + 150) return true;
+    if (bases.some((c) => nearSegment(px, py, c, middle, R.lane))) return true;
+    return pocketsAll.some((p) => Math.hypot(px - p.x, py - p.y) <= R.pockets.radius + 60 || nearSegment(px, py, p, middle, 60));
+  };
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring], 800);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring], 800);
+  b.neutral("berries", R.neutral.berries, [...R.neutral.ring], 800);
+  b.animals("hunt", R.deer.pairs, R.deer.count, [...R.deer.ring], void 0, 800);
+  for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) {
+    const [mx, my] = b.mirrorTile(tx, ty);
+    if (my * b.size + mx < ty * b.size + tx || clear(tx, ty) || b.noise(tx, ty) < R.density) continue;
+    if (b.pairFree(tx, ty, 0)) b.pair("tree", tx, ty);
+  }
+  return b.finish();
+}
+function nomad(seed) {
+  const R = specialMapRules.nomad, b = new MapBuilder(seed, "mirrorX", "nomad");
+  b.bases((R.angle[0] + b.random() * (R.angle[1] - R.angle[0])) * Math.PI / 180, [...R.bases]);
+  b.nomad = true;
+  b.paint((tx, ty) => {
+    const j = Math.floor(b.smooth(Math.min(tx, b.size - 1 - tx), ty) * R.jitter);
+    return Math.min(tx, b.size - 1 - tx) < R.sea + j || ty < R.sea + j ? "water" : null;
+  });
+  b.kit(standardKit);
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.fishIn(R.fish.shore, "shore");
+  b.fishIn(R.fish.deep, "deep");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  b.obstacles = b.obstacles.filter((o) => o.kind !== "town-center");
+  b.scouts = void 0;
+  const c = b.centres[0], grid = (p) => ({ x: Math.round(p.x / 50) * 50, y: Math.round(p.y / 50) * 50 });
+  const first = R.scatter.map(([dx, dy]) => grid({ x: c.x + dx, y: c.y + dy }));
+  b.starts = [first, first.map((p) => grid(b.mirrorPoint(p.x, p.y)))];
+  return b.finish();
+}
+var disc = (b, tx, ty, x, y, r, rag = 120) => Math.hypot(tx * 100 + 50 - x, ty * 100 + 50 - y) < r + rag * (b.smooth(tx, ty) - 0.5);
+function migration(seed) {
+  const R = specialMapRules.migration, b = new MapBuilder(seed, "rotate", "migration");
+  b.bases((45 + 90 * Math.floor(b.random() * 4)) * Math.PI / 180, [...R.bases]);
+  b.separate = true;
+  b.lean = ["gold", "stone"];
+  const c0 = b.centres[0], c1 = b.centres[1];
+  const main = (tx, ty) => Math.min(tx, ty, b.size - 1 - tx, b.size - 1 - ty) >= R.edge && [c0, c1].every((c) => Math.hypot(tx * 100 + 50 - c.x, ty * 100 + 50 - c.y) >= R.islet + 40 + R.strait);
+  b.paint((tx, ty) => disc(b, tx, ty, c0.x, c0.y, R.islet, 80) || disc(b, tx, ty, c1.x, c1.y, R.islet, 80) || main(tx, ty) ? null : "water");
+  const islet = [];
+  for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) {
+    const d = Math.hypot(tx * 100 + 50 - c0.x, ty * 100 + 50 - c0.y);
+    if (d < R.islet + 60 && d > 260 && b.tile(tx, ty).walkClass === "land" && !b.taken.has(ty * b.size + tx)) islet.push([tx, ty]);
+  }
+  const away = (tx, ty) => {
+    const a = Math.atan2(ty * 100 + 50 - c0.y, tx * 100 + 50 - c0.x), south = Math.PI / 2;
+    return Math.abs(Math.atan2(Math.sin(a - south), Math.cos(a - south))) > 0.9;
+  };
+  const spots = islet.filter(([x, y]) => away(x, y)).sort((p, q) => Math.atan2(p[1] * 100 + 50 - c0.y, p[0] * 100 + 50 - c0.x) - Math.atan2(q[1] * 100 + 50 - c0.y, q[0] * 100 + 50 - c0.x));
+  let trees = 0, berries = false;
+  for (const [tx, ty] of spots) {
+    const [mx, my] = b.mirrorTile(tx, ty);
+    if (b.taken.has(ty * b.size + tx) || b.taken.has(my * b.size + mx)) continue;
+    if (!berries) {
+      b.pair("berries", tx, ty);
+      berries = true;
+      continue;
+    }
+    if (trees < R.trees) {
+      b.pair("tree", tx, ty);
+      trees++;
+    }
+  }
+  b.fishIn(R.fish.shore, "shore", 200, (x, y) => disc(b, x, y, c0.x, c0.y, R.islet + 250, 0) || disc(b, x, y, c1.x, c1.y, R.islet + 250, 0));
+  b.fishIn(R.fish.deep, "deep");
+  const onMain = (x, y) => main(x, y) && [c0, c1].every((c) => Math.hypot(x * 100 + 50 - c.x, y * 100 + 50 - c.y) >= R.islet + R.strait + 160);
+  for (let i = 0; i < R.mainlandSheep.pairs; i++) {
+    const at2 = b.pick((x, y) => onMain(x, y) && b.pairFree(x, y, 1) && Math.hypot(x * 100 + 50 - c0.x, y * 100 + 50 - c0.y) < Math.hypot(x * 100 + 50 - c1.x, y * 100 + 50 - c1.y), [R.islet + R.strait + 250, R.islet + R.strait + 600], { x: c0.x, y: c0.y });
+    if (at2) b.pair("livestock", at2[0], at2[1], void 0, R.mainlandSheep.count);
+  }
+  for (const [kind, pairs] of [["gold", R.neutral.gold], ["rock", R.neutral.rock], ["berries", R.neutral.berries]]) for (let i = 0; i < pairs; i++) {
+    const at2 = b.pick((x, y) => onMain(x, y) && b.pairFree(x, y, 1), [0, 1500]);
+    if (at2) b.pair(kind, at2[0], at2[1]);
+  }
+  b.animals("hunt", R.deer.pairs, R.deer.count, [0, 1500], onMain, 0);
+  b.forests(R.forests.clumps, [...R.forests.size], 0, onMain);
+  for (const [a, z] of b.mines) {
+    b.isolated.add(a);
+    b.isolated.add(z);
+  }
+  return b.finish();
+}
+function islandMap(b, R) {
+  b.bases(null, [...R.bases]);
+  b.separate = true;
+  const c0 = b.centres[0], c1 = b.centres[1], axis = Math.atan2(c0.y - b.mid, c0.x - b.mid);
+  const islets = R.islets.map((i) => {
+    const a = axis + Math.PI / 2 + (i.turn ?? 0);
+    return { ...i, x: b.mid + Math.cos(a) * i.at, y: b.mid + Math.sin(a) * i.at };
+  });
+  const both = islets.flatMap((i) => [i, { ...i, ...b.mirrorPoint(i.x, i.y) }]);
+  const ux = Math.cos(axis), uy = Math.sin(axis), strait = (tx, ty) => Math.abs((tx * 100 + 50 - b.mid) * ux + (ty * 100 + 50 - b.mid) * uy) < 200;
+  const offIslets = (tx, ty) => both.every((i) => Math.hypot(tx * 100 + 50 - i.x, ty * 100 + 50 - i.y) >= i.radius + 260);
+  b.paint((tx, ty) => !strait(tx, ty) && offIslets(tx, ty) && (disc(b, tx, ty, c0.x, c0.y, R.island) || disc(b, tx, ty, c1.x, c1.y, R.island)) || both.some((i) => disc(b, tx, ty, i.x, i.y, i.radius, 60)) ? null : "water");
+  b.kit(standardKit.map((k) => ({ ...k, dx: Math.round(k.dx * R.kitScale), dy: Math.round(k.dy * R.kitScale) })));
+  const home = (x, y) => Math.hypot(x * 100 + 50 - c0.x, y * 100 + 50 - c0.y) < R.island - 150 || Math.hypot(x * 100 + 50 - c1.x, y * 100 + 50 - c1.y) < R.island - 150;
+  for (const i of islets) {
+    const tiles3 = [];
+    for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) if (Math.hypot(tx * 100 + 50 - i.x, ty * 100 + 50 - i.y) < i.radius - 40 && b.pairFree(tx, ty, 1)) tiles3.push([tx, ty]);
+    tiles3.sort((p, q) => Math.hypot(p[0] * 100 + 50 - i.x, p[1] * 100 + 50 - i.y) - Math.hypot(q[0] * 100 + 50 - i.x, q[1] * 100 + 50 - i.y) || p[0] - q[0] || p[1] - q[1]);
+    let k = 0;
+    for (const kind of i.goods) for (const [tx, ty] of tiles3.slice(k)) {
+      k++;
+      if (!b.pairFree(tx, ty, 1)) continue;
+      b.pair(kind === "berries" ? "berries" : kind, tx, ty);
+      if (kind === "gold" || kind === "rock") {
+        b.isolated.add(ty * b.size + tx);
+        const [mx, my] = b.mirrorTile(tx, ty);
+        b.isolated.add(my * b.size + mx);
+      }
+      break;
+    }
+  }
+  b.fishIn(R.fish.shore, "shore");
+  b.fishIn(R.fish.deep, "deep");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, home);
+  return b.finish();
+}
+function islands(seed) {
+  return islandMap(new MapBuilder(seed, "rotate", "islands"), specialMapRules.islands);
+}
+function archipelago(seed) {
+  return islandMap(new MapBuilder(seed, "rotate", "archipelago"), specialMapRules.archipelago);
+}
+function teamIslands(seed) {
+  const R = specialMapRules["team-islands"], b = new MapBuilder(seed, "rotate", "team-islands");
+  b.bases(null, [...R.bases]);
+  b.separate = true;
+  const c0 = b.centres[0], axis = Math.atan2(c0.y - b.mid, c0.x - b.mid), ux = Math.cos(axis), uy = Math.sin(axis);
+  b.paint((tx, ty) => {
+    const edge = Math.min(tx, ty, b.size - 1 - tx, b.size - 1 - ty), along = (tx * 100 + 50 - b.mid) * ux + (ty * 100 + 50 - b.mid) * uy;
+    return edge < R.edge || Math.abs(along) < R.channel * 100 + 60 * (b.smooth(tx, ty) - 0.5) ? "water" : null;
+  });
+  b.kit(standardKit);
+  const own = (x, y) => Math.abs((x * 100 + 50 - b.mid) * ux + (y * 100 + 50 - b.mid) * uy) > R.channel * 100 + 200;
+  b.neutral("gold", R.neutral.gold, [300, 1300]);
+  b.neutral("rock", R.neutral.rock, [300, 1300]);
+  b.fishIn(R.fish.shore, "shore");
+  b.fishIn(R.fish.deep, "deep");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, own);
+  b.border(R.border, 750);
+  return b.finish();
+}
+
+// packages/sim/maps/index.ts
+var generators = {
+  arabia,
+  "black-forest": blackForest,
+  coastal,
+  mediterranean,
+  baltic,
+  continental,
+  rivers,
+  highland,
+  "ghost-lake": ghostLake,
+  mongolia,
+  oasis,
+  scandinavia,
+  yucatan,
+  "gold-rush": goldRush,
+  "crater-lake": craterLake,
+  "salt-marsh": saltMarsh,
+  fortress,
+  arena,
+  nomad,
+  migration,
+  islands,
+  archipelago,
+  "team-islands": teamIslands
+};
+var isMatchMap = (layout) => matchMapLayouts.includes(layout);
+function generateMatchMap(seed, layout) {
+  return generators[layout](seed);
+}
+var matchMapRules = () => ({ standardKit, apron, land: landMapRules, water: waterMapRules, special: specialMapRules });
+
 // packages/sim/navigation.ts
 var navigationRules = { provenance: "design_default", spacing: 50, size: 31, radius: 25, expansionsPerTick: 128, speedPerTick: 5, maxGroupSize: 40, waitLimit: 8, queueWaitFactor: 4, detourLimit: 12, stuckTicks: 300, arrivalRadius: 150 };
 var startingResourceRules = { provenance: "design_default", maxApproachDistance: 1200, maxNearestDistanceDifference: 500, minimum: { tree: 300, stone: 250, gold: 250, berries: 150 } };
@@ -4182,6 +5277,7 @@ function makeMap(seed, layout = "meadow") {
 }
 function generateCandidate(seed, layout) {
   if (layout === "open" || layout === "lakes") return generateOpen(seed, layout === "lakes");
+  if (isMatchMap(layout)) return generateMatchMap(seed, layout);
   let rng = seed || 1;
   let obstacles = [{ kind: "town-center", x: 265, y: 350 }, { kind: "town-center", x: 1065, y: 350, red: true }];
   const woods = [];
@@ -4316,14 +5412,14 @@ function generateOpen(seed, lake = false) {
   };
   centres.forEach((c, player) => {
     kitOwner = player;
-    for (const item of R.kit) {
+    for (const item2 of R.kit) {
       let placed = false;
-      const d = Math.hypot(item.dx, item.dy), base = Math.atan2(item.dy, item.dx);
+      const d = Math.hypot(item2.dx, item2.dy), base = Math.atan2(item2.dy, item2.dx);
       for (let step2 = 0; step2 < 24 && !placed; step2++) {
         const a = base + (step2 % 2 ? -1 : 1) * Math.ceil(step2 / 2) * 15 * Math.PI / 180, tx = Math.floor((c.x + Math.cos(a) * d) / 100), ty = Math.floor((c.y + Math.sin(a) * d) / 100);
-        const cells = item.kind === "tree" ? [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 0], [0, -1]].slice(0, item.group ?? 1).map(([dx, dy]) => [tx + dx, ty + dy]) : [[tx, ty]];
+        const cells = item2.kind === "tree" ? [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 0], [0, -1]].slice(0, item2.group ?? 1).map(([dx, dy]) => [tx + dx, ty + dy]) : [[tx, ty]];
         if (cells.every(([x, y]) => free(x, y))) {
-          for (const [x, y] of cells) put(item.kind, x, y);
+          for (const [x, y] of cells) put(item2.kind, x, y);
           placed = true;
         }
       }
@@ -4451,7 +5547,7 @@ function clearSegment(map, a, b, movement = "land") {
     if (y < size - 1 && Math.abs(tile3.height - map.tiles[tile3.id + size].height) > maxStep && intersects(a, b, [x * 100 - radius, (y + 1) * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
     if (!canTraverse(tile3, movement) && intersects(a, b, [x * 100 - radius, y * 100 - radius, x * 100 + 100 + radius, y * 100 + 100 + radius])) return false;
   }
-  for (const o of map.obstacles) for (const [x0, y0, x1, y1] of obstacleRects(o, navigationRules.radius)) {
+  for (const o of obstaclesNear(map, a, b)) for (const [x0, y0, x1, y1] of obstacleRects(o, navigationRules.radius)) {
     let lo = 0, hi = 1;
     for (const [start, delta, min, max] of [[a.x, b.x - a.x, x0, x1], [a.y, b.y - a.y, y0, y1]]) {
       if (delta === 0) {
@@ -4468,6 +5564,26 @@ function clearSegment(map, a, b, movement = "land") {
     if (lo <= hi) return false;
   }
   return true;
+}
+var obstacleIndex = /* @__PURE__ */ new WeakMap();
+function obstaclesNear(map, a, b) {
+  let idx = obstacleIndex.get(map.obstacles);
+  if (!idx || idx.length !== map.obstacles.length) {
+    let refs = 0;
+    for (const t of map.tiles) refs += t.obstacleRefs.length;
+    const byId = /* @__PURE__ */ new Map();
+    for (const o of map.obstacles) if (o.id !== void 0) byId.set(o.id, o);
+    idx = { length: map.obstacles.length, byId: refs === map.obstacles.length && byId.size === map.obstacles.length && map.obstacles.length > 32 ? byId : null };
+    obstacleIndex.set(map.obstacles, idx);
+  }
+  if (!idx.byId) return map.obstacles;
+  const r = navigationRules.radius, size = map.size, tx0 = Math.max(0, Math.floor((Math.min(a.x, b.x) - r - 500) / 100)), tx1 = Math.min(size - 1, Math.floor((Math.max(a.x, b.x) + r + 20) / 100)), ty0 = Math.max(0, Math.floor((Math.min(a.y, b.y) - r - 500) / 100)), ty1 = Math.min(size - 1, Math.floor((Math.max(a.y, b.y) + r + 20) / 100));
+  const out = [];
+  for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) for (const id of map.tiles[ty * size + tx].obstacleRefs) {
+    const o = idx.byId.get(id);
+    if (o) out.push(o);
+  }
+  return out;
 }
 function intersects(a, b, box2) {
   let lo = 0, hi = 1;
@@ -4507,12 +5623,17 @@ function validateMap(map) {
   }
   const spawns = [...map.starts.flat(), ...map.scouts ?? [], ...map.animals ?? []];
   if (spawns.some((p) => !clearSegment(map, p, p))) errors.push("\u51FA\u751F\u9EDE\u4E0D\u53EF\u901A\u884C");
-  else {
-    const job = createPathJob(map, 0, map.starts[0][0], map.starts[1][0]);
-    advancePathJob(map, job, nodeTotal(map));
+  else if (!map.separate) {
+    const open2 = map.walled ? withoutWalls(map) : map, job = createPathJob(open2, 0, open2.starts[0][0], open2.starts[1][0]);
+    advancePathJob(open2, job, nodeTotal(open2));
     if (job.status !== "found") errors.push("\u73A9\u5BB6\u51FA\u751F\u5340\u4E92\u4E0D\u9023\u901A");
   }
   return errors;
+}
+var wallKinds2 = /* @__PURE__ */ new Set(["palisade-wall", "stone-wall", "palisade-gate", "gate"]);
+function withoutWalls(map) {
+  const gone = new Set(map.obstacles.filter((o) => wallKinds2.has(o.kind)).map((o) => o.id));
+  return { ...map, obstacles: map.obstacles.filter((o) => !gone.has(o.id)), tiles: map.tiles.map((t) => ({ ...t, obstacleRefs: t.obstacleRefs.filter((r) => !gone.has(r)) })), blocked: [] };
 }
 function position(map, id) {
   const side = sideOf(map);
@@ -4538,7 +5659,7 @@ function validateStartingResources(map) {
         frontier.push(next);
       }
     }
-    const access = Object.entries(startingResourceRules.minimum).map(([kind, minimum]) => {
+    const access = Object.entries(startingResourceRules.minimum).filter(([kind]) => !map.lean?.includes(kind)).map(([kind, minimum]) => {
       const nodes = map.resources.filter((r) => r.kind === kind && r.collectible && r.remaining > 0).map((resource) => {
         const obstacle = map.obstacles.find((o) => o.id === resource.obstacleId);
         if (!obstacle) return { id: resource.id, remaining: resource.remaining, distance: Infinity, approach: null };
@@ -4782,7 +5903,7 @@ async function createScene(canvas2, onFailure, options2 = {}) {
       rng ^= rng >>> 17;
       rng ^= rng << 5;
       const n = (rng >>> 0) / 4294967296;
-      groundBlock(x, z, tile3.height / 100, !options2.assetPreview && view.fog[tile3.id] !== 2 ? view.fog[tile3.id] === 1 ? "#626e64" : "#293e38" : tile3.terrainType === "cliff" ? "#8a8065" : tile3.terrainType === "stone" ? "#a1a28e" : tile3.terrainType === "highland" ? "#879d69" : tile3.terrainType === "water" ? deepWater(map.tiles, tile3.id) ? "#41768a" : "#4b8291" : tile3.terrainType === "shallow" ? "#86b7b8" : tile3.terrainType === "sand" ? "#d5c598" : tile3.terrainType === "road" ? "#c4b18a" : n < 0.2 ? "#a6b582" : n < 0.5 ? "#b5c493" : "#becda0");
+      groundBlock(x, z, tile3.height / 100, !options2.assetPreview && view.fog[tile3.id] !== 2 ? view.fog[tile3.id] === 1 ? "#626e64" : "#293e38" : tile3.terrainType === "cliff" ? "#8a8065" : tile3.terrainType === "stone" ? "#a1a28e" : tile3.terrainType === "highland" ? "#879d69" : tile3.terrainType === "water" ? deepWater(map.tiles, tile3.id) ? "#41768a" : "#4b8291" : tile3.terrainType === "shallow" ? "#86b7b8" : tile3.terrainType === "sand" ? "#d5c598" : tile3.terrainType === "ice" ? "#d9e6ea" : tile3.terrainType === "snow" ? "#e9ece4" : tile3.terrainType === "road" ? "#c4b18a" : n < 0.2 ? "#a6b582" : n < 0.5 ? "#b5c493" : "#becda0");
     }
     for (const tile3 of map.tiles) if (tile3.terrainType === "water" && (options2.assetPreview || view.fog[tile3.id] === 2)) {
       const tx = tile3.id % board, tz = Math.floor(tile3.id / board);
@@ -5430,7 +6551,7 @@ async function createScene(canvas2, onFailure, options2 = {}) {
         shoot(kind, g, { angle: Math.PI / 4, lift: 0.6 });
         shoot(`${kind}-face`, g, { angle: Math.PI / 4, lift: 0.6 });
       }
-      for (const kind of ["sheep", "deer", "boar"]) {
+      for (const kind of ["sheep", "deer", "boar", "wolf", "jaguar"]) {
         const rig = createAnimalRig(T, kind, 0, box2, material);
         rig.pose("idle", 0);
         const g = new T.Group();
@@ -5963,6 +7084,10 @@ var combatRules = {
     sheep: { hp: 7, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 0], classes: ["animal"], bonus: {} },
     deer: { hp: 5, damage: 0, range: 0, cooldown: 0, sight: 0, attack: "none", armor: [0, 0], classes: ["animal"], bonus: {} },
     boar: { hp: 75, damage: 8, range: 50, cooldown: 40, sight: 0, attack: "melee", armor: [0, 0], classes: ["animal"], bonus: {} },
+    // Wolf and jaguar (aoetw.com units/Wolf: 25 hit points, 3 melee attack, a blow every 2 s -> 20 ticks); they pick
+    // their own fights (animals.ts), so sight here stays 0 like the other animals.
+    wolf: { hp: 25, damage: 3, range: 50, cooldown: 20, sight: 0, attack: "melee", armor: [0, 0], classes: ["animal"], bonus: {} },
+    jaguar: { hp: 25, damage: 3, range: 50, cooldown: 20, sight: 0, attack: "melee", armor: [0, 0], classes: ["animal"], bonus: {} },
     // The counter units (after the reference's triangle): the spearman against cavalry, the skirmisher against archers,
     // the knight as heavy cavalry. Values design_default, in this game's scale.
     // Camels are their own class (aoetw: 駱駝, not 騎兵); the spear line's camel bonus keeps the site's ratio to its cavalry one.
@@ -6069,6 +7194,8 @@ var combatRules = {
     sheep: 5,
     deer: 10,
     boar: 5,
+    wolf: 8.75,
+    jaguar: 8.75,
     spearman: 5,
     skirmisher: 5,
     knight: 10,
@@ -6708,7 +7835,7 @@ var ramStep = (techs2 = []) => techs2.includes("siege-ram") ? "siege-ram" : tech
 
 // packages/sim/movement.ts
 var navigationStates = ["idle", "searching", "moving", "waiting", "unreachable", "stuck"];
-var unitKinds = ["villager", "militia", "archer", "scout", "monk", "sheep", "deer", "boar", "spearman", "skirmisher", "knight", "ram", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "cataphract", "war-elephant", "mameluke", "janissary", "chu-ko-nu", "samurai", "mangudai", "cavalry-archer", "camel", "mangonel", "scorpion", "trebuchet", "petard", "hand-cannoneer", "bombard-cannon", "fishing-ship", "transport-ship", "trade-cog", "trade-cart", "galley", "fire-galley", "demolition-raft", "cannon-galleon", "longboat"];
+var unitKinds = ["villager", "militia", "archer", "scout", "monk", "sheep", "deer", "boar", "spearman", "skirmisher", "knight", "ram", "longbowman", "woad-raider", "throwing-axeman", "huskarl", "teutonic-knight", "berserk", "cataphract", "war-elephant", "mameluke", "janissary", "chu-ko-nu", "samurai", "mangudai", "cavalry-archer", "camel", "mangonel", "scorpion", "trebuchet", "petard", "hand-cannoneer", "bombard-cannon", "fishing-ship", "transport-ship", "trade-cog", "trade-cart", "galley", "fire-galley", "demolition-raft", "cannon-galleon", "longboat", "wolf", "jaguar"];
 var layerOf = (kind) => kind in combatRules.units && combatRules.units[kind].classes.some((c) => c === "ship" || c === "fishing-ship") ? "water" : "land";
 
 // packages/sim/buildings.ts
@@ -6747,7 +7874,7 @@ var buildingRules = {
   required: Object.fromEntries(buildKinds.map((k) => [k, rules.entries.find((e) => e.id === k).time * rules.settings.tickHz]))
 };
 var overlap = (a, b) => Math.min(a[2], b[2]) - Math.max(a[0], b[0]) > 0 && Math.min(a[3], b[3]) - Math.max(a[1], b[1]) > 0;
-var wallKinds2 = /* @__PURE__ */ new Set(["palisade-wall", "stone-wall"]);
+var wallKinds3 = /* @__PURE__ */ new Set(["palisade-wall", "stone-wall"]);
 var wallGate2 = { "palisade-gate": "palisade-wall", gate: "stone-wall" };
 var replacesWall = (kind, o, owner) => wallGate2[kind] === o.kind && (o.red ? 1 : 0) === owner;
 function placementProblem(input, kind, x, y, owner) {
@@ -6776,18 +7903,19 @@ function placementProblem(input, kind, x, y, owner) {
   if (kind !== "farm" && kind !== "fish-trap" && input.units.some((u) => u.x >= box2[0] - r && u.x <= box2[2] + r && u.y >= box2[1] - r && u.y <= box2[3] + r)) return "\u6709\u55AE\u4F4D\u7AD9\u5728\u9810\u5B9A\u5730\u4E0A";
   return null;
 }
-function buildRequirement(age, kind, own, civ = neutralCiv, techs2 = [], allTechs2 = false) {
+function buildRequirement(age, kind, own, civ = neutralCiv, techs2 = [], allTechs2 = false, nomadTownCenter = false) {
   const entry2 = rules.entries.find((e) => e.id === kind);
   if (!entry2) return "\u672A\u77E5\u7684\u5EFA\u7BC9\u7A2E\u985E";
   if (!civAvailable(civ, kind, allTechs2)) return "\u6B64\u6587\u660E\u4E0D\u80FD\u5EFA\u9020";
   for (const req of entry2.requires) {
     const need = rules.entries.find((e) => e.id === req), m = /^age-(\d)$/.exec(req);
-    if (m && age < Number(m[1])) return `\u9700\u8981${need?.name ?? req}`;
+    if (m && age < Number(m[1]) && !(nomadTownCenter && kind === "town-center")) return `\u9700\u8981${need?.name ?? req}`;
     if (!m && need?.kind === "technology" && !techs2.includes(req)) return `\u9700\u8981\u5148\u7814\u7A76\u300C${need.name}\u300D`;
     if (need?.kind === "building" && !own.some((b) => b.kind === req && b.complete)) return `\u9700\u8981\u5B8C\u5DE5\u7684${need.name}`;
   }
   return null;
 }
+var nomadWaiver = (map, own) => !!map.nomad && !own.some((b) => b.kind === "town-center");
 var wallRules = { provenance: "design_default", maxSegments: 24, builderReach: 300 };
 function wallLine(from, to) {
   let x = Math.floor(from.x / 100), y = Math.floor(from.y / 100);
@@ -6817,6 +7945,7 @@ var navalRules = { provenance: "design_default", transportCapacity: 5, boardReac
 var stances = ["aggressive", "defensive", "stand", "passive"];
 var tacticsRules = { provenance: "design_default (aoetw.com names the stances and patrol but gives no numbers)", defensiveLeash: 300, patrolTurn: 100, patrolRetry: 20 };
 var revealTicks = 40;
+var elevationRules = { provenance: "aoetw.com maps/Mongolia (\u9AD8\u5730\u6253\u4F4E\u5730\u653B\u64CA\u52A0\u6210 50%); no uphill penalty on the site", bonus: 1.5 };
 
 // packages/sim/repair.ts
 var repairRules = {
@@ -6924,8 +8053,10 @@ var religionRules = {
   relics: { count: 5, goldTicks: 40, perMonastery: 10, victoryTicks: 2e4, baseDistance: 900, spacing: 600, fairness: 400, edge: 150 }
 };
 function placeRelics(map, seed) {
-  const R = religionRules.relics, centres = [false, true].map((red2) => {
-    const o = map.obstacles.find((o2) => o2.kind === "town-center" && !!o2.red === red2), b = obstacleBounds(o);
+  const R = religionRules.relics, centres = [false, true].map((red2, p) => {
+    const o = map.obstacles.find((o2) => o2.kind === "town-center" && !!o2.red === red2);
+    if (!o) return map.starts[p][0];
+    const b = obstacleBounds(o);
     return { x: (b[0] + b[2]) / 2, y: (b[1] + b[3]) / 2 };
   });
   const closed = blockedTable(map), world = map.size * 100;
@@ -7112,7 +8243,7 @@ function hash(value) {
   }
   return (h2 >>> 0).toString(16).padStart(8, "0");
 }
-var rulesetHash = hash({ openings, repair: repairRules, carriers: carrierRules, taunts: tauntRules, rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules }, dropoffs: dropoffRules, naval: navalRules, market: marketRules, religion: religionRules, animals: animalRules, tech: techRules, defense: defenseRules, civs: civDefs, techs: techEffects, unitLines: { lineUpgrades, blacksmith, religionBonus }, projectiles: projectileRules, tactics: tacticsRules, settings: settingRules, simulationVersion: 33 });
+var rulesetHash = hash({ openings, repair: repairRules, carriers: carrierRules, taunts: tauntRules, rules, navigationRules, economyRules, terrainRules, terrainDefinitions, resourceDefinitions, visionRules, startingResourceRules, footprints: footprintContract, combat: combatRules, ai: aiRules, maps: { mapSizes, openMapRules, match: matchMapRules(), elevation: elevationRules }, dropoffs: dropoffRules, naval: navalRules, market: marketRules, religion: religionRules, animals: animalRules, tech: techRules, defense: defenseRules, civs: civDefs, techs: techEffects, unitLines: { lineUpgrades, blacksmith, religionBonus }, projectiles: projectileRules, tactics: tacticsRules, settings: settingRules, simulationVersion: 34 });
 
 // packages/sim/protocol.ts
 var UNIT_STRIDE = 19;
@@ -7120,7 +8251,7 @@ var STRIDE = UNIT_STRIDE;
 function decodeView(r) {
   const values = new Int32Array(r.positions), units2 = [];
   for (let i = 0; i < values.length; i += STRIDE) units2.push({ kind: unitKinds[values[i + 11]], hp: values[i + 12], maxHp: values[i + 13], action: values[i + 14], id: values[i], player: values[i + 1], x: values[i + 2], y: values[i + 3], navigation: navigationStates[values[i + 6]], target: values[i + 4] < 0 ? null : { x: values[i + 4], y: values[i + 5] }, work: values[i + 7] > 0 ? workPhases[values[i + 7]] : null, workResource: values[i + 10] < 0 ? null : resources[values[i + 10]], cargo: values[i + 8] < 0 ? null : { resource: resources[values[i + 8]], amount: values[i + 9] }, rite: [null, "convert", "heal"][values[i + 15]] ?? null, faith: values[i + 16] < 0 ? null : values[i + 16], relic: values[i + 17] === 1, unpacked: values[i + 18] === 1 });
-  return { settings: r.settings, aiOpening: r.aiOpening, coach: r.coach, seed: r.seed, layout: r.layout, size: r.size, opponent: r.opponent, civs: r.civs, terrain: r.terrain, tick: r.tick, stateHash: r.stateHash, economy: r.economy, corpses: r.corpses, outcome: r.outcome, buildings: r.buildings, transactions: r.transactions, fog: r.fog, known: r.known, resources: r.resources, relicSpots: r.relicSpots, relicsHeld: r.relicsHeld, relicTotal: r.relicTotal, relicVictory: r.relicVictory, shots: r.shots, projectiles: r.projectiles, stances: r.stances, patrols: r.patrols, market: r.market, transports: r.transports, trades: r.trades, wonders: r.wonders, wonderVictory: r.wonderVictory, chat: r.chat, repairs: r.repairs, units: units2 };
+  return { nomad: r.nomad, settings: r.settings, aiOpening: r.aiOpening, coach: r.coach, seed: r.seed, layout: r.layout, size: r.size, opponent: r.opponent, civs: r.civs, terrain: r.terrain, tick: r.tick, stateHash: r.stateHash, economy: r.economy, corpses: r.corpses, outcome: r.outcome, buildings: r.buildings, transactions: r.transactions, fog: r.fog, known: r.known, resources: r.resources, relicSpots: r.relicSpots, relicsHeld: r.relicsHeld, relicTotal: r.relicTotal, relicVictory: r.relicVictory, shots: r.shots, projectiles: r.projectiles, stances: r.stances, patrols: r.patrols, market: r.market, transports: r.transports, trades: r.trades, wonders: r.wonders, wonderVictory: r.wonderVictory, chat: r.chat, repairs: r.repairs, units: units2 };
 }
 
 // apps/web/worker-client.ts
@@ -7150,11 +8281,11 @@ var SimulationClient = class {
         this.fail("Worker \u56DE\u61C9\u5354\u5B9A\u4E0D\u7B26");
         return;
       }
-      const item = this.pending.get(response.id);
-      clearTimeout(item.timer);
+      const item2 = this.pending.get(response.id);
+      clearTimeout(item2.timer);
       this.pending.delete(response.id);
       if (!response.ok) {
-        item.reject(Error(`tick ${response.tick} / request ${response.id}${response.entityId !== void 0 ? " / entity " + response.entityId : ""}\uFF1A${response.message}`));
+        item2.reject(Error(`tick ${response.tick} / request ${response.id}${response.entityId !== void 0 ? " / entity " + response.entityId : ""}\uFF1A${response.message}`));
         return;
       }
       if (response.commands) this.checkpoint.commands = response.commands;
@@ -7167,7 +8298,7 @@ var SimulationClient = class {
       this.checkpoint.seed = response.seed;
       this.checkpoint.ticks = response.tick;
       this.update(decodeView(response));
-      item.resolve(response);
+      item2.resolve(response);
     };
     this.worker.onerror = (event) => {
       event.preventDefault();
@@ -7186,9 +8317,9 @@ var SimulationClient = class {
     this.ready = false;
     this.worker?.terminate();
     this.worker = null;
-    for (const item of this.pending.values()) {
-      clearTimeout(item.timer);
-      item.reject(Error(reason2));
+    for (const item2 of this.pending.values()) {
+      clearTimeout(item2.timer);
+      item2.reject(Error(reason2));
     }
     this.pending.clear();
     this.failure(`${reason2}\uFF1B\u5DF2\u66AB\u505C\uFF0C\u53EF\u91CD\u8A66\u6062\u5FA9\u81F3\u6700\u5F8C\u78BA\u8A8D\u7684 tick ${this.checkpoint.ticks}\u3002\u672A\u78BA\u8A8D\u6307\u4EE4\u4E0D\u6703\u81EA\u52D5\u91CD\u9001\u3002`);
@@ -8449,6 +9580,35 @@ var tacticLacks = {
 var eagleOpeningInfobox = { age: 2, power: "\u5F37", difficulty: "\u666E", pros: "\u5F31\u9EDE\u5C11\uFF0C\u4F46\u6210\u5F62\u6162\uFF0C\u53EF\u929C\u63A5\u57CE\u5821", cons: "\u6210\u5F62\u6162\uFF0C\u5F13\u624B\u4E00\u591A\u5C31\u4E0D\u6015\u8001\u9DF9\uFF0C\u6015\u570D\u6B7B", civs: "\u5357\u7F8E\u570B\uFF08\u963F\u8332\u7279\u514B\u3001\u99AC\u96C5\u3001\u5370\u52A0\uFF09" };
 var treeIntro = "\u79D1\u6280\u6A39\u7167 aoetw.com \u5404\u6587\u660E\u7684\u79D1\u6280\u6A39\u9801\u6392\u5217\uFF1A\u6BCF\u5EA7\u5EFA\u7BC9\u4E00\u584A\uFF0C\u7531\u4E0A\u5F80\u4E0B\u662F\u9ED1\u6697\u3001\u5C01\u5EFA\u3001\u57CE\u5821\u3001\u5E1D\u738B\u6642\u4EE3\uFF0C\u540C\u4E00\u6B04\u7531\u4E0A\u5F80\u4E0B\u662F\u5347\u7D1A\u7684\u5148\u5F8C\u3002\u9019\u500B\u6587\u660E\u6C92\u6709\u7684\u9805\u76EE\u8B8A\u6697\u4E26\u6A19\u300C\u6C92\u6709\u300D\uFF0C\u672C\u4F5C\u6C92\u6709\u7684\u53C3\u8003\u9805\u76EE\uFF08\u4F8B\u5982\u9DF9\u65A5\u5019\u3001\u653B\u57CE\u5854\uFF09\u53EF\u4EE5\u986F\u793A\u6210\u6DE1\u8272\u3002\u5C0D\u5C40\u4E2D\u6253\u958B\u6642\uFF0C\u6703\u6A19\u51FA\u4F60\u5DF2\u7814\u7A76\u3001\u5DF2\u64C1\u6709\u3001\u6B63\u5728\u9032\u884C\uFF0C\u4EE5\u53CA\u73FE\u5728\u5C31\u80FD\u505A\u7684\u9805\u76EE\u3002";
 var treeNote = "\u79D1\u6280\u6A39\u7684\u6392\u5217\u53D6\u81EA aoetw.com \u7684\u6587\u660E\u79D1\u6280\u6A39\u9801\uFF1B\u6BCF\u500B\u9805\u76EE\u80FD\u4E0D\u80FD\u7528\u3001\u8CBB\u7528\u8207\u524D\u7F6E\u90FD\u5373\u6642\u53D6\u81EA\u672C\u4F5C\u7684\u898F\u5247\uFF0C\u9EDE\u9805\u76EE\u6703\u6253\u958B\u5B83\u5728\u767E\u79D1\u7684\u90A3\u4E00\u9801\u3002";
+var mapsIntro = "\u5730\u5716\u7167 aoetw.com \u7684\u96A8\u6A5F\u5730\u5716\u5217\u8868\uFF0C\u4F9D\u8CC7\u6599\u7247\u6392\u5217\u3002\u672C\u4F5C\u505A\u4E86\u539F\u7248\u300A\u5E1D\u738B\u4E16\u7D00\u300B\u8207\u300A\u5F81\u670D\u8005\u5165\u4FB5\u300B\u7684\u5730\u5716\uFF1B\u6BCF\u5F35\u53EF\u4EE5\u73A9\u7684\u5730\u5716\u90FD\u9644\u4E00\u5F35\u7531\u904A\u6232\u672C\u8EAB\u7684\u5730\u5716\u7522\u751F\u5668\u756B\u51FA\u7684\u9810\u89BD\uFF0C\u8CC7\u6E90\u6578\u4E5F\u5F9E\u540C\u4E00\u5F35\u751F\u6210\u7684\u5730\u5716\u6578\u51FA\u4F86\u3002\u4E4B\u5F8C\u8CC7\u6599\u7247\u7684\u5730\u5716\u53EA\u5217\u51FA\u7DB2\u7AD9\u7684\u4ECB\u7D39\u3002";
+var mapsNote = "\u9810\u89BD\u56FA\u5B9A\u7528\u540C\u4E00\u500B\u7A2E\u5B50\uFF1B\u958B\u5C40\u8A2D\u5B9A\u756B\u9762\u53EF\u4EE5\u63DB\u7A2E\u5B50\u770B\u5225\u7684\u751F\u6210\u7D50\u679C\u3002\u8CC7\u6E90\u4EE5\u96E2\u57CE\u93AE\u4E2D\u5FC3\u6700\u8FD1\u7684\u4E00\u65B9\u8A08\u7B97\uFF0C\u592A\u9060\u7684\u7B97\u4E2D\u7ACB\u3002";
+var mapLaterReason = "\u4E4B\u5F8C\u8CC7\u6599\u7247\u7684\u5730\u5716\uFF1A\u672C\u4F5C\u7167\u539F\u7248\u8207\u5F81\u670D\u8005\u5165\u4FB5\u7684\u5730\u5716\uFF0C\u9019\u5F35\u53EA\u5217\u51FA\u7DB2\u7AD9\u7684\u4ECB\u7D39\u3002";
+var mapPlannedReason = "\u9019\u4E00\u8F2A\u7A0D\u5F8C\u52A0\u5165\uFF08\u7279\u6B8A\u958B\u5C40\u6216\u5CF6\u5DBC\u5730\u5716\uFF09\u3002";
+var mapStrategy = {
+  Arabia: "\u958B\u95CA\u3001\u6613\u653B\u96E3\u5B88\u3001\u6C92\u6709\u6C34\u3002\u6728\u982D\u5C11\uFF0C\u5C01\u5EFA\u6642\u4EE3\u7528\u7BAD\u5854\u5C01\u4F4F\u5C0D\u65B9\u6728\u5340\uFF08\u5854\u653B\uFF09\u5F88\u6D41\u884C\uFF1B\u7D93\u6FDF\u8207\u521D\u671F\u5F37\u5175\u7684\u6587\u660E\u5403\u9999\u3002",
+  Archipelago: "\u8CC7\u6E90\u6709\u9650\uFF0C\u5F8C\u671F\u5E38\u6253\u6210\u4FBF\u5B9C\u5175\u7A2E\u7684\u6D88\u8017\u6230\u3002\u63A7\u6D77\u662F\u95DC\u9375\uFF0C\u98DF\u7269\u591A\u534A\u4F86\u81EA\u6D77\u4E0A\uFF1B\u65E9\u671F\u53EF\u7528\u904B\u8F38\u8239\u653B\u4E0A\u5225\u7684\u5CF6\u4E26\u6436\u5360\u5B83\u7684\u8CC7\u6E90\uFF0C\u4E5F\u8981\u6436\u4E0B\u8CC7\u6E90\u8C50\u5BCC\u7684\u5C0F\u5CF6\u3002",
+  Baltic: "\u4EE5\u6F01\u8239\u70BA\u4E3B\u8981\u98DF\u7269\u53EF\u4EE5\u7701\u4E0B\u6728\u6750\u3002\u5206\u9694\u96D9\u65B9\u7684\u9678\u5730\u72F9\u9577\uFF0C\u9069\u5408\u7528\u57CE\u7246\u64CB\u4F4F\uFF1B\u9694\u958B\u5C0D\u624B\u4E4B\u5F8C\uFF0C\u7528\u904B\u8F38\u8239\u8207\u6230\u8239\u8DE8\u6D77\u9032\u653B\u3002",
+  Black_Forest: "\u5730\u5716\u5C01\u9589\uFF0C\u5B9C\u53CA\u65E9\u570D\u7246\u3001\u5728\u5BB6\u767C\u5C55\u7D93\u6FDF\u3002\u5F8C\u671F\u5F37\u529B\u5175\u7A2E\u8207\u6295\u77F3\u8ECA\u6709\u5229\uFF0C\u6295\u77F3\u8ECA\u53EF\u4EE5\u780D\u6A39\u958B\u8DEF\u7E5E\u5230\u5F8C\u65B9\uFF1B\u4E5F\u9069\u5408\u84CB\u4E16\u754C\u5947\u89C0\u3002",
+  Crater_Lake: "\u7DB2\u7AD9\u6C92\u6709\u9019\u5F35\u5716\u7684\u9801\u9762\u3002\u672C\u4F5C\u7167\u539F\u7248\u7684\u6A23\u5B50\uFF1A\u4E2D\u592E\u4E00\u5EA7\u5C71\uFF0C\u5C71\u9802\u7684\u706B\u5C71\u53E3\u662F\u6E56\uFF0C\u53EF\u4EE5\u4E0A\u5C71\u6355\u9B5A\uFF1B\u96D9\u65B9\u5206\u5728\u5C71\u7684\u5169\u5074\u3002",
+  Coastal: "\u63A7\u5236\u6D77\u57DF\u5C31\u6709\u7A69\u5B9A\u7684\u98DF\u7269\uFF0C\u4E5F\u80FD\u6CBF\u6D77\u7A81\u8972\u3002\u82E5\u5931\u53BB\u5236\u6D77\u6B0A\uFF0C\u5C31\u5728\u5C01\u5EFA\u665A\u671F\u5230\u57CE\u5821\u521D\u671F\u5FEB\u653B\u9A37\u64FE\u5C0D\u65B9\u7684\u8CC7\u6E90\u3002",
+  Continental: "\u5FEB\u653B\u8981\u9760\u6D77\u904B\uFF0C\u4E0D\u5BB9\u6613\u6210\u529F\u3002\u8FB2\u7530\u8207\u6F01\u8239\u5404\u534A\uFF1B\u91CD\u9EDE\u5728\u6CBF\u5CB8\u9632\u79A6\uFF0C\u7528\u653B\u57CE\u5668\u3001\u54E8\u7AD9\u8207\u7BAD\u5854\u9632\u6B62\u5C0D\u65B9\u5077\u6E21\u3002",
+  Fortress: "\u958B\u5C40\u7684\u77F3\u7246\u80FD\u64CB\u4F4F\u65E9\u671F\u5FEB\u653B\uFF0C\u9069\u5408\u5728\u57CE\u5821\u6642\u4EE3\u4EE5\u524D\u5C31\u5C08\u5FC3\u767C\u5C55\uFF0C\u518D\u63D2\u57CE\u5821\u6216\u5FEB\u901F\u5347\u7D1A\u3002\u7559\u610F\u81EA\u5DF1\u7684\u7BAD\u5854\u662F\u5426\u771F\u7684\u8B77\u4F4F\u57CE\u7246\u3002",
+  Gold_Rush: "\u76E1\u65E9\u63A7\u5236\u4E2D\u592E\uFF0C\u7528\u57CE\u5821\u8207\u7BAD\u5854\u5B88\u4F4F\u9EC3\u91D1\uFF0C\u4E26\u963B\u6B62\u5C0D\u65B9\u63A1\u4E2D\u9593\u7684\u9EC3\u91D1\u3002\u4E2D\u592E\u6709\u8A31\u591A\u72FC\uFF0C\u6D3E\u6751\u6C11\u53BB\u4E4B\u524D\u8981\u5148\u6E05\u6389\u3002",
+  Highland: "\u7528\u57CE\u7246\u570D\u4F4F\u6DFA\u7058\u8207\u9678\u6A4B\uFF1B\u4E5F\u8981\u63D0\u9632\u5C0D\u65B9\u84CB\u78BC\u982D\u3001\u7528\u904B\u8F38\u8239\u5077\u6E21\u3002\u5FEB\u653B\u8207\u5B88\u5BB6\u767C\u5C55\u90FD\u53EF\u884C\u3002",
+  Islands: "\u6BCF\u4EBA\u4E00\u5EA7\u5CF6\uFF0C\u63A7\u6D77\u5C31\u662F\u4E00\u5207\uFF1A\u767C\u5C55\u6D77\u8ECD\u3001\u6436\u4E0B\u6709\u91D1\u77F3\u7684\u5C0F\u5CF6\uFF0C\u65E9\u671F\u4E5F\u53EF\u4EE5\u7528\u904B\u8F38\u8239\u767B\u9678\u5FEB\u653B\u3002",
+  Mediterranean: "\u63A7\u5236\u4E2D\u592E\u6D77\u57DF\uFF1A\u6D77\u4E0A\u6709\u5927\u91CF\u98DF\u7269\uFF0C\u904B\u8F38\u8239\u9084\u80FD\u5077\u6E21\u5947\u8972\uFF1B\u540C\u6642\u8981\u63D0\u9632\u5C0D\u65B9\u5F9E\u6D77\u4E0A\u767B\u9678\u3002",
+  Migration: "\u6C92\u6709\u91CE\u8C6C\uFF0C\u7F8A\u4E5F\u96E2\u57CE\u93AE\u4E2D\u5FC3\u5F88\u9060\uFF0C\u8981\u6D3E\u4EBA\u53BB\u627E\u3002\u6D77\u8ECD\u5F37\u7684\u6587\u660E\u5403\u9999\uFF1B\u8981\u7528\u904B\u8F38\u8239\u628A\u6751\u6C11\u9001\u5230\u4E2D\u592E\u7684\u5927\u9678\u53BB\u6436\u91D1\u77F3\u3002",
+  Rivers: "\u7BC9\u7246\u64CB\u4F4F\u6DFA\u7058\uFF0C\u4E5F\u8981\u63D0\u9632\u5C0D\u65B9\u5077\u6E21\u6751\u6C11\u6216\u8ECD\u968A\uFF1B\u57CE\u5821\u84CB\u5728\u6CB3\u9053\u4EA4\u6703\u7684\u5730\u65B9\u53EF\u4EE5\u9632\u8239\u3002",
+  Team_Islands: "\u9632\u6B62\u6575\u65B9\u904B\u8F38\u8239\u767B\u9678\u662F\u52DD\u8CA0\u95DC\u9375\uFF1B\u4E16\u754C\u5947\u89C0\u662F\u71B1\u9580\u7684\u52DD\u5229\u65B9\u5F0F\u3002",
+  Arena: "\u958B\u5C40\u6709\u57CE\u7246\uFF0C\u57CE\u5821\u6642\u4EE3\u4EE5\u524D\u7684\u5FEB\u653B\u5F88\u96E3\u6210\u529F\uFF0C\u9069\u5408\u5FEB\u901F\u5347\u7D1A\uFF1B\u5854\u653B\u4ECD\u7136\u53EF\u884C\u3002\u5C01\u9396\u5C0D\u65B9\u9580\u5916\u7684\u91D1\u77F3\uFF0C\u50E7\u4FB6\u5728\u9019\u5F35\u5716\u7279\u5225\u5F37\u3002",
+  Ghost_Lake: "\u4E2D\u592E\u7684\u51B0\u9762\u6C92\u6709\u8CC7\u6E90\u3001\u4E0D\u80FD\u84CB\u5EFA\u7BC9\uFF0C\u4F46\u53EF\u4EE5\u8D70\u904E\u53BB\u3002\u5229\u7528\u6A39\u53E2\u570D\u5BB6\uFF1B\u4E2D\u671F\u5F37\u52E2\u7684\u6587\u660E\u6BD4\u665A\u671F\u6587\u660E\u597D\u7528\u3002",
+  Mongolia: "\u5229\u7528\u8D77\u4F0F\u7684\u5730\u5F62\u570D\u5BB6\u64CB\u5FEB\u653B\uFF1B\u7AD9\u5728\u9AD8\u8655\u4F5C\u6230\u6709\u653B\u64CA\u52A0\u6210\uFF0C\u7BAD\u5854\u53EF\u4EE5\u84CB\u5728\u5C0D\u65B9\u96E3\u4EE5\u5230\u9054\u7684\u61F8\u5D16\u4E0A\uFF1B\u4E5F\u53EF\u4EE5\u570D\u4F4F\u61F8\u5D16\u5C0F\u9053\u88E1\u7684\u91D1\u77F3\u3002",
+  Nomad: "\u958B\u5C40\u6C92\u6709\u57CE\u93AE\u4E2D\u5FC3\uFF1A\u5148\u63A2\u8DEF\uFF0C\u627E\u5230\u98DF\u7269\u8207\u5927\u91CF\u91D1\u7926\u7684\u5730\u65B9\u518D\u84CB\uFF0C\u4F46\u5225\u84CB\u5F97\u592A\u665A\u3002\u4E5F\u53EF\u4EE5\u5728\u5C0D\u65B9\u6751\u6C11\u9644\u8FD1\u84CB\u57CE\u93AE\u4E2D\u5FC3\uFF0C\u99D0\u8ECD\u53CD\u64CA\u3002",
+  Oasis: "\u5728\u68EE\u6797\u8F03\u8584\u7684\u5730\u65B9\u4F10\u6728\uFF0C\u9806\u4FBF\u53D6\u5F97\u6E56\u6CCA\u6355\u9B5A\uFF1B\u76EE\u6A19\u662F\u63A7\u5236\u91D1\u3001\u98DF\u7269\u8207\u77F3\u982D\u8C50\u5BCC\u7684\u6C99\u6F20\u3002",
+  Salt_Marsh: "\u6295\u8CC7\u6D77\u8ECD\u63A7\u5236\u6C34\u57DF\uFF1B\u7206\u7834\u8239\u53EF\u4EE5\u4F0F\u64CA\u8D70\u904E\u6DFA\u7058\u7684\u55AE\u4F4D\uFF0C\u904B\u8F38\u8239\u53EF\u4EE5\u7E5E\u5230\u5F8C\u65B9\u5947\u8972\u3002\u6DFA\u7058\u5F88\u96E3\u5C01\u9396\u3002",
+  Scandinavia: "\u91CE\u8C6C\u6BD4\u5225\u7684\u5716\u591A\u4E00\u96BB\u3001\u9E7F\u4E5F\u591A\uFF0C\u958B\u5C40\u98DF\u7269\u5145\u8DB3\uFF1B\u885D\u7A81\u591A\u534A\u5728\u4E2D\u9593\u7684\u9EC3\u91D1\u3002\u77F3\u982D\u5C11\uFF0C\u5F88\u96E3\u518D\u84CB\u7B2C\u4E8C\u5EA7\u57CE\u5821\u6216\u66F4\u591A\u57CE\u93AE\u4E2D\u5FC3\u3002",
+  Yucatan: "\u98DF\u7269\u8C50\u5BCC\uFF0C\u9069\u5408\u5927\u898F\u6A21\u6230\u9B25\uFF0C\u665A\u671F\u5F37\u52E2\u7684\u6587\u660E\u6709\u5229\u3002\u53E2\u6797\u88E1\u6709\u7F8E\u6D32\u8C79\uFF0C\u7267\u7F8A\u8207\u63A1\u679C\u7684\u6751\u6C11\u8981\u5C0F\u5FC3\u3002"
+};
 
 // apps/web/codex-model.ts
 var tick2 = rules.settings.tickHz;
@@ -8570,7 +9730,7 @@ function civDetail(id, civs = []) {
   };
 }
 var costEntries = (cost) => resources.filter((r) => cost[r] > 0).map((r) => [r, cost[r]]);
-var codexSections = [{ id: "civs", label: "\u6587\u660E" }, { id: "units", label: "\u55AE\u4F4D" }, { id: "techs", label: "\u79D1\u6280" }, { id: "buildings", label: "\u5EFA\u7BC9" }, { id: "elements", label: "\u904A\u6232\u5143\u7D20" }, { id: "tactics", label: "\u6230\u8853\u6280\u5DE7" }, { id: "tree", label: "\u79D1\u6280\u6A39" }];
+var codexSections = [{ id: "civs", label: "\u6587\u660E" }, { id: "units", label: "\u55AE\u4F4D" }, { id: "techs", label: "\u79D1\u6280" }, { id: "buildings", label: "\u5EFA\u7BC9" }, { id: "elements", label: "\u904A\u6232\u5143\u7D20" }, { id: "tactics", label: "\u6230\u8853\u6280\u5DE7" }, { id: "tree", label: "\u79D1\u6280\u6A39" }, { id: "maps", label: "\u5730\u5716" }];
 var catById = new Map(unitCategories.map((c) => [c.label, c.id]));
 var refById = new Map(aoetwUnits.map((u) => [u.id, u]));
 var categoriesOf = (u) => {
@@ -8673,18 +9833,18 @@ function pendingLines() {
 }
 function unitGroups(by) {
   const lines = unitLines(), pending = pendingLines();
-  const item = (l, p) => ({ id: l.id, name: l.name, pending: p, steps: l.steps.length });
-  if (by === "category") return unitCategories.map((c) => ({ id: c.id, label: c.label, items: [...lines.filter((l) => l.primary === c.id).map((l) => item(l, false)), ...pending.filter((l) => l.primary === c.id).map((l) => item(l, true))] })).filter((g) => g.items.length);
+  const item2 = (l, p) => ({ id: l.id, name: l.name, pending: p, steps: l.steps.length });
+  if (by === "category") return unitCategories.map((c) => ({ id: c.id, label: c.label, items: [...lines.filter((l) => l.primary === c.id).map((l) => item2(l, false)), ...pending.filter((l) => l.primary === c.id).map((l) => item2(l, true))] })).filter((g) => g.items.length);
   const order = rules.entries.filter((e) => e.kind === "building").map((e) => e.id), groups2 = /* @__PURE__ */ new Map();
   const add = (key2, label2, it) => {
     if (!groups2.has(key2)) groups2.set(key2, { id: key2, label: label2, items: [] });
     groups2.get(key2).items.push(it);
   };
   for (const b of order) {
-    for (const l of lines) if (l.producer === b) add(b, nameOf(b), item(l, false));
-    for (const l of pending) if (l.building === b) add(b, nameOf(b), item(l, true));
+    for (const l of lines) if (l.producer === b) add(b, nameOf(b), item2(l, false));
+    for (const l of pending) if (l.building === b) add(b, nameOf(b), item2(l, true));
   }
-  for (const l of pending) if (!l.building) add(l.at, l.at, item(l, true));
+  for (const l of pending) if (!l.building) add(l.at, l.at, item2(l, true));
   return [...groups2.values()];
 }
 function unitsOverview() {
@@ -9334,8 +10494,8 @@ var facts2 = (title, items, note = null) => ({ kind: "facts", title, note, items
 var table2 = (title, head, rows, note = null) => ({ kind: "table", title, note, head, rows });
 var list2 = (title, items, note = null) => ({ kind: "list", title, note, items });
 function tacticGroups() {
-  const item = (p) => ({ id: p.id, name: p.name, nameEn: p.nameEn, summary: p.summary, available: p.group === "micro" || !!openings.find((o) => o.id === p.id) });
-  return [{ id: "opening", label: "\u4E3B\u6D41\u6253\u6CD5\uFF08\u963F\u62C9\u4F2F\uFF09", items: tacticProse.filter((p) => p.group === "opening").map(item) }, { id: "micro", label: "\u63A7\u5175\u6280\u5DE7", items: tacticProse.filter((p) => p.group === "micro").map(item) }];
+  const item2 = (p) => ({ id: p.id, name: p.name, nameEn: p.nameEn, summary: p.summary, available: p.group === "micro" || !!openings.find((o) => o.id === p.id) });
+  return [{ id: "opening", label: "\u4E3B\u6D41\u6253\u6CD5\uFF08\u963F\u62C9\u4F2F\uFF09", items: tacticProse.filter((p) => p.group === "opening").map(item2) }, { id: "micro", label: "\u63A7\u5175\u6280\u5DE7", items: tacticProse.filter((p) => p.group === "micro").map(item2) }];
 }
 var phaseNames = { dark: "\u9ED1\u6697\u6642\u4EE3", up: "\u5347\u7B2C\u4E8C\u6642\u4EE3\u4E2D", feudal: "\u7B2C\u4E8C\u6642\u4EE3", castle: "\u7B2C\u4E09\u6642\u4EE3" };
 function stepPhases(o) {
@@ -9715,6 +10875,227 @@ function treeMark(n, m) {
   return { state: resources.every((r) => m.stock[r] >= cost[r]) ? "ready" : "short", count, cost };
 }
 
+// apps/web/map-info.ts
+var ownMaps = [
+  { layout: "open", zh: "\u66E0\u91CE", note: "\u672C\u4F5C\u539F\u672C\u7684\u5C0D\u6230\u5716\uFF1A\u96A8\u6A5F\u51FA\u751F\u7684\u958B\u95CA\u5730\uFF0C\u6563\u843D\u6A39\u6797\u8207\u4E00\u500B\u5C0F\u6C60\u5858\u3002" },
+  { layout: "lakes", zh: "\u6E56\u7554", note: "\u672C\u4F5C\u539F\u672C\u7684\u5C0D\u6230\u5716\uFF1A\u4E2D\u592E\u4E00\u5EA7\u5927\u6E56\uFF0C\u6DF1\u6C34\u9B5A\u53EA\u6709\u6F01\u8239\u6355\u5F97\u5230\u3002" }
+];
+var practiceMaps = [
+  { layout: "meadow", zh: "\u8349\u7538", note: "\u5C0F\u578B\u7DF4\u7FD2\u5834\uFF0C\u4E2D\u9593\u4E00\u689D\u9053\u8DEF\u3002" },
+  { layout: "coast", zh: "\u6D77\u5CB8", note: "\u5C0F\u578B\u7DF4\u7FD2\u5834\uFF0C\u5357\u908A\u662F\u6D77\u3002" },
+  { layout: "acceptance", zh: "\u9AD8\u5730\u8207\u6DFA\u7058", note: "\u5C0F\u578B\u7DF4\u7FD2\u5834\uFF0C\u6709\u5761\u5730\u8207\u6DFA\u7058\u3002" }
+];
+var playableLayout = (m) => m.layout !== null && m.layout in mapSizes ? m.layout : null;
+var firstLine = (m) => m.summary ? m.summary.split("\u3002")[0].replace(/^（[^）]*）/, "") + "\u3002" : "\u7DB2\u7AD9\u6C92\u6709\u9019\u5F35\u5730\u5716\u7684\u9801\u9762\uFF0C\u672C\u4F5C\u7167\u539F\u7248\u7684\u6A23\u5B50\u751F\u6210\u3002";
+function mapChoices() {
+  const out = [];
+  for (const x of mapExpansions) {
+    const maps = mapCatalog.filter((m) => m.expansion === x.id && playableLayout(m)).map((m) => ({ layout: playableLayout(m), zh: m.zh, note: firstLine(m) }));
+    if (maps.length) out.push({ label: x.zh, maps });
+  }
+  out.push({ label: "\u672C\u4F5C\u5730\u5716", maps: ownMaps }, { label: "\u7DF4\u7FD2\u5730\u5716", maps: practiceMaps });
+  return out;
+}
+var allChoices = () => mapChoices().flatMap((g) => g.maps);
+function mapRelics(map, seed) {
+  if (map.size !== 32) return [];
+  try {
+    return placeRelics(map, seed);
+  } catch {
+    return [];
+  }
+}
+var baseRadius = 1300;
+var mineReach = 720;
+var empty = () => ({ sheep: 0, boar: 0, deer: 0, berries: 0, gold: 0, stone: 0, fish: 0 });
+var kitKey = { gold: "gold", stone: "stone", berries: "berries", fish: "fish" };
+function summarizeMap(map, relics) {
+  const centreOf = (o) => {
+    const b2 = obstacleBounds(o);
+    return { x: (b2[0] + b2[2]) / 2, y: (b2[1] + b2[3]) / 2 };
+  };
+  const tcs = [0, 1].map((p) => map.obstacles.filter((o) => o.kind === "town-center" && !!o.red === (p === 1)));
+  const found = [0, 1].map((p) => tcs[p][0] ? centreOf(tcs[p][0]) : map.starts[p]?.[0] ?? { x: 0, y: 0 }), W = map.size * 100, b = found[0];
+  const mirrors = [{ x: W - b.x, y: W - b.y }, { x: W - b.x, y: b.y }, { x: b.x, y: W - b.y }], red2 = mirrors.sort((p, q) => Math.hypot(p.x - found[1].x, p.y - found[1].y) - Math.hypot(q.x - found[1].x, q.y - found[1].y))[0];
+  const centres = Math.hypot(red2.x - found[1].x, red2.y - found[1].y) <= 100 ? [b, red2] : found;
+  const bases = [empty(), empty()], neutral2 = empty();
+  const mid = map.size * 50;
+  const where = (x, y, mine2 = false) => {
+    const d = centres.map((c) => Math.hypot(c.x - x, c.y - y)), p = d[0] <= d[1] ? 0 : 1;
+    return d[p] <= baseRadius && (!mine2 || d[p] <= mineReach || d[p] < Math.hypot(mid - x, mid - y)) ? bases[p] : neutral2;
+  };
+  for (const r of map.resources) {
+    const k = kitKey[r.kind];
+    if (!k) continue;
+    const o = r.obstacleId ? map.obstacles.find((o2) => o2.id === r.obstacleId) : null, c = o ? centreOf(o) : r;
+    where(c.x, c.y, k === "gold" || k === "stone")[k]++;
+  }
+  let wolves2 = 0, jaguars = 0;
+  for (const a of map.animals ?? []) {
+    if (a.kind === "wolf") {
+      wolves2++;
+      continue;
+    }
+    if (a.kind === "jaguar") {
+      jaguars++;
+      continue;
+    }
+    const kit3 = a.owner === 0 || a.owner === 1 ? bases[a.owner] : where(a.x, a.y);
+    if (a.kind === "sheep" || a.kind === "boar" || a.kind === "deer") kit3[a.kind]++;
+  }
+  const prebuilt = [{}, {}];
+  for (const o of map.obstacles) if (buildingKinds.has(o.kind) && o.kind !== "town-center") {
+    const p = o.red ? 1 : 0;
+    prebuilt[p][o.kind] = (prebuilt[p][o.kind] ?? 0) + 1;
+  }
+  const share = (types) => Math.round(map.tiles.filter((t) => types.includes(t.terrainType)).length * 100 / map.tiles.length);
+  return {
+    bases,
+    neutral: neutral2,
+    fish: map.resources.filter((r) => r.kind === "fish").length,
+    relics: relics.length,
+    wolves: wolves2,
+    jaguars,
+    water: share(["water", "shallow"]),
+    ice: share(["ice"]),
+    towncentres: [tcs[0].length, tcs[1].length],
+    villagers: [map.starts[0]?.length ?? 0, map.starts[1]?.length ?? 0],
+    prebuilt
+  };
+}
+function layoutSummary(layout, seed) {
+  const map = makeMap(seed, layout), relics = mapRelics(map, seed);
+  return { map, relics, summary: summarizeMap(map, relics) };
+}
+
+// apps/web/codex-maps.ts
+var mapPageSeed = 260925;
+var expansionZh = (id) => mapExpansions.find((x) => x.id === id)?.zh ?? id;
+var idOf = (m) => m.site ?? m.en.replace(/\s+/g, "_");
+var item = (m) => ({ id: idOf(m), zh: m.zh, en: m.en, expansion: m.expansion, expansionZh: expansionZh(m.expansion), playable: !!playableLayout(m), layout: playableLayout(m) });
+var mapItems = () => mapCatalog.map(item);
+var mapGroups = () => mapExpansions.map((x) => ({ id: x.id, label: x.zh, items: mapItems().filter((m) => m.expansion === x.id) })).filter((g) => g.items.length);
+var nameOf5 = (id) => rules.entries.find((e) => e.id === id)?.name ?? id;
+var countText = (r) => Object.entries(r).map(([k, n]) => `${nameOf5(k)} ${n}`).join("\u3001");
+function mapFacts(s) {
+  const kit3 = (k) => `\u7DBF\u7F8A ${k.sheep}\u3001\u91CE\u8C6C ${k.boar}\u3001\u9E7F ${k.deer}\u3001\u6F3F\u679C ${k.berries} \u53E2\u3001\u91D1\u7926 ${k.gold} \u5806\u3001\u77F3\u7926 ${k.stone} \u5806${k.fish ? `\u3001\u9B5A\u7FA4 ${k.fish}` : ""}`;
+  const n = s.neutral, neutral2 = [n.gold ? `\u91D1\u7926 ${n.gold} \u5806` : "", n.stone ? `\u77F3\u7926 ${n.stone} \u5806` : "", n.sheep ? `\u7DBF\u7F8A ${n.sheep}` : "", n.boar ? `\u91CE\u8C6C ${n.boar}` : "", n.deer ? `\u9E7F ${n.deer}` : "", n.berries ? `\u6F3F\u679C ${n.berries} \u53E2` : ""].filter(Boolean).join("\u3001") || "\u6C92\u6709";
+  const out = [
+    { label: "\u85CD\u65B9\u57FA\u5730", value: kit3(s.bases[0]) },
+    { label: "\u7D05\u65B9\u57FA\u5730", value: kit3(s.bases[1]) },
+    { label: "\u4E2D\u7ACB\u8CC7\u6E90", value: neutral2 },
+    { label: "\u9B5A\u7FA4", value: s.fish ? `\u5171 ${s.fish} \u7FA4` : "\u6C92\u6709" },
+    { label: "\u8056\u7269", value: s.relics ? `${s.relics} \u500B` : "\u6C92\u6709" },
+    { label: "\u6C34\u57DF", value: s.water ? `\u7D04 ${s.water}% \u7684\u5730\u9762\u662F\u6C34\u6216\u6DFA\u7058` : "\u6C92\u6709" }
+  ];
+  if (s.ice) out.push({ label: "\u51B0\u9762", value: `\u7D04 ${s.ice}% \u7684\u5730\u9762\uFF08\u53EF\u4EE5\u8D70\u3001\u4E0D\u80FD\u84CB\u5EFA\u7BC9\uFF09` });
+  if (s.wolves || s.jaguars) out.push({ label: "\u731B\u7378", value: [s.wolves ? `\u72FC ${s.wolves} \u96BB` : "", s.jaguars ? `\u7F8E\u6D32\u8C79 ${s.jaguars} \u96BB` : ""].filter(Boolean).join("\u3001") });
+  const start = [0, 1].map((p) => [s.towncentres[p] === 1 ? "" : s.towncentres[p] === 0 ? "\u6C92\u6709\u57CE\u93AE\u4E2D\u5FC3" : `\u57CE\u93AE\u4E2D\u5FC3 ${s.towncentres[p]} \u5EA7`, `\u6751\u6C11 ${s.villagers[p]} \u540D`, countText(s.prebuilt[p])].filter(Boolean).join("\u3001"));
+  out.push({ label: "\u958B\u5C40", value: start[0] === start[1] ? `\u96D9\u65B9\u5404\u6709\uFF1A${start[0]}` : `\u85CD\u65B9\uFF1A${start[0]}\uFF1B\u7D05\u65B9\uFF1A${start[1]}` });
+  return out;
+}
+var cache = /* @__PURE__ */ new Map();
+function mapPage(id) {
+  const hit2 = cache.get(id);
+  if (hit2) return hit2;
+  const m = mapCatalog.find((e) => idOf(e) === id);
+  if (!m) return null;
+  const base = item(m);
+  let generated = null, failed = null;
+  if (base.layout) try {
+    generated = layoutSummary(base.layout, mapPageSeed);
+  } catch (e) {
+    failed = e.message;
+  }
+  const reason2 = base.playable ? null : m.planned ? mapPlannedReason : mapLaterReason;
+  const page2 = { ...base, page: m.page, summary: m.summary, strategy: mapStrategy[id] ?? null, reason: reason2, generated, failed, facts: generated ? mapFacts(generated.summary) : [] };
+  cache.set(id, page2);
+  return page2;
+}
+var mapOverview = () => mapGroups().map((g) => ({ ...g, playable: g.items.filter((m) => m.playable).length }));
+
+// apps/web/map-preview.ts
+var terrainColor = { ice: "#d9e6ea", snow: "#e9ece4", cliff: "#8a8065", stone: "#a1a28e", highland: "#879d69", water: "#4b8291", shallow: "#86b7b8", sand: "#d5c598", road: "#c4b18a" };
+var obstacleColor = { tree: "#4c6b43", gold: "#e2c35e", rock: "#d9d6c6", berries: "#b85a66", hunt: "#9b7552", livestock: "#e7e2cc" };
+var grassColor = "#b5c493";
+var team2 = { blue: "#5d93b6", red: "#d0664c", blueLight: "#8fb5cc", redLight: "#e09a87" };
+var walls = /* @__PURE__ */ new Set(["palisade-wall", "stone-wall", "palisade-gate", "gate"]);
+var predators = /* @__PURE__ */ new Set(["wolf", "jaguar"]);
+var shade = (hex, f) => {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgb(${Math.min(255, Math.round((n >> 16 & 255) * f))},${Math.min(255, Math.round((n >> 8 & 255) * f))},${Math.min(255, Math.round((n & 255) * f))})`;
+};
+function paintMap(ctx, map, relics, w2, h2, done = Infinity) {
+  const N = map.size, s = Math.min(w2 / (2 * N), h2 / N) * 0.96, ox = w2 / 2, oy = (h2 - N * s) / 2, P = (x, z) => [ox + (x - z) * s, oy + (x + z) * s / 2];
+  const quad = (x0, z0, x1, z1) => {
+    ctx.beginPath();
+    for (const [i, [x, z]] of [[x0, z0], [x1, z0], [x1, z1], [x0, z1]].entries()) {
+      const [px, py] = P(x, z);
+      if (i) ctx.lineTo(px, py);
+      else ctx.moveTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+  };
+  ctx.clearRect(0, 0, w2, h2);
+  map.tiles.forEach((t, i) => {
+    const x = i % N, z = Math.floor(i / N);
+    if (x + z > done) return;
+    const base = terrainColor[t.terrainType] ?? grassColor;
+    ctx.fillStyle = shade(base, 0.9);
+    quad(x, z, x + 1, z + 1);
+    ctx.fillStyle = base;
+    quad(x + 0.06, z + 0.06, x + 0.94, z + 0.94);
+    if (s >= 5) {
+      const [cx, cy] = P(x + 0.5, z + 0.5);
+      ctx.fillStyle = shade(base, 1.12);
+      ctx.beginPath();
+      ctx.ellipse(cx, cy - s * 0.08, s * 0.28, s * 0.14, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+  const ordered = [...map.obstacles].sort((a, b) => Number(buildingKinds.has(a.kind)) - Number(buildingKinds.has(b.kind)));
+  for (const o of ordered) {
+    const [x0, z0, x1, z1] = obstacleBounds(o);
+    if (x0 / 100 + z0 / 100 > done) continue;
+    ctx.fillStyle = o.kind === "town-center" ? o.red ? team2.red : team2.blue : buildingKinds.has(o.kind) ? shade(o.red ? team2.redLight : team2.blueLight, walls.has(o.kind) ? 0.72 : 1) : obstacleColor[o.kind] ?? "#c8c2a8";
+    quad(x0 / 100, z0 / 100, x1 / 100, z1 / 100);
+  }
+  [0, 1].forEach((p) => {
+    if (map.obstacles.some((o) => o.kind === "town-center" && !!o.red === (p === 1))) return;
+    for (const v of map.starts[p] ?? []) {
+      if (v.x / 100 + v.y / 100 > done) continue;
+      const [px, py] = P(v.x / 100, v.y / 100);
+      ctx.fillStyle = p ? team2.red : team2.blue;
+      ctx.strokeStyle = "#15201b";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(px, py, Math.max(2.2, s * 0.36), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+  });
+  for (const a of map.animals ?? []) {
+    if (!predators.has(a.kind) || a.x / 100 + a.y / 100 > done) continue;
+    const [px, py] = P(a.x / 100, a.y / 100);
+    ctx.fillStyle = "#5b3f36";
+    ctx.beginPath();
+    ctx.arc(px, py, Math.max(1.6, s * 0.24), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  for (const rel2 of relics) {
+    if (rel2.x / 100 + rel2.y / 100 > done) continue;
+    const [px, py] = P(rel2.x / 100, rel2.y / 100);
+    ctx.fillStyle = "#f2d66b";
+    ctx.strokeStyle = "#15201b";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(px, py, Math.max(2.5, s * 0.4), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+}
+
 // apps/web/codex.ts
 var resourceNames2 = { food: "\u98DF\u7269", wood: "\u6728\u6750", gold: "\u9EC3\u91D1", stone: "\u77F3\u982D" };
 var css = `
@@ -9790,7 +11171,9 @@ var css = `
 .cx-path .cx-age{margin:1px 0 0;font-size:12.5px;color:var(--cx-muted)}.cx-path .cx-cost{margin-top:8px;font-size:13px}.cx-path .cx-ref{margin-top:6px;font-size:12px;color:var(--cx-muted)}
 .cx-path .cx-step{margin-top:8px;font-size:13px;line-height:1.65}
 .cx-scroll{max-width:100%;overflow-x:auto}.cx-scroll .cx-stats{width:auto;min-width:min(100%,560px);max-width:none}.cx-stats thead th{white-space:nowrap}
-.cx-ov{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}.cx-ov .cx-tech p{margin-top:6px;font-size:13px;line-height:1.65}
+.cx-ov{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.cx-mapview{display:block;width:100%;max-width:760px;aspect-ratio:2/1;margin:14px 0 6px;background:var(--cx-well);border-radius:3px}.cx-mapseed{margin:0;color:var(--cx-muted);font-size:12px}
+.cx-ov .cx-tech .cx-count{display:block;margin-top:4px;color:var(--cx-muted);font-size:12px}.cx-ov .cx-tech p{margin-top:6px;font-size:13px;line-height:1.65}
 .cx-count{font-variant-numeric:tabular-nums}
 .cx-tree dd .cx-cost{margin:0}.cx-tree dd small{display:block;margin-top:2px;font-size:12.5px;color:var(--cx-muted)}.cx-tree dd+dt{margin-top:4px}
 .cx-chain{margin:10px 0 0!important;font-size:13px;color:var(--cx-muted)}.cx-chain b{font-weight:600;color:var(--cx-cream)}
@@ -9874,6 +11257,7 @@ var elementChosen = "overview";
 var tacticChosen = "overview";
 var treeChosen = null;
 var treeRefs = true;
+var mapChosen = "overview";
 var roleText = { self: "\u4F60\u7684\u6587\u660E", rival: "\u5C0D\u624B", both: "\u96D9\u65B9" };
 function costRow(icons2, cost, seconds2, extra) {
   const row = h("p", { class: "cx-cost" });
@@ -10871,6 +12255,119 @@ function renderTree(focus) {
   open.detail = detail;
   selectTree(treeChosen ?? open.ctx.match?.civ ?? items[0].id, focus);
 }
+var mapObserver = null;
+function drawMapInto(canvas2, p) {
+  const g = p.generated;
+  if (!g) return;
+  mapObserver?.disconnect();
+  const draw = () => {
+    const ctx = canvas2.getContext("2d");
+    if (!ctx || !canvas2.isConnected) return;
+    const r = canvas2.getBoundingClientRect();
+    if (!r.width) return;
+    const dpr = Math.min(devicePixelRatio, 2), W = Math.round(r.width * dpr), H = Math.round(r.height * dpr);
+    if (canvas2.width !== W || canvas2.height !== H) {
+      canvas2.width = W;
+      canvas2.height = H;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    paintMap(ctx, g.map, g.relics, r.width, r.height);
+    canvas2.dataset.drawn = "true";
+  };
+  if (typeof ResizeObserver !== "undefined") {
+    mapObserver = new ResizeObserver(draw);
+    mapObserver.observe(canvas2);
+  }
+  requestAnimationFrame(draw);
+}
+function mapView(p) {
+  const page2 = h("div", { class: "cx-page" });
+  page2.append(
+    h("h3", { id: "cx-map-name" }, p.zh, h("span", { lang: "en" }, p.en)),
+    h("p", { class: "cx-sub" }, `aoetw \u5730\u5716\u30FB${p.expansionZh}`, p.playable ? "" : h("b", null, "\u30FB\u672A\u5BE6\u4F5C")),
+    h("p", { class: "cx-summary" }, p.summary || "\u7DB2\u7AD9\u6C92\u6709\u9019\u5F35\u5730\u5716\u7684\u9801\u9762\u3002")
+  );
+  if (p.reason) page2.append(h("p", { class: "cx-prose cx-why" }, p.reason));
+  if (p.generated) {
+    const c = h("canvas", { class: "cx-mapview", role: "img", "aria-label": `${p.zh}\u7684\u751F\u6210\u9810\u89BD` });
+    page2.append(h(
+      "section",
+      null,
+      h("h4", null, "\u672C\u4F5C\u7684\u751F\u6210\u7D50\u679C"),
+      c,
+      h("p", { class: "cx-mapseed" }, `\u7A2E\u5B50 ${mapPageSeed}\uFF1B\u958B\u5C40\u8A2D\u5B9A\u756B\u9762\u53EF\u4EE5\u63DB\u7A2E\u5B50\u3002`),
+      h("dl", { class: "cx-tree cx-mapfacts" }, ...p.facts.flatMap((f) => [h("dt", null, f.label), h("dd", null, f.value)]))
+    ));
+    drawMapInto(c, p);
+  }
+  if (p.failed) page2.append(h("p", { class: "cx-prose cx-why" }, `\u9019\u5F35\u5730\u5716\u7528\u7A2E\u5B50 ${mapPageSeed} \u751F\u6210\u5931\u6557\uFF1A${p.failed}`));
+  if (p.strategy) page2.append(h("section", null, h("h4", null, "\u6253\u6CD5"), h("p", { class: "cx-prose" }, p.strategy)));
+  page2.append(h("footer", { class: "cx-foot" }, h("p", null, mapsNote), h("p", null, `\u8CC7\u6599\u4F86\u6E90\uFF1A${p.page ? `aoetw.com/maps/${p.id}` : "aoetw.com/maps\uFF08\u9019\u5F35\u5716\u6C92\u6709\u7368\u7ACB\u9801\u9762\uFF09"}`)));
+  return page2;
+}
+function mapOverviewView() {
+  const p = h("div", { class: "cx-page" });
+  mapObserver?.disconnect();
+  p.append(
+    h("h3", { id: "cx-map-name" }, "\u5730\u5716", h("span", { lang: "en" }, "Random maps")),
+    h("p", { class: "cx-summary" }, mapsIntro),
+    ...mapOverview().map((g) => h(
+      "section",
+      null,
+      h("h4", null, g.label, h("small", null, `\u672C\u4F5C\u53EF\u73A9 ${g.playable}\uFF0F\u5171 ${g.items.length}`)),
+      h("div", { class: "cx-ov" }, ...g.items.map((m) => h("article", { class: `cx-tech${m.playable ? "" : " off"}` }, h("h5", null, m.zh, h("span", { lang: "en" }, m.en)), h("span", { class: "cx-count" }, m.playable ? "\u53EF\u4EE5\u73A9" : "\u53EA\u5217\u4ECB\u7D39"))))
+    )),
+    h("footer", { class: "cx-foot" }, h("p", null, mapsNote), h("p", null, "\u8CC7\u6599\u4F86\u6E90\uFF1Aaoetw.com/maps"))
+  );
+  return p;
+}
+function fillMapList(list3) {
+  list3.replaceChildren(
+    h("div", { class: "cx-grp" }, h("ul", null, h("li", null, h("button", { type: "button", class: "cx-uitem", "data-map": "overview", tabindex: "-1", "aria-current": "false" }, h("b", null, "\u7E3D\u89BD"), h("small", null, "\u4F9D\u8CC7\u6599\u7247\u5217\u51FA"))))),
+    ...mapGroups().map((g, i) => h("div", { class: "cx-grp" }, h("p", { class: "cx-group", id: `cx-mg${i}` }, g.label), h(
+      "ul",
+      { "aria-labelledby": `cx-mg${i}` },
+      ...g.items.map((m) => h("li", null, h("button", { type: "button", class: `cx-uitem${m.playable ? "" : " off"}`, "data-map": m.id, tabindex: "-1", "aria-current": "false" }, h("b", null, m.zh), h("small", null, m.playable ? m.en : "\u672A\u5BE6\u4F5C"))))
+    )))
+  );
+}
+function selectMap(id, focus = false) {
+  if (!open) return;
+  const p = id === "overview" ? null : mapPage(id);
+  if (!p) id = "overview";
+  mapChosen = id;
+  for (const b of Array.from(open.list.querySelectorAll(".cx-uitem"))) {
+    const on = b.dataset.map === id;
+    b.setAttribute("aria-current", String(on));
+    b.tabIndex = on ? 0 : -1;
+    if (on) {
+      if (focus) b.focus({ preventScroll: true });
+      reveal(open.list, b);
+    }
+  }
+  open.detail.replaceChildren(p ? mapView(p) : mapOverviewView());
+  open.detail.scrollTop = 0;
+}
+function renderMaps(focus) {
+  if (!open) return;
+  const list3 = h("nav", { class: "cx-list", "aria-label": "\u5730\u5716\u5217\u8868" });
+  const detail = h("div", { class: "cx-detail", role: "region", "aria-labelledby": "cx-map-name", tabindex: "-1" });
+  list3.addEventListener("click", (e) => {
+    const b = e.target.closest(".cx-uitem");
+    if (b?.dataset.map) selectMap(b.dataset.map);
+  });
+  list3.addEventListener("keydown", (e) => {
+    const ids = Array.from(list3.querySelectorAll(".cx-uitem")).map((b) => b.dataset.map), next = step(e.key, Math.max(0, ids.indexOf(mapChosen)), ids.length);
+    if (next === null) return;
+    e.preventDefault();
+    selectMap(ids[next], true);
+  });
+  fillMapList(list3);
+  open.body.replaceChildren(list3, detail);
+  open.list = list3;
+  open.detail = detail;
+  selectMap(mapChosen, focus);
+}
 function go(id, page2) {
   if (id === "units") {
     unitChosen = page2;
@@ -10901,6 +12398,7 @@ function show(id, focus) {
   else if (id === "elements") renderElements(focus);
   else if (id === "tactics") renderTactics(focus);
   else if (id === "tree") renderTree(focus);
+  else if (id === "maps") renderMaps(focus);
   else renderCivs(focus);
 }
 function injectStyle() {
@@ -10946,6 +12444,8 @@ function openCodex(host, ctx) {
 }
 function closeCodex() {
   if (!open) return;
+  mapObserver?.disconnect();
+  mapObserver = null;
   const { host, ctx, prev } = open;
   open = null;
   host.replaceChildren();
@@ -10956,7 +12456,7 @@ function closeCodex() {
 
 // apps/web/lobby.ts
 var key = "brick-rts:lobby:1";
-var layouts = [["open", "\u66E0\u91CE", "32\xD732\uFF0C\u96A8\u6A5F\u51FA\u751F"], ["lakes", "\u6E56\u7554", "32\xD732\uFF0C\u4E2D\u592E\u5927\u6E56\uFF0C\u53EF\u9020\u8239"], ["meadow", "\u8349\u7538", "16\xD716 \u7DF4\u7FD2\u5834"], ["coast", "\u6D77\u5CB8", "16\xD716\uFF0C\u5357\u908A\u662F\u6D77"], ["acceptance", "\u9AD8\u5730\u8207\u6DFA\u7058", "16\xD716\uFF0C\u5761\u5730\u8207\u6DFA\u7058"]];
+var layouts = allChoices();
 var options = {
   difficulty: [["easy", "\u7C21\u55AE"], ["standard", "\u6A19\u6E96"], ["hard", "\u56F0\u96E3"], ["hardest", "\u6700\u96E3"]],
   resources: [["low", "\u4F4E"], ["standard", "\u6A19\u6E96"], ["medium", "\u4E2D"], ["high", "\u9AD8"]],
@@ -10999,7 +12499,7 @@ function loadPrefs() {
       red: civOk(v.red) ? v.red : d.red,
       opponent: v.opponent === "idle" ? "idle" : "ai",
       aiOpening: [standardOpening, randomOpening, ...openings.map((o) => o.id)].includes(v.aiOpening) ? v.aiOpening : d.aiOpening,
-      layout: layouts.some(([l]) => l === v.layout) ? v.layout : d.layout,
+      layout: layouts.some((m) => m.layout === v.layout) ? v.layout : d.layout,
       seed: typeof v.seed === "string" && /^\d{0,10}$/.test(v.seed) ? v.seed : d.seed,
       settings: settings2,
       record: v.record === true
@@ -11033,7 +12533,21 @@ function createLobby(deps) {
   fill("lobby-red", civList2(true));
   fill("lobby-opponent", [["ai", "\u96FB\u8166"], ["idle", "\u4E0D\u884C\u52D5\uFF08\u7DF4\u7FD2\uFF09"]]);
   fill("lobby-opening", [[standardOpening, "\u6A19\u6E96"], [randomOpening, "\u96A8\u6A5F\uFF08\u5C0D\u5C40\u5F8C\u63ED\u66C9\uFF09"], ...openings.map((o) => [o.id, o.zh])]);
-  fill("lobby-layout", layouts.map(([v, t]) => [v, t]), Object.fromEntries(layouts.map(([v, , h2]) => [v, h2])));
+  {
+    const s = el2("lobby-layout");
+    s.replaceChildren(...mapChoices().map((g) => {
+      const og = document.createElement("optgroup");
+      og.label = g.label;
+      og.append(...g.maps.map((m) => {
+        const o = document.createElement("option");
+        o.value = m.layout;
+        o.textContent = m.zh;
+        o.title = m.note;
+        return o;
+      }));
+      return og;
+    }));
+  }
   for (const k of ["difficulty", "resources", "reveal", "startAge", "victory"]) fill(`lobby-${k}`, options[k], hints[k]);
   fill("lobby-popCap", settingRules.popCaps.map((n) => [String(n), String(n)]));
   const sel = (id) => el2(id);
@@ -11092,6 +12606,7 @@ function createLobby(deps) {
     el2("lobby-record-note").textContent = p.record ? "\u5C0D\u5C40\u4E2D\u6BCF\u4E00\u5206\u9418\u81EA\u52D5\u5B58\u6A94\u4E00\u6B21\uFF08\u8F09\u5165\u904A\u6232\u88E1\u7684\u300C\u81EA\u52D5\u5B58\u6A94\u300D\uFF09" : "\u4E0D\u81EA\u52D5\u5B58\u6A94\uFF08\u9078\u55AE\u4ECD\u53EF\u624B\u52D5\u5132\u5B58\uFF09";
     el2("lobby-start").disabled = busy || seed === null;
     el2("lobby-seed-note").textContent = seed === null ? "\u7A2E\u5B50\u8981\u662F 0\uFF5E4294967295 \u7684\u6574\u6578" : "\u540C\u4E00\u500B\u7A2E\u5B50\u8207\u5730\u5716\uFF0C\u6BCF\u6B21\u751F\u6210\u540C\u4E00\u5F35\u5716";
+    el2("lobby-layout-note").textContent = layouts.find((m) => m.layout === p.layout)?.note ?? "";
     drawPreview(p.layout, seed);
   }
   function drawPreview(layout, seed) {
@@ -11103,7 +12618,16 @@ function createLobby(deps) {
       ctx.clearRect(0, 0, canvas2.width, canvas2.height);
       return;
     }
-    const map = makeMap(seed, layout), relics = layout === "open" || layout === "lakes" ? placeRelics(map, seed) : [], N = map.size;
+    let map;
+    try {
+      map = makeMap(seed, layout);
+    } catch (e) {
+      ctx.clearRect(0, 0, canvas2.width, canvas2.height);
+      status.textContent = `\u9019\u500B\u7A2E\u5B50\u751F\u6210\u5730\u5716\u5931\u6557\uFF1A${e.message}\uFF1B\u8ACB\u63DB\u4E00\u500B\u7A2E\u5B50\u3002`;
+      return;
+    }
+    if (status.textContent.startsWith("\u9019\u500B\u7A2E\u5B50\u751F\u6210\u5730\u5716\u5931\u6557")) status.textContent = "";
+    const relics = mapRelics(map, seed), N = map.size;
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches, start = performance.now(), id = ++sweep;
     const paint = (now) => {
       if (id !== sweep || !ctx) return;
@@ -11113,57 +12637,8 @@ function createLobby(deps) {
         canvas2.height = H;
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const w2 = r.width, h2 = r.height;
-      ctx.clearRect(0, 0, w2, h2);
-      const s = Math.min(w2 / (2 * N), h2 / N) * 0.96, ox = w2 / 2, oy = (h2 - N * s) / 2, P = (x, z) => [ox + (x - z) * s, oy + (x + z) * s / 2];
       const done = reduce ? Infinity : (now - start) / 420 * 2 * N;
-      const quad = (x0, z0, x1, z1) => {
-        ctx.beginPath();
-        for (const [i, [x, z]] of [[x0, z0], [x1, z0], [x1, z1], [x0, z1]].entries()) {
-          const [px, py] = P(x, z);
-          if (i) ctx.lineTo(px, py);
-          else ctx.moveTo(px, py);
-        }
-        ctx.closePath();
-        ctx.fill();
-      };
-      const shade2 = (hex, f) => {
-        const n = parseInt(hex.slice(1), 16);
-        return `rgb(${Math.min(255, Math.round((n >> 16 & 255) * f))},${Math.min(255, Math.round((n >> 8 & 255) * f))},${Math.min(255, Math.round((n & 255) * f))})`;
-      };
-      map.tiles.forEach((t, i) => {
-        const x = i % N, z = Math.floor(i / N);
-        if (x + z > done) return;
-        const base = deps.colors.terrain[t.terrainType] ?? deps.colors.grass;
-        ctx.fillStyle = shade2(base, 0.9);
-        quad(x, z, x + 1, z + 1);
-        ctx.fillStyle = base;
-        quad(x + 0.06, z + 0.06, x + 0.94, z + 0.94);
-        if (s >= 5) {
-          const [cx, cy] = P(x + 0.5, z + 0.5);
-          ctx.fillStyle = shade2(base, 1.12);
-          ctx.beginPath();
-          ctx.ellipse(cx, cy - s * 0.08, s * 0.28, s * 0.14, 0, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      });
-      for (const o of map.obstacles) {
-        const [x0, z0, x1, z1] = obstacleBounds(o);
-        if (x0 / 100 + z0 / 100 > done) continue;
-        ctx.fillStyle = o.kind === "town-center" ? o.red ? "#d0664c" : "#5d93b6" : deps.colors.obstacle[o.kind] ?? "#c8c2a8";
-        quad(x0 / 100, z0 / 100, x1 / 100, z1 / 100);
-      }
-      for (const rel2 of relics) {
-        if (rel2.x / 100 + rel2.y / 100 > done) continue;
-        const [px, py] = P(rel2.x / 100, rel2.y / 100);
-        ctx.fillStyle = "#f2d66b";
-        ctx.strokeStyle = "#15201b";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(px, py, Math.max(2.5, s * 0.4), 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-      }
+      paintMap(ctx, map, relics, r.width, r.height, done);
       if (done < 2 * N + 2) requestAnimationFrame(paint);
     };
     paint(reduce ? start : performance.now());
@@ -11292,7 +12767,7 @@ var workLabel = { toSource: "\u524D\u5F80\u63A1\u96C6", gathering: "\u63A1\u96C6
 var buildingNames2 = { castle: "\u57CE\u5821", "watch-tower": "\u7BAD\u5854", "siege-workshop": "\u653B\u57CE\u5668\u5DE5\u574A", blacksmith: "\u9435\u5320\u92EA", house: "\u4F4F\u5B85", barracks: "\u5175\u71DF", farm: "\u8FB2\u7530", "lumber-camp": "\u4F10\u6728\u5834", "mining-camp": "\u63A1\u7926\u5834", mill: "\u78E8\u574A", stable: "\u99AC\u5EC4", "archery-range": "\u9776\u5834", monastery: "\u4FEE\u9053\u9662", "town-center": "\u57CE\u93AE\u4E2D\u5FC3" };
 for (const k of buildKinds) if (!(k in buildingNames2)) buildingNames2[k] = rules.entries.find((e) => e.id === k)?.name ?? k;
 var homeKinds = /* @__PURE__ */ new Set([...buildKinds, "town-center"]);
-var layoutNames = { meadow: "\u8349\u7538", coast: "\u6D77\u5CB8", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058", open: "\u66E0\u91CE", lakes: "\u6E56\u7554" };
+var layoutNames = { meadow: "\u8349\u7538", coast: "\u6D77\u5CB8", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058", open: "\u66E0\u91CE", lakes: "\u6E56\u7554", ...Object.fromEntries(mapCatalog.filter((m) => m.layout).map((m) => [m.layout, m.zh])) };
 var civName3 = (id) => civById(id ?? neutralCiv)?.name ?? id ?? "";
 function rulesNote() {
   const m = state.settings;
@@ -11433,7 +12908,7 @@ function render() {
     }
   }
   el("fog-status").textContent = `\u53EF\u898B ${state.fog.filter((v) => v === 2).length} \u683C \xB7 \u5DF2\u63A2\u7D22\u820A\u8996\u91CE ${state.fog.filter((v) => v === 1).length} \u683C \xB7 \u672A\u63A2\u7D22 ${state.fog.filter((v) => v === 0).length} \u683C`;
-  el("world-label").textContent = { meadow: "\u8349\u7538\u8A66\u9A57\u5834", coast: "\u6D77\u5CB8\u8A66\u9A57\u5834", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058\u9A57\u6536\u5834", open: "\u66E0\u91CE\u5C0D\u6230\u5716", lakes: "\u6E56\u7554\u5C0D\u6230\u5716" }[state.layout];
+  el("world-label").textContent = { meadow: "\u8349\u7538\u8A66\u9A57\u5834", coast: "\u6D77\u5CB8\u8A66\u9A57\u5834", acceptance: "\u9AD8\u5730\u8207\u6DFA\u7058\u9A57\u6536\u5834", open: "\u66E0\u91CE\u5C0D\u6230\u5716", lakes: "\u6E56\u7554\u5C0D\u6230\u5716" }[state.layout] ?? `${layoutNames[state.layout]}\u5C0D\u6230\u5716`;
   el("tick").textContent = String(state.tick);
   el("hash").textContent = state.stateHash;
   const e = state.economy;
@@ -11449,13 +12924,13 @@ function render() {
   renderIdle();
   renderCoach();
   const chosen2 = chosenUnits();
-  el("selection-list").textContent = chosen2.length > 1 ? chosen2.map((u2) => `${nameOf5(u2)} ${u2.id} (${(u2.x / 100).toFixed(1)}, ${(u2.y / 100).toFixed(1)})\uFF1A${activity(u2)}`).join("\u3000") : "";
+  el("selection-list").textContent = chosen2.length > 1 ? chosen2.map((u2) => `${nameOf6(u2)} ${u2.id} (${(u2.x / 100).toFixed(1)}, ${(u2.y / 100).toFixed(1)})\uFF1A${activity(u2)}`).join("\u3000") : "";
   const u = chosen2[0];
   if (!u) {
     el("position").textContent = "\u672A\u9078\u53D6\u55AE\u4F4D";
     return;
   }
-  el("position").textContent = `${chosen2.length > 1 ? `${chosen2.length} \u540D\u9078\u53D6 \xB7 ` : ""}${nameOf5(u)} ${u.id} \xB7 (${(u.x / 100).toFixed(1)}, ${(u.y / 100).toFixed(1)}) \xB7 ${activity(u)}`;
+  el("position").textContent = `${chosen2.length > 1 ? `${chosen2.length} \u540D\u9078\u53D6 \xB7 ` : ""}${nameOf6(u)} ${u.id} \xB7 (${(u.x / 100).toFixed(1)}, ${(u.y / 100).toFixed(1)}) \xB7 ${activity(u)}`;
 }
 function renderTop() {
   const e = state.economy;
@@ -11568,7 +13043,7 @@ async function hunt(unitIds, animal) {
     notice(reason(e));
   }
 }
-var animalNote = (a) => a.kind === "sheep" ? a.player === 1 ? "\u7D05\u65B9\u7684\u7F8A\uFF1A\u8B93\u4F60\u7684\u55AE\u4F4D\u9760\u8FD1\u3001\u7D05\u65B9\u7684\u55AE\u4F4D\u96E2\u958B\uFF0C\u5C31\u80FD\u6436\u904E\u4F86\u3002" : "\u9084\u6C92\u6709\u4E3B\u4EBA\u7684\u7F8A\uFF1A\u6D3E\u4EFB\u4F55\u55AE\u4F4D\u8D70\u5230\u7260\u65C1\u908A\u5C31\u6B78\u4F60\u3002" : `\u91CE\u751F\u7684${unitNames[a.kind]}\uFF1A\u9078\u53D6\u6751\u6C11\u5F8C\u53F3\u9375\u7260\u72E9\u7375${a.kind === "boar" ? "\uFF08\u6703\u53CD\u64CA\uFF09" : "\uFF08\u53D7\u9A5A\u6703\u9003\uFF09"}\u3002`;
+var animalNote = (a) => a.kind === "sheep" ? a.player === 1 ? "\u7D05\u65B9\u7684\u7F8A\uFF1A\u8B93\u4F60\u7684\u55AE\u4F4D\u9760\u8FD1\u3001\u7D05\u65B9\u7684\u55AE\u4F4D\u96E2\u958B\uFF0C\u5C31\u80FD\u6436\u904E\u4F86\u3002" : "\u9084\u6C92\u6709\u4E3B\u4EBA\u7684\u7F8A\uFF1A\u6D3E\u4EFB\u4F55\u55AE\u4F4D\u8D70\u5230\u7260\u65C1\u908A\u5C31\u6B78\u4F60\u3002" : a.kind === "wolf" || a.kind === "jaguar" ? `\u91CE\u751F\u7684${unitNames[a.kind]}\uFF1A\u6703\u4E3B\u52D5\u653B\u64CA\u9644\u8FD1\u7684\u6751\u6C11\u8207\u58EB\u5175\uFF0C\u6C92\u6709\u98DF\u7269\uFF1B\u9078\u58EB\u5175\u53F3\u9375\u653B\u64CA\u7260\u3002` : `\u91CE\u751F\u7684${unitNames[a.kind]}\uFF1A\u9078\u53D6\u6751\u6C11\u5F8C\u53F3\u9375\u7260\u72E9\u7375${a.kind === "boar" ? "\uFF08\u6703\u53CD\u64CA\uFF09" : "\uFF08\u53D7\u9A5A\u6703\u9003\uFF09"}\u3002`;
 function enemyBuildingAt(x, y, id) {
   if (id) {
     const o = state.known.map((k) => k.obstacle).find((o2) => o2.id === id && o2.red);
@@ -11621,10 +13096,10 @@ var costText3 = (k) => Object.entries(costOf2(k)).filter(([, v]) => v > 0).map((
 var entryName = (k) => entryOf4(k)?.name ?? k;
 var ageNames2 = ["", "\u7B2C\u4E00\u6642\u4EE3", entryName("age-2"), entryName("age-3"), entryName("age-4")];
 var uniqueKinds = civDefs.flatMap((c) => c.uniqueUnits);
-var unitNames = { villager: "\u6751\u6C11", militia: "\u8FD1\u6230\u6C11\u5175", archer: "\u5F13\u624B", scout: "\u65A5\u5019", monk: "\u50E7\u4FB6", sheep: "\u7F8A", deer: "\u9E7F", boar: "\u91CE\u8C6C", spearman: "\u9577\u69CD\u5175", skirmisher: "\u6563\u5175", knight: "\u9A0E\u58EB", ram: "\u653B\u57CE\u69CC" };
+var unitNames = { villager: "\u6751\u6C11", militia: "\u8FD1\u6230\u6C11\u5175", archer: "\u5F13\u624B", scout: "\u65A5\u5019", monk: "\u50E7\u4FB6", sheep: "\u7F8A", deer: "\u9E7F", boar: "\u91CE\u8C6C", wolf: "\u72FC", jaguar: "\u7F8E\u6D32\u8C79", spearman: "\u9577\u69CD\u5175", skirmisher: "\u6563\u5175", knight: "\u9A0E\u58EB", ram: "\u653B\u57CE\u69CC" };
 for (const k of Object.keys(combatRules.units)) if (!(k in unitNames) && entryOf4(k)?.kind === "unit") unitNames[k] = entryName(k);
 var ownName = (kind) => lineName(kind, state.economy.techs) ?? unitNames[kind];
-var nameOf5 = (u) => u.player === 0 ? ownName(u.kind) : unitNames[u.kind];
+var nameOf6 = (u) => u.player === 0 ? ownName(u.kind) : unitNames[u.kind];
 var combatKinds = Object.keys(combatRules.units);
 var soldierKinds2 = new Set(combatKinds.filter((k) => k !== "villager" && k !== "monk" && k !== "scout" && !isAnimal(k) && combatRules.units[k].attack !== "none"));
 var villagersIn = (ids) => [...ids].filter((id) => state.units.find((u) => u.id === id)?.kind === "villager").sort((a, b) => a - b);
@@ -11639,7 +13114,7 @@ var leftOut = (ids) => {
 };
 function buildBlocker(k) {
   if (!buildersOf(k).length) return k === "fish-trap" ? "\u5148\u9078\u53D6\u6F01\u8239" : "\u5148\u9078\u53D6\u6751\u6C11";
-  const req = buildRequirement(state.economy.age, k, state.buildings, myCiv(), state.economy.techs, allTechs());
+  const req = buildRequirement(state.economy.age, k, state.buildings, myCiv(), state.economy.techs, allTechs(), nomadWaiver({ nomad: state.nomad }, state.buildings));
   if (req) return req;
   const st = state.economy.stock, c = costOf2(k), short = Object.keys(c).filter((r) => st[r] < c[r]);
   return short.length ? short.map((r) => `${resourceNames3[r]}\u4E0D\u8DB3\uFF1A\u9700\u8981 ${c[r]}\uFF0C\u76EE\u524D ${st[r]}`).join("\uFF1B") : null;
@@ -11697,7 +13172,7 @@ function renderBuild() {
     setImg(img, img.dataset.icon);
   }
   const reasons = kinds.map((k) => [k, buildBlocker(k)]).filter(([, w2]) => w2);
-  el("build-reason").textContent = placing ? wallPlan ? wallPlan.note : preview?.problem ? `\u4E0D\u80FD\u653E\u5728\u9019\u88E1\uFF1A${preview.problem}` : wallKinds2.has(placing) ? `\u5728\u8D77\u9EDE\u6309\u4E0B\u5DE6\u9375\uFF0C\u62D6\u5230\u7D42\u9EDE\u653E\u958B\uFF08\u6216\u518D\u9EDE\u4E00\u6B21\u7D42\u9EDE\uFF09\uFF1A\u4E00\u6B21\u4E00\u5217\uFF0C\u6BCF\u683C\u4E00\u6BB5\uFF1B\u53F3\u9375\u6216 Esc \u53D6\u6D88\u3002` : `\u5DE6\u9375\u653E\u7F6E${buildingNames2[placing]}\uFF1BShift\uFF0B\u5DE6\u9375\u9023\u7E8C\u653E\u7F6E\uFF1B\u53F3\u9375\u6216 Esc \u53D6\u6D88\u3002` : reasons.length === kinds.length && (reasons[0][1] === "\u5148\u9078\u53D6\u6751\u6C11" || reasons[0][1] === "\u5148\u9078\u53D6\u6F01\u8239") ? "\u5148\u9078\u53D6\u6751\u6C11\u624D\u80FD\u5EFA\u9020\u3002" : reasons.filter(([k]) => pageOf(k) === buildPage).map(([k, w2]) => `${buildingNames2[k]}\uFF1A${w2}`).join("\u3000");
+  el("build-reason").textContent = placing ? wallPlan ? wallPlan.note : preview?.problem ? `\u4E0D\u80FD\u653E\u5728\u9019\u88E1\uFF1A${preview.problem}` : wallKinds3.has(placing) ? `\u5728\u8D77\u9EDE\u6309\u4E0B\u5DE6\u9375\uFF0C\u62D6\u5230\u7D42\u9EDE\u653E\u958B\uFF08\u6216\u518D\u9EDE\u4E00\u6B21\u7D42\u9EDE\uFF09\uFF1A\u4E00\u6B21\u4E00\u5217\uFF0C\u6BCF\u683C\u4E00\u6BB5\uFF1B\u53F3\u9375\u6216 Esc \u53D6\u6D88\u3002` : `\u5DE6\u9375\u653E\u7F6E${buildingNames2[placing]}\uFF1BShift\uFF0B\u5DE6\u9375\u9023\u7E8C\u653E\u7F6E\uFF1B\u53F3\u9375\u6216 Esc \u53D6\u6D88\u3002` : reasons.length === kinds.length && (reasons[0][1] === "\u5148\u9078\u53D6\u6751\u6C11" || reasons[0][1] === "\u5148\u9078\u53D6\u6F01\u8239") ? "\u5148\u9078\u53D6\u6751\u6C11\u624D\u80FD\u5EFA\u9020\u3002" : reasons.filter(([k]) => pageOf(k) === buildPage).map(([k, w2]) => `${buildingNames2[k]}\uFF1A${w2}`).join("\u3000");
   el("stop").hidden = !!selectedBuilding || !chosenUnits().length;
   {
     const g = el("garrison-cmd"), fit = chosenUnits().filter((u) => canShelter.has(u.kind));
@@ -11963,7 +13438,7 @@ function renderSelection() {
   if (!b && chosen2.length === 1) {
     const u = chosen2[0], stats = statsOf(u.kind, mine());
     setImg(el("unit-portrait"), `${u.kind}-face`);
-    el("unit-name").textContent = nameOf5(u);
+    el("unit-name").textContent = nameOf6(u);
     el("unit-owner").textContent = isAnimal(u.kind) ? "\u85CD\u65B9\u7684\u7272\u755C" : `\u85CD\u65B9 \xB7 ${civName3(myCiv())} \xB7 #${u.id}`;
     el("unit-hp").textContent = `${u.hp}/${u.maxHp}`;
     el("unit-hp-bar").style.width = `${Math.max(0, u.hp) * 100 / Math.max(1, u.maxHp)}%`;
@@ -11989,7 +13464,7 @@ function renderSelection() {
       };
       if (isAnimal(u.kind)) {
         add(`\u98DF\u7269 ${animalRules.food[u.kind]}`, "food");
-        add(u.kind === "sheep" ? "\u53F3\u9375\u5730\u9762\u53EF\u8D95\u5230\u5225\u8655" : u.kind === "boar" ? "\u6703\u53CD\u64CA\u7375\u4EBA" : "\u53D7\u9A5A\u6703\u9003\u8DD1");
+        add(u.kind === "sheep" ? "\u53F3\u9375\u5730\u9762\u53EF\u8D95\u5230\u5225\u8655" : u.kind === "boar" ? "\u6703\u53CD\u64CA\u7375\u4EBA" : u.kind === "wolf" || u.kind === "jaguar" ? "\u6703\u4E3B\u52D5\u653B\u64CA\u9644\u8FD1\u7684\u55AE\u4F4D\uFF08\u50E7\u4FB6\u3001\u65A5\u5019\u8207\u653B\u57CE\u5668\u9664\u5916\uFF09" : "\u53D7\u9A5A\u6703\u9003\u8DD1");
       } else if (u.kind === "monk") {
         add(`\u8F49\u5316\u5C04\u7A0B ${religionRules.convertRange / 100} \u683C`);
         add(`\u4FE1\u4EF0 ${u.faith ?? 100}%`);
@@ -12138,7 +13613,7 @@ function reportEvents() {
   if (!before || state.tick <= before.tick || state.seed !== before.seed) return;
   const had = new Set(before.units.map((u) => u.id));
   for (const u of ownUnits()) if (!had.has(u.id) && !isAnimal(u.kind)) {
-    feed(`${nameOf5(u)}\u5DF2\u751F\u7522`);
+    feed(`${nameOf6(u)}\u5DF2\u751F\u7522`);
     audio.play(uniqueKinds.includes(u.kind) ? "unique" : "trained");
   }
   const carried = new Set(before.units.filter((u) => u.relic).map((u) => u.id));
@@ -12937,11 +14412,19 @@ function autoStart() {
   homeCamera();
   if (!state.outcome) setRunning(true);
 }
-function homeCamera() {
+function homeSpot() {
   const tc = state.known.find((k) => k.obstacle.kind === "town-center" && !k.obstacle.red)?.obstacle;
-  if (!tc || !scene) return;
-  const [x0, y0, x1, y1] = obstacleBounds(tc);
-  scene.focusHome((x0 + x1) / 200, (y0 + y1) / 200 + 1);
+  if (tc) {
+    const [x0, y0, x1, y1] = obstacleBounds(tc);
+    return { x: (x0 + x1) / 200, y: (y0 + y1) / 200 };
+  }
+  const v = ownUnits().filter((u) => u.kind === "villager");
+  return v.length ? { x: v.reduce((t, u) => t + u.x, 0) / v.length / 100, y: v.reduce((t, u) => t + u.y, 0) / v.length / 100 } : null;
+}
+function homeCamera() {
+  const at2 = homeSpot();
+  if (!at2 || !scene) return;
+  scene.focusHome(at2.x, at2.y + 1);
 }
 async function connect() {
   el("worker-retry").disabled = true;
@@ -13089,7 +14572,9 @@ function nextIdle() {
 function homeTownCenter() {
   const tc = state.buildings.find((b) => b.kind === "town-center");
   if (!tc) {
-    notice("\u6C92\u6709\u57CE\u93AE\u4E2D\u5FC3\u3002");
+    const at2 = homeSpot();
+    if (at2 && scene) scene.focusOn(at2.x, at2.y);
+    notice("\u9084\u6C92\u6709\u57CE\u93AE\u4E2D\u5FC3\uFF1A\u9078\u6751\u6C11\uFF0C\u5728\u5EFA\u9020\u683C\u7B2C\u4E8C\u9801\u84CB\u4E00\u5EA7\uFF08\u6E38\u7267\u958B\u5C40\u7B2C\u4E00\u5EA7\u4E0D\u5FC5\u7B49\u7B2C\u4E09\u6642\u4EE3\uFF09\u3002");
     return;
   }
   const o = state.known.find((k) => k.obstacle.id === tc.id)?.obstacle;
@@ -13188,7 +14673,7 @@ canvas.addEventListener("pointerdown", (e) => {
     }
     const g = scene.pickGround(e.clientX, e.clientY);
     if (g.x === void 0 || g.y === void 0) return;
-    if (wallKinds2.has(placing)) {
+    if (wallKinds3.has(placing)) {
       if (!wallStart) {
         wallStart = { x: Math.floor(g.x) * 100, y: Math.floor(g.y) * 100 };
         const k2 = placing;
@@ -13419,9 +14904,7 @@ canvas.addEventListener("pointerup", (e) => {
 var mini = el("minimap");
 var mctx = mini.getContext("2d");
 var miniKey = "";
-var terrainColor = { cliff: "#8a8065", stone: "#a1a28e", highland: "#879d69", water: "#4b8291", shallow: "#86b7b8", sand: "#d5c598", road: "#c4b18a" };
-var obstacleColor = { tree: "#4c6b43", gold: "#e2c35e", rock: "#d9d6c6", berries: "#b85a66", hunt: "#9b7552", livestock: "#e7e2cc" };
-var shade = (hex, f) => {
+var shade2 = (hex, f) => {
   const n = parseInt(hex.slice(1), 16);
   return `rgb(${Math.round((n >> 16 & 255) * f)},${Math.round((n >> 8 & 255) * f)},${Math.round((n & 255) * f)})`;
 };
@@ -13463,13 +14946,13 @@ function drawMinimap() {
   };
   state.terrain.forEach((t, id) => {
     const f = state.fog[id] ?? 0, x = id % state.size, z = Math.floor(id / state.size), base = terrainColor[t.terrainType] ?? "#b5c493";
-    ctx.fillStyle = f === 0 ? "#1c2622" : f === 1 ? shade(base, 0.52) : base;
+    ctx.fillStyle = f === 0 ? "#1c2622" : f === 1 ? shade2(base, 0.52) : base;
     quad(x - 0.02, z - 0.02, x + 1.02, z + 1.02);
   });
   for (const k of state.known) {
     const o = k.obstacle, [x0, y0, x1, y1] = obstacleBounds(o), home = homeKinds.has(o.kind);
     ctx.fillStyle = o.kind === "farm" ? o.red ? "#b58a62" : "#a99a5e" : home ? o.red ? "#d0664c" : "#5d93b6" : obstacleColor[o.kind] ?? "#c8c2a8";
-    if ((state.fog[Math.floor(o.y / 100) * state.size + Math.floor(o.x / 100)] ?? 0) < 2 && !home) ctx.fillStyle = shade(ctx.fillStyle, 0.6);
+    if ((state.fog[Math.floor(o.y / 100) * state.size + Math.floor(o.x / 100)] ?? 0) < 2 && !home) ctx.fillStyle = shade2(ctx.fillStyle, 0.6);
     quad(x0 / 100, y0 / 100, x1 / 100, y1 / 100);
   }
   for (const r of state.resources) if (r.kind === "fish") {
@@ -14112,8 +15595,7 @@ var lobby = createLobby({
     lobbyOpen = false;
     el("menu-open").focus();
     autoStart();
-  },
-  colors: { terrain: terrainColor, obstacle: obstacleColor, grass: "#b5c493" }
+  }
 });
 el("lobby-open").onclick = () => {
   closeMenu(false);

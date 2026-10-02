@@ -60,7 +60,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('#civ-name').textContent==='條頓');
  await page.keyboard.press('F10');await page.locator('#save').click();await page.waitForFunction(()=>/已儲存 tick/.test(document.querySelector('#notice').textContent));
  const saved=JSON.parse(await page.evaluate(()=>localStorage.getItem('brick-rts:sandbox:1')));
- assert.equal(saved.format,'brick-sandbox-33');assert.deepEqual(saved.state.civs,['teutons','japanese']);note('頁面存檔',`${saved.format}，文明 ${saved.state.civs.join(' 對 ')}，tick ${saved.state.tick}`);
+ assert.equal(saved.format,'brick-sandbox-34');assert.deepEqual(saved.state.civs,['teutons','japanese']);note('頁面存檔',`${saved.format}，文明 ${saved.state.civs.join(' 對 ')}，tick ${saved.state.tick}`);
  // 4. The encyclopedia from the menu: 14 civs, the player's own first; the Britons' page matches the simulation.
  await page.keyboard.press('F10');await page.locator('#codex-open').click();await page.waitForFunction(()=>!document.querySelector('#codex').hidden&&document.querySelector('#cx-civ-name'));
  const civButtons=await page.locator('#codex .cx-civ').evaluateAll(b=>b.map(x=>({id:x.dataset.civ,current:x.getAttribute('aria-current'),mark:x.querySelector('.cx-mark')?.textContent??''})));

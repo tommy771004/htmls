@@ -919,3 +919,35 @@ export const treeNote='科技樹的排列取自 aoetw.com 的文明科技樹頁�
 // steps, and the technology a reference technology follows in its column.
 export const treeRefAges:Readonly<Record<string,readonly number[]>>={'eagle-scout':[2,3,4],'battle-elephant':[3,4],'steppe-lancer':[3,4],'xolotl-warrior':[3],'siege-tower':[3]};
 export const treeRefChains:Readonly<Record<string,string>>={banking:'coinage'};
+// ── 地圖 (the 地圖 round) ─────────────────────────────────────────────────────────────────────────────────────────────
+// aoetw.com's random-map list (maps/index.vue) with the site's descriptions (packages/content/maps.ts), the strategy each
+// page suggests for the maps this game plays (condensed, no numbers: the summaries on the page carry the site's own),
+// and why the rest are listed only.
+export const mapsIntro='地圖照 aoetw.com 的隨機地圖列表，依資料片排列。本作做了原版《帝王世紀》與《征服者入侵》的地圖；每張可以玩的地圖都附一張由遊戲本身的地圖產生器畫出的預覽，資源數也從同一張生成的地圖數出來。之後資料片的地圖只列出網站的介紹。';
+export const mapsNote='預覽固定用同一個種子；開局設定畫面可以換種子看別的生成結果。資源以離城鎮中心最近的一方計算，太遠的算中立。';
+export const mapLaterReason='之後資料片的地圖：本作照原版與征服者入侵的地圖，這張只列出網站的介紹。';
+export const mapPlannedReason='這一輪稍後加入（特殊開局或島嶼地圖）。';
+export const mapStrategy:Readonly<Record<string,string>>={
+ Arabia:'開闊、易攻難守、沒有水。木頭少，封建時代用箭塔封住對方木區（塔攻）很流行；經濟與初期強兵的文明吃香。',
+ Archipelago:'資源有限，後期常打成便宜兵種的消耗戰。控海是關鍵，食物多半來自海上；早期可用運輸船攻上別的島並搶占它的資源，也要搶下資源豐富的小島。',
+ Baltic:'以漁船為主要食物可以省下木材。分隔雙方的陸地狹長，適合用城牆擋住；隔開對手之後，用運輸船與戰船跨海進攻。',
+ Black_Forest:'地圖封閉，宜及早圍牆、在家發展經濟。後期強力兵種與投石車有利，投石車可以砍樹開路繞到後方；也適合蓋世界奇觀。',
+ Crater_Lake:'網站沒有這張圖的頁面。本作照原版的樣子：中央一座山，山頂的火山口是湖，可以上山捕魚；雙方分在山的兩側。',
+ Coastal:'控制海域就有穩定的食物，也能沿海突襲。若失去制海權，就在封建晚期到城堡初期快攻騷擾對方的資源。',
+ Continental:'快攻要靠海運，不容易成功。農田與漁船各半；重點在沿岸防禦，用攻城器、哨站與箭塔防止對方偷渡。',
+ Fortress:'開局的石牆能擋住早期快攻，適合在城堡時代以前就專心發展，再插城堡或快速升級。留意自己的箭塔是否真的護住城牆。',
+ Gold_Rush:'盡早控制中央，用城堡與箭塔守住黃金，並阻止對方採中間的黃金。中央有許多狼，派村民去之前要先清掉。',
+ Highland:'用城牆圍住淺灘與陸橋；也要提防對方蓋碼頭、用運輸船偷渡。快攻與守家發展都可行。',
+ Islands:'每人一座島，控海就是一切：發展海軍、搶下有金石的小島，早期也可以用運輸船登陸快攻。',
+ Mediterranean:'控制中央海域：海上有大量食物，運輸船還能偷渡奇襲；同時要提防對方從海上登陸。',
+ Migration:'沒有野豬，羊也離城鎮中心很遠，要派人去找。海軍強的文明吃香；要用運輸船把村民送到中央的大陸去搶金石。',
+ Rivers:'築牆擋住淺灘，也要提防對方偷渡村民或軍隊；城堡蓋在河道交會的地方可以防船。',
+ Team_Islands:'防止敵方運輸船登陸是勝負關鍵；世界奇觀是熱門的勝利方式。',
+ Arena:'開局有城牆，城堡時代以前的快攻很難成功，適合快速升級；塔攻仍然可行。封鎖對方門外的金石，僧侶在這張圖特別強。',
+ Ghost_Lake:'中央的冰面沒有資源、不能蓋建築，但可以走過去。利用樹叢圍家；中期強勢的文明比晚期文明好用。',
+ Mongolia:'利用起伏的地形圍家擋快攻；站在高處作戰有攻擊加成，箭塔可以蓋在對方難以到達的懸崖上；也可以圍住懸崖小道裡的金石。',
+ Nomad:'開局沒有城鎮中心：先探路，找到食物與大量金礦的地方再蓋，但別蓋得太晚。也可以在對方村民附近蓋城鎮中心，駐軍反擊。',
+ Oasis:'在森林較薄的地方伐木，順便取得湖泊捕魚；目標是控制金、食物與石頭豐富的沙漠。',
+ Salt_Marsh:'投資海軍控制水域；爆破船可以伏擊走過淺灘的單位，運輸船可以繞到後方奇襲。淺灘很難封鎖。',
+ Scandinavia:'野豬比別的圖多一隻、鹿也多，開局食物充足；衝突多半在中間的黃金。石頭少，很難再蓋第二座城堡或更多城鎮中心。',
+ Yucatan:'食物豐富，適合大規模戰鬥，晚期強勢的文明有利。叢林裡有美洲豹，牧羊與採果的村民要小心。'};

@@ -10,7 +10,7 @@ import type {UnitStats,CombatUnitKind} from './stats.ts';
 import {commandGather,commandHunt,commandBuild} from './work.ts';
 import type {Work} from './work.ts';
 import type {ReligionState} from './religion.ts';
-import {isAnimal} from './fauna.ts';
+import {isAnimal,isHostile} from './fauna.ts';
 import {tileAt} from './terrain.ts';
 // Town centres and watch towers: garrison and arrows (design_default numbers; the shape follows the reference: a town
 // centre and a tower shoot on their own, and each villager or archer inside adds an arrow).
@@ -123,7 +123,7 @@ export function stepDefense(s:DefenseState){
   const box=boxOf(s,b.id);if(!box)continue;const seen=new Set(s.vision[b.player].visible);
   // The owner's civilization and unique technologies add arrows, attack, range and fire rate (arrowsOf).
   const mod=arrowsOf(ownerOf(s,b.player),b.kind),range=def.range+mod.range;
-  const target=s.units.filter(u=>u.player!==b.player&&!isAnimal(u.kind)&&seen.has(tileAt(u.x,u.y,s.map.size))&&reach(u,box)<=range).sort((p,q)=>reach(p,box)-reach(q,box)||p.id-q.id)[0];
+  const target=s.units.filter(u=>u.player!==b.player&&(!isAnimal(u.kind)||isHostile(u.kind))&&seen.has(tileAt(u.x,u.y,s.map.size))&&reach(u,box)<=range).sort((p,q)=>reach(p,box)-reach(q,box)||p.id-q.id)[0];
   if(!target)continue;
   const bonus:Record<string,number>={...def.bonus};for(const [c,v] of Object.entries(mod.bonus))bonus[c]=(bonus[c]??0)+v;
   const cooldown=Math.max(1,Math.round(def.cooldown*mod.cooldown)),arrow:UnitStats={hp:0,damage:def.damage+mod.damage,range,cooldown,sight:0,attack:'pierce',armor:[0,0],classes:[],bonus};

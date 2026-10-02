@@ -5,6 +5,7 @@ import {rules} from '../content/rules.ts';
 import {createTiles,tileAt,canTraverse,terrainRules,extractResource,resourceDefinitions,mapSizes,terrainDefinitions} from './terrain.ts';
 import type {Tile,ResourceNode,MapLayout,ResourceKind} from './terrain.ts';
 import type {AnimalKind,AnimalSpawn} from './fauna.ts';
+import {generateMatchMap,isMatchMap} from './maps/index.ts';
 // expansionsPerTick 128: chosen from test-results/movement-benchmark-{32,64,128,256}.json (fastest 24/40-unit
 // gate settle; 32 left 40 units waiting on search for ~40 s). Node count, never wall time, decides results.
 // waitLimit: ticks behind a stationary blocker between replans (x queueWaitFactor behind a unit that is
@@ -21,7 +22,13 @@ export type Obstacle={id?:string;kind:ObstacleKind;x:number;y:number;red?:boolea
 // starts: each player's villager start points (first entry is the player's reference spawn).
 // scouts: each player's scout start point (the match map only; the 16-tile test grounds have none).
 // animals: where the sheep, deer and boar start (they become units in createState).
-export type MapData={size:number;starts:Point[][];scouts?:Point[];animals?:AnimalSpawn[];obstacles:Obstacle[];blocked:number[];tiles:Tile[];resources:ResourceNode[];navigationRevision:number;generationAttempt:number};
+// separate (the 地圖 round's island maps): the two bases are on different landmasses, so validation does not ask for a
+// land path between them.
+export type MapData={size:number;starts:Point[][];scouts?:Point[];animals?:AnimalSpawn[];obstacles:Obstacle[];blocked:number[];tiles:Tile[];resources:ResourceNode[];navigationRevision:number;generationAttempt:number;separate?:boolean;
+ // The 地圖 round's special starts: walled (bases closed in by prebuilt walls: the connection check ignores walls and
+ // gates), nomad (no town centre at the start: the first one may be built in any age), lean (resource kinds a base need
+ // not have within reach at the start: islet starts get theirs by ship).
+ walled?:boolean;nomad?:boolean;lean?:string[]};
 // Fast lookup of map.blocked (kept as a sorted list for saves and hashes); rebuilt when the list changes.
 const tables=new WeakMap<MapData,{list:number[];length:number;revision:number;table:Uint8Array}>();
 export function blockedTable(map:MapData):Uint8Array{let t=tables.get(map);
@@ -66,6 +73,8 @@ export function makeMap(seed:number,layout:MapLayout='meadow'):MapData{
 }
 function generateCandidate(seed:number,layout:MapLayout):MapData{
  if(layout==='open'||layout==='lakes')return generateOpen(seed,layout==='lakes');
+ // The 地圖 round's match maps (packages/sim/maps/).
+ if(isMatchMap(layout))return generateMatchMap(seed,layout);
  let rng=seed||1;// Starting town centers: gate centers sit on grid columns 400/1200 and face the spawn row, 65 units clear.
  let obstacles:Obstacle[]=[{kind:'town-center',x:265,y:350},{kind:'town-center',x:1065,y:350,red:true}];
  // Border woods are drawn for the west half and mirrored to the east, so both bases get the same room.
@@ -96,7 +105,7 @@ function generateCandidate(seed:number,layout:MapLayout):MapData{
 // owner: the starting flock by a town centre already belongs to that player (as in the reference); others are wild.
 // open: only nodes with at least that many unblocked nodes in the 5x5 block round them (no corridors or pockets, where
 // an animal would stand in the only way through).
-function flock(map:MapData,kind:AnimalKind,x:number,y:number,count:number,within=200,owner?:number,open=0){
+export function flock(map:MapData,kind:AnimalKind,x:number,y:number,count:number,within=200,owner?:number,open=0){
  const closed=blockedTable(map),taken=new Set([...map.starts.flat(),...(map.scouts??[]),...(map.animals??[])].map(p=>nodeAt(map,p)));
  const roomy=(n:number)=>!open||nodesNear(map,[position(map,n).x,position(map,n).y,position(map,n).x,position(map,n).y],100).filter(m=>!closed[m]).length>=open;
  const nodes=nodesNear(map,[x,y,x,y],within).filter(n=>!closed[n]&&!taken.has(n)&&roomy(n)).map(n=>({n,d:Math.abs(position(map,n).x-x)+Math.abs(position(map,n).y-y)})).sort((a,b)=>a.d-b.d||a.n-b.n);
@@ -205,11 +214,26 @@ export function clearSegment(map:MapData,a:Point,b:Point,movement:'land'|'water'
  // Closed cell footprints include unit radius; material color never controls passage.
  if(!canTraverse(tile,movement)&&intersects(a,b,[x*100-radius,y*100-radius,x*100+100+radius,y*100+100+radius]))return false;
  }
- for(const o of map.obstacles)for(const [x0,y0,x1,y1] of obstacleRects(o,navigationRules.radius)){let lo=0,hi=1;
+ for(const o of obstaclesNear(map,a,b))for(const [x0,y0,x1,y1] of obstacleRects(o,navigationRules.radius)){let lo=0,hi=1;
  for(const [start,delta,min,max] of [[a.x,b.x-a.x,x0,x1],[a.y,b.y-a.y,y0,y1]]){
  if(delta===0){if(start<min||start>max){lo=2;break;}}else{const t0=(min-start)/delta,t1=(max-start)/delta;lo=Math.max(lo,Math.min(t0,t1));hi=Math.min(hi,Math.max(t0,t1));}}
  if(lo<=hi)return false;
  }return true;
+}
+// Obstacles that can touch a segment, from the tiles' obstacle references (the 地圖 round's thick forests made the full
+// scan the hot spot of path checks). An obstacle's footprint reaches at most 20 left/up and 500 right/down of its anchor
+// (a tree's offset, the wonder's size), plus the unit radius. Used only when every obstacle is referenced from its
+// anchor tile (maps the page rebuilds from what it knows carry no references): otherwise every obstacle is checked.
+const obstacleIndex=new WeakMap<Obstacle[],{length:number;byId:Map<string,Obstacle>|null}>();
+function obstaclesNear(map:MapData,a:Point,b:Point):Obstacle[]{
+ let idx=obstacleIndex.get(map.obstacles);
+ if(!idx||idx.length!==map.obstacles.length){let refs=0;for(const t of map.tiles)refs+=t.obstacleRefs.length;
+  const byId=new Map<string,Obstacle>();for(const o of map.obstacles)if(o.id!==undefined)byId.set(o.id,o);
+  idx={length:map.obstacles.length,byId:refs===map.obstacles.length&&byId.size===map.obstacles.length&&map.obstacles.length>32?byId:null};obstacleIndex.set(map.obstacles,idx);}
+ if(!idx.byId)return map.obstacles;
+ const r=navigationRules.radius,size=map.size,tx0=Math.max(0,Math.floor((Math.min(a.x,b.x)-r-500)/100)),tx1=Math.min(size-1,Math.floor((Math.max(a.x,b.x)+r+20)/100)),ty0=Math.max(0,Math.floor((Math.min(a.y,b.y)-r-500)/100)),ty1=Math.min(size-1,Math.floor((Math.max(a.y,b.y)+r+20)/100));
+ const out:Obstacle[]=[];for(let ty=ty0;ty<=ty1;ty++)for(let tx=tx0;tx<=tx1;tx++)for(const id of map.tiles[ty*size+tx].obstacleRefs){const o=idx.byId.get(id);if(o)out.push(o);}
+ return out;
 }
 function intersects(a:Point,b:Point,box:[number,number,number,number]):boolean{
  let lo=0,hi=1;for(const [start,delta,min,max] of [[a.x,b.x-a.x,box[0],box[2]],[a.y,b.y-a.y,box[1],box[3]]]){
@@ -251,9 +275,15 @@ export function validateMap(map:MapData):string[]{
  if(!map.tiles[tileAt(r.x,r.y,map.size)]?.resourceRefs.includes(r.id))errors.push(`資源 ${r.id} 地格參照失效`);}
  const spawns=[...map.starts.flat(),...(map.scouts??[]),...(map.animals??[])];
  if(spawns.some(p=>!clearSegment(map,p,p)))errors.push('出生點不可通行');
- else {const job=createPathJob(map,0,map.starts[0][0],map.starts[1][0]);advancePathJob(map,job,nodeTotal(map));if(job.status!=='found')errors.push('玩家出生區互不連通');}
+ // Island maps (separate: the bases sit on different landmasses) are joined by water, not land.
+ else if(!map.separate){const open=map.walled?withoutWalls(map):map,job=createPathJob(open,0,open.starts[0][0],open.starts[1][0]);advancePathJob(open,job,nodeTotal(open));if(job.status!=='found')errors.push('玩家出生區互不連通');}
  return errors;
 }
+// A walled start's map without its walls and gates (a copy: the real map keeps them), for the connection check: the
+// bases must reach each other once a gate opens.
+const wallKinds=new Set(['palisade-wall','stone-wall','palisade-gate','gate']);
+export function withoutWalls(map:MapData):MapData{const gone=new Set(map.obstacles.filter(o=>wallKinds.has(o.kind)).map(o=>o.id));
+ return {...map,obstacles:map.obstacles.filter(o=>!gone.has(o.id)),tiles:map.tiles.map(t=>({...t,obstacleRefs:t.obstacleRefs.filter(r=>!gone.has(r))})),blocked:[]};}
 export function position(map:{size:number},id:number):Point{const side=sideOf(map);return {x:50+(id%side)*50,y:50+Math.floor(id/side)*50};}
 export function nodeAt(map:{size:number},p:Point):number{const side=sideOf(map),x=(p.x-50)/50,y=(p.y-50)/50;return Number.isInteger(x)&&Number.isInteger(y)&&x>=0&&x<side&&y>=0&&y<side?y*side+x:-1;}
 // Generation-only gate: runtime maps may legitimately exhaust their starting stock.
@@ -263,7 +293,7 @@ export function validateStartingResources(map:MapData){
  const side=sideOf(map),total=nodeTotal(map),distances=Array<number>(total).fill(Infinity),start=nearest(map,spawn),frontier:number[]=[];
  if(start>=0){distances[start]=Math.abs(position(map,start).x-spawn.x)+Math.abs(position(map,start).y-spawn.y);frontier.push(start);}
  const closed=blockedTable(map);for(let head=0;head<frontier.length;head++){const id=frontier[head],x=id%side,y=Math.floor(id/side);for(const next of [x<side-1?id+1:-1,y<side-1?id+side:-1,x>0?id-1:-1,y>0?id-side:-1])if(next>=0&&!Number.isFinite(distances[next])&&!closed[next]&&clearSegment(map,position(map,id),position(map,next))){distances[next]=distances[id]+50;frontier.push(next);}}
- const access=Object.entries(startingResourceRules.minimum).map(([kind,minimum])=>{
+ const access=Object.entries(startingResourceRules.minimum).filter(([kind])=>!map.lean?.includes(kind)).map(([kind,minimum])=>{
  const nodes=map.resources.filter(r=>r.kind===kind&&r.collectible&&r.remaining>0).map(resource=>{
  const obstacle=map.obstacles.find(o=>o.id===resource.obstacleId);if(!obstacle)return {id:resource.id,remaining:resource.remaining,distance:Infinity,approach:null as Point|null};
  const [x0,y0,x1,y1]=bounds(obstacle);let distance=Infinity,approach:Point|null=null;

@@ -22,6 +22,7 @@ import {combatRules} from './stats.ts';
 import type {CombatUnitKind} from './stats.ts';
 import {ownerOf,costOf,ownerAvailable,producersOf} from './civ.ts';
 import {aiTuning,settingsOf} from './settings.ts';
+import {nomadStart,wolves,breakout,ferry,landBlocked,sameLand,mapAIRules} from './ai-maps.ts';
 import type {MatchSettings} from './settings.ts';
 import type {Owner} from './civ.ts';
 import {civDefs} from '../content/civs.ts';
@@ -54,7 +55,7 @@ export const aiRules={provenance:'design_default',player:1,tauntGap:3600,tauntQu
  repairBelow:70,repairers:2,repairRange:600,
  research:{blacksmith:['forging','fletching','scale-mail-armor','padded-archer-armor','iron-casting','bodkin-arrow','chain-mail-armor','scale-barding-armor'],barracks:['man-at-arms','long-swordsman'],'archery-range':['crossbowman'],'town-center':['loom','wheelbarrow','hand-cart'],dock:['gillnets'],'lumber-camp':['double-bit-axe','bow-saw','two-man-saw'],'mining-camp':['gold-mining','gold-shaft-mining'],mill:['horse-collar','heavy-plow','crop-rotation']}} as const;
 export type AIState=DefenseState&ProductionState&{settings?:MatchSettings;aiOpening?:string;tick:number;ages:number[];vision:PlayerVision[];market?:Prices;trades?:Record<number,unknown>;chat?:{player:number;taunt:number;tick:number}[];wonders?:Record<string,number>};
-export type Order=(commandType:'taunt'|'bell'|'hunt'|'move'|'gather'|'build'|'construct'|'train'|'attack'|'resign'|'convert'|'relic'|'deposit'|'market'|'trade'|'rally'|'repair',payload:Record<string,unknown>)=>boolean;
+export type Order=(commandType:'taunt'|'bell'|'hunt'|'move'|'gather'|'build'|'construct'|'train'|'attack'|'resign'|'convert'|'relic'|'deposit'|'market'|'trade'|'rally'|'repair'|'garrison'|'load'|'unload',payload:Record<string,unknown>)=>boolean;
 type Box=number[];
 // Soldiers: every unit that can fight except villagers, monks, animals and the scout (it explores on its own).
 export const soldierKinds:readonly string[]=unitKinds.filter(k=>k!=='villager'&&k!=='monk'&&k!=='scout'&&!isAnimal(k)&&combatRules.units[k as CombatUnitKind].attack!=='none');
@@ -85,11 +86,16 @@ export function stepAI(s:AIState,order:Order){
  const own=s.buildings.filter(b=>b.player===P),tc=own.find(b=>b.kind==='town-center'),tcBox=tc?boxOf(s,tc):null;
  const foes=s.units.filter(u=>u.player!==P&&!isAnimal(u.kind)&&seen.has(tileAt(u.x,u.y,s.map.size))).sort((a,b)=>a.id-b.id);
  // Concede when nothing can turn the game: no town centre (it cannot be rebuilt) and no soldiers left.
- if(!tc&&!soldiers.length&&!warships.length){order('resign',{});return;}
+ // (A nomad start has no town centre yet: its villagers found one, nomadStart below.)
+ if(!tc&&!soldiers.length&&!warships.length&&!(s.map.nomad&&allVillagers.length)){order('resign',{});return;}
  // The opening (packages/content/openings.ts) while it runs: its raiders leave the normal army's hands.
  const op=activeOpening(s),phase=op?openingPhase(s,own):null,half=tcBox?sideFrom(s,centre(tcBox)):null;
  const raiding=op&&half&&tcBox?raid(s,order,op,mine,scout,foes,idle,centre(tcBox),half,explored):new Set<number>();
- const wave=army(s,order,soldiers.filter(u=>!raiding.has(u.id)),foes,tcBox,idle,explored);
+ // The goal of the next wave, and whether the soldiers can walk there (not across water, not out of an ungated wall:
+ // the transports and the gate below see to those, ai-maps.ts).
+ const goal=tcBox?objective(s,centre(tcBox),explored,true):null,blocked=!!goal&&!!tcBox&&landBlocked(s,own,centre(tcBox),goal);
+ const wave=army(s,order,soldiers.filter(u=>!raiding.has(u.id)),foes,tcBox,idle,explored,blocked);
+ wolves(s,order,P,mine,tc,idle);
  taunt(s,order,wave,tc,tcBox,foes);
  // The town bell: enough enemy soldiers at the town centre and fewer own soldiers there send the villagers inside; once
  // no enemy is left near, they go back to work.
@@ -101,6 +107,7 @@ export function stepAI(s:AIState,order:Order){
  // Open water is left to the ships (a lake's middle would otherwise send the scout to its shore again every pass).
  if(scout&&idle(scout)){const size=s.map.size;let best=-1,far=Infinity;for(let t=0;t<size*size;t++){if(explored.has(t)||s.map.tiles[t].terrainType==='water')continue;const d=Math.hypot((t%size)*100+50-scout.x,Math.floor(t/size)*100+50-scout.y);if(d<far){far=d;best=t;}}
   if(best>=0)march(s,order,[scout],{x:(best%size)*100+50,y:Math.floor(best/size)*100+50});}
+ nomadStart(s,order,P,allVillagers,own);
  if(!tc||!tcBox)return;
  // Forward villagers (tower rushes, a forward barracks) are the opening's; the rest is the home economy.
  const forward=op&&half?forwardWork(s,order,op,allVillagers,own,idle,centre(tcBox),half,explored):new Set<number>(),villagers=allVillagers.filter(u=>!forward.has(u.id));
@@ -157,7 +164,7 @@ export function stepAI(s:AIState,order:Order){
   else if(villagerCount<(clicked?Math.max(plan.villagers,aiTuning(s).villagerTarget):plan.clickOnFood?plan.villagers:plan.clickAt)&&!trainable(s,P,tc,'villager'))order('train',{buildingId:tc.id,entryId:'villager'});
   else if(plan.castle&&s.ages[P]===2&&!trainable(s,P,tc,'age-3'))order('train',{buildingId:tc.id,entryId:'age-3'});
  }else if(tc.complete&&!tc.queue.length){
-  if(villagers.length+queued('villager')<aiTuning(s).villagerTarget&&!trainable(s,P,tc,'villager'))order('train',{buildingId:tc.id,entryId:'villager'});
+  if(villagers.length+queued('villager')<aiTuning(s).villagerTarget&&!(s.map.separate&&!mine.some(u=>u.kind==='transport-ship')&&!queued('transport-ship')&&room<=1&&own.some(b=>b.kind==='dock'))&&!trainable(s,P,tc,'villager'))order('train',{buildingId:tc.id,entryId:'villager'});
   else if(s.ages[P]<2&&villagers.length>=aiRules.ageUpAtVillagers&&own.some(b=>b.kind==='barracks'&&b.complete)&&!trainable(s,P,tc,'age-2'))order('train',{buildingId:tc.id,entryId:'age-2'});
   // The third age once the villagers are complete and the archery range stands (for the monastery and its monks).
   else if(s.ages[P]===2&&villagers.length>=aiTuning(s).villagerTarget&&own.some(b=>b.kind==='archery-range'&&b.complete)&&!trainable(s,P,tc,'age-3'))order('train',{buildingId:tc.id,entryId:'age-3'});
@@ -176,7 +183,10 @@ export function stepAI(s:AIState,order:Order){
  const slots=plan&&castle?Math.max(0,aiRules.uniqueTarget-mine.filter(u=>u.kind===plan.unit).length-queued(plan.unit)):0,unitCost=plan?cost(plan.unit):null;
  const reserve=(r:Resource)=>!slots||!unitCost?0:r==='gold'?slots*unitCost.gold:unitCost[r],left={...stock};
  const spare=(id:string)=>{const c=cost(id);return !slots||(Object.keys(c) as Resource[]).every(r=>left[r]>=reserve(r)+c[r]);};let open=room;
- for(const b of own.filter(b=>b.complete&&b.queue.length<2)){
+ // On separate landmasses the last population slot waits for the first transport (on a small islet there may be no
+ // room for another house until the transport has carried villagers across).
+ const holdForFerry=s.map.separate&&!mine.some(u=>u.kind==='transport-ship')&&!queued('transport-ship')&&room<=1;
+ for(const b of own.filter(b=>b.complete&&b.queue.length<2&&!(holdForFerry&&b.kind!=='dock'))){
   // Units that cost wood wait while the opening's own buildings are still due (the second archery range first).
   if(planned&&!b.kind.startsWith('castle')&&b.kind!=='town-center'){if(savingForAge||savingForCastle)continue;const pick=planned.find(([k,n])=>producersOf(k,owner).includes(b.kind)&&mine.filter(u=>u.kind===k).length+queued(k)<n&&!(buildingsDue&&cost(k).wood>0)&&!trainable(s,P,b,k))?.[0];
    if(pick)order('train',{buildingId:b.id,entryId:pick});continue;}
@@ -199,6 +209,10 @@ export function stepAI(s:AIState,order:Order){
   if(b.kind==='town-center'&&villagers.length+queued('villager')<aiTuning(s).villagerTarget)continue;
   const next=research[b.kind]?.find(id=>!trainable(s,P,b,id)&&spare(id));if(next)order('train',{buildingId:b.id,entryId:next});}
  water(s,order,{own,mine,villagers,warships,idle,tcBox,cost,queued,spare,explored,foes});
+ {const home=centre(tcBox),wave=soldiers.filter(u=>idle(u)&&!s.attacks[u.id]&&dist(u,home)<=aiRules.defendRadius&&sameLand(s,u,home)).sort((a,b)=>a.id-b.id);
+  ferry(s,order,P,{own,mine,villagers:allVillagers,wave,idle,home,goal:goal??home,waveSize:aiTuning(s).waveSize,offensive:s.tick>=aiTuning(s).firstWaveTick,
+   place:(kind,near,party)=>place(s,order,kind,party,idle,tcBox,own,undefined,near)});
+  breakout(s,order,P,own,villagers,tc,goal??home);}
  repairHome(s,order,own,villagers,idle);
  trade(s,order,{own,mine,villagers,idle,tcBox,cost,queued,saving:savingForAge||savingForCastle||monasteryDue,stoneDue:!!plan&&!castle&&stock.stone<cost('castle').stone});
  // Monks: a carried relic goes to the monastery; with full faith a monk converts the nearest enemy unit that comes
@@ -238,7 +252,7 @@ export function stepAI(s:AIState,order:Order){
   const kinds=(Object.keys(weights) as Resource[]).filter(k=>weights[k]>0).sort((a,b)=>staff[a]/weights[a]-staff[b]/weights[b]);
   // Food counts only within reach of the own town centre (otherwise villagers would walk to the opponent's
   // berries once the scout has seen them); beyond that a farm is laid out instead.
-  for(const kind of kinds){const natural=wild<aiRules.wildFoodWorkers&&s.ages[P]<2,source=s.map.resources.filter(r=>resourceDefinitions[r.kind].yield===kind&&(kind!=='food'||natural||r.kind==='farm')&&explored.has(tileAt(r.x,r.y,s.map.size))&&(kind!=='food'||dist(r,centre(tcBox))<=(r.kind==='farm'?aiRules.siteRange:aiRules.wildRange))&&!gatherable(s.map,r.id)&&(r.kind!=='farm'||farmOwner(s,r.id)===P&&!farmers.has(r.id))).sort((a,b)=>dist(u,a)-dist(u,b)||(a.id<b.id?-1:1))[0];
+  for(const kind of kinds){const natural=wild<aiRules.wildFoodWorkers&&s.ages[P]<2,source=s.map.resources.filter(r=>resourceDefinitions[r.kind].yield===kind&&(kind!=='food'||natural||r.kind==='farm')&&explored.has(tileAt(r.x,r.y,s.map.size))&&(kind!=='food'||dist(r,centre(tcBox))<=(r.kind==='farm'?aiRules.siteRange:aiRules.wildRange))&&!gatherable(s.map,r.id)&&sameLand(s,u,r)&&(r.kind!=='farm'||farmOwner(s,r.id)===P&&!farmers.has(r.id))).sort((a,b)=>dist(u,a)-dist(u,b)||(a.id<b.id?-1:1))[0];
    // Food: an own sheep already driven home, or a deer near home (never a boar), when it is closer than any carcass,
    // bush or field; one already being hunted is joined only when no other is in reach.
    if(kind==='food'&&natural){const prey=s.units.filter(a=>(a.kind==='sheep'?dist(a,centre(tcBox))<=aiRules.herdRadius+50:a.kind==='deer'&&dist(a,centre(tcBox))<=aiRules.wildRange)&&!huntProblem(s,P,a.id)&&!s.map.resources.some(r=>r.id===carcassId(a.id))).sort((a,b)=>Number(hunted.has(a.id))-Number(hunted.has(b.id))||dist(u,a)-dist(u,b)||a.id-b.id)[0];
@@ -260,15 +274,19 @@ function waterSite(s:AIState,kind:'dock'|'fish-trap',near:{x:number;y:number},ra
  const wet=(t:number)=>s.map.tiles[t]?.terrainType==='water'||s.map.tiles[t]?.terrainType==='shallow';
  for(let ty=0;ty+d/100<=size;ty++)for(let tx=0;tx+n<=size;tx++){if(!wet(ty*size+tx))continue;const c={x:tx*100+w/2,y:ty*100+d/2},dd=dist(c,near);if(dd<=range)sites.push({x:tx*100,y:ty*100,d:dd});}
  sites.sort((a,b)=>a.d-b.d||a.y-b.y||a.x-b.x);const input=knownInput(s);
- return sites.find(v=>!clashes(obstacleBounds({kind,x:v.x,y:v.y}))&&!placementProblem(input,kind,v.x,v.y))??null;}
+ // (Never over a shoal of fish or another point resource: the authoritative check refuses that, buildings.ts.)
+ const covers=(b:number[])=>s.map.resources.some(r=>!r.obstacleId&&r.status==='available'&&r.x>b[0]&&r.x<b[2]&&r.y>b[1]&&r.y<b[3]);
+ return sites.find(v=>{const b=obstacleBounds({kind,x:v.x,y:v.y});return !clashes(b)&&!covers(b)&&!placementProblem(input,kind,v.x,v.y);})??null;}
 // The lake: a dock, fishing ships on the deep fish (fish traps when none is left in sight), a few warships guarding it.
 function water(s:AIState,order:Order,c:Ctx&{warships:Unit[];spare:(id:string)=>boolean;explored:Set<number>;foes:Unit[]}){
  const P=aiRules.player,owner=ownerOf(s,P),docks=c.own.filter(b=>b.kind==='dock'),dock=docks.find(b=>b.complete),home=centre(c.tcBox);
- if(!docks.length){if(ownerAvailable(owner,'dock')&&c.villagers.length>=aiRules.dockAtVillagers&&c.own.some(b=>b.kind==='barracks')&&affords(s,c.cost('dock'))){const site=waterSite(s,'dock',home,aiRules.dockRange);
+ if(!docks.length){if(ownerAvailable(owner,'dock')&&c.villagers.length>=(s.map.separate?mapAIRules.ferry.dockAt:aiRules.dockAtVillagers)&&(s.map.separate||c.own.some(b=>b.kind==='barracks'))&&affords(s,c.cost('dock'))){const site=waterSite(s,'dock',home,aiRules.dockRange);
    const builder=site&&pickBuilder(s,c.villagers,c.idle,{x:site.x+150,y:site.y+150});if(site&&builder)claim(order('build',{unitIds:[builder.id],kind:'dock',x:site.x,y:site.y}),'dock',site.x,site.y);}return;}
  if(!dock)return;const dockBox=boxOf(s,dock)!,at=centre(dockBox),ships=c.mine.filter(u=>u.kind==='fishing-ship');
  // Training: fishing ships first, then (third age) the warships; one item at a time.
- if(!dock.queue.length){const pick=ships.length+c.queued('fishing-ship')<aiRules.fishingShips?'fishing-ship':s.ages[P]>=3&&c.warships.length+c.queued('galley')<aiRules.warships&&c.spare('galley')?'galley':null;
+ // On separate landmasses a transport comes first (ai-maps.ts ferry: the expansion party, then the waves).
+ const ferryFirst=s.map.separate&&!c.mine.some(u=>u.kind==='transport-ship')&&!c.queued('transport-ship')&&ownerAvailable(owner,'transport-ship');
+ if(!dock.queue.length){const pick=ferryFirst?'transport-ship':ships.length+c.queued('fishing-ship')<aiRules.fishingShips?'fishing-ship':s.ages[P]>=3&&c.warships.length+c.queued('galley')<aiRules.warships&&c.spare('galley')?'galley':null;
   if(pick&&!trainable(s,P,dock,pick))order('train',{buildingId:dock.id,entryId:pick});}
  // Fishing: the nearest explored fish or an own idle trap; without any, an idle ship lays a trap (wood allowing) or
  // sails towards the nearest unexplored water.
@@ -330,9 +348,11 @@ function penSpot(s:AIState,tcBox:Box){const c=centre(tcBox),closed=blockedTable(
  return best;}
 function boxOf(s:AIState,b:Building){const o=s.map.obstacles.find(o=>o.id===b.id);return o?obstacleBounds(o):null;}
 function pickBuilder(s:AIState,villagers:Unit[],idle:(u:Unit)=>boolean,near:{x:number;y:number}){
- const free=villagers.filter(idle).sort((a,b)=>dist(a,near)-dist(b,near)||a.id-b.id)[0];if(free)return free;
+ // (Only villagers on the site's own landmass: the island maps.)
+ const here=villagers.filter(u=>sameLand(s,u,near));
+ const free=here.filter(idle).sort((a,b)=>dist(a,near)-dist(b,near)||a.id-b.id)[0];if(free)return free;
  // Otherwise the nearest villager that is not already building.
- return villagers.filter(u=>s.works[u.id]?.kind!=='build').sort((a,b)=>dist(a,near)-dist(b,near)||a.id-b.id)[0];
+ return here.filter(u=>s.works[u.id]?.kind!=='build').sort((a,b)=>dist(a,near)-dist(b,near)||a.id-b.id)[0];
 }
 // laneGap/baseMargin: at least a unit's width of open nodes between two buildings (50 left none: units could be
 // sealed inside the base).
@@ -386,7 +406,7 @@ function place(s:AIState,order:Order,kind:BuildKind,villagers:Unit[],idle:(u:Uni
  }
  return false;
 }
-function army(s:AIState,order:Order,soldiers:Unit[],foes:Unit[],tcBox:Box|null,idle:(u:Unit)=>boolean,explored:Set<number>){
+function army(s:AIState,order:Order,soldiers:Unit[],foes:Unit[],tcBox:Box|null,idle:(u:Unit)=>boolean,explored:Set<number>,blocked=false){
  const P=aiRules.player,attackers=new Map<string,{target:Target;ids:number[]}>();
  const assign=(u:Unit,target:Target)=>{const key=target.kind+':'+target.id;if(!attackers.has(key))attackers.set(key,{target,ids:[]});attackers.get(key)!.ids.push(u.id);};
  const home=tcBox?centre(tcBox):null,intruder=home?foes.filter(f=>dist(f,home)<=aiRules.defendRadius).sort((a,b)=>dist(a,home!)-dist(b,home!)||a.id-b.id)[0]:undefined;
@@ -406,7 +426,8 @@ function army(s:AIState,order:Order,soldiers:Unit[],foes:Unit[],tcBox:Box|null,i
  const atHome=free.filter(u=>dist(u,home)<=aiRules.defendRadius),away=free.filter(u=>dist(u,home)>aiRules.defendRadius);
  // A wave leaves once enough soldiers wait at home. Its first goal is the mirror of the own town centre
  // (the maps are left-right symmetric); later ones go to remembered enemy buildings, else unexplored ground.
- let wave=false;if(s.tick>=aiTuning(s).firstWaveTick&&atHome.length>=aiTuning(s).waveSize){march(s,order,atHome,objective(s,home,explored,true));wave=true;}
+ // A goal the soldiers cannot walk to (another landmass, an ungated wall) waits for the ferry or the gate.
+ let wave=false;if(!blocked&&s.tick>=aiTuning(s).firstWaveTick&&atHome.length>=aiTuning(s).waveSize){march(s,order,atHome,objective(s,home,explored,true));wave=true;}
  // Before the first wave is due, stragglers (e.g. fresh soldiers spawned on the far side) return home.
  if(away.length)march(s,order,away,offensive?objective(s,home,explored,false):{x:home.x,y:home.y+250});
  return wave;

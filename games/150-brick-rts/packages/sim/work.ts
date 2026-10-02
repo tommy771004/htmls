@@ -13,7 +13,7 @@ import {ownerOf,gatherBonus,carryBonus,huntDamageBonus} from './civ.ts';
 import type {Building,BuildingState} from './buildings.ts';
 import {resourceDefinitions} from './terrain.ts';
 import type {ResourceNode} from './terrain.ts';
-import {animalRules,carcassId,isAnimal} from './fauna.ts';
+import {animalRules,carcassId,isAnimal,isHostile} from './fauna.ts';
 import {approach,reach,strike} from './combat.ts';
 import type {CombatState} from './combat.ts';
 import {stepRepairer} from './repair.ts';
@@ -65,6 +65,7 @@ export function gatherable(map:MapData,resourceId:string,layer:Layer='land'):str
 // Why a player cannot hunt this animal (null when it can): it must be a visible animal, and a sheep must be the player's.
 export function huntProblem(s:CombatState,player:number,animalId:number):string|null{
  const a=s.units.find(u=>u.id===animalId);if(!a||!isAnimal(a.kind)||!s.vision[player].visible.includes(Math.floor(a.y/100)*s.map.size+Math.floor(a.x/100)))return '找不到這隻動物';
+ if(isHostile(a.kind))return '狼與美洲豹不能狩獵（沒有食物）：選士兵右鍵攻擊牠';
  if(a.kind==='sheep'&&a.player!==player)return a.player===1-player?'這隻羊屬於對手：讓你的單位靠近牠、對手的單位離開，就能搶過來':'這隻羊還沒有主人：派任何單位走到牠旁邊就能取得';
  return null;
 }

@@ -83,14 +83,17 @@ export function farmOwner(s:BuildingState,resourceId:string){return s.buildings.
 // range and the stable need a barracks). Shared by the Worker and the page, so both give the same reason.
 // civ: the builder's civilization (the neutral one when absent); a building outside its tree is refused.
 // techs: the builder's research (the bombard tower needs its University technology).
-export function buildRequirement(age:number,kind:string,own:readonly {kind:string;complete:boolean}[],civ:string=neutralCiv,techs:readonly string[]=[],allTechs=false):string|null{
+// nomadTownCenter: a nomad start's first town centre, which may go up in any age (aoetw.com buildings/Town_Center: on
+// nomad maps the town centre can be placed anywhere before the Castle Age; nomadWaiver says when it applies).
+export function buildRequirement(age:number,kind:string,own:readonly {kind:string;complete:boolean}[],civ:string=neutralCiv,techs:readonly string[]=[],allTechs=false,nomadTownCenter=false):string|null{
  const entry=rules.entries.find(e=>e.id===kind);if(!entry)return '未知的建築種類';
  if(!civAvailable(civ,kind,allTechs))return '此文明不能建造';
  for(const req of entry.requires){const need=rules.entries.find(e=>e.id===req),m=/^age-(\d)$/.exec(req);
-  if(m&&age<Number(m[1]))return `需要${need?.name??req}`;
+  if(m&&age<Number(m[1])&&!(nomadTownCenter&&kind==='town-center'))return `需要${need?.name??req}`;
   if(!m&&need?.kind==='technology'&&!techs.includes(req))return `需要先研究「${need.name}」`;
   if(need?.kind==='building'&&!own.some(b=>b.kind===req&&b.complete))return `需要完工的${need.name}`;}
  return null;}
+export const nomadWaiver=(map:{nomad?:boolean},own:readonly {kind:string}[])=>!!map.nomad&&!own.some(b=>b.kind==='town-center');
 export function stageOf(b:Building){return b.complete?100:Math.min(80,Math.floor(b.work*5/b.required)*20);}
 function obstacleOf(s:BuildingState,b:Building){return s.map.obstacles.find(o=>o.id===b.id);}
 // Housing of a building for its owner (the Chinese town centre houses 10).
@@ -99,13 +102,16 @@ export function recomputeCapacity(s:BuildingState,player:number){
  const owner=ownerOf(s,player),housed=s.buildings.filter(b=>b.player===player&&b.complete).reduce((t,b)=>t+housingOf(s,player,b.kind),0)+(s.keptHousing?.[player]??0);
  s.accounts[player].populationCap=Math.min((s.settings?.popCap??rules.settings.populationCap)+popCapBonus(owner),housed);
 }
+// Every building the map starts with is a finished building of its owner: the town centres, and on the 地圖 round's
+// special starts the prebuilt walls, towers, houses, barracks and farms (a farm opens its food at once).
 export function initBuildings(s:BuildingState){
- for(const o of s.map.obstacles)if(o.kind==='town-center'){{const p=o.red?1:0,hp=buildingHpOf('town-center',ownerOf(s,p));s.buildings.push({id:o.id!,kind:'town-center',player:p,x:o.x,y:o.y,work:0,required:0,complete:true,reservationId:null,queue:[],rally:null,hp,maxHp:hp});}o.age=s.ages[o.red?1:0];}
+ for(const o of s.map.obstacles)if(isBuilding(o)){const p=o.red?1:0,kind=o.kind as BuildKind,hp=buildingHpOf(kind,ownerOf(s,p));const b:Building={id:o.id!,kind,player:p,x:o.x,y:o.y,work:0,required:0,complete:true,reservationId:null,queue:[],rally:null,hp,maxHp:hp};
+  s.buildings.push(b);o.age=s.ages[p];if(kind==='farm')openFarm(s,b);}
  for(const p of [0,1])recomputeCapacity(s,p);
 }
 // Pays up front (reservation), places a blocking foundation and updates navigation. Throws before any change.
 export function placeBuilding(s:BuildingState,player:number,kind:BuildKind,x:number,y:number,reservationId:string):Building{
- const owner=ownerOf(s,player),problem=authoritativeProblem(s,player,kind,x,y)??buildRequirement(s.ages[player],kind,s.buildings.filter(b=>b.player===player),owner.civ,owner.techs,!!owner.allTechs);if(problem)throw Error(problem);
+ const owner=ownerOf(s,player),problem=authoritativeProblem(s,player,kind,x,y)??buildRequirement(s.ages[player],kind,s.buildings.filter(b=>b.player===player),owner.civ,owner.techs,!!owner.allTechs,nomadWaiver(s.map,s.buildings.filter(b=>b.player===player)));if(problem)throw Error(problem);
  reserve(s.accounts[player],reservationId,kind,costOf(kind,owner));
  // A gate takes the place of the owner's wall segments under it (no refund; a wall foundation's payment is kept).
  if(kind in wallGate){const box=obstacleBounds({kind,x,y});for(const w of s.buildings.filter(w=>w.player===player&&w.kind===wallGate[kind])){const o=obstacleOf(s,w);if(o&&overlap(obstacleBounds(o),box))removeBuilding(s,w);}}

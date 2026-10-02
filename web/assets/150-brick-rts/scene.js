@@ -2587,6 +2587,19 @@ var animalLooks = {
     body: [{ x: 0, y: 0.2, z: 0, w: 0.5, h: 0.42, d: 0.86, color: "#5d4a36" }, { x: 0, y: 0.62, z: 0.02, w: 0.14, h: 0.08, d: 0.6, color: "#3f3226" }],
     head: [{ x: 0, y: 0.26, z: 0.48, w: 0.34, h: 0.3, d: 0.24, color: "#5d4a36" }, { x: 0, y: 0.3, z: 0.66, w: 0.18, h: 0.14, d: 0.12, color: "#b89078" }, { x: -0.12, y: 0.32, z: 0.66, w: 0.04, h: 0.12, d: 0.04, color: "#f1ead6" }, { x: 0.12, y: 0.32, z: 0.66, w: 0.04, h: 0.12, d: 0.04, color: "#f1ead6" }],
     collar: null
+  },
+  // The 地圖 round's hostile animals: a grey wolf and a spotted jaguar, low and long, built like the boar.
+  wolf: {
+    legs: { h: 0.3, w: 0.08, x: 0.13, z: 0.26, color: "#5b5a55" },
+    body: [{ x: 0, y: 0.3, z: 0, w: 0.34, h: 0.3, d: 0.78, color: "#7d7b74" }, { x: 0, y: 0.44, z: -0.46, w: 0.08, h: 0.08, d: 0.22, color: "#5b5a55" }],
+    head: [{ x: 0, y: 0.44, z: 0.44, w: 0.24, h: 0.22, d: 0.22, color: "#7d7b74" }, { x: 0, y: 0.44, z: 0.6, w: 0.12, h: 0.1, d: 0.14, color: "#cfcabb" }, { x: -0.08, y: 0.66, z: 0.44, w: 0.05, h: 0.1, d: 0.04, color: "#5b5a55" }, { x: 0.08, y: 0.66, z: 0.44, w: 0.05, h: 0.1, d: 0.04, color: "#5b5a55" }],
+    collar: null
+  },
+  jaguar: {
+    legs: { h: 0.26, w: 0.09, x: 0.14, z: 0.28, color: "#b07a2e" },
+    body: [{ x: 0, y: 0.26, z: 0, w: 0.36, h: 0.3, d: 0.86, color: "#d29a3c" }, { x: -0.1, y: 0.56, z: 0.1, w: 0.08, h: 0.02, d: 0.08, color: "#3d2a17" }, { x: 0.08, y: 0.56, z: -0.18, w: 0.08, h: 0.02, d: 0.08, color: "#3d2a17" }, { x: 0, y: 0.4, z: -0.5, w: 0.07, h: 0.07, d: 0.3, color: "#b07a2e" }],
+    head: [{ x: 0, y: 0.36, z: 0.48, w: 0.26, h: 0.22, d: 0.22, color: "#d29a3c" }, { x: 0, y: 0.36, z: 0.62, w: 0.14, h: 0.1, d: 0.1, color: "#efe0bd" }, { x: -0.09, y: 0.58, z: 0.46, w: 0.06, h: 0.06, d: 0.04, color: "#b07a2e" }, { x: 0.09, y: 0.58, z: 0.46, w: 0.06, h: 0.06, d: 0.04, color: "#b07a2e" }],
+    collar: null
   }
 };
 function carcassParts(kind, share) {
@@ -2637,13 +2650,13 @@ function createAnimalRig(T, kind, player, box, material) {
 }
 
 // packages/sim/fauna.ts
-var animalKinds = ["sheep", "deer", "boar"];
+var animalKinds = ["sheep", "deer", "boar", "wolf", "jaguar"];
 var isAnimal = (kind) => animalKinds.includes(kind);
 var animalRules = {
   provenance: "design_default",
   // Food in the carcass; which resource kind the carcass is (sheep herd, the others hunt).
-  food: { sheep: 100, deer: 140, boar: 340 },
-  carcass: { sheep: "livestock", deer: "hunt", boar: "hunt" },
+  food: { sheep: 100, deer: 140, boar: 340, wolf: 0, jaguar: 0 },
+  carcass: { sheep: "livestock", deer: "hunt", boar: "hunt", wolf: "hunt", jaguar: "hunt" },
   // A sheep belongs to the only player with a unit (other than an animal) within captureRange; with both sides near it
   // keeps its owner. An owned sheep lets its owner see a little ground round it (visionRules.sheepRadius).
   // A sheep within holdRange of one of its owner's buildings cannot be taken.
@@ -2653,7 +2666,13 @@ var animalRules = {
   fleeDistance: 350,
   boarLeash: 700,
   // Villager hunting: damage per strike, ticks between strikes, reach (Chebyshev, to the animal's centre).
-  hunt: { damage: 3, cooldown: 30, range: { sheep: 50, deer: 150, boar: 150 } },
+  hunt: { damage: 3, cooldown: 30, range: { sheep: 50, deer: 150, boar: 150, wolf: 50, jaguar: 50 } },
+  // Hostile animals (aoetw.com units/Wolf): sight 4 / 6 / 12 tiles by difficulty (簡單 / 標準 / 困難 and 最難), a tile of
+  // sight being 100 here; they never go for monks, the scout line or siege, and never for buildings; they chase up to
+  // hostileLeash from where they started the chase, then give up.
+  hostileSight: { easy: 400, standard: 600, hard: 1200, hardest: 1200 },
+  hostileIgnore: ["monk", "scout"],
+  hostileLeash: 900,
   // A carcass loses one food every decayTicks, whether or not anyone is working it.
   decayTicks: 100,
   // Villagers stand this close (Chebyshev) to a carcass or a shore fish to work it.
@@ -3407,7 +3426,8 @@ var resourceDefinitions = {
   // game's farm factor 250/175 -> 1000, design_default).
   "fish-trap": { yield: "food", method: "fish", movement: "water" }
 };
-var mapSizes = { meadow: 16, coast: 16, acceptance: 16, open: 32, lakes: 32 };
+var matchMapLayouts = ["arabia", "black-forest", "coastal", "mediterranean", "baltic", "continental", "rivers", "highland", "ghost-lake", "mongolia", "oasis", "scandinavia", "yucatan", "gold-rush", "crater-lake", "salt-marsh", "fortress", "arena", "nomad", "migration", "islands", "archipelago", "team-islands"];
+var mapSizes = { meadow: 16, coast: 16, acceptance: 16, open: 32, lakes: 32, ...Object.fromEntries(matchMapLayouts.map((l) => [l, 32])) };
 var terrainDefinitions = {
   grass: { walkClass: "land", buildability: true, height: 0 },
   road: { walkClass: "land", buildability: true, height: 0 },
@@ -3416,14 +3436,16 @@ var terrainDefinitions = {
   highland: { walkClass: "land", buildability: true, height: 100 },
   cliff: { walkClass: "blocked", buildability: false, height: 100 },
   water: { walkClass: "water", buildability: false, height: 0 },
-  shallow: { walkClass: "both", buildability: false, height: 0 }
+  shallow: { walkClass: "both", buildability: false, height: 0 },
+  ice: { walkClass: "land", buildability: false, height: 0 },
+  snow: { walkClass: "land", buildability: true, height: 0 }
 };
 function createTiles(layout = "meadow", seed = 0) {
   if (!(layout in mapSizes)) throw Error("\u672A\u77E5\u5730\u5716\u6A21\u5F0F");
   const size = mapSizes[layout];
   return Array.from({ length: size * size }, (_, id) => {
     const x = id % size, y = Math.floor(id / size);
-    let terrainType = layout !== "open" && layout !== "lakes" && y === 8 ? "road" : "grass";
+    let terrainType = size === 16 && y === 8 ? "road" : "grass";
     if (layout === "coast") {
       const edge = 12 + (seed >>> 0 >>> Math.floor(x / 4) & 1);
       if (y >= edge) terrainType = "water";
@@ -3839,6 +3861,1020 @@ var rules = {
 rules.civilizations = civilizationsOf(rules.entries);
 var allTechCivilizations = civilizationsOf(rules.entries, true);
 
+// packages/sim/maps/toolkit.ts
+var standardKit = [
+  { kind: "tree", dx: 0, dy: -560, group: 6 },
+  { kind: "gold", dx: 520, dy: -60 },
+  { kind: "rock", dx: -520, dy: -60 },
+  { kind: "berries", dx: 480, dy: 360 },
+  { kind: "livestock", dx: -480, dy: 340, count: 4 },
+  { kind: "hunt", dx: 0, dy: 780, count: 3 },
+  { kind: "boar", dx: 760, dy: 620 },
+  { kind: "livestock", dx: -760, dy: -620, count: 2 }
+];
+var apron = 420;
+var MapBuilder = class {
+  size = 32;
+  world = 3200;
+  mid = 1600;
+  tiles;
+  taken = /* @__PURE__ */ new Set();
+  obstacles = [];
+  spots = [];
+  fish = [];
+  // mines: gold and stone pairs as tile ids (finish() makes sure each can be reached on foot); isolated: mines meant to
+  // be out of reach by land (an island's), skipped by that check.
+  mines = [];
+  isolated = /* @__PURE__ */ new Set();
+  centres = [];
+  starts = [];
+  scouts;
+  separate = false;
+  rng;
+  salt;
+  // Special starts (MapData walled / nomad / lean).
+  walled = false;
+  nomad = false;
+  lean;
+  symmetry;
+  constructor(seed, symmetry, layout) {
+    this.symmetry = symmetry;
+    this.rng = seed || 1;
+    this.salt = (seed ^ 2654435769) >>> 0;
+    this.tiles = createTiles(layout, seed);
+  }
+  random() {
+    let n = this.rng;
+    n ^= n << 13;
+    n ^= n >>> 17;
+    n ^= n << 5;
+    this.rng = n >>> 0;
+    return this.rng / 4294967296;
+  }
+  int(lo, hi) {
+    return lo + Math.floor(this.random() * (hi - lo + 1));
+  }
+  inside(tx, ty) {
+    return tx >= 0 && ty >= 0 && tx < this.size && ty < this.size;
+  }
+  mirrorTile(tx, ty) {
+    return this.symmetry === "rotate" ? [this.size - 1 - tx, this.size - 1 - ty] : [this.size - 1 - tx, ty];
+  }
+  mirrorPoint(x, y) {
+    return this.symmetry === "rotate" ? { x: this.world - x, y: this.world - y } : { x: this.world - x, y };
+  }
+  tile(tx, ty) {
+    return this.tiles[ty * this.size + tx];
+  }
+  // A value in [0,1) per tile that is the same on a tile and its mirror (salted by the seed), for irregular shapes.
+  noise(tx, ty) {
+    const [mx, my] = this.mirrorTile(tx, ty), a = ty * this.size + tx, b = my * this.size + mx;
+    let v = Math.imul(Math.min(a, b) + 1, 2654435761) ^ this.salt;
+    v = Math.imul(v ^ v >>> 16, 73244475);
+    v = Math.imul(v ^ v >>> 16, 73244475);
+    return ((v ^ v >>> 16) >>> 0) / 4294967296;
+  }
+  // Smooth noise: the average of the tile's noise and its neighbours' (blobs and shorelines without single-tile specks).
+  smooth(tx, ty) {
+    let t = 0, n = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const x = tx + dx, y = ty + dy;
+      if (this.inside(x, y)) {
+        t += this.noise(x, y);
+        n++;
+      }
+    }
+    return t / n;
+  }
+  // Sets a tile and its mirror (height: a plateau or ramp tile's height; otherwise the terrain's own).
+  set(tx, ty, type, height, buildable) {
+    for (const [x, y] of [[tx, ty], this.mirrorTile(tx, ty)]) {
+      const t = this.tile(x, y);
+      Object.assign(t, { terrainType: type, ...terrainDefinitions[type] });
+      if (height !== void 0) t.height = height;
+      if (buildable !== void 0) t.buildability = buildable;
+    }
+  }
+  // Paints every tile the function names (evaluated on the tile and applied to it and its mirror).
+  paint(f) {
+    for (let ty = 0; ty < this.size; ty++) for (let tx = 0; tx < this.size; tx++) {
+      const [mx, my] = this.mirrorTile(tx, ty);
+      if (my * this.size + mx < ty * this.size + tx) continue;
+      const r = f(tx, ty, Math.hypot(tx * 100 + 50 - this.mid, ty * 100 + 50 - this.mid));
+      if (!r) continue;
+      const v = typeof r === "string" ? { type: r } : r;
+      this.set(tx, ty, v.type, v.height, v.buildable);
+    }
+  }
+  // Distance (tile centre) to the nearest town centre's centre.
+  baseDistance(tx, ty) {
+    return Math.min(...this.centres.map((c) => Math.hypot(tx * 100 + 50 - c.x, ty * 100 + 50 - c.y)), Infinity);
+  }
+  // The two town centres: the first player at the angle (random when null) and a distance from the map centre (a share
+  // of the map's width), the second on the mirrored spot. Anchors snap to the grid the town centre needs (x = 50k + 15,
+  // y = 50k), so the second centre may sit up to half a node off the exact mirror.
+  bases(angle, distance) {
+    const a = angle ?? this.random() * Math.PI * 2, r = this.world * (distance[0] + this.random() * (distance[1] - distance[0]));
+    const c0 = { x: this.mid + Math.cos(a) * r, y: this.mid + Math.sin(a) * r }, c1 = this.mirrorPoint(c0.x, c0.y);
+    this.centres = [c0, c1].map((c) => {
+      const cx = Math.min(this.world - 650, Math.max(650, c.x)), cy = Math.min(this.world - 750, Math.max(650, c.y)), ax = Math.round((cx - 150) / 50) * 50 + 15, ay = Math.round((cy - 135) / 50) * 50;
+      return { ax, ay, x: ax + 135, y: ay + 135 };
+    });
+    this.starts = this.centres.map((c) => [{ x: c.ax + 85, y: c.ay + 350 }, { x: c.ax + 185, y: c.ay + 350 }, { x: c.ax + 135, y: c.ay + 450 }]);
+    this.scouts = this.centres.map((c) => ({ x: c.ax + 235, y: c.ay + 450 }));
+    this.centres.forEach((c, p) => {
+      this.obstacles.push({ kind: "town-center", x: c.ax, y: c.ay, ...p ? { red: true } : {} });
+      for (let ty = Math.floor((c.y - 150) / 100); ty <= Math.floor((c.y + 150) / 100); ty++) for (let tx = Math.floor((c.x - 150) / 100); tx <= Math.floor((c.x + 150) / 100); tx++) this.taken.add(ty * this.size + tx);
+    });
+  }
+  inApron(tx, ty) {
+    return this.centres.some((c) => Math.max(Math.abs(tx * 100 + 50 - c.x), Math.abs(ty * 100 + 50 - c.y)) < apron + 50);
+  }
+  // Free for a resource or a tree: inside the border, not used, off the aprons, on buildable land.
+  free(tx, ty, edge = 1) {
+    if (tx < edge || ty < edge || tx >= this.size - edge || ty >= this.size - edge) return false;
+    const t = this.tile(tx, ty);
+    return !this.taken.has(ty * this.size + tx) && !this.inApron(tx, ty) && t.walkClass === "land" && t.buildability;
+  }
+  // Both a tile and its mirror free (and not the same tile), so a placement is always made in pairs.
+  pairFree(tx, ty, edge = 1) {
+    const [mx, my] = this.mirrorTile(tx, ty);
+    return (mx !== tx || my !== ty) && this.free(tx, ty, edge) && this.free(mx, my, edge);
+  }
+  add(kind, tx, ty, owner, count = 1) {
+    this.taken.add(ty * this.size + tx);
+    const cx = tx * 100 + 50, cy = ty * 100 + 50;
+    if (kind === "livestock") this.spots.push({ kind: "sheep", x: cx, y: cy, count, within: 200, ...owner === void 0 ? {} : { owner }, open: 0 });
+    else if (kind === "hunt") this.spots.push({ kind: "deer", x: cx, y: cy, count, within: 200, open: 0 });
+    else if (kind === "boar" || kind === "wolf" || kind === "jaguar") this.spots.push({ kind, x: cx, y: cy, count, within: 400, open: 16 });
+    else this.obstacles.push({ kind, x: tx * 100 + (kind === "tree" ? 12 : 15), y: ty * 100 + (kind === "tree" ? 12 : 15) });
+  }
+  // Places a resource on a tile and its mirror (the owner of a sheep flock goes to the base whose kit it is).
+  pair(kind, tx, ty, owner, count = 1) {
+    const [mx, my] = this.mirrorTile(tx, ty);
+    if (kind === "gold" || kind === "rock") this.mines.push([ty * this.size + tx, my * this.size + mx]);
+    this.add(kind, tx, ty, owner, count);
+    this.add(kind, mx, my, owner === void 0 ? void 0 : 1 - owner, count);
+  }
+  // Each base's kit: the first player's items at their offsets (a blocked spot turns round the centre in 15-degree
+  // steps, keeping the distance), each on its mirrored tile for the second player. An item with no room is left out
+  // (validateStartingResources then rejects the candidate and makeMap retries).
+  // With no room at the item's distance, it tries closer in (85%, then 70% of it) before giving up.
+  kit(items) {
+    const c = this.centres[0];
+    for (const item of items) {
+      const base = Math.atan2(item.dy, item.dx);
+      let placed = false;
+      for (const scale of [1, 0.85, 0.7]) {
+        const d = Math.hypot(item.dx, item.dy) * scale;
+        for (let step = 0; step < 24 && !placed; step++) {
+          const a = base + (step % 2 ? -1 : 1) * Math.ceil(step / 2) * 15 * Math.PI / 180, tx = Math.floor((c.x + Math.cos(a) * d) / 100), ty = Math.floor((c.y + Math.sin(a) * d) / 100);
+          const cells = item.kind === "tree" ? [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 0], [0, -1], [-1, 1], [1, -1]].slice(0, item.group ?? 1).map(([dx, dy]) => [tx + dx, ty + dy]) : [[tx, ty]];
+          if (cells.every(([x, y]) => this.pairFree(x, y, 1))) {
+            for (const [x, y] of cells) this.pair(item.kind, x, y, item.kind === "livestock" ? 0 : void 0, item.count ?? 1);
+            placed = true;
+          }
+        }
+        if (placed) break;
+      }
+    }
+  }
+  // A tile at a random angle and a distance (tiles' centres, from the map centre or a given point) that passes the test.
+  pick(test, ring, from = { x: this.mid, y: this.mid }, tries = 60) {
+    for (let k = 0; k < tries; k++) {
+      const a = this.random() * Math.PI * 2, d = ring[0] + this.random() * (ring[1] - ring[0]), tx = Math.floor((from.x + Math.cos(a) * d) / 100), ty = Math.floor((from.y + Math.sin(a) * d) / 100);
+      if (this.inside(tx, ty) && test(tx, ty)) return [tx, ty];
+    }
+    return null;
+  }
+  // Neutral resources: count pairs on a ring round the centre, at least clearance from both town centres.
+  neutral(kind, pairs, ring, clearance = 900, cluster = 1) {
+    for (let i = 0; i < pairs; i++) {
+      const at = this.pick((x, y) => this.pairFree(x, y, 2) && this.baseDistance(x, y) >= clearance, ring);
+      if (!at) continue;
+      const [tx, ty] = at;
+      for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 0], [0, -1]].slice(0, cluster)) if (this.pairFree(tx + dx, ty + dy, 2)) this.pair(kind, tx + dx, ty + dy);
+    }
+  }
+  // Forest clumps grown by a seeded random walk (both mirrored), away from bases; test limits where trees may stand.
+  forests(clumps, size, clearance, test = () => true) {
+    for (let i = 0; i < clumps; i++) {
+      const at = this.pick((x, y) => this.pairFree(x, y, 1) && this.baseDistance(x, y) >= clearance && test(x, y), [0, this.world * 0.72]);
+      if (!at) continue;
+      let [tx, ty] = at;
+      const want = this.int(size[0], size[1]);
+      for (let n = 0, k = 0; n < want && k < want * 6; k++) {
+        if (this.pairFree(tx, ty, 1) && this.baseDistance(tx, ty) >= clearance && test(tx, ty)) {
+          this.pair("tree", tx, ty);
+          n++;
+        }
+        const dir = Math.floor(this.random() * 4);
+        tx += dir === 0 ? 1 : dir === 1 ? -1 : 0;
+        ty += dir === 2 ? 1 : dir === 3 ? -1 : 0;
+        tx = Math.min(this.size - 2, Math.max(1, tx));
+        ty = Math.min(this.size - 2, Math.max(1, ty));
+      }
+    }
+  }
+  // Trees on the outermost ring of tiles, thinned near bases.
+  border(density, clearance) {
+    for (let ty = 0; ty < this.size; ty++) for (let tx = 0; tx < this.size; tx++) {
+      if (tx > 0 && ty > 0 && tx < this.size - 1 && ty < this.size - 1) continue;
+      const [mx, my] = this.mirrorTile(tx, ty);
+      if (my * this.size + mx < ty * this.size + tx) continue;
+      if (this.noise(tx, ty) < density && this.pairFree(tx, ty, 0) && this.baseDistance(tx, ty) >= clearance) this.pair("tree", tx, ty);
+    }
+  }
+  // Wild animals (deer, boar, wolves, jaguars): pairs of flocks on tiles passing the test.
+  animals(kind, pairs, count, ring, test = () => true, clearance = 900) {
+    for (let i = 0; i < pairs; i++) {
+      const at = this.pick((x, y) => this.pairFree(x, y, 1) && this.baseDistance(x, y) >= clearance && test(x, y), ring);
+      if (at) this.pair(kind, at[0], at[1], void 0, count);
+    }
+  }
+  // Water tiles: deep (all eight neighbours water, ships only) or shore (next to land a villager can stand on).
+  water(tx, ty) {
+    const t = this.inside(tx, ty) ? this.tile(tx, ty) : null;
+    return !!t && t.terrainType === "water";
+  }
+  deep(tx, ty) {
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (!this.water(tx + dx, ty + dy)) return false;
+    return true;
+  }
+  shore(tx, ty) {
+    if (!this.water(tx, ty)) return false;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const x = tx + dx, y = ty + dy;
+      if (this.inside(x, y) && this.tile(x, y).walkClass === "land" && this.tile(x, y).height === this.tile(tx, ty).height) return true;
+    }
+    return false;
+  }
+  // Fish: pairs on water tiles of the given kind, spacing apart, optionally inside a region.
+  fishIn(pairs, kind, spacing = 300, test = () => true) {
+    const cands = [];
+    for (let ty = 1; ty < this.size - 1; ty++) for (let tx = 1; tx < this.size - 1; tx++) {
+      const [mx, my] = this.mirrorTile(tx, ty);
+      if (mx === tx && my === ty || !test(tx, ty)) continue;
+      if ((kind === "deep" ? this.deep(tx, ty) && this.deep(mx, my) : this.shore(tx, ty) && this.shore(mx, my)) && !this.taken.has(ty * this.size + tx)) cands.push(ty * this.size + tx);
+    }
+    for (let i = cands.length - 1; i > 0; i--) {
+      const j = Math.floor(this.random() * (i + 1));
+      [cands[i], cands[j]] = [cands[j], cands[i]];
+    }
+    let placed = 0;
+    for (const t of cands) {
+      if (placed >= pairs) break;
+      const tx = t % this.size, ty = Math.floor(t / this.size), [mx, my] = this.mirrorTile(tx, ty), m = my * this.size + mx;
+      const far = (a) => this.fish.every((f) => Math.hypot((f % this.size - a % this.size) * 100, (Math.floor(f / this.size) - Math.floor(a / this.size)) * 100) >= spacing);
+      if (this.taken.has(m) || !far(t) || !far(m)) continue;
+      this.fish.push(t, m);
+      this.taken.add(t);
+      this.taken.add(m);
+      placed++;
+    }
+  }
+  // A prebuilt building for a player (special starts: walls, towers, houses, farms; packages/sim/buildings.ts
+  // initBuildings turns every building obstacle into a finished building of its owner).
+  building(kind, x, y, player) {
+    this.obstacles.push({ kind, x, y, ...player ? { red: true } : {} });
+  }
+  // A prebuilt building for the first player at (x, y) and the same building on the mirrored footprint for the second;
+  // the tiles under both are taken.
+  pairBuilding(kind, x, y) {
+    const f = obstacleBounds({ kind, x, y }), a = this.mirrorPoint(f[0], f[1]), c = this.mirrorPoint(f[2], f[3]);
+    const spots = [[x, y], [Math.min(a.x, c.x) + x - f[0], Math.min(a.y, c.y) + y - f[1]]];
+    spots.forEach(([px, py], p) => {
+      this.building(kind, px, py, p);
+      const b = obstacleBounds({ kind, x: px, y: py });
+      for (let ty = Math.floor(b[1] / 100); ty <= Math.floor((b[3] - 1) / 100); ty++) for (let tx = Math.floor(b[0] / 100); tx <= Math.floor((b[2] - 1) / 100); tx++) if (this.inside(tx, ty)) this.taken.add(ty * this.size + tx);
+    });
+  }
+  // Everything into MapData: obstacle and resource ids, the fish, blocked nodes, then the flocks on free nodes.
+  // Mines out of reach on foot (walled in by trees, a cliff or the shore): the trees round such a pair are cleared, and a
+  // pair still out of reach is taken off the map (both mines, so the map stays fair). Reach is measured from the first
+  // base's villagers over the land nodes, as a unit walks.
+  reachMines() {
+    const size = this.size, flood = () => {
+      for (const t of this.tiles) t.obstacleRefs = [];
+      this.obstacles.forEach((o, i) => {
+        o.id = `obstacle-${i}`;
+        this.tiles[tileAt(o.x, o.y, size)].obstacleRefs.push(o.id);
+      });
+      const map = { size, tiles: this.tiles, obstacles: this.walled ? this.obstacles.filter((o) => !["stone-wall", "palisade-wall"].includes(o.kind)) : this.obstacles, blocked: [], starts: this.starts, resources: [], navigationRevision: 0, generationAttempt: 0 }, side = sideOf(map), total = nodeTotal(map), open = new Uint8Array(total), seen = new Uint8Array(total);
+      for (let i = 0; i < total; i++) open[i] = clearSegment(map, position(map, i), position(map, i)) ? 1 : 0;
+      const start = nearest(map, this.starts[0][0]);
+      if (start < 0) return { map, seen };
+      const q = [start];
+      seen[start] = 1;
+      for (let h = 0; h < q.length; h++) {
+        const id = q[h], x = id % side, y = Math.floor(id / side);
+        for (const n of [x < side - 1 ? id + 1 : -1, y < side - 1 ? id + side : -1, x > 0 ? id - 1 : -1, y > 0 ? id - side : -1]) if (n >= 0 && !seen[n] && open[n] && clearSegment(map, position(map, id), position(map, n))) {
+          seen[n] = 1;
+          q.push(n);
+        }
+      }
+      return { map, seen };
+    };
+    const mineAt = (t) => this.obstacles.find((o) => (o.kind === "gold" || o.kind === "rock") && Math.floor(o.y / 100) * size + Math.floor(o.x / 100) === t);
+    const reached = (f, t) => {
+      const o = mineAt(t);
+      if (!o) return true;
+      const b = obstacleBounds(o);
+      for (let i = 0; i < f.seen.length; i++) {
+        if (!f.seen[i]) continue;
+        const p = position(f.map, i), gap = Math.max(b[0] - p.x, 0, p.x - b[2]) + Math.max(b[1] - p.y, 0, p.y - b[3]);
+        if (gap > 0 && gap <= 75) return true;
+      }
+      return false;
+    };
+    const out = (f) => this.mines.filter(([a, b]) => !this.isolated.has(a) && (this.separate ? !reached(f, a) && !reached(f, b) : !reached(f, a) || !reached(f, b)));
+    let lost = out(flood());
+    if (!lost.length) return;
+    const near = /* @__PURE__ */ new Set();
+    for (const pair of lost) for (const t of pair) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) near.add(t + dy * size + dx);
+    this.obstacles = this.obstacles.filter((o) => o.kind !== "tree" || !near.has(Math.floor(o.y / 100) * size + Math.floor(o.x / 100)));
+    lost = out(flood());
+    const gone = new Set(lost.flat());
+    this.obstacles = this.obstacles.filter((o) => !((o.kind === "gold" || o.kind === "rock") && gone.has(Math.floor(o.y / 100) * size + Math.floor(o.x / 100))));
+    this.mines = this.mines.filter(([a]) => !gone.has(a));
+  }
+  finish() {
+    this.reachMines();
+    for (const t of this.tiles) t.obstacleRefs = [];
+    const size = this.size, map = { size, starts: this.starts, ...this.scouts ? { scouts: this.scouts } : {}, obstacles: this.obstacles, blocked: [], tiles: this.tiles, resources: [], navigationRevision: 0, generationAttempt: 0, ...this.separate ? { separate: true } : {}, ...this.walled ? { walled: true } : {}, ...this.nomad ? { nomad: true } : {}, ...this.lean ? { lean: [...this.lean] } : {} };
+    this.obstacles.forEach((o, index) => {
+      o.id = `obstacle-${index}`;
+      map.tiles[tileAt(o.x, o.y, size)].obstacleRefs.push(o.id);
+      if (!isBuilding(o)) {
+        const kind = o.kind === "rock" ? "stone" : o.kind;
+        const id = `resource-${index}`, capacity = terrainRules.resourceCapacity[kind];
+        map.resources.push({ id, kind, x: o.x, y: o.y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: o.id, depletedAt: null });
+        map.tiles[tileAt(o.x, o.y, size)].resourceRefs.push(id);
+      }
+    });
+    for (const t of this.fish) {
+      const x = t % size * 100 + 50, y = Math.floor(t / size) * 100 + 50, id = `resource-fish-${x}-${y}`, capacity = terrainRules.resourceCapacity.fish;
+      map.resources.push({ id, kind: "fish", x, y, capacity, remaining: capacity, collectible: true, status: "available", obstacleId: null, depletedAt: null });
+      map.tiles[t].resourceRefs.push(id);
+    }
+    for (let i = 0; i < nodeTotal(map); i++) if (!clearSegment(map, position(map, i), position(map, i))) map.blocked.push(i);
+    map.animals = [];
+    const closed = blockedTable(map);
+    for (let i = 0; i < this.spots.length; i++) {
+      const s = this.spots[i], before = map.animals.length;
+      flock(map, s.kind, s.x, s.y, s.count, s.within, s.owner, s.open);
+      const twin = this.spots[i + 1], m = this.mirrorPoint(s.x, s.y);
+      if (!twin || twin.kind !== s.kind || twin.count !== s.count || twin.x !== m.x || twin.y !== m.y) continue;
+      const held = new Set([...map.starts.flat(), ...map.scouts ?? [], ...map.animals].map((p) => nodeAt(map, p))), mirrored = map.animals.slice(before).map((a) => ({ kind: a.kind, ...this.mirrorPoint(a.x, a.y), ...twin.owner === void 0 ? {} : { owner: twin.owner } }));
+      if (mirrored.length && mirrored.every((a) => {
+        const n = nodeAt(map, a);
+        return n >= 0 && !closed[n] && !held.has(n);
+      })) {
+        map.animals.push(...mirrored);
+        i++;
+      }
+    }
+    return map;
+  }
+};
+
+// packages/sim/maps/land.ts
+var landMapRules = {
+  provenance: "design_default after aoetw.com maps pages (2026-10-02)",
+  // 阿拉伯: the site's 8 sheep, 2 boar, 3-4 deer, 3 gold and 2 stone at this game's scale is the standard kit with its
+  // second boar and four deer; little wood (fewer, smaller clumps), no water, desert patches.
+  arabia: { bases: [0.29, 0.34], sand: 0.6, forests: { clumps: 6, size: [5, 9], clearance: 1e3 }, border: 0.25, neutral: { gold: 1, rock: 1, ring: [0, 700] } },
+  // 黑森林: forest everywhere but each base's clearing, a clearing in the middle and a winding road from each base to it.
+  "black-forest": { bases: [0.3, 0.33], kitScale: 0.8, clearing: 820, middle: 400, road: 150, density: 0.9, neutral: { gold: 1, rock: 1, ring: [0, 350] } },
+  // 蒙古高原: plateaus (height 100, cliffs round them) each with one ramp, some carrying gold or stone.
+  mongolia: { bases: [0.3, 0.34], plateaus: 3, radius: [2, 3], ring: [650, 1350], clearance: 950, forests: { clumps: 8, size: [5, 10], clearance: 1e3 }, border: 0.35 },
+  // 淘金潮: bases near the edge with their kit's single gold pile; a desert centre with a big gold field and many wolves.
+  "gold-rush": { bases: [0.37, 0.4], desert: 750, gold: { pairs: 5, ring: [0, 450] }, wolves: { pairs: 4, ring: [450, 900] }, stone: 1, forests: { clumps: 8, size: [5, 10], clearance: 950 }, border: 0.4 },
+  // 猶加敦: more food by each town centre (deer, sheep, berries), jaguars, thick jungle.
+  yucatan: { bases: [0.3, 0.34], forests: { clumps: 12, size: [6, 12], clearance: 1e3 }, border: 0.5, jaguars: { pairs: 2, ring: [0, 1500] }, neutral: { gold: 1, rock: 1, ring: [0, 700] } },
+  // 鬼湖: a frozen lake in the middle (ice: walkable, nothing built or found on it), fewer deer, more gold and stone,
+  // wood in small clumps, wolves; the ground is snow.
+  "ghost-lake": { bases: [0.34, 0.37], ice: 650, forests: { clumps: 16, size: [3, 5], clearance: 900 }, border: 0.25, neutral: { gold: 2, rock: 2, ring: [800, 1300] }, wolves: { pairs: 2, ring: [700, 1400] } },
+  // 火山湖 (no page on the site; the classic map): a mountain in the middle with a lake in its crater, two ramps up.
+  "crater-lake": { bases: [0.33, 0.37], mountain: 650, crater: 260, fish: 2, gold: { pairs: 2, ring: [350, 600] }, forests: { clumps: 9, size: [5, 10], clearance: 1e3 }, border: 0.4 }
+};
+var arabiaKit = () => [...standardKit.map((i) => i.kind === "hunt" ? { ...i, count: 4 } : i), { kind: "boar", dx: -760, dy: 620 }];
+function arabia(seed) {
+  const R = landMapRules.arabia, b = new MapBuilder(seed, "rotate", "arabia");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y) => b.smooth(x, y) > R.sand ? "sand" : null);
+  b.kit(arabiaKit());
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function blackForest(seed) {
+  const R = landMapRules["black-forest"], b = new MapBuilder(seed, "rotate", "black-forest");
+  b.bases(null, [...R.bases]);
+  b.kit(standardKit.map((i) => {
+    const k = Math.max(R.kitScale, 520 / Math.hypot(i.dx, i.dy));
+    return { ...i, dx: Math.round(i.dx * k), dy: Math.round(i.dy * k) };
+  }));
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring], 600);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring], 600);
+  const road = (tx, ty) => {
+    const px = tx * 100 + 50, py = ty * 100 + 50;
+    for (const base of b.centres) {
+      const dx = b.mid - base.x, dy = b.mid - base.y, len = Math.hypot(dx, dy), t = Math.max(0, Math.min(1, ((px - base.x) * dx + (py - base.y) * dy) / (len * len))), bend = (b.noise(tx >> 1, ty >> 1) - 0.5) * 120;
+      if (Math.hypot(px - (base.x + dx * t), py - (base.y + dy * t)) <= R.road + bend) return true;
+    }
+    return false;
+  };
+  for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) {
+    const d = Math.hypot(tx * 100 + 50 - b.mid, ty * 100 + 50 - b.mid);
+    if (b.baseDistance(tx, ty) < R.clearing || d < R.middle || road(tx, ty) || b.noise(tx, ty) > R.density) continue;
+    if (b.pairFree(tx, ty, 0)) b.pair("tree", tx, ty);
+  }
+  return b.finish();
+}
+function plateau(b, cx, cy, r) {
+  for (let ty = cy - r - 1; ty <= cy + r + 1; ty++) for (let tx = cx - r - 1; tx <= cx + r + 1; tx++) if (b.inside(tx, ty) && Math.hypot(tx - cx, ty - cy) <= r + 0.4 * (b.noise(tx, ty) - 0.5)) b.set(tx, ty, "highland", 100);
+  const vx = b.mid / 100 - 0.5 - cx, vy = b.mid / 100 - 0.5 - cy, dx = Math.abs(vx) >= Math.abs(vy) ? Math.sign(vx) || 1 : 0, dy = dx ? 0 : Math.sign(vy) || 1;
+  let x = cx, y = cy;
+  while (b.inside(x, y) && b.tile(x, y).height === 100) {
+    x += dx;
+    y += dy;
+  }
+  for (let k = 0; k < 3; k++) for (let w = 0; w < 2; w++) {
+    const tx = x + dx * k + (dx ? 0 : w), ty = y + dy * k + (dy ? 0 : w);
+    if (b.inside(tx, ty)) b.set(tx, ty, "highland", 75 - 25 * k, false);
+  }
+}
+function mongolia(seed) {
+  const R = landMapRules.mongolia, b = new MapBuilder(seed, "rotate", "mongolia");
+  b.bases(null, [...R.bases]);
+  const tops = [];
+  for (let i = 0; i < R.plateaus; i++) {
+    const at = b.pick((x, y) => b.baseDistance(x, y) >= R.clearance + R.radius[1] * 100 && tops.every(([px, py]) => Math.hypot(px - x, py - y) > R.radius[1] * 2 + 3) && (() => {
+      const [mx, my] = b.mirrorTile(x, y);
+      return Math.hypot(mx - x, my - y) > R.radius[1] * 2 + 4;
+    })(), [...R.ring]);
+    if (!at) continue;
+    const r = b.int(R.radius[0], R.radius[1]);
+    plateau(b, at[0], at[1], r);
+    tops.push(at);
+  }
+  b.kit(standardKit);
+  tops.forEach(([x, y], i) => {
+    if (b.pairFree(x, y, 2)) b.pair(i % 2 ? "rock" : "gold", x, y);
+  });
+  b.neutral("gold", 1, [0, 700]);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function goldRush(seed) {
+  const R = landMapRules["gold-rush"], b = new MapBuilder(seed, "rotate", "gold-rush");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y, d) => d < R.desert + 120 * (b.noise(x, y) - 0.5) ? "sand" : null);
+  b.kit(standardKit);
+  b.neutral("gold", R.gold.pairs, [...R.gold.ring], 900, 2);
+  b.neutral("rock", R.stone, [600, 1100]);
+  b.animals("wolf", R.wolves.pairs, 1, [...R.wolves.ring], () => true, 800);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, (x, y) => Math.hypot(x * 100 + 50 - b.mid, y * 100 + 50 - b.mid) > R.desert);
+  b.border(R.border, 700);
+  return b.finish();
+}
+var yucatanKit = () => [...standardKit, { kind: "berries", dx: 560, dy: 380 }, { kind: "livestock", dx: 420, dy: -600, count: 2 }, { kind: "hunt", dx: -700, dy: 760, count: 3 }];
+function yucatan(seed) {
+  const R = landMapRules.yucatan, b = new MapBuilder(seed, "rotate", "yucatan");
+  b.bases(null, [...R.bases]);
+  b.kit(yucatanKit());
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.animals("jaguar", R.jaguars.pairs, 1, [...R.jaguars.ring]);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+var ghostKit = () => standardKit.map((i) => i.kind === "hunt" ? { ...i, count: 2 } : i);
+function ghostLake(seed) {
+  const R = landMapRules["ghost-lake"], b = new MapBuilder(seed, "rotate", "ghost-lake");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y, d) => d < R.ice + 140 * (b.smooth(x, y) - 0.5) ? "ice" : "snow");
+  b.kit(ghostKit());
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.animals("wolf", R.wolves.pairs, 1, [...R.wolves.ring]);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 700);
+  return b.finish();
+}
+function craterLake(seed) {
+  const R = landMapRules["crater-lake"], b = new MapBuilder(seed, "rotate", "crater-lake");
+  b.bases(null, [...R.bases]);
+  b.paint((x2, y2, d) => d < R.crater ? { type: "water", height: 100 } : d < R.mountain + 90 * (b.noise(x2, y2) - 0.5) ? { type: "highland", height: 100 } : null);
+  const c = b.centres[0], across = Math.abs(c.x - b.mid) >= Math.abs(c.y - b.mid), dx = across ? 0 : c.x >= b.mid ? 1 : -1, dy = across ? c.y >= b.mid ? 1 : -1 : 0;
+  let x = Math.floor(b.mid / 100) - (dx < 0 ? 1 : 0), y = Math.floor(b.mid / 100) - (dy < 0 ? 1 : 0);
+  while (b.inside(x, y) && b.tile(x, y).height === 100) {
+    x += dx;
+    y += dy;
+  }
+  for (let k = 0; k < 3; k++) for (let w = -1; w <= 0; w++) {
+    const tx = x + dx * k + (dx ? 0 : w), ty = y + dy * k + (dy ? 0 : w);
+    if (b.inside(tx, ty)) b.set(tx, ty, "highland", 75 - 25 * k, false);
+  }
+  b.kit(standardKit);
+  b.fishIn(R.fish, "shore", 200, (tx, ty) => b.tile(tx, ty).height === 100);
+  b.neutral("gold", R.gold.pairs, [...R.gold.ring], 700);
+  b.neutral("rock", 1, [700, 1100]);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, (tx, ty) => b.tile(tx, ty).height === 0);
+  b.border(R.border, 750);
+  return b.finish();
+}
+
+// packages/sim/maps/water.ts
+var waterMapRules = {
+  provenance: "design_default after aoetw.com maps pages (2026-10-02)",
+  // 沿海: the sea along one side (half the map the site says; here the south third), both bases on the land side.
+  coastal: { angle: [200, 235], bases: [0.3, 0.34], sea: 21, shoreJitter: 3, beach: 4, fish: { shore: 3, deep: 3 }, forests: { clumps: 9, size: [5, 10], clearance: 850 }, border: 0.4 },
+  // 地中海: a sea in the middle, land all round it.
+  mediterranean: { bases: [0.36, 0.4], sea: 780, shoreRoad: 400, fish: { shore: 2, deep: 4 }, neutral: { gold: 1, rock: 1, ring: [1e3, 1400] }, forests: { clumps: 10, size: [5, 10], clearance: 1e3 }, border: 0.45 },
+  // 波羅的海: most of the map is sea; the bases sit in opposite corners of the narrow land strip round it.
+  baltic: { bases: [0.42, 0.44], sea: 1e3, keep: 800, corner: 650, shoreRoad: 500, fish: { shore: 3, deep: 5 }, forests: { clumps: 8, size: [4, 8], clearance: 900 }, border: 0.35 },
+  // 大陸: a continent ringed by sea, with an isolated island in a lake in the middle (gold on it); more gold, little wood.
+  continental: { bases: [0.28, 0.32], edge: 3, lake: 430, island: 190, fish: { shore: 2, deep: 3 }, neutral: { gold: 2, rock: 1, ring: [600, 1100] }, forests: { clumps: 6, size: [5, 9], clearance: 950 } },
+  // 河流: a river down the middle and a branch on each side, crossed by shallow fords.
+  rivers: { bases: [0.3, 0.33], fords: [[5, 7], [15, 16], [25, 27]], branchFord: 2, fish: { shore: 3 }, forests: { clumps: 9, size: [5, 10], clearance: 1e3 }, border: 0.4 },
+  // 高地 (高原): one river with two fords, plateaus with cliffs, thick forest.
+  highland: { bases: [0.3, 0.33], fords: [[8, 10], [22, 24]], plateaus: 2, fish: { shore: 2 }, forests: { clumps: 14, size: [7, 13], clearance: 1e3 }, border: 0.6 },
+  // 綠洲: desert, a lake in the middle ringed by palms (four gaps), little wood elsewhere.
+  oasis: { bases: [0.34, 0.38], lake: 350, ring: [450, 820], palms: 0.22, fish: { shore: 2 }, forests: { clumps: 3, size: [4, 7], clearance: 1e3 }, border: 0.15 },
+  // 斯堪地維亞: two long fjords with fish at the edges, three boar and many deer per base, gold in the middle, low stone.
+  scandinavia: { bases: [0.3, 0.34], fjord: { length: 10, from: [6, 12] }, fish: { shore: 3 }, gold: { pairs: 2, ring: [0, 400] }, forests: { clumps: 12, size: [7, 12], clearance: 1e3 }, border: 0.6 },
+  // 鹽沼地: marsh: shallows everywhere (walkable, not buildable) and pools of water, land islands with woods.
+  "salt-marsh": { bases: [0.3, 0.34], shallow: [0.5, 0.62], keep: 900, fish: { shore: 2 }, forests: { clumps: 10, size: [5, 9], clearance: 950 }, border: 0.3 }
+};
+function coastal(seed) {
+  const R = waterMapRules.coastal, b = new MapBuilder(seed, "mirrorX", "coastal");
+  b.bases((R.angle[0] + b.random() * (R.angle[1] - R.angle[0])) * Math.PI / 180, [...R.bases]);
+  const sea = (tx) => R.sea + Math.floor(b.smooth(Math.min(tx, b.size - 1 - tx), R.sea) * R.shoreJitter);
+  b.paint((tx, ty) => ty >= sea(tx) ? "water" : ty === sea(tx) - 1 ? "sand" : null);
+  b.kit(standardKit);
+  b.neutral("gold", 1, [300, 900]);
+  b.neutral("rock", 1, [300, 900]);
+  b.fishIn(R.fish.shore, "shore");
+  b.fishIn(R.fish.deep, "deep");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, (tx, ty) => ty < sea(tx) - R.beach);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function mediterranean(seed) {
+  const R = waterMapRules.mediterranean, b = new MapBuilder(seed, "rotate", "mediterranean");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y, d) => b.baseDistance(x, y) < 750 ? null : d < R.sea + 160 * (b.smooth(x, y) - 0.5) ? "water" : d < R.sea + 160 * (b.smooth(x, y) - 0.5) + 100 ? "sand" : null);
+  b.kit(standardKit);
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.fishIn(R.fish.shore, "shore");
+  b.fishIn(R.fish.deep, "deep");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, (x, y) => Math.hypot(x * 100 + 50 - b.mid, y * 100 + 50 - b.mid) > R.sea + R.shoreRoad);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function baltic(seed) {
+  const R = waterMapRules.baltic, b = new MapBuilder(seed, "rotate", "baltic");
+  b.bases((45 + 90 * Math.floor(b.random() * 4)) * Math.PI / 180, [...R.bases]);
+  b.paint((x, y, d) => d < R.sea + 140 * (b.smooth(x, y) - 0.5) && b.baseDistance(x, y) > R.keep ? "water" : null);
+  b.kit(standardKit);
+  b.neutral("gold", 1, [1200, 1700]);
+  b.neutral("rock", 1, [1200, 1700]);
+  b.fishIn(R.fish.shore, "shore");
+  b.fishIn(R.fish.deep, "deep");
+  const corner = (x, y) => Math.min(Math.abs(x * 100 + 50 - b.mid), Math.abs(y * 100 + 50 - b.mid)) > R.corner && Math.hypot(x * 100 + 50 - b.mid, y * 100 + 50 - b.mid) > R.sea + R.shoreRoad;
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, corner);
+  for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) if ((tx === 0 || ty === 0 || tx === b.size - 1 || ty === b.size - 1) && corner(tx, ty) && b.noise(tx, ty) < R.border && b.pairFree(tx, ty, 0) && b.baseDistance(tx, ty) >= 700) b.pair("tree", tx, ty);
+  return b.finish();
+}
+function continental(seed) {
+  const R = waterMapRules.continental, b = new MapBuilder(seed, "rotate", "continental");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y, d) => {
+    const edge = Math.min(x, y, b.size - 1 - x, b.size - 1 - y);
+    return edge < R.edge + Math.floor(b.smooth(x, y) * 2) ? "water" : d < R.island ? "grass" : d < R.lake ? "water" : null;
+  });
+  b.kit(standardKit);
+  for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) if (Math.hypot(tx * 100 + 50 - b.mid, ty * 100 + 50 - b.mid) < R.island && b.pairFree(tx, ty, 0) && (tx + ty) % 2 === 0) {
+    b.pair("gold", tx, ty);
+    b.isolated.add(ty * b.size + tx);
+  }
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.fishIn(R.fish.shore, "shore", 200, (x, y) => Math.hypot(x * 100 + 50 - b.mid, y * 100 + 50 - b.mid) < R.lake + 100);
+  b.fishIn(R.fish.deep, "deep");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  return b.finish();
+}
+function river(b, fords) {
+  b.paint((tx, ty) => {
+    const wide = b.smooth(15, ty) > 0.55, half = wide ? 2 : 1;
+    if (Math.abs(tx + 0.5 - b.size / 2) > half) return null;
+    return fords.some(([a, z]) => ty >= a && ty <= z) ? "shallow" : "water";
+  });
+}
+function rivers(seed) {
+  const R = waterMapRules.rivers, b = new MapBuilder(seed, "mirrorX", "rivers");
+  b.bases((170 + b.random() * 20) * Math.PI / 180, [...R.bases]);
+  river(b, R.fords);
+  const c = b.centres[0], cy = Math.floor(c.y / 100), row = cy >= b.size / 2 ? Math.max(3, cy - 8) : Math.min(b.size - 5, cy + 8), ford = b.int(3, 9);
+  for (let tx = 0; tx < 15; tx++) for (const ty of [row, row + 1]) b.set(tx, ty, tx >= ford && tx < ford + R.branchFord ? "shallow" : "water");
+  b.kit(standardKit);
+  b.neutral("gold", 1, [400, 1200]);
+  b.neutral("rock", 1, [400, 1200]);
+  b.fishIn(R.fish.shore, "shore");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function highland(seed) {
+  const R = waterMapRules.highland, b = new MapBuilder(seed, "mirrorX", "highland");
+  b.bases((170 + b.random() * 20) * Math.PI / 180, [...R.bases]);
+  river(b, R.fords);
+  for (let i = 0; i < R.plateaus; i++) {
+    const at = b.pick((x, y) => x >= 3 && x <= 10 && y >= 3 && y <= b.size - 4 && b.baseDistance(x, y) >= 850, [400, 1500], void 0, 120);
+    if (!at) continue;
+    const [cx, cy] = at;
+    for (let ty = cy - 2; ty <= cy + 2; ty++) for (let tx = cx - 2; tx <= cx + 2; tx++) if (b.inside(tx, ty) && Math.hypot(tx - cx, ty - cy) <= 2.2) b.set(tx, ty, "highland", 100);
+    for (let k = 0; k < 3; k++) for (const ty of [cy, cy + 1]) if (b.inside(cx + 3 + k, ty)) b.set(cx + 3 + k, ty, "highland", 75 - 25 * k, false);
+  }
+  b.kit(standardKit);
+  b.neutral("gold", 1, [500, 1300]);
+  b.neutral("rock", 1, [500, 1300]);
+  b.fishIn(R.fish.shore, "shore");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function oasis(seed) {
+  const R = waterMapRules.oasis, b = new MapBuilder(seed, "rotate", "oasis");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y, d) => d < R.lake ? "water" : "sand");
+  b.kit(standardKit);
+  for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) {
+    const x = tx * 100 + 50 - b.mid, y = ty * 100 + 50 - b.mid, d = Math.hypot(x, y), a = Math.atan2(y, x), gap = Math.abs(Math.sin(2 * a)) < 0.3;
+    if (d >= R.ring[0] && d <= R.ring[1] && !gap && b.noise(tx, ty) > R.palms && b.pairFree(tx, ty, 1) && b.baseDistance(tx, ty) >= 600) b.pair("tree", tx, ty);
+  }
+  b.neutral("gold", 1, [900, 1400]);
+  b.neutral("rock", 1, [900, 1400]);
+  b.fishIn(R.fish.shore, "shore", 200);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, (x, y) => Math.hypot(x * 100 + 50 - b.mid, y * 100 + 50 - b.mid) > R.ring[1]);
+  b.border(R.border, 750);
+  return b.finish();
+}
+var scandinaviaKit = () => [...standardKit, { kind: "boar", dx: -760, dy: 620 }, { kind: "boar", dx: 0, dy: -960 }, { kind: "hunt", dx: 640, dy: -720, count: 3 }];
+function scandinavia(seed) {
+  const R = waterMapRules.scandinavia, b = new MapBuilder(seed, "rotate", "scandinavia");
+  b.bases(null, [...R.bases]);
+  const cy = Math.floor(b.centres[0].y / 100), cx = Math.floor(b.centres[0].x / 100), rows = [R.fjord.from[0], R.fjord.from[1], b.size - 1 - R.fjord.from[1], b.size - 1 - R.fjord.from[0]];
+  const row = rows.sort((p, q) => Math.abs(q - cy) - Math.abs(p - cy) || p - q)[0], west = cx >= b.size / 2;
+  for (let k = 0; k < R.fjord.length; k++) for (const ty of [row, row + 1]) {
+    const tx = west ? k : b.size - 1 - k;
+    b.set(tx, ty, "water");
+  }
+  b.kit(scandinaviaKit());
+  b.neutral("gold", R.gold.pairs, [...R.gold.ring], 900, 2);
+  b.fishIn(R.fish.shore, "shore", 200);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+function saltMarsh(seed) {
+  const R = waterMapRules["salt-marsh"], b = new MapBuilder(seed, "rotate", "salt-marsh");
+  b.bases(null, [...R.bases]);
+  b.paint((x, y) => {
+    if (b.baseDistance(x, y) < R.keep) return null;
+    const n = b.smooth(x, y);
+    return n > R.shallow[1] ? "water" : n > R.shallow[0] ? "shallow" : null;
+  });
+  b.kit(standardKit);
+  b.neutral("gold", 1, [300, 1100]);
+  b.neutral("rock", 1, [300, 1100]);
+  b.fishIn(R.fish.shore, "shore", 200);
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  return b.finish();
+}
+
+// packages/sim/maps/special.ts
+var nomadStock = { wood: 275, stone: 100 };
+var specialMapRules = {
+  provenance: "design_default after aoetw.com maps pages (2026-10-02)",
+  nomadStock,
+  // 堡壘: a stone wall ring (Chebyshev `ring` tiles from the town centre's tile; the map edge closes it where it leaves the
+  // map) with, inside, the site's 5 farms, 4 watch towers, 4 houses and a barracks (top-left tiles from the town centre's
+  // tile; the second player's town is the same turned half round). No gates: the players build them (the site names none).
+  // Columns within two tiles of the town centre stay clear north and south of it: both players' villagers start south of
+  // their own town centre, which on the turned second town is north. Farms (walkable) lie south of the first's.
+  fortress: {
+    bases: [0.3, 0.33],
+    ring: 7,
+    kitRadius: 560,
+    barracks: [[-5, -3]],
+    houses: [[3, -4], [3, 0], [-5, 1], [-5, -6]],
+    farms: [[-3, 3], [-1, 3], [1, 3], [-2, 5], [0, 5]],
+    towers: [[-6, -6], [6, -6], [-6, 6], [6, 6]],
+    neutral: { gold: 2, rock: 1, ring: [0, 800] },
+    deer: { pairs: 2, count: 3, ring: [500, 1300] },
+    forests: { clumps: 8, size: [5, 10], clearance: 1e3 },
+    border: 0.35
+  },
+  // 圍城: the same walled town in a forest that fills the map but for an open middle (the only way between the bases),
+  // a lane from each wall to it, gold and stone just outside each wall on that side, and small pockets with more.
+  // (A ring a tile wider than Fortress's: the town has to find room for its own barracks inside.)
+  arena: {
+    bases: [0.3, 0.33],
+    ring: 8,
+    kitRadius: 640,
+    gap: 150,
+    open: 700,
+    lane: 160,
+    density: 0.12,
+    outside: 450,
+    pockets: { pairs: 2, radius: 130, ring: [850, 1250] },
+    neutral: { gold: 2, rock: 1, berries: 1, ring: [0, 500] },
+    deer: { pairs: 2, count: 3, ring: [0, 600] }
+  },
+  // 游牧: sea on three sides (north, west, east: `sea` tiles), no town centre; each side's three villagers stand apart
+  // (offsets from where its kit lies) and there is no scout (the site: like Mountain Pass, no scout).
+  nomad: { bases: [0.25, 0.28], angle: [172, 188], sea: 3, jitter: 2, scatter: [[-200, -300], [340, -220], [100, 330]], fish: { shore: 3, deep: 3 }, neutral: { gold: 1, rock: 1, ring: [300, 1100] }, forests: { clumps: 9, size: [5, 10], clearance: 900 }, border: 0.3 },
+  // 移民: each side on a small islet near a corner, a mainland in the middle (no boar; the sheep are far, on the
+  // mainland's shore facing each islet). The islets carry wood, berries and shore fish only: gold and stone are the
+  // mainland's.
+  migration: { bases: [0.45, 0.46], islet: 540, strait: 260, edge: 2, trees: 10, fish: { shore: 3, deep: 3 }, mainlandSheep: { pairs: 2, count: 4 }, deer: { pairs: 2, count: 3 }, neutral: { gold: 2, rock: 2, berries: 1 }, forests: { clumps: 9, size: [5, 10] } },
+  // 島嶼: each side's own island; two islets (a mirrored pair, across the base axis) with gold and stone.
+  islands: { bases: [0.33, 0.35], island: 920, kitScale: 1, islets: [{ at: 1150, radius: 260, goods: ["gold", "rock"] }], fish: { shore: 3, deep: 4 }, forests: { clumps: 7, size: [5, 9], clearance: 480 } },
+  // 群島: smaller home islands and four islets: one pair bare, one pair rich (gold, stone, wood and food).
+  archipelago: { bases: [0.33, 0.35], island: 820, kitScale: 1, islets: [{ at: 1250, radius: 200, goods: [] }, { at: 620, radius: 250, goods: ["gold", "rock", "tree", "berries"] }], fish: { shore: 4, deep: 4 }, forests: { clumps: 6, size: [4, 8], clearance: 480 } },
+  // 團隊群島: with one player a side, each side's team island is a whole half of the map, split by a channel through the
+  // middle and ringed by sea.
+  "team-islands": { bases: [0.3, 0.33], edge: 2, channel: 1.6, fish: { shore: 4, deep: 4 }, neutral: { gold: 1, rock: 1 }, forests: { clumps: 9, size: [5, 10], clearance: 950 }, border: 0.35 }
+};
+function walledKit(radius) {
+  const at = (deg) => ({ dx: Math.round(Math.cos(deg * Math.PI / 180) * radius), dy: Math.round(Math.sin(deg * Math.PI / 180) * radius) });
+  return [
+    { kind: "tree", ...at(-90), group: 2 },
+    { kind: "tree", ...at(-130), group: 2 },
+    { kind: "tree", ...at(-50), group: 2 },
+    { kind: "gold", ...at(0) },
+    { kind: "rock", ...at(180) },
+    { kind: "berries", ...at(40) },
+    { kind: "livestock", ...at(140), count: 4 },
+    { kind: "boar", ...at(70) },
+    { kind: "livestock", ...at(110), count: 2 }
+  ];
+}
+var homeTile = (b) => {
+  const c = b.centres[0];
+  return [Math.floor(c.x / 100), Math.floor(c.y / 100)];
+};
+function wallRing(b, ring) {
+  const [cx, cy] = homeTile(b);
+  for (let ty = cy - ring; ty <= cy + ring; ty++) for (let tx = cx - ring; tx <= cx + ring; tx++) if (Math.max(Math.abs(tx - cx), Math.abs(ty - cy)) === ring && b.inside(tx, ty)) b.pairBuilding("stone-wall", tx * 100, ty * 100);
+}
+var insideRing = (b, ring) => (tx, ty) => {
+  const [cx, cy] = homeTile(b), [mx, my] = b.mirrorTile(cx, cy);
+  return Math.max(Math.abs(tx - cx), Math.abs(ty - cy)) < ring || Math.max(Math.abs(tx - mx), Math.abs(ty - my)) < ring;
+};
+function fortress(seed) {
+  const R = specialMapRules.fortress, b = new MapBuilder(seed, "rotate", "fortress");
+  b.bases(null, [...R.bases]);
+  b.walled = true;
+  wallRing(b, R.ring);
+  const [cx, cy] = homeTile(b);
+  for (const [dx, dy] of R.barracks) b.pairBuilding("barracks", (cx + dx) * 100 + 15, (cy + dy) * 100 + 15);
+  for (const [dx, dy] of R.houses) b.pairBuilding("house", (cx + dx) * 100 + 15, (cy + dy) * 100 + 15);
+  for (const [dx, dy] of R.farms) b.pairBuilding("farm", (cx + dx) * 100, (cy + dy) * 100);
+  for (const [dx, dy] of R.towers) b.pairBuilding("watch-tower", (cx + dx) * 100, (cy + dy) * 100);
+  b.kit(walledKit(R.kitRadius));
+  const inside = insideRing(b, R.ring + 1);
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.animals("hunt", R.deer.pairs, R.deer.count, [...R.deer.ring], (x, y) => !inside(x, y));
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, (x, y) => !inside(x, y));
+  b.border(R.border, 900);
+  return b.finish();
+}
+function arena(seed) {
+  const R = specialMapRules.arena, b = new MapBuilder(seed, "rotate", "arena");
+  b.bases(null, [...R.bases]);
+  b.walled = true;
+  wallRing(b, R.ring);
+  b.kit(walledKit(R.kitRadius));
+  const inside = insideRing(b, R.ring + 1), c0 = b.centres[0];
+  const toMid = Math.atan2(b.mid - c0.y, b.mid - c0.x), out = (d, turn) => [Math.floor((c0.x + Math.cos(toMid + turn) * d) / 100), Math.floor((c0.y + Math.sin(toMid + turn) * d) / 100)];
+  for (const [kind, turn] of [["gold", -0.5], ["rock", 0.5]]) {
+    for (const extra of [0, 100, 200]) {
+      const [tx, ty] = out(R.ring * 100 + R.outside - 300 + extra, turn);
+      if (b.pairFree(tx, ty, 1) && !inside(tx, ty)) {
+        b.pair(kind, tx, ty);
+        break;
+      }
+    }
+  }
+  const pockets = [];
+  for (let i = 0; i < R.pockets.pairs; i++) {
+    const at = b.pick((x, y) => b.pairFree(x, y, 2) && b.baseDistance(x, y) >= 1e3 && !inside(x, y), [...R.pockets.ring]);
+    if (!at) continue;
+    b.pair(i % 2 ? "rock" : "gold", at[0], at[1]);
+    pockets.push({ x: at[0] * 100 + 50, y: at[1] * 100 + 50 });
+  }
+  const nearSegment = (px, py, a, z, w) => {
+    const dx = z.x - a.x, dy = z.y - a.y, len = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((px - a.x) * dx + (py - a.y) * dy) / len));
+    return Math.hypot(px - (a.x + dx * t), py - (a.y + dy * t)) <= w;
+  };
+  const middle = { x: b.mid, y: b.mid }, bases = b.centres.map((c) => ({ x: c.x, y: c.y })), pocketsAll = pockets.flatMap((p) => [p, b.mirrorPoint(p.x, p.y)]);
+  const clear = (tx, ty) => {
+    const px = tx * 100 + 50, py = ty * 100 + 50;
+    if (Math.hypot(px - b.mid, py - b.mid) < R.open) return true;
+    if (b.baseDistance(tx, ty) < R.ring * 100 + R.gap + 150) return true;
+    if (bases.some((c) => nearSegment(px, py, c, middle, R.lane))) return true;
+    return pocketsAll.some((p) => Math.hypot(px - p.x, py - p.y) <= R.pockets.radius + 60 || nearSegment(px, py, p, middle, 60));
+  };
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring], 800);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring], 800);
+  b.neutral("berries", R.neutral.berries, [...R.neutral.ring], 800);
+  b.animals("hunt", R.deer.pairs, R.deer.count, [...R.deer.ring], void 0, 800);
+  for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) {
+    const [mx, my] = b.mirrorTile(tx, ty);
+    if (my * b.size + mx < ty * b.size + tx || clear(tx, ty) || b.noise(tx, ty) < R.density) continue;
+    if (b.pairFree(tx, ty, 0)) b.pair("tree", tx, ty);
+  }
+  return b.finish();
+}
+function nomad(seed) {
+  const R = specialMapRules.nomad, b = new MapBuilder(seed, "mirrorX", "nomad");
+  b.bases((R.angle[0] + b.random() * (R.angle[1] - R.angle[0])) * Math.PI / 180, [...R.bases]);
+  b.nomad = true;
+  b.paint((tx, ty) => {
+    const j = Math.floor(b.smooth(Math.min(tx, b.size - 1 - tx), ty) * R.jitter);
+    return Math.min(tx, b.size - 1 - tx) < R.sea + j || ty < R.sea + j ? "water" : null;
+  });
+  b.kit(standardKit);
+  b.neutral("gold", R.neutral.gold, [...R.neutral.ring]);
+  b.neutral("rock", R.neutral.rock, [...R.neutral.ring]);
+  b.fishIn(R.fish.shore, "shore");
+  b.fishIn(R.fish.deep, "deep");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance);
+  b.border(R.border, 750);
+  b.obstacles = b.obstacles.filter((o) => o.kind !== "town-center");
+  b.scouts = void 0;
+  const c = b.centres[0], grid = (p) => ({ x: Math.round(p.x / 50) * 50, y: Math.round(p.y / 50) * 50 });
+  const first = R.scatter.map(([dx, dy]) => grid({ x: c.x + dx, y: c.y + dy }));
+  b.starts = [first, first.map((p) => grid(b.mirrorPoint(p.x, p.y)))];
+  return b.finish();
+}
+var disc = (b, tx, ty, x, y, r, rag = 120) => Math.hypot(tx * 100 + 50 - x, ty * 100 + 50 - y) < r + rag * (b.smooth(tx, ty) - 0.5);
+function migration(seed) {
+  const R = specialMapRules.migration, b = new MapBuilder(seed, "rotate", "migration");
+  b.bases((45 + 90 * Math.floor(b.random() * 4)) * Math.PI / 180, [...R.bases]);
+  b.separate = true;
+  b.lean = ["gold", "stone"];
+  const c0 = b.centres[0], c1 = b.centres[1];
+  const main = (tx, ty) => Math.min(tx, ty, b.size - 1 - tx, b.size - 1 - ty) >= R.edge && [c0, c1].every((c) => Math.hypot(tx * 100 + 50 - c.x, ty * 100 + 50 - c.y) >= R.islet + 40 + R.strait);
+  b.paint((tx, ty) => disc(b, tx, ty, c0.x, c0.y, R.islet, 80) || disc(b, tx, ty, c1.x, c1.y, R.islet, 80) || main(tx, ty) ? null : "water");
+  const islet = [];
+  for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) {
+    const d = Math.hypot(tx * 100 + 50 - c0.x, ty * 100 + 50 - c0.y);
+    if (d < R.islet + 60 && d > 260 && b.tile(tx, ty).walkClass === "land" && !b.taken.has(ty * b.size + tx)) islet.push([tx, ty]);
+  }
+  const away = (tx, ty) => {
+    const a = Math.atan2(ty * 100 + 50 - c0.y, tx * 100 + 50 - c0.x), south = Math.PI / 2;
+    return Math.abs(Math.atan2(Math.sin(a - south), Math.cos(a - south))) > 0.9;
+  };
+  const spots = islet.filter(([x, y]) => away(x, y)).sort((p, q) => Math.atan2(p[1] * 100 + 50 - c0.y, p[0] * 100 + 50 - c0.x) - Math.atan2(q[1] * 100 + 50 - c0.y, q[0] * 100 + 50 - c0.x));
+  let trees = 0, berries = false;
+  for (const [tx, ty] of spots) {
+    const [mx, my] = b.mirrorTile(tx, ty);
+    if (b.taken.has(ty * b.size + tx) || b.taken.has(my * b.size + mx)) continue;
+    if (!berries) {
+      b.pair("berries", tx, ty);
+      berries = true;
+      continue;
+    }
+    if (trees < R.trees) {
+      b.pair("tree", tx, ty);
+      trees++;
+    }
+  }
+  b.fishIn(R.fish.shore, "shore", 200, (x, y) => disc(b, x, y, c0.x, c0.y, R.islet + 250, 0) || disc(b, x, y, c1.x, c1.y, R.islet + 250, 0));
+  b.fishIn(R.fish.deep, "deep");
+  const onMain = (x, y) => main(x, y) && [c0, c1].every((c) => Math.hypot(x * 100 + 50 - c.x, y * 100 + 50 - c.y) >= R.islet + R.strait + 160);
+  for (let i = 0; i < R.mainlandSheep.pairs; i++) {
+    const at = b.pick((x, y) => onMain(x, y) && b.pairFree(x, y, 1) && Math.hypot(x * 100 + 50 - c0.x, y * 100 + 50 - c0.y) < Math.hypot(x * 100 + 50 - c1.x, y * 100 + 50 - c1.y), [R.islet + R.strait + 250, R.islet + R.strait + 600], { x: c0.x, y: c0.y });
+    if (at) b.pair("livestock", at[0], at[1], void 0, R.mainlandSheep.count);
+  }
+  for (const [kind, pairs] of [["gold", R.neutral.gold], ["rock", R.neutral.rock], ["berries", R.neutral.berries]]) for (let i = 0; i < pairs; i++) {
+    const at = b.pick((x, y) => onMain(x, y) && b.pairFree(x, y, 1), [0, 1500]);
+    if (at) b.pair(kind, at[0], at[1]);
+  }
+  b.animals("hunt", R.deer.pairs, R.deer.count, [0, 1500], onMain, 0);
+  b.forests(R.forests.clumps, [...R.forests.size], 0, onMain);
+  for (const [a, z] of b.mines) {
+    b.isolated.add(a);
+    b.isolated.add(z);
+  }
+  return b.finish();
+}
+function islandMap(b, R) {
+  b.bases(null, [...R.bases]);
+  b.separate = true;
+  const c0 = b.centres[0], c1 = b.centres[1], axis = Math.atan2(c0.y - b.mid, c0.x - b.mid);
+  const islets = R.islets.map((i) => {
+    const a = axis + Math.PI / 2 + (i.turn ?? 0);
+    return { ...i, x: b.mid + Math.cos(a) * i.at, y: b.mid + Math.sin(a) * i.at };
+  });
+  const both = islets.flatMap((i) => [i, { ...i, ...b.mirrorPoint(i.x, i.y) }]);
+  const ux = Math.cos(axis), uy = Math.sin(axis), strait = (tx, ty) => Math.abs((tx * 100 + 50 - b.mid) * ux + (ty * 100 + 50 - b.mid) * uy) < 200;
+  const offIslets = (tx, ty) => both.every((i) => Math.hypot(tx * 100 + 50 - i.x, ty * 100 + 50 - i.y) >= i.radius + 260);
+  b.paint((tx, ty) => !strait(tx, ty) && offIslets(tx, ty) && (disc(b, tx, ty, c0.x, c0.y, R.island) || disc(b, tx, ty, c1.x, c1.y, R.island)) || both.some((i) => disc(b, tx, ty, i.x, i.y, i.radius, 60)) ? null : "water");
+  b.kit(standardKit.map((k) => ({ ...k, dx: Math.round(k.dx * R.kitScale), dy: Math.round(k.dy * R.kitScale) })));
+  const home = (x, y) => Math.hypot(x * 100 + 50 - c0.x, y * 100 + 50 - c0.y) < R.island - 150 || Math.hypot(x * 100 + 50 - c1.x, y * 100 + 50 - c1.y) < R.island - 150;
+  for (const i of islets) {
+    const tiles = [];
+    for (let ty = 0; ty < b.size; ty++) for (let tx = 0; tx < b.size; tx++) if (Math.hypot(tx * 100 + 50 - i.x, ty * 100 + 50 - i.y) < i.radius - 40 && b.pairFree(tx, ty, 1)) tiles.push([tx, ty]);
+    tiles.sort((p, q) => Math.hypot(p[0] * 100 + 50 - i.x, p[1] * 100 + 50 - i.y) - Math.hypot(q[0] * 100 + 50 - i.x, q[1] * 100 + 50 - i.y) || p[0] - q[0] || p[1] - q[1]);
+    let k = 0;
+    for (const kind of i.goods) for (const [tx, ty] of tiles.slice(k)) {
+      k++;
+      if (!b.pairFree(tx, ty, 1)) continue;
+      b.pair(kind === "berries" ? "berries" : kind, tx, ty);
+      if (kind === "gold" || kind === "rock") {
+        b.isolated.add(ty * b.size + tx);
+        const [mx, my] = b.mirrorTile(tx, ty);
+        b.isolated.add(my * b.size + mx);
+      }
+      break;
+    }
+  }
+  b.fishIn(R.fish.shore, "shore");
+  b.fishIn(R.fish.deep, "deep");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, home);
+  return b.finish();
+}
+function islands(seed) {
+  return islandMap(new MapBuilder(seed, "rotate", "islands"), specialMapRules.islands);
+}
+function archipelago(seed) {
+  return islandMap(new MapBuilder(seed, "rotate", "archipelago"), specialMapRules.archipelago);
+}
+function teamIslands(seed) {
+  const R = specialMapRules["team-islands"], b = new MapBuilder(seed, "rotate", "team-islands");
+  b.bases(null, [...R.bases]);
+  b.separate = true;
+  const c0 = b.centres[0], axis = Math.atan2(c0.y - b.mid, c0.x - b.mid), ux = Math.cos(axis), uy = Math.sin(axis);
+  b.paint((tx, ty) => {
+    const edge = Math.min(tx, ty, b.size - 1 - tx, b.size - 1 - ty), along = (tx * 100 + 50 - b.mid) * ux + (ty * 100 + 50 - b.mid) * uy;
+    return edge < R.edge || Math.abs(along) < R.channel * 100 + 60 * (b.smooth(tx, ty) - 0.5) ? "water" : null;
+  });
+  b.kit(standardKit);
+  const own = (x, y) => Math.abs((x * 100 + 50 - b.mid) * ux + (y * 100 + 50 - b.mid) * uy) > R.channel * 100 + 200;
+  b.neutral("gold", R.neutral.gold, [300, 1300]);
+  b.neutral("rock", R.neutral.rock, [300, 1300]);
+  b.fishIn(R.fish.shore, "shore");
+  b.fishIn(R.fish.deep, "deep");
+  b.forests(R.forests.clumps, [...R.forests.size], R.forests.clearance, own);
+  b.border(R.border, 750);
+  return b.finish();
+}
+
+// packages/sim/maps/index.ts
+var generators = {
+  arabia,
+  "black-forest": blackForest,
+  coastal,
+  mediterranean,
+  baltic,
+  continental,
+  rivers,
+  highland,
+  "ghost-lake": ghostLake,
+  mongolia,
+  oasis,
+  scandinavia,
+  yucatan,
+  "gold-rush": goldRush,
+  "crater-lake": craterLake,
+  "salt-marsh": saltMarsh,
+  fortress,
+  arena,
+  nomad,
+  migration,
+  islands,
+  archipelago,
+  "team-islands": teamIslands
+};
+var isMatchMap = (layout) => matchMapLayouts.includes(layout);
+function generateMatchMap(seed, layout) {
+  return generators[layout](seed);
+}
+
 // packages/sim/navigation.ts
 var navigationRules = { provenance: "design_default", spacing: 50, size: 31, radius: 25, expansionsPerTick: 128, speedPerTick: 5, maxGroupSize: 40, waitLimit: 8, queueWaitFactor: 4, detourLimit: 12, stuckTicks: 300, arrivalRadius: 150 };
 var startingResourceRules = { provenance: "design_default", maxApproachDistance: 1200, maxNearestDistanceDifference: 500, minimum: { tree: 300, stone: 250, gold: 250, berries: 150 } };
@@ -3875,6 +4911,7 @@ function makeMap(seed, layout = "meadow") {
 }
 function generateCandidate(seed, layout) {
   if (layout === "open" || layout === "lakes") return generateOpen(seed, layout === "lakes");
+  if (isMatchMap(layout)) return generateMatchMap(seed, layout);
   let rng = seed || 1;
   let obstacles = [{ kind: "town-center", x: 265, y: 350 }, { kind: "town-center", x: 1065, y: 350, red: true }];
   const woods = [];
@@ -4144,7 +5181,7 @@ function clearSegment(map, a, b, movement = "land") {
     if (y < size - 1 && Math.abs(tile3.height - map.tiles[tile3.id + size].height) > maxStep && intersects(a, b, [x * 100 - radius, (y + 1) * 100 - radius, (x + 1) * 100 + radius, (y + 1) * 100 + radius])) return false;
     if (!canTraverse(tile3, movement) && intersects(a, b, [x * 100 - radius, y * 100 - radius, x * 100 + 100 + radius, y * 100 + 100 + radius])) return false;
   }
-  for (const o of map.obstacles) for (const [x0, y0, x1, y1] of obstacleRects(o, navigationRules.radius)) {
+  for (const o of obstaclesNear(map, a, b)) for (const [x0, y0, x1, y1] of obstacleRects(o, navigationRules.radius)) {
     let lo = 0, hi = 1;
     for (const [start, delta, min, max] of [[a.x, b.x - a.x, x0, x1], [a.y, b.y - a.y, y0, y1]]) {
       if (delta === 0) {
@@ -4161,6 +5198,26 @@ function clearSegment(map, a, b, movement = "land") {
     if (lo <= hi) return false;
   }
   return true;
+}
+var obstacleIndex = /* @__PURE__ */ new WeakMap();
+function obstaclesNear(map, a, b) {
+  let idx = obstacleIndex.get(map.obstacles);
+  if (!idx || idx.length !== map.obstacles.length) {
+    let refs = 0;
+    for (const t of map.tiles) refs += t.obstacleRefs.length;
+    const byId = /* @__PURE__ */ new Map();
+    for (const o of map.obstacles) if (o.id !== void 0) byId.set(o.id, o);
+    idx = { length: map.obstacles.length, byId: refs === map.obstacles.length && byId.size === map.obstacles.length && map.obstacles.length > 32 ? byId : null };
+    obstacleIndex.set(map.obstacles, idx);
+  }
+  if (!idx.byId) return map.obstacles;
+  const r = navigationRules.radius, size = map.size, tx0 = Math.max(0, Math.floor((Math.min(a.x, b.x) - r - 500) / 100)), tx1 = Math.min(size - 1, Math.floor((Math.max(a.x, b.x) + r + 20) / 100)), ty0 = Math.max(0, Math.floor((Math.min(a.y, b.y) - r - 500) / 100)), ty1 = Math.min(size - 1, Math.floor((Math.max(a.y, b.y) + r + 20) / 100));
+  const out = [];
+  for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) for (const id of map.tiles[ty * size + tx].obstacleRefs) {
+    const o = idx.byId.get(id);
+    if (o) out.push(o);
+  }
+  return out;
 }
 function intersects(a, b, box) {
   let lo = 0, hi = 1;
@@ -4200,12 +5257,17 @@ function validateMap(map) {
   }
   const spawns = [...map.starts.flat(), ...map.scouts ?? [], ...map.animals ?? []];
   if (spawns.some((p) => !clearSegment(map, p, p))) errors.push("\u51FA\u751F\u9EDE\u4E0D\u53EF\u901A\u884C");
-  else {
-    const job = createPathJob(map, 0, map.starts[0][0], map.starts[1][0]);
-    advancePathJob(map, job, nodeTotal(map));
+  else if (!map.separate) {
+    const open = map.walled ? withoutWalls(map) : map, job = createPathJob(open, 0, open.starts[0][0], open.starts[1][0]);
+    advancePathJob(open, job, nodeTotal(open));
     if (job.status !== "found") errors.push("\u73A9\u5BB6\u51FA\u751F\u5340\u4E92\u4E0D\u9023\u901A");
   }
   return errors;
+}
+var wallKinds2 = /* @__PURE__ */ new Set(["palisade-wall", "stone-wall", "palisade-gate", "gate"]);
+function withoutWalls(map) {
+  const gone = new Set(map.obstacles.filter((o) => wallKinds2.has(o.kind)).map((o) => o.id));
+  return { ...map, obstacles: map.obstacles.filter((o) => !gone.has(o.id)), tiles: map.tiles.map((t) => ({ ...t, obstacleRefs: t.obstacleRefs.filter((r) => !gone.has(r)) })), blocked: [] };
 }
 function position(map, id) {
   const side = sideOf(map);
@@ -4231,7 +5293,7 @@ function validateStartingResources(map) {
         frontier.push(next);
       }
     }
-    const access = Object.entries(startingResourceRules.minimum).map(([kind, minimum]) => {
+    const access = Object.entries(startingResourceRules.minimum).filter(([kind]) => !map.lean?.includes(kind)).map(([kind, minimum]) => {
       const nodes = map.resources.filter((r) => r.kind === kind && r.collectible && r.remaining > 0).map((resource) => {
         const obstacle = map.obstacles.find((o) => o.id === resource.obstacleId);
         if (!obstacle) return { id: resource.id, remaining: resource.remaining, distance: Infinity, approach: null };
@@ -4475,7 +5537,7 @@ async function createScene(canvas, onFailure, options = {}) {
       rng ^= rng >>> 17;
       rng ^= rng << 5;
       const n = (rng >>> 0) / 4294967296;
-      groundBlock(x, z, tile3.height / 100, !options.assetPreview && view.fog[tile3.id] !== 2 ? view.fog[tile3.id] === 1 ? "#626e64" : "#293e38" : tile3.terrainType === "cliff" ? "#8a8065" : tile3.terrainType === "stone" ? "#a1a28e" : tile3.terrainType === "highland" ? "#879d69" : tile3.terrainType === "water" ? deepWater(map.tiles, tile3.id) ? "#41768a" : "#4b8291" : tile3.terrainType === "shallow" ? "#86b7b8" : tile3.terrainType === "sand" ? "#d5c598" : tile3.terrainType === "road" ? "#c4b18a" : n < 0.2 ? "#a6b582" : n < 0.5 ? "#b5c493" : "#becda0");
+      groundBlock(x, z, tile3.height / 100, !options.assetPreview && view.fog[tile3.id] !== 2 ? view.fog[tile3.id] === 1 ? "#626e64" : "#293e38" : tile3.terrainType === "cliff" ? "#8a8065" : tile3.terrainType === "stone" ? "#a1a28e" : tile3.terrainType === "highland" ? "#879d69" : tile3.terrainType === "water" ? deepWater(map.tiles, tile3.id) ? "#41768a" : "#4b8291" : tile3.terrainType === "shallow" ? "#86b7b8" : tile3.terrainType === "sand" ? "#d5c598" : tile3.terrainType === "ice" ? "#d9e6ea" : tile3.terrainType === "snow" ? "#e9ece4" : tile3.terrainType === "road" ? "#c4b18a" : n < 0.2 ? "#a6b582" : n < 0.5 ? "#b5c493" : "#becda0");
     }
     for (const tile3 of map.tiles) if (tile3.terrainType === "water" && (options.assetPreview || view.fog[tile3.id] === 2)) {
       const tx = tile3.id % board, tz = Math.floor(tile3.id / board);
@@ -5123,7 +6185,7 @@ async function createScene(canvas, onFailure, options = {}) {
         shoot(kind, g, { angle: Math.PI / 4, lift: 0.6 });
         shoot(`${kind}-face`, g, { angle: Math.PI / 4, lift: 0.6 });
       }
-      for (const kind of ["sheep", "deer", "boar"]) {
+      for (const kind of ["sheep", "deer", "boar", "wolf", "jaguar"]) {
         const rig = createAnimalRig(T, kind, 0, box, material);
         rig.pose("idle", 0);
         const g = new T.Group();

@@ -1,6 +1,6 @@
 # 資料模型與權威邊界
 
-目前權威 State／snapshot 為 v33（本頁寫到 v22、v27–v33；v23–v26 見 first-use-023～026），支援五種地圖、有限資源資料、三態視野、移動、存讀與重播，起始建築是有可通行入口的城鎮中心。下文保留各版本演進，不表示舊格式仍可載入。新增模型、LOD、除錯介面及幾何占地共用不增加玩法狀態。
+目前權威 State／snapshot 為 v34（本頁寫到 v22、v27–v34；v23–v26 見 first-use-023～026），支援 28 種地圖（五種原有地圖加上 aoetw.com 帝王世紀與征服者入侵的 23 張隨機地圖）、有限資源資料、三態視野、移動、存讀與重播，起始建築是有可通行入口的城鎮中心。下文保留各版本演進，不表示舊格式仍可載入。新增模型、LOD、除錯介面及幾何占地共用不增加玩法狀態。
 
 ## 初始資料模型（歷史 v1，後續演進見下文）
 
@@ -593,7 +593,7 @@ packages/content/footprints.ts 是目前七種障礙物物理矩形的唯一來�
   - 單位投影的 stride 仍是 19。
 - simulationVersion、State.version 與 snapshot 格式升為 32；`rulesetHash` 因規則資料改變而換掉。
 
-## 科技樹與對局設定 v33（目前版本）
+## 科技樹與對局設定 v33
 
 - **State**：
   - `version: 33`；snapshot 格式 `brick-sandbox-33`。v32 存檔明確拒絕（沒有遷移）。
@@ -616,3 +616,37 @@ packages/content/footprints.ts 是目前七種障礙物物理矩形的唯一來�
 - **Worker**：`reset` 多了 `settings`；`Recovery`（還原檢查點）、每個 `Response` 與 `View` 都帶 `settings`；`worker-client` 把它存進檢查點，`recover` 與 `replay` 照傳。單位投影的 stride 仍是 19。
 - **頁面**：設定畫面在 `apps/web/lobby.ts`；上次的選擇與玩家名稱存在 localStorage；「記錄遊戲」勾選時每一遊戲分鐘存一次 `brick-rts:autosave:1`。這些都只在頁面，不進 State。
 - simulationVersion、State.version 與 snapshot 格式升為 33；`rulesetHash` 加入 `settingRules`（難易度表、資源預設與人口上限的數值改了，舊存檔與命令就不再相符），也因規則資料改變而換掉。
+
+## 地圖 v34（目前版本）
+
+- **地圖種類**（`terrain.ts`）：
+  - `MatchMapLayout` 是 23 張對戰圖的 id：`arabia`、`black-forest`、`coastal`、`mediterranean`、`baltic`、`continental`、`rivers`、`highland`、`ghost-lake`、`mongolia`、`oasis`、`scandinavia`、`yucatan`、`gold-rush`、`crater-lake`、`salt-marsh`、`fortress`、`arena`、`nomad`、`migration`、`islands`、`archipelago`、`team-islands`；`matchMapLayouts` 是同一份清單。
+  - `MapLayout` = 原本的 `meadow | coast | acceptance | open | lakes` 加上 `MatchMapLayout`；`mapSizes` 中每張對戰圖都是 32。16 格地圖的道路列跟著尺寸，所以舊地圖生成的結果和以前完全相同。
+  - `TerrainType` 多了 `ice`（`walkClass: 'land'`、`buildability: false`，不放資源）與 `snow`（普通可建造地面，白色外觀）。
+- **生成器**（`packages/sim/maps/`）：
+  - `index.ts`：`generators: Record<MatchMapLayout, (seed) => MapData>`、`isMatchMap(layout)`、`generateMatchMap(seed, layout)`（`navigation.ts` 的 `makeMap` 每次重試用新種子呼叫，驗證方式和曠野圖相同）、`matchMapRules()`（給規則雜湊；是函式，因為地圖模組與 `navigation.ts` 互相 import）。
+  - `toolkit.ts`：`MapBuilder`，所有擺放都放在一格與它的鏡像（`rotate` 繞中心轉半圈，或 `mirrorX` 左右鏡射）。依序 `bases()`（兩座城鎮中心、村民出生點與斥候，對齊城鎮中心格線）→ `paint()`／`set()`（地形與高度）→ `kit()`、`neutral()`、`forests()`、`border()`、`animals()`、`fishIn()`、`building(kind, x, y, player)`／`pairBuilding()`（預建建築）→ `finish()`（確保每對金石礦走得到，走不到就清樹，仍走不到就拿掉；`isolated` 標記的礦例外；鏡像那一群動物放在正鏡像的節點）。`standardKit` 是曠野圖的基地資源組，`apron` 420 是基地空地。
+  - `land.ts`（阿拉伯、黑森林、蒙古高原、淘金潮、猶加敦、鬼湖、火山湖，`landMapRules`）、`water.ts`（沿海、地中海、波羅的海、大陸、河流、高地、綠洲、斯堪地維亞、鹽沼地，`waterMapRules`）、`special.ts`（堡壘、圍城、游牧、移民、島嶼、群島、團隊群島，`specialMapRules`，含 `nomadStock` 木材 275 石頭 100）。
+- **`MapData` 新欄位**（都是選填）：
+  - `separate`：兩方在不同的陸地（島嶼類、移民），驗證時跳過陸路連通檢查。
+  - `walled`：開局有城牆（堡壘、圍城），陸路連通檢查在拿掉城牆的副本上做（`withoutWalls`）。
+  - `nomad`：沒有城鎮中心的開局。
+  - `lean`：基地不必走路就能拿到的起始資源種類（移民：`gold`、`stone`）。
+  - 金石礦的可達檢查：在分隔的陸地上，一對礦只要其中一個走得到就算可達。
+- **地圖目錄**（`packages/content/maps.ts`）：
+  - `MapCatalogEntry = {site: string | null, zh, en, expansion, page: boolean, layout: string | null, planned: string | null, summary}`；`mapCatalog` 收網站索引的 53 張（照索引順序），`mapExpansions` 是 6 個版本（`aok`、`aoc`、`aof`、`ak`、`aor`、`de`）。`layout` 不是 `null` 的 23 張可以開局；`planned` 只在開發中使用，目前都是 `null`。
+- **動物**：`unitKinds` 末尾多了 `wolf` 與 `jaguar`（Worker 的單位投影以 `unitKinds` 的索引表示種類，所以只能往後加）；`fauna.ts` 的 `AnimalKind`、`animalKinds` 也加上。兩者數值相同：生命 25、近戰 3、冷卻 20、速度 8.75、`classes: ['animal']`。牠們主動追擊視野內最近的陸上單位，視野依對局設定的難易度（簡單 400、標準 600、困難與最難 1200），追離 900 放棄；不攻擊僧侶、斥候系、攻城器與船，也不打建築；死後不留屍體。`hunt` 指令拒絕牠們（「狼與美洲豹不能狩獵」）。
+- **高地**：`combat.ts` 的 `elevationRules = {provenance, bonus: 1.5}`；攻擊者所在格的高度高於目標時，近戰、投射物與建築的箭傷害 ×1.5。
+- **建築與人口**：
+  - `buildings.ts` 的 `initBuildings` 把地圖上每一個預建建築（不只城鎮中心）變成完工、屬於該玩家的 `Building`；農田開啟食物、民居算人口。
+  - 游牧：`buildRequirement(…, nomadTownCenter)` 的第七個參數；`nomadWaiver(map, own)` 在地圖是 `nomad` 且這位玩家還沒有城鎮中心時為真，第一座城鎮中心免除時代要求。`placeBuilding`、sim 的 `submit` 與頁面的建造按鈕（`main.ts` 的 `buildBlocker`）都套用。
+  - `economy.ts` 的 `reserve()` 只對會增加人口的項目檢查人口空位（游牧開局三名村民、人口上限 0 時，原本會擋住城鎮中心）。
+  - `religion.ts` 的 `placeRelics` 在沒有城鎮中心時改用第一名村民的位置。
+- **規則雜湊**：`rulesetHash` 加入 `matchMapRules()` 與 `elevationRules`。
+- **電腦**：`packages/sim/ai-maps.ts`（游牧選址、躲狼、開城門、渡海與移居），`ai.ts` 只加掛勾；陸地區塊依格子計算並快取（不進 State）。
+- **效能**：`navigation.ts` 的 `clearSegment` 只檢查附近格子登記的障礙物，登記不完整時退回全部檢查；結果完全相同。
+- **頁面**（不進 State）：
+  - 設定畫面（`apps/web/lobby.ts`）的地圖類型從 `mapCatalog` 讀：帝王世紀、征服者入侵依版本分組，再加本作地圖（曠野、湖畔）與練習地圖（草甸、海岸、高地與淺灘）；預設仍是曠野；選單下顯示網站說明的第一句。
+  - 預覽共用 `apps/web/map-preview.ts`（冰、雪、沙、淺灘各有顏色，建築以隊伍色、城牆較深，狼與美洲豹是小黑點，32 格地圖都畫聖物）。
+  - 百科多了 `codexSections` 的 `{id: 'maps', label: '地圖'}`（`apps/web/codex-maps.ts`、`apps/web/map-info.ts`）：照網站索引列 53 張；可玩的地圖用真的生成器（種子 260925）畫預覽並算出每個基地與中立的資源、魚、聖物、水與冰的比例、狼與美洲豹、開局（有沒有城鎮中心、村民數、預建城牆與建築）。
+- simulationVersion、State.version 與 snapshot 格式升為 34；單位投影的 stride 仍是 19。

@@ -99,7 +99,7 @@ export function civDetail(id:string,civs:readonly string[]=[]):CivDetail{
 export const costEntries=(cost:Cost)=>resources.filter(r=>cost[r]>0).map(r=>[r,cost[r]] as const);
 // ── Category 單位 ───────────────────────────────────────────────────────────────────────────────────────────────────
 // The book's categories, in aoetw.com's order; only the ones this game can show (no placeholder tabs).
-export const codexSections=[{id:'civs',label:'文明'},{id:'units',label:'單位'},{id:'techs',label:'科技'},{id:'buildings',label:'建築'},{id:'elements',label:'遊戲元素'},{id:'tactics',label:'戰術技巧'},{id:'tree',label:'科技樹'}] as const;
+export const codexSections=[{id:'civs',label:'文明'},{id:'units',label:'單位'},{id:'techs',label:'科技'},{id:'buildings',label:'建築'},{id:'elements',label:'遊戲元素'},{id:'tactics',label:'戰術技巧'},{id:'tree',label:'科技樹'},{id:'maps',label:'地圖'}] as const;
 export type CodexSection=typeof codexSections[number]['id'];
 export {unitsIntro,unitsNote,trashText};
 export type UnitCategory={id:string;label:string;short:string;text:string};

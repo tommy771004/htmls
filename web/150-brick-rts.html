@@ -126,6 +126,7 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
 .lobby-fine{margin:0;color:var(--muted);font-size:12px}
 .lobby-map{grid-area:map;display:grid;gap:10px;align-content:start}
 #lobby-preview{display:block;width:100%;aspect-ratio:2/1;background:var(--well);border-radius:3px}
+.lobby-mapnote{margin:0;color:var(--cream);font-size:13px;line-height:1.5;min-height:3em}
 .lobby-map-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:10px;align-items:end}
 .lobby-rules{grid-area:rules;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px 18px;padding-top:4px}.lobby-rules h3{grid-column:1/-1;margin:0}
 .lobby-rule{display:grid;gap:4px;align-content:start}
@@ -291,7 +292,7 @@ noscript{position:fixed;inset:auto 0 0;padding:14px;background:#6d2f22;color:#ff
   <canvas id="lobby-preview" role="img" aria-label="依地圖與種子生成的地圖預覽"></canvas>
   <div class="lobby-map-row"><label class="lf"><span>地圖類型</span><select id="lobby-layout"></select></label>
    <label class="lf"><span>種子</span><input id="lobby-seed" inputmode="numeric" pattern="[0-9]*" maxlength="10" autocomplete="off"></label>
-   <button id="lobby-reroll" type="button">換一張</button></div><small id="lobby-seed-note"></small></section>
+   <button id="lobby-reroll" type="button">換一張</button></div><p id="lobby-layout-note" class="lobby-mapnote"></p><small id="lobby-seed-note"></small></section>
  <section class="lobby-rules" aria-labelledby="lobby-rules-title"><h3 id="lobby-rules-title">遊戲設定</h3>
  <label class="lobby-rule lf"><span>資源</span><select id="lobby-resources"></select><small id="lobby-resources-note"></small></label>
  <label class="lobby-rule lf"><span>人口</span><select id="lobby-popCap"></select><small id="lobby-popCap-note"></small></label>

@@ -19,7 +19,8 @@ export function createAccount(populationUsed:number):Account{return {stock:{...e
 export function reserve(account:Account,id:string,entryId:string,cost?:Stock):void{
  const found=rules.entries.find(e=>e.id===entryId),entry=found&&cost?{...found,cost}:found;
  if(!entry||typeof id!=='string'||!id||account.reservations.some(r=>r.id===id))throw Error('無效或重複的預留項目');
- if(account.populationUsed+account.populationReserved+entry.population>account.populationCap)throw Error('人口容量不足');
+ // Only what adds population needs room (a nomad start's villagers stand over its cap of 0 until the town centre).
+ if(entry.population>0&&account.populationUsed+account.populationReserved+entry.population>account.populationCap)throw Error('人口容量不足');
  for(const key of resources)if(!Number.isSafeInteger(account.stock[key])||account.stock[key]<entry.cost[key])throw Error(`資源不足：${key}`);
  // Commit only after every resource and population check has passed.
  const record:Reservation={id,entryId,cost:{...entry.cost},population:entry.population,status:'reserved'};

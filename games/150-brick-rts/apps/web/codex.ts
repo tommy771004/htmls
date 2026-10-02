@@ -12,6 +12,10 @@ import {tacticPage,tacticGroups,tacticsIntro,tacticsNote,basicUpgradesText,basic
 import type {TacticPage,TacticBlock} from './codex-tactics.ts';
 import {civTree,treeIntro,treeNote,treeMark,treeMarkLabels} from './codex-tree.ts';
 import type {CivTree,TreeBlock,TreeCell,TreeNode,TreeMatch,TreeMark} from './codex-tree.ts';
+import {mapPage,mapGroups,mapOverview,mapPageSeed} from './codex-maps.ts';
+import type {MapPage} from './codex-maps.ts';
+import {paintMap} from './map-preview.ts';
+import {mapsIntro,mapsNote} from '../../packages/content/codex.ts';
 import type {CivDetail,CivListItem,StatSheet,UnitCard,TechCard,Cost,CodexSection,UnitLine,PendingLine,LineStep,TechPage,UniqueTechPage,PendingTech,TechItem,
  BuildingPage,BuildingSheet,PendingBuilding,BuildingItem} from './codex-model.ts';
 // speakTaunt: the page's own taunt voice (local voices only); without it the taunts table is text only.
@@ -92,7 +96,9 @@ const css=`
 .cx-path .cx-age{margin:1px 0 0;font-size:12.5px;color:var(--cx-muted)}.cx-path .cx-cost{margin-top:8px;font-size:13px}.cx-path .cx-ref{margin-top:6px;font-size:12px;color:var(--cx-muted)}
 .cx-path .cx-step{margin-top:8px;font-size:13px;line-height:1.65}
 .cx-scroll{max-width:100%;overflow-x:auto}.cx-scroll .cx-stats{width:auto;min-width:min(100%,560px);max-width:none}.cx-stats thead th{white-space:nowrap}
-.cx-ov{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}.cx-ov .cx-tech p{margin-top:6px;font-size:13px;line-height:1.65}
+.cx-ov{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.cx-mapview{display:block;width:100%;max-width:760px;aspect-ratio:2/1;margin:14px 0 6px;background:var(--cx-well);border-radius:3px}.cx-mapseed{margin:0;color:var(--cx-muted);font-size:12px}
+.cx-ov .cx-tech .cx-count{display:block;margin-top:4px;color:var(--cx-muted);font-size:12px}.cx-ov .cx-tech p{margin-top:6px;font-size:13px;line-height:1.65}
 .cx-count{font-variant-numeric:tabular-nums}
 .cx-tree dd .cx-cost{margin:0}.cx-tree dd small{display:block;margin-top:2px;font-size:12.5px;color:var(--cx-muted)}.cx-tree dd+dt{margin-top:4px}
 .cx-chain{margin:10px 0 0!important;font-size:13px;color:var(--cx-muted)}.cx-chain b{font-weight:600;color:var(--cx-cream)}
@@ -170,6 +176,7 @@ let elementChosen='overview';
 let tacticChosen='overview';
 // …and in 科技樹, the civilization (null: the player's own, else the first) and whether reference items are drawn.
 let treeChosen:string|null=null,treeRefs=true;
+let mapChosen='overview';
 const roleText={self:'你的文明',rival:'對手',both:'雙方'} as const;
 function costRow(icons:Record<string,string>,cost:Cost,seconds:number|null,extra?:string){
  const row=h('p',{class:'cx-cost'});
@@ -652,6 +659,55 @@ function renderTree(focus:boolean){
  detail.addEventListener('click',e=>{const b=(e.target as Element).closest<HTMLElement>('[data-page]');if(b?.dataset.section&&b.dataset.page)go(b.dataset.section as CodexSection,b.dataset.page);});
  open.body.replaceChildren(list,detail);open.list=list;open.detail=detail;
  selectTree(treeChosen??open.ctx.match?.civ??items[0].id,focus);}
+// ── Category 地圖 ────────────────────────────────────────────────────────────────────────────────────────────────
+// aoetw.com's map list by expansion; a playable map shows what this game's generator makes of it (codex-maps.ts).
+let mapObserver:ResizeObserver|null=null;
+// Draws the generated map into its canvas at the canvas's laid-out size, again whenever that size changes.
+function drawMapInto(canvas:HTMLCanvasElement,p:MapPage){
+ const g=p.generated;if(!g)return;mapObserver?.disconnect();
+ const draw=()=>{const ctx=canvas.getContext('2d');if(!ctx||!canvas.isConnected)return;const r=canvas.getBoundingClientRect();if(!r.width)return;
+  const dpr=Math.min(devicePixelRatio,2),W=Math.round(r.width*dpr),H=Math.round(r.height*dpr);if(canvas.width!==W||canvas.height!==H){canvas.width=W;canvas.height=H;}
+  ctx.setTransform(dpr,0,0,dpr,0,0);paintMap(ctx,g.map,g.relics,r.width,r.height);canvas.dataset.drawn='true';};
+ if(typeof ResizeObserver!=='undefined'){mapObserver=new ResizeObserver(draw);mapObserver.observe(canvas);}requestAnimationFrame(draw);}
+function mapView(p:MapPage){
+ const page=h('div',{class:'cx-page'});
+ page.append(h('h3',{id:'cx-map-name'},p.zh,h('span',{lang:'en'},p.en)),
+  h('p',{class:'cx-sub'},`aoetw 地圖・${p.expansionZh}`,p.playable?'':h('b',null,'・未實作')),
+  h('p',{class:'cx-summary'},p.summary||'網站沒有這張地圖的頁面。'));
+ if(p.reason)page.append(h('p',{class:'cx-prose cx-why'},p.reason));
+ if(p.generated){const c=h('canvas',{class:'cx-mapview',role:'img','aria-label':`${p.zh}的生成預覽`});
+  page.append(h('section',null,h('h4',null,'本作的生成結果'),c,h('p',{class:'cx-mapseed'},`種子 ${mapPageSeed}；開局設定畫面可以換種子。`),
+   h('dl',{class:'cx-tree cx-mapfacts'},...p.facts.flatMap(f=>[h('dt',null,f.label),h('dd',null,f.value)]))));
+  drawMapInto(c,p);}
+ if(p.failed)page.append(h('p',{class:'cx-prose cx-why'},`這張地圖用種子 ${mapPageSeed} 生成失敗：${p.failed}`));
+ if(p.strategy)page.append(h('section',null,h('h4',null,'打法'),h('p',{class:'cx-prose'},p.strategy)));
+ page.append(h('footer',{class:'cx-foot'},h('p',null,mapsNote),h('p',null,`資料來源：${p.page?`aoetw.com/maps/${p.id}`:'aoetw.com/maps（這張圖沒有獨立頁面）'}`)));
+ return page;}
+function mapOverviewView(){
+ const p=h('div',{class:'cx-page'});mapObserver?.disconnect();
+ p.append(h('h3',{id:'cx-map-name'},'地圖',h('span',{lang:'en'},'Random maps')),h('p',{class:'cx-summary'},mapsIntro),
+  ...mapOverview().map(g=>h('section',null,h('h4',null,g.label,h('small',null,`本作可玩 ${g.playable}／共 ${g.items.length}`)),
+   h('div',{class:'cx-ov'},...g.items.map(m=>h('article',{class:`cx-tech${m.playable?'':' off'}`},h('h5',null,m.zh,h('span',{lang:'en'},m.en)),h('span',{class:'cx-count'},m.playable?'可以玩':'只列介紹')))))),
+  h('footer',{class:'cx-foot'},h('p',null,mapsNote),h('p',null,'資料來源：aoetw.com/maps')));
+ return p;}
+function fillMapList(list:HTMLElement){
+ list.replaceChildren(h('div',{class:'cx-grp'},h('ul',null,h('li',null,h('button',{type:'button',class:'cx-uitem','data-map':'overview',tabindex:'-1','aria-current':'false'},h('b',null,'總覽'),h('small',null,'依資料片列出'))))),
+  ...mapGroups().map((g,i)=>h('div',{class:'cx-grp'},h('p',{class:'cx-group',id:`cx-mg${i}`},g.label),h('ul',{'aria-labelledby':`cx-mg${i}`},
+   ...g.items.map(m=>h('li',null,h('button',{type:'button',class:`cx-uitem${m.playable?'':' off'}`,'data-map':m.id,tabindex:'-1','aria-current':'false'},h('b',null,m.zh),h('small',null,m.playable?m.en:'未實作'))))))));}
+function selectMap(id:string,focus=false){
+ if(!open)return;const p=id==='overview'?null:mapPage(id);if(!p)id='overview';mapChosen=id;
+ for(const b of Array.from(open.list.querySelectorAll<HTMLButtonElement>('.cx-uitem'))){const on=b.dataset.map===id;b.setAttribute('aria-current',String(on));b.tabIndex=on?0:-1;
+  if(on){if(focus)b.focus({preventScroll:true});reveal(open.list,b);}}
+ open.detail.replaceChildren(p?mapView(p):mapOverviewView());open.detail.scrollTop=0;}
+function renderMaps(focus:boolean){
+ if(!open)return;
+ const list=h('nav',{class:'cx-list','aria-label':'地圖列表'});
+ const detail=h('div',{class:'cx-detail',role:'region','aria-labelledby':'cx-map-name',tabindex:'-1'});
+ list.addEventListener('click',e=>{const b=(e.target as Element).closest<HTMLButtonElement>('.cx-uitem');if(b?.dataset.map)selectMap(b.dataset.map);});
+ list.addEventListener('keydown',e=>{const ids=Array.from(list.querySelectorAll<HTMLButtonElement>('.cx-uitem')).map(b=>b.dataset.map!),next=step(e.key,Math.max(0,ids.indexOf(mapChosen)),ids.length);
+  if(next===null)return;e.preventDefault();selectMap(ids[next],true);});
+ fillMapList(list);open.body.replaceChildren(list,detail);open.list=list;open.detail=detail;
+ selectMap(mapChosen,focus);}
 // Opens a page in another category (from the tree): reference items need that category's 未實作 list switched on.
 function go(id:CodexSection,page:string){
  if(id==='units'){unitChosen=page;showPending=true;}else if(id==='techs'){techChosen=page;techPending=true;}else if(id==='buildings'){buildingChosen=page;buildingPending=true;}
@@ -662,7 +718,7 @@ function show(id:CodexSection,focus:boolean){
  // The chosen tab stays in view (on a phone the tab row scrolls: 科技樹 opened by F4 sits past its edge).
  for(const t of open.tabs){const on=t.dataset.section===id;t.setAttribute('aria-selected',String(on));t.tabIndex=on?0:-1;if(on&&t.parentElement)reveal(t.parentElement,t);}
  open.body.setAttribute('aria-labelledby',`cx-tab-${id}`);
- if(id==='units')renderUnits(focus);else if(id==='techs')renderTechs(focus);else if(id==='buildings')renderBuildings(focus);else if(id==='elements')renderElements(focus);else if(id==='tactics')renderTactics(focus);else if(id==='tree')renderTree(focus);else renderCivs(focus);}
+ if(id==='units')renderUnits(focus);else if(id==='techs')renderTechs(focus);else if(id==='buildings')renderBuildings(focus);else if(id==='elements')renderElements(focus);else if(id==='tactics')renderTactics(focus);else if(id==='tree')renderTree(focus);else if(id==='maps')renderMaps(focus);else renderCivs(focus);}
 function injectStyle(){if(document.getElementById('cx-style'))return;const s=document.createElement('style');s.id='cx-style';s.textContent=css;document.head.append(s);}
 export function openCodex(host:HTMLElement,ctx:CodexContext){
  injectStyle();const prev=open?.prev??document.activeElement;open=null;
@@ -682,6 +738,6 @@ export function openCodex(host:HTMLElement,ctx:CodexContext){
  show(section,true);}
 // Closes the book (its button, or the page on Esc): clears the overlay, returns focus, then tells the page once.
 export function closeCodex(){
- if(!open)return;const {host,ctx,prev}=open;open=null;host.replaceChildren();host.hidden=true;
+ if(!open)return;mapObserver?.disconnect();mapObserver=null;const {host,ctx,prev}=open;open=null;host.replaceChildren();host.hidden=true;
  if(prev instanceof HTMLElement&&prev.isConnected)prev.focus();ctx.onClose();}
 export const codexOpen=()=>!!open;

@@ -11,6 +11,11 @@ export const animalLooks={
   head:[{x:0,y:.62,z:.36,w:.14,h:.3,d:.14,color:'#a67a4c'},{x:0,y:.86,z:.44,w:.16,h:.14,d:.24,color:'#a67a4c'},{x:-.08,y:1,z:.4,w:.03,h:.18,d:.03,color:'#d8c7a0'},{x:.08,y:1,z:.4,w:.03,h:.18,d:.03,color:'#d8c7a0'},{x:-.12,y:1.12,z:.4,w:.1,h:.03,d:.03,color:'#d8c7a0'},{x:.12,y:1.12,z:.4,w:.1,h:.03,d:.03,color:'#d8c7a0'}],collar:null},
  boar:{legs:{h:.22,w:.1,x:.16,z:.26,color:'#3f3226'},body:[{x:0,y:.2,z:0,w:.5,h:.42,d:.86,color:'#5d4a36'},{x:0,y:.62,z:.02,w:.14,h:.08,d:.6,color:'#3f3226'}],
   head:[{x:0,y:.26,z:.48,w:.34,h:.3,d:.24,color:'#5d4a36'},{x:0,y:.3,z:.66,w:.18,h:.14,d:.12,color:'#b89078'},{x:-.12,y:.32,z:.66,w:.04,h:.12,d:.04,color:'#f1ead6'},{x:.12,y:.32,z:.66,w:.04,h:.12,d:.04,color:'#f1ead6'}],collar:null},
+ // The 地圖 round's hostile animals: a grey wolf and a spotted jaguar, low and long, built like the boar.
+ wolf:{legs:{h:.3,w:.08,x:.13,z:.26,color:'#5b5a55'},body:[{x:0,y:.3,z:0,w:.34,h:.3,d:.78,color:'#7d7b74'},{x:0,y:.44,z:-.46,w:.08,h:.08,d:.22,color:'#5b5a55'}],
+  head:[{x:0,y:.44,z:.44,w:.24,h:.22,d:.22,color:'#7d7b74'},{x:0,y:.44,z:.6,w:.12,h:.1,d:.14,color:'#cfcabb'},{x:-.08,y:.66,z:.44,w:.05,h:.1,d:.04,color:'#5b5a55'},{x:.08,y:.66,z:.44,w:.05,h:.1,d:.04,color:'#5b5a55'}],collar:null},
+ jaguar:{legs:{h:.26,w:.09,x:.14,z:.28,color:'#b07a2e'},body:[{x:0,y:.26,z:0,w:.36,h:.3,d:.86,color:'#d29a3c'},{x:-.1,y:.56,z:.1,w:.08,h:.02,d:.08,color:'#3d2a17'},{x:.08,y:.56,z:-.18,w:.08,h:.02,d:.08,color:'#3d2a17'},{x:0,y:.4,z:-.5,w:.07,h:.07,d:.3,color:'#b07a2e'}],
+  head:[{x:0,y:.36,z:.48,w:.26,h:.22,d:.22,color:'#d29a3c'},{x:0,y:.36,z:.62,w:.14,h:.1,d:.1,color:'#efe0bd'},{x:-.09,y:.58,z:.46,w:.06,h:.06,d:.04,color:'#b07a2e'},{x:.09,y:.58,z:.46,w:.06,h:.06,d:.04,color:'#b07a2e'}],collar:null},
 } as const;
 export type AnimalLook=keyof typeof animalLooks;
 // A lying carcass (static world), by the food it started with: the brick body on its side, shrinking as it is eaten.

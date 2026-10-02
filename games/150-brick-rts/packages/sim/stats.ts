@@ -33,6 +33,10 @@ export const combatRules={provenance:'design_default',
   sheep:{hp:7,damage:0,range:0,cooldown:0,sight:0,attack:'none',armor:[0,0],classes:['animal'],bonus:{}},
   deer:{hp:5,damage:0,range:0,cooldown:0,sight:0,attack:'none',armor:[0,0],classes:['animal'],bonus:{}},
   boar:{hp:75,damage:8,range:50,cooldown:40,sight:0,attack:'melee',armor:[0,0],classes:['animal'],bonus:{}},
+  // Wolf and jaguar (aoetw.com units/Wolf: 25 hit points, 3 melee attack, a blow every 2 s -> 20 ticks); they pick
+  // their own fights (animals.ts), so sight here stays 0 like the other animals.
+  wolf:{hp:25,damage:3,range:50,cooldown:20,sight:0,attack:'melee',armor:[0,0],classes:['animal'],bonus:{}},
+  jaguar:{hp:25,damage:3,range:50,cooldown:20,sight:0,attack:'melee',armor:[0,0],classes:['animal'],bonus:{}},
   // The counter units (after the reference's triangle): the spearman against cavalry, the skirmisher against archers,
   // the knight as heavy cavalry. Values design_default, in this game's scale.
   // Camels are their own class (aoetw: 駱駝, not 騎兵); the spear line's camel bonus keeps the site's ratio to its cavalry one.
@@ -94,7 +98,7 @@ export const combatRules={provenance:'design_default',
   'cannon-galleon':{hp:120,damage:35,range:700,cooldown:100,sight:700,attack:'melee',armor:[0,6],classes:['ship','gunpowder'],bonus:{building:64,siege:13,infantry:15,archer:15,cavalry:15,mameluke:4},minRange:150},
   // Four arrows a volley: the first at full attack, the other three at 1 each (aoetw).
   longboat:{hp:130,damage:7,range:350,cooldown:50,sight:400,attack:'pierce',armor:[0,6],classes:['ship','warship','unique'],bonus:{ship:9,'fishing-ship':9,building:2,ram:4},extraShots:3,extraDamage:1},
- } as Record<'villager'|'militia'|'archer'|'scout'|'monk'|'sheep'|'deer'|'boar'|'spearman'|'skirmisher'|'knight'|'ram'|'longbowman'|'woad-raider'|'throwing-axeman'|'huskarl'|'teutonic-knight'|'berserk'|'cataphract'|'war-elephant'|'mameluke'|'janissary'|'chu-ko-nu'|'samurai'|'mangudai'|'cavalry-archer'|'camel'|'mangonel'|'scorpion'|'trebuchet'|'petard'|'hand-cannoneer'|'bombard-cannon'|'fishing-ship'|'transport-ship'|'trade-cog'|'trade-cart'|'galley'|'fire-galley'|'demolition-raft'|'cannon-galleon'|'longboat',UnitStats>,
+ } as Record<'villager'|'militia'|'archer'|'scout'|'monk'|'sheep'|'deer'|'boar'|'wolf'|'jaguar'|'spearman'|'skirmisher'|'knight'|'ram'|'longbowman'|'woad-raider'|'throwing-axeman'|'huskarl'|'teutonic-knight'|'berserk'|'cataphract'|'war-elephant'|'mameluke'|'janissary'|'chu-ko-nu'|'samurai'|'mangudai'|'cavalry-archer'|'camel'|'mangonel'|'scorpion'|'trebuchet'|'petard'|'hand-cannoneer'|'bombard-cannon'|'fishing-ship'|'transport-ship'|'trade-cog'|'trade-cart'|'galley'|'fire-galley'|'demolition-raft'|'cannon-galleon'|'longboat',UnitStats>,
  // Structures shrug off arrows: [melee, pierce] armor of every building.
  buildingArmor:[0,2] as [number,number],
  buildings:{'town-center':400,house:150,barracks:300,farm:100,'lumber-camp':200,'mining-camp':200,mill:200,stable:300,'archery-range':300,monastery:350,blacksmith:300,'watch-tower':250,'siege-workshop':300,castle:800,university:350,
@@ -104,7 +108,7 @@ export const combatRules={provenance:'design_default',
  // Movement per tick.
  // A unit stops exactly on each node; what a step cut short there leaves over carries to the next tick while the walk
  // goes on (movement.ts u.stride), so a walk covers speed x ticks for any speed to a hundredth (speedOf).
- speed:{villager:5,militia:5,archer:5,scout:10,monk:5,sheep:5,deer:10,boar:5,spearman:5,skirmisher:5,knight:10,ram:2,
+ speed:{villager:5,militia:5,archer:5,scout:10,monk:5,sheep:5,deer:10,boar:5,wolf:8.75,jaguar:8.75,spearman:5,skirmisher:5,knight:10,ram:2,
   longbowman:5,'woad-raider':7,'throwing-axeman':6,huskarl:6,'teutonic-knight':4,berserk:6,cataphract:10,'war-elephant':4,mameluke:10,janissary:5,'chu-ko-nu':5,samurai:6,mangudai:10,'cavalry-archer':10,camel:10,mangonel:4,scorpion:4,trebuchet:5,petard:5,'hand-cannoneer':5,'bombard-cannon':4.4,
   // Ships and the trade cart: the site's tiles a second x 6.25 (the villager's 0.8 -> 5).
   'fishing-ship':7.9,'transport-ship':9.1,'trade-cog':8.25,'trade-cart':6.25,galley:8.9,'fire-galley':8.1,'demolition-raft':9.4,'cannon-galleon':6.9,longboat:9.6},

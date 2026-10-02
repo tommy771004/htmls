@@ -1078,6 +1078,34 @@
       ],
       "status": "an arrow's dotted arc ahead of a running target with speed streaks",
       "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
+      "id": "wolf-jaguar",
+      "source": "apps/web/animal-rig.ts; apps/web/scene.ts",
+      "type": "procedural articulated Three.js mesh (the boar's animal rig)",
+      "provenance": "original geometry authored in this repository",
+      "externalAssets": false,
+      "units": "1 world unit = 100 simulation coordinate units",
+      "pivot": "ground centre, head toward +z",
+      "kinds": {
+        "wolf": "grey, low and long four-legged body (Gold Rush, Ghost Lake)",
+        "jaguar": "tawny body with dark spots (Yucatan)"
+      },
+      "status": "hostile animals of the 地圖 round (v34) with HUD portraits; no carcass after death (they give no food)",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
+    },
+    {
+      "id": "terrain-ice-snow",
+      "source": "apps/web/scene.ts; apps/web/map-preview.ts; apps/web/main.ts",
+      "type": "procedural tile colours (battlefield columns, minimap and the setup/codex map previews)",
+      "provenance": "original colours chosen in this repository",
+      "externalAssets": false,
+      "kinds": {
+        "ice": "pale blue-grey, walkable and unbuildable (Ghost Lake)",
+        "snow": "off-white ordinary ground"
+      },
+      "status": "the 地圖 round's new terrain types (v34); the previews share one renderer (map-preview.ts) with sand and shallows colours",
+      "parameterProvenance": "design_default: original art parameters, not verified original-game rules"
     }
   ],
   "remaining": [
@@ -1096,7 +1124,7 @@
     "renderer": "closed tile columns, top at Tile.height / 100",
     "placement": "static model origins and unit feet use groundHeight",
     "navigation": "height discontinuities expanded by unit radius; maxLandStep from terrainRules",
-    "status": "stepped acceptance map; main sandbox remains meadow"
+    "status": "stepped acceptance map; main sandbox remains meadow; v34: ice and snow tiles, plateaus with cliff edges and ramps on the match maps (Mongolia, Highland, Crater Lake)"
   },
   "primitiveGeometry": {
     "source": "apps/web/brick-geometries.ts",

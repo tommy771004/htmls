@@ -5,20 +5,28 @@ export const resourceDefinitions:Record<ResourceKind,{yield:'wood'|'stone'|'gold
  // A finished fish trap (the 建築 round): owner-only food on the water, worked by fishing ships (site 715 food x this
  // game's farm factor 250/175 -> 1000, design_default).
  'fish-trap':{yield:'food',method:'fish',movement:'water'}};
-export type TerrainType='grass'|'road'|'stone'|'sand'|'highland'|'cliff'|'water'|'shallow';
+// ice (the 地圖 round, 鬼湖): walkable, nothing can be built on it and nothing grows there (aoetw.com maps/Ghost_Lake says
+// the frozen centre has no resources and cannot be built on; that it is walkable is the classic game, unsourced). snow:
+// ordinary ground that looks white.
+export type TerrainType='grass'|'road'|'stone'|'sand'|'highland'|'cliff'|'water'|'shallow'|'ice'|'snow';
 export type WalkClass='land'|'water'|'both'|'blocked';
-export type MapLayout='meadow'|'coast'|'acceptance'|'open'|'lakes';
+// The 地圖 round's match maps (packages/sim/maps/, catalogued in packages/content/maps.ts): aoetw.com's AoK and Conquerors
+// random maps, 32 tiles a side like 'open'.
+export type MatchMapLayout='arabia'|'black-forest'|'coastal'|'mediterranean'|'baltic'|'continental'|'rivers'|'highland'|'ghost-lake'|'mongolia'|'oasis'|'scandinavia'|'yucatan'|'gold-rush'|'crater-lake'|'salt-marsh'|'fortress'|'arena'|'nomad'|'migration'|'islands'|'archipelago'|'team-islands';
+export const matchMapLayouts:readonly MatchMapLayout[]=['arabia','black-forest','coastal','mediterranean','baltic','continental','rivers','highland','ghost-lake','mongolia','oasis','scandinavia','yucatan','gold-rush','crater-lake','salt-marsh','fortress','arena','nomad','migration','islands','archipelago','team-islands'];
+export type MapLayout='meadow'|'coast'|'acceptance'|'open'|'lakes'|MatchMapLayout;
 // Tiles per side for each layout: the three 16-tile maps are the original test grounds; 'open' is the match map.
 // 'lakes' is the match map with a large lake in the middle (docks and ships).
-export const mapSizes:Record<MapLayout,number>={meadow:16,coast:16,acceptance:16,open:32,lakes:32};
+export const mapSizes:Record<MapLayout,number>={meadow:16,coast:16,acceptance:16,open:32,lakes:32,...Object.fromEntries(matchMapLayouts.map(l=>[l,32])) as Record<MatchMapLayout,number>};
 export type Tile={id:number;terrainType:TerrainType;height:number;walkClass:WalkClass;buildability:boolean;resourceRefs:string[];obstacleRefs:string[]};
 export type ResourceNode={id:string;kind:ResourceKind;x:number;y:number;capacity:number;remaining:number;collectible:boolean;status:'available'|'depleted';obstacleId:string|null;depletedAt:number|null};
 export const terrainDefinitions:Record<TerrainType,{walkClass:WalkClass;buildability:boolean;height:number}>={
- grass:{walkClass:'land',buildability:true,height:0},road:{walkClass:'land',buildability:true,height:0},stone:{walkClass:'land',buildability:true,height:0},sand:{walkClass:'land',buildability:true,height:0},highland:{walkClass:'land',buildability:true,height:100},cliff:{walkClass:'blocked',buildability:false,height:100},water:{walkClass:'water',buildability:false,height:0},shallow:{walkClass:'both',buildability:false,height:0}
+ grass:{walkClass:'land',buildability:true,height:0},road:{walkClass:'land',buildability:true,height:0},stone:{walkClass:'land',buildability:true,height:0},sand:{walkClass:'land',buildability:true,height:0},highland:{walkClass:'land',buildability:true,height:100},cliff:{walkClass:'blocked',buildability:false,height:100},water:{walkClass:'water',buildability:false,height:0},shallow:{walkClass:'both',buildability:false,height:0},
+ ice:{walkClass:'land',buildability:false,height:0},snow:{walkClass:'land',buildability:true,height:0}
 };
 export function createTiles(layout:MapLayout='meadow',seed=0):Tile[]{
  if(!(layout in mapSizes))throw Error('未知地圖模式');const size=mapSizes[layout];
- return Array.from({length:size*size},(_,id)=>{const x=id%size,y=Math.floor(id/size);let terrainType:TerrainType=layout!=='open'&&layout!=='lakes'&&y===8?'road':'grass';
+ return Array.from({length:size*size},(_,id)=>{const x=id%size,y=Math.floor(id/size);let terrainType:TerrainType=size===16&&y===8?'road':'grass';
  if(layout==='coast'){const edge=12+(((seed>>>0)>>>Math.floor(x/4))&1);if(y>=edge)terrainType='water';else if(y===edge-1)terrainType='sand';}
  if(layout==='acceptance'){if(x===7||x===8)terrainType=y>=7&&y<=9?'shallow':'water';else if(x===6||x===9)terrainType='sand';}
  const tile:Tile={id,terrainType,...terrainDefinitions[terrainType],resourceRefs:[],obstacleRefs:[]};

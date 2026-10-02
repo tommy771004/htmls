@@ -1,6 +1,6 @@
 {
   "schemaVersion": 15,
-  "rulesetHash": "c6ca515c",
+  "rulesetHash": "6710dbff",
   "provenance": "design_default",
   "navigation": {
     "provenance": "design_default",
@@ -109,6 +109,16 @@
     "shallow": {
       "walkClass": "both",
       "buildability": false,
+      "height": 0
+    },
+    "ice": {
+      "walkClass": "land",
+      "buildability": false,
+      "height": 0
+    },
+    "snow": {
+      "walkClass": "land",
+      "buildability": true,
       "height": 0
     }
   },
@@ -595,6 +605,38 @@
         "damage": 8,
         "range": 50,
         "cooldown": 40,
+        "sight": 0,
+        "attack": "melee",
+        "armor": [
+          0,
+          0
+        ],
+        "classes": [
+          "animal"
+        ],
+        "bonus": {}
+      },
+      "wolf": {
+        "hp": 25,
+        "damage": 3,
+        "range": 50,
+        "cooldown": 20,
+        "sight": 0,
+        "attack": "melee",
+        "armor": [
+          0,
+          0
+        ],
+        "classes": [
+          "animal"
+        ],
+        "bonus": {}
+      },
+      "jaguar": {
+        "hp": 25,
+        "damage": 3,
+        "range": 50,
+        "cooldown": 20,
         "sight": 0,
         "attack": "melee",
         "armor": [
@@ -1372,6 +1414,8 @@
       "sheep": 5,
       "deer": 10,
       "boar": 5,
+      "wolf": 8.75,
+      "jaguar": 8.75,
       "spearman": 5,
       "skirmisher": 5,
       "knight": 10,

@@ -79,5 +79,5 @@ test('settings survive save, load and replay; a tampered setting is refused',()=
  const s=run(createState(17,options),300);const back=deserialize(serialize(s));assert.deepEqual(back.settings,s.settings);assert.equal(hash(back),hash(s));
  assert.equal(hash(replay(17,s.log,300,options)),hash(s));
  const bad=structuredClone(s);(bad.settings as {popCap:number}).popCap=33;
- assert.throws(()=>deserialize(JSON.stringify({format:'brick-sandbox-33',rulesetHash,state:bad,checksum:hash(bad)})),/無效存檔狀態/);
+ assert.throws(()=>deserialize(JSON.stringify({format:'brick-sandbox-34',rulesetHash,state:bad,checksum:hash(bad)})),/無效存檔狀態/);
 });

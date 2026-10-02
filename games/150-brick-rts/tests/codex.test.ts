@@ -92,7 +92,7 @@ import {isAnimal} from '../packages/sim/fauna.ts';
 
 // The 遊戲元素 round adds its category after 建築.
 test('the category switch offers only the categories the book has: 文明, 單位, 科技, 建築, 遊戲元素, 戰術技巧 and 科技樹', ()=>{
- assert.deepEqual(codexSections.map(s=>s.label),['文明','單位','科技','建築','遊戲元素','戰術技巧','科技樹']);assert.deepEqual(codexSections.map(s=>s.id),['civs','units','techs','buildings','elements','tactics','tree']);
+ assert.deepEqual(codexSections.map(s=>s.label),['文明','單位','科技','建築','遊戲元素','戰術技巧','科技樹','地圖']);assert.deepEqual(codexSections.map(s=>s.id),['civs','units','techs','buildings','elements','tactics','tree','maps']);
 });
 test('every unit kind but the animals, and every line upgrade, appears exactly once', ()=>{
  const lines=unitLines(),kinds=unitKinds.filter(k=>!isAnimal(k));
@@ -414,7 +414,8 @@ import {shotOf,buildingShotOf,projectileRules} from '../packages/sim/stats.ts';
 import {stances,tacticsRules} from '../packages/sim/combat.ts';
 test('the 戰術技巧 tab follows 遊戲元素; openings in the site\'s list order, then the micro techniques, each once',()=>{
  // The 科技樹 round's tab comes after it.
- assert.deepEqual(codexSections.map(s=>s.id).slice(-3,-1),['elements','tactics']);assert.equal(codexSections.at(-2)!.label,'戰術技巧');
+ // 戰術技巧 follows 遊戲元素 (the 科技樹 and 地圖 rounds came after).
+ assert.deepEqual(codexSections.map(s=>s.id).slice(4,6),['elements','tactics']);assert.equal(codexSections[5].label,'戰術技巧');
  assert.deepEqual(tacticIds(),['armstower','scrush','archerstar','armstar','brushtof','brushfc','towerrush','eglerush','fontrush','bbrush','pull','surround','focus','clump','spread','dodge','split','block']);
  assert.deepEqual(tacticGroups().map(g=>g.items.map(i=>i.id)),[tacticIds().slice(0,10),tacticIds().slice(10)]);
  // Every playable opening has a page, the eagle opening is listed but not playable, and nothing else is.
@@ -462,7 +463,8 @@ import type {TreeMatch} from '../apps/web/codex-tree.ts';
 import {lineUpgrades as treeLines} from '../packages/sim/stats.ts';
 const treeEntries=(civ:string)=>rules.entries.filter(e=>!uniqueUnitOwner[e.id]||uniqueUnitOwner[e.id]===civ).map(e=>e.id).sort();
 test('the 科技樹 tab: every entry of a civilization\'s tree appears exactly once, in the site\'s block order',()=>{
- assert.equal(codexSections.at(-1)!.id,'tree');assert.equal(codexSections.at(-1)!.label,'科技樹');
+ // 科技樹 follows 戰術技巧 (地圖 came after it).
+ assert.equal(codexSections[6].id,'tree');assert.equal(codexSections[6].label,'科技樹');
  assert.doesNotMatch(treeIntro,/\d/);assert.ok(treeNote.includes('aoetw.com'));
  // The site's fourteen blocks in page order, with the villagers' build block after the town centre.
  assert.deepEqual([...treeBlockOrder],['barracks','archery-range','stable','siege-workshop','castle','town-center','build','mill','lumber-camp','mining-camp','dock','blacksmith','market','monastery','university']);
@@ -520,4 +522,61 @@ test('科技樹 match marks: researched, owned, in progress, possible now, short
  assert.equal(state('castle').state,'later');assert.equal(state('crossbowman').state,'later');
  // Not in the Britons' tree, and not in this game.
  assert.equal(state('hussar').state,'off');assert.equal(treeMark(treeNodes(t).find(n=>n.id==='eagle-scout')!,m).state,'ref');
+});
+
+// ── 地圖 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+import {mapCatalog,mapExpansions} from '../packages/content/maps.ts';
+import {mapsIntro,mapsNote,mapStrategy,mapLaterReason,mapPlannedReason} from '../packages/content/codex.ts';
+import {mapItems,mapGroups,mapPage,mapPageSeed,mapOverview} from '../apps/web/codex-maps.ts';
+import {mapChoices,summarizeMap,mapRelics,playableLayout} from '../apps/web/map-info.ts';
+import {makeMap} from '../packages/sim/navigation.ts';
+import {mapSizes,matchMapLayouts} from '../packages/sim/terrain.ts';
+test('地圖 comes last; every map of the site\'s index appears once, by expansion in index order',()=>{
+ assert.equal(codexSections.at(-1)!.id,'maps');assert.equal(codexSections.at(-1)!.label,'地圖');
+ const items=mapItems();assert.equal(items.length,53);assert.equal(new Set(items.map(m=>m.id)).size,53);
+ assert.deepEqual(mapGroups().map(g=>g.label),mapExpansions.map(x=>x.zh));
+ assert.deepEqual(mapGroups().flatMap(g=>g.items.map(m=>m.id)),mapCatalog.map(m=>m.site??m.en.replace(/\s+/g,'_')),'the catalogue order is the index order');
+ assert.deepEqual(mapGroups().map(g=>g.items.length),[15,8,12,5,5,8]);
+ assert.deepEqual(mapItems().slice(0,5).map(m=>m.zh),['阿拉伯','群島','波羅的海','黑森林','火山湖']);
+});
+test('a map is playable exactly when its layout is a generated layout of the game, and the lobby lists exactly those',()=>{
+ for(const m of mapItems()){const c=mapCatalog.find(e=>e.zh===m.zh&&e.expansion===m.expansion)!;
+  assert.equal(m.playable,c.layout!==null&&c.layout in mapSizes,m.id);if(m.playable)assert.ok((matchMapLayouts as readonly string[]).includes(m.layout!),m.id);}
+ const lobby=mapChoices(),site=lobby.filter(g=>g.label!=='本作地圖'&&g.label!=='練習地圖').flatMap(g=>g.maps.map(x=>x.layout));
+ assert.deepEqual(site,mapItems().filter(m=>m.playable).map(m=>m.layout));
+ assert.deepEqual(lobby.slice(-2).map(g=>g.maps.map(x=>x.layout)),[['open','lakes'],['meadow','coast','acceptance']]);
+ // Every map offered is a layout of the game (whether each generates is the map tests' job, tests/maps-034.test.ts).
+ for(const x of lobby.flatMap(g=>g.maps))assert.ok(x.layout in mapSizes,x.layout);
+ // The AoK and Conquerors maps are playable or planned for this round; the later expansions only listed.
+ for(const m of mapItems()){const p=mapPage(m.id)!;
+  if(m.expansion==='aok'||m.expansion==='aoc')assert.ok(m.playable||p.reason===mapPlannedReason,m.id);else{assert.equal(m.playable,false,m.id);assert.equal(p.reason,mapLaterReason,m.id);}}
+});
+test('every number on a map page is the generated map\'s: per-base kits, neutral resources, fish, relics, predators, start',()=>{
+ // A map whose generator fails on the page's seed shows the message instead (the map tests cover generation).
+ for(const m of mapItems().filter(m=>m.playable)){const p=mapPage(m.id)!;if(p.failed){assert.equal(p.generated,null,m.id);assert.deepEqual(p.facts,[],m.id);continue;}
+  const map=makeMap(mapPageSeed,m.layout!),relics=mapRelics(map,mapPageSeed),s=summarizeMap(map,relics);
+  assert.deepEqual(p.generated!.summary,s,m.id);
+  // Recount independently: resources by nearest base within the radius, owned sheep to their owner.
+  // Every gold and stone pile, berry bush and fish counted once (bases plus neutral).
+  for(const k of ['gold','stone','berries'] as const)assert.equal(s.bases[0][k]+s.bases[1][k]+s.neutral[k],map.resources.filter(r=>r.kind===(k==='stone'?'stone':k)).length,`${m.id} ${k}`);
+  assert.equal(s.bases[0].sheep+s.bases[1].sheep+s.neutral.sheep,(map.animals??[]).filter(a=>a.kind==='sheep').length,`${m.id} sheep`);
+  assert.equal(s.fish,map.resources.filter(r=>r.kind==='fish').length,m.id);assert.equal(s.relics,relics.length,m.id);
+  assert.equal(s.wolves,(map.animals??[]).filter(a=>a.kind==='wolf').length,m.id);
+  for(const f of p.facts)assert.ok(f.label&&f.value,m.id);
+  const kit=p.facts.find(f=>f.label==='藍方基地')!.value;assert.ok(kit.includes(`金礦 ${s.bases[0].gold} 堆`)&&kit.includes(`綿羊 ${s.bases[0].sheep}`),m.id);
+  if(s.relics)assert.equal(p.facts.find(f=>f.label==='聖物')!.value,`${s.relics} 個`,m.id);}
+ // Spot checks the site's descriptions make: wolves on Gold Rush, ice on Ghost Lake, fish on the sea maps, none on Arabia.
+ const sum=(id:string)=>mapPage(id)!.generated!.summary;
+ assert.ok(sum('Gold_Rush').wolves>0&&sum('Gold_Rush').neutral.gold>sum('Gold_Rush').bases[0].gold);assert.ok(sum('Ghost_Lake').ice>0);
+ assert.equal(sum('Arabia').water,0);assert.equal(sum('Arabia').fish,0);assert.ok(sum('Mediterranean').fish>0&&sum('Mediterranean').water>0);
+ assert.deepEqual(sum('Arabia').towncentres,[1,1]);
+});
+test('map prose: every playable AoK and Conquerors map has a strategy note without numbers; the intro and notes too',()=>{
+ for(const t of [mapsIntro,mapsNote,mapLaterReason,mapPlannedReason])assert.doesNotMatch(t,/\d/);
+ for(const m of mapCatalog.filter(m=>m.expansion==='aok'||m.expansion==='aoc')){const t=mapStrategy[m.site!];assert.ok(t&&t.length>=20,m.site!);assert.doesNotMatch(t,/\d/,m.site!);}
+ for(const id of Object.keys(mapStrategy))assert.ok(mapCatalog.some(m=>m.site===id),id);
+ // A map the site has no page for says so.
+ assert.equal(mapPage('Crater_Lake')!.page,false);assert.equal(mapPage('Crater_Lake')!.summary,'');
+ assert.deepEqual(mapOverview().map(g=>g.playable),mapGroups().map(g=>g.items.filter(m=>m.playable).length));
+ assert.ok(playableLayout(mapCatalog[0]));
 });

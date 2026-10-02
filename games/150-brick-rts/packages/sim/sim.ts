@@ -12,6 +12,7 @@ import {civDefs,neutralCiv} from '../content/civs.ts';
 import {openings,openingChoices,standardOpening,randomOpening,pickOpening} from '../content/openings.ts';
 import {techEffects} from '../content/techs.ts';
 import {ownerOf,civExists,costOf,startStock,startVillagers,losBonus} from './civ.ts';
+import {matchMapRules} from './maps/index.ts';
 import {makeMap,clearSegment,navigationRules,startingResourceRules,openMapRules,nodesNear,blockedTable,position} from './navigation.ts';
 import type {MapData} from './navigation.ts';
 import {makeUnit,commandMove,commandStop,stepMovement} from './movement.ts';
@@ -22,12 +23,13 @@ import {techRules} from './tech.ts';
 import {stepDefense,commandGarrison,garrisonProblem,release,ringBell,defenseRules,rallyInside} from './defense.ts';
 import type {Garrison,Shot} from './defense.ts';
 import {animalRules,GAIA,isAnimal} from './fauna.ts';
-import {initBuildings,placeBuilding,cancelBuilding,authoritativeProblem,buildKinds,farmOwner,buildRequirement,wallKinds,wallProblem,placeWall} from './buildings.ts';
+import {nomadStock} from './maps/special.ts';
+import {initBuildings,placeBuilding,cancelBuilding,authoritativeProblem,buildKinds,farmOwner,buildRequirement,wallKinds,wallProblem,placeWall,nomadWaiver} from './buildings.ts';
 import type {Building,BuildKind} from './buildings.ts';
 import {enqueue,dequeue,stepProduction,trainable,grantTechs} from './production.ts';
 import {matchSettings,settingsOf,settingRules} from './settings.ts';
 import type {MatchSettings} from './settings.ts';
-import {commandAttack,clearAttacks,stepCombat,targetProblem,stances,tacticsRules} from './combat.ts';
+import {commandAttack,clearAttacks,stepCombat,targetProblem,stances,tacticsRules,elevationRules} from './combat.ts';
 import type {Attack,Beast,Corpse,Outcome,Target,Reveal,Projectile,Stance,Patrol} from './combat.ts';
 import type {Work,Cargo} from './work.ts';
 import {tileAt} from './terrain.ts';
@@ -78,10 +80,10 @@ export type LoggedCommand=Command&{acceptedTick:number};
 export type TransactionResult={tick:number;playerId:number;sequence:number;ok:boolean;error?:string};
 // opponent: 'ai' runs the computer player for red; 'idle' keeps red still (practice and the scripted flows).
 export type Opponent='ai'|'idle';
-export type State={settings:MatchSettings;aiOpening:string;navigationSeen:number;buildings:Building[];nextBuildingId:number;ages:number[];nextUnitId:number;nextQueueId:number;attacks:Record<number,Attack>;corpses:Corpse[];outcome:Outcome|null;rites:Record<number,Rite>;faith:Record<number,number>;techs:string[][];relics:Relic[];relicMemory:{id:number;x:number;y:number}[][];relicVictory:RelicVictory|null;market:Prices;trades:Record<number,TradeRoute>;wonders:Record<string,number>;wonderVictory:WonderVictory|null;transports:Record<number,Unit[]>;boarding:Record<number,{transportId:number;repath:number}>;unloading:Record<number,{x:number;y:number}>;beasts:Record<number,Beast>;reseed:boolean[];garrison:Record<string,Garrison>;entering:Record<number,{buildingId:string;repath:number;work:Work|null;bell:boolean}>;volleys:Record<string,number>;shots:Shot[];version:33;repairs:Record<string,RepairLedger>;reveals:Reveal[];projectiles:Projectile[];nextProjectileId:number;stances:Record<number,Stance>;patrols:Record<number,Patrol>;chat:{player:number;taunt:number;tick:number}[];opponent:Opponent;civs:string[];keptHousing:number[];setups:Record<number,{unpacked:boolean;progress:number}>;works:Record<number,Work>;cargo:Record<number,Cargo>;layout:MapLayout;vision:PlayerVision[];accounts:Account[];transactions:TransactionResult[];map:MapData;pathJobs:Job[];nextJobId:number;seed:number;rng:number;tick:number;sequence:number[];units:Unit[];queue:Command[];log:LoggedCommand[]};
+export type State={settings:MatchSettings;aiOpening:string;navigationSeen:number;buildings:Building[];nextBuildingId:number;ages:number[];nextUnitId:number;nextQueueId:number;attacks:Record<number,Attack>;corpses:Corpse[];outcome:Outcome|null;rites:Record<number,Rite>;faith:Record<number,number>;techs:string[][];relics:Relic[];relicMemory:{id:number;x:number;y:number}[][];relicVictory:RelicVictory|null;market:Prices;trades:Record<number,TradeRoute>;wonders:Record<string,number>;wonderVictory:WonderVictory|null;transports:Record<number,Unit[]>;boarding:Record<number,{transportId:number;repath:number}>;unloading:Record<number,{x:number;y:number}>;beasts:Record<number,Beast>;reseed:boolean[];garrison:Record<string,Garrison>;entering:Record<number,{buildingId:string;repath:number;work:Work|null;bell:boolean}>;volleys:Record<string,number>;shots:Shot[];version:34;repairs:Record<string,RepairLedger>;reveals:Reveal[];projectiles:Projectile[];nextProjectileId:number;stances:Record<number,Stance>;patrols:Record<number,Patrol>;chat:{player:number;taunt:number;tick:number}[];opponent:Opponent;civs:string[];keptHousing:number[];setups:Record<number,{unpacked:boolean;progress:number}>;works:Record<number,Work>;cargo:Record<number,Cargo>;layout:MapLayout;vision:PlayerVision[];accounts:Account[];transactions:TransactionResult[];map:MapData;pathJobs:Job[];nextJobId:number;seed:number;rng:number;tick:number;sequence:number[];units:Unit[];queue:Command[];log:LoggedCommand[]};
 function canonical(value:unknown):string {if(value===null||typeof value!=='object')return JSON.stringify(value);if(Array.isArray(value))return '['+value.map(canonical).join(',')+']';return '{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+canonical((value as Record<string,unknown>)[k])).join(',')+'}';}
 export function hash(value:unknown):string{let h=2166136261;for(const c of canonical(value)){h=Math.imul(h^c.charCodeAt(0),16777619);}return (h>>>0).toString(16).padStart(8,'0');}
-export const rulesetHash=hash({openings,repair:repairRules,carriers:carrierRules,taunts:tauntRules,rules,navigationRules,economyRules,terrainRules,terrainDefinitions,resourceDefinitions,visionRules,startingResourceRules,footprints:footprintContract,combat:combatRules,ai:aiRules,maps:{mapSizes,openMapRules},dropoffs:dropoffRules,naval:navalRules,market:marketRules,religion:religionRules,animals:animalRules,tech:techRules,defense:defenseRules,civs:civDefs,techs:techEffects,unitLines:{lineUpgrades,blacksmith,religionBonus},projectiles:projectileRules,tactics:tacticsRules,settings:settingRules,simulationVersion:33});
+export const rulesetHash=hash({openings,repair:repairRules,carriers:carrierRules,taunts:tauntRules,rules,navigationRules,economyRules,terrainRules,terrainDefinitions,resourceDefinitions,visionRules,startingResourceRules,footprints:footprintContract,combat:combatRules,ai:aiRules,maps:{mapSizes,openMapRules,match:matchMapRules(),elevation:elevationRules},dropoffs:dropoffRules,naval:navalRules,market:marketRules,religion:religionRules,animals:animalRules,tech:techRules,defense:defenseRules,civs:civDefs,techs:techEffects,unitLines:{lineUpgrades,blacksmith,religionBonus},projectiles:projectileRules,tactics:tacticsRules,settings:settingRules,simulationVersion:34});
 // civs: each player's civilization (packages/content/civs.ts); the neutral one keeps the original rules exactly.
 // aiOpening: the computer's opening (packages/content/openings.ts): 'standard' (its normal plan), an opening's id, or
 // 'random' (picked from the seed for red's civilization and stored as that id).
@@ -93,7 +95,7 @@ const pickSettings=(o:Record<string,unknown>)=>Object.fromEntries(settingKeys.fi
 export function createState(seed:number,layout:MapLayout|MatchOptions='meadow',opponent:Opponent='idle',civs:readonly string[]=[neutralCiv,neutralCiv],aiOpening:string=standardOpening,options:Partial<MatchSettings>={}):State{
  if(layout&&typeof layout==='object')return createState(seed,layout.layout??'meadow',layout.opponent??'idle',layout.civs??[neutralCiv,neutralCiv],layout.aiOpening??standardOpening,pickSettings(layout));
  const settings=matchSettings(pickSettings(options as Record<string,unknown>));if(!Number.isSafeInteger(seed)||seed<0||seed>4294967295)throw Error('seed 必須為 uint32');if(opponent!=='ai'&&opponent!=='idle')throw Error('未知的對手設定');
- if(!Array.isArray(civs)||civs.length!==2||!civs.every(civExists))throw Error('未知的文明');if(!openingChoices.includes(aiOpening))throw Error('未知的電腦開局');const map=makeMap(seed,layout);const state:State={settings,aiOpening:aiOpening===randomOpening?pickOpening(seed,civs[1]):aiOpening,buildings:[],nextBuildingId:1,ages:[1,1],nextUnitId:5,nextQueueId:1,attacks:{},corpses:[],outcome:null,rites:{},faith:{},techs:[[],[]],relics:layout==='open'||layout==='lakes'?placeRelics(map,seed):[],relicMemory:[[],[]],relicVictory:null,market:startPrices(),trades:{},wonders:{},wonderVictory:null,transports:{},boarding:{},unloading:{},beasts:{},reseed:[true,true],garrison:{},entering:{},volleys:{},shots:[],version:33,repairs:{},chat:[],opponent,civs:[...civs],keptHousing:[0,0],reveals:[],projectiles:[],nextProjectileId:0,stances:{},patrols:{},setups:{},works:{},cargo:{},layout,vision:createVision(),accounts:[createAccount(3),createAccount(opponent==='ai'?3:1)],transactions:[],map,pathJobs:[],nextJobId:1,navigationSeen:0,seed,rng:seed||1,tick:0,sequence:[0,0],units:[...map.starts[0].map((p,i)=>makeUnit(map,1+i,0,p.x,p.y)),makeUnit(map,4,1,map.starts[1][0].x,map.starts[1][0].y)],queue:[],log:[]};
+ if(!Array.isArray(civs)||civs.length!==2||!civs.every(civExists))throw Error('未知的文明');if(!openingChoices.includes(aiOpening))throw Error('未知的電腦開局');const map=makeMap(seed,layout);const state:State={settings,aiOpening:aiOpening===randomOpening?pickOpening(seed,civs[1]):aiOpening,buildings:[],nextBuildingId:1,ages:[1,1],nextUnitId:5,nextQueueId:1,attacks:{},corpses:[],outcome:null,rites:{},faith:{},techs:[[],[]],relics:mapSizes[layout]===32?placeRelics(map,seed):[],relicMemory:[[],[]],relicVictory:null,market:startPrices(),trades:{},wonders:{},wonderVictory:null,transports:{},boarding:{},unloading:{},beasts:{},reseed:[true,true],garrison:{},entering:{},volleys:{},shots:[],version:34,repairs:{},chat:[],opponent,civs:[...civs],keptHousing:[0,0],reveals:[],projectiles:[],nextProjectileId:0,stances:{},patrols:{},setups:{},works:{},cargo:{},layout,vision:createVision(),accounts:[createAccount(3),createAccount(opponent==='ai'?3:1)],transactions:[],map,pathJobs:[],nextJobId:1,navigationSeen:0,seed,rng:seed||1,tick:0,sequence:[0,0],units:[...map.starts[0].map((p,i)=>makeUnit(map,1+i,0,p.x,p.y)),makeUnit(map,4,1,map.starts[1][0].x,map.starts[1][0].y)],queue:[],log:[]};
  // Against the computer red starts like blue: three villagers, mirrored around the map's centre line.
  if(opponent==='ai'){state.units.push(...map.starts[1].slice(1).map((p,i)=>makeUnit(map,5+i,1,p.x,p.y)));state.nextUnitId=5+map.starts[1].length-1;}
  // The match map adds a scout per side (red's only against the computer): ids follow the villagers.
@@ -103,6 +105,9 @@ export function createState(seed:number,layout:MapLayout|MatchOptions='meadow',o
  // Lobby settings: the starting stock preset, and the starting age (reached as if researched: its civilization tiers
  // and free technologies apply; the town centres take that age's look).
  for(const a of state.accounts)a.stock={...settingRules.resources[settings.resources]};
+ // A nomad start (游牧) has no town centre: each side also gets one town centre's price (275 wood, 100 stone) to build
+ // its own (design_default: the site gives the start no numbers).
+ if(map.nomad)for(const a of state.accounts){a.stock.wood+=nomadStock.wood;a.stock.stone+=nomadStock.stone;}
  if(settings.startAge>1){state.ages=[settings.startAge,settings.startAge];for(const p of [0,1])grantTechs(state,p);}
  // Civilization starts: extra villagers next to the first villager (Chinese), starting stock (Persians, Chinese).
  for(const p of [0,1]){const o=ownerOf(state,p),stock=startStock(o),a=state.accounts[p];for(const k of ['food','wood','gold','stone'] as const)a.stock[k]=Math.max(0,a.stock[k]+stock[k]);
@@ -170,7 +175,7 @@ export function submit(state:State, c:Command, record=true):void {
  {const ship=state.units.some(u=>u.id===c.payload.unitIds[0]&&u.kind==='fishing-ship');if(ship!==(kind==='fish-trap'))throw Error(ship?'漁船只能放置魚網':'魚網只能由漁船放置');}
  // A dragged wall needs one segment that can stand (the rest are skipped); its far end lies on the map.
  if(to!==undefined&&(!wallKinds.has(kind)||!to||!Number.isSafeInteger(to.x)||!Number.isSafeInteger(to.y)||to.x<0||to.y<0||to.x>=state.map.size*100||to.y>=state.map.size*100))throw Error(wallKinds.has(kind)?'城牆終點超出地圖':'只有城牆可以拖曳成一列');
- const problem=buildRequirement(state.ages[c.playerId],kind,state.buildings.filter(b=>b.player===c.playerId),state.civs[c.playerId],state.techs[c.playerId],settingsOf(state).allTechs)??(to?wallProblem(state,c.playerId,kind,{x,y},to):authoritativeProblem(state,c.playerId,kind,x,y));if(problem)throw Error(problem);
+ const problem=buildRequirement(state.ages[c.playerId],kind,state.buildings.filter(b=>b.player===c.playerId),state.civs[c.playerId],state.techs[c.playerId],settingsOf(state).allTechs,nomadWaiver(state.map,state.buildings.filter(b=>b.player===c.playerId)))??(to?wallProblem(state,c.playerId,kind,{x,y},to):authoritativeProblem(state,c.playerId,kind,x,y));if(problem)throw Error(problem);
  const cost=costOf(kind,ownerOf(state,c.playerId)),stock=state.accounts[c.playerId].stock,short=(Object.keys(cost) as (keyof typeof cost)[]).filter(k=>stock[k]<cost[k]);
  if(short.length)throw Error(`資源不足：${short.map(k=>`${({food:'食物',wood:'木材',gold:'黃金',stone:'石頭'} as const)[k]}需要 ${cost[k]}，目前 ${stock[k]}`).join('；')}`);
  }
@@ -299,12 +304,12 @@ export function replay(seed:number,commands:LoggedCommand[],ticks:number,layout:
  }
  while(s.tick<ticks)tick(s);return s;
 }
-export function serialize(s:State):string{if(s.tick>100000||s.log.length>10000)throw Error('已超過此階段沙盒存檔容量（100000 ticks / 10000 指令）');return JSON.stringify({format:'brick-sandbox-33',rulesetHash,state:s,checksum:hash(s)});}
+export function serialize(s:State):string{if(s.tick>100000||s.log.length>10000)throw Error('已超過此階段沙盒存檔容量（100000 ticks / 10000 指令）');return JSON.stringify({format:'brick-sandbox-34',rulesetHash,state:s,checksum:hash(s)});}
 export function deserialize(raw:string):State{
  const v=JSON.parse(raw);
- if(!v||v.format!=='brick-sandbox-33'||v.rulesetHash!==rulesetHash||!v.state||v.checksum!==hash(v.state))throw Error('存檔版本不符或內容損壞');
+ if(!v||v.format!=='brick-sandbox-34'||v.rulesetHash!==rulesetHash||!v.state||v.checksum!==hash(v.state))throw Error('存檔版本不符或內容損壞');
  const s=v.state as State;
- if(s.version!==33||(s.opponent!=='ai'&&s.opponent!=='idle')||!Array.isArray(s.civs)||s.civs.length!==2||!s.civs.every(civExists)||!Number.isSafeInteger(s.tick)||s.tick<0||s.tick>100000||!Array.isArray(s.log)||s.log.length>10000)throw Error('無效存檔狀態');
+ if(s.version!==34||(s.opponent!=='ai'&&s.opponent!=='idle')||!Array.isArray(s.civs)||s.civs.length!==2||!s.civs.every(civExists)||!Number.isSafeInteger(s.tick)||s.tick<0||s.tick>100000||!Array.isArray(s.log)||s.log.length>10000)throw Error('無效存檔狀態');
  if(typeof s.aiOpening!=='string'||s.aiOpening===randomOpening||!openingChoices.includes(s.aiOpening))throw Error('無效存檔狀態');
  let settings:MatchSettings;try{settings=matchSettings(s.settings);}catch{throw Error('無效存檔狀態');}
  const rebuilt=replay(s.seed,s.log,s.tick,s.layout,s.opponent,s.civs,s.aiOpening,settings);
