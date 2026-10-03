@@ -4,6 +4,7 @@ node_modules/
 
 # 野靈旅記（131）的建置暫存與測試輸出
 games/*/dist/
+games/*/.cache/
 games/*/test-results/
 games/*/playwright-report/
 

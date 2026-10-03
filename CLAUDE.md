@@ -77,6 +77,12 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 - 原始碼在 `games/196-stormwright/`（Three.js 0.186.0 + esbuild），有自己的 `package.json`；`npm run build` 輸出單檔 `web/196-stormwright.html`，改了 `src/` 要重新 build 並把產出一起 commit。
 - 模組契約（ctx、事件、Actor／Intent、建造格、風暴階段、檔案分工）見同資料夾的 `SPEC.md`；指令、`window.__sw` 測試 API 與 `tools/accept.mjs`、`tools/check-*.mjs` 驗收腳本見 `README.md`（Playwright 路徑讀 `PLAYWRIGHT_MODULE`）。
 
+## 湖畔求生（197）
+
+- 原始碼在 `games/197-openworld/`（Three.js 0.186.0；Vite 開發、esbuild 打包），有自己的 `package.json`；`npm run build` 輸出單檔 `web/197-openworld.html`，改了 `src/` 要重新 build 並把產出一起 commit。
+- 模型與貼圖（約 55 MB）不內嵌，放在 `assets/197/`：`npm run dev` 把它當 publicDir，打包時 `import.meta.env.BASE_URL` 定義成 `../assets/197/`。`npm run assets`（含 `tools/fetch-polyhaven.mjs` 的 Poly Haven 掃描模型）／`npm run models`／`npm run characters`（Quaternius 人物與馬，需要 Blender；素材包快取在 gitignore 的 `.cache/`）也寫到那裡。
+- 操作、結構與換模型的方法見同資料夾的 `README.md`，未完成的色調調整見 `HANDOFF.md`，第三方素材授權見 `CREDITS.md`；`?debug` 不請求 pointer lock，`window.__game` 可直接操作。
+
 ## 青雀真人麻將（127）架構
 
 - `assets/jade-table/engine.mjs`：台灣十六張規則引擎（`MahjongGame`、`scoreHand`、台表），**瀏覽器單人模式與伺服器共用同一份**。改規則時兩邊會一起受影響。

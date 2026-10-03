@@ -1,0 +1,28 @@
+{
+  "name": "openworld-survival",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "湖畔求生 · OPENWORLD：第一人稱開放世界求生（作品 197）",
+  "scripts": {
+    "dev": "vite",
+    "build": "node tools/build.mjs",
+    "assets": "node tools/fetch-assets.mjs && node tools/fetch-polyhaven.mjs",
+    "models": "node tools/make-models.mjs",
+    "characters": "python3 tools/fetch-quaternius.py && blender -b -P tools/build-characters.py && blender -b -P tools/build-animals.py && node tools/build-anims.mjs"
+  },
+  "dependencies": {
+    "three": "0.186.0"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "@gltf-transform/functions": "^4.5.1",
+    "esbuild": "^0.28.2",
+    "meshoptimizer": "^1.3.0",
+    "vite": "^7.0.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
