@@ -1,0 +1,16 @@
+import { mkdirSync } from 'node:fs';
+import { open } from './lib.mjs';
+const out = 'dist/shots'; mkdirSync(out, { recursive: true });
+const { browser, page, log } = await open('../../web/198-ki-lanes.html', { w: 390, h: 844, touch: true });
+const raf = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
+const shot = async (n) => { await raf(); await page.screenshot({ path: `${out}/m-${n}.png` }); };
+await page.waitForTimeout(1500); await shot('1-select');
+await page.tap('.card[data-id="raiga"]'); await page.waitForTimeout(700); await shot('2-select-raiga');
+await page.tap('#go'); await page.waitForTimeout(600);
+await page.evaluate(() => { const k = window.__ki; k.fastForward(24); k.teleport(-14, 14); k.fastForward(6); k.setLevel(3); });
+await page.waitForTimeout(600); await shot('3-play');
+await page.tap('#tAtk'); await page.waitForTimeout(400);
+await page.tap('.sk[data-k="Q"] .face'); await page.waitForTimeout(200); await shot('4-skill');
+const sw = await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth, document.querySelector('meta[name=viewport]') !== null]);
+console.log('scroll', sw, 'errors', log.pageerrors, log.errors.slice(0, 4));
+await browser.close();

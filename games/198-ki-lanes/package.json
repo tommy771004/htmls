@@ -1,0 +1,21 @@
+{
+  "name": "ki-lanes",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "氣鬥三路 · KI LANES：格鬥連段 × 三路推塔（作品 198）",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "dev": "node tools/build.mjs --dev",
+    "test": "node tools/accept.mjs ../../web/198-ki-lanes.html"
+  },
+  "dependencies": {
+    "three": "0.186.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

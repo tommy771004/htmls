@@ -1,0 +1,50 @@
+// 小地圖：地面貼圖縮圖＋路線、建築、小兵、英雄與鏡頭框。點擊可移動鏡頭或下移動指令。
+import { TEAM_COLOR, TEAM_LIGHT, HEROES } from './config.js';
+
+export function createMinimap(canvas, groundCanvas) {
+  const g = canvas.getContext('2d');
+  const bg = document.createElement('canvas');
+  const SIZE = 256; bg.width = bg.height = SIZE;
+  // 底圖：取地面貼圖中央 ±92 的範圍
+  const bgc = bg.getContext('2d');
+  const src = groundCanvas.width, half = 130, crop = 92;
+  const s0 = ((half - crop) / (half * 2)) * src, sw = (crop * 2 / (half * 2)) * src;
+  bgc.drawImage(groundCanvas, s0, s0, sw, sw, 0, 0, SIZE, SIZE);
+  bgc.fillStyle = 'rgba(22,17,12,.18)'; bgc.fillRect(0, 0, SIZE, SIZE);
+  const toMap = (x, z, w) => [((x + crop) / (crop * 2)) * w, ((z + crop) / (crop * 2)) * w];
+  let W = 0;
+  return {
+    toWorld(px, py) { const w = canvas.clientWidth; return { x: (px / w) * crop * 2 - crop, z: (py / w) * crop * 2 - crop }; },
+    draw(G, view) {
+      const w = canvas.clientWidth * Math.min(2, devicePixelRatio);
+      if (w !== W) { W = w; canvas.width = canvas.height = w; }
+      g.drawImage(bg, 0, 0, w, w);
+      const k = w / 200;
+      for (const s of G.structures) {
+        const [x, y] = toMap(s.x, s.z, w);
+        g.fillStyle = s.alive ? TEAM_COLOR[s.team] : 'rgba(40,30,20,.6)';
+        g.strokeStyle = '#16110c'; g.lineWidth = 1.5 * k;
+        if (s.kind === 'core') { g.beginPath(); for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; g.lineTo(x + Math.cos(a) * 7 * k, y + Math.sin(a) * 7 * k); } g.closePath(); g.fill(); g.stroke(); }
+        else { g.beginPath(); g.moveTo(x, y - 5 * k); g.lineTo(x + 4 * k, y + 4 * k); g.lineTo(x - 4 * k, y + 4 * k); g.closePath(); g.fill(); g.stroke(); }
+      }
+      for (const m of G.minions) {
+        if (!m.alive) continue;
+        const [x, y] = toMap(m.x, m.z, w);
+        g.fillStyle = TEAM_LIGHT[m.team]; g.fillRect(x - 1.4 * k, y - 1.4 * k, 2.8 * k, 2.8 * k);
+      }
+      for (const h of G.heroes) {
+        if (!h.alive) continue;
+        const [x, y] = toMap(h.x, h.z, w);
+        g.beginPath(); g.arc(x, y, (h.isPlayer ? 6.5 : 5) * k, 0, Math.PI * 2);
+        g.fillStyle = HEROES[h.heroId].color; g.fill();
+        g.lineWidth = 2.2 * k; g.strokeStyle = h.isPlayer ? '#fff4d6' : TEAM_COLOR[h.team]; g.stroke();
+      }
+      // 鏡頭範圍
+      if (view) {
+        g.strokeStyle = 'rgba(255,244,214,.85)'; g.lineWidth = 1.4 * k; g.beginPath();
+        view.forEach((p, i) => { const [x, y] = toMap(p.x, p.z, w); (i ? g.lineTo : g.moveTo).call(g, x, y); });
+        g.closePath(); g.stroke();
+      }
+    },
+  };
+}
