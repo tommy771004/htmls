@@ -63,6 +63,12 @@ export function buildProps(group, quality, { toon, mergeGeo }) {
       const n = 1 + ((R() * 3) | 0);
       for (let k = 0; k < n; k++) { const a = R() * 6.28, d = o.r * (0.55 + R() * 0.4); rocks.push({ x: o.x + Math.cos(a) * d, z: o.z + Math.sin(a) * d, s: o.r * (0.28 + R() * 0.3), rot: R() * 6, v: R() }); }
       for (let k = 0; k < 3; k++) { const a = R() * 6.28, d = o.r * (0.9 + R() * 0.3); bushes.push({ x: o.x + Math.cos(a) * d, z: o.z + Math.sin(a) * d, s: 0.6 + R() * 0.4, rot: R() * 6, hue: R() }); }
+    } else if (o.kind === 'wall') {
+      // 石牆：沿牆的高度連續起伏（依位置的正弦），牆頂零星長松樹與灌木
+      const top = 2.3 + 0.35 * Math.sin(o.x * 0.21 + o.z * 0.17) + 0.25 * Math.sin(o.x * 0.53 - o.z * 0.41) + R() * 0.12;
+      mesas.push({ x: o.x, z: o.z, r: o.r * 1.04, h: top, rot: R() * 6, v: R(), k: (R() * 3) | 0 });
+      if (R() < 0.3) { const t = { x: o.x + (R() - 0.5) * 0.8, z: o.z + (R() - 0.5) * 0.8, s: 0.75 + R() * 0.45, rot: R() * 6, hue: R(), y0: top - 0.2 }; if (R() < 0.7) pines.push(t); else broad[(R() * 3) | 0].push(t); }
+      if (R() < 0.35) bushes.push({ x: o.x + (R() - 0.5) * 1.2, z: o.z + (R() - 0.5) * 1.2, s: 0.45 + R() * 0.35, rot: R() * 6, hue: R(), y0: top - 0.15 });
     } else {
       const top = Math.min(2.6, 0.9 + o.r * 0.42) * (0.85 + R() * 0.3);
       mesas.push({ x: o.x, z: o.z, r: o.r, h: top, rot: R() * 6, v: R(), k: (R() * 3) | 0 });

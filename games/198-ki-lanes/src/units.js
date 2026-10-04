@@ -3,7 +3,7 @@ import {
   HEROES, MINION, MINION_GROWTH, TOWER, KI_MAX, KI_BAR, MAX_LEVEL, xpToNext, respawnTime, XP_SHARE_RADIUS,
   FOUNTAIN, BASE, COMBO_WINDOW, HITSTOP, SPARK, WAVE_EVERY, FIRST_WAVE, SIEGE_FROM_WAVE, GOLD, ITEMS, APE_BUFF, DRAGON,
 } from './config.js';
-import { collide, OBSTACLES, lanePath, heightAt, STRUCTURES, laneProgress } from './map.js';
+import { collide, obstaclesNear, lanePath, heightAt, STRUCTURES, laneProgress } from './map.js';
 
 let nextId = 1;
 export const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -234,7 +234,7 @@ export function steer(G, u, tx, tz, speed, dt, stopDist = 0.15) {
     const perp = ox * nz - oz * nx, rr = r + u.radius + 0.25;
     if (Math.abs(perp) < rr && proj < bestProj && d > proj - r) { bestProj = proj; best = { perp, rr }; }
   };
-  for (const o of OBSTACLES) consider(o.x, o.z, o.r);
+  for (const o of obstaclesNear(u.x - 8, u.z - 8, u.x + 8, u.z + 8)) consider(o.x, o.z, o.r);
   for (const s of G.structures) if (s.alive && s !== u) consider(s.x, s.z, s.radius);
   if (best) {
     const side = best.perp > 0 ? 1 : -1, w = Math.min(1, 1.15 - Math.abs(best.perp) / best.rr);

@@ -77,25 +77,8 @@ export function heightAt(x, z) {
   return h;
 }
 
-// 障礙物（圓）：樹叢與岩石，避開路線、河道與基地
+// 障礙物（圓）：石牆與樹叢岩石。先產生草叢，再在下方鋪障礙物（避開草叢）
 export const OBSTACLES = [];
-{
-  const R = rng(198);
-  const ok = (x, z, r) => {
-    if (Math.abs(x) > 86 - r || Math.abs(z) > 86 - r) return false;
-    if (distToLanes(x, z) < 6.2 + r) return false;
-    if (riverDist(x, z) < 6.5 + r) return false;
-    for (const b of BASE) if (Math.hypot(x - b[0], z - b[1]) < 24 + r) return false;
-    for (const c of CAMPS) if (Math.hypot(x - c.x, z - c.z) < (c.boss ? 11 : 7.5) + r) return false;
-    if (Math.hypot(x - DRAGON.pit.x, z - DRAGON.pit.z) < 11 + r) return false;
-    for (const o of OBSTACLES) if (Math.hypot(x - o.x, z - o.z) < o.r + r + 3.2) return false;
-    return true;
-  };
-  for (let gx = -84; gx <= 84; gx += 5) for (let gz = -84; gz <= 84; gz += 5) {
-    const x = gx + (R() - 0.5) * 4, z = gz + (R() - 0.5) * 4, r = 1.6 + R() * 2.8;
-    if (R() < 0.82 && ok(x, z, r)) OBSTACLES.push({ x, z, r, kind: R() < 0.72 ? 'trees' : 'rock', seed: (R() * 1e6) | 0 });
-  }
-}
 
 // 草叢：路邊與河岸的高草，站進去的單位只有同一叢裡（或貼身）的敵人看得到。兩隊點對稱、公平。
 export const BUSHES = [];
@@ -132,12 +115,95 @@ export const BUSHES = [];
   }
   BUSHES.forEach((b, i) => { b.id = i + 1; });
 }
+
+// 石牆：仿推塔遊戲的叢林，沿路線內側、河道兩岸與野怪營地外圍鋪連續的岩牆（折線密集取樣成互相重疊的圓，
+// 碰撞、尋路與視線都沿用圓的邏輯）。只設計青隊半邊（z > x），再點對稱到赤隊。被草叢、塔下廣場、營地、
+// 神龍坑或路線擋到的取樣點直接略過，所以牆會在草叢與路口自然斷開成缺口。
+{
+  const R = rng(4198);
+  const clear = (x, z, r) => {
+    if (Math.abs(x) > 86 - r || Math.abs(z) > 86 - r) return false;
+    if (distToLanes(x, z) < 7.2 + r) return false;
+    if (riverDist(x, z) < 6.5 + r) return false;
+    for (const b of BASE) if (Math.hypot(x - b[0], z - b[1]) < 24 + r) return false;
+    for (const c of CAMPS) if (Math.hypot(x - c.x, z - c.z) < (c.boss ? 11 : 7.5) + r) return false;
+    if (Math.hypot(x - DRAGON.pit.x, z - DRAGON.pit.z) < 11 + r) return false;
+    for (const s of STRUCTURES) if (Math.hypot(x - s.x, z - s.z) < (s.kind === 'core' ? 24 : 7.2) + r) return false;
+    for (const b of BUSHES) if (Math.hypot(x - b.x, z - b.z) < b.r + r + 0.5) return false;
+    return true;
+  };
+  const both = (x, z, r) => clear(x, z, r) && clear(-x, -z, r);
+  let wid = 0;
+  const wall = (pts) => {
+    wid++;
+    for (let i = 1; i < pts.length; i++) {
+      const [ax, az] = pts[i - 1], [bx, bz] = pts[i], L = Math.hypot(bx - ax, bz - az), n = Math.ceil(L / 1.1);
+      for (let k = i === 1 ? 0 : 1; k <= n; k++) {
+        const t = k / n, x = ax + (bx - ax) * t + (R() - 0.5) * 0.5, z = az + (bz - az) * t + (R() - 0.5) * 0.5, r = 1.75 + R() * 0.45;
+        if (!both(x, z, r)) continue;
+        const seed = (R() * 1e6) | 0;
+        OBSTACLES.push({ x, z, r, kind: 'wall', wall: wid, seed }, { x: -x, z: -z, r, kind: 'wall', wall: -wid, seed: seed + 1 });
+      }
+    }
+  };
+  const arc = (cx, cz, rad, a0, a1) => { const pts = []; for (let a = a0; a <= a1 + 0.1; a += 12) pts.push([cx + Math.cos(a * Math.PI / 180) * rad, cz + Math.sin(a * Math.PI / 180) * rad]); return pts; };
+  // 西側叢林（青隊上路與中路之間）
+  wall([[-58, -42], [-58.5, -25]]); wall([[-58, -12], [-57.5, 3]]); wall([[-58, 13], [-56, 34]]); // 沿上路內側（缺口對準恐龍營地與中段）
+  wall([[-44, -2], [-37, 5]]);                                            // 野區中央的短牆
+  wall([[-46, 32], [-30, 16], [-14, 0], [-6, -8]]);                       // 沿中路
+  wall([[-60, -46], [-52, -38]]); wall([[-22, -8], [-10, 4]]);            // 沿河岸（神龍坑與中央路口留空）
+  wall(arc(-48, -18, 9.6, 20, 150)); wall(arc(-48, -18, 9.6, 215, 285));  // 恐龍營地：朝上路與河道開口
+  // 南側叢林（青隊下路與中路之間）
+  wall([[-30, 58], [-13, 58.5]]); wall([[-4, 58], [11, 57.5]]); wall([[24, 58.5], [42, 58]]); // 沿下路內側（缺口對準機器人營地與中段）
+  wall([[-14, 42], [-6, 35]]);                                            // 野區中央的短牆
+  wall([[-36, 50], [-20, 34], [-4, 18], [2, 12]]);                        // 沿中路
+  wall([[6, 20], [18, 32]]); wall([[44, 58], [50, 64]]);                  // 沿河岸（大猿石場留空）
+  wall(arc(18, 48, 9.6, 110, 300)); wall(arc(18, 48, 9.6, 350, 430));    // 機器人營地：朝下路與河道開口
+  // 其餘空地：零散的樹叢與大岩石（也點對稱），彼此與石牆之間留出通道
+  const ok = (x, z, r) => {
+    if (!both(x, z, r)) return false;
+    for (const o of OBSTACLES) if (Math.hypot(x - o.x, z - o.z) < o.r + r + 2.8) return false;
+    return true;
+  };
+  for (const [x, z, r, kind] of [[-46, 10, 3.8, 'rock'], [-30, 4, 3.4, 'trees'], [-8, 40, 3.8, 'trees'], [8, 30, 3.4, 'rock'], [34, 50, 3.5, 'trees'], [-40, -4, 3.3, 'trees']]) {
+    if (ok(x, z, r)) { const seed = (R() * 1e6) | 0; OBSTACLES.push({ x, z, r, kind, seed }, { x: -x, z: -z, r, kind, seed: seed + 1 }); }
+  }
+  for (let gx = -84; gx <= 84; gx += 6) for (let gz = -84; gz <= 84; gz += 6) {
+    const x = gx + (R() - 0.5) * 4, z = gz + (R() - 0.5) * 4, r = 1.6 + R() * 2.4, roll = R(), kind = R() < 0.7 ? 'trees' : 'rock', seed = (R() * 1e6) | 0;
+    if (z <= x + 1 || roll > 0.7 || !ok(x, z, r)) continue;
+    OBSTACLES.push({ x, z, r, kind, seed }, { x: -x, z: -z, r, kind, seed: seed + 1 });
+  }
+}
 export function bushAt(x, z) { for (const b of BUSHES) if ((x - b.x) ** 2 + (z - b.z) ** 2 < b.r * b.r) return b.id; return 0; }
 
 // 把圓推出障礙物與地圖邊界；回傳是否有碰撞
+// 障礙物的空間格（8 公尺）：每格存與「格子外擴 3 公尺」重疊的圓，點查詢只看一格，框查詢看涵蓋的格
+const OG = 8, ON = 24, OHALF = 96, OPAD = 3;
+let ogrid = null, ostamp = 0;
+function obsGrid() {
+  if (ogrid) return ogrid;
+  ogrid = Array.from({ length: ON * ON }, () => []);
+  for (const o of OBSTACLES) {
+    const i0 = Math.max(0, Math.floor((o.x - o.r - OPAD + OHALF) / OG)), i1 = Math.min(ON - 1, Math.floor((o.x + o.r + OPAD + OHALF) / OG));
+    const j0 = Math.max(0, Math.floor((o.z - o.r - OPAD + OHALF) / OG)), j1 = Math.min(ON - 1, Math.floor((o.z + o.r + OPAD + OHALF) / OG));
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) ogrid[j * ON + i].push(o);
+  }
+  return ogrid;
+}
+const ocell = (x, z) => { const i = Math.max(0, Math.min(ON - 1, Math.floor((x + OHALF) / OG))), j = Math.max(0, Math.min(ON - 1, Math.floor((z + OHALF) / OG))); return obsGrid()[j * ON + i]; };
+// 框內（含外擴）可能碰到的障礙物，不重複
+export function obstaclesNear(x0, z0, x1, z1) {
+  const g = obsGrid(), out = [];
+  const i0 = Math.max(0, Math.floor((Math.min(x0, x1) + OHALF) / OG)), i1 = Math.min(ON - 1, Math.floor((Math.max(x0, x1) + OHALF) / OG));
+  const j0 = Math.max(0, Math.floor((Math.min(z0, z1) + OHALF) / OG)), j1 = Math.min(ON - 1, Math.floor((Math.max(z0, z1) + OHALF) / OG));
+  if (i0 === i1 && j0 === j1) return g[j0 * ON + i0];
+  ostamp++;
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) for (const o of g[j * ON + i]) if (o._s !== ostamp) { o._s = ostamp; out.push(o); }
+  return out;
+}
 export function collide(p, radius) {
   let hit = false;
-  for (const o of OBSTACLES) {
+  for (const o of (radius <= OPAD ? ocell(p.x, p.z) : obstaclesNear(p.x - radius, p.z - radius, p.x + radius, p.z + radius))) {
     const dx = p.x - o.x, dz = p.z - o.z, rr = o.r + radius, d2 = dx * dx + dz * dz;
     if (d2 < rr * rr) { const d = Math.sqrt(d2) || 1e-4; p.x = o.x + (dx / d) * rr; p.z = o.z + (dz / d) * rr; hit = true; }
   }
@@ -148,7 +214,8 @@ export function collide(p, radius) {
 }
 // 線段是否穿過障礙物（給 AI 與瞬移判斷視線）
 export function blocked(ax, az, bx, bz, pad = 0) {
-  for (const o of OBSTACLES) if (distToSeg(o.x, o.z, { x: ax, z: az }, { x: bx, z: bz }) < o.r + pad) return true;
+  const a = { x: ax, z: az }, b = { x: bx, z: bz };
+  for (const o of obstaclesNear(ax - pad, az - pad, bx + pad, bz + pad)) if (distToSeg(o.x, o.z, a, b) < o.r + pad) return true;
   return false;
 }
 export function walkable(x, z, radius) { const p = { x, z }; return !collide(p, radius); }
