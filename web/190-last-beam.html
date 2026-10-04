@@ -4243,6 +4243,54 @@ function wHouseIn(t) {
 }
 /* 屋內的細部（照實機參考影片）：木條地板、窗下的白色暖氣片、窗簾、牆上的畫框、天花板燈板。
    牆面座標跟 build_world.py 的 house_a / house_b 一致：ax=1 是沿 x 的牆（位在 z = c），n 是朝屋內的方向；y 為地面起算的絕對高度 */
+/* 物資箱（實機參考影片的 Loot Crate）：民房裡一屋一個，深綠木箱、鐵包角、麻繩把手，箱蓋可以掀開。
+   靜態的箱身併進世界網格（有碰撞，可當掩體）；箱蓋是一個 InstancedMesh，掀開時更新該格的矩陣。
+   玩家按 F 掀開，裡面的東西掉在箱子前面；電腦經過箱子旁邊也會順手打開 */
+const CRATES = [];
+function crateAt(x, z, ry) {
+  pushX(x, 0, z, ry);
+  B('wood', 0x30462c, 0, 0, 0, .9, .5, .58, { col: 1, us: 1 });
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) B('metal', 0x5a5e60, sx * .43, 0, sz * .27, .06, .52, .06);
+  for (const sz of [-1, 1]) B('wood', 0x26381f, 0, .2, sz * .295, .82, .05, .012);
+  B('flat', 0xd9a520, 0, .28, .292, .18, .1, .006); B('flat', 0x1e2a1a, 0, .3, .294, .1, .05, .004);
+  for (const sx of [-1, 1]) { B('flat', 0xb8955c, sx * .462, .22, 0, .018, .03, .2); B('metal', 0x5a5e60, sx * .456, .16, 0, .012, .14, .26); }
+  CRATES.push({ M: XF.clone(), x: 0, z: 0, open: 0, a: 0, i: CRATES.length });
+  const C = CRATES[CRATES.length - 1]; _v.set(0, 0, 0).applyMatrix4(XF); C.x = _v.x; C.y = _v.y; C.z = _v.z;
+  _v.set(0, 0, 1).applyMatrix4(XF).sub(_v2.set(0, 0, 0).applyMatrix4(XF)); C.fx = _v.x; C.fz = _v.z;
+  popX();
+}
+let LIDS = null;
+const lidGeo = () => new MB().box(0x34502f, 0, .035, .29, .92, .07, .6).box(0x26381f, 0, .075, .1, .84, .012, .05).box(0x26381f, 0, .075, .48, .84, .012, .05)
+  .box(0x5a5e60, -.43, .035, .29, .065, .08, .62).box(0x5a5e60, .43, .035, .29, .065, .08, .62).box(0xd9a520, 0, .072, .29, .26, .006, .1).build();
+const _crM = new THREE.Matrix4(), _crM2 = new THREE.Matrix4();
+function crateMatrix(C) { _crM.copy(C.M).multiply(_crM2.makeTranslation(0, .5, -.29)).multiply(_m.makeRotationX(-C.a * 1.85)); return _crM; }
+function initCrates() {
+  if (!CRATES.length) return;
+  LIDS = new THREE.InstancedMesh(lidGeo(), MATS.wood, CRATES.length); LIDS.castShadow = LIDS.receiveShadow = true;
+  for (const C of CRATES) LIDS.setMatrixAt(C.i, crateMatrix(C));
+  scene.add(LIDS);
+}
+function crateReset() { for (const C of CRATES) { C.open = 0; C.a = 0; if (LIDS) LIDS.setMatrixAt(C.i, crateMatrix(C)); } if (LIDS) LIDS.instanceMatrix.needsUpdate = true; }
+function openCrate(C, by) {
+  if (C.open) return; C.open = 1;
+  const items = rollLoot(false); if (Math.random() < .7) items.push(...rollLoot(false));
+  items.slice(0, 4).forEach((t, k) => { const off = (k - (Math.min(items.length, 4) - 1) / 2) * .38; spawnItem(t, C.x + C.fx * .62 - C.fz * off, C.y + .02, C.z + C.fz * .62 + C.fx * off); });
+  if (AU.ctx && camera.position.distanceTo(_v.set(C.x, C.y, C.z)) < 30) { sfxClink(_v); sfxPick(); }
+}
+function nearestCrate(ch) {
+  let best = null, bd = 1.6;
+  for (const C of CRATES) { if (C.open) continue; const d = Math.hypot(C.x - ch.p.x, C.z - ch.p.z); if (d < bd && Math.abs(C.y - ch.p.y) < 1) { bd = d; best = C; } }
+  return best ? { crate: best, dist: bd } : null;
+}
+let crateT = 0;
+function updateCrates(dt) {
+  if (!LIDS) return;
+  let dirty = false;
+  for (const C of CRATES) if (C.a !== C.open) { C.a = C.open ? Math.min(1, C.a + dt * 2.6) : 0; const e = 1 - Math.pow(1 - C.a, 3), a = C.a; C.a = e; LIDS.setMatrixAt(C.i, crateMatrix(C)); C.a = a; dirty = true; }
+  if (dirty) LIDS.instanceMatrix.needsUpdate = true;
+  if ((crateT += dt) < .5) return; crateT = 0;
+  for (const C of CRATES) { if (C.open) continue; for (const b of BOTS) { const c = b.ch; if (c.alive && c.st === 'ground' && Math.abs(c.p.y - C.y) < 1 && Math.hypot(c.p.x - C.x, c.p.z - C.z) < 1.4) { openCrate(C, c); break; } } }
+}
 const ROOMS = [];   // 每個房間：世界→房屋座標的反矩陣、房間範圍與燈的位置（進屋時補光）
 /* 在目前的變換（XF）下登記一個房間：範圍 [x0, x1] × [y0, y1] × [z0, z1]，補光放在 (lx, ly, lz)；k 是補光強度倍率 */
 function roomReg(x0, x1, z0, z1, y0, y1, lx, ly, lz, k = 1) {
@@ -4289,12 +4337,14 @@ function wRoomKit(t) {
     frame(0, -1.0, 3.8, -1, 1.55, .9, .62, 1); frame(0, 2.2, -3.8, 1, 1.4, .62, .78, 0); frame(1, 0, -3.3, 1, 1.55, .5, .4, 2);
     frame(0, -1.6, 3.8, -1, 4.5, .8, .56, 3); frame(1, -.2, 3.3, -1, 3.9, .3, .4, 4);
     room(-3.8, 3.8, -3.3, 3.3, .2, 2.98, 0, 0); room(-3.8, 3.8, -3.3, 3.3, 3.2, 5.85, .4, .2);
+    pushX(0, .2, 0, 0); crateAt(2.85, 2.62, Math.PI); popX();
   } else {   // HOUSE_A：牆內面 x ±3.3、z ±4.3，隔間在 z = -1.2（臥室在 -z），地板 .3、天花板 3.05
     B('plank', 0xffffff, 0, .294, 0, 6.6, .012, 8.6, { us: 2 });
     radiator(1, 1.3, 2.5, 4.3, -1, .5); radiator(1, -2.5, -1.3, 4.3, -1, .5); radiator(0, 1.2, 2.4, 3.3, -1, .5); radiator(0, -3.0, -1.8, 3.3, -1, .5); radiator(1, -1, 1, -4.3, 1, .55);
     curtain(1, 1.3, 2.5, 4.3, -1, 1.2, 2.3, 0x3f5a3a); curtain(1, -2.5, -1.3, 4.3, -1, 1.2, 2.3, 0x3f5a3a); curtain(1, -1, 1, -4.3, 1, 1.3, 2.3, 0x6b4a6a);
     frame(0, 1.9, -3.3, 1, 1.5, .62, .74, 1); frame(1, -1.4, -1.14, 1, 1.6, 1.0, .56, 0); frame(0, -.2, 3.3, -1, 1.65, .5, .4, 2); frame(0, -3.6, -3.3, 1, 1.5, .44, .56, 3);
     room(-3.3, 3.3, -1.14, 4.3, .3, 3.05, 0, 1.6); room(-3.3, 3.3, -4.3, -1.26, .3, 3.05, 0, -2.8);
+    pushX(0, .3, 0, 0); crateAt(1.75, 3.62, Math.PI); popX();
   }
 }
 function wHouse(t, c, yd) {
@@ -8663,6 +8713,8 @@ function interact() {
   if (PLAYER.inVeh) { exitVehicle(PLAYER); return; }
   const nv = nearestVehicle(PLAYER), nd0 = nearestDoor(PLAYER), ni = PL.near ? Math.hypot(PL.near.x - PLAYER.p.x, PL.near.z - PLAYER.p.z) : 9;
   if (nv && nv.dist < Math.min(ni, nd0 ? nd0.dist : 9)) { enterVehicle(PLAYER, nv.veh); return; }
+  const nc = nearestCrate(PLAYER);
+  if (nc && nc.dist < Math.min(ni, nd0 ? nd0.dist : 9) && PLAYER.st === 'ground') { openCrate(nc.crate, PLAYER); return; }
   if (doorFirst(PLAYER, nd0, PL.near)) { toggleDoor(nd0.door, PLAYER); return; }
   tryPickup();
 }
@@ -9372,13 +9424,16 @@ function updateHUD(dt) {
   if (nv && nv.dist < Math.min(PL.near ? Math.hypot(PL.near.x - ch.p.x, PL.near.z - ch.p.z) : 9, nd ? nd.dist : 9)) {
     pr.classList.remove('hide'); if (HC.prompt !== 'veh') { HC.prompt = 'veh'; $('promptT').textContent = '駕駛皮卡'; }
     pr.firstElementChild.textContent = TOUCH ? '車' : 'F';
+  } else if ((HC.nc = ch.alive && ch.st === 'ground' && !ch.inVeh ? nearestCrate(ch) : null) && HC.nc.dist < Math.min(PL.near ? Math.hypot(PL.near.x - ch.p.x, PL.near.z - ch.p.z) : 9, nd ? nd.dist : 9)) {
+    pr.classList.remove('hide'); if (HC.prompt !== 'crate') { HC.prompt = 'crate'; $('promptT').textContent = '開啟物資箱'; }
+    pr.firstElementChild.textContent = TOUCH ? '開' : 'F';
   } else if (doorFirst(ch, nd, PL.near)) {
     pr.classList.remove('hide'); const tx = nd.door.target ? '關門' : '開門';
     if (HC.prompt !== tx) { HC.prompt = tx; $('promptT').textContent = tx; }
     pr.firstElementChild.textContent = TOUCH ? '門' : 'F';
   } else if (PL.near && ch.st === 'ground' && ch.alive) { const [a, b] = itemLabel(PL.near); pr.classList.remove('hide'); const tx = a + (b ? ' · ' + b : ''); if (HC.prompt !== tx) { HC.prompt = tx; $('promptT').innerHTML = a + (b ? ' <small>' + b + '</small>' : ''); } pr.firstElementChild.textContent = TOUCH ? '撿' : 'F'; }
   else pr.classList.add('hide');
-  if (TOUCH) $('tUse').style.opacity = PL.near || nd || nv || ch.inVeh ? 1 : .35;
+  if (TOUCH) $('tUse').style.opacity = PL.near || nd || nv || HC.nc || ch.inVeh ? 1 : .35;
   // 準星
   const cr = $('cross');
   const showCross = ch.alive && ch.st === 'ground' && !ch.inVeh && !PL.scoped && !PL.fp && !IN.map;
@@ -9574,7 +9629,7 @@ function newGame() {
   for (const d of DOORLIST) { d.ang = 0; d.target = 0; d.moving = false; d.a1 = d.a1o; doorCol(d); }
   for (const n of NADES) scene.remove(n.m); NADES.length = 0;
   FX.parts.length = 0; FX.decals.forEach(d => d.visible = false); FX.tracers.forEach(t => t.m.visible = false);
-  scatterLoot();
+  scatterLoot(); crateReset();
   zoneReset(); heliPlan();
   CHARS.forEach(c => { c.inVeh = null; c.reset(); });
   const order = CHARS.map((c, i) => i).sort(() => Math.random() - .5);
@@ -9889,6 +9944,7 @@ function update(dt) {
   ALIVE_N = aliveCount(); for (const b of BOTS) botUpdate(b, dt);
   separateChars();
   updateDoors(dt);
+  updateCrates(dt);
   for (const c of CHARS) commonUpdate(c, dt);
   updateNades(dt);
   if (STATE === 'dead' || STATE === 'won') { PL.deadT += dt; if (PL.deadT > (STATE === 'won' ? 1.2 : 3) && !PL.endShown) showEnd(STATE === 'won'); }
@@ -9982,6 +10038,7 @@ await bootStep('正在種草、種樹…');
 buildFoliage();
 await bootStep('正在合併建物、點名 ' + NPLAYERS + ' 人…');
 flushWorld();
+initCrates();
 drawSiteMap();
 PLAYER = new Char('你', true);
 CHARS.push(PLAYER);
@@ -10002,7 +10059,7 @@ $('restart1').addEventListener('click', () => { newGame(); requestLock(); });
 $('sens').addEventListener('input', e => { IN.sens = +e.target.value; $('sensV').textContent = IN.sens.toFixed(2); });
 $('vol').addEventListener('input', e => { AU.vol = +e.target.value; $('volV').textContent = Math.round(AU.vol * 100); if (AU.master) AU.master.gain.value = AU.vol; });
 // 自動化測試用的掛鉤（headless 快轉、跳過直升機），遊戲本身不會用到
-window.LASTBEAM = { dyn: DYN, ray: raycast, rayhit: RAYHIT, vehs: VEHS, enter: v => enterVehicle(PLAYER, v), holes: HOLES, cases: CASES, input: IN, doors: DOORLIST, pl: PL, hold(v) { HOLD = v; }, glb: !!GLB, sim(sec) { for (let i = 0; i < sec * 30; i++) update(1 / 30); }, get state() { return STATE; }, get hp() { return HP; }, get T() { return T; }, chars: CHARS, zone: ZONE, loot: LOOT, newGame, get player() { return PLAYER; }, poi: POI, kill(v, a, w, h) { kill(CHARS[v], a == null ? null : CHARS[a], w, h); }, give(id, n = 120) { const ch = PLAYER, w = WPN[id]; ch.guns[ch.slot] = { id, mag: w.mag }; ch.ammo[w.cal] += n; ch.holster = false; uiDirty = true; }, place(x, z, yaw = PL.yaw, pitch = 0, y) { const ch = PLAYER; ch.st = 'ground'; ch.p.set(x, y ?? groundBelow(x, 400, z, .3), z); ch.v.set(0, 0, 0); ch.yaw = PL.yaw = yaw; PL.pitch = pitch; }, skipTo(s) { if (s === 'ground' && STATE === 'heli') { playerJump(); const p = PLAYER.p; p.set(rnd(-40, 40), 1, rnd(-40, 40)); PLAYER.st = 'ground'; BOTS.forEach(b => { if (b.ch.st === 'beam') { b.ch.st = 'fall'; botLand(b); } }); } } };
+window.LASTBEAM = { dyn: DYN, ray: raycast, rayhit: RAYHIT, vehs: VEHS, enter: v => enterVehicle(PLAYER, v), holes: HOLES, cases: CASES, input: IN, doors: DOORLIST, pl: PL, hold(v) { HOLD = v; }, glb: !!GLB, sim(sec) { for (let i = 0; i < sec * 30; i++) update(1 / 30); }, get state() { return STATE; }, get hp() { return HP; }, get T() { return T; }, chars: CHARS, zone: ZONE, loot: LOOT, newGame, get player() { return PLAYER; }, poi: POI, crates: CRATES, kill(v, a, w, h) { kill(CHARS[v], a == null ? null : CHARS[a], w, h); }, give(id, n = 120) { const ch = PLAYER, w = WPN[id]; ch.guns[ch.slot] = { id, mag: w.mag }; ch.ammo[w.cal] += n; ch.holster = false; uiDirty = true; }, place(x, z, yaw = PL.yaw, pitch = 0, y) { const ch = PLAYER; ch.st = 'ground'; ch.p.set(x, y ?? groundBelow(x, 400, z, .3), z); ch.v.set(0, 0, 0); ch.yaw = PL.yaw = yaw; PL.pitch = pitch; }, skipTo(s) { if (s === 'ground' && STATE === 'heli') { playerJump(); const p = PLAYER.p; p.set(rnd(-40, 40), 1, rnd(-40, 40)); PLAYER.st = 'ground'; BOTS.forEach(b => { if (b.ch.st === 'beam') { b.ch.st = 'fall'; botLand(b); } }); } } };
 // 六十人：三架直升機的航線、效能計時、整場快轉（玩家當觀眾不參戰，記錄存活曲線、死因與卡住的電腦）
 Object.defineProperty(window.LASTBEAM, 'hp', { get: () => HP, set() { }, enumerable: true, configurable: true });
 Object.assign(window.LASTBEAM, { nplayers: NPLAYERS, shadowProxy: SHPROXY, shadowNear: SHNEAR, rayChar, helis: HPS, bots: BOTS, heliOf, prof() { const n = Math.max(1, PROF.n), r = { updMs: +(PROF.upd / n).toFixed(3), animMs: +(PROF.anim / n).toFixed(3), animated: +(PROF.animN / n).toFixed(1), frozen: +(PROF.frozen / n).toFixed(1), frames: PROF.n }; Object.assign(PROF, { upd: 0, anim: 0, n: 0, animN: 0, frozen: 0 }); return r; },
