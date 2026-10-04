@@ -28,7 +28,7 @@ function mossRock(seed, mossy = true) {
   const n = g.attributes.normal, c = new Float32Array(p.count * 3);
   for (let i = 0; i < p.count; i += 3) {
     const ny = (n.getY(i) + n.getY(i + 1) + n.getY(i + 2)) / 3, moss = mossy && ny > 0.62;
-    const col = moss ? [0.45, 0.62, 0.3] : [0.62, 0.58, 0.52];
+    const col = moss ? [0.4, 0.5, 0.27] : [0.62, 0.58, 0.52];
     for (let k = 0; k < 3; k++) { c[(i + k) * 3] = col[0]; c[(i + k) * 3 + 1] = col[1]; c[(i + k) * 3 + 2] = col[2]; }
   }
   g.setAttribute('color', new THREE.BufferAttribute(c, 3));
@@ -143,6 +143,33 @@ export function buildProps(group, quality, { toon, mergeGeo }) {
 
   // 岩石（長苔）、岩壁、巨石
   const rockMat = toon('#ffffff', { vertexColors: true });
+  // 岩石的手繪質感：依世界座標加斑駁、細裂紋、陡面的層理，朝上的面偏亮
+  rockMat.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vRW; varying vec3 vRN;')
+      .replace('#include <project_vertex>', `#include <project_vertex>
+{ vec4 rw = vec4(transformed, 1.0); vec3 rn = objectNormal;
+#ifdef USE_INSTANCING
+  rw = instanceMatrix * rw; rn = mat3(instanceMatrix) * rn;
+#endif
+  vRW = (modelMatrix * rw).xyz; vRN = normalize(mat3(modelMatrix) * rn); }`);
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+varying vec3 vRW; varying vec3 vRN;
+float rh3(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float rn3(vec3 x) { vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(rh3(i), rh3(i + vec3(1,0,0)), f.x), mix(rh3(i + vec3(0,1,0)), rh3(i + vec3(1,1,0)), f.x), f.y),
+             mix(mix(rh3(i + vec3(0,0,1)), rh3(i + vec3(1,0,1)), f.x), mix(rh3(i + vec3(0,1,1)), rh3(i + vec3(1,1,1)), f.x), f.y), f.z); }`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+{ float n1 = rn3(vRW * 0.55), n2 = rn3(vRW * 2.2 + 5.0);
+  diffuseColor.rgb *= 0.62 + 0.6 * n1 + 0.14 * n2;
+  float cr = abs(rn3(vRW * 0.8 + 3.1) - 0.5) + abs(rn3(vRW * 2.0 - 1.7) - 0.5) * 0.25;
+  float crack = 1.0 - smoothstep(0.04, 0.075, cr);
+  diffuseColor.rgb *= mix(1.0, 0.42, crack);
+  diffuseColor.rgb *= 1.0 + 0.12 * (1.0 - smoothstep(0.06, 0.1, cr)) * (1.0 - crack);
+  float up = vRN.y, steep = 1.0 - abs(up);
+  diffuseColor.rgb *= 0.88 + 0.2 * smoothstep(0.25, 0.9, up);
+  diffuseColor.rgb *= 1.0 - 0.12 * steep * smoothstep(0.55, 0.95, sin(vRW.y * 4.2 + n1 * 2.5)); }`);
+  };
+  fogMat(rockMat); rockMat.customProgramCacheKey = () => 'fog-rock-painted';
   // 岩台：半徑 1、高 1 的不規則石柱，側面分層石紋、頂面草地、頂緣一圈外凸的草唇；依障礙物半徑與高度縮放
   const mesaG = [0, 1, 2].map((seed) => {
     const RR = rng(900 + seed), SEG = 18, rows = [0, 0.18, 0.42, 0.66, 0.88, 1], A = SEG;

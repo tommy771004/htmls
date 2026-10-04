@@ -41,8 +41,9 @@ async function run(name, w, h, touch) {
   });
   check('普攻三段連段累積連擊數', combo.best >= 3, combo);
   // 技能：升到 6 級、學全部技能、補滿氣
-  await ev(() => { const k = window.__ki; k.setLevel(6); k.learnAll(); k.give({ ki: 500 }); });
-  const eid = await ev(() => window.__ki.spawnEnemyHeroNear(6));
+  // 前一段站在敵方兵線裡打了 4 秒，玩家可能已陣亡或被暈住：先復活、補滿並解除硬直，避免偶發失敗
+  await ev(() => { const k = window.__ki, P = k.G.player; if (!P.alive) { P.respawn = 0; k.fastForward(0.05); } P.hp = P.maxHp; P.st.stun = 0; P.action = null; k.setLevel(6); k.learnAll(); k.give({ ki: 500 }); });
+  const eid = await ev(() => { const k = window.__ki, id = k.spawnEnemyHeroNear(6), e = k.G.units.find((u) => u.id === id); e.hp = e.maxHp; return id; });
   const before = await ev((id) => window.__ki.G.units.find((u) => u.id === id).hp, eid);
   const used = await ev((id) => {
     const k = window.__ki, G = k.G, e = G.units.find((u) => u.id === id), r = {};

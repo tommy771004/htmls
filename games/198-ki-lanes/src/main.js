@@ -52,12 +52,16 @@ const portraits = {}, busts = {};
       rig.root.updateMatrixWorld(true);
       const hp = new THREE.Vector3(); rig.head.getWorldPosition(hp);
       const c = sh.cam(hp); pc.position.set(c[0], c[1], c[2]); pc.lookAt(c[3], c[4], c[5]);
+      // 頭像打光：暫時提高英雄材質的主光與暗部亮度（材質是共用快取，算完要還原）
+      const saved = [];
+      rig.root.traverse((o) => { const u = o.material && o.material.uniforms; if (u && u.uKeyCol && !saved.some((x) => x.u === u)) { saved.push({ u, k: u.uKeyCol.value.clone(), s: u.uShadeCol.value.clone() }); u.uKeyCol.value.multiplyScalar(1.12); u.uShadeCol.value.lerp(new THREE.Color(0.86, 0.84, 0.95), 0.35); } });
       R.renderer.setRenderTarget(rt); R.renderer.setClearColor(0x000000, 0); R.renderer.clear();
       R.renderer.render(ps, pc);
       R.renderer.readRenderTargetPixels(rt, 0, 0, w, h, buf);
       for (let y = 0; y < h; y++) img.data.set(buf.subarray((h - 1 - y) * w * 4, (h - y) * w * 4), y * w * 4);
       g.clearRect(0, 0, w, h); g.putImageData(img, 0, 0);
       sh.out[key] = cv.toDataURL('image/png');
+      for (const x of saved) { x.u.uKeyCol.value.copy(x.k); x.u.uShadeCol.value.copy(x.s); }
       ps.remove(rig.root); rig.dispose && rig.dispose();
     }
     rt.dispose();
