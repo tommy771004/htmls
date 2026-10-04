@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node server/jade-table/server.mjs",
     "test:mahjong": "node --test server/jade-table/game.test.mjs",
-    "test:saltcape": "node --test games/199-saltcape/tools/sim.test.mjs games/199-saltcape/tools/net.test.mjs"
+    "test:saltcape": "node --test games/199-saltcape/tools/sim.test.mjs games/199-saltcape/tools/net.test.mjs games/199-saltcape/tools/assets.test.mjs"
   },
   "engines": {
     "node": ">=22"

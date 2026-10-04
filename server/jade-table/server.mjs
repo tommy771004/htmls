@@ -11,7 +11,7 @@ import { EMOTES } from '../../assets/jade-table/emotes.mjs';
 // Room transitions are persisted atomically before any client sees the resulting state.
 export function createJadeServer({ port = 8127, host = '127.0.0.1', origins = [], turnMs = 20000, claimMs = 10000, onUpgrade = null } = {}) {
   const root = fileURLToPath(new URL('../../', import.meta.url));
-  const mime = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.css': 'text/css', '.bin': 'application/octet-stream', '.glb': 'model/gltf-binary', '.json': 'application/json; charset=utf-8', '.py': 'text/plain; charset=utf-8', '.blend': 'application/octet-stream' };
+  const mime = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.css': 'text/css', '.bin': 'application/octet-stream', '.glb': 'model/gltf-binary', '.json': 'application/json; charset=utf-8', '.py': 'text/plain; charset=utf-8', '.blend': 'application/octet-stream', '.hdr': 'application/octet-stream', '.gltf': 'model/gltf+json' };
   const server = createServer(async (req, res) => {
     try {
       const path = new URL(req.url, 'http://localhost').pathname;

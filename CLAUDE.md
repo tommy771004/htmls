@@ -98,6 +98,13 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 - 伺服器 `server/saltcape/server.mjs`（`createSaltcape()` 掛在 `npm start` 的伺服器上，`createSaltServer()` 給 Vercel 的 `api/saltcape.mjs`；兩者都接受 `/api/saltcape` 與 `/saltcape`，前端一律連 `/api/saltcape`）；`server/jade-table/server.mjs` 的 `onUpgrade` 讓兩個遊戲共用 8127 埠。房間只存在單一行程的記憶體，Vercel 多實例時好友可能分到不同實例，前端會收到 `notfound`／`lost` 明確提示；前端每 200 秒換一條新連線接手（Vercel 連線 300 秒上限）。
 - 協定、輸入位元與快照格式見 `SPEC.md`，操作與限制見 `README.md`；`window.__sc` 的 `solo()`、`place(x, z, mode)`、`give(w)`、`look(yaw, pitch)` 可在離線練習裡直接擺位置截圖。
 
+## 車球碗（200）
+
+- 原始碼在 `games/200-carball/`（Three.js 0.186.0 + Rapier `@dimforge/rapier3d-compat` + esbuild），有自己的 `package.json`；`npm run build` 輸出單檔 `web/200-carball.html`，改了 `src/` 要重新 build 並把產出一起 commit。`npm test` 先跑 Node 的手感數值測試（`tools/sim.test.mjs`），再跑兩種尺寸的無頭 Chrome 驗收（跑打包後的單檔）。
+- Rapier 內建的 base64 WASM 在打包時被換掉：`tools/build.mjs` 把 WASM 以 gzip＋base64 放進 `<script id="rapier-wasm">`，頁面用 `DecompressionStream` 解開。升級 Rapier 版本後打包失敗，多半是那段 base64 的寫法變了。
+- `src/core/`（球場幾何與距離場、車輛控制、對局、AI）不碰 DOM，Node 測試與瀏覽器共用。車的手感是逐 tick 自己寫速度（Rapier 只負責碰撞），常數集中在 `const.js`，照 Rocket League 公開資料換算成公尺；改了要跑 `npm run test:sim`。難度平衡用 `node tools/balance.mjs <難度> 8 <對手>`（換邊各打一半，抵消開球時剛體建立順序造成的偏差）。
+- 操作、`window.__cb` 測試 API 與已知限制見同資料夾的 `README.md`。
+
 ## 青雀真人麻將（127）架構
 
 - `assets/jade-table/engine.mjs`：台灣十六張規則引擎（`MahjongGame`、`scoreHand`、台表），**瀏覽器單人模式與伺服器共用同一份**。改規則時兩邊會一起受影響。

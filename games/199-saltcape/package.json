@@ -8,10 +8,11 @@
     "build": "node tools/build.mjs",
     "dev": "node tools/build.mjs --dev",
     "sim": "node tools/sim.mjs",
-    "test": "node --test tools/sim.test.mjs tools/net.test.mjs && node tools/accept.mjs",
-    "test:rules": "node --test tools/sim.test.mjs tools/net.test.mjs",
+    "test": "node --test tools/sim.test.mjs tools/net.test.mjs tools/assets.test.mjs && node tools/accept.mjs",
+    "test:rules": "node --test tools/sim.test.mjs tools/net.test.mjs tools/assets.test.mjs",
     "mp": "node tools/mp.mjs",
-    "thumb": "node tools/thumb.mjs"
+    "thumb": "node tools/thumb.mjs",
+    "assets": "node tools/fetch-assets.mjs"
   },
   "dependencies": {
     "three": "0.186.0"

@@ -6,7 +6,7 @@ import { newPlayer, stepPlayer, applySelf, MODE, eyeHeight, planePos, currentSpr
 import { TICK, DT, WEAPONS, WEAPON_KEYS, BITS, PLANE_ALT, MATCH, decodeLoot, RARITY, lootLabel } from '../core/rules.js';
 import { unpackStorm, stormAt, stormRemaining } from '../core/storm.js';
 import { buildWorld, FOG } from './world.js';
-import { makeSoldier, poseSoldier, makePlane } from './actors.js';
+import { makeSoldier, poseSoldier, makePlane, setActors } from './actors.js';
 import { makeViewmodel } from './viewmodel.js';
 import { makeFx } from './fx.js';
 import { makeAudio } from './audio.js';
@@ -14,6 +14,12 @@ import { makeHud, mapImage, esc, fmt } from './hud.js';
 import { makeInput } from './input.js';
 import { NetClient, LocalClient, serverURL } from './net.js';
 import { makeGrass } from './grass.js';
+import { loadAssets } from './assets.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('gl');
@@ -22,29 +28,68 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPrefere
 renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.5 : 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 0.72;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.autoClear = false;
 
 const W = getMap();
-const world = buildWorld(W, renderer);
-const scene = world.scene;
 const camera = new THREE.PerspectiveCamera(78, 1, 0.08, 9000);
 const vm = makeViewmodel();
-const fx = makeFx(scene);
 const audio = makeAudio();
 const img = mapImage(W);
 const hud = makeHud(W, img);
 const input = makeInput(canvas);
-const plane = makePlane(); plane.visible = false; scene.add(plane);
-const grass = makeGrass(W, scene);
-const mySoldier = makeSoldier(0); mySoldier.root.visible = false; scene.add(mySoldier.root);
+// 畫質：桌機開級聯陰影＋環境遮蔽＋泛光；觸控裝置或 ?q=low 用簡化版
+let qp = new URLSearchParams(location.search).get('q');
+try { qp = qp || localStorage.getItem('saltcape.q'); } catch { /* */ }
+const QUALITY = {
+  low: { shadows: 'basic', post: false, ao: false, grass: 0.5 },
+  mid: { shadows: 'csm', post: false, ao: false, grass: 0.8 },
+  high: { shadows: 'csm', post: true, ao: false, grass: 1 },
+  ultra: { shadows: 'csm', post: true, ao: true, grass: 1 },
+};
+const qName = QUALITY[qp] ? qp : isTouch ? 'low' : 'high';
+const Q = QUALITY[qName];
+let ASSETS = null, world = null, scene = null, fx = null, plane = null, grass = null, mySoldier = null, composer = null, gtao = null;
+function boot(A) {
+  ASSETS = A;
+  setActors(A);
+  world = buildWorld(W, renderer, camera, A, Q);
+  scene = world.scene;
+  fx = makeFx(scene, A);
+  vm.scene.environment = scene.environment; vm.scene.environmentIntensity = 0.8;
+  plane = makePlane(); plane.visible = false; scene.add(plane);
+  grass = makeGrass(W, scene, Q.grass, world.csmify);
+  mySoldier = makeSoldier(0); mySoldier.root.visible = false; scene.add(mySoldier.root);
+  if (Q.post) {
+    const rt = new THREE.WebGLRenderTarget(innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: 4 });
+    composer = new EffectComposer(renderer, rt);
+    composer.addPass(new RenderPass(scene, camera));
+    if (Q.ao) {
+      gtao = new GTAOPass(scene, camera, innerWidth, innerHeight);
+      gtao.updateGtaoMaterial({ radius: 0.9, distanceExponent: 1.4, thickness: 1.2, scale: 1.0, samples: 12, distanceFallOff: 1 });
+      gtao.blendIntensity = 0.85;
+      composer.addPass(gtao);
+    }
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.16, 0.45, 0.93));
+    composer.addPass(new OutputPass());
+  }
+  resize();
+  booted = true;
+  for (const id of ['bQuick', 'bCreate', 'bJoin', 'bSolo']) $(id).disabled = id !== 'bSolo' && !SERVER ? true : false;
+  setStatus(SERVER ? '' : 'off', SERVER ? (urlRoom ? `收到邀請：房號 ${urlRoom}` : '線上伺服器待命') : '以檔案開啟：沒有連線伺服器，可離線練習');
+  requestAnimationFrame(frame);
+  if (urlRoom && SERVER && nameInput.value) setTimeout(() => connect('join', urlRoom), 300);
+}
+let booted = false;
 
 function resize() {
   const w = innerWidth, h = innerHeight;
   renderer.setSize(w, h, false);
   camera.aspect = w / h; camera.updateProjectionMatrix();
+  if (composer) { composer.setSize(w, h); composer.setPixelRatio(renderer.getPixelRatio()); }
+  world?.resize();
 }
 addEventListener('resize', resize); resize();
 
@@ -78,8 +123,9 @@ const urlRoom = (params.get('room') || location.hash.replace('#', '')).toUpperCa
 if (urlRoom) codeInput.value = urlRoom;
 const SERVER = serverURL();
 function setStatus(cls, text) { const s = $('status'); s.className = 'status ' + cls; $('statusText').textContent = text; const s2 = $('status2'); s2.className = 'status ' + cls; $('statusText2').textContent = text; }
-if (!SERVER) { setStatus('off', '以檔案開啟：沒有連線伺服器，可離線練習'); for (const id of ['bQuick', 'bCreate', 'bJoin']) $(id).disabled = true; }
-else setStatus('', urlRoom ? `收到邀請：房號 ${urlRoom}` : '線上伺服器待命');
+for (const id of ['bQuick', 'bCreate', 'bJoin', 'bSolo']) $(id).disabled = true;
+setStatus('', '載入島嶼素材…');
+loadAssets((p) => setStatus('', `載入島嶼素材 ${Math.round(p * 100)}%`)).then(boot, () => boot({ tex: {}, nrm: {}, cars: {}, props: {}, ok: false }));
 const playerName = () => { const n = nameInput.value.trim().slice(0, 14) || '旅人' + Math.floor(Math.random() * 900 + 100); try { localStorage.setItem('saltcape.name', n); } catch { /* */ } return n; };
 
 function connect(mode, code) {
@@ -361,6 +407,8 @@ $('bQuit').onclick = () => { $('menu').classList.add('hidden'); leaveRoom(); };
 $('sens').oninput = (e) => { input.sens = +e.target.value; try { localStorage.setItem('saltcape.sens', e.target.value); } catch { /* */ } };
 $('vol').oninput = (e) => { audio.setVolume(+e.target.value); };
 $('tpv').onchange = (e) => { G.tp = e.target.checked; };
+$('qual').value = qName;
+$('qual').onchange = (e) => { try { localStorage.setItem('saltcape.q', e.target.value); } catch { /* */ } $('qualNote').textContent = '重新整理頁面後生效'; };
 try { const s = localStorage.getItem('saltcape.sens'); if (s) { input.sens = +s; $('sens').value = s; } } catch { /* */ }
 canvas.addEventListener('click', () => {
   audio.init();
@@ -438,9 +486,10 @@ function frame() {
   if (G.screen === 'game' && G.match) gameFrame(dt, time);
   else lobbyFrame(dt, time);
   world.update(camera, time);
-  grass.update(camera, time, G.screen === 'game' && camera.position.y - terrainAt(W, camera.position.x, camera.position.z) < 60);
+  grass.update(camera, time, camera.position.y - terrainAt(W, camera.position.x, camera.position.z) < 60);
+  if (gtao) gtao.enabled = camera.position.y - terrainAt(W, camera.position.x, camera.position.z) < 120;
   renderer.clear();
-  renderer.render(scene, camera);
+  if (composer) composer.render(); else renderer.render(scene, camera);
   if (G.screen === 'game' && vm.rig.visible) { renderer.clearDepth(); renderer.render(vm.scene, vm.cam); }
   pingT -= dt; if (pingT <= 0) { pingT = 2; G.net?.ping(); }
 }
@@ -555,9 +604,9 @@ function gameFrame(dt, time) {
   const st = G.storm ? stormAt(G.storm, estTick() * DT) : null;
   const inStorm = st && alive && me.mode !== MODE.PLANE && Math.hypot(pos.x - st.x, pos.z - st.z) > st.r;
   fx.update(dt, time, st, G.storm?.next, camera.position);
-  scene.fog.color.copy(FOG).lerp(new THREE.Color('#b8542e'), inStorm ? 0.55 : 0);
-  scene.fog.density = inStorm ? 0.004 : me.mode === MODE.GROUND ? 0.0011 : 0.00032;
-  scene.background.copy(scene.fog.color);
+  scene.fog.color.copy(FOG).lerp(new THREE.Color('#c98a4a'), inStorm ? 0.7 : 0);
+  scene.fog.density = inStorm ? 0.0045 : me.mode === MODE.GROUND ? 0.0006 : 0.00024;
+  if (scene.background?.isColor) scene.background.copy(scene.fog.color);
   fx.updateLoot(G.loot, camera, dt);
   // 撿取目標
   G.aimT -= dt;
@@ -600,7 +649,7 @@ function updateOther(o, rt, dt) {
   const root = o.s.root;
   const prev = root.position.clone();
   if (o.corpse) {
-    root.rotation.x = Math.min(Math.PI / 2, root.rotation.x + dt * 5);
+    poseSoldier(o.s, { mode: MODE.GROUND, dead: true, w: -1 }, dt);
     if (performance.now() - o.corpse > 20000) root.visible = false;
     return;
   }
@@ -631,7 +680,7 @@ function findAimLoot() {
 
 // ---------------- 測試與截圖用 ----------------
 window.__sc = {
-  ready: true, G, W, camera, world,
+  get ready() { return booted; }, G, W, camera, get world() { return world; }, get assets() { return ASSETS; },
   solo: (name = '測試員') => { nameInput.value = name; connect('solo'); },
   match: () => G.net?.match,
   serverMe: () => G.net?.match?.byId.get(G.myId),
@@ -646,8 +695,12 @@ window.__sc = {
     G.prevPos.set(sp.x, sp.y, sp.z); G.curPos.copy(G.prevPos); G.pending = [];
     return true;
   },
+  // 把幾個 AI 擺到自己前方（截圖看角色用）
+  bring: (n = 3, dist = 6) => {
+    const M = G.net?.match, me = M?.byId.get(G.myId); if (!M || !me) return;
+    const bots = M.players.filter((p) => p.bot && p.mode !== MODE.DEAD).slice(0, n);
+    bots.forEach((b, i) => { const a = G.yaw + (i - (n - 1) / 2) * 0.35; Object.assign(b, { mode: MODE.GROUND, x: me.x - Math.sin(a) * dist, z: me.z - Math.cos(a) * dist, y: me.y, vx: 0, vz: 0 }); b.slots[1] = ['ar', 1, 30]; b.cur = 1; b.ai.target = -1; b.ai.think = M.time + 999; b.ai.freeze = true; b.yaw = Math.atan2(-(me.x - b.x), -(me.z - b.z)); });
+  },
   give: (w, r = 2) => { const sp = G.net?.match?.byId.get(G.myId); if (!sp) return; sp.slots[1] = [w, r, 40]; sp.cur = 1; sp.ammo.h = sp.ammo.l = 200; sp.ammo.s = 30; sp.ammo.n = 20; sp.vest = 3; sp.ar = 150; sp.pinv = 5; },
 };
-requestAnimationFrame(frame);
-if (urlRoom && SERVER && nameInput.value) setTimeout(() => connect('join', urlRoom), 300);
 void decodeLoot; void RARITY; void terrainAt;

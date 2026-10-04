@@ -83,6 +83,7 @@ function wantLoot(p, it) {
 export function botThink(p, m) {
   const A = p.ai, W = m.W, r = A.r, t = m.time;
   const inp = { b: 0, yaw: p.yaw, pitch: p.pitch, u: 0, vt: m.tick };
+  if (A.freeze) { inp.yaw = p.yaw; return inp; }
   if (p.mode === MODE.PLANE) {
     const pp = planePos(m.plane, t);
     const dx = A.drop.x - pp.x, dz = A.drop.z - pp.z;

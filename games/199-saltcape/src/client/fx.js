@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { decodeLoot, RARITY } from '../core/rules.js';
 import { gunMesh } from './actors.js';
 
-export function makeFx(scene) {
+export function makeFx(scene, A) {
   const fx = { scene, tracers: [], puffs: [], lights: [] };
   // 曳光彈：共用一組線段
   const TR = 96;
@@ -92,6 +92,17 @@ export function makeFx(scene) {
     v: new THREE.BoxGeometry(0.46, 0.14, 0.52).translate(0, 0.07, 0),
   };
   const itemMats = { a: new THREE.MeshStandardMaterial({ color: '#4f5a3a', roughness: 0.7 }), p: new THREE.MeshStandardMaterial({ color: '#9cb4c0', roughness: 0.4, metalness: 0.3 }), v: new THREE.MeshStandardMaterial({ color: '#5c5440', roughness: 0.9 }) };
+  // 彈藥用 Poly Haven 的軍用彈藥箱（有的話）
+  const crate = A?.props?.old_military_crate;
+  if (crate) {
+    let mesh = null; crate.traverse((o) => { if (o.isMesh && !mesh) mesh = o; });
+    if (mesh) {
+      const g = mesh.geometry.clone(); g.computeBoundingBox();
+      const bb = g.boundingBox, sz = bb.getSize(new THREE.Vector3()), s = 0.5 / Math.max(sz.x, sz.z);
+      g.translate(-(bb.min.x + bb.max.x) / 2, -bb.min.y, -(bb.min.z + bb.max.z) / 2); g.scale(s, s, s);
+      itemGeos.a = g; itemMats.a = mesh.material;
+    }
+  }
   const itemInst = {};
   for (const k of ['a', 'p', 'v']) { const im = new THREE.InstancedMesh(itemGeos[k], itemMats[k], MAXL); im.count = 0; im.castShadow = true; im.frustumCulled = false; scene.add(im); itemInst[k] = im; }
   const weaponPool = new Map(); // id → mesh

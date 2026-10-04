@@ -35,3 +35,13 @@ export async function open(url, { w = 1440, h = 900, touch = false, soft = false
   throw lastErr;
 }
 export const raf = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
+
+// 素材（../assets/199/）要經 HTTP：在同一個行程起網站伺服器（含鹽岬 WebSocket），回傳頁面網址
+export async function serve(opts = {}) {
+  const { createJadeServer } = await import('../../../server/jade-table/server.mjs');
+  const { createSaltcape } = await import('../../../server/saltcape/server.mjs');
+  const salt = createSaltcape(opts);
+  const app = createJadeServer({ port: 0, onUpgrade: salt.handleUpgrade });
+  const addr = await app.listen();
+  return { url: `http://127.0.0.1:${addr.port}/web/199-saltcape.html`, salt, close: async () => { salt.close(); await app.close(); } };
+}

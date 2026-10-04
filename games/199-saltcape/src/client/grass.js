@@ -35,7 +35,7 @@ function bladeTexture() {
     const bx = 8 + Math.random() * 112, h = 50 + Math.random() * 74, lean = (Math.random() - 0.5) * 30;
     const g = x.createLinearGradient(0, 128, 0, 128 - h);
     const v = Math.random();
-    g.addColorStop(0, `rgb(${70 + v * 30},${80 + v * 25},${40})`); g.addColorStop(1, `rgb(${190 + v * 40},${178 + v * 30},${110})`);
+    g.addColorStop(0, `rgb(${46 + v * 20},${70 + v * 25},${26})`); g.addColorStop(1, `rgb(${120 + v * 60},${150 + v * 40},${60 + v * 20})`);
     x.fillStyle = g;
     x.beginPath(); x.moveTo(bx - 2.5, 128); x.quadraticCurveTo(bx + lean * 0.4, 128 - h * 0.6, bx + lean, 128 - h); x.quadraticCurveTo(bx + lean * 0.4 + 1, 128 - h * 0.55, bx + 2.5, 128); x.fill();
   }
@@ -44,9 +44,9 @@ function bladeTexture() {
   return t;
 }
 
-export function makeGrass(W, scene) {
+export function makeGrass(W, scene, density = 1, csmify = (m) => m) {
   const mask = buildMask(W);
-  const COUNT = 7000, R = 42, STEP = 1.05;
+  const COUNT = Math.round(16000 * density), R = 48 * Math.sqrt(density), STEP = 0.78 / Math.sqrt(density);
   const q1 = new THREE.PlaneGeometry(1.3, 0.75); q1.translate(0, 0.37, 0);
   const q2 = q1.clone(); q2.rotateY(Math.PI / 2);
   const q3 = q1.clone(); q3.rotateY(Math.PI / 4);
@@ -68,6 +68,7 @@ export function makeGrass(W, scene) {
       transformed.x += sway; transformed.z += sway * 0.6;
       #endif`);
   };
+  csmify(mat);
   const mesh = new THREE.InstancedMesh(geo, mat, COUNT);
   mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(COUNT * 3), 3);
   mesh.count = 0; mesh.frustumCulled = false; mesh.receiveShadow = true;
@@ -86,7 +87,7 @@ export function makeGrass(W, scene) {
       const i0 = Math.floor((cx - R) / STEP), i1 = Math.floor((cx + R) / STEP), j0 = Math.floor((cz - R) / STEP), j1 = Math.floor((cz + R) / STEP);
       for (let j = j0; j <= j1 && n < COUNT; j++) for (let i = i0; i <= i1 && n < COUNT; i++) {
         const r1 = hash2(i, j, 5), r2 = hash2(i, j, 9);
-        if (r1 > 0.55) continue;
+        if (r1 > 0.62) continue;
         const x = (i + r2) * STEP, z = (j + hash2(i, j, 13)) * STEP;
         const dx = x - cx, dz = z - cz; if (dx * dx + dz * dz > R * R) continue;
         const mi = Math.floor((x + EXT) / MASK_CELL), mj = Math.floor((z + EXT) / MASK_CELL);
@@ -96,7 +97,7 @@ export function makeGrass(W, scene) {
         const s = 0.7 + r1 * 1.1;
         dummy.position.set(x, h - 0.05, z); dummy.rotation.set(0, r2 * 6.28, 0); dummy.scale.set(s, s * (0.8 + hash2(i, j, 21) * 0.6), s); dummy.updateMatrix();
         mesh.setMatrixAt(n, dummy.matrix);
-        col.setRGB(0.82 + r2 * 0.3, 0.84 + r1 * 0.25, 0.7 + r2 * 0.2); mesh.setColorAt(n, col);
+        col.setRGB(0.8 + r2 * 0.35, 0.85 + r1 * 0.25, 0.75 + r2 * 0.2); mesh.setColorAt(n, col);
         n++;
       }
       mesh.count = n;

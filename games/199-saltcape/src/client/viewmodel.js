@@ -1,6 +1,7 @@
 // 第一人稱手臂與槍：獨立場景、另一支鏡頭，畫在世界之上所以不會插進牆裡。
 import * as THREE from 'three';
-import { gunMesh } from './actors.js';
+import { gunMesh, camoTexture } from './actors.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { WEAPONS } from '../core/rules.js';
 
 export function makeViewmodel() {
@@ -12,14 +13,24 @@ export function makeViewmodel() {
   const rig = new THREE.Group(); scene.add(rig);
   const sway = new THREE.Group(); rig.add(sway);
   const gunHolder = new THREE.Group(); sway.add(gunHolder);
-  const sleeve = new THREE.MeshStandardMaterial({ color: '#4f4c38', roughness: 0.95 });
-  const glove = new THREE.MeshStandardMaterial({ color: '#3a3128', roughness: 0.8 });
+  const sleeve = new THREE.MeshStandardMaterial({ map: camoTexture(['#a99a77', '#7c7556', '#5c4b36', '#c9bc98'], 50, 3), roughness: 0.95 });
+  const glove = new THREE.MeshStandardMaterial({ color: '#2f2924', roughness: 0.65 });
   const arm = (side) => {
     const g = new THREE.Group();
-    const fore = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.04, 0.3, 8).rotateX(Math.PI / 2), sleeve); fore.position.z = 0.13; g.add(fore);
-    const watch = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.012, 0.03), new THREE.MeshStandardMaterial({ color: '#1f1d1a', roughness: 0.4 })); watch.position.set(0, 0.03, 0.01); if (side < 0) g.add(watch);
-    const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.036, 0.04, 8).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#4d4a37' })); cuff.position.z = -0.01; g.add(cuff);
-    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.045, 0.085), glove); hand.position.z = -0.06; g.add(hand);
+    const fore = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.046, 0.34, 12).rotateX(Math.PI / 2), sleeve); fore.position.z = 0.15; g.add(fore);
+    const fold = new THREE.Mesh(new THREE.TorusGeometry(0.036, 0.008, 6, 14).rotateX(0), sleeve); fold.position.z = 0.04; g.add(fold);
+    const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.033, 0.035, 12).rotateX(Math.PI / 2), glove); cuff.position.z = 0.0; g.add(cuff);
+    // 手套：掌心＋四指＋拇指
+    const hand = new THREE.Group(); hand.position.z = -0.045; g.add(hand);
+    const palm = new THREE.Mesh(new RoundedBoxGeometry(0.06, 0.03, 0.075, 2, 0.01), glove); hand.add(palm);
+    for (let i = 0; i < 4; i++) {
+      const f = new THREE.Group(); f.position.set(-0.022 + i * 0.0147, -0.004, -0.036); f.rotation.x = -1.1; hand.add(f);
+      const a = new THREE.Mesh(new RoundedBoxGeometry(0.013, 0.014, 0.03, 1, 0.005), glove); a.position.z = -0.014; f.add(a);
+      const b = new THREE.Group(); b.position.z = -0.028; b.rotation.x = -0.9; f.add(b);
+      const c = new THREE.Mesh(new RoundedBoxGeometry(0.012, 0.013, 0.026, 1, 0.005), glove); c.position.z = -0.012; b.add(c);
+    }
+    const th = new THREE.Mesh(new RoundedBoxGeometry(0.014, 0.014, 0.04, 1, 0.006), glove); th.position.set(0.03 * side, 0.006, -0.02); th.rotation.set(-0.3, -0.7 * side, 0); hand.add(th);
+    const watch = new THREE.Mesh(new RoundedBoxGeometry(0.032, 0.012, 0.03, 1, 0.004), new THREE.MeshStandardMaterial({ color: '#1f1d1a', roughness: 0.4 })); watch.position.set(0, 0.034, 0.025); if (side < 0) g.add(watch);
     g.userData.side = side;
     return g;
   };

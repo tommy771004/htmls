@@ -2,6 +2,8 @@
 
 瀏覽器多人連線大逃殺。從 C-7 運輸機跳傘到鹽岬島，搜刮武器與護甲，在八階段收縮的毒圈裡活到最後。頁面：`web/199-saltcape.html`（遊戲敘事）。
 
+畫面用 CC0 素材（ambientCG 掃描貼圖、Poly Haven 天空 HDRI 與道具、Kenney 車輛、Quaternius 動畫士兵，見 [CREDITS.md](CREDITS.md)），放在 `assets/199/`，所以頁面要透過網站伺服器開啟；以檔案直接開啟時退回程序貼圖與方塊人，只能離線練習。
+
 ## 玩法
 
 | 操作 | 鍵盤滑鼠 | 觸控 |
@@ -45,21 +47,26 @@ npm test                        # 規則層與伺服器測試，再跑 1440×900
 npm run mp                      # 兩個瀏覽器分頁：建房 → 分享網址加入 → 起飛 → 互射 → 換線接手 → 勝利
 npm run sim                     # Node 裡跑整場 48 人 AI 對戰並印出統計
 npm run thumb                   # 重新產生 ../../thumbs/199.jpg
+node tools/fetch-assets.mjs     # 重新下載 CC0 素材到 ../../assets/199/（需要 curl、unzip、cwebp、sips）
+blender -b -P tools/build-soldier.py   # 士兵模型（借 games/197-openworld/.cache/ 的 Quaternius 素材包）
 ```
+
+截圖、驗收與多人工具都用 `tools/lib.mjs` 的 `serve()` 在同一個行程起網站伺服器（含 `/saltcape`）。
 
 無頭瀏覽器工具讀 `PLAYWRIGHT_MODULE`（預設 `~/.npm/_npx/e41f203b7505f1fb/node_modules/playwright/index.mjs`）。獨立跑伺服器：`node server/saltcape/server.mjs`（`ws://127.0.0.1:8199/api/saltcape`），前端加 `?server=ws://主機:埠/saltcape` 指定。
 
 ## 結構
 
 - `src/core/`：不碰 DOM、伺服器與前端共用。`terrain.js` 高度場與道路、`map.js` 城鎮與建築（全部是軸對齊方塊與直立圓柱）、`physics.js` 碰撞與射線、`player.js` 移動／跳傘／武器推進、`rules.js` 數值表、`storm.js` 毒圈、`sim.js` 權威對局（命中裁定、延遲補償、戰利品、擊殺、勝負）、`bots.js` AI。
-- `src/client/`：`main.js` 大廳、預測與校正、內插、鏡頭；`world.js` 場景；`actors.js` 角色、槍、降落傘與運輸機；`viewmodel.js` 第一人稱槍；`fx.js` 曳光彈、毒圈牆與戰利品標記；`hud.js`；`audio.js`；`input.js`；`net.js` 連線與離線練習。
+- `src/client/`：`main.js` 大廳、預測與校正、內插、鏡頭、後製；`assets.js` 載入 `assets/199/`；`world.js` 場景（HDRI、級聯陰影、PBR 建築與地形混合、窗框室內細節、道路標線、樹、電線桿、車）；`actors.js` 士兵（動畫分上下半身、迷彩、頭盔背心）、槍、降落傘與運輸機；`viewmodel.js` 第一人稱槍與手套；`grass.js` 近景草叢；`fx.js` 曳光彈、毒圈牆與戰利品標記；`hud.js`；`audio.js`；`input.js`；`net.js` 連線與離線練習。
+- 畫質：預設「高」（級聯陰影＋泛光），觸控裝置「低」（單張陰影、無後製），「極高」再加 GTAO 環境遮蔽；`?q=low|mid|high|ultra` 或選單切換（存在 localStorage）。
 - `../../server/saltcape/server.mjs`：房間、配對、30 Hz 推進、15 Hz 快照、換線接手；`../../api/saltcape.mjs` 是 Vercel 入口。
 
 協定、輸入位元與快照格式見 [SPEC.md](SPEC.md)。
 
 ## 測試 API（`window.__sc`）
 
-`solo(name)` 開離線練習；之後 `place(x, z, mode, y)` 直接把自己擺到某處（0 機上、1 自由落體、2 開傘、3 地面），`give('ar', 稀有度)` 給武器與滿護甲，`look(yaw, pitch)` 轉視角，`match()` 取瀏覽器裡的 `Match`。`?server=` 指定伺服器網址；預設連同網域的 `/api/saltcape`（本機伺服器也接受 `/saltcape`）。
+`solo(name)` 開離線練習；之後 `place(x, z, mode, y)` 直接把自己擺到某處（0 機上、1 自由落體、2 開傘、3 地面），`give('ar', 稀有度)` 給武器與滿護甲，`look(yaw, pitch)` 轉視角，`bring(n)` 把 n 個 AI 定在面前（看角色用），`match()` 取瀏覽器裡的 `Match`，`assets` 是載入的素材。`?server=` 指定伺服器網址；預設連同網域的 `/api/saltcape`（本機伺服器也接受 `/saltcape`）。
 
 ## Vercel 與已知限制
 

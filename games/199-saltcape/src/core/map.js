@@ -5,19 +5,50 @@ import { buildTerrain, heightAt, TOWNS, EXT, CELL, N, coastAt } from './terrain.
 
 export const MAT = {
   plaster: 0, plasterWarm: 1, plasterRose: 2, plasterSage: 3, concrete: 4, brick: 5, wood: 6, tile: 7,
-  roof: 8, metal: 9, rust: 10, container: 11, stone: 12, trim: 13, salt: 14, car: 15, tank: 16, crate: 17, temple: 18, glass: 19,
+  roof: 8, metal: 9, rust: 10, container: 11, stone: 12, trim: 13, salt: 14, car: 15, tank: 16, crate: 17, temple: 18, glass: 19, facade: 20,
 };
-export const MAT_COUNT = 20;
+export const MAT_COUNT = 21;
+// 只供繪製的細節方塊種類（不進碰撞）
+export const DK = { frame: 0, glass: 1, base: 2, wains: 3, lamp: 4, rad: 5, ac: 6, dark: 7, steel: 8, poster: 9 };
 
 const WALL_T = 0.25;
 const STEP_N = 13, STEP_RUN = 0.3;
 
 // ---- 局部座標的建築收集器，完成後旋轉 90° 的倍數放到世界 ----
 class Local {
-  constructor() { this.boxes = []; this.cyls = []; this.loot = []; this.doors = []; this.deco = []; }
+  constructor() { this.boxes = []; this.cyls = []; this.loot = []; this.doors = []; this.deco = []; this.dboxes = []; this.glaze = false; }
   box(x0, y0, z0, x1, y1, z1, m, c = 0) {
     if (x1 - x0 < 0.01 || y1 - y0 < 0.01 || z1 - z0 < 0.01) return;
     this.boxes.push([Math.min(x0, x1), Math.min(y0, y1), Math.min(z0, z1), Math.max(x0, x1), Math.max(y0, y1), Math.max(z0, z1), m, c]);
+  }
+  dbox(x0, y0, z0, x1, y1, z1, k, c = 0) {
+    if (Math.abs(x1 - x0) < 0.004 || Math.abs(y1 - y0) < 0.004 || Math.abs(z1 - z0) < 0.004) return;
+    this.dboxes.push([Math.min(x0, x1), Math.min(y0, y1), Math.min(z0, z1), Math.max(x0, x1), Math.max(y0, y1), Math.max(z0, z1), k, c]);
+  }
+  // 門窗框與玻璃：沿 x 的牆（ax='x'）或沿 z 的牆（ax='z'），u 為沿牆座標、w 為牆中心線
+  frame(ax, a, b, w, y0, lo, hi, t) {
+    const ft = 0.07, fd = t / 2 + 0.025;
+    const B = (u0, v0, d0, u1, v1, d1, k) => (ax === 'x' ? this.dbox(u0, v0, w + d0, u1, v1, w + d1, k) : this.dbox(w + d0, v0, u0, w + d1, v1, u1, k));
+    B(a, y0 + lo, -fd, a + ft, y0 + hi, fd, DK.frame);
+    B(b - ft, y0 + lo, -fd, b, y0 + hi, fd, DK.frame);
+    B(a, y0 + hi - ft, -fd, b, y0 + hi, fd, DK.frame);
+    if (lo > 0.3) {
+      B(a - 0.05, y0 + lo - 0.03, -fd - 0.04, b + 0.05, y0 + lo + 0.04, fd + 0.04, DK.frame);
+      B(a + ft, y0 + lo + 0.04, -0.012, b - ft, y0 + hi - ft, 0.012, DK.glass);
+      if (b - a > 1.25) B((a + b) / 2 - 0.03, y0 + lo, -0.035, (a + b) / 2 + 0.03, y0 + hi, 0.035, DK.frame);
+      B(a + ft, y0 + lo + (hi - lo) * 0.62, -0.03, b - ft, y0 + lo + (hi - lo) * 0.62 + 0.05, 0.03, DK.frame);
+    }
+  }
+  // 室內踢腳板與腰牆：face 為牆內面座標，dir 為房間在哪一側（+1／-1），避開門窗
+  trim(ax, u0, u1, face, dir, y, openings) {
+    const bands = [[0, 0.1, 0.022, DK.base], [0.1, 0.92, 0.01, DK.wains]];
+    for (const [lo, hi, th, k] of bands) {
+      const cuts = openings.filter((o) => o[2] < hi && o[3] > lo && o[1] > u0 && o[0] < u1).sort((p, q) => p[0] - q[0]);
+      let u = u0;
+      const put = (a, b) => { if (b - a < 0.05) return; if (ax === 'x') this.dbox(a, y + lo, face, b, y + hi, face + dir * th, k); else this.dbox(face, y + lo, a, face + dir * th, y + hi, b, k); };
+      for (const o of cuts) { put(u, o[0]); u = Math.max(u, o[1]); }
+      put(u, u1);
+    }
   }
   // 沿 x 方向的牆（z 為牆中心線），openings: [a, b, lo, hi]（a,b 為 x 座標；lo,hi 為相對 y0 高度）
   wallX(x0, x1, z, y0, y1, t, m, openings = [], c = 0) {
@@ -27,6 +58,7 @@ class Local {
       this.box(x, y0, z - t / 2, a, y1, z + t / 2, m, c);
       if (lo > 0) this.box(a, y0, z - t / 2, b, y0 + lo, z + t / 2, m, c);
       if (y0 + hi < y1) this.box(a, y0 + hi, z - t / 2, b, y1, z + t / 2, m, c);
+      if (this.glaze) this.frame('x', a, b, z, y0, lo, hi, t);
       x = b;
     }
     this.box(x, y0, z - t / 2, x1, y1, z + t / 2, m, c);
@@ -38,6 +70,7 @@ class Local {
       this.box(x - t / 2, y0, z, x + t / 2, y1, a, m, c);
       if (lo > 0) this.box(x - t / 2, y0, a, x + t / 2, y0 + lo, b, m, c);
       if (y0 + hi < y1) this.box(x - t / 2, y0 + hi, a, x + t / 2, y1, b, m, c);
+      if (this.glaze) this.frame('z', a, b, x, y0, lo, hi, t);
       z = b;
     }
     this.box(x - t / 2, y0, z, x + t / 2, y1, z1, m, c);
@@ -93,6 +126,8 @@ function house(L, rnd, o) {
   const xp = sx0 + runL + 1.0 + Math.max(0, (ix1 - (sx0 + runL + 1.0))) * 0.45;
   const partition = w >= 10 && d >= 7 && ix1 - xp > 2.2;
   const partDoor = zS + 0.4 + rnd() * Math.max(0.1, (iz1 - A) - zS - 2.2);
+  const dr = mulberry32(Math.floor(rnd() * 4294967296)); // 細節用的亂數，不影響碰撞配置
+  L.glaze = true;
 
   for (let f = 0; f < floors; f++) {
     const y = 0.15 + f * fh, yTop = y + fh;
@@ -110,12 +145,27 @@ function house(L, rnd, o) {
     L.wallX(x0, x1, z0 + t / 2, isG ? 0.05 : y - 0.25, yTop - (f === floors - 1 ? 0 : 0.25), t, m, bo.map((p) => [p[0], p[1], p[2] + (isG ? 0.1 : 0.25), p[3] + (isG ? 0.1 : 0.25)]), tint);
     // 側牆
     const sideZ1 = isG ? z1 - A - t : z1 - t;
+    const sides = [];
     for (const sx of [x0 + t / 2, x1 - t / 2]) {
       const so = o.party && o.party.includes(sx < 0 ? 'w' : 'e') ? [] : windowsAlong(z0 + 0.6, sideZ1 - 0.4, 3, 1.1, 0.95, 2.15, sx < 0 && stairs ? [[iz0, zS + 0.3]] : [], 0.3, rnd);
       L.wallZ(z0 + t, sideZ1, sx, isG ? 0.05 : y - 0.25, yTop - (f === floors - 1 ? 0 : 0.25), t, m, so.map((p) => [p[0], p[1], p[2] + (isG ? 0.1 : 0.25), p[3] + (isG ? 0.1 : 0.25)]), tint);
+      sides.push([sx, so]);
     }
-    // 窗台
-    for (const p of fo) if (p[2] > 0.5) L.box(p[0] - 0.08, y + p[2] - 0.08 + (isG ? 0 : 0.0), fwz + t / 2, p[1] + 0.08, y + p[2] + 0.02, fwz + t / 2 + 0.14, MAT.trim);
+    // 室內：踢腳板、腰牆、吸頂燈、窗下暖氣片；室外：窗下冷氣機
+    const rel = (list) => list; // 開口高度本來就是相對樓地板
+    L.trim('x', ix0, ix1, fwz - t / 2, -1, y, rel(fo));
+    L.trim('x', ix0, ix1, z0 + t, 1, y, rel(bo));
+    for (const [sx, so] of sides) L.trim('z', z0 + t, sideZ1, sx < 0 ? x0 + t : x1 - t, sx < 0 ? 1 : -1, y, rel(so));
+    const lampZ = (zS + (isG ? iz1 - A : iz1)) / 2;
+    const lampY = yTop - (f === floors - 1 ? 0.25 : 0.25);
+    for (const lx of partition ? [(ix0 + xp) / 2 + 1, (xp + ix1) / 2] : [(ix0 + ix1) / 2 + (stairs ? 1.2 : 0)]) L.dbox(lx - 0.55, lampY - 0.04, lampZ - 0.14, lx + 0.55, lampY, lampZ + 0.14, DK.lamp);
+    for (const [sx, so] of sides) for (const wv of so) if (dr() < 0.45) { const fx = sx < 0 ? x0 + t : x1 - t, dd = sx < 0 ? 1 : -1; L.dbox(fx, y + 0.18, wv[0] + 0.1, fx + dd * 0.09, y + 0.72, wv[1] - 0.1, DK.rad); }
+    if (!isG && !o.cab) for (const [list, face, dd] of [[fo, z1, 1], [bo, z0, -1]]) for (const wv of list) {
+      if (wv[2] < 0.5 || dr() > 0.3) continue;
+      const cx = (wv[0] + wv[1]) / 2;
+      L.dbox(cx - 0.4, y + 0.1, face, cx + 0.4, y + 0.66, face + dd * 0.34, DK.ac);
+      L.dbox(cx - 0.36, y + 0.04, face, cx - 0.32, y + 0.1, face + dd * 0.36, DK.steel); L.dbox(cx + 0.32, y + 0.04, face, cx + 0.36, y + 0.1, face + dd * 0.36, DK.steel);
+    }
     // 隔間
     if (partition) L.wallZ(zS, iz1 - (isG ? A : 0), xp, y, yTop - 0.25, 0.16, m, [[partDoor, partDoor + 1.2, 0, 2.2]], tint);
     // 樓梯（第 f 段：從 f 樓到 f+1 樓／屋頂）
@@ -194,8 +244,21 @@ function house(L, rnd, o) {
     L.deco.push({ t: 'cabglass', x0, z0, x1, z1, y: roofY + 0.9, h: 1.5 });
     void doorL;
     L.loot.push([0, roofY + 0.02, (zS + z1) / 2, 2]);
+  } else if (o.gable) {
+    // 斜屋頂：畫面是兩坡加屋簷，碰撞以兩段平台近似
+    const alongX = w >= d, span = alongX ? d : w;
+    const rise = Math.min(2.6, span * 0.3);
+    for (const [k0, k1] of [[0.22, 0.4], [0.38, 0.78]]) {
+      if (alongX) L.box(x0, roofY + (k0 === 0.22 ? 0 : rise * 0.4), z0 + d * k0, x1, roofY + rise * k1, z1 - d * k0, MAT.roof);
+      else L.box(x0 + w * k0, roofY + (k0 === 0.22 ? 0 : rise * 0.4), z0, x1 - w * k0, roofY + rise * k1, z1, MAT.roof);
+    }
+    L.deco.push({ t: 'gable', x0: x0 - (alongX ? 0.35 : 0.45), z0: z0 - (alongX ? 0.45 : 0.35), x1: x1 + (alongX ? 0.35 : 0.45), z1: z1 + (alongX ? 0.45 : 0.35), y: roofY - 0.05, rise: rise + 0.1, ax: alongX ? 'x' : 'z', m });
+    if (dr() < 0.4) L.dbox(x1 - 1.6, roofY + rise * 0.55, -0.15, x1 - 1.0, roofY + rise + 0.9, 0.35, DK.dark);
   } else {
     const ph = 0.8;
+    // 屋頂冷氣主機與天線
+    for (let k = 0; k < 1 + Math.floor(dr() * 3); k++) { const ax = x0 + 1.2 + dr() * (w - 2.4), az = z1 - 1.1 - dr() * Math.min(2, d * 0.3); L.dbox(ax - 0.45, roofY, az - 0.35, ax + 0.45, roofY + 0.7, az + 0.35, DK.ac); }
+    if (dr() < 0.35) { const ax = x0 + 0.8; L.dbox(ax - 0.03, roofY, z1 - 0.8, ax + 0.03, roofY + 3.2, z1 - 0.74, DK.steel); L.dbox(ax - 0.5, roofY + 2.6, z1 - 0.8, ax + 0.5, roofY + 2.64, z1 - 0.76, DK.steel); }
     if (roofAccess) {
       const lane = (flights - 1) % 2, dir = lane === 0 ? 1 : -1;
       const hx0 = sx0 - 1.25, hx1 = sx0 + runL + 1.25, hz1 = zS + 0.3;
@@ -230,6 +293,7 @@ function house(L, rnd, o) {
 function warehouse(L, rnd, o) {
   const { w, d } = o, h = o.h || 7, t = 0.3, m = o.mat ?? MAT.metal;
   const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2;
+  L.glaze = true;
   L.box(x0 - 0.2, -1.6, z0 - 0.2, x1 + 0.2, 0.15, z1 + 0.2, MAT.concrete);
   const dw = o.open ? w - 3 : Math.min(5, w * 0.35), dh = o.open ? h - 1.2 : Math.min(5, h - 1.5);
   const door = [[-dw / 2, dw / 2, 0, dh]];
@@ -258,6 +322,31 @@ function warehouse(L, rnd, o) {
   L.doors.push([0, z1 + 0.8, 0, 1]);
   L.doors.push([x0 + 2.7, z0 - 0.8, 0, -1]);
   return h;
+}
+
+// 辦公大樓：一樓是玻璃大廳可進入，上面是實心的帷幕牆量體，屋頂可空降
+function tower(L, rnd, o) {
+  const { w, d, h } = o, t = 0.3, lob = 4.6;
+  const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2;
+  L.box(x0 - 0.2, -1.6, z0 - 0.2, x1 + 0.2, 0.15, z1 + 0.2, MAT.concrete);
+  L.box(x0 + t, 0.05, z0 + t, x1 - t, 0.17, z1 - t, MAT.tile);
+  L.glaze = true;
+  const bays = (a, b) => { const out = [], n = Math.floor((b - a) / 3.2); for (let k = 0; k < n; k++) { const c = a + (b - a) * (k + 0.5) / n; out.push([c - 1.3, c + 1.3, k === Math.floor(n / 2) ? 0 : 0.5, 3.8]); } return out; };
+  L.wallX(x0, x1, z1 - t / 2, 0.15, lob, t, MAT.concrete, bays(x0 + 1, x1 - 1));
+  L.wallX(x0, x1, z0 + t / 2, 0.15, lob, t, MAT.concrete, bays(x0 + 1, x1 - 1));
+  L.wallZ(z0 + t, z1 - t, x0 + t / 2, 0.15, lob, t, MAT.concrete, bays(z0 + 1, z1 - 1));
+  L.wallZ(z0 + t, z1 - t, x1 - t / 2, 0.15, lob, t, MAT.concrete, bays(z0 + 1, z1 - 1));
+  L.glaze = false;
+  L.box(-2.5, 0.17, -1.5, 2.5, 1.1, 1.5, MAT.wood);                 // 接待櫃台
+  for (const [cx, cz] of [[x0 + 3, z0 + 3], [x1 - 3, z0 + 3], [x0 + 3, z1 - 3], [x1 - 3, z1 - 3]]) L.box(cx - 0.4, 0.17, cz - 0.4, cx + 0.4, lob, cz + 0.4, MAT.concrete);
+  L.box(x0, lob, z0, x1, h, z1, MAT.facade);
+  L.box(x0 - 0.4, lob - 0.1, z0 - 0.4, x1 + 0.4, lob + 0.35, z1 + 0.4, MAT.concrete);
+  L.wallX(x0, x1, z0 + 0.15, h, h + 1.1, 0.3, MAT.concrete); L.wallX(x0, x1, z1 - 0.15, h, h + 1.1, 0.3, MAT.concrete);
+  L.wallZ(z0 + 0.3, z1 - 0.3, x0 + 0.15, h, h + 1.1, 0.3, MAT.concrete); L.wallZ(z0 + 0.3, z1 - 0.3, x1 - 0.15, h, h + 1.1, 0.3, MAT.concrete);
+  L.box(-2.2, h, -2.2, 2.2, h + 3.2, 2.2, MAT.concrete);              // 機房
+  for (let k = 0; k < 4; k++) { const ax = x0 + 2 + (k % 2) * (w - 4), az = z0 + 2 + Math.floor(k / 2) * (d - 4); L.dbox(ax - 0.7, h, az - 0.5, ax + 0.7, h + 1.0, az + 0.5, DK.ac); }
+  L.loot.push([x0 + 4, h + 0.02, 0, 3], [x1 - 4, h + 0.02, 0, 2], [3, 0.19, 3, 1], [-3, 0.19, -3, 1]);
+  L.doors.push([0, z1 + 0.8, 0, 1], [0, z0 - 0.8, 0, -1]);
 }
 
 function temple(L, rnd) {
@@ -289,7 +378,7 @@ export function buildMap() {
   const rnd = mulberry32(19990127);
   const W = {
     H, roads: T.roads, runway: T.runway, towns: TOWNS,
-    boxes: [], cyls: [], deco: [], loot: [], buildings: [], trees: [], rocks: [], pads: [],
+    boxes: [], cyls: [], deco: [], loot: [], buildings: [], trees: [], rocks: [], pads: [], dboxes: [], boxBld: [],
   };
   const hAt = (x, z) => heightAt(H, x, z);
   const roadD = (x, z) => {
@@ -313,11 +402,16 @@ export function buildMap() {
   function place(L, cx, cz, rot, base, meta = {}) {
     const tr = (x, z) => rot === 0 ? [cx + x, cz + z] : rot === 1 ? [cx + z, cz - x] : rot === 2 ? [cx - x, cz - z] : [cx - z, cz + x];
     let bx0 = 1e9, bz0 = 1e9, bx1 = -1e9, bz1 = -1e9, top = 0;
+    const firstBox = W.boxes.length;
     for (const b of L.boxes) {
       const [ax, az] = tr(b[0], b[2]), [cx2, cz2] = tr(b[3], b[5]);
       const nb = [Math.min(ax, cx2), b[1] + base, Math.min(az, cz2), Math.max(ax, cx2), b[4] + base, Math.max(az, cz2), b[6], b[7]];
       W.boxes.push(nb);
       if (b[1] > -0.5) { bx0 = Math.min(bx0, nb[0]); bz0 = Math.min(bz0, nb[2]); bx1 = Math.max(bx1, nb[3]); bz1 = Math.max(bz1, nb[5]); top = Math.max(top, b[4]); }
+    }
+    for (const b of L.dboxes) {
+      const [ax, az] = tr(b[0], b[2]), [cx2, cz2] = tr(b[3], b[5]);
+      W.dboxes.push([Math.min(ax, cx2), b[1] + base, Math.min(az, cz2), Math.max(ax, cx2), b[4] + base, Math.max(az, cz2), b[6], b[7]]);
     }
     for (const c of L.cyls) { const [x, z] = tr(c[0], c[1]); W.cyls.push([x, z, c[2], c[3] + base, c[4] + base, c[5]]); }
     for (const p of L.loot) { const [x, z] = tr(p[0], p[2]); W.loot.push([x, p[1] + base, z, p[3]]); }
@@ -325,6 +419,7 @@ export function buildMap() {
     for (const dc of L.deco) {
       const o = { ...dc, rot };
       if ('x' in dc) { const [x, z] = tr(dc.x, dc.z); o.x = x; o.z = z; }
+      if (dc.ax) o.ax = (dc.ax === 'x') === (rot % 2 === 0) ? 'x' : 'z';
       if ('x0' in dc) { const [a0, b0] = tr(dc.x0, dc.z0), [a1, b1] = tr(dc.x1, dc.z1); o.x0 = Math.min(a0, a1); o.z0 = Math.min(b0, b1); o.x1 = Math.max(a0, a1); o.z1 = Math.max(b0, b1); }
       o.y = (dc.y || 0) + base;
       W.deco.push(o);
@@ -332,6 +427,7 @@ export function buildMap() {
     if (bx0 < 1e9) {
       occupied.push([bx0, bz0, bx1, bz1]);
       W.buildings.push({ x0: bx0, z0: bz0, x1: bx1, z1: bz1, y: base, top: base + top, doors, ...meta });
+      for (let i = firstBox; i < W.boxes.length; i++) W.boxBld[i] = W.buildings.length - 1;
     }
   }
   const baseUnder = (cx, cz, w, d) => {
@@ -445,8 +541,8 @@ export function buildMap() {
     } else if (town.kind === 'cape') {
       addCyl(cx + 8, cz + 34, 3.4, 27, MAT.stone, null, { t: 'lighthouse' });
       W.loot.push([cx + 8, hAt(cx + 8, cz + 34) + 27.02, cz + 34, 3]);
-      addHouse(cx - 6, cz + 18, 0, { w: 9, d: 7, floors: 1, mat: MAT.plaster }, meta);
-      for (let k = 0; k < 5; k++) { const a = k * 1.3; addHouse(cx - 40 + 70 * (k / 4), cz - 30 + 14 * csin(a), k % 2 ? 0 : 2, { w: 8 + rnd.int(0, 3), d: 7 + rnd.int(0, 2), floors: 1 + (rnd() < 0.5 ? 1 : 0), roofAccess: rnd() < 0.5 }, meta); }
+      addHouse(cx - 6, cz + 18, 0, { w: 9, d: 7, floors: 1, mat: MAT.plaster, gable: true }, meta);
+      for (let k = 0; k < 5; k++) { const a = k * 1.3; addHouse(cx - 40 + 70 * (k / 4), cz - 30 + 14 * csin(a), k % 2 ? 0 : 2, { w: 8 + rnd.int(0, 3), d: 7 + rnd.int(0, 2), floors: 1 + (rnd() < 0.5 ? 1 : 0), roofAccess: false, gable: true }, meta); }
     } else if (town.kind === 'pans') {
       // 鹽田：整片淺池格與堤
       for (let i = 0; i < 7; i++) for (let j = 0; j < 9; j++) {
@@ -463,7 +559,7 @@ export function buildMap() {
       for (let k = 0; k < 4; k++) addCyl(cx - 45 + k * 26, cz - 30, 6.2, 11 + k % 2 * 2, MAT.stone, null, { t: 'kiln' });
       addCyl(cx + 62, cz - 32, 1.4, 26, MAT.brick, null, { t: 'chimney' });
       addWarehouse(cx + 30, cz + 20, 0, { w: 22, d: 14, h: 6, mat: MAT.concrete }, meta);
-      for (let k = 0; k < 6; k++) addHouse(cx - 60 + (k % 3) * 22, cz + 18 + Math.floor(k / 3) * 22, k % 2 ? 0 : 2, { w: 8 + rnd.int(0, 2), d: 7 + rnd.int(0, 2), floors: 1 + (rnd() < 0.5 ? 1 : 0), roofAccess: rnd() < 0.4 }, meta);
+      for (let k = 0; k < 6; k++) addHouse(cx - 60 + (k % 3) * 22, cz + 18 + Math.floor(k / 3) * 22, k % 2 ? 0 : 2, { w: 8 + rnd.int(0, 2), d: 7 + rnd.int(0, 2), floors: 1 + (rnd() < 0.5 ? 1 : 0), roofAccess: false, gable: true }, meta);
       addHouse(cx + 70, cz + 50, 1, { w: 12, d: 9, floors: 2, mat: MAT.concrete, roofAccess: true }, meta);
       for (let k = 0; k < 40; k++) W.rocks.push([cx - 70 + rnd() * 140, 0, cz - 80 + rnd() * 30, 0.6 + rnd() * 1.4]);
     } else if (town.kind === 'airfield') {
@@ -488,10 +584,10 @@ export function buildMap() {
       for (let k = 0; k < 16; k++) {
         const a = rnd() * 6.283, r = 18 + rnd() * (town.r - 30);
         const hx = cx + ccos(a) * r, hz = cz + csin(a) * r;
-        addHouse(hx, hz, rnd.int(0, 3), { w: 7 + rnd.int(0, 4), d: 6 + rnd.int(0, 3), floors: 1 + (rnd() < 0.45 ? 1 : 0), mat: rnd.pick([MAT.plaster, MAT.plaster, MAT.plasterWarm, MAT.stone]), roofAccess: rnd() < 0.4, pad: 3 }, meta);
+        addHouse(hx, hz, rnd.int(0, 3), { w: 7 + rnd.int(0, 4), d: 6 + rnd.int(0, 3), floors: 1 + (rnd() < 0.45 ? 1 : 0), mat: rnd.pick([MAT.plaster, MAT.plaster, MAT.plasterWarm, MAT.stone]), roofAccess: false, gable: rnd() < 0.75, pad: 3 }, meta);
       }
       // 小教堂
-      addHouse(cx, cz, 0, { w: 9, d: 16, floors: 1, fh: 6, mat: MAT.plaster, tank: false, pad: 3 }, { ...meta, chapel: true });
+      addHouse(cx, cz, 0, { w: 9, d: 16, floors: 1, fh: 6, mat: MAT.plaster, tank: false, gable: true, pad: 3 }, { ...meta, chapel: true });
       W.deco.push({ t: 'belfry', x: cx, z: cz + 8.6, y: hAt(cx, cz) + 6.2 });
       for (let k = 0; k < 160; k++) { const x = cx - 170 + rnd() * 340, z = cz - 150 + rnd() * 300; W.trees.push([x, 0, z, 0, 0.8 + rnd() * 0.6]); }
     } else if (town.kind === 'radar') {
@@ -504,6 +600,11 @@ export function buildMap() {
       pave(cx - 10, cz - 40, cx + 10, cz + 40, y, 2);
       for (let k = 0; k < 10; k++) addCar(cx - 7 + (k % 2) * 14, cz - 34 + Math.floor(k / 2) * 15, false, y);
       addHouse(cx, cz + 62, 0, { w: 12, d: 9, floors: 1, mat: MAT.concrete }, { ...meta, shop: true });
+      // 辦公大樓群
+      for (const [tx, tz, th] of [[cx + 72, cz - 38, 38], [cx + 74, cz + 14, 30], [cx - 66, cz + 30, 26]]) {
+        const L = new Local(); tower(L, rnd, { w: 18, d: 16, h: th });
+        if (free(tx - 9, tz - 8, tx + 9, tz + 8, 1)) place(L, tx, tz, 0, y, { kind: 'tower', floors: 1, town: town.id });
+      }
     }
   }
   // 路邊散落的農舍
@@ -515,7 +616,7 @@ export function buildMap() {
     if (TOWNS.some((t) => Math.sqrt((t.x - x) ** 2 + (t.z - z) ** 2) < t.r + 50)) continue;
     const { base, flat } = baseUnder(x, z, 12, 10);
     if (flat > 2.5 || base < 2) continue;
-    if (addHouse(x, z, side < 0 ? 1 : 3, { w: 8 + rnd.int(0, 3), d: 7 + rnd.int(0, 2), floors: 1 + (rnd() < 0.4 ? 1 : 0), roofAccess: rnd() < 0.3, pad: 4, base }, { town: null })) farms++;
+    if (addHouse(x, z, side < 0 ? 1 : 3, { w: 8 + rnd.int(0, 3), d: 7 + rnd.int(0, 2), floors: 1 + (rnd() < 0.4 ? 1 : 0), roofAccess: false, gable: true, pad: 4, base }, { town: null })) farms++;
   }
   // 樹與岩石
   const treeRnd = mulberry32(4401);
