@@ -11,6 +11,7 @@ import { makeViewmodel } from './viewmodel.js';
 import { makeFx } from './fx.js';
 import { makeAudio } from './audio.js';
 import { makeHud, mapImage, esc, fmt } from './hud.js';
+import { gunIcon, icon } from './icons.js';
 import { makeInput } from './input.js';
 import { NetClient, LocalClient, serverURL } from './net.js';
 import { makeGrass } from './grass.js';
@@ -310,7 +311,7 @@ function onEvent(ev) {
     }
     case 'k': {
       const kn = ev.k >= 0 ? nameOf(ev.k) : '', vn = nameOf(ev.v);
-      const html = ev.w === 'storm' ? `<span class="v">${esc(vn)}</span><span class="w">被毒圈吞噬</span>` : `<span class="a">${esc(kn)}</span><span class="w">${esc(WNAME(ev.w))}</span>${ev.hs ? '<span class="hs">爆頭</span>' : ''}<span class="v">${esc(vn)}</span>`;
+      const html = ev.w === 'storm' ? `<span class="w">毒圈</span><span class="v">${esc(vn)}</span>` : `<span class="a">${esc(kn)}</span>${gunIcon(ev.w)}${ev.hs ? `<span class="hs">${icon('head')}</span>` : ''}<span class="v">${esc(vn)}</span>`;
       hud.feed(html, ev.k === G.myId || ev.v === G.myId);
       const o = G.others.get(ev.v);
       if (o) { o.corpse = performance.now(); }
@@ -344,7 +345,7 @@ function onEvent(ev) {
 function showDead() {
   const d = G.dead; if (!d) return;
   const box = $('deadBox');
-  const by = d.k >= 0 ? `淘汰者 <b>${esc(nameOf(d.k))}</b> · ${esc(WNAME(d.w))}${d.hs ? ' <span class="hs">爆頭</span>' : ''} · ${d.d} 公尺` : '被毒圈吞噬';
+  const by = d.k >= 0 ? `<span class="k">淘汰者</span><span class="who">${esc(nameOf(d.k))}</span>${gunIcon(d.w)}<span>${esc(WNAME(d.w))}</span>${d.hs ? '<span class="hs">爆頭</span>' : ''}<span class="num">${d.d} 公尺</span>` : '<span class="k">淘汰原因</span><span class="who">毒圈</span>';
   box.innerHTML = `<div class="pl">淘汰 <em>#${d.place}</em> <small>/ ${G.match.players.size}</small></div><div class="by pnl">${by}</div>
     <div class="row" id="specRow"></div><div class="acts" style="display:flex;gap:10px"><button class="btn alt" id="bSum">結算並離開</button></div>`;
   box.classList.remove('hidden');
@@ -368,12 +369,20 @@ function showResult(ev) {
   const place = row?.pl || G.dead?.place || G.alive || 0;
   const won = ev && ev.win === G.myId;
   const winner = ev && ev.win >= 0 ? ev.stand.find((r) => r.id === ev.win) : null;
+  const mins = fmt((G.match ? estTick() - G.match.startTick : 0) * DT);
+  const back = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const again = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8a4.5 4.5 0 1 0 1.4-3.3M3 2.5v3h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const fwd = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   $('resultCard').innerHTML = `
-    <div class="head"><div><div class="verdict">${won ? '鹽岬最後的生還者' : spect ? '觀戰結束' : '本局結束'}</div><div class="place">${spect ? '觀戰' : `#${place}<small> / ${total}</small>`}</div></div>
-      <div class="stats"><div><b>${row ? row.k : me.kills || 0}</b><span>擊殺</span></div><div><b>${row ? row.d : Math.round(me.dmg || 0)}</b><span>傷害</span></div><div><b>${fmt((G.match ? estTick() - G.match.startTick : 0) * DT)}</b><span>存活時間</span></div></div></div>
-    ${winner ? `<div class="win">勝者 <b style="color:var(--ochre)">${esc(winner.n)}</b>，${winner.k} 殺</div>` : '<div class="win">對局仍在進行，結束後名次表會出現在這裡。</div>'}
-    <div class="acts">${G.solo ? '<button class="btn primary" id="rAgain">再來一場 <small>離線練習</small></button>' : '<button class="btn primary" id="rAgain">再來一場 <small>留在這個房間</small></button>'}<button class="btn alt" id="rLeave">回到大廳</button></div>
-    ${ev ? `<div class="tbl">${hud.standings(ev.stand, G.myId)}</div>` : ''}`;
+    <div class="sum">
+      <div class="lab">${won ? '鹽岬最後的生還者 · ' : ''}鹽岬島 · ${mins} 對局</div>
+      <div class="place">${spect ? '觀戰' : `#${place}`}</div>
+      <div class="stats"><div><span>名次</span><b>${spect ? '-' : `${place} / ${total}`}</b></div><div><span>擊殺</span><b>${row ? row.k : me.kills || 0}</b></div><div><span>傷害</span><b>${row ? row.d : Math.round(me.dmg || 0)}</b></div></div>
+      ${winner ? `<div class="win">${icon('trophy')}<b>${esc(winner.n)}</b> 以 ${winner.k} 殺獲勝${won ? '（你）' : ''}</div>` : '<div class="win">對局仍在進行，結束後名次表會出現在這裡。</div>'}
+      <div class="acts"><button class="rb pri" id="rAgain">${again}${G.solo ? '再來一場' : '再來一場'}</button><button class="rb" id="rLeave">${G.solo ? '回到大廳' : '尋找新對局'}${fwd}</button></div>
+    </div>
+    ${ev ? `<div class="tbl"><h3>名次表</h3>${hud.standings(ev.stand, G.myId)}</div>` : ''}`;
+  $('resultNav').innerHTML = `<span class="back">${back}鹽岬大逃殺</span><span class="on">${G.solo ? '離線練習' : '<i></i>已連線'}</span>`;
   $('result').classList.remove('hidden'); $('hud').classList.add('hidden');
   $('rAgain').onclick = () => {
     $('result').classList.add('hidden');
@@ -569,7 +578,7 @@ function gameFrame(dt, time) {
       camera.position.copy(o).addScaledVector(dir, Math.max(0.4, Math.min(5.5, hit - 0.35)));
       camera.lookAt(p.x, p.y + 1.4, p.z);
       focus = { x: p.x, z: p.z, yaw: t.s.root.rotation.y };
-      $('specRow') && ($('specRow').innerHTML = `觀戰 <b>${esc(nameOf(t.id))}</b> · 點擊畫面切換 · 移動滑鼠繞看`);
+      $('specRow') && ($('specRow').innerHTML = `<span class="pnl">觀戰中 <b>${esc(nameOf(t.id))}</b></span><span class="pnl"><kbd>點擊</kbd> 切換對象</span><span class="pnl"><kbd>滑鼠</kbd> 越肩繞看</span>`);
     }
     mySoldier.root.visible = false;
   } else if (me.mode === MODE.PLANE) {
@@ -703,7 +712,7 @@ function findAimLoot() {
 
 // ---------------- 測試與截圖用 ----------------
 window.__sc = {
-  get ready() { return booted; }, G, W, camera, get world() { return world; }, get assets() { return ASSETS; },
+  get ready() { return booted; }, G, W, camera, get hud() { return hud; }, get world() { return world; }, get assets() { return ASSETS; },
   solo: (name = '測試員') => { nameInput.value = name; connect('solo'); },
   match: () => G.net?.match,
   serverMe: () => G.net?.match?.byId.get(G.myId),

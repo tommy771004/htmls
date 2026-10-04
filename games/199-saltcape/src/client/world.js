@@ -668,7 +668,7 @@ function buildPoles(W, csmify) {
 
 function buildDeco(W, T, A, mats, csmify) {
   const grp = new THREE.Group();
-  const geo = { stone: [], white: [], red: [], dark: [], metal: [], roof: [], glass: [], wheel: [], hay: [], timber: [], gableRoof: new Map(), gableEnd: new Map() };
+  const geo = { stone: [], white: [], red: [], dark: [], metal: [], roof: [], glass: [], wheel: [], hay: [], timber: [], wood: [], gableRoof: new Map(), gableEnd: new Map() };
   const signGroup = new THREE.Group();
   const wheel = new THREE.CylinderGeometry(0.36, 0.36, 0.26, 12); wheel.rotateZ(Math.PI / 2);
   const carModels = A ? Object.values(A.cars || {}) : [];
@@ -739,6 +739,13 @@ function buildDeco(W, T, A, mats, csmify) {
       const side = new THREE.MeshStandardMaterial({ color: '#2a2622' });
       const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.8, 0.14), [side, side, side, side, face, side]);
       m.position.set(d.x, d.y + 0.4, d.z); m.rotation.y = d.rot * Math.PI / 2; m.castShadow = true; signGroup.add(m);
+    } else if (d.t === 'wtower') {
+      // 紐約式屋頂木造水塔：四根鐵腳、木桶、鐵箍、圓錐頂
+      for (const [lx, lz] of [[-0.85, -0.85], [0.85, -0.85], [-0.85, 0.85], [0.85, 0.85]]) { const g = new THREE.CylinderGeometry(0.08, 0.08, 2.7, 6); g.translate(d.x + lx, d.y + 1.35, d.z + lz); geo.metal.push(g); }
+      const deck = new THREE.CylinderGeometry(1.45, 1.45, 0.15, 16); deck.translate(d.x, d.y + 2.72, d.z); geo.timber.push(deck);
+      const barrel = new THREE.CylinderGeometry(1.2, 1.28, 3.0, 20); barrel.translate(d.x, d.y + 4.3, d.z); geo.wood.push(barrel);
+      for (let k = 0; k < 4; k++) { const b = new THREE.CylinderGeometry(1.27 - k * 0.02, 1.27 - k * 0.02, 0.07, 20, 1, true); b.translate(d.x, d.y + 3.1 + k * 0.85, d.z); geo.dark.push(b); }
+      const cone = new THREE.ConeGeometry(1.38, 1.0, 20); cone.translate(d.x, d.y + 6.3, d.z); geo.dark.push(cone);
     } else if (d.t === 'hay') {
       const g = new THREE.CylinderGeometry(0.75, 0.75, 1.5, 16); g.rotateZ(Math.PI / 2); g.rotateY(d.a); g.translate(d.x, d.y + 0.72, d.z); geo.hay.push(g);
     } else if (d.t === 'umbrella') {
@@ -765,6 +772,7 @@ function buildDeco(W, T, A, mats, csmify) {
   mk(geo.wheel, std({ color: '#1e1b18', roughness: 0.9 }));
   mk(geo.hay, std({ color: '#c9a95a', roughness: 0.95 }));
   mk(geo.timber, std({ color: '#5a4430', roughness: 0.9 }));
+  mk(geo.wood.map((g) => vcolor(strip(g), '#d9c3a2')), mats[MAT.wood]);
   for (const [m, list] of geo.gableRoof) mk(list, mats[m]);
   for (const [m, list] of geo.gableEnd) mk(list, mats[m]);
   if (geo.glass.length) grp.add(new THREE.Mesh(mergeGeometries(geo.glass.map(strip)), new THREE.MeshStandardMaterial({ color: '#4c6468', roughness: 0.05, metalness: 0.5, transparent: true, opacity: 0.55 })));

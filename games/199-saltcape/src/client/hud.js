@@ -2,6 +2,7 @@
 import { EXT, N, CELL } from '../core/map.js';
 import { WEAPONS, RARITY, AMMO, STORM, PLATE, magOf, lootLabel, decodeLoot } from '../core/rules.js';
 import { MODE } from '../core/player.js';
+import { gunIcon, icon } from './icons.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -42,11 +43,21 @@ export function mapImage(W) {
 export function makeHud(W, img) {
   const H = {};
   const mini = $('miniC').getContext('2d'), big = $('bigC').getContext('2d');
+  // 固定圖示
+  $('aliveBox').insertAdjacentHTML('afterbegin', icon('alive'));
+  $('killBox').insertAdjacentHTML('afterbegin', icon('kills'));
+  $('invP').insertAdjacentHTML('afterbegin', icon('plate'));
+  $('invV').insertAdjacentHTML('afterbegin', icon('vest'));
+  $('menuHint').insertAdjacentHTML('afterbegin', icon('pause'));
+  // 內容有變才寫入 DOM（避免每格重新解析 SVG）
+  const cache = {};
+  const setH = (id, html) => { if (cache[id] !== html) { cache[id] = html; $(id).innerHTML = html; } };
+  const DIR8 = ['北', '東北', '東', '東南', '南', '西南', '西', '西北'];
   // 羅盤刻度
   const strip = $('cstrip');
   const labels = { 0: '北', 45: '東北', 90: '東', 135: '東南', 180: '南', 225: '西南', 270: '西', 315: '西北' };
   let html = '';
-  for (let a = -360; a <= 720; a += 15) { const n = ((a % 360) + 360) % 360; html += `<span class="tk${labels[n] ? ' c' : ''}" style="left:${(a + 360) * 3}px">${labels[n] || n}</span>`; }
+  for (let a = -360; a <= 720; a += 15) { const n = ((a % 360) + 360) % 360; html += `<span class="tk${labels[n] ? ' c' : ''}${n === 0 ? ' n' : ''}" style="left:${(a + 360) * 3}px">${labels[n] || n}</span>`; }
   strip.innerHTML = html;
   const plates = $('plates');
   let lastPlates = -1, feedN = 0;
@@ -120,7 +131,7 @@ export function makeHud(W, img) {
     // 羅盤：yaw 0 朝北（-z）
     const deg = ((-me.yaw * 180 / Math.PI) % 360 + 360) % 360;
     strip.style.transform = `translateX(${-(deg + 360) * 3 + $('compass').clientWidth / 2}px)`;
-    $('heading').textContent = String(Math.round(deg) % 360).padStart(3, '0');
+    $('heading').textContent = `${String(Math.round(deg) % 360).padStart(3, '0')} ${DIR8[Math.round(deg / 45) % 8]}`;
     $('alive').textContent = s.alive;
     $('kills').textContent = me.kills || 0;
     miniT -= dt;
@@ -143,26 +154,29 @@ export function makeHud(W, img) {
         $('stT').textContent = fmt(rem);
         const total = S.state === 'wait' ? P.wait : P.shrink;
         $('stBar').style.width = `${(1 - rem / total) * 100}%`;
-        $('stInfo').textContent = `第 ${S.phase + 1}／8 圈 · 圈外每秒 ${P.dps} 傷害`;
+        setH('stInfo', `${icon('storm')}第 ${S.phase + 1}／8 圈 · 圈外每秒 ${P.dps} 傷害`);
       }
     }
     // 生命與護甲
-    $('hpNum').textContent = Math.max(0, Math.ceil(me.hp));
+    $('hpV').textContent = Math.max(0, Math.ceil(me.hp));
     const hb = $('hpbar'); hb.querySelector('b').style.transform = `scaleX(${Math.max(0, me.hp) / 100})`; hb.classList.toggle('low', me.hp < 35);
     if (lastPlates !== me.vest) { plates.innerHTML = Array.from({ length: me.vest }, () => '<i><b></b></i>').join(''); lastPlates = me.vest; }
     [...plates.children].forEach((el, i) => { el.firstChild.style.transform = `scaleX(${Math.max(0, Math.min(1, (me.ar - i * PLATE) / PLATE))})`; });
     $('pinv').textContent = me.pinv; $('vest').textContent = me.vest;
     // 武器
     const sl = me.slots[me.cur];
+    const wKey = sl ? `${sl[0]}${sl[1]}` : '';
+    if (wKey !== H._wKey) { H._wKey = wKey; $('wIcon').innerHTML = sl ? gunIcon(sl[0]) : ''; }
     if (sl) {
       const Wp = WEAPONS[sl[0]], R2 = RARITY[sl[1]];
-      $('wName').innerHTML = `${esc(Wp.name)} <small style="color:${R2.color}">${R2.name}</small><small>${Wp.auto ? '全自動' : '半自動'}</small>`;
+      setH('wName', `<span style="color:${R2.color}">${esc(Wp.name)}</span><small style="color:${R2.color}">${R2.name}</small><small class="mode">${Wp.auto ? '全自動' : '半自動'}</small>`);
       $('mag').textContent = sl[2]; $('res').textContent = `/ ${me.ammo[Wp.ammo]}`;
       $('ammo').classList.toggle('low', sl[2] <= Math.ceil(magOf(sl[0], sl[1]) * 0.25));
-      $('ammoType').textContent = AMMO[Wp.ammo].name;
-    } else { $('wName').textContent = '空手'; $('mag').textContent = '-'; $('res').textContent = ''; $('ammoType').textContent = ''; }
+      $('ammoName').textContent = AMMO[Wp.ammo].name;
+      $('ammoBar').style.width = `${Math.min(100, me.ammo[Wp.ammo] / AMMO[Wp.ammo].cap * 100)}%`;
+    } else { setH('wName', '空手'); $('mag').textContent = '-'; $('res').textContent = ''; $('ammoName').textContent = ''; $('ammoBar').style.width = '0'; }
     const other = me.slots[1 - me.cur];
-    $('wAlt').innerHTML = other ? `<kbd>Q</kbd> ${esc(WEAPONS[other[0]].name)} <span class="num">${other[2]}</span>` : '';
+    setH('wAlt', other ? `<kbd>Q</kbd>${gunIcon(other[0])}<span>${esc(WEAPONS[other[0]].name)}</span><span class="num">${other[2]}/${me.ammo[WEAPONS[other[0]].ammo]}</span>` : '');
     $('weapon').style.visibility = me.mode === MODE.GROUND ? 'visible' : 'hidden';
     $('vitals').style.visibility = me.mode === MODE.GROUND || me.mode === MODE.CHUTE || me.mode === MODE.FALL ? 'visible' : 'hidden';
     // 換彈與上甲進度
@@ -175,7 +189,7 @@ export function makeHud(W, img) {
       const d = decodeLoot(s.aimLoot.code);
       const rar = d.kind === 'w' ? `<span class="rar" style="color:${RARITY[d.r].color}">${RARITY[d.r].name}</span>` : '';
       const extra = d.kind === 'w' ? `<span class="num" style="color:var(--bone2)">${s.aimLoot.amt} 發</span>` : '';
-      pr.innerHTML = `<kbd>${s.touch ? '撿' : 'E'}</kbd> ${esc(lootLabel(s.aimLoot.code, s.aimLoot.amt))} ${rar} ${extra}`;
+      setH('prompt', `<kbd>${s.touch ? '撿' : 'E'}</kbd> ${d.kind === 'w' ? gunIcon(d.w) : ''}${esc(lootLabel(s.aimLoot.code, s.aimLoot.amt))} ${rar} ${extra}`);
       pr.classList.remove('hidden');
     } else pr.classList.add('hidden');
     // 跳傘：高度與按鍵提示
@@ -185,10 +199,11 @@ export function makeHud(W, img) {
     } else alt.classList.add('hidden');
     const key = s.touch ? '跳' : '空白鍵';
     let hint = '';
-    if (me.mode === MODE.PLANE) hint = s.canJump ? `<kbd>${key}</kbd> 跳出運輸機` : '運輸機即將飛抵鹽岬島';
-    else if (me.mode === MODE.FALL) hint = s.hag > 12 ? `<kbd>${key}</kbd> 開傘　<span style="color:var(--bone2)">W 俯衝 · 95 公尺自動開傘</span>` : '';
-    else if (me.mode === MODE.CHUTE) hint = s.hag > 130 ? `<kbd>${key}</kbd> 切斷傘繩` : '<span style="color:var(--bone2)">W 加速滑翔 · S 減速</span>';
-    if (hint) { kh.innerHTML = hint; kh.classList.remove('hidden'); } else kh.classList.add('hidden');
+    const kk = `<kbd>${s.touch ? '跳' : '空白'}</kbd>`; void key;
+    if (me.mode === MODE.PLANE) hint = s.canJump ? `${kk} 跳出運輸機` : '運輸機即將飛抵鹽岬島';
+    else if (me.mode === MODE.FALL) hint = s.hag > 12 ? `${kk} 開傘` : '';
+    else if (me.mode === MODE.CHUTE) hint = s.hag > 130 ? `${kk} 切斷傘繩` : '<kbd>W</kbd> 加速滑翔 <kbd>S</kbd> 減速';
+    if (hint) { setH('keyHint', hint); kh.classList.remove('hidden'); } else kh.classList.add('hidden');
     $('vign').style.opacity = s.inStorm ? 1 : 0;
     $('hurt').style.opacity = Math.max(0, Math.min(0.9, (1 - me.hp / 100) * 0.9 - 0.15 + s.hurtFlash));
     $('scope').style.opacity = s.scope ? 1 : 0;

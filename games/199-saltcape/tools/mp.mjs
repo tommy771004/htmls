@@ -61,7 +61,7 @@ try {
   await A.mouse.move(640, 400); await A.mouse.down(); await A.waitForTimeout(700); await A.mouse.up();
   await A.waitForTimeout(500);
   ok(pb.hp + pb.ar < hp0, `A 射擊命中 B：生命＋護甲 ${hp0} → ${(pb.hp + pb.ar).toFixed(0)}`);
-  const bHud = await B.evaluate(() => +document.querySelector('#hpNum').textContent);
+  const bHud = await B.evaluate(() => +document.querySelector('#hpV').textContent);
   ok(bHud <= pb.hp + 1, `B 的 HUD 顯示生命 ${bHud}`);
   await A.screenshot({ path: 'dist/mp-A.png' });
   await raf(B); await B.screenshot({ path: 'dist/mp-B.png' });

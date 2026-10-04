@@ -17,8 +17,16 @@ export function initBot(p, m) {
   const towns = m.W.towns;
   let tx, tz;
   // 落點直接挑一棟建築（大城鎮建築多，自然比較熱門），門口前方落地
-  const b = m.W.buildings[Math.floor(r() * m.W.buildings.length)];
+  // 盡量不和先挑好的 AI 落在同一處（30 公尺內），最多重挑 8 次
+  const taken = (m._drops ||= []);
+  let b = null;
+  for (let k = 0; k < 8; k++) {
+    b = m.W.buildings[Math.floor(r() * m.W.buildings.length)];
+    const c = b.doors[0] || [(b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2];
+    if (!taken.some((q) => (q[0] - c[0]) ** 2 + (q[1] - c[1]) ** 2 < 900)) break;
+  }
   const d0 = b.doors[0];
+  taken.push(d0 ? [d0[0], d0[1]] : [(b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2]);
   if (d0 && r() < 0.85) { tx = d0[0] + d0[2] * 3; tz = d0[1] + d0[3] * 3; }
   else { const t = towns[Math.floor(r() * towns.length)]; const a = r() * 6.283, d = r() * t.r; tx = t.x + Math.cos(a) * d; tz = t.z + Math.sin(a) * d; }
   p.ai = {
@@ -106,8 +114,9 @@ export function botThink(p, m) {
     A.think = t + 0.25 + r() * 0.15;
     const s = p.slots[p.cur];
     let range = Math.max(...p.slots.map((x) => (x ? (x[0] === 'p9' ? 26 : effRange(x[0])) : 20))) * (0.7 + A.skill * 0.5);
-    // 剛落地先搜刮，除非貼臉或被打
-    if (t - p.dropT < 45 && t - A.hurtT > 3) range = Math.min(range, 16);
+    // 剛落地先搜刮；還沒有主武器時也先找槍（落地 150 秒內），除非貼臉或被打
+    const armed = p.slots.some((x) => x && x[0] !== 'p9');
+    if ((t - p.dropT < 45 || (!armed && t - p.dropT < 150)) && t - A.hurtT > 3) range = Math.min(range, !armed && t - p.dropT < 25 ? 6 : 16);
     let best = null, bd = 1e9;
     for (const o of m.players) {
       if (o === p || o.mode === MODE.DEAD || o.mode === MODE.SPECT || o.mode === MODE.PLANE) continue;
@@ -190,11 +199,17 @@ export function botThink(p, m) {
     if (s && s[2] < magOf(s[0], s[1]) * 0.5 && p.ammo[WEAPONS[s[0]].ammo] > 0) inp.b |= BITS.RELOAD;
     if (p.ar < p.vest * 50 && p.pinv > 0 && t - p.lastHit > 1.5) inp.b |= BITS.PLATE;
     if (A.target >= 0 && t - (A.lastSeen || 0) < 6) moveTo = [A.tx, A.tz];
-    if (stormUrgent) { moveTo = [safe.x + (r() - 0.5) * 4, safe.z + (r() - 0.5) * 4]; A.lootId = 0; }
+    if (stormUrgent) {
+      // 跑毒途中，還沒主武器而且 12 公尺內有槍就順手撿（毒圈還有 15 秒以上）
+      let grab = null;
+      if (needs(p).weapon && stormRemaining(st, t) > 15) for (const it of m.nearLoot(p.x, p.z, 12)) { if (Math.abs(it.y - p.y) < 1.4 && decodeLoot(it.code).kind === 'w' && wantLoot(p, it) > 0) { grab = it; break; } }
+      if (grab) { if (A.lootId !== grab.id) { A.lootId = grab.id; A.path = planPath(p, W, grab.x, grab.z); A.lootSince = t; } }
+      else { moveTo = [safe.x + (r() - 0.5) * 4, safe.z + (r() - 0.5) * 4]; A.lootId = 0; }
+    }
     if (!moveTo && t > A.lootT) {
       A.lootT = t + 0.7 + r() * 0.5;
       let best = null, bs = 0;
-      for (const it of m.nearLoot(p.x, p.z, 42)) {
+      for (const it of m.nearLoot(p.x, p.z, needs(p).weapon ? 70 : 42)) {
         if (it.y > p.y + 1.4 || it.y < p.y - 1.4) continue;
         const w = wantLoot(p, it);
         if (w <= 0) continue;

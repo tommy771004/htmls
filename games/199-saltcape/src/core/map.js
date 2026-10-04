@@ -351,6 +351,39 @@ function house(L, rnd, o) {
     L.dbox(x0 - 0.06, 0.05, z0, x0, 0.45, z1, DK.found); L.dbox(x1, 0.05, z0, x1 + 0.06, 0.45, z1, DK.found);
   }
   if (o.chimney) { const ccx = x0 + w * 0.22, ccz = z0 + d * 0.3; L.dbox(ccx - 0.4, roofY - 0.2, ccz - 0.35, ccx + 0.4, roofY + Math.min(2.6, d * 0.3) + 1.1, ccz + 0.35, DK.brick); L.dbox(ccx - 0.48, roofY + Math.min(2.6, d * 0.3) + 1.1, ccz - 0.43, ccx + 0.48, roofY + Math.min(2.6, d * 0.3) + 1.25, ccz + 0.43, DK.corn); }
+  // 斜屋頂的簷溝與落水管
+  if (o.gable) {
+    const alongX = w >= d;
+    if (alongX) for (const ez of [z0 - 0.42, z1 + 0.28]) { L.dbox(x0 - 0.3, roofY - 0.2, ez, x1 + 0.3, roofY - 0.04, ez + 0.14, DK.corn); for (const ex of [x0 + 0.12, x1 - 0.22]) L.dbox(ex, 0.15, ez < z0 ? z0 - 0.12 : z1 + 0.02, ex + 0.1, roofY - 0.1, ez < z0 ? z0 - 0.02 : z1 + 0.12, DK.corn); }
+    else for (const ex of [x0 - 0.42, x1 + 0.28]) { L.dbox(ex, roofY - 0.2, z0 - 0.3, ex + 0.14, roofY - 0.04, z1 + 0.3, DK.corn); for (const ez of [z0 + 0.12, z1 - 0.22]) L.dbox(ex < x0 ? x0 - 0.12 : x1 + 0.02, 0.15, ez, ex < x0 ? x0 - 0.02 : x1 + 0.12, roofY - 0.1, ez + 0.1, DK.corn); }
+  }
+  // 公寓：門前兩階台階、側面的鐵製消防梯、屋頂木造水塔
+  if (o.cornice && !o.arcade) {
+    L.dbox(doorX - 0.95, -0.6, z1, doorX + 0.95, 0.15, z1 + 0.75, DK.found);
+    L.dbox(doorX - 0.95, -0.6, z1 + 0.75, doorX + 0.95, -0.02, z1 + 1.15, DK.found);
+  }
+  if (o.cornice && !o.gable && floors >= 3 && dr() < 0.6) {
+    const zc = (z0 + z1) / 2, hl = Math.min(2.2, d / 2 - 1.2), ox = x1, dep = 1.15;
+    for (let f = 1; f < floors; f++) {
+      const y = 0.15 + f * fh - 0.08;
+      L.dbox(ox, y - 0.06, zc - hl, ox + dep, y, zc + hl, DK.dark);
+      L.dbox(ox + dep - 0.05, y + 0.9, zc - hl, ox + dep, y + 0.96, zc + hl, DK.dark);
+      L.dbox(ox + 0.02, y + 0.9, zc - hl - 0.05, ox + dep, y + 0.96, zc - hl, DK.dark);
+      L.dbox(ox + 0.02, y + 0.9, zc + hl, ox + dep, y + 0.96, zc + hl + 0.05, DK.dark);
+      for (let q = 0; q <= 8; q++) { const zz = zc - hl + (2 * hl) * q / 8; L.dbox(ox + dep - 0.04, y, zz - 0.02, ox + dep, y + 0.9, zz + 0.02, DK.dark); }
+      // 往上一層的斜梯（踏板＋兩側梯樑）
+      if (f < floors - 1) {
+        const n = 9;
+        for (let q = 0; q < n; q++) { const t = (q + 0.5) / n, zz = zc - hl * 0.8 + hl * 1.6 * t, yy = y + fh * t; L.dbox(ox + 0.2, yy - 0.03, zz - 0.1, ox + 0.75, yy, zz + 0.1, DK.dark); }
+        for (const sx of [0.16, 0.75]) for (let q = 0; q < 6; q++) { const t0 = q / 6, t1 = (q + 1) / 6; L.dbox(ox + sx, y + fh * t0, zc - hl * 0.8 + hl * 1.6 * t0, ox + sx + 0.04, y + fh * t1, zc - hl * 0.8 + hl * 1.6 * t1, DK.dark); }
+      }
+    }
+  }
+  if (o.cornice && !o.gable && floors >= 4 && dr() < 0.45) {
+    const cx = x0 + 2.2, cz = z0 + 2.2;
+    L.cyls.push([cx, cz, 1.25, roofY, roofY + 6.4, MAT.tank]);
+    L.deco.push({ t: 'wtower', x: cx, z: cz, y: roofY });
+  }
   L.doors.push([doorX, z1 + 0.6, 0, 1]);
   if (hasBack) L.doors.push([backX, z0 - 0.6, 0, -1]);
   return roofY;
@@ -407,13 +440,22 @@ function tower(L, rnd, o) {
   L.glaze = false;
   L.box(-2.5, 0.17, -1.5, 2.5, 1.1, 1.5, MAT.wood);                 // 接待櫃台
   for (const [cx, cz] of [[x0 + 3, z0 + 3], [x1 - 3, z0 + 3], [x0 + 3, z1 - 3], [x1 - 3, z1 - 3]]) L.box(cx - 0.4, 0.17, cz - 0.4, cx + 0.4, lob, cz + 0.4, MAT.concrete);
-  L.box(x0, lob, z0, x1, h, z1, MAT.facade);
+  // 高樓在約 2/3 高度退縮一圈（退縮平台可空降），頂部有壓頂與機房，立面有垂直鋁鰭
+  const sb = h > 34 ? 2.2 : 0, h1 = sb ? Math.round(h * 0.66) : h;
+  const parapet = (a0, b0, a1, b1, y) => { L.wallX(a0, a1, b0 + 0.15, y, y + 1.1, 0.3, MAT.concrete); L.wallX(a0, a1, b1 - 0.15, y, y + 1.1, 0.3, MAT.concrete); L.wallZ(b0 + 0.3, b1 - 0.3, a0 + 0.15, y, y + 1.1, 0.3, MAT.concrete); L.wallZ(b0 + 0.3, b1 - 0.3, a1 - 0.15, y, y + 1.1, 0.3, MAT.concrete); };
+  L.box(x0, lob, z0, x1, h1, z1, MAT.facade);
   L.box(x0 - 0.4, lob - 0.1, z0 - 0.4, x1 + 0.4, lob + 0.35, z1 + 0.4, MAT.concrete);
-  L.wallX(x0, x1, z0 + 0.15, h, h + 1.1, 0.3, MAT.concrete); L.wallX(x0, x1, z1 - 0.15, h, h + 1.1, 0.3, MAT.concrete);
-  L.wallZ(z0 + 0.3, z1 - 0.3, x0 + 0.15, h, h + 1.1, 0.3, MAT.concrete); L.wallZ(z0 + 0.3, z1 - 0.3, x1 - 0.15, h, h + 1.1, 0.3, MAT.concrete);
+  const tx0 = x0 + sb, tz0 = z0 + sb, tx1 = x1 - sb, tz1 = z1 - sb;
+  if (sb) { L.box(tx0, h1, tz0, tx1, h, tz1, MAT.facade); L.box(x0 - 0.2, h1 - 0.1, z0 - 0.2, x1 + 0.2, h1 + 0.25, z1 + 0.2, MAT.concrete); parapet(x0, z0, x1, z1, h1 + 0.25); L.loot.push([x0 + 1.1, h1 + 0.27, 0, 2]); }
+  L.box(tx0 - 0.3, h - 0.1, tz0 - 0.3, tx1 + 0.3, h + 0.2, tz1 + 0.3, MAT.concrete);
+  parapet(tx0, tz0, tx1, tz1, h);
   L.box(-2.2, h, -2.2, 2.2, h + 3.2, 2.2, MAT.concrete);              // 機房
-  for (let k = 0; k < 4; k++) { const ax = x0 + 2 + (k % 2) * (w - 4), az = z0 + 2 + Math.floor(k / 2) * (d - 4); L.dbox(ax - 0.7, h, az - 0.5, ax + 0.7, h + 1.0, az + 0.5, DK.ac); }
-  L.loot.push([x0 + 4, h + 0.02, 0, 3], [x1 - 4, h + 0.02, 0, 2], [3, 0.19, 3, 1], [-3, 0.19, -3, 1]);
+  for (let k = 0; k < 4; k++) { const ax = tx0 + 2 + (k % 2) * (tx1 - tx0 - 4), az = tz0 + 2 + Math.floor(k / 2) * (tz1 - tz0 - 4); L.dbox(ax - 0.7, h, az - 0.5, ax + 0.7, h + 1.0, az + 0.5, DK.ac); }
+  L.dbox(1.4, h + 3.2, 1.4, 1.5, h + 9, 1.5, DK.steel);               // 天線
+  const fins = (a0, a1, b, nb, y0, y1) => { const n = Math.floor((a1 - a0) / 3.1); for (let k = 1; k < n; k++) { const a = a0 + (a1 - a0) * k / n; if (nb === 'z0' || nb === 'z1') L.dbox(a - 0.07, y0, nb === 'z0' ? b - 0.32 : b, a + 0.07, y1, nb === 'z0' ? b : b + 0.32, DK.steel); else L.dbox(nb === 'x0' ? b - 0.32 : b, y0, a - 0.07, nb === 'x0' ? b : b + 0.32, y1, a + 0.07, DK.steel); } };
+  fins(x0, x1, z0, 'z0', lob + 0.35, h1 - 0.1); fins(x0, x1, z1, 'z1', lob + 0.35, h1 - 0.1); fins(z0, z1, x0, 'x0', lob + 0.35, h1 - 0.1); fins(z0, z1, x1, 'x1', lob + 0.35, h1 - 0.1);
+  if (sb) { fins(tx0, tx1, tz0, 'z0', h1 + 0.25, h - 0.1); fins(tx0, tx1, tz1, 'z1', h1 + 0.25, h - 0.1); fins(tz0, tz1, tx0, 'x0', h1 + 0.25, h - 0.1); fins(tz0, tz1, tx1, 'x1', h1 + 0.25, h - 0.1); }
+  L.loot.push([tx0 + 3, h + 0.22, 0, 3], [tx1 - 3, h + 0.22, 0, 2], [3, 0.19, 3, 1], [-3, 0.19, -3, 1]);
   L.doors.push([0, z1 + 0.8, 0, 1], [0, z0 - 0.8, 0, -1]);
 }
 

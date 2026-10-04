@@ -69,7 +69,8 @@ export class Match {
     const r = mulberry32(this.seed ^ 0x5a17);
     const pickW = (tier) => {
       const roll = r();
-      const pool = tier >= 2 ? ['ar', 'ar', 'dmr', 'smg', 'sg', 'sr'] : tier === 1 ? ['smg', 'ar', 'sg', 'p9', 'ar', 'smg', 'dmr'] : ['p9', 'smg', 'sg', 'ar', 'smg'];
+      // 每人開局都有手槍，地上不再刷手槍
+      const pool = tier >= 2 ? ['ar', 'ar', 'dmr', 'smg', 'sg', 'sr'] : tier === 1 ? ['smg', 'ar', 'sg', 'ar', 'smg', 'dmr'] : ['smg', 'sg', 'ar', 'smg', 'ar'];
       const w = pool[Math.floor(roll * pool.length)];
       const rr = r() + tier * 0.12;
       const rar = rr > 0.95 ? 3 : rr > 0.78 ? 2 : rr > 0.45 ? 1 : 0;
@@ -93,6 +94,17 @@ export class Match {
       } else {
         this.addLoot(r() < 0.75 - tier * 0.15 ? LOOT.VEST2 : LOOT.VEST3, 1, x + j(), y, z + j());
       }
+    }
+    // 多數建築一樓門內會有一把主武器（AI 只搜一樓，避免開局全是手槍戰）
+    for (const b of this.W.buildings) {
+      const d = b.doors[0];
+      if (!d || r() > 0.85) continue;
+      const x = d[0] - d[2] * 2.4, z = d[1] - d[3] * 2.4;
+      if (x < b.x0 || x > b.x1 || z < b.z0 || z > b.z1) continue;
+      const [, w, rar] = pickW(1);
+      this.addLoot(weaponCode(w, rar), magOf(w, rar), x, b.y + 0.19, z);
+      const a = WEAPONS[w].ammo;
+      this.addLoot(LOOT.AMMO0 + AMMO_KEYS.indexOf(a), AMMO[a].pack, x + 0.6, b.y + 0.19, z + 0.3);
     }
   }
   addLoot(code, amt, x, y, z, emit = false) {
@@ -219,6 +231,7 @@ export class Match {
   damage(v, amount, attacker, w, hs = false, dist = 0) {
     if (v.mode === MODE.DEAD || v.mode === MODE.SPECT || amount <= 0) return;
     let rest = amount, broke = false;
+    const dealt = Math.min(amount, Math.max(0, v.hp) + (w !== 'storm' ? v.ar : 0)); // 溢出的傷害不計入統計
     if (w !== 'storm' && v.ar > 0) {
       const a = Math.min(v.ar, rest);
       v.ar -= a; rest -= a;
@@ -227,7 +240,7 @@ export class Match {
     v.hp -= rest;
     v.lastHit = this.time;
     v.pt = 0;
-    if (attacker) attacker.dmg += amount;
+    if (attacker) attacker.dmg += dealt;
     if (v.ai) v.ai.hurtBy = attacker ? attacker.id : -1, v.ai.hurtT = this.time;
     const killed = v.hp <= 0;
     if (attacker) this.emitTo(attacker.id, { e: 'h', v: v.id, d: Math.round(amount), hs: hs ? 1 : 0, br: broke ? 1 : 0, k: killed ? 1 : 0 });
