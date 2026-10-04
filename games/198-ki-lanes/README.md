@@ -55,7 +55,7 @@ VV_CORE=… python tools/voices/build_voices.py [--only goku] [--wav dist/voices
 
 ## 測試 API：`window.__ki`
 
-`start(heroId, lane, diff)`（heroId：`goku`／`vegeta`／`trunks`／`piccolo`／`frieza`／`a18`）、`state()`、`fastForward(sec)`（跳過頓幀與慢動作，直接跑固定步長）、`teleport(x,z)`、`moveTo`、`attack(id)`、`cast(key,x,z)`、`levelUp(key)`、`setLevel(n)`、`learnAll()`、`give({ki,xp})`、`freezeAI(bool)`、`spawnEnemyHeroNear(d)`、`enemyHero()`、`killPlayer()`、`damageStructure(id, amt)`、`destroy(id)`、`win()`、`lose()`、`camera(x,z,zoom)`、`follow()`、`pick(id)`、`pause(bool)`、`setQuality(0..2)`、`buy(itemId)`、`senzu()`、`setGold(g)`、`visible(unitId)`、`fog(bool)`、`camps()`、`boss()`、`heroes()`、`sell(slot)`、`ward(x,z)`、`control(x,z)`、`laneBushes(lane,team)`、`lanePoint(lane,team,prog)`、`wards()`、`bushes()`、`obstacles()`、`visibleTo(team,id)`、`listen(event)`、`balls(team,n)`（直接給龍珠）、`shenron()`。建築 id：`t{隊}{路}{i|o}`（例 `t11o` 是赤隊中路外塔）、`core0`／`core1`。
+`start(heroId, lane, diff)`（heroId：`goku`／`vegeta`／`trunks`／`piccolo`／`frieza`／`a18`）、`state()`、`fastForward(sec)`（跳過頓幀與慢動作，直接跑固定步長）、`teleport(x,z)`、`moveTo`、`attack(id)`、`cast(key,x,z)`、`levelUp(key)`、`setLevel(n)`、`learnAll()`、`give({ki,xp})`、`freezeAI(bool)`、`spawnEnemyHeroNear(d)`、`enemyHero()`、`killPlayer()`、`damageStructure(id, amt)`、`destroy(id)`、`win()`、`lose()`、`camera(x,z,zoom)`、`follow()`、`pick(id)`、`pause(bool)`、`setQuality(0..2)`、`buy(itemId)`、`senzu()`、`setGold(g)`、`visible(unitId)`、`fog(bool)`、`camps()`、`boss()`、`heroes()`、`sell(slot)`、`ward(x,z)`、`control(x,z)`、`laneBushes(lane,team)`、`lanePoint(lane,team,prog)`、`wards()`、`bushes()`、`obstacles()`、`visibleTo(team,id)`、`listen(event)`、`balls(team,n)`（直接給龍珠）、`shenron()`、`fx`（特效 API，可直接呼叫 `explode`、`hitSpark` 等截圖）。建築 id：`t{隊}{路}{i|o}`（例 `t11o` 是赤隊中路外塔）、`core0`／`core1`。
 
 ## 結構
 
@@ -110,7 +110,9 @@ VV_CORE=… python tools/voices/build_voices.py [--only goku] [--wav dist/voices
 
 ## HUD
 
-技能列左側是角色半身像（變身超級賽亞人時換成金髮），上方是名字、血條與藍色氣力格，技能鍵下方標技能名；上方中央是比分、大猿與神龍的計時，交手中的敵方英雄會出現在目標框；連段數以「N Hits!」顯示；擊殺、推塔、大猿、神龍等時機會跳出角色的漫畫對話框（`quips.js`，原創台詞）；陣亡時顯示「你被擊倒了！」與重生倒數。
+技能列左側是角色半身像（變身超級賽亞人時換成金髮），上方是名字、血條與藍色氣力格，技能鍵下方標技能名；上方中央是比分、大猿與神龍的計時，交手中的敵方英雄會出現在目標框；連段數以「N Hits!」顯示；擊殺、推塔、大猿、神龍等時機會跳出角色的漫畫對話框（`quips.js`，原創台詞）；陣亡時顯示「你被擊倒了！」與重生倒數。擊倒英雄與推塔會在右上跳出擊殺卡片（擊殺者、「擊倒!／推塔!」、被擊倒者與助攻）。
+
+打擊特效：重擊與爆炸是一般混色的漫畫風貼圖（深色描邊的鋸齒爆點、雲朵狀火球、放射墨點），不疊加白光，避免被泛光洗白；近戰普攻帶白色弧形刀光。
 
 ## 視野、草叢與眼
 

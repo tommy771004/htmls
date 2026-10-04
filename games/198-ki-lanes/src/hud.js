@@ -25,7 +25,7 @@ export function createHud(env) {
     shop: $('#shop'), shopList: $('#shop .shopList'), shopGold: $('#shop .shopGold'), shopHint: $('#shop .shopHint'), shopDetail: $('#shop .shopDetail'), shopInv: $('#shop .shopInv'),
     ward: $('#dock .slot.ward'), bushTag: $('#bushTag'),
     nmB: $('#dock .nm b'), nmS: $('#dock .nm span'), target: $('#target'), tImg: $('#target img'), tName: $('#target .tn b'), tBar: $('#target .tb i'), tLv: $('#target .tl'),
-    apeT: $('#apeT'), dbT: $('#dbT'), dbh: $('#dbh'), quip: $('#quip'), qImg: $('#quip img'), qName: $('#quip .bub b'), qText: $('#quip .bub p'),
+    apeT: $('#apeT'), feed: $('#feed'), dbT: $('#dbT'), dbh: $('#dbh'), quip: $('#quip'), qImg: $('#quip img'), qName: $('#quip .bub b'), qText: $('#quip .bub p'),
   };
   const bctx = el.bars.getContext('2d');
   const sctx = el.speed.getContext('2d');
@@ -142,6 +142,18 @@ export function createHud(env) {
   let speedT = 0;
   function flash(color = '#fff6dc', dur = 0.25) { el.flash.style.background = color; el.flash.style.transition = 'none'; el.flash.style.opacity = '0.7'; void el.flash.offsetWidth; el.flash.style.transition = `opacity ${dur}s ease-out`; el.flash.style.opacity = '0'; }
 
+  /* ---------- 擊殺卡片（右上，5 秒，最多 3 張） ---------- */
+  const feedList = [];
+  function feedCard(mine, killerImg, killerName, verb, victimName, victimImg, sub = '') {
+    const d = document.createElement('div');
+    d.className = 'kf' + (mine ? ' mine' : '') + (victimImg ? '' : ' solo');
+    const killerTeam = mine ? player.team : 1 - player.team;
+    d.innerHTML = (killerImg ? `<img alt="" src="${killerImg}">` : `<i class="tm t${killerTeam}">${killerTeam ? '赤' : '青'}</i>`) + `<span class="kn"></span><em></em>` + (victimImg ? `<span class="vn"></span><img class="vi" alt="" src="${victimImg}">` : '') + '<small></small>';
+    d.querySelector('.kn').textContent = killerName; d.querySelector('em').textContent = verb; if (victimImg) d.querySelector('.vn').textContent = victimName; d.querySelector('small').textContent = sub;
+    el.feed.prepend(d); feedList.push({ d, t: 5 });
+    while (feedList.length > 3) feedList.shift().d.remove();
+  }
+
   /* ---------- 漫畫對話框 ---------- */
   let quipT = 0, quipCool = 0;
   function quip(h, kind, name = '', force = false) {
@@ -162,7 +174,7 @@ export function createHud(env) {
 
   /* ---------- 事件（每場重新綁定） ---------- */
   function attach(g) {
-    G = g; nums.length = 0; bannerT = 0; cutT = 0; speedT = 0; el.banner.className = ''; el.cutin.className = '';
+    G = g; nums.length = 0; for (const f of feedList) f.d.remove(); feedList.length = 0; bannerT = 0; cutT = 0; speedT = 0; el.banner.className = ''; el.cutin.className = '';
     quipT = 0; quipCool = 2; foe = null; foeT = -9; el.quip.className = ''; greeted = false;
     G.on('hit', ({ src, dst }) => { if (!player) return; const o = src === player && dst.kind === 'hero' ? dst : dst === player && src && src.kind === 'hero' ? src : null; if (o && o.team !== player.team) { foe = o; foeT = G.time; } });
   G.on('hit', ({ src, dst, amount, opts }) => {
@@ -180,8 +192,10 @@ export function createHud(env) {
   G.on('campSpawn', (c) => { if (c.boss) { announce('大猿出現在河道', 'good', '擊倒牠全隊得到金幣與大猿之力'); if (player) quip(pickAlly(null), 'ape'); } });
   G.on('monsterDeath', ({ u, team }) => { if (u.boss && team >= 0) announce(team === player.team ? '我方擊倒大猿' : '敵方擊倒大猿', team === player.team ? 'good' : 'bad', `大猿之力 ${APE_BUFF.dur} 秒：傷害 +20%`); });
   G.on('immune', ({ dst, src }) => { if (src === player && Math.random() < 0.25) number(dst.x, 4, dst.z, '無法攻擊', '#d9cbb0', 0.8); });
-  G.on('herodeath', ({ u, killer }) => {
+  G.on('herodeath', ({ u, killer, assists = [] }) => {
     if (!player) return;
+    const kImg = killer && killer.heroId ? portraits[killer.heroId] : '', kName = killer && killer.def ? killer.def.short : u.team === 0 ? '赤隊' : '青隊';
+    feedCard(u.team !== player.team, kImg, kName, G.combo.n >= 6 && killer === player ? '連段擊殺!' : '擊倒!', u.def.short, portraits[u.heroId], assists.length ? `助攻 ${assists.map((a) => a.def.short).join('、')}` : '');
     if (u === player) { el.dead.querySelector('.slain em').textContent = killer && killer.def ? `${killer.def.name} 擊倒了你` : ''; quip(player, 'death', '', true); }
     else if (killer && killer.kind === 'hero' && killer.team === player.team) quip(killer, 'kill', u.def.short);
     else if (u.team === player.team) { if (!quip(pickAlly(u), 'allyDown', u.def.short) && killer && killer.kind === 'hero') quip(killer, 'taunt'); }
@@ -189,8 +203,10 @@ export function createHud(env) {
     else if (u.team === player.team) announce('隊友被擊倒', 'bad', `${u.def.name}`);
     else announce('敵方英雄被擊倒', 'good', `${u.def.name}`);
   });
-  G.on('structure', ({ u }) => {
+  G.on('structure', ({ u, src }) => {
     if (u.kind === 'core') return;
+    const sh = src && src.kind === 'hero' ? src : null;
+    if (player) feedCard(u.team !== player.team, sh ? portraits[sh.heroId] : '', sh ? sh.def.short : (u.team === 0 ? '赤隊' : '青隊'), '推塔!', '', '', `${['上路', '中路', '下路'][u.lane]}${u.tier === 'outer' ? '外塔' : '內塔'}`);
     const lane = ['上路', '中路', '下路'][u.lane], tier = u.tier === 'outer' ? '外塔' : '內塔';
     announce(u.team === player?.team ? `我方${lane}${tier}被摧毀` : `摧毀敵方${lane}${tier}`, u.team === player?.team ? 'bad' : 'good');
     if (player) quip(pickAlly(null), u.team === player.team ? 'towerLost' : 'towerDown');
@@ -318,6 +334,7 @@ export function createHud(env) {
       setW(el.tBar, tg.hp / tg.maxHp); setText(el.tLv, tg.level);
     }
     if (!greeted && G.time > 1.5) { greeted = true; quip(P, 'start', '', true); }
+    for (let i = feedList.length - 1; i >= 0; i--) { const f = feedList[i]; f.t -= dt; if (f.t <= 0) { f.d.remove(); feedList.splice(i, 1); } }
     if (quipCool > 0) quipCool -= dt;
     if (quipT > 0) { quipT -= dt; if (quipT <= 0) el.quip.className = ''; }
     if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) el.banner.className = ''; }

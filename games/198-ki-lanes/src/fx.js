@@ -28,6 +28,32 @@ const burstTex = canvasTex(256, (g, s) => {
   for (let i = 0; i < n * 2; i++) { const a = (i / (n * 2)) * Math.PI * 2, r = (i % 2 ? 0.16 : 0.42 + rand() * 0.12) * c; (i ? g.lineTo : g.moveTo).call(g, cos(a) * r, sin(a) * r); }
   g.closePath(); g.fill();
 });
+// 漫畫風重擊爆點：深色描邊的鋸齒星形，內層橘→黃→白（一般混色，描邊才看得到）
+function jag(g, n, r0, r1, jit) { g.beginPath(); for (let i = 0; i < n * 2; i++) { const a = (i / (n * 2)) * Math.PI * 2, r = (i % 2 ? r0 : r1) * (1 - jit / 2 + rand() * jit); (i ? g.lineTo : g.moveTo).call(g, cos(a) * r, sin(a) * r); } g.closePath(); }
+const comicBurstTex = canvasTex(256, (g, s) => {
+  const c = s / 2; g.translate(c, c); g.lineJoin = 'round';
+  jag(g, 11, c * 0.42, c * 0.96, 0.35); g.fillStyle = '#3a1206'; g.fill();
+  jag(g, 11, c * 0.36, c * 0.82, 0.3); g.fillStyle = '#ff6a12'; g.fill();
+  jag(g, 9, c * 0.3, c * 0.6, 0.3); g.fillStyle = '#ffc22e'; g.fill();
+  g.fillStyle = '#fff7d0'; g.beginPath(); g.arc(0, 0, c * 0.24, 0, Math.PI * 2); g.fill();
+});
+// 漫畫風火球：一團帶深色描邊的雲朵（紅橘外圈、黃色內層、白熱核心）
+const fireTex = canvasTex(256, (g, s) => {
+  const c = s / 2; g.translate(c, c);
+  const puffs = Array.from({ length: 11 }, (_, i) => { const a = (i / 11) * Math.PI * 2 + rand() * 0.4, d = c * (0.32 + rand() * 0.18); return [cos(a) * d, sin(a) * d, c * (0.26 + rand() * 0.14)]; });
+  const blob = (k, col) => { g.fillStyle = col; g.beginPath(); for (const [x, y, r] of puffs) { g.moveTo(x * k + r * k, y * k); g.arc(x * k, y * k, r * k, 0, Math.PI * 2); } g.arc(0, 0, c * 0.5 * k, 0, Math.PI * 2); g.fill(); };
+  blob(1.08, '#2a0c05'); blob(1.0, '#d8360f'); blob(0.82, '#ff8a1a'); blob(0.58, '#ffd03a');
+  g.fillStyle = '#fff6d6'; g.beginPath(); g.arc(-c * 0.06, -c * 0.06, c * 0.2, 0, Math.PI * 2); g.fill();
+});
+// 墨點：放射狀的錐形筆刷與飛濺小點
+const inkTex = canvasTex(256, (g, s) => {
+  const c = s / 2; g.translate(c, c); g.fillStyle = '#1e0c07';
+  for (let i = 0; i < 16; i++) {
+    const a = rand() * Math.PI * 2, r0 = c * (0.45 + rand() * 0.15), r1 = c * (0.7 + rand() * 0.28), w = 0.05 + rand() * 0.07;
+    g.beginPath(); g.moveTo(cos(a - w) * r0, sin(a - w) * r0); g.lineTo(cos(a) * r1, sin(a) * r1); g.lineTo(cos(a + w) * r0, sin(a + w) * r0); g.closePath(); g.fill();
+    if (rand() < 0.6) { const rr = r1 + c * 0.05; g.beginPath(); g.arc(cos(a) * rr, sin(a) * rr, 2 + rand() * 4, 0, Math.PI * 2); g.fill(); }
+  }
+});
 const ringTex = canvasTex(128, (g, s) => {
   const r = g.createRadialGradient(s / 2, s / 2, s * 0.3, s / 2, s / 2, s / 2);
   r.addColorStop(0, 'rgba(255,255,255,0)'); r.addColorStop(0.7, 'rgba(255,255,255,.9)'); r.addColorStop(0.85, 'rgba(255,255,255,.5)'); r.addColorStop(1, 'rgba(255,255,255,0)');
@@ -117,6 +143,16 @@ export function createFx(scene, camera) {
       done() { scene.remove(m); m.material.dispose(); },
     });
   }
+  // 一般混色的貼圖面片（漫畫爆點、火球、墨點用；顏色取自貼圖本身）
+  function billboardN(tex, size, x, y, z, dur, grow = 0.9, fadeFrom = 0.45) {
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false, side: THREE.DoubleSide, toneMapped: false });
+    const m = new THREE.Mesh(planeG, mat); m.position.set(x, y, z); m.renderOrder = 7; scene.add(m);
+    const r0 = rand() * Math.PI * 2;
+    return spawn({
+      dur, update(k) { m.quaternion.copy(camera.quaternion); m.rotateZ(r0 + k * 0.4); const s = size * (0.45 + grow * Math.pow(k, 0.35)); m.scale.set(s, s, s); mat.opacity = k < fadeFrom ? 1 : 1 - (k - fadeFrom) / (1 - fadeFrom); },
+      done() { scene.remove(m); mat.dispose(); },
+    });
+  }
   function groundRing(x, z, color, radius, dur, tex = ringTex, y0 = 0.15) {
     const m = new THREE.Mesh(flatG, addMat(color, tex)); m.position.set(x, heightAt(x, z) + y0, z); m.renderOrder = 3; scene.add(m);
     return spawn({
@@ -141,9 +177,10 @@ export function createFx(scene, camera) {
     dust(x, z, n = 10, color = '#c9b48a', size = 0.9) { dust.emit(x, 0.3, z, { n, speed: 3, up: 0.5, spread: 0.6, color, size, life: 0.9, gravity: 1, drag: 3, jitter: 0.8 }); },
 
     hitSpark(x, y, z, color, scale = 1, kind = 'light') {
-      billboard(burstTex, '#ffffff', 1.5 * scale, x, y, z, 0.13 + scale * 0.03, 1.2);
-      billboard(burstTex, color, 2.3 * scale, x, y, z, 0.18 + scale * 0.04, 1.4, 0.6);
-      if (kind === 'heavy') { groundRing(x, z, color, 2.2 * scale, 0.3); pop(x, y, z, color, 30 * scale, 10, 0.25); }
+      // 重擊只用漫畫爆點（疊加白光會被泛光洗成一片白，蓋掉描邊）
+      if (kind !== 'heavy') { billboard(burstTex, '#ffffff', 1.5 * scale, x, y, z, 0.13 + scale * 0.03, 1.2); billboard(burstTex, color, 2.3 * scale, x, y, z, 0.18 + scale * 0.04, 1.4, 0.6); }
+      if (kind === 'heavy') { groundRing(x, z, color, 2.2 * scale, 0.3); pop(x, y + 1.5, z, '#ff9a3a', 5 * scale, 8, 0.2); billboardN(comicBurstTex, 2.1 * scale, x, y + 0.1, z, 0.26, 0.8, 0.4); }
+      else if (scale >= 1) billboardN(comicBurstTex, 1.1 * scale, x, y + 0.1, z, 0.18, 0.7, 0.35);
       const c2 = kind === 'ice' ? '#ffffff' : kind === 'spark' ? '#fffbe0' : '#fff2c0';
       add.emit(x, y, z, { n: Math.round(10 * scale), speed: 9 * scale, up: 0.3, spread: 2.4, color, color2: c2, size: 0.25, life: 0.35, gravity: 9, drag: 4 });
     },
@@ -153,6 +190,9 @@ export function createFx(scene, camera) {
       groundRing(x, z, color, radius * 1.2, 0.45); groundRing(x, z, '#ffffff', radius * 0.7, 0.3);
       billboard(burstTex, color, radius * 1.05, x, y + 0.6, z, 0.22, 1.1);
       billboard(glowTex, color, radius * 1.7, x, y + 0.8, z, 0.3, 0.6);
+      billboardN(inkTex, radius * 2.4, x, y + 0.5, z, 0.42, 0.7, 0.35);
+      billboardN(fireTex, radius * 1.5, x, y + 0.9, z, 0.38, 0.8, 0.4);
+      dust.emit(x, y + 0.6, z, { n: 10, speed: 4, up: 1.2, spread: 0.6, color: '#3a2a22', color2: '#1e1612', size: 1.6, life: 0.9, gravity: -1.5, drag: 2.5, jitter: radius * 0.35 });
       pop(x, y + 2, z, color, 60, radius * 3, 0.45);
       add.emit(x, y, z, { n: 28, speed: 12, up: 0.6, spread: 1.6, color, color2: '#ffffff', size: 0.38, life: 0.6, gravity: 8, drag: 3, jitter: radius * 0.5 });
       if (style === 'rock') dust.emit(x, 0.4, z, { n: 40, speed: 9, up: 0.9, spread: 0.8, color: '#7a6a52', color2: '#a89272', size: 0.5, life: 1.2, gravity: 16, drag: 1.2, jitter: radius });

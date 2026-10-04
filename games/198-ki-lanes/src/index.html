@@ -484,6 +484,24 @@ body.camfree #camHint { display: block; }
 #buffs .omen { color: #ffd54a; } #buffs .wish { color: #ffe9a0; }
 @media not all and (pointer: coarse) { #combo { top: 30%; } }
 @media (pointer: coarse) { #dbh { display: none; } }
+
+/* ---------- 擊殺卡片 ---------- */
+#feed { position: absolute; right: calc(var(--safe-r) + .9em); top: calc(var(--safe-t) + 15.2em); display: flex; flex-direction: column; align-items: flex-end; gap: .4em; }
+.kf { display: grid; grid-template-columns: 2.6em auto auto auto 2.6em; grid-template-rows: auto auto; align-items: center; column-gap: .55em; padding: .2em 1em .2em .7em; background: rgba(14, 18, 30, .9); clip-path: polygon(.7em 0, 100% 0, calc(100% - .7em) 100%, 0 100%); animation: kfIn .28s var(--ease); }
+@keyframes kfIn { from { transform: translateX(2em); opacity: 0; } }
+.kf img { width: 2.6em; height: 2.6em; object-fit: cover; grid-row: 1 / 3; background: var(--ink3); }
+.kf .vi { background: linear-gradient(160deg, #e5563a, #8a1e14); }
+.kf .tm { grid-row: 1 / 3; width: 2.6em; height: 2.6em; display: grid; place-items: center; font-style: normal; font-weight: 900; color: #10141f; }
+.kf .tm.t0 { background: var(--jade2); } .kf .tm.t1 { background: var(--verm2); }
+.kf.mine .vi { background: linear-gradient(160deg, #3fc7a4, #13665a); }
+.kf .kn, .kf .vn { font-size: .85em; font-weight: 800; white-space: nowrap; }
+.kf .kn { text-align: right; } .kf.mine .kn { color: #9ff0da; } .kf:not(.mine) .kn { color: #ffb4a0; }
+.kf em { font: italic 900 1.5em/1 var(--num); color: #ffcf33; -webkit-text-stroke: .06em #3d1404; paint-order: stroke fill; letter-spacing: .02em; white-space: nowrap; }
+.kf small { grid-column: 2 / 5; font-size: .66em; color: var(--bone3); text-align: center; white-space: nowrap; }
+.kf small:empty { display: none; }
+.kf.solo { grid-template-columns: 2.6em auto auto; }
+@media (pointer: coarse) { #feed { display: none; } }
+@media (prefers-reduced-motion: reduce) { .kf { animation: none; } }
 </style>
 </head>
 <body>
@@ -504,6 +522,7 @@ body.camfree #camHint { display: block; }
   </div>
   <div id="rosterA" class="roster"></div>
   <div id="rosterB" class="roster"></div>
+  <div id="feed"></div>
   <div id="banner"></div>
   <div id="cutin"></div>
   <div id="combo"><b>0</b><i>Hits!</i><small></small></div>
