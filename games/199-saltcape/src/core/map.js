@@ -5,9 +5,9 @@ import { buildTerrain, heightAt, TOWNS, EXT, CELL, N, coastAt } from './terrain.
 
 export const MAT = {
   plaster: 0, plasterWarm: 1, plasterRose: 2, plasterSage: 3, concrete: 4, brick: 5, wood: 6, tile: 7,
-  roof: 8, metal: 9, rust: 10, container: 11, stone: 12, trim: 13, salt: 14, car: 15, tank: 16, crate: 17, temple: 18, glass: 19, facade: 20,
+  roof: 8, metal: 9, rust: 10, container: 11, stone: 12, trim: 13, salt: 14, car: 15, tank: 16, crate: 17, temple: 18, glass: 19, facade: 20, siding: 21, hidden: 22,
 };
-export const MAT_COUNT = 21;
+export const MAT_COUNT = 23;
 // 只供繪製的細節方塊種類（不進碰撞）
 export const DK = { frame: 0, glass: 1, base: 2, wains: 3, lamp: 4, rad: 5, ac: 6, dark: 7, steel: 8, poster: 9 };
 
@@ -16,7 +16,7 @@ const STEP_N = 13, STEP_RUN = 0.3;
 
 // ---- 局部座標的建築收集器，完成後旋轉 90° 的倍數放到世界 ----
 class Local {
-  constructor() { this.boxes = []; this.cyls = []; this.loot = []; this.doors = []; this.deco = []; this.dboxes = []; this.glaze = false; }
+  constructor() { this.boxes = []; this.cyls = []; this.loot = []; this.doors = []; this.deco = []; this.dboxes = []; this.open = []; this.glaze = false; this.out = 0; this.floor = 0; }
   box(x0, y0, z0, x1, y1, z1, m, c = 0) {
     if (x1 - x0 < 0.01 || y1 - y0 < 0.01 || z1 - z0 < 0.01) return;
     this.boxes.push([Math.min(x0, x1), Math.min(y0, y1), Math.min(z0, z1), Math.max(x0, x1), Math.max(y0, y1), Math.max(z0, z1), m, c]);
@@ -27,6 +27,11 @@ class Local {
   }
   // 門窗框與玻璃：沿 x 的牆（ax='x'）或沿 z 的牆（ax='z'），u 為沿牆座標、w 為牆中心線
   frame(ax, a, b, w, y0, lo, hi, t) {
+    // 外牆的門窗位置與朝外法線（給前端擺鐵窗、遮雨棚、門片等外觀模組）
+    if (this.out) {
+      const u = (a + b) / 2, y = y0 + (lo + hi) / 2, f = w + this.out * t / 2;
+      this.open.push([...(ax === 'x' ? [u, y, f, 0, this.out] : [f, y, u, this.out, 0]), b - a, hi - lo, lo > 0.3 ? 0 : 1, this.floor]);
+    }
     const ft = 0.07, fd = t / 2 + 0.025;
     const B = (u0, v0, d0, u1, v1, d1, k) => (ax === 'x' ? this.dbox(u0, v0, w + d0, u1, v1, w + d1, k) : this.dbox(w + d0, v0, u0, w + d1, v1, u1, k));
     B(a, y0 + lo, -fd, a + ft, y0 + hi, fd, DK.frame);
@@ -100,6 +105,46 @@ function windowsAlong(a, b, spacing, width, lo, hi, avoid = [], skip = 0, rnd) {
 
 const WIN = (o) => [o[0], o[1], 0.95, 2.15];
 
+// 家具尺寸（與 tools/build-furniture.py 一致）：寬（x）、高、深（z）、要不要碰撞、背面朝向（z：-Z 靠牆；x：-X 靠牆）
+export const FURN = {
+  bed: [2.0, 0.55, 1.5, 1, 'x'], sofa: [1.9, 0.85, 0.85, 1, 'z'], dining: [1.4, 0.75, 1.66, 1, 'z'], bookcase: [1.0, 1.9, 0.35, 1, 'z'],
+  wardrobe: [1.2, 2.0, 0.6, 1, 'z'], kitchen: [2.0, 0.9, 0.6, 1, 'z'], fridge: [0.7, 1.8, 0.7, 1, 'z'], tvstand: [1.6, 0.5, 0.45, 1, 'z'],
+  desk: [1.2, 0.75, 1.0, 1, 'z'], rack: [2.0, 2.0, 0.6, 1, 'z'], boxes: [0.9, 0.9, 0.7, 1, 'z'], plant: [0.5, 1.0, 0.5, 0, 'z'],
+};
+// 在房間矩形內沿牆擺家具；o = { x0, x1, z0, z1, y, sets, avoid: [[x0,z0,x1,z1]…] }
+function furnish(L, r, o) {
+  const placed = [...o.avoid];
+  const hit = (a) => placed.some((b) => a[2] > b[0] && a[0] < b[2] && a[3] > b[1] && a[1] < b[3]);
+  const area = (o.x1 - o.x0) * (o.z1 - o.z0);
+  const n = Math.min(8, 2 + Math.floor(area / 18) + Math.floor(r() * 2));
+  const want = o.sets.slice().sort(() => r() - 0.5);
+  const extra = o.extra || ['boxes', 'plant', 'bookcase', 'boxes'];
+  while (want.length < n) want.push(extra[Math.floor(r() * extra.length)]);
+  want.length = Math.min(want.length, n);
+  for (const k of want) {
+    const [fw, fh, fd, solid, back] = FURN[k];
+    // 牆：0 前牆（物件背面朝 +z）、1 左牆、2 右牆
+    for (let tries = 0; tries < 10; tries++) {
+      const wall = Math.floor(r() * 3);
+      let w = fw, d = fd, yaw;
+      if (wall === 0) yaw = Math.PI; else if (wall === 1) yaw = -Math.PI / 2; else yaw = Math.PI / 2;
+      if (back === 'x') yaw += Math.PI / 2;
+      const across = (wall === 0) === (back === 'z');   // 物件的寬是否沿著 x
+      if (!across) { w = fd; d = fw; }
+      let cx, cz;
+      if (wall === 0) { cz = o.z1 - d / 2; cx = o.x0 + w / 2 + r() * Math.max(0, o.x1 - o.x0 - w); }
+      else { cx = wall === 1 ? o.x0 + w / 2 : o.x1 - w / 2; cz = o.z0 + d / 2 + r() * Math.max(0, o.z1 - o.z0 - d); }
+      const rect = [cx - w / 2, cz - d / 2, cx + w / 2, cz + d / 2];
+      if (rect[0] < o.x0 - 0.01 || rect[2] > o.x1 + 0.01 || rect[1] < o.z0 - 0.01 || rect[3] > o.z1 + 0.01 || hit(rect)) continue;
+      placed.push([rect[0] - 0.25, rect[1] - 0.25, rect[2] + 0.25, rect[3] + 0.25]);
+      if (solid) L.box(rect[0], o.y, rect[1], rect[2], o.y + fh, rect[3], MAT.hidden);
+      L.deco.push({ t: 'furn', k, x: cx, z: cz, y: o.y, yaw });
+      if ((k === 'dining' || k === 'desk' || k === 'tvstand') && r() < 0.5) L.loot.push([cx, o.y + fh + 0.02, cz, 1]);
+      break;
+    }
+  }
+}
+
 // 透天厝／街屋／公寓：f 層、可選騎樓、樓梯折返上樓與屋頂樓梯間
 function house(L, rnd, o) {
   const { w, d, floors } = o, fh = o.fh || 3.2, t = WALL_T, m = o.mat ?? MAT.plaster, tint = o.tint || 0;
@@ -137,7 +182,9 @@ function house(L, rnd, o) {
     const fo = isG ? front : windowsAlong(x0 + 0.5, x1 - 0.5, o.arcade ? 2.4 : 2.8, o.arcade ? 1.6 : 1.2, 0.95, 2.3, [], 0, rnd);
     if (isG && !o.arcade) fo.push(...windowsAlong(x0 + 0.5, x1 - 0.5, 2.8, 1.2, 0.95, 2.15, front, 0.3, rnd));
     if (isG && o.arcade && w > 6) fo.push(...windowsAlong(x0 + 0.5, x1 - 0.5, 2.6, 1.4, 0.9, 2.2, front, 0, rnd));
+    L.floor = f; L.out = 1;
     L.wallX(x0, x1, fwz, isG ? 0.05 : y - 0.25, yTop - (f === floors - 1 ? 0 : 0.25), t, m, fo.map((p) => [p[0], p[1], p[2] + (isG ? 0.1 : 0.25), p[3] + (isG ? 0.1 : 0.25)]), tint);
+    L.out = -1;
     // 背面牆
     const bo = [];
     if (isG && hasBack) bo.push([backX - 0.6, backX + 0.6, 0, 2.3]);
@@ -148,9 +195,11 @@ function house(L, rnd, o) {
     const sides = [];
     for (const sx of [x0 + t / 2, x1 - t / 2]) {
       const so = o.party && o.party.includes(sx < 0 ? 'w' : 'e') ? [] : windowsAlong(z0 + 0.6, sideZ1 - 0.4, 3, 1.1, 0.95, 2.15, sx < 0 && stairs ? [[iz0, zS + 0.3]] : [], 0.3, rnd);
+      L.out = sx < 0 ? -1 : 1;
       L.wallZ(z0 + t, sideZ1, sx, isG ? 0.05 : y - 0.25, yTop - (f === floors - 1 ? 0 : 0.25), t, m, so.map((p) => [p[0], p[1], p[2] + (isG ? 0.1 : 0.25), p[3] + (isG ? 0.1 : 0.25)]), tint);
       sides.push([sx, so]);
     }
+    L.out = 0;
     // 室內：踢腳板、腰牆、吸頂燈、窗下暖氣片；室外：窗下冷氣機
     const rel = (list) => list; // 開口高度本來就是相對樓地板
     L.trim('x', ix0, ix1, fwz - t / 2, -1, y, rel(fo));
@@ -200,20 +249,18 @@ function house(L, rnd, o) {
       if (lane === 1) L.box(hole[0], ry, zS - 0.04, hole[2], ry + 1.0, zS + 0.04, MAT.trim);
       else if (!nextHasFlight && !(top && roofAccess)) L.box(hole[0], ry, iz0 + 1.06, hole[2], ry + 1.0, iz0 + 1.14, MAT.trim);
     }
-    // 室內家具：靠側牆或前牆內側，避開門、樓梯與隔間門
-    const nF = w * d > 60 ? 2 : 1;
-    for (let k = 0; k < nF; k++) {
-      const kind = rnd();
-      const fw = kind < 0.4 ? 1.6 : kind < 0.7 ? 0.9 : 1.0, fd = kind < 0.4 ? 0.8 : kind < 0.7 ? 0.45 : 2.0, fhh = kind < 0.4 ? 0.78 : kind < 0.7 ? 1.9 : 0.5;
-      const side = rnd() < 0.5 ? -1 : 1;
-      const fx = side < 0 ? ix0 + 0.05 + fw / 2 + (stairs ? 0 : 0) : ix1 - 0.05 - fw / 2;
-      const fz = zS + 0.4 + fd / 2 + rnd() * Math.max(0, (iz1 - (isG ? A : 0)) - zS - fd - 1.2);
-      if (fx - fw / 2 < sx0 + runL + 1.0 && fz - fd / 2 < zS + 0.3) continue;
-      if (Math.abs(fx - doorX) < doorW / 2 + fw / 2 + 0.6 && fz + fd / 2 > (isG ? iz1 - A : iz1) - 1.4) continue;
-      if (partition && Math.abs(fx - xp) < fw / 2 + 0.9) continue;
-      L.box(fx - fw / 2, y, fz - fd / 2, fx + fw / 2, y + fhh, fz + fd / 2, kind < 0.7 ? MAT.wood : MAT.plaster);
-      if (kind < 0.4 && rnd() < 0.5) L.loot.push([fx, y + fhh + 0.02, fz, 1]);
-    }
+    // 室內家具（外觀是 Blender 模型，碰撞用隱形方塊）：沿側牆與前牆找空位
+    furnish(L, dr, {
+      x0: ix0 + 0.04, x1: ix1 - 0.04, z0: zS + 0.35, z1: (isG ? iz1 - A : iz1) - 0.04, y,
+      sets: isG ? ['sofa', 'tvstand', 'dining', 'kitchen', 'fridge', 'bookcase', 'plant'] : ['bed', 'wardrobe', 'desk', 'bookcase', 'plant', 'boxes'],
+      avoid: [
+        ...(isG ? [[doorX - doorW / 2 - 0.5, (isG ? iz1 - A : iz1) - 1.3, doorX + doorW / 2 + 0.5, iz1 + 1]] : []),
+        ...(isG && hasBack ? [[backX - 1.1, iz0 - 1, backX + 1.1, iz0 + 1.4]] : []),
+        ...(partition ? [[xp - 0.6, zS, xp + 0.6, iz1]] : []),
+        [sx0 - 1.2, iz0 - 1, sx0 + runL + 1.2, zS + 0.35],
+      ],
+      partX: partition ? xp : null,
+    });
     // 戰利品點
     const nL = 1 + (isG ? 1 : 0) + Math.floor(rnd() * (w * d > 90 ? 3 : 2));
     for (let k = 0; k < nL; k++) {
@@ -279,9 +326,10 @@ function house(L, rnd, o) {
     L.wallZ(z0 + 0.2, z1 - 0.2, x0 + 0.1, roofY, roofY + ph, 0.2, m, [], tint);
     L.wallZ(z0 + 0.2, z1 - 0.2, x1 - 0.1, roofY, roofY + ph, 0.2, m, [], tint);
     if (o.tank !== false && rnd() < 0.65) {
+      // 屋頂水塔：碰撞是整座的圓柱，外觀由前端的 Blender 模型（不鏽鋼筒＋鐵架）負責
       const cx = x1 - 1.3, cz = z1 - 1.3;
-      L.box(cx - 0.7, roofY, cz - 0.7, cx + 0.7, roofY + 0.9, cz + 0.7, MAT.trim);
-      L.cyls.push([cx, cz, 0.75, roofY + 0.9, roofY + 2.5, MAT.tank]);
+      L.cyls.push([cx, cz, 0.72, roofY, roofY + 2.4, MAT.tank]);
+      L.deco.push({ t: 'roofTank', x: cx, z: cz, y: roofY });
     }
   }
   if (o.sign) L.deco.push({ t: 'sign', x: x0 + 0.6, z: z1 + 0.1, y: 0.15 + fh + 0.3, h: Math.min(fh * (floors - 1) + 0.6, 5.5), text: o.sign, c: o.signColor || 0 });
@@ -319,6 +367,7 @@ function warehouse(L, rnd, o) {
   }
   const nL = 2 + Math.floor(rnd() * 3);
   for (let k = 0; k < nL; k++) L.loot.push([x0 + 1.5 + rnd() * (w - 3), 0.17, z0 + 1.5 + rnd() * (d - 3), 1]);
+  if (!o.open) furnish(L, mulberry32(Math.floor(rnd() * 1e9)), { x0: x0 + t + 0.05, x1: x1 - t - 0.05, z0: z0 + t + 1.6, z1: z1 - t - 0.05, y: 0.15, sets: ['rack', 'rack', 'rack', 'boxes', 'boxes'], avoid: [[-dw / 2 - 1, z1 - 4, dw / 2 + 1, z1 + 1], [x0 - 1, -1.5, x0 + 1.5, 1.5], [x1 - 1.5, -1.5, x1 + 1, 1.5]] });
   L.doors.push([0, z1 + 0.8, 0, 1]);
   L.doors.push([x0 + 2.7, z0 - 0.8, 0, -1]);
   return h;
@@ -378,7 +427,7 @@ export function buildMap() {
   const rnd = mulberry32(19990127);
   const W = {
     H, roads: T.roads, runway: T.runway, towns: TOWNS,
-    boxes: [], cyls: [], deco: [], loot: [], buildings: [], trees: [], rocks: [], pads: [], dboxes: [], boxBld: [],
+    boxes: [], cyls: [], deco: [], loot: [], buildings: [], trees: [], rocks: [], pads: [], dboxes: [], boxBld: [], openings: [],
   };
   const hAt = (x, z) => heightAt(H, x, z);
   const roadD = (x, z) => {
@@ -413,6 +462,11 @@ export function buildMap() {
       const [ax, az] = tr(b[0], b[2]), [cx2, cz2] = tr(b[3], b[5]);
       W.dboxes.push([Math.min(ax, cx2), b[1] + base, Math.min(az, cz2), Math.max(ax, cx2), b[4] + base, Math.max(az, cz2), b[6], b[7]]);
     }
+    const bIdx = W.buildings.length;
+    for (const o of L.open) {
+      const [x, z] = tr(o[0], o[2]), [nx, nz] = tr(o[3], o[4]);
+      W.openings.push([x, o[1] + base, z, nx - cx, nz - cz, o[5], o[6], o[7], bIdx, o[8]]);
+    }
     for (const c of L.cyls) { const [x, z] = tr(c[0], c[1]); W.cyls.push([x, z, c[2], c[3] + base, c[4] + base, c[5]]); }
     for (const p of L.loot) { const [x, z] = tr(p[0], p[2]); W.loot.push([x, p[1] + base, z, p[3]]); }
     const doors = L.doors.map((dd) => { const [x, z] = tr(dd[0], dd[1]); const [nx, nz] = tr(dd[2], dd[3]); return [x, z, nx - cx, nz - cz]; });
@@ -420,6 +474,7 @@ export function buildMap() {
       const o = { ...dc, rot };
       if ('x' in dc) { const [x, z] = tr(dc.x, dc.z); o.x = x; o.z = z; }
       if (dc.ax) o.ax = (dc.ax === 'x') === (rot % 2 === 0) ? 'x' : 'z';
+      if (dc.yaw != null) o.yaw = dc.yaw + rot * Math.PI / 2;
       if ('x0' in dc) { const [a0, b0] = tr(dc.x0, dc.z0), [a1, b1] = tr(dc.x1, dc.z1); o.x0 = Math.min(a0, a1); o.z0 = Math.min(b0, b1); o.x1 = Math.max(a0, a1); o.z1 = Math.max(b0, b1); }
       o.y = (dc.y || 0) + base;
       W.deco.push(o);
@@ -584,7 +639,7 @@ export function buildMap() {
       for (let k = 0; k < 16; k++) {
         const a = rnd() * 6.283, r = 18 + rnd() * (town.r - 30);
         const hx = cx + ccos(a) * r, hz = cz + csin(a) * r;
-        addHouse(hx, hz, rnd.int(0, 3), { w: 7 + rnd.int(0, 4), d: 6 + rnd.int(0, 3), floors: 1 + (rnd() < 0.45 ? 1 : 0), mat: rnd.pick([MAT.plaster, MAT.plaster, MAT.plasterWarm, MAT.stone]), roofAccess: false, gable: rnd() < 0.75, pad: 3 }, meta);
+        addHouse(hx, hz, rnd.int(0, 3), { w: 7 + rnd.int(0, 4), d: 6 + rnd.int(0, 3), floors: 1 + (rnd() < 0.45 ? 1 : 0), mat: rnd.pick([MAT.plaster, MAT.siding, MAT.plasterWarm, MAT.stone, MAT.siding]), roofAccess: false, gable: rnd() < 0.75, pad: 3 }, meta);
       }
       // 小教堂
       addHouse(cx, cz, 0, { w: 9, d: 16, floors: 1, fh: 6, mat: MAT.plaster, tank: false, gable: true, pad: 3 }, { ...meta, chapel: true });
@@ -616,7 +671,7 @@ export function buildMap() {
     if (TOWNS.some((t) => Math.sqrt((t.x - x) ** 2 + (t.z - z) ** 2) < t.r + 50)) continue;
     const { base, flat } = baseUnder(x, z, 12, 10);
     if (flat > 2.5 || base < 2) continue;
-    if (addHouse(x, z, side < 0 ? 1 : 3, { w: 8 + rnd.int(0, 3), d: 7 + rnd.int(0, 2), floors: 1 + (rnd() < 0.4 ? 1 : 0), roofAccess: false, gable: true, pad: 4, base }, { town: null })) farms++;
+    if (addHouse(x, z, side < 0 ? 1 : 3, { w: 8 + rnd.int(0, 3), d: 7 + rnd.int(0, 2), floors: 1 + (rnd() < 0.4 ? 1 : 0), roofAccess: false, gable: true, pad: 4, base, mat: rnd() < 0.55 ? MAT.siding : MAT.plaster, tint: rnd.pick([0, 0xd8e4ea, 0xf0e2c4, 0xdfe8d4, 0xe8d0c8]) }, { town: null })) farms++;
   }
   // 樹與岩石
   const treeRnd = mulberry32(4401);

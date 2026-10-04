@@ -96,3 +96,22 @@ test('爆頭比打身體痛，射擊穿不過牆', () => {
   m.fire(a, 'ar', 0, [[0, 0, -1]], { vt: m.tick });
   assert.equal(b.hp, 100);
 });
+
+test('射手步槍與狙擊槍的子彈會飛行並下墜', () => {
+  const m = new Match({ W, seed: 4, roster: roster(2, 2) });
+  const a = m.byId.get(1), b = m.byId.get(2);
+  const y = groundAt(W, -780, -470, 40);
+  Object.assign(a, { mode: MODE.GROUND, x: -780, z: -470, y, og: 1 });
+  Object.assign(b, { mode: MODE.SPECT, x: 0, z: 0 });
+  const hits = [];
+  const orig = m.emitNear.bind(m);
+  m.emitNear = (x, z, R, ev, ex) => { if (ev.e === 'pi') hits.push(ev.at); return orig(x, z, R, ev, ex); };
+  m.fire(a, 'sr', 0, [[1, 0, 0]], { vt: m.tick });
+  assert.equal(hits.length, 0, '開火當下不會立刻命中');
+  assert.equal(m.proj.length, 1);
+  for (let k = 0; k < 60 && !hits.length; k++) m.stepProjectiles(), m.tick++;
+  assert.equal(hits.length, 1, '子彈最後落地');
+  const dist = hits[0][0] - a.x;
+  // 從 1.62 公尺高水平射出：落地距離約 vel × √(2h/g) ≈ 365 公尺
+  assert.ok(dist > 300 && dist < 430, `落地距離 ${dist.toFixed(0)} 公尺`);
+});

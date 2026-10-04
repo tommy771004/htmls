@@ -96,7 +96,8 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 - 原始碼在 `games/199-saltcape/`（Three.js 0.186.0 + esbuild），有自己的 `package.json`；`npm run build` 輸出單檔 `web/199-saltcape.html`，改了 `src/` 要重新 build 並把產出一起 commit。`npm test` 跑規則與伺服器測試（`tools/sim.test.mjs`、`tools/net.test.mjs`）再跑兩種尺寸的無頭 Chrome 驗收；`npm run mp` 開兩個瀏覽器分頁走完建房、分享網址加入、起飛、互射與換線接手；`npm run sim` 在 Node 跑整場 AI 對戰。
 - `src/core/`（地圖、物理、規則、毒圈、`Match` 對局與 AI）不碰 DOM，**伺服器與瀏覽器共用同一份**：伺服器用它裁定，前端用它做移動預測與離線練習。地圖由固定種子生成，只能用整數雜湊與加減乘除（`rng.js` 的 `csin`／`ccos`），不要在地圖生成裡用 `Math.sin`／`atan2`，否則不同瀏覽器的碰撞會和伺服器對不上。
 - 伺服器 `server/saltcape/server.mjs`（`createSaltcape()` 掛在 `npm start` 的伺服器上，`createSaltServer()` 給 Vercel 的 `api/saltcape.mjs`；兩者都接受 `/api/saltcape` 與 `/saltcape`，前端一律連 `/api/saltcape`）；`server/jade-table/server.mjs` 的 `onUpgrade` 讓兩個遊戲共用 8127 埠。房間只存在單一行程的記憶體，Vercel 多實例時好友可能分到不同實例，前端會收到 `notfound`／`lost` 明確提示；前端每 200 秒換一條新連線接手（Vercel 連線 300 秒上限）。
-- 協定、輸入位元與快照格式見 `SPEC.md`，操作與限制見 `README.md`；`window.__sc` 的 `solo()`、`place(x, z, mode)`、`give(w)`、`look(yaw, pitch)` 可在離線練習裡直接擺位置截圖。
+- CC0 貼圖、天空 HDRI、車輛、道具與士兵模型放在 `assets/199/`（約 14 MB，不內嵌），頁面需透過網站伺服器開啟；以檔案開啟時退回程序貼圖與方塊人，不能報錯。`node tools/fetch-assets.mjs` 重抓（需要 curl、unzip、cwebp、sips），士兵與 IK 烘焙的步槍動畫用 `blender -b -P tools/build-soldier.py`（借 `games/197-openworld/.cache/` 的 Quaternius 素材包），外觀模組、槍、家具分別是 `build-kit.py`、`build-guns.py`、`build-furniture.py`（Blender 5.x，action 要指定 slot 才會套用）；家具尺寸要和 `map.js` 的 `FURN` 表一致。來源見 `CREDITS.md`。`npm start` 的靜態白名單要能送出 `.hdr`、`.gltf`。
+- 協定、輸入位元與快照格式見 `SPEC.md`，操作與限制見 `README.md`；`window.__sc` 的 `solo()`、`place(x, z, mode)`、`give(w)`、`look(yaw, pitch)`、`bring(n)` 可在離線練習裡直接擺位置截圖。截圖與驗收工具用 `tools/lib.mjs` 的 `serve()` 在同一行程起網站伺服器；畫質預設「高」（級聯陰影＋泛光），`?q=low|mid|high|ultra` 或選單切換。
 
 ## 車球碗（200）
 

@@ -6,7 +6,7 @@ import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 
 export const BASE = new URL('../assets/199/', location.href).href;
 export const TEX_NAMES = ['brick', 'plaster', 'wall', 'concrete', 'concrete2', 'asphalt', 'paving', 'wood', 'tile', 'metal', 'rust', 'roof',
-  'grass', 'grassdirt', 'dirt', 'rock', 'sand', 'facade', 'bark'];
+  'grass', 'grassdirt', 'dirt', 'rock', 'sand', 'facade', 'bark', 'siding'];
 
 export function loadAssets(onProgress) {
   const A = { tex: {}, nrm: {}, sky: null, env: null, soldier: null, cars: {}, props: {}, leaves: null, ok: false };
@@ -28,6 +28,9 @@ export function loadAssets(onProgress) {
   jobs.push(tex('sky/sky.jpg').then((t) => { if (t) { t.mapping = THREE.EquirectangularReflectionMapping; A.sky = t; } }));
   jobs.push(hdr().then((t) => { if (t) { t.mapping = THREE.EquirectangularReflectionMapping; A.env = t; } }));
   jobs.push(model('models/soldier.glb').then((g) => { A.soldier = g; }));
+  jobs.push(model('models/kit.glb').then((g) => { A.kit = g?.scene || null; }));
+  jobs.push(model('models/guns.glb').then((g) => { A.guns = g?.scene || null; }));
+  jobs.push(model('models/furniture.glb').then((g) => { A.furniture = g?.scene || null; }));
   for (const c of ['sedan', 'hatchback-sports', 'van', 'suv', 'taxi', 'truck', 'police']) jobs.push(model(`cars/${c}.glb`).then((g) => { if (g) A.cars[c] = g.scene; }));
   for (const p of ['old_military_crate', 'metal_jerrycan_green', 'power_box_01']) jobs.push(model(`props/${p}/${p}_1k.gltf`).then((g) => { if (g) A.props[p] = g.scene; }));
   return Promise.all(jobs).then(() => { A.ok = !!(A.tex.brick && A.sky); return A; });

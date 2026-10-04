@@ -21,7 +21,7 @@ export const ACG = {
   Bricks085: 'brick', Plaster001: 'plaster', PaintedPlaster017: 'wall', Concrete034: 'concrete', Concrete031: 'concrete2',
   Road012A: 'asphalt', PavingStones070: 'paving', WoodFloor051: 'wood', Tiles107: 'tile', CorrugatedSteel005: 'metal',
   Metal041B: 'rust', RoofingTiles014B: 'roof', Grass004: 'grass', Ground037: 'grassdirt', Ground103: 'dirt', Rock030: 'rock',
-  Ground054: 'sand', Facade006: 'facade', Bark012: 'bark',
+  Ground054: 'sand', Facade006: 'facade', Bark012: 'bark', WoodSiding009: 'siding',
 };
 const tex = path.join(OUT, 'tex');
 fs.mkdirSync(tex, { recursive: true });

@@ -2,7 +2,7 @@
 import { mulberry32 } from './rng.js';
 import { lineClear, terrainAt } from './physics.js';
 import { MODE, planePos, eyeHeight } from './player.js';
-import { WEAPONS, BITS, decodeLoot, AMMO, PLATE_INV_MAX, magOf } from './rules.js';
+import { WEAPONS, BITS, decodeLoot, AMMO, PLATE_INV_MAX, magOf, BULLET_G } from './rules.js';
 import { stormRemaining } from './storm.js';
 
 const NAMES = ['阿杰', 'Kestrel', '小鹿', 'Moray', '鐵蛋', 'Juniper', '阿芳', 'Osprey', '黑糖', 'Vesper', '老K', 'Talon', '米粒', 'Cinder', '阿翔', 'Harrow',
@@ -154,7 +154,10 @@ export function botThink(p, m) {
     A.wob = (A.wob || 0) + 0.21;
     const lead = 0.12;
     const aimYaw = yawTo(dx + T.vx * lead, dz + T.vz * lead) + Math.sin(A.wob * 1.3) * err;
-    const aimPitch = Math.atan2(ty - eye, d) + Math.cos(A.wob) * err * 0.7;
+    let aimPitch = Math.atan2(ty - eye, d) + Math.cos(A.wob) * err * 0.7;
+    // 有下墜的武器：抬高槍口補償（技術越好補得越準）
+    const vel = s && WEAPONS[s[0]].vel;
+    if (vel) { const tf = d / vel; aimPitch += Math.atan2(0.5 * BULLET_G * tf * tf, d) * (0.75 + A.skill * 0.25); }
     // 轉身速度有限
     const turn = (5 + A.skill * 7) / 30;
     let dy = aimYaw - p.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));

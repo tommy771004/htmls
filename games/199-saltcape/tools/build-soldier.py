@@ -111,6 +111,75 @@ for a in bpy.data.actions:
         if a.name.startswith(k):
             a.name = k
 arm.animation_data_create()
+
+# ---- 步槍姿勢：以手槍瞄準動畫為底，IK 把右手放到握把、左手放到護木（槍托抵右肩），烘焙成新動畫 ----
+from mathutils import Vector
+scene = bpy.context.scene
+bpy.ops.object.select_all(action='DESELECT')
+arm.select_set(True)
+bpy.context.view_layer.objects.active = arm
+
+
+def make_rifle(src_name, dst_name):
+    src = bpy.data.actions.get(src_name)
+    if not src:
+        return
+    arm.animation_data.action = src
+    # Blender 4.4 起的 action 有「slot」：沒指定 slot 動畫不會套用（會停在 T 字姿勢）
+    if getattr(src, 'slots', None) and len(src.slots):
+        arm.animation_data.action_slot = src.slots[0]
+    f0, f1 = int(src.frame_range[0]), int(src.frame_range[1])
+    tR = bpy.data.objects.new('tR', None); tL = bpy.data.objects.new('tL', None)
+    pR = bpy.data.objects.new('pR', None); pL = bpy.data.objects.new('pL', None)
+    for e in (tR, tL, pR, pL):
+        scene.collection.objects.link(e)
+    M = arm.matrix_world
+    for f in range(f0, f1 + 1):
+        scene.frame_set(f)
+        pb = arm.pose.bones
+        S = M @ pb['upperarm_r'].head
+        Sl = M @ pb['upperarm_l'].head
+        H = M @ pb['hand_r'].head
+        Hl = M @ pb['hand_l'].head
+        aim = ((H + Hl) / 2 - (S + Sl) / 2).normalized()   # 雙手持槍時兩手中點的方向就是瞄準方向
+        axis = (Sl - S).normalized()
+        aim = (aim - axis * aim.dot(axis)).normalized()      # 去掉左右分量：槍線跟身體正前方平行
+        chest = (S + Sl) / 2
+        inward = chest - S; inward.z = 0; inward.normalize()
+        down = Vector((0, 0, -1))
+        butt = S + aim * 0.02 + inward * 0.08
+        grip = butt + aim * 0.24 + down * 0.07
+        fore = butt + aim * 0.56 + down * 0.05 + inward * 0.06
+        side = -inward
+        for e, loc in ((tR, grip), (tL, fore), (pR, S + side * 0.35 + down * 0.45 + aim * 0.1), (pL, Sl + down * 0.55 + aim * 0.2)):
+            e.location = loc
+            e.keyframe_insert('location', frame=f)
+    for bone, t, pole in (('lowerarm_r', tR, pR), ('lowerarm_l', tL, pL)):
+        c = arm.pose.bones[bone].constraints.new('IK')
+        c.target = t; c.chain_count = 2; c.pole_target = pole; c.pole_angle = -1.5708
+    scene.frame_set(f0)
+    bpy.context.view_layer.update()
+    pb = arm.pose.bones
+    if False: print('dbg', dst_name, 'tR', tuple(round(v, 2) for v in tR.matrix_world.translation), 'hand_r', tuple(round(v, 2) for v in (M @ pb['hand_r'].head)), 'tL', tuple(round(v, 2) for v in tL.matrix_world.translation), 'hand_l', tuple(round(v, 2) for v in (M @ pb['hand_l'].head)))
+    bpy.ops.object.mode_set(mode='POSE')
+    bpy.ops.pose.select_all(action='SELECT')
+    bpy.ops.nla.bake(frame_start=f0, frame_end=f1, only_selected=False, visual_keying=True, clear_constraints=True, use_current_action=False, bake_types={'POSE'})
+    bpy.ops.object.mode_set(mode='OBJECT')
+    new = arm.animation_data.action
+    new.name = dst_name
+    new.use_fake_user = True
+    for e in (tR, tL, pR, pL):
+        act = e.animation_data.action if e.animation_data else None
+        bpy.data.objects.remove(e, do_unlink=True)
+        if act:
+            bpy.data.actions.remove(act)
+    arm.animation_data.action = None
+    print(f'rifle {dst_name} {f0}-{f1}')
+
+
+for src, dst in (('Pistol_Idle_Loop', 'Rifle_Idle_Loop'), ('Pistol_Aim_Neutral', 'Rifle_Aim_Neutral'), ('Pistol_Aim_Up', 'Rifle_Aim_Up'), ('Pistol_Aim_Down', 'Rifle_Aim_Down'), ('Pistol_Shoot', 'Rifle_Shoot')):
+    make_rifle(src, dst)
+
 arm.animation_data.action = None
 track_owner = arm.animation_data
 for a in bpy.data.actions:

@@ -16,7 +16,7 @@ test('assets.js 引用的素材都在 assets/199/', () => {
   const props = list(/for \(const p of \[([^\]]+)\]\)/);
   const files = [
     ...tex.flatMap((n) => [`tex/${n}.webp`, `tex/${n}_n.webp`]),
-    'tex/leaves.webp', 'tex/leaves_a.webp', 'sky/sky.jpg', 'sky/env.hdr', 'models/soldier.glb',
+    'tex/leaves.webp', 'tex/leaves_a.webp', 'sky/sky.jpg', 'sky/env.hdr', 'models/soldier.glb', 'models/kit.glb', 'models/guns.glb', 'models/furniture.glb',
     ...cars.map((c) => `cars/${c}.glb`), 'cars/Textures/colormap.png',
     ...props.map((p) => `props/${p}/${p}_1k.gltf`),
   ];

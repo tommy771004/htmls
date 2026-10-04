@@ -22,6 +22,7 @@
 | `grass` / `grassdirt` / `dirt` / `rock` / `sand` | Grass004 / Ground037 / Ground103 / Rock030 / Ground054 | 地形五層混合 |
 | `facade` | Facade006 | 新村辦公大樓帷幕牆 |
 | `bark` | Bark012 | 樹幹 |
+| `siding` | WoodSiding009 | 鄉間房子的木壁板外牆 |
 | `leaves` | LeafSet024（顏色＋透明度） | 樹葉卡片 |
 
 ## Poly Haven
@@ -35,7 +36,11 @@
 
 ## Quaternius
 
-`assets/199/models/soldier.glb` 由 `tools/build-soldier.py`（Blender）把 [Universal Base Characters](https://quaternius.itch.io/universal-base-characters) 的男性底模與 [Universal Animation Library](https://quaternius.itch.io/universal-animation-library) 的 17 段動畫（皆 CC0）組成；依骨骼權重把身體分成皮膚、制服、手套、軍靴四個材質，制服的迷彩、頭盔、防彈背心、背包與槍都由前端程式生成。素材包借用 `games/197-openworld/.cache/`（`games/197-openworld/tools/fetch-quaternius.py` 下載，不進 repo）。
+`assets/199/models/soldier.glb` 由 `tools/build-soldier.py`（Blender）把 [Universal Base Characters](https://quaternius.itch.io/universal-base-characters) 的男性底模與 [Universal Animation Library](https://quaternius.itch.io/universal-animation-library) 的 17 段動畫（皆 CC0）組成，另以 IK 烘焙出 5 段步槍動畫；依骨骼權重把身體分成皮膚、制服、手套、軍靴四個材質，制服的迷彩、頭盔、防彈背心、背包與槍都由前端程式生成。素材包借用 `games/197-openworld/.cache/`（`games/197-openworld/tools/fetch-quaternius.py` 下載，不進 repo）。
+
+## 本專案用 Blender 腳本建的模型
+
+以下由 `tools/` 的 Blender 腳本程式建模，沒有外部素材：`models/kit.glb`（鐵窗、浪板遮雨棚、鐵捲門、木門、門廊、陽台、屋頂水塔、機車、路燈、長椅，`build-kit.py`）、`models/guns.glb`（六把槍，`build-guns.py`）、`models/furniture.glb`（床、沙發、餐桌椅、書櫃、衣櫃、流理台、冰箱、電視櫃、書桌、貨架、紙箱、盆栽，`build-furniture.py`）。士兵的五段步槍動畫是 `build-soldier.py` 以 Quaternius 手槍瞄準動畫為底、用 IK 把雙手放到握把與護木後烘焙的。
 
 ## 沒有用到外部資產的部分
 

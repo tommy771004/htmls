@@ -48,7 +48,7 @@ export function makeViewmodel() {
       if (vm.gun) { vm.gun.traverse((o) => { o.castShadow = false; }); gunHolder.add(vm.gun); }
       vm.key = w;
       vm.lower = 1;
-      vm.muzzleZ = w === 'p9' ? -0.17 : w === 'smg' ? -0.4 : w === 'sr' ? -0.84 : w === 'dmr' ? -0.71 : w === 'sg' ? -0.64 : -0.56;
+      vm.muzzleZ = { p9: -0.18, smg: -0.39, ar: -0.63, sg: -0.69, dmr: -0.77, sr: -0.91 }[w] ?? -0.6;
     },
     fire(w) {
       const W = WEAPONS[w];
@@ -67,7 +67,7 @@ export function makeViewmodel() {
       vm.swayX += (-st.mouseDX * 0.0006 - vm.swayX) * Math.min(1, dt * 10);
       vm.swayY += (st.mouseDY * 0.0006 - vm.swayY) * Math.min(1, dt * 10);
       const hip = new THREE.Vector3(0.19, -0.2, -0.5), ads = new THREE.Vector3(0, -0.07, -0.36);
-      if (vm.key === 'sr') ads.y = -0.125; if (vm.key === 'dmr') ads.y = -0.115; if (vm.key === 'ar') ads.y = -0.115; if (vm.key === 'sg') ads.y = -0.073;
+      ads.y = -({ ar: 0.122, smg: 0.082, sg: 0.073, dmr: 0.118, sr: 0.13 }[vm.key] ?? 0.1);
       if (vm.key === 'p9') { hip.set(0.15, -0.17, -0.42); ads.set(0, -0.068, -0.34); }
       const p = hip.clone().lerp(ads, st.ads);
       p.x += Math.sin(vm.bobT) * bobA + vm.swayX;
@@ -80,7 +80,7 @@ export function makeViewmodel() {
       sway.rotation.set(rx, ry, rz);
       // 手的位置：右手握把、左手護木
       // 手的位置：右手握把、左手托護木（前臂朝鏡頭後下方延伸）
-      const fz = { p9: -0.02, smg: -0.24, ar: -0.33, sg: -0.38, dmr: -0.3, sr: -0.3 }[vm.key] ?? -0.3;
+      const fz = { p9: -0.02, smg: -0.22, ar: -0.38, sg: -0.4, dmr: -0.42, sr: -0.36 }[vm.key] ?? -0.3;
       rArm.position.set(0.012, -0.05, 0.04); rArm.rotation.set(0.9, 0.35, 0.1);
       const rl = st.reload ? Math.sin(Math.min(1, st.reloadT) * Math.PI) : 0;
       if (vm.key === 'p9') { lArm.position.set(-0.022, -0.05, 0.035); lArm.rotation.set(0.5, -0.45, -0.3); }

@@ -19,6 +19,22 @@ export function makeFx(scene, A) {
     const t = tracers[trI = (trI + 1) % TR];
     t.a.copy(a); t.b.copy(b); t.len = a.distanceTo(b); t.t = 0; t.life = Math.max(0.06, t.len / 700) + 0.04; t.bright = bright;
   };
+  // 有下墜的子彈：每格依速度與重力前進，畫成一小段亮線
+  const PJ = 24;
+  const pjGeo = new THREE.BufferGeometry();
+  pjGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(PJ * 6), 3));
+  pjGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(PJ * 6), 3));
+  const pjLines = new THREE.LineSegments(pjGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  pjLines.frustumCulled = false; scene.add(pjLines);
+  const pjs = Array.from({ length: PJ }, () => ({ life: 0, p: new THREE.Vector3(), v: new THREE.Vector3() }));
+  let pjI = 0;
+  fx.projectile = (o, v) => { const q = pjs[pjI = (pjI + 1) % PJ]; q.p.copy(o); q.v.copy(v); q.life = 1.8; };
+  fx.projectileHit = (at) => {
+    // 把離命中點最近的那顆收掉
+    let best = null, bd = 1e9;
+    for (const q of pjs) if (q.life > 0) { const d = q.p.distanceToSquared(at); if (d < bd) { bd = d; best = q; } }
+    if (best && bd < 60 * 60) best.life = 0;
+  };
   // 粉塵與血霧：點精靈
   const PU = 160;
   const puGeo = new THREE.BufferGeometry();
@@ -160,6 +176,17 @@ export function makeFx(scene, A) {
       } else { ca.fill(0, i * 6, i * 6 + 6); }
     }
     trGeo.attributes.position.needsUpdate = true; trGeo.attributes.color.needsUpdate = true;
+    const jp = pjGeo.attributes.position.array, jc = pjGeo.attributes.color.array;
+    for (let i = 0; i < PJ; i++) {
+      const q = pjs[i];
+      if (q.life > 0) {
+        q.life -= dt; q.v.y -= 9.8 * dt; q.p.addScaledVector(q.v, dt);
+        const tail = q.p.clone().addScaledVector(q.v, -0.022);
+        jp.set([tail.x, tail.y, tail.z, q.p.x, q.p.y, q.p.z], i * 6);
+        jc.set([0.45, 0.3, 0.12, 1, 0.9, 0.62], i * 6);
+      } else jc.fill(0, i * 6, i * 6 + 6);
+    }
+    pjGeo.attributes.position.needsUpdate = true; pjGeo.attributes.color.needsUpdate = true;
     const pp = puGeo.attributes.position.array, pc = puGeo.attributes.color.array, ps = puGeo.attributes.size.array;
     for (let i = 0; i < PU; i++) {
       const q = puffs[i];

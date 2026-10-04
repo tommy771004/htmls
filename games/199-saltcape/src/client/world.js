@@ -6,6 +6,7 @@ import { CSM } from 'three/addons/csm/CSM.js';
 import { MAT, MAT_COUNT, DK, EXT, CELL, N } from '../core/map.js';
 import { mulberry32, fbm, smooth, hash2 } from '../core/rng.js';
 import { makeTextures, signTexture } from './textures.js';
+import { buildKit } from './kit.js';
 
 export const SUN_DIR = new THREE.Vector3(-0.45, 0.72, -0.53).normalize();
 export const FOG = new THREE.Color('#c4cfd6');
@@ -16,16 +17,16 @@ const SURF = {
   [MAT.plaster]: ['plaster', 2.4, 0.92, 0.6], [MAT.plasterWarm]: ['plaster', 2.4, 0.92, 0.6], [MAT.plasterRose]: ['plaster', 2.4, 0.92, 0.6], [MAT.plasterSage]: ['plaster', 2.4, 0.92, 0.6],
   [MAT.concrete]: ['concrete', 3, 0.9, 0.7], [MAT.brick]: ['brick', 1.4, 0.88, 1], [MAT.wood]: ['wood', 1.8, 0.62, 0.6], [MAT.tile]: ['tile', 1.2, 0.35, 0.5],
   [MAT.roof]: ['roof', 1.6, 0.8, 1], [MAT.metal]: ['metal', 1.6, 0.55, 1], [MAT.rust]: ['rust', 2, 0.75, 0.8], [MAT.container]: ['metal', 1.2, 0.6, 1.2],
-  [MAT.stone]: ['concrete2', 2.5, 0.9, 0.8], [MAT.trim]: [null, 1, 0.7, 0], [MAT.salt]: ['sand', 2, 0.85, 0.5], [MAT.car]: [null, 1, 0.4, 0],
-  [MAT.tank]: ['metal', 3, 0.5, 0.3], [MAT.crate]: ['wood', 1, 0.8, 0.6], [MAT.temple]: ['plaster', 2, 0.7, 0.4], [MAT.glass]: [null, 1, 0.1, 0], [MAT.facade]: ['facade', 9, 0.25, 0.6],
+  [MAT.stone]: ['concrete', 2.5, 0.9, 0.8], [MAT.trim]: [null, 1, 0.7, 0], [MAT.salt]: ['sand', 2, 0.85, 0.5], [MAT.car]: [null, 1, 0.4, 0],
+  [MAT.tank]: ['metal', 3, 0.5, 0.3], [MAT.crate]: ['wood', 1, 0.8, 0.6], [MAT.temple]: ['plaster', 2, 0.7, 0.4], [MAT.glass]: [null, 1, 0.1, 0], [MAT.facade]: ['facade', 9, 0.25, 0.6], [MAT.siding]: ['siding', 2.2, 0.75, 1], [MAT.hidden]: ['wood', 1.8, 0.6, 0.6],
 };
 const BASE = {
   [MAT.plaster]: '#f4f1ea', [MAT.plasterWarm]: '#efd29e', [MAT.plasterRose]: '#e8b39e', [MAT.plasterSage]: '#cdd8bb', [MAT.concrete]: '#e6e2da',
   [MAT.brick]: '#ffffff', [MAT.wood]: '#ffffff', [MAT.tile]: '#ffffff', [MAT.roof]: '#ffffff', [MAT.metal]: '#ffffff', [MAT.rust]: '#ffffff',
   [MAT.container]: '#ffffff', [MAT.stone]: '#f2ece0', [MAT.trim]: '#3d342b', [MAT.salt]: '#ffffff', [MAT.car]: '#ffffff', [MAT.tank]: '#f4f3ef',
-  [MAT.crate]: '#c79a64', [MAT.temple]: '#c4432a', [MAT.glass]: '#ffffff', [MAT.facade]: '#ffffff',
+  [MAT.crate]: '#c79a64', [MAT.temple]: '#c4432a', [MAT.glass]: '#ffffff', [MAT.facade]: '#ffffff', [MAT.siding]: '#f4f2ec', [MAT.hidden]: '#b08a5e',
 };
-const INTERIOR_OK = new Set([MAT.plaster, MAT.plasterWarm, MAT.plasterRose, MAT.plasterSage, MAT.brick, MAT.concrete, MAT.stone]);
+const INTERIOR_OK = new Set([MAT.plaster, MAT.plasterWarm, MAT.plasterRose, MAT.plasterSage, MAT.brick, MAT.concrete, MAT.stone, MAT.siding]);
 
 export function sunFromHDR(t) {
   const img = t?.image; if (!img?.data) return null;
@@ -53,13 +54,13 @@ export function buildWorld(W, renderer, camera, A, Q) {
     scene.background = A.sky;
     const pm = new THREE.PMREMGenerator(renderer);
     scene.environment = pm.fromEquirectangular(A.env || A.sky).texture;
-    scene.environmentIntensity = 0.5;
+    scene.environmentIntensity = 0.68;
     pm.dispose();
   } else scene.background = FOG.clone();
   scene.fog = new THREE.FogExp2(FOG.getHex(), 0.00028);
 
   // ---- 光與陰影 ----
-  const hemi = new THREE.HemisphereLight('#dfe9f2', '#7d6a4f', real ? 0.18 : 1.1);
+  const hemi = new THREE.HemisphereLight('#dfe9f2', '#7d6a4f', real ? 0.32 : 1.1);
   scene.add(hemi);
   let csm = null, sun = null;
   if (Q.shadows === 'csm') {
@@ -97,7 +98,7 @@ export function buildWorld(W, renderer, camera, A, Q) {
   const mats = makeMaterials(T, A, csmify);
   for (const m of buildBoxes(W, mats, A)) scene.add(m);
   scene.add(buildDetails(W, csmify));
-  scene.add(buildCylinders(W, mats));
+  scene.add(buildCylinders(W, mats, !!A?.kit));
   const terrain = buildTerrainMesh(W, T, A, csmify);
   scene.add(terrain);
   const sea = buildSea(W, A, sunDir);
@@ -107,6 +108,7 @@ export function buildWorld(W, renderer, camera, A, Q) {
   scene.add(buildVegetation(W, A, csmify));
   scene.add(buildPoles(W, csmify));
   scene.add(buildDeco(W, T, A, mats, csmify));
+  scene.add(buildKit(W, A?.kit, csmify, A?.furniture));
 
   return {
     scene, csm, sun, hemi, sea, terrain, sunDir, csmify,
@@ -135,7 +137,7 @@ function makeMaterials(T, A, csmify) {
     const o = { vertexColors: true, roughness: rough, metalness: m === MAT.metal || m === MAT.tank || m === MAT.container ? 0.25 : 0 };
     if (name && A?.tex[name]) { o.map = repTex(A.tex[name], size); if (A.nrm[name] && ns > 0) { o.normalMap = repTex(A.nrm[name], size); o.normalScale = new THREE.Vector2(ns, ns); } }
     else if (fallback[m]) { o.map = fallback[m].clone(); o.map.repeat.set(1 / size, 1 / size); o.map.needsUpdate = true; }
-    else if (m <= MAT.plasterSage || m === MAT.facade) { o.map = T.plaster.clone(); o.map.repeat.set(1 / size, 1 / size); o.map.needsUpdate = true; }
+    else if (m <= MAT.plasterSage || m === MAT.facade || m === MAT.siding) { o.map = T.plaster.clone(); o.map.repeat.set(1 / size, 1 / size); o.map.needsUpdate = true; }
     if (m === MAT.facade) { o.metalness = 0.05; o.roughness = 0.45; o.envMapIntensity = 1.2; }
     M[m] = csmify(new THREE.MeshStandardMaterial(o));
   }
@@ -160,6 +162,7 @@ function buildBoxes(W, mats, A) {
   for (let k = 0; k < W.BM.length; k++) {
     const m = W.BM[k];
     if (hideCars && (m === MAT.car || m === MAT.glass)) continue;
+    if (m === MAT.hidden && A?.furniture) continue; // 家具的碰撞方塊：外觀由 Blender 模型負責
     const x0 = B[k * 6], y0 = B[k * 6 + 1], z0 = B[k * 6 + 2], x1 = B[k * 6 + 3], y1 = B[k * 6 + 4], z1 = B[k * 6 + 5];
     col.set(BASE[m]);
     if (W.BT[k]) { tint.setHex(W.BT[k]); col.multiply(tint); }
@@ -262,12 +265,13 @@ function vcolor(g, hex) {
 function uvScale(g, sx, sy) { const u = g.attributes.uv; for (let i = 0; i < u.count; i++) u.setXY(i, u.getX(i) * sx, u.getY(i) * sy); return g; }
 const strip = (g) => { const y = g.index ? g.toNonIndexed() : g; for (const k of Object.keys(y.attributes)) if (!['position', 'normal', 'uv', 'color'].includes(k)) y.deleteAttribute(k); return y; };
 
-function buildCylinders(W, mats) {
+function buildCylinders(W, mats, kit) {
   const groups = new Map();
   const add = (m, g) => { if (!groups.has(m)) groups.set(m, []); groups.get(m).push(g); };
   for (const c of W.cyls) {
     const [x, z, r, y0, y1, m] = c;
     if (m < 0) continue;
+    if (kit && m === MAT.tank && r < 0.8) continue; // 屋頂水塔改用 Blender 模型
     const h = y1 - y0;
     let g;
     if (m === MAT.salt) { g = new THREE.ConeGeometry(r * 1.25, h + 1, 18, 1); uvScale(g, r * 6, h); g.translate(x, y0 + (h + 1) / 2, z); }
@@ -527,10 +531,18 @@ function leafCards(rnd, n, rx, ry, rz, cy, size) {
   return m;
 }
 function palmFrondTexture() {
-  const c = document.createElement('canvas'); c.width = 64; c.height = 256; const x = c.getContext('2d');
-  x.strokeStyle = '#5d6b2c'; x.lineWidth = 3; x.beginPath(); x.moveTo(32, 256); x.lineTo(32, 0); x.stroke();
-  for (let i = 0; i < 46; i++) { const y = 250 - i * 5.4, len = 30 * Math.sin((i / 46) * Math.PI * 0.95 + 0.1); x.strokeStyle = `hsl(${78 + Math.random() * 12},${40 + Math.random() * 15}%,${26 + Math.random() * 12}%)`; x.lineWidth = 2.4; for (const s of [-1, 1]) { x.beginPath(); x.moveTo(32, y); x.quadraticCurveTo(32 + s * len * 0.6, y - 4, 32 + s * len, y + 10); x.stroke(); } }
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  const c = document.createElement('canvas'); c.width = 128; c.height = 512; const x = c.getContext('2d');
+  // 羽狀葉：中肋＋兩側細長小葉，越往尖端越短
+  for (let i = 0; i < 70; i++) {
+    const v = i / 70, y = 506 - v * 500, len = 60 * Math.sin(Math.min(1, v * 1.15) * Math.PI * 0.92 + 0.08) * (1 - v * 0.25);
+    for (const sd of [-1, 1]) {
+      const g = 36 + Math.random() * 30;
+      x.fillStyle = `hsl(${74 + Math.random() * 14},${38 + Math.random() * 18}%,${g}%)`;
+      x.beginPath(); x.moveTo(64, y); x.quadraticCurveTo(64 + sd * len * 0.5, y - 10, 64 + sd * len, y + 16); x.quadraticCurveTo(64 + sd * len * 0.5, y - 2, 64, y + 5); x.fill();
+    }
+  }
+  x.strokeStyle = '#8a8a4a'; x.lineWidth = 4; x.beginPath(); x.moveTo(64, 512); x.lineTo(64, 4); x.stroke();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
 }
 function buildVegetation(W, A, csmify) {
   const grp = new THREE.Group();
@@ -549,14 +561,17 @@ function buildVegetation(W, A, csmify) {
   const frondTex = palmFrondTexture();
   const palmTrunk = trunk(7, 0.24, 0.17, 1.2);
   const fronds = [];
-  for (let i = 0; i < 9; i++) {
-    const g = new THREE.PlaneGeometry(1.1, 4.2, 1, 8); g.translate(0, 2.1, 0);
-    const p = g.attributes.position; for (let k = 0; k < p.count; k++) { const y = p.getY(k); p.setZ(k, -y * 0.45 + y * y * 0.1); p.setY(k, y * 0.85); }
-    g.rotateX(-0.25); g.rotateY((i / 9) * Math.PI * 2 + rnd() * 0.3); g.translate(1.2, 7, 0);
+  for (let i = 0; i < 13; i++) {
+    const len = 4.6 + rnd() * 1.2, droop = 0.5 + rnd() * 0.5;
+    const g = new THREE.PlaneGeometry(1.9, len, 2, 10); g.translate(0, len / 2, 0);
+    const p = g.attributes.position;
+    for (let k = 0; k < p.count; k++) { const y = p.getY(k), u = y / len, xx = p.getX(k); p.setY(k, y * Math.cos(u * droop * 1.6)); p.setZ(k, -y * Math.sin(u * droop * 1.6) * 0.9 - Math.abs(xx) * 0.25); }
+    g.rotateX(-Math.PI / 2 + 0.55 + (i % 3) * 0.12); g.rotateY((i / 13) * Math.PI * 2 + rnd() * 0.25); g.translate(1.15, 7.05, 0);
     fronds.push(g);
   }
   const palmLeaves = mergeGeometries(fronds); palmLeaves.computeVertexNormals();
-  const palmMat = csmify(new THREE.MeshStandardMaterial({ map: frondTex, alphaTest: 0.4, side: THREE.DoubleSide, roughness: 0.8, color: '#c9d49a' }));
+  { const nr = palmLeaves.attributes.normal; for (let k = 0; k < nr.count; k++) nr.setY(k, Math.abs(nr.getY(k)) * 0.6 + 0.4); }
+  const palmMat = csmify(new THREE.MeshStandardMaterial({ map: frondTex, alphaTest: 0.35, side: THREE.DoubleSide, roughness: 0.75, color: '#e2ead0' }));
   const by = { olive: [], cypress: [], street: [], bush: [], palm: [] };
   for (const t of W.trees) {
     let k = ['olive', 'cypress', 'street', 'bush'][t[3]];

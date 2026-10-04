@@ -90,9 +90,52 @@ const gunMats = {
   tan: new THREE.MeshStandardMaterial({ color: '#a8946c', roughness: 0.7 }),
   glass: new THREE.MeshStandardMaterial({ color: '#c8532d', roughness: 0.1, metalness: 0.3, emissive: '#5a1a08' }),
 };
+// Blender 建的槍（guns.glb）：沒有 UV，迷彩護木用物件空間圖樣
+let GUNS = null;
+function objCamo(base, pal) {
+  const m = base.clone();
+  m.map = null;
+  m.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vObj;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvObj = position;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+      varying vec3 vObj;
+      float hh(vec3 p){ return fract(sin(dot(p, vec3(127.1,311.7,74.7))) * 43758.5453); }
+      float nn(vec3 p){ vec3 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
+        return mix(mix(mix(hh(i),hh(i+vec3(1,0,0)),f.x), mix(hh(i+vec3(0,1,0)),hh(i+vec3(1,1,0)),f.x), f.y), mix(mix(hh(i+vec3(0,0,1)),hh(i+vec3(1,0,1)),f.x), mix(hh(i+vec3(0,1,1)),hh(i+vec3(1,1,1)),f.x), f.y), f.z); }`)
+      .replace('#include <map_fragment>', `#include <map_fragment>
+      vec3 q = vObj * 26.0; float a = nn(q) * 0.6 + nn(q * 2.1) * 0.4, b = nn(q * 1.4 + 9.) * 0.6 + nn(q * 2.9) * 0.4;
+      vec3 c = vec3(${pal[0]}); c = mix(c, vec3(${pal[1]}), smoothstep(0.48, 0.53, a)); c = mix(c, vec3(${pal[2]}), smoothstep(0.57, 0.62, b)); c = mix(c, vec3(${pal[3]}), smoothstep(0.66, 0.7, nn(q * 3.3 + 4.)));
+      diffuseColor.rgb = pow(c, vec3(2.2));`);
+  };
+  return m;
+}
+export function setGuns(scene) {
+  if (!scene) return;
+  GUNS = {};
+  for (const top of scene.children) {
+    const list = [];
+    top.updateWorldMatrix(true, true);
+    const inv = new THREE.Matrix4().copy(top.matrixWorld).invert();
+    top.traverse((o) => { if (o.isMesh) { const g = o.geometry.clone(); g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld)); g.computeVertexNormals(); list.push([g, o.material.name]); } });
+    if (list.length) GUNS[top.name] = list;
+  }
+  gunCache.clear();
+}
+const camoGreen = () => objCamo(gunMats.metal, ['0.30,0.42,0.2', '0.18,0.27,0.13', '0.43,0.54,0.29', '0.12,0.16,0.09']);
+let camoMat = null;
 const gunCache = new Map();
 export function gunMesh(w, scale = 1) {
   const key = w + scale;
+  if (!gunCache.has(key) && GUNS?.[w]) {
+    camoMat ||= Object.assign(camoGreen(), { roughness: 0.6, metalness: 0 });
+    const g = new THREE.Group();
+    for (const [geo, mname] of GUNS[w]) {
+      const ge = geo.clone(); ge.scale(scale, scale, scale);
+      const m = mname === 'wood' ? camoMat : mname === 'tan' ? gunMats.tan : mname === 'glass' ? gunMats.glass : mname === 'poly' ? gunMats.poly : gunMats.metal;
+      g.add(new THREE.Mesh(ge, m));
+    }
+    gunCache.set(key, g);
+  }
   if (!gunCache.has(key)) {
     const parts = gunGeometry(w), g = new THREE.Group();
     for (const k of Object.keys(parts)) if (parts[k].length) {
@@ -120,7 +163,7 @@ export function setActors(A) {
   const C = {
     full: clips,
     lower: Object.fromEntries(['Idle_Loop', 'Walk_Loop', 'Jog_Fwd_Loop', 'Crouch_Idle_Loop', 'Crouch_Fwd_Loop'].map((n) => [n, sub(n, isLower)])),
-    upper: Object.fromEntries(['Pistol_Idle_Loop', 'Pistol_Aim_Neutral', 'Pistol_Aim_Up', 'Pistol_Aim_Down', 'Pistol_Reload', 'Pistol_Shoot'].map((n) => [n, sub(n, isUpper)])),
+    upper: Object.fromEntries(['Pistol_Idle_Loop', 'Pistol_Aim_Neutral', 'Pistol_Aim_Up', 'Pistol_Aim_Down', 'Pistol_Reload', 'Pistol_Shoot', 'Rifle_Idle_Loop', 'Rifle_Aim_Neutral', 'Rifle_Aim_Up', 'Rifle_Aim_Down', 'Rifle_Shoot'].filter((n) => clips[n]).map((n) => [n, sub(n, isUpper)])),
   };
   // 制服：物件空間迷彩（綁定姿勢的頂點座標，跟著身體動）
   const camo = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.92 });
@@ -231,8 +274,10 @@ export function poseSoldier(s, st, dt) {
       want[base + '_L'] = 1;
       const p = st.pitch || 0;
       const up = Math.max(0, Math.min(1, p / 0.8)), down = Math.max(0, Math.min(1, -p / 0.8));
+      // 手槍用手槍姿勢，其他武器用 Blender 以 IK 烘焙的步槍姿勢（右手握把、左手托護木）
+      const pre = wkey && wkey !== 'p9' && C.upper.Rifle_Aim_Neutral ? 'Rifle' : 'Pistol';
       if (st.reload) want.Pistol_Reload_U = 1;
-      else { want.Pistol_Aim_Neutral_U = 1 - up - down; want.Pistol_Aim_Up_U = up; want.Pistol_Aim_Down_U = down; }
+      else { want[pre + '_Aim_Neutral_U'] = 1 - up - down; want[pre + '_Aim_Up_U'] = up; want[pre + '_Aim_Down_U'] = down; }
       if (s.acts[base + '_L']) s.acts[base + '_L'].timeScale = base === 'Walk_Loop' ? Math.max(0.6, sp / 2.2) : base === 'Jog_Fwd_Loop' ? Math.max(0.7, sp / 4.6) : 1;
     }
     if (s.acts.Sprint_Loop) s.acts.Sprint_Loop.timeScale = Math.max(0.8, (st.speed || 0) / 7);

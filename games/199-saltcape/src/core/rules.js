@@ -11,6 +11,7 @@ export const AMMO = {
   n: { name: '狙擊彈', cap: 30, pack: 8 },
 };
 export const AMMO_KEYS = ['l', 'h', 's', 'n'];
+export const BULLET_G = 9.8;   // 有 vel 的武器（射手步槍、狙擊槍）子彈受重力下墜
 
 // dmg 單發；rpm 射速；auto 是否全自動；mag 彈匣；reload 秒；hip/ads 散布（弧度）；
 // r1/r2 衰減起訖距離、fall 最遠倍率；hs 爆頭倍率；pellets 霰彈數；zoom 開鏡倍率
@@ -19,8 +20,8 @@ export const WEAPONS = {
   smg: { name: '黃蜂 SMG', cls: '衝鋒槍', ammo: 'l', dmg: 19, rpm: 880, auto: true, mag: 32, reload: 1.9, hip: 0.03, ads: 0.011, r1: 15, r2: 45, fall: 0.55, hs: 1.4, move: 3.0, zoom: 1.2 },
   ar: { name: '鐵砧-74', cls: '突擊步槍', ammo: 'h', dmg: 27, rpm: 620, auto: true, mag: 30, reload: 2.2, hip: 0.04, ads: 0.0055, r1: 35, r2: 110, fall: 0.7, hs: 1.5, move: 2.6, zoom: 1.4 },
   sg: { name: '碎浪 12', cls: '霰彈槍', ammo: 's', dmg: 13, rpm: 75, auto: false, mag: 6, reload: 2.6, hip: 0.075, ads: 0.06, r1: 6, r2: 22, fall: 0.25, hs: 1.3, move: 2.8, zoom: 1.1, pellets: 9 },
-  dmr: { name: '長弓 DMR', cls: '射手步槍', ammo: 'h', dmg: 52, rpm: 260, auto: false, mag: 10, reload: 2.4, hip: 0.05, ads: 0.002, r1: 60, r2: 200, fall: 0.8, hs: 1.75, move: 2.4, zoom: 2.6 },
-  sr: { name: '信天翁 .338', cls: '狙擊步槍', ammo: 'n', dmg: 105, rpm: 46, auto: false, mag: 5, reload: 3.0, hip: 0.09, ads: 0.0008, r1: 100, r2: 400, fall: 0.85, hs: 2.0, move: 2.0, zoom: 5.5 },
+  dmr: { name: '長弓 DMR', cls: '射手步槍', ammo: 'h', dmg: 52, rpm: 260, auto: false, mag: 10, reload: 2.4, hip: 0.05, ads: 0.002, r1: 60, r2: 200, fall: 0.8, hs: 1.75, move: 2.4, zoom: 2.6, vel: 540 },
+  sr: { name: '信天翁 .338', cls: '狙擊步槍', ammo: 'n', dmg: 105, rpm: 46, auto: false, mag: 5, reload: 3.0, hip: 0.09, ads: 0.0008, r1: 100, r2: 400, fall: 0.85, hs: 2.0, move: 2.0, zoom: 5.5, vel: 640 },
 };
 export const WEAPON_KEYS = Object.keys(WEAPONS);
 

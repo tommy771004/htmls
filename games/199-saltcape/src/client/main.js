@@ -6,7 +6,7 @@ import { newPlayer, stepPlayer, applySelf, MODE, eyeHeight, planePos, currentSpr
 import { TICK, DT, WEAPONS, WEAPON_KEYS, BITS, PLANE_ALT, MATCH, decodeLoot, RARITY, lootLabel } from '../core/rules.js';
 import { unpackStorm, stormAt, stormRemaining } from '../core/storm.js';
 import { buildWorld, FOG } from './world.js';
-import { makeSoldier, poseSoldier, makePlane, setActors } from './actors.js';
+import { makeSoldier, poseSoldier, makePlane, setActors, setGuns } from './actors.js';
 import { makeViewmodel } from './viewmodel.js';
 import { makeFx } from './fx.js';
 import { makeAudio } from './audio.js';
@@ -55,6 +55,7 @@ let ASSETS = null, world = null, scene = null, fx = null, plane = null, grass = 
 function boot(A) {
   ASSETS = A;
   setActors(A);
+  setGuns(A.guns);
   world = buildWorld(W, renderer, camera, A, Q);
   scene = world.scene;
   fx = makeFx(scene, A);
@@ -277,6 +278,20 @@ function onEvent(ev) {
       audio.shot(ev.w, dist, Math.max(-1, Math.min(1, rel.x / Math.max(4, dist))));
       break;
     }
+    case 'p': {
+      // 別人開的有下墜子彈
+      const o = new THREE.Vector3(ev.o[0], ev.o[1], ev.o[2]);
+      fx.projectile(o, new THREE.Vector3(ev.v[0], ev.v[1], ev.v[2])); fx.muzzle(o);
+      const dist = o.distanceTo(camera.position);
+      const rel = new THREE.Vector3().subVectors(o, camera.position).applyQuaternion(camera.quaternion.clone().invert());
+      audio.shot(ev.w, dist, Math.max(-1, Math.min(1, rel.x / Math.max(4, dist))));
+      break;
+    }
+    case 'pi': {
+      const at = new THREE.Vector3(ev.at[0], ev.at[1], ev.at[2]);
+      fx.projectileHit(at); fx.puff(at, ev.b ? '#7a1a10' : '#c9b996', ev.b ? 6 : 4, 0.3, 1.2);
+      break;
+    }
     case 'h': {
       hud.hit(ev.hs, ev.k, ev.br); audio.hit(ev.hs, ev.br); if (ev.br) audio.armorBreak(); if (ev.k) audio.kill();
       const o = G.others.get(ev.v);
@@ -428,6 +443,7 @@ const localFx = {
     const eye = new THREE.Vector3(p.x, p.y + eyeHeight(p), p.z);
     const muzzle = camera.position.clone().add(new THREE.Vector3(0.12, -0.1, -0.6).applyQuaternion(camera.quaternion));
     for (const [dx, dy, dz] of dirs) {
+      if (WEAPONS[w].vel) { fx.projectile(muzzle, new THREE.Vector3(dx, dy, dz).multiplyScalar(WEAPONS[w].vel)); continue; }
       const t = raycastWorld(W, eye.x, eye.y, eye.z, dx, dy, dz, Math.min(520, WEAPONS[w].r2 * 2.6));
       const end = eye.clone().addScaledVector(new THREE.Vector3(dx, dy, dz), Math.min(t, 520));
       fx.tracer(muzzle, end, 1);

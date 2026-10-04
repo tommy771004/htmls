@@ -6,7 +6,7 @@ import { raycastWorld, terrainAt } from './physics.js';
 import { stepPlayer, newPlayer, MODE, eyeHeight, packSelf, STAND_H, CROUCH_H, planePos } from './player.js';
 import {
   TICK, DT, WEAPONS, WEAPON_KEYS, RARITY, AMMO, AMMO_KEYS, LOOT, weaponCode, decodeLoot, magOf,
-  PLATE_INV_MAX, PLANE_ALT, PLANE_SPEED, BITS,
+  PLATE_INV_MAX, PLANE_ALT, PLANE_SPEED, BITS, BULLET_G,
 } from './rules.js';
 import { newStorm, stormTick, outside, stormDps, packStorm } from './storm.js';
 import { botThink, initBot } from './bots.js';
@@ -32,6 +32,7 @@ export class Match {
     this.bucket = new Map();
     this.ack = new Map();
     this.hist = [];
+    this.proj = [];               // 飛行中的子彈（有下墜的武器）
     this.over = false;
     this.winner = -1;
     this.elims = [];               // 依淘汰順序
@@ -178,6 +179,13 @@ export class Match {
     const ex = p.x, ey = p.y + eyeHeight(p), ez = p.z;
     const vt = typeof inp.vt === 'number' ? Math.max(this.tick - 12, Math.min(this.tick, inp.vt)) : this.tick;
     const range = Math.min(520, W.r2 * 2.6);
+    if (W.vel) {
+      // 有初速的武器：子彈逐 tick 飛行並受重力下墜，命中時才結算
+      for (const [dx, dy, dz] of dirs) this.proj.push({ s: p.id, w, rar, x: ex, y: ey, z: ez, vx: dx * W.vel, vy: dy * W.vel, vz: dz * W.vel, dist: 0, born: this.tick, lag: this.tick - vt });
+      const [d] = dirs;
+      this.emitNear(ex, ez, 900, { e: 'p', i: p.id, w, o: [q(ex, 10) / 10, q(ey, 10) / 10, q(ez, 10) / 10], v: [q(d[0] * W.vel, 10) / 10, q(d[1] * W.vel, 10) / 10, q(d[2] * W.vel, 10) / 10] }, p.id);
+      return;
+    }
     const ends = [];
     const hits = new Map();
     for (const [dx, dy, dz] of dirs) {
@@ -271,6 +279,43 @@ export class Match {
     return { x: cur.x, z: cur.z };
   }
 
+  // 子彈飛行：每 tick 走一段，線段對世界與（回推後的）玩家做命中
+  stepProjectiles() {
+    for (let i = this.proj.length - 1; i >= 0; i--) {
+      const pr = this.proj[i];
+      const sx = pr.x, sy = pr.y, sz = pr.z;
+      pr.vy -= BULLET_G * DT;
+      const dx = pr.vx * DT, dy = pr.vy * DT, dz = pr.vz * DT, L = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      const ux = dx / L, uy = dy / L, uz = dz / L;
+      let best = raycastWorld(this.W, sx, sy, sz, ux, uy, uz, L), victim = null, head = false;
+      const shooter = this.byId.get(pr.s), vt = this.tick - pr.lag;
+      for (const t of this.players) {
+        if (t.id === pr.s || t.mode === MODE.DEAD || t.mode === MODE.SPECT || t.mode === MODE.PLANE) continue;
+        const r = this.rewound(t, vt);
+        if ((r.x - sx) ** 2 + (r.z - sz) ** 2 > (L + 3) ** 2) continue;
+        const H = r.cr ? CROUCH_H : STAND_H;
+        const th = raySphere(sx, sy, sz, ux, uy, uz, r.x, r.y + H - 0.18, r.z, 0.2);
+        if (th >= 0 && th < best) { best = th; victim = t; head = true; }
+        const tb = rayBox(sx, sy, sz, ux, uy, uz, r.x - 0.32, r.y, r.z - 0.32, r.x + 0.32, r.y + H - 0.36, r.z + 0.32);
+        if (tb >= 0 && tb < best) { best = tb; victim = t; head = false; }
+      }
+      const at = [sx + ux * Math.min(best, L), sy + uy * Math.min(best, L), sz + uz * Math.min(best, L)];
+      pr.dist += Math.min(best, L);
+      if (victim || best < L) {
+        if (victim && shooter) {
+          const W = WEAPONS[pr.w];
+          const fall = pr.dist <= W.r1 ? 1 : pr.dist >= W.r2 ? W.fall : 1 + (W.fall - 1) * ((pr.dist - W.r1) / (W.r2 - W.r1));
+          this.damage(victim, W.dmg * RARITY[pr.rar].dmg * fall * (head ? W.hs : 1), shooter, pr.w, head, pr.dist);
+        }
+        this.emitNear(at[0], at[2], 500, { e: 'pi', at: at.map((v) => q(v, 10) / 10), b: victim ? 1 : 0 });
+        this.proj.splice(i, 1);
+        continue;
+      }
+      pr.x = at[0]; pr.y = at[1]; pr.z = at[2];
+      if (pr.dist > 900 || this.tick - pr.born > 90 || pr.y < -20) this.proj.splice(i, 1);
+    }
+  }
+
   // ---- 一個 tick ----
   step() {
     if (this.over) { this.tick++; this.time = this.tick * DT; return; }
@@ -306,6 +351,7 @@ export class Match {
         this.bucket.set(p.id, tb - used);
       }
     }
+    this.stepProjectiles();
     // 自動撿彈藥與護甲片
     if (this.tick % 5 === 0) {
       for (const p of this.players) {
@@ -319,6 +365,7 @@ export class Match {
     if (this.tick % 3 === 0) {
       const dps = stormDps(this.storm);
       for (const p of this.alive()) {
+        if (this.over) break; // 最後兩人同一刻被毒死時，先倒下的那個已讓對方獲勝
         if (p.mode === MODE.PLANE) continue;
         if (outside(this.storm, p.x, p.z)) {
           const acc = (this.stormAcc.get(p.id) || 0) + dps * DT * 3;

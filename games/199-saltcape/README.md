@@ -48,7 +48,10 @@ npm run mp                      # 兩個瀏覽器分頁：建房 → 分享網�
 npm run sim                     # Node 裡跑整場 48 人 AI 對戰並印出統計
 npm run thumb                   # 重新產生 ../../thumbs/199.jpg
 node tools/fetch-assets.mjs     # 重新下載 CC0 素材到 ../../assets/199/（需要 curl、unzip、cwebp、sips）
-blender -b -P tools/build-soldier.py   # 士兵模型（借 games/197-openworld/.cache/ 的 Quaternius 素材包）
+blender -b -P tools/build-soldier.py     # 士兵模型與 IK 烘焙的步槍動畫（借 games/197-openworld/.cache/ 的 Quaternius 素材包）
+blender -b -P tools/build-kit.py         # 外觀模組：鐵窗、遮雨棚、鐵捲門、門、門廊、陽台、水塔、機車、路燈、長椅
+blender -b -P tools/build-guns.py        # 六把槍
+blender -b -P tools/build-furniture.py   # 室內家具
 ```
 
 截圖、驗收與多人工具都用 `tools/lib.mjs` 的 `serve()` 在同一個行程起網站伺服器（含 `/saltcape`）。
@@ -73,6 +76,7 @@ blender -b -P tools/build-soldier.py   # 士兵模型（借 games/197-openworld/
 - Vercel 上的 WebSocket function（`/api/saltcape`）每條連線最多活 300 秒，前端每 200 秒先開新連線、帶 token 接手座位再關舊連線；意外斷線會指數退避重連。
 - **對局只存在單一行程的記憶體裡**，不寫資料庫（30 Hz 的位置同步不適合透過 Neon 輪詢）。Vercel 若把好友的連線或換線分到不同實例，加入會收到「找不到這個房號：可能分在另一台伺服器實例」、主動換線失敗時會保留舊連線並每 4 秒重試；斷線後重連若落在別的實例，會顯示「原本的對局不在這台伺服器上」並回到大廳，不會靜默分裂成兩場。要穩定多人，可用 `npm start` 或 `node server/saltcape/server.mjs` 自架，前端加 `?server=wss://…`。
 - 部署後請實測：兩個分頁開同一個好友房、玩超過 200 秒確認換線不掉線、再開第三個分頁加入。
-- 命中裁定以伺服器位置為準，回推最多 400 毫秒補償延遲；沒有子彈飛行時間與下墜。
+- 命中裁定以伺服器位置為準，回推最多 400 毫秒補償延遲。射手步槍與狙擊槍的子彈有飛行時間與下墜，其他槍是即時命中。
 - AI 只搜刮一樓的戰利品，落地時常撿不到主武器，開局手槍戰偏多；AI 不會爬樓梯上屋頂。
+- 建築本體仍是方塊（碰撞與外觀共用），門窗外觀、家具與槍是 Blender 模型疊上去的；角色換彈仍用手槍換彈動畫。
 - 沒有載具、隊伍、復活（Gulag）、語音與帳號戰績。
