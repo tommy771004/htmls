@@ -711,7 +711,7 @@ function roomLight(dt) {
   }
   if (hit) roomAt = hit;
   roomK += ((hit ? 1 : 0) - roomK) * Math.min(1, dt * 6);
-  ROOMLIGHT.intensity = roomK < .01 || !QPRESET[QUALITY.level].light ? 0 : roomK * 7;   // 低／中跟槍口火光一樣不亮（燈板與天花板自發光仍在）
+  ROOMLIGHT.intensity = roomK < .01 || !QPRESET[QUALITY.level].light ? 0 : roomK * 7 * (roomAt ? roomAt.k : 1);   // 低／中跟槍口火光一樣不亮（燈板與天花板自發光仍在）
   if (roomAt && roomK >= .01) ROOMLIGHT.position.copy(roomAt.lp); else ROOMLIGHT.position.y = -999;
 }
 const _rl = new THREE.Vector3();
@@ -1035,7 +1035,7 @@ const bUpMat = postMat(`varying vec2 vUv; uniform sampler2D tSrc, tAdd; uniform 
    AO 與泛光用 uOn 開關（不是 define），各級畫質共用同一支著色器 */
 const compMat = new THREE.ShaderMaterial({
   vertexShader: FSV, depthTest: false, depthWrite: false, blending: THREE.NoBlending,
-  uniforms: { tScene: { value: null }, tAO: { value: null }, tBloom: { value: null }, uAO: { value: .82 }, uBloom: { value: .5 }, uSat: { value: 1.1 }, uCon: { value: 1.06 }, uTint: { value: new THREE.Vector3(1.03, 1.0, .95) }, uVig: { value: .42 }, uOn: { value: new THREE.Vector2() } },
+  uniforms: { tScene: { value: null }, tAO: { value: null }, tBloom: { value: null }, uAO: { value: .82 }, uBloom: { value: .5 }, uSat: { value: 1.04 }, uCon: { value: 1.03 }, uTint: { value: new THREE.Vector3(.985, 1.0, 1.03) }, uVig: { value: .42 }, uOn: { value: new THREE.Vector2() } },
   fragmentShader: `varying vec2 vUv; uniform sampler2D tScene, tAO, tBloom; uniform float uAO, uBloom, uSat, uCon, uVig; uniform vec3 uTint; uniform vec2 uOn;
   uniform vec3 uFxaa; uniform float uStorm;
   float fxL(vec3 c){ float l = dot(c, vec3(.2126, .7152, .0722)); return sqrt(l / (1.0 + l)); }
@@ -1056,6 +1056,7 @@ const compMat = new THREE.ShaderMaterial({
     if (uOn.x > .5) { vec2 a = texture2D(tAO, vUv).rg; c *= mix(1.0, a.x, uAO * (1.0 - smoothstep(60.0, 160.0, a.y))); }
     if (uOn.y > .5) c += texture2D(tBloom, vUv).rgb * uBloom;
     c *= uTint;
+    { float gr = clamp((c.g - max(c.r, c.b)) / max(c.g, 1e-4) * 3.0, 0.0, 1.0); c.r *= 1.0 - .14 * gr; }   // 調色照實機參考影片：中性偏冷，黃綠的草偏回深綠
     float l = dot(c, vec3(.2126, .7152, .0722));
     c = max(mix(vec3(l), c, uSat), 0.0);
     c = mix(c, vec3(l) * vec3(.62, .8, 1.25) + vec3(.004, .01, .03), uStorm * .62);   // 在電網外：去飽和、整片偏藍（實機參考影片的風暴裡是一片灰紫）
@@ -1433,6 +1434,16 @@ const TEX = {};
   }
   TEX.plank = tex(c); TEX.plankN = normalFrom(c, 3.2, TEX.plank); TEX.plankR = roughFrom(c, .62, .38, 0, TEX.plank);
 }
+{ // 超商的地磚：1024px = 2m，40 cm 見方的米白磁磚、灰色填縫，每塊深淺略有不同
+  const c = mkCanvas(1024, 1024), g = c.getContext('2d'), N = 5, S = 1024 / N;
+  g.fillStyle = '#8f8b84'; g.fillRect(0, 0, 1024, 1024);
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+    const l = rnd(80, 88); g.fillStyle = `hsl(40,${rnd(6, 12)}%,${l}%)`; g.fillRect(i * S + 3, j * S + 3, S - 6, S - 6);
+    for (let k = 0; k < 260; k++) { g.fillStyle = `rgba(${Math.random() < .5 ? '120,110,100' : '255,255,255'},${rnd(.05, .14)})`; g.fillRect(i * S + 3 + rnd(S - 8), j * S + 3 + rnd(S - 8), rnd(1, 3), rnd(1, 3)); }
+    const gr = g.createLinearGradient(i * S, j * S, i * S + S, j * S + S); gr.addColorStop(0, 'rgba(255,255,255,.08)'); gr.addColorStop(1, 'rgba(0,0,0,.05)'); g.fillStyle = gr; g.fillRect(i * S + 3, j * S + 3, S - 6, S - 6);
+  }
+  TEX.tile = tex(c); TEX.tileN = normalFrom(c, 2.2, TEX.tile); TEX.tileR = roughFrom(c, .7, .3, 0, TEX.tile);
+}
 { // 夾板：512px = 2.4m，大片木紋
   const c = mkCanvas(512, 512), g = c.getContext('2d');
   g.fillStyle = '#c9a877'; g.fillRect(0, 0, 512, 512);
@@ -1562,6 +1573,7 @@ const MATS = {
   steel: addDetail(new THREE.MeshStandardMaterial({ vertexColors: true, map: TEX.steel, normalMap: TEX.steelN, normalScale: NS(.25), roughnessMap: TEX.steelR, metalnessMap: TEX.steelR, roughness: 1, metalness: .9 }), { g: .4, r: .15, s: .2 }),
   galv: addDetail(new THREE.MeshStandardMaterial({ vertexColors: true, map: TEX.galv, normalMap: TEX.galvN, normalScale: NS(.2), roughnessMap: TEX.galvR, metalnessMap: TEX.galvR, roughness: 1, metalness: .95 }), { g: .3, r: .12, s: .2 }),
   ceil: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .95, emissive: 0x6c6a64 }),   // 室內天花板：自帶一點亮度，不被半球光的地面色染成橄欖色
+  tile: addDetail(new THREE.MeshStandardMaterial({ vertexColors: true, map: TEX.tile, normalMap: TEX.tileN, normalScale: NS(.5), roughnessMap: TEX.tileR, roughness: 1, envMapIntensity: 1 }), { g: .3, r: .05 }),
   plank: addDetail(new THREE.MeshStandardMaterial({ vertexColors: true, map: TEX.plank, normalMap: TEX.plankN, normalScale: NS(.7), roughnessMap: TEX.plankR, roughness: 1, envMapIntensity: .8 }), { g: .3, r: .06 }),
   ply: addDetail(new THREE.MeshStandardMaterial({ vertexColors: true, map: TEX.ply, normalMap: TEX.plyN, normalScale: NS(.5), roughnessMap: TEX.plyR, roughness: 1 }), { g: .35, r: .08 }),
 };
@@ -4232,6 +4244,13 @@ function wHouseIn(t) {
 /* 屋內的細部（照實機參考影片）：木條地板、窗下的白色暖氣片、窗簾、牆上的畫框、天花板燈板。
    牆面座標跟 build_world.py 的 house_a / house_b 一致：ax=1 是沿 x 的牆（位在 z = c），n 是朝屋內的方向；y 為地面起算的絕對高度 */
 const ROOMS = [];   // 每個房間：世界→房屋座標的反矩陣、房間範圍與燈的位置（進屋時補光）
+/* 在目前的變換（XF）下登記一個房間：範圍 [x0, x1] × [y0, y1] × [z0, z1]，補光放在 (lx, ly, lz)；k 是補光強度倍率 */
+function roomReg(x0, x1, z0, z1, y0, y1, lx, ly, lz, k = 1) {
+  const inv = XF.clone().invert(), lp = new THREE.Vector3(lx, ly, lz).applyMatrix4(XF);
+  ROOMS.push({ inv, b: [x0, x1, y0, y1, z0, z1], lp, k });
+}
+/* 室內天花板的自發光底面（避開半球光的地面色），貼在 y 的下方 */
+const ceilAt = (x0, x1, z0, z1, y) => B('ceil', 0xd8d5ce, (x0 + x1) / 2, y - .012, (z0 + z1) / 2, x1 - x0, .01, z1 - z0);
 function wRoomKit(t) {
   const at2 = (ax, u, c, n, off) => ax ? [u, c + n * off] : [c + n * off, u];
   const box = (k, col, ax, u, c, n, off, y, w, h, d) => { const [x, z] = at2(ax, u, c, n, off); if (ax) B(k, col, x, y, z, w, h, d); else B(k, col, x, y, z, d, h, w); };
@@ -4260,8 +4279,7 @@ function wRoomKit(t) {
   const lamp = (x, y, z) => { B('lamp', 0xffffff, x, y - .035, z, .62, .03, .62); B('flat', 0xd9d6ce, x, y - .025, z, .7, .02, .7); };
   const room = (x0, x1, z0, z1, y0, y1, lx, lz) => {
     lamp(lx, y1, lz); ceil(x0, x1, z0, z1, y1);
-    const inv = XF.clone().invert(); _v.set(lx, y1 - .45, lz).applyMatrix4(XF);
-    ROOMS.push({ inv, b: [x0, x1, y0, y1, z0, z1], lp: _v.clone() });
+    roomReg(x0, x1, z0, z1, y0, y1, lx, y1 - .45, lz);
   };
   if (t) {   // HOUSE_B：牆內面 x ±3.8、z ±3.3；一樓地板 .2、二樓 3.2，天花板 2.98 / 5.85
     for (const y of [.2, 3.2]) B('plank', 0xffffff, 0, y - .006, 0, 7.58, .012, 6.58, { us: 2 });
@@ -4323,6 +4341,11 @@ function placeGasStation(G) {
       pushX(0, .06, -8.6, 0);
       const shop = placeW('GAS_SHOP', 0, 0, 0, 0, { c: 0xece6da });
       if (shop) makeDoor(2.9, .2, -3.9, 1, 2.1, 0x6d7176, [1, 0, 0], [0, 0, 1], false);
+      if (shop) {   // 照實機參考影片補的室內細節：米白地磚、天花板燈條、補光
+        B('tile', 0xffffff, 0, .196, 0, 9.6, .012, 7.6, { us: 2 }); ceilAt(-4.8, 4.8, -3.8, 3.8, 3.92);
+        for (const x of [-3, 0, 3]) for (const z of [-1.8, 1.4]) { B('flat', 0xd9d6ce, x, 3.86, z, .34, .04, 1.9); B('lamp', 0xffffff, x, 3.855, z, .26, .02, 1.8); }
+        roomReg(-4.8, 4.8, -3.8, 3.8, .2, 3.92, 0, 3.4, 0, 1.3);
+      }
       navEnc(4.8, 3.8, shop ? [[0, 5.3, 0, 2.6], [3.4, -5.3, 3.4, -2.6]] : [[0, 5.3, 0, 2.6]]);
       if (shop) {
         // 超商的背面與側面：品牌色腰帶、深色牆腳、冷氣室外機與冷媒管、電箱與線管、落水管、後門燈與台階、垃圾子車、冰櫃
@@ -5045,6 +5068,7 @@ function barnKit() {
   B('wood', 0x5e4430, 0, 4.47, 0, .2, .2, 13.4);
   // 煤油提燈：走道上方兩盞（吊在屋脊樑）、工作台上方一盞
   for (const [x, z, y1] of [[0, -3.2, 4.47], [0, 3.0, 4.47], [-3.4, 1.6, 4.25]]) { B('flat', 0x1c1c1c, x, 3.3, z, .015, y1 - 3.3, .015); placeW('LANTERN', x, 3.3, z, 0); }
+  roomReg(-4.8, 4.8, -6.8, 6.8, .1, 6, 0, 3.1, 0, 1.4);   // 進穀倉時提燈的暖光補亮
   // 右側：乾草閣樓（樓板 2.2 m，樓梯在前面、往 -z 爬上去），底下兩格畜欄（柵門開著）、飼料槽，前段放麻袋與木桶
   const loft = placeW('LOFT', 0, 0, 0, 0);
   for (const zc of [-5.1, -2.1]) { placeW('STALL', 1.75, .1, zc, -Math.PI / 2); placeW('TROUGH', 4.45, .1, zc + .1, Math.PI / 2); }
@@ -5107,6 +5131,8 @@ function dormKit() {
   placeW('FAN', -1.75, y, -.2, -Math.PI / 2 + .3);
   placeW('HOOKS', -1.4, y, 2.3, Math.PI); placeW('NOTICE', .15, y, 2.3, Math.PI);
   B('lamp', 0xfff5d8, -2, y + 2.7, 0, 1.2, .04, .1); B('lamp', 0xfff5d8, 2, y + 2.7, 0, 1.2, .04, .1);
+  // 照實機參考影片補的室內細節：木條地板、天花板、補光
+  B('plank', 0xffffff, 0, y - .004, 0, 8.6, .012, 4.6, { us: 2 }); ceilAt(-4.3, 4.3, -2.3, 2.3, 3.05); roomReg(-4.3, 4.3, -2.3, 2.3, .25, 3.05, 0, 2.55, 0, .8);
   S(.6, y + .76, -.55); S(1.3, y + .76, -.7); S(-1.0, y, 1.0);
 }
 /* 工具棚／工寮外的雜物：電纜捲盤、氣瓶籠 */
@@ -9976,7 +10002,7 @@ $('restart1').addEventListener('click', () => { newGame(); requestLock(); });
 $('sens').addEventListener('input', e => { IN.sens = +e.target.value; $('sensV').textContent = IN.sens.toFixed(2); });
 $('vol').addEventListener('input', e => { AU.vol = +e.target.value; $('volV').textContent = Math.round(AU.vol * 100); if (AU.master) AU.master.gain.value = AU.vol; });
 // 自動化測試用的掛鉤（headless 快轉、跳過直升機），遊戲本身不會用到
-window.LASTBEAM = { dyn: DYN, ray: raycast, rayhit: RAYHIT, vehs: VEHS, enter: v => enterVehicle(PLAYER, v), holes: HOLES, cases: CASES, input: IN, doors: DOORLIST, pl: PL, hold(v) { HOLD = v; }, glb: !!GLB, sim(sec) { for (let i = 0; i < sec * 30; i++) update(1 / 30); }, get state() { return STATE; }, get hp() { return HP; }, get T() { return T; }, chars: CHARS, zone: ZONE, loot: LOOT, newGame, get player() { return PLAYER; }, poi: POI, give(id, n = 120) { const ch = PLAYER, w = WPN[id]; ch.guns[ch.slot] = { id, mag: w.mag }; ch.ammo[w.cal] += n; ch.holster = false; uiDirty = true; }, place(x, z, yaw = PL.yaw, pitch = 0, y) { const ch = PLAYER; ch.st = 'ground'; ch.p.set(x, y ?? groundBelow(x, 400, z, .3), z); ch.v.set(0, 0, 0); ch.yaw = PL.yaw = yaw; PL.pitch = pitch; }, skipTo(s) { if (s === 'ground' && STATE === 'heli') { playerJump(); const p = PLAYER.p; p.set(rnd(-40, 40), 1, rnd(-40, 40)); PLAYER.st = 'ground'; BOTS.forEach(b => { if (b.ch.st === 'beam') { b.ch.st = 'fall'; botLand(b); } }); } } };
+window.LASTBEAM = { dyn: DYN, ray: raycast, rayhit: RAYHIT, vehs: VEHS, enter: v => enterVehicle(PLAYER, v), holes: HOLES, cases: CASES, input: IN, doors: DOORLIST, pl: PL, hold(v) { HOLD = v; }, glb: !!GLB, sim(sec) { for (let i = 0; i < sec * 30; i++) update(1 / 30); }, get state() { return STATE; }, get hp() { return HP; }, get T() { return T; }, chars: CHARS, zone: ZONE, loot: LOOT, newGame, get player() { return PLAYER; }, poi: POI, kill(v, a, w, h) { kill(CHARS[v], a == null ? null : CHARS[a], w, h); }, give(id, n = 120) { const ch = PLAYER, w = WPN[id]; ch.guns[ch.slot] = { id, mag: w.mag }; ch.ammo[w.cal] += n; ch.holster = false; uiDirty = true; }, place(x, z, yaw = PL.yaw, pitch = 0, y) { const ch = PLAYER; ch.st = 'ground'; ch.p.set(x, y ?? groundBelow(x, 400, z, .3), z); ch.v.set(0, 0, 0); ch.yaw = PL.yaw = yaw; PL.pitch = pitch; }, skipTo(s) { if (s === 'ground' && STATE === 'heli') { playerJump(); const p = PLAYER.p; p.set(rnd(-40, 40), 1, rnd(-40, 40)); PLAYER.st = 'ground'; BOTS.forEach(b => { if (b.ch.st === 'beam') { b.ch.st = 'fall'; botLand(b); } }); } } };
 // 六十人：三架直升機的航線、效能計時、整場快轉（玩家當觀眾不參戰，記錄存活曲線、死因與卡住的電腦）
 Object.defineProperty(window.LASTBEAM, 'hp', { get: () => HP, set() { }, enumerable: true, configurable: true });
 Object.assign(window.LASTBEAM, { nplayers: NPLAYERS, shadowProxy: SHPROXY, shadowNear: SHNEAR, rayChar, helis: HPS, bots: BOTS, heliOf, prof() { const n = Math.max(1, PROF.n), r = { updMs: +(PROF.upd / n).toFixed(3), animMs: +(PROF.anim / n).toFixed(3), animated: +(PROF.animN / n).toFixed(1), frozen: +(PROF.frozen / n).toFixed(1), frames: PROF.n }; Object.assign(PROF, { upd: 0, anim: 0, n: 0, animN: 0, frozen: 0 }); return r; },
