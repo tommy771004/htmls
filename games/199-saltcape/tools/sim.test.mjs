@@ -18,19 +18,19 @@ test('地圖每次生成都一樣（伺服器與瀏覽器靠這點對齊碰撞�
   let a = 0, b = 0;
   for (let i = 0; i < W.B.length; i += 97) { a += W.B[i]; b += W2.B[i]; }
   assert.equal(a, b);
-  assert.equal(W.towns.length, 10);
+  assert.equal(W.towns.length, 13);
   assert.ok(W.buildings.length > 120, `建築 ${W.buildings.length} 棟`);
 });
 
-test('48 人 AI 對戰會跑完並產生唯一勝者', () => {
-  const m = new Match({ W, seed: 11, roster: roster(48) });
+test('100 人 AI 對戰會跑完並產生唯一勝者', () => {
+  const m = new Match({ W, seed: 11, roster: roster(100) });
   let phases = new Set();
   while (!m.over && m.time < 900) { m.step(); phases.add(m.storm.phase); }
   assert.ok(m.over, '對局結束');
   assert.equal(m.alive().length, 1);
   assert.ok(m.winner > 0);
   assert.equal(m.standings()[0].id, m.winner);
-  assert.ok(m.elims.length === 47);
+  assert.ok(m.elims.length === 99);
   assert.ok(phases.size >= 3, `經過 ${phases.size} 個毒圈階段`);
 });
 
@@ -63,7 +63,7 @@ test('圈外持續扣血、護甲擋子彈但不擋毒', () => {
 test('灌大量輸入也不能比 30 Hz 跑得快', () => {
   const m = new Match({ W, seed: 9, roster: roster(2, 1) });
   const p = m.byId.get(1);
-  const x = -60, z = 14;
+  const x = -44, z = 14;
   Object.assign(p, { mode: MODE.GROUND, x, z, y: groundAt(W, x, z, 40), og: 1 });
   for (const b of m.players) if (b.bot) b.mode = MODE.DEAD;
   m.queueInput(1, Array.from({ length: 30 }, (_, i) => ({ s: i + 1, b: BITS.FWD, y: Math.PI / 2, p: 0 })));
@@ -76,9 +76,9 @@ test('灌大量輸入也不能比 30 Hz 跑得快', () => {
 test('爆頭比打身體痛，射擊穿不過牆', () => {
   const m = new Match({ W, seed: 2, roster: roster(2, 2) });
   const a = m.byId.get(1), b = m.byId.get(2);
-  const y = groundAt(W, -60, 14, 40);
-  Object.assign(a, { mode: MODE.GROUND, x: -60, z: 14, y, og: 1 });
-  Object.assign(b, { mode: MODE.GROUND, x: -60, z: 2, y, og: 1, ar: 0 });
+  const y = groundAt(W, -44, 14, 40);
+  Object.assign(a, { mode: MODE.GROUND, x: -44, z: 14, y, og: 1 });
+  Object.assign(b, { mode: MODE.GROUND, x: -44, z: 2, y, og: 1, ar: 0 });
   // 朝胸口開槍
   const dc = (b.y + 1.1) - (a.y + 1.62), Lc = Math.hypot(12, dc);
   m.fire(a, 'ar', 0, [[0, dc / Lc, -12 / Lc]], { vt: m.tick });
@@ -90,18 +90,18 @@ test('爆頭比打身體痛，射擊穿不過牆', () => {
   m.fire(a, 'ar', 0, [[0, dy / L, -12 / L]], { vt: m.tick });
   const head = 100 - b.hp;
   assert.ok(body > 20 && head > body, `身體 ${body.toFixed(0)}、頭 ${head.toFixed(0)}`);
-  // 隔著建築：把 b 放到街屋另一側
-  b.hp = 100; Object.assign(b, { x: -76, z: -30 });
-  Object.assign(a, { x: -76, z: 14 });
-  m.fire(a, 'ar', 0, [[0, 0, -1]], { vt: m.tick });
+  // 隔著建築：a 在街上，b 在橋港中央紅磚公寓的另一側
+  b.hp = 100; Object.assign(b, { x: -70, z: 20 });
+  Object.assign(a, { x: -70, z: -1 });
+  m.fire(a, 'ar', 0, [[0, 0, 1]], { vt: m.tick });
   assert.equal(b.hp, 100);
 });
 
 test('射手步槍與狙擊槍的子彈會飛行並下墜', () => {
   const m = new Match({ W, seed: 4, roster: roster(2, 2) });
   const a = m.byId.get(1), b = m.byId.get(2);
-  const y = groundAt(W, -780, -470, 40);
-  Object.assign(a, { mode: MODE.GROUND, x: -780, z: -470, y, og: 1 });
+  const y = groundAt(W, -760, -560, 40);
+  Object.assign(a, { mode: MODE.GROUND, x: -760, z: -560, y, og: 1 });
   Object.assign(b, { mode: MODE.SPECT, x: 0, z: 0 });
   const hits = [];
   const orig = m.emitNear.bind(m);

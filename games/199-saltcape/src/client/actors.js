@@ -163,7 +163,7 @@ export function setActors(A) {
   const C = {
     full: clips,
     lower: Object.fromEntries(['Idle_Loop', 'Walk_Loop', 'Jog_Fwd_Loop', 'Crouch_Idle_Loop', 'Crouch_Fwd_Loop'].map((n) => [n, sub(n, isLower)])),
-    upper: Object.fromEntries(['Pistol_Idle_Loop', 'Pistol_Aim_Neutral', 'Pistol_Aim_Up', 'Pistol_Aim_Down', 'Pistol_Reload', 'Pistol_Shoot', 'Rifle_Idle_Loop', 'Rifle_Aim_Neutral', 'Rifle_Aim_Up', 'Rifle_Aim_Down', 'Rifle_Shoot'].filter((n) => clips[n]).map((n) => [n, sub(n, isUpper)])),
+    upper: Object.fromEntries(['Pistol_Idle_Loop', 'Pistol_Aim_Neutral', 'Pistol_Aim_Up', 'Pistol_Aim_Down', 'Pistol_Reload', 'Pistol_Shoot', 'Rifle_Idle_Loop', 'Rifle_Aim_Neutral', 'Rifle_Aim_Up', 'Rifle_Aim_Down', 'Rifle_Shoot', 'Rifle_Reload'].filter((n) => clips[n]).map((n) => [n, sub(n, isUpper)])),
   };
   // 制服：物件空間迷彩（綁定姿勢的頂點座標，跟著身體動）
   const camo = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.92 });
@@ -276,7 +276,7 @@ export function poseSoldier(s, st, dt) {
       const up = Math.max(0, Math.min(1, p / 0.8)), down = Math.max(0, Math.min(1, -p / 0.8));
       // 手槍用手槍姿勢，其他武器用 Blender 以 IK 烘焙的步槍姿勢（右手握把、左手托護木）
       const pre = wkey && wkey !== 'p9' && C.upper.Rifle_Aim_Neutral ? 'Rifle' : 'Pistol';
-      if (st.reload) want.Pistol_Reload_U = 1;
+      if (st.reload) want[(pre === 'Rifle' && C.upper.Rifle_Reload ? 'Rifle' : 'Pistol') + '_Reload_U'] = 1;
       else { want[pre + '_Aim_Neutral_U'] = 1 - up - down; want[pre + '_Aim_Up_U'] = up; want[pre + '_Aim_Down_U'] = down; }
       if (s.acts[base + '_L']) s.acts[base + '_L'].timeScale = base === 'Walk_Loop' ? Math.max(0.6, sp / 2.2) : base === 'Jog_Fwd_Loop' ? Math.max(0.7, sp / 4.6) : 1;
     }

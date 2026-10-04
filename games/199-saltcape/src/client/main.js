@@ -60,6 +60,7 @@ function boot(A) {
   scene = world.scene;
   fx = makeFx(scene, A);
   vm.scene.environment = scene.environment; vm.scene.environmentIntensity = 0.8;
+  fx.onThunder = (d) => audio.thunder(d);
   plane = makePlane(); plane.visible = false; scene.add(plane);
   grass = makeGrass(W, scene, Q.grass, world.csmify);
   mySoldier = makeSoldier(0); mySoldier.root.visible = false; scene.add(mySoldier.root);
@@ -175,7 +176,7 @@ function showRoom(room) {
   $('roster').innerHTML = room.players.map((p, i) => `<li class="${p.c ? '' : 'off'}${p.id === G.myId ? ' me' : ''}"><span>${String(i + 1).padStart(2, '0')}</span>${esc(p.n)}${p.id === room.host ? ' · 機長' : ''}</li>`).join('');
   const host = room.host === G.myId;
   $('bLaunch').disabled = !(host && room.state === 'lobby');
-  $('bLaunch').querySelector('small').textContent = host ? 'AI 補滿 48 人' : room.kind === 'quick' ? '倒數結束自動起飛' : '等待機長起飛';
+  $('bLaunch').querySelector('small').textContent = host ? `AI 補滿 ${MATCH.target} 人` : room.kind === 'quick' ? '倒數結束自動起飛' : '等待機長起飛';
   $('bShare').disabled = room.kind === 'solo';
 }
 
@@ -514,8 +515,8 @@ function lobbyFrame(dt, time) {
   lobbyT += dt;
   const a = lobbyT * 0.035 + 2.2;
   camera.fov = 52; camera.updateProjectionMatrix();
-  camera.position.set(Math.cos(a) * 260 - 20, 120 + Math.sin(lobbyT * 0.05) * 12, Math.sin(a) * 260 + 40);
-  camera.lookAt(-20, 20, 40);
+  camera.position.set(Math.cos(a) * 300 + 20, 130 + Math.sin(lobbyT * 0.05) * 12, Math.sin(a) * 300 - 230);
+  camera.lookAt(30, 30, -250);
   fx.update(dt, time, null, null, camera.position);
   audio.ambient(0, 0, 0);
 }
@@ -620,7 +621,7 @@ function gameFrame(dt, time) {
   const st = G.storm ? stormAt(G.storm, estTick() * DT) : null;
   const inStorm = st && alive && me.mode !== MODE.PLANE && Math.hypot(pos.x - st.x, pos.z - st.z) > st.r;
   fx.update(dt, time, st, G.storm?.next, camera.position);
-  scene.fog.color.copy(FOG).lerp(new THREE.Color('#c98a4a'), inStorm ? 0.7 : 0);
+  scene.fog.color.copy(FOG).lerp(new THREE.Color('#6a45c4'), inStorm ? 0.75 : 0);
   scene.fog.density = inStorm ? 0.0045 : me.mode === MODE.GROUND ? 0.0006 : 0.00024;
   if (scene.background?.isColor) scene.background.copy(scene.fog.color);
   fx.updateLoot(G.loot, camera, dt);
@@ -673,8 +674,14 @@ function updateOther(o, rt, dt) {
   root.rotation.set(0, yaw, 0);
   const spd = dt > 0 ? Math.hypot(root.position.x - prev.x, root.position.z - prev.z) / dt : 0;
   o.spd = (o.spd || 0) * 0.8 + Math.min(12, spd) * 0.2;
-  root.visible = mode !== MODE.PLANE;
-  poseSoldier(o.s, { mode, cr: (flags >> 3) & 1, speed: o.spd, spr: (flags >> 5) & 1, pitch, w: b[7], reload: (flags >> 7) & 1 }, dt);
+  // 100 人：400 公尺外不畫，220 公尺外動畫每 4 格才更新一次
+  const far = (x - camera.position.x) ** 2 + (z - camera.position.z) ** 2;
+  root.visible = mode !== MODE.PLANE && far < 400 * 400;
+  if (!root.visible) return;
+  o.lod = (o.lod || 0) + 1; o.lodDt = (o.lodDt || 0) + dt;
+  if (far > 220 * 220 && o.lod % 4) return;
+  poseSoldier(o.s, { mode, cr: (flags >> 3) & 1, speed: o.spd, spr: (flags >> 5) & 1, pitch, w: b[7], reload: (flags >> 7) & 1 }, o.lodDt);
+  o.lodDt = 0;
 }
 
 function findAimLoot() {

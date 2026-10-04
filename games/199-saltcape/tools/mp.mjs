@@ -44,11 +44,11 @@ try {
   await A.keyboard.down('Space'); await A.waitForTimeout(150); await A.keyboard.up('Space');
   await A.waitForFunction(() => window.__sc.G.me.mode === 1 || window.__sc.G.me.mode === 2, null, { timeout: 5000 });
   ok(true, 'A 按空白鍵跳出運輸機（伺服器確認）');
-  // 伺服器端把兩人放到老街同一條街上，面對面相距 12 公尺
+  // 伺服器端把兩人放到橋港同一條南北向街道上，面對面相距 12 公尺
   const room = [...salt.rooms.values()][0], M = room.match;
   const ids = [...room.members.values()].map((m) => m.id);
   const pa = M.byId.get(ids[0]), pb = M.byId.get(ids[1]);
-  for (const [p, z] of [[pa, 14], [pb, 2]]) { Object.assign(p, { mode: 3, x: -60, z, y: 25.75, vx: 0, vy: 0, vz: 0, og: 1 }); p.slots[1] = ['ar', 1, 30]; p.cur = 1; p.ammo.h = 90; }
+  for (const [p, z] of [[pa, 14], [pb, 2]]) { Object.assign(p, { mode: 3, x: -44, z, y: 7.96, vx: 0, vy: 0, vz: 0, og: 1 }); p.slots[1] = ['ar', 1, 30]; p.cur = 1; p.ammo.h = 90; }
   // 其他 AI 移遠，避免干擾
   for (const p of M.players) if (p.bot) Object.assign(p, { mode: 3, x: 600 + Math.random() * 50, z: -100, y: 30 });
   await A.waitForTimeout(1200);

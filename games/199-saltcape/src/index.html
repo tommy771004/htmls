@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>鹽岬大逃殺 · SALTCAPE</title>
-<meta name="description" content="瀏覽器多人連線大逃殺：從運輸機跳傘到鹽岬島，十個命名地點、可進入的建築、隨機武器與護甲，八階段毒圈收縮，WebSocket 權威伺服器同步，分享網址就能一起玩。">
+<meta name="description" content="瀏覽器多人連線大逃殺：從運輸機跳傘到美式海島鹽岬島，十三個命名地點、300 多棟可進入的建築、隨機武器與護甲，八階段毒圈收縮，WebSocket 權威伺服器同步，分享網址就能一起玩。">
 <meta name="theme-color" content="#16120d">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M4 26 16 4l12 22z' fill='%23e8dcc4'/%3E%3Cpath d='M16 4v22' stroke='%23c8532d' stroke-width='3'/%3E%3C/svg%3E">
 <style>
@@ -95,7 +95,7 @@ input{font:inherit;color:inherit}
 #storm .t{font-family:var(--num);font-size:22px;font-weight:700;color:var(--salt)}
 #storm .bar{height:3px;background:rgba(241,233,218,.12);margin:6px 0 5px;border-radius:2px;overflow:hidden}
 #storm .bar i{display:block;height:100%;width:0;background:var(--ochre);border-radius:2px}
-#storm.closing .bar i{background:var(--rust2)}
+#storm.closing .bar i{background:#9b74ff}
 #storm .r2{font-size:11px;color:var(--bone2)}
 #feed{position:absolute;left:16px;top:318px;width:280px;display:flex;flex-direction:column;gap:3px}
 .kf{display:flex;align-items:center;gap:7px;padding:4px 9px;font-size:12.5px;background:var(--panel);width:max-content;max-width:280px;animation:kfIn .22s var(--ease-out)}
@@ -161,7 +161,7 @@ input{font:inherit;color:inherit}
 #banner{position:absolute;left:50%;top:22%;transform:translateX(-50%);text-align:center;text-shadow:0 2px 4px rgba(0,0,0,.6)}
 #banner b{display:block;font-size:30px;letter-spacing:.12em;color:var(--salt)}
 #banner span{font-size:14px;color:var(--bone2);letter-spacing:.1em}
-#banner.storm b{color:var(--rust2)}
+#banner.storm b{color:#b79bff}
 #alt{position:absolute;right:16px;top:50%;transform:translateY(-50%);text-align:right;font-family:var(--num)}
 #alt b{display:block;font-size:40px;font-weight:700;color:var(--salt);text-shadow:0 1px 3px rgba(0,0,0,.6)}
 #alt span{font-size:12px;color:var(--bone2)}
@@ -172,7 +172,7 @@ input{font:inherit;color:inherit}
 .dd{position:absolute;left:-60px;top:-140px;width:120px;height:26px;transform-origin:60px 140px;opacity:0;animation:ddA 1.1s ease-out}
 .dd::before{content:"";position:absolute;left:30px;right:30px;top:0;height:5px;background:var(--rust2);clip-path:polygon(0 100%,50% 0,100% 100%)}
 @keyframes ddA{0%{opacity:.95}100%{opacity:0}}
-#vign{position:absolute;inset:0;background:radial-gradient(ellipse at center,#0000 55%,rgba(200,83,45,.55));opacity:0;transition:opacity .4s}
+#vign{position:absolute;inset:0;background:radial-gradient(ellipse at center,#0000 50%,rgba(122,70,230,.6));opacity:0;transition:opacity .4s}
 #hurt{position:absolute;inset:0;background:radial-gradient(ellipse at center,#0000 50%,rgba(120,10,0,.55));opacity:0;transition:opacity .25s}
 #scope{position:absolute;inset:0;opacity:0;background:radial-gradient(circle at center,#0000 0 31vmin,#060504 31.3vmin)}
 #scope::before,#scope::after{content:"";position:absolute;background:#060504}
@@ -286,7 +286,7 @@ table.stand .ai{font-size:10px;color:var(--mute);margin-left:5px}
 <canvas id="gl"></canvas>
 
 <section id="lobby">
-  <div id="title" aria-hidden="true"><h1>鹽岬</h1><div class="sub">大逃殺 · 四十八人</div><div class="en">SALTCAPE</div></div>
+  <div id="title" aria-hidden="true"><h1>鹽岬</h1><div class="sub">大逃殺 · 一百人</div><div class="en">SALTCAPE</div></div>
   <div class="pass" id="pass">
     <div class="top">
       <div>
@@ -314,7 +314,7 @@ table.stand .ai{font-size:10px;color:var(--mute);margin-left:5px}
         <div class="lab" id="roomNote">乘客名單</div>
         <ol id="roster"></ol>
         <div class="acts">
-          <button class="btn primary" id="bLaunch">立即起飛 <small>AI 補滿 48 人</small></button>
+          <button class="btn primary" id="bLaunch">立即起飛 <small>AI 補滿 100 人</small></button>
           <button class="btn alt" id="bShare">複製邀請連結 <small id="shareHint">朋友開網址即加入</small></button>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
@@ -334,7 +334,7 @@ table.stand .ai{font-size:10px;color:var(--mute);margin-left:5px}
   <div id="feed"></div>
   <div id="compass"><div class="strip" id="cstrip"></div></div>
   <div id="heading">000</div>
-  <div id="counts"><div class="pnl"><b id="alive">48</b><span>存活</span></div><div class="pnl"><b id="kills">0</b><span>擊殺</span></div></div>
+  <div id="counts"><div class="pnl"><b id="alive">100</b><span>存活</span></div><div class="pnl"><b id="kills">0</b><span>擊殺</span></div></div>
   <div id="menuHint"><kbd>Esc</kbd> 選單</div>
   <div id="netWarn" class="hidden">連線不穩，正在重新連線…</div>
   <div id="vign"></div><div id="hurt"></div><div id="scope"></div>

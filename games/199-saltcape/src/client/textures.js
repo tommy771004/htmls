@@ -218,3 +218,16 @@ export function signTexture(text, color) {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   return t;
 }
+
+// 美式店面的橫式招牌：深底白字或白底深字
+export function hsignTexture(text, color) {
+  const pal = [['#24343a', '#f3efe6'], ['#7a2a1e', '#f6ead2'], ['#efe9dc', '#27323a'], ['#2f4a2c', '#efe6cc']][color % 4];
+  const c = document.createElement('canvas'); c.width = 64 * Math.max(4, text.length + 2); c.height = 64;
+  const x = c.getContext('2d');
+  x.fillStyle = pal[0]; x.fillRect(0, 0, c.width, c.height);
+  x.strokeStyle = pal[1]; x.globalAlpha = 0.6; x.lineWidth = 2; x.strokeRect(5, 5, c.width - 10, c.height - 10); x.globalAlpha = 1;
+  x.fillStyle = pal[1]; x.font = 'bold 40px "PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(text, c.width / 2, 34);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}

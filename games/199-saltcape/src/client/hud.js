@@ -28,6 +28,8 @@ export function mapImage(W) {
   for (const rd of W.roads) { x.beginPath(); rd.pts.forEach((p, i) => (i ? x.lineTo(P(p[0]), P(p[2])) : x.moveTo(P(p[0]), P(p[2])))); x.stroke(); }
   x.strokeStyle = 'rgba(80,72,62,.85)'; x.lineWidth = W.runway.w * k;
   x.beginPath(); x.moveTo(P(W.runway.pts[0][0]), P(W.runway.pts[0][2])); x.lineTo(P(W.runway.pts[1][0]), P(W.runway.pts[1][2])); x.stroke();
+  x.strokeStyle = '#d9d2c2'; x.lineWidth = 6 * k + 2;
+  for (const b of W.bridges || []) { x.beginPath(); x.moveTo(P(b.ax), P(b.az)); x.lineTo(P(b.bx), P(b.bz)); x.stroke(); }
   x.fillStyle = 'rgba(120,112,98,.85)';
   for (const [x0, z0, x1, z1] of W.pads) x.fillRect(P(x0), P(z0), (x1 - x0) * k, (z1 - z0) * k);
   x.fillStyle = '#efe6d2';
@@ -77,8 +79,8 @@ export function makeHud(W, img) {
       const s = st.storm;
       ctx.save();
       ctx.beginPath(); ctx.rect(0, 0, size, size); ctx.arc(sx(s.x), sz(s.z), s.r * k, 0, Math.PI * 2, true);
-      ctx.fillStyle = 'rgba(200,83,45,.32)'; ctx.fill('evenodd');
-      ctx.strokeStyle = 'rgba(224,112,74,.95)'; ctx.lineWidth = Math.max(2, size / 220);
+      ctx.fillStyle = 'rgba(110,60,220,.36)'; ctx.fill('evenodd');
+      ctx.strokeStyle = 'rgba(170,130,255,.95)'; ctx.lineWidth = Math.max(2, size / 220);
       ctx.beginPath(); ctx.arc(sx(s.x), sz(s.z), s.r * k, 0, Math.PI * 2); ctx.stroke();
       if (st.next && st.next.r > 0) { ctx.strokeStyle = 'rgba(251,247,238,.95)'; ctx.setLineDash([size / 60, size / 90]); ctx.beginPath(); ctx.arc(sx(st.next.x), sz(st.next.z), st.next.r * k, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); }
       ctx.restore();

@@ -27,7 +27,7 @@ for (const [w, h, touch] of [[1440, 900, false], [390, 844, true]]) {
     await raf(page); await page.screenshot({ path: `dist/accept-lobby-${w}.png` });
     await page.evaluate(() => window.__sc.solo('驗收'));
     await page.waitForFunction(() => window.__sc.G.match && window.__sc.match(), null, { timeout: 15000 });
-    await page.evaluate(() => { window.__sc.place(-60, 14, 3); window.__sc.look(-Math.PI / 2, 0); window.__sc.give('ar', 2); });
+    await page.evaluate(() => { window.__sc.place(-44, 14, 3); window.__sc.look(0, 0); window.__sc.give('ar', 2); });
     await page.waitForTimeout(1500);
     const st = await page.evaluate(() => ({ mode: window.__sc.G.me.mode, alive: +document.querySelector('#alive').textContent, sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
     ok(st.mode === 3 && st.alive > 40, `${tag} 離線練習進到地面（存活 ${st.alive}）`);

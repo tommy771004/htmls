@@ -69,20 +69,55 @@ export function makeFx(scene, A) {
       float hash(vec2 p){ return fract(sin(dot(p, vec2(41.3,289.1))) * 43758.5); }
       float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f); return mix(mix(hash(i),hash(i+vec2(1,0)),f.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x), f.y); }
       void main(){
+        // 紫色毒圈牆：緩慢翻騰的雲帶＋往上竄的細閃電紋
         vec2 p = vec2(vU.x * 90., vW.y * 0.02);
         float n = vn(p + vec2(time * 0.15, -time * 0.08)) * 0.65 + vn(p * 2.3 - vec2(time * 0.22, time * 0.1)) * 0.35;
         float band = smoothstep(0.3, 0.9, n);
-        vec3 c = mix(vec3(0.71,0.33,0.17), vec3(0.9,0.56,0.33), band);
-        float h = smoothstep(420., 30., vW.y) * smoothstep(-30., 5., vW.y);
-        float a = (0.42 + band * 0.22) * h;
+        vec3 c = mix(vec3(0.28,0.12,0.62), vec3(0.62,0.42,1.0), band);
+        // 閃電紋：少量、左右抖動的鋸齒線，只在一小段高度亮起
+        float col = vU.x * 900.;
+        float sid = floor(col);
+        float flick = step(0.985, hash(vec2(sid, floor(time * 4. + sid * 0.37))));
+        float jag = (vn(vec2(sid * 7.1, vW.y * 0.09)) - 0.5) * 0.9 + (vn(vec2(sid, vW.y * 0.35)) - 0.5) * 0.3;
+        float seg = smoothstep(0.55, 0.9, vn(vec2(sid * 3.3, vW.y * 0.012 - time * 1.5)));
+        float streak = flick * smoothstep(0.12, 0.0, abs(fract(col) - 0.5 + jag)) * seg;
+        c += vec3(0.62, 0.45, 1.0) * streak * 1.6;
+        float h = smoothstep(460., 30., vW.y) * smoothstep(-30., 5., vW.y);
+        float a = (0.36 + band * 0.24 + streak * 0.5) * h;
         float d = length(cameraPosition - vW);
-        a *= smoothstep(1.5, 30., d) * mix(1., 0.75, inside);
+        a *= smoothstep(1.5, 30., d) * mix(1., 0.8, inside);
         gl_FragColor = vec4(c, a);
       }`,
   }));
   wall.renderOrder = 5;
   scene.add(wall);
   fx.wall = wall;
+  // 閃電：在鏡頭附近的毒圈牆上隨機劈下鋸齒線，配紫色閃光
+  const BOLT = 3, SEG = 14;
+  const bolts = Array.from({ length: BOLT }, () => {
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(SEG * 2 * 3 * 2), 3));
+    const l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: '#e8d8ff', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+    l.frustumCulled = false; scene.add(l); return { l, t: 0, next: Math.random() * 2 };
+  });
+  const flash = new THREE.PointLight('#a77bff', 0, 400, 1.2); scene.add(flash);
+  fx.onThunder = null;
+  const strike = (b, storm, camPos) => {
+    // 取牆上離鏡頭最近的方向附近一點
+    const a0 = Math.atan2(camPos.z - storm.z, camPos.x - storm.x) + (Math.random() - 0.5) * 0.9;
+    const bx = storm.x + Math.cos(a0) * storm.r, bz = storm.z + Math.sin(a0) * storm.r;
+    const top = 260 + Math.random() * 160, arr = b.l.geometry.attributes.position.array;
+    let x = bx, y = top, z = bz, k = 0;
+    for (let i = 0; i < SEG; i++) {
+      const nx = x + (Math.random() - 0.5) * 16, ny = y - top / SEG, nz = z + (Math.random() - 0.5) * 16;
+      arr.set([x, y, z, nx, ny, nz], k); k += 6;
+      if (Math.random() < 0.3) { const fx2 = nx + (Math.random() - 0.5) * 30, fy = ny - 14, fz = nz + (Math.random() - 0.5) * 30; arr.set([nx, ny, nz, fx2, fy, fz], k); } else arr.fill(0, k, k + 6);
+      k += 6; x = nx; y = ny; z = nz;
+    }
+    b.l.geometry.attributes.position.needsUpdate = true;
+    b.t = 0.18; flash.position.set(bx, top * 0.5, bz); flash.intensity = 4e4;
+    const d = Math.hypot(camPos.x - bx, camPos.z - bz);
+    fx.onThunder?.(d);
+  };
   // 下一圈的地面標線
   const ring = new THREE.Mesh(new THREE.RingGeometry(0.995, 1, 160, 1), new THREE.MeshBasicMaterial({ color: '#fbf7ee', transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false, fog: false }));
   ring.rotation.x = -Math.PI / 2; ring.renderOrder = 4; scene.add(ring);
@@ -199,6 +234,12 @@ export function makeFx(scene, A) {
     puGeo.attributes.position.needsUpdate = true; puGeo.attributes.color.needsUpdate = true; puGeo.attributes.size.needsUpdate = true;
     flashLight.intensity = Math.max(0, flashLight.intensity - dt * 400);
     // 毒圈
+    for (const b of bolts) {
+      b.t -= dt; b.next -= dt;
+      b.l.material.opacity = b.t > 0 ? (0.5 + Math.random() * 0.5) : 0;
+      if (storm && b.next <= 0) { b.next = 0.6 + Math.random() * 2.2; if (Math.hypot(camPos.x - storm.x, camPos.z - storm.z) > storm.r - 600) strike(b, storm, camPos); }
+    }
+    flash.intensity = Math.max(0, flash.intensity - dt * 2.4e5);
     if (storm) {
       wall.visible = true;
       wall.position.set(storm.x, 180, storm.z);

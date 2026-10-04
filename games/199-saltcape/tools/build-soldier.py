@@ -120,7 +120,7 @@ arm.select_set(True)
 bpy.context.view_layer.objects.active = arm
 
 
-def make_rifle(src_name, dst_name):
+def make_rifle(src_name, dst_name, reload=False):
     src = bpy.data.actions.get(src_name)
     if not src:
         return
@@ -150,6 +150,18 @@ def make_rifle(src_name, dst_name):
         butt = S + aim * 0.02 + inward * 0.08
         grip = butt + aim * 0.24 + down * 0.07
         fore = butt + aim * 0.56 + down * 0.05 + inward * 0.06
+        if reload:
+            # 換彈：左手從護木到彈匣、拔下、換上、拍實、回護木（右手一直握著握把）
+            u = (f - f0) / max(1, f1 - f0)
+            mag = grip + aim * 0.06 + down * 0.16 + inward * 0.02
+            low = mag + down * 0.22 + inward * 0.05
+            def lerp(a, b, t):
+                t = max(0.0, min(1.0, t)); t = t * t * (3 - 2 * t); return a + (b - a) * t
+            if u < 0.15: fore = lerp(fore, mag, u / 0.15)
+            elif u < 0.35: fore = lerp(mag, low, (u - 0.15) / 0.2)
+            elif u < 0.55: fore = lerp(low, mag + down * 0.03, (u - 0.35) / 0.2)
+            elif u < 0.68: fore = lerp(mag + down * 0.03, mag + aim * 0.02, (u - 0.55) / 0.13)
+            else: fore = lerp(mag, butt + aim * 0.56 + down * 0.05 + inward * 0.06, (u - 0.68) / 0.32)
         side = -inward
         for e, loc in ((tR, grip), (tL, fore), (pR, S + side * 0.35 + down * 0.45 + aim * 0.1), (pL, Sl + down * 0.55 + aim * 0.2)):
             e.location = loc
@@ -179,6 +191,7 @@ def make_rifle(src_name, dst_name):
 
 for src, dst in (('Pistol_Idle_Loop', 'Rifle_Idle_Loop'), ('Pistol_Aim_Neutral', 'Rifle_Aim_Neutral'), ('Pistol_Aim_Up', 'Rifle_Aim_Up'), ('Pistol_Aim_Down', 'Rifle_Aim_Down'), ('Pistol_Shoot', 'Rifle_Shoot')):
     make_rifle(src, dst)
+make_rifle('Pistol_Reload', 'Rifle_Reload', reload=True)
 
 arm.animation_data.action = None
 track_owner = arm.animation_data

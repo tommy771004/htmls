@@ -77,7 +77,7 @@ export const PLANE_SPEED = 52;
 export const MATCH = {
   lobbyQuick: 25,      // 快速配對倒數
   lobbyPrivate: 600,   // 好友房房主未按開始時的上限
-  target: 48,          // 人數不足時以 AI 補滿
+  target: 100,         // 人數不足時以 AI 補滿
   maxHumans: 24,
   endLinger: 14,       // 結算後回到大廳的秒數
 };

@@ -1,6 +1,6 @@
 # 外部資產來源與授權
 
-程式碼之外，畫面用到的掃描貼圖、天空與模型都是 **CC0（公眾領域）** 素材，放在 `assets/199/`（約 14 MB），由下列工具產生。
+程式碼之外，畫面用到的掃描貼圖、天空與模型都是 **CC0（公眾領域）** 素材，放在 `assets/199/`（約 18 MB），由下列工具產生。
 這些檔案不屬於本專案，授權以原始來源為準。素材載入失敗（例如以檔案直接開啟）時，前端會退回程序生成的貼圖與方塊模型。
 
 ## ambientCG 掃描貼圖
@@ -13,16 +13,16 @@
 | `plaster` | Plaster001 | 外牆灰泥（依建築染色） |
 | `wall` | PaintedPlaster017 | 室內白牆、天花板 |
 | `concrete` / `concrete2` | Concrete034 / Concrete031 | 混凝土、地基、港區鋪面 |
-| `asphalt` | Road012A | 道路、跑道、老街街道 |
-| `paving` | PavingStones070 | 廟埕石板 |
+| `asphalt` | Road012A | 道路、跑道、城鎮街道 |
+| `paving` | PavingStones070 | 街頭公園鋪面 |
 | `wood` | WoodFloor051 | 木地板、木箱、家具 |
 | `tile` | Tiles107 | 磁磚地板 |
 | `metal` / `rust` | CorrugatedSteel005 / Metal041B | 浪板、貨櫃、油槽／鏽鐵屋頂 |
 | `roof` | RoofingTiles014B | 斜屋頂瓦片 |
 | `grass` / `grassdirt` / `dirt` / `rock` / `sand` | Grass004 / Ground037 / Ground103 / Rock030 / Ground054 | 地形五層混合 |
-| `facade` | Facade006 | 新村辦公大樓帷幕牆 |
+| `facade` | Facade006 | 橋城市中心的帷幕大樓 |
 | `bark` | Bark012 | 樹幹 |
-| `siding` | WoodSiding009 | 鄉間房子的木壁板外牆 |
+| `siding` | WoodSiding009 | 郊區住宅、穀倉的木壁板外牆 |
 | `leaves` | LeafSet024（顏色＋透明度） | 樹葉卡片 |
 
 ## Poly Haven
@@ -44,4 +44,4 @@
 
 ## 沒有用到外部資產的部分
 
-地形、建築與室內配置、窗框玻璃、道路標線、電線桿、棕櫚樹、草叢、槍枝、第一人稱手臂、降落傘、運輸機、HUD、所有音效（Web Audio 即時合成），以及沒有素材時的全部備援貼圖。
+地形、河道與橋、建築與室內配置、斜屋頂、窗框玻璃、道路標線、電線桿、棕櫚樹、松樹、草叢、筒倉、草捆、水車、沙灘傘、槍枝、第一人稱手臂、降落傘、運輸機、HUD、所有音效（Web Audio 即時合成），以及沒有素材時的全部備援貼圖。

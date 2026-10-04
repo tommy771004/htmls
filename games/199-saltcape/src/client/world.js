@@ -5,7 +5,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CSM } from 'three/addons/csm/CSM.js';
 import { MAT, MAT_COUNT, DK, EXT, CELL, N } from '../core/map.js';
 import { mulberry32, fbm, smooth, hash2 } from '../core/rng.js';
-import { makeTextures, signTexture } from './textures.js';
+import { makeTextures, signTexture, hsignTexture } from './textures.js';
 import { buildKit } from './kit.js';
 
 export const SUN_DIR = new THREE.Vector3(-0.45, 0.72, -0.53).normalize();
@@ -18,13 +18,13 @@ const SURF = {
   [MAT.concrete]: ['concrete', 3, 0.9, 0.7], [MAT.brick]: ['brick', 1.4, 0.88, 1], [MAT.wood]: ['wood', 1.8, 0.62, 0.6], [MAT.tile]: ['tile', 1.2, 0.35, 0.5],
   [MAT.roof]: ['roof', 1.6, 0.8, 1], [MAT.metal]: ['metal', 1.6, 0.55, 1], [MAT.rust]: ['rust', 2, 0.75, 0.8], [MAT.container]: ['metal', 1.2, 0.6, 1.2],
   [MAT.stone]: ['concrete', 2.5, 0.9, 0.8], [MAT.trim]: [null, 1, 0.7, 0], [MAT.salt]: ['sand', 2, 0.85, 0.5], [MAT.car]: [null, 1, 0.4, 0],
-  [MAT.tank]: ['metal', 3, 0.5, 0.3], [MAT.crate]: ['wood', 1, 0.8, 0.6], [MAT.temple]: ['plaster', 2, 0.7, 0.4], [MAT.glass]: [null, 1, 0.1, 0], [MAT.facade]: ['facade', 9, 0.25, 0.6], [MAT.siding]: ['siding', 2.2, 0.75, 1], [MAT.hidden]: ['wood', 1.8, 0.6, 0.6],
+  [MAT.tank]: ['metal', 3, 0.5, 0.3], [MAT.crate]: ['wood', 1, 0.8, 0.6], [MAT.temple]: ['plaster', 2, 0.7, 0.4], [MAT.glass]: [null, 1, 0.1, 0], [MAT.facade]: ['facade', 9, 0.25, 0.6], [MAT.siding]: ['siding', 2.2, 0.75, 1], [MAT.hidden]: ['wood', 1.8, 0.6, 0.6], [MAT.invis]: [null, 1, 0.9, 0],
 };
 const BASE = {
   [MAT.plaster]: '#f4f1ea', [MAT.plasterWarm]: '#efd29e', [MAT.plasterRose]: '#e8b39e', [MAT.plasterSage]: '#cdd8bb', [MAT.concrete]: '#e6e2da',
   [MAT.brick]: '#ffffff', [MAT.wood]: '#ffffff', [MAT.tile]: '#ffffff', [MAT.roof]: '#ffffff', [MAT.metal]: '#ffffff', [MAT.rust]: '#ffffff',
   [MAT.container]: '#ffffff', [MAT.stone]: '#f2ece0', [MAT.trim]: '#3d342b', [MAT.salt]: '#ffffff', [MAT.car]: '#ffffff', [MAT.tank]: '#f4f3ef',
-  [MAT.crate]: '#c79a64', [MAT.temple]: '#c4432a', [MAT.glass]: '#ffffff', [MAT.facade]: '#ffffff', [MAT.siding]: '#f4f2ec', [MAT.hidden]: '#b08a5e',
+  [MAT.crate]: '#c79a64', [MAT.temple]: '#c4432a', [MAT.glass]: '#ffffff', [MAT.facade]: '#ffffff', [MAT.siding]: '#f4f2ec', [MAT.hidden]: '#b08a5e', [MAT.invis]: '#ffffff',
 };
 const INTERIOR_OK = new Set([MAT.plaster, MAT.plasterWarm, MAT.plasterRose, MAT.plasterSage, MAT.brick, MAT.concrete, MAT.stone, MAT.siding]);
 
@@ -163,6 +163,7 @@ function buildBoxes(W, mats, A) {
     const m = W.BM[k];
     if (hideCars && (m === MAT.car || m === MAT.glass)) continue;
     if (m === MAT.hidden && A?.furniture) continue; // 家具的碰撞方塊：外觀由 Blender 模型負責
+    if (m === MAT.invis) continue;                 // 橋面、人行道、穀倉屋頂：由其他網格繪製
     const x0 = B[k * 6], y0 = B[k * 6 + 1], z0 = B[k * 6 + 2], x1 = B[k * 6 + 3], y1 = B[k * 6 + 4], z1 = B[k * 6 + 5];
     col.set(BASE[m]);
     if (W.BT[k]) { tint.setHex(W.BT[k]); col.multiply(tint); }
@@ -229,6 +230,8 @@ function buildDetails(W, csmify) {
     [DK.lamp]: { color: '#ffffff', emissive: '#fff6e6', emissiveIntensity: 2.2, roughness: 0.3 }, [DK.rad]: { color: '#ecebe6', roughness: 0.45, metalness: 0.3 },
     [DK.ac]: { color: '#dddcd6', roughness: 0.5, metalness: 0.2 }, [DK.dark]: { color: '#2b2824', roughness: 0.7 }, [DK.steel]: { color: '#8e918f', roughness: 0.45, metalness: 0.6 },
     [DK.poster]: { color: '#d8cdb4', roughness: 0.7 },
+    [DK.corn]: { color: '#ece7dc', roughness: 0.6 }, [DK.found]: { color: '#8e8a82', roughness: 0.9 },
+    [DK.brick]: { color: '#8a4231', roughness: 0.85 }, [DK.fence]: { color: '#f3f1ea', roughness: 0.65 },
   };
   for (const [k, list] of lists) {
     for (let s = 0; s < list.length; s += 2500) {
@@ -462,12 +465,12 @@ function laneMarks(m, kind) {
 
 function buildRoads(W, T, A, csmify) {
   const grp = new THREE.Group();
-  const paved = W.towns.filter((t) => !['village', 'cape', 'radar'].includes(t.kind));
+  // 城鎮棋盤街道的範圍內不畫主要道路（避免兩層路面）
   const pieces = [];
   for (const r of W.roads) {
     let cur = [];
     for (const p of r.pts) {
-      const inside = paved.some((t) => (p[0] - t.x) ** 2 + (p[2] - t.z) ** 2 < (t.r * (t.kind === 'oldstreet' ? 0.86 : 0.62)) ** 2);
+      const inside = W.grids.some((g) => p[0] > g[0] + 4 && p[0] < g[2] - 4 && p[2] > g[1] + 4 && p[2] < g[3] - 4);
       if (inside) { if (cur.length > 1) pieces.push(cur); cur = []; } else cur.push(p);
     }
     if (cur.length > 1) pieces.push(cur);
@@ -487,30 +490,55 @@ function buildRoads(W, T, A, csmify) {
 }
 
 function buildPads(W, T, A, csmify) {
-  const kinds = [[], [], []];
+  const kinds = [[], [], [], []], lines = [], yellow = [];
   for (const [x0, z0, x1, z1, y, k] of W.pads) {
     const g = new THREE.BoxGeometry(x1 - x0, 0.36, z1 - z0);
     uvScale(g, (x1 - x0), (z1 - z0));
     g.translate((x0 + x1) / 2, y - 0.14, (z0 + z1) / 2);
     kinds[k].push(g);
+    if (k === 0) {
+      // 街道：中央雙黃線＋兩側白色邊線
+      const ax = x1 - x0 >= z1 - z0, L = ax ? x1 - x0 : z1 - z0, Wd = ax ? z1 - z0 : x1 - x0;
+      if (Wd < 6 || L < 6) continue;
+      const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+      const strip2 = (off, wd, list) => { const p = new THREE.PlaneGeometry(ax ? L : wd, ax ? wd : L); p.rotateX(-Math.PI / 2); p.translate(cx + (ax ? 0 : off), y + 0.045, cz + (ax ? off : 0)); list.push(p); };
+      strip2(-0.12, 0.1, yellow); strip2(0.12, 0.1, yellow);
+      strip2(-Wd / 2 + 0.45, 0.12, lines); strip2(Wd / 2 - 0.45, 0.12, lines);
+    }
   }
   const grp = new THREE.Group();
-  const mat = (name, size, fb, kind) => {
+  const mat = (name, size, fb) => {
     const o = { roughness: 0.88 };
     if (A?.tex[name]) { o.map = repTex(A.tex[name], size); o.normalMap = repTex(A.nrm[name], size); o.normalScale = new THREE.Vector2(0.7, 0.7); } else { o.map = fb.clone(); o.map.repeat.set(1 / size, 1 / size); o.map.needsUpdate = true; }
-    const m = new THREE.MeshStandardMaterial(o);
-    if (kind === 0) {
-      m.onBeforeCompile = (sh) => {
-        sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp;').replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWp = (modelMatrix * vec4(transformed,1.)).xyz;');
-        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vWp;').replace('#include <map_fragment>', `#include <map_fragment>
-          float zl = mod(vWp.z - 40. + 26., 52.); float cl = step(abs(zl), 0.08) + step(abs(zl - 52.), 0.08);
-          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.93), cl * step(fract(vWp.x / 6.), 0.5) * 0.85);`);
-      };
-    }
-    return csmify(m);
+    return csmify(new THREE.MeshStandardMaterial(o));
   };
-  const mats = [mat('asphalt', 4, T.asphalt, 0), mat('paving', 2, T.pave, 1), mat('concrete2', 4, T.concrete, 2)];
+  const pool = new THREE.MeshStandardMaterial({ color: '#4fb3c9', roughness: 0.04, metalness: 0.1, envMapIntensity: 1.6 });
+  const mats = [mat('asphalt', 4, T.asphalt), mat('paving', 2, T.pave), mat('concrete2', 4, T.concrete), pool];
   kinds.forEach((list, k) => { if (!list.length) return; const m = new THREE.Mesh(mergeGeometries(list.map(strip)), mats[k]); m.receiveShadow = true; grp.add(m); });
+  const paint = (list, color) => { if (!list.length) return; const m = new THREE.Mesh(mergeGeometries(list.map(strip)), csmify(new THREE.MeshStandardMaterial({ color, roughness: 0.7, polygonOffset: true, polygonOffsetFactor: -2 }))); m.receiveShadow = true; grp.add(m); };
+  paint(yellow, '#d9b13a'); paint(lines, '#e9e6de');
+  grp.add(buildBridges(W, csmify));
+  return grp;
+}
+
+// 橋：混凝土橋面、橋墩、兩側欄杆
+function buildBridges(W, csmify) {
+  const deck = [], rail = [];
+  for (const b of W.bridges || []) {
+    const dx = b.bx - b.ax, dz = b.bz - b.az, L = Math.hypot(dx, dz), yaw = Math.atan2(dx, dz);
+    const cx = (b.ax + b.bx) / 2, cz = (b.az + b.bz) / 2;
+    const put = (g, list, ox = 0, oy = 0, oz = 0) => { g.translate(ox, oy, oz); g.rotateY(yaw); g.translate(cx, b.y, cz); list.push(g); };
+    put(new THREE.BoxGeometry(b.w, 0.9, L + 2), deck, 0, -0.42, 0);
+    for (const sx of [-1, 1]) {
+      put(new THREE.BoxGeometry(0.35, 0.95, L + 2), rail, sx * (b.w / 2 - 0.18), 0.48, 0);
+      put(new THREE.BoxGeometry(0.5, 0.18, L + 2), rail, sx * (b.w / 2 - 0.18), 1.0, 0);
+    }
+    const nP = Math.max(1, Math.floor(L / 14));
+    for (let k = 1; k <= nP; k++) put(new THREE.BoxGeometry(b.w * 0.7, b.y + 4, 1.6), deck, 0, -(b.y + 4) / 2 - 0.8, -L / 2 + L * k / (nP + 1));
+  }
+  const grp = new THREE.Group();
+  if (deck.length) { const m = new THREE.Mesh(mergeGeometries(deck.map(strip)), csmify(new THREE.MeshStandardMaterial({ color: '#a7a39a', roughness: 0.85 }))); m.castShadow = m.receiveShadow = true; grp.add(m); }
+  if (rail.length) { const m = new THREE.Mesh(mergeGeometries(rail.map(strip)), csmify(new THREE.MeshStandardMaterial({ color: '#c9c5bb', roughness: 0.7 }))); m.castShadow = m.receiveShadow = true; grp.add(m); }
   return grp;
 }
 
@@ -557,6 +585,7 @@ function buildVegetation(W, A, csmify) {
     cypress: { trunk: trunk(1.6, 0.2, 0.15), leaves: leafTex ? mergeGeometries([0, 1, 2, 3, 4, 5].map((k) => leafCards(rnd, 8, 0.95 - k * 0.12, 0.7, 0.95 - k * 0.12, 1.6 + k * 1.15, 1.4))) : new THREE.ConeGeometry(0.9, 7, 7).translate(0, 4.5, 0), tint: '#6f7f4a' },
     street: { trunk: mergeGeometries([trunk(3.2, 0.25, 0.16), trunk(2.0, 0.13, 0.07, 0.8).rotateZ(0.55).translate(0.15, 2.6, 0), trunk(1.8, 0.12, 0.06, -0.7).rotateZ(-0.5).translate(-0.12, 2.4, 0.1)]), leaves: crown(34, 2.6, 1.6, 4.4, 2.2), tint: '#a3b878' },
     bush: { trunk: null, leaves: crown(12, 1.1, 0.6, 0.7, 1.3), tint: '#9fb177' },
+    pine: { trunk: trunk(9, 0.3, 0.12), leaves: leafTex ? mergeGeometries([0, 1, 2, 3, 4, 5, 6].map((k) => leafCards(rnd, 9, 2.3 - k * 0.3, 0.6, 2.3 - k * 0.3, 2.6 + k * 1.15, 1.6))) : new THREE.ConeGeometry(2.2, 9, 8).translate(0, 6.5, 0), tint: '#5d7348' },
   };
   const frondTex = palmFrondTexture();
   const palmTrunk = trunk(7, 0.24, 0.17, 1.2);
@@ -572,10 +601,10 @@ function buildVegetation(W, A, csmify) {
   const palmLeaves = mergeGeometries(fronds); palmLeaves.computeVertexNormals();
   { const nr = palmLeaves.attributes.normal; for (let k = 0; k < nr.count; k++) nr.setY(k, Math.abs(nr.getY(k)) * 0.6 + 0.4); }
   const palmMat = csmify(new THREE.MeshStandardMaterial({ map: frondTex, alphaTest: 0.35, side: THREE.DoubleSide, roughness: 0.75, color: '#e2ead0' }));
-  const by = { olive: [], cypress: [], street: [], bush: [], palm: [] };
+  const by = { olive: [], cypress: [], street: [], bush: [], pine: [], palm: [] };
   for (const t of W.trees) {
-    let k = ['olive', 'cypress', 'street', 'bush'][t[3]];
-    if (k === 'olive' && t[1] < 10 && hash2(Math.floor(t[0]), Math.floor(t[2]), 4) < 0.6) k = 'palm';
+    let k = ['olive', 'cypress', 'street', 'bush', 'pine'][t[3]];
+    if (k === 'olive') k = t[1] < 12 || hash2(Math.floor(t[0]), Math.floor(t[2]), 4) < 0.5 ? 'palm' : 'street';
     by[k].push(t);
   }
   const dummy = new THREE.Object3D(), col = new THREE.Color();
@@ -639,7 +668,7 @@ function buildPoles(W, csmify) {
 
 function buildDeco(W, T, A, mats, csmify) {
   const grp = new THREE.Group();
-  const geo = { stone: [], white: [], red: [], dark: [], metal: [], roof: [], salt: [], panW: [], panS: [], glass: [], wheel: [], gableRoof: [], gableEnd: [] };
+  const geo = { stone: [], white: [], red: [], dark: [], metal: [], roof: [], glass: [], wheel: [], hay: [], timber: [], gableRoof: new Map(), gableEnd: new Map() };
   const signGroup = new THREE.Group();
   const wheel = new THREE.CylinderGeometry(0.36, 0.36, 0.26, 12); wheel.rotateZ(Math.PI / 2);
   const carModels = A ? Object.values(A.cars || {}) : [];
@@ -654,8 +683,17 @@ function buildDeco(W, T, A, mats, csmify) {
       m.position.set(d.x, d.y + h / 2, d.z); m.rotation.y = d.rot * Math.PI / 2;
       m.position.add(new THREE.Vector3(0, 0, 0.5).applyAxisAngle(new THREE.Vector3(0, 1, 0), d.rot * Math.PI / 2));
       m.castShadow = true; signGroup.add(m);
-    } else if (d.t === 'gable') { const [r, e] = gableGeo(d); geo.gableRoof.push(r); geo.gableEnd.push(e); }
-    else if (d.t === 'templeRoof') grp.add(templeRoof(d));
+    } else if (d.t === 'gable') {
+      const [r, e] = gableGeo(d);
+      if (d.rm) vcolor(r, d.rm);
+      vcolor(e, d.c ? new THREE.Color(d.c).multiply(new THREE.Color(BASE[d.m] ?? '#ffffff')) : BASE[d.m] ?? '#ffffff');
+      const rmat = d.rmat ?? MAT.roof;
+      if (!geo.gableRoof.has(rmat)) geo.gableRoof.set(rmat, []);
+      geo.gableRoof.get(rmat).push(r);
+      const em = [MAT.siding, MAT.brick, MAT.stone, MAT.concrete, MAT.metal].includes(d.m) ? d.m : MAT.plaster;
+      if (!geo.gableEnd.has(em)) geo.gableEnd.set(em, []);
+      geo.gableEnd.get(em).push(e);
+    }
     else if (d.t === 'cabglass') { const g = new THREE.BoxGeometry(d.x1 - d.x0 - 0.1, d.h, d.z1 - d.z0 - 0.1); g.translate((d.x0 + d.x1) / 2, d.y + d.h / 2, (d.z0 + d.z1) / 2); geo.glass.push(g); }
     else if (d.t === 'boom') { const g = new THREE.BoxGeometry(2, 2, d.len); g.translate(d.x + d.len * 0.35, d.y + 1, d.z); geo.red.push(g); }
     else if (d.t === 'lighthouse') {
@@ -663,19 +701,15 @@ function buildDeco(W, T, A, mats, csmify) {
       const lamp = new THREE.CylinderGeometry(d.r * 0.7, d.r * 0.7, 2.6, 16); lamp.translate(d.x, d.y + d.h + 1.3, d.z); geo.glass.push(lamp);
       const cap = new THREE.ConeGeometry(d.r * 0.85, 2.2, 16); cap.translate(d.x, d.y + d.h + 3.7, d.z); geo.red.push(cap);
       const gal = new THREE.CylinderGeometry(d.r + 0.8, d.r + 0.8, 0.3, 24); gal.translate(d.x, d.y + d.h + 0.15, d.z); geo.dark.push(gal);
-    } else if (d.t === 'kiln') {
-      const g = new THREE.CylinderGeometry(d.r * 0.55, d.r, 3.2, 24); g.translate(d.x, d.y + d.h + 1.6, d.z); geo.stone.push(g);
-      const arch = new THREE.BoxGeometry(2.4, 2.8, 1); arch.translate(d.x, d.y + 1.4, d.z + d.r - 0.3); geo.dark.push(arch);
+    } else if (d.t === 'tank' && d.silo) {
+      const g = new THREE.SphereGeometry(d.r, 24, 8, 0, Math.PI * 2, 0, Math.PI / 2); g.translate(d.x, d.y + d.h, d.z); geo.metal.push(g);
+      for (let k = 1; k < 5; k++) { const r = new THREE.CylinderGeometry(d.r + 0.05, d.r + 0.05, 0.18, 24, 1, true); r.translate(d.x, d.y + k * d.h / 5, d.z); geo.metal.push(r); }
     } else if (d.t === 'tank') {
       const g = new THREE.SphereGeometry(d.r, 32, 6, 0, Math.PI * 2, 0, 0.35); g.translate(d.x, d.y + d.h - d.r * Math.cos(0.35) + 0.02, d.z); geo.white.push(g);
       if (d.ladder) { const l = new THREE.BoxGeometry(0.6, d.h, 0.15); l.translate(d.x, d.y + d.h / 2, d.z + d.r + 0.08); geo.metal.push(l); }
     } else if (d.t === 'radome') { const g = new THREE.SphereGeometry(d.r * 1.05, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2); g.translate(d.x, d.y + d.h, d.z); geo.white.push(g); }
     else if (d.t === 'mast' || d.t === 'flare' || d.t === 'chimney') { const g = new THREE.CylinderGeometry(d.r * 1.3, d.r * 1.3, 1.2, 10); g.translate(d.x, d.y + d.h - 0.6, d.z); geo.red.push(g); }
-    else if (d.t === 'pan') {
-      const g = new THREE.PlaneGeometry(d.x1 - d.x0 - 1.2, d.z1 - d.z0 - 1.2); g.rotateX(-Math.PI / 2); g.translate((d.x0 + d.x1) / 2, d.y + 0.05, (d.z0 + d.z1) / 2);
-      (d.s < 0.55 ? geo.panW : geo.panS).push(g);
-      for (const [w2, h2, ox, oz] of [[d.x1 - d.x0, 0.6, 0, -(d.z1 - d.z0) / 2], [d.x1 - d.x0, 0.6, 0, (d.z1 - d.z0) / 2], [0.6, d.z1 - d.z0, -(d.x1 - d.x0) / 2, 0], [0.6, d.z1 - d.z0, (d.x1 - d.x0) / 2, 0]]) { const b = new THREE.BoxGeometry(w2, 0.25, h2); b.translate((d.x0 + d.x1) / 2 + ox, d.y + 0.1, (d.z0 + d.z1) / 2 + oz); geo.salt.push(b); }
-    } else if (d.t === 'wheels') {
+    else if (d.t === 'wheels') {
       if (carModels.length) {
         const src = carModels[Math.floor(hash2(Math.floor(d.x), Math.floor(d.z), 3) * carModels.length)];
         const car = src.clone();
@@ -698,12 +732,26 @@ function buildDeco(W, T, A, mats, csmify) {
         grp.add(car);
       } else for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const g = wheel.clone(); if (!d.along) g.rotateY(Math.PI / 2); g.translate(d.x + (d.along ? sx * 1.35 : sz * 0.92), d.y + 0.36, d.z + (d.along ? sz * 0.92 : sx * 1.35)); geo.wheel.push(g); }
     } else if (d.t === 'plane') grp.add(parkedPlane(d));
-    else if (d.t === 'belfry') {
-      const g = new THREE.BoxGeometry(2.2, 3.4, 2.2); g.translate(d.x, d.y + 1.7, d.z - 0.9); geo.white.push(g);
-      const c = new THREE.ConeGeometry(1.7, 1.8, 4); c.rotateY(Math.PI / 4); c.translate(d.x, d.y + 4.3, d.z - 0.9); geo.roof.push(c);
-    } else if (d.t === 'censer') {
-      const g = new THREE.CylinderGeometry(0.9, 0.7, 1.1, 12); g.translate(d.x, d.y + 0.55, d.z); geo.dark.push(g);
-      const g2 = new THREE.CylinderGeometry(0.5, 0.9, 0.8, 4); g2.translate(d.x, d.y + 1.5, d.z); geo.dark.push(g2);
+    else if (d.t === 'hsign') {
+      // 橫式店招：貼在一樓門口上方
+      const tex = hsignTexture(d.text, d.c), w = Math.min(d.w, 1.0 + d.text.length * 0.9);
+      const face = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55, emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: 0.1 });
+      const side = new THREE.MeshStandardMaterial({ color: '#2a2622' });
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.8, 0.14), [side, side, side, side, face, side]);
+      m.position.set(d.x, d.y + 0.4, d.z); m.rotation.y = d.rot * Math.PI / 2; m.castShadow = true; signGroup.add(m);
+    } else if (d.t === 'hay') {
+      const g = new THREE.CylinderGeometry(0.75, 0.75, 1.5, 16); g.rotateZ(Math.PI / 2); g.rotateY(d.a); g.translate(d.x, d.y + 0.72, d.z); geo.hay.push(g);
+    } else if (d.t === 'umbrella') {
+      const pole = new THREE.CylinderGeometry(0.04, 0.04, 2.3, 6); pole.translate(d.x, d.y + 1.15, d.z); geo.metal.push(pole);
+      const c = new THREE.ConeGeometry(1.5, 0.55, 12, 1, true); c.translate(d.x, d.y + 2.35, d.z);
+      (d.c % 2 ? geo.white : geo.red).push(c);
+    } else if (d.t === 'wheel') {
+      // 水車：兩片輪框＋十二片葉板，側面貼著磨坊
+      const parts = [];
+      for (const sz of [-0.9, 0.9]) { const t = new THREE.TorusGeometry(3.2, 0.12, 6, 28); t.rotateY(Math.PI / 2); t.translate(0, 0, 0); t.translate(sz, 0, 0); parts.push(t); }
+      for (let k = 0; k < 12; k++) { const b = new THREE.BoxGeometry(2.0, 0.08, 0.9); b.translate(0, 3.0, 0); b.rotateX(k * Math.PI / 6); parts.push(b); const sp = new THREE.BoxGeometry(1.9, 3.1, 0.1); sp.translate(0, 1.55, 0); sp.rotateX(k * Math.PI / 6 + 0.26); parts.push(sp); }
+      const axle = new THREE.CylinderGeometry(0.25, 0.25, 2.6, 10); axle.rotateZ(Math.PI / 2); parts.push(axle);
+      const g = mergeGeometries(parts.map(strip)); g.translate(d.x, d.y + 3.0, d.z); geo.timber.push(g);
     }
   }
   const mk = (list, mat) => { if (!list.length) return; const m = new THREE.Mesh(mergeGeometries(list.map(strip)), mat); m.castShadow = true; m.receiveShadow = true; grp.add(m); };
@@ -714,12 +762,11 @@ function buildDeco(W, T, A, mats, csmify) {
   mk(geo.dark, std({ color: '#3b3129' }));
   mk(geo.metal, std({ color: '#8e918f', metalness: 0.6, roughness: 0.4 }));
   mk(geo.roof.map((g) => vcolor(strip(g), '#ffffff')), mats[MAT.roof]);
-  mk(geo.salt.map((g) => vcolor(strip(g), '#ffffff')), mats[MAT.salt]);
   mk(geo.wheel, std({ color: '#1e1b18', roughness: 0.9 }));
-  mk(geo.panW, std({ color: '#9ec3c4', roughness: 0.08, metalness: 0.1, envMapIntensity: 1.5 }));
-  mk(geo.panS, std({ map: A?.tex.sand || T.salt, color: '#fffaf0', roughness: 0.6 }));
-  mk(geo.gableRoof, mats[MAT.roof]);
-  mk(geo.gableEnd, mats[MAT.plaster]);
+  mk(geo.hay, std({ color: '#c9a95a', roughness: 0.95 }));
+  mk(geo.timber, std({ color: '#5a4430', roughness: 0.9 }));
+  for (const [m, list] of geo.gableRoof) mk(list, mats[m]);
+  for (const [m, list] of geo.gableEnd) mk(list, mats[m]);
   if (geo.glass.length) grp.add(new THREE.Mesh(mergeGeometries(geo.glass.map(strip)), new THREE.MeshStandardMaterial({ color: '#4c6468', roughness: 0.05, metalness: 0.5, transparent: true, opacity: 0.55 })));
   grp.add(signGroup);
   if (A?.props) {
@@ -737,11 +784,21 @@ function buildDeco(W, T, A, mats, csmify) {
       }
     };
     put('metal_jerrycan_green', 30, (b) => b.kind === 'warehouse' || b.kind === 'house');
-    put('power_box_01', 18, (b) => b.kind === 'house' && b.town === 'old', 1.4);
+    put('power_box_01', 18, (b) => b.kind === 'house' && (b.town === 'port' || b.town === 'city'), 1.4);
   }
   return grp;
 }
 
+// 依幾何把每個三角形翻成朝外（ok(法線) 為真代表方向正確），連同 uv 一起交換
+function outward(g, ok) {
+  const p = g.attributes.position.array, u = g.attributes.uv?.array;
+  for (let i = 0; i < p.length; i += 9) {
+    const ax = p[i + 3] - p[i], ay = p[i + 4] - p[i + 1], az = p[i + 5] - p[i + 2], bx = p[i + 6] - p[i], by = p[i + 7] - p[i + 1], bz = p[i + 8] - p[i + 2];
+    if (ok([ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx])) continue;
+    for (let k = 0; k < 3; k++) { const t = p[i + 3 + k]; p[i + 3 + k] = p[i + 6 + k]; p[i + 6 + k] = t; }
+    if (u) { const j = (i / 9) * 6; for (let k = 0; k < 2; k++) { const t = u[j + 2 + k]; u[j + 2 + k] = u[j + 4 + k]; u[j + 4 + k] = t; } }
+  }
+}
 // 斜屋頂：兩坡屋面＋兩端山牆
 function gableGeo(d) {
   const ax = d.ax === 'z' ? 'z' : 'x';
@@ -753,11 +810,7 @@ function gableGeo(d) {
   quad(P(L0, S0, y), P(L1, S0, y), P(L1, mid, top), P(L0, mid, top), [[L0, 0], [L1, 0], [L1, slope], [L0, slope]]);
   quad(P(L1, S1, y), P(L0, S1, y), P(L0, mid, top), P(L1, mid, top), [[L1, 0], [L0, 0], [L0, slope], [L1, slope]]);
   const roof = new THREE.BufferGeometry(); roof.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); roof.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  if (ax === 'z') {
-    const p = roof.attributes.position.array, u = roof.attributes.uv.array;
-    for (let i = 0; i < p.length; i += 9) for (let k = 0; k < 3; k++) { const t = p[i + 3 + k]; p[i + 3 + k] = p[i + 6 + k]; p[i + 6 + k] = t; }
-    for (let i = 0; i < u.length; i += 6) for (let k = 0; k < 2; k++) { const t = u[i + 2 + k]; u[i + 2 + k] = u[i + 4 + k]; u[i + 4 + k] = t; }
-  }
+  outward(roof, (n) => n[1] > 0);
   roof.computeVertexNormals();
   vcolor(roof, '#ffffff');
   const ends = [];
@@ -765,38 +818,16 @@ function gableGeo(d) {
   for (const [l, sgn] of [[L0 + inset, -1], [L1 - inset, 1]]) {
     const a = P(l, S0 + 0.45, y), b = P(l, S1 - 0.45, y), c = P(l, mid, top - 0.12);
     const tri = new THREE.BufferGeometry();
-    const flip = (sgn > 0) !== (ax === 'z');
-    tri.setAttribute('position', new THREE.Float32BufferAttribute(flip ? [...a, ...b, ...c] : [...b, ...a, ...c], 3));
+    tri.setAttribute('position', new THREE.Float32BufferAttribute([...a, ...b, ...c], 3));
     tri.setAttribute('uv', new THREE.Float32BufferAttribute(ax === 'x' ? [a[2], a[1], b[2], b[1], c[2], c[1]] : [a[0], a[1], b[0], b[1], c[0], c[1]], 2));
+    const out = ax === 'x' ? [sgn, 0, 0] : [0, 0, sgn];
+    outward(tri, (n) => n[0] * out[0] + n[2] * out[2] > 0);
     tri.computeVertexNormals();
     ends.push(vcolor(tri, '#f1ede4'));
   }
   return [roof, mergeGeometries(ends)];
 }
 
-function templeRoof(d) {
-  const g = new THREE.Group();
-  const w = d.x1 - d.x0, dd = d.z1 - d.z0, cx = (d.x0 + d.x1) / 2, cz = (d.z0 + d.z1) / 2;
-  const roofMat = new THREE.MeshStandardMaterial({ color: '#c96a3a', roughness: 0.6, side: THREE.DoubleSide });
-  const segs = 12, rise = 3.2, pos = [], idx = [];
-  for (const side of [-1, 1]) {
-    const base = pos.length / 3;
-    for (let i = 0; i <= segs; i++) {
-      const u = i / segs, x = d.x0 + w * u, lift = Math.pow(Math.abs(u - 0.5) * 2, 3) * 0.9;
-      pos.push(x, d.y + rise + lift, cz, x, d.y + 0.2 + lift * 0.6, cz + side * dd / 2);
-      if (i > 0) { const k = base + (i - 1) * 2; if (side > 0) idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); else idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); }
-    }
-  }
-  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
-  const m = new THREE.Mesh(geo, roofMat); m.castShadow = true; g.add(m);
-  const ridge = new THREE.BoxGeometry(w * 0.86, 0.5, 0.5); ridge.translate(cx, d.y + rise + 0.25, cz);
-  const tail = (s) => { const t = new THREE.BoxGeometry(2.2, 0.4, 0.45); t.rotateZ(s * 0.55); t.translate(cx + s * (w * 0.43 + 0.8), d.y + rise + 0.95, cz); return t; };
-  const rm = new THREE.Mesh(mergeGeometries([ridge, tail(1), tail(-1)]), new THREE.MeshStandardMaterial({ color: '#2e5a4c', roughness: 0.5 }));
-  rm.castShadow = true; g.add(rm);
-  const pearl = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 10), new THREE.MeshStandardMaterial({ color: '#e2b33c', roughness: 0.25, metalness: 0.7 }));
-  pearl.position.set(cx, d.y + rise + 0.9, cz); g.add(pearl);
-  return g;
-}
 
 function parkedPlane(d) {
   const g = new THREE.Group();

@@ -1,15 +1,15 @@
 // 鹽岬島地圖：地形、命名城鎮、可進入的建築（牆、門、窗、樓梯、樓板）、樹、車與戰利品點。
 // 所有碰撞體都是軸對齊方塊或直立圓柱；畫面直接用同一批方塊建模，兩者永遠對齊。
 import { mulberry32, clamp, csin, ccos } from './rng.js';
-import { buildTerrain, heightAt, TOWNS, EXT, CELL, N, coastAt } from './terrain.js';
+import { buildTerrain, heightAt, TOWNS, EXT, CELL, N, coastAt, RIVER, mountain } from './terrain.js';
 
 export const MAT = {
   plaster: 0, plasterWarm: 1, plasterRose: 2, plasterSage: 3, concrete: 4, brick: 5, wood: 6, tile: 7,
-  roof: 8, metal: 9, rust: 10, container: 11, stone: 12, trim: 13, salt: 14, car: 15, tank: 16, crate: 17, temple: 18, glass: 19, facade: 20, siding: 21, hidden: 22,
+  roof: 8, metal: 9, rust: 10, container: 11, stone: 12, trim: 13, salt: 14, car: 15, tank: 16, crate: 17, temple: 18, glass: 19, facade: 20, siding: 21, hidden: 22, invis: 23,
 };
-export const MAT_COUNT = 23;
+export const MAT_COUNT = 24;
 // 只供繪製的細節方塊種類（不進碰撞）
-export const DK = { frame: 0, glass: 1, base: 2, wains: 3, lamp: 4, rad: 5, ac: 6, dark: 7, steel: 8, poster: 9 };
+export const DK = { frame: 0, glass: 1, base: 2, wains: 3, lamp: 4, rad: 5, ac: 6, dark: 7, steel: 8, poster: 9, corn: 10, found: 11, brick: 12, fence: 13 };
 
 const WALL_T = 0.25;
 const STEP_N = 13, STEP_RUN = 0.3;
@@ -299,7 +299,7 @@ function house(L, rnd, o) {
       if (alongX) L.box(x0, roofY + (k0 === 0.22 ? 0 : rise * 0.4), z0 + d * k0, x1, roofY + rise * k1, z1 - d * k0, MAT.roof);
       else L.box(x0 + w * k0, roofY + (k0 === 0.22 ? 0 : rise * 0.4), z0, x1 - w * k0, roofY + rise * k1, z1, MAT.roof);
     }
-    L.deco.push({ t: 'gable', x0: x0 - (alongX ? 0.35 : 0.45), z0: z0 - (alongX ? 0.45 : 0.35), x1: x1 + (alongX ? 0.35 : 0.45), z1: z1 + (alongX ? 0.45 : 0.35), y: roofY - 0.05, rise: rise + 0.1, ax: alongX ? 'x' : 'z', m });
+    L.deco.push({ t: 'gable', x0: x0 - (alongX ? 0.35 : 0.45), z0: z0 - (alongX ? 0.45 : 0.35), x1: x1 + (alongX ? 0.35 : 0.45), z1: z1 + (alongX ? 0.45 : 0.35), y: roofY - 0.05, rise: rise + 0.1, ax: alongX ? 'x' : 'z', m, c: o.endColor || tint, rm: o.roofTint || 0 });
     if (dr() < 0.4) L.dbox(x1 - 1.6, roofY + rise * 0.55, -0.15, x1 - 1.0, roofY + rise + 0.9, 0.35, DK.dark);
   } else {
     const ph = 0.8;
@@ -333,6 +333,24 @@ function house(L, rnd, o) {
     }
   }
   if (o.sign) L.deco.push({ t: 'sign', x: x0 + 0.6, z: z1 + 0.1, y: 0.15 + fh + 0.3, h: Math.min(fh * (floors - 1) + 0.6, 5.5), text: o.sign, c: o.signColor || 0 });
+  // 店面橫招牌（市中心一樓）
+  if (o.hsign) L.deco.push({ t: 'hsign', x: doorX, z: z1 + 0.14, y: 2.62, w: Math.min(w - 1, 5.5), text: o.hsign, c: o.signColor || 0 });
+  // 外觀不再只是方塊：樓層間的線腳、女兒牆壓頂、轉角柱、地基腰帶、煙囪
+  if (o.cornice) {
+    for (let f = 1; f <= floors; f++) {
+      const yy = 0.15 + f * fh - (f === floors ? 0 : 0.25), th = f === floors ? 0.32 : 0.16, pr = f === floors ? 0.16 : 0.07;
+      L.dbox(x0 - pr, yy - th, z1, x1 + pr, yy, z1 + pr, DK.corn); L.dbox(x0 - pr, yy - th, z0 - pr, x1 + pr, yy, z0, DK.corn);
+      L.dbox(x0 - pr, yy - th, z0, x0, yy, z1, DK.corn); L.dbox(x1, yy - th, z0, x1 + pr, yy, z1, DK.corn);
+    }
+    if (!o.gable) { L.dbox(x0 - 0.12, roofY + 0.8, z0 - 0.12, x1 + 0.12, roofY + 0.92, z0 + 0.32, DK.corn); L.dbox(x0 - 0.12, roofY + 0.8, z1 - 0.32, x1 + 0.12, roofY + 0.92, z1 + 0.12, DK.corn); L.dbox(x0 - 0.12, roofY + 0.8, z0, x0 + 0.32, roofY + 0.92, z1, DK.corn); L.dbox(x1 - 0.32, roofY + 0.8, z0, x1 + 0.12, roofY + 0.92, z1, DK.corn); }
+  }
+  if (o.trim !== false) {
+    const tk = 0.1, top = roofY + (o.gable ? 0 : 0.8);
+    for (const [cx2, cz2] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]]) L.dbox(cx2 - tk, 0.05, cz2 - tk, cx2 + tk, top, cz2 + tk, o.cornice ? DK.corn : DK.frame);
+    L.dbox(x0 - 0.06, 0.05, z0 - 0.06, x1 + 0.06, 0.45, z0, DK.found); L.dbox(x0 - 0.06, 0.05, z1, x1 + 0.06, 0.45, z1 + 0.06, DK.found);
+    L.dbox(x0 - 0.06, 0.05, z0, x0, 0.45, z1, DK.found); L.dbox(x1, 0.05, z0, x1 + 0.06, 0.45, z1, DK.found);
+  }
+  if (o.chimney) { const ccx = x0 + w * 0.22, ccz = z0 + d * 0.3; L.dbox(ccx - 0.4, roofY - 0.2, ccz - 0.35, ccx + 0.4, roofY + Math.min(2.6, d * 0.3) + 1.1, ccz + 0.35, DK.brick); L.dbox(ccx - 0.48, roofY + Math.min(2.6, d * 0.3) + 1.1, ccz - 0.43, ccx + 0.48, roofY + Math.min(2.6, d * 0.3) + 1.25, ccz + 0.43, DK.corn); }
   L.doors.push([doorX, z1 + 0.6, 0, 1]);
   if (hasBack) L.doors.push([backX, z0 - 0.6, 0, -1]);
   return roofY;
@@ -349,12 +367,13 @@ function warehouse(L, rnd, o) {
   L.wallX(x0, x1, z1 - t / 2, 0.15, h, t, m, [...door, ...(o.open ? [] : hi(x0, -dw / 2 - 1)), ...(o.open ? [] : hi(dw / 2 + 1, x1))], o.tint || 0);
   L.wallX(x0, x1, z0 + t / 2, 0.15, h, t, m, o.backDoor === false ? hi(x0, x1) : [[x0 + 2, x0 + 3.4, 0, 2.3], ...hi(x0 + 4, x1)], o.tint || 0);
   for (const sx of [x0 + t / 2, x1 - t / 2]) L.wallZ(z0 + t, z1 - t, sx, 0.15, h, t, m, [[-0.7, 0.7, 0, 2.3], ...hi(z0, -1.5), ...hi(1.5, z1)], o.tint || 0);
-  L.box(x0, h, z0, x1, h + 0.3, z1, o.roofMat ?? MAT.rust);
+  L.box(x0, h, z0, x1, h + 0.3, z1, o.roofMat ?? MAT.metal);
   if (o.gable !== false) {
     // 低斜屋頂：碰撞用三段平台近似
     const rise = Math.min(2.4, d * 0.12);
-    L.box(x0, h + 0.3, z0 + d * 0.2, x1, h + 0.3 + rise * 0.45, z1 - d * 0.2, o.roofMat ?? MAT.rust);
-    L.box(x0, h + 0.3 + rise * 0.45, z0 + d * 0.38, x1, h + 0.3 + rise * 0.85, z1 - d * 0.38, o.roofMat ?? MAT.rust);
+    L.box(x0, h + 0.3, z0 + d * 0.2, x1, h + 0.3 + rise * 0.45, z1 - d * 0.2, o.roofMat ?? MAT.metal);
+    L.box(x0, h + 0.3 + rise * 0.45, z0 + d * 0.38, x1, h + 0.3 + rise * 0.85, z1 - d * 0.38, o.roofMat ?? MAT.metal);
+    L.deco.push({ t: 'gable', x0: x0 - 0.3, z0: z0 - 0.4, x1: x1 + 0.3, z1: z1 + 0.4, y: h + 0.25, rise: rise * 1.12 + 0.1, ax: 'x', m, c: o.tint || 0, rmat: o.roofMat ?? MAT.metal, rm: 0 });
   }
   // 貨箱掩體
   const nC = Math.floor(w * d / 60);
@@ -398,28 +417,6 @@ function tower(L, rnd, o) {
   L.doors.push([0, z1 + 0.8, 0, 1], [0, z0 - 0.8, 0, -1]);
 }
 
-function temple(L, rnd) {
-  // 廟：紅柱、石階、燕尾脊屋頂（屋頂由前端繪製）
-  const w = 15, d = 12, h = 5.2;
-  const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2;
-  L.box(x0 - 1.5, -1.6, z0 - 1.5, x1 + 1.5, 0.45, z1 + 2.5, MAT.stone);
-  L.box(x0 - 1.5, 0.45, z1 + 1.2, x1 + 1.5, 0.45, z1 + 2.5, MAT.stone);
-  L.box(-3, 0.05, z1 + 2.5, 3, 0.25, z1 + 3.4, MAT.stone);
-  L.box(x0 + 0.3, 0.45, z0 + 0.3, x1 - 0.3, 0.55, z1 - 2.2, MAT.tile);
-  const t = 0.35;
-  L.wallX(x0 + 0.3, x1 - 0.3, z1 - 2.2, 0.55, h, t, MAT.temple, [[-1.5, 1.5, 0, 3.2], [-5.4, -3.6, 1.0, 2.6], [3.6, 5.4, 1.0, 2.6]]);
-  L.wallX(x0 + 0.3, x1 - 0.3, z0 + 0.3 + t / 2, 0.55, h, t, MAT.temple, []);
-  L.wallZ(z0 + 0.3 + t, z1 - 2.2 - t / 2, x0 + 0.3 + t / 2, 0.55, h, t, MAT.temple, [[-1.4, -0.2, 0, 2.4]]);
-  L.wallZ(z0 + 0.3 + t, z1 - 2.2 - t / 2, x1 - 0.3 - t / 2, 0.55, h, t, MAT.temple, [[-1.4, -0.2, 0, 2.4]]);
-  for (let k = 0; k < 6; k++) { const cx = x0 + 0.8 + (w - 1.6) * (k / 5); L.cyls.push([cx, z1 - 0.6, 0.28, 0.45, h, MAT.temple]); }
-  L.box(x0 - 0.6, h, z0 - 0.6, x1 + 0.6, h + 0.5, z1 + 0.6, MAT.roof);
-  L.box(-2.6, 0.55, z0 + 1.2, 2.6, 1.6, z0 + 2.4, MAT.wood);
-  L.deco.push({ t: 'templeRoof', x0: x0 - 0.9, x1: x1 + 0.9, z0: z0 - 0.9, z1: z1 + 0.9, y: h + 0.5 });
-  L.deco.push({ t: 'censer', x: 0, z: z1 + 4.5, y: 0.25 });
-  L.loot.push([0, 1.62, z0 + 1.8, 3], [-4, 0.57, z0 + 3, 1], [4, 0.57, z0 + 3, 1]);
-  L.doors.push([0, z1 + 4, 0, 1]);
-}
-
 // ---- 世界組裝 ----
 export function buildMap() {
   const T = buildTerrain();
@@ -427,7 +424,7 @@ export function buildMap() {
   const rnd = mulberry32(19990127);
   const W = {
     H, roads: T.roads, runway: T.runway, towns: TOWNS,
-    boxes: [], cyls: [], deco: [], loot: [], buildings: [], trees: [], rocks: [], pads: [], dboxes: [], boxBld: [], openings: [],
+    boxes: [], cyls: [], deco: [], loot: [], buildings: [], trees: [], rocks: [], pads: [], dboxes: [], boxBld: [], openings: [], grids: [],
   };
   const hAt = (x, z) => heightAt(H, x, z);
   const roadD = (x, z) => {
@@ -494,7 +491,7 @@ export function buildMap() {
   function addHouse(cx, cz, rot, o, meta) {
     const L = new Local();
     const ww = rot % 2 ? o.d : o.w, dd = rot % 2 ? o.w : o.d;
-    if (!free(cx - ww / 2, cz - dd / 2, cx + ww / 2, cz + dd / 2, o.pad ?? 0.5)) return false;
+    if (!freeR(cx - ww / 2, cz - dd / 2, cx + ww / 2, cz + dd / 2, o.pad ?? 0.5)) return false;
     const { base } = o.base != null ? { base: o.base } : baseUnder(cx, cz, ww, dd);
     house(L, rnd, { mat: rnd.pick(PLASTERS), ...o });
     place(L, cx, cz, rot, base, { kind: 'house', floors: o.floors, ...meta });
@@ -503,7 +500,7 @@ export function buildMap() {
   function addWarehouse(cx, cz, rot, o, meta) {
     const L = new Local();
     const ww = rot % 2 ? o.d : o.w, dd = rot % 2 ? o.w : o.d;
-    if (!free(cx - ww / 2, cz - dd / 2, cx + ww / 2, cz + dd / 2, 1)) return false;
+    if (!freeR(cx - ww / 2, cz - dd / 2, cx + ww / 2, cz + dd / 2, 1)) return false;
     const { base } = o.base != null ? { base: o.base } : baseUnder(cx, cz, ww, dd);
     warehouse(L, rnd, o);
     place(L, cx, cz, rot, base, { kind: 'warehouse', floors: 1, ...meta });
@@ -533,133 +530,231 @@ export function buildMap() {
   };
   const pave = (x0, z0, x1, z1, y, kind = 0) => W.pads.push([x0, z0, x1, z1, y, kind]);
 
+  // 橋：沿道路每 2 公尺一塊隱形方塊當橋面（前端另畫橋面與欄杆）
+  W.bridges = T.bridges;
+  for (const b of T.bridges) {
+    // 斜橋：軸對齊方塊的聯集會比橋面寬，依角度把方塊縮到聯集寬約等於橋寬
+    const dx = b.bx - b.ax, dz = b.bz - b.az, L2 = Math.sqrt(dx * dx + dz * dz), n = Math.ceil(L2 / 2), hw = (b.w / 2) * L2 / (Math.abs(dx) + Math.abs(dz));
+    for (let k = 0; k <= n; k++) {
+      const px = b.ax + (b.bx - b.ax) * k / n, pz = b.az + (b.bz - b.az) * k / n;
+      W.boxes.push([px - hw, b.y - 1.4, pz - hw, px + hw, b.y + 0.05, pz + hw, MAT.invis, 0]);
+      occupied.push([px - hw - 2, pz - hw - 2, px + hw + 2, pz + hw + 2]);
+    }
+  }
+  // 河道兩側不蓋房子
+  const riverOK = (x0, z0, x1, z1) => {
+    const hw = RIVER.w / 2 + 4;
+    for (const [x, z] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1], [(x0 + x1) / 2, (z0 + z1) / 2]]) if (T.riverDist(x, z) < hw) return false;
+    return true;
+  };
+  const freeR = (x0, z0, x1, z1, pad = 1) => free(x0, z0, x1, z1, pad) && riverOK(x0 - pad, z0 - pad, x1 + pad, z1 + pad);
+  // 街道：柏油路面＋兩側人行道（墊高 0.15，有路緣碰撞）
+  const street = (x0, z0, x1, z1, y, alongX, side = 2.6) => {
+    // 切成 6 公尺一段，靠近河道的段落跳過（過河只走真正的橋）
+    const len = alongX ? x1 - x0 : z1 - z0, n = Math.ceil(len / 6);
+    let run0 = -1;
+    const flush = (k0, k1) => {
+      const a = (alongX ? x0 : z0) + len * k0 / n, b = (alongX ? x0 : z0) + len * k1 / n;
+      const [sx0, sz0, sx1, sz1] = alongX ? [a, z0, b, z1] : [x0, a, x1, b];
+      pave(sx0, sz0, sx1, sz1, y, 0);
+      if (alongX) for (const [c, e] of [[z0 - side, z0], [z1, z1 + side]]) { pave(a, c, b, e, y + 0.15, 2); W.boxes.push([a, y - 0.3, c, b, y + 0.15, e, MAT.invis, 0]); }
+      else for (const [c, e] of [[x0 - side, x0], [x1, x1 + side]]) { pave(c, a, e, b, y + 0.15, 2); W.boxes.push([c, y - 0.3, a, e, y + 0.15, b, MAT.invis, 0]); }
+    };
+    for (let k = 0; k <= n; k++) {
+      let ok = k < n;
+      if (ok) { const a = (alongX ? x0 : z0) + len * k / n, b = (alongX ? x0 : z0) + len * (k + 1) / n; ok = alongX ? riverOK(a, z0 - side, b, z1 + side) : riverOK(x0 - side, a, x1 + side, b); }
+      if (ok && run0 < 0) run0 = k;
+      if (!ok && run0 >= 0) { flush(run0, k); run0 = -1; }
+    }
+  };
+  const SIDING = [0xf4f2ec, 0xc9dbe6, 0xf0e2b8, 0xd3e0c9, 0xd8d8d4, 0xe8cfc8, 0xb7c7d6, 0xe9e4d4];
+  // 美式住宅：木壁板、斜屋頂、門廊（kit）、煙囪
+  const suburbHouse = (x, z, rot, y, meta, big = false) => addHouse(x, z, rot, {
+    w: 8 + rnd.int(0, big ? 5 : 3), d: 7 + rnd.int(0, 2), floors: 1 + (rnd() < 0.55 ? 1 : 0), gable: true, chimney: rnd() < 0.6,
+    mat: rnd() < 0.78 ? MAT.siding : MAT.brick, tint: rnd.pick(SIDING), roofTint: rnd.pick([0x9c9ca2, 0xb39a86, 0x8e9aa8, 0xaaa294, 0x7f7f86]), base: y, pad: 1.2, tank: false,
+  }, meta);
+  const brickBlock = (x, z, rot, y, meta, floors = 3 + rnd.int(0, 1), hsign = null) => addHouse(x, z, rot, {
+    w: 14 + rnd.int(0, 4), d: 11 + rnd.int(0, 2), floors, mat: rnd() < 0.7 ? MAT.brick : MAT.plasterWarm, cornice: true, roofAccess: true, base: y, pad: 1, tank: false, hsign, signColor: rnd.int(0, 3),
+  }, meta);
+  const barn = (x, z, rot, y, meta) => {
+    const L = new Local(), w = 16, d = 11, h = 5.4;
+    const ww = rot % 2 ? d : w, dd = rot % 2 ? w : d;
+    if (!freeR(x - ww / 2, z - dd / 2, x + ww / 2, z + dd / 2, 1.5)) return;
+    warehouse(L, rnd, { w, d, h, mat: MAT.siding, tint: 0xb3412f, roofMat: MAT.metal, gable: false });
+    const rise = d * 0.36;
+    L.box(-w / 2, h + 0.3, -d * 0.28, w / 2, h + 0.3 + rise * 0.45, d * 0.28, MAT.invis);
+    L.box(-w / 2, h + 0.3 + rise * 0.45, -d * 0.12, w / 2, h + 0.3 + rise * 0.85, d * 0.12, MAT.invis);
+    L.deco.push({ t: 'gable', x0: -w / 2 - 0.3, z0: -d / 2 - 0.4, x1: w / 2 + 0.3, z1: d / 2 + 0.4, y: h + 0.2, rise, ax: 'x', m: MAT.siding, c: 0xb3412f, rmat: MAT.metal, rm: 0xb8babb });
+    place(L, x, z, rot, y, { kind: 'warehouse', floors: 1, ...meta });
+  };
+  const silo = (x, z, y) => addCyl(x, z, 3, 15, MAT.metal, y, { t: 'tank', silo: 1 });
+  const hay = (x, z) => { const y = hAt(x, z); W.cyls.push([x, z, 0.75, y - 0.2, y + 1.3, -3]); W.deco.push({ t: 'hay', x, z, y, a: rnd() * 3 }); };
+  const fence = (x0, z0, x1, z1) => { // 白色木柵欄（只供繪製），每根柱子貼地
+    const dx = x1 - x0, dz = z1 - z0, n = Math.max(1, Math.round(Math.sqrt(dx * dx + dz * dz) / 2.4));
+    let px0 = x0, pz0 = z0, py0 = hAt(x0, z0);
+    for (let k = 0; k <= n; k++) {
+      const px = x0 + dx * k / n, pz = z0 + dz * k / n, py = hAt(px, pz);
+      if (T.riverDist(px, pz) < RIVER.w / 2 + 2) { px0 = px; pz0 = pz; py0 = py; continue; }
+      W.dboxes.push([px - 0.06, py - 0.1, pz - 0.06, px + 0.06, py + 1.05, pz + 0.06, DK.fence, 0]);
+      if (k > 0) for (const ry of [0.38, 0.8]) { const yy = (py0 + py) / 2 + ry; W.dboxes.push([Math.min(px0, px) - 0.03, yy, Math.min(pz0, pz) - 0.03, Math.max(px0, px) + 0.03, yy + 0.08, Math.max(pz0, pz) + 0.03, DK.fence, 0]); }
+      for (let q = 1; q < 6 && k > 0; q++) { const qx = px0 + (px - px0) * q / 6, qz = pz0 + (pz - pz0) * q / 6, qy = py0 + (py - py0) * q / 6; W.dboxes.push([qx - 0.04, qy, qz - 0.04, qx + 0.04, qy + 0.95, qz + 0.04, DK.fence, 0]); }
+      px0 = px; pz0 = pz; py0 = py;
+    }
+  };
+  // 城鎮裡的樹：不能種在建築、街道或河道上
+  const plant = (x, z, kind, sc) => { if (free(x - 1, z - 1, x + 1, z + 1, 0.5) && T.riverDist(x, z) >= RIVER.w / 2 + 3) W.trees.push([x, 0, z, kind, sc]); };
+  const SHOPS = ['咖啡館', '洗衣店', '藥局', '五金行', '披薩', '書店', '銀行', '理髮廳', '餐館', '花店', '雜貨店', '酒吧', '當鋪', '戲院'];
+
   for (const town of TOWNS) {
     const { x: cx, z: cz, y } = town;
     const meta = { town: town.id };
-    if (town.kind === 'oldstreet') {
-      const zA = cz - 26, zB = cz + 26, half = 5;
-      pave(cx - 112, zA - half, cx + 112, zA + half, y, 0);
-      pave(cx - 112, zB - half, cx + 112, zB + half, y, 0);
-      const crossX = [-88, -44, 0, 44, 88].map((k) => cx + k);
-      for (const xx of crossX) pave(xx - 4, cz - 70, xx + 4, cz + 70, y, 0);
-      const rows = [
-        { z: zA - half, face: 0, sign: -1 }, { z: zA + half, face: 2, sign: 1 },
-        { z: zB - half, face: 0, sign: -1 }, { z: zB + half, face: 2, sign: 1 },
-      ];
-      const SIGNS = ['金義興', '鹽記', '春來', '老順發', '岬角冰', '萬昌', '福隆', '永豐', '海產', '茶行', '布莊', '藥房', '新美', '三和', '旅社', '米店', '鐘錶', '五金', '麵店', '照相'];
-      for (const row of rows) {
-        for (let b = 0; b < crossX.length - 1; b++) {
-          let x = crossX[b] + 4.2;
-          const xEnd = crossX[b + 1] - 4.2;
-          const isPlaza = b === 1 && row.sign === 1 && row.z === zA + half || b === 1 && row.z === zB - half;
-          if (isPlaza) continue;
-          while (x < xEnd - 4.5) {
-            const w = Math.min(xEnd - x, 5 + Math.floor(rnd() * 3));
-            if (w < 4.5) break;
-            const d = 11 + Math.floor(rnd() * 3), floors = 2 + (rnd() < 0.45 ? 1 : 0);
-            const czH = row.sign < 0 ? row.z - d / 2 : row.z + d / 2;
-            addHouse(x + w / 2, czH, row.face, {
-              w, d, floors, arcade: true, mat: rnd.pick([MAT.plaster, MAT.plasterWarm, MAT.brick, MAT.plasterRose, MAT.plasterSage, MAT.brick]),
-              party: ['w', 'e'], doorX: 0, roofAccess: rnd() < 0.35 && w >= 7, base: y, pad: -0.05,
-              sign: rnd() < 0.7 ? rnd.pick(SIGNS) : null, signColor: rnd.int(0, 3), tank: rnd() < 0.7,
-            }, meta);
-            x += w;
-          }
+    if (town.kind === 'downtown') {
+      // 橋城市中心：12 公尺街道的棋盤、玻璃帷幕高樓與紅磚中高樓
+      const xs = [-110, -70, -30, 10, 50, 90, 130, 170, 210], zs = [-150, -105, -60, -15, 30, 75, 120];
+      W.grids.push([cx + xs[0] - 9, cz + zs[0] - 9, cx + xs[xs.length - 1] + 9, cz + zs[zs.length - 1] + 9]);
+      for (const zz of zs) street(cx + xs[0], cz + zz - 6, cx + xs[xs.length - 1], cz + zz + 6, y, true);
+      for (const xx of xs) street(cx + xx - 6, cz + zs[0], cx + xx + 6, cz + zs[zs.length - 1], y, false);
+      for (let i = 0; i < xs.length - 1; i++) for (let j = 0; j < zs.length - 1; j++) {
+        const bx = cx + (xs[i] + xs[i + 1]) / 2, bz = cz + (zs[j] + zs[j + 1]) / 2;
+        const dc = Math.sqrt((bx - cx - 50) ** 2 + (bz - cz + 15) ** 2);
+        const r = rnd();
+        if (dc < 95 && r < 0.6) {
+          const L = new Local(), th = 26 + Math.floor(rnd() * (dc < 50 ? 55 : 30)), tw2 = 17 + rnd.int(0, 5), td = 15 + rnd.int(0, 5);
+          if (freeR(bx - tw2 / 2, bz - td / 2, bx + tw2 / 2, bz + td / 2, 1)) { tower(L, rnd, { w: tw2, d: td, h: th }); place(L, bx, bz, rnd.int(0, 1) * 2, y, { kind: 'tower', floors: 1, ...meta }); }
+        } else if (r < 0.93) {
+          // 一個街廓放兩棟中高樓，面向南北兩條街
+          for (const side of [-1, 1]) brickBlock(bx + (rnd() - 0.5) * 6, bz + side * 9.5, side < 0 ? 2 : 0, y, meta, 3 + rnd.int(0, 3), rnd() < 0.7 ? rnd.pick(SHOPS) : null);
+        } else if (riverOK(bx - 13, bz - 13, bx + 13, bz + 13)) {
+          pave(bx - 13, bz - 13, bx + 13, bz + 13, y + 0.01, 1);
+          for (let k = 0; k < 4; k++) plant(bx - 8 + (k % 2) * 16, bz - 8 + Math.floor(k / 2) * 16, 2, 1);
         }
       }
-      // 中央廟埕
-      const L = new Local(); temple(L, rnd); place(L, cx - 22, cz - 2, 0, y, { kind: 'temple', floors: 1, town: town.id });
-      pave(cx - 40, zA + half, cx - 4, zB - half, y + 0.01, 1);
-      for (const [px, pz] of [[cx - 36, cz - 14], [cx - 8, cz - 14], [cx - 36, cz + 14], [cx - 8, cz + 14]]) W.trees.push([px, y, pz, 2, 1.1]);
-      for (let k = 0; k < 8; k++) addCar(cx - 100 + rnd() * 200, rnd() < 0.5 ? zA + (rnd() < 0.5 ? -2.4 : 2.4) : zB + (rnd() < 0.5 ? -2.4 : 2.4), true, y);
+      for (let k = 0; k < 28; k++) { const zz = cz + rnd.pick(zs) + (rnd() < 0.5 ? -3.5 : 3.5), xx = cx + xs[0] + 10 + rnd() * (xs[xs.length - 1] - xs[0] - 20); if (riverOK(xx - 3, zz - 2, xx + 3, zz + 2) && free(xx - 2.2, zz - 1, xx + 2.2, zz + 1, 0.2)) addCar(xx, zz, true, y); }
+    } else if (town.kind === 'suburb' || town.kind === 'suburb2') {
+      // 郊區：棋盤街道、兩側住宅（院子、柵欄、行道樹），中心幾棟紅磚公寓
+      const xs = [-130, -78, -26, 26, 78, 130], zs = [-120, -72, -24, 24, 72, 120];
+      W.grids.push([cx - 140, cz - 130, cx + 140, cz + 130]);
+      for (const zz of zs) street(cx - 140, cz + zz - 4.5, cx + 140, cz + zz + 4.5, y, true, 2);
+      for (const xx of xs) street(cx + xx - 4.5, cz - 130, cx + xx + 4.5, cz + 130, y, false, 2);
+      for (let i = 0; i < xs.length - 1; i++) for (let j = 0; j < zs.length - 1; j++) {
+        const x0 = cx + xs[i] + 7, x1 = cx + xs[i + 1] - 7, z0 = cz + zs[j] + 7, z1 = cz + zs[j + 1] - 7;
+        const dcen = Math.sqrt(((x0 + x1) / 2 - cx) ** 2 + ((z0 + z1) / 2 - cz) ** 2);
+        if (dcen > town.r + 10) continue;
+        const central = dcen < 50 && town.kind === 'suburb';
+        if (central && rnd() < 0.7) { brickBlock((x0 + x1) / 2, z0 + 8, 2, y, meta, 3, rnd() < 0.5 ? rnd.pick(SHOPS) : null); brickBlock((x0 + x1) / 2, z1 - 8, 0, y, meta, 2 + rnd.int(0, 1), rnd.pick(SHOPS)); continue; }
+        // 上下兩排，各 2～3 戶
+        const n = (x1 - x0) > 36 ? 3 : 2;
+        for (let k = 0; k < n; k++) {
+          const hx = x0 + (x1 - x0) * (k + 0.5) / n;
+          if (suburbHouse(hx, z0 + 6, 2, y, meta)) { if (rnd() < 0.6) fence(hx - 7, z0 + 13, hx + 7, z0 + 13); }
+          if (suburbHouse(hx, z1 - 6, 0, y, meta)) { if (rnd() < 0.6) fence(hx - 7, z1 - 13, hx + 7, z1 - 13); }
+          if (rnd() < 0.5) plant(hx + 5, z0 - 1.5, 2, 0.8 + rnd() * 0.3);
+          if (rnd() < 0.35 && riverOK(hx - 8, z1 + 2, hx - 3, z1 + 5)) addCar(hx - 5.5, z1 + 3.2, true, y);
+        }
+      }
+    } else if (town.kind === 'ranch' || town.kind === 'farms') {
+      // 牧場：紅穀倉、筒倉、農舍、草捆、柵欄
+      const steads = town.kind === 'ranch' ? [[0, 0]] : [[-60, -50], [55, -30], [-20, 60]];
+      for (const [ox, oz] of steads) {
+        const fx = cx + ox, fz = cz + oz;
+        barn(fx - 14, fz - 12, 0, y, meta);
+        silo(fx + 6, fz - 22, y); if (rnd() < 0.7) silo(fx + 13, fz - 22, y);
+        addHouse(fx + 18, fz + 14, 2, { w: 11, d: 9, floors: 2, gable: true, chimney: true, mat: MAT.siding, tint: rnd.pick([0xf4f2ec, 0xf0e2b8, 0xd8d8d4]), roofTint: 0x9c9ca2, pad: 2, tank: false }, meta);
+        for (let k = 0; k < 10; k++) hay(fx - 30 + rnd() * 40, fz + 10 + rnd() * 30);
+        fence(fx - 40, fz - 40, fx + 40, fz - 40); fence(fx - 40, fz - 40, fx - 40, fz + 40);
+        if (town.kind === 'ranch') {
+          addWarehouse(fx - 40, fz + 30, 1, { w: 14, d: 9, h: 4.5, mat: MAT.metal, tint: 0xc9c2b0 }, meta); barn(fx + 40, fz - 50, 1, y, meta);
+          addWarehouse(fx + 52, fz + 20, 0, { w: 20, d: 10, h: 4.2, mat: MAT.siding, tint: 0x8c3a2a, roofMat: MAT.metal }, meta);
+          for (let k = 0; k < 4; k++) addHouse(fx - 70 + k * 22, fz + 70, 2, { w: 9, d: 8, floors: 1, gable: true, chimney: true, mat: MAT.siding, tint: rnd.pick(SIDING), roofTint: 0xb39a86, pad: 2, tank: false }, meta);
+          silo(fx + 66, fz - 10, y); silo(fx + 66, fz - 2, y);
+        }
+      }
+    } else if (town.kind === 'pinecrest') {
+      // 松嶺：松林裡的木屋
+      for (let k = 0; k < 16; k++) {
+        const a = rnd() * 6.283, r = 12 + rnd() * (town.r - 20), hx = cx + ccos(a) * r, hz = cz + csin(a) * r;
+        addHouse(hx, hz, rnd.int(0, 3), { w: 7 + rnd.int(0, 3), d: 6 + rnd.int(0, 2), floors: 1 + (rnd() < 0.3 ? 1 : 0), gable: true, chimney: rnd() < 0.8, mat: MAT.siding, tint: rnd.pick([0x8a6a4e, 0x7c5f45, 0x9b7b5c, 0x6e5a48]), roofTint: 0x8a9086, pad: 4, tank: false }, meta);
+      }
+      for (let k = 0; k < 220; k++) { const x = cx - 180 + rnd() * 360, z = cz - 170 + rnd() * 340; plant(x, z, 4, 0.9 + rnd() * 0.7); }
+    } else if (town.kind === 'fort') {
+      // 鐵甲堡：四面高牆、兩座城門、角樓、碉堡、營舍
+      const L = new Local(), w = 120, d = 96, h = 6, t = 1.4;
+      L.box(-w / 2, -1.5, -d / 2, w / 2, 0.15, d / 2, MAT.concrete);
+      L.wallX(-w / 2, w / 2, d / 2 - t / 2, 0.15, h, t, MAT.concrete, [[-5, 5, 0, 4.6]]);
+      L.wallX(-w / 2, w / 2, -d / 2 + t / 2, 0.15, h, t, MAT.concrete, [[-5, 5, 0, 4.6]]);
+      L.wallZ(-d / 2 + t, d / 2 - t, -w / 2 + t / 2, 0.15, h, t, MAT.concrete);
+      L.wallZ(-d / 2 + t, d / 2 - t, w / 2 - t / 2, 0.15, h, t, MAT.concrete);
+      for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+        const tx = sx * (w / 2 - 3), tz = sz * (d / 2 - 3);
+        L.box(tx - 3.2, 0.15, tz - 3.2, tx + 3.2, 9, tz + 3.2, MAT.concrete);
+        L.wallX(tx - 3.6, tx + 3.6, tz - 3.5, 9, 10.2, 0.3, MAT.concrete); L.wallX(tx - 3.6, tx + 3.6, tz + 3.5, 9, 10.2, 0.3, MAT.concrete);
+        L.wallZ(tz - 3.35, tz + 3.35, tx - 3.5, 9, 10.2, 0.3, MAT.concrete); L.wallZ(tz - 3.35, tz + 3.35, tx + 3.5, 9, 10.2, 0.3, MAT.concrete);
+        L.loot.push([tx, 9.02, tz, 3]);
+      }
+      // 牆頂走道
+      L.box(-w / 2 + t, h - 0.15, d / 2 - t - 1.4, w / 2 - t, h, d / 2 - t, MAT.concrete);
+      L.box(-w / 2 + t, h - 0.15, -d / 2 + t, w / 2 - t, h, -d / 2 + t + 1.4, MAT.concrete);
+      for (let k = 0; k < 5; k++) { const bx = -40 + k * 20, bz = -10 + (k % 2) * 24; L.box(bx - 3, 0.15, bz - 2, bx + 3, 1.6, bz + 2, MAT.concrete); L.loot.push([bx, 1.62, bz, 2]); }
+      for (let k = 0; k < 8; k++) L.box(-30 + k * 8, 0.15, 36, -26 + k * 8, 1.1, 37.2, MAT.crate);
+      addHouse(cx - 30, cz - 20, 0, { w: 22, d: 10, floors: 2, mat: MAT.concrete, cornice: true, roofAccess: true, tank: false }, meta);
+      addHouse(cx + 32, cz - 18, 0, { w: 14, d: 12, floors: 3, mat: MAT.concrete, cornice: true, roofAccess: true, tank: false }, meta);
+      for (let k = 0; k < 6; k++) addContainer(cx + 20 + (k % 3) * 9, cz + 20 + Math.floor(k / 3) * 8, false, y, 1 + (k % 2), [0x4f5a3a, 0x5c5440, 0x3d4436]);
+      place(L, cx, cz, 0, y, { kind: 'warehouse', floors: 1, town: town.id });
+      W.buildings[W.buildings.length - 1].doors = [[cx, cz + d / 2 + 2, 0, 1], [cx, cz - d / 2 - 2, 0, -1]];
+    } else if (town.kind === 'mill') {
+      // 舊磨坊：河邊石造磨坊＋水車，周圍木屋
+      const mx = cx + 52, mz = cz - 20;
+      addHouse(mx, mz, 3, { w: 12, d: 9, floors: 2, gable: true, chimney: true, mat: MAT.stone, roofTint: 0xb39a86, pad: 1, tank: false }, meta);
+      W.deco.push({ t: 'wheel', x: mx - 6.4, z: mz, y: hAt(mx, mz) + 0.5 });
+      for (let k = 0; k < 7; k++) { const a = rnd() * 6.283, r = 20 + rnd() * 45; suburbHouse(cx + ccos(a) * r - 20, cz + csin(a) * r, rnd.int(0, 3), null, meta); }
+    } else if (town.kind === 'resort') {
+      // 海灣度假村：白色旅館（陽台）、泳池、沙灘傘、平房
+      for (let k = 0; k < 3; k++) addHouse(cx - 50 + k * 42, cz - 40, 0, { w: 28, d: 12, floors: 4, mat: MAT.plaster, cornice: true, roofAccess: true, base: y, tank: false }, { ...meta, resort: true });
+      pave(cx - 30, cz - 18, cx + 30, cz + 8, y + 0.01, 2);
+      pave(cx - 18, cz - 12, cx + 18, cz + 2, y + 0.03, 3);
+      for (let k = 0; k < 6; k++) addHouse(cx - 70 + k * 28, cz + 34, 2, { w: 8, d: 7, floors: 1, gable: true, mat: MAT.siding, tint: rnd.pick([0xf4f2ec, 0xc9dbe6, 0xf0e2b8]), roofTint: 0xc09a7c, pad: 1, base: y, tank: false }, meta);
+      for (let k = 0; k < 14; k++) W.deco.push({ t: 'umbrella', x: cx - 80 + rnd() * 160, z: cz + 60 + rnd() * 30, y: hAt(cx, cz + 70), c: rnd.int(0, 3) });
+      for (let k = 0; k < 24; k++) plant(cx - 100 + rnd() * 200, cz - 70 + rnd() * 130, 0, 0.9 + rnd() * 0.4);
     } else if (town.kind === 'harbor') {
       pave(cx - 90, cz - 80, cx + 120, cz + 80, y, 2);
       const T2 = [0xa8452c, 0x3f6b6a, 0xc58a2c, 0x5a5f66, 0x7d3324, 0x2f4f5f, 0xd8cdb6];
       for (let k = 0; k < 4; k++) addWarehouse(cx - 55, cz - 60 + k * 38, 1, { w: 28, d: 17, h: 7.5, mat: MAT.metal, tint: rnd.pick([0xc9c2b0, 0xb5583a, 0x7e8b7f, 0xd2a65a]) }, meta);
-      for (let i = 0; i < 6; i++) for (let j = 0; j < 7; j++) {
-        if (rnd() < 0.3) continue;
-        addContainer(cx + 5 + i * 9, cz - 60 + j * 17, false, y, 1 + Math.floor(rnd() * 3), T2);
-      }
-      for (let k = 0; k < 3; k++) addHouse(cx - 20 + k * 22, cz + 70, 0, { w: 10, d: 8, floors: 2, mat: MAT.concrete, roofAccess: true }, meta);
-      // 碼頭與起重機
-      const qx = cx + 100;
+      for (let i = 0; i < 6; i++) for (let j = 0; j < 7; j++) { if (rnd() < 0.3) continue; addContainer(cx + 5 + i * 9, cz - 60 + j * 17, false, y, 1 + Math.floor(rnd() * 3), T2); }
+      for (let k = 0; k < 3; k++) addHouse(cx - 20 + k * 22, cz + 70, 0, { w: 10, d: 8, floors: 2, mat: MAT.siding, tint: rnd.pick(SIDING), cornice: true, roofAccess: true, tank: false }, meta);
+      const qz = cz + 100;
       for (let k = 0; k < 2; k++) {
-        const pz = cz - 40 + k * 70;
-        W.boxes.push([qx, -10, pz - 7, qx + 70, y - 0.05, pz + 7, MAT.concrete, 0]);
-        pave(qx, pz - 7, qx + 70, pz + 7, y - 0.05, 2);
-        const kx = qx + 20, kz = pz;
+        const px = cx - 40 + k * 80;
+        W.boxes.push([px - 7, -10, qz, px + 7, y - 0.05, qz + 70, MAT.concrete, 0]);
+        pave(px - 7, qz, px + 7, qz + 70, y - 0.05, 2);
+        const kx = px, kz = qz + 20;
         for (const [lx, lz] of [[-5, -5], [5, -5], [-5, 5], [5, 5]]) W.boxes.push([kx + lx - 0.6, y - 0.05, kz + lz - 0.6, kx + lx + 0.6, y + 24, kz + lz + 0.6, MAT.metal, 0xc0562e]);
         W.boxes.push([kx - 6, y + 24, kz - 6, kx + 6, y + 26, kz + 6, MAT.metal, 0xc0562e]);
         W.deco.push({ t: 'boom', x: kx, z: kz, y: y + 26, len: 40 });
         W.loot.push([kx, y + 26.02, kz, 3]);
       }
     } else if (town.kind === 'cape') {
-      addCyl(cx + 8, cz + 34, 3.4, 27, MAT.stone, null, { t: 'lighthouse' });
-      W.loot.push([cx + 8, hAt(cx + 8, cz + 34) + 27.02, cz + 34, 3]);
-      addHouse(cx - 6, cz + 18, 0, { w: 9, d: 7, floors: 1, mat: MAT.plaster, gable: true }, meta);
-      for (let k = 0; k < 5; k++) { const a = k * 1.3; addHouse(cx - 40 + 70 * (k / 4), cz - 30 + 14 * csin(a), k % 2 ? 0 : 2, { w: 8 + rnd.int(0, 3), d: 7 + rnd.int(0, 2), floors: 1 + (rnd() < 0.5 ? 1 : 0), roofAccess: false, gable: true }, meta); }
-    } else if (town.kind === 'pans') {
-      // 鹽田：整片淺池格與堤
-      for (let i = 0; i < 7; i++) for (let j = 0; j < 9; j++) {
-        const px = cx - 150 + i * 21, pz = cz - 100 + j * 17;
-        W.deco.push({ t: 'pan', x0: px, z0: pz, x1: px + 19, z1: pz + 15, y: y + 0.02, s: rnd() });
-        occupied.push([px, pz, px + 19, pz + 15]);
-      }
-      for (let k = 0; k < 9; k++) { const x = cx - 150 + rnd() * 140, z = cz - 100 + rnd() * 150; addCyl(x, z, 2.6, 2.2, MAT.salt, y, { t: 'mound' }); }
-      addWarehouse(cx + 40, cz - 40, 3, { w: 26, d: 15, h: 6.5, mat: MAT.plaster, roofMat: MAT.roof }, meta);
-      for (let k = 0; k < 4; k++) addWarehouse(cx + 30 + (k % 2) * 30, cz + 10 + Math.floor(k / 2) * 30, k % 2 ? 1 : 3, { w: 12, d: 8, h: 4.2, mat: MAT.plasterWarm, roofMat: MAT.roof, gable: false }, meta);
-      addHouse(cx + 70, cz - 70, 3, { w: 11, d: 9, floors: 2, mat: MAT.plaster, roofAccess: true }, meta);
-      addHouse(cx + 75, cz + 70, 3, { w: 9, d: 8, floors: 1 }, meta);
-    } else if (town.kind === 'kiln') {
-      for (let k = 0; k < 4; k++) addCyl(cx - 45 + k * 26, cz - 30, 6.2, 11 + k % 2 * 2, MAT.stone, null, { t: 'kiln' });
-      addCyl(cx + 62, cz - 32, 1.4, 26, MAT.brick, null, { t: 'chimney' });
-      addWarehouse(cx + 30, cz + 20, 0, { w: 22, d: 14, h: 6, mat: MAT.concrete }, meta);
-      for (let k = 0; k < 6; k++) addHouse(cx - 60 + (k % 3) * 22, cz + 18 + Math.floor(k / 3) * 22, k % 2 ? 0 : 2, { w: 8 + rnd.int(0, 2), d: 7 + rnd.int(0, 2), floors: 1 + (rnd() < 0.5 ? 1 : 0), roofAccess: false, gable: true }, meta);
-      addHouse(cx + 70, cz + 50, 1, { w: 12, d: 9, floors: 2, mat: MAT.concrete, roofAccess: true }, meta);
-      for (let k = 0; k < 40; k++) W.rocks.push([cx - 70 + rnd() * 140, 0, cz - 80 + rnd() * 30, 0.6 + rnd() * 1.4]);
+      addCyl(cx + 30, cz + 8, 3.4, 27, MAT.stone, null, { t: 'lighthouse' });
+      W.loot.push([cx + 30, hAt(cx + 30, cz + 8) + 27.02, cz + 8, 3]);
+      addHouse(cx + 14, cz - 6, 1, { w: 9, d: 7, floors: 1, mat: MAT.siding, tint: 0xf4f2ec, gable: true, chimney: true, tank: false }, meta);
+      for (let k = 0; k < 5; k++) suburbHouse(cx - 50 + 14 * k, cz - 40 + (k % 2) * 60, k % 2 ? 0 : 2, null, meta);
     } else if (town.kind === 'airfield') {
       const ry = y;
       for (let k = 0; k < 3; k++) addWarehouse(cx - 140 + k * 70, cz - 75, 0, { w: 34, d: 26, h: 11, open: true, mat: MAT.metal, tint: 0xbab2a0, backDoor: false }, { ...meta, hangar: true });
-      addHouse(cx + 40, cz + 70, 2, { w: 30, d: 13, floors: 2, mat: MAT.plaster, roofAccess: true }, meta);
+      addHouse(cx + 40, cz + 70, 2, { w: 30, d: 13, floors: 2, mat: MAT.concrete, cornice: true, roofAccess: true, tank: false }, meta);
       addHouse(cx + 90, cz + 66, 2, { w: 8, d: 8, floors: 4, mat: MAT.concrete, roofAccess: true, cab: true, tank: false }, meta);
       addCyl(cx - 140, cz + 70, 5, 6, MAT.tank, ry, { t: 'tank' });
       addCyl(cx - 125, cz + 70, 5, 6, MAT.tank, ry, { t: 'tank' });
       W.deco.push({ t: 'plane', x: cx - 40, z: cz - 30, y: ry });
       W.boxes.push([cx - 44, ry, cz - 31.5, cx - 36, ry + 3.4, cz - 28.5, MAT.metal, 0xd8d0bc]);
       for (let k = 0; k < 6; k++) W.loot.push([cx - 160 + rnd() * 300, ry + 0.02, cz - 40 + rnd() * 20, 0]);
-    } else if (town.kind === 'refinery') {
+    } else if (town.kind === 'foundry') {
       pave(cx - 80, cz - 70, cx + 80, cz + 70, y, 2);
       for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) addCyl(cx - 40 + i * 32, cz - 30 + j * 34, 10, 13 + (i + j) % 2 * 3, MAT.tank, y, { t: 'tank', ladder: true });
       for (let k = 0; k < 5; k++) { const z = cz - 46 + k * 22; W.boxes.push([cx - 70, y + 1.2, z - 0.4, cx + 30, y + 2.0, z + 0.4, MAT.metal, 0x8a8a7e]); }
-      addCyl(cx + 62, cz - 50, 1.2, 34, MAT.metal, y, { t: 'flare' });
-      addHouse(cx + 55, cz + 20, 3, { w: 14, d: 10, floors: 3, mat: MAT.concrete, roofAccess: true }, meta);
-      addWarehouse(cx + 50, cz + 55, 0, { w: 20, d: 14, h: 6, mat: MAT.metal, tint: 0xc0562e }, meta);
-      addHouse(cx - 60, cz + 55, 0, { w: 10, d: 8, floors: 2, mat: MAT.plaster }, meta);
-    } else if (town.kind === 'village') {
-      for (let k = 0; k < 16; k++) {
-        const a = rnd() * 6.283, r = 18 + rnd() * (town.r - 30);
-        const hx = cx + ccos(a) * r, hz = cz + csin(a) * r;
-        addHouse(hx, hz, rnd.int(0, 3), { w: 7 + rnd.int(0, 4), d: 6 + rnd.int(0, 3), floors: 1 + (rnd() < 0.45 ? 1 : 0), mat: rnd.pick([MAT.plaster, MAT.siding, MAT.plasterWarm, MAT.stone, MAT.siding]), roofAccess: false, gable: rnd() < 0.75, pad: 3 }, meta);
-      }
-      // 小教堂
-      addHouse(cx, cz, 0, { w: 9, d: 16, floors: 1, fh: 6, mat: MAT.plaster, tank: false, gable: true, pad: 3 }, { ...meta, chapel: true });
-      W.deco.push({ t: 'belfry', x: cx, z: cz + 8.6, y: hAt(cx, cz) + 6.2 });
-      for (let k = 0; k < 160; k++) { const x = cx - 170 + rnd() * 340, z = cz - 150 + rnd() * 300; W.trees.push([x, 0, z, 0, 0.8 + rnd() * 0.6]); }
-    } else if (town.kind === 'radar') {
-      addCyl(cx, cz, 7, 4, MAT.concrete, null, { t: 'radome' });
-      addHouse(cx - 22, cz + 10, 1, { w: 12, d: 8, floors: 2, mat: MAT.concrete, roofAccess: true }, meta);
-      addHouse(cx + 22, cz + 14, 3, { w: 9, d: 7, floors: 1, mat: MAT.concrete }, meta);
-      addCyl(cx + 10, cz - 20, 0.6, 30, MAT.metal, null, { t: 'mast' });
-    } else if (town.kind === 'estate') {
-      for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) addHouse(cx - 26 + i * 52, cz - 22 + j * 44, j ? 2 : 0, { w: 17, d: 11, floors: 4, mat: rnd.pick([MAT.plasterWarm, MAT.plasterSage, MAT.plaster]), roofAccess: true, base: y }, meta);
-      pave(cx - 10, cz - 40, cx + 10, cz + 40, y, 2);
-      for (let k = 0; k < 10; k++) addCar(cx - 7 + (k % 2) * 14, cz - 34 + Math.floor(k / 2) * 15, false, y);
-      addHouse(cx, cz + 62, 0, { w: 12, d: 9, floors: 1, mat: MAT.concrete }, { ...meta, shop: true });
-      // 辦公大樓群
-      for (const [tx, tz, th] of [[cx + 72, cz - 38, 38], [cx + 74, cz + 14, 30], [cx - 66, cz + 30, 26]]) {
-        const L = new Local(); tower(L, rnd, { w: 18, d: 16, h: th });
-        if (free(tx - 9, tz - 8, tx + 9, tz + 8, 1)) place(L, tx, tz, 0, y, { kind: 'tower', floors: 1, town: town.id });
-      }
+      for (let k = 0; k < 3; k++) addCyl(cx + 50 + k * 9, cz - 52, 1.6, 30 + k * 4, MAT.brick, y, { t: 'chimney' });
+      addHouse(cx + 55, cz + 20, 3, { w: 14, d: 10, floors: 3, mat: MAT.brick, cornice: true, roofAccess: true, tank: false }, meta);
+      addWarehouse(cx + 50, cz + 55, 0, { w: 22, d: 14, h: 7, mat: MAT.metal, tint: 0xc0562e }, meta);
+      addWarehouse(cx - 55, cz + 52, 0, { w: 26, d: 16, h: 8, mat: MAT.brick }, meta);
     }
   }
   // 路邊散落的農舍
@@ -671,7 +766,7 @@ export function buildMap() {
     if (TOWNS.some((t) => Math.sqrt((t.x - x) ** 2 + (t.z - z) ** 2) < t.r + 50)) continue;
     const { base, flat } = baseUnder(x, z, 12, 10);
     if (flat > 2.5 || base < 2) continue;
-    if (addHouse(x, z, side < 0 ? 1 : 3, { w: 8 + rnd.int(0, 3), d: 7 + rnd.int(0, 2), floors: 1 + (rnd() < 0.4 ? 1 : 0), roofAccess: false, gable: true, pad: 4, base, mat: rnd() < 0.55 ? MAT.siding : MAT.plaster, tint: rnd.pick([0, 0xd8e4ea, 0xf0e2c4, 0xdfe8d4, 0xe8d0c8]) }, { town: null })) farms++;
+    if (riverOK(x - 8, z - 8, x + 8, z + 8) && addHouse(x, z, side < 0 ? 1 : 3, { w: 8 + rnd.int(0, 3), d: 7 + rnd.int(0, 2), floors: 1 + (rnd() < 0.4 ? 1 : 0), roofAccess: false, gable: true, chimney: rnd() < 0.6, pad: 4, base, mat: MAT.siding, tint: rnd.pick(SIDING), roofTint: 0x9c9ca2, tank: false }, { town: null })) farms++;
   }
   // 樹與岩石
   const treeRnd = mulberry32(4401);
@@ -684,7 +779,8 @@ export function buildMap() {
     if (TOWNS.some((t) => (t.x - x) ** 2 + (t.z - z) ** 2 < (t.r + 10) ** 2) && treeRnd() < 0.92) continue;
     if (roadD(x, z) < 9) continue;
     if (!free(x - 1, z - 1, x + 1, z + 1, 1)) continue;
-    const kind = h > 60 ? 1 : treeRnd() < 0.55 ? 0 : treeRnd() < 0.5 ? 1 : 3;
+    if (T.riverDist(x, z) < RIVER.w / 2 + 3) continue;
+    const kind = h > 55 ? 4 : h < 9 ? 0 : treeRnd() < 0.5 ? 2 : treeRnd() < 0.6 ? 4 : 3;
     W.trees.push([x, 0, z, kind, 0.75 + treeRnd() * 0.6]);
   }
   for (let k = 0; k < 2000 && W.rocks.length < 320; k++) {

@@ -4,7 +4,7 @@ import { Match, MODE } from '../src/core/sim.js';
 import { botName } from '../src/core/bots.js';
 import { stormRemaining } from '../src/core/storm.js';
 
-const n = Number(process.argv[2] || 48), seed = Number(process.argv[3] || 7);
+const n = Number(process.argv[2] || 100), seed = Number(process.argv[3] || 7);
 const t0 = Date.now();
 const W = getMap();
 console.log(`地圖 ${Date.now() - t0} ms：${W.boxes.length} 方塊、${W.buildings.length} 棟建築、${W.loot.length} 戰利品點`);

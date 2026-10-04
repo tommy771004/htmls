@@ -1,5 +1,5 @@
-// 外觀模組（Blender 建的 kit.glb）：依地圖的門窗開口擺鐵窗、遮雨棚、鐵捲門、門片、門廊、陽台，
-// 屋頂水塔、騎樓下的機車、街燈與廟埕長椅。全部只供繪製，碰撞仍是地圖的方塊。
+// 外觀模組（Blender 建的 kit.glb）：依地圖的門窗開口擺鐵窗、遮雨棚、門片、門廊、陽台，
+// 屋頂水塔、街燈與公園長椅。全部只供繪製，碰撞仍是地圖的方塊。
 import * as THREE from 'three';
 import { mulberry32, hash2 } from '../core/rng.js';
 
@@ -40,34 +40,36 @@ export function buildKit(W, kit, csmify, furniture) {
     const town = b.town, n = [nx, nz], t = [nz, -nx];
     const cy = y, bottom = y - h / 2, top = y + h / 2;
     const ci = Math.floor(hash2(Math.floor(x * 3), Math.floor(z * 3), bi) * 997);
+    const rural = !town || ['port', 'river', 'pine', 'ranch', 'farms', 'mill', 'light'].includes(town);
     if (kind === 0) {
-      const barP = town === 'old' ? (floor > 0 ? 0.65 : 0.2) : town === 'estate' ? 0.55 : town ? 0.3 : 0.15;
+      const barP = town === 'docks' || town === 'foundry' || town === 'fort' ? 0.45 : town === 'city' && floor === 0 ? 0.25 : 0.04;
       const hasBar = r() < barP;
       if (hasBar) put('ironbar', [x, cy, z], n, w + 0.12, h + 0.1, 1, ci);
-      if ((town === 'old' || town === 'village' || !town || town === 'kiln' || town === 'cape') && r() < (hasBar ? 0.25 : 0.4)) put('awning', [x, top + 0.18, z], n, w + 0.5, 1, 1, ci);
-      if (town === 'estate' && floor > 0 && !hasBar && r() < 0.35) put('balcony', [x, bottom - 0.02, z], n, w + 0.8, 1, 1, ci);
-    } else {
-      if (b.kind === 'house' && town === 'old') {
-        // 騎樓店面：鐵捲門半開，門前停機車
-        put('shutter', [x, top + 0.02, z], n, w + 0.1, (h + 0.1) * (0.3 + r() * 0.35), 1, ci);
-        const nS = r() < 0.75 ? 1 + Math.floor(r() * 3) : 0;
-        for (let k = 0; k < nS; k++) { const off = (k - (nS - 1) / 2) * 0.75 + (r() - 0.5) * 0.2; put('scooter', [x + t[0] * off + nx * 1.5, bottom - 0.08, z + t[1] * off + nz * 1.5], n, 1, 1, 1, ci + k * 13, r() < 0.5 ? 0 : Math.PI); }
-      } else if (b.kind === 'house') {
-        // 一般住家：木門往內打開貼著牆；鄉間房子加門廊
-        const hinge = [x + t[0] * w / 2 - nx * 0.27, bottom, z + t[1] * w / 2 - nz * 0.27];
-        put('door', hinge, n, (w * 0.95) / 0.9, 1.05, 1, ci, 0);
-        if ((town === 'village' || !town || town === 'cape' || town === 'kiln') && r() < 0.65) put('porch', [x, bottom - 0.02, z], n, Math.max(2.4, w + 1.4), 1, 1, ci);
-        else if (r() < 0.5) put('awning', [x, top + 0.25, z], n, w + 0.9, 1, 1.2, ci);
-      }
+      if ((town === 'city' || town === 'port') && floor === 0 && b.floors > 2 && r() < 0.5) put('awning', [x, top + 0.18, z], n, w + 0.5, 1, 1, ci);
+      if (town === 'resort' && floor > 0 && r() < 0.7) put('balcony', [x, bottom - 0.02, z], n, w + 0.8, 1, 1, ci);
+      else if (town === 'city' && floor > 0 && !hasBar && r() < 0.12) put('balcony', [x, bottom - 0.02, z], n, w + 0.8, 1, 1, ci);
+    } else if (b.kind === 'house') {
+      // 住家：木門往內打開貼著牆；木壁板房子幾乎都有門廊，紅磚店面加遮雨棚
+      const hinge = [x + t[0] * w / 2 - nx * 0.27, bottom, z + t[1] * w / 2 - nz * 0.27];
+      put('door', hinge, n, (w * 0.95) / 0.9, 1.05, 1, ci, 0);
+      if (rural && floor === 0 && b.floors <= 2 && r() < 0.8) put('porch', [x, bottom - 0.02, z], n, Math.max(2.8, w + 2.2), 1, 1, ci);
+      else if (r() < 0.55) put('awning', [x, top + 0.25, z], n, w + 0.9, 1, 1.2, ci);
     }
   }
   // 室內家具：地圖給的位置與朝向
   for (const d of W.deco) if (d.t === 'furn') put(d.k, [d.x, d.y + 0.005, d.z], [Math.sin(d.yaw), Math.cos(d.yaw)], 1, 1, 1);
   for (const d of W.deco) if (d.t === 'roofTank') put('tank', [d.x, d.y, d.z], [0, 1], 1, 1, 1, 0, hash2(Math.floor(d.x), Math.floor(d.z), 5) * 6.28);
-  // 老街街燈：沿東西向街道兩側，每 24 公尺一盞；廟埕放長椅
+  // 街燈：沿街道兩側人行道每 30 公尺一盞；公園放長椅
   for (const p of W.pads) {
     const [x0, z0, x1, z1, y, k] = p;
-    if (k === 0 && x1 - x0 > 60) for (let x = x0 + 8; x < x1 - 4; x += 24) { put('lamp', [x, y, z0 + 0.4], [0, 1], 1, 1, 1, 0, Math.PI); put('lamp', [x + 12, y, z1 - 0.4], [0, -1], 1, 1, 1, 0, Math.PI); }
+    if (k === 0) {
+      const ax = x1 - x0 >= z1 - z0, L = ax ? x1 - x0 : z1 - z0;
+      if (L < 24 || (ax ? z1 - z0 : x1 - x0) < 6) continue;
+      for (let s2 = 10; s2 < L - 6; s2 += 30) {
+        if (ax) { put('lamp', [x0 + s2, y + 0.15, z0 - 0.7], [0, 1], 1, 1, 1, 0, Math.PI); put('lamp', [x0 + s2 + 15, y + 0.15, z1 + 0.7], [0, -1], 1, 1, 1, 0, Math.PI); }
+        else { put('lamp', [x0 - 0.7, y + 0.15, z0 + s2], [1, 0], 1, 1, 1, 0, Math.PI); put('lamp', [x1 + 0.7, y + 0.15, z0 + s2 + 15], [-1, 0], 1, 1, 1, 0, Math.PI); }
+      }
+    }
     if (k === 1) for (let i = 0; i < 4; i++) put('bench', [x0 + 4 + i * ((x1 - x0 - 8) / 3), y + 0.01, (z0 + z1) / 2 + (i % 2 ? 9 : -9)], [0, i % 2 ? -1 : 1], 1, 1, 1);
   }
   const col = new THREE.Color();

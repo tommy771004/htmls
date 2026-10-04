@@ -63,6 +63,7 @@ export function makeAudio() {
   A.plate = () => noiseBurst({ f: 2600, q: 0.7, dur: 0.5, vol: 0.25, type: 'highpass' });
   A.chute = () => { noiseBurst({ f: 300, q: 0.5, dur: 0.6, vol: 0.6, lp: 1200 }); tone({ f: 90, f2: 50, dur: 0.4, vol: 0.4 }); };
   A.land = () => { tone({ f: 110, f2: 40, dur: 0.25, vol: 0.45 }); noiseBurst({ f: 500, q: 0.6, dur: 0.2, vol: 0.3 }); };
+  A.thunder = (dist = 0) => { const v = 0.9 / (1 + dist / 120); noiseBurst({ f: 160, q: 0.4, dur: 1.8, vol: v, type: 'lowpass', lp: 600, delay: Math.min(1.5, dist / 340) }); tone({ f: 60, f2: 30, dur: 1.4, vol: v * 0.6, delay: Math.min(1.5, dist / 340) }); };
   A.ui = () => tone({ f: 880, dur: 0.05, vol: 0.12, type: 'triangle' });
   A.storm = () => { tone({ f: 140, f2: 70, dur: 1.2, vol: 0.3, type: 'sawtooth' }); tone({ f: 210, f2: 105, dur: 1.2, vol: 0.2, type: 'sawtooth', delay: 0.15 }); };
   A.win = () => { [523, 659, 784, 1046].forEach((f, i) => tone({ f, dur: 0.4, vol: 0.18, type: 'triangle', delay: i * 0.12 })); };
