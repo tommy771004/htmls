@@ -36,6 +36,11 @@ export function createMinimap(canvas, groundCanvas) {
         g.fillStyle = live ? (c.boss ? '#ff9a3a' : '#e8b04a') : 'rgba(22,17,12,.5)'; g.fill();
         g.lineWidth = 1.4 * k; g.strokeStyle = '#16110c'; g.stroke();
       }
+      for (const wd of G.wards || []) {
+        if (!wd.alive || !seen(G, PT, wd)) continue;
+        const [x, y] = toMap(wd.x, wd.z, w);
+        g.beginPath(); g.arc(x, y, 2.6 * k, 0, Math.PI * 2); g.fillStyle = wd.team === PT ? '#b8f09a' : '#f07a5c'; g.fill(); g.lineWidth = k; g.strokeStyle = '#16110c'; g.stroke();
+      }
       for (const m of G.minions) {
         if (!m.alive || !seen(G, PT, m)) continue;
         const [x, y] = toMap(m.x, m.z, w);

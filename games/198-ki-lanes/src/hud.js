@@ -1,7 +1,8 @@
 // HUD：比分、技能列、氣力條、血條、連擊數、公告、必殺技切入、單位血條與浮動數字、選角與結算。
 import { HEROES, HERO_ORDER, TEAM_COLOR, TEAM_LIGHT, KI_BAR, xpToNext, MAX_LEVEL, ITEMS, APE_BUFF } from './config.js';
 import { ICONS, ITEM_ICONS } from './icons.js';
-import { buy, canBuy, inShop, eatSenzu, sell } from './items.js';
+import { buy, canBuy, inShop, eatSenzu, sell, priceFor, totalCost, sellPrice, itemById } from './items.js';
+import { inBush } from './vision.js';
 import { seen } from './vision.js';
 import { canLevel, skillReady } from './combat.js';
 import { vulnerable } from './units.js';
@@ -19,8 +20,9 @@ export function createHud(env) {
     dock: $('#dock'), port: $('#dock .port img'), lvl: $('#dock .lvl'), hpFill: $('#dock .hp i'), hpTxt: $('#dock .hp b'), shFill: $('#dock .hp s'), xpFill: $('#dock .xp i'),
     kiCells: [...document.querySelectorAll('#dock .ki .cell i')], kiN: $('#dock .ki .kn'), sp: $('#spPrompt'), dead: $('#dead'), recall: $('#recallbar'),
     bars: $('#bars'), speed: $('#speed'), flash: $('#flash'), skills: {},
-    slots: [...document.querySelectorAll('#dock .slots .slot:not(.senzu)')], senzu: $('#dock .slot.senzu'), goldB: $('#dock .goldbtn'), gold: $('#dock .goldbtn b'), buffs: $('#buffs'),
-    shop: $('#shop'), shopList: $('#shop .shopList'), shopGold: $('#shop .shopGold'), shopHint: $('#shop .shopHint'),
+    slots: [...document.querySelectorAll('#dock .slots .slot:not(.senzu):not(.ward)')], senzu: $('#dock .slot.senzu'), goldB: $('#dock .goldbtn'), gold: $('#dock .goldbtn b'), buffs: $('#buffs'),
+    shop: $('#shop'), shopList: $('#shop .shopList'), shopGold: $('#shop .shopGold'), shopHint: $('#shop .shopHint'), shopDetail: $('#shop .shopDetail'), shopInv: $('#shop .shopInv'),
+    ward: $('#dock .slot.ward'), bushTag: $('#bushTag'),
   };
   const bctx = el.bars.getContext('2d');
   const sctx = el.speed.getContext('2d');
@@ -39,23 +41,55 @@ export function createHud(env) {
   let player = null;
   /* ---------- 商店 ---------- */
   el.senzu.querySelector('.ic').innerHTML = ITEM_ICONS.senzu;
+  el.ward.querySelector('.ic').innerHTML = ITEM_ICONS.ward; el.ward.title = '插眼（4）';
+  let shopSel = 'weights', sellSlot = -1;
+  const TIERS = [[1, '基礎'], [2, '進階'], [3, '終極'], [0, '消耗品']];
+  function tree(id, top = true) {
+    const it = itemById(id), own = !top && player.inv.includes(id);
+    return `<div class="node${own ? ' own' : ''}"><button type="button" data-pick="${id}" title="${it.name}">${ITEM_ICONS[id]}</button>${it.from ? `<div class="kids">${it.from.map((c) => tree(c, false)).join('')}</div>` : ''}</div>`;
+  }
   function renderShop() {
     if (!player) return;
-    el.shopList.innerHTML = ITEMS.map((it) => {
-      const owned = !it.consumable && player.inv.includes(it.id);
-      return `<button class="item${owned ? ' owned' : ''}" type="button" data-id="${it.id}" ${canBuy(player, it.id) ? '' : 'disabled'}>${ITEM_ICONS[it.id]}<b>${it.name}<em>${it.cost}</em></b><small>${owned ? '已擁有' : it.desc}</small></button>`;
-    }).join('');
-    el.shopGold.textContent = Math.floor(player.gold);
-    el.shopHint.textContent = inShop(player) ? '點道具購買' : '回到泉水附近才能購買';
+    const P = player;
+    el.shopList.innerHTML = TIERS.map(([t, label]) => `<section><h4>${label}</h4>${ITEMS.filter((it) => it.tier === t).map((it) => {
+      const owned = !it.consumable && P.inv.includes(it.id), price = priceFor(P, it.id);
+      return `<button class="item${it.id === shopSel && sellSlot < 0 ? ' sel' : ''}${owned ? ' owned' : ''}${canBuy(P, it.id) ? '' : ' cant'}" type="button" data-id="${it.id}">${ITEM_ICONS[it.id]}<b>${it.name}</b><em>${price}</em></button>`;
+    }).join('')}</section>`).join('');
+    if (sellSlot >= 0 && P.inv[sellSlot]) {
+      const id = P.inv[sellSlot], it = itemById(id);
+      el.shopDetail.innerHTML = `<div class="dh">${ITEM_ICONS[id]}<div><b>${it.name}</b><small>${it.desc}</small></div></div><p class="price">賣回可得 <em>${sellPrice(id)}</em>（總價 ${totalCost(id)} 的 60%）</p><button class="act sellb" type="button" ${inShop(P) ? '' : 'disabled'}>賣出</button>`;
+    } else {
+      sellSlot = -1;
+      const it = itemById(shopSel), price = priceFor(P, shopSel), total = it.consumable ? it.cost : totalCost(shopSel);
+      const into = ITEMS.filter((x) => x.from && x.from.includes(shopSel));
+      el.shopDetail.innerHTML = `<div class="dh">${ITEM_ICONS[shopSel]}<div><b>${it.name}</b><small>${it.desc}</small></div></div>`
+        + (it.from ? `<div class="tree">${tree(shopSel)}</div>` : '')
+        + (into.length ? `<p class="into">可合成：${into.map((x) => `<button type="button" data-pick="${x.id}">${x.name}</button>`).join('、')}</p>` : '')
+        + `<p class="price">${price < total ? `已折抵身上的材料，只要付 <em>${price}</em>（總價 ${total}）` : `價格 <em>${price}</em>`}</p>`
+        + `<button class="act buyb" type="button" ${canBuy(P, shopSel) ? '' : 'disabled'}>購買</button>`;
+    }
+    el.shopInv.innerHTML = Array.from({ length: 6 }, (_, i) => { const id = P.inv[i]; return `<button type="button" class="islot${i === sellSlot ? ' sel' : ''}" data-slot="${i}" ${id ? '' : 'disabled'}>${id ? ITEM_ICONS[id] : ''}</button>`; }).join('');
+    el.shopGold.textContent = Math.floor(P.gold);
+    el.shopHint.textContent = inShop(P) ? '點道具看合成路線，再點一次購買；點自己的道具可賣出' : '回到泉水附近才能購買或賣出';
     el.shopState = shopKey();
   }
-  const shopKey = () => player ? `${Math.floor(player.gold / 10)}|${player.inv.join()}|${player.senzu}|${inShop(player)}` : '';
+  const shopKey = () => player ? `${Math.floor(player.gold / 10)}|${player.inv.join()}|${player.senzu}|${inShop(player)}|${shopSel}|${sellSlot}` : '';
   function toggleShop(on) {
     const want = on ?? !el.shop.classList.contains('on');
     el.shop.classList.toggle('on', want);
-    if (want) renderShop();
+    if (want) { sellSlot = -1; renderShop(); }
   }
-  el.shopList.addEventListener('click', (e) => { const b = e.target.closest('.item'); if (b && player && buy(G, player, b.dataset.id)) renderShop(); });
+  el.shop.addEventListener('click', (e) => {
+    if (!player) return;
+    const pick = e.target.closest('[data-pick]'), item = e.target.closest('.item'), slot = e.target.closest('.islot');
+    if (pick) { shopSel = pick.dataset.pick; sellSlot = -1; }
+    else if (item) { if (shopSel === item.dataset.id && sellSlot < 0 && canBuy(player, shopSel)) buy(G, player, shopSel); shopSel = item.dataset.id; sellSlot = -1; }
+    else if (slot) sellSlot = +slot.dataset.slot;
+    else if (e.target.closest('.buyb')) buy(G, player, shopSel);
+    else if (e.target.closest('.sellb')) { sell(G, player, sellSlot); sellSlot = -1; }
+    else return;
+    renderShop();
+  });
   el.shop.addEventListener('pointerdown', (e) => { if (e.target === el.shop) toggleShop(false); });
   $('#shop .shopX').addEventListener('click', () => toggleShop(false));
   el.goldB.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); toggleShop(); });
@@ -115,6 +149,9 @@ export function createHud(env) {
   });
   G.on('levelup', (h) => { if (h === player) { number(h.x, 2.8, h.z, `等級 ${h.level}`, '#ffe08a', 1.2, 'lv'); } });
   G.on('gold', ({ h, g, at }) => { if (h === player && at && g >= 15) number(at.x, 3, at.z, `+${g}`, '#f6c64a', 0.75); });
+  G.on('flank', ({ h, foe }) => { if (h.team === player.team && h !== player) announce(`${h.def.short} 繞到敵人背後`, 'good', `包抄 ${foe.def.short}`); });
+  G.on('roam', ({ h, to }) => { if (h.team === player.team && to === player) announce(`${h.def.short} 前來支援`, 'good', '從敵人背後切入'); });
+  G.on('wardDeath', ({ u, src }) => { if (src && src === player) number(u.x, 1.6, u.z, '拆眼', '#b8f09a', 0.9); });
   G.on('campSpawn', (c) => { if (c.boss) announce('大猿出現在河道', 'good', '擊倒牠全隊得到金幣與大猿之力'); });
   G.on('monsterDeath', ({ u, team }) => { if (u.boss && team >= 0) announce(team === player.team ? '我方擊倒大猿' : '敵方擊倒大猿', team === player.team ? 'good' : 'bad', `大猿之力 ${APE_BUFF.dur} 秒：傷害 +20%`); });
   G.on('immune', ({ dst, src }) => { if (src === player && Math.random() < 0.25) number(dst.x, 4, dst.z, '無法攻擊', '#d9cbb0', 0.8); });
@@ -174,6 +211,9 @@ export function createHud(env) {
       }
     }
     setText(el.gold, Math.floor(P.gold));
+    const wc = P.cds.T > 0 ? Math.ceil(P.cds.T) : 0;
+    if (el.ward._c !== wc) { el.ward._c = wc; el.ward.classList.toggle('cool', wc > 0); el.ward.querySelector('.wcd').textContent = wc || ''; }
+    el.bushTag.classList.toggle('on', P.alive && inBush(P) > 0);
     el.dock.classList.toggle('canshop', inShop(P) && ITEMS.some((it) => canBuy(P, it.id)));
     const ik = P.inv.join() + '|' + (P.senzu || 0);
     if (el.invKey !== ik) {
@@ -234,11 +274,16 @@ export function createHud(env) {
     const s = Math.max(0.8, Math.min(1.15, W / 1300));
     for (const u of G.units) {
       if (!u.alive || (player && !seen(G, player.team, u))) continue;
-      const top = u.kind === 'hero' ? 2.65 : u.kind === 'minion' ? 1.55 : u.kind === 'monster' ? (u.boss ? 7.6 : 2.2) : u.kind === 'core' ? 9 : 8.2;
+      const top = u.kind === 'hero' ? 2.65 : u.kind === 'minion' ? 1.55 : u.kind === 'ward' ? 1.4 : u.kind === 'monster' ? (u.boss ? 7.6 : 2.2) : u.kind === 'core' ? 9 : 8.2;
       const p = render.toScreen(u.x, u.y + top + (u.groundY || 0), u.z);
       if (p.behind || p.x < -60 || p.x > W + 60 || p.y < -40 || p.y > H + 40) continue;
       const ally = player && u.team === player.team;
       const col = u === player ? '#f6c64a' : ally ? '#3fc7a4' : '#e5563a';
+      if (u.kind === 'ward') {
+        const w = 18 * s, h = 3.5 * s; g.fillStyle = '#16110c'; g.fillRect(p.x - w / 2 - 1, p.y - 1, w + 2, h + 2);
+        g.fillStyle = ally ? '#b8f09a' : '#f07a5c'; for (let i = 0; i < u.hp; i++) g.fillRect(p.x - w / 2 + i * (w / 3) + 0.5, p.y, w / 3 - 1, h);
+        continue;
+      }
       if (u.kind === 'monster') {
         if (u.hp >= u.maxHp && !u.boss) continue;
         const w = (u.boss ? 110 : 38) * s, h = (u.boss ? 8 : 4.5) * s;

@@ -1,7 +1,7 @@
 // 地圖道具：樹（三種闊葉、松、灌木）、長苔的岩石、外圍岩壁與台地林、野區草叢與花、河岸蘆葦與睡蓮、
 // 過河踏石、塔旁石燈籠、基地旗幟與晶柱、泉水、野怪營地石圈。全部 InstancedMesh，材質都套用戰爭迷霧。
 import * as THREE from 'three';
-import { OBSTACLES, LANES, STRUCTURES, heightAt, riverDist, distToLanes, pointAlong, rng, insideObstacle } from './map.js';
+import { OBSTACLES, LANES, STRUCTURES, BUSHES, heightAt, riverDist, distToLanes, pointAlong, rng, insideObstacle } from './map.js';
 import { BASE, FOUNTAIN, TEAM_COLOR, TEAM_LIGHT, CAMPS as CAMPS_LIST } from './config.js';
 import { patchFog } from './fog.js';
 
@@ -279,6 +279,20 @@ export function buildProps(group, quality, { toon, mergeGeo }) {
     inst(pillarG, toon('#d4c8ac'), obs, (t, i, im) => place(t, t.s, im, i));
     inst(crystalG, new THREE.MeshBasicMaterial({ color: new THREE.Color(TEAM_LIGHT[team]).multiplyScalar(1.2) }), obs, (t, i, im) => place(t, t.s, im, i), false);
   });
+
+  /* ---------- 草叢：一叢叢高草（站進去會被藏起來） ---------- */
+  {
+    const RB = rng(31337), blades = [];
+    for (const b of BUSHES) {
+      const n = Math.round(b.r * b.r * (quality > 0 ? 10 : 5));
+      for (let k = 0; k < n; k++) {
+        const a = RB() * 6.283, d = Math.sqrt(RB()) * (b.r + 0.2);
+        blades.push({ x: b.x + Math.cos(a) * d, z: b.z + Math.sin(a) * d, s: 0.85 + RB() * 0.5 - (d / b.r) * 0.25, rot: RB() * 6, hue: RB() });
+      }
+    }
+    const tuft = mergeGeo([0, 1, 2, 3, 4].map((k) => { const g = new THREE.ConeGeometry(0.16, 1.7, 3); g.translate(0, 0.85, 0); g.rotateZ((k - 2) * 0.22); g.rotateY(k * 1.3); g.translate((k - 2) * 0.12, 0, (k % 2) * 0.1); return g; }));
+    inst(tuft, toon('#ffffff'), blades, (t, i, im) => { place(t, t.s, im, i, -0.05, 1, 0.08); col.setHSL(0.24 + t.hue * 0.06, 0.55, 0.26 + t.hue * 0.12); im.setColorAt(i, col); }, false);
+  }
 
   return {
     update(t) {

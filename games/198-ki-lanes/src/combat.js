@@ -1,5 +1,5 @@
 // 普攻連段、技能、投射物、區域效果。
-import { COMBO_WINDOW, KI_BAR, SPARK, RECALL_TIME } from './config.js';
+import { COMBO_WINDOW, KI_BAR, SPARK, RECALL_TIME, WARD } from './config.js';
 import {
   damage, dist, dist2, angTo, clamp, steer, face, enemiesNear, nearestEnemy, targetable, vulnerable, moveSpeed, interrupt, cancelRecall, addKi, heal,
 } from './units.js';
@@ -8,6 +8,8 @@ import { findPath } from './nav.js';
 import { seen as seenBy } from './vision.js';
 
 const sin = Math.sin, cos = Math.cos;
+// 技能與範圍傷害不會打到眼（眼只能用普攻點掉）
+const hittable = (G, u) => u.kind !== 'ward' && targetable(G, u);
 const rankOf = (h, k) => h.ranks[k] - 1;
 const sk = (h, k) => h.def.skills[k];
 const skillDmg = (h, k) => { const s = sk(h, k), r = Math.max(0, rankOf(h, k)); return s.dmg[Math.min(r, s.dmg.length - 1)] + (s.adR || 0) * h.ad; };
@@ -38,7 +40,7 @@ export function updateProjectiles(G, dt) {
       const step = p.speed * dt;
       p.x += sin(p.ang) * step; p.z += cos(p.ang) * step; p.traveled += step;
       for (const u of G.units) {
-        if (!u.alive || u.team === p.team || p.hit.has(u) || u.st.invuln > 0) continue;
+        if (!u.alive || u.team === p.team || p.hit.has(u) || u.st.invuln > 0 || u.kind === 'ward') continue;
         if (p.skipStructures && (u.kind === 'tower' || u.kind === 'core')) continue;
         const rr = u.radius + p.radius;
         if (dist2(u, p) < rr * rr) {
@@ -194,6 +196,32 @@ export function spark(G, h) {
   G.emit('spark', h); return true;
 }
 
+/* ---------------- 眼 ---------------- */
+let wardId = 0;
+export function placeWard(G, h, x, z) {
+  if (!h.alive || h.cds.T > 0) return false;
+  const d = Math.hypot(x - h.x, z - h.z);
+  if (d > WARD.range) { x = h.x + (x - h.x) / d * WARD.range; z = h.z + (z - h.z) / d * WARD.range; }
+  const p = { x, z }; collide(p, 0.4);
+  const mine = G.wards.filter((w) => w.alive && w.owner === h);
+  if (mine.length >= WARD.max) { const old = mine[0]; old.alive = false; old.hp = 0; G.emit('wardDeath', { u: old }); }
+  const w = {
+    id: 200000 + wardId++, kind: 'ward', team: h.team, owner: h, x: p.x, z: p.z, y: 0, vy: 0, radius: 0.45, hp: WARD.hp, maxHp: WARD.hp, alive: true, facing: 0,
+    st: { stun: 0, slow: 0, slowAmt: 0, frozen: 0, shield: 0, shieldT: 0, spark: 0, mark: 0, invuln: 0 }, kx: 0, kz: 0, life: WARD.life, deadT: 0, flash: 0, anim: { name: 'idle', t: 0 },
+  };
+  G.wards.push(w); G.units.push(w); G.emit('spawn', w);
+  h.cds.T = WARD.cd; sfx(G, 'ui', h, { pitch: 1.6 });
+  G.emit('ward', { h, w });
+  return true;
+}
+export function updateWards(G, dt) {
+  for (const w of G.wards) if (w.alive) { w.life -= dt; if (w.life <= 0) { w.alive = false; G.emit('wardDeath', { u: w }); } }
+  for (let i = G.wards.length - 1; i >= 0; i--) {
+    const w = G.wards[i];
+    if (!w.alive) { w.deadT += dt; if (w.deadT > 0.4) { G.wards.splice(i, 1); const j = G.units.indexOf(w); if (j >= 0) G.units.splice(j, 1); G.emit('despawn', w); } }
+  }
+}
+
 export function canLevel(h, k) {
   if (h.sp <= 0) return false;
   if (k === 'R') return h.ranks.R < 3 && h.ranks.R < Math.floor(h.level / 4);
@@ -245,7 +273,7 @@ function dashAction(G, h, { ang, len, speed, name = 'dash', pass = false, onCont
       if (collide(h, h.radius) && Math.hypot(h.x - ox, h.z - oz) < step * 0.3) { this.t = this.dur; }
       fx(G).trail(h, h.def.color);
       for (const u of G.units) {
-        if (!u.alive || u.team === h.team || passed.has(u) || !targetable(G, u)) continue;
+        if (!u.alive || u.team === h.team || passed.has(u) || !hittable(G, u)) continue;
         if (dist(u, h) < u.radius + hitR) {
           passed.add(u);
           if (pass) { onPass && onPass(u); continue; }
@@ -304,7 +332,7 @@ function behind(h, u) {
 function pickNear(G, h, x, z, r, preferHeroes = true) {
   let best = null, bs = 1e9;
   for (const u of G.units) {
-    if (!u.alive || u.team === h.team || !targetable(G, u) || u.kind === 'tower' || u.kind === 'core') continue;
+    if (!u.alive || u.team === h.team || !hittable(G, u) || u.kind === 'tower' || u.kind === 'core') continue;
     const d = Math.hypot(u.x - x, u.z - z);
     if (d > r) continue;
     const s = d - (preferHeroes && u.kind === 'hero' ? 2 : 0);
@@ -315,14 +343,14 @@ function pickNear(G, h, x, z, r, preferHeroes = true) {
 function inLine(G, h, ang, len, width, fn) {
   const nx = sin(ang), nz = cos(ang);
   for (const u of G.units) {
-    if (!u.alive || u.team === h.team || !targetable(G, u)) continue;
+    if (!u.alive || u.team === h.team || !hittable(G, u)) continue;
     const ox = u.x - h.x, oz = u.z - h.z, along = ox * nx + oz * nz, perp = Math.abs(ox * nz - oz * nx);
     if (along > -0.5 && along < len + u.radius && perp < width / 2 + u.radius) fn(u);
   }
 }
 function inCircle(G, h, x, z, r, fn, structures = true) {
   for (const u of G.units) {
-    if (!u.alive || u.team === h.team || !targetable(G, u)) continue;
+    if (!u.alive || u.team === h.team || !hittable(G, u)) continue;
     if (!structures && (u.kind === 'tower' || u.kind === 'core')) continue;
     if (Math.hypot(u.x - x, u.z - z) < r + u.radius) fn(u);
   }
@@ -428,7 +456,7 @@ function chainBolt(G, h, { ang, s }, color) {
           let from = u; const hitSet = new Set([u]);
           for (let c = 0; c < s.chain; c++) {
             let nb = null, bd = 6;
-            for (const o of G.units) { if (!o.alive || o.team === h.team || hitSet.has(o) || !targetable(G, o)) continue; const d = dist(o, from); if (d < bd) { bd = d; nb = o; } }
+            for (const o of G.units) { if (!o.alive || o.team === h.team || hitSet.has(o) || !hittable(G, o)) continue; const d = dist(o, from); if (d < bd) { bd = d; nb = o; } }
             if (!nb) break;
             hitSet.add(nb); const a = from, b = nb;
             const q = spawnProjectile(G, { x: a.x, z: a.z, y: 1.2, speed: 40, team: h.team, src: h, target: b, radius: 0.3, onArrive(G, q, t) { damage(G, h, t, dmg * 0.7, { type: 'skill', stun: 0.15 }); fx(G).hitSpark(t.x, 1.2, t.z, color, 0.9, 'spark'); } });

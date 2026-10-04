@@ -2,9 +2,10 @@
 import { KI_BAR, FOUNTAIN, ITEMS } from './config.js';
 import { dist, targetable, vulnerable } from './units.js';
 import { lanePath, laneProgress, pointAlong } from './map.js';
-import { cast, orderMove, orderAttack, startRecall, setCharging, spark, levelSkill, canLevel, skillReady, skillDmg } from './combat.js';
+import { cast, orderMove, orderAttack, startRecall, setCharging, spark, levelSkill, canLevel, skillReady, skillDmg, placeWard } from './combat.js';
+import { BUSHES } from './map.js';
 import { seen } from './vision.js';
-import { eatSenzu, BUILDS, itemById } from './items.js';
+import { eatSenzu, nextBuy, priceFor } from './items.js';
 import { bossAlive } from './jungle.js';
 
 const SKILL_ORDER = {
@@ -41,9 +42,8 @@ function enemyTowerThreat(G, h, x, z) {
 function alliesTanking(G, h, s) { let n = 0; for (const m of G.minions) if (m.alive && m.team === h.team && dist(m, s) < s.range) n++; return n; }
 const visibleFoes = (G, h) => G.heroes.filter((e) => e.alive && e.team !== h.team && e.st.invuln <= 0 && seen(G, h.team, e));
 function nextItemCost(h) {
-  const build = BUILDS[h.def.role === '坦克' ? 'tank' : h.def.melee ? 'melee' : 'ranged'];
-  const id = build.find((i) => { const it = itemById(i); return it.consumable ? (h.senzu || 0) < 1 : !h.inv.includes(i); });
-  return id ? itemById(id).cost : 1e9;
+  const nb = nextBuy(h); if (!nb) return 1e9;
+  return Math.min(...nb.missing.map((id) => priceFor(h, id)));
 }
 
 export function updateAI(G, h, dt) {
@@ -84,8 +84,8 @@ export function updateAI(G, h, dt) {
   // 錢夠了就回去買
   if (!foe && h.gold > nextItemCost(h) + 250 && (hpR < 0.75 || h.gold > 1400) && B.mode !== 'boss') { if (startRecall(G, h)) { B.mode = 'heal'; return; } }
 
-  // 打英雄
-  if (foe && fd < 11) {
+  // 打英雄（遊走包抄途中先不接戰，繞到背後再出手）
+  if (foe && fd < 11 && !(B.mode === 'roam' && !B.behind && G.time < B.until)) {
     const towerThreat = enemyTowerThreat(G, h, foe.x, foe.z);
     const foeHpR = foe.hp / foe.maxHp;
     const killable = foe.hp < h.ad * 3 + (skillReady(h, 'Q') ? skillDmg(h, 'Q') : 0) + (h.ranks.R && skillReady(h, 'R') ? skillDmg(h, 'R') * 1.5 : 0);
@@ -120,13 +120,20 @@ function strategy(G, h, hpR) {
   }
   if (B.mode !== 'lane') return;
   // 遊走：附近隊友正在和敵方英雄交手，而且我這一路沒人
-  const laneQuiet = !visibleFoes(G, h).some((e) => dist(e, h) < 22);
+  const laneQuiet = !visibleFoes(G, h).some((e) => dist(e, h) < 20);
   if (laneQuiet && hpR > 0.6) {
     for (const a of G.heroes) {
       if (a === h || !a.alive || a.team !== h.team) continue;
-      const d = dist(a, h); if (d > 50) continue;
-      const threat = visibleFoes(G, h).find((e) => dist(e, a) < 10);
-      if (threat && (threat.hp / threat.maxHp < 0.7 || a.hp / a.maxHp < 0.6)) { B.mode = 'roam'; B.roam = a; B.until = G.time + 14; G.emit('roam', { h, to: a }); return; }
+      const d = dist(a, h); if (d > 60) continue;
+      const threat = visibleFoes(G, h).find((e) => dist(e, a) < 12);
+      if (threat && (threat.hp / threat.maxHp < 0.85 || a.hp / a.maxHp < 0.7)) { B.mode = 'roam'; B.roam = a; B.foe = threat; B.behind = false; B.until = G.time + 14; G.emit('roam', { h, to: a, foe: threat }); return; }
+    }
+    // 主動包抄：隔壁路的敵方英雄壓得太前面（靠近我方的塔），就繞過去切它後路
+    for (const e of visibleFoes(G, h)) {
+      const d = dist(e, h); if (d > 55) continue;
+      const nearOurTower = G.structures.some((t) => t.alive && t.team === h.team && t.kind === 'tower' && dist(t, e) < 16);
+      const mate = G.heroes.find((a) => a !== h && a.alive && a.team === h.team && dist(a, e) < 18);
+      if (nearOurTower && mate && Math.random() < 0.6) { B.mode = 'roam'; B.roam = mate; B.foe = e; B.behind = false; B.until = G.time + 16; G.emit('roam', { h, to: mate, foe: e }); return; }
     }
   }
   // 打野：兵線上沒兵可補時，清附近我方半邊的營地
@@ -155,10 +162,17 @@ function bossMode(G, h) {
 }
 function roamMode(G, h) {
   const B = h.brain, a = B.roam;
-  if (!a || !a.alive || G.time > B.until) { B.mode = 'lane'; return false; }
-  const threat = visibleFoes(G, h).find((e) => dist(e, a) < 14);
-  if (!threat && dist(h, a) < 8) { B.mode = 'lane'; return false; }
-  orderMove(G, h, a.x, a.z);
+  if (G.time > B.until) { B.mode = 'lane'; return false; }
+  // 目標：原本鎖定的敵人（隊友倒下也繼續追），否則找正在打隊友的敵人
+  let threat = B.foe && B.foe.alive && seen(G, h.team, B.foe) ? B.foe : null;
+  if (!threat && a && a.alive) threat = visibleFoes(G, h).find((e) => dist(e, a) < 14);
+  if (!threat) { if (!a || !a.alive || dist(h, a) < 8) { B.mode = 'lane'; return false; } orderMove(G, h, a.x, a.z); return true; }
+  if (dist(h, threat) > 62) { B.mode = 'lane'; return false; }
+  // 從敵人背後（它回家的方向）切入，繞到位再出手
+  const p = retreatPoint(threat, 3.2);
+  if (!B.behind && Math.hypot(h.x - p.x, h.z - p.z) > 2.2 && dist(h, threat) > 2.5) { orderMove(G, h, p.x, p.z); return true; }
+  if (!B.behind) { B.behind = true; G.emit('flank', { h, foe: threat }); }
+  fight(G, h, threat, dist(h, threat), threat.hp < h.ad * 4);
   return true;
 }
 function jungleMode(G, h) {
@@ -183,6 +197,7 @@ function fight(G, h, foe, fd, killable) {
   const foeHpR = foe.hp / foe.maxHp;
   const kiBars = Math.floor(h.ki / KI_BAR);
   if (h.ranks.R && skillReady(h, 'R') && fd < S.R.range * 0.9 && (foe.hp < skillDmg(h, 'R') * 1.6 || foeHpR < 0.45)) { if (aimCast(G, h, 'R', foe)) return; }
+  if (flank(G, h, foe, fd, kiBars)) return;
   if (h.heroId === 'piccolo' && skillReady(h, 'W') && fd > 3 && fd < S.W.range * 0.9) { if (aimCast(G, h, 'W', foe)) return; }
   if (h.heroId === 'a18' && skillReady(h, 'E') && fd < 3.5 && kiBars >= 1) { if (cast(G, h, 'E', h.x, h.z)) return; }
   if (h.def.melee) {
@@ -197,6 +212,34 @@ function fight(G, h, foe, fd, killable) {
   orderAttack(G, h, foe);
 }
 
+// 包夾：隊友已經貼上敵人時，近戰繞到敵人和它家之間（切斷退路）；悟空、貝吉塔直接瞬移到背後
+function retreatPoint(foe, d) { const ef = FOUNTAIN[foe.team]; let rx = ef[0] - foe.x, rz = ef[1] - foe.z; const l = Math.hypot(rx, rz) || 1; return { x: foe.x + (rx / l) * d, z: foe.z + (rz / l) * d }; }
+function flank(G, h, foe, fd, kiBars) {
+  const B = h.brain;
+  if (!h.def.melee || fd < 2.2 || fd > 12 || foe.hp / foe.maxHp < 0.2 || G.time < (B.flankDone || 0)) return false;
+  const mates = G.heroes.filter((a) => a !== h && a.alive && a.team === h.team && dist(a, foe) < 13);
+  if (!mates.length) return false;
+  const p = retreatPoint(foe, 2.6);
+  if (!B.flankT) { B.flankT = G.time; G.emit('flank', { h, foe }); }
+  if ((h.heroId === 'goku' || h.heroId === 'vegeta') && skillReady(h, 'E') && kiBars >= 1 && fd < 8) { cast(G, h, 'E', foe.x, foe.z); B.flankDone = G.time + 9; B.flankT = 0; return true; }
+  if (G.time - B.flankT < 2.2 && Math.hypot(h.x - p.x, h.z - p.z) > 1.4) { orderMove(G, h, p.x, p.z); return true; }
+  B.flankDone = G.time + 9; B.flankT = 0;
+  return false;
+}
+// 插眼：前方的草叢或河道
+function wardSpot(G, h) {
+  const own = G.wards.filter((w) => w.alive && w.team === h.team);
+  let best = null, bs = 1e9;
+  for (const b of BUSHES) {
+    const d = Math.hypot(b.x - h.x, b.z - h.z); if (d > 13) continue;
+    if (own.some((w) => Math.hypot(w.x - b.x, w.z - b.z) < 7)) continue;
+    const enemySide = h.team === 0 ? b.x > b.z : b.x < b.z;
+    const sc = d - (enemySide ? 6 : 0);
+    if (sc < bs) { bs = sc; best = b; }
+  }
+  return best;
+}
+
 function moveHome(G, h) {
   const f = FOUNTAIN[h.team], B = h.brain;
   const prog = laneProgress(B.path, h.x, h.z), q = pointAlong(B.path, Math.max(0, prog - 10));
@@ -206,6 +249,9 @@ function moveHome(G, h) {
 
 function laneLogic(G, h) {
   const B = h.brain, path = B.path;
+  if (h.cds.T <= 0 && G.time > 40 && Math.random() < 0.35) { const sp = wardSpot(G, h); if (sp && placeWard(G, h, sp.x, sp.z)) return; }
+  const ew = G.wards.find((w) => w.alive && w.team !== h.team && dist(w, h) < 8 && seen(G, h.team, w));
+  if (ew) { orderAttack(G, h, ew); return; }
   const myProg = laneProgress(path, h.x, h.z);
   let front = -1, enemyFront = 1e9;
   for (const m of G.minions) {

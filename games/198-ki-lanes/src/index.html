@@ -234,7 +234,46 @@ body.camfree #camHint { display: block; }
 .shopGold { font: italic 900 1.3em var(--num); color: var(--gold); }
 .shopHint { color: var(--bone3); font-size: .9em; flex: 1; }
 .shopX { font-size: 1.6em; line-height: 1; color: var(--bone2); width: 1.4em; }
-.shopList { display: grid; grid-template-columns: repeat(auto-fill, minmax(12.5em, 1fr)); gap: .5em; }
+.shopCard { width: min(58em, 96vw); }
+.shopBody { display: grid; grid-template-columns: 1fr 19em; gap: 1.2em; align-items: start; }
+.shopList section { margin-bottom: .8em; }
+.shopList h4, .shopBody aside h4 { margin: 0 0 .4em; font-size: .85em; font-weight: 700; color: var(--bone3); letter-spacing: .2em; }
+.shopList section > div, .shopList section { display: grid; grid-template-columns: repeat(auto-fill, minmax(10.5em, 1fr)); gap: .4em; }
+.shopList section h4 { grid-column: 1 / -1; }
+.shopBody aside { position: sticky; top: 0; padding: .9em; background: var(--ink2); clip-path: polygon(.7em 0, 100% 0, 100% calc(100% - .7em), calc(100% - .7em) 100%, 0 100%, 0 .7em); }
+.shopDetail .dh { display: grid; grid-template-columns: 3.4em 1fr; gap: .7em; align-items: center; }
+.shopDetail .dh svg { width: 3.4em; height: 3.4em; }
+.shopDetail .dh b { display: block; font-size: 1.2em; font-weight: 900; }
+.shopDetail .dh small { color: var(--bone2); line-height: 1.45; }
+.shopDetail .price { margin: .7em 0; color: var(--bone2); font-size: .9em; } .shopDetail .price em { font-style: normal; font: italic 900 1.25em var(--num); color: var(--gold); }
+.shopDetail .into { font-size: .85em; color: var(--bone3); margin: .5em 0 0; } .shopDetail .into button { color: var(--bone); text-decoration: none; font-weight: 700; }
+.shopDetail .act { width: 100%; padding: .55em; font-weight: 900; letter-spacing: .3em; color: var(--ink); background: var(--ki); clip-path: polygon(.5em 0, 100% 0, calc(100% - .5em) 100%, 0 100%); }
+.shopDetail .act.sellb { background: var(--bone); }
+.shopDetail .act:disabled { opacity: .35; cursor: default; }
+.tree { margin-top: .7em; display: flex; justify-content: center; }
+.tree .node { display: flex; flex-direction: column; align-items: center; position: relative; }
+.tree .node > button { width: 2.5em; height: 2.5em; padding: .2em; background: var(--ink); clip-path: polygon(.3em 0, 100% 0, 100% calc(100% - .3em), calc(100% - .3em) 100%, 0 100%, 0 .3em); }
+.tree .node > button svg { width: 100%; height: 100%; }
+.tree .node.own > button { box-shadow: inset 0 0 0 2px var(--jade2); }
+.tree .kids { display: flex; gap: .5em; margin-top: .9em; position: relative; }
+.tree .kids::before { content: ""; position: absolute; left: 1.2em; right: 1.2em; top: -.5em; height: 2px; background: var(--ink3); border-radius: 2px; }
+.tree .kids > .node::before { content: ""; position: absolute; top: -.5em; left: 50%; width: 2px; height: .5em; background: var(--ink3); border-radius: 2px; }
+.tree > .node > .kids::after { content: ""; position: absolute; top: -.9em; left: 50%; width: 2px; height: .4em; background: var(--ink3); border-radius: 2px; }
+.shopInv { display: grid; grid-template-columns: repeat(6, 1fr); gap: .3em; }
+.shopInv .islot { aspect-ratio: 1; padding: .2em; background: var(--ink); }
+.shopInv .islot svg { width: 100%; height: 100%; }
+.shopInv .islot.sel { box-shadow: inset 0 0 0 2px var(--ki); }
+.item { grid-template-columns: 2.2em 1fr auto; grid-template-rows: auto; }
+.item svg { grid-row: auto; width: 2.2em; height: 2.2em; }
+.item em { font-style: normal; font: italic 900 .95em var(--num); color: var(--gold); }
+.item.sel { box-shadow: inset 0 0 0 2px var(--ki); }
+.item.cant em { color: var(--bone3); }
+@media (max-width: 760px) { .shopBody { grid-template-columns: 1fr; } .shopBody aside { position: static; order: -1; } }
+#dock .slot.ward .wcd { position: absolute; inset: 0; display: grid; place-items: center; font: italic 900 .9em var(--num); color: var(--bone); text-shadow: 0 1px 0 var(--ink); }
+#dock .slot.ward.cool .ic { opacity: .3; }
+#bushTag { position: absolute; left: 50%; bottom: calc(var(--safe-b) + 16.8em); transform: translateX(-50%); padding: .3em 1.2em; --cut: .4em; color: #b8f09a; font-size: .9em; display: none; white-space: nowrap; }
+#bushTag.on { display: block; }
+@media (pointer: coarse) { #bushTag { bottom: auto; top: 30%; } #dock .slots .slot.ward { display: grid; } }
 .item { display: grid; grid-template-columns: 2.6em 1fr; grid-template-rows: auto auto; column-gap: .6em; align-items: center; text-align: left; padding: .55em .7em; background: var(--ink2); clip-path: polygon(.5em 0, 100% 0, 100% calc(100% - .5em), calc(100% - .5em) 100%, 0 100%, 0 .5em); }
 .item svg { grid-row: 1 / 3; width: 2.6em; height: 2.6em; }
 .item b { font-weight: 800; } .item b em { font-style: normal; font: italic 900 .95em var(--num); color: var(--gold); margin-left: .4em; }
@@ -369,15 +408,16 @@ body.camfree #camHint { display: block; }
       </div>
     </div>
     <div class="invbar">
-      <div class="slots"><button class="slot senzu" type="button" aria-label="仙豆"><span class="ic"></span><b></b><kbd>1</kbd></button><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span></div>
+      <div class="slots"><button class="slot senzu" type="button" aria-label="仙豆"><span class="ic"></span><b></b><kbd>1</kbd></button><button class="slot ward" type="button" aria-label="插眼"><span class="ic"></span><span class="wcd"></span><kbd>4</kbd></button><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span></div>
       <button class="goldbtn" type="button" aria-label="商店"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="#f6c64a"/><circle cx="12" cy="12" r="5.5" fill="none" stroke="#a87a18" stroke-width="1.6"/></svg><b>500</b><kbd>P</kbd></button>
     </div>
   </div>
   <div id="buffs"></div>
   <div id="shop"><div class="shopCard">
     <div class="shopHead"><b>商店</b><span class="shopGold"></span><span class="shopHint"></span><button type="button" class="shopX" aria-label="關閉">×</button></div>
-    <div class="shopList"></div>
+    <div class="shopBody"><div class="shopList"></div><aside><div class="shopDetail"></div><h4>你的道具</h4><div class="shopInv"></div></aside></div>
   </div></div>
+  <div id="bushTag" class="plate">草叢中・敵人看不到你</div>
   <div id="mmwrap"><canvas id="minimap"></canvas></div>
   <div id="touch">
     <div id="stick"><i></i></div>
@@ -419,7 +459,9 @@ body.camfree #camHint { display: block; }
   <dl>
     <dt>P／點金幣</dt><dd>開商店（在泉水附近或陣亡時才能買）</dd>
     <dt>1</dt><dd>吃仙豆：立刻回 45% 血與 1 格氣</dd>
+    <dt>4</dt><dd>插眼：在游標處（7 公尺內）放一顆眼，提供 90 秒視野，冷卻 70 秒，最多同時兩顆</dd>
   </dl>
+  <p>草叢裡的人只有同一叢或貼身的敵人看得到，從草叢出手會短暫現形；樹叢與岩石會擋住視線。敵方的眼要帶戰鬥力探測器（或它的合成道具）才看得到，點三下就拆掉。商店的道具可以合成：買進階道具時會自動吃掉身上的材料並折抵價格，賣回拿 60%。</p>
   <p>野區有恐龍與紅緞帶機器人營地，河道裡的大猿擊倒後全隊拿金幣與 90 秒「大猿之力」（傷害 +20%）。看不到的區域會變暗，敵人只在我方視野內現身。</p>
   <p>打人、被打、普攻命中與集氣都會累積氣力（最多 5 格）。小兵在你附近倒下、擊倒英雄、推倒塔都會給經驗；每升一級得到 1 個技能點，R 在 4、8、12 級各能升一次。每路外塔倒了內塔才會受傷，任何一路的內塔倒了主堡才會受傷。</p>
   <button id="helpClose" type="button">回到戰場</button>

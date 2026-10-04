@@ -110,18 +110,27 @@ export const HERO_ORDER = ['goku', 'vegeta', 'trunks', 'piccolo', 'frieza', 'a18
 
 // 金幣與商店
 export const GOLD = { start: 500, passive: 2.2, melee: 21, ranged: 16, siege: 55, hero: 300, assist: 120, tower: 120, shopRadius: 14 };
-// stats：ad 攻擊、hp 血量、armor 減傷、as 攻速（間隔縮短比例）、ms 移速比例、ki 氣力獲得、cdr 冷卻縮減、skill 技能傷害、dmg 全傷害、vision 視野、regen 脫戰回血（每秒比例）
+// stats：ad 攻擊、hp 血量、armor 減傷、as 攻速（間隔縮短比例）、ms 移速比例、ki 氣力獲得、cdr 冷卻縮減、skill 技能傷害、dmg 全傷害、vision 視野、regen 脫戰回血（每秒比例）、detect 看得到敵方的眼
+// 合成：from 列出需要的下位道具，cost 是合成費（不含下位道具）；總價 = cost + 下位道具總價
 export const ITEMS = [
-  { id: 'senzu', name: '仙豆', cost: 120, desc: '吃下立刻回復 45% 血量與 1 格氣。最多帶 3 顆。', consumable: true, max: 3 },
-  { id: 'weights', name: '負重護腕', cost: 400, desc: '攻擊 +14', stats: { ad: 14 } },
-  { id: 'scouter', name: '戰鬥力探測器', cost: 550, desc: '攻速 +15%，視野 +4', stats: { as: 0.15, vision: 4 } },
-  { id: 'nimbus', name: '筋斗雲', cost: 650, desc: '移速 +12%', stats: { ms: 0.12 } },
-  { id: 'armor', name: '賽亞人戰甲', cost: 750, desc: '血量 +320，減傷 +5%', stats: { hp: 320, armor: 0.05 } },
-  { id: 'kiamp', name: '氣力增幅器', cost: 900, desc: '氣力獲得 +30%，冷卻 -12%', stats: { ki: 0.3, cdr: 0.12 } },
-  { id: 'cell', name: '再生細胞', cost: 1050, desc: '血量 +260，脫戰每秒回 1.5% 血', stats: { hp: 260, regen: 0.015 } },
-  { id: 'kaioken', name: '界王拳腰帶', cost: 1300, desc: '攻擊 +28，技能傷害 +12%', stats: { ad: 28, skill: 0.12 } },
-  { id: 'water', name: '超神水', cost: 1700, desc: '全部傷害 +18%，血量 +220', stats: { dmg: 0.18, hp: 220 } },
+  { id: 'senzu', name: '仙豆', cost: 120, tier: 0, desc: '吃下立刻回復 45% 血量與 1 格氣。最多帶 3 顆。', consumable: true, max: 3 },
+  // 基礎
+  { id: 'weights', name: '負重護腕', cost: 350, tier: 1, desc: '攻擊 +12', stats: { ad: 12 } },
+  { id: 'gi', name: '修行道服', cost: 350, tier: 1, desc: '血量 +180', stats: { hp: 180 } },
+  { id: 'kiband', name: '氣功護腕', cost: 300, tier: 1, desc: '氣力獲得 +15%', stats: { ki: 0.15 } },
+  { id: 'boots', name: '武道鞋', cost: 300, tier: 1, desc: '移速 +8%', stats: { ms: 0.08 } },
+  { id: 'scouter', name: '戰鬥力探測器', cost: 450, tier: 1, desc: '攻速 +12%，視野 +3，看得到附近的敵方眼', stats: { as: 0.12, vision: 3, detect: 1 } },
+  // 進階
+  { id: 'kaioken', name: '界王拳腰帶', cost: 500, tier: 2, from: ['weights', 'weights'], desc: '攻擊 +36，技能傷害 +12%', stats: { ad: 36, skill: 0.12 } },
+  { id: 'armor', name: '賽亞人戰甲', cost: 450, tier: 2, from: ['gi', 'weights'], desc: '血量 +350，攻擊 +14，減傷 +6%', stats: { hp: 350, ad: 14, armor: 0.06 } },
+  { id: 'nimbus', name: '筋斗雲', cost: 400, tier: 2, from: ['boots', 'kiband'], desc: '移速 +16%，氣力獲得 +20%', stats: { ms: 0.16, ki: 0.2 } },
+  { id: 'kiamp', name: '氣力增幅器', cost: 500, tier: 2, from: ['kiband', 'scouter'], desc: '氣力獲得 +30%，冷卻 -15%，攻速 +14%，視野 +3，看得到敵方眼', stats: { ki: 0.3, cdr: 0.15, as: 0.14, vision: 3, detect: 1 } },
+  { id: 'cell', name: '再生細胞', cost: 450, tier: 2, from: ['gi', 'gi'], desc: '血量 +460，脫戰每秒回 1.5% 血', stats: { hp: 460, regen: 0.015 } },
+  // 終極
+  { id: 'water', name: '超神水', cost: 600, tier: 3, from: ['kaioken', 'cell'], desc: '全部傷害 +18%，攻擊 +40，血量 +520，技能傷害 +12%', stats: { dmg: 0.18, ad: 40, hp: 520, skill: 0.12, regen: 0.01 } },
+  { id: 'potara', name: '波塔拉耳環', cost: 650, tier: 3, from: ['armor', 'kiamp'], desc: '血量 +420，攻擊 +24，冷卻 -20%，減傷 +8%，氣力獲得 +30%', stats: { hp: 420, ad: 24, cdr: 0.2, armor: 0.08, ki: 0.3, detect: 1, vision: 3 } },
 ];
+export const WARD = { cd: 70, range: 7, life: 90, hp: 3, max: 2 };
 export const INV_SLOTS = 6;
 
 // 野怪數值

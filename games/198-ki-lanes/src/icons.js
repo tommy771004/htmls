@@ -50,6 +50,11 @@ export const ICONS = {
 
 // 道具圖示
 export const ITEM_ICONS = {
+  gi: W(`<path d="M12 10 L20 8 L24 14 L28 8 L36 10 L40 22 L34 24 L34 40 H14 V24 L8 22 Z" fill="#ff8a2a"/><path d="M20 8 L24 22 L28 8" fill="none" stroke="#1f4fa0" stroke-width="3"/><rect x="14" y="26" width="20" height="4" fill="#1f4fa0"/>`),
+  kiband: W(`<rect x="10" y="17" width="28" height="14" rx="5" fill="#2a63c9"/><circle cx="24" cy="24" r="4.5" fill="#bfe8ff"/><path d="M14 17 v14 M34 17 v14" stroke="#173a7a" stroke-width="2"/>`),
+  boots: W(`<path d="M14 8 h10 v20 l12 4 c3 1 4 4 4 8 H12 Z" fill="#2a4fa0"/><path d="M14 28 h10 M12 36 h28" stroke="#e8c04a" stroke-width="3"/>`),
+  potara: W(`<circle cx="16" cy="18" r="6" fill="#ffd34a"/><circle cx="32" cy="18" r="6" fill="#ffd34a"/><circle cx="16" cy="32" r="5" fill="#6ad08a"/><circle cx="32" cy="32" r="5" fill="#6ad08a"/><path d="M16 24 v3 M32 24 v3" stroke="#c9a020" stroke-width="2.4"/>`),
+  ward: W(`<circle cx="24" cy="26" r="13" fill="#1f2a1f"/><circle cx="24" cy="26" r="10" fill="#5cff8a" opacity=".85"/><path d="M24 16 v20 M14 26 h20" stroke="#145a2a" stroke-width="1.4"/><circle cx="29" cy="22" r="2.4" fill="#ffd34a"/><rect x="21" y="6" width="6" height="7" rx="2" fill="#9a9a9a"/>`),
   senzu: W(`<path d="M14 30 C10 20 18 10 28 12 C38 14 40 26 32 34 C26 40 17 38 14 30 Z" fill="#8fbf4a"/><path d="M20 28 C22 22 26 18 32 18" fill="none" stroke="#d9f0a0" stroke-width="2.4" stroke-linecap="round"/>`),
   weights: W(`<rect x="10" y="16" width="28" height="16" rx="4" fill="#7a5a3a"/><rect x="10" y="21" width="28" height="6" fill="#c9a26a"/><path d="M16 16 v16 M32 16 v16" stroke="#3a2a1a" stroke-width="2"/>`),
   scouter: W(`<path d="M10 30 C10 18 18 12 28 12" fill="none" stroke="#c8c8c8" stroke-width="3" stroke-linecap="round"/><rect x="24" y="14" width="16" height="12" rx="2" fill="#5cff8a" opacity=".85"/><path d="M27 20 h10" stroke="#145a2a" stroke-width="1.6"/><circle cx="12" cy="32" r="4" fill="#9a9a9a"/>`),

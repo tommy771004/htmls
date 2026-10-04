@@ -23,7 +23,7 @@ export function makeHero(G, heroId, team, lane, isPlayer) {
   const def = HEROES[heroId];
   const u = baseUnit('hero', team, FOUNTAIN[team][0], FOUNTAIN[team][1], 0.75, def.stats.hp);
   Object.assign(u, {
-    heroId, def, lane, isPlayer, level: 1, xp: 0, sp: 1, ranks: { Q: 0, W: 0, E: 0, R: 0 }, cds: { Q: 0, W: 0, E: 0, R: 0, D: 0, B: 0, S: 0 },
+    heroId, def, lane, isPlayer, level: 1, xp: 0, sp: 1, ranks: { Q: 0, W: 0, E: 0, R: 0 }, cds: { Q: 0, W: 0, E: 0, R: 0, D: 0, B: 0, S: 0, T: 0 },
     ki: 100, kills: 0, deaths: 0, assists: 0, chain: 0, chainT: -9, target: null, goal: null, order: null, action: null,
     respawn: 0, recall: 0, empowered: 0, charging: false, damagers: new Map(), lastAttackHeroT: -99, cs: 0, hitstopOwner: isPlayer,
     gold: GOLD.start, inv: [], path: null, apeBuff: 0, form: 'base',
@@ -33,7 +33,7 @@ export function makeHero(G, heroId, team, lane, isPlayer) {
   return u;
 }
 export function itemStats(u) {
-  const t = { ad: 0, hp: 0, armor: 0, as: 0, ms: 0, ki: 0, cdr: 0, skill: 0, dmg: 0, vision: 0, regen: 0 };
+  const t = { ad: 0, hp: 0, armor: 0, as: 0, ms: 0, ki: 0, cdr: 0, skill: 0, dmg: 0, vision: 0, regen: 0, detect: 0 };
   for (const id of u.inv || []) { const it = ITEMS.find((i) => i.id === id); if (it && it.stats) for (const k in it.stats) t[k] += it.stats[k]; }
   return t;
 }
@@ -42,7 +42,7 @@ export function recalcStats(u) {
   const ratio = u.maxHp ? u.hp / u.maxHp : 1;
   u.maxHp = s.hp + s.hpLv * lv + it.hp; u.hp = ratio * u.maxHp;
   u.ad = s.ad + s.adLv * lv + it.ad; u.range = s.range; u.as = s.as * Math.pow(0.975, lv) * (1 - Math.min(0.5, it.as)); u.ms = s.ms * (1 + it.ms); u.armor = Math.min(0.6, s.armor + lv * 0.006 + it.armor);
-  u.kiGain = 1 + it.ki; u.cdr = Math.min(0.4, it.cdr); u.skillMul = 1 + it.skill; u.dmgMul = 1 + it.dmg; u.visionBonus = it.vision; u.regen = it.regen;
+  u.kiGain = 1 + it.ki; u.cdr = Math.min(0.4, it.cdr); u.skillMul = 1 + it.skill; u.dmgMul = 1 + it.dmg; u.visionBonus = it.vision; u.regen = it.regen; u.detect = it.detect;
 }
 export function makeMinion(G, kind, team, lane) {
   const d = MINION[kind], grow = 1 + MINION_GROWTH * (G.time / 60);
@@ -89,6 +89,10 @@ export function damage(G, src, dst, amount, opts = {}) {
   if (!dst.alive || dst.st.invuln > 0) return 0;
   if (src && src.team === dst.team) return 0;
   if (!vulnerable(G, dst)) { G.emit('immune', { dst, src }); return 0; }
+  // 眼：每次命中扣 1
+  if (dst.kind === 'ward') { dst.hp -= 1; dst.flash = 0.12; G.emit('hit', { src, dst, amount: 1, opts }); if (dst.hp <= 0) kill(G, dst, src); return 1; }
+  // 從暗處出手會短暫現形
+  if (src && (src.kind === 'hero' || src.kind === 'minion') && (dst.kind === 'hero' || dst.kind === 'minion')) src.reveal = G.time + 1.2;
   let a = amount;
   if (src && src.st && src.st.spark > 0) a *= SPARK.dmg;
   if (src && src.kind === 'hero') { a *= src.dmgMul || 1; if (src.apeBuff > 0) a *= 1 + APE_BUFF.dmg; if (opts.type === 'skill' || opts.type === 'super') a *= src.skillMul || 1; }
@@ -172,6 +176,8 @@ function kill(G, u, src) {
     for (const h of G.heroes) if (h.team === killerTeam && h !== killer && !assists.includes(h) && h.alive && dist(h, u) < XP_SHARE_RADIUS) gainXp(G, h, bounty * 0.4);
     u.damagers.clear();
     G.emit('herodeath', { u, killer, assists });
+  } else if (u.kind === 'ward') {
+    G.emit('wardDeath', { u, src });
   } else if (u.kind === 'monster') {
     const team = src && src.team <= 1 ? src.team : (u.lastHitBy && u.lastHitBy.team <= 1 ? u.lastHitBy.team : -1);
     if (team >= 0) {
@@ -334,7 +340,7 @@ function pickMinionTarget(G, m) {
   }
   let best = null, bs = 1e9;
   for (const o of G.units) {
-    if (!o.alive || o.team === m.team || !vulnerable(G, o)) continue;
+    if (!o.alive || o.team === m.team || o.kind === 'ward' || !vulnerable(G, o)) continue;
     const d = dist(o, m) - o.radius;
     if (d > m.sight) continue;
     const pri = o.kind === 'minion' ? 0 : o.kind === 'tower' || o.kind === 'core' ? 6 : 9;

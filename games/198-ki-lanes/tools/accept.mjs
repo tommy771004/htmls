@@ -51,7 +51,7 @@ async function run(name, w, h, touch) {
   }, eid);
   check('Q/W/E 可施放', used.Q && used.W && used.E, used);
   const kiBefore = await ev(() => { window.__ki.give({ ki: 500 }); return window.__ki.state().player.ki; });
-  const [rOk, kiAfter] = await ev((id) => { const k = window.__ki, e = k.G.units.find((u) => u.id === id); const ok = k.cast('R', e.x, e.z); return [ok, k.G.player.ki]; }, eid);
+  const [rOk, kiAfter] = await ev((id) => { const k = window.__ki, e = k.G.units.find((u) => u.id === id), P = k.G.player; P.st.stun = 0; P.y = 0; P.action = null; e.st.stun = 2; const ok = k.cast('R', e.x, e.z); return [ok, k.G.player.ki]; }, eid);
   await page.waitForTimeout(450); await shot('3-super');
   await ev(() => window.__ki.fastForward(1.6));
   const after = await ev((id) => { const u = window.__ki.G.units.find((x) => x.id === id); return { hp: u.hp, alive: u.alive }; }, eid);
@@ -105,7 +105,7 @@ async function run(name, w, h, touch) {
     for (const m of G.minions) if (m.team === P.team) m.alive = false;
     k.fastForward(0.5);
     const hidden = k.visible(e.id) === false;
-    k.teleport(55, -16); k.fastForward(0.5);
+    k.teleport(e.x - 2.5, e.z); k.fastForward(0.5);
     return { hidden, shown: k.visible(e.id) === true };
   });
   check('戰爭迷霧：視野外的敵人看不到、靠近後看得到', fog.hidden && fog.shown, fog);
@@ -126,6 +126,86 @@ async function run(name, w, h, touch) {
   const nav = await ev(() => { const k = window.__ki, G = k.G, P = G.player; k.teleport(-60, -30); k.moveTo(-20, -60); k.fastForward(14); return { d: Math.hypot(P.x + 20, P.z + 60) }; });
   check('長距離尋路可到達', nav.d < 2.5, nav);
   // 超級賽亞人：悟空爆氣變身
+  // 草叢、視線遮擋、眼
+  const fog2 = await ev(() => {
+    const k = window.__ki, G = k.G, P = G.player; k.freezeAI(true);
+    for (const m of G.minions) m.alive = false; G.nextWave = 1e9;
+    for (const m of G.monsters) m.alive = false; for (const c of G.camps) c.next = 1e9;
+    for (const w of G.wards) w.alive = false;
+    const e = G.heroes.find((h) => h.team !== P.team); e.alive = true; e.hp = e.maxHp; e.brain = null; e.goal = null; e.target = null; e.reveal = 0; e.autoAcquire = false; e.st.stun = 60;
+    for (const h of G.heroes) if (h !== P && h !== e) { h.x = 999; h.alive = false; h.respawn = 999; }
+    const b = k.bushes().find((q) => Math.abs(q.x) < 60 && Math.abs(q.z) < 60 && q.x < q.z) || k.bushes()[0];
+    e.x = b.x; e.z = b.z; k.teleport(b.x + b.r + 3.5, b.z); k.fastForward(0.4);
+    const bushHidden = k.visible(e.id) === false;
+    k.teleport(b.x + 0.4, b.z); k.fastForward(0.4);
+    const sameBush = k.visible(e.id) === true;
+    // 視線：大障礙物兩側
+    const o = window.__ki.G && null;
+    return { bushHidden, sameBush, ex: e.id };
+  });
+  check('草叢：外面看不到草叢裡的敵人', fog2.bushHidden, fog2);
+  check('草叢：走進同一叢就看得到', fog2.sameBush, fog2);
+  const los = await ev((eid) => {
+    const k = window.__ki, G = k.G, P = G.player, e = G.units.find((u) => u.id === eid);
+    const obs = k.obstacles().filter((o) => o.r > 3.2 && Math.abs(o.x) < 70 && Math.abs(o.z) < 70);
+    for (const o of obs) {
+      const a = { x: o.x - o.r - 2.2, z: o.z }, b = { x: o.x + o.r + 2.2, z: o.z };
+      if (!k.walkableAt(a.x, a.z) || !k.walkableAt(b.x, b.z) || k.inBushAt(a.x, a.z) || k.inBushAt(b.x, b.z)) continue;
+      e.x = b.x; e.z = b.z; e.reveal = 0; k.teleport(a.x, a.z); k.fastForward(0.4);
+      return { blocked: k.visible(e.id) === false, d: +(b.x - a.x).toFixed(1) };
+    }
+    return { blocked: false, none: true };
+  }, fog2.ex);
+  check('樹叢／岩石擋住視線', los.blocked && los.d < 13, los);
+  const ward = await ev((eid) => {
+    const k = window.__ki, G = k.G, P = G.player, e = G.units.find((u) => u.id === eid);
+    k.teleport(0, 0); P.cds.T = 0; e.x = 6; e.z = -6; e.reveal = 0; k.fastForward(0.4);
+    const before = k.visible(e.id);
+    const placed = k.ward(4, -4); k.teleport(-30, 30); k.fastForward(0.4);
+    const viaWard = k.visible(e.id);
+    const w = G.wards.find((x) => x.alive && x.team === P.team);
+    const enemySees = (() => { const g = G.vision; return null; })();
+    return { placed, viaWard, wardHiddenToEnemy: !!w && !k.visibleTo(1 - P.team, w.id), before };
+  }, fog2.ex);
+  check('插眼並靠眼看到敵人', ward.placed && ward.viaWard, ward);
+  check('敵方沒有探測器時看不到眼', ward.wardHiddenToEnemy, ward);
+  // 合成與賣回
+  const tree = await ev(() => {
+    const k = window.__ki, G = k.G, P = G.player; P.alive = true;
+    const f = P.team === 0 ? [-80, 80] : [80, -80]; k.teleport(f[0], f[1]);
+    P.inv = []; k.setGold(2000);
+    k.buy('weights'); k.buy('weights'); const g0 = P.gold; const ok = k.buy('kaioken'); const paid = g0 - P.gold;
+    const inv1 = P.inv.slice(); const g1 = P.gold; const sold = k.sell(0); const got = P.gold - g1;
+    return { ok, paid, inv1, sold, got, inv2: P.inv.slice() };
+  });
+  check('合成：吃掉材料、只付合成費', tree.ok && tree.paid === 500 && tree.inv1.join() === 'kaioken', tree);
+  check('賣回拿 60%', tree.sold && tree.got === 720 && tree.inv2.length === 0, tree);
+  if (touch) await page.tap('#dock .goldbtn'); else await page.keyboard.press('KeyP');
+  await page.waitForTimeout(200);
+  const sel = touch ? page.tap.bind(page) : page.click.bind(page);
+  await sel('#shop .item[data-id="potara"]'); await page.waitForTimeout(150); await shot('5d-tree');
+  const treeUi = await ev(() => document.querySelectorAll('#shop .tree .node').length);
+  check('商店顯示合成樹', treeUi >= 7, treeUi);
+  await sel('#shop .item[data-id="weights"]'); await sel('#shop .buyb'); await page.waitForTimeout(100);
+  await sel('#shop .islot[data-slot="0"]'); await sel('#shop .sellb'); await page.waitForTimeout(100);
+  check('商店介面可以購買與賣出', await ev(() => window.__ki.G.player.inv.length === 0));
+  await sel('#shop .shopX');
+  // AI 包抄：隊友被壓在塔下時，另一名 AI 隊友繞到敵人背後支援
+  const gank = await ev(() => {
+    const k = window.__ki; k.start('goku', 1); const G = k.G, P = G.player; k.freezeAI(false); G.vision.on = true;
+    k.listen('roam'); k.listen('flank');
+    for (const h of G.heroes) h.alive = true;
+    const allies = G.heroes.filter((h) => h.team === P.team && h !== P), foes = G.heroes.filter((h) => h.team !== P.team);
+    const [A, B] = allies; const E = foes[0];
+    P.x = -80; P.z = 80;
+    for (const f of foes.slice(1)) { f.alive = false; f.respawn = 999; }
+    const t = G.structures.find((s) => s.team === P.team && s.lane === A.lane && s.tier === 'outer');
+    A.x = -70; A.z = -8; A.hp = A.maxHp * 0.6; E.x = -67; E.z = -12; E.hp = E.maxHp; E.armor = 0.55; E.ms = 3; E.reveal = 1e9; E.brain = null; E.target = A;
+    B.x = -36; B.z = 22; B.hp = B.maxHp; B.brain.mode = 'lane'; B.brain.plan = 0;
+    for (let i = 0; i < 26 && !window.__kiEv.flank; i++) k.fastForward(1);
+    return { roam: window.__kiEv.roam, flank: window.__kiEv.flank, B: B.heroId, E: E.heroId };
+  });
+  check('AI 隊友會遊走支援並繞到敵人背後', gank.roam >= 1 && gank.flank >= 1, gank);
   // 說明面板
   if (!touch) { await page.click('#helpBtn'); await page.waitForTimeout(200); await shot('6-help'); check('說明面板開啟', await ev(() => document.getElementById('help').classList.contains('on'))); await page.click('#helpClose'); }
   // 勝利

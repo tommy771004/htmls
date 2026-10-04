@@ -96,6 +96,42 @@ export const OBSTACLES = [];
   }
 }
 
+// 草叢：路邊與河岸的高草，站進去的單位只有同一叢裡（或貼身）的敵人看得到。兩隊點對稱、公平。
+export const BUSHES = [];
+{
+  const R = rng(7777);
+  const free = (x, z, r) => {
+    if (Math.abs(x) > 85 || Math.abs(z) > 85) return false;
+    for (const o of OBSTACLES) if (Math.hypot(x - o.x, z - o.z) < o.r + r + 0.6) return false;
+    for (const b of BASE) if (Math.hypot(x - b[0], z - b[1]) < 26 + r) return false;
+    for (const c of CAMPS) if (Math.hypot(x - c.x, z - c.z) < (c.boss ? 10 : 6) + r) return false;
+    for (const s of STRUCTURES) if (Math.hypot(x - s.x, z - s.z) < 7 + r) return false;
+    for (const b of BUSHES) if (Math.hypot(x - b.x, z - b.z) < b.r + r + 4) return false;
+    return true;
+  };
+  const tryAdd = (x, z, r) => {
+    if (x > z - 1) return false; // 只在青隊半邊挑，再點對稱到赤隊半邊
+    if (!free(x, z, r) || !free(-x, -z, r)) return false;
+    BUSHES.push({ x, z, r }); BUSHES.push({ x: -x, z: -z, r }); return true;
+  };
+  // 路邊：沿三條路兩側 6～8 公尺
+  for (const p of LANES) {
+    const L = polyLen(p);
+    for (let d = 14; d < L - 14; d += 7 + R() * 5) {
+      const a = pointAlong(p, d), b = pointAlong(p, d + 1), dx = b.x - a.x, dz = b.z - a.z, l = Math.hypot(dx, dz) || 1;
+      const side = R() < 0.5 ? -1 : 1, off = 7.2 + R() * 1.6, r = 2.2 + R() * 1.1;
+      if (!tryAdd(a.x - (dz / l) * off * side, a.z + (dx / l) * off * side, r)) tryAdd(a.x + (dz / l) * off * side, a.z - (dx / l) * off * side, r);
+    }
+  }
+  // 河岸：沿河道兩側
+  for (let t = -70; t <= 70; t += 7 + R() * 5) {
+    const off = 7.5 + R() * 2, r = 2.3 + R() * 1;
+    tryAdd(t - off / Math.SQRT2, t + off / Math.SQRT2, r);
+  }
+  BUSHES.forEach((b, i) => { b.id = i + 1; });
+}
+export function bushAt(x, z) { for (const b of BUSHES) if ((x - b.x) ** 2 + (z - b.z) ** 2 < b.r * b.r) return b.id; return 0; }
+
 // 把圓推出障礙物與地圖邊界；回傳是否有碰撞
 export function collide(p, radius) {
   let hit = false;
@@ -182,6 +218,8 @@ function paintGround() {
     g.fillStyle = `hsl(${30 + R() * 14},${10 + R() * 12}%,${58 + R() * 18}%)`;
     g.beginPath(); g.ellipse(X(x), Z(z), (0.12 + R() * 0.25) * S, (0.08 + R() * 0.16) * S, R() * 3, 0, Math.PI * 2); g.fill();
   }
+  // 草叢底下的深色地面
+  for (const b of BUSHES) blob(b.x, b.z, b.r + 1.2, 'rgba(30,70,30,.55)', 'rgba(30,70,30,0)');
   // 路線：外緣草被踩禿、深色邊、泥土層
   const lanes = (w, col, jit, n = 1) => {
     for (let k = 0; k < n; k++) for (const p of LANES) {

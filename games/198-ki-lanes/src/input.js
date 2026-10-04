@@ -1,5 +1,6 @@
 // 輸入：滑鼠鍵盤（右鍵移動／攻擊、QWER 朝游標施放）與觸控（搖桿、自動瞄準技能鍵）。
-import { orderMove, orderAttack, orderStop, cast, levelSkill, startRecall, setCharging, spark } from './combat.js';
+import { orderMove, orderAttack, orderStop, cast, levelSkill, startRecall, setCharging, spark, placeWard } from './combat.js';
+import { BUSHES } from './map.js';
 import { targetable, dist } from './units.js';
 import { seen } from './vision.js';
 import { eatSenzu } from './items.js';
@@ -66,6 +67,7 @@ export function createInput({ G, render, minimap, hud, audio, onHelp, onCamToggl
     }
     if (e.code === 'KeyP') { onShop && onShop(); return; }
     if (e.code === 'Digit1') { eatSenzu(G, P()); return; }
+    if (e.code === 'Digit4') { updateWorld(); placeWard(G, P(), mouse.world.x, mouse.world.z); return; }
     if (e.code === 'KeyD') spark(G, P());
     else if (e.code === 'KeyB') startRecall(G, P());
     else if (e.code === 'KeyC') setCharging(G, P(), true);
@@ -101,6 +103,16 @@ export function createInput({ G, render, minimap, hud, audio, onHelp, onCamToggl
     if (best) return { x: best.x, z: best.z };
     return { x: h.x + Math.sin(h.facing) * 6, z: h.z + Math.cos(h.facing) * 6 };
   }
+
+  // 眼的格子：滑鼠在場上就插在游標處，觸控則插在最近的草叢（沒有就插在面前）
+  hud.el.ward.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation(); if (!live()) return;
+    const h = P();
+    if (e.pointerType !== 'touch' && mouse.inside) { updateWorld(); }
+    let b = null, bd = 9; for (const k of BUSHES) { const d = Math.hypot(k.x - h.x, k.z - h.z); if (d < bd) { bd = d; b = k; } }
+    const t = b || { x: h.x + Math.sin(h.facing) * 5, z: h.z + Math.cos(h.facing) * 5 };
+    placeWard(G, h, t.x, t.z);
+  });
 
   /* ---------- 觸控 ---------- */
   const stick = document.getElementById('stick'), knob = stick.querySelector('i');

@@ -1,7 +1,7 @@
 // 一場對戰的建立與固定步長推進（畫面與 Node 模擬共用）。
 import { WAVE_EVERY, HERO_ORDER, FOUNTAIN } from './config.js';
 import { createWorld, addUnit, makeHero, spawnWave, updateMinion, updateTower, heroTick, tickStatus, physics, separate, respawnHero } from './units.js';
-import { heroAct, updateProjectiles, updateZones, wireShots, levelSkill } from './combat.js';
+import { heroAct, updateProjectiles, updateZones, wireShots, levelSkill, updateWards } from './combat.js';
 import { makeBrain, updateAI } from './ai.js';
 import { setupCamps, updateCamps, aggroCamp } from './jungle.js';
 import { createVision, updateVision } from './vision.js';
@@ -13,7 +13,7 @@ export function newMatch(opts) {
   G.fx = opts.fx; G.cam = opts.cam || {}; G.zones = []; G.timers = [];
   G.later = (d, fn) => G.timers.push({ t: G.time + d, fn });
   G.shake = opts.shake || (() => {}); G.sfx = opts.sfx || (() => null);
-  G.vision = createVision();
+  G.vision = createVision(); G.wards = [];
   wireShots(G); setupCamps(G);
   G.on('monsterHit', ({ dst, src }) => aggroCamp(G, dst, src));
   const lane = opts.lane ?? 1, diff = opts.diff ?? 1;
@@ -62,6 +62,7 @@ export function stepWorld(G, dt) {
   separate(G, dt);
   updateProjectiles(G, dt);
   updateZones(G, dt);
+  updateWards(G, dt);
   for (let i = G.minions.length - 1; i >= 0; i--) {
     const m = G.minions[i];
     if (!m.alive && m.deadT > 1.6) { G.minions.splice(i, 1); const j = G.units.indexOf(m); if (j >= 0) G.units.splice(j, 1); G.emit('despawn', m); }

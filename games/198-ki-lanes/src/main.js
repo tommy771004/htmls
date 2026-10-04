@@ -1,10 +1,11 @@
 // 啟動、固定步長迴圈、狀態機（選角 → 對戰 → 結算）、場景同步與測試 API。
 import * as THREE from 'three';
-import { DT, HEROES, HERO_ORDER, TEAM_COLOR, FOUNTAIN, BASE, WAVE_EVERY, KI_BAR, xpToNext } from './config.js';
+import { DT, HEROES, HERO_ORDER, TEAM_COLOR, TEAM_LIGHT, FOUNTAIN, BASE, WAVE_EVERY, KI_BAR, xpToNext } from './config.js';
 import { newMatch, stepWorld } from './world.js';
 import { updateFog, resetFog } from './fog.js';
 import { seen } from './vision.js';
-import { buy, eatSenzu, inShop } from './items.js';
+import { buy, eatSenzu, inShop, sell } from './items.js';
+import { BUSHES, OBSTACLES, walkable, bushAt } from './map.js';
 import { bossAlive } from './jungle.js';
 import { createRenderer } from './render.js';
 import { buildMap, heightAt, STRUCTURES, toonGradient } from './map.js';
@@ -12,7 +13,7 @@ import { buildHero, buildMinion, buildTower, buildCore, buildMonster } from './m
 import { createFx } from './fx.js';
 import { audio } from './audio.js';
 import { dist, gainXp, addKi, damage, vulnerable } from './units.js';
-import { cast, orderMove, orderAttack, levelSkill, setCharging, spark } from './combat.js';
+import { cast, orderMove, orderAttack, levelSkill, setCharging, spark, placeWard } from './combat.js';
 import { createHud, createSelect, showEnd } from './hud.js';
 import { createInput } from './input.js';
 import { createMinimap } from './minimap.js';
@@ -119,12 +120,26 @@ function attachRig(u) {
   if (u.kind === 'hero') { rig = buildHero(u.heroId, u.team); ring = ringFor(u.isPlayer ? '#f6c64a' : TEAM_COLOR[u.team], 1); }
   else if (u.kind === 'minion') rig = buildMinion(u.team, u.mkind);
   else if (u.kind === 'monster') rig = buildMonster(u.mkind);
+  else if (u.kind === 'ward') rig = buildWard(u.team);
   else if (u.kind === 'tower') rig = buildTower(u.team);
   else rig = buildCore(u.team);
   rig.root.position.set(u.x, heightAt(u.x, u.z), u.z);
   if (u.kind === 'tower' || u.kind === 'core') rig.root.rotation.y = u.team ? Math.PI * 1.25 : Math.PI * 0.25;
   scene.add(rig.root);
   rigs.set(u.id, { rig, ring, u });
+}
+
+// 眼：小型雷達裝置（綠色螢幕、隊伍色底座），會輕輕浮動
+const wardGeo = { base: new THREE.CylinderGeometry(0.32, 0.4, 0.22, 10), body: new THREE.SphereGeometry(0.34, 14, 10), screen: new THREE.CircleGeometry(0.24, 16), ant: new THREE.CylinderGeometry(0.03, 0.03, 0.4, 5) };
+function buildWard(team) {
+  const root = new THREE.Group(), bob = new THREE.Group(); root.add(bob);
+  const base = new THREE.Mesh(wardGeo.base, new THREE.MeshToonMaterial({ color: TEAM_COLOR[team] })); base.position.y = 0.11; base.castShadow = true; root.add(base);
+  const body = new THREE.Mesh(wardGeo.body, new THREE.MeshToonMaterial({ color: '#d8d4c8' })); body.scale.set(1, 0.7, 1); body.castShadow = true; bob.add(body);
+  const screen = new THREE.Mesh(wardGeo.screen, new THREE.MeshBasicMaterial({ color: '#5cff8a', toneMapped: false })); screen.position.set(0, 0.06, 0.33); screen.rotation.x = -0.3; bob.add(screen);
+  const ant = new THREE.Mesh(wardGeo.ant, new THREE.MeshToonMaterial({ color: '#8a8a8a' })); ant.position.set(0.12, 0.38, 0); bob.add(ant);
+  const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: TEAM_LIGHT[team], transparent: true, opacity: 0.5, depthWrite: false })); ring.scale.setScalar(0.7); ring.position.y = 0.05; root.add(ring);
+  let t = Math.random() * 6;
+  return { root, update(dt, u) { t += dt; bob.position.y = 0.75 + Math.sin(t * 2.4) * 0.08; bob.rotation.y = t * 0.8; screen.material.color.setScalar(0.6 + 0.4 * Math.abs(Math.sin(t * 3))); screen.material.color.g = 1; ring.material.opacity = 0.35 + 0.25 * Math.sin(t * 4); }, dispose() {} };
 }
 
 /* ---------------- 音效 ---------------- */
@@ -189,6 +204,8 @@ function sync(dt, t) {
       if (vis && ssj && Math.random() < dt * 14) fx.sparks(u.x, gy + 1.2, u.z, '#fff3a0');
       r.ring.visible = u.alive && vis; r.ring.position.set(u.x, gy + 0.06, u.z);
       if (u.flash > 0 && rig.root.visible) rig.root.visible = Math.floor(t * 40) % 2 === 0 || u.flash < 0.06;
+    } else if (u.kind === 'ward') {
+      rig.root.position.set(u.x, gy, u.z); rig.root.visible = u.alive && vis; rig.update(dt, u);
     } else if (u.kind === 'minion' || u.kind === 'monster') {
       rig.root.position.set(u.x, gy + u.y, u.z);
       let dy = u.facing - rig.root.rotation.y; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2;
@@ -322,6 +339,16 @@ window.__ki = {
   killPlayer() { const P = G.player, e = G.heroes.find((h) => h.team !== P.team); P.st.invuln = 0; P.st.shield = 0; damage(G, e, P, 1e9, { type: 'true', noKi: true }); return P.alive; },
   damageStructure(id, amt) { const s = G.structures.find((o) => o.sid === id); return damage(G, G.player, s, amt, { type: 'L', noKi: true }); },
   buy(id) { return buy(G, G.player, id); },
+  sell(slot) { return sell(G, G.player, slot); },
+  ward(x, z) { return placeWard(G, G.player, x, z); },
+  wards() { return G.wards.filter((w) => w.alive).map((w) => ({ id: w.id, team: w.team, x: w.x, z: w.z })); },
+  bushes() { return BUSHES.map((b) => ({ x: b.x, z: b.z, r: b.r })); },
+  obstacles() { return OBSTACLES.map((o) => ({ x: o.x, z: o.z, r: o.r })); },
+  walkableAt(x, z) { return walkable(x, z, 0.8); },
+  inBushAt(x, z) { return bushAt(x, z) > 0; },
+  visibleTo(team, id) { const u = G.units.find((o) => o.id === id); return u ? seen(G, team, u) : null; },
+  count(ev) { const c = { n: 0 }; G.on(ev, () => c.n++); return () => c.n; },
+  listen(ev) { window.__kiEv = window.__kiEv || {}; window.__kiEv[ev] = 0; G.on(ev, () => window.__kiEv[ev]++); },
   senzu() { return eatSenzu(G, G.player); },
   setGold(g) { G.player.gold = g; },
   visible(id) { const u = G.units.find((o) => o.id === id); return u ? seen(G, G.player.team, u) : null; },
