@@ -161,16 +161,18 @@ def arm_skin(F, pal, muscle=1.0, k=1.0, s0=-0.07, name='armL', grp=G_ARM_L, mat=
     up, lo = F.up, F.lo
     ka, kf = F.k_arm * k, F.k_fore * k
     mu = muscle
-    bic = lambda th: 1 + 0.08 * mu * ang_bump(th, FRONT, 1.0)
-    tri = lambda th: 1 + 0.06 * mu * ang_bump(th, BACK, 1.1)
-    delt = lambda th: 1 + 0.05 * mu * ang_bump(th, 0, 1.3)
-    fore = lambda th: 1 + 0.08 * mu * ang_bump(th, 0.4, 0.9)
+    # 肌肉起伏參考 GK 雕像：二頭、三頭、三角肌與前臂肌群都明顯隆起
+    bic = lambda th: 1 + 0.16 * mu * ang_bump(th, FRONT, 0.95)
+    tri = lambda th: 1 + 0.12 * mu * ang_bump(th, BACK, 1.05)
+    delt = lambda th: 1 + 0.11 * mu * ang_bump(th, 0, 1.3)
+    fore = lambda th: 1 + 0.13 * mu * ang_bump(th, 0.4, 0.9)
     st = [
         (s0, 0.074 * ka, 0.072 * ka),
         (0.0, 0.084 * ka, 0.082 * ka, delt),
         (0.06, 0.088 * ka, 0.084 * ka, delt),
-        (0.12, 0.076 * ka, 0.08 * ka, mods(bic, tri)),
-        (0.19, 0.071 * ka, 0.078 * ka, mods(bic, tri)),
+        (0.098, 0.071 * ka, 0.074 * ka),                 # 三角肌與上臂之間的凹線，避免整隻手臂像吹氣球
+        (0.14, 0.077 * ka, 0.082 * ka, mods(bic, tri)),
+        (0.2, 0.07 * ka, 0.077 * ka, mods(bic, tri)),
         (up - 0.045, 0.06 * ka, 0.063 * ka),
         (up, 0.056 * ka, 0.058 * ka),
         (up + 0.05, 0.065 * kf, 0.06 * kf, fore),
@@ -406,13 +408,17 @@ def clump(name, F, root, tip, width, thick, bend=(0, 0, 0), n=8, segs=8, p=1.55,
     return kit.subsurf(o, 1)
 
 
+HAIR_GROW, HAIR_W = 1.15, 1.08  # GK 式的大份量頭髮（頭縮小了，髮束反而放大）
+
+
 def hair(F, pal, clumps, mat=1, ol=0.85, grow=1.0):
     out = []
+    grow *= HAIR_GROW
     for i, cl in enumerate(clumps):
-        root, tip, w = cl[0], cl[1], cl[2]
+        root, tip, w = cl[0], cl[1], cl[2] * HAIR_W
         if grow != 1.0:
             tip = tuple(r + (t - r) * grow for r, t in zip(root, tip))
-        th = cl[3] if len(cl) > 3 else w * 0.45
+        th = cl[3] * HAIR_W if len(cl) > 3 else w * 0.45
         bend = cl[4] if len(cl) > 4 else (0, 0, 0)
         o = clump('cl%d' % i, F, root, tip, w, th, bend=bend)
         out.append(kit.tag(o, pal, mat=mat, grp=G_FREE, ol=ol))
@@ -508,7 +514,7 @@ def build_goku(R):
 
     # ---- 道服上衣：腰帶下垂出一截衣襬、V 領開口（開口弧放樣，邊緣乾淨）
     rows = [(-0.2, ('w', 1.28), 0.98, 0.02), (-0.08, ('w', 1.2), 0.9, 0.01)] + TORSO_ROWS
-    sts = torso_rows(F, e=0.018, rows=rows, pec=0.04, lat=0.05)
+    sts = torso_rows(F, e=0.018, rows=rows, pec=0.075, lat=0.09)
     uv0 = 0.48
     us = [r[0] for r in rows]
     gapf = lambda i: 0.0 if us[i] <= uv0 else min(1.25, 0.06 + (us[i] - uv0) * 1.9)
@@ -539,7 +545,7 @@ def build_goku(R):
 
     # ---- 手臂、袖、護腕、拳
     arm = arm_skin(F, skin, muscle=1.25, k=1.12)
-    slv = sleeve(F, gi, s1=0.12, r=0.112, flare=1.04)
+    slv = sleeve(F, gi, s1=0.12, r=0.107 * F.k_arm, flare=1.04)  # 跟著手臂粗細（肌肉加大後寫死的半徑會被手臂穿出）
     wb = band('wristL', F.sh, F.da, F.up + 0.15, F.up + F.lo - 0.005, 0.064 * F.k_fore, 0.054 * F.k_fore, blue, G_FORE_L, thick=0.012, rb=0.9)
     hand = fist(F, skin, scale=1.08)
     pair_add(body, proxy, [arm, slv, wb, hand], proxy_set=(arm, hand))

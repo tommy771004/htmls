@@ -4,13 +4,14 @@ import * as THREE from 'three';
 import { unzlibSync } from 'three/examples/jsm/libs/fflate.module.js';
 import { BAKED } from './models-baked.js';
 // 比例（FighterZ 的英雄比例：約 5.6 頭身、寬肩）
+// 比例參考 GK 雕像的英雄式體型：頭小、肩寬、胸厚、腰細、四肢粗壯
 export const PROPS = {
-  goku: { H: 1.85, hr: 0.165, L: 0.88, sw: 0.265, chest: [0.232, 0.3, 0.168], waist: 0.152, arm: 0.076, fore: 0.069, fist: 0.096, thigh: 0.118, shin: 0.084, hip: 0.124 },
-  vegeta: { H: 1.72, hr: 0.157, L: 0.81, sw: 0.255, chest: [0.226, 0.29, 0.162], waist: 0.14, arm: 0.074, fore: 0.067, fist: 0.093, thigh: 0.112, shin: 0.081, hip: 0.116 },
-  trunks: { H: 1.86, hr: 0.157, L: 0.9, sw: 0.24, chest: [0.21, 0.28, 0.15], waist: 0.132, arm: 0.066, fore: 0.06, fist: 0.087, thigh: 0.104, shin: 0.077, hip: 0.112 },
-  piccolo: { H: 2.12, hr: 0.168, L: 1.02, sw: 0.285, chest: [0.252, 0.31, 0.172], waist: 0.15, arm: 0.077, fore: 0.071, fist: 0.1, thigh: 0.122, shin: 0.088, hip: 0.126 },
-  frieza: { H: 1.55, hr: 0.155, L: 0.7, sw: 0.185, chest: [0.172, 0.24, 0.13], waist: 0.092, arm: 0.052, fore: 0.049, fist: 0.068, thigh: 0.082, shin: 0.06, hip: 0.098 },
-  a18: { H: 1.72, hr: 0.151, L: 0.86, sw: 0.188, chest: [0.17, 0.26, 0.13], waist: 0.11, arm: 0.048, fore: 0.044, fist: 0.064, thigh: 0.09, shin: 0.066, hip: 0.116 },
+  goku: { H: 1.85, hr: 0.1485, L: 0.88, sw: 0.2968, chest: [0.2668, 0.3, 0.1882], waist: 0.1444, arm: 0.095, fore: 0.08418, fist: 0.1037, thigh: 0.1322, shin: 0.09072, hip: 0.124 },
+  vegeta: { H: 1.72, hr: 0.1413, L: 0.81, sw: 0.2856, chest: [0.2599, 0.29, 0.1814], waist: 0.133, arm: 0.0925, fore: 0.08174, fist: 0.1004, thigh: 0.1254, shin: 0.08748, hip: 0.116 },
+  trunks: { H: 1.86, hr: 0.1444, L: 0.9, sw: 0.264, chest: [0.2352, 0.28, 0.165], waist: 0.1267, arm: 0.0792, fore: 0.0708, fist: 0.09222, thigh: 0.1144, shin: 0.08162, hip: 0.112 },
+  piccolo: { H: 2.12, hr: 0.1512, L: 1.02, sw: 0.3192, chest: [0.2898, 0.31, 0.1926], waist: 0.1425, arm: 0.09625, fore: 0.08662, fist: 0.108, thigh: 0.1366, shin: 0.09504, hip: 0.126 },
+  frieza: { H: 1.55, hr: 0.1472, L: 0.7, sw: 0.1924, chest: [0.1806, 0.24, 0.1365], waist: 0.092, arm: 0.0572, fore: 0.05292, fist: 0.07072, thigh: 0.0861, shin: 0.0624, hip: 0.098 },
+  a18: { H: 1.72, hr: 0.145, L: 0.86, sw: 0.188, chest: [0.17, 0.26, 0.13], waist: 0.1078, arm: 0.0504, fore: 0.0462, fist: 0.064, thigh: 0.0936, shin: 0.06732, hip: 0.116 },
 };
 
 const cache = new Map();
@@ -121,7 +122,7 @@ void main(){
   if (mt > 3.5 && mt < 4.5) ndl += uSkinBias; // 臉：明暗交界往暗側推，臉大多是亮面
   float ao = vAO;
   // 遮蔽把明暗交界往亮部推：凹處更早進入陰影
-  float lit = smoothstep(-0.03, 0.04, ndl - (1.0 - ao) * 0.32);
+  float lit = smoothstep(-0.03, 0.04, ndl - (1.0 - ao) * 0.48);
   float top = smoothstep(0.55, 0.62, ndl) * ao;
   vec3 shadeCol = mt > 3.5 && mt < 4.5 ? uShadeCol * vec3(1.06, 0.92, 0.9) : uShadeCol; // 皮膚的暗部偏暖
   // 接近白色的部位（弗利沙的皮膚、戰鬥服胸甲）壓低亮面與邊緣光、暗部偏淡紫，否則亮面加光後會爆成一片白
@@ -129,7 +130,7 @@ void main(){
   shadeCol = mix(shadeCol, vec3(0.62, 0.6, 0.8), hiK * 0.6);
   vec3 c = mix(base * shadeCol, base * uKeyCol * (1.0 - 0.17 * hiK), lit);
   c += base * top * 0.1 * (1.0 - hiK);
-  c *= mix(0.8, 1.0, smoothstep(0.1, 0.7, ao));
+  c *= mix(0.6, 1.0, smoothstep(0.15, 0.8, ao)); // 用烘焙遮蔽刻出肌肉之間的凹線
   float rim = pow(1.0 - max(dot(N, V), 0.0), 3.0);
   c += uRimCol * rim * (0.35 + 0.3 * lit) * ao * (1.0 - 0.6 * hiK);
   vec3 H = normalize(L + V);
@@ -159,11 +160,11 @@ export function heroMaterial({ face = null, faceRect = null, team = 0xffffff, sk
 /* ---------------- 臉（canvas 貼花） ---------------- */
 // 畫布座標：中心對應 faceRect 的中心，邊長 = 1.9 hr；上方是頭頂
 const FACE = {
-  goku: { iris: '#2a1d16', irisL: '#4a3426', brow: '#1a1614', browTilt: 0.18, eyeW: 0.3, eyeH: 0.17, eyeX: 0.36, eyeY: 0.06, sharp: 0.55, mouth: 'grin' },
-  vegeta: { iris: '#20160f', irisL: '#3a2a20', brow: '#1a1614', browTilt: 0.42, eyeW: 0.29, eyeH: 0.13, eyeX: 0.35, eyeY: 0.06, sharp: 0.9, mouth: 'frown' },
-  trunks: { iris: '#3b5fb5', irisL: '#7fa2e6', brow: '#8a74c0', browTilt: 0.12, eyeW: 0.3, eyeH: 0.17, eyeX: 0.36, eyeY: 0.06, sharp: 0.5, mouth: 'flat' },
-  piccolo: { iris: '#1a120c', irisL: '#1a120c', brow: '#2f6a1e', browTilt: 0.45, eyeW: 0.3, eyeH: 0.13, eyeX: 0.36, eyeY: 0.08, sharp: 0.95, mouth: 'frown', noPupil: true, sclera: '#fffbe8' },
-  frieza: { iris: '#d0203a', irisL: '#ff6a7a', brow: null, browTilt: 0, eyeW: 0.3, eyeH: 0.16, eyeX: 0.35, eyeY: 0.07, sharp: 0.85, mouth: 'smirk', lips: '#3a1838', lid: '#4a1a40' },
+  goku: { iris: '#2a1d16', irisL: '#4a3426', brow: '#1a1614', browTilt: 0.36, eyeW: 0.31, eyeH: 0.135, eyeX: 0.36, eyeY: 0.06, sharp: 0.78, mouth: 'set', heavy: 1 },
+  vegeta: { iris: '#20160f', irisL: '#3a2a20', brow: '#1a1614', browTilt: 0.6, eyeW: 0.3, eyeH: 0.105, eyeX: 0.35, eyeY: 0.06, sharp: 1.05, mouth: 'frown', heavy: 1 },
+  trunks: { iris: '#3b5fb5', irisL: '#7fa2e6', brow: '#8a74c0', browTilt: 0.3, eyeW: 0.31, eyeH: 0.14, eyeX: 0.36, eyeY: 0.06, sharp: 0.72, mouth: 'set', heavy: 0.7 },
+  piccolo: { iris: '#1a120c', irisL: '#1a120c', brow: '#2f6a1e', browTilt: 0.6, eyeW: 0.31, eyeH: 0.11, eyeX: 0.36, eyeY: 0.08, sharp: 1.1, mouth: 'frown', noPupil: true, sclera: '#fffbe8', heavy: 1 },
+  frieza: { iris: '#d0203a', irisL: '#ff6a7a', brow: null, browTilt: 0, eyeW: 0.31, eyeH: 0.13, eyeX: 0.35, eyeY: 0.07, sharp: 1.05, mouth: 'smirk', lips: '#3a1838', lid: '#4a1a40', heavy: 0.4 },
   a18: { iris: '#4c98d6', irisL: '#a6d6ff', brow: '#c9a24a', browTilt: 0.05, eyeW: 0.32, eyeH: 0.2, eyeX: 0.36, eyeY: 0.06, sharp: 0.3, mouth: 'lips', lashes: true },
 };
 function drawFace(id, ssj, hr) {
@@ -175,6 +176,18 @@ function drawFace(id, ssj, hr) {
   const S = N; // 單位：hr*1.9 → N
   const X = (u) => N / 2 + (u / 1.9) * S, Y = (v) => N / 2 - ((v + 0.12) / 1.9) * S; // v 以 hr 為單位、相對頭心
   const ink = f.lid || '#1a110c';
+  // GK 式的五官陰影：眉骨下壓的陰影、鼻側、顴骨下與下顎的暗面（右上主光，所以左側較深）
+  if (f.heavy) {
+    const sh = (x, y, rx, ry, a, rot = 0) => { const gr = g.createRadialGradient(0, 0, 0, 0, 0, 1); gr.addColorStop(0, `rgba(120,60,50,${a})`); gr.addColorStop(1, 'rgba(120,60,50,0)'); g.save(); g.translate(X(x), Y(y)); g.rotate(rot); g.scale(rx * S / 1.9, ry * S / 1.9); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, 1, 0, Math.PI * 2); g.fill(); g.restore(); };
+    for (const sx of [-1, 1]) {
+      const k = sx < 0 ? 1 : 0.7;
+      sh(sx * 0.36, f.eyeY + 0.2, 0.3, 0.1, 0.32 * f.heavy * k);         // 眉骨下
+      sh(sx * 0.5, -0.38, 0.13, 0.3, 0.22 * f.heavy * k, sx * 0.35);   // 顴骨下
+      sh(sx * 0.42, -0.72, 0.22, 0.12, 0.2 * f.heavy * k, sx * -0.5);  // 下顎
+    }
+    sh(-0.06, -0.3, 0.05, 0.13, 0.3 * f.heavy);                         // 鼻側
+    sh(0, -0.78, 0.12, 0.05, 0.22 * f.heavy);                           // 下唇下
+  }
   for (const sx of [-1, 1]) {
     const ex = X(sx * f.eyeX), ey = Y(f.eyeY), ew = (f.eyeW / 1.9) * S, eh = (f.eyeH / 1.9) * S;
     g.save(); g.translate(ex, ey); g.scale(sx, 1);
@@ -230,6 +243,7 @@ function drawFace(id, ssj, hr) {
   if (f.mouth === 'grin') { g.moveTo(X(0) - mw, my - S * 0.004); g.quadraticCurveTo(X(0), my + S * 0.02, X(0) + mw, my - S * 0.012); }
   else if (f.mouth === 'frown') { g.moveTo(X(0) - mw * 0.8, my + S * 0.008); g.quadraticCurveTo(X(0), my - S * 0.008, X(0) + mw * 0.8, my + S * 0.008); }
   else if (f.mouth === 'smirk') { g.moveTo(X(0) - mw * 0.7, my); g.quadraticCurveTo(X(0) + mw * 0.2, my + S * 0.01, X(0) + mw * 0.85, my - S * 0.018); }
+  else if (f.mouth === 'set') { g.moveTo(X(0) - mw * 0.75, my + S * 0.004); g.quadraticCurveTo(X(0), my - S * 0.004, X(0) + mw * 0.75, my + S * 0.006); }
   else if (f.mouth === 'lips') { g.strokeStyle = '#c87a78'; g.moveTo(X(0) - mw * 0.6, my); g.quadraticCurveTo(X(0), my + S * 0.012, X(0) + mw * 0.6, my); }
   else { g.moveTo(X(0) - mw * 0.7, my); g.lineTo(X(0) + mw * 0.7, my); }
   g.stroke();

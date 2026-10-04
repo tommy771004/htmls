@@ -83,7 +83,7 @@ def build_vegeta(R):
     body, proxy = [], []
 
     # 緊身衣：軀幹＋骨盆＋腿
-    st = kit.loft('suit', torso_rows(F, e=0.004, u0=0.0, pec=0.06, lat=0.05), n=18, cap0=None, cap1=None)
+    st = kit.loft('suit', torso_rows(F, e=0.004, u0=0.0, pec=0.108, lat=0.09), n=18, cap0=None, cap1=None)
     st = kit.subsurf(st, 2)
     kit.tag(st, suit, grp=G_TORSO)
     body.append(st)
@@ -110,7 +110,7 @@ def build_vegeta(R):
         (F.tl + 0.2, 0.05 * kl, 0.052 * kl),
     ])
     # 戰鬥服胸甲：一體成形，胸口白色、腹部金色分節（亮面），肩上金色背帶
-    ar = kit.loft('armor', torso_rows(F, e=lambda u: 0.028 - 0.02 * smooth((u - 0.8) / 0.13) - 0.008 * smooth((0.3 - u) / 0.15), u0=0.15, u1=0.93, pec=0.07, lat=0.03, p=2.5), n=20, cap0=None, cap1=None)
+    ar = kit.loft('armor', torso_rows(F, e=lambda u: 0.028 - 0.02 * smooth((u - 0.8) / 0.13) - 0.008 * smooth((0.3 - u) / 0.15), u0=0.15, u1=0.93, pec=0.126, lat=0.054, p=2.5), n=20, cap0=None, cap1=None)
     ar = kit.subsurf(ar, 2, solidify=0.014)
     kit.tag(ar, white, grp=G_CHEST, mat=2)
     yab = F.y(0.47)
@@ -178,7 +178,7 @@ def build_trunks(R):
     team = P(-1)
     body, proxy = [], []
 
-    tk = kit.loft('tank', torso_rows(F, e=0.003, u0=0.0, pec=0.05), n=18, cap0=None, cap1=None)
+    tk = kit.loft('tank', torso_rows(F, e=0.003, u0=0.0, pec=0.09), n=18, cap0=None, cap1=None)
     tk = kit.subsurf(tk, 2)
     kit.tag(tk, tank, grp=G_TORSO)
     body.append(tk)
@@ -186,7 +186,7 @@ def build_trunks(R):
     # 外套：前襟敞開、立領
     rows = [(0.02, ('w', 1.24), 0.9, 0.0)] + [r for r in TORSO_ROWS if r[0] > 0.1]
     us = [r[0] for r in rows]
-    jk = kit.loft('jacket', torso_rows(F, e=0.02, rows=rows, pec=0.04), n=20, cap0=None, cap1=None, gap=lambda i: 0.3 + 0.25 * smooth((us[i] - 0.5) / 0.5))
+    jk = kit.loft('jacket', torso_rows(F, e=0.02, rows=rows, pec=0.072), n=20, cap0=None, cap1=None, gap=lambda i: 0.3 + 0.25 * smooth((us[i] - 0.5) / 0.5))
     jk = kit.subsurf(jk, 2, solidify=0.01)
     kit.tag(jk, jacket, grp=G_TORSO)
     body.append(jk)
@@ -309,7 +309,7 @@ def build_piccolo(R):
     team = P(-1)
     body, proxy = [], []
 
-    chest = kit.loft('chest', torso_rows(F, e=0.0, u0=0.3, pec=0.08), n=18, cap0=None, cap1=None)
+    chest = kit.loft('chest', torso_rows(F, e=0.0, u0=0.3, pec=0.144), n=18, cap0=None, cap1=None)
     chest = kit.subsurf(chest, 2)
     kit.tag(chest, gskin, grp=G_TORSO, mat=4)
     body.append(chest)
@@ -317,7 +317,7 @@ def build_piccolo(R):
     rows = [(-0.2, ('w', 1.3), 1.0, 0.02), (-0.08, ('w', 1.2), 0.9, 0.01)] + TORSO_ROWS
     us = [r[0] for r in rows]
     uv0 = 0.42
-    top = kit.loft('gi_top', torso_rows(F, e=0.018, rows=rows, pec=0.05, lat=0.06), n=20, cap0=None, cap1=None,
+    top = kit.loft('gi_top', torso_rows(F, e=0.018, rows=rows, pec=0.09, lat=0.108), n=20, cap0=None, cap1=None,
                    gap=lambda i: 0.0 if us[i] <= uv0 else min(1.35, 0.1 + (us[i] - uv0) * 2.2))
     top = kit.subsurf(top, 2, solidify=0.012)
     kit.tag(top, gi, grp=G_TORSO)
@@ -389,7 +389,7 @@ def build_frieza(R):
     body, proxy = [], []
 
     # 白色身體：軀幹、骨盆、腿、手臂、脖子 → 體素融成一張皮
-    tor = kit.subsurf(kit.loft('torso', torso_rows(F, e=0.0, u0=0.0, pec=0.06, lat=0.05), n=18, cap0='pole', cap1='pole'), 2)
+    tor = kit.subsurf(kit.loft('torso', torso_rows(F, e=0.0, u0=0.0, pec=0.108, lat=0.09), n=18, cap0='pole', cap1='pole'), 2)
     pel = pelvis(F, skin, e=0.0, closed=True)
     kl, ks = F.k_leg, F.k_shin
     calf = lambda th: 1 + 0.1 * ang_bump(th, BACK, 1.0)
@@ -479,13 +479,13 @@ def build_a18(R):
     team = P(-1)
     body, proxy = [], []
 
-    sh = kit.loft('shirt', torso_rows(F, e=0.003, u0=0.0, pec=0.0, lat=0.0, bust=0.14, rows=FEMALE_ROWS), n=18, cap0=None, cap1=None)
+    sh = kit.loft('shirt', torso_rows(F, e=0.003, u0=0.0, pec=0, lat=0, bust=0.14, rows=FEMALE_ROWS), n=18, cap0=None, cap1=None)
     sh = kit.subsurf(sh, 2)
     kit.tag(sh, shirt, grp=G_TORSO)
     body.append(sh)
     proxy.append(sh)
     us = [r[0] for r in FEMALE_ROWS if r[0] >= 0.3]
-    vest = kit.loft('vest', torso_rows(F, e=0.016, u0=0.3, pec=0.0, lat=0.0, bust=0.12, rows=FEMALE_ROWS), n=20, cap0=None, cap1=None,
+    vest = kit.loft('vest', torso_rows(F, e=0.016, u0=0.3, pec=0, lat=0, bust=0.12, rows=FEMALE_ROWS), n=20, cap0=None, cap1=None,
                     gap=lambda i: 0.42 + 0.35 * smooth((us[i] - 0.55) / 0.45))
     vest = kit.subsurf(vest, 2, solidify=0.009)
     kit.tag(vest, denim, grp=G_TORSO)
