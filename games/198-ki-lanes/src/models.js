@@ -1,8 +1,7 @@
-// 程式建模：英雄（七龍珠 FighterZ 同人致敬，全部以基本幾何程式產生，不使用任何原作素材）、小兵、野怪、防禦塔、主堡。全部由基本幾何合併而成（頂點色＋一個共用卡通材質），外框用反向殼。
+// 英雄的骨架、程式動畫與組裝（網格由 Blender 腳本建模、烘在 models-baked.js；七龍珠 FighterZ 同人致敬，不使用任何原作素材），以及程式建模的小兵、野怪、防禦塔、主堡（基本幾何合併、頂點色＋共用卡通材質）。外框用反向殼。
 // 介面見 SPEC.md §4。root 朝 +z 為正面。
 import * as THREE from 'three';
-import { PROPS, buildHeroParts } from './models-heroes.js';
-import { heroMaterial } from './models-sdf.js';
+import { PROPS, buildHeroParts, heroMaterial } from './models-heroes.js';
 
 export const HERO_IDS = ['goku', 'vegeta', 'trunks', 'piccolo', 'frieza', 'a18'];
 
@@ -122,7 +121,7 @@ function meshPair(geometry, parent, { outline = true, w = 0.028, shadow = true }
 }
 
 /* ---------------- 英雄定義（七龍珠 FighterZ 同人致敬，程式建模） ---------------- */
-const HERO = {
+export const HERO = {
   goku: { H: 1.85, L: 0.8, hr: 0.218, sw: 0.26, chest: [0.26, 0.31, 0.19], waist: 0.18, arm: 0.078, fore: 0.073, fist: 0.098, thigh: 0.13, shin: 0.098, hip: 0.13,
     skin: 0xf2c49b, style: 'brawler', atk3: 'kick', element: 0x4fc3ff, saiyan: true },
   vegeta: { H: 1.72, L: 0.74, hr: 0.208, sw: 0.25, chest: [0.25, 0.3, 0.185], waist: 0.165, arm: 0.076, fore: 0.071, fist: 0.095, thigh: 0.118, shin: 0.092, hip: 0.122,
@@ -143,22 +142,6 @@ for (const id in HERO) {
   d.upper = d.torso * 0.5; d.lower = d.torso * 0.47;
   d.thighLen = d.L * 0.5; d.shinLen = d.L * 0.44;
 }
-
-const C = {
-  // 悟空
-  gi: 0xff8a1c, giD: 0xe06a10, blue: 0x2346a8, blueD: 0x182f78, red: 0xc8302a, yellow: 0xf2c230, black: 0x1b1714,
-  // 貝吉塔
-  suit: 0x2f4fc8, armor: 0xf4f2ea, ochre: 0xe2ad2c,
-  // 特南克斯
-  jacket: 0x1d2238, tank: 0x141416, grey: 0x707480, lav: 0xb9a6e6, lavD: 0x9784cc, steel: 0xdfe6ee, hilt: 0x3a2a1e, sheath: 0x5a4a2a,
-  // 比克
-  pgi: 0x5b3c8e, pgiD: 0x46296f, sash: 0x5ab4e4, brown: 0x6a4024, pink: 0xe08e9c, gD: 0x3f8a28,
-  // 弗利沙
-  dome: 0x7a3dc0, domeL: 0xb27ae8,
-  // 18 號
-  denim: 0x3d6db6, denimD: 0x2c5290, blonde: 0xf3d977, blondeD: 0xd9b84e, stripeW: 0xf2f0ea, legging: 0x1c1c22, boot: 0x7a4a2a,
-  gold: 0xffd23f, goldL: 0xfff0a0,
-};
 
 /* ---------------- 姿勢 ---------------- */
 const KEYS = ['hipsY', 'hipsZ', 'hipsRX', 'hipsRY', 'hipsRZ', 'torsoX', 'torsoY', 'torsoZ', 'headX', 'headY', 'headZ',
@@ -424,78 +407,113 @@ function makeAura(H) {
 
 /* ---------------- 英雄材質 ---------------- */
 const _heroMats = new Map();
-function heroMat(id) { if (!_heroMats.has(id)) _heroMats.set(id, heroMaterial()); return _heroMats.get(id); }
-function headMat(id, form, tex, rect) { const k = id + form; if (!_heroMats.has(k)) _heroMats.set(k, heroMaterial(tex, rect)); return _heroMats.get(k); }
-const _bands = {};
-function armbandGeo(d) { const k = d.arm.toFixed(3); return (_bands[k] ||= new THREE.TorusGeometry(d.arm * 1.12, 0.012, 6, 18).rotateX(Math.PI / 2)); }
-const _bandMats = {};
-function teamBandMat(team) { return (_bandMats[team] ||= new THREE.MeshBasicMaterial({ color: TEAM[team] })); }
+function heroMat(id, team) { const k = id + ':' + team; if (!_heroMats.has(k)) _heroMats.set(k, heroMaterial({ team: TEAM[team] })); return _heroMats.get(k); }
+function headMat(id, form, tex, rect) { const k = id + form; if (!_heroMats.has(k)) _heroMats.set(k, heroMaterial({ face: tex, faceRect: rect, skinBias: 0.35 })); return _heroMats.get(k); }
+// 蒙皮網格的外框：法線取蒙皮後的 transformedNormal；aOl 是逐頂點的外框粗細倍率（臉、手指較細）
+const _skinOutline = {};
+function skinOutlineMat(w) {
+  if (_skinOutline[w]) return _skinOutline[w];
+  const m = new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide });
+  m.onBeforeCompile = (s) => {
+    s.uniforms.uOutline = { value: w };
+    s.vertexShader = 'uniform float uOutline;\nattribute float aOl;\n' + s.vertexShader.replace('#include <project_vertex>',
+      'vec4 mvPosition = modelViewMatrix * vec4( transformed, 1.0 );\n' +
+      '#ifdef USE_SKINNING\nvec3 _on = normalize( transformedNormal );\n#ifdef FLIP_SIDED\n_on = -_on;\n#endif\n#else\nvec3 _on = normalize( normalMatrix * normal );\n#endif\n' +
+      'mvPosition.xyz += _on * uOutline * aOl * clamp(-mvPosition.z / 9.0, 0.3, 1.0) * (1.0 + 0.012 * max(0.0, -mvPosition.z - 10.0));\n' +
+      'gl_Position = projectionMatrix * mvPosition;');
+  };
+  m.customProgramCacheKey = () => 'ki-skin-outline-' + w;
+  _skinOutline[w] = m;
+  return m;
+}
 
-/* ---------------- buildHero ---------------- */
-const SWORD_IN_HAND = new Set(['atk1', 'atk2', 'atk3', 'slash', 'rush', 'dash']);
-export function buildHero(id, team = 0) {
+/* ---------------- 骨架 ---------------- */
+// 次級擺動鏈（骨頭，參與蒙皮）：parent 是掛點骨、pos 是掛點在該骨的位置、n 節、每節長 len
+export function chainSpecs(id, d) {
+  const out = [];
+  if (id === 'goku' || id === 'piccolo') out.push({ name: 'sash', parent: 'hips', pos: [0.13, 0.03, d.chest[2] * 0.92], n: 2, len: id === 'piccolo' ? 0.19 : 0.17, base: -0.15, yaw: 0.1, lift: -0.6, flutter: 0.2 });
+  if (id === 'frieza') out.push({ name: 'tail', parent: 'hips', pos: [0, -0.04, -d.hip * 1.05], n: 5, len: 0.2, base: 0.75, lift: 0.22, flutter: 0.1, curl: 0.16, sway: 0.4 });
+  return out;
+}
+// 綁定姿勢（A 字）：模型在 Blender 以這個姿勢建模與刷權重
+export const BIND = { shZ: 0.75, thZ: 0.1 };
+export const BONE_ORDER = ['hips', 'torso', 'head', 'shL', 'elL', 'shR', 'elR', 'thL', 'knL', 'thR', 'knR'];
+
+export function heroSkeleton(id) {
   const d = HERO[id];
   if (!d) throw new Error('unknown hero ' + id);
-  const gs = buildHeroParts(id, d);
-  const bodyMat = heroMat(id);
-  const OW = 0.012;
-  const pair = (geometry, parent, mat = bodyMat, w = OW) => {
-    const m = new THREE.Mesh(geometry, mat); m.castShadow = true; parent.add(m);
-    if (w) { const o = new THREE.Mesh(geometry, outlineMat(w)); o.raycast = () => {}; parent.add(o); }
-    return m;
-  };
-
   const root = new THREE.Group(); root.name = 'hero-' + id;
   const body = new THREE.Group(); root.add(body);
-  const hips = new THREE.Group(); hips.position.y = d.L; body.add(hips);
-  pair(gs.hips, hips);
-  const torso = new THREE.Group(); torso.position.y = 0.02; hips.add(torso);
-  pair(gs.torso, torso);
-  const head = new THREE.Group(); head.position.y = d.torso + 0.04; torso.add(head);
-  const headForms = {};
-  for (const f in gs.heads) {
-    const g = new THREE.Group(); head.add(g); pair(gs.heads[f].main, g, headMat(id, f, gs.heads[f].face, gs.faceRect)); g.visible = f === 'base'; headForms[f] = g;
-  }
-  const chest = new THREE.Object3D(); chest.position.set(0, d.torso * 0.66, d.chest[2] * 0.5); torso.add(chest);
+  const bone = (name, parent, x, y, z) => { const b = new THREE.Bone(); b.name = name; b.position.set(x, y, z); parent.add(b); return b; };
+  const hips = bone('hips', body, 0, d.L, 0);
+  const torso = bone('torso', hips, 0, 0.02, 0);
+  const head = bone('head', torso, 0, d.torso + 0.04, 0);
   const J = { hips, torso, head };
   const hands = {};
   for (const side of ['L', 'R']) {
     const sx = side === 'L' ? 1 : -1;
-    const sh = new THREE.Group(); sh.position.set(sx * d.sw, d.torso - 0.05, 0); torso.add(sh);
-    pair(gs['upper' + side], sh);
-    // 隊伍色臂環（只在左臂）
-    if (side === 'L') { const ring = new THREE.Mesh(armbandGeo(d), teamBandMat(team)); ring.position.y = -d.upper * 0.62; sh.add(ring); }
-    const el = new THREE.Group(); el.position.y = -d.upper; sh.add(el);
-    pair(gs['fore' + side], el);
-    const hand = new THREE.Object3D(); hand.position.y = -d.lower - d.fist * 0.55; el.add(hand);
-    hands[side] = hand;
-    const th = new THREE.Group(); th.position.set(sx * d.hip * 0.62, -0.03, 0); hips.add(th);
-    pair(gs['thigh' + side], th);
-    const kn = new THREE.Group(); kn.position.y = -d.thighLen; th.add(kn);
-    pair(gs['shin' + side], kn);
-    J['sh' + side] = sh; J['el' + side] = el; J['th' + side] = th; J['kn' + side] = kn;
+    const sh = bone('sh' + side, torso, sx * d.sw, d.torso - 0.05, 0);
+    const el = bone('el' + side, sh, 0, -d.upper, 0);
+    const hand = new THREE.Object3D(); hand.position.y = -d.lower - d.fist * 0.55; el.add(hand); hands[side] = hand;
+    const th = bone('th' + side, hips, sx * d.hip * 0.62, -0.03, 0);
+    const kn = bone('kn' + side, th, 0, -d.thighLen, 0);
+    Object.assign(J, { ['sh' + side]: sh, ['el' + side]: el, ['th' + side]: th, ['kn' + side]: kn });
   }
+  const bones = BONE_ORDER.map((n) => J[n]);
+  const chains = chainSpecs(id, d).map((c) => {
+    let par = J[c.parent]; const segs = [];
+    for (let i = 0; i < c.n; i++) {
+      const b = i === 0 ? bone(c.name + i, par, ...c.pos) : bone(c.name + i, par, 0, -c.len, 0);
+      segs.push(b); bones.push(b); par = b;
+    }
+    return { ...c, segs };
+  });
+  const chest = new THREE.Object3D(); chest.position.set(0, d.torso * 0.66, d.chest[2] * 0.5); torso.add(chest);
+  return { d, root, body, J, hands, chest, chains, bones };
+}
+export function bindPose(sk) {
+  for (const b of sk.bones) b.rotation.set(0, 0, 0);
+  sk.J.shL.rotation.z = BIND.shZ; sk.J.shR.rotation.z = -BIND.shZ;
+  sk.J.thL.rotation.z = BIND.thZ; sk.J.thR.rotation.z = -BIND.thZ;
+  sk.root.updateMatrixWorld(true);
+}
 
-  // 次級擺動鏈
-  const chains = [];
-  const chain = (geos, parent, pos, base, opt = {}) => {
-    let par = parent; const segs = [];
-    geos.forEach((g, i) => {
-      const s = new THREE.Group();
-      if (i === 0) s.position.set(pos[0], pos[1], pos[2]); else s.position.y = -opt.lens[i - 1];
-      par.add(s);
-      pair(g, s, bodyMat, opt.w || 0.01);
-      segs.push(s); par = s;
-    });
-    chains.push({ segs, base, yaw: opt.yaw || 0, lift: opt.lift ?? 1, flutter: opt.flutter ?? 0.25, curl: opt.curl || 0, sway: opt.sway || 0, cur: segs.map(() => base), phase: Math.random() * 6 });
+/* ---------------- buildHero ---------------- */
+const SWORD_IN_HAND = new Set(['atk1', 'atk2', 'atk3', 'slash', 'rush', 'dash']);
+const OW = 0.012;
+export function buildHero(id, team = 0) {
+  const sk = heroSkeleton(id);
+  const { d, root, body, J, hands, chest } = sk;
+  const { hips, torso, head } = J;
+  const gs = buildHeroParts(id, d);
+  const pair = (geometry, parent, mat, w = OW) => {
+    const m = new THREE.Mesh(geometry, mat); m.castShadow = true; parent.add(m);
+    if (w) { const o = new THREE.Mesh(geometry, skinOutlineMat(w)); o.raycast = () => {}; parent.add(o); m.userData.outline = o; }
+    return m;
   };
-  if (gs.sash) chain(gs.sash, hips, [0.12, 0.05, d.chest[2] * 0.95], -0.15, { lens: [0.18], yaw: 0.1, lift: -0.6, flutter: 0.2 });
-  // 弗利沙的尾巴：從臀後垂下再往上捲
-  if (gs.tail) chain(gs.tail, hips, [0, -0.04, -d.hip * 1.05], 0.75, { lens: [0.2, 0.2, 0.2, 0.2], lift: 0.22, flutter: 0.1, curl: 0.16, sway: 0.4, w: 0.018 });
+  const show = (m, on) => { m.visible = on; if (m.userData.outline) m.userData.outline.visible = on; };
+
+  // 身體：一張蒙皮網格，以 A 字姿勢綁定到骨架
+  bindPose(sk);
+  const skeleton = new THREE.Skeleton(sk.bones);
+  const skin = new THREE.SkinnedMesh(gs.body, heroMat(id, team));
+  skin.castShadow = true; skin.frustumCulled = false; root.add(skin);
+  const skinO = new THREE.SkinnedMesh(gs.body, skinOutlineMat(OW));
+  skinO.frustumCulled = false; skinO.raycast = () => {}; root.add(skinO);
+  root.updateMatrixWorld(true);
+  skin.bind(skeleton, skin.matrixWorld); skinO.bind(skeleton, skinO.matrixWorld);
+
+  // 頭顱共用、髮型依型態切換；臉部貼圖（眼睛顏色）也隨型態換材質
+  const skull = pair(gs.skull, head, headMat(id, 'base', gs.faces.base, gs.faceRect));
+  const hairForms = {};
+  for (const f in gs.hair) { hairForms[f] = pair(gs.hair[f], head, heroMat(id, team)); show(hairForms[f], f === 'base'); }
+
+  const chains = sk.chains.map((c) => ({ segs: c.segs, base: c.base, yaw: c.yaw || 0, lift: c.lift ?? 1, flutter: c.flutter ?? 0.25, curl: c.curl || 0, sway: c.sway || 0, cur: c.segs.map(() => c.base), phase: Math.random() * 6 }));
 
   // 特南克斯的劍：背上的鞘與在手上的劍
   let sword = null, swordState = 'back', backSocket = null, handSocket = null;
   if (gs.sword) {
+    const bodyMat = heroMat(id, team);
     backSocket = new THREE.Group();
     backSocket.position.set(-0.11, d.torso * 0.98, -d.chest[2] * 1.02);
     backSocket.rotation.set(0, 0, -2.6);
@@ -587,7 +605,8 @@ export function buildHero(id, team = 0) {
   function setForm(f) {
     if (!d.saiyan) return;
     form = f === 'ssj' ? 'ssj' : 'base';
-    for (const k in headForms) headForms[k].visible = k === form;
+    for (const k in hairForms) show(hairForms[k], k === form);
+    if (gs.faces[form]) skull.material = headMat(id, form, gs.faces[form], gs.faceRect);
   }
 
   function setAura(level, color) {

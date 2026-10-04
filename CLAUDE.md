@@ -87,7 +87,7 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 
 - 原始碼在 `games/198-ki-lanes/`（Three.js 0.186.0 + esbuild），有自己的 `package.json`；`npm run build` 輸出單檔 `web/198-ki-lanes.html`，改了 `src/` 要重新 build 並把產出一起 commit。`npm test` 是兩種尺寸的無頭 Chrome 驗收（跑打包後的單檔）。
 - 規則層（`world.js` 的 `newMatch`／`stepWorld`，以及 `units.js`、`combat.js`、`ai.js`、`items.js`、`jungle.js`、`vision.js`、`nav.js`、`map.js` 的資料部分）不碰 DOM，畫面（`main.js`）與 `node tools/sim.mjs 900` 共用同一份推進邏輯，可在 Node 跑整場 AI 對戰來調平衡。機制分析、角色技能與模組契約見 `SPEC.md`，指令與 `window.__ki` 測試 API 見 `README.md`。
-- 角色是七龍珠 FighterZ 的同人致敬：模型與特效只能用程式建構，不要加入原作的貼圖、模型、圖示或音效。角色形體定義在 `src/models-heroes.js`（SDF），改完要跑 `node src/models-bake.mjs` 重新產生 `src/models-baked.js` 再 build。
+- 角色是七龍珠 FighterZ 的同人致敬：模型與特效只能用程式建構，不要加入原作的貼圖、模型、圖示或音效。六名英雄在 `blender/heroes.py`（悟空與共用工具）與 `blender/cast.py`（其他五名）以 Blender 腳本建模；改完跑 `npm run models`（`tools/rig-dump.mjs` 輸出骨架 → Blender 5.2 無頭建模、刷權重、算遮蔽 → 寫 `src/models-baked.js`）再 build。改了 `models.js` 的骨架或 `models-heroes.js` 的 PROPS 比例也要重跑。Blender 只是開發依賴，`models-baked.js` 有 commit，build 不需要 Blender。
 
 ## 青雀真人麻將（127）架構
 

@@ -7,6 +7,7 @@
   "scripts": {
     "build": "node tools/build.mjs",
     "dev": "node tools/build.mjs --dev",
+    "models": "node tools/rig-dump.mjs && blender -b --factory-startup --python blender/build_heroes.py --",
     "test": "node tools/accept.mjs ../../web/198-ki-lanes.html"
   },
   "dependencies": {

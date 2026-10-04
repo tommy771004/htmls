@@ -4,7 +4,7 @@
 
 非官方同人作品：角色與招式名稱版權屬原作者；模型、特效、地圖與音效全部以程式產生，不含原作的貼圖、模型、圖示、音效或文字素材。
 
-- 成品：`web/198-ki-lanes.html`（單檔約 2.1 MB，Three.js 0.186.0 與烘焙好的角色網格一起打包，不載入任何外部資源）
+- 成品：`web/198-ki-lanes.html`（單檔約 2.7 MB，Three.js 0.186.0 與烘焙好的角色網格一起打包，不載入任何外部資源）
 - 一場約 10～20 分鐘（全 AI 模擬 4 場：8～23 分鐘結束，中位數約 15 分鐘）
 
 ## 指令
@@ -20,7 +20,10 @@ node tools/jungleshot.mjs # 開發截圖：野區營地、戰爭迷霧、大猿
 node tools/bushshot.mjs   # 開發截圖：草叢、眼
 node tools/perf.mjs    # 開打 4 分鐘後的實際幀率
 node tools/thumb.mjs   # 重拍 ../../thumbs/198.jpg
-node src/models-bake.mjs  # 改了 models-heroes.js／models-sdf.js 的角色形體後重新烘焙 src/models-baked.js（約 4 秒），再 npm run build
+npm run models         # 重建六名英雄的網格（需要 Blender 5.2；約 25 秒），寫入 src/models-baked.js，再 npm run build
+npm run models -- --only goku,vegeta   # 只重建部分英雄（其他沿用快取或現有的 models-baked.js）
+node tools/viewer.mjs name "ids=goku&anim=atk1&t=0.1&ang=30&zoom=3&focus=handR"   # 開發截圖：角色檢視頁（參數見 tools/viewer-entry.js）
+sh tools/heads.sh 25   # 開發截圖：六名角色的頭部特寫拼成 dist/view/heads.png
 ```
 
 改了 `src/` 要重新 build，並把 `web/198-ki-lanes.html` 一起 commit。驗收工具用 `PLAYWRIGHT_MODULE` 指定 Playwright（預設讀 `~/.npm/_npx/…/playwright`），先試 Metal GPU、失敗再退 SwiftShader。
@@ -61,7 +64,7 @@ node src/models-bake.mjs  # 改了 models-heroes.js／models-sdf.js 的角色形
 | `combat.js` | 普攻三段鏈、六名角色的 QWER、投射物、區域效果 |
 | `ai.js` | 英雄 AI（守線補兵、換血連招、撤退回城買裝、遊走包抄、插眼拆眼、打野、集合打大猿） |
 | `models.js` | 角色骨架與程式動畫、卡通材質與臉部貼圖，小兵、塔、主堡、野怪 |
-| `models-sdf.js`、`models-heroes.js`、`models-bake.mjs`、`models-baked.js` | 角色形體：以符號距離場（SDF）平滑融合各部位、網格化並減面；`models-bake.mjs` 離線烘焙成 `models-baked.js`，瀏覽器只解碼 |
+| `models-heroes.js`、`models-baked.js` | 角色比例（PROPS）、英雄網格解碼、卡通材質（支援蒙皮）與臉部貼圖；`models-baked.js` 由 `blender/build_heroes.py` 產生 |
 | `fx.js` | 粒子、命中火花、光束、死亡球、魔空包圍彈、圓頂爆炸、變身等特效 |
 | `hud.js`、`icons.js` | HUD、技能圖示、選角與結算 |
 | `input.js`、`minimap.js` | 滑鼠鍵盤、觸控、小地圖 |
@@ -72,6 +75,17 @@ node src/models-bake.mjs  # 改了 models-heroes.js／models-sdf.js 的角色形
 | `items.js`、`jungle.js` | 商店與道具、野怪與大猿 |
 | `map-props.js` | 地圖裝飾（樹、岩石、懸崖、河道、基地） |
 | `main.js` | 迴圈、場景同步、頭像算圖、測試 API |
+
+## 角色模型（Blender）
+
+六名英雄在 Blender 以 Python 腳本建模，產物 `src/models-baked.js` 有 commit，所以 build 不需要 Blender；只有改造型時才要（開發機用 Blender 5.2 LTS）。
+
+- `npm run models` = `node tools/rig-dump.mjs`（從 `models.js` 的骨架算出 A 字綁定姿勢的骨頭位置，寫 `blender/rig.json`）＋ `blender -b --factory-startup --python blender/build_heroes.py`。改了 `models.js` 的骨架或 `models-heroes.js` 的 PROPS 也要重跑。
+- `blender/kit.py`：斷面放樣（含前開口的弧形斷面，用來做 V 領與敞開的外套）、細分、布料加厚、等值線切割上色、骨熱權重、遮蔽、輸出。`blender/heroes.py` 是悟空與共用部件（軀幹、手臂、握拳、靴、動畫臉、髮束），`blender/cast.py` 是其他五名。
+- 身體是一張蒙皮網格（11 根骨頭＋垂帶／尾巴的擺動鏈），頭顱與各型態的髮型是掛在頭骨的剛體網格；JS 端把骨架擺成同樣的 A 字姿勢後綁定，再交給原本的程式動畫。
+- 每頂點存調色盤索引、材質碼（0 一般、1 頭髮、2 亮面、3 發光、4 皮膚、5 隊伍色）、遮蔽、外框粗細倍率與平滑法線；以欄位式串流差分後 zlib＋base64，六名約 1.8 MB。
+
+建模時踩過的坑：骨熱權重在原尺寸常解不出來，要放大 10 倍算；開口的衣服殼會讓骨熱亂掉，所以權重改在封閉的替身（軀幹、骨盆、四肢）上算再轉移；上色交界先沿等值線切開網格再分島，邊界才會又平又銳利；一條管子硬折會在內側自我穿插，手指改成每節一顆膠囊。
 
 ## 視野、草叢與眼
 
@@ -90,5 +104,7 @@ node src/models-bake.mjs  # 改了 models-heroes.js／models-sdf.js 的角色形
 - 插眼、放真眼、看到敵方眼就拆。
 
 ## 已知限制
+
+- 角色比原本的 SDF 版多約 1 萬面（每名身體約 2.5 萬面），桌機實測幀率約 110（原本頂到 120 的垂直同步）。
 
 - 埋伏只針對單一落單的敵人，不會針對大猿或推塔的時機設伏。
