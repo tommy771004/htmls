@@ -3891,7 +3891,18 @@ function wMats() {
   }
   for (let i = 0; i < 14; i++) { const x = rnd(256), w = rnd(3, 10), h = rnd(80, 300), y = rnd(512), g2 = sg.createLinearGradient(0, y, 0, y + h); g2.addColorStop(0, 'rgba(90,90,90,.14)'); g2.addColorStop(1, 'rgba(90,90,90,0)'); sg.fillStyle = g2; wrapDraw(256, 512, (ox, oy) => sg.fillRect(x + ox, y + oy, w, h)); }
   const [sidT, sidK] = lumTex(sc, .8), sidN = normalFrom(sc, 3.2);
+  // 穀倉外牆：直向木板加壓條（board and batten），一片板 30 cm、壓條 6 cm，板面有木紋與往下的水漬
+  const bc = mkCanvas(512, 512), bgc = bc.getContext('2d'), BW2 = 512 / 13;
+  for (let i = 0; i < 13; i++) {
+    const x = i * BW2; bgc.fillStyle = `rgb(${200 + rnd(-14, 14) | 0},${200 + rnd(-14, 14) | 0},${200 + rnd(-14, 14) | 0})`; bgc.fillRect(x, 0, BW2, 512);
+    for (let k = 0; k < 16; k++) { bgc.fillStyle = `rgba(${Math.random() < .5 ? '110,110,110' : '240,240,240'},${rnd(.05, .14)})`; bgc.fillRect(x + rnd(BW2), 0, rnd(.6, 1.8), 512); }
+    const gx = bgc.createLinearGradient(x, 0, x + 8, 0); gx.addColorStop(0, '#5a5a5a'); gx.addColorStop(1, 'rgba(90,90,90,0)'); bgc.fillStyle = gx; bgc.fillRect(x, 0, 8, 512);
+    bgc.fillStyle = '#e4e4e4'; bgc.fillRect(x - 4, 0, 8, 512); bgc.fillStyle = '#7a7a7a'; bgc.fillRect(x + 4, 0, 2, 512);
+  }
+  for (let i = 0; i < 18; i++) { const x = rnd(512), w = rnd(3, 12), h = rnd(80, 320), y = rnd(512), g2 = bgc.createLinearGradient(0, y, 0, y + h); g2.addColorStop(0, 'rgba(70,70,70,.18)'); g2.addColorStop(1, 'rgba(70,70,70,0)'); bgc.fillStyle = g2; wrapDraw(512, 512, (ox, oy) => bgc.fillRect(x + ox, y + oy, w, h)); }
+  const [brdT, brdK] = lumTex(bc, .8), brdN = normalFrom(bc, 2.6);
   WMAT = {
+    board: std({ roughness: .86, map: brdT, color: new THREE.Color(brdK, brdK, brdK), normalMap: brdN, normalScale: NS(1) }, { g: .5, r: .1, s: .45 }),
     siding: std({ roughness: .72, map: sidT, color: new THREE.Color(sidK, sidK, sidK), normalMap: sidN, normalScale: NS(1.1) }, { g: .45, r: .1, s: .35 }),
     plain: std({ roughness: .92, map: plasT, color: plasC, normalMap: TEX.concN, normalScale: NS(.25) }, { g: .45, r: .1, s: .18 }),
     paint: std({ roughness: .8, map: plasT, color: plasC, normalMap: TEX.concN, normalScale: NS(.35) }, { g: .5, r: .12, s: .4 }),
@@ -4062,7 +4073,7 @@ function flushWProps() {
         parts.forEach(p => p.dispose()); m.receiveShadow = true; m.matrixAutoUpdate = false; scene.add(m);
         continue;
       }
-      const im = new THREE.InstancedMesh(geo[role], (role === 'paint' && name.startsWith('HOUSE') ? W.siding : W[role]) || W.plain, list.length);
+      const im = new THREE.InstancedMesh(geo[role], (role === 'paint' && name.startsWith('HOUSE') ? W.siding : role === 'paint' && name === 'BARN' ? W.board : W[role]) || W.plain, list.length);
       list.forEach((it, i) => { im.setMatrixAt(i, it.M); if (role === 'paint') im.setColorAt(i, col.set(it.c ?? 0xf1ede4)); });
       im.castShadow = role !== 'glass' && role !== 'emit'; im.receiveShadow = true; im.matrixAutoUpdate = false;
       scene.add(im);
@@ -4247,8 +4258,8 @@ function wHouseIn(t) {
    靜態的箱身併進世界網格（有碰撞，可當掩體）；箱蓋是一個 InstancedMesh，掀開時更新該格的矩陣。
    玩家按 F 掀開，裡面的東西掉在箱子前面；電腦經過箱子旁邊也會順手打開 */
 const CRATES = [];
-function crateAt(x, z, ry) {
-  pushX(x, 0, z, ry);
+function crateAt(x, z, ry, y = 0) {
+  pushX(x, y, z, ry);
   B('wood', 0x30462c, 0, 0, 0, .9, .5, .58, { col: 1, us: 1 });
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) B('metal', 0x5a5e60, sx * .43, 0, sz * .27, .06, .52, .06);
   for (const sz of [-1, 1]) B('wood', 0x26381f, 0, .2, sz * .295, .82, .05, .012);
@@ -4258,6 +4269,18 @@ function crateAt(x, z, ry) {
   const C = CRATES[CRATES.length - 1]; _v.set(0, 0, 0).applyMatrix4(XF); C.x = _v.x; C.y = _v.y; C.z = _v.z;
   _v.set(0, 0, 1).applyMatrix4(XF).sub(_v2.set(0, 0, 0).applyMatrix4(XF)); C.fx = _v.x; C.fz = _v.z;
   popX();
+}
+/* 工地裡的物資箱：每個工地小標附近找一塊空地（不擋碰撞、不壓到戰利品點、地面平），背對最近的建物 */
+function placeSiteCrates() {
+  const site = LABELS.filter(L => !L.big && Math.abs(L.x) < 125 && Math.abs(L.z) < 125);
+  for (const L of site) {
+    let done = false;
+    for (let r = 3; r <= 10 && !done; r += 1.5) for (let k = 0; k < 10 && !done; k++) {
+      const a = k / 10 * TAU + r, x = L.x + Math.cos(a) * r, z = L.z + Math.sin(a) * r, y = terrainH(x, z);
+      if (Math.abs(y) > .3 || pointBlocked(x, y, z, .75) || SPOTS.some(s => Math.hypot(s.x - x, s.z - z) < 1.6)) continue;
+      at(x, z, 0, () => crateAt(0, 0, Math.atan2(L.x - x, L.z - z)), y); done = true;
+    }
+  }
 }
 let LIDS = null;
 const lidGeo = () => new MB().box(0x34502f, 0, .035, .29, .92, .07, .6).box(0x26381f, 0, .075, .1, .84, .012, .05).box(0x26381f, 0, .075, .48, .84, .012, .05)
@@ -4395,6 +4418,7 @@ function placeGasStation(G) {
         B('tile', 0xffffff, 0, .196, 0, 9.6, .012, 7.6, { us: 2 }); ceilAt(-4.8, 4.8, -3.8, 3.8, 3.92);
         for (const x of [-3, 0, 3]) for (const z of [-1.8, 1.4]) { B('flat', 0xd9d6ce, x, 3.86, z, .34, .04, 1.9); B('lamp', 0xffffff, x, 3.855, z, .26, .02, 1.8); }
         roomReg(-4.8, 4.8, -3.8, 3.8, .2, 3.92, 0, 3.4, 0, 1.3);
+        crateAt(-4.25, .6, Math.PI / 2, .2);
       }
       navEnc(4.8, 3.8, shop ? [[0, 5.3, 0, 2.6], [3.4, -5.3, 3.4, -2.6]] : [[0, 5.3, 0, 2.6]]);
       if (shop) {
@@ -5138,6 +5162,7 @@ function barnKit() {
   placeW('HAY_LOOSE', -2.2, .1, -2.95, .2);   // 不蓋到 (-3, -1.5) 的戰利品點
   [[-4.45, -3.9, -3.35, -2.8], [-4.18, -3.63, -3.08], [-3.9, -3.35]].forEach((xs, l) => xs.forEach(x => placeW('HAY_BALE', x, .1 + l * .42, 6.0, 0)));
   placeW('HAY_BALE', -2.5, .1, 4.6, .6);
+  crateAt(-4.25, -3.8, Math.PI / 2, .1);   // 左牆麻袋與乾草之間的物資箱
   pvseed(0, 0, 71);
   for (const [cx, cz, n] of [[-3.2, -5, 26], [-3.6, 5, 18], [2.6, 0, 22], [0, 0, 14]]) for (let i = 0; i < n; i++) { const x = clamp(cx + (pvr() - pvr()) * 2.4, -4.6, 4.6), z = clamp(cz + (pvr() - pvr()) * 3, -6.6, 6.6); B('flat', pTint(pvr() < .5 ? 0x9a8654 : 0x857449, pvr(.85, 1.1)), x, .1, z, pvr(.04, .12), .006 + pvr(0, .008), pvr(.18, .45), { ry: pvr(0, 3) }); }
   // 外面：畜欄裡的圓草捆與水槽、西側帆布蓋的柴堆、前面的木箱與油桶、載草的推車
@@ -5184,6 +5209,7 @@ function dormKit() {
   // 照實機參考影片補的室內細節：木條地板、天花板、補光
   B('plank', 0xffffff, 0, y - .004, 0, 8.6, .012, 4.6, { us: 2 }); ceilAt(-4.3, 4.3, -2.3, 2.3, 3.05); roomReg(-4.3, 4.3, -2.3, 2.3, .25, 3.05, 0, 2.55, 0, .8);
   S(.6, y + .76, -.55); S(1.3, y + .76, -.7); S(-1.0, y, 1.0);
+  crateAt(3.85, .4, -Math.PI / 2, y);
 }
 /* 工具棚／工寮外的雜物：電纜捲盤、氣瓶籠 */
 function cableReel(x, z, ry, c = 0x9a7650) {
@@ -6033,6 +6059,7 @@ SKINDEPTH_BARE.onBeforeCompile = sh => {
     .replace('#include <begin_vertex>', '#include <begin_vertex>\nif (int(aRole + .5) == 7) transformed = vec3(0.);');
 };
 SKINDEPTH_BARE.customProgramCacheKey = () => 'skinbare';
+const WATCHGEO = new MB().cyl(0x24272a, 0, 0, 0, .034, .034, .02, 14).box(0x2b2e31, 0, 0, .036, .03, .026, .012).box(0x8f9a86, 0, 0, .0425, .022, .016, .002).build();
 function makeWorkerRig(pal, look) {
   const root = new THREE.Group(); root.rotation.order = 'YXZ';
   const rig = SKCLONE(RIGSRC); rig.position.set(0, 0, 0); root.add(rig);
@@ -6051,6 +6078,8 @@ function makeWorkerRig(pal, look) {
   const beard = BEARDGEO[look.beard] ? mk(BEARDGEO[look.beard], head, matH) : null;
   const armor = mk(ARMORGEO[1], chest); armor.position.y = -.23; armor.visible = false;
   const hat = mk(HATGEO[0], head); hat.position.y = HAT_Y;
+  // 左手腕的電子錶（跟第一人稱同一支）：掛在前臂骨頭上、靠手腕那一端，錶帶沿前臂方向
+  { const fl = bone('foreL'), hl = bone('handL'); if (fl && hl) { const w = mk(WATCHGEO, fl); w.castShadow = false; w.position.copy(hl.position).multiplyScalar(.86); w.quaternion.setFromUnitVectors(_yy, _v.copy(hl.position).normalize()); } }
   return Object.assign({ root, rig, body, lod, mat, hips, torso, chest, neck, head, hat, hair, beard, armor, armL: arm('L'), armR: arm('R'), legL: leg('L'), legR: leg('R') }, gunParts(chest, -.27));
 }
 /* 手上的槍、可拆的彈匣、槍口火光、背上的第二把槍 */
@@ -10053,6 +10082,7 @@ buildCity();
 await bootStep('正在種草、種樹…');
 buildFoliage();
 await bootStep('正在合併建物、點名 ' + NPLAYERS + ' 人…');
+placeSiteCrates();
 flushWorld();
 initCrates();
 drawSiteMap();
@@ -10075,7 +10105,7 @@ $('restart1').addEventListener('click', () => { newGame(); requestLock(); });
 $('sens').addEventListener('input', e => { IN.sens = +e.target.value; $('sensV').textContent = IN.sens.toFixed(2); });
 $('vol').addEventListener('input', e => { AU.vol = +e.target.value; $('volV').textContent = Math.round(AU.vol * 100); if (AU.master) AU.master.gain.value = AU.vol; });
 // 自動化測試用的掛鉤（headless 快轉、跳過直升機），遊戲本身不會用到
-window.LASTBEAM = { dyn: DYN, ray: raycast, rayhit: RAYHIT, vehs: VEHS, enter: v => enterVehicle(PLAYER, v), holes: HOLES, cases: CASES, input: IN, doors: DOORLIST, pl: PL, hold(v) { HOLD = v; }, glb: !!GLB, sim(sec) { for (let i = 0; i < sec * 30; i++) update(1 / 30); }, get state() { return STATE; }, get hp() { return HP; }, get T() { return T; }, chars: CHARS, zone: ZONE, loot: LOOT, newGame, get player() { return PLAYER; }, poi: POI, crates: CRATES, kill(v, a, w, h) { kill(CHARS[v], a == null ? null : CHARS[a], w, h); }, give(id, n = 120) { const ch = PLAYER, w = WPN[id]; ch.guns[ch.slot] = { id, mag: w.mag }; ch.ammo[w.cal] += n; ch.holster = false; uiDirty = true; }, place(x, z, yaw = PL.yaw, pitch = 0, y) { const ch = PLAYER; ch.st = 'ground'; ch.p.set(x, y ?? groundBelow(x, 400, z, .3), z); ch.v.set(0, 0, 0); ch.yaw = PL.yaw = yaw; PL.pitch = pitch; }, skipTo(s) { if (s === 'ground' && STATE === 'heli') { playerJump(); const p = PLAYER.p; p.set(rnd(-40, 40), 1, rnd(-40, 40)); PLAYER.st = 'ground'; BOTS.forEach(b => { if (b.ch.st === 'beam') { b.ch.st = 'fall'; botLand(b); } }); } } };
+window.LASTBEAM = { dyn: DYN, ray: raycast, rayhit: RAYHIT, vehs: VEHS, enter: v => enterVehicle(PLAYER, v), holes: HOLES, cases: CASES, input: IN, doors: DOORLIST, pl: PL, hold(v) { HOLD = v; }, glb: !!GLB, sim(sec) { for (let i = 0; i < sec * 30; i++) update(1 / 30); }, get state() { return STATE; }, get hp() { return HP; }, get T() { return T; }, chars: CHARS, zone: ZONE, loot: LOOT, newGame, get player() { return PLAYER; }, poi: POI, crates: CRATES, camera, kill(v, a, w, h) { kill(CHARS[v], a == null ? null : CHARS[a], w, h); }, give(id, n = 120) { const ch = PLAYER, w = WPN[id]; ch.guns[ch.slot] = { id, mag: w.mag }; ch.ammo[w.cal] += n; ch.holster = false; uiDirty = true; }, place(x, z, yaw = PL.yaw, pitch = 0, y) { const ch = PLAYER; ch.st = 'ground'; ch.p.set(x, y ?? groundBelow(x, 400, z, .3), z); ch.v.set(0, 0, 0); ch.yaw = PL.yaw = yaw; PL.pitch = pitch; }, skipTo(s) { if (s === 'ground' && STATE === 'heli') { playerJump(); const p = PLAYER.p; p.set(rnd(-40, 40), 1, rnd(-40, 40)); PLAYER.st = 'ground'; BOTS.forEach(b => { if (b.ch.st === 'beam') { b.ch.st = 'fall'; botLand(b); } }); } } };
 // 六十人：三架直升機的航線、效能計時、整場快轉（玩家當觀眾不參戰，記錄存活曲線、死因與卡住的電腦）
 Object.defineProperty(window.LASTBEAM, 'hp', { get: () => HP, set() { }, enumerable: true, configurable: true });
 Object.assign(window.LASTBEAM, { nplayers: NPLAYERS, shadowProxy: SHPROXY, shadowNear: SHNEAR, rayChar, helis: HPS, bots: BOTS, heliOf, prof() { const n = Math.max(1, PROF.n), r = { updMs: +(PROF.upd / n).toFixed(3), animMs: +(PROF.anim / n).toFixed(3), animated: +(PROF.animN / n).toFixed(1), frozen: +(PROF.frozen / n).toFixed(1), frames: PROF.n }; Object.assign(PROF, { upd: 0, anim: 0, n: 0, animN: 0, frozen: 0 }); return r; },
