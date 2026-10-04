@@ -200,7 +200,7 @@ body.touch #banner{width:min(640px,calc(100vw - 136px))}
   .plate{border:0;border-radius:10px;box-shadow:inset 0 1px 0 rgba(243,238,228,.06)}
   #mmwrap{top:16px;left:16px;right:auto;width:196px;height:196px;border-radius:14px}
   #loc{display:flex;justify-content:space-between;position:absolute;top:220px;left:22px;width:184px;font-size:12px;letter-spacing:.16em;color:var(--ink-2);text-shadow:0 1px 2px rgba(0,0,0,.55)}
-  #loc span:last-child{color:var(--ink-3)}
+  #loc span:last-child{color:var(--ink-2)}
   #phase{top:244px;left:16px;transform:none;min-width:0;width:196px;padding:11px 14px 10px;text-align:left;border-radius:12px;overflow:hidden;display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:8px}
   #phase::before{top:0;height:3px}
   #phase .cap{display:block;font-size:11px;letter-spacing:.18em;color:var(--ink-2);white-space:nowrap}
@@ -370,6 +370,10 @@ body.touch #meds div,body.touch #guns .slot,body.touch #guns .frag{pointer-event
   #feed{top:166px;right:8px;width:170px}
   #feed div{font-size:10px;padding:2px 6px}
   #prompt,#cast{top:38%}
+  #storm{top:33%;font-size:11px;padding:4px 10px;gap:6px}
+  #death{top:42%;bottom:auto}
+  #death p{font-size:12px;padding:5px 10px}
+  #zinfo{display:block;font-size:8px;letter-spacing:.04em;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #banner{top:30%}
   #banner h2{font-size:34px}
   /* 直式觸控：公告放在槍格下緣之下（不蓋到手雷格），提示再往下讓開公告 */
@@ -707,7 +711,7 @@ function roomLight(dt) {
   }
   if (hit) roomAt = hit;
   roomK += ((hit ? 1 : 0) - roomK) * Math.min(1, dt * 6);
-  ROOMLIGHT.intensity = roomK < .01 ? 0 : roomK * 7;
+  ROOMLIGHT.intensity = roomK < .01 || !QPRESET[QUALITY.level].light ? 0 : roomK * 7;   // 低／中跟槍口火光一樣不亮（燈板與天花板自發光仍在）
   if (roomAt && roomK >= .01) ROOMLIGHT.position.copy(roomAt.lp); else ROOMLIGHT.position.y = -999;
 }
 const _rl = new THREE.Vector3();
@@ -6049,11 +6053,37 @@ const GUNBODY = GLB ? { m416: glbGeo('G_m416'), ump: glbGeo('G_ump'), kar98: glb
     .cyl(0x1f2123, -.018, .02, .42, .018, .018, .62, 8, Math.PI / 2).box(0x7a4a26, 0, -.015, .3, .06, .05, .24).build(),
 };
 const MAGGEO = GLB ? { m416: glbGeo('M_m416'), ump: glbGeo('M_ump') } : {};
+/* M416、UMP45 的槍身帶林地迷彩（第三人稱、背在背上、掉在地上都一樣；第一人稱的 vmFill 另外畫）：頂點屬性 aCamo 標記，彈匣不塗 */
+for (const id of ['m416', 'ump']) { const g = GUNBODY[id] = GUNBODY[id].clone(); g.setAttribute('aCamo', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count).fill(1), 1)); }
+function camoMat(m, key) {
+  m.onBeforeCompile = sh => {
+    sh.uniforms.tDet = { value: DETAILTEX };
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aCamo;\nvarying float vCamo;\nvarying vec3 vCP;\nvarying vec3 vCN;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n\tvCamo = aCamo; vCP = position; vCN = normal;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D tDet;\nvarying float vCamo;\nvarying vec3 vCP;\nvarying vec3 vCN;')
+      .replace('#include <color_fragment>', `#include <color_fragment>
+	if (vCamo > .5) {
+	  vec3 cw = pow(abs(normalize(vCN)), vec3(4.0)); cw /= cw.x + cw.y + cw.z;
+	  #define CTRI(p) (texture2D(tDet, (p).zy).b * cw.x + texture2D(tDet, (p).xz).b * cw.y + texture2D(tDet, (p).xy).b * cw.z)
+	  float cl = dot(diffuseColor.rgb, vec3(.3, .59, .11)), cm = smoothstep(.029, .04, cl) * step(cl, .09);
+	  float c1 = CTRI(vCP * 3.1 + vec3(.37, .11, .73)), c2 = CTRI(vCP * 4.3 + vec3(.71, .53, .19)), c3 = CTRI(vCP * 5.2 + vec3(.13, .87, .41));
+	  vec3 cam = vec3(.045, .075, .02);
+	  cam = mix(cam, vec3(.09, .09, .035), smoothstep(.535, .55, c2));
+	  cam = mix(cam, vec3(.016, .036, .011), smoothstep(.47, .455, c1));
+	  cam = mix(cam, vec3(.008, .009, .006), smoothstep(.555, .57, c3));
+	  diffuseColor.rgb = mix(diffuseColor.rgb, cam, cm);
+	}`);
+  };
+  m.customProgramCacheKey = () => key;
+  return m;
+}
+camoMat(WEPMAT, 'lb-camo-wep');
 /* 完整的槍（含彈匣）：背在背上、掉在地上的戰利品用 */
 const GUNGEO = {};
 for (const id in GUNBODY) {
   const mg = MAGGEO[id], at = GRIP[id].mag;
-  GUNGEO[id] = mg && at ? mergeGeometries([GUNBODY[id], mg.clone().translate(at[0], at[1], at[2])], false) : GUNBODY[id];
+  const mc = mg && mg.clone().translate(at[0], at[1], at[2]); if (mc && GUNBODY[id].attributes.aCamo) mc.setAttribute('aCamo', new THREE.BufferAttribute(new Float32Array(mc.attributes.position.count), 1));
+  GUNGEO[id] = mg && at ? mergeGeometries([GUNBODY[id], mc], false) : GUNBODY[id];
 }
 const FLASHMAT = new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: .95, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
 const FLASHGEO = (() => { const a = new THREE.PlaneGeometry(.16, .38); a.rotateX(Math.PI / 2); const b = a.clone(); b.rotateZ(Math.PI / 2); const c = new THREE.PlaneGeometry(.2, .2); const m = mergeGeometries([a, b, c]); m.translate(0, 0, .19); return m; })();
@@ -6074,7 +6104,7 @@ const MEDS = [
   { name: '能量飲料', key: '8', t: 3.5, boost: 40 },
 ];
 const AMMO_ITEM = { '556': 'a556', '762': 'a762', '12': 'a12', '45': 'a45' };
-const ITEMMAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .6, metalness: .1 });
+const ITEMMAT = camoMat(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .6, metalness: .1 }), 'lb-camo-item');
 const ITEMGEO = {};
 {
   const pad = b => b;   // 底下的光圈改由 LOOTFX 畫（依稀有度上色）
