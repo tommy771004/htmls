@@ -124,11 +124,14 @@ void main(){
   float lit = smoothstep(-0.03, 0.04, ndl - (1.0 - ao) * 0.32);
   float top = smoothstep(0.55, 0.62, ndl) * ao;
   vec3 shadeCol = mt > 3.5 && mt < 4.5 ? uShadeCol * vec3(1.06, 0.92, 0.9) : uShadeCol; // 皮膚的暗部偏暖
-  vec3 c = mix(base * shadeCol, base * uKeyCol, lit);
-  c += base * top * 0.1;
+  // 接近白色的部位（弗利沙的皮膚、戰鬥服胸甲）壓低亮面與邊緣光、暗部偏淡紫，否則亮面加光後會爆成一片白
+  float hiK = smoothstep(0.55, 0.92, dot(base, vec3(0.3, 0.59, 0.11)));
+  shadeCol = mix(shadeCol, vec3(0.62, 0.6, 0.8), hiK * 0.6);
+  vec3 c = mix(base * shadeCol, base * uKeyCol * (1.0 - 0.17 * hiK), lit);
+  c += base * top * 0.1 * (1.0 - hiK);
   c *= mix(0.8, 1.0, smoothstep(0.1, 0.7, ao));
   float rim = pow(1.0 - max(dot(N, V), 0.0), 3.0);
-  c += uRimCol * rim * (0.35 + 0.3 * lit) * ao;
+  c += uRimCol * rim * (0.35 + 0.3 * lit) * ao * (1.0 - 0.6 * hiK);
   vec3 H = normalize(L + V);
   float nh = max(dot(N, H), 0.0);
   // 髮：沿頭形的一圈光澤帶

@@ -129,10 +129,11 @@ function clearMatch() {
   if (G) { for (const p of G.projectiles) p.vis && p.vis.remove(); for (const z of G.zones) z.vis && z.vis.remove(); }
 }
 
+const HERO_VIS = 1.15; // 對戰中英雄外觀放大（碰撞與射程不變），貼近俯視鏡頭下的比例
 function attachRig(u) {
   if (rigs.has(u.id)) return;
   let rig, ring = null;
-  if (u.kind === 'hero') { rig = buildHero(u.heroId, u.team); ring = ringFor(u.isPlayer ? '#f6c64a' : TEAM_COLOR[u.team], 1); }
+  if (u.kind === 'hero') { rig = buildHero(u.heroId, u.team); rig.root.scale.setScalar(HERO_VIS); ring = ringFor(u.isPlayer ? '#f6c64a' : TEAM_COLOR[u.team], 1); }
   else if (u.kind === 'minion') rig = buildMinion(u.team, u.mkind);
   else if (u.kind === 'monster') rig = buildMonster(u.mkind);
   else if (u.kind === 'ward') rig = buildWard(u.team, u.control);

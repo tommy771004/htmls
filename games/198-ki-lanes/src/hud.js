@@ -350,7 +350,7 @@ export function createHud(env) {
     const s = Math.max(0.8, Math.min(1.15, W / 1300));
     for (const u of G.units) {
       if (!u.alive || (player && !seen(G, player.team, u))) continue;
-      const top = u.kind === 'hero' ? 2.65 : u.kind === 'minion' ? 1.9 : u.kind === 'ward' ? 1.4 : u.kind === 'monster' ? (u.big ? 6.5 : u.boss ? 7.6 : 2.2) : u.kind === 'core' ? 9 : 8.2;
+      const top = u.kind === 'hero' ? 2.95 : u.kind === 'minion' ? 1.9 : u.kind === 'ward' ? 1.4 : u.kind === 'monster' ? (u.big ? 6.5 : u.boss ? 7.6 : 2.2) : u.kind === 'core' ? 9 : 8.2;
       const p = render.toScreen(u.x, u.y + top + (u.groundY || 0), u.z);
       if (p.behind || p.x < -60 || p.x > W + 60 || p.y < -40 || p.y > H + 40) continue;
       const ally = player && u.team === player.team;

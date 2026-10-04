@@ -109,7 +109,7 @@ export const HERO_IDS = ['goku','vegeta','trunks','piccolo','frieza','a18'];
 // HeroRig 另有 setForm('base'|'ssj')、sword（特南克斯）；anim 另有 'grab'|'overhead'|'barrier'|'slash'
 ```
 
-英雄是 Blender 建模的蒙皮網格（`models-heroes.js` 的自訂卡通材質：右上主光、兩階明暗、皮膚暗部偏暖、冷色邊緣光、髮絲光帶、臉部貼花）；小兵、塔、主堡、野怪用 `MeshToonMaterial`（共用 3 階 gradientMap、頂點色）。外框都用反向殼（BackSide、深墨色，英雄的外框粗細依頂點的 aOl 倍率、近距離自動變細），全部 `castShadow`。尺寸：英雄 1.55～2.12 高、小兵 1.4（視覺放大 1.3 倍，碰撞不變）、塔 7（白色天線塔）、主堡 8、大猿 6.5、神龍約 11（`buildShenron()`：沿螺旋曲線掃出的身體，`noFace`＋`setFacing` 只慢慢轉向）。
+英雄是 Blender 建模的蒙皮網格（`models-heroes.js` 的自訂卡通材質：右上主光、兩階明暗、皮膚暗部偏暖、接近白色的部位壓低亮面並讓暗部偏淡紫（避免爆白）、冷色邊緣光、髮絲光帶、臉部貼花）；小兵、塔、主堡、野怪用 `MeshToonMaterial`（共用 3 階 gradientMap、頂點色）。外框都用反向殼（BackSide、深墨色，英雄的外框粗細依頂點的 aOl 倍率、近距離自動變細），全部 `castShadow`。尺寸：英雄 1.55～2.12 高（對戰中外觀放大 1.15 倍，`main.js` 的 `HERO_VIS`；碰撞與射程不變）、小兵 1.4（視覺放大 1.3 倍，碰撞不變）、塔 7（白色天線塔）、主堡 8、大猿 6.5、神龍約 11（`buildShenron()`：沿螺旋曲線掃出的身體，`noFace`＋`setFacing` 只慢慢轉向）。
 
 ### `audio.js` 介面
 
