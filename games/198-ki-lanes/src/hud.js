@@ -1,5 +1,5 @@
 // HUD：比分、技能列、氣力條、血條、連擊數、公告、必殺技切入、單位血條與浮動數字、選角與結算。
-import { HEROES, HERO_ORDER, TEAM_COLOR, TEAM_LIGHT, KI_BAR, xpToNext, MAX_LEVEL, ITEMS, APE_BUFF, DRAGON } from './config.js';
+import { HEROES, HERO_ORDER, FRANCHISES, TEAM_COLOR, TEAM_LIGHT, KI_BAR, xpToNext, MAX_LEVEL, ITEMS, APE_BUFF, DRAGON } from './config.js';
 import { ICONS, ITEM_ICONS } from './icons.js';
 import { buy, canBuy, inShop, eatSenzu, sell, priceFor, totalCost, sellPrice, itemById } from './items.js';
 import { inBush } from './vision.js';
@@ -442,7 +442,8 @@ export const NUMFONT = '"Avenir Next Condensed","Bahnschrift","Arial Narrow","Pi
 export function createSelect({ portraits, onPick, onStart }) {
   const wrap = $('#select'), cards = $('#cards'), info = $('#pickInfo');
   let cur = 'goku', lane = 1, diff = 1;
-  cards.innerHTML = HERO_ORDER.map((id) => { const d = HEROES[id]; return `<button class="card" type="button" data-id="${id}" style="--el:${d.color}"><img alt="" src="${portraits[id] || ''}"><b>${d.short}</b><small>${d.en}</small><em>${d.role}</em></button>`; }).join('');
+  const card = (id) => { const d = HEROES[id]; return `<button class="card" type="button" data-id="${id}" style="--el:${d.color}"><img alt="" src="${portraits[id] || ''}"><b>${d.short}</b><small>${d.en}</small><em>${d.role}</em></button>`; };
+  cards.innerHTML = FRANCHISES.map(([f, label]) => `<div class="grp"><span class="gl">${label}</span><div class="row">${HERO_ORDER.filter((id) => HEROES[id].franchise === f).map(card).join('')}</div></div>`).join('');
   function show(id) {
     cur = id; const d = HEROES[id];
     for (const c of cards.children) c.classList.toggle('sel', c.dataset.id === id);

@@ -502,6 +502,22 @@ body.camfree #camHint { display: block; }
 .kf.solo { grid-template-columns: 2.6em auto auto; }
 @media (pointer: coarse) { #feed { display: none; } }
 @media (prefers-reduced-motion: reduce) { .kf { animation: none; } }
+
+/* ---------- 選角：14 名角色依作品分三組 ---------- */
+#pickBar { flex-wrap: wrap; row-gap: .8em; }
+#cards { flex-basis: 100%; justify-content: center; gap: 1.1em; align-items: flex-end; }
+#cards .grp { display: flex; flex-direction: column; gap: .3em; }
+#cards .gl { align-self: flex-start; font-size: .78em; font-weight: 800; letter-spacing: .3em; color: var(--bone); padding: .15em .9em .15em .5em; background: rgba(14, 18, 30, .86); clip-path: polygon(0 0, 100% 0, calc(100% - .5em) 100%, 0 100%); }
+#cards .row { display: flex; gap: .35em; }
+#cards .card { width: 5.1em; padding: .3em .3em .45em; }
+#cards .card b { font-size: 1.02em; } #cards .card small { font-size: .66em; } #cards .card em { font-size: .7em; }
+@media (max-width: 760px) {
+  #cards { justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; padding-bottom: .3em; scrollbar-width: none; }
+  #cards .grp { flex: none; }
+  #cards .card { width: 4.3em; flex: none; }
+  #cards .card img { height: 4.6em; }
+  #pickInfo { bottom: calc(var(--safe-b) + 18.4em); }
+}
 </style>
 </head>
 <body>

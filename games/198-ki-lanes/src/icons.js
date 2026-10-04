@@ -46,6 +46,56 @@ export const ICONS = {
   D: W(`<path d="M24 3 L28 15 L40 8 L33 20 L45 24 L33 28 L40 40 L28 33 L24 45 L20 33 L8 40 L15 28 L3 24 L15 20 L8 8 L20 15 Z" ${F} opacity=".85"/><circle cx="24" cy="24" r="6" fill="#16110c"/>`),
   B: W(`<path d="M10 40 V20 L24 9 L38 20 V40" ${S}/><path d="M19 40 V29 H29 V40" ${S}/>`),
   C: W(`<path d="M24 44 C12 40 12 28 18 20 C18 28 22 28 22 24 C22 16 26 10 30 6 C30 16 38 20 36 32 C35 40 30 44 24 44 Z" ${F}/>`),
+  // 火影忍者
+  naruto: {
+    Q: W(`<circle cx="24" cy="24" r="13" ${F} opacity=".35"/><path d="M24 11 C33 11 37 20 31 25 C26 29 19 25 22 20 C24 17 28 19 27 22" ${S}/><path d="M24 37 C15 37 11 28 17 23" ${S} stroke-width="2.4"/>`),
+    W: W(`<g ${F}><circle cx="24" cy="12" r="5"/><circle cx="12" cy="32" r="5" opacity=".7"/><circle cx="36" cy="32" r="5" opacity=".7"/></g><path d="M24 18 v8 M12 38 v4 M36 38 v4" ${S} stroke-width="2.4"/>`),
+    E: W(`<rect x="14" y="10" width="20" height="30" rx="6" ${S}/><path d="M17 18 h14 M17 26 h14 M17 34 h14" ${S} stroke-width="1.8" opacity=".6"/><path d="M36 8 l6 -2 M38 14 l6 0" ${S} stroke-width="2"/>`),
+    R: W(`<circle cx="24" cy="24" r="5" ${F}/><path d="M24 4 L28 20 L24 24 L20 20 Z M44 24 L28 28 L24 24 L28 20 Z M24 44 L20 28 L24 24 L28 28 Z M4 24 L20 20 L24 24 L20 28 Z" ${F} opacity=".8"/>`),
+  },
+  sasuke: {
+    Q: W(`<circle cx="22" cy="26" r="13" ${F}/><path d="M22 18 C28 20 28 30 22 32 C16 30 16 22 22 18 Z" fill="#fff" opacity=".55"/><path d="M36 14 l6 -6 M38 22 h6" ${S} stroke-width="2.2"/>`),
+    W: W(`<circle cx="18" cy="30" r="7" ${F}/><path d="M18 30 L26 18 L30 26 L42 8 M18 30 L8 22 M18 30 L12 42 M18 30 L28 38" ${S} stroke-width="2.4"/>`),
+    E: W(`<circle cx="24" cy="24" r="15" ${S}/><circle cx="24" cy="24" r="4" ${F}/><g ${F}><path d="M24 13 a4 4 0 1 1 -1 7 a6 6 0 0 0 1 -7 Z"/><path d="M33 29 a4 4 0 1 1 -7 1 a6 6 0 0 0 7 -1 Z"/><path d="M15 29 a4 4 0 1 1 6 -4 a6 6 0 0 0 -6 4 Z"/></g>`),
+    R: W(`<path d="M30 4 L18 22 L26 22 L14 44 L34 18 L26 18 L36 4 Z" ${F}/>`),
+  },
+  kakashi: {
+    Q: W(`<path d="M6 34 C12 18 22 14 30 18 C36 21 38 28 32 32 C28 35 22 32 24 28" ${S} stroke-width="4"/><circle cx="38" cy="14" r="4" ${F}/>`),
+    W: W(`<path d="M4 40 h40" ${S}/><path d="M10 40 l4 -10 4 10 M22 40 l4 -14 4 14 M34 40 l4 -10 4 10" ${F}/><circle cx="26" cy="18" r="5" ${F} opacity=".6"/>`),
+    E: W(`<path d="M8 40 L30 18" ${S} stroke-width="4"/><path d="M30 18 L36 8 L34 16 L42 12 L34 22 L40 24 L30 26" ${S} stroke-width="2.2"/>`),
+    R: W(`<path d="M24 24 m-16 0 a16 16 0 1 1 16 16" ${S}/><path d="M24 24 m-9 0 a9 9 0 1 1 9 9" ${S} stroke-width="2.4"/><circle cx="24" cy="24" r="3" ${F}/>`),
+  },
+  sakura: {
+    Q: W(`<path d="M10 22 h20 a6 6 0 0 1 0 12 h-20 Z" ${F}/><path d="M4 40 l8 -4 M44 40 l-8 -4 M24 42 v4" ${S} stroke-width="2.2"/><path d="M14 22 v-6 M20 22 v-7 M26 22 v-6" ${S} stroke-width="2.4"/>`),
+    W: W(`<path d="M6 24 h12" ${S} stroke-width="2" opacity=".6"/><path d="M18 18 h16 a6 6 0 0 1 0 12 h-16 Z" ${F}/><path d="M38 12 l6 -4 M40 24 h6 M38 36 l6 4" ${S} stroke-width="2.2"/>`),
+    E: W(`<path d="M24 40 C10 30 6 20 12 13 C17 8 23 11 24 16 C25 11 31 8 36 13 C42 20 38 30 24 40 Z" ${S}/><path d="M24 18 v12 M18 24 h12" ${S}/>`),
+    R: W(`<path d="M24 4 L28 16 L40 16 L30 24 L34 36 L24 28 L14 36 L18 24 L8 16 L20 16 Z" ${F} opacity=".45"/><path d="M14 30 h16 a5 5 0 0 1 0 10 h-16 Z" ${F}/>`),
+  },
+  // 海賊王
+  luffy: {
+    Q: W(`<path d="M4 24 H30" ${S} stroke-width="5"/><path d="M30 16 h8 a8 8 0 0 1 0 16 h-8 Z" ${F}/>`),
+    W: W(`<path d="M6 40 C16 30 24 20 40 10" ${S} stroke-width="3" stroke-dasharray="4 4"/><path d="M34 6 l8 2 -2 8" ${S}/><circle cx="10" cy="38" r="4" ${F}/>`),
+    E: W(`<path d="M14 40 C10 32 18 28 14 20 M24 40 C20 32 28 28 24 20 M34 40 C30 32 38 28 34 20" ${S} stroke-width="2.6"/><path d="M8 14 L40 14" ${S} stroke-width="2" opacity=".6"/><path d="M16 8 h16" ${S} stroke-width="2.6"/>`),
+    R: W(`<path d="M4 24 H14" ${S} stroke-width="4"/><path d="M14 8 h14 a16 16 0 0 1 0 32 h-14 Z" ${F}/><path d="M18 16 h10 M18 24 h12 M18 32 h10" stroke="#16110c" stroke-width="2"/>`),
+  },
+  zoro: {
+    Q: W(`<path d="M6 34 C18 14 30 14 42 34" ${S} stroke-width="4"/><path d="M14 30 C22 20 28 20 36 30" ${S} stroke-width="2" opacity=".55"/><path d="M38 34 l6 2" ${S}/>`),
+    W: W(`<path d="M8 40 L38 10 M8 10 L38 40 M6 24 H42" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="23" cy="25" r="4" ${F}/>`),
+    E: W(`<path d="M6 30 L42 18" ${S} stroke-width="2" stroke-dasharray="3 4"/><path d="M30 10 C38 12 42 18 40 26" ${S} stroke-width="3"/><path d="M14 40 l-4 -8 6 2" ${S}/>`),
+    R: W(`<circle cx="24" cy="24" r="16" ${S} stroke-dasharray="6 4"/><path d="M24 6 L24 42 M8 15 L40 33 M8 33 L40 15" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>`),
+  },
+  sanji: {
+    Q: W(`<path d="M8 36 C14 34 22 26 26 18 L34 14" ${S} stroke-width="4"/><path d="M30 10 l10 4 -6 8" ${S}/>`),
+    W: W(`<path d="M24 24 m-14 0 a14 14 0 1 0 28 0" ${S} stroke-width="3"/><path d="M38 24 l4 -6 2 8" ${S}/><path d="M22 6 v14 M26 6 v14" ${S} stroke-width="2.4"/>`),
+    E: W(`<path d="M10 40 h6 M20 32 h6 M30 24 h6" ${S} stroke-width="3"/><path d="M36 18 l4 -10" ${S}/><circle cx="40" cy="8" r="3" ${F}/>`),
+    R: W(`<path d="M24 44 C12 40 10 28 16 20 C16 28 20 28 20 24 C20 16 24 10 28 6 C28 16 36 20 34 32 C33 40 30 44 24 44 Z" ${F}/><path d="M18 40 L40 26" stroke="#16110c" stroke-width="2.4" stroke-linecap="round"/>`),
+  },
+  nami: {
+    Q: W(`<path d="M10 16 C10 8 22 6 26 12 C30 6 42 8 40 18 Z" ${F} opacity=".55"/><path d="M26 18 L20 30 L27 30 L21 44" ${S}/>`),
+    W: W(`<g ${F} opacity=".8"><circle cx="16" cy="20" r="6"/><circle cx="30" cy="16" r="5"/><circle cx="26" cy="32" r="7"/></g><path d="M8 40 h10 M30 42 h10" ${S} stroke-width="2"/>`),
+    E: W(`<path d="M24 24 m0 -16 C40 8 42 30 26 32 C14 34 14 18 26 20 C32 21 30 28 26 27" ${S}/>`),
+    R: W(`<path d="M6 18 C6 8 20 6 24 12 C28 6 42 8 42 18 Z" ${F}/><path d="M14 22 L10 32 M24 22 L20 36 L26 36 L22 46 M34 22 L30 32" ${S} stroke-width="2.4"/>`),
+  },
 };
 
 // 道具圖示

@@ -400,6 +400,7 @@ export function moveSpeed(h) {
   let s = h.ms;
   if (h.st.spark > 0) s *= SPARK.ms;
   if (h.wish > 0) s *= 1 + DRAGON.wish.ms;
+  if (h.st.haste > 0) s *= 1 + (h.st.hasteMs || 0);
   if (h.st.slow > 0) s *= 1 - h.st.slowAmt;
   return s;
 }
@@ -410,6 +411,7 @@ export function tickStatus(u, dt) {
   if (st.slow > 0) { st.slow -= dt; if (st.slow <= 0) st.slowAmt = 0; }
   if (st.invuln > 0) st.invuln -= dt;
   if (st.mark > 0) st.mark -= dt;
+  if (st.haste > 0) st.haste -= dt;
   if (u.flash > 0) u.flash -= dt;
 }
 

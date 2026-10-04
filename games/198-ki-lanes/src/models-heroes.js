@@ -12,6 +12,14 @@ export const PROPS = {
   piccolo: { H: 2.12, hr: 0.1512, L: 1.02, sw: 0.3192, chest: [0.2898, 0.31, 0.1926], waist: 0.1425, arm: 0.09625, fore: 0.08662, fist: 0.108, thigh: 0.1366, shin: 0.09504, hip: 0.126 },
   frieza: { H: 1.55, hr: 0.1472, L: 0.7, sw: 0.1924, chest: [0.1806, 0.24, 0.1365], waist: 0.092, arm: 0.0572, fore: 0.05292, fist: 0.07072, thigh: 0.0861, shin: 0.0624, hip: 0.098 },
   a18: { H: 1.72, hr: 0.145, L: 0.86, sw: 0.188, chest: [0.17, 0.26, 0.13], waist: 0.1078, arm: 0.0504, fore: 0.0462, fist: 0.064, thigh: 0.0936, shin: 0.06732, hip: 0.116 },
+  naruto: { H: 1.66, hr: 0.138, L: 0.79, sw: 0.25, chest: [0.226, 0.26, 0.158], waist: 0.12, arm: 0.077, fore: 0.069, fist: 0.09, thigh: 0.11, shin: 0.078, hip: 0.106 },
+  sasuke: { H: 1.68, hr: 0.137, L: 0.81, sw: 0.244, chest: [0.218, 0.26, 0.152], waist: 0.115, arm: 0.073, fore: 0.065, fist: 0.086, thigh: 0.105, shin: 0.076, hip: 0.104 },
+  kakashi: { H: 1.81, hr: 0.141, L: 0.88, sw: 0.258, chest: [0.232, 0.28, 0.163], waist: 0.125, arm: 0.078, fore: 0.07, fist: 0.09, thigh: 0.112, shin: 0.08, hip: 0.11 },
+  sakura: { H: 1.61, hr: 0.14, L: 0.8, sw: 0.184, chest: [0.168, 0.245, 0.127], waist: 0.103, arm: 0.052, fore: 0.048, fist: 0.065, thigh: 0.091, shin: 0.066, hip: 0.11 },
+  luffy: { H: 1.74, hr: 0.148, L: 0.83, sw: 0.252, chest: [0.228, 0.27, 0.156], waist: 0.118, arm: 0.074, fore: 0.067, fist: 0.094, thigh: 0.105, shin: 0.077, hip: 0.108 },
+  zoro: { H: 1.81, hr: 0.143, L: 0.86, sw: 0.292, chest: [0.262, 0.295, 0.185], waist: 0.142, arm: 0.093, fore: 0.083, fist: 0.1, thigh: 0.13, shin: 0.089, hip: 0.122 },
+  sanji: { H: 1.8, hr: 0.14, L: 0.92, sw: 0.25, chest: [0.222, 0.27, 0.155], waist: 0.118, arm: 0.07, fore: 0.063, fist: 0.085, thigh: 0.108, shin: 0.078, hip: 0.108 },
+  nami: { H: 1.7, hr: 0.144, L: 0.85, sw: 0.186, chest: [0.172, 0.26, 0.132], waist: 0.1, arm: 0.05, fore: 0.046, fist: 0.064, thigh: 0.095, shin: 0.067, hip: 0.12 },
 };
 
 const cache = new Map();
@@ -166,6 +174,14 @@ const FACE = {
   piccolo: { iris: '#1a120c', irisL: '#1a120c', brow: '#2f6a1e', browTilt: 0.6, eyeW: 0.31, eyeH: 0.11, eyeX: 0.36, eyeY: 0.08, sharp: 1.1, mouth: 'frown', noPupil: true, sclera: '#fffbe8', heavy: 1 },
   frieza: { iris: '#d0203a', irisL: '#ff6a7a', brow: null, browTilt: 0, eyeW: 0.31, eyeH: 0.13, eyeX: 0.35, eyeY: 0.07, sharp: 1.05, mouth: 'smirk', lips: '#3a1838', lid: '#4a1a40', heavy: 0.4 },
   a18: { iris: '#4c98d6', irisL: '#a6d6ff', brow: '#c9a24a', browTilt: 0.05, eyeW: 0.32, eyeH: 0.2, eyeX: 0.36, eyeY: 0.06, sharp: 0.3, mouth: 'lips', lashes: true },
+  naruto: { iris: '#1f6fd8', irisL: '#7fc4ff', brow: '#c98a1a', browTilt: 0.3, eyeW: 0.31, eyeH: 0.15, eyeX: 0.36, eyeY: 0.06, sharp: 0.7, mouth: 'grin', heavy: 0.6, whiskers: true },
+  sasuke: { iris: '#141018', irisL: '#3a3044', brow: '#121018', browTilt: 0.42, eyeW: 0.3, eyeH: 0.115, eyeX: 0.35, eyeY: 0.06, sharp: 1.0, mouth: 'set', heavy: 0.8 },
+  kakashi: { iris: '#1e1a1a', irisL: '#3a3434', brow: '#8a8a94', browTilt: 0.05, eyeW: 0.3, eyeH: 0.09, eyeX: 0.35, eyeY: 0.06, sharp: 0.5, mouth: 'none', heavy: 0.5, mask: '#2b3346', hideL: true },
+  sakura: { iris: '#2fa868', irisL: '#8fe8b0', brow: '#e07aa8', browTilt: 0.12, eyeW: 0.33, eyeH: 0.19, eyeX: 0.36, eyeY: 0.06, sharp: 0.4, mouth: 'set', lashes: true, gem: '#9a3fd0' },
+  luffy: { iris: '#141010', irisL: '#2a2020', brow: '#141010', browTilt: 0.1, eyeW: 0.32, eyeH: 0.2, eyeX: 0.36, eyeY: 0.06, sharp: 0.35, mouth: 'big', heavy: 0.4, scarUnderL: true },
+  zoro: { iris: '#1a1612', irisL: '#3a3026', brow: '#2f6a3a', browTilt: 0.5, eyeW: 0.3, eyeH: 0.105, eyeX: 0.35, eyeY: 0.06, sharp: 1.0, mouth: 'set', heavy: 1, scarL: true },
+  sanji: { iris: '#2a5ab8', irisL: '#7fa8ff', brow: '#d8b040', browTilt: 0.2, eyeW: 0.3, eyeH: 0.12, eyeX: 0.35, eyeY: 0.06, sharp: 0.8, mouth: 'set', heavy: 0.6, curl: true, hideL: true },
+  nami: { iris: '#8a4a1a', irisL: '#d89050', brow: '#e8803a', browTilt: 0.08, eyeW: 0.33, eyeH: 0.19, eyeX: 0.36, eyeY: 0.06, sharp: 0.35, mouth: 'lips', lashes: true },
 };
 function drawFace(id, ssj, hr) {
   if (typeof document === 'undefined') return null;
@@ -189,6 +205,7 @@ function drawFace(id, ssj, hr) {
     sh(0, -0.78, 0.12, 0.05, 0.22 * f.heavy);                           // 下唇下
   }
   for (const sx of [-1, 1]) {
+    if (f.hideL && sx > 0) continue; // 被頭帶或瀏海蓋住的左眼（角色左＝畫布右）
     const ex = X(sx * f.eyeX), ey = Y(f.eyeY), ew = (f.eyeW / 1.9) * S, eh = (f.eyeH / 1.9) * S;
     g.save(); g.translate(ex, ey); g.scale(sx, 1);
     // 眼形：內眼角低、外眼角上揚（杏仁形）
@@ -244,9 +261,19 @@ function drawFace(id, ssj, hr) {
   else if (f.mouth === 'frown') { g.moveTo(X(0) - mw * 0.8, my + S * 0.008); g.quadraticCurveTo(X(0), my - S * 0.008, X(0) + mw * 0.8, my + S * 0.008); }
   else if (f.mouth === 'smirk') { g.moveTo(X(0) - mw * 0.7, my); g.quadraticCurveTo(X(0) + mw * 0.2, my + S * 0.01, X(0) + mw * 0.85, my - S * 0.018); }
   else if (f.mouth === 'set') { g.moveTo(X(0) - mw * 0.75, my + S * 0.004); g.quadraticCurveTo(X(0), my - S * 0.004, X(0) + mw * 0.75, my + S * 0.006); }
+  else if (f.mouth === 'big') { g.fillStyle = '#5a1e18'; g.moveTo(X(0) - mw * 1.3, my - S * 0.01); g.quadraticCurveTo(X(0), my + S * 0.06, X(0) + mw * 1.3, my - S * 0.01); g.closePath(); g.fill(); g.fillStyle = '#fff'; g.fillRect(X(0) - mw * 1.0, my - S * 0.008, mw * 2.0, S * 0.012); g.beginPath(); }
+  else if (f.mouth === 'none') { g.beginPath(); }
   else if (f.mouth === 'lips') { g.strokeStyle = '#c87a78'; g.moveTo(X(0) - mw * 0.6, my); g.quadraticCurveTo(X(0), my + S * 0.012, X(0) + mw * 0.6, my); }
   else { g.moveTo(X(0) - mw * 0.7, my); g.lineTo(X(0) + mw * 0.7, my); }
   g.stroke();
+  // 客串角色的臉部記號
+  const line = (pts, w, col) => { g.strokeStyle = col; g.lineWidth = S * w; g.lineCap = 'round'; g.beginPath(); pts.forEach(([u, v], i) => (i ? g.lineTo : g.moveTo).call(g, X(u), Y(v))); g.stroke(); };
+  if (f.whiskers) for (const sx of [-1, 1]) for (const dy of [-0.25, -0.36, -0.47]) line([[sx * 0.42, dy], [sx * 0.66, dy + 0.02]], 0.009, 'rgba(80,40,30,.75)');
+  if (f.scarUnderL) line([[0.22, -0.2], [0.42, -0.24]], 0.007, 'rgba(120,40,30,.8)');
+  if (f.scarL) { line([[0.25, 0.38], [0.4, -0.25]], 0.012, 'rgba(110,40,30,.85)'); line([[0.22, 0.06], [0.5, 0.07]], 0.01, '#1a110c'); }
+  if (f.curl) line([[-0.62, 0.28], [-0.2, 0.36], [-0.12, 0.3], [-0.17, 0.25]], 0.012, f.brow);
+  if (f.gem) { g.fillStyle = f.gem; g.beginPath(); g.moveTo(X(0), Y(0.5)); g.lineTo(X(0.05), Y(0.43)); g.lineTo(X(0), Y(0.36)); g.lineTo(X(-0.05), Y(0.43)); g.closePath(); g.fill(); }
+  if (f.mask) { g.fillStyle = f.mask; g.beginPath(); g.moveTo(X(-1), Y(-0.18)); g.quadraticCurveTo(X(0), Y(-0.08), X(1), Y(-0.18)); g.lineTo(X(1), Y(-1)); g.lineTo(X(-1), Y(-1)); g.closePath(); g.fill(); line([[-0.05, -0.12], [0.02, -0.32]], 0.006, 'rgba(0,0,0,.35)'); }
   if (id === 'frieza') { g.strokeStyle = 'rgba(60,20,50,.6)'; g.lineWidth = S * 0.006; for (const sx of [-1, 1]) { g.beginPath(); g.moveTo(X(sx * 0.22), Y(-0.05)); g.quadraticCurveTo(X(sx * 0.25), Y(-0.2), X(sx * 0.18), Y(-0.32)); g.stroke(); } }
   if (id === 'piccolo') { g.strokeStyle = 'rgba(40,90,25,.6)'; g.lineWidth = S * 0.008; for (const sx of [-1, 1]) { g.beginPath(); g.moveTo(X(sx * 0.4), Y(-0.28)); g.lineTo(X(sx * 0.3), Y(-0.5)); g.stroke(); } }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;

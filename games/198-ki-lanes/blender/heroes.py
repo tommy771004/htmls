@@ -630,4 +630,12 @@ def goku_hair(form):
 def build(hid, R):
     import cast
     B = {'goku': build_goku, 'vegeta': cast.build_vegeta, 'trunks': cast.build_trunks, 'piccolo': cast.build_piccolo, 'frieza': cast.build_frieza, 'a18': cast.build_a18}
+    # 客串角色：有專屬建模就用，否則暫時借用體型相近的身體
+    try:
+        import crossover
+        B.update(crossover.BUILDERS)
+    except ImportError:
+        pass
+    for k, v in {'naruto': cast.build_trunks, 'luffy': cast.build_trunks, 'zoro': cast.build_trunks, 'sasuke': cast.build_trunks, 'kakashi': cast.build_trunks, 'sanji': cast.build_trunks, 'sakura': cast.build_a18, 'nami': cast.build_a18}.items():
+        B.setdefault(k, v)
     return B[hid](R)

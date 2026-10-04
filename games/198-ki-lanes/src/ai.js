@@ -16,7 +16,24 @@ const SKILL_ORDER = {
   piccolo: ['Q', 'W', 'E', 'Q', 'Q', 'W', 'Q', 'W', 'W', 'E', 'E', 'E'],
   frieza: ['Q', 'W', 'Q', 'E', 'Q', 'W', 'Q', 'W', 'W', 'E', 'E', 'E'],
   a18: ['Q', 'E', 'Q', 'W', 'Q', 'W', 'Q', 'W', 'W', 'E', 'E', 'E'],
+  naruto: ['Q', 'W', 'Q', 'E', 'Q', 'W', 'Q', 'W', 'W', 'E', 'E', 'E'],
+  sasuke: ['Q', 'W', 'E', 'Q', 'Q', 'W', 'Q', 'W', 'W', 'E', 'E', 'E'],
+  kakashi: ['Q', 'W', 'Q', 'E', 'Q', 'W', 'Q', 'W', 'W', 'E', 'E', 'E'],
+  sakura: ['Q', 'E', 'W', 'Q', 'Q', 'W', 'Q', 'W', 'W', 'E', 'E', 'E'],
+  luffy: ['Q', 'W', 'E', 'Q', 'Q', 'W', 'Q', 'W', 'W', 'E', 'E', 'E'],
+  zoro: ['W', 'Q', 'W', 'E', 'W', 'Q', 'W', 'Q', 'Q', 'E', 'E', 'E'],
+  sanji: ['Q', 'W', 'Q', 'E', 'Q', 'W', 'Q', 'W', 'W', 'E', 'E', 'E'],
+  nami: ['Q', 'W', 'Q', 'E', 'Q', 'W', 'Q', 'W', 'W', 'E', 'E', 'E'],
 };
+// 技能用法提示：eSelf＝E 原地施放（護盾、回血、吹開、增益），eBehind＝E 能瞬移到敵人背後，eHeal＝E 在殘血時用來保命，
+// eBuff＝E 是開打時的增益，wRanged＝W 從遠處施放（抓人、絆住），wSelf＝W 是自身周圍的範圍招，noFleeE＝E 不適合拿來逃
+const HINT = {
+  goku: { eBehind: 1 }, vegeta: { eBehind: 1 }, sasuke: { eBehind: 1 },
+  piccolo: { eHeal: 1, wRanged: 1, eSelfOnly: 1 }, a18: { eSelf: 1 },
+  sakura: { eSelf: 1, eHeal: 1 }, luffy: { eSelf: 1, eBuff: 1 }, nami: { eSelf: 1 },
+  kakashi: { wRanged: 1 }, sanji: { wSelf: 1 },
+};
+const hint = (h) => HINT[h.heroId] || {};
 const pathLen = (p) => { let L = 0; for (let i = 1; i < p.length; i++) L += Math.hypot(p[i].x - p[i - 1].x, p[i].z - p[i - 1].z); return L; };
 
 export function makeBrain(h, difficulty = 1) {
@@ -78,7 +95,7 @@ export function updateAI(G, h, dt) {
   if (hpR < 0.22 || (hpR < 0.38 && danger)) {
     if (h.cds.D <= 0 && foe && fd < 6 && hpR < 0.3) spark(G, h);
     if (!foe || fd > 13) { if (!startRecall(G, h)) moveHome(G, h); B.mode = 'heal'; return; }
-    if (fd < 6 && skillReady(h, 'E') && h.heroId !== 'a18') { const a = Math.atan2(f[0] - h.x, f[1] - h.z); cast(G, h, 'E', h.x + Math.sin(a) * 10, h.z + Math.cos(a) * 10); }
+    if (fd < 6 && skillReady(h, 'E') && !hint(h).eSelf) { const a = Math.atan2(f[0] - h.x, f[1] - h.z); cast(G, h, 'E', h.x + Math.sin(a) * 10, h.z + Math.cos(a) * 10); }
     moveHome(G, h); B.mode = 'flee'; B.fleeT = 2.5; return;
   }
   if (B.mode === 'flee') { B.fleeT -= B.react; if (B.fleeT > 0) { moveHome(G, h); return; } B.mode = 'lane'; }
@@ -252,17 +269,20 @@ function fight(G, h, foe, fd, killable) {
   const kiBars = Math.floor(h.ki / KI_BAR);
   if (h.ranks.R && skillReady(h, 'R') && fd < S.R.range * 0.9 && (foe.hp < skillDmg(h, 'R') * 1.6 || foeHpR < 0.45)) { if (aimCast(G, h, 'R', foe)) return; }
   if (flank(G, h, foe, fd, kiBars)) return;
-  if (h.heroId === 'piccolo' && skillReady(h, 'W') && fd > 3 && fd < S.W.range * 0.9) { if (aimCast(G, h, 'W', foe)) return; }
-  if (h.heroId === 'a18' && skillReady(h, 'E') && fd < 3.5 && kiBars >= 1) { if (cast(G, h, 'E', h.x, h.z)) return; }
+  const H = hint(h);
+  if (H.wRanged && skillReady(h, 'W') && fd > 3 && fd < S.W.range * 0.9) { if (aimCast(G, h, 'W', foe)) return; }
+  if (H.wSelf && skillReady(h, 'W') && fd < (S.W.radius || 3) * 0.9) { if (cast(G, h, 'W', foe.x, foe.z)) return; }
+  if (H.eSelf && !H.eHeal && !H.eBuff && skillReady(h, 'E') && fd < 3.5 && kiBars >= 1) { if (cast(G, h, 'E', h.x, h.z)) return; }
+  if (H.eBuff && skillReady(h, 'E') && fd < 6 && kiBars >= 1) { if (cast(G, h, 'E', h.x, h.z)) return; }
   if (h.def.melee) {
-    if (skillReady(h, 'W') && fd < S.W.range && fd > 2.2 && h.heroId !== 'piccolo') { if (aimCast(G, h, 'W', foe)) return; }
-    if (skillReady(h, 'E') && kiBars >= (h.ranks.R && h.cds.R <= 0 ? 4 : 1) && fd > 3 && fd < (S.E.range || 6) + 2 && (foeHpR < 0.5 || killable) && h.heroId !== 'piccolo') { if (cast(G, h, 'E', foe.x, foe.z)) return; }
+    if (skillReady(h, 'W') && fd < S.W.range && fd > 2.2 && !H.wRanged && !H.wSelf) { if (aimCast(G, h, 'W', foe)) return; }
+    if (skillReady(h, 'E') && kiBars >= (h.ranks.R && h.cds.R <= 0 ? 4 : 1) && fd > 3 && fd < (S.E.range || 6) + 2 && (foeHpR < 0.5 || killable) && !H.eSelf && !H.eSelfOnly) { if (cast(G, h, 'E', foe.x, foe.z)) return; }
   } else {
-    if (fd < 3.5 && skillReady(h, 'E') && kiBars >= 1 && h.heroId !== 'a18') { const a = Math.atan2(h.x - foe.x, h.z - foe.z); if (cast(G, h, 'E', h.x + Math.sin(a) * 9, h.z + Math.cos(a) * 9)) return; }
-    if (skillReady(h, 'W') && fd < S.W.range * 0.8) { if (aimCast(G, h, 'W', foe)) return; }
+    if (fd < 3.5 && skillReady(h, 'E') && kiBars >= 1 && !H.eSelf) { const a = Math.atan2(h.x - foe.x, h.z - foe.z); if (cast(G, h, 'E', h.x + Math.sin(a) * 9, h.z + Math.cos(a) * 9)) return; }
+    if (skillReady(h, 'W') && fd < S.W.range * 0.8 && !H.wRanged) { if (aimCast(G, h, 'W', foe)) return; }
   }
   if (skillReady(h, 'Q') && fd < S.Q.range * 0.9) { if (aimCast(G, h, 'Q', foe)) return; }
-  if (h.heroId === 'piccolo' && skillReady(h, 'E') && h.hp / h.maxHp < 0.6 && kiBars >= 1) cast(G, h, 'E', h.x, h.z);
+  if (H.eHeal && skillReady(h, 'E') && kiBars >= 1 && (h.hp / h.maxHp < 0.6 || G.heroes.some((a) => a.alive && a.team === h.team && a !== h && dist(a, h) < 6 && a.hp / a.maxHp < 0.45))) cast(G, h, 'E', h.x, h.z);
   orderAttack(G, h, foe);
 }
 
@@ -275,7 +295,7 @@ function flank(G, h, foe, fd, kiBars) {
   if (!mates.length) return false;
   const p = retreatPoint(foe, 2.6);
   if (!B.flankT) { B.flankT = G.time; G.emit('flank', { h, foe }); }
-  if ((h.heroId === 'goku' || h.heroId === 'vegeta') && skillReady(h, 'E') && kiBars >= 1 && fd < 8) { cast(G, h, 'E', foe.x, foe.z); B.flankDone = G.time + 9; B.flankT = 0; return true; }
+  if (hint(h).eBehind && skillReady(h, 'E') && kiBars >= 1 && fd < 8) { cast(G, h, 'E', foe.x, foe.z); B.flankDone = G.time + 9; B.flankT = 0; return true; }
   if (G.time - B.flankT < 2.2 && Math.hypot(h.x - p.x, h.z - p.z) > 1.4) { orderMove(G, h, p.x, p.z); return true; }
   B.flankDone = G.time + 9; B.flankT = 0;
   return false;

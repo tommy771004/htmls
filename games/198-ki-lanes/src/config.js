@@ -35,7 +35,7 @@ export const CAMPS = [
   { id: 'ape', kind: 'ape', x: 34, z: 34, n: 1, boss: true },
 ];
 
-// 英雄（七龍珠 FighterZ 同人致敬；招式名取自原作）
+// 英雄（七龍珠 FighterZ 同人致敬；招式名取自原作）。火影忍者、海賊王的客串角色在下方另外加入
 // stats: hp/hpLv 血量與每級成長、ad/adLv 攻擊、range 普攻距離、as 普攻間隔（秒）、ms 移速、armor 減傷（0..1）
 // ssj：爆氣時變身超級賽亞人
 export const HEROES = {
@@ -106,7 +106,100 @@ export const HEROES = {
     },
   },
 };
-export const HERO_ORDER = ['goku', 'vegeta', 'trunks', 'piccolo', 'frieza', 'a18'];
+// 火影忍者、海賊王的客串角色（同人致敬；招式名取自原作，模型與特效全部以程式繪製）
+Object.assign(HEROES, {
+  naruto: {
+    name: '漩渦鳴人', short: '鳴人', en: 'NARUTO', role: '近戰鬥士', color: '#ff8a1f', glow: '#fff0d8', melee: true, franchise: 'naruto',
+    blurb: '意外性 No.1 的忍者。影分身圍毆、螺旋丸撞飛，風遁螺旋手裏劍炸開一大片。',
+    stats: { hp: 640, hpLv: 90, ad: 57, adLv: 4.2, range: 2.4, as: 0.75, ms: 7.4, armor: 0.11 },
+    skills: {
+      Q: { name: '螺旋丸', desc: '向前衝刺，撞到敵人時把螺旋丸按上去，爆炸並擊飛。', cd: 7, range: 8, dmg: [80, 120, 160, 200, 240], adR: 0.6, radius: 2.4 },
+      W: { name: '影分身之術', desc: '在游標處變出三個影分身圍毆，連打四下。', cd: 10, range: 9, dmg: [22, 32, 42, 52, 62], hits: 4, adR: 0.22, radius: 3.2 },
+      E: { name: '替身術', desc: '花 1 格氣留下一截木頭替身，瞬移到游標處，下一次普攻硬直。', cd: 10, range: 8, ki: 1 },
+      R: { name: '風遁・螺旋手裏劍', desc: '花 3 格氣擲出巨大的螺旋手裏劍，到點炸開成風刃球，持續切割 1.2 秒。', cd: 48, range: 16, dmg: [60, 90, 120], ticks: 6, adR: 0.3, radius: 5, ki: 3 },
+    },
+  },
+  sasuke: {
+    name: '宇智波佐助', short: '佐助', en: 'SASUKE', role: '刺客', color: '#8f7bff', glow: '#eef0ff', melee: true, franchise: 'naruto',
+    blurb: '宇智波一族的天才。豪火球燒開、千鳥貫穿麻痺，麒麟從天而降。',
+    stats: { hp: 580, hpLv: 80, ad: 62, adLv: 4.6, range: 2.5, as: 0.72, ms: 7.5, armor: 0.1 },
+    skills: {
+      Q: { name: '豪火球之術', desc: '吐出巨大的火球，命中後炸開。', cd: 6, range: 13, dmg: [75, 115, 155, 195, 235], adR: 0.6, radius: 3, speed: 26 },
+      W: { name: '千鳥', desc: '帶著雷光衝刺，撞到敵人時貫穿並麻痺 0.8 秒。', cd: 9, range: 8, dmg: [70, 105, 140, 175, 210], adR: 0.55 },
+      E: { name: '寫輪眼・瞬身', desc: '花 1 格氣閃到游標附近敵人的背後，重置普攻鏈。', cd: 9, range: 9, ki: 1 },
+      R: { name: '麒麟', desc: '花 3 格氣，引落天雷化成的麒麟，砸向游標處。', cd: 50, range: 15, dmg: [300, 430, 560], adR: 0.85, radius: 5.5, ki: 3 },
+    },
+  },
+  kakashi: {
+    name: '旗木卡卡西', short: '卡卡西', en: 'KAKASHI', role: '遠程術士', color: '#7aa8ff', glow: '#eef5ff', melee: false, franchise: 'naruto',
+    blurb: '拷貝忍者。水龍彈推開、追牙之術絆住，雷切切入，神威把人吸進異空間。',
+    stats: { hp: 560, hpLv: 78, ad: 55, adLv: 4.0, range: 6.6, as: 0.8, ms: 7.2, armor: 0.08 },
+    skills: {
+      Q: { name: '水遁・水龍彈', desc: '噴出水龍，貫穿路徑上的敵人並往後推。', cd: 6, range: 13, dmg: [65, 100, 135, 170, 205], adR: 0.55, width: 2.0, speed: 30 },
+      W: { name: '土遁・追牙之術', desc: '忍犬從地底竄出，一整排敵人被咬住定身 1 秒。', cd: 11, range: 12, dmg: [50, 75, 100, 125, 150], adR: 0.4, width: 2.2 },
+      E: { name: '雷切', desc: '花 1 格氣，帶著雷光突刺，撞到第一個敵人時造成傷害並麻痺。', cd: 10, range: 8, dmg: [60, 90, 120, 150, 180], adR: 0.6, ki: 1 },
+      R: { name: '神威', desc: '花 3 格氣，在游標處扭曲空間，把範圍內的敵人往中心吸 1.2 秒並持續造成傷害。', cd: 50, range: 14, dmg: [50, 75, 100], ticks: 6, adR: 0.3, radius: 5, ki: 3 },
+    },
+  },
+  sakura: {
+    name: '春野櫻', short: '小櫻', en: 'SAKURA', role: '坦克', color: '#ff6fae', glow: '#ffe8f2', melee: true, franchise: 'naruto',
+    blurb: '綱手的弟子。怪力一拳打碎地面，醫療忍術替隊友回血，天之拳從天砸落。',
+    stats: { hp: 740, hpLv: 102, ad: 54, adLv: 3.8, range: 2.4, as: 0.86, ms: 7.0, armor: 0.2 },
+    skills: {
+      Q: { name: '櫻花衝', desc: '對游標處揮出怪力一拳，打碎地面，範圍內敵人被擊飛。', cd: 8, range: 6, dmg: [70, 110, 150, 190, 230], adR: 0.55, radius: 3.2 },
+      W: { name: '怪力衝拳', desc: '衝刺，撞到敵人時重拳把它打飛並暈眩。', cd: 10, range: 7.5, dmg: [60, 90, 120, 150, 180], adR: 0.5 },
+      E: { name: '醫療忍術', desc: '花 1 格氣，替自己與附近的隊友回血並給護盾。', cd: 12, range: 0, ki: 1, shield: [80, 120, 160, 200, 240] },
+      R: { name: '百豪之術・天之拳', desc: '花 3 格氣跳向游標處，從空中砸下，大範圍傷害並暈眩。', cd: 48, range: 12, dmg: [260, 380, 500], adR: 0.75, radius: 6, ki: 3 },
+    },
+  },
+  luffy: {
+    name: '蒙其・D・魯夫', short: '魯夫', en: 'LUFFY', role: '近戰鬥士', color: '#ff3b4b', glow: '#ffe6e8', melee: true, franchise: 'op',
+    blurb: '橡膠果實能力者。手臂伸長打人、橡膠火箭飛撲，二檔加速，巨人手槍一拳轟飛。',
+    stats: { hp: 660, hpLv: 92, ad: 58, adLv: 4.3, range: 2.6, as: 0.74, ms: 7.4, armor: 0.12 },
+    skills: {
+      Q: { name: '橡膠槍', desc: '手臂伸長打出直拳，打中第一個敵人並擊退。', cd: 5, range: 11, dmg: [70, 110, 150, 190, 230], adR: 0.6 },
+      W: { name: '橡膠火箭', desc: '把自己彈射到游標處，落地撞開周圍的敵人。', cd: 10, range: 10, dmg: [55, 85, 115, 145, 175], adR: 0.45, radius: 3 },
+      E: { name: '二檔', desc: '花 1 格氣進入二檔：6 秒內移速 +25%、攻速 +35%，身上冒出蒸氣。', cd: 14, range: 0, ki: 1, dur: 6, ms: 0.25, as: 0.35 },
+      R: { name: '橡膠巨人手槍', desc: '花 3 格氣把拳頭吹成巨人大小轟出，貫穿一整排敵人並擊飛。', cd: 46, range: 16, dmg: [280, 400, 520], adR: 0.8, width: 3.6, ki: 3 },
+    },
+  },
+  zoro: {
+    name: '羅羅亞・索隆', short: '索隆', en: 'ZORO', role: '劍士', color: '#3fd07a', glow: '#e8fff0', melee: true, franchise: 'op',
+    blurb: '三刀流劍豪。鬼斬穿過一排敵人，三十六煩惱鳳飛斬，三千世界旋身一刀斬盡。',
+    stats: { hp: 620, hpLv: 86, ad: 61, adLv: 4.5, range: 2.8, as: 0.74, ms: 7.3, armor: 0.11 },
+    skills: {
+      Q: { name: '三十六煩惱鳳', desc: '揮出飛行的斬擊，貫穿路徑上的敵人。', cd: 6, range: 13, dmg: [65, 105, 145, 185, 225], adR: 0.6, width: 1.6, speed: 34 },
+      W: { name: '鬼斬', desc: '三刀交叉衝過去，斬中路徑上所有敵人。', cd: 9, range: 8, dmg: [60, 90, 120, 150, 180], adR: 0.5 },
+      E: { name: '獅子歌歌', desc: '花 1 格氣，一瞬間閃到游標處，途中的敵人全部被斬。', cd: 10, range: 8, dmg: [40, 60, 80, 100, 120], adR: 0.4, ki: 1 },
+      R: { name: '三千世界', desc: '花 3 格氣旋轉三刀衝到敵人身邊，周圍一圈大範圍斬擊。', cd: 48, range: 10, dmg: [250, 360, 470], adR: 0.75, radius: 5.5, ki: 3 },
+    },
+  },
+  sanji: {
+    name: '賓什莫克・香吉士', short: '香吉士', en: 'SANJI', role: '刺客', color: '#ff6a3d', glow: '#fff0e0', melee: true, franchise: 'op',
+    blurb: '只用腳戰鬥的廚師。連環踢壓制、空中步行切入，惡魔風腳燃燒一整套連踢。',
+    stats: { hp: 590, hpLv: 82, ad: 61, adLv: 4.5, range: 2.6, as: 0.7, ms: 7.6, armor: 0.1 },
+    skills: {
+      Q: { name: '首肉射擊', desc: '前踏一記重踢，把前方敵人踢飛。', cd: 5, range: 6, dmg: [70, 110, 150, 190, 230], adR: 0.6 },
+      W: { name: '羊肉射擊', desc: '原地倒立旋轉連踢三下，打中周圍所有敵人。', cd: 9, range: 0, dmg: [30, 45, 60, 75, 90], hits: 3, adR: 0.25, radius: 3.2 },
+      E: { name: '空中步行', desc: '花 1 格氣踏著空氣跳到游標處，下一次普攻硬直。', cd: 9, range: 8.5, ki: 1 },
+      R: { name: '惡魔風腳・畫龍點睛', desc: '花 3 格氣，燃燒的腳衝向前方，撞到敵人時連踢六下再一腳炸飛。', cd: 46, range: 9, dmg: [36, 52, 68], hits: 6, adR: 0.18, ki: 3 },
+    },
+  },
+  nami: {
+    name: '娜美', short: '娜美', en: 'NAMI', role: '遠程術士', color: '#ffa23c', glow: '#fff3e0', melee: false, franchise: 'op',
+    blurb: '天才航海士。天候棒招來落雷、冷氣泡讓敵人變慢，雷雲在戰場上空連續劈落。',
+    stats: { hp: 520, hpLv: 72, ad: 52, adLv: 3.7, range: 7.2, as: 0.82, ms: 7.1, armor: 0.06 },
+    skills: {
+      Q: { name: '雷霆節拍', desc: '在游標處劈下一道落雷，0.4 秒後命中並短暫麻痺。', cd: 6, range: 13, dmg: [75, 115, 155, 195, 235], adR: 0.6, radius: 2.4 },
+      W: { name: '冷氣泡', desc: '在游標處布下冷氣霧，3 秒內敵人移速 -40%。', cd: 11, range: 12, dmg: [30, 45, 60, 75, 90], adR: 0.3, radius: 3.6, slow: 0.4 },
+      E: { name: '旋風節拍', desc: '花 1 格氣颳起旋風，把身邊的敵人吹開並短暫暈眩。', cd: 11, range: 0, ki: 1, dmg: [40, 60, 80, 100, 120], adR: 0.3 },
+      R: { name: '雷雲・宙之雷', desc: '花 3 格氣在游標處召來雷雲，3 秒內連續落雷。', cd: 52, range: 14, dmg: [55, 80, 105], ticks: 8, adR: 0.25, radius: 6, ki: 3 },
+    },
+  },
+});
+for (const id of ['goku', 'vegeta', 'trunks', 'piccolo', 'frieza', 'a18']) HEROES[id].franchise = 'db';
+export const FRANCHISES = [['db', '七龍珠'], ['naruto', '火影忍者'], ['op', '海賊王']];
+export const HERO_ORDER = ['goku', 'vegeta', 'trunks', 'piccolo', 'frieza', 'a18', 'naruto', 'sasuke', 'kakashi', 'sakura', 'luffy', 'zoro', 'sanji', 'nami'];
 
 // 金幣與商店
 export const GOLD = { start: 500, passive: 2.2, melee: 21, ranged: 16, siege: 55, hero: 300, assist: 120, tower: 120, shopRadius: 14 };

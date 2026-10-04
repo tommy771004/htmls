@@ -83,7 +83,7 @@ function ringFor(color, scale = 1) { const m = new THREE.Mesh(ringGeo, new THREE
 function buildShowcase() {
   HERO_ORDER.forEach((id, i) => {
     const rig = buildHero(id, 0);
-    const a = -0.95 + i * 0.38, x = -70 + Math.cos(a + Math.PI / 4) * 8, z = 70 - Math.sin(a + Math.PI / 4) * 8;
+    const n = HERO_ORDER.length, a = -1.45 + i * (2.9 / (n - 1)), r = 9.5, x = -70 + Math.cos(a + Math.PI / 4) * r, z = 70 - Math.sin(a + Math.PI / 4) * r;
     rig.root.position.set(x, heightAt(x, z), z);
     rig.root.rotation.y = Math.atan2(-60 - x, 60 - z) * 0 + Math.PI * 0.75;
     scene.add(rig.root);
@@ -219,6 +219,8 @@ function wireEvents() {
     fx.explode(x, z, '#ffd54a', r); sfx('thunder', { x, z }, { vol: 0.9 });
     if (G.player && Math.hypot(G.player.x - x, G.player.z - z) < 14) G.shake(0.45);
   });
+  G.on('clones', (e) => crossFx.clones(e));
+  G.on('substitute', (e) => crossFx.substitute(e));
   G.on('dragonWish', ({ team }) => { if (team < 0) return; for (const h of G.heroes) if (h.team === team && h.alive) fx.levelUp(h, '#ffd54a'); if (team === G.player.team) { hud.flash('#ffe08a', 0.7); audio.play('victory', { vol: 0.5 }); } });
   G.on('gameover', ({ winner }) => {
     endTimer = 3.2; G.slowmo = 1.6;
@@ -252,6 +254,41 @@ const dragon = (() => {
     R.hemi.intensity = base.hemi * (1 - 0.35 * k); R.sun.intensity = base.sun * (1 - 0.5 * k);
     scene.background.copy(base.bg).lerp(dark.bg, k * 0.8); scene.fog.color.copy(base.fog).lerp(dark.fog, k * 0.7);
   }, reset() { balls.visible = false; this.k = 0; this.update(0); } };
+})();
+
+/* ---------------- 影分身、替身木頭、二檔蒸氣（純畫面） ---------------- */
+const crossFx = (() => {
+  const pool = new Map(), active = [], logs = [];
+  const logGeo = new THREE.CylinderGeometry(0.22, 0.25, 1.1, 10).rotateZ(Math.PI / 2.3);
+  const logMat = new THREE.MeshToonMaterial({ color: '#9a6a3a', gradientMap: toonGradient(), transparent: true });
+  function rigs(h, n) {
+    const key = h.heroId + h.team; let list = pool.get(key);
+    if (!list) { list = []; pool.set(key, list); }
+    while (list.length < n) { const r = buildHero(h.heroId, h.team); r.root.visible = false; scene.add(r.root); list.push(r); }
+    return list;
+  }
+  return {
+    clones({ h, x, z, n, r, dur }) {
+      rigs(h, n).slice(0, n).forEach((rig, i) => {
+        const a = (i / n) * Math.PI * 2 + Math.random(), px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r;
+        rig.root.position.set(px, heightAt(px, pz), pz); rig.root.rotation.y = Math.atan2(x - px, z - pz); rig.root.scale.setScalar(1.15); rig.root.visible = true;
+        fx.dust(px, pz, 10, '#f4f0ea', 1.4);
+        active.push({ rig, t: 0, dur, i });
+      });
+    },
+    substitute({ x, z }) { const m = new THREE.Mesh(logGeo, logMat.clone()); m.position.set(x, heightAt(x, z) + 0.6, z); m.castShadow = true; scene.add(m); logs.push({ m, t: 0 }); },
+    update(dt) {
+      for (let k = active.length - 1; k >= 0; k--) {
+        const c = active[k]; c.t += dt;
+        const step = Math.floor(c.t / 0.18), anim = ['atk1', 'atk2', 'atk3'][(step + c.i) % 3];
+        c.rig.update(dt, { name: anim, t: c.t % 0.18, k: 0 });
+        if (c.t >= c.dur) { fx.dust(c.rig.root.position.x, c.rig.root.position.z, 12, '#f4f0ea', 1.5); c.rig.root.visible = false; active.splice(k, 1); }
+      }
+      for (let k = logs.length - 1; k >= 0; k--) { const L = logs[k]; L.t += dt; L.m.material.opacity = Math.min(1, 2.4 - L.t * 1.6); if (L.t > 1.5) { scene.remove(L.m); L.m.material.dispose(); logs.splice(k, 1); } }
+      if (G) for (const h of G.heroes) if (h.alive && h.st.haste > 0 && Math.random() < dt * 14) fx.aura(h.x + (Math.random() - 0.5) * 0.6, 1.0 + Math.random(), h.z + (Math.random() - 0.5) * 0.6, '#ffb8c4', 1);
+    },
+    reset() { for (const c of active) c.rig.root.visible = false; active.length = 0; for (const L of logs) scene.remove(L.m); logs.length = 0; },
+  };
 })();
 
 /* ---------------- 模擬一步 ---------------- */
@@ -301,7 +338,7 @@ function syncShowcase(dt, t) {
     if (s.pose === 'win' && s.poseT > 1.4) { s.pose = 'idle'; s.poseT = 0; }
     s.rig.update(dt, { name: s.pose, t: s.poseT, k: 0 });
     s.rig.setAura(s.id === selectSel ? 0.22 : 0, HEROES[s.id].color);
-    s.rig.root.visible = true;
+    s.rig.root.visible = s.id === selectSel; // 14 人站一排會擠進鏡頭，只顯示選中的那位
   }
   const s = showcase.find((o) => o.id === selectSel);
   const p = s.rig.root.position;
@@ -344,6 +381,7 @@ function frame(now) {
     updateFog(G.vision.grids[P.team], rdt, G.vision.on);
     fx.update(sdt);
     dragon.update(sdt);
+    crossFx.update(sdt);
     map.update(simT);
     R.updateCamera(rdt, now / 1000);
     hud.update(rdt);
@@ -367,7 +405,7 @@ function drawMinimap() {
   minimap.draw(G, pts.length === 4 ? pts : null);
 }
 function backToSelect() {
-  dragon.reset();
+  dragon.reset(); crossFx.reset();
   audio.music(false);
   clearMatch(); G = null;
   document.body.classList.remove('playing', 'dead');

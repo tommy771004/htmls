@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { PROPS, buildHeroParts, heroMaterial } from './models-heroes.js';
 
-export const HERO_IDS = ['goku', 'vegeta', 'trunks', 'piccolo', 'frieza', 'a18'];
+export const HERO_IDS = ['goku', 'vegeta', 'trunks', 'piccolo', 'frieza', 'a18', 'naruto', 'sasuke', 'kakashi', 'sakura', 'luffy', 'zoro', 'sanji', 'nami'];
 
 const TEAM = [0x24a38f, 0xd9472b];
 const TEAM_LIGHT = [0x7fe0cc, 0xff9a76];
@@ -134,6 +134,15 @@ export const HERO = {
     skin: 0xf6f3ef, style: 'regal', atk3: 'palm', element: 0xff4fb4 },
   a18: { H: 1.72, L: 0.8, hr: 0.196, sw: 0.2, chest: [0.2, 0.27, 0.15], waist: 0.13, arm: 0.056, fore: 0.052, fist: 0.07, thigh: 0.096, shin: 0.075, hip: 0.118,
     skin: 0xf6d2b8, style: 'cool', atk3: 'kick', element: 0xc7f0ff },
+  // 火影忍者、海賊王的客串角色（尺寸由 PROPS 覆蓋；sheath：劍掛在 back 背後或 hip 左腰）
+  naruto: { skin: 0xf6c9a0, style: 'ninja', atk3: 'kick', element: 0xff8a1f },
+  sasuke: { skin: 0xf3d2b4, style: 'sword', atk3: 'sword', element: 0x8f7bff, sheath: 'hipBack' },
+  kakashi: { skin: 0xf0cfb0, style: 'lazy', atk3: 'kick', element: 0x7aa8ff },
+  sakura: { skin: 0xf8d6bf, style: 'medic', atk3: 'kick', element: 0xff6fae },
+  luffy: { skin: 0xeab48a, style: 'rubber', atk3: 'kick', element: 0xff3b4b },
+  zoro: { skin: 0xd9a777, style: 'sword', atk3: 'sword', element: 0x3fd07a, sheath: 'hip' },
+  sanji: { skin: 0xf4d0b0, style: 'kick', atk3: 'kick', element: 0xff6a3d },
+  nami: { skin: 0xf2c7a2, style: 'staff', atk3: 'kick', element: 0xffa23c },
 };
 for (const id in HERO) {
   const d = HERO[id];
@@ -177,6 +186,30 @@ function stance(style, t) {
     Object.assign(p, { hipsY: -0.03 - 0.008 * br, hipsRZ: 0.1, hipsRY: 0.1, torsoX: 0.0 + 0.01 * br, torsoY: 0.2, torsoZ: -0.1, headY: -0.22, headZ: 0.08,
       shLX: -0.05, shLZ: 0.22, elL: -0.3, shRX: -0.1, shRZ: 0.62, elR: -1.7,
       thLX: -0.1, thLZ: 0.04, knL: 0.04, thRX: 0.2, thRZ: 0.16, knR: 0.38 });
+  } else if (style === 'ninja') { // 鳴人：壓低重心半蹲，一手握苦無在前、一手在後，隨時要衝
+    Object.assign(p, { hipsY: -0.16 - 0.015 * br, hipsRY: 0.15, torsoX: 0.3 + 0.02 * br, torsoY: 0.35, headX: -0.25, headY: -0.35,
+      shLX: -1.35, shLZ: 0.45, elL: -1.1, shRX: 0.35, shRZ: 0.55, elR: -0.7,
+      thLX: -0.55, thLZ: 0.36, knL: 0.95, thRX: 0.35, thRZ: 0.34, knR: 0.9 });
+  } else if (style === 'lazy') { // 卡卡西：微駝背、一手插口袋、一手拿書在胸前
+    Object.assign(p, { hipsY: -0.02 - 0.008 * br, hipsRZ: 0.06, torsoX: 0.14 + 0.01 * br, torsoY: 0.12, headX: 0.12, headY: -0.15, headZ: 0.05,
+      shLX: 0.05, shLZ: 0.12, elL: -0.25, shRX: -0.95, shRZ: 0.1, elR: -1.95,
+      thLX: -0.06, thLZ: 0.06, knL: 0.06, thRX: 0.1, thRZ: 0.1, knR: 0.22 });
+  } else if (style === 'medic') { // 小櫻：拳擊式的高架，前腳虛點
+    Object.assign(p, { hipsY: -0.08 - 0.012 * br, hipsRY: 0.25, torsoX: 0.12 + 0.015 * br, torsoY: 0.45, headY: -0.42,
+      shLX: -1.25, shLZ: 0.2, elL: -2.0, shRX: -0.85, shRZ: 0.3, elR: -2.2,
+      thLX: -0.32, thLZ: 0.16, knL: 0.42, thRX: 0.3, thRZ: 0.14, knR: 0.5 });
+  } else if (style === 'rubber') { // 魯夫：大開步、手臂鬆垂、上身前傾咧嘴笑
+    Object.assign(p, { hipsY: -0.1 - 0.015 * br, hipsRZ: 0.04 * sway, torsoX: 0.22 + 0.02 * br, torsoY: 0.15 * sway, headX: -0.2,
+      shLX: -0.25, shLZ: 0.55, elL: -0.55, shRX: -0.25, shRZ: 0.55, elR: -0.55,
+      thLX: -0.2, thLZ: 0.42, knL: 0.5, thRX: 0.2, thRZ: 0.42, knR: 0.5 });
+  } else if (style === 'kick') { // 香吉士：雙手插口袋、側身站，一腳在前
+    Object.assign(p, { hipsY: -0.02 - 0.008 * br, hipsRY: 0.3, hipsRZ: 0.04, torsoX: -0.02 + 0.01 * br, torsoY: 0.15, headX: -0.08, headY: -0.35,
+      shLX: 0.15, shLZ: 0.18, elL: -0.55, shRX: 0.15, shRZ: 0.18, elR: -0.55,
+      thLX: -0.22, thLZ: 0.1, knL: 0.12, thRX: 0.15, thRZ: 0.06, knR: 0.1 });
+  } else if (style === 'staff') { // 娜美：一手叉腰、一手斜舉天候棒
+    Object.assign(p, { hipsY: -0.02 - 0.008 * br, hipsRZ: -0.08, hipsRY: -0.1, torsoX: 0.0 + 0.01 * br, torsoY: 0.18, torsoZ: 0.06, headY: -0.2, headZ: -0.06,
+      shLX: -0.15, shLZ: 0.6, elL: -1.65, shRX: -1.1, shRZ: 0.35, elR: -0.6,
+      thLX: -0.18, thLZ: 0.08, knL: 0.3, thRX: 0.08, thRZ: 0.12, knR: 0.04 });
   } else { // 悟空：低馬步的格鬥架式，前拳護臉、後拳收腰，身體斜對鏡頭
     Object.assign(p, { hipsY: -0.11 - 0.015 * br, hipsRY: 0.2, hipsRZ: 0.03 * sway, torsoX: 0.16 + 0.02 * br, torsoY: 0.5, torsoZ: -0.04, headY: -0.45, headX: -0.05,
       shLX: -1.15, shLZ: 0.32, elL: -1.95, shRX: -0.55, shRZ: 0.42, elR: -2.2,
@@ -210,6 +243,8 @@ function heroPose(d, name, t, k, phase, out) {
         shLX: glide ? 0.5 : -s * 0.85, shRX: glide ? 0.5 : s * 0.85, shLZ: 0.18, shRZ: 0.18,
         elL: glide ? -0.4 : -1.35, elR: glide ? -0.4 : -1.35 });
       if (sword) Object.assign(p, { shRX: 0.9, shRZ: 0.35, elR: -0.3 });
+      if (d.style === 'ninja') Object.assign(p, { torsoX: 0.62, headX: -0.45, shLX: 1.25, shRX: 1.25, shLZ: 0.3, shRZ: 0.3, elL: -0.15, elR: -0.15 });
+      if (d.style === 'kick') Object.assign(p, { shLX: 0.15, shRX: 0.15, shLZ: 0.2, shRZ: 0.2, elL: -0.6, elR: -0.6 });
       break;
     }
     case 'atk1': {
@@ -516,9 +551,19 @@ export function buildHero(id, team = 0) {
   if (gs.sword) {
     const bodyMat = heroMat(id, team);
     backSocket = new THREE.Group();
-    backSocket.position.set(-0.11, d.torso * 0.98, -d.chest[2] * 1.02);
-    backSocket.rotation.set(0, 0, -2.6);
-    torso.add(backSocket);
+    if (d.sheath === 'hip') { // 索隆：左腰斜掛
+      backSocket.position.set(d.waist * 1.15, -0.02, d.chest[2] * 0.35);
+      backSocket.rotation.set(0.35, 0, -2.0);
+      hips.add(backSocket);
+    } else if (d.sheath === 'hipBack') { // 佐助：腰後橫掛
+      backSocket.position.set(-d.waist * 0.9, 0.04, -d.chest[2] * 0.95);
+      backSocket.rotation.set(0, 0, -1.75);
+      hips.add(backSocket);
+    } else {
+      backSocket.position.set(-0.11, d.torso * 0.98, -d.chest[2] * 1.02);
+      backSocket.rotation.set(0, 0, -2.6);
+      torso.add(backSocket);
+    }
     pair(gs.sheath, backSocket, bodyMat, 0.008);
     sword = new THREE.Group();
     pair(gs.sword, sword, bodyMat, 0.006);
