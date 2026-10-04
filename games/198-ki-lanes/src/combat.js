@@ -94,6 +94,8 @@ function startAuto(G, h, t) {
   };
   h.anim.name = c.anim; h.anim.t = 0;
   h.chainT = G.time; h.chainTarget = t;
+  if (h.def.melee) sfx(G, h.heroId === 'trunks' ? 'slash' : 'swing', h, { vol: idx === 2 ? 0.7 : 0.5 });
+  G.emit('swing', { h, idx });
   h.chain = (h.chain + 1) % 3;
 }
 function autoHit(G, h, t, idx) {

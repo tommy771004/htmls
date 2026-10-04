@@ -78,16 +78,18 @@ buildShowcase();
 /* ---------------- 選角 ---------------- */
 const select = createSelect({
   portraits,
-  onPick(id) { selectSel = id; const s = showcase.find((o) => o.id === id); if (s) { s.pose = 'win'; s.poseT = 0; } audio.play('select', { vol: 0.5 }); },
+  onPick(id) { selectSel = id; const s = showcase.find((o) => o.id === id); if (s) { s.pose = 'win'; s.poseT = 0; } audio.play('select', { vol: 0.5 }); audio.say(id, 'ready', { vol: 0.9 }); },
   onStart(id, lane, diff) { startMatch(id, lane, diff); },
 });
 select.show();
 
 function startMatch(heroId, lane = 1, diff = 1) {
   audio.resume(); audio.play('select');
+  audio.music(true);
   clearMatch();
   G = newMatch({ fx, cam, sfx, shake: (amt, ang) => R.shake(amt, ang !== undefined ? new THREE.Vector3(Math.sin(ang), 0, Math.cos(ang)) : null), player: heroId, lane, diff });
   const P = G.player;
+  setTimeout(() => G && G.player === P && voice(P, 'ready'), 700);
   for (const u of G.units) attachRig(u);
   G.on('spawn', attachRig);
   G.on('despawn', (u) => { const r = rigs.get(u.id); if (r) { scene.remove(r.rig.root); r.rig.dispose && r.rig.dispose(); if (r.ring) scene.remove(r.ring); rigs.delete(u.id); } });
@@ -156,13 +158,30 @@ function sfx(name, at, o = {}) {
   return audio.play(name, { ...o, vol, pan });
 }
 
+// 角色語音：依與鏡頭的距離衰減，玩家自己的聲音最清楚；AI 的普攻喊聲降低頻率，避免整場吵雜
+function voice(h, line, chance = 1) {
+  if (!h || !h.heroId || Math.random() > chance) return;
+  const d = Math.hypot(h.x - cam.look.x, h.z - cam.look.z);
+  if (d > 36) return;
+  const me = h === G.player;
+  const vol = (me ? 1 : 0.75) * Math.max(0.2, 1 - d / 36);
+  audio.say(h.heroId, line, { vol, pan: Math.max(-1, Math.min(1, (h.x - cam.look.x) / 30)) * 0.6 });
+}
 function wireEvents() {
+  G.on('cast', ({ h, k }) => voice(h, k));
+  G.on('swing', ({ h, idx }) => voice(h, 'atk', (idx === 2 ? 0.85 : 0.35) * (h === G.player ? 1 : 0.5)));
+  G.on('hit', ({ dst, amount, opts }) => {
+    if (!dst || dst.kind !== 'hero' || !dst.alive || amount < dst.maxHp * 0.04) return;
+    const heavy = opts.type === 'H' || opts.type === 'skill' || opts.type === 'super';
+    voice(dst, 'hurt', heavy ? 0.6 : 0.12);
+  });
+  G.on('spark', (h) => voice(h, 'spark'));
   G.on('levelup', (h) => { fx.levelUp(h, '#ffe08a'); if (h === G.player) audio.play('levelUp'); });
   G.on('kibar', ({ h, bars }) => { if (h === G.player) audio.play(bars >= 5 ? 'kiFull' : 'ki', { vol: 0.6 }); });
-  G.on('herodeath', ({ u }) => { sfx('heroDie', u); if (u === G.player) G.shake(0.8); });
+  G.on('herodeath', ({ u }) => { sfx('heroDie', u); voice(u, 'die'); if (u === G.player) G.shake(0.8); });
   G.on('structure', ({ u }) => { fx.towerFall(u.x, u.z); sfx('towerDown', u, { vol: 1.3 }); if (dist(u, G.player) < 30) G.shake(0.9); });
   G.on('death', ({ u }) => { if (u.kind === 'minion') { sfx('minionDie', u, { vol: 0.5 }); fx.dust(u.x, u.z, 6); } });
-  G.on('respawn', (h) => { if (h === G.player) { audio.play('respawn'); if (!G.camFree) cam.target.set(h.x, 0, h.z); } });
+  G.on('respawn', (h) => { if (h === G.player) { audio.play('respawn'); voice(h, 'ready'); if (!G.camFree) cam.target.set(h.x, 0, h.z); } });
   G.on('recall', ({ h, state }) => {
     if (h !== G.player) { if (state === 'done') fx.vanish(h.x, h.z, '#9fe6ff', h, true); return; }
     if (state === 'start') recallSnd = audio.play('recall');
@@ -175,6 +194,8 @@ function wireEvents() {
     G.camFree = true; cam.target.set(core.x, 0, core.z);
     hud.announce(winner === G.player.team ? '勝利' : '敗北', winner === G.player.team ? 'good big' : 'bad big');
     audio.play(winner === G.player.team ? 'victory' : 'defeat');
+    audio.music(false);
+    if (winner === G.player.team) setTimeout(() => G && voice(G.player, 'win'), 1300);
   });
 }
 
@@ -290,6 +311,7 @@ function drawMinimap() {
   minimap.draw(G, pts.length === 4 ? pts : null);
 }
 function backToSelect() {
+  audio.music(false);
   clearMatch(); G = null;
   document.body.classList.remove('playing', 'dead');
   for (const s of showcase) s.rig.root.visible = true;
@@ -310,6 +332,7 @@ requestAnimationFrame(frame);
 window.__kiPlace = (h, x, z) => placeWard(G, h, x, z);
 window.__kiMove = (h, x, z) => orderMove(G, h, x, z);
 window.__ki = {
+  audio,
   ready: true,
   get G() { return G; },
   start(id = 'goku', lane = 1, diff = 1) { startMatch(id, lane, diff); return true; },

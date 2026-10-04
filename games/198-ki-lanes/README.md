@@ -4,7 +4,7 @@
 
 非官方同人作品：角色與招式名稱版權屬原作者；模型、特效、地圖與音效全部以程式產生，不含原作的貼圖、模型、圖示、音效或文字素材。
 
-- 成品：`web/198-ki-lanes.html`（單檔約 2.7 MB，Three.js 0.186.0 與烘焙好的角色網格一起打包，不載入任何外部資源）
+- 成品：`web/198-ki-lanes.html`（單檔約 3.1 MB，Three.js 0.186.0 與烘焙好的角色網格一起打包，不載入任何外部資源）
 - 一場約 10～20 分鐘（全 AI 模擬 4 場：8～23 分鐘結束，中位數約 15 分鐘）
 
 ## 指令
@@ -24,6 +24,8 @@ npm run models         # 重建六名英雄的網格（需要 Blender 5.2；約 
 npm run models -- --only goku,vegeta   # 只重建部分英雄（其他沿用快取或現有的 models-baked.js）
 node tools/viewer.mjs name "ids=goku&anim=atk1&t=0.1&ang=30&zoom=3&focus=handR"   # 開發截圖：角色檢視頁（參數見 tools/viewer-entry.js）
 sh tools/heads.sh 25   # 開發截圖：六名角色的頭部特寫拼成 dist/view/heads.png
+node tools/sfx-render.mjs   # 把每種音效算成 WAV（dist/sfx/）試聽，印出長度、峰值與耗時
+VV_CORE=… python tools/voices/build_voices.py [--only goku] [--wav dist/voices]   # 重建角色語音（需要 VOICEVOX，見下方）
 ```
 
 改了 `src/` 要重新 build，並把 `web/198-ki-lanes.html` 一起 commit。驗收工具用 `PLAYWRIGHT_MODULE` 指定 Playwright（預設讀 `~/.npm/_npx/…/playwright`），先試 Metal GPU、失敗再退 SwiftShader。
@@ -68,7 +70,7 @@ sh tools/heads.sh 25   # 開發截圖：六名角色的頭部特寫拼成 dist/v
 | `fx.js` | 粒子、命中火花、光束、死亡球、魔空包圍彈、圓頂爆炸、變身等特效 |
 | `hud.js`、`icons.js` | HUD、技能圖示、選角與結算 |
 | `input.js`、`minimap.js` | 滑鼠鍵盤、觸控、小地圖 |
-| `audio.js` | WebAudio 合成音效 |
+| `audio.js`、`sfx-dsp.js`、`voices.js` | 音效（樣本級合成、變體、殘響、ducking）、太鼓＋箏配樂、角色語音（VOICEVOX 產生、內嵌 MP3） |
 | `world.js` | 建立對戰、固定步長推進（畫面與 Node 模擬共用） |
 | `nav.js` | A* 尋路 |
 | `vision.js`、`fog.js` | 戰爭迷霧的可見格與畫面變暗 |
@@ -86,6 +88,15 @@ sh tools/heads.sh 25   # 開發截圖：六名角色的頭部特寫拼成 dist/v
 - 每頂點存調色盤索引、材質碼（0 一般、1 頭髮、2 亮面、3 發光、4 皮膚、5 隊伍色）、遮蔽、外框粗細倍率與平滑法線；以欄位式串流差分後 zlib＋base64，六名約 1.8 MB。
 
 建模時踩過的坑：骨熱權重在原尺寸常解不出來，要放大 10 倍算；開口的衣服殼會讓骨熱亂掉，所以權重改在封閉的替身（軀幹、骨盆、四肢）上算再轉移；上色交界先沿等值線切開網格再分島，邊界才會又平又銳利；一條管子硬折會在內側自我穿插，手指改成每節一顆膠囊。
+
+## 音效與語音
+
+- 不用振盪器的電子音：`sfx-dsp.js` 直接算波形。打擊是往下滑的肉身悶響＋布料拍擊＋破聲，重擊再加碎屑；氣功彈與光束是噪音的轟鳴與劈啪；塔是水晶共鳴與石頭悶敲、倒塌是連串落石；陶土小兵碎裂；升級與氣力滿格是寺院的鈴（非諧波模態合成）；選角是拍子木；勝敗是太鼓、箏（Karplus–Strong 撥弦）與銅鑼。開場在背景分批算好（約 0.2 秒），每種音色 2～5 個變體，播放時再隨機微調音高與音量。
+- 程式產生的殘響當共用送出；語音說大招時把音效與配樂壓低（ducking）。
+- 對戰配樂：大太鼓、長胴、締太鼓、鼓邊與鉦的 16 步節奏（六段輪替），加上都節音階的箏每兩小節即興一句。
+- 角色語音：普攻（第三段大多會喊）、受傷、QWER 招式名、爆氣、陣亡、勝利、開場與選角。同一角色一次只說一句，大招優先；距離鏡頭越遠越小聲，AI 的普攻喊聲頻率較低。
+- 語音由 `tools/voices/build_voices.py` 產生：VOICEVOX 念出台詞（喊叫用較高的抑揚與音高），去頭尾靜音、加一點飽和與壓縮，編成 40 kbps MP3 後 base64 內嵌在 `src/voices.js`（約 430 KB）。需要 VOICEVOX CORE（`voicevox_core` Python wheel，以及官方 `download` 工具取得的 onnxruntime、字典與模型，約 1.3 GB），`VV_CORE` 指向 download 的輸出資料夾；台詞、配音與語氣參數在腳本開頭的 `CAST`、`LINES`。
+- 配音：悟空＝VOICEVOX:白上虎太郎、貝吉塔＝VOICEVOX:玄野武宏、特南克斯＝VOICEVOX:剣崎雌雄、比克＝VOICEVOX:青山龍星、弗利沙＝VOICEVOX:†聖騎士 紅桜†、18 號＝VOICEVOX:九州そら。依各角色的利用規約需標示「VOICEVOX:角色名」，選角畫面右上角與本 README 已標示；青山龍星若由企業參與使用需先向權利方確認。
 
 ## 視野、草叢與眼
 

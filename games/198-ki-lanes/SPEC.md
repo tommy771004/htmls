@@ -87,7 +87,7 @@
 | `fx.js` | 粒子、光束、衝擊環、地面標記、浮動數字 |
 | `hud.js` | DOM HUD、選角畫面、結算 |
 | `input.js` | 滑鼠鍵盤、觸控 |
-| `audio.js` | WebAudio 合成音效（見下方介面） |
+| `audio.js` | 音效、配樂與角色語音（見下方介面；音色在 `sfx-dsp.js`、語音在 `voices.js`） |
 | `minimap.js` | 小地圖 canvas |
 
 ### `models.js` 介面
@@ -111,8 +111,9 @@ export const HERO_IDS = ['goku','vegeta','trunks','piccolo','frieza','a18'];
 ### `audio.js` 介面
 
 ```js
-export const audio = { init(), resume(), play(name, opts), setMaster(v), music(on) };
-// name: 'hitL','hitM','hitH','blast','beamCharge','beam','dash','vanish','explode','freeze','thunder','slam','tower','towerHit','towerDown','minionDie','heroDie','levelUp','ki','kiFull','spark','recall','respawn','select','victory','defeat','ui'
+export const audio = { init(), resume(), play(name, opts), say(heroId, line, opts), setMaster(v), music(on), toggleMute(), ready };
+// say 的 line：atk、hurt、Q、W、E、R、spark、die、win、ready
+// name: 'hitL','hitM','hitH','swing','slash','blast','beamCharge','beam','dash','vanish','explode','freeze','thunder','slam','tower','towerHit','towerDown','minionDie','heroDie','levelUp','ki','kiFull','spark','recall','respawn','select','victory','defeat','ui'
 ```
 
 ## 5. 測試 API（`window.__ki`）
