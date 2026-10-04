@@ -130,6 +130,37 @@ def long_sleeve(F, pal, s_end=None, k=1.0, name='sleeveL', thick=0.007, e=0.008,
     return kit.tag(sl, pal, grp=G_ARM_L)
 
 
+def long_skirt(F, pal, y0, y1, rx0, rz0, rx1, rz1, gap=0.0, name='skirt', thick=0.009, n=24):
+    """從腰往下的長下襬（大衣、圍裙）：斷面由 (rx0,rz0) 漸寬到 (rx1,rz1)，前方開衩 gap（弧度比例），綁在骨盆群組讓雙腿帶動。"""
+    m = 5
+    sts = [S(V((0, lerp(y0, y1, i / (m - 1)), 0.004 * i)), lerp(rx0, rx1, smooth(i / (m - 1))), lerp(rz0, rz1, smooth(i / (m - 1))), p=2.1) for i in range(m)]
+    o = kit.loft(name, sts, n=n, cap0=None, cap1=None, gap=(lambda i: gap) if gap else None)
+    o = kit.subsurf(o, 2, solidify=thick)
+    return kit.tag(o, pal, grp=G_PELVIS)
+
+
+def hang_tail(pal, pts, w0, w1, name='tail', grp=G_PELVIS):
+    """垂下的布條（腰帶尾端）：沿點列放樣的扁帶。"""
+    k = len(pts)
+    o = path_loft(name, pts, [lerp(w0, w1, i / (k - 1)) for i in range(k)], n=8, flat=0.18)
+    return kit.tag(kit.subsurf(o, 1), pal, grp=grp, ol=0.7)
+
+
+def on_surface(target, x, y, z0=1.0):
+    """從前方往後打射線，取 target 表面上 (x, y) 處的點與法線。"""
+    from heroes import tree_of
+    hit = tree_of(target).ray_cast(V((x, y, z0)), V((0, 0, -1)), 2)
+    return (hit[0], hit[1]) if hit[0] is not None else (V((x, y, 0.1)), V((0, 0, 1)))
+
+
+def stud(name, p, n, r, pal, grp=G_TORSO, flat=0.45):
+    """貼在表面的小圓扣。"""
+    o = kit.quad_sphere(name, 1.0, cuts=2)
+    rot = V((0, 0, 1)).rotation_difference(n).to_matrix().to_4x4()
+    kit.transform(o, Matrix.Translation(p + n * r * 0.3) @ rot @ Matrix.Diagonal((r, r, r * flat, 1)))
+    return kit.tag(o, pal, mat=2, grp=grp, ol=0.3)
+
+
 def straight_leg(F, pal, k=1.0, s_end=None, flare=1.0, name='legL'):
     kl = F.k_leg * k
     s_end = s_end if s_end is not None else F.tl + F.sl - 0.04
@@ -249,37 +280,37 @@ def build_sasuke(R):
     kit.tag(chest, skin, mat=4, grp=G_TORSO)
     body.append(chest)
     proxy.append(chest)
-    # 白色和服上衣：胸前大 V 開口、寬袖
-    rows = [(0.02, ('w', 1.22), 0.92, 0.0)] + [r for r in TORSO_ROWS if r[0] > 0.1]
+    # 淡紫上衣：胸前 V 開口、高立領、袖子到手肘上方
+    lav = P(0xb4b0d6)
+    rows = [(0.02, ('w', 1.2), 0.9, 0.0)] + [r for r in TORSO_ROWS if r[0] > 0.1]
     us = [r[0] for r in rows]
-    top = kit.loft('gi_top', torso_rows(F, e=0.02, rows=rows, pec=0.1, lat=0.06), n=20, cap0=None, cap1=None, gap=lambda i: 0.0 if us[i] <= 0.3 else min(1.2, 0.1 + (us[i] - 0.3) * 1.7))
-    top = kit.subsurf(top, 2, solidify=0.011)
-    kit.tag(top, white, grp=G_TORSO)
+    top = kit.loft('gi_top', torso_rows(F, e=0.016, rows=rows, pec=0.1, lat=0.06), n=20, cap0=None, cap1=None, gap=lambda i: 0.0 if us[i] <= 0.45 else min(0.9, 0.08 + (us[i] - 0.45) * 1.5))
+    top = kit.subsurf(top, 2, solidify=0.01)
+    kit.tag(top, lav, grp=G_TORSO)
     body.append(top)
+    col = kit.loft('collar', [S(V((0, F.y(0.95), -0.012)), F.cx * 0.62, F.cz * 0.78), S(V((0, F.y(1.12), -0.02)), F.cx * 0.58, F.cz * 0.74), S(V((0, F.y(1.26), -0.03)), F.cx * 0.66, F.cz * 0.8)],
+                   n=18, cap0=None, cap1=None, gap=lambda i: 0.35)
+    body.append(kit.tag(kit.subsurf(col, 2, solidify=0.008), lav, grp=G_NECK, ol=0.8))
     body.append(neck(F, skin, r=0.054))
     proxy.append(body[-1])
-    slv = sleeve(F, white, s1=0.2, r=0.098 * F.k_arm + 0.01, flare=1.16, s0=-0.06)
     arm = arm_skin(F, skin, muscle=0.9)
-    kit.paint_field(arm, lambda co: arm_s(F, co) - 0.15, white, 0)
-    ag = band('guardL', F.sh, F.da, F.up + 0.06, F.up + F.lo - 0.02, 0.07 * F.k_fore, 0.058 * F.k_fore, guard, G_FORE_L, thick=0.01)
+    kit.paint_field(arm, lambda co: arm_s(F, co) - (F.up - 0.06), lav, 0)
+    slv = long_sleeve(F, lav, s_end=F.up - 0.03, k=1.0, e=0.016, cuff=1.2)
+    ag = band('guardL', F.sh, F.da, F.up + 0.02, F.up + F.lo - 0.02, 0.066 * F.k_fore + 0.01, 0.054 * F.k_fore + 0.008, navyD, G_FORE_L, thick=0.008)
     hand = fist(F, skin, scale=1.0)
-    # 腰間的紫色粗繩＋深藍腰布（前開）
+    # 紫色粗繩（前方打結垂下）＋深藍長腰布到膝下、前開
     body.append(pelvis(F, navy, e=0.012))
     proxy.append(body[-1])
     yb = F.L + 0.09
-    rp = belt_ring(F, yb, 0.06, rope, e=0.03, thick=0.022)
-    body.append(rp)
-    for sx in (1, -1):
-        bow = path_loft('bow', [V((sx * 0.02, yb, -F.cz * 1.0)), V((sx * 0.12, yb + 0.03, -F.cz * 1.1)), V((sx * 0.06, yb - 0.08, -F.cz * 1.08))], [0.026, 0.03, 0.022], n=8)
-        body.append(kit.tag(kit.subsurf(bow, 1), rope, grp=G_BELT, ol=0.7))
+    body.append(belt_ring(F, yb, 0.06, rope, e=0.035, thick=0.022))
+    body.append(hang_tail(rope, [V((F.w * 0.7, yb - 0.02, F.cz * 1.05)), V((F.w * 0.85, yb - 0.2, F.cz * 1.2)), V((F.w * 0.75, yb - 0.36, F.cz * 1.15))], 0.035, 0.028, name='ropeTail'))
     hw = F.R['hip']
-    apron = kit.loft('apron', [S(V((0, yb - 0.02, 0)), F.w * 1.3 + 0.03, F.cz * 0.98 + 0.03, p=2.2), S(V((0, F.L - 0.1, 0)), hw * 1.8, F.cz * 1.12, p=2.1),
-                               S(V((0, F.L - 0.3, 0)), hw * 1.95, F.cz * 1.22, p=2.0)], n=22, cap0=None, cap1=None, gap=lambda i: 0.35)
-    apron = kit.subsurf(apron, 2, solidify=0.009)
-    body.append(kit.tag(apron, navyD, grp=G_PELVIS))
-    leg = straight_leg(F, navy, k=1.0, s_end=F.tl + F.sl - 0.08)
-    bt = boot(F, navyD, F.tl + 0.1, 0.07, pal_sole=navyD)
-    pair_add(body, proxy, [slv, arm, ag, hand, leg] + bt, proxy_set=[arm, hand, leg] + bt)
+    body.append(long_skirt(F, navyD, yb - 0.02, F.L - 0.48, F.w * 1.32 + 0.035, F.cz * 1.0 + 0.035, hw * 2.2, F.cz * 1.45, gap=0.22, name='apron'))
+    kl = F.k_leg
+    leg = straight_leg(F, navy, k=1.05, s_end=F.tl + 0.2, flare=1.1)
+    wrap = band('wrapL', F.th, F.dl, F.tl + 0.17, F.tl + F.sl - 0.07, 0.062 * F.k_shin + 0.008, 0.05 * F.k_shin + 0.008, P(0x8a8c96), G_LEG_L, thick=0.006)
+    ft = sandal(F, skin, P(0x24262e))
+    pair_add(body, proxy, [slv, arm, ag, hand, leg, wrap] + ft, proxy_set=[arm, hand, leg] + ft)
     body.append(team_band(F, team, 1.2))
 
     h = anime_head('head_base', F, skin, jaw=0.88, chin=0.78, cheek=0.93, nose=0.8, face_len=1.07)
@@ -476,30 +507,34 @@ def build_luffy(R):
         body.append(kit.tag(kit.subsurf(sc, 1), scar, mat=4, grp=G_TORSO, ol=0.0))
     body.append(chest)
     proxy.append(chest)
-    # 紅色無袖背心：前襟整片敞開
-    rows = [(0.08, ('w', 1.18), 0.9, 0.0)] + [r for r in TORSO_ROWS if r[0] > 0.15]
-    vest = open_jacket(F, red, rows, e=0.018, gap0=0.55, gap1=0.75, name='vest', pec=0.1)
-    body.append(vest)
+    # 紅色長袖襯衫：前襟整片敞開、袖子捲到前臂（袖口外翻），下襬在腰
+    rows = [(0.06, ('w', 1.2), 0.9, 0.0)] + [r for r in TORSO_ROWS if r[0] > 0.12]
+    shirt = open_jacket(F, red, rows, e=0.02, gap0=0.5, gap1=0.78, name='shirt', pec=0.1)
+    body.append(shirt)
     body.append(neck(F, skin, r=0.054))
     proxy.append(body[-1])
     arm = arm_skin(F, skin, muscle=1.0, k=1.0)
+    s_end = F.up + 0.16
+    kit.paint_field(arm, lambda co: arm_s(F, co) - (s_end - 0.02), red, 0)
+    slv = long_sleeve(F, red, s_end=s_end, k=1.0, e=0.016)
+    roll = band('rollL', F.sh, F.da, s_end - 0.03, s_end + 0.015, 0.064 * F.k_fore + 0.024, 0.07 * F.k_fore + 0.03, red, G_FORE_L, thick=0.01, bulge=1.08)
     hand = fist(F, skin, scale=1.08)
-    # 黃色腰帶、反摺的牛仔短褲到膝蓋、赤腳拖鞋
-    body.append(pelvis(F, denim, e=0.012))
+    # 黃色腰帶（左腰垂下長布條）、到膝下的牛仔短褲配白色毛邊、赤腳拖鞋
+    body.append(pelvis(F, denim, e=0.014))
     proxy.append(body[-1])
     yb = F.L + 0.08
-    body.append(belt_ring(F, yb, 0.07, sash, e=0.02, thick=0.012))
-    knot = path_loft('knot', [V((F.w * 1.0, yb, F.cz * 0.6)), V((F.w * 1.25, yb - 0.08, F.cz * 0.62)), V((F.w * 1.3, yb - 0.22, F.cz * 0.55))], [0.03, 0.028, 0.022], n=8, flat=0.35)
-    body.append(kit.tag(kit.subsurf(knot, 1), sash, grp=G_BELT, ol=0.7))
+    body.append(belt_ring(F, yb, 0.075, sash, e=0.025, thick=0.012))
+    body.append(hang_tail(sash, [V((F.w * 1.0, yb - 0.02, F.cz * 0.7)), V((F.w * 1.4, yb - 0.25, F.cz * 0.85)), V((F.w * 1.55, yb - 0.55, F.cz * 0.7))], 0.075, 0.06, name='sashTail'))
     kl = F.k_leg
-    shorts = leg_tube(F, denim, [(-0.07, 0.128 * kl, 0.128 * kl), (0.04, 0.132 * kl, 0.136 * kl), (0.2, 0.124 * kl, 0.126 * kl), (F.tl - 0.02, 0.11 * kl, 0.112 * kl),
-                                 (F.tl + 0.04, 0.108 * kl, 0.11 * kl)], cap1=None, name='shortsL')
-    cuff = band('cuffL', F.th, F.dl, F.tl - 0.02, F.tl + 0.05, 0.114 * kl, 0.116 * kl, denimD, G_LEG_L, thick=0.01)
+    s_sh = F.tl - 0.1  # 參考圖：短褲到膝蓋上方
+    shorts = leg_tube(F, denim, [(-0.07, 0.13 * kl, 0.13 * kl), (0.04, 0.138 * kl, 0.142 * kl), (0.2, 0.134 * kl, 0.136 * kl), (F.tl - 0.02, 0.122 * kl, 0.124 * kl),
+                                 (s_sh, 0.124 * kl, 0.126 * kl)], cap1=None, name='shortsL')
+    fur = band('furL', F.th, F.dl, s_sh - 0.03, s_sh + 0.03, 0.13 * kl, 0.13 * kl, P(0xf4f2ec), G_LEG_L, thick=0.02, bulge=1.12)
     calf = lambda th: 1 + 0.1 * ang_bump(th, BACK, 1.0)
-    shin = leg_tube(F, skin, [(F.tl - 0.06, 0.086 * kl, 0.088 * kl), (F.tl + 0.1, 0.08 * kl, 0.086 * kl, calf), (F.tl + 0.2, 0.064 * kl, 0.068 * kl, calf), (F.tl + F.sl - 0.06, 0.05 * kl, 0.054 * kl)],
+    shin = leg_tube(F, skin, [(s_sh - 0.04, 0.088 * kl, 0.09 * kl), (F.tl, 0.08 * kl, 0.082 * kl), (F.tl + 0.12, 0.078 * kl, 0.084 * kl, calf), (F.tl + 0.22, 0.062 * kl, 0.066 * kl, calf), (F.tl + F.sl - 0.06, 0.05 * kl, 0.054 * kl)],
                     name='shinL', mat=4)
     ft = sandal(F, skin, sole)
-    pair_add(body, proxy, [arm, hand, shorts, cuff, shin] + ft, proxy_set=[arm, hand, shorts] + ft)
+    pair_add(body, proxy, [arm, slv, roll, hand, shorts, fur, shin] + ft, proxy_set=[arm, hand, shorts] + ft)
     body.append(team_band(F, team, 1.2))
 
     h = anime_head('head_base', F, skin, jaw=1.04, chin=1.0, cheek=1.08, nose=0.7, face_len=0.95)
@@ -542,30 +577,37 @@ def build_zoro(R):
     body.append(kit.tag(kit.subsurf(sc, 1), scar, mat=4, grp=G_TORSO, ol=0.0))
     body.append(chest)
     proxy.append(chest)
-    # 深綠長大衣：胸口大開、下襬到大腿，腰間紅色腰帶
-    rows = [(-0.32, ('w', 1.6), 1.12, 0.0), (-0.12, ('w', 1.34), 0.98, 0.0), (0.04, ('w', 1.2), 0.9, 0.0)] + [r for r in TORSO_ROWS if r[0] > 0.1]
+    # 深綠長大衣：胸口大開、長袖；腰帶以下另做一片長下襬垂到小腿，前方開衩
+    rows = [(0.04, ('w', 1.24), 0.92, 0.0)] + [r for r in TORSO_ROWS if r[0] > 0.1]
     us = [r[0] for r in rows]
-    cs = torso_rows(F, e=0.022, rows=rows, pec=0.1, lat=0.08)
-    ct = kit.loft('coat', cs, n=22, cap0=None, cap1=None, gap=lambda i: 0.42 if us[i] < 0.1 else min(1.1, 0.25 + (us[i] - 0.2) * 1.2))
+    ct = kit.loft('coat', torso_rows(F, e=0.02, rows=rows, pec=0.1, lat=0.08), n=22, cap0=None, cap1=None, gap=lambda i: 0.3 if us[i] < 0.3 else min(1.1, 0.3 + (us[i] - 0.3) * 1.3))
     ct = kit.subsurf(ct, 2, solidify=0.012)
     kit.tag(ct, coat, grp=G_TORSO)
     body.append(ct)
+    hw = F.R['hip']
+    body.append(long_skirt(F, coat, F.L + 0.1, F.L - 0.6, F.w * 1.32 + 0.03, F.cz * 1.0 + 0.03, hw * 2.3, F.cz * 1.55, gap=0.16, name='coatSkirt'))
+    # 淺綠腹卷（從大衣開口露出）
+    hara = kit.loft('hara', torso_rows(F, e=0.01, u0=0.12, u1=0.5, pec=0.06, lat=0.04), n=18, cap0=None, cap1=None)
+    hara = kit.subsurf(hara, 2, solidify=0.008)
+    kit.tag(hara, P(0x7ab84a), grp=G_TORSO, ol=0.6)
+    kit.paint_field(hara, lambda co: 0.6 - math.sin(co.y * 140.0), P(0x5a9636), 0)
+    body.append(hara)
     yb = F.L + 0.1
-    body.append(belt_ring(F, yb, 0.08, red, e=0.04, thick=0.014))
+    body.append(belt_ring(F, yb, 0.085, red, e=0.045, thick=0.014))
+    body.append(hang_tail(red, [V((F.w * 1.05, yb - 0.02, F.cz * 0.75)), V((F.w * 1.55, yb - 0.3, F.cz * 0.9)), V((F.w * 1.7, yb - 0.62, F.cz * 0.8))], 0.07, 0.06, name='sashTail'))
     body.append(neck(F, skin, r=0.06))
     proxy.append(body[-1])
     arm = arm_skin(F, skin, muscle=1.3, k=1.08)
-    kit.paint_field(arm, lambda co: arm_s(F, co) - 0.17, coat, 0)
-    slv = sleeve(F, coat, s1=0.2, r=0.094 * F.k_arm + 0.008, flare=1.08, s0=-0.06)
-    bandana = band('bandL', F.sh, F.da, 0.1, 0.17, 0.11 * F.k_arm, 0.105 * F.k_arm, black, G_UPPER_L, thick=0.008)
+    kit.paint_field(arm, lambda co: arm_s(F, co) - (F.up + F.lo - 0.06), coat, 0)
+    slv = long_sleeve(F, coat, k=1.08, e=0.014, cuff=1.15)
+    bandana = band('bandL', F.sh, F.da, 0.1, 0.17, 0.1 * F.k_arm + 0.016, 0.096 * F.k_arm + 0.016, black, G_UPPER_L, thick=0.008)
     hand = fist(F, skin, scale=1.08)
     body.append(pelvis(F, black, e=0.012))
     proxy.append(body[-1])
     leg = straight_leg(F, black, k=1.05)
-    bt = boot(F, black, F.tl + 0.08, 0.078, pal_sole=black)
-    pair_add(body, proxy, [arm, hand, leg] + bt, proxy_set=[arm, hand, leg] + bt)
-    from heroes import mirror
-    body += [slv, mirror(slv), bandana]
+    bt = boot(F, black, F.tl + 0.02, 0.078, pal_sole=black)
+    pair_add(body, proxy, [slv, arm, hand, leg] + bt, proxy_set=[arm, hand, leg] + bt)
+    body.append(bandana)
     body.append(team_band(F, team, 1.3))
 
     h = anime_head('head_base', F, skin, jaw=1.1, chin=1.08, cheek=1.02, nose=0.8, brow=0.7, face_len=1.05, square=0.6)
@@ -619,23 +661,33 @@ def build_sanji(R):
     sh = kit.loft('shirt', torso_rows(F, e=0.004, u0=0.0, pec=0.07), n=18, cap0=None, cap1=None)
     sh = kit.subsurf(sh, 2)
     kit.tag(sh, shirt, grp=G_TORSO)
+    kit.paint_field(sh, lambda co: 0.55 - math.sin(co.x * 160.0), P(0x3a62b0), 0)  # 細直條紋襯衫
     body.append(sh)
     proxy.append(sh)
-    tie_s = path_loft('tie', [V((0, F.y(0.95), F.cz * 0.78 + 0.012)), V((0, F.y(0.7), F.cz * 1.06 + 0.012)), V((0, F.y(0.42), F.cz * 1.02 + 0.014))], [0.016, 0.024, 0.03], n=6, flat=0.25)
+    tie_s = path_loft('tie', [V((0, F.y(0.95), F.cz * 0.78 + 0.012)), V((0, F.y(0.82), F.cz * 0.98 + 0.012)), V((0, F.y(0.7), F.cz * 1.02 + 0.014))], [0.014, 0.02, 0.022], n=6, flat=0.25)
     body.append(kit.tag(kit.subsurf(tie_s, 1), tie, grp=G_TORSO, ol=0.5))
-    rows = [(-0.12, ('w', 1.32), 0.98, 0.0), (0.02, ('w', 1.2), 0.9, 0.0)] + [r for r in TORSO_ROWS if r[0] > 0.1]
-    jk = open_jacket(F, suit, rows, e=0.02, gap0=0.28, gap1=0.62, pec=0.06)
+    # 合身的雙排扣西裝：前襟只在胸口開一個窄 V，下襬到臀部；兩排金扣
+    rows = [(-0.14, ('w', 1.24), 0.94, 0.0), (0.02, ('w', 1.12), 0.86, 0.0)] + [r for r in TORSO_ROWS if r[0] > 0.1]
+    us = [r[0] for r in rows]
+    jk = kit.loft('jacket', torso_rows(F, e=0.012, rows=rows, pec=0.05, lat=0.04), n=22, cap0=None, cap1=None, gap=lambda i: 0.06 if us[i] < 0.6 else min(0.7, 0.06 + (us[i] - 0.6) * 1.6))
+    jk = kit.subsurf(jk, 2, solidify=0.009)
+    kit.tag(jk, suit, grp=G_TORSO)
     body.append(jk)
-    body.append(neck(F, skin, r=0.052))
+    gold = P(0xe8c050)
+    for u in (0.2, 0.36, 0.52):
+        for sx in (1, -1):
+            p, n = on_surface(jk, sx * F.cx * 0.3, F.y(u))
+            body.append(stud('btn', p, n, 0.011, gold))
+    body.append(neck(F, skin, r=0.05))
     proxy.append(body[-1])
-    sl = long_sleeve(F, suit, k=1.0)
-    arm = arm_skin(F, skin, muscle=0.7)
+    sl = long_sleeve(F, suit, k=1.0, e=0.007)
+    arm = arm_skin(F, skin, muscle=0.6)
     kit.paint_field(arm, lambda co: arm_s(F, co) - (F.up + F.lo - 0.06), suit, 0)
     hand = fist(F, skin, scale=1.0)
-    body.append(pelvis(F, suit, e=0.012))
+    body.append(pelvis(F, suit, e=0.01))
     proxy.append(body[-1])
-    leg = straight_leg(F, suit, k=1.0, flare=1.05)
-    bt = boot(F, suitD, F.tl + F.sl - 0.1, 0.06, pal_sole=suitD, toe=0.95, toe_len=0.02)
+    leg = straight_leg(F, suit, k=0.86, flare=1.08)
+    bt = boot(F, suitD, F.tl + F.sl - 0.1, 0.055, pal_sole=suitD, toe=0.9, toe_len=0.06)
     pair_add(body, proxy, [sl, arm, hand, leg] + bt, proxy_set=[arm, hand, leg] + bt)
     body.append(team_band(F, team, 1.2))
 
@@ -686,26 +738,41 @@ def build_nami(R):
     kit.tag(tor, skin, mat=4, grp=G_TORSO)
     body.append(tor)
     proxy.append(tor)
-    # 比基尼上衣（只包胸口一圈）＋藍白相間
-    # 平口抹胸：一圈貼著胸型的布（bust 和皮膚層一致，所以不會浮起來）
-    bk = kit.loft('bandeau', torso_rows(F, e=0.007, u0=0.5, u1=0.8, pec=0, lat=0, bust=0.38, rows=FEMALE_ROWS), n=22, cap0=None, cap1=None)
-    bk = kit.subsurf(bk, 2, solidify=0.006)
-    kit.tag(bk, top_c, grp=G_TORSO, ol=0.7)
-    body.append(bk)
+    # 比基尼上衣：兩片扁平罩杯貼在胸口（藍白迷彩紋），頸後綁帶與背後細帶
+    from cast import plate
+    for sx in (1, -1):
+        p, n = on_surface(tor, sx * F.cx * 0.42, F.y(0.66))
+        cup = plate('cup', p + n * 0.004, V((1, 0, 0)), V((0, 1, 0)), n, F.cx * 0.5, F.cx * 0.44, 0.012, top_c, G_TORSO, mat=0, ol=0.6)
+        kit.paint_field(cup, lambda co: 0.4 - math.sin(co.x * 90.0 + co.y * 60.0), top_l, 0)
+        body.append(cup)
+        hp = F.c + V((sx * F.hr * 0.25, -F.hr * 1.5, -F.hr * 0.3))
+        body.append(hang_tail(top_c, [p + V((sx * F.cx * 0.1, F.cx * 0.25, 0.004)), (p + hp) * 0.5 + V((0, 0, 0.02)), hp], 0.008, 0.007, name='halter', grp=G_TORSO))
+    body.append(strap_around(F, tor, V((0, F.y(0.66), 0)), V((0, 1, 0)), 0.01, 0.004, top_c, off=0.004, arc=(PI * 0.7, PI * 2.3)))
     body.append(neck(F, skin, r=0.045))
     proxy.append(body[-1])
     arm = arm_skin(F, skin, muscle=0.25, k=1.0)
     bracelet = band('logL', F.sh, F.da, F.up + F.lo - 0.07, F.up + F.lo - 0.03, 0.05 * F.k_fore, 0.048 * F.k_fore, belt_c, G_FORE_L, thick=0.008, ol=0.5)
     hand = fist(F, skin, scale=0.98)
-    # 低腰牛仔褲＋高跟涼鞋
-    body.append(pelvis(F, denim, e=0.006))
+    # 咖啡色七分褲（到小腿中段）、金環皮帶、橘色綁帶高跟涼鞋
+    capri = P(0x4a3226)
+    body.append(pelvis(F, capri, e=0.006))
     proxy.append(body[-1])
-    body.append(belt_ring(F, F.L + 0.05, 0.03, belt_c, e=0.014, thick=0.008))
+    yb = F.L + 0.05
+    body.append(belt_ring(F, yb, 0.032, belt_c, e=0.016, thick=0.008))
+    for k in range(5):
+        a = -0.7 + k * 0.35
+        p, n = on_surface(body[-1], math.sin(a) * F.w * 1.3, yb)
+        body.append(stud('ring', p, n, 0.012, P(0xe0b050), grp=G_BELT))
     kl = F.k_leg
-    leg = leg_tube(F, denim, [(-0.07, 0.114 * kl, 0.114 * kl), (0.05, 0.112 * kl, 0.116 * kl), (0.22, 0.096 * kl, 0.1 * kl), (F.tl - 0.03, 0.074 * kl, 0.078 * kl),
-                              (F.tl + 0.1, 0.072 * kl, 0.076 * kl), (F.tl + F.sl - 0.1, 0.066 * kl, 0.068 * kl), (F.tl + F.sl - 0.06, 0.06 * kl, 0.062 * kl)])
-    ft = sandal(F, skin, sole)
-    pair_add(body, proxy, [arm, bracelet, hand, leg] + ft, proxy_set=[arm, hand, leg] + ft)
+    s_cap = F.tl + 0.08
+    leg = leg_tube(F, capri, [(-0.07, 0.114 * kl, 0.114 * kl), (0.05, 0.114 * kl, 0.118 * kl), (0.22, 0.1 * kl, 0.104 * kl), (F.tl - 0.03, 0.08 * kl, 0.084 * kl),
+                              (F.tl + 0.08, 0.078 * kl, 0.082 * kl), (s_cap, 0.074 * kl, 0.076 * kl)], cap1=None)
+    calf = lambda th: 1 + 0.09 * ang_bump(th, BACK, 1.0)
+    shin = leg_tube(F, skin, [(F.tl + 0.1, 0.066 * kl, 0.07 * kl, calf), (F.tl + 0.2, 0.054 * kl, 0.058 * kl, calf), (F.tl + F.sl - 0.06, 0.044 * kl, 0.048 * kl)], name='shinL', mat=4)
+    bt = boot(F, P(0xd8783a), F.tl + 0.2, 0.05, pal_sole=P(0x8a4a22), toe=0.85)
+    for o in bt:
+        kit.paint_field(o, lambda co: 0.25 - math.sin(co.y * 120.0), skin, 4)  # 綁帶之間露出皮膚
+    pair_add(body, proxy, [arm, bracelet, hand, leg, shin] + bt, proxy_set=[arm, hand, leg] + bt)
     body.append(team_band(F, team, 1.0))
 
     h = anime_head('head_base', F, skin, jaw=0.88, chin=0.8, cheek=1.0, nose=0.6, face_len=0.98)
