@@ -518,6 +518,10 @@ body.camfree #camHint { display: block; }
   #cards .card img { height: 4.6em; }
   #pickInfo { bottom: calc(var(--safe-b) + 18.4em); }
 }
+#pickInfo h2 { flex-wrap: wrap; row-gap: .1em; }
+#pickInfo h2 b { white-space: nowrap; }
+#pickInfo h2.long b { font-size: 2.1em; }
+@media (max-width: 760px) { #pickInfo h2.long b { font-size: 1.5em; } }
 </style>
 </head>
 <body>
@@ -579,7 +583,7 @@ body.camfree #camHint { display: block; }
 
 <div id="select">
   <div id="title"><b>氣鬥三路</b><span>KI LANES</span></div>
-  <p id="fanNote">非官方同人作品・角色與招式版權屬原作者・模型與特效皆以程式繪製<small>語音：VOICEVOX:九州そら、VOICEVOX:剣崎雌雄、VOICEVOX:玄野武宏、VOICEVOX:白上虎太郎、VOICEVOX:青山龍星、VOICEVOX:†聖騎士 紅桜†</small></p>
+  <p id="fanNote">非官方同人作品（七龍珠、火影忍者、海賊王）・角色與招式版權屬各原作者・模型與特效皆以程式繪製<small>語音：VOICEVOX:九州そら、VOICEVOX:剣崎雌雄、VOICEVOX:玄野武宏、VOICEVOX:白上虎太郎、VOICEVOX:青山龍星、VOICEVOX:†聖騎士 紅桜†、VOICEVOX:満別花丸、VOICEVOX:黒沢冴白、VOICEVOX:離途、VOICEVOX:四国めたん、VOICEVOX:猫使アル、VOICEVOX:雀松朱司、VOICEVOX:麒ヶ島宗麟、VOICEVOX:春日部つむぎ</small></p>
   <div id="pickInfo"></div>
   <div id="pickBar">
     <div id="cards"></div>

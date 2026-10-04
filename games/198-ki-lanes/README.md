@@ -1,10 +1,10 @@
 # 氣鬥三路 · KI LANES（作品 198）
 
-《七龍珠 FighterZ》的連段手感 × 三路推塔。從悟空、貝吉塔、特南克斯、比克、弗利沙、人造人18號選一名，和兩名 AI 隊友對上三名 AI 敵人，推倒敵方主堡就獲勝。機制分析、角色技能表、地圖座標與模組契約見 [SPEC.md](SPEC.md)。
+《七龍珠 FighterZ》的連段手感 × 三路推塔。14 名角色分三組：七龍珠（悟空、貝吉塔、特南克斯、比克、弗利沙、人造人18號）、火影忍者（鳴人、佐助、卡卡西、小櫻）、海賊王（魯夫、索隆、香吉士、娜美）。選一名，和兩名 AI 隊友對上三名 AI 敵人，推倒敵方主堡就獲勝。機制分析、角色技能表、地圖座標與模組契約見 [SPEC.md](SPEC.md)。
 
-非官方同人作品：角色與招式名稱版權屬原作者；模型、特效、地圖與音效全部以程式產生，不含原作的貼圖、模型、圖示、音效或文字素材。
+非官方同人作品：角色與招式名稱版權屬各原作者；模型、特效、地圖與音效全部以程式產生，不含原作的貼圖、模型、圖示、音效或文字素材。
 
-- 成品：`web/198-ki-lanes.html`（單檔約 3.1 MB，Three.js 0.186.0 與烘焙好的角色網格一起打包，不載入任何外部資源）
+- 成品：`web/198-ki-lanes.html`（單檔約 5.6 MB，Three.js 0.186.0 與烘焙好的角色網格一起打包，不載入任何外部資源）
 - 一場約 10～16 分鐘（叢林改成連續石牆後，全 AI 模擬 5 場在 9.5～16 分鐘結束）
 - 畫面與 HUD 參考 [這支 LoL × FighterZ 的影片](https://x.com/GamefxAI/status/2106670299731149160)的構圖與手感（石板路、塔下廣場、白色天線塔、格鬥遊戲式技能列、連段字、漫畫對話框、龍珠獵人），但全部自己用程式建構，沒有使用影片裡的任何素材
 
@@ -79,6 +79,7 @@ VV_CORE=… python tools/voices/build_voices.py [--only goku] [--wav dist/voices
 | `vision.js`、`fog.js` | 戰爭迷霧的可見格與畫面變暗 |
 | `items.js`、`jungle.js` | 商店與道具、野怪與大猿 |
 | `dragonballs.js`、`quips.js` | 龍珠獵人規則（不碰 DOM）、漫畫對話框台詞 |
+| `blender/crossover.py` | 火影忍者、海賊王 8 名客串角色的 Blender 建模（護額、草帽、日本刀等配件） |
 | `map-props.js` | 地圖裝飾（樹、岩石、懸崖、河道、基地） |
 | `main.js` | 迴圈、場景同步、頭像算圖、測試 API |
 
@@ -99,8 +100,8 @@ VV_CORE=… python tools/voices/build_voices.py [--only goku] [--wav dist/voices
 - 程式產生的殘響當共用送出；語音說大招時把音效與配樂壓低（ducking）。
 - 對戰配樂：大太鼓、長胴、締太鼓、鼓邊與鉦的 16 步節奏（六段輪替），加上都節音階的箏每兩小節即興一句。
 - 角色語音：普攻（第三段大多會喊）、受傷、QWER 招式名、爆氣、陣亡、勝利、開場與選角。同一角色一次只說一句，大招優先；距離鏡頭越遠越小聲，AI 的普攻喊聲頻率較低。
-- 語音由 `tools/voices/build_voices.py` 產生：VOICEVOX 念出台詞（喊叫用較高的抑揚與音高），去頭尾靜音、加一點飽和與壓縮，編成 40 kbps MP3 後 base64 內嵌在 `src/voices.js`（約 430 KB）。需要 VOICEVOX CORE（`voicevox_core` Python wheel，以及官方 `download` 工具取得的 onnxruntime、字典與模型，約 1.3 GB），`VV_CORE` 指向 download 的輸出資料夾；台詞、配音與語氣參數在腳本開頭的 `CAST`、`LINES`。
-- 配音：悟空＝VOICEVOX:白上虎太郎、貝吉塔＝VOICEVOX:玄野武宏、特南克斯＝VOICEVOX:剣崎雌雄、比克＝VOICEVOX:青山龍星、弗利沙＝VOICEVOX:†聖騎士 紅桜†、18 號＝VOICEVOX:九州そら。依各角色的利用規約需標示「VOICEVOX:角色名」，選角畫面右上角與本 README 已標示；青山龍星若由企業參與使用需先向權利方確認。
+- 語音由 `tools/voices/build_voices.py` 產生：VOICEVOX 念出台詞（喊叫用較高的抑揚與音高），去頭尾靜音、加一點飽和與壓縮，編成 40 kbps MP3 後 base64 內嵌在 `src/voices.js`（約 1 MB）。需要 VOICEVOX CORE（`voicevox_core` Python wheel，以及官方 `download` 工具取得的 onnxruntime、字典與模型，約 1.3 GB），`VV_CORE` 指向 download 的輸出資料夾；台詞、配音與語氣參數在腳本開頭的 `CAST`、`LINES`。
+- 配音：悟空＝VOICEVOX:白上虎太郎、貝吉塔＝VOICEVOX:玄野武宏、特南克斯＝VOICEVOX:剣崎雌雄、比克＝VOICEVOX:青山龍星、弗利沙＝VOICEVOX:†聖騎士 紅桜†、18 號＝VOICEVOX:九州そら；鳴人＝VOICEVOX:満別花丸、佐助＝VOICEVOX:黒沢冴白、卡卡西＝VOICEVOX:離途、小櫻＝VOICEVOX:四国めたん、魯夫＝VOICEVOX:猫使アル、索隆＝VOICEVOX:雀松朱司、香吉士＝VOICEVOX:麒ヶ島宗麟、娜美＝VOICEVOX:春日部つむぎ。依各角色的利用規約需標示「VOICEVOX:角色名」，選角畫面右上角與本 README 已標示；青山龍星若由企業參與使用需先向權利方確認。
 
 ## 龍珠獵人
 

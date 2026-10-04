@@ -564,7 +564,7 @@ export function buildHero(id, team = 0) {
       backSocket.rotation.set(0, 0, -2.6);
       torso.add(backSocket);
     }
-    pair(gs.sheath, backSocket, bodyMat, 0.008);
+    if (gs.sheath) pair(gs.sheath, backSocket, bodyMat, 0.008);
     sword = new THREE.Group();
     pair(gs.sword, sword, bodyMat, 0.006);
     backSocket.add(sword);

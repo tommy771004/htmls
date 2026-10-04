@@ -155,7 +155,7 @@ Object.assign(HEROES, {
   luffy: {
     name: '蒙其・D・魯夫', short: '魯夫', en: 'LUFFY', role: '近戰鬥士', color: '#ff3b4b', glow: '#ffe6e8', melee: true, franchise: 'op',
     blurb: '橡膠果實能力者。手臂伸長打人、橡膠火箭飛撲，二檔加速，巨人手槍一拳轟飛。',
-    stats: { hp: 660, hpLv: 92, ad: 58, adLv: 4.3, range: 2.6, as: 0.74, ms: 7.4, armor: 0.12 },
+    stats: { hp: 700, hpLv: 96, ad: 58, adLv: 4.3, range: 2.6, as: 0.74, ms: 7.4, armor: 0.15 },
     skills: {
       Q: { name: '橡膠槍', desc: '手臂伸長打出直拳，打中第一個敵人並擊退。', cd: 5, range: 11, dmg: [70, 110, 150, 190, 230], adR: 0.6 },
       W: { name: '橡膠火箭', desc: '把自己彈射到游標處，落地撞開周圍的敵人。', cd: 10, range: 10, dmg: [55, 85, 115, 145, 175], adR: 0.45, radius: 3 },
@@ -188,7 +188,7 @@ Object.assign(HEROES, {
   nami: {
     name: '娜美', short: '娜美', en: 'NAMI', role: '遠程術士', color: '#ffa23c', glow: '#fff3e0', melee: false, franchise: 'op',
     blurb: '天才航海士。天候棒招來落雷、冷氣泡讓敵人變慢，雷雲在戰場上空連續劈落。',
-    stats: { hp: 520, hpLv: 72, ad: 52, adLv: 3.7, range: 7.2, as: 0.82, ms: 7.1, armor: 0.06 },
+    stats: { hp: 560, hpLv: 78, ad: 54, adLv: 3.9, range: 7.4, as: 0.8, ms: 7.1, armor: 0.08 },
     skills: {
       Q: { name: '雷霆節拍', desc: '在游標處劈下一道落雷，0.4 秒後命中並短暫麻痺。', cd: 6, range: 13, dmg: [75, 115, 155, 195, 235], adR: 0.6, radius: 2.4 },
       W: { name: '冷氣泡', desc: '在游標處布下冷氣霧，3 秒內敵人移速 -40%。', cd: 11, range: 12, dmg: [30, 45, 60, 75, 90], adR: 0.3, radius: 3.6, slow: 0.4 },

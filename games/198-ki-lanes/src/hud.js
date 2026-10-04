@@ -448,7 +448,7 @@ export function createSelect({ portraits, onPick, onStart }) {
     cur = id; const d = HEROES[id];
     for (const c of cards.children) c.classList.toggle('sel', c.dataset.id === id);
     info.style.setProperty('--el', d.color);
-    info.innerHTML = `<h2><b>${d.name}</b><span>${d.en} · ${d.role}</span></h2><p>${d.blurb}</p><ul>${KEYS.map((k) => `<li><i>${ICONS[id][k]}</i><kbd>${k}</kbd><div><b>${d.skills[k].name}</b><span>${d.skills[k].desc}</span></div></li>`).join('')}</ul>`;
+    info.innerHTML = `<h2${d.name.length > 5 ? ' class="long"' : ''}><b>${d.name}</b><span>${d.en} · ${d.role}</span></h2><p>${d.blurb}</p><ul>${KEYS.map((k) => `<li><i>${ICONS[id][k]}</i><kbd>${k}</kbd><div><b>${d.skills[k].name}</b><span>${d.skills[k].desc}</span></div></li>`).join('')}</ul>`;
     onPick(id);
   }
   cards.addEventListener('click', (e) => { const c = e.target.closest('.card'); if (c) show(c.dataset.id); });
