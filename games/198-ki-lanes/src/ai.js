@@ -7,6 +7,7 @@ import { BUSHES } from './map.js';
 import { seen, inBush } from './vision.js';
 import { eatSenzu, nextBuy, priceFor } from './items.js';
 import { bossAlive } from './jungle.js';
+import { shenronAlive } from './dragonballs.js';
 
 const SKILL_ORDER = {
   goku: ['Q', 'W', 'Q', 'E', 'Q', 'W', 'Q', 'W', 'W', 'E', 'E', 'E'],
@@ -112,6 +113,8 @@ export function updateAI(G, h, dt) {
 function strategy(G, h, hpR) {
   const B = h.brain;
   if (B.mode === 'heal' || B.mode === 'flee') return;
+  // 神龍降臨：全隊健康的人都去神龍坑爭奪
+  if (shenronAlive(G) && hpR > 0.45 && B.mode !== 'boss') { B.mode = 'boss'; B.until = G.time + 45; return; }
   // 大猿：敵方至少兩人陣亡，或 9 分鐘後我方三人都健康
   const boss = bossAlive(G);
   if (boss && hpR > 0.55) {
@@ -199,8 +202,10 @@ function ambushMode(G, h) {
 }
 
 function bossMode(G, h) {
-  const B = h.brain, boss = bossAlive(G);
+  const B = h.brain, sh = shenronAlive(G), boss = sh || bossAlive(G);
   if (!boss || G.time > B.until || h.hp / h.maxHp < 0.4) { B.mode = 'lane'; return false; }
+  // 神龍坑裡遇到敵方英雄先打人
+  if (sh) { const foe = visibleFoes(G, h).find((e) => e.kind === 'hero' && dist(e, h) < 8); if (foe) { orderAttack(G, h, foe); return true; } }
   const near = G.heroes.filter((a) => a.team === h.team && a.alive && dist(a, boss) < 14).length;
   if (dist(h, boss) > 9) { orderMove(G, h, boss.x - 4 * (h.team ? -1 : 1), boss.z + 4 * (h.team ? -1 : 1)); return true; }
   if (near >= 2 || boss.hp / boss.maxHp < 0.5 || boss.state === 'fight') {

@@ -1,6 +1,6 @@
 // 啟動、固定步長迴圈、狀態機（選角 → 對戰 → 結算）、場景同步與測試 API。
 import * as THREE from 'three';
-import { DT, HEROES, HERO_ORDER, TEAM_COLOR, TEAM_LIGHT, FOUNTAIN, BASE, WAVE_EVERY, KI_BAR, xpToNext } from './config.js';
+import { DT, HEROES, HERO_ORDER, TEAM_COLOR, TEAM_LIGHT, FOUNTAIN, BASE, WAVE_EVERY, KI_BAR, xpToNext, DRAGON } from './config.js';
 import { newMatch, stepWorld } from './world.js';
 import { updateFog, resetFog } from './fog.js';
 import { seen } from './vision.js';
@@ -9,6 +9,7 @@ import { BUSHES, OBSTACLES, walkable, bushAt, lanePath, laneProgress, pointAlong
 import { bossAlive } from './jungle.js';
 import { createRenderer } from './render.js';
 import { buildMap, heightAt, STRUCTURES, toonGradient } from './map.js';
+import { giveBalls } from './dragonballs.js';
 import { buildHero, buildMinion, buildTower, buildCore, buildMonster } from './models.js';
 import { createFx } from './fx.js';
 import { audio } from './audio.js';
@@ -26,30 +27,42 @@ const fx = createFx(scene, camera);
 audio.init();
 
 /* ---------------- 頭像 ---------------- */
-const portraits = {};
+// portraits：方形大頭（名單、選角、結算）；busts：直式半身（技能列左側、對話框），背景透明
+const portraits = {}, busts = {};
 {
-  const rt = new THREE.WebGLRenderTarget(160, 160);
   const ps = new THREE.Scene();
   ps.add(new THREE.HemisphereLight('#fff4e0', '#5a4a3a', 1.6));
   const dl = new THREE.DirectionalLight('#ffffff', 2.4); dl.position.set(2, 3, 4); ps.add(dl);
+  const rim = new THREE.DirectionalLight('#9fd8ff', 1.4); rim.position.set(-3, 1.5, -2); ps.add(rim);
   const pc = new THREE.PerspectiveCamera(26, 1, 0.1, 50);
-  const buf = new Uint8Array(160 * 160 * 4), cv = document.createElement('canvas'); cv.width = cv.height = 160;
-  const g = cv.getContext('2d'), img = g.createImageData(160, 160);
-  for (const id of HERO_ORDER) {
-    const rig = buildHero(id, 0); ps.add(rig.root);
-    for (let i = 0; i < 6; i++) rig.update(1 / 30, { name: 'idle', t: i / 30, k: 0 });
-    rig.root.updateMatrixWorld(true);
-    const hp = new THREE.Vector3(); rig.head.getWorldPosition(hp);
-    pc.position.set(hp.x + 0.38, hp.y + 0.24, hp.z + 1.1); pc.lookAt(hp.x, hp.y + 0.1, hp.z);
-    R.renderer.setRenderTarget(rt); R.renderer.setClearColor(0x000000, 0); R.renderer.clear();
-    R.renderer.render(ps, pc);
-    R.renderer.readRenderTargetPixels(rt, 0, 0, 160, 160, buf);
-    for (let y = 0; y < 160; y++) img.data.set(buf.subarray((159 - y) * 640, (160 - y) * 640), y * 640);
-    g.clearRect(0, 0, 160, 160); g.putImageData(img, 0, 0);
-    portraits[id] = cv.toDataURL('image/png');
-    ps.remove(rig.root); rig.dispose && rig.dispose();
+  const shots = [
+    { out: portraits, w: 160, h: 160, cam: (hp) => [hp.x + 0.38, hp.y + 0.24, hp.z + 1.1, hp.x, hp.y + 0.1, hp.z] },
+    { out: busts, w: 220, h: 264, cam: (hp) => [hp.x + 0.52, hp.y + 0.16, hp.z + 2.15, hp.x - 0.04, hp.y - 0.12, hp.z] },
+  ];
+  for (const sh of shots) {
+    const { w, h } = sh, rt = new THREE.WebGLRenderTarget(w, h);
+    const buf = new Uint8Array(w * h * 4), cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const g = cv.getContext('2d'), img = g.createImageData(w, h);
+    pc.aspect = w / h; pc.updateProjectionMatrix();
+    for (const key of HERO_ORDER.flatMap((id) => (sh.out === busts && HEROES[id].ssj ? [id, id + ':ssj'] : [id]))) {
+      const [id, form] = key.split(':');
+      const rig = buildHero(id, 0); ps.add(rig.root);
+      if (form && rig.setForm) rig.setForm(form);
+      for (let i = 0; i < 6; i++) rig.update(1 / 30, { name: 'idle', t: i / 30, k: 0 });
+      rig.root.updateMatrixWorld(true);
+      const hp = new THREE.Vector3(); rig.head.getWorldPosition(hp);
+      const c = sh.cam(hp); pc.position.set(c[0], c[1], c[2]); pc.lookAt(c[3], c[4], c[5]);
+      R.renderer.setRenderTarget(rt); R.renderer.setClearColor(0x000000, 0); R.renderer.clear();
+      R.renderer.render(ps, pc);
+      R.renderer.readRenderTargetPixels(rt, 0, 0, w, h, buf);
+      for (let y = 0; y < h; y++) img.data.set(buf.subarray((h - 1 - y) * w * 4, (h - y) * w * 4), y * w * 4);
+      g.clearRect(0, 0, w, h); g.putImageData(img, 0, 0);
+      sh.out[key] = cv.toDataURL('image/png');
+      ps.remove(rig.root); rig.dispose && rig.dispose();
+    }
+    rt.dispose();
   }
-  R.renderer.setRenderTarget(null); R.renderer.setClearColor(0x000000, 1); rt.dispose();
+  R.renderer.setRenderTarget(null); R.renderer.setClearColor(0x000000, 1);
 }
 
 /* ---------------- 狀態 ---------------- */
@@ -95,7 +108,7 @@ function startMatch(heroId, lane = 1, diff = 1) {
   G.on('despawn', (u) => { const r = rigs.get(u.id); if (r) { scene.remove(r.rig.root); r.rig.dispose && r.rig.dispose(); if (r.ring) scene.remove(r.ring); rigs.delete(u.id); } });
   wireEvents();
   resetFog();
-  if (!hud) hud = createHud({ render: R, portraits });
+  if (!hud) hud = createHud({ render: R, portraits, busts });
   hud.attach(G);
   hud.bindPlayer(P);
   if (!minimap) minimap = createMinimap(document.getElementById('minimap'), map.groundCanvas);
@@ -188,6 +201,20 @@ function wireEvents() {
     else { recallSnd && recallSnd.stop && recallSnd.stop(); recallSnd = null; if (state === 'done') fx.vanish(h.x, h.z, '#9fe6ff', h, true); }
   });
   G.on('charge', ({ h, on }) => { if (h === G.player && on) sfx('ki', h, { vol: 0.4 }); });
+  // 龍珠獵人
+  G.on('dragonSummon', () => { dragon.balls.visible = true; dragon.t = 0; sfx('kiFull', DRAGON.pit, { vol: 1.2 }); });
+  G.on('shenronSpawn', (u) => {
+    dragon.balls.visible = false; G.shake(1); hud.flash('#fff3c0', 0.6); sfx('thunder', u, { vol: 1.6 });
+    for (let i = 0; i < 6; i++) { const a = i * 1.05; fx.lightning({ x: u.x + Math.cos(a) * 6, y: 22, z: u.z + Math.sin(a) * 6 }, { x: u.x + Math.cos(a) * 2.5, y: 0.3, z: u.z + Math.sin(a) * 2.5 }, '#ffe9a0'); }
+    fx.explode(u.x, u.z, '#ffd54a', 6);
+  });
+  G.on('shenronBolt', ({ x, z, r, delay }) => { const h = fx.target(x, z, r, '#ffe36a', delay); G.later(delay + 0.02, () => h.remove()); });
+  G.on('shenronStrike', ({ s: u, x, z, r }) => {
+    fx.lightning({ x: x + 1.5, y: 18, z: z - 1.5 }, { x, y: 0.2, z }, '#fff0a0'); fx.lightning({ x: x - 1, y: 16, z: z + 1 }, { x, y: 0.2, z }, '#ffd54a');
+    fx.explode(x, z, '#ffd54a', r); sfx('thunder', { x, z }, { vol: 0.9 });
+    if (G.player && Math.hypot(G.player.x - x, G.player.z - z) < 14) G.shake(0.45);
+  });
+  G.on('dragonWish', ({ team }) => { if (team < 0) return; for (const h of G.heroes) if (h.team === team && h.alive) fx.levelUp(h, '#ffd54a'); if (team === G.player.team) { hud.flash('#ffe08a', 0.7); audio.play('victory', { vol: 0.5 }); } });
   G.on('gameover', ({ winner }) => {
     endTimer = 3.2; G.slowmo = 1.6;
     const core = G.structures.find((s) => s.kind === 'core' && s.team !== winner);
@@ -198,6 +225,29 @@ function wireEvents() {
     if (winner === G.player.team) setTimeout(() => G && voice(G.player, 'win'), 1300);
   });
 }
+
+/* ---------------- 龍珠與神龍降臨的天色 ---------------- */
+const dragon = (() => {
+  const balls = new THREE.Group(); balls.visible = false; scene.add(balls);
+  const mat = new THREE.MeshToonMaterial({ color: '#ffa21f', emissive: '#ff7a00', emissiveIntensity: 0.7, gradientMap: toonGradient() });
+  const starMat = new THREE.MeshBasicMaterial({ color: '#d4241c' });
+  for (let i = 0; i < 7; i++) {
+    const b = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 12), mat);
+    for (let k = 0; k <= i; k++) { const st = new THREE.Mesh(new THREE.OctahedronGeometry(0.07, 0), starMat); const a = (k / (i + 1)) * Math.PI * 2; st.position.set(Math.cos(a) * (i ? 0.13 : 0), Math.sin(a) * (i ? 0.13 : 0), 0.41); b.add(st); }
+    balls.add(b);
+  }
+  const base = { hemi: R.hemi.intensity, sun: R.sun.intensity, bg: scene.background.clone(), fog: scene.fog.color.clone() };
+  const dark = { bg: new THREE.Color('#2a3a3a'), fog: new THREE.Color('#3c4a44') };
+  return { balls, t: 0, k: 0, update(dt) {
+    this.t += dt;
+    if (balls.visible) balls.children.forEach((b, i) => { const a = this.t * (1.2 + this.t * 0.5) + (i / 7) * Math.PI * 2, r = 2.6 - Math.min(1.4, this.t * 0.2); b.position.set(DRAGON.pit.x + Math.cos(a) * r, 1 + Math.min(6, this.t * 1.1), DRAGON.pit.z + Math.sin(a) * r); b.lookAt(R.camera.position); });
+    const want = G && G.dball && (G.dball.phase === 'summon' || (G.shenron && G.shenron.alive)) ? 1 : 0;
+    this.k += (want - this.k) * Math.min(1, dt * 0.8);
+    const k = this.k;
+    R.hemi.intensity = base.hemi * (1 - 0.35 * k); R.sun.intensity = base.sun * (1 - 0.5 * k);
+    scene.background.copy(base.bg).lerp(dark.bg, k * 0.8); scene.fog.color.copy(base.fog).lerp(dark.fog, k * 0.7);
+  }, reset() { balls.visible = false; this.k = 0; this.update(0); } };
+})();
 
 /* ---------------- 模擬一步 ---------------- */
 function step(dt) { stepWorld(G, dt); }
@@ -230,8 +280,8 @@ function sync(dt, t) {
       rig.root.position.set(u.x, gy, u.z); rig.root.visible = u.alive && vis; rig.update(dt, u);
     } else if (u.kind === 'minion' || u.kind === 'monster') {
       rig.root.position.set(u.x, gy + u.y, u.z);
-      let dy = u.facing - rig.root.rotation.y; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2;
-      rig.root.rotation.y += dy * Math.min(1, dt * 14);
+      if (rig.noFace) rig.setFacing(u.facing);
+      else { let dy = u.facing - rig.root.rotation.y; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2; rig.root.rotation.y += dy * Math.min(1, dt * 14); }
       rig.root.visible = !(u.spawnDelay > 0) && vis;
       rig.update(dt, u.alive ? { name: u.anim.name, t: u.anim.t } : { name: 'dead', t: u.deadT });
     } else if (u.kind === 'tower') rig.update(dt, { charge: u.charge, hp: u.hp / u.maxHp, dead: !u.alive });
@@ -288,6 +338,7 @@ function frame(now) {
     sync(sdt + (scale < 1 ? rdt * 0.02 : 0), simT);
     updateFog(G.vision.grids[P.team], rdt, G.vision.on);
     fx.update(sdt);
+    dragon.update(sdt);
     map.update(simT);
     R.updateCamera(rdt, now / 1000);
     hud.update(rdt);
@@ -311,6 +362,7 @@ function drawMinimap() {
   minimap.draw(G, pts.length === 4 ? pts : null);
 }
 function backToSelect() {
+  dragon.reset();
   audio.music(false);
   clearMatch(); G = null;
   document.body.classList.remove('playing', 'dead');
@@ -385,6 +437,8 @@ window.__ki = {
   camps() { return G.camps.map((c) => ({ id: c.id, alive: c.mobs.filter((m) => m.alive).length, next: +c.next.toFixed(1) })); },
   boss() { const b = bossAlive(G); return b && { id: b.id, x: b.x, z: b.z, hp: Math.round(b.hp) }; },
   heroes() { return G.heroes.map((h) => ({ id: h.id, hero: h.heroId, team: h.team, form: h.form, gold: Math.floor(h.gold), inv: h.inv.slice(), mode: h.brain && h.brain.mode })); },
+  balls(team = 0, n = 7) { giveBalls(G, team, n); return { ...G.dball }; },
+  shenron() { const u = G.shenron; return u && { alive: u.alive, hp: Math.round(u.hp), maxHp: Math.round(u.maxHp), x: u.x, z: u.z, anim: u.anim.name }; },
   camera(x, z, zoom = 1) { G.camFree = true; cam.target.set(x, 0, z); cam.look.set(x, 0, z); cam.zoom = zoom; },
   follow() { G.camFree = false; },
   pick(id) { select.pick(id); },

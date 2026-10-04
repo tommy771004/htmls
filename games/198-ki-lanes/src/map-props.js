@@ -2,7 +2,8 @@
 // 過河踏石、塔旁石燈籠、基地旗幟與晶柱、泉水、野怪營地石圈。全部 InstancedMesh，材質都套用戰爭迷霧。
 import * as THREE from 'three';
 import { OBSTACLES, LANES, STRUCTURES, BUSHES, heightAt, riverDist, distToLanes, pointAlong, rng, insideObstacle } from './map.js';
-import { BASE, FOUNTAIN, TEAM_COLOR, TEAM_LIGHT, CAMPS as CAMPS_LIST } from './config.js';
+import { BASE, FOUNTAIN, TEAM_COLOR, TEAM_LIGHT, CAMPS as CAMPS_ALL, DRAGON } from './config.js';
+const CAMPS_LIST = [...CAMPS_ALL, { x: DRAGON.pit.x, z: DRAGON.pit.z, boss: true }]; // 神龍坑和大猿石場一樣清空
 import { patchFog } from './fog.js';
 
 const polyLen = (p) => { let L = 0; for (let i = 1; i < p.length; i++) L += Math.hypot(p[i].x - p[i - 1].x, p[i].z - p[i - 1].z); return L; };
@@ -48,13 +49,13 @@ export function buildProps(group, quality, { toon, mergeGeo }) {
   };
   const place = (t, s, im, i, yoff = 0, sy = 1, tilt = 0) => {
     e3.set(tilt * Math.sin(t.rot * 3), t.rot, tilt * Math.cos(t.rot * 2)); q.setFromEuler(e3); sc.set(s, s * sy, s);
-    p3.set(t.x, heightAt(t.x, t.z) + yoff, t.z); m4.compose(p3, q, sc); im.setMatrixAt(i, m4);
+    p3.set(t.x, heightAt(t.x, t.z) + yoff + (t.y0 || 0), t.z); m4.compose(p3, q, sc); im.setMatrixAt(i, m4);
   };
   const ok = (x, z, laneGap = 6, riverGap = 6) => Math.abs(x) < 89 && Math.abs(z) < 89 && distToLanes(x, z) > laneGap && riverDist(x, z) > riverGap && !insideObstacle(x, z, 0.2)
     && !BASE.some((b) => Math.hypot(x - b[0], z - b[1]) < 24) && !CAMPS_LIST.some((c) => Math.hypot(x - c.x, z - c.z) < (c.boss ? 10 : 4.5));
 
-  /* ---------- 樹叢障礙物 ---------- */
-  const broad = [[], [], []], pines = [], bushes = [], rocks = [];
+  /* ---------- 樹叢障礙物：岩台（石壁＋草頂），樹長在台上 ---------- */
+  const broad = [[], [], []], pines = [], bushes = [], rocks = [], mesas = [];
   for (const o of OBSTACLES) {
     if (o.kind === 'rock') {
       rocks.push({ x: o.x, z: o.z, s: o.r * 0.95, rot: R() * 6, v: R() });
@@ -62,15 +63,17 @@ export function buildProps(group, quality, { toon, mergeGeo }) {
       for (let k = 0; k < n; k++) { const a = R() * 6.28, d = o.r * (0.55 + R() * 0.4); rocks.push({ x: o.x + Math.cos(a) * d, z: o.z + Math.sin(a) * d, s: o.r * (0.28 + R() * 0.3), rot: R() * 6, v: R() }); }
       for (let k = 0; k < 3; k++) { const a = R() * 6.28, d = o.r * (0.9 + R() * 0.3); bushes.push({ x: o.x + Math.cos(a) * d, z: o.z + Math.sin(a) * d, s: 0.6 + R() * 0.4, rot: R() * 6, hue: R() }); }
     } else {
-      const n = Math.max(2, Math.round(o.r * o.r * 0.55));
+      const top = Math.min(2.6, 0.9 + o.r * 0.42) * (0.85 + R() * 0.3);
+      mesas.push({ x: o.x, z: o.z, r: o.r, h: top, rot: R() * 6, v: R(), k: (R() * 3) | 0 });
+      const n = Math.max(2, Math.round(o.r * o.r * 0.5));
       for (let k = 0; k < n; k++) {
-        const a = R() * 6.28, d = Math.sqrt(R()) * Math.max(0, o.r - 1.1);
-        const t = { x: o.x + Math.cos(a) * d, z: o.z + Math.sin(a) * d, s: 0.8 + R() * 0.55, rot: R() * 6, hue: R() };
+        const a = R() * 6.28, d = Math.sqrt(R()) * Math.max(0, o.r - 1.3);
+        const t = { x: o.x + Math.cos(a) * d, z: o.z + Math.sin(a) * d, s: 0.8 + R() * 0.55, rot: R() * 6, hue: R(), y0: top - 0.15 };
         const pick = R();
-        if (pick < 0.28) pines.push(t); else broad[(pick * 10 | 0) % 3].push(t);
+        if (pick < 0.55) pines.push(t); else broad[(pick * 10 | 0) % 3].push(t);
       }
-      const nb = 2 + ((o.r * 1.2) | 0);
-      for (let k = 0; k < nb; k++) { const a = R() * 6.28, d = o.r * (0.85 + R() * 0.25); bushes.push({ x: o.x + Math.cos(a) * d, z: o.z + Math.sin(a) * d, s: 0.55 + R() * 0.45, rot: R() * 6, hue: R() }); }
+      const nb = 2 + ((o.r * 1.4) | 0);
+      for (let k = 0; k < nb; k++) { const a = R() * 6.28, onTop = R() < 0.6, d = o.r * (onTop ? 0.62 + R() * 0.2 : 1.02 + R() * 0.15); bushes.push({ x: o.x + Math.cos(a) * d, z: o.z + Math.sin(a) * d, s: 0.5 + R() * 0.45, rot: R() * 6, hue: R(), y0: onTop ? top - 0.1 : 0 }); }
     }
   }
   /* ---------- 外圍：岩壁＋台地林 ---------- */
@@ -117,14 +120,37 @@ export function buildProps(group, quality, { toon, mergeGeo }) {
   inst(trunkG, trunkMat, allBroad, (t, i, im) => place(t, t.s, im, i));
   inst(trunkG, trunkMat, pines, (t, i, im) => place(t, t.s * 0.8, im, i));
   const crownTint = (t, i, im, h0, s0, l0) => { col.setHSL(h0 + t.hue * 0.08, s0 + t.hue * 0.12, l0 + t.hue * 0.1); im.setColorAt(i, col); };
-  inst(crownA, toon('#ffffff', { vertexColors: true }), broad[0], (t, i, im) => { place(t, t.s, im, i); crownTint(t, i, im, 0.23, 0.46, 0.36); });
-  inst(crownB, toon('#ffffff', { vertexColors: true }), broad[1], (t, i, im) => { place(t, t.s, im, i); crownTint(t, i, im, 0.27, 0.42, 0.33); });
-  inst(crownC, toon('#ffffff', { vertexColors: true }), broad[2], (t, i, im) => { place(t, t.s, im, i); crownTint(t, i, im, 0.19, 0.5, 0.38); });
-  inst(pineG, toon('#ffffff', { vertexColors: true }), pines, (t, i, im) => { place(t, t.s, im, i, 0, 1.12); col.setHSL(0.37 + t.hue * 0.05, 0.36, 0.27 + t.hue * 0.07); im.setColorAt(i, col); });
-  inst(bushG, toon('#ffffff', { vertexColors: true }), bushes, (t, i, im) => { if (t.y !== undefined) { e3.set(0, t.rot, 0); q.setFromEuler(e3); sc.setScalar(t.s); p3.set(t.x, Math.max(t.y, heightAt(t.x, t.z)), t.z); m4.compose(p3, q, sc); im.setMatrixAt(i, m4); } else place(t, t.s, im, i); col.setHSL(0.24 + t.hue * 0.1, 0.48, 0.34 + t.hue * 0.1); im.setColorAt(i, col); });
+  inst(crownA, toon('#ffffff', { vertexColors: true }), broad[0], (t, i, im) => { place(t, t.s, im, i); crownTint(t, i, im, 0.25, 0.34, 0.3); });
+  inst(crownB, toon('#ffffff', { vertexColors: true }), broad[1], (t, i, im) => { place(t, t.s, im, i); crownTint(t, i, im, 0.3, 0.3, 0.27); });
+  inst(crownC, toon('#ffffff', { vertexColors: true }), broad[2], (t, i, im) => { place(t, t.s, im, i); crownTint(t, i, im, 0.21, 0.36, 0.32); });
+  inst(pineG, toon('#ffffff', { vertexColors: true }), pines, (t, i, im) => { place(t, t.s, im, i, 0, 1.12); col.setHSL(0.4 + t.hue * 0.05, 0.3, 0.21 + t.hue * 0.06); im.setColorAt(i, col); });
+  inst(bushG, toon('#ffffff', { vertexColors: true }), bushes, (t, i, im) => { if (t.y !== undefined) { e3.set(0, t.rot, 0); q.setFromEuler(e3); sc.setScalar(t.s); p3.set(t.x, Math.max(t.y, heightAt(t.x, t.z)), t.z); m4.compose(p3, q, sc); im.setMatrixAt(i, m4); } else place(t, t.s, im, i); col.setHSL(0.25 + t.hue * 0.08, 0.38, 0.3 + t.hue * 0.1); im.setColorAt(i, col); });
 
   // 岩石（長苔）、岩壁、巨石
   const rockMat = toon('#ffffff', { vertexColors: true });
+  // 岩台：半徑 1、高 1 的不規則石柱，側面分層石紋、頂面草地、頂緣一圈外凸的草唇；依障礙物半徑與高度縮放
+  const mesaG = [0, 1, 2].map((seed) => {
+    const RR = rng(900 + seed), SEG = 18, rows = [0, 0.18, 0.42, 0.66, 0.88, 1], A = SEG;
+    const jit = Array.from({ length: A }, () => 0.82 + RR() * 0.16);
+    const pos = [], colr = [];
+    const ring = rows.map((y, r) => Array.from({ length: A }, (_, a) => {
+      const ang = (a / A) * Math.PI * 2, lean = 1 - y * 0.08 + (r % 2 ? 0.035 : -0.02) + (RR() - 0.5) * 0.05;
+      const rad = Math.min(0.99, jit[a] * lean * (r === rows.length - 1 ? 0.97 : 1));
+      return [Math.cos(ang) * rad, y + (r === rows.length - 1 ? (RR() - 0.5) * 0.06 : 0), Math.sin(ang) * rad];
+    }));
+    const tri = (a, b, c, cc) => { pos.push(...a, ...b, ...c); for (let k = 0; k < 3; k++) colr.push(...cc); };
+    for (let r = 0; r < rows.length - 1; r++) for (let a = 0; a < A; a++) {
+      const a2 = (a + 1) % A, p00 = ring[r][a], p01 = ring[r][a2], p10 = ring[r + 1][a], p11 = ring[r + 1][a2];
+      const band = 0.8 + (r % 2) * 0.12 + RR() * 0.1, cc = [0.55 * band, 0.5 * band, 0.42 * band];
+      tri(p00, p11, p01, cc); tri(p00, p10, p11, cc);
+    }
+    const topY = 1, cTop = [0, topY + 0.08, 0], last = ring[rows.length - 1];
+    for (let a = 0; a < A; a++) { const g = 0.85 + RR() * 0.2; tri(cTop, last[(a + 1) % A], last[a], [0.3 * g, 0.42 * g, 0.18 * g]); }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(colr, 3));
+    g.computeVertexNormals(); return g;
+  });
+  for (let k = 0; k < 3; k++) inst(mesaG[k], rockMat, mesas.filter((m) => m.k === k), (t, i, im) => { e3.set(0, t.rot, 0); q.setFromEuler(e3); sc.set(t.r, t.h, t.r); p3.set(t.x, heightAt(t.x, t.z) - 0.25, t.z); m4.compose(p3, q, sc); im.setMatrixAt(i, m4); col.setHSL(0.09, 0.1, 0.85 + t.v * 0.15); im.setColorAt(i, col); });
   inst(mossRock(11), rockMat, rocks, (t, i, im) => { place(t, t.s, im, i, t.s * 0.22); col.setHSL(0.08, 0.06, 0.82 + t.v * 0.18); im.setColorAt(i, col); });
   const cliffG = (() => {
     const g = new THREE.CylinderGeometry(0.85, 1.15, 1, 7, 3).toNonIndexed(), p = g.attributes.position, RR = rng(31), keyed = new Map();
@@ -167,7 +193,7 @@ export function buildProps(group, quality, { toon, mergeGeo }) {
     }
   }
   const tuftG = shadeY(mergeGeo([0, 1, 2, 3].map((k) => new THREE.ConeGeometry(0.11, 0.85, 3).rotateZ((k - 1.5) * 0.3).rotateY(k * 1.3).translate((k - 1.5) * 0.12, 0.38, 0))), 0.55, 1.15);
-  inst(tuftG, toon('#ffffff', { vertexColors: true }), tufts, (t, i, im) => { place(t, t.s, im, i); col.setHSL(0.22 + t.hue * 0.08, 0.5, 0.42 + t.hue * 0.12); im.setColorAt(i, col); }, false);
+  inst(tuftG, toon('#ffffff', { vertexColors: true }), tufts, (t, i, im) => { place(t, t.s, im, i); col.setHSL(0.21 + t.hue * 0.07, 0.4, 0.38 + t.hue * 0.12); im.setColorAt(i, col); }, false);
   const FLOWER = ['#fff1b8', '#f6b19c', '#ffffff', '#f7d14c', '#ee9fc2'];
   const flowerG = mergeGeo([new THREE.IcosahedronGeometry(0.12, 0).translate(0, 0.32, 0), new THREE.CylinderGeometry(0.015, 0.015, 0.32, 3).translate(0, 0.16, 0)]);
   inst(flowerG, toon('#ffffff'), flowers, (t, i, im) => { place(t, t.s, im, i); col.set(FLOWER[t.c]); im.setColorAt(i, col); }, false);

@@ -638,42 +638,46 @@ function minionGeos(team, kind) {
   const tc = TEAM[team], tl = TEAM_LIGHT[team];
   const out = {};
   if (kind === 'melee') {
-    const clay = 0xb9734a, clayD = 0x8f5434;
+    // 戰鬥裝甲步兵：深色緊身衣、白色胸甲、隊伍色護肩與頭盔、單眼偵測器、警棍
+    const suit = 0x262c40, plate = 0xf1ece0, plateD = 0xc9c1ae, skin = 0xd9a77e, boot = 0xe8e2d2;
     {
       const p = new Parts();
-      p.add(geo('lsphere'), clay, [0, 0.42, 0], 0, [0.27, 0.3, 0.24]);           // 軀幹
-      p.add(geo('lsphere'), clay, [0, 0.83, 0.01], 0, [0.2, 0.19, 0.19]);          // 頭
-      p.add(cyl(0.21, 0.24, 0.1, 10), tc, [0, 0.93, 0]);                          // 頭盔帶
-      p.add(geo('cone8'), clayD, [0, 0.95, 0], 0, [0.22, 0.17, 0.22]);             // 斗笠
-      p.add(geo('cone6'), tc, [0, 1.11, 0], 0, [0.025, 0.08, 0.025]);
+      p.add(geo('lsphere'), suit, [0, 0.44, 0], 0, [0.24, 0.3, 0.21]);              // 軀幹
+      p.add(geo('hsphere'), plate, [0, 0.56, 0.015], 0, [0.27, 0.23, 0.24]);         // 胸甲
+      p.add(cyl(0.25, 0.27, 0.07, 14), tc, [0, 0.36, 0]);                            // 腰帶
+      p.add(geo('box'), plateD, [0, 0.27, 0.15], [0.15, 0, 0], [0.16, 0.12, 0.05]);   // 下襬
       for (const sx of [-1, 1]) {
-        p.add(geo('box'), 0x2b1a10, [sx * 0.065, 0.82, 0.18], 0, [0.06, 0.018, 0.02]); // 眼縫
+        p.add(geo('hsphere'), tc, [sx * 0.25, 0.73, 0], [0, 0, sx * -0.35], [0.15, 0.06, 0.15]);   // 護肩
+        p.add(geo('hsphere'), plateD, [sx * 0.25, 0.71, 0], [0, 0, sx * -0.35], [0.155, 0.04, 0.155]);
       }
-      p.add(cyl(0.255, 0.27, 0.08, 10), tc, [0, 0.36, 0]);                          // 腰帶
-      p.add(geo('box'), clayD, [0, 0.55, 0.2], [0.2, 0, 0], [0.18, 0.12, 0.04]);     // 胸甲片
+      p.add(geo('lsphere'), skin, [0, 0.9, 0.01], 0, [0.15, 0.16, 0.15]);              // 頭
+      p.add(new THREE.SphereGeometry(1, 12, 6, 0, Math.PI * 2, 0, Math.PI * 0.55), tc, [0, 0.92, -0.005], [-0.12, 0, 0], [0.165, 0.17, 0.165]); // 頭盔
+      p.add(geo('box'), 0x1a1d27, [0, 0.885, 0.135], 0, [0.17, 0.035, 0.03]);        // 眼縫
+      p.add(geo('box'), 0x3b4558, [0.14, 0.9, 0.06], 0, [0.03, 0.07, 0.08]);           // 偵測器
+      p.add(geo('box'), 0x7dffa0, [0.12, 0.9, 0.15], [0, -0.3, 0], [0.07, 0.045, 0.012]);
       out.body = p.build();
     }
     {
       const p = new Parts();
-      for (const sx of [-1, 1]) p.add(geo('lsphere'), clayD, [sx * 0.11, 0.07, 0.03], 0, [0.08, 0.07, 0.11]);
+      for (const sx of [-1, 1]) { p.add(limb(0.06, 0.055, 0.16, 8), suit, [sx * 0.1, 0.24, 0.0]); p.add(geo('lsphere'), boot, [sx * 0.1, 0.07, 0.03], 0, [0.075, 0.075, 0.11]); }
       out.feet = p.build();
     }
     {
-      // 盾臂（左），盾面朝 +z
+      // 護臂（左）
       const p = new Parts();
-      p.add(limb(0.06, 0.055, 0.2, 8), clay, [0, 0, 0]);
-      p.add(geo('disc'), tc, [0.04, -0.2, 0.1], [Math.PI / 2, 0, 0], [0.22, 0.04, 0.22]);
-      p.add(cyl(0.235, 0.235, 0.035, 14, true), clayD, [0.04, -0.2, 0.1], [Math.PI / 2, 0, 0]);
-      p.add(geo('lsphere'), 0xd9c08a, [0.04, -0.2, 0.125], 0, [0.05, 0.05, 0.03]);
+      p.add(limb(0.055, 0.05, 0.2, 8), suit, [0, 0, 0]);
+      p.add(cyl(0.07, 0.075, 0.12, 10), plate, [0, -0.15, 0]);
+      p.add(geo('lsphere'), plateD, [0, -0.23, 0.01], 0, 0.06);
       out.shield = p.build();
     }
     {
-      // 棍臂（右），棍向前下
+      // 警棍臂（右）
       const p = new Parts();
-      p.add(limb(0.06, 0.055, 0.2, 8), clay, [0, 0, 0]);
-      p.add(geo('lsphere'), clay, [0, -0.22, 0], 0, 0.065);
-      const club = limb(0.035, 0.07, 0.42, 8);
-      p.add(club, 0x7a5634, [0, -0.22, 0.02], [-Math.PI * 0.62, 0, 0]);
+      p.add(limb(0.055, 0.05, 0.2, 8), suit, [0, 0, 0]);
+      p.add(cyl(0.07, 0.075, 0.12, 10), plate, [0, -0.15, 0]);
+      p.add(geo('lsphere'), plateD, [0, -0.22, 0], 0, 0.06);
+      p.add(limb(0.03, 0.035, 0.4, 8), 0x2d3240, [0, -0.22, 0.02], [-Math.PI * 0.62, 0, 0]);
+      p.add(geo('lsphere'), tl, [0, -0.39, 0.33], 0, [0.045, 0.045, 0.045]);
       out.club = p.build();
     }
   } else {
@@ -704,6 +708,7 @@ export function buildMinion(team = 0, kind = 'melee') {
   const root = new THREE.Group(); root.name = 'minion-' + kind;
   const body = new THREE.Group(); root.add(body);
   let time = 0;
+  const MS = kind === 'melee' ? 1.3 : 1.2; // 視覺放大，碰撞半徑不變
   if (kind === 'melee') {
     meshPair(gs.body, body, { w: 0.022 });
     const feet = meshPair(gs.feet, root, { outline: false });
@@ -711,11 +716,11 @@ export function buildMinion(team = 0, kind = 'melee') {
     meshPair(gs.shield, shield, { w: 0.02 });
     const club = new THREE.Group(); club.position.set(-0.27, 0.5, 0.02); body.add(club);
     meshPair(gs.club, club, { outline: false });
-    shield.rotation.set(-0.5, 0, 0.25);
+    shield.rotation.set(-0.25, 0, 0.18);
     const update = (dt, anim) => {
       time += dt;
       const name = (anim && anim.name) || 'idle', t = (anim && anim.t) || 0;
-      body.rotation.set(0, 0, 0); body.position.set(0, 0, 0); feet.visible = true; root.scale.setScalar(1);
+      body.rotation.set(0, 0, 0); body.position.set(0, 0, 0); feet.visible = true; root.scale.setScalar(MS);
       feet.position.set(0, 0, 0);
       let clubX = 0.3;
       if (name === 'walk') {
@@ -735,7 +740,7 @@ export function buildMinion(team = 0, kind = 'melee') {
         body.position.x = -0.35 * ease(clamp(t / 0.4, 0, 1));
         feet.visible = t < 0.4;
         const sc = 1 - clamp((t - 1.0) / 0.5, 0, 1);
-        root.scale.setScalar(Math.max(0.001, sc));
+        root.scale.setScalar(Math.max(0.001, sc) * MS);
         clubX = 0.3;
       } else {
         body.position.y = 0.012 * Math.sin(time * 3);
@@ -753,7 +758,7 @@ export function buildMinion(team = 0, kind = 'melee') {
   const update = (dt, anim) => {
     time += dt;
     const name = (anim && anim.name) || 'idle', t = (anim && anim.t) || 0;
-    root.scale.setScalar(1);
+    root.scale.setScalar(MS);
     lantern.position.set(0, 0.72 + 0.07 * Math.sin(time * 2.6), 0);
     lantern.rotation.set(0, 0, 0.06 * Math.sin(time * 1.7));
     glowMat.opacity = 0;
@@ -765,7 +770,7 @@ export function buildMinion(team = 0, kind = 'melee') {
     } else if (name === 'dead') {
       lantern.rotation.x = 1.3 * ease(clamp(t / 0.5, 0, 1));
       lantern.position.y = 0.72 - 0.6 * ease(clamp(t / 0.7, 0, 1));
-      root.scale.setScalar(Math.max(0.001, 1 - clamp((t - 0.9) / 0.5, 0, 1)));
+      root.scale.setScalar(Math.max(0.001, 1 - clamp((t - 0.9) / 0.5, 0, 1)) * MS);
     }
   };
   lm.userData.lantern = true;
@@ -776,56 +781,57 @@ export function buildMinion(team = 0, kind = 'melee') {
 const WHITE = new THREE.Color(0xffffff);
 const STONE = 0xc2b8a3, STONE_D = 0x8f8676, STONE_DD = 0x6f6759, BRONZE = 0xa8823f;
 const towerGeoCache = {};
+// 白色天線塔：圓台座、半球底座、一節節的環紋細頸、上方帶深色腰帶與隊伍色燈窗的球形塔頭
+const PORCELAIN = 0xeef0ee, PORC_D = 0xc4cbd2, STEEL = 0x3b4558;
 function towerGeos(team) {
   if (towerGeoCache[team]) return towerGeoCache[team];
-  const tc = TEAM[team];
+  const tc = TEAM[team], tl = TEAM_LIGHT[team];
   const out = {};
   {
     const p = new Parts();
-    p.add(cyl(2.0, 2.2, 0.45, 8), STONE_D, [0, 0.22, 0], [0, Math.PI / 8, 0]);
-    p.add(cyl(1.55, 1.7, 0.45, 8), STONE, [0, 0.66, 0], [0, Math.PI / 8, 0]);
-    for (let i = 0; i < 4; i++) {
-      const a = i * Math.PI / 2 + Math.PI / 4;
-      p.add(geo('box'), STONE_DD, [Math.cos(a) * 1.75, 0.55, Math.sin(a) * 1.75], [0, -a, 0], [0.35, 0.7, 0.35]);
-    }
+    p.add(cyl(2.15, 2.3, 0.32, 24), PORC_D, [0, 0.16, 0]);
+    p.add(cyl(2.0, 2.05, 0.1, 24), STEEL, [0, 0.36, 0]);
+    p.add(cyl(1.85, 1.95, 0.22, 24), PORCELAIN, [0, 0.52, 0]);
+    p.add(new THREE.TorusGeometry(1.9, 0.045, 4, 32), tl, [0, 0.42, 0], [Math.PI / 2, 0, 0]);
+    for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3 + 0.3; p.add(geo('box'), STEEL, [Math.cos(a) * 1.95, 0.5, Math.sin(a) * 1.95], [0, -a, 0], [0.16, 0.28, 0.32]); }
     out.base = p.build();
   }
   {
     const p = new Parts();
-    p.add(cyl(0.62, 0.95, 4.3, 8), STONE, [0, 0.9 + 2.15, 0], [0, Math.PI / 8, 0]);
-    p.add(cyl(1.0, 1.0, 0.18, 8), BRONZE, [0, 1.25, 0], [0, Math.PI / 8, 0]);
-    p.add(cyl(0.75, 0.75, 0.16, 8), BRONZE, [0, 4.3, 0], [0, Math.PI / 8, 0]);
-    // 隊伍色布幡
-    for (const sx of [-1, 1]) {
-      p.add(geo('box'), tc, [sx * 0.78, 3.0, 0], [0, 0, sx * 0.08], [0.06, 2.0, 0.55]);
-      p.add(geo('cone6'), tc, [sx * 0.82, 1.98, 0], [Math.PI, 0, 0], [0.32, 0.25, 0.04]);
-      p.add(geo('box'), 0xefe2c0, [sx * 0.815, 3.3, 0], [0, 0, sx * 0.08], [0.02, 0.5, 0.25]);
-    }
-    // 頂部蓮座
-    p.add(cyl(1.15, 0.6, 0.55, 8), STONE_D, [0, 5.32, 0], [0, Math.PI / 8, 0]);
-    for (let i = 0; i < 8; i++) {
-      const a = i * Math.PI / 4;
-      p.add(geo('cone6'), STONE, [Math.cos(a) * 0.95, 5.55, Math.sin(a) * 0.95], [Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5], [0.16, 0.5, 0.12]);
-    }
+    // 半球底座
+    p.add(new THREE.SphereGeometry(1.25, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), PORCELAIN, [0, 0.62, 0], 0, [1, 0.75, 1]);
+    p.add(new THREE.TorusGeometry(1.24, 0.06, 5, 32), STEEL, [0, 0.66, 0], [Math.PI / 2, 0, 0]);
+    p.add(new THREE.TorusGeometry(0.92, 0.05, 5, 28), PORC_D, [0, 1.18, 0], [Math.PI / 2, 0, 0]);
+    // 環紋細頸
+    p.add(cyl(0.26, 0.34, 3.6, 14), PORC_D, [0, 3.2, 0]);
+    for (let i = 0; i < 15; i++) p.add(new THREE.TorusGeometry(0.33 - i * 0.004, 0.075, 6, 16), i % 5 === 4 ? STEEL : PORCELAIN, [0, 1.6 + i * 0.22, 0], [Math.PI / 2, 0, 0]);
+    // 球形塔頭
+    p.add(geo('hsphere'), PORCELAIN, [0, 5.35, 0], 0, [1.05, 0.82, 1.05]);
+    p.add(cyl(1.08, 1.08, 0.22, 28), STEEL, [0, 5.3, 0]);
+    for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; p.add(geo('box'), tl, [Math.cos(a) * 1.05, 5.3, Math.sin(a) * 1.05], [0, -a, 0], [0.04, 0.12, 0.32]); }
+    p.add(new THREE.TorusGeometry(0.72, 0.05, 5, 24), PORC_D, [0, 5.88, 0], [Math.PI / 2, 0, 0]);
+    p.add(cyl(0.18, 0.26, 0.35, 10), STEEL, [0, 6.1, 0]);
+    // 隊伍色細條
+    p.add(cyl(0.36, 0.36, 0.12, 14), tc, [0, 1.42, 0]);
     out.pillar = p.build();
   }
   {
     const p = new Parts();
-    // 裂痕（細深色條）
-    const cracks = [[0.7, 2.4, 0.3, 0.5], [0.72, 3.4, -0.4, -0.3], [-0.68, 2.0, 0.2, 0.9], [0.1, 3.9, 0.66, 0.2], [-0.2, 2.8, -0.75, -0.6]];
+    const cracks = [[0.95, 5.5, 0.3, 0.5], [-0.6, 5.45, 0.8, -0.3], [0.2, 5.6, -0.98, 0.9], [0.9, 0.95, 0.4, 0.2], [-0.8, 0.9, -0.6, -0.6]];
     for (const [x, y, z, r] of cracks) {
       const a = Math.atan2(z, x);
-      p.add(geo('box'), 0x2d241c, [x * 1.08, y, z * 1.08], [0, -a + Math.PI / 2, r], [0.04, 0.55, 0.03]);
-      p.add(geo('box'), 0x2d241c, [x * 1.08, y - 0.25, z * 1.08], [0, -a + Math.PI / 2, -r], [0.035, 0.35, 0.03]);
+      p.add(geo('box'), 0x2d3440, [x, y, z], [0, -a + Math.PI / 2, r], [0.04, 0.45, 0.03]);
+      p.add(geo('box'), 0x2d3440, [x, y - 0.2, z], [0, -a + Math.PI / 2, -r], [0.035, 0.3, 0.03]);
     }
     out.cracks = p.build();
   }
   {
     const p = new Parts();
-    p.add(cyl(0.7, 0.95, 1.2, 8), STONE, [0, 1.5, 0], [0, Math.PI / 8, 0]);
-    const ch = [[1.2, 0.3, 0.6, 0.5], [-1.0, 0.25, 1.1, 0.4], [0.4, 0.3, -1.4, 0.55], [-1.5, 0.2, -0.6, 0.35], [1.6, 0.2, -0.9, 0.3], [0.2, 2.15, 0.1, 0.35], [-0.5, 0.35, 0.2, 0.45]];
-    ch.forEach(([x, y, z, s], i) => p.add(geo('dodec'), i % 2 ? STONE : STONE_D, [x, y + 0.6, z], [i, i * 2, i * 0.5], [s * 1.4, s, s * 1.2]));
-    p.add(geo('box'), tc, [1.3, 0.85, 0.2], [0.2, 0.4, 1.4], [0.06, 1.2, 0.5]);
+    p.add(new THREE.SphereGeometry(1.25, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), PORCELAIN, [0, 0.62, 0], [0.15, 0, 0.1], [1, 0.6, 1]);
+    p.add(cyl(0.26, 0.34, 1.1, 12), PORC_D, [0.3, 1.4, 0], [0.4, 0, -0.5]);
+    const ch = [[1.3, 0.3, 0.6, 0.45], [-1.1, 0.25, 1.1, 0.4], [0.4, 0.3, -1.5, 0.55], [-1.6, 0.2, -0.6, 0.35], [1.7, 0.2, -0.9, 0.3], [-0.5, 0.35, 0.2, 0.45]];
+    ch.forEach(([x, y, z, sc], i) => p.add(geo('dodec'), i % 2 ? PORCELAIN : PORC_D, [x, y + 0.5, z], [i, i * 2, i * 0.5], [sc * 1.4, sc, sc * 1.2]));
+    p.add(new THREE.SphereGeometry(1.05, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), PORCELAIN, [-1.6, 0.25, 1.4], [2.6, 0.4, 0.2], [1, 0.8, 1]);
     out.rubble = p.build();
   }
   towerGeoCache[team] = out;
@@ -842,8 +848,8 @@ export function buildTower(team = 0) {
   const rubble = new THREE.Group(); rubble.visible = false; root.add(rubble);
   meshPair(gs.rubble, rubble, { w: 0.05 });
   const orbMat = new THREE.MeshToonMaterial({ color: TEAM[team], emissive: TEAM_LIGHT[team], emissiveIntensity: 0.6, gradientMap: gradientMap() });
-  const orb = new THREE.Mesh(geo('oct'), orbMat); orb.scale.set(0.55, 0.8, 0.55); orb.castShadow = true;
-  const orbO = new THREE.Mesh(geo('oct'), outlineMat(0.05)); orb.add(orbO);
+  const orb = new THREE.Mesh(geo('hsphere'), orbMat); orb.scale.set(0.42, 0.42, 0.42); orb.castShadow = true;
+  const orbO = new THREE.Mesh(geo('hsphere'), outlineMat(0.05)); orb.add(orbO);
   const muzzle = new THREE.Group(); muzzle.position.y = 6.75; top.add(muzzle);
   muzzle.add(orb);
   const ringMat = new THREE.MeshBasicMaterial({ color: TEAM_LIGHT[team], transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false });
@@ -860,7 +866,7 @@ export function buildTower(team = 0) {
     orbMat.emissiveIntensity = 0.55 + charge * 1.1;
     orbMat.emissive.copy(base).lerp(WHITE, charge * 0.2);
     const sc = 1 + charge * 0.35;
-    orb.scale.set(0.55 * sc, 0.8 * sc, 0.55 * sc);
+    orb.scale.setScalar(0.42 * sc);
     ring.scale.setScalar(1 + charge * 0.4 + 0.05 * Math.sin(time * 3));
     ring.rotation.z += dt * 0.6;
     ringMat.opacity = 0.35 + charge * 0.5;
@@ -1114,6 +1120,7 @@ function monsterGeos(kind) {
 }
 
 export function buildMonster(kind = 'dino') {
+  if (kind === 'shenron') return buildShenron();
   const gs = monsterGeos(kind);
   const root = new THREE.Group(); root.name = 'monster-' + kind;
   const body = new THREE.Group(); root.add(body);
@@ -1230,4 +1237,130 @@ export function buildMonster(kind = 'dino') {
     } else if (name === 'dead') deadPose(t, H * 0.6);
   };
   return { root, update, height: H };
+}
+
+/* ---------------- 神龍 ---------------- */
+// 從神龍坑盤旋升起的長龍：沿螺旋曲線掃出粗細漸變的身體（背綠、腹黃），背鰭、短臂、長吻、鹿角與長鬚。
+// 動作：rise（從地底升起）、idle（緩慢擺動）、atk（低頭張口）、dead（沉回地底）。整條龍只會慢慢轉向。
+function sweepTube(curve, n, radial, rFn, colFn) {
+  const frames = curve.computeFrenetFrames(n, false), pos = [], col = [], idx = [];
+  const P = new V3(), dir = new V3();
+  for (let i = 0; i <= n; i++) {
+    const t = i / n; curve.getPointAt(t, P); const r = rFn(t), N = frames.normals[i], B = frames.binormals[i];
+    for (let j = 0; j <= radial; j++) {
+      const a = (j / radial) * Math.PI * 2;
+      dir.copy(N).multiplyScalar(Math.cos(a)).addScaledVector(B, Math.sin(a));
+      pos.push(P.x + dir.x * r, P.y + dir.y * r, P.z + dir.z * r);
+      const c = colFn(t, P, dir); col.push(c.r, c.g, c.b);
+    }
+  }
+  for (let i = 0; i < n; i++) for (let j = 0; j < radial; j++) {
+    const a = i * (radial + 1) + j, b = a + radial + 1;
+    idx.push(a, a + 1, b, b, a + 1, b + 1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.setIndex(idx); g.computeVertexNormals(); return g.toNonIndexed();
+}
+let shenronGeo = null;
+function shenronGeos() {
+  if (shenronGeo) return shenronGeo;
+  const pts = [];
+  for (let k = 0; k <= 18; k++) { const f = k / 18, ang = f * 2.1 * Math.PI * 2 + 0.6, r = 3.1 - f * 1.2; pts.push(new V3(Math.cos(ang) * r, -1.5 + f * 9.2, Math.sin(ang) * r)); }
+  pts.push(new V3(0.6, 8.9, -0.4), new V3(0.15, 10.0, 0.5), new V3(0, 10.4, 1.5));
+  const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.4);
+  const green = new THREE.Color(0x2f8f3c), greenD = new THREE.Color(0x287a35), belly = new THREE.Color(0xead27a), bellyD = new THREE.Color(0xc9a94e), tmp = new THREE.Color();
+  const toAxis = new V3(), bdir = new V3();
+  const body = sweepTube(curve, 220, 14,
+    (t) => (t < 0.06 ? 0.35 + t / 0.06 * 0.55 : t > 0.86 ? 0.9 - (t - 0.86) / 0.14 * 0.32 : 0.9 + Math.sin(t * 9) * 0.04),
+    (t, P, dir) => {
+      toAxis.set(-P.x, 0, -P.z).normalize();
+      bdir.copy(toAxis).lerp(new V3(0, -1, 0), clamp((t - 0.8) / 0.12, 0, 1)).normalize();
+      const b = dir.dot(bdir);
+      if (b > 0.35) { const ring = Math.sin(t * 260) > 0.55; return tmp.copy(ring ? bellyD : belly); }
+      const stripe = Math.sin(t * 150 + dir.y * 3) > 0.82;
+      return tmp.copy(stripe ? greenD : green).multiplyScalar(0.92 + 0.08 * b);
+    });
+  // 背鰭與短臂
+  const fins = new Parts(), up = new V3(0, 1, 0), q = new THREE.Quaternion(), P = new V3();
+  for (let i = 6; i < 47; i++) {
+    const t = i / 50; curve.getPointAt(t, P);
+    const out = new V3(P.x, 0, P.z).normalize().lerp(new V3(0, 1, 0), clamp((t - 0.78) / 0.12, 0, 1)).normalize();
+    q.setFromUnitVectors(up, out);
+    const r = t > 0.86 ? 0.7 : 0.88, s = 0.24 + 0.08 * Math.sin(i * 1.7);
+    fins.addM(geo('cone6'), i % 2 ? 0xf0d98c : 0xd7b85a, new THREE.Matrix4().compose(P.clone().addScaledVector(out, r - 0.1), q, new V3(s, s * 2.1, s * 0.5)));
+  }
+  for (const sx of [-1, 1]) {
+    const t = 0.8; curve.getPointAt(t, P);
+    const side = new V3(-P.z, 0, P.x).normalize().multiplyScalar(sx);
+    const base = P.clone().addScaledVector(side, 0.8);
+    fins.add(limb(0.22, 0.17, 1.1, 8), green.getHex(), [base.x, base.y, base.z], [0.6, 0, sx * 0.9]);
+    const hand = base.clone().add(new V3(sx * 0.7, -0.6, 0.45));
+    for (let k = 0; k < 3; k++) fins.add(geo('cone6'), 0xf3ead2, [hand.x + sx * 0.05 * k, hand.y - 0.05, hand.z + 0.12 * k - 0.1], [Math.PI * 0.85, 0, sx * 0.3], [0.06, 0.32, 0.06]);
+    fins.add(geo('lsphere'), green.getHex(), [hand.x, hand.y, hand.z], 0, 0.24);
+  }
+  // 頭（朝 +z），下顎另外一塊以便張口
+  const head = new Parts();
+  head.add(geo('hsphere'), 0x2f8f3c, [0, 0, 0], 0, [0.78, 0.6, 0.9]);
+  head.add(geo('hsphere'), 0x35a044, [0, 0.05, 0.85], 0, [0.52, 0.36, 0.75]);
+  head.add(geo('hsphere'), 0x2a7d35, [0, 0.22, 1.35], 0, [0.36, 0.2, 0.38]);
+  for (const sx of [-1, 1]) {
+    head.add(geo('lsphere'), 0x1f5f2a, [sx * 0.2, 0.32, 1.55], 0, [0.07, 0.05, 0.06]);              // 鼻孔
+    head.add(geo('box'), 0x184d22, [sx * 0.33, 0.42, 0.5], [0, sx * -0.35, sx * 0.25], [0.32, 0.08, 0.12]); // 眉骨
+    head.add(limb(0.08, 0.04, 1.4, 6), 0xe9dcc0, [sx * 0.35, 0.48, -0.15], [-1.05, 0, sx * -0.35]);       // 鹿角
+    head.add(limb(0.05, 0.02, 0.55, 5), 0xe9dcc0, [sx * 0.55, 0.95, -0.55], [-0.3, 0, sx * -0.9]);
+    head.add(geo('cone6'), 0xd7b85a, [sx * 0.62, -0.05, -0.05], [0, 0, sx * -1.9], [0.12, 0.55, 0.08]);   // 鬢鰭
+  }
+  head.add(geo('cone6'), 0xf3ead2, [0.22, -0.12, 1.4], [Math.PI, 0, 0], [0.06, 0.2, 0.06]);
+  head.add(geo('cone6'), 0xf3ead2, [-0.22, -0.12, 1.4], [Math.PI, 0, 0], [0.06, 0.2, 0.06]);
+  const jaw = new Parts();
+  jaw.add(geo('hsphere'), 0x2f8f3c, [0, -0.1, 0.65], 0, [0.42, 0.18, 0.75]);
+  jaw.add(geo('hsphere'), 0xead27a, [0, -0.02, 0.62], 0, [0.36, 0.1, 0.66]);
+  const whisk = (sx) => { const c = new THREE.CatmullRomCurve3([new V3(sx * 0.3, 0.2, 1.5), new V3(sx * 1.2, 0.0, 1.6), new V3(sx * 2.0, -0.6, 1.0), new V3(sx * 2.6, -1.4, 0.2)]); return sweepTube(c, 24, 5, (t) => 0.06 * (1 - t * 0.8), () => new THREE.Color(0xf0e2b8)); };
+  shenronGeo = { body, fins: fins.build(), head: head.build(), jaw: jaw.build(), whiskers: [whisk(1), whisk(-1)], curve };
+  return shenronGeo;
+}
+export function buildShenron() {
+  const gs = shenronGeos();
+  const root = new THREE.Group(); root.name = 'shenron';
+  const coil = new THREE.Group(); root.add(coil);
+  meshPair(gs.body, coil, { w: 0.06 });
+  meshPair(gs.fins, coil, { w: 0.04 });
+  const end = gs.curve.getPointAt(1), tan = gs.curve.getTangentAt(1);
+  const neck = new THREE.Group(); neck.position.copy(end); coil.add(neck);
+  const head = new THREE.Group(); neck.add(head);
+  head.rotation.x = Math.atan2(-tan.y, Math.hypot(tan.x, tan.z)) * 0.5 + 0.25;
+  meshPair(gs.head, head, { w: 0.05 });
+  for (const w of gs.whiskers) meshPair(w, head, { w: 0.02, shadow: false });
+  const jaw = new THREE.Group(); jaw.position.set(0, -0.12, 0.1); head.add(jaw);
+  meshPair(gs.jaw, jaw, { w: 0.04 });
+  const eyeMat = emissiveToon(0xff2a2a, 1.6);
+  for (const sx of [-1, 1]) { const e = new THREE.Mesh(geo('lsphere'), eyeMat); e.position.set(sx * 0.36, 0.3, 0.72); e.scale.set(0.11, 0.07, 0.07); head.add(e); }
+  const glowMat = new THREE.MeshBasicMaterial({ color: 0xfff1a8, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+  const glow = new THREE.Mesh(new THREE.CylinderGeometry(3.6, 3.6, 14, 24, 1, true), glowMat); glow.position.y = 5; root.add(glow);
+  let time = 0, yaw = Math.PI * 0.25, want = yaw;
+  const setFacing = (f) => { want = f; };
+  const update = (dt, anim) => {
+    time += dt;
+    const name = (anim && anim.name) || 'idle', t = (anim && anim.t) || 0;
+    let dy = want - yaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2;
+    yaw += dy * Math.min(1, dt * 1.2); root.rotation.y = yaw;
+    coil.rotation.set(0.03 * Math.sin(time * 0.7), 0.06 * Math.sin(time * 0.5), 0.03 * Math.cos(time * 0.6));
+    coil.position.y = 0.25 * Math.sin(time * 0.9);
+    neck.rotation.set(0.08 * Math.sin(time * 1.1), 0.12 * Math.sin(time * 0.8), 0);
+    jaw.rotation.x = 0.06 + 0.04 * Math.sin(time * 2);
+    root.scale.setScalar(1); glowMat.opacity = 0;
+    if (name === 'rise') {
+      const k = ease(clamp(t / 2.2, 0, 1));
+      coil.position.y = -12 * (1 - k); glowMat.opacity = 0.55 * (1 - clamp((t - 1.6) / 1.2, 0, 1));
+    } else if (name === 'atk') {
+      const k = t < 0.45 ? ease(t / 0.45) : 1 - ease(clamp((t - 0.45) / 0.6, 0, 1));
+      neck.rotation.x += 0.45 * k; jaw.rotation.x = 0.06 + 0.55 * k;
+    } else if (name === 'dead') {
+      const k = clamp(t / 2.6, 0, 1);
+      coil.position.y = -12 * ease(k); neck.rotation.x = -0.4 * k; glowMat.opacity = 0.4 * Math.sin(Math.PI * k);
+    }
+  };
+  update(0, { name: 'rise', t: 0 });
+  return { root, update, noFace: true, setFacing, muzzle: head };
 }

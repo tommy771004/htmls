@@ -101,7 +101,7 @@ export function createRenderer(canvas) {
   const dir = new THREE.Vector3(0, Math.sin(56 * Math.PI / 180), Math.cos(56 * Math.PI / 180));
   function updateCamera(dt, t) {
     const aspect = W / H;
-    const dist = (aspect < 0.8 ? 38 : aspect < 1.2 ? 33 : 27.5) * cam.zoom * (1 - cam.punch * 0.18);
+    const dist = (aspect < 0.8 ? 36 : aspect < 1.2 ? 28.5 : 22.5) * cam.zoom * (1 - cam.punch * 0.18);
     cam.look.lerp(cam.target, 1 - Math.exp(-dt * 9));
     let px = cam.look.x, py = cam.look.y, pz = cam.look.z, d = dist;
     if (cam.focus) { // 必殺技特寫
@@ -125,7 +125,7 @@ export function createRenderer(canvas) {
     }
     camera.position.add(cam.kick); cam.kick.multiplyScalar(Math.exp(-dt * 14));
     // 陰影框跟著鏡頭：涵蓋畫面可見的地面，並對齊陰影貼圖的像素格避免移動時閃爍
-    const half = (aspect < 0.8 ? 40 : aspect < 1.2 ? 36 : 33) * Math.max(1, cam.zoom);
+    const half = (aspect < 0.8 ? 38 : aspect < 1.2 ? 31 : 27) * Math.max(1, cam.zoom);
     setShadowHalf(half);
     const texel = (half * 2) / sun.shadow.mapSize.x;
     const cx = Math.round(cam.look.x / texel) * texel, cz = Math.round((cam.look.z - 3) / texel) * texel;

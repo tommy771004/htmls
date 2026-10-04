@@ -5,7 +5,8 @@
 非官方同人作品：角色與招式名稱版權屬原作者；模型、特效、地圖與音效全部以程式產生，不含原作的貼圖、模型、圖示、音效或文字素材。
 
 - 成品：`web/198-ki-lanes.html`（單檔約 3.1 MB，Three.js 0.186.0 與烘焙好的角色網格一起打包，不載入任何外部資源）
-- 一場約 10～20 分鐘（全 AI 模擬 4 場：8～23 分鐘結束，中位數約 15 分鐘）
+- 一場約 9～15 分鐘（加入龍珠獵人後，全 AI 模擬 5 場都在 9～12 分鐘結束）
+- 畫面與 HUD 參考 [這支 LoL × FighterZ 的影片](https://x.com/GamefxAI/status/2106670299731149160)的構圖與手感（石板路、塔下廣場、白色天線塔、格鬥遊戲式技能列、連段字、漫畫對話框、龍珠獵人），但全部自己用程式建構，沒有使用影片裡的任何素材
 
 ## 指令
 
@@ -18,6 +19,8 @@ node tools/fight.mjs 1440 900 frieza   # 開發截圖：兵線與 QWER 特效
 node tools/mobile.mjs  # 開發截圖：手機版選角與觸控介面
 node tools/jungleshot.mjs # 開發截圖：野區營地、戰爭迷霧、大猿
 node tools/bushshot.mjs   # 開發截圖：草叢、眼
+node tools/look.mjs 1280 720 tag # 開發截圖：塔下廣場、河道、野區、神龍坑附近、基地六個固定地點
+node tools/dragonshot.mjs # 開發截圖：龍珠面板、召喚、神龍升起、交戰、許願
 node tools/perf.mjs    # 開打 4 分鐘後的實際幀率
 node tools/thumb.mjs   # 重拍 ../../thumbs/198.jpg
 npm run models         # 重建六名英雄的網格（需要 Blender 5.2；約 25 秒），寫入 src/models-baked.js，再 npm run build
@@ -52,11 +55,11 @@ VV_CORE=… python tools/voices/build_voices.py [--only goku] [--wav dist/voices
 
 ## 測試 API：`window.__ki`
 
-`start(heroId, lane, diff)`（heroId：`goku`／`vegeta`／`trunks`／`piccolo`／`frieza`／`a18`）、`state()`、`fastForward(sec)`（跳過頓幀與慢動作，直接跑固定步長）、`teleport(x,z)`、`moveTo`、`attack(id)`、`cast(key,x,z)`、`levelUp(key)`、`setLevel(n)`、`learnAll()`、`give({ki,xp})`、`freezeAI(bool)`、`spawnEnemyHeroNear(d)`、`enemyHero()`、`killPlayer()`、`damageStructure(id, amt)`、`destroy(id)`、`win()`、`lose()`、`camera(x,z,zoom)`、`follow()`、`pick(id)`、`pause(bool)`、`setQuality(0..2)`、`buy(itemId)`、`senzu()`、`setGold(g)`、`visible(unitId)`、`fog(bool)`、`camps()`、`boss()`、`heroes()`、`sell(slot)`、`ward(x,z)`、`control(x,z)`、`laneBushes(lane,team)`、`lanePoint(lane,team,prog)`、`wards()`、`bushes()`、`obstacles()`、`visibleTo(team,id)`、`listen(event)`。建築 id：`t{隊}{路}{i|o}`（例 `t11o` 是赤隊中路外塔）、`core0`／`core1`。
+`start(heroId, lane, diff)`（heroId：`goku`／`vegeta`／`trunks`／`piccolo`／`frieza`／`a18`）、`state()`、`fastForward(sec)`（跳過頓幀與慢動作，直接跑固定步長）、`teleport(x,z)`、`moveTo`、`attack(id)`、`cast(key,x,z)`、`levelUp(key)`、`setLevel(n)`、`learnAll()`、`give({ki,xp})`、`freezeAI(bool)`、`spawnEnemyHeroNear(d)`、`enemyHero()`、`killPlayer()`、`damageStructure(id, amt)`、`destroy(id)`、`win()`、`lose()`、`camera(x,z,zoom)`、`follow()`、`pick(id)`、`pause(bool)`、`setQuality(0..2)`、`buy(itemId)`、`senzu()`、`setGold(g)`、`visible(unitId)`、`fog(bool)`、`camps()`、`boss()`、`heroes()`、`sell(slot)`、`ward(x,z)`、`control(x,z)`、`laneBushes(lane,team)`、`lanePoint(lane,team,prog)`、`wards()`、`bushes()`、`obstacles()`、`visibleTo(team,id)`、`listen(event)`、`balls(team,n)`（直接給龍珠）、`shenron()`。建築 id：`t{隊}{路}{i|o}`（例 `t11o` 是赤隊中路外塔）、`core0`／`core1`。
 
 ## 結構
 
-模擬是 60 Hz 固定步長；命中頓幀（hit-stop）與必殺技慢動作是「模擬時間倍率」，只影響畫面節奏，冷卻、復活等全部以模擬時間計算。規則層（`world.js`、`units.js`、`combat.js`、`ai.js`、`items.js`、`jungle.js`、`vision.js`、`nav.js`、`map.js` 的資料部分）不依賴 DOM，可以直接在 Node 跑（`tools/sim.mjs`）。
+模擬是 60 Hz 固定步長；命中頓幀（hit-stop）與必殺技慢動作是「模擬時間倍率」，只影響畫面節奏，冷卻、復活等全部以模擬時間計算。規則層（`world.js`、`units.js`、`combat.js`、`ai.js`、`items.js`、`jungle.js`、`dragonballs.js`、`vision.js`、`nav.js`、`map.js` 的資料部分）不依賴 DOM，可以直接在 Node 跑（`tools/sim.mjs`）。
 
 | 檔案 | 內容 |
 | --- | --- |
@@ -75,6 +78,7 @@ VV_CORE=… python tools/voices/build_voices.py [--only goku] [--wav dist/voices
 | `nav.js` | A* 尋路 |
 | `vision.js`、`fog.js` | 戰爭迷霧的可見格與畫面變暗 |
 | `items.js`、`jungle.js` | 商店與道具、野怪與大猿 |
+| `dragonballs.js`、`quips.js` | 龍珠獵人規則（不碰 DOM）、漫畫對話框台詞 |
 | `map-props.js` | 地圖裝飾（樹、岩石、懸崖、河道、基地） |
 | `main.js` | 迴圈、場景同步、頭像算圖、測試 API |
 
@@ -97,6 +101,16 @@ VV_CORE=… python tools/voices/build_voices.py [--only goku] [--wav dist/voices
 - 角色語音：普攻（第三段大多會喊）、受傷、QWER 招式名、爆氣、陣亡、勝利、開場與選角。同一角色一次只說一句，大招優先；距離鏡頭越遠越小聲，AI 的普攻喊聲頻率較低。
 - 語音由 `tools/voices/build_voices.py` 產生：VOICEVOX 念出台詞（喊叫用較高的抑揚與音高），去頭尾靜音、加一點飽和與壓縮，編成 40 kbps MP3 後 base64 內嵌在 `src/voices.js`（約 430 KB）。需要 VOICEVOX CORE（`voicevox_core` Python wheel，以及官方 `download` 工具取得的 onnxruntime、字典與模型，約 1.3 GB），`VV_CORE` 指向 download 的輸出資料夾；台詞、配音與語氣參數在腳本開頭的 `CAST`、`LINES`。
 - 配音：悟空＝VOICEVOX:白上虎太郎、貝吉塔＝VOICEVOX:玄野武宏、特南克斯＝VOICEVOX:剣崎雌雄、比克＝VOICEVOX:青山龍星、弗利沙＝VOICEVOX:†聖騎士 紅桜†、18 號＝VOICEVOX:九州そら。依各角色的利用規約需標示「VOICEVOX:角色名」，選角畫面右上角與本 README 已標示；青山龍星若由企業參與使用需先向權利方確認。
+
+## 龍珠獵人
+
+- 全隊補兵每 30 隻得 1 顆龍珠，打倒河道的大猿得 2 顆；左上的面板顯示兩隊的龍珠與下一顆的進度。
+- 先集滿 7 顆的隊伍得到 15 秒「神龍之兆」（傷害 +15%），6 秒後神龍從河道另一端的神龍坑升起，天色變暗。
+- 神龍不移動，用有預警的雷擊轟炸靠近的英雄；兩隊都能打，打倒的隊伍許願：陣亡隊友立即復活、全隊回滿血，90 秒傷害 +25%、移速 +15%。之後龍珠散落，兩隊重新收集。
+
+## HUD
+
+技能列左側是角色半身像（變身超級賽亞人時換成金髮），上方是名字、血條與藍色氣力格，技能鍵下方標技能名；上方中央是比分、大猿與神龍的計時，交手中的敵方英雄會出現在目標框；連段數以「N Hits!」顯示；擊殺、推塔、大猿、神龍等時機會跳出角色的漫畫對話框（`quips.js`，原創台詞）；陣亡時顯示「你被擊倒了！」與重生倒數。
 
 ## 視野、草叢與眼
 

@@ -1,0 +1,23 @@
+// 開發用：龍珠獵人與神龍截圖。node tools/dragonshot.mjs [w] [h]
+import { mkdirSync } from 'node:fs';
+import { open } from './lib.mjs';
+const a = process.argv.slice(2), w = +(a[0] || 1280), h = +(a[1] || 720);
+const out = 'dist/shots'; mkdirSync(out, { recursive: true });
+const { browser, page, log } = await open('../../web/198-ki-lanes.html', { w, h });
+const raf = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+const shot = async (n) => { await raf(); await page.screenshot({ path: `${out}/d-${n}.png` }); };
+await page.evaluate(() => { const k = window.__ki; k.start('goku', 1); k.fog(false); k.fastForward(60); k.balls(0, 4); k.balls(1, 2); });
+await page.waitForTimeout(400); await shot('1-panel');
+await page.evaluate(() => { const k = window.__ki; k.balls(0, 3); k.teleport(-26, -26); k.camera(-31, -37, 1.3); });
+await page.waitForTimeout(3000); await shot('2-summon');
+await page.evaluate(() => window.__ki.fastForward(4));
+await page.waitForTimeout(1500); await shot('3-rise');
+await page.evaluate(() => window.__ki.fastForward(3));
+await page.waitForTimeout(1200); await shot('4-fight');
+console.log(JSON.stringify(await page.evaluate(() => window.__ki.shenron())));
+await page.evaluate(() => { const k = window.__ki, G = k.G, s = G.shenron; s.hp = 1; k.attack(s); });
+await page.evaluate(() => window.__ki.fastForward(3));
+await page.waitForTimeout(900); await shot('5-wish');
+console.log(JSON.stringify(await page.evaluate(() => ({ db: window.__ki.G.dball, wish: window.__ki.G.player.wish }))));
+console.log('gpu', log.gpu, 'errors', log.pageerrors, log.errors.slice(0, 5));
+await browser.close();

@@ -6,6 +6,7 @@ import { makeBrain, updateAI } from './ai.js';
 import { setupCamps, updateCamps, aggroCamp } from './jungle.js';
 import { createVision, updateVision } from './vision.js';
 import { aiShop } from './items.js';
+import { setupDragonBalls, updateDragonBalls } from './dragonballs.js';
 
 // opts: { fx, sfx, shake, cam, player: heroId|null, lane, diff, teams: [[ids],[ids]] }
 export function newMatch(opts) {
@@ -14,7 +15,7 @@ export function newMatch(opts) {
   G.later = (d, fn) => G.timers.push({ t: G.time + d, fn });
   G.shake = opts.shake || (() => {}); G.sfx = opts.sfx || (() => null);
   G.vision = createVision(); G.wards = [];
-  wireShots(G); setupCamps(G);
+  wireShots(G); setupCamps(G); setupDragonBalls(G);
   G.on('monsterHit', ({ dst, src }) => aggroCamp(G, dst, src));
   const lane = opts.lane ?? 1, diff = opts.diff ?? 1;
   // 隊伍：玩家選的角色＋兩名隊友；敵隊三名，兩隊不重複
@@ -57,6 +58,7 @@ export function stepWorld(G, dt) {
     physics(G, m, dt);
   }
   updateCamps(G, dt);
+  updateDragonBalls(G, dt);
   for (const m of G.monsters) if (m.alive) { tickStatus(m, dt); physics(G, m, dt); }
   for (const s of G.structures) if (s.alive && G.winner < 0) updateTower(G, s, dt);
   separate(G, dt);

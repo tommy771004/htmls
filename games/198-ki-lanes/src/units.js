@@ -1,7 +1,7 @@
 // 單位：英雄、小兵、建築。移動、碰撞、傷害、死亡、經驗。
 import {
   HEROES, MINION, MINION_GROWTH, TOWER, KI_MAX, KI_BAR, MAX_LEVEL, xpToNext, respawnTime, XP_SHARE_RADIUS,
-  FOUNTAIN, BASE, COMBO_WINDOW, HITSTOP, SPARK, WAVE_EVERY, FIRST_WAVE, SIEGE_FROM_WAVE, GOLD, ITEMS, APE_BUFF,
+  FOUNTAIN, BASE, COMBO_WINDOW, HITSTOP, SPARK, WAVE_EVERY, FIRST_WAVE, SIEGE_FROM_WAVE, GOLD, ITEMS, APE_BUFF, DRAGON,
 } from './config.js';
 import { collide, OBSTACLES, lanePath, heightAt, STRUCTURES, laneProgress } from './map.js';
 
@@ -26,7 +26,7 @@ export function makeHero(G, heroId, team, lane, isPlayer) {
     heroId, def, lane, isPlayer, level: 1, xp: 0, sp: 1, ranks: { Q: 0, W: 0, E: 0, R: 0 }, cds: { Q: 0, W: 0, E: 0, R: 0, D: 0, B: 0, S: 0, T: 0 },
     ki: 100, kills: 0, deaths: 0, assists: 0, chain: 0, chainT: -9, target: null, goal: null, order: null, action: null,
     respawn: 0, recall: 0, empowered: 0, charging: false, damagers: new Map(), lastAttackHeroT: -99, cs: 0, hitstopOwner: isPlayer,
-    gold: GOLD.start, inv: [], path: null, apeBuff: 0, form: 'base',
+    gold: GOLD.start, inv: [], path: null, apeBuff: 0, omen: 0, wish: 0, form: 'base',
   });
   recalcStats(u);
   u.hp = u.maxHp;
@@ -95,7 +95,7 @@ export function damage(G, src, dst, amount, opts = {}) {
   if (src && (src.kind === 'hero' || src.kind === 'minion') && (dst.kind === 'hero' || dst.kind === 'minion')) src.reveal = G.time + 1.2;
   let a = amount;
   if (src && src.st && src.st.spark > 0) a *= SPARK.dmg;
-  if (src && src.kind === 'hero') { a *= src.dmgMul || 1; if (src.apeBuff > 0) a *= 1 + APE_BUFF.dmg; if (opts.type === 'skill' || opts.type === 'super') a *= src.skillMul || 1; }
+  if (src && src.kind === 'hero') { a *= src.dmgMul || 1; if (src.apeBuff > 0) a *= 1 + APE_BUFF.dmg; if (src.omen > 0) a *= 1 + DRAGON.omen.dmg; if (src.wish > 0) a *= 1 + DRAGON.wish.dmg; if (opts.type === 'skill' || opts.type === 'super') a *= src.skillMul || 1; }
   if (dst.kind === 'hero') a *= 1 - (dst.armor || 0);
   if (dst.kind === 'tower' || dst.kind === 'core') { if (src && src.kind === 'hero' && (opts.type === 'skill' || opts.type === 'super')) a *= 0.55; }
   if (dst.st.shield > 0) { const s = Math.min(dst.st.shield, a); dst.st.shield -= s; a -= s; }
@@ -277,7 +277,7 @@ export function separate(G, dt) {
       const dx = b.x - a.x, dz = b.z - a.z, rr = (a.radius + b.radius) * 0.92, d2 = dx * dx + dz * dz;
       if (d2 >= rr * rr || d2 === 0) continue;
       const d = Math.sqrt(d2), push = (rr - d) * Math.min(1, dt * 10);
-      const wa = a.kind === 'hero' ? (b.kind === 'hero' ? 0.5 : 0.15) : (b.kind === 'hero' ? 0.85 : 0.5);
+      const wa = a.immovable ? 0 : b.immovable ? 1 : a.kind === 'hero' ? (b.kind === 'hero' ? 0.5 : 0.15) : (b.kind === 'hero' ? 0.85 : 0.5);
       const nx = dx / d, nz = dz / d;
       a.x -= nx * push * wa; a.z -= nz * push * wa; b.x += nx * push * (1 - wa); b.z += nz * push * (1 - wa);
     }
@@ -399,6 +399,7 @@ export function heroTick(G, h, dt) {
 export function moveSpeed(h) {
   let s = h.ms;
   if (h.st.spark > 0) s *= SPARK.ms;
+  if (h.wish > 0) s *= 1 + DRAGON.wish.ms;
   if (h.st.slow > 0) s *= 1 - h.st.slowAmt;
   return s;
 }

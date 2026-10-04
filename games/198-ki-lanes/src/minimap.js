@@ -24,7 +24,7 @@ export function createMinimap(canvas, groundCanvas) {
       for (const s of G.structures) {
         const [x, y] = toMap(s.x, s.z, w);
         g.fillStyle = s.alive ? TEAM_COLOR[s.team] : 'rgba(40,30,20,.6)';
-        g.strokeStyle = '#16110c'; g.lineWidth = 1.5 * k;
+        g.strokeStyle = '#10141f'; g.lineWidth = 1.5 * k;
         if (s.kind === 'core') { g.beginPath(); for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; g.lineTo(x + Math.cos(a) * 7 * k, y + Math.sin(a) * 7 * k); } g.closePath(); g.fill(); g.stroke(); }
         else { g.beginPath(); g.moveTo(x, y - 5 * k); g.lineTo(x + 4 * k, y + 4 * k); g.lineTo(x - 4 * k, y + 4 * k); g.closePath(); g.fill(); g.stroke(); }
       }
@@ -34,12 +34,13 @@ export function createMinimap(canvas, groundCanvas) {
         const [x, y] = toMap(c.x, c.z, w);
         g.beginPath(); g.arc(x, y, (c.boss ? 6 : 3.6) * k, 0, Math.PI * 2);
         g.fillStyle = live ? (c.boss ? '#ff9a3a' : '#e8b04a') : 'rgba(22,17,12,.5)'; g.fill();
-        g.lineWidth = 1.4 * k; g.strokeStyle = '#16110c'; g.stroke();
+        g.lineWidth = 1.4 * k; g.strokeStyle = '#10141f'; g.stroke();
       }
+      if (G.shenron && G.shenron.alive) { const [x, y] = toMap(G.shenron.x, G.shenron.z, w); g.beginPath(); g.arc(x, y, 7 * k, 0, Math.PI * 2); g.fillStyle = '#ffc23d'; g.fill(); g.lineWidth = 1.6 * k; g.strokeStyle = '#10141f'; g.stroke(); g.fillStyle = '#c8231a'; g.font = `900 ${8 * k}px sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('★', x, y + 0.5 * k); }
       for (const wd of G.wards || []) {
         if (!wd.alive || !seen(G, PT, wd)) continue;
         const [x, y] = toMap(wd.x, wd.z, w);
-        g.beginPath(); g.arc(x, y, 2.6 * k, 0, Math.PI * 2); g.fillStyle = wd.control ? '#ff9a4a' : wd.team === PT ? '#b8f09a' : '#f07a5c'; g.fill(); g.lineWidth = k; g.strokeStyle = '#16110c'; g.stroke();
+        g.beginPath(); g.arc(x, y, 2.6 * k, 0, Math.PI * 2); g.fillStyle = wd.control ? '#ff9a4a' : wd.team === PT ? '#b8f09a' : '#f07a5c'; g.fill(); g.lineWidth = k; g.strokeStyle = '#10141f'; g.stroke();
       }
       for (const m of G.minions) {
         if (!m.alive || !seen(G, PT, m)) continue;

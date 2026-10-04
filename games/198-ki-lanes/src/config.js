@@ -148,3 +148,11 @@ export const SPARK = { dur: 8, cd: 90, dmg: 1.2, ms: 1.25, heal: 0.18 };
 export const RECALL_TIME = 4;
 export const COMBO_WINDOW = 1.6;
 export const HITSTOP = { L: 0.045, M: 0.06, H: 0.085, skill: 0.1, super: 0.22 };
+
+// 龍珠獵人：全隊每補 perCs 隻兵得 1 顆、打倒大猿得 apeBalls 顆；先集滿 7 顆的隊伍召喚神龍到神龍坑，打倒神龍的隊伍許願
+export const DRAGON = {
+  perCs: 30, apeBalls: 2, max: 7, pit: { x: -34, z: -34 }, summonDelay: 6,
+  omen: { dur: 15, dmg: 0.15 },
+  wish: { dur: 90, dmg: 0.25, ms: 0.15 },
+  shenron: { hp: 8200, dmg: 150, range: 13, cd: 2.4, radius: 3, armor: 0.25, xp: 320, gold: 180, bolt: 3.4, telegraph: 0.7 },
+};
