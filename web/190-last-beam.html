@@ -194,6 +194,13 @@ body.touch #banner{width:min(640px,calc(100vw - 136px))}
 #death p i{font-style:normal;font-size:11px;letter-spacing:.2em;color:var(--ink-3)}
 #death p b{color:#ff8a6a;font-weight:600}
 #death p svg{width:46px;height:15px;fill:var(--ink)}
+#death .spec{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:8px;font-size:12px;letter-spacing:.06em;color:var(--ink-2)}
+#death .spec i{font-style:normal;font-size:10px;letter-spacing:.24em;color:var(--ink-3)}
+#death .spec b{color:var(--ink);font-weight:600}
+#death .spec button{pointer-events:auto;padding:4px 10px;border:0;border-radius:7px;background:rgba(26,24,21,.74);color:var(--ink);font-size:12px;cursor:pointer;transition:background var(--dur-press,.12s) var(--ease-out)}
+#death .spec button:hover{background:rgba(26,24,21,.92)}
+#death:not(.on) .spec button{pointer-events:none}
+#death .spec kbd{font-family:var(--mono);font-size:10px;margin-right:5px;color:var(--hazard)}
 #death p .hs{padding:1px 7px;border-radius:4px;background:var(--hazard);color:var(--hazard-ink);font-size:11px;letter-spacing:.12em}
 @media (min-width:721px) and (min-height:501px){
   #hud{--plate:rgba(26,24,21,.74);--card:rgba(26,24,21,.7)}
@@ -290,6 +297,8 @@ body.touch #banner{width:min(640px,calc(100vw - 136px))}
 .btn:hover{filter:brightness(1.08)}
 .btn:active{transform:scale(.97)}
 .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.quiet{background:rgba(243,238,228,.08);color:var(--ink-2)}
+.btn.quiet:hover{background:rgba(243,238,228,.14);color:var(--ink);filter:none}
 /* 模型還在下載／工地還在搭：按鈕是一條進度條（--p），按不下去 */
 .btn:disabled{background:linear-gradient(var(--hazard),var(--hazard)) left bottom/var(--p,0%) 4px no-repeat,rgba(244,180,0,.16);color:var(--ink-2);cursor:progress;filter:none;transform:none}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -371,6 +380,20 @@ body.touch #meds div,body.touch #guns .slot,body.touch #guns .frag{pointer-event
   #feed div{font-size:10px;padding:2px 6px}
   #prompt,#cast{top:38%}
   #storm{top:33%;font-size:11px;padding:4px 10px;gap:6px}
+  /* 手機也用實機參考影片的卡片質感（位置維持收在角落）：暖炭灰圓角、無描邊，人數卡帶圖示，槍格顯示稀有度色 */
+  #hud{--plate:rgba(26,24,21,.74);--plate-2:rgba(26,24,21,.5)}
+  .plate{border:0;border-radius:8px}
+  #phase{border-radius:9px;overflow:hidden}
+  #phase::before{height:3px;top:0}
+  #counts div{border-left:0!important;border-radius:8px;align-items:center;gap:5px}
+  #counts svg{display:block;width:13px;height:13px;fill:var(--ink-2)}
+  #counts div:last-child svg{fill:var(--hazard)}
+  #mmwrap{border-radius:10px}
+  #meds div,#guns .slot,#guns .frag{border:0;border-radius:6px}
+  #guns .slot.cur{box-shadow:inset 3px 0 0 var(--rc,var(--hazard))}
+  #guns .slot.cur .nm span{color:var(--rc,var(--ink))}
+  #hpbar{border:0;border-radius:2px}
+  #feed div{border-radius:6px}
   #death{top:42%;bottom:auto}
   #death p{font-size:12px;padding:5px 10px}
   #zinfo{display:block;font-size:8px;letter-spacing:.04em;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -523,7 +546,7 @@ body.touch #meds div,body.touch #guns .slot,body.touch #guns .frag{pointer-event
     <p id="endLine"></p>
     <div class="stats"><div><b id="sRank">—</b><small>名次</small></div><div><b id="sKills">0</b><small>擊殺</small></div><div><b id="sDmg">0</b><small>傷害</small></div><div><b id="sTime">0:00</b><small>存活</small></div></div>
     <div id="stand"></div>
-    <div class="row"><button class="btn" id="again">再飛一趟 ▸</button></div>
+    <div class="row"><button class="btn" id="again">再飛一趟 ▸</button><button class="btn quiet" id="toMenu">回到登機口</button></div>
   </div>
 </div>
 
@@ -8891,9 +8914,24 @@ function updateCamera(dt) {
     return;
   }
   if (!ch.alive) {
+    const sp = PL.spec && PL.spec.alive ? PL.spec : null;
+    if (sp) {
+      // 觀戰（實機參考影片的 SPECTATING · OVER THE SHOULDER）：跟在對方右肩後面，朝他面向的方向看；被牆擋住就拉近
+      PL.specYaw = PL.specYaw == null ? sp.yaw : PL.specYaw + angDiff(PL.specYaw, sp.yaw) * Math.min(1, dt * 4);
+      const fx = Math.sin(PL.specYaw), fz = Math.cos(PL.specYaw), py = sp.p.y + (sp.st === 'ground' ? sp.bodyH() - .15 : 1.6);
+      _cs.set(sp.p.x - fz * .55, py, sp.p.z + fx * .55); _cd.set(-fx, .32, -fz).normalize();
+      const t = raycast(_cs.x, _cs.y, _cs.z, _cd.x, _cd.y, _cd.z, 3.6);
+      camera.position.copy(_cs).addScaledVector(_cd, Math.max(.6, Math.min(3.4, t - .25)));
+      camera.lookAt(sp.p.x + fx * 6 - fz * .4, py - .25, sp.p.z + fz * 6 + fx * .4);
+      camera.near = .08; camera.fov = 68; camera.updateProjectionMatrix();
+      updateViewModel(dt, false);
+      return;
+    }
     PL.orbit += dt * .25;
-    const r = 7;
-    camera.position.set(ch.p.x + Math.cos(PL.orbit) * r, ch.p.y + 3.5, ch.p.z + Math.sin(PL.orbit) * r);
+    // 繞著倒下的地方慢慢轉；被牆或屋頂擋住就拉近，不會穿進牆裡
+    _cs.set(ch.p.x, ch.p.y + 1, ch.p.z); _cd.set(Math.cos(PL.orbit) * 7, 2.5, Math.sin(PL.orbit) * 7); const rl = _cd.length(); _cd.divideScalar(rl);
+    const th = raycast(_cs.x, _cs.y, _cs.z, _cd.x, _cd.y, _cd.z, rl);
+    camera.position.copy(_cs).addScaledVector(_cd, Math.max(.8, Math.min(rl, th - .3)));
     camera.lookAt(ch.p.x, ch.p.y + .4, ch.p.z);
     camera.near = .1; camera.fov = 60; camera.updateProjectionMatrix();
     updateViewModel(dt, false);
@@ -9237,6 +9275,7 @@ addEventListener('keydown', e => {
   if (e.repeat) return;
   IN.k[e.code] = true;
   if (e.code === 'Escape' && (IN.noLock || TOUCH) && (STATE === 'heli' || STATE === 'play')) { setPause(!PAUSED); return; }
+  if (STATE === 'dead' && !PL.endShown && !PAUSED) { if (e.code === 'Space') { e.preventDefault(); specNext(); } else if (e.code === 'Enter') showEnd(false); return; }
   if (!active()) return;
   const ch = PLAYER;
   if (ch.inVeh && !['KeyF', 'KeyH', 'KeyM', 'Tab', 'Escape'].includes(e.code)) return;   // 開車時只收下車、喇叭與地圖
@@ -9440,9 +9479,9 @@ function updateHUD(dt) {
     if (out) { const d = Math.max(0, Math.hypot(ch.p.x - ZONE.x, ch.p.z - ZONE.z) - ZONE.r), dps = PHASES[Math.min(ZONE.phase, PHASES.length - 1)].dps + (ZONE.finalT || 0) * 2;
       const tx = `在電網外 <em>−${dps < 10 ? dps.toFixed(1).replace(/\.0$/, '') : Math.round(dps)} HP/秒</em> · 往安全區 <b>${Math.ceil(d)} m</b>`; if (HC.storm !== tx) { HC.storm = tx; st.innerHTML = tx; } } }
   // 自己被淘汰：結算前先在畫面下方顯示名次與淘汰者（實機參考影片的 Eliminated #5 of 100）
-  { const dd = $('death'), on = STATE === 'dead' && !PL.endShown;
-    if (on && HC.death !== ch.rank) { HC.death = ch.rank; const by = ch.killedBy && ch.killedBy !== ch ? ch.killedBy : null, gid = Object.keys(WPN).find(k => WPN[k].name === ch.killedWith);
-      dd.innerHTML = `<h3>淘汰 <em>#${ch.rank}</em><small>/ ${NPLAYERS}</small></h3><p>${by ? `<i>淘汰者</i><b>${by.name}</b>${gid ? gunSvg(gid) : ''}${ch.killedWith}${ch.killedHead ? '<span class="hs">爆頭</span>' : ''}<span>${Math.round(Math.hypot(by.p.x - ch.p.x, by.p.z - ch.p.z))} m</span>` : ch.killedWith === '安全區' ? '倒在電網外' : '從高處摔落'}</p>`; }
+  { const dd = $('death'), on = STATE === 'dead' && !PL.endShown, sp = PL.spec && PL.spec.alive ? PL.spec : null, dk = ch.rank + '|' + (sp ? sp.name + sp.kills : '');
+    if (on && HC.death !== dk) { HC.death = dk; const by = ch.killedBy && ch.killedBy !== ch ? ch.killedBy : null, gid = Object.keys(WPN).find(k => WPN[k].name === ch.killedWith);
+      dd.innerHTML = `<h3>淘汰 <em>#${ch.rank}</em><small>/ ${NPLAYERS}</small></h3><p>${by ? `<i>淘汰者</i><b>${by.name}</b>${gid ? gunSvg(gid) : ''}${ch.killedWith}${ch.killedHead ? '<span class="hs">爆頭</span>' : ''}<span>${Math.round(Math.hypot(by.p.x - ch.p.x, by.p.z - ch.p.z))} m</span>` : ch.killedWith === '安全區' ? '倒在電網外' : '從高處摔落'}</p>${sp ? `<div class="spec"><i>觀戰中</i><b>${sp.name}</b><span>${sp.kills} 擊殺</span><button data-a="next">${TOUCH ? '換人' : '<kbd>空白</kbd>換人'}</button><button data-a="end">${TOUCH ? '看結算' : '<kbd>Enter</kbd>看結算'}</button></div>` : ''}`; }
     if (!on) HC.death = null;
     dd.classList.toggle('on', on); }
   if (TOUCH) $('tDrop').classList.toggle('hide', !((STATE === 'heli' && ch.st === 'beam' && heliOverSite()) || (ch.st === 'fall' && ch.fallT > 1)));
@@ -9466,6 +9505,7 @@ function updateHUD(dt) {
   const pr = $('prompt');
   const nd = ch.alive && ch.st === 'ground' && !ch.inVeh ? nearestDoor(ch) : null;
   const nv = ch.alive && ch.st === 'ground' && !ch.inVeh ? nearestVehicle(ch) : null;
+  setS(pr, 'color', '');
   if (nv && nv.dist < Math.min(PL.near ? Math.hypot(PL.near.x - ch.p.x, PL.near.z - ch.p.z) : 9, nd ? nd.dist : 9)) {
     pr.classList.remove('hide'); if (HC.prompt !== 'veh') { HC.prompt = 'veh'; $('promptT').textContent = '駕駛皮卡'; }
     pr.firstElementChild.textContent = TOUCH ? '車' : 'F';
@@ -9476,7 +9516,7 @@ function updateHUD(dt) {
     pr.classList.remove('hide'); const tx = nd.door.target ? '關門' : '開門';
     if (HC.prompt !== tx) { HC.prompt = tx; $('promptT').textContent = tx; }
     pr.firstElementChild.textContent = TOUCH ? '門' : 'F';
-  } else if (PL.near && ch.st === 'ground' && ch.alive) { const [a, b] = itemLabel(PL.near); pr.classList.remove('hide'); const tx = a + (b ? ' · ' + b : ''); if (HC.prompt !== tx) { HC.prompt = tx; $('promptT').innerHTML = a + (b ? ' <small>' + b + '</small>' : ''); } pr.firstElementChild.textContent = TOUCH ? '撿' : 'F'; }
+  } else if (PL.near && ch.st === 'ground' && ch.alive) { const [a, b] = itemLabel(PL.near), rr = RARITY[PL.near.t] || 0; pr.classList.remove('hide'); setS(pr, 'color', RARITY_CSS[rr]); const tx = a + (b ? ' · ' + b : '') + rr; if (HC.prompt !== tx) { HC.prompt = tx; $('promptT').innerHTML = a + (rr ? ` <small style="color:inherit">${RARITY_N[rr]}</small>` : '') + (b ? ' <small>' + b + '</small>' : ''); } pr.firstElementChild.textContent = TOUCH ? '撿' : 'F'; }
   else pr.classList.add('hide');
   if (TOUCH) $('tUse').style.opacity = PL.near || nd || nv || HC.nc || ch.inVeh ? 1 : .35;
   // 準星
@@ -9730,9 +9770,17 @@ function heliUpdate(dt) {
   }
   if (PLAYER.st === 'beam' && (HP.t * HP.speed > HP.j1 || HP.gone)) { toast('被推下去了！'); playerJump(); }
 }
+/* 觀戰對象：先看淘汰你的人（他倒了就看淘汰他的人），都不在了就看離你最近、還活著的人 */
+function nextSpec(prefer) {
+  if (prefer && prefer.alive && !prefer.isPlayer) return prefer;
+  const k = PLAYER.killedBy; if (k && k.alive && !k.isPlayer) return k;
+  let c = null, bd = 1e9; for (const o of CHARS) if (o.alive && !o.isPlayer) { const d = Math.hypot(o.p.x - PLAYER.p.x, o.p.z - PLAYER.p.z); if (d < bd) { bd = d; c = o; } }
+  return c;
+}
+function specNext() { if (STATE !== 'dead' || PL.endShown || PL.deadT < 3) return; const alive = CHARS.filter(o => o.alive && !o.isPlayer); if (!alive.length) return; const i = alive.indexOf(PL.spec); PL.spec = alive[(i + 1) % alive.length]; PL.specYaw = null; }
 function onPlayerDead() {
   STATE = 'dead';
-  PL.deadT = 0;
+  PL.deadT = 0; PL.spec = null; PL.overT = 0;
   IN.lmb = IN.rmb = false;
 }
 function checkWin() {
@@ -9992,7 +10040,14 @@ function update(dt) {
   updateCrates(dt);
   for (const c of CHARS) commonUpdate(c, dt);
   updateNades(dt);
-  if (STATE === 'dead' || STATE === 'won') { PL.deadT += dt; if (PL.deadT > (STATE === 'won' ? 1.2 : 3) && !PL.endShown) showEnd(STATE === 'won'); }
+  if (STATE === 'won') { PL.deadT += dt; if (PL.deadT > 1.2 && !PL.endShown) showEnd(true); }
+  if (STATE === 'dead' && !PL.endShown) {
+    PL.deadT += dt;
+    // 倒下 3 秒後開始觀戰；看的人倒了換下一個，場上剩一人時再過 3 秒進結算
+    if (PL.deadT > 3 && (!PL.spec || !PL.spec.alive)) { PL.spec = nextSpec(PL.spec && PL.spec.killedBy); PL.specYaw = null; }
+    if (aliveCount() <= 1) { PL.overT = (PL.overT || 0) + dt; if (PL.overT > 3) showEnd(false); }
+    if (PL.deadT > 3 && !PL.spec && !PL.endShown) showEnd(false);
+  }
   if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) $('banner').style.opacity = 0; }
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').classList.remove('on'); }
   // 聲音：直升機、風切
@@ -10100,6 +10155,8 @@ $('loadNote').textContent = '工地已就緒 · ' + cnum(NPLAYERS) + '人待命'
 $('start').disabled = false;
 $('start').addEventListener('click', () => { audioInit(); newGame(); requestLock(); canvas.focus(); });
 $('again').addEventListener('click', () => { audioInit(); newGame(); requestLock(); });
+$('death').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.a === 'next') specNext(); else if (b.dataset.a === 'end') showEnd(false); });
+$('toMenu').addEventListener('click', () => { $('end').classList.add('hide'); $('menu').classList.remove('hide'); STATE = 'menu'; PL.endShown = false; });
 $('resume').addEventListener('click', () => { audioInit(); setPause(false); });
 $('restart1').addEventListener('click', () => { newGame(); requestLock(); });
 $('sens').addEventListener('input', e => { IN.sens = +e.target.value; $('sensV').textContent = IN.sens.toFixed(2); });
