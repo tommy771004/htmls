@@ -105,11 +105,26 @@ def open_jacket(F, pal, rows, e=0.02, gap0=0.3, gap1=0.55, name='jacket', thick=
     return kit.tag(jk, pal, grp=G_TORSO)
 
 
-def long_sleeve(F, pal, s_end=None, k=1.0, name='sleeveL', thick=0.008):
-    ka = F.k_arm * k
-    s_end = s_end if s_end is not None else F.up + F.lo - 0.05
-    sl = limb(name, F.sh, F.da, [(-0.085, 0.05 * ka, 0.055 * ka), (-0.06, 0.085 * ka, 0.088 * ka), (-0.02, 0.1 * ka, 0.1 * ka), (0.03, 0.102 * ka, 0.1 * ka), (0.16, 0.092 * ka, 0.094 * ka), (F.up, 0.082 * ka, 0.082 * ka),
-                                  (F.up + 0.12, 0.076 * ka, 0.072 * ka), (s_end, 0.068 * ka, 0.062 * ka)], n=14, cap0='pole', cap1=None)
+def long_sleeve(F, pal, s_end=None, k=1.0, name='sleeveL', thick=0.007, e=0.008, cuff=1.0):
+    """貼合手臂的長袖：照 arm_skin 的斷面（三角肌→上臂→手肘→前臂收細）外擴 e，不是一根等粗的管子。
+    起點在肩關節內側、半徑接近三角肌，開口藏進軀幹殼裡，手臂放下時不會露出方形袖口。"""
+    ka, kf = F.k_arm * k, F.k_fore * k
+    up, lo = F.up, F.lo
+    s_end = s_end if s_end is not None else up + lo - 0.05
+    st = [
+        (-0.11, 0.035 * ka, 0.035 * ka),
+        (-0.085, 0.068 * ka + e * 0.5, 0.066 * ka + e * 0.5),
+        (-0.04, 0.086 * ka + e, 0.084 * ka + e),
+        (0.0, 0.09 * ka + e, 0.088 * ka + e),
+        (0.07, 0.09 * ka + e, 0.088 * ka + e),
+        (0.15, 0.082 * ka + e, 0.086 * ka + e),
+        (up - 0.04, 0.068 * ka + e, 0.07 * ka + e),
+        (up + 0.02, 0.068 * kf + e * 1.1, 0.066 * kf + e * 1.1),
+        (up + 0.12, 0.064 * kf + e * 1.1, 0.058 * kf + e * 1.1),
+        (s_end - 0.03, 0.056 * kf * cuff + e * 1.2, 0.05 * kf * cuff + e * 1.2),
+        (s_end, 0.055 * kf * cuff + e * 1.2, 0.049 * kf * cuff + e * 1.2),
+    ]
+    sl = limb(name, F.sh, F.da, st, n=14, cap0='pole', cap1=None)  # 肩頭收成圓頂封口
     sl = kit.subsurf(sl, 2, solidify=thick)
     return kit.tag(sl, pal, grp=G_ARM_L)
 
@@ -175,6 +190,7 @@ def build_naruto(R):
     kit.paint_field(sl, lambda co: arm_s(F, co) - 0.11, black, 0)
     cuff = band('cuffL', F.sh, F.da, F.up + F.lo - 0.075, F.up + F.lo - 0.04, 0.072 * F.k_arm, 0.07 * F.k_arm, orangeD, G_FORE_L, thick=0.008)
     arm = arm_skin(F, skin, muscle=0.8)
+    kit.paint_field(arm, lambda co: arm_s(F, co) - (F.up + F.lo - 0.06), orange, 0)
     hand = fist(F, skin, scale=1.0)
     body.append(pelvis(F, orange, e=0.012))
     proxy.append(body[-1])
@@ -237,8 +253,9 @@ def build_sasuke(R):
     body.append(top)
     body.append(neck(F, skin, r=0.054))
     proxy.append(body[-1])
-    slv = sleeve(F, white, s1=0.24, r=0.12 * F.k_arm, flare=1.12, s0=-0.12)
+    slv = sleeve(F, white, s1=0.2, r=0.098 * F.k_arm + 0.01, flare=1.16, s0=-0.06)
     arm = arm_skin(F, skin, muscle=0.9)
+    kit.paint_field(arm, lambda co: arm_s(F, co) - 0.15, white, 0)
     ag = band('guardL', F.sh, F.da, F.up + 0.06, F.up + F.lo - 0.02, 0.07 * F.k_fore, 0.058 * F.k_fore, guard, G_FORE_L, thick=0.01)
     hand = fist(F, skin, scale=1.0)
     # 腰間的紫色粗繩＋深藍腰布（前開）
@@ -299,18 +316,24 @@ def build_kakashi(R):
     body.append(sh)
     proxy.append(sh)
     # 綠色戰術背心：厚、前方雙排口袋
-    vs = kit.loft('vest', torso_rows(F, e=lambda u: 0.032 - 0.02 * smooth((u - 0.85) / 0.12), u0=0.12, u1=0.97, pec=0.04, lat=0.03, p=2.4), n=20, cap0=None, cap1=None)
+    vs = kit.loft('vest', torso_rows(F, e=lambda u: 0.02 - 0.012 * smooth((u - 0.85) / 0.12), u0=0.12, u1=0.97, pec=0.06, lat=0.05, p=2.35), n=20, cap0=None, cap1=None)
     vs = kit.subsurf(vs, 2, solidify=0.014)
     kit.tag(vs, vest, grp=G_TORSO)
     body.append(vs)
+    from heroes import tree_of
+    vt = tree_of(vs)
+    def on_vest(name, x, u, w, h, d):
+        """貼在背心表面的口袋：從前方往後打射線取表面點與法線，口袋沿法線貼上。"""
+        hit = vt.ray_cast(V((x, F.y(u), 1.0)), V((0, 0, -1)), 2)
+        p, n = (hit[0], hit[1]) if hit[0] is not None else (V((x, F.y(u), F.cz * 1.05)), V((0, 0, 1)))
+        pk = kit.box_cage(name, w, h, d, cuts=(1, 1, 1))
+        rot = V((0, 0, 1)).rotation_difference(n).to_matrix().to_4x4()
+        kit.transform(pk, Matrix.Translation(p + n * (d * 0.35)) @ rot)
+        return kit.tag(kit.subsurf(pk, 2), vestD, grp=G_TORSO, ol=0.45)
     for sx in (1, -1):
-        for u in (0.36, 0.52):
-            pk = kit.box_cage('pocket', 0.085, 0.07, 0.024, cuts=(1, 1, 1))
-            kit.transform(pk, Matrix.Translation(V((sx * F.cx * 0.42, F.y(u), F.cz * 1.12 + 0.03))))
-            body.append(kit.tag(kit.subsurf(pk, 2), vestD, grp=G_TORSO, ol=0.6))
-        sc = kit.box_cage('scroll', 0.05, 0.11, 0.05, cuts=(1, 2, 1))
-        kit.transform(sc, Matrix.Translation(V((sx * F.cx * 0.55, F.y(0.74), F.cz * 1.1 + 0.035))))
-        body.append(kit.tag(kit.subsurf(sc, 2), vestD, grp=G_TORSO, ol=0.6))
+        for u in (0.34, 0.5):
+            body.append(on_vest('pocket', sx * F.cx * 0.42, u, 0.082, 0.07, 0.018))
+        body.append(on_vest('scroll', sx * F.cx * 0.5, 0.7, 0.05, 0.1, 0.022))
     col = kit.loft('collar', [S(V((0, F.y(0.92), -0.01)), F.cx * 0.62, F.cz * 0.78), S(V((0, F.y(1.03), -0.015)), F.cx * 0.56, F.cz * 0.7)], n=16, cap0=None, cap1=None)
     col = kit.subsurf(col, 2, solidify=0.012)
     body.append(kit.tag(col, vest, grp=G_NECK, ol=0.8))
@@ -318,6 +341,7 @@ def build_kakashi(R):
     proxy.append(body[-1])
     sl = long_sleeve(F, navy, k=1.0)
     arm = arm_skin(F, skin, muscle=0.8)
+    kit.paint_field(arm, lambda co: arm_s(F, co) - (F.up + F.lo - 0.06), navy, 0)  # 袖子下的手臂染成衣服色：彎肘時戳出來也不會露膚色
     glove = band('gloveL', F.sh, F.da, F.up + F.lo - 0.05, F.up + F.lo + 0.01, 0.062 * F.k_fore, 0.058 * F.k_fore, navyD, G_FORE_L, thick=0.008)
     hand = fist(F, skin, scale=1.0)
     body.append(pelvis(F, navy, e=0.012))
@@ -334,7 +358,7 @@ def build_kakashi(R):
     h = anime_head('head_base', F, skin, jaw=0.98, chin=0.95, nose=0.6)
     hc = P(0xd8dbe6)
     heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.55, temple=0.0, scale=1.07, nape=-0.6)] + hair(F, hc, kakashi_hair())
-             + head_band(F, cloth, metal, y=0.16, h=0.4, tilt=0.42, tails=True)}
+             + head_band(F, cloth, metal, y=0.3, h=0.38, tilt=0.42, tails=True)}
     return finish(F, P, body, proxy, heads)
 
 
@@ -452,7 +476,6 @@ def build_luffy(R):
     body.append(neck(F, skin, r=0.054))
     proxy.append(body[-1])
     arm = arm_skin(F, skin, muscle=1.0, k=1.0)
-    armhole = band('armhole', F.sh, F.da, -0.12, 0.03, 0.112 * F.k_arm, 0.098 * F.k_arm, red, G_UPPER_L, thick=0.008)
     hand = fist(F, skin, scale=1.08)
     # 黃色腰帶、反摺的牛仔短褲到膝蓋、赤腳拖鞋
     body.append(pelvis(F, denim, e=0.012))
@@ -469,7 +492,7 @@ def build_luffy(R):
     shin = leg_tube(F, skin, [(F.tl - 0.06, 0.086 * kl, 0.088 * kl), (F.tl + 0.1, 0.08 * kl, 0.086 * kl, calf), (F.tl + 0.2, 0.064 * kl, 0.068 * kl, calf), (F.tl + F.sl - 0.06, 0.05 * kl, 0.054 * kl)],
                     name='shinL', mat=4)
     ft = sandal(F, skin, sole)
-    pair_add(body, proxy, [arm, armhole, hand, shorts, cuff, shin] + ft, proxy_set=[arm, hand, shorts] + ft)
+    pair_add(body, proxy, [arm, hand, shorts, cuff, shin] + ft, proxy_set=[arm, hand, shorts] + ft)
     body.append(team_band(F, team, 1.2))
 
     h = anime_head('head_base', F, skin, jaw=0.95, chin=0.9, cheek=1.02, nose=0.7)
@@ -525,7 +548,8 @@ def build_zoro(R):
     body.append(neck(F, skin, r=0.06))
     proxy.append(body[-1])
     arm = arm_skin(F, skin, muscle=1.3, k=1.08)
-    slv = sleeve(F, coat, s1=F.up + 0.08, r=0.115 * F.k_arm, flare=1.0, s0=-0.12)
+    kit.paint_field(arm, lambda co: arm_s(F, co) - 0.17, coat, 0)
+    slv = sleeve(F, coat, s1=0.2, r=0.094 * F.k_arm + 0.008, flare=1.08, s0=-0.06)
     bandana = band('bandL', F.sh, F.da, 0.1, 0.17, 0.11 * F.k_arm, 0.105 * F.k_arm, black, G_UPPER_L, thick=0.008)
     hand = fist(F, skin, scale=1.08)
     body.append(pelvis(F, black, e=0.012))
@@ -545,7 +569,7 @@ def build_zoro(R):
         e = kit.quad_sphere('ear', 1.0, cuts=3)
         kit.deform(e, lambda p, i=i: F.c + V((F.hr * 0.86, -F.hr * (0.2 + i * 0.1), -F.hr * 0.05)) + p * F.hr * 0.045)
         hairs.append(kit.tag(e, gold, mat=2, grp=G_FREE, ol=0.4))
-    heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.48, temple=0.05, scale=1.05, nape=-0.55)] + hairs}
+    heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.5, temple=0.05, scale=1.08, nape=-0.55, thick=0.1)] + hairs}
     blade, sheath = katana(P, sw_grip, sw_guard, sw_sheath, length=1.0)
     # 腰間三把刀鞘並排
     sh3 = []
@@ -561,15 +585,17 @@ def build_zoro(R):
 
 
 def zoro_hair():
-    # 短刺的綠髮
-    return sym([
-        ((0.0, 0.98, 0.2), (0.05, 1.18, 0.42), 0.44, 0.14, (0, 0.04, 0)),
-        ((0.4, 0.88, 0.2), (0.55, 1.08, 0.42), 0.4, 0.13, (0, 0.04, 0)),
-        ((0.65, 0.65, 0.0), (0.88, 0.8, 0.05), 0.36, 0.13, (0, 0.03, 0)),
-        ((0.3, 0.85, -0.4), (0.45, 1.05, -0.62), 0.42, 0.14, (0, 0.04, 0)),
-        ((0.0, 0.6, -0.78), (0.05, 0.72, -1.02), 0.44, 0.14, (0, 0.04, 0)),
-        ((0.15, 0.9, 0.5), (0.16, 0.86, 0.9), 0.32, 0.12, (0, 0.04, 0.05)),
-    ])
+    # 短刺的綠髮：很多撮小而尖的短髮，只比髮帽高一點
+    out = []
+    for k in range(14):
+        a = k / 14 * 2 * math.pi
+        for lv, (y, r, h) in enumerate(((0.92, 0.38, 0.16), (0.6, 0.78, 0.1))):
+            if lv == 1 and math.sin(a) > 0.55:
+                continue
+            x, z = math.cos(a) * r, math.sin(a) * r
+            out.append(((x, y, z), (x * 1.2, y + h, z * 1.2 + 0.05), 0.26, 0.1, (0, 0.02, 0)))
+    out.append(((0.0, 1.0, 0.1), (0.04, 1.14, 0.26), 0.28, 0.1, (0, 0.02, 0)))
+    return out
 
 
 # ================================================================ 香吉士
@@ -597,6 +623,7 @@ def build_sanji(R):
     proxy.append(body[-1])
     sl = long_sleeve(F, suit, k=1.0)
     arm = arm_skin(F, skin, muscle=0.7)
+    kit.paint_field(arm, lambda co: arm_s(F, co) - (F.up + F.lo - 0.06), suit, 0)
     hand = fist(F, skin, scale=1.0)
     body.append(pelvis(F, suit, e=0.012))
     proxy.append(body[-1])
@@ -619,19 +646,18 @@ def build_sanji(R):
 
 
 def sanji_hair():
-    # 金髮側分、瀏海蓋住角色左眼（＋X）
+    # 金髮側分：一大片瀏海斜蓋住角色左眼（＋X），右側短髮貼著臉，後腦收短
     return [
-        ((0.2, 0.92, 0.42), (0.62, -0.15, 0.98), 0.5, 0.16, (0.3, 0.35, 0.25)),
-        ((0.45, 0.85, 0.35), (0.92, -0.35, 0.72), 0.44, 0.15, (0.35, 0.3, 0.2)),
-        ((-0.25, 0.92, 0.4), (-0.6, 0.35, 0.95), 0.36, 0.13, (-0.2, 0.3, 0.2)),
-        ((-0.5, 0.85, 0.2), (-0.98, -0.25, 0.4), 0.38, 0.14, (-0.35, 0.25, 0.1)),
-        ((0.55, 0.8, 0.0), (1.02, -0.55, 0.0), 0.44, 0.15, (0.4, 0.25, 0.0)),
-        ((-0.5, 0.8, -0.3), (-0.98, -0.62, -0.45), 0.44, 0.16, (-0.4, 0.25, -0.05)),
-        ((0.5, 0.8, -0.3), (0.98, -0.62, -0.45), 0.44, 0.16, (0.4, 0.25, -0.05)),
-        ((0.0, 0.8, -0.7), (0.05, -0.7, -1.05), 0.5, 0.17, (0, 0.25, -0.3)),
-        ((0.3, 0.82, -0.6), (0.6, -0.68, -0.95), 0.46, 0.16, (0.25, 0.25, -0.25)),
-        ((-0.3, 0.82, -0.6), (-0.6, -0.68, -0.95), 0.46, 0.16, (-0.25, 0.25, -0.25)),
-        ((0.0, 0.98, 0.1), (0.2, 1.2, 0.5), 0.46, 0.18, (0, 0.2, 0.2)),
+        ((0.1, 0.96, 0.55), (0.46, -0.42, 1.1), 0.5, 0.1, (0.2, 0.3, 0.32)),
+        ((0.36, 0.9, 0.5), (0.74, -0.38, 0.98), 0.42, 0.1, (0.25, 0.25, 0.28)),
+        ((0.62, 0.72, 0.15), (0.92, -0.4, 0.38), 0.3, 0.1, (0.3, 0.2, 0.05)),
+        ((-0.16, 0.95, 0.45), (-0.42, 0.6, 0.92), 0.24, 0.08, (-0.12, 0.18, 0.15)),
+        ((-0.42, 0.86, 0.32), (-0.78, 0.2, 0.62), 0.24, 0.08, (-0.25, 0.18, 0.1)),
+        ((-0.66, 0.66, 0.0), (-0.92, -0.05, 0.12), 0.26, 0.09, (-0.25, 0.15, 0.0)),
+        ((-0.5, 0.75, -0.42), (-0.82, -0.25, -0.6), 0.3, 0.1, (-0.3, 0.15, -0.05)),
+        ((0.5, 0.75, -0.42), (0.82, -0.25, -0.6), 0.3, 0.1, (0.3, 0.15, -0.05)),
+        ((0.0, 0.78, -0.72), (0.04, -0.35, -1.0), 0.36, 0.11, (0, 0.18, -0.2)),
+        ((0.0, 0.98, 0.0), (0.06, 1.05, 0.32), 0.38, 0.12, (0, 0.08, 0.12)),
     ]
 
 
@@ -648,16 +674,16 @@ def build_nami(R):
     team = P(-1)
     body, proxy = [], []
 
-    tor = kit.loft('skinTop', torso_rows(F, e=0.0, u0=0.0, pec=0, lat=0, bust=0.15, rows=FEMALE_ROWS), n=18, cap0=None, cap1=None)
+    tor = kit.loft('skinTop', torso_rows(F, e=0.0, u0=0.0, pec=0, lat=0, bust=0.38, rows=FEMALE_ROWS), n=18, cap0=None, cap1=None)
     tor = kit.subsurf(tor, 2)
     kit.tag(tor, skin, mat=4, grp=G_TORSO)
     body.append(tor)
     proxy.append(tor)
     # 比基尼上衣（只包胸口一圈）＋藍白相間
-    bk = kit.loft('bikini', torso_rows(F, e=0.006, u0=0.5, u1=0.76, pec=0, lat=0, bust=0.16, rows=FEMALE_ROWS), n=20, cap0=None, cap1=None)
+    # 平口抹胸：一圈貼著胸型的布（bust 和皮膚層一致，所以不會浮起來）
+    bk = kit.loft('bandeau', torso_rows(F, e=0.007, u0=0.5, u1=0.8, pec=0, lat=0, bust=0.38, rows=FEMALE_ROWS), n=22, cap0=None, cap1=None)
     bk = kit.subsurf(bk, 2, solidify=0.006)
     kit.tag(bk, top_c, grp=G_TORSO, ol=0.7)
-    kit.paint_field(bk, lambda co: 0.3 - math.sin(co.x * 60.0), top_l, 0)
     body.append(bk)
     body.append(neck(F, skin, r=0.045))
     proxy.append(body[-1])
@@ -690,14 +716,15 @@ def build_nami(R):
 
 
 def nami_hair():
-    # 及腰長波浪橘髮、中分
-    return sym([
-        ((0.25, 0.92, 0.42), (0.7, -0.5, 0.65), 0.36, 0.13, (0.3, 0.3, 0.2)),
-        ((0.45, 0.85, 0.1), (1.05, -1.4, 0.2), 0.46, 0.16, (0.45, 0.2, 0.1)),
-        ((0.4, 0.82, -0.3), (1.0, -2.0, -0.6), 0.5, 0.17, (0.45, 0.1, -0.1)),
-        ((0.2, 0.8, -0.6), (0.6, -2.4, -1.1), 0.52, 0.17, (0.3, 0.0, -0.3)),
-        ((0.02, 0.78, -0.75), (0.15, -2.6, -1.25), 0.52, 0.17, (0.1, 0.0, -0.4)),
+    # 中分長波浪：兩撮細瀏海框住臉、鬢髮垂到胸前、背後幾片寬而扁的長髮
+    cl = sym([
+        ((0.12, 0.94, 0.45), (0.42, 0.25, 0.95), 0.18, 0.07, (0.15, 0.15, 0.15)),
+        ((0.6, 0.72, 0.28), (0.82, -0.9, 0.42), 0.2, 0.08, (0.2, 0.1, 0.12)),
+        ((0.72, 0.5, -0.05), (0.9, -1.7, 0.1), 0.26, 0.09, (0.25, -0.1, 0.1)),
+        ((0.5, 0.7, -0.5), (0.72, -2.2, -0.75), 0.34, 0.1, (0.3, 0.0, -0.15)),
+        ((0.15, 0.72, -0.7), (0.24, -2.45, -0.95), 0.36, 0.1, (0.12, 0.0, -0.22)),
     ])
+    return cl
 
 
 BUILDERS = {

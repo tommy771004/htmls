@@ -12,13 +12,13 @@ export const PROPS = {
   piccolo: { H: 2.12, hr: 0.1512, L: 1.02, sw: 0.3192, chest: [0.2898, 0.31, 0.1926], waist: 0.1425, arm: 0.09625, fore: 0.08662, fist: 0.108, thigh: 0.1366, shin: 0.09504, hip: 0.126 },
   frieza: { H: 1.55, hr: 0.1472, L: 0.7, sw: 0.1924, chest: [0.1806, 0.24, 0.1365], waist: 0.092, arm: 0.0572, fore: 0.05292, fist: 0.07072, thigh: 0.0861, shin: 0.0624, hip: 0.098 },
   a18: { H: 1.72, hr: 0.145, L: 0.86, sw: 0.188, chest: [0.17, 0.26, 0.13], waist: 0.1078, arm: 0.0504, fore: 0.0462, fist: 0.064, thigh: 0.0936, shin: 0.06732, hip: 0.116 },
-  naruto: { H: 1.66, hr: 0.138, L: 0.79, sw: 0.25, chest: [0.226, 0.26, 0.158], waist: 0.12, arm: 0.077, fore: 0.069, fist: 0.09, thigh: 0.11, shin: 0.078, hip: 0.106 },
+  naruto: { H: 1.66, hr: 0.138, L: 0.79, sw: 0.25, chest: [0.226, 0.26, 0.158], waist: 0.12, arm: 0.066, fore: 0.06, fist: 0.09, thigh: 0.11, shin: 0.078, hip: 0.106 },
   sasuke: { H: 1.68, hr: 0.137, L: 0.81, sw: 0.244, chest: [0.218, 0.26, 0.152], waist: 0.115, arm: 0.073, fore: 0.065, fist: 0.086, thigh: 0.105, shin: 0.076, hip: 0.104 },
-  kakashi: { H: 1.81, hr: 0.141, L: 0.88, sw: 0.258, chest: [0.232, 0.28, 0.163], waist: 0.125, arm: 0.078, fore: 0.07, fist: 0.09, thigh: 0.112, shin: 0.08, hip: 0.11 },
+  kakashi: { H: 1.81, hr: 0.141, L: 0.88, sw: 0.258, chest: [0.232, 0.28, 0.163], waist: 0.125, arm: 0.064, fore: 0.058, fist: 0.09, thigh: 0.112, shin: 0.08, hip: 0.11 },
   sakura: { H: 1.61, hr: 0.14, L: 0.8, sw: 0.184, chest: [0.168, 0.245, 0.127], waist: 0.103, arm: 0.052, fore: 0.048, fist: 0.065, thigh: 0.091, shin: 0.066, hip: 0.11 },
   luffy: { H: 1.74, hr: 0.148, L: 0.83, sw: 0.252, chest: [0.228, 0.27, 0.156], waist: 0.118, arm: 0.074, fore: 0.067, fist: 0.094, thigh: 0.105, shin: 0.077, hip: 0.108 },
   zoro: { H: 1.81, hr: 0.143, L: 0.86, sw: 0.292, chest: [0.262, 0.295, 0.185], waist: 0.142, arm: 0.093, fore: 0.083, fist: 0.1, thigh: 0.13, shin: 0.089, hip: 0.122 },
-  sanji: { H: 1.8, hr: 0.14, L: 0.92, sw: 0.25, chest: [0.222, 0.27, 0.155], waist: 0.118, arm: 0.07, fore: 0.063, fist: 0.085, thigh: 0.108, shin: 0.078, hip: 0.108 },
+  sanji: { H: 1.8, hr: 0.14, L: 0.92, sw: 0.25, chest: [0.222, 0.27, 0.155], waist: 0.118, arm: 0.06, fore: 0.054, fist: 0.085, thigh: 0.108, shin: 0.078, hip: 0.108 },
   nami: { H: 1.7, hr: 0.144, L: 0.85, sw: 0.186, chest: [0.172, 0.26, 0.132], waist: 0.1, arm: 0.05, fore: 0.046, fist: 0.064, thigh: 0.095, shin: 0.067, hip: 0.12 },
 };
 
