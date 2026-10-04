@@ -1,5 +1,5 @@
 // 輸入：滑鼠鍵盤（右鍵移動／攻擊、QWER 朝游標施放）與觸控（搖桿、自動瞄準技能鍵）。
-import { orderMove, orderAttack, orderStop, cast, levelSkill, startRecall, setCharging, spark, placeWard } from './combat.js';
+import { orderMove, orderAttack, orderStop, cast, levelSkill, startRecall, setCharging, spark, placeWard, placeControl } from './combat.js';
 import { BUSHES } from './map.js';
 import { targetable, dist } from './units.js';
 import { seen } from './vision.js';
@@ -68,6 +68,7 @@ export function createInput({ G, render, minimap, hud, audio, onHelp, onCamToggl
     if (e.code === 'KeyP') { onShop && onShop(); return; }
     if (e.code === 'Digit1') { eatSenzu(G, P()); return; }
     if (e.code === 'Digit4') { updateWorld(); placeWard(G, P(), mouse.world.x, mouse.world.z); return; }
+    if (e.code === 'Digit5') { updateWorld(); placeControl(G, P(), mouse.world.x, mouse.world.z); return; }
     if (e.code === 'KeyD') spark(G, P());
     else if (e.code === 'KeyB') startRecall(G, P());
     else if (e.code === 'KeyC') setCharging(G, P(), true);
@@ -112,6 +113,14 @@ export function createInput({ G, render, minimap, hud, audio, onHelp, onCamToggl
     let b = null, bd = 9; for (const k of BUSHES) { const d = Math.hypot(k.x - h.x, k.z - h.z); if (d < bd) { bd = d; b = k; } }
     const t = b || { x: h.x + Math.sin(h.facing) * 5, z: h.z + Math.cos(h.facing) * 5 };
     placeWard(G, h, t.x, t.z);
+  });
+
+  hud.el.control.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation(); if (!live()) return;
+    const h = P(); let b = null, bd = 9; for (const k of BUSHES) { const d = Math.hypot(k.x - h.x, k.z - h.z); if (d < bd) { bd = d; b = k; } }
+    if (e.pointerType !== 'touch' && mouse.inside) { updateWorld(); b = mouse.world; }
+    const t = b || { x: h.x + Math.sin(h.facing) * 5, z: h.z + Math.cos(h.facing) * 5 };
+    placeControl(G, h, t.x, t.z);
   });
 
   /* ---------- 觸控 ---------- */

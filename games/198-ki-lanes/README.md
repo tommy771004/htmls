@@ -4,7 +4,7 @@
 
 非官方同人作品：角色與招式名稱版權屬原作者；模型、特效、地圖與音效全部以程式產生，不含原作的貼圖、模型、圖示、音效或文字素材。
 
-- 成品：`web/198-ki-lanes.html`（單檔，Three.js 0.186.0 一起打包，不載入任何外部資源）
+- 成品：`web/198-ki-lanes.html`（單檔約 2.1 MB，Three.js 0.186.0 與烘焙好的角色網格一起打包，不載入任何外部資源）
 - 一場約 10～20 分鐘（全 AI 模擬 4 場：8～23 分鐘結束，中位數約 15 分鐘）
 
 ## 指令
@@ -20,6 +20,7 @@ node tools/jungleshot.mjs # 開發截圖：野區營地、戰爭迷霧、大猿
 node tools/bushshot.mjs   # 開發截圖：草叢、眼
 node tools/perf.mjs    # 開打 4 分鐘後的實際幀率
 node tools/thumb.mjs   # 重拍 ../../thumbs/198.jpg
+node src/models-bake.mjs  # 改了 models-heroes.js／models-sdf.js 的角色形體後重新烘焙 src/models-baked.js（約 4 秒），再 npm run build
 ```
 
 改了 `src/` 要重新 build，並把 `web/198-ki-lanes.html` 一起 commit。驗收工具用 `PLAYWRIGHT_MODULE` 指定 Playwright（預設讀 `~/.npm/_npx/…/playwright`），先試 Metal GPU、失敗再退 SwiftShader。
@@ -35,6 +36,7 @@ node tools/thumb.mjs   # 重拍 ../../thumbs/198.jpg
 | P／點金幣 | 商店（泉水附近或陣亡時才能買） |
 | 1 | 吃仙豆 |
 | 4 | 插眼 |
+| 5 | 放真眼 |
 | B | 回城 |
 | S | 停止 |
 | Y／空白鍵 | 自由鏡頭／回到角色；滾輪縮放 |
@@ -45,7 +47,7 @@ node tools/thumb.mjs   # 重拍 ../../thumbs/198.jpg
 
 ## 測試 API：`window.__ki`
 
-`start(heroId, lane, diff)`（heroId：`goku`／`vegeta`／`trunks`／`piccolo`／`frieza`／`a18`）、`state()`、`fastForward(sec)`（跳過頓幀與慢動作，直接跑固定步長）、`teleport(x,z)`、`moveTo`、`attack(id)`、`cast(key,x,z)`、`levelUp(key)`、`setLevel(n)`、`learnAll()`、`give({ki,xp})`、`freezeAI(bool)`、`spawnEnemyHeroNear(d)`、`enemyHero()`、`killPlayer()`、`damageStructure(id, amt)`、`destroy(id)`、`win()`、`lose()`、`camera(x,z,zoom)`、`follow()`、`pick(id)`、`pause(bool)`、`setQuality(0..2)`、`buy(itemId)`、`senzu()`、`setGold(g)`、`visible(unitId)`、`fog(bool)`、`camps()`、`boss()`、`heroes()`、`sell(slot)`、`ward(x,z)`、`wards()`、`bushes()`、`obstacles()`、`visibleTo(team,id)`、`listen(event)`。建築 id：`t{隊}{路}{i|o}`（例 `t11o` 是赤隊中路外塔）、`core0`／`core1`。
+`start(heroId, lane, diff)`（heroId：`goku`／`vegeta`／`trunks`／`piccolo`／`frieza`／`a18`）、`state()`、`fastForward(sec)`（跳過頓幀與慢動作，直接跑固定步長）、`teleport(x,z)`、`moveTo`、`attack(id)`、`cast(key,x,z)`、`levelUp(key)`、`setLevel(n)`、`learnAll()`、`give({ki,xp})`、`freezeAI(bool)`、`spawnEnemyHeroNear(d)`、`enemyHero()`、`killPlayer()`、`damageStructure(id, amt)`、`destroy(id)`、`win()`、`lose()`、`camera(x,z,zoom)`、`follow()`、`pick(id)`、`pause(bool)`、`setQuality(0..2)`、`buy(itemId)`、`senzu()`、`setGold(g)`、`visible(unitId)`、`fog(bool)`、`camps()`、`boss()`、`heroes()`、`sell(slot)`、`ward(x,z)`、`control(x,z)`、`laneBushes(lane,team)`、`lanePoint(lane,team,prog)`、`wards()`、`bushes()`、`obstacles()`、`visibleTo(team,id)`、`listen(event)`。建築 id：`t{隊}{路}{i|o}`（例 `t11o` 是赤隊中路外塔）、`core0`／`core1`。
 
 ## 結構
 
@@ -58,7 +60,8 @@ node tools/thumb.mjs   # 重拍 ../../thumbs/198.jpg
 | `units.js` | 單位、移動與繞障、傷害、經驗、小兵與塔的 AI |
 | `combat.js` | 普攻三段鏈、六名角色的 QWER、投射物、區域效果 |
 | `ai.js` | 英雄 AI（守線補兵、換血連招、撤退回城買裝、遊走包抄、插眼拆眼、打野、集合打大猿） |
-| `models.js` | 程式建模的角色、小兵、塔、主堡與動畫 |
+| `models.js` | 角色骨架與程式動畫、卡通材質與臉部貼圖，小兵、塔、主堡、野怪 |
+| `models-sdf.js`、`models-heroes.js`、`models-bake.mjs`、`models-baked.js` | 角色形體：以符號距離場（SDF）平滑融合各部位、網格化並減面；`models-bake.mjs` 離線烘焙成 `models-baked.js`，瀏覽器只解碼 |
 | `fx.js` | 粒子、命中火花、光束、死亡球、魔空包圍彈、圓頂爆炸、變身等特效 |
 | `hud.js`、`icons.js` | HUD、技能圖示、選角與結算 |
 | `input.js`、`minimap.js` | 滑鼠鍵盤、觸控、小地圖 |
@@ -73,13 +76,19 @@ node tools/thumb.mjs   # 重拍 ../../thumbs/198.jpg
 ## 視野、草叢與眼
 
 - 樹叢與岩石擋視線（2 公尺格的視線檢查），草叢裡只有同一叢或貼身的敵人看得到；從暗處出手會現形 1.2 秒。
+- 真眼（商店 75 金，最多帶 2 顆，按 5 放下）：敵我都看得到、不會消失，照出 9 公尺內的敵方眼讓人拆掉；每人場上只能有一顆。
 - 每名英雄都有眼（按 4），插在 7 公尺內、持續 90 秒、冷卻 70 秒、同時最多 2 顆；敵方要帶戰鬥力探測器、氣力增幅器或波塔拉耳環，在 9 公尺內才看得到眼，普攻三下拆掉。
 
 ## 道具合成
 
 基礎（負重護腕、修行道服、氣功護腕、武道鞋、戰鬥力探測器）→ 進階（界王拳腰帶、賽亞人戰甲、筋斗雲、氣力增幅器、再生細胞）→ 終極（超神水、波塔拉耳環）。購買時自動吃掉身上的材料、只付差額；商店點自己的道具可賣出（60% 總價）。AI 依定位逐步合成。
 
+## AI 的遊走、包抄與埋伏
+
+- 遊走包抄：自己那一路沒人時，支援正在交手的隊友或切壓到我方塔下的敵人後路，先繞到敵人與它家之間再出手。
+- 草叢埋伏：鎖定一名落單、正沿路往我方推進的敵方英雄，兩到三名隊友先躲進它前方路邊的草叢（避開敵塔射程），不集氣以免暴露；敵人走近、或有人被它打到時一起出手。
+- 插眼、放真眼、看到敵方眼就拆。
+
 ## 已知限制
 
-- 沒有控制守衛（真眼），眼只能靠探測器類道具看見。
-- AI 的包抄是「繞到敵人回家的方向再出手」，不會多人預先埋伏草叢。
+- 埋伏只針對單一落單的敵人，不會針對大猿或推塔的時機設伏。

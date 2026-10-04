@@ -1,6 +1,8 @@
 // 程式建模：英雄（七龍珠 FighterZ 同人致敬，全部以基本幾何程式產生，不使用任何原作素材）、小兵、野怪、防禦塔、主堡。全部由基本幾何合併而成（頂點色＋一個共用卡通材質），外框用反向殼。
 // 介面見 SPEC.md §4。root 朝 +z 為正面。
 import * as THREE from 'three';
+import { PROPS, buildHeroParts } from './models-heroes.js';
+import { heroMaterial } from './models-sdf.js';
 
 export const HERO_IDS = ['goku', 'vegeta', 'trunks', 'piccolo', 'frieza', 'a18'];
 
@@ -136,6 +138,7 @@ const HERO = {
 };
 for (const id in HERO) {
   const d = HERO[id];
+  Object.assign(d, PROPS[id]);
   d.torso = d.H - d.L - d.hr * 1.95 - 0.04;
   d.upper = d.torso * 0.5; d.lower = d.torso * 0.47;
   d.thighLen = d.L * 0.5; d.shinLen = d.L * 0.44;
@@ -156,407 +159,6 @@ const C = {
   denim: 0x3d6db6, denimD: 0x2c5290, blonde: 0xf3d977, blondeD: 0xd9b84e, stripeW: 0xf2f0ea, legging: 0x1c1c22, boot: 0x7a4a2a,
   gold: 0xffd23f, goldL: 0xfff0a0,
 };
-
-const heroGeoCache = new Map();
-
-function buildHeroGeos(id, team) {
-  const d = HERO[id];
-  const tc = TEAM[team];
-  const out = {};
-  const hr = d.hr, s = hr / 0.21;
-  const cy = hr * 0.9;
-  const T = d.torso, [cx, cyc, cz] = d.chest;
-
-  const face = (p0, { brow = 0x2a1a12, iris = 0x1d1410, browTilt = 0.35, eyeY = 0.86, pupil = null, sharp = 1, browW = 0.075, lid = 0x1a120c } = {}) => {
-    const p = p0.face || p0;
-    for (const sx of [-1, 1]) {
-      const x = 0.07 * s * sx, y = cy - hr * (1 - eyeY) - 0.005;
-      const z = Math.sqrt(Math.max(0, hr * hr - x * x - (y - cy) * (y - cy))) * 0.985;
-      const tilt = -sx * 0.22 * sharp, yaw = sx * 0.3;
-      // 動畫眼：白色眼白（外眼角上揚）、深色瞳孔、上眼線、反光
-      p.add(geo('sphere'), 0xfbf8f2, [x, y, z], [0, yaw, tilt], [0.041 * s, 0.031 * s, 0.012 * s]);
-      p.add(geo('sphere'), iris, [x - sx * 0.006 * s, y - 0.002 * s, z + 0.006 * s], [0, yaw, 0], [0.018 * s, 0.025 * s, 0.009 * s]);
-      if (pupil != null) p.add(geo('lsphere'), pupil, [x - sx * 0.006 * s, y - 0.002 * s, z + 0.011 * s], [0, yaw, 0], [0.007 * s, 0.011 * s, 0.004 * s]);
-      p.add(geo('lsphere'), 0xffffff, [x + 0.003 * s, y + 0.008 * s, z + 0.014 * s], 0, [0.006 * s, 0.007 * s, 0.003 * s]);
-      p.add(geo('box'), lid, [x, y + 0.023 * s, z + 0.004 * s], [0, yaw, tilt * 1.2], [0.08 * s, 0.009 * s, 0.012 * s]);
-      if (brow != null) p.add(geo('box'), brow, [x * 1.05, y + 0.058 * s, z - 0.002], [0, yaw, sx * browTilt], [browW * s, 0.019 * s, 0.02 * s]);
-    }
-    p.add(geo('lsphere'), 0x8a5a40, [0, cy - hr * 0.3, hr * 0.99], 0, [0.007, 0.005, 0.004]);
-    p.add(geo('box'), 0x6a3a2a, [0, cy - hr * 0.5, hr * 0.9], 0, [0.04 * s, 0.006, 0.006]);
-  };
-  const skull = (p, skin) => {
-    p.add(geo('hsphere'), skin, [0, cy, 0], 0, [hr * 0.98, hr, hr * 0.96]);
-    // 下顎（略尖）
-    p.add(geo('sphere'), skin, [0, cy - hr * 0.45, hr * 0.28], 0, [hr * 0.62, hr * 0.5, hr * 0.62]);
-  };
-  const ears = (p, skin) => { for (const sx of [-1, 1]) p.add(geo('lsphere'), skin, [sx * hr * 0.95, cy - 0.01, -0.01], 0, [0.03, 0.05, 0.035]); };
-  // 尖刺（cone6 頂點朝 +y）：從 [x,y,z]（以 hr=0.21 為基準）以旋轉 r 放置
-  const spike = (p, c, x, y, z, rx, rz, w, h, ry = 0) => p.add(geo('cone6'), c, [x * s, cy + y * s, z * s], [rx, ry, rz], [w * s, h * s, w * 0.85 * s]);
-
-  /* ---------------- 頭（含髮型、各型態） ---------------- */
-  const heads = {};
-  if (id === 'goku') {
-    for (const form of ['base', 'ssj']) {
-      const p = new Parts(); p.face = new Parts();
-      skull(p, d.skin); ears(p, d.skin);
-      const ssj = form === 'ssj';
-      face(p, { browTilt: ssj ? 0.5 : 0.32, iris: ssj ? 0x1f9a88 : 0x1d1410, sharp: ssj ? 1.4 : 1 });
-      const hc = ssj ? C.gold : C.black, hl = ssj ? C.goldL : 0x2c2622;
-      const cap = new THREE.SphereGeometry(1, 12, 8, 0, Math.PI * 2, 0, 1.3);
-      p.add(cap, hc, [0, cy + 0.02, -0.02], [-0.5, 0, 0], [hr * 1.08, hr * 1.08, hr * 1.1]);
-      if (!ssj) {
-        // 棕櫚葉般向外放射的大尖刺
-        const S = [
-          [0.0, 0.22, 0.02, -0.15, 0, 0.12, 0.36], [0.1, 0.19, -0.02, -0.3, -0.75, 0.11, 0.34], [-0.1, 0.19, -0.02, -0.3, 0.75, 0.11, 0.34],
-          [0.17, 0.08, -0.04, -0.2, -1.45, 0.1, 0.32], [-0.17, 0.08, -0.04, -0.2, 1.45, 0.1, 0.32],
-          [0.13, 0.12, -0.14, -1.0, -0.9, 0.1, 0.32], [-0.13, 0.12, -0.14, -1.0, 0.9, 0.1, 0.32],
-          [0.0, 0.08, -0.18, -1.5, 0, 0.11, 0.3], [0.08, -0.02, -0.18, -2.0, -0.4, 0.09, 0.26], [-0.08, -0.02, -0.18, -2.0, 0.4, 0.09, 0.26],
-          [0.19, -0.02, -0.06, 0.3, -2.0, 0.08, 0.24], [-0.19, -0.02, -0.06, 0.3, 2.0, 0.08, 0.24],
-        ];
-        S.forEach(([x, y, z, rx, rz, w, h], i) => spike(p, i % 3 === 1 ? hl : hc, x, y, z, rx, rz, w, h));
-        // 前額瀏海：3～4 綹往下垂
-        [[-0.1, 2.5, 0.35, 0.15], [-0.03, 2.75, 0.1, 0.17], [0.05, 2.65, -0.2, 0.15], [0.12, 2.4, -0.45, 0.12]].forEach(([x, rx, rz, h]) =>
-          spike(p, hc, x, 0.16, 0.13, rx, rz, 0.045, h));
-      } else {
-        // 超級賽亞人：全部往上、往後豎起
-        const S = [
-          [0.0, 0.2, 0.06, -0.12, 0, 0.12, 0.46], [0.09, 0.2, 0.0, -0.25, -0.38, 0.12, 0.44], [-0.09, 0.2, 0.0, -0.25, 0.38, 0.12, 0.44],
-          [0.16, 0.12, -0.04, -0.3, -0.85, 0.1, 0.4], [-0.16, 0.12, -0.04, -0.3, 0.85, 0.1, 0.4],
-          [0.08, 0.16, -0.12, -0.75, -0.35, 0.11, 0.42], [-0.08, 0.16, -0.12, -0.75, 0.35, 0.11, 0.42],
-          [0.0, 0.1, -0.17, -1.1, 0, 0.11, 0.38], [0.15, 0.02, -0.13, -1.3, -0.8, 0.09, 0.32], [-0.15, 0.02, -0.13, -1.3, 0.8, 0.09, 0.32],
-        ];
-        S.forEach(([x, y, z, rx, rz, w, h], i) => spike(p, i % 3 === 1 ? hl : hc, x, y, z, rx, rz, w, h));
-        spike(p, hc, -0.04, 0.16, 0.14, 2.7, 0.25, 0.045, 0.17); // 單一綹瀏海
-      }
-      heads[form] = { main: p.build(), face: p.face.build() };
-    }
-  } else if (id === 'vegeta') {
-    for (const form of ['base', 'ssj']) {
-      const p = new Parts(); p.face = new Parts();
-      skull(p, d.skin); ears(p, d.skin);
-      const ssj = form === 'ssj';
-      face(p, { browTilt: 0.55, iris: ssj ? 0x1f9a88 : 0x1d1410, sharp: 1.6, browW: 0.085 });
-      const hc = ssj ? C.gold : C.black, hl = ssj ? C.goldL : 0x2c2622;
-      // 高髮際：髮帽只蓋頭頂與後腦
-      const cap = new THREE.SphereGeometry(1, 12, 8, 0, Math.PI * 2, 0, 1.15);
-      p.add(cap, hc, [0, cy + 0.03, -0.035], [-0.62, 0, 0], [hr * 1.06, hr * 1.06, hr * 1.08]);
-      // 美人尖（M 形髮際）
-      spike(p, hc, 0, 0.17, 0.14, 2.35, 0, 0.07, 0.12);
-      for (const sx of [-1, 1]) spike(p, hc, sx * 0.1, 0.15, 0.1, 2.2, sx * 0.4, 0.05, 0.08);
-      // 火焰狀：一束束幾乎垂直往上
-      const S = [
-        [0.0, 0.24, -0.02, -0.08, 0, 0.13, 0.55], [0.08, 0.22, -0.03, -0.12, -0.18, 0.12, 0.52], [-0.08, 0.22, -0.03, -0.12, 0.18, 0.12, 0.52],
-        [0.14, 0.17, -0.04, -0.15, -0.38, 0.1, 0.44], [-0.14, 0.17, -0.04, -0.15, 0.38, 0.1, 0.44],
-        [0.04, 0.2, -0.1, -0.3, -0.08, 0.12, 0.5], [-0.05, 0.2, -0.1, -0.3, 0.1, 0.12, 0.5],
-        [0.18, 0.08, -0.06, -0.2, -0.6, 0.08, 0.32], [-0.18, 0.08, -0.06, -0.2, 0.6, 0.08, 0.32],
-        [0.0, 0.14, -0.16, -0.55, 0, 0.11, 0.4],
-      ];
-      S.forEach(([x, y, z, rx, rz, w, h], i) => spike(p, i % 3 === 2 ? hl : hc, x, y, z, rx, rz, w, h * (ssj ? 1.08 : 1)));
-      heads[form] = { main: p.build(), face: p.face.build() };
-    }
-  } else if (id === 'trunks') {
-    for (const form of ['base', 'ssj']) {
-      const p = new Parts(); p.face = new Parts();
-      skull(p, d.skin); ears(p, d.skin);
-      const ssj = form === 'ssj';
-      face(p, { brow: ssj ? 0xc9a02a : 0x8a74c0, browTilt: ssj ? 0.48 : 0.3, iris: ssj ? 0x1f9a88 : 0x3a5ab0, sharp: ssj ? 1.3 : 1 });
-      if (!ssj) {
-        // 淡紫中分短髮：兩片髮罩＋垂到下顎的鬢髮
-        for (const sx of [-1, 1]) {
-          const half = new THREE.SphereGeometry(1, 10, 8, sx > 0 ? 0 : Math.PI, Math.PI, 0, 1.75);
-          p.add(half, C.lav, [sx * 0.008, cy + 0.015, -0.01], [-0.18, 0, 0], [hr * 1.1, hr * 1.1, hr * 1.12]);
-          p.add(geo('box'), C.lav, [sx * hr * 0.92, cy - hr * 0.25, hr * 0.12], [0.05, 0, sx * 0.06], [0.06, hr * 1.1, hr * 0.85]);
-          // 瀏海分兩邊斜垂
-          spike(p, C.lavD, sx * 0.06, 0.13, 0.15, 2.45, -sx * 0.55, 0.06, 0.15);
-          spike(p, C.lav, sx * 0.13, 0.08, 0.14, 2.6, -sx * 0.3, 0.05, 0.16);
-        }
-        p.add(geo('box'), C.lav, [0, cy - hr * 0.1, -hr * 0.75], [-0.2, 0, 0], [hr * 1.5, hr * 1.1, 0.08]);
-      } else {
-        const cap = new THREE.SphereGeometry(1, 12, 8, 0, Math.PI * 2, 0, 1.3);
-        p.add(cap, C.gold, [0, cy + 0.02, -0.02], [-0.5, 0, 0], [hr * 1.08, hr * 1.08, hr * 1.1]);
-        const S = [
-          [0.0, 0.2, 0.05, -0.15, 0, 0.11, 0.38], [0.09, 0.19, 0.0, -0.3, -0.45, 0.11, 0.36], [-0.09, 0.19, 0.0, -0.3, 0.45, 0.11, 0.36],
-          [0.15, 0.1, -0.06, -0.4, -0.95, 0.09, 0.32], [-0.15, 0.1, -0.06, -0.4, 0.95, 0.09, 0.32],
-          [0.06, 0.14, -0.14, -0.9, -0.3, 0.1, 0.34], [-0.06, 0.14, -0.14, -0.9, 0.3, 0.1, 0.34], [0.0, 0.05, -0.18, -1.4, 0, 0.1, 0.3],
-        ];
-        S.forEach(([x, y, z, rx, rz, w, h], i) => spike(p, i % 3 === 1 ? C.goldL : C.gold, x, y, z, rx, rz, w, h));
-        for (const sx of [-1, 1]) spike(p, C.gold, sx * 0.07, 0.15, 0.14, 2.6, -sx * 0.35, 0.045, 0.14);
-      }
-      heads[form] = { main: p.build(), face: p.face.build() };
-    }
-  } else if (id === 'piccolo') {
-    const p = new Parts(); p.face = new Parts();
-    // 略長的光頭
-    p.add(geo('hsphere'), d.skin, [0, cy + 0.01, -0.01], 0, [hr * 0.96, hr * 1.06, hr * 1.0]);
-    p.add(geo('sphere'), d.skin, [0, cy - hr * 0.45, hr * 0.28], 0, [hr * 0.6, hr * 0.52, hr * 0.62]);
-    face(p, { brow: C.gD, browTilt: 0.5, sharp: 1.5, browW: 0.09 });
-    // 眉骨稜線與兩頰紋
-    p.add(geo('box'), C.gD, [0, cy + hr * 0.16, hr * 0.88], [0.25, 0, 0], [hr * 1.3, 0.03, 0.05]);
-    // 尖長耳
-    for (const sx of [-1, 1]) p.add(geo('cone6'), d.skin, [sx * hr * 0.9, cy + 0.01, -0.02], [-0.55, 0, -sx * 0.75], [0.042, 0.16, 0.022]);
-    // 觸角
-    for (const sx of [-1, 1]) {
-      p.add(cyl(0.014, 0.02, 0.3, 6), d.skin, [sx * 0.055, cy + hr * 0.95 + 0.09, hr * 0.38 + 0.07], [0.6, 0, -sx * 0.2]);
-      p.add(geo('lsphere'), C.gD, [sx * 0.085, cy + hr * 0.95 + 0.21, hr * 0.38 + 0.18], 0, 0.026);
-    }
-    // 頭頂的紋路
-    p.add(geo('box'), C.gD, [0, cy + hr * 0.9, -0.02], [0.2, 0, 0], [0.02, 0.015, hr * 1.1]);
-    heads.base = { main: p.build(), face: p.face.build() };
-  } else if (id === 'frieza') {
-    const p = new Parts(); p.face = new Parts();
-    p.add(geo('hsphere'), d.skin, [0, cy, 0], 0, [hr * 0.95, hr, hr * 0.95]);
-    p.add(geo('sphere'), d.skin, [0, cy - hr * 0.45, hr * 0.25], 0, [hr * 0.55, hr * 0.48, hr * 0.6]);
-    face(p, { brow: null, iris: 0xd0203a, pupil: 0x1a0a0a, sharp: 1.8, eyeY: 0.88, lid: 0x3a1030 });
-    // 紫色頭頂圓頂（光滑，帶一點反光）
-    const dome = new THREE.SphereGeometry(1, 12, 7, 0, Math.PI * 2, 0, 1.25);
-    p.add(dome, C.dome, [0, cy + 0.035, -0.045], [-0.42, 0, 0], [hr * 1.08, hr * 1.25, hr * 1.3]);
-    p.add(geo('lsphere'), C.domeL, [0.05, cy + hr * 0.95, hr * 0.15], 0, [0.04, 0.02, 0.06]);
-    // 黑唇、臉頰的黑線
-    p.add(geo('box'), 0x2a1a22, [0, cy - hr * 0.48, hr * 0.84], 0, [0.05, 0.012, 0.01]);
-    heads.base = { main: p.build(), face: p.face.build() };
-  } else if (id === 'a18') {
-    const p = new Parts(); p.face = new Parts();
-    skull(p, d.skin);
-    face(p, { brow: 0xc9a24a, browTilt: 0.15, iris: 0x5fa8d8, pupil: 0x1a2a3a, sharp: 0.7, browW: 0.065 });
-    // 嘴唇淡粉
-    p.add(geo('box'), 0xd98a8a, [0, cy - hr * 0.45, hr * 0.86], 0, [0.035, 0.008, 0.01]);
-    // 金色及下顎的鮑伯頭（側分）
-    const cap = new THREE.SphereGeometry(1, 14, 9, 0, Math.PI * 2, 0, 1.55);
-    p.add(cap, C.blonde, [0, cy + 0.01, -0.015], [-0.25, 0, 0], [hr * 1.1, hr * 1.1, hr * 1.12]);
-    for (const sx of [-1, 1]) {
-      p.add(geo('box'), C.blonde, [sx * hr * 0.92, cy - hr * 0.38, hr * 0.05], [0, 0, sx * 0.05], [0.06, hr * 1.25, hr * 1.2]);
-      p.add(geo('box'), C.blondeD, [sx * hr * 0.9, cy - hr * 0.98, hr * 0.12], [0.15, 0, 0], [0.05, 0.03, hr * 0.9]);
-    }
-    p.add(geo('box'), C.blonde, [0, cy - hr * 0.35, -hr * 0.78], [-0.1, 0, 0], [hr * 1.7, hr * 1.25, 0.08]);
-    // 側分瀏海：大片斜掃
-    p.add(geo('box'), C.blonde, [-0.03, cy + hr * 0.55, hr * 0.8], [0.55, 0, -0.45], [0.26, 0.07, 0.07]);
-    spike(p, C.blondeD, 0.1, 0.08, 0.16, 2.7, -0.2, 0.05, 0.16);
-    heads.base = { main: p.build(), face: p.face.build() };
-  }
-  out.heads = heads;
-
-  /* ---------------- 腰臀 ---------------- */
-  {
-    const p = new Parts();
-    const pantsC = { goku: C.gi, vegeta: C.suit, trunks: C.grey, piccolo: C.pgi, frieza: d.skin, a18: C.denim }[id];
-    p.add(geo('sphere'), pantsC, [0, -0.02, 0], 0, [d.hip * 1.75, d.hip * 1.1, d.hip * 1.35]);
-    const belt = (c, h = 0.09) => p.add(cyl(d.waist * 1.1, d.waist * 1.14, h, 14), c, [0, 0.07, 0], 0, [1, 1, cz / cx * 1.05 + 0.05]);
-    if (id === 'goku') {
-      belt(C.blue, 0.1);
-      p.add(geo('sphere'), C.blue, [0.11, 0.06, cz * 0.98], 0, [0.05, 0.045, 0.04]);
-      for (const sx of [0.06, 0.15]) p.add(geo('box'), C.blue, [sx, -0.06, cz * 0.95], [0.1, 0, 0.15], [0.05, 0.18, 0.02]); // 結的兩端
-    } else if (id === 'vegeta') {
-      // 腰下的黃甲片
-      p.add(cyl(d.waist * 1.15, d.waist * 1.2, 0.06, 14), C.armor, [0, 0.1, 0], 0, [1, 1, cz / cx * 1.05 + 0.05]);
-      for (const sx of [-1, 1]) p.add(geo('box'), C.ochre, [sx * d.hip * 0.95, -0.06, 0.02], [0, 0, sx * 0.15], [0.12, 0.2, 0.22]);
-    } else if (id === 'trunks') {
-      belt(0x1a1a1a, 0.06);
-      p.add(geo('box'), 0x8a8a90, [0, 0.07, cz * 1.02], 0, [0.05, 0.04, 0.02]);
-    } else if (id === 'piccolo') {
-      belt(C.sash, 0.12);
-      p.add(geo('box'), C.sash, [0.09, -0.08, cz * 0.98], [0.1, 0, 0.1], [0.07, 0.2, 0.02]);
-    } else if (id === 'frieza') {
-      // 光滑白身，腿根略細
-      p.add(geo('sphere'), 0xe6e1dc, [0, -0.06, 0], 0, [d.hip * 1.4, d.hip * 0.8, d.hip * 1.2]);
-    } else if (id === 'a18') {
-      // 牛仔短裙
-      p.add(cyl(d.waist * 1.15, d.hip * 1.75, 0.3, 14), C.denim, [0, -0.08, 0], 0, [1, 1, 0.85]);
-      p.add(cyl(d.hip * 1.76, d.hip * 1.76, 0.025, 14, true), C.denimD, [0, -0.225, 0], 0, [1, 1, 0.85]);
-      belt(0x5a3a22, 0.04);
-    }
-    out.hips = p.build();
-  }
-
-  /* ---------------- 軀幹 ---------------- */
-  {
-    const p = new Parts();
-    const topC = { goku: C.gi, vegeta: C.suit, trunks: C.jacket, piccolo: C.pgi, frieza: d.skin, a18: C.stripeW }[id];
-    p.add(geo('sphere'), topC, [0, T * 0.28, 0], 0, [d.waist * 1.05, T * 0.3, cz * 0.95]);
-    p.add(geo('sphere'), topC, [0, T * 0.66, 0], 0, [cx, cyc * T / 0.62 * 0.62, cz * 0.92]);
-    p.add(geo('box'), topC, [0, T * 0.7, -0.005], 0, [cx * 1.55, cyc * 0.75, cz * 1.45]);
-    p.add(limb(hr * 0.33, hr * 0.38, 0.12, 8), id === 'vegeta' ? C.suit : d.skin, [0, T + 0.06, 0]);
-    if (id === 'goku') {
-      // 交領：藍色內衫從 V 領露出
-      p.add(new THREE.ConeGeometry(1, 1, 3), C.blue, [0, T * 0.82, cz * 0.93], [Math.PI, 0, 0], [0.09, 0.22, 0.014]);
-      p.add(geo('box'), C.giD, [0.035, T * 0.66, cz * 0.97], [0, 0, 0.45], [0.02, 0.26, 0.012]);
-      p.add(geo('box'), C.giD, [-0.035, T * 0.66, cz * 0.97], [0, 0, -0.45], [0.02, 0.26, 0.012]);
-      for (const sx of [-1, 1]) p.add(geo('sphere'), C.gi, [sx * d.sw * 0.85, T * 0.86, 0], 0, [0.11, 0.09, 0.13]);
-      // 背後的圓形徽記底
-      p.add(geo('disc'), 0xf4efe2, [0, T * 0.7, -cz * 1.0], [Math.PI / 2, 0, 0], [0.09, 0.01, 0.09]);
-      p.add(geo('box'), C.black, [0, T * 0.7, -cz * 1.02], 0, [0.05, 0.06, 0.01]);
-    } else if (id === 'vegeta') {
-      // 白色胸甲＋黃色肩片
-      p.add(geo('sphere'), C.armor, [0, T * 0.66, 0.005], 0, [cx * 1.08, cyc * 1.02, cz * 1.04]);
-      p.add(geo('box'), C.armor, [0, T * 0.72, 0], 0, [cx * 1.65, cyc * 0.72, cz * 1.5]);
-      for (const sx of [-1, 1]) {
-        p.add(geo('box'), C.ochre, [sx * d.sw * 0.95, T * 0.95, 0], [0, 0, -sx * 0.35], [0.18, 0.05, 0.2]);
-        p.add(geo('box'), C.ochre, [sx * d.sw * 1.1, T * 0.88, 0], [0, 0, -sx * 0.9], [0.13, 0.04, 0.19]);
-      }
-      p.add(geo('box'), C.ochre, [0, T * 0.32, cz * 0.9], [-0.1, 0, 0], [0.2, 0.1, 0.03]);
-      p.add(geo('box'), 0xd8d4c8, [0, T * 0.5, cz * 1.02], 0, [0.2, 0.012, 0.01]);
-    } else if (id === 'trunks') {
-      // 黑背心從敞開的短夾克露出、立領
-      p.add(geo('box'), C.tank, [0, T * 0.6, cz * 0.93], 0, [cx * 0.5, T * 0.5, 0.02]);
-      p.add(cyl(hr * 0.6, hr * 0.48, 0.13, 12, true, Math.PI * 0.75, Math.PI * 1.5), C.jacket, [0, T + 0.05, 0]);
-      for (const sx of [-1, 1]) {
-        p.add(geo('box'), 0x2c3350, [sx * cx * 0.32, T * 0.62, cz * 0.96], [0, 0, sx * 0.05], [0.025, T * 0.55, 0.012]);
-        p.add(geo('sphere'), C.jacket, [sx * d.sw * 0.85, T * 0.86, 0], 0, [0.1, 0.085, 0.12]);
-      }
-      // 夾克下擺
-      p.add(cyl(d.waist * 1.2, d.waist * 1.3, 0.1, 14, true), C.jacket, [0, T * 0.12, 0], 0, [1, 1, cz / cx * 1.1]);
-      // 背後的劍鞘帶
-      p.add(geo('box'), 0x3a2a1e, [0, T * 0.62, cz * 0.98], [0, 0, 0.75], [0.03, T * 0.7, 0.012]);
-      p.add(geo('box'), 0x3a2a1e, [0, T * 0.62, -cz * 0.98], [0, 0, -0.75], [0.03, T * 0.7, 0.012]);
-    } else if (id === 'piccolo') {
-      // 無袖紫道服：V 領露出綠胸
-      p.add(new THREE.ConeGeometry(1, 1, 3), d.skin, [0, T * 0.8, cz * 0.93], [Math.PI, 0, 0], [0.09, 0.24, 0.014]);
-      for (const sx of [-1, 1]) p.add(geo('sphere'), d.skin, [sx * d.sw * 0.88, T * 0.86, 0], 0, [0.11, 0.1, 0.12]);
-      p.add(geo('box'), C.gD, [0, T * 0.74, cz * 0.97], 0, [0.012, 0.12, 0.01]);
-    } else if (id === 'frieza') {
-      // 胸前紫色圓甲＋鎖骨線
-      p.add(geo('sphere'), C.dome, [0, T * 0.72, cz * 0.32], 0, [cx * 0.85, cyc * 0.5, cz * 0.8]);
-      p.add(geo('lsphere'), C.domeL, [0.04, T * 0.8, cz * 1.05], 0, [0.04, 0.02, 0.02]);
-      for (const sx of [-1, 1]) p.add(geo('sphere'), C.dome, [sx * d.sw * 0.95, T * 0.9, 0], 0, [0.1, 0.085, 0.1]);
-      p.add(geo('box'), 0xc8c2bc, [0, T * 0.32, cz * 0.94], 0, [0.012, T * 0.25, 0.01]);
-    } else if (id === 'a18') {
-      // 橫條紋上衣（黑白環）＋牛仔背心
-      for (let i = 0; i < 5; i++) p.add(cyl(cx * 0.98, cx * 1.0, 0.035, 14, true), 0x1a1a1e, [0, T * (0.2 + i * 0.16), 0], 0, [1, 1, cz / cx * 1.02]);
-      const vest = new THREE.SphereGeometry(1, 12, 8, Math.PI / 2 + 0.45, Math.PI * 2 - 0.9, 0.3, 2.1);
-      p.add(vest, C.denim, [0, T * 0.6, 0], 0, [cx * 1.08, cyc * 1.25, cz * 1.12]);
-      for (const sx of [-1, 1]) p.add(geo('box'), C.denimD, [sx * cx * 0.42, T * 0.68, cz * 0.98], [0, 0, sx * 0.1], [0.02, T * 0.5, 0.012]);
-      p.add(cyl(hr * 0.42, hr * 0.42, 0.04, 12, true), 0x1a1a1e, [0, T + 0.01, 0]);
-    }
-    out.torso = p.build();
-  }
-
-  /* ---------------- 手臂 ---------------- */
-  for (const side of ['L', 'R']) {
-    const sx = side === 'L' ? 1 : -1;
-    {
-      const p = new Parts();
-      const upC = { goku: d.skin, vegeta: C.suit, trunks: C.jacket, piccolo: d.skin, frieza: d.skin, a18: C.stripeW }[id];
-      p.add(geo('sphere'), upC, [0, -0.01, 0], 0, d.arm * 1.35);
-      p.add(limb(d.arm * 1.1, d.arm * 0.92, d.upper, 8), upC, [0, 0, 0]);
-      if (id !== 'a18' && id !== 'frieza') p.add(geo('sphere'), upC, [0, -d.upper * 0.42, d.arm * 0.25], 0, [d.arm * 1.08, d.upper * 0.3, d.arm * 1.1]);
-      if (id === 'goku') p.add(cyl(d.arm * 1.25, d.arm * 1.15, d.upper * 0.35, 10), C.blue, [0, -d.upper * 0.12, 0]); // 藍內衫短袖
-      if (id === 'trunks') p.add(cyl(d.arm * 1.3, d.arm * 1.2, 0.04, 10, true), 0x2c3350, [0, -d.upper * 0.95, 0]);
-      if (id === 'piccolo') p.add(geo('sphere'), C.pink, [sx * d.arm * 0.2, -d.upper * 0.42, d.arm * 0.5], 0, [d.arm * 0.7, d.upper * 0.22, d.arm * 0.65]);
-      if (id === 'a18') for (let i = 0; i < 3; i++) p.add(cyl(d.arm * 1.12, d.arm * 1.08, 0.03, 10), 0x1a1a1e, [0, -d.upper * (0.25 + i * 0.25), 0]);
-      // 隊伍色臂環（只在左臂）
-      if (side === 'L') p.add(cyl(d.arm * 1.2, d.arm * 1.18, 0.045, 12), tc, [0, -d.upper * 0.62, 0]);
-      out['upper' + side] = p.build();
-    }
-    {
-      const p = new Parts();
-      const L = d.lower;
-      if (id === 'goku') {
-        p.add(limb(d.fore * 1.02, d.fore * 0.88, L, 8), d.skin, [0, 0, 0]);
-        p.add(cyl(d.fore * 1.12, d.fore * 1.05, L * 0.32, 10), C.blue, [0, -L * 0.82, 0]); // 藍護腕
-        p.add(geo('sphere'), d.skin, [0, -L - d.fist * 0.6, 0.01], 0, [d.fist, d.fist * 1.05, d.fist * 1.05]);
-      } else if (id === 'vegeta') {
-        p.add(limb(d.fore * 1.0, d.fore * 0.9, L * 0.55, 8), C.suit, [0, 0, 0]);
-        p.add(limb(d.fore * 1.2, d.fore * 1.05, L * 0.5, 8), C.armor, [0, -L * 0.5, 0]); // 白手套
-        p.add(geo('sphere'), C.armor, [0, -L - d.fist * 0.6, 0.01], 0, [d.fist * 1.05, d.fist * 1.08, d.fist * 1.08]);
-      } else if (id === 'trunks') {
-        p.add(limb(d.fore * 1.0, d.fore * 0.86, L, 8), d.skin, [0, 0, 0]);
-        p.add(cyl(d.fore * 1.0, d.fore * 0.95, 0.05, 10), 0x1a1a1a, [0, -L * 0.88, 0]);
-        p.add(geo('sphere'), d.skin, [0, -L - d.fist * 0.6, 0.01], 0, [d.fist, d.fist * 1.05, d.fist * 1.05]);
-      } else if (id === 'piccolo') {
-        p.add(limb(d.fore * 1.02, d.fore * 0.88, L, 8), d.skin, [0, 0, 0]);
-        p.add(geo('sphere'), C.pink, [sx * d.fore * 0.25, -L * 0.42, d.fore * 0.45], 0, [d.fore * 0.7, L * 0.25, d.fore * 0.65]);
-        p.add(cyl(d.fore * 1.1, d.fore * 1.0, L * 0.18, 10), 0x8a2a2a, [0, -L * 0.9, 0]);
-        p.add(geo('sphere'), d.skin, [0, -L - d.fist * 0.6, 0.01], 0, [d.fist, d.fist * 1.05, d.fist * 1.05]);
-      } else if (id === 'frieza') {
-        p.add(limb(d.fore * 1.0, d.fore * 0.85, L, 8), d.skin, [0, 0, 0]);
-        p.add(geo('sphere'), C.dome, [sx * d.fore * 0.3, -L * 0.45, -d.fore * 0.2], 0, [d.fore * 1.0, L * 0.4, d.fore * 1.05]);
-        p.add(geo('sphere'), d.skin, [0, -L - d.fist * 0.55, 0.01], 0, [d.fist * 0.95, d.fist * 1.1, d.fist]);
-      } else {
-        p.add(limb(d.fore * 1.0, d.fore * 0.86, L, 8), C.stripeW, [0, 0, 0]);
-        for (let i = 0; i < 3; i++) p.add(cyl(d.fore * 1.04, d.fore * 1.0, 0.028, 10), 0x1a1a1e, [0, -L * (0.2 + i * 0.27), 0]);
-        p.add(geo('sphere'), d.skin, [0, -L - d.fist * 0.55, 0.01], 0, [d.fist, d.fist * 1.05, d.fist]);
-      }
-      out['fore' + side] = p.build();
-    }
-  }
-
-  /* ---------------- 腿 ---------------- */
-  for (const side of ['L', 'R']) {
-    const pantsC = { goku: C.gi, vegeta: C.suit, trunks: C.grey, piccolo: C.pgi, frieza: d.skin, a18: C.legging }[id];
-    const loose = id === 'goku' || id === 'piccolo' ? 1.28 : 1.0;
-    {
-      const p = new Parts();
-      p.add(geo('sphere'), pantsC, [0, -0.02, 0], 0, d.thigh * loose * 1.05);
-      p.add(limb(d.thigh * loose, d.shin * loose * 1.12, d.thighLen, 8), pantsC, [0, 0, 0]);
-      out['thigh' + side] = p.build();
-    }
-    {
-      const p = new Parts();
-      const S = d.shinLen;
-      p.add(geo('sphere'), pantsC, [0, 0, 0], 0, d.shin * loose * 1.1);
-      const boot = (c, toe, h = 0.42, trim = null) => {
-        p.add(limb(d.shin * 1.18, d.shin * 1.08, S * h, 8), c, [0, -S * (1 - h), 0]);
-        p.add(geo('sphere'), c, [0, -S - 0.005, 0.05], 0, [d.shin * 1.15, 0.06, d.shin * 2.1]);
-        if (toe != null) p.add(geo('sphere'), toe, [0, -S - 0.005, 0.1], 0, [d.shin * 1.0, 0.055, d.shin * 1.2]);
-        if (trim != null) p.add(cyl(d.shin * 1.22, d.shin * 1.22, 0.035, 10), trim, [0, -S * (1 - h) + 0.01, 0]);
-      };
-      if (id === 'goku') {
-        p.add(limb(d.shin * 1.3, d.shin * 1.15, S * 0.62, 8), C.gi, [0, 0, 0]);
-        boot(C.blueD, null, 0.42, C.red);
-        p.add(geo('box'), C.yellow, [0, -S * 0.78, d.shin * 1.1], 0, [0.025, S * 0.25, 0.01]);
-      } else if (id === 'vegeta') {
-        p.add(limb(d.shin * 1.0, d.shin * 0.9, S * 0.6, 8), C.suit, [0, 0, 0]);
-        boot(C.armor, C.ochre, 0.5);
-      } else if (id === 'trunks') {
-        p.add(limb(d.shin * 1.05, d.shin * 0.95, S * 0.65, 8), C.grey, [0, 0, 0]);
-        boot(0xd8a62a, 0x3a2a1a, 0.42);
-      } else if (id === 'piccolo') {
-        p.add(limb(d.shin * 1.3, d.shin * 1.1, S * 0.75, 8), C.pgi, [0, 0, 0]);
-        boot(C.brown, null, 0.28);
-      } else if (id === 'frieza') {
-        p.add(limb(d.shin * 1.0, d.shin * 0.8, S, 8), d.skin, [0, 0, 0]);
-        p.add(geo('sphere'), C.dome, [0, -S * 0.45, d.shin * 0.45], 0, [d.shin * 0.9, S * 0.33, d.shin * 0.7]);
-        // 三趾腳
-        for (const tx of [-0.035, 0, 0.035]) p.add(geo('sphere'), d.skin, [tx, -S - 0.01, 0.07], 0, [0.022, 0.03, 0.06]);
-        p.add(geo('sphere'), d.skin, [0, -S, 0.0], 0, [d.shin * 0.95, 0.045, d.shin * 1.1]);
-      } else {
-        p.add(limb(d.shin * 1.0, d.shin * 0.85, S * 0.5, 8), C.legging, [0, 0, 0]);
-        boot(C.boot, null, 0.55, 0x5a361e);
-      }
-      out['shin' + side] = p.build();
-    }
-  }
-
-  /* ---------------- 次級擺動 ---------------- */
-  const tailSeg = (w, len, c, thick = 0.022) => { const p = new Parts(); p.add(geo('box'), c, [0, -len / 2, 0], 0, [w, len, thick]); return p.build(); };
-  if (id === 'goku') out.sash = [tailSeg(0.06, 0.18, C.blue), tailSeg(0.055, 0.16, C.blue)];
-  if (id === 'piccolo') out.sash = [tailSeg(0.08, 0.2, C.sash), tailSeg(0.07, 0.18, C.sash)];
-  if (id === 'frieza') {
-    out.tail = [0, 1, 2, 3, 4].map((i) => {
-      const p = new Parts(); const len = 0.2, r0 = 0.07 - i * 0.011, r1 = 0.07 - (i + 1) * 0.011;
-      p.add(limb(r0, Math.max(0.015, r1), len, 8), i === 4 ? C.dome : d.skin, [0, 0, 0]);
-      p.add(geo('lsphere'), i === 4 ? C.dome : d.skin, [0, 0, 0], 0, r0 * 1.02);
-      if (i === 4) p.add(geo('cone6'), C.dome, [0, -len, 0], [Math.PI, 0, 0], [0.02, 0.07, 0.02]);
-      return p.build();
-    });
-  }
-  if (id === 'trunks') {
-    // 劍：握把在原點，刃沿 +y
-    const p = new Parts();
-    p.add(cyl(0.018, 0.02, 0.2, 6), C.hilt, [0, 0.0, 0]);
-    p.add(geo('lsphere'), 0x8a6a2a, [0, -0.11, 0], 0, 0.028);
-    p.add(geo('box'), 0x8a6a2a, [0, 0.11, 0], 0, [0.14, 0.03, 0.05]);
-    p.add(geo('box'), C.steel, [0, 0.58, 0], 0, [0.045, 0.9, 0.012]);
-    p.add(new THREE.ConeGeometry(1, 1, 4).translate(0, 0.5, 0), C.steel, [0, 1.03, 0], [0, Math.PI / 4, 0], [0.032, 0.08, 0.008]);
-    p.add(geo('box'), 0xffffff, [0.012, 0.58, 0.007], 0, [0.008, 0.86, 0.002]);
-    out.sword = p.build();
-    const q = new Parts();
-    q.add(geo('box'), C.sheath, [0, 0.6, 0], 0, [0.075, 0.95, 0.04]);
-    q.add(geo('box'), 0x8a6a2a, [0, 0.16, 0], 0, [0.085, 0.05, 0.05]);
-    q.add(geo('box'), 0x8a6a2a, [0, 1.05, 0], 0, [0.085, 0.06, 0.05]);
-    out.sheath = q.build();
-  }
-  return out;
-}
 
 /* ---------------- 姿勢 ---------------- */
 const KEYS = ['hipsY', 'hipsZ', 'hipsRX', 'hipsRY', 'hipsRZ', 'torsoX', 'torsoY', 'torsoZ', 'headX', 'headY', 'headZ',
@@ -820,25 +422,39 @@ function makeAura(H) {
   return { group: g, mats };
 }
 
+/* ---------------- 英雄材質 ---------------- */
+const _heroMats = new Map();
+function heroMat(id) { if (!_heroMats.has(id)) _heroMats.set(id, heroMaterial()); return _heroMats.get(id); }
+function headMat(id, form, tex, rect) { const k = id + form; if (!_heroMats.has(k)) _heroMats.set(k, heroMaterial(tex, rect)); return _heroMats.get(k); }
+const _bands = {};
+function armbandGeo(d) { const k = d.arm.toFixed(3); return (_bands[k] ||= new THREE.TorusGeometry(d.arm * 1.12, 0.012, 6, 18).rotateX(Math.PI / 2)); }
+const _bandMats = {};
+function teamBandMat(team) { return (_bandMats[team] ||= new THREE.MeshBasicMaterial({ color: TEAM[team] })); }
+
 /* ---------------- buildHero ---------------- */
 const SWORD_IN_HAND = new Set(['atk1', 'atk2', 'atk3', 'slash', 'rush', 'dash']);
 export function buildHero(id, team = 0) {
   const d = HERO[id];
   if (!d) throw new Error('unknown hero ' + id);
-  const key = id + ':' + team;
-  if (!heroGeoCache.has(key)) heroGeoCache.set(key, buildHeroGeos(id, team));
-  const gs = heroGeoCache.get(key);
+  const gs = buildHeroParts(id, d);
+  const bodyMat = heroMat(id);
+  const OW = 0.012;
+  const pair = (geometry, parent, mat = bodyMat, w = OW) => {
+    const m = new THREE.Mesh(geometry, mat); m.castShadow = true; parent.add(m);
+    if (w) { const o = new THREE.Mesh(geometry, outlineMat(w)); o.raycast = () => {}; parent.add(o); }
+    return m;
+  };
 
   const root = new THREE.Group(); root.name = 'hero-' + id;
   const body = new THREE.Group(); root.add(body);
   const hips = new THREE.Group(); hips.position.y = d.L; body.add(hips);
-  meshPair(gs.hips, hips);
+  pair(gs.hips, hips);
   const torso = new THREE.Group(); torso.position.y = 0.02; hips.add(torso);
-  meshPair(gs.torso, torso);
+  pair(gs.torso, torso);
   const head = new THREE.Group(); head.position.y = d.torso + 0.04; torso.add(head);
   const headForms = {};
   for (const f in gs.heads) {
-    const g = new THREE.Group(); head.add(g); meshPair(gs.heads[f].main, g); meshPair(gs.heads[f].face, g, { outline: false, shadow: false }); g.visible = f === 'base'; headForms[f] = g;
+    const g = new THREE.Group(); head.add(g); pair(gs.heads[f].main, g, headMat(id, f, gs.heads[f].face, gs.faceRect)); g.visible = f === 'base'; headForms[f] = g;
   }
   const chest = new THREE.Object3D(); chest.position.set(0, d.torso * 0.66, d.chest[2] * 0.5); torso.add(chest);
   const J = { hips, torso, head };
@@ -846,15 +462,17 @@ export function buildHero(id, team = 0) {
   for (const side of ['L', 'R']) {
     const sx = side === 'L' ? 1 : -1;
     const sh = new THREE.Group(); sh.position.set(sx * d.sw, d.torso - 0.05, 0); torso.add(sh);
-    meshPair(gs['upper' + side], sh);
+    pair(gs['upper' + side], sh);
+    // 隊伍色臂環（只在左臂）
+    if (side === 'L') { const ring = new THREE.Mesh(armbandGeo(d), teamBandMat(team)); ring.position.y = -d.upper * 0.62; sh.add(ring); }
     const el = new THREE.Group(); el.position.y = -d.upper; sh.add(el);
-    meshPair(gs['fore' + side], el);
+    pair(gs['fore' + side], el);
     const hand = new THREE.Object3D(); hand.position.y = -d.lower - d.fist * 0.55; el.add(hand);
     hands[side] = hand;
     const th = new THREE.Group(); th.position.set(sx * d.hip * 0.62, -0.03, 0); hips.add(th);
-    meshPair(gs['thigh' + side], th);
+    pair(gs['thigh' + side], th);
     const kn = new THREE.Group(); kn.position.y = -d.thighLen; th.add(kn);
-    meshPair(gs['shin' + side], kn);
+    pair(gs['shin' + side], kn);
     J['sh' + side] = sh; J['el' + side] = el; J['th' + side] = th; J['kn' + side] = kn;
   }
 
@@ -866,7 +484,7 @@ export function buildHero(id, team = 0) {
       const s = new THREE.Group();
       if (i === 0) s.position.set(pos[0], pos[1], pos[2]); else s.position.y = -opt.lens[i - 1];
       par.add(s);
-      meshPair(g, s, { w: opt.w || 0.02 });
+      pair(g, s, bodyMat, opt.w || 0.01);
       segs.push(s); par = s;
     });
     chains.push({ segs, base, yaw: opt.yaw || 0, lift: opt.lift ?? 1, flutter: opt.flutter ?? 0.25, curl: opt.curl || 0, sway: opt.sway || 0, cur: segs.map(() => base), phase: Math.random() * 6 });
@@ -882,9 +500,9 @@ export function buildHero(id, team = 0) {
     backSocket.position.set(-0.11, d.torso * 0.98, -d.chest[2] * 1.02);
     backSocket.rotation.set(0, 0, -2.6);
     torso.add(backSocket);
-    meshPair(gs.sheath, backSocket, { w: 0.016 });
+    pair(gs.sheath, backSocket, bodyMat, 0.008);
     sword = new THREE.Group();
-    meshPair(gs.sword, sword, { w: 0.014 });
+    pair(gs.sword, sword, bodyMat, 0.006);
     backSocket.add(sword);
     handSocket = new THREE.Group();
     handSocket.rotation.set(Math.PI - 0.5, 0, 0);

@@ -1,5 +1,5 @@
 // 普攻連段、技能、投射物、區域效果。
-import { COMBO_WINDOW, KI_BAR, SPARK, RECALL_TIME, WARD } from './config.js';
+import { COMBO_WINDOW, KI_BAR, SPARK, RECALL_TIME, WARD, CONTROL } from './config.js';
 import {
   damage, dist, dist2, angTo, clamp, steer, face, enemiesNear, nearestEnemy, targetable, vulnerable, moveSpeed, interrupt, cancelRecall, addKi, heal,
 } from './units.js';
@@ -211,6 +211,23 @@ export function placeWard(G, h, x, z) {
   };
   G.wards.push(w); G.units.push(w); G.emit('spawn', w);
   h.cds.T = WARD.cd; sfx(G, 'ui', h, { pitch: 1.6 });
+  G.emit('ward', { h, w });
+  return true;
+}
+// 真眼：消耗品，敵我都看得到、不會消失，會照出附近的敵方眼；每人場上只能有一顆
+export function placeControl(G, h, x, z) {
+  if (!h.alive || !(h.controls > 0)) return false;
+  const d = Math.hypot(x - h.x, z - h.z);
+  if (d > CONTROL.range) { x = h.x + (x - h.x) / d * CONTROL.range; z = h.z + (z - h.z) / d * CONTROL.range; }
+  const p = { x, z }; collide(p, 0.4);
+  for (const w of G.wards) if (w.alive && w.control && w.owner === h) { w.alive = false; w.hp = 0; G.emit('wardDeath', { u: w }); }
+  h.controls--;
+  const w = {
+    id: 200000 + wardId++, kind: 'ward', control: true, team: h.team, owner: h, x: p.x, z: p.z, y: 0, vy: 0, radius: 0.5, hp: CONTROL.hp, maxHp: CONTROL.hp, alive: true, facing: 0,
+    st: { stun: 0, slow: 0, slowAmt: 0, frozen: 0, shield: 0, shieldT: 0, spark: 0, mark: 0, invuln: 0 }, kx: 0, kz: 0, life: Infinity, deadT: 0, flash: 0, anim: { name: 'idle', t: 0 },
+  };
+  G.wards.push(w); G.units.push(w); G.emit('spawn', w);
+  sfx(G, 'ui', h, { pitch: 1.2 });
   G.emit('ward', { h, w });
   return true;
 }

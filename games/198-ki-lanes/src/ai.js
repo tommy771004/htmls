@@ -1,10 +1,10 @@
 // 英雄 AI：守線補兵、換血連招、撤退回城買裝、遊走支援、打野、集合打大猿。只對看得到的敵方英雄出手。
 import { KI_BAR, FOUNTAIN, ITEMS } from './config.js';
 import { dist, targetable, vulnerable } from './units.js';
-import { lanePath, laneProgress, pointAlong } from './map.js';
-import { cast, orderMove, orderAttack, startRecall, setCharging, spark, levelSkill, canLevel, skillReady, skillDmg, placeWard } from './combat.js';
+import { lanePath, laneProgress, pointAlong, distToLane } from './map.js';
+import { cast, orderMove, orderAttack, startRecall, setCharging, spark, levelSkill, canLevel, skillReady, skillDmg, placeWard, placeControl } from './combat.js';
 import { BUSHES } from './map.js';
-import { seen } from './vision.js';
+import { seen, inBush } from './vision.js';
 import { eatSenzu, nextBuy, priceFor } from './items.js';
 import { bossAlive } from './jungle.js';
 
@@ -85,7 +85,7 @@ export function updateAI(G, h, dt) {
   if (!foe && h.gold > nextItemCost(h) + 250 && (hpR < 0.75 || h.gold > 1400) && B.mode !== 'boss') { if (startRecall(G, h)) { B.mode = 'heal'; return; } }
 
   // 打英雄（遊走包抄途中先不接戰，繞到背後再出手）
-  if (foe && fd < 11 && !(B.mode === 'roam' && !B.behind && G.time < B.until)) {
+  if (foe && fd < 11 && !(B.mode === 'roam' && !B.behind && G.time < B.until) && !(B.mode === 'ambush' && G.time < B.until)) {
     const towerThreat = enemyTowerThreat(G, h, foe.x, foe.z);
     const foeHpR = foe.hp / foe.maxHp;
     const killable = foe.hp < h.ad * 3 + (skillReady(h, 'Q') ? skillDmg(h, 'Q') : 0) + (h.ranks.R && skillReady(h, 'R') ? skillDmg(h, 'R') * 1.5 : 0);
@@ -102,6 +102,7 @@ export function updateAI(G, h, dt) {
   // 戰略層：每幾秒評估一次（大猿、遊走、打野）
   B.plan -= B.react;
   if (B.plan <= 0) { B.plan = 3 + Math.random() * 2; strategy(G, h, hpR); }
+  if (B.mode === 'ambush' && ambushMode(G, h)) return;
   if (B.mode === 'boss' && bossMode(G, h)) return;
   if (B.mode === 'roam' && roamMode(G, h)) return;
   if (B.mode === 'jungle' && jungleMode(G, h)) return;
@@ -119,6 +120,7 @@ function strategy(G, h, hpR) {
     if (enemiesDead >= 2 || (G.time > 540 && allyOk >= 3 && enemiesDead >= 1)) { for (const a of G.heroes) if (a.team === h.team && a.alive && a.brain && a.brain.mode !== 'heal') { a.brain.mode = 'boss'; a.brain.until = G.time + 30; } return; }
   }
   if (B.mode !== 'lane') return;
+  if (G.time > 90 && hpR > 0.65 && G.time > (B.ambushCd || 0) && planAmbush(G, h)) return;
   // 遊走：附近隊友正在和敵方英雄交手，而且我這一路沒人
   const laneQuiet = !visibleFoes(G, h).some((e) => dist(e, h) < 20);
   if (laneQuiet && hpR > 0.6) {
@@ -149,6 +151,53 @@ function strategy(G, h, hpR) {
     if (best) { B.mode = 'jungle'; B.camp = best; B.until = G.time + 25; }
   }
 }
+// 草叢埋伏：鎖定一名落單、正往我方推進的敵方英雄，兩到三名隊友先躲進它前方路邊的草叢，等它走近再一起出手
+function planAmbush(G, h) {
+  const B = h.brain;
+  B.ambushCd = G.time + 12;
+  const foes = visibleFoes(G, h);
+  for (const E of foes) {
+    if (foes.some((o) => o !== E && dist(o, E) < 16)) continue; // 不是落單
+    if (E.hp / E.maxHp < 0.25) continue;
+    const ep = lanePath(E.lane, E.team), eProg = laneProgress(ep, E.x, E.z);
+    let best = null, bs = 1e9;
+    for (const b of BUSHES) {
+      if (distToLane(b.x, b.z, E.lane) > 9.5) continue;
+      if (G.structures.some((t) => t.alive && t.team !== h.team && Math.hypot(t.x - b.x, t.z - b.z) < t.range + 3)) continue; // 不在敵塔射程內
+      const bp = laneProgress(ep, b.x, b.z), ahead = bp - eProg;
+      if (ahead < 5 || ahead > 20) continue;
+      const d = Math.hypot(b.x - h.x, b.z - h.z); if (d > 45) continue;
+      if (d < bs) { bs = d; best = b; }
+    }
+    if (!best) continue;
+    const team = G.heroes.filter((a) => a.team === h.team && a.alive && a.brain && a.hp / a.maxHp > 0.6 && (a === h || a.brain.mode === 'lane' || a.brain.mode === 'jungle') && Math.hypot(a.x - best.x, a.z - best.z) < 48);
+    if (team.length < 2) continue;
+    const members = team.sort((a, b2) => Math.hypot(a.x - best.x, a.z - best.z) - Math.hypot(b2.x - best.x, b2.z - best.z)).slice(0, 3);
+    members.forEach((a, i) => { const ab = a.brain; ab.mode = 'ambush'; ab.bush = best; ab.foe = E; ab.slot = i; ab.until = G.time + 22; ab.ambushCd = G.time + 35; ab.members = members; });
+    G.emit('ambush', { team: h.team, bush: best, foe: E, members });
+    return true;
+  }
+  return false;
+}
+function ambushMode(G, h) {
+  const B = h.brain, E = B.foe, b = B.bush;
+  if (!E || !E.alive || G.time > B.until || h.hp / h.maxHp < 0.4) { B.mode = 'lane'; return false; }
+  const inPlace = inBush(h) > 0 && Math.hypot(h.x - b.x, h.z - b.z) < b.r;
+  const near = Math.hypot(E.x - b.x, E.z - b.z);
+  const struck = B.members.some((m) => m.alive && G.time - m.lastHitT < 0.6 && m.lastHitBy && m.lastHitBy.kind === 'hero');
+  if ((near < b.r + 6 || struck || B.members.some((m) => m.alive && dist(m, E) < 7.5)) && seen(G, h.team, E)) {
+    // 出手：全員轉成包抄、直接開打
+    for (const m of B.members) if (m.alive && m.brain && m.brain.mode === 'ambush') { const mb = m.brain; mb.mode = 'roam'; mb.foe = E; mb.roam = m; mb.behind = true; mb.until = G.time + 10; }
+    G.emit('ambushStrike', { team: h.team, foe: E, members: B.members });
+    fight(G, h, E, dist(h, E), true);
+    return true;
+  }
+  if (!inPlace) { const a = (B.slot / 3) * Math.PI * 2; setCharging(G, h, false); orderMove(G, h, b.x + Math.cos(a) * b.r * 0.45, b.z + Math.sin(a) * b.r * 0.45); return true; }
+  // 已就位：靜止等待（不集氣，免得氣焰暴露位置）
+  h.goal = null; h.path = null; h.target = null; setCharging(G, h, false);
+  return true;
+}
+
 function bossMode(G, h) {
   const B = h.brain, boss = bossAlive(G);
   if (!boss || G.time > B.until || h.hp / h.maxHp < 0.4) { B.mode = 'lane'; return false; }
@@ -227,8 +276,8 @@ function flank(G, h, foe, fd, kiBars) {
   return false;
 }
 // 插眼：前方的草叢或河道
-function wardSpot(G, h) {
-  const own = G.wards.filter((w) => w.alive && w.team === h.team);
+function wardSpot(G, h, control = false) {
+  const own = G.wards.filter((w) => w.alive && w.team === h.team && (!control || w.control));
   let best = null, bs = 1e9;
   for (const b of BUSHES) {
     const d = Math.hypot(b.x - h.x, b.z - h.z); if (d > 13) continue;
@@ -250,6 +299,7 @@ function moveHome(G, h) {
 function laneLogic(G, h) {
   const B = h.brain, path = B.path;
   if (h.cds.T <= 0 && G.time > 40 && Math.random() < 0.35) { const sp = wardSpot(G, h); if (sp && placeWard(G, h, sp.x, sp.z)) return; }
+  if (h.controls > 0 && !G.wards.some((w) => w.alive && w.control && w.owner === h) && Math.random() < 0.3) { const sp = wardSpot(G, h, true); if (sp && placeControl(G, h, sp.x, sp.z)) return; }
   const ew = G.wards.find((w) => w.alive && w.team !== h.team && dist(w, h) < 8 && seen(G, h.team, w));
   if (ew) { orderAttack(G, h, ew); return; }
   const myProg = laneProgress(path, h.x, h.z);

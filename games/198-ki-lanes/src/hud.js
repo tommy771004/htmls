@@ -20,7 +20,7 @@ export function createHud(env) {
     dock: $('#dock'), port: $('#dock .port img'), lvl: $('#dock .lvl'), hpFill: $('#dock .hp i'), hpTxt: $('#dock .hp b'), shFill: $('#dock .hp s'), xpFill: $('#dock .xp i'),
     kiCells: [...document.querySelectorAll('#dock .ki .cell i')], kiN: $('#dock .ki .kn'), sp: $('#spPrompt'), dead: $('#dead'), recall: $('#recallbar'),
     bars: $('#bars'), speed: $('#speed'), flash: $('#flash'), skills: {},
-    slots: [...document.querySelectorAll('#dock .slots .slot:not(.senzu):not(.ward)')], senzu: $('#dock .slot.senzu'), goldB: $('#dock .goldbtn'), gold: $('#dock .goldbtn b'), buffs: $('#buffs'),
+    slots: [...document.querySelectorAll('#dock .slots .slot:not(.senzu):not(.ward):not(.control)')], control: $('#dock .slot.control'), senzu: $('#dock .slot.senzu'), goldB: $('#dock .goldbtn'), gold: $('#dock .goldbtn b'), buffs: $('#buffs'),
     shop: $('#shop'), shopList: $('#shop .shopList'), shopGold: $('#shop .shopGold'), shopHint: $('#shop .shopHint'), shopDetail: $('#shop .shopDetail'), shopInv: $('#shop .shopInv'),
     ward: $('#dock .slot.ward'), bushTag: $('#bushTag'),
   };
@@ -42,6 +42,7 @@ export function createHud(env) {
   /* ---------- 商店 ---------- */
   el.senzu.querySelector('.ic').innerHTML = ITEM_ICONS.senzu;
   el.ward.querySelector('.ic').innerHTML = ITEM_ICONS.ward; el.ward.title = '插眼（4）';
+  el.control.querySelector('.ic').innerHTML = ITEM_ICONS.control; el.control.title = '真眼（5）';
   let shopSel = 'weights', sellSlot = -1;
   const TIERS = [[1, '基礎'], [2, '進階'], [3, '終極'], [0, '消耗品']];
   function tree(id, top = true) {
@@ -73,7 +74,7 @@ export function createHud(env) {
     el.shopHint.textContent = inShop(P) ? '點道具看合成路線，再點一次購買；點自己的道具可賣出' : '回到泉水附近才能購買或賣出';
     el.shopState = shopKey();
   }
-  const shopKey = () => player ? `${Math.floor(player.gold / 10)}|${player.inv.join()}|${player.senzu}|${inShop(player)}|${shopSel}|${sellSlot}` : '';
+  const shopKey = () => player ? `${Math.floor(player.gold / 10)}|${player.inv.join()}|${player.senzu}|${player.controls}|${inShop(player)}|${shopSel}|${sellSlot}` : '';
   function toggleShop(on) {
     const want = on ?? !el.shop.classList.contains('on');
     el.shop.classList.toggle('on', want);
@@ -151,6 +152,8 @@ export function createHud(env) {
   G.on('gold', ({ h, g, at }) => { if (h === player && at && g >= 15) number(at.x, 3, at.z, `+${g}`, '#f6c64a', 0.75); });
   G.on('flank', ({ h, foe }) => { if (h.team === player.team && h !== player) announce(`${h.def.short} 繞到敵人背後`, 'good', `包抄 ${foe.def.short}`); });
   G.on('roam', ({ h, to }) => { if (h.team === player.team && to === player) announce(`${h.def.short} 前來支援`, 'good', '從敵人背後切入'); });
+  G.on('ambush', ({ team, foe, members }) => { if (team === player.team && !members.includes(player)) announce('隊友在草叢埋伏', 'good', `${members.map((m) => m.def.short).join('、')} 等 ${foe.def.short} 走近`); });
+  G.on('ambushStrike', ({ team, foe }) => { if (team === player.team) announce('埋伏出手！', 'good', `包圍 ${foe.def.short}`); else if (foe === player) announce('草叢裡有埋伏！', 'bad'); });
   G.on('wardDeath', ({ u, src }) => { if (src && src === player) number(u.x, 1.6, u.z, '拆眼', '#b8f09a', 0.9); });
   G.on('campSpawn', (c) => { if (c.boss) announce('大猿出現在河道', 'good', '擊倒牠全隊得到金幣與大猿之力'); });
   G.on('monsterDeath', ({ u, team }) => { if (u.boss && team >= 0) announce(team === player.team ? '我方擊倒大猿' : '敵方擊倒大猿', team === player.team ? 'good' : 'bad', `大猿之力 ${APE_BUFF.dur} 秒：傷害 +20%`); });
@@ -215,11 +218,12 @@ export function createHud(env) {
     if (el.ward._c !== wc) { el.ward._c = wc; el.ward.classList.toggle('cool', wc > 0); el.ward.querySelector('.wcd').textContent = wc || ''; }
     el.bushTag.classList.toggle('on', P.alive && inBush(P) > 0);
     el.dock.classList.toggle('canshop', inShop(P) && ITEMS.some((it) => canBuy(P, it.id)));
-    const ik = P.inv.join() + '|' + (P.senzu || 0);
+    const ik = P.inv.join() + '|' + (P.senzu || 0) + '|' + (P.controls || 0);
     if (el.invKey !== ik) {
       el.invKey = ik;
       el.slots.forEach((sl, i) => { const id = P.inv[i]; sl.innerHTML = id ? ITEM_ICONS[id] : ''; sl.title = id ? ITEMS.find((x) => x.id === id).name : ''; });
       el.senzu.querySelector('b').textContent = P.senzu || 0; el.senzu.classList.toggle('none', !(P.senzu > 0));
+      el.control.querySelector('b').textContent = P.controls || 0; el.control.classList.toggle('none', !(P.controls > 0));
     }
     const bk = `${P.apeBuff > 0 ? Math.ceil(P.apeBuff) : 0}|${P.form}`;
     if (el.buffs._k !== bk) { el.buffs._k = bk; el.buffs.innerHTML = (P.apeBuff > 0 ? `<span class="ape">大猿之力 ${Math.ceil(P.apeBuff)}</span>` : '') + (P.form === 'ssj' ? '<span class="ssj">超級賽亞人</span>' : ''); }
@@ -280,8 +284,8 @@ export function createHud(env) {
       const ally = player && u.team === player.team;
       const col = u === player ? '#f6c64a' : ally ? '#3fc7a4' : '#e5563a';
       if (u.kind === 'ward') {
-        const w = 18 * s, h = 3.5 * s; g.fillStyle = '#16110c'; g.fillRect(p.x - w / 2 - 1, p.y - 1, w + 2, h + 2);
-        g.fillStyle = ally ? '#b8f09a' : '#f07a5c'; for (let i = 0; i < u.hp; i++) g.fillRect(p.x - w / 2 + i * (w / 3) + 0.5, p.y, w / 3 - 1, h);
+        const w = 18 * s, h = 3.5 * s, seg = w / u.maxHp; g.fillStyle = '#16110c'; g.fillRect(p.x - w / 2 - 1, p.y - 1, w + 2, h + 2);
+        g.fillStyle = ally ? '#b8f09a' : '#f07a5c'; for (let i = 0; i < u.hp; i++) g.fillRect(p.x - w / 2 + i * seg + 0.5, p.y, seg - 1, h);
         continue;
       }
       if (u.kind === 'monster') {

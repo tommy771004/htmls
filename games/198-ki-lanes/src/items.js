@@ -30,14 +30,14 @@ export function priceFor(h, id) { const it = itemById(id); return it.consumable 
 export function canBuy(h, id) {
   const it = itemById(id); if (!it) return false;
   if (!inShop(h)) return false;
-  if (it.consumable) return (h.senzu || 0) < it.max && h.gold >= it.cost;
+  if (it.consumable) return (h[it.field] || 0) < it.max && h.gold >= it.cost;
   const p = plan(h, id);
   return h.gold >= p.price && h.inv.length - p.use.length < INV_SLOTS;
 }
 export function buy(G, h, id) {
   if (!canBuy(h, id)) return false;
   const it = itemById(id);
-  if (it.consumable) { h.gold -= it.cost; h.senzu = (h.senzu || 0) + 1; G.emit('buy', { h, id }); return true; }
+  if (it.consumable) { h.gold -= it.cost; h[it.field] = (h[it.field] || 0) + 1; G.emit('buy', { h, id }); return true; }
   const p = plan(h, id);
   h.gold -= p.price;
   h.inv = h.inv.filter((_, i) => !p.use.includes(i));
@@ -78,6 +78,7 @@ export function aiShop(G, h) {
   if (!inShop(h)) return;
   let guard = 8;
   if ((h.senzu || 0) < 1 && h.gold > 400) buy(G, h, 'senzu');
+  if ((h.controls || 0) < 1 && h.gold > 350 && G.time > 150) buy(G, h, 'control');
   while (guard--) {
     const nb = nextBuy(h); if (!nb) break;
     if (canBuy(h, nb.target)) { buy(G, h, nb.target); continue; }

@@ -169,6 +169,48 @@ async function run(name, w, h, touch) {
   }, fog2.ex);
   check('插眼並靠眼看到敵人', ward.placed && ward.viaWard, ward);
   check('敵方沒有探測器時看不到眼', ward.wardHiddenToEnemy, ward);
+  // 真眼：照出敵方的眼，敵人也看得到真眼
+  const ctl = await ev(() => {
+    const k = window.__ki, G = k.G, P = G.player, E = G.heroes.find((h) => h.team !== P.team);
+    P.alive = true; P.inv = []; P.st.stun = 0;
+    // 敵方在 (20,-20) 插一顆眼
+    E.alive = true; E.cds.T = 0; E.x = 18; E.z = -18; window.__kiPlace(E, 20, -20);
+    const ew = G.wards.find((w) => w.alive && w.team === E.team && !w.control);
+    k.teleport(15, -15); k.fastForward(0.3);
+    const before = k.visible(ew.id);
+    P.controls = 1; const placed = k.control(17, -17); k.fastForward(0.3);
+    const after = k.visible(ew.id);
+    const cw = G.wards.find((w) => w.alive && w.control && w.team === P.team);
+    E.st.stun = 30; E.x = cw.x + 4; E.z = cw.z - 4; E.alive = true; k.fastForward(0.4);
+    return { before, placed, after, enemySeesControl: k.visibleTo(E.team, cw.id) };
+  });
+  check('真眼照出敵方的眼', ctl.before === false && ctl.placed && ctl.after === true, ctl);
+  check('敵人看得到真眼', ctl.enemySeesControl === true, ctl);
+  // AI 草叢埋伏：落單的敵人沿路推進時，兩名隊友先躲進它前方的草叢，等它走近再出手
+  const amb = await ev(() => {
+    const k = window.__ki; k.start('goku', 1); const G = k.G, P = G.player; k.freezeAI(false);
+    k.listen('ambush'); k.listen('ambushStrike');
+    G.time = 120; G.nextWave = 1e9;
+    const allies = G.heroes.filter((h) => h.team === P.team && h !== P), foes = G.heroes.filter((h) => h.team !== P.team);
+    const E = foes[0]; for (const f of foes.slice(1)) { f.alive = false; f.respawn = 999; }
+    const bs = k.laneBushes(E.lane, E.team).filter((b) => b.prog > 60 && b.prog < 170).sort((a, b) => a.prog - b.prog);
+    const bush = bs[0];
+    const start = k.lanePoint(E.lane, E.team, bush.prog - 18), dest = k.lanePoint(E.lane, E.team, bush.prog + 25), back = k.lanePoint(E.lane, E.team, bush.prog + 16);
+    E.x = start.x; E.z = start.z; E.brain = null; E.reveal = 1e9; E.ms = 3.2;
+    P.x = -80; P.z = 80;
+    allies.forEach((a, i) => { a.x = back.x + (i ? -5 : 5); a.z = back.z + (i ? 5 : -5); a.hp = a.maxHp; a.brain.mode = 'lane'; a.brain.plan = 0; a.brain.ambushCd = 0; });
+    let hiddenInBush = false, t = 0;
+    for (; t < 40 && !window.__kiEv.ambushStrike; t += 0.25) {
+      if (t > 6 && !E.goal) { window.__kiMove(E, dest.x, dest.z); }
+      k.fastForward(0.25);
+      if (window.__kiEv.ambush && !hiddenInBush) hiddenInBush = allies.some((a) => k.inBushAt(a.x, a.z) && !k.visibleTo(E.team, a.id));
+    }
+    return { ambush: window.__kiEv.ambush, strike: window.__kiEv.ambushStrike, hiddenInBush, t };
+  });
+  check('AI 隊友會先躲進草叢埋伏，敵人看不到', amb.ambush >= 1 && amb.hiddenInBush, amb);
+  check('敵人走近時埋伏一起出手', amb.strike >= 1, amb);
+  await page.waitForTimeout(300); await shot('5e-ambush');
+  await ev(() => { const k = window.__ki; k.start('frieza', 1); });
   // 合成與賣回
   const tree = await ev(() => {
     const k = window.__ki, G = k.G, P = G.player; P.alive = true;

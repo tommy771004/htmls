@@ -39,7 +39,7 @@ export function createMinimap(canvas, groundCanvas) {
       for (const wd of G.wards || []) {
         if (!wd.alive || !seen(G, PT, wd)) continue;
         const [x, y] = toMap(wd.x, wd.z, w);
-        g.beginPath(); g.arc(x, y, 2.6 * k, 0, Math.PI * 2); g.fillStyle = wd.team === PT ? '#b8f09a' : '#f07a5c'; g.fill(); g.lineWidth = k; g.strokeStyle = '#16110c'; g.stroke();
+        g.beginPath(); g.arc(x, y, 2.6 * k, 0, Math.PI * 2); g.fillStyle = wd.control ? '#ff9a4a' : wd.team === PT ? '#b8f09a' : '#f07a5c'; g.fill(); g.lineWidth = k; g.strokeStyle = '#16110c'; g.stroke();
       }
       for (const m of G.minions) {
         if (!m.alive || !seen(G, PT, m)) continue;

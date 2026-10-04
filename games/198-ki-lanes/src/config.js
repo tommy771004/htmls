@@ -113,7 +113,8 @@ export const GOLD = { start: 500, passive: 2.2, melee: 21, ranged: 16, siege: 55
 // stats：ad 攻擊、hp 血量、armor 減傷、as 攻速（間隔縮短比例）、ms 移速比例、ki 氣力獲得、cdr 冷卻縮減、skill 技能傷害、dmg 全傷害、vision 視野、regen 脫戰回血（每秒比例）、detect 看得到敵方的眼
 // 合成：from 列出需要的下位道具，cost 是合成費（不含下位道具）；總價 = cost + 下位道具總價
 export const ITEMS = [
-  { id: 'senzu', name: '仙豆', cost: 120, tier: 0, desc: '吃下立刻回復 45% 血量與 1 格氣。最多帶 3 顆。', consumable: true, max: 3 },
+  { id: 'senzu', name: '仙豆', cost: 120, tier: 0, desc: '吃下立刻回復 45% 血量與 1 格氣。最多帶 3 顆。', consumable: true, max: 3, field: 'senzu' },
+  { id: 'control', name: '真眼', cost: 75, tier: 0, desc: '按 5 放下：敵我都看得到，會照出 9 公尺內的敵方眼（可拆），本身要打 4 下。每人場上限 1 顆，最多帶 2 顆。', consumable: true, max: 2, field: 'controls' },
   // 基礎
   { id: 'weights', name: '負重護腕', cost: 350, tier: 1, desc: '攻擊 +12', stats: { ad: 12 } },
   { id: 'gi', name: '修行道服', cost: 350, tier: 1, desc: '血量 +180', stats: { hp: 180 } },
@@ -131,6 +132,7 @@ export const ITEMS = [
   { id: 'potara', name: '波塔拉耳環', cost: 650, tier: 3, from: ['armor', 'kiamp'], desc: '血量 +420，攻擊 +24，冷卻 -20%，減傷 +8%，氣力獲得 +30%', stats: { hp: 420, ad: 24, cdr: 0.2, armor: 0.08, ki: 0.3, detect: 1, vision: 3 } },
 ];
 export const WARD = { cd: 70, range: 7, life: 90, hp: 3, max: 2 };
+export const CONTROL = { range: 7, hp: 4, reveal: 9 };
 export const INV_SLOTS = 6;
 
 // 野怪數值

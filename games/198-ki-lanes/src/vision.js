@@ -5,6 +5,7 @@ import { OBSTACLES, BUSHES, bushAt } from './map.js';
 
 export const VGRID = 96, VCELL = 2, VHALF = 96;
 const R = { hero: 14, minion: 9, tower: 12, core: 14, ward: 10 };
+const CONTROL_VISION = 9;
 const N = VGRID * VGRID;
 
 // 擋視線的格（障礙物中心區）與每格所屬草叢
@@ -58,7 +59,7 @@ export function updateVision(G, dt) {
   for (const g of V.grids) g.fill(0);
   for (const u of G.units) {
     if (!u.alive || u.team > 1) continue;
-    const r = (R[u.kind] || 8) + (u.kind === 'hero' ? u.visionBonus || 0 : 0);
+    const r = u.control ? CONTROL_VISION : (R[u.kind] || 8) + (u.kind === 'hero' ? u.visionBonus || 0 : 0);
     stamp(V.grids[u.team], u.x, u.z, r);
   }
 }
@@ -68,7 +69,11 @@ export function inBush(u) { const k = cellOf(u.x, u.z); return k >= 0 ? bushCell
 export function seen(G, team, u) {
   if (!G.vision || !G.vision.on) return true;
   if (u.team === team || u.kind === 'tower' || u.kind === 'core') return true;
-  if (u.kind === 'ward') return G.heroes.some((h) => h.alive && h.team === team && h.detect > 0 && Math.hypot(h.x - u.x, h.z - u.z) < 9);
+  if (u.kind === 'ward') {
+    if (u.control) { const k = cellOf(u.x, u.z); return k >= 0 && G.vision.grids[team][k] === 1; } // 真眼：只要在視野內就看得到
+    if (G.wards && G.wards.some((c) => c.alive && c.control && c.team === team && Math.hypot(c.x - u.x, c.z - u.z) < 9)) return true;
+    return G.heroes.some((h) => h.alive && h.team === team && h.detect > 0 && Math.hypot(h.x - u.x, h.z - u.z) < 9);
+  }
   if (u.reveal > G.time) return true;
   const k = cellOf(u.x, u.z);
   return k >= 0 && G.vision.grids[team][k] === 1;
