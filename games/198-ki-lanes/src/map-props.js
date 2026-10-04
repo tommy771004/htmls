@@ -5,6 +5,7 @@ import { OBSTACLES, LANES, STRUCTURES, BUSHES, heightAt, riverDist, distToLanes,
 import { BASE, FOUNTAIN, TEAM_COLOR, TEAM_LIGHT, CAMPS as CAMPS_ALL, DRAGON } from './config.js';
 const CAMPS_LIST = [...CAMPS_ALL, { x: DRAGON.pit.x, z: DRAGON.pit.z, boss: true }]; // 神龍坑和大猿石場一樣清空
 import { patchFog } from './fog.js';
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 const polyLen = (p) => { let L = 0; for (let i = 1; i < p.length; i++) L += Math.hypot(p[i].x - p[i - 1].x, p[i].z - p[i - 1].z); return L; };
 
@@ -108,13 +109,27 @@ export function buildProps(group, quality, { toon, mergeGeo }) {
     if (R() < 0.25) bushes.push({ x: x + (R() - 0.5) * 3, z: z + (R() - 0.5) * 3, s: 0.9 + R() * 0.6, rot: R() * 6, hue: R() });
   }
 
-  // 幾何
+  // 幾何：樹冠是平滑的凹凸團塊（卡通三階明暗會畫出柔和的色塊，而不是低多邊形的硬切面）
+  const blob = (r, seed, sy = 1, detail = 2) => {
+    let g = new THREE.IcosahedronGeometry(r, detail); g.deleteAttribute('uv'); g.deleteAttribute('normal'); g = mergeVertices(g);
+    const p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i), k = 1 + 0.13 * (Math.sin(x * 3.1 / r + seed) + Math.sin(y * 2.7 / r + seed * 1.7) + Math.sin(z * 3.5 / r - seed)) / 3;
+      p.setXYZ(i, x * k, y * k * sy - (y < 0 ? y * 0.25 : 0), z * k);
+    }
+    g.computeVertexNormals(); return g;
+  };
   const trunkG = new THREE.CylinderGeometry(0.17, 0.3, 2.2, 6); trunkG.translate(0, 1.1, 0);
-  const crownA = shadeY(mergeGeo([[1.45, 0, 2.9, 0], [1.05, 0.8, 2.4, 0.4], [1.0, -0.7, 2.5, -0.35], [0.85, 0.1, 3.75, 0.1]].map(([r, x, y, z]) => new THREE.IcosahedronGeometry(r, 1).translate(x, y, z))));
-  const crownB = shadeY(mergeGeo([[1.05, 0, 2.7, 0, 1.25], [0.9, 0.15, 3.85, 0.05, 1.2], [0.7, -0.1, 4.75, 0, 1.1]].map(([r, x, y, z, sy]) => new THREE.IcosahedronGeometry(r, 1).scale(1, sy, 1).translate(x, y, z))));
-  const crownC = shadeY(mergeGeo([[1.7, 0, 2.6, 0, 0.5], [1.35, 0.35, 3.3, -0.2, 0.5], [0.95, -0.2, 3.95, 0.15, 0.55], [1.0, -0.9, 2.75, 0.6, 0.5]].map(([r, x, y, z, sy]) => new THREE.IcosahedronGeometry(r, 1).scale(1, sy, 1).translate(x, y, z))));
-  const pineG = shadeY(mergeGeo([0, 1, 2, 3].map((k) => new THREE.ConeGeometry(1.55 - k * 0.33, 1.6, 8).translate(0, 1.5 + k * 0.95, 0))), 0.6, 1.05);
-  const bushG = shadeY(mergeGeo([[0.75, 0, 0.5, 0], [0.6, 0.55, 0.42, 0.2], [0.55, -0.5, 0.4, -0.15], [0.45, 0.1, 0.85, -0.1]].map(([r, x, y, z]) => new THREE.IcosahedronGeometry(r, 0).translate(x, y, z))), 0.55, 1);
+  const crownA = shadeY(mergeGeo([[1.45, 0, 2.9, 0], [1.05, 0.8, 2.4, 0.4], [1.0, -0.7, 2.5, -0.35], [0.85, 0.1, 3.75, 0.1]].map(([r, x, y, z], i) => blob(r, i * 1.9 + 1).translate(x, y, z)), true));
+  const crownB = shadeY(mergeGeo([[1.05, 0, 2.7, 0, 1.25], [0.9, 0.15, 3.85, 0.05, 1.2], [0.7, -0.1, 4.75, 0, 1.1]].map(([r, x, y, z, sy], i) => blob(r, i * 2.3 + 4, sy).translate(x, y, z)), true));
+  const crownC = shadeY(mergeGeo([[1.7, 0, 2.6, 0, 0.5], [1.35, 0.35, 3.3, -0.2, 0.5], [0.95, -0.2, 3.95, 0.15, 0.55], [1.0, -0.9, 2.75, 0.6, 0.5]].map(([r, x, y, z, sy], i) => blob(r, i * 1.3 + 7, sy).translate(x, y, z)), true));
+  // 松：六層下垂的針葉裙，層緣略往下翻
+  const pineG = shadeY(mergeGeo([0, 1, 2, 3, 4, 5].map((k) => {
+    const g = new THREE.ConeGeometry(1.6 - k * 0.24, 1.25, 14, 2); const p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) { const y = p.getY(i), a = Math.atan2(p.getZ(i), p.getX(i)); if (y < -0.5) { p.setY(i, y - 0.18 * (0.5 + 0.5 * Math.sin(a * 7 + k))); } }
+    g.computeVertexNormals(); return g.translate(0, 1.35 + k * 0.68, 0);
+  }), true), 0.55, 1.08);
+  const bushG = shadeY(mergeGeo([[0.75, 0, 0.5, 0], [0.6, 0.55, 0.42, 0.2], [0.55, -0.5, 0.4, -0.15], [0.45, 0.1, 0.85, -0.1]].map(([r, x, y, z], i) => blob(r, i + 11, 1, 1).translate(x, y, z)), true), 0.55, 1);
   const trunkMat = toon('#6b4a2f');
   const allBroad = broad[0].concat(broad[1], broad[2]);
   inst(trunkG, trunkMat, allBroad, (t, i, im) => place(t, t.s, im, i));

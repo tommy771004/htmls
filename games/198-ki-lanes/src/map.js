@@ -495,12 +495,12 @@ vec3 slab(vec3 under, vec2 cid, float edge, vec2 en, vec2 p, float tint){
   return { group, ground, water, groundCanvas: canvas, update(t) { water.material.uniforms.uTime.value = t; props.update(t); } };
 }
 
-function mergeGeo(list) {
-  // 簡易合併（全部轉成非索引並串接 position/normal，若有 color 也一起）
+function mergeGeo(list, keepNormals = false) {
+  // 簡易合併（全部轉成非索引並串接 position/normal，若有 color 也一起）；keepNormals 保留來源的平滑法線
   let n = 0; const ni = list.map((g) => { const x = g.index ? g.toNonIndexed() : g; n += x.attributes.position.count; return x; });
   const hasCol = ni.every((g) => g.attributes.color);
   const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), colr = hasCol ? new Float32Array(n * 3) : null; let o = 0;
-  for (const g of ni) { g.computeVertexNormals(); pos.set(g.attributes.position.array, o * 3); nor.set(g.attributes.normal.array, o * 3); if (colr) colr.set(g.attributes.color.array, o * 3); o += g.attributes.position.count; }
+  for (const g of ni) { if (!keepNormals || !g.attributes.normal) g.computeVertexNormals(); pos.set(g.attributes.position.array, o * 3); nor.set(g.attributes.normal.array, o * 3); if (colr) colr.set(g.attributes.color.array, o * 3); o += g.attributes.position.count; }
   const out = new THREE.BufferGeometry(); out.setAttribute('position', new THREE.BufferAttribute(pos, 3)); out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
   if (colr) out.setAttribute('color', new THREE.BufferAttribute(colr, 3));
   return out;
