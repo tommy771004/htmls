@@ -585,6 +585,23 @@ scene.add(sun);
 const FXLIGHT = new THREE.PointLight(0xffb866, 0, 10, 2);
 FXLIGHT.position.set(0, -999, 0);
 scene.add(FXLIGHT);
+/* 室內補光：鏡頭進到民房的房間時，在天花板燈板下亮起（實機參考影片的室內是均勻明亮的）；同樣開場就放進場景 */
+const ROOMLIGHT = new THREE.PointLight(0xfff0dc, 0, 8.5, 1.3);
+ROOMLIGHT.position.set(0, -999, 0);
+scene.add(ROOMLIGHT);
+let roomK = 0, roomAt = null;
+function roomLight(dt) {
+  let hit = null;
+  for (const r of ROOMS) {
+    _rl.copy(camera.position).applyMatrix4(r.inv); const b = r.b;
+    if (_rl.x > b[0] && _rl.x < b[1] && _rl.y > b[2] && _rl.y < b[3] && _rl.z > b[4] && _rl.z < b[5]) { hit = r; break; }
+  }
+  if (hit) roomAt = hit;
+  roomK += ((hit ? 1 : 0) - roomK) * Math.min(1, dt * 6);
+  ROOMLIGHT.intensity = roomK < .01 ? 0 : roomK * 7;
+  if (roomAt && roomK >= .01) ROOMLIGHT.position.copy(roomAt.lp); else ROOMLIGHT.position.y = -999;
+}
+const _rl = new THREE.Vector3();
 /* 近處角色的影子分層畫：近層（第一層）畫 4 萬多面的身體，遠層（第二層，貼圖像素大好幾倍）改畫低面數的 W_lod 替身
    （直升機上那一排二十人就省下一半的陰影三角形）。three 每畫一層都會呼叫 onBeforeShadow：
    不該出現在這一層的就把繪製範圍歸零（等於不畫），畫完再還原；userData.s1 由 animateChars 每格決定 */
@@ -983,6 +1000,7 @@ function facadeShadows() {
 }
 function renderFrame() {
   const t0 = performance.now();
+  roomLight(Math.min(.1, (t0 - (renderFrame.last || t0)) / 1000)); renderFrame.last = t0;
   facadeShadows();
   skyTick(t0);
   if (POST.on) postDefines();
@@ -1269,6 +1287,35 @@ const TEX = {};
   g.fillStyle = 'rgba(255,230,190,.12)'; for (let y = 3; y < 512; y += 128) g.fillRect(0, y, 512, 2);
   TEX.wood = tex(c); TEX.woodN = normalFrom(c, 2.4, TEX.wood); TEX.woodR = roughFrom(c, .7, .92, 0, TEX.wood);
 }
+{ // 室內木條地板：1024px = 2m，板寬 12.5 cm、端縫錯開，每片深淺與紅棕色調不同，順著板長的木紋（顏色由貼圖決定，頂點色給白）
+  const c = mkCanvas(1024, 1024), g = c.getContext('2d'), BW = 1024 / 20;
+  g.fillStyle = '#5a3020'; g.fillRect(0, 0, 1024, 1024);
+  for (let col = 0; col < 1024 / BW; col++) {
+    let y = -rnd(0, 420);
+    while (y < 1024) {
+      const len = rnd(300, 620), h = rnd(13, 22), l = rnd(23, 31), sat = rnd(38, 50);
+      const x0 = col * BW;
+      wrapDraw(1024, 1024, (ox, oy) => {
+        if (y + oy + len < 0 || y + oy > 1024 || ox) return;
+        g.fillStyle = `hsl(${h},${sat}%,${l}%)`; g.fillRect(x0, y + oy, BW, len);
+        // 木紋：沿板長的細線，偶爾彎一下
+        for (let k = 0; k < 14; k++) {
+          const gx = x0 + rnd(3, BW - 3); g.strokeStyle = `hsla(${h - 4},${sat + 6}%,${l - rnd(6, 12)}%,${rnd(.18, .45)})`; g.lineWidth = rnd(.6, 1.8);
+          g.beginPath(); g.moveTo(gx, y + oy); let xx = gx;
+          for (let yy = 0; yy <= len; yy += 24) { xx += rnd(-1.2, 1.2); g.lineTo(clamp(xx, x0 + 1, x0 + BW - 1), y + oy + yy); }
+          g.stroke();
+        }
+        for (let k = 0; k < 2; k++) { const gy = y + oy + rnd(30, len - 30); g.fillStyle = `hsla(${h},${sat}%,${l + 8}%,.14)`; g.fillRect(x0 + 2, gy, BW - 4, rnd(30, 90)); }
+        // 端縫
+        g.fillStyle = 'rgba(28,14,8,.85)'; g.fillRect(x0, y + oy, BW, 2);
+      });
+      y += len;
+    }
+    g.fillStyle = 'rgba(26,12,6,.9)'; g.fillRect(col * BW, 0, 2, 1024);
+    g.fillStyle = 'rgba(255,220,190,.07)'; g.fillRect(col * BW + 2, 0, 2, 1024);
+  }
+  TEX.plank = tex(c); TEX.plankN = normalFrom(c, 3.2, TEX.plank); TEX.plankR = roughFrom(c, .62, .38, 0, TEX.plank);
+}
 { // 夾板：512px = 2.4m，大片木紋
   const c = mkCanvas(512, 512), g = c.getContext('2d');
   g.fillStyle = '#c9a877'; g.fillRect(0, 0, 512, 512);
@@ -1397,6 +1444,8 @@ const MATS = {
   asph: new THREE.MeshStandardMaterial({ map: TEX.asph, normalMap: TEX.asphN, normalScale: NS(.5), roughnessMap: TEX.asphR, roughness: 1 }),
   steel: addDetail(new THREE.MeshStandardMaterial({ vertexColors: true, map: TEX.steel, normalMap: TEX.steelN, normalScale: NS(.25), roughnessMap: TEX.steelR, metalnessMap: TEX.steelR, roughness: 1, metalness: .9 }), { g: .4, r: .15, s: .2 }),
   galv: addDetail(new THREE.MeshStandardMaterial({ vertexColors: true, map: TEX.galv, normalMap: TEX.galvN, normalScale: NS(.2), roughnessMap: TEX.galvR, metalnessMap: TEX.galvR, roughness: 1, metalness: .95 }), { g: .3, r: .12, s: .2 }),
+  ceil: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .95, emissive: 0x6c6a64 }),   // 室內天花板：自帶一點亮度，不被半球光的地面色染成橄欖色
+  plank: addDetail(new THREE.MeshStandardMaterial({ vertexColors: true, map: TEX.plank, normalMap: TEX.plankN, normalScale: NS(.7), roughnessMap: TEX.plankR, roughness: 1, envMapIntensity: .8 }), { g: .3, r: .06 }),
   ply: addDetail(new THREE.MeshStandardMaterial({ vertexColors: true, map: TEX.ply, normalMap: TEX.plyN, normalScale: NS(.5), roughnessMap: TEX.plyR, roughness: 1 }), { g: .35, r: .08 }),
 };
 const GEO = {};
@@ -4025,7 +4074,6 @@ function wHouseIn(t) {
       wWainscot(0, -3.3, 3.3, 3.8, -1, y, h, col, up ? [[-3.0, -1.95]] : []); wWainscot(0, -3.3, 3.3, -3.8, 1, y, h, col);
     }
     pushX(0, y0, 0, 0);
-    B('wood', 0x8a6a4a, 0, 0, 0, 7.58, .01, 6.58);
     sofa(-3.35, .2, 0x8a6b5c, -1); counter(-2.2, -3.04, 1.8, .52);
     B('wood', 0x7b5a3a, .6, .7, -.6, 1.2, .04, .8, { col: 1 }); for (const [x, z] of [[.05, -.95], [1.15, -.95], [.05, -.25], [1.15, -.25]]) B('wood', 0x6b4a2e, x, 0, z, .05, .7, .05);
     B('flat', 0x6f5a48, -.6, .01, 1.3, 2.0, .012, 1.4);
@@ -4053,13 +4101,63 @@ function wHouseIn(t) {
     popX();
   }
 }
+/* 屋內的細部（照實機參考影片）：木條地板、窗下的白色暖氣片、窗簾、牆上的畫框、天花板燈板。
+   牆面座標跟 build_world.py 的 house_a / house_b 一致：ax=1 是沿 x 的牆（位在 z = c），n 是朝屋內的方向；y 為地面起算的絕對高度 */
+const ROOMS = [];   // 每個房間：世界→房屋座標的反矩陣、房間範圍與燈的位置（進屋時補光）
+function wRoomKit(t) {
+  const at2 = (ax, u, c, n, off) => ax ? [u, c + n * off] : [c + n * off, u];
+  const box = (k, col, ax, u, c, n, off, y, w, h, d) => { const [x, z] = at2(ax, u, c, n, off); if (ax) B(k, col, x, y, z, w, h, d); else B(k, col, x, y, z, d, h, w); };
+  const radiator = (ax, u0, u1, c, n, y) => {
+    const w = Math.min(u1 - u0 - .1, 1.2), u = (u0 + u1) / 2;
+    box('flat', 0xe3e0d6, ax, u, c, n, .075, y, w, .52, .07);
+    const k = Math.max(3, Math.round(w / .19));
+    for (let i = 1; i < k; i++) box('flat', 0xb4b0a4, ax, u - w / 2 + w * i / k, c, n, .112, y + .03, .014, .46, .006);
+    box('flat', 0xd2cfc4, ax, u, c, n, .075, y + .52, w + .02, .02, .08);
+    for (const e of [-1, 1]) box('metal', 0xc9c6bc, ax, u + e * (w / 2 - .06), c, n, .07, y - .18, .025, .18, .025);
+  };
+  const curtain = (ax, u0, u1, c, n, y0, y1, col) => {
+    box('metal', 0x3a3a38, ax, (u0 + u1) / 2, c, n, .09, y1 + .1, u1 - u0 + .7, .025, .025);
+    for (const [a, sgn] of [[u0, -1], [u1, 1]]) for (let i = 0; i < 4; i++) {
+      const uu = a + sgn * (i * .075 - .06), dep = i % 2 ? .13 : .085;
+      box('flat', pTint(col, i % 2 ? .82 : 1.04), ax, uu, c, n, dep, y0 - .12, .085, y1 - y0 + .2, .03);
+    }
+  };
+  const frame = (ax, u, c, n, y, w, h, kind) => {
+    box('wood', [0xc9973c, 0x5a3c26, 0x2e2b28][kind % 3], ax, u, c, n, .02, y, w, h, .035);
+    const iw = w - .09, ih = h - .09, y0 = y + .045;
+    if (kind % 2) { box('flat', 0xeeece6, ax, u, c, n, .04, y0 + ih / 2, iw, ih / 2, .006); box('flat', [0xc8432e, 0x2f5d8a, 0x3e7a4a][kind % 3], ax, u, c, n, .04, y0, iw, ih / 2, .006); }
+    else { box('flat', 0x9cc0d8, ax, u, c, n, .04, y0 + ih * .55, iw, ih * .45, .006); box('flat', 0x6f8f55, ax, u, c, n, .04, y0 + ih * .25, iw, ih * .3, .006); box('flat', 0x8a7a5a, ax, u, c, n, .04, y0, iw, ih * .25, .006); box('flat', 0xe8d9a0, ax, u + iw * .22, c, n, .042, y0 + ih * .72, iw * .14, iw * .14, .006); }
+  };
+  const ceil = (x0, x1, z0, z1, y) => B('ceil', 0xd8d5ce, (x0 + x1) / 2, y - .012, (z0 + z1) / 2, x1 - x0, .01, z1 - z0);
+  const lamp = (x, y, z) => { B('lamp', 0xffffff, x, y - .035, z, .62, .03, .62); B('flat', 0xd9d6ce, x, y - .025, z, .7, .02, .7); };
+  const room = (x0, x1, z0, z1, y0, y1, lx, lz) => {
+    lamp(lx, y1, lz); ceil(x0, x1, z0, z1, y1);
+    const inv = XF.clone().invert(); _v.set(lx, y1 - .45, lz).applyMatrix4(XF);
+    ROOMS.push({ inv, b: [x0, x1, y0, y1, z0, z1], lp: _v.clone() });
+  };
+  if (t) {   // HOUSE_B：牆內面 x ±3.8、z ±3.3；一樓地板 .2、二樓 3.2，天花板 2.98 / 5.85
+    for (const y of [.2, 3.2]) B('plank', 0xffffff, 0, y - .006, 0, 7.58, .012, 6.58, { us: 2 });
+    radiator(1, -1, 1, -3.3, 1, .4); radiator(1, .2, 1.6, 3.3, -1, .4); radiator(1, 2.3, 3.4, 3.3, -1, .4); radiator(0, .3, 1.5, 3.8, -1, .4);
+    radiator(1, 1.3, 2.5, -3.3, 1, 3.4); radiator(1, -.4, .9, 3.3, -1, 3.4); radiator(0, .3, 1.5, 3.8, -1, 3.4); radiator(0, -1.2, 0, -3.8, 1, 3.4);
+    curtain(1, .2, 1.6, 3.3, -1, 1.1, 2.2, 0x3f5a3a); curtain(1, 2.3, 3.4, 3.3, -1, 1.1, 2.2, 0x3f5a3a); curtain(1, -2.9, -1.7, 3.3, -1, 4.1, 5.2, 0x7a3b33); curtain(1, -.4, .9, 3.3, -1, 4.1, 5.2, 0x7a3b33);
+    frame(0, -1.0, 3.8, -1, 1.55, .9, .62, 1); frame(0, 2.2, -3.8, 1, 1.4, .62, .78, 0); frame(1, 0, -3.3, 1, 1.55, .5, .4, 2);
+    frame(0, -1.6, 3.8, -1, 4.5, .8, .56, 3); frame(1, -.2, 3.3, -1, 3.9, .3, .4, 4);
+    room(-3.8, 3.8, -3.3, 3.3, .2, 2.98, 0, 0); room(-3.8, 3.8, -3.3, 3.3, 3.2, 5.85, .4, .2);
+  } else {   // HOUSE_A：牆內面 x ±3.3、z ±4.3，隔間在 z = -1.2（臥室在 -z），地板 .3、天花板 3.05
+    B('plank', 0xffffff, 0, .294, 0, 6.6, .012, 8.6, { us: 2 });
+    radiator(1, 1.3, 2.5, 4.3, -1, .5); radiator(1, -2.5, -1.3, 4.3, -1, .5); radiator(0, 1.2, 2.4, 3.3, -1, .5); radiator(0, -3.0, -1.8, 3.3, -1, .5); radiator(1, -1, 1, -4.3, 1, .55);
+    curtain(1, 1.3, 2.5, 4.3, -1, 1.2, 2.3, 0x3f5a3a); curtain(1, -2.5, -1.3, 4.3, -1, 1.2, 2.3, 0x3f5a3a); curtain(1, -1, 1, -4.3, 1, 1.3, 2.3, 0x6b4a6a);
+    frame(0, 1.9, -3.3, 1, 1.5, .62, .74, 1); frame(1, -1.4, -1.14, 1, 1.6, 1.0, .56, 0); frame(0, -.2, 3.3, -1, 1.65, .5, .4, 2); frame(0, -3.6, -3.3, 1, 1.5, .44, .56, 3);
+    room(-3.3, 3.3, -1.14, 4.3, .3, 3.05, 0, 1.6); room(-3.3, 3.3, -4.3, -1.26, .3, 3.05, 0, -2.8);
+  }
+}
 function wHouse(t, c, yd) {
   if (t) {
-    if (placeW('HOUSE_B', 0, 0, 0, 0, { c })) { wHouseIn(1); makeDoor(-2.9, .2, 3.4, 1.1, 2.15, 0x5a3f2c, [1, 0, 0], [0, 0, -1], false); makeDoor(3.9, 3.2, -3.0, 1.05, 2.15, 0x5a3f2c, [0, 0, 1], [-1, 0, 0], false); }
+    if (placeW('HOUSE_B', 0, 0, 0, 0, { c })) { wHouseIn(1); wRoomKit(1); makeDoor(-2.9, .2, 3.4, 1.1, 2.15, 0x5a3f2c, [1, 0, 0], [0, 0, -1], false); makeDoor(3.9, 3.2, -3.0, 1.05, 2.15, 0x5a3f2c, [0, 0, 1], [-1, 0, 0], false); }
     navEnc(3.8, 3.3, [[-2.35, 4.8, -2.35, 2.1]], yd ? [-6.1, -10.1, 6.1, 3.7] : [-4.2, -3.7, 5.4, 3.7]);
     S(1.4, .22, 1.8); S(WG ? -2.55 : -2.9, .22, WG ? -2.0 : -2.3); S(2.7, .22, -1.4); S(-1.2, 3.22, .8); S(2.2, 3.22, -2.2);
   } else {
-    if (placeW('HOUSE_A', 0, 0, 0, 0, { c })) { wHouseIn(0); makeDoor(-.55, .3, 4.4, 1.1, 2.15, 0x6e4a2f, [1, 0, 0], [0, 0, -1], false); makeDoor(1.0, .3, -1.2, .95, 2.1, 0x8a6a48, [1, 0, 0], [0, 0, -1], false); }
+    if (placeW('HOUSE_A', 0, 0, 0, 0, { c })) { wHouseIn(0); wRoomKit(0); makeDoor(-.55, .3, 4.4, 1.1, 2.15, 0x6e4a2f, [1, 0, 0], [0, 0, -1], false); makeDoor(1.0, .3, -1.2, .95, 2.1, 0x8a6a48, [1, 0, 0], [0, 0, -1], false); }
     navEnc(3.3, 4.3, [[0, 5.7, 0, 3.2]], yd ? [-6.1, -10.1, 6.1, 4.6] : [-3.7, -4.7, 3.7, 4.6]);
     pushX(0, 0, -2.75, 0); navEnc(3.3, 1.5, [[1.475, 2.6, 1.475, .4]]); popX();
     S(.8, .32, 1.6); S(-1.6, 1.09, 1.6); S(-2.3, .82, -3.2); S(2.3, .32, -2.9);
@@ -5698,7 +5796,7 @@ function mergeSkin(name) {
 const SKBODY = RIGSRC && mergeSkin('W_body'), SKLOD = RIGSRC && mergeSkin('W_lod');
 const HAIRGEO = GLB ? [0, 1, 2].map(i => roleGeo(glbGeo('HAIR_' + i), 6)) : [];
 const BEARDGEO = GLB ? [null, 1, 2, 3].map(i => i && roleGeo(glbGeo('BEARD_' + i), 6)) : [];
-const PLAYER_PAL = { vis: 0xf3d21a, shirt: 0x3d6468, pants: 0x3f4f6e, skin: 0xd9a47f, glove: 0xa88a62, hair: 0x2a211a };
+const PLAYER_PAL = { vis: 0xf3d21a, shirt: 0x3d6468, pants: 0x3f4f6e, skin: 0xd9a47f, glove: 0x5c4230, hair: 0x2a211a };
 const PLAYER_LOOK = { pal: PLAYER_PAL, hair: 0, beard: 0, stub: .45 };
 function randomLook() {
   const pal = { vis: pick(PALETTES.vis), shirt: pick(PALETTES.shirt), pants: pick(PALETTES.pants), skin: pick(PALETTES.skin), glove: pick(PALETTES.glove), hair: pick(PALETTES.hair) };
@@ -5855,7 +5953,7 @@ const AMMO_ITEM = { '556': 'a556', '762': 'a762', '12': 'a12', '45': 'a45' };
 const ITEMMAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .6, metalness: .1 });
 const ITEMGEO = {};
 {
-  const pad = b => b.cyl(0xb39024, 0, .006, 0, .34, .34, .012, 16);
+  const pad = b => b;   // 底下的光圈改由 LOOTFX 畫（依稀有度上色）
   const gunItem = id => { const g = GUNGEO[id].clone(); g.rotateZ(Math.PI / 2); g.translate(0, .06, 0); const b = pad(new MB()); b.g.push(g); return b.build(); };
   for (const id of ['m416', 'ump', 'kar98', 's686']) ITEMGEO[id] = gunItem(id);
   const ammo = (c) => pad(new MB()).box(c, 0, .08, 0, .26, .14, .16).box(0x222222, 0, .155, 0, .2, .012, .1).box(0xe8e2d0, .131, .08, 0, .002, .06, .1).build();
@@ -5880,6 +5978,38 @@ const LOOTMAX = 320;   // 每種物品同時最多幾個（六十人的島；5.5
 for (const t in ITEMGEO) { const im = new THREE.InstancedMesh(ITEMGEO[t], ITEMMAT, LOOTMAX); im.count = 0; im.frustumCulled = false; im.castShadow = true; scene.add(im); ITEMINST[t] = im; }
 const LOOT = [];
 let lootDirty = true;
+/* 稀有度（實機參考影片：地上的物資有一圈旋轉的光環，越稀有顏色越亮，綠色以上再加一道直立的光柱）
+   0 普通（白）、1 少見（綠）、2 稀有（藍）、3 史詩（紫） */
+const RARITY = { m416: 2, ump: 1, kar98: 3, s686: 1, a556: 0, a762: 0, a12: 0, a45: 0, helm1: 0, helm2: 1, helm3: 3, vest1: 0, vest2: 1, vest3: 3, bandage: 0, firstaid: 1, medkit: 2, drink: 0, frag: 1 };
+const RARITY_C = [0xd9dee6, 0x37d667, 0x3f8dff, 0xb45cff].map(c => new THREE.Color(c));
+const RARITY_N = ['普通', '少見', '稀有', '史詩'];
+const LOOTFX = (() => {
+  const N = 1400, U = { uT: { value: 0 } };
+  const common = { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, toneMapped: false, side: THREE.DoubleSide };
+  const ringG = new THREE.PlaneGeometry(1.2, 1.2); ringG.rotateX(-Math.PI / 2); ringG.translate(0, .018, 0);
+  const ring = new THREE.InstancedMesh(ringG, new THREE.ShaderMaterial(Object.assign({ uniforms: U,
+    vertexShader: `varying vec2 vP; varying vec3 vC; varying float vS; void main(){ vP = position.xz / .6; vC = instanceColor * (dot(instanceColor, vec3(.33)) > .8 ? .55 : 1.); vS = float(gl_InstanceID);
+      gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.); }`,
+    fragmentShader: `uniform float uT; varying vec2 vP; varying vec3 vC; varying float vS;
+      void main(){ float r = length(vP), a = atan(vP.y, vP.x);
+        float inner = smoothstep(.035, 0., abs(r - .62)) ;
+        float dash = step(.5, fract((a + uT * .9 + vS) / 6.2832 * 3.)) * smoothstep(.022, 0., abs(r - .78));
+        float tick = step(.82, fract((a - uT * .5) / 6.2832 * 24.)) * smoothstep(.02, 0., abs(r - .9)) * .7;
+        float fill = smoothstep(.62, .1, r) * .16;
+        float pulse = .85 + .15 * sin(uT * 3. + vS);
+        float k = (inner * 1.3 + dash + tick + fill) * pulse * smoothstep(1., .94, r);
+        if (k < .003) discard; gl_FragColor = vec4(vC * k * 1.6, 1.); }` }, common)), N);
+  const beamG = new THREE.CylinderGeometry(.055, .055, 3.4, 10, 1, true); beamG.translate(0, 1.7, 0);
+  const beam = new THREE.InstancedMesh(beamG, new THREE.ShaderMaterial(Object.assign({ uniforms: U,
+    vertexShader: `varying float vY; varying vec3 vC; varying float vF; void main(){ vY = position.y / 3.4; vC = instanceColor;
+      vec4 wp = modelMatrix * instanceMatrix * vec4(position, 1.); vec3 n = normalize(mat3(modelMatrix * instanceMatrix) * normal);
+      vF = abs(dot(n, normalize(cameraPosition - wp.xyz))) * smoothstep(1.2, 3.5, length(cameraPosition.xz - wp.xz)); gl_Position = projectionMatrix * viewMatrix * wp; }`,
+    fragmentShader: `uniform float uT; varying float vY; varying vec3 vC; varying float vF;
+      void main(){ float k = pow(clamp(1. - vY, 0., 1.), 1.6) * pow(clamp(vF, 0., 1.), 2.5) * (.8 + .2 * sin(uT * 2.4 - vY * 9.));
+        gl_FragColor = vec4(mix(vC, vec3(1.), pow(clamp(vF, 0., 1.), 8.) * .6) * k * 1.5, 1.); }` }, common)), N);
+  for (const m of [ring, beam]) { m.count = 0; m.frustumCulled = false; m.renderOrder = 3; m.setColorAt(0, RARITY_C[0]); scene.add(m); }
+  return { ring, beam, U, N };
+})();
 /* 開局散佈的每種上限只在 scatterLoot 算；死亡掉落與換裝丟下的一律生成（畫面只畫鏡頭附近的） */
 function spawnItem(t, x, y, z, n) {
   if (!ITEMS[t]) return;
@@ -5897,13 +6027,21 @@ function syncLoot() {
   if (!lootDirty) return; lootDirty = false; lootCx = cp.x; lootCz = cp.z; lootZ = zz;
   const R = Math.min(360, Math.max(60, QUALITY.charLod * 1.6) * zz), R2 = R * R;
   for (const t in ITEMINST) ITEMINST[t].count = 0;
+  const FR = LOOTFX.ring, FB = LOOTFX.beam; FR.count = FB.count = 0;
+  const R3 = Math.min(R2, 110 * 110);   // 光圈與光柱只畫 110 m 內的
   for (const it of LOOT) {
-    if ((it.x - cp.x) * (it.x - cp.x) + (it.z - cp.z) * (it.z - cp.z) > R2) continue;
+    const d2 = (it.x - cp.x) * (it.x - cp.x) + (it.z - cp.z) * (it.z - cp.z);
+    if (d2 > R2) continue;
     const im = ITEMINST[it.t]; if (im.count >= LOOTMAX) continue;
     _qq.setFromAxisAngle(_yy, it.ry); _mm.compose(_pp.set(it.x, it.y, it.z), _qq, _ss);
     im.setMatrixAt(im.count++, _mm);
+    if (d2 > R3 || FR.count >= LOOTFX.N) continue;
+    const rr = RARITY[it.t] || 0;
+    FR.setMatrixAt(FR.count, _mm); FR.setColorAt(FR.count++, RARITY_C[rr]);
+    if (rr > 0) { FB.setMatrixAt(FB.count, _mm); FB.setColorAt(FB.count++, RARITY_C[rr]); }
   }
   for (const t in ITEMINST) ITEMINST[t].instanceMatrix.needsUpdate = true;
+  for (const m of [FR, FB]) { m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; }
 }
 /* rich：Canary Yard 與採石場，槍多、步槍與狙擊槍多、護具等級高 */
 function rollLoot(rich) {
@@ -8527,22 +8665,31 @@ const VMK = new THREE.Group(); VM.add(VMK);
 /* 第一人稱的槍與手：常常背光站在自己的影子裡，加一盞只照它們的補光（從鏡頭左上前方打過來）與一點環境光，才看得出形狀。
    o.det：物件座標三向投影的細紋（凹凸＋粗糙度起伏），模型沒有 UV 也能有質感；o.gun：再依頂點色分出金屬（深色槍身）與木頭（棕色、加木紋） */
 function vmFill(src, o = {}) {
-  const m = src.clone(), gun = !!o.gun, det = gun || !!o.det;
+  const m = src.clone(), gun = !!o.gun, det = gun || !!o.det, camo = gun && o.camo !== false;
   if (gun) { m.metalness = 1; m.roughness = 1; }
   m.onBeforeCompile = sh => {
     if (det) {
-      sh.uniforms.tDet = { value: DETAILTEX };
+      sh.uniforms.tDet = { value: DETAILTEX }; sh.uniforms.uCamo = m.userData.uCamo = { value: 1 };
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vDP;\nvarying vec3 vDN;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\n\tvDP = position;\n\tvDN = objectNormal;');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-uniform sampler2D tDet; varying vec3 vDP; varying vec3 vDN;
+uniform sampler2D tDet; uniform float uCamo; varying vec3 vDP; varying vec3 vDN;
 vec4 vmTri(vec3 p, vec3 w) { return texture2D(tDet, p.zy) * w.x + texture2D(tDet, p.xz) * w.y + texture2D(tDet, p.xy) * w.z; }`)
         .replace('#include <color_fragment>', `#include <color_fragment>
 	vec3 vmW = pow(abs(normalize(vDN)), vec3(4.0)); vmW /= vmW.x + vmW.y + vmW.z;
 	vec4 vmF = vmTri(vDP * 7.0, vmW), vmM = vmTri(vDP * 2.3, vmW);
 	float vmWood = ${gun ? 'smoothstep(.035, .09, diffuseColor.r - diffuseColor.b) * step(diffuseColor.g, diffuseColor.r * .78)' : '0.0'};
+	float vmWd = vmWood;
+	${camo ? `{ // 林地迷彩（實機參考影片的槍）：只塗在機匣、護木、槍托這些 BLK／BLK2 的大面，滑軌、準鏡、握把（BLK3 與更深）維持黑色
+	  float vmL = dot(diffuseColor.rgb, vec3(.3, .59, .11)), vmC = uCamo * (1.0 - vmWood) * smoothstep(.029, .04, vmL) * step(vmL, .09);
+	  float c1 = vmTri(vDP * 3.1 + vec3(.37, .11, .73), vmW).b, c2 = vmTri(vDP * 4.3 + vec3(.71, .53, .19), vmW).b, c3 = vmTri(vDP * 5.2 + vec3(.13, .87, .41), vmW).b;
+	  vec3 cam = vec3(.03, .052, .014);
+	  cam = mix(cam, vec3(.062, .064, .024), smoothstep(.535, .55, c2));
+	  cam = mix(cam, vec3(.011, .026, .008), smoothstep(.47, .455, c1));
+	  cam = mix(cam, vec3(.006, .007, .005), smoothstep(.555, .57, c3));
+	  diffuseColor.rgb = mix(diffuseColor.rgb, cam * (.85 + .3 * vmM.g), vmC); vmWood = max(vmWood, vmC); }` : ''}
 	diffuseColor.rgb *= clamp(1.0 + (vmM.b - .5) * .35 + (vmF.g - .5) * .2, .7, 1.25);
-	${gun ? `diffuseColor.rgb *= mix(1.0, .55 + .7 * smoothstep(.3, .7, texture2D(tDet, vec2((vDP.x * 1.3 + vDP.y) * 30.0, vDP.z * 1.2)).g), vmWood);
+	${gun ? `diffuseColor.rgb *= mix(1.0, .55 + .7 * smoothstep(.3, .7, texture2D(tDet, vec2((vDP.x * 1.3 + vDP.y) * 30.0, vDP.z * 1.2)).g), vmWd);
 	vec3 vmBase = diffuseColor.rgb; diffuseColor.rgb = mix(clamp(vmBase * 1.7, vec3(.035), vec3(.3)), vmBase, vmWood);` : ''}`)
         .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
 	roughnessFactor = clamp(${gun ? 'mix(.4, .62, vmWood)' : '.82'} + (vmF.g - .5) * .3 + (vmM.r - .5) * .22, .12, 1.0);`)
@@ -8559,16 +8706,30 @@ vec4 vmTri(vec3 p, vec3 w) { return texture2D(tDet, p.zy) * w.x + texture2D(tDet
       `  float vk = ${gun ? 'mix(1.0 - .45 * metalnessFactor, .55, vmWood)' : '1.0'}; vec3 vb = max(${gun ? 'mix(vmBase, diffuseColor.rgb, vmWood)' : 'diffuseColor.rgb'}, vec3(.028)); float vl = clamp(.07 / dot(vb, vec3(.3, .59, .11)), .1, 1.0);\n` +
       '  totalEmissiveRadiance += (vb * (.26 + .8 * ndl) * vl + vec3(.05, .052, .055) * pow(1.0 - max(dot(vN, vV), 0.0), 2.0) + vec3(.035) * pow(max(dot(reflect(-vV, vN), normalize(vec3(-.35, .6, .72))), 0.0), 12.0)) * vk; }');
   };
-  m.customProgramCacheKey = () => 'lb-vmfill' + (gun ? '-gun' : det ? '-det' : '');
+  m.customProgramCacheKey = () => 'lb-vmfill' + (gun ? '-gun' + (camo ? 'c' : '') : det ? '-det' : '');
   return m;
 }
-const VMWEPMAT = vmFill(WEPMAT, { gun: true }), VMCHMAT = vmFill(CHMAT, { det: true });
+const VMWEPMAT = vmFill(WEPMAT, { gun: true }), VMMAGMAT = vmFill(WEPMAT, { gun: true, camo: false }), VMCHMAT = vmFill(CHMAT, { det: true });
 const VMGUN = new THREE.Mesh(GUNBODY.m416, VMWEPMAT); VMGUN.rotation.y = Math.PI; VMK.add(VMGUN);
-const VMMAG = new THREE.Mesh(MAGGEO.m416 || GUNBODY.m416, VMWEPMAT); VMGUN.add(VMMAG);
+const VMMAG = new THREE.Mesh(MAGGEO.m416 || GUNBODY.m416, VMMAGMAT); VMGUN.add(VMMAG);
 /* 第一人稱的槍口火光：另一份比較暗、比較透的材質，縮小，而且不要正對眼睛的那一片（會蓋住準星） */
 const VMFLASHMAT = FLASHMAT.clone(); VMFLASHMAT.color.setRGB(1.6, 1.1, .55); VMFLASHMAT.opacity = .55;
 const VMFLASH = new THREE.Mesh((() => { const a = new THREE.PlaneGeometry(.16, .38); a.rotateX(Math.PI / 2); const b = a.clone(); b.rotateZ(Math.PI / 2); const m = mergeGeometries([a, b]); m.translate(0, 0, .19); return m; })(), VMFLASHMAT);
-VMFLASH.scale.setScalar(.45); VMFLASH.visible = false; VMGUN.add(VMFLASH);
+VMFLASH.scale.setScalar(.6); VMFLASH.visible = false; VMGUN.add(VMFLASH);
+/* 正對眼睛的星芒（實機參考影片：開火時準鏡四周是一大片橘色放射狀火光）：中間挖空，紅點與準星仍看得到 */
+const VMSTAR = (() => {
+  const S = 256, c = mkCanvas(S, S), g = c.getContext('2d'), h = S / 2;
+  const gr = g.createRadialGradient(h, h, 0, h, h, h); gr.addColorStop(0, 'rgba(255,224,170,.9)'); gr.addColorStop(.15, 'rgba(255,196,120,.8)'); gr.addColorStop(.4, 'rgba(255,140,50,.35)'); gr.addColorStop(1, 'rgba(255,90,20,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, S, S);
+  g.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 9; i++) {
+    const a = i / 9 * TAU + rnd(-.15, .15), L = rnd(.7, .99) * h, w = rnd(.1, .2);
+    const lg = g.createLinearGradient(h, h, h + Math.cos(a) * L, h + Math.sin(a) * L); lg.addColorStop(0, 'rgba(255,220,160,.9)'); lg.addColorStop(.3, 'rgba(255,180,100,.7)'); lg.addColorStop(1, 'rgba(255,110,30,0)');
+    g.fillStyle = lg; g.beginPath(); g.moveTo(h + Math.cos(a - w) * 10, h + Math.sin(a - w) * 10); g.lineTo(h + Math.cos(a) * L, h + Math.sin(a) * L); g.lineTo(h + Math.cos(a + w) * 10, h + Math.sin(a + w) * 10); g.fill();
+  }
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: tex(c, false), transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide, color: new THREE.Color(1.4, 1.1, .8) }));
+  m.renderOrder = 9; m.visible = false; VMGUN.add(m); return m;
+})();
 /* 準星高度 y、準星位置 z、眼睛到準星的距離 d；r 右手握把、rx 握把傾角、l 左手護木軸線、ls 護木粗細 */
 const SIGHT = {
   m416: { y: .1, z: .16, d: .34, dot: true, r: [0, -.07, -.01], rx: .35, l: [.012, -.012, .31], lr: .4, ls: 1 },
@@ -8606,6 +8767,61 @@ VMGUN.add(VMR, VML);
 const VMSHELL = new THREE.Mesh(new MB().cyl(0xa3231b, .0, 0, 0, .0105, .0105, .05, 10, Math.PI / 2).cyl(0xb08a3c, .0, 0, -.031, .0109, .0109, .013, 10, Math.PI / 2)
   .cyl(0xa3231b, -.022, 0, 0, .0105, .0105, .05, 10, Math.PI / 2).cyl(0xb08a3c, -.022, 0, -.031, .0109, .0109, .013, 10, Math.PI / 2).build(), VMCHMAT);
 VMSHELL.position.set(-.012, -.075, -.03); VMSHELL.visible = false; VMR.add(VMSHELL);
+/* M416 紅點鏡的外觀細節（照實機參考影片）：前後加粗的鏡環、上方與右側有滾花的調整鈕、左側電池蓋；鏡筒中間仍是空的 */
+const VMSIGHTX = (() => {
+  const b = new MB(), C0 = 0x2a2d31, C1 = 0x1c1e21, y = .1;
+  for (const z of [.094, .153]) { const g = new THREE.CylinderGeometry(.0262, .0262, .011, 32, 1, true); b.put(g, C0, 0, y, z, Math.PI / 2); for (const e of [-1, 1]) { const r = new THREE.RingGeometry(.0218, .0262, 32); b.put(r, C0, 0, y, z + e * .0055, 0, e > 0 ? 0 : Math.PI); } }
+  const knob = (x, yy, z, rx, rz) => { b.cyl(C0, x, yy, z, .0105, .0115, .006, 18, rx, 0, rz).cyl(C1, x + (rz ? -Math.sign(x) * .006 : 0), yy + (rz ? 0 : .006), z, .0112, .0112, .007, 24, rx, 0, rz);
+    for (let i = 0; i < 16; i++) { const a = i / 16 * TAU, ca = Math.cos(a) * .0114, sa = Math.sin(a) * .0114;
+      if (rz) b.box(C0, x - Math.sign(x) * .006, yy + ca, z + sa, .0065, .0016, .0016); else b.box(C0, x + ca, yy + .006, z + sa, .0016, .0065, .0016); } };
+  knob(0, y + .027, .123, 0, 0);
+  knob(-.028, y, .123, 0, Math.PI / 2);
+  b.cyl(C0, .026, y, .123, .009, .009, .008, 16, 0, 0, Math.PI / 2).box(C1, .031, y, .123, .002, .012, .0025);
+  b.box(C0, 0, .081, .123, .022, .014, .034).box(C1, .0125, .081, .123, .004, .008, .028);
+  const m = new THREE.Mesh(b.build(), VMMAGMAT); m.visible = false; VMGUN.add(m); return m;
+})();
+/* 左手腕的電子錶（實機參考影片的細節）：從 Blender 擺好的左手找出袖口（gear）的位置與手臂方向，錶面朝向眼睛；螢幕顯示現實時間 */
+const WATCH = (() => {
+  const cv = mkCanvas(128, 80), g = cv.getContext('2d'), tx = tex(cv, false); tx.anisotropy = 4;
+  let last = '';
+  const draw = () => { const d = new Date(), t = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); if (t === last) return; last = t;
+    g.fillStyle = '#9fa88f'; g.fillRect(0, 0, 128, 80); g.fillStyle = 'rgba(40,46,36,.12)'; g.fillRect(6, 6, 116, 68);
+    g.fillStyle = '#20251c'; g.font = '700 46px ui-monospace, Menlo, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t, 64, 44);
+    g.font = '700 12px ui-monospace, Menlo, monospace'; g.fillText('CANARY', 64, 14); tx.needsUpdate = true; };
+  draw(); setInterval(draw, 15000);
+  const grp = new THREE.Group(); grp.visible = false;
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, .017, 24, 1, true), VMMAGMAT); grp.add(band);
+  const caseG = new MB().box(0x2b2e31, 0, 0, 0, .038, .032, .012).box(0x404448, .0205, .006, 0, .004, .006, .005).box(0x404448, .0205, -.006, 0, .004, .006, .005).box(0x404448, -.0205, 0, 0, .004, .006, .005).build();
+  const cs = new THREE.Mesh(caseG, VMMAGMAT); grp.add(cs);
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(.028, .019), new THREE.MeshBasicMaterial({ map: tx, color: 0xb8bfae, toneMapped: true })); grp.add(scr);
+  VML.add(grp);
+  const fit = {};
+  return {
+    grp,
+    place(id) {
+      if (!VMOK) { grp.visible = false; return; }
+      if (!fit[id]) {
+        const gg = glbGeo('VM_L' + (id === 'm416' ? '' : '_' + id), Object.assign({}, VMROLE, { gear: 0xff00ff, glove: 0x00ff00 }));
+        const P = gg.attributes.position, Cc = gg.attributes.color, cuff = [], glove = new THREE.Vector3(); let ng = 0;
+        for (let i = 0; i < P.count; i++) { const r = Cc.getX(i), gn = Cc.getY(i), b = Cc.getZ(i);
+          if (r > gn * 3 && b > gn * 3) cuff.push(new THREE.Vector3().fromBufferAttribute(P, i)); else if (gn > r * 3 && gn > b * 3) { glove.add(new THREE.Vector3().fromBufferAttribute(P, i)); ng++; } }
+        if (cuff.length < 8 || !ng) { fit[id] = { none: true }; }
+        else {
+          const c = cuff.reduce((a, v) => a.add(v), new THREE.Vector3()).divideScalar(cuff.length); glove.divideScalar(ng);
+          const ax = c.clone().sub(glove).normalize();
+          let r = 0; for (const v of cuff) { const d = v.clone().sub(c); d.addScaledVector(ax, -d.dot(ax)); r += d.length(); } r /= cuff.length;
+          const S0 = SIGHT[id], eye = new THREE.Vector3(0, S0.y, S0.z - S0.d), n = eye.sub(c); n.addScaledVector(ax, -n.dot(ax)).normalize();
+          const xx = new THREE.Vector3().crossVectors(ax, n).normalize(), ctr = c.clone().addScaledVector(ax, .012);
+          fit[id] = { m: new THREE.Matrix4().makeBasis(xx, ax, n).setPosition(ctr), r };
+        }
+      }
+      const f = fit[id];
+      grp.visible = !f.none; if (f.none) return;
+      grp.matrixAutoUpdate = false; grp.matrix.copy(f.m);
+      band.scale.set(f.r * 1.06, 1, f.r * 1.06); cs.position.set(0, 0, f.r + .006); scr.position.set(0, 0, f.r + .0122);
+    }
+  };
+})();
 /* 4 倍鏡：目鏡上貼一片鏡片，畫面是另一台窄視角相機即時算的（鏡片外還是原本的視野），中間畫十字與紅點、邊緣暗角 */
 /* 鏡片解析度：手機放大約 2.4 倍，320 會糊；只有「低」畫質的觸控裝置才用 320 */
 const scopeRes = () => TOUCH && QUALITY.level < 1 ? 320 : 512;
@@ -8642,6 +8858,7 @@ function updateViewModel(dt, on) {
   if (vmId !== id) {
     vmId = id; VMGUN.geometry = GUNBODY[id];
     const at = GRIP[id].mag; VMMAG.visible = !!(at && MAGGEO[id]); if (VMMAG.visible) { VMMAG.geometry = MAGGEO[id]; VMMAG.position.set(at[0], at[1], at[2]); }
+    VMSIGHTX.visible = id === 'm416'; WATCH.place(id); if (VMWEPMAT.userData.uCamo) VMWEPMAT.userData.uCamo.value = id === 'm416' || id === 'ump' ? 1 : 0;
     if (VMOK) { VMR.geometry = VMARM[id][0]; VML.geometry = VMARM[id][1]; VMR.position.set(0, 0, 0); VMR.rotation.set(0, 0, 0); VML.position.set(0, 0, 0); VML.rotation.set(0, 0, 0); VML.scale.setScalar(1); }
     else {
       VMR.position.set(S0.r[0], S0.r[1], S0.r[2]); VMR.rotation.set(S0.rx, 0, 0);
@@ -8679,6 +8896,8 @@ function updateViewModel(dt, on) {
     } else { VMMAG.visible = !(rl > .22 && rl < .58); VMMAG.position.y = mat[1] - (rl > .12 && rl < .72 ? .1 * Math.sin((rl - .12) / .6 * Math.PI) + .02 : 0); }
   }
   VMFLASH.visible = ch.flashT < .045 && !LENS.visible; if (VMFLASH.visible) { VMFLASH.position.z = w.muzzle; VMFLASH.rotation.z = rnd(TAU); }
+  VMSTAR.visible = ch.flashT < .05 && !LENS.visible;
+  if (VMSTAR.visible) { const k = 1 - ch.flashT / .05; VMSTAR.position.set(0, S0.y * .55, w.muzzle * .8); VMSTAR.rotation.z = rnd(TAU); VMSTAR.scale.setScalar((.5 + .16 * Math.random()) * (w.pellets > 1 ? 1.3 : 1) * (.6 + .4 * k)); VMSTAR.material.opacity = .55 + .45 * k; }
   if (LENS.visible) {
     // 鏡片裡的畫面：同一個眼睛位置、同一個方向，視角縮到 4 倍
     camera.updateMatrixWorld(true); wfolUpdate(camera);   // 樹的分組先跟上這一幀的鏡頭方向：甩鏡時鏡片裡不會少一幀樹
@@ -9451,7 +9670,7 @@ function frame(now) {
     PROF.upd += t1 - t0; PROF.anim += performance.now() - t1; PROF.n++;
     fxUpdate(dt); skyFx(dt); updateCases(dt); updateCranes(dt); WINDMAT_T.value = performance.now() / 1000;
   }
-  syncLoot();
+  syncLoot(); LOOTFX.U.uT.value = (performance.now() / 1000) % 1000;
   zoneWall.visible = STATE !== 'menu';
   updateCamera(dt);
   if (running || STATE === 'menu') revealChars(dt);
@@ -9528,7 +9747,7 @@ $('restart1').addEventListener('click', () => { newGame(); requestLock(); });
 $('sens').addEventListener('input', e => { IN.sens = +e.target.value; $('sensV').textContent = IN.sens.toFixed(2); });
 $('vol').addEventListener('input', e => { AU.vol = +e.target.value; $('volV').textContent = Math.round(AU.vol * 100); if (AU.master) AU.master.gain.value = AU.vol; });
 // 自動化測試用的掛鉤（headless 快轉、跳過直升機），遊戲本身不會用到
-window.LASTBEAM = { dyn: DYN, ray: raycast, rayhit: RAYHIT, vehs: VEHS, enter: v => enterVehicle(PLAYER, v), holes: HOLES, cases: CASES, input: IN, doors: DOORLIST, pl: PL, hold(v) { HOLD = v; }, glb: !!GLB, sim(sec) { for (let i = 0; i < sec * 30; i++) update(1 / 30); }, get state() { return STATE; }, get hp() { return HP; }, get T() { return T; }, chars: CHARS, zone: ZONE, loot: LOOT, newGame, skipTo(s) { if (s === 'ground' && STATE === 'heli') { playerJump(); const p = PLAYER.p; p.set(rnd(-40, 40), 1, rnd(-40, 40)); PLAYER.st = 'ground'; BOTS.forEach(b => { if (b.ch.st === 'beam') { b.ch.st = 'fall'; botLand(b); } }); } } };
+window.LASTBEAM = { dyn: DYN, ray: raycast, rayhit: RAYHIT, vehs: VEHS, enter: v => enterVehicle(PLAYER, v), holes: HOLES, cases: CASES, input: IN, doors: DOORLIST, pl: PL, hold(v) { HOLD = v; }, glb: !!GLB, sim(sec) { for (let i = 0; i < sec * 30; i++) update(1 / 30); }, get state() { return STATE; }, get hp() { return HP; }, get T() { return T; }, chars: CHARS, zone: ZONE, loot: LOOT, newGame, get player() { return PLAYER; }, poi: POI, give(id, n = 120) { const ch = PLAYER, w = WPN[id]; ch.guns[ch.slot] = { id, mag: w.mag }; ch.ammo[w.cal] += n; ch.holster = false; uiDirty = true; }, place(x, z, yaw = PL.yaw, pitch = 0, y) { const ch = PLAYER; ch.st = 'ground'; ch.p.set(x, y ?? groundBelow(x, 400, z, .3), z); ch.v.set(0, 0, 0); ch.yaw = PL.yaw = yaw; PL.pitch = pitch; }, skipTo(s) { if (s === 'ground' && STATE === 'heli') { playerJump(); const p = PLAYER.p; p.set(rnd(-40, 40), 1, rnd(-40, 40)); PLAYER.st = 'ground'; BOTS.forEach(b => { if (b.ch.st === 'beam') { b.ch.st = 'fall'; botLand(b); } }); } } };
 // 六十人：三架直升機的航線、效能計時、整場快轉（玩家當觀眾不參戰，記錄存活曲線、死因與卡住的電腦）
 Object.defineProperty(window.LASTBEAM, 'hp', { get: () => HP, set() { }, enumerable: true, configurable: true });
 Object.assign(window.LASTBEAM, { nplayers: NPLAYERS, shadowProxy: SHPROXY, shadowNear: SHNEAR, rayChar, helis: HPS, bots: BOTS, heliOf, prof() { const n = Math.max(1, PROF.n), r = { updMs: +(PROF.upd / n).toFixed(3), animMs: +(PROF.anim / n).toFixed(3), animated: +(PROF.animN / n).toFixed(1), frozen: +(PROF.frozen / n).toFixed(1), frames: PROF.n }; Object.assign(PROF, { upd: 0, anim: 0, n: 0, animN: 0, frozen: 0 }); return r; },
