@@ -1,8 +1,8 @@
-// 程式建模：英雄、小兵、防禦塔、主堡。全部由基本幾何合併而成（頂點色＋一個共用卡通材質），外框用反向殼。
+// 程式建模：英雄（七龍珠 FighterZ 同人致敬，全部以基本幾何程式產生，不使用任何原作素材）、小兵、野怪、防禦塔、主堡。全部由基本幾何合併而成（頂點色＋一個共用卡通材質），外框用反向殼。
 // 介面見 SPEC.md §4。root 朝 +z 為正面。
 import * as THREE from 'three';
 
-export const HERO_IDS = ['homura', 'shimo', 'iwao', 'raiga'];
+export const HERO_IDS = ['goku', 'vegeta', 'trunks', 'piccolo', 'frieza', 'a18'];
 
 const TEAM = [0x24a38f, 0xd9472b];
 const TEAM_LIGHT = [0x7fe0cc, 0xff9a76];
@@ -89,8 +89,8 @@ const G = {};
 function geo(name) {
   if (G[name]) return G[name];
   switch (name) {
-    case 'sphere': G[name] = new THREE.SphereGeometry(1, 12, 9); break;
-    case 'hsphere': G[name] = new THREE.SphereGeometry(1, 16, 12); break;
+    case 'sphere': G[name] = new THREE.SphereGeometry(1, 10, 8); break;
+    case 'hsphere': G[name] = new THREE.SphereGeometry(1, 14, 10); break;
     case 'lsphere': G[name] = new THREE.SphereGeometry(1, 8, 6); break;
     case 'box': G[name] = new THREE.BoxGeometry(1, 1, 1); break;
     case 'cone6': G[name] = new THREE.ConeGeometry(1, 1, 6).translate(0, 0.5, 0); break;
@@ -119,16 +119,20 @@ function meshPair(geometry, parent, { outline = true, w = 0.028, shadow = true }
   return m;
 }
 
-/* ---------------- 英雄定義 ---------------- */
+/* ---------------- 英雄定義（七龍珠 FighterZ 同人致敬，程式建模） ---------------- */
 const HERO = {
-  homura: { H: 1.9, L: 0.82, hr: 0.215, sw: 0.25, chest: [0.25, 0.31, 0.18], waist: 0.17, arm: 0.074, fore: 0.07, fist: 0.092, thigh: 0.12, shin: 0.09, hip: 0.12,
-    skin: 0xf0c39a, style: 'brawler', atk3: 'kick', element: 0xff7a1a },
-  shimo: { H: 2.0, L: 0.92, hr: 0.2, sw: 0.215, chest: [0.205, 0.3, 0.155], waist: 0.15, arm: 0.058, fore: 0.055, fist: 0.07, thigh: 0.09, shin: 0.07, hip: 0.105,
-    skin: 0xf3d6c2, style: 'mage', atk3: 'palm', element: 0x7fd8ff },
-  iwao: { H: 2.2, L: 0.86, hr: 0.22, sw: 0.36, chest: [0.4, 0.36, 0.29], waist: 0.3, arm: 0.12, fore: 0.13, fist: 0.16, thigh: 0.16, shin: 0.13, hip: 0.17,
-    skin: 0xb07a48, style: 'tank', atk3: 'smash', element: 0x9be03c },
-  raiga: { H: 1.75, L: 0.78, hr: 0.2, sw: 0.205, chest: [0.2, 0.27, 0.15], waist: 0.14, arm: 0.056, fore: 0.052, fist: 0.068, thigh: 0.088, shin: 0.068, hip: 0.1,
-    skin: 0xe9b991, style: 'ninja', atk3: 'kick', element: 0xffe14a },
+  goku: { H: 1.85, L: 0.8, hr: 0.218, sw: 0.26, chest: [0.26, 0.31, 0.19], waist: 0.18, arm: 0.078, fore: 0.073, fist: 0.098, thigh: 0.13, shin: 0.098, hip: 0.13,
+    skin: 0xf2c49b, style: 'brawler', atk3: 'kick', element: 0x4fc3ff, saiyan: true },
+  vegeta: { H: 1.72, L: 0.74, hr: 0.208, sw: 0.25, chest: [0.25, 0.3, 0.185], waist: 0.165, arm: 0.076, fore: 0.071, fist: 0.095, thigh: 0.118, shin: 0.092, hip: 0.122,
+    skin: 0xefc29a, style: 'proud', atk3: 'kick', element: 0xffd84a, saiyan: true },
+  trunks: { H: 1.85, L: 0.82, hr: 0.208, sw: 0.24, chest: [0.235, 0.3, 0.172], waist: 0.155, arm: 0.068, fore: 0.064, fist: 0.087, thigh: 0.108, shin: 0.084, hip: 0.118,
+    skin: 0xf3cba5, style: 'sword', atk3: 'sword', element: 0xffb03a, saiyan: true },
+  piccolo: { H: 2.12, L: 0.95, hr: 0.2, sw: 0.275, chest: [0.27, 0.32, 0.185], waist: 0.17, arm: 0.078, fore: 0.072, fist: 0.098, thigh: 0.125, shin: 0.092, hip: 0.13,
+    skin: 0x62b23e, style: 'tank', atk3: 'kick', element: 0xc8ff5a },
+  frieza: { H: 1.55, L: 0.66, hr: 0.19, sw: 0.19, chest: [0.19, 0.26, 0.15], waist: 0.125, arm: 0.058, fore: 0.055, fist: 0.07, thigh: 0.088, shin: 0.07, hip: 0.105,
+    skin: 0xf6f3ef, style: 'regal', atk3: 'palm', element: 0xff4fb4 },
+  a18: { H: 1.72, L: 0.8, hr: 0.196, sw: 0.2, chest: [0.2, 0.27, 0.15], waist: 0.13, arm: 0.056, fore: 0.052, fist: 0.07, thigh: 0.096, shin: 0.075, hip: 0.118,
+    skin: 0xf6d2b8, style: 'cool', atk3: 'kick', element: 0xc7f0ff },
 };
 for (const id in HERO) {
   const d = HERO[id];
@@ -137,248 +141,350 @@ for (const id in HERO) {
   d.thighLen = d.L * 0.5; d.shinLen = d.L * 0.44;
 }
 
-// 每個英雄每隊的幾何快取
+const C = {
+  // 悟空
+  gi: 0xff8a1c, giD: 0xe06a10, blue: 0x2346a8, blueD: 0x182f78, red: 0xc8302a, yellow: 0xf2c230, black: 0x1b1714,
+  // 貝吉塔
+  suit: 0x2f4fc8, armor: 0xf4f2ea, ochre: 0xe2ad2c,
+  // 特南克斯
+  jacket: 0x1d2238, tank: 0x141416, grey: 0x707480, lav: 0xb9a6e6, lavD: 0x9784cc, steel: 0xdfe6ee, hilt: 0x3a2a1e, sheath: 0x5a4a2a,
+  // 比克
+  pgi: 0x5b3c8e, pgiD: 0x46296f, sash: 0x5ab4e4, brown: 0x6a4024, pink: 0xe08e9c, gD: 0x3f8a28,
+  // 弗利沙
+  dome: 0x7a3dc0, domeL: 0xb27ae8,
+  // 18 號
+  denim: 0x3d6db6, denimD: 0x2c5290, blonde: 0xf3d977, blondeD: 0xd9b84e, stripeW: 0xf2f0ea, legging: 0x1c1c22, boot: 0x7a4a2a,
+  gold: 0xffd23f, goldL: 0xfff0a0,
+};
+
 const heroGeoCache = new Map();
 
 function buildHeroGeos(id, team) {
   const d = HERO[id];
   const tc = TEAM[team];
   const out = {};
-  const hr = d.hr;
-  // --- 臉（共用）：眼睛、反光、眉 ---
-  const face = (p, { brow = 0x2a1a12, eye = 0x1d1410, browTilt = 0.35, eyeY = 0.86, iris = null } = {}) => {
-    const s = hr / 0.21;
-    const cy = hr * 0.9;
-    for (const sx of [-1, 1]) {
-      const x = 0.072 * s * sx, y = cy - hr * (1 - eyeY) - 0.005;
-      const z = Math.sqrt(Math.max(0, hr * hr - x * x - (y - cy) * (y - cy))) * 0.955;
-      p.add(geo('sphere'), eye, [x, y, z], [0, sx * 0.25, 0], [0.03 * s, 0.047 * s, 0.018 * s]);
-      if (iris) p.add(geo('sphere'), iris, [x, y - 0.008 * s, z + 0.007 * s], [0, sx * 0.25, 0], [0.019 * s, 0.026 * s, 0.01 * s]);
-      p.add(geo('lsphere'), 0xffffff, [x + 0.01 * s, y + 0.017 * s, z + 0.013 * s], 0, [0.011 * s, 0.013 * s, 0.006 * s]);
-      if (brow != null) p.add(geo('box'), brow, [x * 1.05, y + 0.07 * s, z - 0.004], [0, sx * 0.3, sx * browTilt], [0.075 * s, 0.017 * s, 0.02 * s]);
-    }
-  };
+  const hr = d.hr, s = hr / 0.21;
+  const cy = hr * 0.9;
+  const T = d.torso, [cx, cyc, cz] = d.chest;
 
-  /* ------- hips / pelvis ------- */
+  const face = (p0, { brow = 0x2a1a12, iris = 0x1d1410, browTilt = 0.35, eyeY = 0.86, pupil = null, sharp = 1, browW = 0.075, lid = 0x1a120c } = {}) => {
+    const p = p0.face || p0;
+    for (const sx of [-1, 1]) {
+      const x = 0.07 * s * sx, y = cy - hr * (1 - eyeY) - 0.005;
+      const z = Math.sqrt(Math.max(0, hr * hr - x * x - (y - cy) * (y - cy))) * 0.985;
+      const tilt = -sx * 0.22 * sharp, yaw = sx * 0.3;
+      // 動畫眼：白色眼白（外眼角上揚）、深色瞳孔、上眼線、反光
+      p.add(geo('sphere'), 0xfbf8f2, [x, y, z], [0, yaw, tilt], [0.041 * s, 0.031 * s, 0.012 * s]);
+      p.add(geo('sphere'), iris, [x - sx * 0.006 * s, y - 0.002 * s, z + 0.006 * s], [0, yaw, 0], [0.018 * s, 0.025 * s, 0.009 * s]);
+      if (pupil != null) p.add(geo('lsphere'), pupil, [x - sx * 0.006 * s, y - 0.002 * s, z + 0.011 * s], [0, yaw, 0], [0.007 * s, 0.011 * s, 0.004 * s]);
+      p.add(geo('lsphere'), 0xffffff, [x + 0.003 * s, y + 0.008 * s, z + 0.014 * s], 0, [0.006 * s, 0.007 * s, 0.003 * s]);
+      p.add(geo('box'), lid, [x, y + 0.023 * s, z + 0.004 * s], [0, yaw, tilt * 1.2], [0.08 * s, 0.009 * s, 0.012 * s]);
+      if (brow != null) p.add(geo('box'), brow, [x * 1.05, y + 0.058 * s, z - 0.002], [0, yaw, sx * browTilt], [browW * s, 0.019 * s, 0.02 * s]);
+    }
+    p.add(geo('lsphere'), 0x8a5a40, [0, cy - hr * 0.3, hr * 0.99], 0, [0.007, 0.005, 0.004]);
+    p.add(geo('box'), 0x6a3a2a, [0, cy - hr * 0.5, hr * 0.9], 0, [0.04 * s, 0.006, 0.006]);
+  };
+  const skull = (p, skin) => {
+    p.add(geo('hsphere'), skin, [0, cy, 0], 0, [hr * 0.98, hr, hr * 0.96]);
+    // 下顎（略尖）
+    p.add(geo('sphere'), skin, [0, cy - hr * 0.45, hr * 0.28], 0, [hr * 0.62, hr * 0.5, hr * 0.62]);
+  };
+  const ears = (p, skin) => { for (const sx of [-1, 1]) p.add(geo('lsphere'), skin, [sx * hr * 0.95, cy - 0.01, -0.01], 0, [0.03, 0.05, 0.035]); };
+  // 尖刺（cone6 頂點朝 +y）：從 [x,y,z]（以 hr=0.21 為基準）以旋轉 r 放置
+  const spike = (p, c, x, y, z, rx, rz, w, h, ry = 0) => p.add(geo('cone6'), c, [x * s, cy + y * s, z * s], [rx, ry, rz], [w * s, h * s, w * 0.85 * s]);
+
+  /* ---------------- 頭（含髮型、各型態） ---------------- */
+  const heads = {};
+  if (id === 'goku') {
+    for (const form of ['base', 'ssj']) {
+      const p = new Parts(); p.face = new Parts();
+      skull(p, d.skin); ears(p, d.skin);
+      const ssj = form === 'ssj';
+      face(p, { browTilt: ssj ? 0.5 : 0.32, iris: ssj ? 0x1f9a88 : 0x1d1410, sharp: ssj ? 1.4 : 1 });
+      const hc = ssj ? C.gold : C.black, hl = ssj ? C.goldL : 0x2c2622;
+      const cap = new THREE.SphereGeometry(1, 12, 8, 0, Math.PI * 2, 0, 1.3);
+      p.add(cap, hc, [0, cy + 0.02, -0.02], [-0.5, 0, 0], [hr * 1.08, hr * 1.08, hr * 1.1]);
+      if (!ssj) {
+        // 棕櫚葉般向外放射的大尖刺
+        const S = [
+          [0.0, 0.22, 0.02, -0.15, 0, 0.12, 0.36], [0.1, 0.19, -0.02, -0.3, -0.75, 0.11, 0.34], [-0.1, 0.19, -0.02, -0.3, 0.75, 0.11, 0.34],
+          [0.17, 0.08, -0.04, -0.2, -1.45, 0.1, 0.32], [-0.17, 0.08, -0.04, -0.2, 1.45, 0.1, 0.32],
+          [0.13, 0.12, -0.14, -1.0, -0.9, 0.1, 0.32], [-0.13, 0.12, -0.14, -1.0, 0.9, 0.1, 0.32],
+          [0.0, 0.08, -0.18, -1.5, 0, 0.11, 0.3], [0.08, -0.02, -0.18, -2.0, -0.4, 0.09, 0.26], [-0.08, -0.02, -0.18, -2.0, 0.4, 0.09, 0.26],
+          [0.19, -0.02, -0.06, 0.3, -2.0, 0.08, 0.24], [-0.19, -0.02, -0.06, 0.3, 2.0, 0.08, 0.24],
+        ];
+        S.forEach(([x, y, z, rx, rz, w, h], i) => spike(p, i % 3 === 1 ? hl : hc, x, y, z, rx, rz, w, h));
+        // 前額瀏海：3～4 綹往下垂
+        [[-0.1, 2.5, 0.35, 0.15], [-0.03, 2.75, 0.1, 0.17], [0.05, 2.65, -0.2, 0.15], [0.12, 2.4, -0.45, 0.12]].forEach(([x, rx, rz, h]) =>
+          spike(p, hc, x, 0.16, 0.13, rx, rz, 0.045, h));
+      } else {
+        // 超級賽亞人：全部往上、往後豎起
+        const S = [
+          [0.0, 0.2, 0.06, -0.12, 0, 0.12, 0.46], [0.09, 0.2, 0.0, -0.25, -0.38, 0.12, 0.44], [-0.09, 0.2, 0.0, -0.25, 0.38, 0.12, 0.44],
+          [0.16, 0.12, -0.04, -0.3, -0.85, 0.1, 0.4], [-0.16, 0.12, -0.04, -0.3, 0.85, 0.1, 0.4],
+          [0.08, 0.16, -0.12, -0.75, -0.35, 0.11, 0.42], [-0.08, 0.16, -0.12, -0.75, 0.35, 0.11, 0.42],
+          [0.0, 0.1, -0.17, -1.1, 0, 0.11, 0.38], [0.15, 0.02, -0.13, -1.3, -0.8, 0.09, 0.32], [-0.15, 0.02, -0.13, -1.3, 0.8, 0.09, 0.32],
+        ];
+        S.forEach(([x, y, z, rx, rz, w, h], i) => spike(p, i % 3 === 1 ? hl : hc, x, y, z, rx, rz, w, h));
+        spike(p, hc, -0.04, 0.16, 0.14, 2.7, 0.25, 0.045, 0.17); // 單一綹瀏海
+      }
+      heads[form] = { main: p.build(), face: p.face.build() };
+    }
+  } else if (id === 'vegeta') {
+    for (const form of ['base', 'ssj']) {
+      const p = new Parts(); p.face = new Parts();
+      skull(p, d.skin); ears(p, d.skin);
+      const ssj = form === 'ssj';
+      face(p, { browTilt: 0.55, iris: ssj ? 0x1f9a88 : 0x1d1410, sharp: 1.6, browW: 0.085 });
+      const hc = ssj ? C.gold : C.black, hl = ssj ? C.goldL : 0x2c2622;
+      // 高髮際：髮帽只蓋頭頂與後腦
+      const cap = new THREE.SphereGeometry(1, 12, 8, 0, Math.PI * 2, 0, 1.15);
+      p.add(cap, hc, [0, cy + 0.03, -0.035], [-0.62, 0, 0], [hr * 1.06, hr * 1.06, hr * 1.08]);
+      // 美人尖（M 形髮際）
+      spike(p, hc, 0, 0.17, 0.14, 2.35, 0, 0.07, 0.12);
+      for (const sx of [-1, 1]) spike(p, hc, sx * 0.1, 0.15, 0.1, 2.2, sx * 0.4, 0.05, 0.08);
+      // 火焰狀：一束束幾乎垂直往上
+      const S = [
+        [0.0, 0.24, -0.02, -0.08, 0, 0.13, 0.55], [0.08, 0.22, -0.03, -0.12, -0.18, 0.12, 0.52], [-0.08, 0.22, -0.03, -0.12, 0.18, 0.12, 0.52],
+        [0.14, 0.17, -0.04, -0.15, -0.38, 0.1, 0.44], [-0.14, 0.17, -0.04, -0.15, 0.38, 0.1, 0.44],
+        [0.04, 0.2, -0.1, -0.3, -0.08, 0.12, 0.5], [-0.05, 0.2, -0.1, -0.3, 0.1, 0.12, 0.5],
+        [0.18, 0.08, -0.06, -0.2, -0.6, 0.08, 0.32], [-0.18, 0.08, -0.06, -0.2, 0.6, 0.08, 0.32],
+        [0.0, 0.14, -0.16, -0.55, 0, 0.11, 0.4],
+      ];
+      S.forEach(([x, y, z, rx, rz, w, h], i) => spike(p, i % 3 === 2 ? hl : hc, x, y, z, rx, rz, w, h * (ssj ? 1.08 : 1)));
+      heads[form] = { main: p.build(), face: p.face.build() };
+    }
+  } else if (id === 'trunks') {
+    for (const form of ['base', 'ssj']) {
+      const p = new Parts(); p.face = new Parts();
+      skull(p, d.skin); ears(p, d.skin);
+      const ssj = form === 'ssj';
+      face(p, { brow: ssj ? 0xc9a02a : 0x8a74c0, browTilt: ssj ? 0.48 : 0.3, iris: ssj ? 0x1f9a88 : 0x3a5ab0, sharp: ssj ? 1.3 : 1 });
+      if (!ssj) {
+        // 淡紫中分短髮：兩片髮罩＋垂到下顎的鬢髮
+        for (const sx of [-1, 1]) {
+          const half = new THREE.SphereGeometry(1, 10, 8, sx > 0 ? 0 : Math.PI, Math.PI, 0, 1.75);
+          p.add(half, C.lav, [sx * 0.008, cy + 0.015, -0.01], [-0.18, 0, 0], [hr * 1.1, hr * 1.1, hr * 1.12]);
+          p.add(geo('box'), C.lav, [sx * hr * 0.92, cy - hr * 0.25, hr * 0.12], [0.05, 0, sx * 0.06], [0.06, hr * 1.1, hr * 0.85]);
+          // 瀏海分兩邊斜垂
+          spike(p, C.lavD, sx * 0.06, 0.13, 0.15, 2.45, -sx * 0.55, 0.06, 0.15);
+          spike(p, C.lav, sx * 0.13, 0.08, 0.14, 2.6, -sx * 0.3, 0.05, 0.16);
+        }
+        p.add(geo('box'), C.lav, [0, cy - hr * 0.1, -hr * 0.75], [-0.2, 0, 0], [hr * 1.5, hr * 1.1, 0.08]);
+      } else {
+        const cap = new THREE.SphereGeometry(1, 12, 8, 0, Math.PI * 2, 0, 1.3);
+        p.add(cap, C.gold, [0, cy + 0.02, -0.02], [-0.5, 0, 0], [hr * 1.08, hr * 1.08, hr * 1.1]);
+        const S = [
+          [0.0, 0.2, 0.05, -0.15, 0, 0.11, 0.38], [0.09, 0.19, 0.0, -0.3, -0.45, 0.11, 0.36], [-0.09, 0.19, 0.0, -0.3, 0.45, 0.11, 0.36],
+          [0.15, 0.1, -0.06, -0.4, -0.95, 0.09, 0.32], [-0.15, 0.1, -0.06, -0.4, 0.95, 0.09, 0.32],
+          [0.06, 0.14, -0.14, -0.9, -0.3, 0.1, 0.34], [-0.06, 0.14, -0.14, -0.9, 0.3, 0.1, 0.34], [0.0, 0.05, -0.18, -1.4, 0, 0.1, 0.3],
+        ];
+        S.forEach(([x, y, z, rx, rz, w, h], i) => spike(p, i % 3 === 1 ? C.goldL : C.gold, x, y, z, rx, rz, w, h));
+        for (const sx of [-1, 1]) spike(p, C.gold, sx * 0.07, 0.15, 0.14, 2.6, -sx * 0.35, 0.045, 0.14);
+      }
+      heads[form] = { main: p.build(), face: p.face.build() };
+    }
+  } else if (id === 'piccolo') {
+    const p = new Parts(); p.face = new Parts();
+    // 略長的光頭
+    p.add(geo('hsphere'), d.skin, [0, cy + 0.01, -0.01], 0, [hr * 0.96, hr * 1.06, hr * 1.0]);
+    p.add(geo('sphere'), d.skin, [0, cy - hr * 0.45, hr * 0.28], 0, [hr * 0.6, hr * 0.52, hr * 0.62]);
+    face(p, { brow: C.gD, browTilt: 0.5, sharp: 1.5, browW: 0.09 });
+    // 眉骨稜線與兩頰紋
+    p.add(geo('box'), C.gD, [0, cy + hr * 0.16, hr * 0.88], [0.25, 0, 0], [hr * 1.3, 0.03, 0.05]);
+    // 尖長耳
+    for (const sx of [-1, 1]) p.add(geo('cone6'), d.skin, [sx * hr * 0.9, cy + 0.01, -0.02], [-0.55, 0, -sx * 0.75], [0.042, 0.16, 0.022]);
+    // 觸角
+    for (const sx of [-1, 1]) {
+      p.add(cyl(0.014, 0.02, 0.3, 6), d.skin, [sx * 0.055, cy + hr * 0.95 + 0.09, hr * 0.38 + 0.07], [0.6, 0, -sx * 0.2]);
+      p.add(geo('lsphere'), C.gD, [sx * 0.085, cy + hr * 0.95 + 0.21, hr * 0.38 + 0.18], 0, 0.026);
+    }
+    // 頭頂的紋路
+    p.add(geo('box'), C.gD, [0, cy + hr * 0.9, -0.02], [0.2, 0, 0], [0.02, 0.015, hr * 1.1]);
+    heads.base = { main: p.build(), face: p.face.build() };
+  } else if (id === 'frieza') {
+    const p = new Parts(); p.face = new Parts();
+    p.add(geo('hsphere'), d.skin, [0, cy, 0], 0, [hr * 0.95, hr, hr * 0.95]);
+    p.add(geo('sphere'), d.skin, [0, cy - hr * 0.45, hr * 0.25], 0, [hr * 0.55, hr * 0.48, hr * 0.6]);
+    face(p, { brow: null, iris: 0xd0203a, pupil: 0x1a0a0a, sharp: 1.8, eyeY: 0.88, lid: 0x3a1030 });
+    // 紫色頭頂圓頂（光滑，帶一點反光）
+    const dome = new THREE.SphereGeometry(1, 12, 7, 0, Math.PI * 2, 0, 1.25);
+    p.add(dome, C.dome, [0, cy + 0.035, -0.045], [-0.42, 0, 0], [hr * 1.08, hr * 1.25, hr * 1.3]);
+    p.add(geo('lsphere'), C.domeL, [0.05, cy + hr * 0.95, hr * 0.15], 0, [0.04, 0.02, 0.06]);
+    // 黑唇、臉頰的黑線
+    p.add(geo('box'), 0x2a1a22, [0, cy - hr * 0.48, hr * 0.84], 0, [0.05, 0.012, 0.01]);
+    heads.base = { main: p.build(), face: p.face.build() };
+  } else if (id === 'a18') {
+    const p = new Parts(); p.face = new Parts();
+    skull(p, d.skin);
+    face(p, { brow: 0xc9a24a, browTilt: 0.15, iris: 0x5fa8d8, pupil: 0x1a2a3a, sharp: 0.7, browW: 0.065 });
+    // 嘴唇淡粉
+    p.add(geo('box'), 0xd98a8a, [0, cy - hr * 0.45, hr * 0.86], 0, [0.035, 0.008, 0.01]);
+    // 金色及下顎的鮑伯頭（側分）
+    const cap = new THREE.SphereGeometry(1, 14, 9, 0, Math.PI * 2, 0, 1.55);
+    p.add(cap, C.blonde, [0, cy + 0.01, -0.015], [-0.25, 0, 0], [hr * 1.1, hr * 1.1, hr * 1.12]);
+    for (const sx of [-1, 1]) {
+      p.add(geo('box'), C.blonde, [sx * hr * 0.92, cy - hr * 0.38, hr * 0.05], [0, 0, sx * 0.05], [0.06, hr * 1.25, hr * 1.2]);
+      p.add(geo('box'), C.blondeD, [sx * hr * 0.9, cy - hr * 0.98, hr * 0.12], [0.15, 0, 0], [0.05, 0.03, hr * 0.9]);
+    }
+    p.add(geo('box'), C.blonde, [0, cy - hr * 0.35, -hr * 0.78], [-0.1, 0, 0], [hr * 1.7, hr * 1.25, 0.08]);
+    // 側分瀏海：大片斜掃
+    p.add(geo('box'), C.blonde, [-0.03, cy + hr * 0.55, hr * 0.8], [0.55, 0, -0.45], [0.26, 0.07, 0.07]);
+    spike(p, C.blondeD, 0.1, 0.08, 0.16, 2.7, -0.2, 0.05, 0.16);
+    heads.base = { main: p.build(), face: p.face.build() };
+  }
+  out.heads = heads;
+
+  /* ---------------- 腰臀 ---------------- */
   {
     const p = new Parts();
-    const pantsC = { homura: 0x3b302a, shimo: 0x283135, iwao: 0x5a4632, raiga: 0x26282b }[id];
+    const pantsC = { goku: C.gi, vegeta: C.suit, trunks: C.grey, piccolo: C.pgi, frieza: d.skin, a18: C.denim }[id];
     p.add(geo('sphere'), pantsC, [0, -0.02, 0], 0, [d.hip * 1.75, d.hip * 1.1, d.hip * 1.35]);
-    // 腰帶
-    const beltC = { homura: 0x8e1f1a, shimo: 0x1f2a2c, iwao: 0x6b4a2c, raiga: 0x3a3a3c }[id];
-    p.add(cyl(d.waist * 1.08, d.waist * 1.12, 0.09, 14), beltC, [0, 0.07, 0], 0, [1, 1, d.chest[2] / d.chest[0] * 1.05 + 0.05]);
-    if (id === 'homura') {
-      // 結
-      p.add(geo('sphere'), 0x8e1f1a, [0.1, 0.06, d.chest[2] * 0.95], 0, [0.05, 0.045, 0.04]);
-    }
-    if (id === 'shimo') {
-      // 長大衣下擺：開前襟的半圓錐（背面）
-      const coat = cyl(d.waist * 1.15, d.waist * 2.1, 0.62, 16, true, Math.PI * 0.62, Math.PI * 1.76);
-      coat.translate(0, -0.27, 0);
-      p.add(coat, 0x4a6e70, [0, 0.04, 0], 0, [1, 1, 0.82]);
-      const coatIn = cyl(d.waist * 1.12, d.waist * 2.05, 0.6, 16, true, Math.PI * 0.62, Math.PI * 1.76);
-      coatIn.translate(0, -0.27, 0); coatIn.scale(-1, 1, 1); // 反轉繞序當內裡
-      p.add(coatIn, 0x5b7f80, [0, 0.04, 0], 0, [1, 1, 0.8]);
-      // 冰色滾邊
-      p.add(cyl(d.waist * 2.12, d.waist * 2.12, 0.035, 16, true, Math.PI * 0.62, Math.PI * 1.76), 0xa8e8ff, [0, -0.56, 0], 0, [1, 1, 0.82]);
-    }
-    if (id === 'iwao') {
-      // 腰前的布片
-      p.add(geo('box'), 0x5e7a2e, [0, -0.12, d.chest[2] * 0.62], [-0.08, 0, 0], [0.22, 0.26, 0.03]);
+    const belt = (c, h = 0.09) => p.add(cyl(d.waist * 1.1, d.waist * 1.14, h, 14), c, [0, 0.07, 0], 0, [1, 1, cz / cx * 1.05 + 0.05]);
+    if (id === 'goku') {
+      belt(C.blue, 0.1);
+      p.add(geo('sphere'), C.blue, [0.11, 0.06, cz * 0.98], 0, [0.05, 0.045, 0.04]);
+      for (const sx of [0.06, 0.15]) p.add(geo('box'), C.blue, [sx, -0.06, cz * 0.95], [0.1, 0, 0.15], [0.05, 0.18, 0.02]); // 結的兩端
+    } else if (id === 'vegeta') {
+      // 腰下的黃甲片
+      p.add(cyl(d.waist * 1.15, d.waist * 1.2, 0.06, 14), C.armor, [0, 0.1, 0], 0, [1, 1, cz / cx * 1.05 + 0.05]);
+      for (const sx of [-1, 1]) p.add(geo('box'), C.ochre, [sx * d.hip * 0.95, -0.06, 0.02], [0, 0, sx * 0.15], [0.12, 0.2, 0.22]);
+    } else if (id === 'trunks') {
+      belt(0x1a1a1a, 0.06);
+      p.add(geo('box'), 0x8a8a90, [0, 0.07, cz * 1.02], 0, [0.05, 0.04, 0.02]);
+    } else if (id === 'piccolo') {
+      belt(C.sash, 0.12);
+      p.add(geo('box'), C.sash, [0.09, -0.08, cz * 0.98], [0.1, 0, 0.1], [0.07, 0.2, 0.02]);
+    } else if (id === 'frieza') {
+      // 光滑白身，腿根略細
+      p.add(geo('sphere'), 0xe6e1dc, [0, -0.06, 0], 0, [d.hip * 1.4, d.hip * 0.8, d.hip * 1.2]);
+    } else if (id === 'a18') {
+      // 牛仔短裙
+      p.add(cyl(d.waist * 1.15, d.hip * 1.75, 0.3, 14), C.denim, [0, -0.08, 0], 0, [1, 1, 0.85]);
+      p.add(cyl(d.hip * 1.76, d.hip * 1.76, 0.025, 14, true), C.denimD, [0, -0.225, 0], 0, [1, 1, 0.85]);
+      belt(0x5a3a22, 0.04);
     }
     out.hips = p.build();
   }
 
-  /* ------- torso ------- */
+  /* ---------------- 軀幹 ---------------- */
   {
     const p = new Parts();
-    const T = d.torso, [cx, cy, cz] = d.chest;
-    const topC = { homura: 0xefe8da, shimo: 0x4a6e70, iwao: d.skin, raiga: 0x26282b }[id];
-    // 腹
-    p.add(geo('sphere'), id === 'homura' ? 0xefe8da : topC, [0, T * 0.28, 0], 0, [d.waist * 1.05, T * 0.3, cz * 0.95]);
-    // 胸
-    p.add(geo('sphere'), topC, [0, T * 0.66, 0], 0, [cx, cy * T / 0.62 * 0.62, cz * 0.92]);
-    p.add(geo('box'), topC, [0, T * 0.7, -0.005], 0, [cx * 1.55, cy * 0.75, cz * 1.45]);
-    // 頸
-    p.add(limb(hr * 0.33, hr * 0.38, 0.12, 8), d.skin, [0, T + 0.06, 0]);
-    if (id === 'homura') {
-      // V 領：倒三角露出胸口
-      p.add(new THREE.ConeGeometry(1, 1, 3), d.skin, [0, T * 0.8, cz * 0.93], [Math.PI, 0, 0], [0.075, 0.2, 0.012]);
-      p.add(geo('box'), 0x8e1f1a, [0, T * 0.5, cz * 0.98], 0, [0.012, 0.18, 0.01]);
-      // 肩頭的無袖布邊
-      for (const sx of [-1, 1]) p.add(geo('sphere'), 0xefe8da, [sx * d.sw * 0.82, T * 0.86, 0], 0, [0.1, 0.08, 0.12]);
-    }
-    if (id === 'shimo') {
-      // 高領
-      p.add(cyl(hr * 0.62, hr * 0.5, 0.2, 14, true), 0x4a6e70, [0, T + 0.07, -0.01]);
-      p.add(cyl(hr * 0.64, hr * 0.64, 0.03, 14, true), 0xa8e8ff, [0, T + 0.17, -0.01]);
-      // 前襟扣列
-      for (let i = 0; i < 3; i++) p.add(geo('lsphere'), 0xa8e8ff, [0, T * (0.45 + i * 0.15), cz * 0.98], 0, 0.018);
-      // 斜向的冰色前襟線
-      p.add(geo('box'), 0x2a3e40, [0.04, T * 0.6, cz * 0.97], [0, 0, 0.12], [0.02, T * 0.6, 0.02]);
-      // 冰晶肩甲（固定在胸）
+    const topC = { goku: C.gi, vegeta: C.suit, trunks: C.jacket, piccolo: C.pgi, frieza: d.skin, a18: C.stripeW }[id];
+    p.add(geo('sphere'), topC, [0, T * 0.28, 0], 0, [d.waist * 1.05, T * 0.3, cz * 0.95]);
+    p.add(geo('sphere'), topC, [0, T * 0.66, 0], 0, [cx, cyc * T / 0.62 * 0.62, cz * 0.92]);
+    p.add(geo('box'), topC, [0, T * 0.7, -0.005], 0, [cx * 1.55, cyc * 0.75, cz * 1.45]);
+    p.add(limb(hr * 0.33, hr * 0.38, 0.12, 8), id === 'vegeta' ? C.suit : d.skin, [0, T + 0.06, 0]);
+    if (id === 'goku') {
+      // 交領：藍色內衫從 V 領露出
+      p.add(new THREE.ConeGeometry(1, 1, 3), C.blue, [0, T * 0.82, cz * 0.93], [Math.PI, 0, 0], [0.09, 0.22, 0.014]);
+      p.add(geo('box'), C.giD, [0.035, T * 0.66, cz * 0.97], [0, 0, 0.45], [0.02, 0.26, 0.012]);
+      p.add(geo('box'), C.giD, [-0.035, T * 0.66, cz * 0.97], [0, 0, -0.45], [0.02, 0.26, 0.012]);
+      for (const sx of [-1, 1]) p.add(geo('sphere'), C.gi, [sx * d.sw * 0.85, T * 0.86, 0], 0, [0.11, 0.09, 0.13]);
+      // 背後的圓形徽記底
+      p.add(geo('disc'), 0xf4efe2, [0, T * 0.7, -cz * 1.0], [Math.PI / 2, 0, 0], [0.09, 0.01, 0.09]);
+      p.add(geo('box'), C.black, [0, T * 0.7, -cz * 1.02], 0, [0.05, 0.06, 0.01]);
+    } else if (id === 'vegeta') {
+      // 白色胸甲＋黃色肩片
+      p.add(geo('sphere'), C.armor, [0, T * 0.66, 0.005], 0, [cx * 1.08, cyc * 1.02, cz * 1.04]);
+      p.add(geo('box'), C.armor, [0, T * 0.72, 0], 0, [cx * 1.65, cyc * 0.72, cz * 1.5]);
       for (const sx of [-1, 1]) {
-        p.add(geo('oct'), 0xa8e8ff, [sx * d.sw * 1.02, T * 0.93, 0], [0.3, 0.4, sx * 0.9], [0.09, 0.16, 0.09]);
-        p.add(geo('oct'), 0xd9f6ff, [sx * d.sw * 1.12, T * 0.98, -0.05], [-0.4, 0.2, sx * 1.2], [0.05, 0.12, 0.05]);
-        p.add(geo('oct'), 0x7fd8ff, [sx * d.sw * 0.98, T * 0.96, 0.07], [0.6, 0, sx * 0.6], [0.04, 0.1, 0.04]);
+        p.add(geo('box'), C.ochre, [sx * d.sw * 0.95, T * 0.95, 0], [0, 0, -sx * 0.35], [0.18, 0.05, 0.2]);
+        p.add(geo('box'), C.ochre, [sx * d.sw * 1.1, T * 0.88, 0], [0, 0, -sx * 0.9], [0.13, 0.04, 0.19]);
       }
-    }
-    if (id === 'iwao') {
-      // 苔綠背心（前方敞開）
-      const vest = new THREE.SphereGeometry(1, 12, 8, Math.PI / 2 + 0.55, Math.PI * 2 - 1.1, 0.25, 2.2);
-      p.add(vest, 0x5e7a2e, [0, T * 0.62, 0], 0, [cx * 1.07, cy * 1.14, cz * 1.1]);
-      // 胸肌陰影線
-      p.add(geo('box'), 0x8d5a32, [0, T * 0.7, cz * 0.98], 0, [0.012, 0.16, 0.01]);
-      // 肩上的巨大肌肉
-      for (const sx of [-1, 1]) p.add(geo('sphere'), d.skin, [sx * d.sw * 0.95, T * 0.86, 0], 0, [0.17, 0.15, 0.17]);
-      // 背上的岩片
-      p.add(geo('dodec'), 0x8d8a80, [0, T * 0.8, -cz * 0.9], [0.3, 0.5, 0], [0.16, 0.12, 0.08]);
-    }
-    if (id === 'raiga') {
-      // 金色鋸齒條紋（斜過胸口）
-      const zz = [[-0.15, 0.9], [0.02, 0.7], [-0.05, 0.66], [0.13, 0.44]];
-      for (let i = 0; i < zz.length - 1; i++) {
-        const [x0, y0] = zz[i], [x1, y1] = zz[i + 1];
-        const mx = (x0 + x1) / 2, my = (y0 + y1) / 2 * T, len = Math.hypot(x1 - x0, (y1 - y0) * T);
-        const ang = Math.atan2((y1 - y0) * T, x1 - x0);
-        const z = cz * Math.sqrt(Math.max(0.05, 1 - (mx / cx) ** 2)) * 0.98 + 0.004;
-        p.add(geo('box'), 0xffd23a, [mx, my, z], [0, 0, ang], [len + 0.02, 0.035, 0.02]);
+      p.add(geo('box'), C.ochre, [0, T * 0.32, cz * 0.9], [-0.1, 0, 0], [0.2, 0.1, 0.03]);
+      p.add(geo('box'), 0xd8d4c8, [0, T * 0.5, cz * 1.02], 0, [0.2, 0.012, 0.01]);
+    } else if (id === 'trunks') {
+      // 黑背心從敞開的短夾克露出、立領
+      p.add(geo('box'), C.tank, [0, T * 0.6, cz * 0.93], 0, [cx * 0.5, T * 0.5, 0.02]);
+      p.add(cyl(hr * 0.6, hr * 0.48, 0.13, 12, true, Math.PI * 0.75, Math.PI * 1.5), C.jacket, [0, T + 0.05, 0]);
+      for (const sx of [-1, 1]) {
+        p.add(geo('box'), 0x2c3350, [sx * cx * 0.32, T * 0.62, cz * 0.96], [0, 0, sx * 0.05], [0.025, T * 0.55, 0.012]);
+        p.add(geo('sphere'), C.jacket, [sx * d.sw * 0.85, T * 0.86, 0], 0, [0.1, 0.085, 0.12]);
       }
-      // 面罩：圍住下半臉的布（在頭部上做），這裡做頸巾
-      p.add(cyl(hr * 0.55, hr * 0.62, 0.13, 12), 0x3a3633, [0, T + 0.04, 0]);
+      // 夾克下擺
+      p.add(cyl(d.waist * 1.2, d.waist * 1.3, 0.1, 14, true), C.jacket, [0, T * 0.12, 0], 0, [1, 1, cz / cx * 1.1]);
+      // 背後的劍鞘帶
+      p.add(geo('box'), 0x3a2a1e, [0, T * 0.62, cz * 0.98], [0, 0, 0.75], [0.03, T * 0.7, 0.012]);
+      p.add(geo('box'), 0x3a2a1e, [0, T * 0.62, -cz * 0.98], [0, 0, -0.75], [0.03, T * 0.7, 0.012]);
+    } else if (id === 'piccolo') {
+      // 無袖紫道服：V 領露出綠胸
+      p.add(new THREE.ConeGeometry(1, 1, 3), d.skin, [0, T * 0.8, cz * 0.93], [Math.PI, 0, 0], [0.09, 0.24, 0.014]);
+      for (const sx of [-1, 1]) p.add(geo('sphere'), d.skin, [sx * d.sw * 0.88, T * 0.86, 0], 0, [0.11, 0.1, 0.12]);
+      p.add(geo('box'), C.gD, [0, T * 0.74, cz * 0.97], 0, [0.012, 0.12, 0.01]);
+    } else if (id === 'frieza') {
+      // 胸前紫色圓甲＋鎖骨線
+      p.add(geo('sphere'), C.dome, [0, T * 0.72, cz * 0.32], 0, [cx * 0.85, cyc * 0.5, cz * 0.8]);
+      p.add(geo('lsphere'), C.domeL, [0.04, T * 0.8, cz * 1.05], 0, [0.04, 0.02, 0.02]);
+      for (const sx of [-1, 1]) p.add(geo('sphere'), C.dome, [sx * d.sw * 0.95, T * 0.9, 0], 0, [0.1, 0.085, 0.1]);
+      p.add(geo('box'), 0xc8c2bc, [0, T * 0.32, cz * 0.94], 0, [0.012, T * 0.25, 0.01]);
+    } else if (id === 'a18') {
+      // 橫條紋上衣（黑白環）＋牛仔背心
+      for (let i = 0; i < 5; i++) p.add(cyl(cx * 0.98, cx * 1.0, 0.035, 14, true), 0x1a1a1e, [0, T * (0.2 + i * 0.16), 0], 0, [1, 1, cz / cx * 1.02]);
+      const vest = new THREE.SphereGeometry(1, 12, 8, Math.PI / 2 + 0.45, Math.PI * 2 - 0.9, 0.3, 2.1);
+      p.add(vest, C.denim, [0, T * 0.6, 0], 0, [cx * 1.08, cyc * 1.25, cz * 1.12]);
+      for (const sx of [-1, 1]) p.add(geo('box'), C.denimD, [sx * cx * 0.42, T * 0.68, cz * 0.98], [0, 0, sx * 0.1], [0.02, T * 0.5, 0.012]);
+      p.add(cyl(hr * 0.42, hr * 0.42, 0.04, 12, true), 0x1a1a1e, [0, T + 0.01, 0]);
     }
     out.torso = p.build();
   }
 
-  /* ------- head ------- */
-  {
-    const p = new Parts();
-    const cy = hr * 0.9;
-    const headSkin = d.skin;
-    p.add(geo('hsphere'), headSkin, [0, cy, 0], 0, [hr * 0.98, hr, hr * 0.96]);
-    // 耳
-    for (const sx of [-1, 1]) p.add(geo('lsphere'), headSkin, [sx * hr * 0.95, cy - 0.01, -0.01], 0, [0.03, 0.05, 0.035]);
-    if (id === 'homura') {
-      face(p, { browTilt: 0.42, iris: 0x8a2a12 });
-      const hc = 0xd8401c, hl = 0xff7f2e;
-      // 髮帽（上與後）
-      const cap = new THREE.SphereGeometry(1, 12, 8, 0, Math.PI * 2, 0, 1.35);
-      p.add(cap, hc, [0, cy + 0.02, -0.02], [-0.55, 0, 0], [hr * 1.08, hr * 1.08, hr * 1.1]);
-      // 向後上方的火焰狀尖刺
-      const spikes = [
-        [0, 0.22, -0.02, -0.55, 0, 0.11, 0.34, hl], [0.09, 0.18, -0.05, -0.85, 0, -0.45, 0.3, hc], [-0.09, 0.18, -0.05, -0.85, 0, 0.45, 0.3, hc],
-        [0, 0.12, -0.15, -1.25, 0, 0, 0.34, hc], [0.12, 0.08, -0.12, -1.3, 0, -0.75, 0.28, hl], [-0.12, 0.08, -0.12, -1.3, 0, 0.75, 0.28, hl],
-        [0.06, 0.0, -0.19, -1.6, 0, -0.35, 0.26, hc], [-0.06, 0.0, -0.19, -1.6, 0, 0.35, 0.26, hc], [0.0, 0.25, 0.08, -0.2, 0, 0, 0.26, hl],
-        [0.14, 0.16, 0.02, -0.55, 0, -1.0, 0.24, hc], [-0.14, 0.16, 0.02, -0.55, 0, 1.0, 0.24, hc],
-      ];
-      for (const [x, y, z, rx, ry, rz, h, c] of spikes) p.add(geo('cone6'), c, [x * hr / 0.21, cy + y * hr / 0.21 * 0.7, z * hr / 0.21], [rx, ry, rz], [0.075, h, 0.065]);
-      // 前額瀏海
-      for (const sx of [-1, 0, 1]) p.add(geo('cone6'), hc, [sx * 0.07, cy + hr * 0.72, hr * 0.62], [2.3, 0, sx * 0.4], [0.04, 0.12, 0.035]);
-    }
-    if (id === 'shimo') {
-      face(p, { browTilt: 0.18, iris: 0x2a7a9a, brow: 0x8fb3c2 });
-      const hc = 0xc9dde6, hs = 0x9fbfcc;
-      const cap = new THREE.SphereGeometry(1, 12, 8, 0, Math.PI * 2, 0, 1.45);
-      p.add(cap, hc, [0, cy + 0.015, -0.015], [-0.45, 0, 0], [hr * 1.07, hr * 1.07, hr * 1.08]);
-      // 側邊長髮
-      for (const sx of [-1, 1]) {
-        p.add(geo('box'), hc, [sx * hr * 0.9, cy - hr * 0.35, hr * 0.15], [0.05, 0, sx * 0.08], [0.05, hr * 1.5, 0.11]);
-        p.add(geo('cone6'), hs, [sx * hr * 0.88, cy - hr * 1.05, hr * 0.15], [Math.PI, 0, 0], [0.04, 0.12, 0.05]);
-      }
-      // 斜瀏海
-      p.add(geo('box'), hc, [0.04, cy + hr * 0.62, hr * 0.78], [0.45, 0, 0.5], [0.24, 0.07, 0.07]);
-      p.add(geo('cone6'), hs, [-0.08, cy + hr * 0.5, hr * 0.85], [2.6, 0, 0.5], [0.035, 0.14, 0.03]);
-      // 髮束的綁處（高馬尾）
-      p.add(geo('sphere'), 0x7fd8ff, [0, cy + hr * 0.95, -hr * 0.62], 0, 0.045);
-    }
-    if (id === 'iwao') {
-      face(p, { brow: null, eyeY: 0.88, iris: 0x4a6a1a });
-      // 石質眉骨
-      p.add(geo('box'), 0x8d8a80, [0, cy + hr * 0.18, hr * 0.82], [0.2, 0, 0], [hr * 1.65, 0.07, 0.11]);
-      p.add(geo('dodec'), 0x77746b, [0.08, cy + hr * 0.22, hr * 0.85], [0.4, 0.2, 0], [0.06, 0.04, 0.05]);
-      // 雙角
-      for (const sx of [-1, 1]) p.add(geo('cone8'), 0xe8dcc0, [sx * hr * 0.42, cy + hr * 0.62, hr * 0.48], [0.35, 0, -sx * 0.55], [0.055, 0.2, 0.055]);
-      // 下巴與鬍渣
-      p.add(geo('sphere'), 0x9a6a3e, [0, cy - hr * 0.62, hr * 0.5], 0, [hr * 0.55, hr * 0.32, hr * 0.42]);
-      // 頭頂刺青般的綠紋
-      p.add(geo('box'), 0x6f9a2a, [0, cy + hr * 0.92, 0.0], [0, 0, 0], [0.03, 0.02, hr * 1.2]);
-    }
-    if (id === 'raiga') {
-      face(p, { browTilt: 0.55, iris: 0xb08a10, eyeY: 0.92 });
-      const hc = 0xf3e6a0, hl = 0xfff7d0;
-      const cap = new THREE.SphereGeometry(1, 12, 8, 0, Math.PI * 2, 0, 1.4);
-      p.add(cap, hc, [0, cy + 0.02, -0.01], [-0.4, 0, 0], [hr * 1.08, hr * 1.06, hr * 1.1]);
-      // 短而四散的尖刺（偏向上）
-      for (let i = 0; i < 12; i++) {
-        const a = (i / 12) * Math.PI * 2, r = 0.55 + (i % 3) * 0.12;
-        const x = Math.sin(a) * hr * 0.55, z = Math.cos(a) * hr * 0.5 - 0.02;
-        p.add(geo('cone6'), i % 2 ? hl : hc, [x, cy + hr * 0.62, z], [Math.cos(a) * r - 0.2, 0, -Math.sin(a) * r], [0.055, 0.16 + (i % 3) * 0.03, 0.05]);
-      }
-      p.add(geo('cone6'), hl, [0, cy + hr * 0.95, 0], [-0.2, 0, 0], [0.06, 0.2, 0.055]);
-      // 面罩：遮住口鼻
-      const mask = new THREE.SphereGeometry(1, 14, 8, Math.PI * 0.05, Math.PI * 0.9, 1.65, 1.0);
-      p.add(mask, 0x3a3633, [0, cy + 0.005, 0], [0, 0, 0], [hr * 1.04, hr * 1.04, hr * 1.06]);
-      p.add(geo('box'), 0xffd23a, [0, cy - hr * 0.28, hr * 0.98], 0, [0.12, 0.014, 0.012]);
-    }
-    out.head = p.build();
-  }
-
-  /* ------- arms ------- */
+  /* ---------------- 手臂 ---------------- */
   for (const side of ['L', 'R']) {
     const sx = side === 'L' ? 1 : -1;
-    // upper
     {
       const p = new Parts();
-      const upC = { homura: d.skin, shimo: 0x4a6e70, iwao: d.skin, raiga: d.skin }[id];
+      const upC = { goku: d.skin, vegeta: C.suit, trunks: C.jacket, piccolo: d.skin, frieza: d.skin, a18: C.stripeW }[id];
       p.add(geo('sphere'), upC, [0, -0.01, 0], 0, d.arm * 1.35);
       p.add(limb(d.arm * 1.1, d.arm * 0.92, d.upper, 8), upC, [0, 0, 0]);
-      // 二頭肌
-      if (id !== 'shimo') p.add(geo('sphere'), upC, [0, -d.upper * 0.42, d.arm * 0.25], 0, [d.arm * 1.08, d.upper * 0.3, d.arm * 1.1]);
-      // 隊伍色臂章（左臂）
-      p.add(cyl(d.arm * 1.16, d.arm * 1.12, 0.1, 10), tc, [0, -d.upper * 0.3, 0]);
-      if (id === 'raiga') p.add(cyl(d.arm * 1.05, d.arm * 1.0, 0.05, 10), 0x26282b, [0, -d.upper * 0.85, 0]);
+      if (id !== 'a18' && id !== 'frieza') p.add(geo('sphere'), upC, [0, -d.upper * 0.42, d.arm * 0.25], 0, [d.arm * 1.08, d.upper * 0.3, d.arm * 1.1]);
+      if (id === 'goku') p.add(cyl(d.arm * 1.25, d.arm * 1.15, d.upper * 0.35, 10), C.blue, [0, -d.upper * 0.12, 0]); // 藍內衫短袖
+      if (id === 'trunks') p.add(cyl(d.arm * 1.3, d.arm * 1.2, 0.04, 10, true), 0x2c3350, [0, -d.upper * 0.95, 0]);
+      if (id === 'piccolo') p.add(geo('sphere'), C.pink, [sx * d.arm * 0.2, -d.upper * 0.42, d.arm * 0.5], 0, [d.arm * 0.7, d.upper * 0.22, d.arm * 0.65]);
+      if (id === 'a18') for (let i = 0; i < 3; i++) p.add(cyl(d.arm * 1.12, d.arm * 1.08, 0.03, 10), 0x1a1a1e, [0, -d.upper * (0.25 + i * 0.25), 0]);
+      // 隊伍色臂環（只在左臂）
+      if (side === 'L') p.add(cyl(d.arm * 1.2, d.arm * 1.18, 0.045, 12), tc, [0, -d.upper * 0.62, 0]);
       out['upper' + side] = p.build();
     }
-    // forearm + hand
     {
       const p = new Parts();
       const L = d.lower;
-      if (id === 'homura') {
-        p.add(limb(d.fore * 1.02, d.fore * 0.85, L, 8), 0x24201d, [0, 0, 0]);
-        for (let i = 0; i < 4; i++) p.add(cyl(d.fore * 1.05 - i * 0.004, d.fore * 1.0 - i * 0.004, 0.018, 10), 0x3a332e, [0, -L * (0.2 + i * 0.2), 0], [0.25, 0, 0]);
+      if (id === 'goku') {
+        p.add(limb(d.fore * 1.02, d.fore * 0.88, L, 8), d.skin, [0, 0, 0]);
+        p.add(cyl(d.fore * 1.12, d.fore * 1.05, L * 0.32, 10), C.blue, [0, -L * 0.82, 0]); // 藍護腕
         p.add(geo('sphere'), d.skin, [0, -L - d.fist * 0.6, 0.01], 0, [d.fist, d.fist * 1.05, d.fist * 1.05]);
-        p.add(geo('box'), 0x24201d, [0, -L - d.fist * 0.2, 0.0], 0, [d.fist * 1.5, d.fist * 0.6, d.fist * 1.6]);
-      } else if (id === 'shimo') {
-        p.add(limb(d.fore * 1.05, d.fore * 0.95, L * 0.55, 8), 0x4a6e70, [0, 0, 0]);
-        p.add(cyl(d.fore * 1.5, d.fore * 1.2, L * 0.18, 10), 0x4a6e70, [0, -L * 0.6, 0]); // 袖口
-        p.add(cyl(d.fore * 1.52, d.fore * 1.52, 0.02, 10, true), 0xa8e8ff, [0, -L * 0.69, 0]);
-        p.add(limb(d.fore * 0.9, d.fore * 0.85, L * 0.35, 8), 0x222c30, [0, -L * 0.65, 0]);
-        p.add(geo('sphere'), 0x222c30, [0, -L - d.fist * 0.5, 0.01], 0, [d.fist, d.fist * 1.1, d.fist * 1.0]);
-      } else if (id === 'iwao') {
-        p.add(limb(d.fore * 0.95, d.fore * 0.9, L * 0.4, 8), d.skin, [0, 0, 0]);
-        // 石臂鎧（巨大前臂）
-        p.add(geo('dodec'), 0x8d8a80, [0, -L * 0.62, 0.0], [0.3, 0.6, 0.2], [d.fore * 1.65, L * 0.42, d.fore * 1.6]);
-        p.add(geo('dodec'), 0x6d6a62, [sx * d.fore * 0.6, -L * 0.55, -d.fore * 0.5], [0.8, 0.2, 0.5], [d.fore * 0.8, L * 0.25, d.fore * 0.8]);
-        p.add(geo('box'), 0xa8823f, [0, -L * 0.36, 0], 0, [d.fore * 2.2, 0.04, d.fore * 2.1]);
-        p.add(geo('dodec'), 0x77746b, [0, -L - d.fist * 0.45, 0.02], [0.2, 0.3, 0], [d.fist * 1.05, d.fist * 0.95, d.fist * 1.1]);
+      } else if (id === 'vegeta') {
+        p.add(limb(d.fore * 1.0, d.fore * 0.9, L * 0.55, 8), C.suit, [0, 0, 0]);
+        p.add(limb(d.fore * 1.2, d.fore * 1.05, L * 0.5, 8), C.armor, [0, -L * 0.5, 0]); // 白手套
+        p.add(geo('sphere'), C.armor, [0, -L - d.fist * 0.6, 0.01], 0, [d.fist * 1.05, d.fist * 1.08, d.fist * 1.08]);
+      } else if (id === 'trunks') {
+        p.add(limb(d.fore * 1.0, d.fore * 0.86, L, 8), d.skin, [0, 0, 0]);
+        p.add(cyl(d.fore * 1.0, d.fore * 0.95, 0.05, 10), 0x1a1a1a, [0, -L * 0.88, 0]);
+        p.add(geo('sphere'), d.skin, [0, -L - d.fist * 0.6, 0.01], 0, [d.fist, d.fist * 1.05, d.fist * 1.05]);
+      } else if (id === 'piccolo') {
+        p.add(limb(d.fore * 1.02, d.fore * 0.88, L, 8), d.skin, [0, 0, 0]);
+        p.add(geo('sphere'), C.pink, [sx * d.fore * 0.25, -L * 0.42, d.fore * 0.45], 0, [d.fore * 0.7, L * 0.25, d.fore * 0.65]);
+        p.add(cyl(d.fore * 1.1, d.fore * 1.0, L * 0.18, 10), 0x8a2a2a, [0, -L * 0.9, 0]);
+        p.add(geo('sphere'), d.skin, [0, -L - d.fist * 0.6, 0.01], 0, [d.fist, d.fist * 1.05, d.fist * 1.05]);
+      } else if (id === 'frieza') {
+        p.add(limb(d.fore * 1.0, d.fore * 0.85, L, 8), d.skin, [0, 0, 0]);
+        p.add(geo('sphere'), C.dome, [sx * d.fore * 0.3, -L * 0.45, -d.fore * 0.2], 0, [d.fore * 1.0, L * 0.4, d.fore * 1.05]);
+        p.add(geo('sphere'), d.skin, [0, -L - d.fist * 0.55, 0.01], 0, [d.fist * 0.95, d.fist * 1.1, d.fist]);
       } else {
-        p.add(limb(d.fore * 1.0, d.fore * 0.85, L, 8), 0x26282b, [0, 0, 0]);
-        // 短臂刃（自手肘朝後延伸）
-        const blade = new THREE.ConeGeometry(1, 1, 4).translate(0, 0.5, 0);
-        p.add(blade, 0xd8d4c4, [sx * d.fore * 0.75, -L * 0.25, -d.fore * 0.6], [-2.55, 0, sx * 0.12], [0.03, 0.42, 0.012]);
-        p.add(geo('box'), 0xffd23a, [sx * d.fore * 0.95, -L * 0.45, 0], 0, [0.02, L * 0.5, 0.05]);
-        p.add(geo('sphere'), d.skin, [0, -L - d.fist * 0.55, 0.01], 0, [d.fist, d.fist * 1.05, d.fist * 1.05]);
+        p.add(limb(d.fore * 1.0, d.fore * 0.86, L, 8), C.stripeW, [0, 0, 0]);
+        for (let i = 0; i < 3; i++) p.add(cyl(d.fore * 1.04, d.fore * 1.0, 0.028, 10), 0x1a1a1e, [0, -L * (0.2 + i * 0.27), 0]);
+        p.add(geo('sphere'), d.skin, [0, -L - d.fist * 0.55, 0.01], 0, [d.fist, d.fist * 1.05, d.fist]);
       }
       out['fore' + side] = p.build();
     }
   }
 
-  /* ------- legs ------- */
+  /* ---------------- 腿 ---------------- */
   for (const side of ['L', 'R']) {
-    const pantsC = { homura: 0x3b302a, shimo: 0x283135, iwao: 0x5a4632, raiga: 0x26282b }[id];
+    const pantsC = { goku: C.gi, vegeta: C.suit, trunks: C.grey, piccolo: C.pgi, frieza: d.skin, a18: C.legging }[id];
+    const loose = id === 'goku' || id === 'piccolo' ? 1.28 : 1.0;
     {
       const p = new Parts();
-      const loose = id === 'homura' ? 1.25 : id === 'iwao' ? 1.15 : 1.0;
       p.add(geo('sphere'), pantsC, [0, -0.02, 0], 0, d.thigh * loose * 1.05);
       p.add(limb(d.thigh * loose, d.shin * loose * 1.12, d.thighLen, 8), pantsC, [0, 0, 0]);
       out['thigh' + side] = p.build();
@@ -386,57 +492,75 @@ function buildHeroGeos(id, team) {
     {
       const p = new Parts();
       const S = d.shinLen;
-      const loose = id === 'homura' ? 1.3 : 1.0;
       p.add(geo('sphere'), pantsC, [0, 0, 0], 0, d.shin * loose * 1.1);
-      if (id === 'homura') {
-        p.add(limb(d.shin * 1.3, d.shin * 1.1, S * 0.75, 8), pantsC, [0, 0, 0]);
-        p.add(limb(d.shin * 0.75, d.shin * 0.7, S * 0.3, 8), 0x24201d, [0, -S * 0.72, 0]);
-        p.add(geo('box'), 0x6b4a2c, [0, -S - 0.02, 0.05], 0, [d.shin * 1.6, 0.035, d.shin * 3.4]);
-        p.add(geo('sphere'), d.skin, [0, -S + 0.01, 0.06], 0, [d.shin * 0.75, 0.035, d.shin * 1.4]);
-      } else if (id === 'shimo') {
-        p.add(limb(d.shin * 1.0, d.shin * 0.85, S * 0.45, 8), pantsC, [0, 0, 0]);
-        p.add(limb(d.shin * 1.15, d.shin * 1.05, S * 0.6, 8), 0x1f2427, [0, -S * 0.42, 0]); // 長靴
-        p.add(geo('sphere'), 0x1f2427, [0, -S - 0.01, 0.05], 0, [d.shin * 1.1, 0.05, d.shin * 2.1]);
-        p.add(cyl(d.shin * 1.18, d.shin * 1.18, 0.02, 10, true), 0xa8e8ff, [0, -S * 0.42, 0]);
-      } else if (id === 'iwao') {
-        p.add(limb(d.shin * 1.05, d.shin * 0.9, S * 0.55, 8), pantsC, [0, 0, 0]);
-        p.add(limb(d.shin * 0.95, d.shin * 0.85, S * 0.45, 8), d.skin, [0, -S * 0.55, 0]);
-        for (let i = 0; i < 3; i++) p.add(cyl(d.shin * 0.98, d.shin * 0.95, 0.035, 10), 0xd9cfb8, [0, -S * (0.68 + i * 0.09), 0], [0.15 * (i % 2 ? 1 : -1), 0, 0]);
-        p.add(geo('sphere'), d.skin, [0, -S - 0.01, 0.06], 0, [d.shin * 1.25, 0.06, d.shin * 1.9]);
+      const boot = (c, toe, h = 0.42, trim = null) => {
+        p.add(limb(d.shin * 1.18, d.shin * 1.08, S * h, 8), c, [0, -S * (1 - h), 0]);
+        p.add(geo('sphere'), c, [0, -S - 0.005, 0.05], 0, [d.shin * 1.15, 0.06, d.shin * 2.1]);
+        if (toe != null) p.add(geo('sphere'), toe, [0, -S - 0.005, 0.1], 0, [d.shin * 1.0, 0.055, d.shin * 1.2]);
+        if (trim != null) p.add(cyl(d.shin * 1.22, d.shin * 1.22, 0.035, 10), trim, [0, -S * (1 - h) + 0.01, 0]);
+      };
+      if (id === 'goku') {
+        p.add(limb(d.shin * 1.3, d.shin * 1.15, S * 0.62, 8), C.gi, [0, 0, 0]);
+        boot(C.blueD, null, 0.42, C.red);
+        p.add(geo('box'), C.yellow, [0, -S * 0.78, d.shin * 1.1], 0, [0.025, S * 0.25, 0.01]);
+      } else if (id === 'vegeta') {
+        p.add(limb(d.shin * 1.0, d.shin * 0.9, S * 0.6, 8), C.suit, [0, 0, 0]);
+        boot(C.armor, C.ochre, 0.5);
+      } else if (id === 'trunks') {
+        p.add(limb(d.shin * 1.05, d.shin * 0.95, S * 0.65, 8), C.grey, [0, 0, 0]);
+        boot(0xd8a62a, 0x3a2a1a, 0.42);
+      } else if (id === 'piccolo') {
+        p.add(limb(d.shin * 1.3, d.shin * 1.1, S * 0.75, 8), C.pgi, [0, 0, 0]);
+        boot(C.brown, null, 0.28);
+      } else if (id === 'frieza') {
+        p.add(limb(d.shin * 1.0, d.shin * 0.8, S, 8), d.skin, [0, 0, 0]);
+        p.add(geo('sphere'), C.dome, [0, -S * 0.45, d.shin * 0.45], 0, [d.shin * 0.9, S * 0.33, d.shin * 0.7]);
+        // 三趾腳
+        for (const tx of [-0.035, 0, 0.035]) p.add(geo('sphere'), d.skin, [tx, -S - 0.01, 0.07], 0, [0.022, 0.03, 0.06]);
+        p.add(geo('sphere'), d.skin, [0, -S, 0.0], 0, [d.shin * 0.95, 0.045, d.shin * 1.1]);
       } else {
-        p.add(limb(d.shin * 1.0, d.shin * 0.8, S, 8), pantsC, [0, 0, 0]);
-        p.add(limb(d.shin * 0.9, d.shin * 0.85, S * 0.3, 8), 0x3a3633, [0, -S * 0.7, 0]); // 綁腿
-        p.add(geo('sphere'), 0x1c1d1f, [0, -S - 0.01, 0.045], 0, [d.shin * 1.0, 0.045, d.shin * 1.9]);
+        p.add(limb(d.shin * 1.0, d.shin * 0.85, S * 0.5, 8), C.legging, [0, 0, 0]);
+        boot(C.boot, null, 0.55, 0x5a361e);
       }
       out['shin' + side] = p.build();
     }
   }
 
-  /* ------- 次級擺動：布尾、馬尾、辮子、圍巾 ------- */
+  /* ---------------- 次級擺動 ---------------- */
   const tailSeg = (w, len, c, thick = 0.022) => { const p = new Parts(); p.add(geo('box'), c, [0, -len / 2, 0], 0, [w, len, thick]); return p.build(); };
-  if (id === 'raiga') {
-    out.scarf = [tailSeg(0.1, 0.28, tc), tailSeg(0.09, 0.26, tc), tailSeg(0.075, 0.22, TEAM_LIGHT[team])];
-    out.braid = [0, 1, 2].map((i) => { const p = new Parts(); const r = 0.042 - i * 0.006; p.add(geo('lsphere'), i === 2 ? 0xffd23a : 0xf3e6a0, [0, -0.07, 0], 0, [r, 0.08, r]); return p.build(); });
-  } else {
-    out.sash = [tailSeg(0.13, 0.3, tc), tailSeg(0.12, 0.28, tc), tailSeg(0.1, 0.22, TEAM_LIGHT[team])];
-  }
-  if (id === 'shimo') {
-    out.pony = [0, 1, 2, 3].map((i) => {
-      const p = new Parts(); const len = 0.24, r0 = 0.07 - i * 0.012, r1 = 0.06 - i * 0.014;
-      p.add(limb(r0, Math.max(0.012, r1), len, 8), i % 2 ? 0x9fbfcc : 0xc9dde6, [0, 0, 0], 0, [1, 1, 0.8]);
+  if (id === 'goku') out.sash = [tailSeg(0.06, 0.18, C.blue), tailSeg(0.055, 0.16, C.blue)];
+  if (id === 'piccolo') out.sash = [tailSeg(0.08, 0.2, C.sash), tailSeg(0.07, 0.18, C.sash)];
+  if (id === 'frieza') {
+    out.tail = [0, 1, 2, 3, 4].map((i) => {
+      const p = new Parts(); const len = 0.2, r0 = 0.07 - i * 0.011, r1 = 0.07 - (i + 1) * 0.011;
+      p.add(limb(r0, Math.max(0.015, r1), len, 8), i === 4 ? C.dome : d.skin, [0, 0, 0]);
+      p.add(geo('lsphere'), i === 4 ? C.dome : d.skin, [0, 0, 0], 0, r0 * 1.02);
+      if (i === 4) p.add(geo('cone6'), C.dome, [0, -len, 0], [Math.PI, 0, 0], [0.02, 0.07, 0.02]);
       return p.build();
     });
   }
-  if (id === 'homura') {
-    // 額前的隊伍色頭帶尾
-    out.band = [tailSeg(0.04, 0.16, tc, 0.012), tailSeg(0.035, 0.16, TEAM_LIGHT[team], 0.012)];
+  if (id === 'trunks') {
+    // 劍：握把在原點，刃沿 +y
+    const p = new Parts();
+    p.add(cyl(0.018, 0.02, 0.2, 6), C.hilt, [0, 0.0, 0]);
+    p.add(geo('lsphere'), 0x8a6a2a, [0, -0.11, 0], 0, 0.028);
+    p.add(geo('box'), 0x8a6a2a, [0, 0.11, 0], 0, [0.14, 0.03, 0.05]);
+    p.add(geo('box'), C.steel, [0, 0.58, 0], 0, [0.045, 0.9, 0.012]);
+    p.add(new THREE.ConeGeometry(1, 1, 4).translate(0, 0.5, 0), C.steel, [0, 1.03, 0], [0, Math.PI / 4, 0], [0.032, 0.08, 0.008]);
+    p.add(geo('box'), 0xffffff, [0.012, 0.58, 0.007], 0, [0.008, 0.86, 0.002]);
+    out.sword = p.build();
+    const q = new Parts();
+    q.add(geo('box'), C.sheath, [0, 0.6, 0], 0, [0.075, 0.95, 0.04]);
+    q.add(geo('box'), 0x8a6a2a, [0, 0.16, 0], 0, [0.085, 0.05, 0.05]);
+    q.add(geo('box'), 0x8a6a2a, [0, 1.05, 0], 0, [0.085, 0.06, 0.05]);
+    out.sheath = q.build();
   }
   return out;
 }
 
 /* ---------------- 姿勢 ---------------- */
 const KEYS = ['hipsY', 'hipsZ', 'hipsRX', 'hipsRY', 'hipsRZ', 'torsoX', 'torsoY', 'torsoZ', 'headX', 'headY', 'headZ',
-  'shLX', 'shLY', 'shLZ', 'elL', 'shRX', 'shRY', 'shRZ', 'elR', 'thLX', 'thLZ', 'knL', 'thRX', 'thRZ', 'knR', 'spin'];
+  'shLX', 'shLY', 'shLZ', 'elL', 'shRX', 'shRY', 'shRZ', 'elR', 'thLX', 'thLZ', 'knL', 'thRX', 'thRZ', 'knR', 'spin', 'stretch'];
 function blank() { const p = {}; for (const k of KEYS) p[k] = 0; p.shLZ = 0.12; p.shRZ = 0.12; p.elL = -0.15; p.elR = -0.15; return p; }
 function lerpPose(a, b, k, out = {}) { for (const key of KEYS) out[key] = a[key] + (b[key] - a[key]) * k; return out; }
 const ease = (k) => k * k * (3 - 2 * k);
@@ -445,27 +569,36 @@ const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 function stance(style, t) {
   const p = blank();
   const br = Math.sin(t * 2.6);
-  if (style === 'mage') {
-    Object.assign(p, { hipsY: -0.015 - 0.01 * br, torsoX: 0.02 + 0.015 * br, torsoY: 0.25, headY: -0.2,
-      shLX: -0.2, shLZ: 0.2, elL: -0.5, shRX: -0.75, shRZ: 0.35, elR: -1.5,
-      thLX: -0.12, thLZ: 0.06, knL: 0.15, thRX: 0.15, thRZ: 0.06, knR: 0.2 });
-  } else if (style === 'tank') {
-    Object.assign(p, { hipsY: -0.06 - 0.015 * br, torsoX: 0.18 + 0.02 * br, torsoY: 0.15, headX: -0.15,
-      shLX: -0.55, shLZ: 0.45, elL: -1.2, shRX: -0.45, shRZ: 0.45, elR: -1.3,
-      thLX: -0.2, thLZ: 0.22, knL: 0.38, thRX: 0.2, thRZ: 0.22, knR: 0.38 });
-  } else if (style === 'ninja') {
-    Object.assign(p, { hipsY: -0.09 - 0.012 * br, torsoX: 0.3 + 0.02 * br, torsoY: 0.35, headX: -0.25, headY: -0.3,
-      shLX: -1.0, shLZ: 0.3, elL: -1.7, shRX: 0.5, shRZ: 0.35, elR: -0.6,
-      thLX: -0.45, thLZ: 0.12, knL: 0.75, thRX: 0.35, thRZ: 0.1, knR: 0.6 });
-  } else {
-    Object.assign(p, { hipsY: -0.04 - 0.015 * br, torsoX: 0.08 + 0.02 * br, torsoY: 0.35, headY: -0.3,
-      shLX: -0.95, shLZ: 0.25, elL: -1.75, shRX: -0.6, shRZ: 0.3, elR: -2.0,
-      thLX: -0.22, thLZ: 0.1, knL: 0.3, thRX: 0.28, thRZ: 0.1, knR: 0.32 });
+  if (style === 'tank') { // 比克：低而寬，一手前伸
+    Object.assign(p, { hipsY: -0.07 - 0.012 * br, torsoX: 0.14 + 0.02 * br, torsoY: 0.35, headX: -0.12, headY: -0.3,
+      shLX: -1.15, shLZ: 0.3, elL: -0.9, shRX: -0.35, shRZ: 0.35, elR: -1.6,
+      thLX: -0.3, thLZ: 0.25, knL: 0.45, thRX: 0.25, thRZ: 0.25, knR: 0.45 });
+  } else if (style === 'proud') { // 貝吉塔：挺胸抬下巴，拳低垂，偶爾抱胸
+    const fold = Math.sin(t * 0.35) > 0.55;
+    Object.assign(p, { hipsY: -0.02 - 0.01 * br, torsoX: -0.06 + 0.01 * br, torsoY: 0.2, headX: -0.16, headY: -0.2,
+      thLX: -0.1, thLZ: 0.12, knL: 0.12, thRX: 0.12, thRZ: 0.12, knR: 0.15 });
+    if (fold) Object.assign(p, { shLX: -1.15, shLZ: -0.35, elL: -1.95, shRX: -1.05, shRZ: -0.4, elR: -2.05 });
+    else Object.assign(p, { shLX: -0.15, shLZ: 0.32, elL: -0.55, shRX: -0.2, shRZ: 0.3, elR: -0.6 });
+  } else if (style === 'sword') { // 特南克斯：右手靠近劍柄
+    Object.assign(p, { hipsY: -0.05 - 0.012 * br, torsoX: 0.08 + 0.015 * br, torsoY: 0.4, headY: -0.35,
+      shLX: -0.8, shLZ: 0.3, elL: -1.5, shRX: -0.3, shRZ: 0.55, elR: -1.0,
+      thLX: -0.28, thLZ: 0.12, knL: 0.35, thRX: 0.3, thRZ: 0.12, knR: 0.35 });
+  } else if (style === 'regal') { // 弗利沙：直立、雙手微收、從容
+    Object.assign(p, { hipsY: -0.01 - 0.008 * br, torsoX: -0.04 + 0.01 * br, torsoY: 0.1, headX: -0.08, headY: -0.12,
+      shLX: -0.35, shLZ: 0.25, elL: -1.2, shRX: -0.3, shRZ: 0.22, elR: -1.0,
+      thLX: -0.05, thLZ: 0.05, knL: 0.08, thRX: 0.06, thRZ: 0.05, knR: 0.1 });
+  } else if (style === 'cool') { // 18 號：重心在一腳、手輕垂
+    Object.assign(p, { hipsY: -0.02 - 0.008 * br, hipsRZ: 0.05, torsoX: 0.0 + 0.01 * br, torsoY: 0.15, torsoZ: -0.05, headY: -0.15, headZ: 0.06,
+      shLX: -0.1, shLZ: 0.18, elL: -0.35, shRX: -0.25, shRZ: 0.25, elR: -1.2,
+      thLX: -0.08, thLZ: 0.04, knL: 0.06, thRX: 0.12, thRZ: 0.1, knR: 0.25 });
+  } else { // 悟空：經典格鬥架式
+    Object.assign(p, { hipsY: -0.05 - 0.015 * br, torsoX: 0.1 + 0.02 * br, torsoY: 0.38, headY: -0.32,
+      shLX: -1.0, shLZ: 0.25, elL: -1.8, shRX: -0.6, shRZ: 0.3, elR: -2.05,
+      thLX: -0.25, thLZ: 0.12, knL: 0.35, thRX: 0.3, thRZ: 0.12, knR: 0.38 });
   }
   return p;
 }
 
-// 攻擊：起手 → 打擊（ti 命中）→ 停留 → 收招
 function strike(t, ti, base, W, S, rec = 0.36) {
   const a = ti * 0.55;
   if (t < a) return lerpPose(base, W, ease(t / a));
@@ -473,46 +606,59 @@ function strike(t, ti, base, W, S, rec = 0.36) {
   if (t < ti + 0.07) return S;
   return lerpPose(S, base, ease(clamp((t - ti - 0.07) / Math.max(0.05, rec - ti - 0.07), 0, 1)));
 }
-export const IMPACT = { atk1: 0.1, atk2: 0.12, atk3: 0.16, cast: 0.16, beam: 0.4 };
+export const IMPACT = { atk1: 0.1, atk2: 0.12, atk3: 0.16, slash: 0.12, cast: 0.16, beam: 0.4, grab: 0.18, overhead: 0.3 };
 
 function heroPose(d, name, t, k, phase, out) {
   const base = stance(d.style, t);
   const P = (o) => Object.assign({ ...base }, o);
   let p = base;
+  const sword = d.style === 'sword';
+  if (name === 'slash' && !sword) name = 'atk2';
   switch (name) {
     case 'run': {
       const s = Math.sin(phase), c = Math.cos(phase);
-      const ninja = d.style === 'ninja';
-      p = P({ hipsY: -0.05 + 0.06 * Math.abs(c), torsoX: ninja ? 0.75 : d.style === 'tank' ? 0.32 : 0.28, torsoY: 0.14 * s, headX: ninja ? -0.55 : -0.15, headY: 0,
-        thLX: s * 0.95, thRX: -s * 0.95, thLZ: 0.04, thRZ: 0.04,
-        knL: 0.35 + 1.1 * Math.max(0, -c), knR: 0.35 + 1.1 * Math.max(0, c),
-        shLX: ninja ? 1.25 : -s * 0.85, shRX: ninja ? 1.25 : s * 0.85, shLZ: ninja ? 0.35 : 0.15, shRZ: ninja ? 0.35 : 0.15,
-        elL: ninja ? -0.2 : -1.35, elR: ninja ? -0.2 : -1.35 });
+      const glide = d.style === 'regal';
+      p = P({ hipsY: -0.05 + 0.06 * Math.abs(c) * (glide ? 0.3 : 1), torsoX: glide ? 0.35 : d.style === 'tank' ? 0.32 : 0.3, torsoY: 0.14 * s, headX: -0.15, headY: 0,
+        thLX: s * (glide ? 0.35 : 0.95), thRX: -s * (glide ? 0.35 : 0.95), thLZ: 0.04, thRZ: 0.04,
+        knL: 0.35 + (glide ? 0.4 : 1.1) * Math.max(0, -c), knR: 0.35 + (glide ? 0.4 : 1.1) * Math.max(0, c),
+        shLX: glide ? 0.5 : -s * 0.85, shRX: glide ? 0.5 : s * 0.85, shLZ: 0.18, shRZ: 0.18,
+        elL: glide ? -0.4 : -1.35, elR: glide ? -0.4 : -1.35 });
+      if (sword) Object.assign(p, { shRX: 0.9, shRZ: 0.35, elR: -0.3 });
       break;
     }
     case 'atk1': {
+      if (sword) { // 斜劈
+        const W = P({ torsoY: 0.5, shRX: -2.7, shRZ: 0.55, elR: -0.7, headY: -0.3 });
+        const S = P({ torsoY: -0.45, torsoX: 0.25, shRX: -0.65, shRZ: -0.35, elR: -0.2, hipsZ: 0.08, thRX: 0.4, thLX: -0.5, knL: 0.5, headY: 0.2 });
+        p = strike(t, IMPACT.atk1, base, W, S, 0.3); break;
+      }
       const W = P({ torsoY: 0.1, shRX: -0.5, shRZ: 0.25, elR: -2.2, hipsZ: -0.02 });
       const S = P({ torsoY: 0.95, torsoX: 0.15, shRX: -1.55, shRZ: 0.05, shRY: 0, elR: -0.05, hipsZ: 0.08, thRX: 0.45, knR: 0.2, headY: -0.6 });
       p = strike(t, IMPACT.atk1, base, W, S, 0.3);
       break;
     }
+    case 'slash':
     case 'atk2': {
+      if (sword) { // 橫斬
+        const W = P({ torsoY: 1.0, shRX: -1.45, shRZ: 1.35, elR: -0.35 });
+        const S = P({ torsoY: -0.95, torsoX: 0.15, shRX: -1.5, shRZ: -0.35, elR: -0.1, hipsZ: 0.1, thLX: -0.55, knL: 0.45, headY: 0.4 });
+        p = strike(t, IMPACT.atk2, base, W, S, 0.34); break;
+      }
       const W = P({ torsoY: 0.75, shLX: -0.6, shLZ: 1.15, elL: -1.4 });
       const S = P({ torsoY: -0.75, torsoX: 0.18, shLX: -1.45, shLZ: 0.35, elL: -0.75, hipsZ: 0.1, thLX: -0.55, knL: 0.45, headY: 0.4 });
       p = strike(t, IMPACT.atk2, base, W, S, 0.34);
       break;
     }
     case 'atk3': {
-      if (d.atk3 === 'smash') {
-        const W = P({ torsoX: -0.3, shLX: -2.9, shRX: -2.9, shLZ: 0.2, shRZ: 0.2, elL: -0.6, elR: -0.6, hipsY: 0.02, headX: -0.3 });
-        const S = P({ torsoX: 0.75, shLX: -0.85, shRX: -0.85, shLZ: -0.05, shRZ: -0.05, elL: -0.2, elR: -0.2, hipsY: -0.16, hipsZ: 0.12, knL: 0.8, knR: 0.8, thLX: -0.6, thRX: -0.1 });
-        p = strike(t, IMPACT.atk3, base, W, S, 0.45);
+      if (d.atk3 === 'sword') { // 上撩
+        const W = P({ torsoY: 0.4, torsoX: 0.35, shRX: 0.7, shRZ: 0.35, elR: -0.3, hipsY: -0.12, knL: 0.7, knR: 0.6 });
+        const S = P({ torsoY: -0.2, torsoX: -0.35, shRX: -2.9, shRZ: 0.1, elR: -0.1, hipsY: 0.06, hipsZ: 0.06, thLX: -0.3, knL: 0.2, headX: -0.4 });
+        p = strike(t, IMPACT.atk3, base, W, S, 0.42);
       } else if (d.atk3 === 'palm') {
         const W = P({ torsoY: -0.8, shRX: 0.4, shRZ: 0.6, elR: -1.6, shLX: -0.8, elL: -1.2 });
         const S = P({ torsoY: 1.1, torsoX: 0.1, shRX: -1.55, shRZ: -0.2, elR: 0, shLX: 0.5, shLZ: 0.5, elL: -0.4, hipsZ: 0.12, thLX: -0.6, knL: 0.5, thRX: 0.5 });
         p = strike(t, IMPACT.atk3, base, W, S, 0.42);
       } else {
-        // 迴旋踢
         const W = P({ torsoY: -0.7, torsoX: 0.1, thRX: 0.6, knR: 1.6, hipsY: -0.08 });
         const S = P({ torsoY: 1.0, torsoX: -0.35, torsoZ: 0.25, thRX: -1.65, thRZ: 0.25, knR: 0.05, thLX: 0.1, knL: 0.35, hipsY: 0.04, hipsZ: 0.04,
           shLX: -0.6, shLZ: 0.9, elL: -0.8, shRX: 0.4, shRZ: 0.8, elR: -0.5, headY: -0.7 });
@@ -536,15 +682,41 @@ function heroPose(d, name, t, k, phase, out) {
       else p = S;
       break;
     }
+    case 'grab': { // 手臂前伸；比克會把手臂拉長
+      const kk = k != null ? clamp(k, 0, 1) : (t < IMPACT.grab ? ease(t / IMPACT.grab) : Math.max(0, 1 - (t - IMPACT.grab - 0.15) / 0.25));
+      const S = P({ torsoY: 0.7, torsoX: 0.2, shRX: -1.55, shRZ: -0.05, elR: -0.02, shLX: 0.4, shLZ: 0.4, elL: -0.5, hipsZ: 0.1, thLX: -0.55, knL: 0.5, thRX: 0.45, headY: -0.5 });
+      p = lerpPose(base, S, Math.min(1, kk * 1.6));
+      p.stretch = d.style === 'tank' ? kk * 2.0 : 0;
+      break;
+    }
+    case 'overhead': { // 單手高舉（死亡球、魔空包圍彈）
+      const kk = ease(clamp(t / IMPACT.overhead, 0, 1));
+      const S = P({ torsoX: -0.18, torsoY: 0.1, headX: -0.45, headY: 0, shRX: -3.05, shRZ: 0.12, elR: -0.12, shLX: 0.25, shLZ: 0.55, elL: -1.7,
+        thLX: -0.1, thLZ: 0.15, knL: 0.12, thRX: 0.1, thRZ: 0.15, knR: 0.12, hipsY: -0.02 });
+      p = lerpPose(base, S, kk);
+      break;
+    }
+    case 'barrier': {
+      const tr = Math.sin(t * 50) * 0.015;
+      p = P({ hipsY: -0.12, torsoX: -0.18 + tr, torsoY: 0, headX: -0.25, headY: 0, shLX: -0.45, shLZ: 1.35, elL: -0.25, shRX: -0.45, shRZ: 1.35, elR: -0.25,
+        thLX: -0.3, thLZ: 0.32, knL: 0.55, thRX: -0.3, thRZ: 0.32, knR: 0.55 });
+      break;
+    }
     case 'dash':
       p = P({ torsoX: 0.95, torsoY: 0, headX: -0.75, shLX: 1.05, shRX: 1.05, shLZ: 0.35, shRZ: 0.35, elL: -0.3, elR: -0.3,
         thLX: -0.7, knL: 1.3, thRX: 0.55, knR: 0.9, hipsY: -0.08 });
+      if (sword) Object.assign(p, { shRX: 0.6, shRZ: 0.9, elR: -0.2 });
       break;
     case 'rush': {
       const per = 0.11, i = Math.floor(t / per), f = (t % per) / per;
       const ext = f < 0.45 ? ease(f / 0.45) : 1 - ease((f - 0.45) / 0.55) * 0.85;
       const left = i % 2 === 0;
       const a = left ? ext : 1 - ext;
+      if (sword) { // 連斬：右手左右來回
+        p = P({ torsoX: 0.25, torsoY: (left ? 0.8 : -0.8) * ext, hipsZ: 0.05, shRX: -1.5, shRZ: left ? 1.2 * (1 - ext) - 0.3 : -0.3 + 1.2 * ext, elR: -0.15,
+          shLX: -0.8, shLZ: 0.3, elL: -1.4, thLX: -0.5, knL: 0.5, thRX: 0.45, knR: 0.35, hipsY: -0.07 });
+        break;
+      }
       p = P({ torsoX: 0.25, torsoY: (left ? -0.5 : 0.5) * ext, hipsZ: 0.05,
         shLX: -0.6 - 1.0 * a, shLZ: 0.15, elL: -1.9 + 1.85 * a, shRX: -0.6 - 1.0 * (1 - a), shRZ: 0.15, elR: -1.9 + 1.85 * (1 - a),
         thLX: -0.5, knL: 0.5, thRX: 0.45, knR: 0.35, hipsY: -0.07 });
@@ -583,6 +755,7 @@ function heroPose(d, name, t, k, phase, out) {
       const b = Math.abs(Math.sin(t * 4));
       p = P({ hipsY: -0.02 + 0.03 * b, torsoX: -0.1, torsoY: 0, headX: -0.3, headY: 0, shRX: -2.95, shRZ: 0.15, elR: -0.25 - 0.2 * b, shLX: 0.15, shLZ: 0.6, elL: -1.6,
         thLX: -0.1, thLZ: 0.15, knL: 0.1, thRX: 0.1, thRZ: 0.15, knR: 0.1 });
+      if (d.style === 'proud') Object.assign(p, { shLX: -1.15, shLZ: -0.35, elL: -1.95, shRX: -1.05, shRZ: -0.4, elR: -2.05, headX: -0.3 });
       break;
     }
     case 'leap':
@@ -618,7 +791,7 @@ void main(){
   float n = n2(q) * 0.65 + n2(q * 2.3 + 4.0) * 0.35;
   float body = smoothstep(0.0, 0.12, vUv.y) * (1.0 - smoothstep(0.35, 1.0, vUv.y));
   float tongue = smoothstep(vUv.y * 0.85 + 0.05, vUv.y * 0.85 + 0.35, n);
-  float a = tongue * body * (0.12 + 0.75 * vRim) * uLevel * 0.7;
+  float a = tongue * body * (0.08 + 0.8 * vRim) * uLevel * 0.62;
   vec3 c = mix(uColor, vec3(1.0), clamp(tongue * (1.0 - vUv.y) * 0.4, 0.0, 1.0));
   gl_FragColor = vec4(c * a, a);
   #include <colorspace_fragment>
@@ -648,6 +821,7 @@ function makeAura(H) {
 }
 
 /* ---------------- buildHero ---------------- */
+const SWORD_IN_HAND = new Set(['atk1', 'atk2', 'atk3', 'slash', 'rush', 'dash']);
 export function buildHero(id, team = 0) {
   const d = HERO[id];
   if (!d) throw new Error('unknown hero ' + id);
@@ -662,7 +836,10 @@ export function buildHero(id, team = 0) {
   const torso = new THREE.Group(); torso.position.y = 0.02; hips.add(torso);
   meshPair(gs.torso, torso);
   const head = new THREE.Group(); head.position.y = d.torso + 0.04; torso.add(head);
-  meshPair(gs.head, head);
+  const headForms = {};
+  for (const f in gs.heads) {
+    const g = new THREE.Group(); head.add(g); meshPair(gs.heads[f].main, g); meshPair(gs.heads[f].face, g, { outline: false, shadow: false }); g.visible = f === 'base'; headForms[f] = g;
+  }
   const chest = new THREE.Object3D(); chest.position.set(0, d.torso * 0.66, d.chest[2] * 0.5); torso.add(chest);
   const J = { hips, torso, head };
   const hands = {};
@@ -692,21 +869,31 @@ export function buildHero(id, team = 0) {
       meshPair(g, s, { w: opt.w || 0.02 });
       segs.push(s); par = s;
     });
-    chains.push({ segs, base, yaw: opt.yaw || 0, lift: opt.lift ?? 1, flutter: opt.flutter ?? 0.25, cur: segs.map(() => base), phase: Math.random() * 6 });
+    chains.push({ segs, base, yaw: opt.yaw || 0, lift: opt.lift ?? 1, flutter: opt.flutter ?? 0.25, curl: opt.curl || 0, sway: opt.sway || 0, cur: segs.map(() => base), phase: Math.random() * 6 });
   };
-  if (gs.sash) chain(gs.sash, hips, [0.1, 0.07, -d.waist * 1.05], 0.2, { lens: [0.3, 0.28], yaw: 0.2 });
-  if (gs.scarf) {
-    chain(gs.scarf, head, [0.05, d.hr * 0.55, -d.hr * 0.85], 0.35, { lens: [0.28, 0.26], yaw: 0.2, lift: 1.4, flutter: 0.4 });
-    chain(gs.scarf, head, [-0.05, d.hr * 0.5, -d.hr * 0.85], 0.3, { lens: [0.28, 0.26], yaw: -0.25, lift: 1.3, flutter: 0.45 });
+  if (gs.sash) chain(gs.sash, hips, [0.12, 0.05, d.chest[2] * 0.95], -0.15, { lens: [0.18], yaw: 0.1, lift: -0.6, flutter: 0.2 });
+  // 弗利沙的尾巴：從臀後垂下再往上捲
+  if (gs.tail) chain(gs.tail, hips, [0, -0.04, -d.hip * 1.05], 0.75, { lens: [0.2, 0.2, 0.2, 0.2], lift: 0.22, flutter: 0.1, curl: 0.16, sway: 0.4, w: 0.018 });
+
+  // 特南克斯的劍：背上的鞘與在手上的劍
+  let sword = null, swordState = 'back', backSocket = null, handSocket = null;
+  if (gs.sword) {
+    backSocket = new THREE.Group();
+    backSocket.position.set(-0.11, d.torso * 0.98, -d.chest[2] * 1.02);
+    backSocket.rotation.set(0, 0, -2.6);
+    torso.add(backSocket);
+    meshPair(gs.sheath, backSocket, { w: 0.016 });
+    sword = new THREE.Group();
+    meshPair(gs.sword, sword, { w: 0.014 });
+    backSocket.add(sword);
+    handSocket = new THREE.Group();
+    handSocket.rotation.set(Math.PI - 0.5, 0, 0);
+    hands.R.add(handSocket);
   }
-  if (gs.braid) chain(gs.braid, head, [0, d.hr * 0.95, -d.hr * 0.85], 0.25, { lens: [0.14, 0.14], lift: 0.9, w: 0.016 });
-  if (gs.pony) chain(gs.pony, head, [0, d.hr * 1.9, -d.hr * 0.62], 0.65, { lens: [0.24, 0.24, 0.24], lift: 0.8, flutter: 0.18 });
-  if (gs.band) chain(gs.band, head, [0, d.hr * 1.2, -d.hr * 0.98], 0.4, { lens: [0.16], lift: 1.5, flutter: 0.5, w: 0.014 });
 
   const aura = makeAura(d.H);
   root.add(aura.group);
 
-  // 狀態
   const cur = stance(d.style, 0), tgt = {};
   let phase = 0, time = 0, lastName = 'idle';
   const last = new THREE.Vector3(), vel = new THREE.Vector3();
@@ -718,10 +905,9 @@ export function buildHero(id, team = 0) {
     const name = (anim && anim.name) || 'idle';
     const t = (anim && anim.t) || 0;
     const k = anim ? anim.k : undefined;
-    // 速度（由 root 位移推得）
     if (hasLast && dt > 0) {
       vel.subVectors(root.position, last).divideScalar(dt);
-      if (vel.lengthSq() > 900) vel.set(0, 0, 0); // 傳送
+      if (vel.lengthSq() > 900) vel.set(0, 0, 0);
       const s = Math.hypot(vel.x, vel.z);
       speed += (s - speed) * (1 - Math.exp(-10 * dt));
       const ry = root.rotation.y;
@@ -729,29 +915,36 @@ export function buildHero(id, team = 0) {
     }
     last.copy(root.position); hasLast = true;
     if (name === 'run') phase += dt * clamp(speed * 1.65, 9, 15);
-    heroPose(d, name, t, k, phase, tgt);
-    const fast = name.startsWith('atk') || name === 'cast' || name === 'rush' || name === 'vanish' || (name === 'beam' && t > 0.3);
+    heroPose(d, name, name === 'idle' ? time : t, k, phase, tgt);
+    const fast = name.startsWith('atk') || name === 'slash' || name === 'cast' || name === 'rush' || name === 'vanish' || name === 'grab' || (name === 'beam' && t > 0.3);
     const rate = name !== lastName && fast ? 45 : fast ? 38 : name === 'dead' ? 9 : 13;
     lastName = name;
     const a = 1 - Math.exp(-rate * dt);
     for (const key of KEYS) cur[key] += (tgt[key] - cur[key]) * a;
     if (name === 'vanish') cur.spin = tgt.spin; else cur.spin = 0;
     apply();
-    // 擺動鏈
+    // 劍：攻擊時在手上，平常收在背上
+    if (sword) {
+      const want = SWORD_IN_HAND.has(name) ? 'hand' : 'back';
+      if (want !== swordState) {
+        swordState = want;
+        (want === 'hand' ? handSocket : backSocket).add(sword);
+        sword.position.set(0, want === 'hand' ? -0.02 : 0, 0);
+      }
+    }
     const lift = clamp(speed * 0.13, 0, 1.25) + (name === 'dash' || name === 'rush' ? 0.6 : 0) + (name === 'air' ? -0.4 : 0) + (name === 'charge' ? 0.5 : 0);
     for (const c of chains) {
       c.phase += dt * (6 + speed * 1.3);
       c.segs.forEach((s, i) => {
         const fl = Math.sin(c.phase - i * 1.1) * c.flutter * (0.25 + clamp(speed / 7, 0, 1)) * (name === 'charge' ? 2 : 1);
-        const target = (i === 0 ? c.base + lift * c.lift : lift * 0.18 * c.lift) + fl;
-        c.cur[i] += (target - c.cur[i]) * (1 - Math.exp(-(9 - i * 2) * dt));
+        const target = (i === 0 ? c.base + lift * c.lift : lift * 0.18 * c.lift + c.curl) + fl;
+        c.cur[i] += (target - c.cur[i]) * (1 - Math.exp(-(9 - i * 1.5) * dt));
         s.rotation.x = c.cur[i];
-        if (i === 0) s.rotation.y = c.yaw;
+        if (i === 0) s.rotation.y = c.yaw + (c.sway ? Math.sin(time * 1.7) * c.sway : 0);
+        else if (c.sway) s.rotation.z = Math.sin(time * 1.7 - i * 0.7) * c.sway * 0.35;
       });
     }
-    // 氣焰
     if (aura.group.visible) for (const m of aura.mats) m.uniforms.uTime.value += dt;
-    // 集氣時的顫動
     if (name === 'charge') { body.position.x = (Math.random() - 0.5) * 0.02; body.position.z = (Math.random() - 0.5) * 0.02; }
     else { body.position.x = 0; }
   }
@@ -768,8 +961,16 @@ export function buildHero(id, team = 0) {
     J.thL.rotation.set(cur.thLX, 0, cur.thLZ);
     J.thR.rotation.set(cur.thRX, 0, -cur.thRZ);
     J.knL.rotation.x = cur.knL; J.knR.rotation.x = cur.knR;
+    J.shR.scale.y = 1 + Math.max(0, cur.stretch);
   }
   apply();
+
+  let form = 'base';
+  function setForm(f) {
+    if (!d.saiyan) return;
+    form = f === 'ssj' ? 'ssj' : 'base';
+    for (const k in headForms) headForms[k].visible = k === form;
+  }
 
   function setAura(level, color) {
     const l = clamp(level || 0, 0, 1);
@@ -784,8 +985,9 @@ export function buildHero(id, team = 0) {
   setAura(0, d.element);
 
   return {
-    root, height: d.H, element: d.element, update, setAura,
+    root, height: d.H, element: d.element, update, setAura, setForm, sword,
     handL: hands.L, handR: hands.R, chest, head,
+    get form() { return form; },
     get speed() { return speed; }, get forwardSpeed() { return fwd; },
     dispose() { if (root.parent) root.parent.remove(root); for (const m of aura.mats) m.dispose(); },
   };
@@ -1133,4 +1335,262 @@ export function buildCore(team = 0) {
   };
   update(0, {});
   return { root, update };
+}
+
+/* ---------------- 野怪：恐龍、紅緞帶機器人、大猿 ---------------- */
+const monsterGeoCache = {};
+function monsterGeos(kind) {
+  if (monsterGeoCache[kind]) return monsterGeoCache[kind];
+  const out = {};
+  if (kind === 'dino') {
+    const G1 = 0x6f8a3a, G2 = 0x56702c, BELLY = 0xdcc58e;
+    { // 軀幹（沿 z 拉長）
+      const p = new Parts();
+      p.add(geo('sphere'), G1, [0, 0, 0], 0, [0.38, 0.42, 0.62]);
+      p.add(geo('lsphere'), BELLY, [0, -0.1, 0.08], 0, [0.3, 0.32, 0.5]);
+      for (let i = 0; i < 5; i++) p.add(geo('cone6'), G2, [0, 0.36 - i * 0.02, 0.3 - i * 0.16], [-0.3, 0, 0], [0.06, 0.14, 0.05]); // 背刺
+      for (const [x, z] of [[0.25, 0.1]]) p.add(geo('lsphere'), G2, [x * 1.3, 0.12, z], 0, [0.06, 0.05, 0.08]);
+      // 小短手
+      for (const sx of [-1, 1]) p.add(limb(0.035, 0.025, 0.2, 6), G1, [sx * 0.24, -0.05, 0.42], [0.9, 0, -sx * 0.2]);
+      out.body = p.build();
+    }
+    { // 脖子＋頭（上顎）
+      const p = new Parts();
+      p.add(limb(0.17, 0.2, 0.36, 6), G1, [0, 0.3, 0], [-0.6, 0, 0]);
+      p.add(geo('lsphere'), G1, [0, 0.35, 0.28], 0, [0.22, 0.2, 0.34]);
+      p.add(geo('box'), G1, [0, 0.32, 0.5], 0, [0.3, 0.14, 0.3]);
+      for (const sx of [-1, 1]) {
+        p.add(geo('lsphere'), 0xf2d84a, [sx * 0.15, 0.43, 0.36], 0, [0.045, 0.05, 0.04]);
+        p.add(geo('lsphere'), 0x1a1410, [sx * 0.165, 0.43, 0.385], 0, [0.018, 0.035, 0.02]);
+        p.add(geo('box'), G2, [sx * 0.13, 0.5, 0.36], [0, 0, sx * 0.35], [0.1, 0.03, 0.06]);
+      }
+      for (let i = 0; i < 3; i++) for (const sx of [-1, 1]) p.add(geo('cone6'), 0xf6f2e6, [sx * 0.12, 0.25, 0.42 + i * 0.08], [Math.PI, 0, 0], [0.02, 0.055, 0.02]);
+      out.head = p.build();
+    }
+    { // 下顎
+      const p = new Parts();
+      p.add(geo('box'), BELLY, [0, -0.04, 0.2], 0, [0.26, 0.08, 0.36]);
+      for (let i = 0; i < 2; i++) for (const sx of [-1, 1]) p.add(geo('cone6'), 0xf6f2e6, [sx * 0.1, 0.0, 0.18 + i * 0.1], 0, [0.018, 0.05, 0.018]);
+      out.jaw = p.build();
+    }
+    { // 腿
+      const p = new Parts();
+      p.add(geo('lsphere'), G1, [0, -0.05, 0], 0, [0.16, 0.24, 0.2]);
+      p.add(limb(0.1, 0.07, 0.38, 6), G1, [0, -0.15, -0.04], [0.35, 0, 0]);
+      p.add(geo('lsphere'), G2, [0, -0.52, 0.04], 0, [0.1, 0.05, 0.16]);
+      for (const tx of [-0.05, 0, 0.05]) p.add(geo('cone6'), 0xe8e2d0, [tx, -0.53, 0.2], [Math.PI / 2, 0, 0], [0.02, 0.05, 0.02]);
+      out.leg = p.build();
+    }
+    out.tail = [0, 1, 2].map((i) => { const p = new Parts(); p.add(limb(0.24 - i * 0.07, 0.17 - i * 0.07, 0.42, 6), i === 2 ? G2 : G1, [0, 0, 0]); return p.build(); });
+  } else if (kind === 'robot') {
+    const H1 = 0x7d8668, H2 = 0x596148, RED = 0xc8302a, MET = 0x9aa0a4;
+    {
+      const p = new Parts();
+      p.add(geo('box'), H1, [0, 0, 0], 0, [0.72, 0.62, 0.6]);
+      p.add(geo('box'), H2, [0, 0.33, -0.02], 0, [0.6, 0.06, 0.5]);
+      p.add(geo('box'), H2, [0, -0.33, 0], 0, [0.66, 0.06, 0.56]);
+      // 紅緞帶條紋：斜帶＋蝴蝶結形的兩片
+      p.add(geo('box'), RED, [0, 0.0, 0.305], [0, 0, 0.5], [0.85, 0.08, 0.012]);
+      for (const sx of [-1, 1]) p.add(new THREE.ConeGeometry(1, 1, 3), RED, [sx * 0.07, 0.18, 0.31], [Math.PI / 2, 0, sx * Math.PI / 2], [0.06, 0.012, 0.06]);
+      // 圓頂紅眼（頭部艙蓋）
+      p.add(geo('box'), H1, [0, 0.46, 0.04], 0, [0.4, 0.22, 0.38]);
+      p.add(new THREE.SphereGeometry(1, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), RED, [0, 0.44, 0.23], [Math.PI / 2, 0, 0], [0.12, 0.06, 0.12]);
+      p.add(geo('lsphere'), 0xffd0c0, [0.03, 0.47, 0.28], 0, [0.025, 0.025, 0.015]);
+      p.add(cyl(0.012, 0.012, 0.2, 4), MET, [0.13, 0.66, 0]);
+      p.add(geo('lsphere'), RED, [0.13, 0.77, 0], 0, 0.025);
+      // 鉚釘
+      for (const [x, y] of [[-0.28, 0.22], [0.28, 0.22], [-0.28, -0.22], [0.28, -0.22]]) p.add(geo('lsphere'), MET, [x, y, 0.305], 0, 0.02);
+      out.body = p.build();
+    }
+    { // 砲管手（右）
+      const p = new Parts();
+      p.add(geo('sphere'), H2, [0, 0, 0], 0, 0.12);
+      p.add(cyl(0.085, 0.085, 0.55, 10), 0x4a4e4a, [0, -0.05, 0.25], [Math.PI / 2, 0, 0]);
+      p.add(cyl(0.11, 0.11, 0.1, 10), H1, [0, -0.05, 0.08], [Math.PI / 2, 0, 0]);
+      p.add(cyl(0.06, 0.06, 0.04, 10, true), 0x1a1a1a, [0, -0.05, 0.53], [Math.PI / 2, 0, 0]);
+      out.cannon = p.build();
+    }
+    { // 夾爪手（左）
+      const p = new Parts();
+      p.add(geo('sphere'), H2, [0, 0, 0], 0, 0.1);
+      p.add(limb(0.05, 0.045, 0.26, 6), MET, [0, 0, 0]);
+      for (const sx of [-1, 1]) p.add(geo('box'), H2, [sx * 0.04, -0.32, 0.03], [0, 0, sx * 0.3], [0.03, 0.12, 0.06]);
+      out.claw = p.build();
+    }
+    {
+      const p = new Parts();
+      p.add(geo('box'), H2, [0, -0.1, 0], 0, [0.15, 0.22, 0.17]);
+      p.add(geo('box'), H1, [0, -0.25, 0.04], 0, [0.2, 0.08, 0.28]);
+      out.leg = p.build();
+    }
+  } else if (kind === 'ape') {
+    const F1 = 0x6b4426, F2 = 0x553319, TAN = 0xd6a878;
+    {
+      const p = new Parts();
+      p.add(geo('sphere'), F1, [0, 1.3, -0.05], 0, [1.25, 1.45, 1.0]);
+      p.add(geo('sphere'), TAN, [0, 1.15, 0.45], 0, [0.85, 1.05, 0.6]);
+      p.add(geo('sphere'), F1, [0, 0.2, 0], 0, [0.95, 0.65, 0.8]);
+      // 毛團（肩與背）
+      const lumps = [[0.95, 2.15, -0.1, 0.55], [-0.95, 2.15, -0.1, 0.55], [0, 2.4, -0.45, 0.6], [0.6, 1.8, -0.7, 0.5], [-0.6, 1.8, -0.7, 0.5], [0, 1.3, -0.85, 0.55]];
+      lumps.forEach(([x, y, z, r], i) => p.add(geo('dodec'), i % 2 ? F2 : F1, [x, y, z], [i, i * 0.7, 0], [r, r * 0.85, r]));
+      p.add(limb(0.45, 0.55, 0.4, 10), F1, [0, 2.75, 0.05]);
+      out.body = p.build();
+    }
+    {
+      const p = new Parts();
+      p.add(geo('sphere'), F1, [0, 0.45, 0], 0, [0.72, 0.68, 0.7]);
+      p.add(geo('sphere'), TAN, [0, 0.3, 0.42], 0, [0.52, 0.42, 0.42]);
+      p.add(geo('sphere'), TAN, [0, 0.62, 0.38], 0, [0.48, 0.2, 0.3]);
+      p.add(geo('box'), F2, [0, 0.72, 0.5], [0.3, 0, 0], [0.9, 0.12, 0.2]); // 粗眉骨
+      for (const sx of [-1, 1]) {
+        p.add(geo('sphere'), TAN, [sx * 0.7, 0.55, -0.05], 0, [0.16, 0.2, 0.08]);
+        p.add(geo('lsphere'), 0x2a0806, [sx * 0.22, 0.58, 0.68], 0, [0.12, 0.08, 0.05]);
+      }
+      p.add(geo('box'), 0x2a1408, [0, 0.13, 0.82], 0, [0.4, 0.04, 0.05]);
+      for (const sx of [-1, 1]) p.add(geo('cone6'), 0xf2ead8, [sx * 0.16, 0.12, 0.78], [Math.PI, 0, 0], [0.04, 0.12, 0.04]);
+      out.head = p.build();
+    }
+    { // 手臂（長，到膝）
+      const p = new Parts();
+      p.add(geo('sphere'), F1, [0, 0, 0], 0, 0.5);
+      p.add(limb(0.42, 0.34, 1.2, 10), F1, [0, 0, 0]);
+      p.add(geo('dodec'), F2, [0, -0.5, -0.15], [0.4, 0.2, 0], [0.4, 0.45, 0.35]);
+      out.upper = p.build();
+      const q = new Parts();
+      q.add(limb(0.36, 0.3, 1.1, 10), F1, [0, 0, 0]);
+      q.add(geo('sphere'), TAN, [0, -1.25, 0.05], 0, [0.38, 0.3, 0.42]);
+      for (let i = 0; i < 4; i++) q.add(geo('sphere'), TAN, [(i - 1.5) * 0.16, -1.48, 0.2], 0, [0.09, 0.12, 0.1]);
+      out.fore = q.build();
+    }
+    {
+      const p = new Parts();
+      p.add(geo('sphere'), F1, [0, 0, 0], 0, 0.58);
+      p.add(limb(0.52, 0.42, 1.3, 10), F1, [0, 0, 0]);
+      p.add(geo('sphere'), F2, [0, -1.38, 0.15], 0, [0.46, 0.2, 0.62]);
+      out.leg = p.build();
+    }
+    out.tail = [0, 1, 2, 3].map((i) => { const p = new Parts(); p.add(limb(0.18 - i * 0.03, 0.15 - i * 0.03, 0.75, 8), i % 2 ? F2 : F1, [0, 0, 0]); return p.build(); });
+    out.eyes = (() => { const p = new Parts(); for (const sx of [-1, 1]) p.add(geo('lsphere'), 0xff2a10, [sx * 0.22, 0.58, 0.71], 0, [0.075, 0.05, 0.03]); return p.build(); })();
+  }
+  monsterGeoCache[kind] = out;
+  return out;
+}
+
+export function buildMonster(kind = 'dino') {
+  const gs = monsterGeos(kind);
+  const root = new THREE.Group(); root.name = 'monster-' + kind;
+  const body = new THREE.Group(); root.add(body);
+  let time = 0;
+  const deadPose = (t, height) => {
+    body.rotation.z = -1.35 * ease(clamp(t / 0.45, 0, 1));
+    body.position.x = -height * 0.25 * ease(clamp(t / 0.45, 0, 1));
+    body.position.y = -height * 0.35 * clamp((t - 0.7) / 0.8, 0, 1);
+    root.scale.setScalar(Math.max(0.001, 1 - clamp((t - 1.1) / 0.4, 0, 1)));
+  };
+
+  if (kind === 'dino') {
+    const H = 1.4;
+    const torso = new THREE.Group(); torso.position.y = 0.82; body.add(torso);
+    meshPair(gs.body, torso, { w: 0.025 });
+    const neck = new THREE.Group(); neck.position.set(0, 0.05, 0.45); torso.add(neck);
+    meshPair(gs.head, neck, { w: 0.025 });
+    const jaw = new THREE.Group(); jaw.position.set(0, 0.26, 0.32); neck.add(jaw);
+    meshPair(gs.jaw, jaw, { w: 0.02 });
+    const legs = [-1, 1].map((sx) => { const g = new THREE.Group(); g.position.set(sx * 0.24, -0.12, -0.05); torso.add(g); meshPair(gs.leg, g, { w: 0.022 }); return g; });
+    const tail = []; let par = torso;
+    gs.tail.forEach((g, i) => { const s = new THREE.Group(); s.position.set(0, i ? -0.4 : 0.05, i ? 0 : -0.48); s.rotation.x = i ? 0.25 : -1.75; par.add(s); meshPair(g, s, { w: 0.022 }); tail.push(s); par = s; });
+    const update = (dt, anim) => {
+      time += dt;
+      const name = (anim && anim.name) || 'idle', t = (anim && anim.t) || 0;
+      body.rotation.set(0, 0, 0); body.position.set(0, 0, 0); root.scale.setScalar(1);
+      torso.rotation.x = 0; neck.rotation.x = 0.1 * Math.sin(time * 1.3); jaw.rotation.x = 0.08 + 0.05 * Math.sin(time * 2);
+      legs.forEach((l) => { l.rotation.x = 0; });
+      tail.forEach((s, i) => { s.rotation.y = 0.18 * Math.sin(time * 2.2 - i); });
+      torso.position.y = 0.82 + 0.015 * Math.sin(time * 2.5);
+      if (name === 'walk') {
+        const s = Math.sin(time * 9);
+        legs[0].rotation.x = 0.6 * s; legs[1].rotation.x = -0.6 * s;
+        torso.position.y = 0.82 + 0.05 * Math.abs(s); torso.rotation.z = 0.06 * s;
+        tail.forEach((sg, i) => { sg.rotation.y = 0.3 * Math.sin(time * 9 - i); });
+      } else if (name === 'atk') {
+        const k = t < 0.12 ? -ease(t / 0.12) : t < 0.2 ? -1 + 2 * ease((t - 0.12) / 0.08) : 1 - ease(clamp((t - 0.2) / 0.3, 0, 1));
+        torso.rotation.x = 0.25 * k; body.position.z = 0.25 * Math.max(0, k);
+        neck.rotation.x = 0.35 * k; jaw.rotation.x = t < 0.16 ? 0.7 * ease(t / 0.16) : 0.7 * (1 - ease(clamp((t - 0.16) / 0.06, 0, 1)));
+      } else if (name === 'dead') deadPose(t, H);
+    };
+    return { root, update, height: H };
+  }
+
+  if (kind === 'robot') {
+    const H = 1.6;
+    const hull = new THREE.Group(); hull.position.y = 0.72; body.add(hull);
+    meshPair(gs.body, hull, { w: 0.025 });
+    const cannon = new THREE.Group(); cannon.position.set(-0.46, 0.05, 0); hull.add(cannon); meshPair(gs.cannon, cannon, { w: 0.022 });
+    const claw = new THREE.Group(); claw.position.set(0.46, 0.08, 0); hull.add(claw); meshPair(gs.claw, claw, { w: 0.02 });
+    const legs = [-1, 1].map((sx) => { const g = new THREE.Group(); g.position.set(sx * 0.2, -0.32, 0); hull.add(g); meshPair(gs.leg, g, { w: 0.02 }); return g; });
+    const muzzle = new THREE.Object3D(); muzzle.position.set(0, -0.05, 0.56); cannon.add(muzzle);
+    const update = (dt, anim) => {
+      time += dt;
+      const name = (anim && anim.name) || 'idle', t = (anim && anim.t) || 0;
+      body.rotation.set(0, 0, 0); body.position.set(0, 0, 0); root.scale.setScalar(1);
+      hull.position.y = 0.72 + 0.01 * Math.sin(time * 4); hull.rotation.set(0, 0, 0);
+      cannon.position.z = 0; cannon.rotation.x = 0; claw.rotation.x = 0.1 * Math.sin(time * 1.5);
+      legs.forEach((l) => { l.rotation.x = 0; l.position.y = -0.32; });
+      if (name === 'walk') {
+        const s = Math.sin(time * 10);
+        hull.rotation.z = 0.08 * s; hull.position.y = 0.72 + 0.04 * Math.abs(s);
+        legs[0].position.y = -0.32 + 0.05 * Math.max(0, s); legs[1].position.y = -0.32 + 0.05 * Math.max(0, -s);
+        legs[0].rotation.x = 0.3 * s; legs[1].rotation.x = -0.3 * s;
+      } else if (name === 'atk') {
+        const r = t < 0.15 ? ease(t / 0.15) * 0.15 : t < 0.2 ? 0.15 - 0.4 * (t - 0.15) / 0.05 : -0.25 * (1 - ease(clamp((t - 0.2) / 0.35, 0, 1)));
+        cannon.position.z = r; hull.rotation.x = -Math.max(0, -r) * 0.4; cannon.rotation.x = -0.1;
+      } else if (name === 'dead') deadPose(t, H);
+    };
+    return { root, update, height: H, muzzle };
+  }
+
+  // ape
+  const H = 6.5;
+  const HIP = 1.55;
+  body.scale.setScalar(1.15);
+  const hip = new THREE.Group(); hip.position.y = HIP; body.add(hip);
+  const torso = new THREE.Group(); hip.add(torso);
+  meshPair(gs.body, torso, { w: 0.06 });
+  const head = new THREE.Group(); head.position.set(0, 2.85, 0.15); torso.add(head);
+  meshPair(gs.head, head, { w: 0.05 });
+  const eyes = new THREE.Mesh(gs.eyes, emissiveToon(0xff2a10, 1.6)); head.add(eyes);
+  const arms = [-1, 1].map((sx) => {
+    const sh = new THREE.Group(); sh.position.set(sx * 1.3, 2.25, 0); torso.add(sh); meshPair(gs.upper, sh, { w: 0.05 });
+    const el = new THREE.Group(); el.position.y = -1.2; sh.add(el); meshPair(gs.fore, el, { w: 0.05 });
+    return { sh, el, sx };
+  });
+  const legs = [-1, 1].map((sx) => { const g = new THREE.Group(); g.position.set(sx * 0.6, 0.0, 0); hip.add(g); meshPair(gs.leg, g, { w: 0.05 }); return g; });
+  const tail = []; let par = hip;
+  gs.tail.forEach((g, i) => { const s = new THREE.Group(); s.position.set(0, i ? -0.75 : 0.3, i ? 0 : -0.75); s.rotation.x = i ? -0.35 : -2.0; par.add(s); meshPair(g, s, { w: 0.04 }); tail.push(s); par = s; });
+  const update = (dt, anim) => {
+    time += dt;
+    const name = (anim && anim.name) || 'idle', t = (anim && anim.t) || 0;
+    body.rotation.set(0, 0, 0); body.position.set(0, 0, 0); root.scale.setScalar(1);
+    const br = Math.sin(time * 1.4);
+    hip.position.y = HIP + 0.03 * br; torso.rotation.set(0.12 + 0.02 * br, 0, 0); head.rotation.set(-0.05, 0.15 * Math.sin(time * 0.6), 0);
+    for (const a of arms) { a.sh.rotation.set(0.25, 0, a.sx * 0.18); a.el.rotation.x = -0.35; }
+    legs.forEach((l) => { l.rotation.x = 0; });
+    tail.forEach((s, i) => { s.rotation.z = 0.15 * Math.sin(time * 1.3 - i * 0.6); });
+    if (name === 'walk') {
+      const s = Math.sin(time * 4.5);
+      legs[0].rotation.x = 0.45 * s; legs[1].rotation.x = -0.45 * s;
+      hip.position.y = HIP + 0.12 * Math.abs(s); torso.rotation.z = 0.08 * s;
+      arms[0].sh.rotation.x = 0.25 - 0.4 * s; arms[1].sh.rotation.x = 0.25 + 0.4 * s;
+    } else if (name === 'atk') { // 雙手高舉後砸地
+      const up = t < 0.35 ? ease(t / 0.35) : t < 0.48 ? 1 - ease((t - 0.35) / 0.13) * 1.6 : -0.6 * (1 - ease(clamp((t - 0.48) / 0.5, 0, 1)));
+      for (const a of arms) { a.sh.rotation.x = 0.25 - 3.0 * Math.max(0, up) + 1.4 * Math.max(0, -up); a.sh.rotation.z = a.sx * 0.1; a.el.rotation.x = -0.35 - 0.3 * Math.max(0, up); }
+      torso.rotation.x = 0.12 - 0.35 * Math.max(0, up) + 0.5 * Math.max(0, -up);
+      hip.position.y = HIP - 0.25 * Math.max(0, -up);
+    } else if (name === 'roar') {
+      const k = ease(clamp(t / 0.4, 0, 1)), sh = Math.sin(time * 40) * 0.02 * k;
+      torso.rotation.x = 0.12 - 0.4 * k + sh; head.rotation.x = -0.6 * k;
+      for (const a of arms) { a.sh.rotation.x = 0.25 - 0.4 * k; a.sh.rotation.z = a.sx * (0.18 + 1.1 * k); a.el.rotation.x = -0.35 - 0.6 * k; }
+    } else if (name === 'dead') deadPose(t, H * 0.6);
+  };
+  return { root, update, height: H };
 }

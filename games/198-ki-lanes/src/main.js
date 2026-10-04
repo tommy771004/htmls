@@ -1,16 +1,18 @@
 // 啟動、固定步長迴圈、狀態機（選角 → 對戰 → 結算）、場景同步與測試 API。
 import * as THREE from 'three';
 import { DT, HEROES, HERO_ORDER, TEAM_COLOR, FOUNTAIN, BASE, WAVE_EVERY, KI_BAR, xpToNext } from './config.js';
+import { newMatch, stepWorld } from './world.js';
+import { updateFog, resetFog } from './fog.js';
+import { seen } from './vision.js';
+import { buy, eatSenzu, inShop } from './items.js';
+import { bossAlive } from './jungle.js';
 import { createRenderer } from './render.js';
 import { buildMap, heightAt, STRUCTURES, toonGradient } from './map.js';
-import { buildHero, buildMinion, buildTower, buildCore } from './models.js';
+import { buildHero, buildMinion, buildTower, buildCore, buildMonster } from './models.js';
 import { createFx } from './fx.js';
 import { audio } from './audio.js';
-import {
-  createWorld, addUnit, makeHero, spawnWave, updateMinion, updateTower, heroTick, tickStatus, physics, separate, respawnHero, dist, gainXp, addKi, damage, vulnerable,
-} from './units.js';
-import { heroAct, updateProjectiles, updateZones, wireShots, cast, orderMove, orderAttack, levelSkill, setCharging, spark } from './combat.js';
-import { makeBrain, updateAI } from './ai.js';
+import { dist, gainXp, addKi, damage, vulnerable } from './units.js';
+import { cast, orderMove, orderAttack, levelSkill, setCharging, spark } from './combat.js';
 import { createHud, createSelect, showEnd } from './hud.js';
 import { createInput } from './input.js';
 import { createMinimap } from './minimap.js';
@@ -32,8 +34,8 @@ const portraits = {};
   const pc = new THREE.PerspectiveCamera(26, 1, 0.1, 50);
   const buf = new Uint8Array(160 * 160 * 4), cv = document.createElement('canvas'); cv.width = cv.height = 160;
   const g = cv.getContext('2d'), img = g.createImageData(160, 160);
-  for (const id of HERO_ORDER) for (const team of [0, 1]) {
-    const rig = buildHero(id, team); ps.add(rig.root);
+  for (const id of HERO_ORDER) {
+    const rig = buildHero(id, 0); ps.add(rig.root);
     for (let i = 0; i < 6; i++) rig.update(1 / 30, { name: 'idle', t: i / 30, k: 0 });
     rig.root.updateMatrixWorld(true);
     const hp = new THREE.Vector3(); rig.head.getWorldPosition(hp);
@@ -43,7 +45,7 @@ const portraits = {};
     R.renderer.readRenderTargetPixels(rt, 0, 0, 160, 160, buf);
     for (let y = 0; y < 160; y++) img.data.set(buf.subarray((159 - y) * 640, (160 - y) * 640), y * 640);
     g.clearRect(0, 0, 160, 160); g.putImageData(img, 0, 0);
-    portraits[id + team] = cv.toDataURL('image/png');
+    portraits[id] = cv.toDataURL('image/png');
     ps.remove(rig.root); rig.dispose && rig.dispose();
   }
   R.renderer.setRenderTarget(null); R.renderer.setClearColor(0x000000, 1); rt.dispose();
@@ -53,7 +55,7 @@ const portraits = {};
 let G = null, hud = null, input = null, minimap = null;
 const rigs = new Map(); // unit.id → { rig, ring }
 const showcase = [];
-let selectSel = 'homura', selectCam = { pos: new THREE.Vector3(), look: new THREE.Vector3() };
+let selectSel = 'goku', selectCam = { pos: new THREE.Vector3(), look: new THREE.Vector3() };
 let paused = false, endTimer = -1, recallSnd = null;
 
 const ringGeo = new THREE.RingGeometry(0.95, 1.18, 40).rotateX(-Math.PI / 2);
@@ -63,7 +65,7 @@ function ringFor(color, scale = 1) { const m = new THREE.Mesh(ringGeo, new THREE
 function buildShowcase() {
   HERO_ORDER.forEach((id, i) => {
     const rig = buildHero(id, 0);
-    const a = -0.6 + i * 0.4, x = -70 + Math.cos(a + Math.PI / 4) * 7, z = 70 - Math.sin(a + Math.PI / 4) * 7;
+    const a = -0.95 + i * 0.38, x = -70 + Math.cos(a + Math.PI / 4) * 8, z = 70 - Math.sin(a + Math.PI / 4) * 8;
     rig.root.position.set(x, heightAt(x, z), z);
     rig.root.rotation.y = Math.atan2(-60 - x, 60 - z) * 0 + Math.PI * 0.75;
     scene.add(rig.root);
@@ -83,38 +85,24 @@ select.show();
 function startMatch(heroId, lane = 1, diff = 1) {
   audio.resume(); audio.play('select');
   clearMatch();
-  G = createWorld();
-  G.fx = fx; G.cam = cam; G.zones = []; G.timers = [];
-  G.later = (d, fn) => G.timers.push({ t: G.time + d, fn });
-  G.shake = (amt, ang) => R.shake(amt, ang !== undefined ? new THREE.Vector3(Math.sin(ang), 0, Math.cos(ang)) : null);
-  G.sfx = sfx;
-  wireShots(G);
-  // 隊伍組成：玩家＋兩名隊友（不重複），敵隊三名（不重複）
-  const others = HERO_ORDER.filter((h) => h !== heroId).sort(() => Math.random() - 0.5);
-  const lanes = [0, 1, 2].filter((l) => l !== lane);
-  const P = addUnit(G, makeHero(G, heroId, 0, lane, true));
-  G.player = P;
-  lanes.forEach((l, i) => { const h = addUnit(G, makeHero(G, others[i], 0, l, false)); h.brain = makeBrain(h, diff); });
-  const foes = HERO_ORDER.slice().sort(() => Math.random() - 0.5).slice(0, 3);
-  [0, 1, 2].forEach((l, i) => { const h = addUnit(G, makeHero(G, foes[i], 1, l, false)); h.brain = makeBrain(h, diff); });
-  // 玩家一開始自動學 Q；AI 自己分配
-  levelSkill(G, P, 'Q');
-  for (const h of G.heroes) { const f = FOUNTAIN[h.team]; h.x = f[0] + (Math.random() - 0.5) * 4; h.z = f[1] + (Math.random() - 0.5) * 4; h.facing = h.team ? -Math.PI * 0.25 : Math.PI * 0.75; }
-  // 場景物件
+  G = newMatch({ fx, cam, sfx, shake: (amt, ang) => R.shake(amt, ang !== undefined ? new THREE.Vector3(Math.sin(ang), 0, Math.cos(ang)) : null), player: heroId, lane, diff });
+  const P = G.player;
   for (const u of G.units) attachRig(u);
   G.on('spawn', attachRig);
+  G.on('despawn', (u) => { const r = rigs.get(u.id); if (r) { scene.remove(r.rig.root); r.rig.dispose && r.rig.dispose(); if (r.ring) scene.remove(r.ring); rigs.delete(u.id); } });
   wireEvents();
+  resetFog();
   if (!hud) hud = createHud({ render: R, portraits });
   hud.attach(G);
   hud.bindPlayer(P);
   if (!minimap) minimap = createMinimap(document.getElementById('minimap'), map.groundCanvas);
-  if (!input) input = createInput({ G: proxyG, render: R, minimap, hud, audio, onHelp: toggleHelp, onCamToggle: (free) => document.body.classList.toggle('camfree', free) });
+  if (!input) input = createInput({ G: proxyG, render: R, minimap, hud, audio, onHelp: toggleHelp, onCamToggle: (free) => document.body.classList.toggle('camfree', free), onShop: () => hud.toggleShop() });
   for (const s of showcase) s.rig.root.visible = false;
   cam.target.set(P.x, 0, P.z); cam.look.copy(cam.target); cam.zoom = 1; cam.focus = null;
   G.camFree = false; G.phase = 'play'; paused = false; endTimer = -1;
   select.hide(); document.getElementById('end').className = ''; document.getElementById('hud').classList.add('on');
   document.body.classList.add('playing');
-  hud.announce('青隊 對 赤隊', 'good', '摧毀赤隊主堡就獲勝');
+  hud.announce('青隊 對 赤隊', 'good', '摧毀赤隊主堡就獲勝　P 開商店');
 }
 // input 綁定一次；用代理物件指向目前的 G
 const proxyG = new Proxy({}, { get: (_, k) => (G ? G[k] : k === 'phase' ? 'select' : undefined), set: (_, k, v) => { if (G) G[k] = v; return true; } });
@@ -130,6 +118,7 @@ function attachRig(u) {
   let rig, ring = null;
   if (u.kind === 'hero') { rig = buildHero(u.heroId, u.team); ring = ringFor(u.isPlayer ? '#f6c64a' : TEAM_COLOR[u.team], 1); }
   else if (u.kind === 'minion') rig = buildMinion(u.team, u.mkind);
+  else if (u.kind === 'monster') rig = buildMonster(u.mkind);
   else if (u.kind === 'tower') rig = buildTower(u.team);
   else rig = buildCore(u.team);
   rig.root.position.set(u.x, heightAt(u.x, u.z), u.z);
@@ -174,63 +163,37 @@ function wireEvents() {
 }
 
 /* ---------------- 模擬一步 ---------------- */
-function step(dt) {
-  G.time += dt;
-  if (G.time >= G.nextWave) { spawnWave(G); G.nextWave += WAVE_EVERY; }
-  for (let i = G.timers.length - 1; i >= 0; i--) if (G.time >= G.timers[i].t) { const t = G.timers[i]; G.timers.splice(i, 1); t.fn(); }
-  for (const h of G.heroes) {
-    if (!h.alive) { h.deadT += dt; h.respawn -= dt; if (h.respawn <= 0 && G.winner < 0) respawnHero(G, h); continue; }
-    tickStatus(h, dt);
-    heroTick(G, h, dt);
-    if (!h.alive) continue;
-    if (h.brain) updateAI(G, h, dt);
-    heroAct(G, h, dt);
-    physics(G, h, dt);
-  }
-  for (const m of G.minions) {
-    if (!m.alive) { m.deadT += dt; continue; }
-    if (m.spawnDelay > 0) { m.spawnDelay -= dt; continue; }
-    tickStatus(m, dt); m.anim.t += dt;
-    updateMinion(G, m, dt);
-    physics(G, m, dt);
-  }
-  for (const s of G.structures) if (s.alive && G.winner < 0) updateTower(G, s, dt);
-  separate(G, dt);
-  updateProjectiles(G, dt);
-  updateZones(G, dt);
-  // 清掉倒下很久的小兵
-  for (let i = G.minions.length - 1; i >= 0; i--) {
-    const m = G.minions[i];
-    if (!m.alive && m.deadT > 1.6) {
-      G.minions.splice(i, 1); const j = G.units.indexOf(m); if (j >= 0) G.units.splice(j, 1);
-      const r = rigs.get(m.id); if (r) { scene.remove(r.rig.root); rigs.delete(m.id); }
-    }
-  }
-}
+function step(dt) { stepWorld(G, dt); }
 
 /* ---------------- 畫面同步 ---------------- */
 function sync(dt, t) {
+  const PT = G.player.team;
   for (const [, r] of rigs) {
     const u = r.u, rig = r.rig;
     const gy = heightAt(u.x, u.z);
+    const vis = seen(G, PT, u) || !u.alive && u.kind !== 'hero';
     if (u.kind === 'hero') {
       rig.root.position.set(u.x, gy + u.y, u.z);
       let dy = u.facing - rig.root.rotation.y; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2;
       rig.root.rotation.y += dy * Math.min(1, dt * 22);
       const vanish = u.action && u.action.name === 'vanish';
-      rig.root.visible = !vanish;
+      rig.root.visible = !vanish && vis;
+      if (rig.setForm && r.form !== u.form) { if (r.form !== undefined && u.form === 'ssj') fx.transform(u, '#ffd23f'); r.form = u.form; rig.setForm(u.form); }
       const name = u.alive ? u.anim.name : 'dead';
       rig.update(dt, { name, t: u.alive ? u.anim.t : u.deadT, k: u.alive ? 0 : Math.min(1, u.deadT / 0.7) });
-      const aura = !u.alive ? 0 : u.charging ? 1 : u.st.spark > 0 ? 0.85 : u.action && /super|beam|leap/.test(u.action.name) ? 0.9 : u.recall > 0 ? 0.5 : 0;
-      rig.setAura(aura, u.recall > 0 ? '#9fe6ff' : u.def.color);
-      if (aura > 0.5 && Math.random() < dt * 30) fx.aura(u.x, gy + 1, u.z, u.def.color, 1);
-      r.ring.visible = u.alive; r.ring.position.set(u.x, gy + 0.06, u.z);
+      const ssj = u.form === 'ssj';
+      const aura = !u.alive ? 0 : u.charging ? 1 : u.st.spark > 0 ? 0.85 : u.action && /beam|overhead/.test(u.action.name) ? 0.9 : u.recall > 0 ? 0.5 : 0;
+      const ac = u.recall > 0 ? '#9fe6ff' : ssj ? '#ffd23f' : u.def.color;
+      rig.setAura(vis ? aura : 0, ac);
+      if (vis && aura > 0.5 && Math.random() < dt * 30) fx.aura(u.x, gy + 1, u.z, ac, 1);
+      if (vis && ssj && Math.random() < dt * 14) fx.sparks(u.x, gy + 1.2, u.z, '#fff3a0');
+      r.ring.visible = u.alive && vis; r.ring.position.set(u.x, gy + 0.06, u.z);
       if (u.flash > 0 && rig.root.visible) rig.root.visible = Math.floor(t * 40) % 2 === 0 || u.flash < 0.06;
-    } else if (u.kind === 'minion') {
+    } else if (u.kind === 'minion' || u.kind === 'monster') {
       rig.root.position.set(u.x, gy + u.y, u.z);
       let dy = u.facing - rig.root.rotation.y; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2;
       rig.root.rotation.y += dy * Math.min(1, dt * 14);
-      rig.root.visible = !(u.spawnDelay > 0);
+      rig.root.visible = !(u.spawnDelay > 0) && vis;
       rig.update(dt, u.alive ? { name: u.anim.name, t: u.anim.t } : { name: 'dead', t: u.deadT });
     } else if (u.kind === 'tower') rig.update(dt, { charge: u.charge, hp: u.hp / u.maxHp, dead: !u.alive });
     else rig.update(dt, { hp: u.hp / u.maxHp, dead: !u.alive, vulnerable: G && u.alive ? vulnerable(G, u) : false });
@@ -284,6 +247,7 @@ function frame(now) {
     if (!G.camFree && P) cam.target.set(P.x, heightAt(P.x, P.z), P.z);
     if (cam.focus) cam.focusPos = { x: cam.focus.x, z: cam.focus.z };
     sync(sdt + (scale < 1 ? rdt * 0.02 : 0), simT);
+    updateFog(G.vision.grids[P.team], rdt, G.vision.on);
     fx.update(sdt);
     map.update(simT);
     R.updateCamera(rdt, now / 1000);
@@ -296,6 +260,7 @@ function frame(now) {
   } else if (G && G.phase === 'end') {
     fx.update(rdt); map.update(simT += rdt); sync(rdt, simT); R.updateCamera(rdt, now / 1000);
   } else {
+    updateFog(null, rdt, false);
     syncShowcase(rdt, now / 1000); fx.update(rdt); map.update(now / 1000);
   }
   fx.setPixelScale(R.size[1]);
@@ -327,13 +292,13 @@ requestAnimationFrame(frame);
 window.__ki = {
   ready: true,
   get G() { return G; },
-  start(id = 'homura', lane = 1, diff = 1) { startMatch(id, lane, diff); return true; },
+  start(id = 'goku', lane = 1, diff = 1) { startMatch(id, lane, diff); return true; },
   state() {
     if (!G) return { phase: 'select' };
     const P = G.player;
     return {
       phase: G.phase, time: +G.time.toFixed(2), winner: G.winner, kills: G.kills.slice(),
-      player: { id: P.heroId, hp: Math.round(P.hp), maxHp: Math.round(P.maxHp), ki: Math.round(P.ki), level: P.level, xp: Math.round(P.xp), sp: P.sp, pos: [+P.x.toFixed(2), +P.z.toFixed(2)], alive: P.alive, ranks: { ...P.ranks }, cds: Object.fromEntries(Object.entries(P.cds).map(([k, v]) => [k, +v.toFixed(2)])), action: P.action && P.action.name },
+      player: { id: P.heroId, hp: Math.round(P.hp), maxHp: Math.round(P.maxHp), ki: Math.round(P.ki), level: P.level, xp: Math.round(P.xp), sp: P.sp, pos: [+P.x.toFixed(2), +P.z.toFixed(2)], alive: P.alive, ranks: { ...P.ranks }, cds: Object.fromEntries(Object.entries(P.cds).map(([k, v]) => [k, +v.toFixed(2)])), action: P.action && P.action.name, gold: Math.floor(P.gold), inv: P.inv.slice(), senzu: P.senzu || 0, form: P.form },
       structures: G.structures.map((s) => ({ id: s.sid, alive: s.alive, hp: Math.round(s.hp) })),
       heroes: G.heroes.map((h) => ({ id: h.heroId, team: h.team, lane: h.lane, level: h.level, alive: h.alive, hp: Math.round(h.hp), k: h.kills, d: h.deaths, pos: [+h.x.toFixed(1), +h.z.toFixed(1)] })),
       minions: G.minions.filter((m) => m.alive).length, combo: G.combo.n,
@@ -356,6 +321,14 @@ window.__ki = {
   lose() { G.structures.filter((o) => o.team === 0 && o.kind === 'tower').forEach((o) => { o.alive = false; o.hp = 0; }); const c = G.structures.find((o) => o.kind === 'core' && o.team === 0); damage(G, G.heroes.find((h) => h.team === 1), c, 1e9, { type: 'true' }); },
   killPlayer() { const P = G.player, e = G.heroes.find((h) => h.team !== P.team); P.st.invuln = 0; P.st.shield = 0; damage(G, e, P, 1e9, { type: 'true', noKi: true }); return P.alive; },
   damageStructure(id, amt) { const s = G.structures.find((o) => o.sid === id); return damage(G, G.player, s, amt, { type: 'L', noKi: true }); },
+  buy(id) { return buy(G, G.player, id); },
+  senzu() { return eatSenzu(G, G.player); },
+  setGold(g) { G.player.gold = g; },
+  visible(id) { const u = G.units.find((o) => o.id === id); return u ? seen(G, G.player.team, u) : null; },
+  fog(on) { G.vision.on = on; },
+  camps() { return G.camps.map((c) => ({ id: c.id, alive: c.mobs.filter((m) => m.alive).length, next: +c.next.toFixed(1) })); },
+  boss() { const b = bossAlive(G); return b && { id: b.id, x: b.x, z: b.z, hp: Math.round(b.hp) }; },
+  heroes() { return G.heroes.map((h) => ({ id: h.id, hero: h.heroId, team: h.team, form: h.form, gold: Math.floor(h.gold), inv: h.inv.slice(), mode: h.brain && h.brain.mode })); },
   camera(x, z, zoom = 1) { G.camFree = true; cam.target.set(x, 0, z); cam.look.set(x, 0, z); cam.zoom = zoom; },
   follow() { G.camFree = false; },
   pick(id) { select.pick(id); },

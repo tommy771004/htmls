@@ -3,7 +3,9 @@ import { COMBO_WINDOW, KI_BAR, SPARK, RECALL_TIME } from './config.js';
 import {
   damage, dist, dist2, angTo, clamp, steer, face, enemiesNear, nearestEnemy, targetable, vulnerable, moveSpeed, interrupt, cancelRecall, addKi, heal,
 } from './units.js';
-import { collide, blocked, walkable } from './map.js';
+import { collide, blocked, walkable, heightAt as heightAtXZ } from './map.js';
+import { findPath } from './nav.js';
+import { seen as seenBy } from './vision.js';
 
 const sin = Math.sin, cos = Math.cos;
 const rankOf = (h, k) => h.ranks[k] - 1;
@@ -44,7 +46,9 @@ export function updateProjectiles(G, dt) {
           if (p.onHit(G, p, u) !== false && !p.pierce) { done = true; break; }
         }
       }
-      if (p.traveled >= p.range) { p.onEnd && p.onEnd(G, p); done = true; }
+      if (p.boomerang && p.traveled >= p.range && !p.returning) { p.returning = true; p.hit.clear(); }
+      if (p.returning) { const src = p.src; p.ang = Math.atan2(src.x - p.x, src.z - p.z); if (Math.hypot(src.x - p.x, src.z - p.z) < 1.2 || !src.alive) done = true; }
+      else if (p.traveled >= p.range) { p.onEnd && p.onEnd(G, p); done = true; }
     }
     if (p.life <= 0) done = true;
     if (p.vis) p.vis.update(p, dt);
@@ -136,7 +140,7 @@ export function heroAct(G, h, dt) {
   let t = h.target;
   if (t && (!t.alive || !targetable(G, t) || t.team === h.team)) { t = h.target = null; }
   if (!t && !h.goal && h.autoAcquire !== false) {
-    const near = nearestEnemy(G, h, h.range + 1.2, (o) => targetable(G, o));
+    const near = nearestEnemy(G, h, h.range + 1.2, (o) => o.team <= 1 && targetable(G, o) && (!G.vision || seenBy(G, h.team, o)));
     if (near) t = near;
   }
   if (t) {
@@ -146,8 +150,11 @@ export function heroAct(G, h, dt) {
     face(h, t.x, t.z); setAnim(h, 'idle'); return;
   }
   if (h.goal) {
-    const arrived = steer(G, h, h.goal.x, h.goal.z, spd, dt, 0.25);
-    if (arrived) { h.goal = null; setAnim(h, 'idle'); } else setAnim(h, 'run');
+    let wx = h.goal.x, wz = h.goal.z, last = true;
+    if (h.path && h.path.length) { wx = h.path[0].x; wz = h.path[0].z; last = h.path.length === 1; }
+    const arrived = steer(G, h, wx, wz, spd, dt, last ? 0.25 : 0.9);
+    if (arrived) { if (h.path && h.path.length > 1) h.path.shift(); else { h.goal = null; h.path = null; setAnim(h, 'idle'); return; } }
+    setAnim(h, 'run');
     return;
   }
   setAnim(h, 'idle');
@@ -157,11 +164,14 @@ function setAnim(h, n) { if (h.anim.name !== n) { h.anim.name = n; h.anim.t = 0;
 /* ---------------- 指令 ---------------- */
 export function orderMove(G, h, x, z) {
   if (!h.alive) return;
+  const far = Math.hypot(x - h.x, z - h.z) > 5;
+  // 同一個目標附近就沿用舊路徑，避免按住滑鼠時每幀重算
+  if (!(h.goal && h.path && Math.hypot(h.goal.x - x, h.goal.z - z) < 1.5)) h.path = far ? findPath(h.x, h.z, x, z) : null;
   h.goal = { x, z }; h.target = null; h.charging = false; cancelRecall(G, h);
 }
 export function orderAttack(G, h, t) {
   if (!h.alive || !t || t.team === h.team) return;
-  h.target = t; h.goal = null; h.charging = false; cancelRecall(G, h);
+  h.target = t; h.goal = null; h.path = null; h.charging = false; cancelRecall(G, h);
 }
 export function orderStop(G, h) { h.goal = null; h.target = null; }
 export function startRecall(G, h) {
@@ -178,6 +188,7 @@ export function setCharging(G, h, on) {
 export function spark(G, h) {
   if (!h.alive || h.cds.D > 0) return false;
   h.cds.D = SPARK.cd; h.st.spark = SPARK.dur; h.st.stun = 0; h.st.slow = 0; h.st.slowAmt = 0;
+  if (h.def.ssj) h.form = 'ssj';
   fx(G).ring(h.x, h.z, h.def.color, 5, 0.5); fx(G).hitSpark(h.x, 1.2, h.z, h.def.glow, 2.2, 'heavy');
   sfx(G, 'spark', h); if (h === G.player) G.shake(0.6);
   G.emit('spark', h); return true;
@@ -210,8 +221,7 @@ export function cast(G, h, k, tx, tz) {
   const fn = KITS[h.heroId][k];
   const ok = fn(G, h, { ang, px, pz, tx, tz, d, rank: h.ranks[k] - 1, s });
   if (ok === false) return false;
-  h.action && h.action.auto && (h.action = h.action.keep ? h.action : h.action);
-  h.cds[k] = s.cd * (1 - 0.06 * (h.ranks[k] - 1)); if (k === 'R') h.cds[k] = s.cd;
+  h.cds[k] = (k === 'R' ? s.cd : s.cd * (1 - 0.06 * (h.ranks[k] - 1))) * (1 - (h.cdr || 0));
   if (s.ki) h.ki -= s.ki * KI_BAR;
   h.charging = false; cancelRecall(G, h);
   G.emit('cast', { h, k });
@@ -328,53 +338,234 @@ function superIntro(G, h, k) {
 function superOutro(G) { if (G.cam) G.cam.focus = null; }
 
 /* ---------------- 各角色技能 ---------------- */
-const KITS = {
-  homura: {
-    Q(G, h, { ang, s }) {
-      act(h, {
-        name: 'cast', dur: 0.32, fired: false,
-        step(G, h) {
-          if (this.fired || this.t < 0.13) return; this.fired = true;
-          const dmg = skillDmg(h, 'Q');
-          const boom = (G, p) => {
-            fx(G).explode(p.x, p.z, '#ff7a1a', s.radius); sfx(G, 'explode', p);
-            inCircle(G, h, p.x, p.z, s.radius, (u) => damage(G, h, u, dmg, { type: 'skill', knock: 6, kdir: angTo(p, u) }));
-            if (h === G.player) G.shake(0.4);
-          };
-          const p = spawnProjectile(G, { x: h.x + sin(ang), z: h.z + cos(ang), y: 1.3, ang, speed: s.speed, range: s.range, team: h.team, src: h, radius: 0.7, onHit: (G, p) => { boom(G, p); }, onEnd: boom });
-          p.vis = fx(G).orb('#ff7a1a', 0.8, 'fire'); sfx(G, 'blast', h);
+/* ---------------- 共用招式模板 ---------------- */
+// 直線氣彈：命中（或飛到盡頭）時爆炸
+function blastBall(G, h, { ang, s }, color, style = 'ki') {
+  face(h, h.x + sin(ang), h.z + cos(ang));
+  act(h, {
+    name: 'cast', dur: 0.32, fired: false,
+    step(G, h) {
+      if (this.fired || this.t < 0.14) return; this.fired = true;
+      const dmg = skillDmg(h, 'Q');
+      const boom = (G, p) => {
+        fx(G).explode(p.x, p.z, color, s.radius); sfx(G, 'explode', p);
+        inCircle(G, h, p.x, p.z, s.radius, (u) => damage(G, h, u, dmg, { type: 'skill', knock: 6, kdir: angTo(p, u) }));
+        if (h === G.player) G.shake(0.4);
+      };
+      const p = spawnProjectile(G, { x: h.x + sin(ang), z: h.z + cos(ang), y: 1.3, ang, speed: s.speed, range: s.range, team: h.team, src: h, radius: 0.7, onHit: (G, p) => { boom(G, p); }, onEnd: boom });
+      p.vis = fx(G).orb(color, 0.8, style); sfx(G, 'blast', h);
+    },
+  });
+}
+// 貫穿氣功波／圓盤
+function pierceWave(G, h, { ang, s }, color, vis, opts = {}) {
+  face(h, h.x + sin(ang), h.z + cos(ang));
+  act(h, {
+    name: 'cast', dur: 0.32, fired: false,
+    step(G, h) {
+      if (this.fired || this.t < 0.14) return; this.fired = true;
+      const dmg = skillDmg(h, 'Q');
+      const p = spawnProjectile(G, {
+        x: h.x + sin(ang), z: h.z + cos(ang), y: 1.3, ang, speed: s.speed, range: s.range, team: h.team, src: h, radius: (s.width || 1.2) / 2, pierce: true,
+        onHit(G, p, u) { damage(G, h, u, dmg, { type: 'skill', knock: opts.knock ?? 4, kdir: ang }); fx(G).hitSpark(u.x, 1.2, u.z, color, 1.1, 'light'); sfx(G, 'hitM', u, { vol: 0.6 }); },
+      });
+      p.vis = vis(); sfx(G, 'blast', h, { pitch: opts.pitch || 1 });
+    },
+  });
+}
+// 衝刺連打
+function dashRush(G, h, { ang, s }, color, hits, gap, finisher, sound = 'hitM') {
+  const dmg = skillDmg(h, 'W');
+  sfx(G, 'dash', h);
+  dashAction(G, h, {
+    ang, len: s.range, speed: 32,
+    onContact: (u) => { if (u.kind === 'tower' || u.kind === 'core') return true; rushAction(G, h, u, { n: hits, gap, dmg, finisher, color, sound }); return true; },
+  });
+}
+// 光束必殺：蓄力 windup 秒後持續 1.25 秒多段傷害
+function beamSuper(G, h, { ang, s }, color, core, style) {
+  const dmg = skillDmg(h, 'R'), wind = s.windup || 0.32;
+  superIntro(G, h, 'R');
+  face(h, h.x + sin(ang), h.z + cos(ang));
+  let beam = null, tick = 0, snd = null;
+  act(h, {
+    name: 'beam', dur: wind + 1.25, unstoppable: true,
+    step(G, h, dt) {
+      if (this.t < wind) { if (Math.random() < 0.5) fx(G).aura(h.x, 1.2, h.z, color, 2); return; }
+      if (!beam) { superOutro(G); beam = fx(G).beam(h, ang, s.range, s.width, color, core, style); snd = sfx(G, 'beam', h); G.emit('superFire', { h }); }
+      beam.update(h, ang);
+      if (h === G.player) G.shake(0.55);
+      const tt = this.t - wind;
+      while (tick < s.ticks && tt >= tick * (1.2 / s.ticks)) {
+        tick++;
+        inLine(G, h, ang, s.range, s.width + 0.6, (u) => {
+          damage(G, h, u, dmg, { type: tick === s.ticks ? 'super' : 'skill', knock: tick === s.ticks ? 14 : 1.5, kdir: ang, stun: 0.3 });
+          fx(G).hitSpark(u.x, 1.2, u.z, core, 1.1, 'light');
+        });
+      }
+    },
+    end() { beam && beam.remove(); snd && snd.stop && snd.stop(); superOutro(G); },
+    cancel() { beam && beam.remove(); snd && snd.stop && snd.stop(); superOutro(G); },
+  });
+}
+// 瞬移到點，下一次普攻硬直
+function blinkEmpower(G, h, { px, pz }) {
+  const p = { x: px, z: pz }; collide(p, h.radius); blink(G, h, p.x, p.z);
+  h.empowered = G.time + 2.5; h.atkCd = Math.min(h.atkCd, 0.05);
+  act(h, { name: 'vanish', dur: 0.12, unstoppable: true });
+}
+function chainBolt(G, h, { ang, s }, color) {
+  face(h, h.x + sin(ang), h.z + cos(ang));
+  act(h, {
+    name: 'cast', dur: 0.26, fired: false,
+    step(G, h) {
+      if (this.fired || this.t < 0.1) return; this.fired = true;
+      const dmg = skillDmg(h, 'Q');
+      const p = spawnProjectile(G, {
+        x: h.x + sin(ang), z: h.z + cos(ang), y: 1.3, ang, speed: s.speed, range: s.range, team: h.team, src: h, radius: 0.6,
+        onHit(G, p, u) {
+          damage(G, h, u, dmg, { type: 'skill', stun: 0.2 }); fx(G).hitSpark(u.x, 1.2, u.z, color, 1.2, 'spark'); sfx(G, 'explode', u, { vol: 0.5 });
+          let from = u; const hitSet = new Set([u]);
+          for (let c = 0; c < s.chain; c++) {
+            let nb = null, bd = 6;
+            for (const o of G.units) { if (!o.alive || o.team === h.team || hitSet.has(o) || !targetable(G, o)) continue; const d = dist(o, from); if (d < bd) { bd = d; nb = o; } }
+            if (!nb) break;
+            hitSet.add(nb); const a = from, b = nb;
+            const q = spawnProjectile(G, { x: a.x, z: a.z, y: 1.2, speed: 40, team: h.team, src: h, target: b, radius: 0.3, onArrive(G, q, t) { damage(G, h, t, dmg * 0.7, { type: 'skill', stun: 0.15 }); fx(G).hitSpark(t.x, 1.2, t.z, color, 0.9, 'spark'); } });
+            q.vis = fx(G).orb(color, 0.45, 'spark');
+            from = nb;
+          }
         },
       });
-      face(h, h.x + sin(ang), h.z + cos(ang));
+      p.vis = fx(G).orb(color, 0.55, 'spark'); sfx(G, 'blast', h, { pitch: 1.3 });
     },
-    W(G, h, { ang, s, rank }) {
+  });
+}
+
+/* ---------------- 各角色技能 ---------------- */
+const KITS = {
+  goku: {
+    Q: (G, h, o) => blastBall(G, h, o, '#4fc3ff'),
+    W: (G, h, o) => dashRush(G, h, o, '#8fdcff', o.s.hits, 0.1, { knock: 15, air: 0.45 }),
+    E: (G, h, { px, pz, tx, tz }) => vanishSkill(G, h, tx, tz, px, pz, 3),
+    R: (G, h, o) => beamSuper(G, h, o, '#3fb4ff', '#eafaff', 'kame'),
+  },
+  vegeta: {
+    Q: (G, h, o) => chainBolt(G, h, o, '#ffd84a'),
+    W: (G, h, o) => dashRush(G, h, o, '#ffe88a', o.s.hits, 0.075, { knock: 12, stun: 0.4 }, 'hitL'),
+    E(G, h, { px, pz, tx, tz, s }) {
+      const u = pickNear(G, h, tx, tz, 3.5) || pickNear(G, h, px, pz, 3.5);
+      if (u && dist(h, u) < s.range + 3) { const b = behind(h, u); blink(G, h, b.x, b.z, u); h.chain = 0; h.atkCd = 0; h.empowered = G.time + 2.5; h.target = u; }
+      else { const p = { x: px, z: pz }; collide(p, h.radius); blink(G, h, p.x, p.z); }
+      act(h, { name: 'vanish', dur: 0.1, unstoppable: true });
+    },
+    R: (G, h, o) => beamSuper(G, h, o, '#ffd84a', '#fffbe6', 'flash'),
+  },
+  trunks: {
+    Q: (G, h, o) => pierceWave(G, h, o, '#ffcf6a', () => fx(G).wave('#ffcf6a', o.s.width), { knock: 7 }),
+    W(G, h, { ang, s }) {
       const dmg = skillDmg(h, 'W');
-      sfx(G, 'dash', h);
+      sfx(G, 'dash', h, { pitch: 1.2 });
       dashAction(G, h, {
-        ang, len: s.range, speed: 30,
-        onContact: (u) => { rushAction(G, h, u, { n: s.hits, gap: 0.1, dmg, finisher: { knock: 15, air: 0.45 }, color: '#ff7a1a' }); return true; },
+        ang, len: s.range, speed: 34, pass: true, name: 'dash',
+        onPass: (u) => { damage(G, h, u, dmg, { type: 'skill', stun: 0.25 }); fx(G).slash(u.x, u.z, ang + 1.2, '#fff4d8', 1.8); fx(G).hitSpark(u.x, 1.1, u.z, '#ffcf6a', 1.1, 'light'); sfx(G, 'hitM', u); if (h === G.player) G.shake(0.25); },
+        onEnd: () => {
+          h.action = null;
+          act(h, { name: 'cast', dur: 0.3 });
+          const p = spawnProjectile(G, { x: h.x, z: h.z, y: 1.3, ang, speed: 30, range: 5, team: h.team, src: h, radius: 0.8, onHit: (G, p, u) => { damage(G, h, u, dmg * 0.6, { type: 'H', knock: 10, kdir: ang }); fx(G).explode(p.x, p.z, '#ffcf6a', 1.6); } });
+          p.vis = fx(G).orb('#ffcf6a', 0.6, 'ki');
+        },
       });
     },
-    E(G, h, { px, pz, tx, tz }) { return vanishSkill(G, h, tx, tz, px, pz, 3); },
+    E: (G, h, o) => blinkEmpower(G, h, o),
+    R(G, h, { s }) {
+      const dmg = skillDmg(h, 'R');
+      const u = pickNear(G, h, h.x, h.z, s.range);
+      if (!u) return false;
+      superIntro(G, h, 'R');
+      act(h, {
+        name: 'dash', dur: 1.25, unstoppable: true, stage: 0,
+        step(G, h, dt) {
+          h.st.invuln = 0.2;
+          if (this.stage === 0 && this.t > 0.22) {
+            this.stage = 1; superOutro(G); G.emit('superFire', { h });
+            if (!u.alive) { this.t = this.dur; return; }
+            const b = behind(h, u); blink(G, h, b.x, b.z, u);
+            h.anim.name = 'atk3'; h.anim.t = 0;
+            damage(G, h, u, dmg * 0.3, { type: 'H', air: 1.1 });
+            fx(G).slash(u.x, u.z, angTo(h, u), '#fff4d8', 2.4); fx(G).hitSpark(u.x, 1.4, u.z, '#ffcf6a', 1.6, 'heavy'); sfx(G, 'hitH', u);
+            this.tx = u.x; this.tz = u.z;
+          }
+          if (this.stage === 1 && this.t > 0.6) {
+            this.stage = 2; h.anim.name = 'beam'; h.anim.t = 0;
+            fx(G).dome(this.tx, this.tz, s.radius, '#ffcf6a'); sfx(G, 'explode', { x: this.tx, z: this.tz }); sfx(G, 'slam', h);
+            if (h === G.player || dist(G.player, h) < 22) G.shake(1.0);
+            inCircle(G, h, this.tx, this.tz, s.radius, (v) => damage(G, h, v, dmg * 0.75, { type: 'super', air: 0.8 }));
+          }
+        },
+        end() { superOutro(G); }, cancel() { superOutro(G); },
+      });
+    },
+  },
+  piccolo: {
+    Q(G, h, { px, pz, s }) {
+      face(h, px, pz);
+      act(h, { name: 'overhead', dur: 0.35 });
+      fx(G).hellzone(px, pz, s.radius, '#d8ff7a', 0.6);
+      sfx(G, 'blast', h, { pitch: 0.8 });
+      G.later(0.6, () => {
+        const dmg = skillDmg(h, 'Q');
+        fx(G).explode(px, pz, '#d8ff7a', s.radius); sfx(G, 'explode', { x: px, z: pz });
+        if (h === G.player) G.shake(0.5);
+        inCircle(G, h, px, pz, s.radius, (u) => damage(G, h, u, dmg, { type: 'skill', air: 0.6 }));
+      });
+    },
+    W(G, h, { ang, s }) {
+      face(h, h.x + sin(ang), h.z + cos(ang));
+      const dmg = skillDmg(h, 'W');
+      let tether = null;
+      act(h, {
+        name: 'grab', dur: 0.55, fired: false,
+        step(G, h) {
+          h.anim.k = Math.min(1, this.t / 0.3);
+          if (this.fired) return; this.fired = true;
+          sfx(G, 'dash', h, { pitch: 0.8 });
+          const p = spawnProjectile(G, {
+            x: h.x + sin(ang), z: h.z + cos(ang), y: 1.3, ang, speed: 34, range: s.range, team: h.team, src: h, radius: 0.6, skipStructures: true,
+            onHit(G, p, u) {
+              damage(G, h, u, dmg, { type: 'skill', stun: 0.9 }); sfx(G, 'hitH', u); fx(G).hitSpark(u.x, 1.2, u.z, '#b6ff5c', 1.3, 'heavy');
+              const sx = u.x, sz = u.z, tx = h.x + sin(ang) * (h.radius + u.radius + 0.4), tz = h.z + cos(ang) * (h.radius + u.radius + 0.4);
+              G.zones.push({ x: sx, z: sz, r: 0, t: 0, dur: 0.28, tick(G, z) { if (!u.alive) return; const k = Math.min(1, z.t / 0.25); u.x = sx + (tx - sx) * k; u.z = sz + (tz - sz) * k; u.kx = u.kz = 0; } });
+              return true;
+            },
+          });
+          tether = fx(G).stretch(() => ({ x: h.x + sin(ang) * 0.6, y: heightOf(h) + 1.3, z: h.z + cos(ang) * 0.6 }), () => ({ x: p.x, y: 1.3, z: p.z }), '#7bc043', 0.22, 0.55);
+          p.vis = fx(G).orb('#b6ff5c', 0.35, 'ki');
+        },
+      });
+    },
+    E(G, h, { px, pz, s, rank }) {
+      const p = { x: px, z: pz }; collide(p, h.radius);
+      blink(G, h, p.x, p.z);
+      h.st.shield = s.shield[rank]; h.st.shieldT = 3; heal(G, h, h.maxHp * 0.08);
+      fx(G).shieldFx(h, '#b6ff5c', 3); fx(G).levelUp(h, '#d8ff7a');
+      act(h, { name: 'vanish', dur: 0.12, unstoppable: true });
+    },
     R(G, h, { ang, s }) {
       const dmg = skillDmg(h, 'R');
       superIntro(G, h, 'R');
       face(h, h.x + sin(ang), h.z + cos(ang));
-      let beam = null, tick = 0, snd = null;
+      let beam = null, snd = null;
       act(h, {
-        name: 'beam', dur: 0.32 + 1.25, unstoppable: true,
-        step(G, h, dt) {
-          if (this.t < 0.32) return;
-          if (!beam) { superOutro(G); beam = fx(G).beam(h, ang, s.range, s.width, '#ff7a1a', '#fff1c8'); snd = sfx(G, 'beam', h); G.emit('superFire', { h }); }
-          beam.update(h, ang);
-          if (h === G.player) G.shake(0.55);
-          const tt = this.t - 0.32;
-          while (tick < s.ticks && tt >= tick * (1.2 / s.ticks)) {
-            tick++;
-            inLine(G, h, ang, s.range, s.width + 0.6, (u) => {
-              damage(G, h, u, dmg, { type: tick === s.ticks ? 'super' : 'skill', knock: tick === s.ticks ? 14 : 1.5, kdir: ang, stun: 0.3 });
-              fx(G).hitSpark(u.x, 1.2, u.z, '#ffd29a', 1.1, 'light');
-            });
+        name: 'beam', dur: s.windup + 0.6, unstoppable: true,
+        step(G, h) {
+          if (this.t < s.windup) { if (Math.random() < 0.6) fx(G).emit(h.x + sin(ang) * 0.6, 2.2, h.z + cos(ang) * 0.6, { n: 1, speed: 2, color: '#fff27a', color2: '#e070ff', size: 0.35, life: 0.3, gravity: 0 }); return; }
+          if (!beam) {
+            superOutro(G); G.emit('superFire', { h });
+            beam = fx(G).beam(h, ang, s.range, s.width, '#fff27a', '#ffffff', 'spiral'); beam.update(h, ang);
+            snd = sfx(G, 'beam', h, { pitch: 1.4 });
+            if (h === G.player) G.shake(0.9);
+            inLine(G, h, ang, s.range, s.width + 0.8, (u) => { damage(G, h, u, dmg, { type: 'super', knock: 12, kdir: ang, stun: 0.4 }); fx(G).hitSpark(u.x, 1.2, u.z, '#fff27a', 1.6, 'heavy'); });
           }
         },
         end() { beam && beam.remove(); snd && snd.stop && snd.stop(); superOutro(G); },
@@ -382,219 +573,109 @@ const KITS = {
       });
     },
   },
-
-  shimo: {
+  frieza: {
     Q(G, h, { ang, s }) {
       face(h, h.x + sin(ang), h.z + cos(ang));
       act(h, {
-        name: 'cast', dur: 0.34, fired: false,
+        name: 'cast', dur: 0.28, fired: false,
         step(G, h) {
-          if (this.fired || this.t < 0.15) return; this.fired = true;
+          if (this.fired || this.t < 0.12) return; this.fired = true;
           const dmg = skillDmg(h, 'Q');
           const p = spawnProjectile(G, {
-            x: h.x + sin(ang), z: h.z + cos(ang), y: 1.3, ang, speed: s.speed, range: s.range, team: h.team, src: h, radius: s.width / 2, pierce: true,
-            onHit(G, p, u) { damage(G, h, u, dmg, { type: 'skill', slow: s.slow, slowT: 2, knock: 3, kdir: ang }); fx(G).hitSpark(u.x, 1.2, u.z, '#bfefff', 1.1, 'ice'); sfx(G, 'freeze', u, { vol: 0.5 }); },
+            x: h.x + sin(ang), z: h.z + cos(ang), y: 1.4, ang, speed: s.speed, range: s.range, team: h.team, src: h, radius: 0.45,
+            onHit(G, p, u) { damage(G, h, u, dmg, { type: 'skill', slow: s.slow, slowT: 2 }); fx(G).hitSpark(u.x, 1.2, u.z, '#ff4fb4', 1.1, 'spark'); sfx(G, 'hitM', u); },
           });
-          p.vis = fx(G).lance('#7fd8ff'); sfx(G, 'blast', h, { pitch: 1.3 });
+          p.vis = fx(G).needle('#ff4fb4'); sfx(G, 'vanish', h, { pitch: 0.8 });
         },
       });
     },
     W(G, h, { ang, s }) {
-      const dmg = skillDmg(h, 'W');
-      sfx(G, 'dash', h, { pitch: 1.2 });
-      dashAction(G, h, {
-        ang, len: s.range, speed: 34, pass: true, name: 'dash',
-        onPass: (u) => { damage(G, h, u, dmg, { type: 'skill', slow: 0.3, slowT: 1.5 }); fx(G).hitSpark(u.x, 1.1, u.z, '#bfefff', 1.2, 'ice'); sfx(G, 'hitM', u); if (h === G.player) G.shake(0.25); },
-        onEnd: () => {
-          h.action = null;
-          act(h, { name: 'atk3', dur: 0.3 });
-          fx(G).slash(h.x, h.z, ang, '#bfefff', 2.6); sfx(G, 'freeze', h);
-          inCircle(G, h, h.x + sin(ang) * 1.2, h.z + cos(ang) * 1.2, 2.6, (u) => damage(G, h, u, dmg * 0.6, { type: 'H', knock: 8 }), false);
+      face(h, h.x + sin(ang), h.z + cos(ang));
+      act(h, {
+        name: 'overhead', dur: 0.3, fired: false,
+        step(G, h) {
+          if (this.fired || this.t < 0.14) return; this.fired = true;
+          const dmg = skillDmg(h, 'W');
+          const p = spawnProjectile(G, {
+            x: h.x + sin(ang), z: h.z + cos(ang), y: 1.4, ang, speed: s.speed, range: s.range, team: h.team, src: h, radius: 0.9, pierce: true, boomerang: true, life: 4,
+            onHit(G, p, u) { damage(G, h, u, dmg, { type: 'skill' }); fx(G).hitSpark(u.x, 1.2, u.z, '#ff8fd0', 1, 'light'); sfx(G, 'hitL', u); },
+          });
+          p.vis = fx(G).disc('#ff8fd0', 1.0); sfx(G, 'dash', h, { pitch: 1.6 });
         },
       });
     },
-    E(G, h, { px, pz }) {
-      const ox = h.x, oz = h.z;
-      const p = { x: px, z: pz }; collide(p, h.radius);
-      blink(G, h, p.x, p.z);
-      act(h, { name: 'vanish', dur: 0.12, unstoppable: true });
-      const zone = { x: ox, z: oz, r: 3, t: 0, dur: 3, team: h.team, tick(G, z) { inCircle(G, h, z.x, z.z, z.r, (u) => { u.st.slow = Math.max(u.st.slow, 0.3); u.st.slowAmt = Math.max(u.st.slowAmt, 0.45); }, false); } };
-      zone.vis = fx(G).mist(ox, oz, 3, '#bfefff', 3);
-      G.zones.push(zone);
-    },
+    E: (G, h, o) => blinkEmpower(G, h, o),
     R(G, h, { px, pz, s }) {
       const dmg = skillDmg(h, 'R');
       superIntro(G, h, 'R');
       face(h, px, pz);
-      const mark = fx(G).target(px, pz, s.radius, '#7fd8ff', 1.1);
+      const ball = fx(G).deathBall('#ff7a3a');
+      const mark = fx(G).target(px, pz, s.radius, '#ff7a3a', 1.6);
       act(h, {
-        name: 'cast', dur: 0.4,
+        name: 'overhead', dur: 0.9, unstoppable: true,
+        step(G, h) { ball.update(h.x, heightOf(h) + 3.4 + this.t * 1.5, h.z, 0.4 + this.t * 2.4); },
         end(G, h) {
-          superOutro(G);
-          G.emit('superFire', { h });
-          fx(G).comet(px, pz, '#bfefff', 0.7);
-          G.later(0.7, () => {
-            mark.remove();
-            fx(G).explode(px, pz, '#bfefff', s.radius, 'ice'); fx(G).iceField(px, pz, s.radius);
-            sfx(G, 'freeze', { x: px, z: pz }); sfx(G, 'explode', { x: px, z: pz });
-            if (h === G.player || dist(G.player, { x: px, z: pz }) < 20) G.shake(0.9);
-            inCircle(G, h, px, pz, s.radius, (u) => damage(G, h, u, dmg, { type: 'super', freeze: 1.2 }));
+          superOutro(G); G.emit('superFire', { h });
+          act(h, { name: 'cast', dur: 0.35 });
+          const sx = h.x, sz = h.z, sy = heightOf(h) + 4.7, d = Math.hypot(px - sx, pz - sz), T = Math.max(0.4, d / 16);
+          let t = 0;
+          G.zones.push({ x: sx, z: sz, r: 0, t: 0, dur: T, tick(G, z, dt) { t += dt; const k = Math.min(1, t / T); ball.update(sx + (px - sx) * k, sy + (heightAtXZ(px, pz) + 1.5 - sy) * k, sz + (pz - sz) * k, 3.4); } });
+          G.later(T, () => {
+            ball.remove(); mark.remove();
+            fx(G).explode(px, pz, '#ff7a3a', s.radius); fx(G).dome(px, pz, s.radius * 0.9, '#ffb08a');
+            sfx(G, 'explode', { x: px, z: pz }); sfx(G, 'slam', { x: px, z: pz });
+            if (h === G.player || dist(G.player, { x: px, z: pz }) < 22) G.shake(1.1);
+            inCircle(G, h, px, pz, s.radius, (u) => damage(G, h, u, dmg, { type: 'super', stun: 1.0, knock: 8, kdir: angTo({ x: px, z: pz }, u) }));
           });
         },
-        cancel() { superOutro(G); mark.remove(); },
+        cancel() { superOutro(G); ball.remove(); mark.remove(); },
       });
     },
   },
-
-  iwao: {
-    Q(G, h, { ang, s }) {
-      face(h, h.x + sin(ang), h.z + cos(ang));
-      act(h, {
-        name: 'atk3', dur: 0.45, fired: false,
-        step(G, h) {
-          if (this.fired || this.t < 0.22) return; this.fired = true;
-          const dmg = skillDmg(h, 'Q');
-          fx(G).quake(h.x, h.z, ang, s.range, s.arc, '#9be03c');
-          sfx(G, 'slam', h);
-          if (h === G.player) G.shake(0.6);
-          for (const u of G.units) {
-            if (!u.alive || u.team === h.team || !targetable(G, u)) continue;
-            const d = dist(h, u); if (d > s.range + u.radius) continue;
-            let da = angTo(h, u) - ang; while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI;
-            if (Math.abs(da) < s.arc * 0.6 || d < 1.6) damage(G, h, u, dmg, { type: 'skill', air: 0.6 });
-          }
-        },
-      });
-    },
+  a18: {
+    Q: (G, h, o) => pierceWave(G, h, o, '#fff6c0', () => fx(G).disc('#fff6c0', 0.8), { knock: 2, pitch: 1.5 }),
     W(G, h, { ang, s }) {
       const dmg = skillDmg(h, 'W');
-      let carried = null;
-      sfx(G, 'dash', h, { pitch: 0.7 });
+      sfx(G, 'dash', h, { pitch: 1.3 });
       dashAction(G, h, {
-        ang, len: s.range, speed: 24, name: 'dash', hitR: 1.5,
+        ang, len: s.range, speed: 30,
         onContact: (u) => {
           if (u.kind === 'tower' || u.kind === 'core') return true;
-          if (!carried && (u.kind === 'hero' || true)) { carried = u; }
-          if (u !== carried) { damage(G, h, u, dmg, { type: 'M', knock: 12, kdir: ang + (Math.random() < 0.5 ? 1 : -1) }); return false; }
-          return false;
+          act(h, { name: 'atk3', dur: 0.4 });
+          u.x = h.x - sin(ang) * 1.2; u.z = h.z - cos(ang) * 1.2; collide(u, u.radius);
+          damage(G, h, u, dmg, { type: 'H', stun: 0.7, knock: 13, kdir: ang + Math.PI });
+          fx(G).hitSpark(u.x, 1.2, u.z, '#c7f0ff', 1.5, 'heavy'); fx(G).dust(u.x, u.z, 12); sfx(G, 'slam', u, { vol: 0.6 });
+          if (h === G.player) G.shake(0.6);
+          return true;
         },
-        onEnd: () => { if (carried && carried.alive) { h.action = null; rushAction(G, h, carried, { n: s.hits, gap: 0.14, dmg, finisher: { knock: 16, air: 0.5 }, color: '#9be03c', sound: 'hitH' }); } },
       });
-      // 頂著目標
-      const a = h.action, base = a.step;
-      a.step = function (G, h, dt) {
-        base.call(this, G, h, dt);
-        if (carried && carried.alive) { carried.x = h.x + sin(ang) * (h.radius + carried.radius + 0.2); carried.z = h.z + cos(ang) * (h.radius + carried.radius + 0.2); carried.st.stun = Math.max(carried.st.stun, 0.3); collide(carried, carried.radius); }
-      };
     },
-    E(G, h, { px, pz, s, rank }) {
-      const p = { x: px, z: pz }; collide(p, h.radius);
-      blink(G, h, p.x, p.z);
+    E(G, h, { s, rank }) {
       h.st.shield = s.shield[rank]; h.st.shieldT = 3;
-      fx(G).shieldFx(h, '#9be03c', 3);
-      act(h, { name: 'vanish', dur: 0.12, unstoppable: true });
+      fx(G).barrier(h, '#c7f0ff'); sfx(G, 'freeze', h, { pitch: 1.4 });
+      for (const u of G.units) if (u.alive && u.team !== h.team && (u.kind === 'hero' || u.kind === 'minion') && dist(u, h) < 4.2 + u.radius) damage(G, h, u, 20 + h.level * 6, { type: 'skill', knock: 15, kdir: angTo(h, u), stun: 0.3 });
+      act(h, { name: 'barrier', dur: 0.35 });
     },
-    R(G, h, { px, pz, s }) {
+    R(G, h, { ang, s }) {
       const dmg = skillDmg(h, 'R');
       superIntro(G, h, 'R');
-      face(h, px, pz);
-      const sx = h.x, sz = h.z, mark = fx(G).target(px, pz, s.radius, '#9be03c', 0.9);
-      act(h, {
-        name: 'leap', dur: 0.25 + 0.6, unstoppable: true,
-        step(G, h, dt) {
-          if (this.t < 0.25) return;
-          if (!this.go) { this.go = true; superOutro(G); G.emit('superFire', { h }); sfx(G, 'dash', h, { pitch: 0.6 }); h.st.invuln = 0.6; }
-          const k = Math.min(1, (this.t - 0.25) / 0.6);
-          h.x = sx + (px - sx) * k; h.z = sz + (pz - sz) * k; h.y = Math.sin(k * Math.PI) * 6;
-        },
-        end(G, h) {
-          h.y = 0; h.vy = 0; collide(h, h.radius); mark.remove();
-          fx(G).explode(h.x, h.z, '#9be03c', s.radius, 'rock'); fx(G).crater(h.x, h.z, s.radius);
-          sfx(G, 'slam', h); sfx(G, 'explode', h);
-          if (h === G.player || dist(G.player, h) < 22) G.shake(1.1);
-          inCircle(G, h, h.x, h.z, s.radius, (u) => damage(G, h, u, dmg, { type: 'super', air: 1.0 }));
-          act(h, { name: 'atk3', dur: 0.3 });
-        },
-        cancel() { superOutro(G); mark.remove(); h.y = 0; },
-      });
-    },
-  },
-
-  raiga: {
-    Q(G, h, { ang, s }) {
       face(h, h.x + sin(ang), h.z + cos(ang));
+      let n = 0;
       act(h, {
-        name: 'cast', dur: 0.26, fired: false,
+        name: 'cast', dur: 0.3 + s.shots * 0.08 + 0.2, unstoppable: true,
         step(G, h) {
-          if (this.fired || this.t < 0.1) return; this.fired = true;
-          const dmg = skillDmg(h, 'Q');
-          const p = spawnProjectile(G, {
-            x: h.x + sin(ang), z: h.z + cos(ang), y: 1.3, ang, speed: s.speed, range: s.range, team: h.team, src: h, radius: 0.6,
-            onHit(G, p, u) {
-              damage(G, h, u, dmg, { type: 'skill', stun: 0.2 }); fx(G).hitSpark(u.x, 1.2, u.z, '#ffe14a', 1.2, 'spark'); sfx(G, 'thunder', u, { vol: 0.6 });
-              let from = u; const hitSet = new Set([u]);
-              for (let c = 0; c < s.chain; c++) {
-                let nb = null, bd = 6;
-                for (const o of G.units) { if (!o.alive || o.team === h.team || hitSet.has(o) || !targetable(G, o)) continue; const d = dist(o, from); if (d < bd) { bd = d; nb = o; } }
-                if (!nb) break;
-                hitSet.add(nb); const a = from, b = nb;
-                fx(G).lightning({ x: a.x, y: 1.2, z: a.z }, { x: b.x, y: 1.2, z: b.z }, '#ffe14a');
-                damage(G, h, b, dmg * 0.7, { type: 'skill', stun: 0.15 });
-                from = nb;
-              }
-            },
-          });
-          p.vis = fx(G).orb('#ffe14a', 0.55, 'spark'); sfx(G, 'thunder', h, { vol: 0.4, pitch: 1.4 });
-        },
-      });
-    },
-    W(G, h, { ang, s }) {
-      const dmg = skillDmg(h, 'W');
-      sfx(G, 'dash', h, { pitch: 1.4 });
-      dashAction(G, h, {
-        ang, len: s.range, speed: 38,
-        onContact: (u) => { rushAction(G, h, u, { n: s.hits, gap: 0.065, dmg, finisher: { knock: 12, stun: 0.4 }, color: '#ffe14a', sound: 'hitL' }); return true; },
-      });
-    },
-    E(G, h, { px, pz, tx, tz, s }) {
-      const u = pickNear(G, h, tx, tz, 3.5) || pickNear(G, h, px, pz, 3.5);
-      if (u && dist(h, u) < s.range + 3) {
-        const b = behind(h, u); blink(G, h, b.x, b.z, u);
-        h.chain = 0; h.atkCd = 0; h.empowered = G.time + 2.5; h.target = u;
-      } else { const p = { x: px, z: pz }; collide(p, h.radius); blink(G, h, p.x, p.z); }
-      act(h, { name: 'vanish', dur: 0.1, unstoppable: true });
-    },
-    R(G, h, { s }) {
-      const dmg = skillDmg(h, 'R');
-      const list = [];
-      for (const u of G.units) if (u.alive && u.team !== h.team && targetable(G, u) && u.kind !== 'tower' && u.kind !== 'core' && dist(u, h) < s.range) list.push(u);
-      if (!list.length) return false;
-      list.sort((a, b) => (b.kind === 'hero') - (a.kind === 'hero') || dist(a, h) - dist(b, h));
-      const tg = list.slice(0, s.targets);
-      superIntro(G, h, 'R');
-      let i = 0, next = 0.3;
-      const strikes = Math.max(6, tg.length);
-      act(h, {
-        name: 'rush', dur: 0.3 + strikes * 0.13 + 0.35, unstoppable: true,
-        step(G, h, dt) {
-          h.st.invuln = 0.2;
-          if (this.t >= 0.3 && !this.go) { this.go = true; superOutro(G); G.emit('superFire', { h }); }
-          if (i < strikes && this.t >= next) {
-            let u = tg[i % tg.length];
-            if (!u.alive) u = tg.find((x) => x.alive);
-            if (!u) { this.t = this.dur; return; }
-            const a = Math.random() * Math.PI * 2, d = u.radius + h.radius + 0.5;
-            const ox = h.x, oz = h.z;
-            h.x = u.x + sin(a) * d; h.z = u.z + cos(a) * d; face(h, u.x, u.z);
-            fx(G).lightning({ x: ox, y: 1.0, z: oz }, { x: h.x, y: 1.0, z: h.z }, '#fff3a0');
-            const last = i === strikes - 1;
-            damage(G, h, u, dmg * (last ? 1.6 : 0.55), { type: last ? 'super' : 'skill', stun: 0.5, knock: last ? 14 : 0 });
-            fx(G).hitSpark(u.x, 1.2, u.z, '#ffe14a', last ? 2 : 1.2, last ? 'heavy' : 'spark');
-            fx(G).slash(u.x, u.z, a + Math.PI, '#fff3a0', 1.6);
-            sfx(G, last ? 'thunder' : 'hitM', u);
-            if (h === G.player) G.shake(last ? 0.9 : 0.3);
-            h.anim.name = i % 2 ? 'atk1' : 'atk2'; h.anim.t = 0;
-            i++; next += 0.13;
+          if (this.t < 0.3) return;
+          if (!this.go) { this.go = true; superOutro(G); G.emit('superFire', { h }); }
+          while (n < s.shots && this.t >= 0.3 + n * 0.08) {
+            n++; h.anim.name = n % 2 ? 'cast' : 'atk2'; h.anim.t = 0.05;
+            const a = ang + (Math.random() - 0.5) * 0.6;
+            const p = spawnProjectile(G, {
+              x: h.x + sin(a), z: h.z + cos(a), y: 1.3, ang: a, speed: 36, range: s.range, team: h.team, src: h, radius: 0.55,
+              onHit(G, p, u) { damage(G, h, u, dmg, { type: n === s.shots ? 'super' : 'skill', knock: 2.5, kdir: a }); fx(G).hitSpark(u.x, 1.2, u.z, '#fff6c0', 0.9, 'light'); },
+              onEnd(G, p) { fx(G).dust(p.x, p.z, 3); },
+            });
+            p.vis = fx(G).orb('#fff6c0', 0.45, 'ki'); sfx(G, 'blast', h, { vol: 0.5, pitch: 1.2 + Math.random() * 0.3 });
+            if (h === G.player) G.shake(0.2);
           }
         },
         end() { superOutro(G); }, cancel() { superOutro(G); },
@@ -602,8 +683,9 @@ const KITS = {
     },
   },
 };
+const heightOf = (u) => heightAtXZ(u.x, u.z) + (u.y || 0);
 
-// 燎的殘影步：游標附近有敵人時繞背，否則瞬移到點
+// 悟空的瞬間移動：游標附近有敵人時繞背，否則瞬移到點
 function vanishSkill(G, h, tx, tz, px, pz, near) {
   const u = pickNear(G, h, tx, tz, near);
   if (u && dist(h, u) < sk(h, 'E').range + 3) { const b = behind(h, u); blink(G, h, b.x, b.z, u); h.empowered = G.time + 2.5; h.target = u; h.atkCd = Math.min(h.atkCd, 0.05); }
@@ -619,6 +701,10 @@ export function wireShots(G) {
       onArrive(G, p, u) { damage(G, src, u, src.dmg * (u.kind === 'hero' ? 0.8 : u.kind === 'minion' ? 1 : src.structMul), { type: 'minion', noKi: true }); if (src.mkind === 'siege') { fx(G).hitSpark(u.x, 1.4, u.z, '#ffd08a', 1.2, 'light'); sfx(G, 'explode', u, { vol: 0.35 }); } },
     });
     p.vis = fx(G).bolt(src.team === 0 ? '#8fe8d4' : '#ffa184', src.mkind === 'siege' ? 0.5 : 0.22);
+  });
+  G.on('monsterShot', ({ src, dst }) => {
+    const p = spawnProjectile(G, { x: src.x, z: src.z, y: 1.4, speed: 20, team: 2, src, target: dst, radius: 0.3, onArrive(G, p, u) { damage(G, src, u, src.dmg, { type: 'minion' }); fx(G).hitSpark(u.x, 1.2, u.z, '#ff6a4a', 0.8, 'light'); } });
+    p.vis = fx(G).bolt('#ff6a4a', 0.4); sfx(G, 'tower', src, { vol: 0.4, pitch: 1.4 });
   });
   G.on('towerShot', ({ src, dst, dmg }) => {
     const p = spawnProjectile(G, {

@@ -1,7 +1,7 @@
 // 單位：英雄、小兵、建築。移動、碰撞、傷害、死亡、經驗。
 import {
   HEROES, MINION, MINION_GROWTH, TOWER, KI_MAX, KI_BAR, MAX_LEVEL, xpToNext, respawnTime, XP_SHARE_RADIUS,
-  FOUNTAIN, BASE, COMBO_WINDOW, HITSTOP, SPARK, WAVE_EVERY, FIRST_WAVE, SIEGE_FROM_WAVE,
+  FOUNTAIN, BASE, COMBO_WINDOW, HITSTOP, SPARK, WAVE_EVERY, FIRST_WAVE, SIEGE_FROM_WAVE, GOLD, ITEMS, APE_BUFF,
 } from './config.js';
 import { collide, OBSTACLES, lanePath, heightAt, STRUCTURES, laneProgress } from './map.js';
 
@@ -23,21 +23,27 @@ export function makeHero(G, heroId, team, lane, isPlayer) {
   const def = HEROES[heroId];
   const u = baseUnit('hero', team, FOUNTAIN[team][0], FOUNTAIN[team][1], 0.75, def.stats.hp);
   Object.assign(u, {
-    heroId, def, lane, isPlayer, level: 1, xp: 0, sp: 1, ranks: { Q: 0, W: 0, E: 0, R: 0 }, cds: { Q: 0, W: 0, E: 0, R: 0, D: 0, B: 0 },
+    heroId, def, lane, isPlayer, level: 1, xp: 0, sp: 1, ranks: { Q: 0, W: 0, E: 0, R: 0 }, cds: { Q: 0, W: 0, E: 0, R: 0, D: 0, B: 0, S: 0 },
     ki: 100, kills: 0, deaths: 0, assists: 0, chain: 0, chainT: -9, target: null, goal: null, order: null, action: null,
     respawn: 0, recall: 0, empowered: 0, charging: false, damagers: new Map(), lastAttackHeroT: -99, cs: 0, hitstopOwner: isPlayer,
+    gold: GOLD.start, inv: [], path: null, apeBuff: 0, form: 'base',
   });
   recalcStats(u);
   u.hp = u.maxHp;
   return u;
 }
-export function recalcStats(u) {
-  const s = u.def.stats, lv = u.level - 1;
-  const ratio = u.maxHp ? u.hp / u.maxHp : 1;
-  u.maxHp = s.hp + s.hpLv * lv; u.hp = ratio * u.maxHp;
-  u.ad = s.ad + s.adLv * lv; u.range = s.range; u.as = s.as * Math.pow(0.975, lv); u.ms = s.ms; u.armor = s.armor + lv * 0.006;
+export function itemStats(u) {
+  const t = { ad: 0, hp: 0, armor: 0, as: 0, ms: 0, ki: 0, cdr: 0, skill: 0, dmg: 0, vision: 0, regen: 0 };
+  for (const id of u.inv || []) { const it = ITEMS.find((i) => i.id === id); if (it && it.stats) for (const k in it.stats) t[k] += it.stats[k]; }
+  return t;
 }
-
+export function recalcStats(u) {
+  const s = u.def.stats, lv = u.level - 1, it = itemStats(u);
+  const ratio = u.maxHp ? u.hp / u.maxHp : 1;
+  u.maxHp = s.hp + s.hpLv * lv + it.hp; u.hp = ratio * u.maxHp;
+  u.ad = s.ad + s.adLv * lv + it.ad; u.range = s.range; u.as = s.as * Math.pow(0.975, lv) * (1 - Math.min(0.5, it.as)); u.ms = s.ms * (1 + it.ms); u.armor = Math.min(0.6, s.armor + lv * 0.006 + it.armor);
+  u.kiGain = 1 + it.ki; u.cdr = Math.min(0.4, it.cdr); u.skillMul = 1 + it.skill; u.dmgMul = 1 + it.dmg; u.visionBonus = it.vision; u.regen = it.regen;
+}
 export function makeMinion(G, kind, team, lane) {
   const d = MINION[kind], grow = 1 + MINION_GROWTH * (G.time / 60);
   const path = lanePath(lane, team).concat([{ x: BASE[1 - team][0], z: BASE[1 - team][1] }]);
@@ -69,7 +75,7 @@ export function addUnit(G, u) { G.units.push(u); if (u.kind === 'hero') G.heroes
 
 /* ---------------- 結構規則 ---------------- */
 export function vulnerable(G, s) {
-  if (s.kind === 'minion' || s.kind === 'hero') return true;
+  if (s.kind !== 'tower' && s.kind !== 'core') return true;
   if (s.kind === 'tower') {
     if (s.tier === 'outer') return true;
     return !G.structures.some((o) => o.kind === 'tower' && o.alive && o.team === s.team && o.lane === s.lane && o.tier === 'outer');
@@ -85,6 +91,7 @@ export function damage(G, src, dst, amount, opts = {}) {
   if (!vulnerable(G, dst)) { G.emit('immune', { dst, src }); return 0; }
   let a = amount;
   if (src && src.st && src.st.spark > 0) a *= SPARK.dmg;
+  if (src && src.kind === 'hero') { a *= src.dmgMul || 1; if (src.apeBuff > 0) a *= 1 + APE_BUFF.dmg; if (opts.type === 'skill' || opts.type === 'super') a *= src.skillMul || 1; }
   if (dst.kind === 'hero') a *= 1 - (dst.armor || 0);
   if (dst.kind === 'tower' || dst.kind === 'core') { if (src && src.kind === 'hero' && (opts.type === 'skill' || opts.type === 'super')) a *= 0.55; }
   if (dst.st.shield > 0) { const s = Math.min(dst.st.shield, a); dst.st.shield -= s; a -= s; }
@@ -94,11 +101,12 @@ export function damage(G, src, dst, amount, opts = {}) {
   if (src && src.kind === 'hero' && dst.kind === 'hero') { dst.damagers.set(src, G.time); src.lastAttackHeroT = G.time; src.lastHeroTarget = dst; }
   // 氣力
   if (!opts.noKi) {
-    if (src && src.kind === 'hero') addKi(G, src, a * (dst.kind === 'hero' ? 0.34 : 0.14) + (opts.type === 'L' || opts.type === 'M' || opts.type === 'H' ? 6 : 0));
-    if (dst.kind === 'hero') addKi(G, dst, a * 0.18);
+    if (src && src.kind === 'hero') addKi(G, src, (a * (dst.kind === 'hero' ? 0.34 : 0.14) + (opts.type === 'L' || opts.type === 'M' || opts.type === 'H' ? 6 : 0)) * (src.kiGain || 1));
+    if (dst.kind === 'hero') addKi(G, dst, a * 0.18 * (dst.kiGain || 1));
   }
   // 狀態
-  if (dst.kind === 'hero' || dst.kind === 'minion') {
+  if (dst.kind === 'monster') G.emit('monsterHit', { dst, src });
+  if ((dst.kind === 'hero' || dst.kind === 'minion' || (dst.kind === 'monster' && !dst.boss))) {
     if (opts.knock) { const ang = opts.kdir ?? (src ? angTo(src, dst) : 0), p = opts.knock * (dst.kind === 'minion' ? 1.4 : 1); dst.kx += Math.sin(ang) * p; dst.kz += Math.cos(ang) * p; }
     if (opts.stun) dst.st.stun = Math.max(dst.st.stun, opts.stun * (dst.kind === 'hero' ? 1 : 1.3));
     if (opts.air) { dst.st.stun = Math.max(dst.st.stun, opts.air); dst.vy = Math.max(dst.vy, opts.air * 9.8 * 0.5); }
@@ -131,6 +139,8 @@ export function addKi(G, h, v) {
   if (after > before) G.emit('kibar', { h, bars: after });
 }
 
+export function addGold(G, h, g, at) { if (h.kind !== 'hero') return; h.gold += Math.round(g); G.emit('gold', { h, g: Math.round(g), at }); }
+
 export function gainXp(G, h, xp) {
   if (!h.alive && h.kind !== 'hero') return;
   if (h.level >= MAX_LEVEL) return;
@@ -150,20 +160,29 @@ function kill(G, u, src) {
     const near = G.heroes.filter((h) => h.alive && h.team === killerTeam && dist(h, u) < XP_SHARE_RADIUS);
     const share = near.length > 1 ? u.xp * 1.3 / near.length : u.xp;
     for (const h of near) gainXp(G, h, share);
-    if (src && src.kind === 'hero') src.cs++;
+    if (src && src.kind === 'hero') { src.cs++; addGold(G, src, GOLD[u.mkind] || 18, u); }
   } else if (u.kind === 'hero') {
     u.deaths++; u.respawn = respawnTime(u.level); u.recall = 0; u.charging = false;
     G.kills[killerTeam]++;
     const killer = src && src.kind === 'hero' ? src : [...u.damagers.entries()].filter(([h, t]) => G.time - t < 10 && h.team === killerTeam).sort((a, b) => b[1] - a[1]).map((e) => e[0])[0];
     const assists = [...u.damagers.entries()].filter(([h, t]) => G.time - t < 10 && h !== killer && h.team === killerTeam).map((e) => e[0]);
     const bounty = 140 + u.level * 38;
-    if (killer) { killer.kills++; gainXp(G, killer, bounty); addKi(G, killer, 120); }
-    for (const a of assists) { a.assists++; gainXp(G, a, bounty * 0.5); }
+    if (killer) { killer.kills++; gainXp(G, killer, bounty); addKi(G, killer, 120); addGold(G, killer, GOLD.hero, u); }
+    for (const a of assists) { a.assists++; gainXp(G, a, bounty * 0.5); addGold(G, a, GOLD.assist, u); }
     for (const h of G.heroes) if (h.team === killerTeam && h !== killer && !assists.includes(h) && h.alive && dist(h, u) < XP_SHARE_RADIUS) gainXp(G, h, bounty * 0.4);
     u.damagers.clear();
     G.emit('herodeath', { u, killer, assists });
+  } else if (u.kind === 'monster') {
+    const team = src && src.team <= 1 ? src.team : (u.lastHitBy && u.lastHitBy.team <= 1 ? u.lastHitBy.team : -1);
+    if (team >= 0) {
+      const near = G.heroes.filter((h) => h.alive && h.team === team && dist(h, u) < XP_SHARE_RADIUS + (u.boss ? 10 : 0));
+      for (const h of near) gainXp(G, h, u.boss ? u.xp : u.xp / Math.max(1, near.length * 0.7));
+      if (u.boss) { for (const h of G.heroes) if (h.team === team) { addGold(G, h, u.gold, u); h.apeBuff = APE_BUFF.dur; } }
+      else if (src && src.kind === 'hero') addGold(G, src, u.gold, u);
+    }
+    G.emit('monsterDeath', { u, team });
   } else {
-    for (const h of G.heroes) if (h.team === killerTeam) gainXp(G, h, u.kind === 'core' ? 0 : 110);
+    for (const h of G.heroes) if (h.team === killerTeam) { gainXp(G, h, u.kind === 'core' ? 0 : 110); if (u.kind === 'tower') addGold(G, h, GOLD.tower, u); }
     G.emit('structure', { u, src });
     if (u.kind === 'core') { G.winner = killerTeam; G.emit('gameover', { winner: killerTeam }); }
   }
@@ -353,13 +372,16 @@ export function heroTick(G, h, dt) {
   for (const k in h.cds) h.cds[k] = Math.max(0, h.cds[k] - dt);
   const st = h.st;
   if (st.spark > 0) { st.spark -= dt; heal(G, h, h.maxHp * SPARK.heal / SPARK.dur * dt); addKi(G, h, 12 * dt); }
+  else if (h.form !== 'base') h.form = 'base';
   if (st.shieldT > 0) { st.shieldT -= dt; if (st.shieldT <= 0) st.shield = 0; }
   // 泉水
   const f = FOUNTAIN[h.team], fe = FOUNTAIN[1 - h.team];
   if (Math.hypot(h.x - f[0], h.z - f[1]) < 11) { heal(G, h, h.maxHp * 0.14 * dt); addKi(G, h, 30 * dt); }
   if (Math.hypot(h.x - fe[0], h.z - fe[1]) < 12) damage(G, null, h, 600 * dt, { type: 'true', noKi: true });
   // 被動回血、回氣
-  if (G.time - h.lastHitT > 6) heal(G, h, h.maxHp * 0.004 * dt);
+  if (G.time - h.lastHitT > 6) heal(G, h, h.maxHp * (0.004 + (h.regen || 0)) * dt);
+  if (G.time > 30) h.gold += GOLD.passive * dt;
+  if (h.apeBuff > 0) h.apeBuff -= dt;
   addKi(G, h, 2.5 * dt);
   if (h.charging) addKi(G, h, 75 * dt);
   // 回城
@@ -387,7 +409,7 @@ export function tickStatus(u, dt) {
 export function respawnHero(G, h) {
   const f = FOUNTAIN[h.team];
   h.alive = true; h.hp = h.maxHp; h.x = f[0] + (Math.random() - 0.5) * 3; h.z = f[1] + (Math.random() - 0.5) * 3;
-  h.y = 0; h.vy = 0; h.kx = h.kz = 0; h.st.stun = h.st.slow = h.st.frozen = 0; h.st.slowAmt = 0; h.goal = null; h.target = null; h.action = null;
+  h.y = 0; h.vy = 0; h.kx = h.kz = 0; h.st.stun = h.st.slow = h.st.frozen = 0; h.st.slowAmt = 0; h.goal = null; h.target = null; h.action = null; h.path = null;
   h.ki = Math.max(h.ki, 100);
   G.emit('respawn', h);
 }

@@ -5,7 +5,7 @@ const { browser, page, log } = await open('../../web/198-ki-lanes.html', { w: 39
 const raf = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
 const shot = async (n) => { await raf(); await page.screenshot({ path: `${out}/m-${n}.png` }); };
 await page.waitForTimeout(1500); await shot('1-select');
-await page.tap('.card[data-id="raiga"]'); await page.waitForTimeout(700); await shot('2-select-raiga');
+await page.tap('.card[data-id="vegeta"]'); await page.waitForTimeout(700); await shot('2-select-vegeta');
 await page.tap('#go'); await page.waitForTimeout(600);
 await page.evaluate(() => { const k = window.__ki; k.fastForward(24); k.teleport(-14, 14); k.fastForward(6); k.setLevel(3); });
 await page.waitForTimeout(600); await shot('3-play');

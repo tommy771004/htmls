@@ -1,5 +1,6 @@
 // 小地圖：地面貼圖縮圖＋路線、建築、小兵、英雄與鏡頭框。點擊可移動鏡頭或下移動指令。
 import { TEAM_COLOR, TEAM_LIGHT, HEROES } from './config.js';
+import { seen } from './vision.js';
 
 export function createMinimap(canvas, groundCanvas) {
   const g = canvas.getContext('2d');
@@ -27,13 +28,21 @@ export function createMinimap(canvas, groundCanvas) {
         if (s.kind === 'core') { g.beginPath(); for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; g.lineTo(x + Math.cos(a) * 7 * k, y + Math.sin(a) * 7 * k); } g.closePath(); g.fill(); g.stroke(); }
         else { g.beginPath(); g.moveTo(x, y - 5 * k); g.lineTo(x + 4 * k, y + 4 * k); g.lineTo(x - 4 * k, y + 4 * k); g.closePath(); g.fill(); g.stroke(); }
       }
+      const PT = G.player ? G.player.team : 0;
+      for (const c of G.camps || []) {
+        const live = c.mobs.some((m) => m.alive);
+        const [x, y] = toMap(c.x, c.z, w);
+        g.beginPath(); g.arc(x, y, (c.boss ? 6 : 3.6) * k, 0, Math.PI * 2);
+        g.fillStyle = live ? (c.boss ? '#ff9a3a' : '#e8b04a') : 'rgba(22,17,12,.5)'; g.fill();
+        g.lineWidth = 1.4 * k; g.strokeStyle = '#16110c'; g.stroke();
+      }
       for (const m of G.minions) {
-        if (!m.alive) continue;
+        if (!m.alive || !seen(G, PT, m)) continue;
         const [x, y] = toMap(m.x, m.z, w);
         g.fillStyle = TEAM_LIGHT[m.team]; g.fillRect(x - 1.4 * k, y - 1.4 * k, 2.8 * k, 2.8 * k);
       }
       for (const h of G.heroes) {
-        if (!h.alive) continue;
+        if (!h.alive || !seen(G, PT, h)) continue;
         const [x, y] = toMap(h.x, h.z, w);
         g.beginPath(); g.arc(x, y, (h.isPlayer ? 6.5 : 5) * k, 0, Math.PI * 2);
         g.fillStyle = HEROES[h.heroId].color; g.fill();

@@ -213,7 +213,7 @@ export function createFx(scene, camera) {
       };
     },
     // 巨大光束：從角色手部朝 ang 延伸
-    beam(h, ang, len, width, color, coreColor) {
+    beam(h, ang, len, width, color, coreColor, style) {
       const g = new THREE.Group(); scene.add(g);
       const mat = new THREE.ShaderMaterial({
         transparent: true, depthWrite: false, blending: THREE.NormalBlending, side: THREE.DoubleSide, toneMapped: false,
@@ -235,6 +235,12 @@ export function createFx(scene, camera) {
       const tube = new THREE.Mesh(cyl, mat); tube.renderOrder = 8; g.add(tube);
       const coreMat = mat.clone(); coreMat.uniforms = THREE.UniformsUtils.clone(mat.uniforms); coreMat.uniforms.uColor.value = new THREE.Color(coreColor).multiplyScalar(0.62); coreMat.uniforms.uCore.value = new THREE.Color(coreColor).multiplyScalar(0.7); coreMat.blending = THREE.AdditiveBlending;
       const coreTube = new THREE.Mesh(cyl, coreMat); coreTube.renderOrder = 9; coreTube.scale.set(0.38, 0.38, 1); g.add(coreTube);
+      let helix = null;
+      if (style === 'spiral') {
+        class Helix extends THREE.Curve { getPoint(t, o = new THREE.Vector3()) { const a = t * len * 1.6; return o.set(Math.cos(a) * width * 0.75, Math.sin(a) * width * 0.75, t * len); } }
+        const hg = new THREE.TubeGeometry(new Helix(), Math.ceil(len * 6), width * 0.14, 6, false);
+        helix = new THREE.Mesh(hg, addMat('#e070ff', null, 0.9)); helix.renderOrder = 9; g.add(helix);
+      }
       const outer = new THREE.Mesh(cyl, addMat(color, null, 0.1)); outer.scale.set(1.35, 1.35, 1); g.add(outer);
       const cap = new THREE.Mesh(planeG, addMat(color, burstTex, 0.7)); cap.scale.setScalar(width * 1.5); scene.add(cap);
       const capCore = new THREE.Mesh(planeG, addMat(coreColor, glowTex, 0.6)); capCore.scale.setScalar(width * 1.1); scene.add(capCore);
@@ -245,20 +251,20 @@ export function createFx(scene, camera) {
         update(k, dt) {
           t += dt; life += dt;
           const grow = Math.min(1, life / 0.12);
-          mat.uniforms.uTime.value = t; coreMat.uniforms.uTime.value = t * 1.3;
+          mat.uniforms.uTime.value = t; coreMat.uniforms.uTime.value = t * 1.3; if (helix) { helix.rotation.z = -t * 14; helix.scale.z = grow; }
           const wob = 1 + sin(t * 40) * 0.06;
           tube.scale.set(wob, wob, grow); coreTube.scale.set(0.38 * wob, 0.38 * wob, grow); outer.scale.set(1.35 * wob, 1.35 * wob, grow);
           cap.quaternion.copy(camera.quaternion); cap.rotateZ(t * 7); capCore.quaternion.copy(camera.quaternion);
           end.quaternion.copy(camera.quaternion); end.rotateZ(-t * 9);
           end.position.set(g.position.x + sin(ang) * len * grow, g.position.y, g.position.z + cos(ang) * len * grow);
-          if (removing) { const f = Math.max(0, 1 - this.rt / 0.22); this.rt += dt; mat.uniforms.uFade.value = f; coreMat.uniforms.uFade.value = f; coreTube.scale.x = coreTube.scale.y = 0.38 * f; outer.material.opacity = 0.1 * f; cap.material.opacity = 0.7 * f; end.material.opacity = 0.8 * f; capCore.material.opacity = 0.6 * f; tube.scale.x = tube.scale.y = f; if (f <= 0) this.kill = true; }
+          if (removing) { const f = Math.max(0, 1 - this.rt / 0.22); this.rt += dt; mat.uniforms.uFade.value = f; coreMat.uniforms.uFade.value = f; coreTube.scale.x = coreTube.scale.y = 0.38 * f; outer.material.opacity = 0.1 * f; cap.material.opacity = 0.7 * f; end.material.opacity = 0.8 * f; capCore.material.opacity = 0.6 * f; tube.scale.x = tube.scale.y = f; if (helix) helix.material.opacity = 0.9 * f; if (f <= 0) this.kill = true; }
           else {
             const d = rand() * len * grow;
             add.emit(g.position.x + sin(ang) * d, 0.4, g.position.z + cos(ang) * d, { n: 2, speed: 6, up: 0.9, spread: 0.6, color, color2: coreColor, size: 0.5, life: 0.4, gravity: 4 });
             if (rand() < 0.12) dust.emit(g.position.x + sin(ang) * d, 0.2, g.position.z + cos(ang) * d, { n: 1, speed: 4, up: 0.2, color: '#8a7656', size: 1.0, life: 0.6, gravity: 0, drag: 2 });
           }
         },
-        done() { scene.remove(g, cap, capCore, end); cyl.dispose(); mat.dispose(); coreMat.dispose(); outer.material.dispose(); cap.material.dispose(); capCore.material.dispose(); end.material.dispose(); },
+        done() { scene.remove(g, cap, capCore, end); cyl.dispose(); mat.dispose(); coreMat.dispose(); if (helix) { helix.geometry.dispose(); helix.material.dispose(); } outer.material.dispose(); cap.material.dispose(); capCore.material.dispose(); end.material.dispose(); },
       });
       const light = lights[li]; li = (li + 1) % lights.length;
       return {
@@ -364,6 +370,91 @@ export function createFx(scene, camera) {
       groundRing(x, z, '#ffffff', 7, 0.6);
       pop(x, 4, z, '#ffe2b0', 60, 20, 0.6);
     },
+    // 貫穿氣功波：前端一道彎月狀能量
+    wave(color, width) {
+      const geo = new THREE.SphereGeometry(1, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2); geo.scale(width * 0.7, 0.55, 0.9); geo.rotateX(Math.PI / 2);
+      const m = new THREE.Mesh(geo, addMat(color, null, 0.85)); const c = new THREE.Mesh(geo, addMat('#ffffff', null, 0.7)); c.scale.setScalar(0.55); m.add(c);
+      m.renderOrder = 7; scene.add(m);
+      return {
+        update(p) { m.position.set(p.x, p.y, p.z); m.rotation.y = p.ang; add.emit(p.x, p.y, p.z, { n: 3, speed: 1.5, color, color2: '#ffffff', size: 0.5, life: 0.3, gravity: 0, drag: 4, jitter: width * 0.5 }); },
+        remove() { scene.remove(m); geo.dispose(); m.material.dispose(); c.material.dispose(); },
+      };
+    },
+    // 死亡光束：細長的光針
+    needle(color) {
+      const geo = new THREE.CylinderGeometry(0.07, 0.07, 3.2, 6); geo.rotateX(Math.PI / 2);
+      const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false })); const gl = new THREE.Mesh(geo, addMat(color, null, 0.6)); gl.scale.set(4, 4, 1.1); m.add(gl);
+      scene.add(m);
+      return {
+        update(p) { m.position.set(p.x, p.y, p.z); m.rotation.y = p.ang; add.emit(p.x, p.y, p.z, { n: 2, speed: 0.3, color, size: 0.35, life: 0.2, gravity: 0 }); },
+        remove() { scene.remove(m); geo.dispose(); m.material.dispose(); gl.material.dispose(); },
+      };
+    },
+    // 旋轉圓盤（死亡飛盤、氣圓斬）
+    disc(color, r) {
+      const g = new THREE.Group();
+      const ring = new THREE.Mesh(new THREE.RingGeometry(r * 0.25, r, 32).rotateX(-Math.PI / 2), addMat(color, null, 0.9));
+      const edge = new THREE.Mesh(new THREE.RingGeometry(r * 0.85, r * 1.05, 32).rotateX(-Math.PI / 2), addMat('#ffffff', null, 0.9));
+      g.add(ring, edge); g.renderOrder = 7; scene.add(g);
+      let t = 0;
+      return {
+        update(p, dt) { t += dt; g.position.set(p.x, p.y, p.z); g.rotation.y = t * 30; g.rotation.z = 0.15; if (Math.random() < 0.5) add.emit(p.x, p.y, p.z, { n: 1, speed: 0.5, color, size: 0.4, life: 0.2, gravity: 0, jitter: r }); },
+        remove() { scene.remove(g); for (const m of [ring, edge]) { m.geometry.dispose(); m.material.dispose(); } },
+      };
+    },
+    // 死亡球：可移動、可縮放的大能量球
+    deathBall(color) {
+      const g = new THREE.Group();
+      const core = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), new THREE.MeshBasicMaterial({ color: '#ffd9b0', toneMapped: false }));
+      const shell = new THREE.Mesh(new THREE.SphereGeometry(1.18, 24, 16), addMat(color, null, 0.55));
+      const glow = new THREE.Mesh(planeG, addMat(color, glowTex, 0.8)); glow.scale.setScalar(4.2);
+      g.add(core, shell); scene.add(g, glow);
+      const L = lights[li]; li = (li + 1) % lights.length;
+      return {
+        update(x, y, z, sc) { g.position.set(x, y, z); g.scale.setScalar(sc); glow.position.set(x, y, z); glow.scale.setScalar(sc * 4.2); glow.quaternion.copy(camera.quaternion); shell.rotation.y += 0.05; L.l.position.set(x, y, z); L.l.color.set(color); L.l.distance = 14 + sc * 4; L.l.intensity = L.i0 = 30; L.t = 0; L.dur = 0.5; if (Math.random() < 0.7) add.emit(x, y, z, { n: 2, speed: 2, color, color2: '#ffffff', size: 0.5 * sc, life: 0.4, gravity: 0, jitter: sc * 1.5 }); },
+        remove() { scene.remove(g, glow); core.geometry.dispose(); core.material.dispose(); shell.geometry.dispose(); shell.material.dispose(); glow.material.dispose(); },
+      };
+    },
+    // 魔空包圍彈：一圈氣彈浮現後收攏
+    hellzone(x, z, r, color, dur) {
+      const n = 12, orbs = [], y0 = heightAt(x, z);
+      for (let i = 0; i < n; i++) {
+        const m = new THREE.Mesh(planeG, addMat(color, glowTex)); m.renderOrder = 7; scene.add(m);
+        const c = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false })); scene.add(c);
+        orbs.push({ m, c, a: (i / n) * Math.PI * 2, h: 1 + (i % 3) * 0.9 });
+      }
+      spawn({ dur, update(k) { const rr = r * 1.7 * (1 - Math.pow(k, 3)) + 0.3; for (const o of orbs) { const a = o.a + k * 2; const px = x + Math.cos(a) * rr, pz = z + Math.sin(a) * rr, py = y0 + o.h * (1 - k * 0.6); o.m.position.set(px, py, pz); o.c.position.set(px, py, pz); o.m.quaternion.copy(camera.quaternion); o.m.scale.setScalar(1.2 + k); } }, done() { for (const o of orbs) { scene.remove(o.m, o.c); o.m.material.dispose(); o.c.geometry.dispose(); o.c.material.dispose(); } } });
+    },
+    // 圓頂爆炸（熱圓頂攻擊、死亡球落點）
+    dome(x, z, r, color) {
+      const geo = new THREE.SphereGeometry(1, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+      const m = new THREE.Mesh(geo, addMat(color, null, 0.7)); const c = new THREE.Mesh(geo, addMat('#ffffff', null, 0.6));
+      const y = heightAt(x, z); m.position.set(x, y, z); c.position.set(x, y, z); m.renderOrder = c.renderOrder = 7; scene.add(m, c);
+      pop(x, y + 3, z, color, 90, r * 4, 0.7);
+      spawn({ dur: 0.75, update(k) { const e = 1 - Math.pow(1 - k, 3); m.scale.setScalar(r * (0.2 + e)); c.scale.setScalar(r * (0.1 + e * 0.75)); m.material.opacity = 0.7 * (1 - k); c.material.opacity = 0.6 * (1 - k * 1.3); }, done() { scene.remove(m, c); geo.dispose(); m.material.dispose(); c.material.dispose(); } });
+      dust.emit(x, 0.5, z, { n: 40, speed: 12, up: 0.3, spread: 0.4, color: '#c9b48a', size: 1.6, life: 1.2, gravity: 0, drag: 2, jitter: r * 0.3 });
+    },
+    // 能量屏障：擴張的半透明球
+    barrier(h, color) {
+      const m = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 2), addMat(color, null, 0.5)); m.renderOrder = 7; scene.add(m);
+      spawn({ dur: 0.5, update(k) { m.position.set(h.x, heightAt(h.x, h.z) + 1.1, h.z); m.scale.setScalar(1 + k * 3.5); m.material.opacity = 0.5 * (1 - k); }, done() { scene.remove(m); m.geometry.dispose(); m.material.dispose(); } });
+      groundRing(h.x, h.z, color, 4.5, 0.45);
+    },
+    // 兩點之間拉長的手臂／繩索
+    stretch(getA, getB, color, width, dur) {
+      const geo = new THREE.CylinderGeometry(width, width, 1, 8); geo.translate(0, 0.5, 0); geo.rotateX(Math.PI / 2);
+      const m = new THREE.Mesh(geo, new THREE.MeshToonMaterial({ color })); m.castShadow = true; scene.add(m);
+      const A = new THREE.Vector3(), Bv = new THREE.Vector3();
+      spawn({ dur, update() { const a = getA(), b = getB(); A.set(a.x, a.y, a.z); Bv.set(b.x, b.y, b.z); m.position.copy(A); m.lookAt(Bv); m.scale.set(1, 1, Math.max(0.01, A.distanceTo(Bv))); }, done() { scene.remove(m); geo.dispose(); m.material.dispose(); } });
+    },
+    // 超級賽亞人變身：金色爆光與電光
+    transform(h, color) {
+      groundRing(h.x, h.z, color, 5, 0.6); groundRing(h.x, h.z, '#ffffff', 3, 0.4);
+      billboard(burstTex, color, 6, h.x, heightAt(h.x, h.z) + 1.2, h.z, 0.4, 1.2);
+      pop(h.x, 2, h.z, color, 70, 16, 0.6);
+      add.emit(h.x, 1, h.z, { n: 50, speed: 8, up: 1.2, spread: 0.6, color, color2: '#ffffff', size: 0.5, life: 0.7, gravity: -2, drag: 2, jitter: 1 });
+    },
+    sparks(x, y, z, color) { add.emit(x, y, z, { n: 1, speed: 6, up: 0.2, spread: 3, color, color2: '#ffffff', size: 0.18, life: 0.12, gravity: 0, drag: 1, jitter: 1.2, jitterY: 1.8 }); },
     aura(x, y, z, color, n = 2) { add.emit(x, y, z, { n, speed: 0.8, up: 1.4, spread: 0.4, vy: 2.5, color, color2: '#ffffff', size: 0.45, life: 0.5, gravity: -2, drag: 2, jitter: 1.1, jitterY: 1.6 }); },
   };
   return api;

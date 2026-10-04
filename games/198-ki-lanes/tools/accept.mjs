@@ -22,7 +22,7 @@ async function run(name, w, h, touch) {
   check('viewport meta', await ev(() => !!document.querySelector('meta[name=viewport]')));
   await page.waitForTimeout(1200); await shot('1-select');
   // 用真的點擊選角並出戰
-  if (touch) { await page.tap('.card[data-id="shimo"]'); await page.tap('#go'); } else { await page.click('.card[data-id="shimo"]'); await page.click('#go'); }
+  if (touch) { await page.tap('.card[data-id="frieza"]'); await page.tap('#go'); } else { await page.click('.card[data-id="frieza"]'); await page.click('#go'); }
   await page.waitForTimeout(500);
   check('進入對戰', (await ev(() => window.__ki.state().phase)) === 'play');
   check('開局自動學會 Q', (await ev(() => window.__ki.state().player.ranks.Q)) === 1);
@@ -81,6 +81,51 @@ async function run(name, w, h, touch) {
   // 技能列實際點擊
   const skillClick = await (async () => { await ev(() => { const k = window.__ki; k.G.player.cds.D = 0; }); if (touch) await page.tap('.sk[data-k="D"] .face'); else await page.click('.sk[data-k="D"] .face'); return ev(() => window.__ki.G.player.st.spark > 0); })();
   check('點擊爆氣鍵生效', skillClick);
+  // 商店與仙豆：泉水外不能買；回泉水後買得到，能力值跟著變
+  const shop = await ev(() => {
+    const k = window.__ki, G = k.G, P = G.player;
+    k.teleport(0, 0); k.setGold(5000); const away = k.buy('weights');
+    const f = P.team === 0 ? [-80, 80] : [80, -80]; k.teleport(f[0], f[1]);
+    const ad0 = P.ad; const ok = k.buy('weights'); const ok2 = k.buy('senzu');
+    P.hp = P.maxHp * 0.3; const hp0 = P.hp; const ate = k.senzu();
+    return { away, ok, ok2, adUp: P.ad > ad0, ate, healed: P.hp > hp0 };
+  });
+  check('泉水外不能購買', shop.away === false, shop);
+  check('購買道具並加攻擊', shop.ok && shop.adUp, shop);
+  check('仙豆可購買並回血', shop.ok2 && shop.ate && shop.healed, shop);
+  if (touch) await page.tap('#dock .goldbtn'); else await page.keyboard.press('KeyP');
+  await page.waitForTimeout(250); await shot('5b-shop');
+  check('商店面板開啟', await ev(() => document.getElementById('shop').classList.contains('on')));
+  if (touch) await page.tap('#shop .shopX'); else await page.click('#shop .shopX');
+  // 戰爭迷霧：遠處的敵方英雄看不到
+  const fog = await ev(() => {
+    const k = window.__ki, G = k.G, P = G.player; k.freezeAI(true);
+    const e = G.heroes.find((h) => h.team !== P.team && h.alive) || G.heroes.find((h) => h.team !== P.team);
+    e.alive = true; e.hp = e.maxHp; e.x = 60; e.z = -20; k.teleport(-60, 20);
+    for (const m of G.minions) if (m.team === P.team) m.alive = false;
+    k.fastForward(0.5);
+    const hidden = k.visible(e.id) === false;
+    k.teleport(55, -16); k.fastForward(0.5);
+    return { hidden, shown: k.visible(e.id) === true };
+  });
+  check('戰爭迷霧：視野外的敵人看不到、靠近後看得到', fog.hidden && fog.shown, fog);
+  // 野怪營地與大猿
+  const jungle = await ev(() => {
+    const k = window.__ki, G = k.G, P = G.player; k.fastForward(Math.max(0, 152 - G.time));
+    const camps = k.camps(); const boss = k.boss();
+    const mob = G.monsters.find((m) => m.alive && !m.boss);
+    k.teleport(mob.x + 2, mob.z + 2); k.setLevel(10); mob.hp = 30; k.attack(mob.id); k.fastForward(2.5);
+    const b = G.monsters.find((m) => m.boss && m.alive); k.teleport(b.x + 4, b.z + 4); b.hp = 20; k.attack(b.id); k.fastForward(4);
+    return { camps: camps.filter((c) => c.alive).length, boss: !!boss, mobDead: !mob.alive, apeBuff: P.apeBuff > 0 };
+  });
+  check('野怪營地與大猿出生', jungle.camps >= 4 && jungle.boss, jungle);
+  check('擊倒野怪', jungle.mobDead, jungle);
+  check('擊倒大猿得到大猿之力', jungle.apeBuff, jungle);
+  await page.waitForTimeout(300); await shot('5c-jungle');
+  // 尋路：點遠處能繞過野區走到
+  const nav = await ev(() => { const k = window.__ki, G = k.G, P = G.player; k.teleport(-60, -30); k.moveTo(-20, -60); k.fastForward(14); return { d: Math.hypot(P.x + 20, P.z + 60) }; });
+  check('長距離尋路可到達', nav.d < 2.5, nav);
+  // 超級賽亞人：悟空爆氣變身
   // 說明面板
   if (!touch) { await page.click('#helpBtn'); await page.waitForTimeout(200); await shot('6-help'); check('說明面板開啟', await ev(() => document.getElementById('help').classList.contains('on'))); await page.click('#helpClose'); }
   // 勝利
@@ -91,11 +136,17 @@ async function run(name, w, h, touch) {
   await page.waitForTimeout(400);
   check('回到選角', await ev(() => window.__ki.state().phase === 'select' && document.getElementById('select').classList.contains('on')));
   // 敗北
-  await ev(() => window.__ki.start('raiga', 0)); await ev(() => window.__ki.lose());
+  await ev(() => window.__ki.start('vegeta', 0)); await ev(() => window.__ki.lose());
   await page.waitForTimeout(4200); await shot('8-lose');
   check('敗北結算畫面', await ev(() => window.__ki.state().phase === 'end' && document.getElementById('end').classList.contains('lose')));
   // 整場 AI 對戰跑得完（不卡死）
-  const full = await ev(() => { const k = window.__ki; k.start('iwao', 2); k.freezeAI(false); const t0 = performance.now(); k.fastForward(240); return { t: k.state().time, ms: performance.now() - t0, kills: k.state().kills }; });
+  const formBefore = await ev(() => { const k = window.__ki; k.start('goku', 1); const P = k.G.player; P.cds.D = 0; k.fastForward(0.2); return P.form; });
+  await page.waitForTimeout(200);
+  if (touch) await page.tap('.sk[data-k="D"] .face'); else await page.keyboard.press('KeyD');
+  const ssj2 = [formBefore, await ev(() => window.__ki.G.player.form)];
+  check('悟空爆氣變超級賽亞人', ssj2[0] === 'base' && ssj2[1] === 'ssj', ssj2);
+  await page.waitForTimeout(500); await shot('9-ssj');
+  const full = await ev(() => { const k = window.__ki; k.start('piccolo', 2); k.freezeAI(false); const t0 = performance.now(); k.fastForward(240); return { t: k.state().time, ms: performance.now() - t0, kills: k.state().kills }; });
   check('AI 對戰持續進行', full.t > 200, full);
   check('無 uncaught exception', log.pageerrors.length === 0, log.pageerrors.slice(0, 3));
   check('無 console.error', log.errors.length === 0, log.errors.slice(0, 3));

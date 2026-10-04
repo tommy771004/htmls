@@ -1,6 +1,8 @@
 // 地圖：路線、塔位、障礙物、地面繪製、地形與植被。
 import * as THREE from 'three';
-import { MAP, BASE, FOUNTAIN, TEAM_COLOR } from './config.js';
+import { MAP, BASE, FOUNTAIN, TEAM_COLOR, CAMPS } from './config.js';
+import { patchFog, fogUniforms } from './fog.js';
+import { buildProps } from './map-props.js';
 
 export function rng(seed) {
   let a = seed >>> 0;
@@ -60,13 +62,18 @@ for (let team = 0; team < 2; team++) {
   STRUCTURES.push({ id: `core${team}`, kind: 'core', team, x: BASE[team][0], z: BASE[team][1] });
 }
 
-// 高度：河道下凹、地圖外圍隆起成山
+// 高度：河道下凹；地圖外圍是一圈岩壁（約 91～96 陡升），岩壁上是林地台地；河道出口處岩壁斷開成峽谷
 export function heightAt(x, z) {
   const r = riverDist(x, z);
   let h = 0;
   if (r < 9) { const k = 1 - r / 9; h -= 0.75 * k * k * (3 - 2 * k); }
-  const e = Math.max(Math.abs(x), Math.abs(z)) - 92;
-  if (e > 0) h += Math.min(e, 30) * 0.32 + Math.sin(x * 0.13) * Math.cos(z * 0.11) * Math.min(e, 10) * 0.25;
+  const e = Math.max(Math.abs(x), Math.abs(z)) - 91;
+  if (e > 0) {
+    const ss = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
+    const gap = ss(6, 15, r);
+    let c = ss(0, 4.5, e) * 6.5 + Math.max(0, e - 6) * 0.07 + (Math.sin(x * 0.21 + z * 0.07) * 0.5 + Math.cos(z * 0.17 - x * 0.05) * 0.5) * ss(3, 9, e) * 0.9;
+    h += c * gap - (1 - gap) * Math.min(e, 6) * 0.04;
+  }
   return h;
 }
 
@@ -79,6 +86,7 @@ export const OBSTACLES = [];
     if (distToLanes(x, z) < 6.2 + r) return false;
     if (riverDist(x, z) < 6.5 + r) return false;
     for (const b of BASE) if (Math.hypot(x - b[0], z - b[1]) < 24 + r) return false;
+    for (const c of CAMPS) if (Math.hypot(x - c.x, z - c.z) < (c.boss ? 11 : 7.5) + r) return false;
     for (const o of OBSTACLES) if (Math.hypot(x - o.x, z - o.z) < o.r + r + 3.2) return false;
     return true;
   };
@@ -110,44 +118,88 @@ export function walkable(x, z, radius) { const p = { x, z }; return !collide(p, 
 /* ---------------- 地面貼圖 ---------------- */
 const TEX_HALF = 130;
 let TEX_PX = 2048;
+const ss = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
+function insideObstacle(x, z, pad = 0) { for (const o of OBSTACLES) if (Math.hypot(x - o.x, z - o.z) < o.r + pad) return true; return false; }
+
 function paintGround() {
   const c = document.createElement('canvas'); c.width = c.height = TEX_PX;
   const g = c.getContext('2d'), R = rng(7);
   const S = TEX_PX / (TEX_HALF * 2);
   const X = (x) => (x + TEX_HALF) * S, Z = (z) => (z + TEX_HALF) * S;
-  g.fillStyle = '#5f9a3c'; g.fillRect(0, 0, TEX_PX, TEX_PX);
-  // 草地：大筆刷色塊，野區偏深、路邊偏亮
-  for (let i = 0; i < 26000; i++) {
+  const blob = (x, z, r, inner, outer) => { const gr = g.createRadialGradient(X(x), Z(z), 0, X(x), Z(z), r * S); gr.addColorStop(0, inner); gr.addColorStop(1, outer); g.fillStyle = gr; g.beginPath(); g.arc(X(x), Z(z), r * S, 0, Math.PI * 2); g.fill(); };
+  g.fillStyle = '#5c9a3b'; g.fillRect(0, 0, TEX_PX, TEX_PX);
+  // 大面積的草地色塊（暖黃綠草甸／冷綠樹蔭），讓地面有低頻起伏
+  for (let i = 0; i < 260; i++) {
+    const x = (R() * 2 - 1) * TEX_HALF, z = (R() * 2 - 1) * TEX_HALF, r = 8 + R() * 22;
+    const warm = R() < 0.5;
+    blob(x, z, r, warm ? 'rgba(150,170,70,.22)' : 'rgba(40,95,50,.22)', 'rgba(0,0,0,0)');
+  }
+  // 草地筆觸：野區偏深、路邊偏亮
+  for (let i = 0; i < (TEX_PX > 2048 ? 42000 : 22000); i++) {
     const x = (R() * 2 - 1) * TEX_HALF, z = (R() * 2 - 1) * TEX_HALF;
     const dl = distToLanes(x, z), edge = Math.max(Math.abs(x), Math.abs(z));
-    const jungle = Math.min(1, Math.max(0, (dl - 8) / 14));
-    const out = Math.min(1, Math.max(0, (edge - 88) / 10));
-    const h = 92 + (R() - 0.5) * 22 - jungle * 6 + out * 12, s = 48 + R() * 16 - jungle * 6, l = 39 + (R() - 0.5) * 9 - jungle * 9 - out * 5;
-    g.fillStyle = `hsla(${h},${s}%,${l}%,${0.35 + R() * 0.35})`;
+    const jungle = ss(8, 22, dl), out = ss(90, 98, edge);
+    const h = 92 + (R() - 0.5) * 22 - jungle * 8 + out * 10, s = 46 + R() * 16 - jungle * 4, l = 40 + (R() - 0.5) * 10 - jungle * 9 - out * 8;
+    g.fillStyle = `hsla(${h},${s}%,${l}%,${0.3 + R() * 0.35})`;
     g.save(); g.translate(X(x), Z(z)); g.rotate(R() * Math.PI);
-    g.beginPath(); g.ellipse(0, 0, (1 + R() * 2.6) * S, (0.4 + R() * 0.9) * S, 0, 0, Math.PI * 2); g.fill(); g.restore();
+    g.beginPath(); g.ellipse(0, 0, (0.8 + R() * 2.4) * S, (0.3 + R() * 0.8) * S, 0, 0, Math.PI * 2); g.fill(); g.restore();
   }
-  // 河岸沙與河床
+  // 外圍岩壁帶與台地林床
+  for (let i = 0; i < 9000; i++) {
+    const x = (R() * 2 - 1) * TEX_HALF, z = (R() * 2 - 1) * TEX_HALF, e = Math.max(Math.abs(x), Math.abs(z));
+    if (e < 90 || riverDist(x, z) < 8) continue;
+    const cliff = e < 97;
+    g.fillStyle = cliff ? `hsla(${28 + R() * 12},${12 + R() * 10}%,${36 + R() * 14}%,.7)` : `hsla(${100 + R() * 30},${30 + R() * 15}%,${22 + R() * 10}%,.55)`;
+    g.fillRect(X(x), Z(z), (0.6 + R() * 1.4) * S, (0.4 + R() * 1.0) * S);
+  }
+  // 通往野怪營地的踩踏小徑
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  for (const cp of CAMPS) {
+    if (cp.boss) continue;
+    for (let lane = 0; lane < 3; lane++) {
+      const p = LANES[lane]; let best = null, bd = 1e9;
+      for (let d = 0; d < polyLen(p); d += 2) { const q = pointAlong(p, d), dd = Math.hypot(q.x - cp.x, q.z - cp.z); if (dd < bd) { bd = dd; best = q; } }
+      if (bd > 46) continue;
+      for (let k = 0; k < 2; k++) {
+        g.strokeStyle = k ? 'rgba(176,150,98,.38)' : 'rgba(120,120,60,.25)'; g.lineWidth = (k ? 2.2 : 3.6) * S;
+        g.beginPath(); g.moveTo(X(best.x), Z(best.z));
+        const mx = (best.x + cp.x) / 2 + (R() - 0.5) * 8, mz = (best.z + cp.z) / 2 + (R() - 0.5) * 8;
+        g.quadraticCurveTo(X(mx), Z(mz), X(cp.x), Z(cp.z)); g.stroke();
+      }
+    }
+  }
+  // 障礙物底下的環境遮蔽
+  for (const o of OBSTACLES) blob(o.x + 0.6, o.z - 0.4, o.r * 1.7 + 1.2, 'rgba(18,36,14,.55)', 'rgba(18,36,14,0)');
+  // 河岸：沙、濕泥、河床
   const band = (w, col) => {
     g.strokeStyle = col; g.lineWidth = w * S * 2; g.lineCap = 'round';
     g.beginPath(); g.moveTo(X(-TEX_HALF), Z(-TEX_HALF)); g.lineTo(X(TEX_HALF), Z(TEX_HALF)); g.stroke();
   };
-  band(9.5, '#c9b27a'); band(7.6, '#7d8f5a'); band(6.8, '#3f6f6a');
-  // 路線：多層泥土筆觸
+  band(10.2, 'rgba(120,140,70,.45)'); band(9.3, '#cdb67d'); band(7.8, '#a69466'); band(7.0, '#6f7f55'); band(6.4, '#3d6a66');
+  for (let i = 0; i < 2600; i++) { // 河岸卵石
+    const t = (R() * 2 - 1) * TEX_HALF * 1.3, side = R() < 0.5 ? -1 : 1, off = (6.6 + R() * 2.8) * side;
+    const x = t / Math.SQRT2 + off / Math.SQRT2, z = t / Math.SQRT2 - off / Math.SQRT2;
+    g.fillStyle = `hsl(${30 + R() * 14},${10 + R() * 12}%,${58 + R() * 18}%)`;
+    g.beginPath(); g.ellipse(X(x), Z(z), (0.12 + R() * 0.25) * S, (0.08 + R() * 0.16) * S, R() * 3, 0, Math.PI * 2); g.fill();
+  }
+  // 路線：外緣草被踩禿、深色邊、泥土層
   const lanes = (w, col, jit, n = 1) => {
     for (let k = 0; k < n; k++) for (const p of LANES) {
-      g.strokeStyle = col; g.lineWidth = (w + (R() - 0.5) * jit) * S; g.lineCap = 'round'; g.lineJoin = 'round';
+      g.strokeStyle = col; g.lineWidth = (w + (R() - 0.5) * jit) * S;
       g.beginPath(); p.forEach((q, i) => (i ? g.lineTo : g.moveTo).call(g, X(q.x + (R() - 0.5) * jit), Z(q.z + (R() - 0.5) * jit))); g.stroke();
     }
   };
-  lanes(13, 'rgba(120,140,70,.55)', 2, 2);
-  lanes(10.5, '#b8955c', 1.2, 1);
-  lanes(9, '#c9a76a', 1.5, 2);
-  // 路面石板
+  lanes(15, 'rgba(150,160,80,.35)', 2.5, 2);
+  lanes(12, 'rgba(110,120,58,.5)', 1.5, 2);
+  lanes(11, 'rgba(92,70,40,.55)', 0.8, 1);
+  lanes(10.2, '#b8955c', 1.0, 1);
+  lanes(9, '#c9a76a', 1.4, 2);
+  lanes(5, 'rgba(214,186,128,.45)', 2.5, 2);
+  // 路面石板與邊緣碎石
   for (const p of LANES) {
     const L = polyLen(p);
     for (let d = 0; d < L; d += 0.9) {
-      const q = pointAlong(p, d);
+      const q = pointAlong(p, d), q2 = pointAlong(p, d + 0.5), dx = q2.x - q.x, dz = q2.z - q.z, l = Math.hypot(dx, dz) || 1;
       for (let k = 0; k < 4; k++) {
         if (R() < 0.5) continue;
         const ox = (R() - 0.5) * 7.5, oz = (R() - 0.5) * 7.5, s = 0.32 + R() * 0.42;
@@ -157,18 +209,26 @@ function paintGround() {
         g.beginPath(); for (let v = 0; v < 5; v++) { const a = (v / 5) * Math.PI * 2, rr = s * (0.75 + R() * 0.4) * S; (v ? g.lineTo : g.moveTo).call(g, Math.cos(a) * rr, Math.sin(a) * rr); }
         g.closePath(); g.fill(); g.stroke(); g.restore();
       }
+      for (const side of [-1, 1]) for (let k = 0; k < 3; k++) {
+        const off = (4.6 + R() * 1.4) * side, along = (R() - 0.5) * 0.9;
+        const x = q.x - (dz / l) * off + (dx / l) * along, z = q.z + (dx / l) * off + (dz / l) * along;
+        g.fillStyle = `hsla(${32 + R() * 10},${14 + R() * 10}%,${R() < 0.5 ? 34 + R() * 10 : 62 + R() * 12}%,.85)`;
+        g.beginPath(); g.ellipse(X(x), Z(z), (0.08 + R() * 0.16) * S, (0.06 + R() * 0.1) * S, R() * 3, 0, Math.PI * 2); g.fill();
+      }
     }
   }
   // 基地：石砌平台與隊伍色紋
   BASE.forEach((b, team) => {
     const cx = X(b[0]), cz = Z(b[1]);
-    g.fillStyle = '#b9ab8e'; g.beginPath(); g.arc(cx, cz, 23 * S, 0, Math.PI * 2); g.fill();
+    blob(b[0], b[1], 27, 'rgba(40,36,24,.35)', 'rgba(40,36,24,0)');
+    g.fillStyle = '#b3a487'; g.beginPath(); g.arc(cx, cz, 23.4 * S, 0, Math.PI * 2); g.fill();
     for (let ring = 0; ring < 7; ring++) {
       const r0 = (4 + ring * 2.9) * S, n = 10 + ring * 7;
       for (let k = 0; k < n; k++) {
         const a0 = (k / n) * Math.PI * 2 + ring * 0.3, a1 = ((k + 0.92) / n) * Math.PI * 2 + ring * 0.3;
-        g.fillStyle = `hsl(${38 + R() * 8},${14 + R() * 10}%,${66 + R() * 12}%)`;
+        g.fillStyle = `hsl(${38 + R() * 8},${14 + R() * 10}%,${64 + R() * 12}%)`;
         g.beginPath(); g.arc(cx, cz, r0 + 2.7 * S, a0, a1); g.arc(cx, cz, r0, a1, a0, true); g.closePath(); g.fill();
+        if (R() < 0.25) { g.fillStyle = 'rgba(90,110,60,.35)'; g.beginPath(); g.arc(cx + Math.cos(a1) * (r0 + 1.35 * S), cz + Math.sin(a1) * (r0 + 1.35 * S), 0.35 * S, 0, Math.PI * 2); g.fill(); }
       }
     }
     g.strokeStyle = TEAM_COLOR[team]; g.globalAlpha = 0.75; g.lineWidth = 0.7 * S;
@@ -176,17 +236,45 @@ function paintGround() {
     g.lineWidth = 0.35 * S; g.beginPath(); g.arc(cx, cz, 17 * S, 0, Math.PI * 2); g.stroke();
     for (let k = 0; k < 12; k++) { const a = (k / 12) * Math.PI * 2; g.beginPath(); g.moveTo(cx + Math.cos(a) * 15.6 * S, cz + Math.sin(a) * 15.6 * S); g.lineTo(cx + Math.cos(a + 0.12) * 17 * S, cz + Math.sin(a + 0.12) * 17 * S); g.stroke(); }
     g.globalAlpha = 1;
-    // 泉水
+    g.strokeStyle = 'rgba(80,66,44,.6)'; g.lineWidth = 0.4 * S; g.beginPath(); g.arc(cx, cz, 23.2 * S, 0, Math.PI * 2); g.stroke();
     const f = FOUNTAIN[team];
-    g.fillStyle = '#d7cfb9'; g.beginPath(); g.arc(X(f[0]), Z(f[1]), 5.6 * S, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#d7cfb9'; g.beginPath(); g.arc(X(f[0]), Z(f[1]), 6 * S, 0, Math.PI * 2); g.fill();
   });
-  // 草叢小點與花
-  for (let i = 0; i < 9000; i++) {
+  // 野怪營地：踩平的泥地與一圈平石；大猿的河中石場
+  for (const cp of CAMPS) {
+    const R0 = cp.boss ? 9.5 : 5;
+    blob(cp.x, cp.z, R0 + 2.5, 'rgba(60,48,26,.45)', 'rgba(60,48,26,0)');
+    if (!cp.boss) { blob(cp.x, cp.z, R0, 'rgba(150,124,82,.9)', 'rgba(150,124,82,.35)'); }
+    else { blob(cp.x, cp.z, R0 + 0.5, 'rgba(196,176,128,.95)', 'rgba(170,150,104,.6)'); blob(cp.x, cp.z, R0 - 3.2, 'rgba(110,118,96,.7)', 'rgba(110,118,96,0)'); }
+    const n = cp.boss ? 34 : 16;
+    for (let k = 0; k < n; k++) {
+      const a = (k / n) * Math.PI * 2 + R() * 0.1, rr = R0 + (R() - 0.5) * 0.4, sz = (cp.boss ? 0.9 : 0.55) + R() * 0.3;
+      g.fillStyle = `hsl(${32 + R() * 10},${10 + R() * 10}%,${54 + R() * 14}%)`; g.strokeStyle = 'rgba(60,48,30,.5)'; g.lineWidth = 0.1 * S;
+      g.save(); g.translate(X(cp.x + Math.cos(a) * rr), Z(cp.z + Math.sin(a) * rr)); g.rotate(a);
+      g.beginPath(); g.ellipse(0, 0, sz * S, sz * 0.62 * S, 0, 0, Math.PI * 2); g.fill(); g.stroke(); g.restore();
+    }
+    for (let k = 0; k < (cp.boss ? 120 : 40); k++) { // 爪痕、碎石
+      const a = R() * 6.28, d = Math.sqrt(R()) * R0 * 0.9;
+      g.fillStyle = `rgba(${70 + R() * 40},${58 + R() * 30},${38 + R() * 20},.5)`;
+      g.fillRect(X(cp.x + Math.cos(a) * d), Z(cp.z + Math.sin(a) * d), (0.1 + R() * 0.3) * S, (0.1 + R() * 0.15) * S);
+    }
+  }
+  // 草點與成簇的小花
+  for (let i = 0; i < (TEX_PX > 2048 ? 16000 : 8000); i++) {
     const x = (R() * 2 - 1) * TEX_HALF, z = (R() * 2 - 1) * TEX_HALF;
-    if (distToLanes(x, z) < 5.5 || riverDist(x, z) < 5) continue;
-    const fl = R() < 0.06;
-    g.fillStyle = fl ? ['#f4e7b0', '#f2b8a0', '#fff6e0'][(R() * 3) | 0] : `hsla(${80 + R() * 30},55%,${50 + R() * 16}%,.7)`;
-    g.fillRect(X(x), Z(z), (fl ? 0.25 : 0.12) * S, (fl ? 0.25 : 0.55) * S);
+    if (distToLanes(x, z) < 5.6 || riverDist(x, z) < 6 || BASE.some((b) => Math.hypot(x - b[0], z - b[1]) < 24)) continue;
+    g.fillStyle = `hsla(${78 + R() * 34},55%,${48 + R() * 18}%,.7)`;
+    g.fillRect(X(x), Z(z), 0.1 * S, (0.3 + R() * 0.35) * S);
+  }
+  const FLOWER = ['#f4e7b0', '#f2b8a0', '#fff6e0', '#f6d36a', '#e9a6c0'];
+  for (let i = 0; i < 520; i++) {
+    const cx = (R() * 2 - 1) * 88, cz = (R() * 2 - 1) * 88;
+    if (distToLanes(cx, cz) < 6.5 || riverDist(cx, cz) < 7 || insideObstacle(cx, cz, 0.3) || BASE.some((b) => Math.hypot(cx - b[0], cz - b[1]) < 25)) continue;
+    const colr = FLOWER[(R() * FLOWER.length) | 0], n = 6 + ((R() * 14) | 0);
+    for (let k = 0; k < n; k++) {
+      const a = R() * 6.28, d = R() * 1.6;
+      g.fillStyle = colr; g.beginPath(); g.arc(X(cx + Math.cos(a) * d), Z(cz + Math.sin(a) * d), (0.1 + R() * 0.08) * S, 0, Math.PI * 2); g.fill();
+    }
   }
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
@@ -204,6 +292,13 @@ function detailTexture() {
     for (const dx of [-N, 0, N]) for (const dy of [-N, 0, N]) { g.beginPath(); g.ellipse(dx, dy, 1 + R() * 5, 0.6 + R() * 2, 0, 0, Math.PI * 2); g.fill(); }
     g.restore();
   }
+  // 第二層：細草刃紋（綠通道）
+  const d = g.getImageData(0, 0, N, N);
+  for (let i = 0; i < 9000; i++) {
+    const x = (R() * N) | 0, y = (R() * N) | 0, len = 2 + (R() * 4) | 0, v = R() < 0.5 ? 60 : 200;
+    for (let k = 0; k < len; k++) { const j = (((y + k) % N) * N + x) * 4 + 1; d.data[j] = v; }
+  }
+  g.putImageData(d, 0, 0);
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4;
   return t;
 }
@@ -229,137 +324,74 @@ export function buildMap(scene, quality = 1) {
   for (let i = 0; i < pos.count; i++) pos.setY(i, heightAt(pos.getX(i), pos.getZ(i)));
   geo.computeVertexNormals();
   const gmat = new THREE.MeshLambertMaterial({ map: tex });
-  // 細節雜訊：以世界座標平鋪，放大時地面不會糊成一片
+  // 細節雜訊：以世界座標平鋪，放大時地面不會糊成一片；陡坡（岩壁）改成岩石色
   const detail = detailTexture();
   gmat.onBeforeCompile = (sh) => {
     sh.uniforms.uDetail = { value: detail };
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vWxz;').replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWxz = (modelMatrix * vec4(transformed, 1.0)).xz;');
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D uDetail; varying vec2 vWxz;')
-      .replace('#include <map_fragment>', '#include <map_fragment>\n float dt1 = texture2D(uDetail, vWxz * 0.19).r, dt2 = texture2D(uDetail, vWxz * 0.047 + 0.37).r;\n diffuseColor.rgb *= 0.8 + 0.26 * dt1 + 0.14 * dt2;');
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vWxz; varying float vSlope;')
+      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWxz = (modelMatrix * vec4(transformed, 1.0)).xz; vSlope = 1.0 - normal.y;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform sampler2D uDetail; varying vec2 vWxz; varying float vSlope;')
+      .replace('#include <map_fragment>', `#include <map_fragment>
+ vec4 dA = texture2D(uDetail, vWxz * 0.19), dB = texture2D(uDetail, vWxz * 0.047 + 0.37), dC = texture2D(uDetail, vWxz * 0.9);
+ diffuseColor.rgb *= 0.8 + 0.26 * dA.r + 0.14 * dB.r;
+ float grassy = smoothstep(0.02, 0.12, diffuseColor.g - diffuseColor.r);
+ diffuseColor.rgb *= 1.0 + (dC.g - 0.5) * 0.16 * grassy;
+ float cliff = smoothstep(0.35, 0.7, vSlope);
+ vec3 rockC = mix(vec3(0.42, 0.37, 0.31), vec3(0.58, 0.52, 0.44), dA.r) * (0.85 + 0.3 * dB.r);
+ diffuseColor.rgb = mix(diffuseColor.rgb, rockC, cliff);`);
   };
+  patchFog(gmat);
+  gmat.customProgramCacheKey = () => 'ground-detail-fog';
   const ground = new THREE.Mesh(geo, gmat);
   ground.receiveShadow = true; group.add(ground);
 
-  // 河水
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(400, 12.4, 1, 1), new THREE.ShaderMaterial({
+  // 河水：岸邊漸淺、流動泡沫線、細碎反光；迷霧手動套用
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(400, 12.4, 200, 1), new THREE.ShaderMaterial({
     transparent: true, depthWrite: false,
-    uniforms: { uTime: { value: 0 } },
+    uniforms: { uTime: { value: 0 }, uFog: fogUniforms.uFog, uFogOn: fogUniforms.uFogOn },
     vertexShader: 'varying vec2 vUv; varying vec3 vW; void main(){ vUv=uv; vec4 w=modelMatrix*vec4(position,1.); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }',
-    fragmentShader: `varying vec2 vUv; varying vec3 vW; uniform float uTime;
+    fragmentShader: `varying vec2 vUv; varying vec3 vW; uniform float uTime; uniform sampler2D uFog; uniform float uFogOn;
       float h(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
       float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y); }
       void main(){
         float e = abs(vUv.y-.5)*2.;
-        vec2 p = vW.xz*.35; float t=uTime;
-        float r = n(p+vec2(t*.6,t*.4))*.6 + n(p*2.3-vec2(t*.5,-t*.3))*.4;
-        vec3 deep = vec3(.09,.30,.34), shal = vec3(.22,.50,.50);
-        vec3 c = mix(deep, shal, smoothstep(.15,.95,e));
-        float streak = smoothstep(.72,.78,r) * (1.-e*.6);
-        c += vec3(.55,.78,.74)*streak*.35;
-        float foam = smoothstep(.82,.98,e + r*.08);
-        c = mix(c, vec3(.86,.92,.86), foam*.7);
-        gl_FragColor = vec4(c, mix(.78,.95,foam) * (1.-smoothstep(.97,1.,e)));
+        float along = (vW.x + vW.z) * .7071, t = uTime;
+        vec2 p = vec2(along, (vW.x - vW.z) * .7071);
+        float r = n(p*.35 + vec2(t*.55, 0.))*.6 + n(p*.8 - vec2(t*.9, t*.2))*.4;
+        vec3 deep = vec3(.07,.27,.33), mid = vec3(.15,.42,.45), shal = vec3(.38,.6,.52);
+        vec3 c = mix(deep, mid, smoothstep(.0,.55,e + (r-.5)*.15));
+        c = mix(c, shal, smoothstep(.55,.9,e));
+        float flow = smoothstep(.66,.8, n(vec2(along*.22 - t*.7, p.y*1.6))) * (1. - e);
+        c += vec3(.45,.7,.68) * flow * .16;
+        float foamLine = smoothstep(.78,.86,e + (n(vec2(along*1.3 - t*.8, 3.))-.5)*.12) * (1. - smoothstep(.9,1.,e)*.35);
+        float foam = foamLine * smoothstep(.35,.6, n(vec2(along*2. - t*1.5, e*6.)));
+        c = mix(c, vec3(.9,.95,.9), foam*.85);
+        float glint = smoothstep(.985,1., n(p*2.4 + vec2(t*1.1,-t*.4)) * n(p*3.7 - vec2(t*.5, t*.9)) * 1.75) * (1.-e);
+        c += vec3(1.,.97,.85) * glint * .45;
+        float vis = mix(1., texture2D(uFog, (vW.xz + 96.) / 192.).r, uFogOn);
+        float l = dot(c, vec3(.3,.59,.11));
+        c = mix(mix(vec3(l), c, .45) * vec3(.46,.5,.6), c, smoothstep(.05,.95,vis));
+        gl_FragColor = vec4(c, mix(.8,.96,foam) * (1.-smoothstep(.96,1.,e)));
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
       }`,
   }));
   water.rotation.x = -Math.PI / 2; water.rotation.z = -Math.PI / 4; water.position.y = -0.32; water.renderOrder = 1;
   group.add(water);
 
-  // 植被：樹（多球冠）、松、岩石，用 InstancedMesh
-  const R = rng(4242);
-  const trees = [], pines = [], rocks = [];
-  for (const o of OBSTACLES) {
-    if (o.kind === 'rock') {
-      rocks.push({ x: o.x, z: o.z, s: o.r * 0.95, rot: R() * 6 });
-      const n = 1 + ((R() * 3) | 0);
-      for (let k = 0; k < n; k++) { const a = R() * 6.28, d = o.r * (0.5 + R() * 0.4); rocks.push({ x: o.x + Math.cos(a) * d, z: o.z + Math.sin(a) * d, s: o.r * (0.3 + R() * 0.3), rot: R() * 6 }); }
-    } else {
-      const n = Math.max(2, Math.round(o.r * o.r * 0.55));
-      for (let k = 0; k < n; k++) {
-        const a = R() * 6.28, d = Math.sqrt(R()) * Math.max(0, o.r - 1.1);
-        const t = { x: o.x + Math.cos(a) * d, z: o.z + Math.sin(a) * d, s: 0.8 + R() * 0.55, rot: R() * 6, hue: R() };
-        (R() < 0.35 ? pines : trees).push(t);
-      }
-    }
-  }
-  // 地圖外圍密林
-  for (let i = 0; i < (quality > 0 ? 1700 : 900); i++) {
-    const x = (R() * 2 - 1) * 128, z = (R() * 2 - 1) * 128;
-    const e = Math.max(Math.abs(x), Math.abs(z));
-    if (e < 90.5) continue;
-    const t = { x, z, s: 1 + R() * 0.8 + Math.min(1, (e - 90) / 20) * 0.6, rot: R() * 6, hue: R() };
-    (R() < 0.55 ? pines : trees).push(t);
-    if (R() < 0.08) rocks.push({ x: x + 2, z: z + 1, s: 1.5 + R() * 2.5, rot: R() * 6 });
-  }
-  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p3 = new THREE.Vector3(), col = new THREE.Color(), up = new THREE.Vector3(0, 1, 0);
-  const inst = (geom, mat, list, fn) => {
-    const im = new THREE.InstancedMesh(geom, mat, list.length);
-    list.forEach((t, i) => { fn(t, i, im); });
-    im.castShadow = true; im.receiveShadow = true; im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true;
-    group.add(im); return im;
-  };
-  const place = (t, s, im, i, yoff = 0, sy = 1) => { q.setFromAxisAngle(up, t.rot); sc.set(s, s * sy, s); p3.set(t.x, heightAt(t.x, t.z) + yoff, t.z); m4.compose(p3, q, sc); im.setMatrixAt(i, m4); };
-  // 闊葉樹：樹幹＋三顆球冠合成一個幾何
-  const crown = (() => {
-    const parts = [];
-    const add = (g, x, y, z) => { g.translate(x, y, z); parts.push(g); };
-    add(new THREE.IcosahedronGeometry(1.45, 1), 0, 2.9, 0);
-    add(new THREE.IcosahedronGeometry(1.05, 1), 0.8, 2.4, 0.4);
-    add(new THREE.IcosahedronGeometry(1.0, 1), -0.7, 2.5, -0.35);
-    add(new THREE.IcosahedronGeometry(0.85, 1), 0.1, 3.75, 0.1);
-    return mergeGeo(parts);
-  })();
-  const trunk = new THREE.CylinderGeometry(0.18, 0.3, 2.2, 6); trunk.translate(0, 1.1, 0);
-  const crownMat = toon('#ffffff', { flatShading: true });
-  const trunkMat = toon('#6b4a2f');
-  inst(trunk, trunkMat, trees, (t, i, im) => place(t, t.s, im, i));
-  inst(crown, crownMat, trees, (t, i, im) => { place(t, t.s, im, i); col.setHSL(0.24 + t.hue * 0.09, 0.45 + t.hue * 0.15, 0.32 + t.hue * 0.1); im.setColorAt(i, col); });
-  // 松樹：疊三層圓錐
-  const pine = mergeGeo([0, 1, 2].map((k) => { const g = new THREE.ConeGeometry(1.5 - k * 0.38, 1.9, 7); g.translate(0, 1.7 + k * 1.15, 0); return g; }));
-  inst(trunk, trunkMat, pines, (t, i, im) => place(t, t.s * 0.8, im, i));
-  inst(pine, toon('#ffffff', { flatShading: true }), pines, (t, i, im) => { place(t, t.s, im, i, 0, 1.15); col.setHSL(0.36 + t.hue * 0.06, 0.38, 0.24 + t.hue * 0.08); im.setColorAt(i, col); });
-  // 岩石
-  const rockG = new THREE.DodecahedronGeometry(1, 0); {
-    const rp = rockG.attributes.position, RR = rng(11);
-    for (let i = 0; i < rp.count; i++) rp.setXYZ(i, rp.getX(i) * (0.85 + RR() * 0.3), rp.getY(i) * (0.6 + RR() * 0.25), rp.getZ(i) * (0.85 + RR() * 0.3));
-    rockG.computeVertexNormals();
-  }
-  inst(rockG, toon('#ffffff', { flatShading: true }), rocks, (t, i, im) => { place(t, t.s, im, i, t.s * 0.25); col.setHSL(0.09, 0.08 + (i % 5) * 0.02, 0.46 + (i % 7) * 0.025); im.setColorAt(i, col); });
+  const props = buildProps(group, quality, { toon, mergeGeo });
 
-  // 路邊草簇（小錐）
-  const tufts = [];
-  for (const p of LANES) {
-    const L = polyLen(p);
-    for (let d = 0; d < L; d += 0.9) {
-      const a = pointAlong(p, d), b = pointAlong(p, d + 0.5), dx = b.x - a.x, dz = b.z - a.z, l = Math.hypot(dx, dz) || 1;
-      for (const side of [-1, 1]) {
-        if (R() < 0.3) continue;
-        const off = 5.2 + R() * 1.8, x = a.x - (dz / l) * off * side, z = a.z + (dx / l) * off * side;
-        if (riverDist(x, z) < 5) continue;
-        tufts.push({ x, z, s: 0.5 + R() * 0.6, rot: R() * 6, hue: R() });
-      }
-    }
-  }
-  const tuftG = mergeGeo([0, 1, 2].map((k) => { const g = new THREE.ConeGeometry(0.12, 0.9, 3); g.rotateZ((k - 1) * 0.35); g.translate((k - 1) * 0.15, 0.4, 0); return g; }));
-  const tuftM = inst(tuftG, toon('#ffffff'), tufts, (t, i, im) => { place(t, t.s, im, i); col.setHSL(0.22 + t.hue * 0.08, 0.5, 0.42 + t.hue * 0.12); im.setColorAt(i, col); });
-  tuftM.castShadow = false;
-
-  // 基地裝飾：泉水環
-  FOUNTAIN.forEach((f, team) => {
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(5, 0.35, 6, 40), toon('#d8ccb0'));
-    ring.rotation.x = Math.PI / 2; ring.position.set(f[0], 0.25, f[1]); ring.castShadow = true; group.add(ring);
-    const pool = new THREE.Mesh(new THREE.CircleGeometry(4.7, 40), new THREE.MeshBasicMaterial({ color: TEAM_COLOR[team], transparent: true, opacity: 0.45 }));
-    pool.rotation.x = -Math.PI / 2; pool.position.set(f[0], 0.08, f[1]); group.add(pool);
-  });
-
-  return { group, ground, water, groundCanvas: canvas, update(t) { water.material.uniforms.uTime.value = t; } };
+  return { group, ground, water, groundCanvas: canvas, update(t) { water.material.uniforms.uTime.value = t; props.update(t); } };
 }
 
 function mergeGeo(list) {
-  // 簡易合併（全部轉成非索引並串接 position/normal）
+  // 簡易合併（全部轉成非索引並串接 position/normal，若有 color 也一起）
   let n = 0; const ni = list.map((g) => { const x = g.index ? g.toNonIndexed() : g; n += x.attributes.position.count; return x; });
-  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3); let o = 0;
-  for (const g of ni) { g.computeVertexNormals(); pos.set(g.attributes.position.array, o * 3); nor.set(g.attributes.normal.array, o * 3); o += g.attributes.position.count; }
+  const hasCol = ni.every((g) => g.attributes.color);
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), colr = hasCol ? new Float32Array(n * 3) : null; let o = 0;
+  for (const g of ni) { g.computeVertexNormals(); pos.set(g.attributes.position.array, o * 3); nor.set(g.attributes.normal.array, o * 3); if (colr) colr.set(g.attributes.color.array, o * 3); o += g.attributes.position.count; }
   const out = new THREE.BufferGeometry(); out.setAttribute('position', new THREE.BufferAttribute(pos, 3)); out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  if (colr) out.setAttribute('color', new THREE.BufferAttribute(colr, 3));
   return out;
 }
-export { mergeGeo, toon };
+export { mergeGeo, toon, insideObstacle };

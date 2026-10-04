@@ -7,7 +7,7 @@ const { browser, page, log } = await open('../../web/198-ki-lanes.html', { w, h,
 const raf = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
 const shot = async (n) => { await raf(); await page.screenshot({ path: `${out}/${w}-${n}.png` }); };
 await page.waitForTimeout(1500); await shot('1-select');
-await page.evaluate(() => window.__ki.start('homura', 1));
+await page.evaluate(() => window.__ki.start('goku', 1));
 await page.waitForTimeout(800); await shot('2-start');
 await page.evaluate(() => window.__ki.fastForward(40));
 await page.waitForTimeout(600); await shot('3-lane');

@@ -1,34 +1,62 @@
-// 技能圖示：每個角色、每個技能一個手繪 SVG 記號（48×48），用角色元素色描繪。
+// 技能與道具圖示：每個角色、每個技能一個手繪 SVG 記號（48×48），以角色的氣功色描繪。
 const W = (body) => `<svg viewBox="0 0 48 48" aria-hidden="true">${body}</svg>`;
 const S = 'fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"';
 const F = 'fill="currentColor"';
+// 共用：瞬移（虛線弧＋菱形）、光束（兩掌間放出的寬帶）
+const blinkIc = W(`<path d="M10 36 C14 16 26 10 38 12" ${S} stroke-dasharray="3 5"/><path d="M33 6 l8 6 -8 6 -8 -6z" ${F}/><circle cx="12" cy="36" r="3" ${F} opacity=".5"/>`);
+const beamIc = (w) => W(`<path d="M6 ${24 - w} L42 ${24 - w * 1.8} L42 ${24 + w * 1.8} L6 ${24 + w} Z" ${F} opacity=".45"/><path d="M6 22 L42 18 L42 30 L6 26 Z" ${F}/><path d="M8 24 H42" stroke="#fff" stroke-width="2.4"/>`);
 
 export const ICONS = {
-  homura: {
-    Q: W(`<circle cx="19" cy="29" r="9" ${F}/><path d="M24 22 L40 8 L33 21 L42 19 L28 31" ${F} opacity=".75"/><circle cx="17" cy="31" r="3.5" fill="#fff"/>`),
+  goku: {
+    Q: W(`<circle cx="26" cy="24" r="11" ${F}/><circle cx="26" cy="24" r="5" fill="#fff"/><path d="M6 16 l8 4 M5 24 h9 M6 32 l8 -4" ${S} stroke-width="2.6"/>`),
     W: W(`<path d="M8 14 l9 10 -9 10 M17 14 l9 10 -9 10" ${S} opacity=".6"/><circle cx="34" cy="24" r="8" ${F}/><path d="M30 20 h8 M30 24 h8 M30 28 h7" stroke="#16110c" stroke-width="2"/>`),
-    E: W(`<path d="M10 36 C14 16 26 10 38 12" ${S} stroke-dasharray="3 5"/><path d="M33 6 l8 6 -8 6 -8 -6z" ${F}/><circle cx="12" cy="36" r="3" ${F} opacity=".5"/>`),
-    R: W(`<path d="M6 20 L42 10 L42 38 L6 28 Z" ${F} opacity=".45"/><path d="M6 22 L42 17 L42 31 L6 26 Z" ${F}/><path d="M8 24 H42" stroke="#fff" stroke-width="2.4"/>`),
+    E: W(`<path d="M24 6 v8 M24 34 v8" ${S}/><path d="M14 24 a10 10 0 1 0 20 0 a10 10 0 1 0 -20 0" ${S} stroke-dasharray="4 4"/><circle cx="24" cy="24" r="3.5" ${F}/>`),
+    R: beamIc(8),
   },
-  shimo: {
-    Q: W(`<path d="M8 40 L30 18 L40 8 L36 22 L14 42 Z" ${F}/><path d="M30 18 L36 22" stroke="#16110c" stroke-width="2"/><path d="M6 30 l6 -2 M12 40 l2 -6" ${S} stroke-width="2.4" opacity=".6"/>`),
-    W: W(`<path d="M10 38 C10 20 22 10 40 10" ${S} stroke-width="5"/><path d="M14 40 C16 26 26 18 40 16" ${S} stroke-width="2" opacity=".55"/><path d="M36 6 l6 4 -5 5" ${S}/>`),
-    E: W(`<path d="M8 30 c6 -6 12 6 18 0 s12 -6 16 0" ${S}/><path d="M10 38 c6 -5 12 5 18 0 s10 -5 12 0" ${S} opacity=".55"/><path d="M24 6 l5 8 -5 8 -5 -8z" ${F}/>`),
-    R: W(`<g ${S}><path d="M24 4 V44 M6.7 14 L41.3 34 M6.7 34 L41.3 14"/><path d="M20 8 l4 4 4 -4 M20 40 l4 -4 4 4"/></g><circle cx="24" cy="24" r="5" ${F}/>`),
-  },
-  iwao: {
-    Q: W(`<path d="M24 44 L10 12 L18 14 Z M24 44 L24 6 L29 12 Z M24 44 L38 12 L30 14 Z" ${F}/><path d="M8 44 H40" ${S}/>`),
-    W: W(`<rect x="22" y="12" width="16" height="24" rx="3" ${F}/><path d="M6 16 H16 M4 24 H18 M6 32 H16" ${S}/>`),
-    E: W(`<path d="M24 5 L40 14 L40 32 L24 43 L8 32 L8 14 Z" ${S}/><path d="M24 13 L33 18 L33 29 L24 35 L15 29 L15 18 Z" ${F} opacity=".7"/>`),
-    R: W(`<path d="M24 4 V26 M16 18 L24 27 L32 18" ${S} stroke-width="4"/><path d="M6 36 L16 32 L22 40 L28 31 L34 38 L42 34" ${S}/><path d="M4 44 H44" ${S} stroke-width="2"/>`),
-  },
-  raiga: {
-    Q: W(`<path d="M30 4 L14 26 H24 L18 44 L36 20 H26 Z" ${F}/><path d="M36 30 l6 -2 -3 6" ${S} stroke-width="2.4" opacity=".7"/>`),
-    W: W(`<g ${S} stroke-width="2.6"><path d="M8 12 l10 6 M6 22 l12 3 M8 32 l10 -2 M12 40 l8 -5"/></g><circle cx="32" cy="24" r="9" ${F}/>`),
+  vegeta: {
+    Q: W(`<circle cx="14" cy="30" r="6" ${F}/><circle cx="26" cy="20" r="5" ${F} opacity=".8"/><circle cx="37" cy="12" r="4" ${F} opacity=".6"/><path d="M14 30 L26 20 L37 12" ${S} stroke-width="1.8" stroke-dasharray="2 3"/>`),
+    W: W(`<path d="M8 36 L28 20" ${S} stroke-width="5"/><path d="M26 14 l12 -4 -4 12" ${S}/><path d="M6 24 h8 M10 16 h6" ${S} stroke-width="2.2" opacity=".6"/>`),
     E: W(`<path d="M10 10 L38 38 M38 10 L10 38" ${S} stroke-width="4"/><circle cx="24" cy="24" r="4" fill="#16110c" stroke="currentColor" stroke-width="2"/>`),
-    R: W(`<g ${F}><circle cx="24" cy="6" r="3"/><circle cx="41" cy="18" r="3"/><circle cx="35" cy="40" r="3"/><circle cx="13" cy="40" r="3"/><circle cx="7" cy="18" r="3"/></g><path d="M24 6 L35 40 L7 18 L41 18 L13 40 Z" ${S} stroke-width="2.4"/>`),
+    R: beamIc(13),
+  },
+  trunks: {
+    Q: W(`<path d="M10 34 Q24 6 38 34" ${S} stroke-width="4"/><path d="M14 34 Q24 16 34 34" ${S} stroke-width="2" opacity=".6"/>`),
+    W: W(`<path d="M8 40 L36 12" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/><path d="M33 9 l6 6" ${S}/><path d="M6 30 C16 26 22 18 26 8" ${S} stroke-width="2" opacity=".55"/>`),
+    E: W(`<path d="M12 38 C8 22 18 10 30 12 C40 14 40 26 30 28" ${S}/><path d="M28 24 l3 4 -5 2" ${S}/>`),
+    R: W(`<path d="M6 40 A18 18 0 0 1 42 40 Z" ${F} opacity=".55"/><path d="M12 40 A12 12 0 0 1 36 40" ${S}/><path d="M24 4 V18" ${S} stroke-width="4"/>`),
+  },
+  piccolo: {
+    Q: W(`<g ${F}><circle cx="24" cy="7" r="3.5"/><circle cx="38" cy="14" r="3.5"/><circle cx="41" cy="30" r="3.5"/><circle cx="30" cy="42" r="3.5"/><circle cx="14" cy="41" r="3.5"/><circle cx="7" cy="27" r="3.5"/><circle cx="12" cy="12" r="3.5"/></g><circle cx="24" cy="25" r="5" ${S} stroke-width="2.4"/>`),
+    W: W(`<path d="M6 32 C14 32 18 24 28 24 H38" ${S} stroke-width="4"/><path d="M36 18 l6 6 -6 6" ${S}/>`),
+    E: W(`<path d="M24 6 C34 12 38 22 34 32 C30 40 18 40 14 32 C10 22 14 12 24 6 Z" ${S}/><path d="M24 16 v14 M17 23 h14" ${S}/>`),
+    R: W(`<path d="M4 24 H44" stroke="currentColor" stroke-width="3"/><path d="M6 24 C10 16 14 32 18 24 S26 16 30 24 S38 32 42 24" ${S} stroke-width="2.2"/>`),
+  },
+  frieza: {
+    Q: W(`<path d="M6 38 L42 10" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="42" cy="10" r="4" ${F}/><circle cx="8" cy="36" r="2.5" ${F} opacity=".6"/>`),
+    W: W(`<ellipse cx="24" cy="24" rx="17" ry="7" ${S}/><ellipse cx="24" cy="24" rx="9" ry="3.5" ${F} opacity=".6"/>`),
+    E: blinkIc,
+    R: W(`<circle cx="24" cy="18" r="13" ${F}/><circle cx="20" cy="14" r="4" fill="#fff" opacity=".7"/><path d="M24 34 v10 M18 44 h12" ${S}/>`),
+  },
+  a18: {
+    Q: W(`<ellipse cx="24" cy="24" rx="16" ry="6" ${S} stroke-width="2.6"/><ellipse cx="24" cy="24" rx="10" ry="3" ${F}/><path d="M4 24 h4 M40 24 h4" ${S} stroke-width="2"/>`),
+    W: W(`<path d="M32 10 C18 10 12 20 16 30" ${S}/><path d="M12 26 l4 6 6 -4" ${S}/><circle cx="34" cy="14" r="5" ${F}/>`),
+    E: W(`<path d="M24 5 L40 14 L40 32 L24 43 L8 32 L8 14 Z" ${S}/><path d="M24 13 L33 18 L33 29 L24 35 L15 29 L15 18 Z" ${F} opacity=".7"/>`),
+    R: W(`<g ${F}><circle cx="10" cy="24" r="4"/><circle cx="22" cy="14" r="3.4"/><circle cx="22" cy="34" r="3.4"/><circle cx="34" cy="8" r="2.8"/><circle cx="34" cy="24" r="3"/><circle cx="34" cy="40" r="2.8"/><circle cx="43" cy="16" r="2.2"/><circle cx="43" cy="32" r="2.2"/></g>`),
   },
   D: W(`<path d="M24 3 L28 15 L40 8 L33 20 L45 24 L33 28 L40 40 L28 33 L24 45 L20 33 L8 40 L15 28 L3 24 L15 20 L8 8 L20 15 Z" ${F} opacity=".85"/><circle cx="24" cy="24" r="6" fill="#16110c"/>`),
   B: W(`<path d="M10 40 V20 L24 9 L38 20 V40" ${S}/><path d="M19 40 V29 H29 V40" ${S}/>`),
   C: W(`<path d="M24 44 C12 40 12 28 18 20 C18 28 22 28 22 24 C22 16 26 10 30 6 C30 16 38 20 36 32 C35 40 30 44 24 44 Z" ${F}/>`),
+};
+
+// 道具圖示
+export const ITEM_ICONS = {
+  senzu: W(`<path d="M14 30 C10 20 18 10 28 12 C38 14 40 26 32 34 C26 40 17 38 14 30 Z" fill="#8fbf4a"/><path d="M20 28 C22 22 26 18 32 18" fill="none" stroke="#d9f0a0" stroke-width="2.4" stroke-linecap="round"/>`),
+  weights: W(`<rect x="10" y="16" width="28" height="16" rx="4" fill="#7a5a3a"/><rect x="10" y="21" width="28" height="6" fill="#c9a26a"/><path d="M16 16 v16 M32 16 v16" stroke="#3a2a1a" stroke-width="2"/>`),
+  scouter: W(`<path d="M10 30 C10 18 18 12 28 12" fill="none" stroke="#c8c8c8" stroke-width="3" stroke-linecap="round"/><rect x="24" y="14" width="16" height="12" rx="2" fill="#5cff8a" opacity=".85"/><path d="M27 20 h10" stroke="#145a2a" stroke-width="1.6"/><circle cx="12" cy="32" r="4" fill="#9a9a9a"/>`),
+  nimbus: W(`<path d="M8 30 C4 24 12 18 18 22 C20 14 32 14 32 22 C40 18 46 28 38 32 Z" fill="#ffd34a"/><path d="M12 30 C18 34 30 34 38 32" fill="none" stroke="#e0a020" stroke-width="2"/>`),
+  armor: W(`<path d="M10 14 L18 10 H30 L38 14 L36 30 C32 38 16 38 12 30 Z" fill="#f3efe6"/><path d="M10 14 L16 20 M38 14 L32 20" stroke="#e0b24a" stroke-width="4" stroke-linecap="round"/><path d="M18 26 h12" stroke="#c9bfa8" stroke-width="2"/>`),
+  kiamp: W(`<circle cx="24" cy="24" r="14" fill="none" stroke="#4fc3ff" stroke-width="3"/><path d="M24 12 V24 L32 30" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="24" cy="24" r="3" fill="#4fc3ff"/>`),
+  cell: W(`<circle cx="24" cy="24" r="13" fill="#7bd36a"/><circle cx="20" cy="20" r="4" fill="#d8ffb0"/><circle cx="29" cy="28" r="3" fill="#3a8a3a"/><circle cx="18" cy="30" r="2" fill="#3a8a3a"/>`),
+  kaioken: W(`<rect x="6" y="18" width="36" height="12" rx="3" fill="#d9472b"/><path d="M6 24 h36" stroke="#ff9a7a" stroke-width="1.6"/><rect x="20" y="16" width="8" height="16" rx="2" fill="#ffd34a"/>`),
+  water: W(`<path d="M18 8 h12 v6 l4 6 v20 c0 3 -2 4 -4 4 h-12 c-2 0 -4 -1 -4 -4 v-20 l4 -6 z" fill="#bfe8ff" opacity=".9"/><path d="M16 26 h16 v12 c0 2 -1 3 -3 3 h-10 c-2 0 -3 -1 -3 -3 z" fill="#6fb8ff"/><rect x="18" y="6" width="12" height="4" fill="#8a6a4a"/>`),
 };

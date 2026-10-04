@@ -1,7 +1,7 @@
 // 開發用：看兵線交戰與技能特效
 import { mkdirSync } from 'node:fs';
 import { open } from './lib.mjs';
-const a = process.argv.slice(2), w = +(a[0] || 1440), h = +(a[1] || 900), hero = a[2] || 'homura';
+const a = process.argv.slice(2), w = +(a[0] || 1440), h = +(a[1] || 900), hero = a[2] || 'goku';
 const out = 'dist/shots'; mkdirSync(out, { recursive: true });
 const { browser, page, log } = await open('../../web/198-ki-lanes.html', { w, h });
 const raf = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
@@ -12,7 +12,8 @@ await ev(() => { const k = window.__ki; k.fastForward(22); k.teleport(-12, 12); 
 await ev(() => window.__ki.fastForward(8));
 await page.waitForTimeout(500); await shot('1-lane');
 console.log(JSON.stringify(await ev(() => window.__ki.state().heroes)));
-await ev(() => { const k = window.__ki; k.setLevel(6); k.learnAll(); k.give({ ki: 500 }); k.freezeAI(true); });
+await ev(() => { const k = window.__ki; k.setLevel(6); k.learnAll(); k.give({ ki: 500 }); k.freezeAI(true); const P = k.G.player; P.cds.D = 0; });
+await page.keyboard.press('KeyD'); await page.waitForTimeout(300); await shot('1b-spark');
 const e = await ev(() => { const k = window.__ki; const id = k.spawnEnemyHeroNear(5); return k.enemyHero(); });
 await ev((e) => window.__ki.cast('Q', e.x, e.z), e);
 await page.waitForTimeout(160); await shot('2-q');

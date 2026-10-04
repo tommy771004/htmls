@@ -1,8 +1,10 @@
 // 輸入：滑鼠鍵盤（右鍵移動／攻擊、QWER 朝游標施放）與觸控（搖桿、自動瞄準技能鍵）。
 import { orderMove, orderAttack, orderStop, cast, levelSkill, startRecall, setCharging, spark } from './combat.js';
 import { targetable, dist } from './units.js';
+import { seen } from './vision.js';
+import { eatSenzu } from './items.js';
 
-export function createInput({ G, render, minimap, hud, audio, onHelp, onCamToggle }) {
+export function createInput({ G, render, minimap, hud, audio, onHelp, onCamToggle, onShop }) {
   const canvas = document.getElementById('gl');
   const mouse = { x: innerWidth / 2, y: innerHeight / 2, world: { x: 0, z: 0 }, held: false, inside: false };
   let holdT = 0, panning = { x: 0, z: 0 };
@@ -12,7 +14,7 @@ export function createInput({ G, render, minimap, hud, audio, onHelp, onCamToggl
   function pickUnit(wx, wz) {
     let best = null, bd = 1e9;
     for (const u of G.units) {
-      if (!u.alive || u.team === P().team || !targetable(G, u)) continue;
+      if (!u.alive || u.team === P().team || !targetable(G, u) || !seen(G, P().team, u)) continue;
       const d = Math.hypot(u.x - wx, u.z - wz) - u.radius * (u.kind === 'tower' || u.kind === 'core' ? 0.9 : 1.6);
       if (d < 1.0 && d < bd) { bd = d; best = u; }
     }
@@ -62,6 +64,8 @@ export function createInput({ G, render, minimap, hud, audio, onHelp, onCamToggl
       if (!cast(G, P(), k, mouse.world.x, mouse.world.z)) hud.el.skills[k].d.classList.add('deny'), setTimeout(() => hud.el.skills[k].d.classList.remove('deny'), 180);
       return;
     }
+    if (e.code === 'KeyP') { onShop && onShop(); return; }
+    if (e.code === 'Digit1') { eatSenzu(G, P()); return; }
     if (e.code === 'KeyD') spark(G, P());
     else if (e.code === 'KeyB') startRecall(G, P());
     else if (e.code === 'KeyC') setCharging(G, P(), true);
@@ -90,7 +94,7 @@ export function createInput({ G, render, minimap, hud, audio, onHelp, onCamToggl
     if (mouse.inside && matchMedia('(pointer: fine)').matches) { updateWorld(); return mouse.world; }
     let best = null, bd = 1e9;
     for (const u of G.units) {
-      if (!u.alive || u.team === h.team || !targetable(G, u)) continue;
+      if (!u.alive || u.team === h.team || !targetable(G, u) || !seen(G, h.team, u)) continue;
       const d = dist(u, h) - (u.kind === 'hero' ? 6 : 0);
       if (dist(u, h) < r + 2 && d < bd) { bd = d; best = u; }
     }
@@ -119,7 +123,7 @@ export function createInput({ G, render, minimap, hud, audio, onHelp, onCamToggl
     e.preventDefault(); audio.resume(); if (!live()) return;
     const h = P(); let best = null, bd = 1e9;
     for (const u of G.units) {
-      if (!u.alive || u.team === h.team || !targetable(G, u)) continue;
+      if (!u.alive || u.team === h.team || !targetable(G, u) || !seen(G, h.team, u)) continue;
       const d = dist(u, h); if (d > h.range + 7) continue;
       const sc = d - (u.kind === 'hero' ? 4 : 0) + (u.kind === 'tower' || u.kind === 'core' ? 2 : 0);
       if (sc < bd) { bd = sc; best = u; }
