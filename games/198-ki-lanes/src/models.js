@@ -142,7 +142,7 @@ export const HERO = {
   luffy: { skin: 0xeab48a, style: 'rubber', atk3: 'kick', element: 0xff3b4b },
   zoro: { skin: 0xd9a777, style: 'sword', atk3: 'sword', element: 0x3fd07a, sheath: 'hip' },
   sanji: { skin: 0xf4d0b0, style: 'kick', atk3: 'kick', element: 0xff6a3d },
-  nami: { skin: 0xf2c7a2, style: 'staff', atk3: 'kick', element: 0xffa23c },
+  nami: { skin: 0xf2c7a2, style: 'staff', atk3: 'sword', element: 0xffa23c },
 };
 for (const id in HERO) {
   const d = HERO[id];
@@ -231,7 +231,7 @@ function heroPose(d, name, t, k, phase, out) {
   const base = stance(d.style, t);
   const P = (o) => Object.assign({ ...base }, o);
   let p = base;
-  const sword = d.style === 'sword';
+  const sword = d.style === 'sword' || d.style === 'staff'; // 娜美的天候棒沿用持劍的揮擊動作
   if (name === 'slash' && !sword) name = 'atk2';
   switch (name) {
     case 'run': {
@@ -253,6 +253,11 @@ function heroPose(d, name, t, k, phase, out) {
         const S = P({ torsoY: -0.45, torsoX: 0.25, shRX: -0.65, shRZ: -0.35, elR: -0.2, hipsZ: 0.08, thRX: 0.4, thLX: -0.5, knL: 0.5, headY: 0.2 });
         p = strike(t, IMPACT.atk1, base, W, S, 0.3); break;
       }
+      if (d.style === 'rubber') { // 魯夫：右手往後一拉，伸長成橡膠直拳
+        const W = P({ torsoY: -0.5, shRX: 0.5, shRZ: 0.3, elR: -1.9, hipsZ: -0.03 });
+        const S = P({ torsoY: 0.8, torsoX: 0.15, shRX: -1.55, shRZ: 0.05, elR: 0, hipsZ: 0.08, thRX: 0.45, knR: 0.2, headY: -0.5, stretch: 1.4 });
+        p = strike(t, IMPACT.atk1, base, W, S, 0.3); break;
+      }
       if (d.style === 'kick') { // 香吉士：手插口袋，左腳前踢
         const W = P({ torsoX: -0.05, torsoY: 0.25, thLX: 0.45, thLZ: 0.1, knL: 1.7, thRX: 0.1, knR: 0.35, hipsY: -0.05 });
         const S = P({ torsoX: -0.3, torsoY: 0.45, thLX: -1.55, thLZ: 0.05, knL: 0.08, thRX: 0.2, knR: 0.25, hipsY: 0.03, hipsZ: 0.06, headX: -0.1 });
@@ -268,6 +273,11 @@ function heroPose(d, name, t, k, phase, out) {
       if (sword) { // 橫斬
         const W = P({ torsoY: 1.0, shRX: -1.45, shRZ: 1.35, elR: -0.35 });
         const S = P({ torsoY: -0.95, torsoX: 0.15, shRX: -1.5, shRZ: -0.35, elR: -0.1, hipsZ: 0.1, thLX: -0.55, knL: 0.45, headY: 0.4 });
+        p = strike(t, IMPACT.atk2, base, W, S, 0.34); break;
+      }
+      if (d.style === 'rubber') { // 魯夫：再一記伸長的直拳，身體扭得更開
+        const W = P({ torsoY: -0.8, torsoX: 0.05, shRX: 0.7, shRZ: 0.4, elR: -2.1, hipsY: -0.05 });
+        const S = P({ torsoY: 1.0, torsoX: 0.25, shRX: -1.6, shRZ: 0.1, elR: 0, hipsZ: 0.1, thLX: -0.55, knL: 0.45, headY: -0.6, stretch: 1.8 });
         p = strike(t, IMPACT.atk2, base, W, S, 0.34); break;
       }
       if (d.style === 'kick') { // 香吉士：右腳迴旋踢
@@ -318,7 +328,7 @@ function heroPose(d, name, t, k, phase, out) {
       const kk = k != null ? clamp(k, 0, 1) : (t < IMPACT.grab ? ease(t / IMPACT.grab) : Math.max(0, 1 - (t - IMPACT.grab - 0.15) / 0.25));
       const S = P({ torsoY: 0.7, torsoX: 0.2, shRX: -1.55, shRZ: -0.05, elR: -0.02, shLX: 0.4, shLZ: 0.4, elL: -0.5, hipsZ: 0.1, thLX: -0.55, knL: 0.5, thRX: 0.45, headY: -0.5 });
       p = lerpPose(base, S, Math.min(1, kk * 1.6));
-      p.stretch = d.style === 'tank' ? kk * 2.0 : 0;
+      p.stretch = d.style === 'tank' || d.style === 'rubber' ? kk * 2.0 : 0;
       break;
     }
     case 'overhead': { // 單手高舉（死亡球、魔空包圍彈）

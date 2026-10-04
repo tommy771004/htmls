@@ -62,7 +62,7 @@ export const HEROES = {
     },
   },
   trunks: {
-    name: '特南克斯', short: '特南克斯', en: 'TRUNKS', role: '劍士', color: '#ffb03a', glow: '#fff0d0', melee: true, ssj: true,
+    name: '特南克斯', short: '特南克斯', en: 'TRUNKS', role: '劍士', color: '#ffb03a', glow: '#fff0d0', melee: true, blade: true, ssj: true,
     blurb: '來自未來的劍士。劍閃穿過整排敵人，熱圓頂攻擊把對手打上天再炸開。',
     stats: { hp: 610, hpLv: 84, ad: 60, adLv: 4.4, range: 2.8, as: 0.74, ms: 7.4, armor: 0.1 },
     skills: {
@@ -120,7 +120,7 @@ Object.assign(HEROES, {
     },
   },
   sasuke: {
-    name: '宇智波佐助', short: '佐助', en: 'SASUKE', role: '刺客', color: '#8f7bff', glow: '#eef0ff', melee: true, franchise: 'naruto',
+    name: '宇智波佐助', short: '佐助', en: 'SASUKE', role: '刺客', color: '#8f7bff', glow: '#eef0ff', melee: true, blade: true, franchise: 'naruto',
     blurb: '宇智波一族的天才。豪火球燒開、千鳥貫穿麻痺，麒麟從天而降。',
     stats: { hp: 580, hpLv: 80, ad: 62, adLv: 4.6, range: 2.5, as: 0.72, ms: 7.5, armor: 0.1 },
     skills: {
@@ -155,7 +155,7 @@ Object.assign(HEROES, {
   luffy: {
     name: '蒙其・D・魯夫', short: '魯夫', en: 'LUFFY', role: '近戰鬥士', color: '#ff3b4b', glow: '#ffe6e8', melee: true, franchise: 'op',
     blurb: '橡膠果實能力者。手臂伸長打人、橡膠火箭飛撲，二檔加速，巨人手槍一拳轟飛。',
-    stats: { hp: 700, hpLv: 96, ad: 58, adLv: 4.3, range: 2.6, as: 0.74, ms: 7.4, armor: 0.15 },
+    stats: { hp: 700, hpLv: 96, ad: 58, adLv: 4.3, range: 3.4, as: 0.74, ms: 7.4, armor: 0.15 },
     skills: {
       Q: { name: '橡膠槍', desc: '手臂伸長打出直拳，打中第一個敵人並擊退。', cd: 5, range: 11, dmg: [70, 110, 150, 190, 230], adR: 0.6 },
       W: { name: '橡膠火箭', desc: '把自己彈射到游標處，落地撞開周圍的敵人。', cd: 10, range: 10, dmg: [55, 85, 115, 145, 175], adR: 0.45, radius: 3 },
@@ -164,7 +164,7 @@ Object.assign(HEROES, {
     },
   },
   zoro: {
-    name: '羅羅亞・索隆', short: '索隆', en: 'ZORO', role: '劍士', color: '#3fd07a', glow: '#e8fff0', melee: true, franchise: 'op',
+    name: '羅羅亞・索隆', short: '索隆', en: 'ZORO', role: '劍士', color: '#3fd07a', glow: '#e8fff0', melee: true, blade: true, franchise: 'op',
     blurb: '三刀流劍豪。鬼斬穿過一排敵人，三十六煩惱鳳飛斬，三千世界旋身一刀斬盡。',
     stats: { hp: 620, hpLv: 86, ad: 61, adLv: 4.5, range: 2.8, as: 0.74, ms: 7.3, armor: 0.11 },
     skills: {

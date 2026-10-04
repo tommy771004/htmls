@@ -187,7 +187,7 @@ function voice(h, line, chance = 1) {
 }
 function wireEvents() {
   G.on('cast', ({ h, k }) => voice(h, k));
-  G.on('swing', ({ h, idx }) => { voice(h, 'atk', (idx === 2 ? 0.85 : 0.35) * (h === G.player ? 1 : 0.5)); if (h.def.melee && h.heroId !== 'trunks') fx.slash(h.x, h.z, h.facing + (idx === 1 ? 0.5 : idx === 2 ? 0 : -0.5), '#ffffff', 1.5 + idx * 0.35); });
+  G.on('swing', ({ h, idx }) => { voice(h, 'atk', (idx === 2 ? 0.85 : 0.35) * (h === G.player ? 1 : 0.5)); if (h.def.melee && !h.def.blade && h.heroId !== 'luffy') fx.slash(h.x, h.z, h.facing + (idx === 1 ? 0.5 : idx === 2 ? 0 : -0.5), '#ffffff', 1.5 + idx * 0.35); });
   G.on('hit', ({ dst, amount, opts }) => {
     if (!dst || dst.kind !== 'hero' || !dst.alive || amount < dst.maxHp * 0.04) return;
     const heavy = opts.type === 'H' || opts.type === 'skill' || opts.type === 'super';

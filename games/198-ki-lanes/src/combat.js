@@ -95,7 +95,7 @@ function startAuto(G, h, t) {
   };
   h.anim.name = c.anim; h.anim.t = 0;
   h.chainT = G.time; h.chainTarget = t;
-  if (h.def.melee) sfx(G, h.heroId === 'trunks' ? 'slash' : 'swing', h, { vol: idx === 2 ? 0.7 : 0.5 });
+  if (h.def.melee) sfx(G, h.def.blade ? 'slash' : 'swing', h, { vol: idx === 2 ? 0.7 : 0.5 });
   G.emit('swing', { h, idx });
   h.chain = (h.chain + 1) % 3;
 }
@@ -117,6 +117,7 @@ function autoHit(G, h, t, idx) {
       onArrive(G, p, u) {
         damage(G, h, u, dmg, opts);
         fx(G).hitSpark(u.x, 1.1 + u.y, u.z, col, idx === 2 ? 1.3 : 0.85, 'light');
+        if (h.heroId === 'nami') { fx(G).lightning({ x: u.x + 0.6, y: 7, z: u.z - 0.6 }, { x: u.x, y: 1 + u.y, z: u.z }, '#ffe36a'); if (idx === 2) sfx(G, 'thunder', u, { vol: 0.4 }); }
         sfx(G, idx === 2 ? 'hitM' : 'hitL', u);
         if (h === G.player) G.shake(idx === 2 ? 0.3 : 0.12);
       },
