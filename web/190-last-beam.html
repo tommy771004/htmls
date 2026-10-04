@@ -177,6 +177,105 @@ body.touch #banner{width:min(640px,calc(100vw - 136px))}
 #toast{position:absolute;left:50%;top:40%;transform:translateX(-50%);padding:5px 12px;font-size:13px;letter-spacing:.06em;opacity:0;transition:opacity .3s}
 #toast.on{opacity:1}
 
+
+/* ---------- HUD 版面（照實機參考影片的配置：左上小地圖＋安全區卡＋擊殺訊息、右上人數、左下血量、右下武器）----------
+   只在桌機尺寸套用；窄螢幕與手機維持上面那套收在角落的排法。新加的元素預設藏起來，桌機才顯示 */
+#loc,#bear,#esc,#zbar,#zinfo,#armseg,#guns .ico,#guns .tg,#guns .mbar,#guns .cal,#feed svg,#counts svg{display:none}
+#storm{position:absolute;left:50%;top:150px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:6px 14px;border-radius:9px;background:rgba(30,46,72,.78);color:#d8e8ff;font-size:13px;letter-spacing:.08em;white-space:nowrap;opacity:0;transition:opacity .3s}
+#storm.on{opacity:1}
+#storm b{color:#fff;font-variant-numeric:tabular-nums}
+#storm em{font-style:normal;color:#ff8a7a}
+#death{position:absolute;left:50%;bottom:78px;transform:translateX(-50%);text-align:center;opacity:0;transition:opacity .5s}
+#death.on{opacity:1}
+#death h3{margin:0 0 8px;font-size:clamp(30px,4.2vw,46px);line-height:1;font-weight:700;letter-spacing:.02em;text-shadow:0 2px 6px rgba(0,0,0,.45)}
+#death h3 em{font-style:normal;color:var(--hazard)}
+#death h3 small{font-size:.42em;color:var(--ink-2);margin-left:4px}
+#death p{display:inline-flex;align-items:center;gap:10px;margin:0;padding:7px 16px;border-radius:10px;background:var(--plate);font-size:14px;letter-spacing:.04em;white-space:nowrap}
+#death p i{font-style:normal;font-size:11px;letter-spacing:.2em;color:var(--ink-3)}
+#death p b{color:#ff8a6a;font-weight:600}
+#death p svg{width:46px;height:15px;fill:var(--ink)}
+#death p .hs{padding:1px 7px;border-radius:4px;background:var(--hazard);color:var(--hazard-ink);font-size:11px;letter-spacing:.12em}
+@media (min-width:721px) and (min-height:501px){
+  #hud{--plate:rgba(26,24,21,.74);--card:rgba(26,24,21,.7)}
+  .plate{border:0;border-radius:10px;box-shadow:inset 0 1px 0 rgba(243,238,228,.06)}
+  #mmwrap{top:16px;left:16px;right:auto;width:196px;height:196px;border-radius:14px}
+  #loc{display:flex;justify-content:space-between;position:absolute;top:220px;left:22px;width:184px;font-size:12px;letter-spacing:.16em;color:var(--ink-2);text-shadow:0 1px 2px rgba(0,0,0,.55)}
+  #loc span:last-child{color:var(--ink-3)}
+  #phase{top:244px;left:16px;transform:none;min-width:0;width:196px;padding:11px 14px 10px;text-align:left;border-radius:12px;overflow:hidden;display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:8px}
+  #phase::before{top:0;height:3px}
+  #phase .cap{display:block;font-size:11px;letter-spacing:.18em;color:var(--ink-2);white-space:nowrap}
+  #phase b{font-size:28px;letter-spacing:.02em}
+  #zbar{display:block;grid-column:1/3;height:4px;margin:7px 0 6px;border-radius:2px;background:rgba(243,238,228,.14);overflow:hidden}
+  #zbar i{display:block;height:100%;width:0;border-radius:2px;background:var(--ink)}
+  #phase.shrink #zbar i{background:var(--zone)}
+  #zinfo{display:block;grid-column:1/3;font-size:11.5px;letter-spacing:.06em;color:var(--ink-3)}
+  #feed{top:346px;left:16px;right:auto;width:300px;align-items:flex-start;gap:5px}
+  #feed div{display:flex;align-items:center;gap:9px;padding:6px 11px;border-radius:8px;border-left:0;font-size:13px;letter-spacing:.02em;animation-name:feedInL}
+  #feed div.me{box-shadow:inset 0 0 0 1.5px rgba(244,180,0,.75)}
+  #feed div.die{box-shadow:inset 0 0 0 1.5px rgba(224,48,43,.75)}
+  #feed div .v{color:#ff9a7c}
+  #feed i.w{display:none}
+  #feed svg{display:block;width:40px;height:13px;fill:var(--ink-2)}
+  #feed em{padding:0 5px;border-radius:3px;background:var(--hazard);color:var(--hazard-ink);margin-left:0}
+  #counts{top:16px;right:16px;gap:8px}
+  #counts div{align-items:center;gap:8px;padding:8px 14px 8px 12px;border-left:0!important;border-radius:12px;min-width:0}
+  #counts svg{display:block;width:18px;height:18px;fill:var(--ink-2)}
+  #counts div:last-child svg{fill:var(--hazard)}
+  #counts b{font-size:28px}
+  #compass{top:12px;width:540px;height:30px;background:none}
+  #compStrip span{font-size:11px;color:var(--ink-3)}
+  #compStrip span.c{font-size:15px;color:var(--ink)}
+  #compass>i{border-bottom-color:var(--hazard)}
+  #bear{display:block;position:absolute;top:46px;left:50%;transform:translateX(-50%);padding:3px 9px;border-radius:6px;background:var(--plate);color:var(--hazard);font-family:var(--mono);font-size:13px;letter-spacing:.14em;font-variant-numeric:tabular-nums}
+  body:not(.touch) #esc{display:block;position:absolute;top:80px;left:50%;transform:translateX(-50%);padding:4px 12px;border-radius:8px;background:rgba(26,24,21,.5);color:var(--ink-3);font-size:11px;letter-spacing:.24em}
+  #alti{right:30px;gap:3px;align-items:flex-end}
+  #alti .bar{width:5px;height:220px;background:repeating-linear-gradient(transparent 0 21px,rgba(243,238,228,.35) 21px 22px),rgba(243,238,228,.12)}
+  #alti span{font-size:34px;font-weight:700;margin-top:8px}
+  #alti small{font-size:12px}
+  #hint{bottom:132px;padding:7px 14px;border-radius:10px;font-size:13px}
+  #hint kbd,#prompt kbd{display:inline-block;min-width:22px;padding:2px 6px;border-radius:5px;border:0;background:rgba(243,238,228,.14);color:var(--ink);text-align:center}
+  #prompt{padding:7px 14px 7px 8px;border-radius:10px}
+  #prompt kbd{background:var(--hazard);color:var(--hazard-ink)}
+  #vitals{left:16px;bottom:50px;transform:none;width:320px;padding-left:96px}
+  #hpbar{height:9px;border:0;border-radius:2px;background:rgba(243,238,228,.16);overflow:visible}
+  #hpbar::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(25% - 2px),rgba(20,18,16,.85) calc(25% - 2px) 25%);pointer-events:none}
+  #hpfill,#hplag{border-radius:2px}
+  #hpnum{right:auto;left:-96px;top:auto;bottom:-6px;font-size:50px;font-weight:700;line-height:1;color:var(--ink);letter-spacing:-.01em}
+  #hpnum::after{content:"HP";font-size:12px;font-weight:400;letter-spacing:.1em;color:var(--ink-3);margin-left:4px}
+  #armseg{display:flex;gap:4px;margin-bottom:5px}
+  #armseg i{flex:1;height:7px;border-radius:2px;background:rgba(243,238,228,.12)}
+  #armseg i.on{background:#e2a92a}
+  #armor{position:absolute;left:96px;top:-21px;justify-content:flex-start;margin:0;gap:12px}
+  #armor span{padding:0;background:none;border:0;font-size:11px;letter-spacing:.12em}
+  #armor span.on{color:var(--ink-2)}
+  #meds{left:16px;bottom:16px;flex-direction:row;width:auto;gap:6px}
+  #meds div{padding:4px 9px;border:0;border-radius:7px;font-size:12px;gap:6px}
+  #meds b{font-size:14px;margin-left:4px}
+  #guns{right:16px;bottom:16px;width:310px;gap:5px;align-items:flex-end}
+  #guns .slot{border:0;border-radius:9px;min-height:0;padding:5px 11px;width:230px}
+  #guns .slot .nm small{display:none}
+  #guns .slot b{font-size:15px}
+  #guns .slot.cur{width:310px;box-shadow:none;display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"k ico ico" "nm nm b" "cal mbar mbar";gap:4px 10px;padding:10px 14px 11px;border-radius:12px;align-items:center}
+  #guns .slot.cur kbd{grid-area:k;align-self:start}
+  #guns .slot.cur .ico{display:block;grid-area:ico;justify-self:end;width:132px;height:42px;fill:var(--ink)}
+  #guns .slot.cur .nm{grid-area:nm;flex-direction:row;align-items:center;gap:8px}
+  #guns .slot.cur .nm span{font-size:17px;letter-spacing:.1em;color:var(--rc,var(--ink))}
+  #guns .slot.cur .tg{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;letter-spacing:.16em;color:var(--rc,var(--ink-2));box-shadow:inset 0 0 0 1px currentColor}
+  #guns .slot.cur .tg.m{color:var(--ink-2)}
+  #guns .slot.cur b{grid-area:b;font-size:44px;font-weight:700;line-height:.9}
+  #guns .slot.cur b small{font-size:16px;font-weight:400}
+  #guns .slot.cur .cal{display:block;grid-area:cal;font-size:10px;letter-spacing:.22em;color:var(--ink-3)}
+  #guns .slot.cur .mbar{display:block;grid-area:mbar;height:4px;border-radius:2px;background:rgba(243,238,228,.14);overflow:hidden}
+  #guns .slot.cur .mbar i{display:block;height:100%;background:var(--ink);border-radius:2px}
+  #guns .frag{border:0;border-radius:9px;width:120px;order:3}
+  #guns .slot{order:1}
+  #guns .slot.cur{order:2}
+  #guns .slot:not(.cur) .cal{display:none}
+  #cast{top:66%}
+  #elim .card{border-left:0;border-radius:12px}
+  @keyframes feedInL{from{opacity:0;transform:translateX(-12px)}}
+}
+
 /* ---------- screens ---------- */
 .screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(180deg,rgba(18,21,23,.25),rgba(18,21,23,.72));z-index:5}
 .card-s{position:relative;width:min(560px,100%);max-height:calc(100dvh - 40px);overflow:auto;background:rgba(20,23,25,.9);border:1px solid var(--line);padding:26px 26px 22px}
@@ -199,6 +298,14 @@ body.touch #banner{width:min(640px,calc(100vw - 136px))}
 .stats b{display:block;font-size:26px;font-variant-numeric:tabular-nums}
 .stats small{font-size:10px;letter-spacing:.2em;color:var(--ink-3)}
 .slider{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:13px;color:var(--ink-2)}
+#stand table{width:100%;margin-top:14px;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+#stand th{padding:0 8px 6px;text-align:left;font-weight:400;font-size:10px;letter-spacing:.2em;color:var(--ink-3)}
+#stand td{padding:5px 8px;color:var(--ink-2)}
+#stand th:nth-child(n+3),#stand td:nth-child(n+3){text-align:right}
+#stand td:first-child{width:36px;color:var(--ink-3)}
+#stand tbody tr:nth-child(odd) td{background:rgba(243,238,228,.035)}
+#stand tr.me td{background:rgba(244,180,0,.14);color:var(--ink)}
+#stand td small{margin-left:8px;font-size:10px;letter-spacing:.12em;color:var(--ok)}
 .slider input{flex:1;accent-color:var(--hazard)}
 .note{font-size:12px!important;color:var(--ink-3)!important}
 
@@ -328,17 +435,18 @@ body.touch #meds div,body.touch #guns .slot,body.touch #guns .frag{pointer-event
   <div id="vign"></div>
   <div id="rdot"></div>
   <div id="floats"></div>
-  <div id="compass"><div id="compStrip"></div><i></i></div>
+  <div id="compass"><div id="compStrip"></div><i></i></div><div id="bear">000 N</div><div id="esc">ESC · 選單</div><div id="storm"></div><div id="death"></div>
   <div id="alti" class="hide"><div class="bar"><i id="altiFill"></i><em id="altiOpen"></em><b id="altiMark"></b></div><span id="altiNum">0</span><small id="altiSpd">0 km/h</small></div>
   <div id="hint" class="plate hide"></div>
   <div id="vehHud" class="plate hide"><b id="vehSpd">0</b><small>km/h</small><div><i id="vehHp"></i></div><span>車況</span></div>
-  <div id="phase" class="plate"><span class="cap" id="phaseCap">起重直升機</span><b id="phaseT">F 跳傘</b></div>
-  <div id="counts"><div class="plate"><b id="nAlive">60</b><span class="cap">存活</span></div><div class="plate"><b id="nKills">0</b><span class="cap">擊殺</span></div></div>
-  <div id="mmwrap" class="plate"><canvas id="mm" width="352" height="352"></canvas></div>
+  <div id="phase" class="plate"><span class="cap" id="phaseCap">起重直升機</span><b id="phaseT">F 跳傘</b><div id="zbar"><i id="zbarI"></i></div><small id="zinfo"></small></div>
+  <div id="counts"><div class="plate"><svg viewBox="0 0 20 20"><circle cx="7" cy="6" r="3.2"/><path d="M1 17c0-3.6 2.7-6 6-6s6 2.4 6 6z"/><circle cx="14" cy="5.5" r="2.6"/><path d="M14 9.6c2.8 0 5 2 5 5.4h-4.6c-.2-2.2-1-4-2.4-5.2.6-.1 1.3-.2 2-.2z"/></svg><b id="nAlive">60</b><span class="cap">存活</span></div><div class="plate"><svg viewBox="0 0 20 20"><path d="M10 1.5C5.6 1.5 2.5 4.4 2.5 8.4c0 2.5 1.2 4.4 3 5.5V16c0 .6.5 1 1 1h1v1.5h1.6V17h1.8v1.5h1.6V17h1c.5 0 1-.4 1-1v-2.1c1.8-1.1 3-3 3-5.5 0-4-3.1-6.9-7.5-6.9zM7 11.6a1.9 1.9 0 1 1 0-3.8 1.9 1.9 0 0 1 0 3.8zm6 0a1.9 1.9 0 1 1 0-3.8 1.9 1.9 0 0 1 0 3.8z"/></svg><b id="nKills">0</b><span class="cap">擊殺</span></div></div>
+  <div id="mmwrap" class="plate"><canvas id="mm" width="352" height="352"></canvas></div><div id="loc"><span id="locN">—</span><span id="locG">—</span></div>
   <div id="feed"></div>
   <div id="meds"></div>
   <div id="guns"></div>
   <div id="vitals">
+    <div id="armseg"><i></i><i></i><i></i></div>
     <div id="armor"><span id="helmChip">安全帽 —</span><span id="vestChip">背心 —</span></div>
     <div id="hpbar"><div id="hplag"></div><div id="hpfill"></div><div id="boost"></div><span id="hpnum">100</span></div>
   </div>
@@ -410,6 +518,7 @@ body.touch #meds div,body.touch #guns .slot,body.touch #guns .frag{pointer-event
     <h1 id="endTitle" style="font-size:clamp(40px,9vw,64px)">—</h1>
     <p id="endLine"></p>
     <div class="stats"><div><b id="sRank">—</b><small>名次</small></div><div><b id="sKills">0</b><small>擊殺</small></div><div><b id="sDmg">0</b><small>傷害</small></div><div><b id="sTime">0:00</b><small>存活</small></div></div>
+    <div id="stand"></div>
     <div class="row"><button class="btn" id="again">再飛一趟 ▸</button></div>
   </div>
 </div>
@@ -924,7 +1033,7 @@ const compMat = new THREE.ShaderMaterial({
   vertexShader: FSV, depthTest: false, depthWrite: false, blending: THREE.NoBlending,
   uniforms: { tScene: { value: null }, tAO: { value: null }, tBloom: { value: null }, uAO: { value: .82 }, uBloom: { value: .5 }, uSat: { value: 1.1 }, uCon: { value: 1.06 }, uTint: { value: new THREE.Vector3(1.03, 1.0, .95) }, uVig: { value: .42 }, uOn: { value: new THREE.Vector2() } },
   fragmentShader: `varying vec2 vUv; uniform sampler2D tScene, tAO, tBloom; uniform float uAO, uBloom, uSat, uCon, uVig; uniform vec3 uTint; uniform vec2 uOn;
-  uniform vec3 uFxaa;
+  uniform vec3 uFxaa; uniform float uStorm;
   float fxL(vec3 c){ float l = dot(c, vec3(.2126, .7152, .0722)); return sqrt(l / (1.0 + l)); }
   vec3 fxaa(vec3 cM){ vec2 px = uFxaa.xy;
     vec3 cNW = texture2D(tScene, vUv + vec2(-.5, -.5) * px).rgb, cNE = texture2D(tScene, vUv + vec2(.5, -.5) * px).rgb, cSW = texture2D(tScene, vUv + vec2(-.5, .5) * px).rgb, cSE = texture2D(tScene, vUv + vec2(.5, .5) * px).rgb;
@@ -945,16 +1054,18 @@ const compMat = new THREE.ShaderMaterial({
     c *= uTint;
     float l = dot(c, vec3(.2126, .7152, .0722));
     c = max(mix(vec3(l), c, uSat), 0.0);
+    c = mix(c, vec3(l) * vec3(.62, .8, 1.25) + vec3(.004, .01, .03), uStorm * .62);   // 在電網外：去飽和、整片偏藍（實機參考影片的風暴裡是一片灰紫）
     c = pow(c * (1.0 / .18), vec3(uCon)) * .18;
     gl_FragColor = vec4(c, 1.0);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
-    vec2 q = vUv - .5; gl_FragColor.rgb *= 1.0 - dot(q, q) * uVig;
+    vec2 q = vUv - .5; gl_FragColor.rgb *= 1.0 - dot(q, q) * (uVig + uStorm * .9);
     gl_FragColor.rgb += (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - .5) / 255.0;
   }`
 });
 /* 沒有 MSAA 的級（觸控的低／中）在最後合成裡順便做 FXAA：同一支著色器、uniform 開關，換畫質不重新編譯，也不多一趟全螢幕 */
 compMat.uniforms.uFxaa = { value: new THREE.Vector3() };
+compMat.uniforms.uStorm = { value: 0 };
 function postTargets() {
   const P = POST, v = renderer.getDrawingBufferSize(new THREE.Vector2()), w = Math.max(2, v.x | 0), h = Math.max(2, v.y | 0);
   const samples = QUALITY.aa, dep = !!QUALITY.ao, nb = QUALITY.bloom ? QPRESET[QUALITY.level].bloomN || 4 : 0;
@@ -1000,7 +1111,9 @@ function facadeShadows() {
 }
 function renderFrame() {
   const t0 = performance.now();
-  roomLight(Math.min(.1, (t0 - (renderFrame.last || t0)) / 1000)); renderFrame.last = t0;
+  const fdt = Math.min(.1, (t0 - (renderFrame.last || t0)) / 1000); renderFrame.last = t0;
+  roomLight(fdt);
+  { const u = compMat.uniforms.uStorm, out = PLAYER && PLAYER.alive && PLAYER.st === 'ground' && outsideZone(PLAYER) ? 1 : 0; u.value += (out - u.value) * Math.min(1, fdt * 3); }
   facadeShadows();
   skyTick(t0);
   if (POST.on) postDefines();
@@ -6378,11 +6491,34 @@ const RAMLINES = (() => {
   for (const sx of [-1, 1]) pts.push(new THREE.Vector3(sx * .17, 0, 0), new THREE.Vector3(sx * .17, .45, 0));
   return new THREE.BufferGeometry().setFromPoints(pts);
 })();
+/* 傘面中央那格的標誌（實機參考影片的傘頂有圓形隊徽）與拖在後緣的引導傘：上表面公式跟 build_workers.py 的 canopy_pt(top) 一致 */
+const CHUTE_DECO = RAM ? (() => {
+  const cv = mkCanvas(256, 256), g = cv.getContext('2d');
+  g.fillStyle = '#1d1f22'; g.beginPath(); g.arc(128, 128, 118, 0, TAU); g.fill();
+  g.strokeStyle = '#f3efe6'; g.lineWidth = 14; g.beginPath(); g.arc(128, 128, 98, 0, TAU); g.stroke();
+  g.fillStyle = '#f3efe6'; g.font = '900 96px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('LB', 128, 136);
+  g.fillStyle = '#e8671d'; g.fillRect(70, 56, 116, 12);
+  const half = 2 * CAN.SPAN / CAN.N / 2, P0 = .065, U0 = .2, U1 = .46, N = 10, pos = [], uv = [], idx = [];
+  for (let i = 0; i <= N; i++) for (let k = 0; k <= N; k++) {
+    const phi = -P0 + 2 * P0 * i / N, u = U0 + (U1 - U0) * k / N, f = (phi + half) / (2 * half);
+    const th = .34 * Math.pow(4 * u * (1 - u), .8) * (1 - .5 * u), r = CAN.R + th * .62 + Math.sin(f * Math.PI) * .07 * Math.sqrt(4 * u * (1 - u)) + .015;
+    pos.push(Math.sin(phi) * r, CAN.T - CAN.R + Math.cos(phi) * r, CAN.CH * (.42 - u)); uv.push(1 - i / N, 1 - k / N);
+  }
+  for (let i = 0; i < N; i++) for (let k = 0; k < N; k++) { const a = i * (N + 1) + k, b = a + N + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
+  const dg = new THREE.BufferGeometry(); dg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); dg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); dg.setIndex(idx); dg.computeVertexNormals();
+  const decal = new THREE.MeshStandardMaterial({ map: tex(cv, false), transparent: true, alphaTest: .4, roughness: .8, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 });
+  // 引導傘：後緣中央上方一顆收起來的小傘（球）＋一條連到傘頂的引導繩
+  const tp = canopyPt(0, .95).setY(CAN.T + .12), ball = new THREE.SphereGeometry(.3, 16, 10); ball.scale(1, .85, 1); ball.translate(tp.x, tp.y + .42, tp.z - .55);
+  colorize(ball, 0xe8671d);
+  const bridle = new THREE.BufferGeometry().setFromPoints([canopyPt(0, .55).setY(CAN.T + .1), new THREE.Vector3(tp.x, tp.y + .42, tp.z - .55)]);
+  return { dg, decal, ball, bridle };
+})() : null;
 function makeChute() {
   const g = new THREE.Group(); g.rotation.order = 'YXZ';
   if (RAM) {
     const c = new THREE.Mesh(RAM, CHUTEMAT); c.castShadow = true; g.add(c);
     g.add(new THREE.LineSegments(RAMLINES, new THREE.LineBasicMaterial({ color: 0x2a2a2a, transparent: true, opacity: .75 })));
+    g.add(new THREE.Mesh(CHUTE_DECO.dg, CHUTE_DECO.decal)); const pb = new THREE.Mesh(CHUTE_DECO.ball, CHUTEMAT); pb.castShadow = true; g.add(pb); g.add(new THREE.Line(CHUTE_DECO.bridle, new THREE.LineBasicMaterial({ color: 0x2a2a2a })));
     g.userData.ram = true; g.visible = false; scene.add(g);
     return g;
   }
@@ -6397,23 +6533,36 @@ const zoneMat = new THREE.ShaderMaterial({
   transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false,
   uniforms: { uTime: { value: 0 }, uGround: { value: 0 }, uOpen: { value: 0 } },  // uGround：貼地亮帶的基準高度（有起伏地形時由地形系統更新）；uOpen：牆還在海上（第一階段）時 1
   vertexShader: `varying vec3 vW; varying vec2 vUv; varying float vR; void main(){ vUv = uv; vR = length(modelMatrix[0].xyz); vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-  /* 六角網格＋往上捲的掃描線＋閃爍雜訊；貼地一條亮帶，越高越淡，靠近時比較明顯 */
+  /* 實機參考影片的風暴牆、改成 190 的藍色電網：一道道往下流的直立光束（明暗不一）、捲動的雲層、偶爾劈過的電光，
+     貼地一條很亮的接地線；近處仍看得到淡淡的六角網格。遠處（海上、天邊）與還在海岸外的牆只剩一層淡藍 */
   fragmentShader: `varying vec3 vW; varying vec2 vUv; varying float vR; uniform float uTime, uGround, uOpen;
+    float h1(float x){ return fract(sin(x * 127.1) * 43758.5453); }
     float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float n2(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h2(i), h2(i + vec2(1, 0)), f.x), mix(h2(i + vec2(0, 1)), h2(i + vec2(1, 1)), f.x), f.y); }
+    float fbm(vec2 p){ float v = 0.0, a = .5; for (int i = 0; i < 4; i++) { v += a * n2(p); p = p * 2.03 + 17.0; a *= .5; } return v; }
     float hexE(vec2 p){ p.x *= .57735; p.y += mod(floor(p.x), 2.0) * .5; p = abs(fract(p) - .5); return abs(max(p.x * 1.5 + p.y, p.y * 2.0) - 1.0); }
     void main(){
-      vec2 q = vec2(vUv.x * 6.2832 * vR, vW.y) * .42;
-      float edge = 1.0 - smoothstep(.0, .09, hexE(q));
-      float scan = smoothstep(.93, 1., fract(vW.y * .06 - uTime * .22)) * .8 + smoothstep(.985, 1., fract(vW.y * .5 - uTime * .9)) * .25;
-      vec2 cell = floor(q * vec2(.57735, 1.0));
-      float flick = step(.93, h2(cell + floor(uTime * 3.0))) * .35;
-      float fade = 1.0 - smoothstep(0., 110., vW.y - uGround);
-      float d = length(vW - cameraPosition), near = mix(1.0, .45, smoothstep(30.0, 260.0, d));
-      float far = (1.0 - smoothstep(250.0, 600.0, d)) * (1.0 - uOpen);   // 遠處（海上、天邊）與還在海岸外的牆只剩一層淡淡的藍，網格、掃描線與閃爍不畫
-      float base = exp(-max(vW.y - uGround, 0.0) * .45) * (1.0 - uOpen * .7);
-      float a = (mix(.022, .05, far) + (edge * .2 * (1.0 - smoothstep(60.0, 220.0, d)) + scan * .22 + flick * edge) * far + base * .28) * fade * near;
-      vec3 col = mix(vec3(.25, .55, 1.0), vec3(.75, .9, 1.6), clamp(edge * .6 + scan + base * .5, 0.0, 1.0));
-      gl_FragColor = vec4(col * (1.0 + base * 1.4), clamp(a, 0.0, .8));
+      float x = vUv.x * 6.2832 * vR, y = vW.y - uGround;
+      float d = length(vW - cameraPosition), near = mix(1.0, .5, smoothstep(30.0, 260.0, d));
+      float far = (1.0 - smoothstep(250.0, 600.0, d)) * (1.0 - uOpen);
+      // 直立光束：每 1.6 m 一欄，亮度與流速各自不同；細的亮線疊在寬的柔光上
+      float col = floor(x / 1.6), fx = fract(x / 1.6), hb = h1(col), hs = h1(col + 31.0);
+      float beam = smoothstep(.5, .0, abs(fx - .5)) * .35 + smoothstep(.06, .0, abs(fx - .5)) * .9;
+      float flow = .55 + .45 * sin(y * (.05 + hs * .08) + uTime * (1.5 + hs * 2.5) + hb * 6.2832);
+      beam *= step(.35, hb) * (.35 + .65 * hb) * flow;
+      // 雲層：捲動的 fbm，下濃上淡
+      float cloud = fbm(vec2(x * .035, y * .03 - uTime * .08)) * fbm(vec2(x * .011 + uTime * .02, y * .012));
+      cloud = smoothstep(.12, .5, cloud);
+      // 電光：每 0.4 秒抽一次，偶爾在某一段牆上整片閃一下
+      float seg = floor(x / 40.0), fl = step(.965, h2(vec2(seg, floor(uTime * 2.5)))) * (1.0 - fract(uTime * 2.5));
+      float bolt = fl * smoothstep(.06, .0, abs(fract(x / 40.0) - .5 - (n2(vec2(seg, y * .08 + floor(uTime * 2.5))) - .5) * .3));
+      float edge = (1.0 - smoothstep(.0, .09, hexE(vec2(x, vW.y) * .42))) * (1.0 - smoothstep(25.0, 140.0, d));
+      float fade = 1.0 - smoothstep(0., 140., y);
+      float base = exp(-max(y, 0.0) * .55) * (1.0 - uOpen * .7), line = exp(-max(y, 0.0) * 4.0);
+      float a = (mix(.05, .1, far) + (beam * .55 + cloud * .45 + edge * .12 + fl * .3 + bolt) * far + base * .35 + line * .6) * fade * near;
+      vec3 c = mix(vec3(.18, .42, .95), vec3(.55, .78, 1.4), clamp(beam * .7 + cloud * .3, 0.0, 1.0));
+      c = mix(c, vec3(1.6, 1.8, 2.2), clamp(bolt + line * .8 + fl * .3, 0.0, 1.0));
+      gl_FragColor = vec4(c * (1.0 + base * 1.2), clamp(a, 0.0, .85));
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
     }`
@@ -6621,7 +6770,7 @@ let lastKillT = -99, multi = 0;
 function kill(v, att, wname, head) {
   if (v.inVeh) exitVehicle(v, true);
   v.alive = false; v.hp = 0; v.deadT = 0; v.cast = null; v.chute.visible = false;
-  v.rank = aliveCount() + 1; v.killedBy = att; v.killedWith = wname; v.survived = T;
+  v.rank = aliveCount() + 1; v.killedBy = att; v.killedWith = wname; v.killedHead = !!head; v.survived = T;
   v.deathYaw = v.yaw;
   v.deathDir = -1; v.deathRoll = rnd(-.35, .35); v.deathArms = rnd(-.3, .5);
   if (att && att !== v) { const toA = Math.atan2(att.p.x - v.p.x, att.p.z - v.p.z); v.deathDir = Math.abs(angDiff(v.yaw, toA)) < Math.PI / 2 ? -1 : 1; }
@@ -9037,6 +9186,16 @@ for (const id of ['meds', 'guns']) $(id).addEventListener('pointerdown', e => { 
    HUD
    ============================================================ */
 const HC = {};
+/* 槍的側面剪影（擊殺訊息、武器欄、淘汰資訊用；viewBox 100×32，槍口朝右） */
+const GUNSVG = {
+  m416: 'M2 11.5 17 12.5v6L3 20.5zM17 13h9v4h-9zM26 9h36v8.5H26zM25 7.6h48v1.6H25zM36 3.2h9v4.4h-9zM38.6 7.4h3.8v1h-3.8zM62 9.8h19v6H62zM81 11.6h13v2.4H81zM94 11h4v3.6h-4zM46 17.4h6.2l-1.6 10.8-6.2-1.2zM31 17.4h5.6L34.4 27l-5.2-1.4zM38 17.4h7v1.4c-1.6 2.6-5.2 2.6-7 0z',
+  ump: 'M3 10.5h3v10H3zM6 11h14v2H6zM6 18.4h14v2H6zM20 8.4h41v10.4H20zM22 6.6h34v1.8H22zM27 3.6h6v3h-6zM61 11h12.5v3.2H61zM73.5 10.4h3v4.4h-3zM43 18.8h6.4V30h-6.4zM28 18.8h5.6L31.4 28l-5.2-1.2zM34.6 18.8h6.4v1.4c-1.6 2.4-4.8 2.4-6.4 0z',
+  kar98: 'M2 14.5c6-.6 14-1.6 22-4.4h26v6H30c-2.2 2.6-3 5.4-3.4 8.4l-6.2-.4c.4-2.4 1-4.6 2-6.2C16 18.6 8 19.6 2 20.6zM50 11h47v2.6H50zM28 4.2h4v1h22v-1h4v5h-4v-1H32v1h-4zM38 9h2.6v1.2H38zM44 9h2.6v1.2H44zM45 16v3.2h3.6V16zM33 16.2h4v1.4l-3 3.4-1.2-1z',
+  s686: 'M2 13.6c8-.8 18-2 26-3.6h10v6.6H29c-2 1.6-3.4 3.8-4 6.2l-6.4-.6c.6-1.8 1.4-3.4 2.4-4.6C14 18.4 8 19.4 2 20.4zM38 9.6h59.5v2.4H38zM38 12.6h59.5v2.4H38zM48 15h20v3H48zM31 16.6h4.6v1.4c-1.4 2.2-3.6 2.2-4.6 0z'
+};
+const gunSvg = (id, cls = '') => GUNSVG[id] ? `<svg class="${cls}" viewBox="0 0 100 32" aria-hidden="true"><path d="${GUNSVG[id]}"/></svg>` : '';
+const RARITY_CSS = ['#d6d9dc', '#86cf95', '#7eaee8', '#c09be6'];
+addEventListener('resize', () => { HC.compW = 0; });
 function setT(id, v) { if (HC[id] !== v) { HC[id] = v; $(id).textContent = v; } }
 function setS(el, k, v) { if (el['_' + k] !== v) { el['_' + k] = v; el.style[k] = v; } }
 function renderInv() {
@@ -9045,11 +9204,12 @@ function renderInv() {
   $('guns').innerHTML = [0, 1].map(s => {
     const g = ch.guns[s];
     if (!g) return `<div class="slot" data-s="${s}"><kbd>${s + 1}</kbd><div class="nm"><span>空</span><small>—</small></div></div>`;
-    const w = WPN[g.id];
-    return `<div class="slot${!ch.holster && ch.slot === s ? ' cur' : ''}" data-s="${s}"><kbd>${s + 1}</kbd><div class="nm"><span>${w.name}</span><small>${CAL[w.cal]}</small></div><b>${g.mag}<small> / ${ch.ammo[w.cal]}</small></b></div>`;
+    const w = WPN[g.id], rr = RARITY[g.id] || 0;
+    return `<div class="slot${!ch.holster && ch.slot === s ? ' cur' : ''}" data-s="${s}" style="--rc:${RARITY_CSS[rr]}"><kbd>${s + 1}</kbd>${gunSvg(g.id, 'ico')}<div class="nm"><span>${w.name}</span><small>${CAL[w.cal]}</small><i class="tg">${RARITY_N[rr]}</i><i class="tg m">${w.auto ? '連發' : '單發'}</i></div><b>${g.mag}<small> / ${ch.ammo[w.cal]}</small></b><span class="cal">${CAL[w.cal]}</span><span class="mbar"><i style="width:${(g.mag / w.mag * 100).toFixed(0)}%"></i></span></div>`;
   }).join('') + `<div class="frag${ch.frags ? ' has' : ''}"><kbd>G</kbd>手雷<b>${ch.frags}</b></div>`;
   setT('helmChip', ch.helm ? '安全帽 LV' + ch.helm : '安全帽 —'); $('helmChip').classList.toggle('on', ch.helm > 0);
   setT('vestChip', ch.vest ? '背心 LV' + ch.vest : '背心 —'); $('vestChip').classList.toggle('on', ch.vest > 0);
+  [...$('armseg').children].forEach((e, i) => e.classList.toggle('on', i < ch.vest));
   // 直式手機的「地圖」「暫停」排在槍格正下方：槍格因字型換行變高時跟著往下
   if (TOUCH) document.documentElement.style.setProperty('--gunsB', Math.round($('guns').getBoundingClientRect().bottom) + 'px');
 }
@@ -9075,7 +9235,16 @@ function updateHUD(dt) {
   const ph = $('phase');
   // 指南針、高度計與階段提示
   const bearing = ((Math.atan2(Math.sin(PL.yaw), -Math.cos(PL.yaw)) * 180 / Math.PI) + 360) % 360;
-  setS($('compStrip'), 'transform', `translateX(${(190 - (bearing + 180) * 2).toFixed(1)}px)`);
+  setS($('compStrip'), 'transform', `translateX(${((HC.compW ||= $('compass').clientWidth || 380) / 2 - (bearing + 180) * 2).toFixed(1)}px)`);
+  { const b = Math.round(bearing) % 360; setT('bear', String(b).padStart(3, '0') + ' ' + ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(b / 45) % 8]); }
+  // 位置：工地裡用工地的小標，島上用最近的地名；格子 A–H（西→東）× 1–8（北→南），一格 128 m
+  if (ch.alive) {
+    let nm = '海上', best = 1e9;
+    const inSite = Math.abs(ch.p.x) < 125 && Math.abs(ch.p.z) < 125;
+    for (const L of LABELS) { if (!inSite && !L.big) continue; const d = Math.hypot(L.x - ch.p.x, L.z - ch.p.z); if (d < best) { best = d; nm = L.t; } }
+    if (inSite) nm = 'CANARY YARD · ' + nm; else if (best > 170) nm = terrainH(ch.p.x, ch.p.z) > SEA ? '荒野' : '海上';
+    setT('locN', nm); setT('locG', 'ABCDEFGH'[clamp(Math.floor((ch.p.x + 512) / 128), 0, 7)] + (clamp(Math.floor((ch.p.z + 512) / 128), 0, 7) + 1));
+  }
   const airborne = ch.alive && (ch.st === 'fall' || ch.st === 'chute');
   $('alti').classList.toggle('hide', !airborne);
   document.body.classList.toggle('air', ch.alive && (airborne || ch.st === 'beam'));
@@ -9094,10 +9263,24 @@ function updateHUD(dt) {
   }
   const hk = !ch.alive ? null : ch.inVeh ? 'drive' : ch.st === 'beam' ? 'beam' : ch.st === 'fall' ? 'fall' : ch.st === 'chute' ? 'chute' : (ch.landedAt != null && T - ch.landedAt < 5 ? 'land' : null);
   if (HC.hint !== hk) { HC.hint = hk; $('hint').classList.toggle('hide', !hk); if (hk) $('hint').innerHTML = HINTS[hk]; }
-  if (STATE === 'heli' && ch.st === 'beam') { setT('phaseCap', '起重直升機 · 機上 ' + CHARS.filter(c => c.st === 'beam' && heliOf(c) === HP).length + ' 人'); setT('phaseT', heliOverSite() ? (TOUCH ? '點「跳傘」' : '按 F 跳傘') : '飛往島上'); ph.classList.remove('shrink'); }
-  else if (ZONE.st === 'wait') { setT('phaseCap', '第 ' + (ZONE.phase + 1) + ' 階段 · 安全區收縮倒數'); setT('phaseT', fmt(ZONE.t)); ph.classList.remove('shrink'); }
-  else if (ZONE.st === 'shrink') { setT('phaseCap', '第 ' + (ZONE.phase + 1) + ' 階段 · 安全區收縮中'); setT('phaseT', fmt(ZONE.t)); ph.classList.add('shrink'); }
+  if (STATE === 'heli' && ch.st === 'beam') { setT('phaseCap', '機上 ' + CHARS.filter(c => c.st === 'beam' && heliOf(c) === HP).length + ' 人'); setT('phaseT', heliOverSite() ? (TOUCH ? '點跳傘' : 'F 跳傘') : '飛往島上'); ph.classList.remove('shrink'); }
+  else if (ZONE.st === 'wait') { setT('phaseCap', '安全區收縮倒數'); setT('phaseT', fmt(ZONE.t)); ph.classList.remove('shrink'); }
+  else if (ZONE.st === 'shrink') { setT('phaseCap', '安全區收縮中'); setT('phaseT', fmt(ZONE.t)); ph.classList.add('shrink'); }
   else { setT('phaseCap', '最終安全區'); setT('phaseT', '0:00'); ph.classList.add('shrink'); }
+  { const P = PHASES[Math.min(ZONE.phase, PHASES.length - 1)], tot = ZONE.st === 'wait' ? P.wait : ZONE.st === 'shrink' ? P.shrink : 1;
+    setS($('zbarI'), 'width', (STATE === 'heli' && ch.st === 'beam' ? 0 : ZONE.st === 'final' ? 100 : clamp((1 - ZONE.t / tot) * 100, 0, 100)).toFixed(1) + '%');
+    setT('zinfo', STATE === 'heli' && ch.st === 'beam' ? cnum(NPLAYERS) + '人 · ' + cnum(NHELI) + '架直升機' : '第 ' + Math.min(ZONE.phase + 1, PHASES.length) + ' / ' + PHASES.length + ' 圈 · 圈外每秒 ' + P.dps + ' 傷害'); }
+  // 在電網外：提示每秒扣多少、離安全區多遠
+  { const out = ch.alive && ch.st === 'ground' && outsideZone(ch), st = $('storm');
+    st.classList.toggle('on', out);
+    if (out) { const d = Math.max(0, Math.hypot(ch.p.x - ZONE.x, ch.p.z - ZONE.z) - ZONE.r), dps = PHASES[Math.min(ZONE.phase, PHASES.length - 1)].dps + (ZONE.finalT || 0) * 2;
+      const tx = `在電網外 <em>−${dps < 10 ? dps.toFixed(1).replace(/\.0$/, '') : Math.round(dps)} HP/秒</em> · 往安全區 <b>${Math.ceil(d)} m</b>`; if (HC.storm !== tx) { HC.storm = tx; st.innerHTML = tx; } } }
+  // 自己被淘汰：結算前先在畫面下方顯示名次與淘汰者（實機參考影片的 Eliminated #5 of 100）
+  { const dd = $('death'), on = STATE === 'dead' && !PL.endShown;
+    if (on && HC.death !== ch.rank) { HC.death = ch.rank; const by = ch.killedBy && ch.killedBy !== ch ? ch.killedBy : null, gid = Object.keys(WPN).find(k => WPN[k].name === ch.killedWith);
+      dd.innerHTML = `<h3>淘汰 <em>#${ch.rank}</em><small>/ ${NPLAYERS}</small></h3><p>${by ? `<i>淘汰者</i><b>${by.name}</b>${gid ? gunSvg(gid) : ''}${ch.killedWith}${ch.killedHead ? '<span class="hs">爆頭</span>' : ''}<span>${Math.round(Math.hypot(by.p.x - ch.p.x, by.p.z - ch.p.z))} m</span>` : ch.killedWith === '安全區' ? '倒在電網外' : '從高處摔落'}</p>`; }
+    if (!on) HC.death = null;
+    dd.classList.toggle('on', on); }
   if (TOUCH) $('tDrop').classList.toggle('hide', !((STATE === 'heli' && ch.st === 'beam' && heliOverSite()) || (ch.st === 'fall' && ch.fallT > 1)));
   // 血量
   const hp = Math.max(0, ch.hp);
@@ -9182,8 +9365,9 @@ function toast(t) { const e = $('toast'); e.textContent = t; e.classList.add('on
 function addFeed(att, v, wname, head) {
   const f = $('feed'), d = document.createElement('div');
   const nm = c => c ? (c.isPlayer ? '你' : c.name) : '';
-  if (att && att !== v) d.innerHTML = `${nm(att)}<i>${wname}</i>${nm(v)}${head ? '<em>爆頭</em>' : ''}`;
-  else d.innerHTML = `${nm(v)}<i>${wname === '安全區' ? '倒在電網外' : wname === '墜落' ? '摔落' : '陣亡'}</i>`;
+  const gid = Object.keys(WPN).find(k => WPN[k].name === wname);
+  if (att && att !== v) d.innerHTML = `${nm(att)}<i class="${gid ? 'w' : ''}">${wname}</i>${gid ? gunSvg(gid) : ''}<span class="v">${nm(v)}</span>${head ? '<em>爆頭</em>' : ''}`;
+  else d.innerHTML = `<span class="v">${nm(v)}</span><i>${wname === '安全區' ? '倒在電網外' : wname === '墜落' ? '摔落' : '陣亡'}</i>`;
   if ((att && att.isPlayer) || v.isPlayer) d.className = v.isPlayer ? 'die' : 'me';
   f.prepend(d);
   while (f.children.length > 5) f.lastChild.remove();
@@ -9399,6 +9583,10 @@ function showEnd(won) {
     : by ? `被 ${by.name} 用 ${ch.killedWith} 淘汰。${ch.kills ? '你帶走了 ' + ch.kills + ' 個人。' : '下次先找把槍。'}`
       : ch.killedWith === '安全區' ? '在電網外撐不下去了。下次早點往白圈移動。' : '從高處摔下來了。鷹架沒有欄杆的地方要小心。';
   setT('sRank', '#' + (won ? 1 : ch.rank)); setT('sKills', String(ch.kills)); setT('sDmg', String(Math.round(ch.dmg))); setT('sTime', fmt(won ? T : ch.survived));
+  // 名次表（實機參考影片的結算頁）：還活著的排前面（依擊殺），再依淘汰名次；前八名＋自己
+  const rows = CHARS.slice().sort((a, b) => (a.alive ? 0 : a.rank) - (b.alive ? 0 : b.rank) || b.kills - a.kills);
+  const top = rows.slice(0, 8); if (!top.includes(ch)) top.push(ch);
+  $('stand').innerHTML = '<table><thead><tr><th>#</th><th>工人</th><th>擊殺</th><th>傷害</th></tr></thead><tbody>' + top.map(c => `<tr class="${c === ch ? 'me' : ''}"><td>${c.alive ? (won && c === ch ? 1 : '—') : c.rank}</td><td>${c === ch ? '你' : c.name}${c.alive && !(won && c === ch) ? '<small>存活中</small>' : ''}</td><td>${c.kills}</td><td>${Math.round(c.dmg)}</td></tr>`).join('') + '</tbody></table>';
   $('end').classList.remove('hide');
   if (won) for (let i = 0; i < 8; i++) setTimeout(() => { burst(ch.p.x + rnd(-6, 6), ch.p.y + rnd(6, 12), ch.p.z + rnd(-6, 6), 30, pick([0xf4b400, 0xe0302b, 0xffffff]), 7, 1.4, .1, 3); if (AU.ctx) tone(AU.ctx.currentTime, out(null, .25), 'square', 200, 60, .001, .8, .12); }, i * 260);
 }
