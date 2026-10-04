@@ -3865,7 +3865,18 @@ function wMats() {
     d.onBeforeCompile = sh => { wd(sh); sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', LEAFMAPD); };   // 影子也補回遠處的不透明度（上限低一點：陰影貼圖的像素比畫面大）
     return [m, d];
   };
+  // 民房外牆的橫向木壁板（實機參考影片的郊區住宅）：UV 1 = 4 m，一片板露出 20 cm；每片上薄下厚，板緣下方一道陰影，帶一點木紋
+  const sc = mkCanvas(256, 512), sg = sc.getContext('2d'), SB = 512 / 20;
+  for (let i = 0; i < 20; i++) {
+    const y = i * SB, gr = sg.createLinearGradient(0, y, 0, y + SB);
+    gr.addColorStop(0, '#a9a9a9'); gr.addColorStop(.82, '#dcdcdc'); gr.addColorStop(.9, '#e6e6e6'); gr.addColorStop(.93, '#6a6a6a'); gr.addColorStop(1, '#8c8c8c');
+    sg.fillStyle = gr; sg.fillRect(0, y, 256, SB);
+    for (let k = 0; k < 10; k++) { sg.fillStyle = `rgba(${Math.random() < .5 ? '120,120,120' : '240,240,240'},${rnd(.04, .1)})`; sg.fillRect(0, y + rnd(2, SB - 4), 256, rnd(.6, 1.6)); }
+  }
+  for (let i = 0; i < 14; i++) { const x = rnd(256), w = rnd(3, 10), h = rnd(80, 300), y = rnd(512), g2 = sg.createLinearGradient(0, y, 0, y + h); g2.addColorStop(0, 'rgba(90,90,90,.14)'); g2.addColorStop(1, 'rgba(90,90,90,0)'); sg.fillStyle = g2; wrapDraw(256, 512, (ox, oy) => sg.fillRect(x + ox, y + oy, w, h)); }
+  const [sidT, sidK] = lumTex(sc, .8), sidN = normalFrom(sc, 3.2);
   WMAT = {
+    siding: std({ roughness: .72, map: sidT, color: new THREE.Color(sidK, sidK, sidK), normalMap: sidN, normalScale: NS(1.1) }, { g: .45, r: .1, s: .35 }),
     plain: std({ roughness: .92, map: plasT, color: plasC, normalMap: TEX.concN, normalScale: NS(.25) }, { g: .45, r: .1, s: .18 }),
     paint: std({ roughness: .8, map: plasT, color: plasC, normalMap: TEX.concN, normalScale: NS(.35) }, { g: .5, r: .12, s: .4 }),
     roof: std({ roughness: .78, metalness: .1, normalMap: TEX.plyN, normalScale: NS(.5) }, { g: .4, r: .12, s: .3 }),
@@ -4035,7 +4046,7 @@ function flushWProps() {
         parts.forEach(p => p.dispose()); m.receiveShadow = true; m.matrixAutoUpdate = false; scene.add(m);
         continue;
       }
-      const im = new THREE.InstancedMesh(geo[role], W[role] || W.plain, list.length);
+      const im = new THREE.InstancedMesh(geo[role], (role === 'paint' && name.startsWith('HOUSE') ? W.siding : W[role]) || W.plain, list.length);
       list.forEach((it, i) => { im.setMatrixAt(i, it.M); if (role === 'paint') im.setColorAt(i, col.set(it.c ?? 0xf1ede4)); });
       im.castShadow = role !== 'glass' && role !== 'emit'; im.receiveShadow = true; im.matrixAutoUpdate = false;
       scene.add(im);
