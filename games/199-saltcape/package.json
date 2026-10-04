@@ -1,0 +1,25 @@
+{
+  "name": "saltcape",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "鹽岬大逃殺 · SALTCAPE：瀏覽器多人連線大逃殺（作品 199）",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "dev": "node tools/build.mjs --dev",
+    "sim": "node tools/sim.mjs",
+    "test": "node --test tools/sim.test.mjs tools/net.test.mjs && node tools/accept.mjs",
+    "test:rules": "node --test tools/sim.test.mjs tools/net.test.mjs",
+    "mp": "node tools/mp.mjs",
+    "thumb": "node tools/thumb.mjs"
+  },
+  "dependencies": {
+    "three": "0.186.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

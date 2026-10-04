@@ -17,8 +17,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm ci
-npm start                 # 麻將伺服器 + 靜態檔，http://127.0.0.1:8127（/ 會轉到 127）
+npm start                 # 麻將＋鹽岬大逃殺（199）伺服器 + 靜態檔，http://127.0.0.1:8127（/ 會轉到 127）
 npm run test:mahjong      # node:test，規則引擎 + 跨實例四人房整合測試
+npm run test:saltcape     # 199 的規則層與 WebSocket 伺服器測試
 node --test --test-name-pattern="行牌" server/jade-table/game.test.mjs   # 只跑單一測試
 node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對真實 Neon 驗證（需 DATABASE_URL）
 ```
@@ -88,6 +89,14 @@ node --env-file=.env.local --test server/jade-table/game.test.mjs        # 對�
 - 原始碼在 `games/198-ki-lanes/`（Three.js 0.186.0 + esbuild），有自己的 `package.json`；`npm run build` 輸出單檔 `web/198-ki-lanes.html`，改了 `src/` 要重新 build 並把產出一起 commit。`npm test` 是兩種尺寸的無頭 Chrome 驗收（跑打包後的單檔）。
 - 規則層（`world.js` 的 `newMatch`／`stepWorld`，以及 `units.js`、`combat.js`、`ai.js`、`items.js`、`jungle.js`、`vision.js`、`nav.js`、`map.js` 的資料部分）不碰 DOM，畫面（`main.js`）與 `node tools/sim.mjs 900` 共用同一份推進邏輯，可在 Node 跑整場 AI 對戰來調平衡。機制分析、角色技能與模組契約見 `SPEC.md`，指令與 `window.__ki` 測試 API 見 `README.md`。
 - 角色是七龍珠 FighterZ 的同人致敬：模型與特效只能用程式建構，不要加入原作的貼圖、模型、圖示或音效。六名英雄在 `blender/heroes.py`（悟空與共用工具）與 `blender/cast.py`（其他五名）以 Blender 腳本建模；改完跑 `npm run models`（`tools/rig-dump.mjs` 輸出骨架 → Blender 5.2 無頭建模、刷權重、算遮蔽 → 寫 `src/models-baked.js`）再 build。改了 `models.js` 的骨架或 `models-heroes.js` 的 PROPS 比例也要重跑。Blender 只是開發依賴，`models-baked.js` 有 commit，build 不需要 Blender。
+- 音效在 `src/sfx-dsp.js` 以樣本級合成（開場預算多個變體）、`src/audio.js` 播放與配樂；角色日文語音由 `tools/voices/build_voices.py` 用 VOICEVOX 離線合成成 MP3 內嵌到 `src/voices.js`（有 commit，build 不需要 VOICEVOX）。改台詞或配音要重跑該腳本，並維持頁面 `#fanNote` 與 README 的「VOICEVOX:角色名」標示。
+
+## 鹽岬大逃殺（199）
+
+- 原始碼在 `games/199-saltcape/`（Three.js 0.186.0 + esbuild），有自己的 `package.json`；`npm run build` 輸出單檔 `web/199-saltcape.html`，改了 `src/` 要重新 build 並把產出一起 commit。`npm test` 跑規則與伺服器測試（`tools/sim.test.mjs`、`tools/net.test.mjs`）再跑兩種尺寸的無頭 Chrome 驗收；`npm run mp` 開兩個瀏覽器分頁走完建房、分享網址加入、起飛、互射與換線接手；`npm run sim` 在 Node 跑整場 AI 對戰。
+- `src/core/`（地圖、物理、規則、毒圈、`Match` 對局與 AI）不碰 DOM，**伺服器與瀏覽器共用同一份**：伺服器用它裁定，前端用它做移動預測與離線練習。地圖由固定種子生成，只能用整數雜湊與加減乘除（`rng.js` 的 `csin`／`ccos`），不要在地圖生成裡用 `Math.sin`／`atan2`，否則不同瀏覽器的碰撞會和伺服器對不上。
+- 伺服器 `server/saltcape/server.mjs`（`createSaltcape()` 掛在 `npm start` 的伺服器上，`createSaltServer()` 給 Vercel 的 `api/saltcape.mjs`；兩者都接受 `/api/saltcape` 與 `/saltcape`，前端一律連 `/api/saltcape`）；`server/jade-table/server.mjs` 的 `onUpgrade` 讓兩個遊戲共用 8127 埠。房間只存在單一行程的記憶體，Vercel 多實例時好友可能分到不同實例，前端會收到 `notfound`／`lost` 明確提示；前端每 200 秒換一條新連線接手（Vercel 連線 300 秒上限）。
+- 協定、輸入位元與快照格式見 `SPEC.md`，操作與限制見 `README.md`；`window.__sc` 的 `solo()`、`place(x, z, mode)`、`give(w)`、`look(yaw, pitch)` 可在離線練習裡直接擺位置截圖。
 
 ## 青雀真人麻將（127）架構
 
