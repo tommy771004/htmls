@@ -123,8 +123,9 @@ TORSO_ROWS = [  # u, (基準, a 倍率), b(×cz), z(×cz)
     (0.67, ('c', 1.04), 1.0, 0.08),
     (0.8, ('c', 1.1), 0.96, 0.05),
     (0.9, ('c', 1.0), 0.81, -0.02),
-    (0.97, ('c', 0.7), 0.63, -0.04),
-    (1.01, ('c', 0.38), 0.47, 0.0),
+    (0.96, ('c', 0.84), 0.68, -0.04),
+    (1.02, ('c', 0.58), 0.55, -0.04),   # 斜方肌：從肩頭往脖子斜上去，不是一條水平的平台
+    (1.07, ('c', 0.34), 0.44, -0.02),
 ]
 
 
@@ -465,10 +466,17 @@ def core_proxy(F):
 
 def finish(F, P, body, proxy, heads, extras=None, custom=None):
     proxy = [p for p in proxy if is_closed(p)] + core_proxy(F)
+    # 頭部橫向比例（照參考圖量的臉寬）：頭顱、髮型與頭上配件一起以頭心為軸縮放
+    hx = F.R.get('hx', 1.0)
+    if hx != 1.0:
+        c = F.c
+        for objs in heads.values():
+            for o in objs:
+                kit.deform(o, lambda p: V((c.x + (p.x - c.x) * hx, p.y, c.z + (p.z - c.z) * (0.5 + 0.5 * hx))))
     return {
         'body': body, 'proxy': proxy, 'heads': heads, 'extras': extras or {},
         'allow': ALLOW, 'custom': custom or {}, 'palette': P, 'head_center': F.c, 'hr': F.hr,
-        'faceRect': [0, F.hr * 0.9 - F.hr * 0.12, F.hr * 1.9, F.hr * 1.9],
+        'faceRect': [0, F.hr * 0.9 - F.hr * 0.12, F.hr * 1.9 * F.R.get('hx', 1.0), F.hr * 1.9],
     }
 
 

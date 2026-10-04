@@ -147,8 +147,9 @@ export const HERO = {
 for (const id in HERO) {
   const d = HERO[id];
   Object.assign(d, PROPS[id]);
-  d.torso = d.H - d.L - d.hr * 1.95 - 0.04;
-  d.upper = d.torso * 0.5; d.lower = d.torso * 0.47;
+  d.neck = d.neck || 0; // 脖子長度（照參考圖量：下巴到肩線的距離）
+  d.torso = d.H - d.L - d.hr * 1.95 - 0.04 - d.neck;
+  d.upper = d.torso * 0.5 * (d.armK || 1); d.lower = d.torso * 0.47 * (d.armK || 1);
   d.thighLen = d.L * 0.5; d.shinLen = d.L * 0.44;
 }
 
@@ -398,6 +399,7 @@ function heroPose(d, name, t, k, phase, out) {
       p = lerpPose(base, lie, kk);
       break;
     }
+    case 'stand': p = blank(); break; // 立正（比對參考圖用）
     case 'win': {
       const b = Math.abs(Math.sin(t * 4));
       p = P({ hipsY: -0.02 + 0.03 * b, torsoX: -0.1, torsoY: 0, headX: -0.3, headY: 0, shRX: -2.95, shRZ: 0.15, elR: -0.25 - 0.2 * b, shLX: 0.15, shLZ: 0.6, elL: -1.6,
@@ -509,7 +511,7 @@ export function heroSkeleton(id) {
   const bone = (name, parent, x, y, z) => { const b = new THREE.Bone(); b.name = name; b.position.set(x, y, z); parent.add(b); return b; };
   const hips = bone('hips', body, 0, d.L, 0);
   const torso = bone('torso', hips, 0, 0.02, 0);
-  const head = bone('head', torso, 0, d.torso + 0.04, 0);
+  const head = bone('head', torso, 0, d.torso + 0.04 + d.neck, 0);
   const J = { hips, torso, head };
   const hands = {};
   for (const side of ['L', 'R']) {

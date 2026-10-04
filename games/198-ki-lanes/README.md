@@ -21,6 +21,7 @@ node tools/jungleshot.mjs # 開發截圖：野區營地、戰爭迷霧、大猿
 node tools/bushshot.mjs   # 開發截圖：草叢、眼
 node tools/look.mjs 1280 720 tag # 開發截圖：塔下廣場、河道、野區、神龍坑附近、基地六個固定地點
 node tools/dragonshot.mjs # 開發截圖：龍珠面板、召喚、神龍升起、交戰、許願
+sh tools/refcmp.sh <參考圖資料夾> goku naruto …  # 角色立正的正交正面圖與官方設定圖等高並排（每 5% 一條格線），用來校比例；參考圖不進 repo，資料夾放 <id>/<nn>.img 與 picks.txt
 node tools/perf.mjs    # 開打 4 分鐘後的實際幀率
 node tools/thumb.mjs   # 重拍 ../../thumbs/198.jpg
 npm run models         # 重建六名英雄的網格（需要 Blender 5.2；約 25 秒），寫入 src/models-baked.js，再 npm run build

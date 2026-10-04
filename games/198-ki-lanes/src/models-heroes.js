@@ -4,22 +4,22 @@ import * as THREE from 'three';
 import { unzlibSync } from 'three/examples/jsm/libs/fflate.module.js';
 import { BAKED } from './models-baked.js';
 // 比例（FighterZ 的英雄比例：約 5.6 頭身、寬肩）
-// 比例參考 GK 雕像的英雄式體型：頭小、肩寬、胸厚、腰細、四肢粗壯
+// 比例照各角色的官方全身設定圖量（tools/refcmp.sh 正交正面並排比對）：L 髖關節高、hr 頭半徑、hx 頭部橫向比例、neck 脖子長、sw 肩關節距中線
 export const PROPS = {
-  goku: { H: 1.85, hr: 0.1485, L: 0.88, sw: 0.2968, chest: [0.2668, 0.3, 0.1882], waist: 0.1444, arm: 0.095, fore: 0.08418, fist: 0.1037, thigh: 0.1322, shin: 0.09072, hip: 0.124 },
-  vegeta: { H: 1.72, hr: 0.1413, L: 0.81, sw: 0.2856, chest: [0.2599, 0.29, 0.1814], waist: 0.133, arm: 0.0925, fore: 0.08174, fist: 0.1004, thigh: 0.1254, shin: 0.08748, hip: 0.116 },
-  trunks: { H: 1.86, hr: 0.1444, L: 0.9, sw: 0.264, chest: [0.2352, 0.28, 0.165], waist: 0.1267, arm: 0.0792, fore: 0.0708, fist: 0.09222, thigh: 0.1144, shin: 0.08162, hip: 0.112 },
-  piccolo: { H: 2.12, hr: 0.1512, L: 1.02, sw: 0.3192, chest: [0.2898, 0.31, 0.1926], waist: 0.1425, arm: 0.09625, fore: 0.08662, fist: 0.108, thigh: 0.1366, shin: 0.09504, hip: 0.126 },
-  frieza: { H: 1.55, hr: 0.1472, L: 0.7, sw: 0.1924, chest: [0.1806, 0.24, 0.1365], waist: 0.092, arm: 0.0572, fore: 0.05292, fist: 0.07072, thigh: 0.0861, shin: 0.0624, hip: 0.098 },
-  a18: { H: 1.72, hr: 0.145, L: 0.86, sw: 0.188, chest: [0.17, 0.26, 0.13], waist: 0.1078, arm: 0.0504, fore: 0.0462, fist: 0.064, thigh: 0.0936, shin: 0.06732, hip: 0.116 },
-  naruto: { H: 1.66, hr: 0.138, L: 0.79, sw: 0.25, chest: [0.226, 0.26, 0.158], waist: 0.12, arm: 0.066, fore: 0.06, fist: 0.09, thigh: 0.11, shin: 0.078, hip: 0.106 },
-  sasuke: { H: 1.68, hr: 0.137, L: 0.81, sw: 0.244, chest: [0.218, 0.26, 0.152], waist: 0.115, arm: 0.073, fore: 0.065, fist: 0.086, thigh: 0.105, shin: 0.076, hip: 0.104 },
-  kakashi: { H: 1.81, hr: 0.141, L: 0.88, sw: 0.258, chest: [0.232, 0.28, 0.163], waist: 0.125, arm: 0.064, fore: 0.058, fist: 0.09, thigh: 0.112, shin: 0.08, hip: 0.11 },
-  sakura: { H: 1.61, hr: 0.14, L: 0.8, sw: 0.184, chest: [0.168, 0.245, 0.127], waist: 0.103, arm: 0.052, fore: 0.048, fist: 0.065, thigh: 0.091, shin: 0.066, hip: 0.11 },
-  luffy: { H: 1.74, hr: 0.148, L: 0.83, sw: 0.252, chest: [0.228, 0.27, 0.156], waist: 0.118, arm: 0.074, fore: 0.067, fist: 0.094, thigh: 0.105, shin: 0.077, hip: 0.108 },
-  zoro: { H: 1.81, hr: 0.143, L: 0.86, sw: 0.292, chest: [0.262, 0.295, 0.185], waist: 0.142, arm: 0.093, fore: 0.083, fist: 0.1, thigh: 0.13, shin: 0.089, hip: 0.122 },
-  sanji: { H: 1.8, hr: 0.14, L: 0.92, sw: 0.25, chest: [0.222, 0.27, 0.155], waist: 0.118, arm: 0.06, fore: 0.054, fist: 0.085, thigh: 0.108, shin: 0.078, hip: 0.108 },
-  nami: { H: 1.7, hr: 0.144, L: 0.85, sw: 0.186, chest: [0.172, 0.26, 0.132], waist: 0.1, arm: 0.05, fore: 0.046, fist: 0.064, thigh: 0.095, shin: 0.067, hip: 0.12 },
+  goku: { H: 1.85, hr: 0.1303, L: 0.962, sw: 0.184, chest: [0.1921, 0.3, 0.1543], waist: 0.1271, arm: 0.0703, fore: 0.06566, fist: 0.09126, thigh: 0.09522, shin: 0.07258, hip: 0.1178, hx: 0.88, neck: 0.0222 },
+  vegeta: { H: 1.72, hr: 0.124, L: 0.86, sw: 0.1771, chest: [0.1871, 0.29, 0.1487], waist: 0.117, arm: 0.06845, fore: 0.06376, fist: 0.08835, thigh: 0.08124, shin: 0.06998, hip: 0.1102, hx: 0.88, neck: 0.0206 },
+  trunks: { H: 1.86, hr: 0.1267, L: 0.9672, sw: 0.1637, chest: [0.1693, 0.28, 0.1353], waist: 0.1115, arm: 0.05861, fore: 0.05522, fist: 0.08115, thigh: 0.08237, shin: 0.0653, hip: 0.1064, hx: 0.88, neck: 0.0223 },
+  piccolo: { H: 2.12, hr: 0.1327, L: 1.124, sw: 0.1979, chest: [0.2087, 0.31, 0.1579], waist: 0.1254, arm: 0.07122, fore: 0.06756, fist: 0.09504, thigh: 0.09837, shin: 0.07603, hip: 0.1197, hx: 0.88, neck: 0.0254 },
+  frieza: { H: 1.55, hr: 0.1509, L: 0.7595, sw: 0.1193, chest: [0.13, 0.24, 0.1119], waist: 0.08096, arm: 0.04233, fore: 0.04128, fist: 0.06223, thigh: 0.06199, shin: 0.04992, hip: 0.0931, hx: 0.88, neck: 0.0186 },
+  a18: { H: 1.72, hr: 0.1332, L: 0.9116, sw: 0.1166, chest: [0.1224, 0.26, 0.1066], waist: 0.09486, arm: 0.0373, fore: 0.03604, fist: 0.05632, thigh: 0.06065, shin: 0.05386, hip: 0.1102, hx: 0.88, neck: 0.0206 },
+  naruto: { H: 1.66, hr: 0.1211, L: 0.8632, sw: 0.155, chest: [0.1627, 0.26, 0.1296], waist: 0.1056, arm: 0.04884, fore: 0.0468, fist: 0.0792, thigh: 0.0792, shin: 0.0624, hip: 0.1007, hx: 0.88, neck: 0.0199 },
+  sasuke: { H: 1.68, hr: 0.1202, L: 0.8904, sw: 0.1392, chest: [0.157, 0.26, 0.1246], waist: 0.1012, arm: 0.05402, fore: 0.0507, fist: 0.07568, thigh: 0.06804, shin: 0.0608, hip: 0.0988, hx: 0.88, neck: 0.0202 },
+  kakashi: { H: 1.81, hr: 0.1237, L: 0.9593, sw: 0.16, chest: [0.167, 0.28, 0.1337], waist: 0.11, arm: 0.04736, fore: 0.04524, fist: 0.0792, thigh: 0.06854, shin: 0.0576, hip: 0.1045, hx: 0.88, neck: 0.0217 },
+  sakura: { H: 1.61, hr: 0.1286, L: 0.8533, sw: 0.1141, chest: [0.121, 0.245, 0.1041], waist: 0.09064, arm: 0.03848, fore: 0.03744, fist: 0.0572, thigh: 0.05766, shin: 0.0528, hip: 0.1045, hx: 0.88, neck: 0.0193 },
+  luffy: { H: 1.74, hr: 0.1299, L: 0.87, sw: 0.1328, chest: [0.1445, 0.27, 0.1126], waist: 0.1038, arm: 0.04655, fore: 0.04599, fist: 0.08272, thigh: 0.0756, shin: 0.0616, hip: 0.1026, hx: 0.88, neck: 0.0209 },
+  zoro: { H: 1.81, hr: 0.1255, L: 0.9412, sw: 0.181, chest: [0.1886, 0.295, 0.1517], waist: 0.125, arm: 0.06882, fore: 0.06474, fist: 0.088, thigh: 0.0936, shin: 0.0712, hip: 0.1159, hx: 0.88, neck: 0.0217 },
+  sanji: { H: 1.8, hr: 0.1228, L: 1.026, sw: 0.1318, chest: [0.1358, 0.27, 0.108], waist: 0.1038, arm: 0.03996, fore: 0.04212, fist: 0.0748, thigh: 0.06221, shin: 0.0624, hip: 0.1026, hx: 0.88, neck: 0.0216 },
+  nami: { H: 1.7, hr: 0.1323, L: 0.935, sw: 0.1153, chest: [0.1238, 0.26, 0.1082], waist: 0.088, arm: 0.037, fore: 0.03588, fist: 0.05632, thigh: 0.05814, shin: 0.0536, hip: 0.114, hx: 0.88, neck: 0.0204 },
 };
 
 const cache = new Map();
