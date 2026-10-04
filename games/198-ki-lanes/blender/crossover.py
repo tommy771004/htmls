@@ -15,10 +15,11 @@ from cast import FEMALE_ROWS, arm_s, belt_ring, strap_around, team_band
 
 
 # ================================================================ 共用配件
-def head_band(F, cloth, metal, y=0.3, h=0.36, tilt=0.0, tails=True, plate=True, name='hb'):
+def head_band(F, cloth, metal, y=0.3, h=0.36, tilt=0.0, tails=True, plate=True, name='hb', scale=1.0):
     """忍者護額：繞頭一圈的布帶＋額前金屬板（單位 hr）。tilt＞0 往角色左側斜（卡卡西遮左眼）。"""
-    c, hr = F.c, F.hr
-    y0 = c.y + hr * y
+    c, hr0 = F.c, F.hr
+    y0 = c.y + hr0 * y
+    hr = hr0 * scale  # scale＞1：護額撐大一圈，壓在瀏海外面
     ring = limb(name, V((c.x, y0, c.z - hr * 0.04)), V((0, 1, 0)), [(0, hr * 0.86, hr * 0.94), (hr * h * 0.5, hr * 0.88, hr * 0.96), (hr * h, hr * 0.86, hr * 0.94)], n=20, cap0=None, cap1=None)
     ring = kit.subsurf(ring, 2, solidify=hr * 0.03)
     kit.tag(ring, cloth, grp=G_FREE, ol=0.7)
@@ -204,25 +205,29 @@ def build_naruto(R):
     kit.transform(pouch, Matrix.Translation(F.leg_pt(0.16) + V((0.12 * F.k_leg + 0.02, 0, 0.02))))
     body.append(kit.tag(kit.subsurf(pouch, 2), sandal_c, grp=G_LEG_L, ol=0.6))
 
-    h = anime_head('head_base', F, skin, jaw=0.95, chin=0.9, cheek=1.0, nose=0.8)
+    h = anime_head('head_base', F, skin, jaw=1.02, chin=0.95, cheek=1.07, nose=0.75, face_len=0.94, cranium=(0.83, 0.9, 0.9))
     hc = P(0xf6c93a)
-    heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.6, temple=0.1, scale=1.06, nape=-0.55)] + hair(F, hc, naruto_hair()) + head_band(F, cloth, metal, y=0.38, h=0.34)}
+    heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.6, temple=0.1, scale=1.06, nape=-0.55)] + hair(F, hc, naruto_hair()) + head_band(F, cloth, metal, y=0.4, h=0.32, scale=1.13)}
     return finish(F, P, body, proxy, heads)
 
 
 def naruto_hair():
+    # 鳴人的亂翹短髮：很多撮中短的髮束往外、往後翹，頭頂不往上衝；前面三撮瀏海垂到護額下
     return sym([
-        ((0.0, 0.98, 0.1), (0.1, 2.0, 0.2), 0.5, 0.22, (0, 0.1, 0.1)),
-        ((0.45, 0.85, 0.1), (1.3, 1.7, 0.0), 0.46, 0.21, (0.1, 0.2, 0)),
-        ((0.75, 0.5, -0.1), (1.75, 0.9, -0.25), 0.42, 0.2, (0, 0.15, 0)),
-        ((0.8, 0.1, -0.35), (1.6, -0.25, -0.65), 0.38, 0.18, (0, 0.05, 0)),
-        ((0.3, 0.78, -0.5), (0.9, 1.6, -1.2), 0.48, 0.22, (0, 0.1, 0)),
-        ((0.0, 0.5, -0.82), (0.1, 1.0, -1.75), 0.48, 0.22, (0, 0.1, 0)),
-        ((0.45, 0.1, -0.85), (1.0, -0.2, -1.55), 0.42, 0.2, (0, 0.05, 0)),
-        ((0.0, -0.2, -0.9), (0.05, -0.65, -1.45), 0.38, 0.18, (0, 0, 0)),
-        ((0.15, 0.85, 0.5), (0.1, 0.55, 1.12), 0.3, 0.14, (0, 0.1, 0.1)),
-        ((0.5, 0.75, 0.45), (0.75, 0.45, 1.0), 0.28, 0.13, (0, 0.08, 0.1)),
-        ((0.78, 0.45, 0.3), (1.0, -0.2, 0.62), 0.22, 0.11, (0, 0, 0.06)),
+        ((0.0, 0.98, 0.25), (0.05, 1.45, 0.62), 0.36, 0.15, (0, 0.12, 0.12), 0.45),
+        ((0.3, 0.95, 0.15), (0.75, 1.42, 0.38), 0.34, 0.15, (0.05, 0.12, 0.05), 0.45),
+        ((0.58, 0.8, 0.05), (1.22, 1.18, 0.2), 0.32, 0.14, (0.08, 0.12, 0.02), 0.45),
+        ((0.78, 0.5, -0.05), (1.45, 0.6, 0.0), 0.3, 0.14, (0.1, 0.1, 0), 0.45),
+        ((0.82, 0.18, -0.25), (1.38, -0.05, -0.35), 0.28, 0.13, (0.08, 0.05, 0), 0.45),
+        ((0.25, 0.92, -0.25), (0.62, 1.48, -0.6), 0.36, 0.15, (0.04, 0.12, -0.05), 0.45),
+        ((0.55, 0.7, -0.45), (1.05, 1.0, -1.0), 0.34, 0.15, (0.06, 0.1, -0.05), 0.45),
+        ((0.0, 0.75, -0.62), (0.05, 1.25, -1.22), 0.36, 0.15, (0, 0.12, -0.08), 0.45),
+        ((0.35, 0.35, -0.82), (0.72, 0.25, -1.42), 0.32, 0.14, (0.04, 0.05, -0.05), 0.45),
+        ((0.0, 0.0, -0.92), (0.06, -0.3, -1.4), 0.3, 0.13, (0, 0, 0), 0.45),
+        ((0.62, 0.0, -0.65), (1.08, -0.3, -1.08), 0.28, 0.13, (0.04, 0, 0), 0.45),
+        ((0.1, 0.88, 0.5), (0.06, 0.42, 1.08), 0.26, 0.1, (0, 0.06, 0.1), 0.45),
+        ((0.4, 0.8, 0.46), (0.52, 0.38, 1.0), 0.24, 0.1, (0.02, 0.06, 0.08), 0.45),
+        ((0.68, 0.6, 0.34), (0.9, 0.1, 0.72), 0.22, 0.09, (0.03, 0.03, 0.05), 0.45),
     ])
 
 
@@ -277,7 +282,7 @@ def build_sasuke(R):
     pair_add(body, proxy, [slv, arm, ag, hand, leg] + bt, proxy_set=[arm, hand, leg] + bt)
     body.append(team_band(F, team, 1.2))
 
-    h = anime_head('head_base', F, skin, jaw=0.95, chin=0.92, cheek=0.96, nose=0.75)
+    h = anime_head('head_base', F, skin, jaw=0.88, chin=0.78, cheek=0.93, nose=0.8, face_len=1.07)
     hc = P(0x1a1c2e)
     heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.42, temple=0.05, scale=1.07, nape=-0.65)] + hair(F, hc, sasuke_hair())}
     blade, sheath = katana(P, sw_grip, sw_guard, sw_sheath, length=1.0)
@@ -355,7 +360,7 @@ def build_kakashi(R):
     # 左臂的紅色漩渦臂章（簡化成紅色細環）
     body.append(band('mark', F.sh, F.da, 0.06, 0.09, 0.102 * F.k_arm, 0.1 * F.k_arm, red, G_UPPER_L, thick=0.004, ol=0.4))
 
-    h = anime_head('head_base', F, skin, jaw=0.98, chin=0.95, nose=0.6)
+    h = anime_head('head_base', F, skin, jaw=0.96, chin=0.95, cheek=0.95, nose=0.6, face_len=1.12, cranium=(0.8, 0.92, 0.9))
     hc = P(0xd8dbe6)
     heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.55, temple=0.0, scale=1.07, nape=-0.6)] + hair(F, hc, kakashi_hair())
              + head_band(F, cloth, metal, y=0.3, h=0.38, tilt=0.42, tails=True)}
@@ -394,7 +399,9 @@ def build_sakura(R):
     body, proxy = [], []
 
     # 紅色無袖上衣（立領、前襟拉鍊）
-    top = kit.loft('top', torso_rows(F, e=0.006, u0=0.0, pec=0, lat=0, bust=0.13, rows=FEMALE_ROWS), n=18, cap0=None, cap1=None)
+    # 上衣跟著女性軀幹的曲線：胸部隆起、腰收細、下襬微微外擴；斷面較圓（p 小）不會像箱子
+    top_rows = [(0.04, ('w', 1.16), 0.86, 0.0), (0.2, ('w', 0.9), 0.74, 0.0)] + [r for r in FEMALE_ROWS if r[0] > 0.3]
+    top = kit.loft('top', torso_rows(F, e=0.006, rows=top_rows, pec=0, lat=0, bust=0.3, p=2.0), n=20, cap0=None, cap1=None)
     top = kit.subsurf(top, 2)
     kit.tag(top, red, grp=G_TORSO)
     body.append(top)
@@ -428,7 +435,7 @@ def build_sakura(R):
     pair_add(body, proxy, [arm, pad, glove, hand, leg, kp] + bt, proxy_set=[arm, hand, leg] + bt)
     body.append(team_band(F, team, 1.0))
 
-    h = anime_head('head_base', F, skin, jaw=0.88, chin=0.84, cheek=0.96, nose=0.65)
+    h = anime_head('head_base', F, skin, jaw=0.86, chin=0.78, cheek=0.98, nose=0.6, face_len=0.92, cranium=(0.85, 0.98, 0.93))
     hc = P(0xf4a6c4)
     heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.72, temple=0.0, scale=1.08, nape=-0.75, side_cut=False)] + hair(F, hc, sakura_hair())
              + head_band(F, cloth, metal, y=0.56, h=0.3, tails=False)}
@@ -495,7 +502,7 @@ def build_luffy(R):
     pair_add(body, proxy, [arm, hand, shorts, cuff, shin] + ft, proxy_set=[arm, hand, shorts] + ft)
     body.append(team_band(F, team, 1.2))
 
-    h = anime_head('head_base', F, skin, jaw=0.95, chin=0.9, cheek=1.02, nose=0.7)
+    h = anime_head('head_base', F, skin, jaw=1.04, chin=1.0, cheek=1.08, nose=0.7, face_len=0.95)
     hc = P(0x18161e)
     heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.28, temple=0.1, scale=1.06, nape=-0.6)] + hair(F, hc, luffy_hair()) + straw_hat(F, straw, ribbon)}
     return finish(F, P, body, proxy, heads)
@@ -561,7 +568,7 @@ def build_zoro(R):
     body += [slv, mirror(slv), bandana]
     body.append(team_band(F, team, 1.3))
 
-    h = anime_head('head_base', F, skin, jaw=1.02, chin=0.98, nose=0.75)
+    h = anime_head('head_base', F, skin, jaw=1.1, chin=1.08, cheek=1.02, nose=0.8, brow=0.7, face_len=1.05, square=0.6)
     hc = P(0x4fa860)
     hairs = hair(F, hc, zoro_hair())
     # 左耳的三個金耳環
@@ -632,7 +639,7 @@ def build_sanji(R):
     pair_add(body, proxy, [sl, arm, hand, leg] + bt, proxy_set=[arm, hand, leg] + bt)
     body.append(team_band(F, team, 1.2))
 
-    h = anime_head('head_base', F, skin, jaw=0.98, chin=0.96, nose=0.75)
+    h = anime_head('head_base', F, skin, jaw=0.92, chin=0.9, cheek=0.94, nose=0.8, face_len=1.1)
     hc = P(0xf2d46a)
     hairs = hair(F, hc, sanji_hair())
     # 叼著的菸
@@ -701,7 +708,7 @@ def build_nami(R):
     pair_add(body, proxy, [arm, bracelet, hand, leg] + ft, proxy_set=[arm, hand, leg] + ft)
     body.append(team_band(F, team, 1.0))
 
-    h = anime_head('head_base', F, skin, jaw=0.88, chin=0.84, cheek=0.96, nose=0.65)
+    h = anime_head('head_base', F, skin, jaw=0.88, chin=0.8, cheek=1.0, nose=0.6, face_len=0.98)
     hc = P(0xf28a3a)
     heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.6, temple=0.0, scale=1.08, nape=-0.9, side_cut=False)] + hair(F, hc, nami_hair())}
     # 天候棒：三節藍色棍子（握在手上；平常斜背在背後）

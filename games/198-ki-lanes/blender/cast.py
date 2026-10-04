@@ -202,13 +202,11 @@ def build_trunks(R):
     body.append(strap_around(F, jk, V((0, F.y(0.62), 0)), V((-0.55, 1, 0)), 0.024, 0.008, strapc, off=0.008))
     # 長袖外套＋袖口
     ka = F.k_arm
-    sl = limb('sleeveL', F.sh, F.da, [
-        (-0.06, 0.098 * ka, 0.096 * ka), (0.03, 0.1 * ka, 0.098 * ka), (0.16, 0.09 * ka, 0.092 * ka), (F.up, 0.08 * ka, 0.08 * ka),
-        (F.up + 0.12, 0.074 * ka, 0.07 * ka), (F.up + F.lo - 0.05, 0.066 * ka, 0.06 * ka)], n=14, cap0=None, cap1=None)
-    sl = kit.subsurf(sl, 2, solidify=0.008)
-    kit.tag(sl, jacket, grp=G_ARM_L)
-    cuff = band('cuffL', F.sh, F.da, F.up + F.lo - 0.075, F.up + F.lo - 0.04, 0.07 * ka, 0.068 * ka, jacketL, G_FORE_L, thick=0.008)
+    from crossover import long_sleeve
+    sl = long_sleeve(F, jacket, k=1.0, e=0.01)  # 貼合手臂的長袖（和客串角色同一個函式）
+    cuff = band('cuffL', F.sh, F.da, F.up + F.lo - 0.085, F.up + F.lo - 0.045, 0.058 * F.k_fore + 0.016, 0.056 * F.k_fore + 0.016, jacketL, G_FORE_L, thick=0.008)
     arm = arm_skin(F, skin, muscle=0.9, k=1.0)
+    kit.paint_field(arm, lambda co: arm_s(F, co) - (F.up + F.lo - 0.06), jacket, 0)
     hand = fist(F, skin, scale=1.05)
     # 褲、腰帶、靴
     body.append(pelvis(F, pants, e=0.01))

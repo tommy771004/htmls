@@ -316,8 +316,9 @@ def boot(F, pal, top_s, r_top, pal_sole=None, toe=1.0, name='bootL', grp=G_FOOT_
 
 
 # ================================================================ 頭
-def anime_head(name, F, pal_skin, ears=True, jaw=1.0, chin=1.0, cheek=1.0, ear_scale=1.0, pointed_ears=False, cranium=(0.8, 0.9, 0.88), nose=1.0, brow=0.0, extra=()):
-    """動畫臉：顱骨＋往前下收尖的下顎＋小鼻子＋耳朵，體素聯集後平滑。"""
+def anime_head(name, F, pal_skin, ears=True, jaw=1.0, chin=1.0, cheek=1.0, ear_scale=1.0, pointed_ears=False, cranium=(0.8, 0.9, 0.88), nose=1.0, brow=0.0, extra=(), face_len=1.0, square=0.0):
+    """動畫臉：顱骨＋往前下收尖的下顎＋小鼻子＋耳朵，體素聯集後平滑。
+    face_len 拉長／縮短下半臉；square＞0 讓下顎角更方（下顎斷面的超橢圓指數變大）。"""
     c, hr = F.c, F.hr
     parts = []
     cr = kit.quad_sphere(name + '_cr', 1.0, cuts=8)
@@ -326,10 +327,10 @@ def anime_head(name, F, pal_skin, ears=True, jaw=1.0, chin=1.0, cheek=1.0, ear_s
     parts.append(cr)
     sts = [
         S(c + V((0, -hr * 0.05, hr * 0.06)), hr * 0.76 * cheek, hr * 0.7, p=2.2),
-        S(c + V((0, -hr * 0.38, hr * 0.16)), hr * 0.66 * cheek * jaw, hr * 0.6, p=2.2),
-        S(c + V((0, -hr * 0.62, hr * 0.28)), hr * 0.46 * jaw, hr * 0.46, p=2.0),
-        S(c + V((0, -hr * 0.82, hr * 0.42)), hr * 0.24 * chin, hr * 0.3, p=2.0),
-        S(c + V((0, -hr * 0.9, hr * 0.5)), hr * 0.1 * chin, hr * 0.14, p=2.0),
+        S(c + V((0, -hr * 0.38 * face_len, hr * 0.16)), hr * 0.66 * cheek * jaw, hr * 0.6, p=2.2 + square),
+        S(c + V((0, -hr * 0.62 * face_len, hr * 0.28)), hr * 0.46 * jaw * (1 + square * 0.25), hr * 0.46, p=2.0 + square * 1.5),
+        S(c + V((0, -hr * 0.82 * face_len, hr * 0.42)), hr * 0.24 * chin * (1 + square * 0.4), hr * 0.3, p=2.0 + square),
+        S(c + V((0, -hr * 0.9 * face_len, hr * 0.5)), hr * 0.1 * chin * (1 + square * 0.6), hr * 0.14, p=2.0),
     ]
     jw = kit.loft(name + '_jaw', sts, n=12, cap0='pole', cap1='pole')
     parts.append(kit.subsurf(jw, 1))
@@ -420,7 +421,8 @@ def hair(F, pal, clumps, mat=1, ol=0.85, grow=1.0):
             tip = tuple(r + (t - r) * grow for r, t in zip(root, tip))
         th = cl[3] * HAIR_W if len(cl) > 3 else w * 0.45
         bend = cl[4] if len(cl) > 4 else (0, 0, 0)
-        o = clump('cl%d' % i, F, root, tip, w, th, bend=bend)
+        taper = cl[5] if len(cl) > 5 else 1.0  # ＜1：髮尖較鈍、較粗
+        o = clump('cl%d' % i, F, root, tip, w, th, bend=bend, taper=taper)
         out.append(kit.tag(o, pal, mat=mat, grp=G_FREE, ol=ol))
     return out
 
@@ -431,6 +433,8 @@ def mx(cl):
     out = [f(cl[0]), f(cl[1])] + list(cl[2:4])
     if len(cl) > 4:
         out.append(f(cl[4]))
+    if len(cl) > 5:
+        out.append(cl[5])
     return tuple(out)
 
 
