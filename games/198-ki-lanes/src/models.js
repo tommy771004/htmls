@@ -152,34 +152,35 @@ const ease = (k) => k * k * (3 - 2 * k);
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
 function stance(style, t) {
+  // 待機架式參考 GK 雕像：重心壓低、上身扭轉、左右不對稱的護架；呼吸帶動肩與胸起伏
   const p = blank();
-  const br = Math.sin(t * 2.6);
-  if (style === 'tank') { // 比克：低而寬，一手前伸
-    Object.assign(p, { hipsY: -0.07 - 0.012 * br, torsoX: 0.14 + 0.02 * br, torsoY: 0.35, headX: -0.12, headY: -0.3,
-      shLX: -1.15, shLZ: 0.3, elL: -0.9, shRX: -0.35, shRZ: 0.35, elR: -1.6,
-      thLX: -0.3, thLZ: 0.25, knL: 0.45, thRX: 0.25, thRZ: 0.25, knR: 0.45 });
-  } else if (style === 'proud') { // 貝吉塔：挺胸抬下巴，拳低垂，偶爾抱胸
+  const br = Math.sin(t * 2.6), sway = Math.sin(t * 1.3);
+  if (style === 'tank') { // 比克：低而寬的馬步，一手前伸、一手收在胸前，披風似的沉穩
+    Object.assign(p, { hipsY: -0.13 - 0.012 * br, hipsRY: -0.15, hipsRZ: 0.04, torsoX: 0.2 + 0.02 * br, torsoY: 0.5, torsoZ: -0.05, headX: -0.18, headY: -0.42,
+      shLX: -1.25, shLZ: 0.42, elL: -0.75, shRX: -0.55, shRZ: 0.5, elR: -1.95,
+      thLX: -0.45, thLZ: 0.34, knL: 0.7, thRX: 0.38, thRZ: 0.3, knR: 0.62 });
+  } else if (style === 'proud') { // 貝吉塔：挺胸、下巴微抬、側身斜睨；偶爾抱胸
     const fold = Math.sin(t * 0.35) > 0.55;
-    Object.assign(p, { hipsY: -0.02 - 0.01 * br, torsoX: -0.06 + 0.01 * br, torsoY: 0.2, headX: -0.16, headY: -0.2,
-      thLX: -0.1, thLZ: 0.12, knL: 0.12, thRX: 0.12, thRZ: 0.12, knR: 0.15 });
+    Object.assign(p, { hipsY: -0.04 - 0.01 * br, hipsRY: 0.18, hipsRZ: -0.05, torsoX: -0.08 + 0.01 * br, torsoY: 0.32, torsoZ: 0.04, headX: -0.2, headY: -0.42, headZ: -0.06,
+      thLX: -0.16, thLZ: 0.2, knL: 0.18, thRX: 0.18, thRZ: 0.16, knR: 0.28 });
     if (fold) Object.assign(p, { shLX: -1.15, shLZ: -0.35, elL: -1.95, shRX: -1.05, shRZ: -0.4, elR: -2.05 });
-    else Object.assign(p, { shLX: -0.15, shLZ: 0.32, elL: -0.55, shRX: -0.2, shRZ: 0.3, elR: -0.6 });
-  } else if (style === 'sword') { // 特南克斯：右手靠近劍柄
-    Object.assign(p, { hipsY: -0.05 - 0.012 * br, torsoX: 0.08 + 0.015 * br, torsoY: 0.4, headY: -0.35,
-      shLX: -0.8, shLZ: 0.3, elL: -1.5, shRX: -0.3, shRZ: 0.55, elR: -1.0,
-      thLX: -0.28, thLZ: 0.12, knL: 0.35, thRX: 0.3, thRZ: 0.12, knR: 0.35 });
-  } else if (style === 'regal') { // 弗利沙：直立、雙手微收、從容
-    Object.assign(p, { hipsY: -0.01 - 0.008 * br, torsoX: -0.04 + 0.01 * br, torsoY: 0.1, headX: -0.08, headY: -0.12,
-      shLX: -0.35, shLZ: 0.25, elL: -1.2, shRX: -0.3, shRZ: 0.22, elR: -1.0,
-      thLX: -0.05, thLZ: 0.05, knL: 0.08, thRX: 0.06, thRZ: 0.05, knR: 0.1 });
-  } else if (style === 'cool') { // 18 號：重心在一腳、手輕垂
-    Object.assign(p, { hipsY: -0.02 - 0.008 * br, hipsRZ: 0.05, torsoX: 0.0 + 0.01 * br, torsoY: 0.15, torsoZ: -0.05, headY: -0.15, headZ: 0.06,
-      shLX: -0.1, shLZ: 0.18, elL: -0.35, shRX: -0.25, shRZ: 0.25, elR: -1.2,
-      thLX: -0.08, thLZ: 0.04, knL: 0.06, thRX: 0.12, thRZ: 0.1, knR: 0.25 });
-  } else { // 悟空：經典格鬥架式
-    Object.assign(p, { hipsY: -0.05 - 0.015 * br, torsoX: 0.1 + 0.02 * br, torsoY: 0.38, headY: -0.32,
-      shLX: -1.0, shLZ: 0.25, elL: -1.8, shRX: -0.6, shRZ: 0.3, elR: -2.05,
-      thLX: -0.25, thLZ: 0.12, knL: 0.35, thRX: 0.3, thRZ: 0.12, knR: 0.38 });
+    else Object.assign(p, { shLX: -0.25, shLZ: 0.42, elL: -0.75, shRX: -0.3, shRZ: 0.4, elR: -0.85 });
+  } else if (style === 'sword') { // 特南克斯：前腳踏出、半身側轉，右手按在背後劍柄
+    Object.assign(p, { hipsY: -0.1 - 0.012 * br, hipsRY: 0.2, hipsRZ: 0.04, torsoX: 0.12 + 0.015 * br, torsoY: 0.52, headY: -0.5, headX: -0.06,
+      shLX: -0.95, shLZ: 0.38, elL: -1.55, shRX: -0.45, shRZ: 0.7, elR: -1.25,
+      thLX: -0.42, thLZ: 0.2, knL: 0.55, thRX: 0.38, thRZ: 0.16, knR: 0.52 });
+  } else if (style === 'regal') { // 弗利沙：直立、單手叉腰、一手前舉，下巴抬高
+    Object.assign(p, { hipsY: -0.01 - 0.008 * br, hipsRY: -0.12, hipsRZ: 0.06, torsoX: -0.08 + 0.01 * br, torsoY: 0.18, torsoZ: -0.04, headX: -0.16, headY: -0.2,
+      shLX: -0.15, shLZ: 0.62, elL: -1.65, shRX: -0.75, shRZ: 0.25, elR: -0.55,
+      thLX: -0.08, thLZ: 0.08, knL: 0.08, thRX: 0.12, thRZ: 0.06, knR: 0.18 });
+  } else if (style === 'cool') { // 18 號：重心落在一腳、髖部外推，一手叉腰
+    Object.assign(p, { hipsY: -0.03 - 0.008 * br, hipsRZ: 0.1, hipsRY: 0.1, torsoX: 0.0 + 0.01 * br, torsoY: 0.2, torsoZ: -0.1, headY: -0.22, headZ: 0.08,
+      shLX: -0.05, shLZ: 0.22, elL: -0.3, shRX: -0.1, shRZ: 0.62, elR: -1.7,
+      thLX: -0.1, thLZ: 0.04, knL: 0.04, thRX: 0.2, thRZ: 0.16, knR: 0.38 });
+  } else { // 悟空：低馬步的格鬥架式，前拳護臉、後拳收腰，身體斜對鏡頭
+    Object.assign(p, { hipsY: -0.11 - 0.015 * br, hipsRY: 0.2, hipsRZ: 0.03 * sway, torsoX: 0.16 + 0.02 * br, torsoY: 0.5, torsoZ: -0.04, headY: -0.45, headX: -0.05,
+      shLX: -1.15, shLZ: 0.32, elL: -1.95, shRX: -0.55, shRZ: 0.42, elR: -2.2,
+      thLX: -0.4, thLZ: 0.24, knL: 0.62, thRX: 0.42, thRZ: 0.22, knR: 0.62 });
   }
   return p;
 }
