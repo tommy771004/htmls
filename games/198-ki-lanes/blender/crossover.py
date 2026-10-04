@@ -108,8 +108,8 @@ def open_jacket(F, pal, rows, e=0.02, gap0=0.3, gap1=0.55, name='jacket', thick=
 def long_sleeve(F, pal, s_end=None, k=1.0, name='sleeveL', thick=0.008):
     ka = F.k_arm * k
     s_end = s_end if s_end is not None else F.up + F.lo - 0.05
-    sl = limb(name, F.sh, F.da, [(-0.13, 0.102 * ka, 0.1 * ka), (-0.04, 0.104 * ka, 0.102 * ka), (0.03, 0.102 * ka, 0.1 * ka), (0.16, 0.092 * ka, 0.094 * ka), (F.up, 0.082 * ka, 0.082 * ka),
-                                  (F.up + 0.12, 0.076 * ka, 0.072 * ka), (s_end, 0.068 * ka, 0.062 * ka)], n=14, cap0=None, cap1=None)
+    sl = limb(name, F.sh, F.da, [(-0.085, 0.05 * ka, 0.055 * ka), (-0.06, 0.085 * ka, 0.088 * ka), (-0.02, 0.1 * ka, 0.1 * ka), (0.03, 0.102 * ka, 0.1 * ka), (0.16, 0.092 * ka, 0.094 * ka), (F.up, 0.082 * ka, 0.082 * ka),
+                                  (F.up + 0.12, 0.076 * ka, 0.072 * ka), (s_end, 0.068 * ka, 0.062 * ka)], n=14, cap0='pole', cap1=None)
     sl = kit.subsurf(sl, 2, solidify=thick)
     return kit.tag(sl, pal, grp=G_ARM_L)
 
@@ -397,10 +397,10 @@ def build_sakura(R):
     kl = F.k_leg
     calf = lambda th: 1 + 0.09 * ang_bump(th, BACK, 1.0)
     leg = leg_tube(F, skin, [(-0.07, 0.112 * kl, 0.112 * kl), (0.05, 0.11 * kl, 0.114 * kl), (0.22, 0.094 * kl, 0.098 * kl), (F.tl - 0.03, 0.068 * kl, 0.074 * kl),
-                             (F.tl + 0.07, 0.068 * kl, 0.074 * kl, calf), (F.tl + 0.17, 0.056 * kl, 0.06 * kl, calf), (F.tl + 0.26, 0.042 * kl, 0.046 * kl)], mat=4)
-    kit.paint_field(leg, lambda co: (co - F.th).dot(F.dl) - 0.14, black, 0)
-    bt = boot(F, black, F.tl - 0.04, 0.074, pal_sole=black, toe=0.9)
-    kp = band('kneeL', F.th, F.dl, F.tl - 0.05, F.tl + 0.03, 0.078 * kl, 0.074 * kl, pink, G_LEG_L, thick=0.01, ol=0.6)
+                             (F.tl + 0.07, 0.064 * kl, 0.07 * kl, calf), (F.tl + 0.14, 0.05 * kl, 0.054 * kl)], mat=4)
+    kit.paint_field(leg, lambda co: (co - F.th).dot(F.dl) - 0.14, black, 0)  # 黑色短褲
+    bt = boot(F, black, F.tl + 0.07, 0.066, pal_sole=black, toe=0.9)
+    kp = band('kneeL', F.th, F.dl, F.tl - 0.045, F.tl + 0.045, 0.08 * kl, 0.082 * kl, pink, G_LEG_L, thick=0.016, ol=0.7, bulge=1.08)
     pair_add(body, proxy, [arm, pad, glove, hand, leg, kp] + bt, proxy_set=[arm, hand, leg] + bt)
     body.append(team_band(F, team, 1.0))
 
@@ -474,16 +474,18 @@ def build_luffy(R):
 
     h = anime_head('head_base', F, skin, jaw=0.95, chin=0.9, cheek=1.02, nose=0.7)
     hc = P(0x18161e)
-    heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.42, temple=0.1, scale=1.06, nape=-0.6)] + hair(F, hc, luffy_hair()) + straw_hat(F, straw, ribbon)}
+    heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.28, temple=0.1, scale=1.06, nape=-0.6)] + hair(F, hc, luffy_hair()) + straw_hat(F, straw, ribbon)}
     return finish(F, P, body, proxy, heads)
 
 
 def luffy_hair():
     return sym([
-        ((0.1, 0.85, 0.5), (0.05, 0.25, 1.02), 0.3, 0.13, (0, 0.1, 0.12)),
-        ((0.45, 0.75, 0.45), (0.62, 0.05, 0.9), 0.28, 0.12, (0.05, 0.1, 0.1)),
-        ((0.72, 0.45, 0.3), (0.88, -0.25, 0.48), 0.24, 0.11, (0.04, 0, 0.04)),
-        ((0.82, 0.2, -0.2), (0.98, -0.3, -0.25), 0.26, 0.11, (0.04, 0, 0)),
+        ((0.0, 0.7, 0.62), (-0.04, 0.36, 1.0), 0.34, 0.09, (0, 0.04, 0.1)),
+        ((0.24, 0.68, 0.6), (0.3, 0.32, 0.96), 0.32, 0.09, (0.02, 0.04, 0.09)),
+        ((0.46, 0.62, 0.54), (0.6, 0.26, 0.86), 0.3, 0.09, (0.04, 0.04, 0.08)),
+        ((0.64, 0.5, 0.42), (0.82, 0.0, 0.66), 0.26, 0.09, (0.04, 0.02, 0.06)),
+        ((0.76, 0.34, 0.2), (0.9, -0.2, 0.34), 0.24, 0.09, (0.04, 0, 0.03)),
+        ((0.82, 0.2, -0.2), (0.96, -0.24, -0.28), 0.24, 0.09, (0.04, 0, 0)),
         ((0.45, 0.2, -0.8), (0.62, -0.32, -1.02), 0.28, 0.12, (0.04, 0, -0.06)),
         ((0.0, 0.1, -0.92), (0.05, -0.38, -1.12), 0.28, 0.12, (0, 0, -0.06)),
     ])

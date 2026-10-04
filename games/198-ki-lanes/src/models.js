@@ -253,6 +253,11 @@ function heroPose(d, name, t, k, phase, out) {
         const S = P({ torsoY: -0.45, torsoX: 0.25, shRX: -0.65, shRZ: -0.35, elR: -0.2, hipsZ: 0.08, thRX: 0.4, thLX: -0.5, knL: 0.5, headY: 0.2 });
         p = strike(t, IMPACT.atk1, base, W, S, 0.3); break;
       }
+      if (d.style === 'kick') { // 香吉士：手插口袋，左腳前踢
+        const W = P({ torsoX: -0.05, torsoY: 0.25, thLX: 0.45, thLZ: 0.1, knL: 1.7, thRX: 0.1, knR: 0.35, hipsY: -0.05 });
+        const S = P({ torsoX: -0.3, torsoY: 0.45, thLX: -1.55, thLZ: 0.05, knL: 0.08, thRX: 0.2, knR: 0.25, hipsY: 0.03, hipsZ: 0.06, headX: -0.1 });
+        p = strike(t, IMPACT.atk1, base, W, S, 0.3); break;
+      }
       const W = P({ torsoY: 0.1, shRX: -0.5, shRZ: 0.25, elR: -2.2, hipsZ: -0.02 });
       const S = P({ torsoY: 0.95, torsoX: 0.15, shRX: -1.55, shRZ: 0.05, shRY: 0, elR: -0.05, hipsZ: 0.08, thRX: 0.45, knR: 0.2, headY: -0.6 });
       p = strike(t, IMPACT.atk1, base, W, S, 0.3);
@@ -263,6 +268,11 @@ function heroPose(d, name, t, k, phase, out) {
       if (sword) { // 橫斬
         const W = P({ torsoY: 1.0, shRX: -1.45, shRZ: 1.35, elR: -0.35 });
         const S = P({ torsoY: -0.95, torsoX: 0.15, shRX: -1.5, shRZ: -0.35, elR: -0.1, hipsZ: 0.1, thLX: -0.55, knL: 0.45, headY: 0.4 });
+        p = strike(t, IMPACT.atk2, base, W, S, 0.34); break;
+      }
+      if (d.style === 'kick') { // 香吉士：右腳迴旋踢
+        const W = P({ torsoY: -0.9, torsoX: 0.05, thRX: 0.35, knR: 1.5, thLX: -0.1, knL: 0.3, hipsY: -0.06 });
+        const S = P({ torsoY: 1.25, torsoX: -0.3, torsoZ: 0.4, thRX: -1.35, thRZ: 0.8, knR: 0.12, thLX: 0.1, knL: 0.3, hipsY: 0.03, hipsZ: 0.05, headY: -0.9 });
         p = strike(t, IMPACT.atk2, base, W, S, 0.34); break;
       }
       const W = P({ torsoY: 0.75, shLX: -0.6, shLZ: 1.15, elL: -1.4 });
@@ -283,6 +293,7 @@ function heroPose(d, name, t, k, phase, out) {
         const W = P({ torsoY: -0.7, torsoX: 0.1, thRX: 0.6, knR: 1.6, hipsY: -0.08 });
         const S = P({ torsoY: 1.0, torsoX: -0.35, torsoZ: 0.25, thRX: -1.65, thRZ: 0.25, knR: 0.05, thLX: 0.1, knL: 0.35, hipsY: 0.04, hipsZ: 0.04,
           shLX: -0.6, shLZ: 0.9, elL: -0.8, shRX: 0.4, shRZ: 0.8, elR: -0.5, headY: -0.7 });
+        if (d.style === 'kick') Object.assign(S, { shLX: base.shLX, shLZ: base.shLZ, elL: base.elL, shRX: base.shRX, shRZ: base.shRZ, elR: base.elR, thRX: -1.85, thRZ: 0.1 });
         p = strike(t, IMPACT.atk3, base, W, S, 0.42);
       }
       break;
@@ -333,6 +344,11 @@ function heroPose(d, name, t, k, phase, out) {
       const ext = f < 0.45 ? ease(f / 0.45) : 1 - ease((f - 0.45) / 0.55) * 0.85;
       const left = i % 2 === 0;
       const a = left ? ext : 1 - ext;
+      if (d.style === 'kick') { // 連踢：左右腳交替高踢，手不出來
+        p = P({ torsoX: -0.2, torsoY: (left ? 0.6 : -0.6) * ext, torsoZ: (left ? 0.25 : -0.25) * ext, hipsY: 0.02, hipsZ: 0.04,
+          thLX: left ? -1.6 * ext : 0.15, thLZ: left ? 0.35 * ext : 0.05, knL: left ? 0.15 : 0.35, thRX: left ? 0.15 : -1.6 * ext, thRZ: left ? 0.05 : 0.35 * ext, knR: left ? 0.35 : 0.15 });
+        break;
+      }
       if (sword) { // 連斬：右手左右來回
         p = P({ torsoX: 0.25, torsoY: (left ? 0.8 : -0.8) * ext, hipsZ: 0.05, shRX: -1.5, shRZ: left ? 1.2 * (1 - ext) - 0.3 : -0.3 + 1.2 * ext, elR: -0.15,
           shLX: -0.8, shLZ: 0.3, elL: -1.4, thLX: -0.5, knL: 0.5, thRX: 0.45, knR: 0.35, hipsY: -0.07 });
