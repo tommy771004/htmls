@@ -1,4 +1,5 @@
 // 技能與道具圖示：每個角色、每個技能一個手繪 SVG 記號（48×48），以角色的氣功色描繪。
+import { ITEMS } from './config.js';
 const W = (body) => `<svg viewBox="0 0 48 48" aria-hidden="true">${body}</svg>`;
 const S = 'fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"';
 const F = 'fill="currentColor"';
@@ -137,3 +138,44 @@ export const ITEM_ICONS = {
   staff: W(`<path d="M22 14 L26 14 L27 44 L21 44 Z" fill="#8a6a4a"/><circle cx="24" cy="10" r="7" fill="#4f9bff"/><circle cx="24" cy="10" r="3" fill="#d8ecff"/><path d="M16 6 L19 9 M32 6 L29 9 M24 0 V3" stroke="#ffd34a" stroke-width="2" stroke-linecap="round"/>`),
   holy: W(`<path d="M20 8 h8 v6 l6 8 v16 c0 3 -2 4 -4 4 h-12 c-2 0 -4 -1 -4 -4 v-16 l6 -8 z" fill="#f3efe6" opacity=".95"/><path d="M16 28 h16 v10 c0 2 -1 3 -3 3 h-10 c-2 0 -3 -1 -3 -3 z" fill="#ffd34a"/><rect x="19" y="5" width="10" height="4" fill="#a8653a"/><path d="M24 30 v8 M20 34 h8" stroke="#ffffff" stroke-width="2"/>`),
 };
+
+// 《英雄聯盟》全裝備的圖示：沒有手繪的道具依主屬性畫一個記號（刀、珠、盾、弓、鞋、結晶、水滴、藥瓶），
+// 顏色依 id 小幅變化，層級用右上角的刻痕表示（進階一道、終極兩道金色）。
+const hashOf = (id) => { let h = 7; for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
+const GLYPH = {
+  blade: (c, d) => `<path d="M34 6 L40 8 L18 34 L13 32 Z" fill="${c}"/><path d="M36 8 L16 32" stroke="${d}" stroke-width="1.4"/><path d="M10 30 L18 38" stroke="#b88a3a" stroke-width="4" stroke-linecap="round"/><path d="M8 40 L13 35" stroke="#5a3a1a" stroke-width="4" stroke-linecap="round"/>`,
+  orb: (c, d) => `<circle cx="24" cy="25" r="13" fill="${c}"/><circle cx="24" cy="25" r="8" fill="none" stroke="${d}" stroke-width="2.4"/><circle cx="19" cy="20" r="3.4" fill="#ffffff" opacity=".8"/>`,
+  shield: (c, d) => `<path d="M24 6 L39 11 C39 26 34 36 24 42 C14 36 9 26 9 11 Z" fill="${c}"/><path d="M24 11 L34 14 C34 25 31 32 24 37 Z" fill="${d}" opacity=".55"/>`,
+  heart: (c, d) => `<path d="M24 40 C10 30 7 22 10 16 C13 10 21 10 24 16 C27 10 35 10 38 16 C41 22 38 30 24 40 Z" fill="${c}"/><path d="M15 17 C16 14 19 14 20 16" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" opacity=".75"/>`,
+  bow: (c, d) => `<path d="M14 6 C34 12 34 36 14 42" fill="none" stroke="${c}" stroke-width="4" stroke-linecap="round"/><path d="M14 6 V42" stroke="${d}" stroke-width="1.6"/><path d="M8 24 H38 M33 19 L39 24 L33 29" fill="none" stroke="#f3efe6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`,
+  boot: (c, d) => `<path d="M14 8 h11 v20 l11 4 c3 1 5 4 5 8 H12 Z" fill="${c}"/><path d="M14 26 h11 M12 36 h29" stroke="${d}" stroke-width="2.6"/>`,
+  crystal: (c, d) => `<path d="M24 5 L35 18 L24 43 L13 18 Z" fill="${c}"/><path d="M13 18 H35 M24 5 L20 18 L24 43 L28 18 Z" fill="none" stroke="${d}" stroke-width="1.6" stroke-linejoin="round"/>`,
+  drop: (c, d) => `<path d="M24 6 C30 16 36 22 36 30 a12 12 0 0 1 -24 0 C12 22 18 16 24 6 Z" fill="${c}"/><path d="M19 30 a5 5 0 0 0 5 5" fill="none" stroke="${d}" stroke-width="2.4" stroke-linecap="round"/>`,
+  flask: (c, d) => `<path d="M20 6 h8 v10 l9 16 c2 5 -1 10 -6 10 h-14 c-5 0 -8 -5 -6 -10 l9 -16 z" fill="#e9eef5" opacity=".9"/><path d="M14 30 h20 l2 4 c1 4 -1 7 -5 7 h-14 c-4 0 -6 -3 -5 -7 z" fill="${c}"/><rect x="19" y="4" width="10" height="4" rx="1" fill="#8a6a4a"/>`,
+};
+const PAL = { blade: ['#dfe6ee', '#8a96a8'], orb: ['#4f9bff', '#bfe0ff'], shield: ['#9aa6a0', '#4f5a55'], heart: ['#e0453a', '#8a1f12'], bow: ['#c98a3a', '#5a3a1a'], boot: ['#3a6ac9', '#e8c04a'], crystal: ['#7fd8e8', '#2a8a9a'], drop: ['#4f9bff', '#d8ecff'], flask: ['#e0453a', '#ffffff'] };
+function glyphOf(it) {
+  const s = it.stats || {};
+  if (it.tier === 0) return 'flask';
+  if (s.ms || it.boots) return 'boot';
+  if (s.ap || s.mpen || s.mpenPct) return 'orb';
+  if (s.crit || s.as) return 'bow';
+  if (s.ad || s.leth || s.apen) return 'blade';
+  if (s.armor || s.mr || s.ten) return 'shield';
+  if (s.hp || s.hpr) return 'heart';
+  if (s.mp || s.mpr) return 'drop';
+  return 'crystal';
+}
+function shade(hex, k) { const n = parseInt(hex.slice(1), 16), f = (v) => Math.max(0, Math.min(255, Math.round(v * k))); return '#' + [n >> 16, (n >> 8) & 255, n & 255].map((v) => f(v).toString(16).padStart(2, '0')).join(''); }
+function genIcon(it) {
+  const g = glyphOf(it), h = hashOf(it.id), [c, d] = PAL[g];
+  const k = 0.82 + ((h % 7) / 6) * 0.36; // 同類道具的明暗變化
+  let mark = '';
+  if (it.tier === 2) mark = '<path d="M38 4 L44 4 L44 10" fill="none" stroke="#c9d2dc" stroke-width="2.4" stroke-linecap="round"/>';
+  if (it.tier === 3) mark = '<path d="M36 4 L44 4 L44 12 M40 4 L44 8" fill="none" stroke="#ffd34a" stroke-width="2.4" stroke-linecap="round"/>';
+  // 有被動或主動的道具在左下加一個小記號
+  const fx = it.psv || it.act ? `<circle cx="8" cy="41" r="3" fill="${it.act ? '#ffd34a' : '#f3efe6'}"/>` : '';
+  return W(GLYPH[g](shade(c, k), d) + mark + fx);
+}
+const _hand = ITEM_ICONS;
+export const itemIcon = (id) => _hand[id] || (_hand[id] = (() => { const it = ITEMS.find((i) => i.id === id); return it ? genIcon(it) : ''; })());

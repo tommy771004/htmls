@@ -266,6 +266,12 @@ export const GOLD = { start: 500, passive: 2.2, melee: 21, ranged: 16, siege: 55
 // 合成：from 列出需要的下位道具，cost 是合成費（不含下位道具）；總價 = cost + 下位道具總價
 export const ITEMS = [
   { id: 'senzu', name: '仙豆', cost: 120, tier: 0, desc: '吃下立刻回復 45% 血量、45% 魔力（體力）與 1 格氣。最多帶 3 顆。', consumable: true, max: 3, field: 'senzu' },
+  // 《英雄聯盟》的藥水與藥劑：數字鍵 1 先吃仙豆，沒有仙豆才喝藥水；藥劑買下就服用，同時只有一種，效果 90 秒
+  { id: 'salve', name: '傷藥', cost: 50, tier: 0, proto: '生命藥水', desc: '按 1（沒有仙豆時）：15 秒內回復 120 血。最多帶 5 瓶。', consumable: true, max: 5, field: 'salve' },
+  { id: 'flask', name: '隨身水壺', cost: 150, tier: 0, proto: '回復藥水', desc: '按 1（沒有仙豆與傷藥時）：12 秒內回復 100 血，可喝 2 次，回到泉水自動裝滿。只能帶 1 個。', consumable: true, max: 1, field: 'flask' },
+  { id: 'ironpill', name: '鐵壁丸', cost: 500, tier: 0, proto: '抗擊藥劑', desc: '買下立刻服用：90 秒內血量 +300、韌性 +25%。同時只能有一種藥丸。', consumable: true, max: 1, field: 'pillIron', elixir: { stats: { hp: 300, ten: 0.25 } } },
+  { id: 'kipill', name: '增氣丸', cost: 500, tier: 0, proto: '巫魔藥劑', desc: '買下立刻服用：90 秒內氣功強度 +50、魔力回復 +15%，傷害英雄時追加 25 真實傷害（5 秒一次）。同時只能有一種藥丸。', consumable: true, max: 1, field: 'pillKi', elixir: { stats: { ap: 50, mpr: 0.15 }, psv: { sorcery: { k: 'heroProc', dmg: 25, cd: 5, trueDmg: true } } } },
+  { id: 'ragepill', name: '狂戰丸', cost: 500, tier: 0, proto: '憤怒藥劑', desc: '買下立刻服用：90 秒內攻擊 +30、普攻吸血 +8%。同時只能有一種藥丸。', consumable: true, max: 1, field: 'pillRage', elixir: { stats: { ad: 30, ls: 0.08 } } },
   { id: 'control', name: '真眼', cost: 75, tier: 0, desc: '按 5 放下：敵我都看得到，會照出 9 公尺內的敵方眼（可拆），本身要打 4 下。每人場上限 1 顆，最多帶 2 顆。', consumable: true, max: 2, field: 'controls' },
   // 基礎
   { id: 'weights', name: '負重護腕', cost: 350, tier: 1, proto: '長劍', desc: '攻擊 +12', stats: { ad: 12 } },
@@ -318,6 +324,7 @@ export const CONTROL = { range: 7, hp: 4, reveal: 9 };
   }
 }
 export const INV_SLOTS = 6;
+export const ELIXIR_DUR = 90;
 
 // 野怪數值
 export const MONSTER = {

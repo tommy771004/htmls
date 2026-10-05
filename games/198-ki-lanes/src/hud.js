@@ -1,12 +1,12 @@
 // HUD：比分、技能列、氣力條、血條、連擊數、公告、必殺技切入、單位血條與浮動數字、選角與結算。
 import { HEROES, HERO_ORDER, FRANCHISES, TEAM_COLOR, TEAM_LIGHT, KI_BAR, xpToNext, MAX_LEVEL, ITEMS, APE_BUFF, DRAGON, RES, RUNES, RUNE_REC, JUNGLE_BUFF } from './config.js';
-import { ICONS, ITEM_ICONS } from './icons.js';
-import { buy, canBuy, inShop, eatSenzu, sell, priceFor, totalCost, sellPrice, itemById } from './items.js';
+import { ICONS, ITEM_ICONS, itemIcon } from './icons.js';
+import { buy, canBuy, inShop, eatSenzu, sell, priceFor, totalCost, sellPrice, itemById, BUILDS, buildOf } from './items.js';
 import { inBush } from './vision.js';
 import { seen } from './vision.js';
 import { canLevel, skillReady, skillCost } from './combat.js';
 import { useActive } from './traits.js';
-import { vulnerable } from './units.js';
+import { vulnerable, moveSpeed } from './units.js';
 import { quipLine } from './quips.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -23,13 +23,28 @@ export function createHud(env) {
     kiCells: [...document.querySelectorAll('#dock .ki .cell i')], kiN: $('#dock .ki .kn'), sp: $('#spPrompt'), dead: $('#dead'), recall: $('#recallbar'),
     bars: $('#bars'), speed: $('#speed'), flash: $('#flash'), skills: {},
     slots: [...document.querySelectorAll('#dock .slots .slot:not(.senzu):not(.ward):not(.control)')], control: $('#dock .slot.control'), senzu: $('#dock .slot.senzu'), goldB: $('#dock .goldbtn'), gold: $('#dock .goldbtn b'), buffs: $('#buffs'),
-    shop: $('#shop'), shopList: $('#shop .shopList'), shopGold: $('#shop .shopGold'), shopHint: $('#shop .shopHint'), shopDetail: $('#shop .shopDetail'), shopInv: $('#shop .shopInv'),
+    shop: $('#shop'), shopList: $('#shop .shopList'), shopTabs: $('#shop .shopTabs'), shopQ: $('#shop .shopQ'), shopGold: $('#shop .shopGold'), shopHint: $('#shop .shopHint'), shopDetail: $('#shop .shopDetail'), shopInv: $('#shop .shopInv'),
     ward: $('#dock .slot.ward'), bushTag: $('#bushTag'),
     nmB: $('#dock .nm b'), nmS: $('#dock .nm span'), target: $('#target'), tImg: $('#target img'), tName: $('#target .tn b'), tBar: $('#target .tb i'), tLv: $('#target .tl'),
     apeT: $('#apeT'), feed: $('#feed'), dbT: $('#dbT'), dbh: $('#dbh'), quip: $('#quip'), qImg: $('#quip img'), qName: $('#quip .bub b'), qText: $('#quip .bub p'),
   };
   const bctx = el.bars.getContext('2d');
   const sctx = el.speed.getContext('2d');
+
+  // 屬性面板（技能列左側，2 欄 × 4 列）；移速以原作單位顯示（415 ÷ 8.6 m/s 換算）
+  const STAT_ROWS = [
+    ['ad', '攻擊力', '#e8a25a', '<path d="M3 13 11.5 4.5 12 2h2v2l-2.5.5L3 13Zm0 0 1.6-3.2L6.2 11.4Z"/><path d="M2.4 10.6 5.4 13.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>', (P) => Math.round(P.ad)],
+    ['ap', '氣功強度', '#7fd4ff', '<path d="M8 15c-3 0-4.6-2-4.6-4.3C3.4 8 5.6 6.6 6 4c1.4 1 1.6 2.4 1.4 3.6C8.4 6.2 9.4 4 9 1.2c2.4 1.6 3.6 4.6 3.6 8 0 3.4-1.8 5.8-4.6 5.8Z"/>', (P) => Math.round(P.ap || 0)],
+    ['armor', '物理防禦', '#e6c36a', '<path d="M8 1.5 13.5 3.4v4.4c0 3.3-2.3 5.6-5.5 6.7C4.8 13.4 2.5 11.1 2.5 7.8V3.4Z"/>', (P) => Math.round(P.armor)],
+    ['mr', '技能防禦', '#9fd6c0', '<path d="M8 1.5 13.5 3.4v4.4c0 3.3-2.3 5.6-5.5 6.7C4.8 13.4 2.5 11.1 2.5 7.8V3.4Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="8" cy="7.6" r="2.1"/>', (P) => Math.round(P.mr)],
+    ['as', '每秒普攻', '#f2d27a', '<path d="M2 3.5 6.5 8 2 12.5V9.6L4.1 8 2 6.4Zm5 0L11.5 8 7 12.5V9.6L9.1 8 7 6.4Zm5 0L14.5 6v4L12 12.5Z"/>', (P) => (1 / P.as).toFixed(2)],
+    ['ah', '技能加速', '#d9e4ee', '<path d="M3.5 1.5h9v1.6L9.2 8l3.3 4.9v1.6h-9v-1.6L6.8 8 3.5 3.1Zm2.2 1.6L8 6.6l2.3-3.5Zm0 9.8h4.6L8 9.6Z"/>', (P) => Math.round(P.ah || 0)],
+    ['crit', '暴擊率', '#ff8a6a', '<path d="m8 .8 1.6 4.7 4.9-.9-3.3 3.6 2.6 4.3-4.6-1.8L8 15.2l-1.2-4.5-4.6 1.8 2.6-4.3L1.5 4.6l4.9.9Z"/>', (P) => `${Math.round((P.crit || 0) * 100)}%`],
+    ['ms', '移動速度', '#e9dcb4', '<path d="M5 2.5h3.2l-.6 6.3 4.6 1.6c1.4.5 2.3 1.5 2.3 3.1H3.6l-1.1-1.8Z"/><path d="M1 6h3M.6 9h2.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>', (P) => Math.round(moveSpeed(P) * 48)],
+  ];
+  const statsEl = $('#dock .stats');
+  statsEl.innerHTML = STAT_ROWS.map(([id, name, c, g]) => `<span data-s="${id}" title="${name}"><svg viewBox="0 0 16 16" fill="currentColor" style="color:${c}" aria-hidden="true">${g}</svg><b></b></span>`).join('');
+  const statB = STAT_ROWS.map(([id]) => $(`[data-s="${id}"] b`, statsEl));
 
   // 技能列
   const skWrap = $('#dock .skills');
@@ -48,39 +63,64 @@ export function createHud(env) {
   el.senzu.querySelector('.ic').innerHTML = ITEM_ICONS.senzu;
   el.ward.querySelector('.ic').innerHTML = ITEM_ICONS.ward; el.ward.title = '插眼（4）';
   el.control.querySelector('.ic').innerHTML = ITEM_ICONS.control; el.control.title = '真眼（5）';
-  let shopSel = 'weights', sellSlot = -1;
+  let shopSel = 'weights', sellSlot = -1, shopTab = 'rec', shopQ = '';
   const TIERS = [[1, '基礎'], [2, '進階'], [3, '終極'], [0, '消耗品']];
+  // 分類依屬性判斷；「推薦」是這名英雄 AI 出裝路線上的道具與材料
+  const has = (it, ...ks) => it.stats && ks.some((k) => it.stats[k]);
+  const TABS = [
+    ['rec', '推薦', (it, rec) => rec.has(it.id)],
+    ['all', '全部', () => true],
+    ['atk', '攻擊', (it) => has(it, 'ad', 'leth', 'apen', 'ls')],
+    ['speed', '攻速', (it) => has(it, 'crit', 'as', 'critDmg')],
+    ['ki', '氣功', (it) => has(it, 'ap', 'mp', 'mpen', 'mpenPct', 'mpr')],
+    ['def', '防禦', (it) => has(it, 'hp', 'armor', 'mr', 'ten', 'hpr')],
+    ['haste', '加速', (it) => has(it, 'ah')],
+    ['move', '移速', (it) => has(it, 'ms')],
+    ['use', '消耗品', (it) => it.tier === 0],
+  ];
+  el.shopTabs.innerHTML = TABS.map(([id, label]) => `<button type="button" role="tab" data-tab="${id}">${label}</button>`).join('');
+  el.shopQ.addEventListener('input', () => { shopQ = el.shopQ.value.trim(); renderShop(); });
+  function recSet(P) {
+    const out = new Set(), add = (id) => { if (out.has(id)) return; out.add(id); const it = itemById(id); (it && it.from || []).forEach(add); };
+    for (const id of BUILDS[buildOf(P)] || []) add(id);
+    ['senzu', 'salve', 'control'].forEach((id) => out.add(id));
+    return out;
+  }
   function tree(id, top = true) {
     const it = itemById(id), own = !top && player.inv.includes(id);
-    return `<div class="node${own ? ' own' : ''}"><button type="button" data-pick="${id}" title="${it.name}">${ITEM_ICONS[id]}</button>${it.from ? `<div class="kids">${it.from.map((c) => tree(c, false)).join('')}</div>` : ''}</div>`;
+    return `<div class="node${own ? ' own' : ''}"><button type="button" data-pick="${id}" title="${it.name}">${itemIcon(id)}</button>${it.from ? `<div class="kids">${it.from.map((c) => tree(c, false)).join('')}</div>` : ''}</div>`;
   }
   function renderShop() {
     if (!player) return;
     const P = player;
-    el.shopList.innerHTML = TIERS.map(([t, label]) => `<section><h4>${label}</h4>${ITEMS.filter((it) => it.tier === t).map((it) => {
+    const rec = recSet(P), tab = TABS.find((x) => x[0] === shopTab), q = shopQ.toLowerCase();
+    const show = (it) => !it.hidden && (q ? [it.name, it.proto, it.desc, it.note].some((x) => x && x.toLowerCase().includes(q)) : tab[2](it, rec));
+    for (const b of el.shopTabs.children) b.setAttribute('aria-selected', String(!q && b.dataset.tab === shopTab));
+    const secs = TIERS.map(([t, label]) => [label, ITEMS.filter((it) => it.tier === t && show(it))]).filter(([, l]) => l.length);
+    el.shopList.innerHTML = !secs.length ? '<p class="shopEmpty">沒有符合的道具</p>' : secs.map(([label, list]) => `<section><h4>${label}</h4>${list.map((it) => {
       const owned = !it.consumable && P.inv.includes(it.id), price = priceFor(P, it.id);
-      return `<button class="item${it.id === shopSel && sellSlot < 0 ? ' sel' : ''}${owned ? ' owned' : ''}${canBuy(P, it.id) ? '' : ' cant'}" type="button" data-id="${it.id}">${ITEM_ICONS[it.id]}<b>${it.name}</b><em>${price}</em></button>`;
+      return `<button class="item${it.id === shopSel && sellSlot < 0 ? ' sel' : ''}${owned ? ' owned' : ''}${canBuy(P, it.id) ? '' : ' cant'}" type="button" data-id="${it.id}">${itemIcon(it.id)}<b>${it.name}</b><em>${price}</em></button>`;
     }).join('')}</section>`).join('');
     if (sellSlot >= 0 && P.inv[sellSlot]) {
       const id = P.inv[sellSlot], it = itemById(id);
-      el.shopDetail.innerHTML = `<div class="dh">${ITEM_ICONS[id]}<div><b>${it.name}</b><small>${it.desc}</small></div></div><p class="price">賣回可得 <em>${sellPrice(id)}</em>（總價 ${totalCost(id)} 的 60%）</p><button class="act sellb" type="button" ${inShop(P) ? '' : 'disabled'}>賣出</button>`;
+      el.shopDetail.innerHTML = `<div class="dh">${itemIcon(id)}<div><b>${it.name}</b><small>${it.desc}</small></div></div><p class="price">賣回可得 <em>${sellPrice(id)}</em>（總價 ${totalCost(id)} 的 60%）</p><button class="act sellb" type="button" ${inShop(P) ? '' : 'disabled'}>賣出</button>`;
     } else {
       sellSlot = -1;
       const it = itemById(shopSel), price = priceFor(P, shopSel), total = it.consumable ? it.cost : totalCost(shopSel);
       const into = ITEMS.filter((x) => x.from && x.from.includes(shopSel));
-      el.shopDetail.innerHTML = `<div class="dh">${ITEM_ICONS[shopSel]}<div><b>${it.name}</b><small>${it.desc}</small>${it.proto ? `<span class="proto">原型：${it.proto}</span>` : ''}</div></div>`
+      el.shopDetail.innerHTML = `<div class="dh">${itemIcon(shopSel)}<div><b>${it.name}</b><small>${it.desc}</small>${it.proto ? `<span class="proto">原型：${it.proto}</span>` : ''}</div></div>`
         + (it.note ? `<p class="note">${it.note}</p>` : '')
         + (it.from ? `<div class="tree">${tree(shopSel)}</div>` : '')
         + (into.length ? `<p class="into">可合成：${into.map((x) => `<button type="button" data-pick="${x.id}">${x.name}</button>`).join('、')}</p>` : '')
         + `<p class="price">${price < total ? `已折抵身上的材料，只要付 <em>${price}</em>（總價 ${total}）` : `價格 <em>${price}</em>`}</p>`
         + `<button class="act buyb" type="button" ${canBuy(P, shopSel) ? '' : 'disabled'}>購買</button>`;
     }
-    el.shopInv.innerHTML = Array.from({ length: 6 }, (_, i) => { const id = P.inv[i]; return `<button type="button" class="islot${i === sellSlot ? ' sel' : ''}" data-slot="${i}" ${id ? '' : 'disabled'}>${id ? ITEM_ICONS[id] : ''}</button>`; }).join('');
+    el.shopInv.innerHTML = Array.from({ length: 6 }, (_, i) => { const id = P.inv[i]; return `<button type="button" class="islot${i === sellSlot ? ' sel' : ''}" data-slot="${i}" ${id ? '' : 'disabled'}>${id ? itemIcon(id) : ''}</button>`; }).join('');
     el.shopGold.textContent = Math.floor(P.gold);
     el.shopHint.textContent = inShop(P) ? '點道具看合成路線，再點一次購買；點自己的道具可賣出' : '回到泉水附近才能購買或賣出';
     el.shopState = shopKey();
   }
-  const shopKey = () => player ? `${Math.floor(player.gold / 10)}|${player.inv.join()}|${player.senzu}|${player.controls}|${inShop(player)}|${shopSel}|${sellSlot}` : '';
+  const shopKey = () => player ? `${Math.floor(player.gold / 10)}|${player.inv.join()}|${player.senzu}|${player.controls}|${player.salve}|${player.flask}|${player.elixir && player.elixir.id}|${inShop(player)}|${shopSel}|${sellSlot}` : '';
   function toggleShop(on) {
     const want = on ?? !el.shop.classList.contains('on');
     el.shop.classList.toggle('on', want);
@@ -88,8 +128,9 @@ export function createHud(env) {
   }
   el.shop.addEventListener('click', (e) => {
     if (!player) return;
-    const pick = e.target.closest('[data-pick]'), item = e.target.closest('.item'), slot = e.target.closest('.islot');
-    if (pick) { shopSel = pick.dataset.pick; sellSlot = -1; }
+    const pick = e.target.closest('[data-pick]'), item = e.target.closest('.item'), slot = e.target.closest('.islot'), tabB = e.target.closest('[data-tab]');
+    if (tabB) { shopTab = tabB.dataset.tab; shopQ = ''; el.shopQ.value = ''; }
+    else if (pick) { shopSel = pick.dataset.pick; sellSlot = -1; }
     else if (item) { if (shopSel === item.dataset.id && sellSlot < 0 && canBuy(player, shopSel)) buy(G, player, shopSel); shopSel = item.dataset.id; sellSlot = -1; }
     else if (slot) sellSlot = +slot.dataset.slot;
     else if (e.target.closest('.buyb')) buy(G, player, shopSel);
@@ -260,7 +301,11 @@ export function createHud(env) {
     setW(el.hpFill, P.hp / P.maxHp); setW(el.shFill, Math.min(1, P.st.shield / P.maxHp));
     setText(el.hpTxt, `${Math.ceil(P.hp)} / ${Math.round(P.maxHp)}`);
     setW(el.mpFill, P.mp / P.maxMp); setText(el.mpTxt, `${Math.floor(P.mp)} / ${Math.round(P.maxMp)}`);
-    setW(el.xpFill, P.level >= MAX_LEVEL ? 1 : P.xp / xpToNext(P.level));
+    const xpK = P.level >= MAX_LEVEL ? 1 : P.xp / xpToNext(P.level);
+    setW(el.xpFill, xpK);
+    // 桌機的經驗值是頭像外圈
+    if (Math.abs((el.port._xp ?? -1) - xpK) > 0.004) { el.port._xp = xpK; el.port.parentNode.style.setProperty('--xp', xpK.toFixed(3)); }
+    STAT_ROWS.forEach((r, i) => setText(statB[i], String(r[4](P))));
     const bars = Math.floor(P.ki / KI_BAR), part = (P.ki % KI_BAR) / KI_BAR;
     el.kiCells.forEach((c, i) => setW(c, i < bars ? 1 : i === bars ? part : 0));
     setText(el.kiN, bars);
@@ -294,15 +339,18 @@ export function createHud(env) {
     if (el.ward._c !== wc) { el.ward._c = wc; el.ward.classList.toggle('cool', wc > 0); el.ward.querySelector('.wcd').textContent = wc || ''; }
     el.bushTag.classList.toggle('on', P.alive && inBush(P) > 0);
     el.dock.classList.toggle('canshop', inShop(P) && ITEMS.some((it) => canBuy(P, it.id)));
-    const ik = P.inv.join() + '|' + (P.senzu || 0) + '|' + (P.controls || 0);
+    const ik = P.inv.join() + '|' + (P.senzu || 0) + '|' + (P.controls || 0) + '|' + (P.salve || 0) + '|' + (P.flask ? P.flaskC : -1);
     if (el.invKey !== ik) {
       el.invKey = ik;
       el.slots.forEach((sl, i) => {
         const id = P.inv[i], it = id && ITEMS.find((x) => x.id === id), ai = it && it.act ? P.acts.findIndex((a) => a.item === id) : -1;
-        sl.innerHTML = id ? ITEM_ICONS[id] + (ai >= 0 ? `<span class="acd"></span><kbd>${ai + 2}</kbd>` : '') : '';
+        sl.innerHTML = id ? itemIcon(id) + (ai >= 0 ? `<span class="acd"></span><kbd>${ai + 2}</kbd>` : '') : '';
         sl.title = it ? `${it.name}${it.note ? '\n' + it.note : ''}` : ''; sl.dataset.act = ai; sl.classList.toggle('act', ai >= 0);
       });
-      el.senzu.querySelector('b').textContent = P.senzu || 0; el.senzu.classList.toggle('none', !(P.senzu > 0));
+      // 數字鍵 1 的格子：有仙豆顯示仙豆，否則顯示傷藥或水壺
+      const potId = P.senzu > 0 ? 'senzu' : P.salve > 0 ? 'salve' : P.flask && P.flaskC > 0 ? 'flask' : 'senzu', potN = potId === 'senzu' ? P.senzu || 0 : potId === 'salve' ? P.salve : P.flaskC;
+      if (el.senzu._id !== potId) { el.senzu._id = potId; el.senzu.querySelector('.ic').innerHTML = itemIcon(potId); }
+      el.senzu.querySelector('b').textContent = potN; el.senzu.classList.toggle('none', !(potN > 0));
       el.control.querySelector('b').textContent = P.controls || 0; el.control.classList.toggle('none', !(P.controls > 0));
     }
     for (const sl of el.slots) { const ai = +sl.dataset.act; if (ai >= 0) { const a = P.acts[ai], c = a ? Math.max(0, Math.ceil((P.actCd[a.id] || 0) - G.time)) : 0, e = sl.querySelector('.acd'); if (e) setText(e, c > 0 ? c : ''); } }

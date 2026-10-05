@@ -56,6 +56,7 @@ export function createInput({ G, render, minimap, hud, audio, onHelp, onCamToggl
   const KEYMAP = { KeyQ: 'Q', KeyW: 'W', KeyE: 'E', KeyR: 'R' };
   addEventListener('keydown', (e) => {
     audio.resume();
+    if (e.target && e.target.tagName === 'INPUT') { if (e.code === 'Escape') e.target.blur(); return; } // 商店搜尋框打字時不觸發快捷鍵
     if (e.code === 'KeyH' || e.code === 'F1' || (e.code === 'Escape' && G.phase === 'play')) { e.preventDefault(); onHelp(); return; }
     if (!live() || e.repeat && e.code !== 'KeyC') return;
     const k = KEYMAP[e.code];

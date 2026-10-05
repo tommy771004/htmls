@@ -42,6 +42,7 @@ export function itemStats(u) {
     const it = ITEMS.find((i) => i.id === id); if (!it || !it.stats) continue;
     for (const k in it.stats) { if (k === 'ten') keepCc *= 1 - it.stats.ten; else t[k] += it.stats[k]; }
   }
+  if (u.elixir && u.elixir.stats) for (const k in u.elixir.stats) { if (k === 'ten') keepCc *= 1 - u.elixir.stats.ten; else t[k] += u.elixir.stats[k]; }
   t.ten = 1 - keepCc; // 韌性相乘疊加：兩件 30% 是 51%，不是 60%
   return t;
 }
@@ -58,6 +59,7 @@ export function itemPassives(u) {
     }
     if (it.act && !acts.some((a) => a.id === it.act.id)) acts.push({ ...it.act, item: id });
   }
+  if (u.elixir && u.elixir.psv) Object.assign(p, u.elixir.psv);
   return { p, acts };
 }
 export function recalcStats(u) {
@@ -472,7 +474,9 @@ export function heroTick(G, h, dt) {
   if (st.shieldT > 0) { st.shieldT -= dt; if (st.shieldT <= 0) st.shield = 0; }
   // 泉水
   const f = FOUNTAIN[h.team], fe = FOUNTAIN[1 - h.team];
-  if (Math.hypot(h.x - f[0], h.z - f[1]) < 11) { heal(G, h, h.maxHp * 0.14 * dt); addKi(G, h, 30 * dt); addMp(h, h.maxMp * RES.fountain * dt); }
+  if (st.potion > 0) { st.potion -= dt; heal(G, h, st.potionRate * dt); }
+  if (h.elixir && G.time > h.elixir.until) { h.elixir = null; recalcStats(h); }
+  if (Math.hypot(h.x - f[0], h.z - f[1]) < 11) { if (h.flask > 0) h.flaskC = 2; heal(G, h, h.maxHp * 0.14 * dt); addKi(G, h, 30 * dt); addMp(h, h.maxMp * RES.fountain * dt); }
   if (Math.hypot(h.x - fe[0], h.z - fe[1]) < 12) damage(G, null, h, 600 * dt, { type: 'true', noKi: true });
   // 被動回血、回氣
   if (G.time - h.lastHitT > 6) heal(G, h, h.maxHp * (0.004 * (1 + (h.hpr || 0)) + (h.regen || 0)) * dt);

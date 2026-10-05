@@ -8,7 +8,9 @@
     "build": "node tools/build.mjs",
     "dev": "node tools/build.mjs --dev",
     "models": "node tools/rig-dump.mjs && blender -b --factory-startup --python blender/build_heroes.py --",
-    "test": "node tools/accept.mjs ../../web/198-ki-lanes.html"
+    "test": "node --test tools/items.test.mjs && node tools/accept.mjs ../../web/198-ki-lanes.html",
+    "test:rules": "node --test tools/items.test.mjs",
+    "items": "node tools/lol-items.mjs"
   },
   "dependencies": {
     "three": "0.186.0"

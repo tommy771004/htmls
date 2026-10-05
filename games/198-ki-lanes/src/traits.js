@@ -218,7 +218,7 @@ function itemOnHeroHit(G, h, dst, a, opts, skill) {
   for (const e of effs(h, 'gw')) if (e.type === 'any' || (e.type === 'magic') === !!magic) { dst.st.gw = 3; dst.st.gwAmt = Math.max(dst.st.gwAmt || 0, e.pct); }
   for (const e of effs(h, 'heroProc')) if (G.time >= (F.procCd || 0)) {
     F.procCd = G.time + e.cd;
-    G.later(0.02, () => { if (dst.alive) damage(G, h, dst, e.dmg + (e.ap || 0) * (h.ap || 0) + (e.lvDmg || 0) * h.level, { type: 'proc', magic: true, noKi: true }); });
+    G.later(0.02, () => { if (dst.alive) damage(G, h, dst, e.dmg + (e.ap || 0) * (h.ap || 0) + (e.lvDmg || 0) * h.level, e.trueDmg ? { type: 'true', noKi: true, rune: true } : { type: 'proc', magic: true, noKi: true }); });
     fx(G).hitSpark(dst.x, 1.2 + dst.y, dst.z, '#9fd8ff', 0.8, 'light');
   }
   if (skill) for (const e of effs(h, 'skillBurn')) { dst.st.burn = Math.max(dst.st.burn || 0, e.dur); dst.st.burnDps = Math.max(dst.st.burnDps || 0, e.dps); dst.st.burnSrc = h; }

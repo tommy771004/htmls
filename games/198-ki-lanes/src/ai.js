@@ -86,6 +86,7 @@ export function updateAI(G, h, dt) {
 
   // 仙豆
   if (hpR < 0.4 && h.senzu > 0 && (foe && fd < 14 || hpR < 0.25)) eatSenzu(G, h);
+  else if (hpR < 0.65 && !(h.senzu > 0) && (h.salve > 0 || (h.flask && h.flaskC > 0)) && !(h.st.potion > 0)) eatSenzu(G, h);
 
   // 回城補血／買裝
   if (B.mode === 'heal') {

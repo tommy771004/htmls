@@ -252,6 +252,12 @@ async function run(name, w, h, touch) {
   if (touch) await page.tap('#dock .goldbtn'); else await page.keyboard.press('KeyP');
   await page.waitForTimeout(200);
   const sel = touch ? page.tap.bind(page) : page.click.bind(page);
+  const recN = await ev(() => document.querySelectorAll('#shop .shopList .item').length);
+  await page.fill('#shop .shopQ', '重傷'); await page.waitForTimeout(120);
+  const found = await ev(() => [...document.querySelectorAll('#shop .shopList .item')].map((b) => b.dataset.id));
+  check('商店搜尋：輸入「重傷」找得到斬首刀', found.includes('executioner') && found.length < recN + 40, found);
+  await sel('#shop [data-tab="all"]'); await page.waitForTimeout(120);
+  check('商店「全部」列出《英雄聯盟》的裝備', await ev(() => document.querySelectorAll('#shop .shopList .item').length >= 90));
   await sel('#shop .item[data-id="potara"]'); await page.waitForTimeout(150); await shot('5d-tree');
   const treeUi = await ev(() => document.querySelectorAll('#shop .tree .node').length);
   check('商店顯示合成樹', treeUi >= 7, treeUi);

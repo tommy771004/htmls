@@ -249,6 +249,15 @@ body.camfree #camHint { display: block; }
 .shopCard { width: min(58em, 96vw); }
 .shopBody { display: grid; grid-template-columns: 1fr 19em; gap: 1.2em; align-items: start; }
 .shopList section { margin-bottom: .8em; }
+.shopTools { display: grid; gap: .55em; margin-bottom: .9em; }
+.shopTabs { display: flex; flex-wrap: wrap; gap: .1em; }
+.shopTabs button { padding: .3em .55em .35em; color: var(--bone3); font-weight: 700; letter-spacing: .06em; clip-path: polygon(.45em 0, 100% 0, calc(100% - .45em) 100%, 0 100%); transition: color var(--dur-hover, .15s), background-color var(--dur-hover, .15s); }
+.shopTabs button:hover { color: var(--bone); }
+.shopTabs button[aria-selected="true"] { color: var(--ink); background: var(--bone); }
+.shopQ { width: 100%; box-sizing: border-box; padding: .45em .8em; color: var(--bone); background: var(--ink2); border: 0; font: inherit; clip-path: polygon(.5em 0, 100% 0, 100% calc(100% - .5em), calc(100% - .5em) 100%, 0 100%, 0 .5em); }
+.shopQ::placeholder { color: var(--bone3); }
+.shopQ:focus { outline: none; background: var(--ink3); }
+.shopEmpty { color: var(--bone3); padding: 1.2em 0; }
 .shopList h4, .shopBody aside h4 { margin: 0 0 .4em; font-size: .85em; font-weight: 700; color: var(--bone3); letter-spacing: .2em; }
 .shopList section > div, .shopList section { display: grid; grid-template-columns: repeat(auto-fill, minmax(10.5em, 1fr)); gap: .4em; }
 .shopList section h4 { grid-column: 1 / -1; }
@@ -600,7 +609,7 @@ body.camfree #camHint { display: block; }
   <div id="buffs"></div>
   <div id="shop"><div class="shopCard">
     <div class="shopHead"><b>商店</b><span class="shopGold"></span><span class="shopHint"></span><button type="button" class="shopX" aria-label="關閉">×</button></div>
-    <div class="shopBody"><div class="shopList"></div><aside><div class="shopDetail"></div><h4>你的道具</h4><div class="shopInv"></div></aside></div>
+    <div class="shopBody"><div class="shopMain"><div class="shopTools"><div class="shopTabs" role="tablist"></div><input class="shopQ" type="search" placeholder="搜尋名稱、原型或效果" aria-label="搜尋道具"></div><div class="shopList"></div></div><aside><div class="shopDetail"></div><h4>你的道具</h4><div class="shopInv"></div></aside></div>
   </div></div>
   <div id="bushTag" class="plate">草叢中・敵人看不到你</div>
   <div id="mmwrap"><canvas id="minimap"></canvas></div>

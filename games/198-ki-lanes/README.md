@@ -13,7 +13,11 @@
 ```bash
 npm ci
 npm run build          # 打包成 ../../web/198-ki-lanes.html（--dev 不壓縮）
-npm test               # 驗收：1440×900 與 390×844（觸控），見 tools/accept.mjs
+npm test               # 先跑裝備規則測試（tools/items.test.mjs），再驗收 1440×900 與 390×844（觸控），見 tools/accept.mjs
+npm run test:rules     # 只跑裝備規則測試（Node，約 1 秒）
+npm run items          # 依 data/lol-items.json 與 data/lol-item-map.mjs 重新產生 src/items-lol.js
+node tools/fetch-lol-data.mjs [版本]  # 從 Data Dragon 重抓《英雄聯盟》裝備、符文與召喚師技能（繁中）到 data/
+node tools/balance.mjs 280  # 多行程跑 280 場 AI 對戰，印出每名英雄的勝率、KDA 與對英雄傷害
 node tools/sim.mjs 900 # Node 無頭模擬 15 分鐘（不渲染），每 60 秒印一次兵數、營地、擊殺、倒塔與英雄等級／金幣
 node tools/fight.mjs 1440 900 frieza   # 開發截圖：兵線與 QWER 特效
 node tools/mobile.mjs  # 開發截圖：手機版選角與觸控介面
@@ -128,7 +132,13 @@ VV_CORE=… python tools/voices/build_voices.py [--only goku] [--wav dist/voices
 
 ## 道具合成
 
-基礎 → 進階 → 終極三層，共 31 件。原本的七龍珠道具之外，加入 19 件以《英雄聯盟》裝備為原型的道具（命名維持七龍珠風格，商店說明標「原型：…」），帶咒刃、暴擊、吸血、荊棘與重傷、積蓄、復活、凝時與淨化等被動或主動；對照表見 `SPEC.md` 的「英雄聯盟的資源、裝備與符文」。購買時自動吃掉身上的材料、只付差額；商店點自己的道具可賣出（60% 總價）。AI 依定位逐步合成。
+基礎 → 進階 → 終極三層。原本的七龍珠道具之外，裝備逐批對齊《英雄聯盟》召喚峽谷的全部裝備（命名改成七龍珠、火影、海賊王風格，商店說明標「原型：…」）：
+
+- 資料來源是 Riot 公開的 Data Dragon（`data/lol-items.json`，`tools/fetch-lol-data.mjs` 抓取）。`tools/lol-items.mjs` 依 `data/lol-item-map.mjs` 的逐件對照（本作名稱、效果、說明）換算屬性與價格，寫出 `src/items-lol.js`；對照表沒填的裝備不上架。換算比例沿用手調 19 件的錨點（`plans/198-lol-gap.md` 第 3 節）。
+- 被動與主動用 `traits.js` 的效果原語拼成（命中附加傷害、順劈、重傷、技能灼燒、獻祭、交戰增傷、減普攻傷害、法術護盾、保命護盾、受擊護盾、疊層、適性之力…），同名被動不疊加。
+- 目前上架：基礎、鞋子、史詩全部，加上原有的 19 件傳說原型；其餘傳說裝備分批加入（進度見 `plans/198-lol-gap.md`）。
+- 消耗品：仙豆、傷藥（生命藥水）、隨身水壺（回復藥水，回泉水補滿）按 1 使用（有仙豆先吃仙豆）；鐵壁丸、增氣丸、狂戰丸（三種藥劑）買下就服用 90 秒，同時只有一種。
+- 商店有分類分頁（推薦＝這名英雄出裝路線上的道具）與搜尋（名稱、原型或效果）。購買時自動吃掉身上的材料、只付差額；點自己的道具可賣出（60% 總價）。主動道具用 2、3 鍵。AI 依定位逐步合成，六格滿了會吃藥劑，沒有仙豆時半血以下喝藥水。
 
 ## 魔力、體力與符文
 

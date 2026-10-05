@@ -1,6 +1,6 @@
 // 商店與道具（規則面，不碰 DOM）：泉水附近或陣亡時可以買賣；合成道具會吃掉身上的下位道具並折抵價格；
 // 賣回拿 60% 總價；仙豆另外計數、最多 3 顆。
-import { ITEMS, INV_SLOTS, FOUNTAIN, GOLD, KI_BAR } from './config.js';
+import { ITEMS, INV_SLOTS, FOUNTAIN, GOLD, KI_BAR, ELIXIR_DUR } from './config.js';
 import { recalcStats, heal, addKi, addMp } from './units.js';
 
 export const itemById = (id) => ITEMS.find((i) => i.id === id);
@@ -30,6 +30,7 @@ export function priceFor(h, id) { const it = itemById(id); return it.consumable 
 export function canBuy(h, id) {
   const it = itemById(id); if (!it) return false;
   if (!inShop(h)) return false;
+  if (it.elixir) return h.gold >= it.cost && !(h.elixir && h.elixir.id === id);
   if (it.consumable) return (h[it.field] || 0) < it.max && h.gold >= it.cost;
   const p = plan(h, id);
   return h.gold >= p.price && h.inv.length - p.use.length < INV_SLOTS;
@@ -37,7 +38,8 @@ export function canBuy(h, id) {
 export function buy(G, h, id) {
   if (!canBuy(h, id)) return false;
   const it = itemById(id);
-  if (it.consumable) { h.gold -= it.cost; h[it.field] = (h[it.field] || 0) + 1; G.emit('buy', { h, id }); return true; }
+  if (it.elixir) { h.gold -= it.cost; h.elixir = { id, until: G.time + ELIXIR_DUR, ...it.elixir }; recalcStats(h); G.emit('buy', { h, id }); return true; }
+  if (it.consumable) { h.gold -= it.cost; h[it.field] = (h[it.field] || 0) + 1; if (id === 'flask') h.flaskC = 2; G.emit('buy', { h, id }); return true; }
   const p = plan(h, id);
   h.gold -= p.price;
   h.inv = h.inv.filter((_, i) => !p.use.includes(i));
@@ -50,19 +52,30 @@ export function sell(G, h, slot) {
   const id = h.inv[slot]; if (!id || !inShop(h)) return false;
   h.inv.splice(slot, 1); h.gold += sellPrice(id); recalcStats(h); G.emit('sell', { h, id }); return true;
 }
+// 藥水：持續回血，同一時間只有一瓶在作用
+function drink(G, h, hp, dur) {
+  if (h.st.potion > 0) return false;
+  h.st.potion = dur; h.st.potionRate = hp / dur; G.emit('potion', h); return true;
+}
 export function eatSenzu(G, h) {
-  if (!h.alive || !(h.senzu > 0) || h.cds.S > 0) return false;
+  if (!h.alive) return false;
+  if (!(h.senzu > 0)) {
+    if (h.salve > 0 && drink(G, h, 120, 15)) { h.salve--; return true; }
+    if (h.flask > 0 && h.flaskC > 0 && drink(G, h, 100, 12)) { h.flaskC--; return true; }
+    return false;
+  }
+  if (h.cds.S > 0) return false;
   h.senzu--; h.cds.S = 6;
   heal(G, h, h.maxHp * 0.45); addKi(G, h, KI_BAR); addMp(h, h.maxMp * 0.45);
   G.emit('senzu', h); return true;
 }
 // AI 的出裝目標（依定位），一次只買目標的下一步。體力型英雄不買魔力裝
 export const BUILDS = {
-  fighter: ['trinity', 'nimbus', 'majin', 'halo', 'water'],
-  assassin: ['zsword', 'nimbus', 'majin', 'halo', 'holy'],
-  tank: ['thorn', 'nimbus', 'potara', 'cell', 'halo'],
-  mage: ['tome', 'nimbus', 'beerus', 'staff', 'hourglass'],
-  mageEnergy: ['beerus', 'nimbus', 'hourglass', 'holy', 'water'],
+  fighter: ['trinity', 'steelboots', 'majin', 'halo', 'water'],
+  assassin: ['zsword', 'leafboots', 'majin', 'halo', 'holy'],
+  tank: ['thorn', 'windboots', 'potara', 'cell', 'halo'],
+  mage: ['tome', 'mageboots', 'beerus', 'staff', 'hourglass'],
+  mageEnergy: ['beerus', 'leafboots', 'hourglass', 'holy', 'water'],
   marksman: ['zsword', 'nimbus', 'majin', 'holy', 'halo'],
 };
 export function buildOf(h) {
@@ -96,4 +109,6 @@ export function aiShop(G, h) {
     const opts = nb.missing.filter((id) => id !== nb.target && canBuy(h, id)).sort((a, b) => priceFor(h, b) - priceFor(h, a));
     if (!opts.length || !buy(G, h, opts[0])) break;
   }
+  // 六格滿了還有錢：依定位吃一顆藥丸
+  if (h.inv.length >= INV_SLOTS && !h.elixir && h.gold > 900) { const b = buildOf(h); buy(G, h, b === 'tank' ? 'ironpill' : b.startsWith('mage') ? 'kipill' : 'ragepill'); }
 }
