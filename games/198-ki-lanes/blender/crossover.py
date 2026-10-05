@@ -219,21 +219,27 @@ def build_naruto(R):
     body.append(neck(F, skin, r=0.054))
     proxy.append(body[-1])
     sl = long_sleeve(F, orange, k=1.05)
-    kit.paint_field(sl, lambda co: arm_s(F, co) - 0.11, black, 0)
-    cuff = band('cuffL', F.sh, F.da, F.up + F.lo - 0.075, F.up + F.lo - 0.04, 0.072 * F.k_arm, 0.07 * F.k_arm, orangeD, G_FORE_L, thick=0.008)
+    kit.paint_field(sl, lambda co: arm_s(F, co) - (F.up + F.lo), black, 0)  # 參考圖：袖子整條黑色
+    cuff = band('cuffL', F.sh, F.da, F.up + F.lo - 0.075, F.up + F.lo - 0.04, 0.056 * F.k_fore + 0.016, 0.054 * F.k_fore + 0.016, black, G_FORE_L, thick=0.008)
     arm = arm_skin(F, skin, muscle=0.8)
     kit.paint_field(arm, lambda co: arm_s(F, co) - (F.up + F.lo - 0.06), orange, 0)
     hand = fist(F, skin, scale=1.0)
     body.append(pelvis(F, orange, e=0.012))
     proxy.append(body[-1])
-    leg = baggy_leg(F, orange, bag=1.0, blouse=0.95, s_end=F.tl + F.sl - 0.1)
-    wr = band('wrapL', F.th, F.dl, F.tl + F.sl - 0.16, F.tl + F.sl - 0.08, 0.07 * F.k_shin, 0.062 * F.k_shin, wrap, G_LEG_L, thick=0.006)
-    bt = boot(F, sandal_c, F.tl + F.sl - 0.09, 0.056, pal_sole=sandal_c, toe=0.95)
-    pair_add(body, proxy, [sl, cuff, arm, hand, leg, wr] + bt, proxy_set=[arm, hand, leg] + bt)
+    # 褲子到小腿中段，下面是深色綁腿與露腳趾的忍者涼鞋；右大腿綁白色繃帶
+    leg = baggy_leg(F, orange, bag=1.0, blouse=1.0, s_end=F.tl + 0.12)
+    kl = F.k_leg
+    shin = leg_tube(F, skin, [(F.tl + 0.06, 0.07 * kl, 0.074 * kl), (F.tl + 0.2, 0.06 * kl, 0.064 * kl), (F.tl + F.sl - 0.06, 0.048 * kl, 0.052 * kl)], name='shinL', mat=4)
+    wr = band('wrapL', F.th, F.dl, F.tl + 0.1, F.tl + F.sl - 0.1, 0.066 * kl + 0.008, 0.052 * kl + 0.008, sandal_c, G_LEG_L, thick=0.006)
+    ft = sandal(F, skin, sandal_c)
+    thw = band('thighWrap', F.th, F.dl, 0.16, 0.24, 0.112 * kl + 0.02, 0.106 * kl + 0.02, wrap, G_LEG_L, thick=0.008)
+    pair_add(body, proxy, [sl, cuff, arm, hand, leg, shin, wr] + ft, proxy_set=[arm, hand, leg] + ft)
+    from heroes import mirror
+    body.append(mirror(thw))  # 只有右腿
     body.append(team_band(F, team, 1.25))
     # 腿上的忍具包（右大腿）
     pouch = kit.box_cage('pouch', 0.07, 0.09, 0.05, cuts=(1, 1, 1))
-    kit.transform(pouch, Matrix.Translation(F.leg_pt(0.16) + V((0.12 * F.k_leg + 0.02, 0, 0.02))))
+    kit.transform(pouch, Matrix.Translation(F.leg_pt(0.2) * V((-1, 1, 1)) + V((-0.12 * F.k_leg - 0.03, 0, 0.02))))
     body.append(kit.tag(kit.subsurf(pouch, 2), sandal_c, grp=G_LEG_L, ol=0.6))
 
     h = anime_head('head_base', F, skin, jaw=1.02, chin=0.95, cheek=1.07, nose=0.75, face_len=0.94, cranium=(0.83, 0.9, 0.9))
@@ -383,9 +389,10 @@ def build_kakashi(R):
     body.append(pelvis(F, navy, e=0.012))
     proxy.append(body[-1])
     body.append(belt_ring(F, F.L + 0.08, 0.035, navyD, e=0.016))
-    leg = straight_leg(F, navy)
-    wr = band('wrapL', F.th, F.dl, F.tl + F.sl - 0.17, F.tl + F.sl - 0.08, 0.07 * F.k_shin, 0.062 * F.k_shin, wrap, G_LEG_L, thick=0.006)
-    bt = boot(F, navyD, F.tl + F.sl - 0.09, 0.056, pal_sole=navyD)
+    # 褲子到小腿上段，白色綁腿，深藍忍者涼鞋
+    leg = straight_leg(F, navy, s_end=F.tl + 0.1, flare=1.1)
+    wr = band('wrapL', F.th, F.dl, F.tl + 0.06, F.tl + F.sl - 0.1, 0.07 * F.k_shin + 0.01, 0.056 * F.k_shin + 0.008, wrap, G_LEG_L, thick=0.008)
+    bt = boot(F, navyD, F.tl + F.sl - 0.11, 0.054, pal_sole=navyD)
     pair_add(body, proxy, [sl, arm, glove, hand, leg, wr] + bt, proxy_set=[arm, hand, leg] + bt)
     body.append(team_band(F, team, 1.2))
     # 左臂的紅色漩渦臂章（簡化成紅色細環）
@@ -444,7 +451,7 @@ def build_sakura(R):
     body.append(neck(F, skin, r=0.046))
     proxy.append(body[-1])
     arm = arm_skin(F, skin, muscle=0.35, k=1.02)
-    pad = band('padL', F.sh, F.da, F.up - 0.03, F.up + 0.04, 0.06 * F.k_arm, 0.06 * F.k_arm, pink, G_ARM_L, thick=0.01, ol=0.6)
+    pad = band('padL', F.sh, F.da, F.up - 0.07, F.up + 0.08, 0.056 * F.k_arm + 0.014, 0.054 * F.k_fore + 0.014, pink, G_ARM_L, thick=0.01, ol=0.6)  # 粉色護肘
     glove = band('gloveL', F.sh, F.da, F.up + F.lo - 0.09, F.up + F.lo + 0.005, 0.052 * F.k_fore, 0.05 * F.k_fore, black, G_FORE_L, thick=0.008)
     hand = fist(F, black, mat=0, scale=1.0, glove=True)
     # 粉色開衩短裙＋黑色短褲＋長靴
@@ -461,9 +468,9 @@ def build_sakura(R):
     leg = leg_tube(F, skin, [(-0.07, 0.112 * kl, 0.112 * kl), (0.05, 0.11 * kl, 0.114 * kl), (0.22, 0.094 * kl, 0.098 * kl), (F.tl - 0.03, 0.068 * kl, 0.074 * kl),
                              (F.tl + 0.07, 0.064 * kl, 0.07 * kl, calf), (F.tl + 0.14, 0.05 * kl, 0.054 * kl)], mat=4)
     kit.paint_field(leg, lambda co: (co - F.th).dot(F.dl) - 0.14, black, 0)  # 黑色短褲
-    bt = boot(F, black, F.tl + 0.07, 0.066, pal_sole=black, toe=0.9)
+    bt = boot(F, P(0x4a4256), F.tl + 0.02, 0.066, pal_sole=black, toe=0.9)
     kp = band('kneeL', F.th, F.dl, F.tl - 0.045, F.tl + 0.045, 0.08 * kl, 0.082 * kl, pink, G_LEG_L, thick=0.016, ol=0.7, bulge=1.08)
-    pair_add(body, proxy, [arm, pad, glove, hand, leg, kp] + bt, proxy_set=[arm, hand, leg] + bt)
+    pair_add(body, proxy, [arm, pad, glove, hand, leg] + bt, proxy_set=[arm, hand, leg] + bt)
     body.append(team_band(F, team, 1.0))
 
     h = anime_head('head_base', F, skin, jaw=0.86, chin=0.78, cheek=0.98, nose=0.6, face_len=0.92, cranium=(0.85, 0.98, 0.93))

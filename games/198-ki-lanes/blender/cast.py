@@ -170,7 +170,7 @@ def build_trunks(R):
     skin = P(0xf7cfa8)
     jacket, jacketL = P(0x1e2648), P(0x2c3866)
     tank = P(0x17171b)
-    pants = P(0x787c88)
+    pants = P(0x2c2c32)  # 參考圖：黑色寬褲
     bootc, bootD = P(0xd2a64a), P(0x6a5028)
     blk = P(0x1a1a1a)
     brass = P(0xb8a060)
@@ -184,7 +184,7 @@ def build_trunks(R):
     body.append(tk)
     proxy.append(tk)
     # 外套：前襟敞開、立領
-    rows = [(0.02, ('w', 1.24), 0.9, 0.0)] + [r for r in TORSO_ROWS if r[0] > 0.1]
+    rows = [r for r in TORSO_ROWS if r[0] > 0.3]  # 短版外套：下襬在胸下
     us = [r[0] for r in rows]
     jk = kit.loft('jacket', torso_rows(F, e=0.02, rows=rows, pec=0.072), n=20, cap0=None, cap1=None, gap=lambda i: 0.3 + 0.25 * smooth((us[i] - 0.5) / 0.5))
     jk = kit.subsurf(jk, 2, solidify=0.01)
@@ -212,8 +212,7 @@ def build_trunks(R):
     body.append(pelvis(F, pants, e=0.01))
     proxy.append(body[-1])
     kl = F.k_leg
-    leg = leg_tube(F, pants, [(-0.07, 0.12 * kl, 0.12 * kl), (0.04, 0.122 * kl, 0.126 * kl), (0.2, 0.108 * kl, 0.112 * kl), (F.tl - 0.02, 0.09 * kl, 0.094 * kl),
-                              (F.tl + 0.1, 0.088 * kl, 0.09 * kl), (F.tl + 0.17, 0.08 * kl, 0.082 * kl), (F.tl + 0.21, 0.062 * kl, 0.064 * kl)])
+    leg = baggy_leg(F, pants, bag=1.25, blouse=1.2, s_end=F.tl + 0.17)  # 寬鬆褲管收進靴口
     bt = boot(F, bootc, F.tl + 0.15, 0.076, pal_sole=bootD)
     rim = band('bootRimL', F.th, F.dl, F.tl + 0.135, F.tl + 0.165, 0.082, 0.083, bootD, G_FOOT_L, thick=0.008)
     pair_add(body, proxy, [sl, cuff, arm, hand, leg, rim] + bt, proxy_set=[arm, hand, leg] + bt)
@@ -340,19 +339,19 @@ def build_piccolo(R):
     hand = fist(F, gskin, scale=1.12)
     body.append(pelvis(F, gi, e=0.014))
     proxy.append(body[-1])
-    leg = baggy_leg(F, gi, bag=1.1, blouse=1.08, s_end=F.tl + F.sl - 0.05)
+    leg = baggy_leg(F, gi, bag=1.28, blouse=1.32, s_end=F.tl + F.sl - 0.06)  # 參考圖：寬大燈籠褲，腳踝收口
     shoe_ = boot(F, shoe, F.tl + F.sl - 0.09, 0.07, pal_sole=shoeD, toe_len=0.04, toe=0.95)
     pair_add(body, proxy, [arm, sl, wb, hand, leg] + shoe_, proxy_set=[arm, hand, leg] + shoe_)
     body.append(team_band(F, team, 1.2))
     # 天藍腰帶＋結＋垂帶
     yb = F.L + 0.09
-    body.append(belt_ring(F, yb, 0.085, sash, e=0.024, thick=0.014))
+    body.append(belt_ring(F, yb, 0.13, sash, e=0.03, thick=0.016))
     kz = F.cz * 0.92 + 0.03
     knot = kit.quad_sphere('knot', 1, cuts=3)
     kit.deform(knot, lambda p: V((0.13 + p.x * 0.04, yb + p.y * 0.036, kz + p.z * 0.024)))
     knot = kit.subsurf(knot, 1)
     body.append(kit.tag(knot, sash, grp=G_BELT))
-    for k, (dx, w0, ln) in enumerate(((-0.014, 0.04, 0.34), (0.03, 0.035, 0.28))):
+    for k, (dx, w0, ln) in enumerate(((-0.014, 0.04, 0.12), (0.03, 0.035, 0.09))):
         t0 = V((0.13 + dx, yb - 0.01, kz + 0.004 + 0.006 * k))
         f = kit.loft('flap%d' % k, [S(t0, w0, 0.008), S(t0 + V((0.004, -ln * 0.5, 0.004)), w0 * 1.12, 0.008), S(t0 + V((0.01, -ln, 0.006)), w0 * 0.92, 0.007)], n=8)
         f = kit.subsurf(f, 2)
@@ -471,7 +470,7 @@ def build_a18(R):
     skin = P(0xf9d6bd)
     shirt, stripe = P(0x1d1d23), P(0xf0eee8)
     denim, denimD = P(0x4274bc), P(0x2c5290)
-    legging = P(0x1b1b20)
+    legging = P(0x23304e)  # 深藍牛仔褲
     bootc, bootD = P(0x7c4c2c), P(0x4a2c18)
     beltc = P(0x5a3a22)
     team = P(-1)
@@ -483,11 +482,7 @@ def build_a18(R):
     body.append(sh)
     proxy.append(sh)
     us = [r[0] for r in FEMALE_ROWS if r[0] >= 0.3]
-    vest = kit.loft('vest', torso_rows(F, e=0.016, u0=0.3, pec=0, lat=0, bust=0.12, rows=FEMALE_ROWS), n=20, cap0=None, cap1=None,
-                    gap=lambda i: 0.42 + 0.35 * smooth((us[i] - 0.55) / 0.45))
-    vest = kit.subsurf(vest, 2, solidify=0.009)
-    kit.tag(vest, denim, grp=G_TORSO)
-    body.append(vest)
+    # 參考圖（超版本）：黑色背心＋條紋長袖，不穿牛仔背心
     body.append(neck(F, skin, r=0.048))
     proxy.append(body[-1])
     # 長袖條紋上衣
@@ -503,7 +498,7 @@ def build_a18(R):
     yb = F.y(0.15)
     hw = F.R['hip']
     sk = kit.loft('skirt', [S(V((0, yb, 0.0)), F.w * 1.22 + 0.01, F.cz * 0.86 + 0.01, p=2.2), S(V((0, F.L + 0.03, 0)), hw * 1.6, F.cz * 0.98, p=2.2),
-                            S(V((0, F.L - 0.12, 0.005)), hw * 1.85, F.cz * 1.15, p=2.1), S(V((0, F.L - 0.24, 0.01)), hw * 2.0, F.cz * 1.28, p=2.0)], n=22, cap0=None, cap1=None)
+                            S(V((0, F.L - 0.12, 0.005)), hw * 1.85, F.cz * 1.15, p=2.1), S(V((0, F.L - 0.24, 0.01)), hw * 2.0, F.cz * 1.28, p=2.0), S(V((0, F.L - 0.32, 0.012)), hw * 2.06, F.cz * 1.32, p=2.0)], n=22, cap0=None, cap1=None)
     sk = kit.subsurf(sk, 2, solidify=0.009)
     kit.tag(sk, denim, grp=G_PELVIS)
     body.append(sk)
@@ -512,7 +507,7 @@ def build_a18(R):
     calf = lambda th: 1 + 0.09 * ang_bump(th, BACK, 1.0)
     leg = leg_tube(F, legging, [(-0.07, 0.112 * kl, 0.112 * kl), (0.05, 0.11 * kl, 0.114 * kl), (0.22, 0.094 * kl, 0.098 * kl), (F.tl - 0.03, 0.068 * kl, 0.074 * kl),
                                 (F.tl + 0.07, 0.068 * kl, 0.074 * kl, calf), (F.tl + 0.17, 0.056 * kl, 0.06 * kl, calf), (F.tl + 0.26, 0.042 * kl, 0.046 * kl)])
-    bt = boot(F, bootc, F.tl + F.sl - 0.13, 0.058, pal_sole=bootD, toe=0.92)
+    bt = boot(F, bootc, F.tl + 0.06, 0.068, pal_sole=bootD, toe=0.92)  # 咖啡色靴子到小腿中段
     pair_add(body, proxy, [arm, hand, leg] + bt, proxy_set=[arm, hand, leg] + bt)
     body.append(team_band(F, team, 1.0))
 

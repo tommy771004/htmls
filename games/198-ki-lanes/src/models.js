@@ -399,7 +399,7 @@ function heroPose(d, name, t, k, phase, out) {
       p = lerpPose(base, lie, kk);
       break;
     }
-    case 'stand': p = blank(); break; // 立正（比對參考圖用）
+    case 'stand': p = blank(); p.thLZ = 0.13; p.thRZ = 0.13; p.shLZ = 0.22; p.shRZ = 0.22; break; // 雙腳微開站立（比對參考圖用）
     case 'win': {
       const b = Math.abs(Math.sin(t * 4));
       p = P({ hipsY: -0.02 + 0.03 * b, torsoX: -0.1, torsoY: 0, headX: -0.3, headY: 0, shRX: -2.95, shRZ: 0.15, elR: -0.25 - 0.2 * b, shLX: 0.15, shLZ: 0.6, elL: -1.6,
