@@ -25,6 +25,8 @@ node tools/jungleshot.mjs # 開發截圖：野區營地、戰爭迷霧、大猿
 node tools/bushshot.mjs   # 開發截圖：草叢、眼
 node tools/look.mjs 1280 720 tag # 開發截圖：塔下廣場、河道、野區、神龍坑附近、基地六個固定地點
 node tools/motion.mjs a18 0.32    # 開發截圖：實際對戰中跑動、轉身、急停的頭髮與衣擺（dist/shots/motion-*）
+node tools/poses.mjs goku tag 1   # 開發截圖：暫停對局把英雄擺成各動作關鍵幀（含受擊），遊戲鏡頭下裁特寫到 dist/ref/<tag>/（第三個參數是鏡頭縮放）
+node tools/refshot.mjs goku tag  # 開發截圖：實際對戰中連拍跑步、普攻、QWE 的特寫（和參考影片同尺度比對）
 node tools/mobile-fx.mjs zoro 390 844 # 開發截圖：手機尺寸的技能、大招演出、商店與結算（橫向傳 844 390）
 node tools/dragonshot.mjs # 開發截圖：龍珠面板、召喚、神龍升起、交戰、許願
 sh tools/refcmp.sh <參考圖資料夾> goku naruto …  # 角色立正的正交正面圖與官方設定圖等高並排（每 5% 一條格線），用來校比例；參考圖不進 repo，資料夾放 <id>/<nn>.img 與 picks.txt
@@ -97,7 +99,7 @@ VV_CORE=… python tools/voices/build_voices.py [--only goku] [--wav dist/voices
 
 - `npm run models` = `node tools/rig-dump.mjs`（從 `models.js` 的骨架算出 A 字綁定姿勢的骨頭位置，寫 `blender/rig.json`）＋ `blender -b --factory-startup --python blender/build_heroes.py`。改了 `models.js` 的骨架或 `models-heroes.js` 的 PROPS 也要重跑。
 - `blender/kit.py`：斷面放樣（含前開口的弧形斷面，用來做 V 領與敞開的外套）、細分、布料加厚、等值線切割上色、骨熱權重、遮蔽、輸出。`blender/heroes.py` 是悟空與共用部件（軀幹、手臂、握拳、靴、動畫臉、髮束），`blender/cast.py` 是其他五名。
-- 身體是一張蒙皮網格（11 根骨頭＋擺動鏈：悟空與比克的垂帶、弗利沙的尾巴、魯夫與索隆的腰帶尾、索隆大衣、佐助腰布與 18 號長裙的後片），頭顱掛在頭骨上；JS 端把骨架擺成同樣的 A 字姿勢後綁定，再交給原本的程式動畫。擺動鏈的權重在 Blender 端由 `custom` 群組函式指定（`skirt_chain_weights` 只把後片的一部分權重讓給擺動鏈，前片仍跟著雙腿）。
+- 身體是一張蒙皮網格（11 根主骨頭＋擺動鏈＋第二版骨架的胸 `ribs`、手腕 `wrL/R`、腳踝 `anL/R`（`BONE_EXTRA`，接在擺動鏈之後，烘焙資料標 `rig: 2` 才啟用；胸分攤腰的扭轉、腳踝讓站地的腳掌貼平）；悟空與比克的垂帶、弗利沙的尾巴、魯夫與索隆的腰帶尾、索隆大衣、佐助腰布與 18 號長裙的後片），頭顱掛在頭骨上；JS 端把骨架擺成同樣的 A 字姿勢後綁定，再交給原本的程式動畫。擺動鏈的權重在 Blender 端由 `custom` 群組函式指定（`skirt_chain_weights` 只把後片的一部分權重讓給擺動鏈，前片仍跟著雙腿）。
 - 髮型是綁在頭骨＋一根 `hairBone` 彈簧骨的蒙皮網格，權重在 JS 端依位置算（`hairWeights`：頭心以下、偏後的髮束才擺，臉前的瀏海不動），跑動時往後甩、轉身與集氣時被甩動。
 - 每頂點存調色盤索引、材質碼（0 一般、1 頭髮、2 亮面、3 發光、4 皮膚、5 隊伍色）、遮蔽、外框粗細倍率與平滑法線；以欄位式串流差分後 zlib＋base64，六名約 1.8 MB。
 

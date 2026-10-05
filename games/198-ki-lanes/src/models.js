@@ -244,7 +244,7 @@ function heroPose(d, name, t, k, phase, out) {
       const glide = d.style === 'regal';
       // 參考影片的跑姿：上身大幅前傾、髖和胸反向扭、大步幅（後腳踢高）、拳頭前後大擺
       p = P({ hipsY: -0.09 + 0.08 * Math.abs(c) * (glide ? 0.3 : 1), hipsRX: glide ? 0 : 0.1, hipsRY: glide ? 0 : -0.2 * s, torsoX: glide ? 0.35 : d.style === 'tank' ? 0.36 : 0.4, torsoY: (glide ? 0.14 : 0.34) * s, headX: glide ? -0.15 : -0.32, headY: glide ? 0 : -0.2 * s,
-        thLX: s * (glide ? 0.35 : 1.15) - (glide ? 0 : 0.12), thRX: -s * (glide ? 0.35 : 1.15) - (glide ? 0 : 0.12), thLZ: 0.05, thRZ: 0.05,
+        thLX: s * (glide ? 0.35 : 1.35) - (glide ? 0 : 0.15), thRX: -s * (glide ? 0.35 : 1.35) - (glide ? 0 : 0.15), thLZ: 0.05, thRZ: 0.05,
         knL: 0.3 + (glide ? 0.4 : 1.6) * Math.max(0, -c) * (0.6 + 0.4 * Math.max(0, -s)), knR: 0.3 + (glide ? 0.4 : 1.6) * Math.max(0, c) * (0.6 + 0.4 * Math.max(0, s)),
         shLX: glide ? 0.5 : -s * 1.15 - 0.15, shRX: glide ? 0.5 : s * 1.15 - 0.15, shLZ: 0.22, shRZ: 0.22,
         elL: glide ? -0.4 : -1.45 - 0.35 * Math.max(0, s), elR: glide ? -0.4 : -1.45 - 0.35 * Math.max(0, -s) });
@@ -512,7 +512,7 @@ export function chainSpecs(id, d) {
   if (id === 'luffy' || id === 'zoro') out.push({ name: 'sash', parent: 'hips', pos: [d.waist * (id === 'zoro' ? 1.05 : 1.0), id === 'zoro' ? 0.08 : 0.06, d.chest[2] * (id === 'zoro' ? 1.0 : 0.72)], n: 2, len: id === 'zoro' ? 0.31 : 0.28, base: 0, lift: 0.55, flutter: 0.3 });
   // 長下襬的後片（索隆大衣、佐助腰布、18 號長裙）：跑動時往後飄，前片仍跟著雙腿
   if (id === 'zoro' || id === 'sasuke' || id === 'a18') out.push({ name: 'skirt', parent: 'hips', pos: [0, id === 'zoro' ? 0.08 : id === 'a18' ? 0.04 : 0.06, -d.chest[2] * 1.0], n: 2, len: id === 'zoro' ? 0.34 : id === 'a18' ? 0.19 : 0.28, base: 0, lift: id === 'a18' ? 0.3 : 0.4, flutter: 0.14 });
-  if (id === 'frieza') out.push({ name: 'tail', parent: 'hips', pos: [0, -0.04, -d.hip * 1.05], n: 5, len: 0.2, base: 0.75, lift: 0.22, flutter: 0.1, curl: 0.16, sway: 0.4 });
+  if (id === 'frieza') out.push({ name: 'tail', parent: 'hips', pos: [0, -0.04, -d.hip * 1.05], n: 5, len: 0.226, base: 0.75, lift: 0.22, flutter: 0.1, curl: 0.16, sway: 0.4 });
   return out;
 }
 // 綁定姿勢（A 字）：模型在 Blender 以這個姿勢建模與刷權重

@@ -1,5 +1,5 @@
 // 開發用角色檢視頁（不進成品）：node tools/viewer.mjs 打包並截圖。
-// URL 參數：ids=goku,vegeta、anim=idle、t=0.4、ang=0（度）、zoom=1、form=ssj、y=0.9（鏡頭看向的高度）、
+// URL 參數：ids=goku,vegeta、anim=idle、t=0.4、ang=0（度）、zoom=1、form=ssj、y=0.9（鏡頭看向的高度）、pitch（俯角，度）、
 // focus=handL｜handR｜head（對準第一名角色的部位）＋fy（高度偏移）、nool=1（隱藏外框，查外框殼的問題）
 import * as THREE from 'three';
 import { buildHero, HERO_IDS } from '../src/models.js';
@@ -32,7 +32,8 @@ const dist = (Math.max(width / (innerWidth / innerHeight), 2.3) / zoom) / (2 * M
 const tgt = new THREE.Vector3(0, y, 0);
 const focus = q.get('focus'); // handL｜handR｜head：對準第一名角色的該部位
 if (focus) { rigs[0].root.updateMatrixWorld(true); rigs[0][focus].getWorldPosition(tgt); tgt.y += +(q.get('fy') || 0); }
-cam.position.set(tgt.x, tgt.y + dist * 0.08, tgt.z + dist); cam.lookAt(tgt);
+const pitch = (+(q.get('pitch') || 4.6) * Math.PI) / 180; // pitch=56：和遊戲鏡頭同樣的俯角
+cam.position.set(tgt.x, tgt.y + dist * Math.sin(pitch), tgt.z + dist * Math.cos(pitch)); cam.lookAt(tgt);
 if (ortho) {
   const box = new THREE.Box3(); for (const r of rigs) { r.root.updateMatrixWorld(true); box.expandByObject(r.root); }
   const hgt = box.max.y - Math.max(0, box.min.y), cx = (box.min.x + box.max.x) / 2, asp = innerWidth / innerHeight;

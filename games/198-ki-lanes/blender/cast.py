@@ -385,11 +385,12 @@ def build_frieza(R):
     body, proxy = [], []
 
     # 白色身體：軀幹、骨盆、腿、手臂、脖子 → 體素融成一張皮
-    tor = kit.subsurf(kit.loft('torso', torso_rows(F, e=0.0, u0=0.0, pec=0.108, lat=0.09), n=18, cap0='pole', cap1='pole'), 2)
+    tor = kit.subsurf(kit.loft('torso', torso_rows(F, e=0.0, u0=0.0, pec=0.14, lat=0.11), n=18, cap0='pole', cap1='pole'), 2)
     pel = pelvis(F, skin, e=0.0, closed=True)
     kl, ks = F.k_leg, F.k_shin
     calf = lambda th: 1 + 0.1 * ang_bump(th, BACK, 1.0)
-    leg = limb('legL', F.th, F.dl, [(-0.07, 0.11 * kl, 0.11 * kl), (0.05, 0.112 * kl, 0.116 * kl), (0.22, 0.096 * kl, 0.1 * kl), (F.tl - 0.03, 0.07 * kl, 0.076 * kl),
+    quad = lambda th: 1 + 0.08 * ang_bump(th, FRONT, 1.1)   # 大腿前側的股四頭肌（參考影片：弗利沙的腿比身體壯）
+    leg = limb('legL', F.th, F.dl, [(-0.07, 0.115 * kl, 0.115 * kl), (0.05, 0.122 * kl, 0.126 * kl, quad), (0.22, 0.104 * kl, 0.108 * kl, quad), (F.tl - 0.03, 0.07 * kl, 0.076 * kl),
                                     (F.tl + 0.06, 0.07 * ks / 0.75 * 0.75, 0.076 * kl, calf), (F.tl + 0.17, 0.06 * kl, 0.062 * kl, calf), (F.tl + F.sl - 0.08, 0.045 * kl, 0.05 * kl), (F.tl + F.sl - 0.03, 0.05 * kl, 0.06 * kl)], n=12)
     leg = kit.subsurf(leg, 2)
     fx = F.sole.x
@@ -397,8 +398,8 @@ def build_frieza(R):
     foot = kit.loft('foot', [S(V((fx, 0.05 * s, -0.06 * s)), 0.04 * s, 0.045 * s, p=2.3), S(V((fx, 0.055 * s, 0.0)), 0.048 * s, 0.055 * s, p=2.3), S(V((fx + 0.004, 0.04 * s, 0.09 * s)), 0.045 * s, 0.038 * s, p=2.4), S(V((fx + 0.006, 0.025 * s, 0.17 * s)), 0.02 * s, 0.02 * s)], n=12, front=V((0, 1, 0)))
     kit.deform(foot, lambda p: V((p.x, max(p.y, 0.008), p.z)))
     foot = kit.subsurf(foot, 2)
-    arm = arm_skin(F, skin, muscle=0.9, k=1.05)
-    nk = neck(F, skin, r=0.05)
+    arm = arm_skin(F, skin, muscle=1.1, k=1.08)
+    nk = neck(F, skin, r=0.054)
     parts = [tor, pel, leg, mirror(leg), foot, mirror(foot), arm, mirror(arm), nk]
     for o in parts:
         kit.tag(o, skin, mat=4, grp=G_FREE)
@@ -419,7 +420,8 @@ def build_frieza(R):
     body.append(band('teamL', F.sh, F.da, 0.155, 0.175, 0.07 * F.k_arm, 0.068 * F.k_arm, team, G_UPPER_L, thick=0.005, mat=5, ol=0.5))
     # 尾巴（5 節擺動鏈，綁定姿勢筆直下垂）
     h0 = F.b['tail0'][0]
-    tail = limb('tail', h0 + V((0, 0.06, 0.02)), V((0, -1, 0)), [(0, 0.06, 0.06), (0.1, 0.066, 0.066), (0.3, 0.056, 0.056), (0.5, 0.045, 0.045), (0.7, 0.034, 0.034), (0.88, 0.022, 0.022), (1.04, 0.01, 0.01)], n=10)
+    # 尾巴：根部和大腿差不多粗、往尾端一路收細（參考影片的弗利沙尾巴又粗又長）
+    tail = limb('tail', h0 + V((0, 0.06, 0.02)), V((0, -1, 0)), [(0, 0.074, 0.074), (0.1, 0.082, 0.082), (0.32, 0.07, 0.07), (0.56, 0.056, 0.056), (0.8, 0.041, 0.041), (1.0, 0.027, 0.027), (1.17, 0.011, 0.011)], n=10)
     tail = kit.subsurf(tail, 2)
     body.append(kit.tag(tail, skin, mat=4, grp=G_CHAIN))
     tb = [F.b['tail%d' % i] for i in range(5)]

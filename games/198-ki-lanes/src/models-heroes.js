@@ -133,6 +133,8 @@ void main(){
       base = mix(base, t.rgb, m);
     }
   }
+  // 參考影片的配色比較濃（色調映射會把亮面洗淡）：先把固有色的彩度拉高一點
+  base = clamp(mix(vec3(dot(base, vec3(0.3, 0.59, 0.11))), base, 1.28), 0.0, 1.0);
   float ndl = dot(N, L);
   if (mt > 3.5 && mt < 4.5) ndl += uSkinBias; // 臉：明暗交界往暗側推，臉大多是亮面
   float ao = vAO;

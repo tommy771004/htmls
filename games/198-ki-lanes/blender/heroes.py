@@ -37,6 +37,10 @@ ALLOW[G_SKIRT] = ALLOW[G_PELVIS]
 MIRROR_GRP = {G_ARM_L: G_ARM_R, G_HAND_L: G_HAND_R, G_LEG_L: G_LEG_R, G_FOOT_L: G_FOOT_R, G_UPPER_L: G_UPPER_R, G_FORE_L: G_FORE_R, G_SHIN_L: G_SHIN_R}
 
 
+# FighterZ 式的造型強調（全體英雄共用）：手腳加大、肌肉起伏更深、道服褲更蓬、髮束有稜線（每撮各自分出亮暗面）
+FZ = {'hand': 1.16, 'foot': 1.1, 'muscle': 1.35, 'bag': 1.07, 'blouse': 1.1, 'hair_p': 1.22, 'hair_th': 1.22}
+
+
 # ================================================================ 骨架地標
 class Fig:
     def __init__(self, R):
@@ -163,7 +167,7 @@ def arm_skin(F, pal, muscle=1.0, k=1.0, s0=-0.07, name='armL', grp=G_ARM_L, mat=
     """肩到手腕的手臂（左）：三角肌、二頭／三頭肌、前臂肌群、扁的手腕。"""
     up, lo = F.up, F.lo
     ka, kf = F.k_arm * k, F.k_fore * k
-    mu = muscle
+    mu = muscle * FZ['muscle']
     # 肌肉起伏參考 GK 雕像：二頭、三頭、三角肌與前臂肌群都明顯隆起
     bic = lambda th: 1 + 0.16 * mu * ang_bump(th, FRONT, 0.95)
     tri = lambda th: 1 + 0.12 * mu * ang_bump(th, BACK, 1.05)
@@ -206,7 +210,7 @@ def place_left_hand(F, ob):
 
 def fist(F, pal, mat=4, scale=1.0, glove=False):
     """握拳：掌背塊＋四指捲曲＋拇指。"""
-    k = F.R['fist'] * scale / 0.086
+    k = F.R['fist'] * scale * (1.0 if F.R.get('style') in ('cool', 'medic', 'staff') else FZ['hand']) / 0.086  # 女性角色維持原本的手
     parts = []
     palm = kit.box_cage('palm', 0.052 * k, 0.086 * k, 0.09 * k, cuts=(1, 1, 1))
     kit.deform(palm, lambda p: V((p.x * (1 - 0.15 * (p.y / (0.043 * k)) ** 2), p.y + 0.042 * k, p.z * (1 - 0.1 * max(0, -p.y) / (0.043 * k)))))
@@ -272,7 +276,11 @@ def baggy_leg(F, pal, bag=1.0, blouse=1.0, s_end=None):
     tl = F.tl
     kl = F.k_leg
     s_end = s_end if s_end is not None else tl + 0.25
-    bg = lambda th: 1 + 0.05 * bag * ang_bump(th, FRONT, 1.2) + 0.03 * bag * ang_bump(th, 0, 1.0)
+    if bag > 1.0:
+        bag *= FZ['bag']
+    if blouse > 1.0:
+        blouse *= FZ['blouse']
+    bg = lambda th: 1 + 0.08 * bag * ang_bump(th, FRONT, 1.2) + 0.045 * bag * ang_bump(th, 0, 1.0)
     return leg_tube(F, pal, [
         (-0.07, 0.125 * kl, 0.125 * kl),
         (0.02, 0.13 * kl * bag, 0.134 * kl * bag),
@@ -301,7 +309,7 @@ def boot(F, pal, top_s, r_top, pal_sole=None, toe=1.0, name='bootL', grp=G_FOOT_
     shaft = kit.subsurf(shaft, 1)
     kit.tag(shaft, pal, grp=grp)
     fx = F.sole.x + 0.004
-    s = ks * 1.05
+    s = ks * 1.05 * FZ['foot']
     tz = toe_len
     foot = kit.loft('foot', [
         S(V((fx, 0.06 * s, -0.078 * s)), 0.046 * s, 0.05 * s, p=p_foot),
@@ -410,7 +418,7 @@ def bob_cap(name, F, pal, hairline=0.45, length=0.85, flare=0.22, scale=1.12, pa
     return kit.tag(cap, pal, mat=mat, grp=G_FREE, ol=0.9)
 
 
-def clump(name, F, root, tip, width, thick, bend=(0, 0, 0), n=8, segs=8, p=1.55, taper=1.0, twist=0.0):
+def clump(name, F, root, tip, width, thick, bend=(0, 0, 0), n=8, segs=8, p=FZ['hair_p'], taper=1.0, twist=0.0):
     """一撮髮束（頭心相對、單位 hr）：根部貼著頭皮、片狀、尖端收成一點。"""
     c, hr = F.c, F.hr
     r0 = V(root)
@@ -443,7 +451,7 @@ def hair(F, pal, clumps, mat=1, ol=0.85, grow=1.0, wmul=1.0):
         root, tip, w = cl[0], cl[1], cl[2] * HAIR_W * wmul
         if grow != 1.0:
             tip = tuple(r + (t - r) * grow for r, t in zip(root, tip))
-        th = cl[3] * HAIR_W * wmul if len(cl) > 3 else w * 0.45
+        th = (cl[3] * HAIR_W * wmul if len(cl) > 3 else w * 0.45) * FZ['hair_th']
         bend = cl[4] if len(cl) > 4 else (0, 0, 0)
         taper = cl[5] if len(cl) > 5 else 1.0  # ＜1：髮尖較鈍、較粗
         o = clump('cl%d' % i, F, root, tip, w, th, bend=bend, taper=taper)
@@ -678,6 +686,11 @@ def goku_hair(form):
         ((0.1, 0.8, 0.56), (0.0, 0.18, 1.04), 0.3, 0.15, (0, 0.05, 0.14)),
         ((0.4, 0.75, 0.5), (0.62, 0.95, 0.9), 0.26, 0.13, (0, 0, 0)),
         ((0.72, 0.4, 0.32), (0.9, -0.2, 0.5), 0.18, 0.09, (0, 0, 0.04)),
+        # 第二層：夾在大髮束之間的短尖刺，讓金髮像影片裡一樣蓬成一大團
+        ((0.2, 0.9, -0.2), (0.5, 2.35, -0.6), 0.42, 0.2, (0, 0, 0)),
+        ((0.55, 0.72, 0.15), (1.45, 2.2, 0.05), 0.4, 0.2, (0, 0, 0)),
+        ((0.62, 0.35, -0.5), (1.6, 1.25, -1.3), 0.42, 0.2, (0, 0, 0)),
+        ((0.25, 0.3, -0.85), (0.6, 1.1, -2.0), 0.44, 0.21, (0, 0, 0)),
     ])
 
 

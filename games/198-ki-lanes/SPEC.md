@@ -191,7 +191,8 @@ AI 的技能用法由 `ai.js` 的 `HINT` 表決定（E 原地施放、能繞背�
 ```js
 import * as THREE from 'three';
 export function buildHero(id, team) // → HeroRig
-// HeroRig = { root: THREE.Group, height: number, update(dt, anim) , setAura(level 0..1, color), dispose() }
+// HeroRig = { root: THREE.Group, height: number, update(dt, anim) , setAura(level 0..1, color), hitReact(lx, lz, power 0..1), dispose() }
+// hitReact：main.js 收到 'hit' 事件時呼叫，lx／lz 是攻擊者在被打者本地座標的方向；疊一層後仰／側折＋震顫在目前動作上（持續傷害與觸發效果不做）
 // anim = { name, t, k }  name ∈ 'idle'|'run'|'atk1'|'atk2'|'atk3'|'cast'|'beam'|'dash'|'rush'|'vanish'|'charge'|'stun'|'air'|'dead'|'win'|'leap'
 //   t：此動作已進行秒數；k：0..1 進度（若適用）。root 朝 +z 為正面，呼叫端設定 root.rotation.y 與位置。
 export function buildMinion(team, kind)   // kind 'melee'|'ranged' → { root, update(dt, anim) }，anim.name ∈ 'walk'|'idle'|'atk'|'dead'

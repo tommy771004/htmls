@@ -135,7 +135,7 @@ function clearMatch() {
   if (G) { for (const p of G.projectiles) p.vis && p.vis.remove(); for (const z of G.zones) z.vis && z.vis.remove(); }
 }
 
-const HERO_VIS = 1.15; // 對戰中英雄外觀放大（碰撞與射程不變），貼近俯視鏡頭下的比例
+const HERO_VIS = 1.4; // 對戰中英雄外觀放大（碰撞與射程不變）：參考影片裡英雄在畫面上約是原尺寸的 1.4 倍
 function attachRig(u) {
   if (rigs.has(u.id)) return;
   let rig, ring = null;
@@ -281,7 +281,7 @@ const crossFx = (() => {
     clones({ h, x, z, n, r, dur }) {
       rigs(h, n).slice(0, n).forEach((rig, i) => {
         const a = (i / n) * Math.PI * 2 + Math.random(), px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r;
-        rig.root.position.set(px, heightAt(px, pz), pz); rig.root.rotation.y = Math.atan2(x - px, z - pz); rig.root.scale.setScalar(1.15); rig.root.visible = true;
+        rig.root.position.set(px, heightAt(px, pz), pz); rig.root.rotation.y = Math.atan2(x - px, z - pz); rig.root.scale.setScalar(HERO_VIS); rig.root.visible = true;
         fx.dust(px, pz, 10, '#f4f0ea', 1.4);
         active.push({ rig, t: 0, dur, i });
       });
