@@ -36,6 +36,7 @@ export function canBuy(h, id) {
   // 原作規則：同一件傳說裝備只能有一件，鞋子只能有一雙（合成時被吃掉的不算）
   if (it.tier === 3 && h.inv.includes(id)) return false;
   if (it.boots && h.inv.some((x, i) => !p.use.includes(i) && itemById(x).boots)) return false;
+  if (it.boots && h.psv && h.psv.rune_footwear && !h.footGot) return false; // 神行鞋：時間到之前不能買鞋
   return h.gold >= p.price && h.inv.length - p.use.length < INV_SLOTS;
 }
 export function buy(G, h, id) {
@@ -47,6 +48,7 @@ export function buy(G, h, id) {
   h.gold -= p.price;
   h.inv = h.inv.filter((_, i) => !p.use.includes(i));
   h.inv.push(id); recalcStats(h);
+  if (it.tier === 3 && h.psv && h.psv.rune_cashback) h.gold += p.price * h.psv.rune_cashback.cashback; // 回饋金
   G.emit('buy', { h, id, combined: p.use.length > 0 });
   return true;
 }
@@ -58,11 +60,14 @@ export function sell(G, h, slot) {
 // 藥水：持續回血，同一時間只有一瓶在作用
 function drink(G, h, hp, dur) {
   if (h.st.potion > 0) return false;
-  h.st.potion = dur; h.st.potionRate = hp / dur; G.emit('potion', h); return true;
+  const tw = h.psv && h.psv.rune_timewarp ? h.psv.rune_timewarp.timewarp : 0; // 時光藥：立刻回 40%
+  if (tw) heal(G, h, hp * tw);
+  h.st.potion = dur; h.st.potionRate = hp * (1 - tw) / dur; G.emit('potion', h); return true;
 }
 export function eatSenzu(G, h) {
   if (!h.alive) return false;
   if (!(h.senzu > 0)) {
+    if (h.biscuit > 0) { h.biscuit--; heal(G, h, (20 + h.maxHp * 0.02) * (1 + (1 - h.hp / h.maxHp))); h.bisHp = (h.bisHp || 0) + 30; recalcStats(h); G.emit('potion', h); return true; } // 乾糧
     if (h.salve > 0 && drink(G, h, 120, 15)) { h.salve--; return true; }
     if (h.flask > 0 && h.flaskC > 0 && drink(G, h, 100, 12)) { h.flaskC--; return true; }
     return false;

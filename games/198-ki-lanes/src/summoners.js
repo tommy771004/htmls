@@ -2,19 +2,29 @@
 import { SUMMONERS, FOUNTAIN } from './config.js';
 import { damage, heal, dist, cancelRecall } from './units.js';
 import { collide } from './map.js';
-import { buff } from './traits.js';
+import { buff, onSummoner } from './traits.js';
+import { SUMMONERS as ALL } from './config.js';
 
 export const summById = (id) => SUMMONERS.find((s) => s.id === id);
 const fx = (G) => G.fx;
 const sfx = (G, name, at, o) => G.sfx && G.sfx(name, at, o);
 const nearestFoe = (G, h, r) => G.heroes.filter((u) => u.alive && u.team !== h.team && dist(u, h) < r + u.radius).sort((a, b) => dist(a, h) - dist(b, h))[0];
 
-export function summReady(G, h) { return h.alive && h.summ && h.cds.F <= 0 && !(h.stasis > G.time); }
+export function summReady(G, h) { return h.alive && h.summ && (h.cds.F <= 0 || hexReady(G, h)) && !(h.stasis > G.time); }
+// 機巧閃現（符文）：閃現冷卻中時，F 改成引導 1 秒後閃現，冷卻 20 秒
+const hexReady = (G, h) => h.summ === 'flash' && h.cds.F > 0 && h.psv && h.psv.rune_hexflash && G.time >= (h.hexCd || 0);
 
 // tx, tz：游標位置。回傳 false 表示沒放出去（不進冷卻）
 export function castSummoner(G, h, tx, tz) {
   if (!summReady(G, h)) return false;
   const S = summById(h.summ);
+  if (h.cds.F > 0 && hexReady(G, h)) {
+    h.hexCd = G.time + 20;
+    const d = Math.hypot(tx - h.x, tz - h.z) || 1, r = Math.min(4, d), nx = h.x + ((tx - h.x) / d) * r, nz = h.z + ((tz - h.z) / d) * r;
+    fx(G).target(nx, nz, 1, '#7fe8ff', 1);
+    G.later(1, () => { if (!h.alive || h.st.stun > 0) return; const ox = h.x, oz = h.z; h.x = nx; h.z = nz; collide(h, h.radius); fx(G).vanish(ox, oz, '#7fe8ff', h); fx(G).vanish(h.x, h.z, '#7fe8ff', h, true); h.blinkT = G.time; });
+    return true;
+  }
   switch (S.id) {
     case 'flash': {
       if (h.st.stun > 0 && !(h.st.frozen > 0)) return false;
@@ -78,6 +88,8 @@ export function castSummoner(G, h, tx, tz) {
     }
   }
   h.cds.F = S.cd * 100 / (100 + (h.sumAh || 0));
+  if (S.id === 'flash') h.blinkT = G.time;
+  onSummoner(G, h, S);
   G.emit('summoner', { h, id: S.id });
   return true;
 }
@@ -110,3 +122,19 @@ export function aiSummoner(G, h, foe, fd) {
     }
   }
 }
+
+// 萬能卷軸（基石）：遊戲 144 秒後、脫戰時可換召喚師技能，冷卻 120 秒，每換過一種新的縮短 10 秒（最少 60）
+export function swapReady(G, h) {
+  return h.rune === 'spellbook' && h.alive && G.time >= 144 && G.time >= (h.swapCd || 0) && G.time - h.lastHitT > 5 && G.time - (h.lastAttackHeroT ?? -99) > 5;
+}
+export function swapSummoner(G, h, id) {
+  if (!swapReady(G, h)) return false;
+  const next = id || ALL[(ALL.findIndex((s) => s.id === h.summ) + 1) % ALL.length].id;
+  h.swapSeen = h.swapSeen || new Set([h.summ]);
+  if (!h.swapSeen.has(next)) h.swapSeen.add(next);
+  h.summ = next; h.cds.F = Math.min(h.cds.F, 15);
+  h.swapCd = G.time + Math.max(60, 120 - 10 * (h.swapSeen.size - 1));
+  G.emit('summonerSwap', { h, id: next });
+  return true;
+}
+

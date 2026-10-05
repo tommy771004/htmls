@@ -1,6 +1,6 @@
 // 單位：英雄、小兵、建築。移動、碰撞、傷害、死亡、經驗。
 import {
-  HEROES, MINION, MINION_GROWTH, TOWER, STAT, SUMM_REC, BOUNTY, PLATES, PASSIVES, KI_MAX, KI_BAR, MAX_LEVEL, xpToNext, respawnTime, XP_SHARE_RADIUS,
+  HEROES, MINION, MINION_GROWTH, TOWER, STAT, SUMM_REC, BOUNTY, PLATES, PASSIVES, RUNES, RUNE_TREES, MINOR_RUNES, SHARDS, RUNE_PAGES, KI_MAX, KI_BAR, MAX_LEVEL, xpToNext, respawnTime, XP_SHARE_RADIUS,
   FOUNTAIN, BASE, COMBO_WINDOW, HITSTOP, SPARK, WAVE_EVERY, FIRST_WAVE, SIEGE_FROM_WAVE, GOLD, ITEMS, APE_BUFF, DRAGON, RES, JUNGLE_BUFF, TEAR_MAX, RUNE_REC,
 } from './config.js';
 import { collide, obstaclesNear, lanePath, heightAt, STRUCTURES, laneProgress } from './map.js';
@@ -24,7 +24,7 @@ export function makeHero(G, heroId, team, lane, isPlayer) {
   const u = baseUnit('hero', team, FOUNTAIN[team][0], FOUNTAIN[team][1], 0.75, def.stats.hp);
   Object.assign(u, {
     heroId, def, lane, isPlayer, level: 1, xp: 0, sp: 1, ranks: { Q: 0, W: 0, E: 0, R: 0 }, cds: { Q: 0, W: 0, E: 0, R: 0, D: 0, B: 0, S: 0, T: 0, F: 0 },
-    summ: SUMM_REC[{ 坦克: 'tank', 刺客: 'assassin', 遠程射手: 'marksman', 遠程術士: 'mage' }[def.role] || 'fighter'], tp: null,
+    summ: SUMM_REC[roleOf(def)], tp: null, page: null,
     ki: 100, kills: 0, deaths: 0, assists: 0, chain: 0, chainT: -9, target: null, goal: null, order: null, action: null,
     respawn: 0, recall: 0, empowered: 0, charging: false, damagers: new Map(), lastAttackHeroT: -99, cs: 0, hitstopOwner: isPlayer,
     gold: GOLD.start, inv: [], path: null, apeBuff: 0, omen: 0, wish: 0, form: 'base',
@@ -33,9 +33,23 @@ export function makeHero(G, heroId, team, lane, isPlayer) {
     bladeT: 0, bladeCd: 0, gaCd: 0, actCd: {}, stasis: 0, blue: 0, red: 0,
     buildPick: Math.floor(Math.random() * 6), // AI 出裝路線（items.buildList）
   });
+  u.page = defaultPage(def, u.rune);
   recalcStats(u);
   u.hp = u.maxHp; u.mp = u.maxMp;
   return u;
+}
+// 符文頁：主系（基石所在的系）每列 1 個小符文、副系 2 個（不同列）、3 個碎片。依定位給預設頁
+export const roleOf = (def) => ({ 坦克: 'tank', 刺客: 'assassin', 遠程射手: 'marksman', 遠程術士: 'mage' }[def.role] || 'fighter');
+export const treeOf = (key) => RUNE_TREES.find((t) => t.keys.includes(key));
+export function defaultPage(def, key) {
+  const tree = treeOf(key), rp = RUNE_PAGES[roleOf(def)];
+  const inTree = (id, t) => MINOR_RUNES.some((m) => m.id === id && m.tree === t);
+  const FALLBACK = { dom2: 'mementos' }; // 補位時跳過純視野類的小符文
+  const pick = (t, r) => FALLBACK[t + r] || MINOR_RUNES.find((m) => m.tree === t && m.row === r).id;
+  const minors = rp.minors.every((id) => inTree(id, tree.id)) ? [...rp.minors] : [1, 2, 3].map((r) => pick(tree.id, r));
+  const sec = rp.sec !== tree.id ? rp.sec : RUNE_TREES.find((t) => t.id !== tree.id).id;
+  const secs = rp.secs.every((id) => inTree(id, sec)) && rp.sec === sec ? [...rp.secs] : [1, 2].map((r) => pick(sec, r));
+  return { minors, sec, secs, shards: [...rp.shards] };
 }
 export function itemStats(u) {
   const t = { ad: 0, hp: 0, armor: 0, mr: 0, as: 0, ms: 0, ki: 0, ah: 0, skill: 0, dmg: 0, vision: 0, regen: 0, detect: 0, mp: 0, mpr: 0, ap: 0, crit: 0, ls: 0, leth: 0, apen: 0, mpen: 0, mpenPct: 0, ten: 0, ov: 0 };
@@ -62,6 +76,8 @@ export function itemPassives(u) {
     if (it.act && !acts.some((a) => a.id === it.act.id)) acts.push({ ...it.act, item: id });
   }
   if (u.elixir && u.elixir.psv) Object.assign(p, u.elixir.psv);
+  // 小符文（主系 3 個＋副系 2 個）
+  if (u.page) for (const id of [...u.page.minors, ...u.page.secs]) { const m = MINOR_RUNES.find((x) => x.id === id); if (m) p['rune_' + id] = m.psv; }
   const pv = u.heroId && PASSIVES[u.heroId];
   if (pv) for (const k in pv.psv) p['hero_' + k] = pv.psv[k]; // 英雄天生被動
   return { p, acts };
@@ -94,14 +110,22 @@ export function recalcStats(u) {
 // 依層數、其他屬性或限時增益算出的加成（裝備效果，見 traits.js 的種類一覽）
 function statMods(u, it) {
   const s = u.def.stats, lv = u.level - 1, baseAd = s.ad + s.adLv * lv, baseHp = s.hp + s.hpLv * lv;
-  const addStats = (st) => { for (const k in st) { const v = st[k]; if (!v) continue; if (k === 'ms') u.ms *= 1 + v; else if (k === 'as') u.as = Math.max(STAT.asMinInterval, u.as / (1 + v)); else if (k === 'hp') { u.maxHp += v; } else if (k === 'ten') u.ten = 1 - (1 - u.ten) * (1 - v); else u[k] = (u[k] || 0) + v; } };
-  u.ultAh = 0; u.basicAh = 0; u.sumAh = 0; u.healTaken = 0;
+  const adaptive = (v) => { if ((u.ap || 0) > u.ad - baseAd) u.ap += v; else u.ad += v * 0.6; }; // 適性之力：加在氣功強度或攻擊（取額外較高的一邊）
+  const addStats = (st) => { for (const k in st) { const v = st[k]; if (!v) continue; if (k === 'ms') u.ms *= 1 + v; else if (k === 'as') u.as = Math.max(STAT.asMinInterval, u.as / (1 + v)); else if (k === 'hp') { u.maxHp += v; } else if (k === 'ten') u.ten = 1 - (1 - u.ten) * (1 - v); else if (k === 'adaptive') adaptive(v); else u[k] = (u[k] || 0) + v; } };
+  u.ultAh = 0; u.basicAh = 0; u.sumAh = 0; u.healTaken = 0; u.itemAh = 0; u.msAmp = 0; u.wardLife = 0;
   if (u.colHp) u.maxHp += u.colHp;
   if (u.critStk) u.crit = Math.min(1, u.crit + u.critStk);
   for (const key in u.psv) {
     const e = u.psv[key]; if (!e || !e.k) continue;
     const n = (u.stk && u.stk[key]) || 0;
-    if (e.k === 'stacks') { if (e.ap) u.ap += e.ap * n; if (e.ov) u.ov += e.ov * n; if (e.msAt && n >= e.msAt) u.ms *= 1 + e.ms; }
+    if (e.k === 'stacks') { if (e.ap) u.ap += e.ap * n; if (e.ov) u.ov += e.ov * n; if (e.sumAh) u.sumAh += e.sumAh * n; if (e.msAt && n >= e.msAt) u.ms *= 1 + e.ms; }
+    else if (e.k === 'statAdd') { for (const k2 in e) if (k2 !== 'k') { if (k2 === 'ms') u.ms *= 1 + e.ms; else u[k2] = (u[k2] || 0) + e[k2]; } }
+    else if (e.k === 'hunter') { const c = (u.hunt && u.hunt.size) || 0; if (e.ultAh) u.ultAh += e.ultAh + e.ultPer * c; }
+    else if (e.k === 'legend') { const c = Math.min(e.max, u.legend || 0); if (e.base) addStats(e.base); if (e.as) u.as = Math.max(STAT.asMinInterval, u.as / (1 + e.as * c)); if (e.basicAh) u.basicAh += e.basicAh * c; if (e.ls) u.ls += e.ls * c; if (e.fullHp && c >= e.max) u.maxHp += e.fullHp; }
+    else if (e.k === 'jack') { const kinds = new Set(); for (const id of u.inv || []) { const x = ITEMS.find((i) => i.id === id); if (x && x.stats) for (const k2 in x.stats) kinds.add(k2); } u.ah += kinds.size; if (kinds.size >= 10) adaptive(20); else if (kinds.size >= 5) adaptive(8); }
+    else if (e.k === 'manaflow') u.maxMp += u.mfStk || 0;
+    else if (e.k === 'transcend') u.ah += (u.level >= 5 ? 5 : 0) + (u.level >= 8 ? 5 : 0);
+    else if (e.k === 'overgrowth') u.maxHp += 3 * Math.floor((u.ogN || 0) / 8) + ((u.ogN || 0) >= 120 ? u.maxHp * 0.035 : 0);
     else if (e.k === 'adaptiveMs') { const af = u.ms * 46 * e.pct; if ((u.ap || 0) > u.ad - baseAd) u.ap += af; else u.ad += af * 0.6; }
     else if (e.k === 'slowResist') u.slowRes = Math.max(u.slowRes, e.v);
     else if (e.k === 'eternal') u.healAmp = e.heal;
@@ -124,6 +148,9 @@ function statMods(u, it) {
     }
   }
   if (u.buffs) for (const k in u.buffs) addStats(u.buffs[k].stats || {});
+  // 符文碎片
+  if (u.page) u.page.shards.forEach((id, row) => { const sh = SHARDS[row].find((x) => x.id === id); if (!sh) return; if (sh.stats) addStats(sh.stats); if (sh.adaptive) adaptive(sh.adaptive); if (sh.hpLv) u.maxHp += 10 + 170 * (u.level - 1) / 11; if (sh.slowRes) u.slowRes = Math.max(u.slowRes, sh.slowRes); });
+  if (u.bisHp) u.maxHp += u.bisHp;
   // 屬性龍珠的永久祝福與龍魂（dragonballs.js 寫入 u.drk、u.soul）
   const dk = u.drk || {};
   if (dk.fire) u.dmgMul *= 1 + 0.04 * dk.fire;
@@ -187,7 +214,7 @@ export function damage(G, src, dst, amount, opts = {}) {
   // 眼：每次命中扣 1
   if (dst.kind === 'ward') { dst.hp -= 1; dst.flash = 0.12; G.emit('hit', { src, dst, amount: 1, opts }); if (dst.hp <= 0) kill(G, dst, src); return 1; }
   // 從暗處出手會短暫現形
-  if (src && (src.kind === 'hero' || src.kind === 'minion') && (dst.kind === 'hero' || dst.kind === 'minion')) src.reveal = G.time + 1.2;
+  if (src && !opts.dot && (src.kind === 'hero' || src.kind === 'minion') && (dst.kind === 'hero' || dst.kind === 'minion')) src.reveal = G.time + 1.2; // 持續傷害不會讓施放者現形
   let a = amount;
   if (src && src.st && src.st.spark > 0) a *= SPARK.dmg;
   if (src && src.st && src.st.weak > 0) a *= 1 - (src.st.weakAmt || 0); // 虛弱
@@ -291,6 +318,8 @@ export function gainXp(G, h, xp) {
     h.xp -= xpToNext(h.level); h.level++; h.sp++;
     const old = h.maxHp; recalcStats(h); h.hp += (h.maxHp - old) * 0.6 + h.maxHp * 0.05; h.hp = Math.min(h.hp, h.maxHp);
     if (h.psv && h.psv.lvMp) addMp(h, h.maxMp * h.psv.lvMp);
+    // 三帖藥（符文）：3、6、9 級各得到藥
+    if (h.psv && h.psv.rune_triple) { if (h.level === 3) h.salve = Math.min(5, (h.salve || 0) + 2); if (h.level === 6 || h.level === 9) { const r = roleOf(h.def), id = h.level === 9 ? 'ironpill' : r === 'tank' ? 'ironpill' : r === 'mage' ? 'kipill' : 'ragepill', it = ITEMS.find((x) => x.id === id); if (it && !h.elixir) { h.elixir = { id, until: G.time + 90, ...it.elixir }; recalcStats(h); } } }
     G.emit('levelup', h);
   }
   if (h.level >= MAX_LEVEL) h.xp = 0;
@@ -298,6 +327,7 @@ export function gainXp(G, h, xp) {
 
 function kill(G, u, src) {
   u.alive = false; u.hp = 0; u.deadT = 0; u.action = null; u.target = null;
+  if (G.traits && G.traits.onUnitDeath) G.traits.onUnitDeath(G, u, src);
   const killerTeam = 1 - u.team;
   if (u.kind === 'minion') {
     const near = G.heroes.filter((h) => h.alive && h.team === killerTeam && dist(h, u) < XP_SHARE_RADIUS);
@@ -584,7 +614,7 @@ export function moveSpeed(h) {
   let s = h.ms;
   if (h.st.spark > 0) s *= SPARK.ms;
   if (h.wish > 0) s *= 1 + DRAGON.wish.ms;
-  if (h.st.haste > 0) s *= 1 + (h.st.hasteMs || 0);
+  if (h.st.haste > 0) s *= 1 + (h.st.hasteMs || 0) * (1 + (h.msAmp || 0));
   if (h.st.slow > 0) s *= 1 - h.st.slowAmt;
   // 高移速遞減（原作 415／490 換算）
   const [c1, c2] = STAT.msCap;

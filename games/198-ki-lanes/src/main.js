@@ -98,15 +98,15 @@ buildShowcase();
 const select = createSelect({
   portraits,
   onPick(id) { selectSel = id; const s = showcase.find((o) => o.id === id); if (s) { s.pose = 'win'; s.poseT = 0; } audio.play('select', { vol: 0.5 }); audio.say(id, 'ready', { vol: 0.9 }); },
-  onStart(id, lane, diff, rune, summ) { startMatch(id, lane, diff, rune, summ); },
+  onStart(id, lane, diff, rune, summ, page) { startMatch(id, lane, diff, rune, summ, page); },
 });
 select.show();
 
-function startMatch(heroId, lane = 1, diff = 1, rune, summ) {
+function startMatch(heroId, lane = 1, diff = 1, rune, summ, page) {
   audio.resume(); audio.play('select');
   audio.music(true);
   clearMatch();
-  G = newMatch({ fx, cam, sfx, shake: (amt, ang) => R.shake(amt, ang !== undefined ? new THREE.Vector3(Math.sin(ang), 0, Math.cos(ang)) : null), player: heroId, lane, diff, rune, summ });
+  G = newMatch({ fx, cam, sfx, shake: (amt, ang) => R.shake(amt, ang !== undefined ? new THREE.Vector3(Math.sin(ang), 0, Math.cos(ang)) : null), player: heroId, lane, diff, rune, summ, page: page && JSON.parse(JSON.stringify(page)) });
   const P = G.player;
   setTimeout(() => G && G.player === P && voice(P, 'ready'), 700);
   for (const u of G.units) attachRig(u);

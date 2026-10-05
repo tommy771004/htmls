@@ -83,6 +83,8 @@
 
 主動道具用 2、3 鍵（依身上順序），或點道具列的格子。舊道具保留，賽亞人戰甲、波塔拉耳環的防禦拆成物理／技能。舊的減傷百分比 f 換算成防禦值 100f／(1−f)、冷卻縮減用同一式換成技能加速，單件數值等價，多件疊加有遞減。AI 依定位出裝（`items.js` 的 `BUILDS`：鬥士、刺客、坦克、魔力術士、體力術士、射手），體力型英雄不買魔力裝；被控時用超聖水、殘血時用沙漏。
 
+**符文**：五系 `RUNE_TREES`（每系的基石 `keys`）、`MINOR_RUNES`（tree、row 1～3、`psv`）、`SHARDS`（3 列）、`RUNE_PAGES`（各定位預設）。英雄身上是 `h.rune`（基石）與 `h.page = { minors[3], sec, secs[2], shards[3] }`；`units.defaultPage(def, key)` 依基石所在系組預設頁，`itemPassives` 以 `rune_` 前綴把小符文併入 `h.psv`，碎片與屬性類小符文在 `statMods`。基石效果在 `traits.js` 的 `runeOnHeroHit`／`runeBeforeAuto`／`afterAuto`／`runeTick`／`beforeTaken`／`afterTaken`；擊殺相關在 `onTakedown` 與 `onUnitDeath`；召喚師技能相關（機巧閃現、萬能卷軸、筋斗雲披風）在 `summoners.js`；商店相關（回饋金、神行鞋、時光藥、乾糧）在 `items.js`。持續傷害（`opts.dot`）不會讓施放者現形。
+
 **英雄天生被動**：`config.js` 的 `PASSIVES`（名稱、說明、`psv`），`units.itemPassives` 以 `hero_` 前綴併入 `h.psv`，和裝備共用效果原語；英雄專屬的種類：`selfLowHp`（殘血增傷與攻速）、`skillPctMax`（技能附加最大血量 %）、`costCut`（技能消耗）、`vsCc`（對被控場者增傷）、`copy`（複製附近敵人施放的技能，下一招增傷）。
 
 **全裝備管線**（逐批對齊召喚峽谷的 214 件，清單見 `plans/198-lol-gap.md` 附錄 A）：

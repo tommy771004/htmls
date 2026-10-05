@@ -221,7 +221,7 @@ export function placeWard(G, h, x, z) {
   if (mine.length >= WARD.max) { const old = mine[0]; old.alive = false; old.hp = 0; G.emit('wardDeath', { u: old }); }
   const w = {
     id: 200000 + wardId++, kind: 'ward', team: h.team, owner: h, x: p.x, z: p.z, y: 0, vy: 0, radius: 0.45, hp: WARD.hp, maxHp: WARD.hp, alive: true, facing: 0,
-    st: { stun: 0, slow: 0, slowAmt: 0, frozen: 0, shield: 0, shieldT: 0, spark: 0, mark: 0, invuln: 0 }, kx: 0, kz: 0, life: WARD.life, deadT: 0, flash: 0, anim: { name: 'idle', t: 0 },
+    st: { stun: 0, slow: 0, slowAmt: 0, frozen: 0, shield: 0, shieldT: 0, spark: 0, mark: 0, invuln: 0 }, kx: 0, kz: 0, life: WARD.life * (1 + (h.wardLife || 0)), deadT: 0, flash: 0, anim: { name: 'idle', t: 0 },
   };
   G.wards.push(w); G.units.push(w); G.emit('spawn', w);
   h.cds.T = WARD.cd; sfx(G, 'ui', h, { pitch: 1.6 });

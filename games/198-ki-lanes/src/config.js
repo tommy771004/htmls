@@ -247,7 +247,92 @@ export const RUNES = [
   { id: 'tempo', name: '連打節奏', proto: '致命節奏', desc: '普攻英雄疊 1 層，6 秒內最多 6 層，每層攻速 +7%。' },
   { id: 'comet', name: '流星氣彈', proto: '秘術彗星', desc: '技能命中英雄時，一顆流星在 0.8 秒後砸向該處，造成 30＋每級 10＋氣功強度 35%＋額外攻擊 20% 的傷害。冷卻 16 秒。' },
   { id: 'phase', name: '舞空術', proto: '相位衝擊', desc: '4 秒內用三次普攻或技能命中同一名英雄，3 秒內移速 +35%。冷卻 14 秒。' },
+  { id: 'harvest', name: '魂之收割', proto: '靈魂收割', desc: '傷害血量低於 50% 的英雄時追加 30＋每個靈魂 11＋額外攻擊 10%＋氣功強度 5% 的傷害，並收下一個靈魂（永久 +11）。冷卻 35 秒，參與擊殺後 1 秒就能再發動。' },
+  { id: 'hail', name: '連擊風暴', proto: '刀鋒之雹', desc: '普攻英雄時，接下來 3 次普攻攻速 +90%（遠程 +60%）。冷卻 10 秒。' },
+  { id: 'glacial', name: '冰封術', proto: '冰川增幅', desc: '暈眩、擊飛或冰凍英雄後，在目標周圍留下 3 秒的冰凍領域，緩速敵人 30%。冷卻 25 秒。' },
+  { id: 'spellbook', name: '萬能卷軸', proto: '啟封法書', desc: '遊戲 2 分鐘 24 秒後，脫戰時可以按 Shift＋F（手機長按 F 格）換一個召喚師技能，冷卻 120 秒，每換過一種新的就縮短 10 秒。' },
+  { id: 'firstStrike', name: '先手必勝', proto: '先發制人', desc: '對英雄先出手（對方 3 秒內沒傷害過你）時，3 秒內對英雄傷害 +7%，並得到 10 金＋額外傷害一半的金錢（遠程 35%）。冷卻 20 秒。' },
+  { id: 'pta', name: '強襲', proto: '強攻', desc: '連續三次普攻同一英雄時追加 40＋每級 10 的傷害，之後到脫戰前你對它的傷害 +8%。' },
+  { id: 'fleet', name: '瞬身步法', proto: '瞬疾步法', desc: '移動與普攻蓄能，滿了的下一次普攻回復 15＋每級 12＋額外攻擊 10%＋氣功強度 5% 的血量，並在 1 秒內移速 +20%（遠程回血六成、移速 +75%）。' },
+  { id: 'aftershock', name: '金剛震', proto: '裂地衝擊', desc: '暈眩、擊飛或冰凍英雄後，2.5 秒內物理與技能防禦 +20＋額外防禦的 75%，然後放出震波造成 25＋每級 8＋額外血量 8% 的技能傷害。冷卻 20 秒。' },
+  { id: 'guardian', name: '守護之誓', proto: '神聖守護', desc: '守護 6 公尺內的隊友：自己或隊友 2.5 秒內受到明顯傷害時，兩人都得到 40＋每級 10＋氣功強度 20%＋額外血量 6% 的護盾 1.5 秒。冷卻 45 秒。' },
+  { id: 'aery', name: '式神', proto: '召喚艾莉', desc: '傷害英雄時放出式神，追加 10＋每級 4＋氣功強度 5%＋額外攻擊 10% 的傷害；治療或護盾隊友時改為給隊友 20＋每級 8 的護盾。式神飛回來前（2 秒）不能再放。' },
+  { id: 'deathfire', name: '冥火', proto: '冥火之觸', desc: '技能傷害英雄時讓它燃燒 4 秒，每秒 3＋每級 1＋氣功強度 2.5%＋額外攻擊 7% 的技能傷害；燒滿 3 秒後傷害 +75%。' },
 ];
+// 符文五系（《英雄聯盟》）：主系選 1 個基石＋每列 1 個小符文；副系從不同的兩列各選 1 個；另有 3 列碎片
+export const RUNE_TREES = [
+  { id: 'dom', name: '征伐', proto: '征服', keys: ['electrocute', 'harvest', 'hail'] },
+  { id: 'insp', name: '啟發', proto: '啟示', keys: ['glacial', 'spellbook', 'firstStrike'] },
+  { id: 'prec', name: '精準', proto: '精準', keys: ['pta', 'tempo', 'fleet', 'conqueror'] },
+  { id: 'res', name: '意志', proto: '意志', keys: ['grasp', 'aftershock', 'guardian'] },
+  { id: 'sorc', name: '巫術', proto: '巫術', keys: ['aery', 'comet', 'phase', 'deathfire'] },
+];
+// 小符文：tree、row（1～3）、效果 psv（traits.js 的原語，key 前綴 rune_）
+export const MINOR_RUNES = [
+  { id: 'cheapShot', tree: 'dom', row: 1, name: '趁虛而入', proto: '凌虐', desc: '傷害被暈眩、冰凍或緩速的英雄時，追加 10＋每級 3 的真實傷害（4 秒一次）。', psv: { k: 'cheapShot', base: 10, lv: 3, cd: 4 } },
+  { id: 'tasteBlood', tree: 'dom', row: 1, name: '嗜血', proto: '血噬', desc: '傷害英雄時回復 16＋每級 2＋額外攻擊 10%＋氣功強度 5%（20 秒一次）。', psv: { k: 'tasteBlood', base: 16, lv: 2, cd: 20 } },
+  { id: 'impact', name: '突襲', tree: 'dom', row: 1, proto: '即刻衝擊', desc: '瞬移、衝刺或閃現後 4 秒內，下一次傷害英雄追加 20＋每級 5 的真實傷害（10 秒一次）。', psv: { k: 'impact', base: 20, lv: 5, cd: 10 } },
+  { id: 'sixthSense', tree: 'dom', row: 2, name: '第六感', proto: '第六感', desc: '看得到附近的敵方眼。', psv: { k: 'statAdd', detect: 1 } },
+  { id: 'mementos', tree: 'dom', row: 2, name: '戰利品', proto: '恐懼紀念物', desc: '參與擊殺英雄收集戰利品（最多 6 個），每個召喚師技能加速 +3。', psv: { k: 'stacks', sumAh: 3, max: 6 } },
+  { id: 'deepWard', tree: 'dom', row: 2, name: '深潛眼', proto: '敵後守衛', desc: '插下的眼多存在 40%、多一點血。', psv: { k: 'statAdd', wardLife: 0.4 } },
+  { id: 'treasure', tree: 'dom', row: 3, name: '尋寶獵人', proto: '寶藏獵人', desc: '第一次參與擊殺每名敵方英雄時，得到 50＋每層 20 金（層數＝獵過的不同英雄）。', psv: { k: 'hunter', gold: 50, per: 20 } },
+  { id: 'relentless', tree: 'dom', row: 3, name: '窮追獵人', proto: '殘虐獵人', desc: '每層獵人（獵過的不同英雄）脫戰移速 +2.5%。', psv: { k: 'hunter', ooc: 0.025 } },
+  { id: 'ultHunter', tree: 'dom', row: 3, name: '終極獵人', proto: '終焉獵人', desc: '大絕技能加速 +6，每層獵人再 +5。', psv: { k: 'hunter', ultAh: 6, ultPer: 5 } },
+
+  { id: 'hexflash', tree: 'insp', row: 1, name: '機巧閃現', proto: '海克斯充能閃現', desc: '閃現在冷卻時，F 改成引導 1 秒後閃現的機巧閃現（冷卻 20 秒）。', psv: { k: 'flag', hexflash: 1 } },
+  { id: 'footwear', tree: 'insp', row: 1, name: '神行鞋', proto: '魔法靈靴', desc: '4 分 48 秒時免費得到移速多 3% 的武道鞋（在那之前不能買鞋），每次參與擊殺提早 18 秒。', psv: { k: 'flag', footwear: 1 } },
+  { id: 'cashback', tree: 'insp', row: 1, name: '回饋金', proto: '兌現', desc: '購買終極裝備時退還 7.5% 的錢。', psv: { k: 'flag', cashback: 0.075 } },
+  { id: 'triple', tree: 'insp', row: 2, name: '三帖藥', proto: '三倍藥水', desc: '升到 3 級得到 2 瓶傷藥，6 級得到依定位的藥丸，9 級得到鐵壁丸。', psv: { k: 'flag', triple: 1 } },
+  { id: 'timewarp', tree: 'insp', row: 2, name: '時光藥', proto: '時間扭曲藥水', desc: '喝傷藥或水壺時，立刻回復總量的 40%。', psv: { k: 'flag', timewarp: 0.4 } },
+  { id: 'biscuit', tree: 'insp', row: 2, name: '乾糧快遞', proto: '乾糧快遞', desc: '開局到 2 分 24 秒每 48 秒送一塊乾糧（按 1 吃），回復 20＋2% 最大血量（缺血越多回越多），並永久血量 +30。', psv: { k: 'flag', biscuit: 1 } },
+  { id: 'cosmic', tree: 'insp', row: 3, name: '星空視界', proto: '銀河視界', desc: '召喚師技能加速 +18，主動道具冷卻 -9%。', psv: { k: 'statAdd', sumAh: 18, itemAh: 10 } },
+  { id: 'approach', tree: 'insp', row: 3, name: '乘勝追擊', proto: '斗轉星移', desc: '附近有被緩速、暈眩或冰凍的敵方英雄時，移速 +7.5%。', psv: { k: 'approach', ms: 0.075, r: 10 } },
+  { id: 'jack', tree: 'insp', row: 3, name: '萬事通', proto: '萬事通', desc: '裝備每提供一種不同的屬性，技能加速 +1；5 種時再 +8 適性之力，10 種時 +20。', psv: { k: 'jack' } },
+
+  { id: 'absorb', tree: 'prec', row: 1, name: '吸取', proto: '吸取生命', desc: '擊殺任何敵方單位回復 6＋每級 1 血量。', psv: { k: 'absorb', base: 6, lv: 1 } },
+  { id: 'triumph', tree: 'prec', row: 1, name: '凱旋', proto: '凱旋', desc: '參與擊殺英雄時回復 5% 已損血量＋2.5% 最大血量，並多 20 金。', psv: { k: 'triumph' } },
+  { id: 'presence', tree: 'prec', row: 1, name: '心如止水', proto: '氣定神閒', desc: '傷害英雄時回復 6＋每級 4 魔力（體力 6，8 秒一次）；參與擊殺回復 15% 最大魔力。', psv: { k: 'presence', base: 6, lv: 4, cd: 8 } },
+  { id: 'alacrity', tree: 'prec', row: 2, name: '傳奇・迅捷', proto: '傳奇：敏捷', desc: '攻速 +3%，每層傳奇再 +1.5%（最多 10 層）。參與擊殺英雄或大型野怪各 1 層，每補 20 隻兵 1 層。', psv: { k: 'legend', as: 0.015, base: { as: 0.03 }, max: 10 } },
+  { id: 'legendHaste', tree: 'prec', row: 2, name: '傳奇・疾速', proto: '傳奇：疾速', desc: '每層傳奇一般技能（Q、W、E）加速 +1.5（最多 10 層）。', psv: { k: 'legend', basicAh: 1.5, max: 10 } },
+  { id: 'bloodline', tree: 'prec', row: 2, name: '傳奇・血統', proto: '傳奇：血脈', desc: '每層傳奇普攻吸血 +0.45%（最多 15 層），滿層血量 +85。', psv: { k: 'legend', ls: 0.0045, max: 15, fullHp: 85 } },
+  { id: 'coup', tree: 'prec', row: 3, name: '致命一擊', proto: '致命一擊', desc: '對血量低於 40% 的英雄傷害 +8%。', psv: { k: 'dmgVsHp', below: 0.4, pct: 0.08 } },
+  { id: 'cutDown', tree: 'prec', row: 3, name: '斬殺', proto: '斬殺', desc: '對血量高於 60% 的英雄傷害 +8%。', psv: { k: 'dmgVsHp', above: 0.6, pct: 0.08 } },
+  { id: 'lastStand', tree: 'prec', row: 3, name: '背水一戰', proto: '背水一戰', desc: '自己血量低於 60% 時傷害 +5%，30% 時 +11%。', psv: { k: 'lastStand' } },
+
+  { id: 'demolish', tree: 'res', row: 1, name: '破城', proto: '爆破', desc: '在塔旁邊連打 3 次普攻時，第 3 下追加 85＋最大血量 28% 的物理傷害（遠程 50＋20%，30 秒一次）。', psv: { k: 'demolish', cd: 30 } },
+  { id: 'fontLife', tree: 'res', row: 1, name: '生命泉源', proto: '生命之泉', desc: '暈眩、冰凍或緩速英雄時，自己與附近血量最低的隊友回復 20＋每級 5（遠程七成，20 秒一次）。', psv: { k: 'fontLife', base: 20, lv: 5, cd: 20 } },
+  { id: 'shieldBash', tree: 'res', row: 1, name: '盾擊', proto: '盾擊', desc: '得到新護盾後，下一次對英雄的普攻追加 5＋每級 2＋額外血量 2.5%＋護盾量 15% 的傷害。', psv: { k: 'shieldBash' } },
+  { id: 'conditioning', tree: 'res', row: 2, name: '鍛鍊', proto: '調節', desc: '4 分 48 秒後物理與技能防禦 +4，再多 3%。', psv: { k: 'conditioning', at: 288, v: 4, pct: 0.03 } },
+  { id: 'secondWind', tree: 'res', row: 2, name: '回氣', proto: '回春', desc: '受到英雄傷害後 10 秒內回復 4% 已損血量。', psv: { k: 'secondWind', pct: 0.04 } },
+  { id: 'bonePlating', tree: 'res', row: 2, name: '骨甲', proto: '骨甲', desc: '受到英雄傷害後，接下來 1.5 秒內的 3 次傷害各減少 20＋每級 3（55 秒一次）。', psv: { k: 'bonePlating', base: 20, lv: 3, cd: 55 } },
+  { id: 'overgrowth', tree: 'res', row: 3, name: '茁壯', proto: '過度生長', desc: '附近每死 8 隻敵方小兵或野怪，永久最大血量 +3；收集 120 隻時再 +3.5%。', psv: { k: 'overgrowth' } },
+  { id: 'revitalize', tree: 'res', row: 3, name: '復甦', proto: '甦醒', desc: '治療與護盾強度 +5%；對血量低於 40% 的目標再 +10%。', psv: { k: 'statAdd', hsp: 0.05 } },
+  { id: 'unflinching', tree: 'res', row: 3, name: '不屈', proto: '堅毅', desc: '被控場期間與之後 2 秒，物理與技能防禦 +5。', psv: { k: 'unflinching', v: 5 } },
+
+  { id: 'axiomArc', tree: 'sorc', row: 1, name: '大絕奧義', proto: '公理奧術大師', desc: '大絕的傷害 +10%；參與擊殺時大絕目前的冷卻 -7%。', psv: { k: 'axiomArc', pct: 0.1, cdr: 0.07 } },
+  { id: 'manaflow', tree: 'sorc', row: 1, name: '氣力之環', proto: '附魔之帶', desc: '技能命中英雄時最大魔力 +25（15 秒一次，最多 +250）；滿了之後每 5 秒回復 1% 已用魔力。', psv: { k: 'manaflow' } },
+  { id: 'nimbusCloak', tree: 'sorc', row: 1, name: '筋斗雲披風', proto: '光輝披風', desc: '施放召喚師技能後 2 秒內移速 +15%～45%（冷卻越長的技能越多）。', psv: { k: 'nimbusCloak' } },
+  { id: 'transcend', tree: 'sorc', row: 2, name: '超越', proto: '卓越', desc: '5 級技能加速 +5、8 級再 +5；11 級起參與擊殺時一般技能剩餘冷卻 -20%。', psv: { k: 'transcend' } },
+  { id: 'celerity', tree: 'sorc', row: 2, name: '神速', proto: '迅捷', desc: '移速 +1%，所有移速加成效果再強 7%。', psv: { k: 'statAdd', ms: 0.01, msAmp: 0.07 } },
+  { id: 'absFocus', tree: 'sorc', row: 2, name: '絕對專注', proto: '絕對專注', desc: '血量高於 70% 時，適性之力 +2＋每級 1.5（攻擊或氣功強度，取較高的那邊）。', psv: { k: 'absFocus' } },
+  { id: 'scorch', tree: 'sorc', row: 3, name: '灼燒', proto: '焦灼', desc: '技能命中英雄時，1 秒後追加 20＋每級 2 的技能傷害（10 秒一次）。', psv: { k: 'heroProc', dmg: 20, lvDmg: 2, cd: 10, skillOnly: true, delay: 1 } },
+  { id: 'waterwalk', tree: 'sorc', row: 3, name: '踏浪', proto: '水行者', desc: '在河道上移速 +3%、適性之力 +8＋每級 1.5。', psv: { k: 'waterwalk' } },
+  { id: 'storm', tree: 'sorc', row: 3, name: '風暴凝聚', proto: '暴風凝聚', desc: '每 4 分鐘適性之力增加（4 分 +8、8 分 +24、12 分 +48…）。', psv: { k: 'storm', every: 240 } },
+];
+// 碎片：每列選 1
+export const SHARDS = [
+  [{ id: 'as', name: '攻速 +10%', stats: { as: 0.1 } }, { id: 'af', name: '適性之力 +9', adaptive: 9 }, { id: 'ah', name: '技能加速 +8', stats: { ah: 8 } }],
+  [{ id: 'af', name: '適性之力 +9', adaptive: 9 }, { id: 'ms', name: '移速 +2%', stats: { ms: 0.02 } }, { id: 'hpLv', name: '血量 +10～180（隨等級）', hpLv: true }],
+  [{ id: 'hp', name: '血量 +65', stats: { hp: 65 } }, { id: 'ten', name: '韌性與緩速抗性 +10%', stats: { ten: 0.1 }, slowRes: 0.1 }, { id: 'hpLv', name: '血量 +10～180（隨等級）', hpLv: true }],
+];
+// 各定位的預設符文頁（玩家可在選角畫面改）
+export const RUNE_PAGES = {
+  fighter: { minors: ['triumph', 'alacrity', 'lastStand'], sec: 'res', secs: ['secondWind', 'unflinching'], shards: ['as', 'af', 'hpLv'] },
+  assassin: { minors: ['tasteBlood', 'mementos', 'ultHunter'], sec: 'prec', secs: ['triumph', 'coup'], shards: ['af', 'af', 'hpLv'] },
+  tank: { minors: ['demolish', 'secondWind', 'overgrowth'], sec: 'insp', secs: ['biscuit', 'cosmic'], shards: ['ah', 'ms', 'hp'] },
+  mage: { minors: ['manaflow', 'transcend', 'scorch'], sec: 'insp', secs: ['biscuit', 'cosmic'], shards: ['ah', 'af', 'hp'] },
+  marksman: { minors: ['presence', 'alacrity', 'coup'], sec: 'dom', secs: ['tasteBlood', 'treasure'], shards: ['as', 'af', 'hpLv'] },
+};
 export const RUNE_REC = {
   goku: 'conqueror', vegeta: 'electrocute', trunks: 'conqueror', piccolo: 'grasp', frieza: 'comet', a18: 'tempo',
   naruto: 'conqueror', sasuke: 'electrocute', kakashi: 'comet', sakura: 'grasp', luffy: 'tempo', zoro: 'conqueror', sanji: 'phase', nami: 'comet',

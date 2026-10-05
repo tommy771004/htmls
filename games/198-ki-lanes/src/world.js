@@ -1,5 +1,6 @@
 // 一場對戰的建立與固定步長推進（畫面與 Node 模擬共用）。
 import { WAVE_EVERY, HERO_ORDER, FOUNTAIN } from './config.js';
+import { defaultPage, recalcStats } from './units.js';
 import { createWorld, addUnit, makeHero, spawnWave, updateMinion, updateTower, heroTick, tickStatus, physics, separate, respawnHero } from './units.js';
 import { heroAct, updateProjectiles, updateZones, wireShots, levelSkill, updateWards } from './combat.js';
 import { makeBrain, updateAI } from './ai.js';
@@ -28,7 +29,7 @@ export function newMatch(opts) {
   const lanesA = [lane, ...[0, 1, 2].filter((l) => l !== lane)];
   teams[0].forEach((id, i) => {
     const h = addUnit(G, makeHero(G, id, 0, lanesA[i], i === 0 && !!opts.player));
-    if (h.isPlayer) { G.player = h; if (opts.rune) h.rune = opts.rune; if (opts.summ) h.summ = opts.summ; } else h.brain = makeBrain(h, diff);
+    if (h.isPlayer) { G.player = h; if (opts.rune) h.rune = opts.rune; if (opts.summ) h.summ = opts.summ; h.page = opts.page || defaultPage(h.def, h.rune); recalcStats(h); h.hp = h.maxHp; h.mp = h.maxMp; } else h.brain = makeBrain(h, diff);
   });
   teams[1].forEach((id, i) => { const h = addUnit(G, makeHero(G, id, 1, i, false)); h.brain = makeBrain(h, diff); });
   if (!G.player) G.player = G.heroes[0];

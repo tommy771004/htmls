@@ -22,7 +22,7 @@ async function run(name, w, h, touch) {
   check('viewport meta', await ev(() => !!document.querySelector('meta[name=viewport]')));
   await page.waitForTimeout(1200); await shot('1-select');
   // 用真的點擊選角並出戰
-  if (touch) { await page.tap('.card[data-id="frieza"]'); await page.tap('[data-rune="electrocute"]'); await shot('1b-rune'); await page.tap('#go'); } else { await page.click('.card[data-id="frieza"]'); await page.click('[data-rune="electrocute"]'); await shot('1b-rune'); await page.click('#go'); }
+  if (touch) { await page.tap('.card[data-id="frieza"]'); await page.tap('[data-rtab="dom"]'); await page.tap('[data-rune="electrocute"]'); await shot('1b-rune'); await page.tap('#go'); } else { await page.click('.card[data-id="frieza"]'); await page.click('[data-rtab="dom"]'); await page.click('[data-rune="electrocute"]'); await shot('1b-rune'); await page.click('#go'); }
   await page.waitForTimeout(500);
   check('選角畫面選的符文帶進對戰', (await ev(() => window.__ki.state().player.rune)) === 'electrocute');
   check('進入對戰', (await ev(() => window.__ki.state().phase)) === 'play');

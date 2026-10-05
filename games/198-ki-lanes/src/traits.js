@@ -3,6 +3,8 @@
 import { TEAR_MAX, JUNGLE_BUFF } from './config.js';
 import { damage, heal, recalcStats, interrupt, addMp, dist, addGold } from './units.js';
 import { seen } from './vision.js';
+import { riverDist } from './map.js';
+const rn = (h, id) => h.psv && h.psv['rune_' + id]; // 這名英雄有沒有帶某個小符文
 
 const sfx = (G, name, at, o) => G.sfx && G.sfx(name, at, o);
 const fx = (G) => G.fx;
@@ -18,11 +20,51 @@ function countHits(G, h, dst, win) {
   return rs.hits.length;
 }
 
+// 新基石與小符文：傷害英雄後
+function runeOnHeroHit(G, h, dst, a, opts, skill) {
+  const F = fxs(h), rs = h.rs, cc = opts.stun || opts.air || opts.freeze, impaired = dst.st.stun > 0 || dst.st.frozen > 0 || dst.st.slow > 0;
+  switch (h.rune) {
+    case 'harvest':
+      if (dst.hp < dst.maxHp * 0.5 && G.time >= (rs.hvCd || 0)) { rs.hvCd = G.time + 35; const v = 30 + 11 * (rs.souls || 0) + 0.1 * bonusAd(h) + 0.05 * (h.ap || 0); rs.souls = (rs.souls || 0) + 1; G.later(0.05, () => adaptiveDmg(G, h, dst, v)); fx(G).hitSpark(dst.x, 1.3, dst.z, '#b04aff', 1.2, 'heavy'); G.emit('runeProc', { h, id: 'harvest', dst }); }
+      break;
+    case 'glacial':
+      if (cc && G.time >= (rs.glCd || 0)) { rs.glCd = G.time + 25; F.glT = G.time + 3; F.glX = dst.x; F.glZ = dst.z; fx(G).iceField && fx(G).iceField(dst.x, dst.z, 3); G.emit('runeProc', { h, id: 'glacial' }); }
+      break;
+    case 'firstStrike':
+      if (G.time >= (rs.fsCd || 0) && !(h.damagers.get(dst) > G.time - 3)) { rs.fsCd = G.time + 20; F.fsT = G.time + 3; addGold(G, h, 10, h); fx(G).ring(h.x, h.z, '#ffd34a', 1.4, 0.3); G.emit('runeProc', { h, id: 'firstStrike' }); }
+      break;
+    case 'aftershock':
+      if (cc && G.time >= (rs.afCd || 0)) {
+        rs.afCd = G.time + 20;
+        const bArm = Math.max(0, h.armor - h.def.stats.armor), bMr = Math.max(0, h.mr - (h.def.stats.mr ?? h.def.stats.armor));
+        buff(G, h, 'aftershock', { armor: 20 + bArm * 0.75, mr: 20 + bMr * 0.75 }, 2.5);
+        G.later(2.5, () => { if (!h.alive) return; for (const u of enemiesIn(G, h, h.x, h.z, 3.5)) procDmg(G, h, u, 25 + 8 * h.level + 0.08 * bonusHp(h), true); fx(G).ring(h.x, h.z, '#e8dcc0', 3.5, 0.4); fx(G).dust(h.x, h.z, 14); });
+        G.emit('runeProc', { h, id: 'aftershock' });
+      }
+      break;
+    case 'aery':
+      if (G.time >= (rs.aeryT || 0)) { rs.aeryT = G.time + 2; const v = 10 + 4 * h.level + 0.05 * (h.ap || 0) + 0.1 * bonusAd(h); G.later(0.3, () => { if (dst.alive) adaptiveDmg(G, h, dst, v); }); fx(G).bolt && fx(G).hitSpark(dst.x, 1.6, dst.z, '#c8f0ff', 0.7, 'light'); }
+      break;
+    case 'deathfire':
+      if (skill) { if (!(dst.st.dfT > 0)) dst.st.dfStart = G.time; dst.st.dfT = 4; dst.st.dfSrc = h; }
+      break;
+  }
+  // 小符文
+  let e;
+  if ((e = rn(h, 'cheapShot')) && impaired && G.time >= (F.csCd || 0)) { F.csCd = G.time + e.cd; const v = e.base + e.lv * h.level; G.later(0.02, () => dst.alive && damage(G, h, dst, v, { type: 'true', noKi: true, rune: true })); }
+  if ((e = rn(h, 'tasteBlood')) && G.time >= (F.tbCd || 0)) { F.tbCd = G.time + e.cd; heal(G, h, e.base + e.lv * h.level + 0.1 * bonusAd(h) + 0.05 * (h.ap || 0)); }
+  if ((e = rn(h, 'impact')) && G.time - (h.blinkT ?? -99) < 4 && G.time >= (F.imCd || 0)) { F.imCd = G.time + e.cd; const v = e.base + e.lv * h.level; G.later(0.02, () => dst.alive && damage(G, h, dst, v, { type: 'true', noKi: true, rune: true })); }
+  if ((e = rn(h, 'presence')) && G.time >= (F.pmCd || 0)) { F.pmCd = G.time + e.cd; addMp(h, h.res === 'energy' ? 6 : e.base + e.lv * h.level); }
+  if ((e = rn(h, 'fontLife')) && (cc || opts.slow) && G.time >= (F.flCd2 || 0)) { F.flCd2 = G.time + e.cd; const k = h.def.melee ? 1 : 0.7, ally = G.heroes.filter((o) => o.alive && o.team === h.team && o !== h && dist(o, h) < 8).sort((p, q) => p.hp / p.maxHp - q.hp / q.maxHp)[0]; for (const o of [h, ally]) if (o) heal(G, o, (e.base + e.lv * h.level) * k); }
+  if ((e = rn(h, 'manaflow')) && skill && G.time >= (F.mfCd || 0) && (h.mfStk || 0) < 250 && h.res !== 'energy') { F.mfCd = G.time + 15; h.mfStk = Math.min(250, (h.mfStk || 0) + 25); recalcStats(h); }
+}
+
 // 英雄對英雄造成傷害後（普攻或技能）
 export function onHeroHit(G, h, dst, a, opts) {
   const rs = h.rs, skill = opts.type === 'skill' || opts.type === 'super';
   if (!skill && !isBasic(opts)) return;
   itemOnHeroHit(G, h, dst, a, opts, skill);
+  runeOnHeroHit(G, h, dst, a, opts, skill);
   switch (h.rune) {
     case 'conqueror': {
       rs.stacks = Math.min(8, (G.time - rs.t < 5 ? rs.stacks : 0) + (skill ? 2 : 1)); rs.t = G.time;
@@ -84,6 +126,7 @@ export function asMul(G, h) {
     if (F.flT > G.time) m /= 1 + F.flAs;
   }
   for (const e of effs(h, 'selfLowHp')) if (h.hp < h.maxHp * e.below) m /= 1 + e.as;
+  if (h.rune === 'hail' && h.rs.hailN > 0 && G.time - h.rs.hailT < 3) m /= h.def.melee ? 1.9 : 1.6; // 連擊風暴
   // 光環：附近敵方英雄的攻速降低（冰霜之心類）
   for (const o of G.heroes) if (o.alive && o.team !== h.team && o.psv) for (const k in o.psv) { const e = o.psv[k]; if (e && e.k === 'asAura' && dist(o, h) < e.r) m *= 1 + e.pct; }
   return m;
@@ -106,6 +149,7 @@ export function beforeAuto(G, h, t, dmg, opts) {
   }
   for (const e of effs(h, 'onhit')) if (!e.magic && (!e.minionOnly || t.kind === 'minion')) dmg += onhitAmount(h, t, e);
   dmg = legendBeforeAuto(G, h, t, dmg, opts);
+  dmg = runeBeforeAuto(G, h, t, dmg, opts);
   if (h.red > 0 && (t.kind === 'hero' || t.kind === 'minion' || t.kind === 'monster')) {
     const R = JUNGLE_BUFF.red;
     t.st.burn = R.burnT; t.st.burnDps = (R.burn + R.burnLv * h.level) / R.burnT; t.st.burnSrc = h;
@@ -200,7 +244,7 @@ export function useActive(G, h, i) {
     sfx(G, 'vanish', h, { vol: 0.5 });
     G.emit('cleanse', h);
   }
-  h.actCd[a.id] = G.time + a.cd;
+  h.actCd[a.id] = G.time + a.cd * 100 / (100 + (h.itemAh || 0)); // 星空視界：道具加速
   return true;
 }
 
@@ -313,7 +357,23 @@ export function buff(G, h, key, stats, dur, extra) {
   h.buffs[key] = { stats, until: G.time + dur, ...(extra || {}) };
   recalcStats(h);
 }
+// 適性傷害：額外攻擊較高時算物理，否則算技能
+const adaptiveDmg = (G, h, t, v) => procDmg(G, h, t, v, (h.ap || 0) >= bonusAd(h));
 const procDmg = (G, h, t, v, magic) => v > 0 && t.alive && damage(G, h, t, v, { type: 'proc', magic: !!magic, noKi: true });
+
+// 新基石與小符文：普攻前
+function runeBeforeAuto(G, h, t, dmg, opts) {
+  const F = fxs(h), rs = h.rs, hero = t.kind === 'hero';
+  if (h.rune === 'hail' && hero && G.time >= (rs.hailCd || 0) && !(rs.hailN > 0)) { rs.hailCd = G.time + 10; rs.hailN = 3; rs.hailT = G.time; G.emit('runeProc', { h, id: 'hail' }); }
+  if (h.rune === 'fleet' && (rs.fleet || 0) >= 100) {
+    rs.fleet = 0; const k = h.def.melee ? 1 : 0.6, minion = t.kind !== 'hero' ? 0.15 / 1 : 1;
+    heal(G, h, (15 + 12 * h.level + 0.1 * bonusAd(h) + 0.05 * (h.ap || 0)) * k * (t.kind === 'hero' ? 1 : 0.15));
+    haste(h, 1, h.def.melee ? 0.2 : 0.75); fx(G).ring(h.x, h.z, '#9fffb0', 1.4, 0.3);
+  }
+  let e;
+  if ((e = rn(h, 'shieldBash')) && hero && h.st.shield > 0 && G.time >= (F.sbCd || 0)) { F.sbCd = G.time + 5; dmg += 5 + 2 * h.level + 0.025 * bonusHp(h) + 0.15 * h.st.shield; }
+  return dmg;
+}
 
 // 傳說裝備的普攻前效果：咒刃變體、蓄能、巨像、動量、伏擊、首擊暴擊、距離增傷、損血增傷
 function legendBeforeAuto(G, h, t, dmg, opts) {
@@ -358,6 +418,18 @@ export function afterAuto(G, h, t, dealt, opts) {
   if (effs(h, 'energize').length) F.energy = Math.min(100, (F.energy || 0) + 15);
   if (!h.def.melee) for (const e of effs(h, 'splitShot')) for (const u of enemiesIn(G, h, t.x, t.z, e.r).filter((u) => u !== t).slice(0, e.n)) { procDmg(G, h, u, dealt * e.pct, false); fx(G).hitSpark(u.x, 1.1 + u.y, u.z, h.def.color, 0.6, 'light'); }
   for (const e of effs(h, 'cdOnAuto')) for (const k of ['Q', 'W', 'E']) h.cds[k] *= 1 - e.pct;
+  // 符文：連擊風暴計數、強襲、瞬身步法蓄能、破城
+  { const rs = h.rs;
+    if (rs.hailN > 0) rs.hailN--;
+    if (h.rune === 'fleet') rs.fleet = Math.min(100, (rs.fleet || 0) + 15);
+    if (h.rune === 'pta' && t.kind === 'hero') {
+      if (rs.ptaId === t.id && G.time - rs.ptaLast < 4) rs.ptaN++; else { rs.ptaId = t.id; rs.ptaN = 1; }
+      rs.ptaLast = G.time;
+      if (rs.ptaN === 3) { adaptiveDmg(G, h, t, 40 + 10 * h.level); rs.ptaMark = t.id; fx(G).hitSpark(t.x, 1.3, t.z, '#ffd34a', 1.3, 'heavy'); G.emit('runeProc', { h, id: 'pta', dst: t }); }
+    }
+    const dm = rn(h, 'demolish');
+    if (dm && t.kind === 'tower') { if (F.demId === t.id) F.demN++; else { F.demId = t.id; F.demN = 1; } if (F.demN >= 3 && G.time >= (F.demCd || 0)) { F.demCd = G.time + dm.cd; F.demN = 0; damage(G, h, t, h.def.melee ? 85 + 0.28 * h.maxHp : 50 + 0.2 * h.maxHp, { type: 'proc', noKi: true }); fx(G).hitSpark(t.x, 2, t.z, '#ffd34a', 1.6, 'heavy'); } }
+  }
   for (const e of effs(h, 'guinsoo')) {
     F.gStk = Math.min(e.max, (G.time - (F.gT ?? -99) < e.dur ? F.gStk || 0 : 0) + 1); F.gT = G.time;
     if (F.gStk >= e.max && (F.gN = (F.gN || 0) + 1) % 3 === 0) for (const o of effs(h, 'onhit')) if (!o.minionOnly) procDmg(G, h, t, onhitAmount(h, t, o), true);
@@ -395,7 +467,7 @@ function itemOnHeroHit(G, h, dst, a, opts, skill) {
   for (const e of effs(h, 'heroProc')) if ((!e.skillOnly || skill) && G.time >= (F.procCd || 0)) {
     F.procCd = G.time + e.cd;
     if (e.splash) for (const u of enemiesIn(G, h, dst.x, dst.z, e.splash).filter((u) => u !== dst).slice(0, 3)) G.later(0.05, () => procDmg(G, h, u, (e.dmg + (e.ap || 0) * (h.ap || 0)) * 0.5, true));
-    G.later(0.02, () => { if (dst.alive) damage(G, h, dst, e.dmg + (e.ap || 0) * (h.ap || 0) + (e.lvDmg || 0) * h.level, e.trueDmg ? { type: 'true', noKi: true, rune: true } : { type: 'proc', magic: true, noKi: true }); });
+    G.later(e.delay || 0.02, () => { if (dst.alive) damage(G, h, dst, e.dmg + (e.ap || 0) * (h.ap || 0) + (e.lvDmg || 0) * h.level, e.trueDmg ? { type: 'true', noKi: true, rune: true } : { type: 'proc', magic: true, noKi: true }); });
     fx(G).hitSpark(dst.x, 1.2 + dst.y, dst.z, '#9fd8ff', 0.8, 'light');
   }
   if (skill) for (const e of effs(h, 'skillBurn')) { dst.st.burn = Math.max(dst.st.burn || 0, e.dur); dst.st.burnDps = Math.max(dst.st.burnDps || 0, e.dps + (e.pctMax || 0) * dst.maxHp); dst.st.burnSrc = h; }
@@ -470,6 +542,19 @@ export function beforeTaken(G, src, dst, a, opts) {
     for (const e of effs(src, 'vsCc')) if (dst.st.stun > 0 || dst.st.frozen > 0 || dst.st.slow > 0) a *= 1 + e.pct;
     if (skill) { const F = fxs(src); if (F.copyT > G.time) { if (!F.copyEnd) F.copyEnd = G.time + 0.4; if (G.time < F.copyEnd) a *= 1 + F.copyAmp; else F.copyT = F.copyEnd = 0; } } // 複製：同一招的多段命中都算
   }
+  if (src && src.kind === 'hero') {
+    const SF = fxs(src); let e;
+    if (src.rune === 'firstStrike' && SF.fsT > G.time) { const before = a; a *= 1.07; addGold(G, src, (a - before) * (src.def.melee ? 0.5 : 0.35), src); }
+    if (src.rune === 'pta' && src.rs.ptaMark === dst.id && G.time - (src.lastAttackHeroT ?? -99) < 5) a *= 1.08;
+    if ((e = rn(src, 'coup')) && dst.hp < dst.maxHp * e.below) a *= 1 + e.pct;
+    if ((e = rn(src, 'cutDown')) && dst.hp > dst.maxHp * e.above) a *= 1 + e.pct;
+    if (rn(src, 'lastStand') && src.hp < src.maxHp * 0.6) a *= 1 + 0.05 + 0.06 * Math.min(1, (0.6 - src.hp / src.maxHp) / 0.3);
+    if ((e = rn(src, 'axiomArc')) && opts.type === 'super') a *= 1 + e.pct;
+  }
+  { const DF = fxs(dst); let e;
+    if ((e = rn(dst, 'bonePlating')) && DF.boneN > 0 && G.time < DF.boneT && src && src.kind === 'hero') { a = Math.max(0, a - (e.base + e.lv * dst.level)); DF.boneN--; }
+    if (rn(dst, 'unflinching') && (dst.st.stun > 0 || dst.st.frozen > 0 || G.time - (DF.ccT ?? -99) < 2)) a *= 0.95;
+  }
   if (dst.st.vuln > 0) a *= 1 + (dst.st.vulnAmp || 0);
   if (src && src.soul === 'chem' && src.hp < src.maxHp * 0.5) a *= 1.1; // 毒霧之魂
   if (dst.soul === 'chem' && dst.hp < dst.maxHp * 0.5) a *= 0.9;
@@ -496,6 +581,19 @@ export function afterTaken(G, src, dst, a, opts) {
     fx(G).shieldFx(dst, '#ffd34a', e.dur); G.emit('lifeline', dst);
   }
   F.lastDmg = G.time;
+  if (opts.stun || opts.air || opts.freeze) F.ccT = G.time;
+  if (fromHero) {
+    let e;
+    if ((e = rn(dst, 'bonePlating')) && G.time >= (F.boneCd || 0)) { F.boneCd = G.time + e.cd; F.boneN = 3; F.boneT = G.time + 1.5; }
+    if ((e = rn(dst, 'secondWind'))) { F.regenT = Math.max(F.regenT || 0, G.time + 10); F.regenV = Math.max(G.time < (F.regenT0 || 0) ? F.regenV || 0 : 0, (dst.maxHp - dst.hp) * e.pct / 10); F.regenT0 = G.time + 10; }
+    // 守護之誓：附近持有守護的隊友（或自己）
+    if (a >= dst.maxHp * 0.06) for (const g of G.heroes) if (g.alive && g.team === dst.team && g.rune === 'guardian' && dist(g, dst) < 6 && G.time >= (g.rs.gdCd || 0)) {
+      g.rs.gdCd = G.time + 45;
+      const v = (40 + 10 * g.level + 0.2 * (g.ap || 0) + 0.06 * bonusHp(g)) * (1 + (g.hsp || 0));
+      for (const o of new Set([g, dst])) { o.st.shield = (o.st.shield || 0) + v; o.st.shieldT = Math.max(o.st.shieldT, 1.5); fx(G).shieldFx(o, '#ffe9a0', 1.5); }
+      G.emit('runeProc', { h: g, id: 'guardian' });
+    }
+  }
   if (magic) {
     F.lastMagic = G.time;
     if (fromHero) for (const e of effs(dst, 'steadfast')) { F.sfN = (G.time - (F.sfT ?? -99) < 5 ? F.sfN || 0 : 0) + 1; F.sfT = G.time; if (F.sfN >= e.n) buff(G, dst, 'steadfast', { mr: e.mr, ms: e.ms }, 5); }
@@ -514,6 +612,18 @@ export function afterTaken(G, src, dst, a, opts) {
 // 參與擊殺英雄
 export function onTakedown(G, h, killer) {
   let changed = false;
+  // 符文：魂之收割重置、獵人層數、凱旋、心如止水、傳奇、大絕奧義、超越
+  if (h.rune === 'harvest') h.rs.hvCd = Math.min(h.rs.hvCd || 0, G.time + 1);
+  if (h.psv) {
+    const victim = G.lastVictim; let e;
+    if ((rn(h, 'treasure') || rn(h, 'relentless') || rn(h, 'ultHunter')) && victim) { h.hunt = h.hunt || new Set(); if (!h.hunt.has(victim.heroId)) { h.hunt.add(victim.heroId); if ((e = rn(h, 'treasure'))) addGold(G, h, e.gold + e.per * (h.hunt.size - 1), h); changed = true; } }
+    if (rn(h, 'triumph')) { heal(G, h, (h.maxHp - h.hp) * 0.05 + h.maxHp * 0.025); addGold(G, h, 20, h); }
+    if (rn(h, 'presence')) addMp(h, h.maxMp * 0.15);
+    if (rn(h, 'alacrity') || rn(h, 'legendHaste') || rn(h, 'bloodline')) { h.legend = (h.legend || 0) + 1; changed = true; }
+    if ((e = rn(h, 'axiomArc'))) h.cds.R *= 1 - e.cdr;
+    if (rn(h, 'transcend') && h.level >= 11) for (const k of ['Q', 'W', 'E']) h.cds[k] *= 0.8;
+    if (rn(h, 'footwear')) h.footAt = (h.footAt ?? 288) - 18;
+  }
   for (const e of effs(h, 'hubris')) { const v = (h.buffs && h.buffs.hubris ? h.buffs.hubris.stats.ad + e.per : e.ad); buff(G, h, 'hubris', { ad: v }, e.dur); }
   for (const e of effs(h, 'ultRefund')) { const s = h.def.skills.R; h.cds.R = Math.max(0, h.cds.R - s.cd * e.pct); }
   for (const e of effs(h, 'takedownOv')) buff(G, h, 'feast', { ov: e.v }, e.dur);
@@ -528,6 +638,31 @@ export function onDeath(G, h) {
   for (const key in h.stk) { const e = h.psv && h.psv[key]; if (e && e.lose) h.stk[key] = Math.max(0, h.stk[key] - e.lose); }
   recalcStats(h);
 }
+// 符文的每步效果
+function runeTick(G, h, dt, F) {
+  const rs = h.rs;
+  if (F.glT > G.time) { F.glAcc = (F.glAcc || 0) + dt; if (F.glAcc >= 0.25) { F.glAcc = 0; for (const u of enemiesIn(G, h, F.glX, F.glZ, 3)) { u.st.slow = Math.max(u.st.slow, 0.4); u.st.slowAmt = Math.max(u.st.slowAmt, 0.3 * (1 - (u.slowRes || 0))); } } }
+  if (h.rune === 'fleet') { const mv = F.flx === undefined ? 0 : Math.hypot(h.x - F.flx, h.z - F.flz); F.flx = h.x; F.flz = h.z; if (mv < 2) rs.fleet = Math.min(100, (rs.fleet || 0) + mv * 9); }
+  // 冥火：燒自己點燃的英雄
+  if (h.rune === 'deathfire') for (const u of G.heroes) if (u.alive && u.st.dfSrc === h && u.st.dfT > 0) {
+    u.st.dfT -= dt; const ramp = G.time - u.st.dfStart >= 3 ? 1.75 : 1;
+    u.st.dfAcc = (u.st.dfAcc || 0) + (3 + h.level + 0.025 * (h.ap || 0) + 0.07 * bonusAd(h)) * ramp * dt;
+    if (u.st.dfAcc >= 4 || u.st.dfT <= 0) { const v = u.st.dfAcc; u.st.dfAcc = 0; damage(G, h, u, v, { type: 'proc', magic: true, noKi: true, dot: true }); }
+  }
+  if (!h.psv) return;
+  let e;
+  if ((e = rn(h, 'approach'))) { const want = G.heroes.some((u) => u.alive && u.team !== h.team && dist(u, h) < e.r && (u.st.slow > 0 || u.st.stun > 0 || u.st.frozen > 0)); if (want !== !!(h.buffs && h.buffs.approach)) { if (want) buff(G, h, 'approach', { ms: e.ms }, 9999); else { delete h.buffs.approach; recalcStats(h); } } }
+  const tog = (key, want, stats) => { if (want !== !!(h.buffs && h.buffs[key])) { if (want) buff(G, h, key, stats, 1e9); else { delete h.buffs[key]; recalcStats(h); } } };
+  if (rn(h, 'waterwalk')) tog('water', riverDist(h.x, h.z) < 6, { ms: 0.03, adaptive: 8 + 1.5 * h.level });
+  if (rn(h, 'absFocus')) tog('absFocus', h.hp > h.maxHp * 0.7, { adaptive: 2 + 1.5 * h.level });
+  if ((e = rn(h, 'conditioning')) && G.time >= e.at && !(h.buffs && h.buffs.cond)) buff(G, h, 'cond', { armor: e.v + h.armor * e.pct, mr: e.v + h.mr * e.pct }, 1e9);
+  if ((e = rn(h, 'storm'))) { const st = Math.floor(G.time / e.every); if (st > 0 && st !== F.stormSt) { F.stormSt = st; buff(G, h, 'storm', { adaptive: [0, 8, 24, 48, 80, 120, 168][Math.min(6, st)] }, 1e9); } }
+  if (rn(h, 'relentless')) tog('relentless', !inHeroCombat(G, h) && G.time - h.lastHitT > 5 && (h.hunt && h.hunt.size) > 0, { ms: 0.025 * ((h.hunt && h.hunt.size) || 0) });
+  if (rn(h, 'manaflow') && (h.mfStk || 0) >= 250) addMp(h, (h.maxMp - h.mp) * 0.002 * dt);
+  if (rn(h, 'biscuit') && G.time <= 150) { const n = Math.floor(G.time / 48); if (n > (F.bisN || 0)) { F.bisN = n; h.biscuit = (h.biscuit || 0) + 1; } }
+  if (rn(h, 'footwear') && !h.footGot && G.time >= (h.footAt ?? 288)) { h.footGot = true; if (!h.inv.some((id) => id === 'boots' || id.endsWith('boots') || id === 'nimbus' || id === 'nimbusx') && h.inv.length < 6) { h.inv.push('boots'); buff(G, h, 'footwear', { ms: 0.03 }, 1e9); recalcStats(h); } G.emit('footwear', h); }
+}
+
 // 每步
 function itemTick(G, h, dt) {
   // 岩山之魂：5 秒沒受傷就得到護盾
@@ -536,6 +671,7 @@ function itemTick(G, h, dt) {
   for (const e of effs(h, 'mpRegen')) addMp(h, (G.time - (F && F.heroCombat || -99) < 5 ? e.combat : e.v) * dt);
   if (!F) return;
   if (F.regenT > G.time) heal(G, h, F.regenV * dt);
+  runeTick(G, h, dt, F);
   // 限時增益到期
   if (h.buffs) { let ch = false; for (const k in h.buffs) if (h.buffs[k].until <= G.time) { delete h.buffs[k]; ch = true; } if (ch) recalcStats(h); }
   const fight = inHeroCombat(G, h);
@@ -575,7 +711,12 @@ function itemTick(G, h, dt) {
 }
 
 // 治療或護盾隊友時（小櫻 E、比克 E、18 號 E 會呼叫）：輔助裝備的增益
+// 召喚師技能施放後：筋斗雲披風
+export function onSummoner(G, h, S) {
+  if (rn(h, 'nimbusCloak')) haste(h, 2, Math.min(0.45, 0.15 + S.cd / 400));
+}
 export function onSupport(G, h, a) {
+  if (h.rune === 'aery' && a && a !== h && G.time >= (h.rs.aeryT || 0)) { h.rs.aeryT = G.time + 2; a.st.shield = (a.st.shield || 0) + (20 + 8 * h.level) * (1 + (h.hsp || 0)); a.st.shieldT = Math.max(a.st.shieldT, 2); }
   for (const e of effs(h, 'support')) {
     const st = { ap: e.ap || 0, ah: e.ah || 0, as: e.as || 0 };
     buff(G, h, 'support', st, e.dur, e.onhit ? { onhit: e.onhit } : null);
@@ -585,4 +726,15 @@ export function onSupport(G, h, a) {
   }
 }
 
-export const traits = { onHeroHit, tick, beforeTaken, afterTaken, onSkillHitAny, onTakedown, onDeath };
+// 任何敵方單位死亡：吸取（擊殺者回血）、茁壯（附近英雄收集碎片）、傳奇（補兵與大型野怪）
+export function onUnitDeath(G, u, src) {
+  if (u.kind === 'hero') { G.lastVictim = u; return; }
+  let e;
+  if (src && src.kind === 'hero' && src.psv) {
+    if ((e = rn(src, 'absorb'))) heal(G, src, e.base + e.lv * src.level);
+    if (rn(src, 'alacrity') || rn(src, 'legendHaste') || rn(src, 'bloodline')) { const F = fxs(src); if (u.kind === 'monster' && (u.big || u.boss)) { src.legend = (src.legend || 0) + 1; recalcStats(src); } else if (u.kind === 'minion' && ++F.legCs >= 20) { F.legCs = 0; src.legend = (src.legend || 0) + 1; recalcStats(src); } else if (u.kind === 'minion' && !F.legCs) F.legCs = 1; }
+  }
+  for (const h of G.heroes) if (h.alive && h.team !== u.team && rn(h, 'overgrowth') && dist(h, u) < 9) { h.ogN = (h.ogN || 0) + 1; if (h.ogN % 8 === 0 || h.ogN === 120) recalcStats(h); }
+}
+
+export const traits = { onUnitDeath, onHeroHit, tick, beforeTaken, afterTaken, onSkillHitAny, onTakedown, onDeath };

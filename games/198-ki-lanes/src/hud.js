@@ -1,13 +1,13 @@
 // HUD：比分、技能列、氣力條、血條、連擊數、公告、必殺技切入、單位血條與浮動數字、選角與結算。
-import { HEROES, HERO_ORDER, FRANCHISES, TEAM_COLOR, TEAM_LIGHT, KI_BAR, xpToNext, MAX_LEVEL, ITEMS, APE_BUFF, DRAGON, RES, RUNES, RUNE_REC, JUNGLE_BUFF, SUMMONERS, SUMM_REC, PASSIVES } from './config.js';
+import { HEROES, HERO_ORDER, FRANCHISES, TEAM_COLOR, TEAM_LIGHT, KI_BAR, xpToNext, MAX_LEVEL, ITEMS, APE_BUFF, DRAGON, RES, RUNES, RUNE_REC, JUNGLE_BUFF, SUMMONERS, SUMM_REC, PASSIVES, RUNE_TREES, MINOR_RUNES, SHARDS } from './config.js';
 import { ICONS, ITEM_ICONS, itemIcon, SUMM_ICONS } from './icons.js';
-import { castSummoner, summById } from './summoners.js';
+import { castSummoner, summById, swapReady, swapSummoner } from './summoners.js';
 import { buy, canBuy, inShop, eatSenzu, sell, priceFor, totalCost, sellPrice, itemById, buildList } from './items.js';
 import { inBush } from './vision.js';
 import { seen } from './vision.js';
 import { canLevel, skillReady, skillCost } from './combat.js';
 import { useActive } from './traits.js';
-import { vulnerable, moveSpeed } from './units.js';
+import { vulnerable, moveSpeed, defaultPage, treeOf } from './units.js';
 import { quipLine } from './quips.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -143,7 +143,9 @@ export function createHud(env) {
   el.shop.addEventListener('pointerdown', (e) => { if (e.target === el.shop) toggleShop(false); });
   $('#shop .shopX').addEventListener('click', () => toggleShop(false));
   el.goldB.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); toggleShop(); });
-  el.summ.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); if (player && G) { const t = player.lastHeroTarget, ok = t && t.alive; castSummoner(G, player, ok ? t.x : player.x + Math.sin(player.facing) * 4, ok ? t.z : player.z + Math.cos(player.facing) * 4); } });
+  let summHold = 0;
+  el.summ.addEventListener('pointerup', () => clearTimeout(summHold));
+  el.summ.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); if (player && G && swapReady(G, player)) { summHold = setTimeout(() => swapSummoner(G, player), 450); return; } if (player && G) { const t = player.lastHeroTarget, ok = t && t.alive; castSummoner(G, player, ok ? t.x : player.x + Math.sin(player.facing) * 4, ok ? t.z : player.z + Math.cos(player.facing) * 4); } });
   el.senzu.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); if (player && G) eatSenzu(G, player); });
   for (const sl of el.slots) sl.addEventListener('pointerdown', (e) => { const ai = +sl.dataset.act; if (!(ai >= 0) || !player || !G) return; e.preventDefault(); e.stopPropagation(); useActive(G, player, ai); });
   function bindPlayer(h) {
@@ -351,7 +353,7 @@ export function createHud(env) {
     if (el.ward._c !== wc) { el.ward._c = wc; el.ward.classList.toggle('cool', wc > 0); el.ward.querySelector('.wcd').textContent = wc || ''; }
     el.bushTag.classList.toggle('on', P.alive && inBush(P) > 0);
     el.dock.classList.toggle('canshop', inShop(P) && ITEMS.some((it) => canBuy(P, it.id)));
-    const ik = P.inv.join() + '|' + (P.senzu || 0) + '|' + (P.controls || 0) + '|' + (P.salve || 0) + '|' + (P.flask ? P.flaskC : -1);
+    const ik = P.inv.join() + '|' + (P.senzu || 0) + '|' + (P.controls || 0) + '|' + (P.salve || 0) + '|' + (P.flask ? P.flaskC : -1) + '|' + (P.biscuit || 0);
     if (el.invKey !== ik) {
       el.invKey = ik;
       el.slots.forEach((sl, i) => {
@@ -360,7 +362,8 @@ export function createHud(env) {
         sl.title = it ? `${it.name}${it.note ? '\n' + it.note : ''}` : ''; sl.dataset.act = ai; sl.classList.toggle('act', ai >= 0);
       });
       // 數字鍵 1 的格子：有仙豆顯示仙豆，否則顯示傷藥或水壺
-      const potId = P.senzu > 0 ? 'senzu' : P.salve > 0 ? 'salve' : P.flask && P.flaskC > 0 ? 'flask' : 'senzu', potN = potId === 'senzu' ? P.senzu || 0 : potId === 'salve' ? P.salve : P.flaskC;
+      const bis = !(P.senzu > 0) && P.biscuit > 0; // 乾糧（符文）用傷藥的圖示
+      const potId = P.senzu > 0 ? 'senzu' : bis || P.salve > 0 ? 'salve' : P.flask && P.flaskC > 0 ? 'flask' : 'senzu', potN = potId === 'senzu' ? P.senzu || 0 : bis ? P.biscuit : potId === 'salve' ? P.salve : P.flaskC;
       if (el.senzu._id !== potId) { el.senzu._id = potId; el.senzu.querySelector('.ic').innerHTML = itemIcon(potId); }
       el.senzu.querySelector('b').textContent = potN; el.senzu.classList.toggle('none', !(potN > 0));
       el.control.querySelector('b').textContent = P.controls || 0; el.control.classList.toggle('none', !(P.controls > 0));
@@ -526,7 +529,37 @@ export const NUMFONT = '"Avenir Next Condensed","Bahnschrift","Arial Narrow","Pi
 /* ---------------- 選角畫面 ---------------- */
 export function createSelect({ portraits, onPick, onStart }) {
   const wrap = $('#select'), cards = $('#cards'), info = $('#pickInfo');
-  let cur = 'goku', lane = 1, diff = 1, rune = RUNE_REC.goku, summ = 'flash';
+  let cur = 'goku', lane = 1, diff = 1, rune = RUNE_REC.goku, summ = 'flash', page = null, runeTab = 'prec', secTab = null, reDesc = '';
+  const ed = $('#runeEd'), edBody = ed.querySelector('.reBody');
+  const mr = (id) => MINOR_RUNES.find((m) => m.id === id);
+  const pageText = () => [...page.minors, ...page.secs].map((id) => mr(id).name).join('、') + '｜' + page.shards.map((id, r) => SHARDS[r].find((x) => x.id === id).name).join('、');
+  // 符文頁編輯器：主系每列選 1、副系兩個不同列各選 1、碎片每列選 1
+  function renderEd() {
+    const tree = treeOf(rune), secT = RUNE_TREES.find((t) => t.id === (secTab || page.sec));
+    const btn = (m, sel, attr) => `<button type="button" ${attr}="${m.id}" class="${sel ? 'sel' : ''}" title="${m.desc}">${m.name}</button>`;
+    edBody.innerHTML = `<h4>主系・${tree.name}<small>基石：${RUNES.find((r) => r.id === rune).name}</small></h4>`
+      + [1, 2, 3].map((r) => `<div class="rrow">${MINOR_RUNES.filter((m) => m.tree === tree.id && m.row === r).map((m) => btn(m, page.minors[r - 1] === m.id, 'data-minor')).join('')}</div>`).join('')
+      + `<h4>副系<small>從不同的兩列各選一個</small></h4><div class="rtabs">${RUNE_TREES.filter((t) => t.id !== tree.id).map((t) => `<button type="button" data-sectab="${t.id}" aria-selected="${t.id === secT.id}">${t.name}</button>`).join('')}</div>`
+      + [1, 2, 3].map((r) => `<div class="rrow">${MINOR_RUNES.filter((m) => m.tree === secT.id && m.row === r).map((m) => btn(m, page.sec === secT.id && page.secs.includes(m.id), 'data-secm')).join('')}</div>`).join('')
+      + `<h4>碎片</h4>` + SHARDS.map((row, r) => `<div class="rrow">${row.map((x) => `<button type="button" data-shard="${r}:${x.id}" class="${page.shards[r] === x.id ? 'sel' : ''}">${x.name}</button>`).join('')}</div>`).join('')
+      + `<p class="reDesc">${reDesc || '點符文看說明；同一列換一個會取代原本的。'}</p>`;
+  }
+  ed.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.classList.contains('reX') || b.classList.contains('reOk')) { ed.classList.remove('on'); showRune(); return; }
+    if (b.dataset.minor) { const m = mr(b.dataset.minor); page.minors[m.row - 1] = m.id; reDesc = `${m.name}：${m.desc}（原型：${m.proto}）`; }
+    else if (b.dataset.sectab) { secTab = b.dataset.sectab; }
+    else if (b.dataset.secm) {
+      const m = mr(b.dataset.secm);
+      if (page.sec !== m.tree) { page.sec = m.tree; page.secs = []; }
+      const rowOf = (id) => mr(id).row, same = page.secs.findIndex((id) => rowOf(id) === m.row);
+      if (same >= 0) page.secs[same] = m.id; else { page.secs.push(m.id); if (page.secs.length > 2) page.secs.shift(); }
+      reDesc = `${m.name}：${m.desc}（原型：${m.proto}）`;
+    } else if (b.dataset.shard) { const [r, id] = b.dataset.shard.split(':'); page.shards[+r] = id; }
+    else if (b.classList.contains('reReset')) { page = defaultPage(HEROES[cur], rune); secTab = null; }
+    renderEd();
+  });
+  ed.addEventListener('pointerdown', (e) => { if (e.target === ed) { ed.classList.remove('on'); showRune(); } });
   const summRec = (id) => SUMM_REC[{ 坦克: 'tank', 刺客: 'assassin', 遠程射手: 'marksman', 遠程術士: 'mage' }[HEROES[id].role] || 'fighter'];
   const card = (id) => { const d = HEROES[id]; return `<button class="card" type="button" data-id="${id}" style="--el:${d.color}"><img alt="" src="${portraits[id] || ''}"><b>${d.short}</b><small>${d.en}</small><em>${d.role}</em></button>`; };
   cards.innerHTML = FRANCHISES.map(([f, label]) => `<div class="grp"><span class="gl">${label}</span><div class="row">${HERO_ORDER.filter((id) => HEROES[id].franchise === f).map(card).join('')}</div></div>`).join('');
@@ -534,24 +567,34 @@ export function createSelect({ portraits, onPick, onStart }) {
     cur = id; const d = HEROES[id];
     for (const c of cards.children) c.classList.toggle('sel', c.dataset.id === id);
     info.style.setProperty('--el', d.color);
-    rune = RUNE_REC[id]; summ = summRec(id);
+    rune = RUNE_REC[id]; summ = summRec(id); page = defaultPage(d, rune); runeTab = treeOf(rune).id; secTab = null;
     info.innerHTML = `<h2${d.name.length > 5 ? ' class="long"' : ''}><b>${d.name}</b><span>${d.en} · ${d.role} · ${d.resName}</span></h2><p>${d.blurb}</p>${PASSIVES[id] ? `<p class="psv"><b>被動・${PASSIVES[id].name}</b>${PASSIVES[id].desc}</p>` : ''}<ul>${KEYS.map((k) => `<li><i>${ICONS[id][k]}</i><kbd>${k}</kbd><div><b>${d.skills[k].name}</b><span>${d.skills[k].desc}</span></div></li>`).join('')}</ul>`
-      + `<div class="runes"><b>符文</b><div class="rb">${RUNES.map((r) => `<button type="button" data-rune="${r.id}" class="${r.id === RUNE_REC[id] ? 'rec' : ''}">${r.name}</button>`).join('')}</div><p></p></div>`
+      + `<div class="runes"><b>符文</b><div class="rtabs">${RUNE_TREES.map((t) => `<button type="button" data-rtab="${t.id}">${t.name}</button>`).join('')}</div><div class="rb"></div><p></p><div class="rpage"><span></span><button type="button" class="reOpen">編輯符文頁</button></div></div>`
       + `<div class="runes summs"><b>技能</b><div class="rb">${SUMMONERS.map((x) => `<button type="button" data-summ="${x.id}" class="${x.id === summRec(id) ? 'rec' : ''}">${x.name}</button>`).join('')}</div><p></p></div>`;
     showRune();
     onPick(id);
   }
   function showRune() {
+    const t = RUNE_TREES.find((x) => x.id === runeTab);
+    for (const b of info.querySelectorAll('[data-rtab]')) b.setAttribute('aria-selected', String(b.dataset.rtab === runeTab));
+    info.querySelector('.runes .rb').innerHTML = t.keys.map((k) => `<button type="button" data-rune="${k}" class="${k === RUNE_REC[cur] ? 'rec' : ''}">${RUNES.find((r) => r.id === k).name}</button>`).join('');
     for (const b of info.querySelectorAll('[data-rune]')) b.classList.toggle('sel', b.dataset.rune === rune);
+    info.querySelector('.rpage span').textContent = pageText();
     const r = RUNES.find((x) => x.id === rune); info.querySelector('.runes p').innerHTML = `${r.desc}<small>（原型：${r.proto}）</small>`;
     for (const b of info.querySelectorAll('[data-summ]')) b.classList.toggle('sel', b.dataset.summ === summ);
     const S = SUMMONERS.find((x) => x.id === summ); info.querySelector('.summs p').innerHTML = `${S.desc}<small>（召喚師技能，F 鍵）</small>`;
   }
-  info.addEventListener('click', (e) => { const b = e.target.closest('[data-rune]'), m = e.target.closest('[data-summ]'); if (b) { rune = b.dataset.rune; showRune(); } if (m) { summ = m.dataset.summ; showRune(); } });
+  info.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-rune]'), m = e.target.closest('[data-summ]'), tb = e.target.closest('[data-rtab]');
+    if (tb) { runeTab = tb.dataset.rtab; showRune(); }
+    if (b) { const old = treeOf(rune).id; rune = b.dataset.rune; if (treeOf(rune).id !== old || !page) page = defaultPage(HEROES[cur], rune); showRune(); }
+    if (m) { summ = m.dataset.summ; showRune(); }
+    if (e.target.closest('.reOpen')) { reDesc = ''; renderEd(); ed.classList.add('on'); }
+  });
   cards.addEventListener('click', (e) => { const c = e.target.closest('.card'); if (c) show(c.dataset.id); });
   for (const b of document.querySelectorAll('#laneSel button')) b.addEventListener('click', () => { lane = +b.dataset.lane; for (const o of document.querySelectorAll('#laneSel button')) o.classList.toggle('sel', o === b); });
   for (const b of document.querySelectorAll('#diffSel button')) b.addEventListener('click', () => { diff = +b.dataset.d; for (const o of document.querySelectorAll('#diffSel button')) o.classList.toggle('sel', o === b); });
-  $('#go').addEventListener('click', () => onStart(cur, lane, diff, rune, summ));
+  $('#go').addEventListener('click', () => onStart(cur, lane, diff, rune, summ, page));
   show(cur);
   return { show: () => { wrap.classList.add('on'); }, hide: () => wrap.classList.remove('on'), get cur() { return cur; }, pick: show };
 }

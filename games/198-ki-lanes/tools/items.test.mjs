@@ -19,7 +19,7 @@ function duel(a = 'goku', b = 'vegeta') {
   for (const h of G.heroes) if (h !== A && h !== B) { h.alive = false; h.respawn = 1e9; }
   Object.assign(A, { heroId: a, def: HEROES[a], x: 0, z: 0, inv: [], brain: null });
   Object.assign(B, { heroId: b, def: HEROES[b], x: 1.5, z: 0, inv: [], brain: null });
-  A.rune = B.rune = 'none'; // 符文會疊傷害，測試裡關掉
+  A.rune = B.rune = 'none'; A.page = B.page = null; // 符文與符文頁會疊傷害，測試裡關掉
   A.res = HEROES[a].res; B.res = HEROES[b].res; A.maxMp = B.maxMp = 0;
   recalcStats(A); recalcStats(B); A.hp = A.maxHp; B.hp = B.maxHp;
   return { G, A, B };
@@ -350,4 +350,64 @@ test('英雄被動：魯夫的橡膠減普攻傷害、18 號的技能消耗 -25%
   const full = damage(V.G, V.A, V.B, 100, { type: 'true', noKi: true }); V.B.hp = V.B.maxHp;
   V.A.hp = V.A.maxHp * 0.3;
   assert.equal(damage(V.G, V.A, V.B, 100, { type: 'true', noKi: true }), Math.round(full * 1.12));
+});
+
+/* ---------------- 符文 ---------------- */
+import { defaultPage } from '../src/units.js';
+import { asMul } from '../src/traits.js';
+import { MINOR_RUNES, RUNE_TREES } from '../src/config.js';
+const withPage = (h, page) => { h.page = page; recalcStats(h); };
+
+test('符文頁：預設頁的小符文屬於基石那一系，副系兩個不同列', () => {
+  for (const id of Object.keys(HEROES)) for (const t of RUNE_TREES) for (const key of t.keys) {
+    const p = defaultPage(HEROES[id], key), mr = (x) => MINOR_RUNES.find((m) => m.id === x);
+    assert.ok(p.minors.every((x, i) => mr(x).tree === t.id && mr(x).row === i + 1), `${id} ${key}`);
+    assert.ok(p.sec !== t.id && p.secs.every((x) => mr(x).tree === p.sec) && mr(p.secs[0]).row !== mr(p.secs[1]).row, `${id} ${key} 副系`);
+  }
+});
+
+test('基石：魂之收割打殘血英雄追加傷害並收一個靈魂', () => {
+  const { G, A, B } = duel(); A.rune = 'harvest';
+  B.hp = B.maxHp * 0.45; const hp = B.hp;
+  damage(G, A, B, 10, { type: 'L', noKi: true }); for (let i = 0; i < 6; i++) step(G);
+  assert.equal(A.rs.souls, 1);
+  assert.ok(hp - B.hp > 10 + 30 * 0.5);
+});
+
+test('基石：連擊風暴普攻英雄後三下攻速加快；強襲第三下追加傷害並標記', () => {
+  const { G, A, B } = duel(); A.rune = 'hail';
+  beforeAuto(G, A, B, 50, { type: 'L' });
+  assert.ok(asMul(G, A) < 0.6);
+  const C = duel(); C.A.rune = 'pta';
+  for (let i = 0; i < 3; i++) afterAuto(C.G, C.A, C.B, 50, { type: 'L' });
+  assert.equal(C.A.rs.ptaMark, C.B.id);
+});
+
+test('基石：先手必勝增傷並給錢；守護之誓替受重擊的隊友加護盾', () => {
+  const { G, A, B } = duel(); A.rune = 'firstStrike'; A.gold = 0;
+  damage(G, A, B, 100, { type: 'L', noKi: true });
+  assert.ok(A.gold >= 10);
+  const D = duel(); D.B.rune = 'guardian'; D.B.rs = { stacks: 0, t: -99, hits: [], cd: 0, charge: 0 };
+  damage(D.G, D.A, D.B, D.B.maxHp * 0.1, { type: 'L', noKi: true });
+  assert.ok(D.B.st.shield > 0);
+});
+
+test('基石：冥火讓技能命中的英雄燃燒', () => {
+  const { G, A, B } = duel(); A.rune = 'deathfire';
+  damage(G, A, B, 10, { type: 'skill', noKi: true });
+  const hp = B.hp; for (let i = 0; i < 90; i++) step(G);
+  assert.ok(B.hp < hp);
+});
+
+test('小符文：凱旋多 20 金、致命一擊對殘血增傷、骨甲減傷、尋寶獵人第一次擊殺給錢', () => {
+  const { G, A, B } = duel();
+  withPage(A, { minors: ['triumph', 'alacrity', 'coup'], sec: 'dom', secs: ['tasteBlood', 'treasure'], shards: ['as', 'af', 'hp'] });
+  B.hp = B.maxHp * 0.3; const full = 100 * defMul(A, B, false);
+  assert.equal(damage(G, A, B, 100, { type: 'L', noKi: true }), Math.round(full * 1.08));
+  A.gold = 0; G.firstBlood = true; B.hp = 1; damage(G, A, B, 10, { type: 'true', noKi: true });
+  assert.equal(Math.round(A.gold), 300 + 20 + 50);
+  const E = duel(); withPage(E.B, { minors: ['demolish', 'bonePlating', 'overgrowth'], sec: 'insp', secs: ['biscuit', 'cosmic'], shards: ['ah', 'ms', 'hp'] });
+  damage(E.G, E.A, E.B, 50, { type: 'L', noKi: true });
+  const reduced = damage(E.G, E.A, E.B, 100, { type: 'L', noKi: true });
+  assert.ok(reduced < Math.round(100 * defMul(E.A, E.B, false)));
 });

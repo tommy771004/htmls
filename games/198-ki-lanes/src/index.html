@@ -346,6 +346,26 @@ body.camfree #camHint { display: block; }
 #pickInfo .runes p { grid-column: 2; margin: .2em 0 0; font-size: .85em; color: var(--bone3); line-height: 1.5; }
 #pickInfo .runes p small { color: var(--bone3); opacity: .75; }
 #pickInfo .summs { margin-top: .5em; }
+#pickInfo .rtabs, #runeEd .rtabs { display: flex; flex-wrap: wrap; gap: .1em; margin-bottom: .3em; grid-column: 2; }
+#pickInfo .rtabs button, #runeEd .rtabs button { padding: .2em .55em .25em; font-size: .85em; font-weight: 700; color: var(--bone3); clip-path: polygon(.35em 0, 100% 0, calc(100% - .35em) 100%, 0 100%); }
+#pickInfo .rtabs button[aria-selected="true"], #runeEd .rtabs button[aria-selected="true"] { color: var(--ink); background: var(--bone); }
+#pickInfo .runes .rb { grid-column: 2; }
+#pickInfo .rpage { grid-column: 2; display: flex; align-items: center; gap: .6em; margin-top: .3em; font-size: .8em; color: var(--bone3); line-height: 1.4; }
+#pickInfo .rpage span { flex: 1; }
+#pickInfo .rpage button, #runeEd .reOk, #runeEd .reReset { padding: .3em .7em; font-weight: 700; color: var(--ink); background: var(--bone); clip-path: polygon(.35em 0, 100% 0, calc(100% - .35em) 100%, 0 100%); white-space: nowrap; }
+#runeEd { position: fixed; inset: 0; display: none; place-items: center; background: rgba(14, 18, 30, .5); z-index: 6; pointer-events: auto; }
+#runeEd.on { display: grid; }
+#runeEd .reCard { width: min(40em, 94vw); max-height: 88vh; overflow: auto; padding: 1.1em 1.3em 1.3em; background: rgba(14, 18, 30, .97); clip-path: polygon(1em 0, 100% 0, 100% calc(100% - 1em), calc(100% - 1em) 100%, 0 100%, 0 1em); }
+#runeEd .reHead { display: flex; align-items: center; gap: .8em; margin-bottom: .4em; }
+#runeEd .reHead b { flex: 1; font-size: 1.3em; letter-spacing: .15em; }
+#runeEd .reX { font-size: 1.5em; line-height: 1; color: var(--bone2); width: 1.4em; }
+#runeEd h4 { margin: .8em 0 .35em; font-size: .9em; color: var(--bone2); } #runeEd h4 small { margin-left: .7em; font-weight: 400; color: var(--bone3); }
+#runeEd .rrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: .3em; margin-bottom: .3em; }
+#runeEd .rrow button { padding: .45em .4em; font-size: .88em; font-weight: 700; color: var(--bone2); background: var(--ink2); clip-path: polygon(.4em 0, 100% 0, calc(100% - .4em) 100%, 0 100%); }
+#runeEd .rrow button:hover { background: var(--ink3); }
+#runeEd .rrow button.sel { background: var(--bone); color: var(--ink); }
+#runeEd .reDesc { min-height: 3em; margin: .8em 0 .6em; font-size: .85em; color: var(--bone2); line-height: 1.5; }
+#runeEd .reOk { display: block; margin-left: auto; padding: .45em 1.6em; }
 #pickInfo p.psv { margin: .35em 0 .6em; font-size: .88em; color: var(--bone2); line-height: 1.5; }
 #pickInfo p.psv b { color: var(--bone); margin-right: .5em; }
 #dock .slot.summ { color: var(--bone); }
@@ -376,7 +396,7 @@ body.camfree #camHint { display: block; }
   #title b { font-size: 2.8em; } #title span { font-size: 1em; letter-spacing: .25em; }
   #pickInfo { left: .8em; right: .8em; width: auto; top: auto; bottom: calc(var(--safe-b) + 19.2em); padding: .9em 1.1em; }
   #pickInfo h2 b { font-size: 1.8em; } #pickInfo p { font-size: .92em; margin: .3em 0 .6em; }
-  #pickInfo ul { gap: .35em; } #pickInfo li span { display: none; } #pickInfo .runes { margin-top: .6em; grid-template-columns: 1fr; } #pickInfo .runes > b { display: none; } #pickInfo .runes p { grid-column: 1; font-size: .8em; } #pickInfo .runes button { font-size: .8em; padding: .3em .5em; } #pickInfo li { grid-template-columns: 2em 1.2em 1fr; } #pickInfo li i { width: 2em; height: 2em; padding: .25em; }
+  #pickInfo ul { gap: .35em; } #pickInfo li span { display: none; } #pickInfo .runes { margin-top: .6em; grid-template-columns: 1fr; } #pickInfo .rtabs, #pickInfo .runes .rb, #pickInfo .rpage { grid-column: 1; } #pickInfo .runes > b { display: none; } #pickInfo .runes p { grid-column: 1; font-size: .8em; } #pickInfo .runes button { font-size: .8em; padding: .3em .5em; } #pickInfo li { grid-template-columns: 2em 1.2em 1fr; } #pickInfo li i { width: 2em; height: 2em; padding: .25em; }
   #pickBar { flex-direction: column; align-items: stretch; gap: .6em; bottom: calc(var(--safe-b) + .8em); padding: 0 .8em; }
   #cards { justify-content: space-between; gap: .4em; } .card { width: auto; flex: 1; min-width: 0; padding: .3em .3em .4em; } .card b { font-size: 1em; } .card small, .card em { display: none; } .card img { aspect-ratio: auto; height: 5.4em; object-position: 50% 20%; }
   .opts { grid-template-columns: 1fr 1fr; } .seg > span { display: none; } .seg { justify-content: center; } .seg button { padding: .45em .7em; }
@@ -672,6 +692,7 @@ body.camfree #camHint { display: block; }
   <div id="title"><b>氣鬥三路</b><span>KI LANES</span></div>
   <p id="fanNote">非官方同人作品（七龍珠、火影忍者、海賊王）・角色與招式版權屬各原作者・模型與特效皆以程式繪製<small>語音：VOICEVOX:九州そら、VOICEVOX:剣崎雌雄、VOICEVOX:玄野武宏、VOICEVOX:白上虎太郎、VOICEVOX:青山龍星、VOICEVOX:†聖騎士 紅桜†、VOICEVOX:満別花丸、VOICEVOX:黒沢冴白、VOICEVOX:離途、VOICEVOX:四国めたん、VOICEVOX:猫使アル、VOICEVOX:雀松朱司、VOICEVOX:麒ヶ島宗麟、VOICEVOX:春日部つむぎ</small></p>
   <div id="pickInfo"></div>
+  <div id="runeEd"><div class="reCard"><div class="reHead"><b>符文頁</b><button type="button" class="reReset">恢復推薦</button><button type="button" class="reX" aria-label="關閉">×</button></div><div class="reBody"></div><button type="button" class="reOk">完成</button></div></div>
   <div id="pickBar">
     <div id="cards"></div>
     <div class="opts">
