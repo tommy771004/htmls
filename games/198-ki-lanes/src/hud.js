@@ -33,7 +33,7 @@ export function createHud(env) {
 
   // 屬性面板（技能列左側，2 欄 × 4 列）；移速以原作單位顯示（415 ÷ 8.6 m/s 換算）
   const STAT_ROWS = [
-    ['ad', '攻擊力', '#e8a25a', '<path d="M3 13 11.5 4.5 12 2h2v2l-2.5.5L3 13Zm0 0 1.6-3.2L6.2 11.4Z"/><path d="M2.4 10.6 5.4 13.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>', (P) => Math.round(P.ad)],
+    ['ad', '攻擊力', '#e8a25a', '<path d="M14.6 1.4 14 4.6 7.2 11.4 4.6 8.8 11.4 2Z"/><path d="m2.6 7.8 5.6 5.6-1.1 1.1-5.6-5.6Z"/><path d="M4.6 11.4 1.8 14.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>', (P) => Math.round(P.ad)],
     ['ap', '氣功強度', '#7fd4ff', '<path d="M8 15c-3 0-4.6-2-4.6-4.3C3.4 8 5.6 6.6 6 4c1.4 1 1.6 2.4 1.4 3.6C8.4 6.2 9.4 4 9 1.2c2.4 1.6 3.6 4.6 3.6 8 0 3.4-1.8 5.8-4.6 5.8Z"/>', (P) => Math.round(P.ap || 0)],
     ['armor', '物理防禦', '#e6c36a', '<path d="M8 1.5 13.5 3.4v4.4c0 3.3-2.3 5.6-5.5 6.7C4.8 13.4 2.5 11.1 2.5 7.8V3.4Z"/>', (P) => Math.round(P.armor)],
     ['mr', '技能防禦', '#9fd6c0', '<path d="M8 1.5 13.5 3.4v4.4c0 3.3-2.3 5.6-5.5 6.7C4.8 13.4 2.5 11.1 2.5 7.8V3.4Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="8" cy="7.6" r="2.1"/>', (P) => Math.round(P.mr)],

@@ -560,6 +560,45 @@ body.camfree #camHint { display: block; }
 #pickInfo h2 b { white-space: nowrap; }
 #pickInfo h2.long b { font-size: 2.1em; }
 @media (max-width: 760px) { #pickInfo h2.long b { font-size: 1.5em; } }
+
+/* ---------- 桌機技能列：屬性｜圓形頭像｜技能與血魔條｜道具格（對照英雄聯盟的底部面板） ---------- */
+#dock .stats { display: none; }
+@media not all and (pointer: coarse) {
+  #dock { bottom: var(--safe-b); grid-template-columns: auto auto auto auto; grid-template-areas: "st pt sk inv" "st pt mt inv"; column-gap: .75em; row-gap: .4em; align-items: center; padding: .6em .8em .5em .75em; }
+  #dock::before { clip-path: polygon(1em 0, calc(100% - 1em) 0, 100% 1em, 100% 100%, 0 100%, 0 1em); }
+  #dock .stats { grid-area: st; display: grid; grid-template-columns: auto auto; gap: .32em .75em; padding-right: .8em; margin-right: -.1em; box-shadow: 1px 0 0 rgba(233, 220, 180, .12); align-self: stretch; align-content: center; }
+  #dock .stats span { display: flex; align-items: center; gap: .32em; min-width: 3.3em; }
+  #dock .stats svg { width: .95em; height: .95em; flex: none; }
+  #dock .stats b { font: 700 .86em/1 var(--num); color: var(--bone); font-variant-numeric: tabular-nums; }
+  /* 頭像：外圈是經驗值（--xp 0–1），等級在下緣 */
+  #dock .port { grid-area: pt; position: relative; left: auto; bottom: auto; width: 5.8em; height: 5.8em; padding: .3em; border-radius: 50%; background: conic-gradient(#e9dcb4 calc(var(--xp, 0) * 1turn), #3a3322 0); }
+  #dock .port img { display: block; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; object-position: 50% 0; object-view-box: inset(0 12% 30% 12%); background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--el) 30%, var(--ink2)), var(--ink2) 70%); filter: none; box-shadow: 0 0 0 .14em #10141f; }
+  #dock .lvl { left: 50%; bottom: -.45em; transform: translateX(-50%); min-width: 1.9em; font-size: 1em; box-shadow: 0 0 0 .14em #c9a24a; }
+  #dock .skills { grid-area: sk; align-self: end; }
+  #dock .sk .plus { top: -2.6em; }
+  #dock .sk .lab { display: none; }
+  #dock .meters { grid-area: mt; gap: .28em; align-self: start; }
+  #dock .nm, #dock .xp, #dock .xpl { display: none; }
+  #dock .hp { height: 1.05em; }
+  #dock .mp { height: .85em; margin-top: 0; }
+  #dock .ki { gap: .25em; }
+  #dock .ki .kn { font-size: 1.15em; width: .9em; }
+  #dock .ki .cell { height: .45em; }
+  /* 道具：3×2 裝備格＋右欄眼位；下排是藥水、真眼與金錢 */
+  #dock .invbar { grid-area: inv; display: grid; align-items: stretch; grid-template-columns: repeat(3, 2.55em) 2.55em; grid-template-rows: 2.55em 2.55em 2.2em; gap: .28em; margin: 0; padding-left: .8em; box-shadow: -1px 0 0 rgba(233, 220, 180, .12); align-self: stretch; align-content: center; }
+  #dock .slots { display: contents; }
+  #dock .slot { width: auto; height: auto; background: #1f2638; }
+  #dock .slot svg { width: 86%; height: 86%; }
+  #dock .slot.senzu { margin: 0; grid-area: 3 / 1; }
+  #dock .slot.ward { grid-area: 1 / 4; border-radius: 50%; clip-path: none; }
+  #dock .slot.control { grid-area: 2 / 4; }
+  #dock .goldbtn { grid-area: 3 / 2 / 4 / 5; margin: 0; justify-content: center; }
+  #spPrompt { bottom: calc(var(--safe-b) + 12.6em); }
+  #camHint { bottom: calc(var(--safe-b) + 12.6em); }
+  #buffs { bottom: calc(var(--safe-b) + 14.6em); }
+  #recallbar { bottom: calc(var(--safe-b) + 17.2em); }
+  #bushTag { bottom: calc(var(--safe-b) + 19em); }
+}
 </style>
 </head>
 <body>
@@ -590,6 +629,7 @@ body.camfree #camHint { display: block; }
   <div id="recallbar">回城中<span><i></i></span></div>
   <div id="spPrompt" class="plate"><b>+1 技能點</b><span class="kb">點技能上的＋或 Ctrl＋按鍵</span><span class="tc">點技能鍵上的＋升級</span></div>
   <div id="dock">
+    <div class="stats"></div>
     <div class="port"><img alt=""><span class="lvl">1</span></div>
     <div class="skills"></div>
     <div class="meters">
