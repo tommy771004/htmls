@@ -85,8 +85,14 @@ function decodeHero(id, d) {
     else out[name] = g;
   }
   // 表情：base（平常）、shout（出招吶喊）、hurt（受擊）；超級賽亞人另有一套
-  out.faces = {};
-  for (const form of out.hair.ssj ? ['base', 'ssj'] : ['base']) for (const ex of ['', 'shout', 'hurt']) out.faces[form + (ex ? '_' + ex : '')] = drawFace(id, form === 'ssj', d.hr, ex);
+  // 表情貼圖第一次用到才畫（每張 512²，全部預先畫好手機會吃太多記憶體）
+  const faceCache = {};
+  out.face = (key) => {
+    if (!(key in faceCache)) { const [form, ex = ''] = key.split('_'); faceCache[key] = form === 'ssj' && !out.hair.ssj ? null : drawFace(id, form === 'ssj', d.hr, ex); }
+    return faceCache[key];
+  };
+  out.faces = { base: out.face('base') };
+  if (out.hair.ssj) out.faces.ssj = out.face('ssj');
   return out;
 }
 
@@ -170,18 +176,18 @@ export function heroMaterial({ face = null, faceRect = null, team = 0xffffff, sk
 // 畫布座標：中心對應 faceRect 的中心，邊長 = 1.9 hr；上方是頭頂
 const FACE = {
   goku: { iris: '#2a1d16', irisL: '#4a3426', brow: '#1a1614', browTilt: 0.36, eyeW: 0.329, eyeH: 0.159, eyeX: 0.36, eyeY: 0.01, sharp: 0.78, mouth: 'set', heavy: 1 },
-  vegeta: { iris: '#20160f', irisL: '#3a2a20', brow: '#1a1614', browTilt: 0.6, eyeW: 0.318, eyeH: 0.124, eyeX: 0.35, eyeY: 0.01, sharp: 1.05, mouth: 'frown', heavy: 1 },
+  vegeta: { iris: '#20160f', irisL: '#3a2a20', brow: '#1a1614', browTilt: 0.6, eyeW: 0.318, eyeH: 0.124, eyeX: 0.35, eyeY: 0.01, sharp: 1.05, mouth: 'frown', heavy: 1, happyMouth: 'smirk', cool: true },
   trunks: { iris: '#3b5fb5', irisL: '#7fa2e6', brow: '#8a74c0', browTilt: 0.3, eyeW: 0.329, eyeH: 0.165, eyeX: 0.36, eyeY: 0.01, sharp: 0.72, mouth: 'set', heavy: 0.7 },
-  piccolo: { iris: '#1a120c', irisL: '#1a120c', brow: '#2f6a1e', browTilt: 0.6, eyeW: 0.329, eyeH: 0.13, eyeX: 0.36, eyeY: 0.03, sharp: 1.1, mouth: 'frown', noPupil: true, sclera: '#fffbe8', heavy: 1 },
-  frieza: { iris: '#d0203a', irisL: '#ff6a7a', brow: null, browTilt: 0, eyeW: 0.329, eyeH: 0.153, eyeX: 0.35, eyeY: 0.02, sharp: 1.05, mouth: 'smirk', lips: '#3a1838', lid: '#4a1a40', heavy: 0.4 },
+  piccolo: { iris: '#1a120c', irisL: '#1a120c', brow: '#2f6a1e', browTilt: 0.6, eyeW: 0.329, eyeH: 0.13, eyeX: 0.36, eyeY: 0.03, sharp: 1.1, mouth: 'frown', noPupil: true, sclera: '#fffbe8', heavy: 1, happyMouth: 'smirk', cool: true },
+  frieza: { iris: '#d0203a', irisL: '#ff6a7a', brow: null, browTilt: 0, eyeW: 0.329, eyeH: 0.153, eyeX: 0.35, eyeY: 0.02, sharp: 1.05, mouth: 'smirk', lips: '#3a1838', lid: '#4a1a40', heavy: 0.4, happyMouth: 'smirk', cool: true },
   a18: { iris: '#4c98d6', irisL: '#a6d6ff', brow: '#c9a24a', browTilt: 0.05, eyeW: 0.339, eyeH: 0.236, eyeX: 0.36, eyeY: 0.01, sharp: 0.3, mouth: 'lips', lashes: true },
-  naruto: { iris: '#1f6fd8', irisL: '#7fc4ff', brow: '#c98a1a', browTilt: 0.3, eyeW: 0.329, eyeH: 0.177, eyeX: 0.36, eyeY: 0.01, sharp: 0.7, mouth: 'grin', heavy: 0.6, whiskers: true },
-  sasuke: { iris: '#141018', irisL: '#3a3044', brow: '#121018', browTilt: 0.42, eyeW: 0.318, eyeH: 0.136, eyeX: 0.35, eyeY: 0.01, sharp: 1.0, mouth: 'set', heavy: 0.8 },
-  kakashi: { iris: '#1e1a1a', irisL: '#3a3434', brow: '#8a8a94', browTilt: 0.05, eyeW: 0.318, eyeH: 0.09, eyeX: 0.35, eyeY: 0.01, sharp: 0.5, mouth: 'none', heavy: 0.5, mask: '#2b3346', hideL: true },
+  naruto: { iris: '#1f6fd8', irisL: '#7fc4ff', brow: '#c98a1a', browTilt: 0.3, eyeW: 0.329, eyeH: 0.177, eyeX: 0.36, eyeY: 0.01, sharp: 0.7, mouth: 'grin', heavy: 0.6, whiskers: true, happyMouth: 'big' },
+  sasuke: { iris: '#141018', irisL: '#3a3044', brow: '#121018', browTilt: 0.42, eyeW: 0.318, eyeH: 0.136, eyeX: 0.35, eyeY: 0.01, sharp: 1.0, mouth: 'set', heavy: 0.8, happyMouth: 'smirk', cool: true },
+  kakashi: { iris: '#1e1a1a', irisL: '#3a3434', brow: '#8a8a94', browTilt: 0.05, eyeW: 0.318, eyeH: 0.09, eyeX: 0.35, eyeY: 0.01, sharp: 0.5, mouth: 'none', heavy: 0.5, mask: '#2b3346', hideL: true, happyMouth: 'none' },
   sakura: { iris: '#2fa868', irisL: '#8fe8b0', brow: '#e07aa8', browTilt: 0.12, eyeW: 0.35, eyeH: 0.224, eyeX: 0.36, eyeY: 0.01, sharp: 0.4, mouth: 'set', lashes: true, gem: '#9a3fd0' },
-  luffy: { iris: '#141010', irisL: '#2a2020', brow: '#141010', browTilt: 0.1, eyeW: 0.339, eyeH: 0.236, eyeX: 0.36, eyeY: 0.01, sharp: 0.35, mouth: 'big', heavy: 0.4, scarUnderL: true },
-  zoro: { iris: '#1a1612', irisL: '#3a3026', brow: '#2f6a3a', browTilt: 0.5, eyeW: 0.318, eyeH: 0.124, eyeX: 0.35, eyeY: 0.01, sharp: 1.0, mouth: 'set', heavy: 1, scarL: true },
-  sanji: { iris: '#2a5ab8', irisL: '#7fa8ff', brow: '#d8b040', browTilt: 0.2, eyeW: 0.318, eyeH: 0.142, eyeX: 0.35, eyeY: 0.01, sharp: 0.8, mouth: 'set', heavy: 0.6, curl: true, hideL: true },
+  luffy: { iris: '#141010', irisL: '#2a2020', brow: '#141010', browTilt: 0.1, eyeW: 0.339, eyeH: 0.236, eyeX: 0.36, eyeY: 0.01, sharp: 0.35, mouth: 'big', heavy: 0.4, scarUnderL: true, happyMouth: 'big' },
+  zoro: { iris: '#1a1612', irisL: '#3a3026', brow: '#2f6a3a', browTilt: 0.5, eyeW: 0.318, eyeH: 0.124, eyeX: 0.35, eyeY: 0.01, sharp: 1.0, mouth: 'set', heavy: 1, scarL: true, happyMouth: 'teeth', cool: true },
+  sanji: { iris: '#2a5ab8', irisL: '#7fa8ff', brow: '#d8b040', browTilt: 0.2, eyeW: 0.318, eyeH: 0.142, eyeX: 0.35, eyeY: 0.01, sharp: 0.8, mouth: 'set', heavy: 0.6, curl: true, hideL: true, happyMouth: 'smirk', cool: true },
   nami: { iris: '#8a4a1a', irisL: '#d89050', brow: '#e8803a', browTilt: 0.08, eyeW: 0.35, eyeH: 0.224, eyeX: 0.36, eyeY: 0.01, sharp: 0.35, mouth: 'lips', lashes: true },
 };
 // 依作品分眼睛畫法：db 七龍珠（銳利、上眼瞼粗）、naruto 火影（細長杏眼、虹膜小）、op 海賊王（大圓眼、黑大瞳孔）
@@ -194,6 +200,8 @@ function drawFace(id, ssj, hr, expr = '') {
   if (style === 'op') { f.eyeW *= 0.9; f.eyeH *= 1.3; f.sharp *= 0.4; }
   if (expr === 'shout') { f.browTilt += 0.3; f.eyeH *= 0.82; f.sharp += 0.2; f.mouth = 'shout'; }
   if (expr === 'hurt') { f.browTilt -= 0.25; f.mouth = 'hurt'; f.squint = true; }
+  if (expr === 'happy') { f.browTilt -= 0.2; f.mouth = f.happyMouth || 'teeth'; f.smileEyes = !f.cool; }
+  if (expr === 'blink') { f.blink = true; }
   if (ssj) { f.iris = '#1a9a8a'; f.irisL = '#7ff0dc'; f.brow = '#d8a82a'; f.browTilt += 0.12; f.sharp += 0.15; }
   const N = 512, c = document.createElement('canvas'); c.width = c.height = N;
   const g = c.getContext('2d');
@@ -217,6 +225,15 @@ function drawFace(id, ssj, hr, expr = '') {
     const ex = X(sx * f.eyeX), ey = Y(f.eyeY), ew = (f.eyeW / 1.9) * S, eh = (f.eyeH / 1.9) * S;
     g.save(); g.translate(ex, ey); g.scale(sx, 1);
     // 眼形：內眼角低、外眼角上揚（杏仁形）
+    if (f.smileEyes || f.blink) { // 笑眼「∩」或眨眼的一條線
+      g.strokeStyle = ink; g.lineCap = 'round'; g.lineWidth = eh * 0.28;
+      g.beginPath();
+      if (f.smileEyes) { g.moveTo(-ew * 0.5, eh * 0.2); g.quadraticCurveTo(0, -eh * 0.75, ew * 0.5, eh * 0.2); }
+      else { g.moveTo(-ew * 0.55, eh * 0.15); g.quadraticCurveTo(0, eh * 0.4, ew * 0.6, eh * 0.05); }
+      g.stroke();
+      if (f.brow) { g.fillStyle = f.brow; g.fillRect(-ew * 0.55, -eh * 1.55, ew * 1.1, eh * 0.28); }
+      g.restore(); continue;
+    }
     if (f.squint) { // 受擊：眼睛緊閉成「＞＜」
       g.strokeStyle = ink; g.lineCap = 'round'; g.lineWidth = eh * 0.3;
       g.beginPath(); g.moveTo(-ew * 0.5, -eh * 0.4); g.lineTo(ew * 0.35, eh * 0.05); g.lineTo(-ew * 0.4, eh * 0.45); g.stroke();
@@ -268,7 +285,7 @@ function drawFace(id, ssj, hr, expr = '') {
     g.restore();
   }
   // 嘴
-  const my = Y(-0.5), mw = S * 0.07; // 下半臉縮短後嘴跟著上移
+  const my = Y(-0.5), mw = S * (f.smileEyes ? 0.09 : 0.07); // 下半臉縮短後嘴跟著上移
   g.strokeStyle = f.lips || '#5a2a1e'; g.lineWidth = S * 0.011;
   g.beginPath();
   if (f.mouth === 'grin') { g.moveTo(X(0) - mw, my - S * 0.004); g.quadraticCurveTo(X(0), my + S * 0.02, X(0) + mw, my - S * 0.012); }
@@ -277,6 +294,7 @@ function drawFace(id, ssj, hr, expr = '') {
   else if (f.mouth === 'set') { g.moveTo(X(0) - mw * 0.75, my + S * 0.004); g.quadraticCurveTo(X(0), my - S * 0.004, X(0) + mw * 0.75, my + S * 0.006); }
   else if (f.mouth === 'shout') { g.fillStyle = '#4a1612'; g.moveTo(X(0) - mw * 1.5 * 1.0, my + S * 0.018); g.lineTo(X(0) - mw * 1.5 * 0.55, my - S * 0.03); g.lineTo(X(0) + mw * 1.5 * 0.55, my - S * 0.03); g.lineTo(X(0) + mw * 1.5 * 1.0, my + S * 0.018); g.lineTo(X(0) + mw * 1.5 * 0.5, my + S * 0.085); g.lineTo(X(0) - mw * 1.5 * 0.5, my + S * 0.085); g.closePath(); g.fill(); g.fillStyle = '#fff'; g.fillRect(X(0) - mw * 1.5 * 0.55, my - S * 0.022, mw * 1.5 * 1.1, S * 0.018); g.beginPath(); }
   else if (f.mouth === 'hurt') { g.fillStyle = '#4a1612'; g.moveTo(X(0) - mw * 0.9, my); g.lineTo(X(0) - mw * 0.3, my - S * 0.012); g.lineTo(X(0) + mw * 0.3, my + S * 0.006); g.lineTo(X(0) + mw * 0.9, my - S * 0.004); g.lineTo(X(0) + mw * 0.6, my + S * 0.03); g.lineTo(X(0) - mw * 0.6, my + S * 0.03); g.closePath(); g.fill(); g.fillStyle = '#fff'; g.fillRect(X(0) - mw * 0.55, my - S * 0.004, mw * 1.1, S * 0.014); g.beginPath(); }
+  else if (f.mouth === 'teeth') { g.fillStyle = '#4a1612'; g.moveTo(X(0) - mw * 1.25, my - S * 0.01); g.quadraticCurveTo(X(0), my + S * 0.07, X(0) + mw * 1.25, my - S * 0.01); g.closePath(); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(X(0) - mw * 1.15, my - S * 0.006); g.quadraticCurveTo(X(0), my + S * 0.025, X(0) + mw * 1.15, my - S * 0.006); g.closePath(); g.fill(); g.beginPath(); }
   else if (f.mouth === 'big') { g.fillStyle = '#5a1e18'; g.moveTo(X(0) - mw * 1.3, my - S * 0.01); g.quadraticCurveTo(X(0), my + S * 0.06, X(0) + mw * 1.3, my - S * 0.01); g.closePath(); g.fill(); g.fillStyle = '#fff'; g.fillRect(X(0) - mw * 1.0, my - S * 0.008, mw * 2.0, S * 0.012); g.beginPath(); }
   else if (f.mouth === 'none') { g.beginPath(); }
   else if (f.mouth === 'lips') { g.strokeStyle = '#c87a78'; g.moveTo(X(0) - mw * 0.6, my); g.quadraticCurveTo(X(0), my + S * 0.012, X(0) + mw * 0.6, my); }

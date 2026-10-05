@@ -543,7 +543,7 @@ export function bindPose(sk) {
 }
 
 /* ---------------- buildHero ---------------- */
-const SHOUT = new Set(['atk2', 'atk3', 'cast', 'beam', 'rush', 'overhead', 'slash', 'grab', 'charge', 'dash', 'win']);
+const SHOUT = new Set(['atk2', 'atk3', 'cast', 'beam', 'rush', 'overhead', 'slash', 'grab', 'charge', 'dash']);
 const HURT = new Set(['stun', 'air', 'dead']);
 const SWORD_IN_HAND = new Set(['atk1', 'atk2', 'atk3', 'slash', 'rush', 'dash']);
 const OW = 0.012;
@@ -629,8 +629,10 @@ export function buildHero(id, team = 0) {
     if (name === 'run') phase += dt * clamp(speed * 1.65, 9, 15);
     heroPose(d, name, name === 'idle' ? time : t, k, phase, tgt);
     // 表情：出招時吶喊、受擊時咬牙閉眼
-    const ex = SHOUT.has(name) ? 'shout' : HURT.has(name) ? 'hurt' : '';
-    if (ex !== expr) { expr = ex; const key = form + (ex ? '_' + ex : ''); if (gs.faces[key]) skull.material = headMat(id, key, gs.faces[key], gs.faceRect); }
+    // 待機時每 2.5～5 秒眨一次眼；勝利姿勢換招牌笑臉
+    if (name === 'idle' || name === 'run') { blinkT -= dt; if (blinkT < -0.12) blinkT = 2.5 + Math.random() * 2.5; }
+    const ex = name === 'win' ? 'happy' : SHOUT.has(name) ? 'shout' : HURT.has(name) ? 'hurt' : (name === 'idle' || name === 'run') && blinkT < 0 ? 'blink' : '';
+    if (ex !== expr) { expr = ex; const key = form + (ex ? '_' + ex : ''), tex = gs.face(key); if (tex) skull.material = headMat(id, key, tex, gs.faceRect); }
     const fast = name.startsWith('atk') || name === 'slash' || name === 'cast' || name === 'rush' || name === 'vanish' || name === 'grab' || (name === 'beam' && t > 0.3);
     const rate = name !== lastName && fast ? 45 : fast ? 38 : name === 'dead' ? 9 : 13;
     lastName = name;
@@ -680,7 +682,7 @@ export function buildHero(id, team = 0) {
   }
   apply();
 
-  let form = 'base', expr = '';
+  let form = 'base', expr = '', blinkT = 1 + Math.random() * 3;
   function setForm(f) {
     if (!d.saiyan) return;
     form = f === 'ssj' ? 'ssj' : 'base';
