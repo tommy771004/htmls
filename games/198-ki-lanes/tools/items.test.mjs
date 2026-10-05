@@ -217,3 +217,51 @@ test('支援（流水之杖）：小櫻 E 治療隊友時雙方得到氣功強�
   assert.ok(cast(G, A, 'E', 0, 0));
   assert.ok((C.ap || 0) > apC);
 });
+
+/* ---------------- 召喚師技能 ---------------- */
+import { castSummoner } from '../src/summoners.js';
+
+test('召喚師技能：閃現位移 4 公尺並進冷卻，冷卻中不能再放', () => {
+  const { G, A } = duel();
+  A.summ = 'flash'; const x0 = A.x;
+  assert.ok(castSummoner(G, A, A.x + 10, A.z));
+  assert.ok(Math.abs(A.x - x0 - 4) < 0.6);
+  assert.ok(A.cds.F > 100);
+  assert.equal(castSummoner(G, A, A.x + 10, A.z), false);
+});
+
+test('召喚師技能：點燃灼燒並施加重傷；虛弱讓目標傷害降低', () => {
+  const { G, A, B } = duel();
+  A.summ = 'ignite';
+  assert.ok(castSummoner(G, A, B.x, B.z));
+  assert.ok(B.st.burn > 0 && B.st.gw > 0);
+  A.summ = 'exhaust'; A.cds.F = 0;
+  const before = damage(G, B, A, 100, { type: 'true', noKi: true });
+  assert.ok(castSummoner(G, A, B.x, B.z));
+  const after = damage(G, B, A, 100, { type: 'true', noKi: true });
+  assert.ok(after < before * 0.7);
+});
+
+test('召喚師技能：傳送引導 3 秒後到達，受傷會中斷', () => {
+  const { G, A, B } = duel();
+  B.x = 60;
+  const tower = G.structures.find((s) => s.team === A.team && s.kind === 'tower');
+  A.summ = 'teleport';
+  assert.ok(castSummoner(G, A, tower.x, tower.z));
+  for (let i = 0; i < 200; i++) step(G);
+  assert.ok(Math.hypot(A.x - tower.x, A.z - tower.z) < 6);
+  A.x = 0; A.z = 0; A.cds.F = 0;
+  assert.ok(castSummoner(G, A, tower.x, tower.z));
+  damage(G, B, A, 10, { type: 'L', noKi: true });
+  assert.equal(A.tp, null);
+});
+
+test('召喚師技能：重擊對野怪造成大量真實傷害', () => {
+  const { G, A } = duel();
+  const m = G.units.find((u) => u.kind === 'monster') || null;
+  if (!m) return;
+  m.alive = true; A.x = m.x + 1; A.z = m.z; A.summ = 'smite';
+  const hp = m.hp;
+  assert.ok(castSummoner(G, A, m.x, m.z));
+  assert.ok(hp - m.hp >= 450 || !m.alive);
+});

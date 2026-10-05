@@ -15,6 +15,7 @@ import { createFx } from './fx.js';
 import { audio } from './audio.js';
 import { dist, gainXp, addKi, addMp, damage, vulnerable } from './units.js';
 import { useActive } from './traits.js';
+import { castSummoner } from './summoners.js';
 import { cast, orderMove, orderAttack, levelSkill, setCharging, spark, placeWard, placeControl } from './combat.js';
 import { createHud, createSelect, showEnd } from './hud.js';
 import { createInput } from './input.js';
@@ -97,15 +98,15 @@ buildShowcase();
 const select = createSelect({
   portraits,
   onPick(id) { selectSel = id; const s = showcase.find((o) => o.id === id); if (s) { s.pose = 'win'; s.poseT = 0; } audio.play('select', { vol: 0.5 }); audio.say(id, 'ready', { vol: 0.9 }); },
-  onStart(id, lane, diff, rune) { startMatch(id, lane, diff, rune); },
+  onStart(id, lane, diff, rune, summ) { startMatch(id, lane, diff, rune, summ); },
 });
 select.show();
 
-function startMatch(heroId, lane = 1, diff = 1, rune) {
+function startMatch(heroId, lane = 1, diff = 1, rune, summ) {
   audio.resume(); audio.play('select');
   audio.music(true);
   clearMatch();
-  G = newMatch({ fx, cam, sfx, shake: (amt, ang) => R.shake(amt, ang !== undefined ? new THREE.Vector3(Math.sin(ang), 0, Math.cos(ang)) : null), player: heroId, lane, diff, rune });
+  G = newMatch({ fx, cam, sfx, shake: (amt, ang) => R.shake(amt, ang !== undefined ? new THREE.Vector3(Math.sin(ang), 0, Math.cos(ang)) : null), player: heroId, lane, diff, rune, summ });
   const P = G.player;
   setTimeout(() => G && G.player === P && voice(P, 'ready'), 700);
   for (const u of G.units) attachRig(u);
@@ -431,7 +432,8 @@ window.__ki = {
   audio,
   ready: true,
   get G() { return G; },
-  start(id = 'goku', lane = 1, diff = 1, rune) { startMatch(id, lane, diff, rune); return true; },
+  start(id = 'goku', lane = 1, diff = 1, rune, summ) { startMatch(id, lane, diff, rune, summ); return true; },
+  summ(x, z) { const P = G.player; return castSummoner(G, P, x ?? P.x + 3, z ?? P.z); },
   state() {
     if (!G) return { phase: 'select' };
     const P = G.player;

@@ -296,7 +296,7 @@ body.camfree #camHint { display: block; }
 #dock .slot.ward.cool .ic { opacity: .3; }
 #bushTag { position: absolute; left: 50%; bottom: calc(var(--safe-b) + 16.8em); transform: translateX(-50%); padding: .3em 1.2em; --cut: .4em; color: #b8f09a; font-size: .9em; display: none; white-space: nowrap; }
 #bushTag.on { display: block; }
-@media (pointer: coarse) { #bushTag { bottom: auto; top: 30%; } #dock .slots .slot.ward, #dock .slots .slot.control { display: grid; } }
+@media (pointer: coarse) { #bushTag { bottom: auto; top: 30%; } #dock .slots .slot.ward, #dock .slots .slot.control, #dock .slots .slot.summ { display: grid; } }
 .item { display: grid; grid-template-columns: 2.6em 1fr; grid-template-rows: auto auto; column-gap: .6em; align-items: center; text-align: left; padding: .55em .7em; background: var(--ink2); clip-path: polygon(.5em 0, 100% 0, 100% calc(100% - .5em), calc(100% - .5em) 100%, 0 100%, 0 .5em); }
 .item svg { grid-row: 1 / 3; width: 2.6em; height: 2.6em; }
 .item b { font-weight: 800; } .item b em { font-style: normal; font: italic 900 .95em var(--num); color: var(--gold); margin-left: .4em; }
@@ -310,6 +310,7 @@ body.camfree #camHint { display: block; }
 @media (pointer: coarse) {
   #dock .invbar { margin-top: .35em; gap: .3em; }
   #dock .slots .slot:not(.senzu) { display: none; }
+  #dock .slots .slot.summ { display: grid; }
   #dock .slot { width: 2.6em; height: 2.6em; }
   #dock .goldbtn kbd, #dock .slot kbd { display: none; }
   #buffs { bottom: auto; top: calc(var(--safe-t) + 12em); left: calc(var(--safe-l) + .6em); transform: none; }
@@ -344,6 +345,10 @@ body.camfree #camHint { display: block; }
 #pickInfo .runes button.rec::after { content: "・推薦"; font-size: .8em; opacity: .7; }
 #pickInfo .runes p { grid-column: 2; margin: .2em 0 0; font-size: .85em; color: var(--bone3); line-height: 1.5; }
 #pickInfo .runes p small { color: var(--bone3); opacity: .75; }
+#pickInfo .summs { margin-top: .5em; }
+#dock .slot.summ { color: var(--bone); }
+#dock .slot.summ .ic svg { width: 100%; height: 100%; }
+#dock .slot.summ.cool .ic { opacity: .35; }
 #pickBar { position: absolute; left: 0; right: 0; bottom: calc(var(--safe-b) + 1.6em); display: flex; justify-content: center; align-items: flex-end; gap: 1.6em; padding: 0 1em; }
 #cards { display: flex; gap: .7em; }
 .card { position: relative; width: 6.6em; padding: .4em .4em .55em; text-align: left; background: rgba(14, 18, 30, .86); clip-path: polygon(0 0, 100% 0, 100% calc(100% - .9em), calc(100% - .9em) 100%, 0 100%); transition: transform .18s var(--ease), background-color .18s; }
@@ -592,7 +597,8 @@ body.camfree #camHint { display: block; }
   #dock .slot.senzu { margin: 0; grid-area: 3 / 1; }
   #dock .slot.ward { grid-area: 1 / 4; border-radius: 50%; clip-path: none; }
   #dock .slot.control { grid-area: 2 / 4; }
-  #dock .goldbtn { grid-area: 3 / 2 / 4 / 5; margin: 0; justify-content: center; }
+  #dock .slot.summ { grid-area: 3 / 2; }
+  #dock .goldbtn { grid-area: 3 / 3 / 4 / 5; margin: 0; justify-content: center; }
   #spPrompt { bottom: calc(var(--safe-b) + 12.6em); }
   #camHint { bottom: calc(var(--safe-b) + 12.6em); }
   #buffs { bottom: calc(var(--safe-b) + 14.6em); }
@@ -642,7 +648,7 @@ body.camfree #camHint { display: block; }
       </div>
     </div>
     <div class="invbar">
-      <div class="slots"><button class="slot senzu" type="button" aria-label="仙豆"><span class="ic"></span><b></b><kbd>1</kbd></button><button class="slot ward" type="button" aria-label="插眼"><span class="ic"></span><span class="wcd"></span><kbd>4</kbd></button><button class="slot control" type="button" aria-label="真眼"><span class="ic"></span><b></b><kbd>5</kbd></button><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span></div>
+      <div class="slots"><button class="slot summ" type="button" aria-label="召喚師技能"><span class="ic"></span><span class="wcd"></span><kbd>F</kbd></button><button class="slot senzu" type="button" aria-label="仙豆"><span class="ic"></span><b></b><kbd>1</kbd></button><button class="slot ward" type="button" aria-label="插眼"><span class="ic"></span><span class="wcd"></span><kbd>4</kbd></button><button class="slot control" type="button" aria-label="真眼"><span class="ic"></span><b></b><kbd>5</kbd></button><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span></div>
       <button class="goldbtn" type="button" aria-label="商店"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="#f6c64a"/><circle cx="12" cy="12" r="5.5" fill="none" stroke="#a87a18" stroke-width="1.6"/></svg><b>500</b><kbd>P</kbd></button>
     </div>
   </div>

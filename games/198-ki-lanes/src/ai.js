@@ -9,6 +9,7 @@ import { eatSenzu, nextBuy, priceFor } from './items.js';
 import { bossAlive } from './jungle.js';
 import { shenronAlive } from './dragonballs.js';
 import { aiActives } from './traits.js';
+import { aiSummoner } from './summoners.js';
 
 const SKILL_ORDER = {
   goku: ['Q', 'W', 'Q', 'E', 'Q', 'W', 'Q', 'W', 'W', 'E', 'E', 'E'],
@@ -85,6 +86,7 @@ export function updateAI(G, h, dt) {
   let allies = 0; for (const a of G.heroes) if (a !== h && a.alive && a.team === h.team && dist(a, h) < 12) allies++;
 
   // 仙豆
+  aiSummoner(G, h, foe, fd);
   if (hpR < 0.4 && h.senzu > 0 && (foe && fd < 14 || hpR < 0.25)) eatSenzu(G, h);
   else if (hpR < 0.65 && !(h.senzu > 0) && (h.salve > 0 || (h.flask && h.flaskC > 0)) && !(h.st.potion > 0)) eatSenzu(G, h);
 

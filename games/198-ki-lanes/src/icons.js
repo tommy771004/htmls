@@ -179,3 +179,16 @@ function genIcon(it) {
 }
 const _hand = ITEM_ICONS;
 export const itemIcon = (id) => _hand[id] || (_hand[id] = (() => { const it = ITEMS.find((i) => i.id === id); return it ? genIcon(it) : ''; })());
+
+// 召喚師技能圖示（48×48，單色記號，用 currentColor）
+export const SUMM_ICONS = {
+  flash: W(`<path d="M24 6 L28 20 L42 24 L28 28 L24 42 L20 28 L6 24 L20 20 Z" ${F}/>`),
+  ignite: W(`<path d="M24 6 C30 16 38 20 34 32 C32 40 16 42 14 32 C12 24 20 22 20 14 C24 20 26 22 24 6 Z" ${F}/><path d="M24 26 C27 30 27 35 24 37 C21 35 21 30 24 26 Z" fill="#1a1d27"/>`),
+  heal: W(`<path d="M19 8 H29 V19 H40 V29 H29 V40 H19 V29 H8 V19 H19 Z" ${F}/>`),
+  barrier: W(`<path d="M24 6 L39 11 C39 26 34 36 24 42 C14 36 9 26 9 11 Z" ${S}/><path d="M24 14 V34 M16 22 H32" ${S}/>`),
+  cleanse: W(`<circle cx="24" cy="24" r="6" ${F}/><path d="M24 6 V13 M24 35 V42 M6 24 H13 M35 24 H42 M11 11 L16 16 M32 32 L37 37 M37 11 L32 16 M16 32 L11 37" ${S}/>`),
+  exhaust: W(`<path d="M24 8 V34 M13 24 L24 36 L35 24" ${S}/><path d="M10 41 H38" ${S}/>`),
+  ghost: W(`<path d="M30 8 C40 8 42 22 38 30 L40 40 L33 36 L28 40 L24 34 C18 30 18 8 30 8 Z" ${F}/><path d="M6 18 H16 M4 26 H14 M8 34 H18" ${S} stroke-width="2.4"/>`),
+  teleport: W(`<circle cx="24" cy="24" r="15" ${S} stroke-dasharray="6 5"/><path d="M24 14 V30 M17 23 L24 30 L31 23" ${S}/>`),
+  smite: W(`<path d="M27 4 L12 26 H22 L18 44 L36 18 H26 Z" ${F}/>`),
+};

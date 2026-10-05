@@ -323,6 +323,19 @@ export const CONTROL = { range: 7, hp: 4, reveal: 9 };
     ITEMS.push(it);
   }
 }
+// 召喚師技能（《英雄聯盟》，選角時挑一個，F 鍵；冷卻依本作節奏 ×0.4）
+export const SUMMONERS = [
+  { id: 'flash', name: '閃現', proto: '閃現', cd: 120, range: 4, desc: '朝游標瞬移 4 公尺。' },
+  { id: 'ignite', name: '點燃', proto: '點燃', cd: 72, range: 6, dmg: 50, lv: 20, dur: 5, desc: '點燃 6 公尺內最近的敵方英雄：5 秒內共 50＋每級 20 真實傷害，並施加重傷（受到的治療 -40%）。' },
+  { id: 'heal', name: '治療', proto: '治療', cd: 96, range: 8, heal: 80, lv: 15, desc: '自己與 8 公尺內血量最低的隊友回復 80＋每級 15，並在 1 秒內移速 +30%。' },
+  { id: 'barrier', name: '光盾', proto: '光盾', cd: 72, shield: 100, lv: 20, dur: 2.5, desc: '得到 100＋每級 20 的護盾，持續 2.5 秒。' },
+  { id: 'cleanse', name: '淨化', proto: '淨化', cd: 84, desc: '解除暈眩、冰凍與緩速（擊飛除外），3 秒內韌性 +65%。' },
+  { id: 'exhaust', name: '虛弱', proto: '虛弱', cd: 84, range: 6, slow: 0.3, weak: 0.35, dur: 3, desc: '讓 6 公尺內最近的敵方英雄緩速 30%、造成的傷害 -35%，持續 3 秒。' },
+  { id: 'ghost', name: '鬼步', proto: '鬼步', cd: 84, ms: 0.3, dur: 8, desc: '8 秒內移速 +30%。' },
+  { id: 'teleport', name: '傳送', proto: '傳送', cd: 144, channel: 3, desc: '引導 3 秒（受傷會中斷），傳送到游標附近的我方防禦塔或小兵身邊。' },
+  { id: 'smite', name: '重擊', proto: '重擊', cd: 36, range: 5, dmg: 450, lv: 25, desc: '對 5 公尺內最近的野怪或小兵造成 450＋每級 25 真實傷害（對英雄 80）。搶大猿用。' },
+];
+export const SUMM_REC = { tank: 'teleport', assassin: 'ignite', marksman: 'heal', mage: 'barrier', fighter: 'flash' };
 export const INV_SLOTS = 6;
 export const ELIXIR_DUR = 90;
 

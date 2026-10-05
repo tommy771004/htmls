@@ -1,6 +1,6 @@
 // 單位：英雄、小兵、建築。移動、碰撞、傷害、死亡、經驗。
 import {
-  HEROES, MINION, MINION_GROWTH, TOWER, STAT, KI_MAX, KI_BAR, MAX_LEVEL, xpToNext, respawnTime, XP_SHARE_RADIUS,
+  HEROES, MINION, MINION_GROWTH, TOWER, STAT, SUMM_REC, KI_MAX, KI_BAR, MAX_LEVEL, xpToNext, respawnTime, XP_SHARE_RADIUS,
   FOUNTAIN, BASE, COMBO_WINDOW, HITSTOP, SPARK, WAVE_EVERY, FIRST_WAVE, SIEGE_FROM_WAVE, GOLD, ITEMS, APE_BUFF, DRAGON, RES, JUNGLE_BUFF, TEAR_MAX, RUNE_REC,
 } from './config.js';
 import { collide, obstaclesNear, lanePath, heightAt, STRUCTURES, laneProgress } from './map.js';
@@ -23,7 +23,8 @@ export function makeHero(G, heroId, team, lane, isPlayer) {
   const def = HEROES[heroId];
   const u = baseUnit('hero', team, FOUNTAIN[team][0], FOUNTAIN[team][1], 0.75, def.stats.hp);
   Object.assign(u, {
-    heroId, def, lane, isPlayer, level: 1, xp: 0, sp: 1, ranks: { Q: 0, W: 0, E: 0, R: 0 }, cds: { Q: 0, W: 0, E: 0, R: 0, D: 0, B: 0, S: 0, T: 0 },
+    heroId, def, lane, isPlayer, level: 1, xp: 0, sp: 1, ranks: { Q: 0, W: 0, E: 0, R: 0 }, cds: { Q: 0, W: 0, E: 0, R: 0, D: 0, B: 0, S: 0, T: 0, F: 0 },
+    summ: SUMM_REC[{ 坦克: 'tank', 刺客: 'assassin', 遠程射手: 'marksman', 遠程術士: 'mage' }[def.role] || 'fighter'], tp: null,
     ki: 100, kills: 0, deaths: 0, assists: 0, chain: 0, chainT: -9, target: null, goal: null, order: null, action: null,
     respawn: 0, recall: 0, empowered: 0, charging: false, damagers: new Map(), lastAttackHeroT: -99, cs: 0, hitstopOwner: isPlayer,
     gold: GOLD.start, inv: [], path: null, apeBuff: 0, omen: 0, wish: 0, form: 'base',
@@ -92,7 +93,7 @@ export function recalcStats(u) {
 function statMods(u, it) {
   const s = u.def.stats, lv = u.level - 1, baseAd = s.ad + s.adLv * lv, baseHp = s.hp + s.hpLv * lv;
   const addStats = (st) => { for (const k in st) { const v = st[k]; if (!v) continue; if (k === 'ms') u.ms *= 1 + v; else if (k === 'as') u.as = Math.max(STAT.asMinInterval, u.as / (1 + v)); else if (k === 'hp') { u.maxHp += v; } else if (k === 'ten') u.ten = 1 - (1 - u.ten) * (1 - v); else u[k] = (u[k] || 0) + v; } };
-  u.ultAh = 0; u.basicAh = 0; u.healTaken = 0;
+  u.ultAh = 0; u.basicAh = 0; u.sumAh = 0; u.healTaken = 0;
   if (u.colHp) u.maxHp += u.colHp;
   if (u.critStk) u.crit = Math.min(1, u.crit + u.critStk);
   for (const key in u.psv) {
@@ -105,6 +106,7 @@ function statMods(u, it) {
     else if (e.k === 'healTaken') u.healTaken = Math.max(u.healTaken, e.pct);
     else if (e.k === 'ultAh') u.ultAh += e.v;
     else if (e.k === 'basicAh') u.basicAh += e.v;
+    else if (e.k === 'sumAh') u.sumAh += e.v;
     else if (e.k === 'timeStacks') { const t = u.tStk || 0; u.maxHp += e.hp * t; u.maxMp += e.mp * t; u.ap += e.ap * t; }
     else if (e.k === 'statFrom') {
       if (e.manaToHp) u.maxHp += u.maxMp * e.manaToHp;
@@ -173,6 +175,7 @@ export function damage(G, src, dst, amount, opts = {}) {
   if (src && (src.kind === 'hero' || src.kind === 'minion') && (dst.kind === 'hero' || dst.kind === 'minion')) src.reveal = G.time + 1.2;
   let a = amount;
   if (src && src.st && src.st.spark > 0) a *= SPARK.dmg;
+  if (src && src.st && src.st.weak > 0) a *= 1 - (src.st.weakAmt || 0); // 虛弱
   if (src && src.kind === 'hero') { a *= src.dmgMul || 1; if (src.apeBuff > 0) a *= 1 + APE_BUFF.dmg; if (src.omen > 0) a *= 1 + DRAGON.omen.dmg; if (src.wish > 0) a *= 1 + DRAGON.wish.dmg; if (opts.type === 'skill' || opts.type === 'super') a *= src.skillMul || 1; }
   if (src && src.kind === 'hero' && src.rune === 'conqueror' && src.rs.stacks && G.time - src.rs.t < 5 && dst.kind === 'hero') a *= 1 + 0.015 * src.rs.stacks;
   // 普攻、小兵、塔、野怪是物理傷害（物理減傷），技能是技能傷害（技能減傷），真實傷害不減
@@ -218,7 +221,7 @@ export function damage(G, src, dst, amount, opts = {}) {
     if (opts.air) { dst.st.stun = Math.max(dst.st.stun, opts.air); dst.vy = Math.max(dst.vy, opts.air * 9.8 * 0.5); }
     if (opts.freeze) { dst.st.frozen = Math.max(dst.st.frozen, opts.freeze * ten); dst.st.stun = Math.max(dst.st.stun, opts.freeze * ten); }
     if (opts.slow) { dst.st.slow = Math.max(dst.st.slow, (opts.slowT || 1.5) * ten); dst.st.slowAmt = Math.max(dst.st.slowAmt, opts.slow * (1 - (dst.slowRes || 0))); }
-    if (dst.kind === 'hero' && (opts.stun || opts.air || opts.freeze || a > 0)) { if (dst.recall > 0) cancelRecall(G, dst); if (opts.stun || opts.air || opts.freeze) interrupt(G, dst); }
+    if (dst.kind === 'hero' && (opts.stun || opts.air || opts.freeze || a > 0)) { if (dst.recall > 0 || dst.tp) cancelRecall(G, dst); if (opts.stun || opts.air || opts.freeze) interrupt(G, dst); }
   }
   // 連擊數與頓幀（只算玩家參與的命中）
   const P = G.player;
@@ -316,7 +319,7 @@ export function interrupt(G, h) {
   if (h.action && !h.action.unstoppable) { h.action.cancel?.(); h.action = null; }
   h.charging = false;
 }
-export function cancelRecall(G, h) { if (h.recall > 0) { h.recall = 0; G.emit('recall', { h, state: 'cancel' }); } }
+export function cancelRecall(G, h) { if (h.tp) { if (h.tp.mark && h.tp.mark.remove) h.tp.mark.remove(); h.tp = null; G.emit('teleport', { h, state: 'cancel' }); } if (h.recall > 0) { h.recall = 0; G.emit('recall', { h, state: 'cancel' }); } }
 
 /* ---------------- 查詢 ---------------- */
 export function enemiesNear(G, u, r, filter) {
@@ -515,6 +518,17 @@ export function heroTick(G, h, dt) {
   if (h.blue > 0) { h.blue -= dt; if (h.blue <= 0) recalcStats(h); }
   if (h.red > 0) h.red -= dt;
   if (G.traits) G.traits.tick(G, h, dt);
+  // 傳送（召喚師技能）：引導中移動或下指令就取消
+  if (h.tp) {
+    if (h.goal || h.target || h.action) cancelRecall(G, h);
+    else if ((h.tp.t -= dt) <= 0) {
+      const p = h.tp; h.tp = null;
+      G.fx && G.fx.vanish(h.x, h.z, '#9f7bff', h);
+      h.x = p.x; h.z = p.z; collide(h, h.radius);
+      G.fx && G.fx.vanish(h.x, h.z, '#9f7bff', h, true);
+      G.emit('teleport', { h, state: 'done' });
+    }
+  }
   // 回城
   if (h.recall > 0) {
     h.recall -= dt;
@@ -543,6 +557,7 @@ export function tickStatus(u, dt, G) {
   if (st.arShT > 0) st.arShT -= dt;
   if (st.mrShT > 0) st.mrShT -= dt;
   if (st.vuln > 0) st.vuln -= dt;
+  if (st.weak > 0) st.weak -= dt;
   // 灼燒（赤色氣焰）：累積到 4 點或結束時才結算一次，避免每格四捨五入成 0
   if (st.burn > 0) { st.burn -= dt; st.burnAcc = (st.burnAcc || 0) + st.burnDps * dt; if ((st.burnAcc >= 4 || st.burn <= 0) && u.alive) { const v = st.burnAcc; st.burnAcc = 0; if (st.burnSrc) damage(G, st.burnSrc, u, v, { type: 'true', noKi: true, dot: true }); } }
   if (st.haste > 0) st.haste -= dt;

@@ -28,7 +28,7 @@ export function newMatch(opts) {
   const lanesA = [lane, ...[0, 1, 2].filter((l) => l !== lane)];
   teams[0].forEach((id, i) => {
     const h = addUnit(G, makeHero(G, id, 0, lanesA[i], i === 0 && !!opts.player));
-    if (h.isPlayer) { G.player = h; if (opts.rune) h.rune = opts.rune; } else h.brain = makeBrain(h, diff);
+    if (h.isPlayer) { G.player = h; if (opts.rune) h.rune = opts.rune; if (opts.summ) h.summ = opts.summ; } else h.brain = makeBrain(h, diff);
   });
   teams[1].forEach((id, i) => { const h = addUnit(G, makeHero(G, id, 1, i, false)); h.brain = makeBrain(h, diff); });
   if (!G.player) G.player = G.heroes[0];

@@ -36,8 +36,8 @@ export const MAP = {
   1058: { id: 'pole', name: '如意棒' },
 
   /* ---------------- 鞋子 ---------------- */
-  3158: { id: 'leafboots', name: '木葉忍鞋', note: '洞見：召喚師技能加速 +10（召喚師技能之後加入）。' },
-  3171: { id: 'bloodboots', name: '血繼忍鞋', psv: { noxhaste: { k: 'msAfterCast', ms: 0.12, dur: 4 } }, note: '洞見：召喚師技能加速 +20。諾克薩斯加速：施放技能後 4 秒內移速 +12%。' },
+  3158: { id: 'leafboots', name: '木葉忍鞋', psv: { insight: { k: 'sumAh', v: 10 } }, note: '洞見：召喚師技能加速 +10。' },
+  3171: { id: 'bloodboots', name: '血繼忍鞋', psv: { insight: { k: 'sumAh', v: 20, lv: 2 }, noxhaste: { k: 'msAfterCast', ms: 0.12, dur: 4 } }, note: '洞見：召喚師技能加速 +20。諾克薩斯加速：施放技能後 4 秒內移速 +12%。' },
   3008: { id: 'pirateboots', name: '海賊靴', psv: { plunder: { k: 'stacks', ov: 0.006, max: 10 } }, note: '擊殺：參與擊殺英雄時全能吸血 +0.6%，最多 10 層。' },
   3168: { id: 'phoenixboots', name: '不死鳥之靴', psv: { plunder: { k: 'stacks', ov: 0.006, max: 10 }, eternal: { k: 'eternal', dmg: 0.04, heal: 0.12 } }, note: '擊殺：參與擊殺英雄時全能吸血 +0.6%，最多 10 層。永恆不滅：血量高於一半時傷害 +4%，低於一半時受到的治療 +12%。' },
   3009: { id: 'skyboots', name: '舞空靴', psv: { swift: { k: 'slowResist', v: 0.25 } }, note: '身輕如燕：緩速效果 -25%。' },

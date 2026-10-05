@@ -1,6 +1,7 @@
 // HUD：比分、技能列、氣力條、血條、連擊數、公告、必殺技切入、單位血條與浮動數字、選角與結算。
-import { HEROES, HERO_ORDER, FRANCHISES, TEAM_COLOR, TEAM_LIGHT, KI_BAR, xpToNext, MAX_LEVEL, ITEMS, APE_BUFF, DRAGON, RES, RUNES, RUNE_REC, JUNGLE_BUFF } from './config.js';
-import { ICONS, ITEM_ICONS, itemIcon } from './icons.js';
+import { HEROES, HERO_ORDER, FRANCHISES, TEAM_COLOR, TEAM_LIGHT, KI_BAR, xpToNext, MAX_LEVEL, ITEMS, APE_BUFF, DRAGON, RES, RUNES, RUNE_REC, JUNGLE_BUFF, SUMMONERS, SUMM_REC } from './config.js';
+import { ICONS, ITEM_ICONS, itemIcon, SUMM_ICONS } from './icons.js';
+import { castSummoner, summById } from './summoners.js';
 import { buy, canBuy, inShop, eatSenzu, sell, priceFor, totalCost, sellPrice, itemById, buildList } from './items.js';
 import { inBush } from './vision.js';
 import { seen } from './vision.js';
@@ -22,7 +23,7 @@ export function createHud(env) {
     dock: $('#dock'), port: $('#dock .port img'), lvl: $('#dock .lvl'), hpFill: $('#dock .hp i'), hpTxt: $('#dock .hp b'), mpFill: $('#dock .mp i'), mpTxt: $('#dock .mp b'), shFill: $('#dock .hp s'), xpFill: $('#dock .xp i'),
     kiCells: [...document.querySelectorAll('#dock .ki .cell i')], kiN: $('#dock .ki .kn'), sp: $('#spPrompt'), dead: $('#dead'), recall: $('#recallbar'),
     bars: $('#bars'), speed: $('#speed'), flash: $('#flash'), skills: {},
-    slots: [...document.querySelectorAll('#dock .slots .slot:not(.senzu):not(.ward):not(.control)')], control: $('#dock .slot.control'), senzu: $('#dock .slot.senzu'), goldB: $('#dock .goldbtn'), gold: $('#dock .goldbtn b'), buffs: $('#buffs'),
+    slots: [...document.querySelectorAll('#dock .slots .slot:not(.senzu):not(.ward):not(.control):not(.summ)')], summ: $('#dock .slot.summ'), control: $('#dock .slot.control'), senzu: $('#dock .slot.senzu'), goldB: $('#dock .goldbtn'), gold: $('#dock .goldbtn b'), buffs: $('#buffs'),
     shop: $('#shop'), shopList: $('#shop .shopList'), shopTabs: $('#shop .shopTabs'), shopQ: $('#shop .shopQ'), shopGold: $('#shop .shopGold'), shopHint: $('#shop .shopHint'), shopDetail: $('#shop .shopDetail'), shopInv: $('#shop .shopInv'),
     ward: $('#dock .slot.ward'), bushTag: $('#bushTag'),
     nmB: $('#dock .nm b'), nmS: $('#dock .nm span'), target: $('#target'), tImg: $('#target img'), tName: $('#target .tn b'), tBar: $('#target .tb i'), tLv: $('#target .tl'),
@@ -141,6 +142,7 @@ export function createHud(env) {
   el.shop.addEventListener('pointerdown', (e) => { if (e.target === el.shop) toggleShop(false); });
   $('#shop .shopX').addEventListener('click', () => toggleShop(false));
   el.goldB.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); toggleShop(); });
+  el.summ.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); if (player && G) { const t = player.lastHeroTarget, ok = t && t.alive; castSummoner(G, player, ok ? t.x : player.x + Math.sin(player.facing) * 4, ok ? t.z : player.z + Math.cos(player.facing) * 4); } });
   el.senzu.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); if (player && G) eatSenzu(G, player); });
   for (const sl of el.slots) sl.addEventListener('pointerdown', (e) => { const ai = +sl.dataset.act; if (!(ai >= 0) || !player || !G) return; e.preventDefault(); e.stopPropagation(); useActive(G, player, ai); });
   function bindPlayer(h) {
@@ -336,6 +338,10 @@ export function createHud(env) {
     }
     setText(el.gold, Math.floor(P.gold));
     const wc = P.cds.T > 0 ? Math.ceil(P.cds.T) : 0;
+    // 召喚師技能
+    if (el.summ._id !== P.summ) { el.summ._id = P.summ; const S = summById(P.summ); el.summ.querySelector('.ic').innerHTML = SUMM_ICONS[P.summ] || ''; el.summ.title = S ? `${S.name}（F）\n${S.desc}` : ''; }
+    const sc = Math.max(0, Math.ceil(P.cds.F || 0));
+    if (el.summ._c !== sc) { el.summ._c = sc; el.summ.classList.toggle('cool', sc > 0); el.summ.querySelector('.wcd').textContent = sc || ''; }
     if (el.ward._c !== wc) { el.ward._c = wc; el.ward.classList.toggle('cool', wc > 0); el.ward.querySelector('.wcd').textContent = wc || ''; }
     el.bushTag.classList.toggle('on', P.alive && inBush(P) > 0);
     el.dock.classList.toggle('canshop', inShop(P) && ITEMS.some((it) => canBuy(P, it.id)));
@@ -513,28 +519,32 @@ export const NUMFONT = '"Avenir Next Condensed","Bahnschrift","Arial Narrow","Pi
 /* ---------------- 選角畫面 ---------------- */
 export function createSelect({ portraits, onPick, onStart }) {
   const wrap = $('#select'), cards = $('#cards'), info = $('#pickInfo');
-  let cur = 'goku', lane = 1, diff = 1, rune = RUNE_REC.goku;
+  let cur = 'goku', lane = 1, diff = 1, rune = RUNE_REC.goku, summ = 'flash';
+  const summRec = (id) => SUMM_REC[{ 坦克: 'tank', 刺客: 'assassin', 遠程射手: 'marksman', 遠程術士: 'mage' }[HEROES[id].role] || 'fighter'];
   const card = (id) => { const d = HEROES[id]; return `<button class="card" type="button" data-id="${id}" style="--el:${d.color}"><img alt="" src="${portraits[id] || ''}"><b>${d.short}</b><small>${d.en}</small><em>${d.role}</em></button>`; };
   cards.innerHTML = FRANCHISES.map(([f, label]) => `<div class="grp"><span class="gl">${label}</span><div class="row">${HERO_ORDER.filter((id) => HEROES[id].franchise === f).map(card).join('')}</div></div>`).join('');
   function show(id) {
     cur = id; const d = HEROES[id];
     for (const c of cards.children) c.classList.toggle('sel', c.dataset.id === id);
     info.style.setProperty('--el', d.color);
-    rune = RUNE_REC[id];
+    rune = RUNE_REC[id]; summ = summRec(id);
     info.innerHTML = `<h2${d.name.length > 5 ? ' class="long"' : ''}><b>${d.name}</b><span>${d.en} · ${d.role} · ${d.resName}</span></h2><p>${d.blurb}</p><ul>${KEYS.map((k) => `<li><i>${ICONS[id][k]}</i><kbd>${k}</kbd><div><b>${d.skills[k].name}</b><span>${d.skills[k].desc}</span></div></li>`).join('')}</ul>`
-      + `<div class="runes"><b>符文</b><div class="rb">${RUNES.map((r) => `<button type="button" data-rune="${r.id}" class="${r.id === RUNE_REC[id] ? 'rec' : ''}">${r.name}</button>`).join('')}</div><p></p></div>`;
+      + `<div class="runes"><b>符文</b><div class="rb">${RUNES.map((r) => `<button type="button" data-rune="${r.id}" class="${r.id === RUNE_REC[id] ? 'rec' : ''}">${r.name}</button>`).join('')}</div><p></p></div>`
+      + `<div class="runes summs"><b>技能</b><div class="rb">${SUMMONERS.map((x) => `<button type="button" data-summ="${x.id}" class="${x.id === summRec(id) ? 'rec' : ''}">${x.name}</button>`).join('')}</div><p></p></div>`;
     showRune();
     onPick(id);
   }
   function showRune() {
     for (const b of info.querySelectorAll('[data-rune]')) b.classList.toggle('sel', b.dataset.rune === rune);
     const r = RUNES.find((x) => x.id === rune); info.querySelector('.runes p').innerHTML = `${r.desc}<small>（原型：${r.proto}）</small>`;
+    for (const b of info.querySelectorAll('[data-summ]')) b.classList.toggle('sel', b.dataset.summ === summ);
+    const S = SUMMONERS.find((x) => x.id === summ); info.querySelector('.summs p').innerHTML = `${S.desc}<small>（召喚師技能，F 鍵）</small>`;
   }
-  info.addEventListener('click', (e) => { const b = e.target.closest('[data-rune]'); if (b) { rune = b.dataset.rune; showRune(); } });
+  info.addEventListener('click', (e) => { const b = e.target.closest('[data-rune]'), m = e.target.closest('[data-summ]'); if (b) { rune = b.dataset.rune; showRune(); } if (m) { summ = m.dataset.summ; showRune(); } });
   cards.addEventListener('click', (e) => { const c = e.target.closest('.card'); if (c) show(c.dataset.id); });
   for (const b of document.querySelectorAll('#laneSel button')) b.addEventListener('click', () => { lane = +b.dataset.lane; for (const o of document.querySelectorAll('#laneSel button')) o.classList.toggle('sel', o === b); });
   for (const b of document.querySelectorAll('#diffSel button')) b.addEventListener('click', () => { diff = +b.dataset.d; for (const o of document.querySelectorAll('#diffSel button')) o.classList.toggle('sel', o === b); });
-  $('#go').addEventListener('click', () => onStart(cur, lane, diff, rune));
+  $('#go').addEventListener('click', () => onStart(cur, lane, diff, rune, summ));
   show(cur);
   return { show: () => { wrap.classList.add('on'); }, hide: () => wrap.classList.remove('on'), get cur() { return cur; }, pick: show };
 }
