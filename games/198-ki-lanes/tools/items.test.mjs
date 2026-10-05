@@ -338,7 +338,7 @@ test('屬性龍珠：打倒神龍得到永久祝福，3 層得到龍魂，之後
 });
 
 /* ---------------- 英雄被動 ---------------- */
-test('英雄被動：魯夫的橡膠減普攻傷害、18 號的技能消耗 -25%、貝吉塔殘血增傷', () => {
+test('英雄被動：魯夫的橡膠減普攻傷害、18 號的技能消耗 -25%、貝吉塔殘血增傷 16%', () => {
   const { G, A, B } = duel('goku', 'luffy');
   const a1 = damage(G, A, B, 200, { type: 'L', noKi: true });
   assert.equal(a1, Math.round(200 * defMul(A, B, false) * 0.85));
@@ -349,7 +349,7 @@ test('英雄被動：魯夫的橡膠減普攻傷害、18 號的技能消耗 -25%
   const V = duel('vegeta', 'goku');
   const full = damage(V.G, V.A, V.B, 100, { type: 'true', noKi: true }); V.B.hp = V.B.maxHp;
   V.A.hp = V.A.maxHp * 0.3;
-  assert.equal(damage(V.G, V.A, V.B, 100, { type: 'true', noKi: true }), Math.round(full * 1.12));
+  assert.equal(damage(V.G, V.A, V.B, 100, { type: 'true', noKi: true }), Math.round(full * 1.16));
 });
 
 /* ---------------- 符文 ---------------- */

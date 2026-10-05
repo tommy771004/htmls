@@ -57,7 +57,7 @@ export const HEROES = {
   goku: {
     name: '孫悟空', short: '悟空', en: 'GOKU', role: '近戰鬥士', color: '#4fc3ff', glow: '#e6f8ff', melee: true, ssj: true,
     blurb: '愛打架的賽亞人。連段長、續戰力強，爆氣時變身超級賽亞人。',
-    stats: { hp: 650, hpLv: 90, ad: 58, adLv: 4.3, range: 2.4, as: 0.76, ms: 7.3, armor: 14 },
+    stats: { hp: 625, hpLv: 86, ad: 58, adLv: 4.3, range: 2.4, as: 0.76, ms: 7.3, armor: 14 },
     skills: {
       Q: { name: '龜派氣功', desc: '雙掌推出氣功彈，命中後小範圍爆炸。', cd: 5, range: 14, dmg: [70, 110, 150, 190, 230], adR: 0.6, radius: 2.6, speed: 34 },
       W: { name: '龍閃拳', desc: '向前衝刺，撞到敵人時打出四段連打並把對手打飛。', cd: 9, range: 8, dmg: [24, 34, 44, 54, 64], hits: 4, adR: 0.25 },
@@ -68,18 +68,18 @@ export const HEROES = {
   vegeta: {
     name: '貝吉塔', short: '貝吉塔', en: 'VEGETA', role: '刺客', color: '#ffd84a', glow: '#fff6c8', melee: true, ssj: true,
     blurb: '賽亞人的王子。瞬移切入、連續能量彈壓制，終極閃光一擊定勝負。',
-    stats: { hp: 580, hpLv: 80, ad: 62, adLv: 4.6, range: 2.3, as: 0.7, ms: 7.5, armor: 11 },
+    stats: { hp: 660, hpLv: 92, ad: 66, adLv: 4.9, range: 2.3, as: 0.7, ms: 7.5, armor: 16 },
     skills: {
       Q: { name: '連續能量彈', desc: '射出能量彈，命中後連鎖到附近兩個敵人。', cd: 5, range: 13, dmg: [65, 100, 135, 170, 205], adR: 0.55, speed: 46, chain: 2 },
       W: { name: '超級衝刺踢', desc: '衝刺後接五段快踢。', cd: 8, range: 7.5, dmg: [17, 24, 31, 38, 45], hits: 5, adR: 0.2 },
       E: { name: '殘像閃', desc: '閃到目標背後並重置普攻鏈。', cd: 8, range: 9 },
-      R: { name: '終極閃光', desc: '花 3 格氣，蓄力後放出極寬的金色光束。', cd: 50, range: 18, dmg: [70, 105, 140], ticks: 6, adR: 0.4, width: 3.8, windup: 0.55, ki: 3 },
+      R: { name: '終極閃光', desc: '花 3 格氣，蓄力後放出極寬的金色光束。', cd: 50, range: 18, dmg: [78, 116, 154], ticks: 6, adR: 0.4, width: 3.8, windup: 0.55, ki: 3 },
     },
   },
   trunks: {
     name: '特南克斯', short: '特南克斯', en: 'TRUNKS', role: '劍士', color: '#ffb03a', glow: '#fff0d0', melee: true, blade: true, ssj: true,
     blurb: '來自未來的劍士。劍閃穿過整排敵人，熱圓頂攻擊把對手打上天再炸開。',
-    stats: { hp: 610, hpLv: 84, ad: 60, adLv: 4.4, range: 2.8, as: 0.74, ms: 7.4, armor: 11 },
+    stats: { hp: 585, hpLv: 80, ad: 60, adLv: 4.4, range: 2.8, as: 0.74, ms: 7.4, armor: 11 },
     skills: {
       Q: { name: '魔閃光', desc: '雙手射出貫穿的氣功波，把敵人往後推。', cd: 6, range: 13, dmg: [60, 100, 140, 180, 220], adR: 0.55, width: 1.7, speed: 36 },
       W: { name: '閃光斬', desc: '揮劍穿過路徑上所有敵人，終點補一發氣功彈。', cd: 9, range: 8.5, dmg: [55, 85, 115, 145, 175], adR: 0.45 },
@@ -101,10 +101,10 @@ export const HEROES = {
   frieza: {
     name: '弗利沙', short: '弗利沙', en: 'FRIEZA', role: '遠程術士', color: '#ff4fb4', glow: '#ffe0f2', melee: false,
     blurb: '宇宙的帝王。死亡光束點殺、飛盤來回切割，死亡球覆蓋一大片。',
-    stats: { hp: 520, hpLv: 72, ad: 52, adLv: 3.6, range: 7.2, as: 0.85, ms: 7.0, armor: 6 },
+    stats: { hp: 610, hpLv: 86, ad: 56, adLv: 4.0, range: 7.2, as: 0.82, ms: 7.2, armor: 13 },
     skills: {
-      Q: { name: '死亡光束', desc: '指尖射出極快的光束，命中的敵人減速 35%。', cd: 5.5, range: 16, dmg: [80, 120, 160, 200, 240], adR: 0.6, speed: 62, slow: 0.35 },
-      W: { name: '死亡飛盤', desc: '擲出飛盤，飛出去再飛回來，來回都會切到敵人。', cd: 9, range: 12, dmg: [55, 85, 115, 145, 175], adR: 0.45, speed: 22 },
+      Q: { name: '死亡光束', desc: '指尖射出極快的光束，命中的敵人減速 35%。', cd: 5.5, range: 16, dmg: [90, 135, 180, 225, 270], adR: 0.65, speed: 62, slow: 0.35 },
+      W: { name: '死亡飛盤', desc: '擲出飛盤，飛出去再飛回來，來回都會切到敵人。', cd: 9, range: 12, dmg: [65, 100, 135, 170, 205], adR: 0.5, speed: 22 },
       E: { name: '瞬移擊', desc: '瞬移，下一次普攻硬直。', cd: 10, range: 8.5 },
       R: { name: '死亡球', desc: '花 3 格氣，舉起巨大的能量球砸向游標處，大範圍傷害並暈眩。', cd: 55, range: 15, dmg: [280, 400, 520], adR: 0.8, radius: 6.5, ki: 3 },
     },
@@ -126,7 +126,7 @@ Object.assign(HEROES, {
   naruto: {
     name: '漩渦鳴人', short: '鳴人', en: 'NARUTO', role: '近戰鬥士', color: '#ff8a1f', glow: '#fff0d8', melee: true, franchise: 'naruto',
     blurb: '意外性 No.1 的忍者。影分身圍毆、螺旋丸撞飛，風遁螺旋手裏劍炸開一大片。',
-    stats: { hp: 640, hpLv: 90, ad: 57, adLv: 4.2, range: 2.4, as: 0.75, ms: 7.4, armor: 12 },
+    stats: { hp: 600, hpLv: 84, ad: 54, adLv: 4.0, range: 2.4, as: 0.75, ms: 7.4, armor: 12 },
     skills: {
       Q: { name: '螺旋丸', desc: '向前衝刺，撞到敵人時把螺旋丸按上去，爆炸並擊飛。', cd: 7, range: 8, dmg: [80, 120, 160, 200, 240], adR: 0.6, radius: 2.4 },
       W: { name: '影分身之術', desc: '在游標處變出三個影分身圍毆，連打四下。', cd: 10, range: 9, dmg: [22, 32, 42, 52, 62], hits: 4, adR: 0.22, radius: 3.2 },
@@ -137,7 +137,7 @@ Object.assign(HEROES, {
   sasuke: {
     name: '宇智波佐助', short: '佐助', en: 'SASUKE', role: '刺客', color: '#8f7bff', glow: '#eef0ff', melee: true, blade: true, franchise: 'naruto',
     blurb: '宇智波一族的天才。豪火球燒開、千鳥貫穿麻痺，麒麟從天而降。',
-    stats: { hp: 580, hpLv: 80, ad: 62, adLv: 4.6, range: 2.5, as: 0.72, ms: 7.5, armor: 11 },
+    stats: { hp: 615, hpLv: 86, ad: 63, adLv: 4.7, range: 2.5, as: 0.72, ms: 7.5, armor: 14 },
     skills: {
       Q: { name: '豪火球之術', desc: '吐出巨大的火球，命中後炸開。', cd: 6, range: 13, dmg: [75, 115, 155, 195, 235], adR: 0.6, radius: 3, speed: 26 },
       W: { name: '千鳥', desc: '帶著雷光衝刺，撞到敵人時貫穿並麻痺 0.8 秒。', cd: 9, range: 8, dmg: [70, 105, 140, 175, 210], adR: 0.55 },
@@ -148,7 +148,7 @@ Object.assign(HEROES, {
   kakashi: {
     name: '旗木卡卡西', short: '卡卡西', en: 'KAKASHI', role: '遠程術士', color: '#7aa8ff', glow: '#eef5ff', melee: false, franchise: 'naruto',
     blurb: '拷貝忍者。水龍彈推開、追牙之術絆住，雷切切入，神威把人吸進異空間。',
-    stats: { hp: 560, hpLv: 78, ad: 55, adLv: 4.0, range: 6.6, as: 0.8, ms: 7.2, armor: 9 },
+    stats: { hp: 600, hpLv: 84, ad: 59, adLv: 4.4, range: 6.6, as: 0.8, ms: 7.2, armor: 9 },
     skills: {
       Q: { name: '水遁・水龍彈', desc: '噴出水龍，貫穿路徑上的敵人並往後推。', cd: 6, range: 13, dmg: [65, 100, 135, 170, 205], adR: 0.55, width: 2.0, speed: 30 },
       W: { name: '土遁・追牙之術', desc: '忍犬從地底竄出，一整排敵人被咬住定身 1 秒。', cd: 11, range: 12, dmg: [50, 75, 100, 125, 150], adR: 0.4, width: 2.2 },
@@ -159,7 +159,7 @@ Object.assign(HEROES, {
   sakura: {
     name: '春野櫻', short: '小櫻', en: 'SAKURA', role: '坦克', color: '#ff6fae', glow: '#ffe8f2', melee: true, franchise: 'naruto',
     blurb: '綱手的弟子。怪力一拳打碎地面，醫療忍術替隊友回血，天之拳從天砸落。',
-    stats: { hp: 740, hpLv: 102, ad: 54, adLv: 3.8, range: 2.4, as: 0.86, ms: 7.0, armor: 25 },
+    stats: { hp: 710, hpLv: 98, ad: 54, adLv: 3.8, range: 2.4, as: 0.86, ms: 7.0, armor: 25 },
     skills: {
       Q: { name: '櫻花衝', desc: '對游標處揮出怪力一拳，打碎地面，範圍內敵人被擊飛。', cd: 8, range: 6, dmg: [70, 110, 150, 190, 230], adR: 0.55, radius: 3.2 },
       W: { name: '怪力衝拳', desc: '衝刺，撞到敵人時重拳把它打飛並暈眩。', cd: 10, range: 7.5, dmg: [60, 90, 120, 150, 180], adR: 0.5 },
@@ -170,7 +170,7 @@ Object.assign(HEROES, {
   luffy: {
     name: '蒙其・D・魯夫', short: '魯夫', en: 'LUFFY', role: '近戰鬥士', color: '#ff3b4b', glow: '#ffe6e8', melee: true, franchise: 'op',
     blurb: '橡膠果實能力者。手臂伸長打人、橡膠火箭飛撲，二檔加速，巨人手槍一拳轟飛。',
-    stats: { hp: 700, hpLv: 96, ad: 58, adLv: 4.3, range: 3.4, as: 0.74, ms: 7.4, armor: 18 },
+    stats: { hp: 670, hpLv: 92, ad: 56, adLv: 4.3, range: 3.4, as: 0.74, ms: 7.4, armor: 18 },
     skills: {
       Q: { name: '橡膠槍', desc: '手臂伸長打出直拳，打中第一個敵人並擊退。', cd: 5, range: 11, dmg: [70, 110, 150, 190, 230], adR: 0.6 },
       W: { name: '橡膠火箭', desc: '把自己彈射到游標處，落地撞開周圍的敵人。', cd: 10, range: 10, dmg: [55, 85, 115, 145, 175], adR: 0.45, radius: 3 },
@@ -192,7 +192,7 @@ Object.assign(HEROES, {
   sanji: {
     name: '賓什莫克・香吉士', short: '香吉士', en: 'SANJI', role: '刺客', color: '#ff6a3d', glow: '#fff0e0', melee: true, franchise: 'op',
     blurb: '只用腳戰鬥的廚師。連環踢壓制、空中步行切入，惡魔風腳燃燒一整套連踢。',
-    stats: { hp: 590, hpLv: 82, ad: 61, adLv: 4.5, range: 2.6, as: 0.7, ms: 7.6, armor: 11 },
+    stats: { hp: 650, hpLv: 90, ad: 63, adLv: 4.7, range: 2.6, as: 0.68, ms: 7.6, armor: 15 },
     skills: {
       Q: { name: '首肉射擊', desc: '前踏一記重踢，把前方敵人踢飛。', cd: 5, range: 6, dmg: [70, 110, 150, 190, 230], adR: 0.6 },
       W: { name: '羊肉射擊', desc: '原地倒立旋轉連踢三下，打中周圍所有敵人。', cd: 9, range: 0, dmg: [30, 45, 60, 75, 90], hits: 3, adR: 0.25, radius: 3.2 },
@@ -428,19 +428,19 @@ export const SUMMONERS = [
 export const SUMM_REC = { tank: 'teleport', assassin: 'ignite', marksman: 'heal', mage: 'barrier', fighter: 'flash' };
 // 英雄天生被動（《英雄聯盟》每名英雄都有一個）：psv 用 traits.js 的效果原語，併入 h.psv（key 前綴 hero_，不和裝備衝突）
 export const PASSIVES = {
-  goku: { name: '越戰越勇', desc: '與英雄交戰時，每秒傷害 +1.5%，最多 +7.5%。', psv: { ramp: { k: 'ramp', per: 0.015, max: 0.075 } } },
-  vegeta: { name: '王子的自尊', desc: '血量低於 40% 時傷害 +12%、攻速 +15%。', psv: { pride: { k: 'selfLowHp', below: 0.4, dmg: 0.12, as: 0.15 } } },
-  trunks: { name: '未來劍技', desc: '每第三下普攻追加 20＋每級 4 的真實傷害。', psv: { sword: { k: 'everyN', n: 3, flat: 20, lvDmg: 4, trueDmg: true } } },
+  goku: { name: '越戰越勇', desc: '與英雄交戰時，每秒傷害 +1.5%，最多 +6%。', psv: { ramp: { k: 'ramp', per: 0.015, max: 0.06 } } },
+  vegeta: { name: '王子的自尊', desc: '血量低於 50% 時傷害 +16%、攻速 +20%。', psv: { pride: { k: 'selfLowHp', below: 0.5, dmg: 0.16, as: 0.2 } } },
+  trunks: { name: '未來劍技', desc: '每第三下普攻追加 12＋每級 3 的真實傷害。', psv: { sword: { k: 'everyN', n: 3, flat: 12, lvDmg: 3, trueDmg: true } } },
   piccolo: { name: '那美克星人的再生', desc: '5 秒沒受傷後，每秒回復 1.5% 最大血量。', psv: { regen: { k: 'warmog', pct: 0.015, need: 0, after: 5 } } },
-  frieza: { name: '宇宙帝王', desc: '技能命中英雄時追加目標最大血量 2% 的技能傷害（同一目標 1 秒一次）。', psv: { emperor: { k: 'skillPctMax', pct: 0.02, cd: 1 } } },
+  frieza: { name: '宇宙帝王', desc: '技能命中英雄時追加目標最大血量 3.5% 的技能傷害（同一目標 1 秒一次）。', psv: { emperor: { k: 'skillPctMax', pct: 0.035, cd: 1 } } },
   a18: { name: '無限能量', desc: '技能的魔力消耗 -25%。', psv: { energy: { k: 'costCut', pct: 0.25 } } },
-  naruto: { name: '九尾查克拉', desc: '受傷後血量低於 30% 時，5 秒內回復 20% 最大血量（60 秒一次）。', psv: { kurama: { k: 'lifeline', at: 0.3, base: 0, regen: 0.2, dur: 5, cd: 60 } } },
+  naruto: { name: '九尾查克拉', desc: '受傷後血量低於 30% 時，5 秒內回復 12% 最大血量（90 秒一次）。', psv: { kurama: { k: 'lifeline', at: 0.3, base: 0, regen: 0.12, dur: 5, cd: 90 } } },
   sasuke: { name: '寫輪眼', desc: '對被暈眩、冰凍或緩速的英雄傷害 +12%。', psv: { sharingan: { k: 'vsCc', pct: 0.12 } } },
-  kakashi: { name: '複製忍者', desc: '10 公尺內的敵方英雄施放技能後，自己的下一次技能傷害 +15%（6 秒內）。', psv: { copy: { k: 'copy', pct: 0.15, r: 10, dur: 6 } } },
+  kakashi: { name: '複製忍者', desc: '10 公尺內的敵方英雄施放技能後，自己的下一次技能傷害 +30%（6 秒內）。', psv: { copy: { k: 'copy', pct: 0.3, r: 10, dur: 6 } } },
   sakura: { name: '百豪之印', desc: '受傷後血量低於 35% 時，5 秒內回復 25% 最大血量（90 秒一次）。', psv: { byakugo: { k: 'lifeline', at: 0.35, base: 0, regen: 0.25, dur: 5, cd: 90 } } },
   luffy: { name: '橡膠', desc: '承受的普攻傷害 -15%（打擊對橡膠沒什麼用）。', psv: { rubber: { k: 'autoReduce', pct: 0.15 } } },
-  zoro: { name: '三刀流', desc: '普攻對目標周圍 2.5 公尺的敵人造成 35% 傷害。', psv: { santoryu: { k: 'cleave', pct: 0.35, r: 2.5 } } },
-  sanji: { name: '連環踢', desc: '普攻疊攻速 +5%（最多 4 層，4 秒）。', psv: { kicks: { k: 'guinsoo', as: 0.05, max: 4, dur: 4 } } },
+  zoro: { name: '三刀流', desc: '普攻對目標周圍 2.5 公尺的敵人造成 25% 傷害。', psv: { santoryu: { k: 'cleave', pct: 0.25, r: 2.5 } } },
+  sanji: { name: '連環踢', desc: '普攻疊攻速 +8%（最多 4 層，4 秒），滿層時普攻追加 20＋每級 3 的技能傷害。', psv: { kicks: { k: 'guinsoo', as: 0.08, max: 4, dur: 4, fullDmg: 20, fullLv: 3 } } },
   nami: { name: '氣象科學', desc: '每第三下普攻落雷，追加 30＋30% 氣功強度的技能傷害。', psv: { weather: { k: 'everyN', n: 3, flat: 30, apK: 0.3, magic: true } } },
 };
 export const INV_SLOTS = 6;

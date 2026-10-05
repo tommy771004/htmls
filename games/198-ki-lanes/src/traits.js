@@ -432,6 +432,7 @@ export function afterAuto(G, h, t, dealt, opts) {
   }
   for (const e of effs(h, 'guinsoo')) {
     F.gStk = Math.min(e.max, (G.time - (F.gT ?? -99) < e.dur ? F.gStk || 0 : 0) + 1); F.gT = G.time;
+    if (e.fullDmg && F.gStk >= e.max) procDmg(G, h, t, e.fullDmg + (e.fullLv || 0) * h.level, true); // 香吉士：滿層追加
     if (F.gStk >= e.max && (F.gN = (F.gN || 0) + 1) % 3 === 0) for (const o of effs(h, 'onhit')) if (!o.minionOnly) procDmg(G, h, t, onhitAmount(h, t, o), true);
   }
   for (const e of effs(h, 'flurry')) {
