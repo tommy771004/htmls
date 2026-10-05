@@ -155,7 +155,8 @@ for (const id in HERO) {
 
 /* ---------------- 姿勢 ---------------- */
 const KEYS = ['hipsY', 'hipsZ', 'hipsRX', 'hipsRY', 'hipsRZ', 'torsoX', 'torsoY', 'torsoZ', 'headX', 'headY', 'headZ',
-  'shLX', 'shLY', 'shLZ', 'elL', 'shRX', 'shRY', 'shRZ', 'elR', 'thLX', 'thLZ', 'knL', 'thRX', 'thRZ', 'knR', 'spin', 'stretch'];
+  'shLX', 'shLY', 'shLZ', 'elL', 'shRX', 'shRY', 'shRZ', 'elR', 'thLX', 'thLZ', 'knL', 'thRX', 'thRZ', 'knR', 'spin', 'stretch',
+  'wrL', 'wrR', 'anL', 'anR']; // 手腕前後彎、腳踝（在自動貼地之外再加的量）
 function blank() { const p = {}; for (const k of KEYS) p[k] = 0; p.shLZ = 0.12; p.shRZ = 0.12; p.elL = -0.15; p.elR = -0.15; return p; }
 function lerpPose(a, b, k, out = {}) { for (const key of KEYS) out[key] = a[key] + (b[key] - a[key]) * k; return out; }
 const ease = (k) => k * k * (3 - 2 * k);
@@ -219,12 +220,15 @@ function stance(style, t) {
   return p;
 }
 
+const _over = {};
 function strike(t, ti, base, W, S, rec = 0.36) {
   const a = ti * 0.55;
   if (t < a) return lerpPose(base, W, ease(t / a));
-  if (t < ti) return lerpPose(W, S, (t - a) / (ti - a));
-  if (t < ti + 0.07) return S;
-  return lerpPose(S, base, ease(clamp((t - ti - 0.07) / Math.max(0.05, rec - ti - 0.07), 0, 1)));
+  if (t < ti) { const u = (t - a) / (ti - a); return lerpPose(W, S, u * u * (2 - u)); } // 出手越來越快
+  // 命中後順勢多送一點（跟隨動作）再停住，然後收回架式
+  for (const k of KEYS) _over[k] = S[k] + (S[k] - W[k]) * 0.12;
+  if (t < ti + 0.08) return lerpPose(S, _over, Math.sin(Math.PI * 0.5 * clamp((t - ti) / 0.05, 0, 1)));
+  return lerpPose(_over, base, ease(clamp((t - ti - 0.08) / Math.max(0.05, rec - ti - 0.08), 0, 1)));
 }
 export const IMPACT = { atk1: 0.1, atk2: 0.12, atk3: 0.16, slash: 0.12, cast: 0.16, beam: 0.4, grab: 0.18, overhead: 0.3 };
 
@@ -238,11 +242,12 @@ function heroPose(d, name, t, k, phase, out) {
     case 'run': {
       const s = Math.sin(phase), c = Math.cos(phase);
       const glide = d.style === 'regal';
-      p = P({ hipsY: -0.05 + 0.06 * Math.abs(c) * (glide ? 0.3 : 1), torsoX: glide ? 0.35 : d.style === 'tank' ? 0.32 : 0.3, torsoY: 0.14 * s, headX: -0.15, headY: 0,
-        thLX: s * (glide ? 0.35 : 0.95), thRX: -s * (glide ? 0.35 : 0.95), thLZ: 0.04, thRZ: 0.04,
-        knL: 0.35 + (glide ? 0.4 : 1.1) * Math.max(0, -c), knR: 0.35 + (glide ? 0.4 : 1.1) * Math.max(0, c),
-        shLX: glide ? 0.5 : -s * 0.85, shRX: glide ? 0.5 : s * 0.85, shLZ: 0.18, shRZ: 0.18,
-        elL: glide ? -0.4 : -1.35, elR: glide ? -0.4 : -1.35 });
+      // 參考影片的跑姿：上身大幅前傾、髖和胸反向扭、大步幅（後腳踢高）、拳頭前後大擺
+      p = P({ hipsY: -0.09 + 0.08 * Math.abs(c) * (glide ? 0.3 : 1), hipsRX: glide ? 0 : 0.1, hipsRY: glide ? 0 : -0.2 * s, torsoX: glide ? 0.35 : d.style === 'tank' ? 0.36 : 0.4, torsoY: (glide ? 0.14 : 0.34) * s, headX: glide ? -0.15 : -0.32, headY: glide ? 0 : -0.2 * s,
+        thLX: s * (glide ? 0.35 : 1.15) - (glide ? 0 : 0.12), thRX: -s * (glide ? 0.35 : 1.15) - (glide ? 0 : 0.12), thLZ: 0.05, thRZ: 0.05,
+        knL: 0.3 + (glide ? 0.4 : 1.6) * Math.max(0, -c) * (0.6 + 0.4 * Math.max(0, -s)), knR: 0.3 + (glide ? 0.4 : 1.6) * Math.max(0, c) * (0.6 + 0.4 * Math.max(0, s)),
+        shLX: glide ? 0.5 : -s * 1.15 - 0.15, shRX: glide ? 0.5 : s * 1.15 - 0.15, shLZ: 0.22, shRZ: 0.22,
+        elL: glide ? -0.4 : -1.45 - 0.35 * Math.max(0, s), elR: glide ? -0.4 : -1.45 - 0.35 * Math.max(0, -s) });
       if (sword) Object.assign(p, { shRX: 0.9, shRZ: 0.35, elR: -0.3 });
       if (d.style === 'ninja') Object.assign(p, { torsoX: 0.62, headX: -0.45, shLX: 1.25, shRX: 1.25, shLZ: 0.3, shRZ: 0.3, elL: -0.15, elR: -0.15 });
       if (d.style === 'kick') Object.assign(p, { shLX: 0.15, shRX: 0.15, shLZ: 0.2, shRZ: 0.2, elL: -0.6, elR: -0.6 });
@@ -264,8 +269,9 @@ function heroPose(d, name, t, k, phase, out) {
         const S = P({ torsoX: -0.3, torsoY: 0.45, thLX: -1.55, thLZ: 0.05, knL: 0.08, thRX: 0.2, knR: 0.25, hipsY: 0.03, hipsZ: 0.06, headX: -0.1 });
         p = strike(t, IMPACT.atk1, base, W, S, 0.3); break;
       }
-      const W = P({ torsoY: 0.1, shRX: -0.5, shRZ: 0.25, elR: -2.2, hipsZ: -0.02 });
-      const S = P({ torsoY: 0.95, torsoX: 0.15, shRX: -1.55, shRZ: 0.05, shRY: 0, elR: -0.05, hipsZ: 0.08, thRX: 0.45, knR: 0.2, headY: -0.6 });
+      const W = P({ torsoY: 0.05, hipsRY: 0.05, shRX: -0.35, shRZ: 0.3, elR: -2.3, hipsZ: -0.05, hipsY: -0.14, knL: 0.8, knR: 0.75 });
+      const S = P({ torsoY: 0.85, hipsRY: 0.6, torsoX: 0.28, shRX: -1.62, shRZ: 0.02, shRY: 0, elR: 0, shLX: 0.45, shLZ: 0.35, elL: -2.0, hipsZ: 0.24, hipsY: -0.13,
+        thLX: -0.75, thLZ: 0.22, knL: 0.85, thRX: 0.7, thRZ: 0.12, knR: 0.08, headY: -0.75, headX: -0.12 });
       p = strike(t, IMPACT.atk1, base, W, S, 0.3);
       break;
     }
@@ -286,8 +292,9 @@ function heroPose(d, name, t, k, phase, out) {
         const S = P({ torsoY: 1.25, torsoX: -0.3, torsoZ: 0.4, thRX: -1.35, thRZ: 0.8, knR: 0.12, thLX: 0.1, knL: 0.3, hipsY: 0.03, hipsZ: 0.05, headY: -0.9 });
         p = strike(t, IMPACT.atk2, base, W, S, 0.34); break;
       }
-      const W = P({ torsoY: 0.75, shLX: -0.6, shLZ: 1.15, elL: -1.4 });
-      const S = P({ torsoY: -0.75, torsoX: 0.18, shLX: -1.45, shLZ: 0.35, elL: -0.75, hipsZ: 0.1, thLX: -0.55, knL: 0.45, headY: 0.4 });
+      const W = P({ torsoY: 0.95, hipsRY: 0.25, shLX: -0.55, shLZ: 1.25, elL: -1.5, shRX: -1.1, elR: -2.0, hipsY: -0.12, knL: 0.7, knR: 0.7 });
+      const S = P({ torsoY: -0.75, hipsRY: -0.55, torsoX: 0.3, torsoZ: 0.12, shLX: -1.5, shLZ: 0.45, elL: -0.55, shRX: 0.35, shRZ: 0.3, elR: -2.0, hipsZ: 0.22, hipsY: -0.14,
+        thLX: -0.8, thLZ: 0.25, knL: 0.9, thRX: 0.65, knR: 0.1, headY: 0.55, headX: -0.1 });
       p = strike(t, IMPACT.atk2, base, W, S, 0.34);
       break;
     }
@@ -301,9 +308,10 @@ function heroPose(d, name, t, k, phase, out) {
         const S = P({ torsoY: 1.1, torsoX: 0.1, shRX: -1.55, shRZ: -0.2, elR: 0, shLX: 0.5, shLZ: 0.5, elL: -0.4, hipsZ: 0.12, thLX: -0.6, knL: 0.5, thRX: 0.5 });
         p = strike(t, IMPACT.atk3, base, W, S, 0.42);
       } else {
-        const W = P({ torsoY: -0.7, torsoX: 0.1, thRX: 0.6, knR: 1.6, hipsY: -0.08 });
-        const S = P({ torsoY: 1.0, torsoX: -0.35, torsoZ: 0.25, thRX: -1.65, thRZ: 0.25, knR: 0.05, thLX: 0.1, knL: 0.35, hipsY: 0.04, hipsZ: 0.04,
-          shLX: -0.6, shLZ: 0.9, elL: -0.8, shRX: 0.4, shRZ: 0.8, elR: -0.5, headY: -0.7 });
+        // 重踢：先蹲、再跳起把身體往後仰到快打橫，踢腳越過頭頂，雙手甩開保持平衡
+        const W = P({ torsoY: -0.85, torsoX: 0.25, hipsRY: -0.3, thRX: 0.7, knR: 1.7, thLX: -0.5, knL: 1.1, hipsY: -0.2, shLX: -0.9, elL: -1.8, shRX: 0.5, elR: -1.6 });
+        const S = P({ torsoY: 0.85, hipsRY: 0.45, torsoX: -0.55, torsoZ: 0.3, hipsRX: -0.45, thRX: -2.15, thRZ: 0.3, knR: 0, thLX: 0.55, knL: 0.55, hipsY: 0.14, hipsZ: 0.12,
+          shLX: 0.35, shLZ: 1.35, elL: -0.35, shRX: 0.75, shRZ: 1.1, elR: -0.4, headY: -0.75, headX: 0.25 });
         if (d.style === 'kick') Object.assign(S, { shLX: base.shLX, shLZ: base.shLZ, elL: base.elL, shRX: base.shRX, shRZ: base.shRZ, elR: base.elR, thRX: -1.85, thRZ: 0.1 });
         p = strike(t, IMPACT.atk3, base, W, S, 0.42);
       }
@@ -345,11 +353,14 @@ function heroPose(d, name, t, k, phase, out) {
         thLX: -0.3, thLZ: 0.32, knL: 0.55, thRX: -0.3, thRZ: 0.32, knR: 0.55 });
       break;
     }
-    case 'dash':
-      p = P({ torsoX: 0.95, torsoY: 0, headX: -0.75, shLX: 1.05, shRX: 1.05, shLZ: 0.35, shRZ: 0.35, elL: -0.3, elR: -0.3,
-        thLX: -0.7, knL: 1.3, thRX: 0.55, knR: 0.9, hipsY: -0.08 });
-      if (sword) Object.assign(p, { shRX: 0.6, shRZ: 0.9, elR: -0.2 });
+    case 'dash': {
+      const fl = Math.sin(t * 30) * 0.06;
+      p = P({ hipsRX: 1.05, hipsY: 0.32, hipsRY: 0, hipsRZ: 0, torsoX: 0.3, torsoY: 0, torsoZ: fl * 0.5, headX: -1.05, headY: 0,
+        shRX: -2.75, shRZ: 0.12, elR: -0.15, shLX: 0.55, shLZ: 0.28, elL: -0.5,
+        thLX: 0.2 + fl, thLZ: 0.08, knL: 0.35, thRX: 0.05 - fl, thRZ: 0.06, knR: 1.05 });
+      if (sword) Object.assign(p, { shRX: 0.6, shRZ: 0.9, elR: -0.2, shLX: -2.6, elL: -0.2 });
       break;
+    }
     case 'rush': {
       const per = 0.11, i = Math.floor(t / per), f = (t % per) / per;
       const ext = f < 0.45 ? ease(f / 0.45) : 1 - ease((f - 0.45) / 0.55) * 0.85;
@@ -387,9 +398,10 @@ function heroPose(d, name, t, k, phase, out) {
       break;
     }
     case 'air': {
-      const f = Math.sin(t * 14);
-      p = P({ torsoX: -0.7, torsoY: 0, headX: -0.4, shLX: -2.4 + 0.5 * f, shLZ: 0.7, elL: -0.6, shRX: -2.4 - 0.5 * f, shRZ: 0.7, elR: -0.6,
-        thLX: -0.7 + 0.4 * f, knL: 1.1, thRX: -0.4 - 0.4 * f, knR: 0.9, hipsRX: -0.25 });
+      const f = Math.sin(t * 14), k2 = ease(clamp(t * 3, 0, 1));
+      p = P({ hipsRX: -0.3 - 0.85 * k2, hipsY: 0.1, torsoX: -0.55, torsoY: 0.15 * f, torsoZ: 0.12 * f, headX: -0.55 * k2 + 0.25, headY: 0,
+        shLX: -1.9 + 0.5 * f, shLZ: 1.2, elL: -0.5, shRX: -1.6 - 0.5 * f, shRZ: 1.0, elR: -0.8,
+        thLX: -0.95 + 0.35 * f, thLZ: 0.3, knL: 1.25, thRX: -0.35 - 0.35 * f, thRZ: 0.22, knR: 0.6 });
       break;
     }
     case 'dead': {
@@ -506,6 +518,9 @@ export function chainSpecs(id, d) {
 // 綁定姿勢（A 字）：模型在 Blender 以這個姿勢建模與刷權重
 export const BIND = { shZ: 0.75, thZ: 0.1 };
 export const BONE_ORDER = ['hips', 'torso', 'head', 'shL', 'elL', 'shR', 'elR', 'thL', 'knL', 'thR', 'knR'];
+// 第二版骨架多出的關節（接在擺動鏈之後，舊烘焙資料的骨索引不變）：胸（分擔腰的扭轉）、手腕、腳踝
+export const BONE_EXTRA = ['ribs', 'wrL', 'wrR', 'anL', 'anR'];
+const RIBS_K = 0.42; // 胸骨在軀幹高度的位置
 
 export function heroSkeleton(id) {
   const d = HERO[id];
@@ -515,17 +530,21 @@ export function heroSkeleton(id) {
   const bone = (name, parent, x, y, z) => { const b = new THREE.Bone(); b.name = name; b.position.set(x, y, z); parent.add(b); return b; };
   const hips = bone('hips', body, 0, d.L, 0);
   const torso = bone('torso', hips, 0, 0.02, 0);
-  const head = bone('head', torso, 0, d.torso + 0.04 + d.neck, 0);
-  const J = { hips, torso, head };
+  const ry = d.torso * RIBS_K;
+  const ribs = bone('ribs', torso, 0, ry, 0);
+  const head = bone('head', ribs, 0, d.torso + 0.04 + d.neck - ry, 0);
+  const J = { hips, torso, ribs, head };
   const hands = {};
   for (const side of ['L', 'R']) {
     const sx = side === 'L' ? 1 : -1;
-    const sh = bone('sh' + side, torso, sx * d.sw, d.torso - 0.05, 0);
+    const sh = bone('sh' + side, ribs, sx * d.sw, d.torso - 0.05 - ry, 0);
     const el = bone('el' + side, sh, 0, -d.upper, 0);
-    const hand = new THREE.Object3D(); hand.position.y = -d.lower - d.fist * 0.55; el.add(hand); hands[side] = hand;
+    const wr = bone('wr' + side, el, 0, -d.lower, 0);
+    const hand = new THREE.Object3D(); hand.position.y = -d.fist * 0.55; wr.add(hand); hands[side] = hand;
     const th = bone('th' + side, hips, sx * d.hip * 0.62, -0.03, 0);
     const kn = bone('kn' + side, th, 0, -d.thighLen, 0);
-    Object.assign(J, { ['sh' + side]: sh, ['el' + side]: el, ['th' + side]: th, ['kn' + side]: kn });
+    const an = bone('an' + side, kn, 0, -d.shinLen + 0.055, 0); // 腳踝軸心離地約 8 公分
+    Object.assign(J, { ['sh' + side]: sh, ['el' + side]: el, ['wr' + side]: wr, ['th' + side]: th, ['kn' + side]: kn, ['an' + side]: an });
   }
   const bones = BONE_ORDER.map((n) => J[n]);
   const chains = chainSpecs(id, d).map((c) => {
@@ -536,7 +555,8 @@ export function heroSkeleton(id) {
     }
     return { ...c, segs };
   });
-  const chest = new THREE.Object3D(); chest.position.set(0, d.torso * 0.66, d.chest[2] * 0.5); torso.add(chest);
+  for (const n of BONE_EXTRA) bones.push(J[n]);
+  const chest = new THREE.Object3D(); chest.position.set(0, d.torso * 0.66 - ry, d.chest[2] * 0.5); ribs.add(chest);
   return { d, root, body, J, hands, chest, chains, bones };
 }
 export function bindPose(sk) {
@@ -567,12 +587,13 @@ const smooth01 = (x) => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
 const SHOUT = new Set(['atk2', 'atk3', 'cast', 'beam', 'rush', 'overhead', 'slash', 'grab', 'charge', 'dash']);
 const HURT = new Set(['stun', 'air', 'dead']);
 const SWORD_IN_HAND = new Set(['atk1', 'atk2', 'atk3', 'slash', 'rush', 'dash']);
-const OW = 0.012;
+const OW = 0.019; // 遊戲鏡頭下約 1.5～2 px，和參考影片的外框粗細相當
 export function buildHero(id, team = 0) {
   const sk = heroSkeleton(id);
   const { d, root, body, J, hands, chest } = sk;
   const { hips, torso, head } = J;
   const gs = buildHeroParts(id, d);
+  const rig2 = gs.rig >= 2; // 網格有胸、腕、踝權重（第二版骨架烘焙）才分攤扭轉、轉腕踝
   const pair = (geometry, parent, mat, w = OW) => {
     const m = new THREE.Mesh(geometry, mat); m.castShadow = true; parent.add(m);
     if (w) { const o = new THREE.Mesh(geometry, skinOutlineMat(w)); o.raycast = () => {}; parent.add(o); m.userData.outline = o; }
@@ -607,7 +628,7 @@ export function buildHero(id, team = 0) {
   }
   const hs = { x: 0, z: 0, vx: 0, vz: 0, yaw: root.rotation.y };
 
-  const chains = sk.chains.map((c) => ({ segs: c.segs, base: c.base, yaw: c.yaw || 0, lift: c.lift ?? 1, flutter: c.flutter ?? 0.25, curl: c.curl || 0, sway: c.sway || 0, cur: c.segs.map(() => c.base), phase: Math.random() * 6 }));
+  const chains = sk.chains.map((c) => ({ segs: c.segs, base: c.base, yaw: c.yaw || 0, lift: c.lift ?? 1, flutter: c.flutter ?? 0.25, curl: c.curl || 0, sway: c.sway || 0, cur: c.segs.map(() => c.base), phase: Math.random() * 6, hang: c.name !== 'tail' }));
 
   // 特南克斯的劍：背上的鞘與在手上的劍
   let sword = null, swordState = 'back', backSocket = null, handSocket = null;
@@ -623,9 +644,9 @@ export function buildHero(id, team = 0) {
       backSocket.rotation.set(0, 0, -1.75);
       hips.add(backSocket);
     } else {
-      backSocket.position.set(-0.11, d.torso * 0.98, -d.chest[2] * 1.02);
+      backSocket.position.set(-0.11, d.torso * (0.98 - RIBS_K), -d.chest[2] * 1.02);
       backSocket.rotation.set(0, 0, -2.6);
-      torso.add(backSocket);
+      J.ribs.add(backSocket);
     }
     if (gs.sheath) pair(gs.sheath, backSocket, bodyMat, 0.008);
     sword = new THREE.Group();
@@ -672,7 +693,19 @@ export function buildHero(id, team = 0) {
     const a = 1 - Math.exp(-rate * dt);
     for (const key of KEYS) cur[key] += (tgt[key] - cur[key]) * a;
     if (name === 'vanish') cur.spin = tgt.spin; else cur.spin = 0;
-    apply();
+    // 受擊反應：疊在目前姿勢上的一次性後仰／側折（被打的方向決定往哪折），重擊折得更深、回得更慢
+    if (hit.t < 1) {
+      hit.t += dt;
+      const env = hit.t < 0.045 ? hit.t / 0.045 : Math.exp(-(hit.t - 0.045) * (hit.p > 0.7 ? 6.5 : 10));
+      const e = env * hit.p, f = hit.f, sd = hit.s;
+      for (const key of KEYS) out[key] = cur[key];
+      out.torsoX += -0.62 * f * e; out.torsoZ += 0.55 * sd * e; out.torsoY += 0.25 * sd * e;
+      out.headX += -0.55 * f * e; out.headZ += 0.4 * sd * e;
+      out.hipsZ += -0.16 * f * e; out.hipsY += -0.07 * e; out.hipsRX += -0.18 * f * e;
+      out.shLX += -0.75 * e; out.shRX += -0.65 * e; out.shLZ += 0.55 * e; out.shRZ += 0.5 * e; out.elL += 0.5 * e; out.elR += 0.45 * e;
+      out.knL += 0.35 * e; out.knR += 0.3 * e; out.thLX += -0.25 * f * e; out.thRX += 0.2 * f * e;
+      apply(out);
+    } else apply(cur);
     // 劍：攻擊時在手上，平常收在背上
     if (sword) {
       const want = SWORD_IN_HAND.has(name) ? 'hand' : 'back';
@@ -687,7 +720,9 @@ export function buildHero(id, team = 0) {
       c.phase += dt * (6 + speed * 1.3);
       c.segs.forEach((s, i) => {
         const fl = Math.sin(c.phase - i * 1.1) * c.flutter * (0.25 + clamp(speed / 7, 0, 1)) * (name === 'charge' ? 2 : 1);
-        const target = (i === 0 ? c.base + lift * c.lift : lift * 0.18 * c.lift + c.curl) + fl;
+        // 布條受重力：身體前後大幅傾斜（重踢、衝刺、被打飛）時往下垂，不跟著骨盆翹出去
+        const g = i === 0 && c.hang ? -clamp(cur.hipsRX, -1.2, 1.2) * 0.85 : 0;
+        const target = (i === 0 ? c.base + lift * c.lift + g : lift * 0.18 * c.lift + c.curl) + fl;
         c.cur[i] += (target - c.cur[i]) * (1 - Math.exp(-(9 - i * 1.5) * dt));
         s.rotation.x = c.cur[i];
         if (i === 0) s.rotation.y = c.yaw + (c.sway ? Math.sin(time * 1.7) * c.sway : 0);
@@ -707,14 +742,25 @@ export function buildHero(id, team = 0) {
     }
     if (aura.group.visible) for (const m of aura.mats) m.uniforms.uTime.value += dt;
     if (name === 'charge') { body.position.x = (Math.random() - 0.5) * 0.02; body.position.z = (Math.random() - 0.5) * 0.02; }
+    else if (hit.t < 0.16) body.position.x = Math.sin(hit.t * 140) * 0.028 * hit.p * (1 - hit.t / 0.16); // 挨打瞬間的震顫（格鬥遊戲的頓幀感）
     else { body.position.x = 0; }
   }
-  function apply() {
+  function apply(cur) {
     hips.position.y = d.L + cur.hipsY;
     body.position.z = cur.hipsZ;
     hips.rotation.set(cur.hipsRX, cur.hipsRY, cur.hipsRZ);
     body.rotation.y = cur.spin;
-    torso.rotation.set(cur.torsoX, cur.torsoY, cur.torsoZ, 'YXZ');
+    if (rig2) { // 腰與胸各分一部分扭轉，大幅轉身時腰帶附近不會扭成麻花
+      torso.rotation.set(cur.torsoX * 0.45, cur.torsoY * 0.42, cur.torsoZ * 0.45, 'YXZ');
+      J.ribs.rotation.set(cur.torsoX * 0.55, cur.torsoY * 0.58, cur.torsoZ * 0.55, 'YXZ');
+      // 腳踝：站在地上的腳掌保持貼平（抵銷髖、大腿、膝的俯仰），腳抬高踢出時改成腳尖繃直
+      for (const s of ['L', 'R']) {
+        const pitch = cur.hipsRX + cur['th' + s + 'X'] + cur['kn' + s];
+        const up = smooth01((-cur['th' + s + 'X'] - 0.9) / 0.6);
+        J['an' + s].rotation.x = clamp(-pitch, -0.7, 0.95) * (1 - up) + 0.55 * up + cur['an' + s];
+        J['wr' + s].rotation.x = cur['wr' + s];
+      }
+    } else torso.rotation.set(cur.torsoX, cur.torsoY, cur.torsoZ, 'YXZ');
     head.rotation.set(cur.headX, cur.headY - cur.torsoY * 0.5, cur.headZ, 'YXZ');
     J.shL.rotation.set(cur.shLX, cur.shLY, cur.shLZ);
     J.shR.rotation.set(cur.shRX, -cur.shRY, -cur.shRZ);
@@ -724,7 +770,15 @@ export function buildHero(id, team = 0) {
     J.knL.rotation.x = cur.knL; J.knR.rotation.x = cur.knR;
     J.shR.scale.y = 1 + Math.max(0, cur.stretch);
   }
-  apply();
+  apply(cur);
+  // 受擊：lx／lz 是攻擊來源在角色本地座標的方向（+z 正前、+x 角色左手邊），p 0～1 是力道
+  const hit = { t: 9, p: 0, f: 1, s: 0 }, out = {};
+  function hitReact(lx, lz, p) {
+    const l = Math.hypot(lx, lz) || 1;
+    if (hit.t < 0.08 && p <= hit.p) return;
+    hit.t = 0; hit.p = clamp(p, 0, 1); hit.f = lz / l; hit.s = lx / l;
+    if (Math.abs(hit.f) < 0.3) hit.f = 0.3; // 側面挨打也要往後縮一點
+  }
 
   let form = 'base', expr = '', blinkT = 1 + Math.random() * 3;
   function setForm(f) {
@@ -748,7 +802,7 @@ export function buildHero(id, team = 0) {
   setAura(0, d.element);
 
   return {
-    root, height: d.H, element: d.element, update, setAura, setForm, sword,
+    root, height: d.H, element: d.element, update, setAura, setForm, sword, hitReact,
     handL: hands.L, handR: hands.R, chest, head,
     get form() { return form; },
     get speed() { return speed; }, get forwardSpeed() { return fwd; },

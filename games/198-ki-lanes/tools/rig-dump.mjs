@@ -2,7 +2,7 @@
 // Blender 腳本據此擺骨架、建模與刷權重，確保兩邊的骨頭位置一致。改了骨架或比例要重跑：node tools/rig-dump.mjs
 import { writeFileSync } from 'node:fs';
 import * as THREE from 'three';
-import { HERO_IDS, heroSkeleton, bindPose, BIND, BONE_ORDER } from '../src/models.js';
+import { HERO_IDS, heroSkeleton, bindPose, BIND, BONE_ORDER, BONE_EXTRA } from '../src/models.js';
 const out = { bind: BIND, heroes: {} };
 const w = (o, x = 0, y = 0, z = 0) => o.localToWorld(new THREE.Vector3(x, y, z)).toArray().map((v) => +v.toFixed(5));
 for (const id of HERO_IDS) {
@@ -12,11 +12,12 @@ for (const id of HERO_IDS) {
   const add = (name, head, tail, parent) => bones.push({ name, head, tail, parent });
   // Blender 端的骨段只用來刷權重（JS 綁定用自己的骨架），所以骨盆段往上延伸到腰，讓褲頭跟著 hips
   add('hips', w(J.hips, 0, 0.1, 0), w(J.hips, 0, -0.12, 0), null);
-  add('torso', w(J.torso, 0, 0.12, 0), w(J.head), 'hips');
-  add('head', w(J.head), w(J.head, 0, 0.34, 0), 'torso');
+  // 腰段（torso）只到胸骨，胸骨（ribs）再到頭；兩根分攤扭轉
+  add('torso', w(J.torso, 0, 0.12, 0), w(J.ribs), 'hips');
+  add('head', w(J.head), w(J.head, 0, 0.34, 0), 'ribs');
   for (const s of ['L', 'R']) {
-    add('sh' + s, w(J['sh' + s]), w(J['el' + s]), 'torso');
-    add('el' + s, w(J['el' + s]), w(hands[s], 0, -d.fist * 0.6, 0), 'sh' + s);
+    add('sh' + s, w(J['sh' + s]), w(J['el' + s]), 'ribs');
+    add('el' + s, w(J['el' + s]), w(J['wr' + s]), 'sh' + s);
   }
   for (const s of ['L', 'R']) {
     add('th' + s, w(J['th' + s]), w(J['kn' + s]), 'hips');
@@ -24,8 +25,14 @@ for (const id of HERO_IDS) {
   }
   if (bones.map((b) => b.name).slice(0, BONE_ORDER.length).join() !== BONE_ORDER.join()) throw new Error('骨頭順序與 BONE_ORDER 不一致');
   for (const c of sk.chains) c.segs.forEach((b, i) => add(b.name, w(b), w(b, 0, -c.len, 0), i ? c.segs[i - 1].name : c.parent));
+  const ex = {
+    ribs: [w(J.ribs), w(J.head), 'torso'],
+    wrL: [w(J.wrL), w(hands.L, 0, -d.fist * 0.6, 0), 'elL'], wrR: [w(J.wrR), w(hands.R, 0, -d.fist * 0.6, 0), 'elR'],
+    anL: [w(J.anL), w(J.anL, 0, 0, d.shin * 2.2), 'knL'], anR: [w(J.anR), w(J.anR, 0, 0, d.shin * 2.2), 'knR'],
+  };
+  for (const n of BONE_EXTRA) add(n, ...ex[n]);
   const pick = ['H', 'L', 'hr', 'sw', 'chest', 'waist', 'arm', 'fore', 'fist', 'thigh', 'shin', 'hip', 'torso', 'upper', 'lower', 'thighLen', 'shinLen', 'skin', 'style', 'saiyan', 'hx', 'neck', 'armK'];
-  out.heroes[id] = { ...Object.fromEntries(pick.map((k) => [k, d[k]])), bones, hand: { L: w(hands.L), R: w(hands.R) } };
+  out.heroes[id] = { ...Object.fromEntries(pick.map((k) => [k, d[k]])), bones, hand: { L: w(hands.L), R: w(hands.R) }, rig: 2 };
 }
 writeFileSync(new URL('../blender/rig.json', import.meta.url), JSON.stringify(out, null, 1));
 console.log('blender/rig.json', HERO_IDS.join(' '));

@@ -377,9 +377,10 @@ def build_armature(bones):
         b = ad.edit_bones.new(name)
         b.head = V(h)
         b.tail = V(t)
-        if par:
-            b.parent = eb[par]
         eb[name] = b
+    for name, h, t, par in bones:   # 父骨可能排在後面（胸骨 ribs 接在擺動鏈之後），先建好全部再接
+        if par:
+            eb[name].parent = eb[par]
     bpy.ops.object.mode_set(mode='OBJECT')
     arm.select_set(False)
     return arm

@@ -20,18 +20,18 @@ BACK = -PI / 2
 G_CHAIN = 30
 G_SKIRT = 31  # 長下襬：骨熱同骨盆群組，再由 skirt_chain_weights 把後片分給擺動鏈
 ALLOW = {
-    G_TORSO: {'hips', 'torso', 'shL', 'shR'},
-    G_ARM_L: {'torso', 'shL', 'elL'}, G_ARM_R: {'torso', 'shR', 'elR'},
-    G_UPPER_L: {'torso', 'shL'}, G_UPPER_R: {'torso', 'shR'},
+    G_TORSO: {'hips', 'torso', 'ribs', 'shL', 'shR'},
+    G_ARM_L: {'torso', 'ribs', 'shL', 'elL'}, G_ARM_R: {'torso', 'ribs', 'shR', 'elR'},
+    G_UPPER_L: {'ribs', 'shL'}, G_UPPER_R: {'ribs', 'shR'},
     G_FORE_L: {'elL'}, G_FORE_R: {'elR'},
-    G_HAND_L: {'elL'}, G_HAND_R: {'elR'},
+    G_HAND_L: {'wrL'}, G_HAND_R: {'wrR'},
     G_LEG_L: {'hips', 'thL', 'knL'}, G_LEG_R: {'hips', 'thR', 'knR'},
     G_SHIN_L: {'knL'}, G_SHIN_R: {'knR'},
-    G_FOOT_L: {'knL'}, G_FOOT_R: {'knR'},
+    G_FOOT_L: {'knL', 'anL'}, G_FOOT_R: {'knR', 'anR'},   # 實際權重由 build_heroes 依高度在小腿與腳踝之間分配
     G_PELVIS: {'hips', 'torso', 'thL', 'thR'},
     G_BELT: {'hips', 'torso'},
-    G_NECK: {'torso', 'head'},
-    G_CHEST: {'torso'},
+    G_NECK: {'ribs', 'head'},
+    G_CHEST: {'torso', 'ribs'},
 }
 ALLOW[G_SKIRT] = ALLOW[G_PELVIS]
 MIRROR_GRP = {G_ARM_L: G_ARM_R, G_HAND_L: G_HAND_R, G_LEG_L: G_LEG_R, G_FOOT_L: G_FOOT_R, G_UPPER_L: G_UPPER_R, G_FORE_L: G_FORE_R, G_SHIN_L: G_SHIN_R}

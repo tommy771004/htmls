@@ -244,6 +244,18 @@ def build_one(hid, R, opt):
                 tot = sum(w for _, w in ws) or 1
                 W[i] = [(bidx[b], w / tot) for b, w in ws][:4]
 
+    # 腳：腳踝以下整塊跟著腳踝骨，靴筒往上漸漸交回小腿（骨熱在腳掌這種小塊上分得很亂，直接依高度指定）
+    if 'anL' in bone_names:
+        G = body.data.attributes['grp'].data
+        bidx = {n: i for i, n in enumerate(bone_names)}
+        feet = {heroes.G_FOOT_L: ('knL', 'anL'), heroes.G_FOOT_R: ('knR', 'anR')}
+        for i, v in enumerate(body.data.vertices):
+            fb = feet.get(G[i].value)
+            if fb:
+                ay = R['bones'][bidx[fb[1]]]['head'][1]
+                k = kit.smooth(max(0.0, min(1.0, (ay + 0.045 - v.co.y) / 0.06)))
+                W[i] = [(bidx[fb[1]], k), (bidx[fb[0]], 1 - k)] if 0 < k < 1 else [(bidx[fb[1] if k >= 1 else fb[0]], 1.0)]
+
     # 遮蔽（各髮型分開算，避免超級賽亞人的頭髮被基本髮型遮到）
     t1 = time.time()
     hb = hairs.get('base')
@@ -299,7 +311,7 @@ def main():
     for hid in ids:
         res = build_one(hid, rig['heroes'][hid], opt)
         z = zlib.compress(res['data'], 9)
-        rec = {'names': res['names'], 'pal': res['pal'], 'faceRect': res['faceRect'], 'data': base64.b64encode(z).decode()}
+        rec = {'names': res['names'], 'pal': res['pal'], 'faceRect': res['faceRect'], 'rig': rig['heroes'][hid].get('rig', 1), 'data': base64.b64encode(z).decode()}
         json.dump(rec, open(os.path.join(CACHE, hid + '.json'), 'w'))
         print('  %s：%d KB（zlib）' % (hid, len(z) // 1024))
     if opt['write']:

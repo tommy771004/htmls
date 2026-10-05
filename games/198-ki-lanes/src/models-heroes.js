@@ -44,7 +44,7 @@ function decodeHero(id, d) {
   const pad = () => { o += (4 - (o % 4)) % 4; };
   const u8 = (n) => { const a = buf.subarray(o, o + n); o += n; pad(); return a; };
   const i8 = (n) => { const a = new Int8Array(buf.buffer, buf.byteOffset + o, n); o += n; pad(); return a; };
-  const out = { hair: {}, faceRect: B.faceRect };
+  const out = { hair: {}, faceRect: B.faceRect, rig: B.rig || 1 };
   for (const name of B.names) {
     const n = dv.getUint32(o, true), ni = dv.getUint32(o + 4, true), flags = dv.getUint32(o + 8, true);
     const lo = [0, 1, 2].map((i) => dv.getFloat32(o + 12 + i * 4, true)), sz = [0, 1, 2].map((i) => dv.getFloat32(o + 24 + i * 4, true));
@@ -143,7 +143,9 @@ void main(){
   // 接近白色的部位（弗利沙的皮膚、戰鬥服胸甲）壓低亮面與邊緣光、暗部偏淡紫，否則亮面加光後會爆成一片白
   float hiK = smoothstep(0.55, 0.92, dot(base, vec3(0.3, 0.59, 0.11)));
   shadeCol = mix(shadeCol, vec3(0.62, 0.6, 0.8), hiK * 0.6);
-  vec3 c = mix(base * shadeCol, base * uKeyCol * (1.0 - 0.17 * hiK), lit);
+  // 暗部像 FighterZ：不是單純變灰，而是更深、更飽和（橘衣的暗面偏紅、藍衣偏靛）
+  vec3 deep = base * shadeCol * mix(vec3(1.0), base / max(max(base.r, max(base.g, base.b)), 0.05), 0.4 * (1.0 - hiK));
+  vec3 c = mix(deep, base * uKeyCol * (1.0 - 0.17 * hiK), lit);
   c += base * top * 0.1 * (1.0 - hiK);
   c *= mix(0.6, 1.0, smoothstep(0.15, 0.8, ao)); // 用烘焙遮蔽刻出肌肉之間的凹線
   float rim = pow(1.0 - max(dot(N, V), 0.0), 3.0);

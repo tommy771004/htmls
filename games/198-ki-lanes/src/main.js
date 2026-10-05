@@ -187,10 +187,18 @@ function voice(h, line, chance = 1) {
   const vol = (me ? 1 : 0.75) * Math.max(0.2, 1 - d / 36);
   audio.say(h.heroId, line, { vol, pan: Math.max(-1, Math.min(1, (h.x - cam.look.x) / 30)) * 0.6 });
 }
+const REACT = { L: 0.45, M: 0.65, H: 1, skill: 0.7, super: 1, lp: 0.45, hp: 0.8, bp: 0.6, minion: 0.25, tower: 0.55 }; // 受擊動作的力道（持續傷害、觸發效果不做）
 function wireEvents() {
   G.on('cast', ({ h, k }) => voice(h, k));
   G.on('swing', ({ h, idx }) => { voice(h, 'atk', (idx === 2 ? 0.85 : 0.35) * (h === G.player ? 1 : 0.5)); if (h.def.melee && !h.def.blade && h.heroId !== 'luffy') fx.slash(h.x, h.z, h.facing + (idx === 1 ? 0.5 : idx === 2 ? 0 : -0.5), '#ffffff', 1.5 + idx * 0.35); });
-  G.on('hit', ({ dst, amount, opts }) => {
+  G.on('hit', ({ src, dst, amount, opts }) => {
+    if (dst && dst.kind === 'hero' && dst.alive && src && amount > 0) { // 受擊動作：方向取攻擊者相對被打者面向的位置
+      const r = rigs.get(dst.id), heavy = opts.type === 'H' || opts.type === 'super' || opts.knock >= 8;
+      if (r && r.rig.hitReact && REACT[opts.type] && !opts.dot) {
+        const a = Math.atan2(src.x - dst.x, src.z - dst.z) - (r.rig.root.rotation.y || 0);
+        r.rig.hitReact(Math.sin(a), Math.cos(a), heavy ? 1 : REACT[opts.type]);
+      }
+    }
     if (!dst || dst.kind !== 'hero' || !dst.alive || amount < dst.maxHp * 0.04) return;
     const heavy = opts.type === 'H' || opts.type === 'skill' || opts.type === 'super';
     voice(dst, 'hurt', heavy ? 0.6 : 0.12);
@@ -490,6 +498,15 @@ window.__ki = {
   follow() { G.camFree = false; },
   pick(id) { select.pick(id); },
   pause(on) { paused = on; },
+  // 檢查動作用：暫停後把某隻英雄的骨架推到指定動作與時間（steps 幀讓平滑收斂），face 設定面向
+  pose(name, t = 0, { id, steps = 24, face, hit } = {}) {
+    const u = id != null ? G.units.find((o) => o.id === id) : G.player, r = u && rigs.get(u.id);
+    if (!r) return false;
+    if (face != null) r.rig.root.rotation.y = face;
+    if (hit) r.rig.hitReact(hit[0], hit[1], hit[2]);
+    for (let i = 0; i < steps; i++) r.rig.update(1 / 60, { name, t: t + (hit ? i / 60 : 0), k: name === 'dead' ? 1 : 0 });
+    return true;
+  },
   setQuality(q) { R.setQuality(q); },
   render: R,
   fx,
