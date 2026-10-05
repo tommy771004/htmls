@@ -6,7 +6,7 @@ import {
 import { collide, blocked, walkable, heightAt as heightAtXZ } from './map.js';
 import { findPath } from './nav.js';
 import { seen as seenBy } from './vision.js';
-import { beforeAuto, afterAuto, asMul, onCast } from './traits.js';
+import { beforeAuto, afterAuto, asMul, onCast, onSupport } from './traits.js';
 
 const sin = Math.sin, cos = Math.cos;
 // 技能與範圍傷害不會打到眼（眼只能用普攻點掉）
@@ -289,11 +289,11 @@ export function cast(G, h, k, tx, tz) {
   const fn = KITS[h.heroId][k];
   const ok = fn(G, h, { ang, px, pz, tx, tz, d, rank: h.ranks[k] - 1, s });
   if (ok === false) return false;
-  h.cds[k] = (k === 'R' ? s.cd : s.cd * (1 - 0.06 * (h.ranks[k] - 1))) * 100 / (100 + (h.ah || 0)); // 技能加速
+  h.cds[k] = (k === 'R' ? s.cd : s.cd * (1 - 0.06 * (h.ranks[k] - 1))) * 100 / (100 + (h.ah || 0) + (k === 'R' ? h.ultAh || 0 : h.basicAh || 0)) * (h.buffs && h.buffs.empower && k !== 'R' ? 1 - (h.buffs.empower.cdr || 0) : 1); // 技能加速（含大絕／一般技能專屬加速、時現者）
   if (s.ki) h.ki -= s.ki * KI_BAR;
   const cost = skillCost(h, k);
   h.mp = Math.max(0, h.mp - cost);
-  onCast(G, h, cost);
+  onCast(G, h, cost, k);
   h.charging = false; cancelRecall(G, h);
   G.emit('cast', { h, k });
   return true;
@@ -618,7 +618,7 @@ const KITS = {
     E(G, h, { px, pz, s, rank }) {
       const p = { x: px, z: pz }; collide(p, h.radius);
       blink(G, h, p.x, p.z);
-      h.st.shield = s.shield[rank]; h.st.shieldT = 3; heal(G, h, h.maxHp * 0.08);
+      h.st.shield = s.shield[rank] * (1 + (h.hsp || 0)); h.st.shieldT = 3; heal(G, h, h.maxHp * 0.08); onSupport(G, h, h);
       fx(G).shieldFx(h, '#b6ff5c', 3); fx(G).levelUp(h, '#d8ff7a');
       act(h, { name: 'vanish', dur: 0.12, unstoppable: true });
     },
@@ -722,7 +722,7 @@ const KITS = {
       });
     },
     E(G, h, { s, rank }) {
-      h.st.shield = s.shield[rank]; h.st.shieldT = 3;
+      h.st.shield = s.shield[rank] * (1 + (h.hsp || 0)); h.st.shieldT = 3; onSupport(G, h, h);
       fx(G).barrier(h, '#c7f0ff'); sfx(G, 'freeze', h, { pitch: 1.4 });
       for (const u of G.units) if (u.alive && u.team !== h.team && (u.kind === 'hero' || u.kind === 'minion') && dist(u, h) < 4.2 + u.radius) damage(G, h, u, 20 + h.level * 6, { type: 'skill', knock: 15, kdir: angTo(h, u), stun: 0.3 });
       act(h, { name: 'barrier', dur: 0.35 });
@@ -887,7 +887,7 @@ Object.assign(KITS, {
     E(G, h, { s, rank }) {
       act(h, { name: 'barrier', dur: 0.4 });
       sfx(G, 'levelUp', h, { pitch: 1.2 });
-      for (const a of G.heroes) if (a.alive && a.team === h.team && dist(a, h) < 7) { heal(G, a, a.maxHp * 0.12 + 30 + h.level * 8); a.st.shield = Math.max(a.st.shield, s.shield[rank] * (a === h ? 1 : 0.6)); a.st.shieldT = 3; fx(G).shieldFx(a, '#7fffb0', 2.5); fx(G).levelUp(a, '#7fffb0'); }
+      for (const a of G.heroes) if (a.alive && a.team === h.team && dist(a, h) < 7) { heal(G, a, a.maxHp * 0.12 + 30 + h.level * 8); a.st.shield = Math.max(a.st.shield, s.shield[rank] * (a === h ? 1 : 0.6) * (1 + (h.hsp || 0))); if (a !== h) onSupport(G, h, a); a.st.shieldT = 3; fx(G).shieldFx(a, '#7fffb0', 2.5); fx(G).levelUp(a, '#7fffb0'); }
     },
     R(G, h, { px, pz, s }) {
       const dmg = skillDmg(h, 'R');

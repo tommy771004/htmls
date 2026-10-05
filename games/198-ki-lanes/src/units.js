@@ -85,18 +85,38 @@ export function recalcStats(u) {
   if (u.blue > 0) u.ah += JUNGLE_BUFF.blue.ah;
   u.hpr = it.hpr; u.hsp = it.hsp; u.slowRes = 0; u.healAmp = 0;
   if (it.critDmg) u.critMul += it.critDmg;
-  statMods(u);
+  statMods(u, it);
 }
-// 依層數或其他屬性算出的加成（裝備效果，見 traits.js 的種類一覽）
-function statMods(u) {
+// 依層數、其他屬性或限時增益算出的加成（裝備效果，見 traits.js 的種類一覽）
+function statMods(u, it) {
+  const s = u.def.stats, lv = u.level - 1, baseAd = s.ad + s.adLv * lv, baseHp = s.hp + s.hpLv * lv;
+  const addStats = (st) => { for (const k in st) { const v = st[k]; if (!v) continue; if (k === 'ms') u.ms *= 1 + v; else if (k === 'as') u.as = Math.max(STAT.asMinInterval, u.as / (1 + v)); else if (k === 'hp') { u.maxHp += v; } else if (k === 'ten') u.ten = 1 - (1 - u.ten) * (1 - v); else u[k] = (u[k] || 0) + v; } };
+  u.ultAh = 0; u.basicAh = 0; u.healTaken = 0;
+  if (u.colHp) u.maxHp += u.colHp;
+  if (u.critStk) u.crit = Math.min(1, u.crit + u.critStk);
   for (const key in u.psv) {
     const e = u.psv[key]; if (!e || !e.k) continue;
     const n = (u.stk && u.stk[key]) || 0;
-    if (e.k === 'stacks') { if (e.ap) u.ap += e.ap * n; if (e.ov) u.ov += e.ov * n; }
-    else if (e.k === 'adaptiveMs') { const af = u.ms * 46 * e.pct, bad = u.ad - u.def.stats.ad - u.def.stats.adLv * (u.level - 1); if ((u.ap || 0) > bad) u.ap += af; else u.ad += af * 0.6; }
+    if (e.k === 'stacks') { if (e.ap) u.ap += e.ap * n; if (e.ov) u.ov += e.ov * n; if (e.msAt && n >= e.msAt) u.ms *= 1 + e.ms; }
+    else if (e.k === 'adaptiveMs') { const af = u.ms * 46 * e.pct; if ((u.ap || 0) > u.ad - baseAd) u.ap += af; else u.ad += af * 0.6; }
     else if (e.k === 'slowResist') u.slowRes = Math.max(u.slowRes, e.v);
     else if (e.k === 'eternal') u.healAmp = e.heal;
+    else if (e.k === 'healTaken') u.healTaken = Math.max(u.healTaken, e.pct);
+    else if (e.k === 'ultAh') u.ultAh += e.v;
+    else if (e.k === 'basicAh') u.basicAh += e.v;
+    else if (e.k === 'timeStacks') { const t = u.tStk || 0; u.maxHp += e.hp * t; u.maxMp += e.mp * t; u.ap += e.ap * t; }
+    else if (e.k === 'statFrom') {
+      if (e.manaToHp) u.maxHp += u.maxMp * e.manaToHp;
+      if (e.manaToAd) u.ad += u.maxMp * e.manaToAd;
+      if (e.baseAd) u.ad += baseAd * e.baseAd;
+      if (e.itemHp) u.maxHp += it.hp * e.itemHp;
+      if (e.hpToAd) u.ad += Math.max(0, u.maxHp - baseHp) * e.hpToAd;
+      if (e.hpToAp) u.ap += Math.max(0, u.maxHp - baseHp) * e.hpToAp;
+      if (e.adToAh) u.ah += Math.max(0, u.ad - baseAd) * e.adToAh;
+    }
   }
+  if (u.buffs) for (const k in u.buffs) addStats(u.buffs[k].stats || {});
+  u.hp = Math.min(u.hp, u.maxHp);
 }
 export function addMp(h, v) { if (h.alive && h.maxMp) h.mp = clamp(h.mp + v, 0, h.maxMp); }
 export function makeMinion(G, kind, team, lane) {
@@ -215,10 +235,12 @@ export function damage(G, src, dst, amount, opts = {}) {
 // 防禦減傷：先 ％穿透再固定穿透，防禦不會被穿到負值；原作的「減防」效果另外直接改 dst 的防禦
 export function defMul(src, dst, magic) {
   let d = (magic ? dst.mr : dst.armor) || 0;
+  const sh = dst.st && (magic ? dst.st.mrShT > 0 && dst.st.mrShN * dst.st.mrShP : dst.st.arShT > 0 && dst.st.arShN * dst.st.arShP);
+  if (sh && d > 0) d *= 1 - sh; // 減防疊層（黑色切割者、血書詛咒、惡意）
   if (src && src.kind === 'hero' && d > 0) d = Math.max(0, d * (1 - ((magic ? src.mpenPct : src.apen) || 0)) - ((magic ? src.mpen : src.leth) || 0));
   return d >= 0 ? 100 / (100 + d) : 2 - 100 / (100 - d);
 }
-export function heal(G, u, amount) { if (!u.alive) return; if (u.st.gw > 0) amount *= 1 - (u.st.gwAmt || 0); if (u.healAmp && u.hp < u.maxHp * 0.5) amount *= 1 + u.healAmp; u.hp = Math.min(u.maxHp, u.hp + amount); }
+export function heal(G, u, amount) { if (!u.alive) return; if (u.st.gw > 0) amount *= 1 - (u.st.gwAmt || 0); if (u.healAmp && u.hp < u.maxHp * 0.5) amount *= 1 + u.healAmp; if (u.healTaken) amount *= 1 + u.healTaken; u.hp = Math.min(u.maxHp, u.hp + amount); }
 
 export function addKi(G, h, v) {
   if (!h.alive) return;
@@ -262,7 +284,7 @@ function kill(G, u, src) {
     if (killer) for (const b of ['blue', 'red']) if (u[b] > 0) { killer[b] = JUNGLE_BUFF[b].dur; G.emit('jungleBuff', { h: killer, b, stolen: true }); }
     if (u.blue > 0) { u.blue = 0; recalcStats(u); } u.red = 0;
     for (const a of assists) { a.assists++; gainXp(G, a, bounty * 0.5); addGold(G, a, GOLD.assist, u); }
-    if (G.traits) { for (const t of [killer, ...assists]) if (t) G.traits.onTakedown(G, t); G.traits.onDeath(G, u); }
+    if (G.traits) { for (const t of [killer, ...assists]) if (t) G.traits.onTakedown(G, t, killer); G.traits.onDeath(G, u); }
     for (const h of G.heroes) if (h.team === killerTeam && h !== killer && !assists.includes(h) && h.alive && dist(h, u) < XP_SHARE_RADIUS) gainXp(G, h, bounty * 0.4);
     u.damagers.clear();
     G.emit('herodeath', { u, killer, assists });
@@ -515,6 +537,9 @@ export function tickStatus(u, dt, G) {
   if (st.invuln > 0) st.invuln -= dt;
   if (st.mark > 0) st.mark -= dt;
   if (st.gw > 0) st.gw -= dt;
+  if (st.arShT > 0) st.arShT -= dt;
+  if (st.mrShT > 0) st.mrShT -= dt;
+  if (st.vuln > 0) st.vuln -= dt;
   // 灼燒（赤色氣焰）：累積到 4 點或結束時才結算一次，避免每格四捨五入成 0
   if (st.burn > 0) { st.burn -= dt; st.burnAcc = (st.burnAcc || 0) + st.burnDps * dt; if ((st.burnAcc >= 4 || st.burn <= 0) && u.alive) { const v = st.burnAcc; st.burnAcc = 0; if (st.burnSrc) damage(G, st.burnSrc, u, v, { type: 'true', noKi: true, dot: true }); } }
   if (st.haste > 0) st.haste -= dt;

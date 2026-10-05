@@ -173,7 +173,7 @@ export function useActive(G, h, i) {
     if (a.id === 'rocket') {
       const ang = t ? Math.atan2(t.x - h.x, t.z - h.z) : h.facing, d = a.dist;
       const nx = h.x + Math.sin(ang) * d, nz = h.z + Math.cos(ang) * d; interrupt(G, h); h.x = nx; h.z = nz; h.facing = ang;
-      fx(G).dash && fx(G).dash(h, '#ffb03a');
+      fx(G).trail(h, '#ffb03a');
       for (const u of enemiesIn(G, h, h.x + Math.sin(ang) * 2, h.z + Math.cos(ang) * 2, 3)) procDmg(G, h, u, a.dmg + a.ap * (h.ap || 0), true);
     } else if (a.id === 'gunblade') {
       if (!t) return false;
