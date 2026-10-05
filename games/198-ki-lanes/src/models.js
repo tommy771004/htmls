@@ -472,7 +472,7 @@ function makeAura(H) {
 /* ---------------- 英雄材質 ---------------- */
 const _heroMats = new Map();
 function heroMat(id, team) { const k = id + ':' + team; if (!_heroMats.has(k)) _heroMats.set(k, heroMaterial({ team: TEAM[team] })); return _heroMats.get(k); }
-function headMat(id, form, tex, rect) { const k = id + form; if (!_heroMats.has(k)) _heroMats.set(k, heroMaterial({ face: tex, faceRect: rect, skinBias: 0.35 })); return _heroMats.get(k); }
+function headMat(id, form, tex, rect) { const k = id + ':' + form; if (!_heroMats.has(k)) _heroMats.set(k, heroMaterial({ face: tex, faceRect: rect, skinBias: 0.35 })); return _heroMats.get(k); }
 // 蒙皮網格的外框：法線取蒙皮後的 transformedNormal；aOl 是逐頂點的外框粗細倍率（臉、手指較細）
 const _skinOutline = {};
 function skinOutlineMat(w) {
@@ -543,6 +543,8 @@ export function bindPose(sk) {
 }
 
 /* ---------------- buildHero ---------------- */
+const SHOUT = new Set(['atk2', 'atk3', 'cast', 'beam', 'rush', 'overhead', 'slash', 'grab', 'charge', 'dash', 'win']);
+const HURT = new Set(['stun', 'air', 'dead']);
 const SWORD_IN_HAND = new Set(['atk1', 'atk2', 'atk3', 'slash', 'rush', 'dash']);
 const OW = 0.012;
 export function buildHero(id, team = 0) {
@@ -626,6 +628,9 @@ export function buildHero(id, team = 0) {
     last.copy(root.position); hasLast = true;
     if (name === 'run') phase += dt * clamp(speed * 1.65, 9, 15);
     heroPose(d, name, name === 'idle' ? time : t, k, phase, tgt);
+    // 表情：出招時吶喊、受擊時咬牙閉眼
+    const ex = SHOUT.has(name) ? 'shout' : HURT.has(name) ? 'hurt' : '';
+    if (ex !== expr) { expr = ex; const key = form + (ex ? '_' + ex : ''); if (gs.faces[key]) skull.material = headMat(id, key, gs.faces[key], gs.faceRect); }
     const fast = name.startsWith('atk') || name === 'slash' || name === 'cast' || name === 'rush' || name === 'vanish' || name === 'grab' || (name === 'beam' && t > 0.3);
     const rate = name !== lastName && fast ? 45 : fast ? 38 : name === 'dead' ? 9 : 13;
     lastName = name;
@@ -675,11 +680,12 @@ export function buildHero(id, team = 0) {
   }
   apply();
 
-  let form = 'base';
+  let form = 'base', expr = '';
   function setForm(f) {
     if (!d.saiyan) return;
     form = f === 'ssj' ? 'ssj' : 'base';
     for (const k in hairForms) show(hairForms[k], k === form);
+    expr = '';
     if (gs.faces[form]) skull.material = headMat(id, form, gs.faces[form], gs.faceRect);
   }
 

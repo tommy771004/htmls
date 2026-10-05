@@ -47,7 +47,8 @@ async function run(name, w, h, touch) {
   const before = await ev((id) => window.__ki.G.units.find((u) => u.id === id).hp, eid);
   const used = await ev((id) => {
     const k = window.__ki, G = k.G, e = G.units.find((u) => u.id === id), r = {};
-    for (const key of ['Q', 'W', 'E']) { r[key] = k.cast(key, e.x, e.z); k.fastForward(0.7); }
+    // 每招前解除硬直與殘留動作（被小兵或塔打到暈住時 cast 會被擋下，造成偶發失敗）
+    for (const key of ['Q', 'W', 'E']) { const P = G.player; P.st.stun = 0; P.action = null; P.y = 0; r[key] = k.cast(key, e.x, e.z); k.fastForward(0.7); }
     return r;
   }, eid);
   check('Q/W/E 可施放', used.Q && used.W && used.E, used);

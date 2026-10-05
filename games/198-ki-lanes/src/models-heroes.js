@@ -84,8 +84,9 @@ function decodeHero(id, d) {
     if (name.startsWith('hair_')) out.hair[name.slice(5)] = g;
     else out[name] = g;
   }
-  out.faces = { base: drawFace(id, false, d.hr) };
-  if (out.hair.ssj) out.faces.ssj = drawFace(id, true, d.hr);
+  // 表情：base（平常）、shout（出招吶喊）、hurt（受擊）；超級賽亞人另有一套
+  out.faces = {};
+  for (const form of out.hair.ssj ? ['base', 'ssj'] : ['base']) for (const ex of ['', 'shout', 'hurt']) out.faces[form + (ex ? '_' + ex : '')] = drawFace(id, form === 'ssj', d.hr, ex);
   return out;
 }
 
@@ -183,9 +184,16 @@ const FACE = {
   sanji: { iris: '#2a5ab8', irisL: '#7fa8ff', brow: '#d8b040', browTilt: 0.2, eyeW: 0.318, eyeH: 0.142, eyeX: 0.35, eyeY: 0.01, sharp: 0.8, mouth: 'set', heavy: 0.6, curl: true, hideL: true },
   nami: { iris: '#8a4a1a', irisL: '#d89050', brow: '#e8803a', browTilt: 0.08, eyeW: 0.35, eyeH: 0.224, eyeX: 0.36, eyeY: 0.01, sharp: 0.35, mouth: 'lips', lashes: true },
 };
-function drawFace(id, ssj, hr) {
+// 依作品分眼睛畫法：db 七龍珠（銳利、上眼瞼粗）、naruto 火影（細長杏眼、虹膜小）、op 海賊王（大圓眼、黑大瞳孔）
+const EYE_STYLE = { naruto: 'naruto', sasuke: 'naruto', kakashi: 'naruto', sakura: 'naruto', luffy: 'op', zoro: 'op', sanji: 'op', nami: 'op' };
+function drawFace(id, ssj, hr, expr = '') {
   if (typeof document === 'undefined') return null;
   const f = { ...FACE[id] };
+  const style = EYE_STYLE[id] || 'db';
+  if (style === 'naruto') { f.eyeW *= 1.12; f.eyeH *= 0.86; f.sharp *= 0.85; }
+  if (style === 'op') { f.eyeW *= 0.9; f.eyeH *= 1.3; f.sharp *= 0.4; }
+  if (expr === 'shout') { f.browTilt += 0.3; f.eyeH *= 0.82; f.sharp += 0.2; f.mouth = 'shout'; }
+  if (expr === 'hurt') { f.browTilt -= 0.25; f.mouth = 'hurt'; f.squint = true; }
   if (ssj) { f.iris = '#1a9a8a'; f.irisL = '#7ff0dc'; f.brow = '#d8a82a'; f.browTilt += 0.12; f.sharp += 0.15; }
   const N = 512, c = document.createElement('canvas'); c.width = c.height = N;
   const g = c.getContext('2d');
@@ -209,7 +217,12 @@ function drawFace(id, ssj, hr) {
     const ex = X(sx * f.eyeX), ey = Y(f.eyeY), ew = (f.eyeW / 1.9) * S, eh = (f.eyeH / 1.9) * S;
     g.save(); g.translate(ex, ey); g.scale(sx, 1);
     // 眼形：內眼角低、外眼角上揚（杏仁形）
-    const shape = () => {
+    if (f.squint) { // 受擊：眼睛緊閉成「＞＜」
+      g.strokeStyle = ink; g.lineCap = 'round'; g.lineWidth = eh * 0.3;
+      g.beginPath(); g.moveTo(-ew * 0.5, -eh * 0.4); g.lineTo(ew * 0.35, eh * 0.05); g.lineTo(-ew * 0.4, eh * 0.45); g.stroke();
+      g.restore(); continue;
+    }
+    const shape = style === 'op' ? () => { g.beginPath(); g.ellipse(0, 0, ew * 0.5, eh * 0.62, 0, 0, Math.PI * 2); } : () => {
       g.beginPath();
       g.moveTo(-ew * 0.55, eh * 0.15);
       g.bezierCurveTo(-ew * 0.35, -eh * (0.75 + f.sharp * 0.1), ew * 0.35, -eh * (0.85 + f.sharp * 0.25), ew * 0.6, -eh * (0.2 + f.sharp * 0.45));
@@ -220,10 +233,10 @@ function drawFace(id, ssj, hr) {
     g.save(); shape(); g.clip();
     if (!f.noPupil) {
       // 虹膜：上深下亮的漸層、瞳孔、兩點反光
-      const ir = eh * 0.95, ix = -ew * 0.02, iy = eh * 0.08;
+      const ir = style === 'op' ? eh * 0.5 : style === 'naruto' ? eh * 0.8 : eh * 0.95, ix = -ew * 0.02, iy = style === 'op' ? 0 : eh * 0.08;
       const gr = g.createLinearGradient(0, iy - ir, 0, iy + ir);
       gr.addColorStop(0, f.iris); gr.addColorStop(1, f.irisL);
-      g.fillStyle = gr; g.beginPath(); g.ellipse(ix, iy, ir * 0.78, ir, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = gr; g.beginPath(); g.ellipse(ix, iy, ir * (style === 'op' ? 0.92 : 0.78), ir, 0, 0, Math.PI * 2); g.fill();
       g.fillStyle = 'rgba(10,6,4,.85)'; g.beginPath(); g.ellipse(ix, iy + ir * 0.1, ir * 0.36, ir * 0.48, 0, 0, Math.PI * 2); g.fill();
       g.fillStyle = '#fff'; g.beginPath(); g.ellipse(ix + ir * 0.28, iy - ir * 0.38, ir * 0.22, ir * 0.26, 0, 0, Math.PI * 2); g.fill();
       g.beginPath(); g.ellipse(ix - ir * 0.3, iy + ir * 0.45, ir * 0.1, ir * 0.1, 0, 0, Math.PI * 2); g.fill();
@@ -233,8 +246,9 @@ function drawFace(id, ssj, hr) {
     g.restore();
     // 上眼線：粗、外側延伸上挑
     g.strokeStyle = ink; g.lineCap = 'round'; g.lineJoin = 'round';
-    g.lineWidth = eh * 0.32;
-    g.beginPath(); g.moveTo(-ew * 0.6, eh * 0.05);
+    g.lineWidth = eh * (style === 'op' ? 0.16 : 0.32);
+    if (style === 'op') { g.beginPath(); g.ellipse(0, 0, ew * 0.5, eh * 0.62, 0, Math.PI * 1.05, Math.PI * 1.95); g.stroke(); }
+    g.beginPath(); if (style === 'op') g.moveTo(9e9, 9e9); else g.moveTo(-ew * 0.6, eh * 0.05);
     g.bezierCurveTo(-ew * 0.35, -eh * (0.82 + f.sharp * 0.1), ew * 0.35, -eh * (0.92 + f.sharp * 0.25), ew * 0.72, -eh * (0.25 + f.sharp * 0.5));
     g.stroke();
     if (f.lashes) { g.lineWidth = eh * 0.16; g.beginPath(); g.moveTo(ew * 0.55, -eh * 0.5); g.lineTo(ew * 0.85, -eh * 0.65); g.moveTo(ew * 0.62, -eh * 0.25); g.lineTo(ew * 0.88, -eh * 0.25); g.stroke(); }
@@ -261,6 +275,8 @@ function drawFace(id, ssj, hr) {
   else if (f.mouth === 'frown') { g.moveTo(X(0) - mw * 0.8, my + S * 0.008); g.quadraticCurveTo(X(0), my - S * 0.008, X(0) + mw * 0.8, my + S * 0.008); }
   else if (f.mouth === 'smirk') { g.moveTo(X(0) - mw * 0.7, my); g.quadraticCurveTo(X(0) + mw * 0.2, my + S * 0.01, X(0) + mw * 0.85, my - S * 0.018); }
   else if (f.mouth === 'set') { g.moveTo(X(0) - mw * 0.75, my + S * 0.004); g.quadraticCurveTo(X(0), my - S * 0.004, X(0) + mw * 0.75, my + S * 0.006); }
+  else if (f.mouth === 'shout') { g.fillStyle = '#4a1612'; g.moveTo(X(0) - mw * 1.5 * 1.0, my + S * 0.018); g.lineTo(X(0) - mw * 1.5 * 0.55, my - S * 0.03); g.lineTo(X(0) + mw * 1.5 * 0.55, my - S * 0.03); g.lineTo(X(0) + mw * 1.5 * 1.0, my + S * 0.018); g.lineTo(X(0) + mw * 1.5 * 0.5, my + S * 0.085); g.lineTo(X(0) - mw * 1.5 * 0.5, my + S * 0.085); g.closePath(); g.fill(); g.fillStyle = '#fff'; g.fillRect(X(0) - mw * 1.5 * 0.55, my - S * 0.022, mw * 1.5 * 1.1, S * 0.018); g.beginPath(); }
+  else if (f.mouth === 'hurt') { g.fillStyle = '#4a1612'; g.moveTo(X(0) - mw * 0.9, my); g.lineTo(X(0) - mw * 0.3, my - S * 0.012); g.lineTo(X(0) + mw * 0.3, my + S * 0.006); g.lineTo(X(0) + mw * 0.9, my - S * 0.004); g.lineTo(X(0) + mw * 0.6, my + S * 0.03); g.lineTo(X(0) - mw * 0.6, my + S * 0.03); g.closePath(); g.fill(); g.fillStyle = '#fff'; g.fillRect(X(0) - mw * 0.55, my - S * 0.004, mw * 1.1, S * 0.014); g.beginPath(); }
   else if (f.mouth === 'big') { g.fillStyle = '#5a1e18'; g.moveTo(X(0) - mw * 1.3, my - S * 0.01); g.quadraticCurveTo(X(0), my + S * 0.06, X(0) + mw * 1.3, my - S * 0.01); g.closePath(); g.fill(); g.fillStyle = '#fff'; g.fillRect(X(0) - mw * 1.0, my - S * 0.008, mw * 2.0, S * 0.012); g.beginPath(); }
   else if (f.mouth === 'none') { g.beginPath(); }
   else if (f.mouth === 'lips') { g.strokeStyle = '#c87a78'; g.moveTo(X(0) - mw * 0.6, my); g.quadraticCurveTo(X(0), my + S * 0.012, X(0) + mw * 0.6, my); }

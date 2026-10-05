@@ -141,7 +141,7 @@ def build_vegeta(R):
 
     heads = {}
     for form in ('base', 'ssj'):
-        h = anime_head('head_' + form, F, skin, jaw=1.06, chin=0.95, brow=0.6)
+        h = anime_head('head_' + form, F, skin, jaw=1.08, chin=0.98, brow=0.6, square=0.4)
         hc = P(0x17130f) if form == 'base' else P(0xffd447)
         heads[form] = [h, hair_cap('cap_' + form, F, hc, hairline=0.5, temple=0.55, scale=1.06)] + hair(F, hc, vegeta_hair(form), wmul=1.15)  # M 字高髮際線，額頭露出
     return finish(F, P, body, proxy, heads)

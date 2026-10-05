@@ -619,7 +619,7 @@ def build_goku(R):
     # ---- 頭
     heads = {}
     for form in ('base', 'ssj'):
-        h = anime_head('head_' + form, F, skin, jaw=1.02, cheek=1.0)
+        h = anime_head('head_' + form, F, skin, jaw=1.06, cheek=1.0, square=0.4)  # 成熟的方下巴
         hc = P(0x17130f) if form == 'base' else P(0xffd447)
         heads[form] = [h, hair_cap('cap_' + form, F, hc, hairline=0.42, temple=0.15)] + hair(F, hc, goku_hair(form), grow=1.12 if form == 'base' else 1.05, wmul=1.3)
     return finish(F, P, body, proxy, heads, custom={G_CHAIN: sash_chain_weights(F, 'sash')})
