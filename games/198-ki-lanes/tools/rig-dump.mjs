@@ -24,7 +24,7 @@ for (const id of HERO_IDS) {
   }
   if (bones.map((b) => b.name).slice(0, BONE_ORDER.length).join() !== BONE_ORDER.join()) throw new Error('骨頭順序與 BONE_ORDER 不一致');
   for (const c of sk.chains) c.segs.forEach((b, i) => add(b.name, w(b), w(b, 0, -c.len, 0), i ? c.segs[i - 1].name : c.parent));
-  const pick = ['H', 'L', 'hr', 'sw', 'chest', 'waist', 'arm', 'fore', 'fist', 'thigh', 'shin', 'hip', 'torso', 'upper', 'lower', 'thighLen', 'shinLen', 'skin', 'style', 'saiyan', 'hx', 'neck'];
+  const pick = ['H', 'L', 'hr', 'sw', 'chest', 'waist', 'arm', 'fore', 'fist', 'thigh', 'shin', 'hip', 'torso', 'upper', 'lower', 'thighLen', 'shinLen', 'skin', 'style', 'saiyan', 'hx', 'neck', 'armK'];
   out.heroes[id] = { ...Object.fromEntries(pick.map((k) => [k, d[k]])), bones, hand: { L: w(hands.L), R: w(hands.R) } };
 }
 writeFileSync(new URL('../blender/rig.json', import.meta.url), JSON.stringify(out, null, 1));

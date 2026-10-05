@@ -495,7 +495,7 @@ function skinOutlineMat(w) {
 // 次級擺動鏈（骨頭，參與蒙皮）：parent 是掛點骨、pos 是掛點在該骨的位置、n 節、每節長 len
 export function chainSpecs(id, d) {
   const out = [];
-  if (id === 'goku' || id === 'piccolo') out.push({ name: 'sash', parent: 'hips', pos: [0.13, 0.03, d.chest[2] * 0.92], n: 2, len: id === 'piccolo' ? 0.19 : 0.17, base: -0.15, yaw: 0.1, lift: -0.6, flutter: 0.2 });
+  if (id === 'goku' || id === 'piccolo') out.push({ name: 'sash', parent: 'hips', pos: [id === 'goku' ? -0.035 : 0.13, 0.03, d.chest[2] * 0.92], n: 2, len: id === 'piccolo' ? 0.19 : 0.17, base: -0.15, yaw: 0.1, lift: -0.6, flutter: 0.2 });
   if (id === 'frieza') out.push({ name: 'tail', parent: 'hips', pos: [0, -0.04, -d.hip * 1.05], n: 5, len: 0.2, base: 0.75, lift: 0.22, flutter: 0.1, curl: 0.16, sway: 0.4 });
   return out;
 }

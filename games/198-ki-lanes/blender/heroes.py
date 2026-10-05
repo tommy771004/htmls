@@ -557,7 +557,7 @@ def build_goku(R):
 
     # ---- 手臂、袖、護腕、拳
     arm = arm_skin(F, skin, muscle=1.25, k=1.12)
-    slv = sleeve(F, gi, s1=0.12, r=0.107 * F.k_arm, flare=1.04)  # 跟著手臂粗細（肌肉加大後寫死的半徑會被手臂穿出）
+    slv = sleeve(F, blue, s1=0.085, r=0.1 * F.k_arm + 0.01, flare=1.03)  # 道服無袖，肩頭露出藍色內衣的短袖（參考 3D 實機影片）
     wb = band('wristL', F.sh, F.da, F.up + 0.15, F.up + F.lo - 0.005, 0.064 * F.k_fore, 0.054 * F.k_fore, blue, G_FORE_L, thick=0.012, rb=0.9)
     hand = fist(F, skin, scale=1.08)
     pair_add(body, proxy, [arm, slv, wb, hand], proxy_set=(arm, hand))
@@ -566,9 +566,9 @@ def build_goku(R):
     # ---- 褲子、靴
     body.append(pelvis(F, gi, e=0.012))
     proxy.append(body[-1])
-    leg = baggy_leg(F, gi, bag=1.08, blouse=1.12)
-    bt = boot(F, blue, F.tl + 0.15, 0.074, pal_sole=blueD)
-    rim = band('bootRimL', F.th, F.dl, F.tl + 0.135, F.tl + 0.175, 0.08, 0.081, red, G_FOOT_L, thick=0.009)
+    leg = baggy_leg(F, gi, bag=1.06, blouse=1.12, s_end=F.tl + 0.1)  # 寬燈籠褲，褲管收進到小腿中段的靴子
+    bt = boot(F, blue, F.tl + 0.04, 0.082, pal_sole=blueD)
+    rim = band('bootRimL', F.th, F.dl, F.tl + 0.025, F.tl + 0.065, 0.086 * F.k_shin + 0.01, 0.084 * F.k_shin + 0.01, yellow, G_FOOT_L, thick=0.009)
     fx = F.sole.x + 0.004
     strap = kit.loft('strapL', [S(V((fx, 0.33, 0.072)), 0.022, 0.008), S(V((fx, 0.245, 0.078)), 0.024, 0.008), S(V((fx + 0.002, 0.15, 0.084)), 0.022, 0.008)], n=6)
     strap = kit.subsurf(strap, 1)
@@ -583,12 +583,13 @@ def build_goku(R):
     body.append(belt)
     kz = F.cz * 0.98 + 0.008
     knot = kit.quad_sphere('knot', 1, cuts=3)
-    kit.deform(knot, lambda p: V((0.12 + p.x * 0.036, yb + p.y * 0.032, kz + p.z * 0.022)))
+    kx = -0.035  # 結打在正前方偏角色右側（參考 3D 實機影片）
+    kit.deform(knot, lambda p: V((kx + p.x * 0.036, yb + p.y * 0.032, kz + p.z * 0.022)))
     knot = kit.subsurf(knot, 1)
     kit.tag(knot, blue, grp=G_BELT)
     body.append(knot)
-    for k, (dx, w0, ln) in enumerate(((-0.012, 0.03, 0.3), (0.028, 0.027, 0.25))):
-        t0 = V((0.12 + dx, yb - 0.01, kz + 0.004 + 0.006 * k))
+    for k, (dx, w0, ln) in enumerate(((-0.014, 0.032, 0.4), (0.03, 0.029, 0.34))):
+        t0 = V((kx + dx, yb - 0.01, kz + 0.004 + 0.006 * k))
         f = kit.loft('flap%d' % k, [S(t0, w0, 0.007), S(t0 + V((0.004, -ln * 0.5, 0.004)), w0 * 1.12, 0.007), S(t0 + V((0.01, -ln, 0.006)), w0 * 0.92, 0.006)], n=8)
         f = kit.subsurf(f, 2)
         kit.tag(f, blue, grp=G_CHAIN, ol=0.7)
