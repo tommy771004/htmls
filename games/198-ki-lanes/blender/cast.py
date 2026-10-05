@@ -143,7 +143,7 @@ def build_vegeta(R):
     for form in ('base', 'ssj'):
         h = anime_head('head_' + form, F, skin, jaw=1.06, chin=0.95, brow=0.6)
         hc = P(0x17130f) if form == 'base' else P(0xffd447)
-        heads[form] = [h, hair_cap('cap_' + form, F, hc, hairline=0.22, temple=0.55, scale=1.06)] + hair(F, hc, vegeta_hair(form))
+        heads[form] = [h, hair_cap('cap_' + form, F, hc, hairline=0.5, temple=0.55, scale=1.06)] + hair(F, hc, vegeta_hair(form), wmul=1.15)  # M 字高髮際線，額頭露出
     return finish(F, P, body, proxy, heads)
 
 
@@ -159,8 +159,7 @@ def vegeta_hair(form):
         ((0.0, 0.6, -0.8), (0.0, 2.45 * k, -1.05), 0.52, 0.24, (0, 0, 0)),
         ((0.5, 0.4, -0.75), (0.85, 2.05 * k, -1.0), 0.45, 0.22, (0, 0, 0)),
         ((0.0, 0.1, -0.95), (0.0, 1.45 * k, -1.3), 0.45, 0.22, (0, 0, 0)),
-        ((0.62, 0.62, 0.38), (0.95, 1.9 * k, 0.15), 0.32, 0.16, (0, 0, 0)),
-    ])
+    ]) + [((0.0, 0.62, 0.68), (0.0, 0.3, 0.86), 0.12, 0.06, (0, 0.02, 0.04))]  # 額頭中央的美人尖
 
 
 # ================================================================ 特南克斯
@@ -513,7 +512,8 @@ def build_a18(R):
 
     h = anime_head('head_base', F, skin, jaw=0.9, chin=0.85, cheek=0.96, nose=0.7)
     hc = P(0xf3d77a)
-    heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.48, temple=0.0, scale=1.08, nape=-0.85, side_cut=False)] + hair(F, hc, a18_hair())}
+    from heroes import bob_cap
+    heads = {'base': [h, bob_cap('bob', F, hc, hairline=0.5, length=0.75, flare=0.28, scale=1.14, part=0.15)] + hair(F, hc, a18_hair()[:3])}  # 及下巴的蓬鬆鮑伯頭＋側分瀏海
     return finish(F, P, body, proxy, heads)
 
 

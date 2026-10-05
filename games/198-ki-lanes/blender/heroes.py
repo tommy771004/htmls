@@ -387,6 +387,26 @@ def hair_cap(name, F, pal, scale=1.07, hairline=0.3, temple=0.0, nape=-0.55, sid
     return kit.tag(cap, pal, mat=mat, grp=G_FREE, ol=0.9)
 
 
+def bob_cap(name, F, pal, hairline=0.45, length=0.85, flare=0.22, scale=1.12, part=0.0, mat=1, thick=0.09):
+    """鮑伯頭：一整片包住頭的髮殼，往下延伸到下巴（length，單位 hr），下緣往外蓬（flare）；前方挖出臉的開口。"""
+    c, hr = F.c, F.hr
+    cap = kit.quad_sphere(name, 1.0, cuts=12)
+    bm = bmesh.new()
+    bm.from_mesh(cap.data)
+    kill = [v for v in bm.verts if (v.co.z > 0.18 and v.co.y < hairline - 0.25 * abs(v.co.x - part)) or (v.co.z > 0.55 and v.co.y < hairline + 0.15)]
+    bmesh.ops.delete(bm, geom=kill, context='VERTS')
+    bm.to_mesh(cap.data)
+    bm.free()
+
+    def dfm(p):
+        y = p.y if p.y > 0 else p.y * (1 + length)       # 下半往下拉長
+        k = 1 + flare * smooth(-p.y / 1.0)                 # 越往下越蓬
+        return c + V((p.x * hr * 0.82 * scale * k, y * hr * 0.9 * scale + hr * 0.1, p.z * hr * 0.9 * scale * k - hr * 0.06))
+    kit.deform(cap, dfm)
+    cap = kit.subsurf(cap, 1, solidify=hr * thick)
+    return kit.tag(cap, pal, mat=mat, grp=G_FREE, ol=0.9)
+
+
 def clump(name, F, root, tip, width, thick, bend=(0, 0, 0), n=8, segs=8, p=1.55, taper=1.0, twist=0.0):
     """一撮髮束（頭心相對、單位 hr）：根部貼著頭皮、片狀、尖端收成一點。"""
     c, hr = F.c, F.hr
@@ -413,14 +433,14 @@ def clump(name, F, root, tip, width, thick, bend=(0, 0, 0), n=8, segs=8, p=1.55,
 HAIR_GROW, HAIR_W = 1.15, 1.08  # GK 式的大份量頭髮（頭縮小了，髮束反而放大）
 
 
-def hair(F, pal, clumps, mat=1, ol=0.85, grow=1.0):
+def hair(F, pal, clumps, mat=1, ol=0.85, grow=1.0, wmul=1.0):
     out = []
     grow *= HAIR_GROW
     for i, cl in enumerate(clumps):
-        root, tip, w = cl[0], cl[1], cl[2] * HAIR_W
+        root, tip, w = cl[0], cl[1], cl[2] * HAIR_W * wmul
         if grow != 1.0:
             tip = tuple(r + (t - r) * grow for r, t in zip(root, tip))
-        th = cl[3] * HAIR_W if len(cl) > 3 else w * 0.45
+        th = cl[3] * HAIR_W * wmul if len(cl) > 3 else w * 0.45
         bend = cl[4] if len(cl) > 4 else (0, 0, 0)
         taper = cl[5] if len(cl) > 5 else 1.0  # ＜1：髮尖較鈍、較粗
         o = clump('cl%d' % i, F, root, tip, w, th, bend=bend, taper=taper)
@@ -600,7 +620,7 @@ def build_goku(R):
     for form in ('base', 'ssj'):
         h = anime_head('head_' + form, F, skin, jaw=1.02, cheek=1.0)
         hc = P(0x17130f) if form == 'base' else P(0xffd447)
-        heads[form] = [h, hair_cap('cap_' + form, F, hc, hairline=0.42, temple=0.15)] + hair(F, hc, goku_hair(form), grow=1.12 if form == 'base' else 1.05)
+        heads[form] = [h, hair_cap('cap_' + form, F, hc, hairline=0.42, temple=0.15)] + hair(F, hc, goku_hair(form), grow=1.12 if form == 'base' else 1.05, wmul=1.3)
     return finish(F, P, body, proxy, heads, custom={G_CHAIN: sash_chain_weights(F, 'sash')})
 
 
