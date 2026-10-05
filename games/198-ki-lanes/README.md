@@ -42,10 +42,11 @@ VV_CORE=… python tools/voices/build_voices.py [--only goku] [--wav dist/voices
 | --- | --- |
 | 右鍵／左鍵 | 點地面移動、點敵人普攻；按住持續移動 |
 | Q W E R | 朝游標施放（Ctrl＋鍵升級） |
-| C（按住） | 集氣 |
+| C（按住） | 集氣（氣力與魔力／體力回復 ×3） |
 | D | 爆氣（悟空、貝吉塔、特南克斯變身超級賽亞人） |
 | P／點金幣 | 商店（泉水附近或陣亡時才能買） |
 | 1 | 吃仙豆 |
+| 2、3 | 用身上第一、第二個主動道具（時光屋沙漏、超聖水），也可以點道具列的格子 |
 | 4 | 插眼 |
 | 5 | 放真眼 |
 | B | 回城 |
@@ -58,7 +59,7 @@ VV_CORE=… python tools/voices/build_voices.py [--only goku] [--wav dist/voices
 
 ## 測試 API：`window.__ki`
 
-`start(heroId, lane, diff)`（heroId：`goku`／`vegeta`／`trunks`／`piccolo`／`frieza`／`a18`）、`state()`、`fastForward(sec)`（跳過頓幀與慢動作，直接跑固定步長）、`teleport(x,z)`、`moveTo`、`attack(id)`、`cast(key,x,z)`、`levelUp(key)`、`setLevel(n)`、`learnAll()`、`give({ki,xp})`、`freezeAI(bool)`、`spawnEnemyHeroNear(d)`、`enemyHero()`、`killPlayer()`、`damageStructure(id, amt)`、`destroy(id)`、`win()`、`lose()`、`camera(x,z,zoom)`、`follow()`、`pick(id)`、`pause(bool)`、`setQuality(0..2)`、`buy(itemId)`、`senzu()`、`setGold(g)`、`visible(unitId)`、`fog(bool)`、`camps()`、`boss()`、`heroes()`、`sell(slot)`、`ward(x,z)`、`control(x,z)`、`laneBushes(lane,team)`、`lanePoint(lane,team,prog)`、`wards()`、`bushes()`、`obstacles()`、`visibleTo(team,id)`、`listen(event)`、`balls(team,n)`（直接給龍珠）、`shenron()`、`fx`（特效 API，可直接呼叫 `explode`、`hitSpark` 等截圖）。建築 id：`t{隊}{路}{i|o}`（例 `t11o` 是赤隊中路外塔）、`core0`／`core1`。
+`start(heroId, lane, diff, rune)`（heroId 見 `HERO_ORDER`；rune 是 `RUNES` 的 id，省略用推薦）、`state()`、`fastForward(sec)`（跳過頓幀與慢動作，直接跑固定步長）、`teleport(x,z)`、`moveTo`、`attack(id)`、`cast(key,x,z)`、`levelUp(key)`、`setLevel(n)`、`learnAll()`、`give({ki,mp,xp})`、`useItem(i)`（第 i 個主動道具）、`freezeAI(bool)`、`spawnEnemyHeroNear(d)`、`enemyHero()`、`killPlayer()`、`damageStructure(id, amt)`、`destroy(id)`、`win()`、`lose()`、`camera(x,z,zoom)`、`follow()`、`pick(id)`、`pause(bool)`、`setQuality(0..2)`、`buy(itemId)`、`senzu()`、`setGold(g)`、`visible(unitId)`、`fog(bool)`、`camps()`、`boss()`、`heroes()`、`sell(slot)`、`ward(x,z)`、`control(x,z)`、`laneBushes(lane,team)`、`lanePoint(lane,team,prog)`、`wards()`、`bushes()`、`obstacles()`、`visibleTo(team,id)`、`listen(event)`、`balls(team,n)`（直接給龍珠）、`shenron()`、`fx`（特效 API，可直接呼叫 `explode`、`hitSpark` 等截圖）。建築 id：`t{隊}{路}{i|o}`（例 `t11o` 是赤隊中路外塔）、`core0`／`core1`。
 
 ## 結構
 
@@ -115,7 +116,7 @@ VV_CORE=… python tools/voices/build_voices.py [--only goku] [--wav dist/voices
 
 ## HUD
 
-技能列左側是角色半身像（變身超級賽亞人時換成金髮），上方是名字、血條與藍色氣力格，技能鍵下方標技能名；上方中央是比分、大猿與神龍的計時，交手中的敵方英雄會出現在目標框；連段數以「N Hits!」顯示；擊殺、推塔、大猿、神龍等時機會跳出角色的漫畫對話框（`quips.js`，原創台詞）；陣亡時顯示「你被擊倒了！」與重生倒數。擊倒英雄與推塔會在右上跳出擊殺卡片（擊殺者、「擊倒!／推塔!」、被擊倒者與助攻）。
+技能列左側是角色半身像（變身超級賽亞人時換成金髮），上方是名字、血條、魔力條（七龍珠、火影是藍色魔力／查克拉，海賊王是綠色體力）與藍色氣力格，技能鍵右下角標資源花費（不夠時轉紅）、R 右上角標氣格數，技能鍵下方標技能名；上方中央是比分、大猿與神龍的計時，交手中的敵方英雄會出現在目標框；連段數以「N Hits!」顯示；擊殺、推塔、大猿、神龍等時機會跳出角色的漫畫對話框（`quips.js`，原創台詞）；陣亡時顯示「你被擊倒了！」與重生倒數。擊倒英雄與推塔會在右上跳出擊殺卡片（擊殺者、「擊倒!／推塔!」、被擊倒者與助攻）。
 
 打擊特效：重擊與爆炸是一般混色的漫畫風貼圖（深色描邊的鋸齒爆點、雲朵狀火球、放射墨點），不疊加白光，避免被泛光洗白；近戰普攻帶白色弧形刀光。
 
@@ -127,7 +128,14 @@ VV_CORE=… python tools/voices/build_voices.py [--only goku] [--wav dist/voices
 
 ## 道具合成
 
-基礎（負重護腕、修行道服、氣功護腕、武道鞋、戰鬥力探測器）→ 進階（界王拳腰帶、賽亞人戰甲、筋斗雲、氣力增幅器、再生細胞）→ 終極（超神水、波塔拉耳環）。購買時自動吃掉身上的材料、只付差額；商店點自己的道具可賣出（60% 總價）。AI 依定位逐步合成。
+基礎 → 進階 → 終極三層，共 31 件。原本的七龍珠道具之外，加入 19 件以《英雄聯盟》裝備為原型的道具（命名維持七龍珠風格，商店說明標「原型：…」），帶咒刃、暴擊、吸血、荊棘與重傷、積蓄、復活、凝時與淨化等被動或主動；對照表見 `SPEC.md` 的「英雄聯盟的資源、裝備與符文」。購買時自動吃掉身上的材料、只付差額；商店點自己的道具可賣出（60% 總價）。AI 依定位逐步合成。
+
+## 魔力、體力與符文
+
+- 每招都花資源：七龍珠與火影角色用魔力（火影叫查克拉，上限與回復隨等級、裝備成長），海賊王角色用體力（上限 200、每秒回 12，不吃裝備）。R 另外花 3 格氣。
+- 傷害分物理（普攻、小兵、塔、野怪）與技能兩類，各自吃物理減傷與技能減傷；新屬性「氣功強度」加成技能傷害。
+- 選角畫面挑一個基石符文（戰鬥狂、雷擊三連、不死之身、連打節奏、流星氣彈、舞空術），預設是角色的推薦。
+- 最後一擊紅緞帶機器人得藍色氣焰（魔力回復、冷卻），恐龍得赤色氣焰（普攻灼燒、緩速），陣亡時被擊殺者搶走。
 
 ## AI 的遊走、包抄與埋伏
 

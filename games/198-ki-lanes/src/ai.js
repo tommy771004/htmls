@@ -2,12 +2,13 @@
 import { KI_BAR, FOUNTAIN, ITEMS } from './config.js';
 import { dist, targetable, vulnerable } from './units.js';
 import { lanePath, laneProgress, pointAlong, distToLane } from './map.js';
-import { cast, orderMove, orderAttack, startRecall, setCharging, spark, levelSkill, canLevel, skillReady, skillDmg, placeWard, placeControl } from './combat.js';
+import { cast, orderMove, orderAttack, startRecall, setCharging, spark, levelSkill, canLevel, skillReady, skillDmg, skillCost, placeWard, placeControl } from './combat.js';
 import { BUSHES } from './map.js';
 import { seen, inBush } from './vision.js';
 import { eatSenzu, nextBuy, priceFor } from './items.js';
 import { bossAlive } from './jungle.js';
 import { shenronAlive } from './dragonballs.js';
+import { aiActives } from './traits.js';
 
 const SKILL_ORDER = {
   goku: ['Q', 'W', 'Q', 'E', 'Q', 'W', 'Q', 'W', 'W', 'E', 'E', 'E'],
@@ -71,11 +72,12 @@ export function updateAI(G, h, dt) {
   B.think -= dt;
   if (B.think > 0) return;
   B.think = B.react + Math.random() * 0.1;
+  aiActives(G, h, G.heroes.some((e) => e.alive && e.team !== h.team && dist(e, h) < 10));
   if (h.action && !h.action.auto) return;
   if (h.st.stun > 0) return;
 
   const f = FOUNTAIN[h.team];
-  const hpR = h.hp / h.maxHp;
+  const hpR = h.hp / h.maxHp, mpR = h.mp / h.maxMp;
   const atBase = Math.hypot(h.x - f[0], h.z - f[1]) < 11;
   const foesV = visibleFoes(G, h);
   let foe = null, fd = 1e9, foes = 0;
@@ -87,7 +89,7 @@ export function updateAI(G, h, dt) {
 
   // 回城補血／買裝
   if (B.mode === 'heal') {
-    if (atBase) { if (hpR > 0.92 && h.ki > 150) B.mode = 'lane'; else { h.goal = null; if (!h.charging && h.ki < 300) setCharging(G, h, true); return; } }
+    if (atBase) { if (hpR > 0.92 && h.ki > 150 && mpR > 0.85) B.mode = 'lane'; else { h.goal = null; if (!h.charging && (h.ki < 300 || mpR < 0.85)) setCharging(G, h, true); return; } }
     else { if (h.recall <= 0) moveHome(G, h); return; }
   }
   if (h.recall > 0) { if (foe && fd < 9) orderMove(G, h, f[0], f[1]); else return; }
@@ -100,7 +102,7 @@ export function updateAI(G, h, dt) {
   }
   if (B.mode === 'flee') { B.fleeT -= B.react; if (B.fleeT > 0) { moveHome(G, h); return; } B.mode = 'lane'; }
   // 錢夠了就回去買
-  if (!foe && h.gold > nextItemCost(h) + 250 && (hpR < 0.75 || h.gold > 1400) && B.mode !== 'boss') { if (startRecall(G, h)) { B.mode = 'heal'; return; } }
+  if (!foe && B.mode !== 'boss' && (h.gold > nextItemCost(h) + 250 && (hpR < 0.75 || h.gold > 1400) || mpR < 0.12 && hpR < 0.8)) { if (startRecall(G, h)) { B.mode = 'heal'; return; } }
 
   // 打英雄（遊走包抄途中先不接戰，繞到背後再出手）
   if (foe && fd < 11 && !(B.mode === 'roam' && !B.behind && G.time < B.until) && !(B.mode === 'ambush' && G.time < B.until)) {
@@ -226,7 +228,7 @@ function bossMode(G, h) {
   const near = G.heroes.filter((a) => a.team === h.team && a.alive && dist(a, boss) < 14).length;
   if (dist(h, boss) > 9) { orderMove(G, h, boss.x - 4 * (h.team ? -1 : 1), boss.z + 4 * (h.team ? -1 : 1)); return true; }
   if (near >= 2 || boss.hp / boss.maxHp < 0.5 || boss.state === 'fight') {
-    if (skillReady(h, 'Q') && h.ki > 200) cast(G, h, 'Q', boss.x, boss.z);
+    if (skillReady(h, 'Q') && h.mp > h.maxMp * 0.4) cast(G, h, 'Q', boss.x, boss.z);
     orderAttack(G, h, boss);
   } else h.goal = null;
   return true;
@@ -251,7 +253,7 @@ function jungleMode(G, h) {
   const mob = c && c.mobs.find((m) => m.alive);
   if (!mob || G.time > B.until || h.hp / h.maxHp < 0.35) { B.mode = 'lane'; return false; }
   if (dist(h, mob) > h.range + 3) orderMove(G, h, mob.x, mob.z);
-  else { if (skillReady(h, 'Q') && h.ki > 250) cast(G, h, 'Q', mob.x, mob.z); orderAttack(G, h, mob); }
+  else { if (skillReady(h, 'Q') && h.mp > h.maxMp * 0.6) cast(G, h, 'Q', mob.x, mob.z); orderAttack(G, h, mob); }
   return true;
 }
 
@@ -272,17 +274,17 @@ function fight(G, h, foe, fd, killable) {
   const H = hint(h);
   if (H.wRanged && skillReady(h, 'W') && fd > 3 && fd < S.W.range * 0.9) { if (aimCast(G, h, 'W', foe)) return; }
   if (H.wSelf && skillReady(h, 'W') && fd < (S.W.radius || 3) * 0.9) { if (cast(G, h, 'W', foe.x, foe.z)) return; }
-  if (H.eSelf && !H.eHeal && !H.eBuff && skillReady(h, 'E') && fd < 3.5 && kiBars >= 1) { if (cast(G, h, 'E', h.x, h.z)) return; }
-  if (H.eBuff && skillReady(h, 'E') && fd < 6 && kiBars >= 1) { if (cast(G, h, 'E', h.x, h.z)) return; }
+  if (H.eSelf && !H.eHeal && !H.eBuff && skillReady(h, 'E') && fd < 3.5) { if (cast(G, h, 'E', h.x, h.z)) return; }
+  if (H.eBuff && skillReady(h, 'E') && fd < 6) { if (cast(G, h, 'E', h.x, h.z)) return; }
   if (h.def.melee) {
     if (skillReady(h, 'W') && fd < S.W.range && fd > 2.2 && !H.wRanged && !H.wSelf) { if (aimCast(G, h, 'W', foe)) return; }
-    if (skillReady(h, 'E') && kiBars >= (h.ranks.R && h.cds.R <= 0 ? 4 : 1) && fd > 3 && fd < (S.E.range || 6) + 2 && (foeHpR < 0.5 || killable) && !H.eSelf && !H.eSelfOnly) { if (cast(G, h, 'E', foe.x, foe.z)) return; }
+    if (skillReady(h, 'E') && h.mp >= skillCost(h, 'E') + (h.ranks.R && h.cds.R <= 0 && kiBars >= 3 ? skillCost(h, 'R') : 0) && fd > 3 && fd < (S.E.range || 6) + 2 && (foeHpR < 0.5 || killable) && !H.eSelf && !H.eSelfOnly) { if (cast(G, h, 'E', foe.x, foe.z)) return; }
   } else {
-    if (fd < 3.5 && skillReady(h, 'E') && kiBars >= 1 && !H.eSelf) { const a = Math.atan2(h.x - foe.x, h.z - foe.z); if (cast(G, h, 'E', h.x + Math.sin(a) * 9, h.z + Math.cos(a) * 9)) return; }
+    if (fd < 3.5 && skillReady(h, 'E') && !H.eSelf) { const a = Math.atan2(h.x - foe.x, h.z - foe.z); if (cast(G, h, 'E', h.x + Math.sin(a) * 9, h.z + Math.cos(a) * 9)) return; }
     if (skillReady(h, 'W') && fd < S.W.range * 0.8 && !H.wRanged) { if (aimCast(G, h, 'W', foe)) return; }
   }
   if (skillReady(h, 'Q') && fd < S.Q.range * 0.9) { if (aimCast(G, h, 'Q', foe)) return; }
-  if (H.eHeal && skillReady(h, 'E') && kiBars >= 1 && (h.hp / h.maxHp < 0.6 || G.heroes.some((a) => a.alive && a.team === h.team && a !== h && dist(a, h) < 6 && a.hp / a.maxHp < 0.45))) cast(G, h, 'E', h.x, h.z);
+  if (H.eHeal && skillReady(h, 'E') && (h.hp / h.maxHp < 0.6 || G.heroes.some((a) => a.alive && a.team === h.team && a !== h && dist(a, h) < 6 && a.hp / a.maxHp < 0.45))) cast(G, h, 'E', h.x, h.z);
   orderAttack(G, h, foe);
 }
 
@@ -295,7 +297,7 @@ function flank(G, h, foe, fd, kiBars) {
   if (!mates.length) return false;
   const p = retreatPoint(foe, 2.6);
   if (!B.flankT) { B.flankT = G.time; G.emit('flank', { h, foe }); }
-  if (hint(h).eBehind && skillReady(h, 'E') && kiBars >= 1 && fd < 8) { cast(G, h, 'E', foe.x, foe.z); B.flankDone = G.time + 9; B.flankT = 0; return true; }
+  if (hint(h).eBehind && skillReady(h, 'E') && fd < 8) { cast(G, h, 'E', foe.x, foe.z); B.flankDone = G.time + 9; B.flankT = 0; return true; }
   if (G.time - B.flankT < 2.2 && Math.hypot(h.x - p.x, h.z - p.z) > 1.4) { orderMove(G, h, p.x, p.z); return true; }
   B.flankDone = G.time + 9; B.flankT = 0;
   return false;
@@ -351,7 +353,7 @@ function laneLogic(G, h) {
     const sc = m.hp + d * 12;
     if (sc < best) { best = sc; tgt = m; }
   }
-  if (tgt && skillReady(h, 'Q') && h.ki > 150 && Math.random() < 0.25) {
+  if (tgt && skillReady(h, 'Q') && h.mp > h.maxMp * 0.65 && Math.random() < 0.25) {
     let n = 0; for (const m of G.minions) if (m.alive && m.team !== h.team && dist(m, tgt) < 3) n++;
     if (n >= 3) { cast(G, h, 'Q', tgt.x, tgt.z); return; }
   }
@@ -362,6 +364,6 @@ function laneLogic(G, h) {
   if (threat && alliesTanking(G, h, threat) < 2) { const back = pointAlong(path, Math.max(0, myProg - 8)); orderMove(G, h, back.x, back.z); return; }
   if (far > 2.5) { setCharging(G, h, false); orderMove(G, h, q.x + (Math.random() - 0.5) * 2, q.z + (Math.random() - 0.5) * 2); return; }
   let enemyNear = false; for (const u of G.units) if (u.alive && u.team !== h.team && u.team <= 1 && u.kind !== 'tower' && u.kind !== 'core' && dist(u, h) < 12) { enemyNear = true; break; }
-  if (!enemyNear && h.ki < 300 && !h.goal && !h.target) setCharging(G, h, true);
+  if (!enemyNear && (h.ki < 300 || h.mp < h.maxMp * 0.6) && !h.goal && !h.target) setCharging(G, h, true);
   else if (enemyNear && h.charging) setCharging(G, h, false);
 }

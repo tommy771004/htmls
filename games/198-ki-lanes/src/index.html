@@ -92,6 +92,9 @@ body.dead canvas#gl { filter: grayscale(.85) brightness(.8); transition: filter 
 .sk .pips i { width: .55em; height: .32em; background: var(--ink3); transform: skewX(-20deg); }
 .sk .pips i.on { background: var(--el); }
 .sk .cost { position: absolute; right: .2em; top: .1em; font: italic 900 .85em var(--num); color: var(--ki); pointer-events: none; }
+.sk .mpc { position: absolute; right: .25em; top: 3.05em; font: italic 900 .78em var(--num); color: color-mix(in srgb, var(--mp) 60%, #fff); text-shadow: 0 1px 0 var(--ink), 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 -1px 0 var(--ink); pointer-events: none; }
+.sk.nomp .face { color: #4d5f80; }
+.sk.nomp .mpc { color: #e5563a; }
 .sk .plus { position: absolute; left: 50%; top: -2.1em; transform: translateX(-50%); width: 2.2em; height: 1.7em; font-weight: 900; font-size: 1em; color: var(--ink); background: var(--ki); clip-path: polygon(.4em 0, 100% 0, calc(100% - .4em) 100%, 0 100%); display: none; }
 .sk.canlv .plus { display: block; animation: nudge 1s var(--ease) infinite; }
 @keyframes nudge { 50% { transform: translate(-50%, -.25em); } }
@@ -101,6 +104,9 @@ body.dead canvas#gl { filter: grayscale(.85) brightness(.8); transition: filter 
 #dock .hp i { background: linear-gradient(180deg, #8fe8c8, var(--jade2) 55%, #1f9a7d); }
 #dock .hp s { left: auto; right: 0; background: rgba(243, 234, 216, .85); transform-origin: right; }
 #dock .hp b { position: absolute; inset: 0; display: grid; place-items: center; font: 800 .9em var(--num); color: var(--ink); letter-spacing: .03em; }
+#dock .mp { position: relative; height: .95em; background: var(--ink3); overflow: hidden; margin-top: -.15em; }
+#dock .mp i { position: absolute; inset: 0; background: linear-gradient(180deg, color-mix(in srgb, var(--mp) 55%, #fff), var(--mp) 60%); transform-origin: left; }
+#dock .mp b { position: absolute; inset: 0; display: grid; place-items: center; font: 800 .72em var(--num); color: var(--bone); letter-spacing: .03em; text-shadow: 0 1px 0 var(--ink), 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 -1px 0 var(--ink); }
 #dock .row2 { display: flex; align-items: center; gap: .6em; }
 #dock .ki { display: flex; align-items: center; gap: .3em; flex: 1; }
 #dock .ki .kn { font: italic 900 1.9em/1 var(--num); color: var(--ki); width: 1.1em; text-align: center; }
@@ -218,6 +224,9 @@ body.camfree #camHint { display: block; }
 #dock .slot.control.none .ic { opacity: .25; }
 #dock .slot.senzu b { position: absolute; right: .1em; bottom: 0; font: italic 900 .85em var(--num); color: var(--bone); }
 #dock .slot.senzu.none .ic { opacity: .25; }
+#dock .slot .acd { position: absolute; inset: 0; display: grid; place-items: center; font: italic 900 1em var(--num); color: var(--bone); background: rgba(14, 18, 30, .6); }
+#dock .slot .acd:empty { display: none; }
+#dock .slot.act { cursor: pointer; }
 #dock .slot kbd { position: absolute; left: .15em; top: 0; font-size: .7em; color: var(--bone3); }
 #dock .goldbtn { margin-left: auto; display: flex; align-items: center; gap: .3em; padding: .25em .7em .25em .4em; background: var(--ink2); clip-path: polygon(.4em 0, 100% 0, calc(100% - .4em) 100%, 0 100%); }
 #dock .goldbtn:hover { background: var(--ink3); }
@@ -228,6 +237,7 @@ body.camfree #camHint { display: block; }
 #buffs { position: absolute; left: 50%; bottom: calc(var(--safe-b) + 14.2em); transform: translateX(-50%); display: flex; gap: .5em; }
 #buffs span { padding: .2em .8em; font-size: .85em; font-weight: 700; background: rgba(14, 18, 30, .85); clip-path: polygon(.35em 0, 100% 0, calc(100% - .35em) 100%, 0 100%); white-space: nowrap; }
 #buffs .ape { color: #ffb36a; } #buffs .ssj { color: var(--gold); }
+#buffs .blue { color: #8cc4ff; } #buffs .red { color: #ff8a6a; } #buffs .rune { color: var(--bone); } #buffs .rune.full { color: var(--gold); } #buffs .gw { color: #c98aff; }
 #shop { position: fixed; inset: 0; display: none; place-items: center; background: rgba(14, 18, 30, .45); z-index: 4; pointer-events: auto; }
 #shop.on { display: grid; }
 .shopCard { width: min(44em, 94vw); max-height: 86vh; overflow: auto; padding: 1.2em 1.4em 1.4em; background: rgba(14, 18, 30, .96); clip-path: polygon(1.2em 0, 100% 0, 100% calc(100% - 1.2em), calc(100% - 1.2em) 100%, 0 100%, 0 1.2em); }
@@ -247,6 +257,8 @@ body.camfree #camHint { display: block; }
 .shopDetail .dh svg { width: 3.4em; height: 3.4em; }
 .shopDetail .dh b { display: block; font-size: 1.2em; font-weight: 900; }
 .shopDetail .dh small { color: var(--bone2); line-height: 1.45; }
+.shopDetail .note { margin: .6em 0 0; font-size: .88em; line-height: 1.5; color: var(--bone); }
+.shopDetail .proto { display: block; margin-top: .2em; font-size: .78em; color: var(--bone3); }
 .shopDetail .price { margin: .7em 0; color: var(--bone2); font-size: .9em; } .shopDetail .price em { font-style: normal; font: italic 900 1.25em var(--num); color: var(--gold); }
 .shopDetail .into { font-size: .85em; color: var(--bone3); margin: .5em 0 0; } .shopDetail .into button { color: var(--bone); text-decoration: none; font-weight: 700; }
 .shopDetail .act { width: 100%; padding: .55em; font-weight: 900; letter-spacing: .3em; color: var(--ink); background: var(--ki); clip-path: polygon(.5em 0, 100% 0, calc(100% - .5em) 100%, 0 100%); }
@@ -314,6 +326,15 @@ body.camfree #camHint { display: block; }
 #pickInfo li kbd { font-size: 1.3em; color: var(--bone3); text-align: center; }
 #pickInfo li b { display: block; font-weight: 800; }
 #pickInfo li span { display: block; font-size: .9em; color: var(--bone3); line-height: 1.45; }
+#pickInfo .runes { margin-top: 1em; display: grid; grid-template-columns: 2.6em 1fr; gap: .25em .6em; align-items: center; }
+#pickInfo .runes > b { font-size: .85em; color: var(--bone3); font-weight: 700; }
+#pickInfo .runes .rb { display: flex; flex-wrap: wrap; gap: .25em; }
+#pickInfo .runes button { padding: .3em .65em; font-size: .88em; font-weight: 700; color: var(--bone2); background: var(--ink2); clip-path: polygon(.35em 0, 100% 0, calc(100% - .35em) 100%, 0 100%); transition: background-color .12s, color .12s; }
+#pickInfo .runes button:hover { background: var(--ink3); }
+#pickInfo .runes button.sel { background: var(--bone); color: var(--ink); }
+#pickInfo .runes button.rec::after { content: "・推薦"; font-size: .8em; opacity: .7; }
+#pickInfo .runes p { grid-column: 2; margin: .2em 0 0; font-size: .85em; color: var(--bone3); line-height: 1.5; }
+#pickInfo .runes p small { color: var(--bone3); opacity: .75; }
 #pickBar { position: absolute; left: 0; right: 0; bottom: calc(var(--safe-b) + 1.6em); display: flex; justify-content: center; align-items: flex-end; gap: 1.6em; padding: 0 1em; }
 #cards { display: flex; gap: .7em; }
 .card { position: relative; width: 6.6em; padding: .4em .4em .55em; text-align: left; background: rgba(14, 18, 30, .86); clip-path: polygon(0 0, 100% 0, 100% calc(100% - .9em), calc(100% - .9em) 100%, 0 100%); transition: transform .18s var(--ease), background-color .18s; }
@@ -339,7 +360,7 @@ body.camfree #camHint { display: block; }
   #title b { font-size: 2.8em; } #title span { font-size: 1em; letter-spacing: .25em; }
   #pickInfo { left: .8em; right: .8em; width: auto; top: auto; bottom: calc(var(--safe-b) + 19.2em); padding: .9em 1.1em; }
   #pickInfo h2 b { font-size: 1.8em; } #pickInfo p { font-size: .92em; margin: .3em 0 .6em; }
-  #pickInfo ul { gap: .35em; } #pickInfo li span { display: none; } #pickInfo li { grid-template-columns: 2em 1.2em 1fr; } #pickInfo li i { width: 2em; height: 2em; padding: .25em; }
+  #pickInfo ul { gap: .35em; } #pickInfo li span { display: none; } #pickInfo .runes { margin-top: .6em; grid-template-columns: 1fr; } #pickInfo .runes > b { display: none; } #pickInfo .runes p { grid-column: 1; font-size: .8em; } #pickInfo .runes button { font-size: .8em; padding: .3em .5em; } #pickInfo li { grid-template-columns: 2em 1.2em 1fr; } #pickInfo li i { width: 2em; height: 2em; padding: .25em; }
   #pickBar { flex-direction: column; align-items: stretch; gap: .6em; bottom: calc(var(--safe-b) + .8em); padding: 0 .8em; }
   #cards { justify-content: space-between; gap: .4em; } .card { width: auto; flex: 1; min-width: 0; padding: .3em .3em .4em; } .card b { font-size: 1em; } .card small, .card em { display: none; } .card img { aspect-ratio: auto; height: 5.4em; object-position: 50% 20%; }
   .opts { grid-template-columns: 1fr 1fr; } .seg > span { display: none; } .seg { justify-content: center; } .seg button { padding: .45em .7em; }
@@ -565,6 +586,7 @@ body.camfree #camHint { display: block; }
     <div class="meters">
       <div class="nm"><b></b><span></span></div>
       <div class="hp"><i></i><s></s><b></b></div>
+      <div class="mp"><i></i><b></b></div>
       <div class="row2">
         <div class="ki"><span class="kn">1</span><span class="cell"><i></i></span><span class="cell"><i></i></span><span class="cell"><i></i></span><span class="cell"><i></i></span><span class="cell"><i></i></span></div>
         <span class="xpl">XP</span><div class="xp"><i></i></div>
@@ -609,7 +631,7 @@ body.camfree #camHint { display: block; }
   <h3>操作</h3>
   <dl>
     <dt>右鍵／左鍵</dt><dd>點地面移動，點敵人普攻（連按會接出 輕→中→重 三段連段，第三段把人打飛）</dd>
-    <dt>Q W E R</dt><dd>朝游標施放：氣功波、衝刺連打、瞬間移動（花 1 格氣）、終極必殺（花 3 格氣）</dd>
+    <dt>Q W E R</dt><dd>朝游標施放：氣功波、衝刺連打、瞬間移動、終極必殺（另花 3 格氣）。每招都花魔力（海賊王角色是體力），集氣時回復加快</dd>
     <dt>Ctrl＋Q/W/E/R</dt><dd>用技能點升級該技能</dd>
     <dt>C（按住）</dt><dd>原地集氣，氣力條加速累積</dd>
     <dt>D</dt><dd>爆氣：8 秒內傷害、移速提升並回血（冷卻 90 秒）</dd>
@@ -621,7 +643,8 @@ body.camfree #camHint { display: block; }
   </dl>
   <dl>
     <dt>P／點金幣</dt><dd>開商店（在泉水附近或陣亡時才能買）</dd>
-    <dt>1</dt><dd>吃仙豆：立刻回 45% 血與 1 格氣</dd>
+    <dt>1</dt><dd>吃仙豆：立刻回 45% 血、45% 魔力與 1 格氣</dd>
+    <dt>2 3</dt><dd>使用身上第一、第二個主動道具（時光屋沙漏、超聖水）</dd>
     <dt>5</dt><dd>放真眼（商店 75 金）：敵我都看得到、不會消失，照出 9 公尺內的敵方眼；每人場上一顆</dd>
     <dt>4</dt><dd>插眼：在游標處（7 公尺內）放一顆眼，提供 90 秒視野，冷卻 70 秒，最多同時兩顆</dd>
   </dl>

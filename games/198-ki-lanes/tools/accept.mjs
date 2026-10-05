@@ -22,8 +22,9 @@ async function run(name, w, h, touch) {
   check('viewport meta', await ev(() => !!document.querySelector('meta[name=viewport]')));
   await page.waitForTimeout(1200); await shot('1-select');
   // 用真的點擊選角並出戰
-  if (touch) { await page.tap('.card[data-id="frieza"]'); await page.tap('#go'); } else { await page.click('.card[data-id="frieza"]'); await page.click('#go'); }
+  if (touch) { await page.tap('.card[data-id="frieza"]'); await page.tap('[data-rune="electrocute"]'); await shot('1b-rune'); await page.tap('#go'); } else { await page.click('.card[data-id="frieza"]'); await page.click('[data-rune="electrocute"]'); await shot('1b-rune'); await page.click('#go'); }
   await page.waitForTimeout(500);
+  check('選角畫面選的符文帶進對戰', (await ev(() => window.__ki.state().player.rune)) === 'electrocute');
   check('進入對戰', (await ev(() => window.__ki.state().phase)) === 'play');
   check('開局自動學會 Q', (await ev(() => window.__ki.state().player.ranks.Q)) === 1);
   // 兵線
@@ -42,7 +43,7 @@ async function run(name, w, h, touch) {
   check('普攻三段連段累積連擊數', combo.best >= 3, combo);
   // 技能：升到 6 級、學全部技能、補滿氣
   // 前一段站在敵方兵線裡打了 4 秒，玩家可能已陣亡或被暈住：先復活、補滿並解除硬直，避免偶發失敗
-  await ev(() => { const k = window.__ki, P = k.G.player; if (!P.alive) { P.respawn = 0; k.fastForward(0.05); } P.hp = P.maxHp; P.st.stun = 0; P.action = null; k.setLevel(6); k.learnAll(); k.give({ ki: 500 }); });
+  await ev(() => { const k = window.__ki, P = k.G.player; if (!P.alive) { P.respawn = 0; k.fastForward(0.05); } P.hp = P.maxHp; P.st.stun = 0; P.action = null; k.setLevel(6); k.learnAll(); k.give({ ki: 500, mp: 9999 }); });
   const eid = await ev(() => { const k = window.__ki, id = k.spawnEnemyHeroNear(6), e = k.G.units.find((u) => u.id === id); e.hp = e.maxHp; return id; });
   const before = await ev((id) => window.__ki.G.units.find((u) => u.id === id).hp, eid);
   const used = await ev((id) => {
@@ -52,7 +53,7 @@ async function run(name, w, h, touch) {
     return r;
   }, eid);
   check('Q/W/E 可施放', used.Q && used.W && used.E, used);
-  const kiBefore = await ev(() => { window.__ki.give({ ki: 500 }); return window.__ki.state().player.ki; });
+  const kiBefore = await ev(() => { window.__ki.give({ ki: 500, mp: 9999 }); return window.__ki.state().player.ki; });
   const [rOk, kiAfter] = await ev((id) => { const k = window.__ki, e = k.G.units.find((u) => u.id === id), P = k.G.player; P.st.stun = 0; P.y = 0; P.action = null; e.st.stun = 2; const ok = k.cast('R', e.x, e.z); return [ok, k.G.player.ki]; }, eid);
   await page.waitForTimeout(450); await shot('3-super');
   await ev(() => window.__ki.fastForward(1.6));
@@ -224,6 +225,30 @@ async function run(name, w, h, touch) {
   });
   check('合成：吃掉材料、只付合成費', tree.ok && tree.paid === 500 && tree.inv1.join() === 'kaioken', tree);
   check('賣回拿 60%', tree.sold && tree.got === 720 && tree.inv2.length === 0, tree);
+  // 《英雄聯盟》機制：魔力／體力、主動道具、天使光環復活、暴擊
+  const lol = await ev(() => {
+    const k = window.__ki; k.start('frieza', 1, 1, 'comet'); let G = k.G, P = G.player; k.freezeAI(true);
+    const r = { rune: P.rune, res: P.res, ui: document.querySelector('#dock .mp b').textContent, cost: document.querySelector('.sk[data-k="Q"] .mpc').textContent };
+    P.st.stun = 0; P.action = null; const mp0 = P.mp;
+    r.cast = k.cast('Q', P.x + 3, P.z - 3); r.spent = mp0 - P.mp;
+    P.cds.Q = 0; P.mp = 0; P.action = null; r.blocked = !k.cast('Q', P.x + 3, P.z - 3);
+    k.fastForward(2); r.regen = P.mp > 0;
+    k.start('luffy', 1); G = k.G; P = G.player; r.energy = [P.res, P.maxMp];
+    const f = P.team === 0 ? [-80, 80] : [80, -80]; k.teleport(f[0], f[1]); k.setGold(9000);
+    r.buyHg = k.buy('hourglass'); r.used = k.useItem(0); r.stasis = P.st.invuln > 0;
+    r.buyHalo = k.buy('halo'); k.killPlayer(); r.survived = P.alive; k.fastForward(3.2); r.hpAfter = +(P.hp / P.maxHp).toFixed(2);
+    r.buyZ = k.buy('zsword'); r.crit = [P.crit, P.critMul];
+    return r;
+  });
+  check('選角符文生效', lol.rune === 'comet' && lol.res === 'mana', lol);
+  check('技能花魔力、HUD 顯示魔力與花費', lol.cast && lol.spent === +lol.cost && lol.ui.includes('/'), lol);
+  check('魔力不足時無法施放、之後會回復', lol.blocked && lol.regen, lol);
+  check('海賊王角色是體力（上限 200）', lol.energy[0] === 'energy' && lol.energy[1] === 200, lol);
+  check('時光屋沙漏主動：無敵', lol.buyHg && lol.used && lol.stasis, lol);
+  check('天使光環：致命傷害後復活', lol.buyHalo && lol.survived && lol.hpAfter >= 0.35, lol);
+  check('Z 劍：暴擊率與暴擊傷害', lol.buyZ && lol.crit[0] >= 0.25 && lol.crit[1] > 2, lol);
+  await page.waitForTimeout(250); await shot('5f-items');
+  await ev(() => window.__ki.start('frieza', 1));
   if (touch) await page.tap('#dock .goldbtn'); else await page.keyboard.press('KeyP');
   await page.waitForTimeout(200);
   const sel = touch ? page.tap.bind(page) : page.click.bind(page);

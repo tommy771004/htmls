@@ -46,7 +46,7 @@ export const HEROES = {
     skills: {
       Q: { name: '龜派氣功', desc: '雙掌推出氣功彈，命中後小範圍爆炸。', cd: 5, range: 14, dmg: [70, 110, 150, 190, 230], adR: 0.6, radius: 2.6, speed: 34 },
       W: { name: '龍閃拳', desc: '向前衝刺，撞到敵人時打出四段連打並把對手打飛。', cd: 9, range: 8, dmg: [24, 34, 44, 54, 64], hits: 4, adR: 0.25 },
-      E: { name: '瞬間移動', desc: '花 1 格氣瞬移；游標附近有敵人時繞到它背後，下一次普攻硬直。', cd: 10, range: 8, ki: 1 },
+      E: { name: '瞬間移動', desc: '瞬移；游標附近有敵人時繞到它背後，下一次普攻硬直。', cd: 10, range: 8 },
       R: { name: '超級龜派氣功', desc: '花 3 格氣，放出巨大的龜派氣功光束，持續 1.2 秒。', cd: 45, range: 22, dmg: [60, 90, 120], ticks: 6, adR: 0.35, width: 2.4, ki: 3 },
     },
   },
@@ -57,7 +57,7 @@ export const HEROES = {
     skills: {
       Q: { name: '連續能量彈', desc: '射出能量彈，命中後連鎖到附近兩個敵人。', cd: 5, range: 13, dmg: [65, 100, 135, 170, 205], adR: 0.55, speed: 46, chain: 2 },
       W: { name: '超級衝刺踢', desc: '衝刺後接五段快踢。', cd: 8, range: 7.5, dmg: [17, 24, 31, 38, 45], hits: 5, adR: 0.2 },
-      E: { name: '殘像閃', desc: '花 1 格氣，閃到目標背後並重置普攻鏈。', cd: 8, range: 9, ki: 1 },
+      E: { name: '殘像閃', desc: '閃到目標背後並重置普攻鏈。', cd: 8, range: 9 },
       R: { name: '終極閃光', desc: '花 3 格氣，蓄力後放出極寬的金色光束。', cd: 50, range: 18, dmg: [70, 105, 140], ticks: 6, adR: 0.4, width: 3.8, windup: 0.55, ki: 3 },
     },
   },
@@ -68,7 +68,7 @@ export const HEROES = {
     skills: {
       Q: { name: '魔閃光', desc: '雙手射出貫穿的氣功波，把敵人往後推。', cd: 6, range: 13, dmg: [60, 100, 140, 180, 220], adR: 0.55, width: 1.7, speed: 36 },
       W: { name: '閃光斬', desc: '揮劍穿過路徑上所有敵人，終點補一發氣功彈。', cd: 9, range: 8.5, dmg: [55, 85, 115, 145, 175], adR: 0.45 },
-      E: { name: '旋風跳', desc: '花 1 格氣翻身躍到游標處，下一次普攻硬直。', cd: 9, range: 7.5, ki: 1 },
+      E: { name: '旋風跳', desc: '翻身躍到游標處，下一次普攻硬直。', cd: 9, range: 7.5 },
       R: { name: '熱圓頂攻擊', desc: '花 3 格氣，閃到敵人身邊一劍挑上天，再放出圓頂狀的大爆炸。', cd: 48, range: 10, dmg: [240, 350, 460], adR: 0.7, radius: 6, ki: 3 },
     },
   },
@@ -79,7 +79,7 @@ export const HEROES = {
     skills: {
       Q: { name: '魔空包圍彈', desc: '在游標處布下一圈氣彈，0.6 秒後收攏爆炸並擊飛。', cd: 8, range: 12, dmg: [70, 110, 150, 190, 230], adR: 0.5, radius: 3.4 },
       W: { name: '伸臂抓取', desc: '伸長手臂，把第一個碰到的敵人拉到身邊並暈眩。', cd: 12, range: 10, dmg: [50, 75, 100, 125, 150], adR: 0.4 },
-      E: { name: '再生', desc: '花 1 格氣短距瞬移，再生回血並獲得護盾。', cd: 12, range: 5, ki: 1, shield: [90, 130, 170, 210, 250] },
+      E: { name: '再生', desc: '短距瞬移，再生回血並獲得護盾。', cd: 12, range: 5, shield: [90, 130, 170, 210, 250] },
       R: { name: '魔貫光殺砲', desc: '花 3 格氣，指尖蓄力後射出貫穿一整排的螺旋光束。', cd: 50, range: 26, dmg: [300, 430, 560], adR: 0.9, width: 1.6, windup: 0.7, ki: 3 },
     },
   },
@@ -90,7 +90,7 @@ export const HEROES = {
     skills: {
       Q: { name: '死亡光束', desc: '指尖射出極快的光束，命中的敵人減速 35%。', cd: 5.5, range: 16, dmg: [80, 120, 160, 200, 240], adR: 0.6, speed: 62, slow: 0.35 },
       W: { name: '死亡飛盤', desc: '擲出飛盤，飛出去再飛回來，來回都會切到敵人。', cd: 9, range: 12, dmg: [55, 85, 115, 145, 175], adR: 0.45, speed: 22 },
-      E: { name: '瞬移擊', desc: '花 1 格氣瞬移，下一次普攻硬直。', cd: 10, range: 8.5, ki: 1 },
+      E: { name: '瞬移擊', desc: '瞬移，下一次普攻硬直。', cd: 10, range: 8.5 },
       R: { name: '死亡球', desc: '花 3 格氣，舉起巨大的能量球砸向游標處，大範圍傷害並暈眩。', cd: 55, range: 15, dmg: [280, 400, 520], adR: 0.8, radius: 6.5, ki: 3 },
     },
   },
@@ -101,7 +101,7 @@ export const HEROES = {
     skills: {
       Q: { name: '氣圓斬', desc: '擲出貫穿的氣圓斬，切過路徑上所有敵人。', cd: 6, range: 15, dmg: [70, 110, 150, 190, 230], adR: 0.55, width: 1.4, speed: 30 },
       W: { name: '背後擒抱', desc: '衝刺，抓住第一個碰到的敵人往身後摔出並暈眩。', cd: 10, range: 8, dmg: [60, 90, 120, 150, 180], adR: 0.45 },
-      E: { name: '能量屏障', desc: '花 1 格氣張開屏障，獲得護盾並彈開身邊的敵人。', cd: 11, range: 0, ki: 1, shield: [80, 120, 160, 200, 240] },
+      E: { name: '能量屏障', desc: '張開屏障，獲得護盾並彈開身邊的敵人。', cd: 11, range: 0, shield: [80, 120, 160, 200, 240] },
       R: { name: '能量波', desc: '花 3 格氣，朝游標方向掃射 14 發能量彈。', cd: 45, range: 14, dmg: [26, 38, 50], adR: 0.16, shots: 14, ki: 3 },
     },
   },
@@ -115,7 +115,7 @@ Object.assign(HEROES, {
     skills: {
       Q: { name: '螺旋丸', desc: '向前衝刺，撞到敵人時把螺旋丸按上去，爆炸並擊飛。', cd: 7, range: 8, dmg: [80, 120, 160, 200, 240], adR: 0.6, radius: 2.4 },
       W: { name: '影分身之術', desc: '在游標處變出三個影分身圍毆，連打四下。', cd: 10, range: 9, dmg: [22, 32, 42, 52, 62], hits: 4, adR: 0.22, radius: 3.2 },
-      E: { name: '替身術', desc: '花 1 格氣留下一截木頭替身，瞬移到游標處，下一次普攻硬直。', cd: 10, range: 8, ki: 1 },
+      E: { name: '替身術', desc: '留下一截木頭替身，瞬移到游標處，下一次普攻硬直。', cd: 10, range: 8 },
       R: { name: '風遁・螺旋手裏劍', desc: '花 3 格氣擲出巨大的螺旋手裏劍，到點炸開成風刃球，持續切割 1.2 秒。', cd: 48, range: 16, dmg: [60, 90, 120], ticks: 6, adR: 0.3, radius: 5, ki: 3 },
     },
   },
@@ -126,7 +126,7 @@ Object.assign(HEROES, {
     skills: {
       Q: { name: '豪火球之術', desc: '吐出巨大的火球，命中後炸開。', cd: 6, range: 13, dmg: [75, 115, 155, 195, 235], adR: 0.6, radius: 3, speed: 26 },
       W: { name: '千鳥', desc: '帶著雷光衝刺，撞到敵人時貫穿並麻痺 0.8 秒。', cd: 9, range: 8, dmg: [70, 105, 140, 175, 210], adR: 0.55 },
-      E: { name: '寫輪眼・瞬身', desc: '花 1 格氣閃到游標附近敵人的背後，重置普攻鏈。', cd: 9, range: 9, ki: 1 },
+      E: { name: '寫輪眼・瞬身', desc: '閃到游標附近敵人的背後，重置普攻鏈。', cd: 9, range: 9 },
       R: { name: '麒麟', desc: '花 3 格氣，引落天雷化成的麒麟，砸向游標處。', cd: 50, range: 15, dmg: [300, 430, 560], adR: 0.85, radius: 5.5, ki: 3 },
     },
   },
@@ -137,7 +137,7 @@ Object.assign(HEROES, {
     skills: {
       Q: { name: '水遁・水龍彈', desc: '噴出水龍，貫穿路徑上的敵人並往後推。', cd: 6, range: 13, dmg: [65, 100, 135, 170, 205], adR: 0.55, width: 2.0, speed: 30 },
       W: { name: '土遁・追牙之術', desc: '忍犬從地底竄出，一整排敵人被咬住定身 1 秒。', cd: 11, range: 12, dmg: [50, 75, 100, 125, 150], adR: 0.4, width: 2.2 },
-      E: { name: '雷切', desc: '花 1 格氣，帶著雷光突刺，撞到第一個敵人時造成傷害並麻痺。', cd: 10, range: 8, dmg: [60, 90, 120, 150, 180], adR: 0.6, ki: 1 },
+      E: { name: '雷切', desc: '帶著雷光突刺，撞到第一個敵人時造成傷害並麻痺。', cd: 10, range: 8, dmg: [60, 90, 120, 150, 180], adR: 0.6 },
       R: { name: '神威', desc: '花 3 格氣，在游標處扭曲空間，把範圍內的敵人往中心吸 1.2 秒並持續造成傷害。', cd: 50, range: 14, dmg: [50, 75, 100], ticks: 6, adR: 0.3, radius: 5, ki: 3 },
     },
   },
@@ -148,7 +148,7 @@ Object.assign(HEROES, {
     skills: {
       Q: { name: '櫻花衝', desc: '對游標處揮出怪力一拳，打碎地面，範圍內敵人被擊飛。', cd: 8, range: 6, dmg: [70, 110, 150, 190, 230], adR: 0.55, radius: 3.2 },
       W: { name: '怪力衝拳', desc: '衝刺，撞到敵人時重拳把它打飛並暈眩。', cd: 10, range: 7.5, dmg: [60, 90, 120, 150, 180], adR: 0.5 },
-      E: { name: '醫療忍術', desc: '花 1 格氣，替自己與附近的隊友回血並給護盾。', cd: 12, range: 0, ki: 1, shield: [80, 120, 160, 200, 240] },
+      E: { name: '醫療忍術', desc: '替自己與附近的隊友回血並給護盾。', cd: 12, range: 0, shield: [80, 120, 160, 200, 240] },
       R: { name: '百豪之術・天之拳', desc: '花 3 格氣跳向游標處，從空中砸下，大範圍傷害並暈眩。', cd: 48, range: 12, dmg: [260, 380, 500], adR: 0.75, radius: 6, ki: 3 },
     },
   },
@@ -159,7 +159,7 @@ Object.assign(HEROES, {
     skills: {
       Q: { name: '橡膠槍', desc: '手臂伸長打出直拳，打中第一個敵人並擊退。', cd: 5, range: 11, dmg: [70, 110, 150, 190, 230], adR: 0.6 },
       W: { name: '橡膠火箭', desc: '把自己彈射到游標處，落地撞開周圍的敵人。', cd: 10, range: 10, dmg: [55, 85, 115, 145, 175], adR: 0.45, radius: 3 },
-      E: { name: '二檔', desc: '花 1 格氣進入二檔：6 秒內移速 +25%、攻速 +35%，身上冒出蒸氣。', cd: 14, range: 0, ki: 1, dur: 6, ms: 0.25, as: 0.35 },
+      E: { name: '二檔', desc: '進入二檔：6 秒內移速 +25%、攻速 +35%，身上冒出蒸氣。', cd: 14, range: 0, dur: 6, ms: 0.25, as: 0.35 },
       R: { name: '橡膠巨人手槍', desc: '花 3 格氣把拳頭吹成巨人大小轟出，貫穿一整排敵人並擊飛。', cd: 46, range: 16, dmg: [280, 400, 520], adR: 0.8, width: 3.6, ki: 3 },
     },
   },
@@ -170,7 +170,7 @@ Object.assign(HEROES, {
     skills: {
       Q: { name: '三十六煩惱鳳', desc: '揮出飛行的斬擊，貫穿路徑上的敵人。', cd: 6, range: 13, dmg: [65, 105, 145, 185, 225], adR: 0.6, width: 1.6, speed: 34 },
       W: { name: '鬼斬', desc: '三刀交叉衝過去，斬中路徑上所有敵人。', cd: 9, range: 8, dmg: [60, 90, 120, 150, 180], adR: 0.5 },
-      E: { name: '獅子歌歌', desc: '花 1 格氣，一瞬間閃到游標處，途中的敵人全部被斬。', cd: 10, range: 8, dmg: [40, 60, 80, 100, 120], adR: 0.4, ki: 1 },
+      E: { name: '獅子歌歌', desc: '一瞬間閃到游標處，途中的敵人全部被斬。', cd: 10, range: 8, dmg: [40, 60, 80, 100, 120], adR: 0.4 },
       R: { name: '三千世界', desc: '花 3 格氣旋轉三刀衝到敵人身邊，周圍一圈大範圍斬擊。', cd: 48, range: 10, dmg: [250, 360, 470], adR: 0.75, radius: 5.5, ki: 3 },
     },
   },
@@ -181,7 +181,7 @@ Object.assign(HEROES, {
     skills: {
       Q: { name: '首肉射擊', desc: '前踏一記重踢，把前方敵人踢飛。', cd: 5, range: 6, dmg: [70, 110, 150, 190, 230], adR: 0.6 },
       W: { name: '羊肉射擊', desc: '原地倒立旋轉連踢三下，打中周圍所有敵人。', cd: 9, range: 0, dmg: [30, 45, 60, 75, 90], hits: 3, adR: 0.25, radius: 3.2 },
-      E: { name: '空中步行', desc: '花 1 格氣踏著空氣跳到游標處，下一次普攻硬直。', cd: 9, range: 8.5, ki: 1 },
+      E: { name: '空中步行', desc: '踏著空氣跳到游標處，下一次普攻硬直。', cd: 9, range: 8.5 },
       R: { name: '惡魔風腳・畫龍點睛', desc: '花 3 格氣，燃燒的腳衝向前方，撞到敵人時連踢六下再一腳炸飛。', cd: 46, range: 9, dmg: [36, 52, 68], hits: 6, adR: 0.18, ki: 3 },
     },
   },
@@ -192,7 +192,7 @@ Object.assign(HEROES, {
     skills: {
       Q: { name: '雷霆節拍', desc: '在游標處劈下一道落雷，0.4 秒後命中並短暫麻痺。', cd: 6, range: 13, dmg: [75, 115, 155, 195, 235], adR: 0.6, radius: 2.4 },
       W: { name: '冷氣泡', desc: '在游標處布下冷氣霧，3 秒內敵人移速 -40%。', cd: 11, range: 12, dmg: [30, 45, 60, 75, 90], adR: 0.3, radius: 3.6, slow: 0.4 },
-      E: { name: '旋風節拍', desc: '花 1 格氣颳起旋風，把身邊的敵人吹開並短暫暈眩。', cd: 11, range: 0, ki: 1, dmg: [40, 60, 80, 100, 120], adR: 0.3 },
+      E: { name: '旋風節拍', desc: '颳起旋風，把身邊的敵人吹開並短暫暈眩。', cd: 11, range: 0, dmg: [40, 60, 80, 100, 120], adR: 0.3 },
       R: { name: '雷雲・宙之雷', desc: '花 3 格氣在游標處召來雷雲，3 秒內連續落雷。', cd: 52, range: 14, dmg: [55, 80, 105], ticks: 8, adR: 0.25, radius: 6, ki: 3 },
     },
   },
@@ -201,29 +201,99 @@ for (const id of ['goku', 'vegeta', 'trunks', 'piccolo', 'frieza', 'a18']) HEROE
 export const FRANCHISES = [['db', '七龍珠'], ['naruto', '火影忍者'], ['op', '海賊王']];
 export const HERO_ORDER = ['goku', 'vegeta', 'trunks', 'piccolo', 'frieza', 'a18', 'naruto', 'sasuke', 'kakashi', 'sakura', 'luffy', 'zoro', 'sanji', 'nami'];
 
+// 技能資源（《英雄聯盟》的魔力／能量）：Q/W/E/R 都要花；R 另外花 3 格氣（FighterZ 的必殺量表）。
+// 魔力型：上限與回復隨等級和裝備成長（七龍珠叫魔力、火影叫查克拉）；能量型（海賊王叫體力）：上限 200、每秒固定回 12，裝備不加。
+// 集氣（C）時資源回復 ×3；泉水每秒回 12% 上限；爆氣期間額外回 15% 上限。
+export const RES = {
+  mana: { cost: { Q: [45, 50, 55, 60, 65], W: [55, 60, 65, 70, 75], E: [50, 50, 50, 50, 50], R: [100, 100, 100] }, color: '#4a6cf0' },
+  energy: { max: 200, regen: 12, cost: { Q: [50], W: [60], E: [40], R: [0] }, color: '#a6dc4a' },
+  chargeMul: 3, fountain: 0.12, spark: 0.15,
+};
+// 依定位的魔力數值：mp 上限、mpLv 每級、mpr 每秒回復、mprLv 每級
+const MANA_BY_ROLE = {
+  '坦克': { mp: 300, mpLv: 34, mpr: 3.6, mprLv: 0.3 },
+  '刺客': { mp: 280, mpLv: 34, mpr: 3.8, mprLv: 0.32 },
+  '遠程術士': { mp: 380, mpLv: 46, mpr: 4.6, mprLv: 0.4 },
+  '遠程射手': { mp: 320, mpLv: 38, mpr: 4.0, mprLv: 0.34 },
+};
+const MANA_DEFAULT = { mp: 300, mpLv: 36, mpr: 3.8, mprLv: 0.32 };
+for (const id of HERO_ORDER) {
+  const d = HEROES[id];
+  d.res = d.franchise === 'op' ? 'energy' : 'mana';
+  d.resName = d.franchise === 'op' ? '體力' : d.franchise === 'naruto' ? '查克拉' : '魔力';
+  if (d.res === 'mana') Object.assign(d.stats, MANA_BY_ROLE[d.role] || MANA_DEFAULT);
+}
+
+// 開場符文（《英雄聯盟》的基石符文）：選角時挑一個，AI 用 rec 裡的推薦
+export const RUNES = [
+  { id: 'conqueror', name: '戰鬥狂', proto: '征服者', desc: '普攻或技能命中英雄疊 1 層（技能 2 層），5 秒內最多 8 層，每層傷害 +1.5%。疊滿時對英雄造成的傷害回復 8% 血量。' },
+  { id: 'electrocute', name: '雷擊三連', proto: '電刑', desc: '3 秒內用三次不同的普攻或技能命中同一名英雄，落雷追加 30＋每級 12＋額外攻擊 30%＋氣功強度 25% 的傷害。冷卻 20 秒。' },
+  { id: 'grasp', name: '不死之身', proto: '不滅之握', desc: '交戰中每 4 秒，下一次普攻英雄追加 4% 自身最大血量的傷害、回復 2% 最大血量，並永久 +6 血量（遠程減半）。' },
+  { id: 'tempo', name: '連打節奏', proto: '致命節奏', desc: '普攻英雄疊 1 層，6 秒內最多 6 層，每層攻速 +7%。' },
+  { id: 'comet', name: '流星氣彈', proto: '秘術彗星', desc: '技能命中英雄時，一顆流星在 0.8 秒後砸向該處，造成 30＋每級 10＋氣功強度 35%＋額外攻擊 20% 的傷害。冷卻 16 秒。' },
+  { id: 'phase', name: '舞空術', proto: '相位衝擊', desc: '4 秒內用三次普攻或技能命中同一名英雄，3 秒內移速 +35%。冷卻 14 秒。' },
+];
+export const RUNE_REC = {
+  goku: 'conqueror', vegeta: 'electrocute', trunks: 'conqueror', piccolo: 'grasp', frieza: 'comet', a18: 'tempo',
+  naruto: 'conqueror', sasuke: 'electrocute', kakashi: 'comet', sakura: 'grasp', luffy: 'tempo', zoro: 'conqueror', sanji: 'phase', nami: 'comet',
+};
+// 野怪增益（《英雄聯盟》的藍 buff／紅 buff）：最後一擊紅緞帶機器人得藍、恐龍得紅；英雄陣亡時增益轉給擊殺者
+export const JUNGLE_BUFF = {
+  blue: { dur: 60, mpr: 1.0, energy: 0.5, cdr: 0.1, name: '藍色氣焰' },
+  red: { dur: 60, burn: 8, burnLv: 3, burnT: 3, slow: 0.15, name: '赤色氣焰' },
+};
+
 // 金幣與商店
 export const GOLD = { start: 500, passive: 2.2, melee: 21, ranged: 16, siege: 55, hero: 300, assist: 120, tower: 120, shopRadius: 14 };
-// stats：ad 攻擊、hp 血量、armor 減傷、as 攻速（間隔縮短比例）、ms 移速比例、ki 氣力獲得、cdr 冷卻縮減、skill 技能傷害、dmg 全傷害、vision 視野、regen 脫戰回血（每秒比例）、detect 看得到敵方的眼
+// stats：ad 攻擊、hp 血量、armor 物理減傷、mr 技能減傷、as 攻速（間隔縮短比例）、ms 移速比例、ki 氣力獲得、cdr 冷卻縮減、skill 技能傷害、dmg 全傷害、
+//   vision 視野、regen 脫戰回血（每秒比例）、detect 看得到敵方的眼、mp 最大魔力、mpr 魔力回復（比例）、ap 氣功強度、crit 暴擊率、ls 普攻吸血
+//   （能量型英雄的體力固定，mp／mpr 對他們無效）
+// psv：被動（同名被動不疊加，取最大）。blade 咒刃（施放技能後下一次普攻追加 blade 倍基礎攻擊）、critDmg 暴擊傷害倍率、overheal 吸血溢出轉護盾（最大血量比例）、
+//   thorns 被普攻時反彈 { base, lv, pct } 並施加重傷 gw（治療降低比例）、ga 致命傷害時 3 秒後原地復活（冷卻秒數）、tear 每次施放技能最大魔力 +N（上限 TEAR_MAX）、
+//   mpAp 氣功強度 +最大魔力的比例、apAmp 氣功強度 +比例、lvMp 升級時回復最大魔力的比例
+// act：主動效果（2、3 鍵依序對應身上第一、第二個主動道具）。stasis 凝時（無敵且無法行動）、cleanse 淨化（解除控制並加速）
+// proto：設計參考的《英雄聯盟》裝備；note：被動或主動的說明
 // 合成：from 列出需要的下位道具，cost 是合成費（不含下位道具）；總價 = cost + 下位道具總價
 export const ITEMS = [
-  { id: 'senzu', name: '仙豆', cost: 120, tier: 0, desc: '吃下立刻回復 45% 血量與 1 格氣。最多帶 3 顆。', consumable: true, max: 3, field: 'senzu' },
+  { id: 'senzu', name: '仙豆', cost: 120, tier: 0, desc: '吃下立刻回復 45% 血量、45% 魔力（體力）與 1 格氣。最多帶 3 顆。', consumable: true, max: 3, field: 'senzu' },
   { id: 'control', name: '真眼', cost: 75, tier: 0, desc: '按 5 放下：敵我都看得到，會照出 9 公尺內的敵方眼（可拆），本身要打 4 下。每人場上限 1 顆，最多帶 2 顆。', consumable: true, max: 2, field: 'controls' },
   // 基礎
-  { id: 'weights', name: '負重護腕', cost: 350, tier: 1, desc: '攻擊 +12', stats: { ad: 12 } },
-  { id: 'gi', name: '修行道服', cost: 350, tier: 1, desc: '血量 +180', stats: { hp: 180 } },
+  { id: 'weights', name: '負重護腕', cost: 350, tier: 1, proto: '長劍', desc: '攻擊 +12', stats: { ad: 12 } },
+  { id: 'gi', name: '修行道服', cost: 350, tier: 1, proto: '紅水晶', desc: '血量 +180', stats: { hp: 180 } },
+  { id: 'capsule', name: '蓄氣膠囊', cost: 300, tier: 1, proto: '藍水晶', desc: '魔力 +220', stats: { mp: 220 } },
+  { id: 'scroll', name: '龜仙流秘笈', cost: 350, tier: 1, proto: '增幅之書', desc: '氣功強度 +20', stats: { ap: 20 } },
+  { id: 'gloves', name: '瞄準手套', cost: 350, tier: 1, proto: '敏捷斗篷', desc: '暴擊率 +15%', stats: { crit: 0.15 } },
+  { id: 'cloth', name: '修行護甲', cost: 300, tier: 1, proto: '布甲', desc: '物理減傷 +6%', stats: { armor: 0.06 } },
+  { id: 'cape', name: '界王神披風', cost: 300, tier: 1, proto: '抗魔斗篷', desc: '技能減傷 +6%', stats: { mr: 0.06 } },
+  { id: 'tear', name: '界王星之水', cost: 400, tier: 1, proto: '女神之淚', desc: '魔力 +240，魔力回復 +25%', stats: { mp: 240, mpr: 0.25 }, psv: { tear: 8 }, note: '被動・積蓄：每次施放技能，最大魔力永久 +8（最多 +360）。體力型英雄無效。' },
   { id: 'kiband', name: '氣功護腕', cost: 300, tier: 1, desc: '氣力獲得 +15%', stats: { ki: 0.15 } },
-  { id: 'boots', name: '武道鞋', cost: 300, tier: 1, desc: '移速 +8%', stats: { ms: 0.08 } },
-  { id: 'scouter', name: '戰鬥力探測器', cost: 450, tier: 1, desc: '攻速 +12%，視野 +3，看得到附近的敵方眼', stats: { as: 0.12, vision: 3, detect: 1 } },
+  { id: 'boots', name: '武道鞋', cost: 300, tier: 1, proto: '鞋子', desc: '移速 +8%', stats: { ms: 0.08 } },
+  { id: 'scouter', name: '戰鬥力探測器', cost: 450, tier: 1, proto: '偵查鏡', desc: '攻速 +12%，視野 +3，看得到附近的敵方眼', stats: { as: 0.12, vision: 3, detect: 1 } },
   // 進階
   { id: 'kaioken', name: '界王拳腰帶', cost: 500, tier: 2, from: ['weights', 'weights'], desc: '攻擊 +36，技能傷害 +12%', stats: { ad: 36, skill: 0.12 } },
-  { id: 'armor', name: '賽亞人戰甲', cost: 450, tier: 2, from: ['gi', 'weights'], desc: '血量 +350，攻擊 +14，減傷 +6%', stats: { hp: 350, ad: 14, armor: 0.06 } },
-  { id: 'nimbus', name: '筋斗雲', cost: 400, tier: 2, from: ['boots', 'kiband'], desc: '移速 +16%，氣力獲得 +20%', stats: { ms: 0.16, ki: 0.2 } },
+  { id: 'armor', name: '賽亞人戰甲', cost: 450, tier: 2, from: ['gi', 'weights'], proto: '吞噬者', desc: '血量 +350，攻擊 +14，物理減傷 +6%', stats: { hp: 350, ad: 14, armor: 0.06 } },
+  { id: 'nimbus', name: '筋斗雲', cost: 400, tier: 2, from: ['boots', 'kiband'], proto: '狂戰士脛甲', desc: '移速 +16%，攻速 +10%，氣力獲得 +20%', stats: { ms: 0.16, as: 0.1, ki: 0.2 } },
   { id: 'kiamp', name: '氣力增幅器', cost: 500, tier: 2, from: ['kiband', 'scouter'], desc: '氣力獲得 +30%，冷卻 -15%，攻速 +14%，視野 +3，看得到敵方眼', stats: { ki: 0.3, cdr: 0.15, as: 0.14, vision: 3, detect: 1 } },
-  { id: 'cell', name: '再生細胞', cost: 450, tier: 2, from: ['gi', 'gi'], desc: '血量 +460，脫戰每秒回 1.5% 血', stats: { hp: 460, regen: 0.015 } },
+  { id: 'cell', name: '再生細胞', cost: 450, tier: 2, from: ['gi', 'gi'], proto: '狂徒鎧甲（簡化）', desc: '血量 +460，脫戰每秒回 1.5% 血', stats: { hp: 460, regen: 0.015 } },
+  { id: 'sheen', name: '元氣手環', cost: 450, tier: 2, from: ['capsule'], proto: '耀光', desc: '魔力 +250，冷卻 -5%', stats: { mp: 250, cdr: 0.05 }, psv: { blade: 1 }, note: '被動・咒刃：施放技能後 10 秒內，下一次普攻追加 100% 基礎攻擊的傷害（1.5 秒冷卻）。' },
+  { id: 'fang', name: '惡魔之牙', cost: 350, tier: 2, from: ['weights'], proto: '吸血鬼權杖', desc: '攻擊 +16，普攻吸血 10%', stats: { ad: 16, ls: 0.1 } },
+  { id: 'brave', name: '勇者之劍', cost: 550, tier: 2, from: ['weights'], proto: '暴風大劍', desc: '攻擊 +36', stats: { ad: 36 } },
+  { id: 'tome', name: '天界秘笈', cost: 300, tier: 2, from: ['scroll', 'capsule'], proto: '遺失的章節', desc: '氣功強度 +30，魔力 +300，魔力回復 +40%', stats: { ap: 30, mp: 300, mpr: 0.4 }, psv: { lvMp: 0.2 }, note: '被動・頓悟：升級時回復 20% 最大魔力。' },
+  { id: 'bramble', name: '荊棘護腕', cost: 400, tier: 2, from: ['cloth'], proto: '荊棘背心', desc: '物理減傷 +10%', stats: { armor: 0.1 }, psv: { thorns: { base: 6, lv: 2, pct: 0.1, gw: 0.4 } }, note: '被動・荊棘：被英雄普攻命中時，反彈 6＋每級 2＋所受傷害 10% 的傷害，並讓對方重傷 3 秒（受到的治療 -40%）。' },
   // 終極
   { id: 'water', name: '超神水', cost: 600, tier: 3, from: ['kaioken', 'cell'], desc: '全部傷害 +18%，攻擊 +40，血量 +520，技能傷害 +12%', stats: { dmg: 0.18, ad: 40, hp: 520, skill: 0.12, regen: 0.01 } },
-  { id: 'potara', name: '波塔拉耳環', cost: 650, tier: 3, from: ['armor', 'kiamp'], desc: '血量 +420，攻擊 +24，冷卻 -20%，減傷 +8%，氣力獲得 +30%', stats: { hp: 420, ad: 24, cdr: 0.2, armor: 0.08, ki: 0.3, detect: 1, vision: 3 } },
+  { id: 'potara', name: '波塔拉耳環', cost: 650, tier: 3, from: ['armor', 'kiamp'], desc: '血量 +420，攻擊 +24，冷卻 -20%，物理與技能減傷 +8%，氣力獲得 +30%', stats: { hp: 420, ad: 24, cdr: 0.2, armor: 0.08, mr: 0.08, ki: 0.3, detect: 1, vision: 3 } },
+  { id: 'trinity', name: '超元氣手環', cost: 500, tier: 3, from: ['sheen', 'armor'], proto: '三相之力', desc: '攻擊 +34，血量 +320，攻速 +15%，冷卻 -10%，魔力 +250，物理減傷 +6%', stats: { ad: 34, hp: 320, as: 0.15, cdr: 0.1, mp: 250, armor: 0.06 }, psv: { blade: 2 }, note: '被動・咒刃：施放技能後 10 秒內，下一次普攻追加 200% 基礎攻擊的傷害（1.5 秒冷卻）。' },
+  { id: 'zsword', name: 'Z 劍', cost: 650, tier: 3, from: ['brave', 'gloves'], proto: '無盡之刃', desc: '攻擊 +62，暴擊率 +25%', stats: { ad: 62, crit: 0.25 }, psv: { critDmg: 2.15 }, note: '被動・無盡：暴擊傷害從 175% 提高到 215%。' },
+  { id: 'majin', name: '魔人之牙', cost: 450, tier: 3, from: ['fang', 'brave'], proto: '飲血劍', desc: '攻擊 +56，普攻吸血 18%', stats: { ad: 56, ls: 0.18 }, psv: { overheal: 0.15 }, note: '被動・血之盾：吸血溢出的血量轉成護盾，最多 15% 最大血量。' },
+  { id: 'hourglass', name: '時光屋沙漏', cost: 900, tier: 3, from: ['scroll', 'cloth'], proto: '中婭沙漏', desc: '氣功強度 +60，物理減傷 +10%', stats: { ap: 60, armor: 0.1 }, act: { id: 'stasis', cd: 90, dur: 2.5, name: '凝時' }, note: '主動・凝時（2／3 鍵）：2.5 秒內無敵但無法行動，冷卻 90 秒。' },
+  { id: 'halo', name: '天使光環', cost: 1100, tier: 3, from: ['weights', 'cloth'], proto: '守護天使', desc: '攻擊 +36，物理減傷 +10%', stats: { ad: 36, armor: 0.1 }, psv: { ga: 180 }, note: '被動・復活：受到致命傷害時倒下，3 秒後原地以 40% 血量、30% 魔力復活（期間無敵），冷卻 180 秒。' },
+  { id: 'thorn', name: '針刺戰甲', cost: 600, tier: 3, from: ['bramble', 'gi'], proto: '荊棘之甲', desc: '血量 +320，物理減傷 +15%', stats: { hp: 320, armor: 0.15 }, psv: { thorns: { base: 12, lv: 3, pct: 0.18, gw: 0.6 } }, note: '被動・荊棘：被英雄普攻命中時，反彈 12＋每級 3＋所受傷害 18% 的傷害，並讓對方重傷 3 秒（受到的治療 -60%）。' },
+  { id: 'beerus', name: '破壞神頭飾', cost: 1100, tier: 3, from: ['scroll', 'scroll'], proto: '滅世者的死亡之帽', desc: '氣功強度 +80', stats: { ap: 80 }, psv: { apAmp: 0.3 }, note: '被動・破壞：總氣功強度 +30%。' },
+  { id: 'staff', name: '老界王神之杖', cost: 600, tier: 3, from: ['tear', 'tome'], proto: '大天使之杖', desc: '氣功強度 +50，魔力 +500，魔力回復 +50%', stats: { ap: 50, mp: 500, mpr: 0.5 }, psv: { tear: 8, mpAp: 0.02, lvMp: 0.2 }, note: '被動・積蓄：施放技能最大魔力永久 +8（最多 +360）。被動・敬畏：氣功強度 +2% 最大魔力。' },
+  { id: 'holy', name: '超聖水', cost: 900, tier: 3, from: ['gloves', 'cape'], proto: '水銀彎刀', desc: '攻擊 +30，暴擊率 +15%，技能減傷 +12%', stats: { ad: 30, crit: 0.15, mr: 0.12 }, act: { id: 'cleanse', cd: 75, dur: 1.2, name: '淨化' }, note: '主動・淨化（2／3 鍵）：解除暈眩、擊飛、冰凍與緩速，1.2 秒內移速 +40%，冷卻 75 秒。' },
 ];
+export const TEAR_MAX = 360;
 export const WARD = { cd: 70, range: 7, life: 90, hp: 3, max: 2 };
 export const CONTROL = { range: 7, hp: 4, reveal: 9 };
 export const INV_SLOTS = 6;

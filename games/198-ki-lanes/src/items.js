@@ -1,7 +1,7 @@
 // 商店與道具（規則面，不碰 DOM）：泉水附近或陣亡時可以買賣；合成道具會吃掉身上的下位道具並折抵價格；
 // 賣回拿 60% 總價；仙豆另外計數、最多 3 顆。
 import { ITEMS, INV_SLOTS, FOUNTAIN, GOLD, KI_BAR } from './config.js';
-import { recalcStats, heal, addKi } from './units.js';
+import { recalcStats, heal, addKi, addMp } from './units.js';
 
 export const itemById = (id) => ITEMS.find((i) => i.id === id);
 const totals = {};
@@ -53,18 +53,29 @@ export function sell(G, h, slot) {
 export function eatSenzu(G, h) {
   if (!h.alive || !(h.senzu > 0) || h.cds.S > 0) return false;
   h.senzu--; h.cds.S = 6;
-  heal(G, h, h.maxHp * 0.45); addKi(G, h, KI_BAR);
+  heal(G, h, h.maxHp * 0.45); addKi(G, h, KI_BAR); addMp(h, h.maxMp * 0.45);
   G.emit('senzu', h); return true;
 }
-// AI 的出裝目標（依定位），一次只買目標的下一步
+// AI 的出裝目標（依定位），一次只買目標的下一步。體力型英雄不買魔力裝
 export const BUILDS = {
-  melee: ['kaioken', 'nimbus', 'armor', 'water', 'potara'],
-  tank: ['armor', 'cell', 'nimbus', 'potara', 'water'],
-  ranged: ['kaioken', 'kiamp', 'nimbus', 'water', 'potara'],
+  fighter: ['trinity', 'nimbus', 'majin', 'halo', 'water'],
+  assassin: ['zsword', 'nimbus', 'majin', 'halo', 'holy'],
+  tank: ['thorn', 'nimbus', 'potara', 'cell', 'halo'],
+  mage: ['tome', 'nimbus', 'beerus', 'staff', 'hourglass'],
+  mageEnergy: ['beerus', 'nimbus', 'hourglass', 'holy', 'water'],
+  marksman: ['zsword', 'nimbus', 'majin', 'holy', 'halo'],
 };
+export function buildOf(h) {
+  const r = h.def.role;
+  if (r === '坦克') return 'tank';
+  if (r === '刺客') return 'assassin';
+  if (r === '遠程術士') return h.res === 'energy' ? 'mageEnergy' : 'mage';
+  if (r === '遠程射手') return 'marksman';
+  return h.res === 'energy' ? 'assassin' : 'fighter';
+}
 // 下一個要買的東西：目標本身買得起就買，否則買最貴、買得起、還缺的下位道具
 export function nextBuy(h) {
-  const build = BUILDS[h.def.role === '坦克' ? 'tank' : h.def.melee ? 'melee' : 'ranged'];
+  const build = BUILDS[buildOf(h)];
   // 已合成的終極道具會吃掉進階道具：已經擁有（或其上位已擁有）就跳過
   const owns = (id) => h.inv.includes(id) || ITEMS.some((x) => x.from && x.from.includes(id) && owns(x.id));
   const target = build.find((id) => !owns(id));

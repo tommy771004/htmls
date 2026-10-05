@@ -1,18 +1,25 @@
 // 普攻連段、技能、投射物、區域效果。
-import { COMBO_WINDOW, KI_BAR, SPARK, RECALL_TIME, WARD, CONTROL } from './config.js';
+import { COMBO_WINDOW, KI_BAR, SPARK, RECALL_TIME, WARD, CONTROL, RES } from './config.js';
 import {
   damage, dist, dist2, angTo, clamp, steer, face, enemiesNear, nearestEnemy, targetable, vulnerable, moveSpeed, interrupt, cancelRecall, addKi, heal,
 } from './units.js';
 import { collide, blocked, walkable, heightAt as heightAtXZ } from './map.js';
 import { findPath } from './nav.js';
 import { seen as seenBy } from './vision.js';
+import { beforeAuto, asMul, onCast } from './traits.js';
 
 const sin = Math.sin, cos = Math.cos;
 // 技能與範圍傷害不會打到眼（眼只能用普攻點掉）
 const hittable = (G, u) => u.kind !== 'ward' && targetable(G, u);
 const rankOf = (h, k) => h.ranks[k] - 1;
 const sk = (h, k) => h.def.skills[k];
-const skillDmg = (h, k) => { const s = sk(h, k), r = Math.max(0, rankOf(h, k)); return s.dmg[Math.min(r, s.dmg.length - 1)] + (s.adR || 0) * h.ad; };
+// 技能傷害：基礎＋攻擊加成＋氣功強度加成（apR 預設是 adR 的 1.6 倍，多段技能跟著每段的比例）
+const skillDmg = (h, k) => { const s = sk(h, k), r = Math.max(0, rankOf(h, k)); return s.dmg[Math.min(r, s.dmg.length - 1)] + (s.adR || 0) * h.ad + (s.apR ?? (s.adR || 0) * 1.6) * (h.ap || 0); };
+// 技能的魔力／體力花費（依等級）
+export function skillCost(h, k) {
+  const s = sk(h, k); if (s.cost) return s.cost[Math.min(Math.max(0, rankOf(h, k)), s.cost.length - 1)];
+  const c = RES[h.res || 'mana'].cost[k]; return c[Math.min(Math.max(0, rankOf(h, k)), c.length - 1)];
+}
 const sfx = (G, name, at, o) => G.sfx && G.sfx(name, at, o);
 const fx = (G) => G.fx;
 
@@ -76,7 +83,7 @@ const CHAIN = [
 function startAuto(G, h, t) {
   if (G.time - h.chainT > COMBO_WINDOW || h.chainTarget !== t) h.chain = 0;
   const c = CHAIN[h.chain];
-  const as = h.st.haste > 0 ? h.as * (1 - (h.st.hasteAs || 0)) : h.as;
+  const as = (h.st.haste > 0 ? h.as * (1 - (h.st.hasteAs || 0)) : h.as) * asMul(G, h);
   const spd = Math.min(1, as / 0.8);
   const wind = c.wind * spd, total = Math.max(as * (h.chain === 2 ? 1.25 : 1), wind + 0.12);
   h.atkCd = total;
@@ -104,6 +111,7 @@ function autoHit(G, h, t, idx) {
   let dmg = h.ad * c.mul, opts = { type: c.type };
   if (idx === 2) { opts.knock = 10; opts.stun = 0.18; }
   if (h.empowered > G.time) { dmg *= 1.5; opts.stun = 0.7; opts.type = 'H'; opts.knock = 6; h.empowered = 0; fx(G).ring(t.x, t.z, h.def.color, 2.4, 0.35); }
+  dmg = beforeAuto(G, h, t, dmg, opts);
   const col = h.def.color;
   if (h.def.melee) {
     damage(G, h, t, dmg, opts);
@@ -255,11 +263,20 @@ export function levelSkill(G, h, k) {
 
 export function skillReady(h, k) {
   const s = sk(h, k);
-  return h.alive && h.ranks[k] > 0 && h.cds[k] <= 0 && h.ki >= (s.ki || 0) * KI_BAR;
+  return h.alive && h.ranks[k] > 0 && h.cds[k] <= 0 && h.ki >= (s.ki || 0) * KI_BAR && h.mp >= skillCost(h, k);
+}
+// 技能放不出來的原因（給 HUD 提示）：'cd'、'mp'、'ki'、'rank' 或 ''
+export function skillBlock(h, k) {
+  const s = sk(h, k);
+  if (!h.ranks[k]) return 'rank';
+  if (h.cds[k] > 0) return 'cd';
+  if (h.mp < skillCost(h, k)) return 'mp';
+  if (h.ki < (s.ki || 0) * KI_BAR) return 'ki';
+  return '';
 }
 // 施放技能。tx,tz 為目標點（游標）。回傳是否成功。
 export function cast(G, h, k, tx, tz) {
-  if (!skillReady(h, k) || h.st.stun > 0 || h.y > 0.05) return false;
+  if (!skillReady(h, k) || h.st.stun > 0 || h.y > 0.05) { if (h.alive && h.ranks[k] > 0 && h.cds[k] <= 0) { const why = skillBlock(h, k); if (why === 'mp' || why === 'ki') G.emit('noRes', { h, k, why }); } return false; }
   if (h.action && !h.action.auto) return false;
   const s = sk(h, k);
   let dx = tx - h.x, dz = tz - h.z, d = Math.hypot(dx, dz);
@@ -272,6 +289,8 @@ export function cast(G, h, k, tx, tz) {
   if (ok === false) return false;
   h.cds[k] = (k === 'R' ? s.cd : s.cd * (1 - 0.06 * (h.ranks[k] - 1))) * (1 - (h.cdr || 0));
   if (s.ki) h.ki -= s.ki * KI_BAR;
+  h.mp = Math.max(0, h.mp - skillCost(h, k));
+  onCast(G, h);
   h.charging = false; cancelRecall(G, h);
   G.emit('cast', { h, k });
   return true;

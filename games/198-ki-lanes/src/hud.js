@@ -1,10 +1,11 @@
 // HUD：比分、技能列、氣力條、血條、連擊數、公告、必殺技切入、單位血條與浮動數字、選角與結算。
-import { HEROES, HERO_ORDER, FRANCHISES, TEAM_COLOR, TEAM_LIGHT, KI_BAR, xpToNext, MAX_LEVEL, ITEMS, APE_BUFF, DRAGON } from './config.js';
+import { HEROES, HERO_ORDER, FRANCHISES, TEAM_COLOR, TEAM_LIGHT, KI_BAR, xpToNext, MAX_LEVEL, ITEMS, APE_BUFF, DRAGON, RES, RUNES, RUNE_REC, JUNGLE_BUFF } from './config.js';
 import { ICONS, ITEM_ICONS } from './icons.js';
 import { buy, canBuy, inShop, eatSenzu, sell, priceFor, totalCost, sellPrice, itemById } from './items.js';
 import { inBush } from './vision.js';
 import { seen } from './vision.js';
-import { canLevel, skillReady } from './combat.js';
+import { canLevel, skillReady, skillCost } from './combat.js';
+import { useActive } from './traits.js';
 import { vulnerable } from './units.js';
 import { quipLine } from './quips.js';
 
@@ -18,7 +19,7 @@ export function createHud(env) {
   const el = {
     hud: $('#hud'), clock: $('#clock'), k0: $('#k0'), k1: $('#k1'), kda: $('#kda'),
     rosterA: $('#rosterA'), rosterB: $('#rosterB'), combo: $('#combo'), banner: $('#banner'), cutin: $('#cutin'),
-    dock: $('#dock'), port: $('#dock .port img'), lvl: $('#dock .lvl'), hpFill: $('#dock .hp i'), hpTxt: $('#dock .hp b'), shFill: $('#dock .hp s'), xpFill: $('#dock .xp i'),
+    dock: $('#dock'), port: $('#dock .port img'), lvl: $('#dock .lvl'), hpFill: $('#dock .hp i'), hpTxt: $('#dock .hp b'), mpFill: $('#dock .mp i'), mpTxt: $('#dock .mp b'), shFill: $('#dock .hp s'), xpFill: $('#dock .xp i'),
     kiCells: [...document.querySelectorAll('#dock .ki .cell i')], kiN: $('#dock .ki .kn'), sp: $('#spPrompt'), dead: $('#dead'), recall: $('#recallbar'),
     bars: $('#bars'), speed: $('#speed'), flash: $('#flash'), skills: {},
     slots: [...document.querySelectorAll('#dock .slots .slot:not(.senzu):not(.ward):not(.control)')], control: $('#dock .slot.control'), senzu: $('#dock .slot.senzu'), goldB: $('#dock .goldbtn'), gold: $('#dock .goldbtn b'), buffs: $('#buffs'),
@@ -36,9 +37,9 @@ export function createHud(env) {
     const d = document.createElement('div');
     d.className = 'sk' + (k === 'D' || k === 'B' ? ' small' : '');
     d.dataset.k = k;
-    d.innerHTML = `<button class="face" type="button" aria-label="${k}"><span class="ic"></span><span class="cd"></span><span class="cdn"></span></button><kbd>${k}</kbd>${k.length === 1 && KEYS.includes(k) ? '<span class="pips"><i></i><i></i><i></i><i></i><i></i></span><button class="plus" type="button" aria-label="升級">＋</button><span class="cost"></span>' : ''}<span class="lab"></span>`;
+    d.innerHTML = `<button class="face" type="button" aria-label="${k}"><span class="ic"></span><span class="cd"></span><span class="cdn"></span></button><kbd>${k}</kbd>${k.length === 1 && KEYS.includes(k) ? '<span class="pips"><i></i><i></i><i></i><i></i><i></i></span><button class="plus" type="button" aria-label="升級">＋</button><span class="cost"></span><span class="mpc"></span>' : ''}<span class="lab"></span>`;
     skWrap.appendChild(d);
-    el.skills[k] = { d, lab: $('.lab', d), ic: $('.ic', d), cd: $('.cd', d), cdn: $('.cdn', d), pips: d.querySelectorAll('.pips i'), plus: $('.plus', d), cost: $('.cost', d), face: $('.face', d), last: {} };
+    el.skills[k] = { d, lab: $('.lab', d), ic: $('.ic', d), cd: $('.cd', d), cdn: $('.cdn', d), pips: d.querySelectorAll('.pips i'), plus: $('.plus', d), cost: $('.cost', d), mpc: $('.mpc', d), face: $('.face', d), last: {} };
   }
 
   let player = null;
@@ -67,7 +68,8 @@ export function createHud(env) {
       sellSlot = -1;
       const it = itemById(shopSel), price = priceFor(P, shopSel), total = it.consumable ? it.cost : totalCost(shopSel);
       const into = ITEMS.filter((x) => x.from && x.from.includes(shopSel));
-      el.shopDetail.innerHTML = `<div class="dh">${ITEM_ICONS[shopSel]}<div><b>${it.name}</b><small>${it.desc}</small></div></div>`
+      el.shopDetail.innerHTML = `<div class="dh">${ITEM_ICONS[shopSel]}<div><b>${it.name}</b><small>${it.desc}</small>${it.proto ? `<span class="proto">原型：${it.proto}</span>` : ''}</div></div>`
+        + (it.note ? `<p class="note">${it.note}</p>` : '')
         + (it.from ? `<div class="tree">${tree(shopSel)}</div>` : '')
         + (into.length ? `<p class="into">可合成：${into.map((x) => `<button type="button" data-pick="${x.id}">${x.name}</button>`).join('、')}</p>` : '')
         + `<p class="price">${price < total ? `已折抵身上的材料，只要付 <em>${price}</em>（總價 ${total}）` : `價格 <em>${price}</em>`}</p>`
@@ -99,6 +101,7 @@ export function createHud(env) {
   $('#shop .shopX').addEventListener('click', () => toggleShop(false));
   el.goldB.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); toggleShop(); });
   el.senzu.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); if (player && G) eatSenzu(G, player); });
+  for (const sl of el.slots) sl.addEventListener('pointerdown', (e) => { const ai = +sl.dataset.act; if (!(ai >= 0) || !player || !G) return; e.preventDefault(); e.stopPropagation(); useActive(G, player, ai); });
   function bindPlayer(h) {
     player = h;
     el.port.src = (touchUI ? portraits : busts)[h.heroId] || ''; el.port._f = 'base';
@@ -108,12 +111,13 @@ export function createHud(env) {
       const s = el.skills[k]; s.ic.innerHTML = ICONS[h.heroId][k]; s.d.style.setProperty('--el', h.def.color);
       const sd = h.def.skills[k]; s.face.title = `${sd.name}：${sd.desc}`; s.lab.textContent = sd.name;
       s.cost.textContent = sd.ki ? `${sd.ki}` : ''; s.cost.style.display = sd.ki ? '' : 'none';
+      s.face.title = `${sd.name}：${sd.desc}（花${h.def.resName}${sd.ki ? `，另花 ${sd.ki} 格氣` : ''}）`;
       s.last = {};
     }
     el.skills.D.lab.textContent = '爆氣'; el.skills.B.lab.textContent = '回城';
     el.skills.D.ic.innerHTML = ICONS.D; el.skills.D.face.title = '爆氣：8 秒內傷害與移速提升並持續回血';
     el.skills.B.ic.innerHTML = ICONS.B; el.skills.B.face.title = '回城：原地 4 秒後回到泉水';
-    el.dock.style.setProperty('--el', h.def.color);
+    el.dock.style.setProperty('--el', h.def.color); el.dock.style.setProperty('--mp', RES[h.res].color);
     buildRoster();
   }
   function buildRoster() {
@@ -179,9 +183,18 @@ export function createHud(env) {
     G.on('hit', ({ src, dst }) => { if (!player) return; const o = src === player && dst.kind === 'hero' ? dst : dst === player && src && src.kind === 'hero' ? src : null; if (o && o.team !== player.team) { foe = o; foeT = G.time; } });
   G.on('hit', ({ src, dst, amount, opts }) => {
     if (!player || amount <= 0) return;
-    if (src === player) number(dst.x, 2.2 + dst.y, dst.z, amount, opts.type === 'super' ? '#ffd54a' : opts.type === 'skill' ? '#fff0c4' : '#ffffff', opts.type === 'super' ? 1.5 : opts.type === 'H' || opts.type === 'skill' ? 1.15 : 0.9, 'out');
+    if (src === player) {
+      if (opts.dot) return;
+      if (opts.crit) number(dst.x, 2.2 + dst.y, dst.z, `${amount}!`, '#ff8a3a', 1.35, 'out');
+      else number(dst.x, 2.2 + dst.y, dst.z, amount, opts.rune ? '#e8b8ff' : opts.type === 'super' ? '#ffd54a' : opts.type === 'skill' ? '#fff0c4' : '#ffffff', opts.type === 'super' ? 1.5 : opts.type === 'H' || opts.type === 'skill' || opts.rune ? 1.15 : 0.9, 'out');
+    }
     else if (dst === player) number(dst.x, 2.4, dst.z, amount, '#ff6a4d', 0.9, 'in');
   });
+  let noResT = -9;
+  G.on('noRes', ({ h, why }) => { if (h !== player || G.time - noResT < 0.6) return; noResT = G.time; number(h.x, 3.1, h.z, why === 'ki' ? '氣力不足' : `${h.def.resName}不足`, why === 'ki' ? '#ffc23d' : RES[h.res].color, 0.85); });
+  G.on('jungleBuff', ({ h, b, stolen }) => { if (h === player) announce(`得到${JUNGLE_BUFF[b].name}`, 'good', b === 'blue' ? `${JUNGLE_BUFF.blue.dur} 秒：${h.res === 'energy' ? '體力回復 +50%' : '魔力回復 +100%'}、冷卻 -10%` + (stolen ? '（從敵人身上奪來）' : '') : `${JUNGLE_BUFF.red.dur} 秒：普攻灼燒並緩速` + (stolen ? '（從敵人身上奪來）' : '')); });
+  G.on('revive', (h) => { if (!player) return; announce(h.team === player.team ? `${h.def.short} 靠天使光環復活` : `敵方 ${h.def.short} 靠天使光環復活`, h.team === player.team ? 'good' : 'bad'); });
+  G.on('runeProc', ({ h, id }) => { if (h === player && id !== 'comet' && id !== 'electrocute') number(h.x, 3.2, h.z, RUNES.find((r) => r.id === id).name, '#e8b8ff', 0.8); });
   G.on('levelup', (h) => { if (h === player) { number(h.x, 2.8, h.z, `等級 ${h.level}`, '#ffe08a', 1.2, 'lv'); } });
   G.on('gold', ({ h, g, at }) => { if (h === player && at && g >= 15) number(at.x, 3, at.z, `+${g}`, '#f6c64a', 0.75); });
   G.on('flank', ({ h, foe }) => { if (h.team === player.team && h !== player) announce(`${h.def.short} 繞到敵人背後`, 'good', `包抄 ${foe.def.short}`); });
@@ -246,6 +259,7 @@ export function createHud(env) {
     if (!touchUI && el.port._f !== P.form) { el.port._f = P.form; el.port.src = busts[P.form === 'ssj' && busts[P.heroId + ':ssj'] ? P.heroId + ':ssj' : P.heroId] || ''; }
     setW(el.hpFill, P.hp / P.maxHp); setW(el.shFill, Math.min(1, P.st.shield / P.maxHp));
     setText(el.hpTxt, `${Math.ceil(P.hp)} / ${Math.round(P.maxHp)}`);
+    setW(el.mpFill, P.mp / P.maxMp); setText(el.mpTxt, `${Math.floor(P.mp)} / ${Math.round(P.maxMp)}`);
     setW(el.xpFill, P.level >= MAX_LEVEL ? 1 : P.xp / xpToNext(P.level));
     const bars = Math.floor(P.ki / KI_BAR), part = (P.ki % KI_BAR) / KI_BAR;
     el.kiCells.forEach((c, i) => setW(c, i < bars ? 1 : i === bars ? part : 0));
@@ -258,10 +272,12 @@ export function createHud(env) {
       const learned = k === 'D' || k === 'B' || P.ranks[k] > 0;
       const ready = k === 'D' ? cd <= 0 : k === 'B' ? P.recall <= 0 : skillReady(P, k);
       const noKi = KEYS.includes(k) && P.def.skills[k].ki && P.ki < P.def.skills[k].ki * KI_BAR;
-      const st = `${learned}|${ready}|${noKi}|${cd > 0 ? Math.ceil(cd) : 0}`;
+      const cost = KEYS.includes(k) ? skillCost(P, k) : 0, noMp = cost > 0 && P.mp < cost;
+      const st = `${learned}|${ready}|${noKi}|${noMp}|${cost}|${cd > 0 ? Math.ceil(cd) : 0}`;
       if (L.st !== st) {
         L.st = st;
-        s.d.classList.toggle('locked', !learned); s.d.classList.toggle('ready', ready && learned); s.d.classList.toggle('noki', !!noKi && cd <= 0);
+        s.d.classList.toggle('locked', !learned); s.d.classList.toggle('ready', ready && learned); s.d.classList.toggle('noki', !!noKi && cd <= 0); s.d.classList.toggle('nomp', noMp && learned);
+        if (s.mpc) setText(s.mpc, cost > 0 ? cost : '');
         setText(s.cdn, cd > 0 ? Math.ceil(cd) : '');
       }
       const frac = cd > 0 ? cd / max : 0;
@@ -281,12 +297,19 @@ export function createHud(env) {
     const ik = P.inv.join() + '|' + (P.senzu || 0) + '|' + (P.controls || 0);
     if (el.invKey !== ik) {
       el.invKey = ik;
-      el.slots.forEach((sl, i) => { const id = P.inv[i]; sl.innerHTML = id ? ITEM_ICONS[id] : ''; sl.title = id ? ITEMS.find((x) => x.id === id).name : ''; });
+      el.slots.forEach((sl, i) => {
+        const id = P.inv[i], it = id && ITEMS.find((x) => x.id === id), ai = it && it.act ? P.acts.findIndex((a) => a.item === id) : -1;
+        sl.innerHTML = id ? ITEM_ICONS[id] + (ai >= 0 ? `<span class="acd"></span><kbd>${ai + 2}</kbd>` : '') : '';
+        sl.title = it ? `${it.name}${it.note ? '\n' + it.note : ''}` : ''; sl.dataset.act = ai; sl.classList.toggle('act', ai >= 0);
+      });
       el.senzu.querySelector('b').textContent = P.senzu || 0; el.senzu.classList.toggle('none', !(P.senzu > 0));
       el.control.querySelector('b').textContent = P.controls || 0; el.control.classList.toggle('none', !(P.controls > 0));
     }
-    const bk = `${P.apeBuff > 0 ? Math.ceil(P.apeBuff) : 0}|${P.form}|${P.omen > 0 ? Math.ceil(P.omen) : 0}|${P.wish > 0 ? Math.ceil(P.wish) : 0}`;
-    if (el.buffs._k !== bk) { el.buffs._k = bk; el.buffs.innerHTML = (P.wish > 0 ? `<span class="wish">神龍的願望 ${Math.ceil(P.wish)}</span>` : '') + (P.omen > 0 ? `<span class="omen">神龍之兆 ${Math.ceil(P.omen)}</span>` : '') + (P.apeBuff > 0 ? `<span class="ape">大猿之力 ${Math.ceil(P.apeBuff)}</span>` : '') + (P.form === 'ssj' ? '<span class="ssj">超級賽亞人</span>' : ''); }
+    for (const sl of el.slots) { const ai = +sl.dataset.act; if (ai >= 0) { const a = P.acts[ai], c = a ? Math.max(0, Math.ceil((P.actCd[a.id] || 0) - G.time)) : 0, e = sl.querySelector('.acd'); if (e) setText(e, c > 0 ? c : ''); } }
+    const rs = P.rs, rStacks = (P.rune === 'conqueror' && G.time - rs.t < 5) || (P.rune === 'tempo' && G.time - rs.t < 6) ? rs.stacks : 0;
+    const runeTxt = rStacks ? `${RUNES.find((r) => r.id === P.rune).name} ×${rStacks}` : P.rune === 'grasp' && rs.charge >= 4 ? '不死之身 就緒' : '';
+    const bk = `${P.apeBuff > 0 ? Math.ceil(P.apeBuff) : 0}|${P.form}|${P.omen > 0 ? Math.ceil(P.omen) : 0}|${P.wish > 0 ? Math.ceil(P.wish) : 0}|${P.blue > 0 ? Math.ceil(P.blue) : 0}|${P.red > 0 ? Math.ceil(P.red) : 0}|${runeTxt}|${P.st.gw > 0}`;
+    if (el.buffs._k !== bk) { el.buffs._k = bk; el.buffs.innerHTML = (P.wish > 0 ? `<span class="wish">神龍的願望 ${Math.ceil(P.wish)}</span>` : '') + (P.omen > 0 ? `<span class="omen">神龍之兆 ${Math.ceil(P.omen)}</span>` : '') + (P.apeBuff > 0 ? `<span class="ape">大猿之力 ${Math.ceil(P.apeBuff)}</span>` : '') + (P.blue > 0 ? `<span class="blue">${JUNGLE_BUFF.blue.name} ${Math.ceil(P.blue)}</span>` : '') + (P.red > 0 ? `<span class="red">${JUNGLE_BUFF.red.name} ${Math.ceil(P.red)}</span>` : '') + (runeTxt ? `<span class="rune${rStacks >= (P.rune === 'tempo' ? 6 : 8) ? ' full' : ''}">${runeTxt}</span>` : '') + (P.st.gw > 0 ? '<span class="gw">重傷</span>' : '') + (P.form === 'ssj' ? '<span class="ssj">超級賽亞人</span>' : ''); }
     if (el.shop.classList.contains('on') && el.shopState !== shopKey()) renderShop();
     el.sp.classList.toggle('on', P.sp > 0);
     if (P.sp > 0) setText(el.sp.querySelector('b'), `+${P.sp} 技能點`);
@@ -407,7 +430,8 @@ export function createHud(env) {
       g.fillStyle = col; g.fillRect(x0, y0, w * (u.hp / u.maxHp), h);
       if (u.st.shield > 0) { g.fillStyle = 'rgba(240,236,220,.85)'; g.fillRect(x0 + w * (u.hp / u.maxHp), y0, Math.min(w * (1 - u.hp / u.maxHp), w * (u.st.shield / u.maxHp)), h); }
       g.fillStyle = 'rgba(14,18,30,.6)'; for (let i = 1; i < u.maxHp / 250; i++) g.fillRect(x0 + (w * i * 250) / u.maxHp, y0, 1, h * 0.55);
-      g.fillStyle = '#ffc23d'; g.fillRect(x0, y0 + h + 1.5 * s, w * (u.ki / 500), 2.5 * s);
+      g.fillStyle = RES[u.res].color; g.fillRect(x0, y0 + h + 1.2 * s, w * (u.mp / u.maxMp), 2.2 * s);
+      g.fillStyle = '#ffc23d'; g.fillRect(x0, y0 + h + 3.9 * s, w * (u.ki / 500), 1.5 * s);
       g.fillStyle = '#f3ead8'; g.font = `800 ${11 * s}px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillText(u.level, x0 - 10 * s, y0 + h / 2 + 1.5 * s);
       g.font = `700 ${11 * s}px ${FONT}`; g.textBaseline = 'alphabetic';
@@ -441,20 +465,28 @@ export const NUMFONT = '"Avenir Next Condensed","Bahnschrift","Arial Narrow","Pi
 /* ---------------- 選角畫面 ---------------- */
 export function createSelect({ portraits, onPick, onStart }) {
   const wrap = $('#select'), cards = $('#cards'), info = $('#pickInfo');
-  let cur = 'goku', lane = 1, diff = 1;
+  let cur = 'goku', lane = 1, diff = 1, rune = RUNE_REC.goku;
   const card = (id) => { const d = HEROES[id]; return `<button class="card" type="button" data-id="${id}" style="--el:${d.color}"><img alt="" src="${portraits[id] || ''}"><b>${d.short}</b><small>${d.en}</small><em>${d.role}</em></button>`; };
   cards.innerHTML = FRANCHISES.map(([f, label]) => `<div class="grp"><span class="gl">${label}</span><div class="row">${HERO_ORDER.filter((id) => HEROES[id].franchise === f).map(card).join('')}</div></div>`).join('');
   function show(id) {
     cur = id; const d = HEROES[id];
     for (const c of cards.children) c.classList.toggle('sel', c.dataset.id === id);
     info.style.setProperty('--el', d.color);
-    info.innerHTML = `<h2${d.name.length > 5 ? ' class="long"' : ''}><b>${d.name}</b><span>${d.en} · ${d.role}</span></h2><p>${d.blurb}</p><ul>${KEYS.map((k) => `<li><i>${ICONS[id][k]}</i><kbd>${k}</kbd><div><b>${d.skills[k].name}</b><span>${d.skills[k].desc}</span></div></li>`).join('')}</ul>`;
+    rune = RUNE_REC[id];
+    info.innerHTML = `<h2${d.name.length > 5 ? ' class="long"' : ''}><b>${d.name}</b><span>${d.en} · ${d.role} · ${d.resName}</span></h2><p>${d.blurb}</p><ul>${KEYS.map((k) => `<li><i>${ICONS[id][k]}</i><kbd>${k}</kbd><div><b>${d.skills[k].name}</b><span>${d.skills[k].desc}</span></div></li>`).join('')}</ul>`
+      + `<div class="runes"><b>符文</b><div class="rb">${RUNES.map((r) => `<button type="button" data-rune="${r.id}" class="${r.id === RUNE_REC[id] ? 'rec' : ''}">${r.name}</button>`).join('')}</div><p></p></div>`;
+    showRune();
     onPick(id);
   }
+  function showRune() {
+    for (const b of info.querySelectorAll('[data-rune]')) b.classList.toggle('sel', b.dataset.rune === rune);
+    const r = RUNES.find((x) => x.id === rune); info.querySelector('.runes p').innerHTML = `${r.desc}<small>（原型：${r.proto}）</small>`;
+  }
+  info.addEventListener('click', (e) => { const b = e.target.closest('[data-rune]'); if (b) { rune = b.dataset.rune; showRune(); } });
   cards.addEventListener('click', (e) => { const c = e.target.closest('.card'); if (c) show(c.dataset.id); });
   for (const b of document.querySelectorAll('#laneSel button')) b.addEventListener('click', () => { lane = +b.dataset.lane; for (const o of document.querySelectorAll('#laneSel button')) o.classList.toggle('sel', o === b); });
   for (const b of document.querySelectorAll('#diffSel button')) b.addEventListener('click', () => { diff = +b.dataset.d; for (const o of document.querySelectorAll('#diffSel button')) o.classList.toggle('sel', o === b); });
-  $('#go').addEventListener('click', () => onStart(cur, lane, diff));
+  $('#go').addEventListener('click', () => onStart(cur, lane, diff, rune));
   show(cur);
   return { show: () => { wrap.classList.add('on'); }, hide: () => wrap.classList.remove('on'), get cur() { return cur; }, pick: show };
 }

@@ -4,6 +4,7 @@ import { BUSHES } from './map.js';
 import { targetable, dist } from './units.js';
 import { seen } from './vision.js';
 import { eatSenzu } from './items.js';
+import { useActive } from './traits.js';
 
 export function createInput({ G, render, minimap, hud, audio, onHelp, onCamToggle, onShop }) {
   const canvas = document.getElementById('gl');
@@ -67,6 +68,7 @@ export function createInput({ G, render, minimap, hud, audio, onHelp, onCamToggl
     }
     if (e.code === 'KeyP') { onShop && onShop(); return; }
     if (e.code === 'Digit1') { eatSenzu(G, P()); return; }
+    if (e.code === 'Digit2' || e.code === 'Digit3') { useActive(G, P(), e.code === 'Digit2' ? 0 : 1); return; }
     if (e.code === 'Digit4') { updateWorld(); placeWard(G, P(), mouse.world.x, mouse.world.z); return; }
     if (e.code === 'Digit5') { updateWorld(); placeControl(G, P(), mouse.world.x, mouse.world.z); return; }
     if (e.code === 'KeyD') spark(G, P());

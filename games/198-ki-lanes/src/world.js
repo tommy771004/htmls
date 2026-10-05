@@ -7,14 +7,15 @@ import { setupCamps, updateCamps, aggroCamp } from './jungle.js';
 import { createVision, updateVision } from './vision.js';
 import { aiShop } from './items.js';
 import { setupDragonBalls, updateDragonBalls } from './dragonballs.js';
+import { traits } from './traits.js';
 
-// opts: { fx, sfx, shake, cam, player: heroId|null, lane, diff, teams: [[ids],[ids]] }
+// opts: { fx, sfx, shake, cam, player: heroId|null, lane, diff, rune（玩家的符文，省略用推薦）, teams: [[ids],[ids]] }
 export function newMatch(opts) {
   const G = createWorld();
   G.fx = opts.fx; G.cam = opts.cam || {}; G.zones = []; G.timers = [];
   G.later = (d, fn) => G.timers.push({ t: G.time + d, fn });
   G.shake = opts.shake || (() => {}); G.sfx = opts.sfx || (() => null);
-  G.vision = createVision(); G.wards = [];
+  G.vision = createVision(); G.wards = []; G.traits = traits;
   wireShots(G); setupCamps(G); setupDragonBalls(G);
   G.on('monsterHit', ({ dst, src }) => aggroCamp(G, dst, src));
   const lane = opts.lane ?? 1, diff = opts.diff ?? 1;
@@ -27,7 +28,7 @@ export function newMatch(opts) {
   const lanesA = [lane, ...[0, 1, 2].filter((l) => l !== lane)];
   teams[0].forEach((id, i) => {
     const h = addUnit(G, makeHero(G, id, 0, lanesA[i], i === 0 && !!opts.player));
-    if (h.isPlayer) G.player = h; else h.brain = makeBrain(h, diff);
+    if (h.isPlayer) { G.player = h; if (opts.rune) h.rune = opts.rune; } else h.brain = makeBrain(h, diff);
   });
   teams[1].forEach((id, i) => { const h = addUnit(G, makeHero(G, id, 1, i, false)); h.brain = makeBrain(h, diff); });
   if (!G.player) G.player = G.heroes[0];
@@ -43,7 +44,7 @@ export function stepWorld(G, dt) {
   updateVision(G, dt);
   for (const h of G.heroes) {
     if (!h.alive) { h.deadT += dt; h.respawn -= dt; if (h.brain) aiShop(G, h); if (h.respawn <= 0 && G.winner < 0) respawnHero(G, h); continue; }
-    tickStatus(h, dt);
+    tickStatus(h, dt, G);
     heroTick(G, h, dt);
     if (!h.alive) continue;
     if (h.brain) { updateAI(G, h, dt); aiShop(G, h); }
@@ -53,13 +54,13 @@ export function stepWorld(G, dt) {
   for (const m of G.minions) {
     if (!m.alive) { m.deadT += dt; continue; }
     if (m.spawnDelay > 0) { m.spawnDelay -= dt; continue; }
-    tickStatus(m, dt); m.anim.t += dt;
+    tickStatus(m, dt, G); m.anim.t += dt;
     updateMinion(G, m, dt);
     physics(G, m, dt);
   }
   updateCamps(G, dt);
   updateDragonBalls(G, dt);
-  for (const m of G.monsters) if (m.alive) { tickStatus(m, dt); physics(G, m, dt); }
+  for (const m of G.monsters) if (m.alive) { tickStatus(m, dt, G); physics(G, m, dt); }
   for (const s of G.structures) if (s.alive && G.winner < 0) updateTower(G, s, dt);
   separate(G, dt);
   updateProjectiles(G, dt);

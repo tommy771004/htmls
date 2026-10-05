@@ -1,7 +1,7 @@
 // 單位：英雄、小兵、建築。移動、碰撞、傷害、死亡、經驗。
 import {
   HEROES, MINION, MINION_GROWTH, TOWER, KI_MAX, KI_BAR, MAX_LEVEL, xpToNext, respawnTime, XP_SHARE_RADIUS,
-  FOUNTAIN, BASE, COMBO_WINDOW, HITSTOP, SPARK, WAVE_EVERY, FIRST_WAVE, SIEGE_FROM_WAVE, GOLD, ITEMS, APE_BUFF, DRAGON,
+  FOUNTAIN, BASE, COMBO_WINDOW, HITSTOP, SPARK, WAVE_EVERY, FIRST_WAVE, SIEGE_FROM_WAVE, GOLD, ITEMS, APE_BUFF, DRAGON, RES, JUNGLE_BUFF, TEAR_MAX, RUNE_REC,
 } from './config.js';
 import { collide, obstaclesNear, lanePath, heightAt, STRUCTURES, laneProgress } from './map.js';
 
@@ -27,15 +27,28 @@ export function makeHero(G, heroId, team, lane, isPlayer) {
     ki: 100, kills: 0, deaths: 0, assists: 0, chain: 0, chainT: -9, target: null, goal: null, order: null, action: null,
     respawn: 0, recall: 0, empowered: 0, charging: false, damagers: new Map(), lastAttackHeroT: -99, cs: 0, hitstopOwner: isPlayer,
     gold: GOLD.start, inv: [], path: null, apeBuff: 0, omen: 0, wish: 0, form: 'base',
+    // 資源、符文、裝備被動與野怪增益
+    res: def.res, mp: 0, maxMp: 0, tear: 0, graspHp: 0, rune: RUNE_REC[heroId] || 'conqueror', rs: { stacks: 0, t: -99, hits: [], cd: 0, charge: 0 },
+    bladeT: 0, bladeCd: 0, gaCd: 0, actCd: {}, stasis: 0, blue: 0, red: 0,
   });
   recalcStats(u);
-  u.hp = u.maxHp;
+  u.hp = u.maxHp; u.mp = u.maxMp;
   return u;
 }
 export function itemStats(u) {
-  const t = { ad: 0, hp: 0, armor: 0, as: 0, ms: 0, ki: 0, cdr: 0, skill: 0, dmg: 0, vision: 0, regen: 0, detect: 0 };
+  const t = { ad: 0, hp: 0, armor: 0, mr: 0, as: 0, ms: 0, ki: 0, cdr: 0, skill: 0, dmg: 0, vision: 0, regen: 0, detect: 0, mp: 0, mpr: 0, ap: 0, crit: 0, ls: 0 };
   for (const id of u.inv || []) { const it = ITEMS.find((i) => i.id === id); if (it && it.stats) for (const k in it.stats) t[k] += it.stats[k]; }
   return t;
+}
+// 裝備被動：同名被動不疊加（數字取最大；荊棘取反彈最強的那件）。主動道具依身上順序排列
+export function itemPassives(u) {
+  const p = {}, acts = [];
+  for (const id of u.inv || []) {
+    const it = ITEMS.find((i) => i.id === id); if (!it) continue;
+    if (it.psv) for (const k in it.psv) { const v = it.psv[k]; if (typeof v === 'number') p[k] = Math.max(p[k] || 0, v); else if (!p[k] || v.pct > p[k].pct) p[k] = v; }
+    if (it.act && !acts.some((a) => a.id === it.act.id)) acts.push({ ...it.act, item: id });
+  }
+  return { p, acts };
 }
 export function recalcStats(u) {
   const s = u.def.stats, lv = u.level - 1, it = itemStats(u);
@@ -43,7 +56,20 @@ export function recalcStats(u) {
   u.maxHp = s.hp + s.hpLv * lv + it.hp; u.hp = ratio * u.maxHp;
   u.ad = s.ad + s.adLv * lv + it.ad; u.range = s.range; u.as = s.as * Math.pow(0.975, lv) * (1 - Math.min(0.5, it.as)); u.ms = s.ms * (1 + it.ms); u.armor = Math.min(0.6, s.armor + lv * 0.006 + it.armor);
   u.kiGain = 1 + it.ki; u.cdr = Math.min(0.4, it.cdr); u.skillMul = 1 + it.skill; u.dmgMul = 1 + it.dmg; u.visionBonus = it.vision; u.regen = it.regen; u.detect = it.detect;
+  const { p, acts } = itemPassives(u);
+  u.psv = p; u.acts = acts;
+  u.maxHp += u.graspHp || 0; u.hp = ratio * u.maxHp;
+  u.mr = Math.min(0.6, s.armor + lv * 0.006 + it.mr);
+  u.crit = Math.min(1, it.crit); u.critMul = p.critDmg || 1.75; u.ls = it.ls;
+  // 魔力：上限加上裝備與「積蓄」層數；能量型固定
+  const oldMp = u.maxMp || 0;
+  if (u.res === 'energy') { u.maxMp = RES.energy.max; u.mpRegen = RES.energy.regen; }
+  else { u.maxMp = s.mp + s.mpLv * lv + it.mp + (p.tear ? Math.min(TEAR_MAX, u.tear || 0) : 0); u.mpRegen = (s.mpr + s.mprLv * lv) * (1 + it.mpr); }
+  if (oldMp) u.mp = clamp(u.mp + Math.max(0, u.maxMp - oldMp), 0, u.maxMp);
+  u.ap = (it.ap + (p.mpAp || 0) * (u.res === 'energy' ? 0 : u.maxMp)) * (1 + (p.apAmp || 0));
+  if (u.blue > 0) u.cdr = Math.min(0.45, u.cdr + JUNGLE_BUFF.blue.cdr);
 }
+export function addMp(h, v) { if (h.alive && h.maxMp) h.mp = clamp(h.mp + v, 0, h.maxMp); }
 export function makeMinion(G, kind, team, lane) {
   const d = MINION[kind], grow = 1 + MINION_GROWTH * (G.time / 60);
   const path = lanePath(lane, team).concat([{ x: BASE[1 - team][0], z: BASE[1 - team][1] }]);
@@ -96,11 +122,29 @@ export function damage(G, src, dst, amount, opts = {}) {
   let a = amount;
   if (src && src.st && src.st.spark > 0) a *= SPARK.dmg;
   if (src && src.kind === 'hero') { a *= src.dmgMul || 1; if (src.apeBuff > 0) a *= 1 + APE_BUFF.dmg; if (src.omen > 0) a *= 1 + DRAGON.omen.dmg; if (src.wish > 0) a *= 1 + DRAGON.wish.dmg; if (opts.type === 'skill' || opts.type === 'super') a *= src.skillMul || 1; }
-  if (dst.kind === 'hero') a *= 1 - (dst.armor || 0);
+  if (src && src.kind === 'hero' && src.rune === 'conqueror' && src.rs.stacks && G.time - src.rs.t < 5 && dst.kind === 'hero') a *= 1 + 0.015 * src.rs.stacks;
+  // 普攻、小兵、塔、野怪是物理傷害（物理減傷），技能是技能傷害（技能減傷），真實傷害不減
+  if (dst.kind === 'hero' && opts.type !== 'true') a *= 1 - ((opts.type === 'skill' || opts.type === 'super' || opts.magic ? dst.mr : dst.armor) || 0);
   if (dst.kind === 'tower' || dst.kind === 'core') { if (src && src.kind === 'hero' && (opts.type === 'skill' || opts.type === 'super')) a *= 0.55; }
   if (dst.st.shield > 0) { const s = Math.min(dst.st.shield, a); dst.st.shield -= s; a -= s; }
   a = Math.round(a);
+  // 天使光環：致命傷害時倒下，3 秒後原地復活
+  if (dst.kind === 'hero' && a >= dst.hp && dst.psv && dst.psv.ga && G.time >= dst.gaCd) {
+    dst.gaCd = G.time + dst.psv.ga; dst.hp = 1; dst.st.invuln = 3; dst.st.stun = 3; dst.st.shield = 0; dst.recall = 0; dst.charging = false; interrupt(G, dst);
+    G.emit('stasis', { h: dst, dur: 3, kind: 'revive' });
+    G.later(3, () => { if (!dst.alive) return; dst.hp = dst.maxHp * 0.4; dst.mp = Math.max(dst.mp, dst.maxMp * 0.3); dst.st.stun = 0; G.emit('revive', dst); });
+    return 0;
+  }
   dst.hp -= a; dst.flash = 0.12;
+  const basic = opts.type === 'L' || opts.type === 'M' || opts.type === 'H';
+  if (src && src.kind === 'hero' && basic && a > 0) {
+    // 普攻吸血；魔人之牙把溢出的血量轉成護盾
+    if (src.ls > 0) { const amt = a * src.ls * (dst.kind === 'hero' ? 1 : 0.6), room = src.maxHp - src.hp; heal(G, src, amt); if (src.psv.overheal && amt > room) { src.st.shield = Math.min(src.maxHp * src.psv.overheal, src.st.shield + amt - room); src.st.shieldT = Math.max(src.st.shieldT, 6); } }
+    // 荊棘：被英雄普攻時反彈並施加重傷
+    const th = dst.kind === 'hero' && dst.psv && dst.psv.thorns;
+    if (th && !opts.thorn) { damage(G, dst, src, th.base + th.lv * dst.level + a * th.pct, { type: 'true', noKi: true, thorn: true }); src.st.gw = 3; src.st.gwAmt = Math.max(src.st.gw > 0 ? src.st.gwAmt || 0 : 0, th.gw); }
+  }
+  if (G.traits && src && src.kind === 'hero' && dst.kind === 'hero' && a > 0 && !opts.rune && !opts.thorn && !opts.dot) G.traits.onHeroHit(G, src, dst, a, opts);
   dst.lastHitBy = src; dst.lastHitT = G.time;
   if (src && src.kind === 'hero' && dst.kind === 'hero') { dst.damagers.set(src, G.time); src.lastAttackHeroT = G.time; src.lastHeroTarget = dst; }
   // 氣力
@@ -133,7 +177,7 @@ export function damage(G, src, dst, amount, opts = {}) {
   if (dst.hp <= 0) kill(G, dst, src);
   return a;
 }
-export function heal(G, u, amount) { if (!u.alive) return; u.hp = Math.min(u.maxHp, u.hp + amount); }
+export function heal(G, u, amount) { if (!u.alive) return; if (u.st.gw > 0) amount *= 1 - (u.st.gwAmt || 0); u.hp = Math.min(u.maxHp, u.hp + amount); }
 
 export function addKi(G, h, v) {
   if (!h.alive) return;
@@ -152,6 +196,7 @@ export function gainXp(G, h, xp) {
   while (h.level < MAX_LEVEL && h.xp >= xpToNext(h.level)) {
     h.xp -= xpToNext(h.level); h.level++; h.sp++;
     const old = h.maxHp; recalcStats(h); h.hp += (h.maxHp - old) * 0.6 + h.maxHp * 0.05; h.hp = Math.min(h.hp, h.maxHp);
+    if (h.psv && h.psv.lvMp) addMp(h, h.maxMp * h.psv.lvMp);
     G.emit('levelup', h);
   }
   if (h.level >= MAX_LEVEL) h.xp = 0;
@@ -172,6 +217,9 @@ function kill(G, u, src) {
     const assists = [...u.damagers.entries()].filter(([h, t]) => G.time - t < 10 && h !== killer && h.team === killerTeam).map((e) => e[0]);
     const bounty = 140 + u.level * 38;
     if (killer) { killer.kills++; gainXp(G, killer, bounty); addKi(G, killer, 120); addGold(G, killer, GOLD.hero, u); }
+    // 野怪增益轉給擊殺者
+    if (killer) for (const b of ['blue', 'red']) if (u[b] > 0) { killer[b] = JUNGLE_BUFF[b].dur; G.emit('jungleBuff', { h: killer, b, stolen: true }); }
+    if (u.blue > 0) { u.blue = 0; recalcStats(u); } u.red = 0;
     for (const a of assists) { a.assists++; gainXp(G, a, bounty * 0.5); addGold(G, a, GOLD.assist, u); }
     for (const h of G.heroes) if (h.team === killerTeam && h !== killer && !assists.includes(h) && h.alive && dist(h, u) < XP_SHARE_RADIUS) gainXp(G, h, bounty * 0.4);
     u.damagers.clear();
@@ -185,6 +233,8 @@ function kill(G, u, src) {
       for (const h of near) gainXp(G, h, u.boss ? u.xp : u.xp / Math.max(1, near.length * 0.7));
       if (u.boss) { for (const h of G.heroes) if (h.team === team) { addGold(G, h, u.gold, u); h.apeBuff = APE_BUFF.dur; } }
       else if (src && src.kind === 'hero') addGold(G, src, u.gold, u);
+      const b = u.mkind === 'robot' ? 'blue' : u.mkind === 'dino' ? 'red' : null;
+      if (b && src && src.kind === 'hero') { const had = src[b] > 0; src[b] = JUNGLE_BUFF[b].dur; if (b === 'blue' && !had) recalcStats(src); G.emit('jungleBuff', { h: src, b }); }
     }
     G.emit('monsterDeath', { u, team });
   } else {
@@ -377,12 +427,12 @@ export function updateTower(G, s, dt) {
 export function heroTick(G, h, dt) {
   for (const k in h.cds) h.cds[k] = Math.max(0, h.cds[k] - dt);
   const st = h.st;
-  if (st.spark > 0) { st.spark -= dt; heal(G, h, h.maxHp * SPARK.heal / SPARK.dur * dt); addKi(G, h, 12 * dt); }
+  if (st.spark > 0) { st.spark -= dt; heal(G, h, h.maxHp * SPARK.heal / SPARK.dur * dt); addKi(G, h, 12 * dt); addMp(h, h.maxMp * RES.spark / SPARK.dur * dt); }
   else if (h.form !== 'base') h.form = 'base';
   if (st.shieldT > 0) { st.shieldT -= dt; if (st.shieldT <= 0) st.shield = 0; }
   // 泉水
   const f = FOUNTAIN[h.team], fe = FOUNTAIN[1 - h.team];
-  if (Math.hypot(h.x - f[0], h.z - f[1]) < 11) { heal(G, h, h.maxHp * 0.14 * dt); addKi(G, h, 30 * dt); }
+  if (Math.hypot(h.x - f[0], h.z - f[1]) < 11) { heal(G, h, h.maxHp * 0.14 * dt); addKi(G, h, 30 * dt); addMp(h, h.maxMp * RES.fountain * dt); }
   if (Math.hypot(h.x - fe[0], h.z - fe[1]) < 12) damage(G, null, h, 600 * dt, { type: 'true', noKi: true });
   // 被動回血、回氣
   if (G.time - h.lastHitT > 6) heal(G, h, h.maxHp * (0.004 + (h.regen || 0)) * dt);
@@ -390,6 +440,12 @@ export function heroTick(G, h, dt) {
   if (h.apeBuff > 0) h.apeBuff -= dt;
   addKi(G, h, 2.5 * dt);
   if (h.charging) addKi(G, h, 75 * dt);
+  // 魔力／體力回復：集氣 ×3、藍色氣焰加成
+  const blue = h.blue > 0 ? 1 + (h.res === 'energy' ? JUNGLE_BUFF.blue.energy : JUNGLE_BUFF.blue.mpr) : 1;
+  addMp(h, h.mpRegen * blue * (h.charging ? RES.chargeMul : 1) * dt);
+  if (h.blue > 0) { h.blue -= dt; if (h.blue <= 0) recalcStats(h); }
+  if (h.red > 0) h.red -= dt;
+  if (G.traits) G.traits.tick(G, h, dt);
   // 回城
   if (h.recall > 0) {
     h.recall -= dt;
@@ -404,13 +460,16 @@ export function moveSpeed(h) {
   if (h.st.slow > 0) s *= 1 - h.st.slowAmt;
   return s;
 }
-export function tickStatus(u, dt) {
+export function tickStatus(u, dt, G) {
   const st = u.st;
   if (st.stun > 0) st.stun -= dt;
   if (st.frozen > 0) st.frozen -= dt;
   if (st.slow > 0) { st.slow -= dt; if (st.slow <= 0) st.slowAmt = 0; }
   if (st.invuln > 0) st.invuln -= dt;
   if (st.mark > 0) st.mark -= dt;
+  if (st.gw > 0) st.gw -= dt;
+  // 灼燒（赤色氣焰）：累積到 4 點或結束時才結算一次，避免每格四捨五入成 0
+  if (st.burn > 0) { st.burn -= dt; st.burnAcc = (st.burnAcc || 0) + st.burnDps * dt; if ((st.burnAcc >= 4 || st.burn <= 0) && u.alive) { const v = st.burnAcc; st.burnAcc = 0; if (st.burnSrc) damage(G, st.burnSrc, u, v, { type: 'true', noKi: true, dot: true }); } }
   if (st.haste > 0) st.haste -= dt;
   if (u.flash > 0) u.flash -= dt;
 }
@@ -419,7 +478,7 @@ export function respawnHero(G, h) {
   const f = FOUNTAIN[h.team];
   h.alive = true; h.hp = h.maxHp; h.x = f[0] + (Math.random() - 0.5) * 3; h.z = f[1] + (Math.random() - 0.5) * 3;
   h.y = 0; h.vy = 0; h.kx = h.kz = 0; h.st.stun = h.st.slow = h.st.frozen = 0; h.st.slowAmt = 0; h.goal = null; h.target = null; h.action = null; h.path = null;
-  h.ki = Math.max(h.ki, 100);
+  h.ki = Math.max(h.ki, 100); h.mp = h.maxMp;
   G.emit('respawn', h);
 }
 

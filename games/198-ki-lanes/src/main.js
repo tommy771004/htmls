@@ -13,7 +13,8 @@ import { giveBalls } from './dragonballs.js';
 import { buildHero, buildMinion, buildTower, buildCore, buildMonster } from './models.js';
 import { createFx } from './fx.js';
 import { audio } from './audio.js';
-import { dist, gainXp, addKi, damage, vulnerable } from './units.js';
+import { dist, gainXp, addKi, addMp, damage, vulnerable } from './units.js';
+import { useActive } from './traits.js';
 import { cast, orderMove, orderAttack, levelSkill, setCharging, spark, placeWard, placeControl } from './combat.js';
 import { createHud, createSelect, showEnd } from './hud.js';
 import { createInput } from './input.js';
@@ -96,15 +97,15 @@ buildShowcase();
 const select = createSelect({
   portraits,
   onPick(id) { selectSel = id; const s = showcase.find((o) => o.id === id); if (s) { s.pose = 'win'; s.poseT = 0; } audio.play('select', { vol: 0.5 }); audio.say(id, 'ready', { vol: 0.9 }); },
-  onStart(id, lane, diff) { startMatch(id, lane, diff); },
+  onStart(id, lane, diff, rune) { startMatch(id, lane, diff, rune); },
 });
 select.show();
 
-function startMatch(heroId, lane = 1, diff = 1) {
+function startMatch(heroId, lane = 1, diff = 1, rune) {
   audio.resume(); audio.play('select');
   audio.music(true);
   clearMatch();
-  G = newMatch({ fx, cam, sfx, shake: (amt, ang) => R.shake(amt, ang !== undefined ? new THREE.Vector3(Math.sin(ang), 0, Math.cos(ang)) : null), player: heroId, lane, diff });
+  G = newMatch({ fx, cam, sfx, shake: (amt, ang) => R.shake(amt, ang !== undefined ? new THREE.Vector3(Math.sin(ang), 0, Math.cos(ang)) : null), player: heroId, lane, diff, rune });
   const P = G.player;
   setTimeout(() => G && G.player === P && voice(P, 'ready'), 700);
   for (const u of G.units) attachRig(u);
@@ -430,13 +431,13 @@ window.__ki = {
   audio,
   ready: true,
   get G() { return G; },
-  start(id = 'goku', lane = 1, diff = 1) { startMatch(id, lane, diff); return true; },
+  start(id = 'goku', lane = 1, diff = 1, rune) { startMatch(id, lane, diff, rune); return true; },
   state() {
     if (!G) return { phase: 'select' };
     const P = G.player;
     return {
       phase: G.phase, time: +G.time.toFixed(2), winner: G.winner, kills: G.kills.slice(),
-      player: { id: P.heroId, hp: Math.round(P.hp), maxHp: Math.round(P.maxHp), ki: Math.round(P.ki), level: P.level, xp: Math.round(P.xp), sp: P.sp, pos: [+P.x.toFixed(2), +P.z.toFixed(2)], alive: P.alive, ranks: { ...P.ranks }, cds: Object.fromEntries(Object.entries(P.cds).map(([k, v]) => [k, +v.toFixed(2)])), action: P.action && P.action.name, gold: Math.floor(P.gold), inv: P.inv.slice(), senzu: P.senzu || 0, form: P.form },
+      player: { id: P.heroId, hp: Math.round(P.hp), maxHp: Math.round(P.maxHp), ki: Math.round(P.ki), mp: Math.round(P.mp), maxMp: Math.round(P.maxMp), res: P.res, rune: P.rune, level: P.level, xp: Math.round(P.xp), sp: P.sp, pos: [+P.x.toFixed(2), +P.z.toFixed(2)], alive: P.alive, ranks: { ...P.ranks }, cds: Object.fromEntries(Object.entries(P.cds).map(([k, v]) => [k, +v.toFixed(2)])), action: P.action && P.action.name, gold: Math.floor(P.gold), inv: P.inv.slice(), senzu: P.senzu || 0, form: P.form },
       structures: G.structures.map((s) => ({ id: s.sid, alive: s.alive, hp: Math.round(s.hp) })),
       heroes: G.heroes.map((h) => ({ id: h.heroId, team: h.team, lane: h.lane, level: h.level, alive: h.alive, hp: Math.round(h.hp), k: h.kills, d: h.deaths, pos: [+h.x.toFixed(1), +h.z.toFixed(1)] })),
       minions: G.minions.filter((m) => m.alive).length, combo: G.combo.n,
@@ -449,7 +450,8 @@ window.__ki = {
   cast(k, x, z) { return cast(G, G.player, k, x, z); },
   levelUp(k) { return levelSkill(G, G.player, k); },
   setLevel(n) { const P = G.player; while (P.level < n) gainXp(G, P, xpToNext(P.level) - P.xp); return P.level; },
-  give({ ki = 0, xp = 0 } = {}) { addKi(G, G.player, ki); if (xp) gainXp(G, G.player, xp); },
+  give({ ki = 0, xp = 0, mp = 0 } = {}) { addKi(G, G.player, ki); if (mp) addMp(G.player, mp); if (xp) gainXp(G, G.player, xp); },
+  useItem(i = 0) { return useActive(G, G.player, i); },
   learnAll() { const P = G.player; for (const k of ['R', 'Q', 'W', 'E', 'Q', 'W', 'E', 'Q', 'W', 'E']) levelSkill(G, P, k); return P.ranks; },
   freezeAI(on = true) { G.aiFrozen = on; },
   spawnEnemyHeroNear(d = 6) { const P = G.player, e = G.heroes.find((h) => h.team !== P.team && h.alive); e.x = P.x + d * 0.7; e.z = P.z - d * 0.7; e.goal = null; e.target = null; e.recall = 0; return e.id; },
