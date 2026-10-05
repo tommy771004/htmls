@@ -1,7 +1,7 @@
 // HUD：比分、技能列、氣力條、血條、連擊數、公告、必殺技切入、單位血條與浮動數字、選角與結算。
 import { HEROES, HERO_ORDER, FRANCHISES, TEAM_COLOR, TEAM_LIGHT, KI_BAR, xpToNext, MAX_LEVEL, ITEMS, APE_BUFF, DRAGON, RES, RUNES, RUNE_REC, JUNGLE_BUFF } from './config.js';
 import { ICONS, ITEM_ICONS, itemIcon } from './icons.js';
-import { buy, canBuy, inShop, eatSenzu, sell, priceFor, totalCost, sellPrice, itemById, BUILDS, buildOf } from './items.js';
+import { buy, canBuy, inShop, eatSenzu, sell, priceFor, totalCost, sellPrice, itemById, buildList } from './items.js';
 import { inBush } from './vision.js';
 import { seen } from './vision.js';
 import { canLevel, skillReady, skillCost } from './combat.js';
@@ -82,7 +82,7 @@ export function createHud(env) {
   el.shopQ.addEventListener('input', () => { shopQ = el.shopQ.value.trim(); renderShop(); });
   function recSet(P) {
     const out = new Set(), add = (id) => { if (out.has(id)) return; out.add(id); const it = itemById(id); (it && it.from || []).forEach(add); };
-    for (const id of BUILDS[buildOf(P)] || []) add(id);
+    for (const id of buildList(P)) add(id);
     ['senzu', 'salve', 'control'].forEach((id) => out.add(id));
     return out;
   }

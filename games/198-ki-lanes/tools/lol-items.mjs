@@ -68,7 +68,7 @@ for (const i of src.items) {
   total[i.id] = Math.round((m.gold ?? i.gold * (m.goldK ?? GOLD_K[t])) / 5) * 5;
   out.push({
     id: m.id, name: m.name, lol: i.id, proto: i.name, tier: t + 1, from, gold: total[i.id], stats,
-    ...(m.psv ? { psv: m.psv } : {}), ...(m.act ? { act: m.act } : {}), ...(m.boots ? { boots: m.boots } : {}),
+    ...(m.psv ? { psv: m.psv } : {}), ...(m.act ? { act: m.act } : {}), ...(i.tier === 'boots' ? { boots: true } : {}),
     ...(m.consumable ? { consumable: m.consumable } : {}), ...(m.hidden ? { hidden: true } : {}),
     desc: statText(stats), note: m.note || '',
   });

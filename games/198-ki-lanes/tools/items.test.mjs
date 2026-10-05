@@ -19,6 +19,7 @@ function duel(a = 'goku', b = 'vegeta') {
   for (const h of G.heroes) if (h !== A && h !== B) { h.alive = false; h.respawn = 1e9; }
   Object.assign(A, { heroId: a, def: HEROES[a], x: 0, z: 0, inv: [], brain: null });
   Object.assign(B, { heroId: b, def: HEROES[b], x: 1.5, z: 0, inv: [], brain: null });
+  A.rune = B.rune = 'none'; // 符文會疊傷害，測試裡關掉
   recalcStats(A); recalcStats(B); A.hp = A.maxHp; B.hp = B.maxHp;
   return { G, A, B };
 }
@@ -151,4 +152,68 @@ test('藥劑（增氣丸）：氣功強度 +50，90 秒後消失', () => {
   A.x = 0; A.z = 0;
   G.time += 91; step(G);
   assert.equal(A.elixir, null);
+});
+
+test('咒刃（巫妖之禍）：施放技能後下一次普攻追加技能傷害', () => {
+  const { G, A, B } = duel();
+  give(A, 'lich'); A.crit = 0;
+  levelSkill(G, A, 'Q'); A.mp = A.maxMp;
+  cast(G, A, 'Q', 30, 30);
+  const opts = { type: 'L' };
+  beforeAuto(G, A, B, 100, opts);
+  assert.equal(opts.extra.length, 1);
+  assert.ok(opts.extra[0][1] === true && opts.extra[0][0] > 0);
+});
+
+test('處決（收藏家）：傷害後血量低於 5% 直接擊殺', () => {
+  const { G, A, B } = duel();
+  give(A, 'collector');
+  B.hp = B.maxHp * 0.07;
+  damage(G, A, B, B.maxHp * 0.03, { type: 'L', noKi: true });
+  for (let i = 0; i < 2; i++) step(G);
+  assert.equal(B.alive, false);
+});
+
+test('減防（黑色斬斧）：物理傷害英雄疊層降低物理防禦', () => {
+  const { G, A, B } = duel();
+  B.armor = 100;
+  const m0 = defMul(A, B, false);
+  give(A, 'cleaver');
+  for (let i = 0; i < 5; i++) { damage(G, A, B, 1, { type: 'L', noKi: true }); G.time += 0.3; }
+  assert.ok(defMul(A, B, false) > m0);
+  assert.equal(B.st.arShN, 5);
+});
+
+test('大絕加速（獵魔弩）：大絕冷卻比一般技能加速多 30', () => {
+  const { G, A } = duel('goku', 'vegeta');
+  give(A, 'hunterbow'); A.level = 12; A.ranks.R = 1; A.ki = 500; A.mp = A.maxMp;
+  assert.equal(A.ultAh, 30);
+});
+
+test('保命護盾（狂戰之爪）：低於 30% 時依額外血量給護盾', () => {
+  const { G, A, B } = duel();
+  give(B, 'sterak');
+  B.hp = B.maxHp * 0.32;
+  damage(G, A, B, B.maxHp * 0.05, { type: 'L', noKi: true });
+  assert.ok(B.st.shield > 0);
+});
+
+test('購買規則：鞋子只能一雙、傳說裝備不能重複', () => {
+  const { G, A } = duel();
+  A.x = -81; A.z = 81; A.gold = 99999;
+  assert.ok(buy(G, A, 'steelboots'));
+  assert.equal(buy(G, A, 'windboots'), false);
+  assert.ok(buy(G, A, 'sunfire'));
+  assert.equal(buy(G, A, 'sunfire'), false);
+});
+
+test('支援（流水之杖）：小櫻 E 治療隊友時雙方得到氣功強度', () => {
+  const { G, A } = duel('sakura', 'vegeta');
+  const C = G.heroes.find((h) => h !== A && h.team === 0);
+  C.alive = true; C.respawn = 0; C.x = 1; C.z = 1; C.hp = C.maxHp * 0.5;
+  give(A, 'flowstaff'); A.mp = A.maxMp;
+  const apC = C.ap || 0;
+  levelSkill(G, A, 'E');
+  assert.ok(cast(G, A, 'E', 0, 0));
+  assert.ok((C.ap || 0) > apC);
 });

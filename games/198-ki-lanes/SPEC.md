@@ -91,7 +91,8 @@
 | 逐件對照 | `data/lol-item-map.mjs` | `REUSE`：已有的 23 件沿用本作 id 與手調數值，只當材料；`MAP`：本作 id、名稱、`psv`（被動）、`act`（主動）、`note`（商店說明） |
 | 換算 | `tools/lol-items.mjs` → `src/items-lol.js` | 屬性依層級換算（基礎／史詩／傳說各一組係數，防禦與穿透 ×0.3～0.4），總價基礎 ×1.0、史詩 ×0.75、傳說 ×0.55；`config.js` 再扣掉材料總價變成遞增價（最低 50） |
 | 效果 | `src/traits.js` | 被動以「被動名稱」為 key（同名不疊，取 `lv` 較高者），值是 `{ k: 種類, …參數 }`；種類一覽寫在檔案裡。時機：普攻前 `beforeAuto`、普攻後 `afterAuto`、傷害英雄後 `onHeroHit`、承受前後 `beforeTaken`／`afterTaken`、施放 `onCast`、參與擊殺 `onTakedown`、每步 `tick`；依層數或其他屬性的加成在 `units.statMods` |
-| 測試 | `tools/items.test.mjs` | 資料完整性、防禦與穿透公式、技能加速、各種效果、主動、藥水與藥劑 |
+| 測試 | `tools/items.test.mjs` | 資料完整性、防禦與穿透公式、技能加速、各種效果（含傳說裝備的咒刃、處決、減防、大絕加速、保命護盾、支援）、主動、購買規則、藥水與藥劑 |
+| AI 出裝 | `items.js` 的 `BUILDS` | 每種定位 2～3 套路線（`h.buildPick` 開局隨機），`buildList(h)` 取得；商店「推薦」分頁也用它 |
 
 新屬性：`leth`／`apen`（穿甲）、`mpen`／`mpenPct`（法穿）、`ah`（技能加速）、`ten`（韌性）、`ov`（全能吸血）、`hpr`（基礎生命回復，乘在脫戰回血上）、`hsp`（治療與護盾強度，目前用在護盾）、`critDmg`（暴擊傷害）。傷害類型新增 `proc`（裝備附加傷害：不吃技能加成、不觸發符文，`magic` 決定吃哪種防禦）。
 

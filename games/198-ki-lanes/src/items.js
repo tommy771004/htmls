@@ -33,6 +33,9 @@ export function canBuy(h, id) {
   if (it.elixir) return h.gold >= it.cost && !(h.elixir && h.elixir.id === id);
   if (it.consumable) return (h[it.field] || 0) < it.max && h.gold >= it.cost;
   const p = plan(h, id);
+  // 原作規則：同一件傳說裝備只能有一件，鞋子只能有一雙（合成時被吃掉的不算）
+  if (it.tier === 3 && h.inv.includes(id)) return false;
+  if (it.boots && h.inv.some((x, i) => !p.use.includes(i) && itemById(x).boots)) return false;
   return h.gold >= p.price && h.inv.length - p.use.length < INV_SLOTS;
 }
 export function buy(G, h, id) {
@@ -69,15 +72,38 @@ export function eatSenzu(G, h) {
   heal(G, h, h.maxHp * 0.45); addKi(G, h, KI_BAR); addMp(h, h.maxMp * 0.45);
   G.emit('senzu', h); return true;
 }
-// AI 的出裝目標（依定位），一次只買目標的下一步。體力型英雄不買魔力裝
+// AI 的出裝目標（依定位，每種定位有幾套路線，開局隨機挑一套），一次只買目標的下一步。體力型英雄不買魔力裝
 export const BUILDS = {
-  fighter: ['trinity', 'steelboots', 'majin', 'halo', 'water'],
-  assassin: ['zsword', 'leafboots', 'majin', 'halo', 'holy'],
-  tank: ['thorn', 'windboots', 'potara', 'cell', 'halo'],
-  mage: ['tome', 'mageboots', 'beerus', 'staff', 'hourglass'],
-  mageEnergy: ['beerus', 'leafboots', 'hourglass', 'holy', 'water'],
-  marksman: ['zsword', 'nimbus', 'majin', 'holy', 'halo'],
+  fighter: [
+    ['trinity', 'steelboots', 'sterak', 'deathdance', 'halo', 'water'],
+    ['cleaver', 'steelboots', 'ravenous', 'sterak', 'jaksho', 'halo'],
+    ['stride', 'windboots', 'overlord', 'deathdance', 'sundered', 'halo'],
+  ],
+  assassin: [
+    ['zsword', 'leafboots', 'hubris', 'umbral', 'mortal', 'halo'],
+    ['ghostblade', 'leafboots', 'axiom', 'nightedge', 'serylda', 'halo'],
+    ['profane', 'leafboots', 'eclipse', 'hubris', 'majin', 'holy'],
+  ],
+  tank: [
+    ['thorn', 'windboots', 'sunfire', 'frostheart', 'visage', 'warmog'],
+    ['heartsteel', 'steelboots', 'jaksho', 'randuin', 'naturefx', 'thorn'],
+  ],
+  mage: [
+    ['tome', 'mageboots', 'liandry', 'beerus', 'voidstaff', 'hourglass'],
+    ['echo', 'mageboots', 'shadowflame', 'beerus', 'rylai', 'veil'],
+    ['malignance', 'mageboots', 'stormsurge', 'beerus', 'cryptbloom', 'hourglass'],
+  ],
+  mageEnergy: [
+    ['beerus', 'leafboots', 'hourglass', 'riftmaker', 'shadowflame', 'holy'],
+    ['liandry', 'leafboots', 'rylai', 'beerus', 'voidstaff', 'veil'],
+  ],
+  marksman: [
+    ['zsword', 'nimbus', 'tribow', 'collector', 'mortal', 'shieldbow'],
+    ['statikk', 'nimbus', 'zsword', 'botrk', 'giantslayer', 'shieldbow'],
+    ['rageblade', 'nimbus', 'botrk', 'witsend', 'terminus', 'halo'],
+  ],
 };
+export const buildList = (h) => { const l = BUILDS[buildOf(h)]; return l[(h.buildPick || 0) % l.length]; };
 export function buildOf(h) {
   const r = h.def.role;
   if (r === '坦克') return 'tank';
@@ -88,7 +114,7 @@ export function buildOf(h) {
 }
 // 下一個要買的東西：目標本身買得起就買，否則買最貴、買得起、還缺的下位道具
 export function nextBuy(h) {
-  const build = BUILDS[buildOf(h)];
+  const build = buildList(h);
   // 已合成的終極道具會吃掉進階道具：已經擁有（或其上位已擁有）就跳過
   const owns = (id) => h.inv.includes(id) || ITEMS.some((x) => x.from && x.from.includes(id) && owns(x.id));
   const target = build.find((id) => !owns(id));

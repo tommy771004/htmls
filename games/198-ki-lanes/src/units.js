@@ -30,6 +30,7 @@ export function makeHero(G, heroId, team, lane, isPlayer) {
     // 資源、符文、裝備被動與野怪增益
     res: def.res, mp: 0, maxMp: 0, tear: 0, graspHp: 0, rune: RUNE_REC[heroId] || 'conqueror', rs: { stacks: 0, t: -99, hits: [], cd: 0, charge: 0 },
     bladeT: 0, bladeCd: 0, gaCd: 0, actCd: {}, stasis: 0, blue: 0, red: 0,
+    buildPick: Math.floor(Math.random() * 6), // AI 出裝路線（items.buildList）
   });
   recalcStats(u);
   u.hp = u.maxHp; u.mp = u.maxMp;
