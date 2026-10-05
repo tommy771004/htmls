@@ -91,7 +91,7 @@ VV_CORE=… python tools/voices/build_voices.py [--only goku] [--wav dist/voices
 
 - `npm run models` = `node tools/rig-dump.mjs`（從 `models.js` 的骨架算出 A 字綁定姿勢的骨頭位置，寫 `blender/rig.json`）＋ `blender -b --factory-startup --python blender/build_heroes.py`。改了 `models.js` 的骨架或 `models-heroes.js` 的 PROPS 也要重跑。
 - `blender/kit.py`：斷面放樣（含前開口的弧形斷面，用來做 V 領與敞開的外套）、細分、布料加厚、等值線切割上色、骨熱權重、遮蔽、輸出。`blender/heroes.py` 是悟空與共用部件（軀幹、手臂、握拳、靴、動畫臉、髮束），`blender/cast.py` 是其他五名。
-- 身體是一張蒙皮網格（11 根骨頭＋擺動鏈：悟空與比克的垂帶、弗利沙的尾巴、魯夫與索隆的腰帶尾、索隆大衣與佐助腰布的後片），頭顱掛在頭骨上；JS 端把骨架擺成同樣的 A 字姿勢後綁定，再交給原本的程式動畫。擺動鏈的權重在 Blender 端由 `custom` 群組函式指定（`skirt_chain_weights` 只把後片的一部分權重讓給擺動鏈，前片仍跟著雙腿）。
+- 身體是一張蒙皮網格（11 根骨頭＋擺動鏈：悟空與比克的垂帶、弗利沙的尾巴、魯夫與索隆的腰帶尾、索隆大衣、佐助腰布與 18 號長裙的後片），頭顱掛在頭骨上；JS 端把骨架擺成同樣的 A 字姿勢後綁定，再交給原本的程式動畫。擺動鏈的權重在 Blender 端由 `custom` 群組函式指定（`skirt_chain_weights` 只把後片的一部分權重讓給擺動鏈，前片仍跟著雙腿）。
 - 髮型是綁在頭骨＋一根 `hairBone` 彈簧骨的蒙皮網格，權重在 JS 端依位置算（`hairWeights`：頭心以下、偏後的髮束才擺，臉前的瀏海不動），跑動時往後甩、轉身與集氣時被甩動。
 - 每頂點存調色盤索引、材質碼（0 一般、1 頭髮、2 亮面、3 發光、4 皮膚、5 隊伍色）、遮蔽、外框粗細倍率與平滑法線；以欄位式串流差分後 zlib＋base64，六名約 1.8 MB。
 

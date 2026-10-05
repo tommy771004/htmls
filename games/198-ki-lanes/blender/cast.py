@@ -6,9 +6,9 @@ from mathutils import Matrix
 import kit
 from kit import S, V, ang_bump, bump, lerp, smooth
 from heroes import (
-    ALLOW, BACK, FRONT, G_ARM_L, G_BELT, G_CHAIN, G_FOOT_L, G_FORE_L, G_FREE, G_HAND_L, G_LEG_L, G_NECK, G_PELVIS, G_TORSO,
+    ALLOW, BACK, FRONT, G_ARM_L, G_BELT, G_CHAIN, G_SKIRT, G_FOOT_L, G_FORE_L, G_FREE, G_HAND_L, G_LEG_L, G_NECK, G_PELVIS, G_TORSO,
     G_UPPER_L, G_CHEST, PI, TORSO_ROWS, Fig, anime_head, arm_skin, band, boot, finish, fist, hair, hair_cap, leg_tube,
-    limb, mirror, neck, pair_add, path_loft, pelvis, sash_chain_weights, sleeve, sym, torso_rows, tree_of, baggy_leg,
+    limb, mirror, neck, pair_add, path_loft, pelvis, sash_chain_weights, skirt_chain_weights, sleeve, sym, torso_rows, tree_of, baggy_leg,
 )
 
 
@@ -499,7 +499,7 @@ def build_a18(R):
     sk = kit.loft('skirt', [S(V((0, yb, 0.0)), F.w * 1.22 + 0.01, F.cz * 0.86 + 0.01, p=2.2), S(V((0, F.L + 0.03, 0)), hw * 1.6, F.cz * 0.98, p=2.2),
                             S(V((0, F.L - 0.12, 0.005)), hw * 1.85, F.cz * 1.15, p=2.1), S(V((0, F.L - 0.24, 0.01)), hw * 2.0, F.cz * 1.28, p=2.0), S(V((0, F.L - 0.32, 0.012)), hw * 2.06, F.cz * 1.32, p=2.0)], n=22, cap0=None, cap1=None)
     sk = kit.subsurf(sk, 2, solidify=0.009)
-    kit.tag(sk, denim, grp=G_PELVIS)
+    kit.tag(sk, denim, grp=G_SKIRT)
     body.append(sk)
     body.append(belt_ring(F, yb + 0.005, 0.026, beltc, e=0.02, thick=0.008))
     kl = F.k_leg
@@ -514,7 +514,7 @@ def build_a18(R):
     hc = P(0xf3d77a)
     from heroes import bob_cap
     heads = {'base': [h, bob_cap('bob', F, hc, hairline=0.5, length=0.75, flare=0.28, scale=1.14, part=0.15)] + hair(F, hc, a18_hair()[:3])}  # 及下巴的蓬鬆鮑伯頭＋側分瀏海
-    return finish(F, P, body, proxy, heads)
+    return finish(F, P, body, proxy, heads, custom={G_SKIRT: skirt_chain_weights(F, 'skirt')})
 
 
 def a18_hair():

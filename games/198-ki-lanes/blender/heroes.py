@@ -18,6 +18,7 @@ BACK = -PI / 2
 (G_FREE, G_TORSO, G_ARM_L, G_ARM_R, G_HAND_L, G_HAND_R, G_LEG_L, G_LEG_R, G_FOOT_L, G_FOOT_R,
  G_PELVIS, G_BELT, G_NECK, G_UPPER_L, G_UPPER_R, G_FORE_L, G_FORE_R, G_SHIN_L, G_SHIN_R, G_CHEST) = range(20)
 G_CHAIN = 30
+G_SKIRT = 31  # 長下襬：骨熱同骨盆群組，再由 skirt_chain_weights 把後片分給擺動鏈
 ALLOW = {
     G_TORSO: {'hips', 'torso', 'shL', 'shR'},
     G_ARM_L: {'torso', 'shL', 'elL'}, G_ARM_R: {'torso', 'shR', 'elR'},
@@ -32,6 +33,7 @@ ALLOW = {
     G_NECK: {'torso', 'head'},
     G_CHEST: {'torso'},
 }
+ALLOW[G_SKIRT] = ALLOW[G_PELVIS]
 MIRROR_GRP = {G_ARM_L: G_ARM_R, G_HAND_L: G_HAND_R, G_LEG_L: G_LEG_R, G_FOOT_L: G_FOOT_R, G_UPPER_L: G_UPPER_R, G_FORE_L: G_FORE_R, G_SHIN_L: G_SHIN_R}
 
 
@@ -524,6 +526,24 @@ def sash_chain_weights(F, chain):
             return [(chain + '0', k), ('hips', 1 - k)]
         k = smooth(0.3 + (h1.y - y) / (h1.y - t1.y))
         return [(chain + '1', k), (chain + '0', 1 - k)]
+    return fn
+
+
+
+
+def skirt_chain_weights(F, chain):
+    """長下襬：後片依高度讓一部分權重給擺動鏈（chain0 → chain1），前片與側邊保留原本跟著雙腿的骨熱權重。"""
+    h0, _ = F.b[chain + '0']
+    _, t1 = F.b[chain + '1']
+
+    def fn(co, old):
+        t = (h0.y - co.y) / (h0.y - t1.y)
+        k = 0.85 * smooth(-co.z / (F.cz * 1.1)) * smooth(t * 3.0)
+        if k <= 0.001:
+            return old
+        c1 = smooth(t * 1.6 - 0.5)
+        return [(b, w * (1 - k)) for b, w in old] + [(chain + '0', k * (1 - c1)), (chain + '1', k * c1)]
+    fn.blend = True
     return fn
 
 

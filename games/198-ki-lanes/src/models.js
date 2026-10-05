@@ -498,8 +498,8 @@ export function chainSpecs(id, d) {
   if (id === 'goku' || id === 'piccolo') out.push({ name: 'sash', parent: 'hips', pos: [id === 'goku' ? -0.035 : 0.13, 0.03, d.chest[2] * 0.92], n: 2, len: id === 'piccolo' ? 0.19 : 0.17, base: -0.15, yaw: 0.1, lift: -0.6, flutter: 0.2 });
   // 腰帶尾端（魯夫、索隆左腰垂下的布條）
   if (id === 'luffy' || id === 'zoro') out.push({ name: 'sash', parent: 'hips', pos: [d.waist * (id === 'zoro' ? 1.05 : 1.0), id === 'zoro' ? 0.08 : 0.06, d.chest[2] * (id === 'zoro' ? 1.0 : 0.72)], n: 2, len: id === 'zoro' ? 0.31 : 0.28, base: 0, lift: 0.55, flutter: 0.3 });
-  // 長下襬的後片（索隆大衣、佐助腰布）：跑動時往後飄，前片仍跟著雙腿
-  if (id === 'zoro' || id === 'sasuke') out.push({ name: 'skirt', parent: 'hips', pos: [0, id === 'zoro' ? 0.08 : 0.06, -d.chest[2] * 1.0], n: 2, len: id === 'zoro' ? 0.34 : 0.28, base: 0, lift: 0.4, flutter: 0.14 });
+  // 長下襬的後片（索隆大衣、佐助腰布、18 號長裙）：跑動時往後飄，前片仍跟著雙腿
+  if (id === 'zoro' || id === 'sasuke' || id === 'a18') out.push({ name: 'skirt', parent: 'hips', pos: [0, id === 'zoro' ? 0.08 : id === 'a18' ? 0.04 : 0.06, -d.chest[2] * 1.0], n: 2, len: id === 'zoro' ? 0.34 : id === 'a18' ? 0.19 : 0.28, base: 0, lift: id === 'a18' ? 0.3 : 0.4, flutter: 0.14 });
   if (id === 'frieza') out.push({ name: 'tail', parent: 'hips', pos: [0, -0.04, -d.hip * 1.05], n: 5, len: 0.2, base: 0.75, lift: 0.22, flutter: 0.1, curl: 0.16, sway: 0.4 });
   return out;
 }
