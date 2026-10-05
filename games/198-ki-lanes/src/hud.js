@@ -1,5 +1,5 @@
 // HUD：比分、技能列、氣力條、血條、連擊數、公告、必殺技切入、單位血條與浮動數字、選角與結算。
-import { HEROES, HERO_ORDER, FRANCHISES, TEAM_COLOR, TEAM_LIGHT, KI_BAR, xpToNext, MAX_LEVEL, ITEMS, APE_BUFF, DRAGON, RES, RUNES, RUNE_REC, JUNGLE_BUFF, SUMMONERS, SUMM_REC } from './config.js';
+import { HEROES, HERO_ORDER, FRANCHISES, TEAM_COLOR, TEAM_LIGHT, KI_BAR, xpToNext, MAX_LEVEL, ITEMS, APE_BUFF, DRAGON, RES, RUNES, RUNE_REC, JUNGLE_BUFF, SUMMONERS, SUMM_REC, PASSIVES } from './config.js';
 import { ICONS, ITEM_ICONS, itemIcon, SUMM_ICONS } from './icons.js';
 import { castSummoner, summById } from './summoners.js';
 import { buy, canBuy, inShop, eatSenzu, sell, priceFor, totalCost, sellPrice, itemById, buildList } from './items.js';
@@ -535,7 +535,7 @@ export function createSelect({ portraits, onPick, onStart }) {
     for (const c of cards.children) c.classList.toggle('sel', c.dataset.id === id);
     info.style.setProperty('--el', d.color);
     rune = RUNE_REC[id]; summ = summRec(id);
-    info.innerHTML = `<h2${d.name.length > 5 ? ' class="long"' : ''}><b>${d.name}</b><span>${d.en} · ${d.role} · ${d.resName}</span></h2><p>${d.blurb}</p><ul>${KEYS.map((k) => `<li><i>${ICONS[id][k]}</i><kbd>${k}</kbd><div><b>${d.skills[k].name}</b><span>${d.skills[k].desc}</span></div></li>`).join('')}</ul>`
+    info.innerHTML = `<h2${d.name.length > 5 ? ' class="long"' : ''}><b>${d.name}</b><span>${d.en} · ${d.role} · ${d.resName}</span></h2><p>${d.blurb}</p>${PASSIVES[id] ? `<p class="psv"><b>被動・${PASSIVES[id].name}</b>${PASSIVES[id].desc}</p>` : ''}<ul>${KEYS.map((k) => `<li><i>${ICONS[id][k]}</i><kbd>${k}</kbd><div><b>${d.skills[k].name}</b><span>${d.skills[k].desc}</span></div></li>`).join('')}</ul>`
       + `<div class="runes"><b>符文</b><div class="rb">${RUNES.map((r) => `<button type="button" data-rune="${r.id}" class="${r.id === RUNE_REC[id] ? 'rec' : ''}">${r.name}</button>`).join('')}</div><p></p></div>`
       + `<div class="runes summs"><b>技能</b><div class="rb">${SUMMONERS.map((x) => `<button type="button" data-summ="${x.id}" class="${x.id === summRec(id) ? 'rec' : ''}">${x.name}</button>`).join('')}</div><p></p></div>`;
     showRune();

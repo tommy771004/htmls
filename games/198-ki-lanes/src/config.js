@@ -341,6 +341,23 @@ export const SUMMONERS = [
   { id: 'smite', name: '重擊', proto: '重擊', cd: 36, range: 5, dmg: 450, lv: 25, desc: '對 5 公尺內最近的野怪或小兵造成 450＋每級 25 真實傷害（對英雄 80）。搶大猿用。' },
 ];
 export const SUMM_REC = { tank: 'teleport', assassin: 'ignite', marksman: 'heal', mage: 'barrier', fighter: 'flash' };
+// 英雄天生被動（《英雄聯盟》每名英雄都有一個）：psv 用 traits.js 的效果原語，併入 h.psv（key 前綴 hero_，不和裝備衝突）
+export const PASSIVES = {
+  goku: { name: '越戰越勇', desc: '與英雄交戰時，每秒傷害 +1.5%，最多 +7.5%。', psv: { ramp: { k: 'ramp', per: 0.015, max: 0.075 } } },
+  vegeta: { name: '王子的自尊', desc: '血量低於 40% 時傷害 +12%、攻速 +15%。', psv: { pride: { k: 'selfLowHp', below: 0.4, dmg: 0.12, as: 0.15 } } },
+  trunks: { name: '未來劍技', desc: '每第三下普攻追加 20＋每級 4 的真實傷害。', psv: { sword: { k: 'everyN', n: 3, flat: 20, lvDmg: 4, trueDmg: true } } },
+  piccolo: { name: '那美克星人的再生', desc: '5 秒沒受傷後，每秒回復 1.5% 最大血量。', psv: { regen: { k: 'warmog', pct: 0.015, need: 0, after: 5 } } },
+  frieza: { name: '宇宙帝王', desc: '技能命中英雄時追加目標最大血量 2% 的技能傷害（同一目標 1 秒一次）。', psv: { emperor: { k: 'skillPctMax', pct: 0.02, cd: 1 } } },
+  a18: { name: '無限能量', desc: '技能的魔力消耗 -25%。', psv: { energy: { k: 'costCut', pct: 0.25 } } },
+  naruto: { name: '九尾查克拉', desc: '受傷後血量低於 30% 時，5 秒內回復 20% 最大血量（60 秒一次）。', psv: { kurama: { k: 'lifeline', at: 0.3, base: 0, regen: 0.2, dur: 5, cd: 60 } } },
+  sasuke: { name: '寫輪眼', desc: '對被暈眩、冰凍或緩速的英雄傷害 +12%。', psv: { sharingan: { k: 'vsCc', pct: 0.12 } } },
+  kakashi: { name: '複製忍者', desc: '10 公尺內的敵方英雄施放技能後，自己的下一次技能傷害 +15%（6 秒內）。', psv: { copy: { k: 'copy', pct: 0.15, r: 10, dur: 6 } } },
+  sakura: { name: '百豪之印', desc: '受傷後血量低於 35% 時，5 秒內回復 25% 最大血量（90 秒一次）。', psv: { byakugo: { k: 'lifeline', at: 0.35, base: 0, regen: 0.25, dur: 5, cd: 90 } } },
+  luffy: { name: '橡膠', desc: '承受的普攻傷害 -15%（打擊對橡膠沒什麼用）。', psv: { rubber: { k: 'autoReduce', pct: 0.15 } } },
+  zoro: { name: '三刀流', desc: '普攻對目標周圍 2.5 公尺的敵人造成 35% 傷害。', psv: { santoryu: { k: 'cleave', pct: 0.35, r: 2.5 } } },
+  sanji: { name: '連環踢', desc: '普攻疊攻速 +5%（最多 4 層，4 秒）。', psv: { kicks: { k: 'guinsoo', as: 0.05, max: 4, dur: 4 } } },
+  nami: { name: '氣象科學', desc: '每第三下普攻落雷，追加 30＋30% 氣功強度的技能傷害。', psv: { weather: { k: 'everyN', n: 3, flat: 30, apK: 0.3, magic: true } } },
+};
 export const INV_SLOTS = 6;
 export const ELIXIR_DUR = 90;
 

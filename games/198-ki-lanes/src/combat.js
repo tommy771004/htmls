@@ -17,8 +17,8 @@ const sk = (h, k) => h.def.skills[k];
 const skillDmg = (h, k) => { const s = sk(h, k), r = Math.max(0, rankOf(h, k)); return s.dmg[Math.min(r, s.dmg.length - 1)] + (s.adR || 0) * h.ad + (s.apR ?? (s.adR || 0) * 1.6) * (h.ap || 0); };
 // 技能的魔力／體力花費（依等級）
 export function skillCost(h, k) {
-  const s = sk(h, k); if (s.cost) return s.cost[Math.min(Math.max(0, rankOf(h, k)), s.cost.length - 1)];
-  const c = RES[h.res || 'mana'].cost[k]; return c[Math.min(Math.max(0, rankOf(h, k)), c.length - 1)];
+  const s = sk(h, k), cut = 1 - (h.costCut || 0); if (s.cost) return s.cost[Math.min(Math.max(0, rankOf(h, k)), s.cost.length - 1)] * cut;
+  const c = RES[h.res || 'mana'].cost[k]; return c[Math.min(Math.max(0, rankOf(h, k)), c.length - 1)] * cut;
 }
 const sfx = (G, name, at, o) => G.sfx && G.sfx(name, at, o);
 const fx = (G) => G.fx;

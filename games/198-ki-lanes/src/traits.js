@@ -83,6 +83,7 @@ export function asMul(G, h) {
     for (const e of effs(h, 'guinsoo')) if (F.gStk && G.time - F.gT < e.dur) m /= 1 + e.as * F.gStk;
     if (F.flT > G.time) m /= 1 + F.flAs;
   }
+  for (const e of effs(h, 'selfLowHp')) if (h.hp < h.maxHp * e.below) m /= 1 + e.as;
   // 光環：附近敵方英雄的攻速降低（冰霜之心類）
   for (const o of G.heroes) if (o.alive && o.team !== h.team && o.psv) for (const k in o.psv) { const e = o.psv[k]; if (e && e.k === 'asAura' && dist(o, h) < e.r) m *= 1 + e.pct; }
   return m;
@@ -115,6 +116,8 @@ export function beforeAuto(G, h, t, dmg, opts) {
 
 // 施放技能後：咒刃上膛、積蓄層數
 export function onCast(G, h, cost = 0, k = '') {
+  // 複製忍者：附近的敵方英雄施放技能 → 自己下一次技能增傷
+  for (const o of G.heroes) if (o.alive && o.team !== h.team && o.psv) for (const e of effs(o, 'copy')) if (dist(o, h) < e.r) { const F = fxs(o); F.copyT = G.time + e.dur; F.copyAmp = e.pct; F.copyEnd = 0; }
   if (h.psv.blade && G.time >= h.bladeCd) h.bladeT = G.time + 10;
   if (effs(h, 'spellblade').length) fxs(h).bladeArmed = G.time + 10;
   if (k === 'R' && h.soul === 'cloud') haste(h, 6, 0.5); // 風雲之魂
@@ -380,8 +383,8 @@ export function afterAuto(G, h, t, dealt, opts) {
     for (const u of G.units) if (u !== t && u.alive && u.team !== h.team && u.team <= 2 && (u.kind === 'hero' || u.kind === 'minion' || u.kind === 'monster') && dist(u, t) < e.r + u.radius) damage(G, h, u, dealt * e.pct, { type: 'proc', noKi: true });
   }
   for (const e of effs(h, 'everyN')) {
-    F.nHits = (F.nHits || 0) + 1;
-    if (F.nHits >= e.n) { F.nHits = 0; damage(G, h, t, (e.flat || 0) + (e.ad || 0) * h.ad + (e.bad || 0) * bonusAd(h), { type: 'proc', magic: !!e.magic, noKi: true }); fx(G).ring(t.x, t.z, '#ffe08a', 1.4, 0.25); }
+    F.nHits = (F.nHits || 0) + 1; // 多個「每第 N 下」共用計數（每次普攻只加一次）
+    if (F.nHits >= e.n) { F.nHits = 0; damage(G, h, t, (e.flat || 0) + (e.lvDmg || 0) * h.level + (e.ad || 0) * h.ad + (e.bad || 0) * bonusAd(h) + (e.apK || 0) * (h.ap || 0), e.trueDmg ? { type: 'true', noKi: true, rune: true } : { type: 'proc', magic: !!e.magic, noKi: true }); if (h.heroId === 'nami') fx(G).lightning({ x: t.x + 0.6, y: 9, z: t.z - 0.6 }, { x: t.x, y: 1 + t.y, z: t.z }, '#ffe36a'); else fx(G).ring(t.x, t.z, '#ffe08a', 1.4, 0.25); }
   }
 }
 
@@ -400,6 +403,7 @@ function itemOnHeroHit(G, h, dst, a, opts, skill) {
     const st = dst.st, p = e.type === 'magic' ? 'mrSh' : 'arSh';
     st[p + 'N'] = Math.min(e.max, (st[p + 'T'] > 0 ? st[p + 'N'] || 0 : 0) + 1); st[p + 'T'] = e.dur; st[p + 'P'] = e.pct;
   }
+  if (skill) for (const e of effs(h, 'skillPctMax')) if (G.time >= ((dst.st.pmCd || {})[h.id] || 0)) { (dst.st.pmCd ||= {})[h.id] = G.time + e.cd; G.later(0.02, () => procDmg(G, h, dst, dst.maxHp * e.pct, true)); }
   if (skill) for (const e of effs(h, 'skillSlow')) if (!e.below || dst.hp < dst.maxHp * e.below) { dst.st.slow = Math.max(dst.st.slow, e.dur); dst.st.slowAmt = Math.max(dst.st.slowAmt, e.pct * (1 - (dst.slowRes || 0))); }
   if (opts.stun || opts.air || opts.freeze) {
     for (const e of effs(h, 'ccMark')) { dst.st.vuln = e.dur; dst.st.vulnAmp = e.amp; }
@@ -462,6 +466,9 @@ export function beforeTaken(G, src, dst, a, opts) {
     for (const e of effs(src, 'burnAmp')) a *= 1 + e.pct * G.heroes.filter((u) => u.alive && u.team !== src.team && u.st.burn > 0 && u.st.burnSrc === src).length;
     if (skill) for (const e of effs(src, 'focus')) { const F = fxs(src); if (G.time - (F.fT ?? -99) < e.dur) a *= 1 + e.per * (F.fN || 0); }
     if (src.buffs && src.buffs.empower && skill) a *= 1 + (src.buffs.empower.dmg || 0);
+    for (const e of effs(src, 'selfLowHp')) if (src.hp < src.maxHp * e.below) a *= 1 + e.dmg;
+    for (const e of effs(src, 'vsCc')) if (dst.st.stun > 0 || dst.st.frozen > 0 || dst.st.slow > 0) a *= 1 + e.pct;
+    if (skill) { const F = fxs(src); if (F.copyT > G.time) { if (!F.copyEnd) F.copyEnd = G.time + 0.4; if (G.time < F.copyEnd) a *= 1 + F.copyAmp; else F.copyT = F.copyEnd = 0; } } // 複製：同一招的多段命中都算
   }
   if (dst.st.vuln > 0) a *= 1 + (dst.st.vulnAmp || 0);
   if (src && src.soul === 'chem' && src.hp < src.maxHp * 0.5) a *= 1.1; // 毒霧之魂
@@ -525,7 +532,7 @@ export function onDeath(G, h) {
 function itemTick(G, h, dt) {
   // 岩山之魂：5 秒沒受傷就得到護盾
   if (h.soul === 'earth') { const F0 = fxs(h); if (G.time - (F0.lastDmg ?? -99) > 5 && !(h.st.shield > 0)) { h.st.shield = 60 + 14 * h.level; h.st.shieldT = 9999; } }
-  const F = h.fxs; if (!F && !h.psv) return;
+  const F = fxs(h);
   for (const e of effs(h, 'mpRegen')) addMp(h, (G.time - (F && F.heroCombat || -99) < 5 ? e.combat : e.v) * dt);
   if (!F) return;
   if (F.regenT > G.time) heal(G, h, F.regenV * dt);
@@ -554,7 +561,7 @@ function itemTick(G, h, dt) {
   // 技能護盾（脫離技能傷害一段時間後）
   for (const e of effs(h, 'idleShield')) if (G.time - (F.lastMagic ?? -99) > e.after && !(h.st.shield > 0)) { h.st.shield = e.base + e.lv * h.level; h.st.shieldT = 9999; }
   // 好戰活力：8 秒沒受傷時快速回血
-  for (const e of effs(h, 'warmog')) if (G.time - (F.lastDmg ?? -99) > 8 && bonusHp(h) >= e.need) heal(G, h, h.maxHp * e.pct * dt);
+  for (const e of effs(h, 'warmog')) if (G.time - (F.lastDmg ?? -99) > (e.after || 8) && bonusHp(h) >= e.need) heal(G, h, h.maxHp * e.pct * dt);
   // 交戰中的增傷：5 秒沒和英雄交手就重置
   if (G.time - (F.heroCombat ?? -99) > 5) F.rampT0 = undefined; else if (F.rampT0 === undefined) F.rampT0 = G.time;
   if (F.immoT > G.time) for (const e of effs(h, 'immolate')) {

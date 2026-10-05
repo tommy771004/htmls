@@ -1,6 +1,6 @@
 // 單位：英雄、小兵、建築。移動、碰撞、傷害、死亡、經驗。
 import {
-  HEROES, MINION, MINION_GROWTH, TOWER, STAT, SUMM_REC, BOUNTY, PLATES, KI_MAX, KI_BAR, MAX_LEVEL, xpToNext, respawnTime, XP_SHARE_RADIUS,
+  HEROES, MINION, MINION_GROWTH, TOWER, STAT, SUMM_REC, BOUNTY, PLATES, PASSIVES, KI_MAX, KI_BAR, MAX_LEVEL, xpToNext, respawnTime, XP_SHARE_RADIUS,
   FOUNTAIN, BASE, COMBO_WINDOW, HITSTOP, SPARK, WAVE_EVERY, FIRST_WAVE, SIEGE_FROM_WAVE, GOLD, ITEMS, APE_BUFF, DRAGON, RES, JUNGLE_BUFF, TEAR_MAX, RUNE_REC,
 } from './config.js';
 import { collide, obstaclesNear, lanePath, heightAt, STRUCTURES, laneProgress } from './map.js';
@@ -62,6 +62,8 @@ export function itemPassives(u) {
     if (it.act && !acts.some((a) => a.id === it.act.id)) acts.push({ ...it.act, item: id });
   }
   if (u.elixir && u.elixir.psv) Object.assign(p, u.elixir.psv);
+  const pv = u.heroId && PASSIVES[u.heroId];
+  if (pv) for (const k in pv.psv) p['hero_' + k] = pv.psv[k]; // 英雄天生被動
   return { p, acts };
 }
 export function recalcStats(u) {
@@ -107,6 +109,7 @@ function statMods(u, it) {
     else if (e.k === 'ultAh') u.ultAh += e.v;
     else if (e.k === 'basicAh') u.basicAh += e.v;
     else if (e.k === 'sumAh') u.sumAh += e.v;
+    else if (e.k === 'costCut') u.costCut = Math.max(u.costCut || 0, e.pct);
     else if (e.k === 'timeStacks') { const t = u.tStk || 0; u.maxHp += e.hp * t; u.maxMp += e.mp * t; u.ap += e.ap * t; }
     else if (e.k === 'statFrom') {
       if (e.manaToHp) u.maxHp += u.maxMp * e.manaToHp;

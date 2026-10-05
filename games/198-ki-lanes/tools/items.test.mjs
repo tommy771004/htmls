@@ -20,6 +20,7 @@ function duel(a = 'goku', b = 'vegeta') {
   Object.assign(A, { heroId: a, def: HEROES[a], x: 0, z: 0, inv: [], brain: null });
   Object.assign(B, { heroId: b, def: HEROES[b], x: 1.5, z: 0, inv: [], brain: null });
   A.rune = B.rune = 'none'; // 符文會疊傷害，測試裡關掉
+  A.res = HEROES[a].res; B.res = HEROES[b].res; A.maxMp = B.maxMp = 0;
   recalcStats(A); recalcStats(B); A.hp = A.maxHp; B.hp = B.maxHp;
   return { G, A, B };
 }
@@ -334,4 +335,19 @@ test('屬性龍珠：打倒神龍得到永久祝福，3 層得到龍魂，之後
   assert.ok(A.armor > arm * 1.15);
   assert.equal(A.soul, 'earth');
   assert.equal(G.dball.element, 'elder');
+});
+
+/* ---------------- 英雄被動 ---------------- */
+test('英雄被動：魯夫的橡膠減普攻傷害、18 號的技能消耗 -25%、貝吉塔殘血增傷', () => {
+  const { G, A, B } = duel('goku', 'luffy');
+  const a1 = damage(G, A, B, 200, { type: 'L', noKi: true });
+  assert.equal(a1, Math.round(200 * defMul(A, B, false) * 0.85));
+  const D = duel('a18', 'goku'); levelSkill(D.G, D.A, 'Q');
+  D.A.mp = 1000; const mp = D.A.mp; cast(D.G, D.A, 'Q', 30, 30);
+  const E = duel('goku', 'goku'); levelSkill(E.G, E.A, 'Q'); E.A.mp = 1000; cast(E.G, E.A, 'Q', 30, 30);
+  assert.ok(Math.abs((mp - D.A.mp) - (1000 - E.A.mp) * 0.75) < 1e-6);
+  const V = duel('vegeta', 'goku');
+  const full = damage(V.G, V.A, V.B, 100, { type: 'true', noKi: true }); V.B.hp = V.B.maxHp;
+  V.A.hp = V.A.maxHp * 0.3;
+  assert.equal(damage(V.G, V.A, V.B, 100, { type: 'true', noKi: true }), Math.round(full * 1.12));
 });
