@@ -2,10 +2,19 @@
 // 全隊補兵與擊倒大猿累積龍珠，先集滿七顆的隊伍召喚神龍降臨神龍坑；神龍是兩隊都能打的超級王，
 // 打倒的隊伍得到願望（全隊強化 90 秒並讓陣亡的隊友立刻復活），之後龍珠散落、兩隊重新收集。
 import { DRAGON } from './config.js';
-import { addUnit, damage, dist, face, targetable, respawnHero } from './units.js';
+import { addUnit, damage, dist, face, targetable, respawnHero, recalcStats } from './units.js';
+
+const ELEMENTS = Object.keys(DRAGON.elements);
+// 下一輪的屬性：隨機但不連續重複；有隊伍拿到龍魂後改為究極神龍
+function nextElement(G, prev) {
+  if (G.dball && G.dball.soulTeam >= 0) return 'elder';
+  const pool = ELEMENTS.filter((e) => e !== prev);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 export function setupDragonBalls(G) {
-  G.dball = { balls: [0, 0], cs: [0, 0], phase: 'collect', owner: -1, summonAt: 0, round: 0 };
+  G.dball = { balls: [0, 0], cs: [0, 0], phase: 'collect', owner: -1, summonAt: 0, round: 0, drakes: [[], []], soulTeam: -1 };
+  G.dball.element = nextElement(G, null);
   G.shenron = null;
   G.on('death', ({ u, src }) => {
     if (u.kind !== 'minion' || !src || src.kind !== 'hero') return;
@@ -32,7 +41,7 @@ function gain(G, team, n, why) {
 }
 
 function spawnShenron(G) {
-  const S = DRAGON.shenron, k = 1 + G.time / 900, p = DRAGON.pit;
+  const S = DRAGON.shenron, k = (1 + G.time / 900) * (G.dball.element === 'elder' ? 1.35 : 1), p = DRAGON.pit;
   const u = {
     id: 190000 + G.dball.round, kind: 'monster', mkind: 'shenron', team: 2, camp: null, boss: false, big: true,
     x: p.x, z: p.z, home: { x: p.x, z: p.z }, y: 0, vy: 0, radius: S.radius, hp: S.hp * k, maxHp: S.hp * k, alive: true, facing: Math.PI * 0.25,
@@ -46,17 +55,28 @@ function spawnShenron(G) {
 }
 
 function grantWish(G, team) {
-  const D = G.dball;
+  const D = G.dball, el = D.element;
   if (team >= 0) {
     for (const h of G.heroes) if (h.team === team) { if (!h.alive) { respawnHero(G, h); h.respawn = 0; } h.wish = DRAGON.wish.dur; h.hp = h.maxHp; }
+    if (el === 'elder') { for (const h of G.heroes) if (h.team === team) h.elder = DRAGON.elderDur; }
+    else {
+      // 屬性祝福（永久）：疊在全隊英雄身上；第 3 層得到龍魂
+      D.drakes[team].push(el);
+      const soul = D.soulTeam < 0 && D.drakes[team].length >= DRAGON.soulAt ? el : null;
+      if (soul) D.soulTeam = team;
+      for (const h of G.heroes) if (h.team === team) { h.drk = h.drk || {}; h.drk[el] = (h.drk[el] || 0) + 1; if (soul) h.soul = soul; recalcStats(h); }
+      if (soul) G.emit('dragonSoul', { team, el: soul });
+    }
   }
-  G.emit('dragonWish', { team });
+  G.emit('dragonWish', { team, el });
   D.balls = [0, 0]; D.cs = [0, 0]; D.phase = 'collect'; D.owner = -1; D.round++;
+  D.element = nextElement(G, el);
+  G.emit('dragonElement', { el: D.element });
 }
 
 export function updateDragonBalls(G, dt) {
   const D = G.dball;
-  for (const h of G.heroes) { if (h.omen > 0) h.omen -= dt; if (h.wish > 0) h.wish -= dt; }
+  for (const h of G.heroes) { if (h.omen > 0) h.omen -= dt; if (h.wish > 0) h.wish -= dt; if (h.elder > 0) h.elder -= dt; }
   if (D.phase === 'summon' && G.time >= D.summonAt) spawnShenron(G);
   const s = G.shenron;
   if (!s) return;

@@ -26,6 +26,7 @@ export function createMinimap(canvas, groundCanvas) {
         g.fillStyle = s.alive ? TEAM_COLOR[s.team] : 'rgba(40,30,20,.6)';
         g.strokeStyle = '#10141f'; g.lineWidth = 1.5 * k;
         if (s.kind === 'core') { g.beginPath(); for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; g.lineTo(x + Math.cos(a) * 7 * k, y + Math.sin(a) * 7 * k); } g.closePath(); g.fill(); g.stroke(); }
+        else if (s.tier === 'inhib') { g.beginPath(); g.moveTo(x, y - 4 * k); g.lineTo(x + 3.2 * k, y); g.lineTo(x, y + 4 * k); g.lineTo(x - 3.2 * k, y); g.closePath(); g.fill(); g.stroke(); }
         else { g.beginPath(); g.moveTo(x, y - 5 * k); g.lineTo(x + 4 * k, y + 4 * k); g.lineTo(x - 4 * k, y + 4 * k); g.closePath(); g.fill(); g.stroke(); }
       }
       const PT = G.player ? G.player.team : 0;

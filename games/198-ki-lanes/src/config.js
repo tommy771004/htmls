@@ -12,7 +12,9 @@ export const KI_BAR = 100;
 export const KI_MAX = 5 * KI_BAR;
 export const MAX_LEVEL = 12;
 export const xpToNext = (lv) => 140 + 88 * (lv - 1);
-export const respawnTime = (lv) => 5 + lv * 1.4;
+export const respawnTime = (lv, t = 0) => (5 + lv * 1.4) * (1 + Math.min(0.5, Math.max(0, t - 360) / 1200)); // 6 分鐘後隨時間拉長，最多 ×1.5
+// 擊殺賞金（《英雄聯盟》）：連殺的英雄被終結時多給錢；連死的英雄賞金遞減；一血多 100
+export const BOUNTY = { base: 300, firstBlood: 100, shutdownPer: 120, shutdownMax: 600, deathCut: 0.15, minMul: 0.5, xpPerLv: 0.16 };
 
 // 小兵與建築
 export const WAVE_EVERY = 25;
@@ -21,11 +23,14 @@ export const MINION = {
   melee: { hp: 380, dmg: 16, range: 1.7, cd: 1.1, speed: 4.6, radius: 0.55, xp: 34, sight: 8 },
   ranged: { hp: 260, dmg: 24, range: 6.2, cd: 1.4, speed: 4.6, radius: 0.5, xp: 28, sight: 8.5 },
   siege: { hp: 950, dmg: 42, range: 6.8, cd: 1.8, speed: 4.3, radius: 0.85, xp: 70, sight: 9, structMul: 2.1 },
+  super: { hp: 1600, dmg: 85, range: 1.9, cd: 0.95, speed: 4.6, radius: 0.8, xp: 95, sight: 9, structMul: 2.4 }, // 超級兵：敵方這一路的水晶兵營倒了才會出
 };
 export const SIEGE_FROM_WAVE = 13;     // 第幾波起每波帶一台攻城兵
 export const MINION_GROWTH = 0.06;   // 每分鐘血量與傷害成長
-export const TOWER = { hp: [2500, 3000], core: 4400, range: 9, dmg: 150, dmgMinion: 95, cd: 1.0, ramp: 0.35, radius: 1.6 };
+export const TOWER = { hp: [2500, 3000], inhib: 2200, nexus: 2600, inhibRespawn: 120, core: 4400, range: 9, dmg: 150, dmgMinion: 95, cd: 1.0, ramp: 0.35, radius: 1.6 };
 export const XP_SHARE_RADIUS = 15;
+// 塔皮：開局 5 分 30 秒內，外塔每掉三分之一血給附近敵方英雄 120 金（平分）
+export const PLATES = { n: 3, gold: 120, until: 330, radius: 15 };
 
 // 屬性公式（《英雄聯盟》）：防禦數值化、技能加速、攻速相加、高移速遞減
 export const STAT = {
@@ -254,7 +259,7 @@ export const JUNGLE_BUFF = {
 };
 
 // 金幣與商店
-export const GOLD = { start: 500, passive: 2.2, melee: 21, ranged: 16, siege: 55, hero: 300, assist: 120, tower: 120, shopRadius: 14 };
+export const GOLD = { start: 500, passive: 2.2, melee: 21, ranged: 16, siege: 55, super: 60, hero: 300, assist: 120, tower: 120, shopRadius: 14 };
 // stats：ad 攻擊、hp 血量、armor 物理防禦、mr 技能防禦（數值）、as 攻速加成（相加後除攻擊間隔）、ms 移速比例、ki 氣力獲得、ah 技能加速（冷卻 ×100／(100＋加速)）、leth 固定穿甲、apen ％穿甲、mpen 固定法穿、mpenPct ％法穿、ten 韌性（相乘疊加）、ov 全能吸血、skill 技能傷害、dmg 全傷害、
 //   vision 視野、regen 脫戰回血（每秒比例）、detect 看得到敵方的眼、mp 最大魔力、mpr 魔力回復（比例）、ap 氣功強度、crit 暴擊率、ls 普攻吸血
 //   （能量型英雄的體力固定，mp／mpr 對他們無效）
@@ -359,4 +364,14 @@ export const DRAGON = {
   omen: { dur: 15, dmg: 0.15 },
   wish: { dur: 90, dmg: 0.25, ms: 0.15 },
   shenron: { hp: 8200, dmg: 150, range: 13, cd: 2.4, radius: 3, armor: 0.25, xp: 320, gold: 180, bolt: 3.4, telegraph: 0.7 },
+  // 屬性龍珠（原作的元素小龍）：打倒神龍的隊伍得到該屬性的永久祝福；3 層得到龍魂；之後出現究極神龍（遠古龍）
+  soulAt: 3, elderDur: 60, elderBurn: 45, elderExec: 0.2,
+  elements: {
+    fire: { name: '烈火', proto: '地獄', color: '#ff6a3a', per: '傷害 +4%', soul: '烈火之魂：普攻與技能命中英雄時爆炸，追加 40＋每級 6 的技能傷害（3 秒一次）' },
+    earth: { name: '岩山', proto: '山脈', color: '#c9a26a', per: '物理與技能防禦 +6%', soul: '岩山之魂：5 秒沒受傷就得到 60＋每級 14 的護盾' },
+    ocean: { name: '大海', proto: '海洋', color: '#4fb8ff', per: '每秒回復 0.5% 已損血量', soul: '大海之魂：造成傷害回復 10% 的血量（全能吸血）' },
+    cloud: { name: '風雲', proto: '雲霧', color: '#e8f4ff', per: '移速 +3%', soul: '風雲之魂：施放大絕後 6 秒內移速 +50%' },
+    hextech: { name: '機巧', proto: '海克斯', color: '#7fe8ff', per: '技能加速 +5、攻速 +5%', soul: '機巧之魂：傷害英雄時放出電鏈，追加 30＋每級 5 技能傷害並緩速 30%（3 秒一次）' },
+    chem: { name: '毒霧', proto: '化學科技', color: '#9fd84a', per: '韌性 +6%、治療與護盾強度 +6%', soul: '毒霧之魂：血量低於一半時傷害 +10%、承受傷害 -10%' },
+  },
 };

@@ -830,11 +830,12 @@ function minionGeos(team, kind) {
 }
 
 export function buildMinion(team = 0, kind = 'melee') {
+  const sup = kind === 'super'; if (sup) kind = 'melee'; // 超級兵：近戰兵放大、金色光環
   const gs = minionGeos(team, kind);
   const root = new THREE.Group(); root.name = 'minion-' + kind;
   const body = new THREE.Group(); root.add(body);
   let time = 0;
-  const MS = kind === 'melee' ? 1.3 : 1.2; // 視覺放大，碰撞半徑不變
+  const MS = sup ? 2.05 : kind === 'melee' ? 1.3 : 1.2; // 視覺放大，碰撞半徑不變
   if (kind === 'melee') {
     meshPair(gs.body, body, { w: 0.022 });
     const feet = meshPair(gs.feet, root, { outline: false });
@@ -1002,6 +1003,36 @@ export function buildTower(team = 0) {
   };
   update(0, {});
   return { root, update, muzzle };
+}
+
+/* ---------------- 水晶兵營 ---------------- */
+// 石台上浮著一顆隊伍色的八面體水晶，外圈兩片符文環；倒下時水晶消失、石台留著，重生時恢復
+export function buildInhib(team = 0) {
+  const root = new THREE.Group(); root.name = 'inhib';
+  const stone = new THREE.MeshToonMaterial({ color: 0xd9cfb8, gradientMap: gradientMap() });
+  const dark = new THREE.MeshToonMaterial({ color: 0x5a5244, gradientMap: gradientMap() });
+  const ped = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 2.3, 0.7, 8), stone); ped.position.y = 0.35; ped.castShadow = ped.receiveShadow = true; root.add(ped);
+  const step = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.6, 0.5, 8), dark); step.position.y = 0.95; root.add(step);
+  for (const m of [ped, step]) { const o = new THREE.Mesh(m.geometry, outlineMat(0.05)); m.add(o); }
+  const crystalMat = new THREE.MeshToonMaterial({ color: TEAM[team], emissive: TEAM_LIGHT[team], emissiveIntensity: 0.55, gradientMap: gradientMap() });
+  const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(1, 0), crystalMat); crystal.scale.set(0.95, 1.6, 0.95); crystal.position.y = 3.1; crystal.castShadow = true; root.add(crystal);
+  crystal.add(new THREE.Mesh(crystal.geometry, outlineMat(0.05)));
+  const ringMat = new THREE.MeshBasicMaterial({ color: TEAM_LIGHT[team], transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false });
+  const rings = [1.5, 1.9].map((r, i) => { const m = new THREE.Mesh(new THREE.TorusGeometry(r, 0.04, 4, 40), ringMat); m.rotation.x = Math.PI / 2 + (i ? 0.35 : -0.25); m.position.y = 3.1; root.add(m); return m; });
+  const shards = new THREE.Group(); shards.visible = false; root.add(shards);
+  for (let i = 0; i < 5; i++) { const sh = new THREE.Mesh(new THREE.OctahedronGeometry(0.35, 0), dark); sh.position.set(Math.cos(i * 1.3) * 0.9, 1.35, Math.sin(i * 1.3) * 0.9); sh.rotation.set(i, i * 2, 0); shards.add(sh); }
+  let time = 0;
+  const update = (dt, s = {}) => {
+    time += dt;
+    const dead = !!s.dead;
+    crystal.visible = !dead; for (const r of rings) r.visible = !dead; shards.visible = dead;
+    if (dead) return;
+    crystal.rotation.y += dt * 0.7; crystal.position.y = 3.1 + 0.18 * Math.sin(time * 1.6);
+    rings[0].rotation.z += dt * 0.5; rings[1].rotation.z -= dt * 0.35;
+    crystalMat.emissiveIntensity = 0.45 + 0.2 * Math.sin(time * 2.2) + (1 - (s.hp ?? 1)) * 0.4;
+  };
+  update(0, {});
+  return { root, update, muzzle: crystal };
 }
 
 /* ---------------- 主堡 ---------------- */

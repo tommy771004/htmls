@@ -265,3 +265,73 @@ test('召喚師技能：重擊對野怪造成大量真實傷害', () => {
   assert.ok(castSummoner(G, A, m.x, m.z));
   assert.ok(hp - m.hp >= 450 || !m.alive);
 });
+
+/* ---------------- 賞金與死亡時間 ---------------- */
+import { respawnTime } from '../src/config.js';
+
+test('賞金：一血多 100、連殺 4 人被終結時多 240、連死遞減', () => {
+  const { G, A, B } = duel();
+  A.gold = 0; B.hp = 1; damage(G, A, B, 10, { type: 'true', noKi: true });
+  assert.equal(Math.round(A.gold), 400); // 300＋一血 100
+  const C = duel(); C.A.gold = 0; C.B.streak = 4; C.G.firstBlood = true; C.B.hp = 1;
+  damage(C.G, C.A, C.B, 10, { type: 'true', noKi: true });
+  assert.equal(Math.round(C.A.gold), 300 + 240);
+  const D = duel(); D.A.gold = 0; D.B.deathStreak = 2; D.G.firstBlood = true; D.B.hp = 1;
+  damage(D.G, D.A, D.B, 10, { type: 'true', noKi: true });
+  assert.equal(Math.round(D.A.gold), 210);
+});
+
+test('死亡時間：6 分鐘後逐漸拉長，最多 1.5 倍', () => {
+  assert.equal(respawnTime(10, 0), respawnTime(10, 360));
+  assert.ok(Math.abs(respawnTime(10, 1e5) / respawnTime(10, 0) - 1.5) < 1e-9);
+});
+
+/* ---------------- 地圖目標 ---------------- */
+import { vulnerable, spawnWave } from '../src/units.js';
+import { giveBalls } from '../src/dragonballs.js';
+
+test('拆塔順序：外塔 → 內塔 → 水晶兵營 → 主堡塔 → 主堡；兵營 2 分鐘重生', () => {
+  const G = newGame();
+  const S = (tier, lane = 0) => G.structures.find((s) => s.team === 1 && s.tier === tier && (tier === 'nexus' || s.lane === lane));
+  const core = G.structures.find((s) => s.team === 1 && s.kind === 'core');
+  assert.ok(vulnerable(G, S('outer')) && !vulnerable(G, S('inner')) && !vulnerable(G, S('inhib')) && !vulnerable(G, S('nexus')) && !vulnerable(G, core));
+  const kill = (u) => damage(G, null, u, 1e9, { type: 'true' });
+  kill(S('outer')); assert.ok(vulnerable(G, S('inner')));
+  kill(S('inner')); assert.ok(vulnerable(G, S('inhib')));
+  kill(S('inhib')); assert.ok(vulnerable(G, S('nexus')) && !vulnerable(G, core));
+  kill(S('nexus')); assert.ok(vulnerable(G, core));
+  const inh = S('inhib'); G.time = inh.respawnAt + 0.01; step(G);
+  assert.ok(inh.alive && inh.hp === inh.maxHp);
+});
+
+test('超級兵：敵方兵營倒了的那一路出超級兵', () => {
+  const G = newGame();
+  const inh = G.structures.find((s) => s.team === 1 && s.tier === 'inhib' && s.lane === 0);
+  inh.alive = false;
+  const n0 = G.minions.length; spawnWave(G);
+  assert.ok(G.minions.slice(n0).some((m) => m.team === 0 && m.lane === 0 && m.mkind === 'super'));
+  assert.ok(!G.minions.slice(n0).some((m) => m.team === 0 && m.lane === 1 && m.mkind === 'super'));
+});
+
+test('塔皮：開局外塔掉三分之一血，附近敵方英雄平分 120 金', () => {
+  const { G, A } = duel();
+  const t = G.structures.find((s) => s.team === 1 && s.tier === 'outer');
+  A.x = t.x + 3; A.z = t.z; A.gold = 0;
+  damage(G, A, t, t.maxHp * 0.34, { type: 'true', noKi: true });
+  assert.equal(Math.round(A.gold), 120);
+  assert.equal(t.plates, 1);
+});
+
+test('屬性龍珠：打倒神龍得到永久祝福，3 層得到龍魂，之後是究極神龍', () => {
+  const G = newGame(); G.aiFrozen = true;
+  const A = G.heroes.find((h) => h.team === 0), arm = A.armor;
+  for (let r = 0; r < 3; r++) {
+    G.dball.element = 'earth';
+    giveBalls(G, 0, 7); G.time = G.dball.summonAt + 0.01; step(G);
+    const s = G.shenron; damage(G, A, s, 1e9, { type: 'true' });
+  }
+  assert.equal(A.drk.earth, 3);
+  assert.ok(A.armor > arm * 1.15);
+  assert.equal(A.soul, 'earth');
+  assert.equal(G.dball.element, 'elder');
+});

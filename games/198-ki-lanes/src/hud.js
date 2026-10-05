@@ -14,6 +14,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const KEYS = ['Q', 'W', 'E', 'R'];
 const fmtT = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 
+const elName = (el) => el === 'elder' ? '究極神龍' : `${DRAGON.elements[el].name}神龍`;
 export function createHud(env) {
   const { render, portraits, busts = portraits } = env;
   let G = null;
@@ -240,6 +241,9 @@ export function createHud(env) {
   G.on('runeProc', ({ h, id }) => { if (h === player && id !== 'comet' && id !== 'electrocute') number(h.x, 3.2, h.z, RUNES.find((r) => r.id === id).name, '#e8b8ff', 0.8); });
   G.on('levelup', (h) => { if (h === player) { number(h.x, 2.8, h.z, `等級 ${h.level}`, '#ffe08a', 1.2, 'lv'); } });
   G.on('gold', ({ h, g, at }) => { if (h === player && at && g >= 15) number(at.x, 3, at.z, `+${g}`, '#f6c64a', 0.75); });
+  G.on('firstBlood', ({ killer, u }) => announce('第一滴血', killer.team === player.team ? 'good' : 'bad', `${killer.def.short} 擊倒 ${u.def.short}・賞金 +100`));
+  G.on('shutdown', ({ killer, u, gold }) => announce(`終結 ${u.def.short}`, killer.team === player.team ? 'good' : 'bad', `${killer.def.short} 打斷連殺・額外賞金 ${gold}`));
+  G.on('streak', ({ h, n }) => { if (n === 3 || n === 5 || n >= 7) announce(n >= 7 ? `${h.def.short} 無人能擋` : n >= 5 ? `${h.def.short} 大殺特殺` : `${h.def.short} 三連殺`, h.team === player.team ? 'good' : 'bad', `連續擊倒 ${n} 人・身上的賞金提高了`); });
   G.on('flank', ({ h, foe }) => { if (h.team === player.team && h !== player) announce(`${h.def.short} 繞到敵人背後`, 'good', `包抄 ${foe.def.short}`); });
   G.on('roam', ({ h, to }) => { if (h.team === player.team && to === player) announce(`${h.def.short} 前來支援`, 'good', '從敵人背後切入'); });
   G.on('ambush', ({ team, foe, members }) => { if (team === player.team && !members.includes(player)) announce('隊友在草叢埋伏', 'good', `${members.map((m) => m.def.short).join('、')} 等 ${foe.def.short} 走近`); });
@@ -279,11 +283,13 @@ export function createHud(env) {
     announce(`${mine ? '我方' : '敵方'}集齊七顆龍珠！`, mine ? 'good' : 'bad', '神龍即將降臨神龍坑');
     quip(pickAlly(null), 'shenron', '', true);
   });
-  G.on('shenronSpawn', () => announce('神龍降臨！', 'good big', '打倒神龍的隊伍可以許願'));
-  G.on('dragonWish', ({ team }) => {
+  G.on('shenronSpawn', () => announce(`${elName(G.dball.element)}降臨！`, 'good big', G.dball.element === 'elder' ? `打倒的隊伍 ${DRAGON.elderDur} 秒內傷害會灼燒，並斬殺血量低於 20% 的英雄` : `打倒的隊伍許願，並得到永久的${DRAGON.elements[G.dball.element].name}祝福（${DRAGON.elements[G.dball.element].per}）`));
+  G.on('dragonSoul', ({ team, el }) => announce(`${team === player.team ? '我方' : '敵方'}得到${DRAGON.elements[el].name}龍魂`, team === player.team ? 'good big' : 'bad big', DRAGON.elements[el].soul + '。之後只會出現究極神龍'));
+  G.on('elderExecute', ({ h, dst }) => announce(`${h.def.short} 以究極神龍之力斬殺 ${dst.def.short}`, h.team === player.team ? 'good' : 'bad'));
+  G.on('dragonWish', ({ team, el }) => {
     if (team < 0) return;
     const mine = team === player.team;
-    announce(mine ? '我方許下願望！' : '敵方許下願望', mine ? 'good' : 'bad', `全隊 ${DRAGON.wish.dur} 秒：傷害 +${DRAGON.wish.dmg * 100}%、移速 +${DRAGON.wish.ms * 100}%，陣亡隊友立即復活`);
+    announce(mine ? '我方許下願望！' : '敵方許下願望', mine ? 'good' : 'bad', `全隊 ${DRAGON.wish.dur} 秒：傷害 +${DRAGON.wish.dmg * 100}%、移速 +${DRAGON.wish.ms * 100}%，陣亡隊友立即復活` + (el && el !== 'elder' ? `；永久${DRAGON.elements[el].name}祝福：${DRAGON.elements[el].per}` : ''));
     const sp = G.heroes.filter((h) => h.team === team && h.alive); quip(sp[Math.floor(Math.random() * sp.length)], 'wish', '', true);
   });
   G.on('superFire', ({ h }) => { if (h.isPlayer) flash('#fff3d4', 0.35); });
@@ -392,11 +398,12 @@ export function createHud(env) {
     const D = G.dball;
     if (D) {
       const live = !!(G.shenron && G.shenron.alive), PT = P.team;
-      const k = `${D.balls}|${D.cs}|${D.phase}|${live}|${D.phase === 'summon' ? Math.ceil(D.summonAt - G.time) : 0}`;
+      const k = `${D.balls}|${D.cs}|${D.phase}|${live}|${D.phase === 'summon' ? Math.ceil(D.summonAt - G.time) : 0}|${D.element}|${D.drakes}`;
       if (el.dbh._k !== k) {
         el.dbh._k = k;
         [0, 1].forEach((t) => { const row = el.dbh.querySelector('.t' + t); row.querySelector('.balls').innerHTML = Array.from({ length: DRAGON.max }, (_, i) => `<i${i < D.balls[t] ? ' class="on"' : ''}></i>`).join(''); row.querySelector('small').textContent = `${D.balls[t]}/${DRAGON.max}`; });
-        const st = live ? '神龍降臨中' : D.phase === 'summon' ? `召喚中 ${Math.max(0, Math.ceil(D.summonAt - G.time))}` : '收集中';
+        const st = `${elName(D.element)}・` + (live ? '降臨中' : D.phase === 'summon' ? `召喚中 ${Math.max(0, Math.ceil(D.summonAt - G.time))}` : '收集中');
+        [0, 1].forEach((t) => { const row = el.dbh.querySelector('.t' + t), dr = D.drakes[t].map((e) => DRAGON.elements[e].name[0]).join(''); row.querySelector('small').textContent = `${D.balls[t]}/${DRAGON.max}` + (dr ? `・${dr}${D.soulTeam === t ? '魂' : ''}` : ''); });
         el.dbh.querySelector('.st').textContent = st; el.dbh.classList.toggle('live', live || D.phase === 'summon');
         el.dbh.querySelector('.nx').textContent = live ? '到神龍坑搶下最後一擊，打倒神龍的隊伍許願' : D.phase === 'summon' ? `${D.owner === PT ? '我方' : '敵方'}召喚了神龍，準備爭奪神龍坑` : `下一顆：全隊補兵 ${D.cs[PT]}/${DRAGON.perCs}，或打倒大猿得 ${DRAGON.apeBalls} 顆`;
         el.dbT.querySelector('b').textContent = live ? '降臨中' : `${D.balls[PT]}/${DRAGON.max}`; el.dbT.classList.toggle('live', live);

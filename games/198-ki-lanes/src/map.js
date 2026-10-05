@@ -58,7 +58,13 @@ for (let team = 0; team < 2; team++) {
       const q = pointAlong(p, L * fr[k]);
       STRUCTURES.push({ id: `t${team}${lane}${tier[0]}`, kind: 'tower', tier, team, lane, x: q.x, z: q.z });
     });
+    // 水晶兵營（不射擊；被拆後該路出超級兵，2 分鐘重生）
+    const qi = pointAlong(p, L * 0.085);
+    STRUCTURES.push({ id: `t${team}${lane}h`, kind: 'tower', tier: 'inhib', team, lane, x: qi.x, z: qi.z });
   }
+  // 主堡塔：主堡前往地圖中心 8 公尺
+  const bx = BASE[team][0], bz = BASE[team][1], bl = Math.hypot(bx, bz);
+  STRUCTURES.push({ id: `t${team}1n`, kind: 'tower', tier: 'nexus', team, lane: 1, x: bx - (bx / bl) * 8, z: bz - (bz / bl) * 8 });
   STRUCTURES.push({ id: `core${team}`, kind: 'core', team, x: BASE[team][0], z: BASE[team][1] });
 }
 
@@ -230,7 +236,7 @@ function insideObstacle(x, z, pad = 0) { for (const o of OBSTACLES) if (Math.hyp
 
 // 廣場：塔下、基地與大猿石場；shader 用環狀石板鋪
 export const PLAZAS = [
-  ...STRUCTURES.filter((s) => s.kind === 'tower').map((s) => ({ x: s.x, z: s.z, r: 6.6, kind: 0 })),
+  ...STRUCTURES.filter((s) => s.kind === 'tower' && s.tier !== 'nexus').map((s) => ({ x: s.x, z: s.z, r: s.tier === 'inhib' ? 4.6 : 6.6, kind: 0 })),
   ...BASE.map((b, team) => ({ x: b[0], z: b[1], r: 23.4, kind: 1 + team })),
   ...CAMPS.filter((c) => c.boss).map((c) => ({ x: c.x, z: c.z, r: 10.5, kind: 3 })),
   { x: DRAGON.pit.x, z: DRAGON.pit.z, r: 10.5, kind: 3 },

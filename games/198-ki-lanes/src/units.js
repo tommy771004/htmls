@@ -1,6 +1,6 @@
 // 單位：英雄、小兵、建築。移動、碰撞、傷害、死亡、經驗。
 import {
-  HEROES, MINION, MINION_GROWTH, TOWER, STAT, SUMM_REC, KI_MAX, KI_BAR, MAX_LEVEL, xpToNext, respawnTime, XP_SHARE_RADIUS,
+  HEROES, MINION, MINION_GROWTH, TOWER, STAT, SUMM_REC, BOUNTY, PLATES, KI_MAX, KI_BAR, MAX_LEVEL, xpToNext, respawnTime, XP_SHARE_RADIUS,
   FOUNTAIN, BASE, COMBO_WINDOW, HITSTOP, SPARK, WAVE_EVERY, FIRST_WAVE, SIEGE_FROM_WAVE, GOLD, ITEMS, APE_BUFF, DRAGON, RES, JUNGLE_BUFF, TEAR_MAX, RUNE_REC,
 } from './config.js';
 import { collide, obstaclesNear, lanePath, heightAt, STRUCTURES, laneProgress } from './map.js';
@@ -121,6 +121,14 @@ function statMods(u, it) {
     }
   }
   if (u.buffs) for (const k in u.buffs) addStats(u.buffs[k].stats || {});
+  // 屬性龍珠的永久祝福與龍魂（dragonballs.js 寫入 u.drk、u.soul）
+  const dk = u.drk || {};
+  if (dk.fire) u.dmgMul *= 1 + 0.04 * dk.fire;
+  if (dk.earth) { u.armor *= 1 + 0.06 * dk.earth; u.mr *= 1 + 0.06 * dk.earth; }
+  if (dk.cloud) u.ms *= 1 + 0.03 * dk.cloud;
+  if (dk.hextech) { u.ah += 5 * dk.hextech; u.as = Math.max(STAT.asMinInterval, u.as / (1 + 0.05 * dk.hextech)); }
+  if (dk.chem) { u.ten = 1 - (1 - u.ten) * (1 - 0.06 * dk.chem); u.hsp = (u.hsp || 0) + 0.06 * dk.chem; }
+  if (u.soul === 'ocean') u.ov += 0.1;
   u.hp = Math.min(u.hp, u.maxHp);
 }
 export function addMp(h, v) { if (h.alive && h.maxMp) h.mp = clamp(h.mp + v, 0, h.maxMp); }
@@ -133,7 +141,7 @@ export function makeMinion(G, kind, team, lane) {
 }
 
 export function makeStructure(G, s) {
-  const hp = s.kind === 'core' ? TOWER.core : TOWER.hp[s.tier === 'inner' ? 1 : 0];
+  const hp = s.kind === 'core' ? TOWER.core : s.tier === 'inhib' ? TOWER.inhib : s.tier === 'nexus' ? TOWER.nexus : TOWER.hp[s.tier === 'inner' ? 1 : 0];
   const u = baseUnit(s.kind, s.team, s.x, s.z, s.kind === 'core' ? 3.2 : TOWER.radius, hp);
   Object.assign(u, { sid: s.id, tier: s.tier, lane: s.lane, range: TOWER.range, target: null, shots: 0, armor: 0, charge: 0 });
   return u;
@@ -156,11 +164,15 @@ export function addUnit(G, u) { G.units.push(u); if (u.kind === 'hero') G.heroes
 /* ---------------- 結構規則 ---------------- */
 export function vulnerable(G, s) {
   if (s.kind !== 'tower' && s.kind !== 'core') return true;
+  // 拆塔順序（原作）：外塔 → 內塔 → 水晶兵營（同一路）→ 主堡塔（任一路兵營倒了）→ 主堡
+  const down = (tier, lane) => G.structures.some((o) => o.kind === 'tower' && !o.alive && o.team === s.team && o.tier === tier && (lane == null || o.lane === lane));
   if (s.kind === 'tower') {
     if (s.tier === 'outer') return true;
-    return !G.structures.some((o) => o.kind === 'tower' && o.alive && o.team === s.team && o.lane === s.lane && o.tier === 'outer');
+    if (s.tier === 'inner') return down('outer', s.lane);
+    if (s.tier === 'inhib') return down('inner', s.lane);
+    if (s.tier === 'nexus') return down('inhib');
   }
-  return G.structures.some((o) => o.kind === 'tower' && !o.alive && o.team === s.team && o.tier === 'inner');
+  return down('nexus');
 }
 
 /* ---------------- 傷害 ---------------- */
@@ -192,6 +204,16 @@ export function damage(G, src, dst, amount, opts = {}) {
     return 0;
   }
   dst.hp -= a; dst.flash = 0.12;
+  // 塔皮
+  if (dst.kind === 'tower' && dst.tier === 'outer' && G.time < PLATES.until && a > 0) {
+    const lost = Math.min(PLATES.n, Math.floor((1 - Math.max(0, dst.hp) / dst.maxHp) * PLATES.n));
+    while ((dst.plates || 0) < lost) {
+      dst.plates = (dst.plates || 0) + 1;
+      const near = G.heroes.filter((h) => h.alive && h.team !== dst.team && dist(h, dst) < PLATES.radius);
+      for (const h of near) addGold(G, h, PLATES.gold / near.length, dst);
+      G.emit('plate', { u: dst, n: dst.plates, heroes: near });
+    }
+  }
   if (G.traits && dst.kind === 'hero' && dst.hp > 0) G.traits.afterTaken(G, src, dst, a, opts);
   if (G.traits && src && src.kind === 'hero' && dst.kind !== 'hero' && (opts.type === 'skill' || opts.type === 'super')) G.traits.onSkillHitAny(G, src, dst);
   const basic = opts.type === 'L' || opts.type === 'M' || opts.type === 'H';
@@ -280,12 +302,23 @@ function kill(G, u, src) {
     for (const h of near) gainXp(G, h, share);
     if (src && src.kind === 'hero') { src.cs++; addGold(G, src, GOLD[u.mkind] || 18, u); }
   } else if (u.kind === 'hero') {
-    u.deaths++; u.respawn = respawnTime(u.level); u.recall = 0; u.charging = false;
+    u.deaths++; u.respawn = respawnTime(u.level, G.time); u.recall = 0; u.charging = false;
     G.kills[killerTeam]++;
     const killer = src && src.kind === 'hero' ? src : [...u.damagers.entries()].filter(([h, t]) => G.time - t < 10 && h.team === killerTeam).sort((a, b) => b[1] - a[1]).map((e) => e[0])[0];
     const assists = [...u.damagers.entries()].filter(([h, t]) => G.time - t < 10 && h !== killer && h.team === killerTeam).map((e) => e[0]);
+    // 賞金：連殺被終結加錢、連死遞減、一血；擊殺等級較高的敵人多拿經驗
+    const streak = u.streak || 0, shut = streak >= 3 ? Math.min(BOUNTY.shutdownMax, BOUNTY.shutdownPer * (streak - 2)) : 0;
+    const gold = BOUNTY.base * Math.max(BOUNTY.minMul, 1 - BOUNTY.deathCut * (u.deathStreak || 0)) + shut + (G.firstBlood ? 0 : BOUNTY.firstBlood);
     const bounty = 140 + u.level * 38;
-    if (killer) { killer.kills++; gainXp(G, killer, bounty); addKi(G, killer, 120); addGold(G, killer, GOLD.hero, u); }
+    if (killer) {
+      killer.kills++; addKi(G, killer, 120); addGold(G, killer, gold, u);
+      gainXp(G, killer, bounty * (1 + BOUNTY.xpPerLv * Math.max(0, u.level - killer.level)));
+      killer.streak = (killer.streak || 0) + 1; killer.deathStreak = 0;
+      if (!G.firstBlood) { G.firstBlood = true; G.emit('firstBlood', { killer, u }); }
+      if (shut) G.emit('shutdown', { killer, u, gold: Math.round(shut) });
+      if (killer.streak >= 3) G.emit('streak', { h: killer, n: killer.streak });
+    }
+    u.streak = 0; u.deathStreak = (u.deathStreak || 0) + 1;
     // 野怪增益轉給擊殺者
     if (killer) for (const b of ['blue', 'red']) if (u[b] > 0) { killer[b] = JUNGLE_BUFF[b].dur; G.emit('jungleBuff', { h: killer, b, stolen: true }); }
     if (u.blue > 0) { u.blue = 0; recalcStats(u); } u.red = 0;
@@ -309,6 +342,7 @@ function kill(G, u, src) {
     G.emit('monsterDeath', { u, team });
   } else {
     for (const h of G.heroes) if (h.team === killerTeam) { gainXp(G, h, u.kind === 'core' ? 0 : 110); if (u.kind === 'tower') addGold(G, h, GOLD.tower, u); }
+    if (u.tier === 'inhib') u.respawnAt = G.time + TOWER.inhibRespawn;
     G.emit('structure', { u, src });
     if (u.kind === 'core') { G.winner = killerTeam; G.emit('gameover', { winner: killerTeam }); }
   }
@@ -412,6 +446,12 @@ export function spawnWave(G) {
     if (G.waveN >= SIEGE_FROM_WAVE) kinds.push('siege');
     // 敵方這一路內塔已倒：多一台攻城兵
     if (G.structures.some((s) => s.kind === 'tower' && s.team !== team && s.lane === lane && s.tier === 'inner' && !s.alive)) kinds.push('siege');
+    // 敵方這一路的水晶兵營倒了：攻城兵換成超級兵（三座都倒了每路兩隻）
+    if (G.structures.some((s) => s.tier === 'inhib' && s.team !== team && s.lane === lane && !s.alive)) {
+      const allDown = G.structures.filter((s) => s.tier === 'inhib' && s.team !== team).every((s) => !s.alive);
+      const i = kinds.indexOf('siege'); if (i >= 0) kinds.splice(i, 1);
+      kinds.unshift('super'); if (allDown) kinds.unshift('super');
+    }
     kinds.forEach((k, i) => {
       const m = makeMinion(G, k, team, lane);
       const p = m.path, dx = p[1].x - p[0].x, dz = p[1].z - p[0].z, l = Math.hypot(dx, dz);
@@ -471,6 +511,7 @@ function pickMinionTarget(G, m) {
 
 /* ---------------- 塔 ---------------- */
 export function updateTower(G, s, dt) {
+  if (s.tier === 'inhib') { s.target = null; return; } // 水晶兵營不射擊
   s.atkCd -= dt;
   const inRange = (o) => o && o.alive && o.team !== s.team && o.st.invuln <= 0 && dist(o, s) < s.range + o.radius;
   // 敵方英雄在塔下攻擊己方英雄 → 改打它
@@ -503,6 +544,7 @@ export function heroTick(G, h, dt) {
   // 泉水
   const f = FOUNTAIN[h.team], fe = FOUNTAIN[1 - h.team];
   if (st.potion > 0) { st.potion -= dt; heal(G, h, st.potionRate * dt); }
+  if (h.drk && h.drk.ocean) heal(G, h, (h.maxHp - h.hp) * 0.005 * h.drk.ocean * dt); // 大海祝福
   if (h.elixir && G.time > h.elixir.until) { h.elixir = null; recalcStats(h); }
   if (Math.hypot(h.x - f[0], h.z - f[1]) < 11) { if (h.flask > 0) h.flaskC = 2; heal(G, h, h.maxHp * 0.14 * dt); addKi(G, h, 30 * dt); addMp(h, h.maxMp * RES.fountain * dt); }
   if (Math.hypot(h.x - fe[0], h.z - fe[1]) < 12) damage(G, null, h, 600 * dt, { type: 'true', noKi: true });

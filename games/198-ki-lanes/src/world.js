@@ -62,6 +62,8 @@ export function stepWorld(G, dt) {
   updateDragonBalls(G, dt);
   for (const m of G.monsters) if (m.alive) { tickStatus(m, dt, G); physics(G, m, dt); }
   for (const s of G.structures) if (s.alive && G.winner < 0) updateTower(G, s, dt);
+  // 水晶兵營重生
+  for (const s of G.structures) if (!s.alive && s.respawnAt && G.time >= s.respawnAt) { s.alive = true; s.hp = s.maxHp; s.respawnAt = 0; s.plates = 0; G.emit('inhibRespawn', s); }
   separate(G, dt);
   updateProjectiles(G, dt);
   updateZones(G, dt);

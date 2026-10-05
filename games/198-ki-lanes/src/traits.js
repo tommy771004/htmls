@@ -117,6 +117,7 @@ export function beforeAuto(G, h, t, dmg, opts) {
 export function onCast(G, h, cost = 0, k = '') {
   if (h.psv.blade && G.time >= h.bladeCd) h.bladeT = G.time + 10;
   if (effs(h, 'spellblade').length) fxs(h).bladeArmed = G.time + 10;
+  if (k === 'R' && h.soul === 'cloud') haste(h, 6, 0.5); // 風雲之魂
   if (k === 'R') {
     for (const e of effs(h, 'ultStorm')) { fxs(h).stormT = G.time + e.dur; fx(G).ring(h.x, h.z, '#9fe6ff', e.r, 0.5); }
     for (const e of effs(h, 'ultAs')) { h.st.haste = Math.max(h.st.haste || 0, e.dur); h.st.hasteAs = Math.max(h.st.hasteAs || 0, e.as / (1 + e.as)); h.st.hasteMs = Math.max(h.st.hasteMs || 0, e.ms || 0); }
@@ -425,6 +426,16 @@ function itemOnHeroHit(G, h, dst, a, opts, skill) {
   }
   if (skill) for (const e of effs(h, 'revealFar')) if (dist(h, dst) > e.dist) dst.reveal = Math.max(dst.reveal || 0, G.time + e.dur);
   if (opts.type === 'super') for (const e of effs(h, 'ultBurn')) { dst.st.burn = Math.max(dst.st.burn || 0, e.dur); dst.st.burnDps = Math.max(dst.st.burnDps || 0, e.dps); dst.st.burnSrc = h; dst.st.mrShN = 1; dst.st.mrShT = e.dur; dst.st.mrShP = e.pct; }
+  // 龍魂與究極神龍
+  if ((h.soul === 'fire' || h.soul === 'hextech') && G.time >= (F.soulCd || 0)) {
+    F.soulCd = G.time + 3;
+    const v = h.soul === 'fire' ? 40 + 6 * h.level : 30 + 5 * h.level;
+    G.later(0.05, () => { if (!dst.alive) return; procDmg(G, h, dst, v, true); if (h.soul === 'hextech') { dst.st.slow = Math.max(dst.st.slow, 1); dst.st.slowAmt = Math.max(dst.st.slowAmt, 0.3 * (1 - (dst.slowRes || 0))); fx(G).lightning({ x: h.x, y: 1.4, z: h.z }, { x: dst.x, y: 1.2, z: dst.z }, '#7fe8ff'); } else fx(G).explode(dst.x, dst.z, '#ff6a3a', 1.4); });
+  }
+  if (h.elder > 0) {
+    dst.st.burn = Math.max(dst.st.burn || 0, 3); dst.st.burnDps = Math.max(dst.st.burnDps || 0, 15); dst.st.burnSrc = h;
+    if (dst.hp > 0 && dst.hp < dst.maxHp * 0.2) G.later(0, () => { if (dst.alive) { damage(G, h, dst, dst.hp + 1, { type: 'true', noKi: true, rune: true }); fx(G).explode(dst.x, dst.z, '#d8b4ff', 2); G.emit('elderExecute', { h, dst }); } });
+  }
   F.heroCombat = G.time;
   if (effs(h, 'immolate').length) F.immoT = G.time + 3;
 }
@@ -453,6 +464,8 @@ export function beforeTaken(G, src, dst, a, opts) {
     if (src.buffs && src.buffs.empower && skill) a *= 1 + (src.buffs.empower.dmg || 0);
   }
   if (dst.st.vuln > 0) a *= 1 + (dst.st.vulnAmp || 0);
+  if (src && src.soul === 'chem' && src.hp < src.maxHp * 0.5) a *= 1.1; // 毒霧之魂
+  if (dst.soul === 'chem' && dst.hp < dst.maxHp * 0.5) a *= 0.9;
   if (magic) for (const o of G.heroes) if (o.alive && o.team !== dst.team && o.psv) for (const k in o.psv) { const e = o.psv[k]; if (e && e.k === 'magicAmp' && dist(o, dst) < e.r) { a *= 1 + e.pct; break; } }
   if (opts.crit && src) for (const e of effs(dst, 'critReduce')) a *= 1 - e.pct * (1 - 1 / (src.critMul || 1.75));
   for (const e of effs(dst, 'combatRes')) { const F = fxs(dst); if (F.c0 !== undefined && G.time - F.c0 >= e.after) a *= 1 - e.pct; }
@@ -510,6 +523,8 @@ export function onDeath(G, h) {
 }
 // 每步
 function itemTick(G, h, dt) {
+  // 岩山之魂：5 秒沒受傷就得到護盾
+  if (h.soul === 'earth') { const F0 = fxs(h); if (G.time - (F0.lastDmg ?? -99) > 5 && !(h.st.shield > 0)) { h.st.shield = 60 + 14 * h.level; h.st.shieldT = 9999; } }
   const F = h.fxs; if (!F && !h.psv) return;
   for (const e of effs(h, 'mpRegen')) addMp(h, (G.time - (F && F.heroCombat || -99) < 5 ? e.combat : e.v) * dt);
   if (!F) return;

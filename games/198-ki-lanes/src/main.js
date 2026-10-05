@@ -10,7 +10,7 @@ import { bossAlive } from './jungle.js';
 import { createRenderer } from './render.js';
 import { buildMap, heightAt, STRUCTURES, toonGradient } from './map.js';
 import { giveBalls } from './dragonballs.js';
-import { buildHero, buildMinion, buildTower, buildCore, buildMonster } from './models.js';
+import { buildHero, buildMinion, buildTower, buildInhib, buildCore, buildMonster } from './models.js';
 import { createFx } from './fx.js';
 import { audio } from './audio.js';
 import { dist, gainXp, addKi, addMp, damage, vulnerable } from './units.js';
@@ -143,7 +143,7 @@ function attachRig(u) {
   else if (u.kind === 'minion') rig = buildMinion(u.team, u.mkind);
   else if (u.kind === 'monster') rig = buildMonster(u.mkind);
   else if (u.kind === 'ward') rig = buildWard(u.team, u.control);
-  else if (u.kind === 'tower') rig = buildTower(u.team);
+  else if (u.kind === 'tower') rig = u.tier === 'inhib' ? buildInhib(u.team) : buildTower(u.team);
   else rig = buildCore(u.team);
   rig.root.position.set(u.x, heightAt(u.x, u.z), u.z);
   if (u.kind === 'tower' || u.kind === 'core') rig.root.rotation.y = u.team ? Math.PI * 1.25 : Math.PI * 0.25;
