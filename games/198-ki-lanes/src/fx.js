@@ -471,7 +471,7 @@ export function createFx(scene, camera) {
       const m = new THREE.Mesh(geo, addMat(color, null, 0.7)); const c = new THREE.Mesh(geo, addMat('#ffffff', null, 0.6));
       const y = heightAt(x, z); m.position.set(x, y, z); c.position.set(x, y, z); m.renderOrder = c.renderOrder = 7; scene.add(m, c);
       pop(x, y + 3, z, color, 90, r * 4, 0.7);
-      spawn({ dur: 0.75, update(k) { const e = 1 - Math.pow(1 - k, 3); m.scale.setScalar(r * (0.2 + e)); c.scale.setScalar(r * (0.1 + e * 0.75)); m.material.opacity = 0.7 * (1 - k); c.material.opacity = 0.6 * (1 - k * 1.3); }, done() { scene.remove(m, c); geo.dispose(); m.material.dispose(); c.material.dispose(); } });
+      spawn({ dur: 0.75, update(k) { const e = 1 - Math.pow(1 - k, 3); m.scale.setScalar(r * (0.2 + e)); c.scale.setScalar(r * (0.1 + e * 0.75)); m.material.opacity = 0.7 * (1 - k); c.material.opacity = 0.6 * Math.max(0, 1 - k * 1.3); /* 加法混合遇到負透明度會變成「減色」，整片地面變紫 */ }, done() { scene.remove(m, c); geo.dispose(); m.material.dispose(); c.material.dispose(); } });
       dust.emit(x, 0.5, z, { n: 40, speed: 12, up: 0.3, spread: 0.4, color: '#c9b48a', size: 1.6, life: 1.2, gravity: 0, drag: 2, jitter: r * 0.3 });
     },
     // 能量屏障：擴張的半透明球
