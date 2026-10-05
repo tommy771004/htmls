@@ -168,20 +168,20 @@ export function heroMaterial({ face = null, faceRect = null, team = 0xffffff, sk
 /* ---------------- 臉（canvas 貼花） ---------------- */
 // 畫布座標：中心對應 faceRect 的中心，邊長 = 1.9 hr；上方是頭頂
 const FACE = {
-  goku: { iris: '#2a1d16', irisL: '#4a3426', brow: '#1a1614', browTilt: 0.36, eyeW: 0.31, eyeH: 0.135, eyeX: 0.36, eyeY: 0.06, sharp: 0.78, mouth: 'set', heavy: 1 },
-  vegeta: { iris: '#20160f', irisL: '#3a2a20', brow: '#1a1614', browTilt: 0.6, eyeW: 0.3, eyeH: 0.105, eyeX: 0.35, eyeY: 0.06, sharp: 1.05, mouth: 'frown', heavy: 1 },
-  trunks: { iris: '#3b5fb5', irisL: '#7fa2e6', brow: '#8a74c0', browTilt: 0.3, eyeW: 0.31, eyeH: 0.14, eyeX: 0.36, eyeY: 0.06, sharp: 0.72, mouth: 'set', heavy: 0.7 },
-  piccolo: { iris: '#1a120c', irisL: '#1a120c', brow: '#2f6a1e', browTilt: 0.6, eyeW: 0.31, eyeH: 0.11, eyeX: 0.36, eyeY: 0.08, sharp: 1.1, mouth: 'frown', noPupil: true, sclera: '#fffbe8', heavy: 1 },
-  frieza: { iris: '#d0203a', irisL: '#ff6a7a', brow: null, browTilt: 0, eyeW: 0.31, eyeH: 0.13, eyeX: 0.35, eyeY: 0.07, sharp: 1.05, mouth: 'smirk', lips: '#3a1838', lid: '#4a1a40', heavy: 0.4 },
-  a18: { iris: '#4c98d6', irisL: '#a6d6ff', brow: '#c9a24a', browTilt: 0.05, eyeW: 0.32, eyeH: 0.2, eyeX: 0.36, eyeY: 0.06, sharp: 0.3, mouth: 'lips', lashes: true },
-  naruto: { iris: '#1f6fd8', irisL: '#7fc4ff', brow: '#c98a1a', browTilt: 0.3, eyeW: 0.31, eyeH: 0.15, eyeX: 0.36, eyeY: 0.06, sharp: 0.7, mouth: 'grin', heavy: 0.6, whiskers: true },
-  sasuke: { iris: '#141018', irisL: '#3a3044', brow: '#121018', browTilt: 0.42, eyeW: 0.3, eyeH: 0.115, eyeX: 0.35, eyeY: 0.06, sharp: 1.0, mouth: 'set', heavy: 0.8 },
-  kakashi: { iris: '#1e1a1a', irisL: '#3a3434', brow: '#8a8a94', browTilt: 0.05, eyeW: 0.3, eyeH: 0.09, eyeX: 0.35, eyeY: 0.06, sharp: 0.5, mouth: 'none', heavy: 0.5, mask: '#2b3346', hideL: true },
-  sakura: { iris: '#2fa868', irisL: '#8fe8b0', brow: '#e07aa8', browTilt: 0.12, eyeW: 0.33, eyeH: 0.19, eyeX: 0.36, eyeY: 0.06, sharp: 0.4, mouth: 'set', lashes: true, gem: '#9a3fd0' },
-  luffy: { iris: '#141010', irisL: '#2a2020', brow: '#141010', browTilt: 0.1, eyeW: 0.32, eyeH: 0.2, eyeX: 0.36, eyeY: 0.06, sharp: 0.35, mouth: 'big', heavy: 0.4, scarUnderL: true },
-  zoro: { iris: '#1a1612', irisL: '#3a3026', brow: '#2f6a3a', browTilt: 0.5, eyeW: 0.3, eyeH: 0.105, eyeX: 0.35, eyeY: 0.06, sharp: 1.0, mouth: 'set', heavy: 1, scarL: true },
-  sanji: { iris: '#2a5ab8', irisL: '#7fa8ff', brow: '#d8b040', browTilt: 0.2, eyeW: 0.3, eyeH: 0.12, eyeX: 0.35, eyeY: 0.06, sharp: 0.8, mouth: 'set', heavy: 0.6, curl: true, hideL: true },
-  nami: { iris: '#8a4a1a', irisL: '#d89050', brow: '#e8803a', browTilt: 0.08, eyeW: 0.33, eyeH: 0.19, eyeX: 0.36, eyeY: 0.06, sharp: 0.35, mouth: 'lips', lashes: true },
+  goku: { iris: '#2a1d16', irisL: '#4a3426', brow: '#1a1614', browTilt: 0.36, eyeW: 0.329, eyeH: 0.159, eyeX: 0.36, eyeY: 0.01, sharp: 0.78, mouth: 'set', heavy: 1 },
+  vegeta: { iris: '#20160f', irisL: '#3a2a20', brow: '#1a1614', browTilt: 0.6, eyeW: 0.318, eyeH: 0.124, eyeX: 0.35, eyeY: 0.01, sharp: 1.05, mouth: 'frown', heavy: 1 },
+  trunks: { iris: '#3b5fb5', irisL: '#7fa2e6', brow: '#8a74c0', browTilt: 0.3, eyeW: 0.329, eyeH: 0.165, eyeX: 0.36, eyeY: 0.01, sharp: 0.72, mouth: 'set', heavy: 0.7 },
+  piccolo: { iris: '#1a120c', irisL: '#1a120c', brow: '#2f6a1e', browTilt: 0.6, eyeW: 0.329, eyeH: 0.13, eyeX: 0.36, eyeY: 0.03, sharp: 1.1, mouth: 'frown', noPupil: true, sclera: '#fffbe8', heavy: 1 },
+  frieza: { iris: '#d0203a', irisL: '#ff6a7a', brow: null, browTilt: 0, eyeW: 0.329, eyeH: 0.153, eyeX: 0.35, eyeY: 0.02, sharp: 1.05, mouth: 'smirk', lips: '#3a1838', lid: '#4a1a40', heavy: 0.4 },
+  a18: { iris: '#4c98d6', irisL: '#a6d6ff', brow: '#c9a24a', browTilt: 0.05, eyeW: 0.339, eyeH: 0.236, eyeX: 0.36, eyeY: 0.01, sharp: 0.3, mouth: 'lips', lashes: true },
+  naruto: { iris: '#1f6fd8', irisL: '#7fc4ff', brow: '#c98a1a', browTilt: 0.3, eyeW: 0.329, eyeH: 0.177, eyeX: 0.36, eyeY: 0.01, sharp: 0.7, mouth: 'grin', heavy: 0.6, whiskers: true },
+  sasuke: { iris: '#141018', irisL: '#3a3044', brow: '#121018', browTilt: 0.42, eyeW: 0.318, eyeH: 0.136, eyeX: 0.35, eyeY: 0.01, sharp: 1.0, mouth: 'set', heavy: 0.8 },
+  kakashi: { iris: '#1e1a1a', irisL: '#3a3434', brow: '#8a8a94', browTilt: 0.05, eyeW: 0.318, eyeH: 0.09, eyeX: 0.35, eyeY: 0.01, sharp: 0.5, mouth: 'none', heavy: 0.5, mask: '#2b3346', hideL: true },
+  sakura: { iris: '#2fa868', irisL: '#8fe8b0', brow: '#e07aa8', browTilt: 0.12, eyeW: 0.35, eyeH: 0.224, eyeX: 0.36, eyeY: 0.01, sharp: 0.4, mouth: 'set', lashes: true, gem: '#9a3fd0' },
+  luffy: { iris: '#141010', irisL: '#2a2020', brow: '#141010', browTilt: 0.1, eyeW: 0.339, eyeH: 0.236, eyeX: 0.36, eyeY: 0.01, sharp: 0.35, mouth: 'big', heavy: 0.4, scarUnderL: true },
+  zoro: { iris: '#1a1612', irisL: '#3a3026', brow: '#2f6a3a', browTilt: 0.5, eyeW: 0.318, eyeH: 0.124, eyeX: 0.35, eyeY: 0.01, sharp: 1.0, mouth: 'set', heavy: 1, scarL: true },
+  sanji: { iris: '#2a5ab8', irisL: '#7fa8ff', brow: '#d8b040', browTilt: 0.2, eyeW: 0.318, eyeH: 0.142, eyeX: 0.35, eyeY: 0.01, sharp: 0.8, mouth: 'set', heavy: 0.6, curl: true, hideL: true },
+  nami: { iris: '#8a4a1a', irisL: '#d89050', brow: '#e8803a', browTilt: 0.08, eyeW: 0.35, eyeH: 0.224, eyeX: 0.36, eyeY: 0.01, sharp: 0.35, mouth: 'lips', lashes: true },
 };
 function drawFace(id, ssj, hr) {
   if (typeof document === 'undefined') return null;
@@ -254,7 +254,7 @@ function drawFace(id, ssj, hr) {
     g.restore();
   }
   // 嘴
-  const my = Y(-0.6), mw = S * 0.07;
+  const my = Y(-0.5), mw = S * 0.07; // 下半臉縮短後嘴跟著上移
   g.strokeStyle = f.lips || '#5a2a1e'; g.lineWidth = S * 0.011;
   g.beginPath();
   if (f.mouth === 'grin') { g.moveTo(X(0) - mw, my - S * 0.004); g.quadraticCurveTo(X(0), my + S * 0.02, X(0) + mw, my - S * 0.012); }

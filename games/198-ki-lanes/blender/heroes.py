@@ -321,6 +321,7 @@ def anime_head(name, F, pal_skin, ears=True, jaw=1.0, chin=1.0, cheek=1.0, ear_s
     """動畫臉：顱骨＋往前下收尖的下顎＋小鼻子＋耳朵，體素聯集後平滑。
     face_len 拉長／縮短下半臉；square＞0 讓下顎角更方（下顎斷面的超橢圓指數變大）。"""
     c, hr = F.c, F.hr
+    face_len *= 0.86  # 照設定圖：眼睛到下巴的距離較短，下巴不要拉得太尖太長
     parts = []
     cr = kit.quad_sphere(name + '_cr', 1.0, cuts=8)
     kx, ky, kz = cranium

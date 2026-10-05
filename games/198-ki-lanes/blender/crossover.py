@@ -400,7 +400,7 @@ def build_kakashi(R):
 
     h = anime_head('head_base', F, skin, jaw=0.96, chin=0.95, cheek=0.95, nose=0.6, face_len=1.12, cranium=(0.8, 0.92, 0.9))
     hc = P(0xd8dbe6)
-    heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.55, temple=0.0, scale=1.07, nape=-0.6)] + hair(F, hc, kakashi_hair())
+    heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.55, temple=0.0, scale=1.07, nape=-0.6)] + hair(F, hc, kakashi_hair()[0::2]) + hair(F, P(0xb4b8c6), kakashi_hair()[1::2])  # 兩種銀灰交錯，髮束分得出前後
              + head_band(F, cloth, metal, y=0.3, h=0.38, tilt=0.42, tails=True)}
     return finish(F, P, body, proxy, heads)
 
@@ -783,7 +783,7 @@ def build_nami(R):
 
     h = anime_head('head_base', F, skin, jaw=0.88, chin=0.8, cheek=1.0, nose=0.6, face_len=0.98)
     hc = P(0xf28a3a)
-    heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.6, temple=0.0, scale=1.08, nape=-0.9, side_cut=False)] + hair(F, hc, nami_hair())}
+    heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.6, temple=0.0, scale=1.08, nape=-0.6, side_cut=False)] + hair(F, hc, nami_hair()) + nami_ties(F, P(0xe8c050))}
     # 天候棒：三節藍色棍子（握在手上；平常斜背在背後）
     segs = []
     for k in range(3):
@@ -796,15 +796,24 @@ def build_nami(R):
 
 
 def nami_hair():
-    # 中分長波浪：兩撮細瀏海框住臉、鬢髮垂到胸前、背後幾片寬而扁的長髮
-    cl = sym([
-        ((0.12, 0.94, 0.45), (0.42, 0.25, 0.95), 0.18, 0.07, (0.15, 0.15, 0.15)),
-        ((0.6, 0.72, 0.28), (0.82, -0.9, 0.42), 0.2, 0.08, (0.2, 0.1, 0.12)),
-        ((0.72, 0.5, -0.05), (0.9, -1.7, 0.1), 0.26, 0.09, (0.25, -0.1, 0.1)),
-        ((0.5, 0.7, -0.5), (0.72, -2.2, -0.75), 0.34, 0.1, (0.3, 0.0, -0.15)),
-        ((0.15, 0.72, -0.7), (0.24, -2.45, -0.95), 0.36, 0.1, (0.12, 0.0, -0.22)),
+    # 中分、兩側瀏海框住臉，後面的頭髮在耳下綁成兩條低馬尾垂到肩上
+    return sym([
+        ((0.12, 0.94, 0.45), (0.42, 0.22, 0.95), 0.2, 0.07, (0.15, 0.15, 0.15)),
+        ((0.55, 0.75, 0.3), (0.82, -0.55, 0.42), 0.2, 0.08, (0.2, 0.1, 0.12)),
+        ((0.55, 0.65, -0.35), (0.78, -0.45, -0.55), 0.38, 0.12, (0.2, 0.15, -0.05)),
+        ((0.12, 0.7, -0.7), (0.5, -0.5, -0.85), 0.4, 0.12, (0.1, 0.15, -0.1)),
+        ((0.75, -0.4, -0.45), (1.0, -2.0, -0.35), 0.3, 0.16, (0.25, 0.0, 0.1)),   # 低馬尾
     ])
-    return cl
+
+
+def nami_ties(F, pal):
+    """綁馬尾的珠子髮圈。"""
+    out = []
+    for sx in (1, -1):
+        b = kit.quad_sphere('tie', 1.0, cuts=3)
+        kit.deform(b, lambda p, sx=sx: F.c + V((sx * F.hr * 0.78, -F.hr * 0.48, -F.hr * 0.46)) + p * F.hr * 0.11)
+        out.append(kit.tag(b, pal, mat=2, grp=G_FREE, ol=0.5))
+    return out
 
 
 BUILDERS = {
