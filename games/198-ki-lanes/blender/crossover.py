@@ -160,10 +160,11 @@ def long_skirt(F, pal, y0, y1, rx0, rz0, rx1, rz1, gap=0.0, name='skirt', thick=
     return kit.tag(o, pal, grp=G_SKIRT)
 
 
-def hang_tail(pal, pts, w0, w1, name='tail', grp=G_PELVIS):
-    """垂下的布條（腰帶尾端）：沿點列放樣的扁帶。"""
+def hang_tail(pal, pts, w0, w1, name='tail', grp=G_PELVIS, side=V((1, 0, 0)), flat=0.18):
+    """垂下的布條（腰帶尾端）：沿點列放樣的扁帶；side 是布面寬度方向（掛在腰側時要順著腰的切線，側看才不會只剩一條線）。"""
     k = len(pts)
-    o = path_loft(name, pts, [lerp(w0, w1, i / (k - 1)) for i in range(k)], n=8, flat=0.18)
+    side = side.normalized()
+    o = path_loft(name, pts, [lerp(w0, w1, i / (k - 1)) for i in range(k)], n=8, flat=flat, side=side, front=V((side.z, 0, -side.x)))
     return kit.tag(kit.subsurf(o, 1), pal, grp=grp, ol=0.7)
 
 
@@ -551,7 +552,7 @@ def build_luffy(R):
     proxy.append(body[-1])
     yb = F.L + 0.08
     body.append(belt_ring(F, yb, 0.075, sash, e=0.025, thick=0.012))
-    body.append(hang_tail(sash, [V((F.w * 1.0, yb - 0.02, F.cz * 0.7)), V((F.w * 1.4, yb - 0.25, F.cz * 0.85)), V((F.w * 1.55, yb - 0.55, F.cz * 0.7))], 0.075, 0.06, name='sashTail', grp=G_CHAIN))
+    body.append(hang_tail(sash, [V((F.w * 1.0, yb - 0.02, F.cz * 0.7)), V((F.w * 1.5, yb - 0.25, F.cz * 0.9)), V((F.w * 1.72, yb - 0.55, F.cz * 0.8))], 0.09, 0.075, name='sashTail', grp=G_CHAIN, side=V((-0.62, 0, 0.78)), flat=0.24))
     kl = F.k_leg
     s_sh = F.tl - 0.1  # 參考圖：短褲到膝蓋上方
     shorts = leg_tube(F, denim, [(-0.07, 0.13 * kl, 0.13 * kl), (0.04, 0.138 * kl, 0.142 * kl), (0.2, 0.134 * kl, 0.136 * kl), (F.tl - 0.02, 0.122 * kl, 0.124 * kl),
@@ -621,7 +622,7 @@ def build_zoro(R):
     body.append(hara)
     yb = F.L + 0.1
     body.append(belt_ring(F, yb, 0.085, red, e=0.045, thick=0.014))
-    body.append(hang_tail(red, [V((F.w * 1.05, yb - 0.02, F.cz * 0.75)), V((F.w * 1.55, yb - 0.3, F.cz * 0.9)), V((F.w * 1.7, yb - 0.62, F.cz * 0.8))], 0.07, 0.06, name='sashTail', grp=G_CHAIN))
+    body.append(hang_tail(red, [V((F.w * 1.05, yb - 0.02, F.cz * 1.0)), V((F.w * 1.45, yb - 0.3, F.cz * 1.45)), V((F.w * 1.5, yb - 0.62, F.cz * 1.72))], 0.085, 0.072, name='sashTail', grp=G_CHAIN, side=V((-0.62, 0, 0.78)), flat=0.24))
     body.append(neck(F, skin, r=0.06))
     proxy.append(body[-1])
     arm = arm_skin(F, skin, muscle=1.3, k=1.08)
