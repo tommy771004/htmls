@@ -235,7 +235,12 @@ def build_one(hid, R, opt):
         for i, v in enumerate(body.data.vertices):
             fn = H['custom'].get(G[i].value)
             if fn:
-                ws = fn(V(v.co))
+                # blend=True 的函式拿到原本的骨熱權重，可以只把一部分讓給擺動鏈
+                ws = fn(V(v.co), [(bone_names[b], w) for b, w in W[i]]) if getattr(fn, 'blend', False) else fn(V(v.co))
+                acc = {}
+                for b, w in ws:
+                    acc[b] = acc.get(b, 0) + w
+                ws = sorted(acc.items(), key=lambda bw: -bw[1])[:4]
                 tot = sum(w for _, w in ws) or 1
                 W[i] = [(bidx[b], w / tot) for b, w in ws][:4]
 

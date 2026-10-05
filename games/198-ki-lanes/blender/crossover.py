@@ -11,6 +11,7 @@ from heroes import (
     Fig, anime_head, arm_skin, band, boot, finish, fist, hair, hair_cap, leg_tube, limb, neck, pair_add, path_loft, pelvis, sleeve, sym,
     torso_rows, baggy_leg, bob_cap,
 )
+from heroes import ALLOW, G_CHAIN, sash_chain_weights
 from cast import FEMALE_ROWS, arm_s, belt_ring, strap_around, team_band
 
 
@@ -130,13 +131,33 @@ def long_sleeve(F, pal, s_end=None, k=1.0, name='sleeveL', thick=0.007, e=0.008,
     return kit.tag(sl, pal, grp=G_ARM_L)
 
 
+G_SKIRT = 31
+ALLOW[G_SKIRT] = ALLOW[G_PELVIS]  # 骨熱只取骨盆與大腿，再由 skirt_chain_weights 分給擺動鏈
+
+
+def skirt_chain_weights(F, chain):
+    """長下襬：後片依高度讓一部分權重給擺動鏈（chain0 → chain1），前片與側邊保留原本跟著雙腿的骨熱權重。"""
+    h0, _ = F.b[chain + '0']
+    _, t1 = F.b[chain + '1']
+
+    def fn(co, old):
+        t = (h0.y - co.y) / (h0.y - t1.y)
+        k = 0.85 * smooth(-co.z / (F.cz * 1.1)) * smooth(t * 3.0)
+        if k <= 0.001:
+            return old
+        c1 = smooth(t * 1.6 - 0.5)
+        return [(b, w * (1 - k)) for b, w in old] + [(chain + '0', k * (1 - c1)), (chain + '1', k * c1)]
+    fn.blend = True
+    return fn
+
+
 def long_skirt(F, pal, y0, y1, rx0, rz0, rx1, rz1, gap=0.0, name='skirt', thick=0.009, n=24):
     """從腰往下的長下襬（大衣、圍裙）：斷面由 (rx0,rz0) 漸寬到 (rx1,rz1)，前方開衩 gap（弧度比例），綁在骨盆群組讓雙腿帶動。"""
     m = 5
     sts = [S(V((0, lerp(y0, y1, i / (m - 1)), 0.004 * i)), lerp(rx0, rx1, smooth(i / (m - 1))), lerp(rz0, rz1, smooth(i / (m - 1))), p=2.1) for i in range(m)]
     o = kit.loft(name, sts, n=n, cap0=None, cap1=None, gap=(lambda i: gap) if gap else None)
     o = kit.subsurf(o, 2, solidify=thick)
-    return kit.tag(o, pal, grp=G_PELVIS)
+    return kit.tag(o, pal, grp=G_SKIRT)
 
 
 def hang_tail(pal, pts, w0, w1, name='tail', grp=G_PELVIS):
@@ -323,7 +344,7 @@ def build_sasuke(R):
     hc = P(0x1a1c2e)
     heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.42, temple=0.05, scale=1.07, nape=-0.65)] + hair(F, hc, sasuke_hair())}
     blade, sheath = katana(P, sw_grip, sw_guard, sw_sheath, length=1.0)
-    return finish(F, P, body, proxy, heads, extras={'sword': blade, 'sheath': sheath})
+    return finish(F, P, body, proxy, heads, extras={'sword': blade, 'sheath': sheath}, custom={G_SKIRT: skirt_chain_weights(F, 'skirt')})
 
 
 def sasuke_hair():
@@ -530,7 +551,7 @@ def build_luffy(R):
     proxy.append(body[-1])
     yb = F.L + 0.08
     body.append(belt_ring(F, yb, 0.075, sash, e=0.025, thick=0.012))
-    body.append(hang_tail(sash, [V((F.w * 1.0, yb - 0.02, F.cz * 0.7)), V((F.w * 1.4, yb - 0.25, F.cz * 0.85)), V((F.w * 1.55, yb - 0.55, F.cz * 0.7))], 0.075, 0.06, name='sashTail'))
+    body.append(hang_tail(sash, [V((F.w * 1.0, yb - 0.02, F.cz * 0.7)), V((F.w * 1.4, yb - 0.25, F.cz * 0.85)), V((F.w * 1.55, yb - 0.55, F.cz * 0.7))], 0.075, 0.06, name='sashTail', grp=G_CHAIN))
     kl = F.k_leg
     s_sh = F.tl - 0.1  # 參考圖：短褲到膝蓋上方
     shorts = leg_tube(F, denim, [(-0.07, 0.13 * kl, 0.13 * kl), (0.04, 0.138 * kl, 0.142 * kl), (0.2, 0.134 * kl, 0.136 * kl), (F.tl - 0.02, 0.122 * kl, 0.124 * kl),
@@ -546,7 +567,7 @@ def build_luffy(R):
     h = anime_head('head_base', F, skin, jaw=1.04, chin=1.0, cheek=1.08, nose=0.7, face_len=0.95)
     hc = P(0x18161e)
     heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.28, temple=0.1, scale=1.06, nape=-0.6)] + hair(F, hc, luffy_hair()) + straw_hat(F, straw, ribbon)}
-    return finish(F, P, body, proxy, heads)
+    return finish(F, P, body, proxy, heads, custom={G_CHAIN: sash_chain_weights(F, 'sash')})
 
 
 def luffy_hair():
@@ -600,7 +621,7 @@ def build_zoro(R):
     body.append(hara)
     yb = F.L + 0.1
     body.append(belt_ring(F, yb, 0.085, red, e=0.045, thick=0.014))
-    body.append(hang_tail(red, [V((F.w * 1.05, yb - 0.02, F.cz * 0.75)), V((F.w * 1.55, yb - 0.3, F.cz * 0.9)), V((F.w * 1.7, yb - 0.62, F.cz * 0.8))], 0.07, 0.06, name='sashTail'))
+    body.append(hang_tail(red, [V((F.w * 1.05, yb - 0.02, F.cz * 0.75)), V((F.w * 1.55, yb - 0.3, F.cz * 0.9)), V((F.w * 1.7, yb - 0.62, F.cz * 0.8))], 0.07, 0.06, name='sashTail', grp=G_CHAIN))
     body.append(neck(F, skin, r=0.06))
     proxy.append(body[-1])
     arm = arm_skin(F, skin, muscle=1.3, k=1.08)
@@ -636,7 +657,8 @@ def build_zoro(R):
         for o in b2[2:]:
             import bpy
             bpy.data.objects.remove(o, do_unlink=True)
-    return finish(F, P, body, proxy, heads, extras={'sword': blade, 'sheath': sh3})
+    return finish(F, P, body, proxy, heads, extras={'sword': blade, 'sheath': sh3},
+                  custom={G_CHAIN: sash_chain_weights(F, 'sash'), G_SKIRT: skirt_chain_weights(F, 'skirt')})
 
 
 def zoro_hair():

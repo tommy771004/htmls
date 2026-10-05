@@ -496,6 +496,10 @@ function skinOutlineMat(w) {
 export function chainSpecs(id, d) {
   const out = [];
   if (id === 'goku' || id === 'piccolo') out.push({ name: 'sash', parent: 'hips', pos: [id === 'goku' ? -0.035 : 0.13, 0.03, d.chest[2] * 0.92], n: 2, len: id === 'piccolo' ? 0.19 : 0.17, base: -0.15, yaw: 0.1, lift: -0.6, flutter: 0.2 });
+  // 腰帶尾端（魯夫、索隆左腰垂下的布條）
+  if (id === 'luffy' || id === 'zoro') out.push({ name: 'sash', parent: 'hips', pos: [d.waist * (id === 'zoro' ? 1.05 : 1.0), id === 'zoro' ? 0.08 : 0.06, d.chest[2] * 0.72], n: 2, len: id === 'zoro' ? 0.31 : 0.28, base: 0, lift: 0.55, flutter: 0.3 });
+  // 長下襬的後片（索隆大衣、佐助腰布）：跑動時往後飄，前片仍跟著雙腿
+  if (id === 'zoro' || id === 'sasuke') out.push({ name: 'skirt', parent: 'hips', pos: [0, id === 'zoro' ? 0.08 : 0.06, -d.chest[2] * 1.0], n: 2, len: id === 'zoro' ? 0.34 : 0.28, base: 0, lift: 0.4, flutter: 0.14 });
   if (id === 'frieza') out.push({ name: 'tail', parent: 'hips', pos: [0, -0.04, -d.hip * 1.05], n: 5, len: 0.2, base: 0.75, lift: 0.22, flutter: 0.1, curl: 0.16, sway: 0.4 });
   return out;
 }
@@ -542,6 +546,23 @@ export function bindPose(sk) {
   sk.root.updateMatrixWorld(true);
 }
 
+// 頭髮的蒙皮權重（頭骨 0、hairBone 1）：頭心以下才開始擺，越低越擺；臉前的瀏海與鬢角不動，免得往後甩時穿進臉裡
+const _hairW = new WeakMap();
+function hairWeights(g, hr) {
+  if (_hairW.has(g)) return g;
+  const p = g.attributes.position, n = p.count, si = new Uint8Array(n * 4), sw = new Uint8Array(n * 4);
+  const cy = hr * 0.9;
+  for (let i = 0; i < n; i++) {
+    const below = (cy - hr * 0.15 - p.getY(i)) / (hr * 1.4), back = (hr * 0.35 - p.getZ(i)) / (hr * 0.7);
+    const w = smooth01(below) * smooth01(back);
+    si[i * 4 + 1] = 1; sw[i * 4] = Math.round((1 - w) * 255); sw[i * 4 + 1] = 255 - sw[i * 4];
+  }
+  g.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4)); g.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4, true));
+  _hairW.set(g, true);
+  return g;
+}
+const smooth01 = (x) => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
+
 /* ---------------- buildHero ---------------- */
 const SHOUT = new Set(['atk2', 'atk3', 'cast', 'beam', 'rush', 'overhead', 'slash', 'grab', 'charge', 'dash']);
 const HURT = new Set(['stun', 'air', 'dead']);
@@ -571,8 +592,20 @@ export function buildHero(id, team = 0) {
 
   // 頭顱共用、髮型依型態切換；臉部貼圖（眼睛顏色）也隨型態換材質
   const skull = pair(gs.skull, head, headMat(id, 'base', gs.faces.base, gs.faceRect));
+  // 頭髮二次擺動：頭心下方、偏後的髮束（長髮、馬尾、護額綁帶）綁到 hairBone，跑動時往後甩、急停時回盪
+  const hairBone = new THREE.Bone(); hairBone.position.set(0, d.hr * 0.9, 0); head.add(hairBone);
+  root.updateMatrixWorld(true);
+  const hairSkel = new THREE.Skeleton([head, hairBone]);
   const hairForms = {};
-  for (const f in gs.hair) { hairForms[f] = pair(gs.hair[f], head, heroMat(id, team)); show(hairForms[f], f === 'base'); }
+  for (const f in gs.hair) {
+    const g = hairWeights(gs.hair[f], d.hr);
+    const m = new THREE.SkinnedMesh(g, heroMat(id, team)), o = new THREE.SkinnedMesh(g, skinOutlineMat(OW));
+    m.castShadow = true; m.frustumCulled = o.frustumCulled = false; o.raycast = () => {};
+    head.add(m, o); m.userData.outline = o; m.updateMatrixWorld(true); o.updateMatrixWorld(true);
+    m.bind(hairSkel, m.matrixWorld); o.bind(hairSkel, o.matrixWorld);
+    hairForms[f] = m; show(m, f === 'base');
+  }
+  const hs = { x: 0, z: 0, vx: 0, vz: 0, yaw: root.rotation.y };
 
   const chains = sk.chains.map((c) => ({ segs: c.segs, base: c.base, yaw: c.yaw || 0, lift: c.lift ?? 1, flutter: c.flutter ?? 0.25, curl: c.curl || 0, sway: c.sway || 0, cur: c.segs.map(() => c.base), phase: Math.random() * 6 }));
 
@@ -660,6 +693,17 @@ export function buildHero(id, team = 0) {
         if (i === 0) s.rotation.y = c.yaw + (c.sway ? Math.sin(time * 1.7) * c.sway : 0);
         else if (c.sway) s.rotation.z = Math.sin(time * 1.7 - i * 0.7) * c.sway * 0.35;
       });
+    }
+    // 頭髮彈簧：前進速度讓髮尾往後甩、轉身時往反方向甩，集氣時被氣流吹動
+    {
+      let dy = root.rotation.y - hs.yaw; hs.yaw = root.rotation.y;
+      dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+      const wind = name === 'charge' ? 0.5 : name === 'dash' || name === 'rush' || name === 'vanish' ? 0.3 : 0;
+      const tx = clamp(fwd * 0.055, -0.1, 0.42) + wind + Math.sin(time * (wind ? 14 : 2.2)) * (wind ? 0.12 : 0.025);
+      const tz = clamp(-dy / Math.max(dt, 1e-3) * 0.02, -0.3, 0.3) + Math.sin(time * 1.7 + 1) * 0.02;
+      hs.vx += ((tx - hs.x) * 70 - hs.vx * 9) * dt; hs.vz += ((tz - hs.z) * 70 - hs.vz * 9) * dt;
+      hs.x = clamp(hs.x + hs.vx * dt, -0.15, 0.7); hs.z = clamp(hs.z + hs.vz * dt, -0.4, 0.4);
+      hairBone.rotation.set(hs.x, 0, hs.z);
     }
     if (aura.group.visible) for (const m of aura.mats) m.uniforms.uTime.value += dt;
     if (name === 'charge') { body.position.x = (Math.random() - 0.5) * 0.02; body.position.z = (Math.random() - 0.5) * 0.02; }
