@@ -123,6 +123,14 @@ export function createFx(scene, camera) {
   const spawn = (o) => { o.t = 0; live.push(o); return o; };
   const addMat = (color, map, opacity = 1) => new THREE.MeshBasicMaterial({ color, map, transparent: true, opacity, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false });
 
+  // 能量殼材質（加法）：視線越貼著表面越亮
+  const shellMat = (color, op) => new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: new THREE.Color(color) }, uOp: { value: op } },
+    vertexShader: 'varying vec3 vN, vV; void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+    fragmentShader: 'uniform vec3 uColor; uniform float uOp; varying vec3 vN, vV; void main(){ float f = 1. - abs(dot(normalize(vN), normalize(vV))); gl_FragColor = vec4(uColor, clamp((0.06 + pow(f, 2.2) * 0.85) * uOp, 0., 1.)); }',
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false,
+  });
+
   // 點光源池（爆炸時照亮地面與角色）
   const lights = [];
   for (let i = 0; i < 4; i++) { const l = new THREE.PointLight('#ffffff', 0, 14, 1.6); scene.add(l); lights.push({ l, t: 0, dur: 1, i0: 0 }); }
@@ -467,11 +475,13 @@ export function createFx(scene, camera) {
     },
     // 圓頂爆炸（熱圓頂攻擊、死亡球落點）
     dome(x, z, r, color) {
+      // 菲涅耳能量殼：輪廓亮、正中幾乎透明（實心加法半球從上往下看會整片過曝成白色）
       const geo = new THREE.SphereGeometry(1, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
-      const m = new THREE.Mesh(geo, addMat(color, null, 0.7)); const c = new THREE.Mesh(geo, addMat('#ffffff', null, 0.6));
+      const m = new THREE.Mesh(geo, shellMat(color, 0.9)); const c = new THREE.Mesh(geo, shellMat('#ffffff', 0.55));
       const y = heightAt(x, z); m.position.set(x, y, z); c.position.set(x, y, z); m.renderOrder = c.renderOrder = 7; scene.add(m, c);
-      pop(x, y + 3, z, color, 90, r * 4, 0.7);
-      spawn({ dur: 0.75, update(k) { const e = 1 - Math.pow(1 - k, 3); m.scale.setScalar(r * (0.2 + e)); c.scale.setScalar(r * (0.1 + e * 0.75)); m.material.opacity = 0.7 * (1 - k); c.material.opacity = 0.6 * Math.max(0, 1 - k * 1.3); /* 加法混合遇到負透明度會變成「減色」，整片地面變紫 */ }, done() { scene.remove(m, c); geo.dispose(); m.material.dispose(); c.material.dispose(); } });
+      pop(x, y + 3, z, color, 45, r * 4, 0.6);
+      groundRing(x, z, color, r, 0.5);
+      spawn({ dur: 0.75, update(k) { const e = 1 - Math.pow(1 - k, 3); m.scale.setScalar(r * (0.2 + e)); c.scale.setScalar(r * (0.1 + e * 0.7)); m.material.uniforms.uOp.value = 0.9 * (1 - k); c.material.uniforms.uOp.value = 0.55 * Math.max(0, 1 - k * 1.6); }, done() { scene.remove(m, c); geo.dispose(); m.material.dispose(); c.material.dispose(); } });
       dust.emit(x, 0.5, z, { n: 40, speed: 12, up: 0.3, spread: 0.4, color: '#c9b48a', size: 1.6, life: 1.2, gravity: 0, drag: 2, jitter: r * 0.3 });
     },
     // 能量屏障：擴張的半透明球
