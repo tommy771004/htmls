@@ -50,9 +50,9 @@ export const FISH_INFO = {
   // 行為參數（fishing.js 讀取）：bread＝對麵包的興趣（被吸引的機率倍數）、reef＝只在礁區附近才有興趣、nibble＝咬鉤前輕咬次數範圍、
   // gap＝輕咬間隔倍數、biteWin＝咬鉤後能提竿的秒數、ring／spin＝在餌旁繞圈的半徑（m）與角速度、hover＝靠近前先停在 2 m 外觀察的秒數、
   // shy＝每次輕咬後退開再回來、puff＝釣起時鼓成圓球。habit 是魚卡與圖鑑上的習性說明，必須和這些參數一致。
-  clown: { name: '小丑魚', body: 0.30, len: [24, 34], power: 0.45, speed: 0.55, bread: 1.0, nibble: [1, 2], gap: 0.8, biteWin: 1.0, ring: 0.45, spin: 1.3, hover: 0, habit: '最貪吃：一看到麵包就靠過來，輕啄一兩下就咬，提竿時間也最寬裕。', notes: ['在珊瑚邊探頭探腦的小傢伙。', '橘白條紋，一眼就認得。', '個子小，一下子就咬上來了。'] },
+  clown: { name: '小丑魚', body: 0.30, len: [24, 34], power: 0.45, speed: 0.55, bread: 1.0, nibble: [1, 2], gap: 0.8, biteWin: 1.25, ring: 0.45, spin: 1.3, hover: 0, habit: '最貪吃：一看到麵包就靠過來，輕啄一兩下就咬，提竿時間也最寬裕。', notes: ['在珊瑚邊探頭探腦的小傢伙。', '橘白條紋，一眼就認得。', '個子小，一下子就咬上來了。'] },
   tang: { name: '藍倒吊', body: 0.40, len: [34, 46], power: 0.6, speed: 0.7, bread: 0.8, nibble: [2, 3], gap: 1.35, biteWin: 0.9, ring: 0.9, spin: 0.7, hover: 0, habit: '繞著麵包兜大圈，要繞上好一陣子、啄個兩三下才肯咬。', notes: ['藍得像午後的淺灘。', '尾巴那抹黃很漂亮。', '兜了好幾圈才肯下口。'] },
-  snapper: { name: '紅笛鯛', body: 0.55, len: [45, 62], power: 0.85, speed: 0.85, bread: 0.55, nibble: [1, 1], gap: 1.0, biteWin: 1.15, ring: 0.6, spin: 0.9, hover: 2.4, habit: '很謹慎：先停在兩公尺外觀察，一旦靠近只試一口就狠狠咬住；拉力很強。', notes: ['拉起來很有勁！', '觀察了半天，一口就咬住。', '今晚可以加菜了。'] },
+  snapper: { name: '紅笛鯛', body: 0.55, len: [45, 62], power: 0.85, speed: 0.85, bread: 0.55, nibble: [1, 1], gap: 1.0, biteWin: 1.1, ring: 0.6, spin: 0.9, hover: 2.4, habit: '很謹慎：先停在兩公尺外觀察，一旦靠近只試一口就狠狠咬住；拉力很強。', notes: ['拉起來很有勁！', '觀察了半天，一口就咬住。', '今晚可以加菜了。'] },
   puffer: { name: '河豚', body: 0.36, len: [28, 40], power: 0.5, speed: 0.4, bread: 0.9, nibble: [3, 5], gap: 0.9, biteWin: 0.6, ring: 0.5, spin: 0.9, hover: 0, shy: true, puff: true, habit: '很會躲：偷咬好幾口就退開，真的咬鉤時只給你一眨眼的時間提竿。', notes: ['一臉無辜地鼓起來了。', '圓滾滾的，放生比較好。', '慢吞吞但很會躲。'] },
   parrot: { name: '鸚哥魚', body: 0.62, len: [52, 72], power: 1.0, speed: 0.75, bread: 0.5, reef: true, nibble: [2, 3], gap: 1.1, biteWin: 0.8, ring: 0.7, spin: 0.8, hover: 1.2, habit: '愛在珊瑚礁邊覓食：餌甩在礁旁才容易引來牠；力氣最大。', notes: ['嘴巴像鳥喙，總在礁邊打轉。', '薄荷綠配粉紅，好時髦。', '這條可是大傢伙！'] },
 };

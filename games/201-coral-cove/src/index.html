@@ -142,21 +142,12 @@ body.paused #hud { filter: saturate(.6); }
 #intro .note { font-size: 12px; color: var(--ink-soft); margin-top: 12px; }
 body.touch #intro .kb { display: none; } body:not(.touch) #intro .tc { display: none; }
 
-/* 魚卡放在漁夫旁邊（桌機右側、手機上方），不擋住舉魚的漁夫 */
-#card { --cx: calc(50% + 300px); --cy: 50%; left: var(--cx); top: var(--cy); width: min(320px, calc(100vw - 32px)); transform: translate(-50%, -50%) rotate(1.5deg); animation: cardin .35s ease-out; }
-@keyframes cardin { 0% { transform: translate(-50%, -38%) rotate(-6deg) scale(.7); opacity: 0; } 100% { transform: translate(-50%, -50%) rotate(1.5deg) scale(1); opacity: 1; } }
+/* 魚卡放在漁夫旁邊（桌機右側、手機上方），不擋住舉魚的漁夫；main.js 的 cardBox() 照卡片實際的版面位置移鏡頭 */
+#card { --cx: calc(50% + 300px); --cy: 50%; --ty: -50%; left: var(--cx); top: var(--cy); width: min(320px, calc(100vw - 32px)); transform: translate(-50%, var(--ty)) rotate(1.5deg); animation: cardin .35s ease-out; }
+@keyframes cardin { 0% { transform: translate(-50%, calc(var(--ty) + 12%)) rotate(-6deg) scale(.7); opacity: 0; } 100% { transform: translate(-50%, var(--ty)) rotate(1.5deg) scale(1); opacity: 1; } }
 /* 窄桌機（861～930 px）：卡片右緣不超出視窗 */
 #card { --cx: min(calc(50% + 300px), calc(100% - 176px - var(--safe-r))); }
 @media (max-width: 860px) { #card { --cx: 50%; --cy: calc(var(--safe-t) + 250px); } }
-@media (max-width: 860px) and (max-height: 700px) { #card { --cy: calc(var(--safe-t) + 210px); } }
-/* 手機橫式（矮）：魚卡放右側、縮小，漁夫由 main.js 的鏡頭移到左半邊 */
-@media (orientation: landscape) and (max-height: 520px) {
-  #card { --cx: calc(100% - 12px - var(--safe-r) - 140px); --cy: 50%; width: 280px; padding: 12px 16px 10px; max-height: calc(100dvh - 16px); overflow: auto; }
-  #card h2 { font-size: 24px; } #card .len { font-size: 22px; }
-  #card .fishart { width: 118px; height: 50px; margin-top: 2px; }
-  #card .note { font-size: 13px; margin-top: 3px; } #card .habit { font-size: 12px; margin-top: 4px; padding-top: 4px; }
-  #card .tap { margin-top: 5px; }
-}
 #card .got { font-size: 13px; letter-spacing: .3em; color: var(--ink-soft); }
 #card h2 { font-size: 32px; margin-top: 2px; }
 #card .len { font-size: 26px; font-weight: 700; margin-top: 2px; }
@@ -164,9 +155,42 @@ body.touch #intro .kb { display: none; } body:not(.touch) #intro .tc { display: 
 #card .fishart { width: 170px; height: 74px; margin: 6px auto 0; display: block; overflow: visible; }
 #card .note { font-size: 15px; margin-top: 6px; }
 #card .tap { font-size: 12px; color: var(--ink-soft); margin-top: 10px; }
+#card .badges:empty { display: none; }
 #card .rec { display: inline-block; margin: 6px 3px 0; font-size: 13px; font-weight: 700; background: var(--coral-2); border: 2px solid var(--ink); border-radius: 10px 6px 12px 7px; padding: 1px 8px 2px; transform: rotate(-3deg); }
 #card .rec.new { background: var(--lagoon-l); transform: rotate(2deg); }
 #card .habit { font-size: 13px; line-height: 1.45; margin: 6px auto 0; max-width: 260px; padding-top: 6px; border-top: 1.6px dashed rgba(59,55,50,.3); }
+/* 矮螢幕（短直式、手機橫式）：插圖移到魚名左邊，間距收緊，卡片才不會擋到舉魚的漁夫 */
+@media (max-width: 860px) and (max-height: 759px), (orientation: landscape) and (max-height: 520px) {
+  #card { display: grid; grid-template-columns: auto auto; justify-content: center; align-items: center; column-gap: 14px; }
+  #card > * { grid-column: 1 / -1; }
+  #card .fishart { grid-column: 1; grid-row: 1 / span 3; width: 112px; height: 49px; margin: 0; }
+  #card .got, #card h2, #card .len { grid-column: 2; text-align: left; margin: 0; }
+  #card .got { grid-row: 1; letter-spacing: .2em; }
+  #card h2 { grid-row: 2; font-size: 26px; }
+  #card .len { grid-row: 3; font-size: 22px; }
+  #card .rec { margin-top: 5px; }
+  #card .note { font-size: 14px; margin-top: 4px; }
+  #card .habit { font-size: 12.5px; margin-top: 5px; padding-top: 5px; }
+  #card .tap { margin-top: 6px; }
+}
+/* 短直式：卡片貼著上緣（頂端對齊，main.js 依卡片底緣把漁夫往下推） */
+@media (max-width: 860px) and (max-height: 759px) { #card { --ty: 0%; --cy: calc(var(--safe-t) + 12px); padding: 14px 18px 12px; } }
+/* 手機橫式（矮）：魚卡放右側，在暫停／靜音鈕與魚簍下方那一段置中；漁夫由 main.js 的鏡頭移到卡片左邊 */
+@media (orientation: landscape) and (max-height: 520px) {
+  #creelBox { gap: 6px; }
+  #creelBox .disc { width: 50px; height: 50px; }
+  #creelText { font-size: 17px; }
+  #creelSlots svg { width: 15px; height: 15px; }
+  #creelLabel { padding: 5px 10px 6px; }
+  #card { --top: calc(var(--safe-t) + 78px); --band: calc(100dvh - var(--top) - 8px - var(--safe-b)); --cx: calc(100% - 12px - var(--safe-r) - 150px); --ty: -50%; --cy: calc(var(--top) + var(--band) / 2); width: 300px; max-height: var(--band); overflow: auto; padding: 10px 14px 9px; }
+  #card .fishart { width: 96px; height: 42px; }
+  #card h2 { font-size: 22px; }
+  #card .len { font-size: 20px; }
+  #card .rec { margin-top: 4px; }
+  #card .note { font-size: 13px; margin-top: 3px; }
+  #card .habit { font-size: 12px; line-height: 1.4; margin-top: 4px; padding-top: 4px; }
+  #card .tap { font-size: 11px; margin-top: 4px; }
+}
 
 #full h2 { font-size: 26px; }
 #full ol { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 5px 14px; text-align: left; font-size: 15px; }

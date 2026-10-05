@@ -153,7 +153,7 @@ export class UI {
   showCatch(id, len, note, isBest, tag = '') {
     const info = FISH_INFO[id];
     const badges = (tag === 'new' ? '<span class="rec new">新魚種！</span>' : tag === 'record' ? '<span class="rec">新紀錄</span>' : '') + (isBest ? '<span class="rec">這簍最大</span>' : '');
-    this.el.card.innerHTML = `<div class="got">釣到了！</div><h2>${info.name}</h2>${fishArt(id)}<div class="len">${len}<small>cm</small></div>${badges}<div class="note">${note}</div><div class="habit">${info.habit || ''}</div><div class="tap">${document.body.classList.contains('touch') ? '點一下繼續' : '點一下或按空白鍵繼續'}</div>`;
+    this.el.card.innerHTML = `<div class="got">釣到了！</div><h2>${info.name}</h2>${fishArt(id)}<div class="len">${len}<small>cm</small></div><div class="badges">${badges}</div><div class="note">${note}</div><div class="habit">${info.habit || ''}</div><div class="tap">${document.body.classList.contains('touch') ? '點一下繼續' : '點一下或按空白鍵繼續'}</div>`;
     this.show('card', true);
   }
   // 魚簍面板：這一簍的魚與長度，加上圖鑑（各魚種釣過幾條、最大幾公分；沒釣過的是墨色剪影）

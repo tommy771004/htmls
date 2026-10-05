@@ -8,7 +8,7 @@
 ```bash
 npm run assets         # 依序跑 blender/*.py，重建 blender/out/*.glb（需要 /Applications/Blender.app，可用 BLENDER 環境變數指定）
 npm run build          # esbuild 打包 src/ + 內嵌 GLB → ../../web/201-coral-cove.html
-npm test               # 兩種尺寸的無頭 Chrome 驗收（跑打包後的單檔）
+npm test               # 桌機、直式與橫式手機的無頭 Chrome 驗收，另外檢查短直式／短橫式的魚卡（跑打包後的單檔；尺寸見 README）
 node tools/view.mjs blender/out/fisher.glb --node fisher_rig --anim cast --times 0,0.3,0.55,0.9 --view side
 node tools/glbinfo.mjs blender/out/fisher.glb --tree
 /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup -P blender/fisher.py   # 單獨重建一個資產檔
@@ -105,8 +105,10 @@ node tools/glbinfo.mjs blender/out/fisher.glb --tree
 - 收線：按住收線鍵收線，魚拉的時候張力上升；張力滿太久斷線，鬆太久脫鉤。距離收到 1.2 m 內就釣起。
 - 麵包餌被魚吃掉（沒提到竿）要重新甩竿；麵包無限供應。其他魚餌（蝦、沙蠶、亮片）顯示為上鎖格「之後開放」。
 - 魚簍容量 8：上方顯示「魚簍 n/8」；滿了顯示結算（本簍的魚與長度），可以「放回大海，再釣一簍」。
-- 鍵盤：WASD／方向鍵走路；空白鍵或滑鼠左鍵＝按住蓄力、放開甩竿／咬鉤時提竿／拔河時按住收線；E＝收竿；B 或點魚餌圖示＝選魚餌；Esc＝關閉面板。
-- 觸控：左下虛擬搖桿；右下大圓鈕（甩竿／提竿／收線）、小圓鈕「E 收竿」；點魚餌圖示選餌。
+- 鍵盤：WASD／方向鍵走路；空白鍵或滑鼠左鍵＝按住蓄力、放開甩竿／咬鉤時提竿／拔河時按住收線／舉魚時關魚卡；E＝收竿；B 或點魚餌圖示＝選魚餌（只有走動時）；C 或點上方魚簍＝魚簍與圖鑑；P＝暫停／繼續（沒有面板開著時 Esc 也會暫停）；M＝靜音／開聲音；Esc＝關閉面板。
+- 開場卡按空白或 Enter 開始；結算卡開著時空白、Enter、Esc 都等於「放回大海」。焦點在大圓鈕上時按住 Enter 等於按住大圓鈕，在「E 收竿」上按 Enter 收竿。
+- 觸控：左下虛擬搖桿；右下大圓鈕（甩竿／提竿／收線／繼續）、小圓鈕「E 收竿」；點魚餌圖示選餌、點上方魚簍看魚簍與圖鑑；右上「‖」圓鈕暫停、喇叭圓鈕靜音。
+- 暫停（P、右上圓鈕，或分頁切到背景時自動）時世界停住；舉魚時暫停會先藏起魚卡，繼續後再顯示，魚卡自動關閉的計時也一起停。
 
 ## 介面
 

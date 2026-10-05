@@ -1,4 +1,4 @@
-// 評審截圖：dist/shots/ 下的 overview、follow、close-<動作>、wait、fight、catch、full、bait、mobile。
+// 評審截圖：dist/shots/ 下的 overview、follow、close-<動作>、wait、fight、catch、toss、full、bait、creel、pause、mobile、land（手機橫式）。
 // node tools/shot.mjs [html] [--only 名稱,名稱]
 import { mkdirSync } from 'node:fs';
 import { open, raf } from './lib.mjs';
@@ -56,7 +56,7 @@ await session({ w: 1440, h: 900 }, async (page) => {
     }
     await ev(page, () => { window.__cc.pose(null); window.__cc.cam('follow'); window.__cc.hud(true); });
   }
-  if (want('wait') || want('fight') || want('catch') || want('full') || want('bait')) {
+  if (['wait', 'bite', 'fight', 'catch', 'toss', 'full', 'bait', 'creel', 'pause'].some(want)) {
     await ev(page, () => { window.__cc.place(0.5, -11.4, Math.PI); window.__cc.cast(0.55); });
     await page.waitForFunction(() => window.__cc.state().phase === 'wait');
     // 等魚游近並輕啄
@@ -77,11 +77,17 @@ await session({ w: 1440, h: 900 }, async (page) => {
     if (want('catch')) await snap(page, 'catch');
     await page.waitForTimeout(400);
     await page.keyboard.press('Space');
-    await page.waitForTimeout(300);
+    // 魚以拋物線飛進平台上的魚簍
+    if (want('toss')) { await ev(page, () => window.__cc.timeScale(0.0001)); await page.waitForTimeout(100); await ev(page, () => window.__cc.timeScale(0.3)); await page.waitForTimeout(450); await ev(page, () => window.__cc.timeScale(0.0001)); await snap(page, 'toss'); await ev(page, () => window.__cc.timeScale(1)); }
+    await page.waitForTimeout(1400);
     if (want('bait')) { await page.keyboard.press('KeyB'); await page.waitForTimeout(300); await snap(page, 'bait'); await page.keyboard.press('Escape'); }
+    if (want('creel')) { await page.keyboard.press('KeyC'); await page.waitForTimeout(300); await snap(page, 'creel'); await page.keyboard.press('Escape'); }
+    if (want('pause')) { await page.keyboard.press('KeyP'); await page.waitForTimeout(300); await snap(page, 'pause'); await page.keyboard.press('KeyP'); }
     if (want('full')) {
       await ev(page, () => { window.__cc.setCreel(7); window.__cc.land('tang'); });
-      await page.waitForTimeout(700); await page.keyboard.press('Space'); await page.waitForTimeout(400);
+      await page.waitForTimeout(700); await page.keyboard.press('Space');
+      await page.waitForFunction(() => !document.getElementById('full').classList.contains('hidden'), null, { timeout: 4000 });
+      await page.waitForTimeout(400);
       await snap(page, 'full');
     }
   }
@@ -102,4 +108,17 @@ if (want('mobile')) {
     await page.waitForTimeout(1500);
     await snap(page, 'mobile-catch');
   });
+}
+
+// 手機橫式：開場卡（要完整看到「開始釣魚」）與舉魚（魚卡在右、漁夫在左）
+if (want('land')) {
+  const { browser, page } = await open(html, { w: 667, h: 375, touch: true });
+  try {
+    await page.waitForTimeout(900);
+    await snap(page, 'land-intro');
+    await page.tap('#start');
+    await ev(page, () => { window.__cc.place(0, -9.5, Math.PI); window.__cc.land('parrot'); });
+    await page.waitForTimeout(2200);
+    await snap(page, 'land-catch');
+  } finally { await browser.close(); }
 }

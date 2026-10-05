@@ -143,11 +143,12 @@ function bakeParts(root, rel, out = { 0: [], 2: [] }) {
   return out;
 }
 const bakedMats = {};
-function bakedMat(side, rough = 0.9) {
-  const k = side + ':' + rough;
+// hue＝false：水下不保留高彩度底色的色相（木頭類，見 underwater.js）
+function bakedMat(side, rough = 0.9, hue = true) {
+  const k = side + ':' + rough + ':' + hue;
   if (!bakedMats[k]) {
     bakedMats[k] = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: rough, metalness: 0, side: side === 2 ? THREE.DoubleSide : THREE.FrontSide });
-    patchUnderwater(bakedMats[k]);
+    patchUnderwater(bakedMats[k], { hue });
   }
   return bakedMats[k];
 }
@@ -208,6 +209,10 @@ function hullCap(h, inset) {
     const lz = HULL_L / 2 - s * HULL_L - (k === 24 ? -inset : k === 0 ? inset : 0);
     right.push([Math.max(0.004, hullHalf(w, d, g, h) - inset), lz]);
   }
+  return capGeo(right, h);
+}
+// right：船頭→船尾的 [半寬, 本地 z]，左右鏡射成一個多邊形，放在船本地 y＝h
+function capGeo(right, h) {
   const shape = new THREE.Shape();
   const pts = [...right.map(([x, z]) => [x, z]), ...right.slice().reverse().map(([x, z]) => [-x, z])];
   // Shape 在 xy 平面；之後轉到 xz（y→−z），所以這裡用 (x, −z)
@@ -216,6 +221,37 @@ function hullCap(h, inset) {
   const g = new THREE.ShapeGeometry(shape);
   g.rotateX(-Math.PI / 2); g.translate(0, h, 0);
   return g;
+}
+
+// 佔位船（沒有 props.glb）：量所有頂點在船本地 xz 的凸包，回傳 z 範圍與某 z 的左右緣（x 最小／最大）。
+// 水面遮罩與船邊浪沫都照它建，不能套 GLB 的船殼表（佔位船比較短、船尾是圓的，套了會凸出船外）
+function measureHull(root) {
+  root.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(root.matrixWorld).invert(), m = new THREE.Matrix4(), v = new THREE.Vector3(), pts = [];
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    const p = o.geometry.attributes.position;
+    m.multiplyMatrices(inv, o.matrixWorld);
+    for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i).applyMatrix4(m); pts.push([v.x, v.z]); }
+  });
+  if (pts.length < 3) return null;
+  pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const chain = (list) => { const c = []; for (const p of list) { while (c.length >= 2 && cross(c[c.length - 2], c[c.length - 1], p) <= 0) c.pop(); c.push(p); } return c.slice(0, -1); };
+  const poly = [...chain(pts), ...chain(pts.slice().reverse())];
+  let z0 = Infinity, z1 = -Infinity;
+  for (const [, z] of poly) { z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
+  const span = (z) => {
+    let a = Infinity, b = -Infinity;
+    for (let i = 0; i < poly.length; i++) {
+      const p = poly[i], q = poly[(i + 1) % poly.length];
+      if (Math.min(p[1], q[1]) > z || Math.max(p[1], q[1]) < z) continue;
+      const t = q[1] === p[1] ? 0 : (z - p[1]) / (q[1] - p[1]);
+      const x = p[0] + (q[0] - p[0]) * t; a = Math.min(a, x); b = Math.max(b, x);
+    }
+    return b >= a ? [a, b] : null;
+  };
+  return { z0, z1, span };
 }
 
 // 繫船繩：固定段數的細管，每幀依兩端重算頂點（不重建幾何）
@@ -274,7 +310,7 @@ export function buildWorld(scene, { mobile }) {
   const crate = getStatic('props', 'crate'); crate.position.set(D.crate.x, PIER.y, D.crate.z); crate.rotation.y = D.crate.rot;
   const crate2 = getStatic('props', 'crate'); crate2.position.set(D.crate2.x, PIER.y, D.crate2.z); crate2.rotation.y = D.crate2.rot; crate2.scale.setScalar(D.crate2.s);
   const loaf = getStatic('props', 'bread_loaf'); loaf.position.set(D.crate.x, PIER.y + 0.6, D.crate.z); loaf.rotation.y = 0.9;
-  const propMat = bakedMat(2, 0.85);
+  const propMat = bakedMat(2, 0.85, false);
   const deck = new THREE.Group(); deck.add(pier, crate, crate2, loaf);
   world.pier = bakeOne(deck, propMat, null); world.pier.name = 'pier_baked';
   scene.add(world.pier);
@@ -295,13 +331,33 @@ export function buildWorld(scene, { mobile }) {
   patchUnderwater(boatMat, { dry: dryInv });
   const boat = new THREE.Group(); boat.name = 'boat';
   boat.add(bakeOne(boatSrc, boatMat, null));
-  const cap = new THREE.Mesh(hullCap(0.1, 0.006), new THREE.MeshBasicMaterial({ colorWrite: false, side: THREE.DoubleSide }));
-  cap.name = 'boat_watercap'; cap.renderOrder = 4; cap.castShadow = false; cap.receiveShadow = false;
-  boat.add(cap);
+  // 船艙口遮罩與船邊浪沫的吃水線輪廓：GLB 船照 HULL_KEY；佔位船照量到的凸包（佔位船殼是直立的擠出牆，
+  // 遮罩在 y＝0.1 只要比外緣內縮一點點就在船殼裡，不會凸出船外；縮太多反而在內牆邊漏出一條水面與浪沫）
+  const ph = boatSrc.userData.fromGLB ? null : measureHull(boatSrc);
+  let capG = null;
+  if (boatSrc.userData.fromGLB) capG = hullCap(0.1, 0.006);
+  else if (ph && ph.z1 - ph.z0 > 0.6) {
+    const IN = 0.02, right = [];
+    for (let k = 0; k <= 24; k++) {
+      const z = ph.z1 - IN - (k / 24) * (ph.z1 - ph.z0 - 2 * IN), sp = ph.span(z);
+      right.push([sp ? Math.max(0.004, Math.min(-sp[0], sp[1]) - IN) : 0.004, z]);
+    }
+    capG = capGeo(right, 0.1);
+  }
+  if (capG) {
+    const cap = new THREE.Mesh(capG, new THREE.MeshBasicMaterial({ colorWrite: false, side: THREE.DoubleSide }));
+    cap.name = 'boat_watercap'; cap.renderOrder = 4; cap.castShadow = false; cap.receiveShadow = false;
+    boat.add(cap);
+  }
   boat.position.set(BOAT.x, 0, BOAT.z); boat.rotation.y = BOAT.yaw;
   scene.add(boat);
   world.boat = boat;
-  WATER_FX.hull = { L: HULL_L, s: HULL_KEY.map((k) => k[0]), w: HULL_KEY.map((k) => hullHalf(k[1], k[2], k[3], 0)) };
+  if (boatSrc.userData.fromGLB) WATER_FX.hull = { L: HULL_L, s: HULL_KEY.map((k) => k[0]), w: HULL_KEY.map((k) => hullHalf(k[1], k[2], k[3], 0)) };
+  else if (ph) {
+    // water.js 的 hullDist 以船原點為中心、船頭在 +z：取對稱的長度，船身外的斷面給負半寬（不畫浪沫）
+    const L = 2 * Math.max(ph.z1, -ph.z0), S = [0, 0.08, 0.2, 0.35, 0.5, 0.65, 0.8, 0.92, 1];
+    WATER_FX.hull = { L, s: S, w: S.map((t) => { const sp = ph.span(L / 2 - t * L); return sp ? Math.max(-sp[0], sp[1]) : -0.3; }) };
+  }
   // 繫船繩：船首繩環（船本地 (0, 0.36, 1.62)）→ 平台東北角繫船柱（world (2.68, −11.68)，上圈繩約橋面上 0.16 m）
   const ropeMat = new THREE.MeshStandardMaterial({ color: new THREE.Color().setRGB(0.69, 0.51, 0.23), roughness: 0.85, metalness: 0, flatShading: true });
   const rope = makeRope(16, 5, 0.019, ropeMat); rope.name = 'boat_rope';

@@ -29,7 +29,7 @@ export function buildWater(scene, depthTex, sunDir) {
     uSky: { value: new THREE.Color('#e9f6ef') },
     uFogColor: { value: new THREE.Color('#e6f1e6') },
     uFogRange: { value: new THREE.Vector2(60, 160) },
-    uBoat: { value: new THREE.Vector4(0, 0, 0, 0) },   // main.js 設定：船的 x、z、yaw；w > 0 時畫船邊浪沫
+    uBoat: { value: new THREE.Vector4(0, 0, 0, 0) },   // main.js 設定：船的 x、z、yaw；w > 0 時開啟船邊浪沫與船邊 1.2 m 內的反射／Fresnel 減弱
     uPiles: { value: piles },
     uPileN: { value: Math.min(NP, WATER_FX.piles.length) },
     uPileBox: { value: pb },
@@ -118,8 +118,15 @@ export function buildWater(scene, depthTex, sunDir) {
         col = mix(col, uDeep, smoothstep(2.0, 3.8, depth));
         float alpha = mix(0.04, 0.3, smoothstep(0.0, 3.6, depth));
         alpha *= smoothstep(0.0, 0.12, depth) * 0.85 + 0.15;
-        col = mix(col, uSky, clamp(fres * 1.4, 0.0, 0.8));
-        alpha = mix(alpha, 0.9, clamp(fres * 1.1, 0.0, 0.85));
+        // 船邊 1.2 m 內：低角度看過去，水線下的船殼就在這片水面後面；船身擋住了那個方向的天空，
+        // 所以天色反射與 Fresnel 加的不透明度都壓低，改帶一點中水色，水線下的船殼才看起來在水裡（偏青、略暗）
+        // 而不是被一層淡天色蓋成奶白
+        float nearHull = 1.0 - smoothstep(0.1, 1.2, hullD);
+        float fk = 1.0 - 0.8 * nearHull;
+        col = mix(col, uSky, clamp(fres * 1.4, 0.0, 0.8) * fk);
+        col = mix(col, uMid, nearHull * 0.35);
+        alpha = mix(alpha, 0.9, clamp(fres * 1.1, 0.0, 0.85) * fk);
+        alpha = max(alpha, nearHull * 0.22);
         // 高光（用 uGlint）：陽光在水面細碎閃爍＋很淡的寬光澤。
         // 閃光點的位置與疏密全由兩層高頻噪聲相乘＋高門檻決定（約數公分的小點，隨時間明滅），
         // nh 只當成很寬的分佈範圍，不讓低頻波浪法線把閃光聚成一團。
@@ -144,11 +151,13 @@ export function buildWater(scene, depthTex, sunDir) {
           float halo = smoothstep(0.32, 0.03, pileD);
           foam += hug + halo * smoothstep(0.42, 0.72, fn + halo * 0.25) * 0.8;
         }
-        // 船邊：只留很窄、斷斷續續的一圈（低角度時水面上的浪沫會疊在水線下的船殼前面，太寬就像一層白霧）
+        // 船邊：只留很窄、斷斷續續的一圈（低角度時水面上的浪沫會疊在水線下的船殼前面，太寬就像一層白霧），
+        // 而且視線越斜越淡：俯視時看得到一圈白邊，近景斜看時不在船殼前面留一條淺色帶
         if (hullD < 0.3) {
+          float grazing = smoothstep(0.3, 0.75, ndv);
           float hug = smoothstep(0.035, 0.0, hullD) * smoothstep(0.3, 0.6, fn) * 0.7;
           float halo = smoothstep(0.13, 0.0, hullD);
-          foam += hug + halo * smoothstep(0.55, 0.8, fn + halo * 0.15) * 0.6;
+          foam += (hug + halo * smoothstep(0.55, 0.8, fn + halo * 0.15) * 0.3) * grazing;
         }
         foam += ring * smoothstep(0.35, 0.8, fn + 0.3) * 0.7;
         foam = clamp(foam, 0.0, 1.0);

@@ -43,7 +43,8 @@ class Game {
 
     this.world = buildWorld(scene, { mobile });
     this.water = buildWater(scene, this.world.depthTex, this.sunDir);
-    this.water.uniforms.uBoat.value.set(this.world.boat.position.x, this.world.boat.position.z, this.world.boat.rotation.y, 0.56);
+    // w 只是開關（water.js 裡 w > 0 才畫船邊浪沫並減弱船邊的天色反射與 Fresnel），不是強度
+    this.water.uniforms.uBoat.value.set(this.world.boat.position.x, this.world.boat.position.z, this.world.boat.rotation.y, 1);
     this.fisher = new Fisher(scene);
     this.fishes = new Fishes(scene, { mobile, piles: this.world.piles });
     this.ui = new UI();
@@ -167,6 +168,8 @@ class Game {
     document.body.classList.toggle('paused', on);
     if (on && this.fishing.phase === 'charge') this.fishing.stow();
     this.input.up('all');
+    // 舉魚時暫停：先藏起魚卡（不和暫停卡疊在一起），繼續時再顯示；自動關閉的計時（catchT）在暫停時本來就不走
+    if (this.fishing.phase === 'catch') this.ui.show('card', !on);
     if (on) { this.rememberFocus(); this.ui.showPause(true, why); this.audio.setPaused(true); }
     else { this.ui.showPause(false); this.audio.setPaused(false); this.audio.ui(false); this.last = performance.now(); }
     this.syncModal();
@@ -177,6 +180,16 @@ class Game {
     this.ui.setMuted(this.audio.muted);
     store.set(MUTE_KEY, this.audio.muted ? '1' : '0');
     this.ui.toast(this.audio.muted ? '已靜音（M 開啟聲音）' : '聲音開啟', 1.4);
+  }
+  // 魚卡的左緣與底緣（版面位置，不含進場動畫的縮放）。卡片藏起來時（暫停）沿用上次量到的值，鏡頭才不會跳
+  cardBox() {
+    const el = this.ui.el.card;
+    if (el.classList.contains('hidden')) return this.cardLast || null;
+    const cs = getComputedStyle(el), W = el.offsetWidth, H = el.offsetHeight;
+    const tv = parseFloat(cs.getPropertyValue('--ty')), ty = Number.isFinite(tv) ? tv / 100 : -0.5;   // translate 的 Y：-50% 置中、0 頂端對齊
+    const tilt = W / 2 * 0.03;   // 卡片轉 1.5°，角落多出來的高度
+    this.cardLast = { l: parseFloat(cs.left) - W / 2 - tilt, b: parseFloat(cs.top) + H * (1 + ty) + tilt };
+    return this.cardLast;
   }
   resize() {
     const w = innerWidth, h = innerHeight;
@@ -208,17 +221,30 @@ class Game {
       pitch = 58;
       if (ph === 'catch') {
         // 舉魚：鏡頭繞到漁夫正前方拉近。手機橫式（矮）的魚卡在右側，把漁夫移到卡片左邊空出來的區域正中；
-        // 其他窄螢幕的魚卡在上方，把漁夫擺到畫面下半（和 index.html 的 #card 媒體查詢一致）
+        // 其他窄螢幕的魚卡在上方，把漁夫連同舉高的魚推到卡片底緣下方（卡片位置照實際版面量，和 index.html 的 #card 媒體查詢一致）
         yawOff = 0.3; pitch = 30; dist = this.portrait ? 8.5 : 6.8; tgt.y = f.pos.y + 1.0;
-        const w = innerWidth, h = innerHeight;
+        const w = innerWidth, h = innerHeight, tanH = Math.tan((cam.fov * Math.PI) / 360), cb = this.cardBox();
         if (w > h && h <= 520) {
-          const cardL = w - 12 - 280, frac = cardL / 2 / w;
-          const halfW = Math.tan((cam.fov * Math.PI) / 360) * dist * cam.aspect;
-          const sh = (0.5 - frac) * 2 * halfW;
+          // 漁夫放在搖桿右緣與卡片左緣之間的正中，腳不會落在半透明的搖桿下
+          const st = document.body.classList.contains('touch') ? document.getElementById('stick').getBoundingClientRect() : null;
+          const left = st && st.width ? st.right + 8 : 0;
+          const cardL = cb ? cb.l : w - 12 - 300, frac = (left + cardL) / 2 / w;
+          const sh = (0.5 - frac) * 2 * tanH * dist * cam.aspect;
           tgt.x += Math.cos(yawOff) * sh; tgt.z -= Math.sin(yawOff) * sh;
-        } else if (w <= 860) { tgt.x -= Math.sin(yawOff) * 1.8; tgt.z -= Math.cos(yawOff) * 1.8; }
+        } else if (w <= 860) {
+          // 斗笠頂（站著 1.85 m、cheer 跳到最高約 2.05 m）在對焦點（腳底上 1 m）上方 a 公尺；沿鏡頭的「上」方向平移鏡頭與對焦點 U 公尺，
+          // 同深度的點在螢幕上就往下移 U·(h/2)/(tanH·深度) 像素，深度不變，所以可以直接解出 U
+          const a = 1.05, p = (pitch * Math.PI) / 180, depth = dist - a * Math.sin(p);
+          const y0 = h / 2 - (a * Math.cos(p)) / (depth * tanH) * (h / 2);
+          const need = Math.max(0, (cb ? cb.b : h * 0.45) + 10 - y0);
+          const U = (need * tanH * depth) / (h / 2);
+          tgt.x -= Math.sin(yawOff) * Math.sin(p) * U; tgt.y += Math.cos(p) * U; tgt.z -= Math.cos(yawOff) * Math.sin(p) * U;
+        }
       }
     }
+    // 剛進入舉魚時鏡頭直接切到定位（和魚卡同時出現），移入途中斗笠才不會被卡片蓋住
+    if (ph === 'catch' && this.lastCamPh !== 'catch') snap = true;
+    this.lastCamPh = ph;
     const k = snap ? 1 : 1 - Math.exp(-dt * (this.camMode === 'follow' ? 3.2 : 6));
     this.focus.lerp(tgt, k);
     const p = (pitch * Math.PI) / 180;

@@ -2,7 +2,10 @@
 // 沒有 uncaught exception、console.error、外部網路請求、缺 viewport、水平溢出；
 // 並實際走過：開始 → 走路 → 到平台邊 → 按住蓄力放開甩竿 → 浮標落水 → 咬鉤 → 提竿 → 收線 → 釣起（魚簍 1/8）
 // → E 收竿 → 魚簍 7 條再釣一條 → 結算卡 → 放回大海歸零；開場卡與魚卡要完整在視窗內、魚卡不蓋住舉魚的漁夫。
-// 另外在 900×700（非觸控）檢查魚卡不超出視窗右緣，並檢查暫停（P）、靜音（M）、魚簍面板（C）與鍵盤焦點。
+// 另外在 375×667／360×640（短直式觸控）、740×360／568×320（短橫式觸控）與 900×700（非觸控）只看魚卡：在視窗內、
+// 內容不被切（scrollHeight ≤ clientHeight）、不蓋住漁夫的斗笠／頭／左手與手上的魚（骨頭與魚的包圍盒投影到螢幕），
+// 短橫式不壓到右上的暫停／靜音鈕與魚簍；並在舉魚時暫停，魚卡要藏起來、繼續後回來並照常自動關閉。
+// 主流程也檢查暫停（P）、靜音（M）、魚簍面板（C）與鍵盤焦點。
 // node tools/accept.mjs [html]（截圖輸出到 dist/accept-*.png）
 import { mkdirSync } from 'node:fs';
 import { open, raf } from './lib.mjs';
@@ -14,13 +17,24 @@ const ok = (c, m) => { console.log(`${c ? '✓' : '✗'} ${m}`); if (!c) fail++;
 const wait = (page, fn, ms = 15000, arg) => page.waitForFunction(fn, arg, { timeout: ms }).then(() => true, () => false);
 const rect = (page, sel) => page.evaluate((s) => { const b = document.querySelector(s).getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)]; }, sel);
 const inView = (r, w, h) => r[0] >= 0 && r[1] >= 0 && r[2] <= w && r[3] <= h;
-// 舉魚時漁夫頭（腳底上 1.6 m）與手上的魚投影到螢幕的位置
+// 舉魚時要看得到的點投影到螢幕：斗笠頂（head 骨上 0.55 m）、head 骨、左手 hand_L、手上的魚（中心與包圍盒頂）
 const heroPx = (page) => page.evaluate(() => {
-  const g = window.__cc.game, P = (v) => { v.project(g.camera); return [Math.round((v.x + 1) / 2 * innerWidth), Math.round((1 - v.y) / 2 * innerHeight)]; };
-  const head = g.fisher.pos.clone(); head.y += 1.6;
-  return { head: P(head), fish: g.fishing.fish ? P(g.fishing.fish.obj.position.clone()) : null };
+  const g = window.__cc.game, V = g.camera.position.constructor;
+  const P = (v) => { v.project(g.camera); return [Math.round((v.x + 1) / 2 * innerWidth), Math.round((1 - v.y) / 2 * innerHeight)]; };
+  const bone = (n) => g.fisher.obj.getObjectByName(n).getWorldPosition(new V());
+  const head = bone('head'), hat = head.clone(); hat.y += 0.55;
+  const out = { hat: P(hat), head: P(head), hand: P(bone('hand_L')) };
+  const f = g.fishing.fish;
+  if (f) {
+    out.fish = P(f.obj.position.clone());
+    f.obj.traverse((o) => { if (!o.isSkinnedMesh) return; o.computeBoundingBox(); const b = o.boundingBox.clone().applyMatrix4(o.matrixWorld); const c = b.getCenter(new V()); c.y = b.max.y; out.fishTop = P(c); });
+  }
+  return out;
 });
 const covers = (r, p) => !!p && p[0] >= r[0] && p[0] <= r[2] && p[1] >= r[1] && p[1] <= r[3];
+const coveredBy = (r, hp) => Object.keys(hp).filter((k) => covers(r, hp[k]));
+const hpText = (hp) => Object.entries(hp).map(([k, v]) => `${k} ${v}`).join('，');
+const meets = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
 
 for (const [w, h, touch] of [[1440, 900, false], [390, 844, true], [667, 375, true]]) {
   const tag = `${w}×${h}`;
@@ -115,7 +129,9 @@ for (const [w, h, touch] of [[1440, 900, false], [390, 844, true], [667, 375, tr
       await page.waitForTimeout(900);   // 鏡頭拉近到位
       const cr = await rect(page, '#card'), hp = await heroPx(page);
       ok(inView(cr, w, h), `${tag} 魚卡完整在視窗內（${cr.join(',')}）`);
-      ok(!covers(cr, hp.head) && !covers(cr, hp.fish), `${tag} 魚卡沒有蓋住舉魚的漁夫（頭 ${hp.head}，魚 ${hp.fish}）`);
+      const cov = coveredBy(cr, hp);
+      ok(!cov.length, `${tag} 魚卡沒有蓋住舉魚的漁夫（${cov.length ? '蓋住 ' + cov.join('、') + '；' : ''}${hpText(hp)}）`);
+      if (w > h && h <= 520) ok(!meets(cr, await rect(page, '#sys')) && !meets(cr, await rect(page, '#creelBox')), `${tag} 魚卡沒有壓到暫停／靜音鈕與魚簍`);
     }
     if (touch) await page.tap('#card'); else await page.click('#card');
     ok(await wait(page, () => window.__cc.state().phase === 'explore', 2000), `${tag} 點卡片回到探索`);
@@ -207,18 +223,39 @@ for (const [w, h, touch] of [[1440, 900, false], [390, 844, true], [667, 375, tr
     console.log(`  （${log.gpu}）`);
   } finally { await browser.close(); }
 }
-// 窄桌機（861～930 px）：魚卡不超出視窗右緣
-{
-  const [w, h] = [900, 700], tag = `${w}×${h}`;
-  const { browser, page, log } = await open(html, { w, h, touch: false });
+// 只看魚卡的尺寸：短直式、短橫式（觸控）與窄桌機（861～930 px，卡片右緣不能超出視窗）。
+// 先放一條魚再釣紅笛鯛：習性說明最長，又同時有「新魚種！」「這簍最大」兩個標籤，卡片最高
+for (const [w, h, touch] of [[375, 667, true], [360, 640, true], [740, 360, true], [568, 320, true], [900, 700, false]]) {
+  const tag = `${w}×${h} 魚卡`;
+  const { browser, page, log } = await open(html, { w, h, touch });
   try {
-    await page.evaluate(() => window.__cc.start());
-    await page.evaluate(() => { window.__cc.place(0, -9.5, Math.PI); window.__cc.land('snapper'); });
-    await page.waitForTimeout(1600);
+    await page.evaluate(() => { const c = window.__cc; c.start(); c.setCreel(1); c.place(0, -9.5, Math.PI); c.land('snapper'); });
+    await page.waitForTimeout(1600);   // 鏡頭拉近到位、卡片進場動畫結束
     const cr = await rect(page, '#card'), hp = await heroPx(page);
-    ok(inView(cr, w, h), `${tag} 魚卡完整在視窗內（${cr.join(',')}）`);
-    ok(!covers(cr, hp.head) && !covers(cr, hp.fish), `${tag} 魚卡沒有蓋住舉魚的漁夫（頭 ${hp.head}，魚 ${hp.fish}）`);
+    ok(inView(cr, w, h), `${tag}完整在視窗內（${cr.join(',')}）`);
+    const sc = await page.evaluate(() => { const c = document.getElementById('card'); return [c.scrollHeight, c.clientHeight, c.querySelectorAll('.rec').length]; });
+    ok(sc[0] <= sc[1] && sc[2] === 2, `${tag}內容沒有被切（內容 ${sc[0]} px，卡片 ${sc[1]} px，標籤 ${sc[2]} 個）`);
+    const cov = coveredBy(cr, hp);
+    ok(!cov.length, `${tag}沒有蓋住舉魚的漁夫（${cov.length ? '蓋住 ' + cov.join('、') + '；' : ''}${hpText(hp)}）`);
+    if (w > h && h <= 520) {
+      const sr = await rect(page, '#sys'), br = await rect(page, '#creelBox');
+      ok(!meets(cr, sr), `${tag}沒有壓到暫停／靜音鈕（卡 ${cr.join(',')}，鈕 ${sr.join(',')}）`);
+      ok(!meets(cr, br), `${tag}沒有壓到魚簍（卡 ${cr.join(',')}，魚簍 ${br.join(',')}）`);
+    }
     await page.screenshot({ path: `dist/accept-catch-${w}.png` });
+    if (w === 375) {
+      // 舉魚時暫停：魚卡藏起來（不和暫停卡疊在一起）、自動關閉的計時停住；繼續後魚卡回來，照常自動關閉
+      await page.keyboard.press('KeyP');
+      const t0 = await page.evaluate(() => window.__cc.game.fishing.catchT);
+      ok(await wait(page, () => document.getElementById('card').classList.contains('hidden') && !document.getElementById('pauseCard').classList.contains('hidden'), 1000), `${tag}：暫停時藏起來，只顯示暫停卡`);
+      await page.waitForTimeout(4500);
+      const s = await page.evaluate(() => ({ phase: window.__cc.state().phase, t: window.__cc.game.fishing.catchT }));
+      ok(s.phase === 'catch' && s.t === t0, `${tag}：暫停 4.5 秒沒有自動關閉（${s.phase}，計時 ${s.t.toFixed(2)} s）`);
+      await page.screenshot({ path: `dist/accept-catchpause-${w}.png` });
+      await page.keyboard.press('KeyP');
+      ok(await wait(page, () => !window.__cc.game.paused && !document.getElementById('card').classList.contains('hidden'), 1000), `${tag}：繼續後回來`);
+      ok(await wait(page, () => window.__cc.state().phase === 'explore', 5000), `${tag}：繼續後照常自動關閉`);
+    }
     ok(!log.pageerrors.length && !log.errors.length, `${tag} 沒有錯誤 ${log.pageerrors.concat(log.errors).join(' | ').slice(0, 300)}`);
   } finally { await browser.close(); }
 }

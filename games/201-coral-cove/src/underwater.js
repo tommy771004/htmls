@@ -1,5 +1,5 @@
 // 水下著色：所有水下物件（海床、珊瑚、礁石、海草、木樁、魚）的材質都以 onBeforeCompile 注入
-// (1) 依水深的青綠吸收染色（越深越偏 lagoon 色，但仍看得到底）
+// (1) 依水深的青藍吸收染色（越深越偏 lagoon 色，但仍看得到底）；高彩度的珊瑚與魚保留色相
 // (2) 動態焦散：世界 xz 上兩層扭曲 Voronoi 網狀亮紋，隨時間流動，只出現在 y<0，
 //     強度乘上直射光漫反射（自然帶入陰影與受光方向），三個通道用不同線寬做輕微色散。
 import * as THREE from 'three';
@@ -53,14 +53,17 @@ vec3 causticRGB(vec2 p, float dep, float t) {
 
 const patched = new WeakSet();
 // opts.dry：{ value: Matrix4 }＝物件的世界→本地矩陣（每幀更新）。用在船上：船艙內是乾的，
-// 只有朝外（本地 xz 往外）或朝下的面（水線下的船殼外側）才加焦散與水下染色。
+// 只有朝外（本地 xz 往外）或朝下的面（水線下的船殼外側）才加焦散與水下染色；船殼只吃水 0.3 m，
+// 照實際水深幾乎不染色，所以吸收至少算 0.9 m 深、散射霧固定較重，水線下才看得出在水裡（偏青、略暗）。
+// opts.hue === false：不保留高彩度底色的色相（木頭類：棧橋木樁、船；dry 也一律不保留）。
 // （assets.js 以 forEach(patchUnderwater) 呼叫，第二個參數會是索引數字，所以只認物件。）
 export function patchUnderwater(mat, opts) {
   if (!mat || patched.has(mat)) return;
   if (!(mat.isMeshStandardMaterial || mat.isMeshLambertMaterial || mat.isMeshPhongMaterial)) return;
   patched.add(mat);
   const dry = opts && typeof opts === 'object' && opts.dry ? opts.dry : null;
-  if (dry) mat.defines = { ...(mat.defines || {}), CC_DRY: '' };
+  const noHue = !!dry || (opts && typeof opts === 'object' && opts.hue === false);
+  if (dry || noHue) mat.defines = { ...(mat.defines || {}), ...(dry ? { CC_DRY: '' } : {}), ...(noHue ? { CC_NOHUE: '' } : {}) };
   mat.onBeforeCompile = (sh) => {
     sh.uniforms.uTime = UW.uTime;
     sh.uniforms.uCaus = UW.uCaus;
@@ -91,23 +94,39 @@ export function patchUnderwater(mat, opts) {
           float ccWet = max(step(ccLn.y, -0.3), step(0.2, dot(ccLn.xz, ccR)));
           ccUnder *= ccWet;
         }
+        float ccDepT = max(ccDep, 0.9), ccScatW = 0.42;
+        #else
+        float ccDepT = ccDep, ccScatW = min(ccDep * 0.22, 0.45) * 0.6;
         #endif
         if (ccUnder > 0.0) {
           vec3 cs = causticRGB(vCcW.xz, ccDep, uTime);
           float shallowFade = smoothstep(0.02, 0.35, ccDep);
           outgoingLight += reflectedLight.directDiffuse * cs * uCaus * shallowFade * 2.6 * exp(-ccDep * 0.16);
-          // 吸收：越深越偏青（乘法，保留明暗對比）；散射霧的顏色跟著物體本身的亮度走、比例有上限，
-          // 深處的暗礁石才不會被一層亮青色蓋成淡青半透明（像玻璃或冰）
+          // 吸收：越深越偏青藍（乘法，保留明暗對比）。藍留得比綠多：沙地、珊瑚這類「紅綠高、藍低」的暖色底
+          // 若乘上綠≈藍的青色，會變成橄欖綠／灰綠。散射霧的顏色跟著物體本身的亮度走、比例有上限，
+          // 深處的暗礁石才不會被一層亮青色蓋成淡青半透明（像玻璃或冰）。
+          // 高彩度的底色（珊瑚、魚；彩度以近似 sRGB 的 sqrt 算，沙地約 0.3、珊瑚 0.43 以上）在 0.6 m 以下：
+          // 紅吸收得少、散射霧少，並把色相拉回原本的顏色（明度照染色後的），−2.5～−3.5 m 的珊瑚仍讀得出
+          // 粉／杏／丁香／奶油；沙地、礁石（低彩度）照常偏青藍。
           float lum0 = dot(outgoingLight, vec3(0.299, 0.587, 0.114));
-          float k = 1.0 - exp(-ccDep * 0.5);
-          vec3 tinted = outgoingLight * mix(vec3(1.0), vec3(0.42, 0.84, 0.86), k);
-          vec3 scat = mix(uShallow, uDeep, clamp(ccDep / 3.6, 0.0, 1.0));
-          tinted = mix(tinted, scat * clamp(lum0 * 1.3, 0.22, 0.8), min(ccDep * 0.18, 0.45) * 0.6);
+          float k = 1.0 - exp(-ccDepT * 0.5);
+          float ccKeep = 0.0;
+          #ifndef CC_NOHUE
+          {
+            vec3 ccDc = sqrt(max(diffuseColor.rgb, vec3(0.0)));
+            float ccMx = max(ccDc.r, max(ccDc.g, ccDc.b));
+            ccKeep = smoothstep(0.33, 0.44, (ccMx - min(ccDc.r, min(ccDc.g, ccDc.b))) / max(ccMx, 1e-3)) * smoothstep(0.6, 1.8, ccDep);
+          }
+          #endif
+          vec3 tinted = outgoingLight * mix(vec3(1.0), mix(vec3(0.38, 0.76, 0.96), vec3(0.7, 0.82, 0.94), ccKeep), k);
+          vec3 scat = mix(uShallow, uDeep, clamp(ccDepT / 3.6, 0.0, 1.0));
+          tinted = mix(tinted, scat * clamp(lum0 * 1.3, 0.22, 0.8), ccScatW * (1.0 - 0.7 * ccKeep));
+          tinted = mix(tinted, outgoingLight * (dot(tinted, vec3(0.299, 0.587, 0.114)) / max(lum0, 1e-4)), ccKeep * 0.75);
           outgoingLight = mix(outgoingLight, tinted, ccUnder);
         }
       }
       #include <opaque_fragment>`);
   };
-  mat.customProgramCacheKey = () => (dry ? 'cc-underwater-dry' : 'cc-underwater');
+  mat.customProgramCacheKey = () => 'cc-underwater' + (dry ? '-dry' : '') + (noHue ? '-nohue' : '');
   mat.needsUpdate = true;
 }

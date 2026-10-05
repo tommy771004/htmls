@@ -157,7 +157,7 @@ export class Fishing {
   land() {
     const g = this.g;
     this.bob.copy(this.target);
-    this.phase = 'wait'; this.waitT = 0; this.attractT = 0; this.nibbler = null; this.dip = 0;
+    this.phase = 'wait'; this.waitT = 0; this.attractT = 0; this.nibbler = null; this.dip = 0; this.skip = new Set();
     g.water.ripple(this.bob.x, this.bob.z, 1.0);
     g.audio.splash(1);
     this.under.mesh.visible = true;
@@ -173,6 +173,7 @@ export class Fishing {
     this.circleA = Math.atan2(f.pos.z - this.bob.z, f.pos.x - this.bob.x);
     this.nibbleT = (1.0 + Math.random() * 1.2) * (info.gap || 1);
     this.hoverT = info.hover || 0; this.backT = 0;
+    this.bestD = Infinity; this.progT = 0;
   }
   nearReef() { return REEFS.some((r) => Math.hypot(this.bob.x - r.x, this.bob.z - r.z) < r.r * 1.5); }
   interest(f) {
@@ -181,14 +182,15 @@ export class Fishing {
     if (info.reef) k *= this.nearReef() ? 2 : 0.35;
     return Math.min(1, k);
   }
-  // 從 maxD 內挑一條：越近、對麵包越有興趣的越容易被選上
+  // 從 maxD 內挑一條：越快游得到（距離÷游速）、對麵包越有興趣的越容易被選上；這一竿放棄過的魚不再挑
   pickFish(maxD) {
     let best = null, bw = 0;
     for (const f of this.g.fishes.list) {
-      if (f.state !== 'roam' || !CATCHABLE.includes(f.id)) continue;
+      if (f.state !== 'roam' || !CATCHABLE.includes(f.id) || (this.skip && this.skip.has(f))) continue;
       const d = Math.hypot(f.pos.x - this.bob.x, f.pos.z - this.bob.z);
       if (d > maxD) continue;
-      const w = this.interest(f) / (1 + d) * (0.6 + Math.random() * 0.8);
+      const eta = d / Math.max(0.2, FISH_INFO[f.id].speed);
+      const w = this.interest(f) / (1 + eta) * (0.6 + Math.random() * 0.8);
       if (w > bw) { bw = w; best = f; }
     }
     return best;
@@ -462,6 +464,9 @@ export class Fishing {
           const bp = this.baitPos(tmp);
           const d = Math.hypot(f.pos.x - bp.x, f.pos.z - bp.z);
           const ring = info.ring || 0.6;
+          // 被礁石、木樁擋住一直靠不過來（7 秒內沒有再近 0.5 m）就放棄，換別條魚
+          if (d < this.bestD - 0.5) { this.bestD = d; this.progT = 0; } else if (d > 2.7) this.progT += dt;
+          if (this.progT > 7) { f.state = 'roam'; g.fishes.pickTarget(f); this.skip.add(f); this.nibbler = null; this.attractT = 0.6; break; }
           if (this.hoverT > 0 && d < 2.6) {
             // 謹慎的魚：先停在 2 m 外看一陣子才靠近
             this.hoverT -= dt;
