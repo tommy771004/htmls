@@ -1,0 +1,103 @@
+# 珊瑚灣垂釣 · CORAL COVE（作品 201）
+
+俯視角的 3D 休閒釣魚。熱帶淺海清澈見底，看得到珊瑚、海草、魚群和水底流動的焦散光紋。玩家是戴斗笠的漁夫，在木棧橋上選魚餌（目前只有麵包）、甩竿、看浮標等魚上鉤、提竿收線，釣到的魚放進魚簍，裝滿 8 條就結算，再放回大海重新開始。頁面：`web/201-coral-cove.html`。
+
+所有模型（漁夫、五種可釣魚與沙丁魚、珊瑚礁、棧橋、船、道具）都用 Blender 腳本自己建模、綁骨與做動畫，不用任何現成素材；打包時以 gzip＋base64 內嵌成單檔，不載入外部資源。模組契約（節點名稱、骨頭、動作、座標與調色盤）見同資料夾的 `SPEC.md`。
+
+## 操作
+
+| 動作 | 鍵盤滑鼠 | 觸控 |
+| --- | --- | --- |
+| 走路 | WASD／方向鍵 | 左下虛擬搖桿 |
+| 甩竿（按住蓄力、放開出竿） | 空白鍵、滑鼠左鍵 | 右下大圓鈕 |
+| 提竿（浮標沉下去、出現「！」時） | 空白鍵、滑鼠左鍵 | 大圓鈕 |
+| 收線（按住收、放開放線） | 按住空白鍵、滑鼠左鍵 | 按住大圓鈕 |
+| 收竿 | E | 小圓鈕「E 收竿」 |
+| 選魚餌（只有走動時能開） | B、點魚餌圖示 | 點魚餌圖示 |
+| 關閉面板 | Esc | 面板上的 × |
+| 魚簍滿了，放回大海再釣一簍 | 空白、Enter、Esc 或點按鈕 | 點按鈕或大圓鈕 |
+
+- 要站在棧橋上才能甩竿；蓄力時可以用方向鍵原地轉向瞄準，力道 3～12 m 來回擺動。
+- 等待時魚會被麵包吸引，在餌旁繞圈、輕咬（浮標下沉一下、冒出淡淡的漣漪），咬鉤時浮標整個被拉進水裡並有水花，約 0.9 秒內沒提竿麵包就被吃掉。
+- 拔河：按住收線，魚拉的時候張力會上升；張力滿太久會斷線，太鬆太久會脫鉤。張力超過 85% 時大圓鈕變紅、寫著「放開」，第一次拔河會提示「魚在拉！先放開」。小魚一直按住也拉得上來，紅笛鯛、鸚哥魚這類大魚要在牠拉的時候放開。
+
+## 指令
+
+需要 Node.js 22 以上。Blender 只有重建模型時才需要（5.x，預設 `/Applications/Blender.app`）。
+
+```bash
+npm ci
+npm run build          # esbuild 打包 src/＋內嵌 blender/out/*.glb → ../../web/201-coral-cove.html（改了 src/ 或 GLB 一定要重跑並一起 commit）
+npm test               # 1440×900／390×844（觸控）無頭 Chrome 驗收，跑打包後的單檔
+npm run shot           # 評審截圖 → dist/shots/（node tools/shot.mjs --only rail,close,wait 只拍其中幾張）
+npm run thumb          # 重新產生 ../../thumbs/201.jpg（漁夫在棧橋盡頭、浮標在水上、魚游近餌）
+npm run assets         # 依序跑 blender/*.py，重建 blender/out/*.glb（npm run assets -- fisher 只跑一個；BLENDER=<路徑> 指定執行檔）
+node tools/view.mjs blender/out/fisher.glb --node fisher_rig --anim cast --times 0,0.3,0.55,0.9 --view side   # 用遊戲同版本 three 算圖到 dist/view/
+node tools/glbinfo.mjs blender/out/fish.glb --tree   # 節點樹、頂點數、材質、骨架、動畫長度與包圍盒
+node tools/holdall.mjs 4                             # 新手測試：咬鉤後一直按住不放，各魚種各試 4 次，印出釣起／斷線與有沒有出現「放開」提示
+```
+
+無頭瀏覽器工具用本資料夾的 `playwright-core`，瀏覽器找 `~/Library/Caches/ms-playwright/chromium-*` 裡快取的 Chrome for Testing（可用 `CHROME_PATH` 指定），先用 Metal GPU、失敗退回 SwiftShader。`dist/` 不進版控。
+
+## 資產管線
+
+1. `blender/*.py`（`common.py` 是共用的建模、平面著色、頂點抖動、綁骨與預覽工具）在 Blender 無頭模式下建模、綁骨、做動畫，匯出 `blender/out/{fisher,fish,reef,props}.glb`（有 commit，打包不需要 Blender）。
+2. `tools/view.mjs`／`tools/glbinfo.mjs` 檢查匯出結果（Blender 的 Workbench 預覽對了不代表匯出後也對）。
+3. `tools/build.mjs` 把每個 GLB gzip 後轉 base64，放進 `<script type="application/octet-stream" id="glb-名稱">`；頁面用 `DecompressionStream('gzip')` 解開再交給 `GLTFLoader.parseAsync`。
+4. `src/assets.js` 依 SPEC 的節點名稱取用；缺檔或缺節點就退回 `src/placeholders.js` 的程式佔位幾何（`__cc.report()` 會列出用了哪些佔位）。載入時把蒙皮網格的多個材質烘成頂點色、合併成單一 `SkinnedMesh`，靜態礁石與植物則依材質合批（`world.js`），等待畫面約 250 個 draw call（含陰影）。
+
+## 檔案分工
+
+- `src/main.js`：渲染器、光影、鏡頭（跟隨／舉魚特寫）、主迴圈、按鍵提示與測試 API。
+- `src/terrain.js`：不碰 three 場景的解析函數：海床高度 `floorY`、離岸距離、棧橋與平台的可走範圍（`WALK`／`PLAT`，已扣掉身體半寬）、平台障礙 `OBST`（繫船柱、梯子、木箱、魚簍）與 `blocked()`、礁群位置、亂數。
+- `src/world.js`：海床網格、棧橋、船、木箱、魚簍、椰子樹、珊瑚礁群、海草，靜態物件合批，水面用的深度貼圖（水深＋木樁附近的浪沫）。
+- `src/water.js`：水面著色器：依水深的透明度與水色、Fresnel、程序化法線、高光與閃光（另用一個朝 −Z 的 `uGlint` 方向，讓跟隨鏡頭看得到）、岸邊與木樁浪沫、浮標與拔河的漣漪。
+- `src/underwater.js`：注入所有水下材質的 `onBeforeCompile`：依水深的吸收染色與散射（有上限、保留明暗），以及隨時間流動、帶輕微色散的焦散。
+- `src/fisher.js`：漁夫的動作播放、走路與碰撞、竿尖與左手的世界座標。
+- `src/fish.js`：魚種資料 `FISH_INFO`（名稱、模型長、卡片長度範圍、力氣、速度、短評）、礁區游蕩、被餌吸引、逃跑、沙丁魚 boids 魚群。
+- `src/fishing.js`：釣魚狀態機（explore → charge → cast → wait → bite → fight → catch／full，E 隨時 stow）、浮標、餌、釣線與拔河張力。
+- `src/ui.js`、`src/index.html`：手繪風介面（紙色圓底＋略歪的墨線）、魚簍、魚餌選單、張力條、蓄力環、魚卡與結算卡。
+- `src/input.js`、`src/audio.js`（WebAudio 即時合成）、`src/ribbon.js`（螢幕空間寬度的釣線）。
+- `tools/`：`build.mjs`、`accept.mjs`、`shot.mjs`、`thumb.mjs`、`holdall.mjs`、`view.mjs`（＋`viewer-entry.js`）、`glbinfo.mjs`、`assets.mjs`、`lib.mjs`、`strip.mjs`（把打包單檔拿掉指定的內嵌 GLB，測試退回佔位幾何：`node tools/strip.mjs dist/noglb.html fisher`）、`sheet.sh`（用 ffmpeg 把多張截圖拼成 3 欄接觸表：`tools/sheet.sh dist/sheet.png 480 300 dist/shots/*.png`）。
+
+## 魚的尺寸標準
+
+水裡、手上、魚卡與結算卡用同一套：每條魚有個體大小 `size∈[0,1]`，顯示縮放 `(1.15 + 0.25·size) × VIS[魚種]`，卡片長度 `len[0] + (len[1] − len[0]) × size`，所以畫面上越大的魚卡片寫得越長，舉在手上的大小也和水裡一樣。俯視距離約 17 m，照實際比例太小看不清，畫面上的魚比卡片長度放大：小魚約 1.5～1.8 倍，大魚約 1.1～1.3 倍。
+
+| 魚種 | 模型長 | 卡片長度 |
+| --- | --- | --- |
+| 小丑魚 | 0.30 m | 24～34 cm |
+| 藍倒吊 | 0.40 m | 34～46 cm |
+| 河豚 | 0.36 m | 28～40 cm |
+| 紅笛鯛 | 0.55 m | 45～62 cm |
+| 鸚哥魚 | 0.62 m | 52～72 cm |
+
+## 測試 API（`window.__cc`）
+
+| 呼叫 | 作用 |
+| --- | --- |
+| `ready` | 模型載入、遊戲建好後為 `true` |
+| `start()` | 關掉開場卡開始遊戲 |
+| `state()` | `{ phase, creel, creelMax, bait, pos, yaw, deck, tension, dist, power, bob, anim, fish:[{id,state,x,y,z}] }` |
+| `place(x, z, yaw)` | 把漁夫擺到某處（不檢查碰撞） |
+| `cast(power)` | 直接以 0～1 的力道甩竿（要在棧橋上、explore 階段） |
+| `bite()` | 等待中讓最近的魚立刻咬鉤 |
+| `hook()` | 咬鉤中立刻提竿進入拔河 |
+| `land(species?)` | 直接釣起（可指定 `clown`／`tang`／`snapper`／`puffer`／`parrot`） |
+| `setCreel(n)` | 魚簍直接放 n 條（長度依各魚種的卡片範圍） |
+| `stow()` | 收竿 |
+| `timeScale(s)` | 時間倍率（截圖時給 0.0001 可定格） |
+| `hud(on)` | 顯示／隱藏介面 |
+| `cam(mode)` | `'follow'`（預設）、`'overview'`（全景）、`'close'`（側面近景）、`'hero'`（從背後斜看浮標，縮圖用） |
+| `pose(action, t)` | 讓漁夫停在某動作的某時間點（`pose(null)` 恢復） |
+| `info()` | `renderer.info`：上一幀的 draw call、三角形數等 |
+| `report()` | 載入了哪些 GLB、哪些節點退回佔位幾何 |
+| `game` | 直接存取遊戲物件 |
+
+## 已知限制
+
+- 魚餌只有麵包；蝦、沙蠶、亮片顯示為上鎖格「之後開放」。所有可釣魚都吃麵包，沒有魚種偏好或時段。
+- 水面高光用的是固定的「假太陽」方向（不是場景真正的太陽），所以細碎閃光集中在跟隨鏡頭畫面的左上方（其他地方只有零星幾點）；舉魚特寫或其他鏡頭角度下位置會不同。
+- 沒有存檔：重新整理就清空魚簍。
+- 頁面需要 WebGL 與 `DecompressionStream`（Chrome 80、Safari 16.4、Firefox 113 以上）。
+- 水下物件的焦散與染色是對材質注入著色器，新加的水下物件要經過 `shadowify()` 或 `patchUnderwater()` 才會有。

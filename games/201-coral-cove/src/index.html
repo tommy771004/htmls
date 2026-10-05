@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>珊瑚灣垂釣 · CORAL COVE</title>
+<meta name="description" content="俯視角的 3D 休閒釣魚：戴斗笠的漁夫在熱帶淺海的木棧橋上選麵包當餌、甩竿、等浮標下沉、收線拔河，把小丑魚、藍倒吊、鸚哥魚放進魚簍。清澈見底的海水、流動的焦散與魚影，所有模型都用 Blender 腳本自己建。">
+<meta name="theme-color" content="#8fe0d2">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%238fe0d2'/%3E%3Cpath d='M10 33q8-14 22 0t22 0' fill='none' stroke='%23fbf3e2' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M14 22l18-12 18 12z' fill='%23e8c983' stroke='%233b3732' stroke-width='2.5' stroke-linejoin='round'/%3E%3Cpath d='M22 44q8-6 16 0q-8 6-16 0zM38 44l6-4v8z' fill='%23e9967a' stroke='%233b3732' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root {
+  --paper: #fbf3e2;
+  --paper-2: #f3e6c9;
+  --ink: #3b3732;
+  --ink-soft: rgba(59,55,50,.72);   /* 疊在紙色上約 4.7:1，小字也讀得清楚 */
+  --coral: #e9967a;
+  --coral-2: #f4a196;
+  --lagoon: #58c3c0;
+  --lagoon-l: #8fe0d2;
+  --straw: #e8c983;
+  --kelp: #7fb58a;
+  --font: "Hiragino Maru Gothic ProN", "Arial Rounded MT Bold", "Yu Gothic UI", system-ui, sans-serif;
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #cdeee6; color: var(--ink); }
+body { font-family: var(--font); -webkit-font-smoothing: antialiased; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none; }
+canvas#view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.hidden { display: none !important; }
+svg.defs { position: absolute; width: 0; height: 0; }
+
+/* 手繪圓形圖示：紙色圓底＋墨線（SVG 路徑本身畫歪、粗細不均，再加輕微位移濾鏡） */
+.disc { position: relative; display: grid; place-items: center; border-radius: 50%; }
+.disc > svg.ring { position: absolute; inset: -6%; width: 112%; height: 112%; overflow: visible; pointer-events: none; }
+.disc > svg.ico { position: relative; width: 66%; height: 66%; overflow: visible; }
+.disc .fill { fill: var(--paper); }
+.disc .ink { fill: var(--ink); }
+.ln { fill: none; stroke: var(--ink); stroke-width: 4.2; stroke-linecap: round; stroke-linejoin: round; }
+.ln.thin { stroke-width: 3; }
+.tint-coral { fill: #f4b39e; } .tint-straw { fill: #f0d79d; } .tint-bread { fill: #f2cf8f; } .tint-crust { fill: #d9a463; }
+.tint-lagoon { fill: #a9e3d8; } .tint-pink { fill: #f6c0b2; } .tint-kelp { fill: #b4d6b4; } .tint-silver { fill: #d9dfdb; }
+
+/* 上方中央：魚簍 */
+#creelBox { position: fixed; top: calc(14px + var(--safe-t)); left: 50%; transform: translateX(-50%) rotate(-1.2deg); display: flex; align-items: center; gap: 10px; text-align: left; border-radius: 26px; }
+#creelBox:hover #creelLabel { background: #fff9ec; }
+#creelBox .disc { width: 64px; height: 64px; transform: rotate(4deg); }
+#creelLabel { background: var(--paper); padding: 7px 14px 8px; border: 2.6px solid var(--ink); border-radius: 18px 22px 16px 24px / 22px 15px 24px 17px; box-shadow: 2px 3px 0 rgba(59,55,50,.22); }
+#creelText { font-size: 21px; font-weight: 700; letter-spacing: .06em; white-space: nowrap; }
+#creelSlots { display: flex; gap: 2px; margin-top: 4px; }
+#creelSlots svg { width: 19px; height: 19px; overflow: visible; display: block; }
+#creelSlots .slot path.c { fill: none; stroke: var(--ink-soft); stroke-width: 1.6; stroke-dasharray: 2.4 2.2; stroke-linecap: round; }
+#creelSlots .slot path.b { fill: none; stroke: none; }
+#creelSlots .slot.on path.c { fill: #fff6e4; stroke: var(--ink); stroke-dasharray: none; stroke-width: 2; }
+#creelSlots .slot.on path.b { fill: var(--fc, var(--coral)); stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; }
+#creelBox.bump { animation: bump .5s ease-out; }
+@keyframes bump { 0% { transform: translateX(-50%) rotate(-1.2deg) scale(1); } 35% { transform: translateX(-50%) rotate(1deg) scale(1.12); } 100% { transform: translateX(-50%) rotate(-1.2deg) scale(1); } }
+
+/* 右上：暫停、靜音（手繪圓鈕） */
+#sys { position: fixed; top: calc(14px + var(--safe-t)); right: calc(16px + var(--safe-r)); display: flex; gap: 8px; }
+#sys button { position: relative; width: 52px; height: 52px; border-radius: 50%; }
+#sys .disc { width: 100%; height: 100%; }
+#sys button:nth-child(1) .disc { transform: rotate(-4deg); } #sys button:nth-child(2) .disc { transform: rotate(5deg); }
+#sys button:hover .disc { transform: scale(1.06); }
+body.paused #hud { filter: saturate(.6); }
+
+/* 鍵盤焦點：墨色虛線圈（手繪風），不用瀏覽器預設的藍框 */
+:focus { outline: none; }
+:focus-visible { outline: 3px dashed var(--ink); outline-offset: 5px; }
+.kbtn:focus-visible, #baitBtn:focus-visible, #sys button:focus-visible, .close:focus-visible, #baitMenu .opt:focus-visible { outline: none; }
+.kbtn:focus-visible::after, #baitBtn:focus-visible::after, #sys button:focus-visible::after, .close:focus-visible::after, #creelBox:focus-visible::after, #baitMenu .opt:focus-visible::after {
+  content: ""; position: absolute; inset: -9px; border: 3px dashed var(--ink); border-radius: 48% 52% 46% 54% / 53% 47% 55% 45%; transform: rotate(-6deg); pointer-events: none;
+}
+#creelBox:focus-visible { outline: none; }
+#creelBox:focus-visible::after { border-radius: 30px 24px 32px 22px / 24px 32px 22px 30px; inset: -7px; }
+#baitBtn:focus-visible::after { inset: -8px -10px; }
+.btn:focus-visible { outline: 3px dashed var(--ink); outline-offset: 6px; border-radius: 22px 12px 20px 14px / 12px 20px 14px 22px; }
+
+/* 左下：目前魚餌 */
+#baitBtn { position: fixed; left: calc(22px + var(--safe-l)); bottom: calc(22px + var(--safe-b)); display: grid; justify-items: center; gap: 4px; }
+#baitBtn .disc { width: 86px; height: 86px; transform: rotate(-5deg); transition: transform .15s ease-out; }
+#baitBtn:hover .disc { transform: rotate(-1deg) scale(1.05); }
+#baitBtn .lab { background: var(--paper); border: 2.2px solid var(--ink); border-radius: 12px 14px 10px 15px / 14px 10px 15px 11px; padding: 2px 10px 3px; font-size: 14px; font-weight: 700; white-space: nowrap; transform: rotate(2deg); }
+#baitBtn .lab small { font-weight: 400; color: var(--ink-soft); margin-left: 4px; }
+
+/* 右下：按鍵提示圓鈕 */
+#keys { position: fixed; right: calc(22px + var(--safe-r)); bottom: calc(22px + var(--safe-b)); display: flex; align-items: flex-end; gap: 12px; }
+.kbtn { display: grid; place-items: center; }
+.kbtn .disc { width: 100%; height: 100%; }
+.kbtn .txt { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; line-height: 1.12; pointer-events: none; }
+.kbtn .k { font-size: 13px; font-weight: 700; color: var(--ink-soft); letter-spacing: .08em; }
+.kbtn .a { font-size: 21px; font-weight: 700; letter-spacing: .06em; }
+#btnMain { width: 104px; height: 104px; transform: rotate(3deg); position: relative; }
+#btnStow { width: 70px; height: 70px; transform: rotate(-6deg); position: relative; }
+#btnStow .a { font-size: 16px; }
+#btnStow .k { font-size: 17px; color: var(--ink); }
+.kbtn:active .disc, .kbtn.down .disc { transform: scale(.94); }
+.kbtn.pulse .disc { animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(1.06) rotate(-2deg); } }
+.kbtn.dim { opacity: .55; }
+.kbtn.warn .ring .fill { fill: #fde0d6; }
+.kbtn.warn .ring .ink { fill: #c4543f; }
+.kbtn.warn .a, .kbtn.warn .k { color: #c4543f; }
+
+/* 張力條 */
+#tension { position: fixed; left: 50%; bottom: calc(34px + var(--safe-b)); transform: translateX(-50%) rotate(-.8deg); width: min(320px, 56vw); pointer-events: none; text-align: center; }
+#tension .tl { font-size: 14px; font-weight: 700; margin-bottom: 3px; letter-spacing: .1em; display: flex; justify-content: space-between; }
+#tension svg { width: 100%; height: 34px; overflow: visible; display: block; }
+#tension.hot .tl b { color: #c4543f; }
+#tension.hot svg { animation: shake .12s linear infinite; }
+@keyframes shake { 50% { transform: translate(1px, -1px); } }
+
+/* 蓄力環、咬鉤「！」 */
+#ring { position: fixed; left: 0; top: 0; width: 86px; height: 86px; margin: -43px 0 0 -43px; pointer-events: none; }
+#ring svg { width: 100%; height: 100%; overflow: visible; }
+#bang { position: fixed; left: 0; top: 0; width: 62px; height: 74px; margin: -74px 0 0 -31px; pointer-events: none; transform-origin: 50% 100%; animation: pop .25s ease-out; }
+#bang svg { width: 100%; height: 100%; overflow: visible; }
+@keyframes pop { 0% { transform: scale(.3) rotate(-14deg); } 70% { transform: scale(1.15) rotate(4deg); } 100% { transform: scale(1) rotate(0); } }
+
+/* 提示紙條 */
+#toast { position: fixed; top: calc(98px + var(--safe-t)); left: 50%; transform: translateX(-50%) rotate(.8deg); background: var(--paper); border: 2.4px solid var(--ink); border-radius: 14px 20px 12px 18px / 18px 12px 20px 14px; padding: 8px 18px 9px; font-size: 16px; font-weight: 700; box-shadow: 2px 3px 0 rgba(59,55,50,.2); pointer-events: none; transition: opacity .25s; white-space: nowrap; max-width: calc(100vw - 24px); }
+#toast.off { opacity: 0; }
+
+/* 卡片 */
+.card { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-1deg); background: var(--paper); border: 3px solid var(--ink); border-radius: 26px 18px 30px 16px / 18px 30px 16px 26px; box-shadow: 4px 6px 0 rgba(59,55,50,.25); padding: 22px 26px 20px; width: min(420px, calc(100vw - 32px)); text-align: center; }
+.card::before { content: ""; position: absolute; inset: 7px; border: 1.6px dashed rgba(59,55,50,.28); border-radius: 20px 14px 24px 12px / 14px 24px 12px 20px; pointer-events: none; }
+.card h1, .card h2 { margin: 0; font-weight: 700; letter-spacing: .08em; }
+.card .sub { font-size: 13px; letter-spacing: .38em; color: var(--ink-soft); margin-top: 4px; }
+.btn { position: relative; display: inline-block; margin-top: 16px; padding: 11px 26px 12px; font-size: 18px; font-weight: 700; letter-spacing: .1em; background: var(--straw); border: 2.8px solid var(--ink); border-radius: 22px 12px 20px 14px / 12px 20px 14px 22px; box-shadow: 3px 4px 0 var(--ink); transition: transform .1s, box-shadow .1s; }
+.btn:hover { transform: translate(-1px, -1px) rotate(-1deg); box-shadow: 4px 5px 0 var(--ink); }
+.btn:active { transform: translate(2px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+
+#intro { padding-top: 18px; }
+#intro .hero { width: 210px; height: 92px; margin: -4px auto 4px; display: block; overflow: visible; }
+#intro h1 { font-size: 36px; }
+#intro ul { list-style: none; padding: 0; margin: 14px auto 0; text-align: left; display: grid; gap: 7px; max-width: 320px; font-size: 15px; }
+#intro li { display: flex; gap: 10px; align-items: baseline; }
+#intro kbd { font: inherit; font-weight: 700; font-size: 13px; padding: 1px 7px 2px; border: 2px solid var(--ink); border-radius: 9px 7px 10px 6px / 7px 10px 6px 9px; background: #fff9ec; white-space: nowrap; flex: none; min-width: 64px; text-align: center; }
+#intro .note { font-size: 12px; color: var(--ink-soft); margin-top: 12px; }
+body.touch #intro .kb { display: none; } body:not(.touch) #intro .tc { display: none; }
+
+/* 魚卡放在漁夫旁邊（桌機右側、手機上方），不擋住舉魚的漁夫 */
+#card { --cx: calc(50% + 300px); --cy: 50%; left: var(--cx); top: var(--cy); width: min(320px, calc(100vw - 32px)); transform: translate(-50%, -50%) rotate(1.5deg); animation: cardin .35s ease-out; }
+@keyframes cardin { 0% { transform: translate(-50%, -38%) rotate(-6deg) scale(.7); opacity: 0; } 100% { transform: translate(-50%, -50%) rotate(1.5deg) scale(1); opacity: 1; } }
+/* 窄桌機（861～930 px）：卡片右緣不超出視窗 */
+#card { --cx: min(calc(50% + 300px), calc(100% - 176px - var(--safe-r))); }
+@media (max-width: 860px) { #card { --cx: 50%; --cy: calc(var(--safe-t) + 250px); } }
+@media (max-width: 860px) and (max-height: 700px) { #card { --cy: calc(var(--safe-t) + 210px); } }
+/* 手機橫式（矮）：魚卡放右側、縮小，漁夫由 main.js 的鏡頭移到左半邊 */
+@media (orientation: landscape) and (max-height: 520px) {
+  #card { --cx: calc(100% - 12px - var(--safe-r) - 140px); --cy: 50%; width: 280px; padding: 12px 16px 10px; max-height: calc(100dvh - 16px); overflow: auto; }
+  #card h2 { font-size: 24px; } #card .len { font-size: 22px; }
+  #card .fishart { width: 118px; height: 50px; margin-top: 2px; }
+  #card .note { font-size: 13px; margin-top: 3px; } #card .habit { font-size: 12px; margin-top: 4px; padding-top: 4px; }
+  #card .tap { margin-top: 5px; }
+}
+#card .got { font-size: 13px; letter-spacing: .3em; color: var(--ink-soft); }
+#card h2 { font-size: 32px; margin-top: 2px; }
+#card .len { font-size: 26px; font-weight: 700; margin-top: 2px; }
+#card .len small { font-size: 15px; margin-left: 2px; }
+#card .fishart { width: 170px; height: 74px; margin: 6px auto 0; display: block; overflow: visible; }
+#card .note { font-size: 15px; margin-top: 6px; }
+#card .tap { font-size: 12px; color: var(--ink-soft); margin-top: 10px; }
+#card .rec { display: inline-block; margin: 6px 3px 0; font-size: 13px; font-weight: 700; background: var(--coral-2); border: 2px solid var(--ink); border-radius: 10px 6px 12px 7px; padding: 1px 8px 2px; transform: rotate(-3deg); }
+#card .rec.new { background: var(--lagoon-l); transform: rotate(2deg); }
+#card .habit { font-size: 13px; line-height: 1.45; margin: 6px auto 0; max-width: 260px; padding-top: 6px; border-top: 1.6px dashed rgba(59,55,50,.3); }
+
+#full h2 { font-size: 26px; }
+#full ol { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 5px 14px; text-align: left; font-size: 15px; }
+#full li { display: flex; justify-content: space-between; border-bottom: 1.6px dashed rgba(59,55,50,.3); padding: 2px 2px 3px; gap: 6px; }
+#full li b { font-weight: 700; white-space: nowrap; }
+#full .best { margin-top: 12px; font-size: 16px; }
+#full .best b { background: var(--coral-2); padding: 0 6px; border-radius: 8px 5px 9px 6px; }
+
+#baitMenu h2 { font-size: 22px; }
+#baitMenu .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+#baitMenu .opt { display: grid; justify-items: center; gap: 5px; font-size: 14px; font-weight: 700; position: relative; }
+#baitMenu .opt .disc { width: 72px; height: 72px; }
+#baitMenu .opt:nth-child(2n) .disc { transform: rotate(6deg); } #baitMenu .opt:nth-child(2n+1) .disc { transform: rotate(-4deg); }
+#baitMenu .opt.sel .disc::after { content: ""; position: absolute; inset: -9px; border: 3px solid var(--coral); border-radius: 48% 52% 46% 54% / 53% 47% 55% 45%; transform: rotate(-8deg); }
+#baitMenu .opt.locked { color: var(--ink-soft); cursor: not-allowed; }
+#baitMenu .opt.locked svg.ico { opacity: .4; }
+#baitMenu .opt .lock { position: absolute; top: 46px; right: 4px; width: 30px; height: 30px; }
+#baitMenu .opt small { font-weight: 400; font-size: 11px; display: block; margin-top: -3px; }
+.card .close { position: absolute; top: 8px; right: 10px; width: 46px; height: 46px; border-radius: 50%; }
+.card .close .disc { width: 100%; height: 100%; }
+.card .close svg.ico { width: 56%; height: 56%; }
+.card .close:hover { transform: rotate(8deg) scale(1.05); }
+
+/* 魚簍面板與圖鑑 */
+#creelPanel { width: min(480px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; text-align: left; padding: 20px 22px 18px; }
+#creelPanel h2, #creelPanel .sub { text-align: center; }
+#creelPanel h2 { font-size: 24px; }
+#creelPanel h3 { font-size: 17px; margin: 14px 0 6px; letter-spacing: .06em; }
+#creelPanel h3 small { font-size: 13px; font-weight: 400; color: var(--ink-soft); margin-left: 6px; letter-spacing: 0; }
+#creelPanel .now { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; font-size: 15px; }
+#creelPanel .now li { display: flex; align-items: center; gap: 6px; border-bottom: 1.6px dashed rgba(59,55,50,.3); padding: 2px 2px 3px; }
+#creelPanel .now li span { flex: 1; } #creelPanel .now li b { white-space: nowrap; }
+#creelPanel .dot { width: 13px; height: 13px; border: 2px solid var(--ink); border-radius: 50% 45% 55% 48%; flex: none; }
+#creelPanel .empty { margin: 10px 0 0; font-size: 15px; color: var(--ink-soft); text-align: center; }
+#creelPanel .dex { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+#creelPanel .dex li { display: flex; gap: 10px; align-items: center; font-size: 14px; }
+#creelPanel .dex .fishart { width: 82px; height: 36px; margin: 0; flex: none; }
+#creelPanel .dex b { display: block; font-size: 15px; }
+#creelPanel .dex span { display: block; font-weight: 700; color: var(--ink-soft); }
+#creelPanel .dex small { display: block; font-size: 12px; line-height: 1.4; }
+#creelPanel .dex .unseen b { letter-spacing: .2em; }
+#pauseCard { width: min(340px, calc(100vw - 32px)); }
+#pauseCard h2 { font-size: 28px; }
+#pauseCard .why { font-size: 15px; margin: 12px 0 0; }
+#pauseCard .keyhint { font-size: 12px; color: var(--ink-soft); margin-top: 10px; }
+
+/* 觸控：搖桿 */
+#stick { position: fixed; left: calc(18px + var(--safe-l)); bottom: calc(20px + var(--safe-b)); width: 132px; height: 132px; display: none; touch-action: none; }
+#stick svg { width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+#knob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; pointer-events: none; }
+#loading { position: fixed; inset: 0; display: grid; place-items: center; font-size: 18px; font-weight: 700; letter-spacing: .2em; color: var(--ink); background: #cdeee6; }
+body.touch #stick { display: block; }
+body.touch #baitBtn { left: auto; right: auto; left: calc(12px + var(--safe-l)); top: calc(12px + var(--safe-t)); bottom: auto; }
+body.touch #baitBtn .disc { width: 62px; height: 62px; }
+body.touch #baitBtn .lab { font-size: 12px; padding: 1px 7px 2px; }
+body.touch #baitBtn .lab small { display: none; }
+body.touch #btnMain { width: 112px; height: 112px; }
+body.touch #btnStow { width: 72px; height: 72px; margin-bottom: 70px; }
+body.touch #keys { gap: 4px; right: calc(14px + var(--safe-r)); bottom: calc(20px + var(--safe-b)); }
+body.touch #btnStow .k { font-size: 15px; }
+body.touch #tension { bottom: auto; top: calc(108px + var(--safe-t)); width: min(260px, 64vw); }
+body.touch:has(#tension:not(.hidden)) #toast { top: calc(176px + var(--safe-t)); }   /* 拔河時提示移到張力條下方 */
+body.touch #toast { top: calc(96px + var(--safe-t)); font-size: 14px; }
+/* 窄視窗（非觸控也一樣）：右下按鈕會蓋住底部的張力條，改放上方，提示紙條讓到張力條下方 */
+@media (max-width: 860px) {
+  #tension { bottom: auto; top: calc(108px + var(--safe-t)); width: min(260px, 64vw); }
+  body:has(#tension:not(.hidden)) #toast { top: calc(176px + var(--safe-t)); }
+}
+@media (max-width: 520px) {
+  #creelBox { gap: 6px; }
+  #creelBox .disc { width: 50px; height: 50px; }
+  #creelText { font-size: 17px; }
+  #creelSlots svg { width: 15px; height: 15px; }
+  #creelLabel { padding: 5px 10px 6px; }
+  #intro h1 { font-size: 30px; }
+  #intro ul { font-size: 14px; }
+  #full ol { grid-template-columns: 1fr; font-size: 14px; max-height: 40vh; overflow: auto; }
+  #baitMenu .grid { grid-template-columns: repeat(2, 1fr); }
+  .card { padding: 18px 16px 16px; }
+}
+/* 矮螢幕（手機橫式）：卡片不能比畫面高；開場卡收掉插圖、說明排兩欄 */
+@media (max-height: 520px) {
+  .card { max-height: calc(100dvh - 16px); overflow: auto; }
+  #intro { width: min(640px, calc(100vw - 24px)); padding: 12px 18px 12px; }
+  #intro .hero { display: none; }
+  #intro h1 { font-size: 26px; }
+  #intro .sub { margin-top: 0; }
+  #intro ul { grid-template-columns: 1fr 1fr; max-width: none; gap: 5px 14px; margin-top: 8px; font-size: 13px; }
+  #intro kbd { min-width: 0; font-size: 12px; }
+  #intro .btn { margin-top: 10px; padding: 8px 24px 9px; }
+  #intro .note { margin-top: 6px; }
+  #full ol { max-height: 34vh; overflow: auto; }
+  #full .btn { margin-top: 10px; }
+  #creelPanel .now { grid-template-columns: 1fr 1fr 1fr; }
+}
+@media (max-width: 520px) {
+  #sys { flex-direction: column; right: calc(10px + var(--safe-r)); top: calc(12px + var(--safe-t)); }
+  #sys button { width: 46px; height: 46px; }
+  #creelPanel .now { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+<svg class="defs" aria-hidden="true">
+  <defs>
+    <filter id="rough" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="4" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+<div id="hud" class="hidden">
+  <button id="creelBox" aria-label="魚簍（按 C 打開）"><div class="disc" id="creelIcon"></div><div id="creelLabel"><div id="creelText">魚簍 0/8</div><div id="creelSlots"></div></div></button>
+  <div id="sys"><button id="btnPause" aria-label="暫停（P）"></button><button id="btnMute" aria-label="靜音（M）"></button></div>
+  <button id="baitBtn" aria-label="選魚餌"><div class="disc" id="baitIcon"></div><div class="lab"><span id="baitName">麵包</span><small>B 換餌</small></div></button>
+  <div id="keys">
+    <button class="kbtn" id="btnStow" aria-label="收竿"><div class="disc" data-seed="31"></div><div class="txt"><span class="k">E</span><span class="a">收竿</span></div></button>
+    <button class="kbtn" id="btnMain" aria-label="甩竿"><div class="disc" data-seed="17"></div><div class="txt"><span class="k" id="mainKey">空白</span><span class="a" id="mainAct">甩竿</span></div></button>
+  </div>
+  <div id="stick"><svg viewBox="0 0 132 132" id="stickSvg"></svg><div id="knob"></div></div>
+  <div id="tension" class="hidden"><div class="tl"><span>張力</span><b id="tensionWord">剛好</b></div><svg viewBox="0 0 320 34" id="tensionSvg" preserveAspectRatio="none"></svg></div>
+  <div id="ring" class="hidden"><svg viewBox="0 0 86 86" id="ringSvg"></svg></div>
+  <div id="bang" class="hidden"></div>
+  <div id="toast" class="off"></div>
+</div>
+<div id="intro" class="card hidden">
+  <svg class="hero" id="heroSvg" viewBox="0 0 210 92"></svg>
+  <h1>珊瑚灣垂釣</h1>
+  <div class="sub">CORAL COVE</div>
+  <ul>
+    <li><kbd class="kb">WASD</kbd><kbd class="tc">左下搖桿</kbd><span>走到棧橋上，面向海</span></li>
+    <li><kbd class="kb">按住空白</kbd><kbd class="tc">按住大圓鈕</kbd><span>蓄力，放開甩竿</span></li>
+    <li><kbd class="kb">空白／左鍵</kbd><kbd class="tc">點大圓鈕</kbd><span>浮標沉下去時提竿</span></li>
+    <li><kbd class="kb">按住空白</kbd><kbd class="tc">按住大圓鈕</kbd><span>收線，線太緊就鬆一下</span></li>
+    <li><kbd class="kb">E</kbd><kbd class="tc">E 收竿</kbd><span>隨時收竿</span></li>
+    <li><kbd class="kb">B</kbd><kbd class="tc">左上圖示</kbd><span>選魚餌（目前只有麵包）</span></li>
+    <li><kbd class="kb">C</kbd><kbd class="tc">點魚簍</kbd><span>看魚簍與圖鑑</span></li>
+    <li><kbd class="kb">P／M</kbd><kbd class="tc">右上圓鈕</kbd><span>暫停／靜音</span></li>
+  </ul>
+  <button class="btn" id="start">開始釣魚</button>
+  <div class="note">釣滿 8 條魚就能看這一簍的成績</div>
+</div>
+<div id="card" class="card hidden"></div>
+<div id="full" class="card hidden"></div>
+<div id="baitMenu" class="card hidden" role="dialog" aria-label="選魚餌"></div>
+<div id="creelPanel" class="card hidden" role="dialog" aria-label="魚簍與圖鑑"></div>
+<div id="pauseCard" class="card hidden" role="dialog" aria-label="暫停"></div>
+<div id="loading">把船划過來中…</div>
+<!--ASSETS-->
+<!--BUNDLE-->
+</body>
+</html>
