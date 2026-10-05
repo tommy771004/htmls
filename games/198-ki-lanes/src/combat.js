@@ -6,7 +6,7 @@ import {
 import { collide, blocked, walkable, heightAt as heightAtXZ } from './map.js';
 import { findPath } from './nav.js';
 import { seen as seenBy } from './vision.js';
-import { beforeAuto, asMul, onCast } from './traits.js';
+import { beforeAuto, afterAuto, asMul, onCast } from './traits.js';
 
 const sin = Math.sin, cos = Math.cos;
 // 技能與範圍傷害不會打到眼（眼只能用普攻點掉）
@@ -114,7 +114,8 @@ function autoHit(G, h, t, idx) {
   dmg = beforeAuto(G, h, t, dmg, opts);
   const col = h.def.color;
   if (h.def.melee) {
-    damage(G, h, t, dmg, opts);
+    const dealt = damage(G, h, t, dmg, opts);
+    afterAuto(G, h, t, dealt, opts);
     const a = angTo(h, t);
     fx(G).hitSpark(t.x - sin(a) * t.radius * 0.6, 1.1 + t.y, t.z - cos(a) * t.radius * 0.6, col, idx === 2 ? 1.5 : 1, idx === 2 ? 'heavy' : 'light');
     sfx(G, idx === 2 ? 'hitH' : idx === 1 ? 'hitM' : 'hitL', h);
@@ -123,7 +124,8 @@ function autoHit(G, h, t, idx) {
     const p = spawnProjectile(G, {
       x: h.x + sin(h.facing) * 0.8, z: h.z + cos(h.facing) * 0.8, y: 1.3, speed: 30, team: h.team, src: h, target: t, radius: 0.3,
       onArrive(G, p, u) {
-        damage(G, h, u, dmg, opts);
+        const dealt = damage(G, h, u, dmg, opts);
+        afterAuto(G, h, u, dealt, opts);
         fx(G).hitSpark(u.x, 1.1 + u.y, u.z, col, idx === 2 ? 1.3 : 0.85, 'light');
         if (h.heroId === 'nami') { fx(G).lightning({ x: u.x + 0.6, y: 7, z: u.z - 0.6 }, { x: u.x, y: 1 + u.y, z: u.z }, '#ffe36a'); if (idx === 2) sfx(G, 'thunder', u, { vol: 0.4 }); }
         sfx(G, idx === 2 ? 'hitM' : 'hitL', u);
@@ -287,10 +289,11 @@ export function cast(G, h, k, tx, tz) {
   const fn = KITS[h.heroId][k];
   const ok = fn(G, h, { ang, px, pz, tx, tz, d, rank: h.ranks[k] - 1, s });
   if (ok === false) return false;
-  h.cds[k] = (k === 'R' ? s.cd : s.cd * (1 - 0.06 * (h.ranks[k] - 1))) * (1 - (h.cdr || 0));
+  h.cds[k] = (k === 'R' ? s.cd : s.cd * (1 - 0.06 * (h.ranks[k] - 1))) * 100 / (100 + (h.ah || 0)); // 技能加速
   if (s.ki) h.ki -= s.ki * KI_BAR;
-  h.mp = Math.max(0, h.mp - skillCost(h, k));
-  onCast(G, h);
+  const cost = skillCost(h, k);
+  h.mp = Math.max(0, h.mp - cost);
+  onCast(G, h, cost);
   h.charging = false; cancelRecall(G, h);
   G.emit('cast', { h, k });
   return true;

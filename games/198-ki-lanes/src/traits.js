@@ -1,7 +1,7 @@
 // 符文與裝備被動（《英雄聯盟》的基石符文、咒刃、暴擊、主動道具、野怪增益）。規則面，不碰 DOM。
 // units.damage() 透過 G.traits.onHeroHit 呼叫這裡，避免 units ↔ traits 互相 import。
 import { TEAR_MAX, JUNGLE_BUFF } from './config.js';
-import { damage, heal, recalcStats, interrupt } from './units.js';
+import { damage, heal, recalcStats, interrupt, addMp, dist } from './units.js';
 
 const sfx = (G, name, at, o) => G.sfx && G.sfx(name, at, o);
 const fx = (G) => G.fx;
@@ -21,6 +21,7 @@ function countHits(G, h, dst, win) {
 export function onHeroHit(G, h, dst, a, opts) {
   const rs = h.rs, skill = opts.type === 'skill' || opts.type === 'super';
   if (!skill && !isBasic(opts)) return;
+  itemOnHeroHit(G, h, dst, a, opts, skill);
   switch (h.rune) {
     case 'conqueror': {
       rs.stacks = Math.min(8, (G.time - rs.t < 5 ? rs.stacks : 0) + (skill ? 2 : 1)); rs.t = G.time;
@@ -93,6 +94,7 @@ export function beforeAuto(G, h, t, dmg, opts) {
     fx(G).ring(h.x, h.z, '#7bd36a', 2, 0.4);
     G.emit('runeProc', { h, id: 'grasp' });
   }
+  for (const e of effs(h, 'onhit')) if (!e.magic && (!e.minionOnly || t.kind === 'minion')) dmg += onhitAmount(h, t, e);
   if (h.red > 0 && (t.kind === 'hero' || t.kind === 'minion' || t.kind === 'monster')) {
     const R = JUNGLE_BUFF.red;
     t.st.burn = R.burnT; t.st.burnDps = (R.burn + R.burnLv * h.level) / R.burnT; t.st.burnSrc = h;
@@ -102,13 +104,16 @@ export function beforeAuto(G, h, t, dmg, opts) {
 }
 
 // 施放技能後：咒刃上膛、積蓄層數
-export function onCast(G, h) {
+export function onCast(G, h, cost = 0) {
   if (h.psv.blade && G.time >= h.bladeCd) h.bladeT = G.time + 10;
+  for (const e of effs(h, 'refund')) addMp(h, cost * e.pct);
+  for (const e of effs(h, 'msAfterCast')) haste(h, e.dur, e.ms);
   if (h.psv.tear && h.res === 'mana' && h.tear < TEAR_MAX) { h.tear = Math.min(TEAR_MAX, h.tear + h.psv.tear); recalcStats(h); }
 }
 
 // 每步：不死之身在交戰中累積
 export function tick(G, h, dt) {
+  itemTick(G, h, dt);
   if (h.rune !== 'grasp') return;
   const fighting = G.time - h.lastAttackHeroT < 4 || (h.lastHitBy && h.lastHitBy.kind === 'hero' && G.time - h.lastHitT < 4);
   if (fighting) h.rs.charge = Math.min(4, h.rs.charge + dt); else h.rs.charge = 0;
@@ -126,6 +131,12 @@ export function useActive(G, h, i) {
     fx(G).shieldFx(h, '#ffd34a', a.dur); fx(G).ring(h.x, h.z, '#ffd34a', 2.4, 0.5);
     sfx(G, 'freeze', h, { vol: 0.5, pitch: 1.3 });
     G.emit('stasis', { h, dur: a.dur, kind: 'hourglass' });
+    // 只能用一次的（時之護腕）：用完換成碎裂的版本
+    if (a.once) { const i2 = h.inv.indexOf(a.item); if (i2 >= 0) { h.inv[i2] = a.once; recalcStats(h); } return true; }
+  } else if (a.id === 'crescent') {
+    for (const u of G.units) if (u.alive && u.team !== h.team && u.team <= 2 && (u.kind === 'hero' || u.kind === 'minion' || u.kind === 'monster') && dist(u, h) < a.r + u.radius) damage(G, h, u, h.ad * a.ad, { type: 'proc', noKi: true });
+    fx(G).ring(h.x, h.z, '#e8f4ff', a.r, 0.35); fx(G).slash(h.x, h.z, h.facing, '#ffffff', a.r);
+    sfx(G, 'slash', h, { vol: 0.5 });
   } else if (a.id === 'cleanse') {
     if (h.stasis > G.time) return false;
     const st = h.st; st.stun = 0; st.frozen = 0; st.slow = 0; st.slowAmt = 0;
@@ -148,4 +159,138 @@ export function aiActives(G, h, foeNear) {
   });
 }
 
-export const traits = { onHeroHit, tick };
+/* ================= 裝備效果（《英雄聯盟》的被動與主動） =================
+ * h.psv 由 units.itemPassives 彙整：key 是被動名稱（同名不疊加，取 lv 較高的那件），值是 { k: 種類, ...參數 }。
+ * 數字型的舊欄位（blade、tear、critDmg…）照舊，沒有 k 的值這裡不處理。
+ * 種類一覽：
+ *   onhit      普攻命中附加傷害：flat＋ad×總攻擊＋bad×額外攻擊＋ap×氣功強度＋maxHp／curHp／missHp×目標血量；magic 走技能防禦；minionOnly
+ *   onhitHeal  普攻命中回血 v
+ *   msOnAuto   普攻後移速 +ms，dur 秒
+ *   cleave     近戰普攻對目標周圍 r 公尺的敵人造成 pct 的物理傷害
+ *   everyN     每 n 下普攻追加 flat＋ad＋bad 的傷害（magic 可選）
+ *   heroProc   傷害英雄時追加 dmg＋ap×氣功強度的技能傷害，冷卻 cd；autoCdr＝每次普攻縮短冷卻的秒數
+ *   gw         對英雄造成 type（phys／magic／any）傷害時施加重傷 pct，3 秒
+ *   skillBurn  技能命中後灼燒：每秒 dps，dur 秒；monster＝對野怪的額外傷害
+ *   ramp       與英雄交戰時每秒傷害 +per，上限 max
+ *   immolate   造成或承受傷害後 3 秒內，每秒對 r 公尺內敵人造成 dps＋hpK×額外血量 的技能傷害
+ *   autoReduce 承受的普攻傷害 -pct
+ *   spellShield 擋下下一次敵方技能，冷卻 cd
+ *   lifeline   受傷後血量低於 at 時得到護盾 base＋bonusHp×額外血量（magicOnly 只擋技能傷害），持續 dur，冷卻 cd
+ *   hitShield  受到英雄的 type 傷害後得到護盾 base＋lv×等級，持續 5 秒，冷卻 cd
+ *   regenHit   受到英雄傷害後 8 秒內每秒回 v 血
+ *   manaHit    受到英雄傷害時回 pct×傷害 的魔力
+ *   refund     施放技能退還 pct×消耗
+ *   msAfterCast 施放技能後移速 +ms，dur 秒
+ *   mpRegen    每秒回 v 魔力，對英雄造成傷害後 5 秒內 combat
+ *   stacks     參與擊殺疊 1 層（最多 max，死亡失去 lose），每層 ap／ov
+ *   eternal    血量高於一半時傷害 +dmg，低於一半時治療與護盾 +heal
+ *   adaptiveMs 適性之力＝移速×pct（本作移速換回原作單位），加在攻擊或氣功強度較高的那邊
+ *   slowResist 緩速效果 -v
+ */
+const effs = (h, k) => { const out = []; for (const key in h.psv || {}) { const e = h.psv[key]; if (e && e.k === k) out.push(e); } return out; };
+export { effs };
+function onhitAmount(h, t, e) {
+  return (e.flat || 0) + (e.ad || 0) * h.ad + (e.bad || 0) * bonusAd(h) + (e.ap || 0) * (h.ap || 0)
+    + (e.maxHp || 0) * t.maxHp + (e.curHp || 0) * t.hp + (e.missHp || 0) * (t.maxHp - t.hp);
+}
+function haste(h, dur, ms) { h.st.haste = Math.max(h.st.haste || 0, dur); h.st.hasteMs = Math.max(h.st.hasteMs || 0, ms); h.st.hasteAs = h.st.hasteAs || 0; }
+const fxs = (h) => (h.fxs ||= {});
+
+// 普攻命中後：技能傷害型命中效果、命中回血、移速、順劈、第 N 下
+export function afterAuto(G, h, t, dealt, opts) {
+  const F = fxs(h);
+  for (const e of effs(h, 'onhit')) if (e.magic && (!e.minionOnly || t.kind === 'minion')) damage(G, h, t, onhitAmount(h, t, e), { type: 'proc', magic: true, noKi: true });
+  for (const e of effs(h, 'onhitHeal')) heal(G, h, e.v);
+  for (const e of effs(h, 'msOnAuto')) haste(h, e.dur, e.ms);
+  for (const e of effs(h, 'heroProc')) if (e.autoCdr && F.procCd) F.procCd -= e.autoCdr;
+  if (h.def.melee) for (const e of effs(h, 'cleave')) {
+    for (const u of G.units) if (u !== t && u.alive && u.team !== h.team && u.team <= 2 && (u.kind === 'hero' || u.kind === 'minion' || u.kind === 'monster') && dist(u, t) < e.r + u.radius) damage(G, h, u, dealt * e.pct, { type: 'proc', noKi: true });
+  }
+  for (const e of effs(h, 'everyN')) {
+    F.nHits = (F.nHits || 0) + 1;
+    if (F.nHits >= e.n) { F.nHits = 0; damage(G, h, t, (e.flat || 0) + (e.ad || 0) * h.ad + (e.bad || 0) * bonusAd(h), { type: 'proc', magic: !!e.magic, noKi: true }); fx(G).ring(t.x, t.z, '#ffe08a', 1.4, 0.25); }
+  }
+}
+
+// 對英雄造成傷害後（普攻或技能）
+function itemOnHeroHit(G, h, dst, a, opts, skill) {
+  const F = fxs(h), magic = skill || opts.magic;
+  for (const e of effs(h, 'gw')) if (e.type === 'any' || (e.type === 'magic') === !!magic) { dst.st.gw = 3; dst.st.gwAmt = Math.max(dst.st.gwAmt || 0, e.pct); }
+  for (const e of effs(h, 'heroProc')) if (G.time >= (F.procCd || 0)) {
+    F.procCd = G.time + e.cd;
+    G.later(0.02, () => { if (dst.alive) damage(G, h, dst, e.dmg + (e.ap || 0) * (h.ap || 0) + (e.lvDmg || 0) * h.level, { type: 'proc', magic: true, noKi: true }); });
+    fx(G).hitSpark(dst.x, 1.2 + dst.y, dst.z, '#9fd8ff', 0.8, 'light');
+  }
+  if (skill) for (const e of effs(h, 'skillBurn')) { dst.st.burn = Math.max(dst.st.burn || 0, e.dur); dst.st.burnDps = Math.max(dst.st.burnDps || 0, e.dps); dst.st.burnSrc = h; }
+  F.heroCombat = G.time;
+  if (effs(h, 'immolate').length) F.immoT = G.time + 3;
+}
+// 對野怪與小兵也有效的技能灼燒（命定灰燼對野怪加傷）
+export function onSkillHitAny(G, h, u) {
+  for (const e of effs(h, 'skillBurn')) { if (u.kind === 'hero') continue; u.st.burn = Math.max(u.st.burn || 0, e.dur); u.st.burnDps = Math.max(u.st.burnDps || 0, e.dps + (u.kind === 'monster' ? (e.monster || 0) / e.dur : 0)); u.st.burnSrc = h; }
+}
+
+// 承受傷害前：減普攻傷害、法術護盾。回傳調整後的傷害
+export function beforeTaken(G, src, dst, a, opts) {
+  if (dst.kind !== 'hero' || !dst.psv) return a;
+  const basic = isBasic(opts), skill = opts.type === 'skill' || opts.type === 'super';
+  if (basic) for (const e of effs(dst, 'autoReduce')) a *= 1 - e.pct;
+  if (skill && src && src.kind === 'hero') for (const e of effs(dst, 'spellShield')) {
+    const F = fxs(dst);
+    if (G.time >= (F.shieldCd || 0)) { F.shieldCd = G.time + e.cd; fx(G).shieldFx(dst, '#c8b4ff', 0.4); G.emit('spellShield', dst); return 0; }
+  }
+  if (src && src.kind === 'hero') for (const e of effs(src, 'ramp')) a *= 1 + Math.min(e.max, e.per * Math.max(0, G.time - (fxs(src).rampT0 ?? G.time)));
+  if (src && src.kind === 'hero') for (const e of effs(src, 'eternal')) if (src.hp > src.maxHp * 0.5) a *= 1 + e.dmg;
+  return a;
+}
+// 承受傷害後：保命護盾、受擊護盾、受擊回血與回魔、獻祭
+export function afterTaken(G, src, dst, a, opts) {
+  if (dst.kind !== 'hero' || !dst.psv || a <= 0) return;
+  const F = fxs(dst), fromHero = src && src.kind === 'hero', magic = opts.type === 'skill' || opts.type === 'super' || opts.magic;
+  for (const e of effs(dst, 'lifeline')) {
+    if ((e.magicOnly && !magic) || G.time < (F.lifeCd || 0) || dst.hp > dst.maxHp * e.at || dst.hp <= 0) continue;
+    F.lifeCd = G.time + e.cd;
+    const v = (e.base || 0) + (e.bonusHp || 0) * Math.max(0, dst.maxHp - dst.def.stats.hp - dst.def.stats.hpLv * (dst.level - 1)) + (e.lv || 0) * dst.level;
+    dst.st.shield = (dst.st.shield || 0) + v * (1 + (dst.hsp || 0)); dst.st.shieldT = Math.max(dst.st.shieldT, e.dur);
+    fx(G).shieldFx(dst, '#ffd34a', e.dur); G.emit('lifeline', dst);
+  }
+  if (fromHero) {
+    for (const e of effs(dst, 'hitShield')) if ((e.type === 'magic') === !!magic && G.time >= (F['hs' + e.type] || 0)) {
+      F['hs' + e.type] = G.time + e.cd;
+      dst.st.shield = (dst.st.shield || 0) + (e.base + e.lv * dst.level) * (1 + (dst.hsp || 0)); dst.st.shieldT = Math.max(dst.st.shieldT, 5);
+    }
+    for (const e of effs(dst, 'regenHit')) { F.regenT = G.time + 8; F.regenV = e.v; }
+    for (const e of effs(dst, 'manaHit')) addMp(dst, a * e.pct);
+    if (effs(dst, 'immolate').length) F.immoT = G.time + 3;
+  }
+}
+// 參與擊殺英雄
+export function onTakedown(G, h) {
+  let changed = false;
+  for (const key in h.psv || {}) { const e = h.psv[key]; if (e && e.k === 'stacks') { h.stk = h.stk || {}; h.stk[key] = Math.min(e.max, (h.stk[key] || 0) + 1); changed = true; } }
+  if (changed) recalcStats(h);
+}
+export function onDeath(G, h) {
+  if (!h.stk) return;
+  for (const key in h.stk) { const e = h.psv && h.psv[key]; if (e && e.lose) h.stk[key] = Math.max(0, h.stk[key] - e.lose); }
+  recalcStats(h);
+}
+// 每步
+function itemTick(G, h, dt) {
+  const F = h.fxs; if (!F && !h.psv) return;
+  for (const e of effs(h, 'mpRegen')) addMp(h, (G.time - (F && F.heroCombat || -99) < 5 ? e.combat : e.v) * dt);
+  if (!F) return;
+  if (F.regenT > G.time) heal(G, h, F.regenV * dt);
+  // 交戰中的增傷：5 秒沒和英雄交手就重置
+  if (G.time - (F.heroCombat ?? -99) > 5) F.rampT0 = undefined; else if (F.rampT0 === undefined) F.rampT0 = G.time;
+  if (F.immoT > G.time) for (const e of effs(h, 'immolate')) {
+    F.immoAcc = (F.immoAcc || 0) + dt;
+    if (F.immoAcc >= 0.5) {
+      F.immoAcc = 0;
+      const bonus = Math.max(0, h.maxHp - h.def.stats.hp - h.def.stats.hpLv * (h.level - 1)), d = (e.dps + (e.hpK || 0) * bonus) * 0.5;
+      for (const u of G.units) if (u.alive && u.team !== h.team && u.team <= 2 && (u.kind === 'hero' || u.kind === 'minion' || u.kind === 'monster') && dist(u, h) < e.r + u.radius) damage(G, h, u, d * (u.kind === 'hero' ? 1 : 1.5), { type: 'proc', magic: true, noKi: true, dot: true });
+    }
+  }
+}
+
+export const traits = { onHeroHit, tick, beforeTaken, afterTaken, onSkillHitAny, onTakedown, onDeath };

@@ -1,6 +1,6 @@
 // 單位：英雄、小兵、建築。移動、碰撞、傷害、死亡、經驗。
 import {
-  HEROES, MINION, MINION_GROWTH, TOWER, KI_MAX, KI_BAR, MAX_LEVEL, xpToNext, respawnTime, XP_SHARE_RADIUS,
+  HEROES, MINION, MINION_GROWTH, TOWER, STAT, KI_MAX, KI_BAR, MAX_LEVEL, xpToNext, respawnTime, XP_SHARE_RADIUS,
   FOUNTAIN, BASE, COMBO_WINDOW, HITSTOP, SPARK, WAVE_EVERY, FIRST_WAVE, SIEGE_FROM_WAVE, GOLD, ITEMS, APE_BUFF, DRAGON, RES, JUNGLE_BUFF, TEAR_MAX, RUNE_REC,
 } from './config.js';
 import { collide, obstaclesNear, lanePath, heightAt, STRUCTURES, laneProgress } from './map.js';
@@ -36,8 +36,13 @@ export function makeHero(G, heroId, team, lane, isPlayer) {
   return u;
 }
 export function itemStats(u) {
-  const t = { ad: 0, hp: 0, armor: 0, mr: 0, as: 0, ms: 0, ki: 0, cdr: 0, skill: 0, dmg: 0, vision: 0, regen: 0, detect: 0, mp: 0, mpr: 0, ap: 0, crit: 0, ls: 0 };
-  for (const id of u.inv || []) { const it = ITEMS.find((i) => i.id === id); if (it && it.stats) for (const k in it.stats) t[k] += it.stats[k]; }
+  const t = { ad: 0, hp: 0, armor: 0, mr: 0, as: 0, ms: 0, ki: 0, ah: 0, skill: 0, dmg: 0, vision: 0, regen: 0, detect: 0, mp: 0, mpr: 0, ap: 0, crit: 0, ls: 0, leth: 0, apen: 0, mpen: 0, mpenPct: 0, ten: 0, ov: 0 };
+  let keepCc = 1;
+  for (const id of u.inv || []) {
+    const it = ITEMS.find((i) => i.id === id); if (!it || !it.stats) continue;
+    for (const k in it.stats) { if (k === 'ten') keepCc *= 1 - it.stats.ten; else t[k] += it.stats[k]; }
+  }
+  t.ten = 1 - keepCc; // 韌性相乘疊加：兩件 30% 是 51%，不是 60%
   return t;
 }
 // 裝備被動：同名被動不疊加（數字取最大；荊棘取反彈最強的那件）。主動道具依身上順序排列
@@ -45,7 +50,12 @@ export function itemPassives(u) {
   const p = {}, acts = [];
   for (const id of u.inv || []) {
     const it = ITEMS.find((i) => i.id === id); if (!it) continue;
-    if (it.psv) for (const k in it.psv) { const v = it.psv[k]; if (typeof v === 'number') p[k] = Math.max(p[k] || 0, v); else if (!p[k] || v.pct > p[k].pct) p[k] = v; }
+    if (it.psv) for (const k in it.psv) {
+      const v = it.psv[k];
+      if (typeof v === 'number') p[k] = Math.max(p[k] || 0, v);
+      else if (v.k) { if (!p[k] || (v.lv || 0) > (p[k].lv || 0)) p[k] = v; } // 裝備效果：同名不疊，取較強的那件
+      else if (!p[k] || v.pct > p[k].pct) p[k] = v;
+    }
     if (it.act && !acts.some((a) => a.id === it.act.id)) acts.push({ ...it.act, item: id });
   }
   return { p, acts };
@@ -54,12 +64,15 @@ export function recalcStats(u) {
   const s = u.def.stats, lv = u.level - 1, it = itemStats(u);
   const ratio = u.maxHp ? u.hp / u.maxHp : 1;
   u.maxHp = s.hp + s.hpLv * lv + it.hp; u.hp = ratio * u.maxHp;
-  u.ad = s.ad + s.adLv * lv + it.ad; u.range = s.range; u.as = s.as * Math.pow(0.975, lv) * (1 - Math.min(0.5, it.as)); u.ms = s.ms * (1 + it.ms); u.armor = Math.min(0.6, s.armor + lv * 0.006 + it.armor);
-  u.kiGain = 1 + it.ki; u.cdr = Math.min(0.4, it.cdr); u.skillMul = 1 + it.skill; u.dmgMul = 1 + it.dmg; u.visionBonus = it.vision; u.regen = it.regen; u.detect = it.detect;
+  // 普攻間隔＝基礎間隔 ÷ (1＋每級攻速＋裝備攻速)；防禦是數值（承受 ×100／(100＋防禦)）
+  u.ad = s.ad + s.adLv * lv + it.ad; u.range = s.range; u.as = Math.max(STAT.asMinInterval, s.as / (1 + STAT.asLv * lv + it.as)); u.ms = s.ms * (1 + it.ms);
+  u.armor = s.armor + STAT.armorLv * lv + it.armor;
+  u.ah = it.ah; u.leth = it.leth; u.apen = it.apen; u.mpen = it.mpen; u.mpenPct = it.mpenPct; u.ten = it.ten; u.ov = it.ov;
+  u.kiGain = 1 + it.ki; u.skillMul = 1 + it.skill; u.dmgMul = 1 + it.dmg; u.visionBonus = it.vision; u.regen = it.regen; u.detect = it.detect;
   const { p, acts } = itemPassives(u);
   u.psv = p; u.acts = acts;
   u.maxHp += u.graspHp || 0; u.hp = ratio * u.maxHp;
-  u.mr = Math.min(0.6, s.armor + lv * 0.006 + it.mr);
+  u.mr = (s.mr ?? s.armor) + STAT.armorLv * lv + it.mr;
   u.crit = Math.min(1, it.crit); u.critMul = p.critDmg || 1.75; u.ls = it.ls;
   // 魔力：上限加上裝備與「積蓄」層數；能量型固定
   const oldMp = u.maxMp || 0;
@@ -67,7 +80,21 @@ export function recalcStats(u) {
   else { u.maxMp = s.mp + s.mpLv * lv + it.mp + (p.tear ? Math.min(TEAR_MAX, u.tear || 0) : 0); u.mpRegen = (s.mpr + s.mprLv * lv) * (1 + it.mpr); }
   if (oldMp) u.mp = clamp(u.mp + Math.max(0, u.maxMp - oldMp), 0, u.maxMp);
   u.ap = (it.ap + (p.mpAp || 0) * (u.res === 'energy' ? 0 : u.maxMp)) * (1 + (p.apAmp || 0));
-  if (u.blue > 0) u.cdr = Math.min(0.45, u.cdr + JUNGLE_BUFF.blue.cdr);
+  if (u.blue > 0) u.ah += JUNGLE_BUFF.blue.ah;
+  u.hpr = it.hpr; u.hsp = it.hsp; u.slowRes = 0; u.healAmp = 0;
+  if (it.critDmg) u.critMul += it.critDmg;
+  statMods(u);
+}
+// 依層數或其他屬性算出的加成（裝備效果，見 traits.js 的種類一覽）
+function statMods(u) {
+  for (const key in u.psv) {
+    const e = u.psv[key]; if (!e || !e.k) continue;
+    const n = (u.stk && u.stk[key]) || 0;
+    if (e.k === 'stacks') { if (e.ap) u.ap += e.ap * n; if (e.ov) u.ov += e.ov * n; }
+    else if (e.k === 'adaptiveMs') { const af = u.ms * 46 * e.pct, bad = u.ad - u.def.stats.ad - u.def.stats.adLv * (u.level - 1); if ((u.ap || 0) > bad) u.ap += af; else u.ad += af * 0.6; }
+    else if (e.k === 'slowResist') u.slowRes = Math.max(u.slowRes, e.v);
+    else if (e.k === 'eternal') u.healAmp = e.heal;
+  }
 }
 export function addMp(h, v) { if (h.alive && h.maxMp) h.mp = clamp(h.mp + v, 0, h.maxMp); }
 export function makeMinion(G, kind, team, lane) {
@@ -124,8 +151,9 @@ export function damage(G, src, dst, amount, opts = {}) {
   if (src && src.kind === 'hero') { a *= src.dmgMul || 1; if (src.apeBuff > 0) a *= 1 + APE_BUFF.dmg; if (src.omen > 0) a *= 1 + DRAGON.omen.dmg; if (src.wish > 0) a *= 1 + DRAGON.wish.dmg; if (opts.type === 'skill' || opts.type === 'super') a *= src.skillMul || 1; }
   if (src && src.kind === 'hero' && src.rune === 'conqueror' && src.rs.stacks && G.time - src.rs.t < 5 && dst.kind === 'hero') a *= 1 + 0.015 * src.rs.stacks;
   // 普攻、小兵、塔、野怪是物理傷害（物理減傷），技能是技能傷害（技能減傷），真實傷害不減
-  if (dst.kind === 'hero' && opts.type !== 'true') a *= 1 - ((opts.type === 'skill' || opts.type === 'super' || opts.magic ? dst.mr : dst.armor) || 0);
+  if (dst.kind === 'hero' && opts.type !== 'true') a *= defMul(src, dst, opts.type === 'skill' || opts.type === 'super' || opts.magic);
   if (dst.kind === 'tower' || dst.kind === 'core') { if (src && src.kind === 'hero' && (opts.type === 'skill' || opts.type === 'super')) a *= 0.55; }
+  if (G.traits) a = G.traits.beforeTaken(G, src, dst, a, opts);
   if (dst.st.shield > 0) { const s = Math.min(dst.st.shield, a); dst.st.shield -= s; a -= s; }
   a = Math.round(a);
   // 天使光環：致命傷害時倒下，3 秒後原地復活
@@ -136,6 +164,8 @@ export function damage(G, src, dst, amount, opts = {}) {
     return 0;
   }
   dst.hp -= a; dst.flash = 0.12;
+  if (G.traits && dst.kind === 'hero' && dst.hp > 0) G.traits.afterTaken(G, src, dst, a, opts);
+  if (G.traits && src && src.kind === 'hero' && dst.kind !== 'hero' && (opts.type === 'skill' || opts.type === 'super')) G.traits.onSkillHitAny(G, src, dst);
   const basic = opts.type === 'L' || opts.type === 'M' || opts.type === 'H';
   if (src && src.kind === 'hero' && basic && a > 0) {
     // 普攻吸血；魔人之牙把溢出的血量轉成護盾
@@ -144,6 +174,8 @@ export function damage(G, src, dst, amount, opts = {}) {
     const th = dst.kind === 'hero' && dst.psv && dst.psv.thorns;
     if (th && !opts.thorn) { damage(G, dst, src, th.base + th.lv * dst.level + a * th.pct, { type: 'true', noKi: true, thorn: true }); src.st.gw = 3; src.st.gwAmt = Math.max(src.st.gw > 0 ? src.st.gwAmt || 0 : 0, th.gw); }
   }
+  // 全能吸血：所有傷害都回血，技能（多為範圍技）只算三分之一；打小兵野怪打六折
+  if (src && src.kind === 'hero' && src.ov > 0 && a > 0 && !opts.thorn && !opts.dot) heal(G, src, a * src.ov * (basic ? 1 : STAT.ovSkill) * (dst.kind === 'hero' ? 1 : 0.6));
   if (G.traits && src && src.kind === 'hero' && dst.kind === 'hero' && a > 0 && !opts.rune && !opts.thorn && !opts.dot) G.traits.onHeroHit(G, src, dst, a, opts);
   dst.lastHitBy = src; dst.lastHitT = G.time;
   if (src && src.kind === 'hero' && dst.kind === 'hero') { dst.damagers.set(src, G.time); src.lastAttackHeroT = G.time; src.lastHeroTarget = dst; }
@@ -156,10 +188,11 @@ export function damage(G, src, dst, amount, opts = {}) {
   if (dst.kind === 'monster') G.emit('monsterHit', { dst, src });
   if ((dst.kind === 'hero' || dst.kind === 'minion' || (dst.kind === 'monster' && !dst.boss))) {
     if (opts.knock) { const ang = opts.kdir ?? (src ? angTo(src, dst) : 0), p = opts.knock * (dst.kind === 'minion' ? 1.4 : 1); dst.kx += Math.sin(ang) * p; dst.kz += Math.cos(ang) * p; }
-    if (opts.stun) dst.st.stun = Math.max(dst.st.stun, opts.stun * (dst.kind === 'hero' ? 1 : 1.3));
+    const ten = dst.kind === 'hero' ? 1 - (dst.ten || 0) : 1; // 韌性縮短暈眩、冰凍與緩速；擊飛不受影響
+    if (opts.stun) dst.st.stun = Math.max(dst.st.stun, opts.stun * (dst.kind === 'hero' ? ten : 1.3));
     if (opts.air) { dst.st.stun = Math.max(dst.st.stun, opts.air); dst.vy = Math.max(dst.vy, opts.air * 9.8 * 0.5); }
-    if (opts.freeze) { dst.st.frozen = Math.max(dst.st.frozen, opts.freeze); dst.st.stun = Math.max(dst.st.stun, opts.freeze); }
-    if (opts.slow) { dst.st.slow = Math.max(dst.st.slow, opts.slowT || 1.5); dst.st.slowAmt = Math.max(dst.st.slowAmt, opts.slow); }
+    if (opts.freeze) { dst.st.frozen = Math.max(dst.st.frozen, opts.freeze * ten); dst.st.stun = Math.max(dst.st.stun, opts.freeze * ten); }
+    if (opts.slow) { dst.st.slow = Math.max(dst.st.slow, (opts.slowT || 1.5) * ten); dst.st.slowAmt = Math.max(dst.st.slowAmt, opts.slow * (1 - (dst.slowRes || 0))); }
     if (dst.kind === 'hero' && (opts.stun || opts.air || opts.freeze || a > 0)) { if (dst.recall > 0) cancelRecall(G, dst); if (opts.stun || opts.air || opts.freeze) interrupt(G, dst); }
   }
   // 連擊數與頓幀（只算玩家參與的命中）
@@ -177,7 +210,13 @@ export function damage(G, src, dst, amount, opts = {}) {
   if (dst.hp <= 0) kill(G, dst, src);
   return a;
 }
-export function heal(G, u, amount) { if (!u.alive) return; if (u.st.gw > 0) amount *= 1 - (u.st.gwAmt || 0); u.hp = Math.min(u.maxHp, u.hp + amount); }
+// 防禦減傷：先 ％穿透再固定穿透，防禦不會被穿到負值；原作的「減防」效果另外直接改 dst 的防禦
+export function defMul(src, dst, magic) {
+  let d = (magic ? dst.mr : dst.armor) || 0;
+  if (src && src.kind === 'hero' && d > 0) d = Math.max(0, d * (1 - ((magic ? src.mpenPct : src.apen) || 0)) - ((magic ? src.mpen : src.leth) || 0));
+  return d >= 0 ? 100 / (100 + d) : 2 - 100 / (100 - d);
+}
+export function heal(G, u, amount) { if (!u.alive) return; if (u.st.gw > 0) amount *= 1 - (u.st.gwAmt || 0); if (u.healAmp && u.hp < u.maxHp * 0.5) amount *= 1 + u.healAmp; u.hp = Math.min(u.maxHp, u.hp + amount); }
 
 export function addKi(G, h, v) {
   if (!h.alive) return;
@@ -221,6 +260,7 @@ function kill(G, u, src) {
     if (killer) for (const b of ['blue', 'red']) if (u[b] > 0) { killer[b] = JUNGLE_BUFF[b].dur; G.emit('jungleBuff', { h: killer, b, stolen: true }); }
     if (u.blue > 0) { u.blue = 0; recalcStats(u); } u.red = 0;
     for (const a of assists) { a.assists++; gainXp(G, a, bounty * 0.5); addGold(G, a, GOLD.assist, u); }
+    if (G.traits) { for (const t of [killer, ...assists]) if (t) G.traits.onTakedown(G, t); G.traits.onDeath(G, u); }
     for (const h of G.heroes) if (h.team === killerTeam && h !== killer && !assists.includes(h) && h.alive && dist(h, u) < XP_SHARE_RADIUS) gainXp(G, h, bounty * 0.4);
     u.damagers.clear();
     G.emit('herodeath', { u, killer, assists });
@@ -435,7 +475,7 @@ export function heroTick(G, h, dt) {
   if (Math.hypot(h.x - f[0], h.z - f[1]) < 11) { heal(G, h, h.maxHp * 0.14 * dt); addKi(G, h, 30 * dt); addMp(h, h.maxMp * RES.fountain * dt); }
   if (Math.hypot(h.x - fe[0], h.z - fe[1]) < 12) damage(G, null, h, 600 * dt, { type: 'true', noKi: true });
   // 被動回血、回氣
-  if (G.time - h.lastHitT > 6) heal(G, h, h.maxHp * (0.004 + (h.regen || 0)) * dt);
+  if (G.time - h.lastHitT > 6) heal(G, h, h.maxHp * (0.004 * (1 + (h.hpr || 0)) + (h.regen || 0)) * dt);
   if (G.time > 30) h.gold += GOLD.passive * dt;
   if (h.apeBuff > 0) h.apeBuff -= dt;
   addKi(G, h, 2.5 * dt);
@@ -458,6 +498,9 @@ export function moveSpeed(h) {
   if (h.wish > 0) s *= 1 + DRAGON.wish.ms;
   if (h.st.haste > 0) s *= 1 + (h.st.hasteMs || 0);
   if (h.st.slow > 0) s *= 1 - h.st.slowAmt;
+  // 高移速遞減（原作 415／490 換算）
+  const [c1, c2] = STAT.msCap;
+  if (s > c2) s = c1 + (c2 - c1) * 0.8 + (s - c2) * 0.5; else if (s > c1) s = c1 + (s - c1) * 0.8;
   return s;
 }
 export function tickStatus(u, dt, G) {

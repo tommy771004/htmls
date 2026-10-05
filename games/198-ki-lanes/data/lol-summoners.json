@@ -1,0 +1,60 @@
+{
+ "version": "16.19.1",
+ "source": "Riot Games Data Dragon（zh_TW）",
+ "spells": [
+  {
+   "id": "SummonerBarrier",
+   "name": "光盾",
+   "cd": 180,
+   "text": "獲得短暫護盾。"
+  },
+  {
+   "id": "SummonerBoost",
+   "name": "淨化",
+   "cd": 240,
+   "text": "移除自身全部控制技能(壓制和擊飛除外)和召喚師技能的減益效果，同時獲得韌性。"
+  },
+  {
+   "id": "SummonerDot",
+   "name": "點燃",
+   "cd": 180,
+   "text": "在一段時間內對目標敵方英雄造成真實傷害，並在持續時間內降低目標治療效果。"
+  },
+  {
+   "id": "SummonerExhaust",
+   "name": "虛弱",
+   "cd": 240,
+   "text": "緩速目標敵方英雄並降低其殺傷力。"
+  },
+  {
+   "id": "SummonerFlash",
+   "name": "閃現",
+   "cd": 300,
+   "text": "朝著滑鼠游標傳送一小段距離。"
+  },
+  {
+   "id": "SummonerHaste",
+   "name": "鬼步",
+   "cd": 240,
+   "text": "獲得跑速並在持續時間內無視單位碰撞。"
+  },
+  {
+   "id": "SummonerHeal",
+   "name": "治療",
+   "cd": 240,
+   "text": "恢復你和目標友方英雄的生命並賦予跑速。"
+  },
+  {
+   "id": "SummonerSmite",
+   "name": "重擊",
+   "cd": 15,
+   "text": "對野怪或士兵造成真實傷害。"
+  },
+  {
+   "id": "SummonerTeleport",
+   "name": "傳送",
+   "cd": 300,
+   "text": "短暫詠唱後，變為無法被指定並傳送至友方單位所在位置。升級為解放型傳送，大幅提升傳送速度。"
+  }
+ ]
+}

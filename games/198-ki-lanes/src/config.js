@@ -1,4 +1,5 @@
 // 常數、色票、英雄與技能數值。數值調整集中在這裡。
+import { LOL_ITEMS } from './items-lol.js';
 export const DT = 1 / 60;            // 固定模擬步長
 export const MAP = 90;               // 地圖半寬
 export const TEAM_COLOR = ['#24a38f', '#d9472b'];
@@ -26,6 +27,15 @@ export const MINION_GROWTH = 0.06;   // 每分鐘血量與傷害成長
 export const TOWER = { hp: [2500, 3000], core: 4400, range: 9, dmg: 150, dmgMinion: 95, cd: 1.0, ramp: 0.35, radius: 1.6 };
 export const XP_SHARE_RADIUS = 15;
 
+// 屬性公式（《英雄聯盟》）：防禦數值化、技能加速、攻速相加、高移速遞減
+export const STAT = {
+  armorLv: 0.8,          // 每級防禦成長
+  asLv: 0.025,           // 每級攻速加成
+  asMinInterval: 0.4,    // 普攻間隔下限（每秒 2.5 下）
+  msCap: [8.6, 10.1],    // 超過第一段打 8 折、超過第二段打 5 折（原作 415／490 換算）
+  ovSkill: 0.33,         // 全能吸血對技能傷害只算三分之一（多為範圍技）
+};
+
 // 野怪：每隊半邊兩營（恐龍、紅緞帶機器人），河道一隻大猿（王）
 export const CAMPS = [
   { id: 'dinoA', kind: 'dino', x: -48, z: -18, n: 2 },
@@ -36,13 +46,13 @@ export const CAMPS = [
 ];
 
 // 英雄（七龍珠 FighterZ 同人致敬；招式名取自原作）。火影忍者、海賊王的客串角色在下方另外加入
-// stats: hp/hpLv 血量與每級成長、ad/adLv 攻擊、range 普攻距離、as 普攻間隔（秒）、ms 移速、armor 減傷（0..1）
+// stats: hp/hpLv 血量與每級成長、ad/adLv 攻擊、range 普攻距離、as 普攻間隔（秒）、ms 移速、armor 防禦（承受傷害 ×100／(100＋防禦)，技能防禦的基礎值同樣用它）
 // ssj：爆氣時變身超級賽亞人
 export const HEROES = {
   goku: {
     name: '孫悟空', short: '悟空', en: 'GOKU', role: '近戰鬥士', color: '#4fc3ff', glow: '#e6f8ff', melee: true, ssj: true,
     blurb: '愛打架的賽亞人。連段長、續戰力強，爆氣時變身超級賽亞人。',
-    stats: { hp: 650, hpLv: 90, ad: 58, adLv: 4.3, range: 2.4, as: 0.76, ms: 7.3, armor: 0.12 },
+    stats: { hp: 650, hpLv: 90, ad: 58, adLv: 4.3, range: 2.4, as: 0.76, ms: 7.3, armor: 14 },
     skills: {
       Q: { name: '龜派氣功', desc: '雙掌推出氣功彈，命中後小範圍爆炸。', cd: 5, range: 14, dmg: [70, 110, 150, 190, 230], adR: 0.6, radius: 2.6, speed: 34 },
       W: { name: '龍閃拳', desc: '向前衝刺，撞到敵人時打出四段連打並把對手打飛。', cd: 9, range: 8, dmg: [24, 34, 44, 54, 64], hits: 4, adR: 0.25 },
@@ -53,7 +63,7 @@ export const HEROES = {
   vegeta: {
     name: '貝吉塔', short: '貝吉塔', en: 'VEGETA', role: '刺客', color: '#ffd84a', glow: '#fff6c8', melee: true, ssj: true,
     blurb: '賽亞人的王子。瞬移切入、連續能量彈壓制，終極閃光一擊定勝負。',
-    stats: { hp: 580, hpLv: 80, ad: 62, adLv: 4.6, range: 2.3, as: 0.7, ms: 7.5, armor: 0.1 },
+    stats: { hp: 580, hpLv: 80, ad: 62, adLv: 4.6, range: 2.3, as: 0.7, ms: 7.5, armor: 11 },
     skills: {
       Q: { name: '連續能量彈', desc: '射出能量彈，命中後連鎖到附近兩個敵人。', cd: 5, range: 13, dmg: [65, 100, 135, 170, 205], adR: 0.55, speed: 46, chain: 2 },
       W: { name: '超級衝刺踢', desc: '衝刺後接五段快踢。', cd: 8, range: 7.5, dmg: [17, 24, 31, 38, 45], hits: 5, adR: 0.2 },
@@ -64,7 +74,7 @@ export const HEROES = {
   trunks: {
     name: '特南克斯', short: '特南克斯', en: 'TRUNKS', role: '劍士', color: '#ffb03a', glow: '#fff0d0', melee: true, blade: true, ssj: true,
     blurb: '來自未來的劍士。劍閃穿過整排敵人，熱圓頂攻擊把對手打上天再炸開。',
-    stats: { hp: 610, hpLv: 84, ad: 60, adLv: 4.4, range: 2.8, as: 0.74, ms: 7.4, armor: 0.1 },
+    stats: { hp: 610, hpLv: 84, ad: 60, adLv: 4.4, range: 2.8, as: 0.74, ms: 7.4, armor: 11 },
     skills: {
       Q: { name: '魔閃光', desc: '雙手射出貫穿的氣功波，把敵人往後推。', cd: 6, range: 13, dmg: [60, 100, 140, 180, 220], adR: 0.55, width: 1.7, speed: 36 },
       W: { name: '閃光斬', desc: '揮劍穿過路徑上所有敵人，終點補一發氣功彈。', cd: 9, range: 8.5, dmg: [55, 85, 115, 145, 175], adR: 0.45 },
@@ -75,7 +85,7 @@ export const HEROES = {
   piccolo: {
     name: '比克', short: '比克', en: 'PICCOLO', role: '坦克', color: '#b6ff5c', glow: '#efffd2', melee: true,
     blurb: '那美克星人。伸長手臂把敵人拉過來，再生護身，魔貫光殺砲貫穿一整排。',
-    stats: { hp: 760, hpLv: 105, ad: 52, adLv: 3.7, range: 2.6, as: 0.9, ms: 6.9, armor: 0.22 },
+    stats: { hp: 760, hpLv: 105, ad: 52, adLv: 3.7, range: 2.6, as: 0.9, ms: 6.9, armor: 28 },
     skills: {
       Q: { name: '魔空包圍彈', desc: '在游標處布下一圈氣彈，0.6 秒後收攏爆炸並擊飛。', cd: 8, range: 12, dmg: [70, 110, 150, 190, 230], adR: 0.5, radius: 3.4 },
       W: { name: '伸臂抓取', desc: '伸長手臂，把第一個碰到的敵人拉到身邊並暈眩。', cd: 12, range: 10, dmg: [50, 75, 100, 125, 150], adR: 0.4 },
@@ -86,7 +96,7 @@ export const HEROES = {
   frieza: {
     name: '弗利沙', short: '弗利沙', en: 'FRIEZA', role: '遠程術士', color: '#ff4fb4', glow: '#ffe0f2', melee: false,
     blurb: '宇宙的帝王。死亡光束點殺、飛盤來回切割，死亡球覆蓋一大片。',
-    stats: { hp: 520, hpLv: 72, ad: 52, adLv: 3.6, range: 7.2, as: 0.85, ms: 7.0, armor: 0.06 },
+    stats: { hp: 520, hpLv: 72, ad: 52, adLv: 3.6, range: 7.2, as: 0.85, ms: 7.0, armor: 6 },
     skills: {
       Q: { name: '死亡光束', desc: '指尖射出極快的光束，命中的敵人減速 35%。', cd: 5.5, range: 16, dmg: [80, 120, 160, 200, 240], adR: 0.6, speed: 62, slow: 0.35 },
       W: { name: '死亡飛盤', desc: '擲出飛盤，飛出去再飛回來，來回都會切到敵人。', cd: 9, range: 12, dmg: [55, 85, 115, 145, 175], adR: 0.45, speed: 22 },
@@ -97,7 +107,7 @@ export const HEROES = {
   a18: {
     name: '人造人18號', short: '18號', en: 'ANDROID 18', role: '遠程射手', color: '#c7f0ff', glow: '#ffffff', melee: false,
     blurb: '能量無限的人造人。氣圓斬貫穿、能量屏障彈開近身者，能量波一陣掃射。',
-    stats: { hp: 540, hpLv: 76, ad: 56, adLv: 4.2, range: 7.6, as: 0.72, ms: 7.1, armor: 0.07 },
+    stats: { hp: 540, hpLv: 76, ad: 56, adLv: 4.2, range: 7.6, as: 0.72, ms: 7.1, armor: 8 },
     skills: {
       Q: { name: '氣圓斬', desc: '擲出貫穿的氣圓斬，切過路徑上所有敵人。', cd: 6, range: 15, dmg: [70, 110, 150, 190, 230], adR: 0.55, width: 1.4, speed: 30 },
       W: { name: '背後擒抱', desc: '衝刺，抓住第一個碰到的敵人往身後摔出並暈眩。', cd: 10, range: 8, dmg: [60, 90, 120, 150, 180], adR: 0.45 },
@@ -111,7 +121,7 @@ Object.assign(HEROES, {
   naruto: {
     name: '漩渦鳴人', short: '鳴人', en: 'NARUTO', role: '近戰鬥士', color: '#ff8a1f', glow: '#fff0d8', melee: true, franchise: 'naruto',
     blurb: '意外性 No.1 的忍者。影分身圍毆、螺旋丸撞飛，風遁螺旋手裏劍炸開一大片。',
-    stats: { hp: 640, hpLv: 90, ad: 57, adLv: 4.2, range: 2.4, as: 0.75, ms: 7.4, armor: 0.11 },
+    stats: { hp: 640, hpLv: 90, ad: 57, adLv: 4.2, range: 2.4, as: 0.75, ms: 7.4, armor: 12 },
     skills: {
       Q: { name: '螺旋丸', desc: '向前衝刺，撞到敵人時把螺旋丸按上去，爆炸並擊飛。', cd: 7, range: 8, dmg: [80, 120, 160, 200, 240], adR: 0.6, radius: 2.4 },
       W: { name: '影分身之術', desc: '在游標處變出三個影分身圍毆，連打四下。', cd: 10, range: 9, dmg: [22, 32, 42, 52, 62], hits: 4, adR: 0.22, radius: 3.2 },
@@ -122,7 +132,7 @@ Object.assign(HEROES, {
   sasuke: {
     name: '宇智波佐助', short: '佐助', en: 'SASUKE', role: '刺客', color: '#8f7bff', glow: '#eef0ff', melee: true, blade: true, franchise: 'naruto',
     blurb: '宇智波一族的天才。豪火球燒開、千鳥貫穿麻痺，麒麟從天而降。',
-    stats: { hp: 580, hpLv: 80, ad: 62, adLv: 4.6, range: 2.5, as: 0.72, ms: 7.5, armor: 0.1 },
+    stats: { hp: 580, hpLv: 80, ad: 62, adLv: 4.6, range: 2.5, as: 0.72, ms: 7.5, armor: 11 },
     skills: {
       Q: { name: '豪火球之術', desc: '吐出巨大的火球，命中後炸開。', cd: 6, range: 13, dmg: [75, 115, 155, 195, 235], adR: 0.6, radius: 3, speed: 26 },
       W: { name: '千鳥', desc: '帶著雷光衝刺，撞到敵人時貫穿並麻痺 0.8 秒。', cd: 9, range: 8, dmg: [70, 105, 140, 175, 210], adR: 0.55 },
@@ -133,7 +143,7 @@ Object.assign(HEROES, {
   kakashi: {
     name: '旗木卡卡西', short: '卡卡西', en: 'KAKASHI', role: '遠程術士', color: '#7aa8ff', glow: '#eef5ff', melee: false, franchise: 'naruto',
     blurb: '拷貝忍者。水龍彈推開、追牙之術絆住，雷切切入，神威把人吸進異空間。',
-    stats: { hp: 560, hpLv: 78, ad: 55, adLv: 4.0, range: 6.6, as: 0.8, ms: 7.2, armor: 0.08 },
+    stats: { hp: 560, hpLv: 78, ad: 55, adLv: 4.0, range: 6.6, as: 0.8, ms: 7.2, armor: 9 },
     skills: {
       Q: { name: '水遁・水龍彈', desc: '噴出水龍，貫穿路徑上的敵人並往後推。', cd: 6, range: 13, dmg: [65, 100, 135, 170, 205], adR: 0.55, width: 2.0, speed: 30 },
       W: { name: '土遁・追牙之術', desc: '忍犬從地底竄出，一整排敵人被咬住定身 1 秒。', cd: 11, range: 12, dmg: [50, 75, 100, 125, 150], adR: 0.4, width: 2.2 },
@@ -144,7 +154,7 @@ Object.assign(HEROES, {
   sakura: {
     name: '春野櫻', short: '小櫻', en: 'SAKURA', role: '坦克', color: '#ff6fae', glow: '#ffe8f2', melee: true, franchise: 'naruto',
     blurb: '綱手的弟子。怪力一拳打碎地面，醫療忍術替隊友回血，天之拳從天砸落。',
-    stats: { hp: 740, hpLv: 102, ad: 54, adLv: 3.8, range: 2.4, as: 0.86, ms: 7.0, armor: 0.2 },
+    stats: { hp: 740, hpLv: 102, ad: 54, adLv: 3.8, range: 2.4, as: 0.86, ms: 7.0, armor: 25 },
     skills: {
       Q: { name: '櫻花衝', desc: '對游標處揮出怪力一拳，打碎地面，範圍內敵人被擊飛。', cd: 8, range: 6, dmg: [70, 110, 150, 190, 230], adR: 0.55, radius: 3.2 },
       W: { name: '怪力衝拳', desc: '衝刺，撞到敵人時重拳把它打飛並暈眩。', cd: 10, range: 7.5, dmg: [60, 90, 120, 150, 180], adR: 0.5 },
@@ -155,7 +165,7 @@ Object.assign(HEROES, {
   luffy: {
     name: '蒙其・D・魯夫', short: '魯夫', en: 'LUFFY', role: '近戰鬥士', color: '#ff3b4b', glow: '#ffe6e8', melee: true, franchise: 'op',
     blurb: '橡膠果實能力者。手臂伸長打人、橡膠火箭飛撲，二檔加速，巨人手槍一拳轟飛。',
-    stats: { hp: 700, hpLv: 96, ad: 58, adLv: 4.3, range: 3.4, as: 0.74, ms: 7.4, armor: 0.15 },
+    stats: { hp: 700, hpLv: 96, ad: 58, adLv: 4.3, range: 3.4, as: 0.74, ms: 7.4, armor: 18 },
     skills: {
       Q: { name: '橡膠槍', desc: '手臂伸長打出直拳，打中第一個敵人並擊退。', cd: 5, range: 11, dmg: [70, 110, 150, 190, 230], adR: 0.6 },
       W: { name: '橡膠火箭', desc: '把自己彈射到游標處，落地撞開周圍的敵人。', cd: 10, range: 10, dmg: [55, 85, 115, 145, 175], adR: 0.45, radius: 3 },
@@ -166,7 +176,7 @@ Object.assign(HEROES, {
   zoro: {
     name: '羅羅亞・索隆', short: '索隆', en: 'ZORO', role: '劍士', color: '#3fd07a', glow: '#e8fff0', melee: true, blade: true, franchise: 'op',
     blurb: '三刀流劍豪。鬼斬穿過一排敵人，三十六煩惱鳳飛斬，三千世界旋身一刀斬盡。',
-    stats: { hp: 620, hpLv: 86, ad: 61, adLv: 4.5, range: 2.8, as: 0.74, ms: 7.3, armor: 0.11 },
+    stats: { hp: 620, hpLv: 86, ad: 61, adLv: 4.5, range: 2.8, as: 0.74, ms: 7.3, armor: 12 },
     skills: {
       Q: { name: '三十六煩惱鳳', desc: '揮出飛行的斬擊，貫穿路徑上的敵人。', cd: 6, range: 13, dmg: [65, 105, 145, 185, 225], adR: 0.6, width: 1.6, speed: 34 },
       W: { name: '鬼斬', desc: '三刀交叉衝過去，斬中路徑上所有敵人。', cd: 9, range: 8, dmg: [60, 90, 120, 150, 180], adR: 0.5 },
@@ -177,7 +187,7 @@ Object.assign(HEROES, {
   sanji: {
     name: '賓什莫克・香吉士', short: '香吉士', en: 'SANJI', role: '刺客', color: '#ff6a3d', glow: '#fff0e0', melee: true, franchise: 'op',
     blurb: '只用腳戰鬥的廚師。連環踢壓制、空中步行切入，惡魔風腳燃燒一整套連踢。',
-    stats: { hp: 590, hpLv: 82, ad: 61, adLv: 4.5, range: 2.6, as: 0.7, ms: 7.6, armor: 0.1 },
+    stats: { hp: 590, hpLv: 82, ad: 61, adLv: 4.5, range: 2.6, as: 0.7, ms: 7.6, armor: 11 },
     skills: {
       Q: { name: '首肉射擊', desc: '前踏一記重踢，把前方敵人踢飛。', cd: 5, range: 6, dmg: [70, 110, 150, 190, 230], adR: 0.6 },
       W: { name: '羊肉射擊', desc: '原地倒立旋轉連踢三下，打中周圍所有敵人。', cd: 9, range: 0, dmg: [30, 45, 60, 75, 90], hits: 3, adR: 0.25, radius: 3.2 },
@@ -188,7 +198,7 @@ Object.assign(HEROES, {
   nami: {
     name: '娜美', short: '娜美', en: 'NAMI', role: '遠程術士', color: '#ffa23c', glow: '#fff3e0', melee: false, franchise: 'op',
     blurb: '天才航海士。天候棒招來落雷、冷氣泡讓敵人變慢，雷雲在戰場上空連續劈落。',
-    stats: { hp: 560, hpLv: 78, ad: 54, adLv: 3.9, range: 7.4, as: 0.8, ms: 7.1, armor: 0.08 },
+    stats: { hp: 560, hpLv: 78, ad: 54, adLv: 3.9, range: 7.4, as: 0.8, ms: 7.1, armor: 9 },
     skills: {
       Q: { name: '雷霆節拍', desc: '在游標處劈下一道落雷，0.4 秒後命中並短暫麻痺。', cd: 6, range: 13, dmg: [75, 115, 155, 195, 235], adR: 0.6, radius: 2.4 },
       W: { name: '冷氣泡', desc: '在游標處布下冷氣霧，3 秒內敵人移速 -40%。', cd: 11, range: 12, dmg: [30, 45, 60, 75, 90], adR: 0.3, radius: 3.6, slow: 0.4 },
@@ -239,13 +249,13 @@ export const RUNE_REC = {
 };
 // 野怪增益（《英雄聯盟》的藍 buff／紅 buff）：最後一擊紅緞帶機器人得藍、恐龍得紅；英雄陣亡時增益轉給擊殺者
 export const JUNGLE_BUFF = {
-  blue: { dur: 60, mpr: 1.0, energy: 0.5, cdr: 0.1, name: '藍色氣焰' },
+  blue: { dur: 60, mpr: 1.0, energy: 0.5, ah: 11, name: '藍色氣焰' },
   red: { dur: 60, burn: 8, burnLv: 3, burnT: 3, slow: 0.15, name: '赤色氣焰' },
 };
 
 // 金幣與商店
 export const GOLD = { start: 500, passive: 2.2, melee: 21, ranged: 16, siege: 55, hero: 300, assist: 120, tower: 120, shopRadius: 14 };
-// stats：ad 攻擊、hp 血量、armor 物理減傷、mr 技能減傷、as 攻速（間隔縮短比例）、ms 移速比例、ki 氣力獲得、cdr 冷卻縮減、skill 技能傷害、dmg 全傷害、
+// stats：ad 攻擊、hp 血量、armor 物理防禦、mr 技能防禦（數值）、as 攻速加成（相加後除攻擊間隔）、ms 移速比例、ki 氣力獲得、ah 技能加速（冷卻 ×100／(100＋加速)）、leth 固定穿甲、apen ％穿甲、mpen 固定法穿、mpenPct ％法穿、ten 韌性（相乘疊加）、ov 全能吸血、skill 技能傷害、dmg 全傷害、
 //   vision 視野、regen 脫戰回血（每秒比例）、detect 看得到敵方的眼、mp 最大魔力、mpr 魔力回復（比例）、ap 氣功強度、crit 暴擊率、ls 普攻吸血
 //   （能量型英雄的體力固定，mp／mpr 對他們無效）
 // psv：被動（同名被動不疊加，取最大）。blade 咒刃（施放技能後下一次普攻追加 blade 倍基礎攻擊）、critDmg 暴擊傷害倍率、overheal 吸血溢出轉護盾（最大血量比例）、
@@ -263,39 +273,50 @@ export const ITEMS = [
   { id: 'capsule', name: '蓄氣膠囊', cost: 300, tier: 1, proto: '藍水晶', desc: '魔力 +220', stats: { mp: 220 } },
   { id: 'scroll', name: '龜仙流秘笈', cost: 350, tier: 1, proto: '增幅之書', desc: '氣功強度 +20', stats: { ap: 20 } },
   { id: 'gloves', name: '瞄準手套', cost: 350, tier: 1, proto: '敏捷斗篷', desc: '暴擊率 +15%', stats: { crit: 0.15 } },
-  { id: 'cloth', name: '修行護甲', cost: 300, tier: 1, proto: '布甲', desc: '物理減傷 +6%', stats: { armor: 0.06 } },
-  { id: 'cape', name: '界王神披風', cost: 300, tier: 1, proto: '抗魔斗篷', desc: '技能減傷 +6%', stats: { mr: 0.06 } },
+  { id: 'cloth', name: '修行護甲', cost: 300, tier: 1, proto: '布甲', desc: '物理防禦 +6', stats: { armor: 6 } },
+  { id: 'cape', name: '界王神披風', cost: 300, tier: 1, proto: '抗魔斗篷', desc: '技能防禦 +6', stats: { mr: 6 } },
   { id: 'tear', name: '界王星之水', cost: 400, tier: 1, proto: '女神之淚', desc: '魔力 +240，魔力回復 +25%', stats: { mp: 240, mpr: 0.25 }, psv: { tear: 8 }, note: '被動・積蓄：每次施放技能，最大魔力永久 +8（最多 +360）。體力型英雄無效。' },
   { id: 'kiband', name: '氣功護腕', cost: 300, tier: 1, desc: '氣力獲得 +15%', stats: { ki: 0.15 } },
   { id: 'boots', name: '武道鞋', cost: 300, tier: 1, proto: '鞋子', desc: '移速 +8%', stats: { ms: 0.08 } },
   { id: 'scouter', name: '戰鬥力探測器', cost: 450, tier: 1, proto: '偵查鏡', desc: '攻速 +12%，視野 +3，看得到附近的敵方眼', stats: { as: 0.12, vision: 3, detect: 1 } },
   // 進階
   { id: 'kaioken', name: '界王拳腰帶', cost: 500, tier: 2, from: ['weights', 'weights'], desc: '攻擊 +36，技能傷害 +12%', stats: { ad: 36, skill: 0.12 } },
-  { id: 'armor', name: '賽亞人戰甲', cost: 450, tier: 2, from: ['gi', 'weights'], proto: '吞噬者', desc: '血量 +350，攻擊 +14，物理減傷 +6%', stats: { hp: 350, ad: 14, armor: 0.06 } },
+  { id: 'armor', name: '賽亞人戰甲', cost: 450, tier: 2, from: ['gi', 'weights'], proto: '吞噬者', desc: '血量 +350，攻擊 +14，物理防禦 +6', stats: { hp: 350, ad: 14, armor: 6 } },
   { id: 'nimbus', name: '筋斗雲', cost: 400, tier: 2, from: ['boots', 'kiband'], proto: '狂戰士脛甲', desc: '移速 +16%，攻速 +10%，氣力獲得 +20%', stats: { ms: 0.16, as: 0.1, ki: 0.2 } },
-  { id: 'kiamp', name: '氣力增幅器', cost: 500, tier: 2, from: ['kiband', 'scouter'], desc: '氣力獲得 +30%，冷卻 -15%，攻速 +14%，視野 +3，看得到敵方眼', stats: { ki: 0.3, cdr: 0.15, as: 0.14, vision: 3, detect: 1 } },
+  { id: 'kiamp', name: '氣力增幅器', cost: 500, tier: 2, from: ['kiband', 'scouter'], desc: '氣力獲得 +30%，技能加速 +18，攻速 +14%，視野 +3，看得到敵方眼', stats: { ki: 0.3, ah: 18, as: 0.14, vision: 3, detect: 1 } },
   { id: 'cell', name: '再生細胞', cost: 450, tier: 2, from: ['gi', 'gi'], proto: '狂徒鎧甲（簡化）', desc: '血量 +460，脫戰每秒回 1.5% 血', stats: { hp: 460, regen: 0.015 } },
-  { id: 'sheen', name: '元氣手環', cost: 450, tier: 2, from: ['capsule'], proto: '耀光', desc: '魔力 +250，冷卻 -5%', stats: { mp: 250, cdr: 0.05 }, psv: { blade: 1 }, note: '被動・咒刃：施放技能後 10 秒內，下一次普攻追加 100% 基礎攻擊的傷害（1.5 秒冷卻）。' },
+  { id: 'sheen', name: '元氣手環', cost: 450, tier: 2, from: ['capsule'], proto: '耀光', desc: '魔力 +250，技能加速 +5', stats: { mp: 250, ah: 5 }, psv: { blade: 1 }, note: '被動・咒刃：施放技能後 10 秒內，下一次普攻追加 100% 基礎攻擊的傷害（1.5 秒冷卻）。' },
   { id: 'fang', name: '惡魔之牙', cost: 350, tier: 2, from: ['weights'], proto: '吸血鬼權杖', desc: '攻擊 +16，普攻吸血 10%', stats: { ad: 16, ls: 0.1 } },
   { id: 'brave', name: '勇者之劍', cost: 550, tier: 2, from: ['weights'], proto: '暴風大劍', desc: '攻擊 +36', stats: { ad: 36 } },
   { id: 'tome', name: '天界秘笈', cost: 300, tier: 2, from: ['scroll', 'capsule'], proto: '遺失的章節', desc: '氣功強度 +30，魔力 +300，魔力回復 +40%', stats: { ap: 30, mp: 300, mpr: 0.4 }, psv: { lvMp: 0.2 }, note: '被動・頓悟：升級時回復 20% 最大魔力。' },
-  { id: 'bramble', name: '荊棘護腕', cost: 400, tier: 2, from: ['cloth'], proto: '荊棘背心', desc: '物理減傷 +10%', stats: { armor: 0.1 }, psv: { thorns: { base: 6, lv: 2, pct: 0.1, gw: 0.4 } }, note: '被動・荊棘：被英雄普攻命中時，反彈 6＋每級 2＋所受傷害 10% 的傷害，並讓對方重傷 3 秒（受到的治療 -40%）。' },
+  { id: 'bramble', name: '荊棘護腕', cost: 400, tier: 2, from: ['cloth'], proto: '荊棘背心', desc: '物理防禦 +11', stats: { armor: 11 }, psv: { thorns: { base: 6, lv: 2, pct: 0.1, gw: 0.4 } }, note: '被動・荊棘：被英雄普攻命中時，反彈 6＋每級 2＋所受傷害 10% 的傷害，並讓對方重傷 3 秒（受到的治療 -40%）。' },
   // 終極
   { id: 'water', name: '超神水', cost: 600, tier: 3, from: ['kaioken', 'cell'], desc: '全部傷害 +18%，攻擊 +40，血量 +520，技能傷害 +12%', stats: { dmg: 0.18, ad: 40, hp: 520, skill: 0.12, regen: 0.01 } },
-  { id: 'potara', name: '波塔拉耳環', cost: 650, tier: 3, from: ['armor', 'kiamp'], desc: '血量 +420，攻擊 +24，冷卻 -20%，物理與技能減傷 +8%，氣力獲得 +30%', stats: { hp: 420, ad: 24, cdr: 0.2, armor: 0.08, mr: 0.08, ki: 0.3, detect: 1, vision: 3 } },
-  { id: 'trinity', name: '超元氣手環', cost: 500, tier: 3, from: ['sheen', 'armor'], proto: '三相之力', desc: '攻擊 +34，血量 +320，攻速 +15%，冷卻 -10%，魔力 +250，物理減傷 +6%', stats: { ad: 34, hp: 320, as: 0.15, cdr: 0.1, mp: 250, armor: 0.06 }, psv: { blade: 2 }, note: '被動・咒刃：施放技能後 10 秒內，下一次普攻追加 200% 基礎攻擊的傷害（1.5 秒冷卻）。' },
+  { id: 'potara', name: '波塔拉耳環', cost: 650, tier: 3, from: ['armor', 'kiamp'], desc: '血量 +420，攻擊 +24，技能加速 +25，物理與技能防禦 +9，氣力獲得 +30%', stats: { hp: 420, ad: 24, ah: 25, armor: 9, mr: 9, ki: 0.3, detect: 1, vision: 3 } },
+  { id: 'trinity', name: '超元氣手環', cost: 500, tier: 3, from: ['sheen', 'armor'], proto: '三相之力', desc: '攻擊 +34，血量 +320，攻速 +15%，技能加速 +11，魔力 +250，物理防禦 +6', stats: { ad: 34, hp: 320, as: 0.15, ah: 11, mp: 250, armor: 6 }, psv: { blade: 2 }, note: '被動・咒刃：施放技能後 10 秒內，下一次普攻追加 200% 基礎攻擊的傷害（1.5 秒冷卻）。' },
   { id: 'zsword', name: 'Z 劍', cost: 650, tier: 3, from: ['brave', 'gloves'], proto: '無盡之刃', desc: '攻擊 +62，暴擊率 +25%', stats: { ad: 62, crit: 0.25 }, psv: { critDmg: 2.15 }, note: '被動・無盡：暴擊傷害從 175% 提高到 215%。' },
   { id: 'majin', name: '魔人之牙', cost: 450, tier: 3, from: ['fang', 'brave'], proto: '飲血劍', desc: '攻擊 +56，普攻吸血 18%', stats: { ad: 56, ls: 0.18 }, psv: { overheal: 0.15 }, note: '被動・血之盾：吸血溢出的血量轉成護盾，最多 15% 最大血量。' },
-  { id: 'hourglass', name: '時光屋沙漏', cost: 900, tier: 3, from: ['scroll', 'cloth'], proto: '中婭沙漏', desc: '氣功強度 +60，物理減傷 +10%', stats: { ap: 60, armor: 0.1 }, act: { id: 'stasis', cd: 90, dur: 2.5, name: '凝時' }, note: '主動・凝時（2／3 鍵）：2.5 秒內無敵但無法行動，冷卻 90 秒。' },
-  { id: 'halo', name: '天使光環', cost: 1100, tier: 3, from: ['weights', 'cloth'], proto: '守護天使', desc: '攻擊 +36，物理減傷 +10%', stats: { ad: 36, armor: 0.1 }, psv: { ga: 180 }, note: '被動・復活：受到致命傷害時倒下，3 秒後原地以 40% 血量、30% 魔力復活（期間無敵），冷卻 180 秒。' },
-  { id: 'thorn', name: '針刺戰甲', cost: 600, tier: 3, from: ['bramble', 'gi'], proto: '荊棘之甲', desc: '血量 +320，物理減傷 +15%', stats: { hp: 320, armor: 0.15 }, psv: { thorns: { base: 12, lv: 3, pct: 0.18, gw: 0.6 } }, note: '被動・荊棘：被英雄普攻命中時，反彈 12＋每級 3＋所受傷害 18% 的傷害，並讓對方重傷 3 秒（受到的治療 -60%）。' },
+  { id: 'hourglass', name: '時光屋沙漏', cost: 900, tier: 3, from: ['scroll', 'cloth'], proto: '中婭沙漏', desc: '氣功強度 +60，物理防禦 +11', stats: { ap: 60, armor: 11 }, act: { id: 'stasis', cd: 90, dur: 2.5, name: '凝時' }, note: '主動・凝時（2／3 鍵）：2.5 秒內無敵但無法行動，冷卻 90 秒。' },
+  { id: 'halo', name: '天使光環', cost: 1100, tier: 3, from: ['weights', 'cloth'], proto: '守護天使', desc: '攻擊 +36，物理防禦 +11', stats: { ad: 36, armor: 11 }, psv: { ga: 180 }, note: '被動・復活：受到致命傷害時倒下，3 秒後原地以 40% 血量、30% 魔力復活（期間無敵），冷卻 180 秒。' },
+  { id: 'thorn', name: '針刺戰甲', cost: 600, tier: 3, from: ['bramble', 'gi'], proto: '荊棘之甲', desc: '血量 +320，物理防禦 +18', stats: { hp: 320, armor: 18 }, psv: { thorns: { base: 12, lv: 3, pct: 0.18, gw: 0.6 } }, note: '被動・荊棘：被英雄普攻命中時，反彈 12＋每級 3＋所受傷害 18% 的傷害，並讓對方重傷 3 秒（受到的治療 -60%）。' },
   { id: 'beerus', name: '破壞神頭飾', cost: 1100, tier: 3, from: ['scroll', 'scroll'], proto: '滅世者的死亡之帽', desc: '氣功強度 +80', stats: { ap: 80 }, psv: { apAmp: 0.3 }, note: '被動・破壞：總氣功強度 +30%。' },
   { id: 'staff', name: '老界王神之杖', cost: 600, tier: 3, from: ['tear', 'tome'], proto: '大天使之杖', desc: '氣功強度 +50，魔力 +500，魔力回復 +50%', stats: { ap: 50, mp: 500, mpr: 0.5 }, psv: { tear: 8, mpAp: 0.02, lvMp: 0.2 }, note: '被動・積蓄：施放技能最大魔力永久 +8（最多 +360）。被動・敬畏：氣功強度 +2% 最大魔力。' },
-  { id: 'holy', name: '超聖水', cost: 900, tier: 3, from: ['gloves', 'cape'], proto: '水銀彎刀', desc: '攻擊 +30，暴擊率 +15%，技能減傷 +12%', stats: { ad: 30, crit: 0.15, mr: 0.12 }, act: { id: 'cleanse', cd: 75, dur: 1.2, name: '淨化' }, note: '主動・淨化（2／3 鍵）：解除暈眩、擊飛、冰凍與緩速，1.2 秒內移速 +40%，冷卻 75 秒。' },
+  { id: 'holy', name: '超聖水', cost: 900, tier: 3, from: ['gloves', 'cape'], proto: '水銀彎刀', desc: '攻擊 +30，暴擊率 +15%，技能防禦 +14', stats: { ad: 30, crit: 0.15, mr: 14 }, act: { id: 'cleanse', cd: 75, dur: 1.2, name: '淨化' }, note: '主動・淨化（2／3 鍵）：解除暈眩、擊飛、冰凍與緩速，1.2 秒內移速 +40%，冷卻 75 秒。' },
 ];
 export const TEAR_MAX = 360;
 export const WARD = { cd: 70, range: 7, life: 90, hp: 3, max: 2 };
 export const CONTROL = { range: 7, hp: 4, reveal: 9 };
+// 《英雄聯盟》全裝備（tools/lol-items.mjs 產生）：整件總價換成遞增價（扣掉材料的總價，最低 50）
+{
+  const total = (id) => { const it = ITEMS.find((i) => i.id === id); return it.cost + (it.from || []).reduce((a, c) => a + total(c), 0); };
+  for (const L of LOL_ITEMS) {
+    const { gold, ...it } = L;
+    it.cost = Math.max(50, gold - (it.from || []).reduce((a, c) => a + total(c), 0));
+    if (!it.from.length) delete it.from;
+    if (!it.psv) delete it.psv;
+    ITEMS.push(it);
+  }
+}
 export const INV_SLOTS = 6;
 
 // 野怪數值

@@ -269,7 +269,7 @@ async function run(name, w, h, touch) {
     P.x = -80; P.z = 80;
     for (const f of foes.slice(1)) { f.alive = false; f.respawn = 999; }
     const t = G.structures.find((s) => s.team === P.team && s.lane === A.lane && s.tier === 'outer');
-    A.x = -70; A.z = -8; A.hp = A.maxHp * 0.6; E.x = -67; E.z = -12; E.hp = E.maxHp; E.armor = 0.55; E.ms = 3; E.reveal = 1e9; E.brain = null; E.target = A;
+    A.x = -70; A.z = -8; A.hp = A.maxHp * 0.6; E.x = -67; E.z = -12; E.hp = E.maxHp; E.armor = 122; E.ms = 3; E.reveal = 1e9; E.brain = null; E.target = A;
     B.x = -36; B.z = 22; B.hp = B.maxHp; B.brain.mode = 'lane'; B.brain.plan = 0;
     for (let i = 0; i < 26 && !window.__kiEv.flank; i++) k.fastForward(1);
     return { roam: window.__kiEv.roam, flank: window.__kiEv.flank, B: B.heroId, E: E.heroId };

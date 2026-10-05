@@ -192,7 +192,7 @@ export function createHud(env) {
   });
   let noResT = -9;
   G.on('noRes', ({ h, why }) => { if (h !== player || G.time - noResT < 0.6) return; noResT = G.time; number(h.x, 3.1, h.z, why === 'ki' ? '氣力不足' : `${h.def.resName}不足`, why === 'ki' ? '#ffc23d' : RES[h.res].color, 0.85); });
-  G.on('jungleBuff', ({ h, b, stolen }) => { if (h === player) announce(`得到${JUNGLE_BUFF[b].name}`, 'good', b === 'blue' ? `${JUNGLE_BUFF.blue.dur} 秒：${h.res === 'energy' ? '體力回復 +50%' : '魔力回復 +100%'}、冷卻 -10%` + (stolen ? '（從敵人身上奪來）' : '') : `${JUNGLE_BUFF.red.dur} 秒：普攻灼燒並緩速` + (stolen ? '（從敵人身上奪來）' : '')); });
+  G.on('jungleBuff', ({ h, b, stolen }) => { if (h === player) announce(`得到${JUNGLE_BUFF[b].name}`, 'good', b === 'blue' ? `${JUNGLE_BUFF.blue.dur} 秒：${h.res === 'energy' ? '體力回復 +50%' : '魔力回復 +100%'}、技能加速 +${JUNGLE_BUFF.blue.ah}` + (stolen ? '（從敵人身上奪來）' : '') : `${JUNGLE_BUFF.red.dur} 秒：普攻灼燒並緩速` + (stolen ? '（從敵人身上奪來）' : '')); });
   G.on('revive', (h) => { if (!player) return; announce(h.team === player.team ? `${h.def.short} 靠天使光環復活` : `敵方 ${h.def.short} 靠天使光環復活`, h.team === player.team ? 'good' : 'bad'); });
   G.on('runeProc', ({ h, id }) => { if (h === player && id !== 'comet' && id !== 'electrocute') number(h.x, 3.2, h.z, RUNES.find((r) => r.id === id).name, '#e8b8ff', 0.8); });
   G.on('levelup', (h) => { if (h === player) { number(h.x, 2.8, h.z, `等級 ${h.level}`, '#ffe08a', 1.2, 'lv'); } });
