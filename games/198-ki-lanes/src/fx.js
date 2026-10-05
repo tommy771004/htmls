@@ -131,6 +131,7 @@ export function createFx(scene, camera) {
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false,
   });
 
+  const dim = (c, k) => new THREE.Color(c).multiplyScalar(k);
   // 點光源池（爆炸時照亮地面與角色）
   const lights = [];
   for (let i = 0; i < 4; i++) { const l = new THREE.PointLight('#ffffff', 0, 14, 1.6); scene.add(l); lights.push({ l, t: 0, dur: 1, i0: 0 }); }
@@ -197,11 +198,11 @@ export function createFx(scene, camera) {
       const y = heightAt(x, z) + 0.8;
       groundRing(x, z, color, radius * 1.2, 0.45); groundRing(x, z, '#ffffff', radius * 0.7, 0.3);
       billboard(burstTex, color, radius * 1.05, x, y + 0.6, z, 0.22, 1.1);
-      billboard(glowTex, color, radius * 1.7, x, y + 0.8, z, 0.3, 0.6);
+      billboard(glowTex, dim(color, 0.5), radius * 1.7, x, y + 0.8, z, 0.3, 0.6); // 淡色光暈直接加在亮地面上會整片爆白，光暈減半
       billboardN(inkTex, radius * 2.4, x, y + 0.5, z, 0.42, 0.7, 0.35);
       billboardN(fireTex, radius * 1.5, x, y + 0.9, z, 0.38, 0.8, 0.4);
       dust.emit(x, y + 0.6, z, { n: 10, speed: 4, up: 1.2, spread: 0.6, color: '#3a2a22', color2: '#1e1612', size: 1.6, life: 0.9, gravity: -1.5, drag: 2.5, jitter: radius * 0.35 });
-      pop(x, y + 2, z, color, 60, radius * 3, 0.45);
+      pop(x, y + 2, z, color, 32, radius * 3, 0.45);
       add.emit(x, y, z, { n: 28, speed: 12, up: 0.6, spread: 1.6, color, color2: '#ffffff', size: 0.38, life: 0.6, gravity: 8, drag: 3, jitter: radius * 0.5 });
       if (style === 'rock') dust.emit(x, 0.4, z, { n: 40, speed: 9, up: 0.9, spread: 0.8, color: '#7a6a52', color2: '#a89272', size: 0.5, life: 1.2, gravity: 16, drag: 1.2, jitter: radius });
       else if (style === 'ice') add.emit(x, y, z, { n: 30, speed: 10, up: 1.0, spread: 0.8, color: '#e9fbff', size: 0.35, life: 0.9, gravity: 14, drag: 1, jitter: radius * 0.6 });
@@ -453,13 +454,13 @@ export function createFx(scene, camera) {
     // 死亡球：可移動、可縮放的大能量球
     deathBall(color) {
       const g = new THREE.Group();
-      const core = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), new THREE.MeshBasicMaterial({ color: '#ffd9b0', toneMapped: false }));
-      const shell = new THREE.Mesh(new THREE.SphereGeometry(1.18, 24, 16), addMat(color, null, 0.55));
-      const glow = new THREE.Mesh(planeG, addMat(color, glowTex, 0.8)); glow.scale.setScalar(4.2);
+      const core = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), new THREE.MeshBasicMaterial({ color: '#ffc58a', toneMapped: false }));
+      const shell = new THREE.Mesh(new THREE.SphereGeometry(1.18, 24, 16), addMat(color, null, 0.45));
+      const glow = new THREE.Mesh(planeG, addMat(color, glowTex, 0.4)); glow.scale.setScalar(3);
       g.add(core, shell); scene.add(g, glow);
       const L = lights[li]; li = (li + 1) % lights.length;
       return {
-        update(x, y, z, sc) { g.position.set(x, y, z); g.scale.setScalar(sc); glow.position.set(x, y, z); glow.scale.setScalar(sc * 4.2); glow.quaternion.copy(camera.quaternion); shell.rotation.y += 0.05; L.l.position.set(x, y, z); L.l.color.set(color); L.l.distance = 14 + sc * 4; L.l.intensity = L.i0 = 30; L.t = 0; L.dur = 0.5; if (Math.random() < 0.7) add.emit(x, y, z, { n: 2, speed: 2, color, color2: '#ffffff', size: 0.5 * sc, life: 0.4, gravity: 0, jitter: sc * 1.5 }); },
+        update(x, y, z, sc) { g.position.set(x, y, z); g.scale.setScalar(sc); glow.position.set(x, y, z); glow.scale.setScalar(sc * 3); glow.quaternion.copy(camera.quaternion); shell.rotation.y += 0.05; L.l.position.set(x, y, z); L.l.color.set(color); L.l.distance = 14 + sc * 4; L.l.intensity = L.i0 = 18; L.t = 0; L.dur = 0.5; if (Math.random() < 0.7) add.emit(x, y, z, { n: 2, speed: 2, color, color2: '#ffffff', size: 0.5 * sc, life: 0.4, gravity: 0, jitter: sc * 1.5 }); },
         remove() { scene.remove(g, glow); core.geometry.dispose(); core.material.dispose(); shell.geometry.dispose(); shell.material.dispose(); glow.material.dispose(); },
       };
     },
@@ -500,8 +501,8 @@ export function createFx(scene, camera) {
     // 超級賽亞人變身：金色爆光與電光
     transform(h, color) {
       groundRing(h.x, h.z, color, 5, 0.6); groundRing(h.x, h.z, '#ffffff', 3, 0.4);
-      billboard(burstTex, color, 6, h.x, heightAt(h.x, h.z) + 1.2, h.z, 0.4, 1.2);
-      pop(h.x, 2, h.z, color, 70, 16, 0.6);
+      billboard(burstTex, dim(color, 0.6), 6, h.x, heightAt(h.x, h.z) + 1.2, h.z, 0.4, 1.2);
+      pop(h.x, 2, h.z, color, 35, 16, 0.6);
       add.emit(h.x, 1, h.z, { n: 50, speed: 8, up: 1.2, spread: 0.6, color, color2: '#ffffff', size: 0.5, life: 0.7, gravity: -2, drag: 2, jitter: 1 });
     },
     sparks(x, y, z, color) { add.emit(x, y, z, { n: 1, speed: 6, up: 0.2, spread: 3, color, color2: '#ffffff', size: 0.18, life: 0.12, gravity: 0, drag: 1, jitter: 1.2, jitterY: 1.8 }); },
