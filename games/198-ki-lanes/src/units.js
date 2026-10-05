@@ -113,6 +113,8 @@ function statMods(u, it) {
       if (e.hpToAd) u.ad += Math.max(0, u.maxHp - baseHp) * e.hpToAd;
       if (e.hpToAp) u.ap += Math.max(0, u.maxHp - baseHp) * e.hpToAp;
       if (e.adToAh) u.ah += Math.max(0, u.ad - baseAd) * e.adToAh;
+      if (e.mprAp) u.ap += (it.mpr || 0) * e.mprAp;
+      if (e.mprHsp) u.hsp += (it.mpr || 0) * e.mprHsp;
     }
   }
   if (u.buffs) for (const k in u.buffs) addStats(u.buffs[k].stats || {});

@@ -302,7 +302,7 @@ function haste(h, dur, ms) { h.st.haste = Math.max(h.st.haste || 0, dur); h.st.h
 const fxs = (h) => (h.fxs ||= {});
 const enemiesIn = (G, h, x, z, r, heroOnly) => G.units.filter((u) => u.alive && u.team !== h.team && u.team <= 2 && (u.kind === 'hero' || (!heroOnly && (u.kind === 'minion' || u.kind === 'monster'))) && Math.hypot(u.x - x, u.z - z) < r + u.radius);
 const bonusHp = (h) => Math.max(0, h.maxHp - h.def.stats.hp - h.def.stats.hpLv * (h.level - 1));
-const inHeroCombat = (G, h) => G.time - (h.fxs && h.fxs.heroCombat ?? -99) < 5 || (h.lastHitBy && h.lastHitBy.kind === 'hero' && G.time - h.lastHitT < 5);
+const inHeroCombat = (G, h) => G.time - ((h.fxs && h.fxs.heroCombat) ?? -99) < 5 || (h.lastHitBy && h.lastHitBy.kind === 'hero' && G.time - h.lastHitT < 5);
 // 限時屬性增益：h.buffs[key] = { stats, until }，units.statMods 會加上去，到期由 itemTick 移除
 export function buff(G, h, key, stats, dur, extra) {
   h.buffs = h.buffs || {};
@@ -363,6 +363,10 @@ export function afterAuto(G, h, t, dealt, opts) {
     else if (F.flCd) F.flCd -= opts.crit ? 2 : 1;
   }
   for (const e of effs(h, 'stackCrit')) if ((h.critStk || 0) < e.max) { h.critStk = Math.min(e.max, (h.critStk || 0) + e.per); recalcStats(h); }
+  if (t.kind === 'hero') for (const e of effs(h, 'dual')) {
+    F.dualDark = !F.dualDark;
+    buff(G, h, 'dual', F.dualDark ? { apen: e.pen, mpenPct: e.pen } : { armor: e.res, mr: e.res }, 5);
+  }
   if (t.kind === 'hero') for (const e of effs(h, 'threeHit')) {
     if (F.thId === t.id) F.thN++; else { F.thId = t.id; F.thN = 1; }
     if (F.thN >= 3) { F.thN = 0; t.st.slow = Math.max(t.st.slow, 1); t.st.slowAmt = Math.max(t.st.slowAmt, e.slow * (1 - (t.slowRes || 0))); }
@@ -396,7 +400,10 @@ function itemOnHeroHit(G, h, dst, a, opts, skill) {
     st[p + 'N'] = Math.min(e.max, (st[p + 'T'] > 0 ? st[p + 'N'] || 0 : 0) + 1); st[p + 'T'] = e.dur; st[p + 'P'] = e.pct;
   }
   if (skill) for (const e of effs(h, 'skillSlow')) if (!e.below || dst.hp < dst.maxHp * e.below) { dst.st.slow = Math.max(dst.st.slow, e.dur); dst.st.slowAmt = Math.max(dst.st.slowAmt, e.pct * (1 - (dst.slowRes || 0))); }
-  if (opts.stun || opts.air || opts.freeze) for (const e of effs(h, 'ccMark')) { dst.st.vuln = e.dur; dst.st.vulnAmp = e.amp; }
+  if (opts.stun || opts.air || opts.freeze) {
+    for (const e of effs(h, 'ccMark')) { dst.st.vuln = e.dur; dst.st.vulnAmp = e.amp; }
+    for (const e of effs(h, 'ccRally')) for (const o of G.heroes) if (o.alive && o.team === h.team && dist(o, h) < e.r) { buff(G, o, 'rally', { as: e.as }, e.dur); haste(o, e.dur, e.ms); }
+  }
   for (const e of effs(h, 'shieldBreak')) if (dst.st.shield > 0 && G.time >= (dst.st.sbCd || 0)) { dst.st.sbCd = G.time + 3; dst.st.shield *= 1 - e.pct; }
   for (const e of effs(h, 'twoHit')) {
     const last = F.twoHit; F.twoHit = { id: dst.id, t: G.time };
@@ -449,6 +456,8 @@ export function beforeTaken(G, src, dst, a, opts) {
   if (magic) for (const o of G.heroes) if (o.alive && o.team !== dst.team && o.psv) for (const k in o.psv) { const e = o.psv[k]; if (e && e.k === 'magicAmp' && dist(o, dst) < e.r) { a *= 1 + e.pct; break; } }
   if (opts.crit && src) for (const e of effs(dst, 'critReduce')) a *= 1 - e.pct * (1 - 1 / (src.critMul || 1.75));
   for (const e of effs(dst, 'combatRes')) { const F = fxs(dst); if (F.c0 !== undefined && G.time - F.c0 >= e.after) a *= 1 - e.pct; }
+  // 騎士誓約：附近的隊友持有誓約時，替自己承擔一部分傷害
+  if (!opts.dot && dst.kind === 'hero') for (const o of G.heroes) if (o !== dst && o.alive && o.team === dst.team && o.psv) for (const k in o.psv) { const e = o.psv[k]; if (e && e.k === 'vow' && dist(o, dst) < e.r) { const d = a * e.pct; a -= d; G.later(0, () => { if (o.alive) damage(G, null, o, d, { type: 'true', noKi: true, dot: true }); }); } }
   if (!opts.dot) for (const e of effs(dst, 'dance')) { const F = fxs(dst), d = a * e.pct; a -= d; F.bleed = (F.bleed || 0) + d; F.bleedRate = F.bleed / 3; F.bleedSrc = src; }
   return a;
 }
