@@ -769,13 +769,14 @@ def build_nami(R):
         cup = plate('cup', p + n * 0.004, V((1, 0, 0)), V((0, 1, 0)), n, F.cx * 0.5, F.cx * 0.44, 0.012, top_c, G_TORSO, mat=0, ol=0.6)
         kit.paint_field(cup, lambda co: 0.4 - math.sin(co.x * 90.0 + co.y * 60.0), top_l, 0)
         body.append(cup)
-        hp = F.c + V((sx * F.hr * 0.25, -F.hr * 1.5, -F.hr * 0.3))
-        body.append(hang_tail(top_c, [p + V((sx * F.cx * 0.1, F.cx * 0.25, 0.004)), (p + hp) * 0.5 + V((0, 0, 0.02)), hp], 0.008, 0.007, name='halter', grp=G_TORSO))
-    body.append(strap_around(F, tor, V((0, F.y(0.66), 0)), V((0, 1, 0)), 0.01, 0.004, top_c, off=0.004, arc=(PI * 0.7, PI * 2.3)))
+    # 背後細帶：和底下的皮膚同一個群組（可分到鎖骨／上臂），舉手時才會跟著背部皮膚走，不會浮出輪廓
+    body.append(strap_around(F, tor, V((0, F.y(0.66), 0)), V((0, 1, 0)), 0.01, 0.004, top_c, off=0.004, arc=(PI * 0.7, PI * 2.3), grp=G_TORSO))
     body.append(neck(F, skin, r=0.045))
     proxy.append(body[-1])
+    body += nami_halter(F, [tor, body[-1]], top_c)
     arm = arm_skin(F, skin, muscle=0.25, k=1.0)
-    bracelet = band('logL', F.sh, F.da, F.up + F.lo - 0.07, F.up + F.lo - 0.03, 0.05 * F.k_fore, 0.048 * F.k_fore, belt_c, G_FORE_L, thick=0.008, ol=0.5)
+    # 航海手環：前臂在這段是扁的（側寬約 0.056·kf、前後約 0.048·kf），環要比皮膚大一圈，不然會沉進前臂只露出一塊
+    bracelet = band('logL', F.sh, F.da, F.up + F.lo - 0.075, F.up + F.lo - 0.03, 0.066 * F.k_fore, 0.058 * F.k_fore, belt_c, G_FORE_L, thick=0.008, ol=0.4, rb=0.9)
     hand = fist(F, skin, scale=0.98)
     # 咖啡色七分褲（到小腿中段）、金環皮帶、橘色綁帶高跟涼鞋
     capri = P(0x4a3226)
@@ -789,8 +790,14 @@ def build_nami(R):
         body.append(stud('ring', p, n, 0.012, P(0xe0b050), grp=G_BELT))
     kl = F.k_leg
     s_cap = F.tl + 0.08
-    leg = leg_tube(F, capri, [(-0.07, 0.114 * kl, 0.114 * kl), (0.05, 0.114 * kl, 0.118 * kl), (0.22, 0.1 * kl, 0.104 * kl), (F.tl - 0.03, 0.08 * kl, 0.084 * kl),
-                              (F.tl + 0.08, 0.078 * kl, 0.082 * kl), (s_cap, 0.074 * kl, 0.076 * kl)], cap1=None)
+    leg_rows = [(-0.07, 0.114 * kl, 0.114 * kl), (0.05, 0.114 * kl, 0.118 * kl), (0.22, 0.1 * kl, 0.104 * kl), (F.tl - 0.03, 0.08 * kl, 0.084 * kl),
+                (F.tl + 0.08, 0.078 * kl, 0.082 * kl), (s_cap, 0.074 * kl, 0.076 * kl)]
+    leg = leg_tube(F, capri, leg_rows, cap1=None)
+    # 褲管下緣開口，不算封閉、不進骨熱代理體：代理體上整條大腿空著，褲管內側就近抓到骨盆（hips 權重到大腿中段還有七成），
+    # 抬腿時兩腿之間拉出一大片三角形。另做一根封閉的大腿替身只給骨熱用（往下伸進小腿皮膚，接上膝蓋）
+    thigh_px = leg_tube(F, skin, leg_rows[:-1] + [(F.tl + 0.14, 0.07 * kl, 0.074 * kl)], name='thighPx')
+    from heroes import mirror
+    proxy += [thigh_px, mirror(thigh_px)]
     calf = lambda th: 1 + 0.09 * ang_bump(th, BACK, 1.0)
     shin = leg_tube(F, skin, [(F.tl + 0.1, 0.066 * kl, 0.07 * kl, calf), (F.tl + 0.2, 0.054 * kl, 0.058 * kl, calf), (F.tl + F.sl - 0.06, 0.044 * kl, 0.048 * kl)], name='shinL', mat=4)
     bt = boot(F, P(0xd8783a), F.tl + 0.2, 0.05, pal_sole=P(0x8a4a22), toe=0.85)
@@ -811,6 +818,47 @@ def build_nami(R):
         kit.deform(jt, lambda p, k=k: V((0, -0.2 + k * 0.33 + 0.3, 0)) + p * 0.024)
         segs.append(kit.tag(jt, staff_l, mat=2, ol=0.5))
     return finish(F, P, body, proxy, heads, extras={'sword': segs})
+
+
+def nami_halter(F, targets, pal):
+    """比基尼的掛脖綁帶：從罩杯上緣沿胸口、鎖骨爬到脖子側面，繞到後頸打結。
+    每個控制點都從身體外側往中軸打射線、取最外層的表面（軀幹與脖子交疊處不會被埋進斜方肌裡），再往外浮一點。"""
+    import bpy
+    from heroes import tree_of
+    tmp = kit.join([kit.duplicate(t, 'tmp') for t in targets], 'tmp_halter')
+    tr = tree_of(tmp)
+    bpy.data.objects.remove(tmp, do_unlink=True)
+    cx = F.cx
+    yn = F.y(1.0)
+
+    def onto(q, axis_z=0.0, off=0.0045):
+        a = V((0, q.y, axis_z))
+        d = V((q.x, 0, q.z - axis_z))
+        d = d.normalized() if d.length > 1e-6 else V((0, 0, 1))
+        hit = tr.ray_cast(a + d * 0.5, -d, 0.6)
+        return (hit[0] + d * off) if hit[0] is not None else q
+
+    out = []
+    for sx in (1, -1):
+        p, n = on_surface(targets[0], sx * cx * 0.42, F.y(0.66))
+        ctrl = [
+            (p + V((sx * cx * 0.08, cx * 0.36, 0.0)), 0.0),
+            (V((sx * cx * 0.44, F.y(0.8), 0.1)), 0.0),
+            (V((sx * cx * 0.38, F.y(0.9), 0.08)), 0.0),
+            (V((sx * cx * 0.3, F.y(0.97), 0.05)), -0.01),
+            (V((sx * 0.05, yn, 0.03)), -0.006),
+            (V((sx * 0.05, yn + 0.008, -0.01)), -0.006),
+            (V((sx * 0.035, yn + 0.012, -0.04)), -0.006),
+            (V((sx * 0.008, yn + 0.014, -0.06)), -0.006),
+        ]
+        pts = [onto(q, az) for q, az in ctrl]
+        o = path_loft('halter', pts, [0.0045] * len(pts), n=6, flat=0.6)
+        out.append(kit.tag(kit.subsurf(o, 1), pal, grp=G_TORSO, ol=0.45))
+    knot = kit.quad_sphere('halterKnot', 1.0, cuts=2)
+    kp = onto(V((0, yn + 0.014, -0.06)), -0.006, off=0.006)
+    kit.deform(knot, lambda q: kp + V((q.x * 0.011, q.y * 0.008, q.z * 0.006)))
+    out.append(kit.tag(knot, pal, grp=G_TORSO, ol=0.4))
+    return out
 
 
 def nami_hair():
