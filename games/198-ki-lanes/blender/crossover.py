@@ -278,6 +278,51 @@ def naruto_hair():
 
 
 # ================================================================ 佐助
+# 佐助的長袖：只跟鎖骨、上臂、前臂（不分給胸廓）。骨熱會把袖子內側分 2 成給 ribs，
+# 舉手時袖子內側被留在胸口、隊伍臂章從胸前露出來
+import heroes as _heroes
+G_SLV_SA_L, G_SLV_SA_R = 70, 71
+_heroes.ALLOW[G_SLV_SA_L] = {'clL', 'shL', 'elL'}
+_heroes.ALLOW[G_SLV_SA_R] = {'clR', 'shR', 'elR'}
+_heroes.MIRROR_GRP[G_SLV_SA_L] = G_SLV_SA_R
+
+
+def sasuke_tuck(F, ob, s0, s1, k):
+    """肢體在 s0 往內（到 s1）的部分往手臂軸收細，最多收 k。"""
+    def fn(p):
+        s = arm_s(F, p)
+        if s >= s0:
+            return p
+        t = smooth((s0 - s) / (s0 - s1))
+        a = F.sh + F.da * s
+        return a + (p - a) * (1 - k * t)
+    kit.deform(ob, fn)
+
+
+def sasuke_sleeve_weights(F):
+    """袖子：上臂骨的份量至少照 s 漸增（s=-0.1 起、s≈0.02 全給上臂），其餘留給鎖骨；前臂骨只留在袖口一段、且打八折。
+    骨熱在肩關節處只給上臂 3～6 成，手臂舉高時袖子肩頭被鎖骨拉住、捏成一條細帶橫過胸口。肩頭圓頂近似以關節為心的球，整塊跟著上臂轉不會變形。"""
+    def fn(co, ws):
+        p = V((abs(co.x), co.y, co.z))
+        lo = 'L' if co.x >= 0 else 'R'
+        s = arm_s(F, p)
+        need = smooth((s + 0.1) / 0.12)
+        sh, el = 'sh' + lo, 'el' + lo
+        # 前臂骨：袖口最後幾公分照骨熱的八成（跟著手肘彎，袖口才不會在彎肘時翹開），再往上整段交給上臂，
+        # 否則手肘一彎袖子中段就跟著折，前伸的手臂看起來在肩前多一條摺痕
+        we0 = sum(w for b, w in ws if b == el)
+        we = we0 * 0.8 * smooth((s - (F.up - 0.08)) / 0.05)
+        cur = sum(w for b, w in ws if b == sh) + (we0 - we)
+        rest = [(b, w) for b, w in ws if b not in (sh, el)]
+        tot = cur + sum(w for _, w in rest)
+        if tot <= 1e-6 or cur / tot >= need:
+            return [(sh, cur), (el, we)] + rest
+        k = (1 - need) * tot / max(1e-6, tot - cur)
+        return [(sh, need * tot), (el, we)] + [(b, w * k) for b, w in rest]
+    fn.blend = True
+    return fn
+
+
 def build_sasuke(R):
     F = Fig(R)
     P = kit.Palette()
@@ -311,7 +356,18 @@ def build_sasuke(R):
     arm = arm_skin(F, skin, muscle=0.9)
     kit.paint_field(arm, lambda co: arm_s(F, co) - (F.up - 0.06), lav, 0)
     slv = long_sleeve(F, lav, s_end=F.up - 0.03, k=1.0, e=0.016, cuff=1.2)
-    ag = band('guardL', F.sh, F.da, F.up + 0.02, F.up + F.lo - 0.02, 0.066 * F.k_fore + 0.01, 0.054 * F.k_fore + 0.008, navyD, G_FORE_L, thick=0.008)
+    # 肩頭圓頂往內收細：原本圓頂比上衣還高，在立領底與 V 領邊緣穿出來（鋸齒與黑色外框縫）；手臂皮膚的圓頂跟著收，留在袖子底下
+    sasuke_tuck(F, slv, 0.0, -0.11, 0.35)
+    sasuke_tuck(F, arm, 0.0, -0.07, 0.3)
+    kit.tag(slv, lav, grp=G_SLV_SA_L)
+    # 護臂：手腕端照前臂的扁斷面收成橢圓（前後較窄）。原本是正圓管，手腕前後留下 1.5 cm 的空腔，
+    # 從手那側看進去內壁的遮蔽與外框成一圈鋸齒
+    kf = F.k_fore
+    s0g, s1g = F.up + 0.02, F.up + F.lo - 0.02
+    r0g, r1g = 0.066 * kf + 0.01, 0.054 * kf + 0.008
+    ag = limb('guardL', F.sh, F.da, [(s0g, r0g, r0g), ((s0g + s1g) / 2, (r0g + r1g) / 2 * 1.02, (r0g + r1g) / 2 * 1.0), (s1g, r1g, 0.042 * kf + 0.0105)],
+              n=14, cap0=None, cap1=None)
+    ag = kit.tag(kit.subsurf(ag, 2, solidify=0.008), navyD, grp=G_FORE_L, ol=0.8)
     hand = fist(F, skin, scale=1.0)
     # 紫色粗繩（前方打結垂下）＋深藍長腰布到膝下、前開
     body.append(pelvis(F, navy, e=0.012))
@@ -326,13 +382,13 @@ def build_sasuke(R):
     wrap = band('wrapL', F.th, F.dl, F.tl + 0.17, F.tl + F.sl - 0.07, 0.062 * F.k_shin + 0.008, 0.05 * F.k_shin + 0.008, P(0x8a8c96), G_LEG_L, thick=0.006)
     ft = sandal(F, skin, P(0x24262e))
     pair_add(body, proxy, [slv, arm, ag, hand, leg, wrap] + ft, proxy_set=[arm, hand, leg] + ft)
-    body.append(team_band(F, team, 1.2))
+    body.append(team_band(F, team, 1.3))   # 1.2 倍時和袖子表面重合（互相閃爍，只露出幾塊青色），加大一圈浮在袖子外
 
     h = anime_head('head_base', F, skin, jaw=0.88, chin=0.78, cheek=0.93, nose=0.8, face_len=1.07)
     hc = P(0x1a1c2e)
     heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.42, temple=0.05, scale=1.07, nape=-0.65)] + hair(F, hc, sasuke_hair())}
     blade, sheath = katana(P, sw_grip, sw_guard, sw_sheath, length=1.0)
-    return finish(F, P, body, proxy, heads, extras={'sword': blade, 'sheath': sheath}, custom={G_SKIRT: skirt_chain_weights(F, 'skirt')})
+    return finish(F, P, body, proxy, heads, extras={'sword': blade, 'sheath': sheath}, custom={G_SKIRT: skirt_chain_weights(F, 'skirt'), G_SLV_SA_L: sasuke_sleeve_weights(F), G_SLV_SA_R: sasuke_sleeve_weights(F)})
 
 
 def sasuke_hair():
