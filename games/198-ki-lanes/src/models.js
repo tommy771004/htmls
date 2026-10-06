@@ -2,6 +2,9 @@
 // 介面見 SPEC.md §4。root 朝 +z 為正面。
 import * as THREE from 'three';
 import { PROPS, buildHeroParts, heroMaterial } from './models-heroes.js';
+import { KEYS, blank, lerpPose, ease, clamp, smooth01, IMPACT, strike } from './pose-kit.js';
+import { HERO_POSES } from './poses/index.js';
+export { IMPACT };
 
 export const HERO_IDS = ['goku', 'vegeta', 'trunks', 'piccolo', 'frieza', 'a18', 'naruto', 'sasuke', 'kakashi', 'sakura', 'luffy', 'zoro', 'sanji', 'nami'];
 
@@ -147,6 +150,7 @@ export const HERO = {
 for (const id in HERO) {
   const d = HERO[id];
   Object.assign(d, PROPS[id]);
+  d.id = id;
   d.neck = d.neck || 0; // 脖子長度（照參考圖量：下巴到肩線的距離）
   d.torso = d.H - d.L - d.hr * 1.95 - 0.04 - d.neck;
   d.upper = d.torso * 0.5 * (d.armK || 1); d.lower = d.torso * 0.47 * (d.armK || 1);
@@ -154,15 +158,6 @@ for (const id in HERO) {
 }
 
 /* ---------------- 姿勢 ---------------- */
-const KEYS = ['hipsY', 'hipsZ', 'hipsRX', 'hipsRY', 'hipsRZ', 'torsoX', 'torsoY', 'torsoZ', 'headX', 'headY', 'headZ',
-  'shLX', 'shLY', 'shLZ', 'elL', 'shRX', 'shRY', 'shRZ', 'elR', 'thLX', 'thLZ', 'knL', 'thRX', 'thRZ', 'knR', 'spin', 'stretch',
-  'wrL', 'wrR', 'anL', 'anR', // 手腕前後彎、腳踝（在自動貼地之外再加的量）
-  'clL', 'clR', 'hoL', 'hoR', 'hsL', 'hsR', 'toL', 'toR']; // 鎖骨前送（自動之外再加）、手張開 0 拳～1 攤平、拇指 0 收～1 張、腳趾
-function blank() { const p = {}; for (const k of KEYS) p[k] = 0; p.shLZ = 0.12; p.shRZ = 0.12; p.elL = -0.15; p.elR = -0.15; return p; }
-function lerpPose(a, b, k, out = {}) { for (const key of KEYS) out[key] = a[key] + (b[key] - a[key]) * k; return out; }
-const ease = (k) => k * k * (3 - 2 * k);
-const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
-
 function stance(style, t) {
   // 待機架式參考 GK 雕像：重心壓低、上身扭轉、左右不對稱的護架；呼吸帶動肩與胸起伏
   const p = blank();
@@ -223,23 +218,19 @@ function stance(style, t) {
   return p;
 }
 
-const _over = {};
-function strike(t, ti, base, W, S, rec = 0.36) {
-  const a = ti * 0.55;
-  if (t < a) return lerpPose(base, W, ease(t / a));
-  if (t < ti) { const u = (t - a) / (ti - a); return lerpPose(W, S, u * u * (2 - u)); } // 出手越來越快
-  // 命中後順勢多送一點（跟隨動作）再停住，然後收回架式
-  for (const k of KEYS) _over[k] = S[k] + (S[k] - W[k]) * 0.12;
-  if (t < ti + 0.08) return lerpPose(S, _over, Math.sin(Math.PI * 0.5 * clamp((t - ti) / 0.05, 0, 1)));
-  return lerpPose(_over, base, ease(clamp((t - ti - 0.08) / Math.max(0.05, rec - ti - 0.08), 0, 1)));
-}
-export const IMPACT = { atk1: 0.1, atk2: 0.12, atk3: 0.16, slash: 0.12, cast: 0.16, beam: 0.4, grab: 0.18, overhead: 0.3 };
 
 const HAND_OPEN = { cast: [0.2, 1, 0.6], beam: [1, 1, 0.85], barrier: [1, 1, 1], grab: [0.3, 1, 0.5], overhead: [0.4, 1, 1], win: [0, 0, 0] };
-function heroPose(d, name, t, k, phase, out) {
-  const base = stance(d.style, t);
+function heroPose(d, name, t, k, phase, out, key) {
+  // 角色專屬動作（src/poses/<英雄>.js）：先找「動作_技能鍵」（例如 cast_Q），再找動作名；回傳 undefined 就用下面的共用動作
+  const mod = HERO_POSES[d.id];
+  const ctx = { d, name, t, k, phase, key, time: t };
+  const base = (mod && mod.stance && mod.stance(ctx)) || stance(d.style, t);
   const P = (o) => Object.assign({ ...base }, o);
+  ctx.base = base; ctx.P = P;
   let p = base;
+  const own = mod && ((key && mod[name + '_' + key]) || mod[name]);
+  const mine = own && name !== 'stance' ? own(ctx) : undefined;
+  if (mine) { p = mine; name = '__own'; }
   const sword = d.style === 'sword' || d.style === 'staff'; // 娜美的天候棒沿用持劍的揮擊動作
   if (name === 'slash' && !sword) name = 'atk2';
   switch (name) {
@@ -410,8 +401,9 @@ function heroPose(d, name, t, k, phase, out) {
     }
     case 'dead': {
       const kk = ease(clamp(k != null ? k : t / 0.7, 0, 1));
-      const lie = P({ hipsRX: -Math.PI / 2, hipsY: -(d.L - 0.16), torsoX: 0, torsoY: 0, headX: 0.15, headY: 0.4,
-        shLX: -0.4, shLZ: 1.3, elL: -0.4, shRX: -0.2, shRZ: 1.1, elR: -0.6, thLX: 0, thLZ: 0.2, knL: 0.4, thRX: -0.3, thRZ: 0.1, knR: 0.8 });
+      // 仰躺：一腳屈膝立起（大腿往上、膝蓋彎回來，小腿不會插進地面）
+      const lie = P({ hipsRX: -Math.PI / 2, hipsY: -(d.L - 0.19), torsoX: 0, torsoY: 0, headX: 0.15, headY: 0.4,
+        shLX: -0.4, shLZ: 1.3, elL: -0.4, shRX: -0.2, shRZ: 1.1, elR: -0.6, thLX: -0.12, thLZ: 0.2, knL: 0.22, thRX: -0.75, thRZ: 0.1, knR: 1.1, hoL: 0.6, hoR: 0.5 });
       p = lerpPose(base, lie, kk);
       break;
     }
@@ -428,8 +420,9 @@ function heroPose(d, name, t, k, phase, out) {
       break;
     default: break;
   }
+  if (mine) name = ctx.name;
   // 手形（第三版骨架）：發氣功、龜派氣功、護盾、抓取、高舉氣彈是張開的手；冷淡型的待機是放鬆半開
-  if (HAND_OPEN[name]) { const [l, r, ts] = HAND_OPEN[name]; p = p === base ? { ...p } : p; p.hoL = Math.max(p.hoL, l); p.hoR = Math.max(p.hoR, r); p.hsL = p.hsR = ts; }
+  if (HAND_OPEN[name] && !(mine && mine.ownHands)) { const [l, r, ts] = HAND_OPEN[name]; p = p === base ? { ...p } : p; p.hoL = Math.max(p.hoL, l); p.hoR = Math.max(p.hoR, r); p.hsL = p.hsR = ts; }
   return lerpPose(p, p, 0, out);
 }
 
@@ -635,7 +628,6 @@ function hairWeights(g, hr) {
   _hairW.set(g, true);
   return g;
 }
-const smooth01 = (x) => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
 
 /* ---------------- buildHero ---------------- */
 // 手指彎曲（三節，弧度）：握拳與攤開；拇指三種姿勢（腕骨局部座標的四元數，左手）：握拳時壓在四指上、手刀時貼著食指、張掌時照建模的方向
@@ -644,7 +636,7 @@ const _q2 = new THREE.Quaternion();
 const THUMB_Q = (() => {
   const t = HAND_GEO.thumb.dir, rest = new THREE.Vector3(t[0], -t[1], t[2]).normalize(); // 手掌座標 → 腕骨局部（+Y 指尖 ＝ 局部 −Y）
   const to = (x, y, z) => new THREE.Quaternion().setFromUnitVectors(rest, new THREE.Vector3(x, y, z).normalize());
-  return { spread: new THREE.Quaternion(), tuck: to(-0.25, -0.9, 0.3), wrap: to(-0.45, -0.3, -0.85) };
+  return { spread: new THREE.Quaternion(), tuck: to(-0.25, -0.9, 0.3), wrap: to(-0.55, -0.65, -0.52) };
 })();
 const SHOUT = new Set(['atk2', 'atk3', 'cast', 'beam', 'rush', 'overhead', 'slash', 'grab', 'charge', 'dash']);
 const HURT = new Set(['stun', 'air', 'dead']);
@@ -717,6 +709,13 @@ export function buildHero(id, team = 0) {
     backSocket.add(sword);
     handSocket = new THREE.Group();
     handSocket.rotation.set(Math.PI - 0.5, 0, 0);
+    // 劍柄穿過握拳時四指圍出的空心（手掌局部約 x −0.022k、y 0.07k；右手 x 鏡像）
+    // 劍身和前臂垂直、從拇指側（虎口）伸出，略往指尖方向傾；護手貼在虎口外
+    if (rig3) {
+      const hk = handScale(d);
+      handSocket.position.set(0.022 * hk, -0.07 * hk + d.fist * 0.55, 0.05 * hk);
+      handSocket.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -0.3, 0.95).normalize());
+    }
     hands.R.add(handSocket);
   }
 
@@ -744,7 +743,7 @@ export function buildHero(id, team = 0) {
     }
     last.copy(root.position); hasLast = true;
     if (name === 'run') phase += dt * clamp(speed * 1.65, 9, 15);
-    heroPose(d, name, name === 'idle' ? time : t, k, phase, tgt);
+    heroPose(d, name, name === 'idle' ? time : t, k, phase, tgt, anim && anim.key);
     // 表情：出招時吶喊、受擊時咬牙閉眼
     // 待機時每 2.5～5 秒眨一次眼；勝利姿勢換招牌笑臉
     if (name === 'idle' || name === 'run') { blinkT -= dt; if (blinkT < -0.12) blinkT = 2.5 + Math.random() * 2.5; }
@@ -808,7 +807,18 @@ export function buildHero(id, team = 0) {
     else if (hit.t < 0.16) body.position.x = Math.sin(hit.t * 140) * 0.028 * hit.p * (1 - hit.t / 0.16); // 挨打瞬間的震顫（格鬥遊戲的頓幀感）
     else { body.position.x = 0; }
   }
+  const _hp = {};
   function apply(cur) {
+    if (rig2) {
+      // 髖部輔助：大腿抬超過約 65 度時，把一部分彎曲轉給骨盆往後倒（兩腿與上身的世界角度不變），
+      // 褲頭、衣襬、裙子在髖關節處就不會被扯破（重踢、被打飛、大步跑）
+      const e = Math.max(0, -cur.thLX - 1.15, -cur.thRX - 1.15) * 0.55;
+      if (e > 0) {
+        for (const k of KEYS) _hp[k] = cur[k];
+        _hp.hipsRX -= e; _hp.thLX += e; _hp.thRX += e; _hp.torsoX += e / 1.0;
+        cur = _hp;
+      }
+    }
     hips.position.y = d.L + cur.hipsY;
     body.position.z = cur.hipsZ;
     hips.rotation.set(cur.hipsRX, cur.hipsRY, cur.hipsRZ);
@@ -817,10 +827,11 @@ export function buildHero(id, team = 0) {
       torso.rotation.set(cur.torsoX * 0.45, cur.torsoY * 0.42, cur.torsoZ * 0.45, 'YXZ');
       J.ribs.rotation.set(cur.torsoX * 0.55, cur.torsoY * 0.58, cur.torsoZ * 0.55, 'YXZ');
       // 腳踝：站在地上的腳掌保持貼平（抵銷髖、大腿、膝的俯仰），腳抬高踢出時改成腳尖繃直
+      const upright = smooth01((1.25 - Math.abs(cur.hipsRX)) / 0.5); // 躺下或身體打平時不做腳掌貼地
       for (const s of ['L', 'R']) {
         const pitch = cur.hipsRX + cur['th' + s + 'X'] + cur['kn' + s];
         const up = smooth01((-cur['th' + s + 'X'] - 0.9) / 0.6);
-        J['an' + s].rotation.x = clamp(-pitch, -0.7, 0.95) * (1 - up) + 0.55 * up + cur['an' + s];
+        J['an' + s].rotation.x = (clamp(-pitch, -0.7, 0.95) * (1 - up) + 0.55 * up) * upright + 0.3 * (1 - upright) + cur['an' + s];
         J['wr' + s].rotation.x = cur['wr' + s];
       }
     } else torso.rotation.set(cur.torsoX, cur.torsoY, cur.torsoZ, 'YXZ');
@@ -836,6 +847,7 @@ export function buildHero(id, team = 0) {
     J.thR.rotation.set(cur.thRX, 0, -cur.thRZ);
     J.knL.rotation.x = cur.knL; J.knR.rotation.x = cur.knR;
     J.shR.scale.y = 1 + Math.max(0, cur.stretch);
+    J.wrR.scale.y = 1 / J.shR.scale.y; // 魯夫伸長手臂時拳頭不跟著拉長
   }
   // 第三版骨架的自動部分：鎖骨（舉手聳肩、伸手送肩）、手指（握拳／張開）、拇指、腳趾（腳跟離地時貼地）
   function digits(cur) {

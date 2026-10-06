@@ -1,5 +1,5 @@
 // 開發用角色檢視頁（不進成品）：node tools/viewer.mjs 打包並截圖。
-// URL 參數：ids=goku,vegeta、anim=idle、t=0.4、ang=0（度）、zoom=1、form=ssj、y=0.9（鏡頭看向的高度）、pitch（俯角，度）、
+// URL 參數：ids=goku,vegeta、anim=idle、key=Q、t=0.4、ang=0（度）、zoom=1、form=ssj、y=0.9（鏡頭看向的高度）、pitch（俯角，度）、
 // focus=handL｜handR｜head（對準第一名角色的部位）＋fy（高度偏移）、nool=1（隱藏外框，查外框殼的問題）
 import * as THREE from 'three';
 import { buildHero, HERO_IDS } from '../src/models.js';
@@ -25,7 +25,8 @@ const rigs = ids.map((id, i) => {
 if (q.get('nool')) for (const r of rigs) r.root.traverse((o) => { if (o.material && o.material.side === THREE.BackSide) o.visible = false; });
 const anim = q.get('anim') || 'idle', t = +(q.get('t') || 0.4), ang = (+(q.get('ang') || 0) * Math.PI) / 180;
 for (const r of rigs) r.root.rotation.y = ang;
-for (let i = 0; i < 40; i++) for (const r of rigs) r.update(1 / 60, { name: anim, t: anim === 'idle' ? 0 : Math.min(t, (i / 39) * t), k: 0.5 });
+const key = q.get('key') || null; // 技能鍵（Q／W／E／R）：選角色專屬的招式動作
+for (let i = 0; i < 40; i++) for (const r of rigs) r.update(1 / 60, { name: anim, t: anim === 'idle' ? 0 : Math.min(t, (i / 39) * t), k: 0.5, key });
 const zoom = +(q.get('zoom') || 1), y = +(q.get('y') || 0.95);
 const width = ids.length * 1.25 + 0.4;
 const dist = (Math.max(width / (innerWidth / innerHeight), 2.3) / zoom) / (2 * Math.tan((22 * Math.PI) / 360));

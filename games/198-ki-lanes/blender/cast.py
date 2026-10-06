@@ -4,6 +4,7 @@ import math
 from mathutils import Matrix
 
 import kit
+import heroes
 from kit import S, V, ang_bump, bump, lerp, smooth
 from heroes import (
     ALLOW, BACK, FRONT, G_ARM_L, G_BELT, G_CHAIN, G_SKIRT, G_FOOT_L, G_FORE_L, G_FREE, G_HAND_L, G_LEG_L, G_NECK, G_PELVIS, G_TORSO,
@@ -411,7 +412,7 @@ def build_frieza(R):
     pair_add(body, proxy, [hand], proxy_set=[hand])
     # 紫色甲片：肩、前臂、小腿
     side = V((0, 0, 1)).cross(F.da).normalized()
-    shp = plate('shoulderL', F.sh + V((0.016, 0.03, 0)), V((0.8, -0.6, 0)), V((0, 0, 1)), V((0.6, 0.8, 0)), 0.076, 0.072, 0.05, dome, G_UPPER_L)
+    shp = plate('shoulderL', F.sh + V((0.016, 0.03, 0)), V((0.8, -0.6, 0)), V((0, 0, 1)), V((0.6, 0.8, 0)), 0.076, 0.072, 0.05, dome, heroes.G_DELT_L)
     fa = F.arm_pt(F.up + 0.12) + side * 0.036 * F.k_fore
     fap = plate('foreL', fa, F.da, V((0, 0, 1)), side, 0.085, 0.034, 0.018, dome, G_FORE_L)
     sp = F.leg_pt(F.tl + 0.15) + V((0, 0, 0.05 * kl))

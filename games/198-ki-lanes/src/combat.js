@@ -287,7 +287,9 @@ export function cast(G, h, k, tx, tz) {
   const r = Math.min(d, s.range);
   const px = h.x + (dx / d) * r, pz = h.z + (dz / d) * r;
   const fn = KITS[h.heroId][k];
+  h.castKey = k; // act() 把技能鍵記在動作上，畫面據此選角色專屬的招式動作
   const ok = fn(G, h, { ang, px, pz, tx, tz, d, rank: h.ranks[k] - 1, s });
+  h.castKey = null;
   if (ok === false) return false;
   h.cds[k] = (k === 'R' ? s.cd : s.cd * (1 - 0.06 * (h.ranks[k] - 1))) * 100 / (100 + (h.ah || 0) + (k === 'R' ? h.ultAh || 0 : h.basicAh || 0)) * (h.buffs && h.buffs.empower && k !== 'R' ? 1 - (h.buffs.empower.cdr || 0) : 1); // 技能加速（含大絕／一般技能專屬加速、時現者）
   if (s.ki) h.ki -= s.ki * KI_BAR;
@@ -300,7 +302,7 @@ export function cast(G, h, k, tx, tz) {
 }
 
 /* ---------------- 共用動作 ---------------- */
-function act(h, o) { h.action = Object.assign({ t: 0 }, o); h.anim.name = o.name; h.anim.t = 0; h.goal = null; return h.action; }
+function act(h, o) { h.action = Object.assign({ t: 0, key: h.castKey || (h.action && h.action.key) || null }, o); h.anim.name = o.name; h.anim.t = 0; h.goal = null; return h.action; }
 
 // 衝刺：沿 ang 前進 len，撞到敵人時呼叫 onContact(u)（回傳 true 停下）
 function dashAction(G, h, { ang, len, speed, name = 'dash', pass = false, onContact, onEnd, onPass, hitR = 1.3 }) {

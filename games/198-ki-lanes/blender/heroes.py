@@ -17,6 +17,8 @@ BACK = -PI / 2
 # 綁骨群組 → 允許的骨頭
 (G_FREE, G_TORSO, G_ARM_L, G_ARM_R, G_HAND_L, G_HAND_R, G_LEG_L, G_LEG_R, G_FOOT_L, G_FOOT_R,
  G_PELVIS, G_BELT, G_NECK, G_UPPER_L, G_UPPER_R, G_FORE_L, G_FORE_R, G_SHIN_L, G_SHIN_R, G_CHEST) = range(20)
+# 肩甲（弗利沙的紫色肩墊）：整塊跟著上臂，不分給胸與鎖骨
+G_DELT_L, G_DELT_R = 48, 49
 # 第三版骨架：手指每節一個群組（剛性綁到對應的骨頭），左 40～43、右 44～47
 G_FA_L, G_FB_L, G_FC_L, G_TB_L, G_FA_R, G_FB_R, G_FC_R, G_TB_R = range(40, 48)
 FINGER_BONE = {G_FA_L: 'faL', G_FB_L: 'fbL', G_FC_L: 'fcL', G_TB_L: 'tbL', G_FA_R: 'faR', G_FB_R: 'fbR', G_FC_R: 'fcR', G_TB_R: 'tbR'}
@@ -35,10 +37,11 @@ ALLOW = {
     G_BELT: {'hips', 'torso'},
     G_NECK: {'ribs', 'neck', 'head'},
     G_CHEST: {'torso', 'ribs'},
+    G_DELT_L: {'shL'}, G_DELT_R: {'shR'},
 }
 ALLOW[G_SKIRT] = ALLOW[G_PELVIS]
 MIRROR_GRP = {G_ARM_L: G_ARM_R, G_HAND_L: G_HAND_R, G_LEG_L: G_LEG_R, G_FOOT_L: G_FOOT_R, G_UPPER_L: G_UPPER_R, G_FORE_L: G_FORE_R, G_SHIN_L: G_SHIN_R,
-              G_FA_L: G_FA_R, G_FB_L: G_FB_R, G_FC_L: G_FC_R, G_TB_L: G_TB_R}
+              G_FA_L: G_FA_R, G_FB_L: G_FB_R, G_FC_L: G_FC_R, G_TB_L: G_TB_R, G_DELT_L: G_DELT_R}
 
 
 # FighterZ 式的造型強調（全體英雄共用）：手腳加大、肌肉起伏更深、道服褲更蓬、髮束有稜線（每撮各自分出亮暗面）
@@ -172,11 +175,12 @@ def arm_skin(F, pal, muscle=1.0, k=1.0, s0=-0.07, name='armL', grp=G_ARM_L, mat=
     up, lo = F.up, F.lo
     ka, kf = F.k_arm * k, F.k_fore * k
     mu = muscle * FZ['muscle']
-    # 肌肉起伏參考 GK 雕像：二頭、三頭、三角肌與前臂肌群都明顯隆起
+    # 肌肉起伏參考 GK 雕像：二頭、三頭、三角肌與前臂肌群都明顯隆起。
+    # FighterZ 式加強只加在二頭、三頭：三角肌在袖子底下、前臂在護腕底下，加粗會從衣物裡穿出來
     bic = lambda th: 1 + 0.16 * mu * ang_bump(th, FRONT, 0.95)
     tri = lambda th: 1 + 0.12 * mu * ang_bump(th, BACK, 1.05)
-    delt = lambda th: 1 + 0.11 * mu * ang_bump(th, 0, 1.3)
-    fore = lambda th: 1 + 0.13 * mu * ang_bump(th, 0.4, 0.9)
+    delt = lambda th: 1 + 0.11 * muscle * ang_bump(th, 0, 1.3)
+    fore = lambda th: 1 + 0.13 * muscle * ang_bump(th, 0.4, 0.9)
     st = [
         (s0, 0.074 * ka, 0.072 * ka),
         (0.0, 0.084 * ka, 0.082 * ka, delt),

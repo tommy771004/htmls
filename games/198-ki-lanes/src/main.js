@@ -319,7 +319,7 @@ function sync(dt, t) {
       rig.root.visible = !vanish && vis;
       if (rig.setForm && r.form !== u.form) { if (r.form !== undefined && u.form === 'ssj') fx.transform(u, '#ffd23f'); r.form = u.form; rig.setForm(u.form); }
       const name = u.alive ? u.anim.name : 'dead';
-      rig.update(dt, { name, t: u.alive ? u.anim.t : u.deadT, k: u.alive ? 0 : Math.min(1, u.deadT / 0.7) });
+      rig.update(dt, { name, t: u.alive ? u.anim.t : u.deadT, k: u.alive ? 0 : Math.min(1, u.deadT / 0.7), key: u.alive && u.action ? u.action.key : null });
       const ssj = u.form === 'ssj';
       const aura = !u.alive ? 0 : u.charging ? 1 : u.st.spark > 0 ? 0.85 : u.action && /beam|overhead/.test(u.action.name) ? 0.9 : u.recall > 0 ? 0.5 : 0;
       const ac = u.recall > 0 ? '#9fe6ff' : ssj ? '#ffd23f' : u.def.color;
