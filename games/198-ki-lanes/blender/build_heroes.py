@@ -217,7 +217,8 @@ def build_one(hid, R, opt):
             for g in v.groups:
                 if g.weight > 0.5:
                     cnt[gi[g.group]] += 1
-        main = [n for n in bone_names if not n[-1].isdigit()]
+        # 手指與腳趾的權重之後會直接指定（剛性／依位置），骨熱分不到也沒關係，不列入成敗判斷
+        main = [n for n in bone_names if not n[-1].isdigit() and n not in heroes.FINGER_BONE.values() and n not in ('toL', 'toR')]
         if all(cnt.get(n, 0) > 0 for n in main):
             break
         print('  骨熱失敗（體素 %.3f），重試' % vox)
