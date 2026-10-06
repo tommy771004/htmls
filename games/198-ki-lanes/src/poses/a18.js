@@ -4,7 +4,7 @@
 // 工具見 ../pose-kit.js（strike、lerpPose、ease、clamp、IMPACT…）。
 //
 // 人造人18號：冷淡、省力、出手乾脆。待機單手叉腰、重心落在一腳；普攻是掌心氣彈→反手甩掌→迴旋高踢，
-// Q 氣圓斬舉過頭再側甩、W 低身衝刺抓人往身後甩、E 雙臂交叉擋在臉前再一口氣張開、R 左右手交替連射。
+// Q 氣圓斬舉過頭再側甩、W 低身衝刺抓人往身後甩、E 雙臂高舉在頭頂交叉成 X 再一口氣張開、R 左右手交替連射。
 import { strike, lerpPose, ease, clamp, blank, IMPACT } from '../pose-kit.js';
 
 const own = (p) => { p.ownHands = true; return p; }; // 手形自己決定（不套 HAND_OPEN）
@@ -15,14 +15,18 @@ const seg = (t, a, b) => ease(clamp((t - a) / (b - a), 0, 1));
 const HIP_R = { shRX: 1.2, shRY: -0.55, shRZ: 1.1, elR: -1.55, wrR: 0, hoR: 0.7, hsR: 0.5 };
 const HIP_NAMES = new Set(['idle', 'atk1', 'atk2', 'atk3', 'cast', 'dash', 'barrier', 'win']);
 
-// R 能量波的兩個連射姿勢：A 右掌推出、B 左掌推出（馬步側身，另一手收在胸前）
+// R 能量波的連射姿勢：true 右掌推出、false 左掌推出（馬步、另一手收在胸前），0 是第一發前的蓄勢（右掌收到右腰、身體反向扭）
+// 兩手推出時腰的轉向都壓小，掌心才會落在面向的直線上
 function volley(P, t, right) {
   const tr = Math.sin(t * 55) * 0.02;
-  const legs = { hipsY: -0.17, hipsRY: 0.25, hipsZ: 0.04, thLX: -0.6, thLZ: 0.38, knL: 0.9, thRX: 0.38, thRZ: 0.36, knR: 0.72, anR: 0.1 };
-  if (right) return P({ ...legs, torsoX: 0.12 + tr, torsoY: 0.45, torsoZ: 0, headX: -0.05, headY: -0.5, headZ: 0,
-    shRX: -1.58, shRY: 0, shRZ: -0.06, elR: -0.04, wrR: -0.9, hoR: 1, hsR: 0.85, clR: 0.15,
+  const legs = { hipsY: -0.17, hipsRY: 0.15, hipsZ: 0.04, thLX: -0.6, thLZ: 0.38, knL: 0.9, thRX: 0.38, thRZ: 0.36, knR: 0.72, anR: 0.1 };
+  if (right === 0) return P({ ...legs, hipsY: -0.22, hipsRY: -0.1, hipsZ: 0, knL: 1.05, knR: 0.85, torsoX: 0.05 + tr, torsoY: -0.55, torsoZ: 0, headX: -0.05, headY: 0.45, headZ: 0,
+    shRX: 0.45, shRY: 0, shRZ: 0.35, elR: -1.9, wrR: -0.5, hoR: 1, hsR: 0.8, clR: -0.1,
+    shLX: -1.1, shLY: 0, shLZ: 0.05, elL: -0.35, wrL: -0.7, hoL: 1, hsL: 0.8 });
+  if (right) return P({ ...legs, torsoX: 0.12 + tr, torsoY: 0.2, torsoZ: 0, headX: -0.05, headY: -0.3, headZ: 0,
+    shRX: -1.58, shRY: 0, shRZ: 0.35, elR: -0.04, wrR: -0.9, hoR: 1, hsR: 0.85, clR: 0.15,
     shLX: 0.35, shLY: 0, shLZ: 0.3, elL: -2.05, wrL: 0, hoL: 0.8, hsL: 0.5 });
-  return P({ ...legs, torsoX: 0.12 + tr, torsoY: -0.05, torsoZ: 0, headX: -0.05, headY: -0.05, headZ: 0,
+  return P({ ...legs, torsoX: 0.12 + tr, torsoY: -0.1, torsoZ: 0, headX: -0.05, headY: 0, headZ: 0,
     shLX: -1.58, shLY: 0, shLZ: 0.05, elL: -0.04, wrL: -0.9, hoL: 1, hsL: 0.85, clL: 0.15,
     shRX: 0.35, shRY: 0, shRZ: 0.3, elR: -2.05, wrR: 0, hoR: 0.8, hsR: 0.5 });
 }
@@ -47,8 +51,8 @@ export default {
       shRX: 0.35, shRY: 0, shRZ: 0.35, elR: -2.1, wrR: 0, hoR: 0.9, hsR: 0.5,
       shLX: -0.9, shLZ: 0.25, elL: -1.1, hoL: 0.6,
       thLX: -0.22, thLZ: 0.22, knL: 0.35, thRX: 0.22, thRZ: 0.24, knR: 0.3 });
-    const S = P({ torsoY: 0.75, torsoX: 0.18, torsoZ: 0, hipsRY: 0.35, hipsRZ: 0, hipsZ: 0.18, hipsY: -0.1, headY: -0.65, headX: -0.05, headZ: 0,
-      shRX: -1.55, shRY: 0, shRZ: -0.05, elR: -0.05, wrR: -1.0, hoR: 1, hsR: 0.8,
+    const S = P({ torsoY: 0.3, torsoX: 0.18, torsoZ: 0, hipsRY: 0.15, hipsRZ: 0, hipsZ: 0.18, hipsY: -0.1, headY: -0.35, headX: -0.05, headZ: 0,
+      shRX: -1.55, shRY: 0, shRZ: 0.25, elR: -0.05, wrR: -1.0, hoR: 1, hsR: 0.8,
       shLX: 0.35, shLZ: 0.3, elL: -1.6, hoL: 0.3,
       thLX: -0.5, thLZ: 0.32, knL: 0.75, thRX: 0.38, thRZ: 0.3, knR: 0.2 });
     return own(strike(t, IMPACT.atk1 * LEAD, base, W, S, 0.3));
@@ -61,41 +65,43 @@ export default {
       shRX: 0.2, shRY: 0, shRZ: 0.45, elR: -1.2, wrR: 0, hoR: 0.6,
       thRX: -0.2, thRZ: 0.25, knR: 0.4, thLX: 0.2, thLZ: 0.22, knL: 0.35 });
     const S = P({ torsoY: 0.25, hipsRY: 0.15, torsoX: 0.15, torsoZ: -0.05, hipsRZ: 0, hipsZ: 0.15, hipsY: -0.1, headY: -0.3, headX: -0.05, headZ: 0,
-      shLX: -1.5, shLY: 0, shLZ: 0.4, elL: -0.05, wrL: 0.3, hoL: 1, hsL: 0.4,
+      shLX: -1.5, shLY: 0, shLZ: 0.4, elL: -0.05, wrL: -0.6, hoL: 1, hsL: 0.6,
       shRX: 0.5, shRY: 0, shRZ: 0.5, elR: -0.9, wrR: 0, hoR: 0.6,
       thLX: -0.5, thLZ: 0.36, knL: 0.6, thRX: 0.35, thRZ: 0.3, knR: 0.2 });
     return own(strike(t, IMPACT.atk2 * LEAD, base, W, S, 0.34));
   },
 
-  // 普攻三：右腳迴旋踢——先提膝蓄力，髖部整個翻過去把腿橫掃出去，上身往反方向倒、雙臂張開平衡
+  // 普攻三：右腳迴旋高踢——先提膝蓄力，髖部整個轉過去把腿橫掃到胸口～頭的高度，雙臂張開平衡。
+  // 腿是靠髖關節外展抬高（thRZ 超過 π/2），上身只往反方向倒約 20°，站立腳踩穩；
   // （腿往側邊掃、不往正前方抬，長裙才不會被兩腿撐開成一片垂下的裙片）
   atk3({ t, base, P }) {
     const W = P({ hipsRY: -0.25, hipsRZ: 0, hipsY: -0.02, torsoY: -0.35, torsoX: -0.15, torsoZ: -0.15, headY: -0.1, headX: 0,
-      thRX: -1.05, thRZ: 0.55, knR: 2.0, thLX: 0.05, thLZ: -0.02, knL: 0.2,
+      thRX: -0.65, thRZ: 0.85, knR: 2.0, thLX: 0.05, thLZ: -0.02, knL: 0.2,
       shLX: -1.0, shLY: 0, shLZ: 0.4, elL: -1.6, hoL: 0.4, shRX: 0.6, shRY: 0, shRZ: 0.35, elR: -0.5, hoR: 0.6 });
-    const S = P({ hipsRY: 0.9, hipsRZ: -0.3, hipsY: 0.04, hipsZ: 0.1, torsoY: -0.7, torsoX: -0.4, torsoZ: -0.4, headY: -0.3, headX: 0.15, headZ: 0,
-      thRX: -1.25, thRZ: 0.85, knR: 0.05, anR: 0.3, toR: 0.3, thLX: 0.15, thLZ: -0.05, knL: 0.2,
+    const S = P({ hipsRY: 1.5, hipsRZ: -0.2, hipsY: -0.04, hipsZ: 0.06, torsoY: -0.95, torsoX: -0.15, torsoZ: -0.2, headY: -0.5, headX: 0.1, headZ: 0.1,
+      thRX: -0.3, thRZ: 1.98, knR: 0.05, anR: 0.3, toR: 0.3, thLX: 0.05, thLZ: 0.15, knL: 0.2,
       shLX: -0.6, shLY: 0, shLZ: 1.0, elL: -0.6, hoL: 0.8, hsL: 0.4, shRX: 0.8, shRY: 0, shRZ: 0.6, elR: -0.3, wrR: 0, hoR: 0.8, hsR: 0.4 });
     return own(strike(t, IMPACT.atk3 * LEAD, base, W, S, 0.42));
   },
 
-  // Q 氣圓斬：右手舉過頭頂托起圓盤（掌心朝天），停一拍，再沿肩高側甩出去（0.14 秒放出）
+  // Q 氣圓斬：右手舉過頭頂托起圓盤（掌心朝天，手臂略往外、往後舉，俯視才不會被頭擋住、看得出舉高），0.04 秒舉到、停到 0.11 秒，
+  // 再沿肩高往前側甩出（0.14 秒放出）；放手那格手臂落在拋出的直線上（腰只轉一點），放手之後才讓手臂掃過胸前收尾，0.30 秒前回到架式
   cast_Q({ t, base, P }) {
     const R = P({ torsoX: -0.2, torsoY: -0.35, torsoZ: 0.1, hipsRY: -0.05, hipsY: -0.05, headX: -0.15, headY: 0.1, headZ: 0,
-      shRX: -2.85, shRY: 0, shRZ: 0.2, elR: -0.35, wrR: -1.3, hoR: 1, hsR: 0.9,
+      shRX: -3.3, shRY: 0, shRZ: 0.5, elR: -0.1, wrR: -1.3, hoR: 1, hsR: 0.9,
       shLX: -1.2, shLY: 0, shLZ: 0.2, elL: -0.3, wrL: 0, hoL: 0.9, hsL: 0.5,
       thLX: -0.28, thLZ: 0.24, knL: 0.3, thRX: 0.28, thRZ: 0.26, knR: 0.4 });
-    const T = P({ torsoX: 0.35, torsoY: 0.8, torsoZ: 0, hipsRY: 0.3, hipsRZ: 0, hipsZ: 0.2, hipsY: -0.12, headX: 0, headY: -0.6, headZ: 0,
-      shRX: -1.45, shRY: 0, shRZ: -0.5, elR: -0.15, wrR: 0.3, hoR: 1, hsR: 0.5,
+    const T = P({ torsoX: 0.3, torsoY: 0.3, torsoZ: 0, hipsRY: 0.15, hipsRZ: 0, hipsZ: 0.2, hipsY: -0.12, headX: 0, headY: -0.25, headZ: 0,
+      shRX: -1.5, shRY: 0, shRZ: 0.3, elR: -0.1, wrR: 0, hoR: 1, hsR: 0.5,
       shLX: 0.5, shLY: 0, shLZ: 0.35, elL: -1.2, hoL: 0.6, hsL: 0.4,
       thLX: -0.55, thLZ: 0.36, knL: 0.8, thRX: 0.4, thRZ: 0.32, knR: 0.2 });
-    const F = P({ ...T, shRX: -0.95, shRZ: -0.75, elR: -0.3, torsoY: 0.95 });
+    const F = P({ ...T, torsoY: 0.9, headY: -0.6, shRX: -1.2, shRZ: -0.6, elR: -0.4, wrR: 0.2 });
     let p;
-    if (t < 0.07) p = lerpPose(base, R, seg(t, 0, 0.07));
-    else if (t < 0.1) p = R;
-    else if (t < 0.14) { const u = (t - 0.1) / 0.04; p = lerpPose(R, T, u * u * (2 - u)); }
+    if (t < 0.04) p = lerpPose(base, R, seg(t, 0, 0.04));
+    else if (t < 0.11) p = R;
+    else if (t < 0.14) { const u = (t - 0.11) / 0.03; p = lerpPose(R, T, u * u * (2 - u)); }
     else if (t < 0.2) p = lerpPose(T, F, seg(t, 0.14, 0.2));
-    else p = lerpPose(F, base, 0.5 * seg(t, 0.2, 0.32));
+    else p = lerpPose(F, base, seg(t, 0.2, 0.3));
     return own(p);
   },
 
@@ -108,47 +114,68 @@ export default {
     return own(lerpPose(base, S, seg(t, 0, 0.07)));
   },
 
-  // W 背後擒抱（摔投段，碰到敵人後 0.4 秒）：抓住→腰往右整個轉開、雙臂掄到身後把人甩出去→回頭瞥一眼
+  // W 背後擒抱（摔投段，碰到敵人後 0.4 秒）：combat.js 在碰到的那一格就把敵人移到身後 1.2 公尺並往後打飛，
+  // 所以不再停在抓握：從衝刺的雙手前伸直接在 0.04 秒把人掄過頭頂、停到 0.07 秒，0.07～0.10 秒雙手往身後甩出，
+  // 停到 0.20 秒，再轉回正面、頭還回望身後被甩出去的人。
+  // spin 不經過畫面平滑、手臂有約 30 毫秒的平滑，所以轉身的時間軸比手臂晚 15 毫秒，手才會跟著身體一起到位
   atk3_W({ t, base, P }) {
     const G = P({ hipsRX: 0.1, hipsRY: 0, hipsRZ: 0, hipsY: -0.15, hipsZ: 0.05, torsoX: 0.3, torsoY: 0, torsoZ: 0, headX: -0.2, headY: 0, headZ: 0,
       shLX: -1.3, shLY: 0, shLZ: -0.05, elL: -0.5, wrL: 0, hoL: 0.1, hsL: 0.2, shRX: -1.3, shRY: 0, shRZ: -0.05, elR: -0.5, wrR: 0, hoR: 0.1, hsR: 0.2,
       thLX: -0.45, thLZ: 0.32, knL: 0.9, thRX: 0.3, thRZ: 0.3, knR: 0.8 });
-    // 甩出：上身連腰往右轉開約 120 度、往後仰，雙手跟著胸口往上送，在身後右上方放手
-    const H = P({ hipsRX: 0, hipsRY: -0.8, hipsRZ: 0, hipsY: -0.06, hipsZ: 0.05, torsoX: -0.3, torsoY: -1.3, torsoZ: 0.15, headX: -0.25, headY: -0.6, headZ: 0,
-      shLX: -2.0, shLY: 0, shLZ: -0.12, elL: -0.15, wrL: 0, hoL: 0.95, hsL: 0.7, shRX: -2.0, shRY: 0, shRZ: -0.12, elR: -0.15, wrR: 0, hoR: 0.95, hsR: 0.7,
-      thLX: -0.15, thLZ: 0.3, knL: 0.45, thRX: 0.25, thRZ: 0.3, knR: 0.35 });
+    // 掄起：邊轉身邊把抓住的人往頭頂上方掄（雙手舉高、身體後仰）
+    const M = P({ spin: -0.7, hipsRX: -0.15, hipsRY: -0.3, hipsRZ: 0, hipsY: -0.1, hipsZ: 0.03, torsoX: -0.35, torsoY: -0.45, torsoZ: 0.1, headX: -0.3, headY: -0.1, headZ: 0,
+      shLX: -2.75, shLY: 0, shLZ: 0.1, elL: -0.35, wrL: 0, hoL: 0.4, hsL: 0.4, shRX: -2.75, shRY: 0, shRZ: 0.1, elR: -0.35, wrR: 0, hoR: 0.4, hsR: 0.4,
+      thLX: -0.4, thLZ: 0.34, knL: 0.75, thRX: 0.35, thRZ: 0.32, knR: 0.5 });
+    // 甩出：整個人原地往右後方轉（spin，腳跟著轉）再加腰、胸扭，胸口正對身後的敵人，
+    // 上身往前壓、雙手從肩高往敵人方向送出去、手掌張開（俯視時兩手直指被甩飛的人）
+    const H = P({ spin: -1.6, hipsRX: 0.05, hipsRY: -0.45, hipsRZ: 0, hipsY: -0.14, hipsZ: 0.06, torsoX: 0.2, torsoY: -0.6, torsoZ: 0.05, headX: -0.15, headY: -0.1, headZ: 0,
+      shLX: -1.75, shLY: 0, shLZ: 0.12, elL: -0.12, wrL: -0.5, hoL: 1, hsL: 0.8, shRX: -1.75, shRY: 0, shRZ: 0.12, elR: -0.12, wrR: -0.5, hoR: 1, hsR: 0.8,
+      thLX: -0.5, thLZ: 0.36, knL: 0.75, thRX: 0.4, thRZ: 0.34, knR: 0.3 });
     // 收：轉回正面、雙手垂下，頭還回望身後被甩出去的人
-    const F = P({ headY: -1.0, headX: -0.1, torsoY: -0.25, hipsRY: -0.1, shLX: 0.1, shLZ: 0.3, elL: -0.3, hoL: 0.7 });
-    let p;
-    if (t < 0.06) p = lerpPose(base, G, seg(t, 0, 0.05));
-    else if (t < 0.2) { const u = (t - 0.06) / 0.14; p = lerpPose(G, H, u * u * (3 - 2 * u)); }
-    else p = lerpPose(H, F, seg(t, 0.24, 0.4));
+    const F = P({ headY: -1.3, headX: -0.1, torsoY: -0.35, hipsRY: -0.1, shLX: 0.1, shLZ: 0.3, elL: -0.3, hoL: 0.7 });
+    const arms = (t) => {
+      if (t < 0.04) return lerpPose(G, M, seg(t, 0, 0.04));
+      if (t < 0.07) return lerpPose(M, M, 0);
+      if (t < 0.1) { const u = (t - 0.07) / 0.03; return lerpPose(M, H, u * u * (2 - u)); }
+      if (t < 0.2) return lerpPose(H, H, 0);
+      return lerpPose(H, F, seg(t, 0.2, 0.38));
+    };
+    const p = arms(t);
+    p.spin = arms(Math.max(0, t - 0.015)).spin;
     return own(p);
   },
 
-  // E 能量屏障：雙臂在臉前交叉成 X、壓低重心，接著一口氣把雙臂往兩側斜下張開（張開後一直撐到動作結束）
-  barrier_E({ t, P }) {
+  // E 能量屏障：雙臂高舉、在頭頂上方交叉成 X（遊戲鏡頭多半從斜後上方看，擋在臉前的 X 會被頭遮住）、壓低重心，停到 0.10 秒，
+  // 0.10～0.16 秒一口氣把雙臂往兩側斜下張開（屏障特效 0.5 秒才撐開，時間仍對得上），停一下再在 0.33 秒前收回架式
+  barrier_E({ t, base, P }) {
     const tr = Math.sin(t * 50) * 0.02;
-    const X = P({ hipsRX: 0, hipsRY: 0, hipsRZ: 0, hipsY: -0.14, hipsZ: 0, torsoX: 0.18 + tr, torsoY: 0, torsoZ: 0, headX: 0.15, headY: 0, headZ: 0,
-      shLX: -1.6, shLY: 0, shLZ: -0.6, elL: -1.2, wrL: 0, hoL: 0.95, hsL: 0.4, shRX: -1.55, shRY: 0, shRZ: -0.55, elR: -1.2, wrR: 0, hoR: 0.95, hsR: 0.4,
+    const X = P({ hipsRX: 0, hipsRY: 0, hipsRZ: 0, hipsY: -0.14, hipsZ: 0, torsoX: -0.1 + tr, torsoY: 0, torsoZ: 0, headX: 0.2, headY: 0, headZ: 0,
+      shLX: -3.0, shLY: 0, shLZ: -0.46, elL: -0.3, wrL: 0, hoL: 0.95, hsL: 0.4, shRX: -2.95, shRY: 0, shRZ: -0.4, elR: -0.3, wrR: 0, hoR: 0.95, hsR: 0.4,
       thLX: -0.35, thLZ: 0.3, knL: 0.6, thRX: -0.05, thRZ: 0.3, knR: 0.55 });
     const B = P({ hipsRX: 0, hipsRY: 0, hipsRZ: 0, hipsY: -0.09, hipsZ: 0, torsoX: -0.3, torsoY: 0, torsoZ: 0, headX: -0.25, headY: 0, headZ: 0,
       shLX: -0.55, shLY: 0, shLZ: 1.25, elL: -0.2, wrL: -0.9, hoL: 1, hsL: 0.9, shRX: -0.55, shRY: 0, shRZ: 1.25, elR: -0.2, wrR: -0.9, hoR: 1, hsR: 0.9,
       thLX: -0.3, thLZ: 0.38, knL: 0.45, thRX: 0.05, thRZ: 0.38, knR: 0.4 });
     let p;
-    if (t < 0.07) p = X; // 屏障與彈開在 t=0 就發生，交叉只停一下，馬上張開
-    else p = lerpPose(X, B, seg(t, 0.07, 0.13));
+    if (t < 0.03) p = lerpPose(base, X, seg(t, 0, 0.03));
+    else if (t < 0.1) p = X;
+    else if (t < 0.22) p = lerpPose(X, B, seg(t, 0.1, 0.16));
+    else p = lerpPose(B, base, seg(t, 0.22, 0.33));
     return own(p);
   },
 
-  // R 能量波：0.3 秒舉掌瞄準後左右手交替推掌連射。
-  // 連射時 combat.js 每發會把動作重設：奇數發是 cast＠0.05 起算（右掌）、偶數發是 atk2 一格再回到 cast＠總時間（左掌），
-  // 所以 t < 0.3 一律是右掌推出、t ≥ 0.3 是左掌，兩段每 0.08 秒交替就成了雙手連射
+  // R 能量波：combat.js 前 0.3 秒是 cast 從 0 起算；之後每 0.08 秒一發，奇數發把動畫換成 cast＠0.05、偶數發換成 atk2＠0.05，
+  // 各自播到下一發（t 只到約 0.13）；第 14 發是偶數，atk2 會一路播到動作結束（t≈0.33）。
+  // 所以 cast_R：先把右掌推出去瞄準（0～0.05 到位、停到 0.14），0.15～0.3 收回腰間蓄勢（身體反向扭、蹲深），
+  // 第一發時 t 跳回 0.05，右掌從蓄勢一口氣推出；atk2_R 是左掌推出，最後一發之後停一下再在動作結束前收回架式
   cast_R({ t, base, P }) {
-    if (t < 0.3) return own(lerpPose(base, volley(P, t, true), seg(t, 0, 0.06)));
-    return own(volley(P, t, false));
+    const push = volley(P, t, true);
+    if (t < 0.15) return own(lerpPose(base, push, seg(t, 0, 0.05)));
+    return own(lerpPose(push, volley(P, t, 0), seg(t, 0.15, 0.27)));
   },
-  atk2_R({ t, P }) { return own(volley(P, t, false)); }, // 偶數發只停一格，直接換左掌
+  atk2_R({ t, base, P }) {
+    const push = volley(P, t, false);
+    return own(t < 0.18 ? push : lerpPose(push, base, seg(t, 0.18, 0.31)));
+  },
 
   // 跑：步幅比共用的小、兩腿略開（長裙才不會被扯開），上身前傾、手半張隨步伐擺動，跑起來俐落不慌張
   run({ phase, P }) {
