@@ -17,12 +17,15 @@ BACK = -PI / 2
 # 綁骨群組 → 允許的骨頭
 (G_FREE, G_TORSO, G_ARM_L, G_ARM_R, G_HAND_L, G_HAND_R, G_LEG_L, G_LEG_R, G_FOOT_L, G_FOOT_R,
  G_PELVIS, G_BELT, G_NECK, G_UPPER_L, G_UPPER_R, G_FORE_L, G_FORE_R, G_SHIN_L, G_SHIN_R, G_CHEST) = range(20)
+# 第三版骨架：手指每節一個群組（剛性綁到對應的骨頭），左 40～43、右 44～47
+G_FA_L, G_FB_L, G_FC_L, G_TB_L, G_FA_R, G_FB_R, G_FC_R, G_TB_R = range(40, 48)
+FINGER_BONE = {G_FA_L: 'faL', G_FB_L: 'fbL', G_FC_L: 'fcL', G_TB_L: 'tbL', G_FA_R: 'faR', G_FB_R: 'fbR', G_FC_R: 'fcR', G_TB_R: 'tbR'}
 G_CHAIN = 30
 G_SKIRT = 31  # 長下襬：骨熱同骨盆群組，再由 skirt_chain_weights 把後片分給擺動鏈
 ALLOW = {
-    G_TORSO: {'hips', 'torso', 'ribs', 'shL', 'shR'},
-    G_ARM_L: {'torso', 'ribs', 'shL', 'elL'}, G_ARM_R: {'torso', 'ribs', 'shR', 'elR'},
-    G_UPPER_L: {'ribs', 'shL'}, G_UPPER_R: {'ribs', 'shR'},
+    G_TORSO: {'hips', 'torso', 'ribs', 'clL', 'clR', 'shL', 'shR', 'neck'},
+    G_ARM_L: {'torso', 'ribs', 'clL', 'shL', 'elL'}, G_ARM_R: {'torso', 'ribs', 'clR', 'shR', 'elR'},
+    G_UPPER_L: {'ribs', 'clL', 'shL'}, G_UPPER_R: {'ribs', 'clR', 'shR'},
     G_FORE_L: {'elL'}, G_FORE_R: {'elR'},
     G_HAND_L: {'wrL'}, G_HAND_R: {'wrR'},
     G_LEG_L: {'hips', 'thL', 'knL'}, G_LEG_R: {'hips', 'thR', 'knR'},
@@ -30,11 +33,12 @@ ALLOW = {
     G_FOOT_L: {'knL', 'anL'}, G_FOOT_R: {'knR', 'anR'},   # 實際權重由 build_heroes 依高度在小腿與腳踝之間分配
     G_PELVIS: {'hips', 'torso', 'thL', 'thR'},
     G_BELT: {'hips', 'torso'},
-    G_NECK: {'ribs', 'head'},
+    G_NECK: {'ribs', 'neck', 'head'},
     G_CHEST: {'torso', 'ribs'},
 }
 ALLOW[G_SKIRT] = ALLOW[G_PELVIS]
-MIRROR_GRP = {G_ARM_L: G_ARM_R, G_HAND_L: G_HAND_R, G_LEG_L: G_LEG_R, G_FOOT_L: G_FOOT_R, G_UPPER_L: G_UPPER_R, G_FORE_L: G_FORE_R, G_SHIN_L: G_SHIN_R}
+MIRROR_GRP = {G_ARM_L: G_ARM_R, G_HAND_L: G_HAND_R, G_LEG_L: G_LEG_R, G_FOOT_L: G_FOOT_R, G_UPPER_L: G_UPPER_R, G_FORE_L: G_FORE_R, G_SHIN_L: G_SHIN_R,
+              G_FA_L: G_FA_R, G_FB_L: G_FB_R, G_FC_L: G_FC_R, G_TB_L: G_TB_R}
 
 
 # FighterZ 式的造型強調（全體英雄共用）：手腳加大、肌肉起伏更深、道服褲更蓬、髮束有稜線（每撮各自分出亮暗面）
@@ -209,30 +213,45 @@ def place_left_hand(F, ob):
 
 
 def fist(F, pal, mat=4, scale=1.0, glove=False):
-    """握拳：掌背塊＋四指捲曲＋拇指。"""
-    k = F.R['fist'] * scale * (1.0 if F.R.get('style') in ('cool', 'medic', 'staff') else FZ['hand']) / 0.086  # 女性角色維持原本的手
+    """手：以攤平的手建模（綁定姿勢），四指每節一段直的膠囊、各自剛性綁到 fa／fb／fc，拇指綁到 tb；
+    遊戲裡由骨頭彎成握拳、手刀或張掌。幾何參數來自 models.js 的 HAND_GEO（rig.json 的 handGeo），scale 參數已改由 PROPS.handK 決定。"""
+    H = F.R['handGeo']
+    k = H['k']
     parts = []
     palm = kit.box_cage('palm', 0.052 * k, 0.086 * k, 0.09 * k, cuts=(1, 1, 1))
     kit.deform(palm, lambda p: V((p.x * (1 - 0.15 * (p.y / (0.043 * k)) ** 2), p.y + 0.042 * k, p.z * (1 - 0.1 * max(0, -p.y) / (0.043 * k)))))
-    parts.append(kit.subsurf(palm, 2))
-    for i in range(4):
-        # 每指三節直的膠囊（彎折處交疊）：一條管子硬折會在內側自我穿插、翻面
-        z = (0.031 - i * 0.0205) * k
-        rr = (0.0128 - i * 0.0008) * k * (1.12 if glove else 1)
-        a = V((0.012 * k, 0.08 * k, z))
-        b = V((-0.003 * k, 0.103 * k, z * 1.02))
-        c = V((-0.024 * k, 0.1 * k, z * 1.02))
-        d = V((-0.02 * k, 0.08 * k, z))
-        for j, (p0, p1, r0, r1) in enumerate(((a, b, rr, rr * 1.04), (b, c, rr * 1.02, rr * 0.98), (c, d, rr * 0.97, rr * 0.9))):
-            f = path_loft('f%d%d' % (i, j), [p0, (p0 + p1) * 0.5, p1], [r0, (r0 + r1) * 0.52, r1], n=8, front=V((0, 0, 1)), side=V((1, 0, 0)), )
-            parts.append(kit.subsurf(f, 1))
-    t = path_loft('th', [V((-0.012 * k, 0.03 * k, 0.04 * k)), V((-0.027 * k, 0.06 * k, 0.051 * k)), V((-0.035 * k, 0.085 * k, 0.033 * k)), V((-0.035 * k, 0.091 * k, 0.012 * k))],
-                  [0.0165 * k, 0.0155 * k, 0.0135 * k, 0.0115 * k], n=8, front=V((0, 0, 1)), side=V((1, 0, 0)))
-    parts.append(kit.subsurf(t, 1))
+    palm = kit.subsurf(palm, 2)
+    kit.tag(palm, pal, mat=mat, grp=G_HAND_L, ol=0.3)
+    parts.append(palm)
+    kx, ky, L = H['kx'] * k, H['ky'] * k, [x * k for x in H['L']]
+    joints = [ky, ky + L[0], ky + L[0] + L[1], ky + L[0] + L[1] + L[2]]
+    for i, (fz, fr) in enumerate(zip(H['fz'], H['fr'])):
+        z = fz * k
+        rr = fr * k * (1.12 if glove else 1)
+        for j, grp in enumerate((G_FA_L, G_FB_L, G_FC_L)):
+            # 每節往兩端多伸出半個半徑，彎到 90 度時關節處仍然接得起來（像球關節）
+            y0 = joints[j] - (rr * 0.55 if j else rr * 0.9)
+            y1 = joints[j + 1] + (rr * 0.5 if j < 2 else 0)
+            r0, r1 = rr * (1.02 - 0.03 * j), rr * (0.98 - 0.05 * j) * (0.9 if j == 2 else 1)
+            f = path_loft('f%d%d' % (i, j), [V((kx, y0, z)), V((kx, (y0 + y1) * 0.5, z)), V((kx, y1, z))], [r0, (r0 + r1) * 0.52, r1], n=8, front=V((0, 0, 1)), side=V((1, 0, 0)))
+            f = kit.subsurf(f, 1)
+            kit.tag(f, pal, mat=mat, grp=grp, ol=0.3)
+            parts.append(f)
+    tb = H['thumb']
+    b0 = V(tb['base']) * k
+    td = V(tb['dir']).normalized()
+    tl0, tl1 = tb['L'][0] * k, tb['L'][1] * k
+    pts = [b0 - td * 0.006 * k, b0 + td * tl0 * 0.5, b0 + td * tl0, b0 + td * (tl0 + tl1 * 0.55), b0 + td * (tl0 + tl1)]
+    rs = [tb['r'][0] * k * 1.05, tb['r'][0] * k, tb['r'][1] * k * 1.02, tb['r'][1] * k, tb['r'][1] * k * 0.8]
+    if glove:
+        rs = [r * 1.1 for r in rs]
+    t = path_loft('th', pts, rs, n=8, front=V((1, 0, 0)), side=V((0, 0, 1)))
+    t = kit.subsurf(t, 1)
+    kit.tag(t, pal, mat=mat, grp=G_TB_L, ol=0.3)
+    parts.append(t)
     for o in parts:
-        kit.tag(o, pal, mat=mat, grp=G_HAND_L, ol=0.3)
-        # 掌心側（局部 −X）與指縫不描外框：反向殼在捲曲的手指與掌心之間會露出黑點
-        kit.paint_ol(o, lambda co: 0.0 if co.x < 0.004 * k else None)
+        # 掌心側（局部 −X）不描外框：握拳時四指的掌心面貼著手掌，反向殼會在指縫露出黑點
+        kit.paint_ol(o, lambda co: 0.0 if co.x < kx - 0.004 * k else None)
     hand = kit.join(parts, 'handL')
     return place_left_hand(F, hand)
 

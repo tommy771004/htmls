@@ -248,13 +248,23 @@ def build_one(hid, R, opt):
     if 'anL' in bone_names:
         G = body.data.attributes['grp'].data
         bidx = {n: i for i, n in enumerate(bone_names)}
-        feet = {heroes.G_FOOT_L: ('knL', 'anL'), heroes.G_FOOT_R: ('knR', 'anR')}
+        feet = {heroes.G_FOOT_L: ('knL', 'anL', 'toL'), heroes.G_FOOT_R: ('knR', 'anR', 'toR')}
+        has_toe = 'toL' in bidx
         for i, v in enumerate(body.data.vertices):
-            fb = feet.get(G[i].value)
+            g = G[i].value
+            fb = feet.get(g)
             if fb:
                 ay = R['bones'][bidx[fb[1]]]['head'][1]
                 k = kit.smooth(max(0.0, min(1.0, (ay + 0.045 - v.co.y) / 0.06)))
-                W[i] = [(bidx[fb[1]], k), (bidx[fb[0]], 1 - k)] if 0 < k < 1 else [(bidx[fb[1] if k >= 1 else fb[0]], 1.0)]
+                ws = {fb[0]: 1 - k, fb[1]: k}
+                if has_toe:
+                    # 腳趾：腳掌前段（腳趾關節之前）漸漸交給腳趾骨
+                    tz = R['bones'][bidx[fb[2]]]['head'][2]
+                    t = kit.smooth(max(0.0, min(1.0, (v.co.z - (tz - 0.015)) / 0.03))) * k
+                    ws = {fb[0]: 1 - k, fb[1]: k - t, fb[2]: t}
+                W[i] = [(bidx[b], w) for b, w in ws.items() if w > 1e-4] or [(bidx[fb[0]], 1.0)]
+            elif g in heroes.FINGER_BONE and heroes.FINGER_BONE[g] in bidx:
+                W[i] = [(bidx[heroes.FINGER_BONE[g]], 1.0)]   # 手指每節剛性跟著自己的骨頭
 
     # 遮蔽（各髮型分開算，避免超級賽亞人的頭髮被基本髮型遮到）
     t1 = time.time()

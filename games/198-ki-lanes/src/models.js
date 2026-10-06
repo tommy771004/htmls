@@ -156,7 +156,8 @@ for (const id in HERO) {
 /* ---------------- 姿勢 ---------------- */
 const KEYS = ['hipsY', 'hipsZ', 'hipsRX', 'hipsRY', 'hipsRZ', 'torsoX', 'torsoY', 'torsoZ', 'headX', 'headY', 'headZ',
   'shLX', 'shLY', 'shLZ', 'elL', 'shRX', 'shRY', 'shRZ', 'elR', 'thLX', 'thLZ', 'knL', 'thRX', 'thRZ', 'knR', 'spin', 'stretch',
-  'wrL', 'wrR', 'anL', 'anR']; // 手腕前後彎、腳踝（在自動貼地之外再加的量）
+  'wrL', 'wrR', 'anL', 'anR', // 手腕前後彎、腳踝（在自動貼地之外再加的量）
+  'clL', 'clR', 'hoL', 'hoR', 'hsL', 'hsR', 'toL', 'toR']; // 鎖骨前送（自動之外再加）、手張開 0 拳～1 攤平、拇指 0 收～1 張、腳趾
 function blank() { const p = {}; for (const k of KEYS) p[k] = 0; p.shLZ = 0.12; p.shRZ = 0.12; p.elL = -0.15; p.elR = -0.15; return p; }
 function lerpPose(a, b, k, out = {}) { for (const key of KEYS) out[key] = a[key] + (b[key] - a[key]) * k; return out; }
 const ease = (k) => k * k * (3 - 2 * k);
@@ -217,6 +218,8 @@ function stance(style, t) {
       shLX: -1.15, shLZ: 0.32, elL: -1.95, shRX: -0.55, shRZ: 0.42, elR: -2.2,
       thLX: -0.4, thLZ: 0.24, knL: 0.62, thRX: 0.42, thRZ: 0.22, knR: 0.62 });
   }
+  if (style === 'cool' || style === 'regal' || style === 'staff') { p.hoL = 0.55; p.hoR = 0.55; p.hsL = p.hsR = 0.3; } // 不握拳的角色：手放鬆半開
+  if (style === 'regal') { p.hoR = 0.85; p.hsR = 0.6; } // 弗利沙前舉的手是張開的
   return p;
 }
 
@@ -232,6 +235,7 @@ function strike(t, ti, base, W, S, rec = 0.36) {
 }
 export const IMPACT = { atk1: 0.1, atk2: 0.12, atk3: 0.16, slash: 0.12, cast: 0.16, beam: 0.4, grab: 0.18, overhead: 0.3 };
 
+const HAND_OPEN = { cast: [0.2, 1, 0.6], beam: [1, 1, 0.85], barrier: [1, 1, 1], grab: [0.3, 1, 0.5], overhead: [0.4, 1, 1], win: [0, 0, 0] };
 function heroPose(d, name, t, k, phase, out) {
   const base = stance(d.style, t);
   const P = (o) => Object.assign({ ...base }, o);
@@ -424,6 +428,8 @@ function heroPose(d, name, t, k, phase, out) {
       break;
     default: break;
   }
+  // 手形（第三版骨架）：發氣功、龜派氣功、護盾、抓取、高舉氣彈是張開的手；冷淡型的待機是放鬆半開
+  if (HAND_OPEN[name]) { const [l, r, ts] = HAND_OPEN[name]; p = p === base ? { ...p } : p; p.hoL = Math.max(p.hoL, l); p.hoR = Math.max(p.hoR, r); p.hsL = p.hsR = ts; }
   return lerpPose(p, p, 0, out);
 }
 
@@ -519,8 +525,16 @@ export function chainSpecs(id, d) {
 export const BIND = { shZ: 0.75, thZ: 0.1 };
 export const BONE_ORDER = ['hips', 'torso', 'head', 'shL', 'elL', 'shR', 'elR', 'thL', 'knL', 'thR', 'knR'];
 // 第二版骨架多出的關節（接在擺動鏈之後，舊烘焙資料的骨索引不變）：胸（分擔腰的扭轉）、手腕、腳踝
-export const BONE_EXTRA = ['ribs', 'wrL', 'wrR', 'anL', 'anR'];
+// 第三版再加：鎖骨（出拳送肩、舉手聳肩）、脖子（和頭分攤轉動）、腳趾（蹬地）、手指（四指共用三節＋拇指，握拳／張掌／手刀）
+export const BONE_EXTRA = ['ribs', 'wrL', 'wrR', 'anL', 'anR', 'clL', 'clR', 'neck', 'toL', 'toR', 'faL', 'fbL', 'fcL', 'tbL', 'faR', 'fbR', 'fcR', 'tbR'];
 const RIBS_K = 0.42; // 胸骨在軀幹高度的位置
+// 手的幾何（Blender 的 fist() 照這裡建模，rig-dump 寫進 rig.json）：手掌局部座標 +Y 指尖、+X 手背、+Z 拇指側，單位 k＝fist×handK／0.086。
+// 綁定姿勢是攤平的手：四指從指根線（x、y）沿 +Y 伸直，三節長 L；拇指從 base 沿 dir 伸出兩節
+export const HAND_GEO = { kx: 0.004, ky: 0.082, L: [0.03, 0.022, 0.019], fz: [0.031, 0.0105, -0.01, -0.0305], fr: [0.0128, 0.012, 0.0112, 0.0104],
+  thumb: { base: [-0.008, 0.024, 0.036], dir: [0, 0.55, 0.835], L: [0.03, 0.026], r: [0.0165, 0.0145] } };
+export const TOE_GEO = { y: 0.03, z: 0.105 }; // 腳趾關節（腳掌前段的彎折處），單位＝靴子腳掌的倍率 s
+export const footScale = (d) => (d.shin / 0.08) * 1.05 * 1.1;
+export const handScale = (d) => (d.fist * (d.handK || 1)) / 0.086;
 
 export function heroSkeleton(id) {
   const d = HERO[id];
@@ -532,12 +546,17 @@ export function heroSkeleton(id) {
   const torso = bone('torso', hips, 0, 0.02, 0);
   const ry = d.torso * RIBS_K;
   const ribs = bone('ribs', torso, 0, ry, 0);
-  const head = bone('head', ribs, 0, d.torso + 0.04 + d.neck - ry, 0);
-  const J = { hips, torso, ribs, head };
+  const ny = d.torso - 0.035 - ry; // 脖子根（鎖骨窩的高度）
+  const neck = bone('neck', ribs, 0, ny, 0);
+  const head = bone('head', neck, 0, d.torso + 0.04 + d.neck - ry - ny, 0);
+  const J = { hips, torso, ribs, neck, head };
   const hands = {};
   for (const side of ['L', 'R']) {
     const sx = side === 'L' ? 1 : -1;
-    const sh = bone('sh' + side, ribs, sx * d.sw, d.torso - 0.05 - ry, 0);
+    const cy = d.torso - 0.05 - ry, cx = sx * Math.min(0.035, d.sw * 0.25);
+    const cl = bone('cl' + side, ribs, cx, cy - 0.012, d.chest[2] * 0.35);
+    const sh = bone('sh' + side, cl, sx * d.sw - cx, 0.012, -d.chest[2] * 0.35);
+    J['cl' + side] = cl;
     const el = bone('el' + side, sh, 0, -d.upper, 0);
     const wr = bone('wr' + side, el, 0, -d.lower, 0);
     const hand = new THREE.Object3D(); hand.position.y = -d.fist * 0.55; wr.add(hand); hands[side] = hand;
@@ -555,9 +574,44 @@ export function heroSkeleton(id) {
     }
     return { ...c, segs };
   });
+  placeDigits(d, J, bone);
   for (const n of BONE_EXTRA) bones.push(J[n]);
   const chest = new THREE.Object3D(); chest.position.set(0, d.torso * 0.66 - ry, d.chest[2] * 0.5); ribs.add(chest);
   return { d, root, body, J, hands, chest, chains, bones };
+}
+// 手指與腳趾的骨頭：在 A 字綁定姿勢下照 Blender 建模的世界座標擺好，再換回各自父骨的局部座標
+const _m4 = new THREE.Matrix4(), _v = new THREE.Vector3();
+function placeDigits(d, J, bone) {
+  const root = J.hips.parent.parent;
+  const saved = []; root.traverse((o) => { if (o.isBone) saved.push([o, o.rotation.clone()]); });
+  J.shL.rotation.z = BIND.shZ; J.shR.rotation.z = -BIND.shZ; J.thL.rotation.z = BIND.thZ; J.thR.rotation.z = -BIND.thZ;
+  root.updateMatrixWorld(true);
+  const W = (o) => new THREE.Vector3().setFromMatrixPosition(o.matrixWorld);
+  const local = (parent, p) => { parent.updateMatrixWorld(true); return p.clone().applyMatrix4(_m4.copy(parent.matrixWorld).invert()); };
+  const k = handScale(d), H = HAND_GEO;
+  // 左手的手掌座標系（和 heroes.py 的 place_left_hand 一致）：腕點、指尖方向 da、手背方向 x＝z×da
+  const sh = W(J.shL), el = W(J.elL), da = el.clone().sub(sh).normalize();
+  const wrist = sh.clone().addScaledVector(da, d.upper + d.lower - 0.005), z = new THREE.Vector3(0, 0, 1), x = new THREE.Vector3().crossVectors(z, da).normalize();
+  const hp = (hx, hy, hz) => wrist.clone().addScaledVector(x, hx * k).addScaledVector(da, hy * k).addScaledVector(z, hz * k);
+  const tb = H.thumb, tdir = new THREE.Vector3().addScaledVector(x, tb.dir[0]).addScaledVector(da, tb.dir[1]).addScaledVector(z, tb.dir[2]).normalize();
+  const pts = {
+    fa: hp(H.kx, H.ky, 0), fb: hp(H.kx, H.ky + H.L[0], 0), fc: hp(H.kx, H.ky + H.L[0] + H.L[1], 0),
+    tb: hp(...tb.base),
+  };
+  const s = footScale(d);
+  for (const side of ['L', 'R']) {
+    const sx = side === 'L' ? 1 : -1, M = (p) => new THREE.Vector3(p.x * sx, p.y, p.z);
+    let par = J['wr' + side];
+    for (const n of ['fa', 'fb', 'fc']) { const b = bone(n + side, par, 0, 0, 0); b.position.copy(local(par, M(pts[n]))); J[n + side] = b; par = b; }
+    const t = bone('tb' + side, J['wr' + side], 0, 0, 0); t.position.copy(local(J['wr' + side], M(pts.tb))); J['tb' + side] = t;
+    // 腳趾：靴子腳掌在世界座標沿 +Z 建模，腳趾關節在 (腳底 x＋0.004, TOE.y×s, TOE.z×s)
+    const sole = W(J['kn' + side]).add(_v.set(0, -d.shinLen, 0).applyQuaternion(new THREE.Quaternion().setFromRotationMatrix(J['kn' + side].matrixWorld)));
+    const tp = new THREE.Vector3(sole.x + 0.004 * sx, TOE_GEO.y * s, TOE_GEO.z * s);
+    const to = bone('to' + side, J['an' + side], 0, 0, 0); to.position.copy(local(J['an' + side], tp)); J['to' + side] = to;
+  }
+  for (const [o, r] of saved) o.rotation.copy(r);
+  root.updateMatrixWorld(true);
+  J._thumbDir = tdir; // 只給 rig-dump 用（拇指骨的尾端方向）
 }
 export function bindPose(sk) {
   for (const b of sk.bones) b.rotation.set(0, 0, 0);
@@ -584,6 +638,14 @@ function hairWeights(g, hr) {
 const smooth01 = (x) => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
 
 /* ---------------- buildHero ---------------- */
+// 手指彎曲（三節，弧度）：握拳與攤開；拇指三種姿勢（腕骨局部座標的四元數，左手）：握拳時壓在四指上、手刀時貼著食指、張掌時照建模的方向
+const FIST_CURL = [1.45, 1.55, 0.95], OPEN_CURL = [0.06, 0.05, 0.03], FING = ['fa', 'fb', 'fc'];
+const _q2 = new THREE.Quaternion();
+const THUMB_Q = (() => {
+  const t = HAND_GEO.thumb.dir, rest = new THREE.Vector3(t[0], -t[1], t[2]).normalize(); // 手掌座標 → 腕骨局部（+Y 指尖 ＝ 局部 −Y）
+  const to = (x, y, z) => new THREE.Quaternion().setFromUnitVectors(rest, new THREE.Vector3(x, y, z).normalize());
+  return { spread: new THREE.Quaternion(), tuck: to(-0.25, -0.9, 0.3), wrap: to(-0.45, -0.3, -0.85) };
+})();
 const SHOUT = new Set(['atk2', 'atk3', 'cast', 'beam', 'rush', 'overhead', 'slash', 'grab', 'charge', 'dash']);
 const HURT = new Set(['stun', 'air', 'dead']);
 const SWORD_IN_HAND = new Set(['atk1', 'atk2', 'atk3', 'slash', 'rush', 'dash']);
@@ -594,6 +656,7 @@ export function buildHero(id, team = 0) {
   const { hips, torso, head } = J;
   const gs = buildHeroParts(id, d);
   const rig2 = gs.rig >= 2; // 網格有胸、腕、踝權重（第二版骨架烘焙）才分攤扭轉、轉腕踝
+  const rig3 = gs.rig >= 3; // 第三版：鎖骨、脖子、手指、腳趾
   const pair = (geometry, parent, mat, w = OW) => {
     const m = new THREE.Mesh(geometry, mat); m.castShadow = true; parent.add(m);
     if (w) { const o = new THREE.Mesh(geometry, skinOutlineMat(w)); o.raycast = () => {}; parent.add(o); m.userData.outline = o; }
@@ -761,7 +824,11 @@ export function buildHero(id, team = 0) {
         J['wr' + s].rotation.x = cur['wr' + s];
       }
     } else torso.rotation.set(cur.torsoX, cur.torsoY, cur.torsoZ, 'YXZ');
-    head.rotation.set(cur.headX, cur.headY - cur.torsoY * 0.5, cur.headZ, 'YXZ');
+    if (rig3) {
+      J.neck.rotation.set(cur.headX * 0.35, (cur.headY - cur.torsoY * 0.5) * 0.35, cur.headZ * 0.35, 'YXZ');
+      head.rotation.set(cur.headX * 0.65, (cur.headY - cur.torsoY * 0.5) * 0.65, cur.headZ * 0.65, 'YXZ');
+      digits(cur);
+    } else head.rotation.set(cur.headX, cur.headY - cur.torsoY * 0.5, cur.headZ, 'YXZ');
     J.shL.rotation.set(cur.shLX, cur.shLY, cur.shLZ);
     J.shR.rotation.set(cur.shRX, -cur.shRY, -cur.shRZ);
     J.elL.rotation.x = cur.elL; J.elR.rotation.x = cur.elR;
@@ -769,6 +836,22 @@ export function buildHero(id, team = 0) {
     J.thR.rotation.set(cur.thRX, 0, -cur.thRZ);
     J.knL.rotation.x = cur.knL; J.knR.rotation.x = cur.knR;
     J.shR.scale.y = 1 + Math.max(0, cur.stretch);
+  }
+  // 第三版骨架的自動部分：鎖骨（舉手聳肩、伸手送肩）、手指（握拳／張開）、拇指、腳趾（腳跟離地時貼地）
+  function digits(cur) {
+    for (const s of ['L', 'R']) {
+      const sx = s === 'L' ? 1 : -1, shX = cur['sh' + s + 'X'], shZ = cur['sh' + s + 'Z'], el = cur['el' + s];
+      const raise = smooth01((-shX - 1.7) / 1.1) + 0.6 * smooth01((shZ - 0.9) / 0.8);
+      const reach = smooth01((-shX - 0.7) / 0.8) * (1 - smooth01((-el - 0.5) / 1.0)) - 0.6 * smooth01((shX - 0.2) / 0.6);
+      J['cl' + s].rotation.set(0, -sx * (0.3 * reach + cur['cl' + s]), sx * 0.3 * Math.min(1, raise), 'YXZ');
+      const o = clamp(cur['ho' + s], 0, 1);
+      for (let i = 0; i < 3; i++) J[FING[i] + s].rotation.z = -sx * (FIST_CURL[i] + (OPEN_CURL[i] - FIST_CURL[i]) * o);
+      _q.copy(THUMB_Q.wrap).slerp(_q2.copy(THUMB_Q.tuck).slerp(THUMB_Q.spread, clamp(cur['hs' + s], 0, 1)), o);
+      if (sx < 0) { _q.y = -_q.y; _q.z = -_q.z; } // 右手是左手的鏡像
+      J['tb' + s].quaternion.copy(_q);
+      const pitch = cur.hipsRX + cur['th' + s + 'X'] + cur['kn' + s] + J['an' + s].rotation.x, up = smooth01((-cur['th' + s + 'X'] - 0.9) / 0.6);
+      J['to' + s].rotation.x = clamp(-pitch, -0.9, 0.2) * (1 - up) + cur['to' + s];
+    }
   }
   apply(cur);
   // 受擊：lx／lz 是攻擊來源在角色本地座標的方向（+z 正前、+x 角色左手邊），p 0～1 是力道
