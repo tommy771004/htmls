@@ -143,7 +143,8 @@ export function heroAct(G, h, dt) {
   h.anim.t += dt;
   if (h.action) {
     const a = h.action; a.t += dt;
-    if (a.name) { if (h.anim.name !== a.name) { h.anim.name = a.name; h.anim.t = a.t; } }
+    // 動作開始時對齊動畫名；之後 step() 可以把動畫換成別的段落（連打的收尾 atk3、三千世界的 vanish），不再每格被改回去
+    if (a.name && h.anim.act !== a) { h.anim.act = a; if (h.anim.name !== a.name) { h.anim.name = a.name; h.anim.t = a.t; } }
     a.step && a.step(G, h, dt);
     if (h.action === a && a.t >= a.dur) { a.end && a.end(G, h); if (h.action === a) h.action = null; }
     return;

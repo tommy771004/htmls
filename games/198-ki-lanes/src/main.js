@@ -499,12 +499,18 @@ window.__ki = {
   pick(id) { select.pick(id); },
   pause(on) { paused = on; },
   // 檢查動作用：暫停後把某隻英雄的骨架推到指定動作與時間（steps 幀讓平滑收斂），face 設定面向
-  pose(name, t = 0, { id, steps = 24, face, hit } = {}) {
+  // name 可以寫成「動作:技能鍵」（例如 'cast:Q'）；real=true 時先站架式再照 60 fps 從 0 播到 t（和實機一樣受平滑影響）
+  pose(name, t = 0, { id, steps = 24, face, hit, real = false } = {}) {
     const u = id != null ? G.units.find((o) => o.id === id) : G.player, r = u && rigs.get(u.id);
     if (!r) return false;
+    const [nm, key = null] = name.split(':');
     if (face != null) r.rig.root.rotation.y = face;
     if (hit) r.rig.hitReact(hit[0], hit[1], hit[2]);
-    for (let i = 0; i < steps; i++) r.rig.update(1 / 60, { name, t: t + (hit ? i / 60 : 0), k: name === 'dead' ? 1 : 0 });
+    if (real) {
+      for (let i = 0; i < 30; i++) r.rig.update(1 / 60, { name: 'idle', t: 0 });
+      const n = Math.max(1, Math.round(t * 60));
+      for (let i = 0; i <= n; i++) r.rig.update(1 / 60, { name: nm, t: (i / n) * t, k: nm === 'dead' ? 1 : 0, key });
+    } else for (let i = 0; i < steps; i++) r.rig.update(1 / 60, { name: nm, t: t + (hit ? i / 60 : 0), k: nm === 'dead' ? 1 : 0, key });
     return true;
   },
   setQuality(q) { R.setQuality(q); },

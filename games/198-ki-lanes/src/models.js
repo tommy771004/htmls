@@ -421,6 +421,7 @@ function heroPose(d, name, t, k, phase, out, key) {
     default: break;
   }
   if (mine) name = ctx.name;
+  out.__own = mine ? 1 : 0;
   // 手形（第三版骨架）：發氣功、龜派氣功、護盾、抓取、高舉氣彈是張開的手；冷淡型的待機是放鬆半開
   if (HAND_OPEN[name] && !(mine && mine.ownHands)) { const [l, r, ts] = HAND_OPEN[name]; p = p === base ? { ...p } : p; p.hoL = Math.max(p.hoL, l); p.hoR = Math.max(p.hoR, r); p.hsL = p.hsR = ts; }
   return lerpPose(p, p, 0, out);
@@ -749,12 +750,16 @@ export function buildHero(id, team = 0) {
     if (name === 'idle' || name === 'run') { blinkT -= dt; if (blinkT < -0.12) blinkT = 2.5 + Math.random() * 2.5; }
     const ex = name === 'win' ? 'happy' : SHOUT.has(name) ? 'shout' : HURT.has(name) ? 'hurt' : (name === 'idle' || name === 'run') && blinkT < 0 ? 'blink' : '';
     if (ex !== expr) { expr = ex; const key = form + (ex ? '_' + ex : ''), tex = gs.face(key); if (tex) skull.material = headMat(id, key, tex, gs.faceRect); }
-    const fast = name.startsWith('atk') || name === 'slash' || name === 'cast' || name === 'rush' || name === 'vanish' || name === 'grab' || (name === 'beam' && t > 0.3);
-    const rate = name !== lastName && fast ? 45 : fast ? 38 : name === 'dead' ? 9 : 13;
+    // 角色專屬動作（src/poses）照影格時間設計，也走快速跟隨；衝刺本來就短，一起加快
+    const own = tgt.__own;
+    const fast = own || name.startsWith('atk') || name === 'slash' || name === 'cast' || name === 'rush' || name === 'vanish' || name === 'grab' || name === 'dash' || (name === 'beam' && t > 0.3);
+    const rate = name !== lastName && fast ? 45 : fast ? (own ? 32 : 38) : name === 'dead' ? 9 : 13;
     lastName = name;
     const a = 1 - Math.exp(-rate * dt);
     for (const key of KEYS) cur[key] += (tgt[key] - cur[key]) * a;
-    if (name === 'vanish') cur.spin = tgt.spin; else cur.spin = 0;
+    // 自轉（瞬移、旋風節拍、三千世界…）：姿勢給多少就轉多少；停轉時先把角度折回 ±π 再平滑歸零，不會一下子跳回正面
+    if (tgt.spin) cur.spin = tgt.spin;
+    else if (cur.spin) { cur.spin = Math.atan2(Math.sin(cur.spin), Math.cos(cur.spin)); cur.spin *= Math.exp(-18 * dt); if (Math.abs(cur.spin) < 1e-3) cur.spin = 0; }
     // 受擊反應：疊在目前姿勢上的一次性後仰／側折（被打的方向決定往哪折），重擊折得更深、回得更慢
     if (hit.t < 1) {
       hit.t += dt;
@@ -848,8 +853,9 @@ export function buildHero(id, team = 0) {
     J.thL.rotation.set(cur.thLX, 0, cur.thLZ);
     J.thR.rotation.set(cur.thRX, 0, -cur.thRZ);
     J.knL.rotation.x = cur.knL; J.knR.rotation.x = cur.knR;
-    J.shR.scale.y = 1 + Math.max(0, cur.stretch);
-    J.wrR.scale.y = 1 / J.shR.scale.y; // 魯夫伸長手臂時拳頭不跟著拉長
+    // 魯夫伸臂：從手肘拉長前臂（拉肩膀會連胸口、袖口一起拉破），拳頭不跟著變長
+    J.elR.scale.y = 1 + Math.max(0, cur.stretch) * (d.upper + d.lower) / d.lower;
+    J.wrR.scale.y = 1 / J.elR.scale.y;
   }
   // 第三版骨架的自動部分：鎖骨（舉手聳肩、伸手送肩）、手指（握拳／張開）、拇指、腳趾（腳跟離地時貼地）
   function digits(cur) {

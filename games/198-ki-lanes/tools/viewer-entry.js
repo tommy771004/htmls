@@ -1,5 +1,5 @@
 // 開發用角色檢視頁（不進成品）：node tools/viewer.mjs 打包並截圖。
-// URL 參數：ids=goku,vegeta、anim=idle、key=Q、t=0.4、ang=0（度）、zoom=1、form=ssj、y=0.9（鏡頭看向的高度）、pitch（俯角，度）、
+// URL 參數：ids=goku,vegeta、anim=idle、key=Q、t=0.4（照遊戲時間軸播到 t；settle=1 改成慢慢收斂）、ang=0（度）、zoom=1、form=ssj、y=0.9（鏡頭看向的高度）、pitch（俯角，度）、
 // focus=handL｜handR｜head（對準第一名角色的部位）＋fy（高度偏移）、nool=1（隱藏外框，查外框殼的問題）
 import * as THREE from 'three';
 import { buildHero, HERO_IDS } from '../src/models.js';
@@ -26,7 +26,14 @@ if (q.get('nool')) for (const r of rigs) r.root.traverse((o) => { if (o.material
 const anim = q.get('anim') || 'idle', t = +(q.get('t') || 0.4), ang = (+(q.get('ang') || 0) * Math.PI) / 180;
 for (const r of rigs) r.root.rotation.y = ang;
 const key = q.get('key') || null; // 技能鍵（Q／W／E／R）：選角色專屬的招式動作
-for (let i = 0; i < 40; i++) for (const r of rigs) r.update(1 / 60, { name: anim, t: anim === 'idle' ? 0 : Math.min(t, (i / 39) * t), k: 0.5, key });
+// 預設照遊戲裡的時間軸：先在架式站 0.5 秒，再從 t=0 以 60 fps 播到指定時間（和實機一樣受平滑影響）；settle=1 改回舊的「慢慢收斂到該影格」
+if (q.get('settle') || anim === 'idle' || anim === 'stand' || anim === 'dead') {
+  for (let i = 0; i < 40; i++) for (const r of rigs) r.update(1 / 60, { name: anim, t: anim === 'idle' ? 0 : Math.min(t, (i / 39) * t), k: anim === 'dead' ? 1 : 0.5, key });
+} else {
+  for (let i = 0; i < 30; i++) for (const r of rigs) r.update(1 / 60, { name: 'idle', t: 0 });
+  const n = Math.max(1, Math.round(t * 60));
+  for (let i = 0; i <= n; i++) for (const r of rigs) r.update(1 / 60, { name: anim, t: (i / n) * t, k: Math.min(1, (i / n) * t / 0.25), key });
+}
 const zoom = +(q.get('zoom') || 1), y = +(q.get('y') || 0.95);
 const width = ids.length * 1.25 + 0.4;
 const dist = (Math.max(width / (innerWidth / innerHeight), 2.3) / zoom) / (2 * Math.tan((22 * Math.PI) / 360));
