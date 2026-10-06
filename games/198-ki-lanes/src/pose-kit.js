@@ -4,7 +4,8 @@
 export const KEYS = ['hipsY', 'hipsZ', 'hipsRX', 'hipsRY', 'hipsRZ', 'torsoX', 'torsoY', 'torsoZ', 'headX', 'headY', 'headZ',
   'shLX', 'shLY', 'shLZ', 'elL', 'shRX', 'shRY', 'shRZ', 'elR', 'thLX', 'thLZ', 'knL', 'thRX', 'thRZ', 'knR', 'spin', 'stretch',
   'wrL', 'wrR', 'anL', 'anR', // 手腕前後彎、腳踝（在自動貼地之外再加的量）
-  'clL', 'clR', 'hoL', 'hoR', 'hsL', 'hsR', 'toL', 'toR']; // 鎖骨前送（自動之外再加）、手張開 0 拳～1 攤平、拇指 0 收～1 張、腳趾
+  'clL', 'clR', 'hoL', 'hoR', 'hsL', 'hsR', 'toL', 'toR', // 鎖骨前送（自動之外再加）、手張開 0 拳～1 攤平、拇指 0 收～1 張、腳趾
+  'prop']; // 武器（劍、天候棒）：1 拿在右手、−1 收在背後／腰間、0 依動作名的預設（models.js 的 SWORD_IN_HAND）
 export function blank() { const p = {}; for (const k of KEYS) p[k] = 0; p.shLZ = 0.12; p.shRZ = 0.12; p.elL = -0.15; p.elR = -0.15; return p; }
 export function lerpPose(a, b, k, out = {}) { for (const key of KEYS) out[key] = a[key] + (b[key] - a[key]) * k; return out; }
 export const ease = (k) => k * k * (3 - 2 * k);

@@ -302,7 +302,7 @@ export function cast(G, h, k, tx, tz) {
 }
 
 /* ---------------- 共用動作 ---------------- */
-function act(h, o) { h.action = Object.assign({ t: 0, key: h.castKey || (h.action && h.action.key) || null }, o); h.anim.name = o.name; h.anim.t = 0; h.goal = null; return h.action; }
+function act(h, o) { h.action = Object.assign({ t: 0 }, o, { key: o.key || h.castKey || (h.action && h.action.key) || null }); h.anim.name = o.name; h.anim.t = 0; h.goal = null; return h.action; }
 
 // 衝刺：沿 ang 前進 len，撞到敵人時呼叫 onContact(u)（回傳 true 停下）
 function dashAction(G, h, { ang, len, speed, name = 'dash', pass = false, onContact, onEnd, onPass, hitR = 1.3 }) {
@@ -434,7 +434,7 @@ function blastBall(G, h, { ang, s }, color, style = 'ki') {
 function pierceWave(G, h, { ang, s }, color, vis, opts = {}) {
   face(h, h.x + sin(ang), h.z + cos(ang));
   act(h, {
-    name: 'cast', dur: 0.32, fired: false,
+    name: 'cast', dur: 0.32, fired: false, key: opts.key, // 延遲觸發（G.later）時 castKey 已清掉，由 opts.key 帶技能鍵給畫面
     step(G, h) {
       if (this.fired || this.t < 0.14) return; this.fired = true;
       const dmg = skillDmg(h, opts.key || 'Q');

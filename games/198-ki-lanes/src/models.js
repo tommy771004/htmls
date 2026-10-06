@@ -770,7 +770,7 @@ export function buildHero(id, team = 0) {
     } else apply(cur);
     // 劍：攻擊時在手上，平常收在背上
     if (sword) {
-      const want = SWORD_IN_HAND.has(name) ? 'hand' : 'back';
+      const want = tgt.prop > 0.5 ? 'hand' : tgt.prop < -0.5 ? 'back' : SWORD_IN_HAND.has(name) ? 'hand' : 'back';
       if (want !== swordState) {
         swordState = want;
         (want === 'hand' ? handSocket : backSocket).add(sword);
@@ -783,8 +783,10 @@ export function buildHero(id, team = 0) {
       c.segs.forEach((s, i) => {
         const fl = Math.sin(c.phase - i * 1.1) * c.flutter * (0.25 + clamp(speed / 7, 0, 1)) * (name === 'charge' ? 2 : 1);
         // 布條受重力：身體前後大幅傾斜（重踢、衝刺、被打飛）時往下垂，不跟著骨盆翹出去
-        const g = i === 0 && c.hang ? -clamp(cur.hipsRX, -1.2, 1.2) * 0.85 : 0;
-        const target = (i === 0 ? c.base + lift * c.lift + g : lift * 0.18 * c.lift + c.curl) + fl;
+        // 躺在地上時地面擋著，不再往下垂；尾巴比布條硬，只順著身體傾斜一部分，躺下時平貼地面往外伸
+        const dead = name === 'dead';
+        const g = i !== 0 ? 0 : c.hang ? (dead ? 0 : -clamp(cur.hipsRX, -1.2, 1.2) * 0.85) : dead ? -c.base - lift * c.lift + 0.05 : -clamp(cur.hipsRX, -1.2, 1.2) * 0.45;
+        const target = (i === 0 ? c.base + lift * c.lift + g : lift * 0.18 * c.lift + c.curl * (dead ? 0.3 : 1)) + fl;
         c.cur[i] += (target - c.cur[i]) * (1 - Math.exp(-(9 - i * 1.5) * dt));
         s.rotation.x = c.cur[i];
         if (i === 0) s.rotation.y = c.yaw + (c.sway ? Math.sin(time * 1.7) * c.sway : 0);

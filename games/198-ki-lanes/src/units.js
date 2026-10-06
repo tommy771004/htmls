@@ -112,7 +112,7 @@ function statMods(u, it) {
   const s = u.def.stats, lv = u.level - 1, baseAd = s.ad + s.adLv * lv, baseHp = s.hp + s.hpLv * lv;
   const adaptive = (v) => { if ((u.ap || 0) > u.ad - baseAd) u.ap += v; else u.ad += v * 0.6; }; // 適性之力：加在氣功強度或攻擊（取額外較高的一邊）
   const addStats = (st) => { for (const k in st) { const v = st[k]; if (!v) continue; if (k === 'ms') u.ms *= 1 + v; else if (k === 'as') u.as = Math.max(STAT.asMinInterval, u.as / (1 + v)); else if (k === 'hp') { u.maxHp += v; } else if (k === 'ten') u.ten = 1 - (1 - u.ten) * (1 - v); else if (k === 'adaptive') adaptive(v); else u[k] = (u[k] || 0) + v; } };
-  u.ultAh = 0; u.basicAh = 0; u.sumAh = 0; u.healTaken = 0; u.itemAh = 0; u.msAmp = 0; u.wardLife = 0;
+  u.ultAh = 0; u.basicAh = 0; u.sumAh = 0; u.healTaken = 0; u.costCut = 0; u.itemAh = 0; u.msAmp = 0; u.wardLife = 0;
   if (u.colHp) u.maxHp += u.colHp;
   if (u.critStk) u.crit = Math.min(1, u.crit + u.critStk);
   for (const key in u.psv) {
