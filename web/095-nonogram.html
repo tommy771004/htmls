@@ -475,7 +475,7 @@
   // (a rebuild replays the solved-ink animation and drops the red 檢查 marks)
   addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (P && cellSize() !== lastCs) { build(); refresh(); if (won) board.classList.add('won'); } }, 150); });
 
-  let first = 1;
+  let first = 0; // first visit opens the 5×5 warm-up; returning visitors resume their last puzzle
   try { const l = parseInt(localStorage.getItem('nono095-last'), 10); if (l >= 0 && l < PUZ.length) first = l; } catch (_) {}
   load(first);
 })();

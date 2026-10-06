@@ -316,7 +316,7 @@ img.px { image-rendering: pixelated; image-rendering: crisp-edges; }
 .dpad button[data-btn="down"] { grid-area: 3 / 2; }
 .dpad button span { font-size: 14px; }
 #pad button.down { transform: translateY(2px); box-shadow: none; filter: brightness(1.25); }
-.menu-btn { border: 0; padding: 8px 12px; border-radius: var(--r-s); background: #3b2f22; color: #f4ead2; font-size: 12px; letter-spacing: 0.1em; align-self: end; margin-bottom: 18px; touch-action: none; }
+.menu-btn { border: 0; padding: 8px 12px; border-radius: 99px; background: #3b2f22; color: #f4ead2; font-size: 12px; letter-spacing: 0.1em; align-self: end; margin-bottom: 18px; touch-action: none; }
 .ab { justify-self: end; display: flex; gap: 12px; align-items: center; transform: rotate(-12deg); }
 .ab button { width: 58px; height: 58px; border-radius: 50%; border: 0; font-weight: 900; font-size: 18px; color: #fff4dc; box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.35); touch-action: none; }
 .ab .a { background: var(--accent); margin-bottom: 22px; }

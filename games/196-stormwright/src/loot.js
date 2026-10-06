@@ -214,8 +214,9 @@ export class Loot {
       this.drop(r.swapped, _v.set(a.pos.x, a.pos.y + 0.9, a.pos.z), { x: fx, z: fz }, 2.2, 2.6);
     }
     if (it.kind === 'weapon' && inv.selected === 0 && !r.swapped) inv.selected = r.slot;
-    if (r.remainder) this.ctx.events.emit('pickup', { actor: a, item: it, partial: true });   // 疊滿了，剩下的留在地上
-    else { this._remove(p); this.ctx.events.emit('pickup', { actor: a, item: it }); }
+    const shown = r.taken != null ? { ...it, count: r.taken } : it;   // 彈藥／材料提示顯示實際收下的數量
+    if (r.remainder) this.ctx.events.emit('pickup', { actor: a, item: shown, partial: true });   // 疊滿了，剩下的留在地上
+    else { this._remove(p); this.ctx.events.emit('pickup', { actor: a, item: shown }); }
     return true;
   }
 
@@ -273,7 +274,13 @@ export class Loot {
         const p = this.pickups[i], k = p.item.kind;
         if ((k !== 'ammo' && k !== 'mats') || p.fly) continue;
         if (Math.abs(p.pos.x - a.pos.x) > AUTO_R || Math.abs(p.pos.z - a.pos.z) > AUTO_R) continue;
-        if (Math.abs(p.pos.y - a.pos.y) < 2) { a.inventory.add(p.item); this._remove(p); this.ctx.events.emit('pickup', { actor: a, item: p.item }); }
+        if (Math.abs(p.pos.y - a.pos.y) < 2) {
+          const r = a.inventory.add(p.item);
+          if (!r.added) continue;                       // 已達 999：留在地上，不再吃掉
+          const shown = { ...p.item, count: r.taken };  // 提示顯示實際收下的數量
+          if (r.remainder) this.ctx.events.emit('pickup', { actor: a, item: shown, partial: true });   // 剩下的留在地上
+          else { this._remove(p); this.ctx.events.emit('pickup', { actor: a, item: shown }); }
+        }
       }
       const edge = I.interact && !a._pi; a._pi = I.interact;
       if (a.action && a.action.kind !== 'open') continue;

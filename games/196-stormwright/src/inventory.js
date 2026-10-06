@@ -13,8 +13,13 @@ export class Inventory {
   current() { return this.selected === 0 ? PICKAXE : this.slots[this.selected - 1]; }
   select(i) { if (i >= 0 && i <= 5) this.selected = i; }
   add(item) {
-    if (item.kind === 'ammo') { this.addAmmo(item.defId.slice(5), item.count); return { added: true, swapped: null }; }
-    if (item.kind === 'mats') { this.addMat(item.defId.slice(4), item.count); return { added: true, swapped: null }; }
+    if (item.kind === 'ammo' || item.kind === 'mats') {
+      // 上限 999：收不下的留在地上（同消耗品的 remainder），完全收不下就不撿
+      const taken = item.kind === 'ammo' ? this.addAmmo(item.defId.slice(5), item.count) : this.addMat(item.defId.slice(4), item.count);
+      if (taken <= 0) return { added: false, swapped: null, taken: 0 };
+      if (taken < item.count) { item.count -= taken; return { added: true, swapped: null, remainder: item, taken }; }
+      return { added: true, swapped: null, taken };
+    }
     if (item.kind === 'consumable') {
       const max = CONSUMABLES[item.defId].stack;
       const start = item.count;
@@ -39,7 +44,7 @@ export class Inventory {
     return { added: true, swapped, slot: this.selected };
   }
   remove(i) { const it = this.slots[i]; this.slots[i] = null; return it; }
-  addAmmo(type, n) { this.ammo[type] = Math.min(999, this.ammo[type] + n); }
+  addAmmo(type, n) { const a = Math.max(0, Math.min(999 - this.ammo[type], n)); this.ammo[type] += a; return a; }
   addMat(m, n) { const a = Math.min(MAT_CAP - this.mats[m], n); this.mats[m] += a; return a; }
   spendMat(m, n) { if (this.mats[m] < n) return false; this.mats[m] -= n; return true; }
   hasSpace() { return this.slots.includes(null); }

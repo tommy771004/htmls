@@ -317,7 +317,7 @@ function render(){
  water.visible=true;renderer.setRenderTarget(null);renderer.render(scene,camera);
 }
 let running=true,last=performance.now();
-function frame(now){if(!running)return;requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.05);last=now;if(document.hidden)return;update($('guide').open?0:dt);render();}
+function frame(now){if(!running)return;requestAnimationFrame(frame);const dt=clamp((now-last)/1000,0,.05);last=now;if(document.hidden)return;update($('guide').open?0:dt);render();}
 setLight('dawn');update(0);render();$('sail').disabled=false;$('sail').textContent='↗　啟航';$('sail').setAttribute('aria-pressed','false');$('notice').hidden=true;document.body.dataset.ready='true';
 // Read-only diagnostics for browser verification, without changing the voyage.
 window.__nord={get state(){return {...state};},get diagnostics(){return {oars:oars.length,wetOars:oars.filter(o=>o.wet).length,activeRipples:impacts.filter(v=>state.time-v.z<3.8).length,activeDrops:dropLife.filter(v=>v>0).length,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles};}};

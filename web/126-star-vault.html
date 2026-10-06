@@ -35,13 +35,14 @@ header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-be
   <div class="wallet"><div class="gem" aria-label="星晶餘額"><i>◆</i><span id="balance">0</span></div><button class="daily" id="daily">領取每日星晶</button></div>
 </header>
 <section class="stage" id="stage" aria-label="轉蛋機動畫演出">
-  <div class="stage-top"><div><h1>命運，正在轉動。</h1><p>把流星的名字收藏起來</p></div></div>
+  <div class="stage-top"><div><div class="eyebrow">ASTRAL RELIC COLLECTION</div><h1>命運，正在轉動。</h1><p>把流星的名字收藏起來</p></div><div class="serial">EST. 2086<br>NO. 001—012</div></div>
   <div class="flash" id="flash"></div><div class="progress" id="progress"></div>
   <div class="stage-bottom"><div class="stage-caption"><span class="kicker" id="phaseKicker">OBSERVATORY / IDLE</span><strong id="phaseTitle">星匣待命中</strong><p id="phaseHint">投入星晶，喚醒沉睡的星靈。</p></div><div class="stage-controls"><button class="skip" id="skip" type="button">跳過演出 →</button><button class="icon-btn" id="sound" type="button" aria-label="關閉音效" title="音效開關">♫</button></div></div>
 </section>
 <div class="side">
 
-  <div class="intro"><h2>召喚星靈</h2><p>單抽 150 星晶，十連 1,500。轉蛋發光的顏色會預告這次的最高稀有度。</p></div>
+  <div class="edition"><span>THE CELESTIAL ARCHIVE</span><b>SEASON 01 / 永恆星圖</b></div>
+  <div class="intro"><div class="overline">✦　召喚儀式</div><h2>下一顆星，屬於你。</h2><p>轉動星匣，迎接未知的星靈。光芒會先洩露命運，揭曉前請別移開目光。</p></div>
   <div class="tabs" role="tablist" aria-label="轉蛋選單"><button class="tab" role="tab" id="tabSummon" aria-controls="panelSummon" aria-selected="true">召喚</button><button class="tab" role="tab" id="tabCollection" aria-controls="panelCollection" aria-selected="false">圖鑑</button><button class="tab" role="tab" id="tabRates" aria-controls="panelRates" aria-selected="false">機率</button></div>
   <section class="panel" id="panelSummon" role="tabpanel" aria-labelledby="tabSummon">
     <div class="meter-head"><span>SSR 星耀保底</span><b id="pityCount">0 / 80</b></div><div class="meter"><span id="pityBar"></span></div><div class="pity-note"><span id="nextChance">下次 SSR 機率 1%</span><span id="remaining">距保底 80 抽</span></div>
@@ -58,7 +59,7 @@ header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-be
   <div class="stats-row"><div class="stat"><span>總抽卡次數</span><strong id="totalDraws">0</strong></div><div class="stat"><span>星耀獲得</span><strong id="ssrCount">0</strong></div><div class="stat"><span>圖鑑收集</span><strong id="collectionCount">0 / 12</strong></div></div>
 </div>
 </div>
-<div class="result" id="result" role="dialog" aria-modal="true" aria-labelledby="resultTitle"><div class="result-inner"><h2 class="result-title" id="resultTitle">星靈降臨</h2><div class="result-sub" id="resultSub"></div><div class="result-hero" id="resultHero"><span class="sigil" id="resultSigil">✦</span></div><div class="rarity-line" id="resultRarity"></div><div class="result-grid" id="resultGrid"></div><button class="again" id="closeResult" type="button">收下星靈</button></div></div>
+<div class="result" id="result" role="dialog" aria-modal="true" aria-labelledby="resultTitle"><div class="result-inner"><div class="result-kicker">THE STARS HAVE ANSWERED</div><h2 class="result-title" id="resultTitle">星靈降臨</h2><div class="result-sub" id="resultSub"></div><div class="result-hero" id="resultHero"><span class="sigil" id="resultSigil">✦</span></div><div class="rarity-line" id="resultRarity"></div><div class="result-grid" id="resultGrid"></div><button class="again" id="closeResult" type="button">收下星靈</button></div></div>
 <script type="module">
 import {createStudioEnvironment} from './assets/3d/studio.js';
 const $ = id => document.getElementById(id);

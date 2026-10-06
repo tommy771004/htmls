@@ -1910,7 +1910,7 @@ function setPR(pr) {
   skyGroup.userData.starMat.uniforms.uPR.value = pr; partMat.uniforms.uPR.value = pr;
 }
 function adaptPR(ms, now) {
-  if (document.hidden || ms > 1000) return; // 切分頁回來的長間隔不算
+  if (document.hidden || ms > 1000 || ms < 0) return; // 切分頁回來的長間隔不算
   perf.acc += ms; perf.n++;
   if (perf.acc < 1500 || perf.n < 20 && perf.acc < 4000) return;
   const avg = perf.acc / perf.n; perf.acc = 0; perf.n = 0;
@@ -1921,7 +1921,8 @@ S.attract = true; S.mode = 'title'; S.V = 44; S.s2 = 60;
 function frame(now) {
   requestAnimationFrame(frame);
   const rawMs = now - clock.last;
-  let dt = Math.min(rawMs / 1000, 1 / 20); clock.last = now;
+  // rAF 的時間戳記可能早於先前用 performance.now() 記下的 clock.last（開場、繼續時），負的 dt 會讓模擬倒退
+  let dt = clamp(rawMs / 1000, 0, 1 / 20); clock.last = now;
   if (S.mode !== 'paused') adaptPR(rawMs, now);
   if (S.mode === 'paused' || S.mode === 'done') dt = S.mode === 'done' ? dt : 0;
   clock.t += dt;

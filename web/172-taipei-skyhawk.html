@@ -3034,7 +3034,7 @@ function hudUpdate() {
 let last = performance.now(), acc = 0;
 function frame(now) {
   requestAnimationFrame(frame);
-  let dt = Math.min((now - last) / 1000, 0.1); last = now; if(document.hidden)return;
+  let dt = clamp((now - last) / 1000, 0, 0.1); last = now; // rAF 時間戳記可能早於啟動時的 performance.now()，不能讓 dt 變負 if(document.hidden)return;
   U.uTime.value = now / 1000;
   const flying = app.mode === 'fly' && !app.paused && !sim.crashed;
   if (app.mode === 'fly' && !app.paused && !sim.crashed) readControls(dt);
