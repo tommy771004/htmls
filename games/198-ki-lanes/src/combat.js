@@ -371,6 +371,14 @@ function blink(G, h, x, z, faceU) {
   h.blinkT = G.time;
   G.emit('blink', { h, ox, oz });
 }
+// 瞬移類技能：先看得見地擺 0.12 秒起手（warpOut，例如悟空兩指抵額），再瞬移，落點播 warpIn 落地姿勢。
+// doBlink 裡做實際的 blink 與效果；起手期間不可打斷
+function warp(G, h, doBlink, pre = 0.12, post = 0.14) {
+  act(h, {
+    name: 'warpOut', dur: pre + post, unstoppable: true, done: false,
+    step(G, h) { if (!this.done && this.t >= pre) { this.done = true; doBlink(); h.anim.name = 'warpIn'; h.anim.t = 0; } },
+  });
+}
 function behind(h, u) {
   const a = angTo(h, u), d = u.radius + h.radius + 0.6;
   return { x: u.x + sin(a) * d, z: u.z + cos(a) * d };
@@ -484,15 +492,22 @@ function beamSuper(G, h, { ang, s }, color, core, style) {
 }
 // 瞬移到點，下一次普攻硬直
 function blinkEmpower(G, h, { px, pz }) {
-  const p = { x: px, z: pz }; collide(p, h.radius); blink(G, h, p.x, p.z);
-  h.empowered = G.time + 2.5; h.atkCd = Math.min(h.atkCd, 0.05);
-  act(h, { name: 'vanish', dur: 0.12, unstoppable: true });
+  warp(G, h, () => {
+    const p = { x: px, z: pz }; collide(p, h.radius); blink(G, h, p.x, p.z);
+    h.empowered = G.time + 2.5; h.atkCd = Math.min(h.atkCd, 0.05);
+  });
 }
-function chainBolt(G, h, { ang, s }, color) {
+function chainBolt(G, h, { ang, s }, color, second = false) {
   face(h, h.x + sin(ang), h.z + cos(ang));
   act(h, {
-    name: 'cast', dur: 0.26, fired: false,
+    name: 'cast', dur: 0.26, fired: false, fired2: !second,
     step(G, h) {
+      // 貝吉塔：左右手連射，第二掌（0.2 秒）射出一顆只有外觀的氣彈
+      if (!this.fired2 && this.t >= 0.2) {
+        this.fired2 = true;
+        const a2 = ang + 0.08, p2 = spawnProjectile(G, { x: h.x + sin(a2), z: h.z + cos(a2), y: 1.3, ang: a2, speed: s.speed, range: s.range * 0.8, team: h.team, src: h, radius: 0.3, onHit: () => true });
+        p2.vis = fx(G).orb(color, 0.32, 'ki'); sfx(G, 'blast', h, { vol: 0.4, pitch: 1.25 });
+      }
       if (this.fired || this.t < 0.1) return; this.fired = true;
       const dmg = skillDmg(h, 'Q');
       const p = spawnProjectile(G, {
@@ -525,13 +540,14 @@ const KITS = {
     R: (G, h, o) => beamSuper(G, h, o, '#3fb4ff', '#eafaff', 'kame'),
   },
   vegeta: {
-    Q: (G, h, o) => chainBolt(G, h, o, '#ffd84a'),
+    Q: (G, h, o) => chainBolt(G, h, o, '#ffd84a', true),
     W: (G, h, o) => dashRush(G, h, o, '#ffe88a', o.s.hits, 0.075, { knock: 12, stun: 0.4 }, 'hitL'),
     E(G, h, { px, pz, tx, tz, s }) {
       const u = pickNear(G, h, tx, tz, 3.5) || pickNear(G, h, px, pz, 3.5);
-      if (u && dist(h, u) < s.range + 3) { const b = behind(h, u); blink(G, h, b.x, b.z, u); h.chain = 0; h.atkCd = 0; h.empowered = G.time + 2.5; h.target = u; }
-      else { const p = { x: px, z: pz }; collide(p, h.radius); blink(G, h, p.x, p.z); }
-      act(h, { name: 'vanish', dur: 0.1, unstoppable: true });
+      warp(G, h, () => {
+        if (u && u.alive && dist(h, u) < s.range + 3) { const b = behind(h, u); blink(G, h, b.x, b.z, u); h.chain = 0; h.atkCd = 0; h.empowered = G.time + 2.5; h.target = u; }
+        else { const p = { x: px, z: pz }; collide(p, h.radius); blink(G, h, p.x, p.z); }
+      }, 0.1, 0.12);
     },
     R: (G, h, o) => beamSuper(G, h, o, '#ffd84a', '#fffbe6', 'flash'),
   },
@@ -542,7 +558,7 @@ const KITS = {
       sfx(G, 'dash', h, { pitch: 1.2 });
       dashAction(G, h, {
         ang, len: s.range, speed: 34, pass: true, name: 'dash',
-        onPass: (u) => { damage(G, h, u, dmg, { type: 'skill', stun: 0.25 }); fx(G).slash(u.x, u.z, ang + 1.2, '#fff4d8', 1.8); fx(G).hitSpark(u.x, 1.1, u.z, '#ffcf6a', 1.1, 'light'); sfx(G, 'hitM', u); if (h === G.player) G.shake(0.25); },
+        onPass: (u) => G.later(0.03, () => { if (!u.alive) return; damage(G, h, u, dmg, { type: 'skill', stun: 0.25 }); fx(G).slash(u.x, u.z, ang + 1.2, '#fff4d8', 1.8); fx(G).hitSpark(u.x, 1.1, u.z, '#ffcf6a', 1.1, 'light'); sfx(G, 'hitM', u); if (h === G.player) G.shake(0.25); }), // 劍在身前才算砍到（約晚 2 影格）
         onEnd: () => {
           h.action = null;
           act(h, { name: 'cast', dur: 0.3 });
@@ -566,9 +582,15 @@ const KITS = {
             if (!u.alive) { this.t = this.dur; return; }
             const b = behind(h, u); blink(G, h, b.x, b.z, u);
             h.anim.name = 'atk3'; h.anim.t = 0;
-            damage(G, h, u, dmg * 0.3, { type: 'H', air: 1.1 });
-            fx(G).slash(u.x, u.z, angTo(h, u), '#fff4d8', 2.4); fx(G).hitSpark(u.x, 1.4, u.z, '#ffcf6a', 1.6, 'heavy'); sfx(G, 'hitH', u);
-            this.tx = u.x; this.tz = u.z;
+            this.tx = u.x; this.tz = u.z; this.hitAt = this.t + 0.04; // 瞬移到背後後，等劍揮到再命中
+          }
+          if (this.hitAt && this.t >= this.hitAt) {
+            this.hitAt = 0;
+            if (u.alive) {
+              damage(G, h, u, dmg * 0.3, { type: 'H', air: 1.1 });
+              fx(G).slash(u.x, u.z, angTo(h, u), '#fff4d8', 2.4); fx(G).hitSpark(u.x, 1.4, u.z, '#ffcf6a', 1.6, 'heavy'); sfx(G, 'hitH', u);
+              this.tx = u.x; this.tz = u.z;
+            }
           }
           if (this.stage === 1 && this.t > 0.6) {
             this.stage = 2; h.anim.name = 'beam'; h.anim.t = 0;
@@ -613,17 +635,19 @@ const KITS = {
               return true;
             },
           });
-          tether = fx(G).stretch(() => ({ x: h.x + sin(ang) * 0.6, y: heightOf(h) + 1.3, z: h.z + cos(ang) * 0.6 }), () => ({ x: p.x, y: 1.3, z: p.z }), '#7bc043', 0.22, 0.55);
+          // 連線和伸長的手臂同步：從肩高出發、比手臂先收回（0.45 秒）
+          tether = fx(G).stretch(() => ({ x: h.x + sin(ang) * 0.6, y: heightOf(h) + 1.9, z: h.z + cos(ang) * 0.6 }), () => ({ x: p.x, y: 1.3, z: p.z }), '#7bc043', 0.22, 0.45);
           p.vis = fx(G).orb('#b6ff5c', 0.35, 'ki');
         },
       });
     },
     E(G, h, { px, pz, s, rank }) {
-      const p = { x: px, z: pz }; collide(p, h.radius);
-      blink(G, h, p.x, p.z);
-      h.st.shield = s.shield[rank] * (1 + (h.hsp || 0)); h.st.shieldT = 3; heal(G, h, h.maxHp * 0.08); onSupport(G, h, h);
-      fx(G).shieldFx(h, '#b6ff5c', 3); fx(G).levelUp(h, '#d8ff7a');
-      act(h, { name: 'vanish', dur: 0.12, unstoppable: true });
+      warp(G, h, () => {
+        const p = { x: px, z: pz }; collide(p, h.radius);
+        blink(G, h, p.x, p.z);
+        h.st.shield = s.shield[rank] * (1 + (h.hsp || 0)); h.st.shieldT = 3; heal(G, h, h.maxHp * 0.08); onSupport(G, h, h);
+        fx(G).shieldFx(h, '#b6ff5c', 3); fx(G).levelUp(h, '#d8ff7a');
+      });
     },
     R(G, h, { ang, s }) {
       const dmg = skillDmg(h, 'R');
@@ -776,6 +800,7 @@ Object.assign(KITS, {
   naruto: {
     Q(G, h, { ang, s }) {
       const dmg = skillDmg(h, 'Q');
+      G.emit('handFx', { h, side: 'R', color: '#7fd0ff', size: 0.3, dur: s.range / 30 + 0.3 }); // 螺旋丸握在右手掌上
       dashStrike(G, h, ang, s.range, 30, '#7fd0ff', (u) => {
         fx(G).explode(u.x, u.z, '#7fd0ff', s.radius); sfx(G, 'explode', u); sfx(G, 'hitH', u);
         if (h === G.player) G.shake(0.7);
@@ -1032,7 +1057,7 @@ Object.assign(KITS, {
   nami: {
     Q(G, h, { px, pz, s }) {
       const dmg = skillDmg(h, 'Q');
-      face(h, px, pz); act(h, { name: 'cast', dur: 0.3 });
+      face(h, px, pz); act(h, { name: 'cast', dur: 0.42 }); // 指向雷擊點的姿勢要停到落雷（0.4 秒）
       const mark = fx(G).target(px, pz, s.radius, '#ffe36a', 0.4);
       G.later(0.4, () => {
         mark.remove(); fx(G).lightning({ x: px + 1, y: 18, z: pz - 1 }, { x: px, y: 0.2, z: pz }, '#ffe36a'); fx(G).explode(px, pz, '#ffe36a', s.radius);
@@ -1075,9 +1100,10 @@ const heightOf = (u) => heightAtXZ(u.x, u.z) + (u.y || 0);
 // 悟空的瞬間移動：游標附近有敵人時繞背，否則瞬移到點
 function vanishSkill(G, h, tx, tz, px, pz, near) {
   const u = pickNear(G, h, tx, tz, near);
-  if (u && dist(h, u) < sk(h, 'E').range + 3) { const b = behind(h, u); blink(G, h, b.x, b.z, u); h.empowered = G.time + 2.5; h.target = u; h.atkCd = Math.min(h.atkCd, 0.05); }
-  else { const p = { x: px, z: pz }; collide(p, h.radius); blink(G, h, p.x, p.z); }
-  act(h, { name: 'vanish', dur: 0.12, unstoppable: true });
+  warp(G, h, () => {
+    if (u && u.alive && dist(h, u) < sk(h, 'E').range + 3) { const b = behind(h, u); blink(G, h, b.x, b.z, u); h.empowered = G.time + 2.5; h.target = u; h.atkCd = Math.min(h.atkCd, 0.05); }
+    else { const p = { x: px, z: pz }; collide(p, h.radius); blink(G, h, p.x, p.z); }
+  });
 }
 
 /* ---------------- 小兵與塔的射擊 ---------------- */

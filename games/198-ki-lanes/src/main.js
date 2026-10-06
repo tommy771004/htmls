@@ -230,6 +230,8 @@ function wireEvents() {
     if (G.player && Math.hypot(G.player.x - x, G.player.z - z) < 14) G.shake(0.45);
   });
   G.on('clones', (e) => crossFx.clones(e));
+  // 握在手上的氣團（螺旋丸等）：每格跟著英雄的手掌位置
+  G.on('handFx', ({ h, side, color, size, dur }) => handFxs.push({ h, side, orb: fx.orb(color, size, 'ki'), t: 0, dur }));
   G.on('substitute', (e) => crossFx.substitute(e));
   G.on('dragonWish', ({ team }) => { if (team < 0) return; for (const h of G.heroes) if (h.team === team && h.alive) fx.levelUp(h, '#ffd54a'); if (team === G.player.team) { hud.flash('#ffe08a', 0.7); audio.play('victory', { vol: 0.5 }); } });
   G.on('gameover', ({ winner }) => {
@@ -305,7 +307,18 @@ const crossFx = (() => {
 function step(dt) { stepWorld(G, dt); }
 
 /* ---------------- 畫面同步 ---------------- */
+const handFxs = [], _hv = new THREE.Vector3();
+function syncHandFx(dt) {
+  for (let i = handFxs.length - 1; i >= 0; i--) {
+    const e = handFxs[i], r = rigs.get(e.h.id);
+    e.t += dt;
+    if (!r || !e.h.alive || e.t >= e.dur) { e.orb.remove(); handFxs.splice(i, 1); continue; }
+    r.rig['hand' + e.side].getWorldPosition(_hv);
+    e.orb.update({ x: _hv.x, y: _hv.y - heightAt(_hv.x, _hv.z), z: _hv.z }, dt);
+  }
+}
 function sync(dt, t) {
+  syncHandFx(dt);
   const PT = G.player.team;
   for (const [, r] of rigs) {
     const u = r.u, rig = r.rig;

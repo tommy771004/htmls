@@ -25,6 +25,7 @@ const rigs = ids.map((id, i) => {
 if (q.get('nool')) for (const r of rigs) r.root.traverse((o) => { if (o.material && o.material.side === THREE.BackSide) o.visible = false; });
 const anim = q.get('anim') || 'idle', t = +(q.get('t') || 0.4), ang = (+(q.get('ang') || 0) * Math.PI) / 180;
 for (const r of rigs) r.root.rotation.y = ang;
+if (q.get('ovr')) globalThis.__kiPoseOverride = Object.fromEntries(q.get('ovr').split(',').map((e) => { const [k, v] = e.split(':'); return [k, +v]; })); // ovr=wfR:1,stretchL:1
 const key = q.get('key') || null; // 技能鍵（Q／W／E／R）：選角色專屬的招式動作
 // 預設照遊戲裡的時間軸：先在架式站 0.5 秒，再從 t=0 以 60 fps 播到指定時間（和實機一樣受平滑影響）；settle=1 改回舊的「慢慢收斂到該影格」
 if (q.get('settle') || anim === 'idle' || anim === 'stand' || anim === 'dead') {

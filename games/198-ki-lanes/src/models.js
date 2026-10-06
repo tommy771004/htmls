@@ -238,8 +238,9 @@ function heroPose(d, name, t, k, phase, out, key) {
       const s = Math.sin(phase), c = Math.cos(phase);
       const glide = d.style === 'regal';
       // 參考影片的跑姿：上身大幅前傾、髖和胸反向扭、大步幅（後腳踢高）、拳頭前後大擺
-      p = P({ hipsY: -0.09 + 0.08 * Math.abs(c) * (glide ? 0.3 : 1), hipsRX: glide ? 0 : 0.1, hipsRY: glide ? 0 : -0.2 * s, torsoX: glide ? 0.35 : d.style === 'tank' ? 0.36 : 0.4, torsoY: (glide ? 0.14 : 0.34) * s, headX: glide ? -0.15 : -0.32, headY: glide ? 0 : -0.2 * s,
-        thLX: s * (glide ? 0.35 : 1.35) - (glide ? 0 : 0.15), thRX: -s * (glide ? 0.35 : 1.35) - (glide ? 0 : 0.15), thLZ: 0.05, thRZ: 0.05,
+      // 參考影片：衝刺時身體壓到約 40 度、步幅更大（後腳蹬直、前腳膝蓋抬高）
+      p = P({ hipsY: -0.11 + 0.09 * Math.abs(c) * (glide ? 0.3 : 1), hipsRX: glide ? 0 : 0.18, hipsRY: glide ? 0 : -0.24 * s, torsoX: glide ? 0.35 : d.style === 'tank' ? 0.42 : 0.5, torsoY: (glide ? 0.14 : 0.38) * s, headX: glide ? -0.15 : -0.45, headY: glide ? 0 : -0.22 * s,
+        thLX: s * (glide ? 0.35 : 1.5) - (glide ? 0 : 0.28), thRX: -s * (glide ? 0.35 : 1.5) - (glide ? 0 : 0.28), thLZ: 0.06, thRZ: 0.06,
         knL: 0.3 + (glide ? 0.4 : 1.6) * Math.max(0, -c) * (0.6 + 0.4 * Math.max(0, -s)), knR: 0.3 + (glide ? 0.4 : 1.6) * Math.max(0, c) * (0.6 + 0.4 * Math.max(0, s)),
         shLX: glide ? 0.5 : -s * 1.15 - 0.15, shRX: glide ? 0.5 : s * 1.15 - 0.15, shLZ: 0.22, shRZ: 0.22,
         elL: glide ? -0.4 : -1.45 - 0.35 * Math.max(0, s), elR: glide ? -0.4 : -1.45 - 0.35 * Math.max(0, -s) });
@@ -415,6 +416,20 @@ function heroPose(d, name, t, k, phase, out, key) {
       if (d.style === 'proud') Object.assign(p, { shLX: -1.15, shLZ: -0.35, elL: -1.95, shRX: -1.05, shRZ: -0.4, elR: -2.05, headX: -0.3 });
       break;
     }
+    case 'warpOut': { // 瞬移起手：重心收起、右手兩指抵額（張開的手刀貼額頭）、左手垂在身側，頭微低專注
+      const kk = ease(clamp(t / 0.08, 0, 1));
+      p = lerpPose(base, P({ hipsY: -0.04, torsoX: 0.06, torsoY: 0.1, headX: 0.22, headY: 0,
+        shRX: -1.9, shRZ: -0.3, elR: -2.45, wrR: 0, hoR: 1, hsR: 0, shLX: 0.15, shLZ: 0.22, elL: -0.35, hoL: 0.5,
+        thLX: -0.05, thLZ: 0.08, knL: 0.12, thRX: 0.05, thRZ: 0.08, knR: 0.12 }), kk);
+      p.ownHands = 1;
+      break;
+    }
+    case 'warpIn': { // 瞬移落地：從半空落下的屈膝著地，雙手張開保持平衡，再回架式
+      const kk = t < 0.05 ? 1 : 1 - ease(clamp((t - 0.05) / 0.09, 0, 1));
+      p = lerpPose(base, P({ hipsY: -0.2, torsoX: 0.35, headX: -0.25, shLX: -0.4, shLZ: 0.9, elL: -0.4, shRX: -0.4, shRZ: 0.9, elR: -0.4, hoL: 0.6, hoR: 0.6,
+        thLX: -0.75, thLZ: 0.2, knL: 1.3, thRX: 0.2, thRZ: 0.2, knR: 1.1 }), kk);
+      break;
+    }
     case 'leap':
       p = P({ torsoX: 0.5, torsoY: 0, headX: -0.4, thLX: -1.5, knL: 1.8, thRX: -1.2, knR: 1.9, shLX: -0.6, shLZ: 0.9, elL: -1.0, shRX: -0.6, shRZ: 0.9, elR: -1.0, hipsY: 0.05 });
       break;
@@ -422,6 +437,8 @@ function heroPose(d, name, t, k, phase, out, key) {
   }
   if (mine) name = ctx.name;
   out.__own = mine ? 1 : 0;
+  // 開發用：viewer 的 ovr=鍵:值,… 直接覆蓋姿勢鍵（調手腕、伸臂之類的方向用）
+  if (globalThis.__kiPoseOverride) { p = p === base ? { ...p } : p; Object.assign(p, globalThis.__kiPoseOverride); }
   // 手形（第三版骨架）：發氣功、龜派氣功、護盾、抓取、高舉氣彈是張開的手；冷淡型的待機是放鬆半開
   if (HAND_OPEN[name] && !(mine && mine.ownHands)) { const [l, r, ts] = HAND_OPEN[name]; p = p === base ? { ...p } : p; p.hoL = Math.max(p.hoL, l); p.hoR = Math.max(p.hoR, r); p.hsL = p.hsR = ts; }
   return lerpPose(p, p, 0, out);
@@ -752,7 +769,7 @@ export function buildHero(id, team = 0) {
     if (ex !== expr) { expr = ex; const key = form + (ex ? '_' + ex : ''), tex = gs.face(key); if (tex) skull.material = headMat(id, key, tex, gs.faceRect); }
     // 角色專屬動作（src/poses）照影格時間設計，也走快速跟隨；衝刺本來就短，一起加快
     const own = tgt.__own;
-    const fast = own || name.startsWith('atk') || name === 'slash' || name === 'cast' || name === 'rush' || name === 'vanish' || name === 'grab' || name === 'dash' || (name === 'beam' && t > 0.3);
+    const fast = own || name === 'warpOut' || name === 'warpIn' || name.startsWith('atk') || name === 'slash' || name === 'cast' || name === 'rush' || name === 'vanish' || name === 'grab' || name === 'dash' || (name === 'beam' && t > 0.3);
     const rate = name !== lastName && fast ? 45 : fast ? (own ? 32 : 38) : name === 'dead' ? 9 : 13;
     lastName = name;
     const a = 1 - Math.exp(-rate * dt);
@@ -841,7 +858,8 @@ export function buildHero(id, team = 0) {
         const pitch = cur.hipsRX + cur['th' + s + 'X'] + cur['kn' + s];
         const up = smooth01((-cur['th' + s + 'X'] - 0.9) / 0.6);
         J['an' + s].rotation.x = (clamp(-pitch, -0.7, 0.95) * (1 - up) + 0.55 * up) * upright + 0.3 * (1 - upright) + cur['an' + s];
-        J['wr' + s].rotation.x = cur['wr' + s];
+        // 手腕兩軸：wr 繞掌面法線（左右偏）、wf 繞拇指軸（掌屈／背屈；右手鏡像）
+        J['wr' + s].rotation.set(cur['wr' + s], 0, (s === 'L' ? 1 : -1) * cur['wf' + s]);
       }
     } else torso.rotation.set(cur.torsoX, cur.torsoY, cur.torsoZ, 'YXZ');
     if (rig3) {
@@ -858,6 +876,8 @@ export function buildHero(id, team = 0) {
     // 魯夫伸臂：從手肘拉長前臂（拉肩膀會連胸口、袖口一起拉破），拳頭不跟著變長
     J.elR.scale.y = 1 + Math.max(0, cur.stretch) * (d.upper + d.lower) / d.lower;
     J.wrR.scale.y = 1 / J.elR.scale.y;
+    J.elL.scale.y = 1 + Math.max(0, cur.stretchL) * (d.upper + d.lower) / d.lower;
+    J.wrL.scale.y = 1 / J.elL.scale.y;
   }
   // 第三版骨架的自動部分：鎖骨（舉手聳肩、伸手送肩）、手指（握拳／張開）、拇指、腳趾（腳跟離地時貼地）
   function digits(cur) {
