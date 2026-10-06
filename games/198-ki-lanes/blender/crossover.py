@@ -8,7 +8,7 @@ import heroes as _H
 import kit
 from kit import S, V, ang_bump, bump, lerp, smooth
 from heroes import (
-    BACK, FRONT, G_ARM_L, G_BELT, G_CHEST, G_FOOT_L, G_FORE_L, G_FREE, G_LEG_L, G_NECK, G_PELVIS, G_TORSO, G_UPPER_L, PI, TORSO_ROWS,
+    BACK, FRONT, G_ARM_L, G_ARM_R, G_BELT, G_CHEST, G_FOOT_L, G_FORE_L, G_FREE, G_LEG_L, G_NECK, G_PELVIS, G_TORSO, G_UPPER_L, PI, TORSO_ROWS,
     Fig, anime_head, arm_skin, band, boot, finish, fist, hair, hair_cap, leg_tube, limb, neck, pair_add, path_loft, pelvis, sleeve, sym,
     torso_rows, baggy_leg, bob_cap,
 )
@@ -658,7 +658,13 @@ def build_zoro(R):
     chest = bare_torso(F, skin, pec=0.14, lat=0.12)
     c0 = V((0, F.y(0.6), F.cz * 1.08 + 0.004))
     d = V((math.sin(0.75), math.cos(0.75), 0))
-    sc = path_loft('scar', [c0 - d * 0.2, c0, c0 + d * 0.2], [0.006, 0.009, 0.006], n=6, flat=0.4)
+    # 疤沿胸口曲面貼著走（原本整條在同一個 z 平面上，胸口往兩側收進去之後兩端浮在皮膚外、壓到大衣前襟上）
+    sp = []
+    for i in range(7):
+        q = c0 + d * (0.2 * (i / 3 - 1))
+        hit, nrm = on_surface(chest, q.x, q.y)
+        sp.append(hit + nrm * 0.0025)
+    sc = path_loft('scar', sp, [0.005, 0.007, 0.0085, 0.009, 0.0085, 0.007, 0.005], n=6, flat=0.4)
     body.append(kit.tag(kit.subsurf(sc, 1), scar, mat=4, grp=G_TORSO, ol=0.0))
     body.append(chest)
     proxy.append(chest)
@@ -682,9 +688,10 @@ def build_zoro(R):
     body.append(hang_tail(red, [V((F.w * 1.05, yb - 0.02, F.cz * 1.0)), V((F.w * 1.45, yb - 0.3, F.cz * 1.45)), V((F.w * 1.5, yb - 0.62, F.cz * 1.72))], 0.085, 0.072, name='sashTail', grp=G_CHAIN, side=V((-0.62, 0, 0.78)), flat=0.24))
     body.append(neck(F, skin, r=0.06))
     proxy.append(body[-1])
-    arm = arm_skin(F, skin, muscle=1.3, k=1.08)
-    kit.paint_field(arm, lambda co: arm_s(F, co) - (F.up + F.lo - 0.06), coat, 0)
-    slv = long_sleeve(F, coat, k=1.08, e=0.014, cuff=1.15)
+    arm = arm_skin(F, skin, muscle=0.9, k=1.08)  # 整條手臂都在袖子裡：肌肉起伏收小，前臂隆起才不會從袖口內壁穿出來
+    # 袖子底下的手臂塗成大衣色，但交界收進袖口深處：從寬袖口斜看進去時看到的是皮膚，不是一圈綠色弧線
+    kit.paint_field(arm, lambda co: arm_s(F, co) - (F.up + F.lo - 0.14), coat, 0)
+    slv = long_sleeve(F, coat, k=1.08, e=0.014, cuff=0.88)
     bandana = band('bandL', F.sh, F.da, 0.1, 0.17, 0.1 * F.k_arm + 0.016, 0.096 * F.k_arm + 0.016, black, G_UPPER_L, thick=0.008)
     hand = fist(F, skin, scale=1.08)
     body.append(pelvis(F, black, e=0.012))
@@ -716,7 +723,66 @@ def build_zoro(R):
             import bpy
             bpy.data.objects.remove(o, do_unlink=True)
     return finish(F, P, body, proxy, heads, extras={'sword': blade, 'sheath': sh3},
-                  custom={G_CHAIN: sash_chain_weights(F, 'sash'), G_SKIRT: skirt_chain_weights(F, 'skirt')})
+                  custom={G_CHAIN: sash_chain_weights(F, 'sash'), G_SKIRT: zoro_skirt_weights(F),
+                          G_ARM_L: zoro_arm_weights(F), G_ARM_R: zoro_arm_weights(F),
+                          G_UPPER_L: zoro_upper_weights(F)})
+
+
+def zoro_arm_weights(F):
+    """索隆的長袖與手臂：不分給胸腔／腰（骨熱在腋下給袖子底面 15～20% 的 ribs，手舉過頭時袖底會被扯回胸口皺成一團），
+    肩頭由鎖骨沿手臂方向漸漸交給上臂，手肘以下保留骨熱的前臂權重。袖子與手臂皮膚用同一函式，變形一致。"""
+    def fn(co, old):
+        sd = 'L' if co.x >= 0 else 'R'
+        s = arm_s(F, V((abs(co.x), co.y, co.z)))
+        w = dict(old)
+        el = w.get('el' + sd, 0.0) + w.get('wr' + sd, 0.0)
+        t = smooth((s + 0.1) / 0.12)
+        rest = 1.0 - el
+        out = [('cl' + sd, rest * (1 - t)), ('sh' + sd, rest * t)]
+        if el > 0:
+            out.append(('el' + sd, el))
+        return out
+    fn.blend = True
+    return fn
+
+
+def zoro_upper_weights(F):
+    """上臂的頭巾與隊伍色臂章：整圈剛性跟著上臂（骨熱分到的 ribs 會讓臂章在舉手時被拉歪）。"""
+    def fn(co):
+        return [('sh' + ('L' if co.x >= 0 else 'R'), 1.0)]
+    return fn
+
+
+def zoro_skirt_weights(F):
+    """大衣長下襬：前片跟著各自的大腿；側邊與後面往下漸漸把大腿權重讓給骨盆（側）與擺動鏈（後）。
+    原本側邊整片剛性跟著大腿，被打飛時抬高的大腿把側片整塊掀到肩膀高，和往下垂的後片之間拉出一大片三角帆。"""
+    base = skirt_chain_weights(F, 'skirt')
+    h0, _ = F.b['skirt0']
+    _, t1 = F.b['skirt1']
+    kn_y = F.b['knL'][0].y
+
+    def fn(co, old):
+        a = math.atan2(abs(co.x), co.z)              # 0＝正前方、pi/2＝側邊、pi＝正後方
+        t = (h0.y - co.y) / (h0.y - t1.y)
+        wt = 1.0 - 0.75 * smooth((a - 0.45) / 0.9) - 0.25 * smooth((a - 1.5) / 0.8)   # 大腿保留比例：前 1、側約 0.25、後 0
+        wt *= 1.0 - 0.3 * smooth((kn_y + 0.24 - co.y) / 0.2)   # 大腿中段以下的前片也只跟七成：抬腿時下襬不會整片沿大腿立起
+        m = 1.0 - (1.0 - wt) * smooth(t * 2.5)       # 腰頭附近維持骨熱
+        w = dict(old)
+        thl, thr = w.pop('thL', 0.0), w.pop('thR', 0.0)   # 左右分開縮放：後中線兩側的權重才會連續，不會沿中線裂開
+        moved = (thl + thr) * (1 - m)
+        cs = smooth((a - 1.45) / 1.0)                # 讓出的權重：側邊給骨盆、往後漸漸給擺動鏈
+        c1 = smooth(t * 1.6 - 0.5)
+        # 膝蓋以下的前片部分跟著小腿折下來：大腿抬高、膝蓋彎起時，下襬不會沿著大腿直直戳出去
+        kq = 0.5 * smooth((1.9 - a) / 1.0) * smooth((kn_y + 0.05 - co.y) / 0.12)
+        out = [(b, v) for b, v in w.items()] + [('thL', thl * m * (1 - kq)), ('knL', thl * m * kq), ('thR', thr * m * (1 - kq)), ('knR', thr * m * kq),
+                                                ('hips', moved * (1 - cs)), ('skirt0', moved * cs * (1 - c1)), ('skirt1', moved * cs * c1)]
+        acc = {}
+        for b, v in out:
+            if v > 1e-5:
+                acc[b] = acc.get(b, 0.0) + v
+        return base(co, list(acc.items()))
+    fn.blend = True
+    return fn
 
 
 def zoro_hair():
