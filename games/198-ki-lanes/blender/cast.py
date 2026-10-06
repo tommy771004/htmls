@@ -517,7 +517,62 @@ def build_a18(R):
     hc = P(0xf3d77a)
     from heroes import bob_cap
     heads = {'base': [h, bob_cap('bob', F, hc, hairline=0.5, length=0.75, flare=0.28, scale=1.14, part=0.15)] + hair(F, hc, a18_hair()[:3])}  # 及下巴的蓬鬆鮑伯頭＋側分瀏海
-    return finish(F, P, body, proxy, heads, custom={G_SKIRT: skirt_chain_weights(F, 'skirt')})
+    return finish(F, P, body, proxy, heads, custom={G_SKIRT: a18_skirt_weights(F), G_PELVIS: a18_pelvis_weights(F)})
+
+
+def a18_pelvis_weights(F):
+    """內搭褲的臀部：裙子底下只留 5 mm 空隙，骨熱讓臀部跟著大腿前抬往後翻，從裙子後片頂出深藍色的斑。
+    襠部以上改成跟著骨盆，大腿份量只保留在襠部附近（往下漸漸交回骨熱）。"""
+    ya, yb = F.L + 0.02, F.L - 0.07
+
+    def fn(co, old):
+        keep = smooth((ya - co.y) / (ya - yb))
+        acc = {}
+        for b, w in old:
+            if b in ('thL', 'thR'):
+                acc[b] = acc.get(b, 0.0) + w * keep
+                acc['hips'] = acc.get('hips', 0.0) + w * (1 - keep)
+            else:
+                acc[b] = acc.get(b, 0.0) + w
+        return [(b, w) for b, w in acc.items() if w > 1e-4]
+    fn.blend = True
+    return fn
+
+
+def a18_skirt_weights(F):
+    """牛仔裙：骨熱把相鄰的裙片頂點分給骨盆與不同的大腿（跨步時折出黑色外框楔形、大腿從裙面穿出），
+    改成平滑的分配：裙頭只跟骨盆（和底下的內搭褲、腰帶一致），往下漸漸交給左右大腿（依 x 平滑交叉，下襬 90%），
+    後片中央一條再讓一部分給擺動鏈（兩腿之間，不會讓往後跨的腿從後片穿出）。"""
+    h0, _ = F.b['skirt0']
+    _, t1 = F.b['skirt1']
+    y0, y1 = F.L + 0.05, F.L - 0.22     # 裙頭 → 裙身
+    xw = F.R['hip'] * 0.8                # 左右大腿交叉的半寬
+
+    def fn(co, old):
+        old = [('hips' if b in ('thL', 'thR') else b, w) for b, w in old]   # 骨熱給裙頭的大腿份量併回骨盆
+        a = smooth((y0 - co.y) / (y0 - y1))
+        sl = smooth(0.5 + co.x / (2 * xw))
+        k = 0.9 * a
+        acc = {'thL': k * sl, 'thR': k * (1 - sl), 'hips': a - k}
+        for b, w in old:
+            acc[b] = acc.get(b, 0.0) + w * (1 - a)
+        # 擺動鏈：後片、兩腿之間，依高度從 skirt0 交給 skirt1
+        t = (h0.y - co.y) / (h0.y - t1.y)
+        c = 0.45 * smooth(-co.z / (F.cz * 0.9)) * smooth(t * 3.0) * (1 - abs(2 * sl - 1)) ** 2
+        if c > 1e-3:
+            c1 = smooth(t * 1.6 - 0.5)
+            acc = {b: w * (1 - c) for b, w in acc.items()}
+            acc['skirt0'] = c * (1 - c1)
+            acc['skirt1'] = c * c1
+        # 每個頂點最多 4 根骨頭：多出來的先把腰椎、再把鏈根併回骨盆（不讓截斷造成接縫）
+        for b in ('torso', 'ribs', 'skirt0'):
+            if len([w for w in acc.values() if w > 1e-4]) <= 4:
+                break
+            if b in acc:
+                acc['hips'] = acc.get('hips', 0.0) + acc.pop(b)
+        return [(b, w) for b, w in acc.items() if w > 1e-4]
+    fn.blend = True
+    return fn
 
 
 def a18_hair():
