@@ -12,6 +12,7 @@
     --mono:Consolas,"Lucida Console",Menlo,"Courier New",monospace;
     --hand:"Ink Free","Segoe Print","Bradley Hand","DFKai-SB","BiauKai","Kaiti TC","STKaiti",cursive;
     --zh:"Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif;
+    --r-xs:3px; --r-s:4px 9px 5px 10px; /* hand-cut corners, shared by tabs, buttons and the pen toggle */
   }
   *{box-sizing:border-box}
   html{background:var(--paper)}
@@ -33,10 +34,11 @@
   .meta b{font-size:22px;color:var(--pencil);font-weight:normal}
 
   .tabs{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 0 18px}
-  .tab{font:inherit;font-size:14px;min-height:40px;padding:0 14px;border:1.5px solid var(--pencil-l);border-radius:3px 10px 3px 8px;background:rgba(255,255,255,.7);color:var(--pencil);cursor:pointer;display:flex;align-items:center;gap:8px}
+  .tab{font:inherit;font-size:14px;min-height:40px;padding:0 14px;border:1.5px solid var(--pencil-l);border-radius:var(--r-s);background:rgba(255,255,255,.7);color:var(--pencil);cursor:pointer;display:flex;align-items:center;gap:8px}
   .tab .sz{font-family:var(--mono);font-size:12px;color:var(--pencil-l)}
   .tab.on{background:#2f3136;color:#fff;border-color:#2f3136}
   .tab.on .sz{color:#c9ccd3}
+  .tab:focus-visible{outline:2px solid var(--red);outline-offset:2px}
   .tab .ok{font-family:var(--hand);color:var(--red);font-size:17px}
 
   .work{display:grid;grid-template-columns:auto minmax(220px,300px);gap:28px clamp(40px,6vw,90px);align-items:start;justify-content:center;margin-top:26px;padding-left:18px}
@@ -75,18 +77,20 @@
 
   aside{font-size:15px;line-height:1.7}
   .tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
-  .btn{font:inherit;font-size:14px;min-height:42px;min-width:42px;padding:0 14px;border:1.5px solid var(--pencil);background:rgba(255,255,255,.8);color:var(--pencil);border-radius:4px 9px 5px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-  .btn:hover,.btn:focus-visible{outline:none;background:#fff;box-shadow:2px 3px 0 rgba(61,63,69,.25)}
+  .btn{font:inherit;font-size:14px;min-height:42px;min-width:42px;padding:0 14px;border:1.5px solid var(--pencil);background:rgba(255,255,255,.8);color:var(--pencil);border-radius:var(--r-s);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover,.btn:focus-visible{background:#fff;box-shadow:2px 3px 0 rgba(61,63,69,.25)}
+  .btn:focus-visible{outline:2px solid var(--red);outline-offset:2px}
   .btn.on{background:#2f3136;color:#fff}
   .btn svg{width:18px;height:18px}
-  .mode{display:inline-flex;border:1.5px solid var(--pencil);border-radius:4px 9px 5px 10px;overflow:hidden}
+  .mode{display:inline-flex;border:1.5px solid var(--pencil);border-radius:var(--r-s);overflow:hidden}
   .mode .btn{border:0;border-radius:0}
+  .mode .btn:focus-visible{outline-offset:-4px;box-shadow:none}
   .notes{font-family:var(--hand);color:#34466a;font-size:18px;line-height:1.55;transform:rotate(-1deg);margin:4px 0 0}
   .notes p{margin:0 0 10px}
   .notes em{font-style:normal;color:var(--red)}
   .notes .arrow{display:block;width:120px;height:40px}
   .keys{font-family:var(--mono);font-size:12px;color:var(--pencil-l);margin-top:14px;line-height:1.8}
-  .keys kbd{font-family:var(--mono);border:1px solid var(--pencil-l);border-bottom-width:2px;border-radius:3px;padding:0 5px;background:#fff}
+  .keys kbd{font-family:var(--mono);border:1px solid var(--pencil-l);border-bottom-width:2px;border-radius:var(--r-xs);padding:0 5px;background:#fff}
   #msg{font-family:var(--hand);font-size:19px;color:var(--red);min-height:1.6em;margin-top:8px}
 
   @media (max-width:860px){
@@ -201,7 +205,7 @@
 
   // ---------- state ----------
   let P, R, C, sol, st, rowClues, colClues, cells = [], rowEls = [], colEls = [], hist = [], won = false, cur = { r: 0, c: 0 }, mode = 1;
-  let startT = 0, elapsed = 0, timerOn = false;
+  let startT = 0, elapsed = 0, timerOn = false, lastCs = 0;
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem('nono095') || '{}') || {}; } catch (_) { saved = {}; }
   const persist = () => { try { localStorage.setItem('nono095', JSON.stringify(saved)); } catch (_) {} };
@@ -230,6 +234,7 @@
   }
 
   function load(i) {
+    flushTime();
     P = PUZ[i]; R = P.rows.length; C = P.rows[0].length;
     sol = P.rows.map(r => [...r].map(ch => ch === '#' ? 1 : 0));
     rowClues = sol.map(runs);
@@ -246,7 +251,7 @@
   }
 
   function build() {
-    const cs = cellSize();
+    const cs = cellSize(); lastCs = cs;
     const maxClueR = Math.max(...rowClues.map(c => c.length)), maxClueC = Math.max(...colClues.map(c => c.length));
     const fs = Math.max(11, Math.min(17, Math.round(cs * .44)));
     board.style.setProperty('--fs', fs + 'px');
@@ -321,6 +326,9 @@
     counter(); save(); checkWin();
   }
   function save() { saved[P.id] = { st, won, t: Math.round(elapsed) }; persist(); }
+  // time since the last move would otherwise be lost when switching puzzles or leaving the page
+  function flushTime() { if (P && timerOn && !won) { elapsed = (performance.now() - startT) / 1000; save(); } }
+  addEventListener('pagehide', flushTime);
   function checkWin() {
     for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) if ((st[r][c] === 1) !== (sol[r][c] === 1)) return;
     if (timerOn) elapsed = (performance.now() - startT) / 1000;
@@ -341,7 +349,7 @@
     const r = +el.dataset.r, c = +el.dataset.c;
     const m = e.button === 2 ? 2 : mode;
     const target = st[r][c] === m ? 0 : m;        // the first cell decides: paint or erase
-    drag = { v: target, batch: [], r0: r, c0: c, axis: null };
+    drag = { v: target, m, batch: [], r0: r, c0: c, axis: null };
     set(r, c, target, drag.batch);
     cur = { r, c }; showCursor = false; cursor();
   });
@@ -353,6 +361,8 @@
     if (drag.axis === 'row') r = drag.r0; else if (drag.axis === 'col') c = drag.c0;
     // only overwrite cells that match what we're painting over (don't erase X's while filling)
     if (drag.v !== 0 && st[r][c] !== 0 && st[r][c] !== drag.v) return;
+    // erasing only removes the mark type the drag started on (erasing fills keeps the X's)
+    if (drag.v === 0 && st[r][c] !== drag.m) return;
     set(r, c, drag.v, drag.batch);
   });
   const up = () => { if (drag) { commit(drag.batch); drag = null; } };
@@ -395,14 +405,15 @@
     counter(); save();
   }
   const undoB = $('#undo'); undoB && undoB.addEventListener('click', undo);
-  const checkB = $('#check');
+  const checkB = $('#check'); let checkT = 0;
   checkB && checkB.addEventListener('click', () => {
     if (won) return;
     let bad = 0;
     for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
       if ((st[r][c] === 1 && !sol[r][c]) || (st[r][c] === 2 && sol[r][c])) { bad++; cells[r][c].classList.add('bad'); if (st[r][c] === 2) cells[r][c].style.background = 'rgba(200,68,47,.18)'; }
     }
-    setTimeout(() => cells.flat().forEach(e => { e.classList.remove('bad'); e.style.background = ''; }), 1600);
+    clearTimeout(checkT); // a second click must not have its marks wiped by the first click's timer
+    checkT = setTimeout(() => cells.flat().forEach(e => { e.classList.remove('bad'); e.style.background = ''; }), 1600);
     say(bad ? `有 ${bad} 格不對，用紅筆圈起來了。` : '目前為止都沒錯，繼續。');
   });
   const peekB = $('#peek');
@@ -421,9 +432,13 @@
   });
   const clearB = $('#clear');
   clearB && clearB.addEventListener('click', () => {
-    st = [...Array(R)].map(() => new Array(C).fill(0)); won = false; elapsed = 0; timerOn = false; hist = [];
+    // an unsolved board can be brought back with 復原 (one misclick used to wipe a whole 15×15 for good)
+    const wiped = [];
+    if (!won) for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) if (st[r][c]) wiped.push([r, c, st[r][c]]);
+    st = [...Array(R)].map(() => new Array(C).fill(0)); won = false; elapsed = 0; timerOn = false;
+    hist = wiped.length ? hist.concat([wiped]) : [];
     board.classList.remove('won'); const s = $('#stamp'); s && s.classList.remove('on');
-    refresh(); save(); drawTabs(PUZ.indexOf(P)); say('擦乾淨了。橡皮擦屑請自行吹掉。');
+    refresh(); save(); drawTabs(PUZ.indexOf(P)); say(wiped.length ? '擦乾淨了。手滑的話，按「復原」可以救回來。' : '擦乾淨了。橡皮擦屑請自行吹掉。');
   });
 
   function say(t) { const m = $('#msg'); if (m) m.textContent = t; }
@@ -456,7 +471,9 @@
   }
 
   let rt = 0;
-  addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (P) { build(); refresh(); if (won) board.classList.add('won'); } }, 150); });
+  // mobile browsers fire resize when the address bar slides; only rebuild when the cell size really changes
+  // (a rebuild replays the solved-ink animation and drops the red 檢查 marks)
+  addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (P && cellSize() !== lastCs) { build(); refresh(); if (won) board.classList.add('won'); } }, 150); });
 
   let first = 1;
   try { const l = parseInt(localStorage.getItem('nono095-last'), 10); if (l >= 0 && l < PUZ.length) first = l; } catch (_) {}

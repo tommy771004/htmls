@@ -166,6 +166,8 @@ export class Storm {
       this.center.lerpVectors(this.from.center, this.next.center, f);
       if (this.timeLeft <= 0) { this.radius = this.next.radius; this.center.copy(this.next.center); if (this.phase < 6) this._begin(this.phase + 1); else { this.state = 'final'; this.timeLeft = 0; } }
     }
+    // 對戰已分出勝負：停止扣血（否則冠軍會在勝利畫面背後被風暴淘汰）
+    if (this.ctx.match && this.ctx.match.over) return;
     // 圈外每秒扣血一次（只扣血，不扣盾）
     this.tick += dt;
     if (this.tick >= 1) {

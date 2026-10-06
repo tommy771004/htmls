@@ -202,7 +202,13 @@ const gearMat = {
   tan: new THREE.MeshStandardMaterial({ color: '#8c7a58', roughness: 0.9 }),
   dark: new THREE.MeshStandardMaterial({ color: '#2b2722', roughness: 0.7 }),
 };
-function helmet() {
+// 頭盔、背心、降落傘每個士兵都一樣：只建一次，之後 clone（共用幾何與材質），
+// 每場 99 個士兵重建時才不會一直累積新的幾何與降落傘貼圖
+let HELMET = null, VEST = null, CHUTE = null;
+const helmet = () => (HELMET ||= buildHelmet()).clone();
+const vest = () => (VEST ||= buildVest()).clone();
+const makeChute = () => (CHUTE ||= buildChute()).clone();
+function buildHelmet() {
   const g = new THREE.Group();
   const shell = new THREE.Mesh(new THREE.SphereGeometry(0.145, 18, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), gearMat.olive); shell.scale.set(1, 0.85, 1.12);
   const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.152, 0.158, 0.03, 18), gearMat.olive); brim.position.y = -0.005; brim.scale.z = 1.12;
@@ -210,7 +216,7 @@ function helmet() {
   for (const m of [shell, brim, nvg]) { m.castShadow = true; g.add(m); }
   return g;
 }
-function vest() {
+function buildVest() {
   const g = new THREE.Group();
   const front = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.38, 0.07), gearMat.tan); front.position.set(0, 0, 0.13);
   const back = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.42, 0.07), gearMat.tan); back.position.set(0, 0, -0.13);
@@ -354,7 +360,7 @@ function poseBlock(s, st, dt) {
 }
 
 // ---- 降落傘：平滑的翼型傘衣、傘肋與傘繩 ----
-function makeChute() {
+function buildChute() {
   const g = new THREE.Group();
   const cells = 9, segU = 36, segV = 6, span = 8.4, chord = 2.7, arc = 1.15;
   const tex = (() => { const c = document.createElement('canvas'); c.width = 512; c.height = 64; const x = c.getContext('2d'); for (let i = 0; i < cells; i++) { x.fillStyle = i % 2 ? '#e8b23c' : '#2f6fb0'; x.fillRect((i / cells) * 512, 0, 512 / cells + 1, 64); } x.fillStyle = 'rgba(0,0,0,.18)'; for (let i = 1; i < cells; i++) x.fillRect((i / cells) * 512 - 1, 0, 2, 64); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();

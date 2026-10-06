@@ -132,7 +132,8 @@ export class Hud {
   }
   onState(s) {
     const E = this.el, c = this.ctx;
-    this.clearTimers(); this.spectating = false; this.endShown = false;
+    // 進入 ended 時不清 later() 的計時器：擊殺訊息／通知的淡出移除還要跑（觀戰時 HUD 仍顯示）
+    clearTimeout(this._endTimer); if (s !== 'ended') this.clearTimers(); this.spectating = false; this.endShown = false;
     E.menu.hidden = s !== 'menu'; E.hud.hidden = s === 'menu'; E.hud.classList.remove('spec');
     E.end.hidden = true; E.pause.hidden = true; this.paused = false; this.mapOpen = false; E.bigmap.hidden = true; c.paused = false;
     $('spectate').hidden = true; $('specBtns').hidden = true; document.body.classList.remove('building');
@@ -140,9 +141,9 @@ export class Hud {
     if (s === 'ended') {
       const m = c.match;
       // 勝利或對戰已結束 → 直接結算；玩家被淘汰但對戰仍在進行 → 先觀戰擊殺者（可隨時開結算）
-      if (m.winner === c.player) this.later(() => this.showEnd(), 900);
-      else if (m.over) this.later(() => this.showEnd(), 700);
-      else this.later(() => this.enterSpectate(), 700);
+      if (m.winner === c.player) this._endTimer = setTimeout(() => this.showEnd(), 900);
+      else if (m.over) this._endTimer = setTimeout(() => this.showEnd(), 700);
+      else this._endTimer = setTimeout(() => this.enterSpectate(), 700);
     }
     c.input.setTouchVisible(s === 'bus' || s === 'playing');
   }

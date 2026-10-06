@@ -8,7 +8,7 @@ export function makeInput(canvas) {
   };
   const pulse = (b) => { I.pulses |= b; };
   addEventListener('keydown', (e) => {
-    if (e.target && (e.target.tagName === 'INPUT')) return;
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
     if (!I.enabled) return;
     if (['Tab', 'Space'].includes(e.code)) e.preventDefault();
     if (e.repeat) { if (I.keys.has(e.code)) return; }
@@ -85,7 +85,8 @@ export function makeInput(canvas) {
     }, { passive: true });
     const end = (e) => { for (const t of e.changedTouches) { if (t.identifier === sid) { sid = null; I.touchMove = [0, 0]; knob.style.transform = ''; } if (t.identifier === lid) lid = null; } };
     addEventListener('touchend', end); addEventListener('touchcancel', end);
-    const hold = (id, key) => { const el = root.querySelector(id); el.addEventListener('touchstart', (e) => { e.preventDefault(); I[key] = true; el.classList.add('on'); }, { passive: false }); el.addEventListener('touchend', () => { I[key] = false; el.classList.remove('on'); }); };
+    // touchcancel（系統手勢、來電等打斷觸控）也要放開，不然射擊／跳會卡在按住
+    const hold = (id, key) => { const el = root.querySelector(id); const off = () => { I[key] = false; el.classList.remove('on'); }; el.addEventListener('touchstart', (e) => { e.preventDefault(); I[key] = true; el.classList.add('on'); }, { passive: false }); el.addEventListener('touchend', off); el.addEventListener('touchcancel', off); };
     hold('#tFire', 'touchFire'); hold('#tJump', 'touchJump'); hold('#tReload', 'touchReload'); hold('#tUse', 'touchUse'); hold('#tPlate', 'touchPlate');
     const tog = (id, fn) => { const el = root.querySelector(id); el.addEventListener('touchstart', (e) => { e.preventDefault(); el.classList.toggle('on', fn()); }, { passive: false }); };
     tog('#tAds', () => (I.touchAds = !I.touchAds));

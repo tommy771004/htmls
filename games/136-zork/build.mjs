@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 const root=path.dirname(fileURLToPath(import.meta.url));
 const read=n=>fs.readFileSync(path.join(root,n),'utf8');
 const engine=read('engine.mjs').replaceAll('export ','');
-const view=read('view.mjs').replace(/import \{[^\n]+\} from '\.\/engine\.mjs';\n/,'');
+const view=read('view.mjs').replace(/import \{[^\n]+\} from '\.\/engine\.mjs';\r?\n/,'');
 const html=read('shell.html').replace('/*STYLE*/',read('style.css')).replace('/*WORLD*/',JSON.stringify(JSON.parse(read('world.json'))).replaceAll('<','\\u003c')).replace('/*CODE*/',()=>engine+'\n'+view);
 fs.writeFileSync(path.join(root,'../../web/136-zork.html'),html);
 console.log('Built 136-zork.html',Buffer.byteLength(html),'bytes');

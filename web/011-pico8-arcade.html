@@ -10,8 +10,8 @@
 :root{
   --c0:#000000;--c1:#1D2B53;--c2:#7E2553;--c3:#008751;--c4:#AB5236;--c5:#5F574F;--c6:#C2C3C7;--c7:#FFF1E8;
   --c8:#FF004D;--c9:#FFA300;--c10:#FFEC27;--c11:#00E436;--c12:#29ADFF;--c13:#83769C;--c14:#FF77A8;--c15:#FFCCAA;
-  --step:polygon(0 8px,4px 8px,4px 4px,8px 4px,8px 0,calc(100% - 8px) 0,calc(100% - 8px) 4px,calc(100% - 4px) 4px,calc(100% - 4px) 8px,100% 8px,100% calc(100% - 8px),calc(100% - 4px) calc(100% - 8px),calc(100% - 4px) calc(100% - 4px),calc(100% - 8px) calc(100% - 4px),calc(100% - 8px) 100%,8px 100%,8px calc(100% - 4px),4px calc(100% - 4px),4px calc(100% - 8px),0 calc(100% - 8px));
-  --step-s:polygon(0 4px,4px 4px,4px 0,calc(100% - 4px) 0,calc(100% - 4px) 4px,100% 4px,100% calc(100% - 4px),calc(100% - 4px) calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,4px calc(100% - 4px),0 calc(100% - 4px));
+  --r-s:4px; /* keys, small buttons, screen bezel */
+  --r-m:6px; /* panels, handheld shell */
 }
 *{box-sizing:border-box}
 html{background:#000}
@@ -30,7 +30,7 @@ body{
 }
 .stage{display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap;width:100%;max-width:1320px}
 .side{flex:0 0 auto;display:flex;flex-direction:column;gap:12px}
-.panel{background:var(--c0);padding:12px;clip-path:var(--step);position:relative}
+.panel{background:var(--c0);padding:12px;border-radius:var(--r-m);position:relative}
 .panel-wrap{filter:drop-shadow(4px 4px 0 var(--c1))}
 .panel .ttl{display:block;margin-bottom:10px}
 .panel canvas, .pix{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
@@ -39,11 +39,11 @@ body{
 
 /* ---- the handheld ---- */
 .handheld-wrap{filter:drop-shadow(8px 8px 0 var(--c2));flex:0 0 auto}
-.handheld{background:var(--c1);clip-path:var(--step);padding:14px 16px 20px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.handheld{background:var(--c1);border-radius:var(--r-m);padding:14px 16px 20px;display:flex;flex-direction:column;align-items:center;gap:12px}
 .brand{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px}
 .stripes{display:flex;gap:0;height:8px}
 .stripes i{display:block;width:8px;height:8px}
-.bezel{background:var(--c0);padding:4px;clip-path:var(--step-s);box-shadow:inset 0 0 0 4px var(--c5)}
+.bezel{background:var(--c0);padding:4px;border-radius:var(--r-s);box-shadow:inset 0 0 0 4px var(--c5)}
 #screen{display:block;image-rendering:pixelated;image-rendering:crisp-edges;background:#000;touch-action:none;outline:none}
 .led{width:8px;height:8px;background:var(--c8);box-shadow:0 0 0 2px var(--c2)}
 .led.on{background:var(--c11);box-shadow:0 0 0 2px var(--c3)}
@@ -52,17 +52,18 @@ body{
 .dpad{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(3,44px)}
 .btn{appearance:none;border:0;margin:0;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:none;outline:none}
 .btn:focus-visible{outline:3px solid var(--c10);outline-offset:2px}
-.d{background:var(--c6);clip-path:var(--step-s);box-shadow:inset -4px -4px 0 var(--c13), inset 4px 4px 0 var(--c7)}
+.round:focus-visible{outline-offset:3px}
+.d{background:var(--c6);border-radius:var(--r-s);box-shadow:inset -4px -4px 0 var(--c13), inset 4px 4px 0 var(--c7)}
 .d.pressed,.d:active{background:var(--c13);box-shadow:inset 4px 4px 0 var(--c5)}
 .d.up{grid-column:2;grid-row:1}.d.lt{grid-column:1;grid-row:2}.d.rt{grid-column:3;grid-row:2}.d.dn{grid-column:2;grid-row:3}
 .hub{grid-column:2;grid-row:2;background:var(--c6);box-shadow:inset -4px -4px 0 var(--c13)}
 .ab{display:flex;gap:14px;align-items:flex-end}
 .ab .col{display:flex;flex-direction:column;align-items:center;gap:6px}
-.round{width:56px;height:56px;clip-path:polygon(16px 0,40px 0,40px 4px,48px 4px,48px 8px,52px 8px,52px 16px,56px 16px,56px 40px,52px 40px,52px 48px,48px 48px,48px 52px,40px 52px,40px 56px,16px 56px,16px 52px,8px 52px,8px 48px,4px 48px,4px 40px,0 40px,0 16px,4px 16px,4px 8px,8px 8px,8px 4px,16px 4px)}
+.round{width:56px;height:56px;border-radius:50%}
 .round.x{background:var(--c8);box-shadow:inset -6px -6px 0 var(--c2), inset 5px 5px 0 var(--c14)}
 .round.o{background:var(--c12);box-shadow:inset -6px -6px 0 var(--c1), inset 5px 5px 0 #7fd0ff;margin-bottom:22px}
 .round.pressed,.round:active{transform:translateY(3px);box-shadow:inset 6px 6px 0 rgba(0,0,0,.35)}
-.small{height:40px;min-width:64px;padding:0 12px;gap:10px;background:var(--c5);clip-path:var(--step-s);box-shadow:inset -3px -3px 0 #3a352f}
+.small{height:40px;min-width:64px;padding:0 12px;gap:10px;background:var(--c5);border-radius:var(--r-s);box-shadow:inset -3px -3px 0 #3a352f}
 .small.pressed,.small:active{background:#3a352f}
 .meta{display:flex;justify-content:space-between;width:100%;align-items:center;gap:8px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -295,7 +296,8 @@ addEventListener('keydown',e=>{ const k=KEYMAP[e.code]; if(!k) return; e.prevent
 addEventListener('keyup',e=>{ const k=KEYMAP[e.code]; if(k) release(k); });
 const ctr=document.getElementById('controls');
 if(ctr){
-  ctr.querySelectorAll('[data-k]').forEach(b=>{
+  /* the sound button sits in .meta, outside #controls — bind it too */
+  [...ctr.querySelectorAll('[data-k]'), document.getElementById('muteBtn')].filter(Boolean).forEach(b=>{
     const k=b.dataset.k;
     b.addEventListener('pointerdown',e=>{ e.preventDefault(); try{b.setPointerCapture(e.pointerId);}catch(_){} b.classList.add('pressed'); press(k); });
     const up=()=>{ b.classList.remove('pressed'); release(k); };

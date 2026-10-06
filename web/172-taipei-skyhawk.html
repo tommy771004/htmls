@@ -15,6 +15,7 @@
   --mag:#e24fd8;--cyan:#41cfe6;--grn:#43d873;--amb:#f2b230;--red:#ff4b3e;
   --num:"DIN Alternate","Bahnschrift","D-DIN","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
   --ui:system-ui,-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  --r-s:4px;--r-m:6px;--r-l:8px;
   --ease-out:cubic-bezier(.2,.7,.2,1);--dur-hover:.16s;--dur-press:.09s;--dur-enter:.42s;--dur-exit:.26s;
   --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);
 }
@@ -31,13 +32,13 @@ button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 #hud{position:fixed;inset:0;pointer-events:none;opacity:1;transition:opacity var(--dur-exit) var(--ease-out)}
 body.briefing #hud{opacity:0;visibility:hidden}
 #hud>*{pointer-events:auto}
-.blk{background:var(--panel);border-radius:6px}
+.blk{background:var(--panel);border-radius:var(--r-m)}
 #ident{position:absolute;left:calc(14px + var(--sal));top:calc(12px + var(--sat));padding:8px 12px 9px;max-width:min(440px,46vw)}
 #ident b{font-weight:600;font-size:14px;display:block}
 #ident span{color:var(--ink-2);font-size:12px}
 #ident .n{font-size:13px}
 #views{position:absolute;right:calc(14px + var(--sar));top:calc(12px + var(--sat));display:flex;gap:2px;padding:3px}
-#views button{padding:6px 10px 7px;border-radius:4px;font-size:13px;color:var(--ink-2);transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
+#views button{padding:6px 10px 7px;border-radius:var(--r-s);font-size:13px;color:var(--ink-2);transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
 #views button .n{color:var(--ink-3);margin-right:5px;font-size:12px}
 #views button:hover{color:var(--ink);background:rgba(255,255,255,.07)}
 #views button[aria-pressed=true]{color:#12110f;background:var(--ink)}
@@ -56,25 +57,25 @@ body.briefing #hud{opacity:0;visibility:hidden}
 #flapGfx i.on{background:var(--ink)}
 
 #ap{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(14px + var(--sab));display:flex;align-items:stretch;padding:4px;gap:4px}
-#ap .seg{display:flex;align-items:center;gap:2px;padding:0 4px;border-radius:4px}
+#ap .seg{display:flex;align-items:center;gap:2px;padding:0 4px;border-radius:var(--r-s)}
 #ap .lab{font-size:11px;color:var(--ink-3);margin:0 6px 0 4px}
 #ap .val{min-width:48px;text-align:center;font-size:15px;color:var(--cyan)}
-#ap button.st{width:28px;height:30px;border-radius:4px;color:var(--ink-2);font-size:17px;line-height:1;transition:background-color var(--dur-hover) var(--ease-out)}
+#ap button.st{width:28px;height:30px;border-radius:var(--r-s);color:var(--ink-2);font-size:17px;line-height:1;transition:background-color var(--dur-hover) var(--ease-out)}
 #ap button.st:hover{background:rgba(255,255,255,.08);color:var(--ink)}
 #ap button.st:active{background:rgba(255,255,255,.16)}
-#apBtn{padding:0 12px;border-radius:4px;font-weight:700;font-size:13px;letter-spacing:.06em;color:var(--ink-2);background:rgba(255,255,255,.06);transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
+#apBtn{padding:0 12px;border-radius:var(--r-s);font-weight:700;font-size:13px;letter-spacing:.06em;color:var(--ink-2);background:rgba(255,255,255,.06);transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
 #apBtn[aria-pressed=true]{background:var(--grn);color:#08150c}
 #ap.on .seg.act .lab{color:var(--grn)}
 
 #mapBox{position:absolute;right:calc(14px + var(--sar));bottom:calc(14px + var(--sab));width:208px;height:208px;overflow:hidden;padding:0}
-#map{width:100%;height:100%;display:block;border-radius:6px}
+#map{width:100%;height:100%;display:block;border-radius:var(--r-m)}
 #mapBox .zm{position:absolute;right:6px;bottom:6px;display:flex;gap:2px}
-#mapBox .zm button{width:26px;height:26px;border-radius:4px;background:rgba(16,15,13,.72);font-size:16px;line-height:1;color:var(--ink-2)}
+#mapBox .zm button{width:26px;height:26px;border-radius:var(--r-s);background:rgba(16,15,13,.72);font-size:16px;line-height:1;color:var(--ink-2)}
 #mapBox .zm button:hover{color:var(--ink)}
 #mapBox .nm{position:absolute;left:8px;top:6px;font-size:11px;color:var(--ink-2);text-shadow:0 1px 2px #000}
 
 #warn{position:absolute;left:50%;top:calc(92px + var(--sat));transform:translateX(-50%);display:flex;gap:6px;pointer-events:none}
-#warn span{padding:3px 10px 4px;border-radius:3px;font-weight:700;font-size:13px;letter-spacing:.08em;display:none}
+#warn span{padding:3px 10px 4px;border-radius:var(--r-s);font-weight:700;font-size:13px;letter-spacing:.08em;display:none}
 #warn span.on{display:block}
 #warn .r{background:var(--red);color:#1a0503}
 #warn .a{background:var(--amb);color:#1a1203}
@@ -82,7 +83,7 @@ body.briefing #hud{opacity:0;visibility:hidden}
 
 #credit{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(58px + var(--sab));font-size:10.5px;color:rgba(243,240,232,.62);white-space:nowrap;pointer-events:none;text-shadow:0 1px 2px rgba(0,0,0,.7)}
 #tools{position:absolute;right:calc(14px + var(--sar));bottom:calc(230px + var(--sab));display:flex;gap:2px;padding:3px}
-#tools button{padding:5px 9px 6px;border-radius:4px;font-size:12px;color:var(--ink-2);transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
+#tools button{padding:5px 9px 6px;border-radius:var(--r-s);font-size:12px;color:var(--ink-2);transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
 #tools button:hover{color:var(--ink);background:rgba(255,255,255,.07)}
 #loadInfo{position:absolute;left:calc(14px + var(--sal));top:calc(74px + var(--sat));font-size:11px;color:var(--ink-3);pointer-events:none}
 
@@ -92,7 +93,7 @@ body.touch #touch{display:block}
 body.touch #tbar{display:flex}
 body.touch #views,body.touch #tools,body.touch #nav,body.touch #eng,body.touch #ap{display:none}
 #tbar{position:absolute;right:calc(12px + var(--sar));top:calc(10px + var(--sat));gap:2px;padding:3px}
-#tbar button{min-width:46px;height:40px;padding:0 11px;border-radius:4px;font-size:13px;color:var(--ink)}
+#tbar button{min-width:46px;height:40px;padding:0 11px;border-radius:var(--r-s);font-size:13px;color:var(--ink)}
 #tbar button:active{background:rgba(243,240,232,.18)}
 #tbar #tView b{font-weight:600}
 #tbar #tView span{color:var(--ink-3);font-size:11px;margin-right:5px}
@@ -107,21 +108,21 @@ body.touch #views,body.touch #tools,body.touch #nav,body.touch #eng,body.touch #
 #zoneHint{position:absolute;right:calc(9% + var(--sar));bottom:calc(30% + var(--sab));transform:translate(50%,50%);width:112px;height:112px;border-radius:50%;box-shadow:inset 0 0 0 1.5px rgba(243,240,232,.26);pointer-events:none;display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;line-height:1.4;color:rgba(243,240,232,.7)}
 #zone.used ~ #zoneHint{display:none}
 #lever{position:absolute;left:calc(12px + var(--sal));top:calc(86px + var(--sat));bottom:calc(14px + var(--sab));width:64px;touch-action:none}
-#lever .trk{position:absolute;left:10px;right:10px;top:30px;bottom:22px;border-radius:8px;background:rgba(16,15,13,.5);box-shadow:inset 0 0 0 1.5px rgba(243,240,232,.2)}
-#lever .fill{position:absolute;left:0;right:0;bottom:0;border-radius:8px;background:rgba(67,216,115,.28)}
+#lever .trk{position:absolute;left:10px;right:10px;top:30px;bottom:22px;border-radius:var(--r-l);background:rgba(16,15,13,.5);box-shadow:inset 0 0 0 1.5px rgba(243,240,232,.2)}
+#lever .fill{position:absolute;left:0;right:0;bottom:0;border-radius:var(--r-l);background:rgba(67,216,115,.28)}
 #lever .det{position:absolute;left:-6px;right:-6px;height:2px;border-radius:1px;background:rgba(243,240,232,.55)}
 #lever .det em{position:absolute;left:100%;margin-left:4px;top:-7px;font:600 10px/1 var(--num);font-style:normal;color:var(--ink-3);white-space:nowrap}
-#lever .knob{position:absolute;left:-4px;right:-4px;height:30px;margin-bottom:-15px;border-radius:6px;background:rgba(243,240,232,.9);box-shadow:0 1px 2px rgba(0,0,0,.35)}
+#lever .knob{position:absolute;left:-4px;right:-4px;height:30px;margin-bottom:-15px;border-radius:var(--r-m);background:rgba(243,240,232,.9);box-shadow:0 1px 2px rgba(0,0,0,.35)}
 #lever .knob::after{content:"";position:absolute;left:10px;right:10px;top:14px;height:2px;border-radius:1px;background:rgba(18,17,15,.35)}
 #lever .val{position:absolute;left:-4px;right:-30px;top:-6px;text-align:left;font-size:13px;white-space:nowrap;color:var(--ink);text-shadow:0 1px 3px rgba(0,0,0,.6)}
 #lever .lab{display:none;position:absolute;left:0;right:0;bottom:0;text-align:center;font-size:11px;color:var(--ink-2);text-shadow:0 1px 3px rgba(0,0,0,.6)}
 #ctx{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(12px + var(--sab));display:flex;gap:6px;align-items:stretch}
 #ctx>*{display:none}
 #ctx[data-p=park] .p-park,#ctx[data-p=roll] .p-roll,#ctx[data-p=air] .p-air,#ctx[data-p=app] .p-app{display:flex}
-#ctx button{min-width:62px;height:46px;padding:0 13px;border-radius:6px;background:rgba(16,15,13,.66);font-size:13px;font-weight:600;color:var(--ink);align-items:center;justify-content:center}
+#ctx button{min-width:62px;height:46px;padding:0 13px;border-radius:var(--r-m);background:rgba(16,15,13,.66);font-size:13px;font-weight:600;color:var(--ink);align-items:center;justify-content:center}
 #ctx button:active,#ctx button.held{background:rgba(243,240,232,.9);color:#12110f}
 #ctx #cAp[aria-pressed=true]{background:var(--grn);color:#08150c}
-#ctx .flaps{align-items:stretch;background:rgba(16,15,13,.66);border-radius:6px}
+#ctx .flaps{align-items:stretch;background:rgba(16,15,13,.66);border-radius:var(--r-m)}
 #ctx .flaps button{background:none;min-width:48px;padding:0 10px}
 #ctx .flaps span{align-self:center;min-width:52px;text-align:center;font-size:12px;color:var(--ink-2);line-height:1.2}
 #ctx .flaps span b{display:block;font:700 15px/1.1 var(--num);color:var(--ink)}
@@ -156,11 +157,11 @@ body.touch #loadInfo{display:none}
 body:not(.briefing) #brief{opacity:0;transform:translateY(16px);visibility:hidden}
 #brief>*{pointer-events:auto}
 #bay{width:min(620px,100%);display:flex;flex-direction:column;gap:14px;margin-top:auto}
-#brief h1{margin:0 0 2px;font-size:clamp(40px,6vw,76px);line-height:1;font-weight:800;letter-spacing:.04em;text-shadow:0 2px 18px rgba(0,0,0,.35)}
+#brief h1{margin:0 0 2px;font-size:clamp(40px,6vw,76px);line-height:1;font-weight:800;letter-spacing:.04em;text-shadow:0 2px 8px rgba(0,0,0,.35)}
 #brief h1 small{display:block;margin-top:10px;font:600 15px/1.2 var(--num);letter-spacing:.24em;color:rgba(243,240,232,.86)}
 #brief .lede{margin:0;max-width:34em;color:rgba(243,240,232,.9);font-size:14px;text-shadow:0 1px 8px rgba(0,0,0,.6)}
-.rail{background:#232220;border-radius:6px;padding:8px 8px 6px;box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 2px 3px rgba(0,0,0,.35)}
-.strip{display:grid;grid-template-columns:92px 1fr 74px 60px;align-items:stretch;width:calc(100% - 22px);margin:0 0 5px;border-radius:2px;color:#23211c;text-align:left;font:13px/1.25 var(--ui);transition:transform var(--dur-enter) var(--ease-out),filter var(--dur-hover) var(--ease-out);position:relative}
+.rail{background:#232220;border-radius:var(--r-m);padding:8px 8px 6px;box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 2px 3px rgba(0,0,0,.35)}
+.strip{display:grid;grid-template-columns:92px 1fr 74px 60px;align-items:stretch;width:calc(100% - 22px);margin:0 0 5px;border-radius:var(--r-s);color:#23211c;text-align:left;font:13px/1.25 var(--ui);transition:transform var(--dur-enter) var(--ease-out),filter var(--dur-hover) var(--ease-out);position:relative}
 .strip:last-child{margin-bottom:0}
 .strip:hover{filter:brightness(1.04)}
 .strip[aria-checked=true]{transform:translateX(22px)}
@@ -177,14 +178,14 @@ body:not(.briefing) #brief{opacity:0;transform:translateY(16px);visibility:hidde
 .strip .al em{font:600 10.5px/1.3 var(--ui);font-style:normal;color:#5c574b;margin-top:4px}
 .strip .sq{font:600 13px/1 var(--num);text-align:center;display:flex;align-items:center;justify-content:center;color:#3a372f}
 .strip[aria-checked=true] .sq::after{content:"";position:absolute;left:-22px;top:7px;bottom:7px;width:14px;border-radius:0 3px 3px 0;background:#ece8dc}
-.opts{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;align-items:center;background:var(--panel-2);border-radius:6px;padding:12px 14px}
+.opts{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;align-items:center;background:var(--panel-2);border-radius:var(--r-m);padding:12px 14px}
 .opts>span{font-size:12px;color:var(--ink-3)}
 .seg{display:flex;flex-wrap:wrap;gap:2px}
-.opts .seg button{padding:4px 10px 5px;border-radius:4px;font-size:13px;color:var(--ink-2);transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
+.opts .seg button{padding:4px 10px 5px;border-radius:var(--r-s);font-size:13px;color:var(--ink-2);transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
 .opts .seg button:hover{color:var(--ink);background:rgba(255,255,255,.07)}
 .opts .seg button[aria-checked=true]{background:var(--ink);color:#12110f}
 .go{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-#goBtn{padding:13px 22px 14px;border-radius:5px;background:var(--ink);color:#12110f;font-weight:700;font-size:16px;letter-spacing:.05em;transition:background-color var(--dur-hover) var(--ease-out)}
+#goBtn{padding:13px 22px 14px;border-radius:var(--r-s);background:var(--ink);color:#12110f;font-weight:700;font-size:16px;letter-spacing:.05em;transition:background-color var(--dur-hover) var(--ease-out)}
 #goBtn:hover{background:#fff}
 #goBtn:active{background:#dcd7cb}
 #goBtn .n{margin-left:10px;font-size:13px;color:#6d685c;letter-spacing:.1em}
@@ -192,16 +193,16 @@ body:not(.briefing) #brief{opacity:0;transform:translateY(16px);visibility:hidde
 #status{font-size:12px;color:rgba(243,240,232,.72);text-shadow:0 1px 6px rgba(0,0,0,.7);min-height:1.4em}
 
 /* ---------- 對話層 ---------- */
-.sheet{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,calc(100% - 32px));max-height:calc(100% - 40px);overflow:auto;background:rgba(18,17,15,.94);border-radius:8px;padding:20px 22px;display:none}
+.sheet{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,calc(100% - 32px));max-height:calc(100% - 40px);overflow:auto;background:rgba(18,17,15,.94);border-radius:var(--r-l);padding:20px 22px;display:none}
 .sheet.open{display:block}
 .sheet h2{margin:0 0 12px;font-size:20px}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;font-size:13px;color:var(--ink-2)}
 .keys b{font:600 13px var(--num);color:var(--ink);white-space:nowrap}
-.sheet .close{margin-top:16px;padding:8px 14px;border-radius:4px;background:var(--ink);color:#12110f;font-weight:700}
+.sheet .close{margin-top:16px;padding:8px 14px;border-radius:var(--r-s);background:var(--ink);color:#12110f;font-weight:700}
 #crash h2{color:var(--red);font-size:24px}
 #crash p{color:var(--ink-2);margin:0 0 4px}
 #crash .acts{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
-#crash .acts button{padding:9px 14px;border-radius:4px;background:rgba(255,255,255,.1);font-weight:600}
+#crash .acts button{padding:9px 14px;border-radius:var(--r-s);background:rgba(255,255,255,.1);font-weight:600}
 #crash .acts button:first-child{background:var(--ink);color:#12110f}
 #err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:24px;background:#0f0e0c;font-size:16px}
 
@@ -259,7 +260,7 @@ body:not(.touch) .touchhint,body:not(.touch) .touchkeys,body.touch .keykeys{disp
 }
 #ctx button{touch-action:none}
 #lever:focus-visible{outline:2px solid var(--cyan);outline-offset:4px}
-#brief{touch-action:pan-y}#brief .lede{text-shadow:0 1px 4px #000,0 0 18px #000}
+#brief{touch-action:pan-y}#brief .lede{text-shadow:0 1px 6px rgba(0,0,0,.85)}
 #help,#crash{touch-action:pan-y}
 #views button,#tools button,.sheet button,#tbar button{min-height:44px}
 #nav{top:calc(68px + var(--sat))}
@@ -2116,7 +2117,7 @@ function startScenario(i) {
   sim = SCEN[i]();
   sim.stallBias = Math.random() - 0.5;
   app.apOn = false; app.apHdg = Math.round(toMag(SCEN_AP[i].hdg === 95 ? RWY.hdgTrue : SCEN_AP[i].hdg)); app.apAlt = SCEN_AP[i].alt; app.apVs = i === 1 ? -500 : 500;
-  app.pbrake = i === 0; app.pbrakeHeld = false; app.relT = 0; app.track = []; app.maxG = 1; app.t0 = performance.now(); app.touchdown = null; app.crashT = 0;
+  app.pbrake = i === 0; app.pbrakeHeld = false; app.relT = 0; app.track = []; app.maxG = 1; app.t0 = performance.now(); app.flyT = 0; acc = 0; app.touchdown = null; app.crashT = 0;
   clearInput();
   sim.ctl.brake = app.pbrake ? 1 : 0;
   camState.init = false; flyby.set = false;
@@ -2147,7 +2148,8 @@ addEventListener('keydown', e => {
   if($('help').classList.contains('open')) { if(k==='escape'){e.preventDefault();toggleHelp();}else trapDialog(e,$('help'));return; }
   if($('crash').classList.contains('open')) {
     if(k==='escape'){e.preventDefault();toBrief();}
-    else if(k==='r'&&!e.ctrlKey&&!e.metaKey)retry();else trapDialog(e,$('crash'));return;
+    // 撞擊時若正按住 R（加油門），自動重複的 keydown 不能直接觸發重飛
+    else if(k==='r'&&!e.repeat&&!e.ctrlKey&&!e.metaKey)retry();else trapDialog(e,$('crash'));return;
   }
   // 按鈕只吃空白鍵與 Enter：用滑鼠點了視角或暫停鈕之後，焦點留在按鈕上，飛行按鍵仍要有效
   if(e.altKey||e.ctrlKey||e.metaKey||e.target.closest('input,select,textarea,[role="slider"],[contenteditable="true"]')||(e.target.closest('button')&&(k===' '||k==='enter')))return;
@@ -2400,7 +2402,7 @@ document.querySelectorAll('#ap .seg').forEach(seg => {
       if (m === 'vs') app.apVs = clamp(app.apVs + d * 100, -1500, 1500);
       syncAp();
     };
-    b.addEventListener('pointerdown', e => { if(e.button!==0)return; e.preventDefault(); b.focus(); step(); hold = setTimeout(function rep() { step(); hold = setTimeout(rep, 90); }, 420); });
+    b.addEventListener('pointerdown', e => { if(e.button!==0)return; e.preventDefault(); b.focus(); clearTimeout(hold); step(); hold = setTimeout(function rep() { step(); hold = setTimeout(rep, 90); }, 420); });
     const stop = () => { clearTimeout(hold); hold=null; }; inputResetters.push(stop); b.addEventListener('blur',stop);
     b.addEventListener('pointerup', stop); b.addEventListener('pointerleave', stop); b.addEventListener('pointercancel', stop);
     b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); step(); } });
@@ -2957,9 +2959,9 @@ function toggleHelp(){
 function crashed() {
   const eu = FDM.euler(sim.q);
   $('crashTitle').textContent = sim.crashed === '撞上建築' ? '撞上建築物' : '墜毀';
-  const t = (performance.now() - app.t0) / 1000;
+  const t = app.flyT || 0; // 只算實際飛行時間，不含暫停與說明視窗開著的時間
   $('crashWhy').textContent = { '起落架折斷': '觸地太重，起落架折斷。進場時把下降率控制在每分鐘 500 呎以內，平飄後再讓主輪先著地。', '機尾觸地': '機尾先觸地。', '左翼尖觸地': '左翼尖擦地，坡度太大。', '右翼尖觸地': '右翼尖擦地，坡度太大。', '螺旋槳觸地': '螺旋槳打到地面：機頭太低或前輪先著地。', '撞上建築': '飛進了建築物。台北市區上空的最低安全高度是 1,000 呎以上。' }[sim.crashed] || sim.crashed;
-  $('crashStat').textContent = `飛行 ${Math.floor(t / 60)} 分 ${Math.round(t % 60)} 秒 · 撞擊時 ${Math.round((sim.out.ias || 0) * KT)} 節 · 下降率 ${Math.round(-sim.vel[1] * 196.85)} 呎／分 · 最大 ${app.maxG.toFixed(1)} G`;
+  $('crashStat').textContent = `飛行 ${Math.floor(t / 60)} 分 ${Math.floor(t % 60)} 秒 · 撞擊時 ${Math.round((sim.out.ias || 0) * KT)} 節 · 下降率 ${Math.round(-sim.vel[1] * 196.85)} 呎／分 · 最大 ${app.maxG.toFixed(1)} G`;
   $('crash').classList.add('open'); clearInput();syncPanels();$('crashRetry').focus();
   sound.burst(90, 1.6, 0.9, 'lowpass'); sound.burst(900, 0.6, 0.5);
 }
@@ -3038,7 +3040,7 @@ function frame(now) {
   if (app.mode === 'fly' && !app.paused && !sim.crashed) readControls(dt);
   if (flying) {
     updateWind(dt);
-    acc += dt;
+    acc += dt; app.flyT = (app.flyT || 0) + dt;
     const h = 1 / 240; let n = 0;
     const wasGround = sim.onGround, vy0 = sim.vel[1];
     while (acc >= h && n < 48) { FDM.step(sim, h, env); acc -= h; n++; if (sim.crashed) break; }

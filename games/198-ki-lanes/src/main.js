@@ -118,7 +118,7 @@ function startMatch(heroId, lane = 1, diff = 1, rune, summ, page) {
   hud.attach(G);
   hud.bindPlayer(P);
   if (!minimap) minimap = createMinimap(document.getElementById('minimap'), map.groundCanvas);
-  if (!input) input = createInput({ G: proxyG, render: R, minimap, hud, audio, onHelp: toggleHelp, onCamToggle: (free) => document.body.classList.toggle('camfree', free), onShop: () => hud.toggleShop() });
+  if (!input) input = createInput({ G: proxyG, render: R, minimap, hud, audio, onHelp: toggleHelp, isPaused: () => paused, onCamToggle: (free) => document.body.classList.toggle('camfree', free), onShop: () => hud.toggleShop() });
   for (const s of showcase) s.rig.root.visible = false;
   cam.target.set(P.x, 0, P.z); cam.look.copy(cam.target); cam.zoom = 1; cam.focus = null;
   G.camFree = false; G.phase = 'play'; paused = false; endTimer = -1;

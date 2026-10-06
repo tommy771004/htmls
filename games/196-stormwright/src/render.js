@@ -50,7 +50,7 @@ export class Render {
     r.toneMapping = THREE.ACESFilmicToneMapping;
     r.toneMappingExposure = 1.05;
     r.shadowMap.enabled = true;
-    r.shadowMap.type = THREE.PCFSoftShadowMap;
+    r.shadowMap.type = THREE.PCFShadowMap; // r0.180 起 PCFShadowMap 即柔邊；PCFSoftShadowMap 已移除，用了只會印警告再退回 PCF
     r.info.autoReset = false; // 後製會多次呼叫 render，手動歸零才能得到整幀的 draw call 數
     host.appendChild(r.domElement);
     const scene = (this.scene = new THREE.Scene());
@@ -100,7 +100,8 @@ export class Render {
   }
   _buildPost() {
     const Q = this.Q;
-    if (this.composer) { this.composer.dispose?.(); this.composer = null; this.bloom = null; }
+    // EffectComposer.dispose() 只釋放自己的兩張 render target，各個 pass（bloom 的 mip target 與材質）要自己 dispose
+    if (this.composer) { for (const p of this.composer.passes) p.dispose?.(); this.composer.dispose?.(); this.composer = null; this.bloom = null; }
     if (!Q.post) return;
     const pr = this.renderer.getPixelRatio(), w = Math.max(1, innerWidth), h = Math.max(1, innerHeight);
     const rt = new THREE.WebGLRenderTarget(w * pr, h * pr, { type: THREE.HalfFloatType, samples: Q.msaa });

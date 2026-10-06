@@ -536,11 +536,10 @@ class Game {
   restart(autoStart = true) {
     this._newRun(true);
     this.state = 'title';
-    if (autoStart) {
-      this.start();
-    } else {
-      this.hud.setScreen('title');
-    }
+    // 先切回 title 再開始：從暫停畫面「重新開始」時 HUD 的前一個畫面是 paused，
+    // 不經過 title 的話 setScreen('playing') 不會重設小地圖縮放，新地形會沿用上一局的比例再慢慢內插
+    this.hud.setScreen('title');
+    if (autoStart) this.start();
   }
 
   pause() {

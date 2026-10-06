@@ -137,9 +137,9 @@ function connect(mode, code) {
   G.solo = mode === 'solo';
   const onMsg = (m) => handle(m);
   const onState = (s) => {
-    if (s === 'open') { setStatus('on', G.solo ? '離線練習（只有 AI）' : '已連線'); $('netWarn').classList.add('hidden'); }
-    if (s === 'drop') { setStatus('off', '連線中斷，正在重新連線…'); $('netWarn').classList.remove('hidden'); }
-    if (s === 'fail') { setStatus('off', '無法連線伺服器：可改用離線練習'); $('netWarn').classList.add('hidden'); showPick(); }
+    if (s === 'open') { G.dropped = false; setStatus('on', G.solo ? '離線練習（只有 AI）' : '已連線'); $('netWarn').classList.add('hidden'); }
+    if (s === 'drop') { G.dropped = true; setStatus('off', '連線中斷，正在重新連線…'); $('netWarn').classList.remove('hidden'); }
+    if (s === 'fail') { G.dropped = false; setStatus('off', '無法連線伺服器：可改用離線練習'); $('netWarn').classList.add('hidden'); showPick(); }
   };
   G.net = G.solo ? new LocalClient(onMsg, onState) : new NetClient(SERVER, onMsg, onState);
   setStatus('', G.solo ? '準備離線練習…' : '連線中…');
@@ -358,7 +358,10 @@ function onEnd(ev) {
   G.result = ev;
   const won = ev.win === G.myId;
   if (won) { audio.win(); hud.banner('鹽岬最後的生還者', '你贏了這一局', '', 4000); }
-  setTimeout(() => showResult(ev), won ? 2600 : 900);
+  // 延遲顯示結算：期間若已離開對局或開了新的一場，就不要再把舊的結算蓋上來
+  const m = G.match;
+  clearTimeout(G.endTimer);
+  G.endTimer = setTimeout(() => { if (G.screen === 'game' && G.match === m && G.result === ev) showResult(ev); }, won ? 2600 : 900);
 }
 
 function showResult(ev) {
@@ -400,7 +403,7 @@ function toGameScreen() {
   else { $('menuHint').classList.remove('hidden'); }
 }
 function toLobbyScreen() {
-  G.screen = 'lobby'; G.match = null;
+  G.screen = 'lobby'; G.match = null; clearTimeout(G.endTimer);
   $('lobby').classList.remove('hidden'); $('hud').classList.add('hidden'); $('touch').classList.add('hidden'); $('menu').classList.add('hidden'); $('bigmap').classList.add('hidden'); $('board').classList.add('hidden');
   input.enabled = false;
   if (document.pointerLockElement) document.exitPointerLock();
@@ -658,7 +661,8 @@ function gameFrame(dt, time) {
     if ($('result').classList.contains('hidden')) $('deadBox').classList.remove('hidden');
   }
   // 網路逾時
-  if (!G.solo && performance.now() - G.lastNet > 4000 && G.net) $('netWarn').classList.remove('hidden');
+  // 4 秒沒收到訊息就提示；訊息恢復（且不是斷線重連中）就收起來，不會一直掛著
+  if (!G.solo && G.net) $('netWarn').classList.toggle('hidden', !G.dropped && performance.now() - G.lastNet <= 4000);
 }
 
 function updateOther(o, rt, dt) {

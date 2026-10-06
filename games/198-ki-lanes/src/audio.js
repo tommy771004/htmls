@@ -179,6 +179,8 @@ function musicOn() {
   nextT = ctx.currentTime + 0.1; step = 0; phrase = [];
   const tick = () => {
     try {
+      // 背景分頁的 setInterval 會被節流到每秒一次：落後的拍子直接跳過，不要全部擠在同一刻補打
+      if (nextT < ctx.currentTime) { const skip = Math.ceil((ctx.currentTime - nextT) / STEP); nextT += skip * STEP; step += skip; }
       while (nextT < ctx.currentTime + 0.15) {
         const bar = Math.floor(step / 16), sec = Math.floor(bar / 4) % PATS.length, pat = PATS[sec];
         const k = pat[step % 16];

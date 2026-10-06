@@ -66,7 +66,8 @@ export function createInput({ canvas = null, touchRoot = null } = {}) {
     // 焦點在原生按鈕等控制項上時不擋（空白鍵要能按按鈕、方向鍵要能捲動設定面板）
     if (PREVENT.has(code) && gameFocus()) e.preventDefault();
     const m = KEY_MENU[code];
-    if (m) emitMenu(m, 'keyboard');
+    // 按住不放的自動連發只用在方向導覽；確認／返回／暫停連發會讓暫停畫面閃開又關、存檔確認被連按通過、車庫連續購買
+    if (m && !(e.repeat && (m === 'confirm' || m === 'back' || m === 'menu'))) emitMenu(m, 'keyboard');
   });
   on(hasWin ? window : null, 'keyup', (e) => { keys.delete(e.code); });
   on(hasWin ? window : null, 'blur', () => { keys.clear(); if (touch) touch.release && touch.release(); });

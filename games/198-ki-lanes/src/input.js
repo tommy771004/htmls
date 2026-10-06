@@ -7,12 +7,14 @@ import { eatSenzu } from './items.js';
 import { useActive } from './traits.js';
 import { castSummoner, swapSummoner } from './summoners.js';
 
-export function createInput({ G, render, minimap, hud, audio, onHelp, onCamToggle, onShop }) {
+export function createInput({ G, render, minimap, hud, audio, onHelp, onCamToggle, onShop, isPaused }) {
   const canvas = document.getElementById('gl');
   const mouse = { x: innerWidth / 2, y: innerHeight / 2, world: { x: 0, z: 0 }, held: false, inside: false };
   let holdT = 0, panning = { x: 0, z: 0 };
   const P = () => G.player;
-  const live = () => G.phase === 'play' && P();
+  // 說明畫面暫停時不接受操作（否則按 Q／1／P 仍會施法、吃仙豆、開商店）
+  const inMatch = () => G.phase === 'play' && P();
+  const live = () => inMatch() && !(isPaused && isPaused());
 
   function pickUnit(wx, wz) {
     let best = null, bd = 1e9;
@@ -81,9 +83,9 @@ export function createInput({ G, render, minimap, hud, audio, onHelp, onCamToggl
     else if (e.code === 'KeyS') orderStop(G, P());
     else if (e.code === 'KeyY') { G.camFree = !G.camFree; onCamToggle && onCamToggle(G.camFree); }
     else if (e.code === 'Space') { e.preventDefault(); G.camFree = false; onCamToggle && onCamToggle(false); }
-    else if (e.code === 'KeyM') audio.toggleMute();
+    else if (e.code === 'KeyM') { const m = audio.toggleMute(), b = document.getElementById('muteBtn'); if (b) b.classList.toggle('off', m); }
   });
-  addEventListener('keyup', (e) => { if (e.code === 'KeyC' && live()) setCharging(G, P(), false); });
+  addEventListener('keyup', (e) => { if (e.code === 'KeyC' && inMatch()) setCharging(G, P(), false); });
 
   // 技能列點擊（滑鼠＋觸控共用）
   for (const k of ['Q', 'W', 'E', 'R', 'D', 'B']) {
@@ -137,7 +139,7 @@ export function createInput({ G, render, minimap, hud, audio, onHelp, onCamToggl
     const r = stick.getBoundingClientRect(); stickO = { x: r.left + r.width / 2, y: r.top + r.height / 2, r: r.width / 2 }; moveStick(e);
   });
   stick.addEventListener('pointermove', (e) => { if (e.pointerId === stickId) moveStick(e); });
-  const endStick = (e) => { if (e.pointerId !== stickId) return; stickId = null; stickV = null; knob.style.transform = ''; if (live() && P().goal) orderStop(G, P()); };
+  const endStick = (e) => { if (e.pointerId !== stickId) return; stickId = null; stickV = null; knob.style.transform = ''; if (inMatch() && P().goal) orderStop(G, P()); };
   stick.addEventListener('pointerup', endStick); stick.addEventListener('pointercancel', endStick);
   function moveStick(e) {
     let dx = e.clientX - stickO.x, dy = e.clientY - stickO.y; const d = Math.hypot(dx, dy), m = stickO.r * 0.8;
@@ -159,7 +161,7 @@ export function createInput({ G, render, minimap, hud, audio, onHelp, onCamToggl
   });
   const chg = document.getElementById('tChg');
   chg.addEventListener('pointerdown', (e) => { e.preventDefault(); if (live()) setCharging(G, P(), true); });
-  const chgUp = () => { if (live()) setCharging(G, P(), false); };
+  const chgUp = () => { if (inMatch()) setCharging(G, P(), false); };
   chg.addEventListener('pointerup', chgUp); chg.addEventListener('pointercancel', chgUp); chg.addEventListener('pointerleave', chgUp);
   function touchDown(e) { if (!live()) return; command(e.clientX, e.clientY); }
 

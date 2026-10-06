@@ -17,7 +17,7 @@
 <link rel="icon" href="../favicon.svg">
 <title>灰燼之翼 ASHWING｜軌道射擊 第一關</title>
 <style>
-:root{color-scheme:dark;--ink:#f6ecd9;--dim:#eadbc4b8;--line:#f2fbf8;--cy:#9af5ec;--am:#ffbf6b;--rd:#ff5b3d;font-family:Bahnschrift,"DIN Alternate","Segoe UI","PingFang TC","Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif}
+:root{color-scheme:dark;--r-s:4px;--r-m:6px;--ink:#f6ecd9;--dim:#eadbc4b8;--line:#f2fbf8;--cy:#9af5ec;--am:#ffbf6b;--rd:#ff5b3d;font-family:Bahnschrift,"DIN Alternate","Segoe UI","PingFang TC","Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;background:#2a1510;color:var(--ink)}
 body{-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
@@ -41,7 +41,7 @@ h1{font-size:clamp(48px,8.4vw,100px);margin:12px 0 0;font-weight:700;letter-spac
 .keys{display:grid;grid-template-columns:auto 1fr;gap:7px 16px;font-size:12.5px;margin:0 0 26px;padding:14px 0 0;border-top:1px solid #f2fbf826}
 .keys dt{color:var(--cy);letter-spacing:.08em;white-space:nowrap;font-variant-numeric:tabular-nums}
 .keys dd{margin:0;color:var(--dim)}
-.btn{appearance:none;font:inherit;color:var(--ink);background:#ffffff0a;border:1px solid var(--line);padding:13px 24px;letter-spacing:.26em;font-size:13px;cursor:pointer;text-transform:uppercase;transition:background .15s,color .15s}
+.btn{appearance:none;font:inherit;color:var(--ink);background:#ffffff0a;border:1px solid var(--line);border-radius:var(--r-s);padding:13px 24px;letter-spacing:.26em;font-size:13px;cursor:pointer;text-transform:uppercase;transition:background .15s,color .15s}
 .btn:hover,.btn:focus-visible{background:var(--cy);color:#1b0b08;outline:none}
 .btn.ghost{border-color:#f2fbf866;color:var(--dim)}
 .row{display:flex;gap:10px;flex-wrap:wrap}
@@ -64,7 +64,7 @@ body.playing #touch{display:block}body:not(.touch) #touch #stick,body:not(.touch
 #stick{position:absolute;width:118px;height:118px;border:1px solid #f2fbf866;border-radius:50%;left:calc(22px + env(safe-area-inset-left));bottom:calc(22px + env(safe-area-inset-bottom))}
 #stick::after{content:"";position:absolute;inset:36%;border:1px dashed #f2fbf833;border-radius:50%}
 #knob{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px;border-radius:50%;background:#9af5ec33;border:1px solid var(--cy)}
-.note{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9;padding:14px 20px;border:1px solid #f2fbf855;background:#1b0b08d8;font-size:13px;letter-spacing:.14em;max-width:calc(100% - 32px);text-align:center;line-height:1.7}
+.note{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9;padding:14px 20px;border:1px solid #f2fbf855;border-radius:var(--r-m);background:#1b0b08d8;font-size:13px;letter-spacing:.14em;max-width:calc(100% - 32px);text-align:center;line-height:1.7}
 .tch{display:none}
 body.touch .tch{display:grid}
 body.touch .desk{display:none}
@@ -819,7 +819,7 @@ const raycaster=new THREE.Raycaster(),camW=new V3();
 function turn(d){if(state!=='play')return;view=(view+d+4)%4;phiT-=d*Math.PI/2;viewFlash=1;sfx('turn')}
 function press(){if(state!=='play'||!P.alive)return;fireDown=true;fireT=0;quickShot()}
 function release(){if(!fireDown)return;fireDown=false;if(lockMode&&lockList.length)fireLasers();lockMode=false;lockList=[];for(const t of T)t.locks=0}
-addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(e.repeat&&(k==='escape'||k==='p'))return;if(k==='escape'){if(state==='play')pause();else if(state==='paused')resume();return}if(e.target instanceof HTMLElement&&e.target.closest('button,input,select,textarea,a'))return;if(e.ctrlKey||e.metaKey||e.altKey)return;if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)&&state==='play')e.preventDefault();keys[k]=true;
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(e.repeat&&(k==='escape'||k==='p'))return;if(k==='escape'){if(state==='play')pause();else if(state==='paused')resume();return}if(k==='p'&&state==='paused'){resume();return}if(e.target instanceof HTMLElement&&e.target.closest('button,input,select,textarea,a'))return;if(e.ctrlKey||e.metaKey||e.altKey)return;if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)&&state==='play')e.preventDefault();keys[k]=true;
   if(state==='paused'&&(k==='escape'||k==='p')){resume();return}if(state!=='play'||e.repeat)return;
   if(k==='q')turn(-1);else if(k==='e')turn(1);else if(k===' ')press();else if(k==='p'||k==='escape')pause();else if(k==='m')toggleMute()});
 addEventListener('keyup',e=>{const k=e.key.toLowerCase();keys[k]=false;if(k===' ')release()});
@@ -970,7 +970,7 @@ function drawHUD(dt){const g=hud,u=UI;g.setTransform(DPR,0,0,DPR,0,0);g.clearRec
     g.strokeStyle=c;g.lineWidth=1;const lw=Math.min(W*.3,240*u)*Math.min(1,B.t*2);g.beginPath();g.moveTo(W/2-lw,y+56*u);g.lineTo(W/2+lw,y+56*u);g.stroke();
     if(B.warn&&Math.floor(B.t*4)%2){g.strokeRect(W/2-lw-12*u,y-62*u,lw*2+24*u,130*u)}g.globalAlpha=1}}
   const Hn=msgs.hint;if(Hn){Hn.t+=dt;const a=Math.min(1,Hn.t*3)*Math.min(1,(4.6-Hn.t)*1.5);if(a<=0)msgs.hint=null;else{g.globalAlpha=a;const y=Math.max(H*.17,118*u);g.font=`600 ${13*u}px ${FONT}`;if('letterSpacing'in g)g.letterSpacing='1px';const w=g.measureText(Hn.text).width+36*u;
-    g.fillStyle='rgba(27,11,8,.55)';g.fillRect(W/2-w/2,y-16*u,w,32*u);g.strokeStyle=Hn.warn?AM:'rgba(242,252,248,.5)';g.lineWidth=1;g.strokeRect(W/2-w/2,y-16*u,w,32*u);txt(g,Hn.text,W/2,y+1,13*u,Hn.warn?AM:LINE,600,'center',1);g.globalAlpha=1}}
+    g.fillStyle='rgba(27,11,8,.55)';g.beginPath();if(g.roundRect)g.roundRect(W/2-w/2,y-16*u,w,32*u,6*u);else g.rect(W/2-w/2,y-16*u,w,32*u);g.fill();g.strokeStyle=Hn.warn?AM:'rgba(242,252,248,.5)';g.lineWidth=1;g.stroke();txt(g,Hn.text,W/2,y+1,13*u,Hn.warn?AM:LINE,600,'center',1);g.globalAlpha=1}}
   for(let i=msgs.pops.length-1;i>=0;i--){const p=msgs.pops[i];p.t+=dt;if(p.t>1.2){msgs.pops.splice(i,1);continue}let x=p.sx,y=p.sy;
     if(p.w){_v.copy(p.w).project(camera);if(_v.z>1)continue;x=(_v.x+1)/2*W;y=(1-_v.y)/2*H}g.globalAlpha=Math.min(1,(1.2-p.t)*3);txt(g,p.text,x,y-p.t*26*u,(p.big?17:12)*u,p.big?CY:LINE,700,'center',1);g.globalAlpha=1}
   g.shadowBlur=0}

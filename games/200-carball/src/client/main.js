@@ -144,6 +144,8 @@ class Game {
     this.replay = null;
     this.rig.override = null;
     this.timeScale = 1;
+    // 進球慢動作／待播重播／中央大字都屬於上一局：在進球後馬上重開時不能帶進新的一局
+    this.slowT = 0; this.pendingReplay = null; this.bannerT = 0; $('banner').classList.add('hidden');
     const ai = sim.cars[1];
     ai.state.parked = mode === 'practice';
     if (mode === 'practice') this.parkCar(ai); else { ai.col.setEnabled(true); ai.shell.setEnabled(true); }
@@ -182,6 +184,8 @@ class Game {
 
   setPaused(p) {
     if (this.mode === 'attract') return;
+    // 結算畫面開著時不能暫停：否則暫停選單會把結算蓋掉，按「繼續」後只剩空球場
+    if (p && !$('over').classList.contains('hidden')) return;
     this.paused = p;
     this.pausedAt = performance.now();
     this.showScreen(p ? 'pause' : null);
@@ -219,6 +223,8 @@ class Game {
     let dt = Math.min(0.1, (now - this.last) / 1000);
     this.last = now;
     this.time += dt;
+    // 手把按鈕每幀都要讀：暫停中按 Start 繼續、重播中按 A 略過（車輛輸入只在比賽推進時才讀）
+    this.input.pollPad();
     const actions = this.input.drain();
     for (const a of actions) {
       if (a === 'pause' && performance.now() - (this.pausedAt || 0) > 350) this.setPaused(!this.paused);

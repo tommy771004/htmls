@@ -16,6 +16,8 @@
   --lamp:#e7b76e;
   --night:#08090a;
   --ease-out:cubic-bezier(.22,1,.36,1);
+  --r-s:6px;
+  --r-m:10px;
   --gut:max(16px, env(safe-area-inset-left));
   --serif:"Songti TC","Noto Serif TC","Source Han Serif TC","PMingLiU",serif;
   --sans:system-ui,-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
@@ -25,6 +27,7 @@ html,body{height:100%;background:var(--night);color:var(--ink);overflow:hidden;f
   -webkit-font-smoothing:antialiased;touch-action:none;user-select:none;-webkit-user-select:none}
 canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
 .num{font-variant-numeric:tabular-nums}
 #fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .45s var(--ease-out)}
 #fade.on{opacity:1}
@@ -41,7 +44,7 @@ body.shot #title,body.shot #hud{display:none}
   line-height:.92;letter-spacing:.06em;color:var(--ink);text-shadow:0 2px 24px rgba(0,0,0,.35)}
 .name p{writing-mode:vertical-rl;font-size:13px;letter-spacing:.32em;color:var(--ink-2);margin-top:8px}
 .pick{grid-column:1/3;grid-row:2;position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:22px;align-items:end;pointer-events:auto}
-.stage{text-align:left;padding:10px 4px 6px;color:var(--ink-3);transition:color .2s}
+.stage{text-align:left;padding:10px 4px 6px;border-radius:var(--r-m);color:var(--ink-3);transition:color .2s}
 .stage svg{display:block;width:100%;max-width:260px;height:46px;overflow:visible}
 .stage svg path.line{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
 .stage svg path.end{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
@@ -53,7 +56,7 @@ body.shot #title,body.shot #hud{display:none}
 .stage[aria-pressed="true"]{color:var(--ink)}
 .go{display:flex;flex-direction:column;align-items:flex-end;gap:10px;padding-bottom:8px}
 #bGo{background:var(--ink);color:#141210;font-family:var(--serif);font-weight:700;font-size:22px;letter-spacing:.3em;
-  padding:13px 20px 13px 28px;border-radius:3px;transition:background .18s}
+  padding:13px 20px 13px 28px;border-radius:var(--r-s);transition:background .18s}
 #bGo:hover{background:#fff8ec}
 #bGo:disabled{opacity:.5;cursor:progress}
 .keys{font-size:12px;color:var(--ink-3);line-height:1.7;text-align:right;white-space:nowrap}
@@ -110,14 +113,14 @@ body.touch:not(.title):not(.overlay) #touch{display:block}
 .panel dt{color:var(--ink-3)}
 .panel dd{color:var(--ink)}
 .panel .acts{display:flex;gap:10px;flex-wrap:wrap}
-.panel .acts button{font-size:16px;padding:11px 18px;border-radius:3px;background:rgba(239,232,220,.1);transition:background .15s}
+.panel .acts button{font-size:16px;padding:11px 18px;border-radius:var(--r-s);background:rgba(239,232,220,.1);transition:background .15s}
 .panel .acts button:first-child{background:var(--ink);color:#141210;font-weight:600}
 .panel .acts button:hover{background:rgba(239,232,220,.2)}
 .panel .acts button:first-child:hover{background:#fff8ec}
 .panel .acts kbd{font:inherit;font-size:12px;opacity:.6;margin-left:8px}
 .qual{display:flex;align-items:center;flex-wrap:wrap;gap:4px 2px;margin-top:26px;font-size:14px;color:var(--ink-3)}
 .qual span{margin-right:10px}
-.qual button{padding:6px 10px;border-radius:3px;color:var(--ink-2);transition:color .15s,background .15s}
+.qual button{padding:6px 10px;border-radius:var(--r-s);color:var(--ink-2);transition:color .15s,background .15s}
 .qual button:hover{color:var(--ink);background:rgba(239,232,220,.08)}
 .qual button[aria-pressed="true"]{color:#141210;background:var(--ink)}
 .qual em{font-style:normal;margin-left:10px;font-size:13px}
@@ -1953,13 +1956,14 @@ function startRide() {
   ST.auto = QS.get('auto') === '1';
   document.body.classList.remove('title', 'overlay');
   document.body.classList.toggle('auto', ST.auto);
+  $('fade').classList.remove('on'); // 摔車淡出途中重騎時，不讓黑幕留著
   $('result').classList.remove('on'); $('pause').classList.remove('on');
   $('hStage').textContent = STAGES[SI].name;
   countdown();
   audio.ensure();
-  $('steerHint').style.opacity = 1; setTimeout(() => { $('steerHint').style.opacity = 0; }, 5000);
+  $('steerHint').style.opacity = 1; clearTimeout(hintT); hintT = setTimeout(() => { $('steerHint').style.opacity = 0; }, 5000);
 }
-let countTimer = [];
+let countTimer = [], hintT = 0;
 function countdown() {
   countTimer.forEach(clearTimeout); countTimer = [];
   const el = $('count');
@@ -2522,7 +2526,8 @@ function markStage(i) {
 }
 let building = false;
 async function selectStage(i, force = false) {
-  if (building || (!force && i === SI && world)) { markStage(i); return; }
+  if (building) return;
+  if (!force && i === SI && world) { markStage(i); return; }
   building = true; markStage(i);
   document.body.classList.add('loading'); $('bGo').disabled = true;
   $('fade').classList.add('on');
@@ -2534,7 +2539,8 @@ async function selectStage(i, force = false) {
   building = false;
 }
 function toTitle() {
-  countTimer.forEach(clearTimeout);
+  countTimer.forEach(clearTimeout); countTimer = [];
+  $('fade').classList.remove('on');
   ST.mode = 'title'; ST.paused = false; ST.auto = false;
   document.body.classList.add('title'); document.body.classList.remove('overlay', 'auto');
   $('result').classList.remove('on'); $('pause').classList.remove('on');
@@ -2542,7 +2548,10 @@ function toTitle() {
 }
 function setPause(p) {
   if (ST.mode === 'title' || ST.mode === 'finish') return;
+  if (p === ST.paused) return;
   ST.paused = p; $('pause').classList.toggle('on', p); document.body.classList.toggle('overlay', p);
+  // 倒數是 setTimeout 排的：暫停時停掉，繼續時重新倒數，免得在暫停畫面後面偷偷開跑
+  if (ST.mode === 'count') { countTimer.forEach(clearTimeout); countTimer = []; if (!p) countdown(); }
 }
 
 /* ───────── 輸入 ───────── */

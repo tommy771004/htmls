@@ -36,7 +36,7 @@ export function bushGeo() { return merge([blob(0.8, 0, 0.55, 0, 0.8, 0.6, 1.1, 7
 function rockGeo(seed) {
   const g = new THREE.IcosahedronGeometry(1, 1), p = g.attributes.position;
   for (let i = 0; i < p.count; i++) { const k = 0.78 + hash2(Math.round(p.getX(i) * 40) + seed, Math.round(p.getY(i) * 40) + Math.round(p.getZ(i) * 40), seed) * 0.4; p.setXYZ(i, p.getX(i) * k, p.getY(i) * k * 0.85, p.getZ(i) * k); }
-  const ng = g.toNonIndexed(); ng.computeVertexNormals(); gradient(ng, 0.62, 1.1, -0.9, 0.9); return tinted(ng, 1);
+  const ng = g.index ? g.toNonIndexed() : g; ng.computeVertexNormals(); // three 0.186 的 Icosahedron 本來就是 non-indexed，直接呼叫會印警告 gradient(ng, 0.62, 1.1, -0.9, 0.9); return tinted(ng, 1);
 }
 function mushroomGeo() {
   const parts = [];

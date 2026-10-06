@@ -160,10 +160,12 @@ export class Player {
       // 下坡時貼地，避免每一步都小小騰空
       const snap = wasGrounded && vel.y <= 0 && pos.y - ground < 0.45;
       if (pos.y <= ground || snap) {
-        if (!wasGrounded && vel.y < -15) this.damage((-vel.y - 15) * 5);
+        // 先落地再扣血：摔死時 onDeath 會把人傳回營地，之後不能再用舊位置的地面高度蓋掉
+        const impact = wasGrounded ? 0 : -vel.y;
         pos.y = ground;
         vel.y = 0;
         this.onGround = true;
+        if (impact > 15) this.damage((impact - 15) * 5);
       } else {
         this.onGround = false;
       }

@@ -23,6 +23,9 @@
   --zone:#4aa3ff;
   --ok:#8fd16a;
   --ease-out:cubic-bezier(.22,1,.36,1);
+  --r-s:6px;
+  --r-m:10px;
+  --r-l:14px;
   --cond:"DIN Condensed","DIN Alternate","Bahnschrift","Arial Narrow","Roboto Condensed","PingFang TC","Heiti TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
   --tape:repeating-linear-gradient(-45deg,var(--hazard) 0 9px,var(--hazard-ink) 9px 18px);
@@ -31,12 +34,13 @@
 html,body{margin:0;height:100%;overflow:hidden;background:#9db2bf;color:var(--ink);font-family:var(--cond);-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 #gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
 button{font:inherit;color:inherit}
+button:focus-visible{outline:2px solid var(--hazard);outline-offset:2px}
 .hide{display:none!important}
 
 /* ---------- HUD ---------- */
 #hud{position:fixed;inset:0;pointer-events:none;touch-action:none;opacity:0;transition:opacity .4s var(--ease-out)}
 #hud.on{opacity:1}
-.plate{background:var(--plate);border:1px solid var(--line);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.plate{background:var(--plate);border:1px solid var(--line);border-radius:var(--r-s)}
 .cap{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3)}
 
 #compass{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:380px;height:26px;overflow:hidden;background:rgba(20,23,25,.45);-webkit-mask:linear-gradient(90deg,transparent,#000 18%,#000 82%,transparent);mask:linear-gradient(90deg,transparent,#000 18%,#000 82%,transparent)}
@@ -63,7 +67,7 @@ button{font:inherit;color:inherit}
 #vehHud span{font-size:10px;color:var(--ink-3);letter-spacing:.15em}
 body.drive #touch .tb:not(#tUse):not(#tMap):not(#tJump):not(#tPause){display:none}
 #hint{position:absolute;left:50%;bottom:66px;transform:translateX(-50%);padding:5px 12px;font-size:12px;letter-spacing:.06em;white-space:nowrap}
-#hint kbd{font-family:var(--mono);font-size:10px;padding:0 5px;margin:0 2px;border:1px solid var(--line)}
+#hint kbd{font-family:var(--mono);font-size:10px;padding:0 5px;margin:0 2px;border:1px solid var(--line);border-radius:calc(var(--r-s) - 2px)}
 #phase{position:absolute;top:44px;left:50%;transform:translateX(-50%);min-width:210px;padding:7px 16px 6px;text-align:center}
 #phase::before{content:"";position:absolute;left:0;right:0;top:-5px;height:5px;background:var(--tape)}
 #phase .cap{display:block}
@@ -107,7 +111,7 @@ body.drive #touch .tb:not(#tUse):not(#tMap):not(#tJump):not(#tPause){display:non
 
 #vitals{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);width:min(340px,54vw)}
 #armor{display:flex;justify-content:center;gap:5px;margin-bottom:5px}
-#armor span{font-size:10px;letter-spacing:.14em;padding:2px 7px;background:var(--plate-2);border:1px solid var(--line);color:var(--ink-3)}
+#armor span{font-size:10px;letter-spacing:.14em;padding:2px 7px;background:var(--plate-2);border:1px solid var(--line);border-radius:calc(var(--r-s) - 2px);color:var(--ink-3)}
 #armor span.on{color:var(--ink);border-color:rgba(244,180,0,.6)}
 #hpbar{position:relative;height:14px;background:rgba(20,23,25,.7);border:1px solid rgba(243,238,228,.28)}
 #hpfill{position:absolute;inset:0;right:auto;width:100%;background:#f3eee4;transition:width .18s var(--ease-out)}
@@ -122,7 +126,7 @@ body.drive #touch .tb:not(#tUse):not(#tMap):not(#tJump):not(#tPause){display:non
 #cast span{font-size:13px;letter-spacing:.14em}
 
 #prompt{position:absolute;left:50%;top:64%;transform:translate(-50%,0);padding:6px 12px;font-size:14px;letter-spacing:.08em;display:flex;gap:8px;align-items:center}
-#prompt kbd{font-family:var(--mono);font-size:11px;background:var(--hazard);color:var(--hazard-ink);padding:1px 6px}
+#prompt kbd{font-family:var(--mono);font-size:11px;background:var(--hazard);color:var(--hazard-ink);padding:1px 6px;border-radius:calc(var(--r-s) - 2px)}
 #prompt small{color:var(--ink-3)}
 
 #cross{position:absolute;left:50%;top:50%;width:0;height:0}
@@ -181,7 +185,7 @@ body.touch #banner{width:min(640px,calc(100vw - 136px))}
 /* ---------- HUD 版面（照實機參考影片的配置：左上小地圖＋安全區卡＋擊殺訊息、右上人數、左下血量、右下武器）----------
    只在桌機尺寸套用；窄螢幕與手機維持上面那套收在角落的排法。新加的元素預設藏起來，桌機才顯示 */
 #loc,#bear,#esc,#zbar,#zinfo,#armseg,#guns .ico,#guns .tg,#guns .mbar,#guns .cal,#feed svg,#counts svg{display:none}
-#storm{position:absolute;left:50%;top:150px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:6px 14px;border-radius:9px;background:rgba(30,46,72,.78);color:#d8e8ff;font-size:13px;letter-spacing:.08em;white-space:nowrap;opacity:0;transition:opacity .3s}
+#storm{position:absolute;left:50%;top:150px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:6px 14px;border-radius:var(--r-m);background:rgba(30,46,72,.78);color:#d8e8ff;font-size:13px;letter-spacing:.08em;white-space:nowrap;opacity:0;transition:opacity .3s}
 #storm.on{opacity:1}
 #storm b{color:#fff;font-variant-numeric:tabular-nums}
 #storm em{font-style:normal;color:#ff8a7a}
@@ -190,25 +194,25 @@ body.touch #banner{width:min(640px,calc(100vw - 136px))}
 #death h3{margin:0 0 8px;font-size:clamp(30px,4.2vw,46px);line-height:1;font-weight:700;letter-spacing:.02em;text-shadow:0 2px 6px rgba(0,0,0,.45)}
 #death h3 em{font-style:normal;color:var(--hazard)}
 #death h3 small{font-size:.42em;color:var(--ink-2);margin-left:4px}
-#death p{display:inline-flex;align-items:center;gap:10px;margin:0;padding:7px 16px;border-radius:10px;background:var(--plate);font-size:14px;letter-spacing:.04em;white-space:nowrap}
+#death p{display:inline-flex;align-items:center;gap:10px;margin:0;padding:7px 16px;border-radius:var(--r-m);background:var(--plate);font-size:14px;letter-spacing:.04em;white-space:nowrap}
 #death p i{font-style:normal;font-size:11px;letter-spacing:.2em;color:var(--ink-3)}
 #death p b{color:#ff8a6a;font-weight:600}
 #death p svg{width:46px;height:15px;fill:var(--ink)}
 #death .spec{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:8px;font-size:12px;letter-spacing:.06em;color:var(--ink-2)}
 #death .spec i{font-style:normal;font-size:10px;letter-spacing:.24em;color:var(--ink-3)}
 #death .spec b{color:var(--ink);font-weight:600}
-#death .spec button{pointer-events:auto;padding:4px 10px;border:0;border-radius:7px;background:rgba(26,24,21,.74);color:var(--ink);font-size:12px;cursor:pointer;transition:background var(--dur-press,.12s) var(--ease-out)}
+#death .spec button{pointer-events:auto;padding:4px 10px;border:0;border-radius:var(--r-s);background:rgba(26,24,21,.74);color:var(--ink);font-size:12px;cursor:pointer;transition:background var(--dur-press,.12s) var(--ease-out)}
 #death .spec button:hover{background:rgba(26,24,21,.92)}
 #death:not(.on) .spec button{pointer-events:none}
 #death .spec kbd{font-family:var(--mono);font-size:10px;margin-right:5px;color:var(--hazard)}
-#death p .hs{padding:1px 7px;border-radius:4px;background:var(--hazard);color:var(--hazard-ink);font-size:11px;letter-spacing:.12em}
+#death p .hs{padding:1px 7px;border-radius:calc(var(--r-s) - 2px);background:var(--hazard);color:var(--hazard-ink);font-size:11px;letter-spacing:.12em}
 @media (min-width:721px) and (min-height:501px){
   #hud{--plate:rgba(26,24,21,.74);--card:rgba(26,24,21,.7)}
-  .plate{border:0;border-radius:10px;box-shadow:inset 0 1px 0 rgba(243,238,228,.06)}
-  #mmwrap{top:16px;left:16px;right:auto;width:196px;height:196px;border-radius:14px}
+  .plate{border:0;border-radius:var(--r-m);box-shadow:inset 0 1px 0 rgba(243,238,228,.06)}
+  #mmwrap{top:16px;left:16px;right:auto;width:196px;height:196px;border-radius:var(--r-l)}
   #loc{display:flex;justify-content:space-between;position:absolute;top:220px;left:22px;width:184px;font-size:12px;letter-spacing:.16em;color:var(--ink-2);text-shadow:0 1px 2px rgba(0,0,0,.55)}
   #loc span:last-child{color:var(--ink-2)}
-  #phase{top:244px;left:16px;transform:none;min-width:0;width:196px;padding:11px 14px 10px;text-align:left;border-radius:12px;overflow:hidden;display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:8px}
+  #phase{top:244px;left:16px;transform:none;min-width:0;width:196px;padding:11px 14px 10px;text-align:left;border-radius:var(--r-m);overflow:hidden;display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:8px}
   #phase::before{top:0;height:3px}
   #phase .cap{display:block;font-size:11px;letter-spacing:.18em;color:var(--ink-2);white-space:nowrap}
   #phase b{font-size:28px;letter-spacing:.02em}
@@ -217,15 +221,15 @@ body.touch #banner{width:min(640px,calc(100vw - 136px))}
   #phase.shrink #zbar i{background:var(--zone)}
   #zinfo{display:block;grid-column:1/3;font-size:11.5px;letter-spacing:.06em;color:var(--ink-3)}
   #feed{top:346px;left:16px;right:auto;width:300px;align-items:flex-start;gap:5px}
-  #feed div{display:flex;align-items:center;gap:9px;padding:6px 11px;border-radius:8px;border-left:0;font-size:13px;letter-spacing:.02em;animation-name:feedInL}
+  #feed div{display:flex;align-items:center;gap:9px;padding:6px 11px;border-radius:var(--r-s);border-left:0;font-size:13px;letter-spacing:.02em;animation-name:feedInL}
   #feed div.me{box-shadow:inset 0 0 0 1.5px rgba(244,180,0,.75)}
   #feed div.die{box-shadow:inset 0 0 0 1.5px rgba(224,48,43,.75)}
   #feed div .v{color:#ff9a7c}
   #feed i.w{display:none}
   #feed svg{display:block;width:40px;height:13px;fill:var(--ink-2)}
-  #feed em{padding:0 5px;border-radius:3px;background:var(--hazard);color:var(--hazard-ink);margin-left:0}
+  #feed em{padding:0 5px;border-radius:calc(var(--r-s) - 2px);background:var(--hazard);color:var(--hazard-ink);margin-left:0}
   #counts{top:16px;right:16px;gap:8px}
-  #counts div{align-items:center;gap:8px;padding:8px 14px 8px 12px;border-left:0!important;border-radius:12px;min-width:0}
+  #counts div{align-items:center;gap:8px;padding:8px 14px 8px 12px;border-left:0!important;border-radius:var(--r-m);min-width:0}
   #counts svg{display:block;width:18px;height:18px;fill:var(--ink-2)}
   #counts div:last-child svg{fill:var(--hazard)}
   #counts b{font-size:28px}
@@ -233,15 +237,15 @@ body.touch #banner{width:min(640px,calc(100vw - 136px))}
   #compStrip span{font-size:11px;color:var(--ink-3)}
   #compStrip span.c{font-size:15px;color:var(--ink)}
   #compass>i{border-bottom-color:var(--hazard)}
-  #bear{display:block;position:absolute;top:46px;left:50%;transform:translateX(-50%);padding:3px 9px;border-radius:6px;background:var(--plate);color:var(--hazard);font-family:var(--mono);font-size:13px;letter-spacing:.14em;font-variant-numeric:tabular-nums}
-  body:not(.touch) #esc{display:block;position:absolute;top:80px;left:50%;transform:translateX(-50%);padding:4px 12px;border-radius:8px;background:rgba(26,24,21,.5);color:var(--ink-3);font-size:11px;letter-spacing:.24em}
+  #bear{display:block;position:absolute;top:46px;left:50%;transform:translateX(-50%);padding:3px 9px;border-radius:var(--r-s);background:var(--plate);color:var(--hazard);font-family:var(--mono);font-size:13px;letter-spacing:.14em;font-variant-numeric:tabular-nums}
+  body:not(.touch) #esc{display:block;position:absolute;top:80px;left:50%;transform:translateX(-50%);padding:4px 12px;border-radius:var(--r-s);background:rgba(26,24,21,.5);color:var(--ink-3);font-size:11px;letter-spacing:.24em}
   #alti{right:30px;gap:3px;align-items:flex-end}
   #alti .bar{width:5px;height:220px;background:repeating-linear-gradient(transparent 0 21px,rgba(243,238,228,.35) 21px 22px),rgba(243,238,228,.12)}
   #alti span{font-size:34px;font-weight:700;margin-top:8px}
   #alti small{font-size:12px}
-  #hint{bottom:132px;padding:7px 14px;border-radius:10px;font-size:13px}
-  #hint kbd,#prompt kbd{display:inline-block;min-width:22px;padding:2px 6px;border-radius:5px;border:0;background:rgba(243,238,228,.14);color:var(--ink);text-align:center}
-  #prompt{padding:7px 14px 7px 8px;border-radius:10px}
+  #hint{bottom:132px;padding:7px 14px;border-radius:var(--r-m);font-size:13px}
+  #hint kbd,#prompt kbd{display:inline-block;min-width:22px;padding:2px 6px;border-radius:calc(var(--r-s) - 2px);border:0;background:rgba(243,238,228,.14);color:var(--ink);text-align:center}
+  #prompt{padding:7px 14px 7px 8px;border-radius:var(--r-m)}
   #prompt kbd{background:var(--hazard);color:var(--hazard-ink)}
   #vitals{left:16px;bottom:50px;transform:none;width:320px;padding-left:96px}
   #hpbar{height:9px;border:0;border-radius:2px;background:rgba(243,238,228,.16);overflow:visible}
@@ -256,44 +260,44 @@ body.touch #banner{width:min(640px,calc(100vw - 136px))}
   #armor span{padding:0;background:none;border:0;font-size:11px;letter-spacing:.12em}
   #armor span.on{color:var(--ink-2)}
   #meds{left:16px;bottom:16px;flex-direction:row;width:auto;gap:6px}
-  #meds div{padding:4px 9px;border:0;border-radius:7px;font-size:12px;gap:6px}
+  #meds div{padding:4px 9px;border:0;border-radius:var(--r-s);font-size:12px;gap:6px}
   #meds b{font-size:14px;margin-left:4px}
   #guns{right:16px;bottom:16px;width:310px;gap:5px;align-items:flex-end}
-  #guns .slot{border:0;border-radius:9px;min-height:0;padding:5px 11px;width:230px}
+  #guns .slot{border:0;border-radius:var(--r-m);min-height:0;padding:5px 11px;width:230px}
   #guns .slot .nm small{display:none}
   #guns .slot b{font-size:15px}
-  #guns .slot.cur{width:310px;box-shadow:none;display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"k ico ico" "nm nm b" "cal mbar mbar";gap:4px 10px;padding:10px 14px 11px;border-radius:12px;align-items:center}
+  #guns .slot.cur{width:310px;box-shadow:none;display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"k ico ico" "nm nm b" "cal mbar mbar";gap:4px 10px;padding:10px 14px 11px;border-radius:var(--r-m);align-items:center}
   #guns .slot.cur kbd{grid-area:k;align-self:start}
   #guns .slot.cur .ico{display:block;grid-area:ico;justify-self:end;width:132px;height:42px;fill:var(--ink)}
   #guns .slot.cur .nm{grid-area:nm;flex-direction:row;align-items:center;gap:8px}
   #guns .slot.cur .nm span{font-size:17px;letter-spacing:.1em;color:var(--rc,var(--ink))}
-  #guns .slot.cur .tg{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;letter-spacing:.16em;color:var(--rc,var(--ink-2));box-shadow:inset 0 0 0 1px currentColor}
+  #guns .slot.cur .tg{display:inline-block;padding:1px 6px;border-radius:calc(var(--r-s) - 2px);font-size:10px;letter-spacing:.16em;color:var(--rc,var(--ink-2));box-shadow:inset 0 0 0 1px currentColor}
   #guns .slot.cur .tg.m{color:var(--ink-2)}
   #guns .slot.cur b{grid-area:b;font-size:44px;font-weight:700;line-height:.9}
   #guns .slot.cur b small{font-size:16px;font-weight:400}
   #guns .slot.cur .cal{display:block;grid-area:cal;font-size:10px;letter-spacing:.22em;color:var(--ink-3)}
   #guns .slot.cur .mbar{display:block;grid-area:mbar;height:4px;border-radius:2px;background:rgba(243,238,228,.14);overflow:hidden}
   #guns .slot.cur .mbar i{display:block;height:100%;background:var(--ink);border-radius:2px}
-  #guns .frag{border:0;border-radius:9px;width:120px;order:3}
+  #guns .frag{border:0;border-radius:var(--r-m);width:120px;order:3}
   #guns .slot{order:1}
   #guns .slot.cur{order:2}
   #guns .slot:not(.cur) .cal{display:none}
   #cast{top:66%}
-  #elim .card{border-left:0;border-radius:12px}
+  #elim .card{border-left:0;border-radius:var(--r-m)}
   @keyframes feedInL{from{opacity:0;transform:translateX(-12px)}}
 }
 
 /* ---------- screens ---------- */
 .screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(180deg,rgba(18,21,23,.25),rgba(18,21,23,.72));z-index:5}
-.card-s{position:relative;width:min(560px,100%);max-height:calc(100dvh - 40px);overflow:auto;background:rgba(20,23,25,.9);border:1px solid var(--line);padding:26px 26px 22px}
+.card-s{position:relative;width:min(560px,100%);max-height:calc(100dvh - 40px);overflow:auto;background:rgba(20,23,25,.9);border:1px solid var(--line);border-radius:var(--r-l);padding:26px 26px 22px}
 .card-s::before{content:"";position:absolute;left:0;right:0;top:0;height:8px;background:var(--tape)}
 .card-s .kick{font-size:11px;letter-spacing:.3em;color:var(--hazard);margin-top:6px}
 .card-s h1{margin:16px 0 2px;font-size:clamp(46px,11vw,76px);line-height:.9;letter-spacing:.01em}
 .card-s h1 span{display:block;font-size:.34em;letter-spacing:.34em;color:var(--ink-2);margin-top:6px}
 .card-s p{margin:12px 0 0;font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;font-size:14px;line-height:1.65;color:var(--ink-2)}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;margin:16px 0 0;font-size:13px;color:var(--ink-2);font-family:"PingFang TC","Noto Sans TC",system-ui,sans-serif}
-.keys kbd{font-family:var(--mono);font-size:11px;padding:1px 6px;border:1px solid var(--line);color:var(--ink);white-space:nowrap;justify-self:start}
-.btn{margin-top:20px;display:inline-flex;align-items:center;gap:10px;padding:12px 22px;background:var(--hazard);color:var(--hazard-ink);border:0;font-size:18px;letter-spacing:.14em;cursor:pointer;transition:transform var(--dur-press,.12s) var(--ease-out),filter .2s}
+.keys kbd{font-family:var(--mono);font-size:11px;padding:1px 6px;border:1px solid var(--line);border-radius:calc(var(--r-s) - 2px);color:var(--ink);white-space:nowrap;justify-self:start}
+.btn{margin-top:20px;display:inline-flex;align-items:center;gap:10px;padding:12px 22px;background:var(--hazard);color:var(--hazard-ink);border:0;border-radius:var(--r-s);font-size:18px;letter-spacing:.14em;cursor:pointer;transition:transform var(--dur-press,.12s) var(--ease-out),filter .2s}
 .btn:hover{filter:brightness(1.08)}
 .btn:active{transform:scale(.97)}
 .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
@@ -303,7 +307,7 @@ body.touch #banner{width:min(640px,calc(100vw - 136px))}
 .btn:disabled{background:linear-gradient(var(--hazard),var(--hazard)) left bottom/var(--p,0%) 4px no-repeat,rgba(244,180,0,.16);color:var(--ink-2);cursor:progress;filter:none;transform:none}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:16px}
-.stats div{background:rgba(243,238,228,.06);padding:8px 10px}
+.stats div{background:rgba(243,238,228,.06);padding:8px 10px;border-radius:var(--r-s)}
 .stats b{display:block;font-size:26px;font-variant-numeric:tabular-nums}
 .stats small{font-size:10px;letter-spacing:.2em;color:var(--ink-3)}
 .slider{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:13px;color:var(--ink-2)}
@@ -319,7 +323,7 @@ body.touch #banner{width:min(640px,calc(100vw - 136px))}
 .note{font-size:12px!important;color:var(--ink-3)!important}
 
 #bigmap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(12,14,15,.6);z-index:4;pointer-events:none}
-#bigmap canvas{width:min(86vh,92vw);height:min(86vh,92vw);border:1px solid var(--line)}
+#bigmap canvas{width:min(86vh,92vw);height:min(86vh,92vw);border:1px solid var(--line);border-radius:var(--r-m)}
 
 /* ---------- touch ---------- */
 #touch{position:fixed;inset:0;z-index:3;display:none;touch-action:none}
@@ -382,18 +386,18 @@ body.touch #meds div,body.touch #guns .slot,body.touch #guns .frag{pointer-event
   #storm{top:33%;font-size:11px;padding:4px 10px;gap:6px}
   /* 手機也用實機參考影片的卡片質感（位置維持收在角落）：暖炭灰圓角、無描邊，人數卡帶圖示，槍格顯示稀有度色 */
   #hud{--plate:rgba(26,24,21,.74);--plate-2:rgba(26,24,21,.5)}
-  .plate{border:0;border-radius:8px}
-  #phase{border-radius:9px;overflow:hidden}
+  .plate{border:0;border-radius:var(--r-s)}
+  #phase{border-radius:var(--r-s);overflow:hidden}
   #phase::before{height:3px;top:0}
-  #counts div{border-left:0!important;border-radius:8px;align-items:center;gap:5px}
+  #counts div{border-left:0!important;border-radius:var(--r-s);align-items:center;gap:5px}
   #counts svg{display:block;width:13px;height:13px;fill:var(--ink-2)}
   #counts div:last-child svg{fill:var(--hazard)}
-  #mmwrap{border-radius:10px}
-  #meds div,#guns .slot,#guns .frag{border:0;border-radius:6px}
+  #mmwrap{border-radius:var(--r-m)}
+  #meds div,#guns .slot,#guns .frag{border:0;border-radius:var(--r-s)}
   #guns .slot.cur{box-shadow:inset 3px 0 0 var(--rc,var(--hazard))}
   #guns .slot.cur .nm span{color:var(--rc,var(--ink))}
   #hpbar{border:0;border-radius:2px}
-  #feed div{border-radius:6px}
+  #feed div{border-radius:var(--r-s)}
   #death{top:42%;bottom:auto}
   #death p{font-size:12px;padding:5px 10px}
   #zinfo{display:block;font-size:8px;letter-spacing:.04em;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -523,7 +527,7 @@ body.touch #meds div,body.touch #guns .slot,body.touch #guns .frag{pointer-event
       <kbd>G / M</kbd><span>丟手雷・大地圖</span>
     </div>
     <p class="note" id="keysTouch" style="display:none">觸控：左半邊拖曳移動（往前推到底衝刺），右半邊拖曳轉視角。右側按鈕：開火（按住可拖曳轉向）、瞄準、跳、蹲／趴、裝填、撿起（也開門、上車）、換槍與手雷；開車時換成「手煞」與「下車」。左側點藥品使用、點槍格換槍，另有「地圖」與「暫停」（暫停選單裡調畫質、靈敏度與音量）。</p>
-    <div class="row"><button class="btn" id="start" disabled>登機 ▸</button><span class="note" id="loadNote" style="margin-top:20px" aria-live="polite">正在搭工地…</span></div>
+    <div class="row"><button class="btn" id="start" disabled>登機</button><span class="note" id="loadNote" style="margin-top:20px" aria-live="polite">正在搭工地…</span></div>
   </div>
 </div>
 
@@ -533,9 +537,9 @@ body.touch #meds div,body.touch #guns .slot,body.touch #guns .frag{pointer-event
     <h1 style="font-size:48px">休息一下</h1>
     <div class="slider"><span>視角靈敏度</span><input id="sens" type="range" min="0.3" max="2.5" step="0.05" value="1"><b id="sensV">1.00</b></div>
     <div class="slider"><span>音量</span><input id="vol" type="range" min="0" max="1" step="0.05" value="0.7"><b id="volV">70</b></div>
-    <style>#qsel{display:flex;flex:1;border:1px solid var(--line)}#qsel button{flex:1;min-width:0;padding:7px 0;background:transparent;color:var(--ink-2);border:0;border-left:1px solid var(--line);font:inherit;font-size:13px;letter-spacing:.12em;cursor:pointer;transition:background var(--dur-press,.12s) var(--ease-out),color .15s}#qsel button:first-child{border-left:0}#qsel button:hover{color:var(--ink)}#qsel button.on{background:var(--hazard);color:var(--hazard-ink)}#qfps{min-width:76px;text-align:right;font-weight:400;font-size:11px;letter-spacing:.06em;white-space:nowrap}</style>
+    <style>#qsel{display:flex;flex:1;border:1px solid var(--line);border-radius:var(--r-s);overflow:hidden}#qsel button{flex:1;min-width:0;padding:7px 0;background:transparent;color:var(--ink-2);border:0;border-left:1px solid var(--line);font:inherit;font-size:13px;letter-spacing:.12em;cursor:pointer;transition:background var(--dur-press,.12s) var(--ease-out),color .15s}#qsel button:first-child{border-left:0}#qsel button:hover{color:var(--ink)}#qsel button.on{background:var(--hazard);color:var(--hazard-ink)}#qfps{min-width:76px;text-align:right;font-weight:400;font-size:11px;letter-spacing:.06em;white-space:nowrap}</style>
     <div class="slider"><span>畫質</span><div id="qsel"><button data-q="0">低</button><button data-q="1">中</button><button data-q="2">高</button><button data-q="3">極致</button></div><b id="qfps">—</b></div>
-    <div class="row"><button class="btn" id="resume">繼續 ▸</button><button class="btn ghost" id="restart1">重新開局</button></div>
+    <div class="row"><button class="btn" id="resume">繼續</button><button class="btn ghost" id="restart1">重新開局</button></div>
   </div>
 </div>
 
@@ -546,7 +550,7 @@ body.touch #meds div,body.touch #guns .slot,body.touch #guns .frag{pointer-event
     <p id="endLine"></p>
     <div class="stats"><div><b id="sRank">—</b><small>名次</small></div><div><b id="sKills">0</b><small>擊殺</small></div><div><b id="sDmg">0</b><small>傷害</small></div><div><b id="sTime">0:00</b><small>存活</small></div></div>
     <div id="stand"></div>
-    <div class="row"><button class="btn" id="again">再飛一趟 ▸</button><button class="btn quiet" id="toMenu">回到登機口</button></div>
+    <div class="row"><button class="btn" id="again">再飛一趟</button><button class="btn quiet" id="toMenu">回到登機口</button></div>
   </div>
 </div>
 
@@ -9782,6 +9786,8 @@ function onPlayerDead() {
   STATE = 'dead';
   PL.deadT = 0; PL.spec = null; PL.overT = 0;
   IN.lmb = IN.rmb = false;
+  // 倒下後 active() 為 false、M／Tab 不再有反應：開著的大地圖要在這裡收掉，否則整段觀戰都被它蓋住
+  IN.map = false; $('bigmap').classList.add('hide');
 }
 function checkWin() {
   if (PLAYER.alive && aliveCount() === 1 && STATE === 'play') { STATE = 'won'; PL.deadT = 0; }
@@ -9789,6 +9795,7 @@ function checkWin() {
 function showEnd(won) {
   PL.endShown = true;
   if (document.pointerLockElement) document.exitPointerLock();
+  IN.map = false; $('bigmap').classList.add('hide');
   const ch = PLAYER;
   $('hud').classList.remove('on'); $('touch').classList.remove('on');
   $('endKick').textContent = won ? `#1 / ${NPLAYERS} · 最後一人` : `#${ch.rank} / ${NPLAYERS}`;
@@ -9803,7 +9810,7 @@ function showEnd(won) {
   const top = rows.slice(0, 8); if (!top.includes(ch)) top.push(ch);
   $('stand').innerHTML = '<table><thead><tr><th>#</th><th>工人</th><th>擊殺</th><th>傷害</th></tr></thead><tbody>' + top.map(c => `<tr class="${c === ch ? 'me' : ''}"><td>${c.alive ? (won && c === ch ? 1 : '—') : c.rank}</td><td>${c === ch ? '你' : c.name}${c.alive && !(won && c === ch) ? '<small>存活中</small>' : ''}</td><td>${c.kills}</td><td>${Math.round(c.dmg)}</td></tr>`).join('') + '</tbody></table>';
   $('end').classList.remove('hide');
-  if (won) for (let i = 0; i < 8; i++) setTimeout(() => { burst(ch.p.x + rnd(-6, 6), ch.p.y + rnd(6, 12), ch.p.z + rnd(-6, 6), 30, pick([0xf4b400, 0xe0302b, 0xffffff]), 7, 1.4, .1, 3); if (AU.ctx) tone(AU.ctx.currentTime, out(null, .25), 'square', 200, 60, .001, .8, .12); }, i * 260);
+  if (won) for (let i = 0; i < 8; i++) setTimeout(() => { if (STATE !== 'won') return; burst(ch.p.x + rnd(-6, 6), ch.p.y + rnd(6, 12), ch.p.z + rnd(-6, 6), 30, pick([0xf4b400, 0xe0302b, 0xffffff]), 7, 1.4, .1, 3); if (AU.ctx) tone(AU.ctx.currentTime, out(null, .25), 'square', 200, 60, .001, .8, .12); }, i * 260);
 }
 
 /* ---------- 共通：補血飲料、腳步 ---------- */

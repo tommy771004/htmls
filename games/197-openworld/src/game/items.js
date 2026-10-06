@@ -6,11 +6,11 @@ import { CAMP_LAYOUT } from '../world/camp.js';
 const srgb = (r, g, b) => new THREE.Color().setRGB(r, g, b, THREE.SRGBColorSpace);
 
 export const ITEMS = {
-  knife: { name: '獵刀', icon: '🔪', kind: 'weapon', model: 'knife', stack: 1 },
-  gun: { name: '手槍', icon: '🔫', kind: 'weapon', model: 'gun', stack: 1 },
-  ammo: { name: '子彈', icon: '⁍', kind: 'ammo', stack: 120 },
-  food: { name: '罐頭', icon: '🥫', kind: 'food', stack: 10, hunger: 40, health: 10 },
-  meat: { name: '生肉', icon: '🥩', kind: 'food', stack: 10, hunger: 28, health: 4 },
+  knife: { name: '獵刀', kind: 'weapon', model: 'knife', stack: 1 },
+  gun: { name: '手槍', kind: 'weapon', model: 'gun', stack: 1 },
+  ammo: { name: '子彈', kind: 'ammo', stack: 120 },
+  food: { name: '罐頭', kind: 'food', stack: 10, hunger: 40, health: 10 },
+  meat: { name: '生肉', kind: 'food', stack: 10, hunger: 28, health: 4 },
 };
 
 // ---------------------------------------------------------------- 背包

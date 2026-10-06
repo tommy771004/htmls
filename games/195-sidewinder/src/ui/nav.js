@@ -98,6 +98,13 @@ export function createNav() {
   document.addEventListener('click', (e) => {
     const el = e.target && e.target.closest && e.target.closest('[data-nav]');
     if (!el) return;
+    // 雙擊的第二下：按鈕常在第一下時被重建（車庫購買後 render()），lastAct 認不得新元素 → 會買兩次或點穿到新畫面。
+    // 鍵盤／手把觸發的 cur.click() detail 為 0，不受影響
+    if (e.detail > 1) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      return;
+    }
     const now = performance.now();
     const t = lastAct.get(el) || -1e9;
     if (now - t < ACT_GAP) {

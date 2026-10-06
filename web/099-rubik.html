@@ -12,6 +12,7 @@
     --W:#fbfbf8; --Y:#ffd21f; --G:#00a651; --B:#0a5fd6; --R:#e3262f; --O:#ff7a00;
     --ui:"Segoe UI","Helvetica Neue",Arial,sans-serif;
     --s:74px;
+    --r-s:6px; --r-m:10px; --r-l:14px;
   }
   *{box-sizing:border-box}
   html{background:var(--bg)}
@@ -42,24 +43,24 @@
     box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
   .solvedFlash .face i{animation:glint 1s ease-out}
   @keyframes glint{0%{filter:brightness(1)}30%{filter:brightness(1.35)}100%{filter:brightness(1)}}
-  .hint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--mid);white-space:nowrap;pointer-events:none}
+  .hint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);font-size:12px;color:var(--mid);white-space:nowrap;pointer-events:none}
 
   .pad h2{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--mid);font-weight:600;margin:0 0 10px}
   .moves{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
-  .mv{font:inherit;font-size:16px;font-weight:600;min-height:46px;border:1px solid var(--line);background:#fff;border-radius:10px;cursor:pointer;position:relative;color:var(--ink);box-shadow:0 1px 0 rgba(0,0,0,.04)}
+  .mv{font:inherit;font-size:16px;font-weight:600;min-height:46px;border:1px solid var(--line);background:#fff;border-radius:var(--r-m);cursor:pointer;position:relative;color:var(--ink);box-shadow:0 1px 0 rgba(0,0,0,.04)}
   .mv::after{content:"";position:absolute;left:50%;bottom:6px;width:14px;height:3px;border-radius:2px;transform:translateX(-50%);background:var(--c)}
   .mv:hover,.mv:focus-visible{outline:none;border-color:var(--ink)}
   .mv:active{transform:translateY(1px)}
   .acts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:14px}
-  .act{font:inherit;font-size:14px;font-weight:600;min-height:46px;border-radius:10px;border:0;cursor:pointer;background:var(--ink);color:#fff}
+  .act{font:inherit;font-size:14px;font-weight:600;min-height:46px;border-radius:var(--r-m);border:0;cursor:pointer;background:var(--ink);color:#fff}
   .act.alt{background:#fff;color:var(--ink);border:1px solid var(--line)}
   .act:hover,.act:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(22,23,26,.18)}
   .act:disabled{opacity:.4;cursor:default}
   .hist{margin-top:16px;font-family:Consolas,"Lucida Console",Menlo,monospace;font-size:13px;color:#3d3f45;min-height:3.2em;line-height:1.6;word-spacing:.3em;max-height:8em;overflow:auto;border-top:1px solid var(--line);padding-top:10px}
-  .hist .last{background:var(--ink);color:#fff;padding:0 4px;border-radius:3px}
+  .hist .last{background:var(--ink);color:#fff;padding:0 4px;border-radius:var(--r-s)}
   .keys{font-size:12px;color:var(--mid);margin-top:10px;line-height:1.6}
-  .keys kbd{font-family:Consolas,monospace;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:#fff;color:var(--ink)}
-  .toast{position:fixed;left:50%;top:22px;transform:translate(-50%,-220%);visibility:hidden;background:var(--ink);color:#fff;padding:12px 20px;border-radius:999px;font-weight:600;font-size:15px;transition:transform .5s cubic-bezier(.3,1.5,.5,1);z-index:5;white-space:nowrap}
+  .keys kbd{font-family:Consolas,monospace;border:1px solid var(--line);border-bottom-width:2px;border-radius:var(--r-s);padding:0 5px;background:#fff;color:var(--ink)}
+  .toast{position:fixed;left:50%;top:22px;transform:translate(-50%,-220%);visibility:hidden;background:var(--ink);color:#fff;padding:12px 20px;border-radius:var(--r-m);font-weight:600;font-size:15px;transition:transform .5s cubic-bezier(.3,1.5,.5,1);z-index:5;white-space:nowrap}
   .toast.on{transform:translate(-50%,0);visibility:visible}
 
   @media (max-width:1100px){
@@ -78,7 +79,7 @@
     .stats b{font-size:22px}
   }
 
-.view-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.stage:focus-visible{outline:2px solid var(--ink);outline-offset:-3px}@media(prefers-reduced-motion:reduce){.toast{transition:none}}
+.view-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.stage{border-radius:var(--r-l)}.stage:focus-visible{outline:2px solid var(--ink);outline-offset:-3px}@media(prefers-reduced-motion:reduce){.toast{transition:none}}
 </style>
 </head>
 <body>
@@ -273,13 +274,15 @@
       if (f === last || (MOVES[f].axis === axisLast && seq.length && MOVES[seq[seq.length - 1][0]].axis === axisLast && Math.random() < .7)) continue;
       seq.push(f + (Math.random() < .5 ? "'" : '')); last = f; axisLast = MOVES[f].axis;
     }
+    // keep every move made since the cube was last solved, so Unscramble still lands on solved
+    baseSeq = solved() ? [] : baseSeq.concat(scrambleSeq, history);
     history = []; moveCount = 0; timing = false; if (tm) tm.textContent = '0:00.0';
     seq.forEach(m => turn(m, false, true));
     scrambleSeq = seq; wasScrambled = true;
     if (histEl) histEl.textContent = 'Scramble: ' + seq.join(' ');
     click();
   }
-  let scrambleSeq = [];
+  let scrambleSeq = [], baseSeq = [];
   const inv = m => m.endsWith("'") ? m[0] : m + "'";
   $('#scr') && $('#scr').addEventListener('click', scramble);
   $('#undo') && $('#undo').addEventListener('click', () => {
@@ -290,11 +293,11 @@
   $('#sol') && $('#sol').addEventListener('click', () => {
     if (busy) return;
     // honest unscramble: undo your moves, then the scramble, in reverse
-    const seq = history.slice().reverse().map(inv).concat(scrambleSeq.slice().reverse().map(inv));
+    const seq = history.slice().reverse().map(inv).concat(scrambleSeq.slice().reverse().map(inv), baseSeq.slice().reverse().map(inv));
     if (!seq.length) return;
     wasScrambled = false; timing = false; history = []; moveCount = 0;
     seq.forEach(m => turn(m, false, seq.length > 14));
-    scrambleSeq = [];
+    scrambleSeq = []; baseSeq = [];
     if (histEl) histEl.textContent = 'Rewinding ' + seq.length + ' moves. No shame in it.';
   });
   addEventListener('keydown', e => {

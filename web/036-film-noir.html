@@ -10,13 +10,15 @@
 :root{
   --black:#070707; --char:#141414; --ash:#2a2a2a; --smoke:#8b8a86; --silver:#cfccc4; --paper:#ece8de; --red:#b3121b;
   --type:"Courier New",Courier,"Lucida Console",monospace;
+  --r-s:4px; /* choice buttons, notebook button, stamp */
+  --r-m:6px; /* film frame, notebook card */
 }
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--black);color:var(--silver);font-family:var(--type);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
 button{font:inherit;color:inherit;cursor:pointer}
 .credit{margin:18px 0 10px;font-size:11px;letter-spacing:.5em;color:#6b6a66;text-align:center;padding:0 16px}
-.screen{position:relative;width:min(1180px,94vw,calc(64vh * 2.39));aspect-ratio:2.39;background:#000;overflow:hidden;box-shadow:0 0 0 1px #1a1a1a,0 30px 80px rgba(0,0,0,.9)}
+.screen{position:relative;width:min(1180px,94vw,calc(64vh * 2.39));aspect-ratio:2.39;background:#000;overflow:hidden;border-radius:var(--r-m);box-shadow:0 0 0 1px #1a1a1a}
 .scene{position:absolute;inset:0;width:100%;height:100%;filter:contrast(1.08)}
 .scene svg{width:100%;height:100%;display:block}
 .blinds{position:absolute;inset:-20%;pointer-events:none;mix-blend-mode:screen;opacity:1;
@@ -40,15 +42,17 @@ canvas.grain{mix-blend-mode:overlay;opacity:.22}
 
 .deck{width:min(1180px,94vw);display:grid;grid-template-columns:1fr auto;gap:18px;align-items:start;margin:18px 0 30px}
 .choices{display:flex;flex-wrap:wrap;gap:10px}
-.choice{min-height:44px;padding:10px 16px 10px 14px;background:transparent;border:1px solid #4a4945;color:var(--silver);font-size:14px;letter-spacing:.06em;text-align:left;display:flex;gap:10px;align-items:baseline;transition:background .15s,color .15s,border-color .15s;opacity:0;transform:translateY(6px);animation:rise .35s forwards}
+.choice{min-height:44px;padding:10px 16px 10px 14px;background:transparent;border:1px solid #4a4945;border-radius:var(--r-s);color:var(--silver);font-size:14px;letter-spacing:.06em;text-align:left;display:flex;gap:10px;align-items:baseline;transition:background .15s,color .15s,border-color .15s;opacity:0;transform:translateY(6px);animation:rise .35s forwards}
 .choice b{color:#6f6e69;font-weight:400}
 .choice:hover,.choice:focus-visible{background:var(--paper);color:#000;border-color:var(--paper);outline:none}
+.choice:focus-visible,.nb:focus-visible,.card .close:focus-visible{outline:2px solid var(--paper);outline-offset:3px}
+.card .close:focus-visible{outline-color:#1a1a1a;outline-offset:-4px}
 .choice:hover b,.choice:focus-visible b{color:#555}
 .choice.done{color:#6f6e69;border-style:dashed}
 .choice.accuse{border-color:var(--red);color:#e7c9c9}
 .choice.accuse:hover{background:var(--red);color:#fff;border-color:var(--red)}
 @keyframes rise{to{opacity:1;transform:none}}
-.nb{min-height:44px;padding:0 16px;border:1px solid #4a4945;background:#111;color:var(--silver);font-size:13px;letter-spacing:.14em;white-space:nowrap}
+.nb{min-height:44px;padding:0 16px;border:1px solid #4a4945;border-radius:var(--r-s);background:#111;color:var(--silver);font-size:13px;letter-spacing:.14em;white-space:nowrap}
 .nb span{color:#fff}
 .nb.ping{animation:ping .6s}
 @keyframes ping{30%{background:var(--paper);color:#000}}
@@ -56,7 +60,7 @@ canvas.grain{mix-blend-mode:overlay;opacity:.22}
 
 .notebook{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.72);display:grid;place-items:center;padding:16px}
 .notebook[hidden]{display:none}
-.card{width:min(560px,100%);max-height:86vh;overflow:auto;background:var(--paper);color:#1a1a1a;padding:26px 28px;box-shadow:0 20px 60px #000;position:relative;
+.card{width:min(560px,100%);max-height:86vh;overflow:auto;background:var(--paper);color:#1a1a1a;padding:26px 28px;border-radius:var(--r-m);position:relative;
   background-image:repeating-linear-gradient(180deg,transparent 0 27px,rgba(40,80,160,.18) 27px 28px);background-position:0 58px}
 .card::before{content:"";position:absolute;top:0;bottom:0;left:40px;width:1px;background:rgba(179,18,27,.45)}
 .card h3{margin:0 0 14px 26px;font-size:16px;letter-spacing:.3em}
@@ -67,11 +71,11 @@ canvas.grain{mix-blend-mode:overlay;opacity:.22}
 .card .close{position:absolute;right:10px;top:8px;min-width:44px;min-height:44px;border:0;background:none;font-size:22px;color:#1a1a1a}
 .redtxt{color:var(--red)}
 
-.stamp{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%) rotate(-8deg) scale(2.2);border:5px solid var(--red);color:var(--red);font-size:clamp(22px,4.4vw,56px);font-weight:700;letter-spacing:.2em;padding:.1em .5em;opacity:0;transition:transform .3s cubic-bezier(.6,0,.9,.4),opacity .1s;pointer-events:none;background:rgba(0,0,0,.25)}
+.stamp{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%) rotate(-8deg) scale(2.2);border:5px solid var(--red);border-radius:var(--r-s);color:var(--red);font-size:clamp(22px,4.4vw,56px);font-weight:700;letter-spacing:.2em;padding:.1em .5em;opacity:0;transition:transform .3s cubic-bezier(.6,0,.9,.4),opacity .1s;pointer-events:none;background:rgba(0,0,0,.25)}
 .stamp.on{opacity:.95;transform:translate(-50%,-50%) rotate(-8deg) scale(1)}
 
 @media (max-width:760px){
-  .screen{width:100%;aspect-ratio:16/10}
+  .screen{width:100%;aspect-ratio:16/10;border-radius:0}
   .narr{display:none}
   .narrwrap{width:100%;padding:16px 16px 0;font-size:15px;line-height:1.65;color:var(--paper);min-height:7.5em}
   .narrwrap .cursor{display:inline-block;width:.55em;height:1.05em;background:var(--paper);vertical-align:-.15em;margin-left:2px;animation:cur .9s steps(1) infinite}
@@ -189,7 +193,7 @@ canvas.grain{mix-blend-mode:overlay;opacity:.22}
   var sceneEl = $("#scene"), slate = $("#slate"), choicesEl = $("#choices"), fade = $("#fade"), stamp = $("#stamp"), blinds = $("#blinds");
   var narrIn = $("#narrIn"), narrOut = $("#narrOut");
   function narrEl(){ return window.innerWidth <= 760 ? narrOut : narrIn; }
-  var typing = null, full = "", cur = "start";
+  var typing = null, full = "", cur = "start", stampTimer = 0;
 
   function typeText(html){
     var el = narrEl(), other = el === narrIn ? narrOut : narrIn;
@@ -201,10 +205,16 @@ canvas.grain{mix-blend-mode:overlay;opacity:.22}
     typing = setInterval(function(){
       i += 2;
       if(plain[i-1] === "<" || plain[i-2] === "<"){ var close = plain.indexOf(">", i - 2); if(close > 0) i = close + 1; }
+      el = narrEl(); // the narration box can swap (desktop overlay ↔ mobile block) mid-typing
       if(i >= plain.length){ clearInterval(typing); typing = null; el.innerHTML = plain; return; }
       el.innerHTML = safeSlice(plain, i) + '<span class="cursor"></span>';
     }, 22);
   }
+  /* crossing the 760px breakpoint hides one narration box; move the text to the visible one */
+  window.addEventListener("resize", function(){
+    var el = narrEl(), other = el === narrIn ? narrOut : narrIn;
+    if(other && other.innerHTML){ other.innerHTML = ""; if(el && !typing) el.innerHTML = full; }
+  });
   function safeSlice(s, n){ /* avoid cutting inside a tag and close open spans */
     var out = s.slice(0, n), open = (out.match(/<span/g) || []).length - (out.match(/<\/span>/g) || []).length;
     var lt = out.lastIndexOf("<"), gt = out.lastIndexOf(">"); if(lt > gt) out = out.slice(0, lt);
@@ -238,12 +248,13 @@ canvas.grain{mix-blend-mode:overlay;opacity:.22}
   }
   function render(id, textOverride){
     cur = id;
+    clearTimeout(stampTimer); // a stamp still pending from the previous ending must not land on this scene
     if(stamp) stamp.classList.remove("on");
     var isEnd = !!ENDINGS[id] && !SCENES[id], sc = isEnd ? ENDINGS[id] : SCENES[id];
     setArt(sc.art);
     if(slate) slate.textContent = sc.slate;
     typeText(textOverride || (id === "hub" ? hubText() : sc.text));
-    if(sc.stamp && stamp){ stamp.textContent = sc.stamp; setTimeout(function(){ stamp.classList.add("on"); }, reduce ? 0 : 1600); }
+    if(sc.stamp && stamp){ stamp.textContent = sc.stamp; stampTimer = setTimeout(function(){ stamp.classList.add("on"); }, reduce ? 0 : 1600); }
     var list = [];
     if(isEnd){
       if(sc.retry) list = [["Back to the car","hub"]];
@@ -312,6 +323,7 @@ canvas.grain{mix-blend-mode:overlay;opacity:.22}
   var nbClose = $("#nbClose"); if(nbClose) nbClose.addEventListener("click", closeNb);
   if(nb) nb.addEventListener("click", function(e){ if(e.target === nb) closeNb(); });
   document.addEventListener("keydown", function(e){
+    if(e.ctrlKey || e.metaKey || e.altKey) return; // Ctrl+1…9 switches browser tabs; don't also pick a line
     if(nb && !nb.hidden){ if(e.key === "Escape" || e.key === "n" || e.key === "N") closeNb(); return; }
     if(e.key === "n" || e.key === "N"){ openNb(); return; }
     if(/^[1-9]$/.test(e.key)){ var bs = choicesEl ? choicesEl.querySelectorAll(".choice") : []; var b = bs[+e.key - 1]; if(b) b.click(); }

@@ -226,6 +226,7 @@ export function createHud(env) {
   function attach(g) {
     G = g; nums.length = 0; for (const f of feedList) f.d.remove(); feedList.length = 0; bannerT = 0; cutT = 0; speedT = 0; el.banner.className = ''; el.cutin.className = '';
     quipT = 0; quipCool = 2; foe = null; foeT = -9; el.quip.className = ''; greeted = false;
+    el.shop.classList.remove('on'); // 上一場結束時商店若還開著，新的一場不要一開局就蓋住畫面
     G.on('hit', ({ src, dst }) => { if (!player) return; const o = src === player && dst.kind === 'hero' ? dst : dst === player && src && src.kind === 'hero' ? src : null; if (o && o.team !== player.team) { foe = o; foeT = G.time; } });
   G.on('hit', ({ src, dst, amount, opts }) => {
     if (!player || amount <= 0) return;

@@ -1,3 +1,4 @@
+:root { --r-s: 4px; --r-m: 8px; --r-l: 12px; }
 * { box-sizing: border-box; }
 html, body {
   margin: 0;
@@ -16,7 +17,7 @@ html, body {
   position: absolute;
   padding: 6px 10px;
   background: rgba(10, 14, 18, 0.55);
-  border-radius: 6px;
+  border-radius: var(--r-m);
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
@@ -56,7 +57,7 @@ html, body {
   transform: translateX(-50%);
   padding: 6px 14px;
   background: rgba(10, 14, 18, 0.6);
-  border-radius: 6px;
+  border-radius: var(--r-m);
   font-size: 15px;
   opacity: 0; transition: opacity 0.12s;
   white-space: nowrap;
@@ -68,7 +69,7 @@ kbd {
   padding: 1px 6px;
   margin-right: 6px;
   border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 4px;
+  border-radius: var(--r-s);
   background: rgba(255, 255, 255, 0.1);
   font: 600 12px Consolas, monospace;
   text-align: center;
@@ -82,7 +83,7 @@ kbd {
 .toast {
   padding: 5px 14px;
   background: rgba(10, 14, 18, 0.65);
-  border-radius: 14px;
+  border-radius: var(--r-m);
   font-size: 14px;
   transition: opacity 0.5s, transform 0.5s;
 }
@@ -91,8 +92,8 @@ kbd {
 .vitals { position: absolute; left: 16px; bottom: 16px; width: 210px; display: flex; flex-direction: column; gap: 5px; }
 .bar { display: flex; align-items: center; gap: 8px; }
 .bar-label { width: 30px; font-size: 12px; color: #d5dde3; text-shadow: 0 1px 2px #000; }
-.bar-track { flex: 1; height: 8px; background: rgba(10, 14, 18, 0.6); border-radius: 4px; overflow: hidden; }
-.bar-fill { height: 100%; width: 100%; border-radius: 4px; transition: width 0.15s linear; }
+.bar-track { flex: 1; height: 8px; background: rgba(10, 14, 18, 0.6); border-radius: var(--r-s); overflow: hidden; }
+.bar-fill { height: 100%; width: 100%; transition: width 0.15s linear; }
 .health .bar-fill { background: #e05a4f; }
 .stamina .bar-fill { background: #e9c54a; }
 .hunger .bar-fill { background: #d98b3a; }
@@ -105,12 +106,14 @@ kbd {
   width: 58px; height: 58px;
   background: rgba(10, 14, 18, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 7px;
+  border-radius: var(--r-m);
   display: flex; align-items: center; justify-content: center;
 }
 .slot.equipped { border-color: #f0c860; box-shadow: 0 0 0 1px #f0c860 inset; background: rgba(60, 48, 12, 0.6); }
 .slot-key { position: absolute; top: 2px; left: 5px; font-size: 10px; color: #9fabb3; }
-.slot-icon { font-size: 24px; line-height: 1; margin-top: -6px; }
+.slot-icon { display: grid; margin-top: -8px; color: #e4ebef; }
+.slot-icon svg { width: 24px; height: 24px; }
+.bag .slot-icon svg { width: 26px; height: 26px; }
 .slot-count { position: absolute; right: 5px; top: 2px; font-size: 11px; font-weight: 600; }
 .slot-name { position: absolute; bottom: 2px; left: 0; right: 0; text-align: center; font-size: 10px; color: #cfd8de; }
 
@@ -120,7 +123,7 @@ kbd {
   padding: 16px 18px;
   background: rgba(14, 18, 23, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
+  border-radius: var(--r-l);
   pointer-events: auto;
 }
 .bag-title { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
@@ -132,7 +135,7 @@ kbd {
 .overlay { position: absolute; inset: 0; opacity: 0; transition: opacity 0.25s; }
 .vignette { display: none; }
 .flash { background: #dfe8ff; transition: none; mix-blend-mode: screen; }
-.toast.speech { background: rgba(30, 26, 18, 0.82); border: 1px solid rgba(240, 200, 96, 0.5); font-size: 15px; padding: 7px 16px; }
+.toast.speech { background: rgba(30, 26, 18, 0.82); box-shadow: inset 3px 0 0 #f0c860; font-size: 15px; padding: 7px 16px; }
 .water { background: radial-gradient(ellipse at center, rgba(20, 110, 140, 0.25), rgba(4, 40, 60, 0.6)); }
 .hurt { background: radial-gradient(ellipse at center, transparent 45%, rgba(190, 20, 10, 0.55)); transition: none; }
 .fade { background: #000; transition: opacity 0.8s; }
@@ -150,7 +153,7 @@ kbd {
   padding: 22px 28px;
   background: rgba(14, 18, 23, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 12px;
+  border-radius: var(--r-l);
 }
 .start-card h1 { margin: 0 0 4px; font-size: 24px; letter-spacing: 1px; }
 .loading { color: #f0c860; font-size: 13px; margin-bottom: 12px; }
@@ -160,12 +163,13 @@ kbd {
 .start-btn {
   margin-top: 16px; width: 100%;
   padding: 10px;
-  font: 600 16px inherit;
+  font: inherit; font-size: 16px; font-weight: 600;
   color: #10140c;
   background: #cfe08a;
-  border: 0; border-radius: 8px;
+  border: 0; border-radius: var(--r-m);
   cursor: pointer;
 }
+.start-btn:focus-visible { outline: 2px solid #f0c860; outline-offset: 3px; }
 .start-btn:disabled { background: #555; color: #999; cursor: default; }
 .start-note { display: none; margin: 10px 0 0; color: #f0c860; font-size: 13px; }
 @media (pointer: coarse), (max-width: 700px) { .start-note { display: block; } }

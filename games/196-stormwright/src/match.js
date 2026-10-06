@@ -47,7 +47,11 @@ export class Match {
   }
   toMenu() {
     this.setState('menu'); this.bus.visible = false; this._hid = false;
-    this.ctx.actors.forEach((a) => { a.view && (a.view.emote = false); }); this.ctx.input.unlock();
+    // 清掉上一局留在場上的東西（風暴牆、建材、掉落物、彈道），選單背景的環島鏡頭才不會看到
+    const c = this.ctx;
+    for (const k of ['storm', 'build', 'combat']) { const m = c[k]; if (m && typeof m.reset === 'function') { try { m.reset(); } catch (e) { console.warn('reset 失敗：' + k, e); } } }
+    if (c.loot && typeof c.loot.clear === 'function') c.loot.clear();
+    c.actors.forEach((a) => { a.view && (a.view.emote = false); }); c.input.unlock();
   }
   setState(s) { this.state = s; this.ctx.events.emit('matchState', { state: s }); }
   // 飛艇階段結束：開始對戰、風暴計時
@@ -70,7 +74,8 @@ export class Match {
   // 玩家死亡後，其餘人打完
   finish() {
     if (this.over) return;
-    this.over = true; this.winner = this.ctx.actors.find((a) => a.alive) || null;
+    // 最後兩人同一個 tick 被風暴打死時沒有存活者：冠軍是已經拿到第 1 名的那位
+    this.over = true; this.winner = this.ctx.actors.find((a) => a.alive) || this.ctx.actors.find((a) => a.place === 1) || null;
     if (this.winner) this.winner.place = 1;
     this.ctx.events.emit('matchOver', { winner: this.winner });
   }

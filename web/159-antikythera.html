@@ -19,6 +19,7 @@
   --serif:"Songti TC","Noto Serif TC","Noto Serif CJK TC","Source Han Serif TC","PMingLiU",serif;
   --greek:"Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
   --sans:system-ui,-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  --r-s:6px; --r-m:10px; --r-l:14px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:#041a1f;color:var(--ink);overflow:hidden;font-family:var(--sans);-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
@@ -40,6 +41,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .btn.sea.ready{background:#b98545;color:#1c1106}
 .quiet{font-family:var(--serif);font-size:15px;color:var(--ink-2);padding:10px 6px;transition:color var(--dur-hover) var(--ease-out)}
 .quiet:hover{color:var(--ink)}
+.quiet{border-radius:var(--r-s)}
 .quiet:focus-visible{outline:1px dotted var(--ink-2);outline-offset:2px}
 
 #titleUi{position:fixed;left:max(20px,7vw);max-width:min(520px,calc(100vw - 40px));z-index:3}
@@ -67,7 +69,9 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .panel .read .gr{font-family:var(--greek);color:#e9cf98;letter-spacing:.04em}
 .panel .ok{color:#cfe7c4}
 .panel .steps{display:flex;gap:2px;margin-top:10px}
-.panel .steps button{font-family:var(--greek);font-size:14px;color:var(--ink-2);padding:6px 9px;background:rgba(255,230,190,.05)}
+.panel .steps{gap:4px}
+.panel .steps button{font-family:var(--greek);font-size:14px;color:var(--ink-2);padding:6px 9px;background:rgba(255,230,190,.05);border-radius:var(--r-s)}
+.panel .steps button:focus-visible{outline:1px dotted var(--ink-2);outline-offset:2px}
 .panel .steps button:hover{color:var(--ink);background:rgba(255,230,190,.1)}
 #mini{display:block;margin-top:12px}
 
@@ -76,13 +80,13 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #cap{position:fixed;z-index:5;left:0;right:0;top:15vh;text-align:center;pointer-events:none;opacity:0;transform:translateY(6px);
   transition:opacity var(--dur-enter) var(--ease-out),transform var(--dur-enter) var(--ease-out);padding:0 20px}
 #cap.on{opacity:1;transform:none}
-#cap b{display:block;font-family:var(--serif);font-size:clamp(22px,3vw,32px);letter-spacing:.08em;color:#f3e8cf;text-shadow:0 1px 2px rgba(0,12,16,.9),0 2px 14px rgba(0,12,16,.6)}
-#cap span{display:block;margin-top:8px;font-size:15px;color:#e0eee8;text-shadow:0 1px 2px rgba(0,12,16,.95),0 1px 10px rgba(0,12,16,.7)}
+#cap b{display:block;font-family:var(--serif);font-size:clamp(22px,3vw,32px);letter-spacing:.08em;color:#f3e8cf;text-shadow:0 1px 3px rgba(0,12,16,.9)}
+#cap span{display:block;margin-top:8px;font-size:15px;color:#e0eee8;text-shadow:0 1px 3px rgba(0,12,16,.95)}
 #toast{position:fixed;z-index:6;left:50%;bottom:max(92px,calc(env(safe-area-inset-bottom) + 92px));transform:translateX(-50%);max-width:min(560px,calc(100vw - 32px));
-  font-size:14.5px;line-height:1.55;color:#f1e6cc;background:rgba(10,20,20,.88);padding:10px 16px;pointer-events:none;opacity:0;transition:opacity 260ms var(--ease-out);text-align:center}
+  font-size:14.5px;line-height:1.55;color:#f1e6cc;background:rgba(10,20,20,.88);padding:10px 16px;border-radius:var(--r-m);pointer-events:none;opacity:0;transition:opacity 260ms var(--ease-out);text-align:center}
 #toast.on{opacity:1}
 #bSnd{position:fixed;z-index:7;left:max(10px,env(safe-area-inset-left));bottom:max(6px,env(safe-area-inset-bottom));font-size:13px;padding:8px 8px;text-shadow:0 1px 2px rgba(0,10,12,.85)}
-body.dv #bSnd{color:#e6efe9;text-shadow:0 1px 2px rgba(0,10,12,.95),0 1px 8px rgba(0,10,12,.8)}
+body.dv #bSnd{color:#e6efe9;text-shadow:0 1px 3px rgba(0,10,12,.95)}
 #fade{position:fixed;inset:0;z-index:8;background:#02100f;opacity:0;pointer-events:none;transition:opacity 420ms ease}
 #fade.on{opacity:1}
 [hidden]{display:none!important}
@@ -105,12 +109,12 @@ body.dv #bSnd{color:#e6efe9;text-shadow:0 1px 2px rgba(0,10,12,.95),0 1px 8px rg
   #cap,#toast,#fade{transition-duration:1ms}
 }
 #bPause{position:fixed;z-index:5;right:14px;top:max(14px,env(safe-area-inset-top));min-height:44px}
-#pauseDialog{margin:auto;max-width:calc(100vw - 32px);padding:28px;background:#102e32;color:#edf3e9;border:1px solid #46716c;border-radius:8px}
+#pauseDialog{margin:auto;max-width:calc(100vw - 32px);padding:28px;background:#102e32;color:#edf3e9;border:1px solid #46716c;border-radius:var(--r-l)}
 #pauseDialog::backdrop{background:rgba(0,12,18,.68)}
 #pauseDialog p{margin:12px 0 20px}
 #bSnd,.panel .steps button{min-height:44px;min-width:44px}
 #cv:focus-visible{outline:2px solid #9bcac0;outline-offset:-3px}
-#titleUi .lede{background:rgba(3,25,31,.62);padding:14px 16px;border-left:2px solid #94b9ac}
+#titleUi .lede{background:rgba(3,25,31,.62);padding:14px 16px;border-left:2px solid #94b9ac;border-radius:0 var(--r-m) var(--r-m) 0}
 </style>
 </head>
 <body>
@@ -365,7 +369,8 @@ let capT=0,toastT=0;
 function caption(a,b,dur=3.4){cap.querySelector('b').textContent=a;cap.querySelector('span').textContent=b||'';cap.classList.add('on');clearTimeout(capT);capT=setTimeout(()=>cap.classList.remove('on'),dur*1000);}
 function toast(t,dur=2.8){toastEl.textContent=t;toastEl.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>toastEl.classList.remove('on'),dur*1000);}
 function setPanel(kind,html){panel.className='panel '+kind;panel.innerHTML=html;panel.hidden=false;}
-function fadeTo(fn){fadeEl.classList.add('on');setTimeout(()=>{fn();requestAnimationFrame(()=>requestAnimationFrame(()=>fadeEl.classList.remove('on')));},RM?30:440);}
+let fading=false;// 淡出期間再次點擊（連點按鈕）不再排第二次換場
+function fadeTo(fn){if(fading)return;fading=true;fadeEl.classList.add('on');setTimeout(()=>{fading=false;fn();requestAnimationFrame(()=>requestAnimationFrame(()=>fadeEl.classList.remove('on')));},RM?30:440);}
 function go(s,arg){paused=false;$('#pauseDialog').close();clearInput();if(scene&&scene.exit)scene.exit();scene=s;glShow(!!s.gl);s.enter(arg);s.layout&&s.layout();if(s===DIVE)cv.focus({preventScroll:true});}
 function hideAll(){panel.hidden=true;hud.hidden=true;titleUi.hidden=true;}
 
@@ -662,7 +667,7 @@ const Dive={
   updCount(){const n=this.lumps.filter(l=>l.found).length;this.nFound=n;if(n===this.lumps.length)$('#bUp').classList.add('ready');},
   layout(){V.z=W<760?clamp(W/420,.75,1.1):clamp(Math.min(W/980,H/640),.5,1.25);V.vw=W/V.z;V.vh=H/V.z;},
   near(){let best=null,bd=1e9;for(const l of this.lumps){if(l.found)continue;const d=Math.hypot(l.x-this.d.x,(l.y-this.d.y)*.6);if(d<62&&d<bd){bd=d;best=l;}}return best;},
-  ascend(auto){if(this.mode==='ascend')return;this.mode='ascend';setLoop('dig',0);$('#bDig').hidden=true;
+  ascend(auto){if(this.mode==='ascend'||this.mode==='done')return;this.mode='ascend';setLoop('dig',0);$('#bDig').hidden=true;
     if(auto)caption('底時用完','船上的人拉動救生索，把你拉了上來',3.2);else{bubble();}},
   update(dt){this.t+=dt;const d=this.d,t=this.t;if(this.mode==='done')return;
     let ix=(keys.arrowright||keys.d?1:0)-(keys.arrowleft||keys.a?1:0),iy=(keys.arrowdown||keys.s?1:0)-(keys.arrowup||keys.w?1:0);
@@ -1154,7 +1159,7 @@ const Dials={
       <p class="note">它是現存最早的齒輪計算機，下一件同樣精密的機械要再等一千多年。打撈期間，一名潛水夫死於潛水夫病，兩人癱瘓。</p>
       <div class="read" id="dRead"></div><div class="steps" id="dSteps"></div><div class="acts"><button class="btn" id="dFlip">翻到${this.face==='front'?'背面':'正面'}</button><button class="quiet" id="dAgain">從頭再潛一次</button></div>`);
       $('#dFlip').onclick=()=>{this.face=this.face==='front'?'back':'front';$('#dFlip').textContent='翻到'+(this.face==='front'?'背面':'正面');this.layout();};
-      $('#dAgain').onclick=()=>{G.stage=0;G.days=0;G.found=new Set();save();fadeTo(()=>go(DIVE));};}
+      $('#dAgain').onclick=()=>{G.stage=0;G.days=0;G.found=new Set();G.finds=[];save();fadeTo(()=>go(DIVE));};}
     else setPanel('wood',`<h2>${st.title}<small>預測 · 第 ${st.n} 組／5</small></h2><p id="dTask">${st.task}</p><div class="read" id="dRead"></div><div class="steps" id="dSteps"></div><p class="note" id="dHint">拖動曲柄，或直接在盤面上繞圈拖動。${W<760?'':'方向鍵一次一天。'}</p><div class="acts" id="dActs"></div>`);
     const sp=$('#dSteps');for(const [l,v] of [['−10 日',-10],['−1',-1],['+1',1],['+10 日',10]]){const b=document.createElement('button');b.textContent=l;b.onclick=()=>{this.nudge(v);};sp.appendChild(b);}
     this.readout(true);},
@@ -1926,7 +1931,7 @@ const Dive3={gl:true,
     caption(`第 ${st.n} 次下潛`,st.n===1?'1900 年 · 安提基特拉島外海 · 水深 45 公尺':st.dive,4);
     if(st.n===1)setTimeout(()=>{if(scene===Dive3&&this.mode!=='done')toast(W<760?'按住畫面走過去；靠近鏽塊時按住「撥沙」。拖動可以轉視角。':'WASD 或方向鍵移動，拖動畫面轉視角。靠近鏽塊時按住空白鍵撥開沙子。',5.5);},5600);
     this.updCount();},
-  exit(){hud.hidden=true;setLoop('dig',0);document.body.classList.remove('dv');for(const l of this.lumps){GL.under.remove(l.o.grp);GL.under.remove(l.o.mound);l.o.grp.traverse(o=>{if(o.isMesh&&o.geometry)o.geometry.dispose();});}
+  exit(){hud.hidden=true;setLoop('dig',0);document.body.classList.remove('dv');for(const l of this.lumps){GL.under.remove(l.o.grp);GL.under.remove(l.o.mound);l.o.grp.traverse(o=>{if(o.isMesh&&o.geometry)o.geometry.dispose();if((o.isMesh||o.isSprite)&&o.material)o.material.dispose();});}
     GL.diver.g.visible=false;GL.hose.visible=GL.rope.visible=false;GL.bub.list.length=0;},
   moundS(l){const k=1-l.dig;l.o.mound.scale.set(.35+.25*k,.02+.3*k,.35+.25*k);l.o.mound.visible=k>.02;},
   updCount(){const n=this.lumps.filter(l=>l.found).length;this.nFound=n;if(n===this.lumps.length)$('#bUp').classList.add('ready');},

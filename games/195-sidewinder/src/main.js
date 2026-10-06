@@ -12,7 +12,7 @@ import { header, trucks as readTrucks } from './game/state.js';
 import { createCareer, rivalsFor, LAPS } from './game/career.js';
 import { createRace } from './game/race.js';
 
-import { h } from './ui/dom.js';
+import { h, fmtTime } from './ui/dom.js';
 import { wordmark, plywoodTexture } from './ui/art.js';
 import { createNav } from './ui/nav.js';
 import { computeLayout, applyLayout } from './ui/layout.js';
@@ -247,10 +247,8 @@ function createApp(ctx) {
   // ---------- 最佳單圈 ----------
   app.bestLap = (i) => {
     const b = career.settings.bests && career.settings.bests[i];
-    if (!(b > 0)) return '';
-    const m = Math.floor(b / 60);
-    const s = (b - m * 60).toFixed(2).padStart(5, '0');
-    return m + ':' + s;
+    // fmtTime 無條件捨去到 0.01 秒；舊寫法 toFixed(2) 會進位成「1:60.00」
+    return b > 0 ? fmtTime(b) : '';
   };
   function recordBest(trackId, t) {
     if (!(t > 0)) return;
@@ -549,7 +547,8 @@ function createApp(ctx) {
         dispatch(race.tick(dt, ZERO, false), true);
         simDt = dt;
       }
-      if (screen === 'race' || screen === 'pause') hud.update(dt, race.gaps());
+      // 暫停時 dt 給 0：橫幅／浮字的倒數不在暫停中流逝
+      if (screen === 'race' || screen === 'pause') hud.update(screen === 'pause' ? 0 : dt, race.gaps());
       if (scr && scr.update) scr.update(dt);
     } catch (e) {
       reportOnce(e);

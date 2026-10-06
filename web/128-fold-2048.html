@@ -8,7 +8,7 @@
 <title>FOLD 2048｜數字合併遊戲</title>
 <link rel="canonical" href="https://htmls-ruddy.vercel.app/web/128-fold-2048.html">
 <style>
-:root{color-scheme:light;--paper:#f4f1eb;--ink:#282b2e;--muted:#777c7c;--line:#d8d8d1;--accent:#b9634c;--board:#d8d7cf;--empty:#c9c9c1;--gap:10px;font-family:"Avenir Next","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
+:root{color-scheme:light;--r-s:8px;--r-m:12px;--r-l:16px;--paper:#f4f1eb;--ink:#282b2e;--muted:#777c7c;--line:#d8d8d1;--accent:#b9634c;--board:#d8d7cf;--empty:#c9c9c1;--gap:10px;font-family:"Avenir Next","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink)}
 body{background-image:radial-gradient(#3037360b .7px,transparent .7px);background-size:8px 8px}
@@ -31,7 +31,7 @@ h1 span{color:var(--accent)}
 .lede{font:400 clamp(19px,2vw,27px)/1.45 Georgia,"Songti TC",serif;margin:28px 0 8px;letter-spacing:.02em}
 .sub{max-width:360px;color:var(--muted);font-size:13px;line-height:1.8;margin:0}
 .scores{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:360px;margin-top:34px}
-.score{min-height:85px;padding:13px 16px;border:1px solid var(--line);border-radius:12px;background:#ffffff82}
+.score{min-height:85px;padding:13px 16px;border:1px solid var(--line);border-radius:var(--r-m);background:#ffffff82}
 .score small{display:block;font-size:10px;letter-spacing:.18em;color:var(--muted)}
 .score strong{display:block;margin-top:7px;font:600 30px/1.1 "Avenir Next",system-ui,sans-serif;letter-spacing:-.05em;font-variant-numeric:tabular-nums}
 .score.plus strong{color:var(--accent)}
@@ -40,7 +40,7 @@ h1 span{color:var(--accent)}
 .play{align-self:center;width:100%;padding:31px 0 26px}
 .play-top{display:flex;justify-content:space-between;align-items:end;gap:14px;margin-bottom:13px}
 .play-top label{display:block;font-size:10px;color:var(--muted);letter-spacing:.2em;font-weight:700;margin-bottom:6px}
-select{border:1px solid var(--line);background:#fff9;border-radius:8px;color:var(--ink);min-height:38px;padding:6px 30px 6px 10px;max-width:100%;font-size:13px}
+select{border:1px solid var(--line);background:#fff9;border-radius:var(--r-s);color:var(--ink);min-height:38px;padding:6px 30px 6px 10px;max-width:100%;font-size:13px}
 .mode-note{font-size:11px;color:var(--muted);text-align:right;line-height:1.4}
 .board{width:100%;aspect-ratio:1;position:relative;padding:12px;border:1px solid #bcbcb3;border-radius:18px;background:var(--board);box-shadow:0 18px 45px #44473518,inset 0 2px 1px #ffffffa8;touch-action:none;user-select:none;-webkit-user-select:none;outline:none}
 .cells,.tiles{position:absolute;inset:12px}
@@ -65,27 +65,27 @@ select{border:1px solid var(--line);background:#fff9;border-radius:8px;color:var
 .gain.show{animation:gain .65s ease-out}
 @keyframes gain{0%{opacity:0;transform:translateY(6px)}25%{opacity:1}100%{opacity:0;transform:translateY(-8px)}}
 .controls{display:grid;grid-template-columns:1fr 1fr auto auto;gap:9px;margin-top:4px}
-.control{min-height:47px;border:1px solid var(--line);border-radius:9px;background:#fff9;color:var(--ink);font-size:12px;font-weight:700;letter-spacing:.04em;padding:8px 12px;white-space:nowrap}
+.control{min-height:47px;border:1px solid var(--line);border-radius:var(--r-s);background:#fff9;color:var(--ink);font-size:12px;font-weight:700;letter-spacing:.04em;padding:8px 12px;white-space:nowrap}
 .control:hover:not(:disabled){background:white;border-color:#a6a9a0}
 .control.primary{background:var(--ink);border-color:var(--ink);color:#fff}
 .control.primary:hover{background:#45494b}
 .control.icon{width:47px;padding:0;font-size:20px;font-weight:400}
 .footnote{font-size:11px;color:var(--muted);line-height:1.6;margin:12px 0 0;min-height:18px}
 footer{grid-column:1/-1;border-top:1px solid var(--line);padding-top:13px;display:flex;justify-content:space-between;gap:12px;color:#8d918e;font-size:10px;letter-spacing:.12em}
-.overlay{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:18px;background:#20272bb5;backdrop-filter:blur(5px)}
+.overlay{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:18px;background:#20272bcc}
 .overlay[hidden]{display:none}
-.modal{width:min(100%,410px);background:var(--paper);border-radius:16px;padding:28px;box-shadow:0 30px 100px #10151950}
+.modal{width:min(100%,410px);background:var(--paper);border-radius:var(--r-l);padding:28px;box-shadow:0 30px 100px #10151950}
 .modal-tag{font-size:10px;letter-spacing:.23em;color:var(--accent);font-weight:800}
 .modal h2{font:500 36px/1.15 Georgia,"Songti TC",serif;margin:10px 0}
 .modal p{font-size:13px;line-height:1.7;color:var(--muted);margin:0}
 .modal-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin:20px 0 22px}
-.modal-stats div{padding:12px;border:1px solid var(--line);border-radius:9px;background:#fff8}
+.modal-stats div{padding:12px;border:1px solid var(--line);border-radius:var(--r-s);background:#fff8}
 .modal-stats small{display:block;font-size:10px;color:var(--muted);letter-spacing:.12em}
 .modal-stats b{display:block;font-size:22px;margin-top:4px;font-variant-numeric:tabular-nums}
 .modal-actions{display:flex;gap:8px;margin-top:24px}
 .modal-actions button{flex:1}
-dialog{border:0;border-radius:16px;padding:0;max-width:min(410px,calc(100vw - 36px));width:100%;background:var(--paper);color:var(--ink);box-shadow:0 30px 100px #10151950}
-dialog::backdrop{background:#20272bb5;backdrop-filter:blur(5px)}
+dialog{border:0;border-radius:var(--r-l);padding:0;max-width:min(410px,calc(100vw - 36px));width:100%;background:var(--paper);color:var(--ink);box-shadow:0 30px 100px #10151950}
+dialog::backdrop{background:#20272bcc}
 .dialog-inner{padding:27px}
 .dialog-inner h2{font:500 30px Georgia,"Songti TC",serif;margin:0 0 18px}
 .setting-row{display:flex;justify-content:space-between;align-items:center;gap:15px;border-top:1px solid var(--line);padding:15px 0;font-size:13px}
@@ -109,11 +109,11 @@ dialog::backdrop{background:#20272bb5;backdrop-filter:blur(5px)}
     <h1>20<span>48</span></h1>
     <p class="lede">移動方塊，讓相同的數字相遇。</p>
     <p class="sub">每一步都讓棋盤更擁擠，也讓下一次合併更接近。想辦法做出 2048，然後決定要不要繼續。</p>
-    <div class="scores"><div class="score" id="scoreBox"><small>目前分數 / SCORE</small><strong id="score">0</strong></div><div class="score"><small>最佳紀錄 / BEST</small><strong id="best">0</strong></div></div>
+    <div class="scores"><div class="score" id="scoreBox"><small>分數</small><strong id="score">0</strong></div><div class="score"><small>最佳</small><strong id="best">0</strong></div></div>
     <div class="guide"><b>操作</b><span>方向鍵或 W A S D；在棋盤內以滑鼠拖曳、手機滑動。相同數字每回合只能合併一次。</span></div>
   </section>
   <section class="play" aria-label="2048 遊戲">
-    <div class="play-top"><div><label for="mode">遊戲模式 / MODE</label><select id="mode"><option value="classic">經典 · 4 × 4</option><option value="easy">寬鬆 · 5 × 5</option><option value="expert">極限 · 3 × 3</option><option value="challenge">挑戰 · 200 步</option><option value="endless">無盡 · 4 × 4</option></select></div><div class="mode-note" id="modeNote">抵達 2048 即完成挑戰</div></div>
+    <div class="play-top"><div><label for="mode">模式</label><select id="mode"><option value="classic">經典 · 4 × 4</option><option value="easy">寬鬆 · 5 × 5</option><option value="expert">極限 · 3 × 3</option><option value="challenge">挑戰 · 200 步</option><option value="endless">無盡 · 4 × 4</option></select></div><div class="mode-note" id="modeNote">抵達 2048 即完成挑戰</div></div>
     <div class="board" id="board" tabindex="0" role="grid" aria-label="2048 棋盤，使用方向鍵移動"><div class="cells" id="cells" aria-hidden="true"></div><div class="tiles" id="tiles" aria-hidden="true"></div></div>
     <div class="gain" id="gain" aria-hidden="true"></div>
     <div class="controls"><button class="control" id="undo" type="button">↶　撤銷一步</button><button class="control primary" id="new" type="button">重新開始</button><button class="control icon" id="settings" type="button" aria-label="設定">⚙</button><button class="control icon" id="stats" type="button" aria-label="統計">▥</button></div>
@@ -318,7 +318,7 @@ function requestMove(direction){
 }
 function undo(){
   if(animating||!game.history)return;
-  const old=game.history;game.board=cloneBoard(old.board);game.score=old.score;game.moves=old.moves;game.elapsedMs=old.elapsedMs;game.hasWon=old.hasWon;game.status='playing';game.history=null;
+  const old=game.history;if(game.hasWon&&!old.hasWon)stats.wins=Math.max(0,stats.wins-1);game.board=cloneBoard(old.board);game.score=old.score;game.moves=old.moves;game.elapsedMs=old.elapsedMs;game.hasWon=old.hasWon;game.status='playing';game.history=null;
   sessionStart=Date.now();queued.length=0;hideOverlay();save();renderAll();$('announce').textContent='已撤銷上一步。';$('board').focus({preventScroll:true});
 }
 function hideOverlay(){$('overlay').hidden=true}
@@ -353,12 +353,13 @@ $('board').addEventListener('pointerup',e=>{
 });
 $('board').addEventListener('pointercancel',()=>{pointerStart=null});
 document.addEventListener('keydown',e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
   if(!$('overlay').hidden||$('settingsDialog').open||$('statsDialog').open||document.activeElement===$('mode'))return;
-  const direction={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',a:'left',s:'down',d:'right'}[e.key];
+  const direction={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',a:'left',s:'down',d:'right',W:'up',A:'left',S:'down',D:'right'}[e.key];
   if(direction){e.preventDefault();requestMove(direction)}
   if(e.key==='Escape'&&$('overlay').hidden){$('board').focus({preventScroll:true})}
 });
-$('overlay').addEventListener('click',e=>{if(e.target===$('overlay')&&game.status==='playing')hideOverlay()});
+$('overlay').addEventListener('click',e=>{if(e.target===$('overlay')&&game.status==='playing'){$('mode').value=game.mode;hideOverlay()}});
 $('settings').onclick=()=>{$('sound').checked=settings.sound;$('haptic').checked=settings.haptic;$('settingsDialog').showModal()};
 $('sound').onchange=e=>{settings.sound=e.target.checked;save()};
 $('haptic').onchange=e=>{settings.haptic=e.target.checked;save()};

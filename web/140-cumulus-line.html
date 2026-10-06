@@ -16,6 +16,7 @@
   --num:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
   --sans:system-ui,-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
   --band:62px;--dash:168px;--gut:16px;
+  --r-s:7px;--r-m:10px;--r-l:14px;
   --ease-out:cubic-bezier(.2,.75,.25,1);--dur-hover:.16s;--dur-press:.08s;--dur-enter:.42s;--dur-exit:.24s;
   --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.011 .62' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .08 0 0 0 0 .05 0 0 0 0 .02 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   --ground:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='16'%3E%3Cpath d='M0 8c5.5-6 11-6 16.5 0S27.5 14 33 8s8.3-5 11-3' fill='none' stroke='%23000' stroke-opacity='.07' stroke-width='.8'/%3E%3C/svg%3E");
@@ -50,7 +51,7 @@ body.out #win,body.hub #win,body.sum #win{top:-140px;bottom:-140px;left:-140px;r
 #blindEn{display:block;font:italic 12px/1.2 var(--num);color:#a99a7e;letter-spacing:.03em}
 #tools{justify-self:end;display:flex;gap:6px;height:var(--band);align-items:center}
 body.hub #bCam,body.hub #bPause,body.sum #bCam,body.sum #bPause{display:none}
-.tab{border:0;background:var(--walnut-3);color:var(--paper);border-radius:7px;padding:8px 12px;font-size:13px;line-height:1.2;box-shadow:inset 0 1px 0 rgba(236,217,166,.16);transition:background var(--dur-hover) var(--ease-out),color var(--dur-hover)}
+.tab{border:0;background:var(--walnut-3);color:var(--paper);border-radius:var(--r-s);padding:8px 12px;font-size:13px;line-height:1.2;box-shadow:inset 0 1px 0 rgba(236,217,166,.16);transition:background var(--dur-hover) var(--ease-out),color var(--dur-hover)}
 .tab:hover{background:var(--walnut-4)}
 .tab:active{background:var(--brass);color:var(--ink);transition-duration:var(--dur-press)}
 .tab kbd{font:12px var(--num);color:var(--muted);margin-left:6px}
@@ -98,13 +99,13 @@ body.hub #dash,body.sum #dash{transform:translateY(105%)}
 #seatGrid i{width:6px;height:6px;border-radius:1.5px;background:#5a4632}
 #seatGrid i.on{background:var(--paper)}
 .touch{display:none}
-#tBrake,#tPower{border:0;border-radius:12px;min-height:48px;font-size:15px;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:inset 0 1px 0 rgba(236,217,166,.16);transition:background var(--dur-hover)}
+#tBrake,#tPower{border:0;border-radius:var(--r-m);min-height:48px;font-size:15px;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:inset 0 1px 0 rgba(236,217,166,.16);transition:background var(--dur-hover)}
 #tBrake{background:#4c3226;color:var(--brake)}
 #tPower{background:var(--walnut-3);color:var(--power)}
 #tBrake.held{background:#6b4131}#tPower.held{background:#6a4d2e}
 
 /* 停靠與提示 */
-#call{position:fixed;z-index:6;left:50%;top:calc(var(--band) + 92px);transform:translateX(-50%);max-width:calc(100vw - 40px);padding:10px 18px;border-radius:8px;background:rgba(21,17,13,.86);color:var(--paper);font-size:14px;line-height:1.5;text-align:center;display:none}
+#call{position:fixed;z-index:6;left:50%;top:calc(var(--band) + 92px);transform:translateX(-50%);max-width:calc(100vw - 40px);padding:10px 18px;border-radius:var(--r-m);background:rgba(21,17,13,.86);color:var(--paper);font-size:14px;line-height:1.5;text-align:center;display:none}
 #call.show{display:block}
 #call b{font:600 15px var(--num);color:var(--brass-hi)}
 #slip{position:fixed;z-index:6;left:50%;top:calc(var(--band) + 150px);width:min(330px,calc(100vw - 32px));margin-left:max(-165px,calc(-50vw + 16px));padding:13px 18px 12px;background:var(--ground),var(--ticket-a);color:var(--ink);border-radius:3px;transform:rotate(-1.2deg);box-shadow:0 2px 3px -1px rgba(43,29,20,.35);display:none}
@@ -124,7 +125,7 @@ body.hub #hub{display:block}
 .inscribe .seal{display:grid;place-items:center;width:34px;height:34px;margin-top:14px;background:var(--verm);color:#f6e9dc;font:600 20px/1 var(--kai);border-radius:3px;box-shadow:inset 0 0 0 2px #b8432f,inset 0 0 0 3.5px #f0dfd0}
 .inscribe .col{display:flex;flex-direction:column;align-items:center}
 body.night .inscribe h1,body.night .inscribe p{color:#efe6cf}
-#board{position:absolute;left:clamp(16px,4vw,56px);bottom:clamp(16px,5vh,48px);width:min(596px,calc(100vw - 32px));padding:18px 20px 16px;background:var(--grain),var(--walnut);border-radius:14px;box-shadow:inset 0 2px 0 rgba(201,164,92,.4),0 2px 4px -2px rgba(20,12,6,.5)}
+#board{position:absolute;left:clamp(16px,4vw,56px);bottom:clamp(16px,5vh,48px);width:min(596px,calc(100vw - 32px));padding:18px 20px 16px;background:var(--grain),var(--walnut);border-radius:var(--r-l);box-shadow:inset 0 2px 0 rgba(201,164,92,.4)}
 .lead{margin:0 0 12px;font-size:15px;color:var(--paper)}
 .lead b{font-weight:600;color:var(--brass-hi)}
 .tickets{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -141,8 +142,8 @@ body.night .inscribe h1,body.night .inscribe p{color:#efe6cf}
 .ticket .foot{position:absolute;left:16px;right:16px;bottom:10px;display:flex;justify-content:space-between;font:12px var(--sans);color:#5b5b50}
 .ticket .foot b{font:600 13px var(--num);color:var(--ink)}
 .hubrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
-.seg{display:inline-flex;padding:3px;border-radius:9px;background:var(--walnut-3);box-shadow:inset 0 1px 0 rgba(236,217,166,.14)}
-.seg button{border:0;background:transparent;color:var(--paper);border-radius:7px;padding:7px 14px;font-size:13px;transition:background var(--dur-hover),color var(--dur-hover)}
+.seg{display:inline-flex;padding:3px;border-radius:var(--r-m);background:var(--walnut-3);box-shadow:inset 0 1px 0 rgba(236,217,166,.14)}
+.seg button{border:0;background:transparent;color:var(--paper);border-radius:var(--r-s);padding:7px 14px;font-size:13px;transition:background var(--dur-hover),color var(--dur-hover)}
 .seg button[aria-checked="true"]{background:var(--brass);color:var(--ink)}
 .seg-lab{font-size:12px;color:var(--muted);margin-right:-2px}
 .keys{margin:12px 0 0;font-size:12px;line-height:1.7;color:var(--muted)}
@@ -157,7 +158,7 @@ body.depotview .inscribe{display:none}
 .dhead span b{font:600 18px var(--num);color:var(--paper)}
 .dnote{margin:0 0 10px;font-size:13px;color:var(--muted);line-height:1.55}
 .ups{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.ups li{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;padding:10px 12px;border-radius:9px;background:rgba(236,217,166,.06)}
+.ups li{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;padding:10px 12px;border-radius:var(--r-m);background:rgba(236,217,166,.06)}
 .ups b{font:500 18px var(--kai);letter-spacing:.05em;color:var(--paper)}
 .ups .lv{display:inline-flex;gap:4px;margin-left:8px;vertical-align:middle}
 .ups .lv i{width:7px;height:7px;border-radius:50%;background:#5a4632}
@@ -167,7 +168,7 @@ body.depotview .inscribe{display:none}
 .ups button:disabled{cursor:not-allowed;opacity:.62}
 .livery{display:flex;align-items:center;gap:10px;margin:12px 0 2px;flex-wrap:wrap}
 .livery span{font-size:13px;color:var(--muted)}
-.sw{border:0;display:inline-flex;align-items:center;gap:7px;padding:6px 10px 6px 7px;border-radius:7px;background:transparent;font-size:13px;color:var(--paper);transition:background var(--dur-hover)}
+.sw{border:0;display:inline-flex;align-items:center;gap:7px;padding:6px 10px 6px 7px;border-radius:var(--r-s);background:transparent;font-size:13px;color:var(--paper);transition:background var(--dur-hover)}
 .sw:before{content:"";width:18px;height:12px;border-radius:2px 5px 2px 5px;background:var(--c);box-shadow:inset 0 -4px 0 rgba(240,228,205,.9)}
 .sw:hover{background:rgba(236,217,166,.08)}
 .sw[aria-pressed="true"]{background:rgba(236,217,166,.14);color:var(--brass-hi)}
@@ -191,11 +192,11 @@ body.sum #sum{display:grid}
 .stamp{position:absolute;right:26px;top:22px;width:78px;height:78px;display:grid;place-items:center;color:var(--verm);font:600 26px/1.05 var(--kai);text-align:center;letter-spacing:.06em;border-radius:6px;box-shadow:inset 0 0 0 3px var(--verm),inset 0 0 0 6px transparent,inset 0 0 0 7px var(--verm);transform:rotate(-8deg);opacity:.86}
 .receipt .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
 .receipt .note{margin:10px 0 0;font-size:13px;line-height:1.6;color:#4b4a40}
-.plate{width:min(320px,100%);padding:22px;border-radius:14px;background:var(--grain),var(--walnut);box-shadow:inset 0 2px 0 rgba(201,164,92,.4)}
+.plate{width:min(320px,100%);padding:22px;border-radius:var(--r-l);background:var(--grain),var(--walnut);box-shadow:inset 0 2px 0 rgba(201,164,92,.4)}
 .plate h2{margin:0 0 4px;font:500 30px var(--kai);letter-spacing:.1em}
 .plate p{margin:0 0 14px;font-size:13px;color:var(--muted)}
 .plate .tab{display:flex;justify-content:space-between;width:100%;margin-top:7px;text-align:left}
-#fail{position:fixed;z-index:9;inset:auto 16px 16px;display:none;padding:14px 18px;border-radius:10px;background:#15110d;color:var(--paper);font-size:14px;line-height:1.6}
+#fail{position:fixed;z-index:9;inset:auto 16px 16px;display:none;padding:14px 18px;border-radius:var(--r-m);background:#15110d;color:var(--paper);font-size:14px;line-height:1.6}
 body.failed #fail{display:block}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
@@ -687,7 +688,7 @@ const UPS=[
   {id:'susp',name:'空氣彈簧',desc:['原廠彈簧：過彎與重煞時乘客會被甩動。','軟化懸吊：舒適容許度提高 12%。','空氣彈簧：舒適容許度提高 25%。'],price:[180,400]},
   {id:'cars',name:'加掛客車',desc:['兩節車，40 個座位。','三節車，60 個座位，乘客更多。','四節車，80 個座位，進站要停得更準。'],price:[260,520]}
 ];
-const sim={state:'idle'};
+const sim={state:'idle'};let sumTimer=0;
 const leverName=n=>n===0?'N':n>0?'P'+n:n===-8?'EB':'B'+(-n);
 function cmdAccel(n,v){if(n>0){let a=n/5*.95*Math.min(1,9/Math.max(v,.1));if(v>22.8)a*=Math.max(0,1-(v-22.8)/1.4);return a}if(n<0)return n===-8?-1.35:n*.13;return 0}
 const tipOf=c=>Math.round(Math.pow(clamp((c-55)/45,0,1),1.15)*60);
@@ -733,7 +734,7 @@ function arrive(err){
   const errTxt=abs<=.5?'定點停車':err>0?`越過 ${abs.toFixed(1)} m`:`差 ${abs.toFixed(1)} m`;
   callout(`<b>${to.name}</b> 到站 · ${errTxt} · 舒適 ${Math.round(S.comfort)}% · ${paxMsg} · <b>+${total}</b> 幣`,last?2600:6000,true);
   setBlind(last?'終點站':'停車中',to.name,to.en);audio.chime();
-  S.seg++;if(last){S.state='done';setTimeout(showSummary,1900)}
+  S.seg++;if(last){S.state='done';clearTimeout(sumTimer);sumTimer=setTimeout(showSummary,1900)}
 }
 function depart(){const S=sim;S.state='run';S.comfort+= (100-S.comfort)*.5;const to=S.route.stations[S.seg+1];setBlind('下一站','往 '+to.name,'for '+to.en);callout('車門已關。推上動力，往 '+to.name+' 出發。',3200);audio.air()}
 
@@ -757,7 +758,7 @@ for(const[id,dir]of[['tPower',1],['tBrake',-1]]){const b=$(id);b.addEventListene
 
 /* ---------- 聲音 ---------- */
 const audio={ctx:null,on:save.sound!==false,
-  init(){if(this.ctx||!this.on)return;try{const C=window.AudioContext||window.webkitAudioContext;const c=this.ctx=new C();this.master=c.createGain();this.master.gain.value=.55;this.master.connect(c.destination);
+  init(){if(this.ctx&&this.ctx.state==='suspended'){const r=this.ctx.resume();if(r&&r.catch)r.catch(()=>{})}if(this.ctx||!this.on)return;try{const C=window.AudioContext||window.webkitAudioContext;const c=this.ctx=new C();this.master=c.createGain();this.master.gain.value=.55;this.master.connect(c.destination);
     const nb=c.createBuffer(1,c.sampleRate*2,c.sampleRate),d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;this.noise=nb;
     this.mo1=c.createOscillator();this.mo1.type='sawtooth';this.mo2=c.createOscillator();this.mo2.type='triangle';this.mf=c.createBiquadFilter();this.mf.type='lowpass';this.mf.frequency.value=900;this.mg=c.createGain();this.mg.gain.value=0;
     this.mo1.connect(this.mf);this.mo2.connect(this.mf);this.mf.connect(this.mg);this.mg.connect(this.master);this.mo1.start();this.mo2.start();
@@ -828,11 +829,11 @@ function tipText(dist,kmh,lim){const S=sim;
 function setMode(m){$('dash').inert=m!=='drive';held.up=held.down=0;$('tBrake').classList.remove('held');$('tPower').classList.remove('held');mode=m;document.body.classList.toggle('hub',m==='hub');document.body.classList.toggle('sum',m==='sum');document.body.classList.toggle('drive',m==='drive');document.body.classList.toggle('out',m==='drive'&&cam==='out');camBlend=0;camFrom.copy(camera.position);lookFrom.copy(lookNow);resize()}
 function toggleCam(){cam=cam==='cab'?'out':'cab';$('bCam').firstChild.nodeValue=cam==='cab'?'車外':'車頭';document.body.classList.toggle('out',cam==='out');camBlend=0;camFrom.copy(camera.position);lookFrom.copy(lookNow);resize()}
 function togglePause(){if(mode!=='drive')return;paused=!paused;$('dash').inert=paused;$('pause').classList.toggle('show',paused);held.up=held.down=0;$('tBrake').classList.remove('held');$('tPower').classList.remove('held');if(paused)$('pResume').focus();else canvas.focus({preventScroll:true})}
-function goHub(){paused=false;depotView=false;$('board').classList.remove('depot');document.body.classList.remove('depotview');$('pause').classList.remove('show');$('slip').classList.remove('show');$('call').classList.remove('show');sim.state='idle';if(!train||train.n!==2+save.cars)buildTrain(2+save.cars);placeTrain(ROUTES[curRoute].stops[0]);setBlind('本日待命','機廠小鎮','Depot Town');refreshTickets();setMode('hub');renderDepot()}
-function startRun(ri){audio.init();if(curRoute!==ri)buildWorld(ri);if(!train||train.n!==2+save.cars)buildTrain(2+save.cars);resetSim(ri);placeTrain(sim.s);
+function goHub(){clearTimeout(sumTimer);paused=false;depotView=false;$('board').classList.remove('depot');document.body.classList.remove('depotview');$('pause').classList.remove('show');$('slip').classList.remove('show');$('call').classList.remove('show');sim.state='idle';if(!train||train.n!==2+save.cars)buildTrain(2+save.cars);placeTrain(ROUTES[curRoute].stops[0]);setBlind('本日待命','機廠小鎮','Depot Town');refreshTickets();setMode('hub');renderDepot()}
+function startRun(ri){clearTimeout(sumTimer);$('pause').classList.remove('show');audio.init();if(curRoute!==ri)buildWorld(ri);if(!train||train.n!==2+save.cars)buildTrain(2+save.cars);resetSim(ri);placeTrain(sim.s);
   const to=sim.route.stations[1];setBlind('下一站','往 '+to.name,'for '+to.en);$('slip').classList.remove('show');paused=false;cam='cab';$('bCam').firstChild.nodeValue='車外';setMode('drive');canvas.focus({preventScroll:true});cache.lim=null;
   callout(`往 ${to.name}。按住 W 或 ↑，一格一格推上動力。`,4200)}
-function showSummary(){const S=sim,R=S.route;
+function showSummary(){const S=sim,R=S.route;if(mode!=='drive'||S.state!=='done'||!S.log.length)return;paused=false;$('pause').classList.remove('show');
   $('sumT').textContent=R.name+'　運行紀錄';$('sumMeta').textContent=`${night?'午夜':'晴日'} · ${S.cars} 節車 · ${S.seats} 座 · 馬達 Lv${save.motor} · 懸吊 Lv${save.susp}`;
   $('sumRows').innerHTML=S.log.map(l=>`<tr><td>${l.from} → ${l.to}</td><td>${Math.round(l.comfort)}%</td><td>${Math.abs(l.err)<=.5?'定點':(l.err>0?'+':'−')+Math.abs(l.err).toFixed(1)+' m'}</td><td>+${l.total}</td></tr>`).join('');
   const avg=S.log.reduce((a,l)=>a+l.comfort,0)/S.log.length;$('sumAvg').textContent=`平均舒適 ${Math.round(avg)}%`;$('sumTotal').textContent='+'+S.earned;
@@ -851,7 +852,7 @@ $('livery').addEventListener('click',e=>{const b=e.target.closest('[data-liv]');
 function showDepot(on){$('board').classList.toggle('depot',on);document.body.classList.toggle('depotview',on);depotView=on;renderDepot();camBlend=0;camFrom.copy(camera.position);lookFrom.copy(lookNow);resize();if(on){$('board').scrollTop=0;$('backHub').focus({preventScroll:true})}else $('toDepot').focus()}// 手機上面板要從標題開始看，焦點給「回到月台」但不把面板捲到底
 $('toDepot').onclick=()=>showDepot(true);$('backHub').onclick=()=>showDepot(false);
 for(const b of document.querySelectorAll('[data-light]'))b.onclick=()=>setNight(b.dataset.light==='night');
-for(const t of document.querySelectorAll('.ticket'))t.onclick=()=>{if(t.classList.contains('punched'))return;t.classList.add('punched');audio.init();audio.tone(1400,.04,.06,'square');setTimeout(()=>{t.classList.remove('punched');startRun(+t.dataset.route)},reduced?40:420)};
+for(const t of document.querySelectorAll('.ticket'))t.onclick=()=>{if(document.querySelector('.ticket.punched'))return;t.classList.add('punched');audio.init();audio.tone(1400,.04,.06,'square');setTimeout(()=>{t.classList.remove('punched');startRun(+t.dataset.route)},reduced?40:420)};
 $('bLight').onclick=$('pLight').onclick=()=>setNight(!night);$('bCam').onclick=$('pCam').onclick=()=>{if(mode==='drive')toggleCam()};$('bSound').onclick=$('pSound').onclick=toggleSound;
 $('bPause').onclick=()=>{if(mode==='drive')togglePause()};$('pResume').onclick=togglePause;$('pHome').onclick=goHub;
 $('sDepot').onclick=()=>{goHub();showDepot(true)};$('sAgain').onclick=()=>startRun(sim.ri);$('sOther').onclick=()=>startRun(1-sim.ri);

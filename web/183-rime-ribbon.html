@@ -21,6 +21,7 @@
   --glass-edge:rgba(160,220,216,.16);
   --ease-out:cubic-bezier(.22,1,.36,1);
   --gut:max(16px, env(safe-area-inset-left));
+  --r-s:4px;--r-m:10px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:#030507;color:var(--ink);overflow:hidden;
@@ -36,8 +37,7 @@ body.title #hud{opacity:0}
 body.title #hud *{pointer-events:none!important}
 body.overlay #touch,body.overlay #keys,body.overlay #toast,body.overlay #gauge,body.overlay #pops,body.overlay #chain{visibility:hidden}
 .ib{pointer-events:auto;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;
-  background:var(--glass);box-shadow:inset 0 0 0 1px var(--glass-edge),inset 0 1px 0 rgba(255,255,255,.08);
-  -webkit-backdrop-filter:blur(8px) saturate(1.2);backdrop-filter:blur(8px) saturate(1.2);transition:background .18s}
+  background:rgba(6,16,18,.62);box-shadow:inset 0 0 0 1px var(--glass-edge);transition:background .18s}
 .ib:hover{background:rgba(20,44,46,.6)}
 button:focus{outline:none}
 button:focus-visible{outline:2px solid rgba(233,244,242,.75);outline-offset:3px}
@@ -69,14 +69,14 @@ button:focus-visible{outline:2px solid rgba(233,244,242,.75);outline-offset:3px}
 #chain{height:16px;margin-top:3px;font-size:12.5px;font-weight:650;color:var(--gold-soft);opacity:0;transition:opacity .2s}
 #chain.show{opacity:1}
 #count{position:absolute;left:50%;top:36%;transform:translate(-50%,-50%) scale(.9);font-size:clamp(72px,10vw,128px);font-weight:800;letter-spacing:.03em;
-  text-shadow:0 2px 20px rgba(0,30,32,.4);opacity:0;transition:opacity .15s,transform .35s var(--ease-out)}
+  text-shadow:0 2px 8px rgba(0,30,32,.4);opacity:0;transition:opacity .15s,transform .35s var(--ease-out)}
 #count.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .pop{position:absolute;left:0;top:0;font-weight:700;font-size:14px;color:var(--gold);text-shadow:0 1px 3px rgba(0,20,22,.7);white-space:nowrap;will-change:transform,opacity;opacity:0}
 .pop.w{color:#eefcfb}
 
 #keys{position:absolute;left:50%;bottom:max(16px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:6px;align-items:center}
-kbd{font:600 10px/1 system-ui,sans-serif;min-width:22px;height:22px;padding:0 6px;display:grid;place-items:center;border-radius:4px;
-  color:var(--ink-dim);background:rgba(6,16,18,.42);box-shadow:inset 0 0 0 1px rgba(200,240,236,.18),inset 0 -2px 0 rgba(0,0,0,.25);
+kbd{font:600 10px/1 system-ui,sans-serif;min-width:22px;height:22px;padding:0 6px;display:grid;place-items:center;border-radius:var(--r-s);
+  color:var(--ink-dim);background:rgba(6,16,18,.42);box-shadow:inset 0 0 0 1px rgba(200,240,236,.18);
   transition:background .08s,color .08s}
 kbd.wide{padding:0 12px;margin-left:6px;letter-spacing:.06em}
 kbd.on{background:rgba(236,248,246,.92);color:#0a2b2c;box-shadow:inset 0 0 0 1px #fff}
@@ -96,8 +96,8 @@ kbd.on{background:rgba(236,248,246,.92);color:#0a2b2c;box-shadow:inset 0 0 0 1px
 #toast small{display:block;font-size:12px;font-weight:500;color:var(--ink-dim);margin-top:3px;text-align:center}
 #toast.show{opacity:1;transform:translate(-50%,-6px)}
 
-#map{position:absolute;right:max(16px,env(safe-area-inset-right));top:68px;width:150px;height:150px;border-radius:12px;
-  background:rgba(4,12,14,.5);box-shadow:inset 0 0 0 1px var(--glass-edge);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+#map{position:absolute;right:max(16px,env(safe-area-inset-right));top:68px;width:150px;height:150px;border-radius:var(--r-m);
+  background:rgba(4,12,14,.66);box-shadow:inset 0 0 0 1px var(--glass-edge)}
 #map[hidden]{display:none}
 
 #touch{display:none}
@@ -121,13 +121,13 @@ body.touch #touch{display:block}
 #title{padding-left:max(6vw,var(--gut))}
 .wm{display:flex;align-items:baseline;gap:.35em;flex-wrap:wrap}
 .wm h1{font-size:clamp(64px,11vw,148px);font-weight:800;line-height:.92;letter-spacing:.02em;
-  text-shadow:0 2px 24px rgba(0,30,32,.35)}
+  text-shadow:0 2px 8px rgba(0,30,32,.35)}
 .wm span{font-size:clamp(13px,1.3vw,17px);font-weight:600;letter-spacing:.42em;color:var(--ink-dim);text-transform:uppercase}
 .lead{max-width:34em;margin-top:18px;font-size:15.5px;line-height:1.7;color:rgba(236,246,244,.84)}
 .ctl{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:16px;font-size:13px;color:var(--ink-dim)}
 .ctl b{font-weight:600;color:var(--ink);margin-right:5px}
 .go{margin-top:26px;display:flex;align-items:center;gap:20px}
-.btn{pointer-events:auto;height:48px;padding:0 30px 0 26px;border-radius:3px 24px 24px 3px;background:#e8f7f5;color:#062a2b;font-weight:700;font-size:16px;letter-spacing:.08em;
+.btn{pointer-events:auto;height:48px;padding:0 30px 0 26px;border-radius:var(--r-m);background:#e8f7f5;color:#062a2b;font-weight:700;font-size:16px;letter-spacing:.08em;
   display:inline-flex;align-items:center;gap:12px;box-shadow:0 2px 3px rgba(0,40,40,.25);transition:background .18s}
 .btn:hover{background:#fff}
 .btn svg{width:16px;height:16px;transition:transform .25s var(--ease-out)}
@@ -1852,6 +1852,8 @@ document.addEventListener('mousedown', e => { if (e.target.closest('button')) e.
 addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey) return; // 保留瀏覽器快捷鍵
   const k = keyOf(e);
+  // 鍵盤焦點在按鈕上時，Enter／Space 交給按鈕自己的 click，否則「出發」「再騎一次」會被觸發兩次
+  if ((k === 'enter' || k === 'space') && e.target.closest && e.target.closest('button')) return;
   if (['space', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) e.preventDefault();
   if (S.mode === 'title' && (k === 'enter' || k === 'space')) { start(); return; }
   if (S.mode === 'done' && k === 'enter') { start(); return; }

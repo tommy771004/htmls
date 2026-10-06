@@ -20,19 +20,21 @@
   --amber:#ffb04a;--core:#fff1c9;--ember:#ff6a2b;--mist:#8fa9b3;--wisp:#8ff6ff;--hurt:#3a2f55;--night:#0b111a;
   --serif:"Songti TC","Noto Serif TC","Source Han Serif TC",Georgia,"PMingLiU",serif;
   --sans:"Segoe UI","Microsoft JhengHei","PingFang TC","Noto Sans TC",system-ui,sans-serif;
-  --num:Georgia,"Times New Roman",serif;--tick:rgba(239,230,210,.85)
+  --num:Georgia,"Times New Roman",serif;--tick:rgba(239,230,210,.85);
+  --r-s:4px;--r-m:6px;--r-l:10px
 }
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--night);color:var(--bone);font-family:var(--sans);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
 #scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
-button{font:inherit;color:inherit;cursor:pointer;border-radius:0}
+button{font:inherit;color:inherit;cursor:pointer;border-radius:var(--r-s)}
 button:focus-visible,a:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
 [hidden]{display:none!important}
-.ticks{background:
-  linear-gradient(var(--tick),var(--tick)) 0 0/12px 1px no-repeat,linear-gradient(var(--tick),var(--tick)) 0 0/1px 12px no-repeat,
-  linear-gradient(var(--tick),var(--tick)) 100% 0/12px 1px no-repeat,linear-gradient(var(--tick),var(--tick)) 100% 0/1px 12px no-repeat,
-  linear-gradient(var(--tick),var(--tick)) 0 100%/12px 1px no-repeat,linear-gradient(var(--tick),var(--tick)) 0 100%/1px 12px no-repeat,
-  linear-gradient(var(--tick),var(--tick)) 100% 100%/12px 1px no-repeat,linear-gradient(var(--tick),var(--tick)) 100% 100%/1px 12px no-repeat,var(--ink)}
+/* 四角刻線往內收 4px，落在圓角內側 */
+.ticks{border-radius:var(--r-m);background:
+  linear-gradient(var(--tick),var(--tick)) left 4px top 4px/10px 1px no-repeat,linear-gradient(var(--tick),var(--tick)) left 4px top 4px/1px 10px no-repeat,
+  linear-gradient(var(--tick),var(--tick)) right 4px top 4px/10px 1px no-repeat,linear-gradient(var(--tick),var(--tick)) right 4px top 4px/1px 10px no-repeat,
+  linear-gradient(var(--tick),var(--tick)) left 4px bottom 4px/10px 1px no-repeat,linear-gradient(var(--tick),var(--tick)) left 4px bottom 4px/1px 10px no-repeat,
+  linear-gradient(var(--tick),var(--tick)) right 4px bottom 4px/10px 1px no-repeat,linear-gradient(var(--tick),var(--tick)) right 4px bottom 4px/1px 10px no-repeat,var(--ink)}
 .eyebrow{margin:0;font-size:11px;letter-spacing:.34em;color:var(--amber);text-transform:uppercase}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:14px;min-height:44px;padding:0 18px;border:1px solid var(--bone-dim);background:var(--ink-2);color:var(--bone);font-size:15px;letter-spacing:.06em;transition:background .2s,border-color .2s,transform .12s}
 .btn:hover{border-color:var(--bone);background:rgba(239,230,210,.08)}
@@ -48,14 +50,14 @@ kbd{font:500 10px/1 var(--sans);letter-spacing:.1em;opacity:.7}
 .screen.show{display:block}
 #title .shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,11,16,.9) 0%,rgba(7,11,16,.58) 36%,rgba(7,11,16,0) 66%),radial-gradient(ellipse at 55% 50%,transparent 55%,rgba(5,9,13,.55))}
 #title .body{position:absolute;left:clamp(20px,6vw,96px);top:50%;transform:translateY(-50%);width:min(540px,calc(100% - 40px));max-height:100%;overflow:auto;padding:24px 0}
-#title h1{margin:18px 0 0;font:400 clamp(58px,9vw,112px)/1 var(--serif);letter-spacing:.12em;color:var(--bone);text-shadow:0 0 42px rgba(255,176,74,.2)}
+#title h1{margin:18px 0 0;font:400 clamp(58px,9vw,112px)/1 var(--serif);letter-spacing:.12em;color:var(--bone)}
 .latin{margin:14px 0 0;font:400 14px/1 var(--num);letter-spacing:.72em;color:#b8c6c6}
 .story{margin:28px 0 0;font-size:15px;line-height:1.85;color:var(--bone-2);max-width:26em}
 .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px}
 .opts{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin-top:22px;font-size:12px;color:var(--mist);letter-spacing:.08em}
 .opts label{display:inline-flex;align-items:center;gap:8px}
-.seg{display:inline-flex;border:1px solid var(--bone-dim)}
-.seg button{border:0;background:transparent;color:var(--bone-2);padding:0 12px;font-size:12px;min-height:32px}
+.seg{display:inline-flex;border:1px solid var(--bone-dim);border-radius:var(--r-s);overflow:hidden}
+.seg button{border:0;border-radius:0;background:transparent;color:var(--bone-2);padding:0 12px;font-size:12px;min-height:32px}
 .seg button[aria-pressed="true"]{background:rgba(239,230,210,.16);color:var(--bone)}
 .controls-line{margin:24px 0 0;font-size:11px;letter-spacing:.12em;color:var(--mist);line-height:1.9}
 .best{margin:6px 0 0;font-size:12px;color:var(--amber);min-height:1.2em;letter-spacing:.06em}
@@ -89,7 +91,7 @@ kbd{font:500 10px/1 var(--sans);letter-spacing:.1em;opacity:.7}
 .marker svg{width:18px;height:18px;filter:drop-shadow(0 0 6px rgba(255,176,74,.65))}
 .marker .arr{width:0;height:0;border:6px solid transparent;border-bottom:9px solid var(--amber);margin-bottom:-2px;opacity:0}
 .marker.edge .arr{opacity:1}
-.toast{position:absolute;left:calc(22px + env(safe-area-inset-left));bottom:calc(26px + env(safe-area-inset-bottom));max-width:min(380px,calc(100% - 44px));padding:10px 16px 10px 15px;background:var(--ink);border-left:3px solid var(--amber);font-size:13px;line-height:1.65;opacity:0;transform:translateY(8px);transition:opacity .35s,transform .35s}
+.toast{position:absolute;left:calc(22px + env(safe-area-inset-left));bottom:calc(26px + env(safe-area-inset-bottom));max-width:min(380px,calc(100% - 44px));padding:10px 16px 10px 15px;background:var(--ink);border-left:3px solid var(--amber);border-radius:var(--r-m);font-size:13px;line-height:1.65;opacity:0;transform:translateY(8px);transition:opacity .35s,transform .35s}
 .toast.show{opacity:1;transform:none}
 .toast.cold{border-left-color:var(--wisp)}
 .prompt{position:absolute;left:50%;bottom:22%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:8px 18px 8px 10px;font-size:13px;letter-spacing:.06em;opacity:0;transition:opacity .2s;white-space:nowrap}
@@ -117,9 +119,9 @@ kbd{font:500 10px/1 var(--sans);letter-spacing:.1em;opacity:.7}
 .tb.on{background:rgba(255,176,74,.28)}
 
 /* 對話框、結算（規格 C-03） */
-.modal{position:fixed;inset:0;z-index:30;display:none;place-items:center;background:rgba(7,11,16,.5);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);padding:16px}
+.modal{position:fixed;inset:0;z-index:30;display:none;place-items:center;background:rgba(7,11,16,.66);padding:16px}
 .modal.show{display:grid}
-.card{position:relative;width:min(560px,100%);max-height:calc(100dvh - 32px);overflow:auto;padding:28px 30px 26px}
+.card{position:relative;border-radius:var(--r-l);width:min(560px,100%);max-height:calc(100dvh - 32px);overflow:auto;padding:28px 30px 26px}
 .card h2{margin:10px 0 0;font:400 38px/1.1 var(--serif);letter-spacing:.08em}
 .card p{line-height:1.75;color:var(--bone-2);font-size:14px}
 .card .row-btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
@@ -143,7 +145,7 @@ kbd{font:500 10px/1 var(--sans);letter-spacing:.1em;opacity:.7}
 .tabs{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
 .tabs button{min-height:36px;padding:0 14px;border:1px solid var(--bone-dim);background:transparent;color:var(--bone-2);font-size:13px}
 .tabs button[aria-selected="true"]{background:rgba(255,176,74,.16);border-color:var(--amber);color:var(--bone)}
-.art-frame{margin-top:14px;background:#070b10;border:1px solid rgba(239,230,210,.14)}
+.art-frame{margin-top:14px;background:#070b10;border:1px solid rgba(239,230,210,.14);border-radius:var(--r-m);overflow:hidden}
 .art-frame img{display:block;width:100%;height:auto;aspect-ratio:16/10}
 .art-cap{margin:12px 0 0;font-size:13px;line-height:1.7;color:var(--bone-2)}
 
@@ -1865,6 +1867,10 @@ function impact(pos, big) {
   burst(pos, big ? 34 : 18, big ? 8 : 6, C_AMBER, .11, .5, 4);
   burst(pos, 6, 2, C_CORE, .3, .18, 0);
 }
+// 對局內的延遲事件（死亡結算、開月門、重生淡出）：重新開始或回標題時一併取消，避免舊局的計時器落到新局
+const runTimers = new Set();
+function later(fn, ms) { const id = setTimeout(() => { runTimers.delete(id); fn(); }, ms); runTimers.add(id); }
+function cancelRunTimers() { runTimers.forEach(clearTimeout); runTimers.clear(); }
 function hurtPlayer(dir) {
   if (G.state !== 'playing' || P.invuln > 0 || P.dashT > 0 || P.dead || P.respawning || window.__lampGod) return false;
   G.flames--; G.hits++; P.invuln = CONFIG.INVULN; P.hurtT = .34; P.holdE = 0; P.swingT = -1;
@@ -1877,14 +1883,14 @@ function hurtPlayer(dir) {
 }
 function killPlayer() {
   P.dead = true; P.deadT = 0; Sound.die();
-  setTimeout(() => { if (G.state === 'playing') showResult(false); }, 1300);
+  later(() => { if (G.state === 'playing') showResult(false); }, 1300);
 }
 function fallInWater() {
   if (P.respawning) return;
   G.falls++; Sound.splash(); shake(.3);
   for (let i = 0; i < 36; i++) FX.spawn(P.pos.x + rr(-.4, .4), .1, P.pos.z + rr(-.4, .4), rr(-2, 2), rr(3, 7), rr(-2, 2), rr(.5, .9), rr(.06, .12), .75, .88, .92, .9, 14, .5);
   G.flames--; G.hits++; hud.flamesDirty = true; hud.popFlame = true; gradeHurt = .7;
-  if (G.flames <= 0) { P.dead = true; P.respawning = true; setTimeout(() => { if (G.state === 'playing') showResult(false); }, 900); return; }
+  if (G.flames <= 0) { P.dead = true; P.respawning = true; later(() => { if (G.state === 'playing') showResult(false); }, 900); return; }
   respawn(true);
 }
 function respawn(fade) {
@@ -1896,9 +1902,9 @@ function respawn(fade) {
     Cam.yaw = cp.yaw + Math.PI; Cam.target.set(P.pos.x, P.pos.y + 1.15, P.pos.z); Cam.dist = Cam.zoom;
     resetLantern();
     for (const w of wisps) if (w.alive && !['dormant', 'rise', 'dead', 'gone'].includes(w.state)) { w.state = 'return'; w.t = 0; }
-    setTimeout(() => { $('fade').classList.remove('on'); P.respawning = false; }, 120);
+    later(() => { $('fade').classList.remove('on'); P.respawning = false; }, 120);
   };
-  if (fade) { $('fade').classList.add('on'); setTimeout(go, 380); } else go();
+  if (fade) { $('fade').classList.add('on'); later(go, 380); } else go();
 }
 function resetLantern() { hero.tip.getWorldPosition(P.lanternPos); P.lanternPos.y -= .05; P.lanternPrev.copy(P.lanternPos); }
 function approach2(v, tx, tz, maxD) { const dx = tx - v.x, dz = tz - v.z, d = Math.hypot(dx, dz); if (d <= maxD || d < 1e-6) { v.x = tx; v.z = tz; } else { v.x += dx / d * maxD; v.z += dz / d * maxD; } }
@@ -2121,7 +2127,7 @@ function lightBeacon(b) {
   for (const w of wisps) if (w.alive && w.pos.distanceTo(b.pos) < 7.5 && !['dormant', 'rise', 'dead', 'gone'].includes(w.state)) w.hit(tmpV.subVectors(w.pos, b.pos).setY(0).normalize(), 1);
   for (const o of orbs) if (o.alive && o.pos.distanceTo(b.pos) < 9) popOrb(o, true);
   if (sentinel.alive && sentinel.pos.distanceTo(b.pos) < 9) { sentinel.state = 'idle'; sentinel.cd = 3; }
-  if (G.lit >= 3) setTimeout(openGate, 900);
+  if (G.lit >= 3) later(openGate, 900);
   else toast(['第一座燈台亮了。沿柱廊往斷廊前進', '第二座燈台亮了。右側的沉石通往鐘台'][G.lit - 1] || '', false, 4.6);
 }
 function openGate() {
@@ -2322,6 +2328,7 @@ $('restartBtn').addEventListener('click', () => { closeModal('pauseModal'); star
 $('toTitleBtn').addEventListener('click', () => { closeModal('pauseModal'); toTitle(); });
 
 function resetWorld() {
+  cancelRunTimers(); $('fade').classList.remove('on');
   worldT = 0; G.time = 0; G.embers = 0; G.dispelled = 0; G.hits = 0; G.falls = 0; G.continues = 0; G.flames = CONFIG.FLAMES; G.lit = 0; G.cp = 0; G.streak = 0; G.parries = 0;
   beacons.forEach(b => b.reset()); Gate.open = false; Gate.k = 0; Gate.veilCol.active = true; updateGate(0);
   embers.forEach(e => { e.taken = false; e.pull = 0; e.m.visible = true; e.m.position.copy(e.home); });

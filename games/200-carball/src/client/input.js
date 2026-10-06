@@ -12,6 +12,8 @@ export class Input {
     this.canvas = canvas;
     const down = (e) => {
       if (e.repeat) return;
+      // 焦點在暫停選單的滑桿上時，方向鍵交給滑桿調整，不要被遊戲吃掉
+      if (e.target && e.target.tagName === 'INPUT' && e.code !== 'Escape' && e.code !== 'KeyP') return;
       const k = e.code;
       if (['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(k)) e.preventDefault();
       this.keys.add(k);

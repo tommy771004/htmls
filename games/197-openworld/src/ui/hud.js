@@ -9,6 +9,16 @@ const el = (tag, cls, parent, html) => {
   return e;
 };
 
+// 物品圖示：24×24 線稿，顏色跟著文字色
+const ICON = {
+  knife: '<path d="M4.5 19.5 9 15"/><path d="M8 13.5 18.5 3c1.2 4.6-1.6 9.6-7.5 13.5Z"/>',
+  gun: '<path d="M3 7h17v4.5h-8.5l-1.5 2.5H8l-1.2 5.5H3.6L5 12.5 3 11.5Z"/><path d="M8.5 11.5v2.5"/>',
+  ammo: '<path d="M5 20v-8.5a2 2 0 0 1 4 0V20ZM10 20V8.5a2 2 0 0 1 4 0V20ZM15 20v-8.5a2 2 0 0 1 4 0V20Z"/><path d="M4 20h16"/>',
+  food: '<rect x="6" y="4.5" width="12" height="15" rx="2"/><path d="M6 9h12M6 15h12"/>',
+  meat: '<path d="M5 13.5C4.4 8.6 9 5 14 5.8c4.2.7 6 5 3.3 8.4-3.2 4-11.6 5.2-12.3-.7Z"/><circle cx="14.2" cy="10.3" r="1.7"/>',
+};
+const iconSvg = (id) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${ICON[id] || ''}</svg>`;
+
 const CONTROLS = [
   ['W A S D', '移動'],
   ['滑鼠', '視角'],
@@ -159,7 +169,11 @@ export class Hud {
     const paint = (slot, i) => {
       const s = inv.slots[i];
       const def = s ? ITEMS[s.id] : null;
-      slot.icon.textContent = def ? def.icon : '';
+      const iconId = s ? s.id : '';
+      if (slot.iconId !== iconId) {
+        slot.iconId = iconId;
+        slot.icon.innerHTML = s ? iconSvg(s.id) : '';
+      }
       slot.name.textContent = def ? def.name : '';
       slot.count.textContent = s && s.count > 1 ? s.count : '';
       slot.root.classList.toggle('equipped', inv.equipped === i);

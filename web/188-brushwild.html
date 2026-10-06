@@ -20,11 +20,15 @@
   --sky:#7fd0ff;
   --round:"Arial Rounded MT Bold","Hiragino Maru Gothic ProN","Yuanti TC","YuanTi TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
   --ease-out:cubic-bezier(.2,.8,.2,1);
+  --r-s:8px;
+  --r-m:14px;
+  --r-l:22px;
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;background:#7fd0ff;color:var(--ink);font-family:var(--round);-webkit-font-smoothing:antialiased}
 canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;outline:none}
 button{font-family:inherit;cursor:pointer}
+button:focus-visible,textarea:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 .hide{display:none!important}
 
 /* ── HUD ── */
@@ -32,7 +36,7 @@ button{font-family:inherit;cursor:pointer}
 #hud.off{visibility:hidden}
 #hearts{position:absolute;left:18px;top:16px;display:flex;flex-wrap:wrap;gap:3px;max-width:min(300px,calc(100vw - 150px))}
 #hearts svg{width:26px;height:24px;filter:drop-shadow(0 2px 0 rgba(42,34,56,.35))}
-#inkbar{position:absolute;left:18px;top:50px;width:190px;max-width:calc(100vw - 170px);height:14px;border-radius:9px;background:rgba(255,248,232,.75);border:3px solid var(--ink);overflow:hidden}
+#inkbar{position:absolute;left:18px;top:50px;width:190px;max-width:calc(100vw - 170px);height:14px;border-radius:var(--r-s);background:rgba(255,248,232,.75);border:3px solid var(--ink);overflow:hidden}
 #inkfill{height:100%;width:100%;background:var(--red);transition:background .2s}
 #gems{position:absolute;left:18px;top:72px;font-size:14px;font-weight:700;color:var(--paper);text-shadow:0 2px 0 var(--ink),0 0 3px var(--ink)}
 #palette{position:absolute;left:18px;bottom:18px;display:flex;gap:10px}
@@ -45,18 +49,18 @@ button{font-family:inherit;cursor:pointer}
 #minimap{width:100%;height:100%;display:block}
 #mapN{position:absolute;right:88px;top:6px;font-size:12px;font-weight:800;color:var(--paper);text-shadow:0 1px 0 var(--ink),0 0 3px var(--ink)}
 #zoneName{position:absolute;right:16px;top:196px;width:172px;text-align:center;font-size:13px;font-weight:800;color:var(--paper);text-shadow:0 2px 0 var(--ink),0 0 3px var(--ink)}
-#objective{position:absolute;left:50%;top:14px;transform:translateX(-50%);max-width:calc(100vw - 440px);min-width:220px;padding:8px 16px;border-radius:14px;background:rgba(255,248,232,.9);border:3px solid var(--ink);font-size:14px;font-weight:700;text-align:center;box-shadow:0 3px 0 var(--ink)}
+#objective{position:absolute;left:50%;top:14px;transform:translateX(-50%);max-width:calc(100vw - 440px);min-width:220px;padding:8px 16px;border-radius:var(--r-m);background:rgba(255,248,232,.9);border:3px solid var(--ink);font-size:14px;font-weight:700;text-align:center;box-shadow:0 3px 0 var(--ink)}
 #objective small{display:block;font-size:11px;color:var(--ink-soft);font-weight:600;margin-top:2px}
 #cross{position:absolute;left:50%;top:44%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;border:2px solid var(--paper);box-shadow:0 0 0 2px var(--ink);opacity:.8}
-#prompt{position:absolute;left:50%;bottom:120px;transform:translateX(-50%);padding:7px 14px;border-radius:12px;background:var(--ink);color:var(--paper);font-size:14px;font-weight:700;white-space:nowrap}
-#prompt kbd{display:inline-block;min-width:22px;padding:1px 6px;margin-right:6px;border-radius:6px;background:var(--paper);color:var(--ink);text-align:center;font-family:inherit}
+#prompt{position:absolute;left:50%;bottom:120px;transform:translateX(-50%);padding:7px 14px;border-radius:var(--r-m);background:var(--ink);color:var(--paper);font-size:14px;font-weight:700;white-space:nowrap}
+#prompt kbd{display:inline-block;min-width:22px;padding:1px 6px;margin-right:6px;border-radius:var(--r-s);background:var(--paper);color:var(--ink);text-align:center;font-family:inherit}
 #toast{position:absolute;left:50%;top:92px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;width:min(560px,calc(100vw - 32px))}
-.t{padding:8px 16px;border-radius:12px;background:rgba(42,34,56,.88);color:var(--paper);font-size:15px;font-weight:700;text-align:center;animation:tin .35s var(--ease-out)}
+.t{padding:8px 16px;border-radius:var(--r-m);background:rgba(42,34,56,.88);color:var(--paper);font-size:15px;font-weight:700;text-align:center;animation:tin .35s var(--ease-out)}
 .t.big{font-size:22px;padding:12px 22px;background:var(--paper);color:var(--ink);border:3px solid var(--ink);box-shadow:0 4px 0 var(--ink)}
 @keyframes tin{from{opacity:0;transform:translateY(-10px) scale(.96)}to{opacity:1;transform:none}}
 #boss{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);width:min(560px,calc(100vw - 32px));text-align:center}
 #boss b{display:block;font-size:16px;color:var(--paper);text-shadow:0 2px 0 var(--ink),0 0 3px var(--ink);margin-bottom:4px}
-#bossbar{height:16px;border-radius:9px;border:3px solid var(--ink);background:rgba(255,248,232,.8);overflow:hidden}
+#bossbar{height:16px;border-radius:var(--r-s);border:3px solid var(--ink);background:rgba(255,248,232,.8);overflow:hidden}
 #bossbar{position:relative}
 #bosstrail{position:absolute;left:0;top:0;bottom:0;width:100%;background:#fff}
 #bossfill{position:relative;height:100%;width:100%;background:linear-gradient(90deg,var(--red),var(--yellow),var(--green),var(--blue))}
@@ -65,65 +69,64 @@ button{font-family:inherit;cursor:pointer}
 #stam{position:absolute;left:52%;top:46%;width:34px;height:34px;opacity:0;transition:opacity .3s}
 #dmg{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(255,60,60,.5));opacity:0;transition:opacity .25s}
 #fade{position:fixed;inset:0;background:var(--ink);opacity:0;pointer-events:none;transition:opacity .35s}
-#talk{position:absolute;left:50%;bottom:110px;transform:translateX(-50%);width:min(620px,calc(100vw - 32px));padding:14px 18px 12px;border-radius:16px;background:var(--paper);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);font-size:15px;line-height:1.6}
+#talk{position:absolute;left:50%;bottom:110px;transform:translateX(-50%);width:min(620px,calc(100vw - 32px));padding:14px 18px 12px;border-radius:var(--r-l);background:var(--paper);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);font-size:15px;line-height:1.6}
 #talk h4{margin:0 0 4px;font-size:14px;color:#d8554a}
 #talk p{margin:0}
 #talk small{display:block;text-align:right;color:var(--ink-soft);font-size:11px;margin-top:4px}
 
 /* ── 畫面：標題／暫停／地圖／結局 ── */
 .screen{position:fixed;inset:0;display:grid;place-items:center;padding:16px;background:rgba(42,34,56,.45);overflow:auto}
-.card{width:min(620px,100%);background:var(--paper);border:4px solid var(--ink);border-radius:24px;box-shadow:0 8px 0 var(--ink);padding:26px 26px 22px;position:relative}
+.card{width:min(620px,100%);background:var(--paper);border:4px solid var(--ink);border-radius:var(--r-l);box-shadow:0 8px 0 var(--ink);padding:26px 26px 22px;position:relative}
 .logo{margin:0;font-size:clamp(38px,9vw,64px);line-height:1;letter-spacing:.04em;color:var(--ink)}
 .logo em{font-style:normal;display:inline-block}
 .logo em:nth-child(1){color:var(--red)}.logo em:nth-child(2){color:var(--blue)}.logo em:nth-child(3){color:#e0a800}.logo em:nth-child(4){color:#2fa84a}
 .sub{margin:8px 0 14px;font-size:14px;font-weight:700;letter-spacing:.3em;color:var(--ink-soft)}
 .lead{margin:0 0 16px;font-size:15px;line-height:1.7}
 .btns{display:flex;flex-wrap:wrap;gap:10px}
-.btn{padding:11px 20px;border-radius:14px;border:3px solid var(--ink);background:var(--yellow);color:var(--ink);font-size:16px;font-weight:800;box-shadow:0 4px 0 var(--ink);transition:transform .1s}
+.btn{padding:11px 20px;border-radius:var(--r-m);border:3px solid var(--ink);background:var(--yellow);color:var(--ink);font-size:16px;font-weight:800;box-shadow:0 4px 0 var(--ink);transition:transform .1s}
 .btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
 .btn.alt{background:var(--paper)}
 .keys{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px 14px;margin:16px 0 0;padding:0;list-style:none;font-size:13px}
 .keys li{display:flex;align-items:center;gap:8px}
-.keys kbd{min-width:28px;padding:2px 6px;border-radius:7px;border:2px solid var(--ink);background:#fff;font-family:inherit;font-size:12px;font-weight:800;text-align:center;box-shadow:0 2px 0 var(--ink)}
-.dots{position:absolute;right:20px;top:20px;display:flex;gap:6px}
-.dots i{width:16px;height:16px;border-radius:50%;border:3px solid var(--ink)}
+.keys kbd{min-width:28px;padding:2px 6px;border-radius:var(--r-s);border:2px solid var(--ink);background:#fff;font-family:inherit;font-size:12px;font-weight:800;text-align:center;box-shadow:0 2px 0 var(--ink)}
 .note{margin-top:14px;font-size:12px;color:var(--ink-soft);line-height:1.6}
-#touchnote{display:none;margin:0 0 14px;padding:10px 12px;border-radius:12px;background:#ffe3df;border:2px solid var(--red);font-size:13px;line-height:1.6}
+#touchnote{display:none;margin:0 0 14px;padding:10px 12px;border-radius:var(--r-m);background:#ffe3df;border:2px solid var(--red);font-size:13px;line-height:1.6}
 body.touch #touchnote{display:block}
+body.touch #title .keys{display:none}
 #pause .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:12px 0 4px}
-#pause .stats div{padding:8px 10px;border-radius:12px;border:2px solid var(--ink);background:#fff;font-size:12px}
+#pause .stats div{padding:8px 10px;border-radius:var(--r-m);border:2px solid var(--ink);background:#fff;font-size:12px}
 #pause .stats b{display:block;font-size:18px}
-#bigmap{width:min(560px,calc(100vw - 64px));aspect-ratio:1;border-radius:20px;border:4px solid var(--ink);display:block;margin:10px auto 0;background:#3aa7ff}
+#bigmap{width:min(560px,calc(100vw - 64px));aspect-ratio:1;border-radius:var(--r-l);border:4px solid var(--ink);display:block;margin:10px auto 0;background:#3aa7ff}
 #err{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;background:var(--paper);font-size:16px;line-height:1.7}
 #loading{position:fixed;inset:0;display:grid;place-items:center;background:var(--sky);font-size:18px;font-weight:800;color:var(--ink)}
 #loading span{display:inline-block;animation:bob 1s ease-in-out infinite}
 @keyframes bob{50%{transform:translateY(-6px)}}
 /* 打擊特效調整面板 */
-#tune{position:fixed;right:16px;top:16px;bottom:16px;width:min(360px,calc(100vw - 32px));display:flex;flex-direction:column;background:var(--paper);border:3px solid var(--ink);border-radius:18px;box-shadow:0 6px 0 var(--ink);font-size:13px;z-index:5}
+#tune{position:fixed;right:16px;top:16px;bottom:16px;width:min(360px,calc(100vw - 32px));display:flex;flex-direction:column;background:var(--paper);border:3px solid var(--ink);border-radius:var(--r-l);box-shadow:0 6px 0 var(--ink);font-size:13px;z-index:5}
 #tune header{display:flex;align-items:center;gap:8px;padding:12px 14px 8px;border-bottom:2px dashed rgba(42,34,56,.2)}
 #tune header h2{margin:0;font-size:17px;flex:1}
 #tune .body{overflow:auto;padding:4px 14px 16px}
 #tune .x{width:30px;height:30px;border-radius:50%;border:2px solid var(--ink);background:#fff;font-weight:900;cursor:pointer}
 #tune .tip{margin:6px 0 2px;color:var(--ink-soft);font-size:12px;line-height:1.5}
 #tune .row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
-#tune button.tb{padding:6px 10px;border-radius:10px;border:2px solid var(--ink);background:#fff;font-weight:700;font-size:12px;box-shadow:0 2px 0 var(--ink);cursor:pointer}
+#tune button.tb{padding:6px 10px;border-radius:var(--r-s);border:2px solid var(--ink);background:#fff;font-weight:700;font-size:12px;box-shadow:0 2px 0 var(--ink);cursor:pointer}
 #tune button.tb.on{background:var(--yellow)}
 #tune button.tb.go{background:var(--yellow);font-size:14px;padding:8px 14px}
 #tune .sec{margin:12px 0 4px;font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--ink-soft)}
-#tune .fx{display:grid;grid-template-columns:20px 1fr 30px;align-items:center;gap:6px;padding:3px 6px;border-radius:9px;border:2px solid transparent;cursor:pointer}
+#tune .fx{display:grid;grid-template-columns:20px 1fr 30px;align-items:center;gap:6px;padding:3px 6px;border-radius:var(--r-s);border:2px solid transparent;cursor:pointer}
 #tune .fx:hover{background:rgba(42,34,56,.06)}
 #tune .fx.sel{border-color:var(--ink);background:#fff}
 #tune .fx input{width:16px;height:16px;margin:0;accent-color:#e0a800}
-#tune .fx button{padding:0;height:24px;border-radius:7px;border:2px solid var(--ink);background:#fff;font-size:11px;cursor:pointer}
+#tune .fx button{padding:0;height:24px;border-radius:var(--r-s);border:2px solid var(--ink);background:#fff;font-size:11px;cursor:pointer}
 #tune .fx small{color:var(--ink-soft);margin-left:4px;font-size:10px}
 #tune .sl{display:grid;grid-template-columns:92px 1fr 56px;align-items:center;gap:8px;margin:6px 0}
 #tune .sl label{font-size:12px;color:var(--ink-soft)}
 #tune .sl input[type=range]{width:100%;accent-color:#e0a800}
 #tune .sl output{font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
-#tune .edit{padding:10px;border-radius:12px;background:#fff;border:2px solid var(--ink)}
+#tune .edit{padding:10px;border-radius:var(--r-m);background:#fff;border:2px solid var(--ink)}
 #tune .edit h3{margin:0 0 2px;font-size:14px}
 #tune .edit p{margin:0 0 6px;color:var(--ink-soft);font-size:12px;line-height:1.5}
-#tune textarea{width:100%;height:150px;border-radius:10px;border:2px solid var(--ink);background:#2a2238;color:#d8f5c8;font:11px/1.45 ui-monospace,Menlo,monospace;padding:8px;resize:vertical}
+#tune textarea{width:100%;height:150px;border-radius:var(--r-s);border:2px solid var(--ink);background:#2a2238;color:#d8f5c8;font:11px/1.45 ui-monospace,Menlo,monospace;padding:8px;resize:vertical}
 @media (max-width:720px){
   #objective{top:auto;bottom:108px;max-width:calc(100vw - 32px);min-width:0;font-size:12px}
   #mapwrap{width:112px;height:112px;right:12px;top:12px}
@@ -166,7 +169,7 @@ body.touch #touchnote{display:block}
   <header><h2>調整打擊特效</h2><button class="x" id="tClose" title="關閉（T／Esc）">✕</button></header>
   <div class="body">
     <p class="tip">面前的練習用哥布林不會反擊。點畫面或按「揮筆試打」，畫筆打到那一格才放特效。調整會馬上套用，也會自動存在這台電腦。</p>
-    <div class="row"><button class="tb go" id="tSwing">▶ 揮筆試打</button><button class="tb go" id="tNow">✦ 直接命中</button></div>
+    <div class="row"><button class="tb go" id="tSwing">▶ 揮筆試打</button><button class="tb go" id="tNow">直接命中</button></div>
     <div class="row"><button class="tb" id="tHeavy">重擊（第三段）</button><button class="tb" id="tKill">擊殺這一下</button><button class="tb on" id="tAll">打擊特效：開</button></div>
     <div class="row"><span class="tip" style="align-self:center;margin:0">使用中：</span><button class="tb" id="tA">A 組</button><button class="tb" id="tB">B 組</button><button class="tb" id="tAB">A 複製到 B</button><button class="tb" id="tCmp">輪流播 A→B</button></div>
     <div class="sec">最常調的兩個</div><div id="tQuick"></div>
@@ -181,7 +184,6 @@ body.touch #touchnote{display:block}
 
 <div id="title" class="screen hide">
   <div class="card">
-    <div class="dots"><i style="background:var(--red)"></i><i style="background:var(--blue)"></i><i style="background:var(--yellow)"></i><i style="background:var(--green)"></i></div>
     <h1 class="logo"><em>彩</em><em>筆</em><em>曠</em><em>野</em></h1>
     <p class="sub">BRUSHWILD</p>
     <p id="touchnote">這是桌機遊戲：需要鍵盤與滑鼠。手機上可以看看風景，但沒辦法好好冒險。</p>
@@ -244,7 +246,6 @@ body.touch #touchnote{display:block}
 
 <div id="ending" class="screen hide">
   <div class="card">
-    <div class="dots"><i style="background:var(--red)"></i><i style="background:var(--blue)"></i><i style="background:var(--yellow)"></i><i style="background:var(--green)"></i></div>
     <h2 class="logo" style="font-size:44px"><em>顏</em><em>色</em><em>回</em><em>來</em>了</h2>
     <p class="lead" id="endtext"></p>
     <div class="btns"><button class="btn" id="bEndGo">繼續探索</button></div>
@@ -639,7 +640,8 @@ const keys = new Set(), hit = new Set();
 let mouseL = false, mouseR = false, clickL = false, clickR = false;
 let lookDX = 0, lookDY = 0;
 addEventListener('keydown', e => {
-  if (e.target && e.target.tagName === 'INPUT') return;
+  // 調整面板的 textarea 也要放行，否則打字會移動角色、按 T 會把面板關掉、空白鍵打不出來
+  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
   if (['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
   if (!keys.has(e.code)) hit.add(e.code);
   keys.add(e.code);
@@ -4255,6 +4257,7 @@ function colossusDown(e) {
 
 /* ───────── 區域切換 ───────── */
 const OW_LOOK = BOTW ? { fog: 0xc9dae6, near: 45, far: 760, sky: 0xdcecff, ground: 0x7b9a62, hemi: 1.15, sun: 2.8 } : { fog: 0xcfeeff, near: 160, far: 900, sky: 0xe2f5ff, ground: 0x86b060, hemi: 1.35, sun: 2.4 };
+let zoneT = 0;
 function enterZone(id, at, instant) {
   const f = $('fade');
   const go = () => {
@@ -4297,7 +4300,10 @@ function enterZone(id, at, instant) {
     f.style.opacity = 0;
     if (G.started) saveGame();
   };
-  if (instant) go(); else { f.style.opacity = 1; setTimeout(go, 380); }
+  // 淡出的 380 ms 內再按一次 E 會排第二次切換（重複 toast、存檔）；同時間只留一個
+  if (zoneT && !instant) return;
+  if (zoneT) { clearTimeout(zoneT); zoneT = 0; }
+  if (instant) go(); else { f.style.opacity = 1; zoneT = setTimeout(() => { zoneT = 0; go(); }, 380); }
 }
 function spawnZoneEnemies(Z) {
   const zs = zoneSave(Z.id);

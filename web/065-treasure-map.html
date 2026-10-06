@@ -42,7 +42,7 @@ svg#map{display:block;width:100%;height:auto;touch-action:manipulation}
 .loc{cursor:pointer}
 .loc .hit{fill:transparent}
 .loc .ico{transition:transform .25s;transform-box:fill-box;transform-origin:50% 100%}
-.loc:hover .ico,.loc:focus .ico{transform:scale(1.15) rotate(-3deg)}
+.loc:hover .ico,.loc:focus-visible .ico{transform:scale(1.15) rotate(-3deg)}
 .loc:focus{outline:none}
 .loc:focus-visible .hit{stroke:var(--red);stroke-width:2;stroke-dasharray:4 4}
 .loc.seen .lbl{fill:#2e1c0c}
@@ -63,7 +63,7 @@ svg#map{display:block;width:100%;height:auto;touch-action:manipulation}
 .chest .lid{transform-box:fill-box;transform-origin:50% 100%;transition:transform .6s .5s ease-out}
 .chest.open .lid{transform:rotate(-24deg) translate(-4px,-6px)}
 .glint{opacity:0}
-.chest.open .glint{animation:glint 1.4s 1s ease-in-out infinite}
+.chest.open .glint{animation:glint 1.4s 1s ease-in-out 3}
 @keyframes glint{50%{opacity:1}}
 
 /* log scrap */
@@ -99,7 +99,7 @@ svg#map{display:block;width:100%;height:auto;touch-action:manipulation}
 .seal:active{transform:scale(.95)}
 .seal:focus-visible{outline:2px dashed #f0dcae;outline-offset:4px}
 
-@media (max-width:640px){ .lbl{font-size:27px} .lbl.small{font-size:18px} }
+@media (max-width:640px){ .lbl{font-size:27px} .lbl.small{font-size:18px} #cartouche{display:none} }
 @media (max-width:900px){
   .table{grid-template-columns:1fr}
   .log{margin:-10px 6px 0;transform:rotate(.8deg)}
@@ -175,7 +175,7 @@ svg#map{display:block;width:100%;height:auto;touch-action:manipulation}
         </g>
 
         <!-- cartouche -->
-        <g transform="translate(40 36)">
+        <g id="cartouche" transform="translate(40 36)">
           <path d="M0 18Q0 0 18 0H282Q300 0 300 18V72Q300 90 282 90H18Q0 90 0 72Z" fill="#efdfb7" stroke="#4e3218" stroke-width="2"/>
           <path d="M8 22Q8 8 22 8H278Q292 8 292 22V68Q292 82 278 82H22Q8 82 8 68Z" fill="none" stroke="#4e3218" stroke-width=".8"/>
           <text x="150" y="44" text-anchor="middle" class="lbl" style="font-size:24px">Insula Paenitentiae</text>
@@ -362,7 +362,8 @@ svg#map{display:block;width:100%;height:auto;touch-action:manipulation}
   LOCS.forEach(function(L){
     var g = el('g', {class:'loc', tabindex:'0', role:'button', 'aria-label':L.name, 'data-id':L.id}, locsG);
     el('circle', {cx:L.x, cy:L.y - 12, r:42, class:'hit'}, g);
-    var ico = el('g', {class:'ico', transform:'translate(' + L.x + ' ' + L.y + ')'}, g);
+    // position on an outer group: a CSS transform on .ico (hover/focus) would otherwise replace the translate attribute
+    var ico = el('g', {class:'ico'}, el('g', {transform:'translate(' + L.x + ' ' + L.y + ')'}, g));
     ico.innerHTML = ICONS[L.icon];
     var t = el('text', {x:L.x + L.lx, y:L.y + L.ly, 'text-anchor':'middle', class:'lbl'}, g); t.textContent = L.name;
     var tk = el('path', {d:'M' + (L.x + 26) + ' ' + (L.y - 36) + 'l5 6 10-13', class:'tick', stroke:'#b0261c', 'stroke-width':3, fill:'none', 'stroke-linecap':'round'}, g);
@@ -461,7 +462,8 @@ svg#map{display:block;width:100%;height:auto;touch-action:manipulation}
   var rb = $('reset'); if (rb) rb.addEventListener('click', reset);
 
   /* ---------- responsive crop for narrow screens ---------- */
-  function fit(){ map.setAttribute('viewBox', window.innerWidth < 640 ? '84 70 836 590' : '0 0 1000 700'); }
+  var narrow = window.matchMedia ? window.matchMedia('(max-width:640px)') : null;
+  function fit(){ map.setAttribute('viewBox', narrow && narrow.matches ? '60 40 880 640' : '0 0 1000 700'); }
   fit(); window.addEventListener('resize', fit);
 
   reset();

@@ -11,6 +11,7 @@
 :root{
   --wood:#c9a877;--wood-2:#b08f5c;--wood-3:#8a6a3c;--ink:#2a1f14;--ink-2:#5b4a35;--paper:#efe6d2;--shu:#a34a32;
   --ease-out:cubic-bezier(.2,.7,.2,1);--dur-hover:.18s;--dur-press:.1s;--dur-enter:.5s;--dur-exit:.3s;
+  --r-s:4px;--r-m:6px;
   --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);
 }
 *{box-sizing:border-box}
@@ -22,7 +23,7 @@ body{font-family:"Hiragino Mincho ProN","Hiragino Mincho Pro","Yu Mincho","YuMin
 body.hide :is(#title,#fuda,#keys,#stat,#note){opacity:0;pointer-events:none}
 
 /* 左上：直書標題 */
-#title{top:calc(18px + var(--sat));left:calc(18px + var(--sal));writing-mode:vertical-rl;color:var(--paper);text-shadow:0 1px 0 rgba(20,14,8,.35),0 0 18px rgba(20,14,8,.35);display:flex;gap:10px;pointer-events:none}
+#title{top:calc(18px + var(--sat));left:calc(18px + var(--sal));writing-mode:vertical-rl;color:var(--paper);text-shadow:0 1px 2px rgba(20,14,8,.45);display:flex;gap:10px;pointer-events:none}
 #title h1{margin:0;font-size:clamp(30px,4.2vh,46px);font-weight:600;letter-spacing:.28em;line-height:1}
 #title p{margin:0;font-size:12px;letter-spacing:.34em;opacity:.78;padding-top:.5em}
 
@@ -32,15 +33,15 @@ body.hide :is(#title,#fuda,#keys,#stat,#note){opacity:0;pointer-events:none}
 #fuda::after{content:"";position:absolute;inset:0;background-image:repeating-linear-gradient(90deg,rgba(60,38,14,.09) 0 1px,transparent 1px 7px,rgba(60,38,14,.05) 7px 8px,transparent 8px 19px);mix-blend-mode:multiply;pointer-events:none}
 #fuda b{font-weight:600;font-size:18px}
 #fuda span{display:block}
-#fuda .stamp{color:var(--shu);opacity:.85;font-size:12px;letter-spacing:.3em;border:1.5px solid currentColor;border-radius:3px;padding:6px 2px;margin-top:2px;line-height:1}
+#fuda .stamp{color:var(--shu);opacity:.85;font-size:12px;letter-spacing:.3em;border:1.5px solid currentColor;border-radius:var(--r-s);padding:6px 2px;margin-top:2px;line-height:1}
 
 /* 右下：按鍵（桌機） */
 #keys{right:calc(18px + var(--sar));bottom:calc(18px + var(--sab));color:var(--paper);font-size:12px;letter-spacing:.12em;text-shadow:0 1px 2px rgba(0,0,0,.5);display:grid;grid-template-columns:auto auto;gap:6px 12px;align-items:center;pointer-events:none}
-#keys kbd{font:inherit;display:inline-block;min-width:20px;height:20px;line-height:18px;text-align:center;border:1px solid rgba(239,230,210,.55);border-radius:3px;padding:0 4px;margin-right:2px;letter-spacing:0}
+#keys kbd{font:inherit;display:inline-block;min-width:20px;height:20px;line-height:18px;text-align:center;border:1px solid rgba(239,230,210,.55);border-radius:var(--r-s);padding:0 4px;margin-right:2px;letter-spacing:0}
 #keys .dim{opacity:.72}
 
 /* 右上：畫格率與模式 */
-#stat{top:calc(20px + var(--sat));right:calc(18px + var(--sar));color:var(--paper);font-size:11px;letter-spacing:.2em;opacity:.7;text-shadow:0 1px 2px rgba(0,0,0,.5);text-align:right;line-height:1.7;pointer-events:none}
+#stat{top:calc(20px + var(--sat));right:calc(18px + var(--sar));color:var(--paper);font-size:11px;letter-spacing:.2em;background:rgba(20,16,10,.45);padding:4px 8px;border-radius:var(--r-m);text-align:right;line-height:1.7;pointer-events:none}
 
 /* 手機：搖桿與油門 */
 #stick,#thr{display:none}
@@ -57,7 +58,7 @@ body.hide :is(#title,#fuda,#keys,#stat,#note){opacity:0;pointer-events:none}
 }
 
 /* 啟航：和紙橫幅 */
-#intro{z-index:4;overflow:auto;touch-action:pan-y;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,14,18,.28);cursor:pointer}
+#intro{z-index:4;overflow:auto;touch-action:pan-y;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,14,18,.28)}
 #intro .strip{max-height:90dvh;overflow:auto;flex-shrink:0;width:100%;padding:34px 24px;background:var(--paper);color:var(--ink);display:flex;justify-content:center;gap:34px;position:relative;border-top:1px solid rgba(90,70,40,.35);border-bottom:1px solid rgba(90,70,40,.35)}
 #intro .strip::before{content:"";position:absolute;inset:0;opacity:.5;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .26 0 0 0 0 .14 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");mix-blend-mode:multiply;pointer-events:none}
 #intro .col{writing-mode:vertical-rl;position:relative;line-height:1.15}
@@ -69,19 +70,17 @@ body.hide :is(#title,#fuda,#keys,#stat,#note){opacity:0;pointer-events:none}
 @media (max-width:600px){#intro .strip{gap:18px;padding:26px 12px}#intro h2{font-size:34px}#intro .col p{font-size:12px}}
 
 /* 天氣提示 */
-#note{left:50%;top:calc(22px + var(--sat));transform:translateX(-50%);color:var(--paper);font-size:15px;letter-spacing:.36em;text-shadow:0 1px 3px rgba(0,0,0,.6);opacity:0;transition:opacity var(--dur-enter) var(--ease-out);pointer-events:none;white-space:nowrap}
+#note{left:50%;top:calc(140px + var(--sat));transform:translateX(-50%);color:var(--paper);background:rgba(20,16,10,.7);padding:6px 12px;border-radius:var(--r-m);font-size:13px;letter-spacing:.12em;opacity:0;transition:opacity var(--dur-enter) var(--ease-out);pointer-events:none;white-space:nowrap}
 #note.show{opacity:.92}
 #err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;color:var(--paper);background:#101a21;font-size:15px;letter-spacing:.2em;padding:24px;text-align:center;line-height:2;z-index:5}
 #c:focus-visible{outline:2px solid var(--paper);outline-offset:-4px}
 button:focus-visible{outline:2px solid var(--paper);outline-offset:3px}
 #go:focus-visible{outline-color:var(--shu)}
 #tools{position:fixed;z-index:3;right:calc(18px + var(--sar));top:calc(70px + var(--sat));display:flex;gap:6px;max-width:calc(100vw - 100px);flex-wrap:wrap;justify-content:flex-end}
-#tools button{font:inherit;font-size:12px;min-height:44px;min-width:44px;padding:6px 9px;color:var(--paper);background:rgba(20,16,10,.78);border:1px solid rgba(239,230,210,.5);border-radius:4px;cursor:pointer}
+#tools button{font:inherit;font-size:12px;min-height:44px;min-width:44px;padding:6px 9px;color:var(--paper);background:rgba(20,16,10,.78);border:1px solid rgba(239,230,210,.5);border-radius:var(--r-s);cursor:pointer}
 #tools button[aria-pressed=true]{background:var(--wood);color:var(--ink)}
-#stat{opacity:1;background:rgba(20,16,10,.45);padding:4px 8px;border-radius:3px}
-#note{top:140px;background:rgba(20,16,10,.7);padding:6px 12px;border-radius:3px;font-size:13px;letter-spacing:.12em}
 @media(max-width:440px){#tools{gap:4px;right:14px}#tools button{padding:4px 6px}#stick{left:82px;width:104px;height:104px}#thr{right:16px}}
-@media(max-height:520px){#title p{display:none}#title h1{font-size:26px}#fuda{font-size:11px;padding:24px 0 10px;width:44px}#fuda b{font-size:13px}#keys{font-size:10px;gap:3px 6px}#stick,#thr{bottom:16px}#note{top:120px}}
+@media(max-height:520px){#title p{display:none}#title h1{font-size:26px}#fuda{font-size:11px;padding:24px 0 10px;width:44px}#fuda b{font-size:13px}#keys{font-size:10px;gap:3px 6px}#stick,#thr{bottom:16px}#note{top:calc(120px + var(--sat))}}
 @media (prefers-reduced-motion:reduce){.ui,#note,#intro{transition:none}}
 </style>
 </head>
@@ -1077,7 +1076,8 @@ function frame(){
   // 3) 貼到畫面，疊上水與雨
   renderer.setRenderTarget(null); renderer.render(compScene, camera);
   // HUD 與效能
-  fpsAcc += raw; fpsN++; fpsT += raw; if (raw > .028) slowFrames++;
+  // 切分頁回來的第一幀間隔是整段離開時間，不算進幀率，免得顯示 1 幀或誤判掉幀
+  if (raw < .5){ fpsAcc += raw; fpsN++; fpsT += raw; if (raw > .028) slowFrames++; }
   if (fpsT >= 1){ const fps = Math.round(fpsN / fpsAcc); $('fps').textContent = fps; if (slowFrames > fpsN * .4 && REFL_SCALE > .3){ REFL_SCALE = .3; makeTargets(); } fpsAcc = fpsN = fpsT = slowFrames = 0; }
   hudT -= dt; if (hudT <= 0){ hudT = .5; $('koku').textContent = kokuName(S.time); const ri = S.dist / 3927; $('dist').textContent = ri < .1 ? Math.round(S.dist) + ' 公尺' : ri.toFixed(1) + ' 里'; }
 }

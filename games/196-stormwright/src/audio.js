@@ -43,7 +43,8 @@ export class Audio {
     ev.on('propDestroyed', ({ pos, material }) => this.play('break_' + (material || 'wood'), { pos, ref: 22 }));
     ev.on('busDoor', () => this.play('bus_door'));
     ev.on('lightning', ({ strength }) => { this.play('flash', { volume: 0.5 }); const dly = 400 + Math.random() * 2200; setTimeout(() => this.play('thunder', { volume: 0.55 + 0.35 * (1 - dly / 2600) * (strength || 1) }), dly); });
-    ev.on('matchOver', ({ winner }) => this._end(winner === ctx.player));
+    // 失敗音效由 matchState 'ended'（玩家淘汰時）播；觀戰中其他人分出勝負不要再播一次
+    ev.on('matchOver', ({ winner }) => { if (winner === ctx.player) this._end(true); });
     ev.on('harvest', ({ material, point, weakPoint }) => { this.play('harvest_' + material, { pos: point }); if (weakPoint) this.play('weakpoint', { pos: point }); });
     ev.on('buildPlaced', ({ piece, actor }) => this.play('build_' + (piece.mat || 'wood'), { pos: piece.center, own: actor === P() }));
     ev.on('buildDestroyed', ({ piece, collapsed }) => {

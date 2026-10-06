@@ -14,6 +14,7 @@
     --cream:#f6eddc;
     --serif:Georgia,"Times New Roman",Times,serif;
     --script:"Segoe Script","Lucida Handwriting","Brush Script MT","Apple Chancery",cursive;
+    --r-s:6px; --r-m:8px;
   }
   *{box-sizing:border-box}
   html{background:var(--red-d)}
@@ -31,14 +32,14 @@
   .overline::before,.overline::after{content:"";height:1px;width:clamp(30px,8vw,110px);background:linear-gradient(90deg,transparent,var(--gold))}
   .overline::after{transform:scaleX(-1)}
   h1{font-family:var(--script);font-weight:normal;margin:.1em 0 0;line-height:1.05;font-size:clamp(36px,5.2vw,74px);white-space:nowrap;
-    background:linear-gradient(180deg,var(--gold-l) 10%,var(--gold) 50%,var(--gold-d) 90%);-webkit-background-clip:text;background-clip:text;color:transparent;
+    color:var(--gold-l);
     filter:drop-shadow(0 2px 0 rgba(60,5,10,.8))}
   .sub{margin:.35em auto 0;max-width:640px;font-style:italic;font-size:clamp(14px,1.5vw,16px);line-height:1.5;color:#f1dcc0}
 
   /* the board: gold-framed printed card */
   .frame{position:relative;padding:clamp(10px,1.6vw,18px);background:linear-gradient(135deg,var(--gold-l),var(--gold) 30%,var(--gold-d) 60%,var(--gold) 80%,var(--gold-l));
-    border-radius:6px;box-shadow:0 30px 60px -20px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.4)}
-  .frame::before{content:"";position:absolute;inset:5px;border:1px solid rgba(90,50,5,.55);border-radius:3px;pointer-events:none}
+    border-radius:var(--r-m);box-shadow:0 30px 60px -20px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.4)}
+  .frame::before{content:"";position:absolute;inset:5px;border:1px solid rgba(90,50,5,.55);border-radius:calc(var(--r-m) - 4px);pointer-events:none}
   .corner{position:absolute;width:44px;height:44px;z-index:3;pointer-events:none}
   .corner.tl{left:-8px;top:-8px}.corner.tr{right:-8px;top:-8px;transform:scaleX(-1)}
   .corner.bl{left:-8px;bottom:-8px;transform:scaleY(-1)}.corner.br{right:-8px;bottom:-8px;transform:scale(-1,-1)}
@@ -77,15 +78,16 @@
   .back::after{content:"";position:absolute;inset:6px;border:1px solid rgba(166,122,36,.5)}
 
   .ledger{display:flex;flex-wrap:wrap;gap:14px 26px;align-items:center;justify-content:space-between;margin-top:clamp(16px,2vw,24px)}
-  .note{flex:1 1 420px;min-height:78px;position:relative;padding:14px 20px 14px 70px;background:var(--cream);color:#3a1a12;border-radius:3px;
+  .note{flex:1 1 420px;min-height:78px;position:relative;padding:14px 20px 14px 70px;background:var(--cream);color:#3a1a12;border-radius:var(--r-m);overflow:hidden;
     box-shadow:0 10px 24px -10px rgba(0,0,0,.6);font-size:clamp(14px,1.4vw,16px);line-height:1.5}
-  .note::before{content:"";position:absolute;left:0;top:0;bottom:0;width:52px;background:repeating-linear-gradient(-45deg,var(--red-l) 0 8px,var(--cream) 8px 16px);border-radius:3px 0 0 3px}
+  .note::before{content:"";position:absolute;left:0;top:0;bottom:0;width:52px;background:repeating-linear-gradient(-45deg,var(--red-l) 0 8px,var(--cream) 8px 16px)}
   .note b{font-family:var(--script);font-weight:normal;color:var(--red);font-size:1.35em;margin-right:.2em}
   .tally{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .count{font-variant:small-caps;letter-spacing:.12em;font-size:14px;color:var(--gold-l);line-height:1.4}
   .count strong{display:block;font-size:30px;letter-spacing:0;color:var(--cream);font-variant:normal}
-  .btn{font-family:var(--serif);font-size:14px;letter-spacing:.06em;min-height:44px;padding:0 18px;border-radius:999px;cursor:pointer;
-    color:var(--red-d);background:linear-gradient(180deg,var(--gold-l),var(--gold));border:1px solid var(--gold-d);box-shadow:0 3px 0 var(--gold-d),0 6px 14px rgba(0,0,0,.35)}
+  .btn{font-family:var(--serif);font-size:14px;letter-spacing:.06em;min-height:44px;padding:0 18px;border-radius:var(--r-s);cursor:pointer;
+    color:var(--red-d);background:var(--gold-l);border:1px solid var(--gold-d);box-shadow:0 3px 0 var(--gold-d)}
+  .btn:focus-visible{outline:2px solid var(--cream);outline-offset:3px}
   .btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--gold-d)}
   .btn.ghost{background:transparent;color:var(--gold-l);border-color:rgba(245,220,150,.5);box-shadow:none}
   .foot{margin-top:26px;text-align:center;font-size:12px;letter-spacing:.2em;font-variant:small-caps;color:rgba(245,220,150,.6)}
@@ -228,6 +230,7 @@
   }
   function applyLayout() {
     const mob = matchMedia('(max-width:720px)').matches;
+    const focused = board.contains(document.activeElement) ? document.activeElement : null;
     board.innerHTML = '';
     (mob ? MOB : DESK).forEach(([n, c, r, w, h]) => {
       const d = doors[n];
@@ -237,6 +240,8 @@
       d.setAttribute('aria-pressed', opened.has(n) ? 'true' : 'false');
       board.appendChild(d);
     });
+    // re-appending detaches the door that had keyboard focus; give it back
+    if (focused) focused.focus({ preventScroll: true });
   }
 
   // ---------- the printed scene behind the doors (SVG, sized to the board) ----------
