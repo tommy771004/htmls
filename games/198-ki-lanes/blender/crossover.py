@@ -431,6 +431,32 @@ def kakashi_hair():
 
 
 # ================================================================ 小櫻
+# 小櫻專屬綁骨群組：短裙、腰部（上衣與短褲頭；短褲頭在腰線以下和裙子同權重，上衣下襬只跟骨盆）
+from heroes import ALLOW  # noqa: E402
+G_SAK_SKIRT, G_SAK_WAIST = 72, 73
+ALLOW[G_SAK_SKIRT] = ALLOW[G_PELVIS]
+ALLOW[G_SAK_WAIST] = ALLOW[G_PELVIS] | ALLOW[G_TORSO]
+
+
+def sakura_weights(F):
+    """回傳 custom：短裙與腰部的權重。骨熱讓裙腰、上衣下襬、短褲頭各自分到不同比例的大腿，抬腿時互相穿出；
+    這裡改成同一套依高度的漸變：腰線以上只跟骨盆，往裙襬漸漸交給同側大腿，裙子和底下的短褲頭一起變形。"""
+    def skirt(co):
+        # 骨熱在裙腰就給了大腿五～七成、髖關節以下馬上變成九成：腰頭被大腿拉出去、髖部一折就起皺。
+        # 改成腰頭只跟骨盆、往裙襬漸漸交給同側大腿（後中線左右漸變；前方有開衩，兩片各跟各的腿）
+        t = max(0.0, min(1.0, (F.L + 0.035 - co.y) / 0.175))
+        k = smooth(t) ** 0.6
+        sl = smooth(0.5 + co.x / 0.08)
+        return [('hips', 1 - k), ('thL', k * sl), ('thR', k * (1 - sl))]
+
+    def waist(co, old):
+        # 短褲頭（骨盆）用和裙子完全相同的權重：在裙子裡面一起變形，抬腿時不會從側面頂穿；上衣下襬（腰線以上）只跟骨盆
+        k = smooth((F.y(0.24) - co.y) / 0.04)
+        return [(b, w * (1 - k)) for b, w in old] + [(b, w * k) for b, w in skirt(co)]
+    waist.blend = True
+    return {G_SAK_SKIRT: skirt, G_SAK_WAIST: waist}
+
+
 def build_sakura(R):
     F = Fig(R)
     P = kit.Palette()
@@ -449,7 +475,7 @@ def build_sakura(R):
     top_rows = [(0.04, ('w', 1.16), 0.86, 0.0), (0.2, ('w', 0.9), 0.74, 0.0)] + [r for r in FEMALE_ROWS if r[0] > 0.3]
     top = kit.loft('top', torso_rows(F, e=0.006, rows=top_rows, pec=0, lat=0, bust=0.3, p=2.0), n=20, cap0=None, cap1=None)
     top = kit.subsurf(top, 2)
-    kit.tag(top, red, grp=G_TORSO)
+    kit.tag(top, red, grp=G_SAK_WAIST)
     body.append(top)
     proxy.append(top)
     zp = path_loft('zip', [V((0, F.y(0.3), F.cz * 0.9 + 0.012)), V((0, F.y(0.65), F.cz * 1.04 + 0.012)), V((0, F.y(0.97), F.cz * 0.7 + 0.012))], [0.006] * 3, n=6, flat=0.5)
@@ -460,17 +486,23 @@ def build_sakura(R):
     proxy.append(body[-1])
     arm = arm_skin(F, skin, muscle=0.35, k=1.02)
     pad = band('padL', F.sh, F.da, F.up - 0.07, F.up + 0.08, 0.056 * F.k_arm + 0.014, 0.054 * F.k_fore + 0.014, pink, G_ARM_L, thick=0.01, ol=0.6)  # 粉色護肘
-    glove = band('gloveL', F.sh, F.da, F.up + F.lo - 0.09, F.up + F.lo + 0.005, 0.052 * F.k_fore, 0.05 * F.k_fore, black, G_FORE_L, thick=0.008)
+    # 手套口要比前臂（前臂肌群隆起處約 0.064kf、扁橢圓）大一圈，厚度往內長，否則皮膚從袖口鋸齒狀穿出
+    glove = band('gloveL', F.sh, F.da, F.up + F.lo - 0.09, F.up + F.lo + 0.005, 0.064 * F.k_fore + 0.0045, 0.044 * F.k_fore + 0.0045, black, G_FORE_L, thick=0.004, rb=0.92)
     hand = fist(F, black, mat=0, scale=1.0, glove=True)
     # 粉色開衩短裙＋黑色短褲＋長靴
-    body.append(pelvis(F, black, e=0.004))
-    proxy.append(body[-1])
+    pel = pelvis(F, black, e=0.004, grp=G_SAK_WAIST)
+    # 褲頭往內收：上緣藏進上衣、臀部最寬處留在裙子裡面（原本褲頭比上衣下段與裙腰都寬，從腰線露出黑邊）
+    kit.deform(pel, lambda p: (lambda f: V((p.x * f, p.y, p.z * f)))(1 - 0.07 * smooth((p.y - F.L + 0.02) / 0.04) - 0.14 * smooth((p.y - F.L - 0.04) / 0.04)))
+    body.append(pel)
+    proxy.append(pel)
     yb = F.y(0.12)
     hw = F.R['hip']
-    sk = kit.loft('skirt', [S(V((0, yb, 0)), F.w * 1.24 + 0.01, F.cz * 0.88 + 0.01, p=2.2), S(V((0, F.L + 0.02, 0)), hw * 1.62, F.cz * 1.0, p=2.2),
+    # 裙腰貼著上衣下段（上衣在 u=0.12 約 1.03w × 0.8cz），不留一圈看得到裡面短褲的縫
+    sk = kit.loft('skirt', [S(V((0, yb, 0)), F.w * 1.03 + 0.017, F.cz * 0.8 + 0.017, p=2.1), S(V((0, F.L + 0.05, 0)), hw * 1.55, F.cz * 1.0, p=2.2),
+                            S(V((0, F.L + 0.02, 0)), hw * 1.64, F.cz * 1.04, p=2.2),
                             S(V((0, F.L - 0.14, 0.005)), hw * 1.86, F.cz * 1.15, p=2.1)], n=22, cap0=None, cap1=None, gap=lambda i: 0.18)
     sk = kit.subsurf(sk, 2, solidify=0.008)
-    body.append(kit.tag(sk, skirt_c, grp=G_PELVIS))
+    body.append(kit.tag(sk, skirt_c, grp=G_SAK_SKIRT))
     kl = F.k_leg
     calf = lambda th: 1 + 0.09 * ang_bump(th, BACK, 1.0)
     leg = leg_tube(F, skin, [(-0.07, 0.112 * kl, 0.112 * kl), (0.05, 0.11 * kl, 0.114 * kl), (0.22, 0.094 * kl, 0.098 * kl), (F.tl - 0.03, 0.068 * kl, 0.074 * kl),
@@ -485,7 +517,7 @@ def build_sakura(R):
     hc = P(0xf4a6c4)
     heads = {'base': [h, bob_cap('bob', F, hc, hairline=0.72, length=0.8, flare=0.24, scale=1.12)] + hair(F, hc, sakura_hair()[:2])
              + head_band(F, cloth, metal, y=0.56, h=0.3, tails=False)}
-    return finish(F, P, body, proxy, heads)
+    return finish(F, P, body, proxy, heads, custom=sakura_weights(F))
 
 
 def sakura_hair():
