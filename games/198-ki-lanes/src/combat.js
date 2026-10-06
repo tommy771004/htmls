@@ -90,7 +90,7 @@ function startAuto(G, h, t) {
   face(h, t.x, t.z);
   const idx = h.chain;
   h.action = {
-    name: c.anim, t: 0, dur: Math.min(total, wind + 0.28), hitDone: false, auto: true,
+    name: c.anim, t: 0, dur: Math.min(total, wind + 0.28), hitDone: false, auto: true, animRate: 1 / spd,
     step(G, h, dt) {
       if (!this.hitDone && this.t >= wind) {
         this.hitDone = true;
@@ -140,7 +140,7 @@ function autoHit(G, h, t, idx) {
 /* ---------------- 英雄每步 ---------------- */
 export function heroAct(G, h, dt) {
   h.atkCd -= dt;
-  h.anim.t += dt;
+  h.anim.t += dt * ((h.action && h.action.animRate) || 1); // 普攻依攻速加快動畫，命中影格和傷害一起提前
   if (h.action) {
     const a = h.action; a.t += dt;
     // 動作開始時對齊動畫名；之後 step() 可以把動畫換成別的段落（連打的收尾 atk3、三千世界的 vanish），不再每格被改回去
@@ -1007,7 +1007,7 @@ Object.assign(KITS, {
     },
     W(G, h, { s }) {
       const dmg = skillDmg(h, 'W');
-      act(h, { name: 'vanish', dur: 0.2 + s.hits * 0.16, unstoppable: true });
+      act(h, { name: 'cast', dur: 0.2 + s.hits * 0.16, unstoppable: true }); // 用 cast 讓倒立旋轉踢看得到（vanish 會把模型藏起來）
       for (let i = 0; i < s.hits; i++) G.later(0.1 + i * 0.16, () => {
         fx(G).slash(h.x, h.z, i * 2.1, '#ffffff', s.radius * 0.9); sfx(G, 'swing', h, { pitch: 1.2 });
         inCircle(G, h, h.x, h.z, s.radius, (u) => { damage(G, h, u, dmg, { type: i === s.hits - 1 ? 'H' : 'M', knock: i === s.hits - 1 ? 10 : 2, kdir: angTo(h, u), stun: 0.25 }); fx(G).hitSpark(u.x, 1.1, u.z, '#ffd0a0', 1, 'light'); });
