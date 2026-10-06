@@ -1,0 +1,1396 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#191512">
+<link rel="icon" href="data:,">
+<title>絨毛幼龍 · Material Studies No. 014</title>
+<meta name="description" content="Material Studies 第 14 號：一隻坐在桌上的絨毛幼龍。原生 WebGPU、全程序生成：XPBD 六面體晶格軟體、肌肉驅動的呼吸與搖尾、布料翅膀、殼層絨毛與 PCSS 柔和陰影。">
+<style>
+:root{
+  --page:#191512; --panel:#1f1a16; --ink:#efe5d8; --dim:#b9ab9a; --mute:#857868; --seam:#4a3f36;
+  --tone:#b9a6db; --tone-ink:#2a2233;
+  --serif:Cochin,"Hoefler Text",Georgia,"Songti TC",serif;
+  --sans:system-ui,-apple-system,"PingFang TC","Heiti TC",sans-serif;
+  --ease:cubic-bezier(.2,.7,.2,1);
+  --btn:radial-gradient(circle at 37% 37%,rgba(30,22,18,.75) 0 1.3px,transparent 1.7px),radial-gradient(circle at 63% 37%,rgba(30,22,18,.75) 0 1.3px,transparent 1.7px),radial-gradient(circle at 37% 63%,rgba(30,22,18,.75) 0 1.3px,transparent 1.7px),radial-gradient(circle at 63% 63%,rgba(30,22,18,.75) 0 1.3px,transparent 1.7px),radial-gradient(circle,transparent 0 6.2px,rgba(30,22,18,.22) 6.6px 7.4px,transparent 7.8px),var(--tone);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--page);color:var(--ink)}
+body{font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased;min-height:100svh;overflow-x:hidden}
+button,input{font:inherit;color:inherit}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 352px;grid-template-rows:auto minmax(0,1fr);height:100svh}
+.mast{grid-column:1/-1;display:flex;align-items:baseline;gap:22px;padding:18px 28px 14px;flex-wrap:wrap}
+.mast .series{font:italic 17px/1 var(--serif);color:var(--dim);letter-spacing:.01em}
+.mast h1{font:400 34px/1.05 var(--serif);letter-spacing:.005em;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.mast h1 .no{font-size:17px;color:var(--mute);font-variant-numeric:oldstyle-nums}
+.mast h1 .en{font-style:italic;color:var(--dim);font-size:26px}
+.mast .credit{margin-left:auto;font-size:12.5px;color:var(--mute)}
+.stage{position:relative;min-height:0;margin:0 0 18px 18px;border-radius:6px;overflow:hidden;background:#1d1814;touch-action:none}
+canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+canvas.tool-hand{cursor:grab} canvas.tool-hand.busy{cursor:grabbing}
+canvas.tool-finger{cursor:none} canvas.tool-comb{cursor:crosshair}
+.tools{position:absolute;left:16px;bottom:14px;display:flex;gap:4px;background:rgba(25,21,18,.72);padding:5px;border-radius:5px}
+.tool{display:flex;align-items:center;gap:7px;padding:7px 11px 7px 8px;border:0;background:transparent;border-radius:3px;color:var(--dim);cursor:pointer;font-size:13.5px;transition:background-color .18s var(--ease),color .18s var(--ease)}
+.tool svg{width:22px;height:22px;flex:none}
+.tool:hover{color:var(--ink);background:rgba(255,240,220,.06)}
+.tool[aria-pressed="true"]{color:var(--tone-ink);background:var(--tone)}
+.tool kbd{font:11px var(--sans);opacity:.55}
+.hint{position:absolute;right:16px;bottom:18px;font-size:12px;color:var(--mute);text-align:right;pointer-events:none}
+.loading{position:absolute;inset:0;display:grid;place-content:center;font:italic 22px var(--serif);color:var(--dim)}
+.nogpu{position:absolute;inset:0;display:none;place-content:center;text-align:center;padding:24px;gap:10px}
+.nogpu.on{display:grid}
+.nogpu b{font:400 24px/1.3 var(--serif)} .nogpu p{color:var(--dim);max-width:34ch;margin:auto}
+.panel{overflow-y:auto;padding:4px 28px 28px 22px;scrollbar-width:thin;scrollbar-color:var(--seam) transparent}
+.label{position:relative;padding:16px 16px 14px;margin:2px 0 20px;background:#26201b;border-radius:4px}
+.label::before{content:"";position:absolute;inset:5px;border:1.5px dashed rgba(239,229,216,.2);border-radius:2px;pointer-events:none}
+.label h2{font:italic 15px/1.2 var(--serif);color:var(--dim);margin-bottom:10px}
+.reads{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px}
+.read{display:flex;flex-direction:column}
+.read .v{font:400 30px/1 var(--serif);font-variant-numeric:lining-nums tabular-nums;letter-spacing:.01em}
+.read .v small{font-size:15px;color:var(--dim);margin-left:3px}
+.read .k{font-size:12px;color:var(--mute);margin-top:4px}
+.mood{margin-top:12px;font-size:13px;color:var(--dim);min-height:1.5em}
+section{margin-bottom:22px}
+section h3{font:400 19px/1.2 var(--serif);margin-bottom:10px;color:var(--ink)}
+section h3 i{font-size:14px;color:var(--mute);margin-left:6px}
+.acts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.act{position:relative;padding:10px 6px 9px;border:0;border-radius:3px;background:#2b241e;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;transition:background-color .16s var(--ease)}
+.act b{font-weight:500;font-size:14.5px}
+.act span{font:italic 12px/1.1 var(--serif);color:var(--mute)}
+.act:hover{background:#372e26}
+.act:active{background:#433830}
+.act[aria-pressed="true"]{background:var(--tone);color:var(--tone-ink)}
+.act[aria-pressed="true"] span{color:var(--tone-ink);opacity:.7}
+.act:focus-visible,.tool:focus-visible,.sw:focus-visible,input:focus-visible{outline:2px solid var(--tone);outline-offset:2px}
+.slider{display:grid;grid-template-columns:76px 1fr 46px;align-items:center;gap:10px;margin:6px 0}
+.slider label{font-size:14px} .slider output{font:15px var(--serif);text-align:right;color:var(--dim);font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--tone) 0 var(--p,50%),#3a3129 var(--p,50%))}
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:#3a3129}
+input[type=range]::-moz-range-progress{height:4px;border-radius:2px;background:var(--tone)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-8px;border-radius:50%;border:0;background:var(--btn)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;border:0;background:var(--btn)}
+.pals{display:flex;gap:8px}
+.sw{flex:1;display:flex;align-items:center;gap:9px;padding:8px 9px;border:0;border-radius:3px;background:#2b241e;cursor:pointer;transition:background-color .16s var(--ease)}
+.sw:hover{background:#372e26}
+.sw[aria-pressed="true"]{background:#3d332b;box-shadow:inset 0 0 0 1.5px var(--tone)}
+.sw i{width:22px;height:22px;border-radius:50%;flex:none;background:linear-gradient(135deg,var(--a) 0 55%,var(--b) 55%)}
+.sw b{font-weight:500;font-size:13.5px} .sw span{display:block;font:italic 11.5px/1 var(--serif);color:var(--mute)}
+.notes{border-top:0;padding-top:4px}
+.notes h3{font-style:italic}
+.notes p{font-size:13.5px;color:var(--dim);margin-bottom:10px;line-height:1.65}
+.notes p b{color:var(--ink);font-weight:500}
+.quality{font-size:12px;color:var(--mute);margin-top:4px}
+@media (max-width:860px){
+  .app{display:block;height:auto}
+  .mast{padding:16px 16px 10px;gap:6px 14px}
+  .mast h1{font-size:28px;gap:10px} .mast h1 .en{font-size:21px}
+  .mast .credit{margin-left:0;width:100%}
+  .stage{height:58svh;min-height:330px;margin:0 16px 16px;border-radius:5px}
+  .panel{overflow:visible;padding:0 16px 32px}
+  .tools{left:10px;bottom:10px}
+  .tool{padding:7px 9px 7px 7px;font-size:13px} .tool kbd{display:none}
+  .hint{display:none}
+}
+@media (max-width:380px){ .tool span{display:none} .tool{padding:7px 9px} }
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="mast">
+    <p class="series">Material Studies</p>
+    <h1><span class="no">No. 014</span>絨毛幼龍<span class="en">Plush Dragon</span></h1>
+    <p class="credit">原生 WebGPU · 單一檔案 · 不載入任何外部資源</p>
+  </header>
+  <main class="stage" id="stage">
+    <canvas id="gl" class="tool-hand" aria-label="絨毛幼龍的即時 3D 模擬。拖曳背景轉動視角，滾輪縮放。"></canvas>
+    <div class="tools" role="group" aria-label="工具">
+      <button class="tool" data-tool="hand" aria-pressed="true" title="手：抓起、捏扁、拉開翅膀（1）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 12.5V6.8a1.4 1.4 0 0 1 2.8 0v4.6M10.3 11V4.9a1.4 1.4 0 0 1 2.8 0V11M13.1 11V5.8a1.4 1.4 0 0 1 2.8 0v6.4M15.9 10.4a1.4 1.4 0 0 1 2.8 0v3.4c0 3.6-2.5 6.4-6 6.4h-.6c-2.2 0-3.6-.9-4.9-2.7l-2.6-3.8a1.3 1.3 0 0 1 2-1.6l1.5 1.6"/></svg><span>手</span><kbd>1</kbd></button>
+      <button class="tool" data-tool="finger" aria-pressed="false" title="手指：戳出凹陷，按住不放就是搔癢（2）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.2V4.6a1.5 1.5 0 0 1 3 0v6.6"/><path d="M13 11.2l3.4.7c1.5.3 2.4 1.5 2.3 3l-.3 2.3c-.3 2-2 3.4-4 3.4h-2.5c-1.4 0-2.7-.7-3.5-1.9L6 15.6a1.4 1.4 0 0 1 2.2-1.7l1.8 1.8"/><path d="M8.6 3.4l-1.3-1M14.4 3.4l1.3-1" opacity=".6"/></svg><span>手指</span><kbd>2</kbd></button>
+      <button class="tool" data-tool="comb" aria-pressed="false" title="梳子：順著拖曳就能梳毛（3）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 9.5h17a.9.9 0 0 1 .9.9v1.2a.9.9 0 0 1-.9.9h-17"/><path d="M5 12.5v6M8 12.5v6.8M11 12.5v6M14 12.5v6.8M17 12.5v6M20 12.5v4.8"/></svg><span>梳子</span><kbd>3</kbd></button>
+    </div>
+    <p class="hint">拖曳空白處轉動視角 · 滾輪或雙指縮放</p>
+    <p class="loading" id="loading">縫製中…</p>
+    <div class="nogpu" id="nogpu"><b>這台瀏覽器沒有開放 WebGPU</b><p id="nogpuWhy">幼龍需要原生 WebGPU 才能模擬。請改用新版 Chrome、Edge 或 Safari 26 以上開啟。</p></div>
+  </main>
+  <aside class="panel">
+    <div class="label" aria-live="off">
+      <h2>標本卡 · 現場讀數</h2>
+      <div class="reads">
+        <div class="read"><span class="v" id="rMass">0<small>g</small></span><span class="k">質量</span></div>
+        <div class="read"><span class="v" id="rVol">100<small>%</small></span><span class="k">體積（相對靜止）</span></div>
+        <div class="read"><span class="v" id="rSpan">0<small>cm</small></span><span class="k">翼展</span></div>
+        <div class="read"><span class="v" id="rLift">0.0<small>cm</small></span><span class="k">離桌高度</span></div>
+      </div>
+      <p class="mood" id="mood">坐著，慢慢呼吸。</p>
+    </div>
+    <section>
+      <h3>動作<i>Actions</i></h3>
+      <div class="acts">
+        <button class="act" id="aFlap"><b>拍翅</b><span>Flap</span></button>
+        <button class="act" id="aStretch" aria-pressed="false"><b>展翼</b><span>Stretch</span></button>
+        <button class="act" id="aBoop"><b>點鼻</b><span>Boop</span></button>
+        <button class="act" id="aToss"><b>拋起</b><span>Toss</span></button>
+        <button class="act" id="aSmooth"><b>順毛</b><span>Smooth fur</span></button>
+        <button class="act" id="aReset"><b>重置</b><span>Reset</span></button>
+      </div>
+    </section>
+    <section>
+      <h3>材料<i>Materials</i></h3>
+      <div class="slider"><label for="sStuff">填充</label><input type="range" id="sStuff" min="0" max="100" value="55"><output id="oStuff">55</output></div>
+      <div class="slider"><label for="sPile">絨毛長</label><input type="range" id="sPile" min="20" max="90" value="52"><output id="oPile">5.2</output></div>
+      <div class="slider"><label for="sBeat">拍翅頻率</label><input type="range" id="sBeat" min="15" max="55" value="32"><output id="oBeat">3.2</output></div>
+    </section>
+    <section>
+      <h3>配色<i>Palettes</i></h3>
+      <div class="pals">
+        <button class="sw" data-pal="mint" aria-pressed="true" style="--a:#a6d8c2;--b:#b8a5da"><i></i><div><b>薄荷</b><span>Mint</span></div></button>
+        <button class="sw" data-pal="ember" aria-pressed="false" style="--a:#ee8d74;--b:#e2b14c"><i></i><div><b>餘燼</b><span>Ember</span></div></button>
+        <button class="sw" data-pal="dusk" aria-pressed="false" style="--a:#b4a4d6;--b:#eda6bc"><i></i><div><b>暮色</b><span>Dusk</span></div></button>
+      </div>
+    </section>
+    <section class="notes">
+      <h3>實驗內部<i>Inside the experiment</i></h3>
+      <p><b>一個距離場。</b>頭、口鼻、角、肚子、手腳、捲尾、背刺、珠眼與小尖牙全寫在同一個有號距離場裡，開頁時用 surface nets 取出網格，再嵌進 2.1 公分的六面體晶格。</p>
+      <p><b>軟體。</b>每個晶格是一個 XPBD 約束組：共旋形狀匹配加上五個四面體的體積守恆，每秒 60 格、每格 6 個子步。底座的格子比較重，所以推倒之後會像裝了豆子的布偶慢慢坐回來。</p>
+      <p><b>肌肉，不是外力。</b>呼吸是讓肚子格子的靜止形狀與靜止體積一起膨脹；搖尾是把尾巴中線一側的格子拉長、另一側縮短，開心時搖得更快。</p>
+      <p><b>翅膀。</b>每片翅膀是一塊從彎曲扇形版型剪下的小布料，有拉伸、剪切與彎曲連結，最靠身體的兩排縫進晶格。姿勢從肩膀的嵌入點建立座標系，翅根拉得緊、翅緣幾乎不拉，所以塞了棉花的翅膀會慢半拍、會垂。拉超過鬆弛長度時，翅膀會從那一側的肩膀拖著身體走。</p>
+      <p><b>絨毛。</b>底層加上多層實例化殼層，以 4× MSAA 的 alpha-to-coverage 畫出毛尖；毛的倒向跟著變形梯度轉，毛尖有阻尼彈簧的延遲，高光用 Kajiya–Kay 與絲絨光澤。肚子的絎縫、毛氈角、肉墊、腮紅與笑線都畫在靜止空間裡。</p>
+      <p><b>光。</b>主光用 PCSS 算柔和陰影，桌面另有接觸遮蔽，最後用 Khronos PBR Neutral 色調映射；著色器裡的 pow、smoothstep 與後製都夾過範圍，不會冒出 NaN。</p>
+      <p class="quality" id="quality"></p>
+    </section>
+  </aside>
+</div>
+<script>
+'use strict';
+(function(){
+// ───────────────────────── small math ─────────────────────────
+const PI = Math.PI;
+const clamp = (x,a,b)=> x<a?a:x>b?b:x;
+const mix = (a,b,t)=> a+(b-a)*t;
+const sstep = (a,b,x)=>{ const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+function srgbToLin(hex){ const n=parseInt(hex.slice(1),16); return [(n>>16)&255,(n>>8)&255,n&255].map(c=>{ c/=255; return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4); }); }
+function v3(x,y,z){ return [x,y,z]; }
+function sub(a,b){ return [a[0]-b[0],a[1]-b[1],a[2]-b[2]]; }
+function add(a,b){ return [a[0]+b[0],a[1]+b[1],a[2]+b[2]]; }
+function scl(a,s){ return [a[0]*s,a[1]*s,a[2]*s]; }
+function dot(a,b){ return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+function cross(a,b){ return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]; }
+function len(a){ return Math.hypot(a[0],a[1],a[2]); }
+function norm(a){ const l=len(a)||1; return [a[0]/l,a[1]/l,a[2]/l]; }
+// column-major 4×4
+function mat4(){ const m=new Float32Array(16); m[0]=m[5]=m[10]=m[15]=1; return m; }
+function mul4(a,b){ const o=new Float32Array(16); for(let c=0;c<4;c++) for(let r=0;r<4;r++){ let s=0; for(let k=0;k<4;k++) s+=a[k*4+r]*b[c*4+k]; o[c*4+r]=s; } return o; }
+function perspZO(fovy,asp,n,f){ const m=new Float32Array(16), t=1/Math.tan(fovy/2), nf=1/(n-f); m[0]=t/asp; m[5]=t; m[10]=f*nf; m[11]=-1; m[14]=f*n*nf; return m; }
+function orthoZO(l,r,b,t,n,f){ const m=new Float32Array(16); m[0]=2/(r-l); m[5]=2/(t-b); m[10]=1/(n-f); m[12]=(l+r)/(l-r); m[13]=(t+b)/(b-t); m[14]=n/(n-f); m[15]=1; return m; }
+function lookAt(e,c,up){ const z=norm(sub(e,c)), x=norm(cross(up,z)), y=cross(z,x), m=new Float32Array(16);
+  m[0]=x[0];m[4]=x[1];m[8]=x[2]; m[1]=y[0];m[5]=y[1];m[9]=y[2]; m[2]=z[0];m[6]=z[1];m[10]=z[2];
+  m[12]=-dot(x,e); m[13]=-dot(y,e); m[14]=-dot(z,e); m[15]=1; return m; }
+function inv4(a){ const o=new Float32Array(16);
+  const a00=a[0],a01=a[1],a02=a[2],a03=a[3],a10=a[4],a11=a[5],a12=a[6],a13=a[7],a20=a[8],a21=a[9],a22=a[10],a23=a[11],a30=a[12],a31=a[13],a32=a[14],a33=a[15];
+  const b00=a00*a11-a01*a10,b01=a00*a12-a02*a10,b02=a00*a13-a03*a10,b03=a01*a12-a02*a11,b04=a01*a13-a03*a11,b05=a02*a13-a03*a12,b06=a20*a31-a21*a30,b07=a20*a32-a22*a30,b08=a20*a33-a23*a30,b09=a21*a32-a22*a31,b10=a21*a33-a23*a31,b11=a22*a33-a23*a32;
+  let d=b00*b11-b01*b10+b02*b09+b03*b08-b04*b07+b05*b06; if(!d) return mat4(); d=1/d;
+  o[0]=(a11*b11-a12*b10+a13*b09)*d; o[1]=(a02*b10-a01*b11-a03*b09)*d; o[2]=(a31*b05-a32*b04+a33*b03)*d; o[3]=(a22*b04-a21*b05-a23*b03)*d;
+  o[4]=(a12*b08-a10*b11-a13*b07)*d; o[5]=(a00*b11-a02*b08+a03*b07)*d; o[6]=(a32*b02-a30*b05-a33*b01)*d; o[7]=(a20*b05-a22*b02+a23*b01)*d;
+  o[8]=(a10*b10-a11*b08+a13*b06)*d; o[9]=(a01*b08-a00*b10-a03*b06)*d; o[10]=(a30*b04-a31*b02+a33*b00)*d; o[11]=(a21*b02-a20*b04-a23*b00)*d;
+  o[12]=(a11*b07-a10*b09-a12*b06)*d; o[13]=(a00*b09-a01*b07+a02*b06)*d; o[14]=(a31*b01-a30*b03-a32*b00)*d; o[15]=(a20*b03-a21*b01+a22*b00)*d; return o; }
+function xform(m,p){ const x=p[0],y=p[1],z=p[2]; const w=m[3]*x+m[7]*y+m[11]*z+m[15]; return [(m[0]*x+m[4]*y+m[8]*z+m[12])/w,(m[1]*x+m[5]*y+m[9]*z+m[13])/w,(m[2]*x+m[6]*y+m[10]*z+m[14])/w]; }
+// rotation about unit axis
+function rotM(ax,a){ const c=Math.cos(a),s=Math.sin(a),t=1-c,[x,y,z]=ax; return [t*x*x+c,t*x*y+s*z,t*x*z-s*y, t*x*y-s*z,t*y*y+c,t*y*z+s*x, t*x*z+s*y,t*y*z-s*x,t*z*z+c]; } // column-major 3×3
+function m3v(m,v){ return [m[0]*v[0]+m[3]*v[1]+m[6]*v[2], m[1]*v[0]+m[4]*v[1]+m[7]*v[2], m[2]*v[0]+m[5]*v[1]+m[8]*v[2]]; }
+
+// ───────────────────────── the specimen as one SDF ─────────────────────────
+function smin(a,b,k){ const h=Math.max(k-Math.abs(a-b),0)/k; return Math.min(a,b)-h*h*k*0.25; }
+function sdEll(px,py,pz,c,r){ const x=(px-c[0])/r[0],y=(py-c[1])/r[1],z=(pz-c[2])/r[2]; const k0=Math.sqrt(x*x+y*y+z*z); const x1=x/r[0],y1=y/r[1],z1=z/r[2]; const k1=Math.sqrt(x1*x1+y1*y1+z1*z1); return k1<1e-9?-Math.min(r[0],r[1],r[2]):k0*(k0-1)/k1; }
+function sdRC(px,py,pz,a,b,r1,r2){ const bx=b[0]-a[0],by=b[1]-a[1],bz=b[2]-a[2],ax=px-a[0],ay=py-a[1],az=pz-a[2]; let h=(ax*bx+ay*by+az*bz)/(bx*bx+by*by+bz*bz); h=h<0?0:h>1?1:h; const dx=ax-bx*h,dy=ay-by*h,dz=az-bz*h; return Math.sqrt(dx*dx+dy*dy+dz*dz)-(r1+(r2-r1)*h); }
+// point on ellipsoid surface in a direction from its centre (rough, for placing features)
+function onEll(c,r,dir){ const d=norm(dir); const k=1/Math.sqrt((d[0]/r[0])**2+(d[1]/r[1])**2+(d[2]/r[2])**2); return add(c,scl(d,k)); }
+function ellN(c,r,p){ return norm([(p[0]-c[0])/(r[0]*r[0]),(p[1]-c[1])/(r[1]*r[1]),(p[2]-c[2])/(r[2]*r[2])]); }
+
+const BODY={c:[0,0.081,0.0],r:[0.066,0.081,0.060]};
+const BELLY={c:[0,0.071,0.016],r:[0.056,0.060,0.050]};
+const HEAD={c:[0,0.190,0.012],r:[0.074,0.068,0.068]};
+const SNOUT={c:[0,0.166,0.066],r:[0.044,0.032,0.033]};
+const HAUNCH=[[-0.046,0.043,-0.004],[0.046,0.043,-0.004]], HAUNCH_R=0.043;
+const FOOT=[{c:[-0.047,0.020,0.050],r:[0.026,0.020,0.034]},{c:[0.047,0.020,0.050],r:[0.026,0.020,0.034]}];
+const ARMS=[[[-0.052,0.118,0.016],[-0.043,0.084,0.058]],[[0.052,0.118,0.016],[0.043,0.084,0.058]]];
+const HORNS=[[[-0.031,0.236,-0.006],[-0.045,0.283,-0.040]],[[0.031,0.236,-0.006],[0.045,0.283,-0.040]]];
+const EYE_R=0.0125;
+const EYES=[-1,1].map(s=>{ const p=onEll(HEAD.c,HEAD.r,[s*0.034,0.2-HEAD.c[1],0.07-HEAD.c[2]]); const n=ellN(HEAD.c,HEAD.r,p); return add(p,scl(n,-0.0052)); });
+const CLAWS=[]; for(const f of FOOT) for(const dx of [-0.012,0,0.012]){ const s=onEll(f.c,f.r,[dx,-0.004,1]); CLAWS.push(add(s,[0,0,0.001])); }
+// tail centreline: curls from the back round to the right side
+const TAIL=[]; const TAILN=17;
+for(let i=0;i<TAILN;i++){ const t=i/(TAILN-1); const a=PI-t*(PI-1.42); const R=0.042+0.088*sstep(0,0.55,t); const r=0.027-0.0145*t; const y=r+0.022*(1-sstep(0,0.32,t)); TAIL.push({t,p:[R*Math.sin(a),y,R*Math.cos(a)],r}); }
+for(let i=0;i<TAILN;i++){ const a=TAIL[Math.max(0,i-1)].p,b=TAIL[Math.min(TAILN-1,i+1)].p; TAIL[i].T=norm(sub(b,a)); TAIL[i].S=norm(cross(TAIL[i].T,[0,1,0])); }
+const TEND=TAIL[TAILN-1];
+// fang below the smile
+const smileY=x=>0.1505+0.0068*(x/0.021)**2;
+const snoutZ=(x,y)=>{ const q=1-(x/SNOUT.r[0])**2-((y-SNOUT.c[1])/SNOUT.r[1])**2; return SNOUT.c[2]+SNOUT.r[2]*Math.sqrt(Math.max(q,0)); };
+const FANG=[[0.0085,smileY(0.0085)+0.0005,snoutZ(0.0085,smileY(0.0085))-0.0025],[0.0085,smileY(0.0085)-0.0105,snoutZ(0.0085,smileY(0.0085))-0.0005]];
+// spikes: flat felt fins down the head, back and tail
+const SPIKES=[];
+function addSpike(B,N,T,ht,bw){ const S=norm(cross(N,T)); const T2=norm(cross(S,N)); SPIKES.push({B:add(B,scl(N,-0.004)),N,T:T2,S,ht,bw}); }
+for(const phi of [0.26,0.68,1.10,1.52]){ const p=[0,HEAD.c[1]+HEAD.r[1]*Math.cos(phi),HEAD.c[2]-HEAD.r[2]*Math.sin(phi)]; const N=ellN(HEAD.c,HEAD.r,p); addSpike(p,N,[0,-Math.sin(phi),-Math.cos(phi)],0.027-0.0022*phi,0.012); }
+for(const y of [0.146,0.116,0.086]){ const q=1-((y-BODY.c[1])/BODY.r[1])**2; const p=[0,y,-BODY.r[2]*Math.sqrt(Math.max(q,0.02))]; const N=ellN(BODY.c,BODY.r,p); addSpike(p,N,[0,-1,0],0.025,0.0122); }
+for(const t of [0.12,0.27,0.42,0.57,0.72]){ const i=Math.round(t*(TAILN-1)); const k=TAIL[i]; addSpike(add(k.p,[0,k.r*0.86,0]),norm([0,1,0]),k.T,0.022*(1-0.4*t),0.0115*(1-0.3*t)); }
+function sdSpike(px,py,pz,s){ const dx=px-s.B[0],dy=py-s.B[1],dz=pz-s.B[2]; const u=dx*s.T[0]+dy*s.T[1]+dz*s.T[2], v=dx*s.N[0]+dy*s.N[1]+dz*s.N[2], w=dx*s.S[0]+dy*s.S[1]+dz*s.S[2];
+  const h=clamp(v/s.ht,0,1); const d2=Math.hypot(u,v-h*s.ht)-mix(s.bw,0.0012,Math.pow(h,0.8)); const dw=Math.abs(w)-0.0015;
+  return Math.min(Math.max(d2,dw),0)+Math.hypot(Math.max(d2,0),Math.max(dw,0))-0.0012; }
+function sdSpade(px,py,pz){ const k=TEND, dx=px-k.p[0],dy=py-k.p[1],dz=pz-k.p[2]; const u=dx*k.T[0]+dz*k.T[2], v=dx*k.S[0]+dz*k.S[2], w=dy;
+  const lobe=Math.min(Math.hypot(u-0.008,v-0.012),Math.hypot(u-0.008,v+0.012))-0.0145; const hh=clamp((u-0.006)/0.042,0,1); const tip=Math.hypot(u-0.006-hh*0.042,v)-mix(0.02,0.0015,hh);
+  const d2=smin(lobe,tip,0.008); const dw=Math.abs(w)-0.003; return Math.min(Math.max(d2,dw),0)+Math.hypot(Math.max(d2,0),Math.max(dw,0))-0.0038; }
+let TT=0;
+for(let i=0;i<TAILN-1;i++){ const a=TAIL[i],b=TAIL[i+1]; a.M=scl(add(a.p,b.p),0.5); a.BR=len(sub(b.p,a.p))*0.5+a.r; }
+function sdTail(px,py,pz){ let d=1e9,bt=0; for(let i=0;i<TAILN-1;i++){ const a=TAIL[i]; const bd=Math.hypot(px-a.M[0],py-a.M[1],pz-a.M[2])-a.BR; if(bd>d) continue; const b=TAIL[i+1];
+    const bx=b.p[0]-a.p[0],by=b.p[1]-a.p[1],bz=b.p[2]-a.p[2],ax=px-a.p[0],ay=py-a.p[1],az=pz-a.p[2]; let h=(ax*bx+ay*by+az*bz)/(bx*bx+by*by+bz*bz); h=h<0?0:h>1?1:h; const dx=ax-bx*h,dy=ay-by*h,dz=az-bz*h; const e=Math.sqrt(dx*dx+dy*dy+dz*dz)-(a.r+(b.r-a.r)*h);
+    if(e<d){d=e;bt=a.t+(b.t-a.t)*h;} } TT=bt; return d; }
+const SPADE_C=add(TEND.p,scl(TEND.T,0.022));
+for(const s of SPIKES){ s.C=add(s.B,scl(s.N,s.ht*0.5)); s.R=Math.hypot(s.ht*0.5,s.bw)+0.006; }
+function spikeD(px,py,pz,s){ const b=Math.hypot(px-s.C[0],py-s.C[1],pz-s.C[2])-s.R; return b>0.004?b:sdSpike(px,py,pz,s); }
+const TAIL_C=[0.03,0.02,-0.01]; let TAIL_RB=0; for(const k of TAIL) TAIL_RB=Math.max(TAIL_RB,len(sub(k.p,TAIL_C))+k.r+0.025); TAIL_RB=Math.max(TAIL_RB,len(sub(TEND.p,TAIL_C))+0.05);
+// component distances: returns the smooth union; parts used for material and lattice labels
+function sdfParts(px,py,pz,out){
+  let core=sdEll(px,py,pz,BODY.c,BODY.r);
+  core=smin(core,sdEll(px,py,pz,BELLY.c,BELLY.r),0.03);
+  core=smin(core,Math.hypot(px-HAUNCH[0][0],py-HAUNCH[0][1],pz-HAUNCH[0][2])-HAUNCH_R,0.03);
+  core=smin(core,Math.hypot(px-HAUNCH[1][0],py-HAUNCH[1][1],pz-HAUNCH[1][2])-HAUNCH_R,0.03);
+  core=smin(core,sdRC(px,py,pz,ARMS[0][0],ARMS[0][1],0.019,0.0155),0.014);
+  core=smin(core,sdRC(px,py,pz,ARMS[1][0],ARMS[1][1],0.019,0.0155),0.014);
+  let head=sdEll(px,py,pz,HEAD.c,HEAD.r); head=smin(head,sdEll(px,py,pz,SNOUT.c,SNOUT.r),0.022);
+  core=smin(core,head,0.036);
+  const feet=Math.min(sdEll(px,py,pz,FOOT[0].c,FOOT[0].r),sdEll(px,py,pz,FOOT[1].c,FOOT[1].r));
+  const body=smin(core,feet,0.014);
+  const horn=Math.min(sdRC(px,py,pz,HORNS[0][0],HORNS[0][1],0.0135,0.0052),sdRC(px,py,pz,HORNS[1][0],HORNS[1][1],0.0135,0.0052));
+  let spike=1e9, tailSpike=1e9;
+  for(let i=0;i<SPIKES.length;i++){ const d=spikeD(px,py,pz,SPIKES[i]); if(i<7){ if(d<spike) spike=d; } else if(d<tailSpike) tailSpike=d; }
+  let tail; const tb=Math.hypot(px-TAIL_C[0],py-TAIL_C[1],pz-TAIL_C[2])-TAIL_RB;
+  let tailBase; if(tb>0.03){ tail=tailBase=tb; TT=0; } else { tail=sdTail(px,py,pz); const sb=Math.hypot(px-SPADE_C[0],py-SPADE_C[1],pz-SPADE_C[2])-0.05; const sp=sb>0.015?sb:sdSpade(px,py,pz); tail=smin(tail,sp,0.012); tailBase=tail; tail=smin(tail,tailSpike,0.004); }
+  let eye=Math.min(Math.hypot(px-EYES[0][0],py-EYES[0][1],pz-EYES[0][2]),Math.hypot(px-EYES[1][0],py-EYES[1][1],pz-EYES[1][2]))-EYE_R;
+  let claw=1e9; for(let i=0;i<CLAWS.length;i++){ const c=CLAWS[i]; const d=Math.hypot(px-c[0],py-c[1],pz-c[2])-0.0058; if(d<claw) claw=d; }
+  const fang=sdRC(px,py,pz,FANG[0],FANG[1],0.0042,0.0011);
+  let d=smin(body,horn,0.008); d=smin(d,spike,0.004); d=smin(d,tail,mix(0.02,0.003,sstep(0.08,0.24,TT)));
+  d=Math.min(d,eye); d=smin(d,claw,0.003); d=smin(d,fang,0.0015);
+  if(out){ out.core=core; out.body=body; out.feet=feet; out.horn=horn; out.spike=spike; out.tailSpike=tailSpike; out.tail=tailBase; out.tt=TT; out.eye=eye; out.claw=claw; out.fang=fang; out.head=head; }
+  return d;
+}
+const sdf=(x,y,z)=>sdfParts(x,y,z,null);
+// material codes: 0 minky, 2 felt (wing colour), 3 foot, 4 eye, 5 white felt
+function matAt(p){ const o={}; sdfParts(p[0],p[1],p[2],o);
+  const c=[[o.eye,4],[o.claw-0.0008,5],[o.fang-0.0008,5],[o.horn,2],[Math.min(o.spike,o.tailSpike)+0.0004,2],[o.feet-0.001,3],[Math.min(o.core,o.tail),0]];
+  c.sort((a,b)=>a[0]-b[0]); return c[0][1]; }
+function partAt(p){ const o={}; sdfParts(p[0],p[1],p[2],o); const restMin=Math.min(o.body,o.horn,o.spike,o.eye,o.claw,o.fang); return (Math.min(o.tail,o.tailSpike)<restMin)?{tail:true,t:o.tt}:{tail:false,t:0}; }
+
+// ───────────────────────── mesh: surface nets ─────────────────────────
+function buildMesh(){
+  const S=0.0026, B0=[-0.112,-0.006,-0.172], B1=[0.172,0.300,0.128];
+  const nx=Math.ceil((B1[0]-B0[0])/S)+1, ny=Math.ceil((B1[1]-B0[1])/S)+1, nz=Math.ceil((B1[2]-B0[2])/S)+1;
+  const F=new Float32Array(nx*ny*nz); const id=(i,j,k)=>i+nx*(j+ny*k);
+  const BS=4, cbx=Math.ceil(nx/BS), cby=Math.ceil(ny/BS), cbz=Math.ceil(nz/BS), reach=BS*S*0.87*1.25;
+  for(let bk=0;bk<cbz;bk++) for(let bj=0;bj<cby;bj++) for(let bi=0;bi<cbx;bi++){
+    const cx=B0[0]+(bi*BS+BS/2)*S, cy=B0[1]+(bj*BS+BS/2)*S, cz=B0[2]+(bk*BS+BS/2)*S; const dc=sdf(cx,cy,cz);
+    for(let k=bk*BS;k<Math.min(nz,bk*BS+BS);k++) for(let j=bj*BS;j<Math.min(ny,bj*BS+BS);j++) for(let i=bi*BS;i<Math.min(nx,bi*BS+BS);i++)
+      F[id(i,j,k)] = Math.abs(dc)>reach ? dc : sdf(B0[0]+i*S,B0[1]+j*S,B0[2]+k*S);
+  }
+  const vmap=new Int32Array((nx-1)*(ny-1)*(nz-1)).fill(-1); const cid=(i,j,k)=>i+(nx-1)*(j+(ny-1)*k);
+  const P=[]; const E=[[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]];
+  const cv=new Float32Array(8);
+  for(let k=0;k<nz-1;k++) for(let j=0;j<ny-1;j++) for(let i=0;i<nx-1;i++){
+    let m=0; for(let c=0;c<8;c++){ const v=F[id(i+(c&1),j+((c>>1)&1),k+((c>>2)&1))]; cv[c]=v; if(v<0) m|=1<<c; }
+    if(m===0||m===255) continue; let sx=0,sy=0,sz=0,n=0;
+    for(const [a,b] of E){ const va=cv[a],vb=cv[b]; if((va<0)===(vb<0)) continue; const t=va/(va-vb);
+      sx+=(a&1)+(((b&1)-(a&1))*t); sy+=((a>>1)&1)+((((b>>1)&1)-((a>>1)&1))*t); sz+=((a>>2)&1)+((((b>>2)&1)-((a>>2)&1))*t); n++; }
+    vmap[cid(i,j,k)]=P.length/3; P.push(B0[0]+(i+sx/n)*S,B0[1]+(j+sy/n)*S,B0[2]+(k+sz/n)*S);
+  }
+  const nv=P.length/3, N=new Float32Array(nv*3), e=0.0006;
+  for(let v=0;v<nv;v++){ const x=P[v*3],y=P[v*3+1],z=P[v*3+2]; const a=sdf(x+e,y-e,z-e),b=sdf(x-e,y-e,z+e),c=sdf(x-e,y+e,z-e),d=sdf(x+e,y+e,z+e);
+    const g=norm([a-b-c+d,-a-b+c+d,-a+b-c+d]); N[v*3]=g[0];N[v*3+1]=g[1];N[v*3+2]=g[2]; }
+  const I=[];
+  const quad=(a,b,c,d)=>{ if(a<0||b<0||c<0||d<0) return;
+    const pa=[P[a*3],P[a*3+1],P[a*3+2]],pb=[P[b*3],P[b*3+1],P[b*3+2]],pc=[P[c*3],P[c*3+1],P[c*3+2]],pd=[P[d*3],P[d*3+1],P[d*3+2]];
+    const fn=cross(sub(pc,pa),sub(pd,pb)); const vn=[N[a*3]+N[c*3],N[a*3+1]+N[c*3+1],N[a*3+2]+N[c*3+2]];
+    if(dot(fn,vn)<0){ [b,d]=[d,b]; }
+    if(len(sub(pa,pc))<len(sub(pb,pd))) I.push(a,b,c, a,c,d); else I.push(a,b,d, b,c,d); };
+  for(let k=1;k<nz-1;k++) for(let j=1;j<ny-1;j++) for(let i=1;i<nx-1;i++){
+    const v0=F[id(i,j,k)]<0;
+    if(i<nx-1 && v0!==(F[id(i+1,j,k)]<0)) quad(vmap[cid(i,j-1,k-1)],vmap[cid(i,j,k-1)],vmap[cid(i,j,k)],vmap[cid(i,j-1,k)]);
+    if(j<ny-1 && v0!==(F[id(i,j+1,k)]<0)) quad(vmap[cid(i-1,j,k-1)],vmap[cid(i-1,j,k)],vmap[cid(i,j,k)],vmap[cid(i,j,k-1)]);
+    if(k<nz-1 && v0!==(F[id(i,j,k+1)]<0)) quad(vmap[cid(i-1,j-1,k)],vmap[cid(i,j-1,k)],vmap[cid(i,j,k)],vmap[cid(i-1,j,k)]);
+  }
+  const M=new Uint8Array(nv); for(let v=0;v<nv;v++) M[v]=matAt([P[v*3],P[v*3+1],P[v*3+2]]);
+  return {P:new Float32Array(P),N,I:new Uint32Array(I),M,nv};
+}
+
+// ───────────────────────── lattice ─────────────────────────
+const H=0.021, LO=[-0.126,0,-0.189];
+function buildLattice(mesh){
+  const LX=Math.ceil((0.19-LO[0])/H), LY=Math.ceil((0.31-LO[1])/H), LZ=Math.ceil((0.14-LO[2])/H);
+  const cellAt=new Int32Array(LX*LY*LZ).fill(-1); const cid=(i,j,k)=>i+LX*(j+LY*k);
+  const cells=[];
+  for(let k=0;k<LZ;k++) for(let j=0;j<LY;j++) for(let i=0;i<LX;i++){
+    const c=[LO[0]+(i+0.5)*H,LO[1]+(j+0.5)*H,LO[2]+(k+0.5)*H]; if(sdf(c[0],c[1],c[2])<H*0.56){ cellAt[cid(i,j,k)]=cells.length; const pa=partAt(c); cells.push({i,j,k,c,tail:pa.tail,t:pa.t}); } }
+  const C=cells.length; const parent=new Int32Array(C*8); for(let s=0;s<C*8;s++) parent[s]=s;
+  const find=s=>{ while(parent[s]!==s){ parent[s]=parent[parent[s]]; s=parent[s]; } return s; };
+  const compat=(a,b)=> (a.tail===b.tail) || (a.tail? a.t<0.2 : b.t<0.2);
+  const corners=new Map();
+  cells.forEach((cl,ci)=>{ for(let c=0;c<8;c++){ const key=(cl.i+(c&1))+','+(cl.j+((c>>1)&1))+','+(cl.k+((c>>2)&1)); let L=corners.get(key); if(!L){L=[];corners.set(key,L);} L.push(ci*8+c); } });
+  for(const L of corners.values()) for(let a=0;a<L.length;a++) for(let b=a+1;b<L.length;b++){ if(compat(cells[L[a]>>3],cells[L[b]>>3])){ const ra=find(L[a]),rb=find(L[b]); if(ra!==rb) parent[ra]=rb; } }
+  const pid=new Map(); const X=[]; const corner=new Uint32Array(C*8); const pTail=[]; const pT=[];
+  for(let s=0;s<C*8;s++){ const r=find(s); let p=pid.get(r); const cl=cells[s>>3], c=s&7;
+    if(p===undefined){ p=X.length/3; pid.set(r,p); X.push(LO[0]+(cl.i+(c&1))*H,LO[1]+(cl.j+((c>>1)&1))*H,LO[2]+(cl.k+((c>>2)&1))*H); pTail.push(cl.tail?1:0); pT.push(cl.t); }
+    corner[s]=p; }
+  // embed mesh vertices
+  const nv=mesh.nv, vCell=new Uint32Array(nv), vLoc=new Float32Array(nv*3);
+  for(let v=0;v<nv;v++){ const p=[mesh.P[v*3],mesh.P[v*3+1],mesh.P[v*3+2]]; const e=embedPoint(p,cellAt,cells,LX,LY,LZ,cid, partAt(p).tail); vCell[v]=e.cell; vLoc.set(e.loc,v*3); }
+  return {C,cells,corner,X:new Float32Array(X),np:X.length/3,cellAt,LX,LY,LZ,cid,vCell,vLoc,pTail:Uint8Array.from(pTail),pT:Float32Array.from(pT)};
+}
+function embedPoint(p,cellAt,cells,LX,LY,LZ,cid,wantTail){
+  const fi=(p[0]-LO[0])/H, fj=(p[1]-LO[1])/H, fk=(p[2]-LO[2])/H; const i0=Math.floor(fi),j0=Math.floor(fj),k0=Math.floor(fk);
+  let best=-1,bd=1e9;
+  for(let dk=-1;dk<=1;dk++) for(let dj=-1;dj<=1;dj++) for(let di=-1;di<=1;di++){ const i=i0+di,j=j0+dj,k=k0+dk; if(i<0||j<0||k<0||i>=LX||j>=LY||k>=LZ) continue; const c=cellAt[cid(i,j,k)]; if(c<0) continue;
+    const cl=cells[c]; let d=Math.hypot(p[0]-cl.c[0],p[1]-cl.c[1],p[2]-cl.c[2]); if(wantTail!==undefined && cl.tail!==wantTail) d+=H*1.5; if(d<bd){bd=d;best=c;} }
+  if(best<0) best=0; const cl=cells[best];
+  return {cell:best,loc:[clamp(fi-cl.i,-0.7,1.7),clamp(fj-cl.j,-0.7,1.7),clamp(fk-cl.k,-0.7,1.7)]};
+}
+
+// ───────────────────────── soft body (XPBD on the hex lattice) ─────────────────────────
+const SUB=6, DT=1/60, SDT=DT/SUB, G=9.81;
+// five tetrahedra per hex, oriented so every one has positive rest volume
+const TETS=(()=>{ const c=k=>[k&1,(k>>1)&1,(k>>2)&1]; const raw=[[0,1,2,4],[3,1,7,2],[5,1,4,7],[6,2,7,4],[1,2,4,7]];
+  return raw.map(t=>{ const [a,b,cc,d]=t.map(c); const v=dot(sub(b,a),cross(sub(cc,a),sub(d,a))); return v<0?[t[0],t[2],t[1],t[3]]:t; }); })();
+const PAL={
+  mint:{body:'#9fd6bf',belly:'#eef2df',wing:'#b7a3d9',cheek:'#f1a2a0',thread:'#3b2b36',felt:'#f6efe2',sole:'#e9e1ee',ui:'#b9a6db',uiInk:'#262030'},
+  ember:{body:'#ee8a70',belly:'#fbe1cb',wing:'#e3b048',cheek:'#df5b5f',thread:'#4a2018',felt:'#fbf1df',sole:'#f7d9b8',ui:'#e2b14c',uiInk:'#2e2210'},
+  dusk:{body:'#b3a2d6',belly:'#f0e7f0',wing:'#efa4bd',cheek:'#ec8aa3',thread:'#2c2140',felt:'#f8eef1',sole:'#f5d9e3',ui:'#eda6bc',uiInk:'#33202a'}
+};
+const S={ // tweakables
+  stuffing:0.55, pile:0.0052, beat:3.2, palette:'mint', tool:'hand', stretch:false,
+  shells:24, quality:2
+};
+let mesh, lat;
+const sim={};
+function buildSim(){
+  const np=lat.np, C=lat.C;
+  sim.np=np; sim.C=C;
+  sim.x=Float32Array.from(lat.X); sim.prev=Float32Array.from(lat.X); sim.v=new Float32Array(np*3); sim.lag=new Float32Array(np*4); sim.lagV=new Float32Array(np*3); sim.vOld=new Float32Array(np*3);
+  const pm=new Float32Array(np), cw=new Float32Array(C), inc=new Uint8Array(np);
+  for(let c=0;c<C;c++){ const cl=lat.cells[c]; cw[c]= (!cl.tail && cl.c[1]<0.05) ? 3.4 : 1; for(let k=0;k<8;k++){ pm[lat.corner[c*8+k]]+=cw[c]/8; inc[lat.corner[c*8+k]]++; } }
+  sim.pmRel=pm; sim.inc=inc; sim.mass=new Float32Array(np); sim.w=new Float32Array(np);
+  setMass();
+  // rest centroid (mass-weighted) and offsets per cell
+  sim.q0=new Float32Array(C*24); sim.q=new Float32Array(C*24); sim.quat=new Float32Array(C*4); sim.vol0=new Float32Array(C); sim.volT=new Float32Array(C);
+  sim.breath=new Float32Array(C); sim.tailS=new Float32Array(C); sim.tailT=new Float32Array(C).fill(-1); sim.tailTan=new Float32Array(C*3); sim.head=new Float32Array(np);
+  for(let c=0;c<C;c++){ let mx=0,my=0,mz=0,M=0; for(let k=0;k<8;k++){ const p=lat.corner[c*8+k]; const m=pm[p]; mx+=m*lat.X[p*3]; my+=m*lat.X[p*3+1]; mz+=m*lat.X[p*3+2]; M+=m; }
+    mx/=M; my/=M; mz/=M; for(let k=0;k<8;k++){ const p=lat.corner[c*8+k]; sim.q0[c*24+k*3]=lat.X[p*3]-mx; sim.q0[c*24+k*3+1]=lat.X[p*3+1]-my; sim.q0[c*24+k*3+2]=lat.X[p*3+2]-mz; }
+    sim.quat[c*4+3]=1; sim.vol0[c]=H*H*H;
+    const cl=lat.cells[c], cc=cl.c;
+    if(!cl.tail){ sim.breath[c]=sstep(0.0,0.03,cc[2]+0.02)*sstep(0.02,0.05,cc[1])*(1-sstep(0.12,0.15,cc[1])); }
+    else { const i=clamp(Math.round(cl.t*(TAILN-1)),0,TAILN-1), k=TAIL[i]; sim.tailT[c]=cl.t; sim.tailTan.set(k.T,c*3); sim.tailS[c]=clamp(dot(sub(cc,k.p),k.S)/Math.max(k.r,0.008),-1,1); }
+  }
+  sim.q.set(sim.q0); sim.volT.set(sim.vol0);
+  for(let p=0;p<np;p++) sim.head[p]=sstep(0.15,0.2,lat.X[p*3+1])*(lat.pTail[p]?0:1);
+  // global rest centroid for rotation tracking
+  let M=0; sim.c0=[0,0,0]; for(let p=0;p<np;p++){ const m=pm[p]; M+=m; for(let a=0;a<3;a++) sim.c0[a]+=m*lat.X[p*3+a]; } sim.c0=scl(sim.c0,1/M);
+  sim.gq=[0,0,0,1]; sim.R=[1,0,0,0,1,0,0,0,1];
+  // clusters for contact shadows and colliders
+  const anchors=[[0,0.19,0.01,0],[0,0.166,0.06,0],[0,0.12,0.015,0],[0,0.07,0.03,0],[0,0.09,-0.035,0],[-0.046,0.042,0,0],[0.046,0.042,0,0],[-0.047,0.02,0.05,0],[0.047,0.02,0.05,0],[0,0.24,-0.02,0],[-0.045,0.1,0.04,0],[0.045,0.1,0.04,0]];
+  for(const t of [0.15,0.38,0.62,0.86]){ const k=TAIL[Math.round(t*(TAILN-1))]; anchors.push([k.p[0],k.p[1],k.p[2],1]); }
+  sim.cl=new Int8Array(np); sim.ncl=anchors.length;
+  for(let p=0;p<np;p++){ let bi=0,bd=1e9; anchors.forEach((a,i)=>{ if((a[3]===1)!==(lat.pTail[p]===1)) return; const d=Math.hypot(lat.X[p*3]-a[0],lat.X[p*3+1]-a[1],lat.X[p*3+2]-a[2]); if(d<bd){bd=d;bi=i;} }); sim.cl[p]=bi; }
+  sim.clC=new Float32Array(sim.ncl*3); sim.clR=new Float32Array(sim.ncl); sim.clTail=anchors.map(a=>a[3]);
+  { const cnt=new Float32Array(sim.ncl), acc=new Float32Array(sim.ncl*3); for(let p=0;p<np;p++){ const c=sim.cl[p]; cnt[c]++; for(let a=0;a<3;a++) acc[c*3+a]+=lat.X[p*3+a]; }
+    const r2=new Float32Array(sim.ncl); for(let p=0;p<np;p++){ const c=sim.cl[p]; let d=0; for(let a=0;a<3;a++){ const e=lat.X[p*3+a]-acc[c*3+a]/cnt[c]; d+=e*e; } r2[c]+=d; }
+    for(let c=0;c<sim.ncl;c++){ sim.clR[c]=cnt[c]?Math.sqrt(r2[c]/cnt[c]*5/3)*0.8:0.001; } }
+  sim.surf=[]; for(let p=0;p<np;p++) if(inc[p]<8) sim.surf.push(p);
+  // tail-vs-body collision pairs, thresholds no larger than the rest distance so nothing pushes at rest
+  { const clC0=new Float32Array(sim.ncl*3), cnt=new Float32Array(sim.ncl); for(let p=0;p<np;p++){ const c=sim.cl[p]; cnt[c]++; for(let a=0;a<3;a++) clC0[c*3+a]+=lat.X[p*3+a]; } for(let c=0;c<sim.ncl;c++) for(let a=0;a<3;a++) clC0[c*3+a]/=Math.max(cnt[c],1);
+    const tc=[]; for(let p=0;p<np;p++){ if(!lat.pTail[p]||lat.pT[p]<0.25) continue; for(let c=0;c<sim.ncl;c++){ if(sim.clTail[c]) continue; const d=Math.hypot(lat.X[p*3]-clC0[c*3],lat.X[p*3+1]-clC0[c*3+1],lat.X[p*3+2]-clC0[c*3+2]); const r=Math.min(sim.clR[c]+0.004,d*0.97); if(d<sim.clR[c]+0.04) tc.push(p,c,r); } }
+    sim.tailCol=Float32Array.from(tc); }
+  sim.grab=null; sim.finger=null; sim.hover=0; sim.flapT=0; sim.flapPh=0; sim.wagPh=0; sim.breathPh=0; sim.happy=0; sim.flare=0; sim.tickle=0; sim.sneeze=0;
+  sim.com=[...sim.c0]; sim.comV=[0,0,0]; sim.lift=0; sim.time=0; sim.air=0; sim.assist=0;
+}
+function setMass(){ const total=0.22+0.16*S.stuffing; let sum=0; for(let p=0;p<sim.np;p++) sum+=sim.pmRel[p];
+  for(let p=0;p<sim.np;p++){ sim.mass[p]=sim.pmRel[p]/sum*total; sim.w[p]=1/sim.mass[p]; } sim.total=total; }
+function resetSim(){ sim.x.set(lat.X); sim.prev.set(lat.X); sim.v.fill(0); sim.lag.fill(0); sim.lagV.fill(0); sim.vOld.fill(0); sim.quat.fill(0); for(let c=0;c<sim.C;c++) sim.quat[c*4+3]=1; sim.gq=[0,0,0,1];
+  sim.grab=null; sim.flapT=0; sim.happy=0; sim.flare=0; sim.sneeze=0; resetWings(); }
+
+// rotation part of A (column-major 3×3) by quaternion iteration (Müller et al. 2016), warm-started
+function extractRot(A,q,qo,iters){ let qx=q[qo],qy=q[qo+1],qz=q[qo+2],qw=q[qo+3];
+  for(let it=0;it<iters;it++){
+    const xx=qx*qx,yy=qy*qy,zz=qz*qz,xy=qx*qy,xz=qx*qz,yz=qy*qz,wx=qw*qx,wy=qw*qy,wz=qw*qz;
+    const r0x=1-2*(yy+zz), r0y=2*(xy+wz), r0z=2*(xz-wy), r1x=2*(xy-wz), r1y=1-2*(xx+zz), r1z=2*(yz+wx), r2x=2*(xz+wy), r2y=2*(yz-wx), r2z=1-2*(xx+yy);
+    const ox=(r0y*A[2]-r0z*A[1])+(r1y*A[5]-r1z*A[4])+(r2y*A[8]-r2z*A[7]);
+    const oy=(r0z*A[0]-r0x*A[2])+(r1z*A[3]-r1x*A[5])+(r2z*A[6]-r2x*A[8]);
+    const oz=(r0x*A[1]-r0y*A[0])+(r1x*A[4]-r1y*A[3])+(r2x*A[7]-r2y*A[6]);
+    const den=Math.abs(r0x*A[0]+r0y*A[1]+r0z*A[2]+r1x*A[3]+r1y*A[4]+r1z*A[5]+r2x*A[6]+r2y*A[7]+r2z*A[8])+1e-9;
+    let wx2=ox/den, wy2=oy/den, wz2=oz/den; const w=Math.hypot(wx2,wy2,wz2); if(w<1e-9) break;
+    const ha=Math.min(w,1.2)*0.5, s=Math.sin(ha)/w, cx=wx2*s, cy=wy2*s, cz=wz2*s, cw=Math.cos(ha);
+    const nx=cw*qx+cx*qw+cy*qz-cz*qy, ny=cw*qy-cx*qz+cy*qw+cz*qx, nz=cw*qz+cx*qy-cy*qx+cz*qw, nw=cw*qw-cx*qx-cy*qy-cz*qz;
+    const l=1/Math.hypot(nx,ny,nz,nw); qx=nx*l; qy=ny*l; qz=nz*l; qw=nw*l; }
+  q[qo]=qx;q[qo+1]=qy;q[qo+2]=qz;q[qo+3]=qw; }
+function quatMat(q,o,R){ const qx=q[o],qy=q[o+1],qz=q[o+2],qw=q[o+3]; const xx=qx*qx,yy=qy*qy,zz=qz*qz,xy=qx*qy,xz=qx*qz,yz=qy*qz,wx=qw*qx,wy=qw*qy,wz=qw*qz;
+  R[0]=1-2*(yy+zz);R[1]=2*(xy+wz);R[2]=2*(xz-wy);R[3]=2*(xy-wz);R[4]=1-2*(xx+zz);R[5]=2*(yz+wx);R[6]=2*(xz+wy);R[7]=2*(yz-wx);R[8]=1-2*(xx+yy); }
+
+// muscles: rest shapes and rest volumes change, no external force
+function updateMuscles(){
+  const C=sim.C, b=sim.breathAmp*Math.sin(sim.breathPh), wagA=sim.wagAmp, ph=sim.wagPh; const pres=0.94+0.12*S.stuffing;
+  for(let c=0;c<C;c++){ const o=c*24;
+    if(sim.tailT[c]>=0){ const t=sim.tailT[c]; const s=1+wagA*sim.tailS[c]*Math.sin(ph-t*5.5)*sstep(0.06,0.3,t); const tx=sim.tailTan[c*3],ty=sim.tailTan[c*3+1],tz=sim.tailTan[c*3+2];
+      for(let k=0;k<8;k++){ const qx=sim.q0[o+k*3],qy=sim.q0[o+k*3+1],qz=sim.q0[o+k*3+2]; const d=(qx*tx+qy*ty+qz*tz)*(s-1); sim.q[o+k*3]=qx+tx*d; sim.q[o+k*3+1]=qy+ty*d; sim.q[o+k*3+2]=qz+tz*d; }
+      sim.volT[c]=sim.vol0[c]*s*pres; }
+    else { const g=1+b*sim.breath[c]; for(let k=0;k<24;k++) sim.q[o+k]=sim.q0[o+k]*g; sim.volT[c]=sim.vol0[c]*g*g*g*pres; }
+  }
+}
+const _A=new Float64Array(9), _R=new Float64Array(9), _g=new Float64Array(24);
+function solveCells(kShape,alphaVol){
+  const C=sim.C, x=sim.x, w=sim.w, m=sim.mass, cor=lat.corner, q=sim.q;
+  for(let c=0;c<C;c++){ const o=c*8, qo=c*24;
+    let cx=0,cy=0,cz=0,M=0; for(let k=0;k<8;k++){ const p=cor[o+k]*3, mk=m[cor[o+k]]; cx+=mk*x[p]; cy+=mk*x[p+1]; cz+=mk*x[p+2]; M+=mk; } cx/=M; cy/=M; cz/=M;
+    _A.fill(0);
+    for(let k=0;k<8;k++){ const pi=cor[o+k], p=pi*3, mk=m[pi]; const dx=(x[p]-cx)*mk, dy=(x[p+1]-cy)*mk, dz=(x[p+2]-cz)*mk; const a=q[qo+k*3],b=q[qo+k*3+1],cc=q[qo+k*3+2];
+      _A[0]+=dx*a;_A[1]+=dy*a;_A[2]+=dz*a; _A[3]+=dx*b;_A[4]+=dy*b;_A[5]+=dz*b; _A[6]+=dx*cc;_A[7]+=dy*cc;_A[8]+=dz*cc; }
+    extractRot(_A,sim.quat,c*4,3); quatMat(sim.quat,c*4,_R);
+    for(let k=0;k<8;k++){ const pi=cor[o+k], p=pi*3; if(w[pi]===0) continue; const a=q[qo+k*3],b=q[qo+k*3+1],cc=q[qo+k*3+2];
+      const gx=cx+_R[0]*a+_R[3]*b+_R[6]*cc, gy=cy+_R[1]*a+_R[4]*b+_R[7]*cc, gz=cz+_R[2]*a+_R[5]*b+_R[8]*cc;
+      x[p]+=(gx-x[p])*kShape; x[p+1]+=(gy-x[p+1])*kShape; x[p+2]+=(gz-x[p+2])*kShape; }
+    // volume: the hex as five tetrahedra, one XPBD constraint
+    _g.fill(0); let V=0;
+    for(let t=0;t<5;t++){ const T=TETS[t]; const a=cor[o+T[0]]*3,b=cor[o+T[1]]*3,cc=cor[o+T[2]]*3,d=cor[o+T[3]]*3;
+      const e1x=x[b]-x[a],e1y=x[b+1]-x[a+1],e1z=x[b+2]-x[a+2], e2x=x[cc]-x[a],e2y=x[cc+1]-x[a+1],e2z=x[cc+2]-x[a+2], e3x=x[d]-x[a],e3y=x[d+1]-x[a+1],e3z=x[d+2]-x[a+2];
+      const c23x=e2y*e3z-e2z*e3y,c23y=e2z*e3x-e2x*e3z,c23z=e2x*e3y-e2y*e3x; const c31x=e3y*e1z-e3z*e1y,c31y=e3z*e1x-e3x*e1z,c31z=e3x*e1y-e3y*e1x; const c12x=e1y*e2z-e1z*e2y,c12y=e1z*e2x-e1x*e2z,c12z=e1x*e2y-e1y*e2x;
+      V+=(e1x*c23x+e1y*c23y+e1z*c23z)/6;
+      const ib=T[1]*3,ic=T[2]*3,id=T[3]*3,ia=T[0]*3;
+      _g[ib]+=c23x/6;_g[ib+1]+=c23y/6;_g[ib+2]+=c23z/6; _g[ic]+=c31x/6;_g[ic+1]+=c31y/6;_g[ic+2]+=c31z/6; _g[id]+=c12x/6;_g[id+1]+=c12y/6;_g[id+2]+=c12z/6;
+      _g[ia]-=(c23x+c31x+c12x)/6;_g[ia+1]-=(c23y+c31y+c12y)/6;_g[ia+2]-=(c23z+c31z+c12z)/6; }
+    const Cv=V-sim.volT[c]; let den=0; for(let k=0;k<8;k++){ const wi=w[cor[o+k]]; den+=wi*(_g[k*3]*_g[k*3]+_g[k*3+1]*_g[k*3+1]+_g[k*3+2]*_g[k*3+2]); }
+    const dl=-Cv/(den+alphaVol/(SDT*SDT)); if(!isFinite(dl)) continue;
+    for(let k=0;k<8;k++){ const pi=cor[o+k], p=pi*3, wi=w[pi]*dl; x[p]+=_g[k*3]*wi; x[p+1]+=_g[k*3+1]*wi; x[p+2]+=_g[k*3+2]*wi; }
+  }
+}
+function bodySubstep(extAy, hold){
+  const np=sim.np, x=sim.x, pv=sim.prev, v=sim.v;
+  const ay=-G+extAy;
+  for(let i=0;i<np;i++){ const p=i*3; v[p+1]+=ay*SDT; if(hold){ v[p]+=hold[0]*SDT; v[p+2]+=hold[2]*SDT; } pv[p]=x[p];pv[p+1]=x[p+1];pv[p+2]=x[p+2]; x[p]+=v[p]*SDT; x[p+1]+=v[p+1]*SDT; x[p+2]+=v[p+2]*SDT; }
+  // hand: pull a patch of particles toward the cursor
+  if(sim.grab && sim.grab.kind==='body'){ const g=sim.grab; for(let j=0;j<g.ids.length;j++){ const p=g.ids[j]*3, k=g.wt[j]*0.35; x[p]+=(g.tgt[0]+g.off[j*3]-x[p])*k; x[p+1]+=(g.tgt[1]+g.off[j*3+1]-x[p+1])*k; x[p+2]+=(g.tgt[2]+g.off[j*3+2]-x[p+2])*k; } }
+  // towing: a wing pulled past its slack drags the shoulder
+  if(sim.tow){ const t=sim.tow; for(let j=0;j<t.ids.length;j++){ const p=t.ids[j]*3, k=t.wt[j]; x[p]+=t.d[0]*k; x[p+1]+=t.d[1]*k; x[p+2]+=t.d[2]*k; } }
+  const kShape=0.32+0.5*S.stuffing, aVol=(1-S.stuffing)*2e-11+1e-12;
+  solveCells(kShape,aVol);
+  // finger: capsule pushes particles out
+  if(sim.finger && sim.finger.press>0.02){ const f=sim.finger, A=f.tip, B=f.back, R=0.0095+0.008;
+    const bx=B[0]-A[0],by=B[1]-A[1],bz=B[2]-A[2], bb=bx*bx+by*by+bz*bz;
+    for(let i=0;i<np;i++){ const p=i*3; const ax=x[p]-A[0],ay2=x[p+1]-A[1],az=x[p+2]-A[2]; let h=(ax*bx+ay2*by+az*bz)/bb; h=h<0?0:h>1?1:h; const dx=ax-bx*h,dy=ay2-by*h,dz=az-bz*h; const d=Math.hypot(dx,dy,dz);
+      if(d<R && d>1e-6){ const s=(R-d)/d*0.6; x[p]+=dx*s; x[p+1]+=dy*s; x[p+2]+=dz*s; } } }
+  // tail and body are not stitched together past the root: keep the tail out of the haunches
+  const tc=sim.tailCol;
+  for(let j=0;j<tc.length;j+=3){ const p=tc[j]*3, c=tc[j+1], r=tc[j+2]; const dx=x[p]-sim.clC[c*3],dy=x[p+1]-sim.clC[c*3+1],dz=x[p+2]-sim.clC[c*3+2]; const d2=dx*dx+dy*dy+dz*dz;
+    if(d2<r*r&&d2>1e-10){ const d=Math.sqrt(d2), s=(r-d)/d; x[p]+=dx*s; x[p+1]+=dy*s; x[p+2]+=dz*s; } }
+  // floor with friction
+  const mu=mix(0.55,0.1,sim.assist||0);
+  for(let i=0;i<np;i++){ const p=i*3; if(x[p+1]<0){ x[p+1]=0; const dx=x[p]-pv[p], dz=x[p+2]-pv[p+2]; x[p]-=dx*mu; x[p+2]-=dz*mu; } }
+  const damp=Math.exp(-0.9*SDT);
+  for(let i=0;i<np;i++){ const p=i*3; v[p]=(x[p]-pv[p])/SDT*damp; v[p+1]=(x[p+1]-pv[p+1])/SDT*damp; v[p+2]=(x[p+2]-pv[p+2])/SDT*damp; }
+}
+function globalFrame(){ // centre of mass, its velocity, overall rotation
+  const np=sim.np, x=sim.x, m=sim.mass; let cx=0,cy=0,cz=0,vx=0,vy=0,vz=0,M=0;
+  for(let i=0;i<np;i++){ const p=i*3, mk=m[i]; cx+=mk*x[p]; cy+=mk*x[p+1]; cz+=mk*x[p+2]; vx+=mk*sim.v[p]; vy+=mk*sim.v[p+1]; vz+=mk*sim.v[p+2]; M+=mk; }
+  sim.com=[cx/M,cy/M,cz/M]; sim.comV=[vx/M,vy/M,vz/M];
+  const A=new Float64Array(9); for(let i=0;i<np;i++){ const p=i*3, mk=m[i]; const dx=(x[p]-sim.com[0])*mk,dy=(x[p+1]-sim.com[1])*mk,dz=(x[p+2]-sim.com[2])*mk; const a=lat.X[p]-sim.c0[0],b=lat.X[p+1]-sim.c0[1],c=lat.X[p+2]-sim.c0[2];
+    A[0]+=dx*a;A[1]+=dy*a;A[2]+=dz*a;A[3]+=dx*b;A[4]+=dy*b;A[5]+=dz*b;A[6]+=dx*c;A[7]+=dy*c;A[8]+=dz*c; }
+  extractRot(A,sim.gq,0,6); const R=new Float64Array(9); quatMat(sim.gq,0,R); sim.R=Array.from(R);
+  let miny=1; for(let i=0;i<np;i++) if(!lat.pTail[i] && x[i*3+1]<miny) miny=x[i*3+1]; sim.lift=Math.max(0,miny);
+  // cluster centres
+  const cnt=new Float32Array(sim.ncl); sim.clC.fill(0); for(let i=0;i<np;i++){ const c=sim.cl[i]; cnt[c]++; sim.clC[c*3]+=x[i*3]; sim.clC[c*3+1]+=x[i*3+1]; sim.clC[c*3+2]+=x[i*3+2]; }
+  for(let c=0;c<sim.ncl;c++) if(cnt[c]){ sim.clC[c*3]/=cnt[c]; sim.clC[c*3+1]/=cnt[c]; sim.clC[c*3+2]/=cnt[c]; }
+}
+function volumeRatio(){ let V=0; const x=sim.x, cor=lat.corner;
+  for(let c=0;c<sim.C;c++){ const o=c*8; for(const T of TETS){ const a=cor[o+T[0]]*3,b=cor[o+T[1]]*3,cc=cor[o+T[2]]*3,d=cor[o+T[3]]*3;
+    const e1=[x[b]-x[a],x[b+1]-x[a+1],x[b+2]-x[a+2]], e2=[x[cc]-x[a],x[cc+1]-x[a+1],x[cc+2]-x[a+2]], e3=[x[d]-x[a],x[d+1]-x[a+1],x[d+2]-x[a+2]]; V+=dot(e1,cross(e2,e3))/6; } }
+  return V/(sim.C*H*H*H); }
+
+// embedded points (trilinear in a lattice cell)
+function embed(p){ return embedPoint(p,lat.cellAt,lat.cells,lat.LX,lat.LY,lat.LZ,lat.cid,false); }
+function evalEmb(e,out,o){ const cor=lat.corner, x=sim.x, c=e.cell*8, [u,v,w]=e.loc; let X=0,Y=0,Z=0;
+  for(let k=0;k<8;k++){ const wt=((k&1)?u:1-u)*(((k>>1)&1)?v:1-v)*(((k>>2)&1)?w:1-w); const p=cor[c+k]*3; X+=x[p]*wt; Y+=x[p+1]*wt; Z+=x[p+2]*wt; }
+  out[o]=X; out[o+1]=Y; out[o+2]=Z; }
+
+// ───────────────────────── wings: XPBD cloth cut from a curved fan ─────────────────────────
+const NU=10, NR=9;
+const wings=[];
+function buildWings(){
+  wings.length=0;
+  for(const side of [1,-1]){
+    const W={side,n:NU*NR}; const n=W.n;
+    W.x=new Float32Array(n*3); W.prev=new Float32Array(n*3); W.v=new Float32Array(n*3); W.rest=new Float32Array(n*3); W.w0=new Float32Array(n*3); W.k=new Float32Array(n); W.root=new Uint8Array(n); W.emb=[]; W.tgt=new Float32Array(n*3);
+    const top=[side*0.029,0.152,-0.041], bot=[side*0.036,0.104,-0.053];
+    const anchor=[side*0.032,0.136,-0.047];
+    for(let iu=0;iu<NU;iu++) for(let ir=0;ir<NR;ir++){ const u=iu/(NU-1), r=ir/(NR-1), i=iu*NR+ir;
+      const root=[mix(top[0],bot[0],u),mix(top[1],bot[1],u),mix(top[2],bot[2],u)];
+      const a=mix(0.66,-0.8,u), L=mix(0.138,0.072,Math.pow(u,1.1));
+      const dir=norm([side*Math.cos(a),Math.sin(a),-0.30]);
+      const p=add(root,add(scl(dir,L*r),[0,0.006*Math.sin(PI*u)*r,-0.018*r*r+0.011*Math.sin(PI*u)*r]));
+      W.rest.set(p,i*3); W.x.set(p,i*3); W.prev.set(p,i*3); W.w0.set(sub(p,anchor),i*3);
+      W.k[i]=mix(0.5,0.022,Math.pow(r,0.6)); if(ir<2){ W.root[i]=1; W.emb[i]=embed(p); } }
+    W.anchor=anchor; W.fr=[embed(anchor),embed(add(anchor,[0,0,0.03])),embed(add(anchor,[0,0.03,0]))];
+    // links: stretch, shear, bend
+    const L=[]; const id=(iu,ir)=>iu*NR+ir; const link=(a,b,comp)=>{ L.push([a,b,len(sub(W.rest.subarray(a*3,a*3+3),W.rest.subarray(b*3,b*3+3))),comp]); };
+    for(let iu=0;iu<NU;iu++) for(let ir=0;ir<NR;ir++){
+      if(iu+1<NU) link(id(iu,ir),id(iu+1,ir),0); if(ir+1<NR) link(id(iu,ir),id(iu,ir+1),0);
+      if(iu+1<NU&&ir+1<NR){ link(id(iu,ir),id(iu+1,ir+1),5e-8); link(id(iu+1,ir),id(iu,ir+1),5e-8); }
+      if(iu+2<NU) link(id(iu,ir),id(iu+2,ir),6e-7); if(ir+2<NR) link(id(iu,ir),id(iu,ir+2),6e-7); }
+    W.links=L; W.mass=0.012/n; W.span=0;
+    // shoulder patch used for towing
+    W.shoulder=[]; W.shoulderW=[]; for(let p=0;p<lat.np;p++){ const d=Math.hypot(lat.X[p*3]-anchor[0],lat.X[p*3+1]-anchor[1],lat.X[p*3+2]-anchor[2]); if(d<0.06){ W.shoulder.push(p); W.shoulderW.push(1-d/0.06); } }
+    wings.push(W);
+  }
+}
+function resetWings(){ for(const W of wings){ W.x.set(W.rest); W.prev.set(W.rest); W.v.fill(0); } sim.tow=null; }
+const _f=new Float32Array(9);
+function wingFrame(W){ evalEmb(W.fr[0],_f,0); evalEmb(W.fr[1],_f,3); evalEmb(W.fr[2],_f,6);
+  const o=[_f[0],_f[1],_f[2]]; let fw=norm([_f[3]-o[0],_f[4]-o[1],_f[5]-o[2]]); let up=[_f[6]-o[0],_f[7]-o[1],_f[8]-o[2]]; up=norm(sub(up,scl(fw,dot(up,fw)))); const lat3=cross(up,fw);
+  return {o,M:[lat3[0],lat3[1],lat3[2],up[0],up[1],up[2],fw[0],fw[1],fw[2]]}; }
+function wingPose(){ // fold (about the vertical) and flap (about a hinge along the body), in the shoulder frame
+  const ph=sim.flapPh, fl=sim.flapBlend, st=sim.stretchBlend, fr=sim.flare;
+  let fold=mix(0.78,-0.12,st), flap=mix(0.12,0.28,st)+0.05*Math.sin(sim.breathPh);
+  const beat=0.3+0.85*Math.sin(ph);
+  fold=mix(fold,0.12,fl); flap=mix(flap,beat,fl);
+  fold=mix(fold,-0.25,fr); flap=mix(flap,0.75,fr);
+  if(sim.tickle>0) flap+=sim.tickle*0.07*Math.sin(sim.time*58)+sim.tickle*0.04*Math.sin(sim.time*37);
+  return {fold,flap,edge:mix(1,4.5,st)};
+}
+function wingSubstep(W,pose,frame){
+  const n=W.n, x=W.x, pv=W.prev, v=W.v, s=W.side;
+  for(let i=0;i<n;i++){ const p=i*3; if(W.root[i]) continue; v[p+1]-=G*SDT; pv[p]=x[p];pv[p+1]=x[p+1];pv[p+2]=x[p+2]; x[p]+=v[p]*SDT; x[p+1]+=v[p+1]*SDT; x[p+2]+=v[p+2]*SDT; }
+  for(let i=0;i<n;i++) if(W.root[i]){ const p=i*3; pv[p]=x[p];pv[p+1]=x[p+1];pv[p+2]=x[p+2]; evalEmb(W.emb[i],x,p); }
+  // pose target for every point: firm at the root, barely at the edge
+  const Rf=rotM([0,1,0],pose.fold*s), Rp=rotM([0,0,1],pose.flap*s);
+  for(let i=0;i<n;i++){ const p=i*3; const w0=[W.w0[p],W.w0[p+1],W.w0[p+2]]; const l=m3v(Rp,m3v(Rf,w0)); const g=add(frame.o,m3v(frame.M,l)); W.tgt[p]=g[0];W.tgt[p+1]=g[1];W.tgt[p+2]=g[2];
+    if(W.root[i]) continue; const k=Math.min(0.9,W.k[i]*pose.edge*(i%NR<4?1:1)); x[p]+=(g[0]-x[p])*k; x[p+1]+=(g[1]-x[p+1])*k; x[p+2]+=(g[2]-x[p+2])*k; }
+  // grabbed point
+  if(sim.grab && sim.grab.kind==='wing' && sim.grab.W===W){ const p=sim.grab.i*3; x[p]+=(sim.grab.tgt[0]-x[p])*0.8; x[p+1]+=(sim.grab.tgt[1]-x[p+1])*0.8; x[p+2]+=(sim.grab.tgt[2]-x[p+2])*0.8; }
+  const wm=1/W.mass;
+  for(const [a,b,L0,comp] of W.links){ const pa=a*3,pb=b*3; const wa=W.root[a]?0:wm, wb=W.root[b]?0:wm; if(wa+wb===0) continue;
+    const dx=x[pb]-x[pa],dy=x[pb+1]-x[pa+1],dz=x[pb+2]-x[pa+2]; const d=Math.hypot(dx,dy,dz); if(d<1e-7) continue; const C=d-L0; const dl=-C/(wa+wb+comp/(SDT*SDT)); const nx=dx/d,ny=dy/d,nz=dz/d;
+    x[pa]-=nx*dl*wa; x[pa+1]-=ny*dl*wa; x[pa+2]-=nz*dl*wa; x[pb]+=nx*dl*wb; x[pb+1]+=ny*dl*wb; x[pb+2]+=nz*dl*wb; }
+  // collider spheres riding the body keep the wings off it
+  for(let i=0;i<n;i++){ if(W.root[i]) continue; const p=i*3;
+    for(let c=0;c<sim.ncl;c++){ const dx=x[p]-sim.clC[c*3],dy=x[p+1]-sim.clC[c*3+1],dz=x[p+2]-sim.clC[c*3+2]; const r=sim.clR[c]+0.012; const d2=dx*dx+dy*dy+dz*dz; if(d2<r*r&&d2>1e-10){ const d=Math.sqrt(d2), k=(r-d)/d; x[p]+=dx*k; x[p+1]+=dy*k; x[p+2]+=dz*k; } }
+    if(x[p+1]<0.003){ x[p+1]=0.003; x[p]-=(x[p]-pv[p])*0.4; x[p+2]-=(x[p+2]-pv[p+2])*0.4; } }
+  const damp=Math.exp(-2.2*SDT);
+  for(let i=0;i<n;i++){ const p=i*3; v[p]=(x[p]-pv[p])/SDT*damp; v[p+1]=(x[p+1]-pv[p+1])/SDT*damp; v[p+2]=(x[p+2]-pv[p+2])/SDT*damp; }
+}
+
+// ───────────────────────── one simulation frame ─────────────────────────
+function step(){
+  sim.time+=DT;
+  const rm=reduceMotion.matches;
+  sim.breathAmp=(rm?0.022:0.045)*(0.8+0.4*S.stuffing); sim.breathPh+=DT*2*PI*(0.32+0.12*sim.happy);
+  const wagF=mix(0.9,3.4,sim.happy); sim.wagAmp=(rm?0.08:0.17)+0.2*sim.happy; sim.wagPh+=DT*2*PI*wagF;
+  sim.flapBlend=mix(sim.flapBlend||0,sim.flapT>0?1:0,0.14); sim.stretchBlend=mix(sim.stretchBlend||0,S.stretch?1:0,0.08); sim.flare=Math.max(0,sim.flare-DT*1.4);
+  if(sim.flapT>0){ sim.flapT-=DT; sim.flapPh+=DT*2*PI*S.beat; }
+  if(sim.finger && sim.finger.press>0.6){ sim.finger.held+=DT; } else if(sim.finger) sim.finger.held=0;
+  const tickling = sim.finger && sim.finger.held>0.35;
+  sim.tickle=mix(sim.tickle,tickling?1:0,0.12); if(tickling) sim.happy=Math.min(1,sim.happy+DT*1.6); else sim.happy=Math.max(0,sim.happy-DT*0.28);
+  updateMuscles();
+  globalFrame();
+  // hover controller while flapping: downstrokes lift
+  let ay=0, hold=null;
+  if(sim.flapBlend>0.05 && !(sim.grab&&sim.grab.kind==='body')){
+    const target=sim.c0[1]+0.06+0.007*Math.sin(sim.flapPh);
+    const down=Math.max(0,-Math.cos(sim.flapPh)); const pd=(target-sim.com[1])*90-sim.comV[1]*12+G;
+    if(!sim.hoverAt) sim.hoverAt=[sim.com[0],sim.com[2]];
+    ay=clamp(pd,0,2.4*G)*(0.68+1.0*down)*sim.flapBlend; hold=[(sim.hoverAt[0]-sim.com[0])*30-sim.comV[0]*8,0,(sim.hoverAt[1]-sim.com[2])*30-sim.comV[2]*8];
+    if(sim.flapT<=0) ay*=0.0;
+  }
+  // a plush on its side gets light on its feet while it sits back up
+  { const tl=Math.acos(clamp(sim.R[4],-1,1)); const want=(!sim.grab && sim.air<=0 && sim.flapBlend<0.3)?sstep(0.35,1.0,tl):0; sim.assist=mix(sim.assist||0,want,0.1); ay+=G*0.78*sim.assist; }
+  // towing when a wing is pulled past its slack
+  sim.tow=null;
+  if(sim.grab && sim.grab.kind==='wing'){ const g=sim.grab, W=g.W, p=g.i*3; const tg=[W.tgt[p],W.tgt[p+1],W.tgt[p+2]]; const d=sub(g.tgt,tg); const L=len(d), slack=0.045;
+    if(L>slack){ const ex=(L-slack); sim.tow={ids:W.shoulder,wt:W.shoulderW.map(w=>w*0.05),d:scl(d,ex/L)}; } }
+  if(sim.flapT<=0) sim.hoverAt=null;
+  const pose=wingPose(); const frames=wings.map(wingFrame);
+  for(let s=0;s<SUB;s++){ bodySubstep(ay,hold); for(let i=0;i<wings.length;i++) wingSubstep(wings[i],pose,frames[i]); }
+  // weighted plush: slowly rights itself when it is on the table and nobody holds it
+  const up=[sim.R[3],sim.R[4],sim.R[5]]; const tilt=Math.acos(clamp(up[1],-1,1));
+  const hovering=sim.flapBlend>0.3;
+  if(tilt>0.04 && (sim.lift<0.012||hovering) && !sim.grab && sim.air<=0){ let ax=cross(up,[0,1,0]); if(len(ax)<1e-4) ax=[sim.R[0],sim.R[1],sim.R[2]]; ax=norm(ax);
+    // angular-velocity controller about the righting axis: a slow, steady wiggle back onto the seat
+    const target=Math.min(tilt,1.2)*(hovering?3.2:2.6); const c=sim.com;
+    let L=0,I=0; for(let i=0;i<sim.np;i++){ const p=i*3; const r=[sim.x[p]-c[0],sim.x[p+1]-c[1],sim.x[p+2]-c[2]]; const w=cross(ax,r); L+=sim.mass[i]*dot([sim.v[p],sim.v[p+1],sim.v[p+2]],w); I+=sim.mass[i]*dot(w,w); }
+    const om=I>0?L/I:0; const kk=(target-om)*0.22;
+    for(let i=0;i<sim.np;i++){ const p=i*3; const r=[sim.x[p]-c[0],sim.x[p+1]-c[1],sim.x[p+2]-c[2]]; const w=cross(ax,r); sim.v[p]+=w[0]*kk; sim.v[p+1]+=w[1]*kk; sim.v[p+2]+=w[2]*kk; } }
+  sim.air=Math.max(0,(sim.air||0)-DT);
+  // fur tips: a damped spring per particle, driven by acceleration
+  const kS=420, cS=2*Math.sqrt(kS)*0.32;
+  for(let i=0;i<sim.np;i++){ const p=i*3, q=i*4; for(let a=0;a<3;a++){ const acc=(sim.v[p+a]-sim.vOld[p+a])/DT; sim.vOld[p+a]=sim.v[p+a]; let lv=sim.lagV[p+a]; const l=sim.lag[q+a]; lv+=(-kS*l-cS*lv-acc*0.9)*DT; sim.lagV[p+a]=lv; sim.lag[q+a]=clamp(l+lv*DT,-0.004,0.004); } }
+  // wingspan along the body's lateral axis
+  const lat3=[sim.R[0],sim.R[1],sim.R[2]]; let mxR=-1,mnL=1; const c=sim.com;
+  for(const W of wings) for(let i=0;i<W.n;i++){ const d=(W.x[i*3]-c[0])*lat3[0]+(W.x[i*3+1]-c[1])*lat3[1]+(W.x[i*3+2]-c[2])*lat3[2]; if(W.side>0) mxR=Math.max(mxR,d); else mnL=Math.min(mnL,d); }
+  sim.span=Math.max(0,mxR-mnL);
+  // sound cues
+  if(sim.flapT>0){ const k=Math.floor(sim.flapPh/(2*PI)); if(k!==sim.lastBeat){ sim.lastBeat=k; audio.whoosh(); } }
+  if(tickling){ sim.gigT=(sim.gigT||0)-DT; if(sim.gigT<=0){ audio.giggle(); sim.gigT=0.55+Math.random()*0.35; } }
+}
+function toss(){ globalFrame(); const lat3=norm([sim.R[0],0,sim.R[2]]); const vUp=1.55, om=-5.5; const c=sim.com;
+  for(let i=0;i<sim.np;i++){ const p=i*3; const r=[sim.x[p]-c[0],sim.x[p+1]-c[1],sim.x[p+2]-c[2]]; const w=cross(lat3,r); sim.v[p]+=w[0]*om; sim.v[p+1]+=w[1]*om+vUp; sim.v[p+2]+=w[2]*om; }
+  sim.air=0.45; sim.flare=1; }
+function boop(){ for(let i=0;i<sim.np;i++){ const k=sim.head[i]; if(!k) continue; const p=i*3; const f=[sim.R[6],sim.R[7],sim.R[8]]; sim.v[p]-=f[0]*0.75*k; sim.v[p+1]+=0.32*k; sim.v[p+2]-=f[2]*0.75*k; } sim.flare=1; }
+function nanGuard(){ for(let i=0;i<sim.x.length;i++){ if(!isFinite(sim.x[i])){ resetSim(); return; } } }
+
+// ───────────────────────── CPU skin (for picking only) ─────────────────────────
+let cpuPos=null, cpuStamp=-1;
+function skinCPU(){ if(cpuStamp===sim.time) return cpuPos; const nv=mesh.nv; if(!cpuPos) cpuPos=new Float32Array(nv*3); const cor=lat.corner, x=sim.x;
+  for(let v=0;v<nv;v++){ const c=lat.vCell[v]*8, u=lat.vLoc[v*3], vv=lat.vLoc[v*3+1], w=lat.vLoc[v*3+2]; let X=0,Y=0,Z=0;
+    for(let k=0;k<8;k++){ const wt=((k&1)?u:1-u)*(((k>>1)&1)?vv:1-vv)*(((k>>2)&1)?w:1-w); const p=cor[c+k]*3; X+=x[p]*wt; Y+=x[p+1]*wt; Z+=x[p+2]*wt; }
+    cpuPos[v*3]=X; cpuPos[v*3+1]=Y; cpuPos[v*3+2]=Z; }
+  cpuStamp=sim.time; return cpuPos; }
+let nearMask=null;
+function rayBody(ro,rd){ const P=skinCPU(), nv=mesh.nv; if(!nearMask) nearMask=new Uint8Array(nv);
+  for(let v=0;v<nv;v++){ const dx=P[v*3]-ro[0],dy=P[v*3+1]-ro[1],dz=P[v*3+2]-ro[2]; const t=dx*rd[0]+dy*rd[1]+dz*rd[2]; const ex=dx-rd[0]*t,ey=dy-rd[1]*t,ez=dz-rd[2]*t; nearMask[v]=(ex*ex+ey*ey+ez*ez<0.00006)?1:0; }
+  const I=mesh.I; let best=1e9, hit=null;
+  for(let t=0;t<I.length;t+=3){ const a=I[t],b=I[t+1],c=I[t+2]; if(!nearMask[a]&&!nearMask[b]&&!nearMask[c]) continue;
+    const A=[P[a*3],P[a*3+1],P[a*3+2]],B=[P[b*3],P[b*3+1],P[b*3+2]],Cc=[P[c*3],P[c*3+1],P[c*3+2]]; const e1=sub(B,A),e2=sub(Cc,A); const pv=cross(rd,e2); const det=dot(e1,pv); if(Math.abs(det)<1e-12) continue;
+    const id=1/det, tv=sub(ro,A); const u=dot(tv,pv)*id; if(u<0||u>1) continue; const qv=cross(tv,e1); const vv=dot(rd,qv)*id; if(vv<0||u+vv>1) continue; const tt=dot(e2,qv)*id;
+    if(tt>0&&tt<best){ best=tt; hit={t:tt,tri:t,u,v:vv}; } }
+  if(!hit) return null; const a=I[hit.tri],b=I[hit.tri+1],c=I[hit.tri+2], w0=1-hit.u-hit.v;
+  const rest=[0,1,2].map(k=>mesh.P[a*3+k]*w0+mesh.P[b*3+k]*hit.u+mesh.P[c*3+k]*hit.v);
+  const rn=norm([0,1,2].map(k=>mesh.N[a*3+k]*w0+mesh.N[b*3+k]*hit.u+mesh.N[c*3+k]*hit.v));
+  return {t:hit.t,p:add(ro,scl(rd,hit.t)),rest,rn,mat:mesh.M[a]}; }
+function rayWing(ro,rd){ let best=null; for(const W of wings) for(let i=0;i<W.n;i++){ if(W.root[i]) continue; const p=[W.x[i*3],W.x[i*3+1],W.x[i*3+2]]; const d=sub(p,ro); const t=dot(d,rd); if(t<0) continue; const e=len(sub(d,scl(rd,t))); if(e<0.014 && (!best||t<best.t)) best={t,W,i,p}; } return best; }
+
+// ───────────────────────── wing slabs, swept from the cloth every frame ─────────────────────────
+const FU=(NU-1)*3+1, FR=(NR-1)*3+1, WV=FU*FR*4, VTX=20; // floats per vertex
+const UL=0.085; // leading-edge roll
+function crom(p0,p1,p2,p3,t){ const t2=t*t,t3=t2*t; return 0.5*((2*p1)+(-p0+p2)*t+(2*p0-5*p1+4*p2-p3)*t2+(-p0+3*p1-3*p2+p3)*t3); }
+function wingIndex(){ const I=[]; for(let s=0;s<4;s++){ const o=s*FU*FR; for(let i=0;i<FU-1;i++) for(let j=0;j<FR-1;j++){ const a=o+i*FR+j,b=a+FR,c=b+1,d=a+1; if(s%2===0) I.push(a,b,c,a,c,d); else I.push(a,c,b,a,d,c); } } return new Uint32Array(I); }
+const rEdge=u=>{ if(u<UL) return 1; const s=(u-UL)/(1-UL)*3, l=s-Math.floor(s); return 1-0.17*Math.pow(Math.sin(PI*l),0.85); };
+function thick(u,r){ const taper=Math.pow(sstep(0,0.16,r),0.6)*Math.pow(1-sstep(0.82,1.0,r),0.45);
+  if(u<UL){ const k=1-u/UL; return Math.max(0.0006,0.0086*(1-0.45*r)*(1-0.75*sstep(0.86,1,r))*Math.sqrt(Math.max(0,1-k*k))); }
+  const s=(u-UL)/(1-UL)*3, l=s-Math.floor(s); return Math.max(0.0006,0.0011+0.0058*Math.pow(Math.sin(PI*l),0.7)*taper); }
+const _mid=new Float32Array(FU*FR*3), _col=new Float32Array(NR*3);
+function sampleWing(W,out){ // bicubic Catmull–Rom across the cloth grid, scalloped along the trailing edge
+  const X=W.x, P=(iu,ir,a)=>X[(clamp(iu,0,NU-1)*NR+clamp(ir,0,NR-1))*3+a];
+  for(let i=0;i<FU;i++){ const u=i/(FU-1), cu=u*(NU-1), iu=Math.min(Math.floor(cu),NU-2), tu=cu-iu, re=rEdge(u);
+    for(let j=0;j<FR;j++){ const r=j/(FR-1)*re, cr=r*(NR-1), ir=Math.min(Math.floor(cr),NR-2), tr=cr-ir;
+      for(let a=0;a<3;a++){ const row=k=>crom(P(iu-1,ir+k,a),P(iu,ir+k,a),P(iu+1,ir+k,a),P(iu+2,ir+k,a),tu); out[(i*FR+j)*3+a]=crom(row(-1),row(0),row(1),row(2),tr); } } } }
+function buildWingVerts(dst){
+  let o=0;
+  for(const W of wings){ sampleWing(W,_mid);
+    const g=(i,j)=>[_mid[(i*FR+j)*3],_mid[(i*FR+j)*3+1],_mid[(i*FR+j)*3+2]];
+    const T=[], B=[], Nm=[], Dr=[];
+    for(let i=0;i<FU;i++) for(let j=0;j<FR;j++){ const du=sub(g(Math.min(i+1,FU-1),j),g(Math.max(i-1,0),j)), dr=sub(g(i,Math.min(j+1,FR-1)),g(i,Math.max(j-1,0)));
+      let n=norm(cross(dr,du)); if(W.side<0) n=scl(n,-1); const u=i/(FU-1), r=j/(FR-1)*rEdge(u), th=thick(u,r); const m=g(i,j);
+      T.push(add(m,scl(n,th))); B.push(add(m,scl(n,-th*0.85))); Nm.push(n); Dr.push(norm(dr)); }
+    for(let s=0;s<2;s++){ const S=s?B:T;
+      for(let i=0;i<FU;i++) for(let j=0;j<FR;j++){ const k=i*FR+j; const du=sub(S[Math.min(i+1,FU-1)*FR+j],S[Math.max(i-1,0)*FR+j]), dr=sub(S[i*FR+Math.min(j+1,FR-1)],S[i*FR+Math.max(j-1,0)]);
+        let n=norm(cross(dr,du)); if(W.side<0) n=scl(n,-1); if(s) n=scl(n,-1); if(dot(n,s?scl(Nm[k],-1):Nm[k])<0) n=scl(n,-1);
+        const u=i/(FU-1), r=j/(FR-1)*rEdge(u), p=S[k], d=Dr[k];
+        dst.set([p[0],p[1],p[2],u<UL?7:6, n[0],n[1],n[2],0, d[0],d[1],d[2],0, 0,0,0,u, u*0.14,r*0.14,s*0.01+W.side*0.05,r],o); o+=VTX; } }
+  }
+}
+
+// ───────────────────────── WGSL ─────────────────────────
+const f3=v=>`vec3f(${v.map(x=>x.toFixed(5)).join(',')})`;
+const CHEEK=[-1,1].map(s=>onEll(HEAD.c,HEAD.r,[s*0.05,-0.014,0.044]));
+const NOSE=[-1,1].map(s=>[s*0.0098,0.1752,snoutZ(s*0.0098,0.1752)]);
+const WGSL_COMMON=/* wgsl */`
+struct Frame { vp: mat4x4f, ivp: mat4x4f, lvp: mat4x4f, cam: vec4f, keyDir: vec4f, keyCol: vec4f, misc: vec4f, finA: vec4f, finB: vec4f, pal: array<vec4f, 8>, sph: array<vec4f, 16> };
+@group(0) @binding(0) var<uniform> F: Frame;
+fn sat(x: f32) -> f32 { return clamp(x, 0.0, 1.0); }
+fn safeN(v: vec3f) -> vec3f { let l = dot(v, v); return select(vec3f(0.0, 1.0, 0.0), v * inverseSqrt(max(l, 1e-20)), l > 1e-20); }
+fn spow(x: f32, e: f32) -> f32 { return pow(max(x, 1e-6), e); }
+fn sstep(a: f32, b: f32, x: f32) -> f32 { let t = sat((x - a) / (b - a)); return t * t * (3.0 - 2.0 * t); }
+fn hash13(p: vec3f) -> f32 { var q = fract(p * 0.1031); q += dot(q, q.zyx + 31.32); return fract((q.x + q.y) * q.z); }
+fn hash33(p: vec3f) -> vec3f { var q = fract(p * vec3f(0.1031, 0.1030, 0.0973)); q += dot(q, q.yxz + 33.33); return fract((q.xxy + q.yxx) * q.zyx); }
+fn ign(p: vec2f) -> f32 { return fract(52.9829189 * fract(dot(p, vec2f(0.06711056, 0.00583715)))); }
+`;
+const WGSL_SHADOW_SAMPLING=/* wgsl */`
+@group(0) @binding(1) var shadowTex: texture_depth_2d;
+@group(0) @binding(2) var cmp: sampler_comparison;
+const POIS = array<vec2f, 16>(vec2f(-0.94201624,-0.39906216), vec2f(0.94558609,-0.76890725), vec2f(-0.09418410,-0.92938870), vec2f(0.34495938,0.29387760),
+  vec2f(-0.91588581,0.45771432), vec2f(-0.81544232,-0.87912464), vec2f(-0.38277543,0.27676845), vec2f(0.97484398,0.75648379),
+  vec2f(0.44323325,-0.97511554), vec2f(0.53742981,-0.47373420), vec2f(-0.26496911,-0.41893023), vec2f(0.79197514,0.19090188),
+  vec2f(-0.24188840,0.99706507), vec2f(-0.81409955,0.91437590), vec2f(0.19984126,0.78641367), vec2f(0.14383161,-0.14100790));
+// PCSS: blocker search with textureLoad, then a widening comparison filter
+fn shadowAt(wp: vec3f, nrm: vec3f, frag: vec2f) -> f32 {
+  let lp = F.lvp * vec4f(wp + nrm * 0.0012, 1.0);
+  let uv = vec2f(lp.x * 0.5 + 0.5, 0.5 - lp.y * 0.5);
+  let z = lp.z;
+  let size = F.misc.x;
+  let inside = uv.x > 0.004 && uv.y > 0.004 && uv.x < 0.996 && uv.y < 0.996 && z < 1.0 && z > 0.0;
+  let a = ign(frag) * 6.2831853;
+  let cs = cos(a); let sn = sin(a);
+  var bsum = 0.0; var bn = 0.0;
+  for (var i = 0; i < 12; i++) {
+    let o = POIS[i];
+    let ro = vec2f(o.x * cs - o.y * sn, o.x * sn + o.y * cs) * 20.0;
+    let tc = vec2i(clamp(uv * size + ro, vec2f(0.0), vec2f(size - 1.0)));
+    let d = textureLoad(shadowTex, tc, 0);
+    if (d < z - 0.002) { bsum += d; bn += 1.0; }
+  }
+  let avg = bsum / max(bn, 1.0);
+  let pen = clamp((z - avg) * F.misc.z, 1.0, 24.0);
+  var lit = 0.0;
+  for (var i = 0; i < 16; i++) {
+    let o = POIS[i];
+    let ro = vec2f(o.x * cs - o.y * sn, o.x * sn + o.y * cs) * pen / size;
+    lit += textureSampleCompareLevel(shadowTex, cmp, uv + ro, z - 0.0016);
+  }
+  let s = select(1.0, lit / 16.0, bn > 0.5);
+  return select(1.0, s, inside);
+}
+fn contactAO(p: vec3f, n: vec3f) -> f32 {
+  var ao = 1.0;
+  for (var i = 0; i < 16; i++) {
+    let s = F.sph[i];
+    if (s.w <= 0.0) { continue; }
+    let d = s.xyz - p; let l = max(length(d), 1e-4);
+    let o = sat(dot(n, d / l)) * (s.w * s.w) / (l * l);
+    ao *= 1.0 - sat(o * 0.85);
+  }
+  return ao;
+}
+`;
+const WGSL_SKIN=/* wgsl */`
+struct Vtx { p: vec4f, n: vec4f, t: vec4f, l: vec4f, r: vec4f };
+struct VIn { rp: vec4f, rn: vec4f, loc: vec4f };
+struct Skin { n: u32, h: f32, pad0: f32, pad1: f32, finA: vec4f, finB: vec4f };
+@group(0) @binding(0) var<storage, read> parts: array<vec4f>;
+@group(0) @binding(1) var<storage, read> lags: array<vec4f>;
+@group(0) @binding(2) var<storage, read> cells: array<u32>;
+@group(0) @binding(3) var<storage, read> vin: array<VIn>;
+@group(0) @binding(4) var<storage, read> comb: array<vec4f>;
+@group(0) @binding(5) var<storage, read_write> vout: array<Vtx>;
+@group(0) @binding(6) var<uniform> sk: Skin;
+fn safeN(v: vec3f) -> vec3f { let l = dot(v, v); return select(vec3f(0.0, 1.0, 0.0), v * inverseSqrt(max(l, 1e-24)), l > 1e-24); }
+@compute @workgroup_size(64) fn main(@builtin(global_invocation_id) gid: vec3u) {
+  let i = gid.x;
+  if (i >= sk.n) { return; }
+  let vi = vin[i];
+  let c = u32(vi.rn.w + 0.5);
+  let u = vi.loc.xyz;
+  var P = vec3f(0.0); var Fu = vec3f(0.0); var Fv = vec3f(0.0); var Fw = vec3f(0.0); var L = vec3f(0.0);
+  for (var k = 0u; k < 8u; k++) {
+    let id = cells[c * 8u + k];
+    let bx = (k & 1u) == 1u; let by = ((k >> 1u) & 1u) == 1u; let bz = ((k >> 2u) & 1u) == 1u;
+    let wx = select(1.0 - u.x, u.x, bx); let wy = select(1.0 - u.y, u.y, by); let wz = select(1.0 - u.z, u.z, bz);
+    let sx = select(-1.0, 1.0, bx); let sy = select(-1.0, 1.0, by); let sz = select(-1.0, 1.0, bz);
+    let x = parts[id].xyz;
+    P += x * (wx * wy * wz);
+    L += lags[id].xyz * (wx * wy * wz);
+    Fu += x * (sx * wy * wz); Fv += x * (wx * sy * wz); Fw += x * (wx * wy * sz);
+  }
+  // normals by the cofactor of the deformation gradient; fur lie carried by F itself
+  let rn = vi.rn.xyz;
+  var N = safeN(cross(Fv, Fw) * rn.x + cross(Fw, Fu) * rn.y + cross(Fu, Fv) * rn.z);
+  let cb = comb[i];
+  var T = (Fu * cb.x + Fv * cb.y + Fw * cb.z) / sk.h;
+  // finger dent: the surface wraps the capsule
+  if (sk.finB.w > 0.0) {
+    let A = sk.finA.xyz; let B = sk.finB.xyz; let R = sk.finA.w;
+    let ba = B - A; let h = clamp(dot(P - A, ba) / max(dot(ba, ba), 1e-9), 0.0, 1.0);
+    let cpt = A + ba * h; let d = P - cpt; let dl = length(d);
+    let k = 0.006;
+    let hh = clamp(0.5 + 0.5 * (dl - R) / k, 0.0, 1.0);
+    let nd = mix(R, dl, hh) + k * hh * (1.0 - hh);   // smooth max(dl, R)
+    if (dl < R + k && dl > 1e-6) {
+      let dir = d / dl;
+      P = cpt + dir * nd;
+      N = safeN(mix(N, dir, (1.0 - hh) * 0.8));
+    }
+  }
+  var o: Vtx;
+  o.p = vec4f(P, vi.rp.w);
+  o.n = vec4f(N, 0.0);
+  o.t = vec4f(T, cb.w);
+  o.l = vec4f(L, 0.0);
+  o.r = vec4f(vi.rp.xyz, 0.0);
+  vout[i] = o;
+}
+`;
+const WGSL_FUR=/* wgsl */`
+struct Vtx { p: vec4f, n: vec4f, t: vec4f, l: vec4f, r: vec4f };
+struct Draw { a: vec4f, b: vec4f };
+@group(1) @binding(0) var<storage, read> V: array<Vtx>;
+@group(1) @binding(1) var<uniform> D: Draw;
+struct FO {
+  @builtin(position) pos: vec4f,
+  @location(0) wp: vec3f,
+  @location(1) n: vec3f,
+  @location(2) s: vec3f,
+  @location(3) rest: vec3f,
+  @location(4) @interpolate(flat) mat: f32,
+  @location(5) @interpolate(flat) f: f32,
+  @location(6) uv: vec2f,
+  @location(7) comb: f32,
+};
+@vertex fn vsFur(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> FO {
+  let v = V[vi];
+  let f = f32(ii) / max(D.a.y, 1.0);
+  let N = safeN(v.n.xyz);
+  let T = safeN(v.t.xyz - N * dot(v.t.xyz, N) + N * 1e-4);
+  let lie = D.a.z + v.t.w * 0.85;
+  let S = safeN(N * cos(lie) + T * sin(lie));
+  let h = D.a.x * f;
+  let P = v.p.xyz + S * h + v.l.xyz * (f * f) + vec3f(0.0, -1.0, 0.0) * (D.a.x * 0.2 * f * f);
+  var o: FO;
+  o.pos = F.vp * vec4f(P, 1.0);
+  o.wp = P; o.n = N; o.s = S; o.rest = v.r.xyz; o.mat = v.p.w; o.f = f; o.uv = vec2f(v.l.w, v.r.w); o.comb = v.t.w;
+  return o;
+}
+struct Paint { alb: vec3f, pile: f32, dens: f32, kind: i32, bend: vec3f, thread: f32 };
+fn ellD(p: vec3f, c: vec3f, r: vec3f) -> f32 { return length((p - c) / r); }
+fn rcone(p: vec3f, a: vec3f, b: vec3f, r1: f32, r2: f32) -> f32 { let ba = b - a; let h = clamp(dot(p - a, ba) / dot(ba, ba), 0.0, 1.0); return length(p - a - ba * h) - mix(r1, r2, h); }
+fn paint(mat0: i32, p: vec3f, uv: vec2f) -> Paint {
+  var o: Paint;
+  o.alb = F.pal[0].rgb; o.pile = 1.0; o.dens = 1.0; o.kind = 0; o.bend = vec3f(0.0); o.thread = 0.0;
+  var mat = mat0;
+  var eyeRim = 1.0;
+  let isTail = mat == 9;
+  if (mat == 9) { mat = 0; }
+  if (mat < 6) {
+    // small features are decided per fragment in rest space, so their edges stay clean
+    let de = min(length(p - ${f3(EYES[0])}), length(p - ${f3(EYES[1])})) - ${EYE_R};
+    let dh = min(rcone(p, ${f3(HORNS[0][0])}, ${f3(HORNS[0][1])}, 0.0135, 0.0052), rcone(p, ${f3(HORNS[1][0])}, ${f3(HORNS[1][1])}, 0.0135, 0.0052));
+    var dw = rcone(p, ${f3(FANG[0])}, ${f3(FANG[1])}, 0.0042, 0.0011);
+    ${CLAWS.map(c=>`dw = min(dw, length(p - ${f3(c)}) - 0.0058);`).join(' ')}
+    if (mat == 4 || mat == 5 || (mat == 2 && dh < 0.004)) { mat = 0; }
+    if (de < 0.0005) { mat = 4; } else if (dh < 0.0009) { mat = 2; } else if (dw < 0.0009) { mat = 5; }
+    eyeRim = sstep(0.0004, 0.0032, de);
+  }
+  if (mat == 4) { o.alb = vec3f(0.012, 0.010, 0.012); o.pile = 0.0; o.kind = 2; return o; }
+  if (mat == 5) { o.alb = F.pal[5].rgb; o.pile = 0.13; o.dens = 1.7; o.kind = 1; return o; }
+  if (mat == 2) { o.alb = F.pal[2].rgb * 0.92; o.pile = 0.13; o.dens = 1.7; o.kind = 1; return o; }
+  o.pile = eyeRim;
+  // the soft spade at the tail tip, in the wing colour
+  let su = dot(p - ${f3(TEND.p)}, ${f3(TEND.T)});
+  let spade = select(0.0, sstep(-0.003, 0.004, su), isTail);
+  o.alb = mix(o.alb, F.pal[2].rgb, spade);
+  if (mat == 6 || mat == 7) {
+    // wing: three panels puffed between stitched ribs, scalloped edge with a running stitch
+    if (mat == 7) { o.alb = F.pal[0].rgb; o.pile = 0.95; return o; }
+    o.alb = F.pal[2].rgb; o.pile = 0.85;
+    let s = (uv.x - ${UL}) / (1.0 - ${UL}) * 3.0;
+    let l = fract(s); let dr = min(l, 1.0 - l) / 3.0 * (1.0 - ${UL});
+    let rib = 1.0 - sstep(0.004, 0.011, dr);
+    o.pile = mix(o.pile, 0.12, rib);
+    let dash = step(0.42, fract(uv.y * 46.0));
+    o.thread = rib * dash * sstep(0.05, 0.1, uv.y) * (1.0 - sstep(0.004, 0.006, dr));
+    return o;
+  }
+  if (mat == 3) {
+    // padded foot: sole pad and three toe beans on the front face
+    let fx = select(${FOOT[0].c[0].toFixed(4)}, ${FOOT[1].c[0].toFixed(4)}, p.x > 0.0);
+    let q = vec2f(p.x - fx, p.y);
+    let front = sstep(0.070, 0.077, p.z);
+    let pad = 1.0 - sstep(0.85, 1.05, length((q - vec2f(0.0, 0.016)) / vec2f(0.0125, 0.0095)));
+    var toe = 0.0;
+    toe = max(toe, 1.0 - sstep(0.0036, 0.0048, length(q - vec2f(-0.0098, 0.0292))));
+    toe = max(toe, 1.0 - sstep(0.0036, 0.0048, length(q - vec2f(0.0, 0.0325))));
+    toe = max(toe, 1.0 - sstep(0.0036, 0.0048, length(q - vec2f(0.0098, 0.0292))));
+    let sole = max(pad, toe) * front;
+    o.alb = mix(F.pal[0].rgb, F.pal[6].rgb, sole);
+    o.pile = mix(1.0, 0.1, sole) * eyeRim;
+    return o;
+  }
+  // minky body: belly with quilting, cheeks, embroidered nostrils and smile
+  let belly = (1.0 - sstep(0.93, 1.03, length(vec2f(p.x / 0.047, (p.y - 0.082) / 0.061)))) * sstep(0.004, 0.022, p.z) * (1.0 - sstep(0.14, 0.15, p.y));
+  if (belly > 0.0) {
+    let yb = (p.y - 0.026) / 0.0205; let fy = fract(yb);
+    let ds = min(fy, 1.0 - fy) * 0.0205;
+    let seam = 1.0 - sstep(0.0005, 0.0015, ds);
+    o.alb = mix(o.alb, F.pal[1].rgb * (1.0 - 0.18 * seam), belly);
+    o.pile = mix(o.pile, mix(0.74, 0.1, seam), belly);
+    o.bend = vec3f(0.0, cos(3.14159 * fy) * 0.5, 0.0) * belly;
+  }
+  let ck = min(length(p - ${f3(CHEEK[0])}), length(p - ${f3(CHEEK[1])}));
+  let blush = (1.0 - sstep(0.006, 0.019, ck)) * 0.85;
+  o.alb = mix(o.alb, F.pal[3].rgb, blush);
+  o.pile = mix(o.pile, 0.55, blush);
+  if (p.z > 0.075 && p.y > 0.135 && p.y < 0.19) {
+    var th = 0.0;
+    let n0 = length((p.xy - ${f3(NOSE[0])}.xy) / vec2f(0.0028, 0.0021));
+    let n1 = length((p.xy - ${f3(NOSE[1])}.xy) / vec2f(0.0028, 0.0021));
+    th = max(th, 1.0 - sstep(0.8, 1.0, min(n0, n1)));
+    if (abs(p.x) < 0.0215) {
+      let yy = 0.1505 + 0.0068 * (p.x / 0.021) * (p.x / 0.021);
+      let sl = 2.0 * 0.0068 * p.x / (0.021 * 0.021);
+      let d = abs(p.y - yy) / sqrt(1.0 + sl * sl);
+      th = max(th, 1.0 - sstep(0.0009, 0.0015, d));
+      let groove = 1.0 - sstep(0.0015, 0.0045, d);
+      o.alb *= 1.0 - 0.3 * groove;
+      o.pile = min(o.pile, mix(1.0, 0.18, groove));
+    }
+    if (th > 0.0) { o.thread = th; o.pile = min(o.pile, mix(o.pile, 0.0, th)); }
+  }
+  return o;
+}
+fn kk(alb: vec3f, N: vec3f, S: vec3f, Vd: vec3f, L: vec3f, f: f32, shiny: f32) -> vec3f {
+  let nl = dot(N, L);
+  let wrap = sat((nl + 0.4) / 1.4);
+  let tl = dot(S, L); let kd = sqrt(sat(1.0 - tl * tl));
+  let diff = mix(wrap, kd * sat(nl + 0.7), 0.3);
+  let H = safeN(L + Vd);
+  let th = dot(S, H); let s1 = spow(sqrt(sat(1.0 - th * th)), 110.0) * 0.16;
+  let S2 = safeN(S + N * 0.18); let th2 = dot(S2, H); let s2 = spow(sqrt(sat(1.0 - th2 * th2)), 26.0) * 0.12;
+  let vis = sstep(-0.25, 0.25, nl);
+  return alb * diff + (vec3f(s1) + alb * s2) * vis * shiny * (0.4 + 0.6 * f);
+}
+@fragment fn fsFur(in: FO, @builtin(front_facing) ff: bool) -> @location(0) vec4f {
+  let fwr = length(fwidth(in.rest));
+  var N = safeN(in.n);
+  var S = safeN(in.s);
+  if (!ff) { N = -N; S = -S; }
+  let mat = i32(in.mat + 0.5);
+  let pt = paint(mat, in.rest, in.uv);
+  let f = in.f;
+  var alpha = 1.0;
+  var Nn = safeN(N + pt.bend);
+  if (f > 0.0) {
+    let pile = pt.pile;
+    if (pile <= 0.02 || f > pile) { discard; }
+    let dens = select(1.0 / 0.00085, 1.0 / 0.0005, pt.kind == 1) * select(1.0, 1.25, mat >= 6);
+    let q = in.rest * dens;
+    let cell = floor(q); let h = hash33(cell);
+    let d = length(fract(q) - (vec3f(0.22) + h * 0.56));
+    let hgt = (0.55 + 0.45 * h.z) * pile;
+    let rad = 0.5 * (1.0 - 0.78 * sat(f / max(hgt, 1e-3)));
+    let aa = max(fwr * dens * 0.7, 0.04);
+    alpha = (1.0 - sstep(rad - aa, rad + aa, d)) * (1.0 - sstep(hgt - 0.04, hgt, f));
+    if (alpha < 0.02) { discard; }
+  }
+  let Vd = safeN(F.cam.xyz - in.wp);
+  let L = safeN(F.keyDir.xyz);
+  let sh = shadowAt(in.wp, Nn, in.pos.xy);
+  let key = F.keyCol.rgb * F.keyDir.w * sh;
+  var col: vec3f;
+  let floorAO = mix(0.5, 1.0, sstep(-0.005, 0.045, in.wp.y + Nn.y * 0.02));
+  if (pt.kind == 2) {
+    // glossy bead eye: dark glass with a sharp key highlight and a softbox reflection
+    let R = reflect(-Vd, Nn);
+    let H = safeN(L + Vd);
+    let spec = spow(sat(dot(Nn, H)), 900.0) * 9.0 + spow(sat(dot(Nn, H)), 90.0) * 0.4;
+    let box = sstep(0.82, 0.9, dot(R, safeN(vec3f(-0.45, 0.8, 0.6)))) * 0.9 + sstep(0.5, 1.0, R.y) * 0.08;
+    let fres = 0.04 + 0.96 * spow(1.0 - sat(dot(Nn, Vd)), 5.0);
+    col = pt.alb * (sat(dot(Nn, L)) * key + vec3f(0.05)) + (spec * key + vec3f(box) * fres * 1.4 + vec3f(0.6, 0.5, 0.45) * fres * 0.25) ;
+    return vec4f(col, 1.0);
+  }
+  var alb = pt.alb;
+  if (pt.thread > 0.0) {
+    let stripe = 0.82 + 0.18 * sin((in.rest.x + in.rest.y) * 9000.0);
+    alb = mix(alb, F.pal[4].rgb * stripe, pt.thread);
+  }
+  let ao = mix(select(0.42, 0.7, pt.kind == 1), 1.0, spow(f / max(pt.pile, 0.05), 0.75)) * floorAO;
+  let shiny = select(1.0, 0.25, pt.kind == 1) * (1.0 - pt.thread * 0.6);
+  col = kk(alb, Nn, S, Vd, L, f, shiny) * key * ao;
+  // fill, bounce and rim
+  let fillL = safeN(vec3f(0.75, 0.35, 0.45));
+  col += alb * sat(dot(Nn, fillL) * 0.6 + 0.4) * vec3f(0.17, 0.19, 0.22) * ao;
+  let hemi = mix(vec3f(0.10, 0.085, 0.07), vec3f(0.16, 0.16, 0.17), Nn.y * 0.5 + 0.5);
+  col += alb * hemi * ao;
+  let rimL = safeN(vec3f(0.3, 0.55, -0.85));
+  let nv = sat(dot(Nn, Vd));
+  let sheen = spow(1.0 - nv, 3.0) * select(0.55, 0.15, pt.kind == 1);
+  col += (alb * 0.6 + vec3f(0.25)) * sheen * (sat(dot(Nn, rimL) + 0.5) * 0.9 + 0.25 * sh) * ao * (1.0 - pt.thread);
+  if (pt.thread > 0.0) { let H = safeN(L + Vd); col += vec3f(spow(sat(dot(Nn, H)), 40.0) * 0.25) * key * pt.thread; }
+  // comb marks: brushed pile catches a little more light
+  col *= 1.0 + in.comb * 0.08 * sat(dot(S, L));
+  return vec4f(col, alpha);
+}
+`;
+const WGSL_SHADOWPASS=/* wgsl */`
+struct Vtx { p: vec4f, n: vec4f, t: vec4f, l: vec4f, r: vec4f };
+@group(1) @binding(0) var<storage, read> V: array<Vtx>;
+@vertex fn vsShadow(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f { return F.lvp * vec4f(V[vi].p.xyz, 1.0); }
+`;
+const WGSL_BG=/* wgsl */`
+struct BO { @builtin(position) pos: vec4f, @location(0) ndc: vec2f };
+@vertex fn vsBg(@builtin(vertex_index) i: u32) -> BO {
+  let p = vec2f(f32((i << 1u) & 2u), f32(i & 2u)) * 2.0 - 1.0;
+  var o: BO; o.pos = vec4f(p, 0.0, 1.0); o.ndc = p; return o;
+}
+struct BOut { @location(0) c: vec4f, @builtin(frag_depth) d: f32 };
+fn backdrop(rd: vec3f) -> vec3f {
+  let g = sstep(-0.35, 0.6, rd.y);
+  return mix(vec3f(0.040, 0.032, 0.026), vec3f(0.012, 0.010, 0.009), g);
+}
+@fragment fn fsBg(in: BO) -> BOut {
+  let a = F.ivp * vec4f(in.ndc, 0.0, 1.0); let b = F.ivp * vec4f(in.ndc, 1.0, 1.0);
+  let ro = a.xyz / a.w; let rd = safeN(b.xyz / b.w - ro);
+  var o: BOut;
+  var col = backdrop(rd);
+  o.d = 1.0;
+  if (rd.y < -1e-4) {
+    let t = -ro.y / rd.y;
+    let p = ro + rd * t;
+    let r = length(p.xz);
+    // a pale tabletop under a key pool of light, falling off into the studio
+    let weave = 0.5 + 0.5 * sin(p.x * 2600.0) * sin(p.z * 2600.0);
+    let grain = hash13(floor(p * 3000.0));
+    let alb = vec3f(0.50, 0.45, 0.40) * (0.97 + 0.03 * weave + 0.02 * grain);
+    let L = safeN(F.keyDir.xyz);
+    let n = vec3f(0.0, 1.0, 0.0);
+    let sh = shadowAt(p, n, in.pos.xy);
+    let ao = contactAO(p, n);
+    let pool = exp(-r * r / 0.07);
+    var c = alb * (F.keyCol.rgb * F.keyDir.w * sat(dot(n, L)) * sh * (0.25 + 0.75 * pool) + vec3f(0.11, 0.105, 0.10) * ao) * ao;
+    let fade = sstep(0.35, 1.6, r);
+    c = mix(c, backdrop(rd), fade);
+    col = c;
+    let cp = F.vp * vec4f(p, 1.0);
+    o.d = clamp(cp.z / cp.w, 0.0, 1.0);
+  }
+  o.c = vec4f(col, 1.0);
+  return o;
+}
+`;
+const WGSL_FINGER=/* wgsl */`
+struct Fin { m: mat4x4f, k: vec4f };
+@group(1) @binding(0) var<uniform> FN: Fin;
+struct FiO { @builtin(position) pos: vec4f, @location(0) wp: vec3f, @location(1) n: vec3f, @location(2) lp: vec3f };
+@vertex fn vsFin(@location(0) p: vec3f, @location(1) n: vec3f) -> FiO {
+  var o: FiO; let w = FN.m * vec4f(p, 1.0); o.wp = w.xyz; o.n = (FN.m * vec4f(n, 0.0)).xyz; o.lp = p; o.pos = F.vp * w; return o;
+}
+@fragment fn fsFin(in: FiO) -> @location(0) vec4f {
+  let N = safeN(in.n); let Vd = safeN(F.cam.xyz - in.wp); let L = safeN(F.keyDir.xyz);
+  let nail = (1.0 - sstep(0.8, 1.0, length(vec2f(in.lp.x / 0.0062, (in.lp.z - 0.0105) / 0.0085)))) * sstep(0.002, 0.0055, in.lp.y);
+  let skin = vec3f(0.56, 0.37, 0.29);
+  let alb = mix(skin, vec3f(0.80, 0.60, 0.56), nail);
+  let nl = dot(N, L);
+  let sss = vec3f(0.8, 0.32, 0.22) * sat(nl * 0.5 + 0.5) * 0.22;
+  let sh = shadowAt(in.wp, N, in.pos.xy);
+  var c = alb * (sat(nl) * sh + sss) * F.keyCol.rgb * F.keyDir.w * 0.8 + alb * vec3f(0.15, 0.14, 0.14);
+  let H = safeN(L + Vd);
+  c += vec3f(spow(sat(dot(N, H)), mix(30.0, 260.0, nail)) * mix(0.08, 0.9, nail)) * F.keyCol.rgb * sh;
+  return vec4f(c, 1.0);
+}
+`;
+const WGSL_POST=/* wgsl */`
+@group(0) @binding(0) var hdr: texture_2d<f32>;
+@group(0) @binding(1) var<uniform> PP: vec4f;
+struct PO { @builtin(position) pos: vec4f, @location(0) uv: vec2f };
+@vertex fn vsPost(@builtin(vertex_index) i: u32) -> PO {
+  let p = vec2f(f32((i << 1u) & 2u), f32(i & 2u)) * 2.0 - 1.0;
+  var o: PO; o.pos = vec4f(p, 0.0, 1.0); o.uv = vec2f(p.x * 0.5 + 0.5, 0.5 - p.y * 0.5); return o;
+}
+// Khronos PBR Neutral
+fn neutral(c0: vec3f) -> vec3f {
+  let sc = 0.8 - 0.04; let des = 0.15;
+  let x = min(c0.r, min(c0.g, c0.b));
+  let off = select(0.04, x - 6.25 * x * x, x < 0.08);
+  var c = c0 - off;
+  let peak = max(c.r, max(c.g, c.b));
+  if (peak < sc) { return c; }
+  let d = 1.0 - sc;
+  let np = 1.0 - d * d / (peak + d - sc);
+  c *= np / peak;
+  let g = 1.0 - 1.0 / (des * (peak - np) + 1.0);
+  return mix(c, vec3f(np), g);
+}
+fn oetf(c: vec3f) -> vec3f { let lo = c * 12.92; let hi = 1.055 * pow(max(c, vec3f(0.0)), vec3f(1.0 / 2.4)) - 0.055; return select(hi, lo, c <= vec3f(0.0031308)); }
+@fragment fn fsPost(in: PO) -> @location(0) vec4f {
+  let dim = vec2f(textureDimensions(hdr));
+  var c = textureLoad(hdr, vec2i(clamp(in.uv * dim, vec2f(0.0), dim - 1.0)), 0).rgb;
+  c = min(max(c, vec3f(0.0)), vec3f(64.0)) * PP.x;
+  c = neutral(c);
+  let v = in.uv - 0.5; c *= 1.0 - 0.28 * dot(v, v);
+  c = oetf(clamp(c, vec3f(0.0), vec3f(1.0)));
+  let n = fract(sin(dot(in.pos.xy + PP.y, vec2f(12.9898, 78.233))) * 43758.5453) + fract(sin(dot(in.pos.xy * 1.37 + PP.y, vec2f(39.346, 11.135))) * 24634.6345) - 1.0;
+  c += vec3f(n / 255.0);
+  return vec4f(clamp(c, vec3f(0.0), vec3f(1.0)), 1.0);
+}
+`;
+
+// ───────────────────────── sound (WebAudio, synthesised) ─────────────────────────
+const audio=(()=>{ let ac=null, out=null;
+  const ok=()=>{ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); out=ac.createGain(); out.gain.value=0.5; out.connect(ac.destination); }catch(e){ ac=null; } } if(ac&&ac.state==='suspended') ac.resume(); return !!ac; };
+  const noise=(dur)=>{ const b=ac.createBuffer(1,Math.max(1,Math.floor(ac.sampleRate*dur)),ac.sampleRate), d=b.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; const s=ac.createBufferSource(); s.buffer=b; return s; };
+  const env=(g,t,a,p,d)=>{ g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(p,t+a); g.gain.exponentialRampToValueAtTime(0.0001,t+a+d); };
+  return {
+    unlock(){ ok(); },
+    giggle(){ if(!ac||ac.state!=='running') return; const t0=ac.currentTime, n=3+Math.floor(Math.random()*3), base=760+Math.random()*120;
+      for(let i=0;i<n;i++){ const t=t0+i*0.085, o=ac.createOscillator(), g=ac.createGain(), bp=ac.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1500; bp.Q.value=2.2;
+        o.type='triangle'; const f=base*(1+0.06*i)*(i%2?1.05:1); o.frequency.setValueAtTime(f*1.25,t); o.frequency.exponentialRampToValueAtTime(f*0.8,t+0.07);
+        const vib=ac.createOscillator(), vg=ac.createGain(); vib.frequency.value=38; vg.gain.value=f*0.05; vib.connect(vg); vg.connect(o.frequency);
+        o.connect(bp); bp.connect(g); g.connect(out); env(g,t,0.01,0.22,0.07); o.start(t); o.stop(t+0.1); vib.start(t); vib.stop(t+0.1); } },
+    sneeze(){ if(!ac||ac.state!=='running') return; const t=ac.currentTime; const o=ac.createOscillator(), g=ac.createGain(); o.type='sine'; o.frequency.setValueAtTime(520,t); o.frequency.exponentialRampToValueAtTime(980,t+0.32);
+      o.connect(g); g.connect(out); env(g,t,0.05,0.12,0.28); o.start(t); o.stop(t+0.4);
+      const n=noise(0.3), f=ac.createBiquadFilter(), g2=ac.createGain(); f.type='bandpass'; f.frequency.setValueAtTime(3200,t+0.38); f.frequency.exponentialRampToValueAtTime(1400,t+0.6); f.Q.value=0.9; n.connect(f); f.connect(g2); g2.connect(out); env(g2,t+0.38,0.012,0.5,0.22); n.start(t+0.38); },
+    whoosh(){ if(!ac||ac.state!=='running') return; const t=ac.currentTime; const n=noise(0.22), f=ac.createBiquadFilter(), g=ac.createGain(); f.type='lowpass'; f.frequency.setValueAtTime(380,t); f.frequency.exponentialRampToValueAtTime(1300,t+0.08); f.frequency.exponentialRampToValueAtTime(300,t+0.2);
+      n.connect(f); f.connect(g); g.connect(out); env(g,t,0.03,0.16,0.16); n.start(t); },
+    squish(){ if(!ac||ac.state!=='running') return; const t=ac.currentTime; const o=ac.createOscillator(), g=ac.createGain(); o.type='sine'; o.frequency.setValueAtTime(210,t); o.frequency.exponentialRampToValueAtTime(120,t+0.12); o.connect(g); g.connect(out); env(g,t,0.01,0.2,0.13); o.start(t); o.stop(t+0.16);
+      const n=noise(0.12), f=ac.createBiquadFilter(), g2=ac.createGain(); f.type='lowpass'; f.frequency.value=900; n.connect(f); f.connect(g2); g2.connect(out); env(g2,t,0.01,0.06,0.1); n.start(t); },
+    toss(){ if(!ac||ac.state!=='running') return; const t=ac.currentTime; const o=ac.createOscillator(), g=ac.createGain(); o.type='sine'; o.frequency.setValueAtTime(420,t); o.frequency.exponentialRampToValueAtTime(1250,t+0.22); o.connect(g); g.connect(out); env(g,t,0.02,0.14,0.22); o.start(t); o.stop(t+0.3); }
+  }; })();
+
+// ───────────────────────── WebGPU ─────────────────────────
+const cv=document.getElementById('gl'), stage=document.getElementById('stage');
+const gpu={};
+let ready=false, frameNo=0;
+const QUAL=[{shells:10,dpr:1},{shells:16,dpr:1.25},{shells:24,dpr:1.6},{shells:32,dpr:2}];
+function noGPU(msg){ const n=document.getElementById('nogpu'); n.classList.add('on'); if(msg) document.getElementById('nogpuWhy').textContent=msg; const l=document.getElementById('loading'); if(l) l.remove(); }
+async function initGPU(){
+  if(!('gpu' in navigator)) throw new Error('nogpu');
+  const adapter=await navigator.gpu.requestAdapter({powerPreference:'high-performance'}); if(!adapter) throw new Error('nogpu');
+  const device=await adapter.requestDevice(); gpu.device=device;
+  device.lost.then(info=>{ if(info.reason!=='destroyed'){ ready=false; noGPU('GPU 裝置中斷了（'+(info.message||info.reason)+'）。重新整理頁面就能再試一次。'); } });
+  device.addEventListener('uncapturederror',e=>{ console.warn('WebGPU',e.error&&e.error.message); });
+  const ctx=cv.getContext('webgpu'); gpu.ctx=ctx; gpu.format=navigator.gpu.getPreferredCanvasFormat(); ctx.configure({device,format:gpu.format,alphaMode:'opaque'});
+  const mod=(code,label)=>{ const m=device.createShaderModule({code,label}); m.getCompilationInfo().then(info=>{ for(const msg of info.messages) if(msg.type==='error') console.warn(label,msg.lineNum+':'+msg.linePos,msg.message); }); return m; };
+  const mFur=mod(WGSL_COMMON+WGSL_SHADOW_SAMPLING+WGSL_FUR,'fur'), mBg=mod(WGSL_COMMON+WGSL_SHADOW_SAMPLING+WGSL_BG,'bg'), mFin=mod(WGSL_COMMON+WGSL_SHADOW_SAMPLING+WGSL_FINGER,'finger');
+  const mSh=mod(WGSL_COMMON+WGSL_SHADOWPASS,'shadow'), mSkin=mod(WGSL_SKIN,'skin'), mPost=mod(WGSL_POST,'post');
+  // buffers
+  const B=(size,usage,label)=>device.createBuffer({size:Math.ceil(size/16)*16,usage,label});
+  const ST=GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST, UN=GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST;
+  const nv=mesh.nv;
+  gpu.parts=B(sim.np*16,ST); gpu.lags=B(sim.np*16,ST); gpu.cells=B(lat.C*32,ST); gpu.vin=B(nv*48,ST); gpu.comb=B(nv*16,ST);
+  gpu.vout=B(nv*80,GPUBufferUsage.STORAGE); gpu.skinU=B(48,UN); gpu.frameU=B(168*4,UN); gpu.drawBody=B(32,UN); gpu.drawWing=B(32,UN); gpu.finU=B(80,UN); gpu.postU=B(16,UN);
+  gpu.idx=device.createBuffer({size:mesh.I.byteLength,usage:GPUBufferUsage.INDEX|GPUBufferUsage.COPY_DST}); device.queue.writeBuffer(gpu.idx,0,mesh.I); gpu.nIdx=mesh.I.length;
+  const wI=wingIndex(); gpu.wIdx=device.createBuffer({size:wI.byteLength,usage:GPUBufferUsage.INDEX|GPUBufferUsage.COPY_DST}); device.queue.writeBuffer(gpu.wIdx,0,wI); gpu.nWIdx=wI.length;
+  gpu.wv=B(WV*VTX*4,ST); gpu.wData=new Float32Array(WV*VTX);
+  device.queue.writeBuffer(gpu.cells,0,lat.corner);
+  const vin=new Float32Array(nv*12); for(let v=0;v<nv;v++){ vin.set([mesh.P[v*3],mesh.P[v*3+1],mesh.P[v*3+2],mesh.M[v], mesh.N[v*3],mesh.N[v*3+1],mesh.N[v*3+2],lat.vCell[v], lat.vLoc[v*3],lat.vLoc[v*3+1],lat.vLoc[v*3+2],0],v*12); }
+  device.queue.writeBuffer(gpu.vin,0,vin);
+  device.queue.writeBuffer(gpu.comb,0,fur.comb);
+  // finger mesh
+  const fm=fingerMesh(); gpu.finVB=device.createBuffer({size:fm.v.byteLength,usage:GPUBufferUsage.VERTEX|GPUBufferUsage.COPY_DST}); device.queue.writeBuffer(gpu.finVB,0,fm.v);
+  gpu.finIB=device.createBuffer({size:fm.i.byteLength,usage:GPUBufferUsage.INDEX|GPUBufferUsage.COPY_DST}); device.queue.writeBuffer(gpu.finIB,0,fm.i); gpu.nFin=fm.i.length;
+  // shadow map
+  gpu.shSize=2048; gpu.shadow=device.createTexture({size:[gpu.shSize,gpu.shSize],format:'depth32float',usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING});
+  gpu.cmp=device.createSampler({compare:'less-equal',magFilter:'linear',minFilter:'linear'});
+  // layouts
+  const VF=GPUShaderStage.VERTEX|GPUShaderStage.FRAGMENT;
+  gpu.bglMain=device.createBindGroupLayout({entries:[{binding:0,visibility:VF,buffer:{type:'uniform'}},{binding:1,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:'depth'}},{binding:2,visibility:GPUShaderStage.FRAGMENT,sampler:{type:'comparison'}}]});
+  gpu.bglFrame=device.createBindGroupLayout({entries:[{binding:0,visibility:VF,buffer:{type:'uniform'}}]});
+  gpu.bglVerts=device.createBindGroupLayout({entries:[{binding:0,visibility:GPUShaderStage.VERTEX,buffer:{type:'read-only-storage'}},{binding:1,visibility:GPUShaderStage.VERTEX,buffer:{type:'uniform'}}]});
+  gpu.bglFin=device.createBindGroupLayout({entries:[{binding:0,visibility:GPUShaderStage.VERTEX,buffer:{type:'uniform'}}]});
+  gpu.bglPost=device.createBindGroupLayout({entries:[{binding:0,visibility:GPUShaderStage.FRAGMENT,texture:{sampleType:'unfilterable-float'}},{binding:1,visibility:GPUShaderStage.FRAGMENT,buffer:{type:'uniform'}}]});
+  const PL=bgls=>device.createPipelineLayout({bindGroupLayouts:bgls});
+  const HDR='rgba16float', MS={count:4};
+  const depthMain={format:'depth24plus',depthWriteEnabled:true,depthCompare:'less-equal'};
+  gpu.pSkin=device.createComputePipeline({layout:'auto',compute:{module:mSkin,entryPoint:'main'}});
+  gpu.pShadow=device.createRenderPipeline({layout:PL([gpu.bglFrame,gpu.bglVerts]),vertex:{module:mSh,entryPoint:'vsShadow'},primitive:{topology:'triangle-list',cullMode:'none'},depthStencil:{format:'depth32float',depthWriteEnabled:true,depthCompare:'less',depthBias:2,depthBiasSlopeScale:1.5}});
+  gpu.pBg=device.createRenderPipeline({layout:PL([gpu.bglMain]),vertex:{module:mBg,entryPoint:'vsBg'},fragment:{module:mBg,entryPoint:'fsBg',targets:[{format:HDR}]},primitive:{topology:'triangle-list'},depthStencil:{format:'depth24plus',depthWriteEnabled:true,depthCompare:'always'},multisample:MS});
+  const furDesc=cull=>({layout:PL([gpu.bglMain,gpu.bglVerts]),vertex:{module:mFur,entryPoint:'vsFur'},fragment:{module:mFur,entryPoint:'fsFur',targets:[{format:HDR}]},primitive:{topology:'triangle-list',cullMode:cull},depthStencil:depthMain,multisample:{count:4,alphaToCoverageEnabled:true}});
+  gpu.pFur=device.createRenderPipeline(furDesc('back')); gpu.pWing=device.createRenderPipeline(furDesc('none'));
+  gpu.pFin=device.createRenderPipeline({layout:PL([gpu.bglMain,gpu.bglFin]),vertex:{module:mFin,entryPoint:'vsFin',buffers:[{arrayStride:24,attributes:[{shaderLocation:0,offset:0,format:'float32x3'},{shaderLocation:1,offset:12,format:'float32x3'}]}]},fragment:{module:mFin,entryPoint:'fsFin',targets:[{format:HDR}]},primitive:{topology:'triangle-list',cullMode:'back'},depthStencil:depthMain,multisample:MS});
+  gpu.pPost=device.createRenderPipeline({layout:PL([gpu.bglPost]),vertex:{module:mPost,entryPoint:'vsPost'},fragment:{module:mPost,entryPoint:'fsPost',targets:[{format:gpu.format}]},primitive:{topology:'triangle-list'}});
+  // bind groups
+  gpu.bgSkin=device.createBindGroup({layout:gpu.pSkin.getBindGroupLayout(0),entries:[gpu.parts,gpu.lags,gpu.cells,gpu.vin,gpu.comb,gpu.vout,gpu.skinU].map((b,i)=>({binding:i,resource:{buffer:b}}))});
+  gpu.bgMain=device.createBindGroup({layout:gpu.bglMain,entries:[{binding:0,resource:{buffer:gpu.frameU}},{binding:1,resource:gpu.shadow.createView()},{binding:2,resource:gpu.cmp}]});
+  gpu.bgFrame=device.createBindGroup({layout:gpu.bglFrame,entries:[{binding:0,resource:{buffer:gpu.frameU}}]});
+  gpu.bgBody=device.createBindGroup({layout:gpu.bglVerts,entries:[{binding:0,resource:{buffer:gpu.vout}},{binding:1,resource:{buffer:gpu.drawBody}}]});
+  gpu.bgWing=device.createBindGroup({layout:gpu.bglVerts,entries:[{binding:0,resource:{buffer:gpu.wv}},{binding:1,resource:{buffer:gpu.drawWing}}]});
+  gpu.bgFin=device.createBindGroup({layout:gpu.bglFin,entries:[{binding:0,resource:{buffer:gpu.finU}}]});
+  gpu.frame=new Float32Array(168); gpu.pbuf=new Float32Array(sim.np*4); gpu.skinBuf=new ArrayBuffer(48);
+  resize(); new ResizeObserver(resize).observe(stage);
+}
+function resize(){ if(!gpu.device) return; const q=QUAL[S.quality]; const dpr=Math.min(window.devicePixelRatio||1,q.dpr);
+  const w=Math.max(2,Math.round(cv.clientWidth*dpr)), h=Math.max(2,Math.round(cv.clientHeight*dpr)); if(w===gpu.w&&h===gpu.h) return;
+  gpu.w=cv.width=w; gpu.h=cv.height=h; const d=gpu.device;
+  for(const k of ['msaa','depth','hdr']) if(gpu[k]) gpu[k].destroy();
+  gpu.msaa=d.createTexture({size:[w,h],format:'rgba16float',sampleCount:4,usage:GPUTextureUsage.RENDER_ATTACHMENT});
+  gpu.depth=d.createTexture({size:[w,h],format:'depth24plus',sampleCount:4,usage:GPUTextureUsage.RENDER_ATTACHMENT});
+  gpu.hdr=d.createTexture({size:[w,h],format:'rgba16float',usage:GPUTextureUsage.RENDER_ATTACHMENT|GPUTextureUsage.TEXTURE_BINDING});
+  gpu.bgPost=d.createBindGroup({layout:gpu.bglPost,entries:[{binding:0,resource:gpu.hdr.createView()},{binding:1,resource:{buffer:gpu.postU}}]});
+}
+function fingerMesh(){ const V=[],I=[], seg=20, r0=0.0088, Lz=0.1; const rings=[]; for(let k=0;k<=8;k++) rings.push(k/8*r0); for(let k=1;k<=10;k++) rings.push(r0+k/10*(Lz-r0));
+  rings.forEach(z=>{ const cap=z<r0; const rr=cap?Math.sqrt(Math.max(0,r0*r0-(r0-z)*(r0-z))):r0*(1+0.12*(z-r0)/Lz)+0.0012*Math.exp(-(((z-0.034)/0.006)**2));
+    for(let s=0;s<=seg;s++){ const a=s/seg*2*PI, x=Math.cos(a), y=Math.sin(a)*0.86; const n=cap?norm([x*rr,y*rr,z-r0]):norm([x,y/0.86,-0.06]); V.push(x*rr,y*rr,z,n[0],n[1],n[2]); } });
+  for(let r=0;r<rings.length-1;r++) for(let s=0;s<seg;s++){ const a=r*(seg+1)+s,b=a+seg+1; I.push(a,a+1,b, a+1,b+1,b); }
+  return {v:new Float32Array(V),i:new Uint32Array(I)}; }
+
+// ───────────────────────── fur comb field (rest space) ─────────────────────────
+const fur={};
+function buildComb(){ const nv=mesh.nv; fur.base=new Float32Array(nv*4); fur.comb=new Float32Array(nv*4); fur.vTail=new Uint8Array(nv);
+  for(let v=0;v<nv;v++){ const p=[mesh.P[v*3],mesh.P[v*3+1],mesh.P[v*3+2]], n=[mesh.N[v*3],mesh.N[v*3+1],mesh.N[v*3+2]]; const pa=partAt(p); fur.vTail[v]=pa.tail?1:0;
+    let g=(p[2]>0.02&&p[1]<0.14)?[0,-1,0.15]:(p[1]>0.2)?[0,-0.3,-1]:[0,-0.7,-1];
+    if(pa.tail){ const k=TAIL[clamp(Math.round(pa.t*(TAILN-1)),0,TAILN-1)]; const w=sstep(0.04,0.3,pa.t); g=add(scl(norm(g),1-w),scl(k.T,w)); }
+    let t=sub(g,scl(n,dot(g,n))); if(len(t)<1e-4) t=cross(n,[1,0,0]); t=norm(t); fur.base.set([t[0],t[1],t[2],0],v*4); }
+  fur.comb.set(fur.base); fur.dirty=false; fur.relax=0;
+  for(let v=0;v<nv;v++) if(fur.vTail[v] && mesh.M[v]===0) mesh.M[v]=9; }
+function combAt(rest,dir){ const nv=mesh.nv, R=0.021; let any=false;
+  for(let v=0;v<nv;v++){ const dx=mesh.P[v*3]-rest[0],dy=mesh.P[v*3+1]-rest[1],dz=mesh.P[v*3+2]-rest[2]; const d2=dx*dx+dy*dy+dz*dz; if(d2>R*R) continue; const fall=1-Math.sqrt(d2)/R;
+    const n=[mesh.N[v*3],mesh.N[v*3+1],mesh.N[v*3+2]]; let t=sub(dir,scl(n,dot(dir,n))); const l=len(t); if(l<1e-6) continue; t=scl(t,1/l);
+    const o=v*4, a=0.45*fall; let c=norm([mix(fur.comb[o],t[0],a),mix(fur.comb[o+1],t[1],a),mix(fur.comb[o+2],t[2],a)]); fur.comb[o]=c[0];fur.comb[o+1]=c[1];fur.comb[o+2]=c[2]; fur.comb[o+3]=Math.min(1,fur.comb[o+3]+0.3*fall); any=true; }
+  if(any) fur.dirty=true; }
+
+// ───────────────────────── camera ─────────────────────────
+const cam={yaw:0.62,pitch:0.30,dist:0.9,t:[0.012,0.125,0.0],vy:0,vp:0};
+function camPos(){ const cp=Math.cos(cam.pitch); return [cam.t[0]+Math.sin(cam.yaw)*cp*cam.dist, cam.t[1]+Math.sin(cam.pitch)*cam.dist, cam.t[2]+Math.cos(cam.yaw)*cp*cam.dist]; }
+function matrices(){ const asp=gpu.w/gpu.h; const fov=asp<0.8?0.62:0.5; const e=camPos(); const view=lookAt(e,cam.t,[0,1,0]); const proj=perspZO(fov,asp,0.02,6); const vp=mul4(proj,view); return {e,vp,ivp:inv4(vp),view}; }
+let M=null;
+function rayFrom(ev){ const r=cv.getBoundingClientRect(); const nx=((ev.clientX-r.left)/r.width)*2-1, ny=1-((ev.clientY-r.top)/r.height)*2; const a=xform(M.ivp,[nx,ny,0]), b=xform(M.ivp,[nx,ny,1]); return {ro:a,rd:norm(sub(b,a))}; }
+function planeHit(ro,rd,p0,n){ const den=dot(rd,n); if(Math.abs(den)<1e-6) return p0; const t=dot(sub(p0,ro),n)/den; return add(ro,scl(rd,t)); }
+
+// ───────────────────────── frame ─────────────────────────
+let acc=0, last=0, fpsAcc=0, fpsN=0, qualStable=0;
+function writeFrame(){
+  const f=gpu.frame; M=matrices(); f.set(M.vp,0); f.set(M.ivp,16);
+  const L=norm([-0.52,0.82,0.42]); const c=[sim.com[0],0.1,sim.com[2]]; const lv=lookAt(add(c,scl(L,0.9)),c,[0,1,0]); const lp=orthoZO(-0.32,0.32,-0.32,0.32,0.05,1.8); f.set(mul4(lp,lv),32);
+  f.set([...M.e,sim.time],48); f.set([...L,2.7],52); f.set([1.0,0.93,0.85,0],56); f.set([gpu.shSize,1,280,gpu.w/gpu.h],60);
+  const fi=sim.finger; if(fi&&fi.vis){ f.set([...fi.tip,0.0095],64); f.set([...fi.back,fi.press],68); } else { f.fill(0,64,72); }
+  const P=PAL[S.palette]; ['body','belly','wing','cheek','thread','felt','sole','body'].forEach((k,i)=>f.set([...srgbToLin(P[k]),1],72+i*4));
+  for(let i=0;i<16;i++){ if(i<sim.ncl) f.set([sim.clC[i*3],sim.clC[i*3+1],sim.clC[i*3+2],sim.clR[i]*0.92],104+i*4); else f.set([0,0,0,0],104+i*4); }
+  gpu.device.queue.writeBuffer(gpu.frameU,0,f);
+  const sh=QUAL[S.quality].shells;
+  gpu.device.queue.writeBuffer(gpu.drawBody,0,new Float32Array([S.pile,sh,0.42,0, 0,0,0,0]));
+  gpu.device.queue.writeBuffer(gpu.drawWing,0,new Float32Array([S.pile*0.55,Math.max(6,Math.round(sh*0.6)),0.5,1, 0,0,0,0]));
+  const sb=gpu.skinBuf, u32=new Uint32Array(sb), f32=new Float32Array(sb); u32[0]=mesh.nv; f32[1]=H;
+  if(fi&&fi.vis&&fi.press>0.02){ f32.set([...fi.tip,0.0098],4); f32.set([...fi.back,1],8); } else f32.fill(0,4,12);
+  gpu.device.queue.writeBuffer(gpu.skinU,0,sb);
+  gpu.device.queue.writeBuffer(gpu.postU,0,new Float32Array([1.0,(frameNo%64)*7.13,0,0]));
+  if(fi&&fi.vis){ const z=norm(sub(fi.back,fi.tip)); let y=[M.view[1],M.view[5],M.view[9]]; y=norm(sub(y,scl(z,dot(y,z)))); const x=cross(y,z); const m=new Float32Array([x[0],x[1],x[2],0, y[0],y[1],y[2],0, z[0],z[1],z[2],0, fi.tip[0],fi.tip[1],fi.tip[2],1, 0,0,0,0]); gpu.device.queue.writeBuffer(gpu.finU,0,m); }
+}
+function render(){
+  const d=gpu.device, pb=gpu.pbuf;
+  for(let i=0;i<sim.np;i++){ pb[i*4]=sim.x[i*3]; pb[i*4+1]=sim.x[i*3+1]; pb[i*4+2]=sim.x[i*3+2]; }
+  d.queue.writeBuffer(gpu.parts,0,pb); d.queue.writeBuffer(gpu.lags,0,sim.lag);
+  if(fur.dirty){ d.queue.writeBuffer(gpu.comb,0,fur.comb); fur.dirty=false; }
+  buildWingVerts(gpu.wData); d.queue.writeBuffer(gpu.wv,0,gpu.wData);
+  writeFrame();
+  const enc=d.createCommandEncoder();
+  const cp=enc.beginComputePass(); cp.setPipeline(gpu.pSkin); cp.setBindGroup(0,gpu.bgSkin); cp.dispatchWorkgroups(Math.ceil(mesh.nv/64)); cp.end();
+  const sp=enc.beginRenderPass({colorAttachments:[],depthStencilAttachment:{view:gpu.shadow.createView(),depthClearValue:1,depthLoadOp:'clear',depthStoreOp:'store'}});
+  sp.setPipeline(gpu.pShadow); sp.setBindGroup(0,gpu.bgFrame);
+  sp.setBindGroup(1,gpu.bgBody); sp.setIndexBuffer(gpu.idx,'uint32'); sp.drawIndexed(gpu.nIdx);
+  sp.setBindGroup(1,gpu.bgWing); sp.setIndexBuffer(gpu.wIdx,'uint32'); sp.drawIndexed(gpu.nWIdx); sp.end();
+  const mp=enc.beginRenderPass({colorAttachments:[{view:gpu.msaa.createView(),resolveTarget:gpu.hdr.createView(),loadOp:'clear',storeOp:'discard',clearValue:[0,0,0,1]}],depthStencilAttachment:{view:gpu.depth.createView(),depthClearValue:1,depthLoadOp:'clear',depthStoreOp:'discard'}});
+  mp.setPipeline(gpu.pBg); mp.setBindGroup(0,gpu.bgMain); mp.draw(3);
+  const sh=QUAL[S.quality].shells;
+  mp.setPipeline(gpu.pFur); mp.setBindGroup(0,gpu.bgMain); mp.setBindGroup(1,gpu.bgBody); mp.setIndexBuffer(gpu.idx,'uint32'); mp.drawIndexed(gpu.nIdx,sh+1);
+  mp.setPipeline(gpu.pWing); mp.setBindGroup(1,gpu.bgWing); mp.setIndexBuffer(gpu.wIdx,'uint32'); mp.drawIndexed(gpu.nWIdx,Math.max(6,Math.round(sh*0.6))+1);
+  if(sim.finger&&sim.finger.vis){ mp.setPipeline(gpu.pFin); mp.setBindGroup(0,gpu.bgMain); mp.setBindGroup(1,gpu.bgFin); mp.setVertexBuffer(0,gpu.finVB); mp.setIndexBuffer(gpu.finIB,'uint32'); mp.drawIndexed(gpu.nFin); }
+  mp.end();
+  const pp=enc.beginRenderPass({colorAttachments:[{view:gpu.ctx.getCurrentTexture().createView(),loadOp:'clear',storeOp:'store',clearValue:[0,0,0,1]}]});
+  pp.setPipeline(gpu.pPost); pp.setBindGroup(0,gpu.bgPost); pp.draw(3); pp.end();
+  d.queue.submit([enc.finish()]);
+}
+function tick(now){
+  requestAnimationFrame(tick); if(!ready) return;
+  const dt=last?Math.min(0.1,(now-last)/1000):DT; last=now; acc+=dt; let n=0;
+  while(acc>=DT && n<3){ step(); acc-=DT; n++; } if(n===3) acc=0;
+  nanGuard();
+  // camera eases toward the specimen
+  cam.t[0]+=(sim.com[0]*0.8-cam.t[0])*0.04; cam.t[2]+=(sim.com[2]*0.8-cam.t[2])*0.04; cam.t[1]+=((0.125+sim.lift*0.6)-cam.t[1])*0.05;
+  if(!drag.on && !reduceMotion.matches){ cam.yaw+=cam.vy; cam.pitch=clamp(cam.pitch+cam.vp,-0.05,1.2); cam.vy*=0.92; cam.vp*=0.92; }
+  if(sim.finger&&sim.finger.vis){ const f=sim.finger; f.press+=(f.want-f.press)*0.22; updateFinger(); }
+  if(fur.relax>0){ fur.relax-=dt; const a=0.12; for(let i=0;i<fur.comb.length;i++) fur.comb[i]+= (fur.base[i]-fur.comb[i])*a; fur.dirty=true; }
+  render(); frameNo++;
+  if(frameNo%6===0) readouts();
+  fpsAcc+=dt; fpsN++; if(fpsN>=90){ const avg=fpsAcc/fpsN; fpsAcc=0; fpsN=0; adapt(avg); }
+}
+function adapt(avg){ let q=S.quality; if(avg>0.024 && q>0){ q--; qualStable=0; } else if(avg<0.0135){ if(++qualStable>=3 && q<QUAL.length-1){ q++; qualStable=0; } } else qualStable=0;
+  if(q!==S.quality){ S.quality=q; resize(); } document.getElementById('quality').textContent=`畫質自動調整：${QUAL[q].shells} 層殼層、解析度 ×${Math.min(window.devicePixelRatio||1,QUAL[q].dpr).toFixed(2)}，約 ${Math.round(1/Math.max(avg,1e-3))} fps。`; }
+
+// ───────────────────────── readouts ─────────────────────────
+const el=id=>document.getElementById(id);
+function readouts(){
+  el('rMass').innerHTML=Math.round((sim.total+0.024)*1000)+'<small>g</small>';
+  el('rVol').innerHTML=(volumeRatio()*100).toFixed(1)+'<small>%</small>';
+  el('rSpan').innerHTML=(sim.span*100).toFixed(1)+'<small>cm</small>';
+  el('rLift').innerHTML=(sim.lift*100).toFixed(1)+'<small>cm</small>';
+  const up=sim.R[4]; let m='坐著，慢慢呼吸。';
+  if(sim.tickle>0.5) m='被搔癢，咯咯笑，尾巴搖個不停。';
+  else if(sim.grab&&sim.grab.kind==='wing') m=sim.tow?'翅膀拉過頭了，整隻被拖著走。':'一片翅膀被拉開。';
+  else if(sim.grab) m=sim.lift>0.01?'被抱起來，肚子跟著晃。':'被壓扁了一點。';
+  else if(sim.flapBlend>0.3) m=sim.lift>0.02?`拍著翅膀，離桌 ${(sim.lift*100).toFixed(1)} 公分。`:'拍翅膀，準備起飛。';
+  else if(sim.flare>0.3&&sim.sneezeT>0) m='哈啾！';
+  else if(sim.air>0||sim.lift>0.02) m='在空中翻了一圈。';
+  else if(up<0.85) m='倒下了，正慢慢坐回來。';
+  else if(S.stretch) m='把翅膀整個撐開。';
+  else if(sim.finger&&sim.finger.press>0.5) m='被戳出一個凹痕。';
+  else if(sim.happy>0.2) m='還在開心地搖尾巴。';
+  el('mood').textContent=m; sim.sneezeT=Math.max(0,(sim.sneezeT||0)-0.1);
+}
+
+// ───────────────────────── input ─────────────────────────
+const drag={on:false,mode:null,x:0,y:0,id:-1}; const pts=new Map(); let pinch0=0, dist0=0;
+function updateFinger(){ const f=sim.finger; if(!f||!f.hit) return; const rd=f.rd; const press=f.press;
+  f.tip=add(f.hit,scl(rd,-0.006+press*0.024)); const e=M?M.e:camPos(); const right=M?[M.view[0],M.view[4],M.view[8]]:[1,0,0], up=M?[M.view[1],M.view[5],M.view[9]]:[0,1,0];
+  const back=norm(add(sub(e,f.tip),add(scl(right,0.2),scl(up,-0.2)))); f.back=add(f.tip,scl(back,0.1)); }
+function onDown(ev){
+  if(!ready) return; audio.unlock(); cv.setPointerCapture(ev.pointerId); pts.set(ev.pointerId,[ev.clientX,ev.clientY]);
+  if(pts.size===2){ const [a,b]=[...pts.values()]; pinch0=Math.hypot(a[0]-b[0],a[1]-b[1]); dist0=cam.dist; releaseAll(); drag.mode='pinch'; return; }
+  drag.on=true; drag.x=ev.clientX; drag.y=ev.clientY; drag.id=ev.pointerId; drag.mode='orbit';
+  if(ev.button!==0) return;
+  const {ro,rd}=rayFrom(ev); const hb=rayBody(ro,rd); const hw=rayWing(ro,rd);
+  if(S.tool==='hand'){
+    if(hw && (!hb||hw.t<hb.t)){ const n=norm(sub(camPos(),cam.t)); sim.grab={kind:'wing',W:hw.W,i:hw.i,tgt:hw.p.slice(),plane:hw.p.slice(),n}; drag.mode='grab'; cv.classList.add('busy'); return; }
+    if(hb){ const ids=[],wt=[],off=[]; for(let p=0;p<sim.np;p++){ const d=Math.hypot(sim.x[p*3]-hb.p[0],sim.x[p*3+1]-hb.p[1],sim.x[p*3+2]-hb.p[2]); if(d<0.055){ ids.push(p); wt.push(1-d/0.055); off.push(sim.x[p*3]-hb.p[0],sim.x[p*3+1]-hb.p[1],sim.x[p*3+2]-hb.p[2]); } }
+      sim.grab={kind:'body',ids,wt,off,tgt:hb.p.slice(),plane:hb.p.slice(),n:norm(sub(camPos(),cam.t))}; drag.mode='grab'; cv.classList.add('busy'); audio.squish(); return; }
+  } else if(S.tool==='finger'){
+    if(hb){ sim.finger=Object.assign(sim.finger||{},{vis:true,hit:hb.p,rd,want:1,held:0}); if(!sim.finger.press) sim.finger.press=0; drag.mode='poke'; audio.squish(); return; }
+  } else if(S.tool==='comb'){
+    if(hb){ drag.mode='comb'; drag.rest=hb.rest; return; }
+  }
+}
+function onMove(ev){
+  if(!ready) return; if(pts.has(ev.pointerId)) pts.set(ev.pointerId,[ev.clientX,ev.clientY]);
+  if(drag.mode==='pinch' && pts.size===2){ const [a,b]=[...pts.values()]; const d=Math.hypot(a[0]-b[0],a[1]-b[1]); cam.dist=clamp(dist0*pinch0/Math.max(d,1),0.3,1.4); return; }
+  if(S.tool==='finger' && (!drag.on || drag.mode==='poke')){ const {ro,rd}=rayFrom(ev); const hb=rayBody(ro,rd);
+    if(hb){ sim.finger=Object.assign(sim.finger||{press:0,want:0,held:0},{vis:true,hit:hb.p,rd}); } else if(drag.mode!=='poke'){ if(sim.finger) sim.finger.vis=false; }
+    if(drag.mode==='poke') return; }
+  if(!drag.on || ev.pointerId!==drag.id) return;
+  const dx=ev.clientX-drag.x, dy=ev.clientY-drag.y; drag.x=ev.clientX; drag.y=ev.clientY;
+  if(drag.mode==='orbit'){ cam.yaw-=dx*0.0075; cam.pitch=clamp(cam.pitch+dy*0.006,-0.05,1.2); cam.vy=-dx*0.0012; cam.vp=dy*0.001; }
+  else if(drag.mode==='grab'){ const {ro,rd}=rayFrom(ev); const g=sim.grab; let p=planeHit(ro,rd,g.plane,g.n); if(g.kind==='body') p[1]=Math.max(p[1],-0.03); g.tgt=p; }
+  else if(drag.mode==='comb'){ const {ro,rd}=rayFrom(ev); const hb=rayBody(ro,rd); if(hb){ const d=sub(hb.rest,drag.rest); if(len(d)>0.0012){ combAt(hb.rest,norm(d)); drag.rest=hb.rest; } } }
+}
+function releaseAll(){ sim.grab=null; sim.tow=null; if(sim.finger){ sim.finger.want=0; sim.finger.held=0; } cv.classList.remove('busy'); }
+function onUp(ev){ pts.delete(ev.pointerId); if(drag.mode==='pinch'){ if(pts.size===0){ drag.on=false; drag.mode=null; } return; }
+  if(ev.pointerId!==drag.id) return; drag.on=false; if(drag.mode==='grab'||drag.mode==='poke') releaseAll(); drag.mode=null;
+  if(ev.pointerType!=='mouse' && sim.finger){ setTimeout(()=>{ if(sim.finger&&!drag.on) sim.finger.vis=false; },500); } }
+cv.addEventListener('pointerdown',onDown); cv.addEventListener('pointermove',onMove); cv.addEventListener('pointerup',onUp); cv.addEventListener('pointercancel',onUp);
+cv.addEventListener('pointerleave',()=>{ if(sim.finger&&!drag.on) sim.finger.vis=false; });
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('wheel',e=>{ e.preventDefault(); cam.dist=clamp(cam.dist*Math.exp(e.deltaY*0.0012),0.3,1.4); },{passive:false});
+
+// ───────────────────────── controls ─────────────────────────
+function setTool(t){ S.tool=t; document.querySelectorAll('.tool').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.tool===t))); cv.className='tool-'+t; if(t!=='finger'&&sim.finger) sim.finger.vis=false; }
+document.querySelectorAll('.tool').forEach(b=>b.addEventListener('click',()=>setTool(b.dataset.tool)));
+function act(name){ if(!ready) return; audio.unlock();
+  if(name==='flap'){ sim.flapT=Math.max(sim.flapT,3.4); sim.lastBeat=-1; }
+  if(name==='stretch'){ S.stretch=!S.stretch; el('aStretch').setAttribute('aria-pressed',String(S.stretch)); }
+  if(name==='boop'){ boop(); audio.sneeze(); sim.sneezeT=1.2; }
+  if(name==='toss'){ releaseAll(); toss(); audio.toss(); }
+  if(name==='smooth'){ fur.relax=0.9; }
+  if(name==='reset'){ resetSim(); S.stretch=false; el('aStretch').setAttribute('aria-pressed','false'); fur.comb.set(fur.base); fur.dirty=true; cam.t=[0.012,0.125,0]; }
+}
+el('aFlap').onclick=()=>act('flap'); el('aStretch').onclick=()=>act('stretch'); el('aBoop').onclick=()=>act('boop'); el('aToss').onclick=()=>act('toss'); el('aSmooth').onclick=()=>act('smooth'); el('aReset').onclick=()=>act('reset');
+function slider(id,out,fn,fmt){ const s=el(id); const upd=()=>{ const v=+s.value; s.style.setProperty('--p',((v-s.min)/(s.max-s.min)*100)+'%'); el(out).textContent=fmt(v); fn(v); }; s.addEventListener('input',upd); upd(); }
+slider('sStuff','oStuff',v=>{ S.stuffing=v/100; if(sim.np) setMass(); },v=>v);
+slider('sPile','oPile',v=>{ S.pile=v/10000; },v=>(v/10).toFixed(1));
+slider('sBeat','oBeat',v=>{ S.beat=v/10; },v=>(v/10).toFixed(1));
+function setPal(k){ S.palette=k; document.querySelectorAll('.sw').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.pal===k))); const r=document.documentElement.style; r.setProperty('--tone',PAL[k].ui); r.setProperty('--tone-ink',PAL[k].uiInk); }
+document.querySelectorAll('.sw').forEach(b=>b.addEventListener('click',()=>setPal(b.dataset.pal)));
+addEventListener('keydown',e=>{ if(e.target.closest('input')||e.metaKey||e.ctrlKey||e.altKey) return; const k=e.key.toLowerCase();
+  if(k==='1') setTool('hand'); else if(k==='2') setTool('finger'); else if(k==='3') setTool('comb');
+  else if(k==='f') act('flap'); else if(k==='s') act('stretch'); else if(k==='b') act('boop'); else if(k==='t') act('toss'); else if(k==='r') act('reset'); });
+
+// ───────────────────────── boot ─────────────────────────
+async function boot(){
+  const load=el('loading');
+  if(!('gpu' in navigator)){ noGPU(); return; }
+  await new Promise(r=>setTimeout(r,30));
+  try{
+    mesh=buildMesh(); lat=buildLattice(mesh); buildSim(); buildWings(); buildComb();
+    S.quality=matchMedia('(pointer: coarse)').matches?1:2;
+    await initGPU();
+  }catch(e){ console.warn(e); noGPU(e&&e.message==='nogpu'?null:'WebGPU 初始化失敗：'+(e&&e.message||e)); return; }
+  for(let i=0;i<30;i++) step();
+  ready=true; if(load) load.remove(); requestAnimationFrame(tick);
+  window.__plush={sim,S,cam,act,setTool,setPal,wings,get ready(){return ready;},
+    project(p){ const r=cv.getBoundingClientRect(); const q=xform(M.vp,p); return [r.left+(q[0]*0.5+0.5)*r.width, r.top+(0.5-q[1]*0.5)*r.height]; },
+    particle(i){ return [sim.x[i*3],sim.x[i*3+1],sim.x[i*3+2]]; } };
+}
+boot();
+})();
+</script>
+</body>
+</html>
