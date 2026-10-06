@@ -361,6 +361,139 @@ def trunks_sword(P, brass):
 
 
 # ================================================================ 比克
+# 比克專屬綁骨群組（64～65）
+G_PIC_HEM = 64    # 道服上衣垂在腰帶下的衣襬：原本是 G_TORSO，骨熱只分到大腿骨（不在允許清單）而退回 clL，踢腿時刺出尖角；改和褲子同一套權重
+G_PIC_SHOE = 65   # 鞋（左右共用，依 x 正負分邊）：腳趾漸變加寬，踮腳時鞋尖不會折出 V 形
+ALLOW[G_PIC_HEM] = {'hips', 'torso', 'thL', 'thR'}
+ALLOW[G_PIC_SHOE] = {'knL', 'anL', 'toL', 'knR', 'anR', 'toR'}
+
+
+def set_grp(ob, pred, grp):
+    """把 pred(co) 為真的頂點改成另一個綁骨群組。"""
+    G = ob.data.attributes['grp'].data
+    for i, v in enumerate(ob.data.vertices):
+        if pred(V(v.co)):
+            G[i].value = grp
+    return ob
+
+
+def piccolo_weights(F, yb):
+    """比克的衣物權重（左右共用，依 x 正負選骨頭）。
+    肩頭一帶（手臂皮膚、短袖、道服肩部）用同一個依沿臂距離 s 的鎖骨→上臂漸變，舉手時三者一起動、不會互相穿出；
+    上臂中段剛性跟著上臂（隊伍臂章才不會和皮膚分開）；褲子依沿大腿距離分配骨盆／大腿；鞋的腳趾漸變加寬。"""
+    nd = V((F.da.y, -F.da.x, 0))
+    if nd.x > 0:
+        nd = -nd   # 垂直手臂、朝身體內下方（腋下那一側）
+
+    def side(co):
+        sx = 1 if co.x >= 0 else -1
+        return V((co.x * sx, co.y, co.z)), ('L' if sx > 0 else 'R')
+
+    def shoulder(s, sf, z=0.0):
+        # 前側（腋下往前）早一點交給上臂：手往前上舉時前側才不會被擠成尖片；後側留給鎖骨久一點：手往前伸時袖根後緣才不會掀開
+        k = smooth((s + 0.12 + 0.03 * max(-1.0, min(1.0, z / 0.08))) / 0.16)
+        return [('cl' + sf, 1 - k), ('sh' + sf, k)]
+
+    def arm(co, old):
+        c, sf = side(co)
+        s = arm_s(F, c)
+        # 熱權重：去掉胸廓、軀幹、鎖骨（上臂離開肩頭後不該再被身體拉住）
+        f = smooth(s / 0.1)
+        g = smooth(((F.up - 0.06) - s) / 0.06)   # 前臂骨也只管到手肘附近，上臂中段（臂章處）完全跟上臂
+        st, moved = [], 0.0
+        for b, w in old:
+            k = f if b in ('torso', 'ribs', 'cl' + sf) else g if b == 'el' + sf else 0.0
+            st.append((b, w * (1 - k)))
+            moved += w * k
+        st.append(('sh' + sf, moved))
+        e = smooth(((F.up - 0.1) - s) / 0.05)   # 上臂中段以上改用程序權重
+        if e <= 0.001:
+            return st
+        return [(b, w * (1 - e)) for b, w in st] + [(b, w * e) for b, w in shoulder(s, sf, c.z)]
+    arm.blend = True
+
+    def sleeve_w(co):
+        c, sf = side(co)
+        return shoulder(arm_s(F, c), sf, c.z)
+
+    def torso(co, old):
+        c, sf = side(co)
+        if c.y < F.y(0.4):
+            # 腰以下不該有肩、鎖骨的權重（骨熱沒有允許的骨頭時 read_weights 會退回 clL）
+            moved = sum(w for b, w in old if b[:2] in ('cl', 'sh'))
+            if moved <= 0:
+                return old
+            return [(b, w) for b, w in old if b[:2] not in ('cl', 'sh')] + [('hips' if c.y < F.L + 0.1 else 'torso', moved)]
+        s = arm_s(F, c)
+        h = (c - F.sh).dot(nd)
+        m = smooth((0.14 - h) / 0.11) * smooth((0.15 - abs(c.z)) / 0.06) * smooth((s + 0.1) / 0.06)
+        if m <= 0.001:
+            return old
+        return [(b, w * (1 - m)) for b, w in old] + [(b, w * m) for b, w in shoulder(s, sf, c.z)]
+    torso.blend = True
+
+    # 褲子（骨盆、褲管、衣襬）：骨熱在蓬鬆的褲管上很亂（大腿前側有頂點整個跟骨盆、相鄰的整個跟大腿，踢腿時拉出尖刺），
+    # 改用沿大腿的距離決定骨盆→大腿的比例；骨盆與衣襬依 x 左右分配，褲管保留骨熱的大腿／小腿比例
+    def hip_share(c):
+        return smooth(((c - F.th).dot(F.dl) + 0.06) / 0.14)
+
+    def pants(co, center=1.0):
+        wl = smooth((co.x + 0.04) / 0.08)
+        k = center + (1 - center) * smooth((abs(co.x) - 0.03) / 0.12)
+        a_l = wl * hip_share(co) * k
+        a_r = (1 - wl) * hip_share(V((-co.x, co.y, co.z))) * k
+        return [('hips', 1 - a_l - a_r), ('thL', a_l), ('thR', a_r)]
+
+    def hem(co):
+        # 衣襬正中央（前後片）多跟骨盆：兩腿張開時下緣中央才不會被扯進褲襠、折成 V 字
+        return pants(co, 0.0)
+
+    def leg(sf):
+        sx = 1 if sf == 'L' else -1
+
+        def fn(co, old):
+            t = hip_share(V((co.x * sx, co.y, co.z)))
+            rest = [(b, w) for b, w in old if b != 'hips']
+            tot = sum(w for _, w in rest)
+            rest = [(b, w / tot) for b, w in rest] if tot > 1e-6 else [('th' + sf, 1.0)]
+            return [('hips', 1 - t)] + [(b, w * t) for b, w in rest]
+        fn.blend = True
+        return fn
+
+    def shoe(co):
+        _, sf = side(co)
+        ay = F.b['an' + sf][0].y
+        tz = F.b['to' + sf][0].z
+        k = smooth((ay + 0.045 - co.y) / 0.06)
+        t = smooth((co.z - (tz - 0.03)) / 0.06) * k
+        return [('kn' + sf, 1 - k), ('an' + sf, k - t), ('to' + sf, t)]
+
+    return {heroes.G_ARM_L: arm, heroes.G_ARM_R: arm, G_UPPER_L: arm, heroes.G_UPPER_R: arm,
+            heroes.G_DELT_L: sleeve_w, heroes.G_DELT_R: sleeve_w, G_TORSO: torso, G_PIC_SHOE: shoe,
+            G_PELVIS: pants, G_PIC_HEM: hem, G_LEG_L: leg('L'), heroes.G_LEG_R: leg('R')}
+
+
+def hug_band(F, arm, s0, s1, pal, grp, thick=0.006, gap=0.0015, name='teamL'):
+    """貼著手臂表面的臂章：先放樣成比手臂粗的管，再沿徑向射線貼到手臂皮膚上（二頭、三頭肌的起伏也照著走），最後往內加厚。
+    圓管臂章套在肌肉起伏大的上臂上，側面會懸空、前面被二頭肌穿出。"""
+    tr = tree_of(arm)
+    sm = (s0 + s1) / 2
+    o = limb(name, F.sh, F.da, [(s0, 0.2, 0.2), (sm, 0.2, 0.2), (s1, 0.2, 0.2)], n=24, cap0=None, cap1=None)
+    o = kit.subsurf(o, 1)
+
+    def snap(co):
+        s = arm_s(F, co)
+        a = F.arm_pt(s)
+        d = co - a
+        d = (d - F.da * d.dot(F.da)).normalized()
+        hit = tr.ray_cast(a + d * 0.3, -d, 0.3)
+        r = (hit[0] - a).length if hit[0] is not None else 0.09
+        return a + d * (r + thick + gap)
+    kit.deform(o, snap)
+    o = kit.subsurf(o, 0, solidify=thick)
+    return kit.tag(o, pal, grp=grp, mat=5, ol=0.5)
+
+
 def build_piccolo(R):
     F = Fig(R)
     P = kit.Palette()
@@ -384,6 +517,8 @@ def build_piccolo(R):
                    gap=lambda i: 0.0 if us[i] <= uv0 else min(1.35, 0.1 + (us[i] - uv0) * 2.2))
     top = kit.subsurf(top, 2, solidify=0.012)
     kit.tag(top, gi, grp=G_TORSO)
+    yb = F.L + 0.09   # 腰帶中心
+    set_grp(top, lambda co: co.y < yb, G_PIC_HEM)
     body.append(top)
     proxy.append(top)
     body.append(neck(F, gskin, r=0.07))
@@ -400,17 +535,18 @@ def build_piccolo(R):
         phi = math.atan2(r.dot(V((0, 0, 1))), r.dot(side))
         return min(((s - s0) / ls) ** 2 + ((phi - p0) / lp) ** 2 - 1 for s0, ls, p0, lp in ((0.11, 0.085, 0.35, 0.95), (F.up + 0.1, 0.075, 0.2, 0.85)))
     kit.paint_field(arm, patches, pink, 4)
-    sl = sleeve(F, gi, s1=0.035, r=0.118 * F.k_arm, s0=-0.06)
+    sl = sleeve(F, gi, s1=0.035, r=0.118 * F.k_arm, s0=-0.06, grp=heroes.G_DELT_L)   # 權重見 piccolo_weights
     wb = band('wristL', F.sh, F.da, F.up + 0.17, F.up + F.lo - 0.005, 0.068 * F.k_fore, 0.057 * F.k_fore, wrist, G_FORE_L, thick=0.012, rb=0.9)
     hand = fist(F, gskin, scale=1.12)
     body.append(pelvis(F, gi, e=0.014))
     proxy.append(body[-1])
     leg = baggy_leg(F, gi, bag=1.28, blouse=1.32, s_end=F.tl + F.sl - 0.06)  # 參考圖：寬大燈籠褲，腳踝收口
     shoe_ = boot(F, shoe, F.tl + F.sl - 0.09, 0.07, pal_sole=shoeD, toe_len=0.04, toe=0.95)
+    for o in shoe_:
+        set_grp(o, lambda co: True, G_PIC_SHOE)
     pair_add(body, proxy, [arm, sl, wb, hand, leg] + shoe_, proxy_set=[arm, hand, leg] + shoe_)
-    body.append(team_band(F, team, 1.2))
+    body.append(hug_band(F, arm, 0.155, 0.18, team, G_UPPER_L))
     # 天藍腰帶＋結＋垂帶
-    yb = F.L + 0.09
     body.append(belt_ring(F, yb, 0.13, sash, e=0.03, thick=0.016))
     kz = F.cz * 0.92 + 0.03
     knot = kit.quad_sphere('knot', 1, cuts=3)
@@ -439,7 +575,9 @@ def build_piccolo(R):
         an = kit.subsurf(an, 1)
         parts.append(kit.tag(an, gskin, mat=4, ol=0.6))
     heads = {'base': parts}
-    return finish(F, P, body, proxy, heads, custom={G_CHAIN: sash_chain_weights(F, 'sash')})
+    custom = piccolo_weights(F, yb)
+    custom[G_CHAIN] = sash_chain_weights(F, 'sash')
+    return finish(F, P, body, proxy, heads, custom=custom)
 
 
 # ================================================================ 弗利沙
