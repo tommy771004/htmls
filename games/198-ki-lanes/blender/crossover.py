@@ -212,7 +212,9 @@ def build_naruto(R):
     kit.paint_field(jk, lambda co: F.y(0.72) - co.y, black, 0)
     body.append(jk)
     proxy.append(jk)
-    zp = path_loft('zip', [V((0, F.y(0.04), F.cz * 0.93 + 0.022)), V((0, F.y(0.5), F.cz * 1.02 + 0.02)), V((0, F.y(0.95), F.cz * 0.8 + 0.02))], [0.008, 0.008, 0.008], n=6, flat=0.5)
+    # 拉鍊貼著外套表面走（從前方打射線取表面）：原本三點直線大半埋在胸口與下襬裡，只露出下端一截，彎腰踢腿時像穿出褲子的白條
+    zpts = [on_surface(jk, 0, F.y(0.04 + 0.91 * i / 11))[0] + V((0, 0, 0.004)) for i in range(12)]
+    zp = path_loft('zip', zpts, [0.008] * len(zpts), n=6, flat=0.5)
     body.append(kit.tag(kit.subsurf(zp, 1), zip_c, mat=2, grp=G_TORSO, ol=0.3))
     col = kit.loft('collar', [S(V((0, F.y(0.93), -0.01)), F.cx * 0.6, F.cz * 0.74), S(V((0, F.y(1.05), -0.015)), F.cx * 0.52, F.cz * 0.66), S(V((0, F.y(1.12), -0.02)), F.cx * 0.5, F.cz * 0.64)],
                    n=16, cap0=None, cap1=None)
@@ -231,8 +233,9 @@ def build_naruto(R):
     # 褲子到小腿中段，下面是深色綁腿與露腳趾的忍者涼鞋；右大腿綁白色繃帶
     leg = baggy_leg(F, orange, bag=1.0, blouse=1.0, s_end=F.tl + 0.12)
     kl = F.k_leg
-    shin = leg_tube(F, skin, [(F.tl + 0.06, 0.07 * kl, 0.074 * kl), (F.tl + 0.2, 0.06 * kl, 0.064 * kl), (F.tl + F.sl - 0.06, 0.048 * kl, 0.052 * kl)], name='shinL', mat=4)
-    wr = band('wrapL', F.th, F.dl, F.tl + 0.1, F.tl + F.sl - 0.1, 0.066 * kl + 0.008, 0.052 * kl + 0.008, sandal_c, G_LEG_L, thick=0.006)
+    # 小腿皮膚整段藏在綁腿裡：做細一點，綁腿再撐大一圈，膝蓋彎曲時皮膚不會從綁腿後面穿出來
+    shin = leg_tube(F, skin, [(F.tl + 0.06, 0.064 * kl, 0.066 * kl), (F.tl + 0.2, 0.054 * kl, 0.056 * kl), (F.tl + F.sl - 0.06, 0.046 * kl, 0.048 * kl)], name='shinL', mat=4)
+    wr = band('wrapL', F.th, F.dl, F.tl + 0.1, F.tl + F.sl - 0.1, 0.068 * kl + 0.012, 0.052 * kl + 0.01, sandal_c, G_LEG_L, thick=0.006)
     ft = sandal(F, skin, sandal_c)
     thw = band('thighWrap', F.th, F.dl, 0.16, 0.24, 0.112 * kl + 0.02, 0.106 * kl + 0.02, wrap, G_LEG_L, thick=0.008)
     pair_add(body, proxy, [sl, cuff, arm, hand, leg, shin, wr] + ft, proxy_set=[arm, hand, leg] + ft)
@@ -242,12 +245,15 @@ def build_naruto(R):
     # 腿上的忍具包（右大腿）
     pouch = kit.box_cage('pouch', 0.07, 0.09, 0.05, cuts=(1, 1, 1))
     kit.transform(pouch, Matrix.Translation(F.leg_pt(0.2) * V((-1, 1, 1)) + V((-0.12 * F.k_leg - 0.03, 0, 0.02))))
-    body.append(kit.tag(kit.subsurf(pouch, 2), sandal_c, grp=G_LEG_L, ol=0.6))
+    body.append(kit.tag(kit.subsurf(pouch, 2), sandal_c, grp=G_N_POUCH, ol=0.6))  # 在右腿：整塊剛性跟著右大腿
 
     h = anime_head('head_base', F, skin, jaw=1.02, chin=0.95, cheek=1.07, nose=0.75, face_len=0.94, cranium=(0.83, 0.9, 0.9))
     hc = P(0xf6c93a)
     heads = {'base': [h, hair_cap('cap', F, hc, hairline=0.6, temple=0.1, scale=1.06, nape=-0.55)] + hair(F, hc, naruto_hair()) + head_band(F, cloth, metal, y=0.4, h=0.32, scale=1.13)}
-    return finish(F, P, body, proxy, heads)
+    return finish(F, P, body, proxy, heads, custom={G_N_POUCH: lambda co: [('thR', 1.0)]})
+
+
+G_N_POUCH = 68   # 鳴人專用群組（不在 ALLOW 裡：權重由自訂函式決定）
 
 
 def naruto_hair():
