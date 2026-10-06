@@ -790,7 +790,7 @@ export function buildHero(id, team = 0) {
         // 布條受重力：身體前後大幅傾斜（重踢、衝刺、被打飛）時往下垂，不跟著骨盆翹出去
         // 躺在地上時地面擋著，不再往下垂；尾巴比布條硬，只順著身體傾斜一部分，躺下時平貼地面往外伸
         const dead = name === 'dead';
-        const g = i !== 0 ? 0 : c.hang ? (dead ? 0 : -clamp(cur.hipsRX, -1.2, 1.2) * 0.85) : dead ? -c.base - lift * c.lift + 0.05 : -clamp(cur.hipsRX, -1.2, 1.2) * 0.45;
+        const g = i !== 0 ? 0 : c.hang ? (dead ? 0 : -clamp(pelvisPitch, -1.2, 1.2) * 0.85) : dead ? -c.base - lift * c.lift + 0.05 : -clamp(pelvisPitch, -1.2, 1.2) * 0.45;
         const target = (i === 0 ? c.base + lift * c.lift + g : lift * 0.18 * c.lift + c.curl * (dead ? 0.3 : 1)) + fl;
         c.cur[i] += (target - c.cur[i]) * (1 - Math.exp(-(9 - i * 1.5) * dt));
         s.rotation.x = c.cur[i];
@@ -815,6 +815,7 @@ export function buildHero(id, team = 0) {
     else { body.position.x = 0; }
   }
   const _hp = {};
+  let pelvisPitch = 0;
   function apply(cur) {
     if (rig2) {
       // 髖部輔助：大腿抬超過約 65 度時，把一部分彎曲轉給骨盆往後倒（兩腿與上身的世界角度不變），
@@ -826,6 +827,7 @@ export function buildHero(id, team = 0) {
         cur = _hp;
       }
     }
+    pelvisPitch = cur.hipsRX; // 擺動鏈的重力補償要用實際套用的骨盆角度（含髖部輔助）
     hips.position.y = d.L + cur.hipsY;
     body.position.z = cur.hipsZ;
     hips.rotation.set(cur.hipsRX, cur.hipsRY, cur.hipsRZ);
