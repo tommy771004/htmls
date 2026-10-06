@@ -2,7 +2,7 @@
 
 **線上瀏覽：[htmls-ruddy.vercel.app](https://htmls-ruddy.vercel.app/)**（可搜尋、依分類篩選、直接預覽每件作品）
 
-原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 201，皆放在 `web/`），以及另外 104 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126、151、153、158、159、161、162、163、165、169、170、172、173、183、186、187、188、190 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135、136、140、142、164、174、178、180、181、182、184、185、191、192、193 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。第 155 件的原始碼在 `games/155-tally-crm/`（無相依套件），`node games/155-tally-crm/build.mjs` 內嵌成單檔 `web/155-tally-crm.html`。第 194 件的原始碼在 `games/194-powder-peak/`（Three.js + esbuild），`npm run build` 後內嵌成單檔 `web/194-powder-peak.html`。第 196 件的原始碼在 `games/196-stormwright/`（Three.js + esbuild），`npm run build` 後內嵌成單檔 `web/196-stormwright.html`。第 197 件的原始碼在 `games/197-openworld/`（Three.js + esbuild），`npm run build` 後內嵌成單檔 `web/197-openworld.html`，模型與貼圖放在 `assets/197/`，需透過網站伺服器開啟。第 198 件的原始碼在 `games/198-ki-lanes/`（Three.js + esbuild），`npm run build` 後內嵌成單檔 `web/198-ki-lanes.html`。第 199 件的原始碼在 `games/199-saltcape/`（Three.js + esbuild），`npm run build` 後內嵌成單檔 `web/199-saltcape.html`；貼圖與模型放在 `assets/199/`，需透過網站伺服器開啟；多人連線需要 `server/saltcape/` 的 WebSocket 伺服器（`npm start` 會一起啟動，Vercel 上是 `api/saltcape.mjs`），以檔案開啟時只能用程序備援畫面離線練習。第 200 件的原始碼在 `games/200-carball/`（Three.js + Rapier + esbuild），`npm run build` 後內嵌成單檔 `web/200-carball.html`，Rapier 的 WASM 以 gzip 內嵌。第 201 件的原始碼在 `games/201-coral-cove/`（Three.js + esbuild），模型由 `blender/` 的 Blender 腳本建模、綁骨並匯出成 GLB，`npm run build` 後內嵌成單檔 `web/201-coral-cove.html`。
+原始 100 個獨立單檔 HTML 加上第 103 件起的後續作品（最新編號為 201，皆放在 `web/`），以及另外 105 個獨立手機 App 原型（放在 `app/`）；101、102 為教學簡報。第 103 件的朗誦模式需讀者提供音檔與逐句時間戳。第 104、112、113、114、115、116、117、118、120、124、126、151、153、158、159、161、162、163、165、169、170、172、173、183、186、187、188、190 件為單檔 HTML，Three.js 從 CDN 載入。第 106、108、109、111、132、133、135、136、140、142、164、174、178、180、181、182、184、185、191、192、193 件使用本地 Three.js 模組，需透過網站伺服器開啟。第 131 件的原始碼在 `games/131-wildling-trail/`（TypeScript + Vite + Phaser），`npm run build` 後內嵌成單檔 `web/131-wildling-trail.html`。第 155 件的原始碼在 `games/155-tally-crm/`（無相依套件），`node games/155-tally-crm/build.mjs` 內嵌成單檔 `web/155-tally-crm.html`。第 194 件的原始碼在 `games/194-powder-peak/`（Three.js + esbuild），`npm run build` 後內嵌成單檔 `web/194-powder-peak.html`。第 196 件的原始碼在 `games/196-stormwright/`（Three.js + esbuild），`npm run build` 後內嵌成單檔 `web/196-stormwright.html`。第 197 件的原始碼在 `games/197-openworld/`（Three.js + esbuild），`npm run build` 後內嵌成單檔 `web/197-openworld.html`，模型與貼圖放在 `assets/197/`，需透過網站伺服器開啟。第 198 件的原始碼在 `games/198-ki-lanes/`（Three.js + esbuild），`npm run build` 後內嵌成單檔 `web/198-ki-lanes.html`。第 199 件的原始碼在 `games/199-saltcape/`（Three.js + esbuild），`npm run build` 後內嵌成單檔 `web/199-saltcape.html`；貼圖與模型放在 `assets/199/`，需透過網站伺服器開啟；多人連線需要 `server/saltcape/` 的 WebSocket 伺服器（`npm start` 會一起啟動，Vercel 上是 `api/saltcape.mjs`），以檔案開啟時只能用程序備援畫面離線練習。第 200 件的原始碼在 `games/200-carball/`（Three.js + Rapier + esbuild），`npm run build` 後內嵌成單檔 `web/200-carball.html`，Rapier 的 WASM 以 gzip 內嵌。第 201 件的原始碼在 `games/201-coral-cove/`（Three.js + esbuild），模型由 `blender/` 的 Blender 腳本建模、綁骨並匯出成 GLB，`npm run build` 後內嵌成單檔 `web/201-coral-cove.html`。
 規劃與撞型自檢見 `DIRECTIONS.md`。
 
 **驗收方式**：headless Chrome 自動檢查每件作品在 1440×900 與 390×844 兩種尺寸下的狀況，並模擬滑鼠移動、點擊、按鍵、滾輪。檢查項目包括 uncaught exception、console.error、外部網路請求、viewport meta、手機水平溢出。**最終結果 100/100 PASS。** 另外也逐件人工看過桌機與手機截圖。
@@ -216,7 +216,7 @@
 - 部分作品會把狀態存進 localStorage（例如 012、031、033、039、075、092、095），重開時會看到上次的狀態。
 
 
-## 104 個手機 App 原型
+## 105 個手機 App 原型
 
 每件都是 `app/` 下可單獨開啟的 HTML，使用 inline CSS/JS，圖像與聲音由程式生成；完整的風格、導覽、配色、字體與撞型規劃見 [APP-DIRECTIONS.md](APP-DIRECTIONS.md)。
 
@@ -328,6 +328,7 @@
 | 102 | [102-tarry-settings.html](app/102-tarry-settings.html) | 等價 Tarry：AI 代買助理的帳戶設定；菸草棕摘要卡、Superclarendon 數字、石灰泥底 | 七頁共用一張會縮放的摘要卡、每筆上限與 Face ID 門檻滑桿、讓它忘記、預設卡與地址、下載與刪除資料、客服聊天 |  |
 | 103 | [103-shunlu-market.html](app/103-shunlu-market.html) | 順路 Shunlu：早市代買的五種不順狀態；牛皮紙價牌、Rockwell 價格、掛牌分頁 | 載入骨架、離線看存下的價格並排隊、空收藏直接加、找不到時四條別的路與盯價、取消訂單說明退款並可復原 |  |
 | 104 | [104-tournote.html](app/104-tournote.html) | 寓約 TourNote：房仲帶看行程；暖灰日期膠囊、白色預約卡與黃色跟進便條 | 新增預約、改期與衝突檢查、完成切換、房源詳情、跟進草稿編輯與 localStorage 保存 | 虛構資料；沒有連接簡訊或 AI 服務 |
+| 105 | [105-plush-dragon.html](app/105-plush-dragon.html) | 絨毛幼龍 Plush Dragon：Material Studies 第 14 號；暖炭棕刊頭、Cochin 斜體、縫線標本卡 | WebGPU XPBD 晶格軟體、呼吸與搖尾肌肉、布料翅膀與懸停、手抓／手指戳與搔癢／梳毛、六個動作、三種配色 | 需要支援 WebGPU 的瀏覽器 |
 
 ### App 相對較弱的作品
 - **061 木迷宮**：毛氈、蠟面、移動閘門與彈簧都已加入並逐關教學，但只有三關，玩完就沒有新內容。

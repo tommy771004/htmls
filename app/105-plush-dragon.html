@@ -593,7 +593,7 @@ function step(){
   sim.flapBlend=mix(sim.flapBlend||0,sim.flapT>0?1:0,0.14); sim.stretchBlend=mix(sim.stretchBlend||0,S.stretch?1:0,0.08); sim.flare=Math.max(0,sim.flare-DT*1.4);
   if(sim.flapT>0){ sim.flapT-=DT; sim.flapPh+=DT*2*PI*S.beat; }
   if(sim.finger && sim.finger.press>0.6){ sim.finger.held+=DT; } else if(sim.finger) sim.finger.held=0;
-  const tickling = sim.finger && sim.finger.held>0.35;
+  const tickling = sim.finger && sim.finger.held>0.6;
   sim.tickle=mix(sim.tickle,tickling?1:0,0.12); if(tickling) sim.happy=Math.min(1,sim.happy+DT*1.6); else sim.happy=Math.max(0,sim.happy-DT*0.28);
   updateMuscles();
   globalFrame();
@@ -873,7 +873,7 @@ fn paint(mat0: i32, p: vec3f, uv: vec2f) -> Paint {
   o.alb = mix(o.alb, F.pal[2].rgb, spade);
   if (mat == 6 || mat == 7) {
     // wing: three panels puffed between stitched ribs, scalloped edge with a running stitch
-    if (mat == 7) { o.alb = F.pal[0].rgb; o.pile = 0.95; return o; }
+    if (mat == 7) { o.alb = F.pal[0].rgb; o.pile = 0.75; return o; }
     o.alb = F.pal[2].rgb; o.pile = 0.85;
     let s = (uv.x - ${UL}) / (1.0 - ${UL}) * 3.0;
     let l = fract(s); let dr = min(l, 1.0 - l) / 3.0 * (1.0 - ${UL});
