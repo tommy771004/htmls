@@ -127,10 +127,19 @@ def build_vegeta(R):
         kit.tag(s_, gold, grp=G_CHEST, mat=2, ol=0.6)
         body.append(s_)
     # 手臂：短袖（同色緊身衣）、白手套
-    arm = arm_skin(F, skin, muscle=1.3, k=1.1)
+    arm = arm_skin(F, skin, muscle=1.3, k=1.1, grp=G_VARM_L)
     kit.paint_field(arm, lambda co: arm_s(F, co) - 0.15, suit, 0)
-    hem = band('hemL', F.sh, F.da, 0.14, 0.155, 0.085 * F.k_arm * 1.1, 0.084 * F.k_arm * 1.1, suit, G_UPPER_L, thick=0.005, ol=0.6)
-    glove = band('gloveL', F.sh, F.da, F.up + 0.1, F.up + F.lo - 0.005, 0.072 * F.k_fore, 0.054 * F.k_fore, white, G_FORE_L, thick=0.012, rb=0.92, bulge=1.06)
+    # 袖口、臂章、手套都貼合手臂斷面（fit_band），並和底下的手臂皮膚同一個綁骨群組（G_ARM_L）：
+    # 權重相同才會一起變形；原本袖口／臂章只跟上臂（G_UPPER_L）、手套只跟前臂（G_FORE_L），彎肘時皮膚會從手套口穿出來
+    hem = fit_band(F, arm, 'hemL', [(0.136, 0, 0, 0.005), (0.146, 0, 0, 0.007), (0.156, 0, 0, 0.005)], suit, G_ARM_L, thick=0.006, ol=0.6)
+    kf = F.k_fore
+    se = F.up + F.lo - 0.005
+    glove = fit_band(F, arm, 'gloveL', [
+        (F.up + 0.1, 0.072 * kf, 0.066 * kf, 0.009),
+        (F.up + 0.15, 0.067 * kf, 0.062 * kf, 0.008),
+        (F.up + 0.205, 0.058 * kf, 0.053 * kf, 0.007),
+        (se, 0.054 * kf, 0.05 * kf, 0.006),
+    ], white, G_ARM_L, thick=0.012)
     hand = fist(F, white, mat=0, scale=1.1, glove=True)
     # 白靴、金色靴尖與靴口
     bt = boot(F, white, F.tl + 0.06, 0.078, toe=1.04)
@@ -138,14 +147,14 @@ def build_vegeta(R):
     ytop = F.leg_pt(F.tl + 0.085).y
     kit.paint_field(bt[0], lambda co: ytop - co.y + 0.012 * abs(co.x - F.sole.x) / 0.07 - 0.02 * max(0, co.z) / 0.07, gold, 2)
     pair_add(body, proxy, [arm, hem, glove, hand, leg] + bt, proxy_set=[arm, hand, leg] + bt)
-    body.append(team_band(F, team, 1.12))
+    body.append(fit_band(F, arm, 'teamL', [(0.158, 0, 0, 0.005), (0.169, 0, 0, 0.0065), (0.18, 0, 0, 0.005)], team, G_ARM_L, thick=0.006, mat=5, ol=0.5))
 
     heads = {}
     for form in ('base', 'ssj'):
         h = anime_head('head_' + form, F, skin, jaw=1.08, chin=0.98, brow=0.6, square=0.4)
         hc = P(0x17130f) if form == 'base' else P(0xffd447)
         heads[form] = [h, hair_cap('cap_' + form, F, hc, hairline=0.5, temple=0.55, scale=1.06)] + hair(F, hc, vegeta_hair(form), wmul=1.15)  # M 字高髮際線，額頭露出
-    return finish(F, P, body, proxy, heads)
+    return finish(F, P, body, proxy, heads, custom={G_VARM_L: vegeta_armpit(F, 'L'), G_VARM_R: vegeta_armpit(F, 'R')})
 
 
 def vegeta_hair(form):
@@ -161,6 +170,63 @@ def vegeta_hair(form):
         ((0.5, 0.4, -0.75), (0.85, 2.05 * k, -1.0), 0.45, 0.22, (0, 0, 0)),
         ((0.0, 0.1, -0.95), (0.0, 1.45 * k, -1.3), 0.45, 0.22, (0, 0, 0)),
     ]) + [((0.0, 0.62, 0.68), (0.0, 0.3, 0.86), 0.12, 0.06, (0, 0.02, 0.04))]  # 額頭中央的美人尖
+
+
+# 貝吉塔的手臂皮膚（含同色短袖）：允許的骨頭和 G_ARM 相同，但腋下根部改用自訂權重（vegeta_armpit）
+G_VARM_L, G_VARM_R = 62, 63
+ALLOW[G_VARM_L] = ALLOW[G_ARM_L]
+ALLOW[G_VARM_R] = ALLOW[heroes.G_ARM_R]
+heroes.MIRROR_GRP[G_VARM_L] = G_VARM_R
+
+
+def vegeta_armpit(F, side):
+    """手臂根部（肩關節附近、綁定姿勢埋在軀幹裡的那段）：骨熱在腋下混了不少 ribs／torso，舉手過頭時
+    腋下被釘在胸腔上、和上臂差了一百多度一起內插，皺成一團、法線反過來被邊緣光打亮，在袖子和胸甲交界處閃出白點。
+    根部改成只保留骨熱裡 clL／shL 的比例（重新正規化），s 從 0.07 往肩內漸漸套用；
+    s ≥ 0.07 維持原本的骨熱權重（袖口、臂章與手套用 G_ARM 的骨熱權重，兩者一致）。
+    試過純沿軸向的 clL→shL 斜坡：過渡帶太寬，翻面的範圍反而變大。"""
+    sh_b, cl_b = 'sh' + side, 'cl' + side
+
+    def fn(co, old):
+        p = V((abs(co.x), co.y, co.z))
+        s = (p - F.sh).dot(F.da)
+        k = smooth((0.07 - s) / 0.09)
+        if k <= 0.001:
+            return old
+        arm_w = [(b, w) for b, w in old if b in (sh_b, cl_b)]
+        tot = sum(w for _, w in arm_w)
+        if tot < 1e-3:
+            return old
+        return [(b, w * (1 - k)) for b, w in old] + [(b, w / tot * k) for b, w in arm_w]
+    fn.blend = True
+    return fn
+
+
+def fit_band(F, target, name, rows, pal, grp, thick=0.008, n=24, mat=0, ol=0.8):
+    """貼合手臂斷面的環帶（貝吉塔的袖口、隊伍臂章、手套）：沿 F.da 的每個斷面向手臂表面打射線，
+    半徑取 max(橢圓半徑, 表面距離＋e)；圓形的 band() 遇到二頭／三頭肌的隆起會一邊陷進肉裡、一邊浮在空中。
+    rows＝[(s, a, b, e)]：s 沿骨距離，a、b 為側向／前後半徑的下限（0＝完全貼合），e 為離表面的間隙。"""
+    tr = tree_of(target)
+    kc = 6.0 / (4.0 + 2.0 * math.cos(2 * PI / n))   # 細分一次會把 n 邊形往內縮（B-spline 極限），先放大補回
+    T = F.da
+    f = V((0, 0, 1)) - T * T.z
+    f.normalize()
+    u = V((1, 0, 0)) - T * T.x - f * f.x
+    u.normalize()
+    sts = []
+    for s, a, b, e in rows:
+        c = F.arm_pt(s)
+
+        def mod(th, c=c, a=a, b=b, e=e):
+            d = u * math.cos(th) + f * math.sin(th)
+            hit = tr.ray_cast(c + d * 0.4, -d, 0.4)
+            r = (0.4 - hit[3]) if hit[0] is not None else 0.0
+            ell = a * b / max(1e-6, math.hypot(b * math.cos(th), a * math.sin(th))) if a > 0 else 0.0
+            return max(ell, r + e) * kc
+        sts.append(S(c, 1.0, 1.0, p=2.0, mod=mod))
+    o = kit.loft(name, sts, n=n, cap0=None, cap1=None)
+    o = kit.subsurf(o, 2, solidify=thick)
+    return kit.tag(o, pal, mat=mat, grp=grp, ol=ol)
 
 
 # ================================================================ 特南克斯
