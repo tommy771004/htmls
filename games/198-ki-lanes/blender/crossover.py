@@ -4,6 +4,7 @@ import math
 
 from mathutils import Matrix
 
+import heroes as _H
 import kit
 from kit import S, V, ang_bump, bump, lerp, smooth
 from heroes import (
@@ -499,6 +500,12 @@ def sakura_hair():
 
 
 # ================================================================ 魯夫
+G_SHORTS_L, G_SHORTS_R = 74, 75   # 魯夫短褲管（自訂權重，見 shorts_w）
+_H.ALLOW[G_SHORTS_L] = {'hips', 'thL'}
+_H.ALLOW[G_SHORTS_R] = {'hips', 'thR'}
+_H.MIRROR_GRP[G_SHORTS_L] = G_SHORTS_R
+
+
 def build_luffy(R):
     F = Fig(R)
     P = kit.Palette()
@@ -544,14 +551,24 @@ def build_luffy(R):
                                  F.th + F.dl * 0.42 + V((0.135 * kl0 + 0.065, 0, F.cz * 0.35))], 0.068, 0.058, name='sashTail', grp=G_CHAIN, side=V((-0.4, 0, 0.92)), flat=0.3))
     kl = F.k_leg
     s_sh = F.tl - 0.1  # 參考圖：短褲到膝蓋上方
-    shorts = leg_tube(F, denim, [(-0.07, 0.13 * kl, 0.13 * kl), (0.04, 0.138 * kl, 0.142 * kl), (0.2, 0.134 * kl, 0.136 * kl), (F.tl - 0.02, 0.122 * kl, 0.124 * kl),
-                                 (s_sh, 0.124 * kl, 0.126 * kl)], cap1=None, name='shortsL')
+    # 褲管上段內側收窄：兩根褲管在襠部不再互相穿過中線（原本在胯下交疊、z-fighting 成鋸齒），襠部中央交給骨盆部件
+    def inseam(k):
+        return lambda th: 1 - k * ang_bump(th, PI, 1.5)
+    shorts = leg_tube(F, denim, [(-0.07, 0.13 * kl, 0.13 * kl, inseam(0.5)), (0.04, 0.138 * kl, 0.142 * kl, inseam(0.45)), (0.2, 0.134 * kl, 0.136 * kl, inseam(0.2)),
+                                 (F.tl - 0.02, 0.122 * kl, 0.124 * kl), (s_sh, 0.124 * kl, 0.126 * kl)], cap1=None, name='shortsL')
     fur = band('furL', F.th, F.dl, s_sh - 0.03, s_sh + 0.03, 0.13 * kl, 0.13 * kl, P(0xf4f2ec), G_LEG_L, thick=0.02, bulge=1.12)
     calf = lambda th: 1 + 0.1 * ang_bump(th, BACK, 1.0)
     shin = leg_tube(F, skin, [(s_sh - 0.04, 0.088 * kl, 0.09 * kl), (F.tl, 0.08 * kl, 0.082 * kl), (F.tl + 0.12, 0.078 * kl, 0.084 * kl, calf), (F.tl + 0.22, 0.062 * kl, 0.066 * kl, calf), (F.tl + F.sl - 0.06, 0.05 * kl, 0.054 * kl)],
                     name='shinL', mat=4)
     ft = sandal(F, skin, sole)
-    pair_add(body, proxy, [arm, slv, roll, hand, shorts, fur, shin] + ft, proxy_set=[arm, hand, shorts] + ft)
+    # 短褲管與毛邊：自訂權重（依沿大腿骨的距離，褲頭一小段交回骨盆），踢腿時整根褲管跟著大腿轉
+    kit.tag(shorts, denim, grp=G_SHORTS_L)
+    kit.tag(fur, P(0xf4f2ec), grp=G_SHORTS_L, ol=0.6)
+    # 短褲管下端開口（不是封閉部件，會被 finish 濾掉），代理體另放一根從髖到腳踝的封閉腿，大腿與小腿才有骨熱
+    px_leg = straight_leg(F, skin, k=0.95, name='pxLegL')
+    pair_add(body, proxy, [arm, slv, roll, hand, shorts, fur, shin] + ft, proxy_set=[arm, hand] + ft)
+    from heroes import mirror
+    proxy += [px_leg, mirror(px_leg)]
     body.append(team_band(F, team, 1.2))
 
     h = anime_head('head_base', F, skin, jaw=1.04, chin=1.0, cheek=1.08, nose=0.7, face_len=0.95)
@@ -563,7 +580,20 @@ def build_luffy(R):
     def tail_w(co):
         k = 0.5 * smooth((yb - 0.05 - co.y) / 0.3)
         return [(b, w * (1 - k)) for b, w in chain_w(co)] + [('thL', k)]
-    return finish(F, P, body, proxy, heads, custom={G_CHAIN: tail_w})
+    return finish(F, P, body, proxy, heads, custom={G_CHAIN: tail_w, G_SHORTS_L: shorts_w(F, 'L'), G_SHORTS_R: shorts_w(F, 'R')})
+
+
+def shorts_w(F, sd):
+    """短褲管：沿大腿骨距離 s，褲頭（髖關節以上、藏在骨盆部件裡）漸漸交回 hips，其餘剛性跟著大腿。
+    過渡帶整段放在關節上方：跨越關節的話，高踢腿時那幾圈會被線性混合壓扁、在胯下皺成尖角。"""
+    h, t = F.b['th' + sd]
+    d = (t - h).normalized()
+
+    def fn(co):
+        s = (co - h).dot(d)
+        k = smooth((s + 0.07) / 0.05)
+        return [('hips', 1 - k), ('th' + sd, k)]
+    return fn
 
 
 def luffy_hair():
