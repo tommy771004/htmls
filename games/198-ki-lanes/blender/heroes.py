@@ -593,6 +593,8 @@ def build_goku(R):
     under = kit.loft('under', torso_rows(F, e=0.004, u0=0.3), n=16, cap0=None, cap1=None)
     under = kit.subsurf(under, 2)
     kit.tag(under, blue, grp=G_TORSO)
+    # 內衣整件包在道服裡（只從 V 領露出），離道服約 1.4 cm、比外框殼還薄：領口以下不描外框，腋下擠壓時才不會從道服穿出黑點
+    kit.paint_ol(under, lambda co: 0.0 if co.y < F.y(0.9) else None)
     body.append(under)
     proxy.append(under)
 
@@ -628,17 +630,36 @@ def build_goku(R):
     proxy.append(body[-1])
 
     # ---- 手臂、袖、護腕、拳
-    arm = arm_skin(F, skin, muscle=1.25, k=1.12)
-    slv = sleeve(F, blue, s1=0.085, r=0.1 * F.k_arm + 0.01, flare=1.03)  # 道服無袖，肩頭露出藍色內衣的短袖（參考 3D 實機影片）
-    wb = band('wristL', F.sh, F.da, F.up + 0.15, F.up + F.lo - 0.005, 0.064 * F.k_fore, 0.054 * F.k_fore, blue, G_FORE_L, thick=0.012, rb=0.9)
+    arm_mu, arm_k = 1.25, 1.12
+    arm = arm_skin(F, skin, muscle=arm_mu, k=arm_k)
+    # 短袖要罩住加大的三角肌（肩頂約 10.7 cm）：半徑加大、殼變薄，抬手時肩頂才不會從袖口上方冒出來
+    slv = sleeve(F, blue, s1=0.09, r=0.1 * F.k_arm + 0.021, flare=1.0, thick=0.006, s0=-0.06)  # 道服無袖，肩頭露出藍色內衣的短袖（參考 3D 實機影片）
+    # 袖根朝向身體的那一側（腋下）埋在道服裡，舉手時兩層外框殼互相穿出黑點：那一圈不描外框（肩頂的輪廓保留）
+    up_dir = V((0, 0, 1)).cross(F.da).normalized()
+    kit.paint_ol(slv, lambda co: 0.0 if (co - F.sh).dot(F.da) < 0.02 and (co - F.sh).dot(up_dir) < -0.02 else None)
+    # 護腕：前臂肌群（k＝1.12、肌肉 1.25）在靠肘端比原本的環帶粗，起點往腕側挪、半徑加大，皮膚才不會穿出來
+    wb_s0 = F.up + 0.16
+    wb = band('wristL', F.sh, F.da, wb_s0, F.up + F.lo - 0.005, 0.068 * F.k_fore, 0.055 * F.k_fore, blue, G_FORE_L, thick=0.012, rb=0.92)
+    # 被袖子、護腕蓋住的皮膚不描外框：外框殼（遊戲鏡頭下約 1.5 cm）會從布料外面穿出黑刺
+    arm_s = lambda co: (co - F.sh).dot(F.da)
+    kit.paint_ol(arm, lambda co: 0.0 if arm_s(co) < 0.05 or arm_s(co) > wb_s0 + 0.012 else None)
+    # 袖子底下的肩頭皮膚塗成內衣的藍：側平舉、前平舉時道服肩口和袖口之間會被拉開一條縫，露出來的是「內衣」而不是一塊皮膚
+    kit.paint(arm, lambda co, n: (blue, 0) if arm_s(co) < 0.045 else None)
     hand = fist(F, skin, scale=1.08)
     pair_add(body, proxy, [arm, slv, wb, hand], proxy_set=(arm, hand))
-    body.append(band('teamL', F.sh, F.da, 0.155, 0.18, 0.089 * F.k_arm, 0.087 * F.k_arm, team, G_UPPER_L, thick=0.006, mat=5, ol=0.5))
+    body.append(goku_team_band(F, team, arm_mu, arm_k))
 
     # ---- 褲子、靴
-    body.append(pelvis(F, gi, e=0.012))
-    proxy.append(body[-1])
+    yb = F.L + 0.085   # 腰帶中線
+    pel = pelvis(F, gi, e=0.012)   # 上端開口，不進骨熱替身（finish 只收封閉部件，替身用 core_proxy 的骨盆）
+    # 褲頭在腰帶高度往內收（燈籠褲在腰帶下才鼓起來）：原本最寬處正好在腰帶下緣，兩側會把腰帶整段蓋掉
+    kit.deform(pel, lambda p: V((p.x * (1 - 0.16 * smooth((p.y - (yb - 0.077)) / 0.04)), p.y, p.z)))
+    # 腰帶與上衣下襬蓋住的褲頭不描外框
+    kit.paint_ol(pel, lambda co: 1.0 - smooth((co.y - (yb - 0.06)) / 0.03))
+    body.append(pel)
     leg = baggy_leg(F, gi, bag=1.06, blouse=1.12, s_end=F.tl + 0.1)  # 寬燈籠褲，褲管收進到小腿中段的靴子
+    # 褲管頂端藏在褲頭裡：外框漸細，踢腿時才不會從褲頭穿出黑刺
+    kit.paint_ol(leg, lambda co: 1.0 - smooth((co.y - (F.th.y + 0.0)) / 0.05))
     bt = boot(F, blue, F.tl + 0.04, 0.082, pal_sole=blueD)
     rim = band('bootRimL', F.th, F.dl, F.tl + 0.025, F.tl + 0.065, 0.086 * F.k_shin + 0.01, 0.084 * F.k_shin + 0.01, yellow, G_FOOT_L, thick=0.009)
     fx = F.sole.x + 0.004
@@ -648,8 +669,8 @@ def build_goku(R):
     pair_add(body, proxy, [leg] + bt + [rim, strap], proxy_set=[leg] + bt)
 
     # ---- 腰帶、結、垂帶
-    yb = F.L + 0.085
-    belt = limb('belt', V((0, yb - 0.04, 0)), V((0, 1, 0)), [(0.0, F.w * 1.25, F.cz * 0.95, None, 2.3), (0.04, F.w * 1.29, F.cz * 0.98, None, 2.3), (0.08, F.w * 1.24, F.cz * 0.94, None, 2.3)], n=18, cap0=None, cap1=None)
+    # 腰帶下緣放寬成繫在胯上的錐形，罩住收進來的褲頭（兩側原本被褲頭蓋掉）
+    belt = limb('belt', V((0, yb - 0.04, 0)), V((0, 1, 0)), [(0.0, F.w * 1.43, F.cz * 0.95, None, 2.3), (0.04, F.w * 1.41, F.cz * 0.98, None, 2.3), (0.08, F.w * 1.37, F.cz * 0.94, None, 2.3)], n=18, cap0=None, cap1=None)
     belt = kit.subsurf(belt, 2, solidify=0.014)
     kit.tag(belt, blue, grp=G_BELT)
     body.append(belt)
@@ -661,8 +682,9 @@ def build_goku(R):
     kit.tag(knot, blue, grp=G_BELT)
     body.append(knot)
     for k, (dx, w0, ln) in enumerate(((-0.014, 0.032, 0.4), (0.03, 0.029, 0.34))):
-        t0 = V((kx + dx, yb - 0.01, kz + 0.004 + 0.006 * k))
-        f = kit.loft('flap%d' % k, [S(t0, w0, 0.007), S(t0 + V((0.004, -ln * 0.5, 0.004)), w0 * 1.12, 0.007), S(t0 + V((0.01, -ln, 0.006)), w0 * 0.92, 0.006)], n=8)
+        # 垂帶離上衣下襬前緣留 0.5 cm 以上（原本有一段埋進下襬裡）
+        t0 = V((kx + dx, yb - 0.01, kz + 0.006 + 0.006 * k))
+        f = kit.loft('flap%d' % k, [S(t0, w0, 0.007), S(t0 + V((0.004, -ln * 0.5, 0.014)), w0 * 1.12, 0.007), S(t0 + V((0.01, -ln, 0.018)), w0 * 0.92, 0.006)], n=8)
         f = kit.subsurf(f, 2)
         kit.tag(f, blue, grp=G_CHAIN, ol=0.7)
         body.append(f)
@@ -673,7 +695,68 @@ def build_goku(R):
         h = anime_head('head_' + form, F, skin, jaw=1.06, cheek=1.0, square=0.4)  # 成熟的方下巴
         hc = P(0x17130f) if form == 'base' else P(0xffd447)
         heads[form] = [h, hair_cap('cap_' + form, F, hc, hairline=0.42, temple=0.15)] + hair(F, hc, goku_hair(form), grow=1.12 if form == 'base' else 1.05, wmul=1.3)
-    return finish(F, P, body, proxy, heads, custom={G_CHAIN: sash_chain_weights(F, 'sash')})
+    W = goku_waist_weights(F, yb)
+    custom = {G_CHAIN: sash_chain_weights(F, 'sash'), G_PELVIS: W['pelvis'], G_BELT: W['belt'], G_TORSO: W['top'], G_LEG_L: W['legL'], G_LEG_R: W['legR']}
+    return finish(F, P, body, proxy, heads, custom=custom)
+
+
+def goku_waist_weights(F, yb):
+    """悟空腰部（褲頭、上衣下襬、腰帶與結、褲管頂端）的權重：垂帶骨 sash0 就在褲頭正前方，骨熱把前片幾乎全分給它，
+    過濾掉以後下襬前片沒剩任何允許的骨頭、退回鎖骨（抬手時下襬整片翹起來），褲頭則一路到腰帶都跟著大腿。
+    改成依高度指定、各部件共用同一個函式，彼此貼著一起動：腰帶以上 hips／torso，往下漸漸交給大腿，襠部中線左右各半。"""
+    y_hi, y_lo = yb - 0.045, F.L - 0.09     # 腰帶下緣附近開始分給大腿，到襠底全給大腿
+
+    def thigh(co):
+        return smooth((y_hi - co.y) / (y_hi - y_lo))
+
+    def base(co):
+        u = 0.5 * smooth((co.y - (yb - 0.047)) / 0.09)   # 腰帶上緣約一半跟著上身（和上衣在那裡的骨熱相近）
+        return [('hips', 1 - u), ('torso', u)]
+
+    def pelvis_fn(co, k=1.0):
+        t = thigh(co) * k
+        s = smooth(0.5 + co.x / 0.06)
+        return [(b, w * (1 - t)) for b, w in base(co)] + [('thL', t * s), ('thR', t * (1 - s))]
+
+    def top_fn(co, old):
+        m = smooth((yb + 0.05 - co.y) / 0.045)   # 腰帶裡面（上緣以下）漸漸換成腰部權重，腰帶以上維持原本的骨熱
+        if m <= 0.001:
+            return old
+        # 下襬垂在大腿前後約 5 cm：整片跟著大腿轉，抬腿時會繞髖關節翹成一片立起來的板子。
+        # 只給一部分：抬腿 45 度內下襬仍蓋在大腿前面，抬得更高時整片沒入大腿，不會露出半截翹起的下緣
+        k = lerp(0.5, 0.6, smooth(0.5 + co.z / 0.12))
+        return [(b, w * (1 - m)) for b, w in old] + [(b, w * m) for b, w in pelvis_fn(co, k)]
+    top_fn.blend = True
+
+    def leg_fn(side):
+        def fn(co, old):
+            m = smooth((co.y - (F.L - 0.12)) / 0.08)   # 褲管頂端（藏在褲頭裡）和褲頭用同一套，往下交回骨熱
+            if m <= 0.001:
+                return old
+            t = thigh(co)
+            new = [(b, w * (1 - t)) for b, w in base(co)] + [('th' + side, t)]
+            return [(b, w * (1 - m)) for b, w in old] + [(b, w * m) for b, w in new]
+        fn.blend = True
+        return fn
+    return {'pelvis': pelvis_fn, 'belt': lambda co: base(co), 'top': top_fn, 'legL': leg_fn('L'), 'legR': leg_fn('R')}
+
+
+def goku_team_band(F, pal, muscle, k):
+    """上臂的隊伍色臂章：沿用 arm_skin 的二頭／三頭肌起伏（打了折扣，細分後的皮膚會比解析式小），前後才不會被肌肉蓋掉、只剩兩側一小塊。"""
+    mu = muscle * FZ['muscle']
+    ka = F.k_arm * k
+    bic = lambda th: 1 + 0.7 * 0.16 * mu * ang_bump(th, FRONT, 0.95)
+    tri = lambda th: 1 + 0.7 * 0.12 * mu * ang_bump(th, BACK, 1.05)
+    m = mods(bic, tri)
+    # arm_skin 在 s＝0.14 與 0.2 的半徑之間內插
+    ab = lambda s: (lerp(0.077, 0.07, (s - 0.14) / 0.06) * ka, lerp(0.082, 0.077, (s - 0.14) / 0.06) * ka)
+    st = []
+    for s in (0.152, 0.168, 0.184):
+        a, b = ab(s)
+        st.append((s, a + 0.004, b + 0.004, m))
+    o = limb('teamL', F.sh, F.da, st, n=16, cap0=None, cap1=None)
+    o = kit.subsurf(o, 2, solidify=0.006)
+    return kit.tag(o, pal, mat=5, grp=G_UPPER_L, ol=0.5)
 
 
 def goku_hair(form):
