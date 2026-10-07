@@ -1,0 +1,1044 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>蜀面 · 變臉火鍋｜川味火鍋・台北中山</title>
+<meta name="description" content="蜀面 · 變臉火鍋：川劇臉譜戲台裡的重慶九宮格牛油火鍋。線上組一鍋九宮格、看涮煮倒數與人均價格，依日期時段查等候時間並拿號碼牌。">
+<meta name="theme-color" content="#0e0b0b">
+<!--
+  店家模板使用方式
+  1. 修改 <script> 開頭的 SHOP：店名、電話、地址、營業時間（hours 依星期幾，0=週日，可多時段，null=公休）、
+     茶位費與服務費（seatFee、service）、變臉表演場次（shows）、各桌型桌數（tables）、照片網址（photos）。
+  2. 菜單改 BASES（鍋底）、SPICE（辣度）、ING（涮料，含建議涮煮秒數）與 MENU（小吃、飲品），戲單與九宮格會一起更新。
+  3. 照片：在 SHOP.photos 對應的 key 填入網址就會取代程式繪製的臉譜風佔位插畫；
+     網址加 ?slots 或按右下角「照片位」可標出每個照片位與建議尺寸。
+  4. 臉譜在 FACES 陣列，可增減或換色；每 6 秒或點擊時以摺扇遮罩「變臉」。
+  5. 九宮格組鍋只在頁面上計算，不會下單；等位／訂位為示範，正式使用請串接候位或訂位系統（送出後頁面會標明沒有真的送出）。
+-->
+<style>
+:root{--ink:#0e0b0b;--char:#1a1413;--char2:#241b19;--red:#d7261e;--red-d:#8f1510;--gold:#e8b53a;--gold-d:#a8791c;--teal:#1f8a8a;--bone:#f4efe6;--muted:#b9ad9c;--line:rgba(232,181,58,.32);
+  --title:"Weibei TC","Weibei SC","STXingkai","Xingkai TC","BiauKai","DFKai-SB","KaiTi","STKaiti","Noto Serif CJK TC","Source Han Serif TC","Songti TC",serif;
+  --sans:"PingFang TC","Microsoft JhengHei","Noto Sans CJK TC","Heiti TC","WenQuanYi Zen Hei",sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1)}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+html,body{margin:0}
+body{background:var(--ink);color:var(--bone);font-family:var(--sans);line-height:1.75;overflow-x:clip;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.wrap{max-width:1200px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+.t{font-family:var(--title);font-weight:400}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.cap{font-size:12px;letter-spacing:.32em;color:var(--gold)}
+
+/* 導覽 */
+.nav{position:sticky;top:0;z-index:50;background:rgba(14,11,11,.95);border-bottom:2px solid var(--gold);box-shadow:0 3px 0 var(--red-d)}
+.nav .wrap{display:flex;align-items:center;gap:22px;height:64px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex:none}
+.logo svg{width:34px;height:40px}
+.logo b{font-family:var(--title);font-weight:400;font-size:24px;letter-spacing:.06em;white-space:nowrap}
+.logo b i{font-style:normal;color:var(--gold);margin:0 .18em}
+.nav ul{list-style:none;margin:0 0 0 auto;padding:0;display:flex;gap:2px}
+.nav ul a{display:block;text-decoration:none;font-size:14px;padding:6px 11px;letter-spacing:.12em;color:var(--muted);border-radius:2px}
+.nav ul a:hover{color:var(--bone);background:rgba(215,38,30,.22)}
+.nav .cta{flex:none}
+.burger{display:none;margin-left:auto;background:none;border:2px solid var(--gold);color:var(--gold);padding:5px 12px;font-size:14px;letter-spacing:.2em;border-radius:2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;border:2px solid var(--gold);background:var(--red);color:var(--bone);padding:11px 22px;font-size:15px;letter-spacing:.16em;border-radius:2px;box-shadow:4px 4px 0 var(--ink),4px 4px 0 2px var(--gold-d);transition:transform .15s var(--ease),box-shadow .15s var(--ease)}
+.btn:hover{transform:translate(-1px,-1px);box-shadow:6px 6px 0 var(--ink),6px 6px 0 2px var(--gold-d)}
+.btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+.btn.ghost{background:transparent;color:var(--gold)}
+.btn.sm{padding:7px 14px;font-size:14px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+/* Hero 戲台 */
+.hero{position:relative;overflow:hidden;background:radial-gradient(ellipse 46% 52% at 50% 44%,#3a1410 0%,#1c0d0b 46%,var(--ink) 74%);padding:56px 0 70px;min-height:calc(100vh - 64px);display:flex;flex-direction:column;justify-content:center}
+.hero::before{content:"";position:absolute;left:0;right:0;top:0;height:46px;z-index:3;background:radial-gradient(circle at 50% -6px,var(--red) 0 30px,var(--red-d) 31px 34px,transparent 35px) 0 0/72px 46px repeat-x,linear-gradient(var(--red-d),var(--red-d)) 0 0/100% 12px no-repeat;filter:drop-shadow(0 3px 0 var(--gold))}
+.hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:46px;background:repeating-linear-gradient(90deg,#1a1110 0 118px,#130c0b 118px 120px);border-top:3px solid var(--gold)}
+.wing{position:absolute;top:0;bottom:46px;width:clamp(16px,6vw,92px);z-index:2;background:repeating-linear-gradient(90deg,#7a120d 0,#c4231b 9px,#9a1811 18px,#d7261e 26px,#86140e 34px)}
+.wing.l{left:0;border-right:3px solid var(--gold);border-bottom-right-radius:60% 26%}
+.wing.r{right:0;border-left:3px solid var(--gold);border-bottom-left-radius:60% 26%}
+.stage{position:relative;z-index:2;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:clamp(8px,3vw,48px)}
+.vert{font-family:var(--title);font-size:clamp(70px,13vh,150px);line-height:1.04;display:flex;flex-direction:column;align-items:center;justify-self:end;text-shadow:5px 5px 0 #000;letter-spacing:0}
+.vert.rt{justify-self:start}
+.vert span{display:block;-webkit-text-stroke:2px var(--gold);paint-order:stroke fill}
+.vert .dot{font-size:.4em;line-height:1;color:var(--gold);-webkit-text-stroke:0;margin:.1em 0;text-shadow:none}
+.vert.lf span{color:var(--red)}
+.vert.rt span{color:var(--teal)}
+.vert.rt span:last-child{color:var(--gold);-webkit-text-stroke:2px var(--red)}
+.maskbox{position:relative;width:clamp(230px,40vh,400px);aspect-ratio:400/480;margin:0 auto}
+.halo{position:absolute;left:50%;top:47%;width:150%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:repeating-conic-gradient(rgba(232,181,58,.13) 0 5deg,transparent 5deg 15deg);-webkit-mask:radial-gradient(circle,#000 30%,transparent 70%);mask:radial-gradient(circle,#000 30%,transparent 70%);animation:spin 80s linear infinite}
+.halo::after{content:"";position:absolute;inset:18%;border-radius:50%;border:2px solid rgba(232,181,58,.45);box-shadow:0 0 0 10px rgba(14,11,11,.6),0 0 0 12px rgba(232,181,58,.25)}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.maskbtn{position:relative;display:block;width:100%;height:100%;padding:0;border:0;background:none;border-radius:44% 44% 50% 50%}
+.maskbtn svg{width:100%;height:100%;display:block;overflow:hidden;filter:drop-shadow(0 14px 0 rgba(0,0,0,.55))}
+.maskcap{text-align:center;margin-top:14px;font-size:13px;letter-spacing:.2em;color:var(--muted);min-height:22px}
+.maskcap b{color:var(--gold);font-weight:400;font-family:var(--title);font-size:17px;letter-spacing:.12em;margin-right:6px}
+.plaque{position:relative;z-index:2;text-align:center;margin-top:26px}
+.plaque h1{margin:0;font-family:var(--title);font-weight:400;font-size:clamp(34px,4.6vw,60px);line-height:1.15;letter-spacing:.1em}
+.plaque h1 i{font-style:normal;color:var(--gold);margin:0 .2em}
+.plaque p{margin:8px auto 22px;color:var(--muted);letter-spacing:.14em;font-size:clamp(14px,1.4vw,17px)}
+.plaque .row{display:flex;flex-wrap:wrap;gap:14px 18px;justify-content:center;align-items:center}
+.status{display:inline-flex;align-items:center;gap:9px;font-size:14px;letter-spacing:.1em;padding:6px 14px;border:1px solid var(--line);border-radius:30px;background:rgba(0,0,0,.45)}
+.status i{width:9px;height:9px;border-radius:50%;background:#8a7f70}
+.status.on i{background:#5fd18a;box-shadow:0 0 0 4px rgba(95,209,138,.2)}
+.hint{display:block;font-size:12px;color:#8d8174;letter-spacing:.24em;margin-top:6px}
+
+/* 紅幕轉場 */
+.act{position:relative;overflow:hidden;height:clamp(150px,20vw,210px);display:grid;place-items:center;text-align:center;background:radial-gradient(ellipse 40% 70% at 50% 60%,#2c120f,var(--ink) 72%)}
+.act .in{position:relative;z-index:1;padding:28px 16px 0}
+.act .no{font-size:13px;letter-spacing:.5em;color:var(--gold)}
+.act h2{margin:4px 0 0;font-family:var(--title);font-weight:400;font-size:clamp(36px,5vw,58px);line-height:1.15;letter-spacing:.18em}
+.act h2 em{font-style:normal;display:inline-block;font-size:.34em;vertical-align:middle;letter-spacing:.2em;padding:3px 8px;margin-left:12px;background:var(--red);border:2px solid var(--gold);transform:translateY(-.25em)}
+.cur{position:absolute;top:0;bottom:0;width:50.5%;z-index:2;background:repeating-linear-gradient(90deg,#7a120d 0,#c4231b 14px,#9a1811 28px,#d7261e 42px,#86140e 56px);transition:transform 1.25s var(--ease)}
+.cur::after{content:"";position:absolute;left:0;right:0;bottom:0;height:16px;background:linear-gradient(45deg,transparent 50%,var(--gold) 50%) 0 0/16px 16px,linear-gradient(-45deg,transparent 50%,var(--gold) 50%) 0 0/16px 16px}
+.cur.l{left:0;border-right:3px solid var(--gold)}
+.cur.r{right:0;border-left:3px solid var(--gold)}
+.act.vis .cur.l{transform:translateX(-94%)}
+.act.vis .cur.r{transform:translateX(94%)}
+.act::before{content:"";position:absolute;left:0;right:0;top:0;height:30px;z-index:3;background:radial-gradient(circle at 50% -4px,var(--red-d) 0 22px,transparent 23px) 0 0/52px 30px repeat-x,linear-gradient(#5a0c08,#5a0c08) 0 0/100% 8px no-repeat;border-top:2px solid var(--gold)}
+section{position:relative}
+.sec{padding:clamp(48px,7vw,96px) 0}
+.act+.sec{padding-top:clamp(30px,4vw,56px)}
+.lead{max-width:640px;margin:0 auto 40px;text-align:center;color:var(--muted)}
+.rv{opacity:0;transform:translateY(26px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.rv.vis{opacity:1;transform:none}
+
+/* 照片位 */
+.ph{position:relative;overflow:hidden;margin:0;background:var(--char)}
+.ph>svg,.ph>img,.ph>canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+body.slots .ph{outline:2px dashed var(--gold);outline-offset:-2px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:10px;top:10px;z-index:3;background:var(--gold);color:var(--ink);font-size:11px;line-height:1.5;padding:3px 9px;max-width:calc(100% - 20px)}
+.slotbtn{position:fixed;right:14px;bottom:14px;z-index:60;background:var(--ink);color:var(--gold);border:2px solid var(--gold);font-size:12px;letter-spacing:.14em;padding:7px 12px;border-radius:2px}
+.slotbtn[aria-pressed=true]{background:var(--gold);color:var(--ink)}
+
+/* 班底（品牌故事） */
+.story{background:var(--bone);color:var(--ink)}
+.story .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(28px,5vw,70px);align-items:center}
+.story blockquote{margin:0 0 20px;font-family:var(--title);font-size:clamp(30px,3.6vw,46px);line-height:1.3;color:var(--red-d)}
+.story p{margin:0 0 14px;color:#3b302b}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:26px;border:3px solid var(--ink)}
+.stats div{padding:14px 12px;text-align:center;border-right:3px solid var(--ink)}
+.stats div:last-child{border-right:0}
+.stats b{display:block;font-family:var(--title);font-weight:400;font-size:clamp(28px,3vw,38px);line-height:1.1;color:var(--red)}
+.stats span{font-size:13px;color:#5b4d44}
+.story .ph{aspect-ratio:4/3.4;border:4px solid var(--ink);box-shadow:12px 12px 0 var(--red),12px 12px 0 4px var(--ink)}
+.palette{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.palette span{display:inline-flex;align-items:center;gap:8px;font-size:13px;padding:4px 10px 4px 4px;border:2px solid var(--ink);background:#fff}
+.palette i{width:20px;height:20px;border:2px solid var(--ink);border-radius:50%}
+
+/* 名角（招牌菜） */
+.sig{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(18px,2.4vw,30px)}
+.card{position:relative;background:var(--char);border:2px solid var(--gold);display:flex;flex-direction:column}
+.card .ph{aspect-ratio:5/4;border-bottom:2px solid var(--gold)}
+.card .body{padding:20px 22px 22px;flex:1;display:flex;flex-direction:column}
+.card .role{font-size:12px;letter-spacing:.3em;color:var(--gold)}
+.card h3{margin:4px 0 8px;font-family:var(--title);font-weight:400;font-size:30px;line-height:1.2}
+.card p{margin:0 0 16px;color:var(--muted);font-size:15px;flex:1}
+.card .pr{display:flex;justify-content:space-between;align-items:baseline;border-top:1px dashed var(--line);padding-top:12px;font-size:14px;color:var(--muted)}
+.card .pr b{font-size:20px;color:var(--bone);font-weight:600}
+.seal{position:absolute;top:-14px;right:16px;z-index:2;width:54px;height:54px;display:grid;place-items:center;background:var(--red);border:2px solid var(--gold);color:var(--bone);font-family:var(--title);font-size:22px;line-height:1;transform:rotate(6deg);box-shadow:3px 3px 0 #000}
+
+/* 戲單（菜單） */
+.tabs{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-bottom:26px}
+.tabs button{background:transparent;border:2px solid var(--line);color:var(--muted);padding:7px 18px;font-size:15px;letter-spacing:.18em;border-radius:2px}
+.tabs button[aria-selected=true]{background:var(--red);border-color:var(--gold);color:var(--bone)}
+.bill{position:relative;background:var(--bone);color:var(--ink);padding:clamp(20px,3vw,36px);border:3px solid var(--red);outline:8px solid var(--bone);box-shadow:0 0 0 11px var(--red),18px 18px 0 11px rgba(0,0,0,.6);margin:11px}
+.bill-h{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:3px double var(--red);padding-bottom:12px;margin-bottom:6px}
+.bill-h h3{margin:0;font-family:var(--title);font-weight:400;font-size:clamp(26px,3vw,36px);color:var(--red);letter-spacing:.2em}
+.bill-h small{color:#6b5a50;font-size:13px;text-align:right}
+.plays{list-style:none;margin:0;padding:0;display:flex;flex-direction:row-reverse;flex-wrap:wrap;justify-content:center}
+.plays li{position:relative;display:flex;flex-direction:column;align-items:center;flex:1 1 0;max-width:150px;min-width:96px;padding:20px 6px 14px;border-left:1px solid rgba(215,38,30,.4)}
+.plays li:first-child{border-right:1px solid rgba(215,38,30,.4)}
+.plays i{font-style:normal}
+.plays .pu{visibility:hidden}
+.plays .nm{display:flex;flex-direction:column;align-items:center;font-family:var(--title);font-size:28px;line-height:1.14;min-height:5.8em;color:var(--ink)}
+.plays .ds{display:grid;grid-auto-flow:column;grid-template-rows:repeat(11,1.5em);direction:rtl;justify-content:center;gap:0 2px;font-size:12.5px;line-height:1.5;color:#6b5a50;margin-top:10px;text-align:center}
+.plays .pr{margin-top:auto;padding-top:10px;font-size:15px;font-weight:700;color:var(--red-d);white-space:nowrap}
+.plays .tag{position:absolute;top:8px;left:6px;display:flex;flex-direction:column;font-family:var(--sans);font-size:11px;line-height:1.25;padding:4px 3px;background:var(--red);color:var(--bone)}
+.plays .chili{font-size:11px;color:var(--red);margin-top:4px;letter-spacing:-.1em}
+.bill-f{border-top:3px double var(--red);margin-top:6px;padding-top:12px;font-size:13px;color:#6b5a50;display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between}
+
+/* 九宮格 */
+.pot-sec{background:linear-gradient(var(--ink),#140e0d)}
+.builder{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);grid-template-areas:"pot soup" "pot ingr" "log bill";gap:24px clamp(24px,4vw,52px);align-items:start}
+.b-soup{grid-area:soup}.b-pot{grid-area:pot}.b-ingr{grid-area:ingr}.b-bill{grid-area:bill}.b-log{grid-area:log}
+.panel h3{margin:0 0 10px;font-size:13px;letter-spacing:.3em;color:var(--gold);font-weight:400}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{position:relative}
+.chip input{position:absolute;opacity:0;pointer-events:none}
+.chip span{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border:2px solid #4a3a33;background:var(--char);font-size:14px;letter-spacing:.06em;border-radius:2px;cursor:pointer;transition:border-color .15s,background .15s}
+.chip span i{width:14px;height:14px;border-radius:50%;border:2px solid #000;flex:none}
+.chip input:checked+span{border-color:var(--gold);background:var(--red-d)}
+.chip input:focus-visible+span{outline:3px solid var(--gold);outline-offset:2px}
+.chip input:disabled+span{opacity:.38;cursor:not-allowed}
+.spice-note{font-size:12.5px;color:var(--muted);margin:8px 0 0;min-height:20px}
+.potwrap{position:relative;width:100%;max-width:560px;margin:0 auto;aspect-ratio:1}
+.potwrap>svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.cells{position:absolute;left:6%;top:6%;width:88%;height:88%;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr)}
+.cell{position:relative;border:0;background:transparent;padding:0;display:grid;place-items:center;border-radius:8px}
+.cell:hover .zone{opacity:1}
+.cell .zone{position:absolute;bottom:14%;font-size:11px;letter-spacing:.2em;color:rgba(244,239,230,.75);opacity:.75;text-shadow:0 1px 2px #000;pointer-events:none}
+.cell[data-i="0"] .slotin,.cell[data-i="0"] .zone{transform:translate(24%,24%)}
+.cell[data-i="2"] .slotin,.cell[data-i="2"] .zone{transform:translate(-24%,24%)}
+.cell[data-i="6"] .slotin,.cell[data-i="6"] .zone{transform:translate(24%,-24%)}
+.cell[data-i="8"] .slotin,.cell[data-i="8"] .zone{transform:translate(-24%,-24%)}
+.cell[data-i="0"] .zone,.cell[data-i="2"] .zone{bottom:6%}
+.slotin{position:relative;width:min(74px,62%);aspect-ratio:1;display:grid;place-items:center;pointer-events:none}
+.slotin svg{position:absolute;inset:-12%;width:124%;height:124%;transform:rotate(-90deg)}
+.slotin .ring{fill:none;stroke:var(--gold);stroke-width:6;stroke-linecap:round}
+.slotin .trk{fill:none;stroke:rgba(0,0,0,.45);stroke-width:6}
+.badge{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;border:3px solid var(--ink);box-shadow:0 0 0 2px var(--gold),3px 4px 0 2px rgba(0,0,0,.5);font-family:var(--title);font-size:clamp(20px,2.6vw,30px);color:var(--ink);line-height:1}
+.slotin small{position:absolute;bottom:-26px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:12px;background:var(--ink);color:var(--bone);padding:1px 7px;border:1px solid var(--gold);border-radius:20px;letter-spacing:.04em}
+.cell.done .badge{animation:ready 1s ease-in-out infinite}
+.cell.done small{background:var(--gold);color:var(--ink);font-weight:700}
+@keyframes ready{50%{transform:scale(1.1) rotate(-6deg)}}
+.cell.drop{animation:drop .45s var(--ease)}
+@keyframes drop{0%{transform:scale(.6)}60%{transform:scale(1.08)}}
+.bub{transform-box:fill-box;transform-origin:center;animation:bub 2.4s ease-in infinite;opacity:0}
+@keyframes bub{0%{transform:scale(.2);opacity:0}25%{opacity:.95}80%{transform:scale(1);opacity:.9}100%{transform:scale(1.35);opacity:0}}
+.ingr{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.ing{display:flex;align-items:center;gap:10px;text-align:left;padding:7px 10px 7px 7px;border:2px solid #4a3a33;background:var(--char);border-radius:2px;transition:border-color .15s,background .15s}
+.ing[aria-pressed=true]{border-color:var(--gold);background:var(--red-d)}
+.ing i{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--ink);box-shadow:0 0 0 2px var(--gold);font-style:normal;font-family:var(--title);font-size:17px;color:var(--ink)}
+.ing b{display:block;font-weight:600;font-size:14.5px;line-height:1.3}
+.ing small{display:block;font-size:12px;color:var(--muted);line-height:1.35}
+.ing-tip{font-size:13px;color:var(--muted);margin:10px 0 0;min-height:22px}
+.ing-tip b{color:var(--gold);font-weight:400}
+.potbar{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:30px}
+.paxer{display:inline-flex;align-items:center;border:2px solid var(--gold);border-radius:2px}
+.paxer button{width:40px;height:40px;background:var(--char);border:0;color:var(--gold);font-size:20px;line-height:1}
+.paxer output{min-width:74px;text-align:center;font-size:15px}
+.b-bill{background:var(--bone);color:var(--ink);padding:20px 22px;border:3px solid var(--ink);box-shadow:8px 8px 0 var(--red)}
+.b-bill h3{color:var(--red-d)}
+.b-bill dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:5px 14px;font-size:14.5px}
+.b-bill dt{color:#5b4d44}
+.b-bill dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.b-bill .tot{display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-top:3px double var(--red);margin-top:12px;padding-top:10px}
+.b-bill .tot b{font-family:var(--title);font-weight:400;font-size:40px;line-height:1;color:var(--red)}
+.b-bill .row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.b-log ol{list-style:none;margin:0;padding:0;font-size:14px;border-left:3px solid var(--red);max-height:178px;overflow:auto}
+.b-log li{padding:5px 0 5px 14px;color:var(--muted);border-bottom:1px dashed rgba(232,181,58,.18)}
+.b-log li:first-child{color:var(--bone)}
+.b-log li b{color:var(--gold);font-weight:400}
+
+/* 候場（等位訂位） */
+.wait{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:clamp(24px,4vw,52px);align-items:start}
+.fld{margin-bottom:22px}
+.fld>label,.fld>.lb{display:block;font-size:13px;letter-spacing:.24em;color:var(--gold);margin-bottom:9px}
+.tbl{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.tbl figure{margin:0;display:flex;align-items:center;gap:12px;padding:8px 14px 8px 8px;border:2px solid var(--line);background:var(--char)}
+.tbl svg{width:64px;height:64px}
+.tbl figcaption b{display:block;font-family:var(--title);font-weight:400;font-size:22px;line-height:1.2}
+.tbl figcaption small{font-size:12.5px;color:var(--muted)}
+.days,.slots{display:flex;flex-wrap:wrap;gap:8px}
+.days label,.slots label{position:relative}
+.days input,.slots input{position:absolute;opacity:0;pointer-events:none}
+.days span,.slots span{display:block;text-align:center;border:2px solid #4a3a33;background:var(--char);padding:6px 10px;min-width:66px;font-size:15px;line-height:1.3;cursor:pointer;border-radius:2px}
+.days small,.slots small{display:block;font-size:11.5px;color:var(--muted)}
+.days input:checked+span,.slots input:checked+span{border-color:var(--gold);background:var(--red-d)}
+.days input:checked+span small,.slots input:checked+span small{color:var(--bone)}
+.days input:focus-visible+span,.slots input:focus-visible+span{outline:3px solid var(--gold);outline-offset:2px}
+.slots input:disabled+span{opacity:.38;cursor:not-allowed;text-decoration:line-through}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr))}
+.slots span{min-width:0}
+.board{background:var(--char2);border:2px solid var(--gold);padding:22px;position:relative}
+.board .big{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px}
+.board .big div{flex:1;min-width:120px}
+.board .big b{display:block;font-family:var(--title);font-weight:400;font-size:52px;line-height:1;color:var(--gold)}
+.board .big span{font-size:13px;color:var(--muted);letter-spacing:.12em}
+.meter{height:14px;border:2px solid var(--ink);background:#3a2a25;box-shadow:0 0 0 1px var(--gold-d);margin:4px 0 18px;overflow:hidden}
+.meter i{display:block;height:100%;width:30%;background:repeating-linear-gradient(-45deg,var(--red) 0 8px,#b81d16 8px 16px);transition:width .5s var(--ease)}
+.inp{width:100%;padding:11px 12px;background:#120d0c;border:2px solid #4a3a33;border-radius:2px;font-size:16px}
+.inp:focus{border-color:var(--gold);outline:0}
+.err{display:block;min-height:20px;color:#ff8a7a;font-size:13px;margin-top:4px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--muted);margin:0 0 18px;cursor:pointer}
+.chk input{margin-top:5px;accent-color:var(--red);width:16px;height:16px}
+.ticket{position:relative;background:var(--red);color:var(--bone);border:3px solid var(--gold);padding:26px 22px 22px;text-align:center;box-shadow:10px 10px 0 #000;animation:tk .6s var(--ease)}
+.ticket::before,.ticket::after{content:"";position:absolute;top:50%;width:26px;height:26px;border-radius:50%;background:var(--char2);border:3px solid var(--gold);transform:translateY(-50%)}
+.ticket::before{left:-15px}.ticket::after{right:-15px}
+@keyframes tk{from{transform:rotateX(70deg) translateY(-20px);opacity:0}}
+.ticket .k{font-size:12px;letter-spacing:.4em}
+.ticket .n{font-family:var(--title);font-size:72px;line-height:1;margin:6px 0 2px;text-shadow:4px 4px 0 var(--red-d),5px 5px 0 #000}
+.ticket p{margin:4px 0;font-size:14.5px}
+.ticket .demo{margin-top:12px;font-size:12.5px;background:var(--ink);color:var(--gold);display:inline-block;padding:3px 12px}
+.ticket .mini{position:absolute;right:14px;top:12px;width:38px;height:46px}
+
+/* 戲園（照片） */
+.gal{display:grid;grid-template-columns:1.5fr 1fr;grid-template-rows:1fr 1fr;gap:16px;height:clamp(420px,46vw,620px)}
+.gal .ph{border:2px solid var(--gold)}
+.gal .ph:first-child{grid-row:1/3}
+.gal figcaption{position:absolute;left:0;bottom:0;z-index:2;background:var(--ink);color:var(--bone);font-size:13px;letter-spacing:.14em;padding:6px 14px;border-top:2px solid var(--gold);border-right:2px solid var(--gold)}
+
+/* 看客（評論） */
+.revs{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.rev{background:var(--char);border-top:6px solid var(--red);padding:22px 20px;position:relative}
+.rev:nth-child(2n){border-top-color:var(--teal)}
+.rev:nth-child(3n){border-top-color:var(--gold)}
+.rev .who{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.rev .who svg{width:42px;height:50px;flex:none}
+.rev .who b{display:block;font-weight:600;font-size:15px}
+.rev .who small{color:var(--muted);font-size:12.5px}
+.rev q{display:block;quotes:"「" "」";font-size:15px;color:#ddd3c4}
+.rev .st{color:var(--gold);letter-spacing:.15em;font-size:13px;margin-top:12px}
+
+/* 開鑼（營業資訊） */
+.info{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,4vw,56px)}
+.week{width:100%;border-collapse:collapse;font-size:15px}
+.week th,.week td{padding:10px 12px;border-bottom:1px solid rgba(232,181,58,.2);text-align:left}
+.week th{font-weight:400;color:var(--muted);width:30%}
+.week tr.today{background:rgba(215,38,30,.28)}
+.week tr.today th{color:var(--gold)}
+.week tr.today th::after{content:"今天";font-size:11px;margin-left:8px;padding:1px 6px;background:var(--gold);color:var(--ink);letter-spacing:.1em}
+.week td.off{color:#8d8174}
+.contact{display:flex;flex-direction:column;gap:16px}
+.contact .big{font-family:var(--title);font-size:clamp(26px,3vw,34px);line-height:1.3}
+.contact dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:10px 18px;font-size:15px}
+.contact dt{color:var(--gold);letter-spacing:.2em;font-size:13px;padding-top:2px}
+.contact dd{margin:0}
+.contact dd a{color:var(--bone);text-decoration-color:var(--red);text-underline-offset:4px}
+.mapart{border:2px solid var(--gold);aspect-ratio:16/7;background:var(--char)}
+.mapart svg{width:100%;height:100%;display:block}
+footer{border-top:3px solid var(--gold);box-shadow:0 -6px 0 var(--red-d);background:#090707;padding:36px 0 70px;font-size:13px;color:#8d8174}
+footer .wrap{display:flex;flex-wrap:wrap;gap:16px 30px;justify-content:space-between;align-items:center}
+footer b{font-family:var(--title);font-weight:400;font-size:22px;color:var(--bone)}
+
+@media (max-width:1060px){
+  .nav ul{display:none;position:absolute;left:0;right:0;top:64px;flex-direction:column;background:var(--ink);border-bottom:2px solid var(--gold);padding:8px 16px 16px}
+  .nav.open ul{display:flex}
+  .nav ul a{font-size:16px;padding:11px 8px;border-bottom:1px solid rgba(232,181,58,.14)}
+  .burger{display:block}
+  .nav .cta{display:none}
+  .revs{grid-template-columns:repeat(2,1fr)}
+  .plays li{width:calc(100% / 6)}
+}
+@media (max-width:820px){
+  .story .grid,.wait,.info{grid-template-columns:1fr}
+  .sig{grid-template-columns:1fr;max-width:520px;margin:0 auto}
+  .builder{grid-template-columns:1fr;grid-template-areas:"soup" "pot" "ingr" "bill" "log"}
+  .gal{grid-template-columns:1fr 1fr;grid-template-rows:auto auto;height:auto}
+  .gal .ph{aspect-ratio:4/3}
+  .gal .ph:first-child{grid-column:1/3;grid-row:auto;aspect-ratio:16/10}
+  .plays{display:block}
+  .plays li{width:auto;min-width:0;display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:0 14px;padding:12px 0;border-left:0;border-bottom:1px dashed rgba(215,38,30,.45)}
+  .plays .nm,.plays .ds{display:block;min-height:0;height:auto;margin:0;direction:ltr;text-align:left}
+  .plays .pu{visibility:visible}
+  .plays .nm{font-size:22px;letter-spacing:.08em}
+  .plays .ds{grid-column:1/3;font-size:13px}
+  .plays .pr{grid-row:1;grid-column:2;margin:0;padding:0}
+  .plays .tag{position:static;display:inline-block;vertical-align:middle;margin-left:10px;padding:2px 6px;letter-spacing:.1em}
+  .plays .chili{grid-column:1/3;margin:0}
+}
+@media (max-width:560px){
+  .nav .wrap{height:60px}
+  .nav ul{top:60px}
+  .logo b{font-size:20px}
+  .logo svg{width:28px;height:34px}
+  .hero{padding:44px 0 66px;min-height:0}
+  .hero>.wrap{padding:0 26px}
+  .stage{gap:4px}
+  .vert{font-size:40px;text-shadow:3px 3px 0 #000}
+  .vert span{-webkit-text-stroke:1.2px var(--gold)}
+  .vert.rt span:last-child{-webkit-text-stroke:1.2px var(--red)}
+  .maskbox{width:min(54vw,230px)}
+  .plaque{margin-top:18px}
+  .plaque h1{font-size:32px;letter-spacing:.06em}
+  .plaque p{letter-spacing:.06em;margin-bottom:18px}
+  .revs{grid-template-columns:1fr}
+  .stats span{font-size:12px}
+  .two{grid-template-columns:1fr}
+  .bill{margin:11px 6px 11px 11px;padding:16px}
+  .bill-h{flex-direction:column;align-items:flex-start;gap:4px}
+  .bill-h small{text-align:left}
+  .b-bill .tot b{font-size:34px}
+  .board .big b{font-size:42px}
+  .act h2 em{display:block;width:max-content;margin:8px auto 0;transform:none}
+  .slots{grid-template-columns:repeat(3,1fr)}
+  .slots span{padding:6px 4px}
+  .plaque p{padding:0 12px}
+  .ingr{grid-template-columns:1fr 1fr}
+  .ing{padding:6px 6px}
+  .ing i{width:30px;height:30px;font-size:15px}
+  .ing b{font-size:14px}
+  .mapart{aspect-ratio:16/9}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .halo,.bub,.cell.done .badge,.ticket{animation:none}
+  .bub{opacity:.7}
+  .rv{opacity:1;transform:none;transition:none}
+  .cur{transition:none;transform:translateX(-94%)}
+  .cur.r{transform:translateX(94%)}
+}
+</style>
+</head>
+<body>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="回到頂端"><svg id="logoMask" viewBox="0 0 400 480" aria-hidden="true"></svg><b class="shopName">蜀面<i>·</i>變臉火鍋</b></a>
+    <ul id="navList">
+      <li><a href="#story">班底</a></li>
+      <li><a href="#sig">名角</a></li>
+      <li><a href="#menu">戲單</a></li>
+      <li><a href="#pot">組鍋</a></li>
+      <li><a href="#wait">候場</a></li>
+      <li><a href="#gallery">戲園</a></li>
+      <li><a href="#reviews">看客</a></li>
+      <li><a href="#info">開鑼</a></li>
+    </ul>
+    <a class="btn sm cta" href="#wait">拿號碼牌</a>
+    <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="navList">戲目</button>
+  </div>
+</header>
+
+<main id="top">
+<section class="hero" aria-label="開場">
+  <i class="wing l" aria-hidden="true"></i><i class="wing r" aria-hidden="true"></i>
+  <div class="wrap">
+    <div class="stage">
+      <div class="vert lf" aria-hidden="true"><span>麻</span><span class="dot">・</span><span>辣</span></div>
+      <div>
+        <div class="maskbox">
+          <div class="halo" aria-hidden="true"></div>
+          <button class="maskbtn" id="maskBtn" type="button" aria-label="變臉：換一張臉譜">
+            <svg id="maskSvg" viewBox="0 0 400 480" role="img" aria-label="川劇臉譜"><g id="faceG"></g><defs><clipPath id="fanClip"><path d="M200 34 C122 34 68 84 64 176 C60 262 82 334 122 392 C150 432 176 454 200 458 C224 454 250 432 278 392 C318 334 340 262 336 176 C332 84 278 34 200 34Z" transform="translate(200 246) scale(1.06) translate(-200 -246)"/></clipPath></defs><g clip-path="url(#fanClip)"><g id="fanG" style="visibility:hidden"></g></g></svg>
+          </button>
+        </div>
+        <div class="maskcap" id="maskCap" aria-live="polite"></div>
+      </div>
+      <div class="vert rt" aria-hidden="true"><span>鮮</span><span class="dot">・</span><span>香</span></div>
+    </div>
+    <div class="plaque">
+      <h1 class="shopName">蜀面<i>·</i>變臉火鍋</h1>
+      <p id="tagline">台上一張臉，台下一鍋湯——重慶九宮格牛油鍋，每晚變臉開鑼</p>
+      <div class="row">
+        <a class="btn" href="#pot">組一鍋九宮格</a>
+        <a class="btn ghost" href="#wait">拿號碼牌</a>
+        <span class="status" id="status" role="status"><i></i><span>查詢中</span></span>
+      </div>
+      <span class="hint">點臉譜，變一張臉</span>
+    </div>
+  </div>
+</section>
+
+<section id="story">
+  <div class="act"><div class="in"><div class="no">第一折</div><h2>班底<em>品牌故事</em></h2></div><i class="cur l"></i><i class="cur r"></i></div>
+  <div class="story sec">
+    <div class="wrap grid">
+      <div class="rv">
+        <blockquote>變的是臉，<br>不變的是那一鍋牛油。</blockquote>
+        <p>創辦人老陳出身成都川劇團，十五歲學吐火、十八歲學變臉。下了戲台回到後台，最想念的是師兄們圍著一口九宮格、筷子交錯的那頓宵夜。</p>
+        <p>我們的鍋底用四川石柱紅辣椒、漢源花椒與郫縣豆瓣，加上十八味香料，以牛油小火慢炒四個鐘頭；每天中午現炒、當天用完。湯是主角，臉譜只是開場鑼鼓。</p>
+        <div class="stats">
+          <div><b>4 時</b><span>牛油慢炒</span></div>
+          <div><b>18 味</b><span>香料配方</span></div>
+          <div><b id="showCount">2 場</b><span>每晚變臉</span></div>
+        </div>
+        <div class="palette" aria-label="臉譜色與鍋底">
+          <span><i style="background:#d7261e"></i>紅臉忠勇・牛油紅湯</span>
+          <span><i style="background:#1f8a8a"></i>藍臉剛烈・清油麻辣</span>
+          <span><i style="background:#f4efe6"></i>白臉多謀・菌菇湯</span>
+          <span><i style="background:#e8b53a"></i>金臉神威・番茄湯</span>
+        </div>
+      </div>
+      <figure class="ph rv" data-photo="kitchen" data-art="kitchen" data-label="炒料房・師傅炒牛油" data-size="1600×1360"></figure>
+    </div>
+  </div>
+</section>
+
+<section id="sig">
+  <div class="act"><div class="in"><div class="no">第二折</div><h2>名角<em>招牌菜</em></h2></div><i class="cur l"></i><i class="cur r"></i></div>
+  <div class="sec">
+    <div class="wrap">
+      <p class="lead">每一位名角都有自己的出場秒數。照著唱，口感不走音。</p>
+      <div class="sig">
+        <article class="card rv"><span class="seal">頭牌</span><figure class="ph" data-photo="pot" data-art="pot" data-label="九宮格牛油鍋俯拍" data-size="1200×960"></figure><div class="body"><span class="role">紅臉 · 鍋底</span><h3>九宮格牛油紅湯</h3><p>中心格火最旺、四角文火慢燉。牛油凝成一塊鎮在中央，越煮越香。</p><div class="pr"><span>一桌一鍋</span><b id="pPot">NT$ 380</b></div></div></article>
+        <article class="card rv"><span class="seal">當家</span><figure class="ph" data-photo="tripe" data-art="tripe" data-label="鮮毛肚冰鎮擺盤" data-size="1200×960"></figure><div class="body"><span class="role">藍臉 · 涮料</span><h3>七上八下鮮毛肚</h3><p>筷子夾著入鍋，提起放下七八回、約十五秒就撈。脆，是唯一的標準。</p><div class="pr"><span>建議 15 秒</span><b id="pTripe">NT$ 280</b></div></div></article>
+        <article class="card rv"><span class="seal">壓軸</span><figure class="ph" data-photo="duck" data-art="duck" data-label="冰鎮鴨腸" data-size="1200×960"></figure><div class="body"><span class="role">金臉 · 涮料</span><h3>冰鎮鮮鴨腸</h3><p>每日現洗、冰上鋪排。下鍋一捲就起，蘸香油蒜泥碟，脆得會響。</p><div class="pr"><span>建議 10 秒</span><b id="pDuck">NT$ 220</b></div></div></article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="menu">
+  <div class="act"><div class="in"><div class="no">第三折</div><h2>戲單<em>完整菜單</em></h2></div><i class="cur l"></i><i class="cur r"></i></div>
+  <div class="sec">
+    <div class="wrap">
+      <div class="tabs" id="tabs" role="tablist" aria-label="菜單分類"></div>
+      <div class="bill rv" role="tabpanel" id="billPanel">
+        <div class="bill-h"><h3 id="billTitle">鍋底</h3><small id="billNote"></small></div>
+        <ul class="plays" id="plays"></ul>
+        <div class="bill-f"><span id="feeNote"></span><span>價格皆為新台幣；涮料一份約 2–3 人份</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pot" class="pot-sec">
+  <div class="act"><div class="in"><div class="no">第四折</div><h2>排鍋<em>九宮格組鍋</em></h2></div><i class="cur l"></i><i class="cur r"></i></div>
+  <div class="sec">
+    <div class="wrap">
+      <p class="lead">選鍋底與辣度，點一樣涮料、再點格子放進去。按「下鍋」開始倒數，熟了會提醒你撈。</p>
+      <div class="builder">
+        <div class="b-soup panel">
+          <h3>鍋底</h3>
+          <div class="chips" id="baseChips"></div>
+          <h3 style="margin-top:18px">辣度</h3>
+          <div class="chips" id="spiceChips"></div>
+          <p class="spice-note" id="spiceNote"></p>
+        </div>
+        <div class="b-pot">
+          <div class="potwrap">
+            <svg id="potSvg" viewBox="0 0 400 400" role="img" aria-label="九宮格火鍋俯視圖"></svg>
+            <div class="cells" id="cells"></div>
+          </div>
+          <div class="potbar">
+            <button class="btn" id="cookBtn" type="button">下鍋</button>
+            <button class="btn ghost" id="fastBtn" type="button" aria-pressed="false">快轉 ×10</button>
+            <button class="btn ghost" id="clearBtn" type="button">清鍋</button>
+          </div>
+        </div>
+        <div class="b-ingr panel">
+          <h3>涮料（點選後放入格子）</h3>
+          <div class="ingr" id="ingr"></div>
+          <p class="ing-tip" id="ingTip"></p>
+        </div>
+        <div class="b-bill panel" aria-live="polite">
+          <div class="row"><h3 style="margin:0">這一鍋的帳</h3><div class="paxer"><button type="button" id="bpMinus" aria-label="減少人數">−</button><output id="bpOut">2 位</output><button type="button" id="bpPlus" aria-label="增加人數">＋</button></div></div>
+          <dl id="billDl"></dl>
+          <div class="tot"><span>人均</span><b id="perHead">NT$ 0</b></div>
+        </div>
+        <div class="b-log panel">
+          <h3>火候播報</h3>
+          <ol id="log" aria-live="polite"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="wait">
+  <div class="act"><div class="in"><div class="no">第五折</div><h2>候場<em>等位與訂位</em></h2></div><i class="cur l"></i><i class="cur r"></i></div>
+  <div class="sec">
+    <div class="wrap wait">
+      <form id="wf" novalidate>
+        <div class="fld"><span class="lb">幾位</span>
+          <div class="tbl"><div class="paxer"><button type="button" id="wpMinus" aria-label="減少人數">−</button><output id="wpOut">4 位</output><button type="button" id="wpPlus" aria-label="增加人數">＋</button></div>
+            <figure id="tblFig"><svg viewBox="0 0 64 64" aria-hidden="true" id="tblSvg"></svg><figcaption><b id="tblName">4 人桌</b><small id="tblNote"></small></figcaption></figure></div>
+        </div>
+        <div class="fld"><span class="lb">日期（只列營業日）</span><div class="days" id="days"></div></div>
+        <div class="fld"><span class="lb">時段（剩餘桌數 · 預估等候）</span><div class="slots" id="slots"></div></div>
+        <div class="two">
+          <div class="fld"><label for="wName">姓名</label><input class="inp" id="wName" autocomplete="name" placeholder="陳先生"><span class="err" aria-live="polite"></span></div>
+          <div class="fld"><label for="wPhone">手機</label><input class="inp" id="wPhone" inputmode="tel" autocomplete="tel" placeholder="0912-345-678"><span class="err" aria-live="polite"></span></div>
+        </div>
+        <label class="chk"><input type="checkbox" id="wShow"><span id="showLabel">想看變臉表演，請安排靠戲台的位子</span></label>
+        <button class="btn" type="submit">送出，拿號碼牌</button>
+      </form>
+      <div id="wSide">
+        <div class="board" id="board">
+          <div class="cap">候場看板</div>
+          <div class="big"><div><b id="bWait">—</b><span>預估等候（分鐘）</span></div><div><b id="bLeft">—</b><span id="bLeftL">剩餘桌數</span></div></div>
+          <div class="meter" aria-hidden="true"><i id="bMeter"></i></div>
+          <p id="bText" style="margin:0;color:var(--muted);font-size:14px"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="gallery">
+  <div class="act"><div class="in"><div class="no">第六折</div><h2>戲園<em>店內氛圍</em></h2></div><i class="cur l"></i><i class="cur r"></i></div>
+  <div class="sec">
+    <div class="wrap">
+      <div class="gal rv">
+        <figure class="ph" data-photo="hall" data-art="hall" data-label="大廳與戲台" data-size="1600×1200"><figcaption>大廳 · 正對戲台的 22 張桌</figcaption></figure>
+        <figure class="ph" data-photo="show" data-art="show" data-label="變臉表演" data-size="1200×900"><figcaption id="showCap">變臉 · 每晚兩場</figcaption></figure>
+        <figure class="ph" data-photo="booth" data-art="booth" data-label="十人圓桌包廂" data-size="1200×900"><figcaption>包廂 · 十人圓桌</figcaption></figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="reviews">
+  <div class="act"><div class="in"><div class="no">第七折</div><h2>看客<em>評論</em></h2></div><i class="cur l"></i><i class="cur r"></i></div>
+  <div class="sec">
+    <div class="wrap"><div class="revs" id="revs"></div></div>
+  </div>
+</section>
+
+<section id="info">
+  <div class="act"><div class="in"><div class="no">散場</div><h2>開鑼時刻<em>營業資訊</em></h2></div><i class="cur l"></i><i class="cur r"></i></div>
+  <div class="sec">
+    <div class="wrap info">
+      <div class="rv">
+        <table class="week" id="week" aria-label="每週營業時間"></table>
+        <p style="color:var(--muted);font-size:14px;margin:14px 0 0" id="closedNote"></p>
+      </div>
+      <div class="contact rv">
+        <span class="status" id="status2" style="align-self:flex-start"><i></i><span></span></span>
+        <div class="big shopName">蜀面<i style="font-style:normal;color:var(--gold)">·</i>變臉火鍋</div>
+        <dl>
+          <dt>地址</dt><dd id="addr"></dd>
+          <dt>電話</dt><dd><a id="tel" href="#"></a></dd>
+          <dt>表演</dt><dd id="shows"></dd>
+          <dt>地圖</dt><dd><a id="mapLink" href="#" target="_blank" rel="noopener">在 Google 地圖開啟 ↗</a></dd>
+        </dl>
+        <div class="mapart" aria-hidden="true" id="mapArt"></div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div><b class="shopName">蜀面 · 變臉火鍋</b><br><span id="fAddr"></span></div>
+    <div>© <span id="yr"></span> 店家官網示範模板 · 圖像皆為程式繪製的佔位插畫</div>
+  </div>
+</footer>
+<button class="slotbtn" id="slotBtn" type="button" aria-pressed="false">照片位</button>
+
+<script>
+(function(){
+'use strict';
+/* ===== 店家設定 ===== */
+var SHOP = {
+  name:'蜀面 · 變臉火鍋', short:'蜀面', phone:'(02) 2531-8899', address:'台北市中山區示範路 88 號 1 樓',
+  // 0=週日；可多時段，null=公休
+  hours:[[['11:30','14:30'],['17:00','23:30']], null, [['11:30','14:30'],['17:00','23:30']], [['11:30','14:30'],['17:00','23:30']], [['11:30','14:30'],['17:00','23:30']], [['11:30','14:30'],['17:00','24:00']], [['11:30','14:30'],['17:00','24:00']]],
+  seatFee:60, service:.1, shows:['19:30','20:30'],
+  tables:{A:10, B:14, C:4},       // 2 人桌、4 人桌、10 人圓桌的桌數
+  photos:{kitchen:'', pot:'', tripe:'', duck:'', hall:'', show:'', booth:''}
+};
+// 鍋底：[id, 名稱, 價格, 可調辣度, 說明]
+var BASES = [['tallow','牛油紅湯',380,true,'石柱紅椒＋漢源花椒，牛油慢炒四小時'],['clear','清油紅湯',380,true,'菜籽油底，麻香更透、不膩口'],['yuan','鴛鴦鍋',420,true,'紅湯配大骨白湯，一鍋兩唱'],['tomato','番茄鍋',360,false,'整顆牛番茄熬煮，酸甜不辣'],['fungi','菌湯鍋',360,false,'七種菇菌與老母雞吊湯']];
+// 辣度：[名稱, 牛油湯色, 清油湯色, 漂浮辣椒數]
+var SPICE = [['微辣','#e2552c','#ea7a36',4],['中辣','#d7261e','#e0512a',9],['特辣','#ad160f','#c42a18',15],['變態辣','#6f0b08','#8a1a0c',24]];
+// 涮料：[id, 名稱, 徽字, 價格, 建議秒數, 分類, 底色, 口訣]
+var ING = [
+  ['maodu','鮮毛肚','肚',280,15,'meat','#d9c9a6','筷子夾著「七上八下」，約 15 秒就撈'],
+  ['yachang','鮮鴨腸','腸',220,10,'meat','#f0b5a4','下鍋一捲就起，蘸香油蒜泥'],
+  ['huanghou','黃喉','喉',260,30,'meat','#f1dca0','燙到捲邊、約 30 秒'],
+  ['niurou','嫩牛肉','牛',320,60,'meat','#c8483a','麻辣醃過，散開後一分鐘'],
+  ['feiniu','肥牛捲','肥',300,20,'meat','#e9a294','變色即可，別煮老'],
+  ['xiahua','蝦滑','蝦',280,180,'meat','#f2a46b','擠成丸子下鍋，浮起再等一下'],
+  ['naohua','腦花','腦',220,600,'meat','#f2d7cf','角落文火慢燉十分鐘，綿如豆腐'],
+  ['wucan','午餐肉','午',160,90,'meat','#e58f8f','煮到邊緣微捲'],
+  ['yaxue','鴨血','血',160,240,'veg','#7a1712','久煮不老，越煮越入味'],
+  ['doufu','老豆腐','腐',120,300,'veg','#f4efe6','煮出蜂巢孔才吸飽湯'],
+  ['oupian','藕片','藕',120,180,'veg','#efe0c4','三分鐘，脆中帶粉'],
+  ['kuanfen','寬粉','粉',100,240,'veg','#d8c7a8','煮到透明、Q 彈'],
+  ['jinzhen','金針菇','菇',100,60,'veg','#f3e6b8','一分鐘，吸湯最快'],
+  ['donggua','冬瓜','瓜',100,300,'veg','#b9d6b0','煮到透明，解辣']
+];
+// 其他菜單：[名稱, 價格, 說明, 標記]
+var MENU = {
+  snack:[['紅糖糍粑',120,'現炸糯米糍，淋紅糖漿與黃豆粉','招牌'],['小酥肉',160,'花椒醃肉裹蛋糊酥炸，可直接吃也可下鍋',''],['冰粉',90,'手搓冰粉配山楂、葡萄乾與紅糖','解辣'],['鐘水餃',130,'甜紅油、蒜泥拌皮薄豬肉餃',''],['涼拌折耳根',110,'四川老饕最愛，愛恨分明',''],['擔擔麵',140,'芽菜、碎肉、芝麻醬一碗收尾','']],
+  drink:[['酸梅湯',80,'烏梅、山楂、洛神熬煮，一壺',''],['豆奶',70,'冰鎮玻璃瓶，解辣第一名','解辣'],['菊花枸杞茶',60,'熱茶一壺可續',''],['台灣啤酒',120,'冰到起霧的 600ml',''],['自釀米酒',150,'微甜糯米酒一壺','']]
+};
+var FACES = [
+  {n:'關公',role:'紅臉',mean:'赤膽忠勇',base:'#d7261e',brow:'#0e0b0b',browT:'sweep',sock:'#0e0b0b',sockT:'wing',fore:'#e8b53a',foreT:'flame',nose:'#0e0b0b',cheek:'#e8b53a',cheekT:'swirl',mouth:'#0e0b0b',chin:'#8f1510'},
+  {n:'竇爾敦',role:'藍臉',mean:'剛猛桀驁',base:'#1f8a8a',brow:'#0e0b0b',browT:'curl',sock:'#f4efe6',sockT:'drop',fore:'#d7261e',foreT:'gourd',nose:'#f4efe6',cheek:'#0e0b0b',cheekT:'bolt',mouth:'#d7261e',chin:'#0e0b0b'},
+  {n:'護法神將',role:'金臉',mean:'神威護法',base:'#e8b53a',brow:'#0e0b0b',browT:'flame',sock:'#d7261e',sockT:'wing',fore:'#1f8a8a',foreT:'diamond',nose:'#d7261e',cheek:'#d7261e',cheekT:'band',mouth:'#0e0b0b',chin:'#a8791c'},
+  {n:'包拯',role:'黑臉',mean:'鐵面無私',base:'#221a19',brow:'#f4efe6',browT:'sweep',sock:'#f4efe6',sockT:'butterfly',fore:'#f4efe6',foreT:'moon',nose:'#0e0b0b',cheek:'#e8b53a',cheekT:'dots',mouth:'#d7261e',chin:'#0e0b0b'},
+  {n:'曹操',role:'白臉',mean:'多疑善謀',base:'#f4efe6',brow:'#0e0b0b',browT:'curl',sock:'#0e0b0b',sockT:'drop',fore:'#d7261e',foreT:'stripe',nose:'#1f8a8a',cheek:'#0e0b0b',cheekT:'swirl',mouth:'#d7261e',chin:'#1f8a8a'},
+  {n:'祝融',role:'火臉',mean:'烈火焚天',base:'#d7261e',brow:'#1f8a8a',browT:'flame',sock:'#e8b53a',sockT:'butterfly',fore:'#e8b53a',foreT:'flame',nose:'#0e0b0b',cheek:'#1f8a8a',cheekT:'band',mouth:'#0e0b0b',chin:'#e8b53a'}
+];
+var REVIEWS = [
+  ['林小姐','中山區 · 上班族','毛肚真的照十五秒撈最脆。九宮格中間那格火超旺，我們專門拿來涮鴨腸。',3],
+  ['Kevin','信義區 · 工程師','變態辣不是開玩笑，湯色深到發黑。看完 19:30 那場變臉剛好吃到腦花熟。',1],
+  ['陳媽媽','永和 · 家庭聚餐','十個人訂圓桌包廂，鴛鴦鍋讓不吃辣的長輩也開心。號碼牌簡訊很準時。',4],
+  ['阿哲','板橋 · 研究生','紅糖糍粑必點。冰粉解辣，人均八百吃得很撐，戲台氣氛拍照很好看。',5]
+];
+
+var $ = function(s, r){ return (r || document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+var money = function(n){ return 'NT$ ' + Math.round(n).toLocaleString('en-US'); };
+var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+var now = new Date();
+var DAYS = ['週日','週一','週二','週三','週四','週五','週六'];
+function mins(t){ var p = t.split(':'); return +p[0]*60 + +p[1]; }
+function hhmm(m){ return String(Math.floor(m/60)).padStart(2, '0') + ':' + String(m%60).padStart(2, '0'); }
+function hash(){ var h = 2166136261; for (var i = 0; i < arguments.length; i++){ var s = String(arguments[i]); for (var j = 0; j < s.length; j++){ h ^= s.charCodeAt(j); h = Math.imul(h, 16777619); } } return (h >>> 0) / 4294967295; }
+
+/* ===== 臉譜產生器（左半邊畫好、鏡射成右半邊） ===== */
+var K = '#0e0b0b', uid = 0;
+var OUT = 'M200 34 C122 34 68 84 64 176 C60 262 82 334 122 392 C150 432 176 454 200 458 C224 454 250 432 278 392 C318 334 340 262 336 176 C332 84 278 34 200 34Z';
+var BROW = {sweep:'M76 182 C98 140 150 132 190 162 L184 184 C150 160 112 164 82 196Z', curl:'M80 186 C84 152 120 136 152 146 C178 154 186 176 172 190 C164 174 148 166 128 170 C108 174 96 186 80 186Z', flame:'M74 176 C86 140 116 128 132 146 C138 120 170 122 188 152 L184 170 C170 156 154 154 140 170 C122 156 98 160 74 176Z'};
+var SOCK = {wing:'M78 156 C118 172 176 180 190 214 C194 240 170 262 140 256 C108 248 86 212 78 156Z', drop:'M116 192 C140 176 182 186 188 214 C192 244 160 266 130 256 C104 246 98 206 116 192Z', butterfly:'M90 196 C116 164 178 172 190 208 C190 236 176 266 152 290 C140 258 106 240 90 196Z'};
+var CHEEK = {swirl:'<path d="M92 302 C84 268 128 258 138 284 C144 300 124 312 114 298" fill="none" stroke="@C" stroke-width="9" stroke-linecap="round"/>', bolt:'<path d="M80 248 L118 284 L100 292 L134 338 L88 302 L106 294Z" fill="@C" stroke="'+K+'" stroke-width="4" stroke-linejoin="round"/>', band:'<path d="M60 234 C76 296 102 348 142 396 L162 378 C124 338 100 290 88 232Z" fill="@C" stroke="'+K+'" stroke-width="4" stroke-linejoin="round"/>', dots:'<g fill="@C" stroke="'+K+'" stroke-width="3"><circle cx="104" cy="302" r="10"/><circle cx="128" cy="326" r="7"/><circle cx="98" cy="334" r="6"/></g>'};
+function fore(t, c, base){
+  var s = ' fill="' + c + '" stroke="' + K + '" stroke-width="4" stroke-linejoin="round"';
+  if (t === 'flame') return '<path' + s + ' d="M200 50 C214 84 232 104 226 132 C222 152 210 162 200 178 C190 162 178 152 174 132 C168 104 186 84 200 50Z"/><path fill="' + base + '" d="M200 108 C206 120 212 130 208 142 C206 150 203 154 200 160 C197 154 194 150 192 142 C188 130 194 120 200 108Z"/>';
+  if (t === 'gourd') return '<g' + s + '><circle cx="200" cy="80" r="17"/><rect x="194" y="94" width="12" height="12"/><circle cx="200" cy="130" r="27"/></g>';
+  if (t === 'moon') return '<path' + s + ' d="M226 72 A40 40 0 1 0 226 152 A31 31 0 1 1 226 72Z"/>';
+  if (t === 'diamond') return '<path' + s + ' d="M200 54 L234 112 L200 172 L166 112Z"/><path fill="' + base + '" stroke="' + K + '" stroke-width="3" d="M200 92 L214 112 L200 134 L186 112Z"/>';
+  return '<path' + s + ' d="M189 36 H211 V182 C211 196 189 196 189 182Z"/>';
+}
+function face(f, opt){
+  var id = 'fc' + (++uid), half, s;
+  half = CHEEK[f.cheekT].replace('@C', f.cheek)
+    + '<path d="' + SOCK[f.sockT] + '" fill="' + f.sock + '" stroke="' + K + '" stroke-width="4" stroke-linejoin="round"/>'
+    + '<path d="' + BROW[f.browT] + '" fill="' + f.brow + '" stroke="' + K + '" stroke-width="4" stroke-linejoin="round"/>'
+    + '<path d="M126 216 C140 202 170 202 182 216 C170 228 140 230 126 216Z" fill="#f4efe6" stroke="' + K + '" stroke-width="3.5"/><circle cx="156" cy="216" r="7.5" fill="' + K + '"/>';
+  s = '<defs><clipPath id="' + id + '"><path d="' + OUT + '"/></clipPath></defs>'
+    + '<path d="' + OUT + '" fill="none" stroke="#e8b53a" stroke-width="' + (opt && opt.thin ? 12 : 20) + '"/>'
+    + '<g clip-path="url(#' + id + ')"><path d="' + OUT + '" fill="' + f.base + '"/>'
+    + '<path d="M122 392 C150 432 176 454 200 458 C224 454 250 432 278 392 C252 414 226 424 200 424 C174 424 148 414 122 392Z" fill="' + f.chin + '" stroke="' + K + '" stroke-width="4"/>'
+    + '<g>' + half + '</g><g transform="matrix(-1 0 0 1 400 0)">' + half + '</g>'
+    + fore(f.foreT, f.fore, f.base)
+    + '<path d="M200 214 C192 248 178 274 182 292 C188 304 212 304 218 292 C222 274 208 248 200 214Z" fill="' + f.nose + '" stroke="' + K + '" stroke-width="4"/>'
+    + '<path d="M146 344 C168 332 190 338 200 346 C210 338 232 332 254 344 C250 372 228 388 200 390 C172 388 150 372 146 344Z" fill="' + f.mouth + '" stroke="' + K + '" stroke-width="4"/><path d="M162 354 C182 362 218 362 238 354" fill="none" stroke="' + (f.mouth === K ? '#e8b53a' : K) + '" stroke-width="3"/>'
+    + '</g><path d="' + OUT + '" fill="none" stroke="' + K + '" stroke-width="7"/>';
+  return s;
+}
+function fan(){
+  var px = 200, py = 484, R = 540, r0 = 96, n = 14, s = '', i, a0, a1, p = function(a, r){ return (px + Math.cos(a)*r).toFixed(1) + ' ' + (py + Math.sin(a)*r).toFixed(1); };
+  for (i = 0; i < n; i++){
+    a0 = Math.PI + i*Math.PI/n; a1 = a0 + Math.PI/n;
+    s += '<path d="M' + p(a0, r0) + ' L' + p(a0, R) + ' A' + R + ' ' + R + ' 0 0 1 ' + p(a1, R) + ' L' + p(a1, r0) + ' A' + r0 + ' ' + r0 + ' 0 0 0 ' + p(a0, r0) + 'Z" fill="' + (i % 2 ? '#b81d16' : '#d7261e') + '" stroke="' + K + '" stroke-width="4"/>';
+    s += '<path d="M' + p(a0 + Math.PI/n/2, 200) + ' L' + p(a0 + Math.PI/n/2, 330) + '" stroke="#e8b53a" stroke-width="' + (i % 2 ? 3 : 7) + '" stroke-linecap="round" opacity=".85"/>';
+  }
+  s += '<path d="M' + p(Math.PI, 420) + ' A420 420 0 0 1 ' + p(0, 420) + '" fill="none" stroke="#e8b53a" stroke-width="10"/><path d="M' + p(Math.PI, 160) + ' A160 160 0 0 1 ' + p(0, 160) + '" fill="none" stroke="#e8b53a" stroke-width="6"/>';
+  for (i = 0; i <= n; i++){ a0 = Math.PI + i*Math.PI/n; s += '<path d="M' + p(a0, 10) + ' L' + p(a0, r0) + '" stroke="#5a2c18" stroke-width="9" stroke-linecap="round"/>'; }
+  return s + '<circle cx="' + px + '" cy="' + py + '" r="20" fill="#e8b53a" stroke="' + K + '" stroke-width="5"/>';
+}
+var faceG = $('#faceG'), fanG = $('#fanG'), fi = 0, busy = false;
+function setCap(){ var f = FACES[fi]; $('#maskCap').innerHTML = '<b>第' + '一二三四五六七八九十'.charAt(fi) + '變 · ' + f.role + '</b>' + f.n + '　' + f.mean; }
+faceG.innerHTML = face(FACES[0]); fanG.innerHTML = fan(); setCap();
+fanG.style.transformBox = 'view-box'; fanG.style.transformOrigin = '200px 484px';
+function change(){
+  if (busy) return; busy = true;
+  var next = (fi + 1) % FACES.length;
+  var swap = function(){ fi = next; faceG.innerHTML = face(FACES[fi]); setCap(); };
+  if (reduce || !fanG.animate){ swap(); busy = false; return; }
+  fanG.style.visibility = 'visible';
+  var a = fanG.animate([{transform:'rotate(-180deg)'},{transform:'rotate(0deg)', offset:.48},{transform:'rotate(0deg)', offset:.56},{transform:'rotate(180deg)'}], {duration:1150, easing:'cubic-bezier(.45,.05,.4,1)'});
+  setTimeout(swap, 600);
+  a.onfinish = function(){ fanG.style.visibility = 'hidden'; busy = false; };
+}
+$('#maskBtn').addEventListener('click', function(){ change(); lastChange = Date.now(); });
+var heroOn = true, lastChange = Date.now();
+setInterval(function(){ if (!reduce && heroOn && !document.hidden && Date.now() - lastChange >= 5900){ lastChange = Date.now(); change(); } }, 500);
+$('#logoMask').innerHTML = face(FACES[0], {thin:true});
+
+/* ===== 店名、價格帶入 ===== */
+$$('.shopName').forEach(function(el){ var p = SHOP.name.split(' · '); el.innerHTML = p.length > 1 ? esc(p[0]) + '<i style="font-style:normal;color:var(--gold);margin:0 .2em">·</i>' + esc(p[1]) : esc(SHOP.name); });
+function ingBy(id){ return ING.filter(function(x){ return x[0] === id; })[0]; }
+$('#pPot').textContent = money(BASES[0][2]); $('#pTripe').textContent = money(ingBy('maodu')[3]); $('#pDuck').textContent = money(ingBy('yachang')[3]);
+$('#showCount').textContent = SHOP.shows.length + ' 場';
+$('#showLabel').textContent = '想看變臉表演（' + SHOP.shows.join('、') + ' 兩場），請安排靠戲台的位子';
+$('#showCap').textContent = '變臉 · 每晚 ' + SHOP.shows.join('、');
+
+/* ===== 戲單 ===== */
+var CATS = [['base','鍋底','一桌一鍋，辣度可選微、中、特、變態'],['meat','葷料','標示秒數為建議涮煮時間'],['veg','素料・豆品','久煮入味，適合放在九宮格四角'],['snack','小吃・甜品','現點現做'],['drink','飲品','解辣良伴']];
+var cat = 'base';
+$('#tabs').innerHTML = CATS.map(function(c){ return '<button type="button" role="tab" data-c="' + c[0] + '" aria-selected="' + (c[0] === cat) + '" aria-controls="billPanel">' + c[1] + '</button>'; }).join('');
+$('#tabs').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; cat = b.dataset.c; $$('#tabs button').forEach(function(x){ x.setAttribute('aria-selected', x === b); }); drawMenu(); });
+function secTxt(s){ return s >= 60 ? (s % 60 ? Math.floor(s/60) + '分' + s%60 + '秒' : s/60 + ' 分鐘') : s + ' 秒'; }
+function drawMenu(){
+  var c = CATS.filter(function(x){ return x[0] === cat; })[0], rows;
+  if (cat === 'base') rows = BASES.map(function(b, i){ return [b[1], b[2], b[4], i === 0 ? '頭牌' : '', b[3] ? '可調辣度' : '不辣']; });
+  else if (cat === 'meat' || cat === 'veg') rows = ING.filter(function(x){ return x[5] === cat; }).map(function(x){ return [x[1], x[3], x[7], x[0] === 'maodu' ? '當家' : x[0] === 'yachang' ? '壓軸' : '', '涮 ' + secTxt(x[4])]; });
+  else rows = MENU[cat].map(function(x){ return [x[0], x[1], x[2], x[3], '']; });
+  $('#billTitle').textContent = c[1]; $('#billNote').textContent = c[2];
+  var ch = function(t){ return Array.from(t).map(function(c){ return /[，、。「」：；]/.test(c) ? '<i class="pu">' + c + '</i>' : '<i>' + c + '</i>'; }).join(''); };
+  $('#plays').innerHTML = rows.map(function(r){ return '<li><span class="nm">' + ch(r[0]) + (r[3] ? '<span class="tag">' + ch(r[3]) + '</span>' : '') + '</span><span class="ds">' + ch(r[2]) + '</span>' + (r[4] ? '<span class="chili">' + r[4] + '</span>' : '') + '<span class="pr">' + r[1] + '</span></li>'; }).join('');
+}
+$('#feeNote').textContent = '茶位費每位 ' + SHOP.seatFee + ' 元（含醬料吧）・另收 ' + Math.round(SHOP.service*100) + '% 服務費';
+drawMenu();
+
+/* ===== 九宮格組鍋 ===== */
+var base = 'tallow', spice = 1, selIng = 'maodu', bpax = 2, fast = false;
+var ZONE = [1.25,1,1.25,1,.8,1,1.25,1,1.25], ZN = {1.25:'文火',1:'中火',.8:'旺火'};
+var cells = [{ing:'feiniu'},{ing:null},{ing:'huanghou'},{ing:'yaxue'},{ing:'maodu'},{ing:'jinzhen'},{ing:'naohua'},{ing:null},{ing:'doufu'}];
+cells.forEach(function(c){ c.t = 0; c.dur = 0; c.on = false; c.done = false; });
+$('#baseChips').innerHTML = BASES.map(function(b){ return '<label class="chip"><input type="radio" name="base" value="' + b[0] + '"' + (b[0] === base ? ' checked' : '') + '><span>' + b[1] + '</span></label>'; }).join('');
+$('#spiceChips').innerHTML = SPICE.map(function(s, i){ return '<label class="chip"><input type="radio" name="spice" value="' + i + '"' + (i === spice ? ' checked' : '') + '><span><i style="background:' + s[1] + '"></i>' + s[0] + '</span></label>'; }).join('');
+$('#ingr').innerHTML = ING.map(function(x){ return '<button type="button" class="ing" data-id="' + x[0] + '" aria-pressed="' + (x[0] === selIng) + '"><i style="background:' + x[6] + (x[0] === 'yaxue' ? ';color:#f4efe6' : '') + '">' + x[2] + '</i><span><b>' + x[1] + '</b><small>' + x[3] + ' 元 · ' + secTxt(x[4]) + '</small></span></button>'; }).join('');
+$('#cells').innerHTML = cells.map(function(c, i){ return '<button type="button" class="cell" data-i="' + i + '"></button>'; }).join('');
+function baseObj(){ return BASES.filter(function(b){ return b[0] === base; })[0]; }
+function soupColor(){ var b = baseObj(); if (base === 'tomato') return '#e8582f'; if (base === 'fungi') return '#b98a4e'; return SPICE[spice][base === 'clear' ? 2 : 1]; }
+function drawPot(){
+  var b = baseObj(), col = soupColor(), red = b[3], s = '', i, x, y, n, rnd;
+  s += '<defs><clipPath id="soupClip"><circle cx="200" cy="200" r="166"/></clipPath><radialGradient id="sheen" cx=".38" cy=".34" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>';
+  s += '<circle cx="200" cy="200" r="194" fill="#a8791c" stroke="' + K + '" stroke-width="6"/><circle cx="200" cy="200" r="182" fill="#e8b53a" stroke="' + K + '" stroke-width="4"/><circle cx="200" cy="200" r="170" fill="' + K + '"/>';
+  s += '<g clip-path="url(#soupClip)"><rect width="400" height="400" fill="' + col + '"/>';
+  if (base === 'yuan') s += '<path d="M200 20 C120 90 280 150 200 200 C120 250 280 310 200 380 L420 380 L420 20Z" fill="#ece2cc"/><path d="M200 20 C120 90 280 150 200 200 C120 250 280 310 200 380" fill="none" stroke="' + K + '" stroke-width="6"/>';
+  // 漂浮物：辣椒、花椒、番茄塊或菇片
+  n = red ? SPICE[spice][3] : 10;
+  for (i = 0; i < n; i++){
+    rnd = hash(base, spice, i); x = 50 + hash(i, 'x', base) * 300; y = 50 + hash(i, 'y', spice) * 300;
+    if (base === 'yuan' && x > 200 + Math.sin((y - 20)/360*Math.PI*2) * -60 ) continue;
+    if (red){ if (i % 3 === 2) s += '<circle cx="' + x.toFixed(0) + '" cy="' + y.toFixed(0) + '" r="4" fill="#3a1a10"/>'; else s += '<g transform="translate(' + x.toFixed(0) + ' ' + y.toFixed(0) + ') rotate(' + (rnd*360).toFixed(0) + ')"><path d="M-14 0 C-12 -6 10 -6 14 0 C10 5 -12 5 -14 0Z" fill="' + (spice > 2 ? '#3d0805' : '#9e140d') + '" stroke="' + K + '" stroke-width="1.5"/><path d="M14 0 L20 -3" stroke="#2f6b3a" stroke-width="3" stroke-linecap="round"/></g>'; }
+    else if (base === 'tomato') s += '<path transform="translate(' + x.toFixed(0) + ' ' + y.toFixed(0) + ') rotate(' + (rnd*360).toFixed(0) + ')" d="M-12 6 Q0 -16 12 6Z" fill="#ff7a4a" stroke="' + K + '" stroke-width="2"/>';
+    else s += '<g transform="translate(' + x.toFixed(0) + ' ' + y.toFixed(0) + ') rotate(' + (rnd*360).toFixed(0) + ')" stroke="' + K + '" stroke-width="2"><path d="M-15 0 C-15 -16 15 -16 15 0Z" fill="#7a4a26"/><rect x="-5" y="0" width="10" height="12" rx="3" fill="#f1e2c2"/></g>';
+  }
+  // 冒泡
+  for (i = 0; i < 26; i++){ x = 40 + hash('b', i) * 320; y = 40 + hash('c', i) * 320; s += '<circle class="bub" cx="' + x.toFixed(0) + '" cy="' + y.toFixed(0) + '" r="' + (4 + hash('r', i)*7).toFixed(1) + '" fill="rgba(255,236,200,.28)" stroke="rgba(255,236,200,.75)" stroke-width="1.5" style="animation-delay:' + (hash('d', i)*2.4).toFixed(2) + 's;animation-duration:' + (1.6 + hash('e', i)*1.6).toFixed(2) + 's"/>'; }
+  s += '<rect width="400" height="400" fill="url(#sheen)"/>';
+  // 九宮格隔板
+  [141.3, 258.7].forEach(function(v){ s += '<path d="M' + v + ' 0 V400 M0 ' + v + ' H400" stroke="' + K + '" stroke-width="13"/><path d="M' + v + ' 0 V400 M0 ' + v + ' H400" stroke="#e8b53a" stroke-width="6"/>'; });
+  s += '</g><circle cx="200" cy="200" r="168" fill="none" stroke="' + K + '" stroke-width="5"/>';
+  $('#potSvg').innerHTML = s;
+  $('#potSvg').setAttribute('aria-label', '九宮格火鍋俯視圖：' + b[1] + (red ? '・' + SPICE[spice][0] : ''));
+  $$('input[name=spice]').forEach(function(r){ r.disabled = !red; });
+  $('#spiceNote').textContent = red ? (spice === 3 ? '變態辣：湯色深到發黑，請備冰粉與豆奶。' : base === 'yuan' ? '辣度只影響紅湯那一半，白湯是大骨清湯。' : '湯色會隨辣度加深。') : b[1] + '不辣，辣度選項暫停；想吃辣可加點乾碟。';
+}
+function drawCell(i){
+  var c = cells[i], el = $$('#cells .cell')[i], x = c.ing && ingBy(c.ing), z = '<span class="zone">' + ZN[ZONE[i]] + '</span>';
+  el.classList.toggle('done', c.done);
+  if (!x){ el.innerHTML = z; el.setAttribute('aria-label', '第 ' + (i + 1) + ' 格（' + ZN[ZONE[i]] + '），空'); return; }
+  var dur = Math.round(x[4] * ZONE[i]), left = c.on ? Math.max(0, Math.ceil(dur - c.t)) : dur, frac = c.on ? Math.min(1, c.t / dur) : 0, L = 2*Math.PI*44;
+  var lab = c.done ? '熟了！撈' : c.on ? (left >= 60 ? Math.floor(left/60) + ':' + String(left%60).padStart(2, '0') : left + ' 秒') : secTxt(dur);
+  el.innerHTML = '<span class="slotin"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="trk" cx="50" cy="50" r="44"/><circle class="ring" cx="50" cy="50" r="44" stroke-dasharray="' + L.toFixed(1) + '" stroke-dashoffset="' + (L*(1 - frac)).toFixed(1) + '"/></svg><span class="badge" style="background:' + x[6] + (c.ing === 'yaxue' ? ';color:#f4efe6' : '') + '">' + x[2] + '</span><small>' + lab + '</small></span>';
+  el.setAttribute('aria-label', '第 ' + (i + 1) + ' 格：' + x[1] + '，' + (c.done ? '已熟，點一下撈起' : c.on ? '還要 ' + left + ' 秒' : '未下鍋'));
+}
+function drawCells(){ for (var i = 0; i < 9; i++) drawCell(i); }
+function log(msg){ var ol = $('#log'); ol.insertAdjacentHTML('afterbegin', '<li>' + msg + '</li>'); while (ol.children.length > 12) ol.lastChild.remove(); }
+function drawBill(){
+  var b = baseObj(), list = {}, sum = 0, cnt = 0;
+  cells.forEach(function(c){ if (c.ing){ var x = ingBy(c.ing); list[x[1]] = (list[x[1]] || 0) + 1; sum += x[3]; cnt++; } });
+  var seat = SHOP.seatFee * bpax, sub = b[2] + sum + seat, svc = Math.round(sub * SHOP.service), tot = sub + svc;
+  $('#billDl').innerHTML = '<dt>鍋底・' + b[1] + (b[3] ? '（' + SPICE[spice][0] + '）' : '') + '</dt><dd>' + money(b[2]) + '</dd>'
+    + '<dt>涮料 ' + cnt + ' 份' + (cnt ? '・' + Object.keys(list).map(function(k){ return k + (list[k] > 1 ? '×' + list[k] : ''); }).join('、') : '') + '</dt><dd>' + money(sum) + '</dd>'
+    + '<dt>茶位費 ' + SHOP.seatFee + ' × ' + bpax + '</dt><dd>' + money(seat) + '</dd><dt>服務費 ' + Math.round(SHOP.service*100) + '%</dt><dd>' + money(svc) + '</dd><dt><b>合計</b></dt><dd><b>' + money(tot) + '</b></dd>';
+  $('#perHead').textContent = money(tot / bpax);
+  $('#bpOut').textContent = bpax + ' 位';
+}
+function setTip(){ var x = ingBy(selIng); $('#ingTip').innerHTML = x ? '<b>' + x[1] + '</b>：' + x[7] + '（中火 ' + secTxt(x[4]) + '，旺火格 ×0.8、文火角落 ×1.25）' : ''; }
+$('#baseChips').addEventListener('change', function(e){ base = e.target.value; drawPot(); drawBill(); log('換鍋底：<b>' + baseObj()[1] + '</b>'); });
+$('#spiceChips').addEventListener('change', function(e){ spice = +e.target.value; drawPot(); drawBill(); });
+$('#ingr').addEventListener('click', function(e){ var b = e.target.closest('.ing'); if (!b) return; selIng = selIng === b.dataset.id ? null : b.dataset.id; $$('#ingr .ing').forEach(function(x){ x.setAttribute('aria-pressed', x.dataset.id === selIng); }); setTip(); });
+$('#cells').addEventListener('click', function(e){
+  var el = e.target.closest('.cell'); if (!el) return;
+  var i = +el.dataset.i, c = cells[i], x;
+  if (c.done){ log('撈起 <b>' + ingBy(c.ing)[1] + '</b>，趁熱蘸油碟'); c.ing = null; c.on = c.done = false; c.t = 0; }
+  else if (c.on){ log('第 ' + (i + 1) + ' 格的 ' + ingBy(c.ing)[1] + ' 還在煮，再等等'); return; }
+  else if (selIng && c.ing !== selIng){ c.ing = selIng; x = ingBy(selIng); el.classList.remove('drop'); void el.offsetWidth; el.classList.add('drop'); }
+  else if (c.ing){ c.ing = null; }
+  else { log('先在右邊點一樣涮料，再點格子'); return; }
+  drawCell(i); drawBill();
+});
+$('#cookBtn').addEventListener('click', function(){
+  var n = 0; cells.forEach(function(c, i){ if (c.ing && !c.on){ c.on = true; c.t = 0; c.done = false; n++; if (c.ing === 'maodu') log('<b>毛肚</b>下鍋——筷子夾著，七上八下，' + Math.round(15*ZONE[i]) + ' 秒'); } });
+  log(n ? '下鍋 ' + n + ' 格，開始倒數' : '沒有新的涮料可以下鍋'); drawCells(); tick();
+});
+$('#fastBtn').addEventListener('click', function(){ fast = !fast; this.setAttribute('aria-pressed', fast); this.textContent = fast ? '正常速度' : '快轉 ×10'; });
+$('#clearBtn').addEventListener('click', function(){ cells.forEach(function(c){ c.ing = null; c.on = c.done = false; c.t = 0; }); drawCells(); drawBill(); log('清鍋，重新排一鍋'); });
+function bp(d){ bpax = Math.min(12, Math.max(1, bpax + d)); drawBill(); }
+$('#bpMinus').onclick = function(){ bp(-1); }; $('#bpPlus').onclick = function(){ bp(1); };
+var timer = null, last = 0;
+function tick(){
+  if (timer) return; last = performance.now();
+  timer = setInterval(function(){
+    var t = performance.now(), dt = (t - last) / 1000 * (fast ? 10 : 1), any = false; last = t;
+    cells.forEach(function(c, i){ if (!c.on || c.done) return; any = true; var x = ingBy(c.ing), dur = x[4] * ZONE[i]; c.t += dt; if (c.t >= dur){ c.done = true; log('<b>' + x[1] + '</b> 熟了！第 ' + (i + 1) + ' 格，點一下撈起'); } drawCell(i); });
+    if (!any){ clearInterval(timer); timer = null; }
+  }, 200);
+}
+drawPot(); drawCells(); drawBill(); setTip(); log('九宮格已擺好示範涮料，按「下鍋」開始');
+
+/* ===== 營業狀態 ===== */
+function statusText(){
+  var sv = SHOP.hours[now.getDay()], m = now.getHours()*60 + now.getMinutes(), open = sv && sv.filter(function(s){ return m >= mins(s[0]) && m < mins(s[1]); })[0], next = null, k, d;
+  if (!open) for (k = 0; k < 8 && !next; k++){ d = (now.getDay() + k) % 7; (SHOP.hours[d] || []).forEach(function(x){ if (!next && (k > 0 || mins(x[0]) > m)) next = (k === 0 ? '今天' : k === 1 ? '明天' : DAYS[d]) + ' ' + x[0]; }); }
+  return {open:!!open, txt:open ? '營業中，到 ' + open[1] : '休息中，' + next + ' 開門'};
+}
+var st = statusText();
+['#status', '#status2'].forEach(function(s){ $(s).classList.toggle('on', st.open); $(s).lastElementChild.textContent = st.txt; });
+$('#week').innerHTML = [1,2,3,4,5,6,0].map(function(d){ var h = SHOP.hours[d]; return '<tr' + (d === now.getDay() ? ' class="today"' : '') + '><th scope="row">' + DAYS[d] + '</th>' + (h ? '<td>' + h.map(function(x){ return x[0] + '–' + x[1]; }).join('　') + '</td>' : '<td class="off">公休（後台排練日）</td>') + '</tr>'; }).join('');
+$('#closedNote').textContent = SHOP.hours.map(function(h, i){ return h ? '' : DAYS[i]; }).filter(Boolean).join('、') + '公休・最後點餐為打烊前 60 分鐘・變臉表演 ' + SHOP.shows.join('、');
+$('#addr').textContent = SHOP.address; $('#fAddr').textContent = SHOP.address + '　' + SHOP.phone;
+$('#tel').textContent = SHOP.phone; $('#tel').href = 'tel:' + SHOP.phone.replace(/[^\d]/g, '');
+$('#shows').textContent = '每晚 ' + SHOP.shows.join('、') + ' 變臉（約 12 分鐘）';
+$('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+$('#yr').textContent = now.getFullYear();
+
+/* ===== 等位與訂位 ===== */
+var wpax = 4, days = [];
+for (var di = 0; days.length < 8 && di < 21; di++){ var dd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + di); if (SHOP.hours[dd.getDay()]) days.push(dd); }
+var isToday = function(d){ return d.toDateString() === now.toDateString(); };
+$('#days').innerHTML = days.map(function(d, i){ return '<label><input type="radio" name="d" value="' + i + '"' + (i ? '' : ' checked') + '><span>' + (isToday(d) ? '今天' : (d.getMonth() + 1) + '/' + d.getDate()) + '<small>' + DAYS[d.getDay()] + '</small></span></label>'; }).join('');
+function tableType(p){ return p <= 2 ? {k:'A', n:'2 人桌', note:'靠窗雙人座'} : p <= 4 ? {k:'B', n:'4 人桌', note:'大廳方桌'} : {k:'C', n:'10 人圓桌', note:p >= 10 ? '滿桌，10 位以上請來電' : '包廂圓桌，' + p + ' 位入座'}; }
+function tableSvg(k){
+  var s = '', i, a;
+  if (k === 'A'){ s = '<rect x="20" y="20" width="24" height="24" fill="#f4efe6" stroke="#0e0b0b" stroke-width="3"/>'; [[32,9],[32,55]].forEach(function(c){ s += '<rect x="' + (c[0] - 8) + '" y="' + (c[1] - 5) + '" width="16" height="10" rx="3" fill="#d7261e" stroke="#0e0b0b" stroke-width="2"/>'; }); }
+  else if (k === 'B'){ s = '<rect x="16" y="16" width="32" height="32" fill="#f4efe6" stroke="#0e0b0b" stroke-width="3"/>'; [[32,7,0],[32,57,0],[7,32,1],[57,32,1]].forEach(function(c){ s += c[2] ? '<rect x="' + (c[0] - 5) + '" y="' + (c[1] - 8) + '" width="10" height="16" rx="3" fill="#d7261e" stroke="#0e0b0b" stroke-width="2"/>' : '<rect x="' + (c[0] - 8) + '" y="' + (c[1] - 5) + '" width="16" height="10" rx="3" fill="#d7261e" stroke="#0e0b0b" stroke-width="2"/>'; }); }
+  else { for (i = 0; i < 10; i++){ a = i/10*Math.PI*2; s += '<circle cx="' + (32 + Math.cos(a)*26).toFixed(1) + '" cy="' + (32 + Math.sin(a)*26).toFixed(1) + '" r="5" fill="#d7261e" stroke="#0e0b0b" stroke-width="2"/>'; } s += '<circle cx="32" cy="32" r="18" fill="#f4efe6" stroke="#0e0b0b" stroke-width="3"/>'; }
+  return s + '<circle cx="32" cy="32" r="6" fill="#e8b53a" stroke="#0e0b0b" stroke-width="2"/>';
+}
+function load(d, m, k){
+  var dow = d.getDay(), wk = (dow === 0 || dow === 6 || (dow === 5 && m >= 1020)) ? 1.22 : 1;
+  var peak = Math.exp(-Math.pow((m - 1150)/75, 2))*.88 + Math.exp(-Math.pow((m - 750)/50, 2))*.66 + .12;
+  var r = Math.min(1.05, peak * wk + (hash(d.toDateString(), m, k) - .5)*.3 + (k === 'C' ? .08 : 0));
+  var cap = SHOP.tables[k], left = Math.max(0, Math.round(cap * (1 - Math.max(0, r))));
+  return {left:left, cap:cap, wait:left ? Math.max(0, Math.round(Math.pow(Math.max(0, r), 2) * 50 / 5) * 5) : null, r:Math.max(0, Math.min(1, r))};
+}
+function curDay(){ return days[+$('input[name=d]:checked').value]; }
+function drawTable(){ var t = tableType(wpax); $('#wpOut').textContent = wpax + ' 位'; $('#tblName').textContent = t.n; $('#tblNote').textContent = t.note; $('#tblSvg').innerHTML = tableSvg(t.k); }
+function drawSlots(){
+  var d = curDay(), t = tableType(wpax), nm = now.getHours()*60 + now.getMinutes(), cur = ($('input[name=t]:checked') || {}).value, out = [];
+  SHOP.hours[d.getDay()].forEach(function(r){ for (var m = mins(r[0]); m <= mins(r[1]) - 60; m += 30) out.push(m); });
+  $('#slots').innerHTML = out.map(function(m){ var past = isToday(d) && m < nm - 15, L = load(d, m, t.k), dis = past || !L.left; return '<label><input type="radio" name="t" value="' + m + '"' + (dis ? ' disabled' : '') + '><span>' + hhmm(m) + '<small>' + (past ? '已過' : !L.left ? '客滿' : '剩 ' + L.left + ' 桌 · ' + (L.wait ? '等 ' + L.wait + ' 分' : '免等')) + '</small></span></label>'; }).join('');
+  var pick = $('#slots input[value="' + cur + '"]:not(:disabled)') || $('#slots input:not(:disabled)');
+  if (pick) pick.checked = true;
+  drawBoard();
+}
+function drawBoard(){
+  var s = $('input[name=t]:checked'), d = curDay(), t = tableType(wpax);
+  if (!s){ $('#bWait').textContent = '—'; $('#bLeft').textContent = '0'; $('#bMeter').style.width = '100%'; $('#bText').textContent = '這天已沒有可選的時段，請改選其他日期，或來電 ' + SHOP.phone + ' 候補。'; return; }
+  var m = +s.value, L = load(d, m, t.k);
+  $('#bWait').textContent = L.wait ? L.wait : '0'; $('#bLeft').textContent = L.left + '/' + L.cap; $('#bLeftL').textContent = '剩餘 ' + t.n;
+  $('#bMeter').style.width = Math.round(L.r * 100) + '%';
+  $('#bText').textContent = (isToday(d) ? '今天' : (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日 ' + DAYS[d.getDay()]) + ' ' + hhmm(m) + '：' + (L.r > .8 ? '尖峰時段，建議提早到場或改 30 分鐘後。' : L.r > .5 ? '人潮中等，號碼牌叫號前 10 分鐘會傳簡訊。' : '目前寬鬆，到店幾乎不用等。') + (SHOP.shows.some(function(x){ return Math.abs(mins(x) - m) <= 60; }) ? '這個時段看得到變臉表演。' : '');
+}
+function wp(dl){ wpax = Math.min(10, Math.max(1, wpax + dl)); drawTable(); drawSlots(); }
+$('#wpMinus').onclick = function(){ wp(-1); }; $('#wpPlus').onclick = function(){ wp(1); };
+$('#days').addEventListener('change', drawSlots); $('#slots').addEventListener('change', drawBoard);
+drawTable(); drawSlots();
+var sideHTML = $('#wSide').innerHTML;
+$('#wf').addEventListener('submit', function(e){
+  e.preventDefault();
+  var name = $('#wName'), phone = $('#wPhone'), ok = true, s = $('input[name=t]:checked');
+  [[name, name.value.trim().length > 0, '請填寫姓名'], [phone, /^09\d{2}-?\d{3}-?\d{3}$/.test(phone.value.trim()), '請輸入 09xx-xxx-xxx 格式的手機號碼']].forEach(function(c){ c[0].parentNode.querySelector('.err').textContent = c[1] ? '' : c[2]; c[0].setAttribute('aria-invalid', !c[1]); if (!c[1]) ok = false; });
+  if (!ok){ (name.value.trim() ? phone : name).focus(); return; }
+  if (!s){ $('#bText').textContent = '請先選一個還有空桌的時段。'; return; }
+  var d = curDay(), m = +s.value, t = tableType(wpax), L = load(d, m, t.k), no = t.k + String(10 + Math.floor(hash(d.toDateString(), m, wpax, phone.value) * 89)).padStart(3, '0');
+  var f = FACES[Math.floor(hash(no) * FACES.length)];
+  $('#wSide').innerHTML = '<div class="ticket" role="status"><svg class="mini" viewBox="0 0 400 480" aria-hidden="true">' + face(f, {thin:true}) + '</svg><div class="k">' + (isToday(d) ? '現場號碼牌' : '預約號碼牌') + ' · ' + esc(SHOP.short) + '</div><div class="n">' + no + '</div><p>' + (isToday(d) ? '今天' : (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日 ' + DAYS[d.getDay()]) + '　' + hhmm(m) + '</p><p>' + wpax + ' 位 · ' + t.n + ' · 預估等候 ' + (L.wait || 0) + ' 分鐘</p><p>' + esc(name.value.trim()) + '，叫號前 10 分鐘會傳簡訊到 ' + esc(phone.value.trim()) + '。' + ($('#wShow').checked ? '已備註靠戲台座位。' : '') + '</p><p>今晚替你唱開場的是 ' + f.role + '「' + f.n + '」。</p><span class="demo">示範版本：沒有真的送出</span></div><p style="text-align:center;margin-top:18px"><button class="btn ghost sm" type="button" id="again">重新選擇</button></p>';
+  $('#again').onclick = function(){ $('#wSide').innerHTML = sideHTML; drawBoard(); };
+});
+
+/* ===== 評論 ===== */
+$('#revs').innerHTML = REVIEWS.map(function(r, i){ return '<article class="rev rv"><div class="who"><svg viewBox="0 0 400 480" aria-hidden="true">' + face(FACES[r[3]], {thin:true}) + '</svg><div><b>' + r[0] + '</b><small>' + r[1] + '</small></div></div><q>' + r[2] + '</q><div class="st">叫好 ★★★★★</div></article>'; }).join('');
+
+/* ===== 佔位插畫（平塗＋粗黑勾線＋金邊） ===== */
+var G = '#e8b53a', R = '#d7261e', T = '#1f8a8a', B = '#f4efe6', RD = '#8f1510';
+function svg(vb, body){ return '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + body + '</svg>'; }
+function chili(x, y, rot, sc){ return '<g transform="translate(' + x + ' ' + y + ') rotate(' + rot + ') scale(' + (sc || 1) + ')"><path d="M-40 0 C-36 -16 26 -18 40 -4 C30 14 -30 16 -40 0Z" fill="' + R + '" stroke="' + K + '" stroke-width="5"/><path d="M-20 -6 C0 -10 20 -10 30 -4" stroke="#ff8a6a" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M40 -4 L58 -14" stroke="' + T + '" stroke-width="9" stroke-linecap="round"/></g>'; }
+function cloud(x, y, sc, c){ return '<path transform="translate(' + x + ' ' + y + ') scale(' + sc + ')" d="M-60 10 C-70 -14 -40 -26 -26 -12 C-22 -36 14 -38 20 -14 C34 -28 64 -16 56 8 C70 10 70 30 52 30 H-50 C-72 30 -74 12 -60 10Z" fill="none" stroke="' + (c || G) + '" stroke-width="5"/>'; }
+function lantern(x, y, s){ return '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')"><path d="M0 -200 V-40" stroke="' + K + '" stroke-width="4"/><rect x="-26" y="-48" width="52" height="12" fill="' + G + '" stroke="' + K + '" stroke-width="4"/><ellipse cx="0" cy="0" rx="50" ry="40" fill="' + R + '" stroke="' + K + '" stroke-width="5"/><path d="M-20 -38 C-34 -10 -34 10 -20 38 M20 -38 C34 -10 34 10 20 38" fill="none" stroke="' + K + '" stroke-width="3"/><rect x="-26" y="36" width="52" height="12" fill="' + G + '" stroke="' + K + '" stroke-width="4"/><path d="M-10 48 V86 M0 48 V92 M10 48 V86" stroke="' + G + '" stroke-width="4"/></g>'; }
+function curtain(x, w, h, flip){ var s = '<g transform="translate(' + x + ' 0)' + (flip ? ' scale(-1 1)' : '') + '">', i; s += '<path d="M0 0 H' + w + ' C' + (w*.7) + ' ' + h*.4 + ' ' + (w*.5) + ' ' + h*.7 + ' ' + (w*.62) + ' ' + h + ' H0Z" fill="' + R + '" stroke="' + K + '" stroke-width="6"/>'; for (i = 1; i < 5; i++) s += '<path d="M' + (w*i/5) + ' 0 C' + (w*i/5*.8) + ' ' + h*.4 + ' ' + (w*i/5*.6) + ' ' + h*.7 + ' ' + (w*i/5*.68) + ' ' + h + '" stroke="' + RD + '" stroke-width="6" fill="none"/>'; return s + '</g>'; }
+function steam(x, y, h){ return '<path d="M' + x + ' ' + y + ' c-24 -' + h*.2 + ' 24 -' + h*.4 + ' 0 -' + h*.6 + ' s24 -' + h*.3 + ' 0 -' + h*.4 + '" fill="none" stroke="' + B + '" stroke-width="7" stroke-linecap="round" opacity=".7"/>'; }
+var ART = {
+  kitchen:function(){
+    var s = '<rect width="1200" height="1020" fill="' + T + '"/><path d="M0 0 H1200 V1020 H0Z" fill="none"/>';
+    for (var i = 0; i < 6; i++) s += cloud(120 + i*210, 90 + (i%2)*60, 1.1, '#5fbcbc');
+    s += '<path d="M0 760 H1200 V1020 H0Z" fill="' + K + '"/><path d="M0 760 H1200" stroke="' + G + '" stroke-width="10"/>';
+    // 火焰
+    s += '<rect x="240" y="860" width="720" height="160" fill="#2a1d18" stroke="' + G + '" stroke-width="8"/>';
+    for (i = 0; i < 9; i++){ var fx = 270 + i*82, fh = 150 + (i%3)*40; s += '<path d="M' + (fx - 40) + ' 880 C' + (fx - 50) + ' ' + (880 - fh*.5) + ' ' + (fx - 6) + ' ' + (880 - fh*.7) + ' ' + fx + ' ' + (880 - fh) + ' C' + (fx + 14) + ' ' + (880 - fh*.6) + ' ' + (fx + 52) + ' ' + (880 - fh*.45) + ' ' + (fx + 40) + ' 880Z" fill="' + (i%2 ? G : R) + '" stroke="' + K + '" stroke-width="5"/>'; }
+    s += '<path d="M200 560 H1000 C980 760 820 830 600 830 C380 830 220 760 200 560Z" fill="#2a1d18" stroke="' + K + '" stroke-width="8"/><ellipse cx="600" cy="560" rx="400" ry="96" fill="' + G + '" stroke="' + K + '" stroke-width="8"/><ellipse cx="600" cy="566" rx="364" ry="76" fill="' + RD + '" stroke="' + K + '" stroke-width="6"/><ellipse cx="600" cy="572" rx="330" ry="60" fill="' + R + '"/>';
+    s += '<path d="M500 540 L620 516 L700 552 L580 580Z" fill="' + G + '" stroke="' + K + '" stroke-width="6"/><path d="M500 540 L580 580 L580 600 L500 560Z" fill="#b8861f" stroke="' + K + '" stroke-width="5"/>';
+    s += chili(380, 560, 18, .8) + chili(800, 580, -30, .8) + chili(720, 600, 60, .6) + chili(440, 600, -10, .6);
+    for (i = 0; i < 18; i++) s += '<circle cx="' + (330 + hash('p', i)*540).toFixed(0) + '" cy="' + (550 + hash('q', i)*60).toFixed(0) + '" r="7" fill="#3a1a10" stroke="' + K + '" stroke-width="2"/>';
+    s += '<path d="M940 140 L700 560" stroke="' + K + '" stroke-width="30" stroke-linecap="round"/><path d="M940 140 L700 560" stroke="#8a5a2a" stroke-width="18" stroke-linecap="round"/><ellipse cx="690" cy="566" rx="60" ry="22" fill="#cfcfcf" stroke="' + K + '" stroke-width="6"/>';
+    s += steam(470, 470, 300) + steam(600, 440, 360) + steam(860, 470, 280);
+    s += '<path d="M200 560 H120 M1000 560 H1080" stroke="' + K + '" stroke-width="26" stroke-linecap="round"/>';
+    return svg('0 0 1200 1020', s);
+  },
+  pot:function(){
+    var s = '<rect width="1200" height="960" fill="' + K + '"/>', i;
+    for (i = 0; i < 12; i++){ var a = i/12*Math.PI*2; s += '<path d="M600 480 L' + (600 + Math.cos(a)*900).toFixed(0) + ' ' + (480 + Math.sin(a)*900).toFixed(0) + ' L' + (600 + Math.cos(a + .26)*900).toFixed(0) + ' ' + (480 + Math.sin(a + .26)*900).toFixed(0) + 'Z" fill="' + (i%2 ? '#2a0f0c' : '#1a0a08') + '"/>'; }
+    s += '<circle cx="600" cy="480" r="400" fill="#a8791c" stroke="' + K + '" stroke-width="10"/><circle cx="600" cy="480" r="372" fill="' + G + '" stroke="' + K + '" stroke-width="8"/><circle cx="600" cy="480" r="344" fill="' + R + '" stroke="' + K + '" stroke-width="8"/>';
+    s += '<defs><clipPath id="potc"><circle cx="600" cy="480" r="340"/></clipPath></defs><g clip-path="url(#potc)">';
+    for (i = 0; i < 14; i++) s += chili((300 + hash('x', i)*600).toFixed(0), (190 + hash('y', i)*580).toFixed(0), (hash('r', i)*360).toFixed(0), 1.25);
+    for (i = 0; i < 30; i++) s += '<circle cx="' + (280 + hash('a', i)*640).toFixed(0) + '" cy="' + (160 + hash('b', i)*640).toFixed(0) + '" r="' + (6 + hash('c', i)*14).toFixed(0) + '" fill="none" stroke="#ffc49a" stroke-width="4"/>';
+    [480, 720].forEach(function(v){ s += '<path d="M' + v + ' 0 V960" stroke="' + K + '" stroke-width="26"/><path d="M' + v + ' 0 V960" stroke="' + G + '" stroke-width="12"/>'; });
+    [360, 600].forEach(function(v){ s += '<path d="M0 ' + v + ' H1200" stroke="' + K + '" stroke-width="26"/><path d="M0 ' + v + ' H1200" stroke="' + G + '" stroke-width="12"/>'; });
+    s += '</g><path d="M548 430 L640 414 L668 470 L574 494Z" fill="' + G + '" stroke="' + K + '" stroke-width="6"/>';
+    s += '<path d="M200 480 H140 M1000 480 H1060" stroke="' + K + '" stroke-width="40" stroke-linecap="round"/><path d="M200 480 H140 M1000 480 H1060" stroke="' + G + '" stroke-width="22" stroke-linecap="round"/>';
+    return svg('0 0 1200 960', s);
+  },
+  tripe:function(){
+    var s = '<rect width="1200" height="960" fill="' + B + '"/>', i, j;
+    for (i = 0; i < 8; i++) s += '<path d="M' + (i*170 - 60) + ' 960 L' + (i*170 + 200) + ' 0" stroke="#e9dfcf" stroke-width="40"/>';
+    s += '<ellipse cx="600" cy="500" rx="470" ry="370" fill="' + T + '" stroke="' + K + '" stroke-width="10"/><ellipse cx="600" cy="500" rx="420" ry="326" fill="none" stroke="' + G + '" stroke-width="8"/>';
+    for (i = 0; i < 26; i++) s += '<path d="M' + (230 + hash('i', i)*740).toFixed(0) + ' ' + (260 + hash('j', i)*480).toFixed(0) + ' l30 -20 l26 24 l-24 26Z" fill="#dff3f3" stroke="#0f5a5a" stroke-width="3"/>';
+    for (j = 0; j < 4; j++){
+      var y0 = 270 + j*112, x0 = 290 + (j%2)*44, d = 'M' + x0 + ' ' + y0;
+      for (i = 0; i < 14; i++) d += ' l26 ' + (i%2 ? 26 : -26);
+      d += ' l0 84'; for (i = 0; i < 14; i++) d += ' l-26 ' + (i%2 ? -26 : 26); d += 'Z';
+      s += '<path d="' + d + '" fill="#d9c9a6" stroke="' + K + '" stroke-width="6" stroke-linejoin="round"/>';
+      for (i = 1; i < 14; i += 2) s += '<path d="M' + (x0 + i*26) + ' ' + (y0 + 6) + ' v64" stroke="#a8936a" stroke-width="5"/>';
+    }
+    s += '<path d="M1080 120 L560 760" stroke="' + K + '" stroke-width="30" stroke-linecap="round"/><path d="M1080 120 L560 760" stroke="' + R + '" stroke-width="18" stroke-linecap="round"/><path d="M1130 160 L620 790" stroke="' + K + '" stroke-width="30" stroke-linecap="round"/><path d="M1130 160 L620 790" stroke="' + R + '" stroke-width="18" stroke-linecap="round"/><path d="M1080 120 L1010 206 M1130 160 L1060 246" stroke="' + G + '" stroke-width="18"/>';
+    return svg('0 0 1200 960', s);
+  },
+  duck:function(){
+    var s = '<rect width="1200" height="960" fill="' + R + '"/>', i;
+    for (i = 0; i < 10; i++) s += cloud(80 + (i%5)*260, 120 + Math.floor(i/5)*720, 1, '#f08a5a');
+    s += '<rect x="230" y="200" width="740" height="560" rx="30" fill="' + K + '" stroke="' + G + '" stroke-width="10"/><rect x="270" y="240" width="660" height="480" rx="16" fill="#dff3f3" stroke="' + K + '" stroke-width="6"/>';
+    for (i = 0; i < 40; i++) s += '<path d="M' + (290 + hash('k', i)*600).toFixed(0) + ' ' + (260 + hash('l', i)*430).toFixed(0) + ' l28 -14 l20 24 l-26 18Z" fill="#fff" stroke="#9cc" stroke-width="3"/>';
+    for (i = 0; i < 9; i++){ var cx = 380 + (i%3)*220, cy = 340 + Math.floor(i/3)*140; s += '<path d="M' + (cx - 70) + ' ' + cy + ' C' + (cx - 70) + ' ' + (cy - 50) + ' ' + (cx + 40) + ' ' + (cy - 50) + ' ' + (cx + 40) + ' ' + cy + ' C' + (cx + 40) + ' ' + (cy + 34) + ' ' + (cx - 30) + ' ' + (cy + 34) + ' ' + (cx - 30) + ' ' + cy + ' C' + (cx - 30) + ' ' + (cy - 18) + ' ' + (cx + 10) + ' ' + (cy - 18) + ' ' + (cx + 6) + ' ' + (cy + 6) + '" fill="none" stroke="' + K + '" stroke-width="26" stroke-linecap="round"/><path d="M' + (cx - 70) + ' ' + cy + ' C' + (cx - 70) + ' ' + (cy - 50) + ' ' + (cx + 40) + ' ' + (cy - 50) + ' ' + (cx + 40) + ' ' + cy + ' C' + (cx + 40) + ' ' + (cy + 34) + ' ' + (cx - 30) + ' ' + (cy + 34) + ' ' + (cx - 30) + ' ' + cy + ' C' + (cx - 30) + ' ' + (cy - 18) + ' ' + (cx + 10) + ' ' + (cy - 18) + ' ' + (cx + 6) + ' ' + (cy + 6) + '" fill="none" stroke="#f0b5a4" stroke-width="16" stroke-linecap="round"/>'; }
+    s += '<circle cx="1010" cy="760" r="90" fill="' + G + '" stroke="' + K + '" stroke-width="8"/><circle cx="1010" cy="760" r="62" fill="#c98a2a" stroke="' + K + '" stroke-width="5"/><circle cx="990" cy="745" r="10" fill="' + B + '"/><circle cx="1030" cy="770" r="8" fill="' + B + '"/><circle cx="1012" cy="790" r="7" fill="#2f6b3a"/>';
+    return svg('0 0 1200 960', s);
+  },
+  hall:function(){
+    var s = '<rect width="1600" height="1200" fill="' + K + '"/>', i;
+    s += '<rect x="300" y="160" width="1000" height="520" fill="#2a0f0c" stroke="' + G + '" stroke-width="12"/><ellipse cx="800" cy="560" rx="300" ry="90" fill="#5a1a12"/>';
+    s += '<rect x="250" y="80" width="1100" height="100" fill="' + RD + '" stroke="' + K + '" stroke-width="8"/><rect x="560" y="96" width="480" height="68" fill="' + K + '" stroke="' + G + '" stroke-width="6"/>';
+    for (i = 0; i < 4; i++) s += '<path d="M' + (610 + i*130) + ' 112 h50 v36 h-50Z" fill="' + G + '"/>';
+    s += curtain(300, 260, 520) + curtain(1300, 260, 520, true);
+    s += '<path d="M300 180 Q425 260 550 180 Q675 260 800 180 Q925 260 1050 180 Q1175 260 1300 180 V230 H300Z" fill="' + R + '" stroke="' + K + '" stroke-width="6"/>';
+    s += '<g transform="translate(800 420)"><path d="M-110 260 L-60 40 L60 40 L110 260Z" fill="' + R + '" stroke="' + K + '" stroke-width="6"/><path d="M-60 40 L60 40 L40 90 L-40 90Z" fill="' + G + '" stroke="' + K + '" stroke-width="5"/><svg x="-50" y="-80" width="100" height="120" viewBox="0 0 400 480">' + face(FACES[1], {thin:true}) + '</svg><path d="M60 80 L160 0 A130 130 0 0 1 180 110Z" fill="' + G + '" stroke="' + K + '" stroke-width="5"/></g>';
+    s += '<rect x="0" y="680" width="1600" height="520" fill="#1a1110"/><path d="M0 680 H1600" stroke="' + G + '" stroke-width="10"/>';
+    for (i = 0; i < 6; i++){ var tx = 160 + i*256, ty = 880 + (i%2)*120; s += '<ellipse cx="' + tx + '" cy="' + ty + '" rx="120" ry="44" fill="' + B + '" stroke="' + K + '" stroke-width="6"/><ellipse cx="' + tx + '" cy="' + (ty - 4) + '" rx="40" ry="15" fill="' + R + '" stroke="' + K + '" stroke-width="4"/>' + steam(tx, ty - 20, 120); }
+    s += lantern(150, 280, 1) + lantern(1450, 280, 1) + lantern(150, 560, .7) + lantern(1450, 560, .7);
+    return svg('0 0 1600 1200', s);
+  },
+  show:function(){
+    var s = '<rect width="1200" height="900" fill="' + K + '"/>', i;
+    s += '<ellipse cx="600" cy="460" rx="380" ry="420" fill="#2a120e"/><ellipse cx="600" cy="460" rx="300" ry="340" fill="#3a1610"/>';
+    for (i = 0; i < 3; i++) s += cloud(200 + i*400, 790 - (i%2)*20, 1.6);
+    s += '<path d="M600 300 L330 900 H870Z" fill="' + R + '" stroke="' + K + '" stroke-width="8"/><path d="M600 300 L420 900 M600 300 L780 900" stroke="' + RD + '" stroke-width="10"/><path d="M500 520 C560 560 640 560 700 520 L720 580 C640 620 560 620 480 580Z" fill="' + G + '" stroke="' + K + '" stroke-width="6"/>';
+    s += '<path d="M520 340 C540 290 660 290 680 340 L700 420 L500 420Z" fill="' + T + '" stroke="' + K + '" stroke-width="6"/>';
+    s += '<svg x="500" y="120" width="200" height="240" viewBox="0 0 400 480">' + face(FACES[5]) + '</svg>';
+    s += '<path d="M500 140 C520 60 680 60 700 140 L680 120 C660 90 540 90 520 120Z" fill="' + G + '" stroke="' + K + '" stroke-width="6"/><circle cx="600" cy="62" r="22" fill="' + R + '" stroke="' + K + '" stroke-width="5"/>';
+    s += '<g transform="translate(790 380) rotate(-20)"><path d="M0 0 L-60 -170 A180 180 0 0 1 120 -150Z" fill="' + G + '" stroke="' + K + '" stroke-width="6"/>';
+    for (i = 1; i < 6; i++){ var a = -1.91 + i*.169; s += '<path d="M0 0 L' + (Math.cos(a)*180).toFixed(0) + ' ' + (Math.sin(a)*180).toFixed(0) + '" stroke="' + K + '" stroke-width="4"/>'; }
+    s += '</g><circle cx="790" cy="380" r="22" fill="' + B + '" stroke="' + K + '" stroke-width="5"/>';
+    for (i = 0; i < 4; i++) s += '<svg x="' + (130 + i*90 + (i > 1 ? 680 : 0)) + '" y="' + (180 + (i%2)*80) + '" width="70" height="84" viewBox="0 0 400 480" opacity=".55">' + face(FACES[(i + 2) % 6], {thin:true}) + '</svg>';
+    return svg('0 0 1200 900', s);
+  },
+  booth:function(){
+    var s = '<rect width="1200" height="900" fill="#1a1110"/>', i, a;
+    for (i = 0; i < 12; i++) s += '<path d="M' + (i*110) + ' 0 V900" stroke="#241816" stroke-width="50"/>';
+    s += '<rect x="0" y="0" width="1200" height="150" fill="' + T + '" stroke="' + K + '" stroke-width="6"/>';
+    for (i = 0; i < 12; i++) s += '<rect x="' + (20 + i*100) + '" y="20" width="80" height="110" fill="none" stroke="' + G + '" stroke-width="5"/><path d="M' + (60 + i*100) + ' 20 V130 M' + (20 + i*100) + ' 75 H' + (100 + i*100) + '" stroke="' + G + '" stroke-width="4"/>';
+    for (i = 0; i < 10; i++){ a = i/10*Math.PI*2; s += '<g transform="translate(' + (600 + Math.cos(a)*330).toFixed(0) + ' ' + (520 + Math.sin(a)*290).toFixed(0) + ') rotate(' + (a*180/Math.PI + 90).toFixed(0) + ')"><rect x="-50" y="-34" width="100" height="68" rx="16" fill="' + R + '" stroke="' + K + '" stroke-width="6"/><rect x="-44" y="18" width="88" height="14" fill="' + G + '" stroke="' + K + '" stroke-width="3"/></g>'; }
+    s += '<ellipse cx="600" cy="520" rx="290" ry="250" fill="' + B + '" stroke="' + K + '" stroke-width="8"/><ellipse cx="600" cy="520" rx="260" ry="222" fill="none" stroke="' + G + '" stroke-width="6"/><ellipse cx="600" cy="520" rx="150" ry="128" fill="#d9cfbe" stroke="' + K + '" stroke-width="5"/>';
+    s += '<circle cx="600" cy="520" r="88" fill="' + G + '" stroke="' + K + '" stroke-width="6"/><circle cx="600" cy="520" r="72" fill="' + R + '" stroke="' + K + '" stroke-width="4"/><path d="M576 448 V592 M624 448 V592 M528 496 H672 M528 544 H672" stroke="' + G + '" stroke-width="7"/>';
+    for (i = 0; i < 10; i++){ a = i/10*Math.PI*2 + .31; s += '<circle cx="' + (600 + Math.cos(a)*210).toFixed(0) + '" cy="' + (520 + Math.sin(a)*178).toFixed(0) + '" r="24" fill="#fff" stroke="' + K + '" stroke-width="4"/><circle cx="' + (600 + Math.cos(a)*210).toFixed(0) + '" cy="' + (520 + Math.sin(a)*178).toFixed(0) + '" r="10" fill="' + (i%2 ? T : R) + '"/>'; }
+    return svg('0 0 1200 900', s);
+  }
+};
+function fillPhotos(){ $$('.ph').forEach(function(f){ var url = SHOP.photos[f.dataset.photo], cap = f.querySelector('figcaption'); if (url){ f.innerHTML = '<img src="' + url + '" alt="' + esc(f.dataset.label || '') + '" loading="lazy">'; } else { var a = ART[f.dataset.art]; if (a) f.innerHTML = a(); } if (cap) f.appendChild(cap); }); }
+fillPhotos();
+
+/* 地圖插畫 */
+$('#mapArt').innerHTML = '<svg viewBox="0 0 640 280" preserveAspectRatio="xMidYMid slice"><rect width="640" height="280" fill="#1a1413"/><path d="M0 120 H640 M0 210 H640 M180 0 V280 M420 0 V280" stroke="#3a2a25" stroke-width="22"/><path d="M0 120 H640 M180 0 V280" stroke="#e8b53a" stroke-width="2" stroke-dasharray="10 10" opacity=".5"/><path d="M520 0 C500 90 560 170 520 280" stroke="#1f8a8a" stroke-width="16" fill="none" opacity=".7"/><rect x="250" y="138" width="110" height="54" fill="#d7261e" stroke="#0e0b0b" stroke-width="4"/><text x="305" y="172" fill="#f4efe6" font-size="18" text-anchor="middle" font-family="sans-serif">蜀面</text><path d="M305 80 C285 80 275 96 275 108 C275 128 305 150 305 150 C305 150 335 128 335 108 C335 96 325 80 305 80Z" fill="#e8b53a" stroke="#0e0b0b" stroke-width="4"/><circle cx="305" cy="108" r="10" fill="#0e0b0b"/><text x="196" y="108" fill="#8d8174" font-size="13" font-family="sans-serif">示範路</text><text x="430" y="200" fill="#8d8174" font-size="13" font-family="sans-serif">捷運站 2 號出口 · 步行 3 分</text></svg>';
+
+/* ===== 共用：導覽、照片位、進場 ===== */
+var nav = $('#nav');
+$('#burger').onclick = function(){ var o = nav.classList.toggle('open'); this.setAttribute('aria-expanded', o); this.textContent = o ? '收起' : '戲目'; };
+$$('#navList a').forEach(function(a){ a.addEventListener('click', function(){ nav.classList.remove('open'); $('#burger').setAttribute('aria-expanded', 'false'); $('#burger').textContent = '戲目'; }); });
+var slotBtn = $('#slotBtn');
+function slots(on){ document.body.classList.toggle('slots', on); slotBtn.setAttribute('aria-pressed', on); }
+slotBtn.onclick = function(){ slots(!document.body.classList.contains('slots')); };
+if (/[?&]slots/.test(location.search)) slots(true);
+if ('IntersectionObserver' in window){
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('vis'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -12% 0px'});
+  $$('.rv,.act').forEach(function(el){ io.observe(el); });
+  new IntersectionObserver(function(es){ heroOn = es[0].isIntersecting; }).observe($('.hero'));
+} else $$('.rv,.act').forEach(function(el){ el.classList.add('vis'); });
+})();
+</script>
+</body>
+</html>
