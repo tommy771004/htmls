@@ -289,6 +289,21 @@
 - [210 好日早餐 · 早餐店官網](https://htmls-ruddy.vercel.app/web/210-breakfast-order.html)：台式早餐店官網模板：紅字點餐單線上預點、選取餐時段拿號碼牌、集點卡。
 - [211 Chez Lumière · 法式小酒館官網](https://htmls-ruddy.vercel.app/web/211-bistro-mirror.html)：法式小酒館官網模板：鏡面今日菜單、單杯酒單篩選、午晚餐與座位區訂位、包廂。
 - [212 Sunny Side Diner · 美式餐館官網](https://htmls-ruddy.vercel.app/web/212-sunnyside-diner.html)：70 年代美式 diner 官網模板：毛氈看板今日特餐、菜單、整顆派線上預訂。
+- [228 Ember & Oak · 德州煙燻 BBQ 官網](https://htmls-ruddy.vercel.app/web/228-smokehouse-chart.html)：德州煙燻 BBQ 官網模板：牛隻部位圖菜單、即時煙燻板、秤重外帶預點、整條 brisket 派對預訂。
+- [229 蜀面 · 變臉火鍋官網](https://htmls-ruddy.vercel.app/web/229-bianlian-hotpot.html)：川味火鍋官網模板：臉譜戲台視覺、線上組九宮格鍋與涮煮倒數、依時段查等候並拿號碼牌。
+- [230 LOW TIDE · 生蠔吧官網](https://htmls-ruddy.vercel.app/web/230-tide-oyster.html)：生蠔吧官網模板：即時潮汐與乾潮半價時段、生蠔產地圖鑑、組冰盤算價、吧台與桌位訂位。
+- [231 福滿堂水餃 · 餃子館官網](https://htmls-ruddy.vercel.app/web/231-nianhua-dumpling.html)：餃子館官網模板：年畫春聯視覺、十二種餡料點餐、冷凍水餃宅配、包餃子教室報名。
+- [232 Rumah Kawung · 印尼餐館官網](https://htmls-ruddy.vercel.app/web/232-batik-nasi.html)：印尼餐館官網模板：蠟染視覺、香蕉葉 nasi campur 自己配、rijsttafel 宴席與訂位。
+- [233 Seedling · 蔬食沙拉官網](https://htmls-ruddy.vercel.app/web/233-seed-packet.html)：蔬食沙拉官網模板：種子包視覺、可翻面看產地的招牌碗、自組沙拉碗、當季蔬菜與蔬菜箱訂閱。
+- [234 Calçadão · 巴西窯烤官網](https://htmls-ruddy.vercel.app/web/234-rodizio-calcadao.html)：巴西窯烤官網模板：波浪人行道視覺、13 種炭烤部位與綠卡規則、價格試算與訂位。
+- [235 Block 88 Hawker · 熟食中心官網](https://htmls-ruddy.vercel.app/web/235-hawker-chope.html)：熟食中心官網模板：攤位招牌視覺、跨攤點餐各攤叫號、線上 chope 佔位與打包。
+- [236 Hearth & Sack · 麵包坊官網](https://htmls-ruddy.vercel.app/web/236-flour-sack.html)：麵包坊官網模板：即時出爐時刻表、隔日取貨預訂、每週麵包訂閱。
+- [237 Kylix · 希臘酒館官網](https://htmls-ruddy.vercel.app/web/237-amphora-taverna.html)：希臘酒館官網模板：黑繪陶瓶視覺、meze 分享桌規劃、希臘之夜報名與訂位。
+- [238 La Chicha · 秘魯檸汁醃魚官網](https://htmls-ruddy.vercel.app/web/238-chicha-ceviche.html)：秘魯檸汁醃魚官網模板：chicha 螢光海報視覺、當日限量 ceviche、週末 peña 之夜。
+- [239 Supra 長桌 · 喬治亞餐館官網](https://htmls-ruddy.vercel.app/web/239-pirosmani-supra.html)：喬治亞餐館官網模板：素人油畫視覺、家宴菜量與 tamada 敬酒規劃、長桌座位訂位。
+- [240 PIT LANE BURGERS · 漢堡店官網](https://htmls-ruddy.vercel.app/web/240-pitlane-burger.html)：漢堡店官網模板：賽車維修站視覺、線上組裝漢堡、Pit Box 取餐預約、觀賽派對包場。
+- [241 Trencadís · 西班牙小酒館官網](https://htmls-ruddy.vercel.app/web/241-trencadis-pintxos.html)：西班牙小酒館官網模板：碎瓷馬賽克視覺、牙籤顏色計價、Vermut 時光、吧台站位與桌位預約。
+- [242 Mesob · 衣索比亞餐館官網](https://htmls-ruddy.vercel.app/web/242-tibeb-injera.html)：衣索比亞餐館官網模板：tibeb 織紋視覺、自組 Beyaynetu 拼盤、咖啡儀式預約、mesob 圓桌訂位。
 
 ### 飲料
 - [213 一服 · 抹茶茶寮官網](https://htmls-ruddy.vercel.app/web/213-matcha-chasen.html)：抹茶茶寮官網模板：抹茶等級與宅配、依剩餘席位預約茶席、每月主菓子，照片位填網址即可換圖。
