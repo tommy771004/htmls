@@ -3,176 +3,328 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>La Lotería · 塔可小館</title>
-<meta name="description" content="墨西哥塔可小館：每道菜都是一張 Lotería 牌卡。剪紙旗在頭頂飄，司儀一張張喊牌、念順口溜，在你的 4×4 牌板上放豆子，連成一線就喊 ¡Lotería! 換一張免費塔可券。">
+<title>La Lotería Taquería｜墨西哥塔可・大安</title>
+<meta name="description" content="La Lotería Taquería：台北大安的墨西哥塔可小館。每天現壓玉米餅、直立烤肉架牧師塔可、石臼莎莎醬。每日一張 Lotería 牌卡特價，派對塔可吧外燴線上估價。">
+<!--
+  店家模板使用方式
+  1. 修改 <script> 開頭的 SHOP（店名、電話、地址、營業時間、照片網址）、MENU 與 CATER（外燴方案）。
+  2. photos 填入照片網址就會取代佔位圖；網址加 ?slots 或按右下角「照片位」可標出位置與建議尺寸。
+  3. 外燴詢價表單目前只在頁面上示範，正式使用請串接表單服務。
+-->
 <style>
 :root{
   --pink:#e5007d; --teal:#00a09a; --gold:#ffb100; --chile:#d3241c; --navy:#1c2c8c; --lime:#7cb518;
-  --cream:#f6ebcf; --paper:#fbf4e0; --ink:#1c130e;
+  --cream:#f7eed6; --paper:#fffaf0; --ink:#1c130e; --soft:#6d5442;
+  --slab:"Rockwell","Rockwell Nova","Roboto Slab","Courier New",serif;
+  --sans:"PingFang TC","Microsoft JhengHei","Noto Sans CJK TC",sans-serif;
 }
 *{box-sizing:border-box}
+html{scroll-behavior:smooth}
 html,body{margin:0}
-body{
-  overflow-x:clip;color:var(--ink);background:var(--cream);
-  font-family:"PingFang TC","Microsoft JhengHei","Noto Sans CJK TC",sans-serif;
-}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:100;opacity:.35;mix-blend-mode:multiply;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .35 0 0 0 0 .2 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E")}
-button{font:inherit;color:inherit;cursor:pointer}
-.slab{font-family:"Rockwell","Rockwell Nova","Roboto Slab","Courier New",serif;font-weight:800}
+body{background:var(--cream);color:var(--ink);font-family:var(--sans);line-height:1.7;overflow-x:clip}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:1220px;margin:0 auto;padding:0 clamp(16px,3.6vw,36px)}
+.slab{font-family:var(--slab);font-weight:800}
 /* 剪紙旗 */
-.picado{position:relative;height:120px;overflow:hidden}
-.picado::before{content:"";position:absolute;left:-2%;right:-2%;top:14px;height:2px;background:#5a4632;border-radius:50%}
-.flags{display:flex;justify-content:center;gap:6px;padding:15px 0 0}
-.flag{flex:0 0 auto;width:88px;height:96px;transform-origin:50% 0;animation:flutter var(--d,3s) ease-in-out infinite;animation-delay:var(--dl,0s);filter:drop-shadow(0 4px 3px rgba(60,30,10,.25))}
-@keyframes flutter{0%,100%{transform:rotate(-3deg) skewX(2deg)}50%{transform:rotate(3deg) skewX(-3deg)}}
-/* 招牌 */
-.hero{text-align:center;padding:12px 16px 4px}
-.hero h1{margin:0;font-size:clamp(46px,9vw,118px);line-height:.92;letter-spacing:.01em;color:var(--gold);
-  text-shadow:3px 3px 0 var(--chile),6px 6px 0 var(--ink);-webkit-text-stroke:2px var(--ink);paint-order:stroke fill}
-.hero .pre{display:inline-block;font-size:clamp(16px,2.2vw,24px);letter-spacing:.3em;color:var(--teal);margin-bottom:6px}
-.hero p{margin:14px auto 0;max-width:640px;font-size:15px;line-height:1.75;color:#5c4636}
-/* 遊戲 */
-.game{max-width:1180px;margin:26px auto 0;padding:0 16px;display:grid;grid-template-columns:minmax(0,600px) minmax(0,1fr);gap:28px;align-items:start}
-.tabla{background:var(--pink);padding:14px;border:3px solid var(--ink);box-shadow:8px 8px 0 var(--ink);position:relative}
-.tabla h2{margin:0 0 10px;color:var(--paper);font-size:20px;letter-spacing:.24em;display:flex;justify-content:space-between;align-items:baseline}
-.tabla h2 small{font-family:"PingFang TC",sans-serif;font-size:12px;letter-spacing:.08em;font-weight:600;color:#ffd5ea}
-.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.card{position:relative;aspect-ratio:5/7;background:var(--paper);border:2.5px solid var(--ink);padding:0;display:flex;flex-direction:column;overflow:hidden;transition:transform .2s}
-.card .num{position:absolute;left:5px;top:3px;font-size:13px;z-index:2}
-.card .art{flex:1;display:grid;place-items:center;margin:16px 6px 0;border:2px solid var(--ink);background:var(--bg,var(--gold))}
-.card .art svg{width:86%;height:auto}
-.card .nm{font-size:clamp(9px,1.05vw,13px);letter-spacing:.06em;text-align:center;padding:4px 2px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.grid .card:hover{transform:translateY(-3px) rotate(-1deg)}
-.bean{position:absolute;left:50%;top:50%;width:38%;aspect-ratio:1.35;border-radius:50%;transform:translate(-50%,-50%) rotate(-24deg) scale(0);
-  background:radial-gradient(ellipse at 35% 30%,#a96a52,#6b3426 60%,#3e1d14);box-shadow:0 3px 3px rgba(0,0,0,.4);transition:transform .3s cubic-bezier(.3,1.7,.5,1);z-index:3}
-.bean::after{content:"";position:absolute;left:22%;top:26%;width:30%;height:16%;border-radius:50%;background:rgba(255,230,210,.55)}
-.card.on .bean{transform:translate(-50%,-50%) rotate(-24deg) scale(1)}
-.card.called:not(.on){animation:glow 1.2s ease-in-out infinite}
-@keyframes glow{50%{box-shadow:0 0 0 4px var(--gold),0 0 18px 6px rgba(255,177,0,.7)}}
-.card.win{outline:4px solid var(--gold);outline-offset:-2px}
-.lot{margin-top:14px;width:100%;border:3px solid var(--ink);background:var(--gold);padding:14px;font-size:28px;letter-spacing:.06em;box-shadow:5px 5px 0 var(--ink);transition:transform .15s}
-.lot:disabled{background:#d8c9a6;color:#8c7a5c;box-shadow:3px 3px 0 #8c7a5c;border-color:#8c7a5c;cursor:not-allowed;font-size:22px}
-.lot:not(:disabled){animation:pulse 1s ease-in-out infinite}
-@keyframes pulse{50%{transform:scale(1.03)}}
-/* 司儀 */
-.cantor{background:var(--navy);color:var(--paper);border:3px solid var(--ink);box-shadow:8px 8px 0 var(--ink);padding:18px;position:sticky;top:14px}
-.cantor h2{margin:0;font-size:20px;letter-spacing:.24em;color:var(--gold)}
-.cantor .sub{font-size:12px;color:#b9c1f0;margin:2px 0 14px}
-.stage{display:grid;grid-template-columns:minmax(0,170px) minmax(0,1fr);gap:16px;align-items:center}
-.big{perspective:800px}
-.big .card{width:100%;transform-style:preserve-3d}
-.big .card.flipin{animation:flipin .55s cubic-bezier(.2,.8,.3,1.2)}
-@keyframes flipin{from{transform:rotateY(-100deg) translateX(-30px);opacity:.2}}
-.big .card .nm{font-size:16px}
-.verse{font-size:15px;line-height:1.7}
-.verse q{display:block;font-family:"Rockwell","Roboto Slab",Georgia,serif;font-style:italic;font-size:19px;color:var(--gold);quotes:"«" "»";margin-bottom:6px}
-.verse .zh{color:#dfe3ff}
-.ctl{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
-.ctl button{border:2.5px solid var(--ink);background:var(--paper);color:var(--ink);padding:10px 14px;font-weight:800;box-shadow:3px 3px 0 var(--ink)}
-.ctl .next{background:var(--gold);flex:1}
-.ctl button[aria-pressed=true]{background:var(--teal);color:#fff}
-.ctl button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
-.history{display:flex;flex-wrap:wrap;gap:5px;margin-top:16px;min-height:30px}
-.history span{font-size:11px;background:rgba(255,255,255,.12);padding:3px 7px;border-radius:2px}
-.history span.mine{background:var(--pink);color:#fff}
-.deckinfo{font-size:12px;color:#b9c1f0;margin-top:10px}
+.picado{height:92px;overflow:hidden;position:relative;background:var(--ink)}
+.picado::before{content:"";position:absolute;left:0;right:0;top:12px;height:2px;background:#8a7a66}
+.flags{display:flex;justify-content:center;gap:5px;padding-top:12px}
+.flag{flex:none;width:70px;height:78px;transform-origin:50% 0;animation:flut var(--d,3s) ease-in-out infinite;animation-delay:var(--dl,0s)}
+@keyframes flut{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+/* 導覽 */
+.nav{position:sticky;top:0;z-index:40;background:var(--paper);border-bottom:3px solid var(--ink)}
+.nav .wrap{display:flex;align-items:center;gap:26px;height:70px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo b{font-family:var(--slab);font-weight:800;font-size:24px;background:var(--pink);color:var(--paper);padding:2px 14px 4px;border-radius:999px;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink)}
+.logo span{font-family:var(--slab);font-size:12px;letter-spacing:.24em;color:var(--teal)}
+.nav ul{display:flex;gap:22px;list-style:none;margin:0 0 0 auto;padding:0;font-weight:700;font-size:15px}
+.nav ul a{text-decoration:none}
+.nav ul a:hover{color:var(--pink)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:3px solid var(--ink);padding:11px 20px;font-weight:800;text-decoration:none;cursor:pointer;background:var(--paper);box-shadow:4px 4px 0 var(--ink);transition:transform .15s,box-shadow .15s;border-radius:6px}
+.btn:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--ink)}
+.btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+.btn.pink{background:var(--pink);color:#fff}
+.btn.gold{background:var(--gold)}
+.btn.teal{background:var(--teal);color:#fff}
+.burger{display:none;margin-left:auto;border:3px solid var(--ink);background:var(--gold);width:44px;height:44px;border-radius:6px;font-size:20px;cursor:pointer}
+/* 照片位 */
+.ph{position:relative;overflow:hidden;background:#e8d9b8;margin:0}
+.ph>svg,.ph>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+body.slots .ph{outline:3px dashed var(--pink);outline-offset:-3px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:8px;top:8px;z-index:3;background:var(--pink);color:#fff;font-size:11px;padding:3px 8px;border-radius:3px;font-family:var(--sans);font-weight:700}
+/* 牌卡框照片 */
+.lcard{background:var(--paper);border:3px solid var(--ink);padding:10px 10px 0;box-shadow:6px 6px 0 var(--ink);display:flex;flex-direction:column}
+.lcard .num{font-family:var(--slab);font-weight:800;font-size:15px;line-height:1;margin-bottom:6px}
+.lcard .ph{flex:1;border:2.5px solid var(--ink);aspect-ratio:4/5}
+.lcard .nm{font-family:var(--slab);font-weight:800;text-align:center;letter-spacing:.06em;padding:8px 0 10px;font-size:15px}
+/* Hero */
+.hero{padding:clamp(40px,6vw,80px) 0 clamp(60px,8vw,100px);position:relative;overflow:hidden}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,4vw,60px);align-items:center}
+.hero .kick{display:inline-block;font-family:var(--slab);font-weight:800;color:var(--teal);letter-spacing:.3em;font-size:14px}
+.hero h1{margin:12px 0 0;font-family:var(--slab);font-weight:800;font-size:clamp(46px,7vw,96px);line-height:.95;color:var(--gold);-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;text-shadow:4px 4px 0 var(--chile),7px 7px 0 var(--ink)}
+.hero h2{margin:22px 0 0;font-size:clamp(22px,2.4vw,30px);font-weight:900;line-height:1.35}
+.hero p{margin:14px 0 26px;color:var(--soft);max-width:480px}
+.btns{display:flex;gap:12px;flex-wrap:wrap}
+.trio{position:relative;height:clamp(380px,44vw,560px)}
+.trio .lcard{position:absolute;width:44%}
+.trio .lcard:nth-child(1){left:2%;top:10%;transform:rotate(-8deg);z-index:1}
+.trio .lcard:nth-child(2){left:30%;top:0;transform:rotate(3deg);z-index:3}
+.trio .lcard:nth-child(3){right:0;top:16%;transform:rotate(10deg);z-index:2}
+.badges{display:flex;gap:16px;margin-top:30px;flex-wrap:wrap}
+.badges span{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
+.badges i{width:12px;height:12px;border-radius:50%;background:var(--c);border:2px solid var(--ink)}
+.status{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;background:var(--paper);border:2px solid var(--ink);border-radius:999px;padding:4px 12px;margin-left:12px;vertical-align:middle}
+.status i{width:9px;height:9px;border-radius:50%;background:#aaa}
+.status.on i{background:var(--lime)}
+/* 今日之牌 */
+.daily{background:var(--navy);color:var(--paper);padding:clamp(56px,7vw,90px) 0;position:relative}
+.daily .wrap{display:grid;grid-template-columns:260px minmax(0,1fr) auto;gap:clamp(24px,4vw,56px);align-items:center}
+.daily .lcard{color:var(--ink);transform:rotate(-3deg)}
+.daily .lcard .art{aspect-ratio:4/5;border:2.5px solid var(--ink);display:grid;place-items:center;background:var(--bg)}
+.daily .lcard .art svg{width:80%}
+.daily h2{margin:6px 0 10px;font-family:var(--slab);font-weight:800;font-size:clamp(30px,4vw,50px);color:var(--gold);line-height:1.05}
+.daily q{display:block;font-family:var(--slab);font-style:italic;font-size:20px;color:#cdd5ff;quotes:"«" "»"}
+.daily p{margin:10px 0 0;color:#dfe3ff;max-width:520px}
+.daily .deal{text-align:center;background:var(--gold);color:var(--ink);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--pink);padding:18px 24px;border-radius:50%;width:170px;height:170px;display:grid;place-items:center;transform:rotate(8deg)}
+.daily .deal b{display:block;font-family:var(--slab);font-size:46px;line-height:1;white-space:nowrap}
+.daily .deal small{display:block;font-size:12px;line-height:1.4}
+.daily .deal small{font-weight:800}
+/* 區塊 */
+.sec{padding:clamp(70px,9vw,120px) 0}
+.title{text-align:center;margin-bottom:44px}
+.title h2{margin:0;font-family:var(--slab);font-weight:800;font-size:clamp(40px,6vw,72px);line-height:1;color:var(--teal);-webkit-text-stroke:1.5px var(--ink);paint-order:stroke fill;text-shadow:3px 3px 0 var(--ink)}
+.title p{margin:12px auto 0;color:var(--soft);max-width:560px}
 /* 菜單 */
-.carta{max-width:1180px;margin:56px auto 0;padding:0 16px 70px}
-.carta h2{text-align:center;margin:0;font-size:clamp(36px,6vw,64px);color:var(--teal);text-shadow:3px 3px 0 var(--ink);-webkit-text-stroke:1.5px var(--ink);paint-order:stroke fill}
-.carta>p{text-align:center;margin:6px 0 28px;color:#6d5442}
-.board{background:var(--chile);border:3px solid var(--ink);box-shadow:8px 8px 0 var(--ink);padding:26px clamp(14px,3vw,36px);columns:2 300px;column-gap:44px;color:var(--paper)}
-.dish{break-inside:avoid;display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:10px 0;border-bottom:2px dashed rgba(255,235,200,.35)}
-.dish .mini{width:54px;height:54px;border:2px solid var(--ink);background:var(--bg);display:grid;place-items:center;grid-row:span 2}
-.dish .mini svg{width:88%}
-.dish b{font-size:22px;color:var(--gold);text-shadow:2px 2px 0 var(--ink);letter-spacing:.02em}
-.dish .pr{font-size:24px;color:#fff;text-shadow:2px 2px 0 var(--ink);grid-row:span 2}
-.dish span{font-size:13px;color:#ffe2d3;line-height:1.5}
-.coupon{position:fixed;inset:0;display:grid;place-items:center;background:rgba(28,19,14,.7);z-index:50;padding:16px;opacity:0;pointer-events:none;transition:opacity .3s}
-.coupon.show{opacity:1;pointer-events:auto}
-.ticket{background:var(--paper);border:3px solid var(--ink);box-shadow:10px 10px 0 var(--pink);max-width:440px;width:100%;padding:26px;text-align:center;transform:rotate(-2deg) scale(.8);transition:transform .45s cubic-bezier(.3,1.6,.5,1)}
-.coupon.show .ticket{transform:rotate(-2deg) scale(1)}
-.ticket h3{margin:0;font-size:46px;color:var(--chile);-webkit-text-stroke:1.5px var(--ink);paint-order:stroke fill;text-shadow:3px 3px 0 var(--gold)}
-.ticket p{margin:10px 0;line-height:1.7}
-.ticket .code{font-family:"Courier New",monospace;font-weight:700;letter-spacing:.2em;border:2px dashed var(--ink);padding:8px;margin:14px 0}
-.ticket button{border:2.5px solid var(--ink);background:var(--gold);padding:12px 20px;font-weight:800;box-shadow:3px 3px 0 var(--ink)}
-.toast{position:fixed;left:50%;top:18px;transform:translate(-50%,-160%);visibility:hidden;background:var(--ink);color:var(--paper);padding:10px 18px;font-weight:700;z-index:60;transition:transform .3s;max-width:calc(100% - 32px);text-align:center}
-.toast.show{transform:translate(-50%,0);visibility:visible}
-.confetti{position:fixed;top:-20px;width:14px;height:16px;z-index:55;pointer-events:none;animation:fall linear forwards}
-@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
-@media (max-width:900px){
-  .game{grid-template-columns:1fr}
-  .cantor{position:static;order:-1}
+.tabs{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:34px}
+.tabs button{border:3px solid var(--ink);background:var(--paper);padding:8px 18px;border-radius:999px;font-weight:800;cursor:pointer;font-family:var(--slab)}
+.tabs button[aria-selected=true]{background:var(--pink);color:#fff;box-shadow:3px 3px 0 var(--ink)}
+.dishes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.dish{display:grid;grid-template-columns:84px minmax(0,1fr) auto;gap:6px 18px;align-items:center;background:var(--paper);border:3px solid var(--ink);border-radius:10px;padding:14px 18px 14px 14px}
+.dish .ic{width:84px;height:84px;border:2.5px solid var(--ink);border-radius:6px;background:var(--bg);display:grid;place-items:center;grid-row:span 2}
+.dish .ic svg{width:84%}
+.dish b{font-family:var(--slab);font-weight:800;font-size:20px;line-height:1.2}
+.dish b small{display:block;font-family:var(--sans);font-size:13px;color:var(--soft);font-weight:700}
+.dish .pr{font-family:var(--slab);font-weight:800;font-size:22px;color:var(--chile);grid-row:span 2;align-self:center}
+.dish p{margin:0;font-size:14px;color:var(--soft)}
+.dish .hot{color:var(--chile);letter-spacing:-.1em;margin-left:6px;font-size:13px}
+.legend{text-align:center;margin-top:20px;font-size:13px;color:var(--soft)}
+/* 外燴 */
+.cater{background:var(--pink);color:#fff;border-top:3px solid var(--ink);border-bottom:3px solid var(--ink)}
+.cater .title h2{color:var(--gold)}
+.cater .title p{color:#ffe0f0}
+.cgrid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:28px;align-items:start}
+.cgrid>*{min-width:0}
+.cpanel{background:var(--paper);color:var(--ink);border:3px solid var(--ink);box-shadow:8px 8px 0 var(--ink);border-radius:12px;padding:clamp(20px,3vw,32px)}
+.cpanel h3{margin:0 0 4px;font-family:var(--slab);font-size:22px}
+.cpanel .hint{margin:0 0 18px;color:var(--soft);font-size:14px}
+.row{margin-bottom:22px}
+.row>span{display:flex;justify-content:space-between;font-weight:800;font-size:14px;margin-bottom:8px}
+.row>span output{font-family:var(--slab);color:var(--pink);font-size:18px}
+input[type=range]{width:100%;accent-color:var(--pink)}
+.pk{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.pk label,.pr3 label{position:relative}
+.pk input,.pr3 input{position:absolute;opacity:0}
+.pk span{display:block;height:100%;border:3px solid var(--ink);border-radius:10px;padding:12px;cursor:pointer;background:#fff}
+.pk b{display:block;font-family:var(--slab);font-size:17px}
+.pk small{display:block;color:var(--soft);font-size:12px;line-height:1.5;margin-top:4px}
+.pk em{display:block;font-style:normal;font-family:var(--slab);color:var(--chile);margin-top:6px;font-weight:800}
+.pk input:checked+span{background:var(--gold);box-shadow:3px 3px 0 var(--ink)}
+.pr3{display:flex;flex-wrap:wrap;gap:8px}
+.pr3 span{display:block;border:2.5px solid var(--ink);border-radius:999px;padding:6px 14px;font-weight:700;font-size:14px;cursor:pointer;background:#fff}
+.pr3 input:checked+span{background:var(--teal);color:#fff}
+.pk input:focus-visible+span,.pr3 input:focus-visible+span{outline:3px solid var(--navy)}
+.quote h3{margin:0 0 14px;font-family:var(--slab);font-size:24px}
+.quote ul{list-style:none;margin:0 0 14px;padding:0;border-top:2px dashed #d9c9a8}
+.quote li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:2px dashed #d9c9a8;font-size:15px}
+.quote .tot{display:flex;justify-content:space-between;align-items:baseline;font-weight:900;margin:8px 0 18px}
+.quote .tot output{font-family:var(--slab);font-size:40px;color:var(--pink)}
+.fi{display:grid;gap:5px;font-size:13px;font-weight:800;margin-bottom:10px}
+.fi input,.fi select{border:2.5px solid var(--ink);border-radius:8px;padding:9px 11px;background:#fff;font-size:15px;width:100%}
+.fi .err{color:var(--chile);font-size:12px;min-height:1em}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.quote .btn{width:100%}
+.demo{font-size:12px;color:var(--soft);text-align:center;margin:10px 0 0}
+.thanks{text-align:center;padding:10px 0}
+.thanks b{display:block;font-family:var(--slab);font-size:42px;color:var(--pink);line-height:1.1}
+/* Happy hour */
+.hh{background:var(--gold);border-bottom:3px solid var(--ink);padding:22px 0}
+.hh .wrap{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.hh b{font-family:var(--slab);font-size:clamp(24px,3vw,34px)}
+.hh span{font-weight:700}
+/* 店內 */
+.gal{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;align-items:start}
+.gal .lcard:nth-child(odd){transform:rotate(-2deg)}
+.gal .lcard:nth-child(even){transform:rotate(2deg);margin-top:30px}
+/* 資訊 */
+.info{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:20px}
+.box{background:var(--paper);border:3px solid var(--ink);border-radius:10px;padding:24px;box-shadow:5px 5px 0 var(--ink)}
+.box h3{margin:0 0 12px;font-family:var(--slab);font-size:22px;color:var(--teal)}
+.hours{width:100%;border-collapse:collapse;font-size:15px}
+.hours td{padding:5px 0;border-bottom:2px dashed #e8d9b8}
+.hours td:last-child{text-align:right;font-family:var(--slab)}
+.hours tr.today td{color:var(--pink);font-weight:900}
+.box a.tel{font-family:var(--slab);font-size:28px;text-decoration:none;color:var(--pink)}
+.box p{margin:8px 0 0;color:var(--soft)}
+.box.map{padding:0;overflow:hidden;position:relative;min-height:250px}
+.box.map svg{position:absolute;inset:0;width:100%;height:100%}
+.box.map .btn{position:absolute;left:16px;bottom:16px}
+footer{background:var(--ink);color:#d9c9a8;padding:36px 0;font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px}
+footer nav{display:flex;gap:16px}footer a{text-decoration:none}
+.slotBtn{position:fixed;right:16px;bottom:16px;z-index:60;border:2.5px solid var(--ink);background:var(--paper);font-size:12px;font-weight:800;padding:7px 14px;border-radius:30px;cursor:pointer;box-shadow:3px 3px 0 var(--ink)}
+.slotBtn[aria-pressed=true]{background:var(--pink);color:#fff}
+.rv-in{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s cubic-bezier(.3,1.4,.5,1)}
+.rv-in.vis{opacity:1;transform:none}
+.trio .rv-in.vis,.gal .rv-in.vis{transform:var(--rot,none)}
+@media (max-width:980px){
+  .nav ul{display:none;position:absolute;left:0;right:0;top:70px;flex-direction:column;gap:0;background:var(--paper);border-bottom:3px solid var(--ink);padding:6px 20px 14px}
+  .nav.open ul{display:flex}
+  .nav ul a{display:block;padding:10px 0;border-bottom:2px dashed #e8d9b8}
+  .nav .wrap>.btn{display:none}
+  .burger{display:block}
+  .hero .wrap,.cgrid{grid-template-columns:1fr}
+  .daily .wrap{grid-template-columns:200px minmax(0,1fr)}
+  .daily .deal{grid-column:1/-1;justify-self:start;width:140px;height:140px}
+  .dishes{grid-template-columns:1fr}
+  .gal{grid-template-columns:1fr 1fr}
+  .info{grid-template-columns:1fr 1fr}.info .map{grid-column:1/-1}
 }
-@media (max-width:520px){
-  .flag{width:64px;height:72px}
-  .picado{height:96px}
-  .tabla{padding:10px;box-shadow:5px 5px 0 var(--ink)}
-  .grid{gap:5px}
-  .card .art{margin:14px 3px 0;border-width:1.5px}
-  .card .num{font-size:10px}
-  .card{border-width:2px}
-  .stage{grid-template-columns:120px minmax(0,1fr)}
-  .verse q{font-size:16px}.verse{font-size:13px}
-  .cantor{box-shadow:5px 5px 0 var(--ink)}
+@media (max-width:560px){
+  .daily .wrap{grid-template-columns:1fr}
+  .daily .lcard{width:200px}
+  .daily .deal{width:150px;height:150px;padding:10px}.daily .deal b{font-size:36px}
+  .pk{grid-template-columns:1fr}
+  .two{grid-template-columns:1fr}
+  .info{grid-template-columns:1fr}
+  .dish{grid-template-columns:64px minmax(0,1fr) auto}.dish .ic{width:64px;height:64px}
+  .flag{width:56px;height:64px}
+  .trio{height:330px}
 }
-@media (prefers-reduced-motion:reduce){
-  .flag,.lot:not(:disabled),.card.called:not(.on){animation:none}
-}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.flag{animation:none}.rv-in{opacity:1;transform:none;transition:none}}
 </style>
 </head>
 <body>
 <div class="picado" aria-hidden="true"><div class="flags" id="flags"></div></div>
-<header class="hero">
-  <span class="pre slab">TAQUERÍA · 塔可小館</span>
-  <h1 class="slab">La Lotería</h1>
-  <p>每道菜都是一張牌卡。司儀喊到你牌板上的那一張，就放一顆豆子；橫、直、斜連成一線或四個角落都有豆，喊 <b>¡Lotería!</b> 換一張免費塔可券。</p>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top"><b>La Lotería</b><span>TAQUERÍA</span></a>
+    <ul id="navList"><li><a href="#hoy">今日之牌</a></li><li><a href="#menu">菜單</a></li><li><a href="#cater">派對外燴</a></li><li><a href="#casa">店內</a></li><li><a href="#visit">交通</a></li></ul>
+    <a class="btn pink" href="#cater">外燴估價</a>
+    <button class="burger" id="burger" type="button" aria-label="開啟選單" aria-expanded="false">☰</button>
+  </div>
 </header>
 
-<main class="game">
-  <section class="tabla" aria-label="你的牌板">
-    <h2 class="slab">TU TABLA <small>你的牌板・點喊到的牌放豆子</small></h2>
-    <div class="grid" id="tabla"></div>
-    <button class="lot slab" id="lot" type="button" disabled>¡LOTERÍA!</button>
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <div class="rv-in">
+        <span class="kick">TAQUERÍA · TAIPEI <span class="status" id="status"><i></i><span>…</span></span></span>
+        <h1>¡Tacos<br>de verdad!</h1>
+        <h2>每天早上現壓的玉米餅，<br>夾直立烤架上削下來的肉。</h2>
+        <p>墨西哥瓦哈卡來的師傅、從玉米粒自己磨的麵團、石臼裡現磨的莎莎醬。坐下來點一盤，或者把整個塔可吧搬去你的派對。</p>
+        <div class="btns"><a class="btn pink" href="#menu">看菜單</a><a class="btn gold" href="#cater">派對外燴估價</a></div>
+        <div class="badges"><span style="--c:var(--lime)"><i></i>每日現壓玉米餅</span><span style="--c:var(--chile)"><i></i>辣度自己選</span><span style="--c:var(--teal)"><i></i>可做無麩質</span></div>
+      </div>
+      <div class="trio" aria-label="招牌菜照片">
+        <div class="lcard rv-in" style="--rot:rotate(-8deg)"><span class="num">1</span><figure class="ph" data-photo="hero1" data-art="tacos" data-label="牧師塔可" data-size="900×1100"></figure><span class="nm">EL TACO</span></div>
+        <div class="lcard rv-in" style="--rot:rotate(3deg)"><span class="num">2</span><figure class="ph" data-photo="hero2" data-art="trompo" data-label="直立烤肉架" data-size="900×1100"></figure><span class="nm">EL TROMPO</span></div>
+        <div class="lcard rv-in" style="--rot:rotate(10deg)"><span class="num">7</span><figure class="ph" data-photo="hero3" data-art="agua" data-label="西瓜冰飲" data-size="900×1100"></figure><span class="nm">LA SANDÍA</span></div>
+      </div>
+    </div>
   </section>
-  <section class="cantor" aria-label="司儀">
-    <h2 class="slab">EL CANTOR</h2>
-    <p class="sub">司儀抽牌，念一句順口溜</p>
-    <div class="stage">
-      <div class="big" id="big"></div>
-      <div class="verse" id="verse" aria-live="polite"><q>¡Se va y se corre!</q><span class="zh">按「下一張」開始抽牌。</span></div>
+
+  <section class="daily" id="hoy" aria-live="polite">
+    <div class="wrap">
+      <div class="lcard rv-in" id="dayCard"></div>
+      <div class="rv-in">
+        <span class="slab" style="letter-spacing:.3em;color:var(--teal);font-size:14px">LA CARTA DEL DÍA · 今日之牌</span>
+        <h2 id="dayName"></h2>
+        <q id="dayVerse"></q>
+        <p id="dayDesc"></p>
+      </div>
+      <div class="deal rv-in"><div><small>今天這一張</small><b>8 折</b><small>內用、外帶都適用</small></div></div>
     </div>
-    <div class="ctl">
-      <button class="next slab" id="next" type="button">¡Siguiente! 下一張</button>
-      <button id="auto" type="button" aria-pressed="false">自動喊牌</button>
-      <button id="newt" type="button">換牌板</button>
+  </section>
+
+  <section class="sec" id="menu">
+    <div class="wrap">
+      <div class="title rv-in"><h2 class="slab">La Carta</h2><p>價格為新台幣、含稅。辣度用辣椒標示，點餐時可以請我們調整。</p></div>
+      <div class="tabs" role="tablist" id="tabs"></div>
+      <div class="dishes" id="dishes" role="tabpanel"></div>
+      <p class="legend">🌶 微辣　🌶🌶 中辣　🌶🌶🌶 很辣　·　玉米餅可換麵粉餅，素食可把肉換成烤仙人掌與菇</p>
     </div>
-    <div class="deckinfo" id="deckinfo"></div>
-    <div class="history" id="history"></div>
+  </section>
+
+  <div class="hh"><div class="wrap"><b class="slab">HAPPY HOUR · 17:00–19:00</b><span>週一至週四，瑪格麗特與 Michelada 第二杯半價</span><a class="btn" href="#visit">找到我們</a></div></div>
+
+  <section class="sec cater" id="cater">
+    <div class="wrap">
+      <div class="title rv-in"><h2 class="slab">Taco Bar</h2><p>把整個塔可吧搬到你的生日、尾牙或婚禮：師傅現場壓餅、烤肉、組塔可。拉動人數，選方案和肉，馬上看到估價。</p></div>
+      <div class="cgrid">
+        <div class="cpanel rv-in">
+          <h3>派對塔可吧</h3><p class="hint">最少 20 人，最晚請在活動前 7 天預約。</p>
+          <div class="row"><span>人數 <output id="gOut">40 人</output></span><input type="range" id="guests" min="20" max="200" step="5" value="40" aria-label="人數"></div>
+          <div class="row"><span>方案</span><div class="pk" id="pk"></div></div>
+          <div class="row"><span><span>肉（最多選 3 種）</span><span><output id="pCount">2</output> / 3</span></span><div class="pr3" id="pr3"></div></div>
+          <div class="row"><span>加點</span><div class="pr3" id="extras"></div></div>
+        </div>
+        <form class="cpanel quote rv-in" id="qf" novalidate><div id="qBody">
+          <h3>估價</h3>
+          <ul id="qlist"></ul>
+          <div class="tot"><span>預估總額</span><output id="qTot">0</output></div>
+          <div class="two">
+            <label class="fi">活動日期<input type="date" id="qDate"><span class="err"></span></label>
+            <label class="fi">地點<select id="qPlace"><option>台北市</option><option>新北市</option><option>桃園以南（另計車馬費）</option></select></label>
+            <label class="fi">聯絡人<input id="qName" autocomplete="name"><span class="err"></span></label>
+            <label class="fi">手機<input id="qPhone" inputmode="tel" autocomplete="tel" placeholder="09xx-xxx-xxx"><span class="err"></span></label>
+          </div>
+          <button class="btn gold" type="submit">送出詢價</button>
+          <p class="demo">示範版本：詢價只顯示在頁面上，不會送出。</p>
+        </div></form>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="casa">
+    <div class="wrap">
+      <div class="title rv-in"><h2 class="slab">La Casa</h2><p>十二張桌子、一面剪紙旗、一台從瓦哈卡扛回來的鑄鐵壓餅機。</p></div>
+      <div class="gal">
+        <div class="lcard rv-in" style="--rot:rotate(-2deg)"><span class="num">31</span><figure class="ph" data-photo="g1" data-art="room" data-label="店內與剪紙旗" data-size="900×1100"></figure><span class="nm">LA CASA</span></div>
+        <div class="lcard rv-in" style="--rot:rotate(2deg)"><span class="num">32</span><figure class="ph" data-photo="g2" data-art="press" data-label="壓餅機" data-size="900×1100"></figure><span class="nm">LA PRENSA</span></div>
+        <div class="lcard rv-in" style="--rot:rotate(-2deg)"><span class="num">33</span><figure class="ph" data-photo="g3" data-art="salsa" data-label="石臼莎莎醬" data-size="900×1100"></figure><span class="nm">LA SALSA</span></div>
+        <div class="lcard rv-in" style="--rot:rotate(2deg)"><span class="num">34</span><figure class="ph" data-photo="g4" data-art="chef" data-label="師傅" data-size="900×1100"></figure><span class="nm">EL MAESTRO</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="visit" style="padding-top:0">
+    <div class="wrap info">
+      <div class="box rv-in"><h3 class="slab">Horario</h3><table class="hours" id="hours"></table></div>
+      <div class="box rv-in"><h3 class="slab">Contacto</h3><a class="tel" id="tel" href="#"></a><p id="addr" style="color:var(--ink);font-weight:700"></p><p>捷運大安站 6 號出口步行 6 分鐘。可帶寵物坐戶外座。</p></div>
+      <div class="box map rv-in">
+        <svg viewBox="0 0 440 260" preserveAspectRatio="xMidYMid slice" role="img" aria-label="店家位置示意圖"><rect width="440" height="260" fill="#f2e3c2"/><g stroke="#fffaf0" stroke-width="22"><path d="M0 70H440M0 190H440M110 0V260M330 0V260"/></g><g stroke="#fffaf0" stroke-width="8"><path d="M0 130H440M220 0V260"/></g><rect x="350" y="200" width="80" height="50" fill="#c9df9a"/><g fill="#8a6a4a" font-size="10" font-family="PingFang TC,sans-serif"><text x="6" y="64">信義路四段</text><text x="6" y="184">仁愛路四段</text></g><circle cx="110" cy="70" r="9" fill="none" stroke="#00a09a" stroke-width="3"/><g transform="translate(220 130)"><circle r="24" fill="rgba(229,0,125,.2)"/><path d="M0 -22 C-11 -22 -15 -13 -15 -7 C-15 3 0 15 0 15 C0 15 15 3 15 -7 C15 -13 11 -22 0 -22Z" fill="#e5007d" stroke="#1c130e" stroke-width="2"/><circle cy="-8" r="5" fill="#fffaf0"/></g><text x="242" y="126" fill="#1c130e" font-size="15" font-weight="800" font-family="Rockwell,Georgia,serif">La Lotería</text></svg>
+        <a class="btn teal" id="mapLink" href="#" target="_blank" rel="noopener">開啟導航</a>
+      </div>
+    </div>
   </section>
 </main>
-
-<section class="carta" aria-label="菜單">
-  <h2 class="slab">La Carta</h2>
-  <p>牌卡上的東西都吃得到。價格為墨西哥披索。</p>
-  <div class="board" id="carta"></div>
-</section>
-
-<div class="coupon" id="coupon" role="dialog" aria-modal="true" aria-label="中獎券">
-  <div class="ticket">
-    <h3 class="slab">¡LOTERÍA!</h3>
-    <p id="prize"></p>
-    <div class="code" id="code"></div>
-    <button type="button" class="slab" id="again">再玩一局</button>
-  </div>
-</div>
-<div class="toast" id="toast" role="status"></div>
+<footer><div class="wrap"><span class="slab">La Lotería Taquería</span><span>© <span id="yr"></span> · ¡Buen provecho!</span><nav><a href="#">Instagram</a><a href="#">Facebook</a><a href="#">Google Maps</a></nav></div></footer>
+<button class="slotBtn" id="slotBtn" type="button" aria-pressed="false">照片位</button>
 
 <script>
 (function(){
 'use strict';
-var $ = function(s){ return document.querySelector(s); };
+/* ===== 店家設定 ===== */
+var SHOP = {
+  name:'La Lotería Taquería', phone:'(02) 2700-0000', address:'台北市大安區示範路 21 巷 5 號',
+  hours:[[['11:30','21:30']],[],[['11:30','14:30'],['17:00','22:00']],[['11:30','14:30'],['17:00','22:00']],[['11:30','14:30'],['17:00','22:00']],[['11:30','23:00']],[['11:30','23:00']]],
+  dailyDiscount:.8,
+  photos:{hero1:'',hero2:'',hero3:'',g1:'',g2:'',g3:'',g4:''}
+};
+var $ = function(s, r){ return (r || document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 var K = 'stroke="#1c130e" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"';
-/* 24 張牌：編號、西文、中文、底色、圖、順口溜、價錢 */
 var CARDS = [
   {n:1,es:'El Taco',zh:'牧師塔可',bg:'#ffb100',p:35,d:'豬肉醃辣椒醬直立烤，削下來配鳳梨、洋蔥和香菜。',
    v:['Da vueltas el trompo y cae en tu mano.','轉呀轉的肉，落進你手心。'],
@@ -247,137 +399,200 @@ var CARDS = [
    v:['Para todo mal, mezcal; para todo bien, también.','壞事喝梅斯卡爾，好事也是。'],
    s:'<path d="M30 34 h40 l-6 54 h-28 z" fill="#f6ebcf" '+K+' opacity=".95"/><path d="M33 50 h34 l-4 36 h-26 z" fill="#ffd27a" opacity=".8"/><circle cx="70" cy="30" r="14" fill="#ff8a1c" '+K+'/><path d="M70 16 V44 M56 30 H84 M60 20 L80 40 M80 20 L60 40" stroke="#ffd27a" stroke-width="2"/><ellipse cx="30" cy="84" rx="10" ry="4" fill="#d3241c" '+K+'/>'}
 ];
-function art(c){ return '<svg viewBox="0 0 100 100" aria-hidden="true">' + c.s + '</svg>'; }
-function cardHTML(c, extra){
-  return '<span class="num slab">' + c.n + '</span><span class="art" style="--bg:' + c.bg + '">' + art(c) + '</span><span class="nm slab">' + c.es.toUpperCase() + '</span>' + (extra || '');
-}
+var byN = {}; CARDS.forEach(function(c){ byN[c.n] = c; });
+// 菜單分類：[牌號, 價錢, 辣度, 說明（可覆寫）]
+var MENU = {
+  'Tacos':[[1,95,1,'牧師塔可：豬肉醃辣椒醬直立烤，削下來配鳳梨、洋蔥、香菜。兩捲一份。'],[21,120,1,'雞腿淋普埃布拉黑醬、灑芝麻。兩捲一份。'],[6,90,0,'烤仙人掌與菇、鮮起司（素食）。兩捲一份。'],[4,110,3,'哈拉皮紐辣椒醃牛肉，真的很辣。兩捲一份。']],
+  'Antojitos':[[15,160,0,'瓦哈卡起司、南瓜花，對折煎到流絲。'],[2,110,1,'炭烤玉米、美乃滋、起司粉、辣椒粉。'],[3,180,0,'石臼現搗酪梨醬，配一籃玉米片。'],[14,150,1,'玉米葉包青醬雞肉蒸到鬆軟。'],[16,260,2,'大顆白玉米豬肉紅湯，桌邊加小紅蘿蔔。']],
+  'Bebidas':[[12,90,0,'米、肉桂、香草打成的 horchata。'],[7,90,0,'西瓜 agua fresca，大杯。'],[24,220,0,'梅斯卡爾一杯，配柳橙片與蟲鹽。'],[8,60,0,'萊姆汽水，不甜。']],
+  'Postres':[[9,120,0,'現炸吉拿棒、肉桂糖，附熱巧克力。'],[10,80,0,'貝殼甜麵包，早上配咖啡。'],[20,150,0,'亡靈節限定糖骷髏餅乾。']]
+};
+var CATER = {
+  packs:[{id:'basic',n:'Básico',d:'三種肉、玉米餅吧、莎莎醬兩種',p:480},{id:'fiesta',n:'Fiesta',d:'加烤玉米、酪梨醬玉米片、吉拿棒',p:680},{id:'gran',n:'Gran Fiesta',d:'加直立烤肉架現場削肉、冰飲吧',p:920}],
+  proteins:['牧師豬肉','炭烤牛肉','黑醬雞','仙人掌與菇（素）','辣牛肉'],
+  extras:[['margarita','瑪格麗特吧台',150],['cake','三奶蛋糕',60]],
+  staffFee:3000
+};
 
-/* 剪紙旗：每面旗用 SVG mask 挖出不同圖樣 */
+/* ===== 剪紙旗 ===== */
 (function(){
-  var cols = ['#e5007d','#00a09a','#ffb100','#7cb518','#1c2c8c','#d3241c','#ff7a1c'];
-  var cuts = [
-    function(){ var s = ''; for (var i = 0; i < 4; i++) for (var j = 0; j < 3; j++) s += '<circle cx="' + (14 + j*20 + (i%2)*10) + '" cy="' + (22 + i*16) + '" r="4"/>'; return s + '<path d="M44 40 l10 10 -10 10 -10 -10z"/>'; },
-    function(){ var s = ''; for (var k = 0; k < 8; k++){ var a = k/8*Math.PI*2; s += '<ellipse cx="' + (44 + Math.cos(a)*16).toFixed(1) + '" cy="' + (50 + Math.sin(a)*16).toFixed(1) + '" rx="7" ry="3.5" transform="rotate(' + (k*45) + ' ' + (44 + Math.cos(a)*16).toFixed(1) + ' ' + (50 + Math.sin(a)*16).toFixed(1) + ')"/>'; } return s + '<circle cx="44" cy="50" r="6"/><path d="M8 84 h72 v3 h-72z M8 18 h72 v3 h-72z"/>'; },
-    function(){ return '<path d="M24 40 Q24 22 44 22 Q64 22 64 40 Q64 50 58 52 V62 H30 V52 Q24 50 24 40Z"/><path d="M14 76 l6 -6 6 6 6 -6 6 6 6 -6 6 6 6 -6 6 6 6 -6 6 6 v4 H14z"/>'; },
-    function(){ var s = ''; for (var i = 0; i < 5; i++) s += '<path d="M' + (10 + i*16) + ' 24 l6 8 -6 8 -6 -8z"/><path d="M' + (10 + i*16) + ' 66 l6 8 -6 8 -6 -8z"/>'; return s + '<path d="M44 34 C58 34 62 50 44 66 C26 50 30 34 44 34Z"/>'; },
-    function(){ return '<path d="M14 64 A30 30 0 0 1 74 64 Z"/><circle cx="20" cy="24" r="5"/><circle cx="44" cy="20" r="5"/><circle cx="68" cy="24" r="5"/><path d="M10 80 h68 v4 h-68z"/>'; }
-  ];
-  var html = '', n = Math.ceil(innerWidth/90) + 2;
+  var cols = ['#e5007d','#00a09a','#ffb100','#7cb518','#1c2c8c','#d3241c','#ff7a1c'], html = '', n = Math.ceil(innerWidth/75) + 2;
   for (var i = 0; i < n; i++){
-    var c = cols[i % cols.length], cut = cuts[i % cuts.length](), id = 'm' + i;
-    html += '<svg class="flag" viewBox="0 0 88 96" style="--d:' + (2.6 + (i%3)*.5) + 's;--dl:-' + (i*.37).toFixed(2) + 's"><defs><mask id="' + id + '"><path d="M0 0 H88 V86 l-8 10 -8 -10 -8 10 -8 -10 -8 10 -8 -10 -8 10 -8 -10 -8 10 -8 -10 -8 10 Z" fill="#fff"/><g fill="#000">' + cut + '</g></mask></defs><rect width="88" height="96" fill="' + c + '" mask="url(#' + id + ')"/></svg>';
+    var c = cols[i % cols.length], id = 'pm' + i, cut;
+    if (i % 3 === 0){ cut = ''; for (var y = 0; y < 3; y++) for (var x = 0; x < 3; x++) cut += '<circle cx="' + (14 + x*21) + '" cy="' + (20 + y*15) + '" r="4"/>'; }
+    else if (i % 3 === 1) cut = '<path d="M35 18 C50 18 54 34 35 52 C16 34 20 18 35 18Z"/><path d="M8 66h54v3h-54z"/>';
+    else cut = '<path d="M14 50 A21 21 0 0 1 56 50Z"/><circle cx="18" cy="20" r="4"/><circle cx="35" cy="16" r="4"/><circle cx="52" cy="20" r="4"/>';
+    html += '<svg class="flag" viewBox="0 0 70 78" style="--d:' + (2.6 + (i%3)*.5) + 's;--dl:-' + (i*.37).toFixed(2) + 's"><defs><mask id="' + id + '"><path d="M0 0H70V70l-7 8-7-8-7 8-7-8-7 8-7-8-7 8-7-8-7 8-7-8Z" fill="#fff"/><g fill="#000">' + cut + '</g></mask></defs><rect width="70" height="78" fill="' + c + '" mask="url(#' + id + ')"/></svg>';
   }
   $('#flags').innerHTML = html;
 })();
 
-/* 遊戲狀態 */
-var deck = [], called = [], tabla = [], marked = new Set(), auto = null, won = false;
-function shuffle(a){ for (var i = a.length - 1; i > 0; i--){ var j = Math.floor(Math.random()*(i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
-function newTabla(){
-  tabla = shuffle(CARDS.slice()).slice(0, 16); marked = new Set(); won = false;
-  deck = shuffle(CARDS.slice()); called = [];
-  var g = $('#tabla'); g.innerHTML = '';
-  tabla.forEach(function(c, i){
-    var b = document.createElement('button'); b.type = 'button'; b.className = 'card'; b.dataset.n = c.n;
-    b.setAttribute('aria-label', c.es + '，' + c.zh); b.innerHTML = cardHTML(c, '<i class="bean"></i>');
-    b.addEventListener('click', function(){ mark(c, b); });
-    g.appendChild(b);
+/* ===== 佔位圖 ===== */
+var uid = 0;
+function svg(vb, body){ var id = 'n' + (++uid); return '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><filter id="' + id + '"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .4  0 0 0 0 .3  0 0 0 0 .2  0 0 0 .08 0"/></filter><filter id="s' + id + '"><feGaussianBlur stdDeviation="8"/></filter></defs>' + body.replace(/SOFT/g, 's' + id) + '<rect width="100%" height="100%" filter="url(#' + id + ')"/></svg>'; }
+function rnd(seed){ var s = seed; return function(){ s = (s*16807) % 2147483647; return s/2147483647; }; }
+function talavera(w, h, a, b){ // 藍白瓷磚桌面
+  var s = '<rect width="' + w + '" height="' + h + '" fill="#f4efe3"/>';
+  for (var y = 0; y < h; y += 100) for (var x = 0; x < w; x += 100){
+    s += '<g transform="translate(' + x + ' ' + y + ')"><rect width="100" height="100" fill="#f7f2e6" stroke="#d9cfba" stroke-width="2"/><circle cx="50" cy="50" r="22" fill="none" stroke="' + a + '" stroke-width="6"/><path d="M50 8 L58 30 L50 26 L42 30Z M50 92 L58 70 L50 74 L42 70Z M8 50 L30 42 L26 50 L30 58Z M92 50 L70 42 L74 50 L70 58Z" fill="' + a + '"/><circle cx="50" cy="50" r="8" fill="' + b + '"/><path d="M0 0 q12 0 12 12 M100 0 q-12 0 -12 12 M0 100 q12 0 12 -12 M100 100 q-12 0 -12 -12" stroke="' + b + '" stroke-width="5" fill="none"/></g>';
+  }
+  return s;
+}
+function taco(x, y, sc, rot, seed){
+  var r = rnd(seed), s = '<g transform="translate(' + x + ' ' + y + ') rotate(' + rot + ') scale(' + sc + ')"><ellipse cx="6" cy="14" rx="110" ry="60" fill="rgba(0,0,0,.25)" filter="url(#SOFT)"/><ellipse rx="110" ry="62" fill="#e8c27a"/><ellipse rx="100" ry="54" fill="#f1d498"/>';
+  for (var i = 0; i < 18; i++) s += '<rect x="' + (-70 + r()*130).toFixed(0) + '" y="' + (-34 + r()*60).toFixed(0) + '" width="' + (16 + r()*14).toFixed(0) + '" height="' + (9 + r()*6).toFixed(0) + '" rx="3" fill="' + (r() < .5 ? '#b5401f' : '#d0602a') + '" transform="rotate(' + (r()*60 - 30).toFixed(0) + ')"/>';
+  for (var j = 0; j < 8; j++) s += '<rect x="' + (-50 + r()*100).toFixed(0) + '" y="' + (-24 + r()*44).toFixed(0) + '" width="12" height="12" rx="2" fill="#ffd23a"/>';
+  for (var k = 0; k < 22; k++) s += '<circle cx="' + (-70 + r()*140).toFixed(0) + '" cy="' + (-30 + r()*58).toFixed(0) + '" r="' + (3 + r()*3).toFixed(1) + '" fill="' + (r() < .6 ? '#4f9a2a' : '#f7f2e6') + '"/>';
+  return s + '</g>';
+}
+function lime(x, y, sc){ return '<g transform="translate(' + x + ' ' + y + ') scale(' + sc + ')"><path d="M-40 0 A40 40 0 0 1 40 0Z" fill="#5a9a22" stroke="#1c130e" stroke-width="3"/><path d="M-32 0 A32 32 0 0 1 32 0Z" fill="#d6ef8a"/><path d="M0 0 L-22 -22 M0 0 L0 -30 M0 0 L22 -22" stroke="#9ccc4a" stroke-width="3"/></g>'; }
+var ART = {
+  tacos:function(){ return svg('0 0 800 1000', talavera(800, 1000, '#1c2c8c', '#ffb100') + '<ellipse cx="410" cy="520" rx="330" ry="300" fill="rgba(0,0,0,.2)" filter="url(#SOFT)"/><circle cx="400" cy="500" r="320" fill="#00a09a"/><circle cx="400" cy="500" r="290" fill="#f7f2e6"/>' + taco(330, 400, 1.3, -20, 3) + taco(470, 590, 1.3, 15, 8) + lime(600, 360, 1) + lime(240, 650, .9) + '<circle cx="640" cy="760" r="70" fill="#d3241c" stroke="#1c130e" stroke-width="4"/><circle cx="640" cy="760" r="54" fill="#b81a14"/>'); },
+  trompo:function(){
+    var s = '<defs><radialGradient id="tg" cx=".5" cy=".4" r=".7"><stop offset="0" stop-color="#ff9a3a"/><stop offset="1" stop-color="#3a1408"/></radialGradient></defs><rect width="800" height="1000" fill="url(#tg)"/><rect x="390" y="40" width="20" height="940" fill="#9aa0a6"/>';
+    s += '<path d="M230 260 Q400 200 570 260 L540 760 Q400 820 260 760Z" fill="#b5401f" stroke="#1c130e" stroke-width="5"/>';
+    for (var i = 0; i < 11; i++) s += '<path d="M' + (236 + i*2) + ' ' + (300 + i*44) + ' Q400 ' + (330 + i*44) + ' ' + (564 - i*2) + ' ' + (300 + i*44) + '" stroke="' + (i%2 ? '#7a2410' : '#e06a2a') + '" stroke-width="10" fill="none"/>';
+    s += '<ellipse cx="400" cy="210" rx="90" ry="64" fill="#ffb100" stroke="#1c130e" stroke-width="5"/><path d="M370 160 L400 80 L430 160" fill="#4f9a2a" stroke="#1c130e" stroke-width="5"/>';
+    s += '<g opacity=".6"><path d="M180 400 q-60 -100 0 -200" stroke="#fff" stroke-width="30" fill="none" filter="url(#SOFT)"/></g>';
+    return svg('0 0 800 1000', s);
+  },
+  agua:function(){
+    var s = talavera(800, 1000, '#e5007d', '#00a09a') + '<ellipse cx="420" cy="860" rx="220" ry="50" fill="rgba(0,0,0,.25)" filter="url(#SOFT)"/>';
+    s += '<path d="M240 240 L560 240 L520 860 L280 860Z" fill="rgba(255,255,255,.55)" stroke="#1c130e" stroke-width="5"/><path d="M250 330 L550 330 L520 850 L280 850Z" fill="#ef4a62"/>';
+    var r = rnd(4); for (var i = 0; i < 16; i++) s += '<rect x="' + (290 + r()*200).toFixed(0) + '" y="' + (360 + r()*440).toFixed(0) + '" width="34" height="34" rx="6" fill="#fff" opacity=".45" transform="rotate(' + (r()*40).toFixed(0) + ' 400 600)"/>';
+    s += '<path d="M470 120 L420 700" stroke="#ffb100" stroke-width="18" stroke-linecap="round"/><path d="M520 250 A110 110 0 0 1 680 250Z" fill="#2e8a26" stroke="#1c130e" stroke-width="5" transform="rotate(20 600 250)"/><path d="M534 250 A96 96 0 0 1 666 250Z" fill="#e2384a" transform="rotate(20 600 250)"/>';
+    return svg('0 0 800 1000', s);
+  },
+  room:function(){
+    var s = '<rect width="800" height="1000" fill="#f2c36a"/><rect y="560" width="800" height="440" fill="#a8582e"/>';
+    var cols = ['#e5007d','#00a09a','#ffb100','#7cb518','#1c2c8c'];
+    for (var row = 0; row < 3; row++) for (var i = 0; i < 9; i++) s += '<path d="M' + (i*92 - 10 + row*30) + ' ' + (60 + row*110) + ' h80 v70 l-10 10 -10 -10 -10 10 -10 -10 -10 10 -10 -10 -10 10 -10 -10z" fill="' + cols[(i + row) % 5] + '" opacity=".9"/>';
+    for (var t = 0; t < 3; t++){ var x = 130 + t*270; s += '<ellipse cx="' + x + '" cy="700" rx="110" ry="30" fill="#00a09a" stroke="#1c130e" stroke-width="4"/><rect x="' + (x - 8) + '" y="700" width="16" height="200" fill="#1c130e"/><rect x="' + (x - 140) + '" y="760" width="50" height="120" rx="6" fill="#e5007d"/><rect x="' + (x + 90) + '" y="760" width="50" height="120" rx="6" fill="#ffb100"/>'; }
+    return svg('0 0 800 1000', s);
+  },
+  press:function(){
+    var s = '<rect width="800" height="1000" fill="#3a2a1f"/><rect y="640" width="800" height="360" fill="#7a4a2a"/>';
+    s += '<g transform="translate(400 560)"><rect x="-230" y="40" width="460" height="60" rx="10" fill="#2a2a2a"/><circle cy="40" r="170" fill="#3a3a3a" stroke="#1c130e" stroke-width="6"/><circle cy="40" r="140" fill="#f1d498"/><path d="M-200 -40 L200 -140" stroke="#2a2a2a" stroke-width="40" stroke-linecap="round"/><circle cx="200" cy="-140" r="30" fill="#b5401f"/></g>';
+    for (var i = 0; i < 5; i++) s += '<ellipse cx="' + (160 + i*120) + '" cy="' + (880 - i*6) + '" rx="56" ry="16" fill="#f1d498" stroke="#c9a55a" stroke-width="3"/>';
+    return svg('0 0 800 1000', s);
+  },
+  salsa:function(){
+    var s = talavera(800, 1000, '#00a09a', '#e5007d') + '<ellipse cx="410" cy="560" rx="280" ry="120" fill="rgba(0,0,0,.3)" filter="url(#SOFT)"/>';
+    s += '<path d="M150 440 Q160 720 400 720 Q640 720 650 440Z" fill="#5a5450" stroke="#1c130e" stroke-width="6"/><ellipse cx="400" cy="440" rx="250" ry="80" fill="#c2261e" stroke="#1c130e" stroke-width="6"/>';
+    var r = rnd(6); for (var i = 0; i < 30; i++) s += '<circle cx="' + (200 + r()*400).toFixed(0) + '" cy="' + (400 + r()*80).toFixed(0) + '" r="' + (3 + r()*6).toFixed(0) + '" fill="' + (r() < .5 ? '#ff6a4a' : '#4f9a2a') + '"/>';
+    s += '<rect x="520" y="160" width="60" height="260" rx="30" fill="#7a726c" stroke="#1c130e" stroke-width="5" transform="rotate(30 550 290)"/>' + lime(200, 860, 1.4);
+    return svg('0 0 800 1000', s);
+  },
+  chef:function(){
+    var s = '<rect width="800" height="1000" fill="#00a09a"/><circle cx="400" cy="420" r="300" fill="#ffb100" opacity=".5"/>';
+    s += '<path d="M140 1000 C150 760 280 680 400 680 C520 680 650 760 660 1000Z" fill="#fffaf0" stroke="#1c130e" stroke-width="6"/><path d="M200 760 L600 760" stroke="#e5007d" stroke-width="18"/>';
+    s += '<rect x="360" y="560" width="80" height="140" fill="#8a5a3a"/><ellipse cx="400" cy="470" rx="130" ry="150" fill="#a8704a" stroke="#1c130e" stroke-width="6"/><path d="M290 380 C300 300 500 300 510 380 C470 350 330 350 290 380Z" fill="#1c130e"/><path d="M320 520 q80 50 160 0 q-20 40 -80 40 q-60 0 -80 -40z" fill="#1c130e"/><path d="M230 330 q170 -150 340 0 z" fill="#d3241c" stroke="#1c130e" stroke-width="6"/><ellipse cx="400" cy="330" rx="230" ry="24" fill="#ffb100" stroke="#1c130e" stroke-width="6"/>';
+    return svg('0 0 800 1000', s);
+  }
+};
+function fillPhotos(){
+  $$('.ph').forEach(function(f){
+    var url = SHOP.photos[f.dataset.photo];
+    if (url){ f.innerHTML = '<img src="' + url + '" alt="' + (f.dataset.label || '') + '" loading="lazy">'; return; }
+    var a = ART[f.dataset.art]; if (a) f.innerHTML = a();
   });
-  $('#big').innerHTML = '<div class="card" style="background:#f6ebcf"><span class="art" style="--bg:#1c2c8c;margin:10px"><svg viewBox="0 0 100 100"><text x="50" y="58" text-anchor="middle" font-size="16" fill="#ffb100" font-family="Rockwell,Georgia,serif" font-weight="800" letter-spacing="1">LOTERÍA</text></svg></span></div>';
-  $('#verse').innerHTML = '<q>¡Se va y se corre!</q><span class="zh">按「下一張」開始抽牌。</span>';
-  $('#history').innerHTML = ''; $('#lot').disabled = true; info();
 }
-function info(){ $('#deckinfo').textContent = '已喊 ' + called.length + ' / ' + CARDS.length + ' 張　牌板上有豆 ' + marked.size + ' 顆'; }
-function next(){
-  if (won) return;
-  if (!deck.length){ toast('牌喊完了，換一張牌板再來'); stopAuto(); return; }
-  var c = deck.pop(); called.push(c.n);
-  var big = $('#big'); big.innerHTML = '<div class="card flipin">' + cardHTML(c) + '</div>';
-  $('#verse').innerHTML = '<q>' + c.v[0] + '</q><span class="zh">' + c.v[1] + '　——' + c.es + '（' + c.zh + '）</span>';
-  var mine = tabla.some(function(t){ return t.n === c.n; });
-  var h = document.createElement('span'); h.textContent = c.n + ' ' + c.es; if (mine) h.className = 'mine'; $('#history').prepend(h);
-  var cell = document.querySelector('#tabla .card[data-n="' + c.n + '"]'); if (cell) cell.classList.add('called');
-  maraca(); info();
-}
-function mark(c, b){
-  if (won) return;
-  if (called.indexOf(c.n) < 0){ toast('司儀還沒喊到 ' + c.es + ' 喔'); thud(); return; }
-  if (marked.has(c.n)) return;
-  marked.add(c.n); b.classList.add('on'); bean(); info();
-  $('#lot').disabled = !winLine();
-}
-var LINES = (function(){
-  var L = [];
-  for (var r = 0; r < 4; r++) L.push([0,1,2,3].map(function(c){ return r*4 + c; }));
-  for (var c = 0; c < 4; c++) L.push([0,1,2,3].map(function(r){ return r*4 + c; }));
-  L.push([0,5,10,15]); L.push([3,6,9,12]); L.push([0,3,12,15]);
-  return L;
-})();
-function winLine(){ return LINES.find(function(l){ return l.every(function(i){ return marked.has(tabla[i].n); }); }); }
-$('#lot').addEventListener('click', function(){
-  var line = winLine(); if (!line) return;
-  won = true; stopAuto();
-  var cells = document.querySelectorAll('#tabla .card');
-  line.forEach(function(i){ cells[i].classList.add('win'); });
-  var food = tabla.filter(function(c, i){ return line.indexOf(i) >= 0 && c.p > 0; });
-  var prize = food[Math.floor(Math.random()*food.length)] || CARDS[0];
-  $('#prize').innerHTML = '只喊了 ' + called.length + ' 張就連線！<br>憑此券兌換一份 <b>' + prize.es + '（' + prize.zh + '）</b>。';
-  $('#code').textContent = 'LOT-' + String(Date.now()).slice(-6) + '-' + prize.n;
-  setTimeout(function(){ $('#coupon').classList.add('show'); $('#again').focus(); }, 500);
-  fanfare(); confetti();
-});
-$('#again').addEventListener('click', function(){ $('#coupon').classList.remove('show'); newTabla(); });
-$('#next').addEventListener('click', function(){ audio(); next(); });
-$('#newt').addEventListener('click', function(){ stopAuto(); newTabla(); toast('換了一張新牌板'); });
-function stopAuto(){ clearInterval(auto); auto = null; $('#auto').setAttribute('aria-pressed', 'false'); }
-$('#auto').addEventListener('click', function(){
-  audio();
-  if (auto){ stopAuto(); return; }
-  this.setAttribute('aria-pressed', 'true'); next(); auto = setInterval(next, 3800);
-});
-document.addEventListener('keydown', function(e){ if ((e.key === 'n' || e.key === 'N') && !won){ audio(); next(); } if (e.key === 'Escape' && won) $('#coupon').classList.remove('show'); });
+function icon(c){ return '<svg viewBox="0 0 100 100" aria-hidden="true">' + c.s + '</svg>'; }
 
-function toast(t){ var el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(function(){ el.classList.remove('show'); }, 1800); }
-function confetti(){
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  var cols = ['#e5007d','#00a09a','#ffb100','#7cb518','#1c2c8c'];
-  for (var i = 0; i < 46; i++){
-    var d = document.createElement('i'); d.className = 'confetti';
-    d.style.left = Math.random()*100 + 'vw'; d.style.background = cols[i % cols.length];
-    d.style.animationDuration = (2 + Math.random()*2) + 's'; d.style.animationDelay = Math.random()*.6 + 's';
-    d.style.clipPath = 'polygon(0 0,100% 0,100% 80%,75% 100%,50% 80%,25% 100%,0 80%)';
-    document.body.appendChild(d); setTimeout(function(x){ return function(){ x.remove(); }; }(d), 4800);
+/* ===== 今日之牌：依日期挑一張有價錢的菜 ===== */
+var now = new Date(), MENU_ALL = [];
+Object.keys(MENU).forEach(function(k){ MENU[k].forEach(function(m){ MENU_ALL.push(m); }); });
+var pick = MENU_ALL[(now.getFullYear()*372 + now.getMonth()*31 + now.getDate()) % MENU_ALL.length], pc = byN[pick[0]];
+$('#dayCard').innerHTML = '<span class="num">' + pc.n + '</span><div class="art" style="--bg:' + pc.bg + '">' + icon(pc) + '</div><span class="nm">' + pc.es.toUpperCase() + '</span>';
+$('#dayName').textContent = pc.es + ' · ' + pc.zh;
+$('#dayVerse').textContent = pc.v[0];
+$('#dayDesc').innerHTML = pc.v[1] + '<br>今天這道 NT$ ' + pick[1] + ' → <b style="color:var(--gold)">NT$ ' + Math.round(pick[1]*SHOP.dailyDiscount) + '</b>。每天午夜換一張牌。';
+
+/* ===== 菜單 ===== */
+var tabs = $('#tabs');
+Object.keys(MENU).forEach(function(k, i){
+  var b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'tab'); b.textContent = k; b.setAttribute('aria-selected', i === 0);
+  b.onclick = function(){ $$('button', tabs).forEach(function(x){ x.setAttribute('aria-selected', x === b); }); drawMenu(k); };
+  tabs.appendChild(b);
+});
+function drawMenu(k){
+  $('#dishes').innerHTML = MENU[k].map(function(m){
+    var c = byN[m[0]], today = m === pick;
+    return '<article class="dish"><span class="ic" style="--bg:' + c.bg + '">' + icon(c) + '</span><b>' + c.es + (m[2] ? '<span class="hot">' + '🌶'.repeat(m[2]) + '</span>' : '') + '<small>' + c.zh + (today ? '　·　今日之牌 8 折' : '') + '</small></b><span class="pr">' + (today ? '<s style="font-size:.6em;color:var(--soft)">' + m[1] + '</s> ' + Math.round(m[1]*SHOP.dailyDiscount) : m[1]) + '</span><p>' + m[3] + '</p></article>';
+  }).join('');
+}
+drawMenu('Tacos');
+
+/* ===== 外燴估價 ===== */
+var pkEl = $('#pk'), prEl = $('#pr3'), exEl = $('#extras');
+pkEl.innerHTML = CATER.packs.map(function(p, i){ return '<label><input type="radio" name="pk" value="' + p.id + '"' + (i === 1 ? ' checked' : '') + '><span><b>' + p.n + '</b><small>' + p.d + '</small><em>NT$ ' + p.p + ' / 人</em></span></label>'; }).join('');
+prEl.innerHTML = CATER.proteins.map(function(p, i){ return '<label><input type="checkbox" name="pr" value="' + p + '"' + (i < 2 ? ' checked' : '') + '><span>' + p + '</span></label>'; }).join('');
+exEl.innerHTML = CATER.extras.map(function(e){ return '<label><input type="checkbox" name="ex" value="' + e[0] + '"><span>' + e[1] + ' +' + e[2] + '/人</span></label>'; }).join('');
+prEl.addEventListener('change', function(e){
+  var on = $$('input:checked', prEl);
+  if (on.length > 3){ e.target.checked = false; }
+  $('#pCount').textContent = $$('input:checked', prEl).length;
+  quote();
+});
+[pkEl, exEl].forEach(function(el){ el.addEventListener('change', quote); });
+$('#guests').addEventListener('input', quote);
+function quote(){
+  var g = +$('#guests').value, pk = CATER.packs.find(function(p){ return p.id === pkEl.querySelector('input:checked').value; });
+  var rows = [[pk.n + ' × ' + g + ' 人', pk.p*g]];
+  $$('input:checked', exEl).forEach(function(x){ var e = CATER.extras.find(function(y){ return y[0] === x.value; }); rows.push([e[1] + ' × ' + g, e[2]*g]); });
+  var cooks = Math.ceil(g/50); rows.push(['現場師傅 ' + cooks + ' 位', CATER.staffFee*cooks]);
+  var t = rows.reduce(function(s, r){ return s + r[1]; }, 0);
+  if (g >= 100){ var off = Math.round(t*.05); rows.push(['百人以上 95 折', -off]); t -= off; }
+  $('#gOut').textContent = g + ' 人';
+  if ($('#qlist')){
+    $('#qlist').innerHTML = rows.map(function(r){ return '<li><span>' + r[0] + '</span><span>' + (r[1] < 0 ? '−' : '') + Math.abs(r[1]).toLocaleString() + '</span></li>'; }).join('') + '<li><span>肉：' + ($$('input:checked', prEl).map(function(x){ return x.value; }).join('、') || '未選') + '</span><span></span></li>';
+    $('#qTot').textContent = 'NT$ ' + t.toLocaleString();
   }
 }
+quote();
+var dIn = $('#qDate'), minD = new Date(now.getTime() + 7*864e5);
+dIn.min = minD.toISOString().slice(0, 10);
+$('#qf').addEventListener('submit', function(e){
+  e.preventDefault();
+  var name = $('#qName'), phone = $('#qPhone'), ok = true;
+  [[dIn, dIn.value && dIn.value >= dIn.min, '請選擇 7 天後的日期'], [name, name.value.trim().length > 0, '請填寫聯絡人'], [phone, /^09\d{2}-?\d{3}-?\d{3}$/.test(phone.value.trim()), '請輸入 09 開頭的手機號碼']].forEach(function(c){ c[0].nextElementSibling.textContent = c[1] ? '' : c[2]; if (!c[1]) ok = false; });
+  if ($$('input:checked', prEl).length === 0){ ok = false; }
+  if (!ok) return;
+  var tot = $('#qTot').textContent;
+  $('#qBody').innerHTML = '<div class="thanks"><b>¡Gracias!</b><p>已收到 ' + dIn.value + '、' + $('#guests').value + ' 人的派對塔可吧詢價（估價 ' + tot + '）。</p><p>我們會在 24 小時內打給 ' + name.value.trim().replace(/</g, '') + '，確認菜色、場地與時間。</p><p class="demo">示範版本：沒有真的送出詢價。</p></div>';
+});
 
-/* 聲音：沙鈴、豆子、號角 */
-var ac = null;
-function audio(){ if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
-function noise(dur, freq, vol, at){
-  if (!ac) return; var t = ac.currentTime + (at || 0), buf = ac.createBuffer(1, ac.sampleRate*dur, ac.sampleRate), d = buf.getChannelData(0);
-  for (var i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/d.length, 2);
-  var s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 1.5; g.gain.value = vol;
-  s.connect(f).connect(g).connect(ac.destination); s.start(t);
+/* ===== 營業時間 ===== */
+var DAYS = ['週日','週一','週二','週三','週四','週五','週六'];
+function mins(t){ var p = t.split(':'); return +p[0]*60 + +p[1]; }
+function status(d0){
+  var d = d0.getDay(), m = d0.getHours()*60 + d0.getMinutes(), t = SHOP.hours[d].find(function(h){ return m >= mins(h[0]) && m < mins(h[1]); });
+  if (t) return {open:true, until:t[1]};
+  for (var k = 0; k < 8; k++){ var dd = (d + k) % 7, h = SHOP.hours[dd].find(function(x){ return k > 0 || mins(x[0]) > m; }); if (h) return {open:false, next:(k === 0 ? '今天' : k === 1 ? '明天' : DAYS[dd]) + ' ' + h[0]}; }
+  return {open:false, next:'—'};
 }
-function maraca(){ noise(.09, 6000, .25, 0); noise(.09, 6500, .2, .14); noise(.14, 5800, .22, .26); }
-function bean(){ if (!ac) audio(); noise(.05, 1200, .5, 0); }
-function thud(){ if (!ac) audio(); noise(.08, 300, .4, 0); }
-function fanfare(){
-  if (!ac) return; var notes = [523, 659, 784, 1047, 784, 1047];
-  notes.forEach(function(f, i){
-    var t = ac.currentTime + i*.13, o = ac.createOscillator(), g = ac.createGain();
-    o.type = 'sawtooth'; o.frequency.value = f; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.06, t + .02); g.gain.exponentialRampToValueAtTime(.0001, t + (i === notes.length - 1 ? .8 : .2));
-    var fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 2400;
-    o.connect(fl).connect(g).connect(ac.destination); o.start(t); o.stop(t + 1);
-  });
-}
+var st = status(now);
+$('#status').classList.toggle('on', st.open);
+$('#status').lastElementChild.textContent = st.open ? 'ABIERTO · 到 ' + st.until : 'CERRADO · ' + st.next;
+$('#hours').innerHTML = [1,2,3,4,5,6,0].map(function(d){ var h = SHOP.hours[d]; return '<tr class="' + (d === now.getDay() ? 'today' : '') + '"><td>' + DAYS[d] + '</td><td>' + (h.length ? h.map(function(x){ return x[0] + '–' + x[1]; }).join(' / ') : '公休') + '</td></tr>'; }).join('');
+$('#tel').textContent = SHOP.phone; $('#tel').href = 'tel:' + SHOP.phone.replace(/[^\d]/g, '');
+$('#addr').textContent = SHOP.address;
+$('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+$('#yr').textContent = now.getFullYear();
 
-/* 菜單 */
-$('#carta').innerHTML = CARDS.filter(function(c){ return c.p > 0; }).map(function(c){
-  return '<div class="dish"><span class="mini" style="--bg:' + c.bg + '">' + art(c) + '</span><b class="slab">' + c.es + '</b><span class="pr slab">$' + c.p + '</span><span>' + c.zh + '・' + c.d + '</span></div>';
-}).join('');
-
-newTabla();
+/* ===== 共用 ===== */
+var nav = $('#nav');
+$('#burger').onclick = function(){ var o = nav.classList.toggle('open'); this.setAttribute('aria-expanded', o); };
+$$('#navList a').forEach(function(a){ a.onclick = function(){ nav.classList.remove('open'); }; });
+var slotBtn = $('#slotBtn');
+function slots(on){ document.body.classList.toggle('slots', on); slotBtn.setAttribute('aria-pressed', on); }
+slotBtn.onclick = function(){ slots(!document.body.classList.contains('slots')); };
+if (/[?&]slots/.test(location.search)) slots(true);
+fillPhotos();
+if ('IntersectionObserver' in window){
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('vis'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -6% 0px'});
+  $$('.rv-in').forEach(function(el){ io.observe(el); });
+} else $$('.rv-in').forEach(function(el){ el.classList.add('vis'); });
 })();
 </script>
 </body>

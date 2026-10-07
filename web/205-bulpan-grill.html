@@ -2,469 +2,542 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>불판 · 炭火烤肉</title>
-<meta name="description" content="俯視角的韓式炭火烤肉：把五花、梅花、牛小排、蝦與杏鮑菇夾上炭火烤網，中間火旺、邊緣保溫，看邊緣顏色判斷底面熟度，適時翻面、用剪刀剪段，烤到剛好再放進生菜包。">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>불판 BULPAN｜韓式炭火烤肉・信義</title>
+<meta name="description" content="불판 BULPAN：台北信義的韓式炭火烤肉。備長炭、厚切熟成五花、醬漬牛小排，店員桌邊代烤，小菜無限續。依人數算套餐、線上訂位與包廂。">
+<!--
+  店家模板使用方式
+  1. 修改 <script> 開頭的 SHOP（店名、電話、地址、營業時間、照片網址）、CUTS（部位）與 SETS（套餐）。
+  2. photos 填入照片網址就會取代佔位圖；網址加 ?slots 或按右下角「照片位」可標出位置與建議尺寸。
+  3. 訂位表單目前只在頁面上示範，正式使用請串接訂位系統。
+-->
 <style>
-:root{--ink:#f3eee6;--dim:#a39d94;--kimchi:#e2442c;--lettuce:#6fb04a;--steel:#1a1b1d;--panel:rgba(14,13,12,.78)}
-*{box-sizing:border-box}
-html,body{margin:0;height:100%;overflow:hidden;background:#0d0d0e;color:var(--ink);
-  font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","PingFang TC","Microsoft JhengHei",sans-serif}
-canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
-button{font:inherit;color:inherit;cursor:pointer}
-.top{position:fixed;left:0;right:0;top:0;padding:12px 16px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none}
-.brand{pointer-events:auto}
-.brand h1{margin:0;font-size:clamp(28px,4vw,46px);font-weight:900;letter-spacing:-.02em;line-height:1}
-.brand h1 span{color:var(--kimchi)}
-.brand p{margin:4px 0 0;font-size:12px;color:var(--dim);letter-spacing:.06em}
-.stats{display:flex;gap:6px;pointer-events:auto}
-.stat{background:var(--panel);border:1px solid #ffffff14;border-radius:10px;padding:6px 12px;text-align:center;min-width:64px}
-.stat b{display:block;font-size:22px;font-weight:900;font-family:"Avenir Next Condensed","Arial Narrow","Apple SD Gothic Neo",sans-serif;font-variant-numeric:tabular-nums}
-.stat small{font-size:10px;color:var(--dim);letter-spacing:.08em}
-.dock{position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:8px;align-items:center;background:var(--panel);border:1px solid #ffffff14;border-radius:16px;padding:8px;max-width:calc(100% - 16px)}
-.dock .grp{display:flex;gap:4px}
-.dock button{border:0;background:#2a2826;border-radius:11px;padding:9px 12px;font-weight:800;font-size:14px;display:flex;flex-direction:column;align-items:center;line-height:1.1;min-width:54px}
-.dock button small{font-size:10px;color:var(--dim);font-weight:600;margin-top:2px}
-.dock button[aria-pressed=true]{background:var(--ink);color:#141210}
-.dock button[aria-pressed=true] small{color:#5a554e}
-.dock .sep{width:1px;align-self:stretch;background:#ffffff1a;margin:0 2px}
-.dock .add{background:var(--kimchi);color:#fff}
-.dock .add small{color:#ffd2c8}
-.help{position:fixed;left:16px;bottom:calc(84px + env(safe-area-inset-bottom));max-width:260px;font-size:12px;line-height:1.65;color:var(--dim);background:var(--panel);border-radius:10px;padding:10px 12px;border:1px solid #ffffff10;transition:opacity .4s}
-.help b{color:var(--ink)}
-.help.hide{opacity:0;pointer-events:none}
-@media (max-width:760px){
-  .help{left:50%;right:auto;transform:translateX(-50%);top:74px;bottom:auto;width:calc(100% - 32px);max-width:420px;font-size:11.5px}
-  .stat{min-width:48px;padding:5px 8px}.stat b{font-size:18px}
-  .brand p{display:none}
-  .dock button{padding:8px 8px;min-width:44px;font-size:13px}
-  .dock .heat small{display:none}
+:root{
+  --coal:#100f0e; --coal2:#1a1816; --coal3:#24211e; --ember:#ff6a1f; --ember2:#ffb26b; --cream:#f4ede4; --muted:#9b938a; --line:rgba(244,237,228,.12);
+  --kr:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","PingFang TC",sans-serif;
+  --sans:"PingFang TC","Microsoft JhengHei","Apple SD Gothic Neo",sans-serif;
+  --cond:"Avenir Next Condensed","Arial Narrow","Roboto Condensed",sans-serif;
 }
-@media (max-width:380px){.dock .grp.heat button{min-width:34px}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+html,body{margin:0}
+body{background:var(--coal);color:var(--cream);font-family:var(--sans);line-height:1.7;overflow-x:clip;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1280px;margin:0 auto;padding:0 clamp(16px,4vw,48px)}
+.kr{font-family:var(--kr)}
+.cond{font-family:var(--cond);font-weight:700;letter-spacing:.04em}
+.label{font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.3em;color:var(--ember);text-transform:uppercase}
+/* 導覽 */
+.nav{position:fixed;inset:0 0 auto;z-index:50;transition:background .3s}
+.nav.solid,.nav.open{background:rgba(16,15,14,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.nav .wrap{height:74px;display:flex;align-items:center;gap:30px}
+.logo{display:flex;align-items:baseline;gap:10px;text-decoration:none}
+.logo b{font-family:var(--kr);font-weight:900;font-size:28px;letter-spacing:-.02em}
+.logo b i{color:var(--ember);font-style:normal}
+.logo span{font-family:var(--cond);font-size:13px;letter-spacing:.3em;color:var(--muted)}
+.nav ul{display:flex;gap:28px;list-style:none;margin:0 0 0 auto;padding:0;font-size:14px}
+.nav ul a{text-decoration:none;color:#cfc7bd}
+.nav ul a:hover{color:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;padding:13px 26px;font-weight:700;font-size:15px;text-decoration:none;cursor:pointer;transition:transform .2s,background .2s,box-shadow .2s}
+.btn.fire{background:var(--ember);color:#160a03;box-shadow:0 0 0 0 rgba(255,106,31,.5)}
+.btn.fire:hover{background:#ff8240;box-shadow:0 8px 30px rgba(255,106,31,.35)}
+.btn.line{border:1px solid rgba(244,237,228,.35);background:transparent}
+.btn.line:hover{border-color:var(--cream)}
+.btn:active{transform:scale(.98)}
+.burger{display:none;margin-left:auto;background:none;border:0;width:44px;height:44px;cursor:pointer;color:var(--cream);font-size:24px}
+/* 照片位 */
+.ph{position:relative;overflow:hidden;background:var(--coal2);margin:0}
+.ph>svg,.ph>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+body.slots .ph{outline:2px dashed var(--ember);outline-offset:-2px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:10px;top:10px;z-index:3;background:var(--ember);color:#160a03;font-size:11px;font-weight:700;padding:4px 9px;border-radius:20px}
+/* Hero */
+.hero{position:relative;min-height:100vh;min-height:100svh;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);align-items:stretch}
+.hero .copy{position:relative;z-index:2;display:flex;flex-direction:column;justify-content:center;padding:120px clamp(16px,4vw,48px) 60px max(clamp(16px,4vw,48px),calc((100vw - 1280px)/2 + 48px))}
+.hero .big{font-family:var(--kr);font-weight:900;font-size:clamp(110px,15vw,230px);line-height:.85;letter-spacing:-.05em;margin:0;background:linear-gradient(180deg,#fff 30%,#ffb26b 70%,#ff6a1f);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero h1{margin:22px 0 0;font-size:clamp(26px,2.8vw,38px);font-weight:800;line-height:1.35}
+.hero p{margin:16px 0 30px;color:#c8bfb4;max-width:460px}
+.hero .cta{display:flex;gap:12px;flex-wrap:wrap}
+.hero .ph{min-height:100%}
+.hero .ph::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,var(--coal),transparent 30%)}
+.facts{display:flex;gap:34px;margin-top:46px;flex-wrap:wrap}
+.facts div{border-left:2px solid var(--ember);padding-left:14px}
+.facts b{display:block;font-family:var(--cond);font-size:30px;line-height:1}
+.facts span{font-size:12px;color:var(--muted);letter-spacing:.1em}
+.open{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#cfc7bd;margin-bottom:18px}
+.open i{width:9px;height:9px;border-radius:50%;background:#6b645d}
+.open.on i{background:var(--ember);box-shadow:0 0 12px var(--ember)}
+/* 區塊 */
+.sec{padding:clamp(80px,10vw,140px) 0}
+.head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:30px;align-items:end;margin-bottom:46px}
+.head h2{margin:10px 0 0;font-size:clamp(32px,4.4vw,58px);font-weight:900;line-height:1.1;letter-spacing:-.01em}
+.head h2 .kr{display:block;font-size:.42em;color:var(--muted);font-weight:700;letter-spacing:.06em;margin-bottom:8px}
+.head p{margin:0;color:#c0b8ae;max-width:520px;justify-self:end}
+/* 部位橫捲 */
+.cutsWrap{position:relative}
+.cuts{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(260px,320px);gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 clamp(16px,4vw,48px) 20px max(clamp(16px,4vw,48px),calc((100vw - 1280px)/2 + 48px));scrollbar-width:thin;scrollbar-color:var(--ember) transparent}
+.cut{scroll-snap-align:start;background:var(--coal2);border-radius:18px;overflow:hidden;border:1px solid var(--line)}
+.cut .ph{aspect-ratio:4/3}
+.cut .t{padding:18px 20px 22px}
+.cut h3{margin:0;font-size:21px;font-weight:800;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.cut h3 .kr{font-size:13px;color:var(--ember2);font-weight:700}
+.cut .p{font-family:var(--cond);font-size:20px;color:var(--ember)}
+.cut p{margin:8px 0 0;color:#bdb5ab;font-size:14px}
+.meter{display:flex;gap:4px;margin-top:12px;align-items:center;font-size:12px;color:var(--muted)}
+.meter i{width:18px;height:4px;border-radius:2px;background:#3a3631}
+.meter i.on{background:var(--ember)}
+.arrows{display:flex;gap:8px;justify-self:end}
+.arrows button{width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:none;cursor:pointer;font-size:18px}
+.arrows button:hover{border-color:var(--ember);color:var(--ember)}
+/* 套餐計算器 */
+.calcSec{background:radial-gradient(ellipse 70% 60% at 80% 30%,rgba(255,106,31,.14),transparent 70%),var(--coal2)}
+.calc{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:clamp(24px,4vw,56px);align-items:start}
+.panel{background:var(--coal);border:1px solid var(--line);border-radius:22px;padding:clamp(20px,3vw,34px)}
+.step{margin-bottom:28px}
+.step:last-child{margin-bottom:0}
+.step h4{margin:0 0 12px;font-size:14px;color:var(--muted);font-weight:600;letter-spacing:.1em}
+.step h4 b{color:var(--ember);font-family:var(--cond);margin-right:8px}
+.pax{display:flex;align-items:center;gap:18px}
+.pax button{width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:var(--coal3);cursor:pointer;font-size:22px}
+.pax output{font-family:var(--cond);font-size:54px;line-height:1;min-width:1.4em;text-align:center}
+.sets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.set{position:relative}
+.set input{position:absolute;opacity:0}
+.set span{display:block;height:100%;border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;transition:border-color .2s,background .2s}
+.set b{display:block;font-size:17px}
+.set small{display:block;color:var(--muted);font-size:12px;margin-top:4px;line-height:1.5}
+.set em{display:block;font-style:normal;font-family:var(--cond);color:var(--ember);font-size:18px;margin-top:8px}
+.set input:checked+span{border-color:var(--ember);background:rgba(255,106,31,.08)}
+.set input:focus-visible+span{outline:2px solid var(--ember)}
+.addons{display:grid;gap:8px}
+.addon{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:10px 14px;border:1px solid var(--line);border-radius:12px;font-size:15px}
+.addon small{color:var(--muted);margin-left:6px}
+.addon .q{display:flex;align-items:center;gap:8px}
+.addon .q button{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:none;cursor:pointer}
+.addon .q output{min-width:1.2em;text-align:center;font-family:var(--cond);font-size:18px}
+.receipt{position:sticky;top:96px}
+.receipt h3{margin:0 0 4px;font-size:22px;font-weight:800}
+.receipt .sub{color:var(--muted);font-size:13px;margin:0 0 18px}
+.receipt ul{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.receipt li{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
+.receipt li span:last-child{font-family:var(--cond);font-size:17px}
+.sum{display:flex;justify-content:space-between;align-items:baseline;margin:18px 0 6px}
+.sum b{font-family:var(--cond);font-size:46px;color:var(--ember);line-height:1}
+.per{color:var(--muted);font-size:13px;text-align:right}
+.verdict{margin:16px 0 20px;padding:12px 14px;border-radius:12px;background:rgba(255,178,107,.1);color:var(--ember2);font-size:14px}
+.receipt .btn{width:100%}
+/* 小菜 */
+.banchan{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,5vw,70px);align-items:center}
+.banchan .ph{aspect-ratio:5/4;border-radius:24px}
+.banchan ul{list-style:none;padding:0;margin:26px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:10px 24px}
+.banchan li{display:flex;gap:10px;align-items:center;font-size:15px;color:#d6cec4}
+.banchan li::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--c)}
+/* 訂位 */
+.book>*,.calc>*,.banchan>*{min-width:0}
+.book{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:clamp(24px,5vw,70px);align-items:start}
+.rooms{display:grid;gap:14px}
+.room{display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px;align-items:center;border:1px solid var(--line);border-radius:18px;overflow:hidden;padding-right:16px}
+.room .ph{aspect-ratio:1;height:100%}
+.room b{display:block;font-size:17px}
+.room small{color:var(--muted);font-size:13px;line-height:1.6;display:block}
+form.bf{background:var(--cream);color:#1a1613;border-radius:24px;padding:clamp(22px,3vw,36px)}
+form.bf h3{margin:0 0 18px;font-size:24px;font-weight:900}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips label{position:relative}
+.chips input{position:absolute;opacity:0}
+.chips span{display:block;padding:9px 15px;border-radius:999px;border:1.5px solid #cfc5b9;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.chips span small{display:block;font-size:10px;font-weight:500;opacity:.7}
+.chips input:checked+span{background:#1a1613;color:var(--cream);border-color:#1a1613}
+.chips input:disabled+span{opacity:.35;text-decoration:line-through;cursor:not-allowed}
+.chips input:focus-visible+span{outline:2px solid var(--ember)}
+.fgrp{margin-bottom:18px}
+.fgrp>span{display:block;font-size:12px;font-weight:700;color:#6c6258;letter-spacing:.1em;margin-bottom:8px}
+.dates{display:grid;grid-auto-flow:column;grid-auto-columns:64px;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.dates span{text-align:center;padding:8px 0!important;border-radius:14px!important}
+.dates b{display:block;font-family:var(--cond);font-size:22px;line-height:1.1}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.inp{display:grid;gap:6px;font-size:12px;font-weight:700;color:#6c6258;letter-spacing:.06em}
+.inp input,.inp select{border:1.5px solid #cfc5b9;border-radius:12px;padding:11px 12px;background:#fff;font-size:15px;color:#1a1613;width:100%}
+.inp input:focus,.inp select:focus{outline:none;border-color:var(--ember)}
+.err{color:#c4320c;font-size:12px;min-height:1em}
+form.bf .btn{width:100%;margin-top:6px}
+.demo{font-size:12px;color:#8a7f73;text-align:center;margin:10px 0 0}
+.ok{text-align:center;padding:20px 0}
+.ok .code{font-family:var(--cond);font-size:46px;color:var(--ember);letter-spacing:.06em}
+.ok p{margin:6px 0;color:#4a423a}
+/* 評論 */
+.quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.qt{background:var(--coal2);border-radius:18px;padding:26px;border:1px solid var(--line)}
+.qt p{margin:12px 0 18px;font-size:16px;color:#ddd5cb}
+.qt small{color:var(--muted)}
+.qt .s{color:var(--ember);letter-spacing:.2em}
+/* 資訊 */
+.info{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.box{border:1px solid var(--line);border-radius:18px;padding:26px}
+.box h3{margin:0 0 14px;font-size:14px;color:var(--muted);letter-spacing:.14em;font-weight:600}
+.hours{width:100%;border-collapse:collapse;font-size:14px}
+.hours td{padding:6px 0}
+.hours td:last-child{text-align:right;font-family:var(--cond);font-size:16px}
+.hours tr.today td{color:var(--ember)}
+.box a.tel{font-family:var(--cond);font-size:32px;text-decoration:none;color:var(--ember)}
+.box p{color:#c0b8ae;margin:8px 0 0;font-size:14px}
+.box.map{padding:0;overflow:hidden;position:relative;min-height:240px}
+.box.map svg{position:absolute;inset:0;width:100%;height:100%}
+.box.map .btn{position:absolute;left:16px;bottom:16px;padding:10px 18px;font-size:13px}
+footer{border-top:1px solid var(--line);padding:40px 0;color:var(--muted);font-size:13px}
+footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px}
+footer nav{display:flex;gap:18px}footer a{text-decoration:none}
+.slotBtn{position:fixed;right:16px;bottom:16px;z-index:60;border:1px solid var(--line);background:rgba(16,15,14,.85);color:var(--muted);font-size:12px;padding:8px 14px;border-radius:30px;cursor:pointer}
+.slotBtn[aria-pressed=true]{color:var(--ember);border-color:var(--ember)}
+.rv-in{opacity:0;transform:translateY(26px);transition:opacity .8s ease,transform .8s cubic-bezier(.2,.8,.2,1)}
+.rv-in.vis{opacity:1;transform:none}
+@media (max-width:980px){
+  .nav ul{position:fixed;inset:74px 0 auto;flex-direction:column;gap:0;background:rgba(16,15,14,.97);padding:8px 24px 20px;transform:translateY(-130%);transition:transform .35s}
+  .nav.open ul{transform:none}
+  .nav ul a{display:block;padding:13px 0;border-bottom:1px solid var(--line);font-size:16px}
+  .nav .wrap>.btn{display:none}
+  .burger{display:block}
+  .hero{grid-template-columns:1fr;min-height:0}
+  .hero .ph{min-height:56vh;order:-1}
+  .hero .ph::before{background:linear-gradient(0deg,var(--coal),transparent 40%)}
+  .hero .copy{padding-top:0;margin-top:-90px}
+  .head,.calc,.banchan,.book{grid-template-columns:1fr}
+  .head p,.arrows{justify-self:start}
+  .receipt{position:static}
+  .quotes,.info{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  .sets{grid-template-columns:1fr}
+  .two{grid-template-columns:1fr}
+  .banchan ul{grid-template-columns:1fr}
+  .room{grid-template-columns:96px minmax(0,1fr)}
+  .facts{gap:20px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.rv-in{opacity:1;transform:none;transition:none}}
 </style>
 </head>
 <body>
-<canvas id="cv" aria-label="炭火烤網，可拖曳肉片烤、點擊翻面"></canvas>
-<header class="top">
-  <div class="brand"><h1>불판<span>.</span></h1><p>炭火烤肉 · 中間火旺，邊緣保溫</p></div>
-  <div class="stats" aria-live="polite">
-    <div class="stat"><b id="sScore">0</b><small>점수 分數</small></div>
-    <div class="stat"><b id="sPerfect">0</b><small>완벽 完美</small></div>
-    <div class="stat"><b id="sBurnt">0</b><small>탄 것 焦</small></div>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top"><b>불판<i>.</i></b><span>BULPAN</span></a>
+    <ul id="navList"><li><a href="#cuts">部位</a></li><li><a href="#calc">套餐計算</a></li><li><a href="#banchan">小菜</a></li><li><a href="#book">訂位</a></li><li><a href="#visit">交通</a></li></ul>
+    <a class="btn fire" href="#book" style="padding:10px 20px;font-size:14px">線上訂位</a>
+    <button class="burger" id="burger" type="button" aria-label="開啟選單" aria-expanded="false">☰</button>
   </div>
 </header>
-<div class="help" id="help"><b>玩法</b>：從生肉盤拖到烤網上（或點一下自動放）。點網上的肉＝翻面，<b>邊緣的顏色就是底面的熟度</b>。五花和牛小排可以切換剪刀剪段。兩面都烤到焦糖色，就拖進右邊的生菜包。</div>
-<nav class="dock" aria-label="工具">
-  <div class="grp" role="group" aria-label="工具">
-    <button type="button" id="tTong" aria-pressed="true">집게<small>夾子</small></button>
-    <button type="button" id="tCut" aria-pressed="false">가위<small>剪刀</small></button>
-  </div>
-  <span class="sep"></span>
-  <div class="grp heat" role="group" aria-label="火力">
-    <button type="button" data-h="0.6" aria-pressed="false">약<small>小火</small></button>
-    <button type="button" data-h="1" aria-pressed="true">중<small>中火</small></button>
-    <button type="button" data-h="1.5" aria-pressed="false">강<small>大火</small></button>
-  </div>
-  <span class="sep"></span>
-  <button type="button" class="add" id="more">추가<small>加點</small></button>
-</nav>
+
+<main id="top">
+  <section class="hero">
+    <div class="copy">
+      <span class="open" id="open"><i></i><span>讀取營業狀態…</span></span>
+      <p class="big" aria-hidden="true">불판</p>
+      <h1>備長炭、厚切五花，<br>店員桌邊幫你烤到剛好。</h1>
+      <p>韓國直送的不鏽鋼烤網架在備長炭上，五花肉熟成 14 天、厚切 2 公分。你只要負責包生菜、喝燒酒。</p>
+      <div class="cta"><a class="btn fire" href="#book">線上訂位</a><a class="btn line" href="#calc">幫我算要點多少</a></div>
+      <div class="facts"><div><b>14</b><span>天熟成五花</span></div><div><b>2cm</b><span>厚切</span></div><div><b>12</b><span>種小菜無限續</span></div></div>
+    </div>
+    <figure class="ph" data-photo="hero" data-label="炭火烤網上的五花" data-size="1800×1600"></figure>
+  </section>
+
+  <section class="sec" id="cuts">
+    <div class="wrap head rv-in"><div><span class="label">The Cuts</span><h2><span class="kr">부위</span>先選部位</h2></div><div class="arrows"><button type="button" id="prev" aria-label="上一個">←</button><button type="button" id="next" aria-label="下一個">→</button></div></div>
+    <div class="cutsWrap"><div class="cuts" id="cuts-list"></div></div>
+  </section>
+
+  <section class="sec calcSec" id="calc">
+    <div class="wrap">
+      <div class="head rv-in"><div><span class="label">How much to order</span><h2><span class="kr">몇 인분?</span>幾個人，要點多少？</h2></div><p>選人數和套餐，再加點想吃的部位。右邊會依每人大約 250–300 克肉估算份量，告訴你夠不夠吃。</p></div>
+      <div class="calc">
+        <div class="panel rv-in">
+          <div class="step"><h4><b>01</b>人數</h4><div class="pax"><button type="button" data-p="-1" aria-label="減少人數">−</button><output id="pax">2</output><button type="button" data-p="1" aria-label="增加人數">＋</button><span style="color:var(--muted);font-size:14px">位</span></div></div>
+          <div class="step"><h4><b>02</b>套餐（每人）</h4><div class="sets" id="sets"></div></div>
+          <div class="step"><h4><b>03</b>加點部位</h4><div class="addons" id="addons"></div></div>
+        </div>
+        <aside class="panel receipt rv-in" aria-live="polite">
+          <h3>估算</h3><p class="sub" id="rsub"></p>
+          <ul id="rlist"></ul>
+          <div class="sum"><span>預估合計</span><b id="rtotal">0</b></div>
+          <div class="per" id="rper"></div>
+          <div class="verdict" id="verdict"></div>
+          <a class="btn fire" href="#book" id="toBook">用這個人數訂位</a>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="banchan">
+    <div class="wrap banchan">
+      <figure class="ph rv-in" data-photo="banchan" data-label="整桌小菜" data-size="1500×1200"></figure>
+      <div class="rv-in">
+        <span class="label">Banchan</span>
+        <h2 style="margin:10px 0 16px;font-size:clamp(32px,4vw,52px);font-weight:900;line-height:1.15"><span class="kr" style="display:block;font-size:.42em;color:var(--muted)">반찬 무한리필</span>十二種小菜，吃完再加</h2>
+        <p style="color:#c0b8ae;margin:0">泡菜每週二醃一缸、放三週才上桌。蒸蛋用陶鍋現蒸，烤完肉剩的油可以做炒飯。</p>
+        <ul id="bclist"></ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec calcSec" id="book">
+    <div class="wrap">
+      <div class="head rv-in"><div><span class="label">Reservation</span><h2><span class="kr">예약</span>線上訂位</h2></div><p>訂位保留 15 分鐘。用餐時間 120 分鐘。包廂 6 人以上可預訂，需先付訂金。</p></div>
+      <div class="book">
+        <div class="rooms rv-in">
+          <div class="room"><figure class="ph" data-photo="r1" data-label="一般桌" data-size="600×600"></figure><div><b>一般桌</b><small>2–4 人，每桌一座炭爐，店員桌邊代烤。</small></div></div>
+          <div class="room"><figure class="ph" data-photo="r2" data-label="吧台" data-size="600×600"></figure><div><b>吧台</b><small>1–2 人，一人一爐，適合一個人來吃。</small></div></div>
+          <div class="room"><figure class="ph" data-photo="r3" data-label="包廂" data-size="600×600"></figure><div><b>包廂</b><small>6–12 人，獨立排煙，可帶生日蛋糕，訂金每位 NT$ 300。</small></div></div>
+        </div>
+        <form class="bf rv-in" id="bf" novalidate><div id="bfBody">
+          <h3>選日期與時間</h3>
+          <div class="fgrp"><span>日期</span><div class="chips dates" id="dates"></div></div>
+          <div class="fgrp"><span>時段</span><div class="chips" id="times"></div></div>
+          <div class="fgrp"><span>座位</span><div class="chips" id="seats"></div></div>
+          <div class="two">
+            <label class="inp">人數<select id="bPax"></select></label>
+            <label class="inp">特殊需求<select id="bNote"><option>無</option><option>慶生（可帶蛋糕）</option><option>有兒童，需兒童椅</option><option>不吃牛</option></select></label>
+            <label class="inp">姓名<input id="bName" autocomplete="name"><span class="err"></span></label>
+            <label class="inp">手機<input id="bPhone" inputmode="tel" autocomplete="tel" placeholder="09xx-xxx-xxx"><span class="err"></span></label>
+          </div>
+          <button class="btn fire" type="submit">確認訂位</button>
+          <p class="demo">示範版本：訂位只顯示在頁面上，不會送出。</p>
+        </div></form>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-label="評論">
+    <div class="wrap">
+      <div class="quotes">
+        <div class="qt rv-in"><span class="s">★★★★★</span><p>店員烤的五花外面焦脆、裡面還有汁，剪成一口大小直接放到盤子裡，完全不用自己顧。</p><small>Google 評論</small></div>
+        <div class="qt rv-in"><span class="s">★★★★★</span><p>醬漬牛小排很嫩，最後用剩下的油炒泡菜飯是必點。包廂排煙很好，衣服沒什麼味道。</p><small>Google 評論</small></div>
+        <div class="qt rv-in"><span class="s">★★★★☆</span><p>四個人點兩人份套餐加一份五花剛好，網站上的計算器滿準的。週末一定要訂位。</p><small>Google 評論</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="visit" style="padding-top:0">
+    <div class="wrap info">
+      <div class="box rv-in"><h3>營業時間</h3><table class="hours" id="hours"></table></div>
+      <div class="box rv-in"><h3>電話・地址</h3><a class="tel" id="tel" href="#"></a><p id="addr" style="color:var(--cream)"></p><p>捷運市政府站 3 號出口步行 5 分鐘。合作停車場消費滿 NT$ 2,000 折抵 2 小時。</p></div>
+      <div class="box map rv-in">
+        <svg viewBox="0 0 420 260" preserveAspectRatio="xMidYMid slice" role="img" aria-label="店家位置示意圖"><rect width="420" height="260" fill="#1a1816"/><g stroke="#2a2724" stroke-width="20"><path d="M0 80H420M0 200H420M130 0V260M320 0V260"/></g><g stroke="#232020" stroke-width="7"><path d="M0 140H420M230 0V260"/></g><g fill="#7d756c" font-size="10" font-family="PingFang TC,sans-serif"><text x="8" y="74">忠孝東路五段</text><text x="8" y="194">松高路</text></g><circle cx="320" cy="80" r="9" fill="none" stroke="#ff6a1f" stroke-width="3"/><g transform="translate(230 140)"><circle r="26" fill="rgba(255,106,31,.2)"/><path d="M0 -22 C-11 -22 -15 -13 -15 -7 C-15 3 0 15 0 15 C0 15 15 3 15 -7 C15 -13 11 -22 0 -22Z" fill="#ff6a1f"/><circle cy="-8" r="5" fill="#100f0e"/></g><text x="252" y="136" fill="#f4ede4" font-size="15" font-weight="900" font-family="Apple SD Gothic Neo,Malgun Gothic,sans-serif">불판</text></svg>
+        <a class="btn fire" id="mapLink" href="#" target="_blank" rel="noopener">開啟導航</a>
+      </div>
+    </div>
+  </section>
+</main>
+<footer><div class="wrap"><span>© <span id="yr"></span> 불판 BULPAN Korean Charcoal BBQ</span><nav><a href="#">Instagram</a><a href="#">Facebook</a><a href="#">LINE</a></nav></div></footer>
+<button class="slotBtn" id="slotBtn" type="button" aria-pressed="false">照片位</button>
 
 <script>
 (function(){
 'use strict';
-var cv = document.getElementById('cv'), g = cv.getContext('2d');
-var W = 0, H = 0, DPR = 1, L = {};
-var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-/* 食材：熟度色階 [生, 半熟, 剛好, 焦] 依熟度 0 / .5 / 1 / 1.45 內插 */
-var TYPES = {
-  belly:{ko:'삼겹살',zh:'五花',w:118,h:34,rate:1,fat:true,cut:true,
-    meat:['#e17f86','#d6a18f','#ae6b3c','#2f1d12'],fat2:['#f7e8e3','#f4dcc6','#e3ab60','#4a2f17']},
-  neck:{ko:'목살',zh:'梅花',w:70,h:52,rate:.85,fat:true,cut:true,
-    meat:['#d86f78','#c99880','#9d5f34','#2c1b10'],fat2:['#f2ddd8','#eed6c0','#d8a066','#433016']},
-  galbi:{ko:'갈비',zh:'醬牛小排',w:96,h:44,rate:1.25,cut:true,
-    meat:['#8e2c2e','#7a3a28','#5a2614','#1d0f08'],fat2:['#c4766a','#a8664b','#7f4222','#2b170c']},
-  shrimp:{ko:'새우',zh:'鮮蝦',w:50,h:30,rate:1.4,
-    meat:['#a9b1b2','#f2a07f','#f07a45','#3a1d10']},
-  mush:{ko:'새송이',zh:'杏鮑菇',w:44,h:44,rate:.9,tol:.15,
-    meat:['#f1e8d8','#e4c693','#b98142','#3d2612']}
+/* ===== 店家設定 ===== */
+var SHOP = {
+  name:'불판 BULPAN', phone:'(02) 2720-0000', address:'台北市信義區示範路 66 號 1 樓',
+  hours:[[['11:30','14:30'],['17:00','23:30']],[['17:00','23:30']],[['17:00','23:30']],[['17:00','23:30']],[['17:00','23:30']],[['17:00','00:30']],[['11:30','14:30'],['17:00','00:30']]],
+  photos:{hero:'',belly:'',neck:'',galbi:'',beef:'',shrimp:'',mush:'',banchan:'',r1:'',r2:'',r3:''}
 };
-var ORDER = ['belly','neck','galbi','shrimp','mush'];
-var stock = {belly:4,neck:2,galbi:3,shrimp:4,mush:4};
-var pieces = [], parts = [], pops = [], heat = 1, tool = 'tong', score = 0, perfect = 0, burnt = 0, t0 = performance.now();
-var drag = null, idSeq = 1;
+// [代號, 中文, 韓文, 每份克數, 價格, 說明, 油脂 1–5]
+var CUTS = [
+  ['belly','熟成厚切五花','삼겹살',180,420,'14 天乾式熟成、2 公分厚切，烤到外皮焦脆再剪段。',5],
+  ['neck','梅花豬頸肉','목살',180,420,'油花細、口感比五花有咬勁，沾海鹽最好吃。',3],
+  ['galbi','醬漬牛小排','양념갈비',200,780,'梨子、醬油、蒜泥醃 48 小時，帶骨上桌。',4],
+  ['beef','韓牛霜降','한우 등심',150,1280,'韓國一等級牛肋眼，只烤三面，七分熟最好。',4],
+  ['shrimp','大明蝦','왕새우',4,480,'一份四隻，烤到殼紅就可以剝。',1],
+  ['mush','杏鮑菇・蔬菜盤','버섯 모둠',200,180,'杏鮑菇、櫛瓜、洋蔥、大蒜，吸肉汁最好吃。',1]
+];
+var SETS = [
+  {id:'A',n:'豬肉套餐',d:'五花＋梅花、蒸蛋、大醬湯',p:690,g:280},
+  {id:'B',n:'牛豬套餐',d:'牛小排＋五花、蒸蛋、冷麵',p:990,g:300},
+  {id:'C',n:'只要單點',d:'全部自己選，小菜照樣無限續',p:0,g:0}
+];
+var BANCHAN = [['泡菜','#d8432a'],['豆芽菜','#efe2b0'],['涼拌菠菜','#4f8a2d'],['醃蘿蔔','#f2d27a'],['韓式煎餅','#e3b35c'],['馬鈴薯燉','#c99a5a'],['魚板','#e9cfa4'],['醃辣椒','#6b9a2e'],['蒸蛋','#f5d86a'],['生菜與紫蘇葉','#7cbf4d'],['包飯醬','#8a4a22'],['海帶芽','#2e5a2a']];
+var $ = function(s, r){ return (r || document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
-function lerpC(a, b, t){
-  var pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
-  var r = (pa>>16) + ((pb>>16) - (pa>>16))*t, gg = ((pa>>8)&255) + (((pb>>8)&255) - ((pa>>8)&255))*t, bb = (pa&255) + ((pb&255) - (pa&255))*t;
-  return 'rgb(' + (r|0) + ',' + (gg|0) + ',' + (bb|0) + ')';
-}
-function shade(stops, c){
-  var k = [0, .5, 1, 1.45]; c = Math.max(0, Math.min(1.45, c));
-  for (var i = 0; i < 3; i++) if (c <= k[i+1]) return lerpC(stops[i], stops[i+1], (c - k[i])/(k[i+1] - k[i]));
-  return stops[3];
-}
-
-/* 版面：橫向時生肉盤在左、生菜在右；直向時兩者放在烤網下方 */
-function layout(){
-  DPR = Math.min(2, window.devicePixelRatio || 1);
-  W = innerWidth; H = innerHeight; cv.width = W*DPR; cv.height = H*DPR; g.setTransform(DPR,0,0,DPR,0,0);
-  var land = W > H*1.05;
-  if (land){
-    L.R = Math.min(H*.34, W*.24); L.cx = W/2; L.cy = H*.52;
-    L.s = L.R/240;
-    L.raw = {x:Math.max(20, L.cx - L.R - 300*L.s - 40*L.s), y:L.cy - 170*L.s, w:240*L.s, h:340*L.s};
-    L.ssam = {x:Math.min(W - 130*L.s, L.cx + L.R + 175*L.s), y:L.cy - 90*L.s, r:105*L.s};
+/* ===== 佔位圖 ===== */
+var uid = 0;
+function svg(vb, body){ var id = 'n' + (++uid); return '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><filter id="' + id + '"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 .9  0 0 0 0 .8  0 0 0 .06 0"/></filter><filter id="b' + id + '"><feGaussianBlur stdDeviation="14"/></filter><filter id="s' + id + '"><feGaussianBlur stdDeviation="6"/></filter></defs>' + body.replace(/BLUR/g, 'b' + id).replace(/SOFT/g, 's' + id) + '<rect width="100%" height="100%" filter="url(#' + id + ')"/></svg>'; }
+function rnd(seed){ var s = seed; return function(){ s = (s*16807) % 2147483647; return s/2147483647; }; }
+function meat(kind, x, y, w, h, rot, cook, seed){
+  var r = rnd(seed || 3), s = '<g transform="translate(' + x + ' ' + y + ') rotate(' + rot + ')">';
+  var meatC = cook ? '#b06a3c' : '#d9727a', fatC = cook ? '#e8b46a' : '#f6e3dc';
+  s += '<rect x="' + (-w/2 + 6) + '" y="' + (-h/2 + 10) + '" width="' + w + '" height="' + h + '" rx="10" fill="rgba(0,0,0,.45)" filter="url(#SOFT)"/>';
+  if (kind === 'belly'){
+    s += '<rect x="' + (-w/2) + '" y="' + (-h/2) + '" width="' + w + '" height="' + h + '" rx="8" fill="' + meatC + '"/>';
+    [.06, .34, .62, .86].forEach(function(b, i){ var yy = -h/2 + h*b, bh = h*(i%2 ? .11 : .16), d = 'M' + (-w/2) + ' ' + yy; for (var xx = -w/2; xx <= w/2; xx += 10) d += ' L' + xx + ' ' + (yy + Math.sin(xx*.08 + i + seed)*3).toFixed(1); d += ' L' + (w/2) + ' ' + (yy + bh); for (var x2 = w/2; x2 >= -w/2; x2 -= 10) d += ' L' + x2 + ' ' + (yy + bh + Math.sin(x2*.07 + i*2)*3).toFixed(1); s += '<path d="' + d + 'Z" fill="' + fatC + '"/>'; });
+    if (cook) for (var g = -w/2 + 14; g < w/2; g += 26) s += '<path d="M' + g + ' ' + (-h/2 + 4) + ' l8 ' + (h - 8) + '" stroke="#3a1a0a" stroke-width="5" opacity=".6"/>';
+  } else if (kind === 'galbi'){
+    s += '<rect x="' + (-w/2) + '" y="' + (-h/2) + '" width="' + w + '" height="' + h + '" rx="10" fill="' + (cook ? '#5a2410' : '#8e2c2e') + '"/><rect x="' + (-w/2) + '" y="' + (-h/2) + '" width="' + w*.14 + '" height="' + h + '" rx="6" fill="#efe2cf"/>';
+    for (var k = 0; k < 8; k++) s += '<circle cx="' + (-w*.25 + r()*w*.6).toFixed(0) + '" cy="' + (-h*.3 + r()*h*.6).toFixed(0) + '" r="2.5" fill="#f3e3c0" opacity=".7"/>';
+  } else if (kind === 'beef'){
+    s += '<ellipse rx="' + w/2 + '" ry="' + h/2 + '" fill="#b8323c"/>';
+    for (var m = 0; m < 26; m++) s += '<path d="M' + (-w*.4 + r()*w*.8).toFixed(0) + ' ' + (-h*.35 + r()*h*.7).toFixed(0) + ' q8 -4 16 2 t14 -2" stroke="#f7e1dc" stroke-width="2.5" fill="none"/>';
+  } else if (kind === 'shrimp'){
+    s += '<path d="M' + (-w*.4) + ' 0 A' + w*.42 + ' ' + h*.7 + ' 0 1 1 ' + (w*.4) + ' 0" stroke="#f07a45" stroke-width="' + h*.5 + '" fill="none" stroke-linecap="round"/>';
+    for (var sp = 0; sp < 5; sp++) s += '<path d="M' + (-w*.3 + sp*w*.15) + ' ' + (-h*.55) + ' v' + h*.3 + '" stroke="#ffb08a" stroke-width="3"/>';
   } else {
-    L.R = Math.min(W*.44, H*.25); L.cx = W/2; L.cy = Math.max(L.R + 84, H*.36);
-    L.s = L.R/240;
-    var by = L.cy + L.R + 22;
-    L.raw = {x:12, y:by, w:W*.56 - 18, h:Math.min(H - by - 92, 300)};
-    L.ssam = {x:W*.79, y:by + Math.min(H - by - 92, 300)/2, r:Math.min(W*.19, (Math.min(H - by - 92, 300))/2)};
+    s += '<ellipse rx="' + w/2 + '" ry="' + h/2 + '" fill="#efe4d0"/>';
+    for (var n = -3; n <= 3; n++) s += '<path d="M' + n*w*.1 + ' ' + (-h*.4) + ' v' + h*.8 + '" stroke="#c7a878" stroke-width="2"/>';
   }
-  L.land = land;
+  return s + '</g>';
 }
-window.addEventListener('resize', layout);
-layout();
-
-/* 生肉盤的格子 */
-function rawSlots(){
-  var r = L.raw, out = [], n = ORDER.length;
-  if (L.land){
-    var sh = r.h/n;
-    ORDER.forEach(function(k, i){ out.push({k:k, x:r.x + r.w/2, y:r.y + sh*i + sh/2, w:r.w, h:sh}); });
-  } else {
-    var cols = 3, rows = 2, cw = r.w/cols, ch = r.h/rows;
-    ORDER.forEach(function(k, i){ out.push({k:k, x:r.x + cw*(i%cols) + cw/2, y:r.y + ch*Math.floor(i/cols) + ch/2, w:cw, h:ch}); });
-  }
-  return out;
+function grill(cx, cy, R){
+  var s = '<radialGradient id="emb' + R + '" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffb04a"/><stop offset=".6" stop-color="#d9481a"/><stop offset="1" stop-color="#2a0c04"/></radialGradient>';
+  s += '<circle cx="' + cx + '" cy="' + cy + '" r="' + (R + 40) + '" fill="#6d7175"/><circle cx="' + cx + '" cy="' + cy + '" r="' + (R + 16) + '" fill="#111"/><circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="url(#emb' + R + ')"/>';
+  var r = rnd(R); for (var i = 0; i < 26; i++){ var a = r()*6.28, d = Math.sqrt(r())*R*.85; s += '<circle cx="' + (cx + Math.cos(a)*d).toFixed(0) + '" cy="' + (cy + Math.sin(a)*d).toFixed(0) + '" r="' + (R*.08 + r()*R*.05).toFixed(0) + '" fill="#1d0e08" opacity=".75"/>'; }
+  s += '<g clip-path="url(#cl' + R + ')"><clipPath id="cl' + R + '"><circle cx="' + cx + '" cy="' + cy + '" r="' + R + '"/></clipPath>';
+  for (var x = -R; x <= R; x += R/8) s += '<path d="M' + (cx + x) + ' ' + (cy - R) + ' V' + (cy + R) + '" stroke="#1a1a1a" stroke-width="' + (R/30) + '"/><path d="M' + (cx + x - 2) + ' ' + (cy - R) + ' V' + (cy + R) + '" stroke="#9aa0a6" stroke-width="1.5" opacity=".5"/>';
+  return '<defs>' + s.split('<circle')[0] + '</defs>' + s.replace(s.split('<circle')[0], '') + '</g>';
 }
-
-function makePiece(k, x, y){
-  var t = TYPES[k], sc = L.s*(L.land ? 1 : 1.05);
-  return {id:idSeq++, k:k, x:x, y:y, w:t.w*sc, h:t.h*sc, rot:(Math.random()-.5)*.5, down:0, up:0, flip:0, marks:[0,0], seed:Math.random()*1000, lastX:x, lastY:y};
-}
-
-/* 幾何 */
-function local(p, x, y){ var dx = x - p.x, dy = y - p.y, c = Math.cos(-p.rot), s = Math.sin(-p.rot); return {x:dx*c - dy*s, y:dx*s + dy*c}; }
-function hit(p, x, y){ var l = local(p, x, y); return Math.abs(l.x) < p.w/2 + 6 && Math.abs(l.y) < p.h/2 + 6; }
-function onGrill(x, y){ return Math.hypot(x - L.cx, y - L.cy) < L.R - 8; }
-function inSsam(x, y){ return Math.hypot(x - L.ssam.x, y - L.ssam.y) < L.ssam.r + 10; }
-function heatAt(x, y){ var r = Math.hypot(x - L.cx, y - L.cy)/L.R; return r > 1 ? 0 : (.25 + .75*(1 - r*r))*heat; }
-function freeSpot(){
-  for (var tries = 0; tries < 40; tries++){
-    var a = Math.random()*Math.PI*2, r = Math.random()*L.R*.62, x = L.cx + Math.cos(a)*r, y = L.cy + Math.sin(a)*r;
-    if (!pieces.some(function(p){ return Math.hypot(p.x - x, p.y - y) < Math.max(p.w, p.h)*.7; })) return {x:x, y:y};
-  }
-  return {x:L.cx + (Math.random()-.5)*L.R, y:L.cy + (Math.random()-.5)*L.R*.6};
-}
-
-/* 指標 */
-function pos(e){ return {x:e.clientX, y:e.clientY}; }
-cv.addEventListener('pointerdown', function(e){
-  audio(); var p = pos(e);
-  document.getElementById('help').classList.add('hide');
-  for (var i = pieces.length - 1; i >= 0; i--){
-    if (hit(pieces[i], p.x, p.y)){
-      var pc = pieces.splice(i, 1)[0]; pieces.push(pc);
-      drag = {p:pc, from:'grill', sx:p.x, sy:p.y, ox:pc.x - p.x, oy:pc.y - p.y, moved:false, ux:pc.x, uy:pc.y};
-      cv.setPointerCapture(e.pointerId); return;
-    }
-  }
-  var slot = rawSlots().find(function(s){ return Math.abs(p.x - s.x) < s.w/2 && Math.abs(p.y - s.y) < s.h/2; });
-  if (slot && stock[slot.k] > 0){
-    var np = makePiece(slot.k, p.x, p.y);
-    drag = {p:np, from:'raw', sx:p.x, sy:p.y, ox:0, oy:0, moved:false};
-    cv.setPointerCapture(e.pointerId);
-  }
-});
-cv.addEventListener('pointermove', function(e){
-  if (!drag) return; var p = pos(e);
-  if (!drag.moved && Math.hypot(p.x - drag.sx, p.y - drag.sy) > 6){
-    drag.moved = true;
-    if (drag.from === 'raw'){ stock[drag.p.k]--; pieces.push(drag.p); }
-  }
-  if (drag.moved){ drag.p.x = p.x + drag.ox; drag.p.y = p.y + drag.oy; drag.p.lift = 1; }
-});
-function endDrag(e){
-  if (!drag) return; var d = drag, pc = d.p; drag = null; pc.lift = 0;
-  if (!d.moved){
-    if (d.from === 'raw'){ stock[pc.k]--; var f = freeSpot(); pc.x = f.x; pc.y = f.y; pieces.push(pc); sizzleBurst(.7); }
-    else if (tool === 'cut') cut(pc, e.clientX, e.clientY);
-    else flip(pc);
-    return;
-  }
-  if (inSsam(pc.x, pc.y)){ serve(pc); return; }
-  if (onGrill(pc.x, pc.y)){ if (d.from === 'raw') sizzleBurst(.8); return; }
-  if (d.from === 'raw'){ pieces.splice(pieces.indexOf(pc), 1); stock[pc.k]++; return; }
-  pc.x = d.ux; pc.y = d.uy;
-}
-cv.addEventListener('pointerup', endDrag);
-cv.addEventListener('pointercancel', endDrag);
-
-function flip(p){
-  if (p.flip > 0) return;
-  p.flip = 1; var a = p.down; p.down = p.up; p.up = a;
-  var m = p.marks[0]; p.marks[0] = p.marks[1]; p.marks[1] = m;
-  click(420, .05); sizzleBurst(.5);
-}
-function cut(p, x, y){
-  var t = TYPES[p.k];
-  if (!t.cut || p.w < 46*L.s){ pop(p.x, p.y - 30, '자를 수 없어요　剪不了', '#a39d94'); return; }
-  var l = local(p, x, y), at = Math.max(-p.w/2 + 20*L.s, Math.min(p.w/2 - 20*L.s, l.x));
-  var w1 = at + p.w/2, w2 = p.w/2 - at, c = Math.cos(p.rot), s = Math.sin(p.rot);
-  var a = Object.assign({}, p, {id:idSeq++, w:w1 - 3, x:p.x + c*(-p.w/2 + w1/2 - 3), y:p.y + s*(-p.w/2 + w1/2 - 3)});
-  var b = Object.assign({}, p, {id:idSeq++, w:w2 - 3, x:p.x + c*(p.w/2 - w2/2 + 3), y:p.y + s*(p.w/2 - w2/2 + 3), seed:p.seed + 7});
-  var i = pieces.indexOf(p); pieces.splice(i, 1, a, b);
-  click(1800, .06); click(2400, .04, .05);
-}
-function serve(p){
-  pieces.splice(pieces.indexOf(p), 1);
-  var t = TYPES[p.k], tol = t.tol || 0, lo = Math.min(p.down, p.up), hi = Math.max(p.down, p.up), pts, msg, col;
-  if (hi > 1.3 + tol){ pts = -30; msg = '탔어요　焦了'; col = '#8a8580'; burnt++; }
-  else if (lo < .55 - tol){ pts = -20; msg = '덜 익었어요　沒熟'; col = '#e17f86'; }
-  else if (lo >= .82 - tol && hi <= 1.18 + tol){ pts = 100; msg = '완벽!　完美'; col = '#ffd166'; perfect++; }
-  else { pts = 50; msg = '맛있어요　好吃'; col = '#9ed37a'; }
-  score += pts; pop(L.ssam.x, L.ssam.y - L.ssam.r - 10, msg + (pts > 0 ? ' +' : ' ') + pts, col);
-  click(pts > 0 ? 880 : 220, .06); if (pts === 100){ click(1320, .05, .08); }
-  document.getElementById('sScore').textContent = score;
-  document.getElementById('sPerfect').textContent = perfect;
-  document.getElementById('sBurnt').textContent = burnt;
-}
-function pop(x, y, txt, col){ pops.push({x:x, y:y, txt:txt, col:col, t:0}); }
-
-/* 工具列 */
-var tTong = document.getElementById('tTong'), tCut = document.getElementById('tCut');
-function setTool(t){ tool = t; tTong.setAttribute('aria-pressed', t === 'tong'); tCut.setAttribute('aria-pressed', t === 'cut'); cv.style.cursor = t === 'cut' ? 'crosshair' : 'grab'; }
-tTong.onclick = function(){ setTool('tong'); }; tCut.onclick = function(){ setTool('cut'); };
-document.querySelectorAll('[data-h]').forEach(function(b){
-  b.onclick = function(){ heat = +b.dataset.h; document.querySelectorAll('[data-h]').forEach(function(x){ x.setAttribute('aria-pressed', x === b); }); audio(); };
-});
-document.getElementById('more').onclick = function(){ ORDER.forEach(function(k){ stock[k] = Math.min(stock[k] + (k === 'neck' ? 2 : 3), 9); }); pop(L.raw.x + L.raw.w/2, L.raw.y - 6, '추가요!　加點', '#ffd166'); audio(); };
-document.addEventListener('keydown', function(e){ if (e.key === 'c' || e.key === 'C') setTool(tool === 'cut' ? 'tong' : 'cut'); });
-setTool('tong');
-
-/* 聲音：滋滋聲由所有烤網上的肉片熱度驅動 */
-var ac = null, sizz = null;
-function audio(){
-  if (ac){ if (ac.state === 'suspended') ac.resume(); return ac; }
-  try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ return null; }
-  var len = 2, buf = ac.createBuffer(1, ac.sampleRate*len, ac.sampleRate), d = buf.getChannelData(0);
-  for (var i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * (Math.random() < .02 ? 1 : .35);
-  var s = ac.createBufferSource(); s.buffer = buf; s.loop = true;
-  var f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 5200; f.Q.value = .6;
-  sizz = ac.createGain(); sizz.gain.value = 0;
-  s.connect(f).connect(sizz).connect(ac.destination); s.start();
-  return ac;
-}
-function sizzleBurst(v){ if (!sizz) return; var t = ac.currentTime; sizz.gain.cancelScheduledValues(t); sizz.gain.setValueAtTime(Math.min(.25, sizz.gain.value + v*.12), t); }
-function click(f, v, delay){
-  if (!ac) return; var t = ac.currentTime + (delay || 0), o = ac.createOscillator(), gg = ac.createGain();
-  o.type = 'triangle'; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f*.6, t + .08);
-  gg.gain.setValueAtTime(v, t); gg.gain.exponentialRampToValueAtTime(.0001, t + .12); o.connect(gg).connect(ac.destination); o.start(t); o.stop(t + .14);
-}
-
-/* 繪圖 */
-var coals = [];
-for (var i = 0; i < 46; i++) coals.push({a:Math.random()*Math.PI*2, r:Math.sqrt(Math.random())*.92, s:.06 + Math.random()*.08, ph:Math.random()*6});
-function drawTable(t){
-  var bg = g.createRadialGradient(L.cx, L.cy, L.R*.6, L.cx, L.cy, Math.max(W, H)*.9);
-  bg.addColorStop(0, '#2b2a28'); bg.addColorStop(.5, '#1a1918'); bg.addColorStop(1, '#0c0c0c');
-  g.fillStyle = bg; g.fillRect(0, 0, W, H);
-  // 不鏽鋼桌面的刷紋
-  g.globalAlpha = .05; g.strokeStyle = '#fff'; g.lineWidth = 1;
-  for (var y = 0; y < H; y += 3){ g.beginPath(); g.moveTo(0, y + .5); g.lineTo(W, y + .5); g.stroke(); }
-  g.globalAlpha = 1;
-  // 排煙罩的倒影光環
-  g.fillStyle = 'rgba(0,0,0,.6)'; g.beginPath(); g.arc(L.cx, L.cy + 10, L.R + 34*L.s, 0, Math.PI*2); g.fill();
-  var rim = g.createLinearGradient(L.cx - L.R, L.cy - L.R, L.cx + L.R, L.cy + L.R);
-  rim.addColorStop(0, '#8d8f93'); rim.addColorStop(.5, '#3c3e42'); rim.addColorStop(1, '#a7a9ad');
-  g.fillStyle = rim; g.beginPath(); g.arc(L.cx, L.cy, L.R + 22*L.s, 0, Math.PI*2); g.fill();
-  g.fillStyle = '#121212'; g.beginPath(); g.arc(L.cx, L.cy, L.R + 6*L.s, 0, Math.PI*2); g.fill();
-  // 炭火
-  var glow = g.createRadialGradient(L.cx, L.cy, 0, L.cx, L.cy, L.R);
-  var hot = Math.min(1, .55 + heat*.35);
-  glow.addColorStop(0, 'rgba(255,' + (150 + 40*hot|0) + ',60,' + (.95*hot) + ')'); glow.addColorStop(.55, 'rgba(220,70,20,' + (.75*hot) + ')'); glow.addColorStop(1, 'rgba(40,10,4,.9)');
-  g.fillStyle = glow; g.beginPath(); g.arc(L.cx, L.cy, L.R, 0, Math.PI*2); g.fill();
-  coals.forEach(function(c){
-    var fl = reduce ? .7 : .55 + .45*Math.sin(t*.002*(1 + c.ph%1) + c.ph);
-    var x = L.cx + Math.cos(c.a)*c.r*L.R, y = L.cy + Math.sin(c.a)*c.r*L.R, rr = c.s*L.R*1.25;
-    // 炭塊：中間黑、邊緣與裂縫透出火光
-    var cg = g.createRadialGradient(x - rr*.2, y - rr*.2, rr*.1, x, y, rr);
-    cg.addColorStop(0, '#2a2420'); cg.addColorStop(.62, '#17110d');
-    cg.addColorStop(1, 'rgba(255,' + (90 + 70*fl|0) + ',30,' + (.35 + .55*fl*hot*(1 - c.r*.5)) + ')');
-    g.fillStyle = cg; g.beginPath();
-    for (var v = 0; v < 7; v++){ var b = v/7*Math.PI*2 + c.ph, q = rr*(.78 + .22*Math.sin(c.ph*3 + v*1.9)); g.lineTo(x + Math.cos(b)*q, y + Math.sin(b)*q); }
-    g.closePath(); g.fill();
-    g.strokeStyle = 'rgba(255,' + (140 + 80*fl|0) + ',60,' + (.5*fl*hot) + ')'; g.lineWidth = 1.2;
-    g.beginPath(); g.moveTo(x - rr*.4, y + rr*.1); g.lineTo(x, y - rr*.15); g.lineTo(x + rr*.35, y + rr*.2); g.stroke();
-    g.fillStyle = 'rgba(200,195,190,.18)'; g.beginPath(); g.arc(x - rr*.3, y - rr*.35, rr*.18, 0, Math.PI*2); g.fill();
-  });
-  // 烤網
-  g.save(); g.beginPath(); g.arc(L.cx, L.cy, L.R, 0, Math.PI*2); g.clip();
-  var gap = 15*L.s;
-  for (var gx = -L.R; gx <= L.R; gx += gap){
-    g.strokeStyle = '#1b1b1b'; g.lineWidth = 4.2*L.s; g.beginPath(); g.moveTo(L.cx + gx, L.cy - L.R); g.lineTo(L.cx + gx, L.cy + L.R); g.stroke();
-    g.strokeStyle = 'rgba(190,190,195,.35)'; g.lineWidth = 1.2*L.s; g.beginPath(); g.moveTo(L.cx + gx - 1, L.cy - L.R); g.lineTo(L.cx + gx - 1, L.cy + L.R); g.stroke();
-  }
-  g.restore();
-  g.strokeStyle = '#5b5d61'; g.lineWidth = 5*L.s; g.beginPath(); g.arc(L.cx, L.cy, L.R, 0, Math.PI*2); g.stroke();
-}
-function roundRect(x, y, w, h, r){ g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
-function drawPieceBody(p, c, under){
-  var t = TYPES[p.k], w = p.w, h = p.h;
-  if (p.k === 'shrimp'){
-    g.lineCap = 'round'; g.strokeStyle = shade(t.meat, c); g.lineWidth = h*.62;
-    g.beginPath(); g.arc(0, h*.15, w*.38, Math.PI*1.05, Math.PI*1.95); g.stroke();
-    g.fillStyle = shade(t.meat, c + .1); g.beginPath(); g.moveTo(w*.36, -h*.05); g.lineTo(w*.52, -h*.38); g.lineTo(w*.5, h*.14); g.fill();
-    g.strokeStyle = 'rgba(255,255,255,.25)'; g.lineWidth = 1.2;
-    for (var k = 0; k < 4; k++){ var a = Math.PI*(1.15 + k*.2); g.beginPath(); g.moveTo(Math.cos(a)*w*.25, h*.15 + Math.sin(a)*w*.25); g.lineTo(Math.cos(a)*w*.52, h*.15 + Math.sin(a)*w*.52); g.stroke(); }
-    return;
-  }
-  if (p.k === 'mush'){
-    g.fillStyle = shade(t.meat, c); g.beginPath(); g.ellipse(0, 0, w/2, h/2, 0, 0, Math.PI*2); g.fill();
-    g.strokeStyle = 'rgba(120,80,40,.35)'; g.lineWidth = 1;
-    for (var m = -3; m <= 3; m++){ g.beginPath(); g.moveTo(m*w*.1, -h*.42 + Math.abs(m)*2); g.lineTo(m*w*.1, h*.42 - Math.abs(m)*2); g.stroke(); }
-    g.strokeStyle = shade(t.meat, c + .25); g.lineWidth = 2; g.beginPath(); g.ellipse(0, 0, w/2 - 1, h/2 - 1, 0, 0, Math.PI*2); g.stroke();
-    return;
-  }
-  roundRect(-w/2, -h/2, w, h, Math.min(8, h*.25)); g.fillStyle = shade(t.meat, c); g.fill();
-  g.save(); g.clip();
-  if (p.k === 'belly'){
-    // 五花的油脂層：沿長邊的條紋
-    var bands = [.08, .36, .62, .86];
-    bands.forEach(function(b, i){
-      g.fillStyle = shade(t.fat2, c); var y = -h/2 + h*b, bh = h*(i%2 ? .12 : .17);
-      g.beginPath(); g.moveTo(-w/2, y);
-      for (var x = -w/2; x <= w/2; x += 6) g.lineTo(x, y + Math.sin(x*.09 + p.seed + i)*2);
-      g.lineTo(w/2, y + bh); for (var x2 = w/2; x2 >= -w/2; x2 -= 6) g.lineTo(x2, y + bh + Math.sin(x2*.08 + p.seed*2 + i)*2); g.closePath(); g.fill();
+var ART = {
+  hero:function(){
+    var s = '<rect width="1000" height="1000" fill="#121110"/>' + grill(560, 520, 360);
+    s += meat('belly', 470, 420, 300, 86, -18, 1, 4) + meat('belly', 640, 560, 280, 80, 12, 0, 7) + meat('galbi', 520, 700, 220, 100, -6, 1, 9) + meat('mush', 760, 380, 110, 110, 0, 1, 2) + meat('mush', 700, 760, 100, 100, 0, 0, 5);
+    s += '<g opacity=".5" filter="url(#BLUR)"><path d="M480 300 q-80 -120 20 -260" stroke="#fff" stroke-width="60" fill="none"/><path d="M700 330 q60 -140 -20 -300" stroke="#fff" stroke-width="40" fill="none"/></g>';
+    s += '<g transform="translate(140 820) rotate(-30)"><rect width="300" height="22" rx="10" fill="#b9bec4"/><rect x="290" y="-6" width="140" height="34" rx="12" fill="#2a2a2a"/></g>';
+    return svg('0 0 1000 1000', s);
+  },
+  cut:function(k){
+    var s = '<rect width="800" height="600" fill="#2b241e"/><rect width="800" height="600" fill="url(#wd)"/><defs><linearGradient id="wd" x1="0" x2="1"><stop offset="0" stop-color="#5a4130"/><stop offset="1" stop-color="#3a2a1f"/></linearGradient></defs>';
+    for (var i = 0; i < 16; i++) s += '<path d="M0 ' + (i*40 + 10) + ' Q400 ' + (i*40) + ' 800 ' + (i*40 + 14) + '" stroke="rgba(0,0,0,.15)" stroke-width="2" fill="none"/>';
+    var L = {belly:[['belly',400,250,460,120,-8],['belly',400,390,440,110,6]], neck:[['belly',330,300,260,180,-10],['belly',520,300,240,170,12]], galbi:[['galbi',400,300,440,170,-6]], beef:[['beef',400,300,440,260,0]], shrimp:[['shrimp',300,260,220,90,0],['shrimp',500,340,220,90,180]], mush:[['mush',260,280,170,170,0],['mush',460,330,170,170,0],['mush',600,230,140,140,0]]}[k];
+    L.forEach(function(m, i){ s += meat(m[0], m[1], m[2], m[3], m[4], m[5], 0, i + 3); });
+    s += '<circle cx="680" cy="500" r="40" fill="#e9e3d6"/><circle cx="680" cy="500" r="28" fill="#c9bfae"/>';
+    return svg('0 0 800 600', s);
+  },
+  banchan:function(){
+    var s = '<rect width="1500" height="1200" fill="#1e1b18"/>', r = rnd(8);
+    BANCHAN.forEach(function(b, i){
+      var x = 220 + (i%4)*350, y = 220 + Math.floor(i/4)*360, rr = 120;
+      s += '<ellipse cx="' + (x + 10) + '" cy="' + (y + 18) + '" rx="' + (rr + 20) + '" ry="' + (rr + 10) + '" fill="rgba(0,0,0,.5)" filter="url(#SOFT)"/><circle cx="' + x + '" cy="' + y + '" r="' + (rr + 18) + '" fill="#d9dcdf"/><circle cx="' + x + '" cy="' + y + '" r="' + rr + '" fill="#f2f0ea"/><circle cx="' + x + '" cy="' + y + '" r="' + (rr - 30) + '" fill="' + b[1] + '"/>';
+      for (var k = 0; k < 14; k++){ var a = r()*6.28, d = r()*(rr - 40); s += '<ellipse cx="' + (x + Math.cos(a)*d).toFixed(0) + '" cy="' + (y + Math.sin(a)*d).toFixed(0) + '" rx="' + (6 + r()*12).toFixed(0) + '" ry="' + (3 + r()*6).toFixed(0) + '" fill="#000" opacity=".12" transform="rotate(' + (r()*180).toFixed(0) + ' ' + (x + Math.cos(a)*d).toFixed(0) + ' ' + (y + Math.sin(a)*d).toFixed(0) + ')"/>'; }
+      s += '<ellipse cx="' + (x - 40) + '" cy="' + (y - 50) + '" rx="40" ry="16" fill="#fff" opacity=".18"/>';
     });
-  } else if (p.k === 'neck'){
-    g.strokeStyle = shade(t.fat2, c); g.lineWidth = 2.2;
-    for (var n = 0; n < 7; n++){ g.beginPath(); var sx = Math.sin(p.seed + n)*w*.4, sy = Math.cos(p.seed*1.7 + n)*h*.35; g.moveTo(sx, sy); g.quadraticCurveTo(sx + 12, sy - 8, sx + 22, sy + 4); g.stroke(); }
-  } else if (p.k === 'galbi'){
-    g.fillStyle = shade(t.fat2, c); g.fillRect(-w/2, -h/2, w*.14, h);
-    g.fillStyle = 'rgba(255,255,255,.12)'; for (var s2 = 0; s2 < 6; s2++){ g.beginPath(); g.arc(-w*.2 + s2*w*.12, Math.sin(p.seed + s2)*h*.25, 2, 0, Math.PI*2); g.fill(); }
-    if (c > .55){ g.fillStyle = 'rgba(40,10,0,' + Math.min(.35, (c - .55)*.6) + ')'; g.fillRect(-w/2, -h/2, w, h); }
-  }
-  g.restore();
-}
-function drawPiece(p, t){
-  var lift = p.lift ? 1 : 0, f = p.flip;
-  g.save(); g.translate(p.x, p.y); g.rotate(p.rot);
-  g.fillStyle = 'rgba(0,0,0,' + (lift ? .45 : .35) + ')';
-  g.beginPath(); g.ellipse(lift ? 8 : 3, lift ? 12 : 4, p.w*.5, p.h*.5, 0, 0, Math.PI*2); g.fill();
-  if (lift) g.translate(-3, -6);
-  if (f > 0) g.scale(1, Math.abs(Math.cos(f*Math.PI)));
-  // 底面的熟度從邊緣透出來
-  g.save(); g.scale(1 + 4/p.w, 1 + 4/p.h); drawPieceBody(p, p.down + .15, true); g.restore();
-  drawPieceBody(p, p.up);
-  // 烤網痕
-  if (p.marks[1] > .4 && p.k !== 'shrimp'){
-    g.save(); g.globalAlpha = Math.min(.75, (p.marks[1] - .4)*1.1); g.strokeStyle = '#2a170b'; g.lineWidth = 3*L.s;
-    var gap = 15*L.s; for (var x = -p.w/2 + 6; x < p.w/2; x += gap){ g.beginPath(); g.moveTo(x, -p.h/2 + 3); g.lineTo(x + 4, p.h/2 - 3); g.stroke(); }
-    g.restore();
-  }
-  // 油光
-  if (p.up > .3 && TYPES[p.k].fat){ g.fillStyle = 'rgba(255,240,210,.18)'; g.beginPath(); g.ellipse(-p.w*.15, -p.h*.15, p.w*.25, p.h*.12, 0, 0, Math.PI*2); g.fill(); }
-  g.restore();
-}
-function drawRaw(){
-  var r = L.raw;
-  g.fillStyle = 'rgba(0,0,0,.4)'; roundRect(r.x + 6, r.y + 10, r.w, r.h, 22); g.fill();
-  var pl = g.createLinearGradient(r.x, r.y, r.x, r.y + r.h); pl.addColorStop(0, '#f4f1ea'); pl.addColorStop(1, '#d9d4c9');
-  g.fillStyle = pl; roundRect(r.x, r.y, r.w, r.h, 22); g.fill();
-  g.strokeStyle = '#b5ada0'; g.lineWidth = 2; roundRect(r.x + 8, r.y + 8, r.w - 16, r.h - 16, 16); g.stroke();
-  rawSlots().forEach(function(s){
-    var n = stock[s.k], tt = TYPES[s.k];
-    var sc = Math.min(1, (s.w*.62)/(tt.w*L.s), (s.h*.5)/(tt.h*L.s));
-    for (var i = Math.min(n, 3) - 1; i >= 0; i--){
-      var p = makePiece(s.k, s.x - (L.land ? 26 : 0)*L.s + i*4, s.y - (L.land ? 0 : 8) + i*-4); p.w *= sc; p.h *= sc; p.rot = -.12 + i*.08; p.seed = i*3 + s.k.length;
-      g.save(); g.translate(p.x, p.y); g.rotate(p.rot); drawPieceBody(p, 0); g.restore();
-    }
-    g.fillStyle = n ? '#2a2724' : '#a39d94';
-    g.font = '800 ' + Math.max(12, 14*L.s*1.2) + 'px "Apple SD Gothic Neo","Malgun Gothic",sans-serif'; g.textAlign = L.land ? 'left' : 'center';
-    var tx = L.land ? s.x + 40*L.s : s.x, ty = L.land ? s.y - 4 : s.y + s.h*.34;
-    g.fillText(tt.ko + (n ? ' ×' + n : ' 0'), tx, ty);
-    g.font = '600 ' + Math.max(10, 11*L.s*1.2) + 'px "PingFang TC","Microsoft JhengHei",sans-serif'; g.fillStyle = '#6e675f';
-    g.fillText(tt.zh, tx, ty + Math.max(13, 15*L.s*1.2));
+    return svg('0 0 1500 1200', s);
+  },
+  r1:function(){ return svg('0 0 600 600', '<rect width="600" height="600" fill="#2a2420"/><rect y="380" width="600" height="220" fill="#4a3a2e"/>' + '<g transform="translate(300 330)"><rect x="-30" y="-330" width="60" height="230" fill="#b87333"/><path d="M-90 -110 h180 l-30 50 h-120z" fill="#c9823f"/></g><ellipse cx="300" cy="400" rx="200" ry="60" fill="#111"/><ellipse cx="300" cy="396" rx="150" ry="40" fill="#ff7a2a" opacity=".8" filter="url(#SOFT)"/><g fill="#1a1512"><rect x="40" y="430" width="110" height="140" rx="20"/><rect x="450" y="430" width="110" height="140" rx="20"/></g>'); },
+  r2:function(){ return svg('0 0 600 600', '<rect width="600" height="600" fill="#231e1a"/><rect y="330" width="600" height="40" fill="#8a6440"/><rect y="370" width="600" height="230" fill="#1a1512"/>' + [0,1,2].map(function(i){ return '<ellipse cx="' + (110 + i*190) + '" cy="320" rx="60" ry="16" fill="#111"/><ellipse cx="' + (110 + i*190) + '" cy="316" rx="44" ry="10" fill="#ff7a2a" opacity=".85"/><rect x="' + (95 + i*190) + '" y="80" width="30" height="200" fill="#b87333"/><rect x="' + (85 + i*190) + '" y="440" width="50" height="160" rx="10" fill="#2e2620"/>'; }).join('')); },
+  r3:function(){ return svg('0 0 600 600', '<rect width="600" height="600" fill="#2e2620"/><rect x="40" y="40" width="520" height="200" fill="#3a2f28" stroke="#5a4636" stroke-width="10"/><rect x="60" y="260" width="480" height="180" rx="16" fill="#4e3b2c"/>' + [0,1,2].map(function(i){ return '<ellipse cx="' + (150 + i*150) + '" cy="350" rx="44" ry="20" fill="#111"/><ellipse cx="' + (150 + i*150) + '" cy="346" rx="30" ry="12" fill="#ff7a2a" opacity=".8"/>'; }).join('') + '<g fill="#1f1915">' + [0,1,2,3].map(function(i){ return '<rect x="' + (70 + i*130) + '" y="470" width="80" height="110" rx="14"/>'; }).join('') + '</g><rect x="180" y="80" width="240" height="120" fill="#ffcf8a" opacity=".3"/>'); }
+};
+function fillPhotos(){
+  $$('.ph').forEach(function(f){
+    var k = f.dataset.photo, url = SHOP.photos[k];
+    if (url){ f.innerHTML = '<img src="' + url + '" alt="' + (f.dataset.label || '') + '" loading="lazy">'; return; }
+    if (ART[k]) f.innerHTML = ART[k](); else if (CUTS.some(function(c){ return c[0] === k; })) f.innerHTML = ART.cut(k);
   });
-  g.textAlign = 'left';
-}
-function drawSsam(t){
-  var s = L.ssam;
-  g.fillStyle = 'rgba(0,0,0,.45)'; g.beginPath(); g.arc(s.x + 5, s.y + 9, s.r + 8, 0, Math.PI*2); g.fill();
-  g.fillStyle = '#c99b5b'; g.beginPath(); g.arc(s.x, s.y, s.r + 8, 0, Math.PI*2); g.fill();
-  g.strokeStyle = '#8f6a36'; g.lineWidth = 2;
-  for (var i = 0; i < 26; i++){ var a = i/26*Math.PI*2; g.beginPath(); g.moveTo(s.x + Math.cos(a)*(s.r - 2), s.y + Math.sin(a)*(s.r - 2)); g.lineTo(s.x + Math.cos(a + .2)*(s.r + 8), s.y + Math.sin(a + .2)*(s.r + 8)); g.stroke(); }
-  // 生菜葉：四片皺邊的大葉子疊在籃裡
-  for (var k = 0; k < 4; k++){
-    var a2 = k/4*Math.PI*2 + .6, lx = s.x + Math.cos(a2)*s.r*.22, ly = s.y + Math.sin(a2)*s.r*.22, lr = s.r*.78;
-    var lg = g.createRadialGradient(lx - Math.cos(a2)*lr*.3, ly - Math.sin(a2)*lr*.3, 2, lx, ly, lr);
-    lg.addColorStop(0, '#e9f6c4'); lg.addColorStop(.45, '#9fd162'); lg.addColorStop(1, '#4e9a33');
-    g.save(); g.translate(lx, ly); g.rotate(a2);
-    g.fillStyle = lg; g.beginPath();
-    for (var j = 0; j <= 40; j++){ var b = j/40*Math.PI*2, rr = lr*(1 + .06*Math.sin(j*1.7 + k*2)), ex = Math.cos(b)*rr, ey = Math.sin(b)*rr*.72; g.lineTo(ex, ey); }
-    g.closePath(); g.fill();
-    g.strokeStyle = 'rgba(240,255,220,.55)'; g.lineWidth = 2; g.beginPath(); g.moveTo(-lr*.7, 0); g.quadraticCurveTo(0, -lr*.06, lr*.85, 0); g.stroke();
-    g.strokeStyle = 'rgba(240,255,220,.3)'; g.lineWidth = 1;
-    for (var vv = -3; vv <= 3; vv++){ if (!vv) continue; g.beginPath(); g.moveTo(vv*lr*.2, 0); g.quadraticCurveTo(vv*lr*.2 + lr*.12, Math.sign(vv)*lr*.2, vv*lr*.2 + lr*.2, Math.sign(vv)*lr*.48); g.stroke(); }
-    g.restore();
-  }
-  // 包飯醬
-  g.fillStyle = '#7b3b1d'; g.beginPath(); g.arc(s.x, s.y, s.r*.18, 0, Math.PI*2); g.fill();
-  g.fillStyle = '#a65a2c'; g.beginPath(); g.arc(s.x - s.r*.05, s.y - s.r*.05, s.r*.09, 0, Math.PI*2); g.fill();
-  var hov = drag && drag.moved && inSsam(drag.p.x, drag.p.y);
-  g.strokeStyle = hov ? '#ffd166' : 'rgba(255,255,255,.18)'; g.lineWidth = hov ? 4 : 2; g.setLineDash([6, 8]);
-  g.beginPath(); g.arc(s.x, s.y, s.r + 18, 0, Math.PI*2); g.stroke(); g.setLineDash([]);
-  g.fillStyle = '#f3eee6'; g.font = '800 ' + Math.max(13, 16*L.s*1.2) + 'px "Apple SD Gothic Neo","Malgun Gothic",sans-serif'; g.textAlign = 'center';
-  g.fillText('쌈 · 生菜包', s.x, s.y + s.r + 40); g.textAlign = 'left';
 }
 
-/* 主迴圈 */
-var last = performance.now();
-function frame(now){
-  var dt = Math.min(.05, (now - last)/1000); last = now;
-  var load = 0;
-  pieces.forEach(function(p){
-    if (p.flip > 0){ p.flip = Math.max(0, p.flip - dt*4); }
-    if (p.lift || !onGrill(p.x, p.y)) return;
-    var h = heatAt(p.x, p.y), rt = TYPES[p.k].rate;
-    p.down += dt*h*rt/14; p.up += dt*h*rt/140;
-    p.marks[0] = p.down;
-    load += h;
-    // 煙與油脂火舌
-    if (!reduce && Math.random() < dt*(1.2 + p.down*3)*h) parts.push({x:p.x + (Math.random()-.5)*p.w*.6, y:p.y + (Math.random()-.5)*p.h*.6, vx:(Math.random()-.5)*10, vy:-14 - Math.random()*14, life:0, max:2 + Math.random()*1.5, r:6 + Math.random()*8, burnt:p.down > 1.3, smoke:true});
-    if (!reduce && TYPES[p.k].fat && Math.random() < dt*.9*h) parts.push({x:p.x + (Math.random()-.5)*p.w*.7, y:p.y + p.h*.45, vx:0, vy:-30, life:0, max:.35, r:5 + Math.random()*6, flame:true});
-  });
-  if (sizz){ var target = Math.min(.22, load*.035); sizz.gain.value += (target - sizz.gain.value)*Math.min(1, dt*3); }
-  drawTable(now);
-  drawRaw(); drawSsam(now);
-  parts.forEach(function(q){ if (q.flame){ q.life += dt; var a = 1 - q.life/q.max; if (a <= 0) return; g.fillStyle = 'rgba(255,' + (160 + 80*a|0) + ',60,' + a*.8 + ')'; g.beginPath(); g.ellipse(q.x, q.y - q.life*40, q.r*a, q.r*1.8*a, 0, 0, Math.PI*2); g.fill(); } });
-  pieces.forEach(function(p){ if (!p.lift) drawPiece(p, now); });
-  parts.forEach(function(q){
-    if (q.flame) return;
-    q.life += dt; q.x += q.vx*dt + Math.sin(q.life*2 + q.y*.01)*.3; q.y += q.vy*dt; q.r += dt*10;
-    var a = Math.max(0, 1 - q.life/q.max)*.22;
-    g.fillStyle = q.burnt ? 'rgba(60,55,52,' + a*1.6 + ')' : 'rgba(235,232,228,' + a + ')';
-    g.beginPath(); g.arc(q.x, q.y, q.r, 0, Math.PI*2); g.fill();
-  });
-  parts = parts.filter(function(q){ return q.life < q.max; });
-  pieces.forEach(function(p){ if (p.lift) drawPiece(p, now); });
-  if (drag && drag.moved && drag.from === 'raw' && !onGrill(drag.p.x, drag.p.y)){ /* 拿在手上 */ }
-  pops.forEach(function(o){
-    o.t += dt; var a = Math.max(0, 1 - o.t/1.6);
-    g.globalAlpha = a; g.fillStyle = o.col; g.font = '900 ' + Math.max(16, 22*L.s*1.2) + 'px "Apple SD Gothic Neo","Malgun Gothic",sans-serif'; g.textAlign = 'center';
-    g.fillText(o.txt, o.x, o.y - o.t*30); g.globalAlpha = 1; g.textAlign = 'left';
-  });
-  pops = pops.filter(function(o){ return o.t < 1.6; });
-  requestAnimationFrame(frame);
-}
-requestAnimationFrame(frame);
+/* ===== 部位 ===== */
+$('#cuts-list').innerHTML = CUTS.map(function(c){
+  var unit = c[0] === 'shrimp' ? '一份 4 隻' : c[3] + 'g';
+  return '<article class="cut rv-in"><figure class="ph" data-photo="' + c[0] + '" data-label="' + c[1] + '生肉" data-size="1200×900"></figure><div class="t"><h3><span>' + c[1] + ' <span class="kr">' + c[2] + '</span></span><span class="p">' + c[4] + '</span></h3><p>' + c[5] + '</p><div class="meter">油脂 ' + [1,2,3,4,5].map(function(i){ return '<i class="' + (i <= c[6] ? 'on' : '') + '"></i>'; }).join('') + '<span style="margin-left:auto">' + unit + '</span></div></div></article>';
+}).join('');
+var list = $('#cuts-list');
+$('#prev').onclick = function(){ list.scrollBy({left:-340, behavior:'smooth'}); };
+$('#next').onclick = function(){ list.scrollBy({left:340, behavior:'smooth'}); };
 
-/* 開場先放兩片五花，示範 */
-setTimeout(function(){ ['belly','mush'].forEach(function(k){ if (stock[k] > 0){ stock[k]--; var f = freeSpot(); pieces.push(makePiece(k, f.x, f.y)); } }); }, 300);
-window.__bulpan = {pieces:function(){ return pieces; }, stock:stock, layout:function(){ return L; }, slots:rawSlots};
+/* ===== 套餐計算器 ===== */
+var pax = 2, setId = 'A', extra = {};
+$('#sets').innerHTML = SETS.map(function(s, i){ return '<label class="set"><input type="radio" name="set" value="' + s.id + '"' + (i ? '' : ' checked') + '><span><b>' + s.n + '</b><small>' + s.d + '</small><em>' + (s.p ? 'NT$ ' + s.p + ' / 人' : '—') + '</em></span></label>'; }).join('');
+$('#addons').innerHTML = CUTS.map(function(c){ return '<div class="addon"><span>' + c[1] + '<small>' + (c[0] === 'shrimp' ? '4 隻' : c[3] + 'g') + '</small></span><span class="cond" style="color:var(--ember)">' + c[4] + '</span><span class="q"><button type="button" data-a="' + c[0] + '" data-d="-1" aria-label="少一份 ' + c[1] + '">−</button><output id="q-' + c[0] + '">0</output><button type="button" data-a="' + c[0] + '" data-d="1" aria-label="多一份 ' + c[1] + '">＋</button></span></div>'; }).join('');
+$('#sets').addEventListener('change', function(e){ setId = e.target.value; calc(); });
+$$('[data-p]').forEach(function(b){ b.onclick = function(){ pax = Math.max(1, Math.min(12, pax + +b.dataset.p)); $('#pax').textContent = pax; calc(); }; });
+$('#addons').addEventListener('click', function(e){ var b = e.target.closest('[data-a]'); if (!b) return; var k = b.dataset.a; extra[k] = Math.max(0, (extra[k] || 0) + +b.dataset.d); $('#q-' + k).textContent = extra[k]; calc(); });
+function calc(){
+  var S = SETS.find(function(s){ return s.id === setId; }), rows = [], total = 0, grams = 0;
+  if (S.p){ rows.push([S.n + ' × ' + pax, S.p*pax]); total += S.p*pax; grams += S.g*pax; }
+  CUTS.forEach(function(c){ var q = extra[c[0]] || 0; if (q){ rows.push([c[1] + ' × ' + q, c[4]*q]); total += c[4]*q; grams += c[0] === 'shrimp' ? 120*q : c[3]*q; } });
+  var svc = Math.round(total*.1); if (total){ rows.push(['服務費 10%', svc]); total += svc; }
+  $('#rlist').innerHTML = rows.length ? rows.map(function(r){ return '<li><span>' + r[0] + '</span><span>' + r[1].toLocaleString() + '</span></li>'; }).join('') : '<li><span style="color:var(--muted)">還沒選任何東西</span><span></span></li>';
+  $('#rtotal').textContent = total.toLocaleString();
+  $('#rsub').textContent = pax + ' 位 · 肉量約 ' + grams + ' 克';
+  $('#rper').textContent = total ? '每人約 NT$ ' + Math.round(total/pax).toLocaleString() : '';
+  var per = grams/pax, v;
+  if (!grams) v = '先選套餐或加點部位。';
+  else if (per < 200) v = '每人約 ' + Math.round(per) + ' 克，可能不太夠。建議再加一份五花或梅花。';
+  else if (per <= 340) v = '每人約 ' + Math.round(per) + ' 克，份量剛好，再配小菜和冷麵會很飽。';
+  else v = '每人約 ' + Math.round(per) + ' 克，點得有點多，可以先點一半，不夠再加。';
+  $('#verdict').textContent = v;
+}
+$('#toBook').addEventListener('click', function(){ var s = $('#bPax'); if (s) s.value = String(Math.min(12, pax)); syncSeats(); });
+calc();
+
+/* ===== 小菜 ===== */
+$('#bclist').innerHTML = BANCHAN.map(function(b){ return '<li style="--c:' + b[1] + '">' + b[0] + '</li>'; }).join('');
+
+/* ===== 營業時間 ===== */
+var DAYS = ['週日','週一','週二','週三','週四','週五','週六'];
+function mins(t){ var p = t.split(':'); return +p[0]*60 + +p[1]; }
+function ranges(d){ return SHOP.hours[d].map(function(h){ var o = mins(h[0]), c = mins(h[1]); return [o, c <= o ? c + 1440 : c, h]; }); }
+function status(now){
+  var d = now.getDay(), m = now.getHours()*60 + now.getMinutes();
+  var y = ranges((d + 6) % 7).find(function(r){ return m + 1440 >= r[0] && m + 1440 < r[1]; }); if (y) return {open:true, until:y[2][1]};
+  var t = ranges(d).find(function(r){ return m >= r[0] && m < r[1]; }); if (t) return {open:true, until:t[2][1]};
+  for (var k = 0; k < 8; k++){ var dd = (d + k) % 7, n = SHOP.hours[dd].find(function(h){ return k > 0 || mins(h[0]) > m; }); if (n) return {open:false, next:(k === 0 ? '今天' : k === 1 ? '明天' : DAYS[dd]) + ' ' + n[0]}; }
+  return {open:false, next:'—'};
+}
+var now = new Date(), st = status(now);
+$('#open').classList.toggle('on', st.open);
+$('#open').lastElementChild.textContent = st.open ? '營業中 · 到 ' + st.until : '休息中 · ' + st.next + ' 開門';
+$('#hours').innerHTML = [1,2,3,4,5,6,0].map(function(d){ var h = SHOP.hours[d]; return '<tr class="' + (d === now.getDay() ? 'today' : '') + '"><td>' + DAYS[d] + '</td><td>' + (h.length ? h.map(function(x){ return x[0] + '–' + x[1]; }).join(' / ') : '公休') + '</td></tr>'; }).join('');
+$('#tel').textContent = SHOP.phone; $('#tel').href = 'tel:' + SHOP.phone.replace(/[^\d]/g, '');
+$('#addr').textContent = SHOP.address;
+$('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+$('#yr').textContent = now.getFullYear();
+
+/* ===== 訂位 ===== */
+var dEl = $('#dates'), tEl = $('#times'), sEl = $('#seats'), pSel = $('#bPax');
+for (var p = 1; p <= 12; p++) pSel.insertAdjacentHTML('beforeend', '<option' + (p === 2 ? ' selected' : '') + '>' + p + '</option>');
+var dates = [];
+for (var i = 0; i < 14; i++){ var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i); if (SHOP.hours[d.getDay()].length) dates.push(d); }
+dEl.innerHTML = dates.map(function(d, i){ return '<label><input type="radio" name="date" value="' + i + '"' + (i ? '' : ' checked') + '><span>' + (i === 0 && d.getDate() === now.getDate() ? '今天' : DAYS[d.getDay()].slice(1)) + '<b>' + d.getDate() + '</b><small>' + (d.getMonth() + 1) + '月</small></span></label>'; }).join('');
+// 示範用的「已滿」：依日期與時段雜湊產生
+function full(d, t){ return ((d.getDate()*7 + mins(t)/30) % 5) === 0; }
+function drawTimes(){
+  var d = dates[+dEl.querySelector('input:checked').value], slots = [];
+  SHOP.hours[d.getDay()].forEach(function(h){ var o = mins(h[0]), c = mins(h[1]); if (c <= o) c += 1440; for (var m = o; m <= c - 120; m += 30) slots.push(m); });
+  var isToday = d.getDate() === now.getDate() && d.getMonth() === now.getMonth(), nm = now.getHours()*60 + now.getMinutes();
+  tEl.innerHTML = slots.map(function(m, i){ var t = String(Math.floor(m/60) % 24).padStart(2, '0') + ':' + String(m%60).padStart(2, '0'), dis = (isToday && m < nm + 30) || full(d, t); return '<label><input type="radio" name="time" value="' + t + '"' + (dis ? ' disabled' : '') + '><span>' + t + (full(d, t) ? '<small>已滿</small>' : '') + '</span></label>'; }).join('') || '<span style="color:#8a7f73;font-size:14px">這天沒有可訂時段</span>';
+  var first = tEl.querySelector('input:not(:disabled)'); if (first) first.checked = true;
+}
+function syncSeats(){
+  var n = +pSel.value, opts = [['bar','吧台',n <= 2],['table','一般桌',n <= 4],['room','包廂',n >= 6]];
+  var cur = (sEl.querySelector('input:checked') || {}).value;
+  sEl.innerHTML = opts.map(function(o){ return '<label><input type="radio" name="seat" value="' + o[0] + '"' + (o[2] ? '' : ' disabled') + '><span>' + o[1] + '</span></label>'; }).join('');
+  var pick = sEl.querySelector('input[value="' + cur + '"]:not(:disabled)') || sEl.querySelector('input:not(:disabled)'); if (pick) pick.checked = true;
+  if (n === 5) sEl.insertAdjacentHTML('beforeend', '<span style="font-size:12px;color:#8a7f73;align-self:center">5 位會安排兩張一般桌併桌</span>');
+  if (n === 5){ var t = sEl.querySelector('input[value=table]'); t.disabled = false; t.checked = true; }
+}
+dEl.addEventListener('change', drawTimes); pSel.addEventListener('change', syncSeats);
+drawTimes(); syncSeats();
+$('#bf').addEventListener('submit', function(e){
+  e.preventDefault();
+  var name = $('#bName'), phone = $('#bPhone'), ok = true, time = tEl.querySelector('input:checked'), seat = sEl.querySelector('input:checked');
+  [[name, name.value.trim().length > 0, '請填寫姓名'], [phone, /^09\d{2}-?\d{3}-?\d{3}$/.test(phone.value.trim()), '請輸入 09 開頭的手機號碼']].forEach(function(c){ c[0].nextElementSibling.textContent = c[1] ? '' : c[2]; if (!c[1]) ok = false; });
+  if (!time){ alertTime(); ok = false; }
+  if (!ok) return;
+  var d = dates[+dEl.querySelector('input:checked').value], esc = function(s){ return s.replace(/[<&]/g, ''); };
+  var code = 'BP' + (d.getMonth() + 1) + String(d.getDate()).padStart(2, '0') + '-' + String(Math.abs((name.value + phone.value).split('').reduce(function(a, c){ return a*31 + c.charCodeAt(0) | 0; }, 7)) % 1000).padStart(3, '0');
+  $('#bfBody').innerHTML = '<div class="ok"><span class="label">예약 완료 · 訂位完成</span><div class="code">' + code + '</div><p><b>' + (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日（' + DAYS[d.getDay()] + '）' + time.value + '</b>　' + pSel.value + ' 位・' + seat.nextElementSibling.textContent + '</p><p>' + esc(name.value.trim()) + '，確認簡訊會傳到 ' + esc(phone.value.trim()) + '。' + (seat.value === 'room' ? '包廂需在 24 小時內付訂金 NT$ ' + 300*pSel.value + '，簡訊會附付款連結。' : '訂位保留 15 分鐘。') + '</p><p class="demo">示範版本：沒有真的送出訂位。</p></div>';
+});
+function alertTime(){ tEl.insertAdjacentHTML('beforeend', '<span class="err" style="align-self:center">請選擇時段</span>'); }
+
+/* ===== 共用 ===== */
+var nav = $('#nav');
+function onScroll(){ nav.classList.toggle('solid', scrollY > 30); }
+addEventListener('scroll', onScroll, {passive:true}); onScroll();
+$('#burger').onclick = function(){ var o = nav.classList.toggle('open'); this.setAttribute('aria-expanded', o); };
+$$('#navList a').forEach(function(a){ a.onclick = function(){ nav.classList.remove('open'); }; });
+var slotBtn = $('#slotBtn');
+function slots(on){ document.body.classList.toggle('slots', on); slotBtn.setAttribute('aria-pressed', on); }
+slotBtn.onclick = function(){ slots(!document.body.classList.contains('slots')); };
+if (/[?&]slots/.test(location.search)) slots(true);
+fillPhotos();
+if ('IntersectionObserver' in window){
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('vis'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -6% 0px'});
+  $$('.rv-in').forEach(function(el){ io.observe(el); });
+} else $$('.rv-in').forEach(function(el){ el.classList.add('vis'); });
 })();
 </script>
 </body>

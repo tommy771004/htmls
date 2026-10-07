@@ -3,405 +3,447 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>夜庭 · 第九道的擺盤</title>
-<meta name="description" content="一間只有十二個座位的品嚐菜單餐廳，第九道由你擺盤：在聚光燈下的白瓷寬緣盤上刷醬、點醬、放干貝或鴨胸、撒苗與花，主廚依留白、重心、盤緣、奇數與色彩給評語，最後拍一張出餐照。">
+<title>夜庭 Atelier Nocturne｜十二席品嚐菜單</title>
+<meta name="description" content="夜庭 Atelier Nocturne：只有十二個吧台座位的品嚐菜單餐廳，每晚兩個梯次、十四道料理，依台灣當季食材變化。線上預約、餐酒搭配與禮券。">
+<!--
+  店家模板使用方式
+  1. 修改 <script> 開頭的 SHOP（店名、電話、地址、梯次、價格、訂金、照片網址）與 COURSES（本季菜單）。
+  2. photos 填入照片網址就會取代佔位圖；網址加 ?slots 或按右下角「照片位」可標出位置與建議尺寸。
+  3. 訂位與禮券目前只在頁面上示範，正式使用請串接訂位與金流服務。
+-->
 <style>
-:root{--bg:#0a0908;--ink:#ede6da;--dim:#8a8378;--gold:#c8a96a;--line:rgba(200,169,106,.35)}
+:root{--bg:#0a0908;--bg2:#121110;--ink:#ede6da;--dim:#8a8378;--gold:#c8a96a;--line:rgba(200,169,106,.28);--hair:rgba(237,230,218,.1);
+  --dd:"Didot","Bodoni 72","Bodoni MT","Big Caslon",Georgia,serif;--song:"Songti TC","Noto Serif CJK TC","PMingLiU",serif}
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink)}
-body{overflow-x:clip;font-family:"Songti TC","Noto Serif CJK TC","PMingLiU",serif;font-weight:300}
-.dd{font-family:"Didot","Bodoni 72","Bodoni MT","Big Caslon",Georgia,serif}
-button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
-.top{display:flex;justify-content:space-between;align-items:flex-start;padding:22px clamp(16px,4vw,48px) 0;gap:16px}
-.top .course{font-style:italic;font-size:15px;letter-spacing:.08em;color:var(--dim)}
-.top .course b{display:block;font-style:normal;font-weight:400;font-size:clamp(28px,4vw,44px);letter-spacing:.02em;color:var(--ink);line-height:1.05;margin-top:4px}
-.top .house{text-align:right;font-size:12px;letter-spacing:.42em;color:var(--gold);line-height:2}
-.top .house span{display:block;letter-spacing:.2em;color:var(--dim);font-size:11px}
-.stage{position:relative;display:grid;place-items:center;margin-top:-10px}
-.stage::before{content:"";position:absolute;inset:-12% 0 0;background:radial-gradient(ellipse 42% 58% at 50% 46%,rgba(255,236,200,.13),rgba(255,236,200,.04) 55%,transparent 75%);pointer-events:none}
-canvas{display:block;touch-action:none;cursor:crosshair;position:relative}
-.hint{position:absolute;bottom:4%;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:.2em;color:var(--dim);white-space:nowrap;transition:opacity .8s;pointer-events:none}
-.hint.off{opacity:0}
-/* 工具 */
-.pass{max-width:980px;margin:6px auto 0;padding:0 16px 10px}
-.tools{display:flex;justify-content:center;gap:clamp(2px,1.2vw,14px);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:10px 0;flex-wrap:wrap}
-.tool{display:flex;flex-direction:column;align-items:center;gap:5px;padding:6px 10px;color:var(--dim);transition:color .4s;min-width:62px}
-.tool svg{width:34px;height:34px;stroke:currentColor;fill:none;stroke-width:1.1}
-.tool span{font-size:12px;letter-spacing:.16em}
-.tool[aria-pressed=true]{color:var(--ink)}
-.tool[aria-pressed=true] svg{stroke:var(--gold)}
-.tool:focus-visible{outline:1px solid var(--gold);outline-offset:2px}
-.sub{display:flex;justify-content:center;gap:10px;padding:12px 0 2px;min-height:48px;flex-wrap:wrap;align-items:center}
-.sw{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);padding:4px 8px;letter-spacing:.08em;transition:color .3s}
-.sw i{width:16px;height:16px;border-radius:50%;background:var(--c);box-shadow:0 0 0 1px rgba(255,255,255,.15)}
-.sw[aria-pressed=true]{color:var(--ink)}
-.sw[aria-pressed=true] i{box-shadow:0 0 0 1px var(--bg),0 0 0 2.5px var(--gold)}
-.acts{display:flex;justify-content:center;gap:clamp(12px,3vw,34px);padding:16px 0 40px;flex-wrap:wrap}
-.act{font-size:14px;letter-spacing:.3em;color:var(--dim);padding:8px 2px;border-bottom:1px solid transparent;transition:color .3s,border-color .3s}
-.act:hover{color:var(--ink);border-color:var(--line)}
-.act.main{color:var(--gold);border-color:var(--gold)}
-/* 品評 */
-.verdict{position:fixed;inset:0;display:flex;background:rgba(8,7,6,.97);opacity:0;pointer-events:none;transition:opacity .8s;z-index:20;padding:16px;overflow:auto}
-.verdict.show{opacity:1;pointer-events:auto}
-.card{max-width:520px;width:100%;margin:auto;text-align:center;transform:translateY(14px);transition:transform 1s cubic-bezier(.2,.7,.2,1)}
-.verdict.show .card{transform:none}
-.card .lbl{font-size:12px;letter-spacing:.5em;color:var(--gold)}
-.card h2{font-weight:400;font-size:clamp(22px,4vw,30px);margin:14px 0 4px;letter-spacing:.12em;line-height:1.5}
-.card .score{font-size:clamp(64px,12vw,96px);line-height:1;font-style:italic;color:var(--ink);margin:12px 0 0}
-.card .score small{font-size:.3em;color:var(--dim);font-style:normal;margin-left:6px}
-.card ul{list-style:none;margin:22px 0 0;padding:0;text-align:left;border-top:1px solid var(--line)}
-.card li{padding:10px 0;border-bottom:1px solid var(--line);font-size:15px;line-height:1.7;display:grid;grid-template-columns:22px 1fr;gap:6px}
-.card li::before{content:attr(data-m);color:var(--gold);font-family:"Didot",Georgia,serif}
-.card img{width:min(210px,52vw);border-radius:50%;margin:8px auto 0;display:block;box-shadow:0 30px 60px rgba(0,0,0,.6)}
-.card .back{margin-top:24px}
-.flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:30}
-.flash.on{animation:flash .7s ease-out}
-@keyframes flash{0%{opacity:.9}100%{opacity:0}}
-@media (max-width:620px){
-  .top .house{font-size:10px;letter-spacing:.3em}
-  .tool{min-width:44px;padding:4px 4px}.tool svg{width:28px;height:28px}.tool span{font-size:11px;letter-spacing:.06em}
-  .hint{font-size:11px;letter-spacing:.1em}
+html{scroll-behavior:smooth}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--song);font-weight:300;line-height:1.85;overflow-x:clip;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+.dd{font-family:var(--dd)}
+.wrap{max-width:1160px;margin:0 auto;padding:0 clamp(18px,4vw,40px)}
+.cap{font-family:var(--dd);font-size:12px;letter-spacing:.42em;color:var(--gold);text-transform:uppercase}
+/* 導覽 */
+.nav{position:fixed;inset:0 0 auto;z-index:50;transition:background .6s}
+.nav.solid,.nav.open{background:rgba(10,9,8,.94);backdrop-filter:blur(10px)}
+.nav .wrap{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;height:80px}
+.nav ul{display:flex;gap:28px;list-style:none;margin:0;padding:0;font-size:13px;letter-spacing:.2em}
+.nav ul.r{justify-content:flex-end}
+.nav ul a{text-decoration:none;color:var(--dim);transition:color .4s}
+.nav ul a:hover{color:var(--ink)}
+.mark{text-align:center;text-decoration:none;line-height:1.2}
+.mark b{display:block;font-family:var(--dd);font-weight:400;font-size:20px;letter-spacing:.38em;color:var(--gold)}
+.mark small{font-size:11px;letter-spacing:.5em;color:var(--dim)}
+.burger{display:none;background:none;border:0;color:var(--ink);font-family:var(--dd);letter-spacing:.3em;font-size:12px;cursor:pointer;padding:10px 0}
+.line-btn{display:inline-block;font-family:var(--dd);font-size:13px;letter-spacing:.34em;text-transform:uppercase;padding:14px 30px;border:1px solid var(--gold);color:var(--gold);text-decoration:none;cursor:pointer;background:none;transition:background .5s,color .5s}
+.line-btn:hover{background:var(--gold);color:var(--bg)}
+/* 照片位 */
+.ph{position:relative;overflow:hidden;background:var(--bg2);margin:0}
+.ph>svg,.ph>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+body.slots .ph{outline:1px dashed var(--gold);outline-offset:-1px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:12px;top:12px;z-index:3;background:rgba(10,9,8,.85);color:var(--gold);font-size:11px;letter-spacing:.08em;padding:4px 10px;font-family:var(--song)}
+/* Hero */
+.hero{position:relative;height:100vh;height:100svh;min-height:620px}
+.hero .ph{position:absolute;inset:0}
+.hero .ph svg{object-position:50% 20%}
+.hero::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 35%,transparent 30%,rgba(10,9,8,.7) 75%),linear-gradient(0deg,var(--bg) 18%,transparent 48%);pointer-events:none}
+.hero .t{position:absolute;left:0;right:0;bottom:clamp(40px,9vh,90px);z-index:2;text-align:center}
+.hero h1{margin:14px 0 0;font-family:var(--dd);font-weight:400;font-size:clamp(40px,6vw,82px);line-height:1.1;letter-spacing:.06em}
+.hero h1 i{color:var(--gold)}
+.hero p{margin:14px 0 30px;color:var(--dim);letter-spacing:.2em;font-size:14px}
+.hero br.m{display:none}
+.scroll{display:block;width:1px;height:60px;margin:26px auto 0;background:linear-gradient(var(--gold),transparent)}
+/* 區塊 */
+.sec{padding:clamp(100px,14vw,180px) 0}
+.center{text-align:center;max-width:720px;margin:0 auto}
+.center h2{margin:18px 0 24px;font-family:var(--song);font-weight:300;font-size:clamp(28px,3.6vw,44px);line-height:1.6;letter-spacing:.12em}
+.center p{color:#bdb5a8;margin:0 0 16px}
+.rule{width:60px;height:1px;background:var(--gold);margin:36px auto}
+/* 菜單 */
+.menuHead{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:22px;margin-bottom:10px}
+.menuHead h2{margin:10px 0 0;font-family:var(--dd);font-weight:400;font-size:clamp(34px,5vw,60px);letter-spacing:.04em;line-height:1}
+.menuHead .price{text-align:right;color:var(--dim);font-size:14px;line-height:1.9}
+.menuHead .price b{font-family:var(--dd);font-weight:400;font-size:26px;color:var(--ink);letter-spacing:.06em}
+.courses{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;column-gap:70px}
+.courses li{display:grid;grid-template-columns:52px minmax(0,1fr);gap:4px 10px;padding:22px 0;border-bottom:1px solid var(--hair)}
+.courses .n{font-family:var(--dd);font-style:italic;color:var(--gold);font-size:18px;grid-row:span 2}
+.courses b{font-weight:400;font-size:18px;letter-spacing:.12em}
+.courses small{color:var(--dim);font-size:13px;letter-spacing:.06em}
+.menuNote{margin-top:26px;color:var(--dim);font-size:13px;text-align:center;letter-spacing:.06em}
+/* 主廚與空間 */
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(30px,6vw,100px);align-items:center}
+.split .ph{aspect-ratio:4/5}
+.split h2{margin:16px 0 22px;font-weight:300;font-size:clamp(26px,3vw,38px);line-height:1.6;letter-spacing:.1em}
+.split p{color:#bdb5a8;margin:0 0 16px}
+.sig{font-family:var(--dd);font-style:italic;font-size:28px;color:var(--gold);margin-top:20px}
+.strip{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px;margin-top:clamp(70px,9vw,120px)}
+.strip .ph{aspect-ratio:auto;height:clamp(220px,28vw,380px)}
+.facts{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:60px}
+.facts div{padding:28px 10px;text-align:center;border-right:1px solid var(--hair)}
+.facts div:last-child{border-right:0}
+.facts b{display:block;font-family:var(--dd);font-weight:400;font-size:40px;color:var(--gold);line-height:1}
+.facts span{font-size:12px;letter-spacing:.24em;color:var(--dim)}
+/* 訂位 */
+.resv{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:clamp(30px,5vw,70px);align-items:start}
+.resv>*{min-width:0}
+.cal{border:1px solid var(--line);padding:clamp(18px,3vw,32px)}
+.calHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.calHead b{font-family:var(--dd);font-weight:400;font-size:22px;letter-spacing:.14em}
+.calHead button{background:none;border:1px solid var(--hair);width:40px;height:40px;cursor:pointer;color:var(--gold);font-family:var(--dd)}
+.calHead button:disabled{opacity:.25;cursor:default}
+.grid7{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.grid7 .dow{font-size:11px;letter-spacing:.2em;color:var(--dim);padding:6px 0}
+.day{aspect-ratio:1;border:1px solid transparent;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--dd);font-size:17px;transition:border-color .3s,background .3s;position:relative}
+.day small{font-family:var(--song);font-size:10px;color:var(--dim);letter-spacing:.06em;line-height:1.3}
+.day.few small{color:#e0a96a}
+.day:hover:not(:disabled){border-color:var(--line)}
+.day[aria-pressed=true]{background:var(--gold);color:var(--bg)}
+.day[aria-pressed=true] small{color:var(--bg)}
+.day:disabled{color:#3d3a35;cursor:default}
+.day:disabled small{color:#3d3a35}
+.legend{display:flex;gap:18px;margin-top:14px;font-size:12px;color:var(--dim);flex-wrap:wrap}
+form.res{border:1px solid var(--line);padding:clamp(18px,3vw,32px)}
+form.res h3{margin:0 0 4px;font-family:var(--dd);font-weight:400;font-size:24px;letter-spacing:.1em}
+form.res .when{color:var(--gold);margin:0 0 20px;font-size:15px;letter-spacing:.08em;min-height:1.8em}
+.seat{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.seat label{position:relative}
+.seat input{position:absolute;opacity:0}
+.seat span{display:block;border:1px solid var(--hair);padding:14px;text-align:center;cursor:pointer;transition:all .3s}
+.seat span b{display:block;font-family:var(--dd);font-weight:400;font-size:24px}
+.seat span small{color:var(--dim);font-size:12px}
+.seat input:checked+span{border-color:var(--gold);background:rgba(200,169,106,.08)}
+.seat input:disabled+span{opacity:.3;cursor:default}
+.seat input:focus-visible+span{outline:1px solid var(--gold)}
+.fl{display:grid;gap:6px;margin-bottom:16px;font-size:12px;letter-spacing:.18em;color:var(--dim)}
+.fl input,.fl select,.fl textarea{background:transparent;border:0;border-bottom:1px solid var(--line);padding:9px 0;font-size:16px;color:var(--ink);border-radius:0;letter-spacing:.04em;width:100%}
+.fl select option{background:var(--bg)}
+.fl input:focus,.fl select:focus,.fl textarea:focus{outline:none;border-bottom-color:var(--gold)}
+.fl .err{color:#e0866a;font-size:12px;letter-spacing:.04em;min-height:1em}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);padding:14px 0;margin-bottom:18px;font-size:14px;letter-spacing:.06em}
+.toggle input{accent-color:var(--gold);width:18px;height:18px}
+.sumbox{display:grid;grid-template-columns:1fr auto;gap:6px 14px;font-size:14px;color:#bdb5a8;margin-bottom:20px}
+.sumbox b{font-family:var(--dd);font-weight:400;color:var(--ink);font-size:18px;text-align:right}
+.sumbox .dep{color:var(--gold)}
+form.res .line-btn{width:100%;text-align:center}
+.demo{font-size:12px;color:var(--dim);text-align:center;margin:12px 0 0;letter-spacing:.04em}
+.conf{text-align:center;padding:20px 0}
+.conf .code{font-family:var(--dd);font-size:42px;letter-spacing:.2em;color:var(--gold);margin:14px 0}
+.conf p{color:#bdb5a8;margin:6px 0}
+/* 禮券 */
+.gift{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(30px,6vw,90px);align-items:center}
+.gift>*{min-width:0}
+.card{aspect-ratio:1.6;background:linear-gradient(135deg,#16140f,#060505);border:1px solid var(--line);position:relative;padding:clamp(18px,3vw,32px);display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 30px 60px rgba(0,0,0,.6);overflow:hidden}
+.card::before{content:"";position:absolute;inset:10px;border:1px solid rgba(200,169,106,.35);pointer-events:none}
+.card::after{content:"";position:absolute;top:-50%;left:-60%;width:60%;height:200%;background:linear-gradient(90deg,transparent,rgba(255,240,210,.08),transparent);transform:rotate(20deg);animation:sheen 6s ease-in-out infinite}
+@keyframes sheen{0%,60%{left:-60%}100%{left:130%}}
+.card .top{display:flex;justify-content:space-between;align-items:flex-start;position:relative}
+.card .top b{font-family:var(--dd);font-weight:400;letter-spacing:.34em;font-size:14px;color:var(--gold)}
+.card .amt{font-family:var(--dd);font-size:clamp(34px,4.6vw,56px);color:var(--gold);line-height:1;position:relative}
+.card .to{font-size:14px;color:#bdb5a8;position:relative;letter-spacing:.06em}
+.card .msg{font-style:italic;color:var(--dim);font-size:13px;position:relative;min-height:1.6em}
+.amts{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0}
+.amts label{position:relative}
+.amts input{position:absolute;opacity:0}
+.amts span{display:block;border:1px solid var(--hair);padding:10px 16px;cursor:pointer;font-family:var(--dd);font-size:15px;letter-spacing:.06em}
+.amts input:checked+span{border-color:var(--gold);color:var(--gold)}
+.amts input:focus-visible+span{outline:1px solid var(--gold)}
+/* 評論與資訊 */
+.press{display:grid;grid-template-columns:repeat(3,1fr);gap:40px;text-align:center}
+.press blockquote{margin:0;font-size:18px;line-height:1.9;letter-spacing:.06em}
+.press cite{display:block;margin-top:16px;font-style:normal;font-family:var(--dd);font-size:12px;letter-spacing:.34em;color:var(--gold)}
+.info{display:grid;grid-template-columns:repeat(3,1fr);gap:40px;text-align:center;border-top:1px solid var(--line);padding-top:60px}
+.info h3{margin:0 0 16px;font-family:var(--dd);font-weight:400;font-size:13px;letter-spacing:.4em;color:var(--gold)}
+.info p{margin:0 0 6px;color:#bdb5a8;font-size:15px}
+.info a{text-decoration:none;border-bottom:1px solid var(--line)}
+footer{padding:50px 0;text-align:center;color:var(--dim);font-size:12px;letter-spacing:.24em}
+footer nav{display:flex;justify-content:center;gap:24px;margin-bottom:16px}
+footer a{text-decoration:none}
+.slotBtn{position:fixed;right:16px;bottom:16px;z-index:60;border:1px solid var(--line);background:rgba(10,9,8,.85);color:var(--dim);font-size:11px;letter-spacing:.14em;padding:8px 14px;cursor:pointer}
+.slotBtn[aria-pressed=true]{color:var(--gold);border-color:var(--gold)}
+.rv-in{opacity:0;transform:translateY(16px);transition:opacity 1.4s ease,transform 1.4s cubic-bezier(.2,.7,.2,1)}
+.rv-in.vis{opacity:1;transform:none}
+@media (max-width:900px){
+  .nav .wrap{grid-template-columns:auto 1fr auto}
+  .nav ul{display:none}
+  .nav.open ul{display:flex;position:fixed;left:0;right:0;flex-direction:column;gap:0;background:rgba(10,9,8,.97);padding:0 24px}
+  .nav.open ul.l{top:80px;padding-top:10px}
+  .nav.open ul.r{top:calc(80px + 3*49px + 10px);padding-bottom:20px;justify-content:flex-start}
+  .nav.open ul a{display:block;padding:14px 0;border-bottom:1px solid var(--hair)}
+  .burger{display:block;grid-column:3;justify-self:end}
+  .mark{grid-column:1;text-align:left}
+  .courses{grid-template-columns:1fr}
+  .split,.resv,.gift{grid-template-columns:1fr}
+  .strip{grid-template-columns:1fr 1fr}.strip .ph:first-child{grid-column:1/-1}
+  .facts{grid-template-columns:1fr 1fr}.facts div:nth-child(2){border-right:0}.facts div:nth-child(-n+2){border-bottom:1px solid var(--hair)}
+  .press,.info{grid-template-columns:1fr}
 }
-@media (prefers-reduced-motion:reduce){.verdict,.card{transition:none}.flash.on{animation:none}}
+@media (max-width:900px){.hero br.m{display:inline}.hero .ph{bottom:34%}.hero h1{font-size:clamp(30px,8.4vw,48px)}.menuHead .price{text-align:left}}
+@media (max-width:520px){.two{grid-template-columns:1fr}.day{font-size:15px}.day small{font-size:9px}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.rv-in{opacity:1;transform:none;transition:none}.card::after{animation:none}}
 </style>
 </head>
 <body>
-<header class="top">
-  <div class="course dd">Course IX of XIV<b>第九道</b></div>
-  <div class="house dd">ATELIER NOCTURNE<span>夜庭 · 十二席</span></div>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <ul class="l" id="navL"><li><a href="#philosophy">理念</a></li><li><a href="#menu">菜單</a></li><li><a href="#chef">主廚</a></li></ul>
+    <a class="mark" href="#top"><b>NOCTURNE</b><small>夜 庭</small></a>
+    <ul class="r" id="navR"><li><a href="#gift">禮券</a></li><li><a href="#visit">交通</a></li><li><a href="#reserve" style="color:var(--gold)">訂位</a></li></ul>
+    <button class="burger" id="burger" type="button" aria-expanded="false">MENU</button>
+  </div>
 </header>
-<section class="stage">
-  <canvas id="cv" aria-label="擺盤區：依選擇的工具在盤上作畫或放置食材"></canvas>
-  <p class="hint dd" id="hint">選一樣工具，在盤上刷、點、放</p>
-</section>
-<section class="pass" aria-label="出菜台">
-  <div class="tools" id="tools" role="group" aria-label="工具"></div>
-  <div class="sub" id="sub" role="group" aria-label="選項"></div>
-  <div class="acts">
-    <button class="act" id="undo" type="button">退一步</button>
-    <button class="act" id="clear" type="button">換一個盤</button>
-    <button class="act main" id="judge" type="button">請主廚品評</button>
-  </div>
-</section>
-<div class="verdict" id="verdict" role="dialog" aria-modal="true" aria-label="主廚品評">
-  <div class="card">
-    <div class="lbl dd">LE CHEF DIT</div>
-    <img id="photo" alt="出餐照">
-    <h2 id="dish"></h2>
-    <div class="score dd" id="score"></div>
-    <ul id="notes"></ul>
-    <button class="act main back" id="back" type="button">回到出菜台</button>
-  </div>
-</div>
-<div class="flash" id="flash"></div>
+
+<main id="top">
+  <section class="hero">
+    <figure class="ph" data-photo="hero" data-art="hero" data-label="招牌料理俯拍・聚光" data-size="2400×1600"></figure>
+    <div class="t">
+      <span class="cap">Atelier Nocturne · Taipei</span>
+      <h1>十二席，<i>十四道</i>，<br class="m">一個夜晚。</h1>
+      <p>品嚐菜單 · 每晚 18:00 與 20:30 兩個梯次</p>
+      <a class="line-btn" href="#reserve">Réserver · 預約</a>
+      <span class="scroll" aria-hidden="true"></span>
+    </div>
+  </section>
+
+  <section class="sec" id="philosophy">
+    <div class="wrap center rv-in">
+      <span class="cap">Philosophy</span>
+      <h2>從台灣的山、海與田，<br>取一季最好的時刻。</h2>
+      <p>菜單每三個月換一次，跟著台東的魚、宜蘭的蔬菜、阿里山的菇走。我們不用進口魚子醬，也不做誇張的分子料理；每一道都只有三到四個元素，讓食材自己說話。</p>
+      <p>只有一張十二人的吧台，廚房就在面前。你會看見每一道菜從生到熟、從鍋到盤。</p>
+      <div class="rule"></div>
+    </div>
+  </section>
+
+  <section class="sec" id="menu" style="padding-top:0">
+    <div class="wrap">
+      <div class="menuHead rv-in">
+        <div><span class="cap">Autumn Menu · 2026</span><h2>秋 · 十四道</h2></div>
+        <div class="price">品嚐菜單 <b id="pMenu"></b><br>餐酒搭配 <b id="pPair" style="font-size:20px"></b><br>另加一成服務費</div>
+      </div>
+      <ol class="courses rv-in" id="courses"></ol>
+      <p class="menuNote">菜單依當日漁獲調整。有過敏或飲食限制請在訂位時告知，我們會提前準備替代料理。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="chef" style="padding-top:0">
+    <div class="wrap">
+      <div class="split">
+        <figure class="ph rv-in" data-photo="chef" data-art="chef" data-label="主廚肖像" data-size="1200×1500"></figure>
+        <div class="rv-in">
+          <span class="cap">Chef · 主廚</span>
+          <h2>「我想做的，<br>是讓一顆白蘿蔔被記得。」</h2>
+          <p>主廚陳以安在巴黎與哥本哈根的餐廳工作了十年，回台灣後花了兩年走訪產地。夜庭的菜單上，每一道都寫著產地與農友的名字。</p>
+          <p>她相信好的料理不需要很多東西，需要的是時間：發酵三個月的醬汁、熟成十四天的魚、在炭火上翻十二次的蘿蔔。</p>
+          <div class="sig">Yi-An Chen</div>
+        </div>
+      </div>
+      <div class="strip">
+        <figure class="ph rv-in" data-photo="room" data-art="room" data-label="十二席吧台" data-size="2000×900"></figure>
+        <figure class="ph rv-in" data-photo="wine" data-art="wine" data-label="餐酒搭配" data-size="900×1100"></figure>
+        <figure class="ph rv-in" data-photo="farm" data-art="farm" data-label="產地食材" data-size="900×1100"></figure>
+      </div>
+      <div class="facts rv-in"><div><b>12</b><span>SEATS</span></div><div><b>14</b><span>COURSES</span></div><div><b>2</b><span>SEATINGS</span></div><div><b>38</b><span>FARMS</span></div></div>
+    </div>
+  </section>
+
+  <section class="sec" id="reserve" style="padding-top:0">
+    <div class="wrap">
+      <div class="center rv-in" style="margin-bottom:56px"><span class="cap">Réservation</span><h2>預約</h2><p>開放未來兩個月的訂位。每位需預付訂金，用餐當天折抵；用餐前三天以前取消可全額退還。</p></div>
+      <div class="resv">
+        <div class="cal rv-in">
+          <div class="calHead"><button type="button" id="prevM" aria-label="上個月">‹</button><b id="calTitle"></b><button type="button" id="nextM" aria-label="下個月">›</button></div>
+          <div class="grid7" id="grid"></div>
+          <div class="legend"><span>數字＝剩餘座位</span><span style="color:#e0a96a">橘色＝即將額滿</span><span>週一、週二公休</span></div>
+        </div>
+        <form class="res rv-in" id="res" novalidate><div id="resBody">
+          <h3>Votre table</h3>
+          <p class="when" id="when">先在左邊選一天</p>
+          <div class="seat" id="seat"></div>
+          <div class="two">
+            <label class="fl">人數<select id="pax"></select></label>
+            <label class="fl">飲食限制<select id="diet"><option>無</option><option>不吃牛</option><option>不吃生食</option><option>海鮮過敏</option><option>蛋奶素</option></select></label>
+          </div>
+          <div class="toggle"><span>加點餐酒搭配（每位 <span id="pPair2"></span>）</span><input type="checkbox" id="pair"></div>
+          <div class="two">
+            <label class="fl">姓名<input id="rName" autocomplete="name"><span class="err"></span></label>
+            <label class="fl">手機<input id="rPhone" inputmode="tel" autocomplete="tel" placeholder="09xx-xxx-xxx"><span class="err"></span></label>
+          </div>
+          <label class="fl">Email<input id="rMail" type="email" autocomplete="email"><span class="err"></span></label>
+          <div class="sumbox" id="sum"></div>
+          <button class="line-btn" type="submit">確認並付訂金</button>
+          <p class="demo">示範版本：不會真的扣款或送出訂位。</p>
+        </div></form>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="gift" style="padding-top:0">
+    <div class="wrap gift">
+      <div class="card rv-in" id="card">
+        <div class="top"><b>NOCTURNE</b><span class="cap" style="font-size:10px">Gift Card</span></div>
+        <div><div class="amt" id="cAmt"></div><div class="to" id="cTo">致 ——</div></div>
+        <div class="msg" id="cMsg"></div>
+      </div>
+      <form class="rv-in" id="gf" novalidate>
+        <span class="cap">Gift Card · 禮券</span>
+        <h2 style="font-weight:300;font-size:clamp(26px,3vw,36px);letter-spacing:.1em;margin:14px 0 6px">送一個夜晚給重要的人</h2>
+        <p style="color:#bdb5a8;margin:0">電子禮券寄到對方信箱，一年內可用，可折抵菜單、餐酒與服務費。</p>
+        <div class="amts" id="amts"></div>
+        <div class="two"><label class="fl">收禮人<input id="gTo" maxlength="20"></label><label class="fl">收禮人 Email<input id="gMail" type="email"><span class="err"></span></label></div>
+        <label class="fl">留言<input id="gMsg" maxlength="40" placeholder="最多 40 字"></label>
+        <button class="line-btn" type="submit">購買禮券</button>
+        <p class="demo" id="gDone" style="text-align:left">示範版本：不會真的扣款。</p>
+      </form>
+    </div>
+  </section>
+
+  <section class="sec" style="padding-top:0" aria-label="媒體評論">
+    <div class="wrap press">
+      <blockquote class="rv-in">「一顆炭烤白蘿蔔，是今年吃過最難忘的一道菜。」<cite>— 美食雜誌</cite></blockquote>
+      <blockquote class="rv-in">「安靜、克制，每個細節都準確。」<cite>— 旅遊媒體</cite></blockquote>
+      <blockquote class="rv-in">「十二個座位，像在主廚家的廚房吃飯。」<cite>— 部落客</cite></blockquote>
+    </div>
+  </section>
+
+  <section class="sec" id="visit" style="padding-top:0">
+    <div class="wrap info rv-in">
+      <div><h3>Horaires</h3><p>週三至週日</p><p>第一梯 18:00 · 第二梯 20:30</p><p style="color:var(--dim)">週一、週二公休</p></div>
+      <div><h3>Adresse</h3><p id="addr"></p><p><a id="mapLink" href="#" target="_blank" rel="noopener">在地圖上開啟</a></p><p style="color:var(--dim)">無招牌，請找黑色木門</p></div>
+      <div><h3>Contact</h3><p><a id="tel" href="#"></a></p><p><a id="mail" href="#"></a></p><p style="color:var(--dim)">服儀：請避免短褲與拖鞋</p></div>
+    </div>
+  </section>
+</main>
+<footer><nav><a href="#">Instagram</a><a href="#">Facebook</a></nav>© <span id="yr"></span> ATELIER NOCTURNE · 夜庭</footer>
+<button class="slotBtn" id="slotBtn" type="button" aria-pressed="false">照片位</button>
 
 <script>
 (function(){
 'use strict';
-var $ = function(s){ return document.querySelector(s); };
-var cv = $('#cv'), g = cv.getContext('2d'), S = 600, DPR = 1, P = 0, I = 0, C = 0;
-var items = [], cur = null, tool = 'sauce', opt = {};
+/* ===== 店家設定 ===== */
+var SHOP = {
+  name:'夜庭 Atelier Nocturne', phone:'(02) 2700-1234', email:'table@nocturne.example', address:'台北市大安區示範路 168 號 2 樓',
+  openDays:[0,3,4,5,6], seatings:['18:00','20:30'], seats:12, maxParty:6,
+  menuPrice:6800, pairPrice:3800, deposit:2000, service:.1, bookAheadDays:60,
+  gifts:[6800, 10600, 13600],
+  photos:{hero:'',chef:'',room:'',wine:'',farm:''}
+};
+var COURSES = [['冬瓜 · 金華火腿','新竹 · 秋冬瓜'],['生蠔 · 青蘋果','屏東 · 東港'],['白甘蝦 · 苦茶油','宜蘭 · 大溪漁港'],['秋刀魚 · 炭火','基隆 · 八斗子'],['白蘿蔔 · 炭烤十二次','雲林 · 古坑'],['干貝 · 甜菜根 · 南瓜','北海道 · 嘉義'],['麵包 · 發酵奶油','自家發酵 三十六小時'],['阿里山香菇 · 雞湯','嘉義 · 阿里山'],['鱈魚 · 海水泡沫','澎湖 · 馬公'],['鴨胸 · 黑莓 · 酢漿草','宜蘭 · 櫻桃鴨'],['和牛 · 黑蒜','台中 · 自家熟成二十一天'],['柿子 · 優格','新竹 · 新埔'],['巧克力 · 可可果肉','屏東 · 可可園'],['小點心 · 茶','南投 · 鹿谷凍頂']];
+var $ = function(s, r){ return (r || document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+var money = function(n){ return 'NT$ ' + n.toLocaleString(); };
 
-var TOOLS = [
-  {k:'sauce',zh:'刷醬',icon:'<path d="M6 26 C12 14 22 22 30 8"/><path d="M26 6 l6 -2 -2 6"/>',
-   opts:[{id:'beet',zh:'甜菜根',c:'#7a1438'},{id:'ink',zh:'墨魚汁',c:'#141414'},{id:'herb',zh:'香草油',c:'#4f7d1f'},{id:'carrot',zh:'胡蘿蔔',c:'#d0601c'}]},
-  {k:'dot',zh:'點醬',icon:'<circle cx="10" cy="22" r="4"/><circle cx="20" cy="16" r="3"/><circle cx="27" cy="10" r="2"/>',
-   opts:[{id:'pea',zh:'豌豆泥',c:'#8dbf3f'},{id:'pumpkin',zh:'南瓜泥',c:'#ef9a2a'},{id:'cauli',zh:'花椰菜泥',c:'#f1ece0'},{id:'berry',zh:'黑莓',c:'#3b1442'}]},
-  {k:'main',zh:'主角',icon:'<ellipse cx="17" cy="20" rx="11" ry="7"/><path d="M8 18 Q17 12 26 18"/>',
-   opts:[{id:'scallop',zh:'干貝',c:'#e9d2a8'},{id:'duck',zh:'鴨胸',c:'#a8424a'},{id:'cod',zh:'鱈魚',c:'#f4efe6'}]},
-  {k:'greens',zh:'微苗',icon:'<path d="M17 30 V14"/><path d="M17 16 C10 14 9 8 12 6 C16 8 17 12 17 16"/><path d="M17 18 C24 16 26 10 23 8 C19 10 17 14 17 18"/>',opts:[]},
-  {k:'flower',zh:'花瓣',icon:'<circle cx="17" cy="17" r="2.5"/><path d="M17 14 C14 6 20 6 17 14 M20 17 C28 14 28 20 20 17 M17 20 C20 28 14 28 17 20 M14 17 C6 20 6 14 14 17"/>',opts:[{id:'nast',zh:'金蓮花',c:'#f07a1a'},{id:'viola',zh:'三色堇',c:'#6a3fb0'},{id:'borage',zh:'琉璃苣',c:'#4a74d8'}]},
-  {k:'crumb',zh:'碎土',icon:'<circle cx="9" cy="22" r="1.4"/><circle cx="14" cy="18" r="1.2"/><circle cx="19" cy="23" r="1.6"/><circle cx="24" cy="17" r="1.1"/><circle cx="27" cy="23" r="1.3"/><circle cx="16" cy="26" r="1"/>',opts:[{id:'rye',zh:'黑麥土',c:'#3a2a1f'},{id:'hazel',zh:'榛果碎',c:'#b88a4f'}]},
-  {k:'foam',zh:'泡沫',icon:'<circle cx="13" cy="20" r="5"/><circle cx="21" cy="16" r="4"/><circle cx="22" cy="24" r="3"/><circle cx="16" cy="12" r="2"/>',opts:[{id:'sea',zh:'海水泡沫',c:'#e8f0ee'},{id:'butter',zh:'焦化奶油',c:'#f3dfb2'}]}
-];
-TOOLS.forEach(function(t){ if (t.opts.length) opt[t.k] = t.opts[0].id; });
+/* ===== 佔位圖 ===== */
+var uid = 0;
+function svg(vb, body){ var id = 'n' + (++uid); return '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><filter id="' + id + '"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 .95  0 0 0 0 .85  0 0 0 .05 0"/></filter><filter id="b' + id + '"><feGaussianBlur stdDeviation="22"/></filter><filter id="s' + id + '"><feGaussianBlur stdDeviation="5"/></filter></defs>' + body.replace(/BLUR/g, 'b' + id).replace(/SOFT/g, 's' + id) + '<rect width="100%" height="100%" filter="url(#' + id + ')"/></svg>'; }
+function plate(cx, cy, R){
+  var s = '<radialGradient id="pg' + R + '" cx=".38" cy=".32" r=".8"><stop offset="0" stop-color="#fbfaf6"/><stop offset=".7" stop-color="#e6e1d7"/><stop offset="1" stop-color="#bdb6aa"/></radialGradient>';
+  return '<defs>' + s + '</defs><ellipse cx="' + (cx + R*.06) + '" cy="' + (cy + R*.12) + '" rx="' + R*1.04 + '" ry="' + R*1.02 + '" fill="rgba(0,0,0,.75)" filter="url(#BLUR)"/><circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="url(#pg' + R + ')"/><circle cx="' + cx + '" cy="' + cy + '" r="' + R*.6 + '" fill="#f3f0ea" stroke="rgba(150,140,125,.35)"/>';
+}
+function dish(cx, cy, k){ // 盤中的構圖：醬汁一抹、干貝三顆、點醬、苗
+  var s = '<path d="M' + (cx - 120*k) + ' ' + (cy + 70*k) + ' C' + (cx - 60*k) + ' ' + (cy + 20*k) + ' ' + (cx + 20*k) + ' ' + (cy + 60*k) + ' ' + (cx + 110*k) + ' ' + (cy - 10*k) + '" stroke="#7a1438" stroke-width="' + 22*k + '" stroke-linecap="round" fill="none"/>';
+  [[-40,10],[20,-20],[0,45]].forEach(function(p){ var x = cx + p[0]*k, y = cy + p[1]*k; s += '<ellipse cx="' + (x + 4*k) + '" cy="' + (y + 6*k) + '" rx="' + 30*k + '" ry="' + 26*k + '" fill="rgba(60,45,30,.25)" filter="url(#SOFT)"/><circle cx="' + x + '" cy="' + y + '" r="' + 28*k + '" fill="#e9d2a8"/><circle cx="' + x + '" cy="' + y + '" r="' + 22*k + '" fill="#b77a35"/><circle cx="' + x + '" cy="' + y + '" r="' + 12*k + '" fill="#d9a35c"/>'; });
+  [[60,-60,10],[78,-42,8],[90,-20,6]].forEach(function(d){ s += '<circle cx="' + (cx + d[0]*k) + '" cy="' + (cy + d[1]*k) + '" r="' + d[2]*k + '" fill="#ef9a2a"/>'; });
+  for (var i = 0; i < 9; i++){ var a = i*.7, x = cx - 20*k + Math.cos(a)*24*k, y = cy - 4*k + Math.sin(a)*14*k; s += '<g transform="translate(' + x + ' ' + y + ') rotate(' + i*40 + ')"><ellipse rx="' + 4*k + '" ry="' + 6*k + '" cy="' + -4*k + '" fill="#6aa83a"/></g>'; }
+  s += '<g opacity=".9">' + [[44,-50],[52,-38]].map(function(p){ return '<ellipse cx="' + (cx + p[0]*k) + '" cy="' + (cy + p[1]*k) + '" rx="' + 7*k + '" ry="' + 4*k + '" fill="#f07a1a" transform="rotate(30 ' + (cx + p[0]*k) + ' ' + (cy + p[1]*k) + ')"/>'; }).join('') + '</g>';
+  return s;
+}
+var ART = {
+  hero:function(){ return svg('0 0 1600 1000', '<rect width="1600" height="1000" fill="#0a0908"/><ellipse cx="800" cy="360" rx="600" ry="420" fill="#2a2520" opacity=".6" filter="url(#BLUR)"/>' + plate(800, 340, 240) + dish(800, 340, .9) + '<ellipse cx="700" cy="220" rx="120" ry="40" fill="#fff" opacity=".18" filter="url(#BLUR)"/>'); },
+  chef:function(){ return svg('0 0 900 1125', '<rect width="900" height="1125" fill="#0d0c0b"/><ellipse cx="560" cy="300" rx="300" ry="380" fill="#3a3128" opacity=".7" filter="url(#BLUR)"/><path d="M180 1125 C200 820 320 720 450 720 C580 720 700 820 720 1125Z" fill="#e9e4da"/><path d="M380 720 L450 840 L520 720" fill="#d6cfc3"/><rect x="400" y="600" width="100" height="140" fill="#1a1613"/><ellipse cx="450" cy="510" rx="125" ry="150" fill="#1a1613"/><path d="M330 470 C330 360 570 360 570 470 C560 420 500 400 450 400 C400 400 340 420 330 470Z" fill="#0a0908"/><path d="M574 500 C590 560 580 620 560 650" stroke="#c8a96a" stroke-width="4" fill="none" opacity=".6"/><path d="M180 1125 C200 820 320 720 450 720" stroke="#c8a96a" stroke-width="3" fill="none" opacity=".35"/>'); },
+  room:function(){ var s = '<rect width="2000" height="900" fill="#0b0a09"/><rect y="560" width="2000" height="70" fill="#5a4330"/><rect y="630" width="2000" height="270" fill="#14110e"/>'; for (var i = 0; i < 12; i++){ var x = 120 + i*160; s += '<ellipse cx="' + x + '" cy="590" rx="70" ry="20" fill="#ffe7b8" opacity=".25" filter="url(#BLUR)"/><path d="M' + (x - 70) + ' 0 L' + (x - 6) + ' 560 L' + (x + 6) + ' 560 L' + (x + 70) + ' 0Z" fill="#fff6dc" opacity=".035"/><ellipse cx="' + x + '" cy="585" rx="34" ry="7" fill="#f3f0ea" opacity=".9"/><rect x="' + (x - 26) + '" y="700" width="52" height="14" rx="7" fill="#2a241f"/><rect x="' + (x - 3) + '" y="714" width="6" height="186" fill="#1f1a16"/>'; } return svg('0 0 2000 900', s + '<rect y="200" width="2000" height="8" fill="#1d1916"/>'); },
+  wine:function(){ return svg('0 0 900 1100', '<rect width="900" height="1100" fill="#0b0a09"/><ellipse cx="450" cy="420" rx="300" ry="360" fill="#3a1418" opacity=".5" filter="url(#BLUR)"/><path d="M330 240 C320 420 380 520 450 530 C520 520 580 420 570 240Z" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.4)" stroke-width="3"/><path d="M340 380 C350 470 400 520 450 522 C500 520 550 470 560 380Z" fill="#5a0f1e"/><path d="M450 530 V860 M340 880 Q450 850 560 880" stroke="rgba(255,255,255,.5)" stroke-width="5" fill="none"/><path d="M360 270 C356 360 380 430 400 460" stroke="#fff" stroke-width="5" opacity=".35" fill="none"/>'); },
+  farm:function(){ var s = '<rect width="900" height="1100" fill="#11100e"/><ellipse cx="450" cy="600" rx="380" ry="300" fill="#2a2620" opacity=".7" filter="url(#BLUR)"/>'; [[330,560,1],[520,620,.85],[430,760,.9],[600,450,.7]].forEach(function(m){ s += '<g transform="translate(' + m[0] + ' ' + m[1] + ') scale(' + m[2] + ')"><rect x="-20" y="0" width="40" height="120" rx="16" fill="#e8dfcc"/><path d="M-110 10 C-110 -90 110 -90 110 10Z" fill="#6b4a2e"/><path d="M-110 10 Q0 30 110 10" stroke="#3a2818" stroke-width="6" fill="none"/></g>'; }); return svg('0 0 900 1100', s); }
+};
+function fillPhotos(){ $$('.ph').forEach(function(f){ var url = SHOP.photos[f.dataset.photo]; if (url){ f.innerHTML = '<img src="' + url + '" alt="' + (f.dataset.label || '') + '" loading="lazy">'; return; } var a = ART[f.dataset.art]; if (a) f.innerHTML = a(); }); }
 
-/* 尺寸 */
-function size(){
-  DPR = Math.min(2, window.devicePixelRatio || 1);
-  S = Math.max(260, Math.min(innerHeight - 250, innerWidth - 24, 720));
-  cv.style.width = cv.style.height = S + 'px'; cv.width = cv.height = S*DPR;
-  g.setTransform(DPR, 0, 0, DPR, 0, 0);
-  C = S/2; P = S*.47; I = P*.6;
-  render();
-}
-window.addEventListener('resize', size);
+/* ===== 菜單 ===== */
+var ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV'];
+$('#courses').innerHTML = COURSES.map(function(c, i){ return '<li><span class="n">' + ROMAN[i] + '</span><b>' + c[0] + '</b><small>' + c[1] + '</small></li>'; }).join('');
+$('#pMenu').textContent = money(SHOP.menuPrice); $('#pPair').textContent = money(SHOP.pairPrice); $('#pPair2').textContent = money(SHOP.pairPrice);
 
-/* 以盤半徑為單位存座標，換尺寸後位置不變 */
-function toU(x, y){ return {x:(x - C)/P, y:(y - C)/P}; }
-function toPx(u){ return {x:C + u.x*P, y:C + u.y*P}; }
-function rnd(seed){ var s = Math.floor(seed*1e6) % 2147483647 || 1; return function(){ s = (s*16807) % 2147483647; return s/2147483647; }; }
-
-/* 盤子 */
-function drawPlate(){
-  g.clearRect(0, 0, S, S);
-  var sh = g.createRadialGradient(C + P*.05, C + P*.12, P*.6, C + P*.05, C + P*.12, P*1.12);
-  sh.addColorStop(0, 'rgba(0,0,0,.7)'); sh.addColorStop(1, 'rgba(0,0,0,0)');
-  g.fillStyle = sh; g.beginPath(); g.arc(C + P*.05, C + P*.12, P*1.12, 0, Math.PI*2); g.fill();
-  var rim = g.createRadialGradient(C - P*.3, C - P*.4, P*.1, C, C, P);
-  rim.addColorStop(0, '#fbfaf6'); rim.addColorStop(.75, '#e8e4dc'); rim.addColorStop(1, '#c9c3b8');
-  g.fillStyle = rim; g.beginPath(); g.arc(C, C, P, 0, Math.PI*2); g.fill();
-  // 寬緣與井的分界
-  var well = g.createRadialGradient(C + I*.25, C + I*.3, I*.2, C, C, I*1.04);
-  well.addColorStop(0, '#f7f5f0'); well.addColorStop(.85, '#ebe7df'); well.addColorStop(1, '#d6d0c5');
-  g.fillStyle = well; g.beginPath(); g.arc(C, C, I*1.03, 0, Math.PI*2); g.fill();
-  g.strokeStyle = 'rgba(160,150,135,.35)'; g.lineWidth = 1; g.beginPath(); g.arc(C, C, I*1.03, 0, Math.PI*2); g.stroke();
-  g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 1.2; g.beginPath(); g.arc(C, C, P - 1.5, Math.PI*1.05, Math.PI*1.7); g.stroke();
-  // 聚光燈的反光
-  var hl = g.createRadialGradient(C - P*.45, C - P*.55, 0, C - P*.45, C - P*.55, P*.35);
-  hl.addColorStop(0, 'rgba(255,255,255,.55)'); hl.addColorStop(1, 'rgba(255,255,255,0)');
-  g.fillStyle = hl; g.beginPath(); g.arc(C, C, P, 0, Math.PI*2); g.fill();
-}
-
-/* 各類食材的畫法 */
-function drawSauce(it){
-  var pts = it.pts.map(toPx); if (pts.length < 2) return;
-  var w = it.w*P, n = pts.length;
-  for (var pass = 0; pass < 2; pass++){
-    for (var i = 1; i < n; i++){
-      var t = i/(n - 1), taper = Math.pow(Math.sin(Math.PI*Math.min(1, t*1.1)), .45);
-      g.strokeStyle = pass ? it.c : 'rgba(0,0,0,.08)';
-      g.lineWidth = Math.max(.6, w*taper*(pass ? 1 : 1.1));
-      g.lineCap = 'round'; g.beginPath(); g.moveTo(pts[i-1].x + (pass ? 0 : 1.5), pts[i-1].y + (pass ? 0 : 2)); g.lineTo(pts[i].x + (pass ? 0 : 1.5), pts[i].y + (pass ? 0 : 2)); g.stroke();
-    }
+/* ===== 訂位月曆 ===== */
+var now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+var last = new Date(today.getTime() + SHOP.bookAheadDays*864e5), view = new Date(today.getFullYear(), today.getMonth(), 1), sel = null;
+// 示範用：依日期與梯次雜湊出剩餘座位
+function left(d, i){ var h = (d.getFullYear()*13 + d.getMonth()*37 + d.getDate()*7 + i*11) % 17; return h < 4 ? 0 : Math.min(SHOP.seats, h - 3); }
+function bookable(d){ return d >= today && d <= last && SHOP.openDays.indexOf(d.getDay()) >= 0; }
+function drawCal(){
+  var y = view.getFullYear(), m = view.getMonth(), first = new Date(y, m, 1).getDay(), n = new Date(y, m + 1, 0).getDate();
+  $('#calTitle').textContent = y + ' · ' + String(m + 1).padStart(2, '0');
+  var html = ['日','一','二','三','四','五','六'].map(function(d){ return '<span class="dow">' + d + '</span>'; }).join('');
+  for (var i = 0; i < first; i++) html += '<span></span>';
+  for (var d = 1; d <= n; d++){
+    var dt = new Date(y, m, d), ok = bookable(dt), l = ok ? left(dt, 0) + left(dt, 1) : 0, isSel = sel && dt.getTime() === sel.getTime();
+    html += '<button type="button" class="day' + (ok && l > 0 && l <= 4 ? ' few' : '') + '" data-d="' + dt.getTime() + '"' + (!ok || !l ? ' disabled' : '') + ' aria-pressed="' + !!isSel + '" aria-label="' + (m + 1) + '月' + d + '日' + (ok ? (l ? '，剩 ' + l + ' 位' : '，已額滿') : '，不開放') + '">' + d + '<small>' + (ok ? (l ? l + ' 位' : '滿') : '') + '</small></button>';
   }
-  // 刷痕的亮邊
-  g.globalAlpha = .25; g.strokeStyle = '#fff'; g.lineWidth = Math.max(.5, w*.12);
-  g.beginPath(); pts.forEach(function(p, i){ var q = {x:p.x - w*.18, y:p.y - w*.18}; i ? g.lineTo(q.x, q.y) : g.moveTo(q.x, q.y); });
-  g.stroke(); g.globalAlpha = 1;
+  $('#grid').innerHTML = html;
+  $('#prevM').disabled = y === today.getFullYear() && m === today.getMonth();
+  $('#nextM').disabled = new Date(y, m + 1, 1) > last;
 }
-function drawDot(it){
-  var a = toPx(it.a), b = toPx(it.b || it.a), r = it.r*P;
-  if (Math.hypot(b.x - a.x, b.y - a.y) > 2){
-    // 拖出的淚滴尾巴
-    var ang = Math.atan2(b.y - a.y, b.x - a.x), len = Math.hypot(b.x - a.x, b.y - a.y);
-    g.save(); g.translate(a.x, a.y); g.rotate(ang);
-    g.fillStyle = it.c; g.beginPath(); g.moveTo(0, -r); g.quadraticCurveTo(len*.5, -r*.5, len, 0); g.quadraticCurveTo(len*.5, r*.5, 0, r); g.arc(0, 0, r, Math.PI/2, Math.PI*1.5); g.fill();
-    g.restore();
-  }
-  g.fillStyle = 'rgba(0,0,0,.12)'; g.beginPath(); g.arc(a.x + 1.5, a.y + 2, r, 0, Math.PI*2); g.fill();
-  g.fillStyle = it.c; g.beginPath(); g.arc(a.x, a.y, r, 0, Math.PI*2); g.fill();
-  g.fillStyle = 'rgba(255,255,255,.45)'; g.beginPath(); g.arc(a.x - r*.35, a.y - r*.35, r*.28, 0, Math.PI*2); g.fill();
+$('#prevM').onclick = function(){ view = new Date(view.getFullYear(), view.getMonth() - 1, 1); drawCal(); };
+$('#nextM').onclick = function(){ view = new Date(view.getFullYear(), view.getMonth() + 1, 1); drawCal(); };
+$('#grid').addEventListener('click', function(e){ var b = e.target.closest('.day'); if (!b || b.disabled) return; sel = new Date(+b.dataset.d); drawCal(); drawSeat(); });
+var DAYS = ['週日','週一','週二','週三','週四','週五','週六'];
+function drawSeat(){
+  if (!sel){ $('#seat').innerHTML = SHOP.seatings.map(function(t){ return '<label><input type="radio" name="seat" disabled><span><b>' + t + '</b><small>先選日期</small></span></label>'; }).join(''); return; }
+  $('#when').textContent = (sel.getMonth() + 1) + ' 月 ' + sel.getDate() + ' 日 ' + DAYS[sel.getDay()];
+  $('#seat').innerHTML = SHOP.seatings.map(function(t, i){ var l = left(sel, i); return '<label><input type="radio" name="seat" value="' + i + '"' + (l ? '' : ' disabled') + '><span><b>' + t + '</b><small>' + (l ? '剩 ' + l + ' 位' : '已額滿') + '</small></span></label>'; }).join('');
+  var f = $('#seat input:not(:disabled)'); if (f) f.checked = true;
+  syncPax();
 }
-function drawMain(it){
-  var p = toPx(it.p), s = P/100;
-  g.save(); g.translate(p.x, p.y); g.rotate(it.rot);
-  g.fillStyle = 'rgba(60,45,30,.16)'; g.beginPath(); g.ellipse(2.5*s, 3.5*s, 13*s, 11*s, 0, 0, Math.PI*2); g.fill();
-  if (it.id === 'scallop'){
-    var sg = g.createRadialGradient(-3*s, -4*s, 1, 0, 0, 14*s); sg.addColorStop(0, '#fff3dc'); sg.addColorStop(1, '#dcc092');
-    g.fillStyle = sg; g.beginPath(); g.arc(0, 0, 13*s, 0, Math.PI*2); g.fill();
-    var cr = g.createRadialGradient(0, 0, 4*s, 0, 0, 12*s); cr.addColorStop(0, '#9a5a1e'); cr.addColorStop(.7, '#c8843a'); cr.addColorStop(1, 'rgba(200,132,58,0)');
-    g.fillStyle = cr; g.beginPath(); g.arc(0, 0, 11*s, 0, Math.PI*2); g.fill();
-    g.strokeStyle = 'rgba(255,240,210,.5)'; g.lineWidth = 1; g.beginPath(); g.arc(0, 0, 13*s, Math.PI*1.1, Math.PI*1.6); g.stroke();
-  } else if (it.id === 'duck'){
-    g.fillStyle = '#efe0c8'; g.beginPath(); g.ellipse(0, -9*s, 18*s, 3*s, 0, 0, Math.PI*2); g.fill();
-    var dg = g.createLinearGradient(0, -8*s, 0, 8*s); dg.addColorStop(0, '#c55a5f'); dg.addColorStop(.5, '#a83a46'); dg.addColorStop(1, '#8a2b36');
-    g.fillStyle = dg; g.beginPath(); g.ellipse(0, 0, 19*s, 8.5*s, 0, 0, Math.PI*2); g.fill();
-    g.fillStyle = '#6b3a1f'; g.beginPath(); g.ellipse(0, -7*s, 18*s, 2.5*s, 0, Math.PI, Math.PI*2); g.fill();
-    g.fillStyle = 'rgba(255,200,200,.25)'; g.beginPath(); g.ellipse(-4*s, 1*s, 9*s, 3*s, 0, 0, Math.PI*2); g.fill();
-  } else {
-    g.fillStyle = '#f6f2ea'; g.fillRect(-15*s, -10*s, 30*s, 20*s);
-    g.strokeStyle = 'rgba(200,190,170,.6)'; g.lineWidth = 1;
-    for (var k = -2; k <= 2; k++){ g.beginPath(); g.moveTo(-15*s, k*4*s); g.quadraticCurveTo(0, k*4*s + 3*s, 15*s, k*4*s); g.stroke(); }
-    var cg = g.createLinearGradient(0, -10*s, 0, -4*s); cg.addColorStop(0, '#b77a35'); cg.addColorStop(1, 'rgba(183,122,53,0)');
-    g.fillStyle = cg; g.fillRect(-15*s, -10*s, 30*s, 6*s);
-  }
-  g.restore();
+function syncPax(){
+  var s = $('#seat input:checked'), max = s ? Math.min(SHOP.maxParty, left(sel, +s.value)) : SHOP.maxParty, cur = +$('#pax').value || 2, html = '';
+  for (var p = 1; p <= max; p++) html += '<option' + (p === Math.min(cur, max) ? ' selected' : '') + '>' + p + '</option>';
+  $('#pax').innerHTML = html; sum();
 }
-function drawGreens(it){
-  var r = rnd(it.seed), c = toPx(it.p), s = P/100;
-  for (var i = 0; i < 6; i++){
-    var x = c.x + (r() - .5)*12*s, y = c.y + (r() - .5)*12*s, a = r()*Math.PI*2;
-    g.save(); g.translate(x, y); g.rotate(a);
-    g.strokeStyle = '#6f8f3a'; g.lineWidth = .8; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, 4*s); g.stroke();
-    g.fillStyle = i%3 ? '#5c9a2c' : '#86c043';
-    for (var l = 0; l < 3; l++){ g.rotate(Math.PI*2/3); g.beginPath(); g.ellipse(0, -2.2*s, 1.7*s, 2.4*s, 0, 0, Math.PI*2); g.fill(); }
-    g.restore();
-  }
+$('#seat').addEventListener('change', syncPax);
+$('#res').addEventListener('change', function(e){ if (e.target.id === 'pax' || e.target.id === 'pair') sum(); });
+function sum(){
+  var p = +$('#pax').value || 1, pair = $('#pair').checked, food = SHOP.menuPrice*p, wine = pair ? SHOP.pairPrice*p : 0, svc = Math.round((food + wine)*SHOP.service);
+  $('#sum').innerHTML = '<span>品嚐菜單 × ' + p + '</span><b>' + money(food) + '</b>' + (pair ? '<span>餐酒搭配 × ' + p + '</span><b>' + money(wine) + '</b>' : '') + '<span>服務費 10%</span><b>' + money(svc) + '</b><span>預估總額</span><b>' + money(food + wine + svc) + '</b><span class="dep">今天預付訂金</span><b class="dep">' + money(SHOP.deposit*p) + '</b>';
 }
-function drawFlower(it){
-  var r = rnd(it.seed), c = toPx(it.p), s = P/100;
-  for (var i = 0; i < 3; i++){
-    var x = c.x + (r() - .5)*14*s, y = c.y + (r() - .5)*14*s;
-    g.save(); g.translate(x, y); g.rotate(r()*6.28);
-    g.fillStyle = it.c; g.globalAlpha = .92;
-    g.beginPath(); g.ellipse(0, 0, 3.6*s, 2.2*s, 0, 0, Math.PI*2); g.fill();
-    g.globalAlpha = 1; g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = .6; g.beginPath(); g.moveTo(-3*s, 0); g.lineTo(3*s, 0); g.stroke();
-    g.restore();
-  }
-}
-function drawCrumb(it){
-  var r = rnd(it.seed);
-  it.pts.forEach(function(u){
-    var c = toPx(u);
-    for (var i = 0; i < 5; i++){ g.fillStyle = it.c; g.globalAlpha = .7 + r()*.3; g.beginPath(); g.arc(c.x + (r() - .5)*10, c.y + (r() - .5)*10, .8 + r()*1.8, 0, Math.PI*2); g.fill(); }
-  });
-  g.globalAlpha = 1;
-}
-function drawFoam(it){
-  var r = rnd(it.seed), c = toPx(it.p), s = P/100;
-  for (var i = 0; i < 16; i++){
-    var x = c.x + (r() - .5)*16*s, y = c.y + (r() - .5)*11*s, rr = (1 + r()*3)*s;
-    g.fillStyle = it.c; g.globalAlpha = .75; g.beginPath(); g.arc(x, y, rr, 0, Math.PI*2); g.fill();
-    g.globalAlpha = .9; g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = .6; g.beginPath(); g.arc(x - rr*.3, y - rr*.3, rr*.5, Math.PI, Math.PI*1.6); g.stroke();
-  }
-  g.globalAlpha = 1;
-}
-var DRAW = {sauce:drawSauce, dot:drawDot, main:drawMain, greens:drawGreens, flower:drawFlower, crumb:drawCrumb, foam:drawFoam};
-var ORDER = {sauce:0, dot:1, crumb:2, main:3, foam:4, greens:5, flower:6};
-function render(){
-  drawPlate();
-  items.concat(cur ? [cur] : []).slice().sort(function(a, b){ return ORDER[a.k] - ORDER[b.k]; }).forEach(function(it){ DRAW[it.k](it); });
-}
-
-/* 指標 */
-function getOpt(){ var t = TOOLS.find(function(x){ return x.k === tool; }); return t.opts.find(function(o){ return o.id === opt[tool]; }) || {}; }
-function pt(e){ var r = cv.getBoundingClientRect(); return toU(e.clientX - r.left, e.clientY - r.top); }
-cv.addEventListener('pointerdown', function(e){
-  audio(); $('#hint').classList.add('off');
-  var u = pt(e), o = getOpt(); cv.setPointerCapture(e.pointerId);
-  if (Math.hypot(u.x, u.y) > 1.02) return;
-  if (tool === 'sauce') cur = {k:'sauce', pts:[u], c:o.c, id:o.id, w:.09};
-  else if (tool === 'dot') cur = {k:'dot', a:u, b:u, c:o.c, id:o.id, r:.028 + Math.random()*.012};
-  else if (tool === 'crumb') cur = {k:'crumb', pts:[u], c:o.c, id:o.id, seed:Math.random()};
-  else if (tool === 'main') { items.push({k:'main', p:u, id:o.id, rot:(Math.random() - .5)*.8 + (o.id === 'duck' ? -.4 : 0)}); place(); }
-  else if (tool === 'greens') { items.push({k:'greens', p:u, seed:Math.random()}); place(); }
-  else if (tool === 'flower') { items.push({k:'flower', p:u, c:o.c, id:o.id, seed:Math.random()}); place(); }
-  else if (tool === 'foam') { items.push({k:'foam', p:u, c:o.c, id:o.id, seed:Math.random()}); place(); }
-  render();
+$('#res').addEventListener('submit', function(e){
+  e.preventDefault();
+  var ok = true, s = $('#seat input:checked');
+  if (!sel || !s){ $('#when').textContent = '請先在月曆上選一天與梯次'; ok = false; }
+  [[$('#rName'), $('#rName').value.trim().length > 0, '請填寫姓名'], [$('#rPhone'), /^09\d{2}-?\d{3}-?\d{3}$/.test($('#rPhone').value.trim()), '請輸入 09 開頭的手機號碼'], [$('#rMail'), /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test($('#rMail').value.trim()), '請輸入有效的 Email']].forEach(function(c){ c[0].nextElementSibling.textContent = c[1] ? '' : c[2]; if (!c[1]) ok = false; });
+  if (!ok) return;
+  var p = +$('#pax').value, code = 'N' + String(sel.getMonth() + 1).padStart(2, '0') + String(sel.getDate()).padStart(2, '0') + (+s.value ? 'B' : 'A') + p;
+  $('#resBody').innerHTML = '<div class="conf"><span class="cap">Confirmé</span><div class="code">' + code + '</div><p>' + (sel.getMonth() + 1) + ' 月 ' + sel.getDate() + ' 日 ' + DAYS[sel.getDay()] + '　' + SHOP.seatings[+s.value] + '　' + p + ' 位' + ($('#pair').checked ? '・含餐酒搭配' : '') + '</p><p>訂金 ' + money(SHOP.deposit*p) + ' 已預付，確認信寄到 ' + $('#rMail').value.trim().replace(/</g, '') + '。</p><p>飲食限制：' + $('#diet').value + '。用餐前一天會再傳簡訊提醒。</p><p class="demo">示範版本：沒有真的扣款或送出訂位。</p></div>';
 });
-cv.addEventListener('pointermove', function(e){
-  if (!cur) return; var u = pt(e);
-  if (cur.k === 'sauce'){ var l = cur.pts[cur.pts.length - 1]; if (Math.hypot(u.x - l.x, u.y - l.y) > .012) cur.pts.push(u); brush(); }
-  else if (cur.k === 'dot') cur.b = u;
-  else if (cur.k === 'crumb'){ var l2 = cur.pts[cur.pts.length - 1]; if (Math.hypot(u.x - l2.x, u.y - l2.y) > .03) cur.pts.push(u); }
-  render();
-});
-function up(){ if (cur){ if (cur.k !== 'sauce' || cur.pts.length > 2) items.push(cur); cur = null; place(); render(); } }
-cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+drawCal(); drawSeat();
 
-/* 工具列 */
-var toolsEl = $('#tools');
-TOOLS.forEach(function(t){
-  var b = document.createElement('button'); b.type = 'button'; b.className = 'tool'; b.dataset.k = t.k;
-  b.innerHTML = '<svg viewBox="0 0 34 34" aria-hidden="true">' + t.icon + '</svg><span>' + t.zh + '</span>';
-  b.addEventListener('click', function(){ tool = t.k; syncTools(); });
-  toolsEl.appendChild(b);
-});
-function syncTools(){
-  toolsEl.querySelectorAll('.tool').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.k === tool); });
-  var t = TOOLS.find(function(x){ return x.k === tool; }), sub = $('#sub');
-  sub.innerHTML = '';
-  if (!t.opts.length){ sub.innerHTML = '<span class="sw" style="cursor:default">點一下撒一撮</span>'; return; }
-  t.opts.forEach(function(o){
-    var b = document.createElement('button'); b.type = 'button'; b.className = 'sw'; b.style.setProperty('--c', o.c);
-    b.innerHTML = '<i></i>' + o.zh; b.setAttribute('aria-pressed', opt[tool] === o.id);
-    b.addEventListener('click', function(){ opt[tool] = o.id; syncTools(); });
-    sub.appendChild(b);
-  });
-}
-$('#undo').addEventListener('click', function(){ items.pop(); render(); });
-$('#clear').addEventListener('click', function(){ items = []; render(); $('#hint').classList.remove('off'); });
-document.addEventListener('keydown', function(e){
-  if ((e.metaKey || e.ctrlKey) && e.key === 'z'){ e.preventDefault(); items.pop(); render(); }
-  if (e.key === 'Escape') $('#verdict').classList.remove('show');
-  var n = parseInt(e.key, 10); if (n >= 1 && n <= TOOLS.length && !$('#verdict').classList.contains('show')){ tool = TOOLS[n - 1].k; syncTools(); }
+/* ===== 禮券 ===== */
+$('#amts').innerHTML = SHOP.gifts.map(function(a, i){ return '<label><input type="radio" name="amt" value="' + a + '"' + (i ? '' : ' checked') + '><span>' + money(a) + '</span></label>'; }).join('');
+function card(){ $('#cAmt').textContent = money(+$('#amts input:checked').value); $('#cTo').textContent = '致 ' + ($('#gTo').value.trim() || '——'); $('#cMsg').textContent = $('#gMsg').value.trim(); }
+$('#gf').addEventListener('input', card); $('#gf').addEventListener('change', card); card();
+$('#gf').addEventListener('submit', function(e){
+  e.preventDefault(); var m = $('#gMail'), ok = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m.value.trim());
+  m.nextElementSibling.textContent = ok ? '' : '請輸入收禮人的 Email'; if (!ok) return;
+  $('#gDone').innerHTML = '<span style="color:var(--gold)">禮券已寄出到 ' + m.value.trim().replace(/</g, '') + '（示範版本，未扣款）。</span>';
 });
 
-/* 品評：以格點取樣算覆蓋率、重心、盤緣乾淨度 */
-function covers(it, u){
-  var d;
-  switch (it.k){
-    case 'sauce': for (var i = 1; i < it.pts.length; i++){ if (segDist(u, it.pts[i-1], it.pts[i]) < it.w*.45) return true; } return false;
-    case 'dot': return Math.hypot(u.x - it.a.x, u.y - it.a.y) < it.r || segDist(u, it.a, it.b) < it.r*.5;
-    case 'main': return Math.hypot(u.x - it.p.x, u.y - it.p.y) < .15;
-    case 'greens': case 'flower': return Math.hypot(u.x - it.p.x, u.y - it.p.y) < .08;
-    case 'foam': return Math.hypot(u.x - it.p.x, u.y - it.p.y) < .1;
-    case 'crumb': return it.pts.some(function(p){ return Math.hypot(u.x - p.x, u.y - p.y) < .05; });
-  }
-  return false;
-}
-function segDist(p, a, b){ var dx = b.x - a.x, dy = b.y - a.y, l = dx*dx + dy*dy, t = l ? Math.max(0, Math.min(1, ((p.x - a.x)*dx + (p.y - a.y)*dy)/l)) : 0; return Math.hypot(p.x - a.x - t*dx, p.y - a.y - t*dy); }
-function judge(){
-  var inner = I/P, n = 0, hitN = 0, mx = 0, my = 0, rimDirty = false;
-  for (var y = -1; y <= 1; y += .04) for (var x = -1; x <= 1; x += .04){
-    var r = Math.hypot(x, y); if (r > 1) continue;
-    var u = {x:x, y:y}, hit = items.some(function(it){ return covers(it, u); });
-    if (r <= inner){ n++; if (hit){ hitN++; mx += x; my += y; } }
-    else if (hit) rimDirty = true;
-  }
-  var cov = n ? hitN/n : 0, off = hitN ? Math.hypot(mx/hitN, my/hitN)/inner : 0;
-  var notes = [], score = 100, kinds = {}, colors = {};
-  items.forEach(function(it){ kinds[it.k] = (kinds[it.k] || 0) + 1; if (it.c) colors[it.c] = 1; if (it.k === 'main') colors[it.id] = 1; if (it.k === 'greens') colors.green = 1; });
-  var mains = kinds.main || 0, nc = Object.keys(colors).length, nk = Object.keys(kinds).length;
-  if (!items.length) return {score:0, notes:[['—','盤子是空的。主廚只是看著你。']], cov:0};
-  if (cov < .1){ score -= 22; notes.push(['−','盤面太空，像還沒上完菜。']); }
-  else if (cov > .5){ score -= 20; notes.push(['−','太滿了。留白也是一種味道。']); }
-  else notes.push(['+','留白恰好，盤子在呼吸（覆蓋 ' + Math.round(cov*100) + '%）。']);
-  if (off < .1 && cov > .05){ score -= 10; notes.push(['−','重心正好在中間，安全但無聊。試著推向一側。']); }
-  else if (off > .62){ score -= 14; notes.push(['−','重心跑到井的邊緣，視線會跟著掉出盤子。']); }
-  else if (cov > .05) notes.push(['+','重心偏向' + dir(mx, my) + '，視線有方向。']);
-  if (rimDirty){ score -= 18; notes.push(['−','盤緣沾到了。出餐前要擦乾淨。']); }
-  if (!mains){ score -= 16; notes.push(['−','少了主角。這道菜到底是什麼？']); }
-  else if (mains % 2 === 0){ score -= 8; notes.push(['−','主角擺了 ' + mains + ' 塊。奇數會更自然。']); }
-  else if (mains > 5){ score -= 8; notes.push(['−','主角太多，看起來像自助餐。']); }
-  else notes.push(['+','主角 ' + mains + ' 塊，奇數，好。']);
-  if (!kinds.sauce && !kinds.dot){ score -= 10; notes.push(['−','缺一道醬汁把元素連起來。']); }
-  if (!kinds.greens && !kinds.flower){ score -= 8; notes.push(['−','少了一點生氣：一撮苗或幾片花瓣。']); }
-  if (nc < 3){ score -= 8; notes.push(['−','顏色太少，加一抹綠或一點亮色。']); }
-  else if (nc > 7){ score -= 8; notes.push(['−','顏色太多，彼此在吵架。']); }
-  if (nk >= 5) notes.push(['+','質地有層次：' + nk + ' 種元素。']);
-  return {score:Math.max(0, Math.min(100, score)), notes:notes, cov:cov};
-}
-function dir(x, y){ var a = Math.atan2(y, x)*180/Math.PI; var d = ['右','右下','下','左下','左','左上','上','右上']; return d[Math.round(((a + 360) % 360)/45) % 8]; }
-function dishName(){
-  var names = {scallop:'干貝',duck:'鴨胸',cod:'鱈魚',beet:'甜菜根',ink:'墨魚',herb:'香草油',carrot:'胡蘿蔔',pea:'豌豆',pumpkin:'南瓜',cauli:'花椰菜',berry:'黑莓',nast:'金蓮花',viola:'三色堇',borage:'琉璃苣',rye:'黑麥',hazel:'榛果',sea:'海水',butter:'焦化奶油'};
-  var seen = [], out = [];
-  ['main','sauce','dot','foam','crumb','flower'].forEach(function(k){ items.forEach(function(it){ if (it.k === k && it.id && seen.indexOf(it.id) < 0){ seen.push(it.id); out.push(names[it.id]); } }); });
-  if (items.some(function(it){ return it.k === 'greens'; })) out.push('苗');
-  return out.slice(0, 4).join(' · ') || '空白';
-}
-$('#judge').addEventListener('click', function(){
-  audio();
-  var r = judge();
-  $('#flash').classList.remove('on'); void $('#flash').offsetWidth; $('#flash').classList.add('on'); shutter();
-  // 出餐照：裁成圓形
-  var c2 = document.createElement('canvas'), z = 360; c2.width = c2.height = z;
-  var x2 = c2.getContext('2d'); x2.beginPath(); x2.arc(z/2, z/2, z/2, 0, Math.PI*2); x2.clip();
-  x2.drawImage(cv, (C - P)*DPR, (C - P)*DPR, P*2*DPR, P*2*DPR, 0, 0, z, z);
-  $('#photo').src = c2.toDataURL('image/jpeg', .9);
-  $('#dish').textContent = dishName();
-  $('#score').innerHTML = r.score + '<small>/ 100</small>';
-  $('#notes').innerHTML = r.notes.map(function(n){ return '<li data-m="' + n[0] + '">' + n[1] + '</li>'; }).join('');
-  setTimeout(function(){ $('#verdict').classList.add('show'); $('#back').focus(); }, 280);
-});
-$('#back').addEventListener('click', function(){ $('#verdict').classList.remove('show'); });
-
-/* 聲音：極少，只在落件、刷醬與快門 */
-var ac = null, lastBrush = 0;
-function audio(){ if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
-function place(){
-  if (!ac) return; var t = ac.currentTime, o = ac.createOscillator(), gg = ac.createGain();
-  o.type = 'sine'; o.frequency.setValueAtTime(2400 + Math.random()*400, t); gg.gain.setValueAtTime(.025, t); gg.gain.exponentialRampToValueAtTime(.0001, t + .5);
-  o.connect(gg).connect(ac.destination); o.start(t); o.stop(t + .55);
-}
-function brush(){
-  if (!ac || performance.now() - lastBrush < 60) return; lastBrush = performance.now();
-  var buf = ac.createBuffer(1, ac.sampleRate*.06, ac.sampleRate), d = buf.getChannelData(0);
-  for (var i = 0; i < d.length; i++) d[i] = (Math.random()*2 - 1)*(1 - i/d.length);
-  var s = ac.createBufferSource(), f = ac.createBiquadFilter(), gg = ac.createGain(); s.buffer = buf; f.type = 'lowpass'; f.frequency.value = 900; gg.gain.value = .05;
-  s.connect(f).connect(gg).connect(ac.destination); s.start();
-}
-function shutter(){
-  if (!ac) return; [0, .07].forEach(function(dl){
-    var buf = ac.createBuffer(1, ac.sampleRate*.03, ac.sampleRate), d = buf.getChannelData(0);
-    for (var i = 0; i < d.length; i++) d[i] = (Math.random()*2 - 1)*(1 - i/d.length);
-    var s = ac.createBufferSource(), gg = ac.createGain(); s.buffer = buf; gg.gain.value = .18; s.connect(gg).connect(ac.destination); s.start(ac.currentTime + dl);
-  });
-}
-
-syncTools(); size();
-window.__plate = {items:function(){ return items; }, judge:judge};
+/* ===== 資訊與共用 ===== */
+$('#addr').textContent = SHOP.address;
+$('#tel').textContent = SHOP.phone; $('#tel').href = 'tel:' + SHOP.phone.replace(/[^\d]/g, '');
+$('#mail').textContent = SHOP.email; $('#mail').href = 'mailto:' + SHOP.email;
+$('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+$('#yr').textContent = now.getFullYear();
+var nav = $('#nav');
+function onScroll(){ nav.classList.toggle('solid', scrollY > 60); }
+addEventListener('scroll', onScroll, {passive:true}); onScroll();
+$('#burger').onclick = function(){ var o = nav.classList.toggle('open'); this.setAttribute('aria-expanded', o); this.textContent = o ? 'CLOSE' : 'MENU'; };
+$$('#navL a, #navR a').forEach(function(a){ a.onclick = function(){ nav.classList.remove('open'); $('#burger').textContent = 'MENU'; }; });
+var slotBtn = $('#slotBtn');
+function slots(on){ document.body.classList.toggle('slots', on); slotBtn.setAttribute('aria-pressed', on); }
+slotBtn.onclick = function(){ slots(!document.body.classList.contains('slots')); };
+if (/[?&]slots/.test(location.search)) slots(true);
+fillPhotos();
+if ('IntersectionObserver' in window){
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('vis'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -6% 0px'});
+  $$('.rv-in').forEach(function(el){ io.observe(el); });
+} else $$('.rv-in').forEach(function(el){ el.classList.add('vis'); });
 })();
 </script>
 </body>

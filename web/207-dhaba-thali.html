@@ -3,164 +3,306 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sher-e-Punjab Dhaba · 公路餐館</title>
-<meta name="description" content="大貨車彩繪風的印度公路餐館：在不鏽鋼大盤上自己組一份 thali，豆糊、蔬菜、飯、餅、優格、甜點各選一樣，辣度表跟著跳；再按住按鈕從高處拉一杯起泡的 kadak 奶茶。">
+<title>Sher-e-Punjab Dhaba｜24 小時印度公路餐館</title>
+<meta name="description" content="Sher-e-Punjab Dhaba：二十四小時營業的旁遮普公路餐館。泥窯烤餅、奶油黑豆、卡車司機最愛的 thali 套餐與現煮奶茶。線上自組 thali，外送或自取。">
+<!--
+  店家模板使用方式
+  1. 修改 <script> 開頭的 SHOP（店名、電話、地址、外送費、照片網址）與 SLOTS（thali 每格的選項與價格）。
+  2. photos 填入照片網址就會取代佔位圖；網址加 ?slots 或按右下角「照片位」可標出位置與建議尺寸。
+  3. 線上點餐目前只在頁面上示範，正式使用請串接點餐或外送服務。
+-->
 <style>
 :root{
   --night:#062e33; --teal:#0b6b6e; --red:#e0262f; --yellow:#ffcb05; --green:#13a538; --pink:#ff3d8b; --blue:#1f4fd8; --orange:#ff7a00;
-  --cream:#fff6dc; --ink:#120a06; --steel1:#f2f4f6; --steel2:#a9b0b8; --steel3:#6d757e;
+  --cream:#fff6dc; --ink:#120a06; --soft:#cfe7e2;
+  --sans:"Gill Sans","Gill Sans MT","Trebuchet MS","PingFang TC","Microsoft JhengHei",sans-serif;
+  --dev:"Kohinoor Devanagari","Devanagari Sangam MN","Nirmala UI","Mangal",sans-serif;
 }
 *{box-sizing:border-box}
+html{scroll-behavior:smooth}
 html,body{margin:0}
-body{overflow-x:clip;background:var(--night);color:var(--cream);font-family:"Gill Sans","Gill Sans MT","Trebuchet MS","PingFang TC","Microsoft JhengHei",sans-serif}
-.dev{font-family:"Kohinoor Devanagari","Devanagari Sangam MN","Nirmala UI","Mangal",sans-serif}
-button{font:inherit;color:inherit;cursor:pointer}
-/* 彩繪花帶 */
-.band{height:34px;background-color:var(--red);background-image:var(--flower);background-size:68px 34px;border-top:4px solid var(--yellow);border-bottom:4px solid var(--green)}
+body{background:var(--night);color:var(--cream);font-family:var(--sans);line-height:1.7;overflow-x:clip}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+.dev{font-family:var(--dev)}
+.wrap{max-width:1200px;margin:0 auto;padding:0 clamp(16px,3.6vw,36px)}
+/* 彩繪帶 */
+.chamak{height:16px;background:linear-gradient(135deg,transparent 33%,rgba(255,255,255,.55) 50%,transparent 67%) 0 0/200% 100%,conic-gradient(from 135deg at 50% 0,var(--yellow) 0 90deg,transparent 0) 0 0/16px 16px,conic-gradient(from 135deg at 50% 0,var(--pink) 0 90deg,transparent 0) 8px 0/16px 16px,#0d0d0d;animation:shine 4s linear infinite}
+@keyframes shine{to{background-position:-200% 0,0 0,8px 0}}
+.band{height:30px;background-color:var(--red);background-image:var(--flower);background-size:60px 30px;border-top:4px solid var(--yellow);border-bottom:4px solid var(--green)}
 .band.alt{background-color:var(--blue);background-image:var(--flower2);border-top-color:var(--pink);border-bottom-color:var(--yellow)}
-.chamak{height:22px;background:
-  linear-gradient(135deg,transparent 33%,rgba(255,255,255,.55) 50%,transparent 67%) 0 0/200% 100%,
-  conic-gradient(from 135deg at 50% 0,var(--yellow) 0 90deg,transparent 0) 0 0/22px 22px,
-  conic-gradient(from 135deg at 50% 0,var(--pink) 0 90deg,transparent 0) 11px 0/22px 22px,
-  #0d0d0d;animation:shine 4s linear infinite}
-@keyframes shine{to{background-position:-200% 0,0 0,11px 0}}
-/* 車尾招牌 */
-.tail{position:relative;padding:34px 16px 26px;text-align:center;background:radial-gradient(ellipse at 50% 40%,#0f5a5e,var(--night) 70%);overflow:hidden}
-.tail .eyes{position:absolute;top:16px;width:130px;height:52px;opacity:.95}
-.tail .eyes.l{left:4%}.tail .eyes.r{right:4%;transform:scaleX(-1)}
-.horn{display:inline-block;font-weight:900;font-size:clamp(15px,2vw,20px);letter-spacing:.3em;color:var(--ink);background:var(--yellow);padding:6px 16px;border:3px solid var(--ink);box-shadow:4px 4px 0 var(--red);transform:rotate(-2deg)}
-.tail h1{margin:18px 0 0;line-height:.95;font-weight:900;font-size:clamp(44px,8vw,104px);letter-spacing:.02em;color:var(--yellow);
-  text-shadow:0 3px 0 var(--red),0 6px 0 var(--ink),4px 10px 0 rgba(0,0,0,.35)}
-.tail h1 .dev{display:block;font-size:.7em;color:var(--pink);text-shadow:0 3px 0 var(--cream),0 6px 0 var(--ink);margin-top:8px}
-.tail p{margin:16px auto 0;max-width:620px;line-height:1.75;color:#cfe7e2;font-size:15px}
-.tail .slogan{position:absolute;bottom:10px;left:0;right:0;font-size:12px;letter-spacing:.24em;color:#86b9b3}
-/* 主區 */
-.main{max-width:1180px;margin:0 auto;padding:30px 16px 40px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:30px;align-items:start}
-.plateWrap{position:sticky;top:14px}
-.plateCard{background:linear-gradient(160deg,#0e4f53,#08393d);border:4px solid var(--yellow);border-radius:24px;padding:18px;box-shadow:0 0 0 4px var(--red),0 0 0 8px var(--green),0 20px 40px rgba(0,0,0,.45);position:relative}
-.plateCard h2{margin:0 0 4px;text-align:center;font-weight:900;font-size:24px;letter-spacing:.12em;color:var(--yellow)}
-.plateCard .sub{text-align:center;margin:0 0 6px;color:#a7d3cd;font-size:13px}
+/* 導覽 */
+.nav{position:sticky;top:0;z-index:40;background:rgba(6,46,51,.95);backdrop-filter:blur(8px);border-bottom:3px solid var(--yellow)}
+.nav .wrap{display:flex;align-items:center;gap:24px;height:70px}
+.logo{text-decoration:none;line-height:1}
+.logo b{display:block;font-weight:900;font-size:22px;color:var(--yellow);text-shadow:0 2px 0 var(--red)}
+.logo span{font-family:var(--dev);font-size:13px;color:var(--pink)}
+.nav ul{display:flex;gap:22px;list-style:none;margin:0 0 0 auto;padding:0;font-weight:700}
+.nav ul a{text-decoration:none}
+.nav ul a:hover{color:var(--yellow)}
+.live{display:inline-flex;align-items:center;gap:8px;border:2px solid var(--yellow);border-radius:999px;padding:5px 12px;font-weight:800;font-size:13px;color:var(--yellow);white-space:nowrap}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:3px solid var(--ink);border-radius:12px;padding:12px 22px;font-weight:900;letter-spacing:.04em;text-decoration:none;cursor:pointer;box-shadow:4px 4px 0 var(--ink);transition:transform .15s,box-shadow .15s}
+.btn:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
+.btn.y{background:var(--yellow);color:var(--ink)}
+.btn.r{background:var(--red);color:#fff}
+.btn.g{background:var(--green);color:#fff}
+.burger{display:none;margin-left:auto;width:44px;height:44px;border:2px solid var(--yellow);border-radius:10px;background:none;color:var(--yellow);font-size:22px;cursor:pointer}
+/* 照片位 */
+.ph{position:relative;overflow:hidden;background:#0a3a3f;margin:0}
+.ph>svg,.ph>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+body.slots .ph{outline:3px dashed var(--yellow);outline-offset:-3px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:10px;top:10px;z-index:3;background:var(--yellow);color:var(--ink);font-size:11px;font-weight:800;padding:3px 9px;border-radius:4px}
+/* Hero */
+.hero{padding:clamp(40px,6vw,80px) 0;background:radial-gradient(ellipse at 70% 40%,#0f5a5e,var(--night) 70%)}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,4vw,60px);align-items:center}
+.horn{display:inline-block;font-weight:900;font-size:14px;letter-spacing:.3em;color:var(--ink);background:var(--yellow);padding:5px 14px;border:3px solid var(--ink);box-shadow:4px 4px 0 var(--red);transform:rotate(-2deg)}
+.hero h1{margin:20px 0 0;font-weight:900;font-size:clamp(46px,6.6vw,90px);line-height:.95;color:var(--yellow);text-shadow:0 3px 0 var(--red),0 6px 0 var(--ink)}
+.hero h1 .dev{display:block;font-size:.55em;color:var(--pink);text-shadow:0 2px 0 var(--cream),0 4px 0 var(--ink);margin-top:10px}
+.hero p{margin:20px 0 26px;color:var(--soft);font-size:17px;max-width:480px}
+.cta{display:flex;gap:12px;flex-wrap:wrap}
+.arch{position:relative;padding:18px;border-radius:220px 220px 22px 22px;background:linear-gradient(135deg,var(--red),#a3101a);border:4px solid var(--yellow);box-shadow:0 0 0 4px var(--ink),12px 12px 0 var(--green)}
+.arch::before{content:"";position:absolute;inset:6px;border-radius:212px 212px 16px 16px;border:3px dashed var(--yellow);pointer-events:none}
+.arch .ph{aspect-ratio:1/1.05;border-radius:200px 200px 10px 10px;border:3px solid var(--ink)}
+.mirror{position:absolute;width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#b8c4cc 50%,#6e7a82);border:3px solid var(--yellow);z-index:2}
+.stats{display:flex;gap:28px;margin-top:34px;flex-wrap:wrap}
+.stats div b{display:block;font-size:34px;font-weight:800;color:var(--yellow);line-height:1}
+.stats div span{font-size:13px;color:var(--soft)}
+/* 區塊 */
+.sec{padding:clamp(70px,9vw,110px) 0}
+.ttl{text-align:center;margin-bottom:44px}
+.ttl .dev{color:var(--pink);font-size:18px}
+.ttl h2{margin:4px 0 8px;font-weight:900;font-size:clamp(34px,5vw,58px);color:var(--yellow);text-shadow:0 3px 0 var(--red),0 5px 0 var(--ink);line-height:1.05}
+.ttl p{margin:0 auto;max-width:560px;color:var(--soft)}
+/* 招牌 */
+.fav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+.fav article{background:var(--cream);color:var(--ink);border:3px solid var(--ink);border-radius:18px;overflow:hidden;box-shadow:6px 6px 0 var(--c)}
+.fav .ph{aspect-ratio:1;border-bottom:3px solid var(--ink)}
+.fav .t{padding:14px 16px 18px}
+.fav h3{margin:0;font-size:19px;font-weight:900;display:flex;justify-content:space-between;gap:8px}
+.fav h3 span{color:var(--red);white-space:nowrap}
+.fav .dev{font-size:13px;color:var(--teal)}
+.fav p{margin:6px 0 0;font-size:14px;color:#5a4a3a}
+.chili{display:inline-flex;gap:2px;vertical-align:middle;margin-left:6px}
+.chili i{width:9px;height:14px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:var(--red);transform:rotate(25deg);opacity:.2}
+.chili i.on{opacity:1}
+/* 自組 thali */
+.build{background:var(--cream);color:var(--ink);border-top:4px solid var(--ink);border-bottom:4px solid var(--ink)}
+.build .ttl h2{color:var(--red);text-shadow:0 3px 0 var(--yellow),0 5px 0 var(--ink)}
+.build .ttl p{color:#5a4a3a}
+.bgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(20px,3vw,40px);align-items:start}
+.bgrid>*{min-width:0}
+.plateBox{position:sticky;top:90px;background:var(--night);border:4px solid var(--yellow);border-radius:26px;padding:18px;box-shadow:0 0 0 4px var(--red),0 0 0 8px var(--green)}
 #plate{width:100%;height:auto;display:block}
-.meter{display:flex;align-items:center;gap:10px;margin-top:6px;justify-content:center;flex-wrap:wrap}
-.meter b{font-size:13px;letter-spacing:.14em;color:#ffd9a8}
-.chilis{display:flex;gap:3px}
-.chilis i{width:22px;height:22px;display:block;opacity:.22;transition:opacity .3s,transform .3s}
-.chilis i.on{opacity:1;transform:rotate(-12deg) scale(1.1)}
-.meter span{font-size:13px;color:#ffd9a8;min-width:6em}
-/* 選單 */
-.menu{display:flex;flex-direction:column;gap:16px}
-.grp{background:var(--cream);color:var(--ink);border-radius:14px;padding:12px 14px 14px;position:relative;border:3px solid var(--ink);box-shadow:5px 5px 0 var(--c,var(--red))}
-.grp h3{margin:0 0 8px;display:flex;align-items:baseline;gap:10px;font-weight:900;font-size:19px;letter-spacing:.04em}
-.grp h3 .dev{font-size:15px;color:var(--c,var(--red))}
-.grp h3 small{margin-left:auto;font-size:12px;color:#7a6650;font-weight:600;letter-spacing:.02em}
+.heat{display:flex;align-items:center;justify-content:center;gap:10px;color:#ffd9a8;font-weight:800;font-size:14px;margin-top:6px;flex-wrap:wrap}
+.heat .chili i{width:12px;height:18px}
+.grp{border:3px solid var(--ink);border-radius:16px;padding:12px 14px 14px;margin-bottom:12px;background:#fff;box-shadow:4px 4px 0 var(--c)}
+.grp h3{margin:0 0 8px;font-size:17px;font-weight:900;display:flex;gap:8px;align-items:baseline}
+.grp h3 .dev{font-size:14px;color:var(--c)}
+.grp h3 small{margin-left:auto;font-size:12px;color:#8a7a66;font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{border:2.5px solid var(--ink);background:#fff;border-radius:999px;padding:7px 12px 7px 9px;display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;transition:transform .15s,background .2s}
-.chip i{width:18px;height:18px;border-radius:50%;border:2px solid var(--ink);background:var(--dot);flex:none}
-.chip em{font-style:normal;font-weight:600;color:#7a6650;font-size:12px}
-.chip:hover{transform:translateY(-2px)}
-.chip[aria-pressed=true]{background:var(--c,var(--red));color:#fff}
-.chip[aria-pressed=true] em{color:#ffe9d0}
-/* 拉茶 */
-.chai{max-width:1180px;margin:0 auto;padding:0 16px 36px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:30px}
-.stall{background:var(--yellow);color:var(--ink);border:4px solid var(--ink);border-radius:20px;padding:18px;box-shadow:8px 8px 0 var(--pink);display:grid;grid-template-columns:150px minmax(0,1fr);gap:16px;align-items:center}
-.stall svg{width:150px;height:auto}
-.stall h2{margin:0;font-weight:900;font-size:26px}
-.stall h2 .dev{font-size:18px;color:var(--red);margin-left:6px}
-.stall p{margin:6px 0 12px;font-size:14px;line-height:1.65}
-.pull{border:3px solid var(--ink);background:var(--red);color:#fff;border-radius:12px;padding:14px 18px;font-weight:900;font-size:16px;letter-spacing:.06em;box-shadow:4px 4px 0 var(--ink);user-select:none;-webkit-user-select:none;touch-action:none}
-.pull:active,.pull.hold{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink);background:#b81a22}
-.chaiNote{font-weight:800;margin-top:10px;min-height:1.5em}
-/* 帳 */
-.bill{background:#5b2a12;border:4px solid var(--ink);border-radius:20px;padding:18px 20px;box-shadow:8px 8px 0 var(--green);background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.12) 0 3px,transparent 3px 26px)}
-.bill h2{margin:0 0 10px;font-weight:900;font-size:24px;color:var(--yellow);letter-spacing:.06em}
-.bill h2 .dev{font-size:18px;color:var(--cream);margin-left:8px}
-.bill ul{list-style:none;margin:0;padding:0;font-size:15px}
-.bill li{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed rgba(255,246,220,.25)}
-.bill li span:last-child{font-variant-numeric:tabular-nums}
-.bill .tot{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;font-weight:900}
-.bill .tot output{font-size:34px;color:var(--yellow)}
-.serve{width:100%;margin-top:14px;border:3px solid var(--ink);background:var(--green);color:#fff;border-radius:12px;padding:13px;font-weight:900;font-size:17px;letter-spacing:.06em;box-shadow:4px 4px 0 var(--ink)}
-.serve:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
-.served{margin-top:10px;font-weight:800;color:var(--yellow);min-height:1.4em}
-/* 鈴鐺 */
-.bells{display:flex;justify-content:center;gap:clamp(8px,2.4vw,26px);padding:4px 0 30px;flex-wrap:nowrap;overflow:hidden}
-.bell{width:30px;display:flex;flex-direction:column;align-items:center;transform-origin:50% 0;cursor:pointer;flex:none}
-.bell::before{content:"";width:2px;height:var(--h,26px);background:repeating-linear-gradient(var(--yellow) 0 4px,#b8860b 4px 6px)}
-.bell b{width:26px;height:26px;border-radius:13px 13px 4px 4px;background:radial-gradient(circle at 35% 30%,#fff3a8,#e0a800 55%,#8a6100);border:2px solid var(--ink);position:relative}
-.bell b::after{content:"";position:absolute;left:50%;bottom:-7px;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#8a6100;border:1.5px solid var(--ink)}
+.chip{border:2.5px solid var(--ink);background:#fff;border-radius:999px;padding:6px 12px 6px 8px;display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;cursor:pointer}
+.chip i{width:16px;height:16px;border-radius:50%;border:2px solid var(--ink);background:var(--dot)}
+.chip em{font-style:normal;font-weight:600;color:#8a7a66;font-size:12px}
+.chip[aria-pressed=true]{background:var(--c);color:#fff}
+.chip[aria-pressed=true] em{color:#ffeccc}
+.order{background:var(--night);color:var(--cream);border:4px solid var(--ink);border-radius:20px;padding:20px;margin-top:18px;box-shadow:6px 6px 0 var(--pink)}
+.order h3{margin:0 0 10px;font-size:20px;font-weight:900;color:var(--yellow)}
+.order ul{list-style:none;margin:0;padding:0;font-size:14px}
+.order li{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dashed rgba(255,246,220,.2)}
+.qtyRow{display:flex;align-items:center;gap:10px;margin:12px 0}
+.qtyRow button{width:34px;height:34px;border-radius:50%;border:2px solid var(--yellow);background:none;color:var(--yellow);font-size:18px;cursor:pointer}
+.qtyRow output{font-weight:900;font-size:20px;min-width:1.5em;text-align:center}
+.mode{display:flex;gap:8px;margin:10px 0}
+.mode label{flex:1;position:relative}
+.mode input{position:absolute;opacity:0}
+.mode span{display:block;text-align:center;border:2px solid var(--yellow);border-radius:12px;padding:8px;font-weight:800;cursor:pointer}
+.mode input:checked+span{background:var(--yellow);color:var(--ink)}
+.mode input:focus-visible+span{outline:3px solid var(--pink)}
+.fld{display:grid;gap:4px;font-size:12px;font-weight:800;color:var(--soft);margin-bottom:8px}
+.fld input,.fld select{border:2px solid var(--yellow);border-radius:10px;background:#0a3a3f;padding:9px 10px;font-size:15px;color:var(--cream);width:100%}
+.fld[hidden]{display:none}
+.num{font-family:"Avenir Next","Trebuchet MS","PingFang TC",sans-serif;font-weight:800;font-variant-numeric:tabular-nums}
+.fld .err{color:#ff8a8a;font-size:12px;min-height:1em}
+.tot{display:flex;justify-content:space-between;align-items:baseline;margin:10px 0 14px;font-weight:900}
+.tot output{font-size:34px;color:var(--yellow)}
+.order .btn{width:100%}
+.demo{font-size:12px;color:#86b9b3;text-align:center;margin:8px 0 0}
+.done{text-align:center}
+.done b{display:block;font-size:40px;color:var(--yellow);text-shadow:0 2px 0 var(--red)}
+/* 故事 */
+.story{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,5vw,60px);align-items:center}
+.story .pics{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.story .ph{aspect-ratio:3/4;border:4px solid var(--yellow);border-radius:16px}
+.story .ph:first-child{grid-row:span 2;aspect-ratio:auto;min-height:100%}
+.story h2{margin:0 0 14px;font-size:clamp(30px,4vw,46px);font-weight:900;color:var(--yellow);line-height:1.15}
+.story p{color:var(--soft);margin:0 0 14px}
+.scale{display:grid;gap:8px;margin-top:20px}
+.scale div{display:flex;align-items:center;gap:12px;font-size:14px}
+.scale b{min-width:6em;color:var(--yellow)}
+/* 資訊 */
+.info{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:20px}
+.box{background:var(--cream);color:var(--ink);border:3px solid var(--ink);border-radius:18px;padding:22px;box-shadow:5px 5px 0 var(--c,var(--red))}
+.box h3{margin:0 0 10px;font-size:20px;font-weight:900}
+.box .big{font-size:44px;font-weight:900;color:var(--red);line-height:1}
+.box p{margin:8px 0 0;color:#5a4a3a}
+.box a.tel{font-size:28px;font-weight:900;color:var(--teal);text-decoration:none}
+.box.map{padding:0;overflow:hidden;position:relative;min-height:240px}
+.box.map svg{position:absolute;inset:0;width:100%;height:100%}
+.box.map .btn{position:absolute;left:14px;bottom:14px;padding:9px 16px}
+.bells{display:flex;justify-content:center;gap:clamp(8px,2.4vw,26px);padding:4px 0 26px;overflow:hidden}
+.bell{width:28px;display:flex;flex-direction:column;align-items:center;transform-origin:50% 0;flex:none}
+.bell::before{content:"";width:2px;height:var(--h,24px);background:repeating-linear-gradient(var(--yellow) 0 4px,#b8860b 4px 6px)}
+.bell b{width:24px;height:24px;border-radius:12px 12px 4px 4px;background:radial-gradient(circle at 35% 30%,#fff3a8,#e0a800 55%,#8a6100);border:2px solid var(--ink)}
 .bell.ring{animation:ring .9s ease-out}
 @keyframes ring{20%{transform:rotate(18deg)}40%{transform:rotate(-14deg)}60%{transform:rotate(8deg)}80%{transform:rotate(-4deg)}}
-.footer{text-align:center;padding:0 16px 30px;color:#7fb0aa;font-size:12px;letter-spacing:.14em}
-@media (max-width:900px){
-  .main,.chai{grid-template-columns:1fr}
-  .plateWrap{position:static}
+footer{text-align:center;padding:0 16px 34px;color:#86b9b3;font-size:13px;letter-spacing:.12em}
+footer nav{display:flex;justify-content:center;gap:18px;margin-bottom:10px}
+footer a{text-decoration:none}
+.slotBtn{position:fixed;right:16px;bottom:16px;z-index:60;border:2px solid var(--yellow);background:var(--night);color:var(--yellow);font-size:12px;font-weight:800;padding:7px 14px;border-radius:30px;cursor:pointer}
+.slotBtn[aria-pressed=true]{background:var(--yellow);color:var(--ink)}
+.rv-in{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.8,.2,1)}
+.rv-in.vis{opacity:1;transform:none}
+@media (max-width:980px){
+  .nav ul{display:none;position:absolute;left:0;right:0;top:70px;flex-direction:column;gap:0;background:var(--night);padding:6px 20px 16px;border-bottom:3px solid var(--yellow)}
+  .nav.open ul{display:flex}
+  .nav ul a{display:block;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.1)}
+  .nav .wrap>.btn{display:none}
+  .burger{display:block}
+  .live{margin-left:auto}
+  .burger{margin-left:0}
+  .hero .wrap,.bgrid,.story{grid-template-columns:1fr}
+  .plateBox{position:static}
+  .fav{grid-template-columns:1fr 1fr}
+  .info{grid-template-columns:1fr 1fr}.info .map{grid-column:1/-1}
 }
-@media (max-width:520px){
-  .tail .eyes{width:80px;height:32px}
-  .stall{grid-template-columns:96px minmax(0,1fr);padding:14px}
-  .stall svg{width:96px}
+@media (max-width:560px){
+  .fav{grid-template-columns:1fr}
+  .info{grid-template-columns:1fr}
+  .live span{display:none}
   .bell:nth-child(n+9){display:none}
 }
-@media (prefers-reduced-motion:reduce){.chamak{animation:none}.bell.ring{animation:none}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.chamak{animation:none}.rv-in{opacity:1;transform:none;transition:none}}
 </style>
 </head>
 <body>
 <div class="chamak" aria-hidden="true"></div>
-<div class="band" aria-hidden="true"></div>
-<header class="tail">
-  <svg class="eyes l" viewBox="0 0 130 52" aria-hidden="true"><path d="M4 26 Q65 -10 126 26 Q65 62 4 26Z" fill="#fff6dc" stroke="#120a06" stroke-width="3"/><circle cx="65" cy="26" r="15" fill="#13a538" stroke="#120a06" stroke-width="3"/><circle cx="65" cy="26" r="7" fill="#120a06"/><circle cx="60" cy="21" r="3" fill="#fff"/><path d="M2 14 Q65 -22 128 14" fill="none" stroke="#ff3d8b" stroke-width="5" stroke-linecap="round"/></svg>
-  <svg class="eyes r" viewBox="0 0 130 52" aria-hidden="true"><path d="M4 26 Q65 -10 126 26 Q65 62 4 26Z" fill="#fff6dc" stroke="#120a06" stroke-width="3"/><circle cx="65" cy="26" r="15" fill="#13a538" stroke="#120a06" stroke-width="3"/><circle cx="65" cy="26" r="7" fill="#120a06"/><circle cx="60" cy="21" r="3" fill="#fff"/><path d="M2 14 Q65 -22 128 14" fill="none" stroke="#ff3d8b" stroke-width="5" stroke-linecap="round"/></svg>
-  <span class="horn">HORN · OK · PLEASE</span>
-  <h1>Sher-e-Punjab<span class="dev">शेर-ए-पंजाब ढाबा</span></h1>
-  <p>大幹道（Grand Trunk Road）旁的二十四小時公路餐館。司機下車吃一份 thali 再上路：在不鏽鋼大盤上每一格選一樣，辣度表會一直跳。</p>
-  <div class="slogan">USE DIPPER AT NIGHT · 夜間請切近光燈</div>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top"><b>Sher-e-Punjab</b><span>शेर-ए-पंजाब ढाबा</span></a>
+    <ul id="navList"><li><a href="#fav">招牌</a></li><li><a href="#build">自組 Thali</a></li><li><a href="#story">公路故事</a></li><li><a href="#visit">交通</a></li></ul>
+    <span class="live" id="live"><i></i>OPEN 24 HRS <span id="clock"></span></span>
+    <a class="btn y" href="#build" style="padding:9px 16px">線上點餐</a>
+    <button class="burger" id="burger" type="button" aria-label="開啟選單" aria-expanded="false">☰</button>
+  </div>
 </header>
-<div class="band alt" aria-hidden="true"></div>
+<div class="band" aria-hidden="true"></div>
 
-<main class="main">
-  <section class="plateWrap" aria-label="你的套餐">
-    <div class="plateCard">
-      <h2>THALI <span class="dev">थाली</span></h2>
-      <p class="sub">點右邊的選項，盤子會跟著裝</p>
-      <svg id="plate" viewBox="0 0 500 500" role="img" aria-label="不鏽鋼套餐盤"></svg>
-      <div class="meter"><b>辣度 TEEKHA</b><div class="chilis" id="chilis"></div><span id="heatTxt"></span></div>
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <div class="rv-in">
+        <span class="horn">HORN · OK · PLEASE</span>
+        <h1>Sher-e-Punjab<span class="dev">शेर-ए-पंजाब ढाबा</span></h1>
+        <p>二十四小時不打烊的旁遮普公路餐館。泥窯烤餅一張張貼進 tandoor，奶油黑豆小火燉一整夜。卡車司機吃的那份 thali，現在你也可以在線上自己組。</p>
+        <div class="cta"><a class="btn y" href="#build">自組 Thali 點餐</a><a class="btn r" href="#visit">怎麼來</a></div>
+        <div class="stats num"><div><b>24</b><span>小時營業</span></div><div><b>12h</b><span>慢燉黑豆</span></div><div><b>480°C</b><span>泥窯溫度</span></div></div>
+      </div>
+      <div class="arch rv-in">
+        <i class="mirror" style="left:-10px;top:42%"></i><i class="mirror" style="right:-10px;top:42%"></i><i class="mirror" style="left:50%;top:-14px;margin-left:-14px"></i>
+        <figure class="ph" data-photo="hero" data-art="heroPlate" data-label="滿滿一盤 thali 俯拍" data-size="1400×1500"></figure>
+      </div>
     </div>
   </section>
-  <section class="menu" id="menu" aria-label="菜單"></section>
-</main>
+  <div class="band alt" aria-hidden="true"></div>
 
-<section class="chai" aria-label="奶茶與帳單">
-  <div class="stall">
-    <svg id="chaiSvg" viewBox="0 0 150 220" aria-hidden="true"></svg>
-    <div>
-      <h2>Kadak Chai<span class="dev">कड़क चाय</span></h2>
-      <p>按住按鈕，師傅把茶壺越拉越高，茶從高處落進玻璃杯才會起泡。倒到滿再放開；泡越厚越 kadak（濃）。₹20。</p>
-      <button class="pull" id="pull" type="button">按住拉茶</button>
-      <div class="chaiNote" id="chaiNote" aria-live="polite"></div>
+  <section class="sec" id="fav">
+    <div class="wrap">
+      <div class="ttl rv-in"><span class="dev">हाईवे के पसंदीदा</span><h2>Highway Favourites</h2><p>司機們最常點的四樣。辣度用辣椒標示，點餐時可以說 kam teekha（少辣）。</p></div>
+      <div class="fav" id="favs"></div>
     </div>
-  </div>
-  <div class="bill">
-    <h2>HISAAB<span class="dev">हिसाब · 帳</span></h2>
-    <ul id="billList"></ul>
-    <div class="tot"><span>合計 Total</span><output id="total">₹0</output></div>
-    <button class="serve" id="serve" type="button">上菜！Khaana lagao</button>
-    <div class="served" id="served" aria-live="polite"></div>
-  </div>
-</section>
+  </section>
+
+  <section class="sec build" id="build">
+    <div class="wrap">
+      <div class="ttl rv-in"><span class="dev" style="color:var(--teal)">अपनी थाली बनाइए</span><h2>自組你的 Thali</h2><p>每一格選一樣，盤子會跟著裝。選好份數、外送或自取，送出就開始做。</p></div>
+      <div class="bgrid">
+        <div class="plateBox rv-in">
+          <svg id="plate" viewBox="0 0 500 500" role="img" aria-label="不鏽鋼套餐盤，依選擇即時裝菜"></svg>
+          <div class="heat"><span>辣度</span><span class="chili" id="heat"></span><span id="heatTxt"></span></div>
+        </div>
+        <div class="rv-in">
+          <div id="menu"></div>
+          <form class="order" id="orderForm" novalidate><div id="orderBody">
+            <h3>你的訂單</h3>
+            <ul id="sumList"></ul>
+            <div class="qtyRow"><span>份數</span><button type="button" data-q="-1" aria-label="減少份數">−</button><output class="num" id="qty">1</output><button type="button" data-q="1" aria-label="增加份數">＋</button><label style="margin-left:auto;display:flex;align-items:center;gap:8px;font-size:14px"><input type="checkbox" id="chai"> 加一杯 Kadak Chai（+60）</label></div>
+            <div class="mode"><label><input type="radio" name="mode" value="pickup" checked><span>自取</span></label><label><input type="radio" name="mode" value="delivery"><span>外送 +80</span></label></div>
+            <label class="fld" id="addrFld" hidden>外送地址<input id="oAddr" autocomplete="street-address" placeholder="例：台北市大同區…"><span class="err"></span></label>
+            <label class="fld">稱呼<input id="oName" autocomplete="name"><span class="err"></span></label>
+            <label class="fld">手機<input id="oPhone" inputmode="tel" autocomplete="tel" placeholder="09xx-xxx-xxx"><span class="err"></span></label>
+            <div class="tot"><span>合計</span><output class="num" id="oTot">NT$ 0</output></div>
+            <button class="btn y" type="submit">送出訂單</button>
+            <p class="demo">示範版本：訂單只顯示在頁面上，不會送出。</p>
+          </div></form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="story">
+    <div class="wrap story">
+      <div class="pics rv-in">
+        <figure class="ph" data-photo="s1" data-art="tandoor" data-label="泥窯烤餅" data-size="1000×1500"></figure>
+        <figure class="ph" data-photo="s2" data-art="charpai" data-label="繩床座位" data-size="900×1200"></figure>
+        <figure class="ph" data-photo="s3" data-art="chaiArt" data-label="拉奶茶" data-size="900×1200"></figure>
+      </div>
+      <div class="rv-in">
+        <span class="dev" style="color:var(--pink)">जी टी रोड की कहानी</span>
+        <h2>大幹道旁，<br>燈從來不關。</h2>
+        <p>老闆的爺爺在旁遮普的大幹道（Grand Trunk Road）邊開了第一間 dhaba，招待連夜開車的卡車司機。我們把那盞不關的燈帶到台北：深夜下班、清晨收工，來的時候都有熱的。</p>
+        <p>外面擺了幾張繩床（charpai），想像自己坐在公路邊，配一杯從高處拉起泡的奶茶。</p>
+        <div class="scale" aria-label="辣度說明">
+          <div><b>Mild</b><span class="chili"><i class="on"></i><i></i><i></i><i></i><i></i></span><span>小朋友也可以</span></div>
+          <div><b>Medium</b><span class="chili"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span>大多數人剛好</span></div>
+          <div><b>Teekha</b><span class="chili"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span>司機特辣，後果自負</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="visit" style="padding-top:0">
+    <div class="wrap info">
+      <div class="box rv-in" style="--c:var(--green)"><h3>營業時間</h3><div class="big num">24 / 7</div><p>全年無休，農曆除夕也開。凌晨 2–6 點只供應 thali 與奶茶。</p></div>
+      <div class="box rv-in" style="--c:var(--pink)"><h3>電話・地址</h3><a class="tel num" id="tel" href="#"></a><p id="addr" style="color:var(--ink);font-weight:700"></p><p>門口可臨停機車，大貨車請停後方空地。</p></div>
+      <div class="box map rv-in" style="--c:var(--yellow)">
+        <svg viewBox="0 0 440 240" preserveAspectRatio="xMidYMid slice" role="img" aria-label="店家位置示意圖"><rect width="440" height="240" fill="#e9dfc4"/><path d="M0 150 C120 130 260 170 440 120" stroke="#7a6a52" stroke-width="34" fill="none"/><path d="M0 150 C120 130 260 170 440 120" stroke="#ffcb05" stroke-width="3" stroke-dasharray="16 12" fill="none"/><g stroke="#fff" stroke-width="10"><path d="M150 0V240M330 0V240"/></g><text x="12" y="118" fill="#5a4a3a" font-size="11" font-family="Gill Sans,sans-serif" letter-spacing="2">環河快速道路</text><g transform="translate(240 140)"><circle r="24" fill="rgba(224,38,47,.2)"/><path d="M0 -22 C-11 -22 -15 -13 -15 -7 C-15 3 0 15 0 15 C0 15 15 3 15 -7 C15 -13 11 -22 0 -22Z" fill="#e0262f" stroke="#120a06" stroke-width="2"/><circle cy="-8" r="5" fill="#ffcb05"/></g><text x="262" y="132" fill="#120a06" font-size="14" font-weight="900" font-family="Gill Sans,sans-serif">Sher-e-Punjab</text></svg>
+        <a class="btn g" id="mapLink" href="#" target="_blank" rel="noopener">開啟導航</a>
+      </div>
+    </div>
+  </section>
+</main>
 <div class="band" aria-hidden="true"></div>
 <div class="bells" id="bells" aria-hidden="true"></div>
-<p class="footer">BURI NAZAR WALE TERA MUNH KALA · 卡車尾的老標語：「看衰我的人，臉會變黑」</p>
+<footer><nav><a href="#">Instagram</a><a href="#">Facebook</a><a href="#">Foodpanda</a><a href="#">Uber Eats</a></nav>© <span id="yr"></span> SHER-E-PUNJAB DHABA · BURI NAZAR WALE TERA MUNH KALA</footer>
+<button class="slotBtn" id="slotBtn" type="button" aria-pressed="false">照片位</button>
 
 <script>
 (function(){
 'use strict';
-var $ = function(s){ return document.querySelector(s); };
+/* ===== 店家設定 ===== */
+var SHOP = {
+  name:'Sher-e-Punjab Dhaba', phone:'(02) 2550-0000', address:'新北市三重區示範路 99 號',
+  deliveryFee:80, chai:60,
+  photos:{hero:'',f1:'',f2:'',f3:'',f4:'',s1:'',s2:'',s3:''}
+};
+var FAV = [['f1','Dal Makhani','दाल मखनी','奶油黑豆',220,1,'黑扁豆與紅腰豆小火燉十二小時，最後加奶油和鮮奶油。','#e0262f','dal'],['f2','Butter Chicken','बटर चिकन','奶油雞',320,2,'泥窯烤過的雞腿肉，泡進番茄奶油醬，配饢最好。','#ff7a00','butter'],['f3','Sarson da Saag','सरसों का साग','芥菜泥配玉米餅',260,2,'冬天限定的旁遮普家常菜，配玉米粉烤餅與一塊白奶油。','#13a538','saag'],['f4','Lassi','लस्सी','優格飲',120,0,'用陶杯裝的甜優格飲，表面一層厚厚的奶皮。','#1f4fd8','lassi']];
+var $ = function(s, r){ return (r || document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
-/* 花帶圖樣 */
+/* ===== 花帶 ===== */
 function flowerSVG(c1, c2, c3){
-  return 'url("data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="68" height="34"><g transform="translate(17 17)">' +
-    [0,72,144,216,288].map(function(a){ return '<ellipse rx="4" ry="9" cy="-7" fill="' + c1 + '" stroke="#120a06" stroke-width="1.5" transform="rotate(' + a + ')"/>'; }).join('') +
-    '<circle r="4.5" fill="' + c2 + '" stroke="#120a06" stroke-width="1.5"/></g><path d="M36 17 q8 -12 16 0 q8 12 16 0" fill="none" stroke="' + c3 + '" stroke-width="3"/><circle cx="44" cy="10" r="3" fill="' + c2 + '"/><circle cx="60" cy="24" r="3" fill="' + c2 + '"/></svg>') + '")';
+  return 'url("data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="60" height="30"><g transform="translate(15 15)">' + [0,72,144,216,288].map(function(a){ return '<ellipse rx="3.5" ry="8" cy="-6" fill="' + c1 + '" stroke="#120a06" stroke-width="1.3" transform="rotate(' + a + ')"/>'; }).join('') + '<circle r="4" fill="' + c2 + '" stroke="#120a06" stroke-width="1.3"/></g><path d="M32 15 q7 -10 14 0 q7 10 14 0" fill="none" stroke="' + c3 + '" stroke-width="2.5"/></svg>') + '")';
 }
 document.documentElement.style.setProperty('--flower', flowerSVG('#ffcb05', '#13a538', '#fff6dc'));
 document.documentElement.style.setProperty('--flower2', flowerSVG('#ff3d8b', '#ffcb05', '#13a538'));
@@ -223,7 +365,7 @@ function content(o, x, y, r, seed){
   }
   return s;
 }
-function drawPlate(){
+function plateSVG(pick){
   var s = '<defs>' +
     '<radialGradient id="steelP" cx=".45" cy=".4" r=".65"><stop offset="0" stop-color="#fbfcfd"/><stop offset=".55" stop-color="#cfd5db"/><stop offset=".9" stop-color="#8c949c"/><stop offset="1" stop-color="#5e666e"/></radialGradient>' +
     '<radialGradient id="steelR" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#b9c0c7"/><stop offset="1" stop-color="#6d757e"/></radialGradient>' +
@@ -265,11 +407,40 @@ function drawPlate(){
   });
   // 洋蔥檸檬裝飾
   s += '<circle cx="168" cy="252" r="13" fill="#c2185b" opacity=".85"/><circle cx="168" cy="252" r="8" fill="none" stroke="#f8bbd0" stroke-width="2"/><path d="M180 232 a14 14 0 0 1 22 10 z" fill="#c6e05a" stroke="#6b8e23" stroke-width="2"/>';
-  $('#plate').innerHTML = s;
+  return s;
 }
 
-/* 選單 */
-function chili(){ return '<svg viewBox="0 0 24 24"><path d="M6 6 C2 12 6 22 20 22 C14 18 12 12 11 7Z" fill="#e0262f" stroke="#120a06" stroke-width="1.5"/><path d="M6 6 C7 3 10 3 11 7" fill="#13a538" stroke="#120a06" stroke-width="1.5"/></svg>'; }
+
+
+/* ===== 佔位圖 ===== */
+var uid = 0;
+function svg(vb, body){ var id = 'n' + (++uid); return '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><filter id="' + id + '"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .3  0 0 0 0 .2  0 0 0 0 .1  0 0 0 .07 0"/></filter><filter id="s' + id + '"><feGaussianBlur stdDeviation="10"/></filter></defs>' + body.replace(/SOFT/g, 's' + id) + '<rect width="100%" height="100%" filter="url(#' + id + ')"/></svg>'; }
+function wood(w, h){ var s = '<rect width="' + w + '" height="' + h + '" fill="#6a3a1c"/>'; for (var i = 0; i < h; i += 26) s += '<path d="M0 ' + i + ' Q' + w/2 + ' ' + (i + 8) + ' ' + w + ' ' + (i - 4) + '" stroke="rgba(0,0,0,.18)" stroke-width="3" fill="none"/>'; return s; }
+function katori(x, y, r, base, top, kind){
+  var s = '<ellipse cx="' + (x + 8) + '" cy="' + (y + 12) + '" rx="' + (r + 18) + '" ry="' + (r + 14) + '" fill="rgba(0,0,0,.35)" filter="url(#SOFT)"/><circle cx="' + x + '" cy="' + y + '" r="' + (r + 14) + '" fill="#c5ccd2"/><circle cx="' + x + '" cy="' + y + '" r="' + (r + 6) + '" fill="#8f979e"/>';
+  return s + content({base:base, top:top, kind:kind}, x, y, r + 6, x + y);
+}
+var ART = {
+  heroPlate:function(){ return svg('0 0 500 520', wood(500, 520) + '<g transform="translate(0 10)">' + plateSVG({dal:'makhani',sabzi:'palak',raita:'boondi',sweet:'jamun',achar:'mango',rice:'jeera',roti:'naan'}) + '</g>'); },
+  dal:function(){ return svg('0 0 600 600', wood(600, 600) + katori(300, 300, 190, '#6d2f17', '#f3e3c8', 'swirl') + '<path d="M210 240 q60 -40 150 10" stroke="#fff" stroke-width="10" fill="none" opacity=".5"/>'); },
+  butter:function(){ return svg('0 0 600 600', wood(600, 600) + katori(300, 300, 190, '#d4561c', '#f5c27a', 'lumps') + '<path d="M200 230 q100 -50 200 20" stroke="#fff3d0" stroke-width="12" fill="none" opacity=".7"/><circle cx="380" cy="360" r="10" fill="#2e7d32"/>'); },
+  saag:function(){ return svg('0 0 600 600', wood(600, 600) + katori(250, 300, 150, '#3f6b22', '#6e9a2e', 'fleck') + '<circle cx="470" cy="320" r="110" fill="#e7b85a"/><circle cx="470" cy="320" r="96" fill="#f0c873"/><rect x="230" y="270" width="50" height="40" rx="8" fill="#fff8dc"/>'); },
+  lassi:function(){ return svg('0 0 600 600', '<rect width="600" height="600" fill="#1f4fd8"/><circle cx="300" cy="300" r="250" fill="#ffcb05" opacity=".3"/><ellipse cx="300" cy="500" rx="150" ry="30" fill="rgba(0,0,0,.3)" filter="url(#SOFT)"/><path d="M180 180 L420 180 L390 500 L210 500Z" fill="#b5532a" stroke="#120a06" stroke-width="6"/><ellipse cx="300" cy="180" rx="120" ry="28" fill="#fff8ea" stroke="#120a06" stroke-width="6"/><path d="M190 200 Q300 250 410 200 L405 240 Q300 280 195 240Z" fill="#fff8ea"/><path d="M230 300 h140 M240 380 h120" stroke="#ffcb05" stroke-width="8"/>'); },
+  tandoor:function(){ var s = '<defs><radialGradient id="tdg" cx=".5" cy=".55" r=".5"><stop offset="0" stop-color="#ffd27a"/><stop offset=".5" stop-color="#ff7a1a"/><stop offset="1" stop-color="#3a0e04"/></radialGradient></defs><rect width="600" height="900" fill="#2a1408"/><ellipse cx="300" cy="560" rx="270" ry="320" fill="#a8582e"/><ellipse cx="300" cy="420" rx="200" ry="100" fill="#3a1a0a"/><ellipse cx="300" cy="440" rx="170" ry="80" fill="url(#tdg)"/>'; for (var i = 0; i < 4; i++) s += '<ellipse cx="' + (190 + i*72) + '" cy="' + (460 + (i%2)*12) + '" rx="34" ry="44" fill="#f0c873" stroke="#b9772a" stroke-width="3" transform="rotate(' + (i*10 - 15) + ' ' + (190 + i*72) + ' 460)"/>'; return svg('0 0 600 900', s + '<g opacity=".4"><path d="M300 330 q-60 -120 20 -260" stroke="#fff" stroke-width="50" fill="none" filter="url(#SOFT)"/></g>'); },
+  charpai:function(){ var s = '<rect width="600" height="800" fill="#1f4fd8"/><rect y="480" width="600" height="320" fill="#c9a46a"/><g transform="translate(300 520) skewX(-10)"><rect x="-230" y="-60" width="460" height="130" fill="#7a4a22" stroke="#120a06" stroke-width="6"/>'; for (var i = -220; i < 230; i += 22) s += '<path d="M' + i + ' -56 L' + (i + 20) + ' 66" stroke="#f3e3c0" stroke-width="5"/>'; for (var j = -220; j < 230; j += 22) s += '<path d="M' + (i - j) + ' -56 L' + (j - 20) + ' 66" stroke="#e0c08a" stroke-width="5" opacity=".7"/>'; return svg('0 0 600 800', s + '<rect x="-230" y="70" width="18" height="120" fill="#5a3214"/><rect x="212" y="70" width="18" height="120" fill="#5a3214"/></g><circle cx="470" cy="160" r="60" fill="#ffcb05" opacity=".9"/>'); },
+  chaiArt:function(){ return svg('0 0 600 800', '<rect width="600" height="800" fill="#ffcb05"/><g transform="translate(300 380)"><path d="M-40 -260 h120 l-14 70 h-92z" fill="#c9cfd5" stroke="#120a06" stroke-width="6" transform="rotate(-30 20 -230)"/><path d="M30 -190 Q-20 0 -10 180" stroke="#b97a3f" stroke-width="12" fill="none"/><path d="M-70 180 h120 l-14 190 h-92z" fill="rgba(255,255,255,.5)" stroke="#120a06" stroke-width="6"/><path d="M-66 230 h112 l-10 136 h-92z" fill="#b97a3f"/><rect x="-66" y="210" width="112" height="26" fill="#f2dcbc"/></g>'); }
+};
+function fillPhotos(){
+  $$('.ph').forEach(function(f){
+    var url = SHOP.photos[f.dataset.photo];
+    if (url){ f.innerHTML = '<img src="' + url + '" alt="' + (f.dataset.label || '') + '" loading="lazy">'; return; }
+    var a = ART[f.dataset.art]; if (a) f.innerHTML = a();
+  });
+}
+function chiliHTML(n, max){ var s = ''; for (var i = 0; i < (max || 3); i++) s += '<i class="' + (i < n ? 'on' : '') + '"></i>'; return '<span class="chili" aria-label="辣度 ' + n + '">' + s + '</span>'; }
+$('#favs').innerHTML = FAV.map(function(f){ return '<article class="rv-in" style="--c:' + f[7] + '"><figure class="ph" data-photo="' + f[0] + '" data-art="' + f[8] + '" data-label="' + f[3] + '" data-size="1000×1000"></figure><div class="t"><h3>' + f[1] + '<span class="num">NT$ ' + f[4] + '</span></h3><div class="dev">' + f[2] + ' · ' + f[3] + chiliHTML(f[5]) + '</div><p>' + f[6] + '</p></div></article>'; }).join('');
+
+/* ===== 自組 thali ===== */
 var menu = $('#menu');
 SLOTS.forEach(function(sl){
   var g = document.createElement('div'); g.className = 'grp'; g.style.setProperty('--c', sl.c);
@@ -277,123 +448,70 @@ SLOTS.forEach(function(sl){
   var box = g.querySelector('.chips');
   sl.opts.forEach(function(o){
     var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.style.setProperty('--dot', o.base);
-    b.innerHTML = '<i></i>' + o.en + ' <em>' + o.zh + '・₹' + o.p + (o.h ? '・辣 ' + o.h : '') + '</em>';
-    b.setAttribute('aria-pressed', 'false');
-    b.addEventListener('click', function(){
-      audio();
-      pick[sl.k] = pick[sl.k] === o.id ? null : o.id;
-      box.querySelectorAll('.chip').forEach(function(x){ x.setAttribute('aria-pressed', 'false'); });
-      if (pick[sl.k]) b.setAttribute('aria-pressed', 'true');
-      clang(sl.r ? 900 + sl.r*6 : 600); update();
-    });
+    b.innerHTML = '<i></i>' + o.en + ' <em>' + o.zh + '・' + o.p + (o.h ? '・辣 ' + o.h : '') + '</em>';
+    b.setAttribute('aria-pressed', pick[sl.k] === o.id);
+    b.onclick = function(){ pick[sl.k] = pick[sl.k] === o.id ? null : o.id; $$('.chip', box).forEach(function(x){ x.setAttribute('aria-pressed', 'false'); }); if (pick[sl.k]) b.setAttribute('aria-pressed', 'true'); update(); };
     box.appendChild(b);
   });
   menu.appendChild(g);
 });
-
-/* 辣度與帳單 */
-var chilis = $('#chilis'); chilis.innerHTML = Array(6).join('<i>' + chili() + '</i>');
-var HEAT = ['不辣 Mild','微辣 Thoda','中辣 Medium','大辣 Teekha','爆辣 Bahut teekha','司機特辣 Driver special'];
+var HEAT = ['不辣 Mild','微辣','中辣 Medium','大辣 Teekha','爆辣','司機特辣'], qty = 1;
+function chosen(){ var out = []; SLOTS.forEach(function(sl){ var o = pick[sl.k] && sl.opts.find(function(z){ return z.id === pick[sl.k]; }); if (o) out.push(o); }); return out; }
 function update(){
-  drawPlate();
-  var items = [], heat = 0;
-  SLOTS.forEach(function(sl){ var o = pick[sl.k] && sl.opts.find(function(z){ return z.id === pick[sl.k]; }); if (o){ items.push([o.en + '　' + o.zh, o.p]); heat += o.h; } });
-  if (chai) items.push(['Kadak Chai　奶茶' + (chai.foam > .6 ? '（厚泡）' : ''), 20]);
-  var lvl = Math.min(5, Math.round(heat/2));
-  chilis.querySelectorAll('i').forEach(function(c, i){ c.classList.toggle('on', i < lvl); });
+  $('#plate').innerHTML = plateSVG(pick);
+  var items = chosen(), heat = items.reduce(function(s, o){ return s + o.h; }, 0), lvl = Math.min(5, Math.round(heat/2));
+  $('#heat').innerHTML = chiliHTML(lvl, 5).replace(/^<span class="chili"[^>]*>|<\/span>$/g, '');
   $('#heatTxt').textContent = HEAT[lvl];
-  $('#billList').innerHTML = items.length ? items.map(function(it){ return '<li><span>' + it[0] + '</span><span>₹' + it[1] + '</span></li>'; }).join('') : '<li><span>盤子還是空的</span><span></span></li>';
-  $('#total').textContent = '₹' + items.reduce(function(s, it){ return s + it[1]; }, 0);
+  if (!$('#sumList')) return;
+  var per = items.reduce(function(s, o){ return s + o.p; }, 0), mode = $('input[name=mode]:checked').value, chai = $('#chai').checked;
+  $('#sumList').innerHTML = items.length ? items.map(function(o){ return '<li><span>' + o.en + '　' + o.zh + '</span><span>' + o.p + '</span></li>'; }).join('') : '<li><span>盤子還是空的，從上面每格選一樣</span><span></span></li>';
+  var tot = per*qty + (chai ? SHOP.chai*qty : 0) + (mode === 'delivery' && items.length ? SHOP.deliveryFee : 0);
+  $('#oTot').textContent = 'NT$ ' + tot.toLocaleString();
+  $('#addrFld').hidden = mode !== 'delivery';
 }
-
-/* 上菜 */
-$('#serve').addEventListener('click', function(){
-  audio();
-  var n = SLOTS.filter(function(sl){ return pick[sl.k]; }).length;
-  var msg = n === 0 ? '先選幾樣吧，盤子是空的。' : n < SLOTS.length ? '來了！還有 ' + (SLOTS.length - n) + ' 格空著，司機說沒關係。Chalo, khaana khao!' : '整盤滿了，Shabaash！慢慢吃再上路。';
-  $('#served').textContent = msg;
+$$('[data-q]').forEach(function(b){ b.onclick = function(){ qty = Math.max(1, Math.min(20, qty + +b.dataset.q)); $('#qty').textContent = qty; update(); }; });
+$('#orderForm').addEventListener('change', update);
+$('#orderForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var items = chosen(), mode = $('input[name=mode]:checked').value, ok = true;
+  var checks = [[$('#oName'), $('#oName').value.trim().length > 0, '請留下稱呼'], [$('#oPhone'), /^09\d{2}-?\d{3}-?\d{3}$/.test($('#oPhone').value.trim()), '請輸入 09 開頭的手機號碼']];
+  if (mode === 'delivery') checks.push([$('#oAddr'), $('#oAddr').value.trim().length > 5, '請填寫外送地址']);
+  checks.forEach(function(c){ c[0].nextElementSibling.textContent = c[1] ? '' : c[2]; if (!c[1]) ok = false; });
+  if (items.length < 3){ $('#sumList').innerHTML = '<li><span style="color:#ff8a8a">至少選三格（例如豆糊、飯、餅）再送出</span><span></span></li>'; ok = false; }
+  if (!ok) return;
+  var t = $('#oTot').textContent, eta = mode === 'delivery' ? '約 40–50 分鐘送到' : '約 20 分鐘後可以來拿';
+  $('#orderBody').innerHTML = '<div class="done"><b>Shukriya!</b><p>' + qty + ' 份 thali' + ($('#chai').checked ? '＋奶茶' : '') + '，' + t + '。</p><p>' + eta + '，做好會打給 ' + $('#oPhone').value.trim().replace(/</g, '') + '。</p><p class="demo">示範版本：沒有真的送出訂單。</p></div>';
   ringAll();
 });
+// 預設先放三格，讓第一眼就看到盤子裝了東西
+pick.dal = 'makhani'; pick.rice = 'jeera'; pick.roti = 'naan';
+$$('.grp').forEach(function(g, i){ var sl = SLOTS[i]; $$('.chip', g).forEach(function(b, j){ b.setAttribute('aria-pressed', pick[sl.k] === sl.opts[j].id); }); });
+update();
 
-/* 拉茶：按住時壺的高度來回擺動，越高越起泡 */
-var cs = $('#chaiSvg'), pulling = false, fill = 0, foam = 0, t0 = 0, raf = 0;
-function drawChai(h){
-  var level = 200 - fill*112, potY = 30 - h*20, streamTop = potY + 38;
-  var s = '<defs><linearGradient id="gl" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".6"/><stop offset=".4" stop-color="#fff" stop-opacity=".1"/><stop offset="1" stop-color="#fff" stop-opacity=".45"/></linearGradient></defs>';
-  // 茶壺
-  s += '<g transform="translate(' + (78 + h*6) + ' ' + potY + ') rotate(' + (pulling ? -38 : -8) + ')"><path d="M-22 0 h44 l-4 34 h-36z" fill="#c9cfd5" stroke="#120a06" stroke-width="3"/><path d="M-22 6 h-14" stroke="#120a06" stroke-width="5" stroke-linecap="round"/><path d="M22 4 l14 -10" stroke="#120a06" stroke-width="4" stroke-linecap="round"/><ellipse cx="0" cy="0" rx="22" ry="5" fill="#8a929a" stroke="#120a06" stroke-width="2"/></g>';
-  if (pulling && fill < 1) s += '<path d="M' + (98 + h*6) + ' ' + streamTop + ' Q' + (82) + ' ' + (streamTop + 40) + ' 76 ' + level + '" stroke="#b7743a" stroke-width="5" fill="none" stroke-linecap="round" opacity=".95"/>';
-  // 玻璃杯
-  s += '<path d="M46 88 h60 l-7 112 h-46z" fill="rgba(255,255,255,.18)" stroke="#120a06" stroke-width="3"/>';
-  if (fill > 0){
-    var fy = level, lx = 46 + (fy - 88)*(7/112), rx = 106 - (fy - 88)*(7/112);
-    s += '<path d="M' + lx.toFixed(1) + ' ' + fy.toFixed(1) + ' H' + rx.toFixed(1) + ' L99 200 H53 Z" fill="#b97a3f"/>';
-    var fh = Math.min(30, foam*30)*fill;
-    if (fh > 1) s += '<path d="M' + (lx + 1).toFixed(1) + ' ' + fy.toFixed(1) + ' H' + (rx - 1).toFixed(1) + ' v' + fh.toFixed(1) + ' H' + (lx + 1).toFixed(1) + 'z" fill="#f2dcbc"/>' +
-      '<g fill="#fff8ea">' + [0,1,2,3,4].map(function(i){ return '<circle cx="' + (lx + 8 + i*10).toFixed(1) + '" cy="' + (fy + 2).toFixed(1) + '" r="' + (3 + (i%2)*2) + '"/>'; }).join('') + '</g>';
-  }
-  s += '<path d="M50 92 L54 196" stroke="url(#gl)" stroke-width="6"/>';
-  cs.innerHTML = s;
-}
-function loop(now){
-  if (!pulling) return;
-  var t = (now - t0)/1000, h = (Math.sin(t*3.2 - Math.PI/2) + 1)/2, dt = Math.min(.05, (now - (loop.last || now))/1000);
-  loop.last = now;
-  fill = Math.min(1, fill + dt*(.16 + h*.12));
-  foam = Math.min(1, foam + dt*h*h*.55);
-  drawChai(h); pour(h);
-  if (fill >= 1){ stopPull(true); return; }
-  raf = requestAnimationFrame(loop);
-}
-function startPull(e){ e.preventDefault(); audio(); if (fill >= 1){ fill = 0; foam = 0; } pulling = true; t0 = performance.now(); loop.last = 0; $('#pull').classList.add('hold'); $('#chaiNote').textContent = '拉高……再拉高……'; raf = requestAnimationFrame(loop); }
-function stopPull(full){
-  if (!pulling) return; pulling = false; cancelAnimationFrame(raf); $('#pull').classList.remove('hold'); pourStop();
-  drawChai(0);
-  if (fill >= 1){
-    chai = {foam:foam};
-    $('#chaiNote').textContent = foam > .75 ? 'Ekdum kadak！泡又厚又綿，滿分。' : foam > .45 ? '不錯，泡再厚一點會更香。' : '有點平，下次讓壺拉得更高。';
-    $('#pull').textContent = '再拉一杯'; ringOne(); update();
-  } else $('#chaiNote').textContent = '還沒滿（' + Math.round(fill*100) + '%），按住繼續倒。';
-}
-var pb = $('#pull');
-pb.addEventListener('pointerdown', startPull);
-['pointerup','pointerleave','pointercancel'].forEach(function(ev){ pb.addEventListener(ev, function(){ stopPull(false); }); });
-pb.addEventListener('keydown', function(e){ if ((e.key === ' ' || e.key === 'Enter') && !pulling && !e.repeat) startPull(e); });
-pb.addEventListener('keyup', function(e){ if (e.key === ' ' || e.key === 'Enter') stopPull(false); });
-
-/* 鈴鐺 */
+/* ===== 時鐘、鈴鐺與共用 ===== */
+var now = new Date();
+function tick(){ var d = new Date(); $('#clock').textContent = '· ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+tick(); setInterval(tick, 30000);
+$('#tel').textContent = SHOP.phone; $('#tel').href = 'tel:' + SHOP.phone.replace(/[^\d]/g, '');
+$('#addr').textContent = SHOP.address;
+$('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+$('#yr').textContent = now.getFullYear();
 var bells = $('#bells');
-for (var i = 0; i < 14; i++){ var b = document.createElement('div'); b.className = 'bell'; b.style.setProperty('--h', (18 + (i%3)*12) + 'px'); b.innerHTML = '<b></b>'; bells.appendChild(b); }
-bells.addEventListener('pointerover', function(e){ var b = e.target.closest('.bell'); if (b){ ring(b); } });
-function ring(b){ b.classList.remove('ring'); void b.offsetWidth; b.classList.add('ring'); jingle(1 + Math.random()*.3); }
-function ringOne(){ ring(bells.children[Math.floor(Math.random()*8)]); }
-function ringAll(){ Array.prototype.forEach.call(bells.children, function(b, i){ setTimeout(function(){ ring(b); }, i*60); }); }
-
-/* 聲音 */
-var ac = null, pourNode = null;
-function audio(){ if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
-function clang(f){
-  if (!ac) return; var t = ac.currentTime;
-  [1, 2.76, 5.4].forEach(function(m, i){ var o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f*m; g.gain.setValueAtTime(.05/(i + 1), t); g.gain.exponentialRampToValueAtTime(.0001, t + .6/(i + 1)); o.connect(g).connect(ac.destination); o.start(t); o.stop(t + .7); });
-}
-function jingle(m){
-  if (!ac) return; var t = ac.currentTime;
-  [2100, 2650, 3300].forEach(function(f, i){ var o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.value = f*m; g.gain.setValueAtTime(.0001, t + i*.03); g.gain.exponentialRampToValueAtTime(.03, t + i*.03 + .005); g.gain.exponentialRampToValueAtTime(.0001, t + i*.03 + .5); o.connect(g).connect(ac.destination); o.start(t + i*.03); o.stop(t + .7); });
-}
-function pour(h){
-  if (!ac) return;
-  if (!pourNode){
-    var buf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), d = buf.getChannelData(0);
-    for (var i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1;
-    var s = ac.createBufferSource(); s.buffer = buf; s.loop = true;
-    var f = ac.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 2; var g = ac.createGain(); g.gain.value = 0;
-    s.connect(f).connect(g).connect(ac.destination); s.start(); pourNode = {s:s, f:f, g:g};
-  }
-  pourNode.f.frequency.value = 500 + h*1400; pourNode.g.gain.value = .05 + h*.06;
-}
-function pourStop(){ if (pourNode){ try { pourNode.s.stop(); } catch(e){} pourNode = null; } }
-
-drawChai(0); update();
+for (var i = 0; i < 14; i++){ var b = document.createElement('div'); b.className = 'bell'; b.style.setProperty('--h', (16 + (i%3)*12) + 'px'); b.innerHTML = '<b></b>'; bells.appendChild(b); }
+bells.addEventListener('pointerover', function(e){ var b = e.target.closest('.bell'); if (b){ b.classList.remove('ring'); void b.offsetWidth; b.classList.add('ring'); } });
+function ringAll(){ $$('.bell').forEach(function(b, i){ setTimeout(function(){ b.classList.remove('ring'); void b.offsetWidth; b.classList.add('ring'); }, i*50); }); }
+var nav = $('#nav');
+$('#burger').onclick = function(){ var o = nav.classList.toggle('open'); this.setAttribute('aria-expanded', o); };
+$$('#navList a').forEach(function(a){ a.onclick = function(){ nav.classList.remove('open'); }; });
+var slotBtn = $('#slotBtn');
+function slots(on){ document.body.classList.toggle('slots', on); slotBtn.setAttribute('aria-pressed', on); }
+slotBtn.onclick = function(){ slots(!document.body.classList.contains('slots')); };
+if (/[?&]slots/.test(location.search)) slots(true);
+fillPhotos();
+if ('IntersectionObserver' in window){
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('vis'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -6% 0px'});
+  $$('.rv-in').forEach(function(el){ io.observe(el); });
+} else $$('.rv-in').forEach(function(el){ el.classList.add('vis'); });
 })();
 </script>
 </body>

@@ -3,347 +3,398 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sunny Side Diner · 鬆餅疊疊樂</title>
-<meta name="description" content="1970 年代公路邊的美式小餐館：彩虹條紋招牌、可以自己插字的黑毛氈今日特餐看板，和一台鬆餅疊疊樂——鬆餅在盤子上方來回滑，抓準時機放下，疊歪了整疊會倒，疊到十層送一片派。">
+<title>Sunny Side Diner｜美式早午餐・整顆派預訂</title>
+<meta name="description" content="Sunny Side Diner：七〇年代風格的美式小餐館，全天供應早餐、鬆餅與自家烤派。今日特餐看板、完整菜單，整顆派線上預訂。">
+<!--
+  店家模板使用方式
+  1. 修改 <script> 開頭的 SHOP（店名、電話、地址、營業時間、照片網址）、SPECIALS（看板內容）、MENU 與 PIES。
+  2. 毛氈看板的四行字直接改 SPECIALS；只支援大寫英文、數字與常用符號。
+  3. photos 填入照片網址就會取代佔位圖；網址加 ?slots 或按右下角「照片位」可標出位置與建議尺寸。
+  4. 派預訂目前只在頁面上示範，正式使用請串接表單或訂單服務。
+-->
 <style>
-:root{--cream:#f6e8c8;--cream2:#efdcb0;--orange:#e0662b;--brown:#5a3418;--mustard:#e8a93a;--avocado:#8a8f3a;--rust:#b8461f;--felt:#1d1b19;--ink:#3a2210}
+:root{--cream:#f6e8c8;--cream2:#efdcb0;--card:#fffaf0;--orange:#e0662b;--brown:#5a3418;--mustard:#e8a93a;--avocado:#8a8f3a;--rust:#b8461f;--felt:#1d1b19;--ink:#3a2210;
+  --futura:"Futura","Futura PT","Century Gothic","PingFang TC","Microsoft JhengHei",sans-serif;--cond:"Avenir Next Condensed","Arial Narrow","Roboto Condensed","PingFang TC",sans-serif}
 *{box-sizing:border-box}
+html{scroll-behavior:smooth}
 html,body{margin:0}
-body{overflow-x:clip;background:var(--cream);color:var(--ink);font-family:"Futura","Futura PT","Century Gothic","PingFang TC","Microsoft JhengHei",sans-serif}
-button,input{font:inherit;color:inherit}
-button{cursor:pointer}
-.cond{font-family:"Avenir Next Condensed","Arial Narrow","Roboto Condensed","PingFang TC",sans-serif}
-/* 招牌：70 年代彎條紋 */
-.hero{position:relative;overflow:hidden;padding:40px 16px 34px;text-align:center}
-.stripes{position:absolute;left:-10%;right:-10%;top:-30%;height:150%;pointer-events:none}
-.stripes i{position:absolute;left:50%;top:100%;border-radius:50%;transform:translate(-50%,-50%);border:clamp(14px,2.2vw,26px) solid}
-.hero .badge{position:relative;display:inline-block;background:var(--cream);padding:18px clamp(20px,5vw,56px) 16px;border-radius:999px;box-shadow:0 0 0 6px var(--cream),0 0 0 10px var(--brown)}
-.hero h1{margin:0;font-weight:800;font-size:clamp(40px,8vw,92px);line-height:.9;letter-spacing:-.01em;color:var(--brown);font-style:italic}
-.hero h1 span{color:var(--orange)}
-.hero p{margin:10px 0 0;font-size:13px;letter-spacing:.3em;color:var(--rust);font-weight:600}
-.sun{position:relative;width:86px;height:86px;margin:0 auto -10px;display:block}
-.sun circle{fill:var(--mustard)}
-.sun path{stroke:var(--orange);stroke-width:6;stroke-linecap:round}
+body{background:var(--cream);color:var(--ink);font-family:var(--futura);line-height:1.7;overflow-x:clip}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 clamp(16px,3.6vw,36px)}
+.cond{font-family:var(--cond)}
+/* 導覽 */
+.nav{position:sticky;top:0;z-index:40;background:var(--brown);color:var(--cream);border-bottom:6px solid transparent;border-image:linear-gradient(90deg,var(--rust) 0 25%,var(--orange) 25% 50%,var(--mustard) 50% 75%,var(--avocado) 75%) 1}
+.nav .wrap{display:flex;align-items:center;gap:24px;height:68px}
+.logo{text-decoration:none;font-weight:800;font-style:italic;font-size:22px;letter-spacing:-.01em}
+.logo span{color:var(--mustard)}
+.nav ul{display:flex;gap:24px;list-style:none;margin:0 0 0 auto;padding:0;font-weight:600;font-size:15px}
+.nav ul a{text-decoration:none}
+.nav ul a:hover{color:var(--mustard)}
+.pill{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;padding:12px 22px;font-weight:800;text-decoration:none;cursor:pointer;background:var(--orange);color:var(--cream);box-shadow:0 4px 0 var(--rust);transition:transform .15s}
+.pill:active{transform:translateY(3px);box-shadow:0 1px 0 var(--rust)}
+.pill.y{background:var(--mustard);color:var(--brown);box-shadow:0 4px 0 #b37d1d}
+.pill.o{background:transparent;color:var(--brown);box-shadow:inset 0 0 0 3px var(--brown)}
+.burger{display:none;margin-left:auto;background:none;border:2px solid var(--cream);color:var(--cream);border-radius:10px;width:42px;height:42px;font-size:20px;cursor:pointer}
+/* 照片位 */
+.ph{position:relative;overflow:hidden;background:var(--cream2);margin:0}
+.ph>svg,.ph>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+body.slots .ph{outline:3px dashed var(--rust);outline-offset:-3px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:10px;top:10px;z-index:3;background:var(--rust);color:var(--cream);font-size:11px;font-weight:700;padding:3px 9px;border-radius:4px}
+/* Hero */
+.hero{position:relative;overflow:hidden;padding:clamp(40px,5vw,70px) 0 clamp(50px,6vw,90px)}
+.stripes{position:absolute;left:-40%;right:-40%;top:50%;height:120%;pointer-events:none;z-index:0}
+.heroPic .ph,.heroPic .sticker{z-index:1}
+.stripes i{position:absolute;left:50%;top:0;border-radius:50%;transform:translateX(-50%);border:clamp(14px,2vw,24px) solid}
+.hero .wrap{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,4vw,60px);align-items:center}
+.sun{width:70px;height:70px;display:block;margin-bottom:6px}
 .sun g{transform-origin:50% 50%;animation:turn 30s linear infinite}
 @keyframes turn{to{transform:rotate(360deg)}}
-/* 主區 */
-.main{max-width:1180px;margin:0 auto;padding:10px 16px 40px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:34px;align-items:start}
-h2.tag{margin:0 0 12px;font-weight:800;font-size:15px;letter-spacing:.24em;color:var(--rust);display:flex;align-items:center;gap:10px}
-h2.tag::after{content:"";flex:1;height:4px;background:repeating-linear-gradient(90deg,var(--orange) 0 18px,var(--mustard) 18px 36px,var(--avocado) 36px 54px)}
-/* 毛氈看板 */
+.hero h1{margin:0;font-weight:800;font-style:italic;font-size:clamp(50px,7vw,96px);line-height:.92;letter-spacing:-.02em;color:var(--brown)}
+.hero h1 span{color:var(--orange)}
+.hero .tag{display:inline-block;margin-top:16px;font-size:14px;letter-spacing:.28em;color:var(--rust);font-weight:700}
+.hero p{margin:16px 0 26px;color:#6a4a2e;font-size:17px;max-width:470px;background:rgba(246,232,200,.85);border-radius:12px}
+.btns{display:flex;gap:12px;flex-wrap:wrap}
+.open{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:13px;background:var(--card);border:2px solid var(--brown);border-radius:999px;padding:4px 12px;margin-bottom:14px}
+.open i{width:9px;height:9px;border-radius:50%;background:#b9a58a}
+.open.on i{background:var(--avocado)}
+.heroPic{position:relative}
+.heroPic .ph{aspect-ratio:1;border-radius:50%;border:8px solid var(--card);box-shadow:0 0 0 6px var(--brown),0 24px 40px rgba(90,52,24,.3)}
+.sticker{position:absolute;right:0;top:6%;width:128px;height:128px;border-radius:50%;background:var(--mustard);color:var(--brown);display:grid;place-items:center;text-align:center;font-weight:800;font-style:italic;line-height:1.05;transform:rotate(12deg);border:4px solid var(--brown);box-shadow:4px 4px 0 var(--brown)}
+.sticker b{display:block;font-size:30px}
+/* 區塊 */
+.sec{padding:clamp(70px,9vw,110px) 0}
+.tag2{margin:0 0 14px;font-weight:800;font-size:15px;letter-spacing:.24em;color:var(--rust);display:flex;align-items:center;gap:12px}
+.tag2::after{content:"";flex:1;height:5px;background:repeating-linear-gradient(90deg,var(--orange) 0 18px,var(--mustard) 18px 36px,var(--avocado) 36px 54px)}
+.h2{margin:0 0 10px;font-weight:800;font-style:italic;font-size:clamp(34px,4.6vw,56px);line-height:1.05;color:var(--brown)}
+.lead{margin:0 0 30px;color:#6a4a2e;max-width:620px}
+/* 看板 */
+.specials{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:clamp(24px,4vw,50px);align-items:center}
+.specials>*{min-width:0}
 .boardWrap{background:linear-gradient(135deg,#8a5a2c,#5a3418);padding:14px;border-radius:10px;box-shadow:0 16px 30px rgba(90,52,24,.35),inset 0 0 0 2px rgba(255,255,255,.12)}
-.board{background-color:var(--felt);background-image:repeating-linear-gradient(transparent 0 15px,rgba(0,0,0,.55) 15px 17px,rgba(255,255,255,.04) 17px 18px);padding:22px 10px;border-radius:3px;min-height:280px;display:flex;flex-direction:column;justify-content:center;gap:10px;box-shadow:inset 0 0 30px rgba(0,0,0,.7)}
+.board{background-color:var(--felt);background-image:repeating-linear-gradient(transparent 0 15px,rgba(0,0,0,.55) 15px 17px,rgba(255,255,255,.04) 17px 18px);padding:24px 10px;border-radius:3px;min-height:300px;display:flex;flex-direction:column;justify-content:center;gap:12px;box-shadow:inset 0 0 30px rgba(0,0,0,.7)}
 .line{display:flex;justify-content:center;flex-wrap:nowrap;min-height:44px;align-items:center;gap:1px}
-.ch{display:inline-block;color:#f4f1ea;font-family:"Avenir Next Condensed","Arial Narrow","Helvetica Neue",sans-serif;font-weight:700;font-size:clamp(22px,3.1vw,36px);line-height:1;min-width:.36em;text-align:center;
-  text-shadow:0 1px 0 #cfcac0,0 2px 2px rgba(0,0,0,.6);transform:translateY(var(--y,0)) rotate(var(--r,0deg));animation:pop .3s cubic-bezier(.3,1.6,.5,1) both}
-.ch.sp{min-width:.4em}
+.ch{display:inline-block;color:#f4f1ea;font-family:var(--cond);font-weight:700;font-size:clamp(20px,3vw,36px);line-height:1;min-width:.36em;text-align:center;text-shadow:0 1px 0 #cfcac0,0 2px 2px rgba(0,0,0,.6);transform:translateY(var(--y,0)) rotate(var(--r,0deg));animation:pop .3s cubic-bezier(.3,1.6,.5,1) both}
 @keyframes pop{from{transform:translateY(-14px) rotate(8deg);opacity:0}}
-.edit{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}
-.edit label{display:flex;flex-direction:column;gap:3px;font-size:11px;letter-spacing:.14em;color:var(--rust);font-weight:600}
-.edit input{border:2px solid var(--brown);background:#fffaf0;padding:8px 10px;border-radius:6px;font-family:"Avenir Next Condensed","Arial Narrow",sans-serif;font-weight:700;letter-spacing:.06em;text-transform:uppercase;min-width:0}
-.edit input:focus{outline:3px solid var(--mustard);outline-offset:1px}
-.boardBtns{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:center}
-.pill{border:0;border-radius:999px;padding:10px 18px;font-weight:800;letter-spacing:.06em;background:var(--orange);color:var(--cream);box-shadow:0 4px 0 var(--rust)}
-.pill:active{transform:translateY(3px);box-shadow:0 1px 0 var(--rust)}
-.pill.alt{background:var(--avocado);box-shadow:0 4px 0 #5f6324}
-.small{font-size:12px;color:#8a6a4a}
-/* 鬆餅機 */
-.game{background:var(--orange);border-radius:26px;padding:14px;box-shadow:0 0 0 6px var(--mustard),0 0 0 12px var(--brown),0 20px 36px rgba(90,52,24,.35);position:relative}
-.game canvas{display:block;width:100%;height:auto;border-radius:16px;background:var(--cream);touch-action:manipulation;cursor:pointer}
-.hud{display:flex;justify-content:space-between;align-items:center;color:var(--cream);font-weight:800;padding:10px 6px 2px;gap:10px}
-.hud b{font-size:28px;font-family:"Avenir Next Condensed","Arial Narrow",sans-serif}
-.hud small{display:block;font-size:10px;letter-spacing:.2em;opacity:.85}
-.hud .pill{background:var(--cream);color:var(--brown);box-shadow:0 4px 0 var(--brown)}
+.spec{display:grid;gap:14px}
+.spec article{background:var(--card);border-radius:18px;padding:16px 18px;border:3px solid var(--brown);display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:14px;align-items:center}
+.spec .ph{width:72px;height:72px;border-radius:50%;border:3px solid var(--brown)}
+.spec b{display:block;font-size:17px}
+.spec small{color:#8a6a4a;font-size:13px}
+.spec .pr{font-family:var(--cond);font-weight:700;font-size:24px;color:var(--rust)}
+.until{font-size:13px;color:#8a6a4a;margin-top:10px}
 /* 菜單 */
-.menu{max-width:1180px;margin:0 auto;padding:0 16px 60px}
-.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
-.card{background:#fffaf0;border-radius:20px;padding:20px 20px 16px;border:3px solid var(--brown);position:relative;overflow:hidden}
-.card::before{content:"";position:absolute;left:0;right:0;top:0;height:12px;background:linear-gradient(var(--c1) 0 33%,var(--c2) 33% 66%,var(--c3) 66%)}
-.card h3{margin:8px 0 10px;font-size:24px;font-weight:800;font-style:italic;color:var(--brown)}
-.card h3 small{font-style:normal;font-size:12px;letter-spacing:.2em;color:var(--rust);margin-left:6px}
-.item{display:flex;align-items:baseline;gap:6px;padding:5px 0;font-size:15px}
-.item .d{flex:1;border-bottom:2px dotted #c9a676;transform:translateY(-4px)}
-.item b{font-family:"Avenir Next Condensed","Arial Narrow",sans-serif;font-size:18px;color:var(--rust)}
-.item small{display:block;font-size:12px;color:#8a6a4a}
-.foot{text-align:center;font-size:12px;letter-spacing:.2em;color:#8a6a4a;padding:0 16px 30px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.tabs button{border:3px solid var(--brown);background:var(--card);border-radius:999px;padding:7px 18px;font-weight:800;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--brown);color:var(--cream)}
+.mgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.8fr);gap:30px;align-items:start}
+.mgrid>*{min-width:0}
+.mcard{background:var(--card);border-radius:24px;padding:24px 26px 18px;border:3px solid var(--brown);position:relative;overflow:hidden}
+.mcard::before{content:"";position:absolute;left:0;right:0;top:0;height:12px;background:linear-gradient(var(--rust) 0 33%,var(--orange) 33% 66%,var(--mustard) 66%)}
+.item{display:grid;grid-template-columns:auto 1fr auto;gap:0 8px;align-items:baseline;padding:10px 0;border-bottom:2px dotted #e2cfa8}
+.item:last-child{border-bottom:0}
+.item b{font-size:17px}
+.item .d{border-bottom:2px dotted #c9a676;transform:translateY(-5px)}
+.item .p{font-family:var(--cond);font-weight:700;font-size:20px;color:var(--rust)}
+.item small{grid-column:1/-1;color:#8a6a4a;font-size:13px}
+.item .hot{display:inline-block;background:var(--mustard);color:var(--brown);font-size:10px;font-weight:800;border-radius:6px;padding:0 6px;margin-left:6px;vertical-align:middle;letter-spacing:.06em}
+.mgrid .ph{aspect-ratio:4/5;border-radius:24px;border:3px solid var(--brown)}
+.refill{margin-top:16px;background:var(--brown);color:var(--cream);border-radius:18px;padding:16px 20px;display:flex;align-items:center;gap:14px}
+.refill b{font-family:var(--cond);font-size:28px;color:var(--mustard)}
+/* 派預訂 */
+.pies{background:var(--brown);color:var(--cream)}
+.pies .h2{color:var(--cream)}.pies .lead{color:#e8d3b5}.pies .tag2{color:var(--mustard)}
+.pgrid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:28px;align-items:start}
+.pgrid>*{min-width:0}
+.pieList{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.pie{position:relative}
+.pie input{position:absolute;opacity:0}
+.pie span{display:block;background:var(--card);color:var(--ink);border-radius:20px;overflow:hidden;cursor:pointer;border:4px solid transparent;transition:transform .2s,border-color .2s}
+.pie .ph{aspect-ratio:1}
+.pie span div.t{padding:10px 12px 12px}
+.pie b{display:block;font-size:16px}
+.pie small{color:#8a6a4a;font-size:12px}
+.pie input:checked+span{border-color:var(--mustard);transform:translateY(-4px)}
+.pie input:focus-visible+span{outline:3px solid var(--orange);outline-offset:2px}
+.pform{background:var(--card);color:var(--ink);border-radius:24px;padding:clamp(20px,3vw,30px);border:4px solid var(--mustard);position:sticky;top:90px}
+.pform h3{margin:0 0 6px;font-style:italic;font-size:26px;font-weight:800}
+.lab{display:block;font-size:12px;font-weight:800;letter-spacing:.14em;color:#8a6a4a;margin:12px 0 8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips label{position:relative}
+.chips input{position:absolute;opacity:0}
+.chips span{display:block;border:2px solid #d9c49c;border-radius:12px;padding:6px 12px;font-weight:800;font-size:14px;cursor:pointer;text-align:center;line-height:1.3;background:#fff}
+.chips span small{display:block;font-size:10px;color:#8a6a4a;font-weight:600}
+.chips input:checked+span{background:var(--orange);color:#fff;border-color:var(--orange)}
+.chips input:checked+span small{color:#ffe1cf}
+.chips input:focus-visible+span{outline:3px solid var(--brown)}
+.fi{display:grid;gap:4px;font-size:12px;font-weight:800;color:#8a6a4a;margin-top:10px}
+.fi input,.fi select{border:2px solid #d9c49c;border-radius:12px;padding:9px 11px;font-size:15px;background:#fff;width:100%}
+.fi input:focus,.fi select:focus{outline:none;border-color:var(--orange)}
+.fi .err{color:var(--rust);font-size:12px;min-height:1em}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tot{display:flex;justify-content:space-between;align-items:baseline;margin:12px 0;font-weight:800}
+.tot output{font-family:var(--cond);font-size:36px;color:var(--rust)}
+.pform .pill{width:100%}
+.demo{font-size:12px;color:#8a6a4a;text-align:center;margin:8px 0 0}
+.ok{text-align:center}
+.ok b{display:block;font-style:italic;font-size:40px;color:var(--orange)}
+/* 資訊 */
+.info{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:20px}
+.box{background:var(--card);border:3px solid var(--brown);border-radius:22px;padding:22px}
+.box h3{margin:0 0 10px;font-style:italic;font-size:22px}
+.hours{width:100%;border-collapse:collapse;font-size:15px}
+.hours td{padding:5px 0;border-bottom:2px dotted #e2cfa8}
+.hours td:last-child{text-align:right;font-family:var(--cond);font-weight:700}
+.hours tr.today td{color:var(--orange)}
+.box a.tel{font-family:var(--cond);font-weight:700;font-size:30px;color:var(--rust);text-decoration:none}
+.box p{margin:8px 0 0;color:#6a4a2e}
+.box.map{padding:0;overflow:hidden;position:relative;min-height:240px}
+.box.map svg{position:absolute;inset:0;width:100%;height:100%}
+.box.map .pill{position:absolute;left:14px;bottom:14px;padding:9px 16px}
+footer{background:var(--brown);color:var(--cream2);padding:30px 0;font-size:14px;margin-top:30px}
+footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px}
+footer nav{display:flex;gap:16px}footer a{text-decoration:none}
+.slotBtn{position:fixed;right:16px;bottom:16px;z-index:60;border:2px solid var(--brown);background:var(--card);font-size:12px;font-weight:800;padding:7px 14px;border-radius:30px;cursor:pointer}
+.slotBtn[aria-pressed=true]{background:var(--rust);color:var(--cream)}
+.rv-in{opacity:0;transform:translateY(20px);transition:opacity .7s ease,transform .7s cubic-bezier(.3,1.3,.5,1)}
+.rv-in.vis{opacity:1;transform:none}
 @media (max-width:960px){
-  .main{grid-template-columns:1fr}
-  .cards{grid-template-columns:1fr 1fr}
+  .nav ul{display:none;position:absolute;top:74px;left:0;right:0;flex-direction:column;gap:0;background:var(--brown);padding:6px 20px 16px}
+  .nav.open ul{display:flex}
+  .nav ul a{display:block;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.15)}
+  .nav .wrap>.pill{display:none}
+  .burger{display:block}
+  .hero .wrap,.specials,.mgrid,.pgrid{grid-template-columns:1fr}
+  .pform{position:static}
+  .info{grid-template-columns:1fr 1fr}.info .map{grid-column:1/-1}
+  .mgrid .ph{aspect-ratio:16/10}
 }
-@media (max-width:600px){
-  .cards{grid-template-columns:1fr}
-  .edit{grid-template-columns:1fr}
-  .board{min-height:220px;padding:16px 6px}
-  .line{min-height:34px}
-  .ch{font-size:clamp(16px,5.4vw,24px)}
-  .hero p{letter-spacing:.14em}
+@media (max-width:560px){
+  .pieList{grid-template-columns:1fr 1fr}
+  .two{grid-template-columns:1fr}
+  .info{grid-template-columns:1fr}
+  .board{min-height:220px;padding:16px 6px}.line{min-height:34px}.ch{font-size:clamp(15px,5.2vw,24px)}
+  .sticker{width:100px;height:100px}.sticker b{font-size:24px}
 }
-@media (prefers-reduced-motion:reduce){.sun g,.ch{animation:none}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.sun g,.ch{animation:none}.rv-in{opacity:1;transform:none;transition:none}}
 </style>
 </head>
 <body>
-<header class="hero">
-  <div class="stripes" id="stripes" aria-hidden="true"></div>
-  <svg class="sun" viewBox="0 0 86 86" aria-hidden="true"><g><path d="M43 4v10M43 72v10M4 43h10M72 43h10M15 15l7 7M64 64l7 7M15 71l7-7M64 22l7-7"/></g><circle cx="43" cy="43" r="22"/></svg>
-  <div class="badge">
-    <h1>Sunny <span>Side</span> Diner</h1>
-    <p>ROUTE 66 · OPEN 6AM–MIDNIGHT · 公路邊的早午餐</p>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top">Sunny <span>Side</span> Diner</a>
+    <ul id="navList"><li><a href="#specials">今日特餐</a></li><li><a href="#menu">菜單</a></li><li><a href="#pies">預訂整顆派</a></li><li><a href="#visit">交通</a></li></ul>
+    <a class="pill y" href="#pies" style="padding:9px 18px">預訂派</a>
+    <button class="burger" id="burger" type="button" aria-label="開啟選單" aria-expanded="false">☰</button>
   </div>
 </header>
 
-<main class="main">
-  <section aria-label="今日特餐看板">
-    <h2 class="tag">TODAY'S SPECIALS</h2>
-    <div class="boardWrap"><div class="board" id="board" aria-live="polite"></div></div>
-    <div class="edit" id="edit"></div>
-    <div class="boardBtns">
-      <button class="pill" id="shuffle" type="button">換一組特餐</button>
-      <span class="small">看板只有大寫英文、數字與 $ ¢ . : ! & -</span>
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <div class="rv-in">
+        <span class="open" id="open"><i></i><span>…</span></span>
+        <svg class="sun" viewBox="0 0 86 86" aria-hidden="true"><g><path d="M43 4v10M43 72v10M4 43h10M72 43h10M15 15l7 7M64 64l7 7M15 71l7-7M64 22l7-7" stroke="#e0662b" stroke-width="6" stroke-linecap="round"/></g><circle cx="43" cy="43" r="22" fill="#e8a93a"/></svg>
+        <h1>Sunny <span>Side</span><br>Diner</h1>
+        <span class="tag">ALL-DAY BREAKFAST · SINCE 1974</span>
+        <p>早餐全天供應：太陽蛋、薯餅、厚鬆餅。咖啡無限續杯，派每天早上烤四種。週末找朋友來坐卡座，或者把整顆派帶回家。</p>
+        <div class="btns"><a class="pill" href="#menu">看菜單</a><a class="pill o" href="#pies">預訂整顆派</a></div>
+      </div>
+      <div class="heroPic rv-in">
+        <div class="stripes" id="stripes" aria-hidden="true"></div>
+        <figure class="ph" data-photo="hero" data-art="stack" data-label="鬆餅與太陽蛋" data-size="1400×1400"></figure>
+        <div class="sticker"><div><b>90¢</b>BOTTOMLESS<br>COFFEE</div></div>
+      </div>
     </div>
   </section>
-  <section aria-label="鬆餅疊疊樂">
-    <h2 class="tag">PANCAKE STACKER</h2>
-    <div class="game">
-      <canvas id="cv" width="440" height="560" aria-label="鬆餅疊疊樂：點擊或按空白鍵放下鬆餅"></canvas>
-      <div class="hud">
-        <div><small>STACK 層數</small><b id="h">0</b></div>
-        <div><small>BEST 最高</small><b id="best">0</b></div>
-        <button class="pill" id="start" type="button">開始 / 重來</button>
+
+  <section class="sec" id="specials" style="padding-top:20px">
+    <div class="wrap">
+      <p class="tag2">TODAY'S SPECIALS</p>
+      <h2 class="h2">今天看板上寫的</h2>
+      <p class="lead" id="specLead"></p>
+      <div class="specials">
+        <div class="boardWrap rv-in"><div class="board" id="board" aria-live="polite"></div></div>
+        <div class="rv-in"><div class="spec" id="spec"></div><p class="until" id="until"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="menu" style="padding-top:0">
+    <div class="wrap">
+      <p class="tag2">THE MENU</p>
+      <h2 class="h2">菜單</h2>
+      <p class="lead">價格含稅。蛋可以選：sunny side up（太陽蛋）、over easy（兩面嫩煎）、scrambled（炒蛋）。</p>
+      <div class="tabs" role="tablist" id="tabs"></div>
+      <div class="mgrid">
+        <div class="mcard rv-in" role="tabpanel" id="mlist"></div>
+        <div class="rv-in"><figure class="ph" id="mPhoto" data-photo="menu" data-art="booth" data-label="卡座與吧台" data-size="1200×1500"></figure><div class="refill"><b>∞</b><span>咖啡無限續杯，服務生會拿著壺巡桌。冰咖啡也可以續。</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec pies" id="pies">
+    <div class="wrap">
+      <p class="tag2">WHOLE PIES</p>
+      <h2 class="h2">整顆派，帶回家</h2>
+      <p class="lead">每顆派都是早上烤的。至少提前一天預訂，選口味、尺寸與取貨日，到店付款。</p>
+      <div class="pgrid">
+        <div class="pieList rv-in" id="pieList" role="radiogroup" aria-label="選擇口味"></div>
+        <form class="pform rv-in" id="pf" novalidate><div id="pBody">
+          <h3 id="pName">Cherry Pie</h3>
+          <span class="lab">尺寸</span><div class="chips" id="sizes"></div>
+          <span class="lab">取貨日</span><div class="chips" id="pdays"></div>
+          <div class="two"><label class="fi">數量<select id="qty"><option>1</option><option>2</option><option>3</option><option>4</option></select></label><label class="fi">加購<select id="addon"><option value="0">不用</option><option value="80">香草冰淇淋一盒 +80</option><option value="30">生日蠟燭與卡片 +30</option></select></label></div>
+          <label class="fi">姓名<input id="oName" autocomplete="name"><span class="err"></span></label>
+          <label class="fi">手機<input id="oPhone" inputmode="tel" autocomplete="tel" placeholder="09xx-xxx-xxx"><span class="err"></span></label>
+          <div class="tot"><span>合計</span><output id="pTot">0</output></div>
+          <button class="pill" type="submit">送出預訂</button>
+          <p class="demo">示範版本：預訂只顯示在頁面上，不會送出。</p>
+        </div></form>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="visit">
+    <div class="wrap info">
+      <div class="box rv-in"><h3>Hours</h3><table class="hours" id="hours"></table></div>
+      <div class="box rv-in"><h3>Call us</h3><a class="tel" id="tel" href="#"></a><p id="addr" style="font-weight:700;color:var(--ink)"></p><p>門口有六個停車位。8 位以上請先來電，我們幫你併卡座。</p></div>
+      <div class="box map rv-in">
+        <svg viewBox="0 0 440 240" preserveAspectRatio="xMidYMid slice" role="img" aria-label="店家位置示意圖"><rect width="440" height="240" fill="#efdcb0"/><path d="M0 130 H440" stroke="#5a3418" stroke-width="34"/><path d="M0 130 H440" stroke="#e8a93a" stroke-width="3" stroke-dasharray="18 14"/><g transform="translate(70 70)"><path d="M0 -20 L18 -20 L18 12 L0 22 L-18 12 L-18 -20Z" fill="#fffaf0" stroke="#5a3418" stroke-width="3"/><text y="6" text-anchor="middle" font-size="16" font-weight="800" fill="#5a3418" font-family="Futura,sans-serif">66</text></g><g transform="translate(260 120)"><circle r="24" fill="rgba(224,102,43,.2)"/><path d="M0 -22 C-11 -22 -15 -13 -15 -7 C-15 3 0 15 0 15 C0 15 15 3 15 -7 C15 -13 11 -22 0 -22Z" fill="#e0662b" stroke="#5a3418" stroke-width="2"/><circle cy="-8" r="5" fill="#e8a93a"/></g><text x="282" y="112" fill="#5a3418" font-size="15" font-weight="800" font-style="italic" font-family="Futura,sans-serif">Sunny Side</text></svg>
+        <a class="pill" id="mapLink" href="#" target="_blank" rel="noopener">開啟導航</a>
       </div>
     </div>
   </section>
 </main>
-
-<section class="menu" aria-label="菜單">
-  <h2 class="tag">THE MENU · 菜單</h2>
-  <div class="cards">
-    <article class="card" style="--c1:#e0662b;--c2:#e8a93a;--c3:#8a8f3a">
-      <h3>Griddle<small>鐵板</small></h3>
-      <div class="item"><span>Short Stack<small>三片鬆餅、奶油、楓糖漿</small></span><span class="d"></span><b>$4.50</b></div>
-      <div class="item"><span>Tall Stack<small>五片，給真的餓的人</small></span><span class="d"></span><b>$6.25</b></div>
-      <div class="item"><span>Silver Dollar<small>十二片硬幣大小鬆餅</small></span><span class="d"></span><b>$5.00</b></div>
-      <div class="item"><span>French Toast<small>肉桂法式吐司</small></span><span class="d"></span><b>$4.75</b></div>
-    </article>
-    <article class="card" style="--c1:#8a8f3a;--c2:#e0662b;--c3:#5a3418">
-      <h3>Eggs &amp; Plates<small>蛋與餐盤</small></h3>
-      <div class="item"><span>Two Eggs Any Style<small>兩顆蛋任選做法、薯餅、吐司</small></span><span class="d"></span><b>$3.95</b></div>
-      <div class="item"><span>Denver Omelet<small>火腿、青椒、洋蔥歐姆蛋</small></span><span class="d"></span><b>$5.50</b></div>
-      <div class="item"><span>Chicken-Fried Steak<small>炸牛排淋白醬</small></span><span class="d"></span><b>$7.25</b></div>
-      <div class="item"><span>Blue Plate Special<small>今日藍盤特餐，問服務生</small></span><span class="d"></span><b>$6.95</b></div>
-    </article>
-    <article class="card" style="--c1:#e8a93a;--c2:#b8461f;--c3:#e0662b">
-      <h3>Pie &amp; Coffee<small>派與咖啡</small></h3>
-      <div class="item"><span>Cherry Pie<small>櫻桃派，加一球香草冰淇淋 +50¢</small></span><span class="d"></span><b>$2.25</b></div>
-      <div class="item"><span>Apple Pie<small>蘋果派，可以配切達起司</small></span><span class="d"></span><b>$2.25</b></div>
-      <div class="item"><span>Malted Milkshake<small>麥芽奶昔：香草、巧克力、草莓</small></span><span class="d"></span><b>$1.95</b></div>
-      <div class="item"><span>Bottomless Coffee<small>咖啡無限續杯</small></span><span class="d"></span><b>90¢</b></div>
-    </article>
-  </div>
-</section>
-<p class="foot">價格照 1970 年代的物價寫的。疊到十層，女服務生會送你一片派。</p>
+<footer><div class="wrap"><b style="font-style:italic">Sunny Side Diner</b><span>© <span id="yr"></span> · Have a sunny day!</span><nav><a href="#">Instagram</a><a href="#">Facebook</a></nav></div></footer>
+<button class="slotBtn" id="slotBtn" type="button" aria-pressed="false">照片位</button>
 
 <script>
 (function(){
 'use strict';
-var $ = function(s){ return document.querySelector(s); };
+/* ===== 店家設定 ===== */
+var SHOP = {
+  name:'Sunny Side Diner', phone:'(02) 2788-0000', address:'台北市南港區示範路 66 號',
+  hours:[[['07:00','16:00']],[['07:00','15:00']],[['07:00','15:00']],[['07:00','15:00']],[['07:00','15:00']],[['07:00','21:00']],[['07:00','21:00']]],
+  photos:{hero:'',menu:'',s1:'',s2:'',s3:'',cherry:'',apple:'',pecan:'',lemon:'',pumpkin:'',key:''}
+};
+// 看板四行：大寫英文、數字與 $ ¢ . : ! & - ' /
+var SPECIALS = { board:['TODAY: MEATLOAF','W/ MASHED POTATO','PIE OF THE DAY:','CHERRY & APPLE'], until:'15:00',
+  items:[['s1','Meatloaf Plate','肉餅、薯泥、四季豆、麵包',320,'meat'],['s2','Cherry Pie','一片，加一球冰淇淋 +40',140,'cherry'],['s3','Buttermilk Short Stack','三片酪奶鬆餅、楓糖漿',220,'stack']] };
+var MENU = {
+  'Breakfast':[['Two Eggs Any Style','兩顆蛋任選做法、薯餅、吐司',220,1],['Denver Omelet','火腿、青椒、洋蔥歐姆蛋',260],['Biscuits & Gravy','美式比司吉淋白肉汁',240],['Eggs Benedict','班尼迪克蛋、荷蘭醬',300]],
+  'Griddle':[['Short Stack','三片鬆餅、奶油、楓糖漿',220,1],['Tall Stack','五片，給真的餓的人',300],['French Toast','肉桂法式吐司、莓果',260],['Chicken & Waffle','炸雞配鬆餅、辣蜂蜜',360]],
+  'Plates':[['Patty Melt','黑麥麵包夾牛肉餅與焦糖洋蔥',320],['Chicken-Fried Steak','炸牛排淋白肉汁',380,1],['Club Sandwich','三層總匯、薯條',300]],
+  'Drinks':[['Bottomless Coffee','咖啡無限續杯',90,1],['Malted Milkshake','麥芽奶昔：香草、巧克力、草莓',180],['Root Beer Float','麥根沙士漂浮',150],['Fresh OJ','現榨柳橙汁',120]]
+};
+var MENU_ART = {Breakfast:'eggs',Griddle:'stack',Plates:'meat',Drinks:'shake'};
+// [代號, 名稱, 中文, 8 吋, 10 吋]
+var PIES = [['cherry','Cherry Pie','櫻桃派',680,980],['apple','Apple Pie','蘋果派',620,900],['pecan','Pecan Pie','胡桃派',760,1080],['lemon','Lemon Meringue','檸檬蛋白霜派',700,1000],['pumpkin','Pumpkin Pie','南瓜派（秋季）',640,920],['key','Key Lime Pie','萊姆派',680,980]];
+var $ = function(s, r){ return (r || document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
-/* 招牌條紋 */
-var cols = ['#5a3418','#b8461f','#e0662b','#e8a93a','#8a8f3a'];
-function stripes(){
-  var base = Math.max(innerWidth*1.04, 620), step = base*.062;
-  $('#stripes').innerHTML = cols.map(function(c, i){ var d = base - i*step; return '<i style="width:' + d + 'px;height:' + d*.62 + 'px;border-color:' + c + '"></i>'; }).join('');
-}
-stripes(); window.addEventListener('resize', stripes);
+/* ===== 招牌條紋 ===== */
+var COLS = ['#5a3418','#b8461f','#e0662b','#e8a93a','#8a8f3a'];
+function stripes(){ var hp = document.querySelector('.heroPic'), base = hp.offsetWidth*1.5, step = base*.07; $('#stripes').innerHTML = COLS.map(function(c, i){ var d = base - i*step; return '<i style="width:' + d + 'px;height:' + d*.62 + 'px;border-color:' + c + '"></i>'; }).join(''); }
+stripes(); addEventListener('resize', stripes);
 
-/* 毛氈看板 */
-var SETS = [
-  ['SUNNY SIDE DINER','SHORT STACK $4.50','PIE OF THE DAY:','CHERRY & APPLE'],
-  ['TODAY: MEATLOAF','W/ MASHED POTATO','$5.25 - TIL 3PM','COFFEE 90¢ REFILL'],
-  ['WELCOME TRUCKERS!','FREE COFFEE','WITH ANY STACK','HONK IF HUNGRY'],
-  ['TRY OUR NEW','PEACH COBBLER','A LA MODE $2.50','YES WE HAVE PIE']
-];
-var lines = SETS[0].slice(), setIdx = 0;
-var board = $('#board'), edit = $('#edit');
-var MAX = 18;
-function clean(s){ return s.toUpperCase().replace(/[^A-Z0-9 $¢.,:!?&'\/\-]/g, '').slice(0, MAX); }
-function renderLine(i, animate){
-  var el = board.children[i], txt = lines[i];
-  el.innerHTML = txt.split('').map(function(c, j){
-    var r = ((Math.sin(i*31 + j*7.7) * 10000) % 1)*4 - 2, y = ((Math.cos(i*17 + j*3.1)*10000) % 1)*2;
-    return '<span class="ch' + (c === ' ' ? ' sp' : '') + '" style="--r:' + r.toFixed(1) + 'deg;--y:' + y.toFixed(1) + 'px;' + (animate ? 'animation-delay:' + (j*.03) + 's' : 'animation:none') + '">' + (c === ' ' ? '&nbsp;' : c.replace('&', '&amp;')) + '</span>';
-  }).join('');
-  el.setAttribute('aria-label', txt);
-}
-for (var i = 0; i < 4; i++){
-  var d = document.createElement('div'); d.className = 'line'; board.appendChild(d);
-  var lab = document.createElement('label'); lab.innerHTML = '第 ' + (i + 1) + ' 行 LINE ' + (i + 1) + '<input maxlength="' + MAX + '" autocomplete="off" spellcheck="false">';
-  var inp = lab.querySelector('input'); inp.value = lines[i];
-  (function(i, inp){
-    inp.addEventListener('input', function(){
-      var prev = lines[i], v = clean(inp.value); lines[i] = v; if (inp.value !== v) inp.value = v;
-      var el = board.children[i];
-      if (v.length === prev.length + 1 && v.slice(0, -1) === prev){
-        // 只把新插上的那個字做動畫
-        renderLine(i, false); var last = el.lastElementChild; if (last){ last.style.animation = ''; }
-        tick();
-      } else renderLine(i, false);
-    });
-  })(i, inp);
-  edit.appendChild(lab);
-}
-function renderAll(anim){ for (var i = 0; i < 4; i++){ renderLine(i, anim); edit.querySelectorAll('input')[i].value = lines[i]; } }
-$('#shuffle').addEventListener('click', function(){ audio(); setIdx = (setIdx + 1) % SETS.length; lines = SETS[setIdx].slice(); renderAll(true); for (var k = 0; k < 8; k++) setTimeout(tick, k*70); });
-renderAll(true);
+/* ===== 毛氈看板 ===== */
+var board = $('#board');
+board.innerHTML = SPECIALS.board.map(function(t, i){
+  return '<div class="line" aria-label="' + t + '">' + t.toUpperCase().split('').map(function(c, j){ var r = ((Math.sin(i*31 + j*7.7)*10000) % 1)*4 - 2, y = ((Math.cos(i*17 + j*3.1)*10000) % 1)*2; return '<span class="ch" style="--r:' + r.toFixed(1) + 'deg;--y:' + y.toFixed(1) + 'px;animation-delay:' + (i*.25 + j*.03).toFixed(2) + 's">' + (c === ' ' ? '&nbsp;' : c.replace('&', '&amp;')) + '</span>'; }).join('') + '</div>';
+}).join('');
+$('#spec').innerHTML = SPECIALS.items.map(function(s){ return '<article><figure class="ph" data-photo="' + s[0] + '" data-art="' + s[4] + '" data-label="' + s[1] + '" data-size="600×600"></figure><div><b>' + s[1] + '</b><small>' + s[2] + '</small></div><span class="pr">$' + s[3] + '</span></article>'; }).join('');
+var now = new Date();
+$('#specLead').textContent = (now.getMonth() + 1) + ' 月 ' + now.getDate() + ' 日的特餐，賣完就擦掉。';
+$('#until').textContent = '特餐供應到 ' + SPECIALS.until + '，或賣完為止。';
 
-/* 鬆餅疊疊樂 */
-var cv = $('#cv'), g = cv.getContext('2d'), W = 440, H = 560;
-var PR = 78, PT = 15, plateY = H - 58;
-var stack = [], mover = null, falling = [], state = 'idle', cam = 0, camT = 0, speed = 150, msg = null, best = 0, wob = 0, syrup = 0, t0 = 0;
-try { best = +localStorage.getItem('sunnyside-best') || 0; } catch(e){}
-$('#best').textContent = best;
-var HUES = [];
-for (var k = 0; k < 60; k++) HUES.push([30 + Math.random()*6, 62 + Math.random()*10, 52 + Math.random()*8]);
-function topY(){ return plateY - 10 - stack.length*PT; }
-function newMover(){ var dir = Math.random() < .5 ? 1 : -1; mover = {x:W/2 - dir*150, dir:dir, y:topY() - 120}; }
-function start(){ audio(); stack = []; falling = []; cam = camT = 0; speed = 150; wob = 0; syrup = 0; msg = null; state = 'play'; newMover(); $('#h').textContent = 0; }
-function drop(){
-  if (state === 'idle' || state === 'over'){ start(); return; }
-  if (state !== 'play' || !mover) return;
-  var m = mover; mover = null;
-  falling.push({x:m.x, y:m.y, vy:0, target:topY() - PT, i:stack.length});
+/* ===== 菜單 ===== */
+var tabs = $('#tabs');
+Object.keys(MENU).forEach(function(k, i){ var b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'tab'); b.textContent = k; b.setAttribute('aria-selected', i === 0); b.onclick = function(){ $$('button', tabs).forEach(function(x){ x.setAttribute('aria-selected', x === b); }); drawMenu(k); }; tabs.appendChild(b); });
+function drawMenu(k){
+  $('#mlist').innerHTML = MENU[k].map(function(m){ return '<div class="item"><b>' + m[0] + (m[3] ? '<span class="hot">FAVE</span>' : '') + '</b><span class="d"></span><span class="p">$' + m[2] + '</span><small>' + m[1] + '</small></div>'; }).join('');
+  var f = $('#mPhoto'); f.dataset.art = MENU_ART[k]; if (!SHOP.photos.menu && ART[MENU_ART[k]]) f.innerHTML = ART[MENU_ART[k]]();
 }
-function land(f){
-  var below = stack.length ? stack[stack.length - 1].x : W/2, dx = f.x - below;
-  if (Math.abs(dx) > PR*1.15){ // 完全沒疊到，掉到桌上
-    msg = {t:'MISSED!', s:'差太多，掉下去了', c:'#b8461f'}; flop(.6); gameOver(f); return;
-  }
-  var perfect = Math.abs(dx) < 5;
-  if (perfect){ f.x = below; msg = {t:'PERFECT!', s:'正中間', c:'#8a8f3a', age:0}; ding(); }
-  else msg = null;
-  stack.push({x:f.x, hue:HUES[stack.length % HUES.length]});
-  flop(1); wob = Math.min(1, Math.abs(dx)/PR);
-  // 重心：上方所有鬆餅的平均位置不能超出底下那片
-  for (var i = 0; i < stack.length - 1; i++){
-    var sum = 0, n = 0; for (var j = i + 1; j < stack.length; j++){ sum += stack[j].x; n++; }
-    if (Math.abs(sum/n - stack[i].x) > PR*.92){ msg = {t:'TIMBER!', s:'整疊倒了', c:'#b8461f'}; gameOver(null, i); return; }
-  }
-  $('#h').textContent = stack.length;
-  if (stack.length === 10){ msg = {t:'FREE PIE!', s:'十層！送你一片櫻桃派', c:'#e0662b', age:0}; ding(); setTimeout(ding, 150); }
-  speed = Math.min(420, 150 + stack.length*14);
-  camT = Math.max(0, (H*.55) - topY()) ;
-  newMover();
+
+/* ===== 派預訂 ===== */
+$('#pieList').innerHTML = PIES.map(function(p, i){ return '<label class="pie"><input type="radio" name="pie" value="' + i + '"' + (i ? '' : ' checked') + '><span><figure class="ph" data-photo="' + p[0] + '" data-art="pie" data-pie="' + p[0] + '" data-label="' + p[1] + '" data-size="800×800"></figure><div class="t"><b>' + p[1] + '</b><small>' + p[2] + '・$' + p[3] + ' 起</small></div></span></label>'; }).join('');
+var pdays = []; for (var i = 1; pdays.length < 6; i++){ var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i); if (SHOP.hours[d.getDay()].length) pdays.push(d); }
+var DAYS = ['週日','週一','週二','週三','週四','週五','週六'];
+$('#pdays').innerHTML = pdays.map(function(d, i){ return '<label><input type="radio" name="pd" value="' + i + '"' + (i ? '' : ' checked') + '><span>' + (d.getMonth() + 1) + '/' + d.getDate() + '<small>' + DAYS[d.getDay()] + '</small></span></label>'; }).join('');
+function syncPie(){
+  var p = PIES[+$('input[name=pie]:checked').value], cur = ($('input[name=sz]:checked') || {}).value || '0';
+  $('#pName').textContent = p[1] + ' · ' + p[2];
+  $('#sizes').innerHTML = [['8 吋','4–6 人',p[3]],['10 吋','8–10 人',p[4]]].map(function(s, j){ return '<label><input type="radio" name="sz" value="' + j + '"' + (String(j) === cur ? ' checked' : '') + '><span>' + s[0] + ' · $' + s[2] + '<small>' + s[1] + '</small></span></label>'; }).join('');
+  calc();
 }
-function gameOver(f, at){
-  state = 'over';
-  if (at !== undefined){ for (var i = stack.length - 1; i > at; i--){ var p = stack.pop(); falling.push({x:p.x, y:plateY - 10 - i*PT - PT, vy:-40, vx:(p.x - W/2)*2 + (Math.random() - .5)*80, rot:0, vr:(Math.random() - .5)*4, gone:true, hue:p.hue}); } }
-  if (f){ falling.push({x:f.x, y:f.y, vy:f.vy, vx:(f.x - W/2)*1.5, rot:0, vr:(f.x > W/2 ? 3 : -3), gone:true}); }
-  var h = stack.length; if (h > best){ best = h; try { localStorage.setItem('sunnyside-best', best); } catch(e){} $('#best').textContent = best; }
-  $('#h').textContent = h; syrup = 0; t0 = performance.now();
-}
-cv.addEventListener('pointerdown', function(e){ e.preventDefault(); drop(); });
-document.addEventListener('keydown', function(e){
-  if (e.target.tagName === 'INPUT') return;
-  if (e.code === 'Space' || e.key === 'Enter'){ if (document.activeElement === $('#start') && e.key === 'Enter') return; e.preventDefault(); drop(); }
+function calc(){ var p = PIES[+$('input[name=pie]:checked').value], sz = +($('input[name=sz]:checked') || {value:0}).value, q = +$('#qty').value; if ($('#pTot')) $('#pTot').textContent = '$' + ((sz ? p[4] : p[3]) + +$('#addon').value)*q; }
+$('#pieList').addEventListener('change', syncPie);
+$('#pf').addEventListener('change', function(e){ if (e.target.name !== 'pie') calc(); });
+syncPie();
+$('#pf').addEventListener('submit', function(e){
+  e.preventDefault();
+  var name = $('#oName'), phone = $('#oPhone'), ok = true;
+  [[name, name.value.trim().length > 0, '請填寫姓名'], [phone, /^09\d{2}-?\d{3}-?\d{3}$/.test(phone.value.trim()), '請輸入 09 開頭的手機號碼']].forEach(function(c){ c[0].nextElementSibling.textContent = c[1] ? '' : c[2]; if (!c[1]) ok = false; });
+  if (!ok) return;
+  var p = PIES[+$('input[name=pie]:checked').value], d = pdays[+$('input[name=pd]:checked').value], sz = +$('input[name=sz]:checked').value ? '10 吋' : '8 吋';
+  $('#pBody').innerHTML = '<div class="ok"><b>Thank you!</b><p>' + p[1] + '（' + sz + '）× ' + $('#qty').value + '，' + (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日 ' + DAYS[d.getDay()] + ' 09:00 之後可以取貨。</p><p>合計 ' + $('#pTot').textContent + '，到店付款。確認簡訊會傳給 ' + name.value.trim().replace(/</g, '') + '。</p><p class="demo">示範版本：沒有真的送出預訂。</p></div>';
 });
-$('#start').addEventListener('click', start);
 
-function pancake(x, y, hue, rot){
-  g.save(); g.translate(x, y); if (rot) g.rotate(rot);
-  var hs = hue || [32, 66, 55];
-  g.fillStyle = 'hsl(' + hs[0] + ',' + hs[1] + '%,' + (hs[2] - 22) + '%)';
-  g.beginPath(); g.ellipse(0, PT*.5, PR, 16, 0, 0, Math.PI*2); g.fill();
-  g.fillRect(-PR, 0, PR*2, PT*.5);
-  g.fillStyle = 'hsl(' + hs[0] + ',' + hs[1] + '%,' + (hs[2] - 8) + '%)';
-  g.beginPath(); g.ellipse(0, 0, PR, 16, 0, 0, Math.PI*2); g.fill();
-  var tg = g.createRadialGradient(-PR*.2, -4, 4, 0, 0, PR); tg.addColorStop(0, 'hsl(' + (hs[0] + 4) + ',' + hs[1] + '%,' + (hs[2] + 6) + '%)'); tg.addColorStop(.75, 'hsl(' + hs[0] + ',' + hs[1] + '%,' + (hs[2] - 4) + '%)'); tg.addColorStop(1, 'hsl(' + hs[0] + ',' + hs[1] + '%,' + (hs[2] - 14) + '%)');
-  g.fillStyle = tg; g.beginPath(); g.ellipse(0, -1, PR - 4, 13, 0, 0, Math.PI*2); g.fill();
-  g.fillStyle = 'rgba(120,60,20,.18)'; for (var i = 0; i < 6; i++){ g.beginPath(); g.ellipse(Math.sin(i*2.1 + hs[0])*PR*.55, Math.cos(i*1.7)*6 - 1, 3, 1.4, 0, 0, Math.PI*2); g.fill(); }
-  g.restore();
-}
-function drawScene(now){
-  g.clearRect(0, 0, W, H);
-  // 背景：格子桌布與窗外
-  g.fillStyle = '#f6e8c8'; g.fillRect(0, 0, W, H);
-  g.save(); g.translate(0, cam*.3);
-  for (var s = 0; s < 5; s++){ g.fillStyle = cols[4 - s]; g.globalAlpha = .9; g.fillRect(0, 40 + s*16, W, 10); }
-  g.globalAlpha = 1; g.restore();
-  g.save(); g.translate(0, cam);
-  // 桌面
-  g.fillStyle = '#e0662b'; g.fillRect(0, plateY + 14, W, 200);
-  g.fillStyle = 'rgba(255,255,255,.25)';
-  for (var cx = 0; cx < W; cx += 40) for (var cy = plateY + 14; cy < plateY + 220; cy += 40){ if (((cx + cy)/40) % 2 < 1) g.fillRect(cx, cy, 40, 40); }
-  // 盤子
-  g.fillStyle = 'rgba(0,0,0,.18)'; g.beginPath(); g.ellipse(W/2 + 4, plateY + 10, 128, 26, 0, 0, Math.PI*2); g.fill();
-  g.fillStyle = '#fffaf0'; g.beginPath(); g.ellipse(W/2, plateY, 128, 26, 0, 0, Math.PI*2); g.fill();
-  g.strokeStyle = '#8a8f3a'; g.lineWidth = 3; g.beginPath(); g.ellipse(W/2, plateY, 116, 21, 0, 0, Math.PI*2); g.stroke();
-  // 疊好的鬆餅（最上面幾層晃動）
-  var sway = state === 'play' ? Math.sin(now*.012)*wob*4 : 0;
-  stack.forEach(function(p, i){ var k = i/Math.max(1, stack.length); pancake(p.x + sway*k*k, plateY - 10 - i*PT - PT*.5, p.hue); });
-  // 結束後的奶油與糖漿
-  if (state === 'over' && stack.length){
-    var top = stack[stack.length - 1], ty = plateY - 10 - (stack.length - 1)*PT - PT*.5;
-    syrup = Math.max(0, Math.min(1, (now - t0)/1800));
-    g.fillStyle = 'rgba(140,60,10,.85)'; g.beginPath(); g.ellipse(top.x, ty - 2, (PR - 10)*syrup, 10*syrup, 0, 0, Math.PI*2); g.fill();
-    for (var dd = 0; dd < 5; dd++){ var ang = -PR + 12 + dd*(PR*2 - 24)/4; g.fillRect(top.x + ang*.9*syrup, ty + 4, 6, (20 + dd*7 % 18)*syrup + stack.length*PT*syrup*.4*(dd%2)); }
-    g.fillStyle = '#fbe9a6'; g.fillRect(top.x - 14, ty - 18, 28, 14); g.fillStyle = '#fff6cf'; g.fillRect(top.x - 14, ty - 18, 28, 4);
-  }
-  falling.forEach(function(f){ pancake(f.x, f.y, f.hue || HUES[f.i % HUES.length], f.rot); });
-  if (mover){ g.globalAlpha = .18; g.fillStyle = '#5a3418'; g.beginPath(); g.ellipse(mover.x, topY() - 2, PR*.9, 10, 0, 0, Math.PI*2); g.fill(); g.globalAlpha = 1; pancake(mover.x, mover.y, HUES[stack.length % HUES.length]); }
-  g.restore();
-  // 訊息
-  g.textAlign = 'center';
-  if (state === 'idle'){
-    g.fillStyle = 'rgba(90,52,24,.88)'; roundRect(60, 170, W - 120, 150, 24); g.fill();
-    g.fillStyle = '#f6e8c8'; g.font = 'italic 800 34px Futura,"Century Gothic",sans-serif'; g.fillText('STACK ’EM UP!', W/2, 222);
-    g.font = '600 15px "PingFang TC","Microsoft JhengHei",sans-serif'; g.fillText('點畫面或按空白鍵放下鬆餅', W/2, 256); g.fillText('疊歪了整疊會倒 · 十層送一片派', W/2, 282);
-  } else if (msg){
-    g.fillStyle = msg.c; g.font = 'italic 800 40px Futura,"Century Gothic",sans-serif'; g.fillText(msg.t, W/2, 150);
-    g.fillStyle = '#5a3418'; g.font = '600 15px "PingFang TC","Microsoft JhengHei",sans-serif'; g.fillText(msg.s, W/2, 176);
-  }
-  if (state === 'over'){ g.fillStyle = '#5a3418'; g.font = '700 15px "PingFang TC","Microsoft JhengHei",sans-serif'; g.fillText('疊了 ' + stack.length + ' 層 · 點一下再來一盤', W/2, 206); }
-  g.textAlign = 'left';
-}
-function roundRect(x, y, w, h, r){ g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
-var last = performance.now();
-function loop(now){
-  var dt = Math.min(.04, (now - last)/1000); last = now;
-  if (mover && state === 'play'){
-    mover.x += mover.dir*speed*dt;
-    if (mover.x > W/2 + 160){ mover.x = W/2 + 160; mover.dir = -1; }
-    if (mover.x < W/2 - 160){ mover.x = W/2 - 160; mover.dir = 1; }
-    mover.y += ((topY() - 120) - mover.y)*Math.min(1, dt*6);
-  }
-  falling.forEach(function(f){
-    f.vy += 1400*dt; f.y += f.vy*dt;
-    if (f.gone){ f.x += (f.vx || 0)*dt; f.rot += (f.vr || 0)*dt; }
-    else if (f.y >= f.target + PT*.5){ f.y = f.target + PT*.5; f.done = true; land(f); }
-  });
-  falling = falling.filter(function(f){ return !f.done && f.y < plateY + 400; });
-  if (msg && msg.age !== undefined){ msg.age += dt; if (msg.age > 1.4 && state === 'play') msg = null; }
-  cam += (camT - cam)*Math.min(1, dt*4);
-  wob *= Math.pow(.2, dt);
-  drawScene(now);
-  requestAnimationFrame(loop);
-}
-requestAnimationFrame(loop);
+/* ===== 營業時間 ===== */
+function mins(t){ var p = t.split(':'); return +p[0]*60 + +p[1]; }
+(function(){
+  var d = now.getDay(), m = now.getHours()*60 + now.getMinutes(), t = SHOP.hours[d].find(function(h){ return m >= mins(h[0]) && m < mins(h[1]); }), next = null;
+  if (!t) for (var k = 0; k < 8 && !next; k++){ var dd = (d + k) % 7, h = SHOP.hours[dd].find(function(x){ return k > 0 || mins(x[0]) > m; }); if (h) next = (k === 0 ? '今天' : k === 1 ? '明天' : DAYS[dd]) + ' ' + h[0]; }
+  $('#open').classList.toggle('on', !!t); $('#open').lastElementChild.textContent = t ? "WE'RE OPEN · 到 " + t[1] : 'CLOSED · ' + next + ' 開門';
+})();
+$('#hours').innerHTML = [1,2,3,4,5,6,0].map(function(d){ var h = SHOP.hours[d]; return '<tr class="' + (d === now.getDay() ? 'today' : '') + '"><td>' + DAYS[d] + '</td><td>' + (h.length ? h.map(function(x){ return x[0] + '–' + x[1]; }).join('、') : '公休') + '</td></tr>'; }).join('');
+$('#tel').textContent = SHOP.phone; $('#tel').href = 'tel:' + SHOP.phone.replace(/[^\d]/g, '');
+$('#addr').textContent = SHOP.address; $('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+$('#yr').textContent = now.getFullYear();
 
-/* 聲音 */
-var ac = null;
-function audio(){ if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
-function flop(v){
-  if (!ac) return; var t = ac.currentTime, o = ac.createOscillator(), gg = ac.createGain();
-  o.type = 'sine'; o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(60, t + .12);
-  gg.gain.setValueAtTime(.25*v, t); gg.gain.exponentialRampToValueAtTime(.0001, t + .16); o.connect(gg).connect(ac.destination); o.start(t); o.stop(t + .18);
+/* ===== 佔位圖 ===== */
+var uid = 0;
+function svg(vb, body){ var id = 'n' + (++uid); return '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><filter id="' + id + '"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .4  0 0 0 0 .25  0 0 0 0 .1  0 0 0 .06 0"/></filter><filter id="s' + id + '"><feGaussianBlur stdDeviation="8"/></filter></defs>' + body.replace(/SOFT/g, 's' + id) + '<rect width="100%" height="100%" filter="url(#' + id + ')"/></svg>'; }
+function formica(w, h){ var s = '<rect width="' + w + '" height="' + h + '" fill="#f2e2bd"/>'; for (var i = 0; i < 80; i++){ var x = (i*137) % w, y = (i*89) % h; s += '<path d="M' + x + ' ' + y + ' l14 6 m-6 -10 l4 14" stroke="#d9be86" stroke-width="2"/>'; } return s; }
+function plate(cx, cy, r){ return '<ellipse cx="' + (cx + 8) + '" cy="' + (cy + 14) + '" rx="' + r + '" ry="' + r*.96 + '" fill="rgba(90,52,24,.25)" filter="url(#SOFT)"/><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#fffaf0"/><circle cx="' + cx + '" cy="' + cy + '" r="' + r*.86 + '" fill="none" stroke="#8a8f3a" stroke-width="' + r*.04 + '"/>'; }
+function egg(x, y, r){ return '<path d="M' + (x - r) + ' ' + y + ' C' + (x - r) + ' ' + (y - r) + ' ' + (x + r*.6) + ' ' + (y - r*1.1) + ' ' + (x + r) + ' ' + (y - r*.2) + ' C' + (x + r*1.1) + ' ' + (y + r*.8) + ' ' + (x - r*.4) + ' ' + (y + r) + ' ' + (x - r) + ' ' + y + 'Z" fill="#fffef6"/><circle cx="' + (x + 3) + '" cy="' + (y - 3) + '" r="' + r*.38 + '" fill="#f7b51e"/><circle cx="' + (x - 2) + '" cy="' + (y - 8) + '" r="' + r*.1 + '" fill="#fff" opacity=".8"/>'; }
+function pieTop(cx, cy, r, kind){
+  var fill = {cherry:'#a8202a',apple:'#e0b45a',pecan:'#6a3a14',lemon:'#f6e27a',pumpkin:'#d9782a',key:'#cfe08a'}[kind] || '#a8202a';
+  var s = '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#d9a352"/><circle cx="' + cx + '" cy="' + cy + '" r="' + r*.86 + '" fill="' + fill + '"/>';
+  if (kind === 'cherry' || kind === 'apple'){ for (var i = -3; i <= 3; i++){ s += '<rect x="' + (cx + i*r*.24 - r*.06) + '" y="' + (cy - r*.84) + '" width="' + r*.12 + '" height="' + r*1.68 + '" rx="' + r*.05 + '" fill="#e8b866" transform="rotate(45 ' + cx + ' ' + cy + ')"/><rect x="' + (cx + i*r*.24 - r*.06) + '" y="' + (cy - r*.84) + '" width="' + r*.12 + '" height="' + r*1.68 + '" rx="' + r*.05 + '" fill="#efc274" transform="rotate(-45 ' + cx + ' ' + cy + ')"/>'; } }
+  if (kind === 'pecan') for (var j = 0; j < 12; j++){ var a = j/12*Math.PI*2, d = r*(j%2 ? .35 : .62); s += '<ellipse cx="' + (cx + Math.cos(a)*d).toFixed(1) + '" cy="' + (cy + Math.sin(a)*d).toFixed(1) + '" rx="' + r*.14 + '" ry="' + r*.08 + '" fill="#8a4a1c" stroke="#3a1a08" transform="rotate(' + (a*57).toFixed(0) + ' ' + (cx + Math.cos(a)*d).toFixed(1) + ' ' + (cy + Math.sin(a)*d).toFixed(1) + ')"/>'; }
+  if (kind === 'lemon') for (var k = 0; k < 9; k++){ var b = k/9*Math.PI*2; s += '<circle cx="' + (cx + Math.cos(b)*r*.45).toFixed(1) + '" cy="' + (cy + Math.sin(b)*r*.45).toFixed(1) + '" r="' + r*.22 + '" fill="#fffaf0"/><circle cx="' + (cx + Math.cos(b)*r*.45 - 4).toFixed(1) + '" cy="' + (cy + Math.sin(b)*r*.45 - 4).toFixed(1) + '" r="' + r*.08 + '" fill="#e8b866"/>'; }
+  if (kind === 'pumpkin' || kind === 'key') s += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r*.2 + '" fill="#fffaf0"/>';
+  return s;
 }
-function ding(){
-  if (!ac) return; var t = ac.currentTime;
-  [2093, 2637, 3136].forEach(function(f, i){ var o = ac.createOscillator(), gg = ac.createGain(); o.type = 'triangle'; o.frequency.value = f; gg.gain.setValueAtTime(.0001, t + i*.06); gg.gain.exponentialRampToValueAtTime(.05, t + i*.06 + .005); gg.gain.exponentialRampToValueAtTime(.0001, t + i*.06 + .6); o.connect(gg).connect(ac.destination); o.start(t + i*.06); o.stop(t + 1); });
-}
-function tick(){
-  if (!ac) return; var t = ac.currentTime, o = ac.createOscillator(), gg = ac.createGain();
-  o.type = 'square'; o.frequency.value = 900 + Math.random()*300; gg.gain.setValueAtTime(.025, t); gg.gain.exponentialRampToValueAtTime(.0001, t + .03); o.connect(gg).connect(ac.destination); o.start(t); o.stop(t + .04);
-}
-edit.addEventListener('focusin', audio);
+var ART = {
+  stack:function(){ var s = formica(800, 800) + plate(400, 410, 300); for (var i = 0; i < 5; i++){ var y = 470 - i*34; s += '<ellipse cx="400" cy="' + (y + 18) + '" rx="210" ry="56" fill="#c9822a"/><ellipse cx="400" cy="' + y + '" rx="210" ry="56" fill="#e6a548"/><ellipse cx="400" cy="' + (y - 4) + '" rx="196" ry="48" fill="#f0bd62"/>'; }
+    s += '<path d="M260 300 Q300 360 280 420 Q330 380 340 440 Q370 350 420 420 Q440 340 500 400 Q510 330 540 320 Q500 290 400 286 Q300 286 260 300Z" fill="#8a3a10" opacity=".8"/><rect x="360" y="250" width="80" height="44" rx="8" fill="#fff3c4"/><rect x="360" y="250" width="80" height="12" rx="6" fill="#fffbe6"/>' + egg(640, 650, 70) + '<g transform="translate(120 160) rotate(-20)"><rect width="16" height="200" rx="6" fill="#b9bec4"/></g>'; return svg('0 0 800 800', s); },
+  meat:function(){ return svg('0 0 600 600', formica(600, 600) + plate(300, 300, 240) + '<rect x="160" y="200" width="200" height="120" rx="20" fill="#7a3a1c"/><path d="M170 210 h180" stroke="#5a2410" stroke-width="10"/><path d="M180 205 q90 -30 170 0" stroke="#c9481f" stroke-width="12" fill="none"/><ellipse cx="380" cy="370" rx="90" ry="70" fill="#f6efd8"/><path d="M340 350 q40 -20 80 0" stroke="#e3d6b0" stroke-width="8" fill="none"/>' + [0,1,2,3,4].map(function(i){ return '<rect x="' + (170 + i*24) + '" y="360" width="14" height="80" rx="7" fill="#6a9a2e" transform="rotate(' + (i*6 - 12) + ' 220 400)"/>'; }).join('')); },
+  cherry:function(){ return svg('0 0 600 600', formica(600, 600) + plate(300, 300, 240) + '<path d="M300 300 L480 220 A200 200 0 0 1 470 400Z" fill="#d9a352"/><path d="M300 300 L470 230 A185 185 0 0 1 462 390Z" fill="#a8202a"/><circle cx="420" cy="440" r="60" fill="#fffaf0"/><circle cx="410" cy="430" r="20" fill="#fff" opacity=".7"/>'); },
+  eggs:function(){ return svg('0 0 600 600', formica(600, 600) + plate(300, 300, 240) + egg(240, 250, 80) + egg(370, 280, 80) + '<g fill="#d9a352">' + [0,1,2].map(function(i){ return '<rect x="' + (180 + i*70) + '" y="380" width="60" height="50" rx="8" transform="rotate(' + (i*8) + ' 240 400)"/>'; }).join('') + '</g>'); },
+  shake:function(){ return svg('0 0 600 750', '<rect width="600" height="750" fill="#e8a93a"/><circle cx="300" cy="330" r="240" fill="#f6e8c8"/><path d="M200 300 L400 300 L370 640 L230 640Z" fill="rgba(255,255,255,.6)" stroke="#5a3418" stroke-width="5"/><path d="M206 360 L394 360 L370 630 L230 630Z" fill="#f2a6b8"/><path d="M190 300 q110 -110 220 0" fill="#fffaf0" stroke="#5a3418" stroke-width="5"/><circle cx="300" cy="190" r="22" fill="#b8202a"/><path d="M300 170 q10 -40 40 -50" stroke="#5a3418" stroke-width="4" fill="none"/><path d="M330 200 L370 90" stroke="#e0662b" stroke-width="14" stroke-linecap="round"/><rect x="220" y="640" width="160" height="30" rx="10" fill="#5a3418"/>'); },
+  booth:function(){ var s = '<rect width="800" height="1000" fill="#f6e8c8"/>'; COLS.forEach(function(c, i){ s += '<rect y="' + (100 + i*36) + '" width="800" height="26" fill="' + c + '"/>'; });
+    s += '<rect y="560" width="800" height="440" fill="#5a3418"/>'; for (var x = 0; x < 800; x += 80) for (var y = 560; y < 1000; y += 80) if (((x + y)/80) % 2 < 1) s += '<rect x="' + x + '" y="' + y + '" width="80" height="80" fill="#f6e8c8" opacity=".9"/>';
+    s += '<rect x="60" y="420" width="260" height="300" rx="40" fill="#e0662b" stroke="#5a3418" stroke-width="6"/><rect x="480" y="420" width="260" height="300" rx="40" fill="#e0662b" stroke="#5a3418" stroke-width="6"/><rect x="240" y="600" width="320" height="40" rx="8" fill="#e8a93a" stroke="#5a3418" stroke-width="5"/><rect x="390" y="640" width="20" height="200" fill="#5a3418"/><circle cx="400" cy="560" r="30" fill="#fffaf0" stroke="#5a3418" stroke-width="4"/><path d="M380 520 q20 -30 40 0" stroke="#fff" stroke-width="5" fill="none" opacity=".7"/>';
+    return svg('0 0 800 1000', s); },
+  pie:function(kind){ return svg('0 0 600 600', '<rect width="600" height="600" fill="#f6e8c8"/><circle cx="300" cy="300" r="260" fill="none" stroke="#e8a93a" stroke-width="14" stroke-dasharray="30 18"/>' + plate(300, 300, 230) + pieTop(300, 300, 190, kind)); }
+};
+function fillPhotos(){ $$('.ph').forEach(function(f){ var url = SHOP.photos[f.dataset.photo]; if (url){ f.innerHTML = '<img src="' + url + '" alt="' + (f.dataset.label || '') + '" loading="lazy">'; return; } var a = ART[f.dataset.art]; if (a) f.innerHTML = a(f.dataset.pie); }); }
+
+/* ===== 共用 ===== */
+var nav = $('#nav');
+$('#burger').onclick = function(){ var o = nav.classList.toggle('open'); this.setAttribute('aria-expanded', o); };
+$$('#navList a').forEach(function(a){ a.onclick = function(){ nav.classList.remove('open'); }; });
+var slotBtn = $('#slotBtn');
+function slots(on){ document.body.classList.toggle('slots', on); slotBtn.setAttribute('aria-pressed', on); }
+slotBtn.onclick = function(){ slots(!document.body.classList.contains('slots')); };
+if (/[?&]slots/.test(location.search)) slots(true);
+fillPhotos(); drawMenu('Breakfast');
+if ('IntersectionObserver' in window){
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('vis'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -6% 0px'});
+  $$('.rv-in').forEach(function(el){ io.observe(el); });
+} else $$('.rv-in').forEach(function(el){ el.classList.add('vis'); });
 })();
 </script>
 </body>

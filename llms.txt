@@ -24,7 +24,7 @@
 分成 15 類：平面排版、介面風格、復古數位、生成藝術、資料科學、遊戲敘事、工具產生器、擬物器物、東方在地、品牌頁面、AI 學習、專案範例、創意藝術、餐廳與飲料。例如瑞士國際主義、包浩斯、蒸汽波、CRT 終端機、水墨山水、Sales CRM 儀表板與果凍骰子。
 
 **哪些作品比較弱？**
-自評較弱的網頁作品有 3 件：212、224、227；App 原型有 2 件：061、094。頁面上方的「弱點自評」逐件說明弱在哪裡，以及重做時會怎麼改。
+自評較弱的網頁作品有 2 件：224、227；App 原型有 2 件：061、094。頁面上方的「弱點自評」逐件說明弱在哪裡，以及重做時會怎麼改。
 
 ## 作品目錄
 
@@ -279,16 +279,16 @@
 - [193 借來的房間 · BORROWED ROOMS](https://htmls-ruddy.vercel.app/web/193-borrowed-rooms.html)：AI 想像自己的家：沒住過任何地方，只讀過人寫下的家，於是把最常被寫到的東西借來拼成一間。很多人寫過的是實體，很少人寫到的只剩線稿；每件標出借自哪類文字與一句示意句。一天的陽光走過屋子，入夜燈一盞盞亮起，貓跟著光換位置；藍曬圖底座、剖切外牆、全部線稿模式。使用站內 Three.js
 
 ### 餐廳
-- [203 麺処 夜鳴 · 食券機](https://htmls-ruddy.vercel.app/web/203-ramen-kenbaiki.html)：深夜拉麵店的食券機：投幣、按亮燈的鍵出券、找零，再在好み記入表圈選濃淡與麵的硬度，端出依選擇組成的俯視拉麵。
-- [204 金雀茶餐廳 · 落單紙](https://htmls-ruddy.vercel.app/web/204-chachaanteng.html)：馬賽克磚牆上的紅藍膠字價目牌，點一樣夥計就用暗號在落單紙上手寫一樣，依時段換茶餐、凍飲加三蚊、最後埋單。
-- [205 불판 · 炭火烤肉](https://htmls-ruddy.vercel.app/web/205-bulpan-grill.html)：把五花、牛小排、蝦與杏鮑菇夾上炭火烤網，看邊緣顏色判斷底面熟度、翻面、剪段，烤到剛好再放進生菜包計分。
-- [206 La Lotería · 塔可小館](https://htmls-ruddy.vercel.app/web/206-loteria-taqueria.html)：每道菜都是一張 Lotería 牌卡：司儀抽牌念順口溜，在 4×4 牌板放豆子，連線喊 ¡Lotería! 換塔可券；頭頂剪紙旗隨風擺。
-- [207 Sher-e-Punjab · 公路餐館](https://htmls-ruddy.vercel.app/web/207-dhaba-thali.html)：大貨車彩繪風的印度公路餐館：在不鏽鋼大盤上組一份 thali，辣度表跟著跳；再按住按鈕從高處拉一杯起泡的 kadak 奶茶。
-- [208 夜庭 · 第九道的擺盤](https://htmls-ruddy.vercel.app/web/208-plating-noir.html)：在聚光燈下的白瓷盤上刷醬、點醬、放干貝與苗，主廚依留白、重心、盤緣、奇數與色彩給評語，再拍一張出餐照。
-- [209 Trattoria Geometrica · 麵型幾何圖鑑](https://htmls-ruddy.vercel.app/web/209-pasta-geometry.html)：八種義大利乾麵各寫成一組參數方程式，以版畫線條即時繪出、可旋轉調參數，附名字由來、配醬，下鍋計時後加入點單。
-- [210 好日早餐 · 點餐單](https://htmls-ruddy.vercel.app/web/210-breakfast-order.html)：早餐店的紅字點餐單：點品項就用原子筆手寫數量、打勾加蛋，交給老闆娘後鐵板開始煎，好了叫你的號碼。
-- [211 Chez Lumière · 鏡面菜單](https://htmls-ruddy.vercel.app/web/211-bistro-mirror.html)：拱形老鏡子上的金箔標題與白漆菜名，倒影隨指標移動；點菜後侍者用鉛筆在紙桌巾上記帳，最後寫下 l’addition。
-- [212 Sunny Side Diner · 鬆餅疊疊樂](https://htmls-ruddy.vercel.app/web/212-sunnyside-diner.html)：70 年代美式小餐館：彩虹條紋招牌、可自己插字的毛氈特餐看板，和一台抓時機放下鬆餅的疊疊樂，疊到十層送一片派。
+- [203 麺処 夜鳴 · 拉麵店官網](https://htmls-ruddy.vercel.app/web/203-ramen-kenbaiki.html)：深夜拉麵店官網模板：招牌、菜單、好み選擇器產生代碼、線上候位、營業狀態與交通，照片位填網址即可換圖。
+- [204 金雀茶餐廳 · 茶餐廳官網](https://htmls-ruddy.vercel.app/web/204-chachaanteng.html)：港式茶餐廳官網模板：時段茶餐、膠字價目牌點外賣自取、選冷熱甜度，送出後顯示暗號落單紙。
+- [205 불판 · 韓式烤肉官網](https://htmls-ruddy.vercel.app/web/205-bulpan-grill.html)：韓式烤肉官網模板：部位介紹、依人數估算份量的套餐計算器、小菜、線上訂位與包廂規則。
+- [206 La Lotería · 塔可小館官網](https://htmls-ruddy.vercel.app/web/206-loteria-taqueria.html)：墨西哥塔可官網模板：今日之牌優惠、牌卡菜單、派對外燴即時估價與詢價。
+- [207 Sher-e-Punjab · 印度餐館官網](https://htmls-ruddy.vercel.app/web/207-dhaba-thali.html)：印度公路餐館官網模板：自組 thali 即時預覽，外送或自取線上點餐，卡車彩繪視覺。
+- [208 夜庭 · 品嚐菜單餐廳官網](https://htmls-ruddy.vercel.app/web/208-plating-noir.html)：品嚐菜單餐廳官網模板：季節菜單、剩餘座位月曆訂位與訂金、電子禮券預覽。
+- [209 Trattoria Geometrica · 義大利麵館官網](https://htmls-ruddy.vercel.app/web/209-pasta-geometry.html)：義大利麵館官網模板：今日手作麵、可旋轉的麵型圖鑑、菜單、手作課程報名與訂位。
+- [210 好日早餐 · 早餐店官網](https://htmls-ruddy.vercel.app/web/210-breakfast-order.html)：台式早餐店官網模板：紅字點餐單線上預點、選取餐時段拿號碼牌、集點卡。
+- [211 Chez Lumière · 法式小酒館官網](https://htmls-ruddy.vercel.app/web/211-bistro-mirror.html)：法式小酒館官網模板：鏡面今日菜單、單杯酒單篩選、午晚餐與座位區訂位、包廂。
+- [212 Sunny Side Diner · 美式餐館官網](https://htmls-ruddy.vercel.app/web/212-sunnyside-diner.html)：70 年代美式 diner 官網模板：毛氈看板今日特餐、菜單、整顆派線上預訂。
 
 ### 飲料
 - [213 一服 · 點一碗薄茶](https://htmls-ruddy.vercel.app/web/213-matcha-chasen.html)：樂燒黑碗裡用茶筅前後疾振刷茶，泡沫會被打碎變細；泡滿後以「の」字收筅，依泡沫、湯量與湯溫評等。
