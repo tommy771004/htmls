@@ -50,6 +50,7 @@ body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--h);-web
 .btn:focus-visible{outline:3px solid var(--red);outline-offset:2px}
 .btn.red{background:var(--red);border-color:var(--red);color:#fff}
 .btn.red:hover{background:var(--ink);border-color:var(--ink)}
+.btn:disabled{opacity:.3;cursor:default;pointer-events:none}
 .seg{display:inline-flex}
 .seg .btn{border-right-width:0;padding:0 14px}
 .seg .btn:last-child{border-right-width:2px}
@@ -71,8 +72,6 @@ body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--h);-web
 .st:hover{background:#f0eee8}
 .st:focus-visible{outline:3px solid var(--red);outline-offset:-3px}
 .pollnote{font-size:11px;color:var(--gray);margin:10px 0 0;line-height:1.45}
-.pollbar{height:6px;background:var(--rule);margin-top:12px;position:relative}
-.pollbar b{position:absolute;left:0;top:0;bottom:0;background:var(--red);width:0;transition:width .25s linear}
 @media (max-width:340px){
   .stations{grid-template-columns:repeat(2,minmax(0,1fr))}
   .st{min-width:0;grid-template-columns:12px minmax(0,1fr);gap:6px}
@@ -173,7 +172,6 @@ tr.now td:last-child{color:#fff}
     <aside class="poll">
       <div class="fig"><i>Fig. 7.2.2</i> GO / NO-GO poll board</div>
       <div class="stations" id="stations"></div>
-      <div class="pollbar"><b id="pollbar"></b></div>
       <p class="pollnote" id="pollnote">0 of 8 consoles GO. Poll is taken at T–2:00. Key <b>G</b> polls the room.</p>
     </aside>
 
@@ -277,17 +275,22 @@ function goCount(){return stEls.filter(function(b){return b.dataset.go==='1';}).
 function setGo(i,on,quiet){
   var b=stEls[i];b.dataset.go=on?'1':'0';b.lastChild.textContent=on?'GO':'STBY';
   var n=goCount();
-  $('pollbar').style.width=(n/8*100)+'%';
   $('pollnote').innerHTML=n+' of 8 consoles GO.'+(n===8?' <b>Room is GO for launch.</b>':' Poll is taken at T–2:00. Key <b>G</b> polls the room.');
   if(!quiet) log(STATIONS[i][0],on?(STATIONS[i][0]==='CATERING'?'Catering is… GO. Sandwiches are secure.':STATIONS[i][0]+' is GO.'):STATIONS[i][0]+' back to standby.');
   if(on) beep(880,.06);
   S.pollOk=n===8;
   if(S.pollOk&&S.holdAuto){
     log('FLIGHT','All consoles GO. Release the hold, resume the count.');
-    S.holdAuto=false;setTimeout(function(){setRunning(true);},900);
+    S.holdAuto=false;clearTimeout(releaseTimer);
+    releaseTimer=setTimeout(function(){
+      releaseTimer=null;
+      if(S.pollOk) setRunning(true);
+      else if(!S.running) S.holdAuto=true;
+      paintStatus();
+    },900);
   }
 }
-var pollTimer=null;
+var pollTimer=null,releaseTimer=null;
 function pollRoom(){
   if(pollTimer) return;
   var i=0;
@@ -345,8 +348,12 @@ function drawChart(){
 }
 
 // ---------- clock ----------
-var holdBtn=$('hold'),statusEl=$('status'),lamp=$('lamp');
+var holdBtn=$('hold'),statusEl=$('status'),lamp=$('lamp'),rc=$('recycle');
+// wall-clock base: S.t = base.t + elapsed real seconds × rate (survives hidden tabs and dropped frames)
+var base={t:S.t,at:performance.now()};
+function rebase(){base.t=S.t;base.at=performance.now();}
 function setRunning(r){
+  if(r) rebase();
   S.running=r;
   if(holdBtn) holdBtn.innerHTML=r?'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1h3v10H2zM7 1h3v10H7z" fill="currentColor"/></svg>Hold':'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1l9 5-9 5z" fill="currentColor"/></svg>Resume';
   paintStatus();
@@ -356,6 +363,9 @@ function paintStatus(){
   statusEl.classList.toggle('hold',!S.running);
   statusEl.classList.toggle('go',S.t>=0);
   lamp.textContent=!S.running?(S.holdAuto?'Built-in hold · awaiting poll':'Hold · hold · hold'):(S.t<0?'Counting':'Mission elapsed time');
+  // after liftoff there is nothing to hold; recycle only on the pad, or once the ascent profile is complete
+  if(holdBtn) holdBtn.disabled=S.t>=0;
+  if(rc) rc.disabled=S.t>=0&&S.t<TMAX;
 }
 var lastT=S.t;
 function crossed(a,b){ // events in (a,b]
@@ -371,16 +381,16 @@ function render(){
   rows.forEach(function(r,i){r.className=i<cur?'past':i===cur?'now':'';});
   drawChart();
 }
-var prev=0,lastSec=Math.floor(S.t);
-function loop(now){
-  var dt=prev?Math.min(.1,(now-prev)/1000):0;prev=now;
+var lastSec=Math.floor(S.t);
+function loop(){
   if(S.running){
-    var nt=S.t+dt*S.rate;
+    var nt=base.t+Math.max(0,performance.now()-base.at)/1000*S.rate;
+    if(nt<S.t) nt=S.t;
     if(S.t<-120&&nt>=-120&&!S.pollOk){nt=-120;S.holdAuto=true;crossed(S.t,nt);S.t=nt;setRunning(false);}
     else{crossed(S.t,nt);S.t=nt;}
     if(S.t>=-10&&S.t<0&&Math.floor(S.t)!==lastSec) beep(1320,.05);
     lastSec=Math.floor(S.t);
-    if(S.t>3600) S.t=3600;
+    if(S.t>3600){S.t=3600;rebase();}
     paintStatus();
   }
   render();
@@ -389,19 +399,22 @@ function loop(now){
 }
 
 if(holdBtn) holdBtn.addEventListener('click',function(){
+  if(S.t>=0) return; // a vehicle in flight cannot be held
   if(!S.running&&S.holdAuto&&!S.pollOk){log('FLIGHT','Negative. We hold until the room is GO.');return;}
   setRunning(!S.running);
   log('FLIGHT',S.running?'Resume the count.':'Hold, hold, hold.');
 });
 Array.prototype.forEach.call(document.querySelectorAll('[data-rate]'),function(b){
   b.addEventListener('click',function(){
-    S.rate=+b.dataset.rate;
+    rebase();S.rate=+b.dataset.rate;
     Array.prototype.forEach.call(document.querySelectorAll('[data-rate]'),function(x){x.setAttribute('aria-pressed',String(x===b));});
   });
 });
-var rc=$('recycle');
 if(rc) rc.addEventListener('click',function(){
-  S.t=-600;S.holdAuto=false;S.pollOk=false;
+  if(S.t>=0&&S.t<TMAX) return;
+  clearTimeout(pollTimer);pollTimer=null;
+  clearTimeout(releaseTimer);releaseTimer=null;
+  S.t=-600;S.holdAuto=false;S.pollOk=false;lastSec=Math.floor(S.t);
   stEls.forEach(function(b,i){setGo(i,false,true);});
   setRunning(true);
   log('FLIGHT','Recycling to T–10:00. Everybody back to your consoles.');

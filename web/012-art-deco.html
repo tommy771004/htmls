@@ -30,7 +30,8 @@ body{
 .gold-text{
   background:var(--goldgrad);background-size:220% 100%;
   -webkit-background-clip:text;background-clip:text;color:transparent;
-  animation:sheen 9s linear infinite;
+  /* one pass on arrival only: clipped-text background animation can't be composited, so a loop repaints every frame */
+  animation:sheen 9s linear 1 forwards;
 }
 @keyframes sheen{from{background-position:0% 0}to{background-position:-220% 0}}
 
@@ -94,7 +95,7 @@ h1 .l2{display:flex;align-items:center;justify-content:center;gap:.4em;font-size
 .rsvp-btn{
   position:relative;display:inline-flex;align-items:center;justify-content:center;gap:14px;margin-top:34px;min-height:48px;padding:14px 36px;
   font:inherit;font-size:13px;letter-spacing:.42em;padding-left:calc(36px + .42em);text-transform:uppercase;color:var(--ink);cursor:pointer;border:0;text-decoration:none;
-  background:var(--goldgrad);background-size:220% 100%;animation:sheen 9s linear infinite;
+  background:var(--goldgrad);background-size:220% 100%;animation:sheen 9s linear 1 forwards;
   clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,12px 100%,0 50%);
   transition:filter .3s;
 }
@@ -228,7 +229,7 @@ h1 .l2{display:flex;align-items:center;justify-content:center;gap:.4em;font-size
     </svg>
 
     <div class="when">
-      <div class="side l caps"><b>Saturday</b>New Year’s Eve</div>
+      <div class="side l caps"><b>Friday</b>New Year’s Eve</div>
       <div class="datebox"><span class="day gold-text">31</span><span class="mo caps">Dec · MCMXXVI</span></div>
       <div class="side r caps"><b>Half past nine</b>sharp-ish</div>
     </div>

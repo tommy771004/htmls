@@ -390,7 +390,8 @@ function closeBus(){ if(!bus) return; const b=bus; bus=null; b.gain.setTargetAtT
 let playing=true, pStart=0, raf=0, scrubbing=false;
 const params=new URLSearchParams(location.search);
 if(params.has('clean')) document.body.classList.add('clean');
-function clockNow(){ return soundOn&&ac ? audioNow()-aStart : performance.now()/1000-pStart; }
+// 音訊匯流排（openBus 設好 aStart）之前一律用 performance 時鐘，避免 resume() 還沒回來時跳回第 0 拍
+function clockNow(){ return soundOn&&ac&&bus ? audioNow()-aStart : performance.now()/1000-pStart; }
 function frame(){ raf=requestAnimationFrame(frame); if(playing&&!scrubbing) seek(clockNow()); }
 function setPlaying(p){ playing=p; $('play').setAttribute('aria-label',p?'暫停':'播放');
   if(p){ pStart=performance.now()/1000-tNow; if(soundOn&&ac){ ac.resume(); openBus(); } } else closeBus(); drawBar(tNow); }

@@ -21,13 +21,14 @@ canvas#aur{position:fixed;inset:0;width:100%;height:100%;display:block;filter:bl
 .bar{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
 .brand{font-size:13px;letter-spacing:.32em;opacity:.82}
 .brand b{display:block;font-weight:300;font-size:26px;letter-spacing:.14em;margin-top:6px;opacity:1}
-.set{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.pill{display:flex;align-items:center;gap:6px;border:1px solid rgba(223,246,255,.22);background:rgba(10,24,60,.35);backdrop-filter:blur(6px);border-radius:999px;padding:4px 6px 4px 14px;font-size:13px;letter-spacing:.1em}
-.pill button{width:40px;height:40px;border-radius:50%;border:0;background:rgba(223,246,255,.08);color:var(--ice);font:300 20px/1 var(--f);cursor:pointer}
-.pill button:hover{background:rgba(223,246,255,.18)}
+.set{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.pill{display:flex;align-items:center;gap:2px;font-size:13px;letter-spacing:.1em}
+.pill button{width:40px;height:40px;border-radius:50%;border:0;background:transparent;color:var(--ice);font:300 20px/1 var(--f);cursor:pointer;transition:background .3s}
+.pill button:hover{background:rgba(223,246,255,.1)}
 .pill output{min-width:1.6em;text-align:center;font-size:16px}
-.snd{min-height:48px;padding:0 16px;border-radius:999px;border:1px solid rgba(223,246,255,.22);background:rgba(10,24,60,.35);color:var(--ice);font:300 13px var(--f);letter-spacing:.14em;cursor:pointer}
-.snd[aria-pressed="true"]{border-color:rgba(92,255,192,.6);color:var(--green)}
+.snd{min-height:48px;padding:0 4px;border:0;background:transparent;color:var(--ice);font:300 13px var(--f);letter-spacing:.14em;cursor:pointer;opacity:.85}
+.snd:hover{opacity:1}
+.snd[aria-pressed="true"]{color:var(--green);opacity:1}
 
 .center{display:grid;place-items:center;position:relative}
 .orb{position:relative;width:min(62vmin,440px);aspect-ratio:1;cursor:pointer;border:0;background:none;padding:0;color:inherit;border-radius:50%}
@@ -41,9 +42,9 @@ canvas#aur{position:fixed;inset:0;width:100%;height:100%;display:block;filter:bl
 .fadeSwap{animation:swap .8s ease}
 @keyframes swap{from{opacity:0;filter:blur(6px)}}
 
-.foot{display:grid;justify-items:center;gap:14px}
-.go{min-width:180px;min-height:54px;border-radius:999px;border:1px solid rgba(92,255,192,.5);background:linear-gradient(90deg,rgba(92,255,192,.18),rgba(164,124,255,.2));color:#fff;font:300 17px var(--f);letter-spacing:.4em;text-indent:.4em;cursor:pointer;box-shadow:0 0 40px rgba(92,255,192,.15);transition:box-shadow .6s,background .6s}
-.go:hover{box-shadow:0 0 60px rgba(92,255,192,.35)}
+.foot{position:relative;display:grid;justify-items:center;gap:14px}
+.go{min-width:180px;min-height:54px;border-radius:999px;border:1px solid rgba(223,246,255,.35);background:transparent;color:#fff;font:300 17px var(--f);letter-spacing:.4em;text-indent:.4em;cursor:pointer;transition:border-color .6s}
+.go:hover{border-color:rgba(223,246,255,.6)}
 .legend{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;font-size:13px;letter-spacing:.14em;opacity:.85}
 .legend i{display:inline-block;width:22px;height:3px;border-radius:2px;vertical-align:middle;margin-right:8px}
 .rounds{font-size:12px;letter-spacing:.3em;opacity:.7}
@@ -102,7 +103,7 @@ canvas#aur{position:fixed;inset:0;width:100%;height:100%;display:block;filter:bl
       <div class="label">
         <div class="phase" id="phase">靜下來</div>
         <div class="count" id="count">&nbsp;</div>
-        <div class="sub" id="sub">點一下光，開始</div>
+        <div class="sub" id="sub"></div>
       </div>
     </button>
   </div>
@@ -110,12 +111,11 @@ canvas#aur{position:fixed;inset:0;width:100%;height:100%;display:block;filter:bl
   <div class="foot">
     <div class="note" id="note"></div>
     <div class="rounds" id="dots" aria-label="完成輪數"></div>
-    <button class="go" id="go">開始</button>
+    <button class="go" id="go" title="空白鍵 開始 / 暫停" aria-keyshortcuts="Space">開始</button>
     <div class="legend">
       <span><i style="background:#5cffc0"></i>吸氣 4 秒</span>
       <span><i style="background:#8fd3ff"></i>屏息 7 秒</span>
       <span><i style="background:#a47cff"></i>吐氣 8 秒</span>
-      <span style="opacity:.7">空白鍵 開始 / 暫停</span>
     </div>
   </div>
 </div>
@@ -131,7 +131,7 @@ canvas#aur{position:fixed;inset:0;width:100%;height:100%;display:block;filter:bl
     {k:"out",  n:"吐氣", d:8, sub:"用嘴巴，呼——出來", c:"#a47cff"}
   ];
   var CYCLE = 19, rounds = 4;
-  var state = "idle", t0 = 0, elapsed = 0, pausedAt = 0, lastPhase = -1, lastSec = -1;
+  var state = "idle", t0 = 0, elapsed = 0, pausedAt = 0, lastPhase = -1, lastSec = -1, resumed = false;
   var breath = .62;            /* 0..1 size of the orb */
   var endMsgs = ["心跳慢下來了嗎？極光會替你記得這一刻。","今晚的天空很安靜，你也是。","吸進冷空氣，吐出一整天。","做得很好。現在，什麼都不用做。"];
 
@@ -202,8 +202,8 @@ canvas#aur{position:fixed;inset:0;width:100%;height:100%;display:block;filter:bl
   function start(){
     if(state === "run") return;
     if(soundOn) ensureAudio();
-    if(state === "pause"){ t0 = performance.now() - pausedAt; state = "run"; lastPhase = -1; if(goBtn) goBtn.textContent = "暫停"; return; }
-    state = "run"; t0 = performance.now(); lastPhase = -1; lastSec = -1;
+    if(state === "pause"){ t0 = performance.now() - pausedAt; state = "run"; resumed = true; if(goBtn) goBtn.textContent = "暫停"; return; }
+    state = "run"; t0 = performance.now(); lastPhase = -1; lastSec = -1; resumed = false;
     if(note) note.classList.remove("on");
     drawDots(0); if(goBtn) goBtn.textContent = "暫停";
   }
@@ -219,7 +219,7 @@ canvas#aur{position:fixed;inset:0;width:100%;height:100%;display:block;filter:bl
   if(orb) orb.addEventListener("click", toggle);
   document.addEventListener("keydown", function(e){
     if(e.key === " " || e.code === "Space"){ e.preventDefault(); toggle(); }
-    else if(e.key === "Escape" && state !== "idle"){ state = "idle"; if(goBtn) goBtn.textContent = "開始"; setText(phaseEl, "靜下來", true); setText(countEl, " ", false); setText(subEl, "點一下光，開始", true); drawDots(0); padTo(0, 1.5, 400); }
+    else if(e.key === "Escape" && state !== "idle"){ state = "idle"; resumed = false; if(note) note.classList.remove("on"); if(dot){ dot.setAttribute("cx", 0); dot.setAttribute("cy", -R); } if(goBtn) goBtn.textContent = "開始"; setText(phaseEl, "靜下來", true); setText(countEl, " ", false); setText(subEl, "", false); drawDots(0); padTo(0, 1.5, 400); }
   });
   var nR = $("#nRounds");
   function setRounds(n){ if(state === "run") return; rounds = Math.max(1, Math.min(8, n)); if(nR) nR.textContent = rounds; drawDots(0); }
@@ -233,7 +233,7 @@ canvas#aur{position:fixed;inset:0;width:100%;height:100%;display:block;filter:bl
   });
 
   /* ---------- per-frame breathing logic ---------- */
-  var intensity = .5;
+  var intensity = .5, lastBlobB = -1;
   function update(now){
     var t = now / 1000;
     if(state === "run"){
@@ -246,21 +246,24 @@ canvas#aur{position:fixed;inset:0;width:100%;height:100%;display:block;filter:bl
         if(pi === 0) breath = .55 + .45 * ease(prog);
         else if(pi === 1) breath = 1 + .012 * Math.sin(t * 3);
         else breath = 1 - .45 * ease(prog);
-        if(pi !== lastPhase){
-          lastPhase = pi; setText(phaseEl, p.n, true); setText(subEl, p.sub, true); drawDots(cyc);
-          if(pi === 0){ padTo(.06, 4, 1400); chime(392); }
-          else if(pi === 1){ padTo(.05, 1, 1200); chime(440); }
-          else { padTo(.012, 8, 380); chime(329.6); }
+        if(pi !== lastPhase || resumed){
+          /* 暫停後繼續：同一階段只恢復文字與音量（pause 把音量壓低了），不重播 chime */
+          var fresh = pi !== lastPhase;
+          lastPhase = pi; resumed = false; setText(phaseEl, p.n, true); setText(subEl, p.sub, true); drawDots(cyc);
+          if(pi === 0){ padTo(.06, fresh ? 4 : 1.5, 1400); if(fresh) chime(392); }
+          else if(pi === 1){ padTo(.05, 1, 1200); if(fresh) chime(440); }
+          else { padTo(.012, fresh ? 8 : 1.5, 380); if(fresh) chime(329.6); }
         }
         var sec = Math.ceil(p.d - (within - pStart)); if(sec !== lastSec){ lastSec = sec; setText(countEl, String(sec), false); }
         var ang = within / CYCLE * Math.PI * 2 - Math.PI / 2;
         if(dot){ dot.setAttribute("cx", (Math.cos(ang) * R).toFixed(1)); dot.setAttribute("cy", (Math.sin(ang) * R).toFixed(1)); }
       }
     } else if(state === "idle" || state === "done"){
-      breath += ((.6 + .05 * Math.sin(t * 1.1)) - breath) * .05;
+      /* reduced-motion：閒置時不做呼吸脈動，收斂到靜止大小 */
+      breath += ((.6 + (reduce ? 0 : .05 * Math.sin(t * 1.1))) - breath) * .05;
     }
     intensity = .35 + breath * .65;
-    if(blob) blob.setAttribute("d", blobPath(breath, reduce ? 0 : t));
+    if(blob && (!reduce || Math.abs(breath - lastBlobB) > .0005)){ lastBlobB = breath; blob.setAttribute("d", blobPath(breath, reduce ? 0 : t)); }
   }
 
   /* ---------- sky & aurora ---------- */
@@ -274,6 +277,7 @@ canvas#aur{position:fixed;inset:0;width:100%;height:100%;display:block;filter:bl
     stars = []; var n = Math.round(W * H / 5200);
     for(var i=0;i<n;i++) stars.push({x:Math.random(), y:Math.random() * .8, r:Math.random() * 1.3 + .2, p:Math.random() * 6.28, s:.5 + Math.random() * 1.5});
     if(sctx) sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    lastSky = lastAur = -1e9; lastAurI = -1;   /* 改尺寸會清空 canvas，下一幀一定重畫 */
   }
   window.addEventListener("resize", resize);
   function drawSky(t){
@@ -311,13 +315,22 @@ canvas#aur{position:fixed;inset:0;width:100%;height:100%;display:block;filter:bl
     actx.globalCompositeOperation = "source-over";
   }
 
-  var lastDraw = 0;
+  var lastSky = -1e9, lastAur = -1e9, lastAurI = -1;
+  /* 節流重畫：
+     - 一般：極光 ~30fps；星空練習中 ~30fps，閒置/完成時 10fps
+     - reduced-motion：星星不閃爍，星空只在 resize 後畫一次；極光只在 intensity 有變化時重畫（最多 5fps） */
   function frame(now){
     requestAnimationFrame(frame);
     if(document.hidden) return;
     update(now);
-    if(now - lastDraw < 33) return; lastDraw = now;
-    var t = now / 1000; drawSky(t); drawAurora(t);
+    var t = now / 1000;
+    if(reduce){
+      if(lastSky < 0){ drawSky(t); lastSky = now; }
+      if(now - lastAur >= 200 && Math.abs(intensity - lastAurI) > .004){ drawAurora(t); lastAur = now; lastAurI = intensity; }
+      return;
+    }
+    if(now - lastSky >= (state === "run" ? 33 : 100)){ drawSky(t); lastSky = now; }
+    if(now - lastAur >= 33){ drawAurora(t); lastAur = now; }
   }
   document.addEventListener("visibilitychange", function(){ if(document.hidden && state === "run") pause(); });
   resize(); drawDots(0); requestAnimationFrame(frame);

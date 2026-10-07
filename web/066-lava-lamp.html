@@ -147,7 +147,7 @@ body.off .rocker .off{background:linear-gradient(180deg,#e9d7b4,#bda881);color:#
       <li><b>Warm-up</b><span>45 minutes. Bring a book. Don’t read it.</span></li>
       <li><b>Contents</b><span>1 bulb, 52 oz of mysterious wax, 0 instructions you will read.</span></li>
       <li><b>Finish</b><span>Genuine gold-tone. Genuine-ish.</span></li>
-      <li><b>Mood</b><span>Five factory-approved moods. Tap the glass to stir things up.</span></li>
+      <li><b>Mood</b><span>Five factory-approved moods.</span></li>
     </ul>
   </section>
 
@@ -185,7 +185,7 @@ body.off .rocker .off{background:linear-gradient(180deg,#e9d7b4,#bda881);color:#
       </div>
       <button class="rocker" id="power" type="button" aria-pressed="true" aria-label="Power"><span class="on">ON</span><span class="off">OFF</span></button>
     </div>
-    <div class="keys"><kbd>1</kbd>–<kbd>5</kbd> moods · <kbd>←</kbd><kbd>→</kbd> heat · <kbd>Space</kbd> power</div>
+    <div class="keys"><kbd>1</kbd>–<kbd>5</kbd> moods · <kbd>←</kbd><kbd>→</kbd> on dial: heat · <kbd>Space</kbd> power</div>
     <div class="guarantee"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="#e2a324"/><circle cx="20" cy="20" r="14" fill="none" stroke="#5a2c12" stroke-width="1.5" stroke-dasharray="2 2"/><path d="M13 20l5 5 9-10" fill="none" stroke="#5a2c12" stroke-width="3" stroke-linecap="round"/></svg>Satisfaction guaranteed, or your groove back.</div>
   </aside>
 </main>
@@ -257,10 +257,11 @@ body.off .rocker .off{background:linear-gradient(180deg,#e9d7b4,#bda881);color:#
   power.addEventListener('click', function(){ setPower(!on); });
 
   document.addEventListener('keydown', function(e){
-    var tag = e.target && e.target.tagName;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var tag = e.target && e.target.tagName, onDial = document.activeElement === dial;
     if (e.key >= '1' && e.key <= '5'){ setMood(+e.key - 1); }
-    else if (e.key === 'ArrowRight' || e.key === 'ArrowUp'){ setHeat(heat + 5); e.preventDefault(); }
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown'){ setHeat(heat - 5); e.preventDefault(); }
+    else if (onDial && (e.key === 'ArrowRight' || e.key === 'ArrowUp')){ setHeat(heat + 5); e.preventDefault(); }
+    else if (onDial && (e.key === 'ArrowLeft' || e.key === 'ArrowDown')){ setHeat(heat - 5); e.preventDefault(); }
     else if (e.key === ' ' && tag !== 'BUTTON'){ e.preventDefault(); setPower(!on); }
   });
 
@@ -359,9 +360,8 @@ body.off .rocker .off{background:linear-gradient(180deg,#e9d7b4,#bda881);color:#
     var x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
     var best = null, bd = 1e9;
     blobs.forEach(function(b){ var dd = Math.hypot(b.x - x, (b.y - y) * aspect); if (dd < bd){ bd = dd; best = b; } });
-    if (best && bd < 0.2){ best.T = Math.min(1.1, best.T + 0.5); best.vy -= 0.08; }
-    if (blobs.length < 12){ spawn(Math.max(0.5 - halfWidth(y) + .05, Math.min(0.5 + halfWidth(y) - .05, x)), Math.min(.95, Math.max(.1, y)), rand(.035, .06), 0.95); }
-    else { var old = blobs.shift(); }
+    // fixed amount of wax: a tap only warms the nearest blob so it rises
+    if (best){ best.T = Math.min(1.1, best.T + 0.5); best.vy -= 0.08; }
   });
 
   /* ---------- loop ---------- */

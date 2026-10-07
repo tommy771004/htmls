@@ -40,11 +40,10 @@ h1 small{font:400 .42em/1 var(--zh);color:var(--mute);margin-left:.6em;letter-sp
 .mapbox .hint{position:absolute;left:10px;bottom:10px;background:rgba(239,230,208,.92);border:1px solid var(--green2);padding:6px 10px;font:500 13px/1.4 var(--zh);pointer-events:none;transition:opacity .4s}
 .mapfoot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px 16px;font:500 12px/1.4 var(--bahn),var(--zh);color:var(--mute);margin-top:6px;letter-spacing:.04em}
 
-aside{display:flex;flex-direction:column;gap:14px}
-.card{border:2px solid var(--green2);background:rgba(255,255,255,.25);padding:14px}
-.card h2{margin:0 0 10px;font:700 13px/1 var(--bahn),var(--zh);letter-spacing:.16em;color:var(--green2);display:flex;justify-content:space-between;text-transform:uppercase}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--green3);border:1px solid var(--green3)}
-.stats div{background:var(--paper);padding:10px}
+aside{display:flex;flex-direction:column;gap:22px}
+.card{border-top:2px solid var(--green2);padding-top:12px}
+.card h2{margin:0 0 12px;font:700 13px/1 var(--bahn),var(--zh);letter-spacing:.16em;color:var(--green2)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
 .stats b{display:block;font:700 clamp(24px,2.4vw,30px)/1 var(--bahn);font-variation-settings:"wdth" 80;font-stretch:semi-condensed;color:var(--green2)}
 .stats b small{font-size:.5em;font-weight:500;margin-left:3px;color:var(--mute)}
 .stats span{font:500 12px/1.5 var(--zh);color:var(--mute)}
@@ -58,7 +57,7 @@ aside{display:flex;flex-direction:column;gap:14px}
 .wps li{display:flex;justify-content:space-between;border-bottom:1px dashed var(--green3);padding:4px 0}
 .wps li span:first-child{color:var(--orange);font-weight:700;margin-right:8px}
 
-.profile{margin-top:18px;border:2px solid var(--green2);background:rgba(255,255,255,.25);padding:12px 12px 6px;position:relative}
+.profile{margin-top:22px;border-top:2px solid var(--green2);padding:12px 0 6px;position:relative}
 .profile h2{margin:0 0 4px;font:700 13px/1 var(--bahn),var(--zh);letter-spacing:.16em;color:var(--green2);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .profile h2 span{font-weight:500;color:var(--mute);letter-spacing:.04em}
 #prof{display:block;width:100%;height:clamp(170px,22vw,230px);touch-action:none}
@@ -93,7 +92,7 @@ footer{margin-top:18px;font:500 12px/1.6 var(--zh);color:var(--mute)}
 
     <aside>
       <div class="card">
-        <h2>Route stats <span>路線統計</span></h2>
+        <h2>路線統計</h2>
         <div class="stats">
           <div class="hl"><b id="sDist">0<small>km</small></b><span>水平距離</span></div>
           <div class="hl"><b id="sTime">0:00<small>h</small></b><span>預估時間</span></div>
@@ -105,11 +104,11 @@ footer{margin-top:18px;font:500 12px/1.6 var(--zh);color:var(--mute)}
         <div class="grade" id="grade"><b>—</b>尚未規劃路線</div>
       </div>
       <div class="card">
-        <h2>Waypoints <span>航點</span></h2>
+        <h2>航點</h2>
         <ul class="wps" id="wps"></ul>
       </div>
       <div class="card">
-        <h2>Legend <span>圖例</span></h2>
+        <h2>圖例</h2>
         <div class="legend">
           <div><svg viewBox="0 0 44 14"><path d="M0 7 Q11 1 22 7 T44 7" stroke="#1f4031" stroke-width="2" fill="none"/></svg>計曲線（每 250 m）</div>
           <div><svg viewBox="0 0 44 14"><path d="M0 7 Q11 1 22 7 T44 7" stroke="#2f5d45" stroke-width=".8" fill="none"/></svg>首曲線（每 50 m）</div>
@@ -121,7 +120,7 @@ footer{margin-top:18px;font:500 12px/1.6 var(--zh);color:var(--mute)}
   </div>
 
   <section class="profile">
-    <h2>ELEVATION PROFILE 海拔剖面 <span id="profNote">橘色段＝坡度大於 25% · 在剖面上移動可對照地圖位置</span></h2>
+    <h2>海拔剖面 <span id="profNote">橘色段＝坡度大於 25% · 在剖面上移動可對照地圖位置</span></h2>
     <svg id="prof" aria-label="海拔剖面圖"></svg>
     <div class="tip" id="tip"></div>
   </section>
@@ -333,7 +332,7 @@ footer{margin-top:18px;font:500 12px/1.6 var(--zh);color:var(--mute)}
     prof.setAttribute('viewBox', `0 0 ${w} ${h}`);
     const pl = 46, pr = 12, pt = 12, pb = 26, iw = w - pl - pr, ih = h - pt - pb;
     let out = '';
-    if (samples.length < 2){
+    if (samples.length < 2 || total <= 0){
       out = `<rect x="${pl}" y="${pt}" width="${iw}" height="${ih}" fill="none" stroke="#7d9a7a" stroke-dasharray="3 4"/><text x="${w/2}" y="${h/2}" text-anchor="middle" font-family="Microsoft JhengHei, sans-serif" font-size="14" fill="#6f7a66">至少放兩個航點，剖面就會出現</text>`;
       prof.innerHTML = out; return;
     }
@@ -370,7 +369,8 @@ footer{margin-top:18px;font:500 12px/1.6 var(--zh);color:var(--mute)}
     const hrs = total/5 + up/600;
     set('#sDist', total.toFixed(2), 'km'); set('#sUp', Math.round(up).toLocaleString('en-US'), 'm'); set('#sDown', Math.round(down).toLocaleString('en-US'), 'm');
     set('#sMax', samples.length ? Math.round(mx).toLocaleString('en-US') : '—', 'm'); set('#sMin', samples.length ? Math.round(mn).toLocaleString('en-US') : '—', 'm');
-    set('#sTime', Math.floor(hrs) + ':' + String(Math.round(hrs%1*60)).padStart(2,'0'), 'h');
+    const tm = Math.round(hrs*60);
+    set('#sTime', Math.floor(tm/60) + ':' + String(tm%60).padStart(2,'0'), 'h');
     const g = $('#grade');
     if (g){
       if (samples.length < 2) g.innerHTML = '<b>—</b>尚未規劃路線';
@@ -379,27 +379,38 @@ footer{margin-top:18px;font:500 12px/1.6 var(--zh);color:var(--mute)}
         g.innerHTML = `<b>${lv[0]}</b>${lv[1]}`; }
     }
     const wps = $('#wps');
-    if (wps) wps.innerHTML = route.map((p, i) => `<li><span>${i === 0 ? '起點' : i === route.length-1 && route.length > 1 ? '終點' : '航點 ' + i}</span><span>${Math.round(elev(p.x, p.y)).toLocaleString('en-US')} m · ${(p.x*KM_W).toFixed(2)}E ${(p.y*KM_W*.625).toFixed(2)}S</span></li>`).join('') || '<li><span>—</span><span>點地圖新增</span></li>';
+    if (wps) wps.innerHTML = route.map((p, i) => `<li><span>${i === 0 ? '起點' : i === route.length-1 && route.length > 1 ? '終點' : '航點 ' + i}</span><span>${Math.round(elev(p.x, p.y)).toLocaleString('en-US')} m · ${tm2(p.x, p.y)}</span></li>`).join('') || '<li><span>—</span><span>點地圖新增</span></li>';
   }
   function refresh(){ sample(); drawTop(); drawProfile(); stats(); }
+  // fictional sheet origin (top-left corner) in TWD97 / TM2 metres; northing decreases downwards
+  const SHEET_E = 271000, SHEET_N = 2712000;
+  function tm2(nx, ny){ return `E ${Math.round(SHEET_E + nx*KM_W*1000)} N ${Math.round(SHEET_N - ny*KM_W*.625*1000)}`; }
 
   // ---------- interaction ----------
-  mapbox.addEventListener('pointerdown', e => {
+  // add a waypoint on a primary-button tap/click that did not move (a scroll gesture fires pointercancel instead)
+  let down = null;
+  mapbox.addEventListener('pointerdown', e => { down = e.button === 0 ? {id: e.pointerId, x: e.clientX, y: e.clientY} : null; });
+  mapbox.addEventListener('pointercancel', () => { down = null; });
+  mapbox.addEventListener('pointerup', e => {
+    const d = down; down = null;
+    if (!d || d.id !== e.pointerId || e.button !== 0 || Math.hypot(e.clientX - d.x, e.clientY - d.y) >= 6) return;
     const r = mapbox.getBoundingClientRect();
     const x = (e.clientX - r.left)/r.width, y = (e.clientY - r.top)/r.height;
     if (x < 0 || x > 1 || y < 0 || y > 1) return;
+    const prev = route[route.length - 1];
+    if (prev && Math.hypot(prev.x - x, prev.y - y) < .003) return; // same spot twice: zero-length leg
     route.push({x, y}); hoverT = -1; refresh(); blip(route.length);
     const hint = $('#hint'); if (hint) hint.style.opacity = '0';
   });
   mapbox.addEventListener('pointermove', e => {
     const r = mapbox.getBoundingClientRect(), x = (e.clientX - r.left)/r.width, y = (e.clientY - r.top)/r.height;
-    const ci = $('#cursorInfo'); if (ci && x >= 0 && x <= 1 && y >= 0 && y <= 1) ci.textContent = `游標：海拔 ${Math.round(elev(x,y)).toLocaleString('en-US')} m · ${(x*KM_W).toFixed(2)} km E, ${(y*KM_W*.625).toFixed(2)} km S`;
+    const ci = $('#cursorInfo'); if (ci && x >= 0 && x <= 1 && y >= 0 && y <= 1) ci.textContent = `游標：海拔 ${Math.round(elev(x,y)).toLocaleString('en-US')} m · ${tm2(x, y)}`;
   });
   mapbox.addEventListener('keydown', e => {
     if (e.key === 'Backspace' || (e.key === 'z' && (e.ctrlKey || e.metaKey))){ e.preventDefault(); route.pop(); refresh(); }
   });
   function profMove(e){
-    if (!prof._geo || samples.length < 2) return;
+    if (!prof._geo || samples.length < 2 || total <= 0) return;
     const r = prof.getBoundingClientRect(), vbW = parseFloat((prof.getAttribute('viewBox')||'0 0 1 1').split(' ')[2]);
     const px = (e.clientX - r.left) * vbW / r.width, d = Math.min(total, Math.max(0, (px - prof._geo.pl)/prof._geo.iw*total));
     let best = 0; for (let i = 0; i < samples.length; i++) if (Math.abs(samples[i].d - d) < Math.abs(samples[best].d - d)) best = i;

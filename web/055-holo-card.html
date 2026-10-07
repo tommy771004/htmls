@@ -26,8 +26,8 @@ h1{margin:10px 0 0;font:900 clamp(40px,8vw,104px)/.9 var(--black);letter-spacing
   -webkit-background-clip:text;background-clip:text;color:transparent;animation:iri 8s linear infinite}
 @keyframes iri{to{background-position:220% 0}}
 .lede{margin:12px auto 0;max-width:520px;color:var(--dim);font-size:15px;line-height:1.5}
-.legend{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin:18px 0 0;padding:0;list-style:none}
-.legend li{font:700 11px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;padding:8px 12px;border:1px solid #2c2940;border-radius:999px;color:#c9c5e6;display:flex;align-items:center;gap:6px}
+.legend{display:flex;justify-content:center;flex-wrap:wrap;gap:8px 18px;margin:18px 0 0;padding:0 16px;list-style:none}
+.legend li{font:700 11px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);display:flex;align-items:center;gap:6px}
 .legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
 
 /* ---------- gallery ---------- */
@@ -113,6 +113,7 @@ h1{margin:10px 0 0;font:900 clamp(40px,8vw,104px)/.9 var(--black);letter-spacing
 /* ---------- inspect overlay ---------- */
 .ov{position:fixed;inset:0;z-index:50;background:rgba(6,5,12,.86);backdrop-filter:blur(8px);display:grid;place-items:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .3s}
 .ov.on{opacity:1;pointer-events:auto}
+.ov[hidden]{display:none}
 .ov .stagebox{width:min(78vw,380px,calc((100vh - 170px)*.716));touch-action:none}
 .ov .bar{display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap}
 .ov .wrap{display:flex;flex-direction:column;align-items:center}
@@ -128,7 +129,7 @@ footer{text-align:center;color:#5d5a74;font-size:12px;padding:30px 16px 36px;let
 <header>
   <div class="series">Series 01 · Booster Gallery · 120 cards</div>
   <h1>Neon Fauna</h1>
-  <p class="lede">Six pulls from a freshly cracked pack. Tilt them under the light — every rarity has its own foil.</p>
+  <p class="lede">The six best pulls from a freshly cracked booster box. Tilt them under the light — every rarity has its own foil.</p>
   <ul class="legend">
     <li><i style="background:#777"></i>Common · matte</li>
     <li><i style="background:linear-gradient(90deg,#ff6a3c,#3cbcff)"></i>Reverse holo</li>
@@ -142,7 +143,7 @@ footer{text-align:center;color:#5d5a74;font-size:12px;padding:30px 16px 36px;let
 <section class="hand" id="hand" aria-label="Card gallery"></section>
 <p class="hint">Move over a card to tilt · tap or <kbd>Enter</kbd> to inspect · in the viewer drag, use <kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd>, <kbd>F</kbd> to flip, <kbd>Esc</kbd> to close</p>
 
-<div class="ov" id="ov" role="dialog" aria-modal="true" aria-label="Card viewer">
+<div class="ov" id="ov" hidden role="dialog" aria-modal="true" aria-label="Card viewer">
   <div class="wrap">
     <div class="stagebox" id="stagebox"></div>
     <div class="meta" id="meta"></div>
@@ -231,11 +232,11 @@ footer{text-align:center;color:#5d5a74;font-size:12px;padding:30px 16px 36px;let
     {k:'k-rainbow',nm:'Voltmoth',pw:90,ty:'Storm',acc:'#5ff0ff',frame:'linear-gradient(160deg,#2a1d5c,#0e0b24 60%,#241a4a)',art:'moth',
      ab:['Porch Light Panic','Whenever a lamp turns on nearby, gain +30 PWR and lose all dignity.'],fl:'Drawn to every light except the one at the end of the tunnel.',no:'014/120',r:'Holo Rare',sym:'◆◆'},
     {k:'k-cosmos',nm:'Glacierhorn',pw:140,ty:'Frost',acc:'#9fdcff',frame:'linear-gradient(160deg,#0f2d4a,#07121f 60%,#123452)',art:'ram',
-     ab:['Slow Avalanche','Deal 10 damage now and 200 damage in about four hundred years.'],fl:'Its horns grow one ring per winter. It remembers every one.',no:'057/120',r:'Secret Rare',sym:'★'},
+     ab:['Slow Avalanche','Deal 10 damage now and 200 damage in about four hundred years.'],fl:'Its horns grow one ring per winter. It remembers every one.',no:'121/120',r:'Secret Rare',sym:'★'},
     {k:'k-pillar',nm:'Nullwhale',pw:200,ty:'Void',acc:'#c9b8ff',frame:'#05040f',art:'whale',full:true,
      ab:['Deep Hum','All players forget what they were about to say.'],fl:'Swallowed a galaxy by accident. Still digesting.',no:'101/120',r:'Full Art',sym:'★★'},
     {k:'k-etched',nm:'Prism Fox',pw:110,ty:'Light',acc:'#ffe7a0',frame:'linear-gradient(160deg,#4a3410,#1a1206 55%,#5a4214)',art:'fox',
-     ab:['Split Decision','Name a colour. Prism Fox becomes all of the others.'],fl:'Never photograph it at noon. The rainbow has lawyers.',no:'120/120',r:'Gold Etched',sym:'★★★'}
+     ab:['Split Decision','Name a colour. Prism Fox becomes all of the others.'],fl:'Never photograph it at noon. The rainbow has lawyers.',no:'122/120',r:'Gold Etched',sym:'★★★'}
   ];
 
   function cardHTML(c, i){
@@ -300,10 +301,17 @@ footer{text-align:center;color:#5d5a74;font-size:12px;padding:30px 16px 36px;let
 
   // idle shimmer loop
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let raf = 0;
+  let raf = 0, frameNo = 0;
+  // only shimmer gallery cards that are on screen
+  els.forEach(e => { e.vis = true; });
+  if ('IntersectionObserver' in window){
+    const io = new IntersectionObserver(list => list.forEach(en => { const e = els.find(x => x.b === en.target); if (e) e.vis = en.isIntersecting; }));
+    els.forEach(e => io.observe(e.b));
+  }
   function idle(t){
     const s = t/1000;
-    els.forEach(e => { if (!e.hover) { setVars(e.b, .5 + Math.sin(s*.7 + e.phase)*.32, .5 + Math.cos(s*.55 + e.phase*1.7)*.28, .45); } });
+    // gallery cards: paused while the viewer covers them, and updated every other frame
+    if (!vw.active && (frameNo++ & 1) === 0) els.forEach(e => { if (!e.hover && e.vis) { setVars(e.b, .5 + Math.sin(s*.7 + e.phase)*.32, .5 + Math.cos(s*.55 + e.phase*1.7)*.28, .45); } });
     if (vw.active && !vw.drag && !vw.key) setVars(vw.card, .5 + Math.sin(s*.6)*.3, .5 + Math.cos(s*.45)*.25, .6);
     raf = document.hidden ? 0 : requestAnimationFrame(idle);
   }
@@ -321,12 +329,19 @@ footer{text-align:center;color:#5d5a74;font-size:12px;padding:30px 16px 36px;let
     stagebox.appendChild(b);
     vw.card = b; vw.active = true; vw.key = false; vw.px = .5; vw.py = .5;
     if (meta) meta.textContent = `${c.nm} · ${c.r} · NF-01 ${c.no}`;
+    clearTimeout(hideTimer);
+    ov.hidden = false; void ov.offsetWidth; // unhide first so the fade-in still runs
     ov.classList.add('on');
     vw.last = document.activeElement;
     setTimeout(() => { if (closeBtn) closeBtn.focus(); }, 50);
     tone(c.pw);
   }
-  function closeViewer(){ ov.classList.remove('on'); vw.active = false; if (vw.last && vw.last.focus) vw.last.focus(); }
+  let hideTimer = 0;
+  function closeViewer(){
+    ov.classList.remove('on'); vw.active = false;
+    clearTimeout(hideTimer); hideTimer = setTimeout(() => { if (!vw.active) ov.hidden = true; }, 300);
+    if (vw.last && vw.last.focus) vw.last.focus();
+  }
   stagebox.addEventListener('pointerdown', ev => { if (!vw.card) return; vw.drag = true; try { stagebox.setPointerCapture(ev.pointerId); } catch(e){} move(ev); });
   stagebox.addEventListener('pointermove', ev => { if (!vw.card) return; if (vw.drag || ev.pointerType === 'mouse') move(ev); });
   stagebox.addEventListener('pointerup', () => { vw.drag = false; });

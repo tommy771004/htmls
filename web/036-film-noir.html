@@ -141,7 +141,7 @@ canvas.grain{mix-blend-mode:overlay;opacity:.22}
     clock:{t:"The shop clock smashed at 11:40. Someone wanted that time remembered."},
     safe:{t:"The safe was opened, not cracked. Whoever did it knew the combination."},
     lipstick:{t:"A whiskey glass with Cherry Noir lipstick on the rim. Vera's shade.", red:1},
-    cuff:{t:"Bartender: Nick came in at 11:55, fresh suit, a red stain on his cuff. 'Cut myself shaving.' At midnight.", red:1},
+    cuff:{t:"Bartender: Nick came in at 12:40, fresh suit, a red stain on his cuff. 'Cut myself shaving.' At twenty to one in the morning.", red:1},
     pawn:{t:"In Nick's wastebasket: a ticket from Sully's Loans, 11:50 p.m. — 'one red stone, costume.'", red:1},
     combo:{t:"Pencil rubbing of Nick's phone pad: 12 · 7 · 40. The Marsh safe opens on 12-7-40."},
     coroner:{t:"Coroner: shot from two feet away, between eleven and midnight. Suicides don't stand back."}
@@ -176,7 +176,7 @@ canvas.grain{mix-blend-mode:overlay;opacity:.22}
     clock:"The wall clock was smashed at 11:40, the glass in a neat star. Clocks don't break that tidy on their own. Somebody wanted that minute on the record.",
     safe:"The safe door hung open like a mouth with nothing to say. No drill marks, no blown lock. Whoever opened it knew the numbers by heart.",
     lipstick:"A whiskey glass, one finger left, a half-moon of lipstick on the rim. <span class='r'>Cherry Noir.</span> I'd seen that shade twelve hours ago, walking into my office.",
-    cuff:"The bartender polished the same glass for a full minute. \"Corso? Came in at five to midnight, new suit, smelling like a haircut. Had a <span class='r'>red stain</span> on his cuff. Said he cut himself shaving. At midnight.\"",
+    cuff:"The bartender polished the same glass for a full minute. \"Corso? Came in at twenty to one, new suit, smelling like a haircut. Had a <span class='r'>red stain</span> on his cuff. Said he cut himself shaving. At twenty to one in the morning.\"",
     pawn:"Under the cigarette ends: a pawn ticket from Sully's Loans, stamped 11:50 p.m. \"One <span class='r'>red stone</span>, costume.\" Sully never sleeps, and never asks.",
     combo:"I shaded the phone pad with a pencil. Pressed into the paper, heavy-handed: 12 · 7 · 40. The same numbers that open the Marsh safe.",
     coroner:"\"Coroner's a romantic,\" Brannigan grunted. \"Says it was fired from two feet away, between eleven and midnight.\" Nobody holds a gun two feet from his own head."
@@ -332,9 +332,20 @@ canvas.grain{mix-blend-mode:overlay;opacity:.22}
 
   /* ---------------- grain + rain ---------------- */
   var grain = $("#grain"), rain = $("#rain"), gctx = grain && grain.getContext ? grain.getContext("2d") : null, rctx = rain && rain.getContext ? rain.getContext("2d") : null;
-  var rainOn = true, drops = [], gw = 420, gh = 176, gimg = null;
+  var rainOn = true, drops = [], gw = 420, gh = 176, grainFrames = [], gf = 0;
+  /* film grain: a handful of noise frames generated once, then cycled — no per-frame Math.random over every pixel */
+  function buildGrain(){
+    if(!gctx || grainFrames.length) return;
+    for(var f=0;f<6;f++){
+      var c = document.createElement("canvas"); c.width = gw; c.height = gh;
+      var cx = c.getContext("2d"); if(!cx) return;
+      var img = cx.createImageData(gw, gh), d = img.data;
+      for(var i=0;i<d.length;i+=4){ var v = 128 + (Math.random() - .5) * 200 | 0; d[i] = d[i+1] = d[i+2] = v; d[i+3] = 255; }
+      cx.putImageData(img, 0, 0); grainFrames.push(c);
+    }
+  }
   function sizeCanvases(){
-    if(grain){ grain.width = gw; grain.height = gh; if(gctx) gimg = gctx.createImageData(gw, gh); }
+    if(grain){ grain.width = gw; grain.height = gh; }
     if(rain){ var r = rain.getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 2); rain.width = Math.max(1, Math.round(r.width * d)); rain.height = Math.max(1, Math.round(r.height * d)); }
     drops = []; for(var i=0;i<90;i++) drops.push({x:Math.random(), y:Math.random(), v:.012 + Math.random()*.02, l:.03 + Math.random()*.05});
   }
@@ -343,10 +354,9 @@ canvas.grain{mix-blend-mode:overlay;opacity:.22}
   function loop(t){
     requestAnimationFrame(loop);
     if(document.hidden || t - last < 42) return; last = t;
-    if(gctx && gimg && !reduce){
-      var d = gimg.data;
-      for(var i=0;i<d.length;i+=4){ var v = 128 + (Math.random() - .5) * 200 | 0; d[i] = d[i+1] = d[i+2] = v; d[i+3] = 255; }
-      gctx.putImageData(gimg, 0, 0);
+    if(gctx && grainFrames.length && !reduce){
+      gf = (gf + 1 + (Math.random() * (grainFrames.length - 1) | 0)) % grainFrames.length;
+      gctx.drawImage(grainFrames[gf], 0, 0);
     }
     if(rctx && rain){
       var W = rain.width, H = rain.height; rctx.clearRect(0, 0, W, H);
@@ -357,7 +367,7 @@ canvas.grain{mix-blend-mode:overlay;opacity:.22}
       rctx.stroke();
     }
   }
-  sizeCanvases(); requestAnimationFrame(loop);
+  sizeCanvases(); if(!reduce) buildGrain(); requestAnimationFrame(loop);
   render("start");
 })();
 </script>

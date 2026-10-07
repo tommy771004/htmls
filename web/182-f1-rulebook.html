@@ -48,6 +48,10 @@ button{font:inherit;color:inherit}
 .bar .menu svg{width:9px;height:6px;opacity:.7;transition:transform var(--dur-hover) var(--ease-out)}
 .bar .menu[aria-expanded="true"]{color:var(--ink);background:rgba(255,236,226,.07)}
 .bar .menu[aria-expanded="true"] svg{transform:rotate(180deg)}
+/* 桌機：視角與顯示按鈕直接排在列上；手機收進「視角」「顯示」兩個選單 */
+.bar .grp{display:contents}
+.bar .mob{display:none}
+.legend .lg-tog{display:none}
 
 /* 爆炸程度滑桿 */
 .slide{display:flex;align-items:center;gap:10px;padding:0 6px 0 10px}
@@ -76,7 +80,7 @@ button{font:inherit;color:inherit}
   transition:color var(--dur-hover) var(--ease-out),opacity var(--dur-hover) var(--ease-out),background-color var(--dur-hover) var(--ease-out)}
 .legend button i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--c)}
 .legend button:hover{color:var(--ink);background:rgba(255,236,226,.05)}
-.legend.solo button{opacity:.45}
+.legend.solo button[data-cat]{opacity:.45}
 .legend.solo button[aria-pressed="true"]{opacity:1;color:var(--ink)}
 
 /* 圖層與零件的下拉清單 */
@@ -99,7 +103,7 @@ button{font:inherit;color:inherit}
 
 /* 尺寸標註 */
 #dims{position:fixed;inset:0;z-index:2;pointer-events:none}
-.dim{position:absolute;left:0;top:0;padding:6px 9px 7px;border-radius:6px;background:rgba(20,18,17,.8);box-shadow:inset 0 0 0 1px rgba(255,236,226,.06);white-space:nowrap;will-change:transform,opacity}
+.dim{position:absolute;left:0;top:0;padding:0;text-shadow:0 1px 3px #000,0 0 8px rgba(0,0,0,.6);white-space:nowrap;will-change:transform,opacity}
 .dim b{display:block;font-size:13px;font-weight:650;font-variant-numeric:tabular-nums}
 .dim span{display:block;margin-top:2px;font-size:11px;color:var(--ink-3)}
 
@@ -258,9 +262,15 @@ body.benchOn .card .cdnote{order:-1;margin:0 0 10px}
   .bar.top{top:max(8px,env(safe-area-inset-top))}
   .bar.bottom{bottom:max(10px,env(safe-area-inset-bottom))}
   .bar button{font-size:13px;padding:9px 10px}
+  .bar .mob{display:inline-flex}
+  .bar .grp{display:none;position:absolute;left:0;right:0;bottom:calc(100% + 8px);flex-wrap:wrap;justify-content:center;gap:2px;padding:5px;border-radius:11px;
+    background:var(--glass-2);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+  .bar .grp.on{display:flex}
   .slide input{width:84px}
   .legend{top:calc(var(--topB,92px) + 8px);left:8px;right:8px;flex-direction:row;flex-wrap:wrap;justify-content:center;gap:0 2px;padding:0}
   .legend button{font-size:11.5px;padding:4px 6px;gap:6px}
+  .legend .lg-tog{display:flex;color:var(--ink-3)}
+  .legend:not(.open) button[data-cat]{display:none}
   .card{width:auto;left:8px;right:8px;top:auto;bottom:calc(var(--botH,94px) + 8px);max-height:52vh;overflow:auto;transform:translate3d(0,10px,0);padding:15px 16px 16px}
   .card.on{transform:none}
   .aero,.aero.bench{left:8px;right:8px;top:auto;width:auto;bottom:calc(var(--botH,94px) + 8px);max-height:46vh;overflow:auto;padding:12px 13px}
@@ -281,7 +291,6 @@ body.benchOn .card .cdnote{order:-1;margin:0 0 10px}
   body.benchOn .card #cList,body.benchOn .card #cSpec,body.benchOn .card #cNew,body.benchOn .card #cWho{display:none}
   body.benchOn .card .cbtns{padding-right:56px}
   .card h2{font-size:19px}
-  .dim{padding:5px 7px 6px}
   .dim b{font-size:12px}
   .dim span{font-size:10px}
 }
@@ -312,18 +321,24 @@ body.benchOn .card .cdnote{order:-1;margin:0 0 10px}
 <div class="legend" id="legend" aria-label="規則類別"></div>
 
 <div class="bar bottom" role="toolbar" aria-label="視角與顯示">
+  <button type="button" class="menu mob" id="viewBtn" aria-haspopup="true" aria-expanded="false" aria-controls="viewGrp">視角<svg viewBox="0 0 9 6"><path d="M1 1l3.5 3.5L8 1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <button type="button" class="menu mob" id="showBtn" aria-haspopup="true" aria-expanded="false" aria-controls="showGrp">顯示<svg viewBox="0 0 9 6"><path d="M1 1l3.5 3.5L8 1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <span class="grp" id="viewGrp" role="group" aria-label="視角">
   <button type="button" data-view="q" aria-pressed="true">3/4</button>
   <button type="button" data-view="side" aria-pressed="false">側面</button>
   <button type="button" data-view="top" aria-pressed="false">上方</button>
   <button type="button" data-view="front" aria-pressed="false">正面</button>
   <button type="button" data-view="rear" aria-pressed="false">後方</button>
   <button type="button" data-view="under" aria-pressed="false">底部</button>
+  </span>
   <span class="sep"></span>
+  <span class="grp" id="showGrp" role="group" aria-label="顯示">
   <button type="button" data-tog="rule" aria-pressed="false">規則配色</button>
   <button type="button" data-tog="xray" aria-pressed="true">X 光</button>
   <button type="button" data-tog="dim" aria-pressed="true">尺寸</button>
+  <button type="button" data-tog="spin" aria-pressed="false">轉盤</button>
+  </span>
   <button type="button" data-tog="flow" aria-pressed="false">空氣動力</button>
-  <button type="button" data-tog="spin" aria-pressed="true">轉盤</button>
   <button type="button" class="tyre" id="tyreBtn"><i></i><span>軟胎</span></button>
   <button type="button" class="swatch" id="liveryBtn" aria-label="車身塗裝：酒紅"><i></i></button>
 </div>
@@ -407,7 +422,7 @@ if (THREE) {
 
 function init() {
 /* ------------------------------------------------------------------ *
- *  座標：1 單位 = 1 公尺。車頭朝 +X，地面 y = 0，左側（駕駛的左手）為 +Z。
+ *  座標：1 單位 = 1 公尺。車頭朝 +X，地面 y = 0，右側（駕駛的右手）為 +Z、左側為 −Z。
  *  前軸 x = 1.80、後軸 x = −1.60，軸距 3400 mm；後胎外緣 z = ±0.95，全寬 1900 mm。
  * ------------------------------------------------------------------ */
 const TAU = Math.PI * 2;
@@ -1511,7 +1526,7 @@ const LIVERIES = [
 const st = {
   mode: 'assembled', e: 0, exTween: null,
   rule: { v: 0, to: 0 }, xray: { v: 1, to: 1 }, dim: { v: 0, to: 1 }, nobody: { v: 0, to: 0 }, aero: { v: 0, to: 0 }, flow: { v: 0, to: 0 }, bench: { v: 0, to: 0 }, speed: 250, wet: 0,
-  spin: true, spinV: 0, compound: 0, livery: 0, liveryCol: new THREE.Color(LIVERIES[0].c), liveryTo: new THREE.Color(LIVERIES[0].c),
+  spin: false, spinV: 0, compound: 0, livery: 0, liveryCol: new THREE.Color(LIVERIES[0].c), liveryTo: new THREE.Color(LIVERIES[0].c),
   layers: Object.fromEntries(Object.keys(LAYERS).map(k => [k, true])), solo: null,
   hover: null, pin: null, legendCat: null, menuHover: null, outlineA: 0, view: 'q',
 };
@@ -1637,6 +1652,11 @@ liveryBtn.addEventListener('click', () => setLivery((st.livery + 1) % LIVERIES.l
 
 /* 圖例：滑過描出整類零件，按下只顯示這一類 */
 const legend = $('legend');
+{ /* 手機上圖例預設收合成一顆按鈕 */
+  const t = document.createElement('button'); t.type = 'button'; t.className = 'lg-tog'; t.setAttribute('aria-expanded', 'false'); t.textContent = '規則類別 ▾';
+  t.addEventListener('click', () => { const open = legend.classList.toggle('open'); t.setAttribute('aria-expanded', open); t.textContent = open ? '規則類別 ▴' : '規則類別 ▾'; });
+  legend.appendChild(t);
+}
 for (const k in CATS) {
   const b = document.createElement('button'); b.type = 'button'; b.dataset.cat = k; b.setAttribute('aria-pressed', 'false');
   b.style.setProperty('--c', CATS[k].color); b.innerHTML = `<i></i>${CATS[k].name}`;
@@ -1645,7 +1665,7 @@ for (const k in CATS) {
   b.addEventListener('click', () => {
     st.solo = st.solo === k ? null : k;
     legend.classList.toggle('solo', !!st.solo);
-    legend.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x.dataset.cat === st.solo));
+    legend.querySelectorAll('button[data-cat]').forEach(x => x.setAttribute('aria-pressed', x.dataset.cat === st.solo));
   });
   legend.appendChild(b);
 }
@@ -1681,7 +1701,18 @@ for (const [btn, pop] of POPS) btn.addEventListener('click', e => {
   pop.style.left = left + 'px'; pop.style.top = (r.bottom + 12) + 'px'; pop.style.width = w + 'px';
   btn.setAttribute('aria-expanded', 'true'); pop.classList.add('on');
 });
-document.addEventListener('pointerdown', e => { if (!e.target.closest('.pop') && !e.target.closest('.menu')) closePops(); });
+/* 手機的「視角」「顯示」選單：按鈕群組直接在工具列上方展開 */
+for (const [btn, grp] of [[$('viewBtn'), $('viewGrp')], [$('showBtn'), $('showGrp')]]) {
+  POPS.push([btn, grp]);
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const open = btn.getAttribute('aria-expanded') !== 'true';
+    closePops();
+    if (open) { btn.setAttribute('aria-expanded', 'true'); grp.classList.add('on'); }
+  });
+}
+$('viewGrp').addEventListener('click', e => { if (e.target.closest('[data-view]')) closePops(); });
+document.addEventListener('pointerdown', e => { if (!e.target.closest('.pop') && !e.target.closest('.grp') && !e.target.closest('.menu')) closePops(); });
 addEventListener('keydown', e => { if (e.key === 'Escape') { closePops(); unpin(); } });
 
 /* ---------------- 空氣動力實驗室 ----------------
@@ -2058,7 +2089,7 @@ function pick(x, y) {
   if (st.xray.v > .5) h = hits.find(q => !q.object.userData.part.shell) || h;
   return { id: h.object.userData.part.id, mesh: h.object, local: h.object.worldToLocal(h.point.clone()) };
 }
-canvas.addEventListener('pointermove', e => { ptr.x = e.clientX; ptr.y = e.clientY; ptr.inside = true; ptr.type = e.pointerType; });
+canvas.addEventListener('pointermove', e => { ptr.x = e.clientX; ptr.y = e.clientY; ptr.inside = true; ptr.type = e.pointerType; ptr.moved = true; });
 canvas.addEventListener('pointerleave', () => { ptr.inside = false; });
 canvas.addEventListener('pointerdown', e => { ptr.down = { x: e.clientX, y: e.clientY }; ptr.type = e.pointerType; closePops(); });
 canvas.addEventListener('pointerup', e => {
@@ -2320,12 +2351,12 @@ cDis.addEventListener('click', () => {
 
 /* ---------------- 進站挑戰 ----------------
  * 車從後方駛入、停下的瞬間開始計時；千斤頂頂起後依序換四顆車輪（可選換鼻錐），全部裝好、車放下時停錶。 */
-const PIT = { on: false, phase: 'idle', t0: 0, time: 0, arrive: 0, w: [0, 0, 0, 0].map(() => ({ s: 0, t: 0 })), n: { s: 0, t: 0 }, wantNose: false, lift: 0, liftTo: 0, comp: 1, best: [null, null] };
+const PIT = { on: false, phase: 'idle', dropT: 0, time: 0, arrive: 0, w: [0, 0, 0, 0].map(() => ({ s: 0, t: 0 })), n: { s: 0, t: 0 }, wantNose: false, lift: 0, liftTo: 0, comp: 1, best: [null, null] };
 const BEST_KEY = ['f1rulebook.pitBest', 'f1rulebook.pitBestNose'];
 try { BEST_KEY.forEach((k, i) => { const b = +localStorage.getItem(k); if (b > 0) PIT.best[i] = b; }); } catch (e) { /* 無法存取 localStorage 時只是不記錄 */ }
 const WHEEL_NAME = ['左前', '右前', '左後', '右後'];
 function tagPitMeshes() {
-  for (const id of ['tyres', 'rims']) for (const m of PARTS[id].meshes) { const b = m.userData.base; m.userData.wi = (b.x > 0 ? 0 : 2) + (b.z > 0 ? 0 : 1); }
+  for (const id of ['tyres', 'rims']) for (const m of PARTS[id].meshes) { const b = m.userData.base; m.userData.wi = (b.x > 0 ? 0 : 2) + (b.z > 0 ? 1 : 0); } /* +Z 是駕駛右手邊 */
 }
 tagPitMeshes();
 /* 維修組員：四位輪槍手跪在車輪外側、前後各一支千斤頂 */
@@ -2420,7 +2451,7 @@ function pitHit(what) {
   if (PIT.phase !== 'run') return;
   if (what === 'nose') { if (PIT.wantNose && PIT.n.s === 0) { PIT.n.s = 1; PIT.n.t = 0; thud(140); syncPit(); } return; }
   const w = PIT.w[what]; if (w.s !== 0) return;
-  if (performance.now() - PIT.t0 < (reduce ? 0 : 250)) { toast('千斤頂還沒頂起，等車抬起來再卸輪'); return; }
+  if (PIT.time < (reduce ? 0 : .25)) { toast('千斤頂還沒頂起，等車抬起來再卸輪'); return; }
   w.s = 5; w.t = 0; gunSound(); syncPit();
 }
 function updatePit(dt, now) {
@@ -2431,7 +2462,7 @@ function updatePit(dt, now) {
     PIT.carX = -7 * Math.pow(1 - k, 2.4);
     flowWheel -= dt * 30 * (1 - k);
     for (const id of ['tyres', 'rims']) for (const m of PARTS[id].meshes) if (m.userData.spin) m.rotation.z = -m.userData.spin * flowWheel;
-    if (k >= 1) { PIT.phase = 'run'; PIT.t0 = now; PIT.liftTo = .045; thud(70); beep(880, .14); syncPit(); }
+    if (k >= 1) { PIT.phase = 'run'; PIT.time = 0; PIT.liftTo = .045; thud(70); beep(880, .14); syncPit(); }
   }
   const step = (o, dur, onDone) => { o.t += dt / (reduce ? .02 : dur); if (o.t >= 1) { o.t = 0; onDone(); } };
   for (const w of PIT.w) {
@@ -2442,14 +2473,15 @@ function updatePit(dt, now) {
   }
   if (PIT.n.s === 1) step(PIT.n, 1.4, () => { PIT.n.s = 2; });
   else if (PIT.n.s === 2) step(PIT.n, 1.4, () => { PIT.n.s = 3; syncPit(); });
+  /* 碼表累加與換胎動畫相同的 dt，卡頓時兩者一起變慢，成績不會被灌水 */
   if (PIT.phase === 'run') {
-    PIT.time = (now - PIT.t0) / 1000;
+    PIT.time += dt;
     $('pTime').textContent = PIT.time.toFixed(2);
     if (PIT.w.every(w => w.s === 3) && (!PIT.wantNose || PIT.n.s === 3)) {
-      PIT.phase = 'drop'; PIT.liftTo = 0; PIT.dropAt = now; thud(60);
+      PIT.phase = 'drop'; PIT.liftTo = 0; PIT.dropT = 0; thud(60);
     }
-  } else if (PIT.phase === 'drop' && now - PIT.dropAt > (reduce ? 0 : 220)) {
-    PIT.time = (now - PIT.t0) / 1000; PIT.phase = 'done';
+  } else if (PIT.phase === 'drop' && (PIT.time += dt, PIT.dropT += dt) > (reduce ? 0 : .22)) {
+    PIT.phase = 'done';
     $('pTime').textContent = PIT.time.toFixed(2);
     setCompound(PIT.comp);
     const bi = PIT.wantNose ? 1 : 0, rec = !PIT.best[bi] || PIT.time < PIT.best[bi];
@@ -2621,6 +2653,9 @@ function updateHover() {
     if (st.hover && (ptr.dragging || !ptr.inside || ptr.type === 'touch')) { st.hover = null; if (!st.pin) hideCard(); }
     return;
   }
+  /* 射線只在滑鼠移動後，或車身仍在轉動、展開時才重做 */
+  if (!ptr.moved && Math.abs(st.spinV) < 1e-3 && !st.exTween && !rigTween) return;
+  ptr.moved = false;
   const h = pick(ptr.x, ptr.y);
   if (!h) { if (st.hover) { st.hover = null; if (!st.pin) hideCard(); } canvas.style.cursor = ''; return; }
   canvas.style.cursor = 'pointer';
@@ -2676,8 +2711,18 @@ function renderMask(ids) {
   for (const [o, v] of saved) o.visible = v;
 }
 
-let last = performance.now(), lastIds = new Set(), frameNo = 0, viewKey = '';
+let last = performance.now(), lastIds = new Set(), frameNo = 0, viewKey = '', shadowSig = NaN, reflFresh = false;
 renderer.shadowMap.autoUpdate = false;
+/* 投影物件的位置、角度與可見性摘要：沒變就沿用上一張陰影貼圖（聚光燈固定不動） */
+function casterSig() {
+  let s = 0, n = 0;
+  scene.traverseVisible(o => {
+    if (!o.castShadow || !(o.isMesh || o.isLine || o.isPoints)) return;
+    const e = o.matrixWorld.elements;
+    s += (e[12] * 1.3 + e[13] * 1.7 + e[14] * 2.1 + e[0] + e[2] * .7 + e[8] * .9 + e[5] * .3 + e[1] * .5) * (++n % 13 + 1);
+  });
+  return s + n * 1e3;
+}
 function frame(now) {
   const dt = Math.min(.05, (now - last) / 1000); last = now;
   stepCam(now);
@@ -2725,8 +2770,10 @@ function frame(now) {
   floor.visible = camera.position.y > .02;
   under.intensity = clamp(-camera.position.y / 2.5, 0, 1) * 2.6;
   scene.environmentIntensity = .85 + (1 - clamp(camera.position.y / 1.5 + 1, 0, 1)) * .6;
-  renderer.shadowMap.needsUpdate = true;
-  if (floor.visible) renderReflection();
+  const sig = casterSig();
+  if (sig !== shadowSig) { shadowSig = sig; renderer.shadowMap.needsUpdate = true; }
+  /* 倒影（半解析度）隔幀更新；地板剛出現時立即補一張 */
+  if (floor.visible) { if (!reflFresh || frameNo % 2 === 0) renderReflection(); reflFresh = true; } else reflFresh = false;
   renderer.setClearColor(0x000000, 1);
   renderer.render(scene, camera);
 

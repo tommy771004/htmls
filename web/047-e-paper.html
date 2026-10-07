@@ -63,7 +63,6 @@ body{min-height:100vh;background:#ccc;font-family:var(--serif);color:var(--ink);
 .date .day{font-family:var(--head);font-size:clamp(88px,11vw,150px);line-height:.9;letter-spacing:-.02em}
 .date .ym{font-size:clamp(15px,1.4vw,18px);color:var(--mid)}
 .clock{font-family:var(--head);font-size:clamp(40px,4.4vw,56px);margin-top:10px;font-variant-numeric:tabular-nums;display:inline-block}
-.clock small{font-size:13px;color:var(--soft);display:block;font-family:var(--serif);letter-spacing:.1em}
 .wx{display:flex;gap:12px;align-items:center;margin-top:14px;border-top:1px solid var(--rule);padding-top:12px}
 .wx canvas{width:96px;height:72px;image-rendering:pixelated;flex:none}
 .wx b{font-family:var(--head);font-size:30px;font-weight:normal;display:block;line-height:1}
@@ -91,7 +90,7 @@ h2 small{font-family:var(--serif);font-size:12px;color:var(--soft);letter-spacin
 .quote .qm{font-family:var(--head);font-size:70px;line-height:.6;color:var(--soft)}
 .quote p{margin:0;font-family:var(--head);font-size:clamp(17px,1.8vw,22px);line-height:1.5}
 .quote cite{display:block;font-style:normal;font-size:12.5px;color:var(--mid);margin-top:2px}
-.msg{font-size:13px;color:var(--mid);border:1px solid var(--rule);padding:6px 10px;line-height:1.55;max-width:260px}
+.msg{font-size:13px;color:var(--mid);border-left:2px solid var(--rule);padding:2px 0 2px 12px;line-height:1.55;max-width:260px}
 .msg b{color:var(--ink);font-weight:normal;font-family:var(--head)}
 
 /* page 2 week */
@@ -139,7 +138,7 @@ h2 small{font-family:var(--serif);font-size:12px;color:var(--soft);letter-spacin
             <div class="dow" id="dow">星期三</div>
             <div class="day" id="day">23</div>
             <div class="ym" id="ym">2026 年 9 月</div>
-            <div class="clock zone" id="clock">08:00<small>每分鐘局部更新一次</small></div>
+            <div class="clock zone" id="clock">08:00</div>
             <div class="wx"><canvas id="wx" width="48" height="36" aria-hidden="true"></canvas><div><b>27° / 22°</b><span>多雲時晴 · 降雨 20%<br>適合曬棉被，不適合曬貓</span></div></div>
           </div>
           <div>
@@ -147,14 +146,14 @@ h2 small{font-family:var(--serif);font-size:12px;color:var(--soft);letter-spacin
             <ul class="sched" id="sched"></ul>
           </div>
           <div>
-            <h2>待辦 <small>點一下打勾</small></h2>
+            <h2>待辦</h2>
             <ul class="todo" id="todo"></ul>
             <div class="count" id="count"></div>
           </div>
         </div>
         <div class="quote zone" id="quoteZone">
           <span class="qm" aria-hidden="true">“</span>
-          <div><p id="q1">慢慢來，比較快。</p><cite id="c1">— 今日金句 · 按 ⟳ 全刷換一句</cite></div>
+          <div><p id="q1">慢慢來，比較快。</p><cite id="c1">— 家訓第一條</cite></div>
           <div class="msg"><b>留言板</b><br>媽：冰箱的布丁是我的。<br>小安：我沒有吃布丁。<br>爸：……</div>
         </div>
       </section>
@@ -167,7 +166,7 @@ h2 small{font-family:var(--serif);font-size:12px;color:var(--soft);letter-spacin
 
       <!-- PAGE 3 -->
       <section class="page" id="p2" aria-label="金句" hidden>
-        <div class="status"><span>客廳看板 · 第 3 / 3 頁</span><span>今日金句 · 十六階灰點陣插圖</span><span>⟳ 換一句</span></div>
+        <div class="status"><span>客廳看板 · 第 3 / 3 頁</span><span>今日金句</span><span id="qDate"></span></div>
         <div class="big">
           <canvas id="art" width="160" height="120" aria-label="抖動點陣的山與太陽"></canvas>
           <div><blockquote id="q2">慢慢來，比較快。</blockquote><cite id="c2">— 家訓第一條</cite></div>
@@ -184,7 +183,7 @@ h2 small{font-family:var(--serif);font-size:12px;color:var(--soft);letter-spacin
   <div class="brand">greyday · 13.3″</div>
   <div class="led" id="led"></div>
 </div>
-<p class="hint">機身按鈕：<kbd>←</kbd> <kbd>→</kbd> 翻頁（局部更新，會留一點殘影）· <kbd>R</kbd> 全刷（黑白閃三下，殘影清乾淨）</p>
+<p class="hint">機身按鈕：<kbd>←</kbd> <kbd>→</kbd> 翻頁（局部更新，會留一點殘影）· <kbd>R</kbd> 全刷（黑白閃三下，殘影清乾淨，順便換一句金句）· 點待辦可以打勾</p>
 
 <script>
 (function(){
@@ -199,27 +198,43 @@ h2 small{font-family:var(--serif);font-size:12px;color:var(--soft);letter-spacin
   var DOW = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
   function pad(n){ return (n < 10 ? '0' : '') + n; }
   var set = function(id, v){ var e = $(id); if(e) e.textContent = v; };
-  set('dow', DOW[now.getDay()]); set('day', now.getDate()); set('ym', now.getFullYear() + ' 年 ' + (now.getMonth() + 1) + ' 月');
+  function setDate(){
+    set('dow', DOW[now.getDay()]); set('day', now.getDate()); set('ym', now.getFullYear() + ' 年 ' + (now.getMonth() + 1) + ' 月');
+    set('qDate', (now.getMonth() + 1) + '/' + now.getDate() + ' ' + DOW[now.getDay()]);
+  }
+  setDate();
 
-  /* schedule */
-  var SCHED = [
-    ['07:30','倒垃圾','藍色那袋是回收，不是早餐'],
-    ['08:10','小安 · 校車','水壺、聯絡簿、另一隻襪子'],
-    ['12:00','爸爸 · 牙醫','他說他沒在怕'],
-    ['16:30','小安 · 鋼琴課','練習時間：比上週多一點點'],
-    ['19:00','晚餐 · 咖哩','第三天了，它越來越好吃'],
-    ['21:30','追劇 · 第 7 集','不准偷看，說的就是你']
+  /* week events, Monday = 0: [time, week-grid label, today label, today note] */
+  var EV = [
+    [['09:00','阿嬤來訪','阿嬤來訪','先把客廳收一收']],
+    [['18:00','倒資源回收','倒資源回收','紙箱要先壓扁'],['20:00','家庭會議：布丁事件','家庭會議 · 布丁事件','小安請準備陳述']],
+    [['16:30','鋼琴課','小安 · 鋼琴課','練習時間：比上週多一點點'],['19:00','咖哩（第一天）','晚餐 · 咖哩','第一天，多煮了一大鍋']],
+    [['12:00','牙醫','爸爸 · 牙醫','他說他沒在怕'],['19:00','咖哩（第二天）','晚餐 · 咖哩','第二天，它越來越好吃']],
+    [['07:00','爸爸晨跑（預計）','爸爸 · 晨跑（預計）','鬧鐘設了三個'],['07:05','爸爸回家（實際）','爸爸 · 回家（實際）','五分鐘也算有跑'],['19:00','咖哩（第三天）','晚餐 · 咖哩','第三天了，最後一碗']],
+    [['16:30','鋼琴課','小安 · 鋼琴課','週末這堂是加課'],['21:00','電影夜 · 輪到小安選','電影夜 · 輪到小安選','大概又是那部動畫']],
+    [['10:00','大掃除','全家 · 大掃除','沙發縫裡也許有遙控器'],['15:00','去公園找秋天','去公園找秋天','帶一個袋子裝落葉']]
   ];
+
+  /* today's schedule = fixed daily items + this weekday's events */
+  function buildSched(d){
+    var wi = (d.getDay() + 6) % 7, list = [['07:30','倒垃圾','藍色那袋是回收，不是早餐']];
+    if(wi < 5) list.push(['08:10','小安 · 校車','水壺、聯絡簿、另一隻襪子']);
+    EV[wi].forEach(function(e){ list.push([e[0], e[2], e[3]]); });
+    if(wi !== 5) list.push(['21:30','追劇 · 只看一集','不准偷看，說的就是你']);
+    return list.sort(function(a, b){ return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0; });
+  }
+  var SCHED = [];
   var sched = $('sched');
   function renderSched(){
     if(!sched) return; sched.innerHTML = '';
+    SCHED = buildSched(now);
     var mins = new Date().getHours() * 60 + new Date().getMinutes(), nowMarked = false;
     SCHED.forEach(function(s, i){
       var p = s[0].split(':'), m = +p[0] * 60 + +p[1], nx = SCHED[i + 1] ? (+SCHED[i + 1][0].split(':')[0] * 60 + +SCHED[i + 1][0].split(':')[1]) : 24 * 60;
       var li = document.createElement('li');
       if(!nowMarked && mins >= m && mins < nx){ li.className = 'now'; nowMarked = true; } else if(mins >= nx) li.className = 'past';
       li.innerHTML = '<time></time><span></span>';
-      li.firstChild.textContent = s[0]; li.lastChild.textContent = s[1]; var sm = document.createElement('small'); sm.textContent = s[2]; li.lastChild.appendChild(sm);
+      li.firstChild.textContent = s[0]; li.lastChild.textContent = s[1]; if(s[2]){ var sm = document.createElement('small'); sm.textContent = s[2]; li.lastChild.appendChild(sm); }
       sched.appendChild(li);
     });
   }
@@ -257,18 +272,10 @@ h2 small{font-family:var(--serif);font-size:12px;color:var(--soft);letter-spacin
   renderTodo();
 
   /* week */
-  var EV = [
-    [['09:00','阿嬤來訪']],
-    [['18:00','倒資源回收'],['20:00','家庭會議：布丁事件']],
-    [['16:30','鋼琴課'],['19:00','咖哩（第一天）']],
-    [['12:00','牙醫'],['19:00','咖哩（第三天）']],
-    [['07:00','爸爸晨跑（預計）'],['07:05','爸爸回家（實際）']],
-    [['16:30','鋼琴課'],['21:00','電影夜 · 輪到小安選']],
-    [['10:00','大掃除'],['15:00','去公園找秋天']]
-  ];
   var week = $('week');
-  (function(){
+  function buildWeek(){
     if(!week) return;
+    week.innerHTML = '';
     var d0 = new Date(now); var wd = (d0.getDay() + 6) % 7; d0.setDate(d0.getDate() - wd);
     var names = ['一','二','三','四','五','六','日'], first = null, last = null;
     for(var i = 0; i < 7; i++){
@@ -279,7 +286,8 @@ h2 small{font-family:var(--serif);font-size:12px;color:var(--soft);letter-spacin
       c.innerHTML = h + '</div>'; week.appendChild(c);
     }
     set('wkRange', (first.getMonth() + 1) + '/' + first.getDate() + ' – ' + (last.getMonth() + 1) + '/' + last.getDate());
-  })();
+  }
+  buildWeek();
 
   /* quotes */
   var Q = [
@@ -292,7 +300,7 @@ h2 small{font-family:var(--serif);font-size:12px;color:var(--soft);letter-spacin
     ['灰色有十六種，心情至少也有十六種。','客廳看板']
   ];
   var qi = 0;
-  function showQuote(){ var q = Q[qi % Q.length]; set('q1', q[0]); set('c1', '— ' + q[1] + ' · 按 ⟳ 全刷換一句'); set('q2', q[0]); set('c2', '— ' + q[1]); }
+  function showQuote(){ var q = Q[qi % Q.length]; set('q1', q[0]); set('c1', '— ' + q[1]); set('q2', q[0]); set('c2', '— ' + q[1]); }
 
   /* dithering to 16 grey levels */
   var BAYER = [0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
@@ -390,15 +398,22 @@ h2 small{font-family:var(--serif);font-size:12px;color:var(--soft);letter-spacin
 
   /* clock: partial refresh once a minute */
   var lastMin = -1;
+  /* past midnight: new date, week grid and schedule, then a real full refresh */
+  function dayRoll(d){
+    now = d; setDate(); buildWeek(); renderSched();
+    qi = now.getDate() % Q.length; showQuote(); if(page === 2) drawArt();
+    full(null);
+  }
   function tickClock(force){
     var d = new Date(), m = d.getMinutes();
+    if(d.toDateString() !== now.toDateString()) dayRoll(d);
     if(m === lastMin && !force) return;
     var first = lastMin === -1; lastMin = m;
     var ck = $('clock'); if(!ck) return;
     ck.firstChild.nodeValue = pad(d.getHours()) + ':' + pad(m);
     set('sync', '上次同步 ' + pad(d.getHours()) + ':' + pad(m));
     if(!first && !force) partial(ck);
-    if(!first && m === 0) renderSched();
+    if(!first) renderSched();
   }
   setInterval(function(){ if(!document.hidden) tickClock(false); }, 5000);
 

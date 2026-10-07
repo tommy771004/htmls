@@ -39,7 +39,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
 .tr .warn{color:var(--warm)!important}
 #spark{position:static;display:block;width:100%;height:34px;margin-top:6px;border-top:1px dashed rgba(159,179,200,.18)}
 .sparklbl{display:flex;justify-content:space-between;color:var(--hud-dim);font-size:10px;margin-top:2px}
-.bl{left:16px;bottom:16px}
+.bl{left:16px;bottom:16px;max-width:calc(100vw - 290px)}
 .bl .lbl,.br .lbl{color:var(--hud-dim);font-size:10px;letter-spacing:.2em;margin-bottom:6px}
 .masses{display:flex;gap:4px}
 .m{min-width:64px;min-height:44px;background:transparent;border:1px solid rgba(159,179,200,.22);color:var(--hud);font-family:var(--mono);font-size:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px 6px}
@@ -53,6 +53,8 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
 .b:hover,.m:hover{border-color:var(--hud)}
 .b.on{color:var(--warm);border-color:var(--warm)}
 .b kbd{font-family:var(--mono);color:var(--hud-dim)}
+.msel{display:none;width:100%;min-height:40px;margin-bottom:4px;background:transparent;border:1px solid rgba(159,179,200,.22);color:var(--hud);font-family:var(--mono);font-size:11px;letter-spacing:.06em;padding:0 6px}
+.msel option{background:var(--bg)}
 .cmap{margin-top:10px}
 .cmap .bar{height:8px;background:linear-gradient(90deg,#000004,#1b0c41,#4a0c6b,#781c6d,#a52c60,#cf4446,#ed6925,#fb9b06,#f7d13d,#fcffa4)}
 .cmap .ticks{display:flex;justify-content:space-between;color:var(--hud-dim);font-size:10px;margin-top:2px}
@@ -67,15 +69,19 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
 @media (max-width:700px){
   .tl{left:10px;top:10px;right:10px;max-width:none;padding:8px 10px}
   .tl p{display:none}
-  .tr{right:10px;top:48px;width:170px;padding:6px 8px;font-size:10.5px}
+  .tr{left:10px;right:10px;top:48px;width:auto;padding:6px 10px;font-size:10.5px}
+  .tr tr:not(.keep){display:none}
+  .tr table{width:auto}
+  .tr tbody{display:flex;gap:18px}
+  .tr tr{display:flex;gap:8px}
   #spark,.sparklbl{display:none}
-  .bl{left:10px;right:10px;bottom:164px}
-  .masses{justify-content:space-between}
-  .m{min-width:0;flex:1;font-size:10px}
-  .m em{display:none}
+  .bl{display:none}
+  .msel{display:block}
+  .cmap{display:none}
+  .btns{grid-template-columns:repeat(6,1fr)}
+  .b{padding:0 2px;font-size:10px;letter-spacing:0}
   .br{left:10px;right:10px;bottom:10px;width:auto;padding:8px 10px}
-  .bl .lbl,.br .lbl{display:none}
-  .box.bl{padding:6px}
+  .br .lbl{display:none}
 }
 </style>
 </head>
@@ -88,15 +94,15 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
 
 <div class="hud tl box">
   <h1>N-BODY <i>//</i> SANDBOX</h1>
-  <p><b>G</b> = 1 · <b>ε</b> = 0.02 · integrator <b>leapfrog (KDK)</b><br>Collisions merge, conserving momentum. Trails are coloured by speed and fade like a long exposure.</p>
+  <p><b>G</b> = 1 · <b>ε</b> = 0.02 · integrator <b>leapfrog (KDK)</b> · <b>m</b> in M☉<br>Collisions merge, conserving momentum. Trails are coloured by speed and fade like a long exposure.</p>
 </div>
 
 <div class="hud tr box" aria-live="off">
   <table>
     <tr><td>EPOCH t</td><td id="t-t">0.000</td></tr>
-    <tr><td>BODIES N</td><td id="t-n">0</td></tr>
+    <tr class="keep"><td>BODIES N</td><td id="t-n">0</td></tr>
     <tr><td>E_total</td><td id="t-e">0</td></tr>
-    <tr><td>ΔE / E₀</td><td id="t-de">0.000%</td></tr>
+    <tr class="keep"><td>ΔE / E₀</td><td id="t-de">0.000%</td></tr>
     <tr><td>|P|</td><td id="t-p">0</td></tr>
     <tr><td>MERGERS</td><td id="t-m">0</td></tr>
     <tr><td>RATE</td><td id="t-r">1.0×</td></tr>
@@ -112,6 +118,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
 
 <div class="hud br box">
   <div class="lbl">SCENARIO</div>
+  <select class="msel" id="msel" aria-label="Mass of next body"></select>
   <div class="btns">
     <button class="b" data-s="fig8" type="button">FIG-8</button>
     <button class="b" data-s="binary" type="button">BINARY</button>
@@ -145,7 +152,12 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
     W = window.innerWidth; H = window.innerHeight;
     [cS, cT, cF].forEach(function(c){ c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); });
     [gS, gT, gF].forEach(function(g){ g.setTransform(dpr, 0, 0, dpr, 0, 0); });
-    scale = Math.min(W, H) / (W < 700 ? 3.1 : 3.6); cx = W / 2; cy = H / 2 + (W < 700 ? -20 : 0);
+    scale = Math.min(W, H) / (W < 700 ? 3.1 : 3.6); cx = W / 2; cy = H / 2;
+    if (W <= 700){
+      // phone: centre the system in the gap between the top HUD and the bottom control bar
+      var hTop = document.querySelector('.hud.tr'), hBot = document.querySelector('.hud.br');
+      if (hTop && hBot){ var top = hTop.getBoundingClientRect().bottom, bot = hBot.getBoundingClientRect().top; if (bot > top) cy = (top + bot) / 2; }
+    }
     drawStars();
     if (spark){ var r = spark.getBoundingClientRect(); spark.width = Math.max(1, Math.round(r.width * dpr)); spark.height = Math.max(1, Math.round(r.height * dpr)); }
   }
@@ -167,16 +179,19 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
 
   /* ---------- bodies ---------- */
   var MASSES = [
-    {n:'ASTEROID', m:0.0008, c:'#a0a8b8'},
-    {n:'MOON', m:0.006, c:'#d7d2c4'},
-    {n:'PLANET', m:0.05, c:'#6fb8ff'},
-    {n:'GIANT', m:0.25, c:'#f0b36b'},
+    // masses in M☉ (STAR = 1); 1 Jupiter ≈ 0.00095
+    {n:'GAS GIANT', m:0.0008, c:'#a0a8b8'},
+    {n:'SUPER-JUPITER', m:0.006, c:'#d7d2c4'},
+    {n:'BROWN DWARF', m:0.05, c:'#6fb8ff'},
+    {n:'RED DWARF', m:0.25, c:'#f0b36b'},
     {n:'STAR', m:1.0, c:'#fff2c0'}
   ];
-  var massIdx = 2;
+  var massIdx = 2, MAX_BODIES = 60;
   var B = []; // {x,y,vx,vy,m,c,px,py}
   var EPS2 = 0.02 * 0.02, t = 0, E0 = null, mergers = 0, paused = false, rate = 1;
-  function radius(m){ return 2 + Math.cbrt(m) * 9; }
+  // physical radius in world units (independent of the viewport); drawn at .8 × scale px
+  function rW(m){ return 0.01 + Math.cbrt(m) * 0.045; }
+  function radius(m){ return Math.max(1.5, rW(m) * scale * .8); }
   function add(x, y, vx, vy, m, c){ B.push({x:x, y:y, vx:vx, vy:vy, m:m, c:c || '#fff', ax:0, ay:0}); }
   function accel(arr){
     for (var i=0;i<arr.length;i++){ arr[i].ax = 0; arr[i].ay = 0; }
@@ -194,7 +209,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
   }
   function collide(){
     for (var i=0;i<B.length;i++) for (var j=i+1;j<B.length;j++){
-      var a = B[i], b = B[j], dx = b.x - a.x, dy = b.y - a.y, rr = (radius(a.m) + radius(b.m)) / scale * .55;
+      var a = B[i], b = B[j], dx = b.x - a.x, dy = b.y - a.y, rr = (rW(a.m) + rW(b.m)) * .44;
       if (dx*dx + dy*dy < rr*rr){
         var m = a.m + b.m, big = a.m >= b.m ? a : b;
         var n = {x:(a.x*a.m + b.x*b.m)/m, y:(a.y*a.m + b.y*b.m)/m, vx:(a.vx*a.m + b.vx*b.m)/m, vy:(a.vy*a.m + b.vy*b.m)/m, m:m, c:big.c, ax:0, ay:0};
@@ -203,7 +218,9 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
     }
   }
   var booms = [];
-  function boom(n){ booms.push({x:n.x, y:n.y, r:0, a:1}); var f = $('flash'); if (f){ f.classList.add('on'); setTimeout(function(){ f.classList.remove('on'); }, 500); } thud(); }
+  var flashT = null;
+  function note(txt){ var f = $('flash'); if (!f) return; f.textContent = txt; f.classList.add('on'); clearTimeout(flashT); flashT = setTimeout(function(){ f.classList.remove('on'); }, 500); }
+  function boom(n){ booms.push({x:n.x, y:n.y, r:0, a:1}); note('MERGER'); thud(); }
   function energy(){
     var K = 0, U = 0, px = 0, py = 0;
     for (var i=0;i<B.length;i++){ var a = B[i]; K += .5 * a.m * (a.vx*a.vx + a.vy*a.vy); px += a.m * a.vx; py += a.m * a.vy;
@@ -218,7 +235,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
       var x1 = 0.97000436, y1 = -0.24308753, vx3 = -0.93240737, vy3 = -0.86473146;
       add(x1, y1, -vx3/2, -vy3/2, 1, '#ffd48a'); add(-x1, -y1, -vx3/2, -vy3/2, 1, '#9fd0ff'); add(0, 0, vx3, vy3, 1, '#ff9f9f');
     } else if (name === 'binary'){
-      var d = 0.35, v = Math.sqrt(0.8 / (4 * d));
+      var d = 0.35, v = Math.sqrt(0.4 / (4 * d)); // circular speed of each 0.4 M star at separation 2d
       add(-d, 0, 0, -v, 0.4, '#fff2c0'); add(d, 0, 0, v, 0.4, '#ffb38a');
       var r = 1.35, vp = Math.sqrt(0.8 / r); add(r, 0, 0, vp, 0.004, '#6fb8ff');
       var r2 = 1.75, vp2 = Math.sqrt(0.8 / r2); add(-r2, 0, 0, -vp2, 0.002, '#d7d2c4');
@@ -237,11 +254,12 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
     if (M) B.forEach(function(b){ b.vx -= px/M; b.vy -= py/M; });
     accel(B);
     var btns = document.querySelectorAll('.b[data-s]'); for (var i=0;i<btns.length;i++) btns[i].classList.toggle('on', btns[i].getAttribute('data-s') === name);
+    var oi = order.indexOf(name); if (oi >= 0) cur = oi; // keep the R-key cycle in step with the buttons
   }
   function wipe(){ gT.clearRect(0, 0, W, H); }
 
   /* ---------- mass UI ---------- */
-  var massesEl = $('masses');
+  var massesEl = $('masses'), mselEl = $('msel');
   MASSES.forEach(function(M, i){
     var b = document.createElement('button'); b.className = 'm'; b.type = 'button';
     var sz = 4 + i * 3;
@@ -249,8 +267,10 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
     b.setAttribute('aria-pressed', i === massIdx ? 'true' : 'false');
     b.addEventListener('click', function(){ setMass(i); });
     if (massesEl) massesEl.appendChild(b);
+    if (mselEl){ var op = document.createElement('option'); op.value = String(i); op.textContent = (i+1) + ' ' + M.n + ' · m=' + M.m; mselEl.appendChild(op); }
   });
-  function setMass(i){ massIdx = i; var bs = massesEl ? massesEl.querySelectorAll('.m') : []; for (var k=0;k<bs.length;k++) bs[k].setAttribute('aria-pressed', k === i ? 'true' : 'false'); }
+  if (mselEl){ mselEl.value = String(massIdx); mselEl.addEventListener('change', function(){ setMass(+mselEl.value); }); }
+  function setMass(i){ massIdx = i; var bs = massesEl ? massesEl.querySelectorAll('.m') : []; for (var k=0;k<bs.length;k++) bs[k].setAttribute('aria-pressed', k === i ? 'true' : 'false'); if (mselEl) mselEl.value = String(i); }
 
   /* ---------- pointer: tap = orbit, drag = launch ---------- */
   var drag = null, readout = $('readout');
@@ -266,11 +286,12 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
   cF.addEventListener('pointermove', function(e){
     var w = toWorld(e.clientX, e.clientY);
     if (readout){ readout.style.left = e.clientX + 'px'; readout.style.top = e.clientY + 'px'; readout.textContent = 'x ' + w[0].toFixed(3) + '  y ' + (-w[1]).toFixed(3); readout.classList.add('on'); }
-    if (drag){ drag.x = e.clientX; drag.y = e.clientY; }
+    if (drag){ drag.x = e.clientX; drag.y = e.clientY; drag.dirty = true; }
   });
   cF.addEventListener('pointerleave', function(){ if (readout) readout.classList.remove('on'); });
   function release(e){
     if (!drag) return;
+    if (B.length >= MAX_BODIES){ drag = null; note('N MAX ' + MAX_BODIES); return; }
     var w = toWorld(drag.sx, drag.sy), dx = drag.x - drag.sx, dy = drag.y - drag.sy, M = MASSES[massIdx], v;
     if (Math.hypot(dx, dy) < 8) v = orbitVel(w[0], w[1]);
     else v = [dx / scale * 1.6, dy / scale * 1.6];
@@ -287,7 +308,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
     var me = {x:w[0], y:w[1], vx:(drag.x - drag.sx)/scale*1.6, vy:(drag.y - drag.sy)/scale*1.6, m:M.m, ax:0, ay:0};
     sim.push(me); accel(sim);
     var pts = [];
-    for (var i=0;i<360;i++){ step(sim, 0.006); if (i % 3 === 0) pts.push(toScreen(me.x, me.y)); }
+    for (var i=0;i<150;i++){ step(sim, 0.01); if (i % 2 === 0) pts.push(toScreen(me.x, me.y)); }
     return pts;
   }
 
@@ -349,8 +370,8 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
     if (!running) return;
     var elapsed = Math.min(50, now - last); last = now;
     frames++; if (now - fpsT > 1000){ fps = frames; frames = 0; fpsT = now; var f = $('t-fps'); if (f) f.textContent = fps + ' fps'; }
-    // fade trails (long exposure)
-    gT.globalCompositeOperation = 'destination-out'; gT.fillStyle = 'rgba(0,0,0,.018)'; gT.fillRect(0, 0, W, H); gT.globalCompositeOperation = 'source-over';
+    // fade trails (long exposure) — frozen while paused
+    if (!paused){ gT.globalCompositeOperation = 'destination-out'; gT.fillStyle = 'rgba(0,0,0,.018)'; gT.fillRect(0, 0, W, H); gT.globalCompositeOperation = 'source-over'; }
     if (!paused && B.length){
       var sub = Math.max(1, Math.round(10 * rate)), dt = 0.0022 * elapsed / 16.7;
       gT.lineCap = 'round';
@@ -380,7 +401,9 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
     for (var bi=booms.length-1; bi>=0; bi--){ var bo = booms[bi], bs = toScreen(bo.x, bo.y); bo.r += 3; bo.a -= .03; if (bo.a <= 0){ booms.splice(bi, 1); continue; }
       gF.strokeStyle = 'rgba(252,255,164,' + bo.a + ')'; gF.lineWidth = 2; gF.beginPath(); gF.arc(bs[0], bs[1], bo.r, 0, Math.PI*2); gF.stroke(); }
     if (drag){
-      var pts = predict();
+      // the O(N²) preview only reruns when the pointer has moved
+      if (drag.dirty){ drag.pts = predict(); drag.dirty = false; }
+      var pts = drag.pts;
       gF.strokeStyle = 'rgba(252,255,164,.8)'; gF.setLineDash([4, 5]); gF.lineWidth = 1.2;
       if (pts && pts.length){ gF.beginPath(); pts.forEach(function(p, i){ if (i) gF.lineTo(p[0], p[1]); else gF.moveTo(p[0], p[1]); }); gF.stroke(); }
       gF.setLineDash([]);

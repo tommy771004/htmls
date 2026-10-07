@@ -27,7 +27,6 @@ button:focus-visible,.track:focus-visible{outline:1px solid var(--ink3);outline-
 
 .mark{position:fixed;left:max(20px,env(safe-area-inset-left));top:max(18px,env(safe-area-inset-top));margin:0;pointer-events:none;text-shadow:var(--shade);max-width:calc(100vw - 170px)}
 .mark h1{font-family:var(--song);font-weight:600;font-size:19px;letter-spacing:.16em;margin:0;line-height:1.3}
-.colo{margin:5px 0 0;font-size:12px;line-height:1.55;color:var(--ink2)}
 
 .sound{position:fixed;right:max(12px,env(safe-area-inset-right));top:max(12px,env(safe-area-inset-top));display:inline-flex;align-items:center;gap:8px;padding:8px 8px;font-size:13px;color:var(--ink2);text-shadow:var(--shade);transition:color var(--dur-hover) ease}
 .sound:hover{color:var(--ink)}
@@ -72,18 +71,16 @@ button:focus-visible,.track:focus-visible{outline:1px solid var(--ink3);outline-
 .nos{position:fixed;left:20px;top:90px;color:var(--ink2)}
 
 @media (max-width:1100px){
-  .hint{left:max(20px,env(safe-area-inset-left));top:max(84px,calc(env(safe-area-inset-top) + 70px));bottom:auto;transform:none;white-space:normal;max-width:calc(100vw - 120px);font-size:13px;line-height:1.55}
+  .hint{left:max(20px,env(safe-area-inset-left));top:max(56px,calc(env(safe-area-inset-top) + 44px));bottom:auto;transform:none;white-space:normal;max-width:calc(100vw - 120px);font-size:13px;line-height:1.55}
 }
 @media (max-width:560px){
   .mark h1{font-size:17px}
-  .colo{font-size:11.5px}
   .readout{width:calc(100vw - 104px);bottom:max(18px,env(safe-area-inset-bottom))}
   .pow{font-size:56px}
   .readout h2{font-size:19px;margin-top:12px}
   .readout .fact{font-size:13px;line-height:1.6;min-height:4.8em}
   .meta{font-size:11.5px;gap:2px 14px}
   .ruler{width:74px}
-  .hint{top:max(126px,calc(env(safe-area-inset-top) + 112px))}
   .lab{right:30px;font-size:11px}
 }
 @media (prefers-reduced-motion:reduce){
@@ -98,7 +95,6 @@ button:focus-visible,.track:focus-visible{outline:1px solid var(--ink3);outline-
 
 <header class="mark">
   <h1>一指之間</h1>
-  <p class="colo" id="colo">一個 HTML 檔，沒有圖片、字型或函式庫。畫面上的每個點都是即時算出來的。</p>
 </header>
 
 <button class="sound" id="sound" type="button" aria-pressed="false"><svg viewBox="0 0 16 14" aria-hidden="true"><line x1="2" y1="5" x2="2" y2="9"/><line class="w" x1="6.5" y1="2" x2="6.5" y2="12"/><line class="w" x1="11" y1="4" x2="11" y2="10"/><line class="w" x1="15" y1="6" x2="15" y2="8"/></svg><span id="soundTxt">開聲音</span></button>
@@ -500,13 +496,18 @@ var LAND=[
 ];
 var LAT0R=LAT0*D2R,LON0R=LON0*D2R,SL0=Math.sin(LAT0R),CL0=Math.cos(LAT0R);
 function ortho(lon,lat){var la=lat*D2R,dl=lon*D2R-LON0R,cl=Math.cos(la),x=cl*Math.sin(dl),y=CL0*Math.sin(la)-SL0*cl*Math.cos(dl),c=SL0*Math.sin(la)+CL0*cl*Math.cos(dl);if(c<0){var l=Math.hypot(x,y)||1;x/=l;y/=l;}return[x,-y,c];}
-var TYPH={lon:131.5,lat:18.2};
+// 颱風只在 6–11 月的颱風季出現，其他月份只有一般雲系
+var TYPH={lon:131.5,lat:18.2,on:(function(){var m=new Date().getMonth();return m>=5&&m<=10;})()};
 defR('globe',function*(){
   var EW=2048,EH=1024,eq=mk(EW,EH),eg=eq.getContext('2d');
   LAND.forEach(function(L){eg.fillStyle=rgb(L.c);for(var o=-1;o<=1;o++){eg.beginPath();L.p.forEach(function(v,i){var x=(v[0]+180)/360*EW+o*EW,y=(90-v[1])/180*EH;i?eg.lineTo(x,y):eg.moveTo(x,y);});eg.closePath();eg.fill();}});
   var ed=eg.getImageData(0,0,EW,EH).data;yield;
   var N=1280,c=mk(N),g=c.getContext('2d'),img=g.createImageData(N,N),d=img.data,cc=mk(N),cg=cc.getContext('2d'),cim=cg.createImageData(N,N),cd=cim.data;
-  var L3=[SD.x*.62,SD.y*.62,.78],ll=Math.hypot(L3[0],L3[1],L3[2]);L3=L3.map(function(v){return v/ll;});
+  // 此刻的太陽直射點（太陽赤經赤緯 + GMST），轉成以臺北為中心的正射投影方向，亮面就是真實的晨昏線
+  var sg=(357.528+.9856003*DAYS)*D2R,slam=(280.46+.9856474*DAYS)*D2R+(1.915*Math.sin(sg)+.02*Math.sin(2*sg))*D2R,seps=(23.439-4e-7*DAYS)*D2R;
+  var sdec=Math.asin(Math.sin(seps)*Math.sin(slam)),sra=Math.atan2(Math.cos(seps)*Math.sin(slam),Math.cos(slam)),gmst=(280.46061837+360.98564736629*DAYS)*D2R;
+  var sdl=sra-gmst-LON0R,scl=Math.cos(sdec);
+  var L3=[scl*Math.sin(sdl),-(CL0*Math.sin(sdec)-SL0*scl*Math.cos(sdl)),SL0*Math.sin(sdec)+CL0*scl*Math.cos(sdl)];
   var tla=TYPH.lat*D2R,tlo=TYPH.lon*D2R,tv=[Math.cos(tla)*Math.cos(tlo),Math.cos(tla)*Math.sin(tlo),Math.sin(tla)],te=[-Math.sin(tlo),Math.cos(tlo),0],tn=[-Math.sin(tla)*Math.cos(tlo),-Math.sin(tla)*Math.sin(tlo),Math.cos(tla)];
   for(var py=0;py<N;py++){var y=(py+.5)/N*2-1;for(var px=0;px<N;px++){var x=(px+.5)/N*2-1,r2=x*x+y*y;if(r2>1)continue;var o=(py*N+px)*4,cz=Math.sqrt(1-r2),yn=-y;
     var lat=Math.asin(clamp(cz*SL0+yn*CL0,-1,1)),lon=LON0R+Math.atan2(x,cz*CL0-yn*SL0),cl=Math.cos(lat),X3=cl*Math.cos(lon),Y3=cl*Math.sin(lon),Z3=Math.sin(lat);
@@ -519,7 +520,7 @@ defR('globe',function*(){
     d[o]=col[0]*sh+sp;d[o+1]=col[1]*sh+sp;d[o+2]=col[2]*sh+sp;d[o+3]=255;
     var cn=fbm3(X3*3.4+4,Y3*3.4+1,Z3*3.4+7,5),band=.1*Math.exp(-Math.pow((lat/D2R-7)/7,2))+.09*Math.exp(-Math.pow((ald-47)/11,2))-.05*Math.exp(-Math.pow((ald-25)/8,2));
     var cvv=clamp((cn+band-.53)*3,0,1);
-    var dt=X3*tv[0]+Y3*tv[1]+Z3*tv[2];if(dt>.97){var u=X3*te[0]+Y3*te[1]+Z3*te[2],v=X3*tn[0]+Y3*tn[1]+Z3*tn[2],rr=Math.hypot(u,v),th=Math.atan2(v,u);
+    var dt=X3*tv[0]+Y3*tv[1]+Z3*tv[2];if(TYPH.on&&dt>.97){var u=X3*te[0]+Y3*te[1]+Z3*te[2],v=X3*tn[0]+Y3*tn[1]+Z3*tn[2],rr=Math.hypot(u,v),th=Math.atan2(v,u);
       var arm=Math.pow(Math.max(0,Math.cos(2*th+Math.log(rr+.004)*5.5)),1.6)*Math.exp(-rr/.1)*1.3+Math.exp(-Math.pow((rr-.018)/.011,2));cvv=Math.max(cvv*(rr<.006?0:1),clamp(arm,0,1)*(rr<.006?.1:1));}
     if(cvv>0){var cs=.22+.9*Math.max(0,dl);cd[o]=248*cs;cd[o+1]=246*cs;cd[o+2]=240*cs;cd[o+3]=cvv*235;}}
     if(py%16===15)yield;}
@@ -531,8 +532,8 @@ var SC_GLOBE={b:6,lo:5.8,hi:8.4,f1:.5,f2:.5,draw:function(k,a){
   ctx.globalAlpha=a;ctx.drawImage(G.g,CX-Rp,CY-Rp,Rp*2,Rp*2);
   var ca=fade(z,5.9,6.5);if(ca>.01){ctx.globalAlpha=a*ca;ctx.drawImage(G.c,CX-Rp,CY-Rp,Rp*2,Rp*2);}
   if(Rp<4*S){ctx.save();ctx.globalAlpha=a*.55;ctx.strokeStyle='rgba(150,205,220,.6)';ctx.lineWidth=Math.max(1,Rp*.012);circ(CX,CY,Rp*1.004);ctx.stroke();ctx.restore();}
-  var al=a*fade(z,6.3,6.7)*(1-fade(z,7.5,7.9)),tv=ortho(TYPH.lon,TYPH.lat);
-  pin(CX+tv[0]*Rp,CY+tv[1]*Rp,'颱風',al*fade(z,6.5,6.8),14);
+  if(TYPH.on){var al=a*fade(z,6.3,6.7)*(1-fade(z,7.5,7.9)),tv=ortho(TYPH.lon,TYPH.lat);
+  pin(CX+tv[0]*Rp,CY+tv[1]*Rp,'颱風',al*fade(z,6.5,6.8),14);}
 }};
 SC.push(SC_GLOBE);
 
@@ -1119,7 +1120,9 @@ function flyTo(v){tour=null;$('goOut').classList.remove('on');$('goIn').classLis
 function startTour(dir){if(tour&&tour.dir===dir){stopAuto();return;}flight=null;tour={dir:dir};$('goOut').classList.toggle('on',dir>0);$('goIn').classList.toggle('on',dir<0);seen();}
 function tourSpeed(v){if(v<-19.3&&v>-33.4)return 3.4;if(v<-11.4&&v>-13.3)return 1.2;var d=9;for(var i=0;i<CAPS.length;i++)d=Math.min(d,Math.abs(v-CAPS[i][0]));return .3+.62*Math.min(1,d/1.1);}
 var seenOnce=false;function seen(){if(!seenOnce){seenOnce=true;hint.classList.add('gone');}}
-var last=0,hashT=0;
+var last=0,hashT=0,dirty=true,lastZ=NaN;
+// 有時間動畫的尺度：原子（減動態時仍以 2fps 換雲）、草地行人、原子核、質子夸克、普朗克泡沫
+function animAt(v){return(v>-13.8&&v<-9.2)||(!RM&&((v>-1.35&&v<2.2)||(v>-19.9&&v<-13.2)||(v>-35.5&&v<-33)));}
 function frame(ts){
   requestAnimationFrame(frame);
   var dt=Math.min(.05,(ts-last)/1000||.016);last=ts;time+=dt;
@@ -1128,11 +1131,12 @@ function frame(ts){
   zt=clamp(zt,ZMIN,ZMAX);
   var kf=(flight||tour)?1-Math.exp(-dt*14):1-Math.exp(-dt*8);z+=(zt-z)*kf;if(Math.abs(zt-z)<1e-4)z=zt;
   if(Math.abs(z)>1.3)seen();
-  render();updateUI();if(snd.on)padUpdate();
+  // 畫面靜止（z 沒變、場景沒有時間動畫、沒有 resize）時跳過整張重繪
+  if(dirty||z!==lastZ||animAt(z)){dirty=false;lastZ=z;render();updateUI();if(snd.on)padUpdate();}
   if(ts-hashT>700&&!flight&&!tour&&Math.abs(zt-z)<.002){hashT=ts;var hs='#z='+z.toFixed(2);if(location.hash!==hs)try{history.replaceState(null,'',hs);}catch(err){}}
 }
 function resize(){DPR=Math.min(2,window.devicePixelRatio||1);W=window.innerWidth;H=window.innerHeight;cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);S=Math.min(W,H);
-  var narrow=W<760;CX=Math.round(W/2-(narrow?22:0));CY=Math.round(H*(narrow?.4:.47));layoutRuler();}
+  var narrow=W<760;CX=Math.round(W/2-(narrow?22:0));CY=Math.round(H*(narrow?.4:.47));layoutRuler();dirty=true;}
 
 // input
 window.addEventListener('wheel',function(e){e.preventDefault();var d=e.deltaY*(e.deltaMode===1?33:e.deltaMode===2?400:1);zt=clamp(zt+d*(e.ctrlKey?.011:.0026),ZMIN,ZMAX);flight=null;if(tour)stopAuto();seen();},{passive:false});
@@ -1167,7 +1171,6 @@ $('sound').addEventListener('click',function(){if(!snd.ac&&!initAudio())return;s
 
 // ---------- boot ----------
 (function(){var m=/z=(-?[\d.]+)/.exec(location.hash);if(m){z=zt=clamp(parseFloat(m[1]),ZMIN,ZMAX);var e=Math.round(z);lastExp=e;elExp.textContent=(e<0?'−':'')+Math.abs(e);}})();
-try{var nav=performance.getEntriesByType&&performance.getEntriesByType('navigation')[0],bytes=nav&&nav.decodedBodySize;if(!bytes)bytes=new Blob(['<!doctype html>'+document.documentElement.outerHTML]).size;$('colo').textContent='一個 '+Math.round(bytes/1024)+' KB 的 HTML 檔，沒有圖片、字型或函式庫。畫面上的每個點都是即時算出來的。';}catch(err){}
 if(window.matchMedia&&matchMedia('(pointer: coarse)').matches)hint.textContent='雙指縮放，或上下拖曳。往外是宇宙，往裡是夸克。';
 resize();
 getR('grass');getR('grasslow');getR('cloth');

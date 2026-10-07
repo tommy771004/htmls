@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>高嶺市 一週天氣海報 · 第 39 週</title>
+<title>高嶺市 一週天氣海報 · 09.23—09.29</title>
 <meta name="description" content="一週經歷四季：巨大溫度滾動、雷雨閃電、霧中數字變模糊。收錄於 100 Creative HTML Works（079・天氣海報）。">
 <link rel="canonical" href="https://htmls-ruddy.vercel.app/web/079-weather-poster.html">
 <style>
@@ -50,10 +50,8 @@
   .quip{font-family:var(--zh);font-size:clamp(16px,1.5vw,21px);margin:.6em 0 0;max-width:30em;line-height:1.6}
   .quip::before{content:"";display:inline-block;width:2.2em;height:2px;background:currentColor;vertical-align:.35em;margin-right:.6em}
 
-  .facts{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;border-top:1px solid color-mix(in srgb,var(--fg) 40%,transparent)}
-  .facts li{padding:12px 0 10px;border-bottom:1px solid color-mix(in srgb,var(--fg) 40%,transparent);display:flex;flex-direction:column;gap:2px}
-  .facts li:nth-child(odd){padding-right:14px;border-right:1px solid color-mix(in srgb,var(--fg) 25%,transparent)}
-  .facts li:nth-child(even){padding-left:14px}
+  .facts{list-style:none;margin:0;padding:14px 0 0;display:grid;grid-template-columns:1fr 1fr;row-gap:14px;column-gap:24px;border-top:1px solid color-mix(in srgb,var(--fg) 40%,transparent)}
+  .facts li{display:flex;flex-direction:column;gap:2px}
   .facts span{font-size:12px;letter-spacing:.24em;font-family:var(--zh);opacity:.8}
   .facts b{font-family:var(--black);font-weight:900;font-size:clamp(22px,2.2vw,32px);letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
   .facts b small{font-family:var(--light);font-weight:300;font-size:.5em;letter-spacing:.05em}
@@ -74,6 +72,7 @@
   .day .hl small{font-family:var(--light);font-weight:300;opacity:.75;margin-left:4px}
   .range{position:relative;height:4px;border-radius:2px;background:color-mix(in srgb,currentColor 20%,transparent)}
   .range i{position:absolute;top:0;bottom:0;border-radius:2px;background:currentColor}
+  .sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
   .hint{font-size:12px;letter-spacing:.2em;text-align:right;margin:0;opacity:.75;font-family:var(--zh)}
 
   @media (max-width:860px){
@@ -96,12 +95,13 @@
 <div class="poster">
   <header>
     <div class="city">高嶺市<small>GAOLING · ALT. 1,840 M</small></div>
-    <div class="meta">第 <b>39</b> 週天氣海報<br><b>2026.09.23 — 09.29</b><br>本週將體驗四季</div>
+    <div class="meta"><b>7</b> 日天氣海報<br><b>2026.09.23 — 09.29</b><br>本週將體驗四季</div>
   </header>
 
   <main>
     <section class="hero" aria-live="polite">
-      <div class="temp" id="temp" aria-label="現在溫度"><span id="tnum">28</span><span class="deg">°</span></div>
+      <div class="temp" id="temp" aria-hidden="true"><span id="tnum">28</span><span class="deg">°</span></div>
+      <span class="sr" id="tsr">現在溫度 28 度</span>
       <div class="cond"><h1 id="cname">晴</h1><span class="en" id="cen">Clear skies</span></div>
       <p class="quip" id="quip">今天適合把棉被拿出去曬，順便曬一下自己。</p>
     </section>
@@ -170,7 +170,7 @@
     f.innerHTML = `
       <li><span>體感溫度</span><b>${d.feel}°</b></li>
       <li><span>濕度</span><b>${d.hum}<small>%</small></b></li>
-      <li><span>風 · ${dn}風</span><b><svg viewBox="0 0 22 22" style="transform:rotate(${d.dir}deg)" aria-hidden="true"><path d="M11 2 17 18 11 14 5 18Z" fill="currentColor"/></svg>${d.wind}<small>km/h</small></b></li>
+      <li><span>風 · ${dn}風</span><b><svg viewBox="0 0 22 22" style="transform:rotate(${d.dir + 180}deg)" aria-hidden="true"><path d="M11 2 17 18 11 14 5 18Z" fill="currentColor"/></svg>${d.wind}<small>km/h</small></b></li>
       <li><span>降雨機率</span><b>${d.pop}<small>%</small></b></li>
       <li><span>紫外線</span><b>${d.uv.split(' ')[0]}<small>${d.uv.split(' ')[1]}</small></b></li>
       <li><span>日出 / 日落</span><b style="font-size:clamp(18px,1.7vw,24px)">${d.rise}<small>/ ${d.set}</small></b></li>`;
@@ -186,7 +186,7 @@
     root.style.setProperty('--fg', d.c[2]); root.style.setProperty('--ac', d.c[3]);
     document.body.className = d.k;
     const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
-    set('cname', d.name); set('cen', d.en); set('quip', d.quip);
+    set('cname', d.name); set('cen', d.en); set('quip', d.quip); set('tsr', `現在溫度 ${d.now} 度`);
     facts(d);
     // count the giant number
     const from = shownT, to = d.now, t0 = performance.now();
@@ -199,6 +199,7 @@
     };
     tAnim = requestAnimationFrame(step);
     setFx(d.k);
+    if (reduce && ctx) { fade = 1; last = performance.now(); frame(last); }
   }
 
   /* ---------------- weather canvas ---------------- */
@@ -323,6 +324,7 @@
   }
 
   document.addEventListener('keydown', e => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.key === 'ArrowRight') { e.preventDefault(); show(cur + 1); btns[cur].focus({ preventScroll: true }); }
     if (e.key === 'ArrowLeft') { e.preventDefault(); show(cur - 1); btns[cur].focus({ preventScroll: true }); }
   });
@@ -330,7 +332,13 @@
     running = !document.hidden; cancelAnimationFrame(raf);
     if (running && ctx) { last = performance.now(); raf = requestAnimationFrame(frame); }
   });
-  window.addEventListener('resize', () => { resize(); setFx(kind); if (reduce && ctx) frame(performance.now()); });
+  window.addEventListener('resize', () => {
+    const pw = W, ph = H;
+    resize();
+    // 手機網址列伸縮只改一點高度：保留現有粒子與淡入狀態，不整批重生
+    if (Math.abs(W - pw) > 1 || Math.abs(W * H - pw * ph) / (pw * ph || 1) > .15) setFx(kind);
+    if (reduce && ctx) { fade = 1; last = performance.now(); frame(last); }
+  });
 
   resize();
   show(0);

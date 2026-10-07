@@ -420,7 +420,10 @@ import readline from 'node:readline';
 
 const PORT = Number(process.env.FIXER_PORT || /*PORT*/7154);
 const TOOLS = /*TOOLS*/[];
-const ORIGINS = [/^https:\/\/htmls-ruddy\.vercel\.app$/, /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/, /^null$/, /^file:\/\//];
+// 配對碼：下載時由編輯器嵌入，編輯器連線時帶在網址上；其他網頁（含 sandbox iframe 的 Origin: null）拿不到它
+const TOKEN = /*TOKEN*/'';
+const ORIGINS = [/^https:\/\/htmls-ruddy\.vercel\.app$/, /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/];
+const tokenOk = t => { const a = Buffer.from(String(t || '')), b = Buffer.from(TOKEN); return TOKEN.length >= 16 && a.length === b.length && crypto.timingSafeEqual(a, b); };
 const log = (...a) => process.stderr.write('[fixer] ' + a.join(' ') + '\n');
 
 let page = null, seq = 0;
@@ -440,15 +443,18 @@ const server = http.createServer((req, res) => {
   res.end(`定影 FIXER MCP 橋接程式運作中（埠 ${PORT}）。\n編輯器${page ? '已' : '尚未'}連線。\n`);
 });
 server.on('upgrade', (req, sock) => {
-  const origin = String(req.headers.origin || 'null');
-  if (!ORIGINS.some(r => r.test(origin))) { sock.end('HTTP/1.1 403 Forbidden\r\n\r\n'); log('拒絕來源', origin); return; }
+  const origin = String(req.headers.origin || '');
+  if (!ORIGINS.some(r => r.test(origin))) { sock.end('HTTP/1.1 403 Forbidden\r\n\r\n'); log('拒絕來源', origin || '（無）'); return; }
+  let t = ''; try { t = new URL(req.url, 'http://127.0.0.1').searchParams.get('t'); } catch { }
+  if (!tokenOk(t)) { sock.end('HTTP/1.1 403 Forbidden\r\n\r\n'); log('配對碼不符，請從編輯器重新下載橋接程式'); return; }
+  // 已有編輯器連著就拒絕新連線，不把既有連線踢掉
+  if (page) { sock.end('HTTP/1.1 409 Conflict\r\n\r\n'); log('已有編輯器連線，拒絕新的連線'); return; }
   const key = req.headers['sec-websocket-key'];
   if (!key) { sock.destroy(); return; }
   const accept = crypto.createHash('sha1').update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
   sock.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ' + accept + '\r\n\r\n');
   sock.setNoDelay(true);
   const conn = { sock, send: s => frame(sock, 1, Buffer.from(s, 'utf8')) };
-  if (page) { try { frame(page.sock, 8, Buffer.alloc(0)); page.sock.end(); } catch { } }
   page = conn;
   log('編輯器已連線：' + origin);
   let buf = Buffer.alloc(0), parts = [];
@@ -515,8 +521,11 @@ async function runTool(name, args = {}) {
   if (!r.ok) return { content: [{ type: 'text', text: r.error || '失敗' }], isError: true };
   const content = [];
   if (r.file) {
-    let fp = expand(String(args.path || r.file.name));
-    if (fp.endsWith(path.sep)) fp = path.join(fp, r.file.name);
+    // 寫入位置只由代理給的 args.path 決定；頁面回傳的檔名只取 basename，且只在 path 是資料夾時才用
+    const raw = String(args.path || '');
+    if (!raw) return { content: [{ type: 'text', text: '沒有提供 path，未寫入檔案。' }], isError: true };
+    let fp = expand(raw);
+    if (/[\\/]$/.test(raw)) { const bn = path.basename(String(r.file.name || '')); fp = path.join(fp, bn && bn !== '.' && bn !== '..' ? bn : 'export'); }
     await fs.mkdir(path.dirname(fp), { recursive: true });
     await fs.writeFile(fp, Buffer.from(r.file.data, 'base64'));
     content.push({ type: 'text', text: `${r.text || ''}\n已寫入 ${fp}`.trim() });
@@ -1012,6 +1021,8 @@ const R = {
 /* ═══════════════ 文件、圖層與歷史紀錄 ═══════════════ */
 const DOCS = [];
 let doc = null, docSeq = 1;
+// 圖層只存在記憶體：有未儲存變更時，重新整理或關分頁前先讓瀏覽器確認
+addEventListener('beforeunload', e => { if (DOCS.some(d => d.modified && d.hi > 0)) { e.preventDefault(); e.returnValue = ''; } });
 
 function makeDoc(w, hh, name) {
   const d = { id: docSeq++, name, w, h: hh, root: { type: 'group', children: [], id: 0, name: 'root' }, active: null, sel: null, lastSel: null, hist: [], hi: -1, nid: 1, layerN: 1, view: null, modified: false, dirty: true };
@@ -2097,7 +2108,7 @@ function canvasFromSource(src, maxSide) {
 }
 async function decodeImage(blob) {
   if (window.createImageBitmap) { try { return await createImageBitmap(blob); } catch (e) { } }
-  return await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => rej(new Error('無法解碼這個檔案')); im.src = URL.createObjectURL(blob); });
+  return await new Promise((res, rej) => { const im = new Image(), u = URL.createObjectURL(blob); im.onload = () => { URL.revokeObjectURL(u); res(im); }; im.onerror = () => { URL.revokeObjectURL(u); rej(new Error('無法解碼這個檔案')); }; im.src = u; });
 }
 async function openBlob(blob, name, asLayer) {
   const head = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
@@ -3903,6 +3914,13 @@ function readPSD(buf, name) {
 let agentBusy = false;
 const agent = { ws: null, ok: false, port: 7154, log: [], auto: false, tries: 0, timer: 0 };
 try { agent.port = +(localStorage.getItem('fixer.agent.port') || 7154); agent.auto = localStorage.getItem('fixer.agent.auto') === '1'; } catch (e) { }
+// 配對碼：嵌進下載的橋接程式，連線時帶上，讓橋接只接受這個編輯器
+agent.token = '';
+try { agent.token = localStorage.getItem('fixer.agent.token') || ''; } catch (e) { }
+if (!/^[0-9a-f]{32}$/.test(agent.token)) {
+  agent.token = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
+  try { localStorage.setItem('fixer.agent.token', agent.token); } catch (e) { }
+}
 
 const BLEND_KEYS = BLENDS.map(b => b[0]);
 const AGENT_TOOLS = [
@@ -4098,7 +4116,7 @@ function agentConnect(quiet) {
   if (agent.ws) return;
   clearTimeout(agent.timer);
   let ws;
-  try { ws = new WebSocket(`ws://127.0.0.1:${agent.port}/fixer`); } catch (e) { toast('無法建立連線：' + e.message); return; }
+  try { ws = new WebSocket(`ws://127.0.0.1:${agent.port}/fixer?t=${agent.token}`); } catch (e) { toast('無法建立連線：' + e.message); return; }
   agent.ws = ws; agent.ok = false; agentUI();
   ws.onopen = () => {
     agent.ok = true; agent.tries = 0; agentUI();
@@ -4114,7 +4132,7 @@ function agentConnect(quiet) {
   ws.onclose = () => {
     const was = agent.ok; agent.ws = null; agent.ok = false; agentUI();
     if (was) toast('代理連線中斷');
-    else if (!quiet) toast(`連不到 127.0.0.1:${agent.port}：請先在終端機啟動橋接程式`, 3600);
+    else if (!quiet) toast(`連不到 127.0.0.1:${agent.port}：請先啟動橋接程式；若是舊版或在別的瀏覽器下載的，請重新下載`, 4200);
     if (agent.auto && agent.tries < 40) { agent.tries++; agent.timer = setTimeout(() => agentConnect(true), Math.min(15000, 2000 + agent.tries * 1000)); }
   };
 }
@@ -4124,7 +4142,7 @@ function agentDisconnect() {
   if (agent.ws) agent.ws.close();
 }
 function bridgeSource() {
-  const src = $('bridgeSrc').textContent.replace('/*TOOLS*/[]', JSON.stringify(AGENT_TOOLS, null, 1)).replace('/*PORT*/7154', String(agent.port));
+  const src = $('bridgeSrc').textContent.replace('/*TOOLS*/[]', JSON.stringify(AGENT_TOOLS, null, 1)).replace('/*PORT*/7154', String(agent.port)).replace("/*TOKEN*/''", JSON.stringify(agent.token));
   return src.replace(/^\s*\n/, '');
 }
 function downloadBridge() { download(new Blob([bridgeSource()], { type: 'text/javascript' }), 'fixer-mcp.mjs'); say('已下載 fixer-mcp.mjs'); }
@@ -4143,7 +4161,7 @@ function renderAgent() {
   step(2, '登記成 MCP 伺服器', `# Claude Code\nclaude mcp add fixer -- node ${home}/fixer-mcp.mjs\n\n# Codex\ncodex mcp add fixer -- node ${home}/fixer-mcp.mjs`);
   step(3, '按上方「連接代理」，然後直接交代', '把目前文件提亮半格曝光，\n四角壓暗做暗角，\n匯出成 ~/Desktop/harbor.jpg');
   box.append(h('p', { class: 'note' }, '已在 Chrome 驗證；Safari 可能擋下 https 頁面連到本機的 ws://，這時請改用 Chrome、Edge 或 Firefox。'));
-  box.append(h('p', { class: 'note' }, '橋接程式只聽 127.0.0.1，而且只接受這個網站或本機開啟的頁面。代理做的每一步都會出現在歷史紀錄（標示「代理」），可以直接還原。'));
+  box.append(h('p', { class: 'note' }, '橋接程式只聽 127.0.0.1，只接受這個網站或 localhost 開啟的頁面，並用下載時嵌入的配對碼確認是這個瀏覽器的編輯器；換瀏覽器或清除網站資料後要重新下載。代理做的每一步都會出現在歷史紀錄（標示「代理」），可以直接還原。'));
   box.append(h('div', { class: 'agh' }, '可用工具'));
   const tl = h('div', { class: 'tools' }); for (const t of AGENT_TOOLS) tl.append(h('div', null, h('b', null, t.name), h('span', null, TOOL_BRIEF[t.name] || ''))); box.append(tl);
   box.append(h('div', { class: 'agh' }, '在這裡試呼叫'));

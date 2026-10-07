@@ -17,9 +17,6 @@ html{background:#f4f3ef}
 body{margin:0;min-height:100vh;color:var(--ink);font-family:var(--mono);
   background:radial-gradient(ellipse 70% 60% at 50% 40%,#fbfaf7,#e9e7e1);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:clamp(16px,4vw,48px) 16px 32px}
 button{font:inherit;color:inherit}
-.meta{width:min(1040px,100%);display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--mute);margin-bottom:14px;gap:12px;flex-wrap:wrap}
-.meta b{color:var(--ink);font-weight:700;font-size:13px}
-.meta span i{font-style:normal;color:var(--or)}
 
 .unit{position:relative;width:min(1040px,100%);background:linear-gradient(180deg,#eeece6,var(--body) 40%,#dedcd5);border-radius:18px;padding:clamp(16px,2.6vw,30px);
   box-shadow:0 1px 0 #fff inset,0 -2px 0 rgba(0,0,0,.06) inset,0 30px 60px -20px rgba(0,0,0,.35),0 8px 18px -6px rgba(0,0,0,.2),0 0 0 1px var(--edge)}
@@ -86,13 +83,13 @@ button{font:inherit;color:inherit}
 .brand{font-size:11px;color:var(--mute);text-align:right;line-height:1.5}
 .brand b{color:var(--ink);font-size:16px;letter-spacing:-.02em}
 .brand b span{color:var(--or)}
+.brand small{display:block;font-size:10px;color:var(--mute)}
 .help{width:min(1040px,100%);margin-top:18px;font-size:12px;line-height:1.7;color:var(--mute);display:flex;flex-wrap:wrap;gap:4px 22px}
 .help kbd{font:inherit;color:var(--ink);background:#fff;border:1px solid #d3d1ca;border-radius:4px;padding:0 5px}
 </style>
 </head>
 <body>
 <h1 style="position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap">ku-16 field rhythm unit</h1>
-<div class="meta"><span><b>ku-16</b> field rhythm unit · rev.b</span><span>6 voices · 16 steps · 4 patterns · <i>no samples, only math</i></span></div>
 
 <div class="unit" id="unit">
   <span class="screw s1"></span><span class="screw s2"></span><span class="screw s3"></span><span class="screw s4"></span>
@@ -114,7 +111,7 @@ button{font:inherit;color:inherit}
 
   <div class="bottom">
     <div class="pat" id="pat" role="group" aria-label="patterns"><span class="lbl">pattern&nbsp;</span></div>
-    <div class="brand"><b>ku<span>-</span>16</b><br>designed for small rooms &amp; big feelings</div>
+    <div class="brand"><b>ku<span>-</span>16</b><br>designed for small rooms &amp; big feelings<small>field rhythm unit rev.b · 6 voices · 16 steps · 4 patterns</small></div>
   </div>
 </div>
 
@@ -213,10 +210,12 @@ button{font:inherit;color:inherit}
     return audio;
   }
   function env(g, t, a, peak, dec){ g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(.0001, t + a + dec); }
-  function noise(t, dur, type, freq, q, peak, dec){
+  function noise(t, dur, type, freq, q, peak, dec, dest){
     const s = audio.createBufferSource(); s.buffer = noiseBuf; const f = audio.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q || 1; const g = audio.createGain();
-    env(g, t, .001, peak, dec); s.connect(f).connect(g).connect(master); s.start(t, Math.random()*.5); s.stop(t + dur);
+    env(g, t, .001, peak, dec); s.connect(f).connect(g).connect(dest || master); s.start(t, Math.random()*.5); s.stop(t + dur);
   }
+  // hi-hat choke group: an open hat runs through its own gain so a later closed hat can cut it
+  let openChoke = null;
   function osc(t, type, f0, f1, fdec, peak, dec){
     const o = audio.createOscillator(), g = audio.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t); if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + fdec);
     env(g, t, .002, peak, dec); o.connect(g).connect(master); o.start(t); o.stop(t + dec + .05);
@@ -227,12 +226,14 @@ button{font:inherit;color:inherit}
     switch (VOICES[v].id){
       case 'kick': osc(t, 'sine', 160*tn, 42*tn, .12, .95, .42); osc(t, 'triangle', 800, 60, .02, .25, .03); break;
       case 'snare': osc(t, 'triangle', 190*tn, 150*tn, .08, .35, .12); noise(t, .3, 'highpass', 1200*tn, .7, .5, .18); break;
-      case 'hat': noise(t, .08, 'highpass', 7500*tn, 1, .32, .045); break;
-      case 'open': noise(t, .5, 'highpass', 6800*tn, 1, .26, .32); break;
+      case 'hat':
+        if (openChoke && openChoke.t < t - .001){ openChoke.g.gain.setTargetAtTime(0, t, .005); openChoke = null; }
+        noise(t, .08, 'highpass', 7500*tn, 1, .32, .045); break;
+      case 'open': { const ch = audio.createGain(); ch.connect(master); openChoke = {g: ch, t}; noise(t, .5, 'highpass', 6800*tn, 1, .26, .32, ch); break; }
       case 'clap': [0, .012, .024].forEach(d => noise(t + d, .05, 'bandpass', 1400*tn, 1.4, .55, .03)); noise(t + .036, .3, 'bandpass', 1300*tn, 1.2, .4, .16); break;
       case 'bell': osc(t, 'square', 540*tn, 0, 0, .12, .28); osc(t, 'square', 812*tn, 0, 0, .09, .28); break;
     }
-    hits.push({v, t});
+    hits.push({v, t}); wake();
   }
   // scheduler
   let nextTime = 0, timer = 0, visQ = [], hits = [];
@@ -250,12 +251,12 @@ button{font:inherit;color:inherit}
   function start(){
     if (!ensureAudio()) return;
     playing = true; step = -1; nextTime = audio.currentTime + .06; visQ = [];
-    schedule(); timer = setInterval(schedule, 25);
+    schedule(); timer = setInterval(schedule, 25); wake();
     playBtn.setAttribute('aria-pressed', 'true'); const pi = $('#playIcon'); if (pi) pi.innerHTML = '<rect x="5" y="5" width="12" height="12" rx="1.5" fill="currentColor"/>';
     const sm = playBtn.querySelector('small'); if (sm) sm.textContent = 'stop';
   }
   function stop(){
-    playing = false; clearInterval(timer); visStep = -1; stBtns.forEach(b => b.classList.remove('now'));
+    playing = false; clearInterval(timer); visStep = -1; stBtns.forEach(b => b.classList.remove('now')); wake();
     playBtn.setAttribute('aria-pressed', 'false'); const pi = $('#playIcon'); if (pi) pi.innerHTML = '<path d="M6 4 L18 11 L6 18Z" fill="currentColor"/>';
     const sm = playBtn.querySelector('small'); if (sm) sm.textContent = 'play';
   }
@@ -273,12 +274,12 @@ button{font:inherit;color:inherit}
     else if (/^[1-6]$/.test(k)){ selectTrack(+k - 1); ensureAudio(); trigger(cur, audio ? audio.currentTime + .01 : 0, true); }
     else if (KEYS.includes(k)) toggle(KEYS.indexOf(k));
   });
-  function tick(){ if (!audio) return; const t = audio.currentTime, o = audio.createOscillator(), g = audio.createGain(); o.type = 'square'; o.frequency.value = 2400; g.gain.setValueAtTime(.02, t); g.gain.exponentialRampToValueAtTime(.0001, t + .015); o.connect(g).connect(audio.destination); o.start(t); o.stop(t + .02); }
+  function tick(){ wake(); if (!audio) return; const t = audio.currentTime, o = audio.createOscillator(), g = audio.createGain(); o.type = 'square'; o.frequency.value = 2400; g.gain.setValueAtTime(.02, t); g.gain.exponentialRampToValueAtTime(.0001, t + .015); o.connect(g).connect(audio.destination); o.start(t); o.stop(t + .02); }
 
   // ---------- display ----------
   let msg = '', msgT = 0, visStep = -1, W = 0, Hh = 0, dpr = 1;
-  function flash(m){ msg = m; msgT = performance.now(); }
-  function size(){ const r = oled.getBoundingClientRect(); dpr = Math.min(2, window.devicePixelRatio || 1); W = r.width; Hh = r.height; oled.width = W*dpr; oled.height = Hh*dpr; octx && octx.setTransform(dpr,0,0,dpr,0,0); }
+  function flash(m){ msg = m; msgT = performance.now(); wake(); }
+  function size(){ const r = oled.getBoundingClientRect(); dpr = Math.min(2, window.devicePixelRatio || 1); W = r.width; Hh = r.height; oled.width = W*dpr; oled.height = Hh*dpr; octx && octx.setTransform(dpr,0,0,dpr,0,0); wake(); }
   const levels = VOICES.map(() => 0);
   function draw(now){
     if (!octx) return;
@@ -316,12 +317,21 @@ button{font:inherit;color:inherit}
     const age = now - msgT;
     if (msg && age < 1400){ octx.fillStyle = '#ffc23a'; octx.font = '12px Consolas, Menlo, monospace'; octx.fillText('› ' + msg, pad, Hh - 14); }
     else if (!playing && Math.floor(now/600) % 2){ octx.fillStyle = '#8b8b86'; octx.font = '12px Consolas, Menlo, monospace'; octx.fillText('press play or space', pad, Hh - 14); }
-    raf = document.hidden ? 0 : requestAnimationFrame(draw);
+    raf = 0;
+    if (document.hidden) return;
+    // full frame rate only while something moves; idle (stopped, bars settled, no message) redraws at ~7 fps
+    const active = playing || hits.length || (msg && age < 1400) || levels.some(l => l > .01);
+    if (active) raf = requestAnimationFrame(draw);
+    else idleT = setTimeout(() => { idleT = 0; if (!raf) raf = requestAnimationFrame(draw); }, 150);
   }
-  let raf = 0;
+  let raf = 0, idleT = 0;
+  function wake(){
+    if (idleT){ clearTimeout(idleT); idleT = 0; }
+    if (!raf && !document.hidden) raf = requestAnimationFrame(draw);
+  }
   size(); addEventListener('resize', size);
-  raf = requestAnimationFrame(draw);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && !raf) raf = requestAnimationFrame(draw); });
+  wake();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) wake(); });
 })();
 </script>
 </body>

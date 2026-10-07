@@ -70,6 +70,7 @@ kbd{font-family:var(--f);font-weight:700;border:1px solid currentColor;padding:0
 .hero .foot{grid-column:1 / -1;display:grid;grid-template-columns:subgrid;padding-top:calc(var(--base)*2);align-items:start}
 .hero .foot p{grid-column:span 3}
 .hero .foot p:first-child{grid-column:1 / span 4}
+.hero .foot p:last-child{grid-column:8 / -1}
 .hero .foot .num{font-size:11px;font-weight:700;display:block;margin-bottom:4px;color:var(--blue)}
 
 /* ---------- sections ---------- */
@@ -134,7 +135,15 @@ section{padding-top:calc(var(--base)*10)}
 .tk.hi button{background:var(--blue)}
 .tk button:hover{background:var(--blue)}
 .tk.hi button:hover{background:var(--ink)}
-.tk button[disabled]{background:#fff;color:var(--blue);outline:2px solid var(--blue);outline-offset:-2px;cursor:default}
+.tk button.done,.tk button.done:hover{background:#fff;color:var(--blue);outline:2px solid var(--blue);outline-offset:-2px}
+.rf{display:flex;flex-direction:column;gap:10px;margin-top:auto}
+.rf[hidden]{display:none}
+.rf label{display:flex;flex-direction:column;gap:2px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.rf input{font:inherit;font-size:15px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink);background:none;border:0;border-bottom:2px solid var(--ink);border-radius:0;min-height:40px;padding:4px 0}
+.rf input:focus{outline:none;border-bottom-color:var(--blue)}
+.rf .ra{display:flex;gap:16px;align-items:center}
+.tk .rf .ra button{margin-top:0}
+.tk .rf .rc,.tk .rf .rc:hover{background:none;color:var(--ink);padding:0;text-decoration:underline}
 
 footer{margin-top:calc(var(--base)*14);background:var(--blue);color:#fff;padding:calc(var(--base)*4) 0 calc(var(--base)*3)}
 footer .g{align-items:end}
@@ -161,7 +170,7 @@ footer .fcol b{display:block}
   .top .logo{grid-column:1 / span 3}.top .meta{display:none}.top .ctrl{grid-column:4 / span 3}
   .hero .kicker{grid-column:1 / span 4}.hero .dates{grid-column:1 / span 3}.hero .place{grid-column:4 / span 3}
   .big{grid-column:1 / -1}
-  .hero .foot p,.hero .foot p:first-child{grid-column:span 3;margin-bottom:12px}
+  .hero .foot p,.hero .foot p:first-child,.hero .foot p:last-child{grid-column:span 3;margin-bottom:12px}
   .sh .n{grid-column:1 / span 2}.sh h2{grid-column:3 / span 4}.sh .aside{grid-column:3 / span 4;margin-top:10px}
   .man,.facts,.days,.prog,.tix{grid-column:1 / -1}
   .sp,.sp:nth-child(n){grid-column:span 3;margin-top:0}
@@ -176,7 +185,7 @@ footer .fcol b{display:block}
   .big{font-size:clamp(120px,62vw,320px);margin-top:calc(var(--base)*9)}
   .word{font-size:clamp(34px,11vw,60px)}
   .disk{width:40vw;left:auto;right:6%;top:-4%}
-  .hero .foot p,.hero .foot p:first-child{grid-column:span 2}
+  .hero .foot p,.hero .foot p:first-child,.hero .foot p:last-child{grid-column:span 2}
   .idx{display:none}
   .sh .n{grid-column:1 / -1;margin-bottom:12px}.sh h2{grid-column:1 / -1}.sh .aside{grid-column:1 / -1}
   .man{text-indent:0}
@@ -206,7 +215,7 @@ footer .fcol b{display:block}
     <div class="logo">RASTER<i>&thinsp;26</i><br><span style="font-weight:400">Systematic Design</span></div>
     <div class="meta small">International<br>Conference on<br>Grids &amp; Systems</div>
     <div class="meta small">Kongresshaus<br>Claridenstrasse 5<br>8002 Zürich</div>
-    <div class="meta small">Local time<br><b id="clock" style="font-variant-numeric:tabular-nums">--:--:--</b><br>CET</div>
+    <div class="meta small">Local time<br><b id="clock" style="font-variant-numeric:tabular-nums">--:--:--</b><br>CEST</div>
     <div class="ctrl">
       <button class="gridbtn" id="gridbtn" aria-pressed="false" title="Toggle grid (G)"><span class="sq"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span><span class="lbl">Grid <kbd>G</kbd></span></button>
     </div>
@@ -230,10 +239,9 @@ footer .fcol b{display:block}
 
     <div class="foot">
       <div class="rule thin" style="animation-delay:.6s"></div>
-      <p><span class="num">01</span>Three days, twenty-one talks and one shared belief: the grid is not a cage. It is the quiet agreement that lets everything else speak.</p>
+      <p><span class="num">01</span>Three days, fifteen sessions and one shared belief: the grid is not a cage. It is the quiet agreement that lets everything else speak.</p>
       <p><span class="num">02</span>Talks in English.<br>Workshops in English, Deutsch and Français.</p>
       <p><span class="num">03</span>Early registration<br>closes 31.08.2026</p>
-      <p class="small" style="align-self:end"><span class="num">04</span>Press <kbd>G</kbd> or use the button above to reveal the grid this page is built on.</p>
     </div>
   </div>
 
@@ -241,15 +249,15 @@ footer .fcol b{display:block}
     <div class="sh"><div class="n">A</div><h2>Manifesto</h2><p class="aside small">Written in 1 afternoon, revised in 11 committee meetings, set in exactly one typeface.</p></div>
     <p class="man">“Order is not the enemy of <em>expression.</em> Disorder is merely order that nobody has explained yet. We gather to explain it — in columns, with margins, flush left, ragged right.”</p>
     <div class="facts">
-      <div class="fact"><b>21</b><span>Speakers from 9 countries</span></div>
+      <div class="fact"><b>6</b><span>Speakers from 5 countries</span></div>
       <div class="fact"><b>12</b><span>Columns. Never 13.</span></div>
-      <div class="fact"><b>6</b><span>Workshops, max. 16 seats</span></div>
+      <div class="fact"><b>2</b><span>Workshops, max. 16 seats</span></div>
       <div class="fact"><b class="blue">1</b><span>Typeface, allowed</span></div>
     </div>
   </section>
 
   <section class="g" id="programme">
-    <div class="sh"><div class="n">B</div><h2>Programme</h2><p class="aside small">All times CET. Doors open 30 minutes early. Coffee is served strictly on the half hour.</p></div>
+    <div class="sh"><div class="n">B</div><h2>Programme</h2><p class="aside small">All times CEST. Doors open 30 minutes early. Coffee is served strictly on the half hour.</p></div>
     <div class="days" role="tablist" id="days">
       <button class="day" role="tab" aria-selected="true" data-d="0"><b>14</b><span>Wed<br>Structure</span></button>
       <button class="day" role="tab" aria-selected="false" data-d="1"><b>15</b><span>Thu<br>Rhythm</span></button>
@@ -418,10 +426,35 @@ footer .fcol b{display:block}
   /* registration */
   var toast=$('#toast'), tt;
   function say(msg){ if(!toast) return; toast.textContent=msg; toast.classList.add('show'); clearTimeout(tt); tt=setTimeout(function(){toast.classList.remove('show');},2600); }
-  document.querySelectorAll('.tk button').forEach(function(b){
+  document.querySelectorAll('.tk').forEach(function(tk){
+    var b=tk.querySelector('button[data-t]'); if(!b) return;
+    var t=b.getAttribute('data-t');
+    var f=document.createElement('form'); f.className='rf'; f.hidden=true;
+    f.innerHTML='<label>Name<input name="n" required autocomplete="name"></label>'+
+      '<label>Email<input name="e" type="email" required autocomplete="email"></label>'+
+      '<div class="ra"><button type="submit">Confirm</button><button type="button" class="rc">Cancel</button></div>';
+    tk.insertBefore(f,b);
+    var rc=f.querySelector('.rc');
+    function closeForm(){ f.hidden=true; b.hidden=false; }
     b.addEventListener('click',function(){
-      b.disabled=true; b.textContent='Reserved ✓';
-      say(b.getAttribute('data-t')+' reserved. Please arrive aligned.');
+      if(b.classList.contains('done')){
+        b.classList.remove('done'); b.textContent='Register'; b.removeAttribute('title');
+        say(t+' reservation cancelled.');
+        return;
+      }
+      b.hidden=true; f.hidden=false;
+      var first=f.querySelector('input'); if(first) first.focus();
+    });
+    if(rc) rc.addEventListener('click',function(){ closeForm(); b.focus(); });
+    f.addEventListener('submit',function(e){
+      e.preventDefault();
+      if(!f.checkValidity()){ f.reportValidity(); return; }
+      var name=f.elements.n.value.trim();
+      if(!name){ f.elements.n.value=''; f.reportValidity(); return; }
+      closeForm(); f.reset();
+      b.classList.add('done'); b.textContent='Reserved ✓'; b.title='Click to cancel';
+      b.focus();
+      say(t+' reserved for '+name+'. Please arrive aligned.');
     });
   });
 })();

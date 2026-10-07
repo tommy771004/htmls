@@ -16,7 +16,7 @@
 body{margin:0;background:#231915;color:var(--ink);font-family:var(--serif);
   background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.025) 0 2px,transparent 2px 90px),radial-gradient(ellipse at 50% 0,#3b2a22,#1a120f 70%)}
 .poster{position:relative;max-width:1180px;margin:clamp(12px,3vw,36px) auto;padding:clamp(18px,3.4vw,46px) clamp(16px,3.6vw,52px) clamp(24px,3vw,40px);
-  background:var(--cream);box-shadow:0 30px 70px rgba(0,0,0,.55),0 0 0 1px rgba(0,0,0,.3);overflow:hidden;
+  background:var(--cream);overflow:hidden;
   clip-path:polygon(0 .4%,3% 0,22% .3%,47% 0,71% .4%,93% 0,100% .5%,99.7% 28%,100% 61%,99.6% 99.5%,76% 100%,52% 99.6%,24% 100%,.4% 99.6%,0 71%,.3% 38%)}
 .poster::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;mix-blend-mode:multiply;
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .45  0 0 0 0 .32  0 0 0 0 .15  0 0 0 .35 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
@@ -67,17 +67,20 @@ body{margin:0;background:#231915;color:var(--ink);font-family:var(--serif);
 .star{display:inline-block;width:.6em;height:.6em;background:var(--red);clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);vertical-align:.08em;margin:0 .25em}
 
 /* ---------- booth ---------- */
-.booth{position:relative;background:var(--red);padding:30px 30px 0;color:var(--cream);box-shadow:inset 0 0 0 4px var(--ink),inset 0 0 0 10px var(--red),inset 0 0 0 12px var(--gold)}
+.booth{position:relative;background:var(--red);padding:30px 30px 0;color:var(--cream);box-shadow:inset 0 0 0 10px var(--red),inset 0 0 0 12px var(--gold)}
 .booth h2{color:var(--cream);text-align:center;margin-bottom:4px}
 .booth .sub{text-align:center;font-style:italic;font-size:14px;margin:0 0 14px}
+.snd{all:unset;cursor:pointer;font-family:var(--wood);font-style:normal;font-size:12px;letter-spacing:.16em;text-transform:uppercase;padding:4px 2px;margin-left:.5em;border-bottom:1px solid currentColor;white-space:nowrap}
+.snd[aria-pressed="true"]{color:var(--gold)}
+.snd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .bulbs{position:absolute;inset:0;pointer-events:none}
 .bulb{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#6b4a1c;box-shadow:inset 0 0 0 2px rgba(0,0,0,.35)}
 .bulb.on{background:radial-gradient(circle at 40% 35%,#fffbe6,var(--gold) 45%,#e89a1c);box-shadow:0 0 10px 3px rgba(255,200,80,.75),0 0 2px #fff}
-.window{background:var(--cream);color:var(--ink);padding:18px 18px 16px;box-shadow:inset 0 0 0 3px var(--ink),inset 0 0 0 7px var(--cream),inset 0 0 0 8px var(--ink);position:relative}
+.window{background:var(--cream);color:var(--ink);padding:18px 18px 16px;position:relative}
 .grp{margin-bottom:14px}
 .grp>span{display:block;font-family:var(--wood);letter-spacing:.2em;font-size:14px;text-transform:uppercase;margin-bottom:6px}
 .opts{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
-.opt{all:unset;box-sizing:border-box;cursor:pointer;border:2px solid var(--ink);padding:7px 10px;min-height:44px;display:flex;flex-direction:column;justify-content:center;background:var(--cream);transition:transform .08s}
+.opt{all:unset;box-sizing:border-box;cursor:pointer;border:0;border-bottom:2px solid var(--ink);padding:7px 10px;min-height:44px;display:flex;flex-direction:column;justify-content:center;background:var(--cream);transition:transform .08s}
 .opt b{font-family:var(--wood);font-weight:400;font-size:17px;letter-spacing:.06em;text-transform:uppercase;line-height:1}
 .opt small{font-style:italic;font-size:12px;margin-top:2px}
 .opt[aria-checked="true"]{background:var(--ink);color:var(--cream)}
@@ -200,7 +203,7 @@ body{margin:0;background:#231915;color:var(--ink);font-family:var(--serif);
     <section class="booth" aria-label="Ticket booth">
       <div class="bulbs" id="bulbs" aria-hidden="true"></div>
       <h2>Ticket Office</h2>
-      <p class="sub">Step right up! Knock twice. Do not feed the clerk.</p>
+      <p class="sub">Step right up! Knock twice. Do not feed the clerk. <button class="snd" id="snd" type="button" aria-pressed="false">Bell: off</button></p>
       <div class="window">
         <div class="grp">
           <span>The Performance</span>
@@ -251,11 +254,13 @@ var PATRONS=[
 ];
 var state={show:'mat',showAdd:0,showName:'Matinée',seat:'Grandstand',mul:1,serial:4816};
 
+// pounds, shillings & pence, to the nearest halfpenny (½d was everyday coin in the 1870s)
 function lsd(p){
-  p=Math.round(p);
+  p=Math.round(p*2)/2;
   if(p<=0) return 'Gratis';
-  var L=Math.floor(p/240),s=Math.floor((p%240)/12),d=p%12,out=[];
-  if(L) out.push('£'+L);if(s) out.push(s+'s');if(d||!out.length) out.push(d+'d');
+  var w=Math.floor(p),half=p>w,L=Math.floor(w/240),s=Math.floor((w%240)/12),d=w%12,out=[];
+  if(L) out.push('£'+L);if(s) out.push(s+'s');
+  if(d||half||!out.length) out.push((d?d:'')+(half?'½':'')+'d');
   return out.join(' ');
 }
 
@@ -290,7 +295,7 @@ radio('seat',function(o){state.seat=o.dataset.v;state.mul=+o.dataset.mul;});
 function price(){
   var heads=0,sum=0;
   PATRONS.forEach(function(p){heads+=p.n;sum+=p.n*p.d;});
-  return {heads:heads,pence:Math.round(sum*state.mul+(state.mul>0?heads*state.showAdd:0))};
+  return {heads:heads,pence:Math.round((sum*state.mul+(state.mul>0?heads*state.showAdd:0))*2)/2};
 }
 function update(){var p=price();var t=$('total');if(t) t.textContent=p.heads?lsd(p.pence):'—';}
 
@@ -333,9 +338,16 @@ window.addEventListener('resize',relay);
 if(window.ResizeObserver&&bulbsEl){try{new ResizeObserver(relay).observe(bulbsEl.parentNode);}catch(e){}}
 
 // ---------- sound ----------
-var ac=null;
+var ac=null,soundOn=false;
+var sndBtn=$('snd');
+if(sndBtn) sndBtn.addEventListener('click',function(){
+  soundOn=!soundOn;
+  sndBtn.textContent='Bell: '+(soundOn?'on':'off');sndBtn.setAttribute('aria-pressed',String(soundOn));
+  click(1);
+});
 function ctx(){if(!ac){try{var A=window.AudioContext||window.webkitAudioContext;if(A) ac=new A();}catch(e){}}if(ac&&ac.state==='suspended') ac.resume();return ac;}
 function click(n){
+  if(!soundOn) return;
   var a=ctx();if(!a) return;
   for(var i=0;i<n;i++){
     var t=a.currentTime+i*.16,o=a.createOscillator(),g=a.createGain();
@@ -345,6 +357,7 @@ function click(n){
   }
 }
 function bell(){
+  if(!soundOn) return;
   var a=ctx();if(!a) return;var t=a.currentTime+1.45;
   [1,2.76,5.4].forEach(function(m,i){
     var o=a.createOscillator(),g=a.createGain();o.frequency.value=1320*m/(i?1.6:1);
@@ -360,6 +373,14 @@ var WARN={
   'Gallery':'Gallery patrons may applaud, but quietly, and with gratitude.',
   'Behind the Pillar':'You will see the pillar magnificently. Listen closely for the bear.'
 };
+// up to 3 × 12 patrons = THIRTY-SIX
+var ONES=['','ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN','EIGHT','NINE','TEN','ELEVEN','TWELVE','THIRTEEN','FOURTEEN','FIFTEEN','SIXTEEN','SEVENTEEN','EIGHTEEN','NINETEEN'];
+function admitWord(n){
+  if(n<20) return ONES[n]||String(n);
+  var t=['','','TWENTY','THIRTY','FORTY'][Math.floor(n/10)];
+  if(!t) return String(n);
+  return t+(n%10?'-'+ONES[n%10]:'');
+}
 var buy=$('buy'),tarea=$('tarea');
 if(buy) buy.addEventListener('click',function(){
   var p=price();
@@ -368,8 +389,8 @@ if(buy) buy.addEventListener('click',function(){
   var parts=PATRONS.filter(function(x){return x.n;}).map(function(x){return x.n+' '+(x.n===1?x.k.replace(/ren$/,'').replace(/s$/,''):x.k);}).join(' · ');
   var when={mat:'Matinée · 2 o’clock',eve:'Evening · 7 o’clock',mid:'Midnight · 12 o’clock (you were warned)'}[state.show];
   var tk=document.createElement('div');tk.className='ticket print';
-  tk.innerHTML='<div class="main"><div class="adm"><small>Magnussen’s Grand Circus</small>ADMIT '+(['','ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN','EIGHT','NINE','TEN','ELEVEN','TWELVE'][p.heads]||p.heads)+'</div>'+
-    '<div class="row"><span><b>'+state.seat.toUpperCase()+'</b>seating</span><span><b>'+when.split(' · ')[0].toUpperCase()+'</b>'+when.split(' · ').slice(1).join(' · ')+'</span><span><b>'+lsd(p.pence).toUpperCase()+'</b>fare preview</span></div>'+
+  tk.innerHTML='<div class="main"><div class="adm"><small>Magnussen’s Grand Circus</small>ADMIT '+admitWord(p.heads)+'</div>'+
+    '<div class="row"><span><b>'+state.seat.toUpperCase()+'</b>seating</span><span><b>'+when.split(' · ')[0].toUpperCase()+'</b>'+when.split(' · ').slice(1).join(' · ')+'</span><span><b>'+lsd(p.pence).toUpperCase()+'</b>fare paid</span></div>'+
     '<div class="row"><span>'+parts+'</span><span class="serial">No. '+String(state.serial).padStart(6,'0')+'</span></div>'+
     '<div class="warn">'+WARN[state.seat]+'</div></div>'+
     '<div class="stub" role="button" tabindex="0" aria-label="Tear off the stub"><span class="w">Stub</span><span class="serial">'+String(state.serial).padStart(6,'0')+'</span><small>tear here, gently</small></div>';

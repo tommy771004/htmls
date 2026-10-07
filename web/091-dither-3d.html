@@ -35,8 +35,7 @@
   #spec .tag{font-size:11px;letter-spacing:.2em;text-transform:uppercase}
   #spec .name{font-size:18px;margin:6px 0 4px;text-transform:uppercase}
   #spec .quip{font-size:12px;line-height:1.5;opacity:1}
-  .readout{margin-top:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:2px solid var(--paper);padding-top:8px;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
-  .readout div span{display:block;font-size:14px;letter-spacing:0;margin-top:2px}
+  .kspec,.mcyc{display:none}
 
   #ctrl{right:22px;top:22px;width:252px}
   #ctrl h2{font-size:11px;letter-spacing:.2em;font-weight:normal;margin:0 0 6px;text-transform:uppercase}
@@ -44,6 +43,7 @@
   button{font:inherit;font-size:12px;min-width:40px;min-height:40px;padding:0 10px;background:var(--ink);color:var(--paper);border:2px solid var(--paper);cursor:pointer;text-transform:uppercase;letter-spacing:.06em}
   button:hover,button:focus-visible{outline:none;background:repeating-conic-gradient(var(--paper) 0 25%, var(--ink) 0 50%) 0 0/2px 2px;color:var(--paper);text-shadow:0 0 0 var(--ink),1px 0 var(--ink),-1px 0 var(--ink),0 1px var(--ink),0 -1px var(--ink)}
   button.on{background:var(--paper);color:var(--ink);text-shadow:none}
+  button:disabled{opacity:.4;cursor:not-allowed}
   #matrix{display:grid;gap:0;border:2px solid var(--paper);width:max-content;max-width:100%;font-size:9px;line-height:1}
   #matrix i{font-style:normal;display:grid;place-items:center;width:26px;height:18px;border-right:1px solid var(--paper);border-bottom:1px solid var(--paper)}
   #matrix.m8 i{width:26px;height:15px}
@@ -59,15 +59,16 @@
     .lede{display:none}
     h1{font-size:25px}
     #ctrl{top:auto;bottom:12px;right:12px;left:12px;width:auto;padding:10px}
-    #ctrl h2,#matrix,.mnote,#mhead{display:none}
-    .row{margin-bottom:6px;gap:5px}
-    .row:last-of-type{margin-bottom:0}
+    #ctrl h2,#matrix,.mnote,#mhead,#mats,#tools{display:none}
+    .row{margin-bottom:0;gap:5px}
     button{flex:1 1 auto;padding:0 6px;font-size:11px}
-    #spec{left:12px;right:12px;width:auto;bottom:auto;top:118px;padding:8px 12px;border-width:2px}
-    #spec .quip,.readout{display:none}
-    #spec .name{font-size:14px;margin:4px 0 0}
+    .mcyc{display:inline-block}
+    #spec{display:none}
+    .panel::after{display:none}
     .hint{display:none}
     .kicker{font-size:10px;padding-bottom:6px;margin-bottom:6px}
+    .kmeta{display:none}
+    .kspec{display:inline;text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   }
 
 button{min-width:44px;min-height:44px}canvas#view:focus-visible{outline:3px solid var(--paper);outline-offset:-4px}@media(prefers-reduced-motion:reduce){.blink{animation:none}}
@@ -77,7 +78,7 @@ button{min-width:44px;min-height:44px}canvas#view:focus-visible{outline:3px soli
 <canvas id="view" tabindex="0" aria-label="Dithered 3D object: drag or arrow keys to rotate; Home resets view"></canvas>
 
 <header class="panel">
-  <div class="kicker"><span>Plate 091</span><span>1-bit / 2 inks</span></div>
+  <div class="kicker"><span>Plate 091</span><span class="kmeta">1-bit / 2 inks</span><span class="kspec" id="kSpec">A · Torus, agitated</span></div>
   <h1>Two Inks,<br><b>Many</b> Greys</h1>
   <p class="lede">Every pixel on this screen is either burnt umber or bone. Nothing in between. The greys you think you see are a rumour, spread by a threshold matrix <em>Bryce Bayer</em> published at Kodak in 1973 and raymarched live, sixty times a second.</p>
 </header>
@@ -86,12 +87,6 @@ button{min-width:44px;min-height:44px}canvas#view:focus-visible{outline:3px soli
   <div class="tag" id="sTag">Specimen A</div>
   <div class="name" id="sName">Torus, agitated</div>
   <div class="quip" id="sQuip">A doughnut that has been reading the news.</div>
-  <div class="readout">
-    <div>Matrix<span id="rM">8×8</span></div>
-    <div>Pixel<span id="rP">3px</span></div>
-    <div>Greys<span id="rG">65</span></div>
-    <div>FPS<span id="rF">--</span></div>
-  </div>
 </section>
 
 <aside class="panel" id="ctrl">
@@ -99,7 +94,7 @@ button{min-width:44px;min-height:44px}canvas#view:focus-visible{outline:3px soli
   <div class="row" id="objs"></div>
   <h2>Threshold matrix</h2>
   <div class="row" id="mats"></div>
-  <div class="row">
+  <div class="row" id="tools">
     <button id="pxDown" aria-label="Smaller pixels">px−</button>
     <button id="pxUp" aria-label="Bigger pixels">px+</button>
     <button id="inv" aria-label="Swap inks">swap</button>
@@ -132,7 +127,7 @@ button{min-width:44px;min-height:44px}canvas#view:focus-visible{outline:3px soli
     {k:'b2', label:'2×2', n:2, note:'Four thresholds, five greys. Chunky, honest, very 1984.'},
     {k:'b4', label:'4×4', n:4, note:'Sixteen thresholds, seventeen greys. The cross-hatch you remember from fax machines.'},
     {k:'b8', label:'8×8', n:8, note:'Sixty-four thresholds. Close enough to grey that your eye stops arguing.'},
-    {k:'noise', label:'rand', n:-1, note:'White noise threshold. Every frame re-rolls the dice — the film-grain school.'}
+    {k:'noise', label:'rand', n:-1, note:'White noise threshold. Re-rolls the dice fifteen times a second — the film-grain school.'}
   ];
 
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -159,17 +154,23 @@ button{min-width:44px;min-height:44px}canvas#view:focus-visible{outline:3px soli
     b.addEventListener('click', () => setMat(i));
     matRow && matRow.appendChild(b);
   });
+  // phone layout: the matrix row is hidden, one button cycles it instead (same as the D key)
+  const matCyc = document.createElement('button');
+  matCyc.className = 'mcyc';
+  matCyc.addEventListener('click', () => setMat(S.mat + 1));
+  objRow && objRow.appendChild(matCyc);
+  let cpuMode = false;
 
-  function bayerVal(x, y, n) { // integer rank 0..n*n-1
-    let v = 0, mask = n >> 1;
-    for (let bit = 0; mask; mask >>= 1, bit++) {
+  function bayerVal(x, y, n) { // integer rank 0..n*n-1, standard Bayer: finest bit is most significant (matches b2/b4/b8 in the shader)
+    let v = 0;
+    for (let mask = 1; mask < n; mask <<= 1) {
       const xb = (x & mask) ? 1 : 0, yb = (y & mask) ? 1 : 0;
       v = (v << 2) | ((xb ^ yb) << 1 | yb);
     }
     return v;
   }
   function paintMatrix() {
-    const box = $('#matrix'), note = $('#mnote');
+    const box = $('#matrix');
     if (!box) return;
     const m = MATS[S.mat];
     box.innerHTML = '';
@@ -179,7 +180,7 @@ button{min-width:44px;min-height:44px}canvas#view:focus-visible{outline:3px soli
       const tot = m.n * m.n;
       for (let y = 0; y < m.n; y++) for (let x = 0; x < m.n; x++) {
         const i = document.createElement('i');
-        const v = bayerVal(x, y, m.n);
+        const v = bayerVal(x, m.n - 1 - y, m.n); // gl_FragCoord.y runs bottom-up, so flip rows to match the screen
         i.textContent = v;
         if (v < tot / 2) i.className = 'dark';
         box.appendChild(i);
@@ -191,22 +192,43 @@ button{min-width:44px;min-height:44px}canvas#view:focus-visible{outline:3px soli
       i.textContent = m.n === 0 ? 'if (L > 0.5) bone' : 'if (L > rand()) bone';
       box.appendChild(i);
     }
-    if (note) note.textContent = m.note;
-    const rM = $('#rM'), rG = $('#rG');
-    if (rM) rM.textContent = m.label;
-    if (rG) rG.textContent = m.n > 0 ? (m.n * m.n + 1) : (m.n === 0 ? '2' : '∞?');
+    paintNote();
+    matCyc.textContent = m.label + ' ›';
+    matCyc.setAttribute('aria-label', 'Threshold matrix ' + m.label + ', next');
     [...(matRow ? matRow.children : [])].forEach((b, i) => { b.classList.toggle('on', i === S.mat); b.setAttribute('aria-pressed', i === S.mat); });
   }
-  function setObj(i) {
-    if (i === S.to && S.morph >= 1) return;
-    S.from = S.morph >= 1 ? S.to : S.to; S.to = i; S.morph = motion.matches ? 1 : 0; if (motion.matches) S.from = i;
-    const s = SPECIMENS[i];
-    const t = $('#sTag'), n = $('#sName'), q = $('#sQuip');
-    if (t) t.textContent = s[0]; if (n) n.textContent = s[1]; if (q) q.textContent = s[2];
-    [...(objRow ? objRow.children : [])].forEach((b, k) => { b.classList.toggle('on', k === i); b.setAttribute('aria-pressed', k === i); });
+  function paintNote() {
+    const note = $('#mnote');
+    if (!note) return;
+    const m = MATS[S.mat];
+    const greys = m.n > 0 ? (m.n * m.n + 1) + ' greys' : (m.n === 0 ? '2 greys' : 'countless greys');
+    note.textContent = m.note + ' — ' + greys + ', ' + S.px + 'px dots.';
   }
-  function setMat(i) { S.mat = (i + MATS.length) % MATS.length; paintMatrix(); }
-  function setPx(p) { S.px = Math.max(1, Math.min(8, p)); const r = $('#rP'); if (r) r.textContent = S.px + 'px'; resize(); }
+  function setObj(i) {
+    if (cpuMode) return;
+    if (i === S.to && S.morph >= 1) return;
+    // mid-morph: start the new morph from whichever specimen the blend is closer to
+    S.from = S.morph >= 1 ? S.to : (S.morph > .5 ? S.to : S.from); S.to = i; S.morph = motion.matches ? 1 : 0; if (motion.matches) S.from = i;
+    const s = SPECIMENS[i];
+    const t = $('#sTag'), n = $('#sName'), q = $('#sQuip'), ks = $('#kSpec');
+    if (t) t.textContent = s[0]; if (n) n.textContent = s[1]; if (q) q.textContent = s[2];
+    if (ks) ks.textContent = String.fromCharCode(65 + i) + ' · ' + s[1];
+    [...(objRow ? objRow.children : [])].filter(b => b !== matCyc).forEach((b, k) => { b.classList.toggle('on', k === i); b.setAttribute('aria-pressed', k === i); });
+  }
+  function setMat(i) { if (cpuMode) return; S.mat = (i + MATS.length) % MATS.length; paintMatrix(); }
+  function setPx(p) { S.px = Math.max(1, Math.min(8, p)); paintNote(); resize(); }
+  // CPU fallback only draws one analytic sphere through a fixed 8×8 matrix: say so, and lock the controls that would do nothing
+  function markCPU() {
+    S.mat = 3; paintMatrix();
+    cpuMode = true;
+    const t = $('#sTag'), n = $('#sName'), q = $('#sQuip'), ks = $('#kSpec');
+    if (t) t.textContent = 'Fallback';
+    if (n) n.textContent = 'Sphere (pencil fallback)';
+    if (q) q.textContent = 'No WebGL here, so the specimens stay in the drawer.';
+    if (ks) ks.textContent = 'Sphere (pencil fallback)';
+    [...(objRow ? objRow.children : []), ...(matRow ? matRow.children : [])].forEach(b => { b.disabled = true; });
+    [...(objRow ? objRow.children : [])].forEach(b => { b.classList.remove('on'); b.removeAttribute('aria-pressed'); });
+  }
 
   const pxDown = $('#pxDown'), pxUp = $('#pxUp'), invB = $('#inv'), spinB = $('#spin');
   pxDown && pxDown.addEventListener('click', () => setPx(S.px - 1));
@@ -267,7 +289,7 @@ button{min-width:44px;min-height:44px}canvas#view:focus-visible{outline:3px soli
   const FS = `
 precision highp float;
 uniform vec2 R; uniform float T; uniform vec2 ROT;
-uniform float MX, MAT, INV;
+uniform float MX, MAT, INV, NS;
 uniform vec3 C0, C1;
 
 mat2 rot(float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c);}
@@ -431,7 +453,7 @@ void main(){
   lum=smoothstep(.02,.92,lum);
 
   float th=.5;
-  if(MAT>3.5) th=hash(fc+floor(T*15.)*vec2(17.,31.));
+  if(MAT>3.5) th=hash(fc+NS*vec2(17.,31.));
   else if(MAT>2.5) th=b8(fc)+.5/64.;
   else if(MAT>1.5) th=b4(fc)+.5/16.;
   else if(MAT>.5) th=b2(fc)+.5/4.;
@@ -456,7 +478,7 @@ void main(){
     const pr = gl.createProgram(); gl.attachShader(pr, vsObj); gl.attachShader(pr, fs); gl.linkProgram(pr);
     if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { console.warn(gl.getProgramInfoLog(pr)); return null; }
     const u = { pr, loc: gl.getAttribLocation(pr, 'p') };
-    ['R', 'T', 'ROT', 'MX', 'MAT', 'INV', 'C0', 'C1'].forEach(n => u[n] = gl.getUniformLocation(pr, n));
+    ['R', 'T', 'ROT', 'MX', 'MAT', 'INV', 'NS', 'C0', 'C1'].forEach(n => u[n] = gl.getUniformLocation(pr, n));
     progs.set(key, u);
     return u;
   }
@@ -476,6 +498,7 @@ void main(){
     cv.replaceWith(nc); cv = nc; bindCanvas(cv);
     ctx2d = cv.getContext('2d');
     const n = $('#nogl'); if (n) n.style.display = 'block';
+    markCPU();
     resize();
   }
   if (gl) {
@@ -502,10 +525,26 @@ void main(){
     });
     cv.addEventListener('webglcontextrestored', () => {
       clearTimeout(lostTimer); gl = glRef;
-      if (initGL()) { glLost = false; setPx(S.px); } else toCPU();
+      if (initGL()) { glLost = false; setPx(S.px); warmTried.clear(); idle(warmProgs); } else toCPU();
     });
   }
-  if (!gl) { ctx2d = cv.getContext('2d'); const n = $('#nogl'); if (n) n.style.display = 'block'; }
+  if (!gl) { ctx2d = cv.getContext('2d'); const n = $('#nogl'); if (n) n.style.display = 'block'; markCPU(); }
+
+  // compile the remaining (from,to) programs in idle time so the first switch to a new pair doesn't stall a frame
+  const warmTried = new Set();
+  const idle = window.requestIdleCallback ? (cb => requestIdleCallback(cb, { timeout: 2000 })) : (cb => setTimeout(cb, 120));
+  function warmProgs() {
+    if (!gl || glLost) return;
+    const cur = S.to < 0 ? S.from : S.to, pairs = [[cur, cur]];
+    for (let b = 0; b < 5; b++) if (b !== cur) pairs.push([cur, b]);
+    for (let a = 0; a < 5; a++) pairs.push([a, a]);
+    for (let a = 0; a < 5; a++) for (let b = 0; b < 5; b++) if (a !== b) pairs.push([a, b]);
+    const next = pairs.find(p => { const key = p[0] + '_' + p[1]; return !progs.has(key) && !warmTried.has(key); });
+    if (!next) return;
+    warmTried.add(next[0] + '_' + next[1]);
+    getProg(next[0], next[1]);
+    idle(warmProgs);
+  }
 
   function resize() {
     const w = Math.max(40, Math.ceil(innerWidth / S.px)), h = Math.max(40, Math.ceil(innerHeight / S.px));
@@ -537,7 +576,6 @@ void main(){
   }
 
   let autoBumps = 0, last = performance.now(), fpsAcc = 0, fpsN = 0, fpsT = 0, clock = 0;
-  const rF = $('#rF');
   function frame(now) {
     const dt = Math.min(.05, (now - last) / 1000); last = now;
     if(!motion.matches||S.spin)clock += dt;
@@ -558,13 +596,13 @@ void main(){
       gl.uniform2f(U.ROT, S.yaw, S.pitch);
       gl.uniform1f(U.MX, S.morph >= 1 ? 0 : S.morph);
       gl.uniform1f(U.MAT, S.mat); gl.uniform1f(U.INV, S.inv ? 1 : 0);
+      gl.uniform1f(U.NS, motion.matches ? 0 : Math.floor(clock * 15)); // noise re-rolls 15×/s; frozen under reduced motion
       gl.uniform3fv(U.C0, C0); gl.uniform3fv(U.C1, C1);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     } else if (!gl && ctx2d) cpuFrame(clock);
     fpsAcc += dt; fpsN++;
     if (now - fpsT > 500) {
       const fps = fpsN / Math.max(fpsAcc, 1e-3);
-      if (rF) rF.textContent = Math.round(fps);
       if (gl && !glLost && fps < 22 && autoBumps < 2 && clock > 1) { autoBumps++; setPx(S.px + 1); }
       fpsAcc = 0; fpsN = 0; fpsT = now;
     }
@@ -575,6 +613,7 @@ void main(){
   S.to = -1; setObj(start); S.from = start; S.morph = 1;
   paintMatrix(); setPx(S.px);
   requestAnimationFrame(frame);
+  idle(warmProgs);
 })();
 </script>
 </body>

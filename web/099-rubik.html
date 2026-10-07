@@ -22,11 +22,9 @@
 
   .intro .no{font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--mid)}
   h1{font-family:"Segoe UI Black","Segoe UI",Arial,sans-serif;font-weight:900;font-size:clamp(40px,4.3vw,64px);line-height:.9;white-space:nowrap;letter-spacing:-.03em;margin:.18em 0 .3em}
-  h1 .sw{display:inline-flex;gap:4px;vertical-align:.12em;margin-left:.1em}
-  h1 .sw i{width:.26em;height:.26em;border-radius:.05em;display:block}
   .intro p{font-size:15px;line-height:1.6;color:#3d3f45;margin:0 0 .8em;max-width:30em}
   .big{font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.01em}
-  .stats{display:grid;grid-template-columns:repeat(3,auto);justify-content:start;gap:4px 28px;margin-top:18px}
+  .stats{display:grid;grid-template-columns:repeat(3,auto);justify-content:start;gap:4px 28px;margin:0 0 24px}
   .stats div{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--mid)}
   .stats b{display:block;font-size:28px;letter-spacing:-.01em;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;text-transform:none}
 
@@ -47,13 +45,14 @@
 
   .pad h2{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--mid);font-weight:600;margin:0 0 10px}
   .moves{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
-  .mv{font:inherit;font-size:16px;font-weight:600;min-height:46px;border:1px solid var(--line);background:#fff;border-radius:var(--r-m);cursor:pointer;position:relative;color:var(--ink);box-shadow:0 1px 0 rgba(0,0,0,.04)}
+  .mv{font:inherit;font-size:16px;font-weight:600;min-height:46px;border:0;background:transparent;border-radius:var(--r-m);cursor:pointer;position:relative;color:var(--ink)}
   .mv::after{content:"";position:absolute;left:50%;bottom:6px;width:14px;height:3px;border-radius:2px;transform:translateX(-50%);background:var(--c)}
-  .mv:hover,.mv:focus-visible{outline:none;border-color:var(--ink)}
+  .mv:hover{background:rgba(0,0,0,.04)}
+  .mv:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
   .mv:active{transform:translateY(1px)}
   .acts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:14px}
   .act{font:inherit;font-size:14px;font-weight:600;min-height:46px;border-radius:var(--r-m);border:0;cursor:pointer;background:var(--ink);color:#fff}
-  .act.alt{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .act.alt{background:rgba(0,0,0,.05);color:var(--ink)}
   .act:hover,.act:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(22,23,26,.18)}
   .act:disabled{opacity:.4;cursor:default}
   .hist{margin-top:16px;font-family:Consolas,"Lucida Console",Menlo,monospace;font-size:13px;color:#3d3f45;min-height:3.2em;line-height:1.6;word-spacing:.3em;max-height:8em;overflow:auto;border-top:1px solid var(--line);padding-top:10px}
@@ -86,14 +85,9 @@
 <div class="wrap">
   <section class="intro">
     <div class="no">Studio object No. 099</div>
-    <h1>The Cube<span class="sw" aria-hidden="true"><i style="background:var(--R)"></i><i style="background:var(--G)"></i><i style="background:var(--B)"></i></span></h1>
-    <p>Fifty-four stickers, twenty-six plastic cubies, and <span class="big">43,252,003,274,489,856,000</span> ways to be wrong. Only one way to be right.</p>
-    <p>Built from nothing but CSS 3D transforms. Drag the empty space to walk around it; turn faces with the pad or your keyboard.</p>
-    <div class="stats">
-      <div>Moves<b id="mc">0</b></div>
-      <div>Time<b id="tm">0:00.0</b></div>
-      <div>State<b id="st">solved</b></div>
-    </div>
+    <h1>The Cube</h1>
+    <p>Fifty-four stickers, twenty-six plastic cubies, and <span class="big">43,252,003,274,489,856,000</span> possible states. Only one of them is right.</p>
+    <p>Built from nothing but CSS 3D transforms. Drag anywhere to walk around it; turn faces with the pad or your keyboard.</p>
   </section>
 
   <section class="stage" id="stage" tabindex="0" aria-label="3D cube: drag or arrow keys to orbit, Home resets view.">
@@ -103,6 +97,11 @@
   </section>
 
   <section class="pad">
+    <div class="stats">
+      <div>Moves<b id="mc">0</b></div>
+      <div>Time<b id="tm">0:00.0</b></div>
+      <div>State<b id="st">solved</b></div>
+    </div>
     <h2>Face turns</h2>
     <div class="moves" id="moves"></div>
     <div class="acts">
@@ -209,10 +208,10 @@
     const job = queue.shift();
     if (!job) { busy = false; afterIdle(); return; }
     busy = true;
-    const prime = job.name.endsWith("'"), m = MOVES[job.name[0]];
-    const target = m.dir * (prime ? -1 : 1) * Math.PI / 2;
+    const prime = job.name.endsWith("'"), half = job.name.endsWith('2'), m = MOVES[job.name[0]];
+    const target = m.dir * (prime ? -1 : 1) * (half ? Math.PI : Math.PI / 2);
     const layer = cubies.filter(c => c.p[m.axis] === m.layer);
-    const dur = reduce ? 1 : job.fast ? 70 : 190, start = performance.now();
+    const dur = reduce ? 1 : (job.fast ? 70 : 190) * (half ? 1.5 : 1), start = performance.now();
     const step = now => {
       const k = Math.min(1, (now - start) / dur), e = job.fast ? k : 1 - Math.pow(1 - k, 3);
       const Rl = rot(m.axis, target * e);
@@ -268,11 +267,13 @@
   });
   function scramble() {
     if (busy) return;
-    const faces = 'UDLRFB'; let last = '', axisLast = -1; const seq = [];
+    // WCA-style: never the same face twice in a row, never a third move on the same axis (R L R), quarter or half turns
+    const faces = 'UDLRFB'; let last = '', axisLast = -1, run = 0; const seq = [];
     while (seq.length < 22) {
-      const f = faces[Math.floor(Math.random() * 6)];
-      if (f === last || (MOVES[f].axis === axisLast && seq.length && MOVES[seq[seq.length - 1][0]].axis === axisLast && Math.random() < .7)) continue;
-      seq.push(f + (Math.random() < .5 ? "'" : '')); last = f; axisLast = MOVES[f].axis;
+      const f = faces[Math.floor(Math.random() * 6)], ax = MOVES[f].axis;
+      if (f === last || (ax === axisLast && run >= 2)) continue;
+      run = ax === axisLast ? run + 1 : 1;
+      seq.push(f + ['', "'", '2'][Math.floor(Math.random() * 3)]); last = f; axisLast = ax;
     }
     // keep every move made since the cube was last solved, so Unscramble still lands on solved
     baseSeq = solved() ? [] : baseSeq.concat(scrambleSeq, history);
@@ -283,7 +284,7 @@
     click();
   }
   let scrambleSeq = [], baseSeq = [];
-  const inv = m => m.endsWith("'") ? m[0] : m + "'";
+  const inv = m => m.endsWith('2') ? m : m.endsWith("'") ? m[0] : m + "'";
   $('#scr') && $('#scr').addEventListener('click', scramble);
   $('#undo') && $('#undo').addEventListener('click', () => {
     if (busy || !history.length) return;

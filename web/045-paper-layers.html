@@ -50,7 +50,7 @@ body{transition:--sky1 1.2s,--sky2 1.2s,--l1 1.2s,--l2 1.2s,--l3 1.2s,--l4 1.2s,
 .tab[aria-pressed="true"]:hover{transform:translateY(0)}
 
 .box{margin:0 clamp(16px,4vw,48px);padding:clamp(8px,1.2vw,14px);background:#fffdf8;border-radius:4px;box-shadow:0 1px 0 rgba(0,0,0,.05),0 24px 50px -18px rgba(60,40,20,.45),0 4px 10px rgba(60,40,20,.1);position:relative}
-.stage{position:relative;height:clamp(420px,68vh,720px);overflow:hidden;border-radius:2px;cursor:grab;touch-action:pan-y;
+.stage{position:relative;height:clamp(420px,68vh,720px);overflow:hidden;border-radius:2px;cursor:default;touch-action:pan-y;
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);background:var(--sky2)}
 .layer{position:absolute;left:-5%;right:-5%;top:-3%;bottom:-2%;will-change:transform;pointer-events:none}
 .layer svg{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible}
@@ -61,7 +61,6 @@ body{transition:--sky1 1.2s,--sky2 1.2s,--l1 1.2s,--l2 1.2s,--l3 1.2s,--l4 1.2s,
 .grain{position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;opacity:.55;
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5  0 0 0 0 .45  0 0 0 0 .4  0 0 0 .22 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>")}
 .vign{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 60px rgba(40,25,15,.25),inset 0 0 0 1px rgba(255,255,255,.4)}
-.hint{position:absolute;right:14px;top:12px;font-size:13px;font-style:italic;color:rgba(58,44,36,.7);background:rgba(255,253,248,.7);padding:4px 10px;border-radius:12px;pointer-events:none;transition:opacity .8s}
 
 .card{position:absolute;left:clamp(22px,3vw,40px);bottom:clamp(22px,3vw,40px);width:min(430px,44%);background:#fffdf8;padding:18px 22px 18px;border-radius:2px;transform:rotate(-1deg);
   box-shadow:0 2px 0 rgba(0,0,0,.04),0 14px 28px -8px rgba(40,25,15,.4);z-index:5}
@@ -109,7 +108,6 @@ body{transition:--sky1 1.2s,--sky2 1.2s,--l1 1.2s,--l2 1.2s,--l3 1.2s,--l4 1.2s,
     <div class="layer d6" data-d="1"><svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" id="L6"></svg></div>
     <div class="grain"></div>
     <div class="vign"></div>
-    <div class="hint" id="hint">移動滑鼠，看紙片的層次</div>
   </div>
   <section class="card" aria-live="polite">
     <div class="ss"><b id="sName">秋</b><span id="sEn">Autumn</span><em id="today"></em></div>
@@ -118,7 +116,7 @@ body{transition:--sky1 1.2s,--sky2 1.2s,--l1 1.2s,--l2 1.2s,--l3 1.2s,--l4 1.2s,
     <p class="tdesc" id="tdesc"></p>
   </section>
 </div>
-<div class="foot"><span>七層紙 · 一把剪刀 · 零張真的紙</span><span>鍵盤：← → 換季節 · 1–6 換節氣</span></div>
+<div class="foot"><span>七層紙 · 一把剪刀 · 零張真的紙</span><span>移動滑鼠看層次 · 鍵盤：← → 換季節 · 1–6 換節氣</span></div>
 
 <script>
 (function(){
@@ -273,7 +271,9 @@ body{transition:--sky1 1.2s,--sky2 1.2s,--l1 1.2s,--l2 1.2s,--l3 1.2s,--l4 1.2s,
   }
   function placeSun(i){
     var sg = $('sunG'); if(!sg) return;
-    var t = i / 5, x = 420 + t * 820, y = 370 - Math.sin(t * Math.PI) * 120;
+    // 高度依全年節氣序號（0=立春 … 23=大寒）近似太陽赤緯：夏至最高、冬至最低，春分秋分居中
+    var k = ORDER.indexOf(cur) * 6 + i;
+    var t = i / 5, x = 420 + t * 820, y = 280 - 90 * Math.sin((k - 3) / 24 * 2 * Math.PI);   // 190（夏至）～370（冬至，貼近遠山稜線）
     sg.setAttribute('transform', 'translate(' + x.toFixed(0) + ' ' + y.toFixed(0) + ')');
     sg.style.transform = 'translate(' + x.toFixed(0) + 'px,' + y.toFixed(0) + 'px)';
   }
@@ -323,20 +323,20 @@ body{transition:--sky1 1.2s,--sky2 1.2s,--l1 1.2s,--l2 1.2s,--l3 1.2s,--l4 1.2s,
   (function(){
     var d = new Date(), md = (d.getMonth() + 1) * 100 + d.getDate(), best = null;
     ORDER.forEach(function(s){ SEASONS[s].terms.forEach(function(t, i){ var p = t[1].split('/'), v = +p[0] * 100 + +p[1]; if(v <= md && (!best || v > best.v)) best = { s:s, i:i, v:v }; }); });
-    if(!best) best = { s:'winter', i:4 };
+    if(!best) best = { s:'winter', i:3 };   // 1/1–1/4：小寒（1/5）還沒到，仍是前一年 12/21 起的冬至
     cur = best.s; termIdx = best.i;
     var td = $('today'); if(td) td.textContent = '今天 · ' + SEASONS[best.s].terms[best.i][0];
   })();
 
   /* ---------- parallax ---------- */
-  var tx = 0, ty = 0, cx = 0, cy = 0, lastMove = 0, hintEl = $('hint');
+  var tx = 0, ty = 0, cx = 0, cy = 0, lastMove = 0;
   stage.addEventListener('pointermove', function(e){
     var r = stage.getBoundingClientRect();
     tx = ((e.clientX - r.left) / r.width - .5) * 2; ty = ((e.clientY - r.top) / r.height - .5) * 2;
     lastMove = performance.now();
-    if(hintEl) hintEl.style.opacity = 0;
+    kick();
   });
-  stage.addEventListener('pointerleave', function(){ lastMove = 0; });
+  stage.addEventListener('pointerleave', function(){ lastMove = 0; kick(); });
   var depths = layers.map(function(L){ return +L.getAttribute('data-d') || 0; });
 
   /* ---------- particles ---------- */
@@ -354,6 +354,7 @@ body{transition:--sky1 1.2s,--sky2 1.2s,--l1 1.2s,--l2 1.2s,--l3 1.2s,--l4 1.2s,
     var k = SEASONS[cur].fx, n = k === 'snow' ? 90 : k === 'firefly' ? 34 : k === 'leaf' ? 26 : 38;
     if(W < 600) n = Math.round(n * .6);
     parts = []; for(var i = 0; i < n; i++) parts.push(spawn(k, true));
+    if(reduce && fctx) drawParts(0);   // reduced-motion：迴圈不畫粒子，換季／resize 時畫一張靜態的
   }
   function leafPath(c, s){
     c.beginPath(); c.moveTo(0, -s);
@@ -379,31 +380,43 @@ body{transition:--sky1 1.2s,--sky2 1.2s,--l1 1.2s,--l2 1.2s,--l3 1.2s,--l4 1.2s,
       }
       p.x += p.vx + Math.sin(p.a) * .4; p.y += p.vy;
       if(p.y > H + 20 || p.x > W + 30 || p.x < -30){ parts[i] = spawn(k, false); parts[i].x = Math.random() * W * 1.1 - W * .1; continue; }
-      fctx.save(); fctx.translate(p.x, p.y); fctx.rotate(p.r);
-      fctx.shadowColor = 'rgba(40,25,15,.25)'; fctx.shadowBlur = 3; fctx.shadowOffsetY = 2;
-      if(k === 'snow'){ fctx.fillStyle = '#ffffff'; fctx.beginPath(); fctx.arc(0, 0, p.s, 0, 6.29); fctx.fill(); }
-      else if(k === 'petal'){ fctx.fillStyle = '#f7b9c8'; fctx.scale(1, .55 + Math.abs(Math.sin(p.a)) * .45); fctx.beginPath(); fctx.ellipse(0, 0, p.s, p.s * .6, 0, 0, 6.29); fctx.fill(); }
-      else { fctx.fillStyle = p.c; fctx.scale(.6 + Math.abs(Math.sin(p.a)) * .4, 1); leafPath(fctx, p.s); fctx.fill(); fctx.shadowColor = 'transparent'; fctx.strokeStyle = 'rgba(90,40,20,.55)'; fctx.lineWidth = 1; fctx.beginPath(); fctx.moveTo(0, -p.s * .7); fctx.lineTo(0, p.s * 1.15); fctx.stroke(); }
-      fctx.restore();
+      // 陰影：不用 shadowBlur（每次 fill 都要額外模糊），改成先畫一個下移 2px 的半透明同形
+      for(var pass = 0; pass < 2; pass++){
+        var main = pass === 1;
+        fctx.save(); fctx.translate(p.x, p.y + (main ? 0 : 2)); fctx.rotate(p.r);
+        if(k === 'snow'){ fctx.fillStyle = main ? '#ffffff' : 'rgba(40,25,15,.2)'; fctx.beginPath(); fctx.arc(0, 0, p.s, 0, 6.29); fctx.fill(); }
+        else if(k === 'petal'){ fctx.fillStyle = main ? '#f7b9c8' : 'rgba(40,25,15,.2)'; fctx.scale(1, .55 + Math.abs(Math.sin(p.a)) * .45); fctx.beginPath(); fctx.ellipse(0, 0, p.s, p.s * .6, 0, 0, 6.29); fctx.fill(); }
+        else {
+          fctx.fillStyle = main ? p.c : 'rgba(40,25,15,.2)'; fctx.scale(.6 + Math.abs(Math.sin(p.a)) * .4, 1); leafPath(fctx, p.s); fctx.fill();
+          if(main){ fctx.strokeStyle = 'rgba(90,40,20,.55)'; fctx.lineWidth = 1; fctx.beginPath(); fctx.moveTo(0, -p.s * .7); fctx.lineTo(0, p.s * 1.15); fctx.stroke(); }
+        }
+        fctx.restore();
+      }
     }
   }
 
+  /* 迴圈只在需要時跑：分頁隱藏、stage 捲出視窗時停；reduced-motion 下靜止收斂後也停，等下一次 pointermove 再啟動 */
+  var running = false, onScreen = true;
+  function kick(){ if(!running && onScreen && !document.hidden){ running = true; requestAnimationFrame(loop); } }
   function loop(t){
-    if(!document.hidden){
-      var idle = !lastMove || t - lastMove > 2500;
-      var gx = idle ? Math.sin(t / 3200) * .35 : tx, gy = idle ? Math.cos(t / 4100) * .15 : ty;
-      if(reduce){ gx = idle ? 0 : gx; gy = idle ? 0 : gy; }
-      cx += (gx - cx) * .06; cy += (gy - cy) * .06;
-      for(var i = 0; i < layers.length; i++){ var d = depths[i]; layers[i].style.transform = 'translate3d(' + (-cx * d * 34).toFixed(2) + 'px,' + (-cy * d * 12).toFixed(2) + 'px,0)'; }
-      if(!reduce) drawParts(t);
-    }
+    if(document.hidden || !onScreen){ running = false; return; }
+    var idle = !lastMove || t - lastMove > 2500;
+    var gx = idle ? Math.sin(t / 3200) * .35 : tx, gy = idle ? Math.cos(t / 4100) * .15 : ty;
+    if(reduce){ gx = idle ? 0 : gx; gy = idle ? 0 : gy; }
+    cx += (gx - cx) * .06; cy += (gy - cy) * .06;
+    for(var i = 0; i < layers.length; i++){ var d = depths[i]; layers[i].style.transform = 'translate3d(' + (-cx * d * 34).toFixed(2) + 'px,' + (-cy * d * 12).toFixed(2) + 'px,0)'; }
+    if(!reduce) drawParts(t);
+    else if(idle && Math.abs(cx) < .001 && Math.abs(cy) < .001){ running = false; return; }
     requestAnimationFrame(loop);
   }
+  if('IntersectionObserver' in window){
+    new IntersectionObserver(function(es){ onScreen = es[es.length - 1].isIntersecting; kick(); }).observe(stage);
+  }
+  document.addEventListener('visibilitychange', kick);
   window.addEventListener('resize', function(){ sizeFx(); resetParticles(); });
   sizeFx();
   setSeason(cur, true);
-  if(reduce && fctx) drawParts(0);
-  requestAnimationFrame(loop);
+  kick();
 })();
 </script>
 </body>

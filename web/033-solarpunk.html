@@ -32,7 +32,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 @keyframes turn{to{transform:rotate(360deg)}}
 .mast h1{margin:0;font-size:clamp(30px,3.6vw,48px);line-height:1.05;color:var(--leaf-d);letter-spacing:.06em;font-weight:700}
 .mast h1 small{display:block;font-size:14px;letter-spacing:.14em;color:var(--leaf);font-weight:400;margin-top:6px}
-.clock{margin-left:auto;display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.55);border:1.5px solid rgba(63,143,74,.35);padding:10px 16px 10px 20px;border-radius:999px 999px 999px 999px/60% 60% 999px 999px;backdrop-filter:blur(4px)}
+.clock{margin-left:auto;display:flex;align-items:center;gap:14px}
 .clock label{font-size:13px;color:var(--leaf-d)}
 .clock output{font:700 24px/1 var(--f);min-width:3.2em;color:var(--leaf-d);font-variant-numeric:tabular-nums}
 .clock input{width:clamp(140px,18vw,260px);accent-color:var(--honey);height:40px}
@@ -83,24 +83,24 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 /* sidebar */
 .side{display:grid;gap:16px}
-.card{background:rgba(255,255,255,.72);border-radius:28px 28px 28px 8px;padding:18px 18px 16px;box-shadow:0 12px 30px -18px rgba(31,90,54,.5),inset 0 0 0 1.5px rgba(63,143,74,.18)}
+.card{background:rgba(255,255,255,.72);border-radius:28px 28px 28px 8px;padding:18px 18px 16px}
 .card h2{margin:0 0 10px;font-size:15px;letter-spacing:.14em;color:var(--leaf);font-weight:700;display:flex;align-items:center;gap:8px}
 .card h2::before{content:"";width:18px;height:10px;background:var(--leaf);border-radius:0 100% 0 100%}
 .tools{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.tool{border:1.5px solid transparent;background:#fff;border-radius:16px 16px 16px 4px;padding:6px 4px 6px;display:grid;justify-items:center;gap:2px;min-height:74px;transition:border-color .2s,background .2s,transform .15s}
+.tool{border:1.5px solid transparent;background:#fff;border-radius:16px 16px 16px 4px;padding:6px 4px 6px;display:grid;justify-items:center;gap:2px;min-height:74px;transition:border-color .2s,background .2s}
 .tool svg{width:36px;height:36px}
 .card h2 .spacer{flex:1}
 .tool.erase{min-height:40px;display:flex;align-items:center;gap:4px;padding:0 12px 0 6px;border-radius:999px;letter-spacing:0;color:var(--ink);border-color:rgba(217,119,75,.4)}
 .tool.erase svg{width:28px;height:28px}
-.tool.erase[aria-pressed="true"]{border-color:var(--terra);background:#fbe9df;box-shadow:0 3px 0 #f0b99c}
+.tool.erase[aria-pressed="true"]{border-color:var(--terra);background:#fbe9df}
+.tool.lens{min-height:40px;display:flex;align-items:center;gap:4px;padding:0 12px 0 6px;border-radius:999px;letter-spacing:0;color:var(--ink);border-color:rgba(63,143,74,.4)}
+.tool.lens svg{width:28px;height:28px}
 .tool span{font-size:13px;font-weight:700;line-height:1.1}
 .tool small{font-size:10.5px;color:#5b7a64;line-height:1.1}
-.tool:hover{transform:translateY(-2px)}
-.tool[aria-pressed="true"]{border-color:var(--leaf);background:#eef7e1;box-shadow:0 4px 0 var(--leaf-l)}
+.tool[aria-pressed="true"]{border-color:var(--leaf);background:#eef7e1}
 .picked{margin-top:10px;font-size:13.5px;line-height:1.55;color:#3a5a45;min-height:42px}
 .picked b{color:var(--leaf-d)}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.stat{background:#fff;border-radius:18px 18px 18px 6px;padding:10px 12px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .stat .k{font-size:12px;color:#5b7a64;letter-spacing:.06em}
 .stat .v{font-size:28px;font-weight:700;line-height:1.1;color:var(--leaf-d);font-variant-numeric:tabular-nums}
 .stat .v small{font-size:13px;font-weight:400;margin-left:2px}
@@ -121,7 +121,7 @@ footer{margin-top:26px;font-size:12.5px;color:#58735f;text-align:center}
   .page{padding:16px 16px 40px}
   .sunmark{width:54px;height:54px}
   .mast{gap:12px}
-  .clock{margin-left:0;width:100%;padding:8px 14px;border-radius:24px}
+  .clock{margin-left:0;width:100%}
   .clock input{flex:1;width:auto;min-width:0}
   .clock output{font-size:20px}
   .gardenwrap{padding:16px 10px 14px;border-radius:28px 50px 28px 40px}
@@ -181,7 +181,7 @@ footer{margin-top:26px;font-size:12.5px;color:#58735f;text-align:center}
       </div>
       <div class="legend">
         <span class="scale">全天日照 <i class="bar"></i> 0 → 11 小時</span>
-        <span>↑ 北　·　點格子種植，按住拖曳可連續種</span>
+        <span>↑ 北　·　選作物後點格子種植，按住拖曳可連續種；放大鏡只看不種</span>
       </div>
     </section>
 
@@ -192,7 +192,7 @@ footer{margin-top:26px;font-size:12.5px;color:#58735f;text-align:center}
         <p class="picked" id="picked"></p>
       </div>
       <div class="card">
-        <h2>本季試算</h2>
+        <h2>週／月試算</h2>
         <div class="stats">
           <div class="stat"><div class="k">日照適配</div><div class="v" id="sFit">0<small>%</small></div><div class="meter"><i id="mFit"></i></div><div class="note" id="nFit"></div></div>
           <div class="stat water" id="waterBox"><div class="k">每週用水 / 雨水</div><div class="v" id="sWater">0<small>L</small></div><div class="meter"><i id="mWater"></i></div><div class="note" id="nWater"></div></div>
@@ -202,13 +202,13 @@ footer{margin-top:26px;font-size:12.5px;color:#58735f;text-align:center}
       </div>
       <div class="card">
         <h2>格子觀察</h2>
-        <div class="inspect" id="inspect">把游標移到（或點一下）任一格，看它一天能曬幾小時、住得開不開心。</div>
+        <div class="inspect" id="inspect">把游標移到任一格（或選放大鏡後點一下），看它一天能曬幾小時、住得開不開心。</div>
         <div class="actions" style="margin-top:10px">
           <button class="pill" id="heatBtn" aria-pressed="false">日照熱圖</button>
           <button class="pill" id="sample">範例菜園</button>
           <button class="pill" id="clear">全部清空</button>
         </div>
-        <p class="tip">鍵盤：方向鍵移動、Enter 種植、Delete 拔除、數字鍵 1–9 換作物。</p>
+        <p class="tip">鍵盤：方向鍵移動、Enter 種植、Delete 拔除、數字鍵 1–9 換作物、0 換回放大鏡。</p>
       </div>
     </aside>
   </div>
@@ -235,20 +235,21 @@ footer{margin-top:26px;font-size:12.5px;color:#58735f;text-align:center}
     barrel:'<path d="M22 20h36l-2 50H24z" fill="#5fa8c4"/><path d="M20 18h40v6H20z" fill="#3a7f9c"/><path d="M23 36h34M24 54h32" stroke="#3a7f9c" stroke-width="3"/><path d="M40 10c-4 6-6 8-6 11a6 6 0 0 0 12 0c0-3-2-5-6-11z" fill="#a9dbeb"/><rect x="50" y="58" width="12" height="4" rx="2" fill="#2d6780"/>',
     compost:'<path d="M14 34h52v34H14z" fill="#9b6b43"/><path d="M14 34l6-8h40l6 8" fill="#7a4a1d"/><path d="M14 45h52M14 56h52" stroke="#6b4a32" stroke-width="2"/><path d="M26 30c2-8 8-12 14-12-2 6-6 10-14 12zM44 28c4-6 10-8 16-6-4 5-10 7-16 6z" fill="#86bf5a"/><path d="M30 64c4-2 8 2 12 0s8-2 10 0" stroke="#c9a57a" stroke-width="2" fill="none"/>',
     tree:'<rect x="36" y="44" width="8" height="30" rx="3" fill="#7a4a1d"/><circle cx="40" cy="30" r="24" fill="#3f8f4a"/><circle cx="26" cy="38" r="14" fill="#2f7040"/><circle cx="54" cy="36" r="15" fill="#57a35a"/><circle cx="44" cy="18" r="12" fill="#6aa84f"/><circle cx="32" cy="24" r="4" fill="#e0523a"/><circle cx="52" cy="28" r="3.5" fill="#e0523a"/>',
-    erase:'<path d="M22 58l22-36 16 10-22 36z" fill="#d9774b"/><path d="M22 58l8 5 6-10-8-5z" fill="#f8f2de"/><path d="M16 70h48" stroke="#6b4a32" stroke-width="3" stroke-linecap="round"/>'
+    erase:'<path d="M22 58l22-36 16 10-22 36z" fill="#d9774b"/><path d="M22 58l8 5 6-10-8-5z" fill="#f8f2de"/><path d="M16 70h48" stroke="#6b4a32" stroke-width="3" stroke-linecap="round"/>',
+    lens:'<circle cx="34" cy="34" r="17" fill="#eef7e1" stroke="#1f5a36" stroke-width="5"/><path d="M47 47l17 17" stroke="#1f5a36" stroke-width="7" stroke-linecap="round"/><path d="M26 30c2-5 6-7 10-7" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>'
   };
   function icon(k, cls, d){ return '<svg class="'+(cls||"")+'" viewBox="0 0 80 80" aria-hidden="true"'+(d?' style="--d:'+d+'s"':'')+'>'+IC[k]+'</svg>'; }
 
   var CROPS = {
-    T:{k:"tomato",   n:"番茄",   need:7, water:12, y:3.0, h:1},
-    C:{k:"chili",    n:"辣椒",   need:7, water:8,  y:1.2, h:1},
+    T:{k:"tomato",   n:"番茄",   need:7, water:12, y:3.0, h:1, poll:1},
+    C:{k:"chili",    n:"辣椒",   need:7, water:8,  y:1.2, h:1, poll:1},
     B:{k:"basil",    n:"九層塔", need:6, water:5,  y:0.8, h:0, fl:1},
     S:{k:"sweet",    n:"地瓜葉", need:4, water:6,  y:2.0, h:0},
     K:{k:"kangkong", n:"空心菜", need:5, water:10, y:2.5, h:0},
     L:{k:"lettuce",  n:"萵苣",   need:3, max:7, water:7, y:1.5, h:0},
     J:{k:"chive",    n:"韭菜",   need:4, water:4,  y:1.0, h:0, fl:1},
     M:{k:"mint",     n:"薄荷",   need:3, water:6,  y:0.6, h:0, inv:1},
-    F:{k:"sunflower",n:"向日葵", need:8, water:9,  y:0.4, h:2.2, fl:2},
+    F:{k:"sunflower",n:"向日葵", need:8, water:9,  y:0.4, h:2.2, fl:2, poll:1},
     H:{k:"hive",     n:"蜂箱",   need:0, water:1,  y:0,   h:0.6, fx:1},
     W:{k:"barrel",   n:"雨水桶", need:0, water:0,  y:0,   h:0.8, fx:1},
     P:{k:"compost",  n:"堆肥箱", need:0, water:0,  y:0,   h:0.5, fx:1},
@@ -261,16 +262,23 @@ footer{margin-top:26px;font-size:12.5px;color:#58735f;text-align:center}
   var layout = store.get("solar-garden");
   if(!Array.isArray(layout) || layout.length !== 48) layout = SAMPLE.join("").split("");
   layout[TREE] = "#";
-  var tool = "T", sunHours = new Array(48).fill(0), hour = 14.5, heat = false;
+  var LENS = "?", RAIN_BASE = 60, RAIN_BARREL = 140, RAIN_CATCH = 420; /* 屋頂集水面每週最多導入約 420 L，桶子只決定能存多少 */
+  var tool = LENS, sunHours = new Array(48).fill(0), hour = 14.5, heat = false;
 
   var grid = $("#grid"), toolsEl = $("#tools");
   if(!grid || !toolsEl) return;
 
   /* ---- tools ---- */
+  var lensBtn = document.createElement("button");
+  lensBtn.className = "tool lens"; lensBtn.type = "button"; lensBtn.dataset.code = LENS;
+  lensBtn.innerHTML = icon("lens") + '<span>放大鏡</span>';
+  lensBtn.setAttribute("aria-pressed", tool === LENS ? "true" : "false");
+  lensBtn.addEventListener("click", function(){ pick(LENS); });
+  ($("#eraseSlot") || toolsEl).appendChild(lensBtn);
   ORDER.forEach(function(code, i){
     var c = CROPS[code], b = document.createElement("button");
     b.className = "tool"; b.type = "button"; b.dataset.code = code;
-    var spec = code === "." ? "拔除" : (c.fx ? ({H:"授粉 +20%",W:"雨水 +140L",P:"鄰格 +10%"}[code]) : "日照≥"+c.need+" · "+c.water+"L");
+    var spec = code === "." ? "拔除" : (c.fx ? ({H:"果菜 +20%",W:"存水 140L",P:"鄰格 +10%"}[code]) : "日照≥"+c.need+" · "+c.water+"L");
     b.innerHTML = icon(code === "." ? "erase" : c.k) + '<span>'+(code === "." ? "鏟子" : c.n)+'</span><small>'+spec+'</small>';
     b.setAttribute("aria-pressed", code === tool ? "true" : "false");
     b.addEventListener("click", function(){ pick(code); });
@@ -281,12 +289,14 @@ footer{margin-top:26px;font-size:12.5px;color:#58735f;text-align:center}
     T:"番茄愛曬太陽，旁邊種九層塔會更香、也更少蟲。",C:"辣椒要全日照；和九層塔當鄰居，辣得更有精神。",B:"九層塔會開紫色小花，蜜蜂很捧場。",
     S:"地瓜葉是懶人救星：半日照也長得瘋。",K:"空心菜很會喝水，靠雨水桶近一點比較好。",L:"萵苣怕熱，曬超過 7 小時會抽苔變苦。",
     J:"韭菜割了又長，和萵苣是好鄰居。",M:"薄荷會悄悄入侵隔壁格子，鄰居收成 −10%。",F:"向日葵長得高，會在東西兩側投下陰影。",
-    H:"蜂箱：周圍兩格內的作物授粉 +20%。",W:"雨水桶：每週多收 140 公升屋頂雨水。",P:"堆肥箱：相鄰作物 +10% 收成。",".":"鏟子：把格子恢復成空地（老芒果樹拔不走）。"
+    H:"蜂箱：周圍兩格內靠授粉結果的作物（番茄、辣椒、向日葵）收成 +20%；葉菜不受影響。",W:"雨水桶：每桶多存 140 公升屋頂雨水，但屋頂每週最多只導得進約 "+RAIN_CATCH+" 公升。",P:"堆肥箱：相鄰作物 +10% 收成。",".":"鏟子：把格子恢復成空地（老芒果樹拔不走）。",
+    "?":"放大鏡：點格子只看日照與鄰居狀況，不會種下任何東西。"
   };
   function pick(code){
     tool = code;
     document.querySelectorAll(".tool").forEach(function(b){ b.setAttribute("aria-pressed", b.dataset.code === code ? "true" : "false"); });
-    var p = $("#picked"); if(p) p.innerHTML = "<b>"+(code === "." ? "鏟子" : CROPS[code].n)+"</b> — "+BLURB[code];
+    var name = code === "." ? "鏟子" : code === LENS ? "放大鏡" : CROPS[code].n;
+    var p = $("#picked"); if(p) p.innerHTML = "<b>"+name+"</b> — "+BLURB[code];
   }
 
   /* ---- grid ---- */
@@ -352,7 +362,7 @@ footer{margin-top:26px;font-size:12.5px;color:#58735f;text-align:center}
     var has = function(list, code2){ return list.some(function(j){ return layout[j] === code2; }); };
     if((code === "T" || code === "C") && has(n1, "B")){ r.mult *= 1.15; r.notes.push("九層塔鄰居 +15%"); }
     if((code === "L" && has(n1, "J")) || (code === "J" && has(n1, "L"))){ r.mult *= 1.1; r.notes.push("萵苣韭菜互助 +10%"); }
-    if(has(n2, "H")){ r.mult *= 1.2; r.notes.push("蜂箱授粉 +20%"); }
+    if(c.poll && has(n2, "H")){ r.mult *= 1.2; r.notes.push("蜂箱授粉 +20%"); }
     if(has(n1, "P")){ r.mult *= 1.1; r.notes.push("堆肥加持 +10%"); }
     if(code !== "M" && has(n1, "M")){ r.mult *= .9; r.notes.push("被薄荷入侵 −10%"); }
     return r;
@@ -361,7 +371,7 @@ footer{margin-top:26px;font-size:12.5px;color:#58735f;text-align:center}
   function render(popIndex){
     computeSun();
     var s = sunAt(hour);
-    var planted = 0, fit = 0, water = 0, supply = 60, yieldKg = 0, bee = 0;
+    var planted = 0, fit = 0, water = 0, barrels = 0, yieldKg = 0, bee = 0;
     for(var i=0;i<48;i++){
       var el = cells[i], code = layout[i], c = CROPS[code];
       var svg = el.querySelector("svg.p");
@@ -382,15 +392,17 @@ footer{margin-top:26px;font-size:12.5px;color:#58735f;text-align:center}
       var hrs = el.querySelector(".hrs"); if(hrs) hrs.textContent = sunHours[i] + "h";
       el.setAttribute("aria-label", "第"+(Math.floor(i/COLS)+1)+"列第"+(i%COLS+1)+"格，"+(c ? c.n : "空地")+"，日照 "+sunHours[i]+" 小時");
       if(c && !c.fx){ planted++; if(rep.ok && !rep.bolt) fit++; water += c.water; yieldKg += c.y * rep.mult; if(c.fl) bee += c.fl; }
-      if(code === "W") supply += 140;
+      if(code === "W") barrels++;
       if(code === "H") bee += 3;
     }
+    var stored = barrels * RAIN_BARREL, capped = stored >= RAIN_CATCH;
+    var supply = RAIN_BASE + Math.min(stored, RAIN_CATCH);
     var fitPct = planted ? Math.round(fit / planted * 100) : 0;
     set("#sFit", fitPct + "<small>%</small>"); bar("#mFit", fitPct);
     set("#nFit", planted ? (planted - fit ? (planted - fit) + " 格住得不太開心" : "每一株都曬得剛剛好") : "先種點什麼吧");
     set("#sWater", water + "<small>/ "+supply+" L</small>"); bar("#mWater", supply ? Math.min(100, water / supply * 100) : 100);
     var wb = $("#waterBox"); if(wb) wb.classList.toggle("over", water > supply);
-    set("#nWater", water > supply ? "需要自來水補 " + (water - supply) + " L，多放個雨水桶？" : "雨水夠用，還剩 " + (supply - water) + " L");
+    set("#nWater", water > supply ? "需要自來水補 " + (water - supply) + " L" + (capped ? "（屋頂集水已到上限）" : "，多放個雨水桶？") : "雨水夠用，還剩 " + (supply - water) + " L");
     set("#sYield", yieldKg.toFixed(1) + "<small>kg/月</small>");
     set("#nYield", yieldKg > 25 ? "夠整棟樓的早餐沙拉" : yieldKg > 12 ? "約可餵飽 4 戶鄰居" : "一個陽台的份量");
     var beeScore = Math.min(10, bee); set("#sBee", beeScore + "<small>/ 10</small>"); bar("#mBee", beeScore * 10);
@@ -415,13 +427,16 @@ footer{margin-top:26px;font-size:12.5px;color:#58735f;text-align:center}
   /* ---- planting (pointer painting) ---- */
   var painting = false, lastPainted = -1;
   function plantAt(i){
-    if(i === TREE || i < 0) return;
+    if(i < 0) return;
+    if(tool === LENS){ inspect(i); return; }
+    if(i === TREE) return;
     var code = tool === "." ? "." : tool;
     if(layout[i] === code){ return; }
     layout[i] = code; render(i); inspect(i);
   }
   grid.addEventListener("pointerdown", function(e){
     var c = e.target.closest ? e.target.closest(".cell") : null; if(!c) return;
+    if(tool === LENS){ inspect(+c.dataset.i); return; }
     painting = true; lastPainted = +c.dataset.i; plantAt(lastPainted);
     audio(); chirp();
   });
@@ -444,7 +459,9 @@ footer{margin-top:26px;font-size:12.5px;color:#58735f;text-align:center}
     e.preventDefault(); cells[to].focus();
   });
   document.addEventListener("keydown", function(e){
-    if(/^[1-9]$/.test(e.key) && !(e.target && e.target.tagName === "INPUT")) pick(ORDER[+e.key - 1]);
+    if(e.ctrlKey || e.metaKey || e.altKey || (e.target && e.target.tagName === "INPUT")) return;
+    if(/^[1-9]$/.test(e.key)) pick(ORDER[+e.key - 1]);
+    else if(e.key === "0") pick(LENS);
   });
 
   /* ---- small sound: a soft "plip" when planting ---- */
@@ -481,7 +498,7 @@ footer{margin-top:26px;font-size:12.5px;color:#58735f;text-align:center}
   if(sampleBtn) sampleBtn.addEventListener("click", function(){ layout = SAMPLE.join("").split(""); render(); });
   if(clearBtn) clearBtn.addEventListener("click", function(){ layout = new Array(48).fill("."); layout[TREE] = "#"; render(); });
 
-  pick("T"); render(); setHour(hour); inspect(10);
+  pick(LENS); render(); setHour(hour); inspect(10);
 })();
 </script>
 </body>

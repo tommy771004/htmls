@@ -8,7 +8,7 @@
 <link rel="canonical" href="https://htmls-ruddy.vercel.app/web/016-muji-minimal.html">
 <style>
 :root{
-  --paper:#f6f3ee; --plate:#ece8e1; --plate2:#e6e1d8; --linen:#d9cfbe; --line:#d6d0c6; --line2:#c7c0b4; --ink:#3b3733; --ink2:#7a746b; --ink3:#a39c91; --shu:#a4473a;
+  --paper:#f6f3ee; --plate:#ece8e1; --linen:#d9cfbe; --line:#d6d0c6; --line2:#c7c0b4; --ink:#3b3733; --ink2:#7a746b; --ink3:#a39c91; --shu:#a4473a;
   --font:"Yu Gothic Light","YuGothic","Yu Gothic","Microsoft JhengHei Light","Hiragino Sans","PingFang TC","Noto Sans TC","Noto Sans JP",sans-serif;
   --slow:cubic-bezier(.25,.1,.25,1);
 }
@@ -42,7 +42,7 @@ nav a{color:var(--ink2);text-decoration:none}
 .hero .side dd{margin:0;color:var(--ink)}
 
 /* filters: a quiet index of words, the chosen one in shu */
-.bar{display:grid;grid-template-columns:repeat(12,1fr);gap:0 24px;align-items:baseline;background:var(--plate);box-shadow:0 0 0 100vmax var(--plate);clip-path:inset(0 -100vmax);padding:34px 0 30px}
+.bar{display:grid;grid-template-columns:repeat(12,1fr);gap:0 24px;align-items:baseline;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:34px 0 30px}
 .bar .lead{grid-column:1/5;font-size:12.5px;color:var(--ink2);line-height:1.8;margin:0}
 .bar .lead b{display:block;font-weight:300;font-size:15px;color:var(--ink);letter-spacing:.12em}
 .tabs{grid-column:5/13;display:flex;gap:4px 34px;flex-wrap:wrap;align-items:baseline}
@@ -58,9 +58,8 @@ nav a{color:var(--ink2);text-decoration:none}
 .item{display:flex;flex-direction:column;min-width:0;opacity:0;transform:translateY(10px);transition:opacity 1.8s var(--slow),transform 1.8s var(--slow)}
 .item.in{opacity:1;transform:none}
 .item[hidden]{display:none}
-.plate{position:relative;aspect-ratio:5/4;background:var(--plate2);margin:0 0 16px;display:grid;place-items:center;overflow:hidden}
-.plate::before{content:"";position:absolute;inset:7%;background:radial-gradient(ellipse 70% 62% at 50% 36%,rgba(255,255,255,.6),transparent 72%),var(--plate)}
-.plate .no{position:absolute;left:calc(7% + 12px);top:calc(7% + 8px);font-size:10.5px;color:var(--ink3);letter-spacing:.2em;line-height:1}
+.plate{position:relative;aspect-ratio:5/4;background:var(--plate);margin:0 0 16px;display:grid;place-items:center;overflow:hidden}
+.plate .no{position:absolute;left:12px;top:10px;font-size:10.5px;color:var(--ink3);letter-spacing:.2em;line-height:1}
 .obj{position:relative;width:160px;height:160px;transform:scale(1.18);transition:transform 1.2s var(--slow)}
 .item:hover .obj{transform:scale(1.18) translateY(-3px)}
 .cap{display:flex;align-items:baseline;gap:12px;min-width:0}
@@ -211,7 +210,7 @@ footer{border-top:1px solid var(--line);padding:30px 0 60px;font-size:12px;color
     <h1>少一點，<br>剛剛好。<small>これくらいが、ちょうどいい。</small></h1>
     <div class="side" id="about">
       <p style="margin:0">我們只做每天會用到的東西。不印大標誌，不加多餘的顏色——把位置留給您的生活。</p>
-      <dl><dt>目錄</dt><dd>2026 秋冬　Vol.12</dd><dt>品項</dt><dd>全 12 品</dd><dt>素材</dt><dd>瓷、木、麻、玻璃、鋼</dd></dl>
+      <dl><dt>素材</dt><dd>瓷、木、麻、玻璃、鋼</dd></dl>
     </div>
   </section>
 
@@ -235,7 +234,7 @@ footer{border-top:1px solid var(--line);padding:30px 0 60px;font-size:12px;color
 </footer>
 
 <div class="scrim" id="scrim"></div>
-<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dt" aria-hidden="true">
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dt" aria-hidden="true" inert>
   <h2><span id="dt">買い物リスト<small>購物清單</small></span><button class="x" id="closeList" type="button" aria-label="關閉清單"></button></h2>
   <ul class="lines" id="lines"></ul>
   <div class="sum"><span>合計<br><small>含稅・免運門檻 NT$ 1,500</small></span><span id="total">NT$ 0</span></div>
@@ -347,22 +346,29 @@ if(lines) lines.addEventListener('click',e=>{
 });
 const drawer=$('drawer'), scrim=$('scrim');
 let lastFocus=null;
-function openList(){ if(!drawer||!scrim) return; lastFocus=document.activeElement; renderList(); drawer.classList.add('on'); scrim.classList.add('on'); drawer.setAttribute('aria-hidden','false'); const c=$('closeList'); if(c) setTimeout(()=>c.focus(),50); }
-function closeList(){ if(!drawer||!scrim) return; drawer.classList.remove('on'); scrim.classList.remove('on'); drawer.setAttribute('aria-hidden','true'); if(lastFocus&&lastFocus.focus) lastFocus.focus(); }
+function openList(){ if(!drawer||!scrim) return; lastFocus=document.activeElement; renderList(); drawer.inert=false; drawer.classList.add('on'); scrim.classList.add('on'); drawer.setAttribute('aria-hidden','false'); const c=$('closeList'); if(c) setTimeout(()=>c.focus(),50); }
+function closeList(){ if(!drawer||!scrim) return; drawer.classList.remove('on'); scrim.classList.remove('on'); drawer.setAttribute('aria-hidden','true'); drawer.inert=true; if(lastFocus&&lastFocus.focus) lastFocus.focus(); }
 const ob=$('openList'); if(ob) ob.addEventListener('click',openList);
 const cb=$('closeList'); if(cb) cb.addEventListener('click',closeList);
 if(scrim) scrim.addEventListener('click',closeList);
 addEventListener('keydown',e=>{ if(e.key==='Escape'&&drawer&&drawer.classList.contains('on')) closeList(); });
 
 /* ---- the clock tells the real time, slowly ---- */
-function clock(){
-  const d=new Date(), s=d.getSeconds(), m=d.getMinutes()+s/60, h=(d.getHours()%12)+m/60;
+// sweep movement: the second hand glides continuously (a 1s linear transition aimed one second ahead),
+// with an ever-growing angle so 59s → 0s never spins backwards
+const C0=new Date(), S0=C0.getSeconds()+C0.getMilliseconds()/1000, T0=performance.now();
+function clock(snap){
+  const d=new Date(), s=d.getSeconds()+d.getMilliseconds()/1000, m=d.getMinutes()+s/60, h=(d.getHours()%12)+m/60;
+  const sweep=S0+(performance.now()-T0)/1000+(snap?0:1);
   document.querySelectorAll('.clock').forEach(c=>{
     const hh=c.querySelector('.hh'), mm=c.querySelector('.mm'), ss=c.querySelector('.ss');
-    if(hh) hh.style.transform=`rotate(${h*30}deg)`; if(mm) mm.style.transform=`rotate(${m*6}deg)`; if(ss) ss.style.transform=`rotate(${s*6}deg)`;
+    if(hh) hh.style.transform=`rotate(${h*30}deg)`; if(mm) mm.style.transform=`rotate(${m*6}deg)`;
+    if(ss){ ss.style.transition=snap?'none':'transform 1s linear'; ss.style.transform=`rotate(${sweep*6}deg)`; if(snap) void ss.offsetWidth; }
   });
 }
-clock(); setInterval(clock,1000);
+function resync(){ clock(true); clock(false); }
+resync(); setInterval(()=>clock(false),1000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) resync(); });
 
 syncButtons(); renderList();
 })();

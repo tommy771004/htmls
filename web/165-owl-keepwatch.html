@@ -74,11 +74,10 @@ body{
   display:flex;align-items:flex-end;gap:14px;pointer-events:none;color:var(--bone-2);font-size:12px;letter-spacing:.06em;white-space:nowrap}
 .gaze svg{width:128px;height:74px;display:block;overflow:visible}
 .gaze .st{color:var(--bone);font-weight:600;font-size:13px;display:block}
-.gaze .nm{font-variant-numeric:tabular-nums;display:block;color:var(--dim)}
 
-/* 說明小卡 */
+/* 說明小卡：疊在 3D 場景上，只留底色讓字讀得清楚 */
 .note{position:fixed;z-index:6;top:82px;right:clamp(20px,4vw,56px);width:min(330px,calc(100vw - 40px));
-  background:var(--ink2);color:var(--bone-2);border:1px solid var(--line);border-radius:4px;padding:18px 20px;font-size:13px;line-height:1.8}
+  background:var(--ink2);color:var(--bone-2);padding:18px 20px;font-size:13px;line-height:1.8}
 .note{max-height:calc(100dvh - 100px);overflow:auto}
 .note[hidden]{display:none}
 .note p{margin:0 0 8px}.note p:last-child{margin:0}
@@ -99,7 +98,7 @@ body{
   .copy p{font-size:13px;margin-bottom:12px;max-width:300px}
   .cta{width:100%;justify-content:space-between}
   .gaze{left:auto;right:18px;bottom:auto;top:140px;transform:none;flex-direction:column;align-items:flex-end;gap:2px}
-  .gaze svg{width:88px;height:52px}
+  .gaze svg{display:none}
   .note{top:70px;right:18px}
 }
 @media (max-height:520px) and (min-width:761px){
@@ -130,6 +129,7 @@ body{
 
 <div class="copy">
   <p><b>守夜</b>是給夜班、趕稿與熬夜者的專注計時器。每一次分心，牠都看見；每一次回來，牠也還在。</p>
+  <p id="log" aria-live="polite" hidden></p>
   <button class="cta" id="cta" type="button" data-on="false">開始守夜<span class="t" id="ctaT">25:00</span></button>
 </div>
 
@@ -145,7 +145,7 @@ body{
     <g id="gHead" transform="rotate(0 64 64)"><path d="M64 64 L61 58 L64 24 L67 58 Z" fill="#e8dfc9"/></g>
     <circle cx="64" cy="64" r="3.2" fill="#e8dfc9"/>
   </svg>
-  <span><span class="st" id="gState">盯著你</span><span class="nm" id="gNum">頭 0° · 眼 0°</span></span>
+  <span><span class="st" id="gState">盯著你</span></span>
 </div>
 
 <div class="note" id="note" hidden>
@@ -163,7 +163,7 @@ let THREE;
 try { THREE = await import('three'); }
 catch (e) {
   try { THREE = await import('../vendor/three-0.186.0/three.module.js'); }
-  catch (e2) { $('boot').innerHTML = '<div><b>3D 載入失敗</b>需要網路連線到 cdn.jsdelivr.net 載入 Three.js。</div>'; }
+  catch (e2) { $('boot').innerHTML = '<div><b>3D 載入失敗</b>Three.js 模組載入失敗（../vendor/three-0.186.0）。</div>'; }
 }
 if (THREE) {
   try { init(); $('boot').classList.add('gone'); }
@@ -599,7 +599,7 @@ const tmp = new THREE.Vector3();
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 /* ---------- UI 讀數 ---------- */
-const gHead = $('gHead'), gEye = $('gEye'), gState = $('gState'), gNum = $('gNum'), mkP = $('mk-p');
+const gHead = $('gHead'), gEye = $('gEye'), gState = $('gState'), mkP = $('mk-p');
 let uiAcc = 0;
 function updateUI(dt) {
   uiAcc += dt;
@@ -608,9 +608,8 @@ function updateUI(dt) {
   const hd = Math.round(hy * 180 / Math.PI), ed = Math.round((hy + ey) * 180 / Math.PI);
   gHead.setAttribute('transform', `rotate(${clamp(hd, -90, 90)} 64 64)`);
   gEye.setAttribute('transform', `rotate(${clamp(ed, -90, 90)} 64 64)`);
-  gNum.textContent = `頭 ${hd > 0 ? '+' : ''}${hd}° · 眼 ${ed > 0 ? '+' : ''}${ed}°`;
   const idle = (performance.now() - lastMove) / 1000;
-  gState.textContent = dozing ? '打盹中' : watch ? '守夜中' : idle > 3 ? '找你' : '盯著你';
+  gState.textContent = dozing ? '打盹中' : watch ? '守夜中' : !reduced && idle > 3 ? '找你' : '盯著你';
   mkP.setAttribute('cx', 15 + clamp(hd / 90, -1, 1) * 2.4);
   mkP.setAttribute('cy', 15 - clamp(hp / 0.6, -1, 1) * 1.6);
 }
@@ -741,9 +740,10 @@ requestAnimationFrame(frame);
 /* ---------- 聲音：WebAudio 合成的「呼—呼」 ---------- */
 let ac = null, soundOn = false;
 function ensureAudio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } } if (ac && ac.state === 'suspended') ac.resume(); }
-function hoot() {
+// force：守夜結束的提示音，聲音開關關著也要叫一次
+function hoot(force) {
   puff = 1;
-  if (!soundOn || !ac) return;
+  if ((!soundOn && !force) || !ac) return;
   const t0 = ac.currentTime + 0.02;
   const master = ac.createGain(); master.gain.value = 0.5; master.connect(ac.destination);
   const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = 0.7; lp.connect(master);
@@ -794,27 +794,53 @@ addEventListener('keydown', e => {
 });
 
 // 守夜計時：以截止時間計算，背景分頁降頻不延長專注時段
-let timer = null, deadline = 0;
+// 守夜中切走分頁或離開視窗算一次分心：記下次數與離開的總秒數，回來時牠會驚一下
+let timer = null, deadline = 0, startedAt = 0;
+let awayCount = 0, awayMs = 0, awaySince = 0;
+const baseTitle = document.title;
 const fmt = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+const fmtSpan = ms => { const s = Math.round(ms / 1000), m = Math.floor(s / 60); return m ? `${m} 分 ${s % 60} 秒` : `${s} 秒`; };
 function stopWatch() {
   clearInterval(timer); timer = null; watch = false;
   $('cta').dataset.on = 'false'; $('cta').firstChild.textContent = '開始守夜';
   $('ctaT').textContent = '25:00';
 }
+function finishWatch(done) {
+  const end = Math.min(Date.now(), deadline);
+  if (awaySince) { awayCount++; awayMs += Math.max(0, end - awaySince); awaySince = 0; }
+  stopWatch();
+  const lead = done ? '守夜結束。' : `提早收工，守了 ${fmtSpan(end - startedAt)}。`;
+  $('log').textContent = lead + (awayCount ? `分心 ${awayCount} 次，共 ${fmtSpan(awayMs)}。` : '一次都沒分心。');
+  $('log').hidden = false;
+  document.title = done ? '守夜結束 · KEEPWATCH' : baseTitle;
+}
 function syncWatch() {
   if (!watch) return;
   const remain = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
   $('ctaT').textContent = fmt(remain);
-  if (remain === 0) { stopWatch(); hoot(); }
+  document.title = `${fmt(remain)} · 守夜`;
+  if (remain === 0) { finishWatch(true); hoot(true); }
+}
+function trackAway() {
+  if (!watch) return;
+  const away = document.hidden || !document.hasFocus();
+  if (away && !awaySince) awaySince = Date.now();
+  else if (!away && awaySince) {
+    awayCount++; awayMs += Date.now() - awaySince; awaySince = 0;
+    wake(); lastMove = performance.now();
+  }
 }
 $('cta').addEventListener('click', () => {
   ensureAudio(); wake(); lastMove = performance.now();
-  if (watch) { stopWatch(); return; }
-  watch = true; deadline = Date.now() + 25 * 60 * 1000;
+  if (watch) { finishWatch(false); return; }
+  watch = true; startedAt = Date.now(); deadline = startedAt + 25 * 60 * 1000;
+  awayCount = 0; awayMs = 0; awaySince = 0; $('log').hidden = true;
   $('cta').dataset.on = 'true'; $('cta').firstChild.textContent = '結束守夜';
   syncWatch(); timer = setInterval(syncWatch, 1000);
 });
-document.addEventListener('visibilitychange', () => { if (!document.hidden) syncWatch(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) syncWatch(); trackAway(); });
+addEventListener('blur', trackAway);
+addEventListener('focus', trackAway);
 
 // 讓測試與截圖可以直接設定注視點
 window.__owl = { setTarget, get state() { return { hy, hp, ey, ep, dozing, watch }; } };

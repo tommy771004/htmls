@@ -130,7 +130,10 @@
     .grid{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 360px 280px 260px 340px 220px;
       grid-template-areas:"watch" "chart" "book" "tape" "news" "heat"}
     .hide-s{display:none}
-    .bar .hide-s,.msg{display:none}
+    .bar .hide-s{display:none}
+    /* command feedback drops to its own line under the input instead of disappearing */
+    .cmd{flex-wrap:wrap;row-gap:4px}
+    .msg{display:block;flex-basis:100%;white-space:normal;font-size:11px}
     .quote .big{font-size:22px}
     .quote .kv.hide-s{display:none}
     .nl li{grid-template-columns:44px 1fr}
@@ -232,7 +235,7 @@
     { s: 'OATM', n: 'OAT MILK FUT DEC26', c: 'CMDTY', sec: 'BEVERAGE', p: 6.842, v: .0026 },
     { s: 'UMBR', n: 'UMBRELLA HOLDINGS', c: 'EQTY', sec: 'WEATHER', p: 88.40, v: .0019 },
     { s: 'SNAX', n: 'MIDNIGHT SNACK CO', c: 'EQTY', sec: 'SNACKS', p: 23.75, v: .0021 },
-    { s: 'SOCK', n: 'LOST SOCK RECOVERY PLC', c: 'EQTY', sec: 'LAUNDRY', p: 4.071, v: .0034 },
+    { s: 'SOCK', n: 'LOST SOCK RECOVERY PLC', c: 'EQTY', sec: 'LAUNDRY', p: 4.07, v: .0034 },
     { s: 'MOON', n: 'LUNAR REAL ESTATE REIT', c: 'REIT', sec: 'LUNAR RE', p: 61.90, v: .0014 },
     { s: 'BRRR', n: 'AIR CONDITIONING TRUST', c: 'REIT', sec: 'WEATHER', p: 117.25, v: .0015 },
     { s: 'PLNT', n: 'HOUSEPLANT SURVIVAL INC', c: 'EQTY', sec: 'PLANTS', p: 12.66, v: .0028 },
@@ -268,9 +271,11 @@
   const OPEN = 9.5 * 60, CLOSE = 16 * 60;
   let simMin = 13 * 60 + 47, simSec = 0;     // 13:47:00
   const fmtT = (m, s = 0) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(Math.floor(m % 60)).padStart(2, '0')}:${String(Math.floor(s)).padStart(2, '0')}`;
-  function genHist(sec) {
-    const bars = []; let p = sec.p * (1 + gauss() * .01);
-    sec.prev = p * (1 + gauss() * .008);
+  // close: previous session's last price (rollover); omitted on first load, when yesterday is invented
+  function genHist(sec, close) {
+    const bars = []; let p;
+    if (close == null) { p = sec.p * (1 + gauss() * .01); sec.prev = p * (1 + gauss() * .008); }
+    else { sec.prev = close; p = close * (1 + gauss() * sec.v * 2); }   // small overnight gap
     sec.open = p;
     for (let m = OPEN; m < simMin; m++) {
       const o = p; let h = o, l = o;
@@ -280,19 +285,23 @@
     bars.push({ m: simMin, o: p, h: p, l: p, c: p, vol: 0 });
     sec.bars = bars; sec.px = p;
     sec.vol = bars.reduce((a, b) => a + b.vol, 0);
-    sec.spread = Math.max(sec.p * .0004, sec.p < 10 ? .001 : .01);
+    sec.spread = Math.max(sec.p * .0004, tickOf(sec));
     sec.book = mkBook(sec);
   }
+  // Reg NMS Rule 612: stocks and REITs quoted at or above $1 trade in whole cents; only the commodity contracts keep a finer tick
+  const tickOf = sec => sec.c === 'CMDTY' && sec.p < 10 ? .001 : .01;
   function mkBook(sec) {
-    const tick = sec.p < 10 ? .001 : .01, lv = [];
+    const tick = tickOf(sec), lv = [];
     for (let i = 0; i < 5; i++) lv.push({ b: Math.round(50 + rnd() * 900) * 10, a: Math.round(50 + rnd() * 900) * 10 });
     return { tick, lv };
   }
-  SECS.forEach(genHist);
+  SECS.forEach(s => genHist(s));
   IDX.forEach(ix => { ix.prev = ix.p * (1 + gauss() * .004); ix.px = ix.p; });
 
   const dp = p => p >= 1000 ? 2 : p < 1 ? 4 : p < 10 ? 3 : 2;
   const fmt = (p, d = dp(p)) => p.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  // security prices: equities / REITs always in cents, commodities by magnitude
+  const fs = (s, v) => fmt(v, s.c === 'CMDTY' ? dp(v) : 2);
   const fmtV = v => v >= 1e6 ? (v / 1e6).toFixed(2) + 'M' : v >= 1e3 ? (v / 1e3).toFixed(1) + 'K' : String(v);
   const pct = s => (s.px / s.prev - 1) * 100;
 
@@ -310,7 +319,7 @@
   });
   function paintRow(sec, dir) {
     const ch = pct(sec);
-    sec.cPx.textContent = fmt(sec.px);
+    sec.cPx.textContent = fs(sec, sec.px);
     sec.cPc.textContent = (ch >= 0 ? '+' : '') + ch.toFixed(2) + '%';
     sec.cPc.className = 'pc ' + (ch >= 0 ? 'up' : 'dn');
     if (sec.cVo) sec.cVo.textContent = fmtV(sec.vol);
@@ -353,29 +362,42 @@
   function paintQuote() {
     const s = SECS[selIdx], b = s.bars, ch = s.px - s.prev, pc = pct(s);
     const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
-    set('qPx', fmt(s.px));
-    const qc = $('qChg'); if (qc) { qc.textContent = `${ch >= 0 ? '+' : ''}${fmt(ch)} ${pc >= 0 ? '+' : ''}${pc.toFixed(2)}%`; qc.className = pc >= 0 ? 'up' : 'dn'; }
-    set('qO', fmt(s.open)); set('qH', fmt(Math.max(...b.map(x => x.h)))); set('qL', fmt(Math.min(...b.map(x => x.l)))); set('qV', fmtV(s.vol));
+    set('qPx', fs(s, s.px));
+    const qc = $('qChg'); if (qc) { qc.textContent = `${ch >= 0 ? '+' : ''}${fs(s, ch)} ${pc >= 0 ? '+' : ''}${pc.toFixed(2)}%`; qc.className = pc >= 0 ? 'up' : 'dn'; }
+    set('qO', fs(s, s.open)); set('qH', fs(s, Math.max(...b.map(x => x.h)))); set('qL', fs(s, Math.min(...b.map(x => x.l)))); set('qV', fmtV(s.vol));
+  }
+  // inside bid / ask on the security's tick grid (shared by the depth ladder and the tape)
+  function quoteOf(s) {
+    const t = s.book.tick, bid = Math.floor((s.px - s.spread / 2) / t) * t, ask = bid + Math.max(t, Math.round(s.spread / t) * t);
+    return { t, bid, ask };
   }
   function paintBook() {
     const s = SECS[selIdx], lad = $('lad'); if (!lad) return;
-    const t = s.book.tick, bid = Math.floor((s.px - s.spread / 2) / t) * t, ask = bid + Math.max(t, Math.round(s.spread / t) * t);
+    const { t, bid, ask } = quoteOf(s);
     const mx = Math.max(...s.book.lv.map(l => Math.max(l.a, l.b)));
     let h = '';
-    for (let i = s.book.lv.length - 1; i >= 0; i--) { const l = s.book.lv[i]; h += `<tr><td></td><td></td><td><span class="dn">${fmt(ask + i * t, dp(s.px))}</span></td><td><div class="bar-a" style="width:${(l.a / mx * 100).toFixed(0)}%"></div><span>${l.a.toLocaleString()}</span></td></tr>`; }
-    h += `<tr class="mid"><td colspan="4">SPREAD ${fmt(ask - bid, dp(s.px))} · LAST ${fmt(s.px)}</td></tr>`;
-    s.book.lv.forEach((l, i) => { h += `<tr><td><div class="bar-b" style="width:${(l.b / mx * 100).toFixed(0)}%"></div><span>${l.b.toLocaleString()}</span></td><td><span class="up">${fmt(bid - i * t, dp(s.px))}</span></td><td></td><td></td></tr>`; });
+    for (let i = s.book.lv.length - 1; i >= 0; i--) { const l = s.book.lv[i]; h += `<tr><td></td><td></td><td><span class="dn">${fs(s, ask + i * t)}</span></td><td><div class="bar-a" style="width:${(l.a / mx * 100).toFixed(0)}%"></div><span>${l.a.toLocaleString()}</span></td></tr>`; }
+    h += `<tr class="mid"><td colspan="4">SPREAD ${fs(s, ask - bid)} · LAST ${fs(s, s.px)}</td></tr>`;
+    s.book.lv.forEach((l, i) => { h += `<tr><td><div class="bar-b" style="width:${(l.b / mx * 100).toFixed(0)}%"></div><span>${l.b.toLocaleString()}</span></td><td><span class="up">${fs(s, bid - i * t)}</span></td><td></td><td></td></tr>`; });
     lad.innerHTML = h;
   }
-  const CONDS = ['', '', '', '', 'ISO', 'ODD', 'BLK', 'DRK'];
+  const CONDS = ['', '', '', '', '', 'ISO', 'DRK'];
   function addTrade(s, quiet) {
     const ts = $('ts'); if (!ts) return;
-    const up = rnd() > .5, px = s.px * (1 + (rnd() - .5) * .0004);
-    const sz = rnd() < .08 ? Math.round(5000 + rnd() * 40000) : Math.round((1 + rnd() * 30)) * 100;
+    // aggressor side decides the print: buyers lift the ask, sellers hit the bid
+    const { bid, ask } = quoteOf(s), px = rnd() > .5 ? ask : bid;
+    // colour = tick test against the previous print (an unchanged price keeps the last direction)
+    const prevPx = s.lastPrint;
+    s.tickDir = prevPx == null || Math.abs(px - prevPx) < 1e-9 ? (s.tickDir || 1) : Math.sign(px - prevPx);
+    s.lastPrint = px;
+    const up = s.tickDir > 0;
+    // sizes: odd lots under 100 shares, round lots, the occasional 10,000+ block
+    const r = rnd();
+    const sz = r < .1 ? 1 + ((rnd() * 99) | 0) : r < .16 ? Math.round(100 + rnd() * 400) * 100 : Math.round((1 + rnd() * 30)) * 100;
+    const c = sz < 100 ? 'ODD' : sz >= 10000 ? 'BLK' : CONDS[(rnd() * CONDS.length) | 0];
     const tr = document.createElement('tr');
     if (!quiet) tr.className = 'new' + (up ? '' : ' s');
-    const c = sz >= 5000 ? 'BLK' : CONDS[(rnd() * CONDS.length) | 0];
-    tr.innerHTML = `<td style="color:var(--dim)">${fmtT(simMin, simSec)}</td><td class="${up ? 'up' : 'dn'}">${fmt(px)}</td><td style="${sz >= 5000 ? 'color:var(--yel)' : ''}">${sz.toLocaleString()}</td><td style="color:var(--dim)">${c}</td>`;
+    tr.innerHTML = `<td style="color:var(--dim)">${fmtT(simMin, simSec)}</td><td class="${up ? 'up' : 'dn'}">${fs(s, px)}</td><td style="${sz >= 10000 ? 'color:var(--yel)' : ''}">${sz.toLocaleString()}</td><td style="color:var(--dim)">${c}</td>`;
     ts.insertBefore(tr, ts.firstChild);
     while (ts.children.length > 40) ts.lastChild.remove();
   }
@@ -406,7 +428,7 @@
     for (let i = 0; i <= 5; i++) {
       const v = mn + (mx - mn) * i / 5, y = Math.round(Y(v)) + .5;
       ctx.beginPath(); ctx.moveTo(8, y); ctx.lineTo(8 + pw, y); ctx.stroke();
-      ctx.fillStyle = '#8a857c'; ctx.fillText(fmt(v), 8 + pw + 6, y);
+      ctx.fillStyle = '#8a857c'; ctx.fillText(fs(s, v), 8 + pw + 6, y);
     }
     for (let h = 10; h <= 16; h++) {
       const x = Math.round(X(h * 60)) + .5;
@@ -417,7 +439,7 @@
     // previous close
     const yp = Math.round(Y(s.prev)) + .5;
     ctx.strokeStyle = '#4aa3ff'; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(8, yp); ctx.lineTo(8 + pw, yp); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = '#4aa3ff'; ctx.fillText('PREV ' + fmt(s.prev), 12, yp - 8);
+    ctx.fillStyle = '#4aa3ff'; ctx.fillText('PREV ' + fs(s, s.prev), 12, yp - 8);
     // volume
     const vmax = Math.max(...b.map(x => x.vol), 1), vy0 = padT + ph + 6 + volH;
     b.forEach(x => {
@@ -448,7 +470,7 @@
     const yl = Y(s.px);
     ctx.fillStyle = s.px >= s.prev ? '#2bd67b' : '#ff4b4b';
     ctx.fillRect(8 + pw + 2, yl - 8, padR - 4, 16);
-    ctx.fillStyle = '#000'; ctx.fillText(fmt(s.px), 8 + pw + 6, yl);
+    ctx.fillStyle = '#000'; ctx.fillText(fs(s, s.px), 8 + pw + 6, yl);
     ctx.fillStyle = 'rgba(255,162,31,.22)'; ctx.fillRect(X(simMin) - .5, padT, 1, ph);
     // crosshair
     if (hoverX != null && hoverX > 8 && hoverX < 8 + pw) {
@@ -459,7 +481,7 @@
       if (bar) {
         const yy = Y(bar.c);
         ctx.beginPath(); ctx.arc(X(bar.m), yy, 3, 0, 7); ctx.fillStyle = '#ffd23a'; ctx.fill();
-        const txt = `${fmtT(bar.m)}  O ${fmt(bar.o)}  H ${fmt(bar.h)}  L ${fmt(bar.l)}  C ${fmt(bar.c)}  V ${fmtV(bar.vol)}`;
+        const txt = `${fmtT(bar.m)}  O ${fs(s, bar.o)}  H ${fs(s, bar.h)}  L ${fs(s, bar.l)}  C ${fs(s, bar.c)}  V ${fmtV(bar.vol)}`;
         const tw = ctx.measureText(txt).width + 12;
         const bx = Math.min(Math.max(8, hoverX - tw / 2), 8 + pw - tw);
         ctx.fillStyle = '#2a1a04'; ctx.fillRect(bx, padT, tw, 18);
@@ -479,7 +501,6 @@
 
   /* ---------------- news ---------------- */
   const nl = $('nl');
-  let newsI = 0;
   function pushNews(item, quiet, tm) {
     if (!nl) return;
     const [sym, hd, move] = item;
@@ -492,8 +513,22 @@
     while (nl.children.length > 30) nl.lastChild.remove();
     if (!quiet) { const s = SECS.find(x => x.s === sym); if (s) { s.shock = (s.shock || 0) + move; } }
   }
-  for (let k = 0; k < 8; k++) { const it = NEWS[(k * 5 + 3) % NEWS.length]; pushNews([it[0], it[1], 0], true, fmtT(simMin - 60 + k * 7).slice(0, 5)); }
-  newsI = 2;
+  const seen = [];
+  for (let k = 0; k < 8; k++) { const j = (k * 5 + 3) % NEWS.length; seen.push(j); const it = NEWS[j]; pushNews([it[0], it[1], 0], true, fmtT(simMin - 60 + k * 7).slice(0, 5)); }
+  // headlines come off a shuffled deck: no repeats within a round, and a re-run story is already priced in,
+  // so its price impact halves every round it comes back
+  let deck = NEWS.map((_, j) => j).filter(j => !seen.includes(j)), round = 1, lastStory = -1;
+  const shuffle = a => { for (let j = a.length - 1; j > 0; j--) { const r = (rnd() * (j + 1)) | 0; [a[j], a[r]] = [a[r], a[j]]; } return a; };
+  shuffle(deck);
+  function nextNews() {
+    if (!deck.length) {
+      deck = shuffle(NEWS.map((_, j) => j)); round++;
+      if (deck[deck.length - 1] === lastStory) [deck[0], deck[deck.length - 1]] = [deck[deck.length - 1], deck[0]];
+    }
+    const j = deck.pop(); lastStory = j;
+    const it = NEWS[j];
+    return [it[0], it[1], it[2] * Math.pow(.5, round - 1)];
+  }
 
   /* ---------------- heat ---------------- */
   const hm = $('hm');
@@ -519,7 +554,7 @@
     const run = $('run'); if (!run) return;
     run.innerHTML = IDX.concat(SECS).map(x => {
       const c = x.pct ? (x.px - x.prev) * 100 : pct(x);
-      return `<span><b>${x.s}</b>${fmt(x.px)} <i class="${c >= 0 ? 'up' : 'dn'}" style="font-style:normal">${c >= 0 ? '▲' : '▼'}${Math.abs(c).toFixed(2)}${x.pct ? 'bp' : '%'}</i></span>`;
+      return `<span><b>${x.s}</b>${x.c ? fs(x, x.px) : fmt(x.px)} <i class="${c >= 0 ? 'up' : 'dn'}" style="font-style:normal">${c >= 0 ? '▲' : '▼'}${Math.abs(c).toFixed(2)}${x.pct ? 'bp' : '%'}</i></span>`;
     }).join('');
   }
 
@@ -531,8 +566,12 @@
     simSec += 3;
     if (simSec >= 60) {
       simSec -= 60; simMin++;
-      if (simMin >= CLOSE) { simMin = OPEN + 5; SECS.forEach(genHist); }
-      SECS.forEach(s => s.bars.push({ m: simMin, o: s.px, h: s.px, l: s.px, c: s.px, vol: 0 }));
+      if (simMin >= CLOSE) {
+        // next session: today's last price becomes the previous close; genHist already opens the current minute's bar
+        simMin = OPEN + 5;
+        SECS.forEach(s => genHist(s, s.px));
+        IDX.forEach(ix => { ix.prev = ix.px; });
+      } else SECS.forEach(s => s.bars.push({ m: simMin, o: s.px, h: s.px, l: s.px, c: s.px, vol: 0 }));
     }
     const clock = $('clock'); if (clock) clock.textContent = fmtT(simMin, simSec);
     const n = 3 + ((rnd() * 4) | 0);
@@ -554,7 +593,7 @@
     if (tickN % 3 === 0) paintHeat();
     if (tickN % 20 === 0) paintRun();
     const now = performance.now();
-    if (now - lastNews > 6500 + rnd() * 4000) { lastNews = now; pushNews(NEWS[newsI++ % NEWS.length]); }
+    if (now - lastNews > 6500 + rnd() * 4000) { lastNews = now; pushNews(nextNews()); }
   }
 
   /* ---------------- command line & keys ---------------- */
@@ -567,7 +606,7 @@
     if (!v) return;
     const i = SECS.findIndex(s => s.s === v || s.n.startsWith(v));
     if (i >= 0) { if (filter !== 'ALL' && SECS[i].c !== filter) setFilter('ALL'); select(i, true); setMsg(`${SECS[i].s} ${SECS[i].c === 'CMDTY' ? 'COMDTY' : 'US EQUITY'} <GP> LOADED`); }
-    else if (v === 'NEWS' || v === 'N' || v === 'TOP') { pushNews(NEWS[newsI++ % NEWS.length]); setMsg('TOP NEWS REFRESHED'); }
+    else if (v === 'NEWS' || v === 'N' || v === 'TOP') { pushNews(nextNews()); setMsg('TOP NEWS REFRESHED'); }
     else if (v === 'HELP' || v === 'H') setMsg('TICKERS: ' + SECS.map(s => s.s).join(' ') + ' · NEWS · PAUSE');
     else if (v === 'PAUSE' || v === 'STOP') togglePause();
     else setMsg(`UNKNOWN SECURITY "${v}" — TRY ${SECS[(rnd() * SECS.length) | 0].s}`);
@@ -586,8 +625,12 @@
     const l = $('live'); if (l) l.lastChild.textContent = paused ? 'PAUSED' : 'LIVE';
   }
   const pb = $('pause'); if (pb) pb.addEventListener('click', togglePause);
+  // function keys printed on the buttons (F1 ALL, F8 EQUITY, …) really switch the filter
+  const FKEYS = {};
+  document.querySelectorAll('.fk[data-cls]').forEach(b => { const k = b.querySelector('b'); if (k) FKEYS[k.textContent.trim()] = b.dataset.cls; });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { togglePause(); return; }
+    if (FKEYS[e.key] && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) { e.preventDefault(); setFilter(FKEYS[e.key]); return; }
     if (e.target === cmd) return;
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();

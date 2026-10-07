@@ -193,16 +193,19 @@ const O = [330,330], R = 250;
 const P = {
   barrel:[228,262], center:[332,300], third:[414,284], fourth:[446,338], escape:[426,392], pallet:[386,438], balance:[312,478], crown:[505,262]
 };
+// drawing scale: the Ø 30.00 mainplate spans 2R units, so every dimension below is read off the geometry
+const PX_PER_MM = 2*R/30, mm = px => (px/PX_PER_MM).toFixed(2);
+const GR = { barrel:95, center:70, third:52, fourth:48, escape:30, balance:68, crown:22 };   // outer radii in drawing units
 const PARTS = [
   { id:'plate',   n:1,  name:'Mainplate',          qty:1,  mat:'Brass, rhodium plated', dims:'Ø 30.00 × 1.80', rate:'—', note:'Everything else is its problem.' },
-  { id:'barrel',  n:2,  name:'Barrel & mainspring', qty:1, mat:'Brass / Co-Ni alloy', dims:'Ø 9.50 · 90 T', rate:'1 rev / 8 h', note:'Stores Monday’s winding for Wednesday. Power reserve 42 h.' },
-  { id:'center',  n:3,  name:'Center wheel',       qty:1,  mat:'CuBe, gilt', dims:'Ø 7.00 · 70 T · pinion 10 L', rate:'1 rev / h', note:'Carries the minute hand and most of the responsibility.' },
-  { id:'third',   n:4,  name:'Third wheel',        qty:1,  mat:'CuBe, gilt', dims:'Ø 5.20 · 60 T · pinion 8 L', rate:'1 rev / 7.5 min', note:'Middle management of the gear train. Nobody knows what it does, yet it is essential.' },
-  { id:'fourth',  n:5,  name:'Fourth wheel',       qty:1,  mat:'CuBe, gilt', dims:'Ø 4.80 · 80 T · pinion 8 L', rate:'1 rev / min', note:'Drives the seconds hand. Knows exactly how long that meeting was.' },
-  { id:'escape',  n:6,  name:'Escape wheel',       qty:1,  mat:'Steel, polished', dims:'Ø 3.00 · 15 club teeth', rate:'1 rev / 6 s', note:'Releases energy one polite tooth at a time.' },
+  { id:'barrel',  n:2,  name:'Barrel & mainspring', qty:1, mat:'Brass / Co-Ni alloy', dims:`Ø ${mm(2*GR.barrel)} · 80 T`, rate:'1 rev / 8 h', note:'Stores Monday’s winding for Wednesday. Power reserve 42 h.' },
+  { id:'center',  n:3,  name:'Center wheel',       qty:1,  mat:'CuBe, gilt', dims:`Ø ${mm(2*GR.center)} · 64 T · pinion 10 L`, rate:'1 rev / h', note:'Carries the minute hand and most of the responsibility.' },
+  { id:'third',   n:4,  name:'Third wheel',        qty:1,  mat:'CuBe, gilt', dims:`Ø ${mm(2*GR.third)} · 60 T · pinion 8 L`, rate:'1 rev / 7.5 min', note:'Middle management of the gear train. Nobody knows what it does, yet it is essential.' },
+  { id:'fourth',  n:5,  name:'Fourth wheel',       qty:1,  mat:'CuBe, gilt', dims:`Ø ${mm(2*GR.fourth)} · 80 T · pinion 8 L`, rate:'1 rev / min', note:'Drives the seconds hand. Knows exactly how long that meeting was.' },
+  { id:'escape',  n:6,  name:'Escape wheel',       qty:1,  mat:'Steel, polished', dims:`Ø ${mm(2*GR.escape)} · 15 club teeth`, rate:'1 rev / 6 s', note:'Releases energy one polite tooth at a time.' },
   { id:'pallet',  n:7,  name:'Pallet fork',        qty:1,  mat:'Steel + 2 ruby pallets', dims:'L 4.60', rate:'18,000 beats / h', note:'Says no, then yes, eighteen thousand times an hour.' },
-  { id:'balance', n:8,  name:'Balance & hairspring', qty:1, mat:'CuBe rim / Ni-Fe spring', dims:'Ø 10.20 · 280° ampl.', rate:'2.5 Hz', note:'The heartbeat. Do not touch it with your thumb. We can tell.' },
-  { id:'crown',   n:9,  name:'Crown & winding wheel', qty:1, mat:'Steel, knurled', dims:'Ø 2.20 · 22 T', rate:'on demand', note:'The only part you are allowed to touch.' },
+  { id:'balance', n:8,  name:'Balance & hairspring', qty:1, mat:'CuBe rim / Ni-Fe spring', dims:`Ø ${mm(2*GR.balance)} · 280° ampl.`, rate:'2.5 Hz', note:'The heartbeat. Do not touch it with your thumb. We can tell.' },
+  { id:'crown',   n:9,  name:'Crown & winding wheel', qty:1, mat:'Steel, knurled', dims:`Ø ${mm(2*GR.crown)} · 22 T`, rate:'on demand', note:'The only part you are allowed to touch.' },
   { id:'screws',  n:10, name:'Plate screws',       qty:4,  mat:'Steel, flame-blued', dims:'M 0.8 × 1.2', rate:'—', note:'Flame-blued at 290 °C. Mostly for vanity; also for holding things.' },
   { id:'jewels',  n:11, name:'Jewels',             qty:17, mat:'Synthetic ruby', dims:'Ø 0.95–1.30', rate:'—', note:'Seventeen rubies. Not an investment. Please stop asking.' }
 ];
@@ -224,28 +227,29 @@ function spinner(g, cx, cy){ const s = el('g',{},g); rot[g.dataset.id] = { el:s,
 }
 // 2 barrel
 { const [x,y]=P.barrel; const g=part('barrel'); el('circle',{cx:x,cy:y,r:96,class:'hit'},g); const s=spinner(g,x,y);
-  el('path',{d:gear(x,y,95,90,4.5),class:'l1'},s); circ(s,x,y,86,'l2');
-  el('path',{d:saw(x,y,58,28,5,false),class:'l1'},s); // ratchet wheel on top
-  el('path',{d:spiral(x,y,14,50,5.5),class:'l2','stroke-dasharray':'2 3'},s);
-  circ(s,x,y,14,'l1'); el('path',{d:`M${x-9} ${y-9}h18v18h-18z`,class:'l2'},s);
+  el('path',{d:gear(x,y,GR.barrel,80,4.5),class:'l1'},s); circ(s,x,y,86,'l2');
+  // ratchet wheel, mainspring and arbor sit on the arbor, which the click holds still while the drum turns
+  el('path',{d:saw(x,y,58,28,5,false),class:'l1'},g); // ratchet wheel on top
+  el('path',{d:spiral(x,y,14,50,5.5),class:'l2','stroke-dasharray':'2 3'},g);
+  circ(g,x,y,14,'l1'); el('path',{d:`M${x-9} ${y-9}h18v18h-18z`,class:'l2'},g);
   // click spring (static)
   el('path',{d:`M${x+34} ${y-58} q 22 -10 30 8 q -8 4 -16 -2`,class:'l1'},g);
 }
 // 3 center
 { const [x,y]=P.center; const g=part('center'); el('circle',{cx:x,cy:y,r:71,class:'hit'},g); const s=spinner(g,x,y);
-  el('path',{d:gear(x,y,70,70,4),class:'l1'},s); circ(s,x,y,60,'l2'); el('path',{d:windows(x,y,16,57,4,8),class:'l1'},s);
+  el('path',{d:gear(x,y,GR.center,64,4),class:'l1'},s); circ(s,x,y,60,'l2'); el('path',{d:windows(x,y,16,57,4,8),class:'l1'},s);
   el('path',{d:gear(x,y,13,10,3.2),class:'l1'},s); }
 // 4 third
 { const [x,y]=P.third; const g=part('third'); el('circle',{cx:x,cy:y,r:53,class:'hit'},g); const s=spinner(g,x,y);
-  el('path',{d:gear(x,y,52,60,3.6),class:'l1'},s); circ(s,x,y,44,'l2'); el('path',{d:windows(x,y,12,41,4,6),class:'l1'},s);
+  el('path',{d:gear(x,y,GR.third,60,3.6),class:'l1'},s); circ(s,x,y,44,'l2'); el('path',{d:windows(x,y,12,41,4,6),class:'l1'},s);
   el('path',{d:gear(x,y,10.5,8,3),class:'l1'},s); }
 // 5 fourth
 { const [x,y]=P.fourth; const g=part('fourth'); el('circle',{cx:x,cy:y,r:49,class:'hit'},g); const s=spinner(g,x,y);
-  el('path',{d:gear(x,y,48,80,3),class:'l1'},s); circ(s,x,y,41,'l2'); el('path',{d:windows(x,y,11,38,5,5),class:'l1'},s);
+  el('path',{d:gear(x,y,GR.fourth,80,3),class:'l1'},s); circ(s,x,y,41,'l2'); el('path',{d:windows(x,y,11,38,5,5),class:'l1'},s);
   el('path',{d:gear(x,y,9.5,8,2.6),class:'l1'},s); }
 // 6 escape
 { const [x,y]=P.escape; const g=part('escape'); el('circle',{cx:x,cy:y,r:32,class:'hit'},g); const s=spinner(g,x,y);
-  el('path',{d:saw(x,y,30,15,8,true),class:'l1'},s); circ(s,x,y,19,'l2'); el('path',{d:windows(x,y,7,17,5,3.5),class:'l1'},s); }
+  el('path',{d:saw(x,y,GR.escape,15,8,true),class:'l1'},s); circ(s,x,y,19,'l2'); el('path',{d:windows(x,y,7,17,5,3.5),class:'l1'},s); }
 // 7 pallet
 { const [x,y]=P.pallet; const g=part('pallet'); el('circle',{cx:x,cy:y,r:30,class:'hit'},g); const s=spinner(g,x,y);
   el('path',{d:`M${x-22} ${y-40} L${x-10} ${y-8} L${x+8} ${y-8} L${x+26} ${y-34} M${x-10} ${y-8} L${x-40} ${y+18} L${x-48} ${y+16} M${x+8} ${y-8} L${x-34} ${y+26} L${x-44} ${y+26}`,class:'l1'},s);
@@ -257,14 +261,14 @@ function spinner(g, cx, cy){ const s = el('g',{},g); rot[g.dataset.id] = { el:s,
   el('path',{d:spiral(x,y,9,40,7),class:'l2'},hs);
   el('path',{d:`M${x+40} ${y} q 10 -6 18 -2`,class:'l2'},g); // stud
   const s=spinner(g,x,y);
-  circ(s,x,y,68); circ(s,x,y,60,'l2'); el('path',{d:windows(x,y,10,58,3,7),class:'l1'},s);
+  circ(s,x,y,GR.balance); circ(s,x,y,60,'l2'); el('path',{d:windows(x,y,10,58,3,7),class:'l1'},s);
   for (let k=0;k<12;k++){ const [sx,sy]=pt(x,y,72,k*Math.PI/6); circ(s,sx,sy,3.2,'l1'); }
   circ(s,x,y,6,'l1'); const [rx,ry]=pt(x,y,14,rad(-40)); circ(s,rx,ry,2.4,'l1'); }
 // 9 crown & winding
 { const [x,y]=P.crown; const g=part('crown'); const cx=O[0]+R+44;
   el('rect',{x:cx-4,y:O[1]-40,width:60,height:80,class:'hit'},g);
   el('circle',{cx:x,cy:y,r:24,class:'hit'},g);
-  const s=spinner(g,x,y); el('path',{d:gear(x,y,22,22,3.5),class:'l1'},s); circ(s,x,y,6,'l1');
+  const s=spinner(g,x,y); el('path',{d:gear(x,y,GR.crown,22,3.5),class:'l1'},s); circ(s,x,y,6,'l1');
   el('path',{d:`M${O[0]+R-40} ${O[1]-5}H${cx}M${O[0]+R-40} ${O[1]+5}H${cx}`,class:'l1'},g);
   el('rect',{x:cx,y:O[1]-26,width:34,height:52,rx:5,class:'l1'},g);
   for (let k=0;k<9;k++) el('path',{d:`M${cx+5+k*3.2} ${O[1]-26}v52`,class:'l2'},g);
@@ -291,15 +295,15 @@ function arrowLine(x1,y1,x2,y2,delay){
 function text(x,y,t,delay,anchor='middle',rotate=0){ const e = el('text',{x,y,class:'dimt fade-in','text-anchor':anchor,style:`animation-delay:${delay}s`,transform:rotate?`rotate(${rotate} ${x} ${y})`:''},dims); e.textContent=t; return e; }
 // overall diameter
 { const y = O[1]-R-38; [O[0]-R, O[0]+R].forEach(x => el('path',{d:`M${x} ${O[1]-4}V${y-8}`,class:'l2 draw-in',style:`--len:${R+44};animation-delay:.1s`},dims));
-  arrowLine(O[0]-R,y,O[0]+R,y,.35); text(O[0], y-7, 'Ø 30.00  (11½‴)', .9); }
+  arrowLine(O[0]-R,y,O[0]+R,y,.35); text(O[0], y-7, `Ø ${mm(2*R)}  (13¼‴)`, .9); }
 // balance diameter, left
-{ const [x,y]=P.balance; const X = x-68, X2 = x+68, Y = y+100; [X,X2].forEach(xx => el('path',{d:`M${xx} ${y+6}V${Y+8}`,class:'l2 draw-in',style:`--len:110;animation-delay:.7s`},dims));
-  arrowLine(X,Y,X2,Y,.9); text(x, Y+16, 'Ø 10.20', 1.4); }
+{ const [x,y]=P.balance; const X = x-GR.balance, X2 = x+GR.balance, Y = y+100; [X,X2].forEach(xx => el('path',{d:`M${xx} ${y+6}V${Y+8}`,class:'l2 draw-in',style:`--len:110;animation-delay:.7s`},dims));
+  arrowLine(X,Y,X2,Y,.9); text(x, Y+16, `Ø ${mm(X2-X)}`, 1.4); }
 // centre distance barrel–center
 { const [ax,ay]=P.barrel, [bx,by]=P.center; const nx = -(by-ay), ny = (bx-ax); const nl=Math.hypot(nx,ny); const off=-120;
   const ox = nx/nl*off, oy = ny/nl*off;
   el('path',{d:`M${ax} ${ay}L${ax+ox*1.05} ${ay+oy*1.05}M${bx} ${by}L${bx+ox*1.05} ${by+oy*1.05}`,class:'l2 draw-in',style:`--len:130;animation-delay:.5s`},dims);
-  arrowLine(ax+ox,ay+oy,bx+ox,by+oy,.6); const mx=(ax+bx)/2+ox, my=(ay+by)/2+oy; const ang = Math.atan2(by-ay,bx-ax)*180/Math.PI; text(mx, my-6, '10.45', 1.2, 'middle', ang); }
+  arrowLine(ax+ox,ay+oy,bx+ox,by+oy,.6); const mx=(ax+bx)/2+ox, my=(ay+by)/2+oy; const ang = Math.atan2(by-ay,bx-ax)*180/Math.PI; text(mx, my-6, mm(Math.hypot(bx-ax,by-ay)), 1.2, 'middle', ang); }
 // plate thickness note leader
 { el('path',{d:`M${O[0]-R*.62} ${O[1]+R*.78} L${O[0]-R-10} ${O[1]+R+20} H${O[0]-R-70}`,class:'dim draw-in',style:`--len:200;animation-delay:1.1s`},dims);
   text(O[0]-R-70, O[1]+R+14, 'THK 1.80', 2, 'start'); }
@@ -344,7 +348,10 @@ Object.values(groups).forEach(g => {
 });
 select('balance');
 addEventListener('keydown', e => {
-  if (e.key==='ArrowRight' || e.key==='ArrowLeft' || e.key==='ArrowDown' || e.key==='ArrowUp') {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  // ← → always step through the parts; ↑ ↓ only while focus is on the drawing or the parts list, so the page can still scroll
+  const inParts = e.target && e.target.closest && e.target.closest('#dwg, tr.row');
+  if (e.key==='ArrowRight' || e.key==='ArrowLeft' || (inParts && (e.key==='ArrowDown' || e.key==='ArrowUp'))) {
     const i = PARTS.findIndex(p => p.id===current); const d = (e.key==='ArrowRight'||e.key==='ArrowDown') ? 1 : -1;
     select(PARTS[(i + d + PARTS.length) % PARTS.length].id); e.preventDefault();
   } else if (e.key===' ' && !(document.activeElement && document.activeElement.tagName==='BUTTON')) { e.preventDefault(); toggleRun(); }
@@ -379,13 +386,12 @@ function frame(now){
   const escDeg = (bi + (1 - Math.pow(1-hop,3))) * 12;  // 12° per beat (15 teeth)
   setR('escape', escDeg);
   setR('fourth', -escDeg/10);
-  setR('third', escDeg/80);
-  setR('center', -escDeg/480);
-  setR('barrel', escDeg/3840);
-  setR('crown', -escDeg/1200);
+  setR('third', escDeg/75);                  // 1 rev / 7.5 min
+  setR('center', -escDeg/600);               // 1 rev / h
+  setR('barrel', escDeg/4800);               // 1 rev / 8 h; crown and winding wheel stay still unless winding
   const osc = Math.sin(simT * Math.PI * 2 * 2.5);
-  setR('balance', osc * 140);
-  setR('hair', osc * 18);
+  setR('balance', osc * 280);                // 280° amplitude = ±280° from rest
+  setR('hair', osc * 36);
   { const tgt = bi%2 ? 7 : -7, e2 = 1 - Math.pow(1-hop,2); setR('pallet', -tgt + 2*tgt*e2); }
   requestAnimationFrame(frame);
 }

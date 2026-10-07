@@ -50,10 +50,15 @@
   .phead h2 small{font-size:.55em;color:var(--ink-soft);margin-left:.4em}
   .phead .pg{font-size:13px;color:var(--ink-soft)}
 
+  /* days sit straight on the dotted paper, separated by dashed rules instead of white cards */
   .day{position:relative;border-radius:12px;border:2px dashed transparent;padding:8px 10px 10px;min-height:190px;cursor:pointer;
-    background:rgba(255,255,255,.55);transition:border-color .2s, background .2s}
-  .day:hover{background:rgba(255,255,255,.8)}
-  .day.sel{border-color:var(--pink-d);background:rgba(255,238,245,.7)}
+    background:transparent;transition:border-color .2s}
+  .day::before,.day::after{content:"";position:absolute;pointer-events:none;display:none}
+  .day::before{left:0;right:0;top:-8px;border-top:1px dashed rgba(165,133,150,.35)}
+  .day::after{top:0;bottom:0;left:-8px;border-left:1px dashed rgba(165,133,150,.35)}
+  .page > .day:nth-child(n+4)::before{display:block}   /* second row (child 1 is .phead) */
+  .page > .day:nth-child(odd)::after{display:block}    /* right-hand column */
+  .day.sel{border-color:var(--pink-d)}
   .day:focus-visible{outline:3px solid var(--lav-d);outline-offset:2px}
   .dh{display:flex;align-items:center;gap:8px;font-family:var(--hand);pointer-events:none}
   .dh .n{font-size:26px;line-height:1;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--dc,var(--mint));color:var(--ink)}
@@ -72,8 +77,6 @@
   .bar{display:flex;height:22px;border-radius:11px;overflow:hidden;background:rgba(255,255,255,.7);box-shadow:inset 0 0 0 2px rgba(107,74,90,.12)}
   .bar i{display:block;height:100%;transition:width .5s cubic-bezier(.3,1.4,.5,1)}
   .cap{font-family:var(--hand);font-size:14px;line-height:1.5;margin:0}
-  .legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--ink-soft)}
-  .legend span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--lc);margin-right:4px;vertical-align:-1px}
   .water{display:grid;grid-template-columns:auto repeat(4,40px);gap:0 2px;align-items:center}
   .water > span{grid-row:span 2}
   .water > span{font-family:var(--hand);font-size:13px;margin-right:4px}
@@ -87,8 +90,7 @@
   /* ---------- sticker sheet ---------- */
   .sheet{position:sticky;top:14px;background:#fff;border-radius:18px;padding:14px 14px 16px;box-shadow:0 8px 0 #f3d4e0, 0 16px 30px rgba(180,90,130,.18);
     background-image:linear-gradient(rgba(171,152,240,.12) 1px, transparent 1px),linear-gradient(90deg, rgba(171,152,240,.12) 1px, transparent 1px);background-size:14px 14px}
-  .sheet h2{margin:0 0 2px;font-family:var(--hand);font-weight:400;font-size:20px;display:flex;align-items:center;gap:8px}
-  .sheet h2 em{font-style:normal;font-size:11px;background:var(--lav);border-radius:8px;padding:2px 8px;color:var(--ink)}
+  .sheet h2{margin:0 0 2px;font-family:var(--hand);font-weight:400;font-size:20px}
   .sheet p.hint{margin:0 0 10px;font-size:12px;color:var(--ink-soft);line-height:1.5}
   .stickers{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 6px}
   .sk{border:0;background:none;padding:2px 0 0;cursor:grab;display:flex;flex-direction:column;align-items:center;gap:0;font-family:var(--hand);font-size:12px;color:var(--ink);touch-action:none;border-radius:12px}
@@ -134,11 +136,15 @@
     .day,.sum{min-height:176px}
     .dh .n{width:34px;height:34px;font-size:21px}
     .slots{--sz:56px}
+    .day::before{top:-6px}
+    .day::after{left:-6px}
   }
   @media (max-width:340px){
     .spread{grid-template-columns:minmax(0,1fr)}
     .page{grid-template-columns:minmax(0,1fr);min-width:0}
     .sum{grid-column:auto}
+    .page > .day:nth-child(odd)::after{display:none}
+    .page > .day:nth-child(n+3)::before{display:block}
   }
   @media (prefers-reduced-motion:reduce){
     .placed.pop,.placed.wig{animation:none}
@@ -165,7 +171,7 @@
   </section>
 
   <aside class="sheet" aria-label="貼紙本">
-    <h2>貼紙本 <em>12 款</em></h2>
+    <h2>貼紙本</h2>
     <p class="hint">把貼紙拖到任何一天；點一下貼到選取的日子。貼上去的可以拖著搬家，拖出手帳就撕掉。</p>
     <div class="stickers" id="stickers"></div>
     <button class="clear" id="clear" type="button">撕掉全部貼紙</button>
@@ -227,12 +233,28 @@
       [{ id: 'moon', x: .72, y: .7, r: 8 }],
       [], [], [], []
     ],
-    water: 3
+    water: [6, 7, 3, 0, 0, 0, 0]   // cups per day, Mon–Sun
   };
+  const TODAY = DAYS.findIndex(d => d.today);
+  const MAX_NOTE = 60, MAX_PER_DAY = 9;
+  const clone = o => JSON.parse(JSON.stringify(o));
   try { state = JSON.parse(localStorage.getItem(KEY)) || null; } catch (_) { state = null; }
-  if (!state || !Array.isArray(state.stk) || state.stk.length !== 7) state = JSON.parse(JSON.stringify(DEFAULT));
+  if (!state || typeof state !== 'object' || !Array.isArray(state.stk) || state.stk.length !== 7) state = clone(DEFAULT);
+  else {
+    // older or hand-edited saves: drop unknown stickers, refill anything missing
+    state.stk = state.stk.map(day => (Array.isArray(day) ? day : [])
+      .filter(s => s && BY[s.id] && Number.isFinite(s.x) && Number.isFinite(s.y))
+      .map(s => ({ id: s.id, x: s.x, y: s.y, r: Number.isFinite(s.r) ? s.r : 0 }))
+      .slice(-MAX_PER_DAY));
+    if (!Array.isArray(state.notes) || state.notes.length !== 7) state.notes = clone(DEFAULT.notes);
+    state.notes = state.notes.map(n => typeof n === 'string' ? Array.from(n).slice(0, MAX_NOTE).join('') : '');
+    // water used to be one number for "today"; it is now one count per day
+    if (typeof state.water === 'number') { const w = state.water; state.water = [0, 0, 0, 0, 0, 0, 0]; state.water[TODAY] = w; }
+    if (!Array.isArray(state.water) || state.water.length !== 7) state.water = clone(DEFAULT.water);
+    state.water = state.water.map(w => Number.isFinite(w) ? Math.max(0, Math.min(8, Math.round(w))) : 0);
+  }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (_) {} };
-  let selDay = 2;
+  let selDay = TODAY;
 
   const pageL = $('pageL'), pageR = $('pageR');
   if (!pageL || !pageR) return;
@@ -245,7 +267,16 @@
       `<span class="note" contenteditable="true" spellcheck="false" data-ph="${PH[i]}"></span><div class="slots"></div>`;
     const note = el.querySelector('.note');
     note.textContent = state.notes[i] || '';
-    note.addEventListener('input', () => { state.notes[i] = note.textContent.slice(0, 60); save(); });
+    note.addEventListener('input', () => {
+      const chars = Array.from(note.textContent);
+      if (chars.length > MAX_NOTE) {
+        // keep what is on the page identical to what gets saved
+        note.textContent = chars.slice(0, MAX_NOTE).join('');
+        const rg = document.createRange(); rg.selectNodeContents(note); rg.collapse(false);
+        const sel = window.getSelection(); if (sel) { sel.removeAllRanges(); sel.addRange(rg); }
+      }
+      state.notes[i] = note.textContent; save();
+    });
     note.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); note.blur(); } e.stopPropagation(); });
     el.addEventListener('click', e => { if (e.target.closest('.placed') || e.target.closest('.note')) return; select(i); });
     el.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === el) { e.preventDefault(); select(i); } });
@@ -255,22 +286,27 @@
   // summary cell
   const sum = document.createElement('div');
   sum.className = 'sum';
-  sum.innerHTML = `<span class="tape" aria-hidden="true"></span><h3>本週心情</h3><div class="bar" id="bar" aria-hidden="true"></div><p class="cap" id="cap" aria-live="polite"></p><div class="legend" id="legend"></div>
-    <div class="water"><span>今天喝水</span></div>`;
+  sum.innerHTML = `<span class="tape" aria-hidden="true"></span><h3>本週心情</h3><div class="bar" id="bar" role="img"></div><p class="cap" id="cap" aria-live="polite"></p>
+    <div class="water"><span id="waterLbl">今天喝水</span></div>`;
   pageR.appendChild(sum);
-  const waterBox = sum.querySelector('.water');
+  const waterBox = sum.querySelector('.water'), waterLbl = sum.querySelector('#waterLbl');
   const drops = Array.from({ length: 8 }, (_, k) => {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'drop'; b.setAttribute('aria-label', `第 ${k + 1} 杯水`);
     b.innerHTML = '<svg viewBox="0 0 20 26" aria-hidden="true"><path d="M10 2 C6 9 2 13 2 17 A8 8 0 0 0 18 17 C18 13 14 9 10 2Z"/></svg>';
-    b.addEventListener('click', () => { state.water = state.water === k + 1 ? k : k + 1; save(); paintWater(); blip(500 + k * 60); });
+    b.addEventListener('click', () => { state.water[selDay] = state.water[selDay] === k + 1 ? k : k + 1; save(); paintWater(); blip(500 + k * 60); });
     waterBox.appendChild(b); return b;
   });
-  function paintWater() { drops.forEach((b, k) => b.classList.toggle('on', k < state.water)); }
+  // the water row follows the selected day
+  function paintWater() {
+    if (waterLbl) waterLbl.textContent = selDay === TODAY ? '今天喝水' : `9/${DAYS[selDay].d} 喝水`;
+    drops.forEach((b, k) => b.classList.toggle('on', k < state.water[selDay]));
+  }
 
   function select(i) {
     selDay = i;
     dayEls.forEach((el, k) => el.classList.toggle('sel', k === i));
+    paintWater();
   }
 
   /* ---------------- placing ---------------- */
@@ -291,10 +327,16 @@
       slots.appendChild(el);
     });
   }
+  // a full day refuses the sticker: the ones already there wiggle so nothing disappears silently
+  function dayFull(i) {
+    dayEls[i].querySelectorAll('.placed').forEach(p => { p.classList.remove('wig'); void p.offsetWidth; p.classList.add('wig'); });
+    blip(240);
+  }
   function addSticker(i, id, x, y) {
-    if (state.stk[i].length >= 9) state.stk[i].shift();
+    if (state.stk[i].length >= MAX_PER_DAY) { dayFull(i); return false; }
     state.stk[i].push({ id, x: Math.max(.08, Math.min(.92, x)), y: Math.max(.1, Math.min(.9, y)), r: Math.round(Math.random() * 24 - 12) });
     save(); renderDay(i, state.stk[i].length - 1); summary(); blip(700 + Math.random() * 200);
+    return true;
   }
 
   /* ---------------- drag ---------------- */
@@ -336,8 +378,12 @@
     }
     const tgt = slotsAt(e.clientX, e.clientY);
     if (d.from && d.from.el) {
-      state.stk[d.from.day].splice(d.from.k, 1);
+      const moved = state.stk[d.from.day].splice(d.from.k, 1)[0];
       if (!tgt) { save(); poof(e.clientX, e.clientY, BY[d.id].c); renderDay(d.from.day); summary(); return; }
+      if (state.stk[tgt.i].length >= MAX_PER_DAY) {
+        // target day is full: the sticker goes back where it was
+        state.stk[d.from.day].splice(d.from.k, 0, moved); renderDay(d.from.day); dayFull(tgt.i); return;
+      }
       renderDay(d.from.day);
     }
     if (tgt) { select(tgt.i); addSticker(tgt.i, d.id, tgt.x, tgt.y); }
@@ -381,8 +427,12 @@
   function summary() {
     const counts = {}; let total = 0;
     state.stk.forEach(day => day.forEach(s => { counts[s.id] = (counts[s.id] || 0) + 1; total++; }));
-    const bar = $('bar'), cap = $('cap'), leg = $('legend');
-    if (bar) bar.innerHTML = S.filter(s => counts[s.id]).map(s => `<i style="width:${counts[s.id] / total * 100}%;background:${s.c}" title="${s.n}"></i>`).join('');
+    const bar = $('bar'), cap = $('cap');
+    const used = S.filter(s => counts[s.id]);
+    if (bar) {
+      bar.innerHTML = used.map(s => `<i style="width:${counts[s.id] / total * 100}%;background:${s.c}" title="${s.n}×${counts[s.id]}"></i>`).join('');
+      bar.setAttribute('aria-label', total ? '本週貼紙：' + used.map(s => `${s.n}×${counts[s.id]}`).join('、') : '本週還沒有貼紙');
+    }
     const m = { good: 0, meh: 0, bad: 0 };
     state.stk.forEach(day => day.forEach(s => { m[BY[s.id].mood]++; }));
     let text;
@@ -391,7 +441,6 @@
     else if (m.bad > m.good) text = `這週有點辛苦（${m.bad} 張難過貼紙）。週末記得好好睡一覺，喝杯熱的。`;
     else text = `這週有點懶洋洋的～耍廢也是一種充電。`;
     if (cap) cap.textContent = text;
-    if (leg) leg.innerHTML = S.filter(s => counts[s.id]).slice(0, 6).map(s => `<span style="--lc:${s.c}">${s.n}×${counts[s.id]}</span>`).join('');
   }
 
   /* ---------------- tiny pop sound (after a gesture) ---------------- */
@@ -407,7 +456,7 @@
     } catch (_) {}
   }
 
-  select(2);
+  select(TODAY);
   dayEls.forEach((_, i) => renderDay(i));
   paintWater();
   summary();

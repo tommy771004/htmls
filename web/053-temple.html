@@ -52,7 +52,7 @@ button{font:inherit;color:inherit}
 @keyframes sway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
 
 /* ---------- hall ---------- */
-.hall{position:relative;background:linear-gradient(#26100c,#1a0b08);border:3px solid var(--gold3);box-shadow:inset 0 0 60px rgba(0,0,0,.7);padding:clamp(14px,2.4vw,26px) clamp(10px,2.4vw,28px) 22px;min-width:0}
+.hall{position:relative;background:linear-gradient(#26100c,#1a0b08);box-shadow:inset 0 0 60px rgba(0,0,0,.7);padding:clamp(14px,2.4vw,26px) clamp(10px,2.4vw,28px) 22px;min-width:0}
 .steps{display:flex;justify-content:center;flex-wrap:wrap;gap:4px clamp(6px,1.4vw,18px);margin:26px 0 10px;padding:0;list-style:none}
 .steps li{font:400 clamp(13px,1.4vw,16px)/1 var(--kai);color:#8f6b52;display:flex;align-items:center;gap:6px}
 .steps li b{display:inline-grid;place-items:center;width:24px;height:24px;border:1px solid currentColor;border-radius:50%;font:400 12px/1 var(--ming)}
@@ -60,7 +60,7 @@ button{font:inherit;color:inherit}
 .steps li.on b{background:var(--red);border-color:var(--gold)}
 .steps li.done{color:var(--gold3)}
 
-.stage{position:relative;height:clamp(300px,44vh,400px);border-radius:4px;overflow:hidden;
+.stage{position:relative;height:clamp(300px,44vh,400px);overflow:hidden;
   background:radial-gradient(ellipse 70% 40% at 50% 100%,rgba(224,173,74,.16),transparent 70%),
   linear-gradient(#2b120d 0 46%,#4b1a12 46% 47%,#3a130d 47%),#3a130d}
 .stage .floor{position:absolute;left:0;right:0;bottom:0;height:53%;background:
@@ -103,9 +103,9 @@ button{font:inherit;color:inherit}
 .act:active{transform:translateY(4px);box-shadow:0 2px 0 #4a0c07}
 .act:disabled{opacity:.5;cursor:wait}
 .act:focus-visible,.cat:focus-visible{outline:2px solid var(--gold2);outline-offset:4px}
-.log{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;min-height:26px;font:400 13px/1 var(--kai);color:#b58f70}
-.log span{border:1px solid #6c3b28;padding:5px 8px}
-.log span.s{color:var(--gold2);border-color:var(--gold3)}
+.log{display:flex;gap:6px 10px;flex-wrap:wrap;justify-content:center;min-height:26px;font:400 13px/1.6 var(--kai);color:#b58f70}
+.log span+span::before{content:"·";margin-right:10px;color:#6c3b28}
+.log span.s{color:var(--gold2)}
 .small{font:400 13px/1.6 var(--kai);color:#a98670;margin:0}
 
 /* ---------- 籤詩 ---------- */
@@ -237,7 +237,7 @@ footer{text-align:center;font:400 12px/1.8 var(--kai);color:#8b6a55;padding:10px
         </div>
         <button class="act" id="act">上香稟告</button>
         <div class="log" id="log" aria-label="擲筊紀錄"></div>
-        <p class="small">一平一凸為<b>聖筊</b>（允）· 兩平面朝上為<b>笑筊</b>（笑而不答）· 兩凸面朝上為<b>陰筊</b>（不允）<br>鍵盤操作：按空白鍵或 Enter</p>
+        <p class="small">一平一凸為<b>聖筊</b>（允）· 兩平面朝上為<b>笑筊</b>（笑而不答）· 兩凸面朝上為<b>陰筊</b>（不允）<br>本宮確認籤號以一聖筊為準；各廟習俗不一，亦有須連得三聖筊者。<br>鍵盤操作：按空白鍵或 Enter</p>
       </div>
     </main>
 
@@ -300,7 +300,19 @@ footer{text-align:center;font:400 12px/1.8 var(--kai);color:#8b6a55;padding:10px
   function stageSize(){ const r = stage.getBoundingClientRect(); return {w:r.width, h:r.height}; }
   function jw(){ return j0.getBoundingClientRect().width || 80; }
   function place(el, x, y, rot){ el.style.transform = `translate(${x}px,${y}px) rotate(${rot}deg)`; }
+  let lastLand = null, flying = false; // 落點以舞台比例保存，resize 時重算
+  function placeLanded(){
+    if (!lastLand) return;
+    const {w,h} = stageSize(), s = jw();
+    [j0,j1].forEach((el,i) => { const p = lastLand[i]; el.style.transform = `translate(${p.fx*w}px,${p.fy*h}px) rotate(${p.r}deg)`; });
+    [l0,l1].forEach((l,i) => { if (!l) return; const p = lastLand[i]; l.style.left = (p.fx*w + s/2) + 'px'; l.style.top = (p.fy*h + s*.75) + 'px'; });
+  }
+  function clearThrow(){
+    if (verdict) verdict.className = 'verdict';
+    [l0,l1].forEach(l => l && l.classList.remove('on'));
+  }
   function rest(){
+    lastLand = null;
     const {w,h} = stageSize(), s = jw();
     place(j0, w*.34 - s/2, h*.72, -8); place(j1, w*.5 - s/2 + s*.2, h*.76, 14);
     j0.classList.remove('convex'); j1.classList.add('convex');
@@ -335,8 +347,7 @@ footer{text-align:center;font:400 12px/1.8 var(--kai);color:#8b6a55;padding:10px
       const peak = h*.05 + Math.random()*h*.08;
       const spins = [5 + Math.floor(Math.random()*3), 6 + Math.floor(Math.random()*3)];
       const T = reduce ? 1 : 1150; const t0 = performance.now();
-      [l0,l1].forEach(l => l && l.classList.remove('on'));
-      if (verdict) verdict.className = 'verdict';
+      clearThrow(); flying = true;
       let clacked = [false,false];
       function frame(now){
         const k = Math.min(1, (now - t0) / T);
@@ -359,12 +370,13 @@ footer{text-align:center;font:400 12px/1.8 var(--kai);color:#8b6a55;padding:10px
         });
         if (k < 1) requestAnimationFrame(frame);
         else {
-          [j0,j1].forEach((el,i) => { el.classList.toggle('convex', !res2[i]); el.style.transform = `translate(${land[i].x}px,${land[i].y}px) rotate(${land[i].r}deg)`; });
-          [l0,l1].forEach((l,i) => { if (!l) return; l.textContent = res2[i] ? '平（陽）' : '凸（陰）'; l.style.left = (land[i].x + s/2) + 'px'; l.style.top = (land[i].y + s*.75) + 'px'; l.classList.add('on'); });
+          [j0,j1].forEach((el,i) => el.classList.toggle('convex', !res2[i]));
+          lastLand = land.map(p => ({fx: p.x/w, fy: p.y/h, r: p.r})); flying = false; placeLanded();
+          [l0,l1].forEach((l,i) => { if (!l) return; l.textContent = res2[i] ? '平（陽）' : '凸（陰）'; l.classList.add('on'); });
           const r = res2[0] !== res2[1] ? 'sheng' : res2[0] ? 'xiao' : 'yin';
           if (verdict){ verdict.textContent = {sheng:'聖筊',xiao:'笑筊',yin:'陰筊'}[r]; verdict.className = 'verdict on ' + r; }
           throws++;
-          if (log){ const sp = document.createElement('span'); sp.className = r === 'sheng' ? 's' : ''; sp.textContent = `第${throws}擲 · ${{sheng:'聖',xiao:'笑',yin:'陰'}[r]}`; log.appendChild(sp); while (log.children.length > 8) log.removeChild(log.firstChild); }
+          if (log){ const sp = document.createElement('span'); sp.className = r === 'sheng' ? 's' : ''; sp.textContent = `第${throws}擲 ${{sheng:'聖',xiao:'笑',yin:'陰'}[r]}`; log.appendChild(sp); while (log.children.length > 8) log.removeChild(log.firstChild); }
           setTimeout(() => res(r), 450);
         }
       }
@@ -384,10 +396,11 @@ footer{text-align:center;font:400 12px/1.8 var(--kai);color:#8b6a55;padding:10px
         setStep(1);
       } else if (step === 1){
         const r = await throwJiao();
-        if (r === 'sheng'){ msg.innerHTML = '<em>聖筊！</em>神明應允。請捧起籤筒，誠心搖出一支籤。'; setStep(2); moveTube(true); }
+        if (r === 'sheng'){ msg.innerHTML = '<em>聖筊！</em>神明應允。請捧起籤筒，誠心搖出一支籤。'; await wait(reduce ? 0 : 600); clearThrow(); setStep(2); moveTube(true); }
         else if (r === 'xiao') msg.innerHTML = '<em>笑筊</em>——神明笑而不答。也許問題還不夠清楚，請在心中把事情再說明白一些，再擲一次。';
         else msg.innerHTML = '<em>陰筊</em>——神明不允。或許時機未到，或換個問法，靜心後再擲。';
       } else if (step === 2){
+        clearThrow();
         current = Math.floor(Math.random() * POEMS.length);
         sticknum.textContent = '';
         stick.style.transform = 'translateY(0)';
@@ -406,7 +419,7 @@ footer{text-align:center;font:400 12px/1.8 var(--kai);color:#8b6a55;padding:10px
         else { msg.innerHTML = `${r === 'xiao' ? '笑筊' : '陰筊'}——此籤非神明所指。請將籤放回籤筒，重新再搖。`; stick.style.transform = 'translateY(0)'; setStep(2); }
       } else if (step === 4){
         moveTube(false); stick.style.transform = 'translateY(0)'; sticknum.textContent = ''; stage.classList.remove('lit');
-        if (verdict) verdict.className = 'verdict'; [l0,l1].forEach(l => l && l.classList.remove('on')); rest();
+        clearThrow(); rest();
         msg.innerHTML = '信士請先<em>擇一所問之事</em>，於心中默念姓名、生辰、住址，再上香稟告。';
         setStep(0);
       }
@@ -434,7 +447,7 @@ footer{text-align:center;font:400 12px/1.8 var(--kai);color:#8b6a55;padding:10px
   document.addEventListener('keydown', e => {
     if ((e.key === ' ' || e.key === 'Enter') && !(e.target && e.target.tagName === 'BUTTON')){ e.preventDefault(); primary(); }
   });
-  window.addEventListener('resize', () => { if (!busy && step === 0) rest(); });
+  window.addEventListener('resize', () => { if (flying) return; if (lastLand) placeLanded(); else rest(); });
 
   setStep(0);
   rest();

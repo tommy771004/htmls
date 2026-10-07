@@ -34,16 +34,17 @@
   .terms .bar{display:inline-block;height:2px;background:var(--yellow);vertical-align:middle;margin-right:6px;opacity:.8}
 
   .dock{position:fixed;left:50%;bottom:clamp(12px,2.5vw,28px);transform:translateX(-50%);z-index:3;display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;
-    padding:12px 18px;background:rgba(10,22,51,.82);border:1px solid rgba(95,212,255,.28);border-radius:14px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    padding:12px 18px;text-shadow:0 0 6px var(--navy),0 0 2px var(--navy);
     width:max-content;max-width:calc(100vw - 24px)}
   .grp{display:flex;align-items:center;gap:10px}
   .lbl{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+  .readout{display:flex;flex-direction:column;line-height:1.25}
   .val{font-size:18px;min-width:5.5em;font-variant-numeric:tabular-nums;color:var(--yellow)}
   .val small{color:var(--dim);font-size:13px}
   input[type=range]{width:170px;accent-color:var(--yellow);height:40px}
-  button{font:inherit;font-size:14px;color:var(--ink);background:transparent;border:1px solid rgba(217,230,255,.28);border-radius:999px;min-height:40px;min-width:40px;padding:0 14px;cursor:pointer}
-  button:hover,button:focus-visible{border-color:var(--yellow);color:var(--yellow);outline:none}
-  button.on{background:var(--yellow);color:var(--navy);border-color:var(--yellow)}
+  button{font:inherit;font-size:14px;color:var(--ink);background:transparent;border:0;border-radius:999px;min-height:40px;min-width:40px;padding:0 12px;cursor:pointer;text-shadow:inherit}
+  button:hover,button:focus-visible{color:var(--yellow);text-decoration:underline;text-underline-offset:4px;outline:none}
+  button.on{background:var(--yellow);color:var(--navy);text-shadow:none;text-decoration:none}
   .energy{font-size:13px;color:var(--dim);font-style:italic;min-width:12em}
   .energy b{font-style:normal;color:var(--cyan);font-weight:normal}
   .hint{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:1;pointer-events:none;font-style:italic;color:rgba(217,230,255,.0);font-size:18px;transition:color 1s}
@@ -52,12 +53,14 @@
   @media (max-width:820px){
     .terms{display:none}
     .plate{right:16px;max-width:none}
-    .plate p{font-size:13px}
-    .eq{font-size:15px}
-    .dock{gap:8px 12px;padding:10px 12px;width:calc(100vw - 24px)}
+    .plate h1{font-size:22px}
+    .plate p,.eq{display:none}
+    .dock{gap:6px 12px;padding:8px 12px;width:calc(100vw - 24px)}
     .grp{flex:1 1 100%;justify-content:space-between}
+    #presets{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;gap:4px;scrollbar-width:none}
+    #presets button{flex:0 0 auto}
     input[type=range]{flex:1;width:auto;min-width:0}
-    .energy{min-width:0}
+    .energy{min-width:0;font-size:12px}
     .val{min-width:4.6em;font-size:16px}
   }
 </style>
@@ -69,7 +72,7 @@
   <div class="fig">Fig. 94 — Epicycles</div>
   <h1>Any doodle is just <i>circles</i> in a hurry.</h1>
   <p>Draw one continuous line. When you lift, the discrete Fourier transform takes it apart into spinning circles, each turning at a whole-number speed, and puts it back together tip-to-tail.</p>
-  <div class="eq">X<sub>k</sub> = Σ<sub>n</sub> x<sub>n</sub> e<sup>−2πikn/N</sup></div>
+  <div class="eq">X<sub>k</sub> = (1/N) Σ<sub>n</sub> x<sub>n</sub> e<sup>−2πikn/N</sup></div>
 </div>
 
 <aside class="terms" aria-label="Largest Fourier terms">
@@ -83,10 +86,10 @@
   <div class="grp">
     <span class="lbl">Circles</span>
     <input type="range" id="k" min="0" max="1000" value="1000" aria-label="Number of circles">
-    <span class="val" id="kv">256</span>
-  </div>
-  <div class="grp">
-    <span class="energy" id="en">Energy kept: <b>100%</b></span>
+    <span class="readout">
+      <span class="val" id="kv">256</span>
+      <span class="energy" id="en">Energy kept: <b>100%</b></span>
+    </span>
   </div>
   <div class="grp" id="presets">
     <button data-p="heart">Heart</button>
@@ -107,13 +110,23 @@
   let W = 0, H = 0, dpr = 1;
 
   let terms = [], K = N, t = 0, trace = [], full = null, orig = [], drawing = null, paused = false, anchor = { x: 0, y: 0 };
+  let drawn = null;   // last hand-drawn path, in current screen coordinates
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let sweep = false;   // intro sweep of the circle count; any manual change of K stops it
+  const stopSweep = () => { sweep = false; };
 
   function resize() {
     dpr = Math.min(2, devicePixelRatio || 1);
+    const oldW = W, oldH = H;
     W = innerWidth; H = innerHeight;
     cv.width = W * dpr; cv.height = H * dpr; cx.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (currentPreset) preset(currentPreset, true);
+    else if (drawn && oldW && oldH && (oldW !== W || oldH !== H)) {
+      // keep a hand-drawn shape on screen: uniform scale about the viewport centre
+      const sc = Math.min(W / oldW, H / oldH);
+      drawn = drawn.map(p => ({ x: W / 2 + (p.x - oldW / 2) * sc, y: H / 2 + (p.y - oldH / 2) * sc }));
+      load(drawn);
+    }
   }
 
   // ---------- geometry ----------
@@ -205,13 +218,14 @@
     const top = terms.slice(0, 9), max = top[0] ? top[0].amp : 1;
     tb.innerHTML = top.map((c, i) => `<tr><td>k = ${c.freq > 0 ? '+' : ''}${c.freq}</td><td><span class="bar" style="width:${Math.max(2, 60 * c.amp / max).toFixed(0)}px"></span>r ${c.amp.toFixed(1)}</td><td>φ ${c.phase.toFixed(2)}</td></tr>`).join('');
   }
-  kr && kr.addEventListener('input', () => setK(kFromSlider(+kr.value)));
+  kr && kr.addEventListener('input', () => { stopSweep(); setK(kFromSlider(+kr.value)); });
   document.querySelectorAll('#presets button[data-p]').forEach(b => b.addEventListener('click', () => preset(b.dataset.p)));
   const pb = $('#pause');
   const togglePause = () => { paused = !paused; if (pb) { pb.textContent = paused ? '▶' : '❚❚'; pb.setAttribute('aria-label', paused ? 'Play' : 'Pause'); } };
   pb && pb.addEventListener('click', togglePause);
   addEventListener('keydown', e => {
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON')) return;
+    if (e.key.indexOf('Arrow') === 0) stopSweep();
     if (e.key === ' ') { e.preventDefault(); togglePause(); }
     else if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { setK(K < 8 ? K + 1 : Math.round(K * 1.25)); if (kr) kr.value = Math.round(1000 * Math.log(K) / Math.log(N)); }
     else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') { setK(K <= 8 ? K - 1 : Math.round(K / 1.25)); if (kr) kr.value = Math.round(1000 * Math.log(K) / Math.log(N)); }
@@ -236,7 +250,7 @@
     if (d.length < 8 || len < 60) return;
     currentPreset = null;
     document.querySelectorAll('#presets button[data-p]').forEach(b => b.classList.remove('on'));
-    load(d); K = N; if (kr) kr.value = 1000; setK(N);
+    drawn = d; load(d); K = N; if (kr) kr.value = 1000; setK(N);
   };
   cv.addEventListener('pointerup', finish);
   cv.addEventListener('pointercancel', finish);
@@ -318,8 +332,7 @@
   resize();
   preset('heart');
   // intro: grow from one circle to all of them, so you watch the heart assemble itself
-  let sweep = !reduce, sweepT0 = performance.now();
-  const stopSweep = () => { sweep = false; };
+  sweep = !reduce; const sweepT0 = performance.now();
   kr && kr.addEventListener('pointerdown', stopSweep);
   cv.addEventListener('pointerdown', stopSweep);
   document.querySelectorAll('#presets button').forEach(b => b.addEventListener('click', stopSweep));

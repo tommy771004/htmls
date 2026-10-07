@@ -22,9 +22,8 @@
   #room{position:absolute;inset:0;width:100%;height:100%;display:block}
   #rain{position:absolute;pointer-events:none}
   #flash{position:absolute;inset:0;background:#dfe6ff;opacity:0;pointer-events:none;mix-blend-mode:screen}
-  .hot{cursor:pointer;outline:none}
-  .hot:focus-visible .hl,.hot:hover .hl{opacity:1}
-  .hl{opacity:0;transition:opacity .3s}
+  .hot{cursor:pointer;outline:none;transition:filter .3s}
+  .hot:focus-visible,.hot:hover{filter:brightness(1.25)}
   .tip{position:absolute;pointer-events:none;font-family:var(--hand);font-size:15px;color:var(--ink);background:var(--paper);padding:3px 10px 4px;border-radius:3px;transform:translate(-50%,-130%) rotate(-3deg);
     box-shadow:0 4px 10px rgba(0,0,0,.35);opacity:0;transition:opacity .2s;white-space:nowrap}
   .tip.on{opacity:1}
@@ -39,7 +38,7 @@
   .note h1{font-family:var(--hand);font-weight:normal;font-size:30px;line-height:1.1;margin:0}
   .note .time{font-family:var(--hand);font-size:16px;color:#7a5f8f}
   .note p{font-size:13.5px;line-height:1.55;margin:.6em 0 0;color:#4a3d58}
-  .mixer{margin-top:22px;background:rgba(35,26,53,.75);border:1px solid rgba(185,166,217,.18);border-radius:14px;padding:14px 16px 8px}
+  .mixer{margin-top:32px;padding:0}
   .mixer h2{font-size:11px;letter-spacing:.24em;text-transform:uppercase;font-weight:600;color:var(--lav);margin:0 0 8px;display:flex;justify-content:space-between}
   .ch{display:grid;grid-template-columns:28px 1fr 38px;align-items:center;gap:10px;min-height:46px}
   .ch svg{width:24px;height:24px}
@@ -54,9 +53,10 @@
   input[type=range]:focus-visible{outline:none}
   input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 6px rgba(255,180,94,.45)}
   .row{display:flex;gap:8px;margin:10px 0 6px}
-  .btn{flex:1;font:inherit;font-size:13px;min-height:42px;border-radius:10px;border:1px solid rgba(185,166,217,.3);background:transparent;color:#efe6ff;cursor:pointer}
-  .btn:hover,.btn:focus-visible{outline:none;border-color:var(--warm);color:var(--warm-l)}
-  .btn.on{background:var(--warm);color:#2a1a10;border-color:var(--warm)}
+  .btn{flex:1;font:inherit;font-size:13px;min-height:42px;border-radius:10px;border:0;background:transparent;color:#efe6ff;cursor:pointer}
+  .btn:hover,.btn:focus-visible{outline:none;color:var(--warm-l)}
+  .btn:focus-visible{text-decoration:underline;text-underline-offset:4px}
+  .btn.on{background:var(--warm);color:#2a1a10}
   .keys{font-size:11.5px;color:#9e8fb8;margin-top:10px;line-height:1.6}
 
   @keyframes steam{0%{transform:translateY(0) scaleX(1);opacity:0}25%{opacity:.55}100%{transform:translateY(-60px) scaleX(1.6);opacity:0}}
@@ -118,7 +118,6 @@
         </g>
         <path d="M300 130V520M90 325H510" stroke="#191225" stroke-width="14"/>
         <rect x="70" y="110" width="460" height="430" rx="4" fill="none" stroke="#3e2f55" stroke-width="3"/>
-        <rect class="hl" x="64" y="104" width="472" height="442" rx="8" fill="none" stroke="#ffd9a0" stroke-width="3" stroke-dasharray="8 8"/>
       </g>
       <!-- sill -->
       <rect x="50" y="540" width="510" height="22" rx="3" fill="#4b3a5f"/>
@@ -140,7 +139,6 @@
           <path d="M422 428 C 420 412, 414 404, 410 400" fill="none" stroke="#ff9d4d" stroke-opacity=".35" stroke-width="2"/>
         </g>
         <path id="catTail" d="M442 536 C 478 540, 500 528, 492 508 C 488 498, 476 500, 478 510" fill="none" stroke="#140f1c" stroke-width="12" stroke-linecap="round"/>
-        <ellipse class="hl" cx="400" cy="480" rx="80" ry="92" fill="none" stroke="#ffd9a0" stroke-width="3" stroke-dasharray="8 8"/>
       </g>
 
       <!-- clock -->
@@ -152,7 +150,6 @@
         <line id="mH" x1="600" y1="175" x2="600" y2="140" stroke="#2b2138" stroke-width="3" stroke-linecap="round"/>
         <line id="sH" x1="600" y1="182" x2="600" y2="136" stroke="#c4453a" stroke-width="1.5"/>
         <circle cx="600" cy="175" r="3.5" fill="#c4453a"/>
-        <circle class="hl" cx="600" cy="175" r="58" fill="none" stroke="#ffd9a0" stroke-width="3" stroke-dasharray="8 8"/>
       </g>
 
       <!-- shelf, books, plant -->
@@ -192,7 +189,6 @@
         <path d="M812 516 L 812 500 L 770 514" fill="none" stroke="#8d7a60" stroke-width="4" stroke-linecap="round"/>
         <circle cx="812" cy="516" r="6" fill="#8d7a60"/>
         <circle cx="676" cy="544" r="4" fill="#4c3f5e"/><circle id="led" cx="690" cy="544" r="3" fill="#553"/>
-        <rect class="hl" x="650" y="496" width="190" height="72" rx="10" fill="none" stroke="#ffd9a0" stroke-width="3" stroke-dasharray="8 8"/>
       </g>
 
       <!-- mug with steam -->
@@ -220,7 +216,6 @@
         <path d="M1034 326 L 1000 318 L 950 376 L 1018 392 Z" fill="#c4745a"/>
         <path d="M1000 318 L 1034 326" stroke="#e08f6e" stroke-width="4"/>
         <ellipse id="bulb" cx="982" cy="382" rx="30" ry="9" fill="#ffe7b0" transform="rotate(14 982 382)"/>
-        <rect class="hl" x="930" y="300" width="240" height="270" rx="12" fill="none" stroke="#ffd9a0" stroke-width="3" stroke-dasharray="8 8"/>
       </g>
 
       <!-- light overlays -->
@@ -376,7 +371,10 @@
   }
   function scheduler() {
     if (!running || !ac) return;
-    const ahead = ac.currentTime + .15;
+    const ahead = ac.currentTime + .15, now = ac.currentTime;
+    // if the timer was throttled or the main thread stalled, skip the beats/ticks already in the past instead of firing them all at once
+    if (nextBeat < now - .05) { const skip = Math.ceil((now - nextBeat) / (SPB / 2)); nextBeat += skip * SPB / 2; beatN += skip; }
+    if (nextTick < now - .05) { const skip = Math.ceil(now - nextTick); nextTick += skip; tickN += skip; }
     while (nextBeat < ahead) {
       const step = beatN % 8, bar = Math.floor(beatN / 8) % 4, t = nextBeat + (step % 2 ? SPB * .08 : 0);   // swung eighths
       if (vol.Beat > 0) {
@@ -405,7 +403,7 @@
     try {
       if (!ac) initAudio();
       if (ac.state === 'suspended') ac.resume();
-      running = true; nextBeat = ac.currentTime + .1; nextTick = Math.ceil(ac.currentTime); nextThunder = ac.currentTime + 4;
+      running = true; nextBeat = ac.currentTime + .1; nextTick = ac.currentTime + 1 - (Date.now() % 1000) / 1000; nextThunder = ac.currentTime + 4;
       applyVol();
       if (!schedT) schedT = setInterval(scheduler, 50);
     } catch (_) { running = true; }
@@ -448,8 +446,13 @@
     player: () => setVol('Beat', vol.Beat > .05 ? 0 : .6),
     lamp: () => setLamp(!lampOn)
   };
+  const chOf = { window: 'Rain', cat: 'Purr', clock: 'Tick', player: 'Beat' };
   document.querySelectorAll('.hot').forEach(g => {
-    const fire = () => { if (!running) start(); (act[g.id] || (() => {}))(); };
+    const fire = () => {
+      // the first tap only wakes the room; it must not switch off a track that is already on by default
+      if (!running) { start(); const c = chOf[g.id]; if (c && vol[c] > .05) return; }
+      (act[g.id] || (() => {}))();
+    };
     g.addEventListener('click', fire);
     g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } });
     const show = () => {
@@ -473,15 +476,17 @@
     if (led) led.setAttribute('fill', running && vol.Beat > .05 ? '#7dffb0' : '#553');
   }
 
-  // ---------- clock hands (real time) ----------
+  // ---------- clock hands (room time: it is always 2:14 a.m. when you walk in, then it runs on real seconds) ----------
+  const d0 = new Date(), roomOff = ((2 * 60 + 14) - (d0.getHours() * 60 + d0.getMinutes())) * 60000;
   function clock() {
-    const d = new Date(), s = d.getSeconds(), m = d.getMinutes() + s / 60, h = (d.getHours() % 12) + m / 60;
+    const d = new Date(Date.now() + roomOff), s = d.getSeconds(), m = d.getMinutes() + s / 60, h = (d.getHours() % 12) + m / 60;
     const set = (id, a) => { const e = document.getElementById(id); if (e) e.setAttribute('transform', `rotate(${a} 600 175)`); };
     set('sH', s * 6); set('mH', m * 6); set('hH', h * 30);
     const n = $('#now');
-    if (n) { const hh = d.getHours(), mm = String(d.getMinutes()).padStart(2, '0'); n.textContent = `it is ${hh % 12 || 12}:${mm} ${hh < 12 ? 'a.m.' : 'p.m.'} — ${hh >= 22 || hh < 5 ? 'go to bed' : hh < 12 ? 'somehow still raining' : 'rain all afternoon'}`; }
+    if (n) { const hh = d.getHours(), mm = String(d.getMinutes()).padStart(2, '0'); n.textContent = `it is ${hh % 12 || 12}:${mm} ${hh < 12 ? 'a.m.' : 'p.m.'}${hh < 5 ? '' : hh < 7 ? ' — nearly morning' : ' — go to bed'}`; }
   }
-  clock(); setInterval(clock, 1000);
+  // redraw on each real second boundary so the hand moves together with the tick sound
+  (function tickClock() { clock(); setTimeout(tickClock, 1000 - Date.now() % 1000 + 5); })();
 
   // ---------- rain on the glass (canvas over the window pane) ----------
   const cv = $('#rain'), cx = cv ? cv.getContext('2d') : null, flashEl = $('#flash');

@@ -27,10 +27,7 @@ button,select{font:inherit;color:inherit}
 .logo svg{width:38px;height:38px;flex:none}
 .logo b{font-size:20px;letter-spacing:.14em;font-weight:700;display:block;line-height:1.1}
 .logo span{font-family:var(--sans);font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:#b9bcc2;display:block}
-.pills{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;padding:8px 0}
-.pill{font-family:var(--sans);font-weight:700;font-size:14px;min-width:30px;height:30px;padding:0 8px;border-radius:15px;display:inline-grid;place-items:center;color:#fff;letter-spacing:.02em}
-.pill.Y{color:#1f2124}
-.clock{font-family:var(--sans);font-size:22px;font-variant-numeric:tabular-nums;letter-spacing:.04em;padding-left:18px;border-left:1px solid #43464b;line-height:1}
+.clock{margin-left:auto;font-family:var(--sans);font-size:22px;font-variant-numeric:tabular-nums;letter-spacing:.04em;padding-left:18px;border-left:1px solid #43464b;line-height:1}
 .clock small{display:block;font-size:10px;letter-spacing:.28em;color:#9da1a8;margin-top:4px}
 
 .strip{display:flex;gap:0;height:6px}
@@ -90,7 +87,7 @@ svg#map{display:block;width:100%;height:auto;min-width:0;max-height:calc(100vh -
 .swap{width:46px;height:104px;border:1px solid #d8d9dc;border-radius:6px;background:#fff;cursor:pointer;display:grid;place-items:center}
 .swap:hover{background:#eceef0}
 .swap svg{width:20px;height:20px}
-.summary{margin:10px 22px 0;padding:14px 16px;background:#fff;border:1px solid #d8d9dc;border-radius:6px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;text-align:center}
+.summary{margin:10px 22px 0;padding:14px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;text-align:center}
 .summary div{display:flex;flex-direction:column;gap:2px}
 .summary b{font-family:var(--sans);font-size:30px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 .summary b small{font-size:13px;font-weight:400;margin-left:2px}
@@ -108,7 +105,8 @@ svg#map{display:block;width:100%;height:auto;min-width:0;max-height:calc(100vh -
 .ride .code{font-family:var(--sans);font-weight:700;font-size:12px;color:#fff;border-radius:10px;padding:1px 7px;margin-right:4px;display:inline-block}
 .ride .code.Y{color:#1f2124}
 .ride small{display:block;color:var(--grey);font-size:12px;margin-top:3px}
-.tip{margin-top:6px;font-size:12px;color:#55585e;background:#fff;border-left:3px solid #1f2124;padding:6px 9px;line-height:1.5}
+.tip{margin-top:6px;font-size:12px;color:#55585e;border-left:3px solid #1f2124;padding:6px 9px;line-height:1.5}
+.closed-note{font-size:13px;color:var(--grey);line-height:1.6;padding:0 0 14px}
 .empty{margin:18px 22px;color:var(--grey);font-size:14px;line-height:1.7}
 .foot{margin-top:auto;padding:12px 22px 16px;font-size:11px;color:var(--grey);border-top:1px solid var(--line);font-family:var(--sans);letter-spacing:.06em;line-height:1.6}
 
@@ -121,7 +119,6 @@ svg#map{display:block;width:100%;height:auto;min-width:0;max-height:calc(100vh -
   .hint .swipe{display:inline}
 }
 @media (max-width:480px){
-  .pills{margin-left:0}
   .top{padding-bottom:4px}
   .od,.summary,.steps{margin-left:0;margin-right:0}
   .od{padding:14px 16px 6px}
@@ -138,7 +135,6 @@ svg#map{display:block;width:100%;height:auto;min-width:0;max-height:calc(100vh -
     <svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="9" fill="#fff"/><path d="M6 25c4-5 8-5 12 0s8 5 12 0 4-3 4-3" fill="none" stroke="#1f2124" stroke-width="4" stroke-linecap="round"/><path d="M8 15h24" stroke="#e3312d" stroke-width="4" stroke-linecap="round"/></svg>
     <div><b>潮汐捷運</b><span>Tide Metro · 路網</span></div>
   </div>
-  <div class="pills" id="pills"></div>
   <div class="clock" id="clock">--:--<small>營運中 IN SERVICE</small></div>
 </header>
 <div class="strip" id="strip"></div>
@@ -335,14 +331,18 @@ svg#map{display:block;width:100%;height:auto;min-width:0;max-height:calc(100vh -
   var yt = el('text', {x:300, y:264, 'text-anchor':'middle', fill:'#1f2124'}, yg); yt.textContent = 'Y';
 
   /* ---------- header chrome ---------- */
-  var pills = $('pills'), strip = $('strip'), legend = $('legend');
+  var strip = $('strip'), legend = $('legend');
   ORDER.forEach(function(id){
     var L = lineById(id);
-    if (pills){ var p = document.createElement('span'); p.className = 'pill ' + id; p.style.background = COLOR[id]; p.textContent = id; p.title = L.name; pills.appendChild(p); }
     if (strip){ var s = document.createElement('i'); s.style.background = COLOR[id]; strip.appendChild(s); }
     if (legend){ var l = document.createElement('span'); l.innerHTML = '<i class="sw" style="background:'+COLOR[id]+'"></i>' + id + ' ' + L.name + ' <em>' + L.en + '</em>'; legend.appendChild(l); }
   });
-  function tick(){ var c = $('clock'); if (!c) return; var d = new Date(); var hh = ('0'+d.getHours()).slice(-2), mm = ('0'+d.getMinutes()).slice(-2); c.firstChild.nodeValue = hh + ':' + mm; }
+  // 末班 00:00、首班 06:00：之間為收班時段
+  function isClosed(){ return new Date().getHours() < 6; }
+  function tick(){
+    var c = $('clock'); if (!c) return; var d = new Date(); var hh = ('0'+d.getHours()).slice(-2), mm = ('0'+d.getMinutes()).slice(-2); c.firstChild.nodeValue = hh + ':' + mm;
+    var sm = c.querySelector('small'); if (sm) sm.textContent = isClosed() ? '已收班 · 首班 06:00' : '營運中 IN SERVICE';
+  }
   tick(); setInterval(tick, 15000);
 
   /* ---------- selects ---------- */
@@ -410,7 +410,7 @@ svg#map{display:block;width:100%;height:auto;min-width:0;max-height:calc(100vh -
     anim = requestAnimationFrame(frame);
 
     // steps
-    var html = '';
+    var html = isClosed() ? '<li class="closed-note">本時段已收班 · 首班 06:00。以下為首班車發車後的建議路線。</li>' : '';
     var delay = 0;
     function li(cls, inner, color){ html += '<li class="step '+cls+'" style="animation-delay:'+delay+'ms">' + (color ? '<i class="spine" style="background:'+color+'"></i>' : '') + '<i class="node"></i>' + inner + '</li>'; delay += 110; }
     legs.forEach(function(leg, i){
@@ -429,11 +429,12 @@ svg#map{display:block;width:100%;height:auto;min-width:0;max-height:calc(100vh -
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce || !paths.length) return;
     train.setAttribute('opacity', 1);
-    var speed = 0.11, t0 = null;
+    // run the route twice, then park the train at the destination
+    var speed = 0.11, t0 = null, lap = total + 120, maxRun = lap + total;
     function f(ts){
-      if (document.hidden){ trainAnim = requestAnimationFrame(f); return; }
       if (t0 === null) t0 = ts;
-      var d = ((ts - t0) * speed) % (total + 120);
+      var run = (ts - t0) * speed, done = run >= maxRun;
+      var d = done ? total : run % lap;
       if (d > total) d = total;
       var acc = d;
       for (var i=0;i<paths.length;i++){
@@ -445,6 +446,7 @@ svg#map{display:block;width:100%;height:auto;min-width:0;max-height:calc(100vh -
         }
         acc -= paths[i].len;
       }
+      if (done){ trainAnim = null; return; }
       trainAnim = requestAnimationFrame(f);
     }
     trainAnim = requestAnimationFrame(f);
@@ -455,7 +457,15 @@ svg#map{display:block;width:100%;height:auto;min-width:0;max-height:calc(100vh -
   function go(){ plan(selFrom.value, selTo.value); }
   function pick(k){
     if (picking === 'from'){ selFrom.value = k; picking = 'to'; showPending(k); }
-    else { selTo.value = k; picking = 'from'; go(); }
+    else {
+      selTo.value = k; picking = 'from'; go();
+      // narrow screens: the planner sits below the map, bring the result into view
+      var sum = $('summary');
+      if (sum && window.matchMedia && window.matchMedia('(max-width:980px)').matches){
+        var rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        sum.scrollIntoView({behavior: rm ? 'auto' : 'smooth', block:'start'});
+      }
+    }
   }
   function showPending(k){
     if (anim) cancelAnimationFrame(anim); if (trainAnim) cancelAnimationFrame(trainAnim);

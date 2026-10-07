@@ -22,10 +22,7 @@
   canvas#scene.drag{cursor:grabbing}
 
   .title{position:fixed;left:clamp(16px,3.4vw,52px);top:clamp(16px,4vh,44px);pointer-events:none;max-width:min(560px,70vw)}
-  .kicker{font-size:12px;letter-spacing:.42em;text-transform:uppercase;color:var(--dim);margin:0 0 .9em;display:flex;align-items:center;gap:.8em}
-  .kicker svg{width:18px;height:16px}
-  h1{margin:0;font-weight:200;font-family:"Segoe UI Light","Segoe UI",var(--ui);font-size:clamp(44px,7.4vw,112px);line-height:.9;letter-spacing:-.035em;
-    text-shadow:0 2px 30px rgba(80,20,60,.35)}
+  h1{margin:0;font-weight:200;font-family:"Segoe UI Light","Segoe UI",var(--ui);font-size:clamp(44px,7.4vw,112px);line-height:.9;letter-spacing:-.035em}
   h1 b{font-weight:600;font-family:"Segoe UI Semibold","Segoe UI",var(--ui);letter-spacing:-.05em;
     background:linear-gradient(115deg,#fff1dc 0 38%,#ffc89a 38% 62%,#ff9a78 62%);-webkit-background-clip:text;background-clip:text;color:transparent}
   .sub{text-shadow:0 1px 8px rgba(40,10,40,.6);margin:.9em 0 0;font-size:clamp(13px,1.1vw,15px);color:var(--dim);letter-spacing:.02em;line-height:1.5}
@@ -73,7 +70,11 @@
     .ic{width:40px;height:44px}
     .ic svg{width:22px;height:22px}
     .reroll{min-width:0;height:44px}
-    .stats{top:auto;bottom:auto;right:16px;top:calc(clamp(16px,4vh,44px) + 150px);gap:8px}
+    /* sit just above the control strip, clear of the title and its subtitle */
+    .stats{top:auto;left:16px;right:16px;bottom:calc(var(--strip-h,150px) + clamp(12px,3vh,30px) + 10px);
+      display:flex;justify-content:space-between;gap:16px}
+    .stats .stat:first-child{text-align:left}
+    .stats .stat-tri{display:none}
     .stat b{font-size:18px}
     .hint{display:none}
     .title{max-width:calc(100vw - 32px)}
@@ -84,14 +85,13 @@
 <canvas id="scene" aria-label="Animated low-poly landscape at sunset. Drag to look around." role="img"></canvas>
 
 <header class="title">
-  <p class="kicker"><svg viewBox="0 0 18 16" aria-hidden="true"><path d="M0 16 7 3l4 7 3-4 4 10z" fill="#ffb07c"/><path d="M7 3l4 7-4 6z" fill="#ef7b67"/></svg>Terrain N° 073 · Generator</p>
   <h1>Facets<br>at <b>Dusk</b></h1>
   <p class="sub" id="sub">A valley folded out of triangles, flown at golden hour.</p>
 </header>
 
 <div class="stats" aria-live="polite">
   <div class="stat"><span>Highest peak</span><b id="sPeak">0<small>M</small></b></div>
-  <div class="stat"><span>Triangles</span><b id="sTri">0</b></div>
+  <div class="stat stat-tri"><span>Triangles</span><b id="sTri">0</b></div>
   <div class="stat"><span>Distance flown</span><b id="sDist">0.0<small>KM</small></b></div>
 </div>
 
@@ -136,9 +136,11 @@
   function hash2(i, j) { let h = (i * 374761393 + j * 668265263 + seed * 97) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
 
   /* ---------------- presets ---------------- */
+  // one world unit = 150 m on every axis (no vertical exaggeration); floor = valley-floor elevation above sea level, in m
+  const M_PER_UNIT = 150;
   const RELIEF = [
-    { n: 'Meadow', amp: 1.4, ridge: 0 }, { n: 'Hills', amp: 2.6, ridge: .15 }, { n: 'Ridges', amp: 4.2, ridge: .45 },
-    { n: 'Alps', amp: 6.2, ridge: .7 }, { n: 'Karakoram', amp: 8.6, ridge: .9 }
+    { n: 'Meadow', amp: 1.4, ridge: 0, floor: 200 }, { n: 'Hills', amp: 2.6, ridge: .15, floor: 400 }, { n: 'Ridges', amp: 4.2, ridge: .45, floor: 900 },
+    { n: 'Alps', amp: 6.2, ridge: .7, floor: 1500 }, { n: 'Karakoram', amp: 8.6, ridge: .9, floor: 3600 }
   ];
   const SEA = [{ n: 'Dry', v: -9 }, { n: 'River', v: .35 }, { n: 'Lakes', v: .9 }, { n: 'Fjords', v: 1.7 }];
   const LIGHTS = [
@@ -178,16 +180,22 @@
 
   /* ---------------- camera ---------------- */
   let W = 0, H = 0, dpr = 1, f = 600, cx = 0, cy = 0;
-  let travel = 0, speed = 2.2, flying = !reduce, yaw = 0, yawTarget = 0, dist = 0;
+  // speed: .6 unit/s × 150 m ≈ 90 m/s ≈ 324 km/h
+  let travel = 0, speed = .6, flying = !reduce, yaw = 0, yawTarget = 0, dist = 0;
   const pitch = .24, camH = 6.4;
+  let lastInput = 0;                       // last time anything started an ease (see loop throttle)
+  const poke = () => { lastInput = performance.now(); };
 
   function resize() {
+    poke();
     dpr = Math.min(2, window.devicePixelRatio || 1);
     W = innerWidth; H = innerHeight;
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     f = Math.max(W, H * 1.1) * .62;
     cx = W / 2; cy = H * (W < 700 ? .5 : .52);
+    const strip = document.querySelector('.strip');
+    if (strip) document.documentElement.style.setProperty('--strip-h', strip.offsetHeight + 'px');
   }
 
   const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
@@ -374,6 +382,7 @@
   }
   let bR = [], bS = [], bL = [];
   function refresh() {
+    poke();
     bR.forEach((b, i) => b.setAttribute('aria-pressed', i === relief ? 'true' : 'false'));
     bS.forEach((b, i) => b.setAttribute('aria-pressed', i === sea ? 'true' : 'false'));
     bL.forEach((b, i) => b.setAttribute('aria-pressed', i === lightIdx ? 'true' : 'false'));
@@ -398,7 +407,7 @@
 
   const flyBtn = $('fly'), flyIcon = $('flyIcon');
   function setFly(v) {
-    flying = v;
+    flying = v; poke();
     if (flyBtn) flyBtn.setAttribute('aria-pressed', v ? 'true' : 'false');
     if (flyIcon) flyIcon.setAttribute('d', v ? 'M6 20 13 5l7 15-7-4z' : 'M8 6h3v14H8zM15 6h3v14h-3z');
   }
@@ -407,29 +416,32 @@
 
   function newSeed() {
     seed = 1000 + Math.floor(Math.random() * 8999);
-    reseed(seed);
+    reseed(seed); poke();
     const s = $('seedNo'); if (s) s.textContent = '#' + seed;
   }
   const rr = $('reroll'); if (rr) rr.addEventListener('click', newSeed);
   reseed(seed); { const s = $('seedNo'); if (s) s.textContent = '#' + seed; }
 
   document.addEventListener('keydown', e => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    // let a focused button handle its own Space activation
+    if (e.key === ' ' && e.target && e.target.tagName === 'BUTTON') return;
     if (e.key === ' ') { e.preventDefault(); setFly(!flying); }
     else if (e.key === 'r' || e.key === 'R') newSeed();
     else if (/^[1-5]$/.test(e.key)) { relief = +e.key - 1; refresh(); }
-    else if (e.key === 'ArrowLeft') yawTarget = Math.max(-.55, yawTarget - .12);
-    else if (e.key === 'ArrowRight') yawTarget = Math.min(.55, yawTarget + .12);
+    else if (e.key === 'ArrowLeft') { yawTarget = Math.max(-.55, yawTarget - .12); poke(); }
+    else if (e.key === 'ArrowRight') { yawTarget = Math.min(.55, yawTarget + .12); poke(); }
   });
 
   // drag to look around
   let drag = null;
   cv.addEventListener('pointerdown', e => { drag = { x: e.clientX, y0: yawTarget }; cv.classList.add('drag'); try { cv.setPointerCapture(e.pointerId); } catch (_) {} const h = $('hint'); if (h) h.style.opacity = '0'; });
   cv.addEventListener('pointermove', e => { if (!drag) return; yawTarget = Math.max(-.55, Math.min(.55, drag.y0 - (e.clientX - drag.x) / W * 1.2)); });
-  const up = () => { drag = null; cv.classList.remove('drag'); };
+  const up = () => { if (drag) poke(); drag = null; cv.classList.remove('drag'); };
   cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
 
   /* ---------------- loop ---------------- */
-  let last = performance.now(), running = true, raf = 0, statT = 0;
+  let last = performance.now(), running = true, raf = 0, statT = 0, lastDraw = 0, tri = 0;
   function loop(now) {
     const dt = Math.min(.05, (now - last) / 1000); last = now;
     const k = 1 - Math.pow(.02, dt);
@@ -438,11 +450,13 @@
     seaNow += (SEA[sea].v - seaNow) * (sea === 0 || seaNow < -2 ? 1 : k * 1.4);
     lerpObj(L, LIGHTS[lightIdx], k);
     yaw += (yawTarget - yaw) * k * 2;
-    if (flying) { travel += speed * dt; dist += speed * dt * .12; }
-    const tri = draw(now / 1000);
+    if (flying) { travel += speed * dt; dist += speed * dt * M_PER_UNIT / 1000; }
+    // hovering with nothing left to ease: clouds, water and stars still move, so throttle to ~15 fps instead of stopping
+    const idle = !flying && !drag && now - lastInput > 2500;
+    if (!idle || now - lastDraw > 66) { lastDraw = now; tri = draw(now / 1000); }
     if (now - statT > 250) {
       statT = now;
-      const p = $('sPeak'); if (p) p.innerHTML = Math.round(Math.max(0, peak - Math.max(0, seaNow)) * 412 + 180).toLocaleString('en-US') + '<small>M</small>';
+      const p = $('sPeak'); if (p) p.innerHTML = Math.round(Math.max(0, peak - Math.max(0, seaNow)) * M_PER_UNIT + RELIEF[relief].floor).toLocaleString('en-US') + '<small>M</small>';
       const t = $('sTri'); if (t) t.textContent = tri.toLocaleString('en-US');
       const d = $('sDist'); if (d) d.innerHTML = dist.toFixed(1) + '<small>KM</small>';
     }

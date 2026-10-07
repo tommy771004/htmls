@@ -47,8 +47,6 @@ main.pdp{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:c
   background:linear-gradient(180deg,#efe8dc 0%,#ebe3d5 64%,#ddd2c0 64%,#e4dacb 100%)}
 .stage::before{content:"";position:absolute;inset:0;background:radial-gradient(70% 50% at 35% 30%,rgba(255,255,255,.55),transparent 70%);pointer-events:none}
 .stage::after{content:"";position:absolute;left:0;right:0;top:64%;height:1px;background:rgba(120,100,70,.18)}
-.tag{position:absolute;left:18px;top:16px;font-size:12px;letter-spacing:.18em;color:var(--mut);z-index:3}
-.tag b{font-family:var(--lat);font-weight:400;color:var(--ink);letter-spacing:.05em;font-size:14px;margin-right:8px}
 .window{position:absolute;right:9%;top:9%;width:24%;height:40%;background:linear-gradient(135deg,rgba(255,255,255,.7),rgba(255,255,255,.25));border-radius:2px;box-shadow:inset 0 0 0 6px rgba(255,255,255,.35)}
 .window::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:3px;background:rgba(255,255,255,.55)}
 .light{position:absolute;left:10%;right:20%;bottom:6%;height:24%;background:linear-gradient(100deg,transparent 30%,rgba(255,250,235,.55) 45%,transparent 70%);transform:skewX(-30deg);filter:blur(6px)}
@@ -112,7 +110,7 @@ main.pdp{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:c
 /* ---- info ---- */
 .info h1{font-family:var(--lat);font-weight:400;font-size:clamp(40px,4.6vw,64px);line-height:1;margin:6px 0 4px;letter-spacing:-.01em}
 .info h1 small{font-family:var(--zh);font-weight:300;font-size:.42em;margin-left:10px;letter-spacing:.12em;color:var(--mut)}
-.kicker{font-size:12px;letter-spacing:.3em;color:var(--sage-dk)}
+.kicker{font-size:11px;letter-spacing:.14em;color:var(--mut);margin-bottom:2px}
 .rating{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mut);margin:10px 0 18px}
 .rating svg{width:78px;height:14px}
 .price{font-family:var(--lat);font-size:28px;display:flex;align-items:baseline;gap:12px}
@@ -182,6 +180,9 @@ footer{padding:26px clamp(16px,4vw,56px);font-size:12.5px;color:var(--mut);displ
 .df{padding:18px 20px 22px;border-top:1px solid var(--line)}
 .df .sum{display:flex;justify-content:space-between;font-size:15px;margin-bottom:12px}
 .df .sum b{font-family:var(--lat);font-weight:400;font-size:20px}
+.df .sum.line{font-size:13px;color:#57534b;margin-bottom:4px}
+.df .sum.line span:last-child{font-family:var(--lat)}
+.df .sum.total{margin-top:10px}
 .fly{position:fixed;width:26px;height:26px;border-radius:50%;z-index:60;pointer-events:none;box-shadow:0 4px 10px rgba(0,0,0,.2)}
 
 @media (max-width:900px){
@@ -216,25 +217,24 @@ header{height:78px}.crumbs{font-size:11px;letter-spacing:.08em;padding-top:24px}
 .product-heading p{font:italic clamp(18px,2vw,27px)/1.5 Georgia,serif;color:var(--sage-dk);margin:0;max-width:260px}
 main.pdp{grid-template-columns:minmax(0,1.55fr) minmax(320px,.85fr);gap:clamp(28px,5vw,80px);padding-top:0}
 .gal{top:24px}.stage{aspect-ratio:1.14;max-height:58svh;border-radius:110px 4px 4px 4px;isolation:isolate}
-.tag{left:32px;top:28px;font-size:10px}.stage .chair{width:min(42%,38svh);transform-origin:50% 53%;transition:transform 720ms var(--ease),--wood 480ms ease,--wood-dk 480ms ease,--fabric 480ms ease,--fabric-dk 480ms ease;z-index:1}
+.stage .chair{width:min(42%,38svh);transform-origin:50% 53%;transition:transform 720ms var(--ease),--wood 480ms ease,--wood-dk 480ms ease,--fabric 480ms ease,--fabric-dk 480ms ease;z-index:1}
 .stage[data-detail=wood] .chair{transform:translate(-50%,15%) scale(1.65)}
 .stage[data-detail=fabric] .chair{transform:translate(-50%,25%) scale(1.8)}
 .stage .window,.stage .plant,.stage .rug{transition:opacity var(--motion) ease}
 .stage:not([data-detail=all]) .window,.stage:not([data-detail=all]) .plant,.stage:not([data-detail=all]) .rug{opacity:.18}
-.stage .tag{z-index:4}.detail-nav{display:flex;align-items:center;gap:5px;margin-top:16px;border-bottom:1px solid var(--line);padding-bottom:14px}
+.detail-nav{display:flex;align-items:center;gap:5px;margin-top:16px;border-bottom:1px solid var(--line);padding-bottom:14px}
 .detail-nav>span{margin-right:auto;font-size:10px;letter-spacing:.16em;color:var(--mut)}
 .detail-nav button{font:inherit;font-size:12px;min-height:44px;padding:0 14px;border:1px solid transparent;background:transparent;color:var(--mut);cursor:pointer;transition:background 200ms,color 200ms}
 .detail-nav button[aria-pressed=true]{border-color:var(--line);background:var(--oat);color:var(--ink)}
 .detail-caption{font-size:12px;color:var(--mut);margin:10px 0 22px;min-height:21px}
 .thumbs{gap:12px}.thumb{aspect-ratio:1.6;background:#efebe2;transition:border-color 200ms,background 200ms}.thumb .chair{width:34%;bottom:-20%}.thumb span{font-size:10px;top:8px;left:10px}
 .info{padding-top:8px}.config-heading{display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--line);margin:16px 0 22px;padding-bottom:18px}
-.config-heading h2{font-weight:400;font-size:25px;margin:0;letter-spacing:.08em}.config-heading span{font-size:11px;color:var(--mut)}
+.config-heading h2{font-weight:400;font-size:25px;margin:0;letter-spacing:.08em}
 .lead{font-size:14px;margin:12px 0 24px}.price{font-size:30px;flex-wrap:wrap;gap:2px 12px}.price .delta{font-size:11px}.opt{padding:20px 0}.buy{margin-top:26px}.cta,.qty{border-radius:3px}.qty button{border-radius:3px}.cta{font-size:14px}.ship{font-size:12px}.sw{transition:transform 200ms var(--ease)}
 .notes{margin:0 clamp(20px,4vw,56px);padding:60px 0 70px;background:transparent;border-top:1px solid var(--line);grid-template-columns:1fr 1fr 1fr;gap:35px}.notes>div:first-child{grid-column:1/-1;display:flex;justify-content:space-between}.notes h2{font-size:46px}.note{border-top:1px solid var(--line);padding-top:22px}.note b{font-size:18px;color:var(--mut)}.note h3{font-size:20px;margin:14px 0}.note p{max-width:28ch}.note button{margin-top:20px;border:0;border-bottom:1px solid var(--sage);background:none;padding:8px 0;color:var(--sage-dk);font:inherit;font-size:12px;cursor:pointer;min-height:44px}
-.material-readout{display:flex;gap:16px;align-items:baseline;justify-content:space-between;font-size:11px;padding-top:10px;color:var(--mut)}
 @media(max-width:1050px){main.pdp{grid-template-columns:minmax(0,1.25fr) minmax(300px,1fr);gap:28px}.stage{aspect-ratio:.9}.stage .chair{width:52%}.thumb .chair{width:40%}}
 @media(max-width:900px){header{height:auto}.product-heading{margin-top:26px}.product-heading h1{font-size:80px}main.pdp{grid-template-columns:1fr}.gal{position:relative;top:auto}.stage{aspect-ratio:1.12;max-height:none}.stage .chair{width:43%}.info{max-width:none}.notes{grid-template-columns:1fr 1fr}.product-heading p{font-size:19px}.notes h2{font-size:38px}}
-@media(max-width:520px){.product-heading{align-items:start;margin-bottom:24px}.product-heading h1{font-size:70px}.product-heading h1 small{display:block;margin:14px 0 0;font-size:13px}.product-heading p{max-width:118px;font-size:16px;margin-top:26px}.stage{aspect-ratio:.97;border-top-left-radius:70px}.stage .chair{width:50%}.tag{left:24px;top:22px}.detail-nav{gap:0}.detail-nav>span{font-size:9px}.detail-nav button{padding:0 9px}.thumbs{gap:7px}.thumb span{font-size:9px;left:5px}.thumb .chair{width:43%;bottom:-27%}.notes{grid-template-columns:1fr}.notes h2{font-size:36px}.material-readout{font-size:10px}}
+@media(max-width:520px){.product-heading{align-items:start;margin-bottom:24px}.product-heading h1{font-size:70px}.product-heading h1 small{display:block;margin:14px 0 0;font-size:13px}.product-heading p{max-width:118px;font-size:16px;margin-top:26px}.stage{aspect-ratio:.97;border-top-left-radius:70px}.stage .chair{width:50%}.detail-nav{gap:0}.detail-nav>span{font-size:9px}.detail-nav button{padding:0 9px}.thumbs{gap:7px}.thumb span{font-size:9px;left:5px}.thumb .chair{width:43%;bottom:-27%}.notes{grid-template-columns:1fr}.notes h2{font-size:36px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}.chair{--t:0s}}
 
 /* Gallery pass (SiteInspire e-commerce: Stereoscope / Tekt): centred mark, one wide stage
@@ -251,14 +251,12 @@ main.pdp{display:block;padding-top:14px}
 .gal .detail-nav{grid-column:1;grid-row:2}
 .gal .detail-caption{grid-column:1;grid-row:3}
 .gal .thumbs{grid-column:2;grid-row:2/4;margin-top:16px}
-.gal .material-readout{grid-column:2;grid-row:4}
 .stage .chair{width:auto;height:84%;bottom:8%}
 .stage .plant{width:auto;height:46%;left:13%;bottom:30%}
 .stage .window{right:12%;top:11%;width:15%;height:44%}
 .stage .rug{left:32%;right:32%;bottom:6%;height:15%}
 .stage .mark{position:absolute;left:clamp(40px,4vw,64px);top:clamp(38px,4.4vw,56px);z-index:4;margin:0;font:400 clamp(44px,4.6vw,68px)/.9 var(--lat);letter-spacing:-.045em;color:var(--ink)}
 .stage .mark small{display:block;font:300 13px/1.4 var(--zh);letter-spacing:.24em;color:var(--mut);margin-top:16px}
-.stage .tag{top:auto;left:clamp(28px,3vw,40px);bottom:22px;font-size:11px;letter-spacing:.14em}
 .stage:not([data-detail=all]) .mark{opacity:.25;transition:opacity var(--motion) ease}
 .stage .mark{transition:opacity var(--motion) ease}
 .info{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:clamp(28px,4vw,64px);margin-top:56px;padding-top:34px;border-top:1px solid var(--line)}
@@ -277,7 +275,7 @@ main.pdp{display:block;padding-top:14px}
   nav.cats{order:3;grid-column:1/-1}
   .gal{grid-template-columns:1fr}
   .gal .stage{height:auto;aspect-ratio:1.05;min-height:0}
-  .gal .detail-nav,.gal .detail-caption,.gal .thumbs,.gal .material-readout{grid-column:1;grid-row:auto}
+  .gal .detail-nav,.gal .detail-caption,.gal .thumbs{grid-column:1;grid-row:auto}
   .gal .thumbs{margin-top:0}
   .stage .window{right:9%;width:26%;height:36%}
   .stage .plant{left:6%;height:38%}
@@ -290,7 +288,7 @@ main.pdp{display:block;padding-top:14px}
   .desk-d details{border-bottom:0}
   .desk-d details:last-of-type{border-bottom:1px solid var(--line)}
 }
-@media(max-width:520px){.gal .stage{aspect-ratio:.8}.stage .mark{left:30px;top:30px;font-size:40px}.stage .mark small{font-size:11px;letter-spacing:.16em;margin-top:10px}.stage .chair{height:60%;bottom:9%}.stage .plant{left:9%;height:30%;bottom:34%}.stage .window{top:22%;height:30%}.stage .tag{display:none}}
+@media(max-width:520px){.gal .stage{aspect-ratio:.8}.stage .mark{left:30px;top:30px;font-size:40px}.stage .mark small{font-size:11px;letter-spacing:.16em;margin-top:10px}.stage .chair{height:60%;bottom:9%}.stage .plant{left:9%;height:30%;bottom:34%}.stage .window{top:22%;height:30%}}
 </style>
 </head>
 <body>
@@ -308,7 +306,6 @@ main.pdp{display:block;padding-top:14px}
   <section class="gal" aria-label="商品圖">
     <div class="stage" id="stage" data-detail="all">
       <h1 class="mark" id="product-title">Sova<small>留一點時間，給自己。</small></h1>
-      <div class="tag">材質研究 01 · 以 CSS 繪製</div>
       <div class="window"></div>
       <div class="light"></div>
       <div class="rug"></div>
@@ -317,13 +314,13 @@ main.pdp{display:block;padding-top:14px}
     </div>
     <div class="detail-nav" role="group" aria-label="商品細節"><span>近一點，看細節</span><button data-detail="all" aria-pressed="true">全貌</button><button data-detail="wood" aria-pressed="false">木作</button><button data-detail="fabric" aria-pressed="false">織品</button></div>
     <p class="detail-caption" id="detailCaption" aria-live="polite">從木色到織品，找到讓你想坐下的組合。</p>
-    <div class="thumbs" id="thumbs"></div><div class="material-readout"><span>四款木色 · 同一個輪廓</span><span id="materialReadout">瑞典橡木 / 燕麥色</span></div>
+    <div class="thumbs" id="thumbs"></div>
   </section>
 
   <section class="info" aria-labelledby="product-title">
     <div class="desk desk-a">
+    <div class="config-heading"><h2>你的 Sova</h2></div>
     <div class="kicker">LOUNGE CHAIR · 2026 秋季</div>
-    <div class="config-heading"><h2>你的 Sova</h2><span>互動商品展示</span></div>
     <div class="price"><span id="price">NT$ 12,800</span><span class="delta" id="delta"></span></div>
     <p class="lead">一張讓人忘記時間的椅子。實木框架、手工縫製坐墊，坐下之後，你會開始考慮取消今晚的所有行程。</p>
     </div>
@@ -371,7 +368,7 @@ main.pdp{display:block;padding-top:14px}
   <div class="dh"><h2>購物車</h2><button class="icon" id="closeCart" aria-label="關閉購物車"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
   <div class="free" id="free">再 NT$ 20,000 即可免運<i id="freeBar"></i></div>
   <div class="items" id="items"></div>
-  <div class="df"><div class="sum"><span>小計</span><b id="sub">NT$ 0</b></div><button class="cta" id="checkout" style="width:100%" disabled>模擬結帳</button></div>
+  <div class="df"><div class="sum line"><span>小計</span><span id="sub">NT$ 0</span></div><div class="sum line"><span>運費</span><span id="shipFee">NT$ 0</span></div><div class="sum total"><span>合計</span><b id="grand">NT$ 0</b></div><button class="cta" id="checkout" style="width:100%" disabled>模擬結帳</button></div>
 </aside>
 
 <script>
@@ -391,7 +388,7 @@ const FABS = [
   { id:'clay', name:'陶土色 · 亞麻', c:'#c88e6f', dk:'#a87157', ltd:true },
   { id:'char', name:'炭灰 · 燈芯絨', c:'#4d4f52', dk:'#393a3d' }
 ];
-const BASE = 12800;
+const BASE = 12800, FREE_SHIP = 20000, SHIP_FEE = 600;
 let wood = WOODS[0], fab = FABS[0], qty = 1;
 const cart = [];
 const fmt = n => 'NT$ ' + n.toLocaleString('en-US');
@@ -442,11 +439,15 @@ function refresh(){
   document.querySelectorAll('#woods .sw').forEach(s => s.setAttribute('aria-pressed', s.dataset.id===wood.id));
   document.querySelectorAll('#fabs .sw').forEach(s => s.setAttribute('aria-pressed', s.dataset.id===fab.id));
   const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
-  set('#woodName', wood.name); set('#fabName', fab.name); set('#price', fmt(unit()*qty));
-  const d = $('#delta'); if (d) { d.textContent = wood.add ? (wood.add>0 ? `${wood.name} +${wood.add.toLocaleString()}` : `${wood.name} −${(-wood.add).toLocaleString()}`) : ''; d.classList.toggle('on', !!wood.add); }
+  set('#woodName', wood.name); set('#fabName', fab.name); set('#price', fmt(unit()));
+  const d = $('#delta'); if (d) {
+    const parts = [];
+    if (wood.add) parts.push(wood.add>0 ? `${wood.name} +${wood.add.toLocaleString()}` : `${wood.name} −${(-wood.add).toLocaleString()}`);
+    if (qty > 1) parts.push(`小計 ${fmt(unit()*qty)}`);
+    d.textContent = parts.join(' · '); d.classList.toggle('on', parts.length > 0);
+  }
   set('#eta', fab.ltd ? '限量色，約 2–3 週' : wood.id==='walnut' ? '7–10 個工作天' : '3–5 個工作天');
   set('#qty', qty);
-  set('#materialReadout', wood.name + ' / ' + fab.name.split(' · ')[0]);
 }
 function setWood(w){ wood = w; refresh(); }
 function setFab(f){ fab = f; refresh(); }
@@ -454,13 +455,32 @@ const on = (id, ev, fn) => { const e = $(id); if (e) e.addEventListener(ev, fn);
 on('#minus','click', () => { qty = Math.max(1, qty-1); refresh(); });
 on('#plus','click', () => { qty = Math.min(9, qty+1); refresh(); });
 
-// keyboard: arrows cycle wood, up/down cycle fabric
+// keyboard: left/right on the wood swatches or thumbnails cycles wood; any arrow on the fabric swatches cycles fabric;
+// left/right in the detail bar moves between 全貌 / 木作 / 織品. Up/down elsewhere is left for scrolling.
 addEventListener('keydown', e => {
   if (e.key === 'Escape') { openCart(false); return; }
-  if (!e.target.closest('.gal, .sws')) return;
-  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); const i = WOODS.indexOf(wood); setWood(WOODS[(i + (e.key==='ArrowRight'?1:-1) + WOODS.length) % WOODS.length]); }
-  else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { if (document.activeElement && document.activeElement.tagName==='BUTTON') return; e.preventDefault(); const i = FABS.indexOf(fab); setFab(FABS[(i + (e.key==='ArrowDown'?1:-1) + FABS.length) % FABS.length]); }
-  else if (e.key === 'Escape') openCart(false);
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const horiz = e.key === 'ArrowRight' || e.key === 'ArrowLeft', vert = e.key === 'ArrowUp' || e.key === 'ArrowDown';
+  if (!horiz && !vert) return;
+  const step = (e.key === 'ArrowRight' || e.key === 'ArrowDown') ? 1 : -1;
+  const nav = e.target.closest('.detail-nav');
+  if (nav) {
+    if (!horiz) return;
+    const bs = [...nav.querySelectorAll('button')], i = bs.indexOf(e.target.closest('button'));
+    if (i < 0) return;
+    e.preventDefault(); const nb = bs[(i + step + bs.length) % bs.length]; focusDetail(nb.dataset.detail); nb.focus();
+    return;
+  }
+  if (e.target.closest('#fabs')) {
+    e.preventDefault(); const i = FABS.indexOf(fab); setFab(FABS[(i + step + FABS.length) % FABS.length]);
+    const b = $(`#fabs [data-id="${fab.id}"]`); if (b) b.focus();
+    return;
+  }
+  const host = e.target.closest('#woods, .thumbs');
+  if (host && horiz) {
+    e.preventDefault(); const i = WOODS.indexOf(wood); setWood(WOODS[(i + step + WOODS.length) % WOODS.length]);
+    const b = host.querySelector(`[data-id="${wood.id}"]`); if (b) b.focus();
+  }
 });
 
 // ---- cart ----
@@ -498,10 +518,13 @@ function renderCart(){
     d.querySelector('.rm').addEventListener('click', () => { cart.splice(idx,1); renderCart(); const next=items.querySelectorAll('.rm'); (next[Math.min(idx,next.length-1)] || $('#closeCart')).focus(); });
     items.appendChild(d);
   });
+  const shipping = total && total < FREE_SHIP ? SHIP_FEE : 0;
   const s = $('#sub'); if (s) s.textContent = fmt(total);
+  const sf = $('#shipFee'); if (sf) sf.textContent = total && !shipping ? '免運 NT$ 0' : fmt(shipping);
+  const g = $('#grand'); if (g) g.textContent = fmt(total + shipping);
   const checkout = $('#checkout'); if(checkout) checkout.disabled = !cart.length;
   const free = $('#free'), bar = $('#freeBar');
-  if (free && bar) { const left = 20000 - total; free.firstChild.textContent = left > 0 ? `再 ${fmt(left)} 即可免運` : '已達免運門檻，運費我們請 ✓'; bar.style.setProperty('--p', Math.min(100, total/200) + '%'); }
+  if (free && bar) { const left = FREE_SHIP - total; free.firstChild.textContent = left > 0 ? `再 ${fmt(left)} 即可免運` : '已達免運門檻，運費我們請 ✓'; bar.style.setProperty('--p', Math.min(100, total/FREE_SHIP*100) + '%'); }
 }
 on('#add','click', e => {
   const btn = e.currentTarget;

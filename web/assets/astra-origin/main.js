@@ -18,7 +18,6 @@ $('chapters').innerHTML = chapters.map((c,i)=>`<button class="chapter" data-chap
 $('storyboard').innerHTML = chapters.map((c,i)=>`<details><summary><span>${pad(i+1)}</span>${c.title}<small>${c.en}</small></summary><div><p><b>鏡頭：</b>${c.shot}</p><p>${c.text}</p><p><b>敘事邊界：</b>${c.note}</p><button class="plain" data-jump="${i}">在 3D 場景查看這一幕 ↑</button></div></details>`).join('');
 function setChapter(index){
   const c = chapters[index]; current = index;
-  $('chapter-code').textContent = `CHAPTER ${pad(index+1)} / ${c.en}`;
   $('chapter-number').textContent = $('current').textContent = pad(index+1);
   $('chapter-title').textContent=c.title; $('narration').textContent=c.voice;
   $('model-name').textContent=`FIG. ${pad(index+1)} — ${c.model}`;
@@ -49,7 +48,8 @@ $('quick-explode').onclick=()=>setExplode(explode>0?0:1);
 $('reset-camera').onclick=()=>sceneAPI?.reset();
 for(const id of ['sources-open','sources-footer'])$(id).onclick=()=>{$('sources').showModal();play(false);};
 $('sources-close').onclick=()=>$('sources').close();$('sources').addEventListener('click',e=>{if(e.target===$('sources')){const r=$('sources').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('sources').close();}});
-document.addEventListener('keydown',e=>{if(e.altKey||e.ctrlKey||e.metaKey||e.repeat||e.target.closest('input,button,a,summary,dialog,[contenteditable]')||$('sources').open)return;if(e.code==='ArrowRight'){e.preventDefault();jump(Math.min(7,current+1));}if(e.code==='ArrowLeft'){e.preventDefault();jump(Math.max(0,current-1));}if(e.code==='Space'){e.preventDefault();$('play').click();}});
+// Arrow keys change scenes even after a button was clicked; buttons and links keep their own Space / Enter.
+document.addEventListener('keydown',e=>{if(e.altKey||e.ctrlKey||e.metaKey||e.repeat||e.target.closest('input,select,textarea,summary,dialog,[contenteditable]')||$('sources').open)return;if(e.code==='ArrowRight'){e.preventDefault();jump(Math.min(7,current+1));}if(e.code==='ArrowLeft'){e.preventDefault();jump(Math.max(0,current-1));}if(e.code==='Space'&&!e.target.closest('button,a')){e.preventDefault();$('play').click();}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)play(false);});
 updateTime(0);
 
@@ -60,7 +60,7 @@ async function boot(){
   const host=$('canvas-host'), renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setClearColor(0x101413,0);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;
   // Real shadows: stacked planes, cards and the core now occlude each other and land on the instrument plate below.
-  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.shadowMap.autoUpdate=false;
   host.appendChild(renderer.domElement);renderer.domElement.setAttribute('aria-label','Astra 誕生之旅 3D 場景');renderer.domElement.setAttribute('aria-describedby','orbit-help');
   const scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x101413,.025);scene.environment=createStudioEnvironment(THREE,renderer).texture;scene.environmentIntensity=.42;
   const camera=new THREE.PerspectiveCamera(39,1,.1,100);camera.position.set(8,5.5,11);
@@ -143,18 +143,26 @@ async function boot(){
   sceneAPI.select=part=>{hoverPart=-1;canvas.style.cursor='';groups[current].traverse(o=>{if(!o.isMesh)return;const original=materialCache.get(o);if(o.material!==original&&!hoverSet.has(o.material))o.material.dispose();o.material=original;if(part>=0){o.material=original.clone();o.material.emissive.set(o.userData.part===part?0xb18e51:0x000000);o.material.emissiveIntensity=o.userData.part===part?.8:0;}});};
   sceneAPI.damping=on=>{settle();controls.enableDamping=on;};
   sceneAPI.chapter(current);
-  const resize=()=>{const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();reset();};new ResizeObserver(resize).observe(host);resize();
+  // A resize keeps the viewer's own orbit: only the framing distance follows the new aspect, as pose() does.
+  const fit=aspect=>Math.max(1,1.12/aspect);
+  let sized=false;
+  const resize=()=>{const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;const before=fit(camera.aspect);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();if(!sized){sized=true;reset();return;}camera.position.sub(controls.target).multiplyScalar(fit(camera.aspect)/before).add(controls.target);goal.copy(pose(current));};new ResizeObserver(resize).observe(host);resize();
   renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();contextLost=true;play(false);$('fallback').hidden=false;$('render-state').textContent='3D 已中斷';});
-  renderer.domElement.addEventListener('webglcontextrestored',()=>{contextLost=false;$('fallback').hidden=true;$('render-state').textContent='即時 3D · 示意模型';});
-  $('render-state').textContent='即時 3D · 示意模型';
+  renderer.domElement.addEventListener('webglcontextrestored',()=>{contextLost=false;shadowChapter=-1;$('fallback').hidden=true;$('render-state').textContent='';});
+  $('render-state').textContent='';
+  // Shadows redraw only when the scene's geometry actually moves: a new chapter, the explode value, or the slow sway turning past ~0.6°.
+  let shadowChapter=-1,shadowExplode=-1,shadowTurn=0;
   sceneAPI.render=(delta)=>{
     if(contextLost)return;if(moving)visualTime+=delta;
     if(transition){camera.position.lerp(goal,1-Math.exp(-delta*3));controls.update();if(camera.position.distanceTo(goal)<.01)transition=false;}else if(controls.enableDamping)controls.update();
     const g=groups[current];g.rotation.y=moving?Math.sin(visualTime*.12)*.18:g.rotation.y;
+    if(shadowChapter!==current||shadowExplode!==explode||Math.abs(g.rotation.y-shadowTurn)>.01){renderer.shadowMap.needsUpdate=true;shadowChapter=current;shadowExplode=explode;shadowTurn=g.rotation.y;}
     g.children.forEach(m=>{m.position.copy(m.userData.home).addScaledVector(m.userData.explodeDir,m.userData.fixed?0:explode*.85);});
     if(current===2){const a=attentionGeometry.attributes.position;attentionEdges.forEach((n,i)=>a.setXYZ(i,n.position.x,n.position.y,n.position.z));a.needsUpdate=true;attentionGeometry.computeBoundingSphere();}
     for(let i=0;i<particleCount;i++){const a=visualTime*.3+i/particleCount*Math.PI*2;let p;if(current===2||current===5||current===6){p=[((visualTime*.65+i*.17)%6)-3,Math.sin(i*4.1)*.7,Math.cos(i*1.7)*.7];}else{const r=2.9+Math.sin(i*3)*.17;p=[Math.cos(a)*r,Math.sin(a*2+i)*.6,Math.sin(a)*r];}dummy.position.set(...p);dummy.scale.setScalar(i%5===0?1.4:.65);dummy.updateMatrix();signals.setMatrixAt(i,dummy.matrix);}signals.instanceMatrix.needsUpdate=true;renderer.render(scene,camera);
   };
 }
 boot().catch(error=>{console.warn('Astra 3D unavailable:',error.message);$('fallback').hidden=false;$('render-state').textContent='文字分鏡模式';});
-let last=performance.now();function frame(now){const delta=Math.min((now-last)/1000,.1);last=now;if(!document.hidden){if(playing){updateTime(time+delta);if(time>=95.99)play(false);}sceneAPI?.render?.(delta);}requestAnimationFrame(frame);}requestAnimationFrame(frame);
+// Skip the WebGL pass while the 3D stage is scrolled out of view (reading the dossier or storyboard); the story clock keeps running.
+let visualOnScreen=true;if('IntersectionObserver' in window)new IntersectionObserver(entries=>{visualOnScreen=entries[entries.length-1].isIntersecting;}).observe($('visual'));
+let last=performance.now();function frame(now){const delta=Math.min((now-last)/1000,.1);last=now;if(!document.hidden){if(playing){updateTime(time+delta);if(time>=95.99)play(false);}if(visualOnScreen)sceneAPI?.render?.(delta);}requestAnimationFrame(frame);}requestAnimationFrame(frame);

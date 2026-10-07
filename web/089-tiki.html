@@ -14,7 +14,7 @@
   --body:Georgia,"Times New Roman",serif;
 }
 *{box-sizing:border-box}
-body{margin:0;color:var(--cream);font-family:var(--pap);min-height:100vh;
+body{margin:0;color:var(--cream);font-family:var(--body);min-height:100vh;
   background:
    radial-gradient(ellipse at 50% -10%,rgba(255,170,70,.35),transparent 55%),
    repeating-linear-gradient(90deg,rgba(0,0,0,.18) 0 2px,transparent 2px 120px),
@@ -64,15 +64,16 @@ body{margin:0;color:var(--cream);font-family:var(--pap);min-height:100vh;
 .plank small{display:block;font-size:11px;letter-spacing:.3em;color:#f2d99a;text-transform:uppercase}
 .plank b{display:block;font-family:var(--disp);font-weight:400;font-size:clamp(28px,3.2vw,42px);color:var(--cream);line-height:1.05;text-shadow:2px 2px 0 #2a170c}
 .tab{grid-area:tab;padding:18px 16px;border-left:2px dashed rgba(217,179,106,.35)}
+.bar.busy .menu,.bar.busy .card{pointer-events:none}
 h2{font-family:var(--disp);font-weight:400;font-size:28px;margin:0 0 6px;color:var(--bamboo);letter-spacing:.03em}
-h3{font-family:var(--pap);font-size:12px;letter-spacing:.24em;text-transform:uppercase;margin:12px 0 6px;color:#e9c98a;font-weight:700}
-.ings{display:grid;grid-template-columns:1fr 1fr;gap:5px}
-.ing{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:7px;padding:5px 8px;min-height:40px;border-radius:20px;background:rgba(251,238,208,.08);border:1px solid rgba(251,238,208,.18);font-size:13px;line-height:1.1;color:var(--cream);transition:transform .12s,background .2s}
-.ing:hover{background:rgba(251,238,208,.18)}
+h3{font-family:var(--body);font-size:12px;letter-spacing:.24em;text-transform:uppercase;margin:12px 0 6px;color:#e9c98a;font-weight:700}
+.ings{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.ing{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:8px;padding:4px 2px;min-height:40px;font-size:14px;line-height:1.15;color:var(--cream);transition:transform .12s}
+.ing:hover .nm{text-decoration:underline;text-underline-offset:3px}
 .ing:active{transform:scale(.95)}
 .ing:focus-visible,.btn:focus-visible,.chip:focus-visible,.min:focus-visible,.gar:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
 .ing i{width:14px;height:14px;border-radius:50%;flex:none;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25),0 0 0 1px rgba(0,0,0,.3)}
-.ing small{display:block;font-size:10px;opacity:.65}
+.ing small{display:block;font-size:11px;opacity:.65}
 .classics{display:flex;flex-wrap:wrap;gap:5px}
 .chip{all:unset;cursor:pointer;font-family:var(--disp);font-size:17px;padding:4px 12px;min-height:34px;display:inline-flex;align-items:center;border-radius:4px;background:var(--orange);color:var(--wood2);box-shadow:0 3px 0 #9b3d08}
 .chip:active{transform:translateY(2px);box-shadow:0 1px 0 #9b3d08}
@@ -202,7 +203,7 @@ h3{font-family:var(--pap);font-size:12px;letter-spacing:.24em;text-transform:upp
           <button class="gar" type="button" data-g="cherry" aria-pressed="false"><svg viewBox="0 0 16 16"><circle cx="8" cy="10" r="5" fill="#b3122c"/></svg>Cherry</button>
           <button class="gar" type="button" data-g="mint" aria-pressed="false"><svg viewBox="0 0 16 16"><path d="M8 15 C2 10 3 4 8 1 C13 4 14 10 8 15Z" fill="#4caf50"/></svg>Mint</button>
         </div>
-        <div class="msg" id="msg" aria-live="polite">Pick your pours from the back bar. The tin holds eight ounces of bad ideas.</div>
+        <div class="msg" id="msg" aria-live="polite">Pick your pours from the back bar. The tin holds twelve ounces of bad ideas.</div>
       </section>
 
       <section class="tab" aria-label="Your drink">
@@ -251,14 +252,14 @@ var ADJ=['Sunburnt','Haunted','Smuggler’s','Volcanic','Barefoot','Mutinous','F
 var NOUN=['Accountant','Parrot','Lagoon','Idol','Hammock','Typhoon','Tiki God','Ukulele','Castaway','Flamingo','Outrigger','Hula Lamp'];
 
 var mix={},order=[],shaken=false,served=null;
-var MAX=8;
+var MAX=12;
 
 // ---------- menu ----------
 var menu=$('menu'),cats={};
 ING.forEach(function(i){
   if(!cats[i.cat]){var h=document.createElement('h3');h.textContent=i.cat;menu.appendChild(h);cats[i.cat]=document.createElement('div');cats[i.cat].className='ings';menu.appendChild(cats[i.cat]);}
   var b=document.createElement('button');b.type='button';b.className='ing';
-  b.innerHTML='<i style="background:'+i.c+'"></i><span>'+i.n+'<small>'+(i.sub||('+'+fmt(i.step)))+'</small></span>';
+  b.innerHTML='<i style="background:'+i.c+'"></i><span><span class="nm">'+i.n+'</span><small>'+(i.sub||('+'+fmt(i.step)))+'</small></span>';
   b.setAttribute('aria-label','Add '+i.n);
   b.addEventListener('click',function(){add(i.id,i.step);});
   cats[i.cat].appendChild(b);
@@ -270,17 +271,19 @@ function fmt(oz){if(oz<.1) return Math.round(oz/.03125)+' dash'+(Math.round(oz/.
 function total(){var t=0;for(var k in mix) t+=mix[k];return t;}
 
 function add(id,amt){
+  if(busy) return;
   if(served||shaken) reset(true);
-  if(total()+amt>MAX+1e-6){say('Whoa there, sailor. The tin only holds eight ounces.');splash();return;}
+  if(total()+amt>MAX+1e-6){say('Whoa there, sailor. The tin only holds twelve ounces.');splash();return;}
   mix[id]=(mix[id]||0)+amt;if(order.indexOf(id)<0) order.push(id);
   pourSound(.25);render();
   var i=BY[id];say(pick(['A splash of ','In goes the ','Glug. ','Measured, mostly: '])+i.n.toLowerCase()+'.');
 }
 function remove(id){
+  if(busy) return;
   var i=BY[id];mix[id]-=i.step;if(mix[id]<=1e-6){delete mix[id];order.splice(order.indexOf(id),1);}
   shaken=false;served=null;render();
 }
-function load(c){reset(true);for(var k in c.r){mix[k]=c.r[k];order.push(k);}render();say('One '+c.n+', coming up. Now shake it like you mean it.');}
+function load(c){if(busy) return;reset(true);for(var k in c.r){mix[k]=c.r[k];order.push(k);}render();say('One '+c.n+', coming up. Now shake it like you mean it.');}
 function reset(quiet){mix={};order=[];shaken=false;served=null;$('tin').classList.remove('frosty');render();if(!quiet) say('Down the drain. The palm tree out back thanks you.');}
 function pick(a){return a[Math.floor(Math.random()*a.length)];}
 function say(t){var m=$('msg');if(m) m.textContent=t;}
@@ -298,7 +301,7 @@ function mixedColor(){
 // ---------- rendering ----------
 var layersG=$('layers'),iceG=$('ice');
 function renderTin(){
-  var h='',y=250,scale=200/MAX;
+  var h='',y=250,scale=180/MAX; // 12 oz shaken (×1.12 dilution) ≈ 202px, still inside the 210px tin
   if(served){layersG.innerHTML='';iceG.innerHTML='';return;}
   if(shaken){
     var hh=total()*scale*1.12;
@@ -333,7 +336,7 @@ function renderCard(){
   } else if(!t){
     card.innerHTML='<h4>Nothing yet</h4><div class="sub">the tin is empty & so is your glass</div><p class="empty">Tap bottles on the back bar to pour, or order a classic. Then shake.</p>';
   } else {
-    card.innerHTML='<h4>Work in progress</h4><div class="sub">'+(shaken?'shaken, not yet served':'unshaken · tap − to take back a pour')+'</div>'+pourList(false)+'<div class="tot"><span>In the tin</span><span>'+fmt(t)+' / 8 oz</span></div>';
+    card.innerHTML='<h4>Work in progress</h4><div class="sub">'+(shaken?'shaken, not yet served':'unshaken · tap − to take back a pour')+'</div>'+pourList(false)+'<div class="tot"><span>In the tin</span><span>'+fmt(t)+' / '+MAX+' oz</span></div>';
   }
   Array.prototype.forEach.call(card.querySelectorAll('.min'),function(b){b.addEventListener('click',function(){remove(b.dataset.id);});});
 }
@@ -344,7 +347,9 @@ function render(){renderTin();renderMug();renderCard();var nw=$('now');if(nw) nw
 
 // ---------- judge the drink ----------
 function judge(){
-  var t=total(),alc=0;for(var k in mix) alc+=mix[k]*BY[k].abv/100;
+  var t=total(),alc=0;
+  if(!t) return {abv:0,level:1,color:mixedColor(),name:'An Empty Glass',sub:'',verdict:'Nothing to serve.'};
+  for(var k in mix) alc+=mix[k]*BY[k].abv/100;
   var abv=alc/(t*1.25)*100;
   var best=null,bs=0;
   CLASSICS.forEach(function(c){
@@ -382,6 +387,7 @@ if(shakeBtn) shakeBtn.addEventListener('click',function(){
   if(busy||!total()) return;
   if(served){reset(true);return;}
   busy=true;shakeBtn.disabled=true;
+  var barEl=document.querySelector('.bar');if(barEl) barEl.classList.add('busy');
   var tin=$('tin'),cap=$('cap');
   cap.setAttribute('opacity','1');
   tin.classList.add('shaking');say(pick(['Shake shake shake…','Twelve hard seconds, the Donn Beach way…','Rattling the ice like a maraca…']));
@@ -402,6 +408,7 @@ if(shakeBtn) shakeBtn.addEventListener('click',function(){
         render();clink();
         say(served.sub.indexOf('classic')===0?'Well I’ll be — that’s a textbook '+served.name+'.':'Served: '+served.name+'. Tap “Shake it!” again for another round.');
         shakeBtn.textContent='Another!';shakeBtn.disabled=false;busy=false;
+        if(barEl) barEl.classList.remove('busy');
       },1150);
     },350);
   },1400);

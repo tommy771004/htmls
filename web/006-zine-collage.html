@@ -27,7 +27,7 @@ body{min-height:100vh;color:var(--ink);font-family:var(--hei);
   overflow-x:hidden}
 
 #board{position:relative;width:100%;height:max(100vh,860px);overflow:clip}
-.piece{position:absolute;left:0;top:0;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;
+.piece{position:absolute;left:0;top:0;touch-action:pan-y pinch-zoom;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
   filter:drop-shadow(2px 3px 0 rgba(40,20,0,.28)) drop-shadow(0 6px 8px rgba(40,20,0,.18));transform-origin:50% 50%;will-change:transform;outline:none}
 .piece:focus-visible .paper{outline:3px dashed var(--red);outline-offset:4px}
 .piece.drag{cursor:grabbing;filter:drop-shadow(8px 16px 0 rgba(40,20,0,.25)) drop-shadow(0 18px 18px rgba(40,20,0,.25))}
@@ -183,7 +183,7 @@ body{min-height:100vh;color:var(--ink);font-family:var(--hei);
     <div class="k">LIVE · 現場 · 不插電是不可能的</div>
     <h3>地下室現場</h3>
     <div class="en">BASEMENT SHOW</div>
-    <div class="date">8.16 <span>SAT</span></div>
+    <div class="date">8.15 <span>SAT</span></div>
     <ul><li>雜音製造所</li><li>耳鳴俱樂部</li><li>冷氣壞掉 (reunion!)</li></ul>
     <p>入場 NT$300，附一瓶不冰的啤酒。<br>地點：永和某地下室，看到腳踏車堆就對了。</p>
   </div><i class="staple" style="top:6px;left:50%;margin-left:-13px"></i></div>
@@ -196,7 +196,7 @@ body{min-height:100vh;color:var(--ink);font-family:var(--hei);
   </div><i class="tape t1 yel"></i></div>
 
   <div class="piece tape-j" data-k="tape" tabindex="0"><div class="paper">
-    <div class="hd">MIXTAPE C-60 <small>本期附贈（想像中的）</small></div>
+    <div class="hd">MIXTAPE C-90 <small>本期附贈（想像中的）</small></div>
     <ol>
       <li class="side">SIDE A</li>
       <li><span>1. 蟬 (Live at 頂樓)</span><span>4:12</span></li>
@@ -294,18 +294,37 @@ body{min-height:100vh;color:var(--ink);font-family:var(--hei);
   var home={};
   function snapshotHome(){home=JSON.parse(JSON.stringify(state));}
 
-  /* drag */
-  var drag=null;
+  /* drag — mouse/pen pick up at once; a finger has to hold still ~250ms first,
+     otherwise the touch is left to the browser so the page can still scroll */
+  var drag=null, hold=null;
+  function startDrag(p,x,y,id){
+    var s=state[p.dataset.k]; if(!s) return;
+    p.style.zIndex=++z; p.classList.add('drag'); p.classList.remove('in');
+    drag={p:p,s:s,sx:x,sy:y,ox:s.x,oy:s.y,r0:s.r,vx:0,lx:x,id:id};
+    try{p.setPointerCapture(id);}catch(err){}
+  }
+  function clearHold(){ if(hold){ clearTimeout(hold.t); hold=null; } }
+  board.addEventListener('touchmove',function(e){ if(drag) e.preventDefault(); },{passive:false});
   pieces.forEach(function(p){
     p.addEventListener('pointerdown',function(e){
       if(e.button!==0&&e.pointerType==='mouse') return;
-      var s=state[p.dataset.k]; if(!s) return;
-      p.style.zIndex=++z; p.classList.add('drag'); p.classList.remove('in');
-      drag={p:p,s:s,sx:e.clientX,sy:e.clientY,ox:s.x,oy:s.y,r0:s.r,vx:0,lx:e.clientX,id:e.pointerId};
-      try{p.setPointerCapture(e.pointerId);}catch(err){}
+      if(!state[p.dataset.k]) return;
+      if(e.pointerType==='touch'){
+        clearHold();
+        hold={p:p,id:e.pointerId,x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY};
+        hold.t=setTimeout(function(){ var h=hold; hold=null; if(h&&!drag) startDrag(h.p,h.x,h.y,h.id); },250);
+        return;
+      }
+      startDrag(p,e.clientX,e.clientY,e.pointerId);
       e.preventDefault();
     });
+    p.addEventListener('contextmenu',function(e){ if(hold||(drag&&drag.p===p)) e.preventDefault(); });
     p.addEventListener('pointermove',function(e){
+      if(hold&&hold.p===p&&hold.id===e.pointerId){
+        hold.x=e.clientX; hold.y=e.clientY;
+        if(Math.abs(e.clientX-hold.x0)>8||Math.abs(e.clientY-hold.y0)>8) clearHold();
+        return;
+      }
       if(!drag||drag.p!==p) return;
       var W=board.clientWidth,H=board.clientHeight,w=p.offsetWidth,h=p.offsetHeight;
       drag.s.x=Math.max(0,Math.min(W-w,drag.ox+e.clientX-drag.sx));
@@ -315,6 +334,7 @@ body{min-height:100vh;color:var(--ink);font-family:var(--hei);
       place(p);
     });
     function end(){
+      if(hold&&hold.p===p) clearHold();
       if(!drag||drag.p!==p) return;
       var s=drag.s, settle=drag.r0+(Math.random()*6-3); s.r=settle; drag=null; p.classList.remove('drag'); place(p);
       if(!reduce&&p.animate){p.animate([{transform:'translate('+s.x+'px,'+s.y+'px) rotate('+(settle+4)+'deg)'},{transform:'translate('+s.x+'px,'+s.y+'px) rotate('+(settle-2.5)+'deg)'},{transform:'translate('+s.x+'px,'+s.y+'px) rotate('+(settle+1)+'deg)'},{transform:'translate('+s.x+'px,'+s.y+'px) rotate('+settle+'deg)'}],{duration:420,easing:'ease-out'});}
@@ -379,8 +399,24 @@ body{min-height:100vh;color:var(--ink);font-family:var(--hei);
 
   layout(); snapshotHome();
   pieces.forEach(function(p,i){p.style.zIndex=++z; if(!reduce){p.style.animationDelay=(i*55)+'ms';p.classList.add('in');}});
-  var lastMob=isMob(), rt;
-  window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(function(){layout();snapshotHome();lastMob=isMob();},150);});
+  /* only a width change re-lays the board (a phone's address bar sliding in/out changes height only).
+     Same layout mode: RESET's home follows the new width, the visitor's own collage is scaled, not reset. */
+  var lastMob=isMob(), lastW=board.clientWidth, rt;
+  window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(function(){
+    var W=board.clientWidth; if(W===lastW||!lastW) return;
+    var mob=isMob(), k=W/lastW, mine=JSON.parse(JSON.stringify(state));
+    layout(); snapshotHome();
+    if(mob===lastMob){
+      var H=board.clientHeight;
+      pieces.forEach(function(p){
+        var key=p.dataset.k, s=mine[key]; if(!s||!state[key]) return;
+        var w=p.offsetWidth, h=p.offsetHeight;
+        state[key]={x:Math.max(0,Math.min(W-w,s.x*k)), y:Math.max(-10,Math.min(H-h*0.5,mob?s.y*k:s.y)), r:s.r};
+        place(p);
+      });
+    }
+    lastW=W; lastMob=mob;
+  },150);});
 })();
 </script>
 </body>

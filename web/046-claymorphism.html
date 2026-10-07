@@ -22,9 +22,6 @@ body{font-family:var(--f);font-weight:900;color:var(--ink);min-height:100vh;back
 button{font-family:inherit;font-weight:900;color:inherit;cursor:pointer;border:0}
 .clay{border-radius:var(--r-l);background:var(--bgc,var(--cream));
   box-shadow:inset -8px -10px 18px rgba(0,0,0,.14),inset 8px 10px 16px rgba(255,255,255,.75),10px 16px 28px rgba(20,60,110,.25)}
-.blob{position:fixed;border-radius:50%;pointer-events:none;z-index:0;
-  box-shadow:inset -10px -12px 22px rgba(0,0,0,.12),inset 10px 12px 20px rgba(255,255,255,.55);animation:float 7s ease-in-out infinite}
-@keyframes float{50%{transform:translateY(-18px) rotate(8deg)}}
 .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:clamp(14px,3vw,34px) clamp(14px,3vw,34px) 40px}
 header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:space-between;margin-bottom:clamp(14px,2.4vw,26px)}
 .logo{display:flex;align-items:center;gap:14px}
@@ -41,16 +38,11 @@ header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:s
 @media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
 .board{padding:clamp(18px,3vw,34px);position:relative}
 .qlabel{display:flex;justify-content:space-between;align-items:center;font-size:15px;color:#6a7aa3;margin-bottom:6px;gap:10px;flex-wrap:wrap}
-.dots{display:flex;gap:6px}
-.dots i{width:16px;height:16px;border-radius:50%;background:#e4e9f4;box-shadow:inset -2px -3px 4px rgba(0,0,0,.12),inset 2px 2px 3px rgba(255,255,255,.8)}
-.dots i.ok{background:var(--orange)}
-.dots i.no{background:#b8c3dc}
-.dots i.now{background:var(--lemon)}
 .q{font-size:clamp(56px,11vw,120px);line-height:1.05;text-align:center;margin:8px 0 6px;letter-spacing:.02em}
 .q .op{color:var(--orange)}
 .q .qm{display:inline-block;min-width:1.1em;color:var(--sky-d);animation:bob 1.6s ease-in-out infinite}
 @keyframes bob{50%{transform:translateY(-8px) rotate(-4deg)}}
-.tray{display:flex;justify-content:center;align-items:center;gap:clamp(12px,3vw,34px);flex-wrap:wrap;min-height:110px;padding:14px;border-radius:var(--r-m);--bgc:#eef7ff;margin:8px 0 22px}
+.tray{display:flex;justify-content:center;align-items:center;gap:clamp(12px,3vw,34px);flex-wrap:wrap;min-height:110px;padding:14px;margin:8px 0 22px}
 .grp{display:flex;flex-wrap:wrap;gap:8px;max-width:min(230px,40%);justify-content:center}
 .ball{width:clamp(28px,4.2vw,40px);aspect-ratio:1;border-radius:50%;background:var(--c);
   box-shadow:inset -4px -5px 8px rgba(0,0,0,.18),inset 4px 4px 6px rgba(255,255,255,.7),2px 4px 6px rgba(20,60,110,.2);animation:pop .45s cubic-bezier(.3,1.8,.5,1) both}
@@ -78,7 +70,7 @@ header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:s
 .pet.sad .body{animation:shake .5s}
 .pet.idle .body{animation:breathe 2.6s ease-in-out infinite}
 @keyframes breathe{50%{transform:scale(1.03,.97)}}
-.bubble{position:relative;flex:1;min-width:0;padding:12px 16px;border-radius:var(--r-m);--bgc:#fff;font-size:16px;line-height:1.45;min-height:72px;display:flex;align-items:center}
+.bubble{position:relative;flex:1;min-width:0;padding:0 0 0 12px;font-size:16px;line-height:1.45;min-height:72px;display:flex;align-items:center}
 /* this round, question by question */
 .log{flex:1;padding:18px 18px 20px;--bgc:#e6f6ff;display:flex;flex-direction:column}
 .log h2{margin:0 0 12px;font-size:18px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
@@ -92,7 +84,7 @@ header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:s
 .cells li.no{background:#fff;color:#8a96b4;box-shadow:inset -4px -5px 8px rgba(0,0,0,.08),inset 4px 4px 7px rgba(255,255,255,.9)}
 .cells li.now{background:var(--lemon);color:var(--ink);animation:jelly .9s}
 .cells li.ok,.cells li.no{animation:pop .45s cubic-bezier(.3,1.8,.5,1)}
-.stats{padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px;--bgc:#fff4d6}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:clamp(14px,1.8vw,20px)}
 .stat{padding:12px;border-radius:var(--r-m);text-align:center;--bgc:#fff}
 .stat b{display:block;font-size:34px;line-height:1.1;color:var(--orange-d)}
 .stat span{font-size:13px;color:#6a7aa3}
@@ -113,15 +105,12 @@ header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:s
 @media (min-width:901px) and (min-height:700px){body{display:flex;align-items:center}.wrap{width:100%}}
 .tip{font-size:13px;color:#fff;opacity:.9;text-align:center;margin-top:14px}
 @media (hover:none){.tip{display:none}}
-@media (max-width:900px){.cells{grid-auto-rows:58px}}
-@media (max-width:420px){.pet svg{width:104px;height:94px}.bubble{font-size:15px}.cells{grid-auto-rows:54px;gap:6px}.cells li{font-size:12px}}
-@media (prefers-reduced-motion:reduce){.blob,.q .qm,.pet.idle .body,.dots i.now,.cells li{animation:none}}
+@media (max-width:900px){.log{display:none}}
+@media (max-width:420px){.pet svg{width:104px;height:94px}.bubble{font-size:15px}}
+@media (prefers-reduced-motion:reduce){.q .qm,.pet.idle .body,.cells li{animation:none}}
 </style>
 </head>
 <body>
-<div class="blob" style="width:120px;height:120px;left:-30px;top:40%;background:var(--lemon)"></div>
-<div class="blob" style="width:80px;height:80px;right:4%;top:22%;background:var(--pink);animation-delay:-2s"></div>
-<div class="blob" style="width:160px;height:160px;right:-50px;bottom:-40px;background:var(--mint);animation-delay:-4s"></div>
 <div class="wrap">
   <header>
     <div class="logo"><div><h1>數字果凍島</h1><small>捏一捏、數一數，答對果凍會跳舞</small></div></div>
@@ -134,9 +123,9 @@ header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:s
 
   <div class="grid">
     <main class="board clay" aria-live="polite">
-      <div class="qlabel"><span id="qno">第 1 題 / 10</span><span class="dots" id="dots" aria-hidden="true"></span></div>
+      <div class="qlabel"><span id="qno">第 1 題 / 10</span></div>
       <div class="q" id="q" aria-label="題目"></div>
-      <div class="tray clay" id="tray" aria-label="數數看的小球"></div>
+      <div class="tray" id="tray" aria-label="數數看的小球"></div>
       <div class="answers" id="answers"></div>
     </main>
     <aside class="side">
@@ -153,13 +142,13 @@ header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:s
             <path d="M85 20 Q88 6 100 8" stroke="#7be0b4" stroke-width="6" fill="none" stroke-linecap="round"/>
           </g>
         </svg>
-        <div class="bubble clay" id="bubble">嗨！我是小凍。一起數數看吧！</div>
+        <div class="bubble" id="bubble">嗨！我是小凍。一起數數看吧！</div>
       </div>
       <section class="log clay" aria-labelledby="logT">
         <h2 id="logT">這一回合<span>一次答對 <b id="firstOk">0</b> / 10</span></h2>
         <ol class="cells" id="cells"></ol>
       </section>
-      <div class="stats clay">
+      <div class="stats">
         <div class="stat clay"><b id="stars">0</b><span>
           <svg class="star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3 6.5 7 .8-5.2 4.8 1.5 7L12 17.6 5.7 21l1.5-7L2 9.3l7-.8z" fill="#ffc83d"/></svg> 星星</span></div>
         <div class="stat clay"><b id="streak">0</b><span>連續答對</span></div>
@@ -182,7 +171,7 @@ header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:s
 (function(){
   'use strict';
   var $ = function(id){ return document.getElementById(id); };
-  var qEl = $('q'), tray = $('tray'), answers = $('answers'), dots = $('dots'), qno = $('qno'), pet = $('pet'), bubble = $('bubble');
+  var qEl = $('q'), tray = $('tray'), answers = $('answers'), qno = $('qno'), pet = $('pet'), bubble = $('bubble');
   if(!qEl || !answers) return;
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var mode = 'add', idx = 0, results = [], recs = [], cur = null, locked = false, stars = 0, streak = 0, tries = 0, advT = 0, flyT = 0;
@@ -215,11 +204,6 @@ header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:s
       opts = set.sort(function(){ return Math.random() - .5; });
     }
     return { a:a, b:b, ans:ans, opts:opts, text:text };
-  }
-  function drawDots(){
-    if(!dots) return; dots.innerHTML = '';
-    for(var i = 0; i < 10; i++){ var d = document.createElement('i'); if(results[i] === true) d.className = 'ok'; else if(results[i] === false) d.className = 'no'; else if(i === idx) d.className = 'now'; dots.appendChild(d); }
-    drawLog();
   }
   function drawLog(){
     var ul = $('cells'); if(!ul) return;
@@ -263,7 +247,7 @@ header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:s
       b.addEventListener('click', function(){ pick(b, o); });
       answers.appendChild(b);
     });
-    drawDots();
+    drawLog();
   }
   var PRAISE = ['答對了！果凍跳舞！','好厲害！','你是數字魔法師！','啵～答對！','完全正確！','哇！手指都不用算！'];
   var OOPS = ['差一點點，再數一次看看？','沒關係，果凍也常算錯。','再試一次，你可以的！'];
@@ -300,7 +284,7 @@ header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:s
   }
   var STAR = '<svg viewBox="0 0 24 24"><path d="M12 2l3 6.5 7 .8-5.2 4.8 1.5 7L12 17.6 5.7 21l1.5-7L2 9.3l7-.8z" fill="FILL" stroke="#e0a800" stroke-width="1" stroke-linejoin="round"/></svg>';
   function finish(){
-    drawDots();
+    drawLog();
     var ok = results.filter(function(r){ return r === true; }).length;
     var n = ok >= 9 ? 3 : ok >= 6 ? 2 : ok >= 3 ? 1 : 0;
     var bs = $('bigstars'); if(bs){ bs.innerHTML = ''; for(var i = 0; i < 3; i++){ var d = document.createElement('div'); d.innerHTML = STAR.replace('FILL', i < n ? '#ffc83d' : '#e4e9f4'); if(!reduce) d.style.animation = 'pop .5s ' + (i * .2 + .3) + 's cubic-bezier(.3,1.8,.5,1) both'; bs.appendChild(d); } }
@@ -340,7 +324,7 @@ header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:s
     if(c && c.classList.contains('on')) return;
     if(/^[1-3]$/.test(e.key)){ var b = answers.querySelectorAll('.ans')[+e.key - 1]; if(b && !b.disabled) b.click(); }
   });
-  if(pet) pet.addEventListener('click', function(){ audio(); sfx('boing'); mood('happy'); say(['戳我會癢啦！','我是柳橙口味的。','你知道嗎？10 = 5 + 5 喔！','我今天吃了三顆小球，還剩幾顆？'][rnd(0, 3)]); });
+  if(pet) pet.addEventListener('click', function(){ audio(); sfx('boing'); mood('happy'); say(['戳我會癢啦！','我是柳橙口味的。','你知道嗎？10 = 5 + 5 喔！','我有八顆小球，吃了三顆，還剩幾顆？'][rnd(0, 3)]); });
   updStats();
   render();
 })();

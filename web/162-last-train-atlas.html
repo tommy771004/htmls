@@ -112,8 +112,8 @@ button{background:none;border:0;cursor:pointer}
 .back svg{width:16px;height:16px}
 .dt-top b{display:block;font-size:15px}
 .dt-top small{display:block;color:var(--dim);font-size:11.5px}
-.dt-sum{display:grid;grid-template-columns:1fr 1fr;gap:1px;margin:0 12px 8px;background:var(--ghost);border-radius:2px;overflow:hidden}
-.dt-sum div{background:var(--panel-2);padding:8px 10px}
+.dt-sum{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;margin:0 12px 8px}
+.dt-sum div{min-width:0;border-top:1px solid var(--ghost);padding:8px 0 0}
 .dt-sum small{display:block;font-size:11px;color:var(--dim)}
 .dt-sum b{font:700 22px/1.1 var(--num);letter-spacing:.03em}
 .dt-sum span{display:block;font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -349,7 +349,8 @@ function remain(t) {
   if (d < 1) return ['末班行駛中', 'soon'];
   if (d <= 30) return ['還有 ' + Math.ceil(d) + ' 分', 'soon'];
   if (d < 60) return ['還有 ' + Math.ceil(d) + ' 分', ''];
-  return ['還有 ' + Math.floor(d / 60) + ' 小時 ' + Math.round(d % 60) + ' 分', ''];
+  const m = Math.ceil(d);
+  return ['還有 ' + Math.floor(m / 60) + ' 小時 ' + (m % 60) + ' 分', ''];
 }
 const rows = new Map();
 function buildList() {
@@ -457,19 +458,20 @@ function drawTimeline() {
   tsvg.innerHTML = s;
   updateTimeline(true);
 }
-function updateTimeline() {
+function updateTimeline(full) {
   const x = xOf(S.now);
   const head = $('tlHead'); if (!head) return;
   head.setAttribute('transform', `translate(${x.toFixed(1)} 0)`);
   const y = tlH - 20;
   $('tlPast').setAttribute('d', `M${PADX} ${y}H${x.toFixed(1)}`);
+  if (!full) return;
   tsvg.querySelectorAll('.tk').forEach(c => {
     const past = +c.dataset.t <= S.now;
     if (c.classList.contains('minor')) c.setAttribute('fill', past ? 'var(--bg)' : 'var(--faint)');
     else { c.setAttribute('fill', 'var(--panel)'); c.setAttribute('stroke', past ? 'var(--ink)' : 'var(--faint)'); }
   });
   tsvg.querySelectorAll('#tlBars rect').forEach(r => r.setAttribute('fill', +r.dataset.t <= S.now ? 'var(--faint)' : 'var(--dim)'));
-  tl.setAttribute('aria-valuenow', Math.round(S.now)); tl.setAttribute('aria-valuetext', fmt(S.now));
+  tl.setAttribute('aria-valuenow', Math.floor(S.now + 1e-6)); tl.setAttribute('aria-valuetext', fmt(S.now));
 }
 function updateClock() {
   const c = $('clock'); c.textContent = fmt(S.now); c.classList.toggle('live', S.live);
@@ -480,11 +482,16 @@ function updateClock() {
   $('stat').innerHTML = `末班前 <b>${before}</b> 線 · 已收班 <b>${after}</b> 線` + (next ? ` · 下一條收班：<b>${esc(next.L.n)}</b>（${fmt(next.e)}）` : ' · 今晚全部收班了');
 }
 let intro = null;
+let nowKey = '';
 function setNow(t, opt = {}) {
   if(!opt.keepLive)intro=null;
+  const wasLive = S.live;
   S.now = clamp(t, T0, T1);
   if (!opt.keepLive) S.live = false;
-  updateTimeline(); updateClock(); updateRows(); if (U) U.uNow.value = S.now; dirty(); updatePlane();
+  // 刻度、長條與 #stat 只在跨過整數分鐘時才會變；每幀只移動 #tlHead 與 #tlPast
+  const key = Math.floor(S.now) + '|' + Math.ceil(S.now);
+  const full = key !== nowKey || wasLive !== S.live; nowKey = key;
+  updateTimeline(full); if (full) updateClock(); updateRows(); if (U) U.uNow.value = S.now; dirty(); updatePlane();
   if (S.hover >= 0) showTip(S.hover);
 }
 let dragTl = false;

@@ -42,7 +42,11 @@ canvas#sky{position:absolute;inset:0;width:100%;height:100%;display:block}
 .win .bar{background:linear-gradient(90deg,var(--title1),var(--title2));color:#fff;font-weight:700;display:flex;align-items:center;justify-content:space-between;padding:3px 3px 3px 6px;gap:8px;font-size:12px}
 .win .bar span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .win .x{display:flex;gap:2px}
-.win .x i{width:16px;height:14px;background:var(--win);box-shadow:inset -1px -1px 0 #000,inset 1px 1px 0 #fff,inset -2px -2px 0 var(--winD);display:grid;place-items:center;font-style:normal;color:#000;font-size:10px;line-height:1;font-weight:700}
+.win .x button{width:16px;height:14px;padding:0;border:0;background:var(--win);box-shadow:inset -1px -1px 0 #000,inset 1px 1px 0 #fff,inset -2px -2px 0 var(--winD);display:grid;place-items:center;font-family:var(--ui);color:#000;font-size:10px;line-height:1;font-weight:700;cursor:pointer}
+.win .x button:active{box-shadow:inset 1px 1px 0 #000,inset -1px -1px 0 #fff,inset 2px 2px 0 var(--winD)}
+.win .x button:focus-visible{outline:1px dotted #fff;outline-offset:1px}
+.win .bar{cursor:pointer;user-select:none;-webkit-user-select:none}
+.win.min .body{display:none}
 .win .body{padding:10px 10px 8px}
 .sunk{box-shadow:inset 1px 1px 0 var(--winD),inset -1px -1px 0 #fff,inset 2px 2px 0 #000,inset -2px -2px 0 var(--win);background:#fff}
 
@@ -93,11 +97,12 @@ input[type=range]:focus-visible{outline:1px dotted #000;outline-offset:2px}
 @media (max-width:760px){
   .title{top:15%}
   #w-dir{bottom:auto;top:auto;right:12px;left:12px;width:auto;bottom:12px}
-  #w-dir ul{display:grid;grid-template-columns:1fr 1fr 1fr}
-  #w-dir li button{padding:2px 4px;gap:4px}
+  #w-dir ul{display:grid;grid-template-columns:repeat(6,1fr)}
+  #w-dir li button{padding:2px;justify-content:center}
   #w-dir li button b{width:auto}
-  #w-dir li button small{display:none}
-  #w-dir li button span{font-size:11px}
+  #w-dir li button span,#w-dir .status{display:none}
+  .win .x{gap:4px}
+  .win .x button{width:28px;height:24px;font-size:12px}
   #w-dir .body,#w-sky .body{padding:6px 8px}
   #w-sky{left:12px;right:12px;width:auto;bottom:calc(12px + var(--dirH,150px) + 8px)}
   #w-sky .ticks,#w-sky .readout{display:none}
@@ -127,7 +132,7 @@ input[type=range]:focus-visible{outline:1px dotted #000;outline-offset:2px}
   <div class="pa" aria-hidden="true"><div id="pa">ＡＴＴＥＮＴＩＯＮ　ＳＨＯＰＰＥＲＳ　・　ＴＨＥ　ＦＯＵＮＴＡＩＮ　ＩＳ　ＦＲＥＥ　・　ＬＥＶＥＬ　３　ＤＯＥＳ　ＮＯＴ　ＥＸＩＳＴ　・　営業中　・　ＰＬＥＡＳＥ　ＥＮＪＯＹ　ＹＯＵＲ　ＳＴＡＹ　ＦＯＲＥＶＥＲ</div></div>
 
   <section class="win" id="w-sky" aria-label="Sky control">
-    <div class="bar"><span>SKY_CTRL.EXE — 天気</span><span class="x" aria-hidden="true"><i>_</i><i>□</i><i>×</i></span></div>
+    <div class="bar"><span>SKY_CTRL.EXE — 天気</span><span class="x"><button type="button" data-w="min" aria-label="Minimize SKY_CTRL" aria-expanded="true">_</button><button type="button" data-w="max" aria-label="Restore SKY_CTRL">□</button><button type="button" data-w="close" aria-label="Close SKY_CTRL to its title bar">×</button></span></div>
     <div class="body">
       <label for="t"><span>Time of sky</span><span id="phase" style="font-family:var(--fw)">夕方 DUSK</span></label>
       <input type="range" id="t" min="0" max="1000" value="430" aria-describedby="phase">
@@ -141,7 +146,7 @@ input[type=range]:focus-visible{outline:1px dotted #000;outline-offset:2px}
   </section>
 
   <section class="win" id="w-dir" aria-label="Mall directory">
-    <div class="bar"><span>DIRECTORY.TXT</span><span class="x" aria-hidden="true"><i>_</i><i>□</i><i>×</i></span></div>
+    <div class="bar"><span>DIRECTORY.TXT</span><span class="x"><button type="button" data-w="min" aria-label="Minimize DIRECTORY" aria-expanded="true">_</button><button type="button" data-w="max" aria-label="Restore DIRECTORY">□</button><button type="button" data-w="close" aria-label="Close DIRECTORY to its title bar">×</button></span></div>
     <div class="body">
       <ul class="sunk" id="dir"></ul>
       <div class="status" id="status">Select a floor. Escalators are eternal.</div>
@@ -161,7 +166,7 @@ input[type=range]:focus-visible{outline:1px dotted #000;outline-offset:2px}
   var ctx=cv.getContext('2d');
   var W=0,H=0,dpr=1;
   var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function size(){dpr=Math.min(window.devicePixelRatio||1,2);W=cv.clientWidth;H=cv.clientHeight;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);measureDir();}
+  function size(){dpr=Math.min(window.devicePixelRatio||1,2);W=cv.clientWidth;H=cv.clientHeight;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);measureDir();sunDirty=true;kick();}
   window.addEventListener('resize',size);
 
   /* sky presets: [top, mid, horizon, floor, gridColor, sunTop, sunBottom, palm] */
@@ -187,41 +192,65 @@ input[type=range]:focus-visible{outline:1px dotted #000;outline-offset:2px}
     var ph=document.getElementById('phase'); if(ph) ph.textContent=cur.name;
     var hx=document.getElementById('hex'); if(hx) hx.textContent=cur.hex;
     var sr=document.getElementById('sunread'); if(sr) sr.textContent='SUN '+Math.round(cur.sun*90-10)+'°';
+    sunDirty=true; kick();
   }
 
   var stars=[]; for(var s=0;s<140;s++) stars.push([Math.random(),Math.random()*.6,Math.random()*1.4+.3,Math.random()*6]);
   var mts=[]; (function(){var x=0;while(x<1.05){mts.push([x,Math.random()]);x+=.03+Math.random()*.05;}})();
 
-  var off=0,last=0;
+  /* the loop only keeps running while something moves: the scrolling grid, or auto-drift.
+     With reduced motion it draws once per change (slider, keys, directory, resize). */
+  var off=0,last=0,raf=0;
   function frame(ts){
     var dt=Math.min(50,ts-(last||ts)); last=ts;
     if(!reduce) off=(off+dt*0.00042)%1;
     if(autoOn){ T=(T+dt*0.00003)%1; if(slider) slider.value=Math.round(T*1000); computeSky(); }
-    draw(ts);
-    requestAnimationFrame(frame);
+    draw(reduce?0:ts);
+    if(!reduce||autoOn) raf=requestAnimationFrame(frame);
+    else { raf=0; last=0; }
+  }
+  function kick(){ if(!raf) raf=requestAnimationFrame(frame); }
+
+  /* the glowing sun (shadowBlur 60) is rendered once per sky change into its own canvas;
+     each frame only copies it and cuts the scrolling stripes */
+  var sunC=document.createElement('canvas'), sunX=sunC.getContext('2d');
+  var workC=document.createElement('canvas'), workX=workC.getContext('2d');
+  var sunDirty=true, sunAt=0, sb={x:0,y:0,cx:0,cy:0,R:0};
+  function horizon(){ return H*(W<761?0.52:0.62); }
+  function buildSun(){
+    sunDirty=false; sunAt=performance.now();
+    var c=cur.c, hz=horizon(), R=Math.min(W*.2,H*.25), cx=W/2;
+    /* centre height follows the SUN readout: 0° sits on the horizon, below 0° sinks under it */
+    var elev=cur.sun*90-10, cy=hz-(elev/90)*(hz*0.6+R*0.2);
+    var pad=90, x0=Math.floor(cx-R-pad), y0=Math.floor(cy-R-pad);
+    var w=Math.ceil(2*R+2*pad)+2, h=Math.max(1,Math.min(Math.ceil(hz),Math.ceil(cy+R+pad))-y0);
+    sb={x:x0,y:y0,cx:cx,cy:cy,R:R};
+    sunC.width=workC.width=Math.max(1,Math.round(w*dpr));
+    sunC.height=workC.height=Math.max(1,Math.round(h*dpr));
+    sunX.setTransform(dpr,0,0,dpr,-x0*dpr,-y0*dpr);
+    sunX.save();
+    sunX.beginPath(); sunX.rect(0,0,W,hz); sunX.clip();
+    var sg=sunX.createLinearGradient(0,cy-R,0,cy+R); sg.addColorStop(0,c[5]); sg.addColorStop(1,c[6]);
+    sunX.shadowColor=c[6]; sunX.shadowBlur=60;
+    sunX.fillStyle=sg; sunX.beginPath(); sunX.arc(cx,cy,R,0,Math.PI*2); sunX.fill();
+    sunX.restore();
   }
   function draw(ts){
-    var c=cur.c, hz=H*(W<761?0.52:0.62);
+    var c=cur.c, hz=horizon();
     /* sky */
     var g=ctx.createLinearGradient(0,0,0,hz); g.addColorStop(0,c[0]); g.addColorStop(.55,c[1]); g.addColorStop(1,c[2]);
     ctx.fillStyle=g; ctx.fillRect(0,0,W,hz+1);
     /* stars */
     if(cur.night>0){ctx.fillStyle='#fff';for(var i=0;i<stars.length;i++){var st=stars[i];ctx.globalAlpha=cur.night*(.45+.55*Math.abs(Math.sin(ts*.001+st[3])));ctx.fillRect(st[0]*W,st[1]*hz,st[2],st[2]);}ctx.globalAlpha=1;}
-    /* sun */
-    var R=Math.min(W*.2,H*.25), cx=W/2, cy=hz - R*0.15 - (cur.sun)*(hz*0.55);
-    ctx.save();
-    ctx.beginPath(); ctx.rect(0,0,W,hz); ctx.clip();
-    var sg=ctx.createLinearGradient(0,cy-R,0,cy+R); sg.addColorStop(0,c[5]); sg.addColorStop(1,c[6]);
-    ctx.shadowColor=c[6]; ctx.shadowBlur=60;
-    ctx.fillStyle=sg; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.fill();
-    ctx.shadowBlur=0;
-    /* stripe cuts */
-    ctx.globalCompositeOperation='destination-out';
-    for(var k=0;k<9;k++){var yy=cy+R*0.05+k*R*0.11+ (off*R*0.11); var hh=2+k*1.3; ctx.fillRect(cx-R-2,yy,2*R+4,hh);}
-    ctx.globalCompositeOperation='source-over';
-    ctx.restore();
-    /* redraw sky behind cut stripes */
-    ctx.save(); ctx.globalCompositeOperation='destination-over'; ctx.fillStyle=g; ctx.fillRect(0,0,W,hz); ctx.restore();
+    /* sun: cached disc + stripe cuts, so the sky shows through the stripes */
+    if(sunDirty&&(!autoOn||!sunAt||performance.now()-sunAt>120)) buildSun(); /* auto-drift: re-glow at ~8fps */
+    var R=sb.R, cx=sb.cx, cy=sb.cy;
+    workX.setTransform(1,0,0,1,0,0); workX.globalCompositeOperation='source-over';
+    workX.clearRect(0,0,workC.width,workC.height); workX.drawImage(sunC,0,0);
+    workX.setTransform(dpr,0,0,dpr,-sb.x*dpr,-sb.y*dpr); workX.globalCompositeOperation='destination-out';
+    for(var k=0;k<9;k++){var yy=cy+R*0.05+k*R*0.11+ (off*R*0.11); var hh=2+k*1.3; workX.fillRect(cx-R-2,yy,2*R+4,hh);}
+    workX.globalCompositeOperation='source-over';
+    ctx.drawImage(workC,sb.x,sb.y,workC.width/dpr,workC.height/dpr);
     /* mountains */
     ctx.save();
     ctx.beginPath(); ctx.moveTo(0,hz);
@@ -255,7 +284,7 @@ input[type=range]:focus-visible{outline:1px dotted #000;outline-offset:2px}
     if(e.key==='ArrowRight'||e.key==='ArrowLeft'){T=Math.max(0,Math.min(.999,T+(e.key==='ArrowRight'?.03:-.03))); if(slider) slider.value=Math.round(T*1000); computeSky();}
   });
   var autoB=document.getElementById('auto');
-  if(autoB) autoB.addEventListener('click',function(){autoOn=!autoOn;autoB.setAttribute('aria-pressed',autoOn);autoB.textContent=autoOn?'❚❚ Pause':'▶ Auto-drift';});
+  if(autoB) autoB.addEventListener('click',function(){autoOn=!autoOn;autoB.setAttribute('aria-pressed',autoOn);autoB.textContent=autoOn?'❚❚ Pause':'▶ Auto-drift';kick();});
 
   /* directory */
   var floors=[
@@ -268,7 +297,7 @@ input[type=range]:focus-visible{outline:1px dotted #000;outline-offset:2px}
   ];
   var dir=document.getElementById('dir'), status=document.getElementById('status');
   if(dir){
-    dir.innerHTML=floors.map(function(f,i){return '<li><button data-i="'+i+'"><b>'+f[0]+'</b><span>'+f[1]+'<small>'+f[2]+'</small></span></button></li>';}).join('');
+    dir.innerHTML=floors.map(function(f,i){return '<li><button data-i="'+i+'" title="'+f[2]+'" aria-label="'+f[0]+' '+f[1]+' — '+f[2]+'"><b>'+f[0]+'</b><span>'+f[1]+'<small>'+f[2]+'</small></span></button></li>';}).join('');
     dir.addEventListener('click',function(e){
       var b=e.target.closest('button'); if(!b) return;
       dir.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b);});
@@ -282,6 +311,26 @@ input[type=range]:focus-visible{outline:1px dotted #000;outline-offset:2px}
     });
   }
   function measureDir(){var d=document.getElementById('w-dir'); if(d) document.documentElement.style.setProperty('--dirH',d.offsetHeight+'px');}
+
+  /* window chrome: _ and × fold a window down to its title bar, □ unfolds it; clicking the bar toggles */
+  function setMin(w,on){
+    w.classList.toggle('min',on);
+    var m=w.querySelector('[data-w="min"]'); if(m) m.setAttribute('aria-expanded',on?'false':'true');
+    measureDir();
+  }
+  document.querySelectorAll('.win').forEach(function(w){
+    var bar=w.querySelector('.bar'); if(!bar) return;
+    bar.addEventListener('click',function(e){
+      var b=e.target.closest('button');
+      if(!b){ setMin(w,!w.classList.contains('min')); return; }
+      var k=b.getAttribute('data-w');
+      setMin(w, k==='max' ? false : k==='min' ? !w.classList.contains('min') : true);
+    });
+  });
+  /* on phones the floor is the picture: start with both windows folded */
+  if(window.matchMedia&&matchMedia('(max-width:760px)').matches){
+    document.querySelectorAll('.win').forEach(function(w){ setMin(w,true); });
+  }
 
   /* VHS jitter */
   var stage=document.getElementById('stage'), title=document.getElementById('title');
@@ -333,7 +382,7 @@ input[type=range]:focus-visible{outline:1px dotted #000;outline-offset:2px}
     clearTimeout(padTimer); if(muzakOn) playChord();
   });
 
-  size(); computeSky(); requestAnimationFrame(frame);
+  size(); computeSky(); kick();
 })();
 </script>
 </body>

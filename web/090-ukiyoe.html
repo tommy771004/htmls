@@ -66,11 +66,11 @@ body{margin:0;color:var(--sumi);font-family:var(--ming);background:var(--washi);
 .stripwrap{margin-top:clamp(24px,4vw,40px);position:relative}
 .stripwrap h3{font-weight:400;font-size:15px;letter-spacing:.4em;margin:0 0 8px}
 .strip{display:flex;gap:10px;overflow-x:auto;padding:8px 2px 14px;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--ai2) transparent}
-.grp{flex:none;display:flex;flex-direction:column;align-items:stretch;border-top:4px solid var(--c,var(--ai));background:rgba(255,255,255,.28);padding:6px 6px 8px}
+.grp{flex:none;display:flex;flex-direction:column;align-items:stretch;border-top:4px solid var(--c,var(--ai));padding-top:6px}
 .grp b{font-weight:400;font-size:15px;letter-spacing:.3em;text-align:center;margin-bottom:6px}
 .grp .ks{display:flex;gap:4px}
-.k{all:unset;cursor:pointer;writing-mode:vertical-rl;font-size:14px;letter-spacing:.08em;line-height:1.1;min-height:120px;width:40px;padding:8px 0;display:flex;align-items:flex-start;justify-content:center;background:#f5ecd6;border:1px solid rgba(43,38,34,.25);position:relative}
-.k:hover{background:#fff6e0}
+.k{all:unset;cursor:pointer;writing-mode:vertical-rl;font-size:14px;letter-spacing:.08em;line-height:1.1;min-height:120px;width:40px;padding:8px 0;display:flex;align-items:flex-start;justify-content:center;background:transparent;position:relative}
+.k:hover{background:#f5ecd6}
 .k[aria-current="true"]{background:var(--ai);color:var(--washi)}
 .k.today::after{content:"今";position:absolute;writing-mode:horizontal-tb;bottom:-9px;left:50%;margin-left:-9px;width:18px;height:18px;border-radius:2px;background:var(--shu);color:#fff;font-size:11px;display:grid;place-items:center}
 footer{margin-top:30px;height:90px;position:relative;overflow:hidden}
@@ -159,10 +159,10 @@ var TERMS=[
  ['小滿',5,21,'夏',['苦菜秀','靡草死','麥秋至'],['苦菜長得正茂盛。','喜陰的細草在烈日下枯萎。','麥子熟了——這是麥的秋天。'],['sprouts','sun','grain']],
  ['芒種',6,5,'夏',['螳螂生','鵙始鳴','反舌無聲'],['小螳螂成群破卵而出。','伯勞在枝頭尖聲鳴叫。','會學百鳥叫的反舌鳥，忽然安靜了。'],['insect','bird','bird']],
  ['夏至',6,21,'夏',['鹿角解','蜩始鳴','半夏生'],['公鹿的角脫落了。','蟬開始叫，夏天正式開演。','藥草半夏在仲夏生長。'],['deer','insect','sprouts']],
- ['小暑',7,7,'夏',['溫風至','蟋蟀居壁','鷹始摯'],['連風都是熱的。','蟋蟀躲到牆角陰涼處。','雛鷹開始練習搏擊。'],['sun','insect','bird']],
+ ['小暑',7,7,'夏',['溫風至','蟋蟀居壁','鷹始摯'],['連風都是熱的。','蟋蟀躲到牆角陰涼處。','雛鷹開始練習搏擊。'],['sun','insect','hawk']],
  ['大暑',7,23,'夏',['腐草為螢','土潤溽暑','大雨時行'],['螢火蟲從草叢間飛出，古人以為是腐草所化。','土地濕潤，悶熱難耐。','雷陣雨說來就來。'],['firefly','sun','rain']],
  ['立秋',8,7,'秋',['涼風至','白露降','寒蟬鳴'],['第一陣涼風吹起。','清晨草葉上有了露水。','寒蟬在樹上鳴叫。'],['wind','dew','insect']],
- ['處暑',8,23,'秋',['鷹乃祭鳥','天地始肅','禾乃登'],['鷹大量捕鳥，陳列如祭。','天地間開始有了肅殺之氣。','稻穀成熟，可以收割了。'],['bird','moon','grain']],
+ ['處暑',8,23,'秋',['鷹乃祭鳥','天地始肅','禾乃登'],['鷹大量捕鳥，陳列如祭。','天地間開始有了肅殺之氣。','稻穀成熟，可以收割了。'],['hawk','moon','grain']],
  ['白露',9,7,'秋',['鴻雁來','玄鳥歸','群鳥養羞'],['大雁從北方飛來。','燕子飛回南方。','鳥群開始囤糧，準備過冬。'],['geese','swallow','bird']],
  ['秋分',9,23,'秋',['雷始收聲','蟄蟲坯戶','水始涸'],['雷聲漸漸收起，不再響了。','蟲子用細土封住洞口。','河湖的水開始變淺。'],['moon','earth','moon']],
  ['寒露',10,8,'秋',['鴻雁來賓','雀入大水為蛤','菊有黃華'],['最後一批大雁，如賓客般抵達。','麻雀不見了，海邊多了花紋相似的蛤蜊。','菊花開出黃花。'],['geese','wave','mum']],
@@ -170,9 +170,9 @@ var TERMS=[
  ['立冬',11,7,'冬',['水始冰','地始凍','雉入大水為蜃'],['水面開始結冰。','土地開始凍硬。','野雞少見了，海裡多了花紋相似的大蛤。'],['ice','ice','wave']],
  ['小雪',11,22,'冬',['虹藏不見','天氣上升地氣下降','閉塞而成冬'],['彩虹藏起來，不再出現。','天地之氣各走各的，不再交融。','萬物閉藏，冬天就這樣成形。'],['cloud','cloud','snow']],
  ['大雪',12,7,'冬',['鶡鴠不鳴','虎始交','荔挺出'],['寒號鳥也凍得不叫了。','老虎開始求偶。','馬藺草抽出新芽。'],['snow','moon','sprouts']],
- ['冬至',12,21,'冬',['蚯蚓結','麋角解','水泉動'],['蚯蚓在土裡蜷成一個結。','麋鹿的角脫落。','地底的泉水開始流動。'],['snow','deer','wave']],
+ ['冬至',12,22,'冬',['蚯蚓結','麋角解','水泉動'],['蚯蚓在土裡蜷成一個結。','麋鹿的角脫落。','地底的泉水開始流動。'],['snow','deer','wave']],
  ['小寒',1,5,'冬',['雁北鄉','鵲始巢','雉始雊'],['大雁開始朝北方動身。','喜鵲開始築巢。','野雞開始鳴叫求偶。'],['geese','bird','bird']],
- ['大寒',1,20,'冬',['雞始乳','征鳥厲疾','水澤腹堅'],['母雞開始孵小雞。','鷹隼盤旋捕食，又兇又快。','湖澤的冰一路凍到正中央。'],['bird','bird','ice']]
+ ['大寒',1,20,'冬',['雞始乳','征鳥厲疾','水澤腹堅'],['母雞開始孵小雞。','鷹隼盤旋捕食，又兇又快。','湖澤的冰一路凍到正中央。'],['bird','hawk','ice']]
 ];
 var ORD=['初候','次候','末候'];
 var SEASON={春:{band:'#e6a3a0',c:'#d98a8a'},夏:{band:'#8fb08a',c:'#5d7a4a'},秋:{band:'#e0874f',c:'#c9602a'},冬:{band:'#9aa4ae',c:'#6c7885'}};
@@ -210,9 +210,16 @@ var MOTIF={
     return h+'</g>';},
   peach:function(){return branch('#e89aa6','#fbe4e6');},
   paulownia:function(){return branch('#a58cc4','#e8def2');},
-  bird:function(){return '<g class="layer" style="animation-delay:.5s"><path d="M300 150 Q220 160 170 200 Q130 230 100 236" fill="none" stroke="#2b2622" stroke-width="5" stroke-linecap="round"/><path d="M200 180 q10 -26 30 -34 M150 214 q-6 -20 4 -34" stroke="#2b2622" stroke-width="2.4" fill="none"/>'+
+  bird:function(k){return '<g class="layer" style="animation-delay:.5s"><path d="M300 150 Q220 160 170 200 Q130 230 100 236" fill="none" stroke="#2b2622" stroke-width="5" stroke-linecap="round"/><path d="M200 180 q10 -26 30 -34 M150 214 q-6 -20 4 -34" stroke="#2b2622" stroke-width="2.4" fill="none"/>'+
     '<g transform="translate(160 184)"><ellipse cx="0" cy="0" rx="18" ry="13" fill="#c9993c" stroke="#2b2622" stroke-width="1.3"/><circle cx="-13" cy="-9" r="9" fill="#c9993c" stroke="#2b2622" stroke-width="1.3"/><path d="M-22 -9 l-8 2 l8 3z" fill="#2b2622"/><circle cx="-15" cy="-11" r="1.6" fill="#2b2622"/><path d="M14 2 l22 10 l-6 -14z" fill="#4f7298" stroke="#2b2622" stroke-width="1.2"/><path d="M-2 -6 q10 -2 18 6" stroke="#8a6a45" stroke-width="2" fill="none"/><path d="M-4 12 l-2 8 M4 12 l2 8" stroke="#2b2622" stroke-width="1.4"/></g>'+
-    '<g fill="#fbe4e6" stroke="#c9602a" stroke-width=".6"><circle cx="232" cy="164" r="4"/><circle cx="120" cy="230" r="3.5"/><circle cx="270" cy="152" r="3"/></g></g>';},
+    branchDeco(k&&k.season)+'</g>';},
+  hawk:function(){return '<g class="layer fly" style="animation-delay:.5s"><g transform="translate(176 120) rotate(-8)" stroke="#2b2622" stroke-width="1.2" stroke-linejoin="round">'+
+    '<path d="M-4 0 C-18 -12 -40 -16 -66 -8 L-60 -4 L-64 0 L-56 1 L-58 6 L-46 5 C-30 7 -16 8 -4 10Z" fill="#5a4632"/>'+
+    '<path d="M4 0 C18 -12 40 -16 66 -8 L60 -4 L64 0 L56 1 L58 6 L46 5 C30 7 16 8 4 10Z" fill="#5a4632"/>'+
+    '<path d="M-7 8 L-12 30 Q0 34 12 30 L7 8Z" fill="#8a6a45"/><ellipse cx="0" cy="4" rx="8" ry="14" fill="#c9993c"/>'+
+    '<circle cx="0" cy="-10" r="6" fill="#5a4632"/><path d="M-2 -15 l2 -5 l2 5z" fill="#2b2622"/>'+
+    '<path d="M-36 -6 q8 4 18 4 M36 -6 q-8 4 -18 4 M-3 0 h6 M-3 6 h6 M-6 22 h12" fill="none" stroke-width=".8"/></g></g>'+
+    '<g class="layer" style="animation-delay:.8s" fill="none" stroke="#2b2622" stroke-width="1.4" stroke-linecap="round"><path d="M64 214 q5 -5 5 0 q0 -5 5 0"/><path d="M88 226 q4 -4 4 0 q0 -4 4 0"/><path d="M52 236 q4 -4 4 0 q0 -4 4 0"/></g>';},
   swallow:function(){var h='<g class="layer fly" style="animation-delay:.5s" fill="#1f2a3a">';
     [[200,110,1],[120,160,.7],[240,200,.55]].forEach(function(s){h+='<g transform="translate('+s[0]+' '+s[1]+') scale('+s[2]+') rotate(-18)"><path d="M0 0 C-20 -12 -44 -10 -60 -2 C-40 -4 -20 0 -6 6 L-30 26 L-20 26 L0 8 L20 26 L30 26 L6 6 C20 0 40 -4 60 -2 C44 -10 20 -12 0 0Z"/><circle cx="0" cy="1" r="3" fill="#c9402a"/></g>';});
     return h+'</g>';},
@@ -261,6 +268,15 @@ function moonDisc(x,y,r,c,o){return '<g class="layer" style="animation-delay:.35
 function cloudPuffs(y,c,s){var h='';[[60,y],[100,y-14],[140,y],[190,y-10],[230,y+4]].forEach(function(p){h+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="30" fill="'+c+'" stroke="'+s+'" stroke-width="1"/>';});return h;}
 function rainLines(n,o){var h='<g class="layer" style="animation-delay:.6s" stroke="#2b2622" stroke-width=".8" opacity="'+o+'">';for(var i=0;i<n;i++){var x=R(-60,320),y=R(-20,400);h+='<line x1="'+x.toFixed(0)+'" y1="'+y.toFixed(0)+'" x2="'+(x+14).toFixed(0)+'" y2="'+(y+60).toFixed(0)+'"/>';}return h+'</g>';}
 function maple(x,y,s){var p='';for(var i=0;i<10;i++){var a=i/10*Math.PI*2-Math.PI/2,r=i%2?s*.45:s;p+=(i?'L':'M')+(x+Math.cos(a)*r).toFixed(1)+' '+(y+Math.sin(a)*r).toFixed(1);}return p+'Z';}
+// what grows on the bird's branch follows the season: buds in spring, leaves in summer/autumn, snow in winter
+function branchDeco(season){
+  if(season==='冬') return '<g fill="#f7f8f6" stroke="#9db4c8" stroke-width=".6">'+[[272,152,12],[228,165,10],[209,173,8],[140,217,10],[112,230,8]].map(function(p){return '<ellipse cx="'+p[0]+'" cy="'+p[1]+'" rx="'+p[2]+'" ry="3"/>';}).join('')+'</g>';
+  if(season==='夏'||season==='秋'){
+    var cols=season==='夏'?['#6f8a4e','#5d7a4a']:['#c9602a','#c9993c'];
+    return '<g stroke="#2b2622" stroke-width=".6">'+[[232,160,-30],[120,226,20],[270,148,-50],[248,166,40],[136,214,-20]].map(function(p,i){return '<ellipse cx="'+p[0]+'" cy="'+p[1]+'" rx="7" ry="3.2" fill="'+cols[i%2]+'" transform="rotate('+p[2]+' '+p[0]+' '+p[1]+')"/>';}).join('')+'</g>';
+  }
+  return '<g fill="#fbe4e6" stroke="#c9602a" stroke-width=".6"><circle cx="232" cy="164" r="4"/><circle cx="120" cy="230" r="3.5"/><circle cx="270" cy="152" r="3"/></g>';
+}
 function branch(col,light){var h='<g class="layer" style="animation-delay:.5s"><path d="M0 40 Q80 60 130 110 Q170 150 250 160 M90 72 Q110 40 150 30 M140 124 Q150 170 130 210" fill="none" stroke="#2b2622" stroke-width="5" stroke-linecap="round"/></g><g class="layer" style="animation-delay:.9s">';
   [[60,54],[100,78],[124,102],[150,30],[170,138],[210,152],[244,158],[134,180],[128,206],[118,48]].forEach(function(p,i){
     var r=i%3?7:9;h+='<g transform="translate('+p[0]+' '+p[1]+')">';for(var k=0;k<5;k++) h+='<circle cx="0" cy="-'+(r*.55).toFixed(1)+'" r="'+(r*.5).toFixed(1)+'" fill="'+(k%2?col:light)+'" stroke="'+col+'" stroke-width=".6" transform="rotate('+(k*72)+')"/>';h+='<circle r="1.8" fill="#c9402a"/></g>';});
@@ -281,7 +297,7 @@ function drawScene(k){
   h+='<g class="layer" style="animation-delay:.25s"><rect y="336" width="300" height="114" fill="#1f3a5f"/><g class="waves"><rect x="0" y="340" width="360" height="110" fill="url(#sg)"/></g><path d="M0 338 Q75 330 150 338 T300 338" fill="none" stroke="#efe3c8" stroke-width="2"/></g>';
   // kasumi mist band
   h+='<g class="layer" style="animation-delay:.35s" opacity=".9"><rect x="-10" y="286" width="190" height="14" rx="7" fill="#efe3c8"/><rect x="170" y="300" width="150" height="10" rx="5" fill="#efe3c8"/></g>';
-  h+=(MOTIF[k.motif]||MOTIF.cloud)();
+  h+=(MOTIF[k.motif]||MOTIF.cloud)(k);
   h+='<rect width="300" height="450" filter="url(#grain)" fill="#000" opacity=".9" pointer-events="none"/>';
   scene.innerHTML=h;
   scene.setAttribute('aria-label',k.term+' '+ORD[k.i]+' '+k.name+' 的木版風景');
@@ -321,6 +337,7 @@ $('prev').addEventListener('click',function(){show(cur-1,true);});
 $('next').addEventListener('click',function(){show(cur+1,true);});
 $('today').addEventListener('click',function(){show(today,true);});
 document.addEventListener('keydown',function(e){
+  if(e.altKey||e.ctrlKey||e.metaKey) return;
   if(e.key==='ArrowRight'){e.preventDefault();show(cur+1,true);}
   else if(e.key==='ArrowLeft'){e.preventDefault();show(cur-1,true);}
 });

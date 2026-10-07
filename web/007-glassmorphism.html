@@ -296,7 +296,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
     <div class="top">
       <header class="hello">
         <div><h1>晚安，<b>Mira</b></h1><p id="sub">週三 · 22:14 · 室外 19°C，小雨</p></div>
-        <p class="status"><span id="p-lights"><b>3</b> 盞燈亮著</span><span id="p-lock">模擬：大門已上鎖</span><span class="warn">洗衣機剩 <b>12</b> 分鐘</span></p>
+        <p class="status"><span id="p-lights"><b>3</b> 盞燈亮著</span><span id="p-lock">大門已上鎖</span><span class="warn" id="p-wash">洗衣機剩 <b>12</b> 分鐘</span></p>
       </header>
       <p class="demo-scope" role="note">互動模擬：燈光、門鎖、空調、天氣與用電只會更新此頁畫面，未連線至實體裝置。</p>
 
@@ -349,7 +349,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
           </div>
           <p class="hint">拖曳透鏡或用方向鍵，每格 0.5°</p>
           <div class="modes" id="modes"><button class="chip" aria-pressed="true" data-m="冷氣">冷氣</button><button class="chip" aria-pressed="false" data-m="暖氣">暖氣</button><button class="chip" aria-pressed="false" data-m="除濕">除濕</button><button class="chip" aria-pressed="false" data-m="自動">自動</button></div>
-          <div class="thermo-foot"><span>預計 <b id="eta">18 分鐘</b> 到達</span><span>今晚省電 <b>0.8 度</b></span></div>
+          <div class="thermo-foot"><span id="eta">預計 <b>17 分鐘</b> 到達</span><span>今晚省電 <b>0.8 度</b></span></div>
         </section>
 
         <section class="c-scenes" aria-label="情境">
@@ -405,7 +405,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 
       <section class="card c-energy" aria-label="用電">
         <h2><span>今日用電</span><span>比昨天 −12%</span></h2>
-        <div class="kwh"><b>6.8</b><small>度 · 約 NT$27</small></div>
+        <div class="kwh"><b id="kwh">6.5</b><small>度 · 約 NT$<span id="kwhNT">25</span></small></div>
         <div id="chart"></div>
         <div class="axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
       </section>
@@ -414,7 +414,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
         <h2><span>大門</span><span>智慧鎖</span></h2>
         <button class="lockbtn" id="lock" aria-pressed="true">
           <span class="lockic"><svg viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path class="shackle" d="M15 20v-6a7 7 0 0 1 14 0v6"/><rect x="11" y="20" width="22" height="16" rx="4"/><path d="M22 26.5v3.5"/></svg></span>
-          <span><b id="lockT">模擬已上鎖</b><small id="lockS">此頁模擬上鎖</small></span>
+          <span><b id="lockT">已上鎖</b><small id="lockS">21:52</small></span>
         </button>
       </section>
 
@@ -468,6 +468,8 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
     var litT=[], litC=[], warm=.5, sceneK='';
     var lensDirty=true, reflDirty=true, winDirty=true, raf=0, last=0, hasFilter=false;
     var streaks=[], drops=[], rainOn=true;
+    /* rain runs at ~30fps and pauses after 30s without input (the last frame stays); any input resumes it */
+    var rainAcc=0, idle=false, lastInput=performance.now(), IDLE_MS=30000;
     var dots=[], phi=0, partyA=0, partyLens=0, lensPat=null;
     var noiseCv=null, L=null, lctx=lens?lens.getContext('2d'):null;
     try{hasFilter=typeof test.getContext('2d').filter==='string';}catch(e){}
@@ -609,7 +611,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
     /* rain: streaks beyond the glass, a few drops running down it */
     function seedRain(){
       var r=Math.random;streaks=[];drops=[];
-      var ns=Math.round(vw/11);for(var i=0;i<ns;i++)streaks.push({x:r()*(vw+120)-60,y:r()*vh,l:18+r()*44,v:700+r()*600,a:.05+r()*.11});
+      var ns=Math.round(vw/22);for(var i=0;i<ns;i++)streaks.push({x:r()*(vw+120)-60,y:r()*vh,l:18+r()*44,v:700+r()*600,a:.05+r()*.11});
       var nd=Math.max(3,Math.round(vw/150));for(var j=0;j<nd;j++)drops.push(newDrop(true));
     }
     function newDrop(any){var r=Math.random;return{x:r()*vw,y:any?r()*vh:-10,r:2.2+r()*1.8,v:0,go:r()<.5,trail:[],hold:r()*1.5};}
@@ -734,12 +736,15 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
       var pt=sceneK==='party'?1:0;
       if(rm){if(partyA!==pt){partyA=pt;drawParty();lensDirty=true;}}
       else if(pt||partyA>0){partyA+=(pt-partyA)*(1-Math.exp(-dt*3));if(!pt&&partyA<.004)partyA=0;phi+=dt*.045;drawParty();if(t-partyLens>80){partyLens=t;lensDirty=true;}}
-      if(!rm)drawRain(dt);
+      if(!rm&&!idle){rainAcc+=dt;if(rainAcc>=1/30){drawRain(Math.min(.05,rainAcc));rainAcc=0;}}
       if(lensDirty){paintLens();lensDirty=false;}
       if(winDirty&&fade>=1&&!busy){paintWin();winDirty=false;}
-      if(!document.hidden&&(!rm||busy||lensDirty||reflDirty||fade<1))raf=requestAnimationFrame(tick);
+      if(!rm&&!idle&&!pt&&!partyA&&performance.now()-lastInput>IDLE_MS)idle=true; /* the party light show never idles */
+      if(!document.hidden&&((!rm&&!idle)||busy||lensDirty||reflDirty||fade<1))raf=requestAnimationFrame(tick);
     }
     function kick(){if(!raf&&!document.hidden){last=0;raf=requestAnimationFrame(tick);}}
+    function wake(){lastInput=performance.now();idle=false;kick();}
+    ['pointerdown','pointermove','keydown','wheel','touchstart'].forEach(function(t){window.addEventListener(t,wake,{passive:true});});
 
     function setup(){
       vw=window.innerWidth;vh=window.innerHeight;
@@ -757,9 +762,9 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 
     noise();setup();
     var rt=0;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(function(){if(window.innerWidth!==vw||window.innerHeight!==vh)setup();else{layoutLens();winDirty=true;kick();}},140);});
-    window.addEventListener('scroll',function(){lensDirty=true;kick();},{passive:true});
+    window.addEventListener('scroll',function(){lensDirty=true;wake();},{passive:true});
     if(!rm)window.addEventListener('pointermove',function(e){if(e.pointerType!=='mouse')return;off.tx=-(e.clientX/vw-.5)*18;off.ty=-(e.clientY/vh-.5)*10;kick();},{passive:true});
-    document.addEventListener('visibilitychange',function(){if(!document.hidden)kick();});
+    document.addEventListener('visibilitychange',function(){if(!document.hidden)wake();});
     if(window.ResizeObserver&&dial){new ResizeObserver(function(){layoutLens();kick();}).observe(dial);}
     if(window.ResizeObserver&&winCv){new ResizeObserver(function(){winDirty=true;kick();}).observe(winCv);}
 
@@ -841,7 +846,16 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
   if(track) track.setAttribute('d',arcPath(A0,A1));
   if($('caustic')) $('caustic').setAttribute('d',arcPath(118,212,73.2));
   if(ticks){var t='';for(var i=0;i<=28;i++){var a=A0+(A1-A0)*i/28,p=polar(a,95),q=polar(a,i%4===0?89.5:92);t+='<line x1="'+p[0].toFixed(1)+'" y1="'+p[1].toFixed(1)+'" x2="'+q[0].toFixed(1)+'" y2="'+q[1].toFixed(1)+'" stroke="#e6f0e8" stroke-opacity="'+(i%4===0?.55:.22)+'" stroke-width="1" stroke-linecap="round"/>';}ticks.innerHTML=t;}
-  var mode='冷氣';
+  var mode='冷氣', HUM_T=55;
+  /* ETA depends on direction: cooling can only bring the room down, heating only up,
+     dehumidifying aims at humidity, auto goes either way */
+  function etaText(r,v){
+    if(mode==='除濕') return r.h<=HUM_T?'濕度 '+r.h+'%，<b>已達標</b>，待機中':'濕度降到 '+HUM_T+'% 約需 <b>'+Math.round((r.h-HUM_T)*2+8)+' 分鐘</b>';
+    var d=r.cur-v, need=mode==='冷氣'?d:mode==='暖氣'?-d:Math.abs(d);
+    if(Math.abs(d)<.3) return '<b>已達標</b>，待機中';
+    if(need<=0) return '室溫已'+(mode==='冷氣'?'低':'高')+'於設定，<b>待機中</b>';
+    return '預計 <b>'+Math.round(need*8+4)+' 分鐘</b> 到達';
+  }
   function setTemp(v){
     var r=rooms[R]; v=Math.round(Math.max(MIN,Math.min(MAX,v))*2)/2; r.t=v;
     var a=A0+(A1-A0)*(v-MIN)/(MAX-MIN);
@@ -849,7 +863,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
     var k=polar(a,rad); if(knob){knob.setAttribute('cx',k[0].toFixed(2));knob.setAttribute('cy',k[1].toFixed(2));}
     if($('temp')) $('temp').innerHTML=v.toFixed(1)+'<sup>°C</sup>';
     if(dial) {dial.setAttribute('aria-valuenow',v);dial.setAttribute('aria-valuetext',v+' 度');} if($('glassRotor')) $('glassRotor').setAttribute('transform','rotate('+a+' 100 100)');
-    var diff=Math.abs(r.cur-v); if($('eta')) $('eta').textContent=diff<.3?'已到達':Math.round(diff*8+4)+' 分鐘';
+    if($('eta')) $('eta').innerHTML=etaText(r,v);
     if($('tstat')) $('tstat').textContent=mode+' · 目前 '+r.cur.toFixed(1)+'°';
   }
   var dragging=false;
@@ -874,7 +888,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
     scenesEl.querySelectorAll('.scene').forEach(function(x){x.setAttribute('aria-pressed',x.dataset.s===scene);});
     document.body.className=scene;
     var r=rooms[R];
-    if(scene==='movie'){r.lights.forEach(function(l,i){l[2]=i===2;l[3]=i===2?10:l[3];});setCurtain(0);}
+    if(scene==='movie'){var mk=Math.min(2,r.lights.length-1);r.lights.forEach(function(l,i){l[2]=i===mk;if(i===mk)l[3]=10;});setCurtain(0);}
     else if(scene==='morning'){r.lights.forEach(function(l,i){l[2]=i===0;if(i===0)l[3]=100;});setCurtain(100);}
     else if(scene==='away'){rooms.forEach(function(rr){rr.lights.forEach(function(l){l[2]=false;});});setLock(true);setCurtain(0);}
     else if(scene==='party'){r.lights.forEach(function(l){l[2]=true;l[3]=100;});if(!playing)togglePlay();}
@@ -895,10 +909,26 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
   if($('next')) $('next').addEventListener('click',function(){si=(si+1)%songs.length;showSong();});
   if($('prev')) $('prev').addEventListener('click',function(){si=(si+songs.length-1)%songs.length;showSong();});
 
-  /* energy */
+  /* story clock: the page is set on a rainy Wednesday at 22:14 and runs on from there in real minutes,
+     so the greeting, the laundry countdown, today's kWh and the lock time all agree with the window */
+  var SIM_T0=Date.now(), SIM_M0=22*60+14, WASH_END=SIM_M0+12;
+  function simMin(){return SIM_M0+Math.floor((Date.now()-SIM_T0)/60000);}
+  function hhmm(m){return ('0'+(Math.floor(m/60)%24)).slice(-2)+':'+('0'+(m%60)).slice(-2);}
+
+  /* energy: hourly load profile (relative), kWh = area under it up to the story clock */
+  var hv=[18,12,10,9,9,11,22,40,38,26,20,24,34,30,22,20,26,44,58,66,72,60,48,52], KWH_PER=.0095, NTD_PER_KWH=3.9, chartH=-1;
+  function drawEnergy(){
+    var m=simMin(), now=Math.floor(m/60)%24, k=0;
+    for(var i=0;i<now;i++) k+=hv[i];
+    k=(k+hv[now]*(m%60)/60)*KWH_PER;
+    if($('kwh')) $('kwh').textContent=k.toFixed(1);
+    if($('kwhNT')) $('kwhNT').textContent=Math.round(k*NTD_PER_KWH);
+    if(now!==chartH){chartH=now;drawChart(now);}
+  }
+  function drawChart(now){
   var chart=$('chart');
   if(chart){
-    var hv=[18,12,10,9,9,11,22,40,38,26,20,24,34,30,22,20,26,44,58,66,72,60,48,52],now=Math.min(23,new Date().getHours()),W=240,H=66;
+    var W=240,H=66;
     var pt=function(i){return [(i*W/23).toFixed(1),(H-2-hv[i]/100*(H-8)).toFixed(1)];};
     var line=function(a,b){var s='';for(var i=a;i<=b;i++){var p=pt(i);s+=(i===a?'M':'L')+p[0]+' '+p[1];}return s;};
     var np=pt(now);
@@ -908,12 +938,13 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
       '<path d="'+line(0,now)+'" fill="none" stroke="#a8e4da" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>'+
       '<path d="M'+np[0]+' '+np[1]+'V'+H+'" stroke="#ffc27a" stroke-opacity=".5" stroke-width="1"/><circle cx="'+np[0]+'" cy="'+np[1]+'" r="3" fill="#ffc27a"/></svg>';
   }
+  }
 
   /* lock */
   var locked=true;
-  function setLock(v){locked=v;var b=$('lock');if(b)b.setAttribute('aria-pressed',v);if($('lockT'))$('lockT').textContent=v?'模擬已上鎖':'模擬未上鎖';
-    var d=new Date(),t=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);if($('lockS'))$('lockS').textContent=t+' 此頁模擬'+(v?'上鎖':'解鎖');pills();}
-  if($('lock')) $('lock').addEventListener('click',function(){setLock(!locked);ping(locked?880:330);toast(locked?'畫面模擬：大門已上鎖。':'畫面模擬：大門已解鎖。');});
+  function setLock(v){locked=v;var b=$('lock');if(b)b.setAttribute('aria-pressed',v);if($('lockT'))$('lockT').textContent=v?'已上鎖':'未上鎖';
+    if($('lockS'))$('lockS').textContent=hhmm(simMin());pills();}
+  if($('lock')) $('lock').addEventListener('click',function(){setLock(!locked);ping(locked?880:330);toast(locked?'大門已上鎖。':'大門已解鎖。');});
 
   /* air */
   var pur=$('purifier');
@@ -921,8 +952,10 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
   var ring0=$('aqRing'); if(ring0) ring0.style.strokeDashoffset=213.6*(1-.8);
 
   /* header */
-  function pills(){var n=lightsOn();if($('p-lights'))$('p-lights').innerHTML=n?'<b>'+n+'</b> 盞燈亮著':'燈都關了';var pl=$('p-lock');if(pl){pl.textContent=locked?'模擬：大門已上鎖':'模擬：大門未上鎖';pl.classList.toggle('warn',!locked);}}
-  function clock(){var d=new Date(),w='日一二三四五六'.charAt(d.getDay()),h=d.getHours();var greet=h<5?'夜深了':h<11?'早安':h<17?'午安':h<19?'傍晚好':'晚安';var h1=document.querySelector('.hello h1');if(h1)h1.innerHTML=greet+'，<b>Mira</b>';if($('sub'))$('sub').textContent='週'+w+' · '+('0'+h).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+' · '+(scene==='morning'?'室外 18°C，雨停了':'室外 19°C，小雨');}
+  function pills(){var n=lightsOn();if($('p-lights'))$('p-lights').innerHTML=n?'<b>'+n+'</b> 盞燈亮著':'燈都關了';var pl=$('p-lock');if(pl){pl.textContent=locked?'大門已上鎖':'大門未上鎖';pl.classList.toggle('warn',!locked);}}
+  function clock(){var m=simMin(),w='三四五六日一二'.charAt(Math.floor(m/1440)%7),h=Math.floor(m/60)%24;var greet=scene==='morning'?'早安':h<5?'夜深了':h<11?'早安':h<17?'午安':h<19?'傍晚好':'晚安';var h1=document.querySelector('.hello h1');if(h1)h1.innerHTML=greet+'，<b>Mira</b>';if($('sub'))$('sub').textContent='週'+w+' · '+hhmm(m)+' · '+(scene==='morning'?'室外 18°C，雨停了':'室外 19°C，小雨');
+    var ws=$('p-wash'),left=WASH_END-m;if(ws)ws.innerHTML=left>0?'洗衣機剩 <b>'+left+'</b> 分鐘':'洗衣完成';
+    drawEnergy();}
 
   /* toast + soft ping */
   var tt;

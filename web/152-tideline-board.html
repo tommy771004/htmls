@@ -83,8 +83,10 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--sea);outli
 .meta{display:flex;justify-content:space-between;align-items:end;margin-top:8px;font-size:12.5px;color:#9fb4ad}
 .meta b{color:var(--foam);font-weight:600;font-size:14px}
 .meta .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#7fcaa9;margin-right:6px;vertical-align:1px}
+.meta .dot.late{background:#e9b779}
 .cancel{margin-top:14px;padding-top:12px;border-top:1px solid #ffffff17;width:100%;text-align:left;font-size:13px;color:#e8a894;display:flex;justify-content:space-between;align-items:center}
 .cancel:hover{color:#ffc3ae}
+.cancel[hidden]{display:none}
 .L-conf{width:300px;padding:18px}
 .L-conf p{font-size:12.5px;color:#a9bcb6;line-height:1.6;margin:8px 0 16px}
 .acts{display:flex;gap:8px;justify-content:flex-end}
@@ -170,7 +172,6 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--sea);outli
 .t-toast header span{font-size:12.5px;color:#8fa7a0}
 .t-toast header button{font-size:12.5px;color:#b9cbc5;padding:4px 8px;border-radius:8px}
 .t-toast header button:hover{background:#ffffff12}
-.bigno{position:absolute;left:18px;top:44px;font-family:var(--disp);font-size:96px;line-height:1;color:#ffffff0d;pointer-events:none}
 .stack{position:absolute;left:50%;bottom:50px;width:min(340px,calc(100% - 40px));transform:translateX(-50%);height:58px}
 .toast{position:absolute;left:0;right:0;bottom:0;height:58px;border-radius:14px;background:#f2f6f4;color:var(--ink);padding:9px 40px 9px 14px;
   box-shadow:0 1px 2px #0005,0 8px 16px -10px #0008;transform-origin:50% 100%;
@@ -258,24 +259,24 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--sea);outli
         <span class="t" id="pT">13:40</span><span id="pR">馬公 → 七美</span><span class="ok" id="pS">準點</span>
       </div>
       <div class="L L-card" data-s="card">
-        <div class="row"><h3>追蹤船班 · 順風二號</h3><button class="x" data-go="pill" aria-label="收合"><svg viewBox="0 0 10 10"><path d="M1 1l8 8M9 1L1 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>
+        <div class="row"><h3 id="cShip">追蹤船班 · 順風二號</h3><button class="x" data-go="pill" aria-label="收合"><svg viewBox="0 0 10 10"><path d="M1 1l8 8M9 1L1 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>
         <div class="leg">
-          <div><b>MKG</b><small>馬公 13:40</small></div>
-          <svg class="arc" viewBox="0 0 120 44" preserveAspectRatio="none" aria-hidden="true"><path d="M4 38 Q60 -6 116 38" stroke="#ffffff30" stroke-dasharray="2 4"/><path id="arcDone" d="M4 38 Q60 -6 116 38" stroke="#f6faf8" pathLength="100" stroke-dasharray="100" stroke-dashoffset="62"/><circle id="arcBoat" r="3.6" fill="#7fcaa9" cx="44" cy="17"/></svg>
-          <div class="r"><b>QMI</b><small>七美 15:10</small></div>
+          <div><b id="cFrom">MKG</b><small id="cDep">馬公 13:40</small></div>
+          <svg class="arc" viewBox="0 0 120 44" preserveAspectRatio="none" aria-hidden="true"><path d="M4 38 Q60 -6 116 38" stroke="#ffffff30" stroke-dasharray="2 4"/><path id="arcDone" d="M4 38 Q60 -6 116 38" stroke="#f6faf8" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/><circle id="arcBoat" r="3.6" fill="#7fcaa9" cx="4" cy="38" visibility="hidden"/></svg>
+          <div class="r"><b id="cTo">QMI</b><small id="cArr">七美 15:10</small></div>
         </div>
-        <div class="meta"><span><span class="dot"></span>準點航行中</span><span>還有 <b id="eta">52</b> 分靠港</span></div>
-        <button class="cancel" data-go="conf">取消這張船票 <span>NT$ 1,100</span></button>
+        <div class="meta"><span><span class="dot" id="cDot"></span><span id="cState">13:40 開航・候船中</span></span><span id="cEta">還有 <b id="eta">32</b> 分開航</span></div>
+        <button class="cancel" id="cCancel" data-go="conf">取消這張船票 <span id="cFare">NT$ 1,100</span></button>
       </div>
       <div class="L L-conf" data-s="conf">
-        <h3>取消 13:40 這班？</h3>
+        <h3 id="qTitle">取消 13:40 這班？</h3>
         <p>退票手續費 NT$ 50，其餘款項三個工作天內退回原付款帳戶。</p>
         <div class="acts"><button class="btn-q" data-go="card">留著</button><button class="btn-s" data-go="rcpt">取消船票</button></div>
       </div>
       <div class="L L-rcpt" data-s="rcpt">
         <h3>已退票</h3>
-        <div class="amt">NT$ 1,050</div>
-        <div class="sub">順風二號 · 9 月 25 日 13:40 · 全票 2 張</div>
+        <div class="amt" id="rAmt">NT$ 1,050</div>
+        <div class="sub" id="rSub">順風二號 · 9 月 25 日 13:40 · 全票 2 張</div>
         <div class="kv"><span>退回帳戶</span><span>郵局 ·· 4821</span><span>手續費</span><span>NT$ 50</span><span>預計入帳</span><span>9 月 30 日</span></div>
         <div class="acts"><button class="btn-f" data-go="done">好</button></div>
       </div>
@@ -307,7 +308,6 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--sea);outli
   <!-- 04 通知堆疊 -->
   <section class="tile t-toast night" data-k="toast" aria-label="延誤通知">
     <header><div><b>今日通知</b> <span id="tcount">3 則</span></div><button id="tclear">全部清除</button></header>
-    <div class="bigno" id="bigno" aria-hidden="true">03</div>
     <div class="stack" id="stack" tabindex="0" aria-label="通知堆疊，滑鼠移入展開"></div>
     <div class="empty" id="tempty">今天沒有新的通知</div>
     <div class="cap"><b>04</b>通知</div>
@@ -334,12 +334,16 @@ const wait = ms => new Promise(r => setTimeout(r, RM ? Math.min(ms, 400) : ms));
 /* autoplay controller: each tile loops a demo until the viewer touches it */
 function auto(tile, run){
   if (RM) return () => {};
-  let token = 0, idle = 0, visible = true;
+  let token = 0, idle = 0, visible = true, hover = false;
   const alive = t => t === token && visible;
   const start = () => { const t = ++token; (async () => { while (alive(t)) { try { await run(() => alive(t)); } catch(e){ if (e !== 'stop') throw e; } if (alive(t)) await wait(900); } })(); };
-  const pause = () => { token++; clearTimeout(idle); idle = setTimeout(start, 9000); };
-  ['pointerdown','keydown','wheel','pointerenter'].forEach(ev => tile.addEventListener(ev, pause, {passive:true}));
-  new IntersectionObserver(es => { const v = es[0].isIntersecting; if (v && !visible){ visible = true; start(); } else if (!v){ visible = false; token++; } }, {threshold:.25}).observe(tile);
+  // 滑鼠停在磚上就一直暫停，離開 4 秒後才恢復；點按、鍵盤、滾輪則閒置 9 秒後恢復
+  const resume = ms => { clearTimeout(idle); idle = setTimeout(() => { if (!hover && visible) start(); }, ms); };
+  const pause = () => { token++; resume(9000); };
+  ['pointerdown','keydown','wheel'].forEach(ev => tile.addEventListener(ev, pause, {passive:true}));
+  tile.addEventListener('pointerenter', e => { if (e.pointerType !== 'mouse') return; hover = true; token++; clearTimeout(idle); });
+  tile.addEventListener('pointerleave', e => { if (e.pointerType !== 'mouse') return; hover = false; resume(4000); });
+  new IntersectionObserver(es => { const v = es[0].isIntersecting; if (v && !visible){ visible = true; if (!hover) start(); } else if (!v){ visible = false; token++; } }, {threshold:.25}).observe(tile);
   start();
   return pause;
 }
@@ -358,8 +362,10 @@ seg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
 const placeCur = () => place(seg.querySelector('[aria-pressed=true]'));
 addEventListener('resize', placeCur); document.fonts && document.fonts.ready.then(placeCur); placeCur();
 let mins = 13 * 60 + 8;
-const clock = () => { $('#clock').textContent = String(Math.floor(mins/60)).padStart(2,'0') + ':' + String(mins%60).padStart(2,'0'); };
-setInterval(() => { mins = (mins + 1) % 1440; clock(); }, 6000);
+const hm = m => { m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0'); };
+const toM = s => { const [h, m] = s.split(':'); return +h * 60 + +m; };
+const clock = () => { $('#clock').textContent = hm(mins); };
+setInterval(() => { mins = (mins + 1) % 1440; clock(); tripTick(); }, 6000);
 
 /* ─── 01 行程膠囊 ─── */
 const sched = [['07:30','馬公 → 望安','準點'],['09:00','馬公 → 七美','準點'],['10:10','赤崁 → 吉貝','延 15 分'],['11:40','馬公 → 虎井','準點'],['13:40','馬公 → 七美','準點'],['14:10','赤崁 → 吉貝','延 20 分'],['15:20','望安 → 馬公','準點'],['16:20','馬公 → 望安','準點'],['17:00','馬公 → 桶盤','準點'],['17:50','七美 → 馬公','準點']];
@@ -380,44 +386,82 @@ function go(s){
   isl.style.borderRadius = s === 'pill' ? h * sc / 2 + 'px' : '22px';
   layers[cur].classList.remove('on'); layers[s].classList.add('on');
   layers[s].style.transformOrigin = '0 0'; layers[s].style.scale = sc === 1 ? '' : sc;
-  cur = s; $('.t-isl .hint').textContent = {pill:'點膠囊展開', card:'可取消船票', conf:'確認或留著', rcpt:'退款完成'}[s];
+  cur = s; $('.t-isl .hint').textContent = {pill:'點膠囊展開', card: tPhase === 'wait' ? '可取消船票' : '追蹤航程', conf:'確認或留著', rcpt:'退款完成'}[s];
 }
-const trips = [['13:40','馬公 → 七美','準點',false],['16:20','馬公 → 望安','準點',false],['14:10','赤崁 → 吉貝','延 20 分',true]];
-let ti = 0;
+// 每張船票的班次資料：膠囊、卡片、退票確認與收據都由這裡填入，狀態跟著頂部時鐘走
+const trips = [
+  {dep:'13:40', min:90, from:['MKG','馬公'], to:['QMI','七美'], ship:'順風二號', late:0, fare:550, n:2},
+  {dep:'16:20', min:50, from:['MKG','馬公'], to:['WAN','望安'], ship:'南風號', late:0, fare:350, n:4},
+  {dep:'14:10', min:25, from:['CKN','赤崁'], to:['JIB','吉貝'], ship:'北海一號', late:20, fare:300, n:2}
+];
+const FEE = 50, nt = n => 'NT$ ' + n.toLocaleString('en-US');
+let ti = 0, tPhase = '', holdPill = false;
+function fillTrip(){
+  const t = trips[ti], d = toM(t.dep) + t.late, a = d + t.min;
+  const ph = mins < d ? 'wait' : mins < a ? 'sail' : 'arr';
+  $('#cShip').textContent = '追蹤船班 · ' + t.ship;
+  $('#cFrom').textContent = t.from[0]; $('#cDep').textContent = t.from[1] + ' ' + hm(d);
+  $('#cTo').textContent = t.to[0]; $('#cArr').textContent = t.to[1] + ' ' + hm(a);
+  $('#cDot').className = 'dot' + (t.late ? ' late' : '');
+  const lateTx = t.late ? '延誤 ' + t.late + ' 分・' : '';
+  $('#cState').textContent = ph === 'wait' ? lateTx + hm(d) + ' 開航・候船中' : ph === 'sail' ? (lateTx || '準點') + '航行中' : '已靠港';
+  $('#cEta').innerHTML = ph === 'wait' ? `還有 <b>${d - mins}</b> 分開航` : ph === 'sail' ? `還有 <b>${a - mins}</b> 分靠港` : `${hm(a)} 抵達`;
+  const prog = ph === 'wait' ? 0 : ph === 'sail' ? (mins - d) / t.min * 100 : 100, u = prog / 100;
+  $('#arcDone').setAttribute('stroke-dashoffset', 100 - prog);
+  const b = $('#arcBoat');
+  b.setAttribute('cx', (1-u)*(1-u)*4 + 2*(1-u)*u*60 + u*u*116); b.setAttribute('cy', (1-u)*(1-u)*38 + 2*(1-u)*u*(-6) + u*u*38);
+  b.setAttribute('visibility', ph === 'sail' ? 'visible' : 'hidden');
+  // 開航後就不能退票
+  $('#cCancel').hidden = ph !== 'wait';
+  $('#cFare').textContent = nt(t.fare * t.n);
+  $('#qTitle').textContent = `取消 ${t.dep} 這班？`;
+  $('#rAmt').textContent = nt(t.fare * t.n - FEE);
+  $('#rSub').textContent = `${t.ship} · 9 月 25 日 ${t.dep} · 全票 ${t.n} 張`;
+  if (!holdPill){
+    $('#pT').textContent = t.dep; $('#pR').textContent = t.from[1] + ' → ' + t.to[1];
+    const s = $('#pS'); s.textContent = ph === 'sail' ? '航行中' : ph === 'arr' ? '已靠港' : t.late ? '延 ' + t.late + ' 分' : '準點'; s.className = t.late ? 'late' : 'ok';
+  }
+  const changed = ph !== tPhase; tPhase = ph;
+  return changed;
+}
+function tripTick(){
+  const ch = fillTrip();
+  if (cur === 'conf' && tPhase !== 'wait') go('card');
+  else if (ch && cur !== 'rcpt') go(cur);
+}
 async function doneTrip(){
-  $('#pT').textContent = '13:40'; $('#pR').textContent = '已退票'; $('#pS').textContent = ''; go('pill');
-  await wait(1600); ti = (ti + 1) % trips.length; setTrip();
+  holdPill = true;
+  $('#pT').textContent = trips[ti].dep; $('#pR').textContent = '已退票'; $('#pS').textContent = ''; go('pill');
+  await wait(1600); holdPill = false; ti = (ti + 1) % trips.length; setTrip();
 }
 function setTrip(){
-  const t = trips[ti]; $('#pT').textContent = t[0]; $('#pR').textContent = t[1]; const s = $('#pS'); s.textContent = t[2]; s.className = t[3] ? 'late' : 'ok';
+  fillTrip();
   if (cur === 'pill') go('pill');
 }
 isl.addEventListener('click', e => { const g = e.target.closest('[data-go]'); if (g){ go(g.dataset.go); return; } if (e.target.closest('.L-pill')) go('card'); });
 layers.pill.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); go('card'); } });
-// the boat creeps along the arc while the card is open
-let prog = 38; setInterval(() => {
-  prog = prog >= 96 ? 12 : prog + 0.4;
-  $('#arcDone').setAttribute('stroke-dashoffset', 100 - prog);
-  const t = prog / 100, x = (1-t)*(1-t)*4 + 2*(1-t)*t*60 + t*t*116, y = (1-t)*(1-t)*38 + 2*(1-t)*t*(-6) + t*t*38;
-  const b = $('#arcBoat'); b.setAttribute('cx', x); b.setAttribute('cy', y);
-  $('#eta').textContent = Math.max(1, Math.round((100 - prog) * .84));
-}, 250);
+fillTrip();
 requestAnimationFrame(() => go('pill'));
 auto($('.t-isl'), async ok => {
-  await step(ok, 1800); go('card'); await step(ok, 3000); go('conf'); await step(ok, 2200); go('rcpt'); await step(ok, 2600);
+  await step(ok, 1800); go('card'); await step(ok, 3000);
+  // 已開航的班次只展示追蹤卡，不走退票流程
+  if (tPhase !== 'wait'){ go('pill'); await step(ok, 2400); ti = (ti + 1) % trips.length; setTrip(); return; }
+  go('conf'); await step(ok, 2200); go('rcpt'); await step(ok, 2600);
   go('done'); await step(ok, 3400);
 });
 
 /* ─── 02 航線 ─── */
 const ports = [
   {id:'wa', zh:'望安', en:'WANG-AN', x:92, y:214, min:50, fare:'NT$ 350', n:'每日 3 班', code:'TL-2616'},
-  {id:'qm', zh:'七美', en:'QIMEI', x:118, y:272, min:90, fare:'NT$ 550', n:'每日 2 班', code:'TL-2440'},
+  {id:'qm', zh:'七美', en:'QIMEI', x:70, y:272, min:90, fare:'NT$ 550', n:'每日 2 班', code:'TL-2440'},
   {id:'hj', zh:'虎井', en:'HUJING', x:150, y:170, min:20, fare:'NT$ 150', n:'每日 4 班', code:'TL-1180'},
   {id:'tp', zh:'桶盤', en:'TONGPAN', x:128, y:148, min:15, fare:'NT$ 120', n:'每日 4 班', code:'TL-1102'},
-  {id:'jb', zh:'吉貝', en:'JIBEI', x:148, y:26, min:25, fare:'NT$ 300', n:'每 30 分', code:'TL-3021'},
-  {id:'nd', zh:'鳥嶼', en:'NIAOYU', x:214, y:54, min:30, fare:'NT$ 250', n:'每日 2 班', code:'TL-3308'}
+  {id:'jb', zh:'吉貝', en:'JIBEI', x:196, y:26, min:25, fare:'NT$ 300', n:'每 30 分', code:'TL-3021', from:'ck'},
+  {id:'nd', zh:'鳥嶼', en:'NIAOYU', x:214, y:54, min:30, fare:'NT$ 250', n:'每日 2 班', code:'TL-3308', from:'ck'}
 ];
-const MKG = {x:186, y:128};
+// 南海各線從馬公出發；北海（吉貝、鳥嶼）從白沙島的赤崁出發
+const MKG = {x:186, y:128}, CKN = {x:196, y:78};
+const origin = p => p.from === 'ck' ? CKN : MKG;
 function blob(cx, cy, r, seed, n = 28, j = .28){
   let s = seed; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
   const ph = [rnd()*6, rnd()*6, rnd()*6]; const pts = [];
@@ -429,15 +473,16 @@ function blob(cx, cy, r, seed, n = 28, j = .28){
 const SVGNS = 'http://www.w3.org/2000/svg';
 const chart = $('#chart');
 let g = '';
-const land = [[200,118,34,7],[168,92,16,3],[222,82,13,11],[146,60,9,5],...ports.map((p,i) => [p.x, p.y, p.id === 'jb' || p.id === 'nd' ? 9 : 11, 20 + i*7])];
+const land = [[200,118,34,7],[168,92,16,3],[222,82,13,11],[146,60,9,5],[198,76,8,41],...ports.map((p,i) => [p.x, p.y, p.id === 'jb' || p.id === 'nd' ? 9 : 11, 20 + i*7])];
 land.forEach(([x,y,r,s]) => { for (let k = 3; k >= 1; k--) g += `<path class="contour" d="${blob(x,y,r + k*7,s,28,.22)}"/>`; });
 land.forEach(([x,y,r,s]) => { g += `<path class="isle" d="${blob(x,y,r,s)}"/>`; });
 g += `<g id="ghosts"></g><path class="route" id="route" d=""/>`;
 g += `<g class="port"><circle cx="${MKG.x}" cy="${MKG.y}" r="4.5" style="fill:#10302a"/><text x="${MKG.x + 9}" y="${MKG.y + 4}" style="font-weight:600;fill:#10302a">馬公</text></g>`;
+g += `<g class="port"><circle cx="${CKN.x}" cy="${CKN.y}" r="3.6" style="fill:#10302a"/><text x="${CKN.x - 9}" y="${CKN.y + 4}" text-anchor="end" style="font-weight:600;fill:#10302a">赤崁</text></g>`;
 ports.forEach((p,i) => { g += `<g class="port" data-i="${i}" tabindex="0" role="button" aria-label="${p.zh}"><circle cx="${p.x}" cy="${p.y}" r="3.6"/><text x="${p.x + 8}" y="${p.y + 4}">${p.zh}</text></g>`; });
 g += `<g class="boat" id="boat"><path d="M-7 0h14l-3 4h-8z" fill="#10302a"/><path d="M-3 0v-5h4l2 5" fill="none" stroke="#10302a" stroke-width="1.2"/></g>`;
 chart.innerHTML = g;
-const curve = p => { const mx = (MKG.x + p.x)/2, my = (MKG.y + p.y)/2, dx = p.x - MKG.x, dy = p.y - MKG.y; return `M${MKG.x},${MKG.y} Q${(mx - dy*.28).toFixed(1)},${(my + dx*.28).toFixed(1)} ${p.x},${p.y}`; };
+const curve = p => { const o = origin(p), mx = (o.x + p.x)/2, my = (o.y + p.y)/2, dx = p.x - o.x, dy = p.y - o.y; return `M${o.x},${o.y} Q${(mx - dy*.28).toFixed(1)},${(my + dx*.28).toFixed(1)} ${p.x},${p.y}`; };
 $('#ghosts').innerHTML = ports.map(p => `<path class="route-ghost" d="${curve(p)}"/>`).join('');
 const track = $('#track'); track.innerHTML = ports.map(p => `<span>${p.zh}</span>`).join('');
 let pi = 0, boatRaf = 0;
@@ -509,23 +554,27 @@ function water(t){
   wx.strokeStyle = '#d9ece633'; wx.lineWidth = 1; wx.lineCap = 'round';
   for (let yy = 10; yy < h; yy += 9){ wx.beginPath(); const ph = yy * .07 + t * .0012; for (let xx = 0; xx <= w; xx += 3){ const v = yy + Math.sin(xx * .35 + ph) * 1.6; xx ? wx.lineTo(xx, v) : wx.moveTo(xx, v); } wx.stroke(); }
 }
-let wvis = true; new IntersectionObserver(es => wvis = es[0].isIntersecting).observe(wc);
-const wl = t => { if (wvis) water(RM ? 0 : t); requestAnimationFrame(wl); }; requestAnimationFrame(wl);
+// 水面只在可見時排 rAF；離開畫面就停，減少動態時只畫一張靜態
+let wvis = false, wraf = 0;
+const wl = t => { water(RM ? 0 : t); wraf = wvis && !RM ? requestAnimationFrame(wl) : 0; };
+new IntersectionObserver(es => { wvis = es[0].isIntersecting; if (wvis && !wraf) wraf = requestAnimationFrame(wl); else if (!wvis && wraf){ cancelAnimationFrame(wraf); wraf = 0; } }).observe(wc);
+addEventListener('resize', () => { if (wvis && RM) water(0); });
 
 /* ─── 04 通知堆疊 ─── */
-const pool = [['14:10','吉貝線延後 20 分，北風增強','#9d7433'],['13:52','望安 15:20 候船室改至 2 號','#2d6a64'],['13:31','七美線今日加開 18:40 一班','#2d6a64'],['13:05','赤崁港停車場已滿','#9d7433'],['12:48','虎井 11:40 班次已靠港','#2d6a64'],['12:20','明日 07:30 因浪高停航','#b9442a']];
+// 通知時間在 push 當下依頂部時鐘蓋上（初始三則往前推），越上面的越新
+const pool = [['明日 07:30 因浪高停航','#b9442a'],['赤崁港停車場已滿','#9d7433'],['吉貝線延後 20 分，北風增強','#9d7433'],['望安 15:20 候船室改至 2 號','#2d6a64'],['七美線今日加開 18:40 一班','#2d6a64'],['桶盤 17:00 班次開放線上劃位','#2d6a64']];
 const stack = $('#stack'); let toasts = [], pp = 0, open = false;
 const room = () => Math.max(1, Math.floor((stack.parentElement.clientHeight - 50 - 58 - 56) / 64) + 1);
 function layout(){
-  const n = toasts.length; $('#tcount').textContent = n + ' 則'; $('#bigno').textContent = String(n).padStart(2,'0'); $('#tempty').classList.toggle('on', n === 0);
+  const n = toasts.length; $('#tcount').textContent = n + ' 則'; $('#tempty').classList.toggle('on', n === 0);
   toasts.forEach((el, i) => { const k = n - 1 - i;
     if (open){ el.style.transform = `translateY(${-k * 64}px)`; el.style.opacity = k < room() ? 1 : 0; }
     else { el.style.transform = `translateY(${-k * 11}px) scale(${1 - k * .055})`; el.style.opacity = k > 2 ? 0 : 1; }
     el.style.zIndex = i + 1; el.inert = !open && k > 0; });
 }
-function push(){
+function push(ago = 0){
   const d = pool[pp++ % pool.length]; const el = document.createElement('div'); el.className = 'toast';
-  el.innerHTML = `<span class="lv" style="background:${d[2]}"></span><div class="tm">${d[0]}</div><div class="tx">${d[1]}</div><button class="x" aria-label="關閉通知"><svg viewBox="0 0 10 10"><path d="M1 1l8 8M9 1L1 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>`;
+  el.innerHTML = `<span class="lv" style="background:${d[1]}"></span><div class="tm">${hm(mins - ago)}</div><div class="tx">${d[0]}</div><button class="x" aria-label="關閉通知"><svg viewBox="0 0 10 10"><path d="M1 1l8 8M9 1L1 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>`;
   el.style.transform = 'translateY(40px) scale(.9)'; el.style.opacity = 0; stack.appendChild(el); toasts.push(el);
   if (toasts.length > 5){ const o = toasts.shift(); o.remove(); }
   el.getBoundingClientRect(); layout();
@@ -537,7 +586,7 @@ stack.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse'){ op
 stack.addEventListener('focusin', () => { open = true; layout(); });
 stack.addEventListener('focusout', e => { if (!stack.contains(e.relatedTarget)){ open = false; layout(); } });
 $('#tclear').onclick = () => { [...toasts].forEach((t,i) => setTimeout(() => drop(t), i * 70)); };
-push(); push(); push();
+push(34); push(17); push(4);
 auto($('.t-toast'), async ok => {
   await step(ok, 2400); push(); await step(ok, 2200); open = true; layout(); await step(ok, 2600); open = false; layout();
   await step(ok, 1600); if (toasts.length > 3) drop(toasts[toasts.length - 1]);

@@ -113,13 +113,14 @@ body.pre .hud:not(#back),body.pre #stick{display:none}
 @media (prefers-reduced-motion:reduce){
   #caption,#travel,.ticket,.ticket .go{transition:none}
 }
-#place{padding:10px 14px;background:rgba(40,22,15,.65);border-radius:4px;max-width:min(480px,calc(100vw - 36px))}
+#place{max-width:min(480px,calc(100vw - 36px))}
 #place .sub{color:#ead5be}
 #sound,#back a{min-height:44px;display:flex;align-items:center}
-#sound{padding:8px;background:rgba(40,22,15,.6);border-radius:3px}
 #view:focus-visible{outline:1px solid color-mix(in srgb,var(--lime) 38%,transparent);outline-offset:-2px}
-#hint{max-width:calc(100vw - 190px);padding:6px 8px;background:rgba(40,22,15,.65);border-radius:3px}
-@media(max-width:640px){#place{top:112px;left:18px;padding:8px 10px}#place .deva{font-size:34px}#place .zh{font-size:16px}#place .sub{font-size:11px}#hint{max-width:calc(100vw - 150px);font-size:11px}}
+#hint{max-width:calc(100vw - 190px)}
+@media(max-width:640px){#place{top:112px;left:18px}#place .deva{font-size:34px}#place .zh{font-size:16px}#place .sub{font-size:11px}#hint{max-width:calc(100vw - 150px);font-size:11px}
+  /* 進城 4 秒後只留中文城名一行，把視野還給畫面 */
+  #place.compact .deva,#place.compact .sub{display:none}}
 @media(max-height:500px){#intro{overflow:auto;align-content:start;padding-top:24px;padding-bottom:24px}}
 </style>
 </head>
@@ -1151,7 +1152,7 @@ function buildVaranasi() {
   seated.count = sn; scene.add(seated);
 
   const L = [
-    { id: 'aarti', x: 16, z: 10, r: 20, zh: '十馬祭河階 · 恆河晚禱', en: 'Dashashwamedh Ghat · Ganga Aarti', text: '日落後，五位祭司站上木台，舉起多層油燈朝恆河一圈一圈地繞。鈴聲、海螺聲和台階上的人聲疊在一起。' },
+    { id: 'aarti', x: 16, z: 10, r: 20, zh: '十馬祭河階 · 恆河晚禱', en: 'Dashashwamedh Ghat · Ganga Aarti', text: '日落時分，五位祭司站上木台，舉起多層油燈朝恆河一圈一圈地繞。鈴聲、海螺聲和台階上的人聲疊在一起。' },
     { id: 'manmandir', x: 18, z: (MM[0] + MM[1]) / 2, r: 18, zh: '曼瑪迪爾河階', en: 'Man Mandir Ghat', text: '坐在河階上的石造宮殿，屋頂是傑伊·辛格二世蓋的天文台。跟齋浦爾那座是同一位國王的作品，一座在沙漠邊，一座在河邊。' },
     { id: 'vishwanath', x: VC.x, z: VC.z, r: 15, zh: '金頂神廟', en: 'Kashi Vishwanath', text: '藏在巷弄深處的濕婆神廟，尖頂包著錫克國王蘭吉特·辛格捐贈的黃金。從河邊得在窄巷裡轉好幾個彎才找得到。' },
     { id: 'chai', x: chai.x, z: chai.z, r: 9, zh: '巷口茶攤', en: 'Chai in the gali', text: '陶杯裝的奶茶，喝完就把杯子摔回土裡。巷子窄到兩個人要側身，牛照樣比人先走。' },
@@ -1164,7 +1165,7 @@ function buildVaranasi() {
     sunDir, sky: { top: '#3a4a62', mid: '#a88c8a', hor: '#f2a867', low: '#4a3c36', sunCol: '#ffb070', glow: 1.6, opp: '#d9a594' },
     fog: ['#c49488', 70, 900], hemi: ['#d8b4a2', '#6a4a36', 1.35], sunLight: ['#ffb27a', 1.8], exposure: 1.08,
     mapCol: { bg: '#4a3a2a', block: '#e0b15c', ink: '#fff0d6', seen: '#fff0d6', todo: '#2a1a0c', water: '#56666a' },
-    deva: 'वाराणसी', zh: '瓦拉納西 · 恆河河階', sub: '八十多座河階的其中一段 · 日落後的晚禱',
+    deva: 'वाराणसी', zh: '瓦拉納西 · 恆河河階', sub: '八十多座河階的其中一段 · 日落時分，晚禱即將開始',
     update(dt, t, P, audio) {
       crowd.update(dt, t, P, (x, z) => W.heightAt(x, z));
       water.material.uniforms.time.value = t;
@@ -1267,7 +1268,7 @@ const renderer = new T.WebGLRenderer({ canvas, antialias: !isTouch, powerPrefere
 // 街面與河階在第一人稱下幾乎都是斜看，各向異性過濾決定遠處地面是清楚還是糊成一片
 MAX_ANISO = Math.min(isTouch ? 8 : 16, renderer.capabilities.getMaxAnisotropy());
 makeTextures();
-renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.5 : 1.75));
+renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.5 : 1.25));
 renderer.setSize(innerWidth, innerHeight, false);
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap;
 renderer.toneMapping = T.ACESFilmicToneMapping; renderer.outputColorSpace = T.SRGBColorSpace;
@@ -1275,7 +1276,7 @@ const camera = new T.PerspectiveCamera(isTouch ? 72 : 66, innerWidth / innerHeig
 const audio = new Sound();
 const cities = {}, builders = { jaipur: buildJaipur, varanasi: buildVaranasi };
 const P = { x: 0, z: 0, y: 0, vy: 0, vx: 0, vz: 0, yaw: 0, pitch: 0, bob: 0 };
-let city = null, started = false, visited = {};
+let city = null, started = false, visited = {}, placeT = 0;
 try { visited = JSON.parse(localStorage.getItem('twoCities.visited') || '{}'); } catch (e) { visited = {}; }
 
 function dress(c) {
@@ -1307,6 +1308,7 @@ function applyCity(id, toSpawn = true) {
   renderer.toneMappingExposure = city.exposure;
   if (toSpawn) { P.x = city.spawn.x; P.z = city.spawn.z; P.yaw = city.spawn.yaw; P.pitch = 0; P.y = city.world.heightAt(P.x, P.z); P.vy = P.vx = P.vz = 0; }
   $('pDeva').textContent = city.deva; $('pZh').textContent = city.zh; $('pSub').textContent = city.sub;
+  const pl = $('place'); pl.classList.remove('compact'); clearTimeout(placeT); if (started) placeT = setTimeout(() => pl.classList.add('compact'), 4000);
   const other = id === 'jaipur' ? '瓦拉納西' : '齋浦爾', here = id === 'jaipur' ? '齋浦爾' : '瓦拉納西';
   $('swapFrom').textContent = '夜車 · 由' + here; $('swapTo').textContent = '往' + other;
   $('tAll').textContent = city.landmarks.length; updateTally(); near = null; $('caption').classList.add('off');
@@ -1316,10 +1318,12 @@ function updateTally() { const v = visited[city.id] || []; $('tN').textContent =
 
 // 換城：夜車過場
 let travelling = false;
-function travel(to) {
+function travel(to, fromIntro) {
   if (travelling || (city && city.id === to)) return; travelling = true;clearInput();$('tools').inert=true;if(document.pointerLockElement)document.exitPointerLock();
   const from = city ? city.id : 'jaipur', name = { jaipur: '齋浦爾', varanasi: '瓦拉納西' };
-  $('trTitle').textContent = '搭上往' + name[to] + '的夜車'; $('trSub').textContent = name[from] + ' → ' + name[to];
+  // 從開場直接挑城：背景雖然預載齋浦爾，但旅人還沒去過，不寫起點
+  if (fromIntro) { $('trTitle').textContent = '前往' + name[to]; $('trSub').textContent = '夜車進站 · 下車'; }
+  else { $('trTitle').textContent = '搭上往' + name[to] + '的夜車'; $('trSub').textContent = name[from] + ' → ' + name[to]; }
   const tr = $('travel'), dot = $('trDot'); tr.classList.add('on'); tr.setAttribute('aria-hidden', 'false');
   const t0 = performance.now(), dur = reduced ? 700 : 1700;
   (function anim(now) { const f = Math.min(1, (now - t0) / dur); dot.setAttribute('cx', 4 + f * 352); if (f < 1) requestAnimationFrame(anim); })(t0);
@@ -1365,7 +1369,7 @@ const endTouch = e => { for (const t of e.changedTouches) { if (t.identifier ===
 addEventListener('touchend', endTouch); addEventListener('touchcancel', endTouch);
 
 // ---------- 玩家移動 ----------
-const RAD = .34, EYE = 1.62, STEP = .72;
+const RAD = .34, EYE = 1.62, STEP = .72, WALK_SP = 1.5, RUN_SP = 2.6;
 function movePlayer(dt) {
   const W = city.world;
   P.yaw -= look.dx * .0022; P.pitch = clamp(P.pitch - look.dy * .0022, -1.3, 1.3); look.dx = look.dy = 0;
@@ -1377,7 +1381,8 @@ function movePlayer(dt) {
   const m = Math.hypot(f, s); if (m > 1) { f /= m; s /= m; }
   const run = keys.has('ShiftLeft') || keys.has('ShiftRight') || Math.hypot(stick.x, stick.y) > .92;
   // 步速有起步與收步：速度朝目標值指數逼近，不是一按就全速、一放就定住
-  const sp = run ? 6.4 : 3.3, sy = Math.sin(P.yaw), cy = Math.cos(P.yaw), ease = 1 - Math.exp(-dt * (m > .05 ? 9 : 7));
+  // 一般步行約 1.5 m/s，快走約 2.6 m/s（WALK_SP／RUN_SP）
+  const sp = run ? RUN_SP : WALK_SP, sy = Math.sin(P.yaw), cy = Math.cos(P.yaw), ease = 1 - Math.exp(-dt * (m > .05 ? 9 : 7));
   P.vx += ((-sy * f + cy * s) * sp - P.vx) * ease; P.vz += ((-cy * f - sy * s) * sp - P.vz) * ease;
   const dx = P.vx * dt, dz = P.vz * dt;
   const ground = W.heightAt(P.x, P.z), ok = (x, z) => W.heightAt(x, z) - Math.max(ground, P.y) <= STEP;
@@ -1387,12 +1392,13 @@ function movePlayer(dt) {
   for (const mv of city.movers()) { const ex = P.x - mv.x, ez = P.z - mv.z, d = Math.hypot(ex, ez), mm = mv.r + RAD; if (d < mm && d > 1e-4) { P.x = mv.x + ex / d * mm; P.z = mv.z + ez / d * mm; } }
   if (!ok(P.x, P.z)) { P.x = ox; P.z = oz; }
   // 撞牆或被推開時，速度改成實際走出的位移，貼牆不會累積衝力
-  if (dt > 0) { P.vx = (P.x - ox) / dt; P.vz = (P.z - oz) / dt; const v = Math.hypot(P.vx, P.vz); if (v > 6.4) { P.vx *= 6.4 / v; P.vz *= 6.4 / v; } }
+  if (dt > 0) { P.vx = (P.x - ox) / dt; P.vz = (P.z - oz) / dt; const v = Math.hypot(P.vx, P.vz); if (v > RUN_SP) { P.vx *= RUN_SP / v; P.vz *= RUN_SP / v; } }
   const h = W.heightAt(P.x, P.z);
   if (h >= P.y - .02) { P.y = P.y + (h - P.y) * Math.min(1, dt * 16); P.vy = 0; }
-  else { P.vy -= 18 * dt; P.y = Math.max(h, P.y + P.vy * dt); if (P.y === h) P.vy = 0; }
-  const speed = Math.hypot(P.vx, P.vz); P.bob += dt * (4 + speed * 1.1);
-  const bob = reduced ? 0 : Math.sin(P.bob) * (clamp(speed / 3.3, 0, 1) * .035 + clamp((speed - 3.3) / 3.1, 0, 1) * .015);
+  else { P.vy -= 9.8 * dt; P.y = Math.max(h, P.y + P.vy * dt); if (P.y === h) P.vy = 0; }
+  // 步伐晃動：步行約每秒 1.5 個起伏，快走約 2 個
+  const speed = Math.hypot(P.vx, P.vz); P.bob += dt * (6 + speed * 2.4);
+  const bob = reduced ? 0 : Math.sin(P.bob) * (clamp(speed / WALK_SP, 0, 1) * .03 + clamp((speed - WALK_SP) / (RUN_SP - WALK_SP), 0, 1) * .012);
   camera.position.set(P.x, P.y + EYE + bob, P.z); camera.rotation.set(P.pitch, P.yaw, 0);
 }
 
@@ -1434,7 +1440,7 @@ document.body.classList.add('pre');
 for (const b of document.querySelectorAll('#intro .ticket')) b.addEventListener('click', () => {
   const id = b.dataset.city; started = true; $('intro').hidden = true; document.body.classList.remove('pre');
   audio.start();
-  if (id !== city.id) travel(id); else { applyCity(id); canvas.focus({ preventScroll: true }); }
+  if (id !== city.id) travel(id, true); else { applyCity(id); canvas.focus({ preventScroll: true }); }
 });
 $('swap').addEventListener('click', () => { audio.start(); travel(city.id === 'jaipur' ? 'varanasi' : 'jaipur'); });
 $('sound').addEventListener('click', () => {
@@ -1454,15 +1460,22 @@ function placeSun() {
   SC.copy(SR).multiplyScalar(a).addScaledVector(SU, b).addScaledVector(SD, c);
   sun.target.position.copy(SC); sun.position.copy(SC).addScaledVector(SD, 160);
 }
+// 小地圖只在走動超過 0.2 m、轉向超過 2°、換城或走訪數改變時重畫；開場還沒選城時限制在約 30fps
+let mapX = 1e9, mapZ = 0, mapYaw = 0, mapKey = '';
+function mapDirty() {
+  const key = city.id + ':' + (visited[city.id] || []).length;
+  if (key === mapKey && Math.hypot(P.x - mapX, P.z - mapZ) <= .2 && Math.abs(P.yaw - mapYaw) <= .035) return false;
+  mapKey = key; mapX = P.x; mapZ = P.z; mapYaw = P.yaw; return true;
+}
 let last = performance.now(), T0 = last;
 function frame(now) {
+  if (!started && now - last < 1000 / 30 - 2) { requestAnimationFrame(frame); return; }
   const dt = Math.min(.05, (now - last) / 1000), t = (now - T0) / 1000; last = now;
   if (started && !travelling) movePlayer(dt);
   else if (!started) { const ic = city.introCam; camera.position.set(ic.x, ic.y + city.world.heightAt(ic.x, ic.z), ic.z); camera.rotation.set(ic.pitch, ic.yaw + (reduced?0:Math.sin(t * .12) * .25), 0); P.x = ic.x; P.z = ic.z; P.yaw = camera.rotation.y; }
   city.update(dt, t, P, audio.ctx ? audio : null);
   placeSun();
-  if (started) { landmarks(); audio.tick(dt, city.id, P); }
-  drawMap();
+  if (started) { landmarks(); audio.tick(dt, city.id, P); if (mapDirty()) drawMap(); } // 開場時小地圖是隱藏的
   renderer.render(city.scene, camera);
   requestAnimationFrame(frame);
 }

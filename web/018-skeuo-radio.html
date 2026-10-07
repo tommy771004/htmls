@@ -190,11 +190,11 @@ const $=id=>document.getElementById(id);
 const F0=540, F1=1600;
 const STATIONS=[
   {f:560, call:'WSWG', show:'The Swing Shift', note:'with Dot Calloway & the Night Owls'},
-  {f:740, call:'KBLU', show:'Midnight Blues Parlor', note:'slow organ, slower talk'},
-  {f:880, call:'W2AUR', show:'Amateur Morse Net', note:'CQ CQ, is anybody out there'},
+  {f:740, call:'WBLU', show:'Midnight Blues Parlor', note:'slow organ, slower talk'},
+  {f:880, call:'WDIT', show:'Code Practice Hour', note:'PARIS at 20 words a minute, pencils ready'},
   {f:1010,call:'WCLS', show:'Nocturne Hour', note:'strings, celesta, dim lights'},
-  {f:1230,call:'WWVX', show:'Standard Time Signal', note:'a tick for every second you waste'},
-  {f:1420,call:'KSPK', show:'Theremin Mystery Theatre', note:'something is in the attic'}
+  {f:1230,call:'WTIM', show:'WWV Time Relay', note:'rebroadcast from WWV shortwave: a tick for every second you waste'},
+  {f:1420,call:'WSPK', show:'Theremin Mystery Theatre', note:'something is in the attic'}
 ];
 
 /* ---------- dial scale (log spacing, like a real variable capacitor) ---------- */
@@ -224,6 +224,9 @@ if(listing) listing.innerHTML=STATIONS.map((s,i)=>`<li data-i="${i}"><b>${s.f}</
 let freq=700, vol=0, power=false, warm=0, strength=0, nearest=null;
 try{ const s=JSON.parse(localStorage.getItem('aurelle.state')||'null'); if(s&&s.f>=F0&&s.f<=F1) freq=s.f; }catch(e){}
 function persist(){ try{ localStorage.setItem('aurelle.state',JSON.stringify({f:Math.round(freq)})); }catch(e){} }
+let persistT=0;
+function persistSoon(){ clearTimeout(persistT); persistT=setTimeout(()=>{ persistT=0; persist(); },300); } // a knob drag fires dozens of moves per turn
+addEventListener('pagehide',()=>{ if(persistT){ clearTimeout(persistT); persistT=0; persist(); } });
 
 /* ---------- knobs: rotational drag ---------- */
 function knob(el,opts){
@@ -241,7 +244,7 @@ const volEl=$('vol'), tuneEl=$('tune');
 function setVol(v){
   const was=power; vol=Math.max(0,Math.min(1,v));
   const on=vol>0.001;
-  if(on&&!was){ power=true; click(); const w=$('volWrap'); if(w) w.classList.remove('pulse'); }
+  if(on&&!was){ power=true; if(AC&&AC.state!=='closed'&&!document.hidden) AC.resume().catch(()=>{}); /* also cancels a suspend() still pending from audioInit */ click(); const w=$('volWrap'); if(w) w.classList.remove('pulse'); kick(); }
   if(!on&&was){ power=false; click(); }
   if(volEl){ volEl.querySelector('.body').style.transform=`rotate(${-140+vol*280}deg)`; volEl.setAttribute('aria-valuenow',String(Math.round(vol*10))); volEl.setAttribute('aria-valuetext',on?`Volume ${Math.round(vol*10)}`:'Off'); }
 }
@@ -249,7 +252,7 @@ function setFreq(f){
   freq=Math.max(F0,Math.min(F1,f));
   if(tuneEl){ tuneEl.querySelector('.body').style.transform=`rotate(${(freq-F0)/(F1-F0)*1080}deg)`; tuneEl.setAttribute('aria-valuenow',String(Math.round(freq))); tuneEl.setAttribute('aria-valuetext',`${Math.round(freq)} kilocycles`); }
   const n=$('needle'); if(n) n.style.left=(X(freq)/10)+'%';
-  persist();
+  persistSoon();
 }
 knob(volEl,{turn:d=>setVol(vol+d/280),nudge:n=>setVol(vol+n*.05)});
 knob(tuneEl,{turn:d=>setFreq(freq+d/1080*(F1-F0)),nudge:n=>setFreq(freq+n*2)});
@@ -259,7 +262,7 @@ setVol(0); setFreq(freq);
 let AC=null, out=null, lp=null, amIn=null, noiseG=null, whistle=null, whistleG=null, humG=null, timer=0;
 const m2f=m=>440*Math.pow(2,(m-69)/12);
 function audioInit(){
-  if(AC){ if(AC.state==='suspended') AC.resume().catch(()=>{}); return; }
+  if(AC){ if(AC.state==='suspended'&&(power||warm>0)) AC.resume().catch(()=>{}); return; } // a cold set stays suspended
   try{ const A=window.AudioContext||window.webkitAudioContext; if(!A) return; AC=new A(); }catch(e){ AC=null; return; }
   out=AC.createGain(); out.gain.value=0; out.connect(AC.destination);
   const ws=AC.createWaveShaper(); const c=new Float32Array(1024); for(let i=0;i<1024;i++){ const x=i/512-1; c[i]=Math.tanh(x*1.8)/Math.tanh(1.8); } ws.curve=c;
@@ -278,6 +281,7 @@ function audioInit(){
   STATIONS.forEach(s=>{ s.g=AC.createGain(); s.g.gain.value=0; s.g.connect(amIn); s.next=0; s.step=0; });
   continuous();
   timer=setInterval(schedule,40);
+  if(!power&&warm<=0) AC.suspend().catch(()=>{}); // created by the tuning knob while the set is off
 }
 function note(dest,t,f,dur,type,v,att){ const o=AC.createOscillator(), g=AC.createGain(); o.type=type||'sine'; o.frequency.setValueAtTime(f,t); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(v,t+(att||.006)); g.gain.exponentialRampToValueAtTime(.0005,t+dur); o.connect(g); g.connect(dest); o.start(t); o.stop(t+dur+.05); return o; }
 function hiss(dest,t,dur,v,freq){ const s=AC.createBufferSource(); const n=AC.createBuffer(1,Math.max(1,AC.sampleRate*dur|0),AC.sampleRate), d=n.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/d.length*5); s.buffer=n; const f=AC.createBiquadFilter(); f.type='highpass'; f.frequency.value=freq||6000; const g=AC.createGain(); g.gain.value=v; s.connect(f); f.connect(g); g.connect(dest); s.start(t); }
@@ -298,12 +302,13 @@ const SW_MEL=[77,0,79,77, 74,0,70,0, 76,0,74,72, 70,0,0,0, 72,74,77,0, 81,79,77,
 const BL_CH=[[48,52,55,58],[53,57,60,63],[48,52,55,58],[55,59,62,65]];
 const BL_MEL=[72,0,75,76, 79,0,0,0, 77,75,72,0, 70,72,0,0];
 const NOC=[[57,60,64],[53,57,60],[48,52,55,60],[55,59,62]];
-const MORSE={C:'-.-.',Q:'--.-',D:'-..',E:'.',W:'.--',2:'..---',A:'.-',U:'..-',R:'.-.',K:'-.-',' ':' '};
-const MORSE_MSG='CQ CQ DE W2AUR K';
+const MORSE={A:'.-',I:'..',P:'.--.',R:'.-.',S:'...',V:'...-',' ':' '};
+const MORSE_MSG='VVV VVV PARIS PARIS PARIS'; // a code-practice broadcast: test "V"s, then the standard timing word
 const morseSeq=(()=>{ const seq=[]; for(const ch of MORSE_MSG){ if(ch===' '){ seq.push([0,4]); continue; } const code=MORSE[ch]||''; for(const s of code){ seq.push([1,s==='.'?1:3]); seq.push([0,1]); } seq.push([0,2]); } seq.push([0,14]); return seq; })();
 
 function schedule(){
   if(!AC||AC.state!=='running') return;
+  if(!power&&warm<0.01) return; // switched off and cold: build no voices nobody can hear
   const now=AC.currentTime, until=now+.22;
   STATIONS.forEach((s,i)=>{
     if(s.g.gain.value<0.002&&s.lvl<0.002){ s.next=0; return; }
@@ -343,9 +348,12 @@ function voice(i,s,t){
   }
   if(i===4){ // time signal, aligned to the real clock
     const ms=Date.now(); const toNext=(1000-ms%1000)/1000; const tt=Math.max(t,AC.currentTime+toNext);
-    const sec=new Date(ms+toNext*1000).getSeconds();
-    if(s.carrier){ s.carrier.gain.setValueAtTime(0,tt); s.carrier.gain.setValueAtTime(.08,tt+(sec===0?.9:.04)); }
-    note(g,tt,sec===0?1500:1000,sec===0?.8:.006,'sine',sec===0?.35:.5,.001);
+    const at=new Date(ms+toNext*1000), sec=at.getSeconds();
+    // WWV format: seconds 29 and 59 are silent; the minute mark is a 0.8s 1000 Hz tone, 1500 Hz only at the top of the hour
+    if(sec!==29&&sec!==59){
+      if(s.carrier){ s.carrier.gain.setValueAtTime(0,tt); s.carrier.gain.setValueAtTime(.08,tt+(sec===0?.9:.04)); }
+      note(g,tt,sec===0&&at.getMinutes()===0?1500:1000,sec===0?.8:.006,'sine',sec===0?.35:.5,.001);
+    }
     return tt-t+1-0.002;
   }
   if(i===5){ // theremin glides every ~1.3s
@@ -359,9 +367,11 @@ function voice(i,s,t){
 function click(){ if(!AC) return; const t=AC.currentTime; hiss(AC.destination,t,.03,.5,1500); note(AC.destination,t,180,.04,'square',.08); }
 
 /* ---------- per-frame: warm-up, signal meter, visuals ---------- */
-let lastT=performance.now(), lastNear=null;
+let lastT=performance.now(), lastNear=null, raf=0;
+function kick(){ if(!raf){ lastT=performance.now(); raf=requestAnimationFrame(frame); } }
 function frame(now){
-  const dt=Math.min(.1,(now-lastT)/1000); lastT=now;
+  raf=0;
+  const dt=Math.max(0,Math.min(.1,(now-lastT)/1000)); lastT=now;
   warm+= power ? dt/2.6*(1-warm*.2) : -dt/1.4; warm=Math.max(0,Math.min(1,warm));
   // signal strength from nearest station
   let best=0, near=null, off=99;
@@ -382,7 +392,7 @@ function frame(now){
   const nowEl=$('now');
   if(nowEl){
     let txt;
-    if(!power&&warm<.02) txt=vol>0?'Warming up…':'Turn Volume to switch on';
+    if(!power) txt=warm>.02?'Tubes cooling…':'Turn Volume to switch on';
     else if(warm<.6) txt='Tubes warming up…';
     else if(near&&best>.35) txt=`${near.call} ${near.f} · ${near.show}`;
     else if(near&&best>0) txt=`Faint: ${near.call} — tune closer`;
@@ -391,9 +401,11 @@ function frame(now){
   }
   const idx=near&&best>.35&&power?STATIONS.indexOf(near):-1;
   if(idx!==lastNear&&listing){ listing.querySelectorAll('li').forEach(li=>li.classList.toggle('on',+li.dataset.i===idx)); lastNear=idx; }
-  requestAnimationFrame(frame);
+  // fully cooled after switch-off: park the audio clock and this loop until Volume turns the set on again
+  if(power||warm>0) raf=requestAnimationFrame(frame);
+  else if(AC&&AC.state==='running') AC.suspend().catch(()=>{});
 }
-requestAnimationFrame(frame);
+kick();
 document.addEventListener('visibilitychange',()=>{ if(!AC) return; if(document.hidden) AC.suspend().catch(()=>{}); else if(power) AC.resume().catch(()=>{}); });
 })();
 </script>

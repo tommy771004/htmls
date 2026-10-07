@@ -72,10 +72,15 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{
 .views .gap{width:1px;margin:0 3px}
 .bars{display:inline-flex;gap:2px;align-items:flex-end;height:11px;margin-right:6px;vertical-align:-1px}
 .bars i{width:2px;border-radius:2px;background:currentColor;height:4px}
-[aria-pressed=true] .bars i{animation:eq 1.1s ease-in-out infinite}
-[aria-pressed=true] .bars i:nth-child(2){animation-delay:-.4s}
-[aria-pressed=true] .bars i:nth-child(3){animation-delay:-.75s}
+[aria-pressed=true] .bars i{height:7px}
+/* the bars only move for a moment after a key actually sounds */
+.bars.playing i{animation:eq .3s ease-in-out}
+.bars.playing i:nth-child(2){animation-delay:-.1s}
+.bars.playing i:nth-child(3){animation-delay:-.2s}
 @keyframes eq{0%,100%{height:3px}50%{height:11px}}
+.zoom{position:fixed;right:28px;bottom:calc(var(--dock-h,260px) + 6px);z-index:5;display:flex;gap:2px}
+.zoom button{width:34px;height:34px;border-radius:10px;color:var(--ink-3);font-size:18px;line-height:1;transition:color .2s}
+.zoom button:hover{color:var(--ink)}
 
 .console{border-radius:22px;background:var(--surface);box-shadow:inset 0 1px 0 rgba(255,246,230,.05),inset 0 0 0 1px var(--edge)}
 .tray{overflow:hidden}
@@ -201,12 +206,13 @@ body.cart-open .drawer{transform:none;visibility:visible}
 }
 @media (prefers-reduced-motion:reduce){
   .drawer,.scrim{transition:none}
-  [aria-pressed=true] .bars i{animation:none;height:8px}
+  .bars.playing i{animation:none}
 }
-@media(pointer:coarse){.views button{min-height:44px;min-width:36px}.views{max-width:100%;overflow-x:auto}}
+@media(pointer:coarse){.views button{min-height:44px;min-width:36px}.views{max-width:100%;overflow-x:auto}.zoom button{width:44px;height:44px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"}}</script>
+<script>window.gsap || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"><\/script>');</script>
+<script type="importmap">{"imports":{"three":"../vendor/three-0.186.0/three.module.js","three/addons/":"../vendor/three-0.186.0/addons/"}}</script>
 </head>
 <body>
 <canvas id="stage" aria-label="可旋轉的 3D 鍵盤預覽。拖曳旋轉、滾輪縮放，點擊鍵帽試打。" tabindex="-1"></canvas>
@@ -235,7 +241,7 @@ body.cart-open .drawer{transform:none;visibility:visible}
       <button data-view="top" aria-pressed="false">俯視</button>
       <button data-view="side" aria-pressed="false">側面</button>
       <span class="gap" aria-hidden="true"></span>
-      <button id="explode" aria-pressed="false">拆解</button><button id="zoomIn" aria-label="放大鍵盤">＋</button><button id="zoomOut" aria-label="縮小鍵盤">−</button>
+      <button id="explode" aria-pressed="false">拆解</button>
       <button id="sound" aria-pressed="true"><span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>聲音</button>
     </div>
   </div>
@@ -248,6 +254,8 @@ body.cart-open .drawer{transform:none;visibility:visible}
   </div>
 </div>
 
+<div class="zoom" role="group" aria-label="縮放"><button id="zoomIn" aria-label="放大鍵盤">＋</button><button id="zoomOut" aria-label="縮小鍵盤">−</button></div>
+
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dTitle">
   <div class="dh">
@@ -259,17 +267,22 @@ body.cart-open .drawer{transform:none;visibility:visible}
   <div class="df" id="dFoot"></div>
 </aside>
 
-<div class="error" id="error" role="alert"><b>3D 預覽無法啟動</b>這個頁面需要 WebGL，以及能連到 jsDelivr 載入 Three.js 與 GSAP。請換用新版 Chrome、Edge、Safari 或 Firefox，確認連線後重新整理。</div>
+<div class="error" id="error" role="alert"><b>3D 預覽無法啟動</b>這個頁面需要 WebGL，以及能連線載入 GSAP 動畫函式庫（jsDelivr 或 cdnjs）。請換用新版 Chrome、Edge、Safari 或 Firefox，確認連線後重新整理。</div>
 <p class="sr" aria-live="polite" id="live"></p>
 
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
+// Three.js and the addons above load from the local vendor copy. RoomEnvironment is not vendored, so it comes from the CDN;
+// offline, the studio falls back to plain hemisphere light instead of failing. The boot flag is set first: the page's load
+// event does not wait for this await, and the static imports have already succeeded by now.
 window.__thockworkBooted = true;
+let RoomEnvironment = null;
+// A blocked CDN that never answers must not hold up the board, so the wait is capped at 4 s.
+try { ({ RoomEnvironment } = await Promise.race([import('https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/environments/RoomEnvironment.js'), new Promise((_, no) => setTimeout(no, 4000))])); } catch (e) { /* lit without the environment map */ }
 const gsap = window.gsap;
 const $ = (s, r = document) => r.querySelector(s);
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -403,7 +416,8 @@ renderer.shadowMap.type = THREE.PCFShadowMap;
 
 const scene = new THREE.Scene();
 const pmrem = new THREE.PMREMGenerator(renderer);
-scene.environment = pmrem.fromScene(new RoomEnvironment(), .04).texture;
+if (RoomEnvironment) scene.environment = pmrem.fromScene(new RoomEnvironment(), .04).texture;
+else scene.add(new THREE.HemisphereLight(0xfff4e6, 0x3a342e, 1.1));
 scene.environmentIntensity = .5;
 scene.background = new THREE.Color(SETS[0].stage);
 
@@ -780,6 +794,7 @@ function applyViewOffset() {
 function measureUI(animate) {
   ui.barH = $('.bar').offsetHeight;
   ui.dockH = $('#dock').offsetHeight + 16;
+  document.documentElement.style.setProperty('--dock-h', ui.dockH + 'px');   // keeps the zoom pair just above the dock
   const target = (ui.dockH - ui.barH) / 2 + (innerWidth > 760 ? 32 : 0);
   gsap.to(ui.shift, { y: target, duration: T(animate ? .6 : 0), ease: 'power3.inOut', onUpdate: applyViewOffset });
 }
@@ -815,8 +830,11 @@ function tone(t, { f0, f1 = f0, dur = .05, gain = .3, type = 'sine' }) {
   const g = ac.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
   o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + .02);
 }
+const soundBars = $('#sound .bars');
+let barsT = 0;
 function keySound(up, w) {
   if (!state.sound || !audio()) return;
+  if (!up) { soundBars.classList.remove('playing'); void soundBars.offsetWidth; soundBars.classList.add('playing'); clearTimeout(barsT); barsT = setTimeout(() => soundBars.classList.remove('playing'), 300); }
   const t = ac.currentTime + .003, v = .92 + Math.random() * .16, wide = w >= 2 ? .78 : 1;
   switch (state.sw) {
     case 'linear':
@@ -984,7 +1002,7 @@ function optionsFor(seg) {
   if (seg === 'case') return CASES.map(o => ({ v: o.id, on: o.id === c.case, art: caseSwatch(o), name: o.name, sub: o.note.replace(/ \+.*/, '') + ' · ' + delta(o.price) }));
   if (seg === 'set') return SETS.map(o => ({ v: o.id, on: o.id === c.set, art: setSwatch(o), name: o.name, sub: o.note }));
   if (seg === 'profile') return Object.entries(PROFILES).map(([id, o]) => ({ v: id, on: id === c.profile, art: profileSwatch(o), name: o.name, sub: o.note + ' · ' + delta(o.price) }));
-  if (seg === 'material') return Object.entries(MATERIALS).map(([id, o]) => ({ v: id, on: id === c.material, art: materialSwatch(id), name: o.name, sub: o.note + ' · ' + fmt(o.price) }));
+  if (seg === 'material') return Object.entries(MATERIALS).map(([id, o]) => ({ v: id, on: id === c.material, art: materialSwatch(id), name: o.name, sub: o.note + ' · ' + delta(o.price - MATERIALS.pbt.price) }));
   return SWITCHES.map(o => ({ v: o.id, on: o.id === c.sw, art: switchSwatch(o), name: o.name + '軸', sub: `${o.type} ${o.force}g · ${fmt(o.price)}/顆` }));
 }
 function renderTray() {
@@ -1061,12 +1079,21 @@ function snapshot() {
   camera.position.copy(savedPos); camera.lookAt(savedTarget); applyViewOffset();
   return c.toDataURL('image/jpeg', .84);
 }
+const MAX_QTY = 9;   // same cap as the cart's + button
+let addNoteT = 0;
 function addToCart() {
   markInput();
   const cfg = cfgOf(), key = JSON.stringify(cfg);
-  const thumb = snapshot();
   const found = cart.find(i => i.key === key);
-  if (found) found.qty++;
+  if (found && found.qty >= MAX_QTY) {
+    const label = $('#add > span').firstChild, msg = `這組設定已達上限 ${MAX_QTY} 件`;
+    label.textContent = msg;
+    clearTimeout(addNoteT); addNoteT = setTimeout(() => { label.textContent = '加入購物車'; }, 1800);
+    $('#live').textContent = msg;
+    return;
+  }
+  const thumb = snapshot();
+  if (found) found.qty = Math.min(MAX_QTY, found.qty + 1);
   else cart.push({ key, cfg, qty: 1, unit: priceOf(cfg), thumb, title: titleOf(cfg), spec: specsOf(cfg) });
   saveCart();
   press(KB.codeMap.get('Space'));
@@ -1139,7 +1166,8 @@ function validate() {
   const rules = {
     name: v => v ? '' : '請填收件人姓名',
     email: v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? '' : 'Email 格式看起來不對',
-    phone: v => /^[0-9+\-\s()]{8,}$/.test(v) ? '' : '請填可以聯絡的手機號碼',
+    // Taiwan mobile: 09xxxxxxxx or +886 9xxxxxxxx; spaces, dashes and brackets are allowed as separators only.
+    phone: v => /^(09\d{8}|\+8869\d{8})$/.test(v.replace(/[\s\-()]/g, '')) ? '' : '請填可以聯絡的手機號碼，例如 0912-345-678',
     addr: v => v ? '' : ship.method === 'home' ? '請填收件地址' : '請填取貨門市',
   };
   let first = null;
@@ -1171,7 +1199,7 @@ $('#drawer').addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const act = b.dataset.act, i = +b.dataset.i;
   if (act === 'close') closeCart();
-  else if (act === 'inc') { cart[i].qty = Math.min(9, cart[i].qty + 1); saveCart(); renderCart(); }
+  else if (act === 'inc') { cart[i].qty = Math.min(MAX_QTY, cart[i].qty + 1); saveCart(); renderCart(); }
   else if (act === 'dec') { if (cart[i].qty > 1) { cart[i].qty--; saveCart(); renderCart(); } else { cart.splice(i, 1); saveCart(); renderCart(); } }
   else if (act === 'rm') { cart.splice(i, 1); saveCart(); renderCart(); }
   else if (act === 'to-ship') goStep('ship');
@@ -1225,7 +1253,9 @@ for(const [id,factor] of [['zoomIn',.85],['zoomOut',1/.85]])$('#'+id).addEventLi
 const typing = el => el && el.closest && el.closest('input,textarea,select,[contenteditable]');
 addEventListener('keydown', e => {
   if (document.body.classList.contains('cart-open')) { if (e.key === 'Escape') closeCart(); return; }
-  if (typing(e.target) || e.target.closest?.('button,a,summary') || e.ctrlKey || e.altKey || e.metaKey && e.code !== 'MetaLeft' && e.code !== 'MetaRight') return;
+  // A focused button, link or summary only claims its own activation and focus keys (Space / Enter / Tab); every other key still types on the 3D board.
+  const activates = e.code === 'Space' || e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Tab';
+  if (typing(e.target) || (activates && e.target.closest?.('button,a,summary')) || e.ctrlKey || e.altKey || e.metaKey && e.code !== 'MetaLeft' && e.code !== 'MetaRight') return;
   if (!KB) return;
   const k = KB.codeMap.get(e.code);
   if (!k) return;
@@ -1295,11 +1325,18 @@ function coveLimit() {
   for (let i = 0; i < 14; i++) { const d = (lo + hi) / 2; fits(d) ? lo = d : hi = d; }
   return lo;
 }
-function tick() {
+// The board is only redrawn while something moves: orbit damping, a running GSAP tween, a key in travel, or the
+// couple of seconds after any input, resize or UI change (instant changes such as a new layout land in that window).
+let activeUntil = performance.now() + 2500;
+const wake = (ms = 1500) => { activeUntil = Math.max(activeUntil, performance.now() + ms); };
+for (const type of ['pointerdown', 'pointerup', 'keydown', 'keyup', 'click', 'wheel', 'resize']) addEventListener(type, () => wake(), { capture: true, passive: true });
+controls.addEventListener('change', () => wake());
+const tweening = () => gsap.globalTimeline.getChildren(true, true, false).some(t => t.isActive());
+function tick(now) {
   controls.maxDistance = coveLimit();
-  controls.update();
+  const moved = controls.update();
+  let dirty = false;
   if (KB) {
-    let dirty = false;
     KB.keys.forEach((k, i) => {
       const a = k.a;
       k.g.position.y = CAP_BASE - a.p * TRAVEL + a.hop;
@@ -1309,6 +1346,7 @@ function tick() {
     });
     if (dirty) KB.inst.stem.instanceMatrix.needsUpdate = true;
   }
+  if (!moved && !dirty && now > activeUntil && !tweening()) return;
   renderer.render(scene, camera);
 }
 function resize() {
@@ -1325,9 +1363,10 @@ let resizeT = 0;
 addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(resize, 60); });
 new ResizeObserver(() => measureUI(true)).observe($('#dock'));
 
-setInterval(() => {
+// The idle demo types "thockwork" once, after the first 11 s without input, and then leaves the board alone.
+const ghostTimer = setInterval(() => {
   if (reduceMotion || ghost.busy || document.hidden || document.body.classList.contains('cart-open')) return;
-  if (performance.now() - lastInput > 11000) ghost.run();
+  if (performance.now() - lastInput > 11000) { ghost.run(); clearInterval(ghostTimer); }
 }, 1000);
 
 /* =========================================================================
@@ -1348,7 +1387,7 @@ measureUI(false); applyViewOffset();
 renderer.setAnimationLoop(tick);
 </script>
 <script>
-// 靜態 import 的 Three.js 附加模組若從 CDN 載入失敗，整個 module 不會執行：load 後仍沒啟動就顯示說明
+// 靜態 import 的 Three.js 與附加模組（本地 vendor）若載入失敗，整個 module 不會執行：load 後仍沒啟動就顯示說明
 addEventListener('load', function(){ if (!window.__thockworkBooted){ document.getElementById('error').classList.add('visible'); document.getElementById('dock').style.display = 'none'; } });
 </script>
 </body>

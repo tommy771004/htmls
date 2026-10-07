@@ -77,14 +77,16 @@
 
   aside{font-size:15px;line-height:1.7}
   .tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
-  .btn{font:inherit;font-size:14px;min-height:42px;min-width:42px;padding:0 14px;border:1.5px solid var(--pencil);background:rgba(255,255,255,.8);color:var(--pencil);border-radius:var(--r-s);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-  .btn:hover,.btn:focus-visible{background:#fff;box-shadow:2px 3px 0 rgba(61,63,69,.25)}
+  .btn{font:inherit;font-size:14px;min-height:42px;min-width:42px;padding:0 10px;border:0;background:transparent;color:var(--pencil);border-radius:var(--r-s);cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+    text-decoration:underline dotted;text-underline-offset:4px}
+  .btn:hover{text-decoration-style:solid;color:#1f2024}
   .btn:focus-visible{outline:2px solid var(--red);outline-offset:2px}
-  .btn.on{background:#2f3136;color:#fff}
   .btn svg{width:18px;height:18px}
   .mode{display:inline-flex;border:1.5px solid var(--pencil);border-radius:var(--r-s);overflow:hidden}
-  .mode .btn{border:0;border-radius:0}
-  .mode .btn:focus-visible{outline-offset:-4px;box-shadow:none}
+  .mode .btn{border-radius:0;padding:0 14px;text-decoration:none;background:rgba(255,255,255,.8)}
+  .mode .btn:hover:not(.on){background:#fff}
+  .mode .btn.on{background:#2f3136;color:#fff}
+  .mode .btn:focus-visible{outline-offset:-4px}
   .notes{font-family:var(--hand);color:#34466a;font-size:18px;line-height:1.55;transform:rotate(-1deg);margin:4px 0 0}
   .notes p{margin:0 0 10px}
   .notes em{font-style:normal;color:var(--red)}
@@ -290,7 +292,7 @@
     const e = cells[r][c], v = st[r][c];
     e.classList.toggle('fl', v === 1);
     e.classList.toggle('xx', v === 2);
-    e.classList.remove('bad');
+    e.classList.remove('bad'); e.style.background = '';
     e.setAttribute('aria-label', `第 ${r + 1} 列第 ${c + 1} 行：${v === 1 ? '塗黑' : v === 2 ? '打叉' : '空白'}`);
   }
   function refresh() {
@@ -329,6 +331,16 @@
   // time since the last move would otherwise be lost when switching puzzles or leaving the page
   function flushTime() { if (P && timerOn && !won) { elapsed = (performance.now() - startT) / 1000; save(); } }
   addEventListener('pagehide', flushTime);
+  // time spent in another tab doesn't count: pause when hidden, resume where it left off on return
+  let hiddenPause = false;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (timerOn && !won) { flushTime(); timerOn = false; hiddenPause = true; }
+    } else if (hiddenPause) {
+      hiddenPause = false;
+      if (P && !won && !timerOn) { timerOn = true; startT = performance.now() - elapsed * 1000; }
+    }
+  });
   function checkWin() {
     for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) if ((st[r][c] === 1) !== (sol[r][c] === 1)) return;
     if (timerOn) elapsed = (performance.now() - startT) / 1000;

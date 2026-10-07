@@ -29,9 +29,7 @@ canvas#c.drag{cursor:grabbing}
   background:radial-gradient(120% 90% at 50% 62%,rgba(40,22,36,.18),rgba(28,15,28,.66));
   transition:opacity 1.6s var(--ease-out),visibility 0s 1.6s;z-index:5}
 #intro.gone{opacity:0;visibility:hidden;pointer-events:none}
-.card{max-width:30rem;width:100%;text-align:center;padding:2.4rem 1.4rem 2rem;background:var(--plum);
-  border:1px solid rgba(244,233,216,.16);border-radius:6px;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
-.kick{font-size:.78rem;letter-spacing:.62em;text-indent:.62em;font-variant-caps:all-small-caps;color:var(--apricot);margin-bottom:.9rem}
+.card{max-width:30rem;width:100%;text-align:center;padding:2.4rem 1.4rem 2rem;text-shadow:0 1px 12px rgba(0,0,0,.4)}
 h1{font-size:clamp(2.6rem,9vw,3.8rem);font-weight:400;letter-spacing:.34em;text-indent:.34em;line-height:1.1;color:var(--ivory)}
 .lead{margin:1.3rem auto 1.7rem;font-size:1rem;line-height:1.9;color:var(--ivory-2);letter-spacing:.08em}
 #go{font:inherit;font-size:1.05rem;letter-spacing:.5em;text-indent:.5em;color:var(--ivory);background:transparent;
@@ -41,8 +39,7 @@ h1{font-size:clamp(2.6rem,9vw,3.8rem);font-weight:400;letter-spacing:.34em;text-
 #go:active{transform:translateY(1px)}
 .hint{margin-top:1.4rem;font-size:.8rem;letter-spacing:.3em;text-indent:.3em;color:var(--ivory-3)}
 #hud{position:fixed;left:var(--gut);bottom:max(14px,env(safe-area-inset-bottom));display:flex;align-items:center;gap:.2rem;
-  padding:.25rem .35rem .25rem .8rem;background:var(--plum);border:1px solid rgba(244,233,216,.12);border-radius:5px;
-  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);font-size:.78rem;letter-spacing:.14em;
+  font-size:.78rem;letter-spacing:.14em;text-shadow:0 1px 8px rgba(0,0,0,.5),0 0 2px rgba(0,0,0,.35);
   opacity:0;visibility:hidden;transition:opacity .9s var(--ease-out),visibility 0s .9s;z-index:4}
 #hud.on{opacity:1;visibility:visible;transition:opacity .6s var(--ease-out)}
 #clock{font-variant-numeric:tabular-nums;letter-spacing:.2em;color:var(--ivory);margin-right:.5rem}
@@ -62,11 +59,10 @@ h1{font-size:clamp(2.6rem,9vw,3.8rem);font-weight:400;letter-spacing:.34em;text-
 <div id="fade"></div>
 <section id="intro" aria-labelledby="ttl">
   <div class="card">
-    <p class="kick">LAST LIGHT</p>
     <h1 id="ttl">暮港</h1>
     <p class="lead">傍晚的港灣很安靜。<br>坐在船上，跟著最後一道光慢慢漂過去。</p>
     <button id="go" type="button">上船</button>
-    <p class="hint">拖曳環顧 · 靜靜漂流</p>
+    <p class="hint">拖曳環顧</p>
   </div>
 </section>
 <nav id="hud" aria-label="控制">
@@ -119,13 +115,14 @@ const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.05, 9
 scene.add(camera);
 
 /* ---------------- 波浪：GLSL 與 JS 用同一份設定 ---------------- */
-// ang：傳播方向（度，0 = 朝 +z，也就是朝向船）；len：波長；A：振幅；q：Gerstner 尖銳度
+// ang：傳播方向（度，0 = 朝 +z，也就是朝向船）；len：波長；A：振幅；
+// q：Gerstner 尖銳度 Q，水平位移 = Q·A（Q = 1 是深水波的圓形軌道）；Σ Q·k·A 約 0.1，遠小於 1
 const WAVES = [
-  { ang: 8,   len: 46, A: 0.20,  q: 0.30 },
-  { ang: -30, len: 21, A: 0.095, q: 0.32 },
-  { ang: 44,  len: 11, A: 0.048, q: 0.30 },
-  { ang: -68, len: 5.4, A: 0.022, q: 0.28 },
-  { ang: 96,  len: 2.7, A: 0.010, q: 0.22 },
+  { ang: 8,   len: 46, A: 0.20,  q: 0.9 },
+  { ang: -30, len: 21, A: 0.095, q: 0.9 },
+  { ang: 44,  len: 11, A: 0.048, q: 0.8 },
+  { ang: -68, len: 5.4, A: 0.022, q: 0.7 },
+  { ang: 96,  len: 2.7, A: 0.010, q: 0.6 },
 ];
 WAVES.forEach(w => {
   w.k = Math.PI * 2 / w.len; w.w = Math.sqrt(9.81 * w.k);
@@ -136,16 +133,16 @@ const WAVE_GLSL = (() => {
   let s = 'void waves(vec2 p,float t,out vec3 d,out vec3 n){\n d=vec3(0.);float nx=0.,nz=0.,ny=0.;\n';
   for (const w of WAVES) {
     s += ` {float th=${f6(w.k)}*(${f6(w.dx)}*p.x+${f6(w.dz)}*p.y)-${f6(w.w)}*t;float c=cos(th),sn=sin(th);` +
-      `d.x+=${f6(w.q / w.k * w.dx)}*c;d.z+=${f6(w.q / w.k * w.dz)}*c;d.y+=${f6(w.A)}*sn;` +
-      `nx+=${f6(w.dx * w.k * w.A)}*c;nz+=${f6(w.dz * w.k * w.A)}*c;ny+=${f6(w.q)}*sn;}\n`;
+      `d.x+=${f6(w.q * w.A * w.dx)}*c;d.z+=${f6(w.q * w.A * w.dz)}*c;d.y+=${f6(w.A)}*sn;` +
+      `nx+=${f6(w.dx * w.k * w.A)}*c;nz+=${f6(w.dz * w.k * w.A)}*c;ny+=${f6(w.q * w.k * w.A)}*sn;}\n`;
   }
-  return s + ' n=vec3(-nx,max(1.-ny,.2),-nz); // 疊加的尖銳度總和 > 1，浪尖交會處法線會翻面；夾住避免出現藍色破洞\n}\n';
+  return s + ' n=vec3(-nx,max(1.-ny,.2),-nz); // Σ Q·k·A < 1，法線不會翻面；夾住只是保險\n}\n';
 })();
 function waveAt(px, pz, t, out) { // 未位移座標 → 位移量
   let dx = 0, dy = 0, dz = 0;
   for (const w of WAVES) {
     const th = w.k * (w.dx * px + w.dz * pz) - w.w * t, c = Math.cos(th);
-    dx += w.q / w.k * w.dx * c; dz += w.q / w.k * w.dz * c; dy += w.A * Math.sin(th);
+    dx += w.q * w.A * w.dx * c; dz += w.q * w.A * w.dz * c; dy += w.A * Math.sin(th);
   }
   out[0] = dx; out[1] = dy; out[2] = dz;
 }
@@ -1642,11 +1639,13 @@ function begin(withAudio) {
 $('go').addEventListener('click', () => begin(true));
 
 /* ---------------- 主迴圈 ---------------- */
-const DUR = 270, SPEED = .75, TRAVEL_MAX = 330;
+// 日落時鐘（18:20 → 19:35）剛好走完一趟航程：330 m ÷ 0.75 m/s = 440 秒
+const SPEED = .75, TRAVEL_MAX = 330, DUR = TRAVEL_MAX / SPEED;
 let simT = 0, waveT = 0, lookBase = .06, travel = clamp(parseFloat(params.get('travel')) || 0, 0, 400), // ?travel= 隱藏 QA 參數：從航程中途開始
    dusk = T0, clockNow = 0, last = performance.now(), running = true, fadeState = 0, fadeT = 0;
 let heave = 0, heaveV = 0, pitchB = 0, pitchV = 0, rollB = 0, rollV = 0, prevHV = 0;
-let frameAvg = 16, frameCnt = 0;
+let frameAvg = 16, frameCnt = 0, forceDraw = true;
+const lastCamQ = new THREE.Quaternion(), lastCamP = new THREE.Vector3(), _lc = new THREE.Color();
 const camPos = new THREE.Vector3(), qBoat = new THREE.Quaternion(), qHead = new THREE.Quaternion(), qLook = new THREE.Quaternion(), tmpV = new THREE.Vector3();
 const lightOrder = [];
 function spring(x, v, target, k, c, dt) { v += ((target - x) * k - v * c) * dt; return [x + v * dt, v]; }
@@ -1691,7 +1690,7 @@ function updateProxies() { // 挑出離鏡頭最近的一批，送進水面 shad
   }
 }
 function updateLights(t) {
-  const c = new THREE.Color();
+  const c = _lc;
   for (let i = 0; i < lights.length; i++) {
     const L = lights[i], K = KIND[L.kind];
     if (!L.on && dusk >= L.thr) { L.on = true; L.tOn = t - (dusk - L.thr > .06 ? 99 : 0); }
@@ -1734,14 +1733,18 @@ function frame(now) {
   requestAnimationFrame(frame);
   let dt = Math.min((now - last) / 1000, .1); last = now; clockNow += dt;
   // 效能自適應
-  frameAvg = lerp(frameAvg, dt * 1000, .05); if (++frameCnt % 90 === 0 && frameAvg > 24 && PR > .7) { PR = Math.max(.7, PR - .15); renderer.setPixelRatio(PR); renderer.setSize(innerWidth, innerHeight, false); }
+  frameAvg = lerp(frameAvg, dt * 1000, .05); if (++frameCnt % 90 === 0 && frameAvg > 24 && PR > .7) { PR = Math.max(.7, PR - .15); renderer.setPixelRatio(PR); renderer.setSize(innerWidth, innerHeight, false); forceDraw = true; }
   const sdt = started && !paused ? dt : 0;
   simT += sdt;
   // 淡出重來
   let fadeOp = 0;
   if (started) {
     if (fadeState === 0 && travel > TRAVEL_MAX) { fadeState = 1; $('fade').style.opacity = 1; fadeT = clockNow; }
-    else if (fadeState === 1 && clockNow - fadeT > 3.0) { travel = 0; fadeState = 2; fadeT = clockNow; $('fade').style.opacity = 0; }
+    else if (fadeState === 1 && clockNow - fadeT > 3.0) {
+      // 畫面全黑時回到港口入口，日落與燈火從頭開始
+      travel = 0; simT = 0; for (const L of lights) L.on = false;
+      fadeState = 2; fadeT = clockNow; $('fade').style.opacity = 0;
+    }
     else if (fadeState === 2 && clockNow - fadeT > 3.0) fadeState = 0;
   }
   travel += sdt * SPEED * (fadeState === 1 ? .6 : 1);
@@ -1775,6 +1778,9 @@ function frame(now) {
   U.uCam.value.copy(camPos);
   sky.position.copy(camPos); sky.scale.setScalar(5000);
   waterMat.uniforms.uCenter.value.set(camPos.x, camPos.z);
+  // 暫停時波浪與時間都停住：鏡頭沒動（沒在環顧、船身也穩了）就不再重畫
+  if (paused && !forceDraw && camera.quaternion.angleTo(lastCamQ) < 1e-5 && camera.position.distanceToSquared(lastCamP) < 1e-10) return;
+  forceDraw = false; lastCamQ.copy(camera.quaternion); lastCamP.copy(camera.position);
 
   updateDyn(wt); updateRopes();
   updateProxies();
@@ -1793,6 +1799,7 @@ function frame(now) {
   if (!frame.shown) { frame.shown = true; const l = $('load'); l.style.opacity = 0; setTimeout(() => l.remove(), 1100); }
 }
 function resize() {
+  forceDraw = true;
   const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.fov = w / h < 1 ? 72 : 62; lookBase = w / h < 1 ? -.02 : .06; camera.updateProjectionMatrix();
 }
 addEventListener('resize', resize); resize();

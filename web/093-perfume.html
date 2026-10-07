@@ -37,6 +37,9 @@
   #bottle{height:min(62vh,600px);height:min(62svh,600px);width:auto;max-width:100%;cursor:pointer;filter:drop-shadow(0 30px 40px rgba(0,0,0,.45));transition:transform 1.2s cubic-bezier(.2,.8,.2,1)}
   #bottle:hover{transform:translateY(-4px)}
   #bottle:focus-visible{outline:1px solid var(--gold);outline-offset:8px}
+  /* the cap lifts off before a spray: the atomiser sits on the collar underneath */
+  #cap{transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .45s}
+  #bottle.uncapped #cap{transform:translateY(-40px);opacity:0}
   .margin{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;padding-bottom:clamp(22px,3.4vh,40px)}
   .margin .aside{text-align:right;max-width:19em}
   .spray-hint{margin:0;font-style:italic;font-size:14px;line-height:1.55;color:rgba(233,213,169,.7);min-height:3.1em;transition:opacity .6s}
@@ -54,7 +57,7 @@
   #pyr text{font-family:var(--serif);letter-spacing:.3em;font-size:10px;text-transform:uppercase;pointer-events:none;transition:fill 1s}
   .tiers{display:grid;gap:14px}
   .tierrow{border-top:1px solid rgba(198,164,102,.28);padding-top:10px;transition:opacity 1.2s ease}
-  .tierrow h3{margin:0 0 6px;font-weight:400;font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--gold);display:flex;justify-content:space-between;gap:10px}
+  .tierrow h3{margin:0 0 6px;font-weight:400;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);display:flex;justify-content:space-between;gap:10px}
   .tierrow h3 span{letter-spacing:.1em;color:rgba(233,213,169,.55);text-transform:none;font-style:italic}
   .notes{display:flex;flex-wrap:wrap;gap:4px 18px}
   .note{background:none;border:0;padding:6px 0;min-height:40px;font:inherit;font-size:clamp(17px,1.6vw,21px);color:var(--champ-l);cursor:pointer;letter-spacing:.02em;
@@ -62,11 +65,11 @@
   .note:hover,.note:focus-visible,.note.on{outline:none;color:#fff;border-bottom-color:var(--gold)}
 
   .detail{margin-top:14px;min-height:74px;font-style:italic;font-size:15px;line-height:1.6;color:rgba(246,234,208,.85);border-left:1px solid var(--gold);padding-left:16px;transition:opacity .8s}
-  .detail b{font-style:normal;font-weight:400;letter-spacing:.2em;text-transform:uppercase;font-size:11px;color:var(--gold);display:block;margin-bottom:2px}
+  .detail b{font-weight:400;color:var(--champ-l);display:block;margin-bottom:2px}
+  .detail b::before{content:"— "}
 
   .drydown{margin-top:clamp(90px,12vw,160px);display:grid;grid-template-columns:1fr 1.6fr;gap:clamp(20px,4vw,60px);align-items:end}
   .drydown h2{font-weight:300;font-size:clamp(30px,3.6vw,48px);margin:0;line-height:1;color:var(--champ-l)}
-  .drydown h2 small{display:block;font-size:11px;letter-spacing:.5em;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
   #clock{font-size:clamp(40px,5vw,68px);font-weight:300;color:var(--champ-l);margin:.2em 0 .1em;font-variant-numeric:oldstyle-nums;letter-spacing:.02em}
   #phase{font-style:italic;font-size:16px;line-height:1.6;color:rgba(246,234,208,.8);min-height:3.2em;margin:0}
   #chart{width:100%;height:auto;display:block}
@@ -143,10 +146,12 @@
           <clipPath id="body"><path d="M52 190 Q52 176 66 176 H234 Q248 176 248 190 V470 Q248 492 226 492 H74 Q52 492 52 470Z"/></clipPath>
         </defs>
         <!-- cap: faceted velvet-burgundy with gold band -->
+        <g id="cap">
         <path d="M104 18 L196 18 L214 44 L214 118 L196 136 L104 136 L86 118 L86 44Z" fill="url(#capG)"/>
         <path d="M104 18 L196 18 L214 44 L86 44Z" fill="#fff" opacity=".08"/>
         <path d="M120 44 L128 44 L128 136 L120 136Z" fill="#fff" opacity=".1"/>
         <rect x="86" y="118" width="128" height="10" fill="url(#goldG)"/>
+        </g>
         <!-- collar -->
         <rect x="112" y="136" width="76" height="26" fill="url(#goldG)"/>
         <path d="M112 142 H188 M112 150 H188 M112 156 H188" stroke="#5e4520" stroke-width=".8" opacity=".6"/>
@@ -207,7 +212,7 @@
 
   <section class="drydown">
     <div class="rv">
-      <h2><small>The drydown</small>An evening, in eight hours</h2>
+      <h2>An evening, in eight hours</h2>
       <div id="clock">0 h 00</div>
       <p id="phase">First spray. The bergamot is shouting; let it.</p>
     </div>
@@ -247,7 +252,7 @@
       ['Pink pepper', 'Spice · Réunion', 'Not a pepper, technically. A small, polite sneeze of spice that makes the bergamot sparkle.'],
       ['Pear nectar', 'Fruit · accord', 'The juice at the bottom of a poached pear. A sweetness that clears its throat before speaking.'] ] },
     { name: 'Cœur', when: '30 min – 3 h', notes: [
-      ['Turkish rose absolute', 'Floral · Isparta', 'Four tonnes of petals, picked before sunrise, for one kilo of absolute. We apologise to no one.'],
+      ['Turkish rose absolute', 'Floral · Isparta', 'Nearly a tonne of petals, picked before sunrise, for one kilo of absolute. We apologise to no one.'],
       ['Orris butter', 'Floral · Florence', 'The root of the iris, dried for three years, then priced accordingly. Powdery, cool, like the inside of a glove.'],
       ['Black plum', 'Fruit · accord', 'Dark, jammy, slightly boozy. The rose’s disreputable friend from out of town.'] ] },
     { name: 'Fond', when: '3 h – 8 h +', notes: [
@@ -355,8 +360,8 @@
       v.forEach((val, i) => { const c = document.getElementById('cd' + i); if (c) { c.setAttribute('cx', x); c.setAttribute('cy', Y(val)); } });
     }
     if (timeEl && document.activeElement !== timeEl) timeEl.value = Math.round(U(T) * 1000);
-    // juice level drops (very) slightly with each hour — vanity detail
-    const jr = document.getElementById('juiceRect'); if (jr) jr.setAttribute('y', (222 + T / 480 * 6 + sprays * .6).toFixed(2));
+    // juice level drops (very) slightly with each spray — vanity detail
+    const jr = document.getElementById('juiceRect'); if (jr) jr.setAttribute('y', (222 + sprays * .6).toFixed(2));
   }
   let userTouched = false, anim = null;
   function animateTo(target) {
@@ -383,7 +388,7 @@
 
   // ---------- spray: mist particles + a soft hiss ----------
   const cv = $('#mist'), cx = cv ? cv.getContext('2d') : null, bottle = $('#bottle');
-  let parts = [], dpr = 1, sprays = 0, ac = null, running = false;
+  let parts = [], dpr = 1, sprays = 0, ac = null, running = false, recap = null;
   function size() { if (!cv) return; dpr = Math.min(2, devicePixelRatio || 1); cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; cx && cx.setTransform(dpr, 0, 0, dpr, 0, 0); }
   addEventListener('resize', size); size();
   function hiss() {
@@ -401,19 +406,27 @@
   const SILLAGE = ['Sillage: moderate. Compliments: probable.', 'Two sprays. Elegant. Three would be a statement.', 'Now the lift will smell of you for an hour.', 'The neighbours have noticed. Discreetly, of course.', 'That’s quite enough, darling.'];
   function spray() {
     if (!bottle || !cx) return;
-    const r = bottle.getBoundingClientRect(), sx = r.left + r.width * .5, sy = r.top + r.height * .06;
-    for (let i = 0; i < 160; i++) {
-      const a = -Math.PI / 2 + (Math.random() - .5) * 1.4 + (Math.random() < .5 ? -.25 : .25), s = 60 + Math.random() * 240;
-      parts.push({ x: sx + (Math.random() - .5) * 10, y: sy, vx: Math.cos(a) * s + 40, vy: Math.sin(a) * s, life: 1, r: .6 + Math.random() * 2.2, g: Math.random() < .25 });
-    }
-    sprays++; hiss();
+    // take the cap off first (it goes back on a moment after the last spray)
+    const wasCapped = !bottle.classList.contains('uncapped');
+    bottle.classList.add('uncapped');
+    clearTimeout(recap); recap = setTimeout(() => bottle.classList.remove('uncapped'), 2600);
+    const emit = () => {
+      // atomiser on the collar (viewBox y≈140 of 520, right edge x≈188 of 300); mist leaves sideways
+      const r = bottle.getBoundingClientRect(), sx = r.left + r.width * .63, sy = r.top + r.height * .29;
+      for (let i = 0; i < 160; i++) {
+        const a = (Math.random() - .5) * .7, s = 60 + Math.random() * 240;
+        parts.push({ x: sx, y: sy + (Math.random() - .5) * 4, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, r: .6 + Math.random() * 2.2, g: Math.random() < .25 });
+      }
+      hiss();
+      if (!running) { running = true; last = performance.now(); requestAnimationFrame(tick); }
+    };
+    if (wasCapped && !reduce) setTimeout(emit, 300); else emit();
+    sprays++;
     const said = SILLAGE[Math.min(sprays - 1, SILLAGE.length - 1)], sill = $('#sill');
     if (sill) { sill.style.opacity = 0; setTimeout(() => { sill.textContent = `Spray nº ${sprays}. ${said}`; sill.style.opacity = 1; }, 250); }
-    if (detail) { detail.style.opacity = 0; setTimeout(() => { detail.innerHTML = `<b>Spray nº ${sprays}</b>${said}`; detail.style.opacity = 1; }, 250); }
     userTouched = true;
     if (T > 30) animateTo(0);
     render();
-    if (!running) { running = true; requestAnimationFrame(tick); }
   }
   let last = performance.now();
   function tick(now) {

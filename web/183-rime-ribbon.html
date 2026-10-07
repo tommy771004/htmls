@@ -7,7 +7,7 @@
 <meta name="description" content="騎著單車在懸浮太空的莫比烏斯冰帶上漂移：捲浪冰管、半扭翻面、金環連擊、隕石與空中迴旋。騎完一圈會發現自己在冰帶背面，再一圈才回到起點。">
 <meta name="theme-color" content="#030507">
 <link rel="icon" href="../favicon.svg">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js"}}</script>
+<script type="importmap">{"imports":{"three":"../vendor/three-0.186.0/three.module.js"}}</script>
 <style>
 :root{
   --ink:#f3f7f6;
@@ -268,18 +268,17 @@ body.touch #touch{display:block}
   </div>
 </section>
 
-<div id="err">這件作品需要 WebGL 與網路連線（載入 Three.js）。<br>請改用較新的瀏覽器開啟。</div>
+<div id="err">這件作品需要 WebGL。<br>請改用較新的瀏覽器開啟。</div>
 
 <script type="module">
 let THREE;
 {
-  // CDN 太慢（9 秒）或失敗就改用站內的 vendor 模組；vendor 也載不到時再等 CDN
-  const cdn = import('three');
-  const vendor = () => import('../vendor/three-0.186.0/three.module.js');
-  try { THREE = await Promise.race([cdn, new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), 9000))]); }
+  // 先用站內的 vendor 模組（importmap）；載不到才改用 CDN，CDN 最多等 4 秒
+  const CDN = 'https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js';
+  try { THREE = await import('three'); }
   catch (e) {
-    try { THREE = await vendor(); }
-    catch (e2) { try { THREE = await cdn; } catch (e3) { document.getElementById('err').style.display = 'grid'; throw e3; } }
+    try { THREE = await Promise.race([import(CDN), new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), 4000))]); }
+    catch (e2) { const err = document.getElementById('err'); err.innerHTML = '本機模組與 CDN 皆無法載入 Three.js。<br>請重新整理，或稍後再試。'; err.style.display = 'grid'; throw e2; }
   }
 }
 const $ = id => document.getElementById(id);
@@ -1248,14 +1247,17 @@ const S = {
   mode: 'title', s2: 12, v: 0, V: 0, psi: 0, beta: 0, vlat: 0, h: 0, hv: 0, air: false, spin: 0, spinV: 0,
   drifting: false, charge: 0, boostT: 0, boostLv: 0, mult: 1, score: 0, rings: 0, time: 0, dist: 0, vmax: 0, chain: 0, chainT: 0,
   hitT: 0, wob: 0, fallT: 0, invT: 0, finished: false, free: false, lastSide: 1, camMode: 0, attract: true, countT: 0, goT: 0, airT: 0,
+  splitDone: false, flipD: -1e9, hintOff: false,
   fallP: V3(0, 0, 0), fallV: V3(0, 0, 0), fallQ: new THREE.Quaternion(), fallW: V3(0, 0, 0),
 };
-const keys = {}, touch = { l: 0, r: 0, d: 0, j: 0 };
+const keys = {}, touch = { l: 0, r: 0, d: 0, j: 0, b: 0 };
 let jumpQueued = false;
 const V_CRUISE = 44, V_PUSH = 52, V_BRAKE = 18, V_BOOST = 60;
+// 冰帶與騎士的比例是示意；HUD 時速改用人力單車合理的範圍換算：巡航約 53、踩踏約 62、煞車約 22、漂移加速最高約 80 km/h
+const KMH = 1.2;
 
 function resetRun() {
-  Object.assign(S, { s2: 12, v: 0, V: 20, psi: 0, beta: 0, vlat: 0, h: 0, hv: 0, air: false, spin: 0, spinV: 0, drifting: false, charge: 0, boostT: 0, mult: 1, score: 0, rings: 0, time: 0, dist: 0, vmax: 0, chain: 0, chainT: 0, hitT: 0, wob: 0, invT: 0, finished: false, free: false, lastSide: 1, falls: 0, fallLog: [], airT: 0, goT: 0, nearN: 0 });
+  Object.assign(S, { s2: 12, v: 0, V: 20, psi: 0, beta: 0, vlat: 0, h: 0, hv: 0, air: false, spin: 0, spinV: 0, drifting: false, charge: 0, boostT: 0, mult: 1, score: 0, rings: 0, time: 0, dist: 0, vmax: 0, chain: 0, chainT: 0, hitT: 0, wob: 0, invT: 0, finished: false, free: false, lastSide: 1, falls: 0, fallLog: [], airT: 0, goT: 0, nearN: 0, splitDone: false, flipD: -1e9, hintOff: false });
   rocks.forEach(r => { r.nm = false; r.hit = false; r.minD = 99; });
   gateFX.forEach(f => { f.flash = 0; f.m.visible = true; f.m.scale.setScalar(1); });
   rings.forEach((r, i) => { r.got = false; _m.compose(r.pos, r.q, _s); ringMesh.setMatrixAt(i, _m); });
@@ -1298,7 +1300,7 @@ function autopilot() {
 function readInput() {
   if (S.attract || S.auto) return autopilot();
   const steer = ((keys.d || keys.arrowright || touch.r) ? 1 : 0) - ((keys.a || keys.arrowleft || touch.l) ? 1 : 0);
-  return { steer, throttle: (keys.w || keys.arrowup) ? 1 : 0, brake: (keys.s || keys.arrowdown) ? 1 : 0, drift: (keys.shift || touch.d) ? 1 : 0, jump: jumpQueued };
+  return { steer, throttle: (keys.w || keys.arrowup) ? 1 : 0, brake: (keys.s || keys.arrowdown || touch.b) ? 1 : 0, drift: (keys.shift || touch.d) ? 1 : 0, jump: jumpQueued };
 }
 
 function startFall() {
@@ -1376,7 +1378,7 @@ function step(dt) {
     } else if (wasDrift) {
       const tier = S.charge > 2.2 ? 3 : S.charge > 1.2 ? 2 : S.charge > 0.5 ? 1 : 0;
       if (tier) {
-        S.boostT = 0.55 + tier * 0.45; S.boostLv = tier; addMult(tier * 0.5);
+        S.boostT = 0.55 + tier * 0.45; S.boostLv = tier; addMult(tier * 0.5); S.hintOff = true;
         S.score += 150 * tier * S.mult;
         toast(['', '漂移加速', '漂移加速 · 二段', '漂移加速 · 滿段'][tier], `×${S.mult.toFixed(1)}`, 1100);
         sfx.boost(tier); S.fovKick = 1;
@@ -1420,14 +1422,19 @@ function step(dt) {
   if (S.s2 < 0) S.s2 += L2;
   const side = S.s2 >= L ? -1 : 1;
   if (side !== oldSide && !S.attract) {
+    // 重生會退回 22 m，可能退回正面；再次越過同一個翻面點時不重複提示，半程也只在每輪第一次越過時記錄
     if (side === -1) {
-      let sub = '這條冰帶只有一個面';
-      if (S.dist < L + 60 && S.dist > L - 60) {
-        let best = null; try { best = parseFloat(localStorage.getItem('rr-split')); } catch (e) {}
-        sub = '半程 ' + fmtT(S.time) + (Number.isFinite(best) ? ` · 比最佳${S.time <= best ? '快' : '慢'} ${Math.abs(S.time - best).toFixed(1)} 秒` : '');
-        if (!Number.isFinite(best) || S.time < best) try { localStorage.setItem('rr-split', String(S.time)); } catch (e) {}
+      if (S.dist > S.flipD + 40) {
+        let sub = '這條冰帶只有一個面';
+        if (!S.splitDone && S.dist < L + 60 && S.dist > L - 60) {
+          S.splitDone = true;
+          let best = null; try { best = parseFloat(localStorage.getItem('rr-split')); } catch (e) {}
+          sub = '半程 ' + fmtT(S.time) + (Number.isFinite(best) ? ` · 比最佳${S.time <= best ? '快' : '慢'} ${Math.abs(S.time - best).toFixed(1)} 秒` : '');
+          if (!Number.isFinite(best) || S.time < best) try { localStorage.setItem('rr-split', String(S.time)); } catch (e) {}
+        }
+        S.flipD = S.dist;
+        toast('翻到背面了', sub, 2600); sfx.flip();
       }
-      toast('翻到背面了', sub, 2600); sfx.flip();
     }
     else if (S.dist < L2 - 40) toast('回到正面', '還差一圈才算繞完', 1800);
   }
@@ -1735,11 +1742,14 @@ function updatePops(dt) {
 /* ───────── HUD ───────── */
 const hudEls = { chain: $('chain'), count: $('count'), spd: $('spd'), tm: $('tm'), rg: $('rgN'), sc: $('sc'), mu: $('mu'), pgA: $('pgA'), pgB: $('pgB'), side: $('side'), gauge: $('gauge'), gs: $('gauge').firstElementChild };
 const fmtT = t => { const m = Math.floor(t / 60), s = t - m * 60; return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1); };
-const last = {};
+const last = {}, keysEl = $('keys');
 function setText(k, v) { if (last[k] !== v) { last[k] = v; hudEls[k].textContent = v; } }
 const _proj = V3(0, 0, 0);
 function updateHUD() {
-  setText('spd', String(Math.round(S.V * 3.6)));
+  setText('spd', String(Math.round(S.V * KMH)));
+  // 鍵位提示：開跑 10 秒或第一次漂移加速後淡出，之後只在按住時亮出該鍵
+  const quiet = S.hintOff || S.time > 10;
+  if (last.quiet !== quiet) { last.quiet = quiet; keysEl.classList.toggle('quiet', quiet); }
   setText('tm', fmtT(S.time));
   setText('rg', String(S.rings));
   setText('sc', Math.round(S.score).toLocaleString('en-US'));
@@ -1812,7 +1822,7 @@ function introToast() { toast('先沿著金環騎', COARSE ? '按住「甩尾」
 function pause() { if (S.mode !== 'play' && S.mode !== 'fall' && S.mode !== 'count') return; pausedFrom = S.mode; setMode('paused'); }
 function resume() { if (S.mode !== 'paused') return; setMode(pausedFrom); clock.last = performance.now(); }
 function finish() {
-  $('dT').textContent = fmtT(S.time); $('dR').textContent = S.rings; $('dS').textContent = Math.round(S.score).toLocaleString('en-US'); $('dV').textContent = Math.round(S.vmax * 3.6);
+  $('dT').textContent = fmtT(S.time); $('dR').textContent = S.rings; $('dS').textContent = Math.round(S.score).toLocaleString('en-US'); $('dV').textContent = Math.round(S.vmax * KMH);
   let best = null; try { best = JSON.parse(localStorage.getItem('rr-best') || 'null'); } catch (e) {}
   if (!best || S.time < best.t) { best = { t: S.time, s: Math.round(S.score) }; try { localStorage.setItem('rr-best', JSON.stringify(best)); } catch (e) {} }
   showBest();
@@ -1875,7 +1885,7 @@ addEventListener('keyup', e => {
 });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; document.querySelectorAll('kbd.on').forEach(e => e.classList.remove('on')); pause(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
-for (const [id, k] of [['tL', 'l'], ['tR', 'r'], ['tD', 'd'], ['tJ', 'j']]) {
+for (const [id, k] of [['tL', 'l'], ['tR', 'r'], ['tD', 'd'], ['tJ', 'j'], ['tB', 'b']]) {
   const el = $(id);
   el.addEventListener('pointerdown', e => { e.preventDefault(); try { el.setPointerCapture(e.pointerId); } catch (_) {} touch[k] = 1; el.classList.add('on'); if (k === 'j') jumpQueued = true; });
   const up = () => { touch[k] = 0; el.classList.remove('on'); };
@@ -1955,7 +1965,7 @@ window.__rr = {
       maxV = Math.max(maxV, S.V);
       if (S.finished && !S.free) break;
     }
-    return { bad, s2: S.s2, v: S.v, dist: S.dist, time: S.time - t0, rings: S.rings, falls: S.falls || 0, finished: S.finished, mode: S.mode, maxKmh: Math.round(maxV * 3.6), score: Math.round(S.score) };
+    return { bad, s2: S.s2, v: S.v, dist: S.dist, time: S.time - t0, rings: S.rings, falls: S.falls || 0, finished: S.finished, mode: S.mode, maxKmh: Math.round(maxV * KMH), score: Math.round(S.score) };
   },
   frame(s2, v = 0) { const o = mkFrame(); surf(s2, v, 0, o); return { p: o.p.toArray(), fwd: o.fwd.toArray(), up: o.up.toArray(), planet: PLANET_C.toArray() }; },
 };

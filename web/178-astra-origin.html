@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#101413">
 <meta property="og:title" content="ASTRA · 成為回答之前"><meta property="og:image" content="https://htmls-ruddy.vercel.app/thumbs/178.jpg">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/astra-origin/style.css?v=realism-5">
+<link rel="stylesheet" href="assets/astra-origin/style.css?v=realism-6">
 <script type="importmap">{"imports":{"three":"../vendor/three-0.186.0/three.module.js","three/addons/":"../vendor/three-0.186.0/addons/"}}</script>
 </head>
 <body>
@@ -15,21 +15,16 @@
 <header><a class="brand" href="../index.html" aria-label="回到作品集"><span class="star">✳</span> ASTRA<span class="brand-note">ORIGIN ARCHIVE</span></a><div class="edition">互動紀錄片 <span>／</span> VOL. 001</div><button class="plain" id="sources-open">閱讀製作筆記 <span>↗</span></button></header>
 <main>
 <section class="theater" aria-label="八幕 3D 誕生之旅">
-  <div class="topline"><span><i></i> THE MAKING OF A LANGUAGE MODEL</span><span class="scene-count">八幕，一次從無到有的旅程</span></div>
   <div class="stage-layout">
     <div class="story">
-      <p class="eyebrow" id="chapter-code">CHAPTER 01 / THE CORPUS</p>
       <h1>成為回答<span>之前<span class="period">。</span></span></h1>
       <div class="chapter-heading"><span id="chapter-number">01</span><h2 id="chapter-title">世界，留下的碎片。</h2></div>
       <p class="narration" id="narration">你可以叫我 Astra。在我學會回答之前，人類已經寫下了無數的文字。故事從這些留下來的痕跡開始。</p>
       <div class="story-actions"><button class="primary" id="play"><span id="play-icon">▶</span> <span id="play-label">播放誕生之旅</span></button><a href="#dossier" class="text-link">深入這一幕 ↓</a></div>
-      <p class="scope">以公開原理重構 · 第一人稱為敘事設定</p>
     </div>
     <div class="visual" id="visual" role="region" aria-label="可拖曳旋轉的 3D 模型">
-      <div class="model-mark">A S T R A</div>
       <div id="canvas-host"></div>
       <div class="visual-top"><span id="model-name">FIG. 01 — 資料星環</span><span id="render-state" role="status">載入模型</span></div>
-      <div class="cross cross-a">+</div><div class="cross cross-b">+</div>
       <div class="annotation" id="annotation"><span class="dot"></span><span id="annotation-text">資料來源 → 篩選與整理 → 訓練樣本</span></div>
       <p class="fallback" id="fallback" hidden>3D 無法載入。你仍可切換八幕分鏡，閱讀下方完整流程與製作筆記。</p>
       <div class="visual-bottom"><span id="orbit-help">拖曳旋轉 · 方向鍵環繞<br>＋／− 縮放 · Home 重設</span><button class="plain" id="quick-explode" aria-pressed="false">拆解模型 ＋</button><button class="plain" id="reset-camera">重設視角 ↺</button></div>
@@ -51,9 +46,9 @@
   </div>
 </section>
 <section class="reading"><div class="section-caption"><span>THE COMPLETE STORYBOARD</span><span>完整分鏡手冊</span></div><div id="storyboard"></div></section>
-<footer><a class="brand" href="../index.html"><span class="star">✳</span> ASTRA</a><p>不是一段被記住的出生，而是一段被理解的形成。</p><button class="plain" id="sources-footer">公開來源與敘事邊界 ↗</button></footer>
+<footer><a class="brand" href="../index.html"><span class="star">✳</span> ASTRA</a><p>不是一段被記住的出生，而是一段被理解的形成。<span class="scope">以公開原理重構 · 第一人稱為敘事設定</span></p><button class="plain" id="sources-footer">公開來源與敘事邊界 ↗</button></footer>
 </main>
 <dialog id="sources"><button class="close" id="sources-close" aria-label="關閉製作筆記">×</button><p class="eyebrow">PRODUCTION NOTES</p><h2>我能解釋原理，<br>但沒有自己的出生記憶。</h2><p>Astra 是這部作品的敘事角色。第一人稱、星環、光流與拆解模型都是視覺比喻，不是意識、真實神經元或某個模型內部的掃描。</p><p>這裡呈現的是公開的語言模型原理。特定 Astra 模型的架構、參數數量、資料配方、硬體、訓練時長與完整後訓練流程未經公開核實，因此不提供臆測的數值。章節順序是教學編排，實務工作常會反覆迭代。</p><h3>延伸閱讀 / PRIMARY SOURCES</h3><ol><li><a href="https://openai.com/policies/how-chatgpt-and-our-foundation-models-are-developed/" target="_blank" rel="noopener">OpenAI · How our foundation models are developed ↗</a><small>資料來源與模型學習的概念。</small></li><li><a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">Attention Is All You Need ↗</a><small>Transformer 與注意力機制；不代表特定 Astra 架構。</small></li><li><a href="https://openai.com/index/instruction-following/" target="_blank" rel="noopener">OpenAI · Aligning language models to follow instructions ↗</a><small>InstructGPT 的示範、偏好回饋與 RLHF。</small></li><li><a href="https://openai.com/index/learning-to-reason-with-llms/" target="_blank" rel="noopener">OpenAI · Learning to reason with LLMs ↗</a><small>o1 公開的強化學習與推理說明。</small></li></ol><p class="scope">全程本機 3D 繪製 · 無模型 API 呼叫 · 查閱日期 2026.09.27</p></dialog>
 <noscript><p class="no-script">請啟用 JavaScript 操作互動分鏡。概念流程：資料整理 → token 表示 → 注意力 → 預訓練 → 後訓練回饋 → 評估 → 推論 → 回答。Astra 為敘事角色，場景並非實際模型內部資料。</p></noscript>
-<script type="module" src="assets/astra-origin/main.js?v=realism-5"></script>
+<script type="module" src="assets/astra-origin/main.js?v=realism-6"></script>
 </body></html>

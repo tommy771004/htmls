@@ -22,15 +22,15 @@ body{min-height:100vh;color:var(--vellum);font-family:var(--body);background:var
    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='160' viewBox='0 0 120 160'%3E%3Cg fill='none' stroke='%23244a37' stroke-width='1.2' opacity='.55'%3E%3Cpath d='M60 10c14 18 26 26 40 30-14 4-26 12-40 30-14-18-26-26-40-30 14-4 26-12 40-30z'/%3E%3Cpath d='M60 90c14 18 26 26 40 30-14 4-26 12-40 30-14-18-26-26-40-30 14-4 26-12 40-30z'/%3E%3Ccircle cx='60' cy='40' r='5'/%3E%3Ccircle cx='60' cy='120' r='5'/%3E%3Cpath d='M0 80c10-6 20-6 30 0M90 80c10-6 20-6 30 0'/%3E%3C/g%3E%3C/svg%3E"),
    linear-gradient(180deg,#163024,#0f1f17 60%,#0a1510)}
 .room::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:40;background:radial-gradient(ellipse 80% 75% at 60% 40%,transparent 40%,rgba(3,6,4,.78));transition:background 1.2s}
-.glow{position:fixed;inset:0;pointer-events:none;z-index:39;mix-blend-mode:soft-light;background:radial-gradient(circle at var(--cx,78%) var(--cy,24%),rgba(255,196,110,.55),transparent 42%);animation:flick 3.2s infinite;transition:opacity 1s}
+.glow{position:fixed;inset:0;pointer-events:none;z-index:39;background:radial-gradient(circle at var(--cx,78%) var(--cy,24%),rgba(255,196,110,.1),transparent 42%);transition:opacity 1s}
 @keyframes flick{0%,100%{opacity:.9}8%{opacity:.75}12%{opacity:.95}33%{opacity:.82}37%{opacity:1}61%{opacity:.86}70%{opacity:.93}88%{opacity:.78}}
-body.dark .glow{opacity:0;animation:none}
+body.dark .glow{opacity:0}
 body.dark .room::after{background:radial-gradient(ellipse 60% 55% at 50% 45%,rgba(0,0,0,.45),rgba(0,0,0,.93))}
 
 header.mast{text-align:center;max-width:980px;margin:0 auto 34px;position:relative;z-index:2}
 .soc{font:600 12px/1.4 var(--serif);letter-spacing:.34em;text-transform:uppercase;color:var(--gold)}
 .soc span{display:inline-block;padding:0 14px}
-h1{margin:6px 0 2px;font:italic 400 clamp(38px,5.6vw,78px)/1 var(--serif);color:var(--gold-l);letter-spacing:.01em;text-shadow:0 0 30px rgba(255,190,90,.25)}
+h1{margin:6px 0 2px;font:italic 400 clamp(38px,5.6vw,78px)/1 var(--serif);color:var(--gold-l);letter-spacing:.01em}
 h1 em{font-style:normal;font-variant:small-caps;letter-spacing:.06em}
 .sub{font:italic 15px/1.5 var(--serif);color:#c8b893;margin:0}
 .rule{display:flex;align-items:center;justify-content:center;gap:12px;color:var(--gold);margin:12px auto 0;max-width:460px}
@@ -46,7 +46,7 @@ main.study{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,1fr)
 .candle .flame{transform-origin:37px 44px;animation:flame 1.4s ease-in-out infinite}
 @keyframes flame{0%,100%{transform:scale(1,1) skewX(0)}20%{transform:scale(.94,1.06) skewX(3deg)}45%{transform:scale(1.04,.95) skewX(-2deg)}70%{transform:scale(.97,1.08) skewX(2deg)}}
 .candle .halo{animation:flick 2.1s infinite}
-body.dark .slot:nth-child(10) .knob{background:radial-gradient(circle at 40% 40%,#fff,#9ff3dc 30%,#1d6b5a 75%);box-shadow:0 0 14px 5px rgba(120,240,210,.55);transition:all 2s 1.2s}
+body.dark .slot:nth-child(9) .knob{background:radial-gradient(circle at 40% 40%,#fff,#9ff3dc 30%,#1d6b5a 75%);box-shadow:0 0 14px 5px rgba(120,240,210,.55);transition:all 2s 1.2s}
 body.dark .candle .flame,body.dark .candle .halo{opacity:0;animation:none}
 .candle .smoke{opacity:0}
 body.dark .candle .smoke{animation:smoke 2.4s ease-out forwards}
@@ -104,7 +104,7 @@ body.dark .candle .smoke{animation:smoke 2.4s ease-out forwards}
 .card-head b{color:var(--oxblood);font-size:13px}
 .card.swap .card-body{animation:ink .7s ease-out}
 @keyframes ink{from{opacity:0;filter:blur(3px)}}
-.plate-fig{position:relative;margin:18px auto 6px;width:min(230px,70%);aspect-ratio:1.2;display:grid;place-items:center;border:1px solid rgba(80,50,20,.4);outline:1px solid rgba(80,50,20,.25);outline-offset:4px;background:radial-gradient(circle,rgba(255,250,235,.4),transparent 70%)}
+.plate-fig{position:relative;margin:18px auto 6px;width:min(230px,70%);aspect-ratio:1.2;display:grid;place-items:center;border:1px solid rgba(80,50,20,.4);outline:1px solid rgba(80,50,20,.25);outline-offset:4px}
 .plate-fig svg{width:78%;height:auto;color:var(--ink)}
 .fig-cap{text-align:center;font:italic 12px/1.3 var(--serif);color:#6d5335;margin-bottom:12px}
 .card h2{margin:0;font:400 clamp(24px,2.3vw,30px)/1.15 var(--serif);text-align:center}
@@ -146,7 +146,7 @@ footer{max-width:1260px;margin:70px auto 0;text-align:center;font:italic 13px/1.
   .cabinet{padding-top:54px}
 }
 @media (prefers-reduced-motion:reduce){
-  .glow,.candle .flame,.candle .halo{animation:none}
+  .candle .flame,.candle .halo{animation:none}
   .front{transition:none}
 }
 </style>
@@ -207,7 +207,7 @@ footer{max-width:1260px;margin:70px auto 0;text-align:center;font:italic 13px/1.
     </article>
   </main>
 
-  <footer>Ashgrove House, Upper Library, East Wing · Visitors are asked not to wind the watch in Drawer VIII.</footer>
+  <footer>Ashgrove House, Upper Library, East Wing · Visitors are asked not to wind the watch in Drawer X.</footer>
 </div>
 
 <script>
@@ -239,10 +239,10 @@ footer{max-width:1260px;margin:70px auto 0;text-align:center;font:italic 13px/1.
     {n:"IV", k:"letter",t:"Letter, Unsent", short:"Letter", lat:"Epistula non missa", acq:"1861", prov:"Discovered in a hollow panel of the Senior Common Room.", note:"Addressed simply “To whoever finds the thesis.” The seal remains unbroken. Three Fellows have volunteered to open it; none has yet been brave enough to find the thesis first."},
     {n:"V",  k:"astrolabe",t:"Astrolabe, Slightly Wrong", short:"Astrolabe", lat:"Astrolabium erratum", acq:"1864", prov:"Bequeathed by Prof. H. Calloway, Chair of Imprecise Sciences.", note:"Beautifully engraved and calibrated for a latitude of 51° 46′ in a city that does not exist. Every few years someone checks. Every few years the city still does not exist."},
     {n:"VI", k:"ink", t:"Bottomless Inkwell", short:"Inkwell", lat:"Atramentarium infinitum", acq:"1870", prov:"Purchased at auction, Lot 44, “with contents”.", note:"Not refilled since 1871. Has since written two dissertations, a play in five acts, and a great many apologies. The ink is always slightly warm."},
-    {n:"VII",k:"raven", t:"Skull of Horace", short:"Raven", lat:"Corvus corax, ‘Horace’", acq:"1911", prov:"Donated by the Department of Classics on his retirement.", note:"Attended lectures on Thucydides from 1902 until 1911, always from the third window. Failed no examinations, having sat none. Buried with full honours; exhumed with slightly fewer."},
-    {n:"VIII",k:"watch",t:"Watch, Stopped", short:"Watch", lat:"Horologium quiescens", acq:"1877", prov:"Taken from the waistcoat of the Founder, 14 November 1891.", note:"Stopped at 3:17. On the night it stopped, every clock in the East Wing stopped with it. We have wound them since. We have not wound this one. Please do not."},
-    {n:"IX", k:"nightshade",t:"Nightshade, Pressed", short:"Nightshade", lat:"Atropa belladonna", acq:"1882", prov:"Collected on the Botanic Garden's north wall, after hours.", note:"Deadly in every part. Mounted on acid-free card with a note in the Curator's hand: DO NOT LICK. The note is underlined three times, which suggests there was an incident."},
-    {n:"X",  k:"eye",   t:"Glass Eye", short:"Glass Eye", lat:"Oculus vitreus", acq:"1886", prov:"Left behind by a visiting lecturer who departed in some haste.", note:"Hand-blown, Venetian, remarkably lifelike. It is kept facing the wall of the drawer. When the drawer is opened it is not always facing the wall."},
+    {n:"VII",k:"raven", t:"Skull of Horace", short:"Raven", lat:"Corvus corax, ‘Horace’", acq:"1874", prov:"Donated by the Department of Classics on his retirement.", note:"Attended lectures on Thucydides from 1866 until 1874, always from the third window. Failed no examinations, having sat none. Buried with full honours; exhumed with slightly fewer."},
+    {n:"VIII",k:"nightshade",t:"Nightshade, Pressed", short:"Nightshade", lat:"Atropa belladonna", acq:"1882", prov:"Collected on the Botanic Garden's north wall, after hours.", note:"Deadly in every part. Mounted on acid-free card with a note in the Curator's hand: DO NOT LICK. The note is underlined three times, which suggests there was an incident."},
+    {n:"IX", k:"eye",   t:"Glass Eye", short:"Glass Eye", lat:"Oculus vitreus", acq:"1886", prov:"Left behind by a visiting lecturer who departed in some haste.", note:"Hand-blown, Venetian, remarkably lifelike. It is kept facing the wall of the drawer. When the drawer is opened it is not always facing the wall."},
+    {n:"X",  k:"watch",t:"Watch, Stopped", short:"Watch", lat:"Horologium quiescens", acq:"1891", prov:"Taken from the waistcoat of the Founder, 14 November 1891.", note:"Stopped at 3:17. On the night it stopped, every clock in the East Wing stopped with it. We have wound them since. We have not wound this one. Please do not."},
     {n:"XI", k:"key",   t:"A Small Brass Key", short:"Key", lat:"Clavis minor", acq:"1891", prov:"Found in this drawer. Nobody recalls putting it here.", note:"A tag, tied with red thread, reads XII. You pocket it — the cabinet does not seem to mind. Somewhere to your right, a lock clicks, as if in anticipation."},
     {n:"XII",k:"ledger",t:"The Founder's Ledger", short:"Locked", lat:"Liber ultimus", acq:"1891", prov:"Drawer XII. Locked by the Founder's own hand; key kept in Drawer XI.", note:"Final entry, 3:17 a.m.: “Every object in this cabinet was sent to me by someone already dead. I have decided to keep up the correspondence.” The next page is blank, and slightly warm."}
   ];
@@ -349,7 +349,8 @@ footer{max-width:1260px;margin:70px auto 0;text-align:center;font:italic 13px/1.
   document.addEventListener("keydown", function(e){
     if(e.key === "Escape" && current >= 0){ slots[current].classList.remove("open"); current = -1; showIntro(); swapCard(); }
     else if((e.key === "ArrowRight" || e.key === "ArrowLeft") && !grid.contains(document.activeElement)){
-      var nx = current < 0 ? 0 : (current + (e.key === "ArrowRight" ? 1 : 10)) % 11;
+      var total = hasKey ? 12 : 11, fwd = e.key === "ArrowRight";
+      var nx = current < 0 ? (fwd ? 0 : total - 1) : (current + (fwd ? 1 : total - 1)) % total;
       toggle(nx);
     }
   });
@@ -368,7 +369,9 @@ footer{max-width:1260px;margin:70px auto 0;text-align:center;font:italic 13px/1.
     g.style.setProperty("--cx", (r.left + r.width/2) / window.innerWidth * 100 + "%");
     g.style.setProperty("--cy", (r.top + r.height*0.25) / window.innerHeight * 100 + "%");
   }
-  window.addEventListener("resize", placeGlow); window.addEventListener("scroll", placeGlow, {passive:true}); placeGlow();
+  var glowQueued = false;
+  function queueGlow(){ if(glowQueued) return; glowQueued = true; requestAnimationFrame(function(){ glowQueued = false; placeGlow(); }); }
+  window.addEventListener("resize", queueGlow); window.addEventListener("scroll", queueGlow, {passive:true}); placeGlow();
 
   showIntro(); renderLedger();
 })();

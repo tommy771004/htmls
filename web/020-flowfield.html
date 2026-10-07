@@ -29,10 +29,10 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:
 
 /* mini controls in the corner */
 .ctl{position:fixed;right:clamp(12px,2.4vw,30px);bottom:clamp(12px,2.4vh,26px);z-index:5;font-size:13px}
-.toggle{display:flex;align-items:center;gap:8px;margin-left:auto;background:rgba(242,234,216,.85);border:1px solid var(--rule);min-height:40px;padding:0 14px;font:italic 14px var(--pal);color:var(--ink);cursor:pointer;backdrop-filter:blur(4px)}
+.toggle{display:flex;align-items:center;gap:8px;margin-left:auto;background:var(--paper);border:1px solid var(--rule);min-height:40px;padding:0 14px;font:italic 14px var(--pal);color:var(--ink);cursor:pointer}
 .toggle svg{transition:transform .5s}
 .ctl.open .toggle svg{transform:rotate(180deg)}
-.panel{position:absolute;right:0;bottom:48px;width:250px;background:rgba(245,238,222,.94);border:1px solid var(--rule);padding:14px 16px 12px;box-shadow:0 10px 30px rgba(60,45,25,.15);backdrop-filter:blur(6px);transform-origin:100% 100%;transition:opacity .45s,transform .45s;opacity:0;transform:translateY(6px) scale(.98);pointer-events:none}
+.panel{position:absolute;right:0;bottom:48px;width:250px;background:var(--paper);border:1px solid var(--rule);padding:14px 16px 12px;transform-origin:100% 100%;transition:opacity .45s,transform .45s;opacity:0;transform:translateY(6px) scale(.98);pointer-events:none}
 .ctl.open .panel{opacity:1;transform:none;pointer-events:auto}
 .row{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:2px 8px;margin-bottom:8px}
 .row label{font-style:italic}
@@ -50,8 +50,9 @@ input[type=range]:focus-visible{outline:1px dotted var(--ink);outline-offset:2px
 .sw[aria-pressed=true]::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:1px solid var(--ink)}
 .sw:focus-visible{outline:1px dotted var(--ink);outline-offset:6px}
 .btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;border-top:1px solid var(--rule);padding-top:10px}
-.btns button{font:italic 13px var(--pal);background:none;border:1px solid var(--rule);min-height:40px;cursor:pointer;color:var(--ink)}
-.btns button:hover{border-color:var(--ink)}
+.btns button{font:italic 13px var(--pal);background:none;border:0;padding:0;min-height:40px;cursor:pointer;color:var(--ink);text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:3px}
+.btns button:hover{text-decoration-color:var(--ink)}
+.btns button:focus-visible{outline:1px dotted var(--ink);outline-offset:2px}
 .keys{font-size:11.5px;color:var(--ink2);margin:8px 0 0;font-style:italic;text-align:center}
 .toast{position:fixed;left:50%;top:20px;transform:translate(-50%,-8px);font-style:italic;font-size:14px;background:rgba(245,238,222,.95);border:1px solid var(--rule);padding:8px 16px;opacity:0;transition:opacity .6s,transform .6s;pointer-events:none;z-index:6}
 .toast.on{opacity:1;transform:translate(-50%,0)}
@@ -65,7 +66,7 @@ input[type=range]:focus-visible{outline:1px dotted var(--ink);outline-offset:2px
 <body>
 <canvas id="cv" aria-label="Generative ink drawing. Drag on the paper to add ink that follows the field."></canvas>
 <div class="label"><h1 id="ttl">Flow Study, No. 17</h1><p id="sub">ink on cotton rag · Perlin field</p></div>
-<div class="meter" aria-live="polite" id="meter">the pen has travelled <b>0</b> metres</div>
+<div class="meter" aria-live="polite" id="meter">the pens have travelled <b>0</b> metres</div>
 
 <div class="ctl" id="ctl">
   <div class="panel" id="panel" role="group" aria-label="Drawing parameters">
@@ -113,9 +114,16 @@ function noise(x,y,z){
 
 /* ---------- parameters ---------- */
 const S={scale:3.4,curl:2.2,count:1600,weight:.7,ink:'43,33,24',seed:17};
-try{ const s=JSON.parse(localStorage.getItem('flowstudy')||'null'); if(s) Object.assign(S,s); }catch(e){}
-function persist(){ try{ localStorage.setItem('flowstudy',JSON.stringify(S)); }catch(e){} }
 const INKNAME={'43,33,24':'sepia','31,42,68':'indigo','168,62,40':'vermilion','70,78,62':'verdigris'};
+try{
+  const s=JSON.parse(localStorage.getItem('flowstudy')||'null');
+  if(s&&typeof s==='object'){
+    const num=(k,lo,hi,int)=>{ const v=+s[k]; if(s[k]!=null&&Number.isFinite(v)) S[k]=Math.min(hi,Math.max(lo,int?Math.round(v):v)); };
+    num('scale',1,12); num('curl',.5,5); num('count',200,4000,true); num('weight',.3,2); num('seed',1,9999,true);
+    if(typeof s.ink==='string'&&Object.prototype.hasOwnProperty.call(INKNAME,s.ink)) S.ink=s.ink;
+  }
+}catch(e){}
+function persist(){ try{ localStorage.setItem('flowstudy',JSON.stringify(S)); }catch(e){} }
 
 let W=0,H=0,dpr=1, plate={x:0,y:0,w:0,h:0}, parts=[], z=0, steps=0, travelled=0, paused=false, done=false;
 const BUDGET=1100; // fixed 60 Hz drawing steps before the plate is finished
@@ -180,7 +188,7 @@ function step(force){
 function updateMeter(){
   const m=$('meter'); if(!m) return;
   const metres=travelled*0.26/1000;
-  m.innerHTML=done&&!parts.some(p=>p.hand)?`finished · the pen travelled <b>${metres.toFixed(1)}</b> metres`:`the pen has travelled <b>${metres.toFixed(1)}</b> metres${paused?' · paused':''}`;
+  m.innerHTML=done&&!parts.some(p=>p.hand)?`finished · the pens travelled <b>${metres.toFixed(1)}</b> metres`:`the pens have travelled <b>${metres.toFixed(1)}</b> metres${paused?' · paused':''}`;
 }
 function loop(t){
   frameId=0;
@@ -208,8 +216,7 @@ function addInk(e){
 /* ---------- controls ---------- */
 const ctl=$('ctl'), tg=$('toggle');
 if(tg&&ctl) tg.addEventListener('click',()=>{ const o=!ctl.classList.contains('open'); ctl.classList.toggle('open',o); tg.setAttribute('aria-expanded',String(o)); });
-if(ctl&&innerWidth>900){ ctl.classList.add('open'); if(tg) tg.setAttribute('aria-expanded','true'); }
-const fmt={scale:v=>(+v).toFixed(1),curl:v=>(+v).toFixed(1)+' turns',count:v=>v,weight:v=>(+v).toFixed(2)+' pt'};
+const fmt={scale:v=>(+v).toFixed(1),curl:v=>(+v).toFixed(1)+' turns',count:v=>v,weight:v=>(+v).toFixed(2)+' px'};
 ['scale','curl','count','weight'].forEach(k=>{
   const el=$('p-'+k), o=$('o-'+k); if(!el) return;
   el.value=S[k]; if(o) o.textContent=fmt[k](S[k]);
@@ -236,6 +243,7 @@ function save(){
 }
 if(bs) bs.addEventListener('click',save);
 addEventListener('keydown',e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey) return;
   if(e.target.closest&&e.target.closest('input,button')&&e.key===' ') return;
   if(e.key===' '){ e.preventDefault(); togglePause(); }
   else if(e.key==='n'||e.key==='N') restart(true);
@@ -244,7 +252,25 @@ addEventListener('keydown',e=>{
 let tt=0;
 function toast(m){ const t=$('toast'); if(!t) return; t.textContent=m; t.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('on'),2600); }
 let rz=0;
-addEventListener('resize',()=>{ if(Math.abs(innerWidth-W)<2&&Math.abs(innerHeight-H)<120) return; clearTimeout(rz); rz=setTimeout(()=>restart(false),200); });
+// keep the drawing (hand-inked lines included) across a resize: copy the old plate onto the new one;
+// only a large change of shape (e.g. turning a phone) begins a fresh plate, and says so
+function resizePlate(){
+  const oW=W, oH=H, op={x:plate.x,y:plate.y,w:plate.w,h:plate.h}, odpr=dpr;
+  if(!oW||!oH||op.w<=0||op.h<=0){ restart(false); return; }
+  if(Math.abs(innerWidth-oW)/oW>.3||Math.abs(innerHeight-oH)/oH>.3){
+    restart(false); toast('The sheet changed shape, so a fresh plate has been begun.'); return;
+  }
+  const snap=document.createElement('canvas'); snap.width=cv.width; snap.height=cv.height;
+  const sc=snap.getContext('2d'); if(!sc){ restart(false); return; } sc.drawImage(cv,0,0);
+  size();
+  cx.setTransform(1,0,0,1,0,0); cx.clearRect(0,0,cv.width,cv.height);
+  cx.setTransform(dpr,0,0,dpr,0,0);
+  cx.drawImage(snap,op.x*odpr,op.y*odpr,op.w*odpr,op.h*odpr,plate.x,plate.y,plate.w,plate.h);
+  frameRule();
+  const sx=plate.w/op.w, sy=plate.h/op.h;
+  parts.forEach(p=>{ p.x=plate.x+(p.x-op.x)*sx; p.y=plate.y+(p.y-op.y)*sy; });
+}
+addEventListener('resize',()=>{ if(Math.abs(innerWidth-W)<2&&Math.abs(innerHeight-H)<120) return; clearTimeout(rz); rz=setTimeout(resizePlate,200); });
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) stopLoop(); else startLoop(); });
 motionQuery.addEventListener('change',e=>{
   reduce=e.matches;

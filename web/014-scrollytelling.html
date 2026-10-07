@@ -28,7 +28,7 @@ body{
 .mast{max-width:1180px;margin:0 auto;padding:22px 20px 0}
 .topline{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-family:var(--label);font-size:12.5px;letter-spacing:.06em;color:var(--ink2);border-bottom:1px solid var(--rule);padding-bottom:6px}
 .name{text-align:center;padding:14px 0 10px;border-bottom:4px double var(--rule)}
-.name b{display:block;font-family:var(--head);font-weight:700;font-size:clamp(40px,7.5vw,78px);line-height:1;letter-spacing:.18em;padding-left:.18em;-webkit-text-stroke:.6px var(--ink)}
+.name b{display:block;font-family:var(--head);font-weight:700;font-size:clamp(40px,7.5vw,78px);line-height:1;letter-spacing:.18em;padding-left:.18em}
 .name small{display:block;font-family:Cambria,Georgia,serif;font-style:italic;font-size:14px;letter-spacing:.2em;margin-top:8px;color:var(--ink2)}
 .stripes{display:flex;height:34px;margin:16px 0 0;border:1px solid var(--rule)}
 .stripes i{flex:1;display:block}
@@ -36,8 +36,8 @@ body{
 
 .lede{display:grid;grid-template-columns:7fr 5fr;gap:28px 44px;padding:30px 0 34px;border-bottom:1px solid var(--rule);align-items:end}
 .kicker{font-family:var(--label);font-weight:700;letter-spacing:.14em;font-size:13px;color:var(--hot);margin:0 0 12px}
-h1{font-family:var(--head);font-weight:700;font-size:clamp(44px,7.6vw,96px);line-height:1.08;margin:0;letter-spacing:.02em;-webkit-text-stroke:1.2px var(--ink)}
-h1 .hot{color:var(--hot);-webkit-text-stroke:1.2px var(--hot)}
+h1{font-family:var(--head);font-weight:900;font-size:clamp(44px,7.6vw,96px);line-height:1.08;margin:0;letter-spacing:.02em}
+h1 .hot{color:var(--hot)}
 .deck{font-size:clamp(17px,1.9vw,20px);line-height:1.8;margin:0 0 16px;color:var(--ink)}
 .deck b{background:linear-gradient(transparent 62%,rgba(179,32,42,.18) 62%)}
 .byline{font-family:var(--label);font-size:13.5px;color:var(--ink2);border-top:1px solid var(--rule);padding-top:10px;display:flex;gap:6px 18px;flex-wrap:wrap}
@@ -53,13 +53,13 @@ h1 .hot{color:var(--hot);-webkit-text-stroke:1.2px var(--hot)}
 .step.on .in{opacity:1}
 .step .no{font-family:var(--label);font-weight:700;font-size:13px;letter-spacing:.12em;color:var(--muted);display:flex;gap:10px;align-items:center}
 .step .no i{display:inline-block;width:26px;height:8px;background:var(--c,var(--cold))}
-.step h2{font-family:var(--head);font-size:clamp(22px,2.4vw,28px);line-height:1.35;margin:6px 0 10px;font-weight:700;-webkit-text-stroke:.4px var(--ink)}
+.step h2{font-family:var(--head);font-size:clamp(22px,2.4vw,28px);line-height:1.35;margin:6px 0 10px;font-weight:700}
 .step p{margin:0 0 12px}
 .step p .n{font-family:Cambria,Georgia,serif;font-weight:700;color:var(--hot);white-space:nowrap}
 .step p .c{font-family:Cambria,Georgia,serif;font-weight:700;color:var(--cold);white-space:nowrap}
 
 .stick{grid-column:2;grid-row:1;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;justify-content:center;padding:28px 0}
-.chartbox{position:relative;background:rgba(255,255,255,.28);border:1px solid var(--rule);padding:18px 18px 12px}
+.chartbox{position:relative;padding:0}
 .chead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:1px solid var(--rule);padding-bottom:10px;margin-bottom:6px}
 .ctitle{font-family:var(--label);font-size:15px;font-weight:700;letter-spacing:.04em;transition:opacity .35s}
 .ctitle small{display:block;font-weight:400;color:var(--ink2);font-size:13px;letter-spacing:0}
@@ -84,13 +84,11 @@ svg.chart{display:block;width:100%;height:auto;overflow:visible}
 
 /* ---------- after ---------- */
 .after{max-width:1180px;margin:0 auto;padding:10px 20px 70px}
-.after h3{font-family:var(--head);font-size:clamp(26px,3.2vw,36px);margin:0 0 6px;-webkit-text-stroke:.5px var(--ink);border-top:4px double var(--rule);padding-top:22px}
+.after h3{font-family:var(--head);font-size:clamp(26px,3.2vw,36px);margin:0 0 6px;font-weight:700;border-top:4px double var(--rule);padding-top:22px}
 .cols{columns:3 260px;column-gap:40px;column-rule:1px solid rgba(42,40,36,.35);margin-top:16px}
 .cols p{margin:0 0 14px;break-inside:avoid}
 .cols p:first-child::first-letter{float:left;font-family:var(--head);font-size:3.3em;line-height:.9;padding:6px 8px 0 0;color:var(--hot);font-weight:700}
-.cools{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--rule);margin-top:26px}
-.cools div{padding:16px 18px;border-right:1px solid var(--rule)}
-.cools div:last-child{border-right:0}
+.cools{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:26px}
 .cools b{display:block;font-family:Cambria,Georgia,serif;font-size:34px;color:var(--cold);line-height:1.1}
 .cools span{font-family:var(--label);font-size:14px;line-height:1.55;display:block;margin-top:4px}
 .note{font-family:var(--label);font-size:13px;color:var(--muted);margin-top:28px;border-top:1px solid var(--rule);padding-top:10px;line-height:1.7}
@@ -99,21 +97,18 @@ svg.chart{display:block;width:100%;height:auto;overflow:visible}
   body{font-size:16px}
   .lede{grid-template-columns:1fr;gap:18px}
   .scrolly{display:block;padding:0 16px}
-  .stick{height:auto;top:0;padding:8px 0 6px;z-index:3;background:var(--paper);box-shadow:0 8px 14px -8px rgba(40,30,20,.25)}
-  .chartbox{padding:10px 10px 8px}
+  .stick{height:auto;top:0;padding:8px 0 6px;z-index:3;background:var(--paper);border-bottom:1px solid var(--rule)}
   .chead{gap:10px}
   .ctitle{font-size:13.5px}.ctitle small{font-size:12px}
   .steps{padding:6vh 0 45vh;margin-top:0;z-index:1}
   .step{min-height:78vh;align-items:flex-start;padding-top:0}
-  .step .in{background:rgba(243,237,224,.96);padding:14px 16px 6px;border:1px solid var(--rule);border-top-width:3px;box-shadow:0 10px 26px rgba(40,30,20,.12);opacity:1}
+  .step .in{background:var(--paper);padding:14px 0 6px;opacity:1}
   .step:not(.on) .in{opacity:.55}
   .legend{font-size:11.5px;gap:10px}
   .source{display:none}
   .chart text{font-size:19px}
   .chart .ann text{font-size:20px}
-  .cools{grid-template-columns:1fr}
-  .cools div{border-right:0;border-bottom:1px solid var(--rule)}
-  .cools div:last-child{border-bottom:0}
+  .cools{grid-template-columns:1fr;gap:18px}
 }
 @media (prefers-reduced-motion:reduce){ .hint svg{animation:none} }
 </style>
@@ -132,7 +127,7 @@ svg.chart{display:block;width:100%;height:auto;overflow:visible}
       <h1>一座城市<br>如何<span class="hot">變熱</span></h1>
     </div>
     <div>
-      <p class="deck">1950 年，南濱市一年只有 <b><span data-k="hd1950s">3</span> 天</b>熱到 35°C。去年，這個數字是 <b><span data-k="hd2024">47</span> 天</b>。我們翻出市中心測站七十五年的紀錄，一格一格往下捲，看溫度怎麼爬上來。</p>
+      <p class="deck">1950 年代，南濱市平均一年只有 <b><span data-k="hd1950s">3</span> 天</b>熱到 35°C。2024 年，這個數字是 <b><span data-k="hd2024">47</span> 天</b>。我們翻出市中心測站七十五年的紀錄，一格一格往下捲，看溫度怎麼爬上來。</p>
       <div class="byline"><span>文／林予晴</span><span>資料視覺化／陳柏諺</span><span>閱讀時間 6 分鐘</span></div>
       <div class="hint"><svg width="14" height="18" viewBox="0 0 14 18" aria-hidden="true"><path d="M7 1 V15 M2 10 L7 15 L12 10" fill="none" stroke="#1b1a17" stroke-width="1.6"/></svg>往下捲動，圖表會跟著故事變化</div>
     </div>
@@ -351,8 +346,10 @@ function render(s){
   Y.forEach((y,i)=>{ const r=stripes[i]; const k=Math.max(0,Math.min(1,s.stripes*1.8-i/76*0.8)); r.setAttribute('x',(P.l+i*sw).toFixed(2)); r.setAttribute('width',(sw+.6).toFixed(2)); r.setAttribute('y',P.t); r.setAttribute('height',P.b-P.t); r.style.opacity=k; });
 }
 
-function annotate(i,s){
+function annotate(i,s,delay){
   const a=$('ann'); if(!a) return; let h='';
+  // wait for the chart tween to land before fading in labels placed at the target state
+  a.style.animationDelay=delay!=null?delay+'ms':'';
   const X=y=>sx(s,y), Yv=v=>syT(s,v);
   if(i===0){ const y0=Yv(+K.base); h=`<line x1="${X(1950)}" x2="${X(1970)}" y1="${y0}" y2="${y0}" stroke-dasharray="3 3"/><text x="${X(1970)+8}" y="${y0+4}" class="b">20 年平均 ${K.base}°C</text><text x="${X(1970)+8}" y="${y0+22}">幾乎是一條平線</text>`; }
   if(i===1){ const x=X(1973), y=Yv(city[iy(1973)]); h=`<line x1="${x}" x2="${x}" y1="${y-12}" y2="${y-70}"/><circle cx="${x}" cy="${y}" r="5" fill="none" stroke="#1b1a17"/><text x="${x+6}" y="${y-74}" class="b">1973</text><text x="${x+6}" y="${y-56}">臨港工業區動工</text>`; }
@@ -387,7 +384,7 @@ function go(i){
   document.querySelectorAll('.step').forEach(el=>el.classList.toggle('on',+el.dataset.s===i));
   from=Object.assign({},cur); to=STATES[i]; t0=performance.now();
   dur = (to.reveal-from.reveal)>25 ? 1800 : 1100;
-  chrome(i); annotate(i,to);
+  chrome(i); annotate(i,to,reduce?0:dur);
   if(reduce){ NUM.forEach(k=>cur[k]=to[k]); render(cur); return; }
   cancelAnimationFrame(animId); animId=requestAnimationFrame(frame);
 }
@@ -402,8 +399,14 @@ function frame(now){
 /* ---------- scroll wiring ---------- */
 const steps=[...document.querySelectorAll('.step')];
 if('IntersectionObserver' in window){
-  const io=new IntersectionObserver(es=>{ es.forEach(e=>{ if(e.isIntersecting) go(+e.target.dataset.s); }); },{rootMargin:matchMedia('(max-width:860px)').matches?'-58% 0px -38% 0px':'-45% 0px -45% 0px',threshold:0});
-  steps.forEach(s=>io.observe(s));
+  const mq=matchMedia('(max-width:860px)'); let io=null;
+  const watch=()=>{
+    if(io) io.disconnect();
+    io=new IntersectionObserver(es=>{ es.forEach(e=>{ if(e.isIntersecting) go(+e.target.dataset.s); }); },{rootMargin:mq.matches?'-58% 0px -38% 0px':'-45% 0px -45% 0px',threshold:0});
+    steps.forEach(s=>io.observe(s));
+  };
+  watch();
+  if(mq.addEventListener) mq.addEventListener('change',watch); else if(mq.addListener) mq.addListener(watch);
 } else { addEventListener('scroll',()=>{ const mid=innerHeight/2; steps.forEach(s=>{ const r=s.getBoundingClientRect(); if(r.top<mid&&r.bottom>mid) go(+s.dataset.s); }); },{passive:true}); }
 const pr=$('progress');
 function onScroll(){ const h=document.documentElement.scrollHeight-innerHeight; if(pr) pr.style.transform=`scaleX(${h>0?Math.min(1,scrollY/h):0})`; }

@@ -24,6 +24,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--geo);-webkit-fon
 /* hero */
 .hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:clamp(20px,4vw,56px);padding:28px 0 36px;border-bottom:1px solid var(--rule)}
 .inspect{position:relative;background:var(--paper2);border:1px solid var(--ink);min-height:520px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.inspect:focus-visible{outline:2px dashed var(--ink);outline-offset:3px}
 .inspect .g{font-size:min(46vh,34vw,420px);line-height:1;color:var(--ink);position:relative;z-index:1;transition:none;white-space:nowrap}
 .guide{position:absolute;left:0;right:0;height:0;border-top:1px solid rgba(29,58,42,.45);z-index:2;pointer-events:none}
 .guide span{position:absolute;left:10px;top:-16px;font:10px var(--bahn);letter-spacing:.14em;text-transform:uppercase;color:var(--ink2)}
@@ -73,8 +74,8 @@ section.s{padding:36px 0;border-bottom:1px solid var(--rule)}
 .glyphs.geo button{font-family:var(--geo)}
 .glyphs.bahn button{font-family:var(--bahn)}
 .water{display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,4vw,48px)}
-.water h3{font:12px var(--bahn);letter-spacing:.24em;text-transform:uppercase;margin:0 0 8px;border-bottom:1px solid var(--ink);padding-bottom:6px;display:flex;justify-content:space-between}
-.wline{display:grid;grid-template-columns:34px 1fr;align-items:baseline;gap:10px;border-bottom:1px dotted var(--rule);padding:4px 0;overflow:hidden}
+.water h3{font:12px var(--bahn);letter-spacing:.24em;text-transform:uppercase;margin:0 0 12px;display:flex;justify-content:space-between}
+.wline{display:grid;grid-template-columns:34px 1fr;align-items:baseline;gap:10px;padding:6px 0;overflow:hidden}
 .wline small{font:10px var(--bahn);color:var(--ink2);letter-spacing:.08em}
 .wline div{white-space:nowrap;overflow:hidden;text-overflow:clip;line-height:1.15;outline:none}
 .wline div:focus{background:var(--tint)}
@@ -123,7 +124,7 @@ section.s{padding:36px 0;border-bottom:1px solid var(--rule)}
   <header class="runhead"><span><b>Two Faces</b> · Specimen Nº 30</span><span>Printed on the screen you are holding</span><span>Folio 1</span></header>
 
   <section class="hero">
-    <div class="inspect" id="inspect" aria-live="polite">
+    <div class="inspect" id="inspect" aria-live="polite" tabindex="0">
       <div class="guide asc"><span>Ascender</span></div>
       <div class="guide cap"><span>Cap height</span></div>
       <div class="guide xh"><span>x-height</span></div>
@@ -140,7 +141,7 @@ section.s{padding:36px 0;border-bottom:1px solid var(--rule)}
       <dl class="facts">
         <dt>Bahnschrift</dt><dd>After DIN 1451 · variable: weight 300–700, width 75–100</dd>
         <dt>Georgia</dt><dd>Transitional serif for screens · regular, italic, bold, bold italic</dd>
-        <dt>Shared</dt><dd>Both installed on your machine, probably. Neither was consulted.</dd>
+        <dt>Shared</dt><dd id="shared">Both installed on your machine, probably. Neither was consulted.</dd>
       </dl>
       <div class="ctl"><label for="wght">Weight</label><input id="wght" type="range" min="300" max="700" step="1" value="700"><output id="wOut">700 Bold</output></div>
       <div class="ctl"><label for="wdth">Width</label><input id="wdth" type="range" min="75" max="100" step="1" value="100"><output id="dOut">100 Normal</output></div>
@@ -158,8 +159,8 @@ section.s{padding:36px 0;border-bottom:1px solid var(--rule)}
   <section class="s">
     <div class="sh"><span class="no">§ 2</span><h2>Waterfall</h2></div>
     <div class="water">
-      <div><h3><span>Bahnschrift SemiBold</span><span>72–11 pt</span></h3><div id="wfB"></div></div>
-      <div><h3><span>Georgia Regular</span><span>72–11 pt</span></h3><div id="wfG"></div></div>
+      <div><h3><span>Bahnschrift SemiBold</span><span>72–11 px</span></h3><div id="wfB"></div></div>
+      <div><h3><span>Georgia Regular</span><span>72–11 px</span></h3><div id="wfG"></div></div>
     </div>
   </section>
 
@@ -188,7 +189,7 @@ section.s{padding:36px 0;border-bottom:1px solid var(--rule)}
 
   <footer class="colophon">
     <div><b>Colophon</b>Set entirely in the two faces under examination, with no external fonts, no images and one small argument about whether Bahnschrift counts as “friendly”. It does, after coffee.</div>
-    <div><b>Keys</b>← → step through glyphs · ↑ ↓ change weight · click any glyph to inspect it · the waterfall lines are editable.</div>
+    <div><b>Keys</b>← → step through glyphs · ↑ ↓ change weight while the specimen or a glyph has focus · click any glyph to inspect it · the waterfall lines are editable.</div>
   </footer>
   <div class="folio">— 30 —</div>
 </div>
@@ -206,6 +207,14 @@ let fam = 'bahn', ch = 'R', W = 700, D = 100, userTouched = false;
 
 /* ---------- metrics guides, measured from the live font ---------- */
 const mc = document.createElement('canvas').getContext('2d');
+/* Bahnschrift ships only with Windows 10+; detect it so the page does not mislabel a fallback face */
+const hasFont = name => { const s = 'mmmmmmmmmmlli1WQ&'; return ['monospace','sans-serif','serif'].some(b => { mc.font = `72px ${b}`; const w0 = mc.measureText(s).width; mc.font = `72px "${name}", ${b}`; return mc.measureText(s).width !== w0; }); };
+const HAS_BAHN = hasFont('Bahnschrift');
+const BAHN_FB = HAS_BAHN ? '' : (['DIN Alternate','D-DIN','Barlow','Arial Narrow','Arial'].find(hasFont) || 'a generic sans-serif');
+if (!HAS_BAHN) {
+  const sh = $('#shared'); if (sh) sh.textContent = `Georgia is here; Bahnschrift (bundled with Windows 10 and later) is not, so its samples are set in ${BAHN_FB}. The width axis does nothing on this machine.`;
+  const di = $('#wdth'); if (di) di.disabled = true;
+}
 function placeGuides(){
   if (!glyph || !inspect) return;
   const fs = parseFloat(getComputedStyle(glyph).fontSize);
@@ -232,7 +241,7 @@ function render(){
   glyph.textContent = ch;
   if (fam==='bahn') { const w = snapW(W), d = snapD(D); glyph.style.fontFamily = 'var(--bahn)'; glyph.style.fontWeight = w[0]; glyph.style.fontStretch = d[0]+'%'; glyph.style.fontStyle = 'normal';
     const n = `Bahnschrift ${d[1]==='Normal' ? '' : d[1]+' '}${w[1]}`.replace('  ',' ');
-    $('#ginst').textContent = n; $('#wOut').textContent = `${W} → ${w[1]}`; $('#dOut').textContent = `${D} → ${d[1].replace('Semi','Semi-')}`; }
+    $('#ginst').textContent = HAS_BAHN ? n : `${n} · shown in ${BAHN_FB}`; $('#wOut').textContent = `${W} → ${w[1]}`; $('#dOut').textContent = HAS_BAHN ? `${D} → ${d[1].replace('Semi','Semi-')}` : 'n/a (fallback)'; }
   else { const bold = W >= 550; glyph.style.fontFamily = 'var(--geo)'; glyph.style.fontWeight = bold ? 700 : 400; glyph.style.fontStretch = '100%';
     $('#ginst').textContent = 'Georgia ' + (bold ? 'Bold' : 'Regular'); $('#wOut').textContent = `${W} → ${bold ? 'Bold' : 'Regular'}`; $('#dOut').textContent = 'n/a (Georgia is fixed)'; }
   const n = names(ch); $('#gname').textContent = n.nm; $('#cp').textContent = n.cp;
@@ -293,15 +302,15 @@ tester();
 addEventListener('keydown', e => {
   const t = e.target; if (t && (t.isContentEditable || t.tagName==='INPUT')) return;
   if (e.key==='ArrowRight' || e.key==='ArrowLeft') { userTouched = true; const i = SET.indexOf(ch); ch = SET[(i + (e.key==='ArrowRight'?1:-1) + SET.length) % SET.length]; render(); }
-  else if (e.key==='ArrowUp' || e.key==='ArrowDown') { e.preventDefault(); userTouched = true; const i = INST_W.findIndex(x => x[0]===snapW(W)[0]); W = INST_W[Math.max(0, Math.min(4, i + (e.key==='ArrowUp'?1:-1)))][0]; syncSliders(); render(); }
+  else if ((e.key==='ArrowUp' || e.key==='ArrowDown') && t && t.closest && t.closest('.hero,.glyphs')) { e.preventDefault(); userTouched = true; const i = INST_W.findIndex(x => x[0]===snapW(W)[0]); W = INST_W[Math.max(0, Math.min(4, i + (e.key==='ArrowUp'?1:-1)))][0]; syncSliders(); render(); }
 });
 
 /* ---------- idle demo: the weight axis breathes until touched ---------- */
 let demoI = 4, demoDir = -1;
-setInterval(() => {
-  if (userTouched || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+const demoTimer = setInterval(() => {
+  if (userTouched || matchMedia('(prefers-reduced-motion: reduce)').matches) { clearInterval(demoTimer); return; }
   demoI += demoDir; if (demoI <= 0 || demoI >= 4) demoDir *= -1;
-  W = INST_W[demoI][0]; if (demoI===0) { D = D===100 ? 75 : 100; } syncSliders(); render();
+  W = INST_W[demoI][0]; if (demoI===0 && HAS_BAHN) { D = D===100 ? 75 : 100; } syncSliders(); render();
 }, 700);
 
 addEventListener('resize', () => requestAnimationFrame(placeGuides));

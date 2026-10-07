@@ -53,12 +53,15 @@ body{
   isolation:isolate}
 .amp::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;
   background:conic-gradient(from var(--spin) at 30% 40%,#ff9be8,#9ad8ff,#a8ffb0,#fff59a,#ffb3d9,#9ad8ff,#ff9be8);
-  mix-blend-mode:soft-light;opacity:.75;animation:spin 9s linear infinite}
+  mix-blend-mode:soft-light;opacity:.75;animation:spin 9s linear infinite paused}
 @keyframes spin{to{--spin:360deg}}
 .amp .shine{position:absolute;inset:0;border-radius:inherit;pointer-events:none;overflow:hidden;z-index:3}
 .amp .shine::after{content:"";position:absolute;top:-40%;bottom:-40%;width:18%;left:-30%;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.85),transparent);transform:skewX(-24deg);animation:sweep 6s cubic-bezier(.5,0,.2,1) infinite 1s}
-@keyframes sweep{0%{left:-30%}35%,100%{left:130%}}
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.85),transparent);transform:skewX(-24deg);animation:sweep 6s cubic-bezier(.5,0,.2,1) infinite 1s paused}
+/* the sheen travels 160% of the player's width = 160/18 of its own width; transform only, no layout */
+@keyframes sweep{0%{transform:translateX(0) skewX(-24deg)}35%,100%{transform:translateX(888.9%) skewX(-24deg)}}
+/* chrome only shimmers while music is playing */
+.amp.live::before,.amp.live .shine::after,.amp.live .pod::after{animation-play-state:running}
 /* the fin */
 .fin{position:absolute;right:-12px;top:52px;width:40px;height:120px;border-radius:0 60px 60px 0/0 50px 50px 0;
   background:linear-gradient(90deg,#8795a5,#f4f7fa 40%,#aab6c2 70%,#5c6878);box-shadow:inset -2px 0 0 rgba(255,255,255,.6),4px 8px 16px -6px rgba(18,50,90,.5);z-index:-2}
@@ -77,7 +80,7 @@ body{
   display:grid;place-items:center}
 .pod::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(255,255,255,.7);
   background:conic-gradient(from var(--spin),rgba(255,155,232,.0),rgba(154,216,255,.55),rgba(168,255,176,.0),rgba(255,245,154,.5),rgba(255,155,232,0));
-  -webkit-mask:radial-gradient(circle,transparent 62%,#000 63%);mask:radial-gradient(circle,transparent 62%,#000 63%);animation:spin 5s linear infinite;pointer-events:none}
+  -webkit-mask:radial-gradient(circle,transparent 62%,#000 63%);mask:radial-gradient(circle,transparent 62%,#000 63%);animation:spin 5s linear infinite paused;pointer-events:none}
 .podlcd{width:138px;height:138px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#0f2a1c,#040b07 70%);
   box-shadow:inset 0 6px 14px rgba(0,0,0,.9),inset 0 -2px 0 rgba(120,255,140,.15),0 1px 0 #fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;border:0;padding:0;color:var(--neon)}
 .podlcd:focus-visible{outline:2px dashed var(--ice2);outline-offset:6px}
@@ -310,10 +313,14 @@ if (sp) {
 }
 
 /* ---------- chrome reacts to pointer ---------- */
-const root = document.documentElement;
+// only the chrome panels read --ang, so set it there (not on :root) and at most once per frame
+const chromeEls = document.querySelectorAll('.amp, .win');
+let angRaf = 0, angVal = '';
 addEventListener('pointermove', e => {
   const a = 100 + (e.clientX / innerWidth) * 90 + (e.clientY / innerHeight) * 30;
-  root.style.setProperty('--ang', a.toFixed(1) + 'deg');
+  const v = a.toFixed(0) + 'deg';
+  if (v === angVal) return; angVal = v;
+  if (!angRaf) angRaf = requestAnimationFrame(() => { angRaf = 0; chromeEls.forEach(el => el.style.setProperty('--ang', angVal)); });
 }, { passive: true });
 
 /* ---------- tracks ---------- */
@@ -335,6 +342,7 @@ const TRACKS = [
     k:'x...............', s:'................', h:'....o.......o...', b:'r.......f.......', arp:'updown', lead:'sine', bubbles:true }
 ];
 const fmt = s => { s = Math.max(0, Math.floor(s)); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); };
+const TOTAL = TRACKS.reduce((s,t)=>s+t.dur,0);
 
 /* ---------- playlist ---------- */
 const plist = $('#plist');
@@ -350,9 +358,10 @@ function renderList(){
     b.addEventListener('click', () => { cur = i; elapsed = 0; start(); });
     li.appendChild(b); plist.appendChild(li);
   });
-  const tot = TRACKS.reduce((s,t)=>s+t.dur,0);
-  const pt = $('#pltime'); if (pt) pt.textContent = fmt(elapsed) + ' / ' + fmt(tot);
+  const pt = $('#pltime'); if (pt) pt.textContent = plTime();
 }
+// position in the whole playlist (tracks before this one + this one's elapsed) / playlist length
+function plTime(){ let before = 0; for (let i=0;i<cur;i++) before += TRACKS[i].dur; return fmt(before + elapsed) + ' / ' + fmt(TOTAL); }
 function setMarquee(){
   const tr = TRACKS[cur], m = $('#mq');
   if (m) m.textContent = `${cur+1}. ${tr.a} - ${tr.t} (${fmt(tr.dur)})  ***  ${tr.bpm} BPM  ***  `;
@@ -392,6 +401,7 @@ function drawTime(){
   timeSvg.innerHTML = html;
 }
 function drawState(){
+  const amp = $('#amp'); if (amp) amp.classList.toggle('live', playing && !paused);
   const s = $('#stateico'); if (!s) return;
   s.innerHTML = playing && !paused ? '<path d="M3 1v12l10-6z" fill="#57ff2a"/>' :
     paused ? '<path d="M2 1h3.5v12H2zM8.5 1H12v12H8.5z" fill="#c8ff3a"/>' : '<rect x="2" y="2" width="10" height="10" fill="#3c8a2e"/>';
@@ -465,18 +475,28 @@ function schedule(){
     step = (step+1)%16; if (step===0) bar++;
   }
 }
+// song position follows the audio clock, not rAF, so it keeps running (and moves on to the next
+// track) while the tab is in the background; called from both the scheduler and the frame loop
+let clockAt = 0;
+function tick(){
+  if (!ctx || !playing || paused) return;
+  const now = ctx.currentTime; elapsed += Math.max(0, now - clockAt); clockAt = now;
+  if (elapsed >= TRACKS[cur].dur) { if (repeat || cur < TRACKS.length-1) next(1); else stop(); }
+}
 function start(){
   initAudio();
   if (!ctx) return;
   playing = true; paused = false;
-  step = 0; bar = 0; nextTime = ctx.currentTime + .06;
-  if (!schedTimer) schedTimer = setInterval(() => { if (playing && !paused && ctx) schedule(); }, 25);
+  step = 0; bar = 0; nextTime = ctx.currentTime + .06; clockAt = ctx.currentTime;
+  if (!schedTimer) schedTimer = setInterval(() => { if (playing && !paused && ctx) { tick(); if (playing && !paused) schedule(); } }, 25);
   setMarquee(); renderList(); drawState();
 }
-function pause(){ if (!playing) return; paused = !paused; if (!paused && ctx) { nextTime = ctx.currentTime + .05; } drawState(); }
+function pause(){ if (!playing) return; paused = !paused; if (!paused && ctx) { nextTime = ctx.currentTime + .05; clockAt = ctx.currentTime; } drawState(); }
 function stop(){ playing = false; paused = false; elapsed = 0; drawState(); }
+const shufHist = []; // tracks left by "next" in shuffle mode, so "previous" can walk back
 function next(d){
-  if (shuffle) { let n; do { n = Math.floor(Math.random()*TRACKS.length); } while (n===cur && TRACKS.length>1); cur = n; }
+  if (shuffle && d < 0 && shufHist.length) cur = shufHist.pop();
+  else if (shuffle && d > 0) { shufHist.push(cur); if (shufHist.length > 50) shufHist.shift(); let n; do { n = Math.floor(Math.random()*TRACKS.length); } while (n===cur && TRACKS.length>1); cur = n; }
   else cur = (cur + d + TRACKS.length) % TRACKS.length;
   elapsed = 0; setMarquee(); renderList();
   if (playing) start();
@@ -496,6 +516,7 @@ on('#podlcd','click', () => { showRemain = !showRemain; const l=$('#podlbl'); if
 on('#vol','input', applyVol); on('#bal','input', applyBal);
 on('#seek','input', e => { elapsed = (+e.target.value/1000) * TRACKS[cur].dur; lastTimeStr=''; });
 addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return; // leave Ctrl+C / Ctrl+V / Ctrl+Z etc. to the system
   if (e.target && (e.target.tagName==='INPUT' || e.target.classList.contains('band'))) return;
   const k = e.key.toLowerCase();
   if (k==='z') { press('#bPrev'); next(-1); }
@@ -574,28 +595,36 @@ let W=0,H=0, peaks = new Array(40).fill(0), fdata = null, tdata = null;
 function resize(){
   if (!cv) return; const r = cv.getBoundingClientRect(), dpr = devicePixelRatio||1;
   W = r.width; H = r.height; cv.width = Math.max(1,W*dpr); cv.height = Math.max(1,H*dpr); g.setTransform(dpr,0,0,dpr,0,0); drawEQCurve();
+  // the LCD dot matrix never changes: draw it once per size, then blit it each frame
+  dots.width = cv.width; dots.height = cv.height;
+  const dg = dots.getContext('2d');
+  if (dg) { dg.setTransform(dpr,0,0,dpr,0,0); dg.fillStyle='rgba(87,255,42,.06)'; for (let y=3;y<H;y+=4) for (let x=2;x<W;x+=4) dg.fillRect(x,y,1,1); }
+  visAt = 0;
 }
+const dots = document.createElement('canvas');
+let visAt = 0;
 addEventListener('resize', resize);
 on('#viswrap','click', () => { mode = (mode+1)%MODES.length; const v=$('#vmode'); if (v) v.textContent='VIS: '+MODES[mode]; });
-let last = performance.now(), kbpsT = 0;
+let last = performance.now(), kbpsT = 0, lastSeek = '', lastPl = '';
 function frame(now){
   const dt = Math.min(.1,(now-last)/1000); last = now;
   if (playing && !paused) {
-    elapsed += dt;
-    if (elapsed >= TRACKS[cur].dur) { if (repeat || cur < TRACKS.length-1) next(1); else stop(); }
+    tick();
     kbpsT += dt; if (kbpsT > .4) { kbpsT = 0; const k=$('#kbps'); if (k) k.textContent = [128,160,192,224,160,128,256][Math.floor(Math.random()*7)]; }
   }
-  const sk = $('#seek'); if (sk && document.activeElement !== sk) { const p = elapsed/TRACKS[cur].dur; sk.value = Math.round(p*1000); sk.style.setProperty('--p',(p*100).toFixed(1)+'%'); }
-  drawTime(); if (paused) lastTimeStr = lastTimeStr;
-  const pt = $('#pltime'); if (pt) pt.textContent = fmt(elapsed) + ' / 24:56';
-  if (g && W) drawVis(now);
+  const sk = $('#seek'); if (sk && document.activeElement !== sk) { const p = elapsed/TRACKS[cur].dur, ps = (p*100).toFixed(1)+'%'; if (ps !== lastSeek) { lastSeek = ps; sk.value = Math.round(p*1000); sk.style.setProperty('--p',ps); } }
+  drawTime();
+  const pt = $('#pltime'), pls = plTime(); if (pt && pls !== lastPl) { lastPl = pls; pt.textContent = pls; }
+  // full frame rate only while the analyser has music to show; the idle wobble is redrawn 5× a second
+  const live = ctx && analyser && playing && !paused;
+  if (g && W && (live || now - visAt > 200)) { visAt = now; drawVis(now); }
   requestAnimationFrame(frame);
 }
 function barColor(){ const gr = g.createLinearGradient(0,H,0,0); gr.addColorStop(0,'#1fae10'); gr.addColorStop(.45,'#57ff2a'); gr.addColorStop(.75,'#c8ff3a'); gr.addColorStop(1,'#bfe9ff'); return gr; }
 function drawVis(now){
   g.clearRect(0,0,W,H);
-  // dot matrix
-  g.fillStyle='rgba(87,255,42,.06)'; for (let y=3;y<H;y+=4) for (let x=2;x<W;x+=4) g.fillRect(x,y,1,1);
+  // dot matrix (pre-drawn in resize)
+  g.drawImage(dots, 0, 0, W, H);
   const live = ctx && analyser && playing && !paused;
   const N = W < 300 ? 24 : 36, bw = W/N;
   let vals = new Array(N).fill(0);

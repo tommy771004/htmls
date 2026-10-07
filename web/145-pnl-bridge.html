@@ -8,7 +8,7 @@
 <meta name="description" content="月損益儀表板：收入、銷貨成本、毛利、營運費用、營業利潤與淨利排成一座損益橋，橫放的損益表逐欄對齊在每根柱子下方；本月對上月、實際對預算，附 12 個月趨勢與紅黑墨差異標示。">
 <style>
 :root{
-  --paper:#f2ebe6; --sheet:#f8f3ef; --bar:#e7dcd4; --fold:#ddd0c6;
+  --paper:#f2ebe6; --sheet:#f8f3ef; --fold:#ddd0c6;
   --ink:#1b1614; --ink2:#5b4f49; --ink3:#6e615a; --rule:#dcd0c8; --rule2:#cbbdb4;
   --red:#b3261e; --cost:#a39389; --gain:#4a3f39;
   --act:#2f7440; --bud:#b0762f;
@@ -26,7 +26,7 @@ button{font:inherit;color:inherit}
 .page{max-width:1360px;margin:0 auto;padding:18px 40px 56px}
 
 /* 頂列：品牌 + 篩選，所有圖表都受這一列控制 */
-.bar{position:sticky;top:12px;z-index:6;display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;padding:10px 14px 10px 16px;background:var(--bar);border-radius:10px;box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 1px 2px rgba(91,79,73,.12)}
+.bar{position:sticky;top:0;z-index:6;display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;padding:12px 0 10px;background:var(--paper);box-shadow:0 1px 0 var(--rule)}
 .brand{display:flex;align-items:center;gap:9px;font-weight:600;letter-spacing:.02em;margin-right:6px;white-space:nowrap}
 .brand svg{display:block}
 .brand small{font-weight:400;color:var(--ink2);font-size:13px}
@@ -173,7 +173,7 @@ footer a{color:var(--ink2)}
 }
 @media (max-width:760px){
   .page{padding:12px 16px 44px}
-  .bar{position:static;gap:10px 16px;padding:12px}
+  .bar{position:static;gap:10px 16px;padding:12px 0}
   .brand{width:100%}
   .tbtn{margin-left:0}
   .lead{padding-top:26px}
@@ -248,7 +248,7 @@ footer a{color:var(--ink2)}
 
   <footer>
     <span>範例資料為虛構。所有數字集中在原始碼頂端的 DATA 區塊，換成自己的月報即可。</span>
-    <span>損益橋 · <a href="../index.html">100 Creative HTML Works</a> 第 145 件</span>
+    <span>損益橋 · <a href="../index.html">作品集</a> 第 145 件</span>
   </footer>
 </div>
 <div class="tip" id="tip" role="status" aria-live="polite"></div>
@@ -257,6 +257,7 @@ footer a{color:var(--ink2)}
 /* ====== 範例資料：替換成你自己的數字 ====== */
 // 單位：新台幣萬元。每個陣列 12 筆，依序為 start 起算的 12 個月。
 // actual 為實際、budget 為預算；成本與費用請填正數，業外損益可正可負。
+// 所得稅依當年度累計稅前損益估列：累計仍虧損時填 0，轉正後每月填「累計稅前 × 20% − 已提列」。
 const DATA = {
   start:{year:2025, month:10},
   info:{
@@ -296,7 +297,7 @@ const DATA = {
         marketing: [129.8,137.5,152.4,140.1,232.2,137.9,168.2,165.2,155.7,189.4,218.8,197.9],
         other:     [44.9,41.5,38.8,42.5,38.2,39.8,40.8,40.1,37.8,38.6,42,39.1],
         nonop:     [1.8,1.9,1.7,2.1,2,-12.4,2.2,2.1,2.3,2.2,2.4,2.5],
-        tax:       [0,0,0,0,0,0,0,0,8.1,2.8,3.9,9.8]
+        tax:       [0,0,0,0,0,0,0,0,0,0,0,0]
       },
       budget:{
         revenue:   [760,786.6,814.1,842.6,872.1,902.6,934.2,966.9,1000.8,1035.8,1072.1,1109.6],
@@ -306,7 +307,7 @@ const DATA = {
         marketing: [129.2,133.7,138.4,143.2,148.3,153.4,158.8,164.4,170.1,176.1,182.2,188.6],
         other:     [41,41,41,41,41,41,41,41,41,41,41,41],
         nonop:     [2,2,2,2,2,2,2,2,2,2,2,2],
-        tax:       [0,0,0,0,0,0,0,2.6,6.8,11.2,15.7,20.4]
+        tax:       [0,0,0,0,0,0,0,0,0,6.8,15.7,20.4]
       }
     },
     furniture:{
@@ -625,7 +626,7 @@ function renderStatement(){
   h += '<thead><tr><th scope="col"><span class="sr" style="position:absolute;left:-9999px">項目</span></th>'+STEPS.map((s,i) => '<th scope="col" data-c="'+i+'" class="'+(s.type==='sub'?'sub':'')+'">'+s.name+'</th>').join('')+'</tr></thead><tbody>';
   const row = (cls, label, fn) => '<tr class="'+cls+'"><th scope="row">'+label+'</th>'+STEPS.map((s,i) => '<td data-c="'+i+'"'+(s.type==='sub'?' class="subc"':'')+'>'+fn(s)+'</td>').join('')+'</tr>';
   h += row('now', '本月實際', s => s.type === 'cost' ? costTxt(a[s.k]) : (a[s.k] < 0 && s.type === 'sub' ? '<span class="down">'+acct(a[s.k])+'</span>' : acct(a[s.k])));
-  h += row('pct', '占營收', s => pct(Math.abs(a[s.k])/a.revenue * (s.type==='sub' && a[s.k] < 0 ? -1 : 1)));
+  h += row('pct', '占營收', s => pct(s.type === 'flex' ? a[s.k]/a.revenue : Math.abs(a[s.k])/a.revenue * (s.type==='sub' && a[s.k] < 0 ? -1 : 1)));
   h += row(on==='prev'?'on':'', '上月'+(on==='prev'?' · 框線':''), s => pv ? (s.type === 'cost' ? costTxt(pv[s.k]) : acct(pv[s.k])) : '—');
   h += row(on==='budget'?'on':'', '預算'+(on==='budget'?' · 框線':''), s => s.type === 'cost' ? costTxt(b[s.k]) : acct(b[s.k]));
   h += row(on==='prev'?'on':'off', '差異 · 上月', s => varHTML(variance(s, a, pv), true));
@@ -740,7 +741,7 @@ function drawMobile(g, wa, wc, build){
 }
 
 /* ---------- 橋：切換與動畫 ---------- */
-const narrow = () => $('sheet').clientWidth < 700;
+const narrow = () => $('sheet').clientWidth < 900;
 function renderBridge(animate){
   const g = geometry(), mob = narrow();
   $('bwrap').hidden = mob; $('mbridge').hidden = !mob;

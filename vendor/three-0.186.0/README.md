@@ -5,3 +5,5 @@ Included modules: `three.core.js`, `three.module.js`, `addons/loaders/GLTFLoader
 `addons/controls/OrbitControls.js` is also vendored from the same official npm release for `web/135-nagoya-terrain.html`.
 
 `addons/geometries/RoundedBoxGeometry.js` is vendored from the same official npm release for the furniture edge details in `web/174-kurogane-house.html`. MIT license as above.
+
+`addons/postprocessing/UnrealBloomPass.js` and its dependency `addons/shaders/LuminosityHighPassShader.js` are vendored from the same official npm release so `web/118-lamplighter.html` can load entirely from this folder. MIT license as above.

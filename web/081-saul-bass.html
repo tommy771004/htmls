@@ -30,8 +30,7 @@ body{margin:0;color:var(--ink);font-family:var(--small);background:
 .slate dd{margin:0;font-weight:700}
 
 /* ---------- projection frame ---------- */
-.frame{background:var(--ink);padding:clamp(8px,1.4vw,16px);border-radius:3px;position:relative;
-  box-shadow:0 1px 0 #fff8,0 30px 60px -30px rgba(40,25,0,.55)}
+.frame{background:var(--ink);padding:clamp(8px,1.4vw,16px);position:relative}
 .frame::before,.frame::after{content:"";position:absolute;left:0;right:0;height:clamp(8px,1.4vw,16px);
   background:repeating-linear-gradient(90deg,transparent 0 14px,#3a342a 14px 24px,transparent 24px 38px);background-size:38px 6px;background-repeat:repeat-x;background-position:0 50%}
 .frame::before{top:0}.frame::after{bottom:0}
@@ -89,7 +88,7 @@ body{margin:0;color:var(--ink);font-family:var(--small);background:
 .s1 .face{position:absolute;inset:0;background:var(--ink)}
 .s1 .hd{position:absolute;left:50%;top:50%;background:var(--mustard);transform-origin:50% 100%}
 .s1 .hd.m{width:4%;height:42%;margin:-42% 0 0 -2%;animation:spin 1.1s linear infinite}
-.s1 .hd.h{width:6%;height:28%;margin:-28% 0 0 -3%;background:var(--paper);animation:spin 6s linear infinite}
+.s1 .hd.h{width:6%;height:28%;margin:-28% 0 0 -3%;background:var(--paper);animation:spin 13.2s linear infinite}
 .s1 .pin{position:absolute;left:44%;top:44%;width:12%;height:12%;background:var(--rust);border-radius:50%}
 .s1 .tick{position:absolute;left:48.5%;top:3%;width:3%;height:9%;background:var(--paper);transform-origin:50% 522%}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -241,7 +240,7 @@ body{margin:0;color:var(--ink);font-family:var(--small);background:
   .strip{grid-column:1/-1;grid-row:2}
   .slate dl{grid-template-columns:repeat(2,auto)}
 }
-@media (prefers-reduced-motion:reduce){.grain,.weave,.scratch{animation:none}}
+@media (prefers-reduced-motion:reduce){.grain,.weave,.scratch{animation:none}.scene *{animation-iteration-count:1!important}}
 </style>
 </head>
 <body>
@@ -486,12 +485,22 @@ body{margin:0;color:var(--ink);font-family:var(--small);background:
   }
   var tcEl=document.getElementById('tc');
 
-  function show(i,withWipe){
+  // 暫停時跳卡：落在字卡已排好的時間點（約 85%），畫面與 timecode 一致，不會停在動畫第 0 幀
+  var SETTLE=.85;
+  // 把場景 i 的所有 CSS 動畫對齊到目前的 t（暫停時就停在那一幀）
+  function seekScene(i){
+    var s=scenes[i];if(!s||!s.getAnimations) return;
+    var ms=Math.max(0,(t-starts[i])*1000);
+    s.getAnimations({subtree:true}).forEach(function(a){try{a.currentTime=ms;}catch(_){}});
+  }
+  function show(i,withWipe,seek){
     if(i===cur) return;
     var go=function(){
+      if(cur!==i) return;   // 等 wipe 期間又換到別張卡，舊的切換作廢
       scenes.forEach(function(s,j){ if(j!==i) s.classList.remove('on'); });
       var s=scenes[i];s.classList.remove('on');void s.offsetWidth;s.classList.add('on');
-      if(!playing) stage.classList.add('paused');
+      if(!playing||dragging) stage.classList.add('paused');
+      if(seek) seekScene(i);
     };
     cur=i;
     cueLis.forEach(function(li,j){li.classList.toggle('cur',j===i);});
@@ -504,7 +513,7 @@ body{margin:0;color:var(--ink);font-family:var(--small);background:
   }
   function jump(i,userAction){
     i=(i+scenes.length)%scenes.length;
-    t=starts[i]+0.001;cur=-1;show(i,true);render();
+    t=playing?starts[i]+0.001:starts[i]+durs[i]*SETTLE;cur=-1;show(i,true,!playing);render();
   }
   function render(){
     cells.forEach(function(c,j){
@@ -519,7 +528,7 @@ body{margin:0;color:var(--ink);font-family:var(--small);background:
   function loop(now){
     if(last===null) last=now;
     var dt=Math.min(.1,(now-last)/1000);last=now;
-    if(playing){
+    if(playing&&!dragging){
       t+=dt;if(t>=total) t=0;
       var i=sceneAt(t);
       if(i!==cur) show(i,cur!==-1);
@@ -534,7 +543,7 @@ body{margin:0;color:var(--ink);font-family:var(--small);background:
   document.head.appendChild(pauseCss);
   var playBtn=document.getElementById('play'),playIco=document.getElementById('playIco');
   function setPlaying(p){
-    playing=p;stage.classList.toggle('paused',!p);
+    playing=p;stage.classList.toggle('paused',!p||dragging);
     if(playBtn) playBtn.setAttribute('aria-label',p?'Pause':'Roll');
     if(playIco) playIco.innerHTML=p?'<path d="M6 4h4v16H6zM14 4h4v16h-4z" fill="currentColor"/>':'<path d="M6 3l15 9-15 9z" fill="currentColor"/>';
   }
@@ -546,13 +555,15 @@ body{margin:0;color:var(--ink);font-family:var(--small);background:
   // scrub
   function scrubAt(x){
     var r=strip.getBoundingClientRect();var p=Math.max(0,Math.min(.999,(x-r.left)/r.width));
-    t=p*total;var i=sceneAt(t);if(i!==cur) show(i,true);render();
+    t=p*total;var i=sceneAt(t);if(i!==cur) show(i,true,true);else seekScene(i);render();
   }
+  // 拖曳期間畫面停在 scrub 的那一幀，放開後依 playing 狀態恢復
   var dragging=false;
-  strip.addEventListener('pointerdown',function(e){dragging=true;try{strip.setPointerCapture(e.pointerId);}catch(_){}scrubAt(e.clientX);});
+  function endDrag(){if(!dragging) return;dragging=false;stage.classList.toggle('paused',!playing);}
+  strip.addEventListener('pointerdown',function(e){dragging=true;stage.classList.add('paused');try{strip.setPointerCapture(e.pointerId);}catch(_){}scrubAt(e.clientX);});
   strip.addEventListener('pointermove',function(e){if(dragging) scrubAt(e.clientX);});
-  strip.addEventListener('pointerup',function(){dragging=false;});
-  strip.addEventListener('pointercancel',function(){dragging=false;});
+  strip.addEventListener('pointerup',endDrag);
+  strip.addEventListener('pointercancel',endDrag);
 
   document.addEventListener('keydown',function(e){
     if(e.target&&e.target.tagName==='BUTTON'&&(e.key===' '||e.key==='Enter')) return;
@@ -597,6 +608,8 @@ body{margin:0;color:var(--ink);font-family:var(--small);background:
   function schedule(){
     if(!ac||!soundOn) return;
     var spb=60/148;
+    // 背景分頁被節流時 nextBeat 會落後；跳過已過去的拍子，不要一次補排擠在一起
+    if(nextBeat<ac.currentTime){var skip=Math.ceil((ac.currentTime-nextBeat)/spb);nextBeat+=skip*spb;beat+=skip;}
     while(nextBeat<ac.currentTime+.2){
       if(playing){
         pluck(nextBeat,line[beat%line.length]);
@@ -619,9 +632,21 @@ body{margin:0;color:var(--ink);font-family:var(--small);background:
     }catch(err){}
   }
   if(sndBtn) sndBtn.addEventListener('click',toggleSound);
+  // 分頁隱藏時暫停音訊時鐘，回來再續播
+  document.addEventListener('visibilitychange',function(){
+    if(!ac) return;
+    try{
+      if(document.hidden){if(ac.state==='running') ac.suspend();}
+      else if(soundOn&&ac.state==='suspended') ac.resume();
+    }catch(_){}
+  });
 
   var h0=parseInt((location.hash.match(/s=(\d+)/)||[])[1],10);
-  if(h0>=0&&h0<scenes.length){t=starts[h0]+0.001;show(h0,false);}else show(0,false);
+  var i0=(h0>=0&&h0<scenes.length)?h0:0;
+  if(reduce){
+    // 減少動態：預設不自動播放，停在第一張字卡排好的畫面
+    setPlaying(false);t=starts[i0]+durs[i0]*SETTLE;show(i0,false,true);
+  } else {t=starts[i0]+0.001;show(i0,false);}
   render();
   requestAnimationFrame(loop);
 })();

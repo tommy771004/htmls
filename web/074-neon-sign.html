@@ -145,8 +145,11 @@
   .seg button:focus-visible{outline:1px dashed #fff}
   .presets{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-top:1px dashed rgba(255,255,255,.12);padding-top:14px}
   .presets .lab{margin:0 6px 0 0}
-  .chipbtn{min-height:40px;padding:0 14px;border-radius:20px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.25);color:#e9e4dc;font-family:var(--sans);font-size:14px;cursor:pointer}
-  .chipbtn:hover,.chipbtn:focus-visible{border-color:var(--c);color:#fff;outline:none;box-shadow:0 0 10px color-mix(in srgb,var(--c) 40%,transparent)}
+  /* presets use the same square key as .seg so the box has one button language */
+  .chipbtn{min-height:44px;padding:0 12px;border:1px solid #000;border-radius:4px;background:linear-gradient(#3a3c40,#2a2c2f);color:#d9d2c8;
+    font-family:var(--sans);font-size:14px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 2px 0 #111}
+  .chipbtn:hover{border-color:var(--c);color:#fff}
+  .chipbtn:focus-visible{outline:1px dashed #fff}
   .transformer{position:absolute;right:18px;top:-54px;width:118px;height:50px;border-radius:3px 3px 0 0;
     background:linear-gradient(#5a5c60,#3b3d40);border:1px solid #111;box-shadow:inset 0 1px 0 rgba(255,255,255,.15);
     font-family:var(--stencil);font-size:9px;letter-spacing:.14em;color:#1b1b1b;padding:7px 9px;line-height:1.35}
@@ -265,9 +268,11 @@
   })();
 
   /* ---------------- gases ---------------- */
+  // tube stock, not a periodic table: only clear-glass neon (Ne) and argon–mercury (Ar/Hg) are named by their gas;
+  // the other colours come from phosphor coatings or tinted glass (uranium glass, canary glass)
   const GASES = [
-    { k: 'Ne', n: '氖紅', c: '#ff4a2e' }, { k: 'Pk', n: '桃紅', c: '#ff3fa4' }, { k: 'Ar', n: '氬藍', c: '#3ec9ff' },
-    { k: 'U', n: '鈾綠', c: '#7dff5a' }, { k: 'Na', n: '鈉黃', c: '#ffcf3a' }, { k: 'UV', n: '紫外', c: '#b25cff' }, { k: 'Xe', n: '氙白', c: '#f3f0ff' }
+    { k: 'Ne', n: '氖紅', c: '#ff4a2e' }, { k: 'Coat', n: '塗層粉', c: '#ff3fa4' }, { k: 'Ar/Hg', n: '氬汞藍', c: '#3ec9ff' },
+    { k: 'U', n: '鈾綠', c: '#7dff5a' }, { k: 'Canary', n: '黃玻璃', c: '#ffcf3a' }, { k: 'Lav', n: '塗層紫', c: '#b25cff' }, { k: 'Phos', n: '螢光白', c: '#f3f0ff' }
   ];
   let g1 = 1, g2 = 2;
   function gasRow(el, getter, setter) {
@@ -343,8 +348,14 @@
     document.body.classList.add('lit');
     hum(true);
     if (instant || reduce) { tubes.forEach(t => t.classList.add('on')); return; }
-    // each tube strikes on its own: a few stutters, then holds
-    tubes.forEach((t, i) => {
+    strike(tubes);
+    // whole sign dips once as the transformer settles
+    timers.push(setTimeout(() => document.body.classList.add('dim'), 900));
+    timers.push(setTimeout(() => document.body.classList.remove('dim'), 980));
+  }
+  // each tube strikes on its own: a few stutters, then holds
+  function strike(list) {
+    list.forEach((t, i) => {
       let at = 40 + Math.random() * 380 + i * 35;
       const n = 1 + ((Math.random() * 4) | 0);
       for (let k = 0; k < n; k++) {
@@ -353,9 +364,6 @@
       }
       timers.push(setTimeout(() => { t.classList.add('on'); crackle(.25); }, at));
     });
-    // whole sign dips once as the transformer settles
-    timers.push(setTimeout(() => document.body.classList.add('dim'), 900));
-    timers.push(setTimeout(() => document.body.classList.remove('dim'), 980));
   }
   function pickBroken() {
     const cand = tubes.filter(t => t.classList.contains('g'));
@@ -412,10 +420,24 @@
   const pw = $('power');
   if (pw) pw.addEventListener('click', () => { ensureAC(); setLit(!lit); });
   let typeT = 0;
-  ['t1', 't2'].forEach(id => { const el = $(id); if (el) el.addEventListener('input', () => { clearTimeout(typeT); typeT = setTimeout(() => { build(); if (lit) flashNew(); }, 160); }); });
-  function flashNew() { // retype: the sign re-strikes quickly
-    tubes.forEach(t => t.classList.remove('on'));
-    setLit(true);
+  ['t1', 't2'].forEach(id => { const el = $(id); if (el) el.addEventListener('input', () => { clearTimeout(typeT); typeT = setTimeout(retype, 160); }); });
+  // retype: only the glyphs that actually changed get a fresh tube and re-strike; the rest of the sign stays lit
+  function retype() {
+    const lines = [l1, l2];
+    const before = lines.map(l => Array.from(l.querySelectorAll('.g'), g => g.textContent));
+    build();                       // when lit, build() switches every tube on
+    if (!lit || reduce) return;
+    const fresh = [];
+    lines.forEach((l, li) => {
+      const els = Array.from(l.querySelectorAll('.g')), old = before[li];
+      let p = 0;
+      while (p < els.length && p < old.length && els[p].textContent === old[p]) p++;
+      let s = 0;
+      while (s < els.length - p && s < old.length - p && els[els.length - 1 - s].textContent === old[old.length - 1 - s]) s++;
+      for (let i = p; i < els.length - s; i++) if (!els[i].classList.contains('sp')) fresh.push(els[i]);
+    });
+    fresh.forEach(t => t.classList.remove('on'));
+    strike(fresh);
   }
   function segGroup(id, attr, fn) {
     const el = $(id); if (!el) return;
@@ -459,6 +481,7 @@
   });
 
   document.addEventListener('keydown', e => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.target && e.target.tagName === 'INPUT') return;
     if (e.key === 'p' || e.key === 'P') { ensureAC(); setLit(!lit); }
   });

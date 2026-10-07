@@ -64,9 +64,9 @@ h2.title{font-size:26px}
 .seal{position:absolute;right:36px;top:18px;width:116px;height:116px;transform:rotate(-11deg);transform-origin:50% 50%}
 
 /* 篩選列 */
-.filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 30px;background:var(--paper-2);font-size:13px}
+.filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 30px;background:transparent;box-shadow:inset 0 -1px 0 var(--rule);font-size:13px}
 .filters label{display:flex;align-items:center;gap:7px;color:var(--ink-2)}
-.sel{appearance:none;-webkit-appearance:none;border:0;border-radius:3px;background:var(--paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%231c3a2e' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 9px center;
+.sel{appearance:none;-webkit-appearance:none;border:0;border-radius:3px;background:var(--paper-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%231c3a2e' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 9px center;
   padding:6px 26px 6px 10px;color:var(--ink);min-height:32px;max-width:100%}
 .sel:hover{background-color:var(--slip)}
 .to{color:var(--ink-2)}
@@ -135,8 +135,8 @@ h2.title{font-size:26px}
 .bscale em{position:absolute;font-style:normal;transform:translateX(-50%);white-space:nowrap}
 
 /* 右頁：匯入匯出 */
-.io{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 30px;background:var(--paper-2)}
-.iobtn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:3px;background:var(--paper);padding:7px 12px 7px 10px;font-size:13px;min-height:34px;transition:background-color .15s var(--ease)}
+.io{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 30px;background:transparent;box-shadow:inset 0 -1px 0 var(--rule)}
+.iobtn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:3px;background:var(--paper-2);padding:7px 12px 7px 10px;font-size:13px;min-height:34px;transition:background-color .15s var(--ease)}
 .iobtn:hover{background:var(--slip)}
 .iobtn svg{width:17px;height:17px;flex:none;transition:transform .2s var(--ease)}
 .iobtn:hover svg{transform:translateX(2px)}
@@ -253,7 +253,7 @@ h2.title{font-size:26px}
         <svg class="guil" id="guilL" viewBox="0 0 640 150" preserveAspectRatio="none" aria-hidden="true"></svg>
         <svg class="rosette" id="roseL" viewBox="-60 -60 120 120" aria-hidden="true"></svg>
         <div class="band-text">
-          <p class="kind">存摺 · 完整財務儀表板</p>
+          <p class="kind">範例商業銀行 · 公館分行</p>
           <h1 id="bookName">林家帳本</h1>
           <dl class="acct"><div><dt>戶名</dt><dd id="holder"></dd></div><div><dt>帳號</dt><dd class="mono" id="acctNo"></dd></div><div><dt>期間</dt><dd id="periodTxt"></dd></div></dl>
         </div>
@@ -297,7 +297,7 @@ h2.title{font-size:26px}
         <div class="band-text">
           <p class="kind">存款往來明細</p>
           <h2 class="title">交易明細</h2>
-          <dl class="acct"><div><dt>本期筆數</dt><dd id="txCount"></dd></div><div><dt>存入</dt><dd id="txIn"></dd></div><div><dt>支出</dt><dd id="txOut"></dd></div></dl>
+          <dl class="acct"><div><dt>本期筆數</dt><dd id="txCount"></dd></div><div><dt>存入（含資金流入）</dt><dd id="txIn"></dd></div><div><dt>支出（含資金流出）</dt><dd id="txOut"></dd></div></dl>
         </div>
       </header>
       <div class="io">
@@ -340,7 +340,7 @@ const DATA = {
         {t:'收入',c:'薪資',m:'月薪 · 啟明設計',a:[62000,62000],d:5},
         {t:'收入',c:'薪資',m:'月薪 · 仁愛診所',a:[48000,48000],d:10},
         {t:'收入',c:'接案',m:['插畫接案 · 出版社','網站維護 · 咖啡店','翻譯稿費'],a:[5000,26000],n:[0,2]},
-        {t:'收入',c:'利息',m:'活存利息',a:[180,260],d:21},
+        {t:'收入',c:'利息',m:'活存利息',a:[1100,1600],d:21,on:['06','12']},
         {t:'收入',c:'獎金',m:'年終獎金',a:[124000,124000],d:23,on:['01']},
         {t:'支出',c:'房租',m:'房租 · 永和',a:[22000,22000],d:1},
         {t:'支出',c:'餐飲',m:['早餐 · 巷口','午餐便當','晚餐 · 家樂福','咖啡','全聯採買','外送','家庭聚餐'],a:[80,1100],n:[20,28]},
@@ -385,7 +385,7 @@ const DATA = {
         {t:'收入',c:'訂閱收入',m:'年約客戶 · 預收',a:[360000,900000],n:[0,1],g:.03},
         {t:'收入',c:'顧問專案',m:['導入顧問 · 物流業','資料串接專案'],a:[150000,420000],n:[0,1]},
         {t:'資金流入',c:'募資',m:'種子輪 · 募資入帳',a:[28000000,28000000],d:16,on:['2024-12']},
-        {t:'資金流入',c:'募資',m:'種子輪延伸 · 募資入帳',a:[30000000,30000000],d:12,on:['2026-03']},
+        {t:'資金流入',c:'募資',m:'A 輪 · 募資入帳',a:[30000000,30000000],d:12,on:['2026-03']},
         {t:'支出',c:'薪資',m:'薪資',a:[1700000,1700000],d:5,g:.015},
         {t:'支出',c:'薪資',m:'勞健保與勞退',a:[250000,250000],d:10,g:.015},
         {t:'支出',c:'雲端服務',m:['AWS 帳單','Vercel','Datadog','模型 API 用量'],a:[12000,45000],n:[4,5],g:.03},
@@ -710,7 +710,7 @@ function importCSV(text,fileName){
     if(!t||!isFinite(a)||amt===''){skipped++;return}
     if(t==='期初餘額'){opening=a;return}
     if(t==='預算'){if(c)budgets[c]=Math.abs(a);else skipped++;return}
-    const dm=d.replace(/[./]/g,'-').match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);if(!dm||+dm[2]<1||+dm[2]>12){skipped++;return}
+    const dm=d.replace(/[./]/g,'-').match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);if(!dm||+dm[2]<1||+dm[2]>12||+dm[3]<1||+dm[3]>dim(`${dm[1]}-${dm[2]}`)){skipped++;return}
     tx.push({d:`${dm[1]}-${dm[2].padStart(2,'0')}-${dm[3].padStart(2,'0')}`,t,c:c||'未分類',a:Math.abs(a),m:memo||c||t})});
   if(!tx.length)throw new Error('檔案裡沒有可讀取的交易列');
   const b={key:'custom',label:'自訂',name:(fileName||'').replace(/\.csv$/i,'').slice(0,24)||'我的帳本',holder:'自訂資料',account:'匯入 · '+tx.length+' 筆',opening,budgets,est:{},tx,custom:true};

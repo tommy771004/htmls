@@ -26,7 +26,6 @@ body{min-height:100vh;background:var(--bg);color:#8a8074;font-family:var(--light
 .dot.on{background:var(--warm);box-shadow:0 0 8px var(--glow)}
 .d0{left:12px;top:12px}.d1{right:12px;top:12px}.d2{right:12px;bottom:12px}.d3{left:12px;bottom:12px}
 .say{margin:clamp(18px,3vw,28px) 0 6px;font-size:clamp(16px,2.2vw,20px);color:#c9bba6;letter-spacing:.2em;text-align:center;min-height:1.6em;line-height:1.6}
-.sub{font-size:13px;color:#6f665c;letter-spacing:.14em;text-align:center}
 .ctl{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:center;margin-top:18px;width:min(640px,100%)}
 .ctl input[type=range]{flex:1 1 220px;accent-color:#e8b77a;min-height:40px}
 .btn{min-height:42px;padding:0 18px;border-radius:21px;border:1px solid #3a342d;background:#12100e;color:#d8c9b2;font-family:var(--light);font-size:15px;letter-spacing:.15em;cursor:pointer;transition:border-color .3s,color .3s}
@@ -44,14 +43,13 @@ body{min-height:100vh;background:var(--bg);color:#8a8074;font-family:var(--light
   <i class="dot d0"></i><i class="dot d1"></i><i class="dot d2"></i><i class="dot d3"></i>
 </div>
 <div class="say" id="say" aria-live="polite"></div>
-<div class="sub">四角的小點是秒：每十五秒亮一顆 · 點鐘面看彩蛋</div>
 <div class="ctl">
   <button class="btn" id="liveBtn" type="button" aria-pressed="true">現在</button>
   <input type="range" id="scrub" min="0" max="1439" step="1" aria-label="撥動時間">
   <span class="tm" id="tm">00:00</span>
   <button class="btn" id="eggBtn" type="button">光陰</button>
 </div>
-<p class="foot">一百一十個字，每分鐘只亮其中十幾個。<br>拖動滑桿撥時間 · 鍵盤 ← → 一分鐘、Shift 一小時 · 空白鍵回到現在</p>
+<p class="foot">一百一十個字，每分鐘只亮其中十幾個；點鐘面看彩蛋。<br>四角小點是秒，每十五秒亮一顆 · 拖動滑桿撥時間 · 鍵盤 ← → 一分鐘、Shift 一小時 · 空白鍵回到現在</p>
 
 <script>
 (function(){

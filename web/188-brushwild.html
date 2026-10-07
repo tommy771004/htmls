@@ -93,9 +93,9 @@ button:focus-visible,textarea:focus-visible{outline:3px solid var(--blue);outlin
 #touchnote{display:none;margin:0 0 14px;padding:10px 12px;border-radius:var(--r-m);background:#ffe3df;border:2px solid var(--red);font-size:13px;line-height:1.6}
 body.touch #touchnote{display:block}
 body.touch #title .keys{display:none}
-#pause .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:12px 0 4px}
-#pause .stats div{padding:8px 10px;border-radius:var(--r-m);border:2px solid var(--ink);background:#fff;font-size:12px}
-#pause .stats b{display:block;font-size:18px}
+#pause .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:12px;margin:14px 0 6px}
+#pause .stats div{font-size:12px;color:var(--ink-soft)}
+#pause .stats b{display:block;font-size:18px;color:var(--ink)}
 #bigmap{width:min(560px,calc(100vw - 64px));aspect-ratio:1;border-radius:var(--r-l);border:4px solid var(--ink);display:block;margin:10px auto 0;background:#3aa7ff}
 #err{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;background:var(--paper);font-size:16px;line-height:1.7}
 #loading{position:fixed;inset:0;display:grid;place-items:center;background:var(--sky);font-size:18px;font-weight:800;color:var(--ink)}
@@ -136,6 +136,14 @@ body.touch #title .keys{display:none}
   #palette{gap:8px;left:12px;bottom:14px}
   #hearts{left:12px;top:12px}#inkbar{left:12px;top:44px;width:150px}#gems{left:12px;top:64px}
   #prompt{bottom:170px}
+}
+/* 視窗不夠寬時頭目血條會壓到左下調色盤：移到調色盤上方，互動提示再往上讓位 */
+@media (max-width:1088px){
+  #boss{bottom:100px}
+  #hud:has(#boss:not(.hide)) #prompt{bottom:178px}
+}
+@media (max-width:720px){
+  #boss{bottom:auto;top:164px;width:calc(100vw - 24px)}
 }
 @media (prefers-reduced-motion:reduce){.t{animation:none}.pot{transition:none}#loading span{animation:none}}
 </style>
@@ -642,7 +650,10 @@ let lookDX = 0, lookDY = 0;
 addEventListener('keydown', e => {
   // 調整面板的 textarea 也要放行，否則打字會移動角色、按 T 會把面板關掉、空白鍵打不出來
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
-  if (['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
+  // 只在遊戲進行中攔截；標題、暫停與結局畫面放行 Tab 與空白鍵給按鈕使用（地圖開著時 Tab 仍用來關地圖）
+  const inPlay = G.running && !G.paused && !G.tuning;
+  const mapOpen = e.code === 'Tab' && !$('mapscreen').classList.contains('hide');
+  if ((inPlay || mapOpen) && ['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
   if (!keys.has(e.code)) hit.add(e.code);
   keys.add(e.code);
 });
@@ -2526,7 +2537,8 @@ function heroControl(dt) {
   const acc = P.onGround ? 14 : 5;
   P.vel.x = lerp(P.vel.x, mx * spd, damp(acc, dt));
   P.vel.z = lerp(P.vel.z, mz * spd, damp(acc, dt));
-  if (P.knock.lengthSq() > .01) { P.vel.x += P.knock.x; P.vel.z += P.knock.z; P.knock.multiplyScalar(Math.exp(-dt * 8)); }
+  // 擊退以時間積分（係數 60 等於原本 60Hz 每幀加一次的手感），不同更新率被打飛的距離一致
+  if (P.knock.lengthSq() > .01) { P.vel.x += P.knock.x * dt * 60; P.vel.z += P.knock.z * dt * 60; P.knock.multiplyScalar(Math.exp(-dt * 8)); }
   if (il > .1 && !P.swing) P.yaw += angDiff(P.yaw, Math.atan2(mx, mz)) * damp(14, dt);
   // 跳
   if (hit.has('Space') && !talking) {
@@ -4738,24 +4750,34 @@ function autoQuality(dt) {
     ISLE_GRASS.forEach(g => g.grp.traverse(o => { if (o.isInstancedMesh) o.count = Math.ceil(o.count / 2); }));
   }
 }
-let last = performance.now(), titleT = 0;
+let last = performance.now(), titleT = 0, titleAcc = 0, pausedDrawn = false;
+// 暫停畫面靜止：改尺寸或按了面板上的按鈕才補畫一幀
+addEventListener('resize', () => { pausedDrawn = false; });
+addEventListener('click', () => { pausedDrawn = false; }, true);
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(.05, (now - last) / 1000); last = now;
   globalKeys();
   if (G.running && !G.paused) { G.time += dt; S.time += dt; update(dt); }
-  else if (!G.running) {
-    // 標題畫面：鏡頭慢慢繞島
-    titleT += dt * .05;
+  else if (G.running) {
+    // 暫停、地圖、結局：只畫進入時的那一幀
+    if (pausedDrawn) { hit.clear(); clickL = clickR = false; return; }
+  } else {
+    // 標題畫面：鏡頭慢慢繞島，30 fps 就夠
+    titleAcc += dt;
+    if (titleAcc < 1 / 30) { hit.clear(); clickL = clickR = false; return; }
+    const tdt = Math.min(titleAcc, .05); titleAcc = 0;
+    titleT += tdt * .05;
     WIND.value = titleT * 20; waterMat.uniforms.t.value = titleT * 20;
     camera.position.set(Math.sin(titleT) * 240, 95, Math.cos(titleT) * 240);
     camera.lookAt(0, 20, 0);
     sky.position.copy(camera.position);
-    clouds.rotation.y += dt * .01;
+    clouds.rotation.y += tdt * .01;
     sun.position.set(40, 200, -30); sun.target.position.set(0, 0, 0);
   }
   if (scene.fog) { waterMat.uniforms.fogC.value.copy(scene.fog.color); waterMat.uniforms.fogN.value = scene.fog.near; waterMat.uniforms.fogF.value = scene.fog.far; }
   renderer.render(scene, camera);
+  pausedDrawn = G.running && G.paused;
   hit.clear(); clickL = clickR = false;
 }
 requestAnimationFrame(frame);

@@ -15,7 +15,7 @@ body.p2{--bg:#0077d9;--let:#ff3b00;--ink:#10003a;--acc:#ffd000;--pink:#ff2fa8;--
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
 body{background:#12001c;color:#ffe9c7;font-family:var(--blk);overflow-x:hidden;min-height:100vh;display:flex;flex-direction:column;align-items:center}
-.oil{position:fixed;inset:-20%;pointer-events:none;filter:blur(40px) saturate(1.4);opacity:.55;
+.oil{position:fixed;inset:-20%;pointer-events:none;filter:blur(20px) saturate(1.4);opacity:.55;
   background:
    radial-gradient(28% 32% at 20% 30%,var(--let),transparent 70%),
    radial-gradient(30% 26% at 78% 24%,var(--pink),transparent 70%),
@@ -24,8 +24,8 @@ body{background:#12001c;color:#ffe9c7;font-family:var(--blk);overflow-x:hidden;m
   animation:oil 22s ease-in-out infinite alternate}
 @keyframes oil{0%{transform:rotate(0) scale(1)}50%{transform:rotate(40deg) scale(1.15) translate(3%,-2%)}100%{transform:rotate(-30deg) scale(1.05) translate(-3%,3%)}}
 .stage{position:relative;z-index:1;width:min(92vw,680px);margin:18px 16px 0}
-#poster{display:block;width:100%;height:auto;filter:drop-shadow(0 20px 40px rgba(0,0,0,.6));cursor:crosshair;touch-action:none}
-.deck{position:relative;z-index:1;display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center;margin:14px 16px 20px;padding:8px 14px;border-radius:40px;background:rgba(20,0,30,.6);border:2px solid var(--let);max-width:calc(100vw - 32px)}
+#poster{display:block;width:100%;height:auto;filter:drop-shadow(0 20px 40px rgba(0,0,0,.6));cursor:crosshair;touch-action:pan-y}
+.deck{position:relative;z-index:1;display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;margin:14px 16px 20px;max-width:calc(100vw - 32px)}
 .deck label{font-size:12px;letter-spacing:.2em;color:var(--sun)}
 .deck input[type=range]{-webkit-appearance:none;appearance:none;width:150px;height:40px;background:transparent}
 .deck input[type=range]::-webkit-slider-runnable-track{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--acc),var(--let),var(--pink))}
@@ -35,9 +35,9 @@ body{background:#12001c;color:#ffe9c7;font-family:var(--blk);overflow-x:hidden;m
 .deck button{height:40px;padding:0 16px;border-radius:20px;border:3px solid var(--ink);background:var(--let);color:var(--ink);font:14px var(--blk);letter-spacing:.06em;cursor:pointer;transform:rotate(-2deg)}
 .deck button:nth-of-type(2){background:var(--acc);transform:rotate(2deg)}
 .deck button:focus-visible,.deck input:focus-visible{outline:3px dashed var(--sun);outline-offset:3px}
-.hint{position:relative;z-index:1;font:italic 13px Georgia,serif;color:#e6c9ff;margin:-8px 16px 22px;text-align:center}
+.hint{position:relative;z-index:1;font:italic 13px/1.7 Georgia,serif;color:#e6c9ff;margin:-8px 16px 22px;text-align:center;max-width:38em}
 @media (prefers-reduced-motion:reduce){ .oil{animation:none} }
-.hint{max-width:38em;line-height:1.7}.poster-notes{max-width:680px;width:92vw;display:grid;grid-template-columns:1fr 1fr;gap:24px;border-top:2px solid var(--let);padding:24px 0 50px;z-index:1;font:15px/1.6 Georgia,serif;color:#ffe9c7}.poster-notes h2{font:20px var(--blk);color:var(--sun);margin:0 0 12px}.poster-notes p{margin:0}@media(max-width:480px){.poster-notes{grid-template-columns:1fr;gap:20px}}
+.poster-notes{max-width:680px;width:92vw;display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:24px 0 50px;z-index:1;font:15px/1.6 Georgia,serif;color:#ffe9c7}.poster-notes h2{font:20px var(--blk);color:var(--sun);margin:0 0 12px}.poster-notes p{margin:0}@media(max-width:480px){.poster-notes{grid-template-columns:1fr;gap:20px}}
 #chromaticEdge{transform:translate(-1.2px,-1.2px);animation:inkRegister 7s ease-in-out infinite alternate}@keyframes inkRegister{to{transform:translate(1px,.4px)}}@media(prefers-reduced-motion:reduce){#chromaticEdge{animation:none}}
 </style>
 </head>
@@ -48,7 +48,7 @@ body{background:#12001c;color:#ffe9c7;font-family:var(--blk);overflow-x:hidden;m
 <svg id="poster" viewBox="0 0 600 900" role="img" aria-label="Psychedelic concert poster: The Electric Marmalade, with The Velvet Tortoise and Sunday Soup Orchestra, October 13, 14 and 15 at the Grape Hall">
   <defs>
     <filter id="meltFilter" x="-15%" y="-15%" width="130%" height="130%">
-      <feTurbulence id="turb" type="fractalNoise" baseFrequency="0.009 0.022" numOctaves="2" seed="7" result="t">
+      <feTurbulence id="turb" type="fractalNoise" baseFrequency="0.009 0.022" numOctaves="1" seed="7" result="t">
         <animate id="turbAnim" attributeName="baseFrequency" dur="16s" values="0.009 0.022;0.014 0.012;0.007 0.026;0.009 0.022" repeatCount="indefinite"/>
       </feTurbulence>
       <feDisplacementMap id="disp" in="SourceGraphic" in2="t" scale="34" xChannelSelector="R" yChannelSelector="G"/>
@@ -104,9 +104,9 @@ body{background:#12001c;color:#ffe9c7;font-family:var(--blk);overflow-x:hidden;m
   <button id="pal">NEW COLORWAY</button>
   <button id="freeze" aria-pressed="false">FREEZE</button>
 </div>
-<p class="hint">Stir the poster with your pointer (or finger). Tap for a new colorway. ← → melt.</p>
+<p class="hint">Stir the poster with your pointer (or finger). Click it — or press NEW COLORWAY — for a new colorway. ← → melt.</p>
 
-<section class="poster-notes" aria-label="Concert programme"><div><h2>THREE NIGHTS.<br>ONE LONG TRIP.</h2><p>Friday — The Velvet Tortoise<br>Saturday — Sunday Soup Orchestra<br>Sunday — The Electric Marmalade</p></div><div><h2>AT THE GRAPE HALL</h2><p>A fictional 1967 concert, drawn one letter at a time. Follow the orange lettering into the light.<br>Doors at 7 · Dancing until late.</p></div></section><script>
+<section class="poster-notes" aria-label="Concert programme"><div><h2>PROGRAMME</h2><p>Nightly — The Electric Marmalade<br>with The Velvet Tortoise<br>and Sunday Soup Orchestra<br>Fri 13 · Sat 14 · Sun 15 October</p></div><div><h2>AT THE GRAPE HALL</h2><p>A fictional 1967 concert, drawn one letter at a time. Follow the orange lettering into the light.<br>Doors at 7 · Dancing until late.</p></div></section><script>
 (() => {
 'use strict';
 const $ = s => document.querySelector(s);
@@ -126,35 +126,46 @@ if (stars) [[70,90],[530,95],[60,600],[545,610],[92,770],[510,760]].forEach(([x,
 const disp = $('#disp'), meltIn = $('#melt');
 let base = 45, stir = 0, t0 = performance.now(), frozen = false, rot = 0, last = performance.now();
 let px = 300, py = 420;
-function setMelt(){ if (disp) disp.setAttribute('scale', (1 + base*.08 + stir*3).toFixed(1)); }
+let lastScale = -1;
+function setMelt(){ if (!disp) return; const s = 1 + base*.08 + stir*3; if (Math.abs(s - lastScale) < .1) return; lastScale = s; disp.setAttribute('scale', s.toFixed(1)); }
 if (meltIn) meltIn.addEventListener('input', () => { base = +meltIn.value; setMelt(); });
 svg.addEventListener('pointermove', e => {
   const r = svg.getBoundingClientRect(); const nx = (e.clientX - r.left)/r.width*600, ny = (e.clientY - r.top)/r.height*900;
   const v = Math.hypot(nx-px, ny-py); px = nx; py = ny; stir = Math.min(1, stir + v/300);
 });
+// colour change on a mouse click only; on touch the poster scrolls and the button changes colours
 let downAt = 0; svg.addEventListener('pointerdown', () => { downAt = performance.now(); });
-svg.addEventListener('pointerup', () => { if (performance.now() - downAt < 300) nextPalette(); });
+svg.addEventListener('pointerup', e => { if (e.pointerType === 'mouse' && performance.now() - downAt < 300) nextPalette(); });
 const PALS = ['p0','p1','p2'];
 let pi = 0;
 function nextPalette(){ document.body.classList.remove(PALS[pi]); pi = (pi+1)%PALS.length; document.body.classList.add(PALS[pi]); stir = 1; }
 const pb = $('#pal'); if (pb) pb.addEventListener('click', nextPalette);
-const fb = $('#freeze'); if (fb) fb.addEventListener('click', () => { frozen = !frozen; fb.setAttribute('aria-pressed', frozen); fb.textContent = frozen ? 'THAW' : 'FREEZE'; try { frozen || reduce ? svg.pauseAnimations() : svg.unpauseAnimations(); document.querySelector('.oil').style.animationPlayState=frozen?'paused':'running';document.getElementById('chromaticEdge').style.animationPlayState=frozen?'paused':'running'; } catch(_){} });
+const fb = $('#freeze'); if (fb) fb.addEventListener('click', () => { frozen = !frozen; fb.setAttribute('aria-pressed', frozen); fb.textContent = frozen ? 'THAW' : 'FREEZE'; try { document.querySelector('.oil').style.animationPlayState=frozen?'paused':'running';document.getElementById('chromaticEdge').style.animationPlayState=frozen?'paused':'running'; } catch(_){} syncAnim(); });
 addEventListener('keydown', e => {
-  if (e.key==='ArrowRight' || e.key==='ArrowUp') { base = Math.min(100, base+5); }
-  else if (e.key==='ArrowLeft' || e.key==='ArrowDown') { base = Math.max(0, base-5); }
+  if (e.target === meltIn) return; // the slider steps itself; its input event syncs base
+  if (e.key==='ArrowRight') { e.preventDefault(); base = Math.min(100, base+5); }
+  else if (e.key==='ArrowLeft') { e.preventDefault(); base = Math.max(0, base-5); }
   else if (e.key==='Enter' && !(document.activeElement && document.activeElement.tagName==='BUTTON')) { nextPalette(); return; }
   else return;
   if (meltIn) meltIn.value = base; setMelt();
 });
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-if (reduce) { try { svg.pauseAnimations(); } catch(_){} }
+let visible = true, running = false;
+// rAF loop and SMIL filters only run while the poster is on screen and not frozen
+function syncAnim(){
+  const stop = frozen || reduce || !visible;
+  try { stop ? svg.pauseAnimations() : svg.unpauseAnimations(); } catch(_){}
+  if (!stop && !running) { running = true; last = performance.now(); requestAnimationFrame(frame); }
+}
 function frame(now){
+  if (frozen || reduce || !visible) { running = false; return; }
   const dt = Math.min(.05,(now-last)/1000); last = now;
-  if (!frozen && !reduce) { rot += dt*4; if (rays) rays.style.transform = `rotate(${rot.toFixed(2)}deg)`; }
-  if (!frozen && !reduce) { stir *= .96; setMelt(); }
+  rot += dt*4; if (rays) rays.style.transform = `rotate(${rot.toFixed(2)}deg)`;
+  stir = stir < .001 ? 0 : stir * .96; setMelt();
   requestAnimationFrame(frame);
 }
-setMelt(); requestAnimationFrame(frame);
+if ('IntersectionObserver' in window) new IntersectionObserver(es => { visible = es[es.length-1].isIntersecting; syncAnim(); }).observe(svg);
+setMelt(); syncAnim();
 document.addEventListener('visibilitychange', () => { last = performance.now(); });
 })();
 </script>

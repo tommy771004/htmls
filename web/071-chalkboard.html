@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>3-2 畢氏定理｜粉筆黑板上的證明</title>
+<title>2-3 畢氏定理｜粉筆黑板上的證明</title>
 <meta name="description" content="粉筆逐筆描繪五步驟證明，拖曳頂點、三角形平移重排。收錄於 100 Creative HTML Works（071・黑板）。">
 <link rel="canonical" href="https://htmls-ruddy.vercel.app/web/071-chalkboard.html">
 <style>
@@ -105,7 +105,7 @@
   ol.steps li{
     position:relative;padding:.28em 0 .28em 2.1em;
     font-family:var(--hand);font-size:clamp(15px,1.3vw,19px);line-height:1.55;
-    opacity:.28;transition:opacity .6s ease, filter .6s ease;filter:blur(.6px);
+    opacity:.34;transition:opacity .6s ease;
     cursor:pointer;
   }
   ol.steps li::before{
@@ -113,8 +113,8 @@
     position:absolute;left:0;top:.3em;width:1.5em;height:1.5em;border:2px solid currentColor;border-radius:50%;
     display:grid;place-items:center;font-size:.9em;line-height:1;
   }
-  ol.steps li.done{opacity:.5;filter:none}
-  ol.steps li.on{opacity:1;filter:none}
+  ol.steps li.done{opacity:.5}
+  ol.steps li.on{opacity:1}
   ol.steps li.on::before{color:var(--accent)}
   ol.steps b{color:var(--accent);font-weight:400}
   .readout{
@@ -132,7 +132,6 @@
   .btn:hover,.btn:focus-visible{background:rgba(236,238,230,.08);outline:none;transform:rotate(-1.5deg)}
   .btn.primary{border-color:var(--accent);color:var(--accent)}
   .btn[disabled]{opacity:.3;cursor:default;transform:none}
-  .kbd{font-size:13px;opacity:.55}
 
   .memo{
     position:relative;display:inline-block;margin-top:.9em;
@@ -246,7 +245,7 @@
         </div>
 
         <div class="notes">
-          <p class="chap">第三章　平方根與畢氏定理　§3-2</p>
+          <p class="chap">第二章　平方根與畢氏定理　§2-3</p>
           <h1>畢氏定理</h1>
           <svg class="underline" viewBox="0 0 340 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 9 C 80 4, 170 12, 250 6 S 330 8, 337 5" stroke="#eceee6" stroke-width="3" fill="none" stroke-linecap="round" filter="url(#chalk)"/></svg>
           <p class="formula">a<sup>2</sup> + b<sup>2</sup> = c<sup>2</sup></p>
@@ -261,7 +260,6 @@
           <div class="ctrl">
             <button class="btn" id="prev" type="button">← 上一步</button>
             <button class="btn primary" id="next" type="button">下一步 →</button>
-            <span class="kbd">（或按 ← →）</span>
           </div>
           <div class="memo" aria-label="老師的提醒">
             <svg viewBox="0 0 200 60" preserveAspectRatio="none" aria-hidden="true"><path d="M20 8 C 70 -4, 170 0, 192 22 C 206 44, 150 60, 90 57 C 30 54, 2 42, 8 24 C 12 12, 40 4, 70 5" fill="none" stroke="#f4b3c2" stroke-width="2.4" stroke-linecap="round" filter="url(#chalk)"/></svg>

@@ -309,7 +309,7 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:5px;bac
     rule('-');
     L.push({type:'tot', a:'小計  ' + count + ' 項', b:'1,440'});
     L.push({type:'tot', a:'人生稅 TX 5%', b:'72'});
-    L.push({type:'tot', a:'週三小確幸折抵', b:'-72'});
+    L.push({type:'tot', a:'週' + '日一二三四五六'[d.getDay()] + '小確幸折抵', b:'-72'});
     rule('-');
     L.push({type:'tot big', a:'總計', b:'1,440 分'});
     t(' ', '');
@@ -345,9 +345,9 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:5px;bac
     return e;
   }
 
-  var printing = false, timer = null;
+  var printing = false, tearing = false, timer = null;
   function print(follow){
-    if (printing) return;
+    if (printing || tearing) return;
     printing = true;
     wrap.classList.remove('falling');
     paper.innerHTML = '';
@@ -363,10 +363,11 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:5px;bac
     step();
   }
   function tear(){
-    if (printing) return;
+    if (printing || tearing) return;
+    tearing = true;
     wrap.classList.add('falling');
     beep(220);
-    setTimeout(function(){ paper.innerHTML = ''; wrap.classList.remove('falling'); cart = {}; refresh(); lcdMsg('已清空。新的一天，從零分鐘開始。'); }, 950);
+    setTimeout(function(){ paper.innerHTML = ''; wrap.classList.remove('falling'); cart = {}; refresh(); tearing = false; lcdMsg('已清空。新的一天，從零分鐘開始。'); }, 950);
   }
   function randomDay(){
     cart = {};
@@ -378,7 +379,7 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:5px;bac
 
   var pb = $('print'), rb = $('random'), tb = $('tear');
   if (pb) pb.addEventListener('click', function(){ ensureAC(); print(true); });
-  if (rb) rb.addEventListener('click', function(){ ensureAC(); beep(660); randomDay(); lcdMsg('隨機生成了一天。跟你的也差不多吧？'); print(true); });
+  if (rb) rb.addEventListener('click', function(){ if (printing || tearing) return; ensureAC(); beep(660); randomDay(); lcdMsg('隨機生成了一天。跟你的也差不多吧？'); print(true); });
   if (tb) tb.addEventListener('click', function(){ ensureAC(); tear(); });
   document.addEventListener('keydown', function(e){
     if (e.key === 'Enter' && !(e.target && (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT'))){ e.preventDefault(); ensureAC(); print(true); }

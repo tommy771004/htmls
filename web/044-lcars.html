@@ -346,7 +346,7 @@ body.red .alertban{display:flex}
     { n:'ART. GRAVITY', v:98, c:'var(--c4)', nt:'DECK 9 SLIGHTLY BOUNCY' },
     { n:'COMMS ARRAY', v:76, c:'var(--c6)', nt:'14 UNREAD FROM MOTHER' },
     { n:'REPLICATORS', v:41, c:'var(--c3)', nt:'PRODUCING SOUP. ONLY SOUP.' },
-    { n:'COFFEE RESERVE', v:12, c:'var(--c1)', nt:'CRITICAL · MORALE AT RISK', warn:1 }
+    { n:'COFFEE RESERVE', v:12, c:'var(--c1)', nt:'CRITICAL · MORALE AT RISK', warn:1, drain:1 }
   ];
   var tiles = $('tiles');
   SYS.forEach(function(s, i){
@@ -398,7 +398,11 @@ body.red .alertban{display:flex}
     if(document.hidden) return;
     tickN++;
     for(var k = 0; k < 5; k++){ var e = numEls[Math.floor(Math.random() * numEls.length)]; if(e) e.textContent = rnum(); }
-    SYS.forEach(function(s){ s.cur = s.v + (Math.random() - .5) * (s.warn ? 3 : 4); paintTile(s); });
+    SYS.forEach(function(s){
+      if(s.drain) s.cur = Math.max(5, s.cur - .01);   // 消耗品只會減少，不會自己回升
+      else s.cur = s.v + (Math.random() - .5) * 4;
+      paintTile(s);
+    });
     if(clock) clock.textContent = stamp();
     if(shipTime){ var d = new Date(); shipTime.textContent = '2419.' + String(Math.floor(((d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds()) / 86400) * 1000)).padStart(3, '0'); }
     if(tickN % 9 === 0){ addLog(LOGS[li0++ % LOGS.length], true); beep('data'); }
@@ -428,6 +432,7 @@ body.red .alertban{display:flex}
   function setCond(c){
     document.body.classList.remove('red', 'yellow');
     if(c !== 'green') document.body.classList.add(c);
+    scopeC = null;   // 警報色改變，掃描器下一幀重讀一次顏色
     if(condTxt) condTxt.textContent = 'CONDITION ' + c.toUpperCase();
     if(c === 'red'){ startKlaxon(); addLog('ALL HANDS · RED ALERT. THIS IS NOT A DRILL. (IT IS A DRILL.)', true); }
     else stopKlaxon();
@@ -504,17 +509,24 @@ body.red .alertban{display:flex}
     blips = pick.map(function(p, i){ return { x:.08 + Math.random() * .86, y:.18 + Math.random() * .64, p:p, id:'C-' + String(i + 1 + Math.floor(Math.random() * 40)).padStart(2, '0'), seen:false }; });
     if(contactsEl) contactsEl.innerHTML = '';
   }
-  function drawScope(){
+  var scopeC = null, lastScopeT = 0;
+  function readScopeColors(){
+    var cs = getComputedStyle(document.body);
+    scopeC = { c1:cs.getPropertyValue('--c1').trim() || '#ff9900', c3:cs.getPropertyValue('--c3').trim() || '#ffcc99' };
+  }
+  function drawScope(now){
     if(!sctx) return;
+    now = now || performance.now();
     sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     sctx.fillStyle = 'rgba(5,5,10,.35)'; sctx.fillRect(0, 0, sw, sh);
     sctx.strokeStyle = 'rgba(153,153,255,.18)'; sctx.lineWidth = 1;
     for(var i = 1; i < 10; i++){ sctx.beginPath(); sctx.moveTo(sw * i / 10, 0); sctx.lineTo(sw * i / 10, sh); sctx.stroke(); }
     for(i = 1; i < 4; i++){ sctx.beginPath(); sctx.moveTo(0, sh * i / 4); sctx.lineTo(sw, sh * i / 4); sctx.stroke(); }
-    var cs = getComputedStyle(document.body);
-    var c1 = cs.getPropertyValue('--c1').trim() || '#ff9900', c3 = cs.getPropertyValue('--c3').trim() || '#ffcc99';
+    if(!scopeC) readScopeColors();
+    var c1 = scopeC.c1, c3 = scopeC.c3;
+    var dt = lastScopeT ? Math.min(100, now - lastScopeT) : 16; lastScopeT = now;
     if(sweeping){
-      sweepX += sw / 150;
+      sweepX += sw * dt / 2500;   // 時間制：約 2.5 秒掃完，與螢幕更新率無關
       var g = sctx.createLinearGradient(sweepX - 60, 0, sweepX, 0); g.addColorStop(0, 'rgba(255,153,0,0)'); g.addColorStop(1, 'rgba(255,153,0,.35)');
       sctx.fillStyle = g; sctx.fillRect(sweepX - 60, 0, 60, sh);
       sctx.fillStyle = c1; sctx.fillRect(sweepX, 0, 2, sh);
@@ -541,10 +553,16 @@ body.red .alertban{display:flex}
   }
   function startSweep(){ newContacts(); sweepX = 0; sweeping = true; var st = $('scanState'); if(st) st.textContent = 'SWEEP IN PROGRESS'; }
   function startScope(){ sizeScope(); if(!raf && sctx) raf = requestAnimationFrame(drawScope); if(!blips.length) startSweep(); }
-  function stopScope(){ if(raf){ cancelAnimationFrame(raf); raf = null; } }
+  function stopScope(){ if(raf){ cancelAnimationFrame(raf); raf = null; } lastScopeT = 0; }
   var scanBtn = $('scanBtn'); scanBtn && scanBtn.addEventListener('click', function(){ audio(); beep('up'); startSweep(); });
   window.addEventListener('resize', function(){ if(current === 'sensor') sizeScope(); });
-  document.addEventListener('visibilitychange', function(){ if(document.hidden) stopScope(); else if(current === 'sensor') startScope(); });
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden){ stopScope(); stopKlaxon(); }
+    else {
+      if(current === 'sensor') startScope();
+      if(document.body.classList.contains('red')) startKlaxon();
+    }
+  });
 
   /* ---------- crew ---------- */
   var CREW = [

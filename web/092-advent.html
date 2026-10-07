@@ -28,13 +28,9 @@
   .wrap{max-width:1180px;margin:0 auto;padding:clamp(18px,3vw,36px) clamp(14px,3vw,36px) 48px;position:relative}
 
   header{text-align:center;position:relative;margin-bottom:clamp(14px,2vw,22px)}
-  .overline{font-variant:small-caps;letter-spacing:.3em;font-size:clamp(11px,1.2vw,13px);color:var(--gold-l);display:flex;align-items:center;justify-content:center;gap:14px}
-  .overline::before,.overline::after{content:"";height:1px;width:clamp(30px,8vw,110px);background:linear-gradient(90deg,transparent,var(--gold))}
-  .overline::after{transform:scaleX(-1)}
+  .overline{font-variant:small-caps;letter-spacing:.3em;font-size:clamp(11px,1.2vw,13px);color:var(--gold-l)}
   h1{font-family:var(--script);font-weight:normal;margin:.1em 0 0;line-height:1.05;font-size:clamp(36px,5.2vw,74px);white-space:nowrap;
-    color:var(--gold-l);
-    background:linear-gradient(180deg,var(--gold-l) 10%,var(--gold) 50%,var(--gold-d) 90%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-    filter:drop-shadow(0 2px 0 rgba(60,5,10,.8))}
+    color:var(--gold-l)}
   .sub{margin:.35em auto 0;max-width:640px;font-style:italic;font-size:clamp(14px,1.5vw,16px);line-height:1.5;color:#f1dcc0}
 
   /* the board: gold-framed printed card */
@@ -64,13 +60,12 @@
   .door.open .leaf{transform:rotateY(-112deg)}
   .face,.back{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:3px}
   .face{background-repeat:no-repeat;
-    box-shadow:0 0 0 1px rgba(255,240,210,.35),inset 0 0 0 1px rgba(0,0,0,.15);
     display:flex;align-items:center;justify-content:center}
   .face::after{content:"";position:absolute;inset:3px;border:1px dashed rgba(255,240,210,.55);border-radius:2px;pointer-events:none}
   .num{position:relative;font-family:var(--serif);font-weight:bold;font-size:clamp(18px,2.3vw,30px);color:var(--gold-l);
     min-width:1.9em;height:1.9em;display:grid;place-items:center;border-radius:50%;
     background:radial-gradient(circle at 40% 35%,rgba(120,10,20,.92),rgba(70,5,12,.92));
-    box-shadow:0 0 0 2px var(--gold),0 0 0 4px rgba(70,5,12,.8),0 3px 8px rgba(0,0,0,.5);text-shadow:0 1px 0 #000}
+    box-shadow:0 0 0 2px var(--gold);text-shadow:0 1px 0 #000}
   .door.big .num{font-size:clamp(28px,4vw,52px)}
   .back{transform:rotateY(180deg);background:
       repeating-linear-gradient(0deg,rgba(120,80,30,.08) 0 1px,transparent 1px 4px),
@@ -79,10 +74,8 @@
   .back::after{content:"";position:absolute;inset:6px;border:1px solid rgba(166,122,36,.5)}
 
   .ledger{display:flex;flex-wrap:wrap;gap:14px 26px;align-items:center;justify-content:space-between;margin-top:clamp(16px,2vw,24px)}
-  .note{flex:1 1 420px;min-height:78px;position:relative;padding:14px 20px 14px 70px;background:var(--cream);color:#3a1a12;border-radius:var(--r-m);overflow:hidden;
-    box-shadow:0 10px 24px -10px rgba(0,0,0,.6);font-size:clamp(14px,1.4vw,16px);line-height:1.5}
-  .note::before{content:"";position:absolute;left:0;top:0;bottom:0;width:52px;background:repeating-linear-gradient(-45deg,var(--red-l) 0 8px,var(--cream) 8px 16px)}
-  .note b{font-family:var(--script);font-weight:normal;color:var(--red);font-size:1.35em;margin-right:.2em}
+  .note{flex:1 1 420px;min-height:78px;position:relative;padding:0;background:transparent;color:var(--cream);font-size:clamp(14px,1.4vw,16px);line-height:1.5}
+  .note b{font-family:var(--script);font-weight:normal;color:var(--gold-l);font-size:1.35em;margin-right:.2em}
   .tally{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .count{font-variant:small-caps;letter-spacing:.12em;font-size:14px;color:var(--gold-l);line-height:1.4}
   .count strong{display:block;font-size:30px;letter-spacing:0;color:var(--cream);font-variant:normal}
@@ -97,11 +90,8 @@
     #board{grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(8,1fr);aspect-ratio:4/8.3}
     .num{font-size:20px}
     .door.big .num{font-size:34px}
-    .note{padding-left:58px}
-    .note::before{width:40px}
     .corner{width:34px;height:34px}
-    .overline{letter-spacing:.16em;gap:8px}
-    .overline::before,.overline::after{width:20px}
+    .overline{letter-spacing:.16em}
     h1{white-space:normal}
   }
   @media (prefers-reduced-motion:reduce){ .leaf{transition-duration:.01s} }
@@ -113,7 +103,7 @@
   <header>
     <div class="overline">Mistletoe Lane · Est. 1911 · No. 092</div>
     <h1>Twenty-Four Small Doors</h1>
-    <p class="sub">A printed advent calendar in the old manner: one door a day until Christmas Eve. It is not December. Open them anyway — nobody from the calendar authority is watching.</p>
+    <p class="sub" id="sub">A printed advent calendar in the old manner: one door a day until Christmas Eve. It is not December. Open them anyway — nobody from the calendar authority is watching.</p>
   </header>
 
   <div class="frame">
@@ -367,7 +357,17 @@
   nextBtn && nextBtn.addEventListener('click', () => {
     for (let n = 1; n <= 24; n++) if (!opened.has(n)) { toggle(n, true); doors[n].focus({ preventScroll: true }); return; }
   });
+  // two-step reset: first click arms it for 3 s, second click actually closes every door
+  let resetArmed = null;
+  const disarmReset = () => { clearTimeout(resetArmed); resetArmed = null; if (resetBtn) resetBtn.textContent = 'Close them all'; };
   resetBtn && resetBtn.addEventListener('click', () => {
+    if (!opened.size) return;
+    if (!resetArmed) {
+      resetBtn.textContent = 'Click again to close all';
+      resetArmed = setTimeout(disarmReset, 3000);
+      return;
+    }
+    disarmReset();
     opened.clear(); save(); refresh();
     for (let n = 1; n <= 24; n++) { doors[n].classList.remove('open'); doors[n].setAttribute('aria-pressed', 'false'); }
     if (note) note.innerHTML = '<b>All shut.</b> The calendar has been re-glued. It’s the first of December again, emotionally.';
@@ -395,7 +395,15 @@
   // days until Christmas in the footer
   (() => {
     const now = new Date(), y = now.getMonth() === 11 && now.getDate() > 25 ? now.getFullYear() + 1 : now.getFullYear();
-    const days = Math.ceil((new Date(y, 11, 25) - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 864e5);
+    // whole calendar days via UTC, so a DST change between now and the 25th can't add or drop a day
+    const days = Math.round((Date.UTC(y, 11, 25) - Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) / 864e5);
+    const sub = $('#sub');
+    if (sub && now.getMonth() === 11) {
+      const d = now.getDate();
+      sub.textContent = d <= 24
+        ? `A printed advent calendar in the old manner: one door a day until Christmas Eve. Today is December ${d} — door ${d} is yours.`
+        : 'A printed advent calendar in the old manner: one door a day until Christmas Eve. Christmas has come — every door is fair game now.';
+    }
     const f = $('#foot');
     if (f) f.textContent = days === 0 ? '— it is Christmas Day. Put the calendar down and eat something —'
       : `— ${days} sleep${days === 1 ? '' : 's'} until Christmas · with the compliments of the Mistletoe Lane Printing Society —`;

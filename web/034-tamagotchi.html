@@ -69,15 +69,14 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rend
 .caption{font:12px var(--mono);color:#9a7f96;letter-spacing:.12em;text-align:center}
 
 .quick{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:min(380px,100%)}
-.q{min-height:52px;border:0;border-radius:18px;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 0 rgba(74,58,85,.18);transition:transform .08s,box-shadow .08s}
-.q:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(74,58,85,.18)}
+.q{min-height:52px;border:0;border-radius:18px;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(255,255,255,.5);transition:background .15s}
+.q:hover{background:rgba(255,255,255,.8)}
+.q:active{background:#fff}
 .q svg{width:22px;height:22px}
-.q:nth-child(1){background:var(--peach)}.q:nth-child(2){background:#ffd6e5}.q:nth-child(3){background:var(--lemon)}
-.q:nth-child(4){background:var(--lav)}.q:nth-child(5){background:var(--mint)}.q:nth-child(6){background:#d6ecff}
 .q:disabled{opacity:.45;cursor:not-allowed}
 
 /* diary */
-.diary{background:#fff;border-radius:22px;padding:18px 20px;box-shadow:0 14px 30px -18px rgba(90,60,110,.5)}
+.diary{padding:0}
 .diary h2{margin:0 0 10px;font-size:18px;display:flex;justify-content:space-between;align-items:baseline}
 .diary h2 small{font:12px var(--mono);color:#b58aa5;letter-spacing:.1em}
 .rows{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px;align-items:center}
@@ -317,12 +316,12 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rend
   function busy(){ return mode === "egg" || mode === "hatch" || mode === "eat" || mode === "game" || mode === "clean" || mode === "med"; }
   function act(a){
     if(S.stage === 0){ toast("蛋還在孵，再等一下下……"); return; }
+    if(busy()){ if(a === "light") toast("等咕咕忙完再關燈"); return; }
     if(a === "light"){
       S.light = !S.light; S.asleep = !S.light; S.sleepT = 0; mode = "idle"; sel = -1; beep(S.light ? 1200 : 500, .08);
       log(S.light ? "開燈了，咕咕揉揉眼睛。" : "關燈。咕咕縮成一團睡著了。"); refresh(); return;
     }
     if(S.asleep){ toast("咕咕在睡覺，先開燈吧"); beep(300, .12); return; }
-    if(busy() && mode !== "menuFeed" && mode !== "stat") return;
     if(a === "meal" || a === "snack"){
       if(S.sick && a === "meal"){ toast("咕咕生病了，吃不下"); beep(300,.15); return; }
       if(a === "meal" && S.hunger >= 4){ toast("咕咕搖頭：吃不下了！"); mode = "no"; modeT = 0; beep([400,300],.08,2); return; }
@@ -382,6 +381,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rend
     if(!S.asleep){ S.poopT++; if(S.poopT >= 35 && S.poop < 3 && Math.random() < .25){ S.poop++; S.poopT = 0; log("噗。咕咕便便了。"); beep([300,200],.1,2); } }
     else { S.sleepT++; if(S.sleepT % 15 === 0 && S.happy < 4){ S.happy++; } }
     if((S.poop >= 2 || S.hunger === 0) && !S.sick){ S.sickT++; if(S.sickT > 25){ S.sick = true; S.sickT = 0; log("咕咕生病了，頭上冒出小骷髏。"); beep([400,300,200],.12,3); } }
+    else if(!S.sick && S.sickT > 0) S.sickT--;
     var good = S.hunger >= 2 && S.happy >= 2 && !S.sick;
     if(good){ S.growT++; if(S.growT >= 30){ S.growT = 0; S.age++; grow(); } }
     save(); refresh();
@@ -546,7 +546,19 @@ canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rend
   /* ---------- loop ---------- */
   size(); refresh(); renderLog();
   setInterval(tick, 1000);
-  function loop(){ if(!document.hidden){ anim++; compose(); paint(); } requestAnimationFrame(loop); }
+  /* fixed 60 Hz step: animation thresholds are counted in 1/60 s ticks, independent of the display refresh rate */
+  var STEP = 1000 / 60, lastTs = 0, acc = 0;
+  function loop(ts){
+    if(document.hidden){ lastTs = 0; acc = 0; }
+    else {
+      if(!lastTs) lastTs = ts;
+      acc += Math.min(250, ts - lastTs); lastTs = ts;
+      var stepped = false;
+      while(acc >= STEP){ acc -= STEP; anim++; compose(); stepped = true; }
+      if(stepped) paint();
+    }
+    requestAnimationFrame(loop);
+  }
   requestAnimationFrame(loop);
 })();
 </script>

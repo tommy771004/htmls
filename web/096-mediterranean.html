@@ -90,16 +90,16 @@
 /* Travel journal: the landscape stays beside the story, not above it. */
 html{scroll-behavior:smooth;scroll-padding-top:28px}
 .wrap{max-width:1480px;padding:26px clamp(24px,4vw,64px) 36px}
-.travel-nav{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--shade);padding-bottom:20px;margin-bottom:32px;font:11px system-ui;letter-spacing:.15em;text-transform:uppercase;color:var(--aegean-d)}.travel-nav a{color:inherit;text-decoration:none;padding:10px 0}
-#m1{display:none}header{text-align:left;position:relative;padding:0 0 32px;border-bottom:1px solid var(--shade);margin-bottom:38px}header .eyebrow{font:10px system-ui;letter-spacing:.24em}h1{font-size:clamp(62px,7.5vw,108px);margin:18px 0 15px;letter-spacing:-.045em}.sub{font-size:16px;max-width:48ch}
+.travel-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:40px;font-family:var(--text);font-size:13px;font-variant-caps:all-small-caps;letter-spacing:.1em;color:var(--aegean-d)}.travel-nav a{color:inherit;text-decoration:none;padding:10px 0}
+#m1{display:none}header{text-align:left;position:relative;padding:0;margin-bottom:40px}header .eyebrow{font-family:var(--text);font-size:13px;font-variant-caps:all-small-caps;text-transform:none;letter-spacing:.12em}h1{font-size:clamp(62px,7.5vw,108px);margin:18px 0 15px;letter-spacing:-.045em}.sub{font-size:16px;max-width:48ch}
 .journey{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.9fr);gap:clamp(40px,6vw,85px);align-items:start}
 .hero{display:flex;flex-direction:column;align-items:stretch;gap:0;margin:0;position:sticky;top:24px}
-.scene-label{display:flex;justify-content:space-between;font:10px system-ui;letter-spacing:.16em;color:var(--terra-d);margin-bottom:17px}
-.arch{aspect-ratio:1.5;border-radius:44% 44% 3px 3px / 50% 50% 3px 3px;box-shadow:0 0 0 1px var(--shade),0 16px 28px -24px #735d42;margin:0 0 20px}
-.almanac{display:grid;grid-template-columns:1fr 1fr;gap:12px 22px;padding:0}.clock{font-size:49px}.clock small{display:block;font-size:16px;margin:8px 0 0}.alt{font-size:13px;margin:0;min-height:3em}.facts{grid-column:1/-1}.facts div{padding-top:9px;padding-bottom:9px;font:9px system-ui;letter-spacing:.15em}.facts b{font-size:21px}.months{margin:0;gap:3px;align-content:start}.chip{min-width:40px;padding:0 7px;font-size:12px;min-height:36px;border-radius:2px}.dial{grid-column:1/-1;margin:0}.dial label{font-size:9px}.play{grid-column:2;grid-row:3;justify-self:end;font-size:12px;min-height:38px;margin:0;border-radius:2px}
-.journal-head{display:flex;justify-content:space-between;align-items:end;border-bottom:1px solid var(--shade);padding-bottom:24px;margin-bottom:20px}.journal-head h2{text-align:left;font-size:34px;margin:0}.journal-head p{font-size:12px;font-style:italic;max-width:15ch;margin:0;color:#6b655a}.day-nav{display:flex;gap:9px;margin:0 0 22px}.day-nav a{font:11px system-ui;color:var(--aegean-d);text-decoration:none;border:1px solid var(--shade);padding:12px 14px;transition:color 180ms,background 180ms}.day-nav a[aria-current=true]{background:var(--aegean-d);color:var(--lime);border-color:var(--aegean-d)}
-.days{display:block}.door{padding:30px 0 34px;background:transparent;box-shadow:none;border-radius:0;border-bottom:1px solid var(--shade);scroll-margin-top:24px;position:relative}.door::before{display:none}.door .dn{position:static;transform:none;width:auto;height:auto;display:block;text-align:left;background:none;color:var(--terra);font:11px system-ui;letter-spacing:.2em;margin-bottom:12px}.door .dn::before{content:'DAY 0'}.door h3{text-align:left;font-size:40px;color:var(--aegean-d);letter-spacing:-.02em}.door .where{text-align:left;font-size:15px;margin:7px 0 22px}.door li button{grid-template-columns:53px 1fr;padding:16px 10px;font-size:14px;line-height:1.65;border-top:1px solid var(--shade);border-radius:0;position:relative;transition:background 250ms,color 250ms,box-shadow 250ms}.door li button.on{background:#e4e9e6;box-shadow:inset 3px 0 var(--aegean)}.door li time{font-size:15px}.door li button span{transition:transform 250ms}.door li button.on span{transform:translateX(3px)}
-.selection{border-top:1px solid var(--shade);padding-top:13px;font-size:12px;line-height:1.6;margin:16px 0 0;color:var(--aegean-d);min-height:48px}.selection strong{font-weight:normal;color:var(--terra-d)}
+.scene-label{display:flex;justify-content:space-between;font-family:var(--text);font-size:13px;font-variant-caps:all-small-caps;letter-spacing:.1em;color:var(--terra-d);margin-bottom:17px}
+.arch{aspect-ratio:1.5;border-radius:44% 44% 3px 3px / 50% 50% 3px 3px;box-shadow:inset var(--rx,14px) 12px 0 rgba(120,100,70,.18),0 0 0 1px var(--shade),0 16px 28px -24px #735d42;margin:0 0 20px}
+.almanac{display:grid;grid-template-columns:1fr 1fr;gap:12px 22px;padding:0}.clock{font-size:49px}.clock small{display:block;font-size:16px;margin:8px 0 0}.alt{font-size:13px;margin:0;min-height:3em}.facts{grid-column:1/-1;border-bottom:0}.facts div{padding-top:9px;padding-bottom:9px;font-family:var(--text);font-size:13px;font-variant-caps:all-small-caps;text-transform:none;letter-spacing:.08em}.facts div+div{border-left:0}.facts b{font-size:21px;font-variant-caps:normal}.months{margin:0;gap:3px;align-content:start}.chip{min-width:40px;padding:0 7px;font-size:12px;min-height:36px;border-radius:2px}.dial{grid-column:1/-1;margin:0}.dial label{font-size:13px;font-variant-caps:all-small-caps;text-transform:none;letter-spacing:.08em}.play{grid-column:2;grid-row:3;justify-self:end;font-size:12px;min-height:38px;margin:0;border-radius:2px}
+.journal-head{display:flex;justify-content:space-between;align-items:end;margin-bottom:32px}.journal-head h2{text-align:left;font-size:34px;margin:0}.journal-head p{font-size:12px;font-style:italic;max-width:15ch;margin:0;color:#6b655a}.day-nav{display:flex;gap:9px;margin:0 0 22px}.day-nav a{font:11px system-ui;color:var(--aegean-d);text-decoration:none;border:1px solid var(--shade);padding:12px 14px;transition:color 180ms,background 180ms}.day-nav a[aria-current=true]{background:var(--aegean-d);color:var(--lime);border-color:var(--aegean-d)}
+.days{display:block}.door{padding:30px 0 34px;background:transparent;box-shadow:none;border-radius:0;border-bottom:1px solid var(--shade);scroll-margin-top:24px;position:relative}.door::before{display:none}.door .dn{position:static;transform:none;width:auto;height:auto;display:block;text-align:left;background:none;color:var(--terra);font:11px system-ui;letter-spacing:.2em;margin-bottom:12px}.door .dn::before{content:'DAY 0'}.door h3{text-align:left;font-size:40px;color:var(--aegean-d);letter-spacing:-.02em}.door .where{text-align:left;font-size:15px;margin:7px 0 22px}.door li button{grid-template-columns:53px 1fr;padding:16px 10px;font-size:14px;line-height:1.65;border-top:0;border-radius:0;position:relative;transition:background 250ms,color 250ms,box-shadow 250ms}.door li button.on{background:#e4e9e6;box-shadow:inset 3px 0 var(--aegean)}.door li time{font-size:15px}.door li button span{transition:transform 250ms}.door li button.on span{transform:translateX(3px)}
+.selection{padding-top:13px;font-size:12px;line-height:1.6;margin:16px 0 0;color:var(--aegean-d);min-height:48px}.selection strong{font-weight:normal;color:var(--terra-d)}
 a:focus-visible,button:focus-visible{outline:2px solid var(--aegean);outline-offset:4px}.door li button:focus-visible{outline:2px solid var(--aegean);outline-offset:-2px}
 footer{text-transform:none;letter-spacing:.06em;font-size:11px;text-align:left}
 /* Footer plate: an engraving of the island in the page's own blue, full-bleed to the bottom edge. */
@@ -115,7 +115,7 @@ footer{text-transform:none;letter-spacing:.06em;font-size:11px;text-align:left}
 @media(min-width:1001px){.arch{max-height:calc(100svh - 440px);min-height:200px}}
 @media(min-width:1001px) and (max-height:800px){.arch{aspect-ratio:1.9}.hero{top:14px}.almanac{gap:8px 16px}.selection{font-size:11px;margin-top:8px;padding-top:8px}.clock{font-size:40px}}
 @media(max-width:1000px){.journey{grid-template-columns:1fr;gap:45px}.hero{position:relative;top:auto;max-width:760px;width:100%;margin:auto}.arch{aspect-ratio:1.45}.journal-head p{max-width:none}.day-nav{position:sticky;top:0;background:var(--lime);z-index:5;padding:12px 0;margin-bottom:0}.door{scroll-margin-top:76px}.days{display:grid;grid-template-columns:1fr 1fr;gap:0 28px}.scene-label{margin-top:0}}
-@media(max-width:600px){.wrap{padding:18px 22px 30px}.travel-nav{font-size:9px;letter-spacing:.07em;margin-bottom:25px;padding-bottom:12px}.travel-nav>span{display:none}header .eyebrow{font-size:8px;letter-spacing:.12em}header{margin-bottom:26px;padding-bottom:25px}h1{font-size:70px;line-height:.92}h1 span{display:block;margin-top:7px}.sub{font-size:14px;line-height:1.6;max-width:32ch}.arch{aspect-ratio:1.12}.scene-label{font-size:9px}.clock{font-size:42px}.almanac{gap:12px}.months{gap:4px;grid-column:1/-1}.chip{min-width:40px;min-height:40px}.play{grid-column:1/-1;grid-row:auto;justify-self:start;min-height:42px}.dial{grid-row:auto}.selection{min-height:0}.days{display:block}.journal-head h2{font-size:32px}.journal-head p{max-width:14ch}.day-nav{justify-content:space-between}.day-nav a{padding:12px}.door h3{font-size:38px}.door li button{padding:16px 8px}.facts b{font-size:20px}.plate{display:block;margin:52px calc(50% - 50vw) -30px}.plate-text{grid-template-columns:1fr;padding:0 22px 14px}.plate-title{font-size:40px}.plate nav{gap:0 18px;font-size:17px}#plate{height:240px}}
+@media(max-width:600px){.wrap{padding:18px 22px 30px}.travel-nav{font-size:12px;letter-spacing:.07em;margin-bottom:28px}.travel-nav>span{display:none}header .eyebrow{font-size:12px;letter-spacing:.08em}header{margin-bottom:32px}h1{font-size:70px;line-height:.92}h1 span{display:block;margin-top:7px}.sub{font-size:14px;line-height:1.6;max-width:32ch}.arch{aspect-ratio:1.12}.scene-label{font-size:12px}.clock{font-size:42px}.almanac{gap:12px}.months{gap:4px;grid-column:1/-1}.chip{min-width:40px;min-height:40px}.play{grid-column:1/-1;grid-row:auto;justify-self:start;min-height:42px}.dial{grid-row:auto}.selection{min-height:0}.days{display:block}.journal-head h2{font-size:32px}.journal-head p{max-width:14ch}.day-nav{justify-content:space-between}.day-nav a{padding:12px}.door h3{font-size:38px}.door li button{padding:16px 8px}.facts b{font-size:20px}.plate{display:block;margin:52px calc(50% - 50vw) -30px}.plate-text{grid-template-columns:1fr;padding:0 22px 14px}.plate-title{font-size:40px}.plate nav{gap:0 18px;font-size:17px}#plate{height:240px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -124,14 +124,14 @@ footer{text-transform:none;letter-spacing:.06em;font-size:11px;text-align:left}
   <nav class="travel-nav" aria-label="Page navigation"><a href="../index.html">← 作品集</a><span>Levkí / an island journal</span><a href="#itinerary">Explore the four days ↘</a></nav>
   <div class="meander" id="m1" aria-hidden="true"></div>
   <header>
-    <div class="eyebrow">An itinerary measured in sunlight · 36.4° N</div>
+    <div class="eyebrow">An itinerary measured in sunlight</div>
     <h1>Levkí, <span>four days</span></h1>
     <p class="sub">A small white island, a lot of blue, and the exact hour to be in each place.</p>
   </header>
 
   <div class="journey">
   <section class="hero" aria-label="Live island view">
-    <div class="scene-label"><span>THE WINDOW / LIVE SUNLIGHT</span><span>36.4° N · 25.4° E</span></div>
+    <div class="scene-label"><span>The window / live sunlight</span></div>
     <div class="arch" id="arch">
       <svg id="scene" viewBox="0 0 1000 1080" preserveAspectRatio="xMidYMid slice" role="img" aria-label="View through an arched window: sea, a white village and a windmill, lit by the sun at the chosen hour"></svg>
       <div class="pin" id="pin"><b id="pinT">Windmills</b><i></i></div>
@@ -166,7 +166,7 @@ footer{text-transform:none;letter-spacing:.06em;font-size:11px;text-align:left}
   <footer class="plate">
     <div class="plate-text">
       <p class="plate-title">Levkí</p>
-      <nav aria-label="Footer"><a href="#day-1">Day 01</a><a href="#day-2">Day 02</a><a href="#day-3">Day 03</a><a href="#day-4">Day 04</a><a href="#arch">Back to the window ↑</a><a href="../index.html">作品集</a></nav>
+      <nav aria-label="Footer"><a href="#arch">Back to the window ↑</a><a href="../index.html">作品集</a></nav>
       <p class="colophon">Levkí is fictional · the sunlight is real (36.4° N, 25.4° E, EEST) · the engraved sun follows the hour you choose</p>
     </div>
     <svg id="plate" viewBox="0 0 1600 440" preserveAspectRatio="xMaxYMax slice" role="img" aria-label="Engraving of Levkí: a windmill and white village on the headland, a caique crossing the bay"></svg>
@@ -241,7 +241,8 @@ footer{text-transform:none;letter-spacing:.06em;font-size:11px;text-align:left}
   const glow = el('circle', { r: 140, fill: 'url(#glow)' });
   const sunC = el('circle', { r: 30, fill: '#fff4c4' });
   const moon = el('g', {});
-  el('circle', { cx: 0, cy: 0, r: 22, fill: '#f3f1e4' }, moon); el('circle', { cx: 9, cy: -5, r: 20, fill: '#123e6b', class: 'mshade' }, moon);
+  // a young waxing crescent: lit limb faces the just-set sun (lower right), so the shadow disc sits upper left
+  el('circle', { cx: 0, cy: 0, r: 22, fill: '#f3f1e4' }, moon); el('circle', { cx: -9, cy: -5, r: 20, fill: '#123e6b', class: 'mshade' }, moon);
   // far islands
   const far = el('path', { d: 'M0 588 Q 70 560 150 580 T 300 578 L 330 600 H0Z M560 600 Q 640 556 720 572 Q 800 560 870 590 L 900 600Z', opacity: .9 });
   const sea = el('rect', { x: 0, y: HOR, width: 1000, height: 520, fill: 'url(#sea)' });
@@ -332,16 +333,22 @@ footer{text-transform:none;letter-spacing:.06em;font-size:11px;text-align:left}
     land.setAttribute('fill', rgb(c[5]));
     // looking south: east (90°) is on the left, west (270°) on the right
     const sx = 500 + (az - 180) / 130 * 440, sy = HOR - alt * 10;
-    const vis = alt > -1.5;
+    // the window faces south: with the sun north of east/west (summer early morning, late evening) it is behind us
+    const inView = az > 90 && az < 270;
+    const vis = alt > -1.5 && inView;
     sunC.setAttribute('cx', sx); sunC.setAttribute('cy', sy); glow.setAttribute('cx', sx); glow.setAttribute('cy', sy);
     sunC.setAttribute('fill', alt < 8 ? '#ffc07a' : '#fff4c4');
     sunC.style.opacity = glow.style.opacity = vis ? 1 : 0;
     stars.style.opacity = Math.max(0, Math.min(1, (-alt - 3) / 8));
-    const mx = 500 - (az - 180) / 140 * 300, my = 180 + Math.max(0, alt) * 2;
-    moon.setAttribute('transform', `translate(${mx} ${my})`); moon.style.opacity = alt < -4 ? 1 : 0;
+    // crescent only at dusk, low in the west a little south of the sun's setting point, sinking after it
+    const moonAlt = alt + 16, moonAz = az - 18;
+    const mx = Math.min(940, 500 + (moonAz - 180) / 130 * 440), my = HOR - moonAlt * 10;
+    const moonOn = T > 720 && alt < -3 && moonAlt > 0;
+    moon.setAttribute('transform', `translate(${mx} ${my})`);
+    moon.style.opacity = moonOn ? Math.min(1, (-alt - 3) / 2, moonAlt / 2) : 0;
     const ms = moon.querySelector('.mshade'); if (ms) ms.setAttribute('fill', rgb(c[0]));
     // glitter path under the sun
-    const gl = Math.max(0, Math.min(1, alt / 6 + .3)) * (alt > -2 ? 1 : 0);
+    const gl = Math.max(0, Math.min(1, alt / 6 + .3)) * (alt > -2 && inView ? 1 : 0);
     [...glitter.children].forEach((r, i) => {
       const w = +r.getAttribute('width');
       r.setAttribute('x', sx - w / 2 + Math.sin(i * 2.3 + T * .7) * (6 + i * .8));
@@ -363,7 +370,7 @@ footer{text-transform:none;letter-spacing:.06em;font-size:11px;text-align:left}
     while (shadows.firstChild) shadows.removeChild(shadows.firstChild);
     if (alt > 1) {
       const len = Math.min(220, 40 / Math.tan(Math.max(4, alt) * rad));
-      const dx = -Math.sin((az - 180) * rad) * len, dy = Math.abs(Math.cos((az - 180) * rad)) * len * .18;
+      const dx = -Math.sin((az - 180) * rad) * len, dy = Math.cos((az - 180) * rad) * len * .18;   // sun to the north: shadows fall away from us
       houses.forEach(h => {
         el('path', { d: `M${h.x} ${h.y} L${h.x + dx} ${h.y + dy} L${h.x + h.w + dx} ${h.y + dy} L${h.x + h.w} ${h.y}Z`, fill: 'rgba(40,50,90,.18)' }, shadows);
       });
@@ -409,6 +416,7 @@ footer{text-transform:none;letter-spacing:.06em;font-size:11px;text-align:left}
       cancelAnimationFrame(anim); playing=false; setPlay();
       $('#selection').textContent='Choose a moment from the itinerary. Times follow the selected month.';
       document.querySelectorAll('.day-nav a').forEach(a=>a.removeAttribute('aria-current'));
+      const pin = $('#pin'); if (pin) pin.classList.remove('on');
       month = MNUM[i];
       mBox.querySelectorAll('.chip').forEach((x, k) => { x.classList.toggle('on', k === i); x.setAttribute('aria-pressed', k === i); });
       almanac(); rebuildDays(); render();

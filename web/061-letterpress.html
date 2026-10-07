@@ -116,7 +116,8 @@ body{
 .card.blind.inked .type{color:#ede7dc}
 .card.blind.inked .type .orn path{fill:#ede7dc}
 
-.zh-name{font-family:var(--zh);font-weight:700;font-size:8.2cqw;letter-spacing:.32em;line-height:1.1;white-space:nowrap}
+/* --n = 字數（JS 寫入）：長名字自動縮字級，不吃出版心 */
+.zh-name{font-family:var(--zh);font-weight:700;font-size:min(8.2cqw, calc(82cqw / (var(--n,3) * 1.32)));letter-spacing:.32em;line-height:1.1;white-space:nowrap}
 .en-name{font-size:3.3cqw;letter-spacing:.3em;text-transform:uppercase;font-variant:small-caps;margin-top:1.4cqw;white-space:nowrap}
 .role{font-style:italic;font-size:2.9cqw;margin-top:1.2cqw;letter-spacing:.03em;white-space:nowrap}
 .orn{width:17cqw;height:auto;margin:2.4cqw auto 1.8cqw;display:block}
@@ -134,7 +135,7 @@ body{
 .l-classic .contacts .line{display:flex;justify-content:center;gap:3cqw;white-space:nowrap}
 /* layout: modern */
 .l-modern .type{align-items:flex-start;text-align:left}
-.l-modern .zh-name{font-size:9.6cqw;letter-spacing:.1em}
+.l-modern .zh-name{font-size:min(9.6cqw, calc(82cqw / (var(--n,3) * 1.1)));letter-spacing:.1em}
 .l-modern .orn{display:none}
 .l-modern .bar{display:block}
 .bar{display:none;width:9cqw;height:.9cqw;background:currentColor;margin:2.6cqw 0 0}
@@ -142,7 +143,7 @@ body{
 .l-modern .contacts .line{display:contents}
 /* layout: vertical */
 .l-vertical .type{writing-mode:vertical-rl;padding:8cqw 9cqw;align-items:flex-start;flex-direction:column}
-.l-vertical .zh-name{font-size:8.6cqw;letter-spacing:.45em}
+.l-vertical .zh-name{font-size:min(8.6cqw, calc(44cqw / (var(--n,3) * 1.45)));letter-spacing:.45em}
 .l-vertical .en-name,.l-vertical .role{margin:0 1.4cqw 0 0}
 .l-vertical .role{white-space:normal;font-size:2.5cqw;max-height:100%}
 .l-vertical .orn{display:none}
@@ -314,7 +315,7 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border:0;border-radiu
       </div>
 
       <div class="stick" aria-label="排字盤">
-        <div class="cap"><span>排字盤 · Composing stick</span><em>set right-to-left, upside down, by hand</em></div>
+        <div class="cap"><span>排字盤 · Composing stick</span><em>as the forme reads: mirrored, set by hand</em></div>
         <div class="stick-body" id="stick"></div>
         <div class="stick-note" id="sticknote">共 0 枚鉛字 · 撿字師傅已就位</div>
       </div>
@@ -350,6 +351,10 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border:0;border-radiu
         <div class="opts" data-group="face">
           <button class="opt" aria-pressed="true" data-v="ming">明體 Ming</button>
           <button class="opt" aria-pressed="false" data-v="kai">楷體 Kai</button>
+        </div>
+      </div>
+      <div class="group"><h3>紙邊 · Edge</h3>
+        <div class="opts" data-group="edge">
           <button class="opt" aria-pressed="false" data-v="edge">染邊 Edge paint</button>
         </div>
       </div>
@@ -396,6 +401,7 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border:0;border-radiu
       var v = inp.value.trim();
       if (el) el.textContent = v || ' ';
       if (key === 'zh'){
+        if (el) el.style.setProperty('--n', Math.max(1, v.length));
         var s = document.getElementById('sealtxt');
         if (s) s.textContent = (v.length > 2 ? v.slice(-2) : v) || '印';
       }
@@ -426,7 +432,7 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border:0;border-radiu
       if (ch !== ' ') n++;
     }
     if (stickNote){
-      var msgs = ['撿字師傅已就位','記得：p 和 q 最容易撿錯','「Mind your p’s and q’s」就是從這裡來的','空鉛也算一枚，別偷懶'];
+      var msgs = ['撿字師傅已就位','記得：p 和 q 最容易撿錯','有一說「Mind your p’s and q’s」就是從這裡來的','空鉛也算一枚，別偷懶'];
       stickNote.textContent = '共 ' + n + ' 枚鉛字 · ' + msgs[n % msgs.length];
     }
   }
@@ -441,14 +447,14 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border:0;border-radiu
         var b = e.target.closest ? e.target.closest('.opt') : null;
         if (!b) return;
         var v = b.getAttribute('data-v');
-        if (name === 'face' && v === 'edge'){
+        if (name === 'edge'){
           state.edge = !state.edge;
           b.setAttribute('aria-pressed', state.edge ? 'true' : 'false');
           card.classList.toggle('edge', state.edge);
           return;
         }
         var all = grp.querySelectorAll('.opt');
-        for (var j=0;j<all.length;j++){ if (all[j].getAttribute('data-v') !== 'edge') all[j].setAttribute('aria-pressed', all[j] === b ? 'true' : 'false'); }
+        for (var j=0;j<all.length;j++){ all[j].setAttribute('aria-pressed', all[j] === b ? 'true' : 'false'); }
         state[name] = v;
         apply();
         unproof();
@@ -511,9 +517,11 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border:0;border-radiu
   }
 
   /* ---- the impression ---- */
-  function impress(withSound){
+  // opts.count === false: opening demo, inks the card without logging an impression
+  function impress(withSound, opts){
     if (busy) return;
     busy = true;
+    var counts = !(opts && opts.count === false);
     if (withSound !== false) thunk();
     lever.classList.add('down');
     card.classList.remove('slam'); tray.classList.remove('jolt');
@@ -521,8 +529,10 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border:0;border-radiu
     card.classList.add('slam'); tray.classList.add('jolt');
     setTimeout(function(){
       card.classList.add('inked');
-      count++; setCounter();
-      try { localStorage.setItem('llp-count', String(count)); } catch(e){}
+      if (counts){
+        count++; setCounter();
+        try { localStorage.setItem('llp-count', String(count)); } catch(e){}
+      }
       if (count > 0) shell.classList.add('has1');
       if (count > 1) shell.classList.add('has2');
     }, 350);
@@ -542,7 +552,7 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border:0;border-radiu
 
   bindAll();
   apply();
-  setTimeout(function(){ impress(false); }, 380);
+  setTimeout(function(){ impress(false, {count:false}); }, 380);
 })();
 </script>
 </body>

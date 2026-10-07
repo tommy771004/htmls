@@ -9,7 +9,6 @@
 <style>
 :root{
   --bg:#07070a;
-  --panel:#0e0e13;
   --line:#23232e;
   --txt:#d9dbe4;
   --dim:#6e7183;
@@ -25,10 +24,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;bac
 .wrap{max-width:1360px;margin:0 auto;padding:clamp(12px,2vw,24px) clamp(16px,2vw,24px) 30px}
 
 /* title bar */
-.bar{display:flex;align-items:center;gap:14px;border:1px solid var(--line);background:var(--panel);padding:8px 12px;flex-wrap:wrap}
-.bar .dots{display:flex;gap:6px}
-.bar .dots i{width:11px;height:11px;border:1px solid var(--dim)}
-.bar .dots i:nth-child(1){background:var(--r);border-color:var(--r)}
+.bar{display:flex;align-items:center;gap:14px;padding:6px 0;flex-wrap:wrap}
 .title{position:relative;font-size:clamp(20px,2.6vw,30px);font-weight:bold;letter-spacing:.06em;line-height:1;color:#fff;text-shadow:-2px 0 var(--r),2px 0 var(--b)}
 .title::before,.title::after{content:attr(data-t);position:absolute;inset:0;overflow:hidden}
 .title::before{color:var(--g);clip-path:inset(0 0 62% 0);transform:translateX(-3px);animation:tear 3.2s steps(1) infinite}
@@ -50,6 +46,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;bac
 .band{position:absolute;left:0;right:0;height:10px;border-top:1px solid var(--g);border-bottom:1px solid var(--g);background:rgba(31,255,180,.08);pointer-events:none;opacity:0;transition:opacity .15s}
 .band.on{opacity:1}
 .band span{position:absolute;right:6px;top:-18px;font-size:11px;color:#000;background:var(--g);padding:0 4px}
+.band.below span{top:100%;margin-top:2px}
 .vfoot{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line);flex-wrap:wrap}
 .btn{min-height:40px;padding:0 14px;background:transparent;color:var(--txt);border:1px solid var(--line);font-family:var(--mono);font-size:13px;letter-spacing:.08em;cursor:pointer;text-transform:uppercase;position:relative}
 .btn:hover{border-color:var(--txt)}
@@ -60,7 +57,6 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;bac
 .vfoot .hint{margin-left:auto;color:var(--dim);font-size:11.5px;align-self:center}
 
 /* hex editor */
-.hex{border:1px solid var(--line);background:var(--panel)}
 .hhead{display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);color:var(--dim);font-size:12px}
 .hhead b{color:var(--txt);font-weight:normal}
 .dump{padding:10px 10px 6px;outline:none;overflow-x:auto}
@@ -92,7 +88,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;bac
 .inspect .why{color:#a3a6b8;font-size:12.5px;line-height:1.5}
 .keys{display:flex;gap:6px;padding:0 12px 12px;flex-wrap:wrap}
 .keys .btn{min-width:44px;padding:0 10px}
-.status{margin-top:14px;display:flex;gap:18px;border:1px solid var(--line);background:var(--panel);padding:6px 12px;font-size:12px;color:var(--dim);flex-wrap:wrap}
+.status{margin-top:14px;display:flex;gap:18px;border-top:1px solid var(--line);padding:8px 0;font-size:12px;color:var(--dim);flex-wrap:wrap}
 .status b{color:var(--txt);font-weight:normal}
 .status .err{color:var(--r)}
 
@@ -115,7 +111,6 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;bac
 <h1 style="position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap">CORRUPT.EXE — Pixel Sorting and RGB Shift</h1>
 <div class="wrap">
   <div class="bar">
-    <div class="dots"><i></i><i></i><i></i></div>
     <div class="title" data-t="CORRUPT.EXE">CORRUPT.EXE</div>
     <div class="meta">v0.0.1-broken · <b id="fname">SUNSET.PNG</b> · 480×360 · CRC: <span id="crc">OK</span></div>
   </div>
@@ -223,6 +218,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;bac
     wctx.save(); wctx.clearRect(0,0,W,H); SOURCES[srcIdx].draw(wctx); wctx.restore();
     pristine = wctx.getImageData(0,0,W,H);
     base = new ImageData(new Uint8ClampedArray(pristine.data), W, H);
+    moshed = false; setCrc();
     var n = SOURCES[srcIdx].name; ['fname','fname2'].forEach(function(id){ var e = $(id); if (e) e.textContent = n; });
   }
 
@@ -306,8 +302,14 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;bac
     ins.innerHTML = '<div class="addr">' + addr + '</div><div class="what">' + what + '</div><div class="why">' + why + '</div>';
     var so = $('st-off'), sv = $('st-val'); if (so) so.textContent = '0x' + i.toString(16).toUpperCase(); if (sv) sv.textContent = hex(v);
     // band overlay
-    if (k === 'dat' && band){ var bh = 100 / 64; band.style.top = ((i-32) * bh) + '%'; band.style.height = bh + '%'; band.classList.add('on'); var bl = $('bandlbl'); if (bl) bl.textContent = 'BAND ' + hex(i-32); }
+    if (k === 'dat' && band) showBand(i - 32);
     else if (band) band.classList.remove('on');
+  }
+  function showBand(bi){
+    var bh = 100 / 64; band.style.top = (bi * bh) + '%'; band.style.height = bh + '%';
+    // label sits above the band; flip it below when it would be clipped by the screen's top edge
+    band.classList.toggle('below', bi / 64 * screen.clientHeight < 18);
+    band.classList.add('on'); var bl = $('bandlbl'); if (bl) bl.textContent = 'BAND ' + hex(bi);
   }
   function select(i){ sel = Math.max(0, Math.min(N-1, i)); typed = ''; paintCells(); }
   function setByte(i, v){
@@ -318,9 +320,12 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;bac
       setTimeout(function(){ bytes[i] = orig[i]; paintCells(); msg('header restored. please stop that.'); }, 600);
       return;
     }
-    bytes[i] = v; paintCells(); schedule();
+    bytes[i] = v; paintCells(); schedule(); setCrc();
   }
-  function msg(t, bad){ var m = $('st-msg'); if (m){ m.textContent = t; m.className = bad ? 'err' : ''; } var c = $('crc'); if (c){ c.textContent = bad ? 'FAIL' : 'MISMATCH'; } }
+  var moshed = false; // pixels dragged since the last clean load / restore
+  function crcState(){ if (moshed) return 'MISMATCH'; for (var i=0;i<N;i++) if (bytes[i] !== orig[i]) return 'MISMATCH'; return 'OK'; }
+  function setCrc(s){ var c = $('crc'); if (c) c.textContent = s || crcState(); }
+  function msg(t, bad, crc){ var m = $('st-msg'); if (m){ m.textContent = t; m.className = bad ? 'err' : ''; } setCrc(crc || (bad ? 'FAIL' : '')); }
 
   dump.addEventListener('click', function(e){
     var b = e.target.closest ? e.target.closest('.cell') : null; if (!b) return;
@@ -333,7 +338,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;bac
   dump.addEventListener('mouseover', function(e){
     var b = e.target.closest ? e.target.closest('.cell') : null; if (!b || !band) return;
     var i = +b.getAttribute('data-i');
-    if (kind(i) === 'dat'){ var bh = 100/64; band.style.top = ((i-32)*bh) + '%'; band.style.height = bh + '%'; band.classList.add('on'); var bl = $('bandlbl'); if (bl) bl.textContent = 'BAND ' + hex(i-32); }
+    if (kind(i) === 'dat') showBand(i - 32);
   });
   dump.addEventListener('mouseleave', function(){ inspect(); });
   dump.addEventListener('keydown', function(e){
@@ -457,26 +462,28 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;bac
         d[dy*W + dx] = d[sy*W + sx];
       }
     }
-    last = p; schedule();
+    last = p; moshed = true; schedule();
   });
   function endDrag(){ if (dragging){ dragging = false; msg('datamoshed. the pixels will remember this.', false); } }
   screen.addEventListener('pointerup', endDrag); screen.addEventListener('pointercancel', endDrag);
 
   /* ---------- buttons ---------- */
   function corrupt(){
-    var r = Math.random;
-    for (var i=0;i<10;i++){ var o = 32 + Math.floor(r()*64); bytes[o] = Math.floor(r()*256); if (cells[o]) cells[o].classList.add('flash'); }
-    var p = 16 + Math.floor(r()*12); bytes[p] = Math.floor(r()*256);
-    bytes[16+8] = Math.floor(r()*256);
-    paintCells(); schedule(); glitchKick(); buzz(); msg('corrupted ' + 11 + ' bytes. no regrets.', true);
+    var r = Math.random, hit = new Set();
+    function poke(o){ var v = Math.floor(r()*256); if (v !== bytes[o]){ bytes[o] = v; hit.add(o); } }
+    for (var i=0;i<10;i++){ var o = 32 + Math.floor(r()*64); poke(o); if (cells[o]) cells[o].classList.add('flash'); }
+    poke(16 + Math.floor(r()*12));
+    poke(16+8);
+    paintCells(); schedule(); glitchKick(); buzz(); msg('corrupted ' + hit.size + ' byte' + (hit.size === 1 ? '' : 's') + '. no regrets.', true);
   }
-  function restore(){ base = new ImageData(new Uint8ClampedArray(pristine.data), W, H); initBytes(); for (var i=32;i<N;i++) bytes[i] = orig[i]; paintCells(); schedule(); msg('restored from backup (there is always a backup)'); }
+  function restore(){ base = new ImageData(new Uint8ClampedArray(pristine.data), W, H); moshed = false; initBytes(); for (var i=32;i<N;i++) bytes[i] = orig[i]; paintCells(); schedule(); msg('restored from backup (there is always a backup)', false, 'OK'); }
   var cb = $('corrupt'), rb = $('restore'), sb = $('source');
   if (cb) cb.addEventListener('click', corrupt);
   if (rb) rb.addEventListener('click', restore);
   if (sb) sb.addEventListener('click', function(){ loadSource(srcIdx + 1); schedule(); glitchKick(); });
   document.addEventListener('keydown', function(e){
     if (e.target === dump) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     var k = e.key.toLowerCase();
     if (k === 'c') corrupt(); else if (k === 'r') restore(); else if (k === 'n'){ loadSource(srcIdx + 1); schedule(); }
   });
@@ -499,7 +506,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;bac
   var rt = null;
   window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(function(){ var c = window.innerWidth < 900 ? 8 : 16; if (c !== cols) buildDump(); fit(); }, 120); });
 
-  loadSource(0); initBytes(); buildDump(); fit(); process();
+  loadSource(0); initBytes(); buildDump(); fit(); process(); setCrc();
 })();
 </script>
 </body>

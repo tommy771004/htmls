@@ -25,7 +25,6 @@ button,input{font:inherit;color:inherit}
 .logo svg{width:46px;height:22px}
 .bar nav{display:flex;gap:22px;font:italic 900 12px/1 var(--blk);letter-spacing:.06em;text-transform:uppercase}
 .bar nav span:last-child{color:var(--o)}
-@media (max-width:640px){.bar nav span:not(:last-child){display:none}}
 
 /* ---------- hero ---------- */
 .hero{position:relative;padding:clamp(20px,4vw,48px) 0 clamp(40px,6vw,80px);isolation:isolate}
@@ -65,7 +64,6 @@ h1 .l3{-webkit-text-stroke:3px var(--k);color:transparent}
 @media (max-width:900px){.panel{position:relative;top:0}}
 .panel h2{margin:0 0 4px;font:400 clamp(34px,4vw,48px)/.9 var(--disp);text-transform:uppercase;transform:skewX(-8deg)}
 .panel h2 small{display:block;font:900 14px/1.6 var(--zh);color:var(--o);transform:skewX(8deg);letter-spacing:.1em}
-.num{position:absolute;right:20px;top:14px;font:400 64px/1 var(--disp);color:#222}
 
 .tabs{display:grid;grid-template-columns:repeat(3,1fr);margin:22px 0 26px;border:2px solid var(--w)}
 .tabs button{min-height:48px;border:0;background:transparent;cursor:pointer;font:italic 900 13px/1.15 var(--blk);letter-spacing:.04em;text-transform:uppercase;padding:6px 4px;transition:none}
@@ -87,7 +85,7 @@ h1 .l3{-webkit-text-stroke:3px var(--k);color:transparent}
 .fld{flex:1;min-width:0;position:relative;border-bottom:3px solid #333;display:flex;align-items:flex-end}
 .fld:focus-within{border-color:var(--o)}
 .fld input{width:100%;min-width:0;background:transparent;border:0;font:400 clamp(40px,5vw,58px)/1 var(--disp);padding:4px 0 6px;text-align:left;outline:none;-moz-appearance:textfield;appearance:textfield}
-.fld input[aria-invalid="true"]{color:#bb3b27}
+.fld input[aria-invalid="true"]{color:var(--o2)}
 .fld input::-webkit-outer-spin-button,.fld input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .fld i{font:italic 900 12px/1 var(--blk);color:var(--g2);padding-bottom:12px;padding-left:4px;letter-spacing:.06em}
 .sep{font:400 44px/1 var(--disp);align-self:flex-end;padding-bottom:10px;color:var(--o)}
@@ -95,6 +93,8 @@ h1 .l3{-webkit-text-stroke:3px var(--k);color:transparent}
 .step{min-width:44px;min-height:40px;background:#1c1c1c;border:0;cursor:pointer;font:900 13px/1 var(--blk);padding:0 10px}
 .step:active{background:var(--o);color:var(--k)}
 .hint{font:400 12px/1.6 var(--zh);color:var(--g2);margin:6px 0 0}
+.status{font:900 14px/1.5 var(--zh);color:var(--o2);margin:0 0 10px}
+.status:empty{display:none}
 
 /* ---------- result ---------- */
 .res{position:relative}
@@ -139,6 +139,7 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:20px;
 footer p{margin:0;font:700 12px/1.8 var(--zh);color:#aaa;max-width:460px}
 footer strong{font:400 clamp(40px,7vw,96px)/.85 var(--disp);text-transform:uppercase;transform:skewX(-10deg);display:block}
 footer strong em{font-style:normal;color:var(--o)}
+.hero.off .stamp .rot,.band.off .t{animation-play-state:paused}
 @media (prefers-reduced-motion:reduce){.stamp .rot,.band .t{animation:none}}
 </style>
 </head>
@@ -149,7 +150,7 @@ footer strong em{font-style:normal;color:var(--o)}
       <svg viewBox="0 0 46 22" aria-hidden="true"><path d="M0 22 L14 0 H24 L10 22Z" fill="#0B0B0B"/><path d="M16 22 L30 0 H46 L32 22Z" fill="#FF4A00"/></svg>
       VELOX
     </div>
-    <nav><span>Shoes</span><span>Apparel</span><span>Run Club</span><span>Pace Lab 配速實驗室</span></nav>
+    <nav><span>Pace Lab 配速實驗室</span></nav>
   </header>
 
   <section class="hero">
@@ -164,7 +165,7 @@ footer strong em{font-style:normal;color:var(--o)}
     <dl class="spec" aria-label="本期數字">
       <div><dt>42.195</dt><dd>KM · 全馬的距離，一公尺都不能少</dd></div>
       <div><dt>2:00:35</dt><dd>人類全馬紀錄，平均 2'51"/KM</dd></div>
-      <div><dt>0</dt><dd>今天可以接受的藉口數量</dd></div>
+      <div><dt>21.0975</dt><dd>KM · 半馬的距離，剛好是全馬的一半</dd></div>
     </dl>
     <svg class="stamp" viewBox="0 0 160 160" aria-hidden="true">
       <defs><path id="c" d="M80,80 m-62,0 a62,62 0 1,1 124,0 a62,62 0 1,1 -124,0"/></defs>
@@ -179,7 +180,6 @@ footer strong em{font-style:normal;color:var(--o)}
 
 <main class="wrap lab">
   <section class="panel" aria-label="配速計算器">
-    <div class="num" aria-hidden="true">01</div>
     <h2>The Calculator<small>選一個你想知道的答案</small></h2>
     <div class="tabs" role="group" aria-label="計算模式">
       <button data-mode="pace" aria-pressed="true">Pace<span>算配速</span></button>
@@ -225,8 +225,8 @@ footer strong em{font-style:normal;color:var(--o)}
         <button class="step" data-d="5">+5"</button>
       </div>
     </div>
+    <p class="status" id="inputStatus" role="status" aria-live="polite"></p>
     <p class="hint">提示：在任何欄位按 ↑ / ↓ 微調，結果即時更新。</p>
-    <p class="hint" id="inputStatus" role="status" aria-live="polite"></p>
   </section>
 
   <section class="res" aria-live="polite">
@@ -393,6 +393,18 @@ footer strong em{font-style:normal;color:var(--o)}
   const cv = $('#lines');
   const ctx = cv && cv.getContext ? cv.getContext('2d') : null;
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // pause hero motion (speed lines, stamp, ticker band) while it is scrolled out of view
+  let heroOn = true, resumeLines = null;
+  const hero = $('.hero'), band = $('.band');
+  if ('IntersectionObserver' in window){
+    const io = new IntersectionObserver(entries => entries.forEach(en => {
+      en.target.classList.toggle('off', !en.isIntersecting);
+      if (en.target === hero){ heroOn = en.isIntersecting; if (resumeLines) resumeLines(); }
+    }));
+    if (hero) io.observe(hero);
+    if (band) io.observe(band);
+  }
   if (!ctx) return;
   let W = 0, H = 0, dpr = 1, streaks = [];
   function size(){
@@ -424,14 +436,18 @@ footer strong em{font-style:normal;color:var(--o)}
       ctx.moveTo(s.x, s.y); ctx.lineTo(s.x + s.len, s.y - s.w*.2); ctx.lineTo(s.x + s.len, s.y + s.w*.2); ctx.lineTo(s.x, s.y + s.w);
       ctx.closePath(); ctx.fill();
     }
-    if (!reduce && !document.hidden) raf = requestAnimationFrame(draw); else raf = 0;
+    if (!reduce && !document.hidden && heroOn) raf = requestAnimationFrame(draw); else raf = 0;
   }
   let raf = 0;
   size();
   window.addEventListener('resize', size);
   if (reduce){ draw(performance.now()); }
   else raf = requestAnimationFrame(draw);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && !raf && !reduce){ last = performance.now(); raf = requestAnimationFrame(draw); } });
+  resumeLines = () => {
+    if (!heroOn){ if (raf){ cancelAnimationFrame(raf); raf = 0; } return; }
+    if (!raf && !reduce && !document.hidden){ last = performance.now(); raf = requestAnimationFrame(draw); }
+  };
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && heroOn && !raf && !reduce){ last = performance.now(); raf = requestAnimationFrame(draw); } });
 })();
 </script>
 </body>

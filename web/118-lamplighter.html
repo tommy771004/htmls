@@ -3,7 +3,7 @@
   點燈人 LAMPLIGHTER · 118：霧湖遺跡第三人稱 3D 動作平台遊戲
   兩步製作：先完成 art/118/ 三張美術規格（A 主角、B 場景、C 介面），本檔的色值、光線與造型都依這三張圖實作。
   可調參數：module script 開頭的 CONFIG（移動、跳躍、鏡頭、霧、點燈時間）。
-  外部依賴：Three.js r186 與官方 addons（EffectComposer、GTAOPass、UnrealBloomPass、OutputPass、ShaderPass、RoundedBoxGeometry），由 jsDelivr CDN 載入。
+  外部依賴：Three.js r186 與官方 addons（EffectComposer、GTAOPass、UnrealBloomPass、OutputPass、ShaderPass、RoundedBoxGeometry），由站內 ../vendor/three-0.186.0 載入。
   模型、材質、貼圖與音效全部由程式即時生成，沒有模型檔、圖檔或音檔。
 -->
 <html lang="zh-Hant">
@@ -60,6 +60,9 @@ kbd{font:500 10px/1 var(--sans);letter-spacing:.1em;opacity:.7}
 .seg button{border:0;border-radius:0;background:transparent;color:var(--bone-2);padding:0 12px;font-size:12px;min-height:32px}
 .seg button[aria-pressed="true"]{background:rgba(239,230,210,.16);color:var(--bone)}
 .controls-line{margin:24px 0 0;font-size:11px;letter-spacing:.12em;color:var(--mist);line-height:1.9}
+.art-link{margin:18px 0 0}
+.art-link button{appearance:none;border:0;background:none;padding:6px 0;font:inherit;font-size:11px;letter-spacing:.08em;color:var(--mist);opacity:.7;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.art-link button:hover,.art-link button:focus-visible{opacity:1}
 .best{margin:6px 0 0;font-size:12px;color:var(--amber);min-height:1.2em;letter-spacing:.06em}
 .boot-note{margin:10px 0 0;font-size:12px;color:#e8a38a;min-height:1em}
 
@@ -98,7 +101,8 @@ kbd{font:500 10px/1 var(--sans);letter-spacing:.1em;opacity:.7}
 .prompt.show{opacity:1}
 .prompt svg{width:30px;height:30px;transform:rotate(-90deg)}
 .skills{position:absolute;right:calc(22px + env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));display:flex;gap:12px}
-.skill{position:relative;width:46px;text-align:center;font-size:10px;color:var(--mist);letter-spacing:.06em}
+.skill{position:relative;width:46px;text-align:center;font-size:10px;color:var(--mist);letter-spacing:.06em;transition:opacity .25s}
+.skill.idle{opacity:0}
 .skill svg{width:46px;height:46px;transform:rotate(-90deg);display:block}
 .skill i{position:absolute;left:0;right:0;top:16px;font-style:normal;font-size:11px;color:var(--bone)}
 .skill span{display:block;margin-top:3px}
@@ -170,7 +174,7 @@ kbd{font:500 10px/1 var(--sans);letter-spacing:.1em;opacity:.7}
 }
 @media (prefers-reduced-motion:reduce){.flames svg,.embers b,.beacons svg{animation:none!important}}
 </style>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"}}</script>
+<script type="importmap">{"imports":{"three":"../vendor/three-0.186.0/three.module.js","three/addons/":"../vendor/three-0.186.0/addons/"}}</script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -187,14 +191,12 @@ kbd{font:500 10px/1 var(--sans);letter-spacing:.1em;opacity:.7}
 <section id="title" class="screen show" aria-labelledby="gameTitle">
   <div class="shade"></div>
   <div class="body">
-    <p class="eyebrow">A lantern in the mist · 118</p>
     <h1 id="gameTitle">點燈人</h1>
     <p class="latin">LAMPLIGHTER</p>
     <p class="story">霧湖上的三座燈台熄滅了，影魅在石間遊蕩。提燈渡湖，點亮它們，打開月門。</p>
     <div class="actions">
       <button id="startBtn" class="btn primary" type="button" disabled>載入中…<kbd>ENTER</kbd></button>
       <button id="howBtn" class="btn" type="button">操作說明</button>
-      <button id="artBtn" class="btn" type="button">美術規格</button>
     </div>
     <div class="opts">
       <label>畫質 <span class="seg" id="qualitySeg" role="group" aria-label="畫質"><button type="button" data-q="high">高</button><button type="button" data-q="medium">中</button><button type="button" data-q="low">低</button></span></label>
@@ -203,6 +205,7 @@ kbd{font:500 10px/1 var(--sans);letter-spacing:.1em;opacity:.7}
     <p class="controls-line">WASD 移動 · SPACE 跳 · J／左鍵 揮燈 · SHIFT 閃避 · 按住 E 點燈 · 滑鼠 視角 · ESC 暫停</p>
     <p class="best" id="bestLine"></p>
     <p class="boot-note" id="bootNote" role="status"></p>
+    <p class="art-link"><button id="artBtn" type="button">美術規格</button></p>
   </div>
 </section>
 
@@ -225,9 +228,8 @@ kbd{font:500 10px/1 var(--sans);letter-spacing:.1em;opacity:.7}
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <div class="prompt ticks" id="prompt"><svg viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="12" fill="none" stroke="rgba(239,230,210,.25)" stroke-width="2"/><circle id="promptRing" cx="15" cy="15" r="12" fill="none" stroke="#ffb04a" stroke-width="2.6" stroke-dasharray="75.4" stroke-dashoffset="75.4"/></svg><span id="promptText">按住 E 點燈</span></div>
   <div class="skills" aria-hidden="true">
-    <div class="skill"><svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="rgba(7,11,16,.55)" stroke="rgba(239,230,210,.25)"/><circle id="ringAtk" cx="23" cy="23" r="19" fill="none" stroke="#ffb04a" stroke-width="2.5" stroke-dasharray="119.4" stroke-dashoffset="0"/></svg><i>揮燈</i><span>J</span></div>
-    <div class="skill"><svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="rgba(7,11,16,.55)" stroke="rgba(239,230,210,.25)"/><circle id="ringDash" cx="23" cy="23" r="19" fill="none" stroke="#8fa9b3" stroke-width="2.5" stroke-dasharray="119.4" stroke-dashoffset="0"/></svg><i>閃避</i><span>SHIFT</span></div>
-    <div class="skill"><svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="rgba(7,11,16,.55)" stroke="rgba(239,230,210,.25)"/></svg><i>跳</i><span>SPACE</span></div>
+    <div class="skill idle"><svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="rgba(7,11,16,.55)" stroke="rgba(239,230,210,.25)"/><circle id="ringAtk" cx="23" cy="23" r="19" fill="none" stroke="#ffb04a" stroke-width="2.5" stroke-dasharray="119.4" stroke-dashoffset="0"/></svg><i>揮燈</i><span>J</span></div>
+    <div class="skill idle"><svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="rgba(7,11,16,.55)" stroke="rgba(239,230,210,.25)"/><circle id="ringDash" cx="23" cy="23" r="19" fill="none" stroke="#8fa9b3" stroke-width="2.5" stroke-dasharray="119.4" stroke-dashoffset="0"/></svg><i>閃避</i><span>SHIFT</span></div>
   </div>
   <div class="lock-hint" id="lockHint">拖曳環視／點擊鎖定視角 · ESC 暫停</div>
 </div>
@@ -297,7 +299,7 @@ kbd{font:500 10px/1 var(--sans);letter-spacing:.1em;opacity:.7}
 <div class="modal" id="resultModal" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
   <div class="card ticks">
     <div class="result-head">
-      <div><p class="eyebrow" id="resultEyebrow">The gate is open · 月門開啟</p><h2 id="resultTitle">霧散了</h2></div>
+      <div><h2 id="resultTitle">霧散了</h2></div>
       <div class="rank" id="rank">A<small>評級</small></div>
     </div>
     <ul class="stats" id="stats"></ul>
@@ -309,13 +311,13 @@ kbd{font:500 10px/1 var(--sans);letter-spacing:.1em;opacity:.7}
 <noscript><p style="position:fixed;inset:auto 0 0;margin:0;padding:16px;background:#0b111a;color:#efe6d2">這個遊戲需要 JavaScript 與 WebGL。</p></noscript>
 
 <script>
-// 啟動保險：CDN 模組載入失敗或沒有 WebGL 時，在開始畫面說明原因，而不是停在「載入中」
+// 啟動保險：Three.js 模組（站內 vendor/three-0.186.0）載入失敗或沒有 WebGL 時，在開始畫面說明原因，而不是停在「載入中」
 (function(){
   var note=document.getElementById('bootNote');
   try{var c=document.createElement('canvas');if(!(c.getContext('webgl2')||c.getContext('webgl'))){note.textContent='這台裝置或瀏覽器沒有啟用 WebGL，無法執行 3D 遊戲。';window.__lampNoGL=true}}catch(e){}
-  setTimeout(function(){if(!window.__lampReady&&!window.__lampNoGL){note.textContent='Three.js 仍在載入。若一直停在這裡，請確認網路可以連到 cdn.jsdelivr.net 後重新整理。'}},15000);
-  // 模組（含 Three.js 附加模組）在 load 事件前就會執行完；此時仍未就緒且沒有其他錯誤訊息，代表 CDN 載入失敗
-  addEventListener('load',function(){if(!window.__lampReady&&!window.__lampNoGL&&!note.textContent){note.textContent='無法從 cdn.jsdelivr.net 載入 Three.js，請確認網路連線後重新整理。'}});
+  setTimeout(function(){if(!window.__lampReady&&!window.__lampNoGL){note.textContent='Three.js 仍在載入。若一直停在這裡，請重新整理頁面。'}},15000);
+  // 模組（含 Three.js 附加模組）在 load 事件前就會執行完；此時仍未就緒且沒有其他錯誤訊息，代表模組載入失敗
+  addEventListener('load',function(){if(!window.__lampReady&&!window.__lampNoGL&&!note.textContent){note.textContent='無法載入 Three.js 模組，請重新整理頁面。'}});
 })();
 </script>
 
@@ -1701,11 +1703,14 @@ document.addEventListener('pointerlockchange', () => {
   if (locked) lockedDuringPlay = true;
   else if (lockedDuringPlay && G.state === 'playing') { lockedDuringPlay = false; pauseGame(); }
 });
-document.addEventListener('pointerlockerror', () => {});
+// 無法鎖定滑鼠（不支援或被拒）時改用拖曳視角，左鍵直接揮燈
+let lockFailed = false;
+document.addEventListener('pointerlockerror', () => { lockFailed = true; });
 canvas.addEventListener('pointerdown', e => {
   if (G.state !== 'playing') return;
   if (e.pointerType === 'touch') { camTouchStart(e); return; }
-  if (e.button === 0) { if (document.pointerLockElement === canvas) mouseAttack = true; else { lockPointer(); mouseAttack = true; } }
+  // 尚未鎖定時，這一下只用來鎖定視角，不揮燈
+  if (e.button === 0) { if (document.pointerLockElement === canvas || lockFailed || coarse || !canvas.requestPointerLock) mouseAttack = true; else lockPointer(); }
   dragging = true; lastMX = e.clientX; lastMY = e.clientY;
 });
 addEventListener('pointerup', e => { if (e.pointerType !== 'touch') dragging = false; });
@@ -2093,8 +2098,10 @@ function updateLevelLogic(dt) {
   // 提示
   for (const h of HINTS) if (!G.hints.has(h.id) && h.when()) { G.hints.add(h.id); toast(h.text, h.cold); break; }
   // 點燈
-  let near = null;
-  for (const b of beacons) if (!b.lit && Math.hypot(P.pos.x - b.pos.x, P.pos.z - b.pos.z) < 2.7 && Math.abs(P.pos.y - b.pos.y) < 1.2) near = b;
+  // 燈台依序點亮（目標文字、標記與提示都以 G.lit 為下一座）；站在後面的燈台旁只提示順序
+  let near = null, early = null;
+  for (const b of beacons) if (!b.lit && Math.hypot(P.pos.x - b.pos.x, P.pos.z - b.pos.z) < 2.7 && Math.abs(P.pos.y - b.pos.y) < 1.2) { if (b.i === G.lit) near = b; else early = b; }
+  if (early && !near && !P.dead && toastTimer <= 0) toast(`燈台要依序點亮，先點亮第${'一二三'[G.lit]}座`, true, 2.6);
   const prompt = $('prompt');
   if (near && !P.dead) {
     prompt.classList.add('show');
@@ -2152,6 +2159,7 @@ function zoneName() {
   return 'I · 渡口';
 }
 const OBJ = ['點亮第一座燈台', '穿過斷廊，點亮第二座燈台', '登上鐘台，點亮最後一座燈台', '穿過月門'];
+const ringAtk = $('ringAtk'), ringDash = $('ringDash'), skillAtk = ringAtk.closest('.skill'), skillDash = ringDash.closest('.skill');
 const markerEl = $('marker'), markerDist = $('markerDist'), markerUse = markerEl.querySelector('use'), markerArr = markerEl.querySelector('.arr');
 function updateHUD(dt) {
   if (hud.flamesDirty) {
@@ -2184,10 +2192,10 @@ function updateHUD(dt) {
   markerEl.style.opacity = dist < 3.2 || P.dead ? 0 : 1;
   markerDist.textContent = Math.round(dist) + ' m';
   markerUse.setAttribute('href', G.lit < 3 ? '#i-diamond-off' : '#i-diamond');
-  // 技能冷卻環
-  const atkF = P.swingT >= 0 ? 1 - P.swingT / SWINGS[P.combo].dur : Math.max(0, P.atkCD / .5);
-  $('ringAtk').setAttribute('stroke-dashoffset', (119.4 * clamp(atkF, 0, 1)).toFixed(1));
-  $('ringDash').setAttribute('stroke-dashoffset', (119.4 * clamp(P.dashCD / CONFIG.DASH_CD, 0, 1)).toFixed(1));
+  // 技能冷卻環：只在冷卻中顯示
+  const atkF = clamp(P.swingT >= 0 ? 1 - P.swingT / SWINGS[P.combo].dur : Math.max(0, P.atkCD / .5), 0, 1), dashF = clamp(P.dashCD / CONFIG.DASH_CD, 0, 1);
+  ringAtk.setAttribute('stroke-dashoffset', (119.4 * atkF).toFixed(1)); skillAtk.classList.toggle('idle', atkF <= 0);
+  ringDash.setAttribute('stroke-dashoffset', (119.4 * dashF).toFixed(1)); skillDash.classList.toggle('idle', dashF <= 0);
   if (toastTimer > 0) { toastTimer -= dt; if (toastTimer <= 0) $('toast').classList.remove('show'); }
 }
 
@@ -2264,7 +2272,7 @@ function readPref(k) { try { return localStorage.getItem(k); } catch (e) { retur
 function writePref(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 私密模式等 */ } }
 function setQuality(q, save) {
   quality = q; const Q = QUALITY[q];
-  gtao.enabled = Q.ao; aoScale = Q.aoScale; gtao.updateGtaoMaterial({ samples: Q.aoSamples }); gtao.updatePdMaterial({ samples: Q.aoSamples });
+  gtao.enabled = Q.ao && G.state !== 'title'; aoScale = Q.aoScale; gtao.updateGtaoMaterial({ samples: Q.aoSamples }); gtao.updatePdMaterial({ samples: Q.aoSamples });
   if (moon.shadow.mapSize.x !== Q.shadow) { moon.shadow.mapSize.set(Q.shadow, Q.shadow); if (moon.shadow.map) { moon.shadow.map.dispose(); moon.shadow.map = null; } }
   for (const rt of [composer.renderTarget1, composer.renderTarget2]) if (rt.samples !== Q.msaa) { rt.samples = Q.msaa; rt.dispose(); }
   resize();
@@ -2272,8 +2280,15 @@ function setQuality(q, save) {
   if (save) writePref('lamp118-quality', q);
   lastQualityChange = G.clock;
 }
+// 標題畫面是動態背景，仍要持續渲染，但關掉 GTAO、像素比降到 1
+let titleLoad = null;
+function syncTitleLoad() {
+  const t = G.state === 'title'; if (t === titleLoad) return;
+  titleLoad = t; gtao.enabled = QUALITY[quality || 'high'].ao && !t; resize();
+}
 function resize() {
-  const w = innerWidth, h = innerHeight, pr = Math.min(devicePixelRatio || 1, QUALITY[quality || 'high'].pr, 2600 / Math.max(w, 1));
+  pauseDirty = true;
+  const w = innerWidth, h = innerHeight, pr = Math.min(devicePixelRatio || 1, G.state === 'title' ? 1 : QUALITY[quality || 'high'].pr, 2600 / Math.max(w, 1));
   renderer.setPixelRatio(pr); renderer.setSize(w, h, false);
   composer.setPixelRatio(pr); composer.setSize(w, h);
   camera.aspect = w / h; camera.updateProjectionMatrix();
@@ -2359,7 +2374,8 @@ function clearInput() {
   document.querySelectorAll('.tb.on').forEach(b => b.classList.remove('on'));
 }
 function pauseGame() {
-  if (G.state !== 'playing') return;
+  // 燈滅後到結算畫面出現前（0.9～1.3 秒）不進入暫停：結算計時器只在 playing 狀態才會開結算，暫停會讓遊戲卡在死亡狀態
+  if (G.state !== 'playing' || P.dead) return;
   G.state = 'paused'; lockedDuringPlay = false;
   if (document.pointerLockElement) document.exitPointerLock();
   clearInput(); openModal('pauseModal');
@@ -2390,14 +2406,14 @@ function showResult(win) {
   if (win) {
     Sound.win();
     const R = computeRank(), best = readBest();
-    $('resultEyebrow').textContent = 'The gate is open · 月門開啟'; $('resultTitle').textContent = '霧散了';
+    $('resultTitle').textContent = '霧散了';
     rank.className = 'rank'; rank.innerHTML = R.rank + '<small>評級</small>';
     const better = !best || R.r < RANKS.indexOf(best.rank) || (R.r === RANKS.indexOf(best.rank) && G.time < best.time);
     if (better) { try { localStorage.setItem('lamp118-best', JSON.stringify({ rank: R.rank, time: G.time, embers: G.embers })); } catch (e) {} }
     $('newBest').textContent = better ? '新的最佳紀錄' : `最佳紀錄 · ${best.rank} · ${fmt(best.time)}`;
     btns.innerHTML = '<button class="btn primary" type="button" id="againBtn">再走一次</button><button class="btn" type="button" id="backBtn">回到標題</button>';
   } else {
-    $('resultEyebrow').textContent = 'The lantern went out · 燈滅了'; $('resultTitle').textContent = '燈滅了';
+    $('resultTitle').textContent = '燈滅了';
     rank.className = 'rank fail'; rank.innerHTML = '—<small>未通關</small>';
     $('newBest').textContent = '從記錄點繼續，評級最高只能拿 B。';
     btns.innerHTML = '<button class="btn primary" type="button" id="contBtn">從記錄點繼續</button><button class="btn" type="button" id="againBtn">重新開始</button><button class="btn" type="button" id="backBtn">回到標題</button>';
@@ -2417,6 +2433,8 @@ function showResult(win) {
    主迴圈
    ============================================================ */
 let last = performance.now();
+// 暫停時畫面是靜止的：只在剛暫停、改畫質或改視窗大小後重畫一幀，其餘幀跳過整條後製
+let pauseDirty = true;
 function frame(now) {
   requestAnimationFrame(frame);
   const raw = Math.min(.05, (now - last) / 1000); last = now;
@@ -2426,6 +2444,8 @@ function frame(now) {
   else if (slowmo > 0) { slowmo -= raw; dt = raw * .35; }
   const t = U_TIME.value;
   const playing = G.state === 'playing';
+  syncTitleLoad();
+  if (G.state === 'paused') { if (!pauseDirty) return; pauseDirty = false; } else pauseDirty = true;
   if (G.state !== 'paused') {
     if (playing) pollInput(raw); else { pressed.clear(); mouseAttack = false; touch.pressed = {}; Object.assign(input, { x: 0, y: 0, jumpPressed: false, jumpHeld: false, attack: false, dash: false, interact: false }); }
     if (dt > 0) {

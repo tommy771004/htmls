@@ -158,7 +158,7 @@ body.depotview .inscribe{display:none}
 .dhead span b{font:600 18px var(--num);color:var(--paper)}
 .dnote{margin:0 0 10px;font-size:13px;color:var(--muted);line-height:1.55}
 .ups{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.ups li{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;padding:10px 12px;border-radius:var(--r-m);background:rgba(236,217,166,.06)}
+.ups li{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;padding:10px 0;box-shadow:inset 0 -1px 0 rgba(236,217,166,.1)}
 .ups b{font:500 18px var(--kai);letter-spacing:.05em;color:var(--paper)}
 .ups .lv{display:inline-flex;gap:4px;margin-left:8px;vertical-align:middle}
 .ups .lv i{width:7px;height:7px;border-radius:50%;background:#5a4632}
@@ -201,6 +201,7 @@ body.failed #fail{display:block}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 @media (max-width:1180px){#dash{grid-template-columns:104px 140px minmax(200px,1fr) 212px 150px;gap:18px;padding:30px 22px 16px}.speedo svg{width:140px;height:140px}#needle{transform-origin:75px 75px}.speedo{height:140px}.speedo .read{top:80px}#seatGrid{grid-template-columns:repeat(16,6px)}.comfort{grid-template-columns:64px 1fr;gap:10px}.comfort svg{width:64px;height:54px}}
+@media (min-width:761px) and (max-width:960px){#dash{grid-template-columns:96px 120px minmax(160px,1fr) 170px 110px;gap:12px;padding:30px 16px 16px}.lever{gap:8px}#leverTxt{font-size:28px}.speedo{height:120px}.speedo svg{width:120px;height:120px}.speedo .read{top:68px}#spd{font-size:26px}.comfort{grid-template-columns:48px 1fr;gap:8px}.comfort svg{width:48px;height:40px}#cft{font-size:28px}.bonus{white-space:normal;line-height:1.35}.pax b{font-size:26px}#seatGrid{grid-template-columns:repeat(14,6px)}}
 @media (max-width:760px){
   :root{--band:56px;--dash:296px;--gut:6px}
   #top{padding:0 12px;grid-template-columns:1fr auto}
@@ -680,7 +681,7 @@ function applyLight(){
   $('bLight').firstChild.nodeValue=night?'晴日':'午夜';
   for(const b of document.querySelectorAll('[data-light]'))b.setAttribute('aria-checked',String((b.dataset.light==='night')===night));
 }
-function setNight(v){night=v;save.night=v;persist();applyLight()}
+function setNight(v){night=v;save.night=v;persist();applyLight();renderer.shadowMap.needsUpdate=true}
 
 /* ---------- 駕駛模擬 ---------- */
 const UPS=[
@@ -690,8 +691,13 @@ const UPS=[
 ];
 const sim={state:'idle'};let sumTimer=0;
 const leverName=n=>n===0?'N':n>0?'P'+n:n===-8?'EB':'B'+(-n);
-function cmdAccel(n,v){if(n>0){let a=n/5*.95*Math.min(1,9/Math.max(v,.1));if(v>22.8)a*=Math.max(0,1-(v-22.8)/1.4);return a}if(n<0)return n===-8?-1.35:n*.13;return 0}
+// 走行阻力（m/s²）：電聯車 80 km/h 時約 0.05，放 N 可以滑行很遠
+const runRes=v=>v>0?.012+.00008*v*v:0;
+// 動力在 77 km/h 起漸弱、82 km/h 歸零，阻力變小後全力也不會越過 80 限速 +3 的容許值
+function cmdAccel(n,v){if(n>0){let a=n/5*.95*Math.min(1,9/Math.max(v,.1));if(v>21.4)a*=Math.max(0,1-(v-21.4)/1.4);return a}if(n<0)return n===-8?-1.35:n*.13;return 0}
 const tipOf=c=>Math.round(Math.pow(clamp((c-55)/45,0,1),1.15)*60);
+// 曲線限速要等整列車（車尾）出彎才解除
+const limitNow=()=>Math.min(P.limitAt(sim.s),P.limitAt(sim.s-sim.len));
 function resetSim(ri){
   const R=ROUTES[ri],cars=2+save.cars;
   Object.assign(sim,{route:R,ri,state:'run',seg:0,stops:R.stops,s:R.stops[0],v:0,aMot:0,aFelt:0,jerk:0,lat:0,lever:-1,ic:100,comfort:100,streak:0,smoothT:0,mult:1,roughT:0,roughLatch:false,ebLatch:false,recovering:false,recoverT:0,
@@ -700,13 +706,13 @@ function stepSim(dt){
   const S=sim;if(S.state!=='run'&&S.state!=='dwell')return;S.t+=dt;
   let n=S.lever;if(S.ats)n=-8;else if(S.state==='dwell')n=Math.min(n,0);
   const cmd=cmdAccel(n,S.v);S.aMot+=(cmd-S.aMot)*(1-Math.exp(-dt/(n===-8?.25:S.tau)));
-  const g=-9.8*P.grade(S.s-S.len/2),res=S.v>0?-(.03+.0007*S.v*S.v):0;
+  const g=-9.8*P.grade(S.s-S.len/2),res=-runRes(S.v);
   let v=S.v+(S.aMot+res+g)*dt;const moving=v>0;if(!moving)v=0;
   const felt=moving?S.aMot+res:0;
   S.s+=v*dt;S.v=v;
   const jr=(felt-S.aFelt)/dt;S.aFelt=felt;S.jerk+=(jr-S.jerk)*Math.min(1,dt*10);
   S.lat=v*v*Math.abs(P.kAt(S.s-S.len/2));
-  const t=S.tol,lim=P.limitAt(S.s),over=Math.max(0,v*3.6-lim-3);
+  const t=S.tol,lim=limitNow(),over=Math.max(0,v*3.6-lim-3);
   const pen=Math.max(0,Math.abs(felt)-.85*t)*55+Math.max(0,Math.abs(S.jerk)-.6*t)*30+Math.max(0,S.lat-1.0*t)*60+over*1.5;
   S.ic=clamp(100-pen,0,100);
   if(S.ic<S.comfort)S.comfort+=(S.ic-S.comfort)*(1-Math.exp(-dt*.9));else if(v>.5)S.comfort+=(S.ic-S.comfort)*(1-Math.exp(-dt*.035));
@@ -746,7 +752,7 @@ function moveLever(d){if(sim.state!=='run'&&sim.state!=='dwell')return;const n=c
   if(sim.state==='run'&&Math.abs(d)===1&&notchLog.filter(x=>x[1]===Math.sign(d)).length>=4){notchLog.length=0;sim.comfort=Math.max(0,sim.comfort-6);breakStreak()}}
 function press(dir){if(mode!=='drive'||paused)return;if(dir>0){held.up=1}else{held.down=1}moveLever(dir);repT=.32}
 function release(dir){if(dir>0)held.up=0;else held.down=0}
-addEventListener('keydown',e=>{if(e.metaKey||e.ctrlKey||e.altKey)return;const k=e.code;if((e.target.closest('input,select,textarea')&&k!=='Escape'||e.target.closest('button,a')&&!['Escape','KeyP'].includes(k)))return;
+addEventListener('keydown',e=>{if(e.metaKey||e.ctrlKey||e.altKey)return;const k=e.code;if((e.target.closest('input,select,textarea')&&k!=='Escape'||e.target.closest('button,a')&&['Space','Enter','NumpadEnter','Tab'].includes(k)))return;// 焦點停在頂列按鈕時只把啟動鍵留給按鈕，W/S/E 等駕駛鍵照常作用
   if(['ArrowUp','ArrowDown','Space'].includes(k)&&!e.target.closest('button,input,select,textarea'))e.preventDefault();
   if(mode==='drive'&&!paused){if(k==='KeyW'||k==='ArrowUp'){if(!e.repeat)press(1);return}if(k==='KeyS'||k==='ArrowDown'){if(!e.repeat)press(-1);return}if(k==='KeyE'&&!e.repeat){moveLever(-8-sim.lever);return}}
   if(e.repeat)return;
@@ -785,7 +791,7 @@ function leverY(n){return 8+(5-n)*(96/13)}
 const SPA=v=>135+v/100*270;const pt=(a,r)=>[75+Math.cos(a*Math.PI/180)*r,75+Math.sin(a*Math.PI/180)*r];
 {let h='';for(let v=0;v<=100;v+=5){const a=SPA(v),maj=v%10===0,[x1,y1]=pt(a,maj?54:58),[x2,y2]=pt(a,63);h+=`<path d="M${x1.toFixed(1)} ${y1.toFixed(1)}L${x2.toFixed(1)} ${y2.toFixed(1)}" stroke="${maj?'#ecd9a6':'#8b7449'}" stroke-width="${maj?1.7:1}" stroke-linecap="round"/>`;if(v%20===0){const[tx,ty]=pt(a,43);h+=`<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" fill="#cbb994" font-size="10.5" font-family="Iowan Old Style,Palatino,Georgia,serif" text-anchor="middle" dominant-baseline="central">${v}</text>`}}$('spTicks').innerHTML=h}
 function setLimitArc(lim){const a0=SPA(lim),a1=SPA(Math.min(100,lim+3.5)),[x0,y0]=pt(a0,66),[x1,y1]=pt(a1,66);$('spLimit').setAttribute('d',`M${x0.toFixed(1)} ${y0.toFixed(1)}A66 66 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`)}
-function seatGrid(){const g=$('seatGrid');if(g.children.length!==sim.seats){g.innerHTML='<i></i>'.repeat(sim.seats)}[...g.children].forEach((e,i)=>e.classList.toggle('on',i<sim.pax))}
+let seatKey='';function seatGrid(){const k=sim.seats+'/'+sim.pax;if(k===seatKey)return;seatKey=k;const g=$('seatGrid');if(g.children.length!==sim.seats){g.innerHTML='<i></i>'.repeat(sim.seats)}[...g.children].forEach((e,i)=>e.classList.toggle('on',i<sim.pax))}
 let callT=0;function callout(html,ms=3000,rich=false){const c=$('call');if(rich)c.innerHTML=html;else c.textContent=html;c.classList.add('show');clearTimeout(callT);callT=setTimeout(()=>c.classList.remove('show'),ms)}
 function setBlind(small,main,en){$('blindSmall').textContent=small;const m=$('blindMain');if(m.textContent!==main){m.textContent=main;if(!reduced&&m.animate)m.animate([{transform:'translateY(55%)'},{transform:'none'}],{duration:360,easing:'cubic-bezier(.2,.75,.25,1)'})}$('blindEn').textContent=en}
 let slipHide=0;function showSlip(prev,had){const s=$('slip');s.classList.remove('ok');$('slipT').textContent=had?`連續紀錄中斷　×${prev.toFixed(1)} → ×1.0`:'手把放太快了';$('slipP').textContent='茶晃出杯緣了。放輕手把，平穩 3 秒找回平衡。';s.classList.add('show');clearTimeout(slipHide)}
@@ -800,7 +806,7 @@ function hudTick(){
   put('mult','×'+S.mult.toFixed(1));const nb=Math.floor(S.smoothT);beads.forEach((b,i)=>b.classList.toggle('on',i<nb));
   const ln=leverName(S.lever);put('leverTxt',ln);els.leverTxt.className=S.lever>0?'p':S.lever===-8?'eb':S.lever<0?'b':'';$('leverHandle').setAttribute('transform',`translate(0 ${leverY(S.lever).toFixed(1)})`);
   const kmh=S.v*3.6;put('spd',String(Math.round(kmh)));$('needle').style.transform=`rotate(${(SPA(Math.min(kmh,100))-270).toFixed(1)}deg)`;
-  const lim=P.limitAt(S.s);if(cache.lim!==lim){cache.lim=lim;setLimitArc(lim)}
+  const lim=limitNow();if(cache.lim!==lim){cache.lim=lim;setLimitArc(lim)}
   const R=S.route,a=S.stops[Math.min(S.seg,S.stops.length-2)],b=S.stops[Math.min(S.seg+1,S.stops.length-1)],segI=Math.min(S.seg,S.stops.length-2);
   put('rFrom',R.stations[segI].name);put('rTo',R.stations[segI+1].name);put('rSeg',`第 ${segI+1} 段 / 共 ${S.stops.length-1} 段`);
   const prog=clamp((S.s-a)/(b-a),0,1),pc=`calc(${prog.toFixed(4)} * (100% - 26px) + 26px)`;$('trackFill').style.width=pc;$('trainMark').style.left=pc;if(cache.pg!==Math.round(prog*100)){cache.pg=Math.round(prog*100);els.prog.setAttribute('aria-valuenow',cache.pg)}
@@ -820,7 +826,7 @@ function tipText(dist,kmh,lim){const S=sim;
   if(kmh>lim+3)return '超過限速，乘客會被甩向一側。拉一點煞車。';
   if(S.v<.3&&S.lever<=0)return '按住 W 或 ↑，一格一格推上動力，讓茶水保持平穩。';
   if(dist<45&&dist>-5&&S.v<4.5)return S.lever<-1?'快停了：放回 B1，讓列車輕輕停下。':'慢慢滑進停車位置，停在「停」字牌旁。';
-  const need=S.v*S.v/(2*Math.max(1,dist-3));if(dist<600&&need>.07&&S.v>3)return `準備進站：建議 ${leverName(-clamp(Math.ceil(need/.13),1,7))}，需減速 ${need.toFixed(2)} m/s²。`;
+  const need=S.v*S.v/(2*Math.max(1,dist-3));if(dist<700&&need>.07&&S.v>3)return `準備進站：建議 ${leverName(-clamp(Math.ceil(Math.max(0,need-runRes(S.v))/.13),1,7))}，需減速 ${need.toFixed(2)} m/s²。`;
   if(S.lever>=3&&kmh>70)return '已接近巡航速度，可以放回 N 滑行。';
   if(S.recovering)return '穩住手把，氣泡回到中央就找回平衡了。';
   return `平穩行駛中。再平穩 ${Math.max(1,Math.ceil(6-S.smoothT))} 秒，倍率 +0.1。`}
@@ -891,7 +897,7 @@ function resize(){const w=innerWidth,h=innerHeight,pr=Math.min(devicePixelRatio|
 addEventListener('resize',resize);
 
 /* ---------- 迴圈 ---------- */
-const DT=1/120;let acc=0,last=performance.now(),clock=0,lastClackS=0;
+const DT=1/120;let acc=0,last=performance.now(),clock=0,lastClackS=0,halfFrame=false;
 function frame(now){requestAnimationFrame(frame);let dt=Math.min(.1,(now-last)/1000);last=now;clock+=dt;
   if(mode==='drive'&&!paused){
     if(held.up||held.down){repT-=dt;if(repT<=0){moveLever(held.up?1:-1);repT=.28}}
@@ -907,6 +913,9 @@ function frame(now){requestAnimationFrame(frame);let dt=Math.min(.1,(now-last)/1
   sea.material.uniforms.uCam.value.copy(camera.position);sea.material.uniforms.uT.value=clock;farClouds.position.set(camera.position.x*.9,0,camera.position.z*.9);
   aimShadow(mode==='hub'&&!depotView?lookNow:tmpShadow.lerpVectors(camera.position,lookNow,.5),mode==='hub'&&!depotView?190:110);
   hudTick();audio.update();
+  // 暫停時列車與鏡頭都靜止，只剩風車、雲、海面等慢動畫：陰影貼圖凍結（日夜切換時補一次），渲染降為半幀率
+  const idle=mode==='drive'&&paused&&camBlend>=1;renderer.shadowMap.autoUpdate=!idle;
+  if(idle&&(halfFrame=!halfFrame))return;
   renderer.setRenderTarget(rt);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCam)}
 
 /* ---------- 啟動 ---------- */

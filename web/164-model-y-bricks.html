@@ -75,7 +75,9 @@ section.sheet { padding: 88px 0 0 }
 .sheet h2 { font-size: clamp(30px, 4vw, 46px); font-weight: 800; letter-spacing: -.6px; margin: 0 0 8px }
 .sheet .lede { color: var(--ink-2); font-size: 16px; line-height: 1.75; max-width: 62ch; margin: 0 0 36px }
 .check-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 56px; align-items: start }
-.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 28px }
+.facts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 30px }
+.passes p { margin: 0; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums }
+.passes p.note { margin-top: 4px; font-size: 13.5px; font-weight: 400; line-height: 1.6; color: var(--ink-2) }
 .fact b { display: block; font-size: clamp(38px, 4.6vw, 58px); font-weight: 800; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums }
 .fact b small { font-size: .42em; letter-spacing: 0; margin-left: 4px }
 .fact span { display: block; margin-top: 8px; font-weight: 700; font-size: 15px }
@@ -114,11 +116,10 @@ details.steps[open] summary .chev { transform: rotate(180deg) }
 .store b { font-size: 16px; display: block }
 .store .sum { font-size: 26px; font-weight: 800; letter-spacing: -.4px; font-variant-numeric: tabular-nums; margin-top: 6px; display: block }
 .store small { font-size: 13px; color: var(--ink-2); line-height: 1.6; display: block }
-.downloads { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 48px 0 0 }
-.downloads a { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; text-decoration: none; border: 1.5px solid var(--ink); border-radius: 8px; padding: 14px 16px; transition: background .16s, color .16s }
-.downloads a:hover { background: var(--ink); color: var(--paper) }
-.downloads a:hover small { color: #c9ccc6 }
-.downloads b { font-size: 15px }
+.downloads { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0 28px; margin: 48px 0 0; border-top: 1.5px solid var(--ink) }
+.downloads a { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; text-decoration: none; border-bottom: 1px solid var(--rule); padding: 14px 0 }
+.downloads b { font-size: 15px; transition: color .16s }
+.downloads a:hover b, .downloads a:hover svg { color: var(--mark) }
 .downloads small { grid-column: 1; font-size: 12.5px; color: var(--ink-2) }
 .downloads svg { grid-row: 1 / span 2; grid-column: 2; width: 18px; height: 18px }
 
@@ -240,7 +241,14 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const motionQuery = matchMedia('(prefers-reduced-motion: reduce)');
 let reduceMotion = motionQuery.matches;
-const [mesh, bom, report] = await Promise.all(['model-y.mesh.json', 'bom.json', 'verify-report.json'].map((f) => fetch(BASE + f).then((r) => { if (!r.ok) throw new Error(f); return r.json(); })));
+let mesh, bom, report;
+try {
+  [mesh, bom, report] = await Promise.all(['model-y.mesh.json', 'bom.json', 'verify-report.json'].map((f) => fetch(BASE + f).then((r) => { if (!r.ok) throw new Error(f); return r.json(); }).catch(() => { throw new Error(f); })));
+} catch (err) {
+  $('loading').textContent = `零件資料載入失敗（${err.message}），請重新整理`;
+  for (const id of ['prev', 'next', 'play', 'resetView']) $(id).disabled = true;
+  throw err;
+}
 const STEPS = mesh.steps.length;
 const lotOf = (f, c) => bom.lots.find((l) => l.ldraw === f && l.color === c);
 
@@ -332,7 +340,13 @@ controls.zoomToCursor = true;
 const HOME = new THREE.Vector3(0, 68, 0), PIVOT_HALF = new THREE.Vector3(200, 44, 92);
 const pivotMin = new THREE.Vector3(), pivotMax = new THREE.Vector3(), pivotFix = new THREE.Vector3();
 let homeDist = 1;
+// 只有翻頁動畫、鏡頭變動（含阻尼收斂）或尺寸改變時才重繪；#build 捲出視窗就停下 requestAnimationFrame
+let needsRender = true, onScreen = true, rafId = 0;
+const invalidate = () => { needsRender = true; kick(); };
+function kick() { if (!rafId && onScreen) rafId = requestAnimationFrame(tick); }
+controls.addEventListener('change', () => { needsRender = true; });
 function frame() {
+  invalidate();
   const r = canvas.getBoundingClientRect();
   renderer.setSize(r.width, r.height, false);
   camera.aspect = r.width / r.height;
@@ -347,7 +361,7 @@ function frame() {
 }
 frame(); new ResizeObserver(frame).observe(canvas);
 canvas.setAttribute('aria-label', 'Model Y 積木模型；拖曳或方向鍵旋轉，加減鍵縮放，Home 重設視角');
-bindOrbitKeyboard(THREE, controls, canvas, { reset: frame });
+bindOrbitKeyboard(THREE, controls, canvas, { reset: frame, change: invalidate });
 $('resetView').onclick = frame;
 $('loading').remove();
 
@@ -392,7 +406,9 @@ function show(n, animate = true) {
   anim = { t0: performance.now(), fresh, n, flipFrom: turn.rotation.x, flipTo: below ? Math.PI : 0 };
 }
 function tick(now) {
+  rafId = 0;
   if (anim) {
+    needsRender = true;
     const k = T_IN ? Math.min(1, (now - anim.t0) / T_IN) : 1;
     const e = 1 - Math.pow(1 - k, 3);
     turn.rotation.x = anim.flipFrom + (anim.flipTo - anim.flipFrom) * e;
@@ -411,11 +427,17 @@ function tick(now) {
   pivotMin.copy(PIVOT_HALF).multiplyScalar(-free).add(HOME); pivotMax.copy(PIVOT_HALF).multiplyScalar(free).add(HOME);
   pivotFix.copy(controls.target).clamp(pivotMin, pivotMax).sub(controls.target);
   if (pivotFix.lengthSq() > 1e-6) { controls.target.add(pivotFix); camera.position.add(pivotFix); }
-  controls.update();
-  renderer.render(scene, camera);
-  requestAnimationFrame(tick);
+  controls.update();                       // 阻尼尚未收斂時會觸發 'change'
+  if (needsRender) { needsRender = false; renderer.render(scene, camera); }
+  // 持續排程讓阻尼收斂；畫面靜止時只做幾個數值比較，不重繪
+  kick();
 }
-requestAnimationFrame(tick);
+new IntersectionObserver((entries) => {
+  onScreen = entries[entries.length - 1].isIntersecting;
+  if (onScreen) invalidate();
+  else if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+}).observe($('build'));
+kick();
 $('prev').onclick = () => { stop(); show(cur - 1); };
 $('next').onclick = () => { stop(); show(cur + 1); };
 addEventListener('keydown', (e) => {
@@ -451,12 +473,10 @@ const S = report.summary;
 const mm = (ldu) => (ldu * 0.4).toFixed(1);
 $('facts').innerHTML = [
   [S.connections, '接點', `凸點對凸點孔 ${S.studConnections} 處、科技軸銷 ${S.technicConnections} 處，位置與方向都吻合`],
-  [S.collisions, '碰撞', '碰撞體完整包住 LDraw 真實網格後，兩兩計算重疊'],
-  [S.buildFailures, '裝不上的零件', `${S.steps} 步裡每個零件都沿插入方向走完整段路徑`],
-  [S.components, '連通塊', '整台車靠接點連成一體，沒有懸空零件'],
   [`${mm(S.comMarginLDU)}<small>mm</small>`, '重心餘裕', '重心投影到地面後，離輪胎支撐範圍邊界的最短距離'],
-  [`${S.wheelsOnGround}/4`, '輪胎著地', `車身最低點離地 ${mm(S.groundClearanceLDU)} mm，只有輪胎碰地`],
-].map(([v, t, d]) => `<div class="fact"><b>${v}</b><span>${t}</span><p>${d}</p></div>`).join('');
+].map(([v, t, d]) => `<div class="fact"><b>${v}</b><span>${t}</span><p>${d}</p></div>`).join('') +
+  `<div class="passes"><p>碰撞 ${S.collisions}・裝不上 ${S.buildFailures}・連通塊 ${S.components}・輪胎著地 ${S.wheelsOnGround}/4</p>` +
+  `<p class="note">碰撞體完整包住 LDraw 真實網格後兩兩計算重疊；${S.steps} 步裡每個零件都沿插入方向走完整段路徑；整台車靠接點連成一體，沒有懸空零件；車身最低點離地 ${mm(S.groundClearanceLDU)} mm，只有輪胎碰地。離地換算 1:30 約 ${(S.groundClearanceLDU * 0.4 * 30 / 10).toFixed(1)} cm，比實車低，這是受積木高度限制。</p></div>`;
 // 俯視圖：車身外框、四個輪胎、支撐範圍、重心
 (function cog() {
   const K = 1.08, sx = (x) => 260 + x * K, sz = (z) => 140 + z * K;       // LDraw x → 右、z → 下

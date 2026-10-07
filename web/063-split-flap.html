@@ -25,7 +25,7 @@ body{
 .wrap{max-width:1320px;margin:0 auto;padding:clamp(14px,2.5vw,32px) clamp(16px,2.5vw,32px) 40px}
 
 /* yellow wayfinding band */
-.band{display:flex;align-items:stretch;background:var(--yellow);color:#111;min-height:72px;border-radius:2px;overflow:hidden;box-shadow:0 10px 30px -10px rgba(255,207,0,.25)}
+.band{display:flex;align-items:stretch;background:var(--yellow);color:#111;min-height:72px;border-radius:2px;overflow:hidden}
 .band .icon{background:#111;display:grid;place-items:center;padding:0 18px;flex:none}
 .band .icon svg{width:40px;height:40px}
 .band .title{display:flex;flex-direction:column;justify-content:center;padding:6px 18px;flex:1;min-width:0}
@@ -84,8 +84,8 @@ body{
 .c .t::after,.c .ft::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(0,0,0,.18))}
 
 /* controls */
-.desk{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;margin-top:22px;align-items:start}
-.book{background:#151515;border:1px solid #2a2a2a;border-radius:3px;padding:14px 16px}
+.desk{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;margin-top:22px;align-items:start}
+.book{padding:0}
 .book label{display:block;font-family:var(--sans);font-size:12px;letter-spacing:.22em;color:var(--yellow);text-transform:uppercase;margin-bottom:8px}
 .book .in{display:flex;gap:8px}
 .book input{flex:1;min-width:0;background:#0b0b0b;border:1px solid #333;color:var(--white);font-family:var(--mono);font-weight:700;font-size:18px;letter-spacing:.14em;text-transform:uppercase;padding:0 12px;height:46px;border-radius:2px;outline:none}
@@ -120,13 +120,13 @@ body{
   <header class="band">
     <div class="icon"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#ffcf00" d="M44 30.5v-3.2L27 17V6.8C27 5 25.7 3 24 3s-3 2-3 3.8V17L4 27.3v3.2l17-4.7v9.8l-4.4 3.3V42l7.4-2 7.4 2v-3.1L27 35.6v-9.8z" transform="rotate(-45 24 24)"/></svg></div>
     <div class="title"><h1>Departures</h1><div class="langs">Départs · Abflug · 出發 · Partenze · 出発</div></div>
-    <div class="gate-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="#111" stroke-width="3" stroke-linecap="square"/></svg>Gates<br>A–Y</div>
+    <div class="gate-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="#111" stroke-width="3" stroke-linecap="square"/></svg>Gates<br>A–Z</div>
   </header>
 
   <section class="board" aria-label="Departures board">
     <div class="bhead">
       <div class="ap"><b>Port Nowhere Int’l · PNW</b>Terminal 2 · All times local</div>
-      <div class="clockbox"><small>LOCAL<br>TIME</small><div class="field" id="clock"></div></div>
+      <div class="clockbox"><small>LOCAL TIME<br>ACCELERATED</small><div class="field" id="clock"></div></div>
     </div>
     <div class="cols" id="cols"></div>
     <div id="rows" aria-live="polite"></div>
@@ -178,8 +178,16 @@ body{
   }
   var flights = [];
   for (var i=0;i<8;i++) flights.push(nextFlight());
+  // the first flight is already boarding, so it leaves within minutes of now
+  flights[0].t = Math.min(flights[0].t, Math.ceil((baseMin + 6) / 5) * 5);
   flights[0].remark = 'BOARDING'; flights[0].stage = 1;
   flights[1].remark = 'GATE OPEN';
+
+  /* board clock: real time plus an offset that jumps forward with each event,
+     so BOARDING / LAST CALL / DEPARTED always match the scheduled time */
+  var loadTs = Date.now(), clockOffset = 0, baseMinF = baseMin + now.getSeconds() / 60;
+  function boardMin(){ return baseMinF + (Date.now() - loadTs) / 60000 + clockOffset; }
+  function advanceTo(m){ var cur = boardMin(); if (m > cur) clockOffset += m - cur; }
 
   /* ---------- layouts ---------- */
   var LAYOUTS = {
@@ -347,7 +355,7 @@ body{
     clockEl.innerHTML = ''; clockCells = [];
     for (var i=0;i<5;i++){ var c = makeCell(true); c.el.style.setProperty('--cw', 'calc(var(--cwc, 26px))'); clockEl.appendChild(c.el); clockCells.push(c); }
   }
-  function updClock(){ var d = new Date(); var s = ('0'+d.getHours()).slice(-2) + ':' + ('0'+d.getMinutes()).slice(-2); for (var i=0;i<5;i++) setTarget(clockCells[i], s[i]); }
+  function updClock(){ var s = hhmm(Math.floor(boardMin())); for (var i=0;i<5;i++) setTarget(clockCells[i], s[i]); }
 
   /* ---------- simulation ---------- */
   var msg = document.getElementById('msg');
@@ -356,15 +364,24 @@ body{
     // progress the first flight that is not cancelled
     var f = flights[0];
     if (!f) return;
-    if (f.remark === 'CANCELLED' || f.remark === 'DELAYED' || f.remark === 'SEE AGENT'){
-      if (f.remark === 'DELAYED' && Math.random() < .5){ f.remark = 'DELAYED'; }
+    if (f.remark === 'DELAYED' && !f.retimed && Math.random() < .5){
+      // half the time a delay just means a new, later time: re-slot it further down the board
+      flights.shift();
+      f.retimed = true;
+      f.t = Math.max(f.t, Math.ceil(boardMin() / 5) * 5) + 30;
+      var at = 0; while (at < flights.length && flights[at].t <= f.t) at++;
+      flights.splice(at, 0, f);
+      lastT = Math.max(lastT, f.t);
+      say(f.flight + ' to ' + f.dest + ' is now expected at ' + hhmm(f.t) + '. It was always going to be later.');
+    } else if (f.remark === 'CANCELLED' || (f.remark === 'DELAYED' && !f.retimed) || f.remark === 'SEE AGENT'){
       flights.shift(); flights.push(nextFlight());
-      say(f.dest + ' ' + (f.remark === 'CANCELLED' ? 'will not be happening today. Or ever. Please see any agent.' : 'has been quietly removed from the board. It was always going to be later.'));
-    } else if (f.stage === 0){ f.stage = 1; f.remark = 'BOARDING'; say('Flight ' + f.flight + ' to ' + f.dest + ' is now boarding at gate ' + f.gate + '.'); }
-    else if (f.stage === 1){ f.stage = 2; f.remark = 'LAST CALL'; say('Last call for ' + f.flight + ' to ' + f.dest + '. Gate ' + f.gate + ' closes in two minutes. Run, but politely.'); }
-    else if (f.stage === 2){ f.stage = 3; f.remark = 'DEPARTED'; say(f.flight + ' has departed for ' + f.dest + '. If you are reading this at the gate — sorry.'); }
+      say(f.dest + ' ' + (f.remark === 'CANCELLED' ? 'will not be happening today. Or ever. Please see any agent.' : 'has been quietly removed from the board. Please see any agent.'));
+    } else if (f.stage === 0){ f.stage = 1; f.remark = 'BOARDING'; advanceTo(f.t - 15); say('Flight ' + f.flight + ' to ' + f.dest + ' is now boarding at gate ' + f.gate + '.'); }
+    else if (f.stage === 1){ f.stage = 2; f.remark = 'LAST CALL'; advanceTo(f.t - 5); say('Last call for ' + f.flight + ' to ' + f.dest + '. Gate ' + f.gate + ' closes in two minutes. Run, but politely.'); }
+    else if (f.stage === 2){ f.stage = 3; f.remark = 'DEPARTED'; advanceTo(f.t); say(f.flight + ' has departed for ' + f.dest + '. If you are reading this at the gate — sorry.'); }
     else { flights.shift(); flights.push(nextFlight()); if (flights[0].remark === 'ON TIME') flights[0].remark = 'GATE OPEN'; }
     if (flights[1] && flights[1].remark === 'ON TIME' && Math.random() < .35){ flights[1].remark = 'GATE OPEN'; }
+    updClock();
     render();
   }
   var evTimer = setInterval(function(){ if (!document.hidden) event(); }, 6000);

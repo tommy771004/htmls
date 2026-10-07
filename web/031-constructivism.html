@@ -280,7 +280,7 @@ footer .big span{color:var(--paper)}
 <section class="books" id="books">
   <div class="wrap">
     <div class="sec-head reveal"><span class="tag">新到！</span><h2>本月配給書目</h2>
-      <div class="tally" aria-live="polite"><span>今日<br>借出</span><b id="count">0</b><span>冊</span></div>
+      <div class="tally" aria-live="polite"><span>目前<br>借出</span><b id="count">0</b><span>冊</span></div>
     </div>
     <div class="shelf" id="shelf"></div>
   </div>
@@ -306,7 +306,7 @@ footer .big span{color:var(--paper)}
       <div class="fields">
         <div><span>姓名</span><b id="cname">＿＿＿＿</b></div>
         <div><span>類別</span><b id="ctype">待核發</b></div>
-        <div><span>在借</span><b id="cbooks">0 冊</b></div>
+        <div><span>在借</span><b id="cbooks">—</b></div>
       </div>
       <svg class="seal" viewBox="0 0 100 100" aria-hidden="true">
         <circle cx="50" cy="50" r="45" fill="none" stroke="#D3241C" stroke-width="6"/>
@@ -357,9 +357,14 @@ footer .big span{color:var(--paper)}
   }
   function autoplay(){ clearInterval(timer); timer = setInterval(function(){ if(!document.hidden) nextSlogan(); }, 5200); }
   if(horn) horn.addEventListener("click", function(){ nextSlogan(); autoplay(); });
+  // space shouts only while the hero is on screen; elsewhere it scrolls the page as usual
+  var heroVisible = true, heroEl = $("#top");
+  if(heroEl && "IntersectionObserver" in window){
+    new IntersectionObserver(function(es){ heroVisible = es[es.length - 1].isIntersecting; }, {threshold:.3}).observe(heroEl);
+  }
   document.addEventListener("keydown", function(e){
     var t = e.target && e.target.tagName;
-    if(t === "INPUT" || t === "BUTTON" || t === "A") return;
+    if(t === "INPUT" || t === "BUTTON" || t === "A" || !heroVisible) return;
     if(e.key === " "){ e.preventDefault(); nextSlogan(); autoplay(); }
   });
   var hint = document.querySelector(".hint");
@@ -375,7 +380,10 @@ footer .big span{color:var(--paper)}
     {t:"拖拉機維修入門（附插圖）", c:"拖拉機", a:"集體農場編輯部", d:"插圖比文字多，文字比零件少。附贈一張缺了三顆螺絲的分解圖。"},
     {t:"星期三的哲學", c:"星期三", a:"伊凡・週中", d:"為什麼一週中間最難熬？本書提出十二種解釋，其中十一種跟午餐有關。"}
   ];
+  var savedName = store.get("rl-name");
+  var hasCard = typeof savedName === "string" && !!savedName;
   var borrowed = store.get("rl-borrowed") || {};
+  if(!hasCard){ borrowed = {}; store.set("rl-borrowed", borrowed); } // no card, no loans
   var shelf = $("#shelf"), countEl = $("#count");
 
   function rng(seed){ return function(){ seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
@@ -399,7 +407,14 @@ footer .big span{color:var(--paper)}
   function tally(bump){
     var n = 0; for(var k in borrowed) if(borrowed[k]) n++;
     if(countEl){ countEl.textContent = n; if(bump && !reduce){ countEl.classList.remove("bump"); void countEl.offsetWidth; countEl.classList.add("bump"); } }
-    var cb = $("#cbooks"); if(cb) cb.textContent = n + " 冊";
+    var cb = $("#cbooks"); if(cb) cb.textContent = hasCard ? n + " 冊" : "—";
+  }
+  function needCard(btn, label){
+    btn.textContent = "請先辦證！";
+    setTimeout(function(){ btn.textContent = label; }, 1600);
+    var sec = $("#card"), input = $("#nm");
+    if(sec) sec.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    if(input) setTimeout(function(){ try{ input.focus({ preventScroll: true }); }catch(e){ input.focus(); } }, reduce ? 0 : 450);
   }
   if(shelf){
     books.forEach(function(b, i){
@@ -408,6 +423,7 @@ footer .big span{color:var(--paper)}
       el.innerHTML = '<div class="cover">'+coverSVG(i, b.c)+'</div><div><h3>'+b.t+'</h3><div class="au">'+b.a+' 著</div><p>'+b.d+'</p><button class="borrow" type="button">'+(borrowed[i] ? "歸還" : "借閱")+'</button></div><div class="stampmark" aria-hidden="true">已借出</div>';
       var btn = el.querySelector(".borrow");
       if(btn) btn.addEventListener("click", function(){
+        if(!borrowed[i] && !hasCard){ needCard(btn, "借閱"); return; }
         borrowed[i] = !borrowed[i];
         el.classList.toggle("out", !!borrowed[i]);
         btn.textContent = borrowed[i] ? "歸還" : "借閱";
@@ -437,15 +453,24 @@ footer .big span{color:var(--paper)}
   function issue(name){
     var h = hash(name), card = $("#lcard");
     var set = function(id, v){ var e = $(id); if(e) e.textContent = v; };
+    // the card number is assigned when the card is issued; the name hash only picks the portrait and category
+    var no = store.get("rl-no");
+    if(typeof no !== "string" || !no){
+      no = name === savedName ? String(h % 1000000).padStart(6, "0") : String(Math.floor(Date.now() / 1000) % 1000000).padStart(6, "0");
+    } else if(name !== savedName){
+      no = String(Math.floor(Date.now() / 1000) % 1000000).padStart(6, "0");
+    }
+    store.set("rl-no", no);
     set("#cname", name);
     set("#ctype", types[h % types.length]);
-    set("#cno", String(h % 1000000).padStart(6, "0"));
+    set("#cno", no);
     if(face) face.innerHTML = faceSVG(h);
     if(card){
       card.classList.remove("issued","flash"); void card.offsetWidth;
       card.classList.add("issued"); if(!reduce) card.classList.add("flash");
     }
     store.set("rl-name", name);
+    savedName = name; hasCard = true; tally(false);
   }
   var form = $("#apply"), nm = $("#nm");
   if(form && nm){
@@ -454,8 +479,7 @@ footer .big span{color:var(--paper)}
       var v = nm.value.trim(); if(!v){ nm.focus(); return; }
       issue(v.slice(0, 12));
     });
-    var saved = store.get("rl-name");
-    if(typeof saved === "string" && saved){ nm.value = saved; issue(saved); }
+    if(hasCard){ nm.value = savedName; issue(savedName); }
   }
 
   /* ---- diagonal reveals ---- */

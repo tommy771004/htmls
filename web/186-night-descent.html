@@ -68,9 +68,8 @@ body.shot #title,body.shot #hud{display:none}
 body.title #hud{display:none}
 .tl{position:absolute;left:var(--gut);top:max(18px,env(safe-area-inset-top));line-height:1.25}
 .tl b{display:block;font-family:var(--serif);font-size:15px;letter-spacing:.14em;color:var(--ink-2);font-weight:700}
-.tl .t{font-size:30px;font-weight:600;letter-spacing:.02em;margin-top:4px}
-.tl .v{font-size:14px;color:var(--ink-2);margin-top:2px;display:none}
-body.touch .tl .v{display:block}
+.tl .t{font-size:30px;font-weight:600;letter-spacing:.02em;margin-top:4px;display:none}
+#hud.show-time .tl .t{display:block}
 .tr{position:absolute;right:var(--gut);top:max(14px,env(safe-area-inset-top));display:flex;gap:6px;pointer-events:auto}
 .ib{width:40px;height:40px;display:grid;place-items:center;border-radius:50%;color:var(--ink-2);transition:color .15s,background .15s}
 .ib:hover{color:var(--ink);background:rgba(255,255,255,.08)}
@@ -108,6 +107,7 @@ body.touch:not(.title):not(.overlay) #touch{display:block}
 .panel.on{display:flex}
 .panel .in{max-width:460px;width:100%;margin-left:clamp(0px,6vw,90px)}
 .panel h2{font-family:var(--serif);font-size:18px;letter-spacing:.2em;color:var(--ink-2);font-weight:700}
+#pause h2{font-size:28px;letter-spacing:.12em;color:var(--ink);margin:0 0 18px}
 .panel .big{font-family:var(--serif);font-weight:700;font-size:clamp(64px,11vw,110px);line-height:1.05;letter-spacing:.02em;margin:6px 0 14px}
 .panel dl{display:grid;grid-template-columns:auto 1fr;gap:6px 22px;font-size:15px;margin-bottom:26px}
 .panel dt{color:var(--ink-3)}
@@ -171,7 +171,7 @@ body.loading #load{display:block}
 </section>
 
 <div id="hud">
-  <div class="tl"><b id="hStage"></b><div class="t num" id="hTime">0:00.0</div><div class="v num" id="hSpeed">0 km/h</div></div>
+  <div class="tl"><b id="hStage"></b><div class="t num" id="hTime">0:00.0</div></div>
   <div class="tr">
     <button class="ib" id="bSound" aria-label="聲音開關"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16.5c0-5 2.9-9 7-9s7 4 7 9z"/><path d="M3.5 16.5h17"/><path d="M12 7.5V5.2"/><circle cx="12" cy="4.4" r="1"/><path d="M10.3 19.3a1.8 1.8 0 0 0 3.4 0"/><path id="muteX" d="M4 4l16 16" style="display:none"/></svg></button>
     <button class="ib" id="bPause" aria-label="暫停"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6v12M15 6v12"/></svg></button>
@@ -190,7 +190,6 @@ body.loading #load{display:block}
 <section class="panel" id="pause" aria-label="暫停">
   <div class="in">
     <h2>暫停</h2>
-    <div class="big">停一下</div>
     <div class="acts"><button id="bResume">繼續騎<kbd>Esc</kbd></button><button id="bRestart">從頭再騎<kbd>R</kbd></button><button id="bMenu">換路線</button></div>
     <div class="qual" role="group" aria-label="畫質"><span>畫質</span><button data-q="auto">自動</button><button data-q="0">高</button><button data-q="1">中</button><button data-q="2">低</button><button data-q="3">極簡</button><em id="qNow"></em></div>
   </div>
@@ -2305,6 +2304,7 @@ function updateShadows(p, dapple) {
 const bikeQ = new THREE.Quaternion(), tmpV = new THREE.Vector3(), tmpV2 = new THREE.Vector3();
 let basePitch = -0.35, projScale = 800, cockTilt = 1;
 function resize() {
+  pausedDrawn = false;
   const w = innerWidth, h = innerHeight, asp = w / h;
   renderer.setSize(w, h, false);
   const hf = 76 * Math.PI / 180;
@@ -2317,6 +2317,8 @@ function resize() {
   const portrait = clamp((1.2 - asp) / 0.7, 0, 1);
   basePitch = -lerp(20, 24, portrait) * Math.PI / 180;
   cockTilt = lerp(1, 0.62, portrait);
+  // 橫式時把手碼錶已顯示時間；直式時車頭壓低、碼錶不好讀，才在左上補上計時
+  $('hud').classList.toggle('show-time', portrait > 0.3);
   const pw = Math.floor(w * DPR), ph = Math.floor(h * DPR);
   rtScene.setSize(pw, ph);
   rtB[0].setSize(pw >> 1, ph >> 1); rtB[1].setSize(pw >> 1, ph >> 1); rtB[2].setSize(pw >> 2, ph >> 2); rtB[3].setSize(pw >> 2, ph >> 2); rtB[4].setSize(pw >> 3, ph >> 3); rtB[5].setSize(pw >> 3, ph >> 3);
@@ -2455,11 +2457,13 @@ function updateCamera(dt, time) {
 }
 
 /* ───────── 主迴圈 ───────── */
-let last = performance.now(), T = 0, hudAcc = 0;
+let last = performance.now(), T = 0, hudAcc = 0, pausedDrawn = false;
 function frame(now) {
   requestAnimationFrame(frame);
   const raw = now - last;
   let dt = Math.min(0.05, raw / 1000); last = now;
+  // 暫停時畫面靜止：只畫進入暫停的那一幀（或改尺寸、畫質後的一幀），之後不再跑場景與 bloom
+  if (ST.paused && world && pausedDrawn) return;
   watchFrame(raw);
   if (ST.paused || !world) dt = 0;
   T += dt;
@@ -2469,8 +2473,9 @@ function frame(now) {
   updateCamera(dt, T);
   audio.update(dt);
   hudAcc += dt;
-  if (hudAcc > 0.08) { hudAcc = 0; $('hTime').textContent = fmt(ST.time); $('hSpeed').textContent = `${Math.round(ST.v * 3.6)} km/h`; }
+  if (hudAcc > 0.08) { hudAcc = 0; $('hTime').textContent = fmt(ST.time); }
   render();
+  pausedDrawn = ST.paused;
 }
 function render() {
   const F = FXC;

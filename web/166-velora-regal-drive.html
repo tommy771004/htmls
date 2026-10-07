@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>VELORA · REGAL DRIVE</title>
-<meta name="description" content="Dark luxury car-rental hero built around transparency: a background video that never stops, frosted-glass letters that let the road show through, and a glass dock holding the copy.">
+<meta name="description" content="Dark luxury car-rental hero built around transparency: a looping background video (held still for reduced motion), frosted-glass letters that let the road show through, and a glass dock holding the copy.">
 <link rel="icon" href="../favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,13 +24,20 @@ a:hover { color: #fff; }
   --glass-shadow: rgba(8,8,10,0.28);
 }
 
-.hero { position: relative; width: 100%; height: 100vh; min-height: 720px; overflow: hidden; background: #0a0a0b; }
+/* The background is a painted stand-in for the video (dusk sky, warm horizon, tail-light glow),
+   so the glass still has something to blur before the video loads or if it never does. */
+.hero { position: relative; width: 100%; height: 100vh; height: 100svh; min-height: 640px; overflow: hidden;
+  background:
+    radial-gradient(55% 32% at 50% 62%, rgba(255,166,92,0.34), transparent 70%),
+    radial-gradient(22% 14% at 24% 66%, rgba(255,72,56,0.28), transparent 70%),
+    radial-gradient(26% 16% at 78% 58%, rgba(150,180,255,0.20), transparent 70%),
+    linear-gradient(180deg, #15171d 0%, #262832 40%, #4d3d33 58%, #1b1b1f 63%, #0a0a0b 100%); }
 .hero__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 60%; pointer-events: none; z-index: 0; }
 /* Lighter than a plain scrim on purpose: the video has to stay readable through the glass. */
 .hero__shade { position: absolute; inset: 0; z-index: 1; pointer-events: none;
   background: linear-gradient(180deg, rgba(8,8,10,0.42) 0%, rgba(8,8,10,0.06) 28%, rgba(8,8,10,0.10) 60%, rgba(8,8,10,0.58) 100%); }
 
-/* One glass material, shared by the bar, the dock and the buttons. */
+/* One glass material, shared by the bar and the dock. Nothing inside them is glass again. */
 .glass {
   background: var(--glass-fill);
   -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5);
@@ -45,10 +52,13 @@ a:hover { color: #fff; }
 .bar__links a { font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.78); }
 .bar__links a.is-active { color: #fff; }
 .bar__logo { color: #fff; font-size: 24px; font-weight: 700; letter-spacing: 0.06em; text-align: center; }
-.bar__right { display: flex; justify-content: flex-end; }
-.btn { display: inline-flex; align-items: center; gap: 10px; color: #fff; font: inherit; font-size: 14px; font-weight: 600; letter-spacing: 0.02em; padding: 11px 20px; border-radius: 11px; cursor: pointer; transition: background .22s ease, color .22s ease, border-color .22s ease; }
+.bar__right { display: flex; justify-content: flex-end; padding-right: 12px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.78); }
+.bar__links a:hover { text-decoration: underline; text-underline-offset: 4px; }
+/* The single call to action: solid white, no border, no glow. */
+.btn { display: inline-flex; align-items: center; gap: 10px; color: #0a0a0b; background: #fff; border: 0; font: inherit; font-size: 14px; font-weight: 600; letter-spacing: 0.02em; padding: 11px 20px; border-radius: 11px; cursor: pointer; transition: background .22s ease; }
 .btn span { font-size: 15px; }
-.btn:hover { background: rgba(255,255,255,0.92); color: #0a0a0b; border-color: #fff; box-shadow: inset 0 1px 0 #fff, 0 2px 3px var(--glass-shadow); }
+.btn:hover { background: #e6e6e8; color: #0a0a0b; }
+.btn:focus-visible, .bar a:focus-visible, .fleet a:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 
 /* Glass letters. The outline and the mask text live in the same SVG, so they share one set of coordinates.
    The h1 stays in the DOM for semantics but is visually hidden. */
@@ -74,6 +84,21 @@ a:hover { color: #fff; }
 .dock p { color: rgba(255,255,255,0.82); font-size: 15px; font-weight: 400; line-height: 1.5; max-width: 440px; }
 .dock .btn { letter-spacing: 0.04em; padding: 13px 24px; gap: 12px; }
 
+/* Fleet and pickup: plain rows on the page ground, grouped by space and type size. */
+.fleet { padding: 96px var(--gutter) 88px; max-width: 1180px; margin: 0 auto; }
+.fleet h2 { font-size: clamp(28px, 3.4vw, 44px); font-weight: 600; letter-spacing: -0.02em; margin-bottom: 36px; }
+.fleet ol { list-style: none; }
+.fleet li { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.6fr) auto; gap: 8px 32px; align-items: baseline; padding: 20px 0; }
+.fleet li + li { border-top: 1px solid rgba(255,255,255,0.10); }
+.fleet .car { font-size: 20px; font-weight: 600; }
+.fleet .spec { font-size: 14px; color: rgba(255,255,255,0.62); }
+.fleet .rate { font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fleet .rate small { font-size: 13px; color: rgba(255,255,255,0.55); font-weight: 400; }
+.pickup { margin-top: 64px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px 40px; }
+.pickup h3 { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 8px; }
+.pickup p { font-size: 15px; line-height: 1.55; color: rgba(255,255,255,0.85); }
+.fleet .note { margin-top: 40px; font-size: 13px; color: rgba(255,255,255,0.5); }
+
 @media (max-width: 900px) {
   :root { --gutter: 20px; }
   .bar { grid-template-columns: auto 1fr auto; padding: 10px 10px 10px 18px; }
@@ -88,24 +113,26 @@ a:hover { color: #fff; }
   .bar { grid-template-columns: 1fr auto; row-gap: 10px; }
   .bar__links { grid-column: 1 / -1; justify-content: flex-start; }
   .dock h2 { font-size: clamp(30px, 8.6vw, 40px); }
+  .fleet { padding-top: 64px; }
+  .fleet li { grid-template-columns: minmax(0, 1fr) auto; }
+  .fleet .spec { grid-column: 1 / -1; grid-row: 2; }
 }
 </style>
 </head>
 <body>
-<section class="hero">
-  <video class="hero__video" id="bg" autoplay muted loop playsinline preload="auto" aria-hidden="true"
+<section class="hero" id="top">
+  <!-- No autoplay attribute: the script starts it, and leaves it on the first frame for reduced motion. -->
+  <video class="hero__video" id="bg" muted loop playsinline preload="metadata" aria-hidden="true"
     src="https://cdn.sceneai.art/Hero%20section%20video%20file%20(2)/37091057-3719-4207-815c-745ebf57aeb4.mp4"></video>
   <div class="hero__shade"></div>
 
   <nav class="bar glass" aria-label="Primary">
     <ul class="bar__links">
-      <li><a href="#" class="is-active" aria-current="page">Home</a></li>
-      <li><a href="#">About</a></li>
-      <li><a href="#">Cars</a></li>
-      <li><a href="#">Contact</a></li>
+      <li><a href="#fleet">Fleet</a></li>
+      <li><a href="#pickup">Pickup</a></li>
     </ul>
-    <a href="#" class="bar__logo">VELORA</a>
-    <div class="bar__right"><button type="button" class="btn glass">Browse cars <span aria-hidden="true">→</span></button></div>
+    <a href="#top" class="bar__logo">VELORA</a>
+    <div class="bar__right">Xinyi · Taipei</div>
   </nav>
 
   <div class="mark">
@@ -122,12 +149,28 @@ a:hover { color: #fff; }
   </div>
 
   <div class="dock glass">
-    <h2>Rent Your Dream Luxury Car Today</h2>
+    <h2>Porsche, AMG and Range Rover by the day</h2>
     <div class="dock__side">
-      <p>Enjoy a premium rental experience with exclusive cars, seamless booking, and honest pricing.</p>
-      <button type="button" class="btn glass">DISCOVER NOW <span aria-hidden="true">↗</span></button>
+      <p>A 911 Carrera from NT$22,000 a day. Collect it in Xinyi or meet it at Taoyuan Airport; insurance and 300 km a day are in the rate.</p>
+      <a class="btn" href="#fleet">Browse cars <span aria-hidden="true">→</span></a>
     </div>
   </div>
+</section>
+
+<section class="fleet" id="fleet" aria-labelledby="fleet-h">
+  <h2 id="fleet-h">Fleet and daily rates</h2>
+  <ol>
+    <li><span class="car">Porsche 911 Carrera</span><span class="spec">3.0 twin-turbo flat-six, 394 hp · 2+2 seats · 8-speed PDK</span><span class="rate">NT$22,000 <small>/ day</small></span></li>
+    <li><span class="car">Mercedes-AMG G 63</span><span class="spec">4.0 V8 biturbo, 585 hp · 5 seats · all-wheel drive</span><span class="rate">NT$28,000 <small>/ day</small></span></li>
+    <li><span class="car">Range Rover P530</span><span class="spec">4.4 twin-turbo V8, 530 hp · 5 seats · air suspension</span><span class="rate">NT$18,000 <small>/ day</small></span></li>
+    <li><span class="car">BMW i7 xDrive60</span><span class="spec">Electric, 544 hp · up to 625 km WLTP · 5 seats</span><span class="rate">NT$16,000 <small>/ day</small></span></li>
+  </ol>
+  <div class="pickup" id="pickup">
+    <div><h3>Xinyi showroom</h3><p>Songren Road, Xinyi District, Taipei.<br>Daily 08:00–22:00.</p></div>
+    <div><h3>Taoyuan Airport</h3><p>Handover at Terminal 1 or 2, any hour.<br>NT$2,500 each way.</p></div>
+    <div><h3>To drive</h3><p>Age 25 and over, licence held three years. Overseas licences need an International Driving Permit.</p></div>
+  </div>
+  <p class="note">Rates include comprehensive insurance and 300 km a day; extra distance is NT$25 per km. A NT$100,000 card hold is released on return.</p>
 </section>
 
 <script>
@@ -137,16 +180,21 @@ a:hover { color: #fff; }
   v.muted = true;
   v.defaultMuted = true;
   v.loop = true;
+  // Reduced motion: the video stays on its first frame. Otherwise it loops, and is restarted
+  // once when the tab comes back or the page returns from the back/forward cache.
+  var mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  function reduced() { return !!(mq && mq.matches); }
   function resume() {
-    if (v.paused) {
-      try { var p = v.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
-    }
+    if (reduced() || document.hidden || !v.paused) return;
+    try { var p = v.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
   }
+  if (!reduced()) v.preload = 'auto';
   resume();
-  ['pause', 'ended', 'loadedmetadata', 'canplay'].forEach(function (ev) { v.addEventListener(ev, resume); });
+  ['ended', 'canplay'].forEach(function (ev) { v.addEventListener(ev, resume); });
   document.addEventListener('visibilitychange', function () { if (!document.hidden) resume(); });
-  var watchdog = setInterval(resume, 1000);
-  window.addEventListener('pagehide', function () { clearInterval(watchdog); });
+  window.addEventListener('pageshow', resume);
+  function onMotionPref() { if (reduced()) v.pause(); else resume(); }
+  if (mq) { if (mq.addEventListener) mq.addEventListener('change', onMotionPref); else if (mq.addListener) mq.addListener(onMotionPref); }
 })();
 </script>
 </body>

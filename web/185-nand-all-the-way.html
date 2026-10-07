@@ -30,14 +30,14 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid 
 
 /* ---------- header ---------- */
 #top{position:fixed;left:16px;top:16px;right:420px;pointer-events:none;z-index:3;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
-.brand{display:flex;align-items:center;gap:14px;pointer-events:auto;width:max-content;padding:10px 16px 10px 8px;background:var(--surface);border-radius:10px;box-shadow:inset 0 1px 0 var(--lip),0 0 0 1px var(--edge),0 10px 24px -14px rgba(0,0,0,.8)}
+.brand{display:flex;align-items:center;gap:14px;pointer-events:auto;width:max-content;padding:10px 16px 10px 8px;background:var(--surface);border-radius:10px}
 .back{display:grid;place-items:center;width:28px;height:28px;border-radius:6px;color:var(--muted);transition:color .15s,background .15s}
 .back:hover{color:var(--ink);background:var(--surface-2)}
 #wordmark{height:30px;width:auto;display:block}
 #wordmark rect{fill:var(--hi)}
 .titles h1{margin:0;font-size:21px;line-height:1.15;font-weight:700;letter-spacing:.04em}
 .titles p{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
-#crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:2px;pointer-events:auto;width:max-content;max-width:100%;font-size:13px;padding:4px 8px 4px 4px;background:rgba(26,20,16,.88);border-radius:8px;box-shadow:0 0 0 1px var(--edge)}
+#crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:2px;pointer-events:auto;width:max-content;max-width:100%;font-size:13px;padding:0 8px 0 4px}
 #crumbs button{padding:4px 7px;border-radius:5px;color:var(--muted);transition:color .15s,background .15s}
 #crumbs button:hover{color:var(--ink);background:var(--surface-2)}
 #crumbs button[aria-current]{color:var(--ink);font-weight:600}
@@ -47,7 +47,7 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid 
 #crumbs .jumps .zh{margin:0 4px 0 0}
 
 /* ---------- console ---------- */
-#console{position:fixed;left:20px;bottom:20px;z-index:3;display:grid;grid-template-columns:auto auto;gap:6px 18px;align-items:center;padding:14px 16px 12px;background:var(--surface);border-radius:10px;box-shadow:inset 0 1px 0 var(--lip),0 0 0 1px var(--edge),0 10px 24px -14px rgba(0,0,0,.8)}
+#console{position:fixed;left:20px;bottom:20px;z-index:3;display:grid;grid-template-columns:auto auto;gap:6px 18px;align-items:center;padding:14px 16px 12px;background:var(--surface);border-radius:10px}
 .screenwrap{padding:7px;background:#0a0706;border-radius:5px;box-shadow:inset 0 0 0 1px rgba(255,90,50,.07)}
 #screen{width:208px;height:208px;display:block}
 .controls{display:flex;flex-direction:column;align-items:center;gap:16px}
@@ -65,7 +65,7 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid 
 #screenNote{white-space:nowrap}
 
 /* ---------- clock bar ---------- */
-#clockbar{position:fixed;left:50%;bottom:20px;transform:translateX(calc(-50% - 60px));z-index:3;display:flex;align-items:center;gap:14px;padding:8px 10px;background:var(--surface);border-radius:10px;box-shadow:inset 0 1px 0 var(--lip),0 0 0 1px var(--edge),0 10px 24px -14px rgba(0,0,0,.8)}
+#clockbar{position:fixed;left:50%;bottom:20px;transform:translateX(calc(-50% - 60px));z-index:3;display:flex;align-items:center;gap:14px;padding:8px 10px;background:var(--surface);border-radius:10px}
 .steps{display:flex;gap:2px}
 .icon{width:36px;height:36px;display:grid;place-items:center;border-radius:7px;color:var(--ink);transition:background .15s,color .15s}
 .icon svg{width:20px;height:20px;fill:currentColor}
@@ -88,7 +88,7 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid 
 .panel-toggle{display:none;padding:8px 12px;border-radius:7px;background:var(--surface-2);font-size:13px}
 
 /* ---------- panel ---------- */
-#panel{position:fixed;top:16px;right:16px;bottom:16px;width:388px;z-index:4;display:flex;flex-direction:column;background:var(--surface);border-radius:12px;box-shadow:inset 0 1px 0 var(--lip),0 0 0 1px var(--edge),0 18px 40px -20px rgba(0,0,0,.85)}
+#panel{position:fixed;top:16px;right:16px;bottom:16px;width:388px;z-index:4;display:flex;flex-direction:column;background:var(--surface);border-radius:12px}
 .tabs{position:relative;display:flex;gap:4px;padding:10px 12px 0;border-bottom:1px solid rgba(255,214,168,.06)}
 .tabs button{padding:8px 10px 11px;font-size:14px;color:var(--muted);transition:color .2s}
 .tabs button:hover{color:var(--ink)}
@@ -101,7 +101,7 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid 
 .tab h3{margin:18px 0 8px;font-size:13px;font-weight:600;color:var(--ink)}
 .tab h3 small{font-weight:400;color:var(--faint);margin-left:6px;font-size:11.5px}
 .note{margin:0;color:var(--muted);font-size:12.5px}
-.note.slow{margin-top:14px;padding:9px 11px;border-radius:7px;background:var(--surface-2)}
+.note.slow{margin-top:14px;padding-top:12px;border-top:1px solid var(--edge)}
 .note b{color:var(--ink);font-family:var(--mono)}
 
 .phase{display:flex;gap:6px;align-items:center;margin-bottom:12px;font-size:12.5px}
@@ -119,7 +119,7 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid 
 .bits i{width:9px;height:12px;border-radius:2px;background:var(--lo)}
 .bits i.on{background:var(--hi)}
 .bits i.gap{margin-left:4px}
-.instr{margin-top:14px;padding:10px 12px;background:var(--surface-2);border-radius:7px;display:grid;gap:3px}
+.instr{margin-top:14px;padding-top:12px;border-top:1px solid var(--edge);display:grid;gap:3px}
 .instr .kk{font-size:11px;color:var(--faint)}
 .instr code{font:600 15px/1.3 var(--mono);color:var(--hi)}
 .instr .src{font:12px/1.4 var(--mono);color:var(--muted);white-space:pre;overflow:hidden;text-overflow:ellipsis}
@@ -203,7 +203,7 @@ button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid 
   .tabs .close{display:grid}
   .panel-toggle{display:block}
   #top{right:20px}
-  #clockbar{left:auto;right:16px;transform:none;bottom:20px;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100vw - 340px)}
+  #clockbar{left:auto;right:16px;transform:none;bottom:20px;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100vw - 420px)}
 }
 @media (max-width:760px){
   #top{left:12px;top:10px;right:12px}
@@ -2597,7 +2597,7 @@ const SPEEDS = [
   { name: '4 Hz', hz: 4, wps: 420 },
   { name: '0.5 Hz', hz: 0.5, wps: 70 },
 ];
-let speed = 0, paused = false, waveAcc = 0, edgeAcc = 0, budget = COARSE ? 5 : 7;
+let speed = 0, paused = false, waveAcc = 0, edgeAcc = 0, budget = COARSE ? 3 : 4;
 const live = { on: false, ref: null, checked: 0, bad: 0 };
 function setTickFromClock() { M.tick = Math.floor(performance.now() / (1000 / 60)) & 1; }
 function runFull(ms) {
@@ -2678,17 +2678,23 @@ function colorWires() {
 }
 const tmpC = new THREE.Color();
 let vram = new Uint8Array(1024), vramGlow = new Float32Array(1024);
+// 只重畫有變化或仍在餘暉中的像素；第一幀全部畫一次
+const vramTouch = new Uint8Array(1024).fill(1);
+let screenDirty = true;
 function readVram() {
   const v = sim.v;
-  for (let a = 0; a < 128; a++) { const q = S.ramQ[0x80 + a]; for (let b = 0; b < 8; b++) { const i = a * 8 + (7 - b); const on = v[q[b]]; if (on && !vram[i]) vramGlow[i] = 1; vram[i] = on; } }
+  for (let a = 0; a < 128; a++) { const q = S.ramQ[0x80 + a]; for (let b = 0; b < 8; b++) { const i = a * 8 + (7 - b); const on = v[q[b]] ? 1 : 0; if (on !== vram[i]) { if (on) vramGlow[i] = 1; vram[i] = on; vramTouch[i] = 1; } } }
 }
 function colorMatrix(dt) {
+  let any = false;
   for (let i = 0; i < 1024; i++) {
-    vramGlow[i] = Math.max(0, vramGlow[i] - dt * 6);
+    const g = vramGlow[i];
+    if (g === 0 && !vramTouch[i]) continue;
+    vramGlow[i] = Math.max(0, g - dt * 6); vramTouch[i] = 0;
     if (vram[i]) tmpC.copy(ledOn).lerp(ledOnHi, vramGlow[i] * 0.6); else tmpC.copy(ledOff);
-    matrix.setColorAt(i, tmpC);
+    matrix.setColorAt(i, tmpC); any = true;
   }
-  matrix.instanceColor.needsUpdate = true;
+  if (any) { matrix.instanceColor.needsUpdate = true; screenDirty = true; }
 }
 function colorBus() {
   const col = busLines.geometry.attributes.color.array, v = sim.v;
@@ -2699,6 +2705,8 @@ function colorBus() {
 /* ───────── 2D 螢幕 ───────── */
 const scr = $('screen'), sx = scr.getContext('2d');
 function drawScreen() {
+  if (!screenDirty) return;
+  screenDirty = false;
   const W = scr.width, p = W / 32;
   sx.fillStyle = '#0a0706'; sx.fillRect(0, 0, W, W);
   for (let i = 0; i < 1024; i++) {
@@ -2707,7 +2715,7 @@ function drawScreen() {
     sx.fillRect(x * p + p * 0.12, y * p + p * 0.12, p * 0.76, p * 0.76);
   }
 }
-function sizeScreen() { const r = scr.getBoundingClientRect(); const d = Math.min(devicePixelRatio, 2); scr.width = Math.round(r.width * d / 32) * 32 || 256; scr.height = scr.width; }
+function sizeScreen() { const r = scr.getBoundingClientRect(); const d = Math.min(devicePixelRatio, 2); scr.width = Math.round(r.width * d / 32) * 32 || 256; scr.height = scr.width; screenDirty = true; }
 
 /* ───────── 按鍵 ───────── */
 const keymap = { ArrowUp: 'UP', KeyW: 'UP', ArrowDown: 'DOWN', KeyS: 'DOWN', ArrowLeft: 'LEFT', KeyA: 'LEFT', ArrowRight: 'RIGHT', KeyD: 'RIGHT', KeyZ: 'A', Space: 'A', Enter: 'A', KeyJ: 'A', KeyX: 'B', Escape: 'B', KeyK: 'B' };
@@ -2715,8 +2723,11 @@ const held = {};
 function setKey(k, on) { held[k] = on; M.keys[k] = on ? 1 : 0; document.querySelectorAll(`[data-key="${k}"]`).forEach(b => b.classList.toggle('on', !!on)); }
 function pulseKey(k) { setKey(k, 1); setTimeout(() => setKey(k, 0), 160); audioInit(); }
 const typing = () => { const a = document.activeElement; return a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT'); };
+const focusOnControl = () => { const a = document.activeElement; return !!(a && a !== document.body && a.closest('button,a[href],select,summary,[role=tab],[role=radio]') && a.matches(':focus-visible')); };
 addEventListener('keydown', e => {
   if (typing() || e.metaKey || e.ctrlKey) return;
+  // 鍵盤焦點在按鈕、分頁或摺疊標題上時，Enter／空白鍵留給該元件
+  if ((e.code === 'Space' || e.code === 'Enter') && focusOnControl()) return;
   const k = keymap[e.code];
   if (k) { setKey(k, 1); e.preventDefault(); audioInit(); return; }
   if (e.code === 'KeyP') togglePause();
@@ -2916,7 +2927,8 @@ function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
   frameAvg = lerp(frameAvg, dt * 1000, 0.05);
-  if (SPEEDS[speed].full) budget = clamp(budget + (frameAvg > 19 ? -0.3 : 0.1), 2, COARSE ? 6 : 9);
+  // 全速時每幀最多忙等 4ms（觸控 3ms）；視窗失焦時只留 2ms，不讓主執行緒長時間滿載
+  if (SPEEDS[speed].full) budget = clamp(budget + (frameAvg > 19 ? -0.3 : 0.1), 2, !document.hasFocus() ? 2 : COARSE ? 3 : 4);
   const w0 = sim.wave;
   simulate(dt);
   wpf = lerp(wpf, Math.max(1, sim.wave - w0), 0.2);

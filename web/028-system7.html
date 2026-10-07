@@ -22,15 +22,16 @@ body{font:12px/1.35 var(--f);color:#000;overflow:hidden;user-select:none;-webkit
 
 /* menubar */
 .menubar{position:fixed;left:0;right:0;top:0;height:22px;background:#fff;border-bottom:1px solid #000;display:flex;align-items:stretch;z-index:500;padding:0 8px}
+.mw{position:relative;display:flex}
 .mt{position:relative;padding:0 10px;display:flex;align-items:center;font-weight:700;cursor:default;border:0;background:none;font:700 12px var(--f);color:#000}
 .mt.open,.mt:focus-visible{background:#000;color:#fff;outline:none}
 .mt.open img{filter:invert(1)}
 .mt img{width:16px;height:16px;image-rendering:pixelated}
 .clock{margin-left:auto;display:flex;align-items:center;font-weight:700;padding:0 6px}
 .menu{position:absolute;top:21px;left:0;min-width:200px;background:#fff;border:1px solid #000;box-shadow:2px 2px 0 #000;padding:2px 0;display:none;z-index:600;font-weight:400}
-.mt.open .menu{display:block}
+.mt.open + .menu{display:block}
 .mi{display:flex;justify-content:space-between;gap:24px;padding:2px 16px;white-space:nowrap;cursor:default;color:#000}
-.mi:hover:not(.dis),.mi.hl{background:#000;color:#fff}
+.mi:hover:not(.dis),.mi.hl,.mi:focus:not(.dis){background:#000;color:#fff;outline:none}
 .mi.dis{color:#999;background:repeating-conic-gradient(transparent 0 25%,rgba(255,255,255,.0) 0 50%)}
 .mi kbd{font:inherit}
 .sepm{height:1px;margin:2px 0;background:repeating-linear-gradient(90deg,#000 0 1px,#fff 1px 2px)}
@@ -102,7 +103,7 @@ body{font:12px/1.35 var(--f);color:#000;overflow:hidden;user-select:none;-webkit
 .welcome.on{display:grid}
 .welcome .card{background:#fff;border:1px solid #000;box-shadow:2px 2px 0 #000;padding:22px 40px;text-align:center;font:700 14px var(--f)}
 .welcome .card img{width:64px;height:64px;image-rendering:pixelated;display:block;margin:0 auto 10px}
-.hint{position:absolute;left:12px;bottom:10px;background:#fff;border:1px solid #000;padding:4px 8px;font-size:11px;box-shadow:1px 1px 0 #000;z-index:1}
+.body p.tip{font-size:11px;margin-top:12px}
 
 @media (pointer:coarse),(max-width:600px){
   .mi{padding:10px 18px}
@@ -110,7 +111,6 @@ body{font:12px/1.35 var(--f);color:#000;overflow:hidden;user-select:none;-webkit
   .menu{top:39px}
   .icons{top:52px;right:6px;gap:2px}
   .icon{min-height:60px}
-  .hint{display:none}
 }
 @media (max-width:600px){
   .mt{padding:0 8px}
@@ -123,7 +123,6 @@ body{font:12px/1.35 var(--f);color:#000;overflow:hidden;user-select:none;-webkit
 <div class="screen" id="screen">
   <nav class="menubar" id="menubar" aria-label="Menu bar"></nav>
   <div class="icons" id="icons" role="list"></div>
-  <div class="hint">Double-click an icon · drag title bars · the grow box resizes · ⌘W / Esc closes</div>
 </div>
 <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
 <div class="welcome" id="welcome"><div class="card"><img id="happy" alt="">Welcome to Portfolio OS</div></div>
@@ -185,7 +184,8 @@ function about(){ return `<div class="aboutrow"><img src="${ICON.person}" alt=""
   <div class="meter"><span>Kerning</span><span class="bar"><i style="width:100%"></i></span><span>100%</span></div>
   <div class="meter"><span>Patience</span><span class="bar"><i style="width:14%"></i></span><span>14%</span></div>
   <div class="meter"><span>Largest unused idea</span><span class="bar"><i style="width:62%"></i></span><span>2.6M</span></div>
-  <p style="margin-top:10px">Designs friendly software for serious people and serious software for friendly people. Believes every interface deserves one good joke and a working Undo.</p>`; }
+  <p style="margin-top:10px">Designs friendly software for serious people and serious software for friendly people. Believes every interface deserves one good joke and a working Undo.</p>
+  <p class="tip">Double-click (or tap) an icon to open it · drag a title bar to move · the grow box resizes · Esc closes the front window.</p>`; }
 function projects(){ return `<div class="folder">${PROJECTS.map(p => `<button class="icon" data-open="${p.id}"><img src="${ICON.doc}" alt=""><span>${p.name}</span></button>`).join('')}<button class="icon" data-open="puzzle"><img src="${ICON.puzzle}" alt=""><span>Puzzle</span></button></div>`; }
 function doc(p){ return `<div class="hl1">${p.title}</div><img class="dither" src="${ART[p.art]}" alt="1-bit dithered artwork for ${p.name}"><p>${p.text}</p><p><b>Role</b> interaction design · <b>Year</b> ${p.year} · <b>Size</b> ${p.size}</p>`; }
 function contact(){ return `<div class="tt">To: anyone with a nice problem
@@ -315,8 +315,8 @@ function wire(rec){
     const gh = document.createElement('div'); gh.className='ghost'; Object.assign(gh.style, { left:r.left+'px', top:r.top+'px', width:r.width+'px', height:r.height+'px' }); screen.appendChild(gh);
     try { grow.setPointerCapture(e.pointerId); } catch(_){}
     const mv = ev => { gh.style.width = Math.max(200, Math.min(innerWidth - r.left - 4, ev.clientX - r.left)) + 'px'; gh.style.height = Math.max(120, Math.min(innerHeight - r.top - 4, ev.clientY - r.top)) + 'px'; };
-    const up = () => { el.style.width = gh.style.width; el.style.height = gh.style.height; gh.remove(); grow.removeEventListener('pointermove', mv); grow.removeEventListener('pointerup', up); };
-    grow.addEventListener('pointermove', mv); grow.addEventListener('pointerup', up);
+    const up = () => { el.style.width = gh.style.width; el.style.height = gh.style.height; gh.remove(); grow.removeEventListener('pointermove', mv); grow.removeEventListener('pointerup', up); grow.removeEventListener('pointercancel', up); };
+    grow.addEventListener('pointermove', mv); grow.addEventListener('pointerup', up); grow.addEventListener('pointercancel', up);
   });
   // icons inside folders
   el.addEventListener('pointerdown', e => {
@@ -354,12 +354,27 @@ MENUS.forEach(m => {
   const menu = document.createElement('div'); menu.className='menu'; menu.setAttribute('role','menu');
   m.items.forEach(it => { if (it === '-') { const s = document.createElement('div'); s.className='sepm'; menu.appendChild(s); return; }
     const d = document.createElement('div'); d.className = 'mi' + (it[1] ? '' : ' dis'); d.setAttribute('role','menuitem'); d.innerHTML = `<span>${it[0]}</span><kbd>${it[2]||''}</kbd>`;
-    if (it[1]) d.addEventListener('click', ev => { ev.stopPropagation(); let n = 0; const fl = setInterval(() => { d.classList.toggle('hl'); if (++n >= 4) { clearInterval(fl); closeMenus(); it[1](); } }, 50); });
+    if (it[1]) { d.tabIndex = -1; d.addEventListener('click', ev => { ev.stopPropagation(); let n = 0; const fl = setInterval(() => { d.classList.toggle('hl'); if (++n >= 4) { clearInterval(fl); closeMenus(); it[1](); } }, 50); }); }
+    else d.setAttribute('aria-disabled','true');
     menu.appendChild(d); });
-  t.appendChild(menu);
+  // the menu is a sibling of its title button, so pressing an item never re-toggles the title
+  const wrap = document.createElement('div'); wrap.className = 'mw';
+  wrap.appendChild(t); wrap.appendChild(menu);
+  const enabled = () => [...menu.querySelectorAll('.mi[tabindex]')];
+  const openMenu = focusFirst => { closeMenus(); t.classList.add('open'); if (focusFirst) { const f = enabled()[0]; if (f) f.focus(); } };
   t.addEventListener('pointerdown', e => { e.stopPropagation(); const was = t.classList.contains('open'); closeMenus(); if (!was) t.classList.add('open'); });
-  t.addEventListener('keydown', e => { if (e.key==='Enter' || e.key===' ') { e.preventDefault(); const was = t.classList.contains('open'); closeMenus(); if (!was) t.classList.add('open'); } });
-  mb.appendChild(t);
+  t.addEventListener('keydown', e => {
+    if (e.key==='Enter' || e.key===' ') { e.preventDefault(); if (t.classList.contains('open')) closeMenus(); else openMenu(true); }
+    else if (e.key==='ArrowDown') { e.preventDefault(); openMenu(true); }
+  });
+  menu.addEventListener('pointerdown', e => e.stopPropagation());
+  menu.addEventListener('keydown', e => {
+    const list = enabled(), i = list.indexOf(document.activeElement);
+    if (e.key==='ArrowDown' || e.key==='ArrowUp') { e.preventDefault(); e.stopPropagation(); if (!list.length) return; const n = e.key==='ArrowDown' ? (i + 1) % list.length : (i - 1 + list.length) % list.length; list[n].focus(); }
+    else if (e.key==='Enter' || e.key===' ') { e.preventDefault(); e.stopPropagation(); if (i >= 0) { list[i].click(); t.focus(); } }
+    else if (e.key==='Escape' || e.key==='Tab') { if (e.key==='Escape') { e.preventDefault(); e.stopPropagation(); } closeMenus(); t.focus(); }
+  });
+  mb.appendChild(wrap);
 });
 const clk = document.createElement('div'); clk.className='clock'; mb.appendChild(clk);
 const tick = () => { const d = new Date(); clk.textContent = d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }; tick(); setInterval(tick, 10000);
@@ -374,8 +389,19 @@ function shutDown(){ const w = $('#welcome'); if (!w) return; const card = w.que
   const rb = $('#restartBtn'); if (rb) rb.addEventListener('click', () => { card.innerHTML = old; restart(); }); }
 
 addEventListener('keydown', e => {
-  if ((e.key === 'w' || e.key === 'W') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); closeWin(topWin()); }
+  // ⌘W only: Ctrl+W is reserved by the browser and would close the tab
+  if ((e.key === 'w' || e.key === 'W') && e.metaKey) { e.preventDefault(); closeWin(topWin()); }
   else if (e.key === 'Escape') { if (document.querySelector('.mt.open')) closeMenus(); else closeWin(topWin()); }
+});
+// keep every window's title bar reachable after the viewport shrinks or rotates
+addEventListener('resize', () => {
+  const B = bounds();
+  Object.values(W).forEach(r => {
+    const el = r.el, w = el.offsetWidth;
+    const x = Math.max(-w + 60, Math.min(B.w - 60, el.offsetLeft));
+    const y = Math.max(B.top, Math.min(B.h - 24, el.offsetTop));
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+  });
 });
 
 const happy = $('#happy'); if (happy) happy.src = ICON.happy;

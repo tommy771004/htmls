@@ -33,7 +33,8 @@ button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 body.briefing #hud{opacity:0;visibility:hidden}
 #hud>*{pointer-events:auto}
 .blk{background:var(--panel);border-radius:var(--r-m)}
-#ident{position:absolute;left:calc(14px + var(--sal));top:calc(12px + var(--sat));padding:8px 12px 9px;max-width:min(440px,46vw)}
+/* 識別與距機場方位直接疊在畫面上，不另加底框 */
+#ident{position:absolute;left:calc(14px + var(--sal));top:calc(12px + var(--sat));padding:6px 0;max-width:min(440px,46vw);text-shadow:0 1px 3px rgba(0,0,0,.7)}
 #ident b{font-weight:600;font-size:14px;display:block}
 #ident span{color:var(--ink-2);font-size:12px}
 #ident .n{font-size:13px}
@@ -43,7 +44,7 @@ body.briefing #hud{opacity:0;visibility:hidden}
 #views button:hover{color:var(--ink);background:rgba(255,255,255,.07)}
 #views button[aria-pressed=true]{color:#12110f;background:var(--ink)}
 #views button[aria-pressed=true] .n{color:#5d584e}
-#nav{position:absolute;right:calc(14px + var(--sar));top:calc(56px + var(--sat));padding:6px 10px;font-size:12px;color:var(--ink-2)}
+#nav{display:block;font-size:12px;color:var(--ink-2)}
 #nav .n{color:var(--ink);font-size:13px}
 
 #eng{position:absolute;left:calc(14px + var(--sal));bottom:calc(14px + var(--sab));width:212px;padding:10px 12px 11px}
@@ -85,7 +86,8 @@ body.briefing #hud{opacity:0;visibility:hidden}
 #tools{position:absolute;right:calc(14px + var(--sar));bottom:calc(230px + var(--sab));display:flex;gap:2px;padding:3px}
 #tools button{padding:5px 9px 6px;border-radius:var(--r-s);font-size:12px;color:var(--ink-2);transition:background-color var(--dur-hover) var(--ease-out),color var(--dur-hover) var(--ease-out)}
 #tools button:hover{color:var(--ink);background:rgba(255,255,255,.07)}
-#loadInfo{position:absolute;left:calc(14px + var(--sal));top:calc(74px + var(--sat));font-size:11px;color:var(--ink-3);pointer-events:none}
+/* 圖磚下載進度放在小地圖左下角，不另佔版面 */
+#loadInfo{position:absolute;left:8px;bottom:6px;font-size:11px;color:var(--ink-2);text-shadow:0 1px 2px #000;pointer-events:none}
 
 /* ---------- 觸控（手機遊戲式） ---------- */
 #touch,#tbar{display:none}
@@ -130,7 +132,7 @@ body.touch #credit{width:auto;left:auto;right:calc(12px + var(--sar));transform:
 body.touch #mapBox{width:96px;height:96px;bottom:auto;top:calc(60px + var(--sat))}
 body.touch #mapBox .zm{display:none}
 body.touch #mapBox .nm{font-size:10px;left:6px;top:4px}
-body.touch #ident{padding:6px 10px 7px;max-width:calc(100% - 230px)}
+body.touch #ident{padding:4px 0;max-width:calc(100% - 230px)}
 body.touch #ident b{font-size:13px}
 body.touch #ident span{font-size:11px}
 #ident b span{font-size:inherit;color:inherit}
@@ -208,24 +210,23 @@ body:not(.briefing) #brief{opacity:0;transform:translateY(16px);visibility:hidde
 
 /* ---------- 窄螢幕 ---------- */
 @media (max-width:760px){
-  #ident{max-width:calc(100% - 28px - var(--sal) - var(--sar));padding:6px 10px 7px}
+  /* 窄螢幕的 HUD 由上而下：識別（三行，約到 74px）→ 視角列（82px）→ 小地圖與工具（140px）；top 只在這裡設定 */
+  #ident{max-width:calc(100% - 28px - var(--sal) - var(--sar));padding:6px 0}
   #ident b{font-size:13px}
   #ident span{font-size:11px}
-  #views{top:calc(66px + var(--sat));right:auto;left:calc(14px + var(--sal));padding:2px}
-  #views button{padding:5px 7px 6px;font-size:12px}
+  #views{top:calc(82px + var(--sat));right:calc(14px + var(--sar));left:calc(14px + var(--sal));padding:2px}
+  #views button{flex:1;padding:5px 4px 6px;font-size:12px}
   #views button .n{display:none}
-  #nav{top:calc(66px + var(--sat));padding:6px 8px;font-size:11px}
   #nav .n{font-size:12px}
-  #nav .lbl{display:none}
   #eng{display:none}
   #ap{display:none}
-  #mapBox{width:96px;height:96px;bottom:auto;top:calc(168px + var(--sat))}
+  #mapBox{width:96px;height:96px;bottom:auto;top:calc(140px + var(--sat))}
   #mapBox .zm{display:none}
   #mapBox .nm{font-size:10px;left:6px;top:4px}
-  #tools{bottom:auto;top:calc(168px + var(--sat));right:auto;left:calc(14px + var(--sal));flex-direction:column;align-items:stretch}
-  #credit{bottom:calc(214px + var(--sab));white-space:normal;width:calc(100% - 48px);max-width:320px;text-align:center;font-size:10px}
-  #warn{top:calc(222px + var(--sat))}
-  #loadInfo{top:calc(270px + var(--sat));left:auto;right:calc(14px + var(--sar))}
+  #loadInfo{font-size:10px;left:6px;bottom:4px}
+  #tools{bottom:auto;top:calc(140px + var(--sat));right:auto;left:calc(14px + var(--sal));flex-direction:column;align-items:stretch}
+  #credit{bottom:calc(10px + var(--sab));white-space:normal;width:calc(100% - 48px);max-width:320px;text-align:center;font-size:10px}
+  #warn{top:calc(222px + var(--sat));max-width:calc(100vw - 32px);font-size:12px}
   #brief{padding:calc(16px + var(--sat)) calc(16px + var(--sar)) calc(16px + var(--sab)) calc(16px + var(--sal));overflow:auto;align-items:flex-end}
   #bay{gap:10px}
   .strip{grid-template-columns:78px 1fr 58px;width:calc(100% - 14px)}
@@ -263,17 +264,10 @@ body:not(.touch) .touchhint,body:not(.touch) .touchkeys,body.touch .keykeys{disp
 #brief{touch-action:pan-y}#brief .lede{text-shadow:0 1px 6px rgba(0,0,0,.85)}
 #help,#crash{touch-action:pan-y}
 #views button,#tools button,.sheet button,#tbar button{min-height:44px}
-#nav{top:calc(68px + var(--sat))}
 #warn{flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 32px);width:max-content}
 @media(min-width:761px){body.briefing #bay{max-width:min(620px,48vw)}}
 @media(max-width:760px){
   .opts .seg button{min-height:44px}
-  #views{right:14px}#views button{flex:1;padding:5px 4px}
-  #nav{top:calc(164px + var(--sat))}
-  #mapBox{top:calc(202px + var(--sat))}
-  #tools{top:calc(202px + var(--sat))}
-  #credit{bottom:calc(10px + var(--sab))}
-  #warn{max-width:calc(100vw - 32px);font-size:12px}
   body.touch #warn{max-width:calc(100vw - 24px)}
 }
 @media (prefers-reduced-motion:reduce){ *{transition-duration:.01ms!important} }
@@ -284,7 +278,7 @@ body:not(.touch) .touchhint,body:not(.touch) .touchkeys,body.touch .keykeys{disp
 <canvas id="pfd" aria-hidden="true"></canvas>
 
 <div id="hud">
-  <div id="ident" class="blk"><b>B-72172 · <span class="full">Cessna 172S Skyhawk</span><span class="short">C172S</span></b><span id="identSub">松山 RCSS</span></div>
+  <div id="ident"><b>B-72172 · <span class="full">Cessna 172S Skyhawk</span><span class="short">C172S</span></b><span id="identSub">松山 RCSS</span><span id="nav"><span class="lbl">RCSS </span><span class="n" id="navTxt">---° · -.- NM</span></span></div>
   <div id="views" class="blk" role="group" aria-label="視角">
     <button data-v="0" aria-pressed="false"><span class="n">1</span>駕駛艙</button>
     <button data-v="1" aria-pressed="true"><span class="n">2</span>追蹤</button>
@@ -292,8 +286,6 @@ body:not(.touch) .touchhint,body:not(.touch) .touchkeys,body.touch .keykeys{disp
     <button data-v="3" aria-pressed="false"><span class="n">4</span>塔台</button>
     <button data-v="4" aria-pressed="false"><span class="n">5</span>定點</button>
   </div>
-  <div id="nav" class="blk"><span class="lbl">RCSS </span><span class="n" id="navTxt">---° · -.- NM</span></div>
-  <div id="loadInfo"></div>
   <div id="warn"><span id="wStall" class="r">失速</span><span id="wTerr" class="r">拉起</span><span id="wBrake" class="a">煞車</span><span id="wRel" class="w">停留煞車已放開</span><span id="wRot" class="w">拉桿抬輪</span><span id="wToast" class="w"></span><span id="wFuel" class="a">油量低</span><span id="wPause" class="w">暫停</span><span id="wCloud" class="w">雲中</span></div>
   <div id="eng" class="blk">
     <div class="row"><span>油門</span><span class="n" id="thrTxt">0 %</span></div>
@@ -318,7 +310,7 @@ body:not(.touch) .touchhint,body:not(.touch) .touchkeys,body.touch .keykeys{disp
     <button id="resetBtn" title="回到管制條（Esc）">管制條</button>
     <button id="helpBtn" title="操作說明（H）">操作</button>
   </div>
-  <div id="mapBox" class="blk"><canvas id="map" aria-label="小地圖"></canvas><span class="nm n" id="mapScale">4 NM</span><div class="zm"><button id="mapOut" aria-label="地圖縮小">−</button><button id="mapIn" aria-label="地圖放大">+</button></div></div>
+  <div id="mapBox" class="blk"><canvas id="map" aria-label="小地圖"></canvas><span class="nm n" id="mapScale">4 NM</span><span id="loadInfo"></span><div class="zm"><button id="mapOut" aria-label="地圖縮小">−</button><button id="mapIn" aria-label="地圖放大">+</button></div></div>
   <div id="credit">影像 © Esri, Maxar, Earthstar Geographics · 地形 Mapzen / AWS Terrain Tiles · 建物 © OpenStreetMap 貢獻者</div>
   <div id="tbar" class="blk">
     <button id="tView" aria-label="切換視角"><span>視角</span><b id="tViewName">追蹤</b></button>
@@ -342,11 +334,11 @@ body:not(.touch) .touchhint,body:not(.touch) .touchkeys,body.touch .keykeys{disp
 <div id="brief">
   <div id="bay">
     <h1>台北上空<small>SKYHAWK 172 · RCSS</small></h1>
-    <p class="lede">真實衛星影像、真實地形與十萬棟建物重建的台北盆地。從松山機場起飛，繞過台北 101，再對準 28 跑道落地。</p>
+    <p class="lede">真實衛星影像、真實地形與十萬棟建物重建的台北盆地。從松山機場起飛，繞過台北 101，再對準 10 跑道迎風落地。</p>
     <div class="rail" role="radiogroup" aria-label="任務">
       <button class="strip dep" role="radio" aria-checked="true" data-s="0"><div class="cs">B72172<em>C172/L</em></div><div class="rt"><b>松山 10 跑道起飛</b><span>跑道頭待命，油門推滿，55 節抬輪</span></div><div class="al">A020<em>離場</em></div><div class="sq">0351</div></button>
-      <button class="strip arr" role="radio" aria-checked="false" data-s="1"><div class="cs">B72172<em>C172/L</em></div><div class="rt"><b>28 跑道五邊進場</b><span>南港上空 3 浬，1,000 呎，襟翼 20°</span></div><div class="al">A010<em>進場</em></div><div class="sq">0352</div></button>
-      <button class="strip loc" role="radio" aria-checked="false" data-s="2"><div class="cs">B72172<em>C172/L</em></div><div class="rt"><b>信義區目視盤旋</b><span>1,500 呎，台北 101 就在右前方</span></div><div class="al">A015<em>目視</em></div><div class="sq">0353</div></button>
+      <button class="strip arr" role="radio" aria-checked="false" data-s="1"><div class="cs">B72172<em>C172/L</em></div><div class="rt"><b>10 跑道五邊進場</b><span>三重上空 3 浬，1,000 呎，襟翼 20°</span></div><div class="al">A010<em>進場</em></div><div class="sq">0352</div></button>
+      <button class="strip loc" role="radio" aria-checked="false" data-s="2"><div class="cs">B72172<em>C172/L</em></div><div class="rt"><b>信義區目視盤旋</b><span>2,700 呎，台北 101 就在右前方</span></div><div class="al">A027<em>目視</em></div><div class="sq">0353</div></button>
       <button class="strip loc" role="radio" aria-checked="false" data-s="3"><div class="cs">B72172<em>C172/L</em></div><div class="rt"><b>淡水河口出海</b><span>沿河道西北飛，觀音山在左</span></div><div class="al">A025<em>目視</em></div><div class="sq">0354</div></button>
     </div>
     <div class="opts">
@@ -2099,11 +2091,13 @@ function placeAircraft(x, z, hdgTrue, altAGL, kt, flapSel, thr, gamma = 0) {
 }
 const SCEN = [
   () => { const x = RWY.w[0] + RWY.dir[0] * 45, z = RWY.w[1] + RWY.dir[1] * 45; return placeAircraft(x, z, RWY.hdgTrue, 0, 0, 0, 0); },
-  () => { const d = 3 * NM; const x = RWY.e[0] + RWY.dir[0] * d, z = RWY.e[1] + RWY.dir[1] * d; return placeAircraft(x, z, wrap360(RWY.hdgTrue + 180), Math.tan(3 * D2R) * d + 15, 72, 2, 0.47, -3 * D2R); },
-  () => { const [x, z] = toLocal(121.536, 25.052); return placeAircraft(x, z, 118, 457, 95, 0, 0.7); },
+  // 天氣都吹東北風（030–070°），進場用 10 跑道迎風落地：從西側三重上空 3 浬切入五邊
+  () => { const d = 3 * NM; const x = RWY.w[0] - RWY.dir[0] * d, z = RWY.w[1] - RWY.dir[1] * d; return placeAircraft(x, z, RWY.hdgTrue, Math.tan(3 * D2R) * d + 15, 72, 2, 0.47, -3 * D2R); },
+  // 2,700 呎（823 m）：高於台北 101 尖塔頂（508 m）約 1,000 呎
+  () => { const [x, z] = toLocal(121.536, 25.052); return placeAircraft(x, z, 118, 823, 95, 0, 0.7); },
   () => { const [x, z] = toLocal(121.468, 25.118); return placeAircraft(x, z, 302, 740, 100, 0, 0.72); },
 ];
-const SCEN_AP = [{ hdg: 95, alt: 2000 }, { hdg: 275, alt: 1000 }, { hdg: 120, alt: 1500 }, { hdg: 305, alt: 2500 }];
+const SCEN_AP = [{ hdg: 95, alt: 2000, rwy: 1 }, { hdg: 92, alt: 1000, rwy: 1 }, { hdg: 120, alt: 2700 }, { hdg: 305, alt: 2500 }];
 
 function applyEnvironment() {
   const sun = sunPosition(TIMES[settings.time]);
@@ -2116,13 +2110,13 @@ function startScenario(i) {
   settings.scen = i;
   sim = SCEN[i]();
   sim.stallBias = Math.random() - 0.5;
-  app.apOn = false; app.apHdg = Math.round(toMag(SCEN_AP[i].hdg === 95 ? RWY.hdgTrue : SCEN_AP[i].hdg)); app.apAlt = SCEN_AP[i].alt; app.apVs = i === 1 ? -500 : 500;
+  app.apOn = false; app.apHdg = Math.round(toMag(SCEN_AP[i].rwy ? RWY.hdgTrue : SCEN_AP[i].hdg)); app.apAlt = SCEN_AP[i].alt; app.apVs = i === 1 ? -500 : 500;
   app.pbrake = i === 0; app.pbrakeHeld = false; app.relT = 0; app.track = []; app.maxG = 1; app.t0 = performance.now(); app.flyT = 0; acc = 0; app.touchdown = null; app.crashT = 0;
   clearInput();
   sim.ctl.brake = app.pbrake ? 1 : 0;
   camState.init = false; flyby.set = false;
   $('crash').classList.remove('open');
-  $('identSub').textContent = ['松山 RCSS 10 跑道', '松山 RCSS 28 跑道五邊', '信義區目視', '淡水河口'][i] + ' · ' + TIME_NAME[settings.time] + ' · ' + WX[settings.wx].name;
+  $('identSub').textContent = ['松山 RCSS 10 跑道', '松山 RCSS 10 跑道五邊', '信義區目視', '淡水河口'][i] + ' · ' + TIME_NAME[settings.time] + ' · ' + WX[settings.wx].name;
   syncAp();
 }
 
@@ -2960,7 +2954,7 @@ function crashed() {
   const eu = FDM.euler(sim.q);
   $('crashTitle').textContent = sim.crashed === '撞上建築' ? '撞上建築物' : '墜毀';
   const t = app.flyT || 0; // 只算實際飛行時間，不含暫停與說明視窗開著的時間
-  $('crashWhy').textContent = { '起落架折斷': '觸地太重，起落架折斷。進場時把下降率控制在每分鐘 500 呎以內，平飄後再讓主輪先著地。', '機尾觸地': '機尾先觸地。', '左翼尖觸地': '左翼尖擦地，坡度太大。', '右翼尖觸地': '右翼尖擦地，坡度太大。', '螺旋槳觸地': '螺旋槳打到地面：機頭太低或前輪先著地。', '撞上建築': '飛進了建築物。台北市區上空的最低安全高度是 1,000 呎以上。' }[sim.crashed] || sim.crashed;
+  $('crashWhy').textContent = { '起落架折斷': '觸地太重，起落架折斷。進場時把下降率控制在每分鐘 500 呎以內，平飄後再讓主輪先著地。', '機尾觸地': '機尾先觸地。', '左翼尖觸地': '左翼尖擦地，坡度太大。', '右翼尖觸地': '右翼尖擦地，坡度太大。', '螺旋槳觸地': '螺旋槳打到地面：機頭太低或前輪先著地。', '撞上建築': '飛進了建築物。市區上空要比半徑 600 公尺內最高的障礙物再高 1,000 呎；在信義區，台北 101 含尖塔高 508 公尺（約 1,667 呎），至少要飛 2,700 呎。' }[sim.crashed] || sim.crashed;
   $('crashStat').textContent = `飛行 ${Math.floor(t / 60)} 分 ${Math.floor(t % 60)} 秒 · 撞擊時 ${Math.round((sim.out.ias || 0) * KT)} 節 · 下降率 ${Math.round(-sim.vel[1] * 196.85)} 呎／分 · 最大 ${app.maxG.toFixed(1)} G`;
   $('crash').classList.add('open'); clearInput();syncPanels();$('crashRetry').focus();
   sound.burst(90, 1.6, 0.9, 'lowpass'); sound.burst(900, 0.6, 0.5);
@@ -3034,7 +3028,8 @@ function hudUpdate() {
 let last = performance.now(), acc = 0;
 function frame(now) {
   requestAnimationFrame(frame);
-  let dt = clamp((now - last) / 1000, 0, 0.1); last = now; // rAF 時間戳記可能早於啟動時的 performance.now()，不能讓 dt 變負 if(document.hidden)return;
+  let dt = clamp((now - last) / 1000, 0, 0.1); last = now; // rAF 時間戳記可能早於啟動時的 performance.now()，不能讓 dt 變負
+  if (document.hidden) return;
   U.uTime.value = now / 1000;
   const flying = app.mode === 'fly' && !app.paused && !sim.crashed;
   if (app.mode === 'fly' && !app.paused && !sim.crashed) readControls(dt);

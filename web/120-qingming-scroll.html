@@ -37,12 +37,12 @@ h1{margin:0;font-family:var(--kai);font-weight:400;font-size:22px;letter-spacing
 .ctrls{display:flex;align-items:center;gap:16px}
 .grp{display:flex;align-items:center;gap:4px}
 .cap{font-size:11px;color:#bda77f;letter-spacing:.2em;margin-right:5px;white-space:nowrap}
-.note{font-size:11px;color:#bda77f;letter-spacing:.14em;margin-left:6px;min-width:5.2em;white-space:nowrap}
 .tb{appearance:none;border:1px solid #b5986859;background:#0000002b;border-radius:2px;min-width:30px;height:30px;padding:0 6px;font-family:var(--kai);font-size:16px;cursor:pointer;color:#e6d8b8;transition:background .2s,border-color .2s,color .2s,opacity .2s;line-height:1}
 .tb:hover{border-color:var(--gold)}
 .tb[aria-pressed="true"]{background:var(--silk);color:var(--ink);border-color:var(--silk)}
 .tb:focus-visible,.play:focus-visible,.ch:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 #sndBtn{min-width:40px}
+#todCycle{display:none}
 #sndBtn[aria-pressed="true"]{background:var(--seal);border-color:var(--seal);color:#f7ead2}
 .snd.off .chip{opacity:.42}
 .stage{position:fixed;left:0;right:0;top:calc(var(--top) + env(safe-area-inset-top,0px));bottom:calc(var(--bot) + env(safe-area-inset-bottom,0px));background:#e3d8bf;overflow:hidden}
@@ -69,8 +69,9 @@ body.night .inscr .no{color:#cdb88e}
   background:linear-gradient(90deg,#3b2a1d,#8c6b47 38%,#b08a5c 50%,#6d5035 70%,#2e2117);box-shadow:0 0 14px #0008}
 .rod.open{transform:translateX(0);opacity:0}
 .bot{bottom:0;height:calc(var(--bot) + env(safe-area-inset-bottom,0px));padding:10px max(18px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));display:flex;align-items:center;gap:16px;box-shadow:inset 0 1px 0 #0007}
-.play{flex:none;width:56px;height:56px;border-radius:50%;border:1px solid var(--gold);background:radial-gradient(circle at 35% 30%,#5d4b33,#2a2219);font-family:var(--kai);color:#f0e2c4;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;gap:3px}
-.play b{font-weight:400;font-size:21px}.play small{font-size:9px;letter-spacing:.12em;color:#bda77f}
+.play{flex:none;width:56px;height:56px;border-radius:50%;border:1px solid var(--gold);background:transparent;font-family:var(--kai);color:#f0e2c4;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:background .2s}
+.play:hover{background:#0000002b}
+.play b{font-weight:400;font-size:22px}
 .tl{flex:1;min-width:0;position:relative;height:74px}
 #mini{position:absolute;left:0;top:0;width:100%;height:42px;cursor:pointer;box-shadow:0 0 0 1px #b598687a,0 2px 7px #0007;touch-action:none;border-radius:1px}
 .view{position:absolute;top:-3px;height:48px;border:1.5px solid rgba(176,58,44,.92);background:rgba(176,58,44,.09);pointer-events:none;border-radius:1px;min-width:6px}
@@ -82,18 +83,20 @@ body.night .inscr .no{color:#cdb88e}
 .ch[aria-current="true"] b{color:#ff9d84}
 .hint{flex:none;font-size:11px;color:#a8946f;letter-spacing:.12em;line-height:1.75;text-align:right;white-space:nowrap}
 .hint kbd{font:inherit;color:#d9c7a1}
-@media (max-width:980px){.note,.cap{display:none}}
+.hint.fade{opacity:0;transition:opacity 1s}
+@media (max-width:980px){.cap{display:none}}
 @media (max-width:780px){.hint{display:none}.brand small{display:none}}
-@media (max-width:560px){:root{--top:52px;--bot:86px}
+/* 窄螢幕頂列只留一顆時辰循環鈕與「聲」：四個時辰鈕和市／水／風分層收起，頂列維持單行 */
+@media (max-width:680px){.tod,.chip{display:none}#todCycle{display:inline-block}}
+@media (max-width:560px){
   .top{padding-left:12px;padding-right:12px;gap:8px}.brand{gap:7px}h1{font-size:16px;letter-spacing:.14em}
   .seal{width:25px;height:25px;font-size:14px}.ctrls{gap:8px}.grp{gap:3px}
-  .tb{min-width:26px;height:28px;font-size:14px;padding:0 3px}#sndBtn{min-width:32px}
+  .tb{min-width:44px;height:44px;font-size:15px;padding:0 3px}#sndBtn{min-width:44px}
   .bot{gap:10px;padding-left:12px;padding-right:12px}.play{width:48px;height:48px}.play b{font-size:18px}
   .ch{font-size:12px;letter-spacing:.04em;gap:.2em}.inscr{top:14px;right:12px;gap:8px}.inscr .sub{font-size:13px}}
 @media (max-width:370px){.brand h1{display:none}}
 @media (prefers-reduced-motion:reduce){.unroll,.rod,.inscr{transition:none}}
-.view-tools{position:absolute;left:14px;top:14px;z-index:3;display:flex;gap:6px}.view-tools button{min-height:40px;border:1px solid #b5986890;background:#29231ae8;color:#f1e5ce;padding:8px 12px;cursor:pointer;font-size:12px}
-@media(max-width:560px){:root{--top:104px;--bot:110px}.ctrls{flex-wrap:wrap;justify-content:flex-end;max-width:200px}.tb{min-width:44px;height:44px}.grp{gap:3px}.top{gap:4px}.tl{height:84px}.chs{top:44px}.ch{height:40px}.view-tools{left:10px;top:10px}.view-tools button{min-height:44px;padding:6px 9px}}
+@media(max-width:560px){:root{--top:52px;--bot:110px}.top{gap:4px}.tl{height:84px}.chs{top:44px}.ch{height:40px}}
 </style>
 </head>
 <body>
@@ -106,7 +109,7 @@ body.night .inscr .no{color:#cdb88e}
       <button class="tb tod" data-t="wu" aria-pressed="false" title="午時 · 日正當中">午</button>
       <button class="tb tod" data-t="you" aria-pressed="false" title="酉時 · 夕照西斜">酉</button>
       <button class="tb tod" data-t="xu" aria-pressed="false" title="戌時 · 華燈初上">戌</button>
-      <span class="note" id="todNote" aria-live="polite"></span>
+      <button class="tb" id="todCycle" type="button" aria-label="切換時辰">午</button>
     </div>
     <div class="grp snd off" id="sndGrp" role="group" aria-label="環境音">
       <button class="tb" id="sndBtn" aria-pressed="false" title="環境音開關">聲</button>
@@ -114,11 +117,14 @@ body.night .inscr .no{color:#cdb88e}
       <button class="tb chip" data-layer="water" aria-pressed="true" title="汴河水聲">水</button>
       <button class="tb chip" data-layer="wind" aria-pressed="true" title="郊野風聲">風</button>
     </div>
+    <div class="grp" role="group" aria-label="視角">
+      <button class="tb" id="resetView" type="button" aria-label="重設視角" title="重設視角（雙擊畫面或 Home 鍵）">↺</button>
+      <button class="tb" id="motion" type="button" aria-pressed="false" aria-label="暫停動態" title="暫停動態">靜</button>
+    </div>
   </div>
 </header>
 
 <main class="stage" id="stage">
-  <div class="view-tools"><button id="resetView" type="button">重設視角</button><button id="motion" type="button" aria-pressed="false">暫停動態</button></div>
   <canvas id="scene" tabindex="0" aria-label="3D 汴河長卷。拖曳可環視，滾輪縮放，左右方向鍵沿河移動，上下調整俯仰，加減縮放，Home 重設視角"></canvas>
   <div class="inscr" id="inscr" aria-live="polite">
     <span class="no" id="cNo">第壹章</span>
@@ -131,14 +137,14 @@ body.night .inscr .no{color:#cdb88e}
 </main>
 
 <footer class="band bot">
-  <button class="play" id="play" aria-label="展卷"><b id="playK">展</b><small id="playS">展卷</small></button>
+  <button class="play" id="play" aria-label="展卷"><b id="playK">展</b></button>
   <div class="tl" role="group" aria-label="章節時間軸（由右往左展讀）">
     <canvas id="mini" aria-label="全卷縮圖，點擊或拖曳可跳到該處"></canvas>
     <div class="view" id="view"></div>
     <div class="mk" id="mk"></div>
     <div class="chs" id="chs"></div>
   </div>
-  <div class="hint">拖曳環視 · 滾輪縮放 · <kbd>Shift</kbd>＋滾輪移卷<br><kbd>空白鍵</kbd> 展停 · <kbd>1</kbd>–<kbd>4</kbd> 章節 · <kbd>←</kbd><kbd>→</kbd> 沿河</div>
+  <div class="hint" id="hint">拖曳環視 · 滾輪縮放 · <kbd>Shift</kbd>＋滾輪移卷<br><kbd>空白鍵</kbd> 展停 · <kbd>1</kbd>–<kbd>4</kbd> 章節 · <kbd>←</kbd><kbd>→</kbd> 沿河</div>
 </footer>
 
 <script type="module">
@@ -813,13 +819,17 @@ canvas.addEventListener('wheel',e=>{e.preventDefault();lastInput=performance.now
   if(e.shiftKey)tgtP=clamp(tgtP+(e.deltaY||e.deltaX)*.07,PSTART,PEND);else if(horiz)tgtP=clamp(tgtP-e.deltaX*.07,PSTART,PEND);else tZoom=clamp(tZoom*Math.exp(e.deltaY*.0011),.35,1.8)},{passive:false});
 function resetView(){tYaw=0;tPitch=DEF_PITCH;tZoom=1;flingV=0;lastInput=performance.now()}
 canvas.addEventListener('dblclick',resetView);$('resetView').onclick=resetView;
-function syncMotion(){$('motion').textContent=motionPaused?'繼續動態':'暫停動態';$('motion').setAttribute('aria-pressed',String(motionPaused))}
+function syncMotion(){const m=$('motion'),label=motionPaused?'繼續動態':'暫停動態';m.setAttribute('aria-label',label);m.title=label;m.setAttribute('aria-pressed',String(motionPaused))}
 $('motion').onclick=()=>{motionPaused=!motionPaused;if(motionPaused){playing=false;updPlay()}syncMotion()};syncMotion();
 function goChapter(i){playing=false;tgtP=clamp(CH[i].at,PSTART,PEND);ended=false;updPlay()}
 function togglePlay(){if(motionPaused){motionPaused=false;syncMotion()}if(ended){tgtP=PSTART;ended=false;playing=true}else playing=!playing;lastInput=-1e9;updPlay()}
-function updPlay(){$('playK').textContent=ended?'重':playing?'停':'展';$('playS').textContent=ended?'重展':playing?'暫停':'展卷';$('play').setAttribute('aria-label',ended?'從頭重新展卷':playing?'暫停展卷':'開始展卷')}
+function updPlay(){$('playK').textContent=ended?'重':playing?'停':'展';$('play').setAttribute('aria-label',ended?'從頭重新展卷':playing?'暫停展卷':'開始展卷')}
 $('play').addEventListener('click',togglePlay);
-addEventListener('keydown',e=>{const tag=e.target&&e.target.tagName;if(['INPUT','TEXTAREA','SELECT','BUTTON','A'].includes(tag)||e.ctrlKey||e.metaKey||e.altKey)return;
+// 滑鼠點過的按鈕立即放掉焦點，空白鍵才會回到展停，而不是再按一次那顆按鈕
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button');if(b&&e.detail>0)b.blur()});
+addEventListener('keydown',e=>{const tag=e.target&&e.target.tagName;if(['INPUT','TEXTAREA','SELECT'].includes(tag)||e.ctrlKey||e.metaKey||e.altKey)return;
+  // 用鍵盤停在按鈕或連結上時，空白鍵與 Enter 保留給該控制項本身；方向鍵、1–4 等快捷鍵照常
+  if((tag==='BUTTON'||tag==='A')&&(e.code==='Space'||e.key===' '||e.key==='Enter'))return;
   if(e.code==='Space'){e.preventDefault();if(!e.repeat)togglePlay()}
   else if(e.key==='Home'){e.preventDefault();resetView()}
   else if(e.key==='ArrowUp'){e.preventDefault();tPitch=clamp(tPitch-.08,.12,1.28)}
@@ -854,9 +864,12 @@ mini.addEventListener('pointermove',e=>{if(scrub)tgtP=pFromX(e.clientX)});
 mini.addEventListener('pointerup',()=>scrub=false);mini.addEventListener('pointercancel',()=>scrub=false);mini.addEventListener('lostpointercapture',()=>scrub=false);
 
 // ─── 時辰切換 ───────────────────────────────────────────
-const todBtns=[...document.querySelectorAll('.tod')];
-function setTod(k){todKey=k;tgt=mk(TOD[k]);todBtns.forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===k?'true':'false'));$('todNote').textContent=TOD[k].n+' · '+TOD[k].s}
+const todBtns=[...document.querySelectorAll('.tod')],todCycle=$('todCycle');let todAt=-1e9;
+function setTod(k){todKey=k;tgt=mk(TOD[k]);todAt=performance.now();todBtns.forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===k?'true':'false'));
+  todCycle.textContent=TOD[k].n.charAt(0);todCycle.title=TOD[k].n+' · '+TOD[k].s+'（點按切換時辰）';todCycle.setAttribute('aria-label','切換時辰，目前'+TOD[k].n)}
 todBtns.forEach(b=>b.addEventListener('click',()=>setTod(b.dataset.t)));setTod(todKey);
+// 窄螢幕的單顆時辰鈕：卯→午→酉→戌循環
+todCycle.addEventListener('click',()=>{const keys=todBtns.map(b=>b.dataset.t);setTod(keys[(keys.indexOf(todKey)+1)%keys.length])});
 
 // ─── 環境音（WebAudio 即時合成：市集人聲、水聲、風聲）──────────
 const Snd={ctx:null,on:false,want:{crowd:true,water:true,wind:true},lvl:{crowd:0,water:0,wind:0},bell:0,next:{call:0,clap:0,drip:0,lap:0,bell:0},
@@ -881,7 +894,10 @@ const Snd={ctx:null,on:false,want:{crowd:true,water:true,wind:true},lvl:{crowd:0
     {const s=src(pink,3.3),bp=filt('bandpass',650,.9),g=gain(.16);s.connect(bp);bp.connect(g);g.connect(L.crowd)}
     const cb=this.click=ctx.createBuffer(1,Math.floor(sr*.05),sr),cd=cb.getChannelData(0);for(let i=0;i<cd.length;i++)cd[i]=(M()*2-1)*Math.pow(1-i/cd.length,6);
     this.timer=setInterval(()=>this.tick(),110);return true},
-  async set(v){if(v&&!this.ctx&&!this.init())return false;this.on=v;if(!this.ctx)return true;const t=this.ctx.currentTime;if(v){try{await this.ctx.resume()}catch(e){}this.master.gain.cancelScheduledValues(t);this.master.gain.setTargetAtTime(.85,t,.4)}else{this.master.gain.cancelScheduledValues(t);this.master.gain.setTargetAtTime(0,t,.2)}return true},
+  // 關閉時先淡出，約 1.2 秒後停掉排程計時器並 suspend AudioContext，音訊執行緒不再運算；開啟時再恢復
+  async set(v){if(v&&!this.ctx&&!this.init())return false;this.on=v;if(!this.ctx)return true;const t=this.ctx.currentTime;clearTimeout(this.offT);
+    if(v){if(!this.timer)this.timer=setInterval(()=>this.tick(),110);try{await this.ctx.resume()}catch(e){}this.master.gain.cancelScheduledValues(t);this.master.gain.setTargetAtTime(.85,t,.4)}
+    else{this.master.gain.cancelScheduledValues(t);this.master.gain.setTargetAtTime(0,t,.2);this.offT=setTimeout(()=>{if(this.on)return;clearInterval(this.timer);this.timer=0;this.ctx.suspend().catch(()=>{})},1200)}return true},
   tick(){const ctx=this.ctx;if(!ctx||ctx.state!=='running')return;const now=ctx.currentTime,ahead=now+.35,M=Math.random,base={crowd:.95,water:.8,wind:.55},w={};
     for(const k of ['crowd','water','wind']){w[k]=this.on&&this.want[k]?this.lvl[k]:0;this.L[k].gain.setTargetAtTime(w[k]*base[k],now,.5)}
     if(w.crowd>.02)for(const v of this.voices){if(v.t<now)v.t=now+M()*.3;while(v.t<ahead){if(M()<.16){v.t+=.3+M()*1.2;continue}const d=.07+M()*.18,a=.04+M()*.13;v.g.gain.setTargetAtTime(a,v.t,.02);v.g.gain.setTargetAtTime(0,v.t+d,.035);v.f1.frequency.setValueAtTime(380+M()*520,v.t);v.f2.frequency.setValueAtTime(1000+M()*1100,v.t);v.t+=d+.03+M()*.1}}
@@ -918,7 +934,8 @@ addEventListener('resize',resize);resize();
 // ─── 每幀更新 ────────────────────────────────────────────
 const tmpRGB={r:0,g:0,b:0},focus=new V3(),look=new V3(),lsX=new V3(),lsY=new V3(),sunAt=new V3();
 const setU=(u,c)=>{c.getRGB(tmpRGB,THREE.SRGBColorSpace);u.value.set(tmpRGB.r,tmpRGB.g,tmpRGB.b)};
-let last=performance.now(),time=0,started=false;
+let last=performance.now(),time=0,started=false,needRender=true;
+addEventListener('resize',()=>{needRender=true});
 function updateMovers(dt){
   const lo=camP-150,hi=camP+150;
   for(const m of movers){if(m.pc+m.span<lo||m.pc-m.span>hi)continue;
@@ -964,12 +981,18 @@ function frame(now){
   waterTex.offset.x=-time*.012;
   for(const f of flags)f.g.rotation.y=f.ry+Math.sin(time*1.1+f.ph)*.22;
   if(worldDt>0||!started)updateMovers(worldDt);
-  renderer.setRenderTarget(rt);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCam);
+  // 暫停動態且鏡頭、時辰都已收斂時畫面是靜止的：跳過陰影、場景與絹本後製，等有輸入或改尺寸再畫
+  const still=motionPaused&&started&&!needRender&&!flingV&&Math.abs(tYaw-yawO)<1e-3&&Math.abs(tPitch-pitch)<1e-3&&Math.abs(tZoom-zoom)<1e-3&&Math.abs(tgtP-camP)<1e-3&&now-todAt>5000;
+  if(!still){renderer.setRenderTarget(rt);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCam);needRender=false}
   let ci=0;for(let i=0;i<CH.length;i++)if(camP>=CH[i].from-4)ci=i;if(ci!==curCh){showChapter(ci,curCh<0);curCh=ci}
   const hs=dist*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect,span=MP1-MP0;
   $('view').style.left=clamp((1-(camP+hs-MP0)/span)*100,0,100)+'%';$('view').style.width=clamp(2*hs/span*100,1,100)+'%';$('mk').style.left=(1-(camP-MP0)/span)*100+'%';
   if(Snd.ctx)soundMix(camP);
-  if(!started){started=true;$('unroll').remove();$('rod').remove();playing=!reduceMotion;updPlay()}
+  if(!started){started=true;playing=!reduceMotion;updPlay();
+    // 第一幀畫好後才拉開絹本：.open 觸發 2.9 秒的展卷過場（捲軸再淡出 0.6 秒），結束後移除遮罩
+    const u=$('unroll'),r=$('rod');if(reduceMotion){u.remove();r.remove()}else{u.classList.add('open');r.classList.add('open');setTimeout(()=>{u.remove();r.remove()},3700)}
+    // 底列操作說明只在開場顯示幾秒，之後淡出並把寬度還給時間軸
+    const hint=$('hint');setTimeout(()=>{hint.classList.add('fade');setTimeout(()=>{hint.hidden=true;drawMini()},reduceMotion?0:1000)},9000)}
 }
 updPlay();requestAnimationFrame(frame);
 </script>

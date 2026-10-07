@@ -6,12 +6,12 @@ import { createStudioEnvironment } from '../3d/studio.js';
 const $ = id => document.getElementById(id);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 const chapters = [
-  ['WIDE SHOT', '「這裡」，其實不只一個地方。', '你看到的是桌面介面；檔案與指令有自己的工作環境；產生回應的模型則透過服務連接。這座模型把三者放在同一張地圖，讓彼此的關係變得可見。', [12, 11, 16], [0, 1, 0]],
-  ['CLOSE-UP / INTERFACE', '你打開的，是協作的入口。', '在這次製作情境中，我透過 Codex 桌面與你協作。對話視窗接收需求，顯示進度與成果；眼前這張桌子是介面的空間化比喻，不是對你的房間做掃描。', [-.6, 5, 9], [-4.6, 1.3, .7]],
-  ['EXPLODED VIEW / WORKSPACE', '檔案有地址，工作有現場。', '此頁建立於本機 htmls 專案，命令透過 zsh 執行。分層模型把原始檔、工作目錄和執行環境拆開；按「分層展開」，看看抽象的工作區如何疊在一起。', [3.8, 6.5, 9], [-1.35, 1, 0]],
-  ['DETAIL / TOOL EXECUTION', '工具，讓文字變成具體的行動。', '需要讀檔、執行命令或檢查網頁時，模型提出工具呼叫，工作環境處理後回傳結果。這裡的機櫃代表工具執行層；不同工具可以在本機或連接的服務執行。', [6.8, 4.4, 8], [2.2, 1.4, -.1]],
-  ['ORBIT / MODEL SERVICE', '我知道角色，未必知道座標。', '模型透過服務接收上下文、生成回應或工具呼叫。這個球體代表模型服務，不代表特定機房。實際推論在哪一台 GPU、哪一座資料中心，無法從這次對話確認。', [10, 6, 8], [5.2, 2.2, -1.9]],
-  ['TRACKING SHOT / ROUND TRIP', '一次回答，是訊息的一次往返。', '上下文送往模型；需要時，工具呼叫返回工作環境，執行結果再交給模型，最後顯示回應。下方可以播放、暫停或逐步觀察這個簡化流程。', [10, 12, 17], [.1, 1.2, -.5]]
+  ['總覽', '「這裡」，其實不只一個地方。', '你看到的是桌面介面；檔案與指令有自己的工作環境；產生回應的模型則透過服務連接。這座模型把三者放在同一張地圖，讓彼此的關係變得可見。', [12, 11, 16], [0, 1, 0]],
+  ['近景 · 桌面入口','你打開的，是協作的入口。', '在這次製作情境中，我透過 Codex 桌面與你協作。對話視窗接收需求，顯示進度與成果；眼前這張桌子是介面的空間化比喻，不是對你的房間做掃描。', [-.6, 5, 9], [-4.6, 1.3, .7]],
+  ['分層 · 工作現場','檔案有地址，工作有現場。', '此頁建立於本機 htmls 專案，命令透過 zsh 執行。分層模型把原始檔、工作目錄和執行環境拆開；按「分層展開」，看看抽象的工作區如何疊在一起。', [3.8, 6.5, 9], [-1.35, 1, 0]],
+  ['特寫 · 工具執行','工具，讓文字變成具體的行動。', '需要讀檔、執行命令或檢查網頁時，模型提出工具呼叫，工作環境處理後回傳結果。這裡的機櫃代表工具執行層；不同工具可以在本機或連接的服務執行。', [6.8, 4.4, 8], [2.2, 1.4, -.1]],
+  ['環繞 · 模型服務','我知道角色，未必知道座標。', '模型透過服務接收上下文、生成回應或工具呼叫。這個球體代表模型服務，不代表特定機房。實際推論在哪一台 GPU、哪一座資料中心，無法從這次對話確認。', [10, 6, 8], [5.2, 2.2, -1.9]],
+  ['跟拍 · 一次往返','一次回答，是訊息的一次往返。', '上下文送往模型；需要時，工具呼叫返回工作環境，執行結果再交給模型，最後顯示回應。下方可以播放、暫停或逐步觀察這個簡化流程。', [10, 12, 17], [.1, 1.2, -.5]]
 ];
 const objects = [
   ['A', '桌面入口', '對話、預覽與工作指令的入口。模型的回答在這裡被呈現，工具結果也在這裡成為可追蹤的工作紀錄。', '情境紀錄：Codex 桌面。本模型未讀取使用者螢幕。', [-4.6, 3, .6], 1],
@@ -150,6 +150,9 @@ const routes = [
   tube([[2.15,1,0],[2.15,.34,1.05],[2.16,.36,1.36],[2.2,-.02,1.6],[2.5,-.275,1.98],[3.7,-.275,1.85],[4.13,-.275,.85],[4.36,-.02,.16],[4.5,.36,-.24],[4.68,.76,-.8],[5.25,.8,-1.8]],green,.04),
   tube([[5.25,.8,-1.8],[5.25,.76,-.8],[5.25,.64,-.48],[5.25,.36,-.22],[5.25,-.04,.12],[5.22,-.275,1.4],[4,-.275,3.18],[1,-.275,3.18],[-2,-.275,3.18],[-4.5,-.275,3.14],[-4.68,-.02,2.52],[-4.68,.36,2.2],[-4.68,.33,1.75]],green,.045)
 ];
+// The packet follows its own paths so it never jumps: step 4 ("result back to the model") leaves the workspace where step 3 ended,
+// runs back along the tool cable to the rack, then continues up to the model sphere. The drawn cables stay as they are.
+const packetPaths=routes.slice();packetPaths[3]=new THREE.CatmullRomCurve3([...routes[2].points.slice().reverse(),...routes[3].points],false,'centripetal');
 const packet=new THREE.Mesh(new THREE.SphereGeometry(.105,16,12),new THREE.MeshBasicMaterial({color:'#f47836'}));scene.add(packet);packet.visible=false;
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.ShadowMaterial({opacity:.19}));ground.rotation.x=-Math.PI/2;ground.position.y=-.32;ground.receiveShadow=true;scene.add(ground);
 const grid=new THREE.GridHelper(26,52,0xc4cbbd,0xd9ddd2);grid.position.y=-.305;grid.material.transparent=true;grid.material.opacity=.46;scene.add(grid);
@@ -173,14 +176,14 @@ function inspect(index){
 }
 function cameraPosition(index){const p=new THREE.Vector3(...chapters[index][3]);const t=new THREE.Vector3(...chapters[index][4]);const aspect=stage.clientWidth/stage.clientHeight;p.sub(t).multiplyScalar(Math.max(1,(index===0||index===5?1.28:.9)/aspect)).add(t);return p;}
 function selectScene(index, immediate=false){
-  current=index;const c=chapters[index];$('shot-label').textContent=`0${index+1} / ${c[0]}`;$('scene-title').textContent=c[1];$('scene-description').textContent=c[2];$('chapter-count').textContent=`0${index+1} / 06`;$('view-mode').textContent=index===0?'總覽 / OVERVIEW':c[0];
+  current=index;const c=chapters[index];$('scene-title').textContent=c[1];$('scene-description').textContent=c[2];$('chapter-count').textContent=`0${index+1} / 06`;$('view-mode').textContent=c[0];
   document.querySelectorAll('[data-scene]').forEach((b,i)=>{if(i===index)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current');});
   if(index>0&&index<5)inspect(index-1);
   const dest=cameraPosition(index), target=new THREE.Vector3(...c[4]);
   if(immediate||reduced.matches){camera.position.copy(dest);controls.target.copy(target);controls.update();transition=null;}else transition={from:camera.position.clone(),to:dest,startTarget:controls.target.clone(),target,elapsed:0};
   schedule();
 }
-function stopTour(){tour=false;$('tour').innerHTML='開始六幕導覽 <span>↗</span>';$('tour').setAttribute('aria-pressed','false');}
+function stopTour(){tour=false;$('tour').innerHTML='開始六幕導覽 <span>↗</span>';$('tour').setAttribute('aria-pressed','false');$('tour-progress').style.width='0%';}
 function syncFlow(){
   const messages=['將需求與可用內容組成上下文，交給模型服務。','模型判斷需要檔案內容，回傳一個工具呼叫。','工作環境執行讀檔，產生工具結果。','工具結果交回模型，成為後續回答的依據。','模型產生回應，由桌面介面呈現。'];
   [...$('flow').children].forEach((li,i)=>{li.classList.toggle('active',i===flowIndex);li.classList.toggle('done',i<flowIndex);if(i===flowIndex)li.setAttribute('aria-current','step');else li.removeAttribute('aria-current');});
@@ -210,21 +213,21 @@ function tick(now){
   const desired=expanded?1:0;expansion=reduced.matches?desired:THREE.MathUtils.damp(expansion,desired,7,dt/1000);if(Math.abs(expansion-desired)<.001)expansion=desired;
   layers.forEach((l,i)=>l.position.y=.48+i*.45+expansion*i*.62);
   if(flowRunning){flowElapsed+=dt;if(flowElapsed>=2600)advanceFlow();}
-  if(flowIndex>=0&&flowIndex<5){packet.visible=true;routes[flowIndex].getPointAt(Math.min(flowElapsed/2600,1),packet.position);packet.position.y=Math.max(packet.position.y,-.215);}// rides on the floor cable, never sinks into the floor
+  if(flowIndex>=0&&flowIndex<5){packet.visible=true;packetPaths[flowIndex].getPointAt(Math.min(flowElapsed/2600,1),packet.position);packet.position.y=Math.max(packet.position.y,-.215);}// rides on the floor cable, never sinks into the floor
   render();
   if(tour||transition||flowRunning||expansion!==desired)schedule();else last=0;
 }
 function schedule(){if(!raf&&!document.hidden&&!lost)raf=requestAnimationFrame(tick);}
 let previousAspect=0;
-function resize(){if(renderer)renderer.setSize(stage.clientWidth,stage.clientHeight,false);camera.aspect=stage.clientWidth/stage.clientHeight;camera.updateProjectionMatrix();if(previousAspect&&Math.abs(previousAspect-camera.aspect)>.01&&$('view-mode').textContent!=='自由環繞 / FREE ORBIT')selectScene(current,true);previousAspect=camera.aspect;schedule();}
+function resize(){if(renderer)renderer.setSize(stage.clientWidth,stage.clientHeight,false);camera.aspect=stage.clientWidth/stage.clientHeight;camera.updateProjectionMatrix();if(previousAspect&&Math.abs(previousAspect-camera.aspect)>.01&&$('view-mode').textContent!=='自由環繞')selectScene(current,true);previousAspect=camera.aspect;schedule();}
 new ResizeObserver(resize).observe(stage);
-controls.addEventListener('start',()=>{transition=null;stopTour();$('view-mode').textContent='自由環繞 / FREE ORBIT';});
+controls.addEventListener('start',()=>{transition=null;stopTour();$('view-mode').textContent='自由環繞';});
 controls.addEventListener('change',schedule);
 document.querySelectorAll('[data-scene]').forEach(b=>b.addEventListener('click',()=>{stopTour();selectScene(Number(b.dataset.scene));}));
 $('tour').disabled=false;$('tour').setAttribute('aria-pressed','false');
 $('tour').addEventListener('click',()=>{if(tour){stopTour();return;}flowIndex=-1;flowRunning=false;packet.visible=false;syncFlow();tour=true;tourElapsed=0;selectScene(0);$('tour').innerHTML='停止導覽 <span>Ⅱ</span>';$('tour').setAttribute('aria-pressed','true');schedule();});
 $('reset').disabled=!renderer;$('reset').addEventListener('click',()=>{stopTour();selectScene(current);});
-$('explode').disabled=!renderer;$('explode').addEventListener('click',()=>{stopTour();expanded=!expanded;$('explode').setAttribute('aria-pressed',String(expanded));$('explode').textContent=expanded?'⊟ 合攏層板':'⊞ 分層展開';selectScene(2);});
+$('explode').disabled=!renderer;$('explode').addEventListener('click',()=>{stopTour();expanded=!expanded;$('explode').setAttribute('aria-pressed',String(expanded));$('explode').textContent=expanded?'⊟ 合攏層板':'⊞ 分層展開';if(expanded&&current!==2)selectScene(2);else schedule();});
 $('request').disabled=false;$('request').addEventListener('click',startFlow);
 $('flow-pause').addEventListener('click',()=>{flowRunning=!flowRunning;syncFlow();schedule();});
 $('flow-step').addEventListener('click',()=>{flowRunning=false;advanceFlow();});
@@ -239,7 +242,7 @@ canvas.addEventListener('keydown',e=>{
   const v=camera.position.clone().sub(controls.target),s=new THREE.Spherical().setFromVector3(v);
   if(e.key==='ArrowLeft')s.theta-=.13;if(e.key==='ArrowRight')s.theta+=.13;if(e.key==='ArrowUp')s.phi-=.1;if(e.key==='ArrowDown')s.phi+=.1;
   if(e.key==='+'||e.key==='=')s.radius*=.9;if(e.key==='-')s.radius*=1.1;
-  s.phi=THREE.MathUtils.clamp(s.phi,controls.minPolarAngle,controls.maxPolarAngle);s.radius=THREE.MathUtils.clamp(s.radius,controls.minDistance,controls.maxDistance);camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(s));controls.update();$('view-mode').textContent='自由環繞 / FREE ORBIT';schedule();
+  s.phi=THREE.MathUtils.clamp(s.phi,controls.minPolarAngle,controls.maxPolarAngle);s.radius=THREE.MathUtils.clamp(s.radius,controls.minDistance,controls.maxDistance);camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(s));controls.update();$('view-mode').textContent='自由環繞';schedule();
 });
 reduced.addEventListener('change',e=>{controls.enableDamping=!e.matches;if(e.matches){stopTour();flowRunning=false;syncFlow();selectScene(current,true);}});
 document.addEventListener('visibilitychange',()=>{cancelAnimationFrame(raf);raf=0;last=0;if(!document.hidden)schedule();});

@@ -66,12 +66,12 @@ h1 i{color:var(--hema)}
 .knob:focus-visible,.objbtn:focus-visible,.pill:focus-visible,.btn:focus-visible{outline:2px dashed var(--hema);outline-offset:3px}
 .knobtxt{font-size:13px;line-height:1.4;color:var(--mute)}
 .knobtxt b{display:block;color:var(--ink);font-weight:normal;font-style:italic;font-size:16px}
-.pills{display:flex;flex-wrap:wrap;gap:6px}
-.pill{min-height:40px;padding:6px 11px;border:1px solid var(--rule);background:#fff;color:var(--ink);font-family:var(--serif);font-size:14px;cursor:pointer;border-radius:20px;text-align:left;line-height:1.15}
+.pills{display:flex;flex-direction:column;align-items:flex-start}
+.pill{min-height:40px;padding:4px 0;border:0;background:none;color:var(--ink);font-family:var(--serif);font-size:14px;cursor:pointer;text-align:left;line-height:1.15}
 .pill small{display:block;font-size:11px;color:var(--mute);font-style:italic}
-.pill:hover{border-color:var(--hema-2)}
-.pill[aria-pressed="true"]{background:var(--hema);color:#fff;border-color:var(--hema)}
-.pill[aria-pressed="true"] small{color:#e5d2ee}
+.pill:hover{color:var(--hema-2)}
+.pill[aria-pressed="true"]{color:var(--hema)}
+.pill[aria-pressed="true"] span{text-decoration:underline;text-underline-offset:3px}
 .transport{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .btn{min-height:42px;min-width:44px;padding:0 14px;border:1px solid var(--ink);background:transparent;color:var(--ink);font-family:var(--serif);font-size:15px;cursor:pointer}
 .btn.primary{background:var(--ink);color:var(--paper)}
@@ -195,7 +195,7 @@ input[type=range]{width:100%;height:40px;accent-color:var(--hema)}
   function setStrain(st){ strain = st; BORN.fill(0); SURV.fill(0); st.b.forEach(function(v){ BORN[v] = 1; }); st.s.forEach(function(v){ SURV[v] = 1; }); }
   setStrain(STRAINS[0]);
 
-  var gen = 0, born = 0, died = 0, history = [];
+  var gen = 0, born = 0, died = 0, history = [], heatKill = 0;
   function stepLife(){
     prev.set(cur); born = 0; died = 0;
     for (var y=1;y<N-1;y++){
@@ -204,6 +204,7 @@ input[type=range]{width:100%;height:40px;accent-color:var(--hema)}
         if (!inDish[i]){ nxt[i] = 0; continue; }
         var n = cur[i-N-1] + cur[i-N] + cur[i-N+1] + cur[i-1] + cur[i+1] + cur[i+N-1] + cur[i+N] + cur[i+N+1];
         var v = cur[i] ? SURV[n] : BORN[n];
+        if (v && heatKill && Math.random() < heatKill) v = 0; // heat shock
         nxt[i] = v;
         if (v && !cur[i]) born++; else if (!v && cur[i]) died++;
       }
@@ -225,8 +226,8 @@ input[type=range]{width:100%;height:40px;accent-color:var(--hema)}
   var GUN = ["........................O...........","......................O.O...........","............OO......OO............OO","...........O...O....OO............OO","OO........O.....O...OO..............","OO........O...O.OO....O.O...........","..........O.....O.......O...........","...........O...O....................","............OO......................"];
   var SEEDS = [
     {name:'Swab', sub:'random culture', f:function(){ var s = Math.random()*1e9|0; for (var y=0;y<N;y++) for (var x=0;x<N;x++){ var dx = x - C, dy = y - C; if (dx*dx + dy*dy < 46*46 && Math.random() < .3) cur[y*N+x] = 1; } }},
-    {name:'R-pentomino', sub:'1103 gens of drama', rows:['.OO','OO.','.O.']},
-    {name:'Acorn', sub:'5206 gens, 633 cells', rows:['.O.....','...O...','OO..OOO']},
+    {name:'R-pentomino', sub:'1103 gens on an infinite plate', rows:['.OO','OO.','.O.']},
+    {name:'Acorn', sub:'5206 gens on an infinite plate', rows:['.O.....','...O...','OO..OOO']},
     {name:'Glider gun', sub:'Gosper, 1970', rows:GUN},
     {name:'Glider', sub:'a single traveller', rows:['.O.','..O','OOO']}
   ];
@@ -297,7 +298,9 @@ input[type=range]{width:100%;height:40px;accent-color:var(--hema)}
   }
 
   /* ---------- view / zoom ---------- */
-  var ZOOMS = [{n:'4× / 0.10', vis:164, um:200}, {n:'10× / 0.25', vis:100, um:50}, {n:'40× / 0.65', vis:52, um:10}];
+  // field width in cells scales 1/magnification (160 : 64 : 16 = 1/4 : 1/10 : 1/40); one cell = UM_PER_CELL µm
+  var UM_PER_CELL = 4;
+  var ZOOMS = [{n:'4× / 0.10', vis:160, um:100}, {n:'10× / 0.25', vis:64, um:50}, {n:'40× / 0.65', vis:16, um:10}];
   var zi = 1, vis = ZOOMS[1].vis, visTarget = vis, size = 600, dpr = 1;
   function fit(){
     var r = field.getBoundingClientRect(); dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -338,7 +341,7 @@ input[type=range]{width:100%;height:40px;accent-color:var(--hema)}
       ctx.drawImage(img, cxp - s/2, cyp - s/2, s, s);
     }
     ctx.globalAlpha = 1;
-    var sb = $('sbar'); if (sb){ var px = (ZOOMS[zi].um / (ZOOMS[zi].um * 1.0)) * 0; sb.style.width = Math.round((size/dpr) * .12) + 'px'; }
+    var sb = $('sbar'); if (sb) sb.style.width = Math.round(ZOOMS[zi].um / UM_PER_CELL * (size / dpr / vis)) + 'px';
   }
 
   /* ---------- growth chart ---------- */
@@ -419,13 +422,13 @@ input[type=range]{width:100%;height:40px;accent-color:var(--hema)}
   var strainsEl = $('strains'), seedsEl = $('seeds');
   STRAINS.forEach(function(st){
     var b = document.createElement('button'); b.className = 'pill'; b.type = 'button';
-    b.innerHTML = st.name + '<small>' + st.sub + '</small>'; b.setAttribute('aria-pressed', st === strain ? 'true' : 'false');
+    b.innerHTML = '<span>' + st.name + '</span><small>' + st.sub + '</small>'; b.setAttribute('aria-pressed', st === strain ? 'true' : 'false');
     b.addEventListener('click', function(){ setStrain(st); var bs = strainsEl.querySelectorAll('.pill'); for (var k=0;k<bs.length;k++) bs[k].setAttribute('aria-pressed', bs[k] === b ? 'true' : 'false'); });
     if (strainsEl) strainsEl.appendChild(b);
   });
   SEEDS.forEach(function(sd){
     var b = document.createElement('button'); b.className = 'pill'; b.type = 'button';
-    b.innerHTML = sd.name + '<small>' + sd.sub + '</small>';
+    b.innerHTML = '<span>' + sd.name + '</span><small>' + sd.sub + '</small>';
     b.addEventListener('click', function(){ inoculate(sd); drip(); });
     if (seedsEl) seedsEl.appendChild(b);
   });
@@ -434,9 +437,15 @@ input[type=range]{width:100%;height:40px;accent-color:var(--hema)}
   function setRun(v){ running = v; if (playBtn) playBtn.textContent = running ? 'Pause' : 'Incubate'; }
   if (playBtn) playBtn.addEventListener('click', function(){ setRun(!running); });
   var stepBtn = $('step'); if (stepBtn) stepBtn.addEventListener('click', function(){ setRun(false); stepLife(); tPhase = 0; });
-  var wipeBtn = $('wipe'); if (wipeBtn) wipeBtn.addEventListener('click', function(){ prev.set(cur); cur.fill(0); tPhase = 0; gen = 0; history = []; born = 0; census(); });
+  var wipeBtn = $('wipe'); if (wipeBtn) wipeBtn.addEventListener('click', function(){ prev.set(cur); cur.fill(0); tPhase = 0; gen = 0; history = []; born = died = 0; census(); });
   var temp = $('temp'), tempOut = $('tempout'), period = 260;
-  function setTemp(){ var v = temp ? +temp.value : 37; period = Math.round(900 * Math.pow(.9, v - 20)); if (tempOut) tempOut.textContent = v + ' °C' + (v > 42 ? ' !' : ''); }
+  function setTemp(){
+    var v = temp ? +temp.value : 37;
+    // growth speeds up towards the 37 °C optimum, plateaus, then heat shock slows it and starts killing cells
+    period = Math.round(900 * Math.pow(.9, Math.min(v, 37) - 20) * (v > 40 ? Math.pow(1.5, v - 40) : 1));
+    heatKill = v > 42 ? (v - 42) * .03 : 0;
+    if (tempOut) tempOut.textContent = v + ' °C' + (v > 40 ? ' !' : '');
+  }
   if (temp) temp.addEventListener('input', setTemp);
   setTemp();
   document.addEventListener('keydown', function(e){

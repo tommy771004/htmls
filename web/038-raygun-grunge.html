@@ -220,9 +220,11 @@ button{font:inherit;color:inherit;cursor:pointer}
       it.vx += (tx - it.x) * .14; it.vy += (ty - it.y) * .14; it.vx *= .72; it.vy *= .72;
       it.x += it.vx; it.y += it.vy;
       if(Math.abs(it.vx) + Math.abs(it.vy) + Math.abs(it.x - tx) + Math.abs(it.y - ty) > .08) moving = true;
-      it.el.style.translate = it.x.toFixed(1) + "px " + it.y.toFixed(1) + "px";
+      var t = it.x.toFixed(1) + "px " + it.y.toFixed(1) + "px";
+      if(t !== it.t){ it.t = t; it.el.style.translate = t; }
     });
-    if(moving || active) requestAnimationFrame(step); else running = false;
+    /* only keep animating while something is still settling; pointermove / scroll kick it again */
+    if(moving) requestAnimationFrame(step); else running = false;
   }
   function kick(){ if(!running && !reduce){ running = true; requestAnimationFrame(step); } }
   function move(e){ mx = e.clientX; my = e.clientY; active = true; kick(); }
@@ -230,6 +232,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   window.addEventListener("pointerdown", move, {passive:true});
   window.addEventListener("pointerup", function(e){ if(e.pointerType !== "mouse"){ active = false; kick(); } });
   document.addEventListener("pointerleave", function(){ active = false; kick(); });
+  window.addEventListener("scroll", function(){ if(active) kick(); }, {passive:true});
   window.addEventListener("resize", measure);
   window.addEventListener("load", measure);
   measure();
@@ -255,7 +258,7 @@ button{font:inherit;color:inherit;cursor:pointer}
     setTimeout(measure, 30);
   }
   if(remixBtn) remixBtn.addEventListener("click", remix);
-  document.addEventListener("keydown", function(e){ if(e.key === "r" || e.key === "R") remix(); });
+  document.addEventListener("keydown", function(e){ if(e.ctrlKey || e.metaKey || e.altKey) return; if(e.key === "r" || e.key === "R") remix(); });
 
   var five = document.getElementById("five");
   if(five) five.addEventListener("click", function(){ five.classList.toggle("open"); setTimeout(measure, 450); });

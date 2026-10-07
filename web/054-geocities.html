@@ -154,7 +154,7 @@ form.gb textarea{height:84px;resize:vertical}
     <div class="nav">
       <button class="btn" data-ring="-1">&lt;&lt; Prev</button><button class="btn" data-ring="0">Random</button><button class="btn" data-ring="1">Next &gt;&gt;</button>
     </div>
-    <div id="ringmsg" style="font:12px Arial;margin-top:6px;color:#ccc">Site 42 of 117 &middot; hosted by UFO_Kim</div>
+    <div id="ringmsg" style="font:12px Arial;margin-top:6px;color:#ccc">Site 42 of 117 &middot; Dave's Homepage (you are here!)</div>
   </div>
 
   <a id="links"></a>
@@ -190,7 +190,7 @@ form.gb textarea{height:84px;resize:vertical}
     <div class="badge" style="background:#f0f;color:#fff">GEEK<br>CODE v3</div>
     <div class="badge" style="background:#008;color:#ff0">COOL SITE<br>OF THE DAY*</div>
   </div>
-  <p class="foot">*awarded by me<br>&copy; 1996&ndash;1999 Dave. Last updated 11/03/1997. Do NOT steal my graphics (I made them in Paint).<br><span class="blink">This page is Y2K ready (probably)</span></p>
+  <p class="foot">*awarded by me<br>&copy; 1996&ndash;1997 Dave. Last updated 11/03/1997. Do NOT steal my graphics (I made them in Paint).<br><span class="blink">This page is Y2K ready (probably)</span></p>
 </td>
 </tr>
 </table>
@@ -223,7 +223,7 @@ form.gb textarea{height:84px;resize:vertical}
     let k = 0;
     [...txt].forEach(ch => { const s = document.createElement('span'); s.textContent = ch; s.setAttribute('aria-hidden','true'); if (ch !== ' ') s.style.color = cols[k++ % cols.length]; title.appendChild(s); });
     let off = 0;
-    setInterval(() => { off++; let j = 0; title.querySelectorAll('span').forEach(s => { if (s.textContent !== ' ') s.style.color = cols[(j++ + off) % cols.length]; }); }, 260);
+    if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) setInterval(() => { off++; let j = 0; title.querySelectorAll('span').forEach(s => { if (s.textContent !== ' ') s.style.color = cols[(j++ + off) % cols.length]; }); }, 260);
   }
 
   // ---------- hit counter ----------
@@ -262,7 +262,8 @@ form.gb textarea{height:84px;resize:vertical}
       const name = ($('#gname')||{}).value || '', msg = (ta||{}).value || '';
       if (!name.trim() || !msg.trim()) return;
       const now = new Date();
-      const d = String(now.getMonth()+1).padStart(2,'0') + '/' + String(now.getDate()).padStart(2,'0') + '/1998';
+      const mo = now.getMonth()+1, dd = (mo === 2 && now.getDate() === 29) ? 28 : now.getDate(); // 1998 had no Feb 29
+      const d = String(mo).padStart(2,'0') + '/' + String(dd).padStart(2,'0') + '/1998';
       mine.unshift({n: name.trim(), f: (($('#gfrom')||{}).value || '').trim(), h: ($('#gfound')||{}).value || 'AltaVista', m: msg.trim(), d});
       mine = mine.slice(0, 20); store.set('dave-gb', mine);
       render(mine.concat(SEED), 0);
@@ -273,15 +274,16 @@ form.gb textarea{height:84px;resize:vertical}
   }
 
   // ---------- webring ----------
-  const RING = ['Paranormal Teenz WebRing','The Area 51 Snack Bar','Crop Circle Collectors','Bigfoot Is Real (And Shy)','Alien Abductee Support Group','Men In Black Fan Club','Lake Monster Enthusiasts'];
-  let ri = 0, site = 42;
+  // member sites of the ring (the ring name in #ringname never changes)
+  const RING = ['The Area 51 Snack Bar','Crop Circle Collectors','Bigfoot Is Real (And Shy)','Alien Abductee Support Group','Men In Black Fan Club','Lake Monster Enthusiasts',"UFO_Kim's Spinning Skull Page"];
+  const NOTES = ['404 Not Found (they moved to Angelfire)','this site has a MIDI, turn your speakers down','under construction since 1996','best viewed in Internet Explorer 4 (boo)'];
+  let site = 42;
   document.querySelectorAll('[data-ring]').forEach(b => b.addEventListener('click', () => {
     const d = +b.dataset.ring;
     site = d === 0 ? 1 + Math.floor(Math.random()*117) : ((site - 1 + d + 117) % 117) + 1;
-    ri = d === 0 ? Math.floor(Math.random()*RING.length) : ri;
-    const nm = $('#ringname'), ms = $('#ringmsg');
-    if (nm) nm.textContent = RING[ri];
-    if (ms) ms.textContent = `Site ${site} of 117 · ` + ['404 Not Found (they moved to Angelfire)','hosted by UFO_Kim','this site has a MIDI, turn your speakers down','under construction since 1996','best viewed in Internet Explorer 4 (boo)'][site % 5];
+    const ms = $('#ringmsg');
+    if (ms) ms.textContent = site === 42 ? "Site 42 of 117 · Dave's Homepage (you are here!)"
+      : `Site ${site} of 117 · ${RING[site % RING.length]} — ${NOTES[site % NOTES.length]}`;
   }));
 
   // ---------- MIDI (WebAudio chiptune) ----------
@@ -303,7 +305,7 @@ form.gb textarea{height:84px;resize:vertical}
     note(N(BASS[i]), t, .2, 'triangle', .12);
     if (i % 4 === 0){ const len = ac.sampleRate*.05, b = ac.createBuffer(1, len, ac.sampleRate), ch = b.getChannelData(0); for (let k = 0; k < len; k++) ch[k] = (Math.random()*2-1)*(1-k/len)*.25; const s = ac.createBufferSource(); s.buffer = b; s.connect(ac.destination); s.start(t); }
     step++;
-    if (scr){ const bars = '|'.repeat(1 + (MEL[i] ? (MEL[i]-66)/2|0 : 0)); scr.textContent = '► dave_theme.mid  ' + String(Math.floor(step/8)).padStart(2,'0') + ':' + String(step%8*7).padStart(2,'0') + ' ' + bars; }
+    if (scr){ const bars = '|'.repeat(1 + (MEL[i] ? (MEL[i]-66)/2|0 : 0)); const sec = Math.floor(step*0.18); scr.textContent = '► dave_theme.mid  ' + String(Math.floor(sec/60)).padStart(2,'0') + ':' + String(sec%60).padStart(2,'0') + ' ' + bars; }
   }
   const play = $('#play'), stop = $('#stop');
   if (play) play.addEventListener('click', () => {

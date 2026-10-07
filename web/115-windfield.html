@@ -1,7 +1,7 @@
 <!doctype html>
 <!--
 WIND / 草原 — adjustable parameters (edit CONFIG below)
-GRASS_COUNT: 120000 blades; WIND_STRENGTH: 0.85; SUN_AZIMUTH_DEG: 44;
+GRASS_COUNT: 120000 blades (60000 on touch or <=4-core devices); WIND_STRENGTH: 0.85; SUN_AZIMUTH_DEG: 44;
 SUN_ELEVATION_DEG: 24. The scene uses only Three.js from its pinned CDN URL.
 For best results use a WebGL2 browser. Pixel ratio is capped for a practical 60fps target;
 actual frame rate depends on the device and browser.
@@ -13,31 +13,29 @@ actual frame rate depends on the device and browser.
   <meta name="theme-color" content="#d9e2d0">
   <title>WIND / 一片會呼吸的草原</title>
   <style>
-    :root{color-scheme:light;--ink:#263c32;--milk:#f4f1e7;--glass:rgba(244,241,231,.78)}
+    :root{color-scheme:light;--ink:#263c32;--milk:#f4f1e7}
     *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}body{font-family:Georgia,"Noto Serif TC","Songti TC",serif;color:var(--ink);background:#dae6dc}button,input{font:inherit}#scene{display:block;width:100vw;height:100dvh;touch-action:none}#flare{position:fixed;inset:0;pointer-events:none;opacity:0;mix-blend-mode:screen;background:radial-gradient(circle at var(--sun-x,50%) var(--sun-y,50%),rgba(255,244,204,.42) 0,rgba(250,240,197,.13) 6%,rgba(255,255,255,0) 18%);transition:opacity .25s}
     .grain{position:fixed;inset:0;pointer-events:none;opacity:.1;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.3'/%3E%3C/svg%3E")}
     .top,.bottom{position:fixed;left:clamp(20px,4vw,68px);right:clamp(20px,4vw,68px);display:flex;justify-content:space-between;gap:20px;pointer-events:none}.top{top:clamp(20px,4vw,48px);align-items:flex-start}.bottom{bottom:clamp(20px,4vw,42px);align-items:flex-end;color:var(--milk);text-shadow:0 1px 2px rgba(18,32,24,.6),0 0 16px rgba(18,32,24,.5)}.top>* ,.bottom>*{pointer-events:auto}
-    .eyebrow,.micro,.control-label{font-family:ui-sans-serif,system-ui,sans-serif;font-size:10px;font-weight:700;letter-spacing:.24em;text-transform:uppercase}.eyebrow{margin:0 0 13px;display:flex;align-items:center;gap:10px}.eyebrow:before{content:"";width:30px;height:1px;background:currentColor}h1{font-size:clamp(35px,5vw,76px);font-weight:400;line-height:1.08;letter-spacing:-.055em;margin:0;text-shadow:0 1px 20px rgba(247,243,219,.55)}h1 em{font-style:italic;font-weight:400}.subtitle{font-size:clamp(12px,1.2vw,15px);letter-spacing:.09em;line-height:1.8;margin:17px 0 0;max-width:430px;text-shadow:0 1px 14px rgba(247,243,219,.75)}
-    .panel{width:222px;padding:17px 19px;border-radius:24px;border:1px solid rgba(38,60,50,.2);background:var(--glass);backdrop-filter:blur(13px);-webkit-backdrop-filter:blur(13px);transition:width .62s cubic-bezier(.3,1.35,.45,1)}
-    /* Once WebGL runs, the post pass draws the glass itself (refraction, dispersion, sun-lit rim), so the DOM panel only carries the controls. */
-    .panel.lens{background:transparent;border-color:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
+    .control-label{font-family:ui-sans-serif,system-ui,sans-serif;font-size:10px;font-weight:700;letter-spacing:.24em;text-transform:uppercase}h1{font-size:clamp(35px,5vw,76px);font-weight:400;line-height:1.08;letter-spacing:-.055em;margin:0;text-shadow:0 1px 2px rgba(0,0,0,.15)}h1 em{font-style:italic;font-weight:400}.subtitle{font-size:clamp(12px,1.2vw,15px);letter-spacing:.09em;line-height:1.8;margin:17px 0 0;max-width:430px;text-shadow:0 1px 2px rgba(247,243,219,.7)}
+    /* The controls sit straight on the sky: no card, just a soft light halo under the ink for legibility. */
+    .panel{width:222px;padding:4px 0;text-shadow:0 1px 2px rgba(247,243,219,.8),0 0 10px rgba(247,243,219,.55);transition:width .62s cubic-bezier(.3,1.35,.45,1)}
     .panel-title{all:unset;box-sizing:border-box;width:100%;min-height:24px;cursor:pointer;font-family:ui-sans-serif,system-ui,sans-serif;font-size:10px;letter-spacing:.2em;font-weight:700;display:flex;justify-content:space-between;align-items:center}.panel-title span{opacity:.5;display:inline-block;transition:transform .45s cubic-bezier(.3,1.35,.45,1)}.panel-title:focus-visible{outline:2px solid var(--ink);outline-offset:6px;border-radius:4px}
     .controls{display:grid;grid-template-rows:1fr;transition:grid-template-rows .55s cubic-bezier(.3,1.2,.45,1)}.controls>div{overflow:hidden;min-height:0}.controls .control:first-child{margin-top:16px}
     .panel.collapsed{width:150px}.panel.collapsed .controls{grid-template-rows:0fr}.panel.collapsed .panel-title span{transform:rotate(180deg)}
     .control{display:block;margin:12px 0}.control-label{display:flex;justify-content:space-between;letter-spacing:.13em}.control-label output{letter-spacing:0;font-weight:500}input[type=range]{display:block;width:100%;height:24px;margin:2px 0 -3px;accent-color:#697e59;cursor:pointer}
-    .note{display:flex;flex-direction:column;gap:9px}.note .micro{font-size:10px}.note .serif{font-size:14px;letter-spacing:.04em}.divider{display:inline-block;height:1px;width:38px;background:currentColor;opacity:.5;margin:4px 0}.readout{text-align:right}.readout strong{display:block;font-size:clamp(26px,3.5vw,49px);font-weight:400;line-height:1;letter-spacing:-.065em}.readout small{font-family:ui-sans-serif,system-ui,sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase}.readout .line{display:block;width:100%;height:1px;background:currentColor;opacity:.3;margin:11px 0}.hint{margin-top:7px;font-size:12px;letter-spacing:.06em}
+    .note{display:flex;flex-direction:column;gap:9px}.note .serif{font-size:14px;letter-spacing:.04em}.readout{text-align:right}.hint{font-size:12px;letter-spacing:.06em}
     .error{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(400px,calc(100% - 40px));padding:22px;text-align:center;background:var(--milk);border:1px solid #8f9a8c;line-height:1.7;display:none}.error.visible{display:block}
-    @media(min-width:701px) and (min-height:640px){.panel{margin-top:calc(50dvh - 190px)}}
-    @media(max-width:700px){.top,.bottom{left:18px;right:18px}.top{top:20px}.bottom{bottom:22px}.panel{width:min(180px,44vw);padding:12px}.panel.collapsed{width:min(150px,40vw)}.subtitle{max-width:190px}.control{margin:6px 0}.eyebrow{font-size:9px;letter-spacing:.14em}.note .serif,.hint{font-size:11px}.readout strong{font-size:25px}}@media(max-width:470px){h1{font-size:35px}.panel{width:150px}.subtitle{display:none}.note .serif{max-width:160px}.readout .line{margin:7px 0}}@media(prefers-reduced-motion:reduce){#flare,.panel,.controls,.panel-title span{transition:none}}
+    @media(max-width:700px){.top,.bottom{left:18px;right:18px}.top{top:20px}.bottom{bottom:22px}.panel{width:min(180px,44vw);padding:4px 0}.panel.collapsed{width:min(150px,40vw)}.subtitle{max-width:190px}.control{margin:6px 0}.note .serif,.hint{font-size:11px}}@media(max-width:470px){h1{font-size:35px}.panel{width:150px}.subtitle{display:none}.note .serif{max-width:160px}}@media(prefers-reduced-motion:reduce){#flare,.panel,.controls,.panel-title span{transition:none}}
   .field-actions{display:flex;gap:6px;margin-top:12px}.field-actions button{flex:1;border:1px solid #5a715b;background:#f0eee4b8;color:#263c32;font:11px system-ui,sans-serif;min-height:36px;padding:6px;border-radius:6px;cursor:pointer}.field-actions button[aria-pressed=true]{background:#36543c;color:#f9f3e0}#scene:focus-visible,input:focus-visible,.field-actions button:focus-visible{outline:3px solid #e6bb65;outline-offset:3px}@media(pointer:coarse){input[type=range],.panel-title,.field-actions button{min-height:44px}}
   </style>
 </head>
 <body>
   <canvas id="scene" tabindex="0" aria-label="互動草原。方向鍵環視，W 和 S 前後移動，Home 回到起點。"></canvas><div id="flare"></div><div class="grain"></div>
   <header class="top">
-    <div><p class="eyebrow">Field study / 001</p><h1>WIND<br><em>草原</em></h1><p class="subtitle">風走過的地方，草會先知道。<br>移動視線，向前走一小段。</p></div>
+    <div><h1>WIND<br><em>草原</em></h1><p class="subtitle">風走過的地方，草會先知道。<br>移動視線，蹲低穿過草間。</p></div>
     <section class="panel" id="panel" aria-label="環境控制">
-      <button class="panel-title" id="panel-toggle" type="button" aria-expanded="true" aria-controls="controls">ATMOSPHERE <span aria-hidden="true">↗</span></button>
+      <button class="panel-title" id="panel-toggle" type="button" aria-expanded="true" aria-controls="controls">ATMOSPHERE <span aria-hidden="true">▴</span></button>
       <div class="controls" id="controls"><div>
       <label class="control"><span class="control-label">風力 <output id="wind-value">0.85</output></span><input id="wind" type="range" min="0" max="1.6" step="0.01" value="0.85" aria-label="風力"></label>
       <label class="control"><span class="control-label">日照方位 <output id="azimuth-value">44°</output></span><input id="azimuth" type="range" min="-90" max="90" step="1" value="44" aria-label="日照方位"></label>
@@ -45,14 +43,16 @@ actual frame rate depends on the device and browser.
       <div class="field-actions"><button id="motion-toggle" type="button" aria-pressed="false">暫停動態</button><button id="home-view" type="button">回到起點</button></div></div></div>
     </section>
   </header>
-  <footer class="bottom"><div class="note"><span class="micro">An open field · rendered in real time</span><span class="divider"></span><span class="serif">滑鼠環視 · 滾輪前進 · 鍵盤 W / S 漫遊</span></div><div class="readout"><strong id="blade-count">120,000</strong><small>individual blades</small><span class="line"></span><div class="hint" id="travel">漫遊中 · 0 m</div></div></footer>
+  <footer class="bottom"><div class="note"><span class="serif">滑鼠環視 · 滾輪前進 · 鍵盤 W / S 漫遊</span></div><div class="readout"><div class="hint" id="travel">漫遊中 · 0 m</div></div></footer>
   <div class="error" id="error" role="alert">此頁需要支援 WebGL2 的瀏覽器與網路連線，才能載入 Three.js 並呈現草原。</div>
   <script type="module">
     let THREE;
     try { THREE = await import('../vendor/three-0.186.0/three.module.js'); }
     catch { try { THREE = await import('https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js'); } catch (cause) { document.getElementById('error').classList.add('visible'); throw cause; } }
 
-    const CONFIG = Object.freeze({ GRASS_COUNT:120000, WIND_STRENGTH:0.85, SUN_AZIMUTH_DEG:44, SUN_ELEVATION_DEG:24, MAX_PIXEL_RATIO:1.25 });
+    // Touch devices and machines with four or fewer cores grow half the blades.
+    const LIGHT_DEVICE = matchMedia('(pointer:coarse)').matches || (navigator.hardwareConcurrency||8) <= 4;
+    const CONFIG = Object.freeze({ GRASS_COUNT:LIGHT_DEVICE?60000:120000, WIND_STRENGTH:0.85, SUN_AZIMUTH_DEG:44, SUN_ELEVATION_DEG:24, MAX_PIXEL_RATIO:1.25 });
     const canvas = document.getElementById('scene');
     const error = document.getElementById('error');
     const motionPreference=matchMedia('(prefers-reduced-motion: reduce)');let reducedMotion=motionPreference.matches,motionPaused=reducedMotion;
@@ -148,7 +148,7 @@ actual frame rate depends on the device and browser.
       if(i<CONFIG.GRASS_COUNT*.35){x=(rand(i,3)-.5)*38;z=(rand(i,4)-.5)*88-20;}
       let h=.44+rand(i,5)*.62, w=.022+rand(i,6)*.037, yaw=rand(i,7)*Math.PI*2, tint=0, lean=1;
       // The walk starts at z = 9 facing -z and turns at most ~75 degrees off axis, so blades past z = 12 or far out to the side
-      // of the start are never on screen (about 34,600 of them). They are regrown along the walk as low tufts:
+      // of the start are never on screen (about 34,600 of them at 120,000). They are regrown along the walk as low tufts:
       // 5-9 blades fanning out from one root, each tuft with its own height and colour, densest along the path.
       if(z>12||Math.abs(x)>3.5*(9.5-z)){
         if(!tuftLeft){tufts++;const g=Math.sqrt(-2*Math.log(1-.998*rand(tufts,21)))*Math.cos(6.2832*rand(tufts,22));
@@ -217,48 +217,18 @@ actual frame rate depends on the device and browser.
     // One inexpensive five-tap depth-based blur gives a subtle far-field depth of focus.
     const target=new THREE.WebGLRenderTarget(1,1,{depthBuffer:true,stencilBuffer:false});
     target.depthTexture=new THREE.DepthTexture(1,1,THREE.UnsignedIntType);
-    const postUniforms={uColor:{value:target.texture},uDepth:{value:target.depthTexture},uTexel:{value:new THREE.Vector2(1,1)},uNear:{value:camera.near},uFar:{value:camera.far},
-      // Liquid-glass lens that follows the DOM control panel (CSS px, y up).
-      uRes:{value:new THREE.Vector2(1,1)},uLens:{value:new THREE.Vector4(0,0,0,0)},uRadius:{value:24},uLight:{value:new THREE.Vector2(-.7,.7)},uPress:{value:0}};
+    const postUniforms={uColor:{value:target.texture},uDepth:{value:target.depthTexture},uTexel:{value:new THREE.Vector2(1,1)},uNear:{value:camera.near},uFar:{value:camera.far}};
     const postScene=new THREE.Scene(),postCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
     postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.RawShaderMaterial({depthTest:false,depthWrite:false,uniforms:postUniforms,
       vertexShader:`precision highp float;attribute vec3 position;varying vec2 vUv;void main(){vUv=position.xy*.5+.5;gl_Position=vec4(position.xy,0.,1.);}`,
-      fragmentShader:`precision highp float;uniform sampler2D uColor,uDepth;uniform vec2 uTexel,uRes,uLight;uniform vec4 uLens;uniform float uNear,uFar,uRadius,uPress;varying vec2 vUv;
-        float box(vec2 p,vec2 b,float r){vec2 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,q.y),0.)-r;}
+      fragmentShader:`precision highp float;uniform sampler2D uColor,uDepth;uniform vec2 uTexel;uniform float uNear,uFar;varying vec2 vUv;
         void main(){vec4 center=texture2D(uColor,vUv);float d=texture2D(uDepth,vUv).x;
           float z=(uNear*uFar)/(uFar+d*(uNear-uFar));
           float amount=smoothstep(18.,115.,z)*.42;
           vec2 p=uTexel*(1.+amount*2.);
           vec4 blur=(texture2D(uColor,vUv+vec2(p.x,0.))+texture2D(uColor,vUv-vec2(p.x,0.))+
             texture2D(uColor,vUv+vec2(0.,p.y))+texture2D(uColor,vUv-vec2(0.,p.y)))*.25;
-          vec4 base=mix(center,blur,amount);
-          vec2 hb=uLens.zw*.5;
-          if(hb.x>1.){
-            vec2 px=vUv*uRes,q=px-(uLens.xy+hb);float r=min(uRadius,min(hb.x,hb.y));
-            float sd=box(q,hb,r);
-            if(sd<1.){
-              vec2 e=vec2(.75,0.);
-              vec2 n=normalize(vec2(box(q+e.xy,hb,r)-box(q-e.xy,hb,r),box(q+e.yx,hb,r)-box(q-e.yx,hb,r))+1e-5);
-              float inside=max(-sd,0.),bevel=min(22.,min(hb.x,hb.y)*.55);
-              float t=1.-smoothstep(0.,bevel,inside),bend=t*t;
-              // The rim pulls the scene inward like a thick convex slab; the middle magnifies slightly.
-              vec2 src=px-n*bend*(20.+uPress*10.)-q*(.05+uPress*.03);
-              vec2 disp=n*bend*(2.2+uPress*1.5)/uRes;
-              vec3 c=vec3(0.);
-              for(int i=0;i<8;i++){float a=float(i)*.7853982+.39;vec2 o=src/uRes+vec2(cos(a),sin(a))*3.2/uRes;
-                c+=vec3(texture2D(uColor,o+disp).r,texture2D(uColor,o).g,texture2D(uColor,o-disp).b);}
-              c/=8.;
-              // Frost tint adapts to what is behind it, so ink text stays readable over dark grass.
-              float lum=dot(c,vec3(.299,.587,.114));
-              c=mix(c,vec3(.957,.945,.906),mix(.26,.64,smoothstep(.62,.22,lum)));
-              float lit=max(0.,dot(n,uLight)),shade=max(0.,-dot(n,uLight));
-              c+=vec3(1.,.97,.86)*exp(-inside/1.2)*(.12+.8*lit*lit);
-              c+=vec3(1.,.96,.82)*exp(-inside/10.)*lit*lit*lit*.12;
-              c*=1.-exp(-inside/2.4)*shade*.2;
-              base.rgb=mix(base.rgb,c,clamp(.5-sd,0.,1.));
-            }
-          }
-          gl_FragColor=base;}`})));
+          gl_FragColor=mix(center,blur,amount);}`})));
 
     function setSun(){const a=Number(document.getElementById('azimuth').value)*Math.PI/180,e=Number(document.getElementById('elevation').value)*Math.PI/180;
       sunDir.set(Math.cos(e)*Math.sin(a),Math.sin(e),-Math.cos(e)*Math.cos(a)).normalize();
@@ -274,45 +244,49 @@ actual frame rate depends on the device and browser.
     for(const id of ['wind','azimuth','elevation'])document.getElementById(id).addEventListener('input',e=>{
       document.getElementById(id+'-value').textContent=e.target.value+(id==='wind'?'':'°');
       if(id==='wind')grassUniforms.uWind.value=Number(e.target.value);else setSun();
-      lastInput=performance.now();
+      markInput();
     });
-    setSun();document.getElementById('blade-count').textContent=CONFIG.GRASS_COUNT.toLocaleString('en-US');
+    setSun();
 
     const panel=document.getElementById('panel'),panelToggle=document.getElementById('panel-toggle');
     function setPanel(open){panel.classList.toggle('collapsed',!open);panelToggle.setAttribute('aria-expanded',String(open));document.getElementById('controls').inert=!open;}
     setPanel(innerWidth>470);
     panelToggle.addEventListener('click',()=>{setPanel(panel.classList.contains('collapsed'));lastInput=performance.now();});
-    panel.classList.add('lens');
-    let pressTarget=0;
-    panel.addEventListener('pointerenter',()=>pressTarget=1);panel.addEventListener('pointerleave',()=>pressTarget=0);
-    const lightDir=new THREE.Vector3(),light2=new THREE.Vector2(-.7,.7);
 
     const state={yaw:0,pitch:-.035,dolly:0,targetYaw:0,targetPitch:-.035,targetDolly:0};
-    let lastInput=performance.now(),last=lastInput,elapsed=0;
-    function markInput(){lastInput=performance.now();}
+    let lastInput=performance.now(),last=lastInput,elapsed=0,needsRender=true;
+    function markInput(){lastInput=performance.now();needsRender=true;}
+    // The walk ends at 62 m: forward input eases off over the last ten metres instead of stopping dead.
+    const END=62;function advance(delta){const slow=delta>0?Math.max(.12,1-THREE.MathUtils.smoothstep(state.targetDolly,END-10,END)):1;state.targetDolly=THREE.MathUtils.clamp(state.targetDolly+delta*slow,0,END);}
+    // Mouse aims by pointer position; touch drags only walk forward/back (handled below).
     canvas.addEventListener('pointermove',e=>{
+      if(e.pointerType!=='mouse')return;
       state.targetYaw=((e.clientX/innerWidth)-.5)*.38;
       state.targetPitch=-.04+(.5-e.clientY/innerHeight)*.18;
       markInput();
     });
-    canvas.addEventListener('wheel',e=>{e.preventDefault();state.targetDolly=THREE.MathUtils.clamp(state.targetDolly+e.deltaY*.013,0,62);markInput();},{passive:false});
+    canvas.addEventListener('wheel',e=>{e.preventDefault();advance(e.deltaY*.013);markInput();},{passive:false});
     let touchY=null;
     canvas.addEventListener('pointerdown',e=>{canvas.focus({preventScroll:true});if(e.pointerType!=='mouse'){touchY=e.clientY;canvas.setPointerCapture(e.pointerId)}markInput();});
-    canvas.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'&&touchY!==null){state.targetDolly=THREE.MathUtils.clamp(state.targetDolly+(touchY-e.clientY)*.035,0,62);touchY=e.clientY;}});
+    canvas.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'&&touchY!==null){advance((touchY-e.clientY)*.035);touchY=e.clientY;markInput();}});
     window.addEventListener('pointerup',()=>touchY=null);canvas.addEventListener('pointercancel',()=>touchY=null);canvas.addEventListener('lostpointercapture',()=>touchY=null);
-    const motionButton=document.getElementById('motion-toggle');function syncMotion(){motionButton.setAttribute('aria-pressed',String(motionPaused));motionButton.textContent=motionPaused?'繼續動態':'暫停動態'}syncMotion();motionButton.addEventListener('click',()=>{motionPaused=!motionPaused;markInput();syncMotion()});motionPreference.addEventListener('change',e=>{reducedMotion=e.matches;if(reducedMotion)motionPaused=true;syncMotion()});function homeView(){Object.assign(state,{yaw:0,pitch:-.035,dolly:0,targetYaw:0,targetPitch:-.035,targetDolly:0});markInput()}document.getElementById('home-view').addEventListener('click',homeView);canvas.addEventListener('keydown',e=>{const key=e.key.toLowerCase();if(!['arrowleft','arrowright','arrowup','arrowdown','w','s','home'].includes(key))return;e.preventDefault();if(key==='home')homeView();else if(key==='w'||key==='s')state.targetDolly=THREE.MathUtils.clamp(state.targetDolly+(key==='w'?2:-2),0,62);else if(key==='arrowleft'||key==='arrowright')state.targetYaw=THREE.MathUtils.clamp(state.targetYaw+(key==='arrowleft'?-.05:.05),-.3,.3);else state.targetPitch=THREE.MathUtils.clamp(state.targetPitch+(key==='arrowup'?.03:-.03),-.2,.15);markInput()});
+    const motionButton=document.getElementById('motion-toggle');function syncMotion(){motionButton.setAttribute('aria-pressed',String(motionPaused));motionButton.textContent=motionPaused?'繼續動態':'暫停動態'}syncMotion();motionButton.addEventListener('click',()=>{motionPaused=!motionPaused;markInput();syncMotion()});motionPreference.addEventListener('change',e=>{reducedMotion=e.matches;if(reducedMotion)motionPaused=true;syncMotion();needsRender=true});function homeView(){Object.assign(state,{yaw:0,pitch:-.035,dolly:0,targetYaw:0,targetPitch:-.035,targetDolly:0});markInput()}document.getElementById('home-view').addEventListener('click',homeView);canvas.addEventListener('keydown',e=>{const key=e.key.toLowerCase();if(!['arrowleft','arrowright','arrowup','arrowdown','w','s','home'].includes(key))return;e.preventDefault();if(key==='home')homeView();else if(key==='w'||key==='s')advance(key==='w'?2:-2);else if(key==='arrowleft'||key==='arrowright')state.targetYaw=THREE.MathUtils.clamp(state.targetYaw+(key==='arrowleft'?-.05:.05),-.3,.3);else state.targetPitch=THREE.MathUtils.clamp(state.targetPitch+(key==='arrowup'?.03:-.03),-.2,.15);markInput()});
     function resize(){const w=innerWidth,h=innerHeight,dpr=Math.min(devicePixelRatio||1,CONFIG.MAX_PIXEL_RATIO);
       renderer.setPixelRatio(dpr);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
-      const tw=Math.max(1,Math.round(w*dpr)),th=Math.max(1,Math.round(h*dpr));target.setSize(tw,th);postUniforms.uTexel.value.set(1/tw,1/th);
+      const tw=Math.max(1,Math.round(w*dpr)),th=Math.max(1,Math.round(h*dpr));target.setSize(tw,th);postUniforms.uTexel.value.set(1/tw,1/th);needsRender=true;
     }
     window.addEventListener('resize',resize);resize();
     const flare=document.getElementById('flare'),travel=document.getElementById('travel');
-    const sunPoint=new THREE.Vector3(),lookDir=new THREE.Vector3(),lookAt=new THREE.Vector3(),light2Goal=new THREE.Vector2();
+    const sunPoint=new THREE.Vector3(),lookDir=new THREE.Vector3(),lookAt=new THREE.Vector3();
     function frame(now){requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.05);last=now;if(!motionPaused){elapsed+=dt;
         // Cloud shadows travel downwind (the way the blades lean) at a pace set by the wind slider, and hold still while paused.
         const drift=dt*(1.5+5*grassUniforms.uWind.value);cloudUniform.value.x+=.76*drift;cloudUniform.value.y+=.48*drift;}
       const idle=now-lastInput>4500;
-      if(idle&&!reducedMotion&&!motionPaused){state.targetYaw=Math.sin(elapsed*.09)*.15;state.targetPitch=-.04+Math.sin(elapsed*.055)*.035;state.targetDolly=Math.min(62,state.targetDolly+dt*.46);}
+      if(idle&&!reducedMotion&&!motionPaused){state.targetYaw=Math.sin(elapsed*.09)*.15;state.targetPitch=-.04+Math.sin(elapsed*.055)*.035;advance(dt*.46);}
+      // With motion paused and the view settled, the last frame stays on screen: nothing is redrawn until input arrives.
+      const settled=Math.abs(state.targetYaw-state.yaw)<1e-4&&Math.abs(state.targetPitch-state.pitch)<1e-4&&Math.abs(state.targetDolly-state.dolly)<1e-3;
+      if(motionPaused&&settled&&!needsRender)return;
+      needsRender=false;
       const k=reducedMotion?1:1-Math.exp(-dt*2.1);
       state.yaw+= (state.targetYaw-state.yaw)*k;state.pitch+=(state.targetPitch-state.pitch)*k;state.dolly+=(state.targetDolly-state.dolly)*k;
       const x=Math.sin(state.dolly*.021)*.55,z=9-state.dolly;
@@ -324,15 +298,7 @@ actual frame rate depends on the device and browser.
       const projected=sunPoint.copy(camera.position).addScaledVector(sunDir,200).project(camera);
       const onScreen=projected.z<1&&projected.x>-1.15&&projected.x<1.15&&projected.y>-1.15&&projected.y<1.15;
       flare.style.opacity=onScreen?'.8':'0';flare.style.setProperty('--sun-x',((projected.x+1)*50)+'%');flare.style.setProperty('--sun-y',((1-projected.y)*50)+'%');
-      travel.textContent=(motionPaused?'動態已暫停':idle&&!reducedMotion?'自動巡遊':'漫遊中')+' · '+Math.round(state.dolly)+' m';
-      // The lens reads the live panel box every frame, so it morphs with the collapse transition.
-      const box=panel.getBoundingClientRect();
-      postUniforms.uRes.value.set(innerWidth,innerHeight);
-      postUniforms.uLens.value.set(box.left,innerHeight-box.bottom,box.width,box.height);
-      // Rim highlight faces the scene's sun, seen from the current camera.
-      lightDir.copy(sunDir).transformDirection(camera.matrixWorldInverse);
-      if(Math.hypot(lightDir.x,lightDir.y)>1e-3){light2.lerp(light2Goal.set(lightDir.x,lightDir.y).normalize(),k).normalize();postUniforms.uLight.value.copy(light2);}
-      postUniforms.uPress.value+=(pressTarget-postUniforms.uPress.value)*(reducedMotion?1:1-Math.exp(-dt*6));
+      travel.textContent=(motionPaused?'動態已暫停':idle&&!reducedMotion?'自動巡遊':'漫遊中')+' · '+Math.round(state.dolly)+' m'+(state.dolly>END-1.5?' · 小徑盡頭':'');
       renderer.setRenderTarget(target);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
     }
     requestAnimationFrame(frame);

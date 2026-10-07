@@ -68,8 +68,8 @@ button{font:inherit;color:inherit}
 }
 
 /* ---- brand ---- */
-.eyebrow,.label{font:600 10px/1.5 var(--num);letter-spacing:.18em;text-transform:uppercase;color:var(--mute)}
-.brand h1{margin:14px 0 0;font:700 64px/.86 var(--num);letter-spacing:-.02em}
+.label{font:600 10px/1.5 var(--num);letter-spacing:.18em;text-transform:uppercase;color:var(--mute)}
+.brand h1{margin:0;font:700 64px/.86 var(--num);letter-spacing:-.02em}
 .brand h1 i{font-style:normal;color:var(--accent)}
 .brand .sub{margin:12px 0 0;font-size:13px;letter-spacing:.14em;color:var(--mute)}
 
@@ -85,10 +85,7 @@ button{font:inherit;color:inherit}
 .meter-note{margin-top:7px;font-size:11px;color:var(--faint);letter-spacing:.06em}
 
 /* ---- well ---- */
-.frame{
-  position:relative;padding:6px;border-radius:var(--r-m);
-  background:#141821;box-shadow:0 0 0 1px #262c3a;
-}
+.frame{position:relative;padding:6px}
 #board{display:block;border-radius:var(--r-xs);background:var(--well)}
 .ticks{position:absolute;top:6px;bottom:6px;width:6px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
 .ticks.l{left:-12px}.ticks.r{right:-12px}
@@ -125,11 +122,7 @@ button{font:inherit;color:inherit}
 .hintkey{display:block;margin-top:12px;font-size:11px;letter-spacing:.14em;color:var(--faint)}
 
 /* ---- next ---- */
-.next-box{
-  margin-top:12px;border:1px solid var(--rule);border-radius:var(--r-m);
-  background:#0f121a;
-  display:flex;align-items:center;justify-content:center;padding:14px;
-}
+.next-box{margin-top:12px;display:flex;align-items:center;justify-content:flex-start}
 #next,#hold{display:block}
 .box-note{margin-top:7px;font-size:11px;color:var(--faint);letter-spacing:.06em}
 
@@ -164,17 +157,15 @@ kbd{
   .brand{justify-self:stretch;align-self:center;width:auto;display:flex;align-items:baseline;gap:10px;min-height:34px}
   .brand h1{margin:0;font-size:30px;order:-1}
   .brand .sub{margin:0;font-size:11px;letter-spacing:.1em;white-space:nowrap}
-  .brand .eyebrow{display:none}
   .stage{align-self:start}
   .ticks{display:none}
   .frame::before,.frame::after{display:none}
   .frame{padding:4px}
   .overlay{inset:4px;padding:12px}
   .next,.hold{justify-self:start;align-self:start;width:auto;margin:0 0 0 10px}
-  .next-box{margin-top:5px;padding:6px}
+  .next-box{margin-top:5px}
   .box-note{display:none}
   .stage{grid-row:3 / 5}
-  .next .zh,.hold .zh{display:none}
   .stats{
     justify-self:stretch;align-self:stretch;width:auto;margin-top:0;
     display:grid;grid-template-columns:1.35fr 1fr 1fr 1.35fr;column-gap:10px;
@@ -195,19 +186,18 @@ kbd{
   .pad{justify-self:center;width:min(100%,480px)}
   .card p{font-size:12px}
 }
-@media (max-width:420px){ .stats .zh{display:none} }
 @media (max-width:380px){ .brand .sub{display:none} }
 /* 橫向手機等矮螢幕：側欄精簡，按鍵說明收起 */
 @media (min-width:761px) and (max-height:600px) and (orientation:landscape){
   .app{padding-top:16px;padding-bottom:16px}
-  .brand .eyebrow,.brand .sub,.meter-note,.keys,.legend > .label,.ticks,.box-note{display:none}
+  .brand .sub,.meter-note,.keys,.legend > .label,.ticks,.box-note{display:none}
   .hold{margin-top:12px}
   .brand h1{margin:0;font-size:40px}
   .stats,.legend{margin-top:12px}
   .stat{padding:8px 0 9px}
   .stat .value{font-size:20px;margin-top:5px}
   .stat.big .value{font-size:28px}
-  .next-box{margin-top:8px;padding:8px}
+  .next-box{margin-top:8px}
   .toggles{margin-top:0}
   .card h2{font-size:28px}
   .card p{font-size:12px}
@@ -233,28 +223,27 @@ kbd{
 <body>
 <main class="app" id="app">
   <header class="brand">
-    <div class="eyebrow">№ 119 · Falling Blocks</div>
     <h1>WELL<i>.</i></h1>
-    <p class="sub">俄羅斯方塊 · 10 × 20</p>
+    <p class="sub">俄羅斯方塊</p>
   </header>
 
   <section class="hold" aria-label="暫存方塊">
-    <span class="label">Hold<span class="zh"> 暫存</span></span>
+    <span class="label">Hold</span>
     <div class="next-box"><canvas id="hold" width="60" height="40" role="img" aria-label="暫存區：空"></canvas></div>
     <div class="box-note">每塊限換一次</div>
   </section>
 
   <section class="stats" aria-label="成績">
-    <div class="stat big"><span class="label">Score<span class="zh"> 分數</span></span><span class="value" id="score">0</span></div>
+    <div class="stat big"><span class="label">Score</span><span class="value" id="score">0</span></div>
     <div class="duo">
       <div class="stat"><span class="label">Level</span><span class="value" id="level">1</span></div>
-      <div class="stat"><span class="label">Lines</span><span class="value" id="lines">0</span></div>
+      <div class="stat">
+        <span class="label">Lines</span><span class="value" id="lines">0</span>
+        <div class="meter" aria-hidden="true"><span id="meter"></span></div>
+        <div class="meter-note" id="meterNote">再消 10 行升級</div>
+      </div>
     </div>
-    <div class="stat">
-      <span class="label">Best<span class="zh"> 最高</span></span><span class="value" id="best">0</span>
-      <div class="meter" aria-hidden="true"><span id="meter"></span></div>
-      <div class="meter-note" id="meterNote">再消 10 行升級</div>
-    </div>
+    <div class="stat"><span class="label">Best</span><span class="value" id="best">0</span></div>
   </section>
 
   <section class="stage" aria-label="遊戲區">
@@ -267,7 +256,7 @@ kbd{
           <h2>WELL</h2>
           <p>填滿一整行即可消除，<br>每消 10 行升一級、越落越快。<br>T-Spin 與連續四行消除有額外加分。</p>
           <button class="go" id="startBtn" type="button">開始遊戲</button>
-          <span class="hintkey">或按任意鍵開始</span>
+          <span class="hintkey">或按 Enter／空白鍵開始</span>
         </div>
         <div class="card" id="cardPause" hidden>
           <h2 class="paused">PAUSED</h2>
@@ -276,22 +265,22 @@ kbd{
         </div>
         <div class="card" id="cardOver" hidden>
           <h2 class="over">GAME OVER</h2>
-          <div class="final"><span class="label">Final Score 最終得分</span><strong id="finalScore">0</strong><span class="record" id="record" hidden>NEW BEST</span></div>
+          <div class="final"><span class="label">Final Score</span><strong id="finalScore">0</strong><span class="record" id="record" hidden>NEW BEST</span></div>
           <div class="summary"><span><b id="finalLines">0</b>行</span><span><b id="finalLevel">1</b>級</span><span><b id="finalTime">0:00</b>時間</span></div>
           <button class="go" id="againBtn" type="button">再來一局</button>
-          <span class="hintkey" id="againHint">按任意鍵重新開始</span>
+          <span class="hintkey" id="againHint">按 Enter／空白鍵重新開始</span>
         </div>
       </div>
     </div>
   </section>
 
   <section class="next" aria-label="下一個方塊">
-    <span class="label">Next<span class="zh"> 下一個</span></span>
+    <span class="label">Next</span>
     <div class="next-box"><canvas id="next" width="60" height="40" role="img" aria-label="下一個方塊預覽"></canvas></div>
   </section>
 
   <section class="legend" aria-label="操作說明">
-    <span class="label">Controls 操作</span>
+    <span class="label">Controls</span>
     <ul class="keys">
       <li>左右移動<span><kbd>←</kbd> <kbd>→</kbd></span></li>
       <li>軟降（每格 1 分）<kbd>↓</kbd></li>
@@ -782,8 +771,10 @@ function start(){
   dirty = true;
 }
 
+// 中途暫停或離開頁面時先把新紀錄寫入（不改 best 變數，Game Over 時的 NEW BEST 判斷不受影響）
+function persistBest(){ if ((state === 'play' || state === 'pause') && score > best) save('best', score); }
 function setPaused(p){
-  if (p && state === 'play'){ state = 'pause'; showCard('pause'); releaseAll(); }
+  if (p && state === 'play'){ state = 'pause'; showCard('pause'); releaseAll(); persistBest(); }
   else if (!p && state === 'pause'){ state = 'play'; showCard(null); lastFrame = performance.now(); }
   syncPauseButtons();
 }
@@ -1236,14 +1227,13 @@ document.addEventListener('keydown', function(e){
   if (IGNORE[k] || /^F\d+$/.test(k)) return;
   var act = actionOf(e);
 
-  if (state === 'ready'){
+  if (state === 'ready' || state === 'over'){
+    // 待機與結算畫面：M 照常切換音效，P／Esc 不動作，只有 Enter、空白鍵與方向鍵開局
+    if (k === 'm' || k === 'M'){ if (!e.repeat) toggleSound(); return; }
+    var startKey = k === 'Enter' || k === ' ' || k === 'Spacebar' || e.code === 'Space' || /^Arrow/.test(k) || /^Arrow/.test(e.code);
+    if (!startKey) return;
     e.preventDefault();
-    if (!e.repeat) start();
-    return;
-  }
-  if (state === 'over'){
-    e.preventDefault();
-    if (!e.repeat && performance.now() - overAt > RESTART_GUARD) start();
+    if (!e.repeat && (state === 'ready' || performance.now() - overAt > RESTART_GUARD)) start();
     return;
   }
   if (k === 'p' || k === 'P' || k === 'Escape'){
@@ -1299,7 +1289,8 @@ clickable('soundBtn', toggleSound);
 clickable('soundBtn2', toggleSound);
 
 window.addEventListener('blur', function(){ if (state === 'play') setPaused(true); });
-document.addEventListener('visibilitychange', function(){ if (document.hidden && state === 'play') setPaused(true); });
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) return; if (state === 'play') setPaused(true); else persistBest(); });
+window.addEventListener('pagehide', persistBest);
 
 var resizeTimer = 0;
 window.addEventListener('resize', function(){ clearTimeout(resizeTimer); resizeTimer = setTimeout(layout, 60); });

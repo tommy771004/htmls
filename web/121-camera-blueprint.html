@@ -33,8 +33,6 @@ button,select,input,textarea{font:inherit;color:inherit}
 .top h1{margin:0;font:600 clamp(22px,3vw,34px)/1.1 var(--cjk);letter-spacing:.04em}
 .top h1 b{font:500 .62em var(--num);letter-spacing:.2em;color:var(--cyan);margin-right:.6em;vertical-align:.18em}
 .top p{margin:6px 0 0;color:var(--dim);font-family:var(--cjk);max-width:62ch}
-.spec{display:grid;grid-template-columns:auto auto;gap:2px 14px;font-size:11px;color:var(--dim);letter-spacing:.06em}
-.spec dt{color:var(--mute)}.spec dd{margin:0;color:var(--line)}
 .stagewrap{max-width:max(560px,min(1480px,calc((100vh - 320px)*16/9)));margin:18px auto 0}
 .stage{position:relative;aspect-ratio:16/9;width:100%;background:#081a36;border:1px solid var(--rule);overflow:hidden}
 .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
@@ -55,10 +53,10 @@ input[type=range]{width:100%;margin:0;accent-color:var(--cyan);height:22px;curso
 .tc small{display:block;font:11px var(--mono);color:var(--mute);letter-spacing:.1em}
 .hint{font-size:11px;color:var(--mute);letter-spacing:.04em;margin:2px 0 0}
 .hint kbd{font:inherit;border:1px solid var(--rule);padding:0 5px;border-radius:2px;color:var(--dim)}
-.panels{max-width:1480px;margin:22px auto 0;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:18px}
-.panel{border:1px solid var(--rule);background:linear-gradient(var(--panel),#081733);padding:16px 18px 18px;min-width:0}
-.panel h2{margin:0 0 12px;font:600 11px var(--mono);letter-spacing:.24em;color:var(--dim);display:flex;justify-content:space-between;gap:12px}
-.panel h2 span{color:var(--cyan)}
+.panels{max-width:1480px;margin:22px auto 0;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:32px;border-top:1px solid var(--rule);padding-top:20px}
+.panel{min-width:0}
+.panel h2{margin:0 0 12px;font:600 15px var(--cjk);letter-spacing:.04em;color:var(--line);display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.panel h2 span{font:400 11px var(--mono);letter-spacing:.12em;color:var(--cyan)}
 .tbl{width:100%;overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:12px;min-width:560px}
 th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #16305a;vertical-align:top;white-space:nowrap}
@@ -82,14 +80,12 @@ select,.num{background:var(--panel2);border:1px solid var(--rule);height:34px;pa
 details{margin-top:14px;border-top:1px solid var(--rule);padding-top:12px}
 summary{cursor:pointer;color:var(--dim);letter-spacing:.12em;font-size:11px}
 textarea{width:100%;min-height:340px;margin-top:10px;background:#061329;border:1px solid var(--rule);padding:10px;font:12px/1.45 var(--mono);resize:vertical;color:#cfe0ff;tab-size:2}
-.note{font-family:var(--cjk);color:var(--dim);font-size:12px;margin:8px 0 0}
 @media (max-width:900px){.panels{grid-template-columns:1fr}}
 @media (max-width:560px){
   .transport{grid-template-columns:minmax(0,1fr) auto}
   .scrub{grid-column:1/-1;grid-row:1}
   .shots{height:30px}
   .shots button{font-size:11px;padding:0 4px;letter-spacing:.02em;flex:1 1 0;min-width:0}
-  .spec{display:none}
   .hint{display:none}
 }
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
@@ -100,14 +96,8 @@ textarea{width:100%;min-height:340px;margin-top:10px;background:#061329;border:1
   <div>
     <a class="back" href="../index.html">← 100 CREATIVE HTML WORKS · 121</a>
     <h1><b>R6</b>旁軸相機 · 藍圖拆解</h1>
-    <p>整部片都由程式逐幀算出，沒有用到任何點陣圖、影像或影片生成模型。30 秒內依序完成：正視圖描邊、轉到 3/4 視角、五個零件依序拉開並加上標註，最後收回成一張標好尺寸的正視圖。</p>
+    <p>正視圖描線、轉到 3/4 視角、拆開五個零件，最後收成標好尺寸的正視圖，全長 30 秒。</p>
   </div>
-  <dl class="spec">
-    <dt>RATE</dt><dd id="sRate">60 fps</dd>
-    <dt>LENGTH</dt><dd id="sLen">1800 frames · 30.000 s</dd>
-    <dt>INPUT #</dt><dd id="sInput">—</dd>
-    <dt>RASTER</dt><dd>Canvas 2D · vector only</dd>
-  </dl>
 </header>
 
 <section class="stagewrap" aria-label="動畫播放器">
@@ -129,7 +119,7 @@ textarea{width:100%;min-height:340px;margin-top:10px;background:#061329;border:1
 
 <section class="panels">
   <article class="panel">
-    <h2>零件資料 PARTS <span id="liveShot">—</span></h2>
+    <h2>零件資料 <span id="liveShot">—</span></h2>
     <div class="tbl"><table>
       <thead><tr><th>#</th><th>零件</th><th>拆解方向 · 距離</th><th>時間窗</th><th>圖元</th></tr></thead>
       <tbody id="partRows"></tbody>
@@ -145,7 +135,7 @@ textarea{width:100%;min-height:340px;margin-top:10px;background:#061329;border:1
     </details>
   </article>
   <article class="panel">
-    <h2>輸出 RENDER <span id="codecInfo">—</span></h2>
+    <h2>輸出 <span id="codecInfo">—</span></h2>
     <div class="row">
       <label>解析度 <select id="res">
         <option value="1280x720">1280 × 720</option>
@@ -161,8 +151,7 @@ textarea{width:100%;min-height:340px;margin-top:10px;background:#061329;border:1
       <button class="act ghost" id="bStop" disabled>停止</button>
     </div>
     <div class="bar"><i id="prog"></i></div>
-    <p class="log" id="log">還沒開始輸出。輸出時每一幀都照幀號重新計算，不看播放速度。</p>
-    <p class="note">影片用瀏覽器的 WebCodecs 逐幀編碼，時間戳一律是幀號 × 1/60 秒，再由頁內的 MP4 muxer 寫成檔案，不經過螢幕錄影。ZIP 內附 manifest.json，記錄每一幀的顯示清單雜湊，可用來核對兩次輸出是否一致。</p>
+    <p class="log" id="log">還沒開始輸出。</p>
   </article>
 </section>
 
@@ -176,7 +165,7 @@ textarea{width:100%;min-height:340px;margin-top:10px;background:#061329;border:1
       housed:true 表示藏在機身內，只在拆解時淡入。
    ================================================================ */
 const DEFAULT_SCENE = {
-  meta:{model:'R6', title:'RANGEFINDER CAMERA · TYPE R6', dwg:'R6-EXP-121', rev:'C', scale:'1 : 1', note:'W 138 × H 77 × D 38 mm · 560 g'},
+  meta:{model:'R6', title:'RANGEFINDER CAMERA · TYPE R6', dwg:'R6-EXP-121', rev:'C', note:'W 138 × H 77 × D 38 mm · 560 g'},
   timeline:{
     fps:60, duration:30,
     shots:[
@@ -611,7 +600,10 @@ function pushText(F, x, y, str, o){
   if (!str) return;
   F.ops.push({o:'T', x, y, s:o.s||12, f:o.f||'mono', t:str, c:o.c||'line', a:o.a==null?1:o.a, al:o.al||'left', ls:o.ls||0, wt:o.wt||400, r:o.r||0});
 }
-const typeOn = (str, q) => q>=0.999 ? str : str.slice(0, Math.floor(str.length*clamp01(q)+1e-6));
+/* 次要元素（標題欄、分區代號、比例尺、小字註記）：只記錄在 F.minor 的索引區間，
+   窄螢幕預覽時 paint() 略過它們；顯示清單本身與雜湊不受影響，輸出也照常畫出。 */
+function markMinor(F, a){ if (F.ops.length>a) F.minor.push(a, F.ops.length); }
+const typeOn = (str, q) =>q>=0.999 ? str : str.slice(0, Math.floor(str.length*clamp01(q)+1e-6));
 
 function loopChains(n, vis){
   let first=-1; for (let i=0;i<n;i++) if (!vis(i)){ first=i; break; }
@@ -719,7 +711,7 @@ function emitDim(F, d, q, cam){
     }
     const r=X?0:-90, ox=X?0:-10, oy=X?-10:0;
     pushText(F, cx+ox, cy+oy, typeOn(d.text,q3), {s:21, f:'num', c:'ink', al:'center', r, ls:1});
-    if (d.note) pushText(F, cx+ox+(X?0:-22), cy+oy+(X?-24:0), typeOn(d.note,q3), {s:10.5, c:'cyan', al:'center', r, ls:2.5, a:.85});
+    if (d.note){ const m0=F.ops.length; pushText(F, cx+ox+(X?0:-22), cy+oy+(X?-24:0), typeOn(d.note,q3), {s:10.5, c:'cyan', al:'center', r, ls:2.5, a:.85}); markMinor(F, m0); }
   } else if (d.kind==='dia'){
     const ca=Math.cos(d.ang*DEG), sa=Math.sin(d.ang*DEG), c=d.c;
     const P1=[c[0]+d.r*ca, c[1]+d.r*sa, c[2]], P2=[c[0]-d.r*ca, c[1]-d.r*sa, c[2]];
@@ -752,11 +744,15 @@ function emitLabel(F, cp, es, cam, q, alpha){
   }
   pushPath(F, [E[0]+sg*R,E[1],E[0]+sg*(R+Lsh),E[1]], false, 'cyan', alpha*.9, clamp01((q-.42)/.3));
   const qt=clamp01((q-.55)/.45), x0=E[0]+sg*(R+10), al=sg>0?'left':'right';
+  let m0=F.ops.length;
   pushText(F, E[0], E[1]+5.5, typeOn(String(ex.order+1).padStart(2,'0'),clamp01((q-.5)/.2)), {s:15, f:'num', c:'cyan', al:'center', a:alpha, wt:600});
+  markMinor(F, m0);
   pushText(F, x0, E[1]-10, typeOn(cp.src.zh,qt), {s:25, f:'cjk', c:'ink', al, a:alpha, wt:600, ls:2});
+  m0=F.ops.length;
   pushText(F, E[0]+sg*(R+Lsh), E[1]-10, typeOn(cp.src.no,qt), {s:11, c:'cyan', al:sg>0?'right':'left', a:alpha*.9, ls:2});
   pushText(F, x0, E[1]+20, typeOn(cp.src.en,qt), {s:12, c:'cyan', al, a:alpha, ls:2.4});
   pushText(F, x0, E[1]+38, typeOn(cp.src.spec||'',qt), {s:10.5, c:'mute', al, a:alpha, ls:1.2});
+  markMinor(F, m0);
 }
 
 function emitChrome(F, S, t, f, cam, shot, si){
@@ -767,10 +763,12 @@ function emitChrome(F, S, t, f, cam, shot, si){
   for (let i=1;i<4;i++){ const y=40+i*250; pushPath(F,[24,y,40,y],false,'thin',.6,ps); pushPath(F,[1880,y,1896,y],false,'thin',.6,ps); }
   const ta=smooth(.7,1.4,t);
   if (ta<=0) return;
-  // 圖框分區代號：上下為 1–8，左右為 D–A（與實際工程圖紙相同，由左下起算）
+  let m0=F.ops.length;
+  // 圖框分區代號（ISO 5457）：上下為 1–8 由左往右，左右為 A–D 由上往下
   for (let i=0;i<8;i++){ const x=40+i*230+115; pushText(F,x,36,String(i+1),{s:10,f:'num',c:'mute',a:ta,al:'center'}); pushText(F,x,1052,String(i+1),{s:10,f:'num',c:'mute',a:ta,al:'center'}); }
-  for (let i=0;i<4;i++){ const y=40+i*250+125+4, L='DCBA'[i]; pushText(F,32,y,L,{s:10,f:'num',c:'mute',a:ta,al:'center'}); pushText(F,1888,y,L,{s:10,f:'num',c:'mute',a:ta,al:'center'}); }
-  // 標題欄
+  for (let i=0;i<4;i++){ const y=40+i*250+125+4, L='ABCD'[i]; pushText(F,32,y,L,{s:10,f:'num',c:'mute',a:ta,al:'center'}); pushText(F,1888,y,L,{s:10,f:'num',c:'mute',a:ta,al:'center'}); }
+  // 標題欄（比例由鏡頭縮放即時換算，與左下比例尺一致）
+  const zs=cam.k/S.view.pxPerMm, scaleTxt=Math.abs(zs-1)<0.005?'1 : 1':zs<1?'1 : '+(1/zs).toFixed(2):zs.toFixed(2)+' : 1';
   const X0=1380, X1=1880, Y0=944, Y1=1040, rows=[Y0, Y0+32, Y0+64, Y1];
   pushPath(F, [X0,Y1,X0,Y0,X1,Y0], false, 'line', ta, 1);
   rows.slice(1,3).forEach(y=>pushPath(F,[X0,y,X1,y],false,'thin',ta,1));
@@ -780,7 +778,7 @@ function emitChrome(F, S, t, f, cam, shot, si){
   cell(X0,Y0,'TITLE',S.meta.title,{s:12});
   cell(1720,Y0,'DWG NO.',S.meta.dwg,{c:'cyan'});
   cell(X0,Y0+32,'SHOT',shot.code+' · '+shot.en,{s:11.5});
-  cell(1720,Y0+32,'REV',S.meta.rev); cell(1790,Y0+32,'SCALE',S.meta.scale);
+  cell(1720,Y0+32,'REV',S.meta.rev); cell(1790,Y0+32,'SCALE',scaleTxt);
   cell(X0,Y0+64,'FRAME · TC',String(f).padStart(4,'0')+' · '+tc,{f:'num',s:14});
   cell(1560,Y0+64,'SCENE #','@@DIGEST@@',{c:'cyan',f:'num',s:14});
   cell(1720,Y0+64,'RATE',T.fps+' FPS · 1/'+T.fps+' s',{f:'num',s:14});
@@ -794,16 +792,20 @@ function emitChrome(F, S, t, f, cam, shot, si){
   const ring=(r)=>{ const c=[]; for (let i=0;i<=28;i++){ const a=i/28*Math.PI*2; c.push(cx0+34+r*Math.cos(a), cy0+r*Math.sin(a)); } return c; };
   pushPath(F,ring(11),false,'line',ta,1); pushPath(F,ring(5),false,'line',ta,1);
   pushText(F,X0-8,cy0+5,'mm',{s:13,f:'num',a:ta,al:'right'});
+  markMinor(F, m0);
   // 左上鏡頭字卡
   const sq=win(t, shot.t0+(si===0?.8:0), .7);
   pushText(F, 72, 132, shot.code, {s:64, f:'num', c:'cyan', a:ta*.95, wt:300});
+  m0=F.ops.length;
   pushText(F, 158, 96, typeOn(shot.en, sq), {s:13, c:'line', a:ta, ls:3.2});
+  markMinor(F, m0);
   pushText(F, 158, 128, typeOn(shot.zh, sq), {s:22, f:'cjk', c:'ink', a:ta, ls:3, wt:600});
   const sp=clamp01((t-shot.t0)/(shot.t1-shot.t0));
   pushPath(F, [158,146,478,146], false, 'thin', ta*.7, 1);
   pushPath(F, [158,146,158+320*sp,146], false, 'cyan', ta, 1);
   T.shots.forEach((s,i)=>F.ops.push({o:'D', x:158+i*14, y:162, r:3, c:i===si?'cyan':'mute', a:ta*(i===si?1:.5)}));
-  // 左下比例尺（隨縮放即時變化）
+  // 左下比例尺（隨縮放即時變化）與右上軸向指示：窄螢幕預覽時略過
+  m0=F.ops.length;
   const k=cam.k, bx=72, by=1004;
   for (let i=0;i<5;i++) if (i%2===0) F.ops.push({o:'F', p:[bx+i*10*k,by-5,bx+(i+1)*10*k,by-5,bx+(i+1)*10*k,by,bx+i*10*k,by], c:'line', a:ta*.8});
   pushPath(F, [bx,by-5,bx+50*k,by-5,bx+50*k,by,bx,by], true, 'line', ta, 1);
@@ -820,11 +822,12 @@ function emitChrome(F, S, t, f, cam, shot, si){
     pushText(F, ox+dx*1.35, oy+dy*1.35+4, nm, {s:11, f:'num', c:nm==='Z'?'cyan':'line', a:ta, al:'center'});
   });
   pushText(F, ox, oy+62, 'YAW '+cam.yaw.toFixed(1)+'°  PITCH '+cam.pitch.toFixed(1)+'°', {s:9.5, c:'mute', a:ta, al:'center', ls:1.5});
+  markMinor(F, m0);
 }
 
 function buildFrame(C, f){
   const S=C.S, T=S.timeline, t=f/T.fps;
-  const F={ops:[{o:'bg'}], tip:null, t, f};
+  const F={ops:[{o:'bg'}], tip:null, t, f, minor:[]};
   const cam=makeCam(sampleTrack(T.camera, t), S.view.pxPerMm);
   let si=T.shots.findIndex(s=>t>=s.t0&&t<s.t1); if (si<0) si=t<T.shots[0].t0?0:T.shots.length-1;
   const shot=T.shots[si];
@@ -882,7 +885,9 @@ function buildFrame(C, f){
     pushPath(F,[x-11,y,x+11,y],false,'cyan',.9,1); pushPath(F,[x,y-11,x,y+11],false,'cyan',.9,1);
     const c=[]; for (let i=0;i<=20;i++){ const a=i/20*Math.PI*2; c.push(x+5*Math.cos(a), y+5*Math.sin(a)); } pushPath(F,c,false,'cyan',.9,1);
     const mx=(x-960)/cam.k+cam.pan[0], my=(540-y)/cam.k+cam.pan[1];
+    const m0=F.ops.length;
     pushText(F, x+14, y-10, 'X '+mx.toFixed(1)+'  Y '+my.toFixed(1), {s:10, c:'cyan', a:.8, f:'num', ls:.5});
+    markMinor(F, m0);
   }
   emitChrome(F, S, t, f, cam, shot, si);
   // 雜湊：對整份顯示清單（不含雜湊欄本身）取 FNV-1a，寫回標題欄
@@ -924,13 +929,22 @@ function background(W, H){
   bgCache.set(key,c); return c;
 }
 const DASH = {'':[], dash:[7,6], center:[22,5,3,5]};
-function paint(ctx, F, W, H){
+/* minPx（裝置像素，選填）：窄螢幕預覽用。略過 F.minor 標記的次要元素，其餘文字至少放大到 minPx。
+   輸出 PNG / MP4 不傳，畫面與原始顯示清單完全一致。 */
+function paint(ctx, F, W, H, minPx){
   const k=Math.min(W/1920,H/1080), ox=(W-1920*k)/2, oy=(H-1080*k)/2;
   ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha=1;
   ctx.drawImage(background(W,H),0,0);
   ctx.setTransform(k,0,0,k,ox,oy);
   ctx.lineCap='round'; ctx.lineJoin='round';
-  for (const op of F.ops){
+  let skip=null, minS=0;
+  if (minPx>0){
+    minS=minPx/k; skip=new Uint8Array(F.ops.length);
+    const m=F.minor||[]; for (let j=0;j<m.length;j+=2) skip.fill(1, m[j], m[j+1]);
+  }
+  for (let n=0;n<F.ops.length;n++){
+    const op=F.ops[n];
+    if (skip&&skip[n]) continue;
     if (op.o==='L'){
       ctx.globalAlpha=op.a; ctx.strokeStyle=COLORS[op.c]; ctx.lineWidth=op.w; ctx.setLineDash(DASH[op.d]||[]);
       const p=op.p; ctx.beginPath(); ctx.moveTo(p[0],p[1]); for (let i=2;i<p.length;i+=2) ctx.lineTo(p[i],p[i+1]); if (op.z) ctx.closePath(); ctx.stroke();
@@ -942,7 +956,7 @@ function paint(ctx, F, W, H){
       ctx.globalAlpha=op.a; ctx.fillStyle=COLORS[op.c]; ctx.beginPath(); ctx.arc(op.x,op.y,op.r,0,Math.PI*2); ctx.fill();
     } else if (op.o==='T'){
       ctx.globalAlpha=op.a; ctx.fillStyle=COLORS[op.c];
-      ctx.font=op.wt+' '+op.s+'px '+FONTS[op.f]; ctx.textAlign=op.al; ctx.textBaseline='alphabetic';
+      ctx.font=op.wt+' '+Math.max(op.s,minS)+'px '+FONTS[op.f]; ctx.textAlign=op.al; ctx.textBaseline='alphabetic';
       if ('letterSpacing' in ctx) ctx.letterSpacing=op.ls+'px';
       if (op.r){ ctx.save(); ctx.translate(op.x,op.y); ctx.rotate(op.r*DEG); ctx.fillText(op.t,0,0); ctx.restore(); }
       else ctx.fillText(op.t,op.x,op.y);
@@ -958,7 +972,7 @@ const $ = id => document.getElementById(id);
 const clone = o => JSON.parse(JSON.stringify(o));
 let SCENE = clone(DEFAULT_SCENE), C = compileScene(SCENE), inputHash = hashText(JSON.stringify(SCENE));
 const view = $('view'), vctx = view.getContext('2d', {alpha:false});
-const P = {frame:0, playing:false, t0:0, f0:0, busy:false, raf:0};
+const P = {frame:0, playing:false, t0:0, f0:0, busy:false, raf:0, auto:false};
 
 function pretty(v, ind){
   ind=ind||'';
@@ -1002,13 +1016,9 @@ function buildRows(){
   });
 }
 function syncMeta(){
-  const T=SCENE.timeline;
   $('scrub').max=C.frames-1; $('fTo').max=C.frames-1; $('fFrom').max=C.frames-1;
   if (+$('fTo').value>C.frames-1||!$('fTo').dataset.touched) $('fTo').value=C.frames-1;
-  $('sRate').textContent=T.fps+' fps';
-  $('sLen').textContent=C.frames+' frames · '+(C.frames/T.fps).toFixed(3)+' s';
-  $('sInput').textContent=inputHash;
-  buildShots(); buildRows();
+  buildShots(); buildRows(); lastLive='';
 }
 
 function sizeCanvas(){
@@ -1016,36 +1026,41 @@ function sizeCanvas(){
   const w=Math.max(320,Math.round(r.width*dpr)), h=Math.max(180,Math.round(r.height*dpr));
   if (view.width!==w||view.height!==h){ view.width=w; view.height=h; }
 }
-let lastShot=-1;
+let lastShot=-1, lastLive='';
 function draw(){
   const F=buildFrame(C, P.frame);
-  paint(vctx, F, view.width, view.height);
+  // 畫布 CSS 寬度不到 700px（手機）時，略過標題欄等次要元素，其餘文字至少 9 CSS px
+  const cssW=view.clientWidth, minPx=cssW>0&&cssW<700?9*view.width/cssW:0;
+  paint(vctx, F, view.width, view.height, minPx);
   $('scrub').value=P.frame;
   $('tc').textContent=fmtTC(P.frame);
-  $('fc').textContent='F '+String(P.frame).padStart(4,'0')+' / '+(C.frames-1)+' · #'+F.digest;
+  $('fc').textContent='F '+String(P.frame).padStart(4,'0')+' / '+(C.frames-1);
   if (F.shot!==lastShot){
     lastShot=F.shot;
     [...$('shots').children].forEach((b,i)=>b.classList.toggle('on', i===F.shot));
     const s=SCENE.timeline.shots[F.shot]; $('liveShot').textContent=s.code+' · '+s.zh;
   }
-  const t=F.t;
-  [...$('partRows').children].forEach((tr,i)=>{
-    const cp=C.parts[i], d=cp.src.draw;
-    const live=(cp._es&&cp._es.prog>0.001)||(d&&t>=d[0]&&t<=d[1]);
-    tr.classList.toggle('live', !!live);
-  });
+  // 零件表只在亮起的零件組合改變時才更新 class
+  const t=F.t; let live='';
+  C.parts.forEach(cp=>{ const d=cp.src.draw; live+=((cp._es&&cp._es.prog>0.001)||(d&&t>=d[0]&&t<=d[1]))?'1':'0'; });
+  if (live!==lastLive){
+    lastLive=live;
+    [...$('partRows').children].forEach((tr,i)=>tr.classList.toggle('live', live[i]==='1'));
+  }
   return F;
 }
 function setFrame(f){ P.frame=Math.max(0,Math.min(C.frames-1,Math.round(f))); draw(); }
 function tick(now){
   if (!P.playing) return;
-  let f=P.f0+Math.floor((now-P.t0)*SCENE.timeline.fps/1000);
-  if (f>=C.frames){ P.t0=now; P.f0=0; f=0; }
+  const f=P.f0+Math.floor((now-P.t0)*SCENE.timeline.fps/1000);
+  // 播到最後一幀就停在完成的尺寸正視圖，不再循環
+  if (f>=C.frames-1){ P.frame=C.frames-1; draw(); stop(); return; }
   if (f!==P.frame){ P.frame=f; draw(); }
   P.raf=requestAnimationFrame(tick);
 }
-function play(){ if (P.busy) return; if (P.frame>=C.frames-1) P.frame=0; P.playing=true; P.t0=performance.now(); P.f0=P.frame; setPlayIcon(); P.raf=requestAnimationFrame(tick); }
-function stop(){ P.playing=false; cancelAnimationFrame(P.raf); setPlayIcon(); }
+function play(){ if (P.busy) return; P.auto=false; if (P.frame>=C.frames-1) P.frame=0; P.playing=true; P.t0=performance.now(); P.f0=P.frame; setPlayIcon(); P.raf=requestAnimationFrame(tick); }
+// auto=true：因舞台捲出視窗而暫停，捲回來時自動續播；其他情況（使用者操作、輸出）不續播
+function stop(auto){ P.auto=!!auto&&P.playing; P.playing=false; cancelAnimationFrame(P.raf); setPlayIcon(); }
 function setPlayIcon(){
   $('bPlay').setAttribute('aria-pressed', P.playing?'true':'false');
   $('bPlay').setAttribute('aria-label', P.playing?'暫停':'播放');
@@ -1067,6 +1082,12 @@ document.addEventListener('keydown',e=>{
   else if (/^[1-9]$/.test(e.key)){ const s=SCENE.timeline.shots[+e.key-1]; if (s){ stop(); setFrame(Math.round(s.t0*fps)); } }
 });
 new ResizeObserver(()=>{ sizeCanvas(); draw(); }).observe(view);
+// 舞台捲出視窗就暫停，捲回來再接著播
+if ('IntersectionObserver' in window) new IntersectionObserver(es=>{
+  const vis=es[es.length-1].isIntersecting;
+  if (!vis&&P.playing) stop(true);
+  else if (vis&&P.auto&&!P.busy) play();
+}).observe(document.querySelector('.stage'));
 
 // 場景 JSON 編輯
 $('json').value=pretty(SCENE);
@@ -1286,10 +1307,21 @@ async function exportFrames(job, mode, opt){
   return {blob, name, frames:n, digests};
 }
 
+// ZIP 要等全部幀完成才組成檔案，期間 PNG 都暫存在瀏覽器裡；超過「1080p 全片」的量先提醒，再按一次才執行
+const ZIP_SOFT_PX = 1920*1080*1800;
 async function runJob(kind){
   if (P.busy) return;
-  X.abort=false; lockUI(true); setProgress(0);
-  const job=readJob();
+  const job=readJob(), n=job.to-job.from+1;
+  if (kind==='zip'){
+    const key=job.w+'x'+job.h+':'+job.from+'-'+job.to;
+    if (n*job.w*job.h>ZIP_SOFT_PX&&X.zipOk!==key){
+      X.zipOk=key;
+      logLine('這次要輸出 '+n+' 張 '+job.w+' × '+job.h+' 的 PNG。ZIP 要等全部完成才會產生，過程中檔案都暫存在瀏覽器裡，記憶體較小的電腦可能撐不住。'+
+        ('showDirectoryPicker' in window?'建議改用「寫入資料夾」，或縮小幀範圍；':'建議縮小幀範圍或解析度；')+'仍要輸出 ZIP，請再按一次。', true);
+      return;
+    }
+  }
+  X.zipOk=null; X.abort=false; lockUI(true); setProgress(0);
   try{ if (kind==='mp4') await exportMP4(job); else await exportFrames(job, kind); }
   catch(err){ if (err&&err.name==='AbortError') logLine('已取消選擇資料夾。'); else logLine((err&&err.message)||String(err), true); }
   finally{ lockUI(false); }

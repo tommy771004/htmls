@@ -45,7 +45,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .quiet:focus-visible{outline:1px dotted var(--ink-2);outline-offset:2px}
 
 #titleUi{position:fixed;left:max(20px,7vw);max-width:min(520px,calc(100vw - 40px));z-index:3}
-#titleUi .lede{font-family:var(--serif);font-size:clamp(15px,1.6vw,18px);line-height:1.75;color:#d7ece6;text-shadow:0 1px 2px rgba(0,20,24,.8)}
+#titleUi .lede{font-family:var(--serif);font-size:clamp(15px,1.6vw,18px);line-height:1.75;color:#d7ece6;text-shadow:0 1px 3px rgba(0,20,24,.9)}
 #titleUi .acts{display:flex;gap:14px;align-items:center;margin-top:22px;flex-wrap:wrap}
 #titleUi .fine{margin-top:16px;font-size:13px;color:#8fb8b0}
 
@@ -114,7 +114,6 @@ body.dv #bSnd{color:#e6efe9;text-shadow:0 1px 3px rgba(0,10,12,.95)}
 #pauseDialog p{margin:12px 0 20px}
 #bSnd,.panel .steps button{min-height:44px;min-width:44px}
 #cv:focus-visible{outline:2px solid #9bcac0;outline-offset:-3px}
-#titleUi .lede{background:rgba(3,25,31,.62);padding:14px 16px;border-left:2px solid #94b9ac;border-radius:0 var(--r-m) var(--r-m) 0}
 </style>
 </head>
 <body>
@@ -336,7 +335,7 @@ const STAGES=[
  links:[['e','k',4],['k','e6',5]],input:'e',inRate:1,outs:[],years:1,
  dive:'找齊 4 塊鏽塊',task:'轉到下一個滿月：月相球整面發亮。'},
 {n:4,title:'賽會',sub:'默冬週期與四年盤',
- intro:'19 年正好是 235 個朔望月。默冬指針在五圈螺旋上一格走一個月，19 年轉 5 圈；再分出一個四年一圈的小盤，刻著泛希臘賽會。',
+ intro:'19 年幾乎剛好是 235 個朔望月（只差約兩小時）。默冬指針在五圈螺旋上一格走一個月，19 年轉 5 圈；再分出一個四年一圈的小盤，刻著泛希臘賽會。',
  items:{l:{g:[[38,1],[53,2]]},m:{g:[[96,2],[15,3],[27,5]]},n:{g:[[53,3],[57,4]]},o:{g:[[60,4]]},l2:{g:[[38,1],[54,2]]},m2:{g:[[95,2],[15,3],[27,5]]}},
  holes:[{id:'b',root:true,fixed:[[64,1]]},{id:'l',from:'b',ang:180,ok:'l'},{id:'m',from:'l',ang:235,ok:'m'},{id:'n',from:'m',ang:330,ok:'n'},{id:'o',from:'n',ang:20,ok:'o'}],
  links:[['b','l',1],['l','m',2],['m','n',3],['n','o',4]],input:'b',inRate:1,
@@ -358,7 +357,7 @@ const THING={nail:{name:'青銅船釘',note:'船殼上的釘子，不屬於機�
 const G={stage:0,days:0,found:new Set(),finds:[]};
 let DIVE=null,TITLE=null;
 const SAVE='antikythera-159';
-function save(){try{localStorage.setItem(SAVE,JSON.stringify({stage:G.stage,days:G.days,finds:G.finds}));}catch(e){}}
+function save(){try{localStorage.setItem(SAVE,JSON.stringify({stage:G.stage,days:G.days,finds:G.finds,found:[...G.found]}));}catch(e){}}
 function load(){try{const s=JSON.parse(localStorage.getItem(SAVE)||'null');if(s&&s.stage>=0&&s.stage<=5)return s;}catch(e){}return null;}
 
 // ======================================================================
@@ -686,7 +685,7 @@ const Dive={
     // 撥沙
     if(dig&&near){near.dig=Math.min(1,near.dig+dt/1.15);d.fan+=dt*13;d.face=near.x>d.x?1:-1;const dl=loopNoise('dig','lowpass',900,.6);setLoop('dig',.16+.08*Math.sin(t*13),700+Math.random()*400);
       if(Math.random()<dt*40&&this.parts.length<220)for(let i=0;i<2;i++)this.parts.push({x:near.x+(Math.random()-.5)*20,y:near.y-2,vx:(Math.random()-.5)*60,vy:-20-Math.random()*40,life:1,r:4+Math.random()*7});
-      if(near.dig>=1){near.found=true;G.found.add(near.id);d.bag=G.found.size;setLoop('dig',0);clink(1500+Math.random()*400,.3,1.2);this.updCount();
+      if(near.dig>=1){near.found=true;G.found.add(near.id);save();d.bag=G.found.size;setLoop('dig',0);clink(1500+Math.random()*400,.3,1.2);this.updCount();
         const all=this.nFound===this.lumps.length;toast(all?`鏽塊 ${this.nFound}/${this.lumps.length}：都找齊了，按「上升」回船上。`:`撿起一塊鏽塊（${this.nFound}/${this.lumps.length}）`);}}
     else{d.fan=0;setLoop('dig',0);}
     $('#bDig').hidden=!(near&&this.mode==='bottom');
@@ -1936,7 +1935,7 @@ const Dive3={gl:true,
   moundS(l){const k=1-l.dig;l.o.mound.scale.set(.35+.25*k,.02+.3*k,.35+.25*k);l.o.mound.visible=k>.02;},
   updCount(){const n=this.lumps.filter(l=>l.found).length;this.nFound=n;if(n===this.lumps.length)$('#bUp').classList.add('ready');},
   near(){if(this.mode!=='bottom')return null;let best=null,bd=1.45;const p=this.d.p;for(const l of this.lumps){if(l.found)continue;const d=Math.hypot(l.x-p.x,l.z-p.z);if(d<bd){bd=d;best=l;}}return best;},
-  ascend(auto){if(this.mode==='ascend'||this.mode==='done')return;this.mode='ascend';setLoop('dig',0);$('#bDig').hidden=true;this.goal=null;
+  ascend(auto){if(this.mode==='ascend'||this.mode==='done')return;this.mode='ascend';setLoop('dig',0);$('#bDig').hidden=true;this.goal=null;this.stopT=null;this.stopDone=false;
     if(auto)caption('底時用完','船上的人拉動救生索，把你拉了上來',3.2);else bubble();},
   surface(){const all=this.nFound===this.lumps.length;this.mode='done';setLoop('dig',0);
     if(all){fadeTo(()=>go(Bench));return;}
@@ -1971,14 +1970,20 @@ const Dive3={gl:true,
       d.float=lerp(d.float,0,1-Math.exp(-dt*3));
       const left=this.tmax-this.bt;if(left<20&&this.warned<1){this.warned=1;clink(700,.25,2.2);toast('底時剩 20 秒。');}if(left<10&&this.warned<2){this.warned=2;clink(700,.25,2.2);setTimeout(()=>clink(700,.2,2),260);}
       if(left<=0)this.ascend(true);}
-    else if(this.mode==='ascend'){d.float=lerp(d.float,1,1-Math.exp(-dt*2));d.v.y=lerp(d.v.y,5.2,dt*1.1);d.v.x=lerp(d.v.x,(BOATP.x+1.8-p.x)*.12,dt);d.v.z=lerp(d.v.z,(BOATP.z+.6-p.z)*.12,dt);p.addScaledVector(d.v,dt);
+    else if(this.mode==='ascend'){d.float=lerp(d.float,1,1-Math.exp(-dt*2));
+      // 慢慢上升（遊戲壓縮後約 1.2 m/s），在 5 公尺做 4 秒減壓停留
+      const hold=!this.stopDone&&p.y>=-5;
+      if(hold){if(this.stopT==null){this.stopT=4;caption('減壓停留','1900 年那次打撈，有潛水夫因潛水病喪命、兩人癱瘓。先在 5 公尺停一下。',4);}
+        this.stopT-=dt;if(this.stopT<=0)this.stopDone=true;}
+      d.v.y=hold?lerp(d.v.y,0,Math.min(1,dt*4)):lerp(d.v.y,1.2,dt*1.1);d.v.x=lerp(d.v.x,(BOATP.x+1.8-p.x)*.12,dt);d.v.z=lerp(d.v.z,(BOATP.z+.6-p.z)*.12,dt);p.addScaledVector(d.v,dt);
+      if(hold&&p.y>-5)p.y=-5;
       if(p.y>-.45){p.y=-.45;this.surface();}}
     else{p.y=seaY(p.x,p.z,GL.t)-.55;d.float=1;}
     // 撥沙
     d.dig=lerp(d.dig,dig&&near?1:0,1-Math.exp(-dt*6));
     if(dig&&near){near.dig=Math.min(1,near.dig+dt/1.15);this.moundS(near);loopNoise('dig','lowpass',900,.6);setLoop('dig',.16+.08*Math.sin(t*13),700+Math.random()*400);
       if(Math.random()<dt*30)puffSand(near.x,near.y+.05,near.z,3);
-      if(near.dig>=1){near.found=true;G.found.add(near.id);setLoop('dig',0);clink(1500+Math.random()*400,.3,1.2);this.updCount();this.anims.push({l:near,t:0});puffSand(near.x,near.y+.05,near.z,24);
+      if(near.dig>=1){near.found=true;G.found.add(near.id);save();setLoop('dig',0);clink(1500+Math.random()*400,.3,1.2);this.updCount();this.anims.push({l:near,t:0});puffSand(near.x,near.y+.05,near.z,24);
         const all=this.nFound===this.lumps.length;toast(all?`鏽塊 ${this.nFound}/${this.lumps.length}：都找齊了，按「上升」回船上。`:`撿起一塊鏽塊（${this.nFound}/${this.lumps.length}）`);}}
     else setLoop('dig',0);
     $('#bDig').hidden=!near;
@@ -2019,6 +2024,7 @@ const Dive3={gl:true,
     const depth=Math.max(0,-this.d.p.y);g.textAlign='left';g.fillStyle='#eef4ea';g.shadowColor='rgba(0,16,20,.6)';g.shadowBlur=3;g.font=`700 ${m?22:28}px ${SERIF}`;g.fillText(`${depth.toFixed(0)} 公尺`,cx+r+14,cy+(m?2:4));
     g.font=`400 ${m?12:13}px ${SANS}`;g.fillStyle='rgba(220,236,228,.85)';g.fillText(`鏽塊 ${this.nFound} / ${this.lumps.length}`,cx+r+15,cy+(m?20:24));g.shadowColor='transparent';
     for(let i=0;i<this.lumps.length;i++){const x=cx+r+15+i*15,y=cy+(m?30:36);if(i<this.nFound)g.drawImage(TEX.lumps[i%5],x-2,y,14,14);else{g.strokeStyle='rgba(220,236,228,.5)';g.lineWidth=1;g.beginPath();g.arc(x+5,y+7,4,0,TAU);g.stroke();}}
+    if(this.mode==='ascend'&&this.stopT!=null&&!this.stopDone){g.font=`600 ${m?13:14}px ${SANS}`;g.fillStyle='#f3e8cf';g.shadowColor='rgba(0,16,20,.7)';g.shadowBlur=3;g.fillText(`減壓停留 ${Math.max(1,Math.ceil(this.stopT))} 秒`,cx+r+15,cy+(m?62:72));g.shadowColor='transparent';}
     if(this.mode==='bottom'&&left<25){const k=(1-left/25)*(.5+.2*Math.sin(this.t*3.2)),rg=g.createRadialGradient(W/2,H/2,Math.min(W,H)*.28,W/2,H/2,Math.max(W,H)*.75);rg.addColorStop(0,'rgba(0,8,10,0)');rg.addColorStop(1,`rgba(0,8,10,${k})`);g.fillStyle=rg;g.fillRect(0,0,W,H);}
     g.textAlign='left';},
   down(x,y){this.ptr={x,y,x0:x,y0:y,t0:performance.now(),drag:false};},
@@ -2187,11 +2193,20 @@ cv.addEventListener('pointerup',endP);cv.addEventListener('pointercancel',e=>{if
 cv.addEventListener('wheel',e=>{if(scene===Dials){e.preventDefault();Dials.nudge(e.deltaY>0?1:-1);}else if(scene===DIVE&&DIVE===Dive3&&!paused&&DIVE.mode!=='done'){e.preventDefault();CAM.dist=clamp(CAM.dist*Math.exp(e.deltaY*(e.deltaMode?.05:.0012)),2.8,11);}},{passive:false});// 潛水時滾輪拉近拉遠
 document.addEventListener('pointerdown',()=>auInit(),{capture:true});
 
-let last=performance.now();
-function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(!document.hidden&&scene){if(!paused){scene.update(dt);audioTick();}scene.draw();$('#bPause').hidden=scene!==DIVE||DIVE.mode==='done';}requestAnimationFrame(frame);}
+// 暫停時只在剛進入暫停（或視窗尺寸改變）時畫一次；標題畫面限制約 30fps；暫停鈕只在狀態改變時才寫 DOM
+let last=performance.now(),titleAcc=0,pauseDrawn=false,bpHidden=null;
+addEventListener('resize',()=>{pauseDrawn=false;});
+function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;
+  if(!document.hidden&&scene){
+    if(paused){if(!pauseDrawn){scene.draw();pauseDrawn=true;}}
+    else{pauseDrawn=false;audioTick();
+      if(scene===TITLE){titleAcc+=dt;if(titleAcc>=1/30-1e-3){scene.update(titleAcc);scene.draw();titleAcc=0;}}
+      else{titleAcc=0;scene.update(dt);scene.draw();}}
+    const bp=scene!==DIVE||DIVE.mode==='done';if(bp!==bpHidden){$('#bPause').hidden=bp;bpHidden=bp;}}
+  requestAnimationFrame(frame);}
 
 $('#bStart').onclick=()=>{auInit();G.stage=0;G.days=0;G.found=new Set();G.finds=[];save();fadeTo(()=>go(DIVE));};
-$('#bCont').onclick=()=>{auInit();const s=load();if(!s)return;G.stage=s.stage;G.days=s.days||0;G.finds=s.finds||[];G.found=new Set();fadeTo(()=>go(s.stage>=5?Dials:DIVE));};
+$('#bCont').onclick=()=>{auInit();const s=load();if(!s)return;G.stage=s.stage;G.days=s.days||0;G.finds=s.finds||[];G.found=new Set(Array.isArray(s.found)?s.found:[]);fadeTo(()=>go(s.stage>=5?Dials:DIVE));};
 
 async function boot(){resize();buildTextures();initAstro();buildWorld();
   const ok=await load3D();DIVE=ok?Dive3:Dive;TITLE=ok?Title3:Title;

@@ -25,6 +25,7 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 .stage g.s{transition:transform .95s var(--spring);transform-box:view-box}
 .stage .shape{transition:fill .6s ease}
 .stage .bg{transition:fill .6s ease,opacity .6s ease}
+.stage g.s .bg{pointer-events:none}
 .stage g.s.locked .shape{stroke:var(--black);stroke-width:3;stroke-dasharray:6 5}
 .stage .gridl{stroke:rgba(20,20,20,.14);stroke-width:1}
 .stagecap{display:flex;justify-content:space-between;margin-top:26px;font-size:13px;letter-spacing:.14em;text-transform:lowercase}
@@ -71,7 +72,6 @@ input[type=range]:focus-visible{outline:3px solid var(--blue)}
 .big:hover svg{transform:rotate(180deg)}
 .hint{font-size:12px;line-height:1.6;text-transform:lowercase;opacity:.8}
 kbd{font-family:inherit;font-weight:700;border:2px solid var(--black);padding:0 5px;font-size:11px}
-.note{font-size:12.5px;line-height:1.6;border-left:6px solid var(--yel);padding-left:12px;text-transform:lowercase}
 
 @media (max-width:900px){
   .wrap{grid-template-columns:minmax(0,1fr);justify-items:stretch}
@@ -94,7 +94,7 @@ kbd{font-family:inherit;font-weight:700;border:2px solid var(--black);padding:0 
     <div class="mast">
       <div class="top" aria-hidden="true"><i></i><i></i><i></i></div>
       <h1><span>form</span><span>farbe</span><span>funktion</span></h1>
-      <p class="lede">a composition machine after the weimar workshops, 1919–1925. every click pours a new arrangement of circle, square and triangle onto the grid. no ornament was harmed.</p>
+      <p class="lede">a composition machine after the weimar workshops, 1919–1925. click the stage to pour a new arrangement of circle, square and triangle onto the grid; click a form to lock it. in 1923 kandinsky asked every student to match those three forms to yellow, red and blue. most agreed with him.</p>
     </div>
 
     <div class="ctl">
@@ -118,8 +118,7 @@ kbd{font-family:inherit;font-weight:700;border:2px solid var(--black);padding:0 
 
     <button class="big" id="go">neu komponieren <svg viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="12" fill="none" stroke="currentColor" stroke-width="3"/><path d="M15 3 A12 12 0 0 1 27 15 L15 15Z" fill="currentColor"/></svg></button>
 
-    <p class="hint">click the stage or press <kbd>space</kbd> to recompose · click a form to lock it · <kbd>k</kbd> kandinsky · <kbd>1</kbd>–<kbd>4</kbd> grid</p>
-    <p class="note">in 1923 kandinsky handed every student a questionnaire: match the triangle, square and circle to yellow, red and blue. most agreed with him. the ones who didn't went on to design chairs.</p>
+    <p class="hint"><kbd>space</kbd> recompose · <kbd>k</kbd> kandinsky · <kbd>1</kbd>–<kbd>4</kbd> grid</p>
   </aside>
 </div>
 
@@ -188,11 +187,13 @@ kbd{font-family:inherit;font-weight:700;border:2px solid var(--black);padding:0 
   }
   function setShape(o,type,transform,fill,delay){
     var d=reduce?0:delay;
+    /* a swap from the previous compose is still pending: cancel it so it can't write back a stale transform */
+    if(o.tid){clearTimeout(o.tid);o.tid=0;o.sh.setAttribute('d',SH[o.type]||'');}
     if(o.type!==type){
       if(o.type&&!reduce){
         o.g.style.transitionDelay=d+'ms';
         o.g.style.transform=o.g.style.transform.replace(/scale\([^)]*\)/,'scale(0)');
-        setTimeout(function(){o.sh.setAttribute('d',SH[type]||'');o.g.style.transitionDelay='0ms';o.g.style.transform=transform;},d+260);
+        o.tid=setTimeout(function(){o.tid=0;o.sh.setAttribute('d',SH[type]||'');o.g.style.transitionDelay='0ms';o.g.style.transform=transform;},d+260);
       } else { o.sh.setAttribute('d',SH[type]||''); o.g.style.transitionDelay=d+'ms'; o.g.style.transform=transform; }
       o.type=type;
     } else { o.g.style.transitionDelay=d+'ms'; o.g.style.transform=transform; }
@@ -209,6 +210,7 @@ kbd{font-family:inherit;font-weight:700;border:2px solid var(--black);padding:0 
       var show=r1<S.dens, type=show?TYPES[Math.floor(r2*TYPES.length)]:'dot';
       if(S.kand&&show) type=['circle','square','tri'][Math.floor(r2*3)];
       var rot=[0,90,180,270][Math.floor(r3*4)], sc=show?(c/100)*(r4<.2?.62:1):0;
+      o.vis=sc>0;
       var tileBg=r5<.45?pick(p.ink.concat([p.light,p.light])):'transparent';
       var fill=colorFor(type,tileBg);
       if(tileBg===fill) tileBg=p.light;
@@ -225,6 +227,7 @@ kbd{font-family:inherit;font-weight:700;border:2px solid var(--black);padding:0 
       var t=ov[k][0], on=a<.75;
       if(S.kand&&t==='bar') t='tri';
       var sc=on?ov[k][1]*(c/100)*(.7+b*.5)*(4/n):0;
+      o.vis=sc>0;
       var x=80+d*440,y=80+e*440,rot=Math.floor(rng()*8)*45;
       var tr='translate('+x.toFixed(1)+'px,'+y.toFixed(1)+'px) rotate('+rot+'deg) scale('+sc.toFixed(3)+')';
       var fill=colorFor(t); var guard=0; while((fill==='#141414'||fill==='#efe6d2'||fill==='#8a8170')&&S.pal!=='druck'&&guard++<12) fill=colorFor(t);
@@ -234,13 +237,14 @@ kbd{font-family:inherit;font-weight:700;border:2px solid var(--black);padding:0 
     var nr=document.getElementById('nr'); if(nr) nr.textContent=('000'+S.seed).slice(-4);
     status(); chord();
   }
-  function status(){var st=document.getElementById('stat');if(!st)return;var L=cells.concat(overlays).filter(function(o){return o.locked;}).length;st.textContent=(S.n*S.n)+' forms · '+L+' locked';}
+  function status(){var st=document.getElementById('stat');if(!st)return;var all=cells.concat(overlays),L=all.filter(function(o){return o.locked;}).length,F=all.filter(function(o){return o.vis;}).length;st.textContent=F+' forms · '+L+' locked';}
 
   /* controls */
   stage.addEventListener('click',function(){compose();});
-  stage.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();compose();}});
+  stage.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();if(!e.repeat)compose();}});
   document.addEventListener('keydown',function(e){
     var t=e.target; if(t&&(t.tagName==='INPUT'||t.tagName==='BUTTON')&&e.key!==' ') return;
+    if(e.repeat){ if(e.key===' '&&!(t&&t.tagName==='BUTTON')) e.preventDefault(); return; }
     if(e.key===' '){ if(t&&t.tagName==='BUTTON') return; e.preventDefault(); compose(); }
     else if(e.key==='k'||e.key==='K'){ toggleKand(); }
     else if(/^[1-4]$/.test(e.key)){ setGrid(+e.key+2); }

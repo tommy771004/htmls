@@ -61,8 +61,9 @@ h3{font-family:var(--times);font-weight:700;text-transform:uppercase;font-size:c
 .deck{list-style:none;margin:0 0 8px;padding:0;text-align:center;font-family:var(--times)}
 .deck li{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;padding:4px 0;line-height:1.3}
 .deck li+li{border-top:1px solid var(--ink)}
-.deck li:nth-child(2n){font-style:italic;text-transform:none;letter-spacing:.02em;font-size:13px}
+.deck li.it{font-style:italic;text-transform:none;letter-spacing:.02em;font-size:13px}
 .deck li.dash{border:0;padding:0;height:8px;background:linear-gradient(var(--ink),var(--ink)) 50% 50%/30% 1px no-repeat}
+.deck li.dash+li{border-top:0}
 .body{font-family:var(--times);font-size:14px;line-height:1.38;text-align:justify;hyphens:auto;-webkit-hyphens:auto;margin:0}
 .body p{margin:0 0 6px;text-indent:1.2em}
 .body p:first-child{text-indent:0}
@@ -100,11 +101,14 @@ figcaption{font-family:var(--times);font-style:italic;font-size:12px;text-align:
 
 @media (max-width:1100px){
   .page{grid-template-columns:repeat(4,minmax(0,1fr))}
-  .c4{border-left:0;padding-left:0}
+  .c2{padding-right:0}
+  .c3,.c4{grid-column:span 2}
+  .c3{border-left:0;padding-left:0}
 }
 @media (max-width:820px){
   .page{grid-template-columns:repeat(2,minmax(0,1fr))}
   .span2{grid-column:1/-1}
+  .c3,.c4{grid-column:auto}
   .col{border-left:0;padding:0}
   .col.c3{padding-right:10px;border-right:1px solid var(--ink)}
   .col.c4{padding-left:10px}
@@ -150,7 +154,7 @@ figcaption{font-family:var(--times);font-style:italic;font-size:12px;text-align:
     <div class="rule-tt"></div>
     <div class="dateline">
       <span>No. <span id="no">4,096</span></span>
-      <span id="date">London, Tuesday, September 23, 1886</span>
+      <span id="date">London, Thursday, September 23, 1886</span>
       <span class="ed" id="edname">Late Edition</span>
       <span>Price One Penny</span>
       <button class="stop" id="stop" type="button">Stop the Presses!</button>
@@ -181,7 +185,7 @@ const W={
   place:['the Royal Society','Whitechapel','the Crystal Palace','Paddington Station','the Bank of England','a Mayfair Drawing-Room','the Reading Room of the British Museum','the Athenæum Club'],
   emo:['WILD ENTHUSIASM','GRAVE ALARM','UNSEEMLY GIGGLING','PATRIOTIC FERVOUR','GENTEEL PANIC','PROFOUND BEWILDERMENT'],
   react:['PARLIAMENT IN UPROAR','A BISHOP FAINTS','THE QUEEN IS NOT AMUSED','PUNCH-CARD SHARES SOAR','LADIES ADVISED TO REMAIN INDOORS','THE LUDDITES CLAIM VINDICATION','THE ARMY IS PUT ON ALERT','SCOTLAND YARD BAFFLED'],
-  who:['Lord Kelvin','an eminent physician','Mrs. Lovelace’s solicitor','a cabman of long experience','the Archbishop of Canterbury','a Mr. Holmes, of Baker Street','the Astronomer Royal'],
+  who:['Sir William Thomson','an eminent physician','Lady Lovelace’s solicitor','a cabman of long experience','the Archbishop of Canterbury','a Mr. Holmes, of Baker Street','the Astronomer Royal'],
   said:['It is merely a passing fad','We were warned, and we did not listen','I, for one, welcome it','Has anyone tried turning it off and on again?','The children must on no account be told','It shall never replace the humble clerk','I have seen the future, and it is buffering'],
   city:['LONDON','MANCHESTER','EDINBURGH','BIRMINGHAM','LIVERPOOL'],
   inst:['the Royal Society','the Institution of Civil Engineers','the Board of Trade','the Admiralty','the Worshipful Company of Clockmakers'],
@@ -218,6 +222,14 @@ const MON=['January','February','March','April','May','June','July','August','Se
 let no=4096, impression=1;
 try{ const s=JSON.parse(localStorage.getItem('dailyalgo')||'null'); if(s){ no=s.no|0||no; impression=s.imp|0||1; } }catch(e){}
 function persist(){ try{ localStorage.setItem('dailyalgo',JSON.stringify({no,imp:impression})); }catch(e){} }
+// the issue date follows the number: No. 4,096 is Thursday 23 September 1886, one issue per day, no Sunday paper
+function issueDate(n){
+  const k=n-4096, w=Math.floor(k/6), d=new Date(1886,8,23+w*7);
+  for(let r=k-w*6;r>0;){ d.setDate(d.getDate()+1); if(d.getDay()!==0) r--; }
+  return d;
+}
+let today=issueDate(no);
+const weekday=d=>DAYS[d.getDay()-1];
 
 function pn(s){ return /[?!]$/.test(s)?s:s+'.'; }
 function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
@@ -228,7 +240,7 @@ function leadStory(){
   const decks=[pick(W.react), `Scenes of ${pick(W.emo).toLowerCase()} at ${place}.`, `${who.toUpperCase()} DECLARES: “${pn(said).toUpperCase()}”`, `The Markets ${pick(W.market).toLowerCase()}.`];
   const s=subj.replace(/^The |^A |^An /,m=>m.toLowerCase());
   const body=[
-    `${pick(W.city)}, ${pick(DAYS).toUpperCase()}. — It was with no small astonishment that the gentlemen of ${inst} learned, at half-past four o’clock yesterday afternoon, that ${s} had ${past}. The news, conveyed by an out-of-breath junior clerk, was received first with silence, then with brandy.`,
+    `${pick(W.city)}, ${weekday(today).toUpperCase()}. — It was with no small astonishment that the gentlemen of ${inst} learned, at half-past four o’clock yesterday afternoon, that ${s} had ${past}. The news, conveyed by an out-of-breath junior clerk, was received first with silence, then with brandy.`,
     `Our Correspondent, who reached ${place} shortly after the event, found a considerable crowd assembled. A gentleman in a tall hat was heard to remark that he “had always suspected something of the kind,” and a lady fainted twice, the second time, it is believed, for effect.`,
     `Asked for an opinion, ${who} said only: “${pn(said)}” The Engine itself, when approached by our Correspondent, printed a single line upon its tape — “PLEASE HOLD. YOUR ENQUIRY IS IMPORTANT TO US.” — and would say no more.`,
     `Questions are expected in the House on Thursday. In the meantime the public is urged to remain calm, to keep its punch-cards dry, and on no account to feed the Engine after midnight.`
@@ -255,14 +267,14 @@ function engraving(){
 }
 function smallStory(s,withDeck){
   const [h,b]=s;
-  return `<div class="story" tabindex="0" role="button" aria-label="Spike story: ${h.toLowerCase()}"><h3>${h}</h3>${withDeck?`<ul class="deck"><li>${pick(W.react)}</li><li>${pick(['Opinions divided.','Further particulars.','A curious affair.','The Engineers reply.'])}</li></ul>`:''}<div class="body"><p>${b}</p></div></div>`;
+  return `<div class="story" tabindex="0" role="button" aria-label="Spike story: ${h.toLowerCase()}"><h3>${h}</h3>${withDeck?`<ul class="deck"><li>${pick(W.react)}</li><li class="it">${pick(['Opinions divided.','Further particulars.','A curious affair.','The Engineers reply.'])}</li></ul>`:''}<div class="body"><p>${b}</p></div></div>`;
 }
 function ad(a){ return `<div class="ad ${a[3]}"><div class="ah ${a[0].length<10?'big':''}">${a[0]}</div><p>${a[1]}</p><span class="pr">${a[2]}</span></div>`; }
 
-function composeLead(){ const L=leadStory(); return `<div class="story" tabindex="0" role="button" aria-label="Spike the lead story"><h2 class="lead"><span>${L.head}</span></h2><ul class="deck">${L.decks.map((d,i)=>`<li>${d}</li>`).join('<li class="dash"></li>')}</ul><div class="body lead-body">${L.body.map(p=>`<p>${p}</p>`).join('')}</div></div>`; }
+function composeLead(){ const L=leadStory(); return `<div class="story" tabindex="0" role="button" aria-label="Spike the lead story"><h2 class="lead"><span>${L.head}</span></h2><ul class="deck">${L.decks.map((d,i)=>`<li${i%2?' class="it"':''}>${d}</li>`).join('<li class="dash"></li>')}</ul><div class="body lead-body">${L.body.map(p=>`<p>${p}</p>`).join('')}</div></div>`; }
 function composeSecond(){
   const L=leadStory();
-  return `<div class="story" tabindex="0" role="button" aria-label="Spike story"><h3 style="font-size:clamp(19px,1.9vw,25px)">${L.head}</h3><ul class="deck"><li>${L.decks[0]}</li><li>${L.decks[1]}</li></ul><div class="body lead-body"><p>${L.body[0]}</p><p>${L.body[2]}</p></div></div>`;
+  return `<div class="story" tabindex="0" role="button" aria-label="Spike story"><h3 style="font-size:clamp(19px,1.9vw,25px)">${L.head}</h3><ul class="deck"><li>${L.decks[0]}</li><li class="it">${L.decks[1]}</li></ul><div class="body lead-body"><p>${L.body[0]}</p><p>${L.body[2]}</p></div></div>`;
 }
 function tele(){
   const items=shuffle([
@@ -279,6 +291,7 @@ function render(full){
   const smalls=shuffle(SMALL), ads=shuffle(ADS);
   const c1=$('c1'), c2=$('c2'), c3=$('c3'), c4=$('c4');
   if(!c1||!c2||!c3||!c4) return;
+  today=issueDate(no);
   c1.innerHTML=composeLead();
   c2.innerHTML=`<figure>${engraving()}<figcaption>${pick(CAPS)}</figcaption></figure><div class="sep"></div>${composeSecond()}`;
   c3.innerHTML=smallStory(smalls[0],true)+'<div class="sep star">✶ ✶ ✶</div>'+smallStory(smalls[1],false)+'<div class="sep"></div>'+tele()+smallStory(smalls[2],false);
@@ -286,8 +299,7 @@ function render(full){
   // ears & dateline
   const wx=$('wx'); if(wx) wx.textContent=pick(WX);
   const st=pick(STK), sk=$('stock'); if(sk) sk.textContent=`${st[0]} ${st[1]}, ${st[2]}.`;
-  const d=new Date(1886,0,1+Math.floor(Math.random()*360)); let wd=d.getDay(); if(wd===0){ d.setDate(d.getDate()+1); wd=1; }
-  const dt=$('date'); if(dt) dt.textContent=`London, ${DAYS[wd-1]}, ${MON[d.getMonth()]} ${d.getDate()}, 1886`;
+  const dt=$('date'); if(dt) dt.textContent=`London, ${weekday(today)}, ${MON[today.getMonth()]} ${today.getDate()}, ${today.getFullYear()}`;
   const n=$('no'); if(n) n.textContent=no.toLocaleString('en-GB');
   const en=$('edname'); if(en) en.textContent=full===0?'Late Edition':pick(EDS);
   const pr=$('press'); if(pr) pr.textContent=`Impression no. ${impression}`;
@@ -303,7 +315,7 @@ function newEdition(){
 }
 const stop=$('stop'); if(stop) stop.addEventListener('click',newEdition);
 addEventListener('keydown',e=>{
-  if((e.key==='n'||e.key==='N')&&!e.target.closest('input,textarea')) newEdition();
+  if((e.key==='n'||e.key==='N')&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!e.target.closest('input,textarea')) newEdition();
   if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('story')){ e.preventDefault(); spike(e.target); }
 });
 // spike a single story: re-set just that block
@@ -314,7 +326,9 @@ function spike(el){
   else if(el.querySelector('.lead-body')) html=composeSecond();
   else html=smallStory(pick(SMALL),Math.random()<.5);
   const tmp=document.createElement('div'); tmp.innerHTML=html; const fresh=tmp.firstElementChild;
+  const hadFocus=el.contains(document.activeElement);
   el.replaceWith(fresh); fresh.classList.add('inked'); fresh.style.setProperty('--d','0s');
+  if(hadFocus) fresh.focus({preventScroll:true});
   impression++; persist(); const pr=$('press'); if(pr) pr.textContent=`Impression no. ${impression}`;
 }
 const page=$('page');

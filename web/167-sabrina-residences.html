@@ -61,19 +61,6 @@ img, video, svg { display: block; }
   opacity: .22; mix-blend-mode: soft-light;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-.gridlines { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-.gridlines i {
-  position: absolute; top: 0; bottom: 0; width: 1px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .28) 0%, rgba(255, 255, 255, .28) 70%, rgba(255, 255, 255, 0) 100%);
-  transform-origin: 50% 0;
-  animation: lineGrow 1.6s var(--ease-line) both;
-}
-.gridlines i:nth-child(1) { left: 4.8%; }
-.gridlines i:nth-child(2) { left: 35.45%; animation-delay: .1s; }
-.gridlines i:nth-child(3) { left: 64.7%; animation-delay: .2s; }
-.gridlines i:nth-child(4) { left: 95.2%; animation-delay: .3s; }
-@keyframes lineGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-
 /* ---------- hero ---------- */
 .hero {
   position: relative;
@@ -130,35 +117,24 @@ img, video, svg { display: block; }
   font-size: 13px; letter-spacing: -.035em; line-height: 1; white-space: nowrap;
   transition: background-color .3s ease, color .3s ease;
 }
-.pill:hover { background: rgba(255, 255, 255, .16); }
-.pill.is-home, .pill.is-home:hover { background: #fff; color: #161616; gap: 10px; }
-.pill svg { width: 15px; height: 15px; flex: none; }
+/* Inside the glass bar everything is plain text: the current page is marked by a 2px underline. */
+.pill { text-decoration: underline; text-decoration-color: transparent; text-decoration-thickness: 1px; text-underline-offset: 6px; transition: text-decoration-color .3s ease; }
+.pill:hover { text-decoration-color: rgba(255, 255, 255, .6); }
+.pill.is-home, .pill.is-home:hover { text-decoration-color: #fff; text-decoration-thickness: 2px; }
 
 .actions { grid-column: 3; justify-self: end; display: flex; align-items: center; gap: 8px; }
-.lang {
-  display: flex; align-items: center; height: 40px; padding: 3px; border-radius: 999px;
-  background: rgba(255, 255, 255, .12);
-}
-.lang button {
-  height: 34px; min-width: 40px; padding: 0 12px; border-radius: 999px;
-  font-size: 13px; letter-spacing: -.035em; line-height: 1;
-  transition: background-color .3s ease, color .3s ease;
-}
-.lang button[aria-pressed="true"] { background: #fff; color: #161616; }
 .signin {
-  display: inline-flex; align-items: center; height: 40px; padding: 0 19px; border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, .75);
+  display: inline-flex; align-items: center; height: 40px; padding: 0 16px;
   font-size: 13px; letter-spacing: -.035em; line-height: 1; white-space: nowrap;
-  transition: background-color .3s ease, color .3s ease, border-color .3s ease;
+  text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 6px;
+  transition: text-decoration-color .3s ease;
 }
-.signin:hover { background: #fff; color: #1150ef; border-color: #fff; }
+.signin:hover { text-decoration-color: rgba(255, 255, 255, .6); }
+.signin:focus-visible, .pill:focus-visible, .burger:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 4px; }
 .burger {
-  display: none; width: 42px; height: 42px; border-radius: 50%;
+  display: none; width: 42px; height: 42px;
   align-items: center; justify-content: center;
-  background: rgba(255, 255, 255, .14);
-  transition: background-color .3s ease;
 }
-.burger:hover { background: rgba(255, 255, 255, .26); }
 .burger svg { width: 20px; height: 20px; }
 .burger path { transition: transform .35s var(--ease-word), opacity .2s ease; transform-origin: 12px 12px; }
 .burger[aria-expanded="true"] .b1 { transform: translateY(6px) rotate(45deg); }
@@ -243,24 +219,15 @@ img, video, svg { display: block; }
   font-family: "Manrope", system-ui, sans-serif;
   font-size: clamp(13px, 1.25vw, 20px); line-height: 1.05; letter-spacing: .035em;
 }
+/* one plain progress line: how far the walkthrough has played */
 .bars {
-  display: flex; gap: 5px; margin: 8px 4px 0;
+  height: 3px; margin: 12px 4px 4px; border-radius: 2px; overflow: hidden;
+  background: rgba(255, 255, 255, .4);
   transform-origin: 0 50%;
   animation: barsIn .9s var(--ease-word) 2.55s both;
 }
 @keyframes barsIn { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-.seg {
-  flex: 1; height: 14px; display: flex; align-items: center;
-  transition: flex-grow .6s var(--ease-word);
-}
-.seg::before {
-  content: ""; width: 100%; height: 3px; border-radius: 2px;
-  background: rgba(255, 255, 255, .4);
-  transition: background-color .6s ease;
-}
-.seg.on { flex-grow: 1.7; }
-.seg.on::before { background: #fff; }
-.seg:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 3px; }
+.bars i { display: block; height: 100%; background: #fff; transform-origin: 0 50%; transform: scaleX(0); }
 
 /* ---------- latest houses: a glass sheet rising over the hero ---------- */
 .latest {
@@ -291,23 +258,22 @@ img, video, svg { display: block; }
   scrollbar-width: none;
 }
 .gallery::-webkit-scrollbar { display: none; }
+.listing { margin: 0; scroll-snap-align: start; }
 .house-card {
   position: relative; display: block; aspect-ratio: .79;
   border-radius: clamp(12px, 1.2vw, 20px); overflow: hidden;
-  scroll-snap-align: start; background: rgba(255, 255, 255, .25);
+  background: rgba(255, 255, 255, .25);   /* placeholder until the photo loads */
 }
 .house-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 1s var(--ease-rise); }
-.house-card::after {   /* a self-coloured rim so the photo sits in the glass, not on it */
-  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .38), inset 0 1px 0 rgba(255, 255, 255, .55);
-}
-.house-card:hover img { transform: scale(1.05); }
-.house-card:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.listing:hover .house-card img { transform: scale(1.05); }
+.listing figcaption { margin: 12px 2px 0; color: var(--ink); font-size: 14px; line-height: 1.45; }
+.listing figcaption b { display: block; font-weight: 500; }
+.listing figcaption span { opacity: .75; font-variant-numeric: tabular-nums; }
 
 /* scroll reveal: only hidden once JS confirms IntersectionObserver works */
-.latest.wait h2 .w, .latest.wait .house-card { opacity: 0; }
+.latest.wait h2 .w, .latest.wait .listing { opacity: 0; }
 .latest.in h2 .w { animation: wordIn .9s var(--ease-word) both; animation-delay: var(--d, 0s); }
-.latest.in .house-card { animation: cardRise 1.1s var(--ease-word) both; animation-delay: var(--d, 0s); }
+.latest.in .listing { animation: cardRise 1.1s var(--ease-word) both; animation-delay: var(--d, 0s); }
 @keyframes cardRise { from { opacity: 0; transform: translateY(30px) scale(.97); } to { opacity: 1; transform: none; } }
 
 /* ---------- responsive ---------- */
@@ -334,21 +300,19 @@ img, video, svg { display: block; }
 @media (max-width: 380px) {
   .bar { gap: 6px; padding-left: 12px; }
   .actions { gap: 5px; }
-  .lang button { min-width: 36px; padding: 0 9px; }
   .signin { padding: 0 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .gridlines i, .house, .bar, .fd, .w, .card, .bars,
-  .latest.in h2 .w, .latest.in .house-card { animation: none !important; }
-  .latest.wait h2 .w, .latest.wait .house-card { opacity: 1; }
-  .house-card img, .seg, .seg::before, .menu, .burger path { transition: none; }
+  .house, .bar, .fd, .w, .card, .bars,
+  .latest.in h2 .w, .latest.in .listing { animation: none !important; }
+  .latest.wait h2 .w, .latest.wait .listing { opacity: 1; }
+  .house-card img, .pill, .signin, .menu, .burger path { transition: none; }
 }
 </style>
 </head>
 <body>
 <div class="page" id="top">
-  <div class="gridlines" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 
   <section class="hero" aria-label="Sabrina Residences">
     <img class="house" src="https://cdn.sceneai.art/Bg%20images/1dd58514-cedb-4f70-9aee-709c3f887808.png" alt="A modern stone residence with wide glass walls" fetchpriority="high" decoding="async">
@@ -364,18 +328,13 @@ img, video, svg { display: block; }
         </a>
 
         <nav class="nav" aria-label="Main">
-          <a class="pill is-home fd" href="#top" aria-current="page" style="animation-delay:.2s">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>HOME</a>
+          <a class="pill is-home fd" href="#top" aria-current="page" style="animation-delay:.2s">HOME</a>
           <a class="pill fd" href="#latest" style="animation-delay:.28s">PROPERTIES</a>
           <a class="pill fd" href="#latest" style="animation-delay:.36s">AGENT</a>
           <a class="pill fd" href="#latest" style="animation-delay:.44s">PARTNER</a>
         </nav>
 
         <div class="actions">
-          <div class="lang fd" role="group" aria-label="Language" style="animation-delay:.52s">
-            <button type="button" data-lang="bs" aria-pressed="false">BA</button>
-            <button type="button" data-lang="en" aria-pressed="true">EN</button>
-          </div>
           <a class="signin fd" href="#top" style="animation-delay:.6s">SIGN IN</a>
           <button class="burger fd" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu" style="animation-delay:.65s">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path class="b1" d="M4 6h16"/><path class="b2" d="M4 12h16"/><path class="b3" d="M4 18h16"/></svg>
@@ -384,8 +343,7 @@ img, video, svg { display: block; }
       </div>
 
       <nav class="menu glass" id="menu" aria-label="Mobile">
-        <a class="pill is-home" href="#top" aria-current="page">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>HOME</a>
+        <a class="pill is-home" href="#top" aria-current="page">HOME</a>
         <a class="pill" href="#latest">PROPERTIES</a>
         <a class="pill" href="#latest">AGENT</a>
         <a class="pill" href="#latest">PARTNER</a>
@@ -410,18 +368,14 @@ img, video, svg { display: block; }
 
     <div class="card glass">
       <div class="vbox">
-        <video id="clip" src="https://cdn.sceneai.art/Hero%20Section%20Video/adec243d-ffda-48cf-a8a8-26e6d6bcbe9b.mp4" autoplay muted loop playsinline preload="auto" aria-label="Walkthrough of a residence"></video>
+        <!-- no autoplay attribute: the script starts it, and leaves it on the first frame for reduced motion -->
+        <video id="clip" src="https://cdn.sceneai.art/Hero%20Section%20Video/adec243d-ffda-48cf-a8a8-26e6d6bcbe9b.mp4" muted loop playsinline preload="metadata" aria-label="Walkthrough of a residence"></video>
       </div>
       <p class="caption">
         <span class="w" style="--d:2.15s">Find</span> <span class="w" style="--d:2.21s">a</span> <span class="w" style="--d:2.27s">home</span> <span class="w" style="--d:2.33s">that</span> <span class="w" style="--d:2.39s">fits</span><br>
         <span class="w" style="--d:2.45s">your</span> <span class="w" style="--d:2.51s">lifestyle</span>
       </p>
-      <div class="bars" role="group" aria-label="Video chapters">
-        <button class="seg on" type="button" aria-label="Chapter 1" aria-current="true"></button>
-        <button class="seg" type="button" aria-label="Chapter 2"></button>
-        <button class="seg" type="button" aria-label="Chapter 3"></button>
-        <button class="seg" type="button" aria-label="Chapter 4"></button>
-      </div>
+      <div class="bars" aria-hidden="true"><i></i></div>
     </div>
   </section>
 
@@ -433,9 +387,18 @@ img, video, svg { display: block; }
         <span class="w" style="--d:.3s">houses</span>
       </h2>
       <div class="gallery">
-        <a class="house-card" href="#latest" style="--d:.2s"><img src="https://cdn.sceneai.art/Bg%20images/c789ac4d-f2c8-463a-93f6-1f8c6fa09f9a.png" alt="Living room with an orange sofa and a colour-block painting" loading="lazy" decoding="async"></a>
-        <a class="house-card" href="#latest" style="--d:.35s"><img src="https://cdn.sceneai.art/Bg%20images/bf2e3004-db02-48a1-8e15-c6a58c158b5c.png" alt="White living room with pendant lights and an abstract canvas" loading="lazy" decoding="async"></a>
-        <a class="house-card" href="#latest" style="--d:.5s"><img src="https://cdn.sceneai.art/Bg%20images/dce07180-2db9-45fe-889a-7a11657c6234.png" alt="Bright lounge with a cream sofa and a blue armchair" loading="lazy" decoding="async"></a>
+        <figure class="listing" style="--d:.2s">
+          <div class="house-card"><img src="https://cdn.sceneai.art/Bg%20images/c789ac4d-f2c8-463a-93f6-1f8c6fa09f9a.png" alt="Living room with an orange sofa and a colour-block painting" loading="lazy" decoding="async"></div>
+          <figcaption><b>Ilidža, Sarajevo</b><span>3 bd · 142 m² · KM 389,000</span></figcaption>
+        </figure>
+        <figure class="listing" style="--d:.35s">
+          <div class="house-card"><img src="https://cdn.sceneai.art/Bg%20images/bf2e3004-db02-48a1-8e15-c6a58c158b5c.png" alt="White living room with pendant lights and an abstract canvas" loading="lazy" decoding="async"></div>
+          <figcaption><b>Koševsko Brdo, Sarajevo</b><span>4 bd · 188 m² · KM 545,000</span></figcaption>
+        </figure>
+        <figure class="listing" style="--d:.5s">
+          <div class="house-card"><img src="https://cdn.sceneai.art/Bg%20images/dce07180-2db9-45fe-889a-7a11657c6234.png" alt="Bright lounge with a cream sofa and a blue armchair" loading="lazy" decoding="async"></div>
+          <figcaption><b>Stup, Sarajevo</b><span>2 bd · 96 m² · KM 268,000</span></figcaption>
+        </figure>
       </div>
     </div>
   </section>
@@ -444,15 +407,6 @@ img, video, svg { display: block; }
 <script>
 (function () {
   'use strict';
-
-  // Language switch (BA / EN): a real toggle that also updates the document language.
-  var langBtns = document.querySelectorAll('.lang button');
-  langBtns.forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      langBtns.forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
-      document.documentElement.lang = btn.dataset.lang;
-    });
-  });
 
   // Mobile menu
   var burger = document.querySelector('.burger');
@@ -475,47 +429,33 @@ img, video, svg { display: block; }
   });
   matchMedia('(min-width: 861px)').addEventListener('change', function (m) { if (m.matches) setMenu(false); });
 
-  // Video that never stops, with 4 chapter bars following its progress.
+  // Looping walkthrough with one progress line. Reduced motion keeps it on the first frame;
+  // otherwise it is started once on load, and again only when the tab comes back.
   var video = document.getElementById('clip');
-  var segs = Array.prototype.slice.call(document.querySelectorAll('.seg'));
-  var active = 0;
+  var fill = document.querySelector('.bars i');
+  var motionMq = matchMedia('(prefers-reduced-motion: reduce)');
   function play() {
+    if (motionMq.matches || document.hidden) return;
     if (!video.paused && !video.ended) return;
     var p = video.play();
     if (p && p.catch) p.catch(function () {});
   }
-  function setActive(i) {
-    if (i === active) return;
-    segs[active].classList.remove('on');
-    segs[active].removeAttribute('aria-current');
-    segs[i].classList.add('on');
-    segs[i].setAttribute('aria-current', 'true');
-    active = i;
-  }
   function sync() {
     var d = video.duration;
-    if (!d || !isFinite(d)) return;
-    setActive(Math.min(3, Math.floor(video.currentTime / d * 4)));
+    if (!fill || !d || !isFinite(d)) return;
+    fill.style.transform = 'scaleX(' + Math.min(1, video.currentTime / d) + ')';
   }
   video.muted = true;
-  ['pause', 'ended', 'stalled', 'suspend', 'canplay'].forEach(function (ev) {
-    video.addEventListener(ev, function () { if (ev !== 'suspend' || video.paused) play(); });
-  });
+  if (!motionMq.matches) video.preload = 'auto';
+  ['ended', 'canplay'].forEach(function (ev) { video.addEventListener(ev, play); });
   video.addEventListener('timeupdate', sync);
   video.addEventListener('seeked', sync);
-  setInterval(play, 1000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) play(); });
+  window.addEventListener('pageshow', play);
   ['pointerdown', 'touchstart'].forEach(function (ev) {
     window.addEventListener(ev, play, { once: true, passive: true });
   });
-  segs.forEach(function (seg, i) {
-    seg.addEventListener('click', function () {
-      var d = video.duration;
-      if (d && isFinite(d)) video.currentTime = d * i / 4 + 0.01;
-      setActive(i);
-      play();
-    });
-  });
+  if (motionMq.addEventListener) motionMq.addEventListener('change', function () { if (motionMq.matches) video.pause(); else play(); });
   play();
 
   // Latest houses: reveal on scroll. Content stays visible unless the observer is available.

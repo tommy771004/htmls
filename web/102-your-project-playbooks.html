@@ -131,9 +131,7 @@
   }
   .slide-header .title-inline em { font-style: italic; color: var(--phosphor); }
   .slide-header .title-inline .zh { font-family: var(--cjk); font-weight: 400; font-size: 13px; color: var(--cjk-dim); margin-left: 12px; letter-spacing: 0; }
-  .slide-header .right-note { margin-left: auto; font-family: var(--body); font-size: 11px; color: var(--ink-dim); letter-spacing: 0; text-align: right; line-height: 1.45; flex-shrink: 0; }
-  .slide-header .right-note em { color: var(--amber); font-style: italic; font-family: var(--display); font-size: 13px; }
-  .slide-header .right-note .zh { display: block; font-family: var(--cjk); font-size: 11px; color: var(--ink-faint); margin-top: 2px; font-weight: 400; }
+  .prompt-line { margin: -10px 0 0; font-family: var(--mono); font-size: 11px; color: var(--ink-faint); letter-spacing: 0.06em; }
 
   h1.display { font-family: var(--display); font-weight: 400; font-size: clamp(52px, 6vw, 88px); line-height: 1.06; letter-spacing: -0.035em; padding-bottom: 0.04em; }
   h1.display em { font-style: italic; color: var(--phosphor); font-weight: 400; }
@@ -164,7 +162,8 @@
   }
 
   .toc { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 64px; font-family: var(--body); font-size: 15px; color: var(--ink-dim); margin-top: 16px; }
-  .toc-item { display: flex; align-items: baseline; gap: 14px; padding: 12px 14px; border-radius: var(--radius-control); background: var(--bg-elev); }
+  .toc-item { display: flex; align-items: baseline; gap: 14px; padding: 12px 14px; border-radius: var(--radius-control); background: var(--bg-elev); color: inherit; text-decoration: none; }
+  a.toc-item:hover .t, a.toc-item:focus-visible .t { text-decoration: underline; text-decoration-color: var(--phosphor-dim); text-underline-offset: 3px; }
   .toc-item .n { color: var(--phosphor); font-size: 11px; min-width: 28px; }
   .toc-item .t { flex: 1; color: var(--ink); }
   .toc-item .t em { color: var(--amber); font-style: italic; font-family: var(--display); font-size: 18px; }
@@ -232,9 +231,9 @@
   .stack .layer.cat-a .name em, .stack .layer.cat-b .name em, .stack .layer.cat-c .name em, .stack .layer.cat-d .name em { color: var(--phosphor); }
 
   .grid { display: grid; gap: 12px; background: transparent; border: none; }
-  .grid.cols-3 { grid-template-columns: 1.08fr 0.92fr; }
+  .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .cell {
-    background: var(--bg-elev); padding: 26px 24px; display: flex; flex-direction: column; gap: 8px; min-height: 150px; border-radius: var(--radius-card);
+    background: var(--bg-elev); padding: 26px 24px; display: flex; flex-direction: column; gap: 8px; border-radius: var(--radius-card);
   }
   .cell .glyph { font-family: var(--mono); font-size: 11px; color: var(--phosphor); letter-spacing: 0.1em; }
   .cell h3 { font-family: var(--display); font-weight: 400; font-size: 25px; line-height: 1.15; letter-spacing: -0.02em; }
@@ -299,13 +298,18 @@
     .toc { grid-template-columns: 1fr; }
   }
 
+  /* short desktop windows (e.g. 1366×768 laptops): let a slide scroll instead of clipping */
+  @media (max-height: 760px) and (min-width: 721px) {
+    .slide { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
+    .slide:not(.diagram-slide) { padding-top: 56px; }
+  }
+
   /* phone: slides become vertically scrollable single-column pages */
   @media (max-width: 720px) {
     .slide { padding: 52px 18px 52px; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
     .slide > * { flex-shrink: 0; }
     .slide-header { flex-wrap: wrap; gap: 6px 12px; margin-bottom: 18px; }
     .slide-header .slide-num { order: 0; }
-    .slide-header .right-note { order: 1; margin-left: auto; font-size: 11px; max-width: 58%; }
     .slide-header .title-inline { order: 2; flex: 1 1 100%; font-size: 30px; }
     .slide-header .title-inline .zh { display: block; margin: 6px 0 0; }
     h1.display { font-size: clamp(40px, 11.5vw, 52px); }
@@ -398,7 +402,7 @@
       </h1>
       <div class="lead-zh" style="margin-top: 20px;">
         三套起手劇本 — 全新專案 · WebForms 轉現代 Web · WinForms 桌面轉 Web。
-        課堂上做的每件事,本來就是其中一套劇本。
+        課堂上做的每件事，本來就是其中一套劇本。
       </div>
     </div>
 
@@ -421,62 +425,61 @@
     <div class="slide-header">
       <span class="slide-num">slide 02 / 16</span>
       <span class="title-inline">Three <em>playbooks</em><span class="zh">本節將涵蓋</span></span>
-      <span class="right-note">closing lecture<span class="zh">章節大綱</span></span>
     </div>
 
     <div class="toc stagger">
-      <div class="toc-item">
-        <span class="n">01</span>
-        <span class="t">The <em>question</em> everyone asks <span class="z">每個人都會問的問題</span></span>
-      </div>
-      <div class="toc-item">
-        <span class="n">02</span>
-        <span class="t">One loop, three <em>on-ramps</em> <span class="z">一張圖:三個上車點</span></span>
-      </div>
-      <div class="toc-item">
+      <a class="toc-item" href="#3">
         <span class="n">03</span>
-        <span class="t">The universal <em>runway</em> <span class="z">通用起跑程序</span></span>
-      </div>
-      <div class="toc-item">
+        <span class="t">The <em>question</em> everyone asks <span class="z">每個人都會問的問題</span></span>
+      </a>
+      <a class="toc-item" href="#4">
         <span class="n">04</span>
-        <span class="t">The fork: what do you <em>have</em>? <span class="z">你手上有什麼?</span></span>
-      </div>
-      <div class="toc-item">
+        <span class="t">One loop, three <em>on-ramps</em> <span class="z">一張圖：三個上車點</span></span>
+      </a>
+      <a class="toc-item" href="#5">
         <span class="n">05</span>
-        <span class="t">Playbook <em>A</em> — greenfield <span class="z">全新專案</span></span>
-      </div>
-      <div class="toc-item">
+        <span class="t">The universal <em>runway</em> <span class="z">通用起跑程序</span></span>
+      </a>
+      <a class="toc-item" href="#6">
         <span class="n">06</span>
-        <span class="t">A variants: web · mobile · <em>LINE</em> <span class="z">不同外殼</span></span>
-      </div>
-      <div class="toc-item">
+        <span class="t">The fork: what do you <em>have</em>? <span class="z">你手上有什麼？</span></span>
+      </a>
+      <a class="toc-item" href="#7">
         <span class="n">07</span>
-        <span class="t">Big-bang → <em>strangler fig</em> <span class="z">絞殺榕模式</span></span>
-      </div>
-      <div class="toc-item">
+        <span class="t">Playbook <em>A</em> — greenfield <span class="z">全新專案</span></span>
+      </a>
+      <a class="toc-item" href="#8">
         <span class="n">08</span>
-        <span class="t">Same DB · legacy <em>read-only</em> <span class="z">遷移共同原則</span></span>
-      </div>
-      <div class="toc-item">
+        <span class="t">A variants: web · mobile · <em>LINE</em> <span class="z">不同外殼</span></span>
+      </a>
+      <a class="toc-item" href="#9">
         <span class="n">09</span>
-        <span class="t">Playbook <em>B</em> — WebForms <span class="z">舊 Web 現代化</span></span>
-      </div>
-      <div class="toc-item">
+        <span class="t">Big-bang → <em>strangler fig</em> <span class="z">絞殺榕模式</span></span>
+      </a>
+      <a class="toc-item" href="#10">
         <span class="n">10</span>
-        <span class="t">The per-screen <em>loop</em> <span class="z">逐畫面循環</span></span>
-      </div>
-      <div class="toc-item">
+        <span class="t">Same DB · legacy <em>read-only</em> <span class="z">遷移共同原則</span></span>
+      </a>
+      <a class="toc-item" href="#11">
         <span class="n">11</span>
-        <span class="t">Playbook <em>C</em> — WinForms (VB) <span class="z">桌面轉 Web</span></span>
-      </div>
-      <div class="toc-item">
+        <span class="t">Playbook <em>B</em> — WebForms <span class="z">舊 Web 現代化</span></span>
+      </a>
+      <a class="toc-item" href="#12">
         <span class="n">12</span>
-        <span class="t">Desktop → web <em>mapping</em> <span class="z">桌面對應 Web</span></span>
-      </div>
-      <div class="toc-item">
+        <span class="t">The per-screen <em>loop</em> <span class="z">逐畫面循環</span></span>
+      </a>
+      <a class="toc-item" href="#13">
         <span class="n">13</span>
+        <span class="t">Playbook <em>C</em> — WinForms (VB) <span class="z">桌面轉 Web</span></span>
+      </a>
+      <a class="toc-item" href="#14">
+        <span class="n">14</span>
+        <span class="t">Desktop → web <em>mapping</em> <span class="z">桌面對應 Web</span></span>
+      </a>
+      <a class="toc-item" href="#15">
+        <span class="n">15</span>
         <span class="t">Three sentences to <em>memorize</em> <span class="z">三句話記下來</span></span>
-      </div>
+      </a>
     </div>
   </section>
 
@@ -487,7 +490,6 @@
     <div class="slide-header">
       <span class="slide-num">slide 03 / 16</span>
       <span class="title-inline">"But my project is <em>different</em>"<span class="zh">每個人都會問的問題</span></span>
-      <span class="right-note">it isn't, really<span class="zh">其實沒那麼不同</span></span>
     </div>
 
     <div class="row stagger" style="margin-top: 20px;">
@@ -498,8 +500,8 @@
           <em>Same skills. Different on-ramp.</em>
         </p>
         <p class="lead-zh">
-          課堂上練的是 CMS;你的真實專案可能是全新的 LINE app、15 年的
-          WebForms 網站、或 VB 桌面程式。技能相同,只是上車點不同。
+          課堂上練的是 CMS；你的真實專案可能是全新的 LINE app、15 年的
+          WebForms 網站、或 VB 桌面程式。技能相同，只是上車點不同。
         </p>
 
         <hr class="rule-bright" style="margin: 28px 0;">
@@ -507,7 +509,7 @@
         <ul class="bullets">
           <li>
             Lab 01's scaffold flow is shared by <em>all three</em>
-            <span class="zh">Lab 01 的 scaffold 流程,三套劇本都會用到</span>
+            <span class="zh">Lab 01 的 scaffold 流程，三套劇本都會用到</span>
           </li>
           <li>
             <em>/crud</em>'s spec → confirm → build is the engine of all three
@@ -535,8 +537,8 @@
 <span class="prompt">$</span> <span class="cursor"></span>
         </div>
         <p class="lead-zh" style="margin-top: 18px;">
-          <strong style="color: var(--amber);">經驗法則:</strong>
-          先問「我手上已經有什麼?」—— 答案決定你的第一份規格從哪裡來。
+          <strong style="color: var(--amber);">經驗法則：</strong>
+          先問「我手上已經有什麼？」—— 答案決定你的第一份規格從哪裡來。
         </p>
       </div>
     </div>
@@ -548,8 +550,7 @@
   <section class="slide diagram-slide" data-title="One Loop Three On-Ramps">
     <div class="slide-header">
       <span class="slide-num">slide 04 / 16</span>
-      <span class="title-inline">One loop, three <em>on-ramps</em><span class="zh">同一個循環,三個上車點</span></span>
-      <span class="right-note">memorize this<span class="zh">記下這張圖</span></span>
+      <span class="title-inline">One loop, three <em>on-ramps</em><span class="zh">同一個循環，三個上車點</span></span>
     </div>
 
     <div class="diagram-frame">
@@ -642,7 +643,7 @@
         <!-- Bottom takeaway -->
         <text x="600" y="585" text-anchor="middle" font-family="Fraunces, serif" font-size="22" font-style="italic" fill="#e6e8eb">
           The loop never changes — <tspan fill="#65d97c">only the on-ramp does</tspan>.
-          <tspan font-family="Noto Sans TC, sans-serif" font-size="15" font-style="normal" fill="#cdd3da"> 循環不變,變的只是上車點。</tspan>
+          <tspan font-family="Noto Sans TC, sans-serif" font-size="15" font-style="normal" fill="#cdd3da"> 循環不變，變的只是上車點。</tspan>
         </text>
       </svg>
     </div>
@@ -655,13 +656,12 @@
     <div class="slide-header">
       <span class="slide-num">slide 05 / 16</span>
       <span class="title-inline">The universal <em>runway</em><span class="zh">通用起跑程序 —— 三種情境都先做這七件事</span></span>
-      <span class="right-note">every scenario<span class="zh">每個情境都適用</span></span>
     </div>
 
     <div class="stack">
       <div class="layer cat-b">
         <span class="idx">01</span>
-        <span class="name"><em>Git safety net</em> repo + develop branch before any generation <span class="zh">先有 Git,任何 AI 修改都能還原</span></span>
+        <span class="name"><em>Git safety net</em> repo + develop branch before any generation <span class="zh">先有 Git，任何 AI 修改都能還原</span></span>
         <span class="tag">LAB 01</span>
       </div>
       <div class="layer cat-b">
@@ -681,7 +681,7 @@
       </div>
       <div class="layer cat-a">
         <span class="idx">05</span>
-        <span class="name"><em>Spec-first + confirm gate</em> never straight to code <span class="zh">規格先行,人工確認後才產生</span></span>
+        <span class="name"><em>Spec-first + confirm gate</em> never straight to code <span class="zh">規格先行，人工確認後才產生</span></span>
         <span class="tag">LAB 03</span>
       </div>
       <div class="layer cat-c">
@@ -691,7 +691,7 @@
       </div>
       <div class="layer cat-c">
         <span class="idx">07</span>
-        <span class="name"><em>Small commits</em> /clear between units · paste full errors back <span class="zh">小步提交,單元之間 /clear</span></span>
+        <span class="name"><em>Small commits</em> /clear between units · paste full errors back <span class="zh">小步提交，單元之間 /clear</span></span>
         <span class="tag">LABS 03·09</span>
       </div>
     </div>
@@ -703,8 +703,7 @@
   <section class="slide" data-title="The Fork">
     <div class="slide-header">
       <span class="slide-num">slide 06 / 16</span>
-      <span class="title-inline">The fork: what do you already <em>have</em>?<span class="zh">你手上已經有什麼?</span></span>
-      <span class="right-note">pick your playbook<span class="zh">選你的劇本</span></span>
+      <span class="title-inline">The fork: what do you already <em>have</em>?<span class="zh">你手上已經有什麼？</span></span>
     </div>
 
     <div class="grid cols-3 stagger" style="margin-top: 28px;">
@@ -732,8 +731,8 @@
     </div>
 
     <p class="lead-zh" style="margin-top: 28px; max-width: 1000px;">
-      <strong style="color: var(--phosphor);">經驗法則:</strong>
-      三套劇本共用引擎(規格 → 確認 → 產生);差別只在第一份規格的「出處」。
+      <strong style="color: var(--phosphor);">經驗法則：</strong>
+      三套劇本共用引擎（規格 → 確認 → 產生）；差別只在第一份規格的「出處」。
     </p>
   </section>
 
@@ -743,9 +742,9 @@
   <section class="slide" data-title="Playbook A">
     <div class="slide-header">
       <span class="slide-num">slide 07 / 16</span>
-      <span class="title-inline">Playbook <em>A</em> — greenfield<span class="zh">全新專案 —— 先問需求,再建置</span></span>
-      <span class="right-note">prompts <em>A1 → A3</em><span class="zh">需求 → 規範 → 建置</span></span>
+      <span class="title-inline">Playbook <em>A</em> — greenfield<span class="zh">全新專案 —— 先問需求，再建置</span></span>
     </div>
+    <div class="prompt-line">prompts A1 → A3</div>
 
     <div class="row stagger" style="margin-top: 20px;">
       <div class="col">
@@ -754,8 +753,8 @@
           then <em>one declarative prompt</em> scaffolds the rest.
         </p>
         <p class="lead-zh">
-          全新專案的規格只在你腦袋裡 —— 先讓 Claude 把它問出來,再用一個宣告式
-          prompt 建置。換掉名詞,留下動詞。
+          全新專案的規格只在你腦袋裡 —— 先讓 Claude 把它問出來，再用一個宣告式
+          prompt 建置。換掉名詞，留下動詞。
         </p>
 
         <hr class="rule-bright" style="margin: 24px 0;">
@@ -763,19 +762,19 @@
         <ul class="bullets" style="gap: 14px;">
           <li>
             Requirements first: <em>/office-hours</em> or a "grill me" interview (A1)
-            <span class="zh">先釐清需求:/office-hours 或讓 Claude 反問你 → 功能分解 + 資料模型</span>
+            <span class="zh">先釐清需求：/office-hours 或讓 Claude 反問你 → 功能分解 + 資料模型</span>
           </li>
           <li>
             Data model → schema via <em>spec → confirm</em> · contract (A2)
-            <span class="zh">資料模型定案成 schema,再立規範合約</span>
+            <span class="zh">資料模型定案成 schema，再立規範合約</span>
           </li>
           <li>
             Scaffold (A3): first feature = <em>vertical slice</em> + tests both sides
-            <span class="zh">建置:第一個功能就是垂直切片,兩側都有測試</span>
+            <span class="zh">建置：第一個功能就是垂直切片，兩側都有測試</span>
           </li>
           <li>
             Then: CLAUDE.md → git → go wide → <em>the shared tail</em>
-            <span class="zh">再來:CLAUDE.md → Git → 擴展 → review/QA/資安/釋出/文件</span>
+            <span class="zh">再來：CLAUDE.md → Git → 擴展 → review/QA/資安/釋出/文件</span>
           </li>
         </ul>
       </div>
@@ -797,7 +796,7 @@
 <span class="out">    <span class="ok">+ tests on both sides</span></span>
         </div>
         <p class="lead-zh" style="margin-top: 16px;">
-          <strong style="color: var(--amber);">出錯了?</strong>
+          <strong style="color: var(--amber);">出錯了？</strong>
           把完整錯誤訊息貼回 Claude Code —— Lab 01 的老習慣。
         </p>
       </div>
@@ -810,8 +809,7 @@
   <section class="slide" data-title="A Variants">
     <div class="slide-header">
       <span class="slide-num">slide 08 / 16</span>
-      <span class="title-inline">A variants: web · mobile · <em>LINE</em><span class="zh">同一套劇本,不同外殼</span></span>
-      <span class="right-note">swap nouns, keep verbs<span class="zh">換名詞,留動詞</span></span>
+      <span class="title-inline">A variants: web · mobile · <em>LINE</em><span class="zh">同一套劇本，不同外殼</span></span>
     </div>
 
     <div class="grid cols-3 stagger" style="margin-top: 28px;">
@@ -825,7 +823,7 @@
       <div class="cell">
         <div class="glyph">[MOBILE]</div>
         <h3>Flutter / <em>React Native</em></h3>
-        <div class="zh">換掉 A3 的 frontend 區塊;用模擬器取代 ng serve</div>
+        <div class="zh">換掉 A3 的 frontend 區塊；用模擬器取代 ng serve</div>
         <div class="en">Same API playbook. App-store deploy comes later — it doesn't change how you start.</div>
         <div style="margin-top: auto; padding-top: 16px; font-family: var(--mono); font-size: 11px; color: var(--ink-faint);">same playbook</div>
       </div>
@@ -839,7 +837,7 @@
     </div>
 
     <p class="lead-zh" style="margin-top: 28px; max-width: 1000px;">
-      <strong style="color: var(--phosphor);">不變的是:</strong>
+      <strong style="color: var(--phosphor);">不變的是：</strong>
       起跑程序、規格先行 + 確認、垂直切片、兩側測試 —— 每個外殼都一樣。
     </p>
   </section>
@@ -851,7 +849,6 @@
     <div class="slide-header">
       <span class="slide-num">slide 09 / 16</span>
       <span class="title-inline">Migrations: how <em>not</em> to die<span class="zh">遷移專案的第一條守則</span></span>
-      <span class="right-note">playbooks <em>B · C</em><span class="zh">B、C 共同原則</span></span>
     </div>
 
     <div class="shift stagger">
@@ -859,8 +856,8 @@
         <div class="label">Before · 過去</div>
         <h3>The big-bang rewrite.</h3>
         <p>
-          「停下來重寫,18 個月後一次上線。」
-          舊系統繼續長新功能,新系統永遠追不上;
+          「停下來重寫，18 個月後一次上線。」
+          舊系統繼續長新功能，新系統永遠追不上；
           上線日變成災難日 —— 多數大改寫專案死在這裡。
         </p>
       </div>
@@ -869,9 +866,9 @@
         <div class="label">After · 現在</div>
         <h3>The <em>strangler fig</em>.</h3>
         <p>
-          新舊系統並肩運行,連著同一個資料庫。
-          一次遷移一個畫面,使用者逐步搬家;
-          舊系統像被絞殺榕包住的樹,慢慢縮小到消失。
+          新舊系統並肩運行，連著同一個資料庫。
+          一次遷移一個畫面，使用者逐步搬家；
+          舊系統像被絞殺榕包住的樹，慢慢縮小到消失。
         </p>
       </div>
     </div>
@@ -882,7 +879,7 @@
         that's what makes one-screen-at-a-time possible.
       </p>
       <p class="lead-zh">
-        新舊共用同一個資料庫,才可能一次只換一個畫面。(Martin Fowler: Strangler Fig Application)
+        新舊共用同一個資料庫，才可能一次只換一個畫面。（Martin Fowler: Strangler Fig Application）
       </p>
     </div>
   </section>
@@ -894,7 +891,6 @@
     <div class="slide-header">
       <span class="slide-num">slide 10 / 16</span>
       <span class="title-inline">Same DB · legacy <em>read-only</em><span class="zh">遷移共同原則</span></span>
-      <span class="right-note">before B and C<span class="zh">進入 B、C 前必讀</span></span>
     </div>
 
     <div class="row stagger" style="margin-top: 20px;">
@@ -902,11 +898,11 @@
         <ul class="bullets" style="gap: 16px;">
           <li>
             The <em>database is the contract</em> — don't redesign it in phase 1
-            <span class="zh">資料庫不動,它是新舊系統之間的合約</span>
+            <span class="zh">資料庫不動，它是新舊系統之間的合約</span>
           </li>
           <li>
             Legacy code → <code style="font-family: var(--mono); font-size: 17px;">legacy\</code> — <em>read-only</em> reference
-            <span class="zh">舊程式碼複製進 legacy\,唯讀,絕不修改</span>
+            <span class="zh">舊程式碼複製進 legacy\，唯讀，絕不修改</span>
           </li>
           <li>
             Spec per <em>screen</em>, not per table
@@ -914,7 +910,7 @@
           </li>
           <li>
             Characterize by <em>comparison</em> — same data, old vs new
-            <span class="zh">同樣資料,新舊行為對照驗證</span>
+            <span class="zh">同樣資料，新舊行為對照驗證</span>
           </li>
         </ul>
       </div>
@@ -948,8 +944,8 @@
     <div class="slide-header">
       <span class="slide-num">slide 11 / 16</span>
       <span class="title-inline">Playbook <em>B</em> — WebForms → web<span class="zh">舊 Web 應用現代化</span></span>
-      <span class="right-note">prompt <em>B1</em><span class="zh">畫面盤點</span></span>
     </div>
+    <div class="prompt-line">prompt B1</div>
 
     <div class="row stagger" style="margin-top: 20px;">
       <div class="col">
@@ -959,7 +955,7 @@
         </p>
         <p class="lead-zh">
           頁面生命週期、ViewState、postback 沒有現代對應物 ——
-          描述「行為」,不要翻譯「實作」。
+          描述「行為」，不要翻譯「實作」。
         </p>
 
         <hr class="rule-bright" style="margin: 24px 0;">
@@ -971,11 +967,11 @@
           </li>
           <li>
             You can <em>run the old app</em> and compare with your eyes
-            <span class="zh">舊系統跑得起來,可以並排截圖比對</span>
+            <span class="zh">舊系統跑得起來，可以並排截圖比對</span>
           </li>
           <li>
             Inventory first, then migrate in <em>confirmed order</em>
-            <span class="zh">先盤點、確認順序:簡單 CRUD 先,共用控制項後</span>
+            <span class="zh">先盤點、確認順序：簡單 CRUD 先，共用控制項後</span>
           </li>
         </ul>
       </div>
@@ -994,8 +990,8 @@
 <span class="ok">Ask me to confirm the order.</span>
         </div>
         <p class="lead-zh" style="margin-top: 16px;">
-          <strong style="color: var(--amber);">之後每個畫面:</strong>
-          prompt B2 抽出行為規格(欄位、驗證、每顆按鈕的 SQL、要丟棄的 ViewState 花招)→ 確認 → 產生。
+          <strong style="color: var(--amber);">之後每個畫面：</strong>
+          prompt B2 抽出行為規格（欄位、驗證、每顆按鈕的 SQL、要丟棄的 ViewState 花招）→ 確認 → 產生。
         </p>
       </div>
     </div>
@@ -1008,7 +1004,6 @@
     <div class="slide-header">
       <span class="slide-num">slide 12 / 16</span>
       <span class="title-inline">The per-screen <em>loop</em><span class="zh">逐畫面循環 —— B、C 的日常</span></span>
-      <span class="right-note">one screen at a time<span class="zh">一次一個畫面</span></span>
     </div>
 
     <div class="stack">
@@ -1029,12 +1024,12 @@
       </div>
       <div class="layer cat-b">
         <span class="idx">04</span>
-        <span class="name"><em>Build</em> backend → frontend → tests <span class="zh">產生:後端 → 前端 → 測試</span></span>
+        <span class="name"><em>Build</em> backend → frontend → tests <span class="zh">產生：後端 → 前端 → 測試</span></span>
         <span class="tag">BUILD</span>
       </div>
       <div class="layer cat-b">
         <span class="idx">05</span>
-        <span class="name"><em>Compare</em> old vs new on the same DB — screenshots or row snapshots <span class="zh">新舊對照:截圖或資料列快照</span></span>
+        <span class="name"><em>Compare</em> old vs new on the same DB — screenshots or row snapshots <span class="zh">新舊對照：截圖或資料列快照</span></span>
         <span class="tag">VERIFY</span>
       </div>
       <div class="layer cat-b">
@@ -1044,7 +1039,7 @@
       </div>
       <div class="layer cat-c">
         <span class="idx">07</span>
-        <span class="name"><em>/clear</em> — fresh context, next screen <span class="zh">清空 context,下一個畫面</span></span>
+        <span class="name"><em>/clear</em> — fresh context, next screen <span class="zh">清空 context，下一個畫面</span></span>
         <span class="tag">REPEAT</span>
       </div>
     </div>
@@ -1057,8 +1052,8 @@
     <div class="slide-header">
       <span class="slide-num">slide 13 / 16</span>
       <span class="title-inline">Playbook <em>C</em> — WinForms (VB) → web<span class="zh">桌面應用轉 Web</span></span>
-      <span class="right-note">prompt <em>C1</em><span class="zh">兩段式抽取</span></span>
     </div>
+    <div class="prompt-line">prompt C1</div>
 
     <div class="row stagger" style="margin-top: 20px;">
       <div class="col">
@@ -1068,8 +1063,8 @@
         </p>
         <p class="lead-zh">
           沒有 HTTP 層 —— 你要引入這個系統的第一個 API。
-          商業邏輯藏在 Button_Click、CellValueChanged 裡;VB.NET 或 VB6,
-          Claude 都讀得懂,在 prompt 裡說清楚就好。
+          商業邏輯藏在 Button_Click、CellValueChanged 裡；VB.NET WinForms 的程式碼
+          Claude 讀得懂，在 prompt 裡說清楚就好。（VB6 不是 WinForms：請改讀 {Form}.frm，表單定義與程式碼在同一個檔案。）
         </p>
 
         <hr class="rule-bright" style="margin: 24px 0;">
@@ -1077,7 +1072,7 @@
         <ul class="bullets" style="gap: 14px;">
           <li>
             UI is a <em>paradigm shift</em> — redesign, don't translate
-            <span class="zh">桌面 UI 要重新設計,不是逐一翻譯</span>
+            <span class="zh">桌面 UI 要重新設計，不是逐一翻譯</span>
           </li>
           <li>
             Characterize via <em>DB row snapshots</em> — no old UI to diff
@@ -1085,7 +1080,7 @@
           </li>
           <li>
             Split: rules to <em>keep</em> vs mechanics to <em>discard</em>
-            <span class="zh">拆開:該保留的規則 vs 該丟棄的桌面機制</span>
+            <span class="zh">拆開：該保留的規則 vs 該丟棄的桌面機制</span>
           </li>
         </ul>
       </div>
@@ -1116,24 +1111,23 @@
     <div class="slide-header">
       <span class="slide-num">slide 14 / 16</span>
       <span class="title-inline">Desktop → web <em>mapping</em><span class="zh">桌面習慣的 Web 對應 —— 放進你的規範合約</span></span>
-      <span class="right-note">playbook <em>C</em><span class="zh">每個表單一致翻譯</span></span>
     </div>
 
     <div class="grid cols-3 stagger" style="margin-top: 28px;">
       <div class="cell">
         <div class="glyph">[1]</div>
         <h3>Modal dialog → <em>route</em></h3>
-        <div class="zh">彈出視窗 → 自己的路由;小型確認/挑選才用 dialog 元件</div>
+        <div class="zh">彈出視窗 → 自己的路由；小型確認/挑選才用 dialog 元件</div>
       </div>
       <div class="cell">
         <div class="glyph">[2]</div>
         <h3>DataGridView → <em>list + form</em></h3>
-        <div class="zh">格線內編輯 → 列表頁 + 表單頁;真的需要才做 inline edit</div>
+        <div class="zh">格線內編輯 → 列表頁 + 表單頁；真的需要才做 inline edit</div>
       </div>
       <div class="cell">
         <div class="glyph">[3]</div>
         <h3>MsgBox → <em>confirm dialog</em></h3>
-        <div class="zh">MsgBox 確認 → 確認對話框元件;驗證訊息 → 欄位規則</div>
+        <div class="zh">MsgBox 確認 → 確認對話框元件；驗證訊息 → 欄位規則</div>
       </div>
       <div class="cell">
         <div class="glyph">[4]</div>
@@ -1148,13 +1142,13 @@
       <div class="cell">
         <div class="glyph">[6]</div>
         <h3>Keyboard entry → <em>let it go</em></h3>
-        <div class="zh">鍵盤快速輸入 → 記在規格裡,大多數放手</div>
+        <div class="zh">鍵盤快速輸入 → 記在規格裡，大多數放手</div>
       </div>
     </div>
 
     <p class="lead-zh" style="margin-top: 28px; max-width: 1000px;">
-      <strong style="color: var(--phosphor);">經驗法則:</strong>
-      把這張表放進 spec\code-gen.convention.md,每個表單就會被一致地翻譯。
+      <strong style="color: var(--phosphor);">經驗法則：</strong>
+      把這張表放進 spec\code-gen.convention.md，每個表單就會被一致地翻譯。
     </p>
   </section>
 
@@ -1165,7 +1159,6 @@
     <div class="slide-header">
       <span class="slide-num">slide 15 / 16</span>
       <span class="title-inline">Three sentences to <em>memorize</em><span class="zh">三句話記下來</span></span>
-      <span class="right-note">one per playbook<span class="zh">每套劇本一句</span></span>
     </div>
 
     <div class="grid cols-3 stagger" style="margin-top: 28px;">
@@ -1192,7 +1185,7 @@
         <em>the loop never changes — only the on-ramp does.</em>
       </p>
       <p class="lead-zh">
-        還有最上位的那句:循環不變,變的只是上車點。
+        還有最上位的那句：循環不變，變的只是上車點。
       </p>
     </div>
   </section>
@@ -1212,7 +1205,7 @@
       Ship a slice in <em>week one</em>.
     </h1>
     <div style="font-family: var(--cjk); font-weight: 400; font-size: 23px; color: var(--cjk-ink); letter-spacing: 0.08em; margin-top: 28px;">
-      選好上車點,第一週就讓一條薄薄的切片跑在真正的資料庫上
+      選好上車點，第一週就讓一條薄薄的切片跑在真正的資料庫上
     </div>
 
     <hr class="rule-bright" style="margin: 32px 0;">
@@ -1221,9 +1214,9 @@
       <div class="col">
         <h3 style="font-family: var(--mono); font-size: 12px; color: var(--phosphor); letter-spacing: 0.12em; text-transform: uppercase;">Takeaways · 帶走</h3>
         <ul class="bullets" style="margin-top: 18px;">
-          <li>Runway first — git, contract, CLAUDE.md <span class="zh">先鋪跑道:Git、規範合約、CLAUDE.md</span></li>
-          <li>Spec → confirm → build, whatever the source <span class="zh">不論規格從哪來:規格 → 確認 → 產生</span></li>
-          <li>Migrations: same DB, one screen at a time <span class="zh">遷移:同一個資料庫,一次一個畫面</span></li>
+          <li>Runway first — git, contract, CLAUDE.md <span class="zh">先鋪跑道：Git、規範合約、CLAUDE.md</span></li>
+          <li>Spec → confirm → build, whatever the source <span class="zh">不論規格從哪來：規格 → 確認 → 產生</span></li>
+          <li>Migrations: same DB, one screen at a time <span class="zh">遷移：同一個資料庫，一次一個畫面</span></li>
         </ul>
       </div>
       <div class="col">
@@ -1370,6 +1363,7 @@
 
   document.addEventListener('keydown', (e) => {
     if (gotoOpen) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); next(); }
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
     else if (e.key === 'Home') { show(0); }
@@ -1386,8 +1380,22 @@
     }
   });
 
+  // agenda entries jump straight to their slide (numbers match the real slide numbers)
+  document.querySelectorAll('a.toc-item[href^="#"]').forEach((a) => {
+    a.addEventListener('click', (ev) => {
+      const n = parseInt(a.getAttribute('href').slice(1), 10);
+      if (isNaN(n)) return;
+      ev.preventDefault();
+      show(n - 1);
+    });
+  });
+
+  const coarsePointer = window.matchMedia ? window.matchMedia('(pointer: coarse)') : null;
   document.addEventListener('click', (e) => {
-    if (e.target.closest('a, button, input, select, textarea')) return;
+    if (coarsePointer && coarsePointer.matches) return; // touch devices: swipe only
+    if (e.target.closest('a, button, input, select, textarea, .terminal, .diagram-frame, [role="dialog"]')) return;
+    const sel = window.getSelection ? window.getSelection().toString() : '';
+    if (sel) return; // finished selecting prompt text, not a page turn
     const x = e.clientX;
     const w = window.innerWidth;
     if (x > w * 0.35) next();
@@ -1395,12 +1403,14 @@
   });
 
   let touchStartX = 0;
+  let touchStartY = 0;
   let touchInFrame = false;
-  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; touchInFrame = !!e.target.closest('.diagram-frame'); }, { passive: true });
+  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; touchInFrame = !!e.target.closest('.diagram-frame'); }, { passive: true });
   document.addEventListener('touchend', (e) => {
+    if (gotoOpen || touchInFrame) return;
     const dx = e.changedTouches[0].clientX - touchStartX;
-    if (touchInFrame) return;
-    if (Math.abs(dx) > 40) { if (dx < 0) next(); else prev(); }
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { if (dx < 0) next(); else prev(); }
   });
 
   let initial = 1;

@@ -197,8 +197,8 @@ body{background:#141311;background:radial-gradient(ellipse at 50% 30%,#2a2825,#0
     },
     fortune:function(){printText(fortunes[Math.floor(Math.random()*fortunes.length)],'',40);},
     whoami:function(){printText('guest   (uid=1001, gid=100, clearance=SANDWICH-ADJACENT)');},
-    date:function(){var d=new Date();printText(d.toDateString().toUpperCase()+' '+d.toTimeString().slice(0,8)+'  (system clock believes it is 1983)');},
-    uptime:function(){var s=Math.floor(performance.now()/1000);printText(' up 14,902 days, '+Math.floor(s/60)+' min, '+(s%60)+' s,  3 users,  load average: 0.42 0.42 0.42');},
+    date:function(){var d=new Date(),y=new Date(1983,d.getMonth(),d.getDate());printText(y.toDateString().toUpperCase()+' '+d.toTimeString().slice(0,8));},
+    uptime:function(){var s=Math.floor(performance.now()/1000),h=Math.floor(s/3600),m=Math.floor(s/60)%60;printText(' up 14,902 days, '+h+':'+('0'+m).slice(-2)+',  3 users,  load average: 0.42 0.42 0.42');},
     sysinfo:function(){
       printText(
 "   ___  _  _  ___   guest@mulberry\n"+
@@ -312,8 +312,14 @@ body{background:#141311;background:radial-gradient(ellipse at 50% 30%,#2a2825,#0
   print('&nbsp;','',0);
   /* auto-demo: type a first command unless the visitor starts first */
   var demo='cat README.txt', di=0, cancelled=false;
-  inp.addEventListener('keydown',function(){cancelled=true;},true);
-  if(fk) fk.addEventListener('click',function(){cancelled=true;},true);
+  /* any key or touch anywhere stops the demo and takes back the characters it already typed */
+  function cancelDemo(){
+    if(cancelled) return; cancelled=true;
+    if(di>0&&inp.value===demo.slice(0,di)){ inp.value=''; syncTyped(); }
+  }
+  document.addEventListener('keydown',function(e){ if(e.key!=='Shift'&&e.key!=='Control'&&e.key!=='Alt'&&e.key!=='Meta') cancelDemo(); },true);
+  screen.addEventListener('pointerdown',cancelDemo,true);
+  if(fk) fk.addEventListener('click',cancelDemo,true);
   queue.push({h:'',c:'dim',d:0,fn:function(){ if(out.lastChild) out.removeChild(out.lastChild); (function t(){ if(cancelled){return;} if(di<demo.length){inp.value+=demo.charAt(di++);syncTyped();setTimeout(t,38+Math.random()*40);} else setTimeout(function(){ if(cancelled) return; var v=inp.value; inp.value=''; syncTyped(); run(v); },220); })(); }});
 })();
 </script>

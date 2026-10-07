@@ -80,14 +80,14 @@ header nav b{color:var(--paper)}
 .catalog h2 small{font:700 11px/1 var(--nar);letter-spacing:.26em;text-transform:uppercase;color:var(--mute)}
 .shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
 @media (max-width:480px){.shelf{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.shelf button{padding:0;border:0;background:#111;aspect-ratio:1;cursor:pointer;position:relative;box-shadow:0 8px 20px rgba(0,0,0,.5);transition:transform .25s}
-.shelf button:hover,.shelf button:focus-visible{transform:translateY(-6px) rotate(-1deg);outline:none}
+.shelf button{padding:0;border:0;background:#111;aspect-ratio:1;cursor:pointer;position:relative}
+.shelf button:hover{outline:2px solid var(--block);outline-offset:4px}
 .shelf button svg{display:block;width:100%;height:100%}
 .shelf button .no{position:absolute;left:0;bottom:-20px;font:700 10px/1 var(--nar);letter-spacing:.2em;color:var(--mute)}
 .shelf{padding-bottom:22px}
 footer{margin-top:30px;color:#6d675c;font-size:12px;letter-spacing:.08em}
 @media (prefers-reduced-motion:reduce){.vinyl .label{animation:none}.cover .sl,.cover .sr,.cover .su,.cover .sd,.cover .fd{animation:none}}
-.cover .sl,.cover .sr,.cover .su,.cover .sd,.cover .fd{animation:none}.panel h2{font-weight:800;letter-spacing:-.05em}.shelf button:focus-visible{outline:2px solid var(--block);outline-offset:4px}
+.panel h2{font-weight:800;letter-spacing:-.05em}.shelf button:focus-visible{outline:2px solid var(--block);outline-offset:4px}
 @media(min-width:901px){.sleeve{width:calc(100% - 80px);margin-right:80px}.sleeve.out .vinyl{transform:translateX(24%)}.panel{position:relative;z-index:1;background:var(--bg)}}
 </style>
 </head>
@@ -200,10 +200,14 @@ footer{margin-top:30px;color:#6d675c;font-size:12px;letter-spacing:.08em}
       ${T(560, 38, 14, 'BLUE HOUR', NAR+' fill="#f1ebdd" text-anchor="end" letter-spacing="3"')}`,
     // 1: stacked title typography, small photo square
     (p, a, t, id, pic, no) => {
-      const words = t.toUpperCase().split(/\s+/).slice(0,4); const s = Math.min(150, 420 / Math.max(...words.map(w => w.length)) / .52, 310 / (words.length * .88));
+      // up to four lines; any words past the fourth join the last line, which shrinks to fit
+      const all = t.toUpperCase().split(/\s+/).filter(Boolean), long = all.length > 4;
+      const words = long ? all.slice(0,3).concat(all.slice(3).join(' ')) : all;
+      const s = Math.min(150, 420 / Math.max(...words.slice(0, long ? 3 : 4).map(w => w.length)) / .52, 310 / (words.length * .88));
+      const ls = i => long && i === 3 ? fit(words[3], 420, s, .52) : s;
       return `<rect width="600" height="600" fill="#f1ebdd"/>
       <rect class="sd" x="0" y="0" width="140" height="600" fill="${p.t}"/>
-      ${words.map((w,i)=>`<g class="sr" style="animation-delay:${.12*i}s">${T(160, 120 + i*s*.88, s, esc(w), FG+` fill="${i%2?p.t:'#0d0d0d'}" letter-spacing="-4"`)}</g>`).join('')}
+      ${words.map((w,i)=>`<g class="sr" style="animation-delay:${.12*i}s">${T(160, 120 + i*s*.88, ls(i), esc(w), FG+` fill="${i%2?p.t:'#0d0d0d'}" letter-spacing="-4"`)}</g>`).join('')}
       ${photo(id,pic,20,440,140,140,'su',.4)}
       <rect class="sl" style="animation-delay:.5s" x="180" y="520" width="400" height="60" fill="${p.b}"/>
       <g class="fd" style="animation-delay:.8s">${T(196, 562, fit(a.toUpperCase(),370,30,.56), esc(a.toUpperCase()), NAR+' fill="#0d0d0d" letter-spacing="3"')}
@@ -245,17 +249,25 @@ footer{margin-top:30px;color:#6d675c;font-size:12px;letter-spacing:.08em}
     return `<svg viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(a)} — ${esc(t)}">${defs(p, id)}${LAYOUTS[s.layout](p, a, t, id, s.pic, s.no)}</svg>`;
   }
 
-  function linerNotes(s){
+  // the session facts are rolled once per pressing and stored on the record (s.liner)
+  function linerData(){
     const pick = (arr, n) => arr.slice().sort(() => Math.random() - .5).slice(0, n);
     const lead = R(['tenor saxophone','trumpet','piano','alto saxophone']);
-    const band = pick(INSTR.filter(i => i !== lead), 3).map(ins => ({n: R(FIRST) + ' ' + R(LAST), i: ins}));
-    const tunes = pick(TUNES, 4);
-    const day = 1 + Math.floor(Math.random()*28), mon = R(['January','March','April','June','September','November']), yr = 1957 + Math.floor(Math.random()*8);
+    // every date has a rhythm section (bass + drums) plus one or two more players
+    const extra = pick(INSTR.filter(i => i !== lead && i !== 'bass' && i !== 'drums'), 1 + Math.floor(Math.random()*2));
+    const band = extra.concat(['bass','drums']).map(ins => ({n: R(FIRST) + ' ' + R(LAST), i: ins}));
+    return {lead, band, tunes: pick(TUNES, 4),
+      day: 1 + Math.floor(Math.random()*28), mon: R(['January','March','April','June','September','November']), yr: 1958 + Math.floor(Math.random()*10),
+      studio: R(STUDIOS), quip: R(['The drummer arrived late and swung harder to apologise.','Two takes; the second one had the cough in it, so naturally we kept it.','Nobody knows who ordered the pastrami, but it is audible on track three.','The piano was slightly out of tune, which the leader called “character.”'])};
+  }
+  function linerNotes(s){
+    if (!s.liner) s.liner = linerData();
+    const {lead, band, tunes, day, mon, yr, studio, quip} = s.liner;
     const p = PAL[s.pal];
     return `<h3>Personnel · Side A &amp; B · Liner notes</h3>
       <dl><dt>${esc(s.a)}</dt><dd>${lead}, leader</dd>${band.map(b => `<dt>${b.n}</dt><dd>${b.i}</dd>`).join('')}</dl>
       <div><p><b style="color:${p.b}">Side A.</b> ${tunes.slice(0,2).join(' · ')}<br><b style="color:${p.b}">Side B.</b> ${tunes.slice(2).join(' · ')}</p>
-      <p style="margin-top:10px">Recorded ${mon} ${day}, ${yr}, in ${R(STUDIOS)}. Typography printed in ${p.n}. ${R(['The drummer arrived late and swung harder to apologise.','Two takes; the second one had the cough in it, so naturally we kept it.','Nobody knows who ordered the pastrami, but it is audible on track three.','The piano was slightly out of tune, which the leader called “character.”'])}</p></div>`;
+      <p style="margin-top:10px">Recorded ${mon} ${day}, ${yr}, in ${studio}. Typography printed in ${p.n}. ${quip}</p></div>`;
   }
 
   const history = [];
@@ -280,14 +292,14 @@ footer{margin-top:30px;color:#6d675c;font-size:12px;letter-spacing:.08em}
       const b = document.createElement('button');
       b.setAttribute('aria-label', `Load ${h.a} — ${h.t}`);
       b.innerHTML = svgFor(h, 'h' + (++uid)).replace(/class="(sl|sr|su|sd|fd)"/g, '') + `<span class="no">BHR ${h.no}</span>`;
-      b.addEventListener('click', () => { artistI.value = h.a; titleI.value = h.t; state = Object.assign({}, h); render(state, false); thump(); window.scrollTo({top: 0, behavior: 'smooth'}); });
+      b.addEventListener('click', () => { artistI.value = h.a; titleI.value = h.t; if (!h.liner) h.liner = linerData(); state = Object.assign({}, h); render(state, false); thump(); window.scrollTo({top: 0, behavior: 'smooth'}); });
       shelf.appendChild(b);
     });
     const c = $('#count'); if (c) c.textContent = `BHR 1501 — ${cat - 1} · ${history.length} pressed`;
   }
 
   function press(changes){
-    state = Object.assign({}, state, changes, {no: cat++});
+    state = Object.assign({}, state, changes, {no: cat++, liner: linerData()});
     render(state, true); thump();
   }
   const rnd = n => Math.floor(Math.random()*n);
@@ -328,7 +340,7 @@ footer{margin-top:30px;color:#6d675c;font-size:12px;letter-spacing:.08em}
   // seed the shelf with a few pressings so the catalog isn't empty
   const seeds = [['Lorraine Batch','Coffee at Four',2,5,4],['Freddie Quill','Minor Inconvenience',4,2,1],['Cleo Vance','Sugar, No Cream',3,3,0],['Sonny Pritchard','Hard Bop Hard Drive',1,6,2],['Hattie Brome','Somewhere Near Tuesday',0,1,3]];
   seeds.forEach(sd => { history.unshift({a:sd[0], t:sd[1], layout:sd[2], pal:sd[3], pic:sd[4], no: cat++}); });
-  state = {layout: 0, pal: 0, pic: 4, no: cat++};
+  state = {layout: 0, pal: 0, pic: 4, no: cat++, liner: linerData()};
   history.unshift(Object.assign({}, state, {a: artistI.value, t: titleI.value}));
   drawShelf();
   render(state, false);

@@ -112,8 +112,10 @@ h2 .hl{white-space:nowrap}
 
 .foot{margin-top:calc(var(--L)*2);color:var(--pencil);font-size:18px}
 .foot .sig{float:right;color:var(--pen);font-family:var(--print)}
-.redraw{position:fixed;right:16px;bottom:16px;z-index:10;min-height:44px;padding:0 18px;border-radius:24px;background:var(--paper);border:2px solid var(--pen);color:var(--pen);font-family:var(--hand);font-size:17px;cursor:pointer;box-shadow:3px 4px 0 rgba(31,63,154,.25)}
-.redraw:active{transform:translate(2px,2px);box-shadow:1px 1px 0 rgba(31,63,154,.25)}
+.redo{clear:both;margin-top:var(--L)}
+.redraw{min-height:44px;padding:0;background:none;border:0;color:var(--pen);font-family:var(--hand);font-size:18px;cursor:pointer;text-decoration:underline wavy;text-decoration-color:rgba(31,63,154,.45);text-underline-offset:6px}
+.redraw:hover{text-decoration-color:var(--pen)}
+.redraw:active{transform:translate(1px,1px)}
 
 @media (max-width:860px){
   :root{--mx:44px}
@@ -220,9 +222,9 @@ h2 .hl{white-space:nowrap}
     </div>
   </section>
 
-  <p class="foot">下次試：衣索比亞 耶加雪菲，淺焙，水溫降到 88°C 看看會不會更像茉莉花。<span class="sig">— 小安 ✎</span></p>
+  <p class="foot">下次試：衣索比亞 耶加雪菲，淺焙，水溫拉到 94°C 看看茉莉花香會不會更明顯。<span class="sig">— 小安 ✎</span></p>
+  <p class="redo"><button class="redraw" id="redraw" type="button">✎ 重畫一次</button></p>
 </article>
-<button class="redraw" id="redraw">✎ 重畫一次</button>
 
 <script>
 (function(){
@@ -296,9 +298,10 @@ h2 .hl{white-space:nowrap}
   var NS='http://www.w3.org/2000/svg';
   function build(svg){
     var fn=D[svg.getAttribute('data-d')]; if(!fn) return;
-    while(svg.firstChild){ if(svg.firstChild.nodeType===1&&svg.firstChild.getAttribute('data-keep')) break; svg.removeChild(svg.firstChild);}
+    /* drop every old stroke but keep the brew-timer fills (data-keep), wherever they sit */
+    [].slice.call(svg.childNodes).forEach(function(n){ if(!(n.nodeType===1&&n.hasAttribute('data-keep'))) svg.removeChild(n); });
     var items=fn(svg), total=0, delay=0;
-    var keepFirst=svg.firstChild;
+    var keepFirst=null; /* append: fillV60() puts the kept fills underneath the strokes */
     items.forEach(function(it){
       if(it.t!=null){var t=document.createElementNS(NS,'text');t.setAttribute('x',it.x);t.setAttribute('y',it.y);if(it.c)t.setAttribute('class',it.c);t.textContent=it.t;if(it.rot)t.setAttribute('transform','rotate('+it.rot+' '+it.x+' '+it.y+')');t.style.opacity='0';t.dataset.delay=delay;svg.insertBefore(t,keepFirst);return;}
       var p=document.createElementNS(NS,'path');p.setAttribute('d',it.d);if(it.c)p.setAttribute('class',it.c);svg.insertBefore(p,keepFirst);

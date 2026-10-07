@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>鏡頭實驗室 · The Plane of Focus</title>
-<meta name="description" content="3D 光學實驗台：剖開的 24–70mm 變焦鏡頭以近軸光線追跡畫出每道折射，轉對焦環讓前群沿光軸移動；1:12 玻璃箱微縮場景裡立著清晰平面，鏡頭位置即時渲染的照片依景深公式逐像素模糊，並逐項驗算薄透鏡與景深公式。">
+<meta name="description" content="3D 光學實驗台：剖開的 24–70mm 變焦鏡頭以近軸光線追跡畫出每道折射，轉對焦環讓前群沿光軸移動；1:16 玻璃箱微縮場景裡立著清晰平面，鏡頭位置即時渲染的照片依景深公式逐像素模糊，並逐項驗算薄透鏡與景深公式。">
 <meta name="theme-color" content="#081013">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Ccircle%20cx='16'%20cy='16'%20r='15'%20fill='%2314110e'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='13'%20fill='%233a3129'/%3E%3Cpolygon%20points='16.0,7.0%2023.0,10.4%2024.8,18.0%2019.9,24.1%2012.1,24.1%207.2,18.0%209.0,10.4'%20fill='%23e8b766'/%3E%3C/svg%3E">
 <style>
@@ -35,10 +35,6 @@ canvas{display:block}
 .brand{margin:0;font:800 30px/1.05 var(--sans);letter-spacing:.04em}
 .brand small{display:block;margin-top:6px;font:700 13px/1 var(--sans);letter-spacing:.32em;color:var(--cyan)}
 .lede{margin:12px 0 0;color:var(--muted);font-size:13.5px;line-height:1.6}
-.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:14px}
-.stats div{background:rgba(99,214,227,.06);border-radius:8px;padding:7px 8px 6px;min-width:0}
-.stats dt{font-size:11.5px;color:var(--muted)}
-.stats dd{margin:0;font-size:16px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .callout{margin:12px 0 0;font-size:13.5px;line-height:1.65;color:var(--ink)}
 .callout b.fg{color:var(--fg)}.callout b.mid{color:var(--mid)}.callout b.far{color:var(--far)}
 .callout b{font-weight:600}
@@ -87,7 +83,7 @@ canvas{display:block}
 
 /* ——— 精確剖面、圖表、驗算 ——— */
 .deep{max-width:1560px;margin:0 auto;padding:28px 24px 8px;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px}
-.panel{background:var(--panel-2);border-radius:14px;box-shadow:inset 0 1px 0 var(--edge);padding:16px 18px 18px;min-width:0}
+.panel{border-top:1px solid var(--edge);padding:20px 0 18px;min-width:0}
 .panel h2{font:700 17px/1.3 var(--sans);letter-spacing:.04em;margin:0 0 4px}
 .panel .sub{margin:0 0 10px;color:var(--muted);font-size:13px}
 #lens{height:300px;width:100%;cursor:default;touch-action:pan-y}
@@ -109,7 +105,7 @@ canvas{display:block}
 .read dd{margin:0;font-size:18px;font-weight:700;color:var(--ivory);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .read dd small{font-size:12.5px;font-weight:400;color:var(--muted)}
 .check{max-width:1560px;margin:0 auto;padding:10px 24px 36px}
-.check-inner{background:var(--panel-2);border-radius:14px;padding:22px 24px 12px;box-shadow:inset 0 1px 0 var(--edge)}
+.check-inner{border-top:1px solid var(--edge);padding:20px 0 12px}
 .check h2{font:700 21px/1.3 var(--sans);letter-spacing:.04em;margin:0 0 4px}
 .check-inner>p{margin:0 0 14px;color:var(--muted);max-width:80ch}
 .row{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.6fr) minmax(0,1.3fr) 76px;gap:6px 18px;padding:13px 0;border-top:1px solid rgba(160,225,235,.07);align-items:baseline}
@@ -133,9 +129,9 @@ canvas{display:block}
   .glwrap{position:relative;height:auto;aspect-ratio:4/3;max-height:70svh;min-height:320px;order:1}
   .hud{position:static;width:auto;margin:10px 12px 0;-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--panel-2)}
   .hud-l{order:0;margin-top:12px}
-  .photo-card{order:2}
-  .film{order:3;margin-bottom:0}
-  .hud-r{order:4}
+  .hud-r{order:2} /* 控制環緊接在 3D 下方，轉環時看得到變化 */
+  .photo-card{order:3}
+  .film{order:4;margin-bottom:0}
   .hud-b{order:5;margin-bottom:6px}
   .deep{grid-template-columns:minmax(0,1fr);padding:18px 12px 4px}
   .check{padding:10px 12px 28px}
@@ -144,9 +140,9 @@ canvas{display:block}
 }
 @media (max-width:620px){
   .brand{font-size:26px}
-  .panel{padding:12px 12px 14px}
+  .panel{padding:14px 0}
   .read{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .check-inner{padding:18px 14px 8px}
+  .check-inner{padding:16px 0 8px}
   .row{grid-template-columns:minmax(0,1fr) 64px}
   .row .eq,.row .res{grid-column:1/-1}
   .row .ok{grid-row:1;grid-column:2}
@@ -156,26 +152,22 @@ canvas{display:block}
 @media (max-width:620px){
   .long{display:none}.short{display:inline}
   .lede{margin-top:8px}
-  .stats{margin-top:10px}
   .callout{margin-top:10px}
   .panel .sub,.chart-note,.row p,.row .eq,.check-note{display:none}
   .row{padding:9px 0}
-  .stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
-  .stats div{padding:6px 7px 5px}
-  .stats dd{font-size:14.5px}
 }
 @media (prefers-reduced-motion:reduce){.toggle input,.toggle input::after,.shoot{transition:none}}
 /* Keep the optical bench clear of its controls on wide screens. */
 @media (min-width:981px){
  .stage{display:grid;grid-template-columns:260px minmax(0,1fr) 260px;grid-template-rows:minmax(400px,1fr) auto;gap:12px;padding:16px;min-height:820px}
  .glwrap{position:relative;inset:auto;grid-column:2;grid-row:1;min-width:0;border-radius:14px}
- .hud{position:relative;inset:auto;width:auto;min-width:0;margin:0;backdrop-filter:none}
+ .hud{position:relative;inset:auto;width:auto;min-width:0;margin:0;-webkit-backdrop-filter:none;backdrop-filter:none;background:transparent;box-shadow:none}
  .hud-l{grid-column:1;grid-row:1;padding:16px;align-self:start}
  .hud-r{grid-column:3;grid-row:1;align-self:start}
  .hud-b{grid-column:3;grid-row:2;align-self:start}
  .photo-card{grid-column:1;grid-row:2;align-self:start}
  .film{grid-column:2;grid-row:2;align-self:start}
- .brand{font-size:26px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .brand{font-size:26px}
  .views{margin-left:0}
 }
 .views button,.shoot,.toggle,.legend button{min-height:44px}
@@ -188,7 +180,7 @@ canvas{display:block}
 <section class="stage" aria-label="3D 光學實驗台">
   <div class="glwrap" id="glwrap">
     <canvas id="gl" tabindex="0" aria-describedby="orbitHelp" aria-label="3D 光學實驗台：剖開的鏡頭、感光元件、螢幕與玻璃箱微縮場景。拖曳旋轉視角，拖動鏡頭上的對焦環改變對焦，點場景裡的東西就對焦到那裡。"></canvas>
-    <p class="orbit-help" id="orbitHelp">拖曳或方向鍵旋轉 · 滾輪或＋／－縮放 · Home 重設視角</p>
+    <p class="orbit-help" id="orbitHelp">拖曳或方向鍵旋轉 · Ctrl＋滾輪（或點一下畫面後滾輪）、＋／－縮放 · Home 重設視角</p>
     <div class="tags" id="tags" aria-hidden="true"></div>
     <div class="boot" id="boot"><div><b>3D 實驗台載入中…</b>需要連到 cdn.jsdelivr.net 載入 Three.js</div></div>
   </div>
@@ -196,12 +188,6 @@ canvas{display:block}
   <div class="hud hud-l">
     <h1 class="brand">鏡頭實驗室<small>THE PLANE OF FOCUS</small></h1>
     <p class="lede"><span class="long">一支剖開的變焦鏡頭，對著一座 1:16 的微縮場景。轉對焦環，看前群鏡片沿光軸前後移動、光線在感光元件前後匯聚，還有場景裡那片「清晰平面」往哪裡走。</span><span class="short">轉對焦環，看清晰平面怎麼移動。</span></p>
-    <dl class="stats">
-      <div><dt>對焦</dt><dd id="st-focus">4.50 m</dd></div>
-      <div><dt>光圈</dt><dd id="st-ap">f/2.8</dd></div>
-      <div><dt>焦距</dt><dd id="st-f">70 mm</dd></div>
-      <div><dt>景深</dt><dd id="st-dof">—</dd></div>
-    </dl>
     <p class="callout" id="callout"></p>
   </div>
 
@@ -887,8 +873,6 @@ function renderRead() {
     ['超焦距', fmtD(M.HD)]
   ].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
   $('outFocus').textContent = fmtD(M.D);
-  $('st-focus').textContent = fmtD(M.D); $('st-ap').textContent = 'f/' + M.N; $('st-f').textContent = state.f0.toFixed(0) + ' mm';
-  $('st-dof').textContent = isFinite(M.farD) ? fmtD(M.farD - M.nearD) : '∞';
   const rel = key => {
     const o = OBJ[key], b = M.objs[key].blur, diff = o.D - M.D;
     if (b <= COC) return `<b class="${key}">${o.name}</b>在景深內，看起來清楚`;
@@ -1010,7 +994,7 @@ const scene = new T.Scene();
 scene.background = new T.Color(0x071013);
 const cam = new T.PerspectiveCamera(34, 1, 0.03, 60);
 
-// ——— 比例：鏡頭放大 3.6 倍（真實 mm → 展場 m），場景為 1:12 微縮 ———
+// ——— 比例：鏡頭放大 4.6 倍（真實 mm → 展場 m），場景為 1:16 微縮 ———
 const SC = 0.0046, XS = -0.64, YA = 1.12, DIO = 16, X0 = 0.045;
 const YG = YA - 0.9 / DIO; // 場景地面：相機離地 0.9 m
 const xOfZ = z => XS - z * SC;
@@ -1236,7 +1220,7 @@ rtB.texture.colorSpace = T.SRGBColorSpace;
   scene.add(cable);
 }
 
-// ——— 1:12 微縮場景（兩個相機都看得到） ———
+// ——— 1:16 微縮場景（兩個相機都看得到） ———
 const dio = new T.Group(); scene.add(dio);
 const exOnly = new T.Group(); scene.add(exOnly);      // 只有展場看得到：玻璃箱、清晰平面
 const far = new T.Group(); scene.add(far);            // 只有鏡頭看得到：遠方地面、天空、遠山
@@ -1624,6 +1608,7 @@ const VIEWS = {
 const orbit = { target: VIEWS.all.target.clone(), yaw: VIEWS.all.yaw, pitch: VIEWS.all.pitch, dist: 2.6, goal: null };
 function fitDist(width) { const hf = 2 * Math.atan(Math.tan(cam.fov * Math.PI / 360) * cam.aspect); return width / 2 / Math.tan(hf / 2) + 0.15; }
 function setView(name, instant) {
+  userMoved = false;
   const v = name === 'all' ? { target: new T.Vector3(-0.16, 1.3, -0.1), yaw: 0.06, pitch: 0.18, fit: 2.6 } : VIEWS[name];
   orbit.goal = { target: v.target.clone(), yaw: v.yaw, pitch: v.pitch, dist: Math.max(fitDist(v.fit), name === 'all' ? 1.2 : 0.55) }; orbit.vel = null;
   if (instant || REDUCED) { Object.assign(orbit, { target: orbit.goal.target, yaw: orbit.goal.yaw, pitch: orbit.goal.pitch, dist: orbit.goal.dist }); orbit.goal = null; }
@@ -1631,6 +1616,7 @@ function setView(name, instant) {
   kick();
 }
 let viewName = 'all';
+let userMoved = false; // 使用者自己轉過／縮放過視角後，resize 不再重設到預設視角
 document.querySelectorAll('.views button').forEach(b => b.addEventListener('click', () => { viewName = b.dataset.view; setView(viewName); }));
 function applyCam(dt = 1 / 60) {
   if (orbit.vel) { // 放開後的慣性：角速度指數衰減
@@ -1688,7 +1674,7 @@ canvas.addEventListener('pointermove', e => {
   if (drag.mode === 'focus') { s.u = clamp(drag.u + (dy - dx) / LAB.KF, 0, LAB.UMAX); LAB.update(); }
   else if (drag.mode === 'zoom') { s.f0 = clamp(Math.round(drag.f0 * Math.exp((dx - dy) / LAB.KZ) * 10) / 10, LAB.ZMIN, LAB.ZMAX); LAB.update(); }
   else if (drag.mode === 'orbit' || (drag.mode === 'pick' && drag.moved > 5)) {
-    drag.mode = 'orbit'; orbit.goal = null;
+    drag.mode = 'orbit'; orbit.goal = null; userMoved = true;
     const py = orbit.yaw, pp = orbit.pitch, dtm = Math.max(4, e.timeStamp - drag.lt) / 1000;
     orbit.yaw = clamp(drag.yaw - dx * 0.004, -0.9, 0.9); orbit.pitch = clamp(drag.pitch + dy * 0.003, 0.02, 0.75);
     drag.vy = drag.vy * 0.5 + (orbit.yaw - py) / dtm * 0.5; drag.vp = drag.vp * 0.5 + (orbit.pitch - pp) / dtm * 0.5; drag.lt = e.timeStamp; kick();
@@ -1708,7 +1694,7 @@ canvas.addEventListener('keydown',e=>{
   if(e.altKey||e.ctrlKey||e.metaKey)return;
   if(e.key==='Home'){e.preventDefault();setView(viewName);return;}
   if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-','_'].includes(e.key))return;
-  e.preventDefault();orbit.goal=null;orbit.vel=null;
+  e.preventDefault();orbit.goal=null;orbit.vel=null;userMoved=true;
   if(e.key==='ArrowLeft'||e.key==='ArrowRight')orbit.yaw=clamp(orbit.yaw+(e.key==='ArrowLeft'?-.06:.06),-.9,.9);
   else if(e.key==='ArrowUp'||e.key==='ArrowDown')orbit.pitch=clamp(orbit.pitch+(e.key==='ArrowUp'?.04:-.04),.02,.75);
   else orbit.dist=clamp(orbit.dist*(['+','='].includes(e.key)?.9:1.1),.55,8);
@@ -1716,7 +1702,9 @@ canvas.addEventListener('keydown',e=>{
 });
 canvas.addEventListener('dblclick', e => e.preventDefault());
 canvas.addEventListener('wheel', e => { // 滾輪／觸控板縮放，範圍與 ＋／－ 相同
-  e.preventDefault(); orbit.goal = null;
+  // 只有按住 Ctrl／⌘（含觸控板捏合）或先點過畫布時才縮放，否則讓頁面正常往下捲
+  if (!(e.ctrlKey || e.metaKey || document.activeElement === canvas)) return;
+  e.preventDefault(); orbit.goal = null; userMoved = true;
   orbit.dist = clamp(orbit.dist * Math.exp(e.deltaY * (e.deltaMode ? 0.05 : e.ctrlKey ? 0.01 : 0.0015)), 0.55, 8); kick();
 }, { passive: false });
 
@@ -1758,11 +1746,13 @@ $('shoot').addEventListener('click', () => {
 // ——— 每次設定改變 ———
 let needPhoto = true, lastIrisKey = '';
 LAB.on3d = M => {
-  G1.position.x = xOfZ(M.cfg.z1); G2.position.x = xOfZ(M.cfg.z2);
+  const g1x = xOfZ(M.cfg.z1), g2x = xOfZ(M.cfg.z2);
+  let shadowDirty = g1x !== G1.position.x || g2x !== G2.position.x; // 陰影只在鏡群真的移動或光圈改變時重算
+  G1.position.x = g1x; G2.position.x = g2x;
   focusRing.spin.rotation.x = -LAB.state.u * 2.2;
   zoomRing.spin.rotation.x = Math.log(LAB.state.f0 / 24) * 2.6;
-  const ik = M.rs.toFixed(4) + M.N; if (ik !== lastIrisKey) { buildIris(M.rs, M.N); lastIrisKey = ik; }
-  renderer.shadowMap.needsUpdate = true;
+  const ik = M.rs.toFixed(4) + M.N; if (ik !== lastIrisKey) { buildIris(M.rs, M.N); lastIrisKey = ik; shadowDirty = true; }
+  if (shadowDirty) renderer.shadowMap.needsUpdate = true;
   buildRays(M);
   // 清晰平面與景深範圍
   const xD = D => X0 + D / 1000 / DIO, xEnd = X0 + LEN_REAL / DIO;
@@ -1791,23 +1781,28 @@ LAB.on3d = M => {
 };
 
 // ——— 迴圈 ———
-let raf = 0, visible = true, last = 0;
-function kick() { if (!raf) raf = requestAnimationFrame(loop); }
+// kick() 只由互動與設定改變呼叫；光線粒子只在最近一次互動後 3 秒內流動，閒置就停止重繪
+// 照片（超取樣 + 模糊 + readPixels）最多每 120 ms 重算一次，最後一次設定一定會補畫
+let raf = 0, visible = true, last = 0, lastAct = -1e9, lastPhoto = -1e9, partT = 0;
+const PARTICLE_IDLE = 3000, PHOTO_GAP = 120;
+function kick() { lastAct = performance.now(); if (!raf) raf = requestAnimationFrame(loop); }
 function loop(t) {
   raf = 0;
-  if (needPhoto) { renderPhoto(LAB.M || LAB.compute()); needPhoto = false; }
+  if (needPhoto && t - lastPhoto >= PHOTO_GAP) { renderPhoto(LAB.M || LAB.compute()); needPhoto = false; lastPhoto = t; }
   applyCam(last ? Math.min(0.05, (t - last) / 1000) : 1 / 60);
   particles.visible = LAB.state.rays;
-  if (LAB.state.rays) moveParticles(REDUCED ? 0 : t);
+  const flowing = LAB.state.rays && !REDUCED && t - lastAct < PARTICLE_IDLE;
+  if (flowing) partT = t; // 停止流動時粒子停在最後的位置
+  if (LAB.state.rays) moveParticles(REDUCED ? 0 : partT);
   renderer.render(scene, cam);
   placeTags();
   last = t;
-  if (visible && !document.hidden && ((LAB.state.rays && !REDUCED) || orbit.goal || orbit.vel || drag)) kick(); else last = 0;
+  if (visible && !document.hidden && (flowing || needPhoto || orbit.goal || orbit.vel || drag)) raf = requestAnimationFrame(loop); else last = 0;
 }
 function resize() {
   const w = wrap.clientWidth, h = wrap.clientHeight;
   renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix();
-  setView(viewName, true);
+  if (userMoved) kick(); else setView(viewName, true); // 使用者轉過視角就保留，只更新投影
 }
 new ResizeObserver(resize).observe(wrap);
 new IntersectionObserver(es => { visible = es[0].isIntersecting; if (visible) kick(); }).observe(wrap);

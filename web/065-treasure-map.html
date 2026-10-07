@@ -33,7 +33,9 @@ header p{margin:0;font-style:italic;font-size:15px;color:#cdb68a;max-width:36em;
 header p b{font-style:normal;font-family:var(--papyrus);color:#f0dcae;font-weight:normal}
 
 .table{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:0;align-items:start}
-.mapcard{position:relative;transform:rotate(-.5deg);filter:drop-shadow(0 18px 24px rgba(0,0,0,.55)) drop-shadow(0 2px 2px rgba(0,0,0,.4))}
+.mapcard{position:relative;transform:rotate(-.5deg);isolation:isolate}
+/* static shadow under the parchment (inset matches the 14px margin of the 1000x700 sheet), instead of a filter that re-renders with every animated frame */
+.mapcard::before{content:"";position:absolute;inset:2% 1.4%;z-index:-1;pointer-events:none;box-shadow:0 18px 24px rgba(0,0,0,.55),0 2px 2px rgba(0,0,0,.4)}
 svg#map{display:block;width:100%;height:auto;touch-action:manipulation}
 
 /* svg styling */
@@ -54,10 +56,12 @@ svg#map{display:block;width:100%;height:auto;touch-action:manipulation}
 .xmark path.x{stroke:var(--red);stroke-width:9;stroke-linecap:round;fill:none}
 .xmark.ready path.x{animation:throb 1.6s ease-in-out infinite}
 @keyframes throb{50%{stroke-width:12}}
-.compass-needle{transform-origin:880px 125px;animation:wob 7s ease-in-out infinite}
+/* idle motion only while the pointer is over the map, so the filtered SVG is not repainted forever */
+.compass-needle{transform-origin:880px 125px;animation:wob 7s ease-in-out infinite paused}
 @keyframes wob{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(4deg)}}
-.serpent{animation:bob 5s ease-in-out infinite}
+.serpent{animation:bob 5s ease-in-out infinite paused}
 @keyframes bob{50%{transform:translateY(5px)}}
+.mapcard:hover .compass-needle,.mapcard:hover .serpent{animation-play-state:running}
 .chest{transform-box:fill-box;transform-origin:50% 100%;transform:scale(0);transition:transform .7s cubic-bezier(.3,1.6,.5,1)}
 .chest.open{transform:scale(1)}
 .chest .lid{transform-box:fill-box;transform-origin:50% 100%;transition:transform .6s .5s ease-out}
@@ -346,12 +350,12 @@ svg#map{display:block;width:100%;height:auto;touch-action:manipulation}
   ];
   var ORDER = ['cove','tree','skull','falls','parrot'];
   var TEXT = {
-    start:['Day 1 · aboard the Merry Mistake','We drop anchor. The old map says: “Begin where the sand is least sure of itself.” That will be the Cove of Second Thoughts.'],
+    start:['Day 1 · aboard the Merry Mistake','We drop anchor. The old map says: “Begin where the sand is least sure of itself.” That will be the Cove of Second Thoughts, so we row ashore there.'],
     cove:['The Cove of Second Thoughts','A bottle in the shallows. The note inside: “Go to the tree where the laundry hangs. Nobody has collected it since 1702.”'],
-    tree:['The Laundry Tree','Carved in the bark: “North, to the rock that grins.” Beneath it, smaller: “Stop reading tree bark.”'],
+    tree:['The Laundry Tree','Carved in the bark: “North-east, to the rock that grins.” Beneath it, smaller: “Stop reading tree bark.”'],
     skull:['Skull Rock','The left eye looks east, toward falling water. The right eye looks at you, judgmentally.'],
     falls:['Whispering Falls','The falls whisper mostly gossip. Behind the curtain of water, painted on the stone: “Ask the Parliament.”'],
-    parrot:['Parrot Parliament','The parrots have voted, four to three: “Go south-east, to the red X. Obviously. Why is it always the red X.”'],
+    parrot:['Parrot Parliament','The parrots have voted, four to three: “Go east, a little south, to the red X. Obviously. Why is it always the red X.”'],
     grumble:['Mount Grumble','Mount Grumble grumbles. No treasure — only a fine view and a strong sense you should have followed the clues.'],
     wrong:['Not yet','Pretty spot. But the last clue pointed elsewhere, so you write “interesting” in the margin and move on.'],
     again:['Been here','You have been here already. The locals are starting to recognise you.'],
@@ -380,9 +384,11 @@ svg#map{display:block;width:100%;height:auto;touch-action:manipulation}
     entries.appendChild(li);
     entries.scrollTop = entries.scrollHeight;
   }
-  function updateStats(){ if (pacesEl) pacesEl.textContent = String(Math.round(paces)); if (cluesEl) cluesEl.textContent = Math.min(step, 5) + ' / 5'; }
+  function updateStats(){ if (pacesEl) pacesEl.textContent = Math.round(paces).toLocaleString('en-US'); if (cluesEl) cluesEl.textContent = Math.min(step, 5) + ' / 5'; }
 
-  function walk(to, cls, done){
+  // scale bar: 60 map units = 1 league ≈ 4.8 km ≈ 6,300 paces
+  var PACES_PER_UNIT = 6300 / 60;
+  function walk(to, cls, done, rowing){
     busy = true;
     var from = pos.slice(), dx = to[0]-from[0], dy = to[1]-from[1], len = Math.hypot(dx, dy) || 1;
     var bend = (R() - .5) * .5 * len;
@@ -401,18 +407,18 @@ svg#map{display:block;width:100%;height:auto;touch-action:manipulation}
       m.style.strokeDashoffset = L * (1 - e);
       var p = m.getPointAtLength(L * e); nib.setAttribute('cx', p.x); nib.setAttribute('cy', p.y);
       if (k < 1) requestAnimationFrame(f);
-      else { nib.setAttribute('opacity', 0); pos = to.slice(); paces += L / 1.4; updateStats(); busy = false; if (done) done(); }
+      else { nib.setAttribute('opacity', 0); pos = to.slice(); if (!rowing) paces += L * PACES_PER_UNIT; updateStats(); busy = false; if (done) done(); }
     }
     requestAnimationFrame(f);
   }
 
-  function visit(id){
+  function visit(id, rowing){
     if (busy || won) return;
     var L = locById(id); if (!L) return;
     var target = [L.x, L.y + 6];
     if (visited[id] && ORDER.indexOf(id) < step){ walk(target, 'wrong', function(){ log('again', 'bad'); }); return; }
     if (id === ORDER[step]){
-      walk(target, '', function(){ visited[id] = 1; locEls[id].classList.add('seen'); step++; updateStats(); log(id, 'good'); if (step >= ORDER.length) xmark.classList.add('ready'); });
+      walk(target, '', function(){ visited[id] = 1; locEls[id].classList.add('seen'); step++; updateStats(); log(id, 'good'); if (step >= ORDER.length) xmark.classList.add('ready'); }, rowing);
     } else if (id === 'grumble'){
       walk(target, 'wrong', function(){ log('grumble', 'bad'); });
     } else {
@@ -458,6 +464,8 @@ svg#map{display:block;width:100%;height:auto;touch-action:manipulation}
     chest.classList.remove('open'); xmark.classList.remove('ready');
     Object.keys(locEls).forEach(function(k){ locEls[k].classList.remove('seen'); });
     updateStats(); log('start');
+    // row ashore to the Cove, as the log says (same on first load and after start over)
+    setTimeout(function(){ if (step === 0 && !busy) visit('cove', true); }, 350);
   }
   var rb = $('reset'); if (rb) rb.addEventListener('click', reset);
 
@@ -467,8 +475,6 @@ svg#map{display:block;width:100%;height:auto;touch-action:manipulation}
   fit(); window.addEventListener('resize', fit);
 
   reset();
-  // an opening stroll so the trail is visible straight away
-  setTimeout(function(){ visit('cove'); }, 350);
 })();
 </script>
 </body>

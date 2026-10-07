@@ -68,14 +68,13 @@ button{cursor:pointer}
 #basinBox svg{display:block;width:100%;height:auto;overflow:visible}
 #basinBox .hit{fill:transparent;cursor:pointer}
 #basinBox .gate{cursor:ns-resize}
+#basinBox .gate,#basinBox .gate *{touch-action:none}
 #basinBox .gate:focus{outline:none}
 #basinBox .gate:focus-visible rect.plate{stroke:var(--water);stroke-width:2}
-.sheen{animation:sheen 11s linear infinite}
-@keyframes sheen{from{transform:translateX(-160px)}to{transform:translateX(1400px)}}
 
 /* ---------- 閘門設定 ---------- */
-.sluice{display:grid;grid-template-columns:1.05fr 1fr 1fr 1.35fr auto;gap:12px;margin:14px 0 0}
-.ctl{background:var(--panel);border-radius:10px;padding:12px 14px 13px;box-shadow:inset 0 1px 0 rgba(223,233,228,.05),inset 0 0 0 1px rgba(31,47,42,.9)}
+.sluice{display:grid;grid-template-columns:1.05fr 1fr 1fr 1.35fr auto;gap:24px;margin:14px 0 0}
+.ctl{padding:0}
 .ctl label,.ctl .lb{display:flex;justify-content:space-between;align-items:baseline;gap:8px;color:var(--muted);font-size:12.5px;margin-bottom:7px}
 .ctl output{font:600 15px var(--fig);color:var(--text)}
 .field{display:flex;align-items:center;gap:6px;background:var(--bg-deep);border-radius:7px;padding:0 10px;box-shadow:inset 0 0 0 1px rgba(143,163,155,.11)}
@@ -90,8 +89,8 @@ input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:24px
 input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--water) var(--p,50%),var(--stone-2) var(--p,50%))}
 input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--stone-2)}
 input[type=range]::-moz-range-progress{height:4px;border-radius:2px;background:var(--water)}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;margin-top:-7px;border-radius:50%;background:var(--text);border:3px solid var(--panel)}
-input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--text);border:3px solid var(--panel)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;margin-top:-7px;border-radius:50%;background:var(--text);border:3px solid var(--bg)}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--text);border:3px solid var(--bg)}
 .ticks{display:flex;justify-content:space-between;color:var(--faint);font-size:11px;margin-top:1px}
 .reset{align-self:stretch;border:0;border-radius:10px;background:transparent;color:var(--muted);font-size:13px;padding:0 14px;box-shadow:inset 0 0 0 1px rgba(143,163,155,.12);transition:color .18s,background-color .18s}
 .reset:hover{color:var(--text);background:var(--panel)}
@@ -110,7 +109,7 @@ section.blk{margin-top:64px}
 .flow{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(280px,1fr);gap:28px;align-items:start}
 #pipeBox svg{display:block;width:100%;height:auto;overflow:visible}
 .ribbon{transition:opacity .18s}
-.ledger{margin:0;padding:6px 0;background:var(--panel);border-radius:12px;box-shadow:inset 0 1px 0 rgba(223,233,228,.05)}
+.ledger{margin:0;padding:6px 0;background:transparent;box-shadow:inset 1px 0 0 var(--grid)}
 .ledger div{display:grid;grid-template-columns:18px 1fr auto;align-items:baseline;gap:8px;padding:8px 18px}
 .ledger dt{color:var(--muted);font-size:14px}
 .ledger dd{margin:0;font:500 16px var(--fig);font-variant-numeric:tabular-nums;text-align:right}
@@ -175,6 +174,7 @@ footer code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;col
   .sluice .one{grid-column:span 2}
   .reset{grid-column:span 2;padding:10px}
   .flow,.lower{grid-template-columns:1fr}
+  .ledger{box-shadow:inset 0 1px 0 var(--grid)}
 }
 @media (max-width:760px){
   .wrap{padding:0 16px}
@@ -192,7 +192,6 @@ footer code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;col
   .blk-head h2{font-size:20px}
 }
 @media (prefers-reduced-motion:reduce){
-  .sheen{animation:none;display:none}
   *{transition:none!important}
 }
 </style>
@@ -294,7 +293,7 @@ footer code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;col
 
   <footer>
     <p>所有數字皆為虛構的範例資料。要換成自己的帳：打開原始碼，修改最上方的 <code>DATA</code> 區塊（金額單位為萬元，每個項目 12 個月的實際數，加上 3 個月的預測規則）。</p>
-    <p>預測規則：<code>last</code> 沿用上月、<code>avg</code> 取近 3 個月平均、<code>ratio</code> 依流入比例、數字陣列為已排定的金額。「經常性支出調整」只作用在前三種。</p>
+    <p>預測規則：<code>last</code> 沿用上月、<code>avg</code> 取近 3 個月平均、<code>ratio</code> 依流入比例、數字陣列為已排定的金額。「經常性支出調整」只作用在營運支出與其它流出的前三種規則，貸款本息、投資與稅費不受影響。</p>
   </footer>
 </div>
 <div id="tip" aria-hidden="true"></div>
@@ -397,7 +396,8 @@ function compute(){
       if (!fc) v = it.hist[m];
       else if (Array.isArray(it.fc)) v = it.fc[j];
       else {
-        const k = 1 + state.adj / 100;
+        // 貸款本息、投資扣款、稅費屬合約或法定金額，不隨經常性支出調整縮放
+        const k = (it.cat === 'ops' || it.cat === 'oth') ? 1 + state.adj / 100 : 1;
         if (it.fc === 'last') v = it.hist[H - 1] * k;
         else if (it.fc === 'avg') v = last3.reduce((a, i) => a + it.hist[i], 0) / 3 * k;
         else v = inflow * (last3.reduce((a, i) => a + it.hist[i], 0) / inflowBase) * k;
@@ -473,10 +473,8 @@ function renderBasin(closes){
     <linearGradient id="deep" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${WATER}" stop-opacity=".22"/><stop offset="1" stop-color="${WATER}" stop-opacity=".07"/></linearGradient>
     <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="${WATER}" fill-opacity=".05"/><line x1="0" y1="0" x2="0" y2="7" stroke="${WATER}" stroke-opacity=".32" stroke-width="1.2"/></pattern>
     <pattern id="hatchW" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="${WARN}" fill-opacity=".1"/><line x1="0" y1="0" x2="0" y2="6" stroke="${WARN}" stroke-opacity=".6" stroke-width="1.4"/></pattern>
-    <linearGradient id="sheenG" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".06"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
     <clipPath id="cH"><rect x="${x0}" y="0" width="${xs - x0}" height="${Hh}"/></clipPath>
     <clipPath id="cF"><rect x="${xs}" y="0" width="${x1 - xs}" height="${Hh}"/></clipPath>
-    <clipPath id="cW"><path d="${body}"/></clipPath>
     <mask id="gap"><rect x="${x0}" y="${yThr}" width="${x1 - x0}" height="${Math.max(0, yF - yThr)}" fill="#fff"/><path d="${body}" fill="#000"/></mask>
   </defs>`;
   // 格線（在水的下方，透過水看得到）
@@ -487,7 +485,6 @@ function renderBasin(closes){
   // 水體
   g += `<g clip-path="url(#cH)"><path d="${body}" fill="url(#deep)"/></g>`;
   g += `<g clip-path="url(#cF)"><path d="${body}" fill="url(#hatch)"/></g>`;
-  if (!reduced) g += `<g clip-path="url(#cW)"><rect class="sheen" x="${x0}" y="${yT}" width="160" height="${yF - yT}" fill="url(#sheenG)"/></g>`;
   // 低於最低現金的缺口
   g += `<rect x="${x0}" y="${yThr}" width="${x1 - x0}" height="${Math.max(0, yF - yThr)}" fill="url(#hatchW)" mask="url(#gap)" clip-path="url(#cF)"/>`;
   // 水面線
@@ -545,7 +542,11 @@ function renderBasin(closes){
   box.innerHTML = g;
 }
 
+// 同時只跑一條水位動畫：新的重畫會先取消上一條
+let basinRaf = 0;
+function stopTween(){ if (basinRaf){ cancelAnimationFrame(basinRaf); basinRaf = 0; } }
 function tweenBasin(){
+  stopTween();
   const target = model.months.map(m => m.close);
   if (reduced || !shown || shown.length !== target.length){ shown = target; renderBasin(target); return; }
   const from = shown.slice(), t0 = performance.now(), dur = 560;
@@ -553,9 +554,9 @@ function tweenBasin(){
     const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
     shown = from.map((v, i) => v + (target[i] - v) * e);
     renderBasin(shown);
-    if (k < 1) requestAnimationFrame(tick); else { shown = target; renderBasin(target); }
+    if (k < 1) basinRaf = requestAnimationFrame(tick); else { basinRaf = 0; shown = target; renderBasin(target); }
   };
-  requestAnimationFrame(tick);
+  basinRaf = requestAnimationFrame(tick);
 }
 
 /* ---------- 標題、狀態 ---------- */
@@ -767,7 +768,7 @@ function monthTip(i){
 function renderAll(opts){
   model = compute();
   renderHead();
-  if (opts && opts.instant){ shown = model.months.map(m => m.close); renderBasin(shown); } else tweenBasin();
+  if (opts && opts.instant){ stopTween(); shown = model.months.map(m => m.close); renderBasin(shown); } else tweenBasin();
   renderPipe(); renderLedger(); renderNet(); renderDrains(); renderTable();
 }
 function select(i){
@@ -806,8 +807,9 @@ function syncRanges(){
 document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => { if (b.dataset.preset !== state.preset) loadPreset(b.dataset.preset); }));
 $('minCash').addEventListener('input', e => { const v = parseFloat(e.target.value); if (!isNaN(v)) setMin(v); });
 $('minCash').addEventListener('change', e => { e.target.value = state.minCash; });
-$('growth').addEventListener('input', e => { state.growth = +e.target.value; syncRanges(); renderAll(); });
-$('adj').addEventListener('input', e => { state.adj = +e.target.value; syncRanges(); renderAll(); });
+// 拖動滑桿時每個 input 都直接畫到定位，不另開水位動畫
+$('growth').addEventListener('input', e => { state.growth = +e.target.value; syncRanges(); renderAll({instant:true}); });
+$('adj').addEventListener('input', e => { state.adj = +e.target.value; syncRanges(); renderAll({instant:true}); });
 $('oneOff').addEventListener('input', e => { const v = parseFloat(e.target.value); state.oneOff = isNaN(v) ? 0 : Math.max(0, v); renderAll(); });
 $('oneOffMonth').addEventListener('change', e => { state.oneOffMonth = +e.target.value; renderAll(); });
 $('reset').addEventListener('click', () => loadPreset(state.preset));
@@ -839,6 +841,8 @@ basinBox.addEventListener('pointerdown', e => {
   basinBox.setPointerCapture(e.pointerId);
   hideTip();
 });
+// 觸控從閘門開始時不讓瀏覽器拿去捲頁（否則會送出 pointercancel 立刻結束拖曳）
+basinBox.addEventListener('touchstart', e => { if (e.target.closest && e.target.closest('.gate')) e.preventDefault(); }, {passive:false});
 basinBox.addEventListener('pointermove', e => {
   const rect = basinBox.getBoundingClientRect(), sc = geo.W / rect.width, py = (e.clientY - rect.top) * sc;
   if (drag){

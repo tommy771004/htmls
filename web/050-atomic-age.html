@@ -41,9 +41,8 @@ button,input{font-family:inherit;color:inherit}
 /* steps */
 .steps{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:clamp(18px,3vw,34px);align-items:start;position:relative;z-index:1}
 @media (max-width:960px){.steps{grid-template-columns:minmax(0,1fr)}}
-.panel{background:#fffaf0;border:3px solid var(--ink);border-radius:36px 8px 36px 8px;padding:clamp(16px,2.4vw,28px);box-shadow:8px 8px 0 var(--mint)}
-.h{display:flex;align-items:center;gap:12px;margin:0 0 14px;font-style:italic;font-size:clamp(20px,2.2vw,26px)}
-.h b{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:var(--orange);color:var(--cream);font-size:18px;flex:none;box-shadow:3px 3px 0 var(--ink)}
+.panel{min-width:0}
+.h{margin:0 0 14px;font-style:italic;font-size:clamp(20px,2.2vw,26px)}
 .dests{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 @media (max-width:700px){.dests{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .dest{position:relative;border:3px solid var(--ink);background:var(--cream);border-radius:60px 14px 60px 14px;padding:12px 12px 14px;text-align:left;cursor:pointer;transition:transform .2s,background .2s,box-shadow .2s;box-shadow:4px 4px 0 var(--ink);min-height:44px}
@@ -56,7 +55,7 @@ button,input{font-family:inherit;color:inherit}
 .dest .pr{display:block;margin-top:6px;font-weight:bold;color:var(--orange)}
 .dest[aria-pressed="true"] .pr{color:var(--ink)}
 .blurb{margin:14px 0 0;font-family:var(--script);font-size:clamp(17px,1.7vw,20px);color:var(--brown);min-height:1.6em}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:28px}
 @media (max-width:620px){.row2{grid-template-columns:1fr}}
 .lbl{font-size:12px;letter-spacing:.2em;text-transform:uppercase;font-weight:bold;margin-bottom:6px;display:block}
 .classes{display:grid;gap:8px}
@@ -86,7 +85,7 @@ button,input{font-family:inherit;color:inherit}
 .sum dl{display:grid;grid-template-columns:1fr auto;gap:6px 12px;margin:0;font-size:14px}
 .sum dt{opacity:.8}
 .sum dd{margin:0;text-align:right;font-weight:bold}
-.sum .tot{border-top:2px dashed rgba(247,236,213,.5);margin-top:12px;padding-top:12px;display:flex;justify-content:space-between;align-items:baseline}
+.sum .tot{border-top:2px dashed rgba(247,236,213,.5);margin-top:12px;padding-top:12px;display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:space-between;align-items:baseline}
 .sum .tot b{font-size:clamp(30px,3.4vw,40px);font-style:italic;color:var(--mustard)}
 .go{width:100%;margin-top:16px;min-height:58px;border:3px solid var(--cream);border-radius:30px;background:var(--orange);color:var(--cream);font-size:20px;font-weight:bold;font-style:italic;letter-spacing:.04em;cursor:pointer;box-shadow:0 5px 0 #a8431b;transition:transform .1s}
 .go:hover{transform:translateY(-2px)}
@@ -163,7 +162,7 @@ footer span:nth-child(2){font-family:var(--script);text-transform:none;letter-sp
 
   <section class="steps">
     <div class="panel">
-      <h2 class="h"><b>1</b>Where to, space cadet?</h2>
+      <h2 class="h">Where to, space cadet?</h2>
       <div class="dests" id="dests" role="group" aria-label="Destinations"></div>
       <p class="blurb" id="blurb"></p>
 
@@ -189,7 +188,7 @@ footer span:nth-child(2){font-family:var(--script);text-transform:none;letter-sp
         </div>
       </div>
 
-      <span class="lbl" style="margin-top:18px">Space-age extras</span>
+      <span class="lbl" style="margin-top:28px">Space-age extras</span>
       <div class="adds" id="adds"></div>
     </div>
 
@@ -243,7 +242,7 @@ footer span:nth-child(2){font-family:var(--script);text-transform:none;letter-sp
     { id:'saturn', name:'Saturn', short:'SATURN', resort:'The Grand Ring Cruise', line:'Seven rings. Three buffets.', blurb:'A leisurely loop on the finest ice in the galaxy. Formal dinner every night, tuxedos pressurised.', price:12500, time:'31 days by Luxury Saucer', col:'#d9b77a', ring:true, pos:[405, 115], r:40 }
   ];
   var CLS = [ { n:'Coach Rocket', d:'Bench seat, window optional', k:1 }, { n:'Atomic Deluxe', d:'Hot dinner in a tube, reclining couch', k:1.8 }, { n:'Flying Saucer Suite', d:'Private airlock & cocktail robot', k:3.5 } ];
-  var WINS = [ { n:'Fri, June 13, 1958', d:'Evening launch · fireworks included', k:1 }, { n:'Sat, July 4, 1958', d:'Holiday surcharge · very patriotic', k:1.15 }, { n:'Wed, Oct 1, 1958', d:'Off-season · quietest countdown', k:.9 } ];
+  var WINS = [ { n:'Fri, June 13, 1958', d:'Evening launch · fireworks included', k:1 }, { n:'Fri, July 4, 1958', d:'Holiday surcharge · very patriotic', k:1.15 }, { n:'Wed, Oct 1, 1958', d:'Off-season · quietest countdown', k:.9 } ];
   var ADDS = [ { n:'Zero-G swim lessons', p:49 }, { n:'Moon-rock souvenir', p:12 }, { n:'Robot babysitter', p:85 }, { n:'Martian phrasebook', p:5 } ];
   var st = { d:0, c:0, w:0, pax:2, adds:{} };
   try{ var sv = JSON.parse(localStorage.getItem('atomic-holidays') || 'null'); if(sv && typeof sv === 'object'){ ['d','c','w','pax'].forEach(function(k){ if(typeof sv[k] === 'number') st[k] = sv[k]; }); } }catch(e){}
@@ -310,7 +309,7 @@ footer span:nth-child(2){font-family:var(--script);text-transform:none;letter-sp
     set('sumScript', d.name + ', darling!');
     var sl = $('sumList');
     if(sl) sl.innerHTML = '<dt>' + d.resort + '</dt><dd>' + money(d.price) + '</dd><dt>' + CLS[st.c].n + '</dt><dd>×' + CLS[st.c].k + '</dd><dt>' + WINS[st.w].n + '</dt><dd>×' + WINS[st.w].k + '</dd><dt>Passengers</dt><dd>' + st.pax + '</dd><dt>Extras</dt><dd>' + money(f.ex) + '</dd><dt>Galactic tax 3%</dt><dd>' + money(f.tax) + '</dd><dt>Atomic surcharge</dt><dd>' + money(f.sur) + '</dd>';
-    set('total', '$' + Math.round(f.tot).toLocaleString('en-US'));
+    set('total', money(f.tot));
     drawDest();
     try{ localStorage.setItem('atomic-holidays', JSON.stringify({ d:st.d, c:st.c, w:st.w, pax:st.pax })); }catch(e){}
     if(sound) blip();
@@ -354,7 +353,8 @@ footer span:nth-child(2){font-family:var(--script);text-transform:none;letter-sp
   var cl = $('close'); cl && cl.addEventListener('click', closePass);
   modal && modal.addEventListener('click', function(e){ if(e.target === modal) closePass(); });
   document.addEventListener('keydown', function(e){
-    if(e.key === 'Escape') closePass();
+    // while the boarding pass is open, only Esc does anything; arrows must not swap the trip behind it
+    if(modal && modal.classList.contains('on')){ if(e.key === 'Escape') closePass(); return; }
     if(e.target && e.target.tagName === 'INPUT') return;
     if(e.ctrlKey || e.metaKey || e.altKey) return;
     if(e.key === 'ArrowRight'){ st.d = (st.d + 1) % 4; update(true); }

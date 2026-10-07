@@ -21,13 +21,9 @@ body{margin:0;min-height:100vh;color:var(--ivory);font-family:var(--serif);
 main{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:clamp(20px,4vw,44px) clamp(16px,3vw,32px) 60px}
 
 header{text-align:center}
-.eyebrow{font-variant:small-caps;letter-spacing:.42em;font-size:13px;color:var(--mist);margin:0}
-h1{margin:6px 0 0;font-weight:400;font-variant:small-caps;letter-spacing:.14em;font-size:clamp(34px,6vw,68px);line-height:1;
-  color:var(--gold2);
-  background:linear-gradient(100deg,var(--gold3) 0%,var(--gold2) 30%,var(--gold) 50%,var(--gold2) 70%,var(--gold3) 100%);
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.sub{font-family:var(--script);font-size:clamp(20px,2.4vw,27px);color:var(--mist);margin:18px 0 0;line-height:1.2;font-feature-settings:"ss06"}
-.rule{display:block;margin:16px auto 0;width:min(420px,80%);height:20px}
+h1{margin:0;font-weight:400;font-variant:small-caps;letter-spacing:.14em;font-size:clamp(34px,6vw,68px);line-height:1;
+  color:var(--gold2);text-shadow:0 1px 0 var(--gold3)}
+.sub{font-family:var(--script);font-size:clamp(20px,2.4vw,27px);color:var(--mist);margin:8px 0 0;line-height:1.2;font-feature-settings:"ss06"}
 
 .table{position:relative;margin:clamp(22px,4vw,40px) auto 0;display:grid;grid-template-columns:repeat(3,minmax(0,220px));justify-content:center;gap:clamp(10px,3.4vw,54px)}
 .slot{display:flex;flex-direction:column;align-items:center;gap:12px;min-width:0}
@@ -46,7 +42,7 @@ h1{margin:6px 0 0;font-weight:400;font-variant:small-caps;letter-spacing:.14em;f
 .side svg{display:block;width:100%;height:100%}
 .face{transform:rotateY(180deg)}
 .back{box-shadow:0 18px 40px rgba(0,0,0,.55),0 0 0 1px rgba(227,194,122,.45)}
-.face.rev .art{transform:rotate(180deg);transform-origin:100px 170px}
+.face.rev svg{transform:rotate(180deg)}
 .slot .ori{height:18px;font-family:var(--script);font-size:18px;color:var(--gold2);opacity:0;transition:opacity .8s .6s}
 .slot.show .ori{opacity:1}
 
@@ -60,12 +56,10 @@ h1{margin:6px 0 0;font-weight:400;font-variant:small-caps;letter-spacing:.14em;f
 
 .reading{margin:clamp(28px,4vw,48px) auto 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(14px,2vw,28px);max-width:1040px}
 @media (max-width:760px){.reading{grid-template-columns:1fr}}
-.leaf{position:relative;padding:22px 22px 20px;background:rgba(48,22,78,.45);border:1px solid rgba(227,194,122,.22);border-radius:var(--r-m);
-  opacity:.35;transition:opacity .9s,transform .9s;transform:translateY(8px)}
-.leaf::before,.leaf::after{content:"";position:absolute;width:14px;height:14px;border:1px solid var(--gold3)}
-.leaf::before{top:8px;left:8px;border-right:0;border-bottom:0}
-.leaf::after{bottom:8px;right:8px;border-left:0;border-top:0}
-.leaf.on{opacity:1;transform:none}
+.leaf{position:relative;padding:18px 0 0;border-top:1px solid rgba(227,194,122,.35)}
+@media (min-width:761px){.leaf{grid-row:1}.leaf:nth-child(1){grid-column:1}.leaf:nth-child(2){grid-column:2}.leaf:nth-child(3){grid-column:3}}
+.leaf.on{animation:leafIn .9s both}
+@keyframes leafIn{from{opacity:0;transform:translateY(8px)}}
 .leaf h3{margin:0;font-weight:400;font-variant:small-caps;letter-spacing:.2em;font-size:12px;color:var(--mist)}
 .leaf h4{margin:6px 0 0;font-weight:400;font-size:clamp(22px,2.4vw,28px);font-variant:small-caps;letter-spacing:.06em;color:var(--gold2)}
 .leaf h4 i{font-family:var(--script);font-variant:normal;font-size:.72em;color:var(--mist);letter-spacing:0;margin-left:6px}
@@ -80,17 +74,15 @@ footer{text-align:center;margin-top:44px;font-size:12px;letter-spacing:.2em;font
   .slot .pos{letter-spacing:.14em}
   .slot .ori{font-size:15px}
 }
-@media (prefers-reduced-motion:reduce){.inner{transition-duration:.01s}}
+@media (prefers-reduced-motion:reduce){.inner{transition-duration:.01s}.leaf.on{animation:none}}
 </style>
 </head>
 <body>
 <canvas id="sky" aria-hidden="true"></canvas>
 <main>
   <header>
-    <p class="eyebrow">parlour of the</p>
     <h1>The Hollow Moon</h1>
     <p class="sub">Shuffle with intention. Choose with your left hand, if you are brave.</p>
-    <svg class="rule" viewBox="0 0 420 20" aria-hidden="true"><g fill="none" stroke="#a8843f" stroke-width="1"><path d="M0 10H170M250 10H420"/><path d="M186 10 a24 24 0 0 0 48 0" /></g><circle cx="210" cy="10" r="6" fill="#e3c27a"/><circle cx="204" cy="8" r="5" fill="#26103f"/><path d="M172 10l6-4 6 4-6 4z M236 10l6-4 6 4-6 4z" fill="#e3c27a"/></svg>
   </header>
 
   <section class="table" id="table" aria-label="Three card spread"></section>
@@ -279,10 +271,12 @@ footer{text-align:center;margin-top:44px;font-size:12px;letter-spacing:.2em;font
   }
   function setLeaf(i){
     const d = draw[i], c = DECK[d.n];
+    // a face-down card has no reading yet: keep its leaf out of view until it is turned
+    leaves[i].hidden = !d.open;
     leaves[i].className = 'leaf' + (d.open ? ' on' : '');
     leaves[i].innerHTML = d.open
       ? `<h3>${POS[i][0]} · ${POS[i][1]}</h3><h4>${c.n}<i>${d.rev ? 'reversed' : 'upright'}</i></h4><p>${d.rev ? c.r : c.u}</p><div class="kw">${c.k}</div>`
-      : `<h3>${POS[i][0]} · ${POS[i][1]}</h3><h4>· · ·</h4><p>This card is still face down. The future is rude like that.</p>`;
+      : '';
   }
   function deal(){
     draw = pick();

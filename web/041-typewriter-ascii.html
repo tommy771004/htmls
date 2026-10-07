@@ -39,7 +39,7 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 
 /* ---------- masthead ---------- */
 .mast{border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:clamp(18px,3vw,30px);position:relative}
-.mast-top{padding-right:0;display:flex;flex-wrap:wrap;gap:4px 22px;justify-content:space-between;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);border-bottom:1px solid rgba(29,27,23,.35);padding-bottom:8px;margin-bottom:10px}
+.mast-top{padding-right:0;display:flex;flex-wrap:wrap;gap:4px 22px;justify-content:space-between;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);padding-bottom:4px;margin-bottom:10px}
 .mast-top b{color:var(--red);font-weight:bold}
 .mast-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:clamp(16px,3vw,48px);align-items:end}
 @media (max-width:900px){.mast-row{grid-template-columns:minmax(0,1fr)}}
@@ -189,14 +189,14 @@ kbd{font-family:inherit;border:1px solid var(--ink-soft);border-bottom-width:2px
 .status{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;margin-top:12px;color:var(--ink-soft);letter-spacing:.06em}
 .status b{color:var(--red);font-weight:bold}
 #kb{position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0;font-size:16px;border:0;padding:0;pointer-events:none}
-footer{margin-top:34px;border-top:1px solid rgba(29,27,23,.35);padding-top:10px;font-size:11px;letter-spacing:.12em;color:var(--ink-soft);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;text-transform:uppercase}
+footer{margin-top:34px;font-size:11px;letter-spacing:.12em;color:var(--ink-soft);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;text-transform:uppercase}
 @media (prefers-reduced-motion:reduce){.ln .hit{animation:none}.paper{transition:opacity .3s}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="mast">
-    <div class="mast-top"><span>Halcyon No. 5 &middot; Elite 10-pitch</span><span>Ribbon: black / <b>red</b></span><span>Portfolio of six plates</span></div>
+    <div class="mast-top"><span>Halcyon No. 5 &middot; Elite 12-pitch</span><span>Ribbon: black / <b>red</b></span><span>Portfolio of six plates</span></div>
     <div class="mast-row"><h1 id="h1">The Carriage <span class="r">Returns.</span></h1>
     <p>Six pictures made of nothing but letters, typed live, one strike at a time. Pick a plate from the index. When the machine is done, take a turn yourself &mdash; there is no delete key.</p></div>
     <div class="stamp">Typed, not<br>printed</div>
@@ -250,14 +250,13 @@ footer{margin-top:34px;border-top:1px solid rgba(29,27,23,.35);padding-top:10px;
       <span class="lbl">Odometer</span>
       <div class="meter">
         <span>Strikes</span><b id="strikes">000000</b>
-        <span>Ribbon</span><div class="bar" title="Ribbon life"><i id="ribbon" style="width:100%"></i></div>
+        <span>Ribbon <span id="ribPct">100</span>%</span><div class="bar" title="Ribbon life"><i id="ribbon" style="width:100%"></i></div>
       </div>
-      <button type="button" class="btn wide" id="reinkBtn" style="width:100%">Re-ink ribbon (<span id="ribPct">100</span>%)</button>
-      <p class="hint">The ribbon fades as you type. Letters come out uneven on purpose: that is what a hammer, a strip of inked cloth and a sheet of paper do.</p>
+      <button type="button" class="btn wide" id="reinkBtn" style="width:100%">Re-ink</button>
     </aside>
   </main>
 
-  <footer><span>Set in Courier New, struck by hand</span><span>Margin bell rings at column 35</span><span>No plates were harmed</span></footer>
+  <footer><span>Margin bell rings at column 35</span></footer>
   <input id="kb" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Type on the page">
 </div>
 
@@ -651,6 +650,7 @@ footer{margin-top:34px;border-top:1px solid rgba(29,27,23,.35);padding-top:10px;
       newPaper();
       run(g, buildPage(p)).then(function(){
         if(g !== gen) return;
+        if(strikesEl) strikesEl.textContent = ('000000' + strikes).slice(-6); // instant mode only painted every 3rd strike
         instant = false; mode = 'user';
         ret();
         guide.classList.add('idle');
@@ -740,6 +740,7 @@ footer{margin-top:34px;border-top:1px solid rgba(29,27,23,.35);padding-top:10px;
     var fromKb = e.target === kb;
     var tag = e.target && e.target.tagName;
     if(!fromKb && (tag === 'BUTTON') && (e.key === ' ' || e.key === 'Enter')) return;
+    if(e.key === 'Tab' && !fromKb) return; // only tab-stop on the paper; elsewhere Tab moves focus
     if(e.key === 'ArrowRight'){ e.preventDefault(); typePlate(plateIdx + 1); return; }
     if(e.key === 'ArrowLeft'){ e.preventDefault(); typePlate(plateIdx - 1); return; }
     if(e.key === 'Escape'){ finish(); return; }

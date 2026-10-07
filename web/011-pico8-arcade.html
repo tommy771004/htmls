@@ -87,6 +87,12 @@ body{
   #modelTxt canvas{max-width:112px;height:auto!important}
   #pwrTxt canvas{max-width:70px;height:auto!important}
 }
+@media (orientation:landscape) and (max-height:500px){
+  .handheld{display:grid;grid-template-columns:auto auto auto;grid-template-areas:"brand brand brand" "dpad bezel ab" "meta meta meta";align-items:center;justify-items:center;gap:10px 20px}
+  .brand{grid-area:brand}.bezel{grid-area:bezel}.meta{grid-area:meta}
+  .controls{display:contents}
+  .dpad{grid-area:dpad}.ab{grid-area:ab}
+}
 </style>
 </head>
 <body>
@@ -94,7 +100,6 @@ body{
 <main class="stage">
   <aside class="side left" aria-label="High score table">
     <div class="panel-wrap"><div class="panel pink" id="hiPanel"></div></div>
-    <div class="panel-wrap"><div class="panel" id="cartPanel"></div></div>
   </aside>
 
   <section class="handheld-wrap" aria-label="STAR DODGE game console">
@@ -496,15 +501,8 @@ function drawChrome(){
   if(hiscore>0) table.push(['YOU',hiscore]); table.sort((a,b)=>b[1]-a[1]);
   const rows=[{t:'HIGH SCORES',c:10,sh:0,s:2},{gap:6}];
   table.slice(0,6).forEach((r,i)=>rows.push({t:(i+1)+'. '+r[0]+'  '+pad(r[1],5),c:r[0]==='YOU'?11:(i===0?10:7),gap:9}));
-  rows.push({gap:4},{t:'BEAT ZIG. NOBODY HAS.',c:14});
+  rows.push({gap:4},{t:hiscore>4210?'YOU BEAT ZIG. WOW.':'BEAT ZIG. NOBODY HAS.',c:14});
   mount('hiPanel',textCanvas(rows,2));
-  mount('cartPanel',textCanvas([
-    {t:'CART INFO',c:12,s:2},{gap:4},
-    {t:'SIZE   128 X 128 PX',c:6,gap:9},
-    {t:'COLOURS    16, NO MORE',c:6,gap:9},
-    {t:'CPU        MOSTLY PANIC',c:6,gap:9},
-    {t:'SAVES      HI-SCORE ONLY',c:6,gap:9},
-  ],2));
   mount('manPanel',textCanvas([
     {t:'HOW TO FLY',c:10,sh:2,s:2},{gap:6},
     {t:'THE ASTEROID BELT IS',c:7,gap:8},
@@ -527,8 +525,10 @@ drawChrome();
 function fit(){
   const vw=document.documentElement.clientWidth, vh=innerHeight;
   const wide=vw>=1100;
-  const availW=Math.min(vw-84,560);
-  const availH=wide?vh-270:9999;
+  /* short landscape (phone on its side): d-pad and buttons flank the screen, so only brand + meta rows eat height */
+  const land=!!(window.matchMedia&&matchMedia('(orientation:landscape) and (max-height:500px)').matches);
+  const availW=Math.min(vw-(land?360:84),560);
+  const availH=vh-(land?180:wide?270:230);
   let s=Math.min(availW,availH)/128;
   if(s>=3) s=Math.floor(s);
   s=Math.max(1.6,s);

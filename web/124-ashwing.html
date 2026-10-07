@@ -29,19 +29,15 @@ body.playing #gl{cursor:none}
 .scr[hidden]{display:none}
 #title{background:linear-gradient(90deg,#1b0b08f0 0%,#1b0b08b0 36%,#1b0b0800 68%)}
 .panel{position:relative;max-width:560px;padding:30px 32px;animation:rise .9s cubic-bezier(.2,.7,.2,1) both}
-.panel::before,.panel::after{content:"";position:absolute;width:24px;height:24px;border:1px solid var(--cy)}
-.panel::before{left:0;top:0;border-right:0;border-bottom:0}
-.panel::after{right:0;bottom:0;border-left:0;border-top:0}
 @keyframes rise{from{opacity:0;transform:translateY(14px)}}
-.kick{font-size:11px;letter-spacing:.34em;color:var(--am);text-transform:uppercase;display:flex;gap:10px;align-items:center}
-.kick::before{content:"";width:28px;height:1px;background:var(--am)}
+.kick{font-size:11px;letter-spacing:.2em;color:var(--am)}
 h1{font-size:clamp(48px,8.4vw,100px);margin:12px 0 0;font-weight:700;letter-spacing:.08em;line-height:1;text-shadow:0 2px 24px #0006}
 .en{font-size:clamp(12px,1.5vw,15px);letter-spacing:.7em;color:var(--cy);margin:12px 0 18px}
 .lede{font-size:14px;line-height:1.8;color:var(--dim);margin:0 0 20px;max-width:450px}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:7px 16px;font-size:12.5px;margin:0 0 26px;padding:14px 0 0;border-top:1px solid #f2fbf826}
 .keys dt{color:var(--cy);letter-spacing:.08em;white-space:nowrap;font-variant-numeric:tabular-nums}
 .keys dd{margin:0;color:var(--dim)}
-.btn{appearance:none;font:inherit;color:var(--ink);background:#ffffff0a;border:1px solid var(--line);border-radius:var(--r-s);padding:13px 24px;letter-spacing:.26em;font-size:13px;cursor:pointer;text-transform:uppercase;transition:background .15s,color .15s}
+.btn{appearance:none;font:inherit;color:var(--ink);background:#ffffff0a;border:1px solid var(--line);border-radius:var(--r-s);padding:13px 24px;letter-spacing:.06em;font-size:13px;cursor:pointer;transition:background .15s,color .15s}
 .btn:hover,.btn:focus-visible{background:var(--cy);color:#1b0b08;outline:none}
 .btn.ghost{border-color:#f2fbf866;color:var(--dim)}
 .row{display:flex;gap:10px;flex-wrap:wrap}
@@ -70,7 +66,6 @@ body.touch .tch{display:grid}
 body.touch .desk{display:none}
 @media (max-width:680px){
   #title{background:linear-gradient(180deg,#1b0b0820 0%,#1b0b0870 30%,#1b0b08d8 58%,#1b0b08f4 100%);align-items:flex-end}
-  .kick{letter-spacing:.2em}
   .panel{padding:22px 20px}
   .lede{font-size:13px}
   .keys{font-size:12px;gap:6px 12px}
@@ -90,10 +85,10 @@ body.touch .desk{display:none}
 
 <section class="scr" id="title" aria-labelledby="gameTitle">
   <div class="panel">
-    <div class="kick">Episode 1 · 赤砂峽谷 Crimson Gorge</div>
+    <div class="kick">EPISODE 1 · 赤砂峽谷</div>
     <h1 id="gameTitle">灰燼之翼</h1>
     <div class="en">ASHWING</div>
-    <p class="lede">舊世界的巨械在沙海下沉睡了三百年。你騎著最後一頭裝甲飛龍，沿古代航道穿過赤砂峽谷與沉沒神殿，追擊剛剛甦醒的骸天鯨。敵人會從四面八方出現，隨時轉頭看看身後。</p>
+    <p class="lede">追擊剛甦醒的骸天鯨，敵人會從身後出現。</p>
     <dl class="keys desk">
       <dt>滑鼠</dt><dd>移動準心</dd>
       <dt>點擊左鍵</dt><dd>快速射擊</dd>
@@ -109,7 +104,7 @@ body.touch .desk{display:none}
       <dt>◀ ▶</dt><dd>視角左轉 ／ 右轉</dd>
     </dl>
     <div class="row">
-      <button class="btn" id="startBtn">起飛 · Launch</button>
+      <button class="btn" id="startBtn">起飛</button>
       <button class="btn ghost" id="bossBtn">直接挑戰頭目</button>
     </div>
   </div>
@@ -117,7 +112,6 @@ body.touch .desk{display:none}
 
 <section class="scr center" id="pause" hidden aria-labelledby="pauseTitle">
   <div class="panel">
-    <p class="sub">SYSTEM HOLD</p>
     <div class="big" id="pauseTitle">暫停</div>
     <p class="sub" id="pauseInfo">&nbsp;</p>
     <div class="row" style="margin-top:24px">
@@ -130,7 +124,6 @@ body.touch .desk{display:none}
 
 <section class="scr center" id="over" hidden aria-labelledby="overTitle">
   <div class="panel">
-    <p class="sub">DRAGON LOST</p>
     <div class="big" id="overTitle">墜落</div>
     <p class="sub" id="overInfo">&nbsp;</p>
     <div class="row" style="margin-top:26px">
@@ -142,7 +135,6 @@ body.touch .desk{display:none}
 
 <section class="scr center" id="clear" hidden aria-labelledby="clearTitle">
   <div class="panel">
-    <p class="sub">EPISODE 1 · STAGE CLEAR</p>
     <div class="big" id="clearTitle">骸天鯨 擊墜</div>
     <div class="rank" id="rank">A</div>
     <div class="stats" id="stats"></div>
@@ -642,7 +634,8 @@ class Enemy{constructor(kind,o={}){const d=DEF[kind];this.kind=kind;this.d=d;thi
     this.b0=o.b0??beatNow;this.K=o.keys||null;this.fire=o.fire||[];this.fi=0;this.pat=o.pat||'aim';this.spd=o.spd||24;this.world=!!o.world;this.upd=o.update||null;this.data=o.data||{};
     this.lp=new V3();this.wp=new V3();this.vel=new V3();this.locks=0;this.lastLock=-9;this.age=0;this.sx=-9;this.sy=-9;this.on=false;
     this.m=d.mk();this.o=this.m.g;(this.world?scene:railSpace).add(this.o);if(this.K){keyAt(this.K,0,this.lp);this.o.position.copy(this.lp)}
-    stat.spawned++;T.push(this)}
+    // noStat：頭目放出的追蹤棘刺與增援，數量取決於頭目戰長短，不計入擊墜率（擊落仍得分）
+    this.noStat=!!o.noStat;if(!this.noStat)stat.spawned++;T.push(this)}
   step(dt){this.age+=dt;const b=beatNow-this.b0;
     if(this.upd){if(this.upd(this,dt,b)===false)return this.remove()}
     else{if(b>this.K[this.K.length-1][0])return this.remove();keyAt(this.K,b,_v);this.vel.subVectors(_v,this.lp).divideScalar(Math.max(dt,1e-4));this.lp.copy(_v);this.o.position.copy(_v);
@@ -659,7 +652,7 @@ class Enemy{constructor(kind,o={}){const d=DEF[kind];this.kind=kind;this.d=d;thi
   hit(dmg,laser){if(!this.alive)return false;this.hp-=dmg;hitSpark(this.lp,laser);if(this.hp<=0){this.kill(true);return true}sfx('hit');return false}
   kill(scored){if(!this.alive)return;const big=this.d.big;burst(this.lp,big?3:1.15,this.d.col,this.world?speedNow:0);
     if(this.data.segs)this.data.segs.forEach((s,i)=>{if(i%2===0)burst(s.position,1.6,0xc98b5a)});
-    shake=Math.max(shake,big?.9:.22);sfx(big?'boom':'pop',this.lp);if(scored){score+=this.score;stat.kills++;popup(this.lp,'+'+this.score)}this.remove()}
+    shake=Math.max(shake,big?.9:.22);sfx(big?'boom':'pop',this.lp);if(scored){score+=this.score;if(!this.noStat)stat.kills++;popup(this.lp,'+'+this.score)}this.remove()}
   remove(){this.alive=false;this.lockable=false;if(this.o.parent)this.o.parent.remove(this.o);if(this.data.segs)this.data.segs.forEach(s=>railSpace.remove(s));const i=T.indexOf(this);if(i>=0)T.splice(i,1)}}
 function fanShot(o,n,spread,spd,kind){const u=_v2.subVectors(P.lp,o).normalize(),px=_v3.crossVectors(u,UP).normalize();
   for(let k=0;k<n;k++){const a=(k-(n-1)/2)*spread,c=Math.cos(a),s=Math.sin(a);bullet(o.x,o.y,o.z,(u.x*c+px.x*s)*spd,(u.y*c+px.y*s)*spd,(u.z*c+px.z*s)*spd,kind)}}
@@ -789,11 +782,11 @@ function bossUpdate(dt){const B=BOSS;
   if(!P.alive||boss.phase===0||boss.phase===4)return;
   const bar=Math.floor(b/4),q=bi%4;
   if(boss.phase===1&&nb){if(!moving&&bi%2===0){fanShot(mouth,5,.14,26,1);sfx('eshot',mouth)}
-    if(bi%16===8)for(let k=0;k<2;k++){const s=k?1:-1;new Enemy('wasp',{keys:[[0,bp.x,bp.y+4,bp.z],[3,bp.x*.55+s*10,8,bp.z*.55],[7,s*14,4,-40],[11,-s*20,10,-60],[14,-s*70,24,-150]],fire:[4,6,8],spd:22})}}
+    if(bi%16===8)for(let k=0;k<2;k++){const s=k?1:-1;new Enemy('wasp',{keys:[[0,bp.x,bp.y+4,bp.z],[3,bp.x*.55+s*10,8,bp.z*.55],[7,s*14,4,-40],[11,-s*20,10,-60],[14,-s*70,24,-150]],fire:[4,6,8],spd:22,noStat:true})}}
   if(boss.phase===2){const c=bar%4;
     if(c===0){boss.aim.lerp(P.lp,1-Math.exp(-2.2*dt));boss.streamT-=dt;if(boss.streamT<=0){boss.streamT=.1;const u=_v.subVectors(boss.aim,mouth).normalize().multiplyScalar(30);bullet(mouth.x,mouth.y,mouth.z,u.x,u.y,u.z,1);if(Math.random()<.4)sfx('eshot',mouth)}}
     else boss.aim.copy(mouth);
-    if(nb&&c===1&&q===0)for(let k=0;k<4;k++){const e=new Enemy('spike',{update:spikeUpdate,data:{v0:new V3((k-1.5)*7,14,rr(-4,4))}});e.lp.copy(bp).y+=6;e.o.position.copy(e.lp)}
+    if(nb&&c===1&&q===0)for(let k=0;k<4;k++){const e=new Enemy('spike',{update:spikeUpdate,noStat:true,data:{v0:new V3((k-1.5)*7,14,rr(-4,4))}});e.lp.copy(bp).y+=6;e.o.position.copy(e.lp)}
     if(nb&&c===2&&q%2===0){fanShot(mouth,5,.14,26,1);sfx('eshot',mouth)}
     if(nb&&c===3&&q===0&&bar%8===7){boss.dash={b0:b,a:bp.clone(),c:polar(boss.ang+Math.PI,92,6,new V3())};hint('頭目飛越頭頂　注意轉向',false)}}
   if(boss.phase===3){if(nb&&!moving&&q%2===0){ringShot(mouth,14,24,.26,1,bi*.3);sfx('eshot',mouth)}
@@ -906,12 +899,15 @@ function banner(top,main,sub,warn=false){msgs.banner={top,main,sub,warn,t:0}}
 function hint(text,warn=false){msgs.hint={text,warn,t:0}}
 function popup(lp,text){const w=lp.clone();railSpace.localToWorld(w);msgs.pops.push({w,text,t:0})}
 function popupScreen(text){msgs.pops.push({sx:W/2,sy:H*.62,text,t:0,big:true})}
-function txt(g,s,x,y,size,col,weight=500,align='left',ls=0){g.font=`${weight} ${size}px ${FONT}`;g.fillStyle=col;g.textAlign=align;if('letterSpacing'in g)g.letterSpacing=ls+'px';g.fillText(s,x,y)}
+// 文字可讀性用一圈暗色描邊（不用 shadowBlur，避免每次繪製都做模糊）；描邊前後保留呼叫端的線條設定
+const TXT_OUT='rgba(46,14,4,.6)';
+function txt(g,s,x,y,size,col,weight=500,align='left',ls=0){g.font=`${weight} ${size}px ${FONT}`;g.fillStyle=col;g.textAlign=align;if('letterSpacing'in g)g.letterSpacing=ls+'px';
+  const ss=g.strokeStyle,lw=g.lineWidth;g.strokeStyle=TXT_OUT;g.lineWidth=2;g.strokeText(s,x,y);g.strokeStyle=ss;g.lineWidth=lw;g.fillText(s,x,y)}
 function drawHUD(dt){const g=hud,u=UI;g.setTransform(DPR,0,0,DPR,0,0);g.clearRect(0,0,W,H);
   if(flashT>0){g.fillStyle=`rgba(255,238,210,${flashT*(RMQ.matches?.3:.85)})`;g.fillRect(0,0,W,H)}
   if(state!=='play'&&state!=='paused')return;
   {const sh=g.createLinearGradient(0,0,0,96*u);sh.addColorStop(0,'rgba(40,14,6,.38)');sh.addColorStop(1,'rgba(40,14,6,0)');g.fillStyle=sh;g.fillRect(0,0,W,96*u)}
-  g.textBaseline='middle';g.lineJoin='round';g.shadowColor='rgba(46,14,4,.6)';g.shadowBlur=5;
+  g.textBaseline='middle';g.lineJoin='round';
   if(dmgFlash>0){const gr=g.createRadialGradient(W/2,H/2,Math.min(W,H)*.28,W/2,H/2,Math.max(W,H)*.75);gr.addColorStop(0,'rgba(255,50,20,0)');gr.addColorStop(1,`rgba(255,50,20,${.5*dmgFlash})`);g.fillStyle=gr;g.fillRect(0,0,W,H)}
   const pad=20*u;
   // 目標框與鎖定標記
@@ -956,7 +952,7 @@ function drawHUD(dt){const g=hud,u=UI;g.setTransform(DPR,0,0,DPR,0,0);g.clearRec
     txt(g,'VIEW · '+VIEWN[view],cx,cy+Rr+15*u,10.5*u,viewFlash>0?CY:LINE,600,'center',2)}
   // 畫面邊緣方向提示
   for(let q=0;q<4;q++){if(q===view||!cnt[q])continue;const rel=(q-view+4)%4,al=.72+.28*Math.sin(gT*9),c=`rgba(255,191,107,${al})`,lab=VIEWN[q];
-    g.strokeStyle=c;g.lineWidth=3;g.shadowBlur=8;
+    g.strokeStyle=c;g.lineWidth=3;
     if(rel!==2){const sd=rel===1?1:-1,x=sd>0?W-pad:pad,y=H*.45;g.beginPath();for(let k=0;k<2;k++){const xx=x-sd*k*10*u;g.moveTo(xx-sd*9*u,y-11*u);g.lineTo(xx,y);g.lineTo(xx-sd*9*u,y+11*u)}g.stroke();txt(g,lab,x-sd*26*u,y+26*u,11*u,c,700,sd>0?'right':'left',2)}
     else{const y=H-(TOUCH?76:50*u);g.beginPath();for(let k=0;k<2;k++){const yy=y+k*8*u;g.moveTo(W/2-11*u,yy-5*u);g.lineTo(W/2,yy+4*u);g.lineTo(W/2+11*u,yy-5*u)}g.stroke();txt(g,lab,W/2,y-14*u,11*u,c,700,'center',2)}}
   // 頭目體力
@@ -972,8 +968,7 @@ function drawHUD(dt){const g=hud,u=UI;g.setTransform(DPR,0,0,DPR,0,0);g.clearRec
   const Hn=msgs.hint;if(Hn){Hn.t+=dt;const a=Math.min(1,Hn.t*3)*Math.min(1,(4.6-Hn.t)*1.5);if(a<=0)msgs.hint=null;else{g.globalAlpha=a;const y=Math.max(H*.17,118*u);g.font=`600 ${13*u}px ${FONT}`;if('letterSpacing'in g)g.letterSpacing='1px';const w=g.measureText(Hn.text).width+36*u;
     g.fillStyle='rgba(27,11,8,.55)';g.beginPath();if(g.roundRect)g.roundRect(W/2-w/2,y-16*u,w,32*u,6*u);else g.rect(W/2-w/2,y-16*u,w,32*u);g.fill();g.strokeStyle=Hn.warn?AM:'rgba(242,252,248,.5)';g.lineWidth=1;g.stroke();txt(g,Hn.text,W/2,y+1,13*u,Hn.warn?AM:LINE,600,'center',1);g.globalAlpha=1}}
   for(let i=msgs.pops.length-1;i>=0;i--){const p=msgs.pops[i];p.t+=dt;if(p.t>1.2){msgs.pops.splice(i,1);continue}let x=p.sx,y=p.sy;
-    if(p.w){_v.copy(p.w).project(camera);if(_v.z>1)continue;x=(_v.x+1)/2*W;y=(1-_v.y)/2*H}g.globalAlpha=Math.min(1,(1.2-p.t)*3);txt(g,p.text,x,y-p.t*26*u,(p.big?17:12)*u,p.big?CY:LINE,700,'center',1);g.globalAlpha=1}
-  g.shadowBlur=0}
+    if(p.w){_v.copy(p.w).project(camera);if(_v.z>1)continue;x=(_v.x+1)/2*W;y=(1-_v.y)/2*H}g.globalAlpha=Math.min(1,(1.2-p.t)*3);txt(g,p.text,x,y-p.t*26*u,(p.big?17:12)*u,p.big?CY:LINE,700,'center',1);g.globalAlpha=1}}
 
 /* ---------- 音樂：D Hijaz（弗里吉亞屬音階）民族風管弦樂，100 BPM 即時合成 ---------- */
 const AU={ctx:null,muted:false,lastE:0};
@@ -1098,7 +1093,7 @@ at(47,()=>{banner('WARNING','巨大生體反應','HOSTILE COLOSSUS APPROACHING',
 at(48.5,()=>heal(40));
 at(B_BOSS,()=>bossStart());
 EV.sort((a,b)=>a.b-b.b);
-let cp={bar:0,score:0,stat:{...stat}},attT=0;
+let cp={bar:0,score:0,stat:{...stat}},attT=0,pausedDrawn=false;
 const screens=['title','pause','over','clear'];
 function show(id){for(const s of screens)$(s).hidden=s!==id;if(id)$(id).querySelector('button')?.focus({preventScroll:true});else canvas.focus({preventScroll:true})}
 function clearWorld(){for(let i=T.length-1;i>=0;i--)if(T[i]&&T[i].remove)T[i].remove();T.length=0;BUL.n=0;BUL.g.setDrawRange(0,0);sparks.clear();smoke.clear();shN=0;shardM.count=0;
@@ -1126,7 +1121,7 @@ $('retryBtn').onclick=()=>startRun(cp.bar,true);$('restartBtn').onclick=()=>star
 addEventListener('blur',()=>pause());document.addEventListener('visibilitychange',()=>{if(document.hidden)pause()});
 addEventListener('pointerdown',()=>{if(AU.ctx&&AU.ctx.state==='suspended'&&state!=='paused')AU.ctx.resume()});
 function resize(){W=innerWidth;H=innerHeight;renderer.setSize(W,H,false);hudC.width=Math.round(W*DPR);hudC.height=Math.round(H*DPR);const a=W/H;camera.aspect=a;
-  baseFov=a>=1?62:Math.min(92,2*Math.atan(Math.tan(35*Math.PI/180)/a)*180/Math.PI);camera.fov=baseFov+fovKick;camera.updateProjectionMatrix();UI=clamp(Math.min(W,H)/820,.72,1.25);const sc=H*DPR/2;scaleUniforms.forEach(u=>u.value=sc)}
+  baseFov=a>=1?62:Math.min(92,2*Math.atan(Math.tan(35*Math.PI/180)/a)*180/Math.PI);camera.fov=baseFov+fovKick;camera.updateProjectionMatrix();UI=clamp(Math.min(W,H)/820,.72,1.25);const sc=H*DPR/2;scaleUniforms.forEach(u=>u.value=sc);pausedDrawn=false}
 addEventListener('resize',resize);resize();
 
 function envFollow(dt){sky.position.copy(camW);for(const r of ridges)r.position.set(camW.x,0,camW.z);skyMat.uniforms.uT.value=gT;updDust(dt,speedNow)}
@@ -1146,6 +1141,8 @@ function stepAttract(dt){attT+=dt;gT=2*BAR+(attT%(44*BAR));beatNow=gT/BEAT;speed
   updCamera(dt);envFollow(dt)}
 let last=performance.now();
 function frame(now){requestAnimationFrame(frame);const dt=clamp((now-last)/1000,.001,.05);last=now;
+  // 暫停時畫面靜止：只渲染一次（視窗大小改變時再補一次），之後跳過 3D 與 HUD
+  if(state==='paused'){if(pausedDrawn)return;pausedDrawn=true}else pausedDrawn=false;
   if(state==='play'||state==='over'||state==='clear')stepGame(dt,state==='play');else if(state==='title')stepAttract(RMQ.matches?0:dt);
   renderer.render(scene,camera);drawHUD(state==='paused'?0:dt)}
 $('loading').hidden=true;

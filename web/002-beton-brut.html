@@ -201,7 +201,7 @@ footer .big span{color:var(--rust)}
   <header class="mast">
     <div class="m1 conc dark"><h1>Concrete</h1></div>
     <div class="m2 conc light">
-      <div class="txt"><h2>Archive</h2><p class="note" style="margin-top:8px">14 structures · 1 material · 0 apologies</p></div>
+      <div class="txt"><h2>Archive</h2><p class="note" style="margin-top:8px">14 structures · 1 material</p></div>
       <div class="rustband" aria-hidden="true"></div>
     </div>
     <div class="m3 conc light">
@@ -215,8 +215,8 @@ footer .big span{color:var(--rust)}
       <div class="note kv">
         <span><i>Standing</i><b id="k-st">—</b></span>
         <span><i>Demolished</i><b id="k-dm">—</b></span>
-        <span><i>Oldest</i><b>1952</b></span>
-        <span><i>Softest</i><b>None</b></span>
+        <span><i>Oldest</i><b id="k-old">1952</b></span>
+        <span><i>Newest</i><b id="k-new">1986</b></span>
       </div>
     </div>
     <div class="pilotis" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
@@ -263,28 +263,28 @@ footer .big span{color:var(--rust)}
      f:'Two laboratory wings flank a travertine plaza split by a single water channel aimed at the Pacific.',sh:'salk'},
     {id:'BA-003',n:'Tricorn Centre',a:'Owen Luder',y:1966,c:'Portsmouth, UK',t:'Commercial',s:'Demolished',tone:'mid',sz:'',
      f:'Once voted “the ugliest building in Britain”. Demolished <b>2004</b>. Luder: “I did not design it to be liked.”',sh:'tricorn'},
-    {id:'BA-004',n:'Habitat 67',a:'Moshe Safdie',y:1967,c:'Montréal, CA',t:'Housing',s:'Standing',tone:'light',sz:'w2',
+    {id:'BA-004',n:'Kyoto Int. Conference Hall',a:'Sachio Otani',y:1966,c:'Kyoto, JP',t:'Civic',s:'Standing',tone:'dark',sz:'',
+     f:'Trapezoids and inverted trapezoids, a roof borrowed from the gasshō farmhouse and poured in grey.',sh:'kyoto'},
+    {id:'BA-005',n:'Habitat 67',a:'Moshe Safdie',y:1967,c:'Montréal, CA',t:'Housing',s:'Standing',tone:'light',sz:'w2',
      f:'354 prefabricated boxes stacked like a thesis project that escaped. Which it was: Safdie was 23 when he designed it.',sh:'habitat'},
-    {id:'BA-005',n:'Boston City Hall',a:'Kallmann McKinnell & Knowles',y:1968,c:'Boston, US',t:'Civic',s:'Standing',tone:'dark',sz:'h2',
+    {id:'BA-006',n:'Boston City Hall',a:'Kallmann McKinnell & Knowles',y:1968,c:'Boston, US',t:'Civic',s:'Standing',tone:'dark',sz:'h2',
      f:'An inverted ziggurat: the building widens as it rises, putting the bureaucracy on top where it can see everything.',sh:'boston'},
-    {id:'BA-006',n:'Preston Bus Station',a:'BDP — Ingham & Wilson',y:1969,c:'Preston, UK',t:'Transport',s:'Standing',tone:'',sz:'w2',
+    {id:'BA-007',n:'Preston Bus Station',a:'BDP — Ingham & Wilson',y:1969,c:'Preston, UK',t:'Transport',s:'Standing',tone:'',sz:'w2',
      f:'Room for 80 double-deckers under curved concrete balconies. Nearly demolished in 2012; listed Grade II in <b>2013</b>.',sh:'preston'},
-    {id:'BA-007',n:'Geisel Library',a:'William Pereira',y:1970,c:'San Diego, US',t:'Science',s:'Standing',tone:'mid',sz:'',
+    {id:'BA-008',n:'Geisel Library',a:'William Pereira',y:1970,c:'San Diego, US',t:'Science',s:'Standing',tone:'mid',sz:'',
      f:'A tree of books balanced on sixteen splayed columns. Named for Theodor Geisel — Dr. Seuss — who would have added a hat.',sh:'geisel'},
-    {id:'BA-008',n:'Trellick Tower',a:'Ernő Goldfinger',y:1972,c:'London, UK',t:'Housing',s:'Standing',tone:'light',sz:'h2',
+    {id:'BA-009',n:'Trellick Tower',a:'Ernő Goldfinger',y:1972,c:'London, UK',t:'Housing',s:'Standing',tone:'light',sz:'h2',
      f:'31 storeys; the lift tower is separate, joined every third floor by bridges. Once feared, now the most desired flats in West London.',sh:'trellick'},
-    {id:'BA-009',n:'Robin Hood Gardens',a:'Alison & Peter Smithson',y:1972,c:'London, UK',t:'Housing',s:'Demolished',tone:'dark',sz:'',
+    {id:'BA-010',n:'Robin Hood Gardens',a:'Alison & Peter Smithson',y:1972,c:'London, UK',t:'Housing',s:'Demolished',tone:'dark',sz:'',
      f:'“Streets in the sky”, pulled down from <b>2017</b>. A three-storey section now lives in the V&amp;A, like a pressed flower.',sh:'rhg'},
-    {id:'BA-010',n:'National Theatre',a:'Denys Lasdun',y:1976,c:'London, UK',t:'Culture',s:'Standing',tone:'',sz:'w2',
+    {id:'BA-011',n:'National Theatre',a:'Denys Lasdun',y:1976,c:'London, UK',t:'Culture',s:'Standing',tone:'',sz:'w2',
      f:'Stacked terraces and two fly towers. Prince Charles compared it to a nuclear power station. The board marks are Douglas fir.',sh:'nt'},
-    {id:'BA-011',n:'Genex Tower',a:'Mihajlo Mitrović',y:1977,c:'Belgrade, RS',t:'Commercial',s:'Standing',tone:'mid',sz:'h2',
+    {id:'BA-012',n:'Genex Tower',a:'Mihajlo Mitrović',y:1977,c:'Belgrade, RS',t:'Commercial',s:'Standing',tone:'mid',sz:'h2',
      f:'Two towers, one bridge, and a revolving restaurant that stopped revolving. The western gate of the city, 115 m tall.',sh:'genex'},
-    {id:'BA-012',n:'Barbican Estate',a:'Chamberlin, Powell & Bon',y:1982,c:'London, UK',t:'Culture',s:'Standing',tone:'light',sz:'',
+    {id:'BA-013',n:'Barbican Estate',a:'Chamberlin, Powell & Bon',y:1982,c:'London, UK',t:'Culture',s:'Standing',tone:'light',sz:'',
      f:'Hand-picked concrete: the towers were bush-hammered by workers with pneumatic tools, one square metre at a time.',sh:'barbican'},
-    {id:'BA-013',n:'SESC Pompéia',a:'Lina Bo Bardi',y:1986,c:'São Paulo, BR',t:'Culture',s:'Standing',tone:'',sz:'',
-     f:'Sports towers linked by flying bridges, with windows shaped like “caves”: holes punched as if by a very large, very happy fist.',sh:'sesc'},
-    {id:'BA-014',n:'Kyoto Int. Conference Hall',a:'Sachio Otani',y:1966,c:'Kyoto, JP',t:'Civic',s:'Standing',tone:'dark',sz:'',
-     f:'Trapezoids and inverted trapezoids, a roof borrowed from the gasshō farmhouse and poured in grey.',sh:'kyoto'}
+    {id:'BA-014',n:'SESC Pompéia',a:'Lina Bo Bardi',y:1986,c:'São Paulo, BR',t:'Culture',s:'Standing',tone:'',sz:'',
+     f:'Sports towers linked by flying bridges, with windows shaped like “caves”: holes punched as if by a very large, very happy fist.',sh:'sesc'}
   ];
 
   /* ---- massing elevations, viewBox 0 0 120 70 ---- */
@@ -358,6 +358,8 @@ footer .big span{color:var(--rust)}
   chips('f-view','view',['Slabs','Index']);
   var st=document.getElementById('k-st'),dm=document.getElementById('k-dm'),cs=countBy('s');
   if(st)st.textContent=cs.Standing; if(dm)dm.textContent=cs.Demolished;
+  var ys=B.map(function(b){return b.y;}),ko=document.getElementById('k-old'),kn=document.getElementById('k-new');
+  if(ko)ko.textContent=Math.min.apply(null,ys); if(kn)kn.textContent=Math.max.apply(null,ys);
 
   /* pack the wall row by row: a slab that would leave a gap widens its neighbour instead */
   function cols(){var t=getComputedStyle(grid).gridTemplateColumns;return t&&t!=='none'?t.split(' ').length:1;}

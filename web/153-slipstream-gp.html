@@ -81,17 +81,15 @@ svg.ico{display:block;overflow:visible}
 .g-back svg{width:18px;height:18px}
 .g-top b{font-size:18px;font-weight:900}
 .g-name{position:absolute;left:max(40px,5.5vw);bottom:max(40px,7vh);width:min(420px,40vw);color:var(--ink)}
-.g-name small{font-size:11px;font-weight:900;letter-spacing:.26em;color:var(--slate)}
-.g-name h2{margin:.14em 0 .12em;font-family:var(--disp);font-size:clamp(40px,5.2vw,74px);line-height:1;letter-spacing:.01em}
+.g-name h2{margin:0 0 .12em;font-family:var(--disp);font-size:clamp(40px,5.2vw,74px);line-height:1;letter-spacing:.01em}
 .g-name h2 em{font-style:normal;margin-left:.45em;font-size:.36em;letter-spacing:.16em;color:var(--slate)}
 .g-name p{margin:0 0 14px;font-size:14px;font-weight:700;color:var(--slate)}
 .stat{display:grid;grid-template-columns:3.2em 1fr;align-items:center;gap:10px;margin-top:6px;font-size:13px;font-weight:700}
 .pips{display:flex;gap:4px}
 .pips i{width:26px;height:9px;border-radius:5px;background:rgba(18,40,74,.14)}
 .pips i.f{background:var(--ink)}
-.g-panel{position:absolute;right:max(24px,2.4vw);top:max(84px,11vh);bottom:max(24px,4vh);width:min(470px,38vw);display:flex;flex-direction:column;padding:22px 22px 18px;border-radius:var(--r-l);background:rgba(255,255,255,.9);color:var(--ink)}
-.g-hd small{font-size:11px;font-weight:900;letter-spacing:.24em;color:var(--slate)}
-.g-hd b{display:block;margin-top:3px;font-family:var(--disp);font-weight:900;font-size:24px;line-height:1.1}
+.g-panel{position:absolute;right:max(24px,2.4vw);top:max(84px,11vh);bottom:max(24px,4vh);width:min(470px,38vw);display:flex;flex-direction:column;padding:16px;border-radius:var(--r-l);background:rgba(255,255,255,.9);color:var(--ink)}
+.g-hd b{display:block;font-family:var(--disp);font-weight:900;font-size:24px;line-height:1.1}
 .g-grid{flex:1;min-height:0;overflow:auto;margin:16px -6px 16px;padding:4px 6px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start;scrollbar-width:thin;scrollbar-color:#b7c3d4 transparent}
 .tile{position:relative;display:grid;padding:8px 10px 11px;border-radius:var(--r-m);background:#f2f5f9;box-shadow:inset 0 0 0 1.5px #d6deea;color:var(--ink);text-align:left;transition:background-color .12s linear,box-shadow .12s linear}
 .tile img{display:block;width:100%;aspect-ratio:1.3;object-fit:contain}
@@ -102,7 +100,6 @@ svg.ico{display:block;overflow:visible}
 .g-go{display:flex;align-items:center;justify-content:center;gap:10px;height:58px;border-radius:var(--r-m);background:var(--sun);font-size:19px;font-weight:900;letter-spacing:.14em;color:var(--ink);box-shadow:inset 0 -4px 0 #d9a520;transition:background-color .12s linear}
 .g-go:hover{background:#ffdc5a}
 .g-go svg{width:18px;height:18px}
-.g-cap{margin:10px 0 0;text-align:center;font-size:13px;font-weight:700;color:var(--slate)}
 
 /* 賽道選擇：白色卡片 */
 #sTrack .tracks{position:absolute;left:var(--pad);right:var(--pad);bottom:max(76px,11vh);display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:1180px}
@@ -295,7 +292,7 @@ body.touch #keys{display:none}
   .stat{grid-template-columns:2.6em 1fr;margin-top:3px;font-size:12px}
   .pips i{width:18px;height:7px}
   .g-panel{left:var(--pad);right:var(--pad);width:auto;top:auto;bottom:max(16px,env(safe-area-inset-bottom));padding:12px;border-radius:var(--r-l)}
-  .g-hd,.g-cap,.tile .nm em,.tile .own{display:none}
+  .g-hd,.tile .nm em,.tile .own{display:none}
   .g-panel{height:auto} .g-grid{flex:none}
   .g-grid{grid-template-columns:repeat(4,1fr);gap:8px;margin:0 -4px 10px;padding:2px 4px}
   .tile{padding:4px 4px 6px;border-radius:var(--r-s)}
@@ -398,8 +395,8 @@ body.touch #keys{display:none}
   </section>
   <section class="scr" id="sChar" hidden>
     <div class="g-top"><button class="g-back" id="charBack"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M16 9H3M8 3.5 2.5 9 8 14.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>返回</button><b>我的車庫</b></div>
-    <div class="g-name"><small>我的車庫</small><h2 id="charName"></h2><p id="charLine"></p><div id="charStats"></div></div>
-    <div class="g-panel"><div class="g-hd"><small>車手陣容</small><b>選擇車手</b></div><div class="g-grid" id="charGrid"></div><button class="g-go" id="charGo"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="m3 9.5 4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>決定</button><p class="g-cap">下一場比賽由這位車手出賽</p></div>
+    <div class="g-name"><h2 id="charName"></h2><p id="charLine"></p><div id="charStats"></div></div>
+    <div class="g-panel"><div class="g-hd"><b>選擇車手</b></div><div class="g-grid" id="charGrid"></div><button class="g-go" id="charGo"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="m3 9.5 4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>決定</button></div>
   </section>
   <section class="scr" id="sTrack" hidden>
     <h2 class="hdr" id="trackHdr">選擇賽道</h2>
@@ -1614,7 +1611,7 @@ function stepKart(k, dt) {
   for (const b of G.T.boxes) if (b.on && Math.abs(b.x - k.x) < 2.3 && Math.abs(b.z - k.z) < 2.3 && Math.abs(b.y - k.y - 1.2) < 2.4) {
     b.on = false; b.t = 2.4; emitBurst(b.x, b.y, b.z, 0xffe66b, 10, 7);
     if (k.isPlayer) Audio.sfx('box');
-    if (!k.item && k.roulT <= 0 && !k.out) { k.roulItem = rollItem(k); k.roulT = k.isPlayer ? 1.25 : 0.6; }
+    if (!k.item && k.roulT <= 0 && !k.out) { k.roulItem = rollItem(k); k.roulT = 1.25; } // 電腦與玩家同樣的道具輪盤時間
   }
   if (k.roulT > 0) { k.roulT -= dt; if (k.roulT <= 0) { k.item = k.roulItem; k.itemN = k.item === 'turbo3' ? 3 : 1; k.ai.itemT = 0.6 + Math.random() * 2.6; if (k.isPlayer) Audio.sfx('got'); } }
   if (ctl && inp.itemEdge && k.item) useItem(k);
@@ -1928,7 +1925,7 @@ function tickRace(dt) {
       G.state = 'race'; [...$('lights').children].forEach(i => i.className = 'g'); banner('出發！'); Audio.sfx('go');
       setTimeout(() => { $('lights').hidden = true; }, 900);
       Audio.play(G.T.def.song);
-      for (const k of G.karts) { if (k.isPlayer && !k.autopilot) { if (k.gasT >= 0 && k.gasT < 0.45) { k.boostT = 1.0; Audio.sfx('boost'); } } else if (Math.random() < 0.45) k.boostT = 0.8; }
+      for (const k of G.karts) { if (k.isPlayer && !k.autopilot) { if (k.gasT >= 0 && k.gasT < 0.45) { k.boostT = 1.0; Audio.sfx('boost'); } } else if (k.skill >= 0.96) k.boostT = 0.8; } // 電腦車手的起跑衝刺依實力決定，不擲骰
     }
     for (const k of G.karts) { k.vx = k.vz = 0; }
     return;
@@ -1944,7 +1941,7 @@ function tickRace(dt) {
     const sorted = [...G.karts].sort((a, b) => (b.finished - a.finished) || (a.finished ? a.finishT - b.finishT : b.rawF - a.rawF));
     sorted.forEach((k, n) => k.place = n + 1);
     // 輕微的橡皮筋：只看和玩家的距離
-    if (G.player) for (const k of G.karts) { if (k.isPlayer) continue; const gap = (G.player.rawF - k.rawF) / G.T.N; k.rubber = lerp(k.rubber, gap > 0.12 ? 1.07 : gap < -0.2 ? 0.94 : 1, dt); }
+    if (G.player) for (const k of G.karts) { if (k.isPlayer) continue; const gap = (G.player.rawF - k.rawF) / G.T.N; k.rubber = lerp(k.rubber, gap > 0.12 ? 1.04 : gap < -0.2 ? 0.94 : 1, dt); }
   }
   for (const k of G.karts) stepKart(k, dt);
   kartContacts(dt);
@@ -1965,7 +1962,7 @@ function tickRace(dt) {
 function popBalloon(k, by) {
   if (k.balloons <= 0) return; k.balloons--; const b = k.bal.list[k.balloons]; b.visible = false;
   emitBurst(k.x, k.y + 3.4, k.z, new THREE.Color(k.ch.kart).getHex(), 12, 6); Audio.sfx('pop');
-  if (k.balloons === 0) { k.out = true; k.item = null; k.itemN = 0; if (k.isPlayer) { banner('出局', '只能在旁邊看了'); k.autopilot = true; } }
+  if (k.balloons === 0) { k.out = true; k.outAt = G.battle.left; k.item = null; k.itemN = 0; if (k.isPlayer) { banner('出局', '比賽結束'); k.autopilot = true; } }
   renderBalloonHud();
 }
 function tickBattle(dt) {
@@ -1973,10 +1970,17 @@ function tickBattle(dt) {
   G.battle.left -= dt;
   const alive = G.karts.filter(k => !k.out);
   if (alive.length <= 1 || G.battle.left <= 0 || G.player.out) {
-    G.state = 'done'; G.endT = 2.5; const win = [...G.karts].sort((a, b) => b.balloons - a.balloons)[0];
-    G.battle.winner = alive.length === 1 ? alive[0] : (alive.filter(k => k.balloons === win.balloons).length > 1 ? null : win);
-    if (G.player.out) G.endT = 3.2;
-    banner(G.battle.winner ? (G.battle.winner.isPlayer ? '勝利！' : G.battle.winner.ch.name + ' 獲勝') : '時間到', G.battle.winner ? '' : '平手');
+    G.state = 'done'; G.endT = 2.5;
+    if (G.player.out && alive.length > 1) {
+      // 玩家出局時比賽直接結束：場上還有多台電腦車手，不判勝者，名次只依出局順序與剩餘氣球
+      G.battle.winner = null; G.endT = 3.2;
+      banner('出局', '比賽結束');
+    } else {
+      const win = [...G.karts].sort((a, b) => b.balloons - a.balloons)[0];
+      G.battle.winner = alive.length === 1 ? alive[0] : (alive.filter(k => k.balloons === win.balloons).length > 1 ? null : win);
+      if (G.player.out) G.endT = 3.2;
+      banner(G.battle.winner ? (G.battle.winner.isPlayer ? '勝利！' : G.battle.winner.ch.name + ' 獲勝') : '時間到', G.battle.winner ? '' : '平手');
+    }
     const run = G.runId; Audio.sfx('finish'); Audio.play(null); setTimeout(() => { if (G.runId === run && (G.state === 'done' || G.state === 'results')) Audio.play('result'); }, 1500);
   }
 }
@@ -2438,9 +2442,10 @@ function showResults() {
       { k: '再跑一次', act: startTT }, { k: '換賽道', act: () => pickTrack('tt') }, { k: '回主選單', act: () => toMain(1) }
     ]);
   } else if (G.mode === 'battle') {
-    const w = G.battle.winner; const ord = [...G.karts].sort((a, b) => (b === w) - (a === w) || b.balloons - a.balloons);
-    const rows = ord.map((k, n) => row([['p', n + 1], ['c', dot(k.ch) + k.ch.name], ['r', k.balloons + ' 顆氣球']], (k.isPlayer ? 'me' : '') + (k.out ? ' out' : ''))).join('');
-    board(`<h2>${w ? (w.isPlayer ? '你贏了！' : w.ch.name + ' 獲勝') : '平手'}</h2><p class="sub">${G.battle.arena.name}</p><table>${rows}</table>`, [
+    // 名次：勝者 → 還在場上的（依剩餘氣球）→ 出局的（越晚出局越前面）
+    const w = G.battle.winner; const ord = [...G.karts].sort((a, b) => (b === w) - (a === w) || (a.out ? 1 : 0) - (b.out ? 1 : 0) || b.balloons - a.balloons || (a.outAt || 0) - (b.outAt || 0));
+    const rows = ord.map((k, n) => row([['p', n + 1], ['c', dot(k.ch) + k.ch.name], ['r', k.out ? '出局' : k.balloons + ' 顆氣球']], (k.isPlayer ? 'me' : '') + (k.out ? ' out' : ''))).join('');
+    board(`<h2>${w ? (w.isPlayer ? '你贏了！' : w.ch.name + ' 獲勝') : G.player.out ? '你出局了' : '平手'}</h2><p class="sub">${G.battle.arena.name}</p><table>${rows}</table>`, [
       { k: '再戰一場', act: startBattle }, { k: '換場地', act: () => pickTrack('battle') }, { k: '回主選單', act: () => toMain(2) }
     ]);
   }

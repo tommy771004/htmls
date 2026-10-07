@@ -32,15 +32,17 @@
   .dia.on{background:var(--bone);color:var(--abyss);border-color:var(--bone)}
 
   .main{display:grid;grid-template-columns:340px minmax(0,1fr);gap:clamp(16px,2.4vw,30px);margin-top:20px}
-  .panel{border:1px solid var(--line);background:rgba(8,48,47,.55);padding:16px;border-radius:3px;position:relative}
+  .panel{padding:16px;position:relative}
   .panel::before,.panel::after{content:"";position:absolute;width:10px;height:10px;border:1px solid var(--signal)}
   .panel::before{left:-1px;top:-1px;border-right:0;border-bottom:0}.panel::after{right:-1px;bottom:-1px;border-left:0;border-top:0}
   .lbl{font-size:11px;letter-spacing:.26em;color:var(--bone-d);text-transform:uppercase;display:flex;justify-content:space-between;gap:12px;margin-bottom:8px}
-  textarea{width:100%;min-height:96px;resize:vertical;font:inherit;font-size:17px;line-height:1.4;letter-spacing:.06em;text-transform:uppercase;color:var(--bone);background:rgba(4,28,30,.8);border:1px solid var(--line);border-radius:2px;padding:10px 12px;caret-color:var(--signal)}
-  textarea:focus{outline:none;border-color:var(--signal)}
+  textarea{width:100%;min-height:96px;resize:vertical;font:inherit;font-size:17px;line-height:1.4;letter-spacing:.06em;text-transform:uppercase;color:var(--bone);background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:10px 0;caret-color:var(--signal)}
+  textarea:focus{outline:none;border-bottom-color:var(--signal)}
+  textarea[readonly]{color:var(--bone-d)}
+  .dia:disabled,.ph:disabled,.rk:disabled,.go:disabled{opacity:.45;cursor:default}
   .phr{display:flex;flex-direction:column;gap:6px;margin-top:14px}
-  .ph{font:inherit;font-size:12.5px;text-align:left;min-height:40px;padding:6px 10px;background:transparent;color:var(--bone-d);border:1px dashed var(--line);border-radius:2px;cursor:pointer;letter-spacing:.04em}
-  .ph:hover,.ph:focus-visible{outline:none;color:var(--bone);border-style:solid;border-color:var(--bone-d)}
+  .ph{font:inherit;font-size:12.5px;text-align:left;min-height:40px;padding:6px 0;background:transparent;color:var(--bone-d);border:0;cursor:pointer;letter-spacing:.04em}
+  .ph:hover:not(:disabled),.ph:focus-visible{outline:none;color:var(--bone)}
   .ph b{color:var(--signal);font-weight:normal;margin-right:6px}
   .tx{margin-top:16px;display:flex;gap:8px}
   .go{flex:1;font:inherit;font-size:13px;letter-spacing:.2em;text-transform:uppercase;min-height:46px;background:var(--bone);color:var(--abyss);border:0;border-radius:2px;cursor:pointer}
@@ -246,6 +248,9 @@
     'HELLO WORLD': 'greeting, round wet rock',
     'WHERE IS THE BATHROOM': 'which room holds the private weather?'
   };
+  // digits are written as the matching letter with a bar, so they are spoken as that syllable with a glottal mark
+  const sylOf = ch => /[A-Z]/.test(ch) ? SYL[dia][ch.charCodeAt(0) - 65] : /[0-9]/.test(ch) ? SYL[dia][+ch] + "'" : ch === '.' ? '·' : ch === '?' ? '?' : ch === '!' ? '!' : '#';
+  const toneOf = ch => /[A-Z]/.test(ch) ? ch.charCodeAt(0) - 65 : /[0-9]/.test(ch) ? +ch : 26;
   const PHRASES = ['We come in peace', 'Take me to your librarian', 'Is this seat taken', 'Your cat is in charge', 'Where is the bathroom'];
 
   // ---------- render ----------
@@ -307,7 +312,7 @@
     const el = $('#roman'); if (!el) return;
     const up = words.map(w => w.join('')).join(' ');
     if (!words.length) { el.innerHTML = '<b>—</b><i>awaiting human noise</i>'; conf(0); return; }
-    const syl = words.map(w => w.map(ch => /[A-Z]/.test(ch) ? SYL[dia][ch.charCodeAt(0) - 65] : ch === '.' ? '·' : ch === '?' ? '?' : ch === '!' ? '!' : '#').join('')).join(' ');
+    const syl = words.map(w => w.map(sylOf).join('')).join(' ');
     const back = BACK[up.replace(/[.?!]/g, '').trim()];
     const c = back ? 96 : Math.max(18, 88 - up.length * .9 - (dia === 2 ? 12 : 0));
     el.innerHTML = `<b>/${syl.slice(0, 140)}/</b><i>back-translation: ${back ? '“' + back + '”' : up.length < 4 ? '“a small noise, possibly a sneeze”' : '“' + fakeBack(up) + '”'}</i>`;
@@ -369,7 +374,7 @@
     const g = e.target.closest && e.target.closest('.g');
     if (!g || !tip || !slate) { tip && tip.classList.remove('on'); return; }
     const r = g.getBoundingClientRect(), s = slate.getBoundingClientRect();
-    tip.textContent = g.dataset.ch + ' · /' + (SYL[dia][g.dataset.ch.charCodeAt(0) - 65] || g.dataset.ch) + '/';
+    tip.textContent = g.dataset.ch + ' · /' + sylOf(g.dataset.ch) + '/';
     tip.style.left = (r.left + r.width / 2 - s.left) + 'px'; tip.style.top = (r.top - s.top) + 'px'; tip.classList.add('on');
   });
   out.addEventListener('pointerleave', () => tip && tip.classList.remove('on'));
@@ -395,22 +400,27 @@
   const send = $('#send'), scan = $('#scan');
   send && send.addEventListener('click', () => {
     if (sending || !tokens.length) return;
-    sending = true; send.textContent = 'Transmitting…';
-    const step = 170;
-    tokens.forEach((g, i) => {
+    sending = true; send.textContent = 'Transmitting…'; lock(true);
+    const step = 170, n0 = tokens.length;
+    for (let i = 0; i < n0; i++) {
       setTimeout(() => {
+        const g = tokens[i]; if (!g) return;   // live lookup: a resize may have re-rendered the slate
         tokens.forEach(t => t.classList.remove('hot')); g.classList.add('hot');
-        const ch = g.dataset.ch, n = /[A-Z]/.test(ch) ? ch.charCodeAt(0) - 65 : 26;
-        blip(n);
+        blip(toneOf(g.dataset.ch));
         if (scan && slate) { const r = g.getBoundingClientRect(), s = slate.getBoundingClientRect(); scan.style.opacity = 1; scan.style.left = (r.left + r.width / 2 - s.left) + 'px'; }
       }, i * step);
-    });
+    }
     setTimeout(() => {
       tokens.forEach(t => t.classList.remove('hot')); if (scan) scan.style.opacity = 0;
-      sending = false; send.textContent = 'Transmit ▸';
-      const rC = $('#rC'); if (rC) rC.textContent = ['Sent. A reply is expected in 1,200 years.', 'Sent. They have left you on read.', 'Sent. Something replied “lol”.'][Math.floor(Math.random() * 3)];
-    }, tokens.length * step + 300);
+      sending = false; send.textContent = 'Transmit ▸'; lock(false);
+      const rC = $('#rC'); if (rC) rC.textContent = ['Sent. It arrives in 1,200 years; a reply, at best, in 2,400.', 'Sent. They have left you on read.', 'Sent. Something replied “lol”.'][Math.floor(Math.random() * 3)];
+    }, n0 * step + 300);
   });
+  // freeze every input while a transmission is in flight, so the slate is not re-rendered under the scan
+  function lock(on) {
+    inp.readOnly = on;
+    document.querySelectorAll('.dia, .ph, .rk, #clr').forEach(b => { b.disabled = on; });
+  }
   if (scan) scan.style.transition = 'left .15s linear, opacity .3s';
 
   let rt = 0; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => render(true), 120); });

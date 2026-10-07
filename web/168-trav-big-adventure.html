@@ -9,16 +9,25 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
 <script>
-  tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Helvetica', 'Arial', 'sans-serif'] } } } };
   // Marks the document as script-enabled. Only then may the entrance states hide anything,
   // so a reader without JS (or with a stalled script) still sees every word.
   document.documentElement.classList.add('js');
 </script>
 <style>
+  /* Plain CSS, no runtime framework: the small reset the page relies on. */
+  *, *::before, *::after { box-sizing: border-box; }
   html, body { overflow-x: hidden; max-width: 100vw; }
-  body { background: #000; }
+  body {
+    margin: 0; min-height: 100vh; background: #000; color: #fff; line-height: 1.5;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  }
+  h1, p { margin: 0; }
+  h1 { font-size: inherit; font-weight: inherit; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  svg, video { display: block; }
 
   :root {
     --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -26,7 +35,37 @@
     --door-w: clamp(300px, 25vw, 380px);
     --door-top: 10vh;
   }
-  @media (max-width: 767px) { :root { --door-w: calc(100vw - 48px); --door-top: 12vh; } }
+  /* Phones: a narrower arch, so a real band of frosted wall stays on both sides and the copy crosses it. */
+  @media (max-width: 767px) { :root { --door-w: 62vw; --door-top: 16vh; } }
+
+  /* The video stage. Its painted ground stands in for the video until it plays (or if it never loads),
+     so the frosted wall always has colour to blur. */
+  .stage {
+    position: fixed; inset: 0; overflow: hidden; z-index: -1;
+    background: linear-gradient(180deg, #3d5a73 0%, #8aa3b3 40%, #d6b38c 60%, #5b4a3e 78%, #1c1a19 100%);
+  }
+  .stage video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .stage .shade { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.3); }
+
+  .site-head { position: absolute; top: 0; left: 0; right: 0; z-index: 10; padding: 24px; }
+  .site-head .row { display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 16px; letter-spacing: 0.025em; }
+  .primary { display: none; align-items: center; gap: 40px; }
+  .nav-link { font-weight: 500; font-size: 14px; color: rgba(255, 255, 255, 0.95); }
+  .burger { position: relative; width: 40px; height: 40px; margin-right: -8px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .burger:focus-visible, .nav-link:focus-visible, .brand:focus-visible, .menu a:focus-visible { outline: 2px solid #fff; outline-offset: 4px; border-radius: 4px; }
+
+  .hero {
+    position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; max-width: 56rem; margin: 0 auto; height: 100vh; height: 100dvh; padding: 0 24px;
+  }
+  .hero-copy { display: flex; flex-direction: column; align-items: center; padding-top: 6vh; }
+  .hero-pin { width: 36px; height: 36px; margin-bottom: 32px; }
+  .hero h1 { font-weight: 600; font-size: 34px; letter-spacing: -0.02em; line-height: 1.1; }
+  .hero .sub { margin-top: 24px; max-width: 480px; font-size: 16px; font-weight: 500; color: rgba(255, 255, 255, 0.95); line-height: 1.6; }
+  .br-md { display: none; }
+  .hero-cta { margin-top: 48px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .hero .platforms { font-size: 13px; color: rgba(255, 255, 255, 0.8); }
 
   /* The frosted wall: the video itself, defocused and dimmed, with the doorway cut out of it.
      Before JS builds the arch mask, a soft radial hole keeps the idea intact. */
@@ -75,23 +114,25 @@
   /* Type that crosses from clear video onto frosted glass needs one quiet shadow to stay even. */
   .hero-copy h1, .hero-copy p { text-shadow: 0 1px 24px rgba(0, 0, 0, 0.35); }
 
-  /* CTA: white on the clear video, with a quiet white glow that grows on hover. */
+  /* CTA: solid white on the clear video; hover only shifts the fill. */
   .cta {
-    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
-    transition: box-shadow 0.35s var(--ease), background-color 0.35s var(--ease);
+    display: inline-flex; align-items: center; justify-content: center; border-radius: 9999px;
+    background-color: #fff; color: #000; font-weight: 500; font-size: 15px; padding: 14px 32px;
+    transition: background-color 0.35s var(--ease);
   }
-  .cta:hover, .cta:focus-visible {
-    background-color: #fff;
-    box-shadow: 0 0 22px 2px rgba(255, 255, 255, 0.45), 0 0 60px 8px rgba(255, 255, 255, 0.18);
-    outline: none;
-  }
+  .cta:hover { background-color: #f2f2f2; }
+  .cta:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
 
   /* Mobile menu. */
   .menu {
+    position: fixed; inset: 0; z-index: 5; background: rgba(0, 0, 0, 0.8);
+    -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 32px;
     opacity: 0; visibility: hidden; pointer-events: none;
     transition: opacity 0.4s var(--ease), visibility 0s linear 0.4s;
   }
   .menu.is-open { opacity: 1; visibility: visible; pointer-events: auto; transition-delay: 0s; }
+  .menu a { font-weight: 500; font-size: 28px; color: rgba(255, 255, 255, 0.95); letter-spacing: -0.01em; }
   .menu a { opacity: 0; transform: translateY(15px); transition: opacity 0.5s var(--ease), transform 0.5s var(--ease); }
   .menu.is-open a { opacity: 1; transform: translateY(0); }
   .menu.is-open a:nth-child(1) { transition-delay: 0.10s; }
@@ -108,21 +149,30 @@
   .nav-link { transition: color 0.3s var(--ease); }
   .nav-link:hover { color: #fff; }
 
+  @media (min-width: 768px) {
+    .site-head { padding: 40px 64px; }
+    .primary { display: flex; }
+    .burger, .menu { display: none; }
+    .hero-pin { width: 40px; height: 40px; }
+    .hero h1 { font-size: 60px; white-space: nowrap; }
+    .hero .sub { font-size: 17px; }
+    .br-md { display: block; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .word-wrap, .js .hero-pin, .js .hero-cta { animation-duration: 0.01ms !important; animation-delay: 0ms !important; }
     .menu, .menu a, .burger span, .cta { transition-duration: 0.01ms !important; transition-delay: 0ms !important; }
   }
 </style>
 </head>
-<body class="min-h-screen bg-black text-white font-sans antialiased">
+<body>
 
-  <!-- Background video -->
-  <div class="fixed inset-0 overflow-hidden" style="z-index:-1" aria-hidden="true">
-    <video id="bg" class="absolute inset-0 w-full h-full" style="object-fit:cover"
-           autoplay muted loop playsinline preload="auto">
+  <!-- Background video. No autoplay attribute: the script starts it, and leaves it on the first frame for reduced motion. -->
+  <div class="stage" aria-hidden="true">
+    <video id="bg" muted loop playsinline preload="metadata">
       <source src="https://cdn.sceneai.art/Hero%20Section%20Video/0519be39-d8d1-48a5-84ee-f8a1ec038cd6.mp4" type="video/mp4">
     </video>
-    <div class="absolute inset-0 bg-black/30"></div>
+    <div class="shade"></div>
   </div>
 
   <!-- Frosted wall with the doorway cut out, and the glass lip along its edge -->
@@ -133,54 +183,56 @@
   </svg>
 
   <!-- Header -->
-  <header class="absolute top-0 inset-x-0 z-10 px-6 py-6 md:px-16 md:py-10">
-    <div class="flex items-center justify-between">
-      <a href="#" class="flex items-center gap-3" aria-label="Trav home">
-        <span class="w-8 h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="9"/>
-            <ellipse cx="12" cy="12" rx="3.8" ry="9"/>
-            <path d="M3.6 9h16.8M3.6 15h16.8"/>
-          </svg>
-        </span>
-        <span class="font-medium text-[16px] tracking-wide">Trav</span>
+  <header class="site-head">
+    <div class="row">
+      <a href="#" class="brand" aria-label="Trav home">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/>
+          <ellipse cx="12" cy="12" rx="3.8" ry="9"/>
+          <path d="M3.6 9h16.8M3.6 15h16.8"/>
+        </svg>
+        <span>Trav</span>
       </a>
 
-      <nav class="hidden md:flex items-center space-x-10" aria-label="Primary">
-        <a href="#" class="nav-link font-medium text-[14px] text-white/95">Home</a>
-        <a href="#" class="nav-link font-medium text-[14px] text-white/95">Our Story</a>
-        <a href="#" class="nav-link font-medium text-[14px] text-white/95">FAQ</a>
-        <a href="#" class="nav-link font-medium text-[14px] text-white/95">Policies</a>
+      <nav class="primary" aria-label="Primary">
+        <a href="#" class="nav-link">Home</a>
+        <a href="#" class="nav-link">Our Story</a>
+        <a href="#" class="nav-link">FAQ</a>
+        <a href="#" class="nav-link">Policies</a>
       </nav>
 
-      <button id="burger" class="burger md:hidden relative w-10 h-10 -mr-2 flex flex-col items-center justify-center" type="button"
+      <button id="burger" class="burger" type="button"
               aria-label="Open menu" aria-expanded="false" aria-controls="menu">
         <span></span><span></span><span></span>
       </button>
     </div>
   </header>
 
-  <!-- Mobile menu overlay -->
-  <div id="menu" class="menu fixed inset-0 z-[5] bg-black/80 backdrop-blur-xl md:hidden flex flex-col items-center justify-center gap-8" role="dialog" aria-modal="true" aria-label="Menu">
-    <a href="#" class="font-medium text-[28px] text-white/95 tracking-[-0.01em]">Home</a>
-    <a href="#" class="font-medium text-[28px] text-white/95 tracking-[-0.01em]">Our Story</a>
-    <a href="#" class="font-medium text-[28px] text-white/95 tracking-[-0.01em]">FAQ</a>
-    <a href="#" class="font-medium text-[28px] text-white/95 tracking-[-0.01em]">Policies</a>
-  </div>
+  <!-- Mobile menu overlay: while it is open, focus moves into it, Tab cycles between the links and
+       the close button, the hero behind is inert, and Esc hands focus back to the button. -->
+  <nav id="menu" class="menu" aria-label="Menu">
+    <a href="#">Home</a>
+    <a href="#">Our Story</a>
+    <a href="#">FAQ</a>
+    <a href="#">Policies</a>
+  </nav>
 
   <!-- Hero: the copy sits on the doorway, wider than it, so the words cross from clear video onto frosted glass -->
-  <main class="relative z-[1] flex flex-col items-center justify-center text-center max-w-4xl mx-auto h-[100dvh] px-6">
-    <div class="hero-copy flex flex-col items-center pt-[6vh]">
-      <svg class="hero-pin pin-shadow w-9 h-9 md:w-10 md:h-10 mb-8" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <main class="hero">
+    <div class="hero-copy">
+      <svg class="hero-pin pin-shadow" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M12 22s7-6.2 7-12.2A7 7 0 0 0 5 9.8C5 15.8 12 22 12 22z"/>
         <circle cx="12" cy="9.8" r="2.6"/>
       </svg>
 
-      <h1 id="headline" class="font-semibold text-[38px] md:text-[60px] tracking-[-0.02em] leading-[1.1] md:whitespace-nowrap">Begin Your Next<br class="hidden md:block">Big Adventure</h1>
+      <h1 id="headline">Begin Your Next<br class="br-md">Big Adventure</h1>
 
-      <p id="sub" class="mt-6 max-w-[480px] text-[16px] md:text-[17px] font-medium text-white/95 leading-[1.6]">Discover hidden gems, plan unforgettable trips, and<br class="hidden md:block">explore the world — all in one seamless app.</p>
+      <p id="sub" class="sub">Offline maps, an itinerary your friends can edit,<br class="br-md">and a daily budget that tracks every receipt.</p>
 
-      <a href="#" class="hero-cta cta mt-12 inline-flex items-center justify-center rounded-full bg-white text-black font-medium text-[15px] px-8 py-3.5">Download Now</a>
+      <div class="hero-cta">
+        <a href="#" class="cta">Download Now</a>
+        <p class="platforms">Free on iOS and Android</p>
+      </div>
     </div>
   </main>
 
@@ -283,31 +335,54 @@ document.addEventListener('DOMContentLoaded', function () {
     document.documentElement.addEventListener('pointerleave', function () { tx = 0; ty = 0; if (!raf) raf = requestAnimationFrame(tick); });
   }
 
-  // Background video: keep it playing through autoplay refusals and tab switches.
+  // Background video: started by script (no autoplay attribute) and restarted after autoplay refusals
+  // and tab switches. Reduced motion leaves it on its first frame.
   var v = document.getElementById('bg');
+  var motionMq = window.matchMedia('(prefers-reduced-motion: reduce)');
   function resume() {
-    if (!v || !v.paused || document.hidden) return;
+    if (!v || motionMq.matches || !v.paused || document.hidden) return;
     try { var p = v.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
   }
-  ['canplay', 'pause', 'ended', 'stalled'].forEach(function (ev) { v.addEventListener(ev, resume); });
+  if (v) {
+    if (!motionMq.matches) v.preload = 'auto';
+    ['canplay', 'ended'].forEach(function (ev) { v.addEventListener(ev, resume); });
+    if (motionMq.addEventListener) motionMq.addEventListener('change', function () { if (motionMq.matches) v.pause(); else resume(); });
+  }
   document.addEventListener('visibilitychange', resume);
+  window.addEventListener('pageshow', resume);
   window.addEventListener('pointerdown', resume, { once: true });
   resume();
 
-  // Mobile menu.
+  // Mobile menu: focus moves to the first link on open, Tab stays among the burger and the links,
+  // the hero behind is inert, and closing returns focus to the burger.
   var burger = document.getElementById('burger');
   var menu = document.getElementById('menu');
-  function setMenu(open) {
+  var hero = document.querySelector('main.hero');
+  var menuLinks = Array.prototype.slice.call(menu.querySelectorAll('a'));
+  function isOpen() { return menu.classList.contains('is-open'); }
+  function setMenu(open, returnFocus) {
     menu.classList.toggle('is-open', open);
     burger.classList.toggle('is-open', open);
     burger.setAttribute('aria-expanded', String(open));
     burger.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
     document.body.style.overflow = open ? 'hidden' : '';
+    if (hero) hero.inert = open;
+    if (open) menuLinks[0].focus();
+    else if (returnFocus) burger.focus();
   }
-  burger.addEventListener('click', function () { setMenu(!menu.classList.contains('is-open')); });
-  menu.addEventListener('click', function (e) { if (e.target.tagName === 'A') setMenu(false); });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && menu.classList.contains('is-open')) setMenu(false); });
-  window.addEventListener('resize', function () { if (window.innerWidth >= 768 && menu.classList.contains('is-open')) setMenu(false); });
+  burger.addEventListener('click', function () { setMenu(!isOpen(), true); });
+  menu.addEventListener('click', function (e) { if (e.target.tagName === 'A') setMenu(false, true); });
+  document.addEventListener('keydown', function (e) {
+    if (!isOpen()) return;
+    if (e.key === 'Escape') { setMenu(false, true); return; }
+    if (e.key !== 'Tab') return;
+    var ring = [burger].concat(menuLinks);
+    var i = ring.indexOf(document.activeElement);
+    e.preventDefault();
+    var next = i < 0 ? 0 : (i + (e.shiftKey ? -1 : 1) + ring.length) % ring.length;
+    ring[next].focus();
+  });
+  window.addEventListener('resize', function () { if (window.innerWidth >= 768 && isOpen()) setMenu(false, false); });
 });
 </script>
 </body>
