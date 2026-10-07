@@ -1,191 +1,413 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>青瓷冰裂 · 功夫茶計時</title>
-<meta name="description" content="宋瓷青釉風格的功夫茶計時器：選一款茶，照建議的水溫與投茶量一泡一泡沖，計時中釉面的冰裂紋會像窯變一樣慢慢裂開，時間到了敲一聲磬，記下每一泡的湯色。">
+<title>青瓷茶寮｜功夫茶與品茗包廂</title>
+<meta name="description" content="青瓷茶寮：台北的台灣茶館。六款當季茶單與逐泡沖泡參數、品茗包廂線上預約、在家用的功夫茶計時器、營業時間與交通。">
+<!--
+  店家模板使用方式
+  1. 修改 <script> 開頭的 SHOP（店名、電話、地址、營業時間、照片網址）、TEAS（茶單：產地、水溫、投茶量、逐泡秒數、價格）與 ROOMS（包廂、人數、低消）。
+  2. photos 填入照片網址就會取代佔位圖；網址加 ?slots 或按右下角「照片位」可標出位置與建議尺寸。
+  3. 包廂預約目前只在頁面上示範，正式使用請串接訂位系統。
+-->
 <style>
-:root{
-  --silk:#d9ccb2; --silk-2:#cbbb9b; --leaf:#efe8d8; --ink:#2b2a26; --ink-2:#5f5b51; --mute:#97907f; --seal:#a8352a;
-  --celadon:#a9c3b2; --celadon-2:#87a895;
+:root{--silk:#d9ccb2;--silk2:#cbbb9b;--leaf:#efe8d8;--ink:#2b2a26;--ink2:#5f5b51;--mute:#97907f;--seal:#a8352a;--celadon:#a9c3b2;--celadon2:#87a895;--celadon3:#c6d8cb;--line:rgba(43,42,38,.18);
   --kai:"Kaiti TC","STKaiti","BiauKai","DFKai-SB","KaiTi","Songti TC",serif;
-  --song:"Songti TC","STSong","Noto Serif TC","PMingLiU",serif;
+  --song:"Songti TC","STSong","Noto Serif TC","PMingLiU",serif}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+html,body{margin:0}
+body{background:var(--silk);color:var(--ink);font-family:var(--song);line-height:1.9;overflow-x:clip}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.45;background:repeating-linear-gradient(0deg,rgba(120,100,60,.05) 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,rgba(120,100,60,.04) 0 1px,transparent 1px 3px)}
+header,main,footer{position:relative;z-index:1}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,44px)}
+.kai{font-family:var(--kai)}
+.seal{display:inline-grid;place-items:center;background:var(--seal);color:#f4e9dc;font-family:var(--kai);line-height:1.05;text-align:center;border-radius:3px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.18)}
+/* 冊頁 */
+.leafPage{background:var(--leaf);box-shadow:0 0 0 1px rgba(0,0,0,.06),0 0 0 10px var(--silk2),0 0 0 11px rgba(0,0,0,.08),0 30px 50px -30px rgba(60,40,10,.45);position:relative}
+.leafPage::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.4;background:radial-gradient(ellipse at 20% 10%,rgba(255,255,255,.6),transparent 60%),radial-gradient(ellipse at 90% 90%,rgba(150,120,70,.12),transparent 60%)}
+/* 導覽 */
+.nav{position:sticky;top:0;z-index:40;background:rgba(217,204,178,.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;gap:26px;height:68px}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none}
+.logo .seal{width:38px;height:38px;font-size:14px}
+.logo b{font-family:var(--kai);font-weight:400;font-size:24px;letter-spacing:.3em}
+.nav ul{display:flex;gap:26px;list-style:none;margin:0 0 0 auto;padding:0;font-family:var(--kai);font-size:16px;letter-spacing:.2em}
+.nav ul a{text-decoration:none;color:var(--ink2)}
+.nav ul a:hover{color:var(--seal)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--kai);font-size:16px;letter-spacing:.3em;padding:11px 22px 11px 28px;background:var(--ink);color:var(--leaf);border:0;text-decoration:none;cursor:pointer;transition:background .3s}
+.btn:hover{background:var(--seal)}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.btn.ghost:hover{background:rgba(43,42,38,.08)}
+.btn.cel{background:var(--celadon2);color:#fff}
+.btn.cel:hover{background:#6e917d}
+.burger{display:none;margin-left:auto;background:none;border:1px solid var(--line);font-family:var(--kai);font-size:15px;letter-spacing:.2em;padding:5px 12px;cursor:pointer}
+/* 照片位 */
+.ph{position:relative;overflow:hidden;background:var(--silk2);margin:0}
+.ph>svg,.ph>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+body.slots .ph{outline:1px dashed var(--seal);outline-offset:-1px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:10px;top:10px;z-index:3;background:var(--leaf);color:var(--seal);font-size:11px;padding:3px 9px}
+/* Hero */
+.hero{padding:clamp(40px,6vw,80px) 0 clamp(70px,9vw,120px)}
+.hero .leafPage{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);gap:clamp(20px,4vw,50px);align-items:center;padding:clamp(28px,4vw,56px)}
+.vtitle{writing-mode:vertical-rl;text-orientation:upright;height:360px;font-family:var(--kai);font-weight:400;font-size:clamp(44px,4.6vw,64px);letter-spacing:.3em;line-height:1.2;margin:0}
+.vtitle small{display:block;font-size:.3em;letter-spacing:.5em;color:var(--ink2);margin-right:14px;padding-top:.6em}
+.vtitle .seal{writing-mode:horizontal-tb;display:grid;width:52px;height:52px;font-size:16px;letter-spacing:0;margin:.4em 18px 0 0}
+.hero .plate{aspect-ratio:1;width:100%;max-width:420px;justify-self:center}
+.hero .plate svg{width:100%;height:100%;display:block}
+.hero p{margin:0 0 20px;color:var(--ink2);font-size:16.5px;letter-spacing:.06em}
+.hero h2{font-family:var(--kai);font-weight:400;font-size:clamp(24px,2.6vw,32px);letter-spacing:.2em;margin:0 0 14px;line-height:1.5}
+.btns{display:flex;gap:12px;flex-wrap:wrap}
+.status{display:inline-flex;align-items:center;gap:8px;margin-top:20px;font-size:14px;color:var(--ink2);letter-spacing:.1em}
+.status i{width:8px;height:8px;border-radius:50%;background:var(--mute)}
+.status.on i{background:var(--celadon2);box-shadow:0 0 0 4px rgba(135,168,149,.25)}
+/* 區塊 */
+.sec{padding:clamp(80px,10vw,130px) 0}
+.ttl{display:flex;gap:24px;align-items:flex-end;margin-bottom:40px}
+.ttl h2{margin:0;font-family:var(--kai);font-weight:400;font-size:clamp(32px,4vw,48px);letter-spacing:.3em;line-height:1.2}
+.ttl .seal{width:44px;height:44px;font-size:13px;flex:none}
+.ttl p{margin:0 0 4px auto;max-width:440px;color:var(--ink2);font-size:15px}
+/* 茶單 */
+.teas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px}
+.tea{padding:26px 24px 22px;display:flex;flex-direction:column;cursor:pointer;transition:transform .3s}
+.tea:focus-visible{outline:2px solid var(--seal);outline-offset:14px}
+.tea:hover{transform:translateY(-4px)}
+.tea[aria-pressed=true]{box-shadow:0 0 0 1px rgba(0,0,0,.06),0 0 0 10px var(--celadon),0 0 0 11px rgba(0,0,0,.08),0 30px 50px -30px rgba(60,40,10,.45)}
+.tea .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.tea h3{margin:0;font-family:var(--kai);font-weight:400;font-size:28px;letter-spacing:.2em;line-height:1.3}
+.tea .org{font-size:13px;color:var(--mute);letter-spacing:.1em}
+.tea .cup{width:56px;height:56px;flex:none}
+.tea p{margin:10px 0 12px;color:var(--ink2);font-size:14.5px;line-height:1.8;flex:1}
+.params{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:8px 0;margin-bottom:12px;text-align:center}
+.params b{display:block;font-family:var(--kai);font-weight:400;font-size:22px;line-height:1.2}
+.params span{font-size:11.5px;color:var(--mute);letter-spacing:.1em}
+.steeps{display:flex;gap:3px;align-items:flex-end;height:38px;margin-bottom:6px}
+.steeps i{flex:1;background:var(--celadon2);opacity:.75;min-height:4px}
+.steepsL{font-size:11.5px;color:var(--mute);letter-spacing:.06em;margin-bottom:10px}
+.tea .pr{display:flex;justify-content:space-between;font-size:14.5px}
+.tea .pr b{font-weight:400;color:var(--seal)}
+/* 計時器 */
+.timerSec{background:linear-gradient(var(--silk),#cfc0a3 20%,#cfc0a3 80%,var(--silk))}
+.timer{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(30px,5vw,60px);align-items:center}
+.timer>*{min-width:0}
+.dish{position:relative;aspect-ratio:1;max-width:460px;width:100%;justify-self:center}
+.dish svg{width:100%;height:100%;display:block}
+.dish .time{position:absolute;inset:0;display:grid;place-items:center;text-align:center;pointer-events:none}
+.dish .time b{display:block;font-family:var(--kai);font-weight:400;font-size:clamp(56px,7vw,86px);line-height:1;color:var(--ink)}
+.dish .time span{font-size:14px;letter-spacing:.24em;color:var(--ink2)}
+.ctrl{padding:clamp(24px,3vw,36px)}
+.ctrl h3{margin:0 0 4px;font-family:var(--kai);font-weight:400;font-size:28px;letter-spacing:.2em}
+.ctrl .sub{margin:0 0 18px;color:var(--ink2);font-size:14.5px}
+.lab{display:block;font-size:12.5px;letter-spacing:.3em;color:var(--mute);margin:0 0 8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+.chips label{position:relative}
+.chips input{position:absolute;opacity:0}
+.chips span{display:block;border:1px solid var(--line);padding:6px 12px;cursor:pointer;background:rgba(255,255,255,.4);font-family:var(--kai);font-size:16px;letter-spacing:.1em;line-height:1.35;text-align:center}
+.chips span small{display:block;font-family:var(--song);font-size:11px;color:var(--mute);letter-spacing:0}
+.chips input:checked+span{background:var(--ink);color:var(--leaf);border-color:var(--ink)}
+.chips input:checked+span small{color:#cfc5b4}
+.chips input:disabled+span{opacity:.35;cursor:default}
+.chips input:focus-visible+span{outline:2px solid var(--seal);outline-offset:2px}
+.brewInfo{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:10px 0;margin-bottom:16px;font-size:14.5px;flex-wrap:wrap}
+.brewInfo b{font-family:var(--kai);font-weight:400;font-size:20px}
+.log{list-style:none;margin:14px 0 0;padding:0;display:flex;gap:6px;flex-wrap:wrap;min-height:34px}
+.log li{width:30px;height:30px;border-radius:50%;background:var(--c);box-shadow:inset 0 -3px 4px rgba(0,0,0,.2),0 0 0 2px var(--leaf);display:grid;place-items:center;font-size:11px;color:#fff;font-family:var(--kai)}
+.ctrl .btns .btn{flex:1}
+/* 包廂 */
+.rooms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;margin-bottom:40px}
+.room{padding:14px 14px 20px}
+.room .ph{aspect-ratio:4/3}
+.room h3{margin:14px 6px 2px;font-family:var(--kai);font-weight:400;font-size:24px;letter-spacing:.3em}
+.room p{margin:0 6px;color:var(--ink2);font-size:14px}
+.room .meta{margin:8px 6px 0;font-size:13px;color:var(--mute);letter-spacing:.06em}
+.book{padding:clamp(24px,3vw,40px);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(20px,4vw,50px)}
+.book>*{min-width:0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fi{display:grid;gap:4px;font-size:12.5px;letter-spacing:.24em;color:var(--mute);margin-bottom:12px}
+.fi input,.fi select{border:0;border-bottom:1px solid var(--ink);background:transparent;padding:7px 0;font-family:var(--song);font-size:16px;color:var(--ink);letter-spacing:.04em;border-radius:0;width:100%}
+.fi input:focus,.fi select:focus{outline:none;border-bottom-color:var(--seal)}
+.fi .err{color:var(--seal);font-size:12px;letter-spacing:0;min-height:1em}
+.bill{border-top:1px solid var(--ink);padding-top:12px;margin:6px 0 14px;font-size:14.5px;color:var(--ink2)}
+.bill b{font-family:var(--kai);font-weight:400;font-size:26px;color:var(--ink)}
+.book .btn{width:100%}
+.demo{font-size:12px;color:var(--mute);text-align:center;margin:10px 0 0}
+.done{text-align:center;padding:30px 0;grid-column:1/-1;display:grid;justify-items:center;gap:10px}
+.done .seal{width:70px;height:70px;font-size:20px}
+.done b{font-family:var(--kai);font-weight:400;font-size:34px;letter-spacing:.3em}
+/* 評論與資訊 */
+.quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+.q{padding:26px 24px}
+.q p{margin:0 0 12px;font-family:var(--kai);font-size:19px;line-height:1.8;letter-spacing:.06em}
+.q small{font-size:12px;color:var(--mute);letter-spacing:.2em}
+.info{display:grid;grid-template-columns:repeat(3,1fr);gap:40px;border-top:1px solid var(--ink);padding-top:40px;margin-top:80px}
+.info h3{margin:0 0 12px;font-family:var(--kai);font-weight:400;font-size:20px;letter-spacing:.4em}
+.info p{margin:0 0 6px;color:var(--ink2)}
+.info a{text-decoration:none;border-bottom:1px solid var(--line)}
+.hours{display:grid;grid-template-columns:auto 1fr;gap:2px 18px;color:var(--ink2)}
+.hours .t{color:var(--seal)}
+footer{padding:40px 0 60px;text-align:center;font-family:var(--kai);font-size:14px;letter-spacing:.3em;color:var(--ink2)}
+footer nav{display:flex;justify-content:center;gap:22px;margin-bottom:8px}
+footer a{text-decoration:none}
+.slotBtn{position:fixed;right:16px;bottom:16px;z-index:60;border:1px solid var(--ink);background:var(--leaf);font-family:var(--kai);font-size:13px;letter-spacing:.2em;padding:6px 12px;cursor:pointer}
+.slotBtn[aria-pressed=true]{background:var(--ink);color:var(--leaf)}
+.rv-in{opacity:0;transform:translateY(16px);transition:opacity 1.2s ease,transform 1.2s cubic-bezier(.2,.7,.2,1)}
+.rv-in.vis{opacity:1;transform:none}
+@media (max-width:960px){
+  .nav ul{display:none;position:absolute;top:68px;left:0;right:0;flex-direction:column;gap:0;background:var(--silk);padding:6px 20px 16px;border-bottom:1px solid var(--line)}
+  .nav.open ul{display:flex}
+  .nav ul a{display:block;padding:11px 0;border-bottom:1px solid var(--line)}
+  .nav .wrap>.btn{display:none}
+  .burger{display:block}
+  .hero .leafPage{grid-template-columns:auto minmax(0,1fr)}
+  .hero .plate{grid-column:1/-1;grid-row:1;max-width:340px}
+  .timer,.book{grid-template-columns:1fr}
+  .teas,.rooms{grid-template-columns:1fr 1fr}
+  .quotes,.info{grid-template-columns:1fr}
+  .ttl{flex-wrap:wrap}
+  .ttl p{margin:0}
 }
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--silk);color:var(--ink);font-family:var(--song);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
-/* 綾絹裱邊 */
-body::before{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(60deg,rgba(255,255,255,.08) 0 2px,transparent 2px 6px),repeating-linear-gradient(-60deg,rgba(120,90,40,.06) 0 2px,transparent 2px 6px)}
-.album{position:relative;max-width:1200px;margin:clamp(12px,3vw,36px) auto;background:var(--leaf);box-shadow:0 0 0 1px rgba(80,60,30,.25),0 0 0 10px var(--silk-2),0 0 0 11px rgba(80,60,30,.25),0 30px 60px -30px rgba(60,40,10,.5);display:grid;grid-template-columns:auto minmax(0,1fr) minmax(250px,300px);gap:clamp(18px,3vw,44px);padding:clamp(22px,3vw,44px)}
-.album::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(80% 70% at 50% 40%,transparent 60%,rgba(140,110,60,.12));mix-blend-mode:multiply}
-.title{writing-mode:vertical-rl;display:flex;gap:18px;align-items:flex-start}
-.title h1{font-family:var(--kai);font-weight:400;font-size:clamp(46px,5vw,72px);letter-spacing:.18em;line-height:1}
-.title p{font-family:var(--kai);font-size:16px;line-height:2;letter-spacing:.24em;color:var(--ink-2);max-height:420px}
-.seal{display:inline-grid;place-items:center;width:42px;height:42px;background:var(--seal);color:#f4e7d4;font-family:var(--kai);font-size:15px;line-height:1.05;writing-mode:vertical-rl;border-radius:3px;text-align:center;opacity:.92}
-.seal.o{background:transparent;color:var(--seal);box-shadow:inset 0 0 0 2px var(--seal)}
-.center{display:flex;flex-direction:column;align-items:center}
-.disc{position:relative;width:min(100%,560px);aspect-ratio:1/1}
-.disc canvas{position:absolute;inset:0;width:100%;height:100%}
-.read{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center}
-.read .n{font-family:var(--kai);font-size:clamp(14px,1.6vw,18px);letter-spacing:.4em;color:var(--ink-2)}
-.read .t{font-family:"Hoefler Text","Songti TC",serif;font-weight:400;font-size:clamp(56px,8vw,104px);line-height:1;color:#2f4a3e;font-variant-numeric:lining-nums tabular-nums;margin:6px 0}
-.read .s{font-family:var(--kai);font-size:15px;letter-spacing:.2em;color:var(--ink-2)}
-.acts{display:flex;gap:14px;margin-top:22px}
-.acts button{font-family:var(--kai);font-size:20px;letter-spacing:.4em;padding:12px 26px 12px 34px;border:0;background:var(--ink);color:var(--leaf);cursor:pointer;border-radius:2px;transition:background .3s,opacity .3s}
-.acts button.o{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
-.acts button:hover{background:#45433c}.acts button.o:hover{background:rgba(43,42,38,.06)}
-.acts button[disabled]{opacity:.3;cursor:default}
-.cup{display:flex;align-items:center;gap:14px;margin-top:20px;font-family:var(--kai);font-size:15px;color:var(--ink-2);letter-spacing:.1em}
-.cup svg{width:70px;height:56px}
-.side h2{font-family:var(--kai);font-weight:400;font-size:20px;letter-spacing:.3em;border-bottom:1px solid var(--ink);padding-bottom:6px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:baseline}
-.side h2 small{font-size:12px;color:var(--mute);letter-spacing:.1em}
-.teas{list-style:none;display:grid;gap:2px;margin-bottom:22px}
-.teas button{width:100%;display:grid;grid-template-columns:16px 1fr auto;gap:10px;align-items:center;font:inherit;text-align:left;padding:8px 6px;background:transparent;border:0;border-bottom:1px dotted rgba(43,42,38,.25);cursor:pointer;color:var(--ink);transition:background .3s}
-.teas button:hover{background:rgba(169,195,178,.18)}
-.teas button.on{background:rgba(169,195,178,.35)}
-.teas i{width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
-.teas b{font-family:var(--kai);font-weight:400;font-size:18px;letter-spacing:.1em}
-.teas small{font-size:11.5px;color:var(--ink-2);text-align:right;line-height:1.35}
-.spec{font-size:13px;line-height:1.8;color:var(--ink-2);margin-bottom:22px}
-.spec b{font-family:var(--kai);font-weight:400;font-size:17px;color:var(--ink);margin-right:4px}
-.log{list-style:none;display:flex;flex-wrap:wrap;gap:10px 8px}
-.log li{width:44px;text-align:center;font-family:var(--kai);font-size:13px;color:var(--ink-2)}
-.log li i{display:block;width:40px;height:40px;margin:0 auto 4px;border-radius:50%;box-shadow:inset 0 2px 6px rgba(0,0,0,.25),0 0 0 3px var(--leaf),0 0 0 4px rgba(43,42,38,.2)}
-.log li.empty i{background:transparent!important;box-shadow:inset 0 0 0 1px rgba(43,42,38,.25)}
-@media (max-width:980px){
-  .album{grid-template-columns:minmax(0,1fr);padding:22px 18px}
-  .title{writing-mode:horizontal-tb;flex-direction:column;gap:8px;align-items:center;text-align:center}
-  .title p{max-height:none;font-size:14px;letter-spacing:.12em;line-height:1.8}
-  .title h1{letter-spacing:.3em}
+@media (max-width:600px){
+  .hero .leafPage{grid-template-columns:1fr}
+  .vtitle{writing-mode:horizontal-tb;height:auto;font-size:38px;letter-spacing:.2em}
+  .vtitle small{font-size:.4em;letter-spacing:.2em;margin:4px 0 0;padding:0}
+  .vtitle .seal{display:none}
+  .teas,.rooms{grid-template-columns:1fr}
+  .two{grid-template-columns:1fr}
 }
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.rv-in{opacity:1;transform:none;transition:none}}
 </style>
 </head>
 <body>
-<main class="album">
-  <aside class="title">
-    <h1>青瓷冰裂</h1>
-    <p>一泡一泡地沖，<br>等釉面慢慢開片。<br>時辰到，敲一聲磬，<br>出湯。</p>
-    <span class="seal">功夫<br>茶事</span>
-  </aside>
-  <section class="center">
-    <div class="disc"><canvas id="cv" width="1120" height="1120" aria-label="青瓷盤上的冰裂紋計時"></canvas>
-      <div class="read"><div class="n" id="rn">第一泡</div><div class="t" id="rt">50</div><div class="s" id="rs">秒 · 九十五度</div></div></div>
-    <div class="acts"><button id="brew">沖</button><button id="pour" class="o" disabled>出湯</button></div>
-    <div class="cup"><svg viewBox="0 0 70 56"><path d="M6 10 L64 10 L56 50 Q35 56 14 50Z" fill="#f2efe6" stroke="#2b2a26" stroke-width="1.2"/><clipPath id="cc"><path d="M6 10 L64 10 L56 50 Q35 56 14 50Z"/></clipPath><rect id="liq" x="0" y="56" width="70" height="0" fill="#c99a3a" clip-path="url(#cc)"/><path d="M64 14 q8 2 4 10" fill="none" stroke="#2b2a26" stroke-width="1.2"/></svg><span id="cupTxt">公道杯，空的。</span></div>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top"><span class="seal">青瓷<br>茶寮</span><b>青瓷茶寮</b></a>
+    <ul id="navList"><li><a href="#teas">茶單</a></li><li><a href="#brew">沖泡</a></li><li><a href="#rooms">包廂</a></li><li><a href="#visit">交通</a></li></ul>
+    <a class="btn" href="#rooms" style="padding:7px 14px 7px 18px;font-size:14px">預約包廂</a>
+    <button class="burger" id="burger" type="button" aria-expanded="false">目錄</button>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <div class="leafPage rv-in">
+        <h1 class="vtitle">青瓷茶寮<small>功夫茶・台灣茶</small><span class="seal">一壺<br>三泡</span></h1>
+        <div>
+          <h2>一把壺、六只杯，<br>一泡一泡慢慢喝。</h2>
+          <p>大稻埕老茶行改建的茶館。六款台灣當季茶，用朱泥小壺與青瓷杯，茶師在桌邊為你沖第一泡，之後交給你自己。我們把每款茶的水溫、投茶量與每一泡的秒數都寫在茶單上，回家也能照著泡。</p>
+          <div class="btns"><a class="btn" href="#rooms">預約包廂</a><a class="btn ghost" href="#teas">看茶單</a></div>
+          <span class="status" id="status"><i></i><span>…</span></span>
+        </div>
+        <div class="plate"><svg id="heroPlate" viewBox="0 0 400 400" role="img" aria-label="青瓷盤與冰裂紋"></svg></div>
+      </div>
+    </div>
   </section>
-  <aside class="side">
-    <h2>擇茶<small>水溫 · 投茶</small></h2>
-    <ul class="teas" id="teas"></ul>
-    <p class="spec" id="spec"></p>
-    <h2>湯色<small id="cnt">零泡</small></h2>
-    <ol class="log" id="log"></ol>
-  </aside>
+
+  <section class="sec" id="teas" style="padding-top:0">
+    <div class="wrap">
+      <div class="ttl rv-in"><span class="seal">茶<br>單</span><h2>當季茶單</h2><p>壺泡每位 NT$ 120 茶水費，茶葉另計（可帶走剩下的茶葉）。點一張茶單，下方計時器會帶入它的參數。</p></div>
+      <div class="teas" id="teaList"></div>
+    </div>
+  </section>
+
+  <section class="sec timerSec" id="brew">
+    <div class="wrap">
+      <div class="ttl rv-in"><span class="seal">沖<br>泡</span><h2>功夫茶計時</h2><p>在家泡茶也能用。選茶、按「沖」，盤上的冰裂紋會隨時間從盤緣裂進來，時間到敲一聲磬，出湯。</p></div>
+      <div class="timer">
+        <div class="dish rv-in"><svg id="dish" viewBox="0 0 400 400" aria-hidden="true"></svg><div class="time"><div><b id="tLeft">0</b><span id="tLabel">秒</span></div></div></div>
+        <div class="leafPage ctrl rv-in">
+          <h3 id="bName"></h3><p class="sub" id="bOrg"></p>
+          <span class="lab">選茶</span><div class="chips" id="bTeas"></div>
+          <div class="brewInfo"><span>水溫 <b id="bTemp"></b></span><span>投茶 <b id="bGram"></b></span><span>第 <b id="bN">1</b> 泡</span></div>
+          <div class="btns"><button class="btn" type="button" id="go">沖</button><button class="btn ghost" type="button" id="reset">重來</button></div>
+          <ul class="log" id="log" aria-label="已出湯的茶色"></ul>
+          <p class="demo" style="text-align:left" id="bHint"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="rooms">
+    <div class="wrap">
+      <div class="ttl rv-in"><span class="seal">包<br>廂</span><h2>品茗包廂</h2><p>三間包廂各有一位茶師負責，可指定茶款。每場兩小時，低消依包廂計，茶點與茶葉皆可抵用。</p></div>
+      <div class="rooms" id="roomList"></div>
+      <form class="leafPage book rv-in" id="rf" novalidate><div id="rBody" style="display:contents">
+        <div>
+          <span class="lab">包廂</span><div class="chips" id="rRoom"></div>
+          <span class="lab">日期</span><div class="chips" id="rDate"></div>
+          <span class="lab">時段</span><div class="chips" id="rTime"></div>
+        </div>
+        <div>
+          <div class="two"><label class="fi">人數<select id="rPax"></select></label><label class="fi">指定茶款<select id="rTea"></select></label></div>
+          <div class="two"><label class="fi">姓名<input id="rName" autocomplete="name"><span class="err"></span></label><label class="fi">手機<input id="rPhone" inputmode="tel" autocomplete="tel" placeholder="09xx-xxx-xxx"><span class="err"></span></label></div>
+          <div class="bill" id="bill"></div>
+          <button class="btn" type="submit">確認預約</button>
+          <p class="demo">示範版本：預約只顯示在頁面上，不會送出。</p>
+        </div>
+      </div></form>
+    </div>
+  </section>
+
+  <section class="sec" style="padding-top:0" aria-label="評論與交通">
+    <div class="wrap">
+      <div class="quotes">
+        <div class="leafPage q rv-in"><p>「東方美人第三泡最甜，茶師說蜜香是小綠葉蟬咬出來的。」</p><small>GOOGLE 評論 ★★★★★</small></div>
+        <div class="leafPage q rv-in"><p>「帶爸媽來梅間，安靜，茶師很會聊。剩下的茶葉還可以帶回家。」</p><small>GOOGLE 評論 ★★★★★</small></div>
+        <div class="leafPage q rv-in"><p>「網站上的計時器我在家也一直用，冰裂紋慢慢裂開很療癒。」</p><small>INSTAGRAM</small></div>
+      </div>
+      <div class="info rv-in" id="visit">
+        <div><h3>營業</h3><div class="hours" id="hours"></div></div>
+        <div><h3>地址</h3><p id="addr"></p><p>捷運北門站 3 號出口步行 7 分鐘。</p><p><a id="mapLink" href="#" target="_blank" rel="noopener">在地圖上開啟</a></p></div>
+        <div><h3>聯絡</h3><p><a id="tel" href="#"></a></p><p>茶葉禮盒、企業茶會請來電。</p><p>茶葉皆可真空分裝帶走。</p></div>
+      </div>
+    </div>
+  </section>
 </main>
+<footer><nav><a href="#">Instagram</a><a href="#">Facebook</a></nav>© <span id="yr"></span> 青瓷茶寮</footer>
+<button class="slotBtn" id="slotBtn" type="button" aria-pressed="false">照片位</button>
+
 <script>
 (function(){
 'use strict';
-var $=function(id){ return document.getElementById(id); };
-var TEAS=[
-  {zh:'高山烏龍',temp:95,g:7,water:'百毫升',c:[214,178,82],sch:[50,30,40,55,70,90,120,150],note:'球形茶需要第一泡讓葉子舒展。'},
-  {zh:'東方美人',temp:85,g:5,water:'百毫升',c:[196,120,52],sch:[40,30,35,45,60,80,110],note:'水溫不可太高，蜜香才不會悶掉。'},
-  {zh:'鐵觀音',temp:98,g:7,water:'百毫升',c:[186,128,44],sch:[45,35,45,60,75,95,120,150],note:'焙火重的可以沸水直沖。'},
-  {zh:'白毫銀針',temp:85,g:5,water:'百毫升',c:[226,206,140],sch:[60,45,60,80,100,130],note:'芽頭嬌嫩，慢慢出味。'},
-  {zh:'正山小種',temp:92,g:5,water:'百毫升',c:[150,62,28],sch:[20,15,20,30,40,60],note:'松煙香明顯，出湯要快。'},
-  {zh:'熟普洱',temp:100,g:8,water:'百毫升',c:[92,36,20],sch:[15,10,10,15,20,30,45,60,90,120],note:'先以沸水洗茶一次，再開始計泡。'}
+/* ===== 店家設定 ===== */
+var SHOP = {
+  name:'青瓷茶寮', phone:'(02) 2558-0225', address:'台北市大同區示範街 25 號',
+  // 0=週日；[開, 關]，null 表示公休
+  hours:[['11:00','20:00'],null,['12:00','21:00'],['12:00','21:00'],['12:00','21:00'],['12:00','22:00'],['11:00','22:00']],
+  seatFee:120,
+  photos:{r0:'',r1:'',r2:''}
+};
+// 茶單 [名稱, 產地, 說明, 水溫 °C, 投茶 g（150 ml 壺）, 逐泡秒數, 價格（一泡壺份）, 湯色]
+var TEAS = [
+  ['凍頂烏龍','南投鹿谷','中焙，焦糖與熟果香，回甘長。',95,7,[50,35,45,60,80,110],380,'#c79a4a'],
+  ['東方美人','新竹北埔','小綠葉蟬著涎，蜜香與熟果，第三泡最甜。',85,5,[60,45,55,75,100],520,'#c9853a'],
+  ['阿里山高山','嘉義阿里山','輕發酵，蘭花香與山氣，湯水細滑。',95,6,[45,30,40,55,75,100],460,'#d9c86a'],
+  ['文山包種','新北坪林','條索輕揉，清香如花，泡得短才不澀。',85,5,[40,30,40,60,80],320,'#d8d27a'],
+  ['日月潭紅玉','南投魚池','台茶十八號，肉桂與薄荷香。',90,4,[30,25,35,50,70],360,'#a8452a'],
+  ['老普洱','雲南 2008','熟茶，木香與棗香，可以泡十泡以上。',100,8,[10,10,15,20,30,45,60,90],580,'#5a2a14']
 ];
-var CN='零一二三四五六七八九十';
-function cn(n){ if(n<=10) return CN[n]; if(n<20) return '十'+(n%10?CN[n%10]:''); return CN[Math.floor(n/10)]+'十'+(n%10?CN[n%10]:''); }
-var cur=0, idx=0, timing=false, t0=0, dur=50, elapsed=0, cracks=[], logs=[];
-$('teas').innerHTML=TEAS.map(function(t,i){ return '<li><button data-i="'+i+'"'+(i?'':' class="on"')+'><i style="background:rgb('+t.c.join(',')+')"></i><b>'+t.zh+'</b><small>'+t.temp+'°C<br>'+t.g+' 克</small></button></li>'; }).join('');
-$('teas').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b||timing) return; cur=+b.dataset.i; Array.prototype.forEach.call(this.querySelectorAll('button'),function(x){ x.classList.toggle('on',x===b); }); idx=0; logs=[]; reseed(); show(); });
+// 包廂 [名稱, 說明, 人數下限, 上限, 低消/人]
+var ROOMS = [['竹間','窗外是天井的竹子，兩到四人。',2,4,500],['松間','長桌與老櫃，四到八人，可辦小茶會。',4,8,450],['梅間','榻榻米與矮桌，兩到六人，可脫鞋盤坐。',2,6,550]];
+var SLOTS = ['12:00','14:00','16:00','18:00','19:30'];
+var $ = function(s, r){ return (r || document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+var money = function(n){ return 'NT$ ' + Math.round(n).toLocaleString(); };
+var now = new Date(), DAYS = ['週日','週一','週二','週三','週四','週五','週六'];
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// ---- 冰裂紋：從盤緣往內長的裂線，主線鐵黑、支線金絲 ----
-var cv=$('cv'), ctx=cv.getContext('2d'), S=1120, C=S/2, R=500, RIN=420;
-function rng(s){ return function(){ s=(s*16807)%2147483647; return (s-1)/2147483646; }; }
-function reseed(){
-  var r=rng(1234+cur*97+idx*31); cracks=[];
-  function grow(x,y,a,len,depth,start,gold){
-    var pts=[[x,y]], L=0, step=10+r()*8;
-    while(L<len){ a+=(r()-.5)*.7; x+=Math.cos(a)*step; y+=Math.sin(a)*step; L+=step; if(Math.hypot(x-C,y-C)>RIN-4) break; pts.push([x,y]);
-      if(depth<3 && r()<.09){ var na=a+(r()<.5?1:-1)*(.8+r()*.9); grow(x,y,na,len*(.35+r()*.4),depth+1,start+L/len*.5,depth>=1||r()<.5); } }
-    cracks.push({pts:pts,start:start,span:.35+r()*.35,gold:gold,w:gold?1.1:2.2-depth*.4});
+/* ===== 冰裂紋 ===== */
+function rng(seed){ return function(){ seed = (seed*16807) % 2147483647; return (seed - 1)/2147483646; }; }
+// 從盤緣往內生長的裂紋：主紋鐵黑、支紋金絲；progress 0–1 決定長到哪裡
+function crackles(seed, R, cx, cy){
+  var r = rng(seed), lines = [];
+  for (var i = 0; i < 26; i++){
+    var a = r()*Math.PI*2, x = cx + Math.cos(a)*R, y = cy + Math.sin(a)*R, len = R*(.25 + r()*.55), seg = 6 + Math.floor(r()*5), pts = [[x, y]], dir = a + Math.PI + (r() - .5)*.6;
+    for (var k = 0; k < seg; k++){ dir += (r() - .5)*.9; x += Math.cos(dir)*len/seg; y += Math.sin(dir)*len/seg; if (Math.hypot(x - cx, y - cy) > R) break; pts.push([x, y]); }
+    lines.push({pts:pts, w:1.4 + r()*1.4, c:'#2b2a26', t0:r()*.4});
+    for (var b = 1; b < pts.length - 1; b += 2){ var bd = dir + (r() > .5 ? 1 : -1)*(.8 + r()*.6), bx = pts[b][0], by = pts[b][1], bp = [[bx, by]]; for (var m = 0; m < 3; m++){ bd += (r() - .5)*.7; bx += Math.cos(bd)*len/seg*.8; by += Math.sin(bd)*len/seg*.8; if (Math.hypot(bx - cx, by - cy) > R) break; bp.push([bx, by]); } lines.push({pts:bp, w:.7, c:'#b8955a', t0:.3 + r()*.5}); }
   }
-  for(var i=0;i<16;i++){ var a=i/16*Math.PI*2+r()*.3, x=C+Math.cos(a)*(RIN-2), y=C+Math.sin(a)*(RIN-2); grow(x,y,a+Math.PI+(r()-.5)*.9,180+r()*240,0,r()*.45,false); }
-  // 再撒一些短短的金絲細紋
-  for(i=0;i<30;i++){ var a2=r()*Math.PI*2, d=Math.sqrt(r())*RIN*.9; grow(C+Math.cos(a2)*d,C+Math.sin(a2)*d,r()*6.28,40+r()*70,2,.3+r()*.6,true); }
+  return lines;
 }
-function drawDisc(p,now){
-  ctx.clearRect(0,0,S,S);
-  // 盤影
-  var sh=ctx.createRadialGradient(C+14,C+22,R*.8,C+14,C+22,R*1.08); sh.addColorStop(0,'rgba(80,60,30,.28)'); sh.addColorStop(1,'rgba(80,60,30,0)');
-  ctx.fillStyle=sh; ctx.beginPath(); ctx.arc(C+14,C+22,R*1.08,0,6.283); ctx.fill();
-  // 外緣：釉積得厚的地方顏色深一點
-  var g=ctx.createRadialGradient(C-R*.3,C-R*.35,R*.1,C,C,R);
-  g.addColorStop(0,'#c8dccd'); g.addColorStop(.7,'#a9c3b2'); g.addColorStop(.93,'#8eac9a'); g.addColorStop(1,'#7e9c8a');
-  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(C,C,R,0,6.283); ctx.fill();
-  // 盤心的凹面
-  var g2=ctx.createRadialGradient(C+RIN*.2,C+RIN*.25,RIN*.1,C,C,RIN);
-  g2.addColorStop(0,'#bcd3c2'); g2.addColorStop(.8,'#a6c0af'); g2.addColorStop(1,'#93b19f');
-  ctx.fillStyle=g2; ctx.beginPath(); ctx.arc(C,C,RIN,0,6.283); ctx.fill();
-  ctx.strokeStyle='rgba(60,80,70,.25)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(C,C,RIN,0,6.283); ctx.stroke();
-  // 釉裡的細小氣泡
-  var r=rng(77); ctx.fillStyle='rgba(255,255,255,.18)'; for(var i=0;i<220;i++){ var a=r()*6.283, d=Math.sqrt(r())*R; ctx.beginPath(); ctx.arc(C+Math.cos(a)*d,C+Math.sin(a)*d,.8+r()*1.8,0,6.283); ctx.fill(); }
-  // 裂紋依進度長出
-  cracks.forEach(function(k){
-    var q=(p-k.start)/k.span; if(q<=0) return; q=Math.min(1,q);
-    var n=Math.max(2,Math.floor(k.pts.length*q));
-    ctx.strokeStyle=k.gold?'rgba(176,138,60,.75)':'rgba(48,44,38,.78)'; ctx.lineWidth=k.w; ctx.lineJoin='round'; ctx.lineCap='round';
-    ctx.beginPath(); for(var j=0;j<n;j++){ var pt=k.pts[j]; j?ctx.lineTo(pt[0],pt[1]):ctx.moveTo(pt[0],pt[1]); } ctx.stroke();
-    if(!k.gold){ ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=1; ctx.beginPath(); for(j=0;j<n;j++){ pt=k.pts[j]; j?ctx.lineTo(pt[0]+1.5,pt[1]+1.5):ctx.moveTo(pt[0]+1.5,pt[1]+1.5); } ctx.stroke(); }
-  });
-  // 進度：盤緣一圈淡淡的墨線
-  if(p>0){ ctx.strokeStyle='rgba(43,42,38,.55)'; ctx.lineWidth=4; ctx.lineCap='round'; ctx.beginPath(); ctx.arc(C,C,R-22,-Math.PI/2,-Math.PI/2+Math.min(1,p)*Math.PI*2); ctx.stroke(); }
-  if(p>1){ ctx.strokeStyle='rgba(168,53,42,'+(.4+.3*Math.sin(now/200))+')'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(C,C,R-22,-Math.PI/2,-Math.PI/2+Math.min(1,p-1)*Math.PI*2); ctx.stroke(); }
-  // 高光
-  ctx.fillStyle='rgba(255,255,255,.22)'; ctx.beginPath(); ctx.ellipse(C-R*.42,C-R*.5,R*.16,R*.05,-.7,0,6.283); ctx.fill();
+function crackSVG(lines, p){
+  return lines.map(function(l){ var vis = Math.max(0, Math.min(1, (p - l.t0)/(1 - l.t0 + .001))); if (vis <= 0) return ''; var n = Math.max(2, Math.ceil(l.pts.length*vis)), pts = l.pts.slice(0, n);
+    return '<path d="M' + pts.map(function(q){ return q[0].toFixed(1) + ' ' + q[1].toFixed(1); }).join(' L') + '" fill="none" stroke="' + l.c + '" stroke-width="' + l.w + '" stroke-linecap="round" opacity=".8"/>'; }).join('');
 }
-// ---- 聲音：磬 ----
-var ac=null; function A(){ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return ac; }
-function qing(){ var a=A(); if(!a) return; var t=a.currentTime; [[523,1],[1307,.5],[2093,.25],[2876,.15]].forEach(function(p){ var o=a.createOscillator(),g=a.createGain(); o.frequency.value=p[0]; g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.09*p[1],t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+3.5); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+3.6); }); }
-function water(){ var a=A(); if(!a) return; var n=a.sampleRate*1.2,b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0); for(var i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.sin(i/n*Math.PI); var s=a.createBufferSource(); s.buffer=b; var f=a.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1100; f.Q.value=.8; var g=a.createGain(); g.gain.value=.18; s.connect(f); f.connect(g); g.connect(a.destination); s.start(); }
+function plateBase(id){ return '<defs><radialGradient id="pg' + id + '" cx=".42" cy=".38" r=".7"><stop offset="0" stop-color="#d6e5da"/><stop offset=".55" stop-color="#a9c3b2"/><stop offset="1" stop-color="#7f9e8c"/></radialGradient><radialGradient id="ps' + id + '" cx=".5" cy=".5" r=".5"><stop offset=".8" stop-color="#000" stop-opacity=".25"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient></defs><circle cx="206" cy="212" r="190" fill="url(#ps' + id + ')"/><circle cx="200" cy="200" r="186" fill="url(#pg' + id + ')"/><circle cx="200" cy="200" r="150" fill="none" stroke="#7f9e8c" stroke-width="2" opacity=".6"/><ellipse cx="150" cy="130" rx="70" ry="30" fill="#fff" opacity=".22" transform="rotate(-30 150 130)"/>'; }
+var heroLines = crackles(225, 186, 200, 200);
+$('#heroPlate').innerHTML = plateBase('h') + crackSVG(heroLines, .75) + '<circle cx="200" cy="200" r="186" fill="none" stroke="#5f7a6a" stroke-width="3"/>';
 
-function show(){
-  var t=TEAS[cur]; dur=t.sch[Math.min(idx,t.sch.length-1)]+(idx>=t.sch.length?(idx-t.sch.length+1)*30:0);
-  $('rn').textContent='第'+cn(idx+1)+'泡'; $('rt').textContent=dur; $('rs').textContent='秒 · '+t.temp+'°C';
-  $('spec').innerHTML='<b>'+t.zh+'</b>'+t.temp+'°C 的水，每'+t.water+'投 '+t.g+' 克。'+t.note+'<br>建議泡次：'+t.sch.join('、')+' 秒。';
-  $('cnt').textContent=cn(logs.length)+'泡';
-  var html=logs.map(function(l,i){ return '<li><i style="background:'+l.col+'"></i>'+cn(i+1)+'<br>'+l.s+'″</li>'; }).join('');
-  for(var k=logs.length;k<Math.max(6,logs.length+1);k++) html+='<li class="empty"><i></i>'+cn(k+1)+'</li>';
-  $('log').innerHTML=html;
-  drawDisc(logs.length?1:0,0);
+/* ===== 茶單 ===== */
+function cupIcon(c){ return '<svg class="cup" viewBox="0 0 56 56" aria-hidden="true"><ellipse cx="28" cy="46" rx="20" ry="4" fill="rgba(0,0,0,.12)"/><path d="M8 18 Q10 44 28 46 Q46 44 48 18Z" fill="#a9c3b2" stroke="#5f7a6a" stroke-width="1.2"/><ellipse cx="28" cy="18" rx="20" ry="5" fill="' + c + '" stroke="#5f7a6a" stroke-width="1.2"/><ellipse cx="22" cy="17" rx="6" ry="1.6" fill="#fff" opacity=".4"/></svg>'; }
+var sel = 1;
+$('#teaList').innerHTML = TEAS.map(function(t, i){ var mx = Math.max.apply(null, t[5]); return '<article class="leafPage tea rv-in" role="button" tabindex="0" data-i="' + i + '" aria-pressed="' + (i === sel) + '"><span class="top"><span><h3>' + t[0] + '</h3><span class="org">' + t[1] + '</span></span>' + cupIcon(t[7]) + '</span><p>' + t[2] + '</p><span class="params"><span><b>' + t[3] + '°</b><span>水溫</span></span><span><b>' + t[4] + 'g</b><span>投茶</span></span><span><b>' + t[5].length + '</b><span>泡</span></span></span><span class="steeps" aria-hidden="true">' + t[5].map(function(s){ return '<i style="height:' + (s/mx*100) + '%"></i>'; }).join('') + '</span><span class="steepsL">逐泡秒數　' + t[5].join('・') + '</span><span class="pr"><span>壺泡一份</span><b>' + money(t[6]) + '</b></span></article>'; }).join('');
+$('#teaList').addEventListener('click', function(e){ var b = e.target.closest('.tea'); if (!b) return; pickTea(+b.dataset.i); });
+$('#teaList').addEventListener('keydown', function(e){ var b = e.target.closest('.tea'); if (b && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); pickTea(+b.dataset.i); } });
+
+/* ===== 計時器 ===== */
+$('#bTeas').innerHTML = TEAS.map(function(t, i){ return '<label><input type="radio" name="bt" value="' + i + '"' + (i === sel ? ' checked' : '') + '><span>' + t[0] + '</span></label>'; }).join('');
+$('#bTeas').addEventListener('change', function(e){ pickTea(+e.target.value); });
+var lines = crackles(7, 186, 200, 200), steep = 0, timer = null, t0 = 0, dur = 0, ac = null;
+function pickTea(i){ sel = i; steep = 0; stop(); $('#log').innerHTML = ''; $$('.tea').forEach(function(b){ b.setAttribute('aria-pressed', +b.dataset.i === i); }); var r = $('#bTeas input[value="' + i + '"]'); if (r) r.checked = true; lines = crackles(7 + i*13, 186, 200, 200); info(); dishDraw(0); }
+function info(){ var t = TEAS[sel]; $('#bName').textContent = t[0]; $('#bOrg').textContent = t[1] + '・' + t[2]; $('#bTemp').textContent = t[3] + ' °C'; $('#bGram').textContent = t[4] + ' g'; $('#bN').textContent = Math.min(steep + 1, t[5].length); $('#tLeft').textContent = t[5][Math.min(steep, t[5].length - 1)]; $('#tLabel').textContent = steep >= t[5].length ? '已泡完' : '秒・第 ' + (steep + 1) + ' 泡'; $('#go').textContent = steep >= t[5].length ? '泡完了' : '沖'; $('#go').disabled = steep >= t[5].length; $('#bHint').textContent = '先用滾水溫壺溫杯，投茶後第一次注水十秒內倒掉（醒茶），再開始計時。'; }
+function dishDraw(p){ var t = TEAS[sel]; $('#dish').innerHTML = plateBase('d') + '<circle cx="200" cy="200" r="120" fill="' + t[7] + '" opacity="' + (.15 + p*.35) + '"/>' + crackSVG(lines, p) + '<circle cx="200" cy="200" r="186" fill="none" stroke="#5f7a6a" stroke-width="3"/><circle cx="200" cy="200" r="194" fill="none" stroke="#a8352a" stroke-width="3" stroke-dasharray="' + (p*1219).toFixed(1) + ' 1219" transform="rotate(-90 200 200)"/>'; }
+function chime(){ try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); var o = ac.createOscillator(), o2 = ac.createOscillator(), g = ac.createGain(), tt = ac.currentTime; o.frequency.value = 660; o2.frequency.value = 1665; o.connect(g); o2.connect(g); g.connect(ac.destination); g.gain.setValueAtTime(.0001, tt); g.gain.exponentialRampToValueAtTime(.25, tt + .01); g.gain.exponentialRampToValueAtTime(.0001, tt + 2.4); o.start(tt); o2.start(tt); o.stop(tt + 2.5); o2.stop(tt + 2.5); } catch (e){} }
+function stop(){ if (timer){ cancelAnimationFrame(timer); timer = null; } }
+function tick(){ var el = (performance.now() - t0)/1000, left = Math.max(0, dur - el); $('#tLeft').textContent = Math.ceil(left); dishDraw(Math.min(1, el/dur));
+  if (left <= 0){ timer = null; chime(); var t = TEAS[sel]; $('#log').insertAdjacentHTML('beforeend', '<li style="--c:' + t[7] + ';opacity:' + (1 - steep*.08) + '" title="第 ' + (steep + 1) + ' 泡">' + (steep + 1) + '</li>'); steep++; $('#tLabel').textContent = '出湯'; setTimeout(function(){ info(); }, 1200); $('#go').disabled = false; return; }
+  timer = requestAnimationFrame(tick); }
+$('#go').onclick = function(){ var t = TEAS[sel]; if (steep >= t[5].length || timer) return; dur = t[5][steep]; t0 = performance.now(); try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); ac.resume && ac.resume(); } catch (e){} $('#go').disabled = true; $('#tLabel').textContent = '秒・第 ' + (steep + 1) + ' 泡'; if (reduce){ dishDraw(.5); } timer = requestAnimationFrame(tick); };
+$('#reset').onclick = function(){ pickTea(sel); };
+pickTea(sel);
+
+/* ===== 包廂 ===== */
+$('#roomList').innerHTML = ROOMS.map(function(r, i){ return '<div class="leafPage room rv-in"><figure class="ph" data-photo="r' + i + '" data-art="room' + i + '" data-label="' + r[0] + '" data-size="1200×900"></figure><h3>' + r[0] + '</h3><p>' + r[1] + '</p><p class="meta">' + r[2] + '–' + r[3] + ' 位・低消每位 ' + money(r[4]) + '・兩小時</p></div>'; }).join('');
+$('#rRoom').innerHTML = ROOMS.map(function(r, i){ return '<label><input type="radio" name="rr" value="' + i + '"' + (i ? '' : ' checked') + '><span>' + r[0] + '<small>' + r[2] + '–' + r[3] + ' 位</small></span></label>'; }).join('');
+var days = []; for (var i = 0; days.length < 8; i++){ var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i); if (SHOP.hours[d.getDay()]) days.push(d); }
+$('#rDate').innerHTML = days.map(function(d, i){ return '<label><input type="radio" name="rd" value="' + i + '"' + (i ? '' : ' checked') + '><span>' + (d.getMonth() + 1) + '/' + d.getDate() + '<small>' + DAYS[d.getDay()] + '</small></span></label>'; }).join('');
+$('#rTea').innerHTML = '<option value="-1">由茶師推薦</option>' + TEAS.map(function(t, i){ return '<option value="' + i + '">' + t[0] + '</option>'; }).join('');
+function mins(t){ var p = t.split(':'); return +p[0]*60 + +p[1]; }
+function roomDraw(){
+  var ri = +$('input[name=rr]:checked').value, r = ROOMS[ri], d = days[+$('input[name=rd]:checked').value], h = SHOP.hours[d.getDay()], isToday = d.toDateString() === now.toDateString(), nm = now.getHours()*60 + now.getMinutes(), cur = ($('input[name=rt]:checked') || {}).value;
+  $('#rTime').innerHTML = SLOTS.map(function(t, j){ var out = mins(t) < mins(h[0]) || mins(t) + 120 > mins(h[1]), full = (d.getDate() + j*3 + ri) % 5 === 0, past = isToday && mins(t) < nm + 30; return '<label><input type="radio" name="rt" value="' + t + '"' + (out || full || past ? ' disabled' : '') + '><span>' + t + '<small>' + (out ? '未營業' : full ? '已預約' : '可預約') + '</small></span></label>'; }).join('');
+  var p = $('#rTime input[value="' + cur + '"]:not(:disabled)') || $('#rTime input:not(:disabled)'); if (p) p.checked = true;
+  var pax = +$('#rPax').value || r[2], opts = ''; for (var n = r[2]; n <= r[3]; n++) opts += '<option' + (n === Math.min(Math.max(pax, r[2]), r[3]) ? ' selected' : '') + '>' + n + '</option>'; $('#rPax').innerHTML = opts;
+  bill();
 }
-function liquor(){ var t=TEAS[cur], k=Math.max(.25,1-idx*.09), over=Math.max(0,elapsed-dur)/dur;
-  var c=t.c.map(function(v){ return Math.round(255-(255-v)*k*(1+over*.5)); }); return 'rgb('+c.map(function(v){return Math.max(0,Math.min(255,v));}).join(',')+')'; }
-var raf=0;
-$('brew').onclick=function(){
-  if(timing) return; A(); water(); timing=true; t0=performance.now(); this.disabled=true; $('pour').disabled=false; reseed();
-  var rang=false;
-  cancelAnimationFrame(raf);
-  (function f(now){
-    if(!timing) return;
-    elapsed=(now-t0)/1000; var p=elapsed/dur, left=Math.ceil(dur-elapsed);
-    $('rt').textContent=left>0?left:'+'+Math.floor(elapsed-dur);
-    $('rs').textContent=left>0?'秒 · 浸泡中':'秒 · 該出湯了';
-    if(p>=1 && !rang){ rang=true; qing(); }
-    drawDisc(p,now); raf=requestAnimationFrame(f);
-  })(t0);
+function bill(){ var r = ROOMS[+$('input[name=rr]:checked').value], pax = +$('#rPax').value, ti = +$('#rTea').value, min = r[4]*pax;
+  $('#bill').innerHTML = '低消 ' + pax + ' 位 × ' + r[4] + '＝<b>' + money(min) + '</b><br>' + (ti >= 0 ? '已指定「' + TEAS[ti][0] + '」，壺泡 ' + money(TEAS[ti][6]) + '＋茶水費 ' + money(SHOP.seatFee*pax) + '，可抵低消。' : '茶師會依當天的茶況推薦。') + (!$('input[name=rt]:checked') ? '<br><span style="color:var(--seal)">這天這間包廂已滿，請換日期或包廂。</span>' : ''); }
+$('#rf').addEventListener('change', function(e){ if (e.target.id === 'rPax' || e.target.id === 'rTea') bill(); else if (e.target.name !== 'rt') roomDraw(); });
+roomDraw();
+$('#rf').addEventListener('submit', function(e){
+  e.preventDefault();
+  var name = $('#rName'), phone = $('#rPhone'), ok = true, t = $('input[name=rt]:checked');
+  [[name, name.value.trim().length > 0, '請填寫姓名'], [phone, /^09\d{2}-?\d{3}-?\d{3}$/.test(phone.value.trim()), '請輸入 09 開頭的手機號碼']].forEach(function(c){ c[0].nextElementSibling.textContent = c[1] ? '' : c[2]; if (!c[1]) ok = false; });
+  if (!t || !ok) return;
+  var d = days[+$('input[name=rd]:checked').value], r = ROOMS[+$('input[name=rr]:checked').value];
+  $('#rBody').innerHTML = '<div class="done"><span class="seal">已<br>約</span><b>恭候光臨</b><p>' + (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日 ' + DAYS[d.getDay()] + ' ' + t.value + '・' + r[0] + '・' + $('#rPax').value + ' 位</p><p>' + name.value.trim().replace(/</g, '') + '，茶師會提前溫壺等候。</p><p class="demo">示範版本：沒有真的送出預約。</p></div>';
+});
+
+/* ===== 營業狀態 ===== */
+(function(){
+  var h = SHOP.hours[now.getDay()], m = now.getHours()*60 + now.getMinutes(), open = h && m >= mins(h[0]) && m < mins(h[1]), next = '';
+  if (!open) for (var k = 0; k < 8 && !next; k++){ var d = (now.getDay() + k) % 7, x = SHOP.hours[d]; if (x && (k > 0 || mins(x[0]) > m)) next = (k === 0 ? '今天' : k === 1 ? '明天' : DAYS[d]) + ' ' + x[0]; }
+  $('#status').classList.toggle('on', !!open); $('#status').lastElementChild.textContent = open ? '營業中・至 ' + h[1] : '休息中・' + next + ' 開門';
+  $('#hours').innerHTML = [1,2,3,4,5,6,0].map(function(i){ var x = SHOP.hours[i], c = i === now.getDay() ? ' class="t"' : ''; return '<span' + c + '>' + DAYS[i] + '</span><span' + c + '>' + (x ? x[0] + '–' + x[1] : '公休') + '</span>'; }).join('');
+})();
+$('#addr').textContent = SHOP.address; $('#tel').textContent = SHOP.phone; $('#tel').href = 'tel:' + SHOP.phone.replace(/[^\d]/g, '');
+$('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+$('#yr').textContent = now.getFullYear();
+
+/* ===== 佔位圖（淡彩） ===== */
+function svg(vb, body){ return '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="100%" height="100%" fill="#e6dcc6"/>' + body + '</svg>'; }
+function teaSet(x, y, s){ var o = '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')"><ellipse cx="0" cy="40" rx="150" ry="22" fill="#a9c3b2" stroke="#5f7a6a" stroke-width="2"/><path d="M-50 -40 Q-70 30 0 36 Q70 30 50 -40Z" fill="#a8452a"/><ellipse cx="0" cy="-40" rx="50" ry="10" fill="#8a3420"/><circle cx="0" cy="-56" r="8" fill="#8a3420"/><path d="M50 -20 Q80 -30 84 -50" stroke="#a8452a" stroke-width="10" fill="none" stroke-linecap="round"/>';
+  for (var i = 0; i < 4; i++) o += '<path d="M' + (-130 + i*80 + (i > 1 ? 100 : 0)) + ' 20 q4 20 16 20 q12 0 16 -20z" fill="#c6d8cb" stroke="#5f7a6a"/>'; return o + '</g>'; }
+var ART = {
+  room0:function(){ var s = '<rect x="80" y="60" width="440" height="420" fill="#f4eee0" stroke="#6b5a40" stroke-width="10"/>'; for (var i = 0; i < 9; i++) s += '<path d="M' + (120 + i*48) + ' 480 Q' + (110 + i*48) + ' 260 ' + (140 + i*48) + ' 60" stroke="#6f8f5a" stroke-width="10" fill="none"/>' + '<path d="M' + (130 + i*48) + ' ' + (200 + i*20) + ' l40 -16" stroke="#6f8f5a" stroke-width="6"/>';
+    s += '<rect y="560" width="1200" height="340" fill="#8a6a44"/><rect x="560" y="480" width="560" height="40" fill="#5a3a20"/>' + teaSet(820, 440, .9); return svg('0 0 1200 900', s); },
+  room1:function(){ var s = '<rect x="60" y="80" width="300" height="440" fill="#7a5a3a"/>'; for (var r = 0; r < 4; r++) for (var c = 0; c < 3; c++) s += '<rect x="' + (80 + c*94) + '" y="' + (100 + r*104) + '" width="80" height="90" fill="#5a3a20"/><ellipse cx="' + (120 + c*94) + '" cy="' + (160 + r*104) + '" rx="20" ry="26" fill="' + ['#a9c3b2','#a8452a','#d9ccb2'][(r + c)%3] + '"/>';
+    s += '<rect x="400" y="500" width="760" height="50" fill="#5a3a20"/><rect y="600" width="1200" height="300" fill="#8a6a44"/>' + teaSet(780, 460, 1); return svg('0 0 1200 900', s); },
+  room2:function(){ var s = '<rect x="0" y="560" width="1200" height="340" fill="#cbbf8a"/>'; for (var i = 0; i < 4; i++) s += '<path d="M' + (i*400) + ' 560 L' + (i*400 - 160) + ' 900" stroke="#3e4a2a" stroke-width="8"/>';
+    s += '<rect x="140" y="80" width="300" height="420" fill="#f4eee0" stroke="#6b5a40" stroke-width="8"/><path d="M200 140 q60 40 40 120 q-20 80 50 140" stroke="#5a3a20" stroke-width="6" fill="none"/>'; for (var k = 0; k < 7; k++) s += '<circle cx="' + (220 + k*28) + '" cy="' + (180 + (k%3)*60) + '" r="10" fill="#c8606a"/>';
+    s += '<rect x="560" y="560" width="520" height="40" fill="#5a3a20"/>' + teaSet(820, 520, .8); return svg('0 0 1200 900', s); }
 };
-$('pour').onclick=function(){
-  if(!timing) return; timing=false; cancelAnimationFrame(raf); water();
-  var col=liquor(), s=Math.round(elapsed);
-  logs.push({col:col,s:s});
-  var liq=$('liq'); liq.setAttribute('fill',col); liq.style.transition='none'; liq.setAttribute('y',56); liq.setAttribute('height',0);
-  var tt=performance.now(); (function f(now){ var q=Math.min(1,(now-tt)/900); liq.setAttribute('y',56-40*q); liq.setAttribute('height',40*q); if(q<1) requestAnimationFrame(f); })(tt);
-  var diff=s-dur, msg=Math.abs(diff)<=3?'剛好，湯色清亮。':diff>0?'多泡了 '+diff+' 秒，略濃略澀。':'少了 '+(-diff)+' 秒，味道還淡。';
-  $('cupTxt').textContent='第'+cn(idx+1)+'泡：'+msg;
-  idx++; this.disabled=true; $('brew').disabled=false; show();
-};
-reseed(); show();
+function fillPhotos(){ $$('.ph').forEach(function(f){ var url = SHOP.photos[f.dataset.photo]; if (url){ f.innerHTML = '<img src="' + url + '" alt="' + (f.dataset.label || '') + '" loading="lazy">'; return; } var a = ART[f.dataset.art]; if (a) f.innerHTML = a(); }); }
+
+/* ===== 共用 ===== */
+var nav = $('#nav');
+$('#burger').onclick = function(){ var o = nav.classList.toggle('open'); this.setAttribute('aria-expanded', o); this.textContent = o ? '收起' : '目錄'; };
+$$('#navList a').forEach(function(a){ a.onclick = function(){ nav.classList.remove('open'); $('#burger').textContent = '目錄'; }; });
+var slotBtn = $('#slotBtn');
+function slots(on){ document.body.classList.toggle('slots', on); slotBtn.setAttribute('aria-pressed', on); }
+slotBtn.onclick = function(){ slots(!document.body.classList.contains('slots')); };
+if (/[?&]slots/.test(location.search)) slots(true);
+fillPhotos();
+if ('IntersectionObserver' in window){
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('vis'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -6% 0px'});
+  $$('.rv-in').forEach(function(el){ io.observe(el); });
+} else $$('.rv-in').forEach(function(el){ el.classList.add('vis'); });
 })();
 </script>
 </body>

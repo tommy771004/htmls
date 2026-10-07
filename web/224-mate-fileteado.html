@@ -1,255 +1,425 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>La Ronda del Mate · 馬黛茶輪喝</title>
-<meta name="description" content="布宜諾斯艾利斯 fileteado 彩繪風格的馬黛茶：你是倒茶的人，裝好茶葉、調水溫、一杯一杯倒給圍坐的朋友。水太燙會燒苦，太冷沒味道，喝到淡了就說「lavado」換茶葉。">
+<title>La Ronda 馬黛茶館｜阿根廷馬黛茶與茶具</title>
+<meta name="description" content="La Ronda 馬黛茶館：台北的阿根廷馬黛茶館與茶具店。茶館菜單、自組馬黛茶具組合即時預覽、探戈之夜與馬黛入門課報名、營業時間與交通。">
+<!--
+  店家模板使用方式
+  1. 修改 <script> 開頭的 SHOP（店名、電話、地址、營業時間、照片網址）、MENU（茶館菜單）、KIT（葫蘆杯、吸管、茶葉與價格）與 EVENTS（活動）。
+  2. photos 填入照片網址就會取代佔位圖；網址加 ?slots 或按右下角「照片位」可標出位置與建議尺寸。
+  3. 購物與報名目前只在頁面上示範，正式使用請串接購物或報名系統。
+-->
 <style>
-:root{
-  --black:#0d0c0b; --red:#d4202a; --green:#1f9a48; --yellow:#f6c42b; --blue:#5aa9e6; --white:#fbf6ea; --gold:#d9a640; --ink:#fbf6ea;
+:root{--black:#0d0c0b;--black2:#191715;--red:#d4202a;--green:#1f9a48;--yellow:#f6c42b;--blue:#5aa9e6;--white:#fbf6ea;--gold:#d9a640;--celeste:#8fc9ef;--line:rgba(217,166,64,.35);
   --script:"Apple Chancery","Snell Roundhand","Brush Script MT","Segoe Script",cursive;
-  --deco:"Optima","Candara","Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif;
+  --deco:"Optima","Candara","Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+html,body{margin:0}
+body{background:var(--black);color:var(--white);font-family:var(--deco);line-height:1.75;overflow-x:clip}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1200px;margin:0 auto;padding:0 clamp(16px,4vw,44px)}
+.sc{font-family:var(--script)}
+/* 立體刻字 */
+.chisel{font-family:var(--deco);font-weight:700;letter-spacing:.04em;color:var(--yellow);text-shadow:1px 1px 0 #b8860b,2px 2px 0 #8a5a00,3px 3px 0 #5a3a00,4px 4px 0 #000,5px 6px 8px rgba(0,0,0,.6)}
+.chisel.red{color:var(--red);text-shadow:1px 1px 0 #9a1018,2px 2px 0 #6a0a10,3px 3px 0 #000,4px 5px 8px rgba(0,0,0,.6)}
+.chisel.white{color:var(--white);text-shadow:1px 1px 0 #c9bfa6,2px 2px 0 #8a826e,3px 3px 0 #000,4px 5px 8px rgba(0,0,0,.6)}
+.gl{position:relative}
+.gl::before{content:"";position:absolute;inset:8px;border:1.5px solid var(--gold);border-radius:14px;pointer-events:none}
+.gl::after{content:"";position:absolute;inset:13px;border:1px solid rgba(217,166,64,.4);border-radius:10px;pointer-events:none}
+/* 導覽 */
+.nav{position:sticky;top:0;z-index:40;background:rgba(13,12,11,.95);backdrop-filter:blur(8px);border-bottom:2px solid var(--gold)}
+.nav .wrap{display:flex;align-items:center;gap:24px;height:72px}
+.logo{text-decoration:none;display:flex;align-items:center;gap:10px}
+.logo b{font-family:var(--script);font-weight:400;font-size:32px;line-height:1}
+.logo small{font-size:11px;letter-spacing:.24em;color:var(--gold);display:block}
+.nav ul{display:flex;gap:22px;list-style:none;margin:0 0 0 auto;padding:0;font-size:14.5px;letter-spacing:.08em}
+.nav ul a{text-decoration:none;color:#e6dcc4}
+.nav ul a:hover{color:var(--yellow)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:.08em;padding:12px 24px;border-radius:999px;background:var(--red);color:var(--white);border:2px solid var(--gold);text-decoration:none;cursor:pointer;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25),0 0 0 3px var(--black),0 0 0 4px var(--gold);transition:background .25s}
+.btn:hover{background:#b0141c}
+.btn.green{background:var(--green)}
+.btn.green:hover{background:#157a37}
+.btn.ghost{background:transparent;color:var(--yellow)}
+.btn.ghost:hover{background:rgba(246,196,43,.12)}
+.burger{display:none;margin-left:auto;background:none;border:1.5px solid var(--gold);border-radius:99px;color:var(--yellow);font-size:13px;padding:6px 14px;cursor:pointer}
+/* 照片位 */
+.ph{position:relative;overflow:hidden;background:var(--black2);margin:0}
+.ph>svg,.ph>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+body.slots .ph{outline:2px dashed var(--yellow);outline-offset:-2px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:10px;top:10px;z-index:3;background:var(--black);color:var(--yellow);font-size:11px;padding:3px 9px}
+/* 裝飾 */
+.orn{position:absolute;pointer-events:none;width:clamp(120px,18vw,240px);height:auto}
+.orn.tl{left:0;top:0}.orn.tr{right:0;top:0;transform:scaleX(-1)}.orn.bl{left:0;bottom:0;transform:scaleY(-1)}.orn.br{right:0;bottom:0;transform:scale(-1,-1)}
+.ribbon{display:block;width:min(560px,92%);height:auto;margin:0 auto}
+.divider{display:block;width:min(720px,100%);height:auto;margin:0 auto}
+.fband{display:block;width:100%;height:64px;border-top:2px solid var(--gold);border-bottom:2px solid var(--gold);background:var(--black2)}
+/* Hero */
+.hero{position:relative;padding:clamp(40px,6vw,80px) 0 clamp(60px,8vw,100px)}
+.heroFrame{position:relative;border-radius:26px;background:radial-gradient(ellipse at 50% 40%,#22201c,#0d0c0b 70%);padding:clamp(70px,9vw,120px) clamp(20px,5vw,80px) clamp(60px,8vw,100px);text-align:center;overflow:hidden;box-shadow:inset 0 0 0 2px var(--gold),inset 0 0 0 8px var(--black),inset 0 0 0 9px rgba(217,166,64,.5)}
+.hero h1{margin:4px 0 0;font-family:var(--script);font-weight:400;font-size:clamp(68px,11vw,160px);line-height:1;color:var(--yellow);text-shadow:2px 2px 0 #b8860b,4px 4px 0 #6a3a00,6px 6px 0 #000,8px 10px 14px rgba(0,0,0,.6)}
+.hero .sub{margin:8px 0 0;font-size:clamp(20px,2.4vw,28px);letter-spacing:.3em}
+.hero p{max-width:600px;margin:22px auto 28px;color:#e6dcc4;font-size:16.5px}
+.btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.status{display:inline-flex;align-items:center;gap:8px;margin-top:26px;font-size:13.5px;letter-spacing:.1em;color:#e6dcc4}
+.status i{width:9px;height:9px;border-radius:50%;background:#6a6258}
+.status.on i{background:var(--green);box-shadow:0 0 8px var(--green)}
+/* 區塊 */
+.sec{padding:clamp(80px,10vw,130px) 0;position:relative}
+.ttl{text-align:center;margin-bottom:44px}
+.ttl p{max-width:620px;margin:16px auto 0;color:#e6dcc4}
+/* 故事 */
+.story{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(30px,6vw,80px);align-items:center}
+.story .ph{aspect-ratio:4/5;border-radius:200px 200px 16px 16px}
+.story h2{font-family:var(--script);font-weight:400;font-size:clamp(44px,5.6vw,72px);line-height:1.05;margin:0 0 18px;color:var(--yellow)}
+.story p{color:#e6dcc4;margin:0 0 14px}
+.steps{list-style:none;margin:24px 0 0;padding:0;display:grid;gap:10px;counter-reset:s}
+.steps li{counter-increment:s;display:grid;grid-template-columns:44px minmax(0,1fr);gap:14px;align-items:center;font-size:15px}
+.steps li::before{content:counter(s);width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--green);border:2px solid var(--gold);font-family:var(--script);font-size:24px;color:var(--white)}
+.steps li:nth-child(2)::before{background:var(--red)}.steps li:nth-child(3)::before{background:var(--blue)}.steps li:nth-child(4)::before{background:#b8860b}
+/* 菜單 */
+.menu{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.card{background:var(--black2);border-radius:20px;padding:30px 26px 24px;position:relative;overflow:hidden}
+.card h3{margin:0 0 6px;font-family:var(--script);font-weight:400;font-size:34px;color:var(--yellow);text-align:center}
+.card h3 small{display:block;font-family:var(--deco);font-size:13px;letter-spacing:.24em;color:var(--celeste)}
+.card .orn{width:90px;opacity:.95}
+.mi{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 12px;padding:10px 0;border-bottom:1px dashed rgba(217,166,64,.3);position:relative}
+.mi b{font-weight:700;font-size:16px}
+.mi b i{font-family:var(--script);font-weight:400;font-size:17px;color:var(--gold);margin-left:8px}
+.mi span{font-weight:700;color:var(--yellow)}
+.mi small{grid-column:1/3;color:#bcb29c;font-size:13.5px}
+/* 茶具 */
+.kitSec{background:linear-gradient(var(--black),#14110e 20%,#14110e 80%,var(--black))}
+.kit{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,4vw,50px);align-items:start}
+.kit>*{min-width:0}
+.stage{position:relative;aspect-ratio:1;border-radius:26px;background:radial-gradient(circle at 50% 45%,#2a2620,#0d0c0b 72%);overflow:hidden;box-shadow:inset 0 0 0 2px var(--gold)}
+.stage svg{width:100%;height:100%;display:block}
+.form{background:var(--black2);border-radius:22px;padding:clamp(24px,3vw,36px)}
+.lab{display:block;font-weight:700;font-size:13px;letter-spacing:.2em;color:var(--celeste);margin:0 0 10px}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:20px}
+.opts label{position:relative}
+.opts input{position:absolute;opacity:0}
+.opts span{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 10px;align-items:center;border:1.5px solid rgba(217,166,64,.35);border-radius:14px;padding:10px 12px;cursor:pointer;font-size:14.5px;line-height:1.3}
+.opts span i{width:22px;height:22px;border-radius:50%;background:var(--c);box-shadow:inset 0 -3px 4px rgba(0,0,0,.3),0 0 0 1.5px var(--gold);grid-row:span 2}
+.opts span em{font-style:normal;font-weight:700;color:var(--yellow);font-size:13.5px}
+.opts span small{grid-column:2/4;color:#bcb29c;font-size:12px}
+.opts input:checked+span{border-color:var(--yellow);background:rgba(246,196,43,.08);box-shadow:0 0 0 1.5px var(--yellow)}
+.opts input:focus-visible+span{outline:2px solid var(--celeste);outline-offset:2px}
+.engrave{display:grid;gap:4px;font-size:13px;letter-spacing:.14em;color:var(--celeste);margin-bottom:16px;font-weight:700}
+.engrave input{border:0;border-bottom:1.5px solid var(--gold);background:transparent;padding:7px 0;font-family:var(--script);font-size:22px;color:var(--white);letter-spacing:0;font-weight:400;border-radius:0;width:100%}
+.engrave input:focus{outline:none;border-bottom-color:var(--yellow)}
+.sum{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;border-top:1.5px solid var(--gold);padding-top:16px}
+.sum b{font-size:34px;color:var(--yellow);font-weight:700}
+.sum small{display:block;color:#bcb29c;font-size:13px}
+.demo{font-size:12px;color:#9a907c;margin:12px 0 0;text-align:center}
+/* 活動 */
+.events{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.ev{background:var(--black2);border-radius:20px;padding:26px 24px 22px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.ev .date{display:flex;align-items:baseline;gap:10px}
+.ev .date b{font-family:var(--script);font-weight:400;font-size:52px;line-height:1;color:var(--yellow)}
+.ev .date span{font-size:13px;letter-spacing:.14em;color:var(--celeste)}
+.ev h3{margin:8px 0 6px;font-size:21px}
+.ev p{margin:0 0 14px;color:#bcb29c;font-size:14.5px;flex:1}
+.ev .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.ev .row span{font-weight:700}
+.ev .btn{padding:8px 16px;font-size:13px}
+.ev .btn[disabled]{opacity:.45;cursor:default;background:#555}
+/* 照片與評論 */
+.gal{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.gal .ph{aspect-ratio:1;border-radius:20px;box-shadow:inset 0 0 0 2px var(--gold)}
+.revs{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:50px}
+.rv{background:var(--black2);border-radius:20px;padding:26px 24px 20px}
+.rv .st{color:var(--yellow);letter-spacing:.1em}
+.rv p{margin:6px 0 10px;font-size:15.5px}
+.rv small{color:var(--celeste);font-size:12.5px;letter-spacing:.1em}
+/* 資訊 */
+.info{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;text-align:center}
+.info>div{background:var(--black2);border-radius:20px;padding:30px 22px 24px}
+.info h3{margin:0 0 12px;font-family:var(--script);font-weight:400;font-size:30px;color:var(--yellow)}
+.info p{margin:0 0 6px;color:#e6dcc4}
+.info a{text-decoration-color:var(--gold)}
+.hours{display:inline-grid;grid-template-columns:auto auto;gap:2px 16px;text-align:left;color:#e6dcc4}
+.hours .t{color:var(--yellow);font-weight:700}
+footer{border-top:2px solid var(--gold);padding:30px 0 60px;text-align:center;color:#bcb29c;font-size:12.5px;letter-spacing:.16em}
+footer nav{display:flex;justify-content:center;gap:22px;margin-bottom:8px}
+footer a{text-decoration:none}
+.slotBtn{position:fixed;right:16px;bottom:16px;z-index:60;border:1.5px solid var(--gold);border-radius:99px;background:var(--black);color:var(--yellow);font-size:12px;padding:8px 14px;cursor:pointer}
+.slotBtn[aria-pressed=true]{background:var(--yellow);color:var(--black)}
+.rv-in{opacity:0;transform:translateY(16px);transition:opacity .9s ease,transform .9s cubic-bezier(.2,.7,.2,1)}
+.rv-in.vis{opacity:1;transform:none}
+@media (max-width:960px){
+  .nav ul{display:none;position:absolute;top:72px;left:0;right:0;flex-direction:column;gap:0;background:var(--black);padding:6px 20px 16px;border-bottom:2px solid var(--gold)}
+  .nav.open ul{display:flex}
+  .nav ul a{display:block;padding:11px 0;border-bottom:1px solid rgba(217,166,64,.2)}
+  .nav .wrap>.btn{display:none}
+  .burger{display:block}
+  .story,.kit{grid-template-columns:1fr}
+  .menu,.events,.revs,.info{grid-template-columns:1fr}
+  .gal{grid-template-columns:1fr 1fr}
+  .gal .ph:first-child{grid-column:span 2;aspect-ratio:16/10}
 }
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--black);color:var(--ink);font-family:var(--deco);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
-.frame{position:relative;margin:clamp(8px,2vw,22px);min-height:calc(100vh - 2*clamp(8px,2vw,22px));border:3px solid var(--gold);box-shadow:inset 0 0 0 6px var(--black),inset 0 0 0 8px var(--red),inset 0 0 0 12px var(--black),inset 0 0 0 13px var(--gold);padding:clamp(26px,4vw,50px) clamp(16px,4vw,60px) clamp(60px,9vw,130px)}
-.corner{position:absolute;width:clamp(110px,16vw,220px);height:clamp(110px,16vw,220px);pointer-events:none}
-.corner.tl{left:6px;top:6px}.corner.tr{right:6px;top:6px;transform:scaleX(-1)}.corner.bl{left:6px;bottom:6px;transform:scaleY(-1)}.corner.br{right:6px;bottom:6px;transform:scale(-1,-1)}
-header{text-align:center;position:relative;z-index:1}
-header h1{font-family:var(--script);font-weight:400;font-size:clamp(46px,7vw,92px);line-height:1;color:var(--yellow);text-shadow:2px 2px 0 var(--red),4px 4px 0 var(--black),5px 5px 0 var(--green)}
-.cinta{display:inline-block;margin-top:8px;position:relative;padding:6px 40px 8px;background:linear-gradient(var(--blue) 0 33%,var(--white) 33% 66%,var(--blue) 66%);color:var(--black);font-weight:700;letter-spacing:.24em;font-size:13px}
-.cinta::before,.cinta::after{content:"";position:absolute;top:6px;width:26px;height:100%;background:#3d7fb8;z-index:-1}
-.cinta::before{left:-18px;clip-path:polygon(0 0,100% 0,100% 100%,0 100%,40% 50%)}
-.cinta::after{right:-18px;clip-path:polygon(0 0,100% 0,60% 50%,100% 100%,0 100%)}
-.table{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,330px);gap:clamp(20px,4vw,50px);margin-top:28px;align-items:center}
-.ronda{position:relative;aspect-ratio:1/1;max-width:600px;width:100%;justify-self:center}
-.ronda svg.mate{position:absolute;left:50%;top:53%;width:31%;transform:translate(-50%,-50%)}
-.amigo{position:absolute;width:24%;text-align:center;cursor:pointer;transition:transform .3s}
-.amigo:hover{transform:scale(1.05)}
-.amigo .med{aspect-ratio:1/1;border-radius:50%;border:3px solid var(--gold);background:radial-gradient(circle at 35% 30%,#2b2622,#0d0c0b);display:grid;place-items:center;box-shadow:0 0 0 4px var(--black),0 0 0 6px var(--green);position:relative;transition:box-shadow .3s}
-.amigo.next .med{box-shadow:0 0 0 4px var(--black),0 0 0 7px var(--yellow),0 0 22px 6px rgba(246,196,43,.35)}
-.amigo.out .med{opacity:.35}
-.amigo .med svg{width:70%;height:70%}
-.amigo b{display:block;font-family:var(--script);font-size:clamp(18px,2.2vw,26px);font-weight:400;color:var(--white);margin-top:4px;line-height:1}
-.amigo small{font-size:11px;letter-spacing:.14em;color:var(--gold)}
-.say{position:absolute;left:50%;top:-6%;transform:translate(-50%,-100%);background:var(--white);color:var(--black);padding:6px 12px;border-radius:14px;font-size:13px;font-weight:700;white-space:nowrap;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;border:2px solid var(--red)}
-.say.show{opacity:1;transform:translate(-50%,-112%)}
-.a0{left:38%;top:-6%}.a1{right:-2%;top:36%}.a2{left:38%;bottom:-4%}.a3{left:-2%;top:36%}
-.panel{background:rgba(255,255,255,.03);border:2px solid var(--gold);border-radius:10px;padding:20px;position:relative}
-.panel h2{font-family:var(--script);font-weight:400;font-size:30px;color:var(--yellow);text-shadow:2px 2px 0 var(--red)}
-.panel p{font-size:14px;line-height:1.7;color:#e7dfcd;margin:6px 0 14px}
-.pava{display:grid;grid-template-columns:54px 1fr;gap:14px;align-items:center;margin-bottom:12px}
-.thermo{position:relative;width:24px;height:130px;margin:0 auto;border:2px solid var(--white);border-radius:12px;background:#1d1a17;overflow:hidden}
-.thermo i{position:absolute;left:3px;right:3px;bottom:3px;border-radius:8px;background:linear-gradient(var(--red),var(--yellow));transition:height .2s}
-.thermo b{position:absolute;left:0;right:0;height:2px;background:var(--green)}
-.tctl label{display:flex;justify-content:space-between;font-size:13px;letter-spacing:.08em}
-.tctl output{font-family:var(--script);font-size:28px;color:var(--yellow)}
-.tctl .note{font-size:12px;color:#bdb39f;min-height:1.4em}
-input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
-input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--green) 40%,var(--yellow) 65%,var(--red))}
-input[type=range]::-moz-range-track{height:6px;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--green) 40%,var(--yellow) 65%,var(--red))}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-7px;border-radius:50%;background:var(--white);border:3px solid var(--black);box-shadow:0 0 0 2px var(--gold)}
-input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--white);border:3px solid var(--black)}
-.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.btn{font:inherit;font-weight:700;letter-spacing:.1em;padding:12px 8px;border:2px solid var(--gold);border-radius:30px;background:var(--red);color:var(--white);cursor:pointer;transition:filter .2s,transform .1s;user-select:none;-webkit-user-select:none;touch-action:none}
-.btn.g{background:var(--green)}.btn.k{background:transparent}
-.btn:hover{filter:brightness(1.12)}.btn:active{transform:translateY(1px)}
-.btn[disabled]{opacity:.35;cursor:default;filter:none}
-.btn.full{grid-column:1/-1}
-.bars{margin-top:16px;display:grid;gap:8px;font-size:12px;letter-spacing:.08em}
-.bar{display:grid;grid-template-columns:4.6em 1fr 2.4em;gap:8px;align-items:center}
-.bar i{height:8px;border-radius:8px;background:#2b2622;position:relative;overflow:hidden}
-.bar i::after{content:"";position:absolute;inset:0;transform-origin:left;transform:scaleX(var(--v,0));background:var(--c,var(--green));transition:transform .4s}
-.bar em{font-style:normal;text-align:right;color:var(--yellow)}
-.log{margin-top:14px;font-size:13px;line-height:1.6;color:#d9cfbb;min-height:3.2em;border-top:1px dashed var(--gold);padding-top:10px}
-.log b{color:var(--yellow);font-weight:700}
-@media (max-width:900px){
-  .table{grid-template-columns:minmax(0,1fr)}
-  .ronda{max-width:440px;margin-top:20px}
-  .amigo small{display:none}
-  .corner{width:90px;height:90px}
+@media (max-width:560px){
+  .opts{grid-template-columns:1fr}
+  .hero .sub{letter-spacing:.14em}
+  .heroFrame{padding-top:96px;padding-bottom:120px}
 }
-@media (prefers-reduced-motion:reduce){*{transition-duration:.01s!important}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.rv-in{opacity:1;transform:none;transition:none}}
 </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <defs>
-    <linearGradient id="gRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6a3d"/><stop offset=".5" stop-color="#d4202a"/><stop offset="1" stop-color="#6e0d12"/></linearGradient>
-    <linearGradient id="gGreen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9e65a"/><stop offset=".5" stop-color="#1f9a48"/><stop offset="1" stop-color="#0b4a22"/></linearGradient>
-    <linearGradient id="gYellow" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff4b0"/><stop offset=".5" stop-color="#f6c42b"/><stop offset="1" stop-color="#b8761a"/></linearGradient>
-    <linearGradient id="gBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfeaff"/><stop offset=".5" stop-color="#5aa9e6"/><stop offset="1" stop-color="#1d4f86"/></linearGradient>
-    <!-- fileteado 的捲草：一條粗渦卷加三片葉，白色細線描出立體 -->
-    <g id="scroll">
-      <path d="M10 210 C10 100 70 20 170 14 C230 10 250 70 214 92 C190 106 166 86 178 68" fill="none" stroke="#0d0c0b" stroke-width="30" stroke-linecap="round"/>
-      <path d="M10 210 C10 100 70 20 170 14 C230 10 250 70 214 92 C190 106 166 86 178 68" fill="none" stroke="url(#gRed)" stroke-width="22" stroke-linecap="round"/>
-      <path d="M16 200 C18 108 74 30 168 22" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".85"/>
-      <path d="M60 80 C30 70 20 40 40 20 C50 50 70 60 92 58 C80 74 72 80 60 80Z" fill="url(#gGreen)" stroke="#0d0c0b" stroke-width="3"/>
-      <path d="M46 34 C52 52 64 62 84 62" fill="none" stroke="#fff" stroke-width="1.5" opacity=".8"/>
-      <path d="M108 52 C110 22 140 -4 168 -2 C150 14 140 30 140 48 C128 46 118 48 108 52Z" fill="url(#gYellow)" stroke="#0d0c0b" stroke-width="3"/>
-      <path d="M44 150 C14 156 -6 136 0 114 C14 132 30 136 46 128Z" fill="url(#gBlue)" stroke="#0d0c0b" stroke-width="3"/>
-      <circle cx="196" cy="64" r="9" fill="url(#gYellow)" stroke="#0d0c0b" stroke-width="3"/>
-      <path d="M2 228 L2 2 L228 2" fill="none" stroke="#d9a640" stroke-width="2"/>
-      <path d="M10 236 L10 10 L236 10" fill="none" stroke="#d9a640" stroke-width="1"/>
-    </g>
-  </defs>
-</svg>
-<div class="frame">
-  <svg class="corner tl" viewBox="0 0 240 240"><use href="#scroll"/></svg>
-  <svg class="corner tr" viewBox="0 0 240 240"><use href="#scroll"/></svg>
-  <svg class="corner bl" viewBox="0 0 240 240"><use href="#scroll"/></svg>
-  <svg class="corner br" viewBox="0 0 240 240"><use href="#scroll"/></svg>
-  <header><h1>La Ronda del Mate</h1><div class="cinta">馬 黛 茶 · 輪 著 喝</div></header>
-  <section class="table">
-    <div class="ronda" id="ronda">
-      <svg class="mate" viewBox="0 0 200 260" id="mate" aria-label="馬黛茶葫蘆杯"></svg>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top"><svg width="34" height="40" viewBox="0 0 34 40" aria-hidden="true" id="logoMate"></svg><span><b>La Ronda</b><small>MATE · BUENOS AIRES</small></span></a>
+    <ul id="navList"><li><a href="#ronda">馬黛茶</a></li><li><a href="#carta">菜單</a></li><li><a href="#equipo">茶具組合</a></li><li><a href="#noches">活動</a></li><li><a href="#visit">交通</a></li></ul>
+    <a class="btn" href="#equipo" style="padding:8px 16px;font-size:13px">自組茶具</a>
+    <button class="burger" id="burger" type="button" aria-expanded="false">Menú</button>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <div class="heroFrame rv-in" id="heroFrame">
+        <svg class="ribbon" viewBox="0 0 560 70" aria-hidden="true" data-ribbon="Casa de Mate · Desde 2015"></svg>
+        <h1>La Ronda</h1>
+        <div class="sub chisel white">阿根廷馬黛茶館</div>
+        <p>在布宜諾斯艾利斯，馬黛茶不是一個人喝的。一個葫蘆杯、一支銀吸管，倒茶的人沖一杯遞給你，你喝完遞回去，他再沖給下一個人，這一圈就叫 la ronda。來店裡坐一圈，或帶一組回家。</p>
+        <div class="btns"><a class="btn" href="#equipo">自組茶具</a><a class="btn green" href="#noches">探戈之夜</a></div>
+        <div><span class="status" id="status"><i></i><span>…</span></span></div>
+      </div>
     </div>
-    <aside class="panel">
-      <h2>Cebador</h2>
-      <p id="howto">你負責倒茶。先裝茶葉，接著每一輪：調好水溫、按住倒水，再把杯子遞給亮起來的那位。第一杯照規矩是你自己喝。</p>
-      <div class="pava"><div class="thermo"><i id="tFill"></i><b style="bottom:34%"></b><b style="bottom:58%"></b></div>
-        <div class="tctl"><label for="temp">水壺溫度<output id="tOut">78°</output></label><input id="temp" type="range" min="60" max="98" value="78"><div class="note" id="tNote"></div></div></div>
-      <div class="btns">
-        <button class="btn g full" id="load">裝茶葉 Yerba</button>
-        <button class="btn" id="pour" disabled>按住倒水</button>
-        <button class="btn k" id="pass" disabled>遞出去</button>
-      </div>
-      <div class="bars">
-        <div class="bar">茶味<i id="bStr" style="--c:var(--green)"></i><em id="vStr">—</em></div>
-        <div class="bar">水位<i id="bLvl" style="--c:var(--blue)"></i><em id="vLvl">—</em></div>
-        <div class="bar">第幾泡<i id="bN" style="--c:var(--yellow)"></i><em id="vN">0</em></div>
-      </div>
-      <p class="log" id="log">桌上有一壺熱水、一包茶葉，和三個等著喝的朋友。</p>
-    </aside>
   </section>
-</div>
+
+  <svg class="fband" data-band aria-hidden="true" preserveAspectRatio="xMidYMid slice" viewBox="0 0 1440 64"></svg>
+  <section class="sec" id="ronda">
+    <div class="wrap story">
+      <figure class="ph rv-in" data-photo="ronda" data-art="ronda" data-label="一圈馬黛茶" data-size="1200×1500"></figure>
+      <div class="rv-in">
+        <svg class="divider" viewBox="0 0 720 60" aria-hidden="true" data-divider style="margin:0 0 16px;width:min(360px,100%)"></svg>
+        <h2>¿Tomamos<br>unos mates?</h2>
+        <p>馬黛茶（yerba mate）是南美冬青的葉子，曬乾、熟成一年再磨碎，咖啡因和綠茶差不多，帶草本與菸草般的苦香。在阿根廷，從計程車司機到總統都提著熱水瓶。</p>
+        <p>店裡用的是傳統葫蘆杯與阿爾帕卡銀吸管。第一次來，我們的 cebador（倒茶的人）會教你怎麼喝：</p>
+        <ol class="steps"><li>茶葉裝到杯子三分之二，搖一搖，斜成一座小山</li><li>先倒一點溫水讓葉子吸水，再插吸管</li><li>沿著小山邊緣倒 75–80 °C 的熱水，太燙會苦</li><li>喝完遞回給倒茶的人，說 gracias 就代表你喝夠了</li></ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="carta" style="padding-top:0">
+    <div class="wrap">
+      <div class="ttl rv-in"><svg class="ribbon" viewBox="0 0 560 70" aria-hidden="true" data-ribbon="La Carta · 菜單"></svg><p>馬黛茶以一壺計，可以一直續熱水；一個人也能點，倒茶的人會陪你喝第一圈。</p></div>
+      <div class="menu" id="menu"></div>
+    </div>
+  </section>
+
+  <svg class="fband" data-band aria-hidden="true" preserveAspectRatio="xMidYMid slice" viewBox="0 0 1440 64"></svg>
+  <section class="sec kitSec" id="equipo">
+    <div class="wrap">
+      <div class="ttl rv-in"><svg class="ribbon" viewBox="0 0 560 70" aria-hidden="true" data-ribbon="Tu Equipo · 茶具組合"></svg><p>選一個葫蘆杯、一支吸管和一包茶葉，左邊即時預覽。可以在杯緣的金屬圈刻字，fileteado 彩繪師手寫，約七個工作天。</p></div>
+      <div class="kit">
+        <div class="stage rv-in"><svg id="kitSvg" viewBox="0 0 500 500" role="img" aria-label="依選擇即時變化的馬黛茶具組合"></svg></div>
+        <form class="form rv-in" id="kf" onsubmit="return false">
+          <span class="lab">MATE · 杯</span><div class="opts" id="oGourd"></div>
+          <span class="lab">BOMBILLA · 吸管</span><div class="opts" id="oBomb"></div>
+          <span class="lab">YERBA · 茶葉 500 g</span><div class="opts" id="oYerba"></div>
+          <label class="engrave">刻字（選填，最多 14 字，+NT$ 380）<input id="kName" maxlength="14" placeholder="Para Lucía"></label>
+          <div class="sum"><div><small id="kList"></small><b id="kPrice"></b></div><button class="btn" type="button" id="kGo">加入購物車</button></div>
+          <p class="demo" id="kMsg">示範版本：不會真的下單。滿 NT$ 2,000 免運。</p>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="noches">
+    <div class="wrap">
+      <div class="ttl rv-in"><svg class="ribbon" viewBox="0 0 560 70" aria-hidden="true" data-ribbon="Noches · 活動"></svg><p>每週五是探戈之夜（milonga），週末有馬黛入門課。報名後到店付款即可。</p></div>
+      <div class="events" id="events"></div>
+    </div>
+  </section>
+
+  <section class="sec" style="padding-top:0" aria-label="照片與評論">
+    <div class="wrap">
+      <div class="gal rv-in">
+        <figure class="ph" data-photo="g1" data-art="sign" data-label="店門招牌" data-size="1400×900"></figure>
+        <figure class="ph" data-photo="g2" data-art="gourds" data-label="葫蘆杯" data-size="1000×1000"></figure>
+        <figure class="ph" data-photo="g3" data-art="tango" data-label="探戈之夜" data-size="1000×1000"></figure>
+      </div>
+      <div class="revs">
+        <div class="rv rv-in"><div class="st">★★★★★</div><p>倒茶的大哥很有耐心，第一圈有點苦，第三圈就習慣了，配 alfajor 剛好。</p><small>GOOGLE 評論</small></div>
+        <div class="rv rv-in"><div class="st">★★★★★</div><p>買了一組送給阿根廷朋友，杯緣刻了他的名字，彩繪字超漂亮，他感動到快哭。</p><small>GOOGLE 評論</small></div>
+        <div class="rv rv-in"><div class="st">★★★★☆</div><p>週五探戈之夜很熱鬧，完全不會跳也可以坐著喝茶看。</p><small>INSTAGRAM</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="visit" style="padding-top:0">
+    <div class="wrap">
+      <svg class="divider rv-in" viewBox="0 0 720 60" aria-hidden="true" data-divider style="margin-bottom:40px"></svg>
+      <div class="info rv-in">
+        <div class="gl"><h3>Horarios</h3><div class="hours" id="hours"></div></div>
+        <div class="gl"><h3>Dirección</h3><p id="addr"></p><p>捷運古亭站 7 號出口步行 4 分鐘。</p><p><a id="mapLink" href="#" target="_blank" rel="noopener">在地圖上開啟</a></p></div>
+        <div class="gl"><h3>Contacto</h3><p><a id="tel" href="#"></a></p><p>包場與企業馬黛體驗請來電。</p><p>熱水免費續，不限時。</p></div>
+      </div>
+    </div>
+  </section>
+</main>
+<svg class="fband" data-band aria-hidden="true" preserveAspectRatio="xMidYMid slice" viewBox="0 0 1440 64"></svg>
+<footer><nav><a href="#">Instagram</a><a href="#">Facebook</a></nav>© <span id="yr"></span> LA RONDA · CASA DE MATE</footer>
+<button class="slotBtn" id="slotBtn" type="button" aria-pressed="false">照片位</button>
+
 <script>
 (function(){
 'use strict';
-var $=function(id){ return document.getElementById(id); };
-var FR=[
-  {n:'Vos',zh:'你（倒茶的人）',f:'#f6c42b'},
-  {n:'Abuela Rosa',zh:'羅莎奶奶',f:'#d4202a'},
-  {n:'El Tano',zh:'義大利裔的阿塔',f:'#1f9a48'},
-  {n:'La Flaca',zh:'瘦瘦的芙拉卡',f:'#5aa9e6'}
-];
-var ronda=$('ronda');
-FR.forEach(function(f,i){
-  var d=document.createElement('div'); d.className='amigo a'+i; d.dataset.i=i;
-  // 每個人一個 fileteado 小徽章：臉的輪廓 + 帽子或髮型
-  var hats=['<path d="M30 40 Q50 18 70 40Z" fill="'+f.f+'"/>','<path d="M28 50 Q30 22 50 22 Q72 22 72 50 Q66 34 50 34 Q34 34 28 50Z" fill="#d9d2c4"/>','<path d="M24 40 L76 40 L70 34 Q50 20 30 34Z" fill="#0d0c0b" stroke="#d9a640" stroke-width="2"/>','<path d="M30 56 Q26 26 50 24 Q74 26 70 56 L64 40 Q50 32 36 40Z" fill="#7a3b18"/>'];
-  d.innerHTML='<div class="med"><svg viewBox="0 0 100 100"><circle cx="50" cy="56" r="22" fill="#e9c9a3"/><circle cx="42" cy="54" r="2.5" fill="#0d0c0b"/><circle cx="58" cy="54" r="2.5" fill="#0d0c0b"/><path d="M42 66 Q50 72 58 66" stroke="#0d0c0b" stroke-width="2.5" fill="none"/>'+hats[i]+'<path d="M28 90 Q50 76 72 90" stroke="'+f.f+'" stroke-width="8" fill="none"/></svg><span class="say"></span></div><b>'+f.n+'</b><small>'+f.zh+'</small>';
-  ronda.appendChild(d);
-});
-var amigos=ronda.querySelectorAll('.amigo');
-
-// ---- 葫蘆杯 ----
-var mate=$('mate');
-mate.innerHTML='<defs><linearGradient id="gourd" x1="0" x2="1"><stop offset="0" stop-color="#3b200e"/><stop offset=".35" stop-color="#9a5a2a"/><stop offset=".55" stop-color="#6b3a18"/><stop offset="1" stop-color="#24120a"/></linearGradient>'+
- '<linearGradient id="silver" x1="0" x2="1"><stop offset="0" stop-color="#8d949a"/><stop offset=".4" stop-color="#f5f7f9"/><stop offset=".7" stop-color="#a7aeb4"/><stop offset="1" stop-color="#5d646a"/></linearGradient>'+
- '<clipPath id="mouth"><ellipse cx="100" cy="86" rx="52" ry="14"/></clipPath></defs>'+
- '<path d="M48 86 C30 120 20 170 40 210 C60 250 140 250 160 210 C180 170 170 120 152 86Z" fill="url(#gourd)" stroke="#0d0c0b" stroke-width="3"/>'+
- // fileteado 彩繪在杯身上
- '<path d="M56 160 C70 130 100 130 100 150 C100 166 80 166 84 154" fill="none" stroke="#f6c42b" stroke-width="5" stroke-linecap="round"/><path d="M144 160 C130 130 100 130 100 150" fill="none" stroke="#d4202a" stroke-width="5" stroke-linecap="round"/>'+
- '<path d="M70 190 C80 176 96 178 100 190 C104 178 120 176 130 190 C120 196 110 200 100 212 C90 200 80 196 70 190Z" fill="#1f9a48" stroke="#0d0c0b" stroke-width="2"/>'+
- '<path d="M60 120 Q100 108 140 120" fill="none" stroke="#fbf6ea" stroke-width="1.5" stroke-dasharray="2 4"/>'+
- '<path d="M42 210 Q100 236 158 210" fill="none" stroke="#d9a640" stroke-width="3"/>'+
- '<rect x="44" y="76" width="112" height="16" rx="6" fill="url(#silver)" stroke="#0d0c0b" stroke-width="2"/>'+
- '<path d="M50 84 h100" stroke="#5d646a" stroke-width="1" stroke-dasharray="3 3"/>'+
- '<ellipse cx="100" cy="84" rx="52" ry="14" fill="#1a1410" stroke="#0d0c0b" stroke-width="2"/>'+
- '<g clip-path="url(#mouth)"><path id="yerba" d="" fill="#6f8f3a"/><path id="water" d="" fill="#3e5a22" opacity=".9"/><g id="foam"></g></g>'+
- '<g id="bomb"><path d="M120 92 L150 4" stroke="url(#silver)" stroke-width="7" stroke-linecap="round"/><path d="M146 8 q8 -8 14 -4" stroke="url(#silver)" stroke-width="6" fill="none" stroke-linecap="round"/><ellipse cx="121" cy="90" rx="8" ry="4" fill="#a7aeb4"/></g>'+
- '<path id="stream" d="" stroke="#cfeaff" stroke-width="4" stroke-linecap="round" opacity=".85"/>'+
- '<g id="steam" fill="none" stroke="#fbf6ea" stroke-width="3" stroke-linecap="round" opacity="0"><path d="M84 66 q-8 -14 0 -28 q8 -14 0 -28"/><path d="M104 62 q8 -14 0 -28 q-8 -14 0 -28"/></g>';
-var yerbaP=$('yerba'), waterP=$('water'), foamG=$('foam'), streamP=$('stream'), steamG=$('steam');
-
-var st={loaded:false,strength:0,level:0,cebada:0,turn:0,pouring:false,ready:false,drinking:false,lastTemp:78,foam:0};
-function drawMate(){
-  if(!st.loaded){ yerbaP.setAttribute('d',''); waterP.setAttribute('d',''); foamG.innerHTML=''; return; }
-  // 茶葉堆成斜坡（montañita），水倒在低的那一側
-  yerbaP.setAttribute('d','M44 100 L44 78 Q70 64 100 70 Q130 78 158 92 L158 100Z');
-  var w=st.level; if(w>0){ waterP.setAttribute('d','M100 100 L100 '+(92-w*14)+' Q130 '+(84-w*10)+' 158 '+(92-w*6)+' L158 100Z'); } else waterP.setAttribute('d','');
-  var s=''; if(st.foam>0.05 && w>.3){ for(var i=0;i<14*st.foam;i++){ s+='<circle cx="'+(108+((i*13)%46))+'" cy="'+(86-w*8+((i*7)%6))+'" r="'+(1.5+i%3)+'" fill="#d9e4a8" opacity=".85"/>'; } } foamG.innerHTML=s;
-}
-function bars(){
-  $('bStr').style.setProperty('--v',st.strength); $('vStr').textContent=st.loaded?Math.round(st.strength*100):'—';
-  $('bLvl').style.setProperty('--v',st.level); $('vLvl').textContent=st.loaded?Math.round(st.level*100):'—';
-  $('bN').style.setProperty('--v',Math.min(1,st.cebada/15)); $('vN').textContent=st.cebada;
-  amigos.forEach(function(a,i){ a.classList.toggle('next',st.ready && i===st.turn); });
-}
-function say(i,t){ var s=amigos[i].querySelector('.say'); s.textContent=t; s.classList.add('show'); clearTimeout(s._t); s._t=setTimeout(function(){ s.classList.remove('show'); },2200); }
-function log(h){ $('log').innerHTML=h; }
-
-// ---- 溫度 ----
-function tempNote(t){ return t<68?'太冷：茶味出不來。':t<=82?'剛好：七十五到八十度，水壺「冒魚眼」之前。':t<=88?'有點燙，茶葉會開始燒苦。':'滾了！會把茶葉燙死，第一口就苦。'; }
-function upT(){ var t=+$('temp').value; $('tOut').textContent=t+'°'; $('tFill').style.height=((t-55)/45*100)+'%'; $('tNote').textContent=tempNote(t); steamG.setAttribute('opacity',Math.max(0,(t-70)/40)*(st.loaded?1:.4)); }
-$('temp').addEventListener('input',upT);
-
-// ---- 聲音 ----
-var ac=null; function A(){ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return ac; }
-var pourN=null;
-function pourSound(on){ var a=A(); if(!a) return; if(on&&!pourN){ var n=a.sampleRate*2,b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0); for(var i=0;i<n;i++) d[i]=Math.random()*2-1; var s=a.createBufferSource(); s.buffer=b; s.loop=true; var f=a.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1600; f.Q.value=1.2; var g=a.createGain(); g.gain.value=.09; s.connect(f); f.connect(g); g.connect(a.destination); s.start(); pourN={s:s,g:g,f:f}; } if(!on&&pourN){ try{ pourN.s.stop(); }catch(e){} pourN=null; } }
-function slurp(){ var a=A(); if(!a) return; var t=a.currentTime; for(var k=0;k<5;k++){ var n=a.sampleRate*.09,b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0); for(var i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.sin(i/n*Math.PI); var s=a.createBufferSource(); s.buffer=b; var f=a.createBiquadFilter(); f.type='bandpass'; f.frequency.value=700+k*160; f.Q.value=4; var g=a.createGain(); g.gain.value=k===4?.5:.25; s.connect(f); f.connect(g); g.connect(a.destination); s.start(t+k*.13); } }
-function guitarra(){ var a=A(); if(!a) return; [196,247,294,392].forEach(function(f,i){ var t=a.currentTime+i*.06,o=a.createOscillator(),g=a.createGain(); o.type='triangle'; o.frequency.value=f; g.gain.setValueAtTime(.06,t); g.gain.exponentialRampToValueAtTime(.0001,t+1.2); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+1.3); }); }
-
-// ---- 流程 ----
-$('load').onclick=function(){
-  A(); st.loaded=true; st.strength=1; st.level=0; st.cebada=0; st.turn=0; st.ready=false; amigos.forEach(function(a){a.classList.remove('out');});
-  guitarra(); drawMate(); bars(); upT();
-  this.textContent='換新茶葉'; $('pour').disabled=false; $('pass').disabled=true;
-  log('茶葉裝好，搖一搖把粉末拍到杯口、再斜放成一座小山。<b>按住倒水</b>，倒在低的那一側。');
+/* ===== 店家設定 ===== */
+var SHOP = {
+  name:'La Ronda', phone:'(02) 2365-0224', address:'台北市中正區示範街 24 號',
+  // 0=週日；[開, 關]，null 表示公休
+  hours:[['12:00','20:00'],null,['13:00','21:00'],['13:00','21:00'],['13:00','21:00'],['13:00','24:00'],['12:00','22:00']],
+  engrave:380,
+  photos:{ronda:'',g1:'',g2:'',g3:''}
 };
-var pourBtn=$('pour'), raf=0;
-function startPour(e){ if(e) e.preventDefault(); if(!st.loaded||st.drinking||pourBtn.disabled) return; A(); st.pouring=true; pourSound(true); st.lastTemp=+$('temp').value; loop(); }
-function stopPour(){ if(!st.pouring) return; st.pouring=false; pourSound(false); streamP.setAttribute('d','');
-  if(st.level>.25){ st.ready=true; $('pass').disabled=false; pourBtn.disabled=true; log(st.level>.97?'倒得太滿，溢出來了一點。':'倒好了。遞給<b>'+FR[st.turn].n+'</b>。'); } bars(); }
-pourBtn.addEventListener('pointerdown',startPour); pourBtn.addEventListener('pointerup',stopPour); pourBtn.addEventListener('pointerleave',stopPour); pourBtn.addEventListener('pointercancel',stopPour);
-pourBtn.addEventListener('keydown',function(e){ if((e.key===' '||e.key==='Enter')&&!st.pouring) startPour(e); }); pourBtn.addEventListener('keyup',function(e){ if(e.key===' '||e.key==='Enter') stopPour(); });
-var lastP=0;
-function loop(){
-  cancelAnimationFrame(raf); lastP=performance.now();
-  (function f(now){
-    if(!st.pouring) return;
-    var dt=Math.min(.05,((now||lastP)-lastP)/1000); lastP=now||lastP;
-    st.level=Math.min(1,st.level+dt*.62);
-    var t=st.lastTemp; st.foam=t>=68&&t<=84?Math.min(1,st.level*1.2):Math.max(0,.3-Math.abs(t-76)/40);
-    streamP.setAttribute('d','M40 -10 Q60 30 '+(118+Math.sin(performance.now()/60)*2)+' '+(82-st.level*10));
-    drawMate(); bars(); raf=requestAnimationFrame(f);
-  })(performance.now());
+// 菜單 { 分類|西文: [[名稱, 西文, 說明, 價格]] }
+var MENU = {
+  'Mate|馬黛茶':[['傳統馬黛','Mate amargo','不加糖的原味，葫蘆杯與熱水瓶一壺',280],['甜馬黛','Mate dulce','加一點蔗糖與橙皮',300],['冷泡馬黛','Tereré','巴拉圭式，加冰水與檸檬草，夏天限定',300],['馬黛拿鐵','Mate cocido con leche','茶包式煮法加熱牛奶，給第一次喝的人',220]],
+  'Salado|鹹點':[['烤餡餅','Empanadas','牛肉、雞肉、火腿起司，任選兩個',220],['阿根廷三明治','Choripán','炭烤香腸與青醬 chimichurri',260],['烤起司','Provoleta','鐵盤烤 provolone，撒奧勒岡',240]],
+  'Dulce|甜點':[['焦糖夾心餅','Alfajor','玉米澱粉餅夾牛奶焦糖、裹椰絲',90],['可頌麵包','Medialunas','小可頌刷糖漿，兩個',120],['牛奶焦糖布丁','Flan con dulce de leche','附鮮奶油',160]]
+};
+// 茶具 [名稱, 說明, 價格, 主色]
+var KIT = {
+  gourd:[['葫蘆杯','真的葫蘆，包牛皮與銀圈',1280,'#8a5a2a'],['帕羅桑托木','香木車製，有淡淡木香',980,'#b8864a'],['陶瓷杯','手繪 fileteado，好清洗',780,'#fbf6ea'],['玻璃杯','包皮革，看得見茶色',680,'#bfe2d8']],
+  bomb:[['阿爾帕卡銀','傳統彎頭，刻花',880,'#d8d8d0'],['不鏽鋼','直管，最好清洗',380,'#a8b0b4'],['竹吸管','輕、手工編織濾頭',260,'#c9a86a']],
+  yerba:[['帶梗 Con palo','最常見，順口',360,'#8fa548'],['無梗 Sin palo','味道濃、苦',380,'#6f8a2a'],['煙燻 Barbacuá','巴西傳統木火烘乾',420,'#7a6a3a'],['加香草 Compuesta','薄荷、薰衣草與橙皮',400,'#a8b86a']]
+};
+// 活動 [名稱, 星期, 時間, 價格, 名額, 已報名, 說明]
+var EVENTS = [['Milonga 探戈之夜',5,'20:00–23:30',350,40,31,'現場班多鈕手風琴與吉他，前一小時有入門教學。含一壺馬黛。'],['馬黛入門課',6,'14:00–15:30',680,10,10,'學會裝茶、斜山、溫度與遞茶的規矩，附一包茶葉帶回家。'],['阿根廷烤肉午餐',0,'12:00–14:30',980,16,9,'炭烤牛小排、香腸與 chimichurri，配紅酒或馬黛。']];
+var $ = function(s, r){ return (r || document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+var money = function(n){ return 'NT$ ' + Math.round(n).toLocaleString(); };
+var now = new Date(), DAYS = ['週日','週一','週二','週三','週四','週五','週六'];
+var esc = function(t){ return String(t).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+
+/* ===== Fileteado 筆法 ===== */
+var uid = 0;
+var PAL = [['#d4202a','#ff6a6a'],['#1f9a48','#7be09a'],['#5aa9e6','#c6e6ff'],['#f6c42b','#fff1a0']];
+// 對數螺線捲草：粗色筆＋細高光＋黑邊
+function spiral(cx, cy, r0, turns, rot, dir, pal, w){
+  var pts = [], n = 60; for (var i = 0; i <= n; i++){ var t = i/n, a = rot + dir*t*turns*Math.PI*2, r = r0*Math.exp(-t*2.3); pts.push([cx + Math.cos(a)*r, cy + Math.sin(a)*r]); }
+  var d = 'M' + pts.map(function(p){ return p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' L');
+  return '<path d="' + d + '" fill="none" stroke="#000" stroke-width="' + (w + 4) + '" stroke-linecap="round"/><path d="' + d + '" fill="none" stroke="' + pal[0] + '" stroke-width="' + w + '" stroke-linecap="round"/><path d="' + d + '" fill="none" stroke="' + pal[1] + '" stroke-width="' + Math.max(1.2, w*.22) + '" stroke-linecap="round" transform="translate(-' + w*.18 + ' -' + w*.18 + ')"/>';
 }
-function pass(i){
-  if(!st.ready||st.drinking) return;
-  if(i!==st.turn){ say(i,'¡Pará! 還沒輪到我'); return; }
-  st.drinking=true; st.ready=false; $('pass').disabled=true; slurp();
-  var t=st.lastTemp, s=st.strength, burnt=t>88, cold=t<68, warm=t>82&&!burnt;
-  // 萃取：水溫越高抽得越快、也越快淡
-  var taste=s*(cold?.45:burnt?.9:1);
-  var line;
-  if(st.cebada===0 && i===0) line='第一杯最苦，照例自己喝掉。';
-  else if(burnt) line=['¡Quemado! 燙到苦掉了','水滾了吧？苦！','這是燒焦的茶葉'][st.cebada%3];
-  else if(cold) line=['Frío… 沒味道','水太冷了啦','這是溫水泡草'][st.cebada%3];
-  else if(s<.28) line='Lavado. 淡得像水';
-  else if(warm) line='有點燙，但還行';
-  else line=['¡Qué rico!','Está buenísimo','好喝，再來','¡Buen cebador!'][st.cebada%4];
-  setTimeout(function(){ say(i,line); },500);
-  // 說「Gracias」表示不喝了
-  var quit=st.cebada>4 && Math.random()<.12 && i!==0;
-  if(quit) setTimeout(function(){ say(i,'Gracias, 我不用了'); amigos[i].classList.add('out'); },1700);
-  var t0=performance.now();
-  (function f(now){ var p=Math.min(1,(now-t0)/1200); st.level=Math.max(0,st.level*(1-p*.1)-p*.02); if(p<1){ drawMate(); requestAnimationFrame(f); } else { st.level=0; st.foam=0; drawMate(); after(i,taste,burnt); } })(t0);
+// 茛苕葉：彎月形，漸層
+function leaf(x, y, len, ang, pal){ var id = 'lf' + (++uid), c = Math.cos(ang), s = Math.sin(ang), nx = -s, ny = c, tx = x + c*len, ty = y + s*len;
+  var d = 'M' + x + ' ' + y + ' Q' + (x + c*len*.5 + nx*len*.45) + ' ' + (y + s*len*.5 + ny*len*.45) + ' ' + tx + ' ' + ty + ' Q' + (x + c*len*.55 + nx*len*.1) + ' ' + (y + s*len*.55 + ny*len*.1) + ' ' + x + ' ' + y + 'Z';
+  return '<defs><linearGradient id="' + id + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + pal[1] + '"/><stop offset=".55" stop-color="' + pal[0] + '"/><stop offset="1" stop-color="#000" stop-opacity=".6"/></linearGradient></defs><path d="' + d + '" fill="url(#' + id + ')" stroke="#000" stroke-width="2"/><path d="M' + x + ' ' + y + ' Q' + (x + c*len*.5 + nx*len*.25) + ' ' + (y + s*len*.5 + ny*len*.25) + ' ' + tx + ' ' + ty + '" stroke="' + pal[1] + '" stroke-width="1.4" fill="none" opacity=".8"/>'; }
+function flower(x, y, r, pal){ var s = ''; for (var i = 0; i < 5; i++){ var a = i/5*Math.PI*2 - Math.PI/2; s += '<ellipse cx="' + (x + Math.cos(a)*r*.6) + '" cy="' + (y + Math.sin(a)*r*.6) + '" rx="' + r*.5 + '" ry="' + r*.32 + '" transform="rotate(' + (a*57.3) + ' ' + (x + Math.cos(a)*r*.6) + ' ' + (y + Math.sin(a)*r*.6) + ')" fill="' + pal[0] + '" stroke="#000" stroke-width="1.5"/>'; } return s + '<circle cx="' + x + '" cy="' + y + '" r="' + r*.3 + '" fill="#f6c42b" stroke="#000" stroke-width="1.5"/><circle cx="' + (x - r*.08) + '" cy="' + (y - r*.08) + '" r="' + r*.1 + '" fill="#fff1a0"/>'; }
+// 角落組合
+function corner(){ var s = '<svg class="orn" viewBox="0 0 240 240" aria-hidden="true">';
+  s += '<path d="M14 230 V40 Q14 14 40 14 H230" fill="none" stroke="#d9a640" stroke-width="3"/><path d="M24 230 V46 Q24 24 46 24 H230" fill="none" stroke="#d9a640" stroke-width="1.2"/>';
+  s += spiral(92, 92, 66, 1.15, Math.PI*1.1, 1, PAL[0], 10) + spiral(170, 52, 34, .95, Math.PI*.2, -1, PAL[1], 7) + spiral(52, 170, 34, .95, Math.PI*1.3, 1, PAL[2], 7);
+  s += leaf(120, 60, 66, -.3, PAL[1]) + leaf(60, 120, 66, 1.9, PAL[1]) + leaf(150, 120, 46, .6, PAL[3]) + flower(130, 130, 20, PAL[2]) + flower(196, 30, 11, PAL[0]) + flower(30, 196, 11, PAL[0]);
+  return s + '</svg>'; }
+// 緞帶：阿根廷天藍＋白，兩端摺入
+function ribbon(text){ var s = '<defs><linearGradient id="rb' + (++uid) + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c6e6ff"/><stop offset=".5" stop-color="#8fc9ef"/><stop offset="1" stop-color="#4a8ac0"/></linearGradient></defs>';
+  s += '<path d="M10 22 L70 14 L60 38 L70 62 L10 54 L26 38Z" fill="#4a8ac0" stroke="#000" stroke-width="2"/><path d="M550 22 L490 14 L500 38 L490 62 L550 54 L534 38Z" fill="#4a8ac0" stroke="#000" stroke-width="2"/>';
+  s += '<path d="M60 10 Q280 -4 500 10 L500 58 Q280 44 60 58Z" fill="url(#rb' + uid + ')" stroke="#000" stroke-width="2.5"/><path d="M66 18 Q280 4 494 18" stroke="#fff" stroke-width="1.5" fill="none" opacity=".8"/><path d="M66 50 Q280 36 494 50" stroke="#d9a640" stroke-width="1.5" fill="none"/>';
+  return s + '<text x="280" y="42" text-anchor="middle" font-family="Apple Chancery,Snell Roundhand,Brush Script MT,cursive" font-size="27" fill="#0d0c0b">' + esc(text) + '</text>'; }
+function divider(){ var s = '<path d="M20 30 H290 M430 30 H700" stroke="#d9a640" stroke-width="2"/>'; s += spiral(320, 30, 22, 1, Math.PI, -1, PAL[0], 6) + spiral(400, 30, 22, 1, 0, 1, PAL[0], 6) + flower(360, 30, 16, PAL[2]) + leaf(300, 30, 40, Math.PI, PAL[1]) + leaf(420, 30, 40, 0, PAL[1]); return s; }
+$$('[data-ribbon]').forEach(function(el){ el.innerHTML = ribbon(el.dataset.ribbon); });
+$$('[data-divider]').forEach(function(el){ el.innerHTML = divider(); });
+// 捲草帶：一對對反向螺線＋花與葉，沿水平重複
+function band(){ var s = ''; for (var x = 60, k = 0; x < 1440; x += 180, k++){ var p = PAL[k % 4], q = PAL[(k + 1) % 4]; s += spiral(x, 32, 24, 1, Math.PI, -1, p, 6) + spiral(x + 70, 32, 24, 1, 0, 1, q, 6) + leaf(x + 22, 32, 30, -.5, PAL[1]) + flower(x + 125, 32, 11, PAL[(k + 2) % 4]); } return s; }
+$$('[data-band]').forEach(function(el){ el.innerHTML = band(); });
+(function(){ var f = $('#heroFrame'); f.insertAdjacentHTML('afterbegin', ['tl','tr','bl','br'].map(function(k){ return corner().replace('class="orn"', 'class="orn ' + k + '"'); }).join('')); })();
+$('#logoMate').innerHTML = '<path d="M7 16 Q4 34 17 38 Q30 34 27 16Z" fill="#8a5a2a" stroke="#d9a640" stroke-width="1.5"/><rect x="6" y="13" width="22" height="5" rx="2" fill="#d9a640"/><path d="M20 15 L26 2 L30 3" stroke="#e6e6de" stroke-width="2.5" fill="none" stroke-linecap="round"/><ellipse cx="17" cy="15" rx="9" ry="2.4" fill="#6f8a2a"/>';
+
+/* ===== 菜單 ===== */
+$('#menu').innerHTML = Object.keys(MENU).map(function(k){ var p = k.split('|'); return '<article class="card gl rv-in">' + corner().replace('class="orn"', 'class="orn tl"') + corner().replace('class="orn"', 'class="orn br"') + '<h3>' + p[0] + '<small>' + p[1] + '</small></h3>' + MENU[k].map(function(m){ return '<div class="mi"><b>' + m[0] + '<i>' + m[1] + '</i></b><span>' + m[3] + '</span><small>' + m[2] + '</small></div>'; }).join('') + '</article>'; }).join('');
+
+/* ===== 茶具組合 ===== */
+function opts(id, list, name, def){ $(id).innerHTML = list.map(function(o, i){ return '<label><input type="radio" name="' + name + '" value="' + i + '"' + (i === def ? ' checked' : '') + '><span><i style="--c:' + o[3] + '"></i><b>' + o[0] + '</b><em>' + o[2].toLocaleString() + '</em><small>' + o[1] + '</small></span></label>'; }).join(''); }
+opts('#oGourd', KIT.gourd, 'g', 0); opts('#oBomb', KIT.bomb, 'b', 0); opts('#oYerba', KIT.yerba, 'y', 0);
+function v(n){ return +$('input[name=' + n + ']:checked').value; }
+function kitDraw(){
+  var g = v('g'), b = v('b'), y = v('y'), name = $('#kName').value.trim(), gc = KIT.gourd[g][3], bc = KIT.bomb[b][3], yc = KIT.yerba[y][3], s = '';
+  s += '<ellipse cx="250" cy="420" rx="170" ry="22" fill="#000" opacity=".5"/>';
+  // 茶葉袋
+  s += '<g transform="translate(372 300) rotate(6)"><path d="M-56 -120 h112 l8 236 h-128z" fill="#fbf6ea" stroke="#000" stroke-width="3"/><path d="M-56 -120 l12 -16 h88 l12 16" fill="#e6dcc4" stroke="#000" stroke-width="3"/><rect x="-44" y="-70" width="88" height="96" fill="' + yc + '" stroke="#000" stroke-width="2"/><text x="0" y="-84" text-anchor="middle" font-family="Optima,Candara,sans-serif" font-weight="700" font-size="16" fill="#d4202a">YERBA</text><text x="0" y="50" text-anchor="middle" font-family="Apple Chancery,cursive" font-size="17" fill="#0d0c0b">' + KIT.yerba[y][0].split(' ').slice(1).join(' ') + '</text><text x="0" y="78" text-anchor="middle" font-family="Optima,sans-serif" font-size="12" fill="#0d0c0b">500 g</text></g>';
+  // 杯
+  var cup = g === 0 ? 'M-70 -60 Q-96 40 -40 92 Q0 112 40 92 Q96 40 70 -60Z' : g === 1 ? 'M-62 -60 L-70 70 Q-60 96 0 96 Q60 96 70 70 L62 -60Z' : g === 2 ? 'M-66 -60 Q-80 30 -50 80 Q0 104 50 80 Q80 30 66 -60Z' : 'M-60 -60 L-58 82 Q0 100 58 82 L60 -60Z';
+  s += '<g transform="translate(200 300)"><path d="' + cup + '" fill="' + gc + '" stroke="#000" stroke-width="3" opacity="' + (g === 3 ? .55 : 1) + '"/>';
+  if (g === 0) s += '<path d="M-82 10 Q0 40 82 10" stroke="#3a2410" stroke-width="10" fill="none"/>' + [-50, -20, 10, 40].map(function(x){ return '<path d="M' + x + ' 30 v40" stroke="#3a2410" stroke-width="2" opacity=".5"/>'; }).join('');
+  if (g === 1) for (var r = 0; r < 6; r++) s += '<path d="M-64 ' + (-40 + r*22) + ' Q0 ' + (-30 + r*22) + ' 64 ' + (-40 + r*22) + '" stroke="#8a5a2a" stroke-width="1.5" fill="none" opacity=".6"/>';
+  if (g === 2) s += '<g transform="translate(0 20) scale(.5)">' + spiral(-40, 0, 40, 1, Math.PI, 1, PAL[0], 8) + spiral(40, 0, 40, 1, 0, -1, PAL[1], 8) + flower(0, 0, 22, PAL[2]) + '</g>';
+  if (g === 3){ s += '<path d="M-58 -10 H58 L57 82 Q0 98 -57 82Z" fill="#6a4a2a" stroke="#000" stroke-width="2"/>'; for (var k = 0; k < 8; k++) s += '<circle cx="' + (-48 + k*14) + '" cy="-2" r="2" fill="#d9a640"/>'; s += '<path d="M-56 -58 L-54 -12 H54 L56 -58" fill="' + yc + '" opacity=".7"/>'; }
+  s += '<ellipse cx="0" cy="-60" rx="70" ry="14" fill="#d9a640" stroke="#000" stroke-width="3"/><ellipse cx="0" cy="-60" rx="58" ry="9" fill="' + yc + '" stroke="#000" stroke-width="2"/><path d="M-40 -64 q30 -14 60 2" fill="' + yc + '" stroke="#000" stroke-width="1.5"/>';
+  for (var p = 0; p < 30; p++) s += '<circle cx="' + (-48 + (p*13)%96) + '" cy="' + (-62 + (p*7)%8) + '" r="1.5" fill="#000" opacity=".25"/>';
+  // 吸管
+  s += b === 2 ? '<path d="M20 -60 L56 -190" stroke="#000" stroke-width="12" stroke-linecap="round"/><path d="M20 -60 L56 -190" stroke="' + bc + '" stroke-width="8" stroke-linecap="round"/>' + [0,1,2,3,4].map(function(i){ return '<path d="M' + (25 + i*7) + ' ' + (-78 - i*25) + ' l8 -3" stroke="#8a6a3a" stroke-width="2"/>'; }).join('') : '<path d="M20 -60 L52 -186 Q55 -200 68 -202 L80 -200" stroke="#000" stroke-width="' + (b === 0 ? 11 : 9) + '" fill="none" stroke-linecap="round"/><path d="M20 -60 L52 -186 Q55 -200 68 -202 L80 -200" stroke="' + bc + '" stroke-width="' + (b === 0 ? 7 : 5) + '" fill="none" stroke-linecap="round"/><path d="M24 -70 L50 -176" stroke="#fff" stroke-width="1.5" opacity=".7"/>';
+  if (b === 0) s += '<circle cx="40" cy="-130" r="7" fill="#d9a640" stroke="#000" stroke-width="1.5"/>';
+  if (name) s += '<path id="ep" d="M-62 -54 Q0 -38 62 -54" fill="none"/><text font-family="Apple Chancery,Snell Roundhand,cursive" font-size="16" fill="#0d0c0b"><textPath href="#ep" startOffset="50%" text-anchor="middle">' + esc(name) + '</textPath></text>';
+  s += '</g>';
+  // 角落花
+  s += '<g opacity=".9">' + spiral(50, 50, 40, 1, Math.PI*1.1, 1, PAL[0], 7) + leaf(70, 40, 40, -.2, PAL[1]) + flower(80, 80, 12, PAL[2]) + spiral(450, 460, 40, 1, Math.PI*.1, 1, PAL[1], 7) + flower(420, 430, 12, PAL[0]) + '</g>';
+  $('#kitSvg').innerHTML = s;
+  var tot = KIT.gourd[g][2] + KIT.bomb[b][2] + KIT.yerba[y][2] + (name ? SHOP.engrave : 0);
+  $('#kList').textContent = KIT.gourd[g][0] + '＋' + KIT.bomb[b][0] + '＋' + KIT.yerba[y][0].split(' ')[0] + (name ? '＋刻字' : '') + (tot >= 2000 ? '・免運' : '');
+  $('#kPrice').textContent = money(tot);
 }
-function after(i,taste,burnt){
-  st.cebada++; st.strength=Math.max(0,st.strength*(burnt?.72:st.lastTemp>82?.82:.88)-.01);
-  // 下一個還在場的人
-  var n=st.turn; for(var k=0;k<4;k++){ n=(n+1)%4; if(!amigos[n].classList.contains('out')) break; } st.turn=n;
-  st.drinking=false; pourBtn.disabled=false; bars();
-  if(st.strength<.22){ log('第 '+st.cebada+' 泡了，茶已經 <b>lavado</b>（洗淡了）。按「換新茶葉」重新開始一輪。'); pourBtn.disabled=true; }
-  else log('第 '+st.cebada+' 泡喝完。再倒一杯給<b>'+FR[st.turn].n+'</b>。'+(burnt?'剛剛水太燙，茶葉淡得特別快。':''));
-}
-$('pass').onclick=function(){ pass(st.turn); };
-amigos.forEach(function(a,i){ a.addEventListener('click',function(){ pass(i); }); });
-upT(); drawMate(); bars();
+$('#kf').addEventListener('change', kitDraw); $('#kName').addEventListener('input', kitDraw); kitDraw();
+$('#kGo').onclick = function(){ $('#kMsg').textContent = '已加入購物車：' + $('#kList').textContent + '　' + $('#kPrice').textContent + '。' + ($('#kName').value.trim() ? '刻字約七個工作天。' : '') + '示範版本：不會真的下單。'; };
+
+/* ===== 活動 ===== */
+function nextDay(dow){ var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1); while (d.getDay() !== dow) d.setDate(d.getDate() + 1); return d; }
+$('#events').innerHTML = EVENTS.map(function(e, i){ return [nextDay(e[1]), e, i]; }).sort(function(a, b){ return a[0] - b[0]; }).map(function(p){ var d = p[0], e = p[1], left = e[4] - e[5];
+  return '<article class="ev gl rv-in">' + corner().replace('class="orn"', 'class="orn tr" style="width:80px"') + '<div class="date"><b>' + d.getDate() + '</b><span>' + (d.getMonth() + 1) + ' 月・' + DAYS[d.getDay()] + '</span></div><h3>' + e[0] + '</h3><p>' + e[2] + '<br>' + e[6] + '</p><div class="row"><span>' + money(e[3]) + '・' + (left ? '剩 ' + left + ' 位' : '額滿') + '</span><button class="btn" type="button" data-e="' + p[2] + '"' + (left ? '' : ' disabled') + '>' + (left ? '報名' : '下一場') + '</button></div></article>'; }).join('');
+$('#events').addEventListener('click', function(e){ var b = e.target.closest('[data-e]'); if (!b || b.disabled) return; b.textContent = '已保留'; b.disabled = true; b.previousElementSibling.textContent = '已為你保留 1 位（示範）'; });
+
+/* ===== 營業狀態 ===== */
+function mins(t){ var p = t.split(':'); return +p[0]*60 + +p[1]; }
+(function(){
+  var h = SHOP.hours[now.getDay()], m = now.getHours()*60 + now.getMinutes(), open = h && m >= mins(h[0]) && m < mins(h[1]), next = '';
+  if (!open) for (var k = 0; k < 8 && !next; k++){ var d = (now.getDay() + k) % 7, x = SHOP.hours[d]; if (x && (k > 0 || mins(x[0]) > m)) next = (k === 0 ? '今天' : k === 1 ? '明天' : DAYS[d]) + ' ' + x[0]; }
+  $('#status').classList.toggle('on', !!open); $('#status').lastElementChild.textContent = open ? 'ABIERTO · 營業至 ' + h[1] : 'CERRADO · ' + next + ' 開門';
+  $('#hours').innerHTML = [1,2,3,4,5,6,0].map(function(i){ var x = SHOP.hours[i], c = i === now.getDay() ? ' class="t"' : ''; return '<span' + c + '>' + DAYS[i] + '</span><span' + c + '>' + (x ? x[0] + '–' + x[1] : '公休') + '</span>'; }).join('');
+})();
+$('#addr').textContent = SHOP.address; $('#tel').textContent = SHOP.phone; $('#tel').href = 'tel:' + SHOP.phone.replace(/[^\d]/g, '');
+$('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+$('#yr').textContent = now.getFullYear();
+
+/* ===== 佔位圖（彩繪） ===== */
+function svg(vb, body){ return '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="100%" height="100%" fill="#191715"/>' + body + '</svg>'; }
+function mate(x, y, sc, c){ return '<g transform="translate(' + x + ' ' + y + ') scale(' + sc + ')"><path d="M-70 -60 Q-96 40 -40 92 Q0 112 40 92 Q96 40 70 -60Z" fill="' + c + '" stroke="#000" stroke-width="3"/><ellipse cx="0" cy="-60" rx="70" ry="14" fill="#d9a640" stroke="#000" stroke-width="3"/><ellipse cx="0" cy="-60" rx="58" ry="9" fill="#6f8a2a"/><path d="M20 -60 L52 -186 Q55 -200 68 -202 L80 -200" stroke="#d8d8d0" stroke-width="8" fill="none" stroke-linecap="round"/></g>'; }
+var ART = {
+  ronda:function(){ var s = '<circle cx="600" cy="760" r="420" fill="#2a2620"/>';
+    for (var i = 0; i < 5; i++){ var a = Math.PI*(1.1 + i*.2), x = 600 + Math.cos(a)*360, y = 860 + Math.sin(a)*300; s += '<circle cx="' + x + '" cy="' + (y - 120) + '" r="62" fill="' + ['#d4202a','#1f9a48','#5aa9e6','#f6c42b','#fbf6ea'][i] + '" stroke="#000" stroke-width="3"/><path d="M' + (x - 90) + ' ' + (y + 40) + ' q90 -120 180 0z" fill="' + ['#d4202a','#1f9a48','#5aa9e6','#f6c42b','#fbf6ea'][i] + '" stroke="#000" stroke-width="3"/>'; }
+    s += mate(600, 820, 1.6, '#8a5a2a') + '<rect x="760" y="640" width="70" height="230" rx="20" fill="#5aa9e6" stroke="#000" stroke-width="3"/><rect x="775" y="610" width="40" height="40" rx="8" fill="#d9a640" stroke="#000" stroke-width="3"/>';
+    s += spiral(160, 160, 120, 1.1, Math.PI*1.1, 1, PAL[0], 16) + spiral(1040, 160, 120, 1.1, -Math.PI*.1, -1, PAL[1], 16) + flower(600, 220, 50, PAL[2]) + leaf(560, 220, 120, Math.PI, PAL[1]) + leaf(640, 220, 120, 0, PAL[1]);
+    return svg('0 0 1200 1500', s); },
+  sign:function(){ var s = '<rect x="120" y="180" width="1160" height="540" rx="40" fill="#0d0c0b" stroke="#d9a640" stroke-width="8"/>' + spiral(260, 330, 110, 1.1, Math.PI*1.1, 1, PAL[0], 16) + spiral(1140, 330, 110, 1.1, -Math.PI*.1, -1, PAL[1], 16) + spiral(260, 580, 90, 1, Math.PI*.9, -1, PAL[2], 14) + spiral(1140, 580, 90, 1, Math.PI*.1, 1, PAL[3], 14);
+    s += '<text x="700" y="500" text-anchor="middle" font-family="Apple Chancery,Snell Roundhand,cursive" font-size="160" fill="#f6c42b" stroke="#000" stroke-width="4">La Ronda</text><g transform="translate(420 560) scale(1)">' + ribbon('Casa de Mate') + '</g>';
+    return svg('0 0 1400 900', s); },
+  gourds:function(){ var s = ''; ['#8a5a2a','#b8864a','#fbf6ea','#d4202a','#1f9a48','#5aa9e6'].forEach(function(c, i){ s += mate(200 + (i%3)*300, 360 + Math.floor(i/3)*380, 1.1, c); }); return svg('0 0 1000 1000', s); },
+  tango:function(){ var s = '<circle cx="500" cy="260" r="200" fill="#f6c42b" opacity=".15"/><path d="M380 900 L440 520 Q450 420 500 400 Q560 420 560 520 L620 900" fill="#0d0c0b" stroke="#d9a640" stroke-width="3"/><circle cx="470" cy="340" r="44" fill="#0d0c0b" stroke="#d9a640" stroke-width="3"/><circle cx="560" cy="350" r="40" fill="#d4202a" stroke="#000" stroke-width="3"/><path d="M520 420 Q620 520 560 700 Q640 800 700 900 H520Z" fill="#d4202a" stroke="#000" stroke-width="3"/>';
+    s += spiral(120, 880, 100, 1, Math.PI*1.2, 1, PAL[1], 14) + spiral(880, 880, 100, 1, -Math.PI*.2, -1, PAL[2], 14) + flower(820, 140, 40, PAL[0]) + flower(180, 140, 30, PAL[3]);
+    return svg('0 0 1000 1000', s); }
+};
+function fillPhotos(){ $$('.ph').forEach(function(f){ var url = SHOP.photos[f.dataset.photo]; if (url){ f.innerHTML = '<img src="' + url + '" alt="' + (f.dataset.label || '') + '" loading="lazy">'; return; } var a = ART[f.dataset.art]; if (a) f.innerHTML = a(); }); }
+
+/* ===== 共用 ===== */
+var nav = $('#nav');
+$('#burger').onclick = function(){ var o = nav.classList.toggle('open'); this.setAttribute('aria-expanded', o); this.textContent = o ? 'Cerrar' : 'Menú'; };
+$$('#navList a').forEach(function(a){ a.onclick = function(){ nav.classList.remove('open'); $('#burger').textContent = 'Menú'; }; });
+var slotBtn = $('#slotBtn');
+function slots(on){ document.body.classList.toggle('slots', on); slotBtn.setAttribute('aria-pressed', on); }
+slotBtn.onclick = function(){ slots(!document.body.classList.contains('slots')); };
+if (/[?&]slots/.test(location.search)) slots(true);
+fillPhotos();
+if ('IntersectionObserver' in window){
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('vis'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -6% 0px'});
+  $$('.rv-in').forEach(function(el){ io.observe(el); });
+} else $$('.rv-in').forEach(function(el){ el.classList.add('vis'); });
 })();
 </script>
 </body>

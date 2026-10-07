@@ -1,227 +1,522 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>La Fée Verte · 苦艾酒滴水禮</title>
-<meta name="description" content="新藝術海報風格的苦艾酒儀式：打開冰水壺的龍頭，讓水一滴一滴落在方糖上，看翠綠的酒從杯底開始乳化成霧白的蛋白石色（louche），滴得太快就會失敗。">
+<title>La Fée Verte 綠仙子苦艾酒吧｜滴水禮與美好年代</title>
+<meta name="description" content="La Fée Verte 綠仙子苦艾酒吧：台北的苦艾酒專門酒吧。四龍頭冰水壺滴水禮示範、苦艾酒單（翠綠、透明、藍色）、經典調酒、主題夜與沙龍包廂預約。">
+<!--
+  店家模板使用方式
+  1. 修改 <script> 開頭的 SHOP（店名、電話、地址、營業時間、照片網址）、ABSINTHES（苦艾酒單與顏色）、COCKTAILS（調酒）、NIGHTS（主題夜）與 SALONS（座位區）。
+  2. photos 填入照片網址就會取代佔位圖；網址加 ?slots 或按右下角「照片位」可標出位置與建議尺寸。
+  3. 訂位目前只在頁面上示範，正式使用請串接訂位系統。
+-->
 <style>
-:root{
-  --cream:#efe4c8; --cream-2:#e4d4ad; --sage:#7e9a6a; --moss:#3f5a3a; --deep:#24321f; --gold:#b98f3e; --gold-2:#d8b86a; --rose:#d9a48c; --ink:#2b2a22;
+:root{--cream:#efe4c8;--cream2:#e4d4ad;--paper:#f6eedb;--sage:#7e9a6a;--moss:#3f5a3a;--deep:#24321f;--deep2:#1a2517;--gold:#b98f3e;--gold2:#d8b86a;--rose:#d9a48c;--ink:#2b2a22;--line:rgba(185,143,62,.35);
   --nouveau:"Trattatello","Optima","Candara","Segoe UI","Songti TC",serif;
-  --text:"Hoefler Text","Iowan Old Style","Georgia","Songti TC","Noto Serif TC",serif;
+  --text:"Hoefler Text","Iowan Old Style","Georgia","Songti TC","Noto Serif TC",serif}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+html,body{margin:0}
+body{background:var(--cream);color:var(--ink);font-family:var(--text);line-height:1.8;overflow-x:clip}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1200px;margin:0 auto;padding:0 clamp(16px,4vw,44px)}
+.nv{font-family:var(--nouveau)}
+.cap{font-family:var(--nouveau);font-size:13px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold)}
+/* 導覽 */
+.nav{position:sticky;top:0;z-index:40;background:rgba(36,50,31,.96);color:var(--cream);border-bottom:3px double var(--gold)}
+.nav .wrap{display:flex;align-items:center;gap:26px;height:70px}
+.logo{text-decoration:none;display:flex;align-items:center;gap:10px}
+.logo svg{width:34px;height:40px}
+.logo b{font-family:var(--nouveau);font-weight:400;font-size:26px;letter-spacing:.04em;line-height:1}
+.logo small{display:block;font-family:var(--nouveau);font-size:10px;letter-spacing:.3em;color:var(--gold2)}
+.nav ul{display:flex;gap:24px;list-style:none;margin:0 0 0 auto;padding:0;font-family:var(--nouveau);font-size:15px;letter-spacing:.12em}
+.nav ul a{text-decoration:none;color:#dcd2b4}
+.nav ul a:hover{color:var(--gold2)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--nouveau);font-size:15px;letter-spacing:.14em;padding:12px 26px;border-radius:999px 999px 999px 999px/60px 60px 60px 60px;background:var(--moss);color:var(--cream);border:1.5px solid var(--gold);text-decoration:none;cursor:pointer;transition:background .3s}
+.btn:hover{background:var(--deep)}
+.btn.gold{background:var(--gold);color:var(--deep);border-color:var(--gold)}
+.btn.gold:hover{background:var(--gold2)}
+.btn.ghost{background:transparent;color:var(--moss);border-color:var(--moss)}
+.btn.ghost:hover{background:rgba(63,90,58,.08)}
+.burger{display:none;margin-left:auto;background:none;border:1px solid var(--gold);border-radius:99px;color:var(--gold2);font-family:var(--nouveau);font-size:13px;letter-spacing:.14em;padding:6px 14px;cursor:pointer}
+/* 照片位 */
+.ph{position:relative;overflow:hidden;background:var(--cream2);margin:0}
+.ph>svg,.ph>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+body.slots .ph{outline:2px dashed var(--moss);outline-offset:-2px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:50%;top:40%;transform:translateX(-50%);z-index:3;background:var(--paper);color:var(--moss);font-size:11px;padding:3px 9px;white-space:nowrap}
+/* Hero：海報 */
+.hero{padding:clamp(30px,5vw,60px) 0 clamp(70px,9vw,110px)}
+.poster{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;background:var(--paper);box-shadow:0 0 0 2px var(--gold),0 0 0 8px var(--paper),0 0 0 9px var(--gold),0 40px 70px -40px rgba(36,50,31,.6);position:relative}
+.poster .art{position:relative;min-height:620px;background:linear-gradient(var(--sage),var(--moss));overflow:hidden}
+.poster .art svg{position:absolute;inset:0;width:100%;height:100%}
+.poster .txt{padding:clamp(30px,5vw,64px);display:flex;flex-direction:column;justify-content:center}
+.hero h1{margin:10px 0 4px;font-family:var(--nouveau);font-weight:400;font-size:clamp(54px,7.4vw,108px);line-height:.95;color:var(--moss)}
+.hero h1 i{font-style:normal;color:var(--gold)}
+.hero h2{margin:12px 0 0;font-weight:400;font-size:clamp(20px,2.2vw,26px);letter-spacing:.2em}
+.hero p{margin:18px 0 26px;font-size:16.5px;max-width:480px}
+.btns{display:flex;gap:12px;flex-wrap:wrap}
+.status{display:inline-flex;align-items:center;gap:8px;margin-top:22px;font-family:var(--nouveau);font-size:13.5px;letter-spacing:.14em;color:var(--moss)}
+.status i{width:9px;height:9px;border-radius:50%;background:#a59a80}
+.status.on i{background:#7ac56a;box-shadow:0 0 8px #7ac56a}
+.whip{display:block;width:100%;height:40px}
+/* 區塊 */
+.sec{padding:clamp(80px,10vw,130px) 0}
+.ttl{text-align:center;max-width:640px;margin:0 auto 46px}
+.ttl h2{margin:8px 0 10px;font-family:var(--nouveau);font-weight:400;font-size:clamp(40px,5.4vw,68px);line-height:1;color:var(--moss)}
+.ttl p{margin:0}
+/* 滴水禮 */
+.ritualSec{background:var(--deep);color:var(--cream)}
+.ritualSec .ttl h2{color:var(--cream)}
+.ritualSec .ttl p{color:#cfc6a8}
+.ritual{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:clamp(24px,4vw,50px);align-items:center}
+.ritual>*{min-width:0}
+.stage{position:relative;border:1.5px solid var(--gold);border-radius:280px 280px 16px 16px/180px 180px 16px 16px;overflow:hidden;background:radial-gradient(ellipse at 50% 30%,#33472e,#1a2517 75%)}
+.stage svg{display:block;width:100%;height:auto}
+.panel{border:1.5px solid var(--gold);padding:clamp(22px,3vw,34px);border-radius:16px;background:rgba(26,37,23,.6)}
+.panel h3{margin:0 0 4px;font-family:var(--nouveau);font-weight:400;font-size:30px;color:var(--gold2)}
+.panel .sub{margin:0 0 18px;color:#cfc6a8;font-size:14.5px}
+.lab{display:block;font-family:var(--nouveau);font-size:12.5px;letter-spacing:.24em;color:var(--gold2);text-transform:uppercase;margin:0 0 8px}
+.types{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:18px}
+.types label{position:relative}
+.types input{position:absolute;opacity:0}
+.types span{display:flex;flex-direction:column;align-items:center;gap:4px;border:1px solid var(--line);border-radius:14px;padding:10px 6px;cursor:pointer;text-align:center;font-size:14px;line-height:1.3}
+.types span i{width:22px;height:22px;border-radius:50%;background:var(--c);box-shadow:inset 0 -3px 5px rgba(0,0,0,.3),0 0 0 1.5px var(--gold)}
+.types span small{font-size:11px;color:#cfc6a8}
+.types input:checked+span{border-color:var(--gold2);background:rgba(216,184,106,.12)}
+.types input:focus-visible+span{outline:2px solid var(--gold2);outline-offset:2px}
+.rate{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;align-items:center;margin-bottom:16px}
+.rate input{grid-column:1/3;width:100%;accent-color:var(--gold2)}
+.rate output{font-family:var(--nouveau);color:var(--gold2)}
+.meter{display:grid;grid-template-columns:5em minmax(0,1fr) 3.4em;gap:10px;align-items:center;font-size:13.5px;margin-bottom:8px}
+.meter i{height:4px;background:rgba(239,228,200,.15);position:relative;border-radius:2px;overflow:hidden}
+.meter i b{position:absolute;inset:0;transform-origin:left;transform:scaleX(var(--v,0));background:linear-gradient(90deg,var(--sage),var(--gold2))}
+.meter em{font-style:normal;text-align:right;font-family:var(--nouveau)}
+.verdict{min-height:3.4em;font-size:15px;color:#efe4c8;border-top:1px solid var(--line);padding-top:12px;margin:12px 0 14px}
+.panel .btns .btn{flex:1}
+/* 酒單 */
+.menu{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:clamp(30px,5vw,60px);align-items:start}
+.menu>*{min-width:0}
+.mh{font-family:var(--nouveau);font-weight:400;font-size:30px;color:var(--moss);margin:0 0 6px;display:flex;align-items:baseline;justify-content:space-between;border-bottom:1.5px solid var(--gold);padding-bottom:6px}
+.mh small{font-size:12px;letter-spacing:.24em;color:var(--gold)}
+.ab{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:2px 14px;align-items:center;padding:14px 0;border-bottom:1px dotted var(--gold)}
+.ab i{width:22px;height:34px;border-radius:4px 4px 10px 10px;background:var(--c);box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.2);grid-row:span 2}
+.ab b{font-family:var(--nouveau);font-weight:400;font-size:20px}
+.ab b em{font-style:normal;font-size:12px;letter-spacing:.14em;color:var(--gold);margin-left:8px}
+.ab span{font-family:var(--nouveau);font-size:19px}
+.ab small{grid-column:2/4;font-size:13.5px;color:#5a5848}
+.menu aside{background:var(--paper);padding:clamp(22px,3vw,34px);box-shadow:0 0 0 1.5px var(--gold),0 0 0 6px var(--paper),0 0 0 7px var(--gold)}
+.ck{padding:12px 0;border-bottom:1px dotted var(--gold)}
+.ck:last-child{border-bottom:0}
+.ck b{font-family:var(--nouveau);font-weight:400;font-size:20px;display:flex;justify-content:space-between}
+.ck small{display:block;font-size:13.5px;color:#5a5848}
+.note{font-size:13px;color:#6a6650;margin:16px 0 0}
+/* 主題夜與訂位 */
+.book{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(30px,5vw,60px);align-items:start}
+.book>*{min-width:0}
+.nights{display:grid;gap:12px}
+.night{display:grid;grid-template-columns:76px minmax(0,1fr);gap:16px;align-items:center;background:var(--paper);padding:14px 16px;border-radius:999px 16px 16px 999px;box-shadow:inset 0 0 0 1.5px var(--line)}
+.night .d{width:76px;height:76px;border-radius:50%;background:var(--moss);color:var(--cream);display:grid;place-items:center;text-align:center;line-height:1.1;box-shadow:0 0 0 3px var(--paper),0 0 0 4.5px var(--gold)}
+.night .d b{display:block;font-family:var(--nouveau);font-weight:400;font-size:28px}
+.night .d small{font-size:11px;letter-spacing:.1em}
+.night h3{margin:0;font-family:var(--nouveau);font-weight:400;font-size:21px;color:var(--moss)}
+.night p{margin:2px 0 0;font-size:14px;color:#5a5848}
+.form{background:var(--paper);padding:clamp(24px,3vw,38px);box-shadow:0 0 0 1.5px var(--gold),0 0 0 6px var(--paper),0 0 0 7px var(--gold);position:relative}
+.form h3{margin:0 0 14px;font-family:var(--nouveau);font-weight:400;font-size:32px;color:var(--moss)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+.chips label{position:relative}
+.chips input{position:absolute;opacity:0}
+.chips span{display:block;border:1px solid var(--gold);border-radius:99px;padding:6px 13px;cursor:pointer;text-align:center;line-height:1.3;font-size:14.5px;background:var(--cream)}
+.chips span small{display:block;font-size:11px;color:#6a6650}
+.chips input:checked+span{background:var(--moss);color:var(--cream);border-color:var(--moss)}
+.chips input:checked+span small{color:#cfc6a8}
+.chips input:disabled+span{opacity:.35;cursor:default}
+.chips input:focus-visible+span{outline:2px solid var(--gold);outline-offset:2px}
+.form .lab{color:var(--gold)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fi{display:grid;gap:4px;font-family:var(--nouveau);font-size:12.5px;letter-spacing:.2em;color:var(--gold);text-transform:uppercase;margin-bottom:12px}
+.fi input,.fi select{border:0;border-bottom:1.5px solid var(--moss);background:transparent;padding:7px 0;font-family:var(--text);font-size:16px;color:var(--ink);text-transform:none;letter-spacing:0;border-radius:0;width:100%}
+.fi input:focus,.fi select:focus{outline:none;border-bottom-color:var(--gold)}
+.fi .err{color:#a3402a;font-size:12px;text-transform:none;letter-spacing:0;min-height:1em;font-family:var(--text)}
+.form .btn{width:100%}
+.demo{font-size:12px;color:#6a6650;text-align:center;margin:10px 0 0}
+.ritualSec .demo{color:#a8a088}
+.done{text-align:center;padding:30px 0}
+.done b{display:block;font-family:var(--nouveau);font-weight:400;font-size:40px;color:var(--moss)}
+/* 照片與評論 */
+.gal{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.gal .ph{aspect-ratio:3/4;border-radius:200px 200px 8px 8px/120px 120px 8px 8px;box-shadow:0 0 0 1.5px var(--gold),0 0 0 6px var(--cream),0 0 0 7px var(--gold)}
+.revs{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:60px}
+.rv p{margin:0 0 10px;font-size:18px;font-style:italic;line-height:1.6}
+.rv small{font-family:var(--nouveau);font-size:12px;letter-spacing:.2em;color:var(--gold)}
+/* 資訊 */
+.info{display:grid;grid-template-columns:repeat(3,1fr);gap:40px;border-top:3px double var(--gold);padding-top:44px;text-align:center}
+.info h3{margin:0 0 12px;font-family:var(--nouveau);font-weight:400;font-size:24px;color:var(--moss)}
+.info p{margin:0 0 6px}
+.info a{text-decoration-color:var(--gold)}
+.hours{display:inline-grid;grid-template-columns:auto auto;gap:2px 16px;text-align:left}
+.hours .t{color:var(--gold);font-weight:700}
+.legal{margin:30px 0 0;text-align:center;font-family:var(--nouveau);font-size:12px;letter-spacing:.2em;color:#6a6650}
+footer{background:var(--deep);color:#cfc6a8;text-align:center;padding:30px 0 50px;font-family:var(--nouveau);font-size:12.5px;letter-spacing:.24em;border-top:3px double var(--gold)}
+footer nav{display:flex;justify-content:center;gap:22px;margin-bottom:8px}
+footer a{text-decoration:none}
+.slotBtn{position:fixed;right:16px;bottom:16px;z-index:60;border:1px solid var(--gold);border-radius:99px;background:var(--deep);color:var(--gold2);font-family:var(--nouveau);font-size:12px;padding:7px 14px;cursor:pointer}
+.slotBtn[aria-pressed=true]{background:var(--gold);color:var(--deep)}
+.rv-in{opacity:0;transform:translateY(16px);transition:opacity 1s ease,transform 1s cubic-bezier(.2,.7,.2,1)}
+.rv-in.vis{opacity:1;transform:none}
+@keyframes hair{0%,100%{transform:rotate(0)}50%{transform:rotate(1.2deg)}}
+.hair{transform-box:view-box;transform-origin:62% 30%;animation:hair 7s ease-in-out infinite}
+@keyframes wing{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.94)}}
+.wing{transform-box:fill-box;transform-origin:100% 60%;animation:wing 4s ease-in-out infinite}
+@media (max-width:960px){
+  .nav ul{display:none;position:absolute;top:70px;left:0;right:0;flex-direction:column;gap:0;background:var(--deep);padding:6px 20px 16px;border-bottom:3px double var(--gold)}
+  .nav.open ul{display:flex}
+  .nav ul a{display:block;padding:11px 0;border-bottom:1px solid rgba(185,143,62,.2)}
+  .nav .wrap>.btn{display:none}
+  .burger{display:block}
+  .poster,.ritual,.menu,.book{grid-template-columns:1fr}
+  .poster .art{min-height:480px}
+  .revs,.info{grid-template-columns:1fr}
+  .gal{grid-template-columns:1fr 1fr}
+  .gal .ph:first-child{grid-column:span 2;aspect-ratio:16/11}
 }
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--deep);color:var(--ink);font-family:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(60vw 70vh at 50% 40%,rgba(185,143,62,.18),transparent 70%)}
-.wrap{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,600px) minmax(0,1fr);gap:clamp(16px,3vw,40px);padding:clamp(16px,3vw,36px);align-items:center;min-height:100vh}
-.poster{position:relative;grid-column:2;aspect-ratio:3/4.1;width:100%;background:var(--cream);border-radius:300px 300px 10px 10px/240px 240px 10px 10px;box-shadow:0 0 0 6px var(--gold),0 0 0 9px var(--deep),0 0 0 11px var(--gold-2),0 40px 80px -30px rgba(0,0,0,.7);overflow:hidden}
-.poster svg.orn{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.poster canvas{position:absolute;left:0;top:0;width:100%;height:100%}
-.title{position:absolute;left:0;right:0;bottom:4.5%;text-align:center;pointer-events:none}
-.title h1{font-family:var(--nouveau);font-weight:400;font-size:clamp(30px,5.4vw,58px);letter-spacing:.06em;color:var(--moss);line-height:1}
-.title p{font-family:var(--nouveau);font-size:clamp(11px,1.3vw,14px);letter-spacing:.5em;color:var(--gold);margin-top:6px}
-.side{color:var(--cream)}
-.side.l{grid-column:1;justify-self:end;max-width:300px;grid-row:1}
-.side.r{grid-column:3;max-width:300px}
-.side h2{font-family:var(--nouveau);font-weight:400;font-size:28px;color:var(--gold-2);letter-spacing:.04em;margin-bottom:10px}
-.side p{font-size:15px;line-height:1.8;color:#d8d0b8}
-.side p em{color:var(--gold-2);font-style:italic}
-.lever{margin:18px 0 10px}
-.lever label{display:flex;justify-content:space-between;font-family:var(--nouveau);font-size:14px;letter-spacing:.14em;color:var(--gold-2)}
-.lever output{font-family:var(--text);font-style:italic;color:var(--cream)}
-input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:30px;background:transparent;cursor:pointer}
-input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:4px;background:linear-gradient(90deg,var(--sage),var(--gold-2) 45%,var(--rose))}
-input[type=range]::-moz-range-track{height:4px;border-radius:4px;background:linear-gradient(90deg,var(--sage),var(--gold-2) 45%,var(--rose))}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3c8,var(--gold) 60%,#6e521c);box-shadow:0 0 0 2px var(--deep),0 0 0 3px var(--gold-2)}
-input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--gold);border:2px solid var(--deep)}
-.zones{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.1em;color:#a59c85}
-.meters{display:grid;gap:9px;margin-top:16px}
-.m{display:grid;grid-template-columns:4.4em 1fr 3.6em;gap:10px;align-items:center;font-size:13px;color:#d8d0b8}
-.m i{height:6px;border-radius:6px;background:rgba(239,228,200,.12);position:relative;overflow:hidden}
-.m i::after{content:"";position:absolute;inset:0;transform-origin:left;transform:scaleX(var(--v,0));background:var(--c,var(--sage));transition:transform .2s}
-.m em{font-style:normal;text-align:right;font-variant-numeric:tabular-nums;color:var(--cream)}
-.m i.tgt::before{content:"";position:absolute;top:-2px;bottom:-2px;left:var(--a);width:var(--w);border:1px solid var(--gold-2);border-radius:3px;z-index:1}
-.btn{margin-top:18px;font-family:var(--nouveau);font-size:16px;letter-spacing:.2em;padding:11px 22px;background:transparent;color:var(--gold-2);border:1.5px solid var(--gold);border-radius:30px;cursor:pointer;transition:background .3s,color .3s}
-.btn:hover{background:var(--gold);color:var(--deep)}
-.verdict{font-family:var(--nouveau);font-size:22px;color:var(--gold-2);min-height:2.4em;line-height:1.3;margin-top:12px}
-.verdict small{display:block;font-family:var(--text);font-size:14px;font-style:italic;color:#d8d0b8;margin-top:4px}
-@media (max-width:1100px){
-  .wrap{grid-template-columns:minmax(0,1fr);justify-items:center}
-  .poster{grid-column:1;max-width:520px}
-  .side.l,.side.r{grid-column:1;grid-row:auto;justify-self:center;max-width:520px;width:100%}
-  .side.l{order:-1;text-align:center}
+@media (max-width:560px){
+  .poster .art{min-height:420px}
+  .two{grid-template-columns:1fr}
+  .types span small{display:none}
 }
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.rv-in{opacity:1;transform:none;transition:none}.hair,.wing{animation:none}}
 </style>
 </head>
 <body>
-<main class="wrap">
-  <aside class="side l">
-    <h2>Le Rituel</h2>
-    <p>苦艾酒倒在杯底，帶孔的銀匙架在杯口，上面一顆方糖。冰水<em>一滴一滴</em>落在糖上，把糖化進酒裡。<br>水比酒重，往下沉，酒裡的茴香油遇水析出——翠綠從杯底開始，慢慢變成霧白的蛋白石色。這就是 <em>louche</em>。</p>
-  </aside>
-  <div class="poster" id="poster">
-    <canvas id="cv" aria-label="苦艾酒杯、銀匙與方糖"></canvas>
-    <svg class="orn" viewBox="0 0 600 820" preserveAspectRatio="none" aria-hidden="true">
-      <!-- 鞭狀曲線邊框與苦艾葉 -->
-      <g fill="none" stroke="#b98f3e" stroke-width="2.5">
-        <path d="M30 800 C30 520 10 330 70 210 C130 90 230 40 300 40 C370 40 470 90 530 210 C590 330 570 520 570 800"/>
-        <path d="M46 800 C46 540 30 350 84 236 C140 120 230 62 300 62 C370 62 460 120 516 236 C570 350 554 540 554 800" stroke-width="1.2"/>
-        <path d="M30 700 C80 690 90 640 60 610 C40 590 70 560 96 580" stroke="#7e9a6a" stroke-width="3"/>
-        <path d="M570 700 C520 690 510 640 540 610 C560 590 530 560 504 580" stroke="#7e9a6a" stroke-width="3"/>
-      </g>
-      <g fill="#7e9a6a" opacity=".85">
-        <path d="M60 520 c-20 -30 0 -50 20 -40 c-6 -20 20 -30 26 -6 c14 -14 34 2 18 20 c20 6 10 30 -12 24 c4 20 -24 26 -28 4 c-14 14 -36 0 -24 -2z"/>
-        <path d="M540 520 c20 -30 0 -50 -20 -40 c6 -20 -20 -30 -26 -6 c-14 -14 -34 2 -18 20 c-20 6 -10 30 12 24 c-4 20 24 26 28 4 c14 14 36 0 24 -2z"/>
-      </g>
-      <!-- 標題下的花飾帶 -->
-      <path d="M90 700 Q300 650 510 700" fill="none" stroke="#b98f3e" stroke-width="1.5"/>
-      <path d="M120 712 Q300 668 480 712" fill="none" stroke="#b98f3e" stroke-width="1"/>
-    </svg>
-    <div class="title"><h1>La Fée Verte</h1><p>苦 艾 酒 滴 水 禮</p></div>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top"><svg viewBox="0 0 34 40" aria-hidden="true"><path d="M8 4 H26 L22 22 Q17 26 12 22Z" fill="#7e9a6a" stroke="#d8b86a" stroke-width="1.4"/><path d="M17 24 V34 M10 36 H24" stroke="#d8b86a" stroke-width="1.6"/><path d="M4 9 Q17 -2 30 9" stroke="#d8b86a" stroke-width="1" fill="none"/></svg><span><b>La Fée Verte</b><small>BAR À ABSINTHE</small></span></a>
+    <ul id="navList"><li><a href="#rituel">滴水禮</a></li><li><a href="#carte">酒單</a></li><li><a href="#soirees">主題夜</a></li><li><a href="#visit">交通</a></li></ul>
+    <a class="btn gold" href="#soirees" style="padding:8px 18px;font-size:13px">訂位</a>
+    <button class="burger" id="burger" type="button" aria-expanded="false">Carte</button>
   </div>
-  <aside class="side r">
-    <h2>La Fontaine</h2>
-    <div class="lever"><label for="tap">冰水壺龍頭<output id="rate">關</output></label><input id="tap" type="range" min="0" max="100" value="0"><div class="zones"><span>關</span><span>一秒一兩滴</span><span>細流</span></div></div>
-    <div class="meters">
-      <div class="m">水酒比<i id="mRatio" class="tgt" style="--a:50%;--w:33%;--c:#d8b86a"></i><em id="vRatio">0 : 1</em></div>
-      <div class="m">方糖<i id="mSugar" style="--c:#efe4c8"></i><em id="vSugar">完整</em></div>
-      <div class="m">乳化<i id="mLouche" style="--c:#cfe0b0"></i><em id="vLouche">0%</em></div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <div class="poster rv-in">
+        <div class="art"><svg id="fairy" viewBox="0 0 600 760" preserveAspectRatio="xMidYMid slice" role="img" aria-label="新藝術風格的綠仙子，長髮在光環前飄動，手持苦艾酒杯"></svg></div>
+        <div class="txt">
+          <span class="cap">Bar à Absinthe · Taipei</span>
+          <h1>La Fée<br><i>Verte</i></h1>
+          <h2>綠仙子苦艾酒吧</h2>
+          <svg class="whip" viewBox="0 0 400 40" aria-hidden="true"><path d="M0 20 C80 -10 120 50 200 20 S320 -10 400 20" stroke="#b98f3e" stroke-width="1.5" fill="none"/><circle cx="200" cy="20" r="4" fill="#b98f3e"/></svg>
+          <p>一八九〇年代的巴黎，下午五點是「綠色時光」。我們重現那個儀式：銀匙上一顆方糖，冰水一滴一滴落下，翠綠的酒慢慢變成乳白的雲。三十款苦艾酒、四龍頭的玻璃冰水壺，還有一面黃銅吧台。</p>
+          <div class="btns"><a class="btn" href="#rituel">看滴水禮</a><a class="btn ghost" href="#soirees">預約沙龍</a></div>
+          <span class="status" id="status"><i></i><span>…</span></span>
+        </div>
+      </div>
     </div>
-    <p class="verdict" id="verdict">慢慢打開龍頭。<small>前半段尤其要慢。</small></p>
-    <button class="btn" id="again">重新倒一杯</button>
-  </aside>
+  </section>
+
+  <section class="sec ritualSec" id="rituel">
+    <div class="wrap">
+      <div class="ttl rv-in"><span class="cap">Le Rituel</span><h2>滴水禮</h2><p>選一款酒，拉開冰水壺的龍頭。水比酒重，會沉到杯底，酒裡的茴香油遇水析出，霧白的雲絲從下往上長。滴得越慢，雲越細緻。</p></div>
+      <div class="ritual">
+        <div class="stage rv-in"><svg id="fountain" viewBox="0 0 600 640" role="img" aria-label="四龍頭冰水壺與苦艾酒杯的滴水示範"></svg></div>
+        <div class="panel rv-in">
+          <h3>Votre verre</h3><p class="sub">這是店內服務的示範，也能當作在家練習的參考。</p>
+          <span class="lab">苦艾酒</span><div class="types" id="types"></div>
+          <div class="rate"><span class="lab" style="margin:0">滴水速度</span><output id="rateOut"></output><input type="range" id="rate" min="1" max="10" value="3" aria-label="滴水速度"></div>
+          <div class="meter"><span>水酒比</span><i><b id="mRatio"></b></i><em id="eRatio">0:1</em></div>
+          <div class="meter"><span>乳化</span><i><b id="mLouche"></b></i><em id="eLouche">0%</em></div>
+          <div class="meter"><span>方糖</span><i><b id="mSugar"></b></i><em id="eSugar">100%</em></div>
+          <p class="verdict" id="verdict" aria-live="polite">拉開龍頭開始滴水。理想的水酒比是 3:1 到 5:1。</p>
+          <div class="btns"><button class="btn gold" type="button" id="tap">拉開龍頭</button><button class="btn ghost" type="button" id="again" style="color:var(--gold2);border-color:var(--gold2)">再倒一杯</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="carte">
+    <div class="wrap">
+      <div class="ttl rv-in"><span class="cap">La Carte</span><h2>酒單</h2><p>苦艾酒每杯 30 ml，附冰水壺滴水與方糖。第一次來推薦「三杯飛行」：翠綠、透明、藍色各 15 ml。</p></div>
+      <div class="menu">
+        <div class="rv-in" id="abList"></div>
+        <aside class="rv-in"><h3 class="mh">Cocktails<small>經典調酒</small></h3><div id="ckList"></div><p class="note">價格為新台幣，另加 10% 服務費。</p></aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="soirees" style="padding-top:0">
+    <div class="wrap">
+      <div class="ttl rv-in"><span class="cap">Soirées</span><h2>主題夜與訂位</h2><p>吧台、沙龍沙發與二樓包廂都可以預約。主題夜當晚座位依訂位優先。</p></div>
+      <div class="book">
+        <div class="nights rv-in" id="nights"></div>
+        <form class="form rv-in" id="rf" novalidate><div id="rBody">
+          <h3>Réservation</h3>
+          <span class="lab">座位</span><div class="chips" id="zone"></div>
+          <span class="lab">日期</span><div class="chips" id="dates"></div>
+          <span class="lab">時間</span><div class="chips" id="times"></div>
+          <div class="two"><label class="fi">人數<select id="pax"></select></label><label class="fi">場合<select id="occ"><option>一般</option><option>生日</option><option>約會</option><option>求婚</option></select></label></div>
+          <div class="two"><label class="fi">姓名<input id="rName" autocomplete="name"><span class="err"></span></label><label class="fi">手機<input id="rPhone" inputmode="tel" autocomplete="tel" placeholder="09xx-xxx-xxx"><span class="err"></span></label></div>
+          <button class="btn" type="submit">確認訂位</button>
+          <p class="demo">示範版本：訂位只顯示在頁面上，不會送出。</p>
+        </div></form>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" style="padding-top:0" aria-label="店內與評論">
+    <div class="wrap">
+      <div class="gal rv-in">
+        <figure class="ph" data-photo="g1" data-art="bar" data-label="黃銅吧台" data-size="1200×1600"></figure>
+        <figure class="ph" data-photo="g2" data-art="fountainArt" data-label="冰水壺" data-size="1200×1600"></figure>
+        <figure class="ph" data-photo="g3" data-art="salon" data-label="沙龍沙發" data-size="1200×1600"></figure>
+      </div>
+      <div class="revs">
+        <div class="rv rv-in"><p>「看著冰水一滴滴把綠色變成乳白，好像在看一場慢動作的魔術。」</p><small>GOOGLE · ★★★★★</small></div>
+        <div class="rv rv-in"><p>「三杯飛行很適合第一次喝，藍色那杯最順。Sazerac 也調得很好。」</p><small>GOOGLE · ★★★★★</small></div>
+        <div class="rv rv-in"><p>「美好年代之夜大家都打扮了，留聲機放著香頌，像穿越到巴黎。」</p><small>INSTAGRAM</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="visit" style="padding-top:0">
+    <div class="wrap">
+      <div class="info rv-in">
+        <div><h3>Heures</h3><div class="hours" id="hours"></div></div>
+        <div><h3>Adresse</h3><p id="addr"></p><p>捷運忠孝敦化站 8 號出口步行 4 分鐘，二樓。</p><p><a id="mapLink" href="#" target="_blank" rel="noopener">在地圖上開啟</a></p></div>
+        <div><h3>Contact</h3><p><a id="tel" href="#"></a></p><p>包場與品酒課程請來電。</p><p>苦艾酒與滴水壺可外帶購買。</p></div>
+      </div>
+      <p class="legal">禁止酒駕 · 未滿十八歲禁止飲酒</p>
+    </div>
+  </section>
 </main>
+<footer><nav><a href="#">Instagram</a><a href="#">Facebook</a></nav>© <span id="yr"></span> LA FÉE VERTE · BAR À ABSINTHE</footer>
+<button class="slotBtn" id="slotBtn" type="button" aria-pressed="false">照片位</button>
+
 <script>
 (function(){
 'use strict';
-var $=function(id){ return document.getElementById(id); };
-var cv=$('cv'), ctx=cv.getContext('2d'), poster=$('poster'), W=600,H=820,DPR=1,K=1;
-function size(){ var b=poster.getBoundingClientRect(); DPR=Math.min(2,devicePixelRatio||1); cv.width=b.width*DPR; cv.height=b.height*DPR; K=b.width/W; }
-new ResizeObserver(size).observe(poster);
-var ABS=30; // 毫升
-var st;
-function reset(){ st={water:0,sugar:1,drops:[],trail:[],louche:0,fast:0,dropT:0,history:[],done:false,idle:0}; $('tap').value=0; update(); }
-// 杯子的幾何（設計座標）
-var GX=300, GT=390, GB=600, GW=92, BW=40; // 杯口寬、杯底寬
-function gHalf(y){ var t=(y-GT)/(GB-GT); return GW-(GW-BW)*Math.pow(t,1.4); }
-// 液面高度：杯底的小球（酒量刻度）+ 上方錐形
-function levelY(ml){ var cap=ABS+180; return GB-(GB-GT-20)*Math.pow(Math.min(1,ml/cap),.8); }
-var t0=performance.now(), last=t0;
-function rate(){ var v=+$('tap').value; return v<3?0:Math.pow(v/100,1.6)*9; } // 每秒滴數
-function update(){
-  var r=rate(); $('rate').textContent=r===0?'關':r<4?r.toFixed(1)+' 滴/秒':'細流';
-  var ratio=st.water/ABS; $('vRatio').textContent=ratio.toFixed(1)+' : 1'; $('mRatio').style.setProperty('--v',Math.min(1,ratio/6));
-  $('mSugar').style.setProperty('--v',st.sugar); $('vSugar').textContent=st.sugar>.95?'完整':st.sugar>.05?Math.round(st.sugar*100)+'%':'化完';
-  $('mLouche').style.setProperty('--v',st.louche); $('vLouche').textContent=Math.round(st.louche*100)+'%';
-}
-$('tap').addEventListener('input',function(){ A(); update(); });
-$('again').onclick=reset;
-var ac=null; function A(){ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return ac; }
-function plink(big){ var a=ac; if(!a||a.state!=='running') return; var t=a.currentTime,o=a.createOscillator(),g=a.createGain(); o.frequency.setValueAtTime(big?900:1500+Math.random()*700,t); o.frequency.exponentialRampToValueAtTime(big?300:700,t+.07); g.gain.setValueAtTime(.05,t); g.gain.exponentialRampToValueAtTime(.0001,t+.12); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+.13); }
+/* ===== 店家設定 ===== */
+var SHOP = {
+  name:'La Fée Verte', phone:'(02) 2731-0227', address:'台北市大安區示範路 227 號 2 樓',
+  // 0=週日；[開, 關]，關門可超過 24:00；null 表示公休
+  hours:[['17:00','24:00'],null,['17:00','25:00'],['17:00','25:00'],['17:00','25:00'],['17:00','26:00'],['15:00','26:00']],
+  photos:{g1:'',g2:'',g3:'',g4:''}
+};
+// 苦艾酒 [名稱, 類型, 產地, 酒精度, 價格, 說明, 酒色, 乳化色]
+var ABSINTHES = [
+  ['Verte de Pontarlier','Verte','法國 Pontarlier',68,380,'經典翠綠，苦艾與茴香平衡，乳化後是淡淡的蛋白石綠。','#7fae3a','#d8e6b8'],
+  ['La Bleue du Val-de-Travers','Blanche','瑞士 Val-de-Travers',55,360,'禁令時期的私釀風格，透明無色，乳化成牛奶般的藍白。','#e8efe6','#f1f4f2'],
+  ['Bleu Céleste','Bleue','捷克',62,340,'以蝶豆花染色的藍色苦艾，乳化後是霧紫色。','#4a6ab8','#c6c2e2'],
+  ['Hors d’Âge 1915','Verte','法國 Fougerolles',72,560,'橡木桶陳放，琥珀綠，帶蜂蜜與乾草香。','#8a9a3a','#e2e0b0'],
+  ['Pernod 舊配方','Verte','法國',68,320,'美好年代最出名的那一款，茴香比較明顯。','#6fa63a','#d9e8bc']
+];
+var TYPES = [[0,'翠綠 Verte'],[1,'透明 Blanche'],[2,'藍色 Bleue']];
+var COCKTAILS = [['Sazerac','裸麥威士忌、苦艾洗杯、苦精',420],['Death in the Afternoon','苦艾酒與香檳，海明威的配方',480],['Corpse Reviver No. 2','琴酒、白麗葉、橙酒、檸檬、苦艾',420],['Absinthe Frappé','苦艾、糖、薄荷、碎冰',380],['三杯飛行','翠綠、透明、藍色各 15 ml',520]];
+// 主題夜 [名稱, 星期, 說明]
+var NIGHTS = [['美好年代之夜',6,'留聲機與香頌，歡迎穿 1900 年代服裝，送一杯 Death in the Afternoon。'],['苦艾酒品飲課',3,'從苦艾、茴香、茴芹開始，比較五款酒的乳化。NT$ 1,280。'],['爵士與滴水',5,'鋼琴三重奏，晚上九點到十一點。']];
+// 座位區 [名稱, 說明, 最多人數]
+var SALONS = [['吧台','看滴水禮最近',2],['沙龍沙發','綠絲絨沙發',6],['二樓包廂','壁爐與鋼琴',12]];
+var $ = function(s, r){ return (r || document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+var money = function(n){ return 'NT$ ' + Math.round(n).toLocaleString(); };
+var now = new Date(), DAYS = ['週日','週一','週二','週三','週四','週五','週六'];
+var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-function step(dt,now){
-  var r=rate();
-  // 生成水滴（細流時直接連成一條）
-  if(r>0 && !st.done){ st.dropT+=dt*r; while(st.dropT>=1){ st.dropT-=1; st.drops.push({y:250,v:0}); } }
-  st.drops.forEach(function(d){ d.v+=1400*dt; d.y+=d.v*dt; });
-  // 落在方糖上（y≈372）→ 糖慢慢化掉，水穿過匙孔落進杯裡
-  var keep=[];
-  st.drops.forEach(function(d){
-    if(d.y>=372 && !d.hit){ d.hit=true; st.sugar=Math.max(0,st.sugar-.03); plink(false); }
-    var ly=levelY(ABS+st.water);
-    if(d.y>=ly){ st.water+=3;
-      // 太快：水直接衝散，乳化不漂亮
-      if(r>4.2 && st.water<ABS*2.2) st.fast+=1;
-      for(var k=0;k<6;k++) st.trail.push({x:GX+(Math.random()-.5)*16,y:ly+2,vx:(Math.random()-.5)*14,vy:40+Math.random()*80,life:1,r:5+Math.random()*9});
-      return; }
-    keep.push(d);
-  });
-  st.drops=keep.slice(-60);
-  // 乳化：沉下去的水在杯底累積，霧白從下往上長
-  var target=Math.min(1,Math.max(0,(st.water/ABS-.6)/2.6));
-  st.louche+= (target-st.louche)*Math.min(1,dt*.9);
-  st.trail.forEach(function(p){ p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx+=Math.sin(p.y*.08+now/500)*12*dt; p.vy*=.985; p.life-=dt*.38; p.r+=dt*7; var hw=gHalf(Math.min(GB,p.y))-6; if(Math.abs(p.x-GX)>hw) p.x=GX+Math.sign(p.x-GX)*hw; if(p.y>GB-6){ p.y=GB-6; p.vy=0; } });
-  st.trail=st.trail.filter(function(p){return p.life>0;}).slice(-500);
-  if(!st.done && st.water/ABS>=6.2){ st.done=true; judge(); $('tap').value=0; }
-  // 龍頭關上一陣子就當作倒好了，端上桌評分
-  if(!st.done && r===0 && st.water>0 && st.drops.length===0) st.idle+=dt; else st.idle=0;
-  if(!st.done && st.idle>4){ st.done=true; judge(); }
+/* ===== 新藝術花藤 ===== */
+// 一條藤：鞭狀曲線＋交錯的葉與花苞；grow 0–1 決定長度
+function vine(x0, y0, pts, grow, col, leafCol, flowerCol){
+  var d = 'M' + x0 + ' ' + y0, len = pts.length, n = Math.max(1, Math.round(len*grow)), s = '';
+  for (var i = 0; i < n; i++) d += ' Q' + pts[i][0] + ' ' + pts[i][1] + ' ' + pts[i][2] + ' ' + pts[i][3];
+  s += '<path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="3" stroke-linecap="round"/>';
+  for (var k = 0; k < n; k++){ var p = pts[k], side = k % 2 ? 1 : -1, x = p[2], y = p[3];
+    s += '<path d="M' + x + ' ' + y + ' q' + (side*18) + ' -10 ' + (side*30) + ' 4 q' + (-side*14) + ' 10 ' + (-side*30) + ' -4z" fill="' + leafCol + '" stroke="' + col + '" stroke-width="1"/>';
+    if (k % 2 === 1 && k < n) s += '<g transform="translate(' + (x + side*6) + ' ' + (y - 14) + ')"><circle r="7" fill="' + flowerCol + '"/><circle r="3" fill="#b98f3e"/></g>'; }
+  return s;
 }
-function judge(){
-  var ratio=st.water/ABS, fastPen=Math.min(1,st.fast/30);
-  var rOK=1-Math.min(1,Math.abs(ratio-4)/2.5), sug=1-st.sugar;
-  var score=rOK*.45+(1-fastPen)*.4+sug*.15;
-  var v=score>.82?['Parfait.','乳化從杯底一層層升起，蛋白石般的霧綠——綠仙子現身了。']:
-        score>.62?['Bien.','顏色漂亮，只是'+(fastPen>.3?'前段滴得急了些，霧有點散。':ratio>5?'水多了，味道偏淡。':'還可以再多幾滴水。')]:
-        fastPen>.5?['Trop vite !','水衝得太快，油脂一下子全析出，混濁卻沒有層次。']:['Pas encore.',ratio<2.5?'水太少，酒還是太烈、太綠。':'水加太多，香氣被沖淡了。'];
-  $('verdict').innerHTML=v[0]+'<small>'+v[1]+'</small>';
+/* ===== 綠仙子海報 ===== */
+function fairySVG(){
+  var s = '<defs><radialGradient id="halo" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#f6eedb"/><stop offset=".7" stop-color="#efe4c8"/><stop offset="1" stop-color="#d8b86a"/></radialGradient><linearGradient id="wingG" x1="0" x2="1"><stop offset="0" stop-color="#d8f0d0" stop-opacity=".2"/><stop offset="1" stop-color="#e8f6e0" stop-opacity=".75"/></linearGradient><linearGradient id="dress" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9ab886"/><stop offset="1" stop-color="#3f5a3a"/></linearGradient></defs>';
+  s += '<rect width="600" height="760" fill="#7e9a6a"/>';
+  // 馬賽克背景光環
+  for (var r = 0; r < 26; r++){ var a = r/26*Math.PI*2; s += '<path d="M300 250 L' + (300 + Math.cos(a)*420) + ' ' + (250 + Math.sin(a)*420) + ' L' + (300 + Math.cos(a + .12)*420) + ' ' + (250 + Math.sin(a + .12)*420) + 'Z" fill="#8fab78" opacity=".55"/>'; }
+  s += '<circle cx="300" cy="250" r="200" fill="url(#halo)" stroke="#b98f3e" stroke-width="4"/><circle cx="300" cy="250" r="182" fill="none" stroke="#b98f3e" stroke-width="1.5"/>';
+  for (var k = 0; k < 36; k++){ var b = k/36*Math.PI*2; s += '<circle cx="' + (300 + Math.cos(b)*191) + '" cy="' + (250 + Math.sin(b)*191) + '" r="' + (k % 3 ? 3 : 5) + '" fill="#b98f3e"/>'; }
+  for (var j = 0; j < 12; j++){ var c = j/12*Math.PI*2; s += '<path d="M' + (300 + Math.cos(c)*120) + ' ' + (250 + Math.sin(c)*120) + ' Q' + (300 + Math.cos(c + .26)*160) + ' ' + (250 + Math.sin(c + .26)*160) + ' ' + (300 + Math.cos(c + .52)*120) + ' ' + (250 + Math.sin(c + .52)*120) + '" stroke="#d8b86a" stroke-width="1.5" fill="none"/>'; }
+  // 翅膀（蜻蜓翅）
+  s += '<g class="wing"><path d="M300 330 C180 230 90 190 60 240 C40 290 170 320 300 345Z" fill="url(#wingG)" stroke="#3f5a3a" stroke-width="1.5"/><path d="M300 350 C200 360 110 410 120 450 C140 480 240 420 300 365Z" fill="url(#wingG)" stroke="#3f5a3a" stroke-width="1.5"/>';
+  for (var v = 0; v < 6; v++) s += '<path d="M300 338 Q' + (200 - v*20) + ' ' + (270 + v*8) + ' ' + (90 + v*12) + ' ' + (240 + v*10) + '" stroke="#3f5a3a" stroke-width=".7" fill="none" opacity=".6"/>';
+  s += '</g>';
+  // 長髮（飄向左方的鞭狀曲線）
+  var hair = '<g class="hair">';
+  var hc = ['#3f5a3a','#4d6a42','#2f4628','#5a7a4a'];
+  for (var h = 0; h < 22; h++){ var o = h*7, sx = 330 + (h%4)*4, sy = 180 + (h%5)*3;
+    hair += '<path d="M' + sx + ' ' + sy + ' C' + (240 - o) + ' ' + (150 + o*.6) + ' ' + (300 - o*1.5) + ' ' + (340 + o*.4) + ' ' + (170 - o*1.2) + ' ' + (400 + o*1.6) + ' S' + (40 - o*.3) + ' ' + (560 + o) + ' ' + (110 + (h%6)*20) + ' ' + (640 + h*4) + '" stroke="' + hc[h%4] + '" stroke-width="' + (6 - (h%3)) + '" fill="none" stroke-linecap="round"/>'; }
+  hair += '</g>';
+  s += hair;
+  // 洋裝
+  s += '<path d="M290 360 C270 420 250 520 230 760 L470 760 C440 600 410 470 380 380 Q340 350 290 360Z" fill="url(#dress)" stroke="#24321f" stroke-width="2"/>';
+  for (var f = 0; f < 6; f++) s += '<path d="M' + (300 + f*14) + ' ' + (390 + f*6) + ' C' + (290 + f*20) + ' 520 ' + (270 + f*30) + ' 640 ' + (250 + f*40) + ' 760" stroke="#24321f" stroke-width="1.2" fill="none" opacity=".45"/>';
+  // 頸與側臉
+  s += '<path d="M332 300 Q328 330 318 360 L362 362 Q356 330 360 304Z" fill="#f3dcc4" stroke="#24321f" stroke-width="1.5"/>';
+  s += '<path d="M318 190 C352 168 398 190 398 236 C400 248 410 256 404 262 C400 266 398 268 400 274 C402 280 396 282 394 286 C396 294 386 300 376 300 C366 302 356 310 344 308 C326 304 312 284 312 256 C312 226 306 206 318 190Z" fill="#f3dcc4" stroke="#24321f" stroke-width="2"/>';
+  s += '<path d="M382 238 q8 -2 12 2" stroke="#24321f" stroke-width="1.6" fill="none"/><path d="M386 246 q5 1 7 -1" stroke="#24321f" stroke-width="1.6" fill="none"/><path d="M392 286 q-4 2 -8 0" stroke="#b4503a" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="372" cy="270" r="9" fill="#e8a48c" opacity=".35"/>';
+  // 頭頂髮髻與花冠
+  s += '<path d="M314 200 C320 150 390 150 404 196 C380 180 340 182 318 214Z" fill="#3f5a3a" stroke="#24321f" stroke-width="1.5"/>';
+  for (var fl = 0; fl < 5; fl++) s += '<g transform="translate(' + (322 + fl*18) + ' ' + (170 - Math.sin(fl/4*Math.PI)*12) + ')"><circle r="8" fill="' + (fl % 2 ? '#d9a48c' : '#efe4c8') + '" stroke="#24321f" stroke-width="1"/><circle r="3" fill="#b98f3e"/></g>';
+  // 手與酒杯
+  s += '<path d="M380 400 C420 420 440 390 450 360 L466 364 C460 400 430 446 378 430Z" fill="#f3dcc4" stroke="#24321f" stroke-width="1.5"/>';
+  s += '<g transform="translate(470 300)"><path d="M-22 0 H22 L16 46 Q0 58 -16 46Z" fill="#d8e6b8" stroke="#24321f" stroke-width="1.5"/><path d="M-20 14 H20 L16 46 Q0 58 -16 46Z" fill="#7fae3a" opacity=".85"/><path d="M0 52 V78 M-14 80 H14" stroke="#24321f" stroke-width="2"/></g>';
+  // 下緣花藤
+  s += vine(0, 740, [[60,660,120,700],[180,740,240,690],[300,640,360,690],[420,740,480,690],[540,640,600,700]], 1, '#24321f', '#9ab886', '#d9a48c');
+  s += '<rect x="10" y="10" width="580" height="740" fill="none" stroke="#b98f3e" stroke-width="2"/>';
+  return s;
 }
-function draw(now){
-  var dt=Math.min(.05,(now-last)/1000); last=now; step(dt,now); update();
-  if(!st.done){ var r=rate(); $('verdict').innerHTML=r===0&&st.water===0?'慢慢打開龍頭。<small>前半段尤其要慢。</small>':r>4.2&&st.water<ABS*2.2?'太快了！<small>前半段要一滴一滴來。</small>':r>0?'水正落在方糖上……<small>水酒比 '+(st.water/ABS).toFixed(1)+' : 1，目標三到五。</small>':'龍頭關上了。<small>再等幾秒就端上桌；要繼續就再打開。</small>'; }
-  ctx.setTransform(DPR*K,0,0,DPR*K,0,0); ctx.clearRect(0,0,W,H);
-  // 光環：慕夏海報的圓形背光，馬賽克環
-  var cy=330;
-  ctx.fillStyle='#e4d4ad'; ctx.beginPath(); ctx.arc(GX,cy,220,0,6.283); ctx.fill();
-  for(var i=0;i<48;i++){ var a=i/48*6.283; ctx.fillStyle=i%2?'#d9c08a':'#cdb37a'; ctx.beginPath(); ctx.arc(GX,cy,220,a,a+6.283/48); ctx.arc(GX,cy,196,a+6.283/48,a,true); ctx.closePath(); ctx.fill(); }
-  ctx.strokeStyle='#b98f3e'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(GX,cy,220,0,6.283); ctx.stroke(); ctx.beginPath(); ctx.arc(GX,cy,196,0,6.283); ctx.stroke();
-  // 放射的細線
-  ctx.strokeStyle='rgba(185,143,62,.35)'; ctx.lineWidth=1; for(i=0;i<36;i++){ var a2=i/36*6.283; ctx.beginPath(); ctx.moveTo(GX+Math.cos(a2)*60,cy+Math.sin(a2)*60); ctx.lineTo(GX+Math.cos(a2)*190,cy+Math.sin(a2)*190); ctx.stroke(); }
-  // 冰水壺
-  var fy=118;
-  ctx.fillStyle='rgba(210,230,225,.55)'; ctx.strokeStyle='#3f5a3a'; ctx.lineWidth=2.5;
-  ctx.beginPath(); ctx.moveTo(GX-60,fy-60); ctx.bezierCurveTo(GX-80,fy,GX-70,fy+70,GX-30,fy+90); ctx.lineTo(GX+30,fy+90); ctx.bezierCurveTo(GX+70,fy+70,GX+80,fy,GX+60,fy-60); ctx.closePath(); ctx.fill(); ctx.stroke();
-  // 壺裡的冰水水位
-  var left=Math.max(.1,1-st.water/220);
-  ctx.save(); ctx.clip(); ctx.fillStyle='rgba(170,205,200,.6)'; ctx.fillRect(GX-90,fy+90-150*left,180,200); ctx.restore();
-  ctx.fillStyle='#b98f3e'; ctx.fillRect(GX-64,fy-68,128,10);
-  // 龍頭
-  var open=+$('tap').value/100;
-  ctx.fillStyle='#b98f3e'; ctx.fillRect(GX-6,fy+90,12,40); ctx.beginPath(); ctx.arc(GX,fy+134,8,0,6.283); ctx.fill();
-  ctx.save(); ctx.translate(GX+6,fy+108); ctx.rotate(-open*1.2); ctx.fillStyle='#8a6a2c'; ctx.fillRect(0,-3,30,6); ctx.beginPath(); ctx.arc(30,0,6,0,6.283); ctx.fill(); ctx.restore();
+$('#fairy').innerHTML = fairySVG();
+
+/* ===== 滴水禮 ===== */
+var ti = 0, p = 0, sugar = 1, water = 0, running = false, drops = [], rateHist = [], raf = null, lastT = 0, last = null;
+$('#types').innerHTML = TYPES.map(function(t, i){ var a = ABSINTHES[t[0]]; return '<label><input type="radio" name="ty" value="' + i + '"' + (i ? '' : ' checked') + '><span><i style="--c:' + a[6] + '"></i>' + t[1] + '<small>' + a[3] + '%</small></span></label>'; }).join('');
+function vinePts(){ return [[90,560,70,500],[40,440,80,390],[120,340,90,290],[60,240,100,190],[140,140,120,90]]; }
+function fountainSVG(st){
+  var ti = st.ti, p = st.p, sugar = st.sugar, water = st.water, drops = st.drops, running = st.running;
+  var a = ABSINTHES[TYPES[ti][0]], s = '<defs><linearGradient id="gl" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".2" stop-color="#fff" stop-opacity=".05"/><stop offset=".85" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".3"/></linearGradient><filter id="cloud"><feGaussianBlur stdDeviation="4"/></filter><clipPath id="glassClip"><path d="M240 430 L360 430 L344 560 Q300 584 256 560Z"/></clipPath></defs>';
+  // 花藤（隨乳化生長）
+  s += vine(30, 620, vinePts(), Math.min(1, .15 + p), '#b98f3e', '#7e9a6a', '#d9a48c');
+  s += '<g transform="translate(600 0) scale(-1 1)">' + vine(30, 620, vinePts(), Math.min(1, .15 + p*.9), '#b98f3e', '#7e9a6a', '#efe4c8') + '</g>';
+  // 冰水壺：玻璃球＋四龍頭
+  s += '<path d="M300 40 V70" stroke="#b98f3e" stroke-width="5"/><ellipse cx="300" cy="150" rx="96" ry="84" fill="rgba(207,230,242,.18)" stroke="#d8b86a" stroke-width="2"/>';
+  var wl = 150 + 70*(1 - Math.max(.15, 1 - water*.05)); s += '<clipPath id="jar"><ellipse cx="300" cy="150" rx="94" ry="82"/></clipPath><rect x="200" y="' + wl + '" width="200" height="200" fill="rgba(170,210,235,.35)" clip-path="url(#jar)"/>';
+  for (var i = 0; i < 6; i++) s += '<rect x="' + (240 + (i*23)%110) + '" y="' + (wl + 10 + (i*17)%40) + '" width="20" height="18" rx="4" fill="rgba(255,255,255,.5)" clip-path="url(#jar)"/>';
+  s += '<path d="M230 220 Q300 250 370 220 L362 248 H238Z" fill="#b98f3e"/><rect x="290" y="248" width="20" height="120" fill="#d8b86a"/><ellipse cx="300" cy="372" rx="70" ry="10" fill="#b98f3e"/><path d="M286 382 H314 L320 600 H280Z" fill="#b98f3e" opacity=".9"/><ellipse cx="300" cy="604" rx="90" ry="14" fill="#b98f3e"/>';
+  [[-1,0],[1,0],[-1,1],[1,1]].forEach(function(t, k){ var x = 300 + t[0]*(60 + t[1]*16), y = 262 + t[1]*10; s += '<path d="M300 ' + y + ' Q' + (300 + t[0]*30) + ' ' + (y - 6) + ' ' + x + ' ' + (y + 6) + ' V' + (y + 22) + '" stroke="#d8b86a" stroke-width="5" fill="none"/><circle cx="' + x + '" cy="' + (y + 4) + '" r="5" fill="#d8b86a"/>'; });
+  // 杯（中央：用左側龍頭下移到中間的視覺簡化，杯放在中央龍頭下）
+  s += '<path d="M300 300 Q300 320 300 330" stroke="#d8b86a" stroke-width="5"/><circle cx="300" cy="334" r="5" fill="#d8b86a"/>';
+  // 銀匙與方糖
+  s += '<path d="M226 424 H374" stroke="#cfd4d6" stroke-width="6" stroke-linecap="round"/>'; for (var sl = 0; sl < 5; sl++) s += '<path d="M' + (276 + sl*12) + ' 420 v8" stroke="#24321f" stroke-width="2"/>';
+  if (sugar > 0.02){ var sz = 26*Math.sqrt(sugar); s += '<rect x="' + (300 - sz/2) + '" y="' + (420 - sz) + '" width="' + sz + '" height="' + sz + '" fill="#fbf6ea" stroke="#d6cdb4" rx="2"/>'; }
+  // 杯中：酒（底層）→ 乳化雲（由下往上）
+  var lev = 470 - water*4.2;   // 液面隨水量上升
+  s += '<g clip-path="url(#glassClip)"><rect x="230" y="' + lev + '" width="140" height="140" fill="' + a[6] + '" opacity=".88"/>';
+  var cloudH = (560 - lev)*Math.min(1, p*1.1);
+  if (cloudH > 0){ s += '<g filter="url(#cloud)">'; for (var c = 0; c < 9; c++){ var cy = 560 - (c/9)*cloudH, cx = 270 + (c*37)%60; s += '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (30 + (c%3)*10) + '" ry="12" fill="' + a[7] + '" opacity="' + (.35 + p*.6) + '"/>'; } s += '</g>';
+    // 雲絲（滴落處向下的白色細流）
+    if (running && p < 1) for (var w = 0; w < 3; w++) s += '<path d="M' + (296 + w*4) + ' ' + lev + ' q' + (w - 1)*6 + ' 20 ' + (w - 1)*3 + ' 46" stroke="' + a[7] + '" stroke-width="3" fill="none" opacity=".8" filter="url(#cloud)"/>'; }
+  s += '</g><path d="M240 430 L360 430 L344 560 Q300 584 256 560Z" fill="url(#gl)" stroke="rgba(239,228,200,.8)" stroke-width="2"/><path d="M300 572 V600 M270 600 H330" stroke="rgba(239,228,200,.8)" stroke-width="3"/>';
   // 水滴
-  ctx.fillStyle='rgba(200,230,235,.9)';
-  if(rate()>4.2){ ctx.fillStyle='rgba(200,230,235,.75)'; ctx.fillRect(GX-1.6,fy+140,3.2,372-(fy+140)); }
-  st.drops.forEach(function(d){ if(d.y<372){ ctx.beginPath(); ctx.ellipse(GX,d.y,3,4.5,0,0,6.283); ctx.fill(); } else { ctx.beginPath(); ctx.ellipse(GX+(Math.random()-.5)*6,d.y,2,3,0,0,6.283); ctx.fill(); } });
-  // 杯子
-  var ly=levelY(ABS+st.water);
-  ctx.save(); glassPath(); ctx.clip();
-  // 液體：上層翠綠、下層乳化的霧白（從杯底往上長）
-  var green='rgba(96,160,64,.78)', opal='rgba(214,226,186,.96)';
-  var mixC=mixRGBA([96,160,64,.78],[200,218,168,.9],Math.min(1,st.louche*1.1));
-  ctx.fillStyle=mixC; ctx.fillRect(GX-GW,ly,GW*2,GB-ly+10);
-  var lh=(GB-ly)*Math.min(1,st.louche*1.25);
-  var lg=ctx.createLinearGradient(0,GB-lh-30,0,GB); lg.addColorStop(0,'rgba(214,226,186,0)'); lg.addColorStop(.35,'rgba(214,226,186,.85)'); lg.addColorStop(1,opal);
-  ctx.fillStyle=lg; ctx.fillRect(GX-GW,GB-lh-30,GW*2,lh+40);
-  // 沉降的乳化雲絲
-  st.trail.forEach(function(p){ if(p.y<ly) return; ctx.fillStyle='rgba(235,240,215,'+(.22*p.life)+')'; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,6.283); ctx.fill(); });
-  // 液面
-  ctx.fillStyle='rgba(255,255,240,.35)'; ctx.fillRect(GX-GW,ly,GW*2,2);
-  ctx.restore();
-  glassPath(); ctx.strokeStyle='rgba(43,42,34,.7)'; ctx.lineWidth=2; ctx.stroke();
-  // 杯腳
-  ctx.strokeStyle='rgba(43,42,34,.6)'; ctx.fillStyle='rgba(220,230,225,.5)';
-  ctx.beginPath(); ctx.moveTo(GX-BW,GB); ctx.quadraticCurveTo(GX,GB+30,GX+BW,GB); ctx.fill(); ctx.stroke();
-  ctx.fillRect(GX-6,GB+16,12,44); ctx.strokeRect(GX-6,GB+16,12,44);
-  ctx.beginPath(); ctx.ellipse(GX,GB+64,52,9,0,0,6.283); ctx.fill(); ctx.stroke();
-  // 杯壁高光
-  ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(GX-GW+14,GT+16); ctx.quadraticCurveTo(GX-GW+18,GT+110,GX-BW+8,GB-20); ctx.stroke();
-  // 帶孔銀匙與方糖
-  ctx.fillStyle='#c9c6b8'; ctx.strokeStyle='#4a4a40'; ctx.lineWidth=1.5;
-  ctx.beginPath(); ctx.moveTo(GX-GW-40,380); ctx.lineTo(GX+GW+40,380); ctx.lineTo(GX+GW+34,388); ctx.lineTo(GX-GW-34,388); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.fillStyle='#4a4a40'; for(i=-5;i<=5;i++){ ctx.beginPath(); ctx.ellipse(GX+i*14,384,3,1.6,0,0,6.283); ctx.fill(); }
-  if(st.sugar>0){ var s=26*Math.max(.15,st.sugar), wet=1-st.sugar; ctx.fillStyle='rgb('+(250-wet*30)+','+(248-wet*20)+','+(236-wet*40)+')'; ctx.strokeStyle='rgba(120,110,90,.6)'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(GX-s,380); ctx.lineTo(GX-s+3,380-s*1.5); ctx.lineTo(GX+s-2,380-s*1.5-2); ctx.lineTo(GX+s,380); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle='rgba(255,255,255,.6)'; for(i=0;i<10;i++){ ctx.fillRect(GX-s+((i*37)%(s*2)),380-((i*23)%(s*1.4))-3,2,2); } }
-  // 刻度：杯底小球的酒量線
-  ctx.strokeStyle='rgba(185,143,62,.8)'; ctx.lineWidth=1.2; var dy=levelY(ABS); ctx.beginPath(); ctx.moveTo(GX+gHalf(dy)-4,dy); ctx.lineTo(GX+gHalf(dy)+16,dy); ctx.stroke();
-  ctx.fillStyle='#8a6a2c'; ctx.font='italic 12px Hoefler Text, Georgia, serif'; ctx.fillText('dose',GX+gHalf(dy)+20,dy+4);
-  requestAnimationFrame(draw);
+  drops.forEach(function(d){ s += '<path d="M300 ' + d + ' q-3 6 0 9 q3 -3 0 -9z" fill="#cfe6f2"/>'; });
+  return s;
 }
-function glassPath(){ ctx.beginPath(); ctx.moveTo(GX-GW,GT); for(var y=GT;y<=GB;y+=6) ctx.lineTo(GX-gHalf(y),y); ctx.lineTo(GX-BW,GB); ctx.quadraticCurveTo(GX,GB+22,GX+BW,GB); for(y=GB;y>=GT;y-=6) ctx.lineTo(GX+gHalf(y),y); ctx.closePath(); }
-function mixRGBA(a,b,t){ return 'rgba('+Math.round(a[0]+(b[0]-a[0])*t)+','+Math.round(a[1]+(b[1]-a[1])*t)+','+Math.round(a[2]+(b[2]-a[2])*t)+','+(a[3]+(b[3]-a[3])*t).toFixed(2)+')'; }
-reset(); size(); requestAnimationFrame(draw);
+function v(id){ return +$(id).value; }
+function meters(){ var ratio = water/1.5, a = ABSINTHES[TYPES[ti][0]];
+  $('#mRatio').style.setProperty('--v', Math.min(1, ratio/6)); $('#eRatio').textContent = ratio.toFixed(1) + ':1';
+  $('#mLouche').style.setProperty('--v', p); $('#eLouche').textContent = Math.round(p*100) + '%';
+  $('#mSugar').style.setProperty('--v', sugar); $('#eSugar').textContent = Math.round(sugar*100) + '%';
+  $('#rateOut').textContent = ['', '一秒一滴','','慢','','中','','快','','很快','細流'][v('#rate')] || (v('#rate') + ' / 10');
+}
+function draw(){ $('#fountain').innerHTML = fountainSVG({ti:ti, p:p, sugar:sugar, water:water, drops:drops, running:running}); meters(); }
+function verdict(){ var ratio = water/1.5, avg = rateHist.length ? rateHist.reduce(function(s, x){ return s + x; }, 0)/rateHist.length : 0, a = ABSINTHES[TYPES[ti][0]], msg;
+  if (ratio < 2.5) msg = '水還太少，酒精感很重，再滴一點。';
+  else if (ratio > 5.5) msg = '水太多了，香氣被沖淡。下次在 3:1 到 5:1 之間關掉龍頭。';
+  else if (avg > 6.5) msg = '比例剛好，但滴得太快，雲絲來不及形成，乳化比較粗。';
+  else msg = '完美的一杯：' + a[0] + '，水酒比 ' + ratio.toFixed(1) + ':1，細緻的' + (ti === 2 ? '霧紫' : ti === 1 ? '藍白' : '蛋白石綠') + '雲。Santé！';
+  $('#verdict').textContent = msg; }
+function step(t){
+  var dt = Math.min(.05, (t - (lastT || t))/1000); lastT = t;
+  if (running){ var r = v('#rate'); rateHist.push(r);
+    var flow = .08 + r*.12; water = Math.min(9, water + flow*dt*3); sugar = Math.max(0, sugar - flow*dt*.6);
+    var target = Math.min(1, water/(1.5*3.2)), eff = r > 6 ? .55 : 1; p = Math.min(1, p + (target*eff - p)*dt*1.6);
+    if (Math.random() < r*dt*2.2) drops.push(340);
+    if (water >= 9){ running = false; $('#tap').textContent = '拉開龍頭'; verdict(); } }
+  drops = drops.map(function(d){ return d + dt*420; }).filter(function(d){ return d < 410 + (470 - water*4.2 - 410); });
+  draw();
+  if (running || drops.length) raf = requestAnimationFrame(step); else { raf = null; lastT = 0; }
+}
+$('#tap').onclick = function(){ running = !running; this.textContent = running ? '關上龍頭' : '拉開龍頭'; if (!running){ verdict(); return; } $('#verdict').textContent = '水滴落在方糖上，糖慢慢化開……'; if (!raf){ lastT = 0; raf = requestAnimationFrame(step); } };
+$('#again').onclick = function(){ running = false; p = 0; sugar = 1; water = 0; drops = []; rateHist = []; $('#tap').textContent = '拉開龍頭'; $('#verdict').textContent = '拉開龍頭開始滴水。理想的水酒比是 3:1 到 5:1。'; draw(); };
+$('#types').addEventListener('change', function(e){ ti = +e.target.value; $('#again').onclick(); });
+$('#rate').addEventListener('input', meters);
+draw();
+
+/* ===== 酒單 ===== */
+$('#abList').innerHTML = '<h3 class="mh">Absinthes<small>苦艾酒 30 ml</small></h3>' + ABSINTHES.map(function(a){ return '<div class="ab"><i style="--c:' + a[6] + '"></i><b>' + a[0] + '<em>' + a[1].toUpperCase() + ' · ' + a[3] + '%</em></b><span>' + a[4] + '</span><small>' + a[2] + '・' + a[5] + '</small></div>'; }).join('');
+$('#ckList').innerHTML = COCKTAILS.map(function(c){ return '<div class="ck"><b><span>' + c[0] + '</span><span>' + c[2] + '</span></b><small>' + c[1] + '</small></div>'; }).join('');
+
+/* ===== 主題夜與訂位 ===== */
+function nextDay(dow){ var d = new Date(now.getFullYear(), now.getMonth(), now.getDate()); while (d.getDay() !== dow) d.setDate(d.getDate() + 1); return d; }
+$('#nights').innerHTML = NIGHTS.map(function(n){ return [nextDay(n[1]), n]; }).sort(function(a, b){ return a[0] - b[0]; }).map(function(x){ var d = x[0], n = x[1]; return '<div class="night"><span class="d"><span><b>' + d.getDate() + '</b><small>' + (d.getMonth() + 1) + '月 ' + DAYS[d.getDay()] + '</small></span></span><div><h3>' + n[0] + '</h3><p>' + n[2] + '</p></div></div>'; }).join('') + '<figure class="ph" data-photo="g4" data-art="poster2" data-label="主題夜海報" data-size="1200×800" style="aspect-ratio:3/2;margin-top:8px;box-shadow:0 0 0 1.5px var(--gold)"></figure>';
+$('#zone').innerHTML = SALONS.map(function(z, i){ return '<label><input type="radio" name="z" value="' + i + '"' + (i === 1 ? ' checked' : '') + '><span>' + z[0] + '<small>' + z[1] + '</small></span></label>'; }).join('');
+var days = []; for (var i = 0; days.length < 8; i++){ var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i); if (SHOP.hours[d.getDay()]) days.push(d); }
+function mins(t){ var q = t.split(':'); return +q[0]*60 + +q[1]; }
+function fmt(m){ m = m % 1440; return String(Math.floor(m/60)).padStart(2, '0') + ':' + String(m%60).padStart(2, '0'); }
+$('#dates').innerHTML = days.map(function(d, i){ var night = NIGHTS.find(function(n){ return n[1] === d.getDay(); }); return '<label><input type="radio" name="d" value="' + i + '"' + (i ? '' : ' checked') + '><span>' + (d.getMonth() + 1) + '/' + d.getDate() + '<small>' + DAYS[d.getDay()] + (night ? '・' + night[0].slice(0, 4) : '') + '</small></span></label>'; }).join('');
+function bookDraw(){
+  var d = days[+$('input[name=d]:checked').value], h = SHOP.hours[d.getDay()], z = SALONS[+$('input[name=z]:checked').value], isToday = d.toDateString() === now.toDateString(), nm = now.getHours()*60 + now.getMinutes(), cur = ($('input[name=t]:checked') || {}).value, out = '';
+  for (var m = mins(h[0]); m <= Math.min(mins(h[1]) - 90, mins(h[0]) + 6*60); m += 30){ var full = (d.getDate() + m/30 + z[2]) % 6 === 0, dis = full || (isToday && m < nm + 30); out += '<label><input type="radio" name="t" value="' + fmt(m) + '"' + (dis ? ' disabled' : '') + '><span>' + fmt(m) + (full ? '<small>已滿</small>' : '') + '</span></label>'; }
+  $('#times').innerHTML = out; var pk = $('#times input[value="' + cur + '"]:not(:disabled)') || $('#times input:not(:disabled)'); if (pk) pk.checked = true;
+  var pax = +$('#pax').value || 2, opts = ''; for (var n = 1; n <= z[2]; n++) opts += '<option' + (n === Math.min(pax, z[2]) ? ' selected' : '') + '>' + n + '</option>'; $('#pax').innerHTML = opts;
+}
+$('#rf').addEventListener('change', function(e){ if (e.target.name === 'd' || e.target.name === 'z') bookDraw(); });
+bookDraw();
+$('#rf').addEventListener('submit', function(e){
+  e.preventDefault();
+  var name = $('#rName'), phone = $('#rPhone'), ok = true, t = $('input[name=t]:checked');
+  [[name, name.value.trim().length > 0, '請填寫姓名'], [phone, /^09\d{2}-?\d{3}-?\d{3}$/.test(phone.value.trim()), '請輸入 09 開頭的手機號碼']].forEach(function(c){ c[0].nextElementSibling.textContent = c[1] ? '' : c[2]; if (!c[1]) ok = false; });
+  if (!t || !ok) return;
+  var d = days[+$('input[name=d]:checked').value], z = SALONS[+$('input[name=z]:checked').value], occ = $('#occ').value;
+  $('#rBody').innerHTML = '<div class="done"><span class="cap">À bientôt</span><b>Merci</b><p>' + (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日 ' + DAYS[d.getDay()] + ' ' + t.value + '・' + z[0] + '・' + $('#pax').value + ' 位</p><p>' + name.value.trim().replace(/</g, '') + '，' + (occ === '生日' ? '我們會準備一杯插著蠟燭的苦艾。' : occ === '求婚' ? '我們會把冰水壺換成水晶的那一座。' : '座位保留 15 分鐘。') + '</p><p class="demo">示範版本：沒有真的送出訂位。</p></div>';
+});
+
+/* ===== 營業狀態 ===== */
+(function(){
+  var m = now.getHours()*60 + now.getMinutes(), open = null, next = '', y = SHOP.hours[(now.getDay() + 6) % 7], t = SHOP.hours[now.getDay()];
+  if (y && mins(y[1]) > 1440 && m < mins(y[1]) - 1440) open = fmt(mins(y[1]));
+  else if (t && m >= mins(t[0]) && m < mins(t[1])) open = fmt(mins(t[1]));
+  if (!open) for (var k = 0; k < 8 && !next; k++){ var d = (now.getDay() + k) % 7, x = SHOP.hours[d]; if (x && (k > 0 || mins(x[0]) > m)) next = (k === 0 ? '今天' : k === 1 ? '明天' : DAYS[d]) + ' ' + x[0]; }
+  $('#status').classList.toggle('on', !!open); $('#status').lastElementChild.textContent = open ? 'OUVERT · 營業至 ' + open : 'FERMÉ · ' + next + ' 開門';
+  $('#hours').innerHTML = [1,2,3,4,5,6,0].map(function(i){ var x = SHOP.hours[i], c = i === now.getDay() ? ' class="t"' : ''; return '<span' + c + '>' + DAYS[i] + '</span><span' + c + '>' + (x ? x[0] + '–' + fmt(mins(x[1])) : '公休') + '</span>'; }).join('');
+})();
+$('#addr').textContent = SHOP.address; $('#tel').textContent = SHOP.phone; $('#tel').href = 'tel:' + SHOP.phone.replace(/[^\d]/g, '');
+$('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+$('#yr').textContent = now.getFullYear();
+
+/* ===== 佔位圖 ===== */
+function svg(vb, body){ return '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + body + '</svg>'; }
+var ART = {
+  bar:function(){ var s = '<rect width="1200" height="1600" fill="#3f5a3a"/><path d="M200 1600 V500 Q600 120 1000 500 V1600" fill="#24321f" stroke="#b98f3e" stroke-width="10"/>';
+    for (var r = 0; r < 4; r++){ s += '<rect x="280" y="' + (560 + r*150) + '" width="640" height="10" fill="#b98f3e"/>'; for (var i = 0; i < 10; i++) s += '<rect x="' + (300 + i*62) + '" y="' + (460 + r*150) + '" width="34" height="100" rx="8" fill="' + ['#7fae3a','#e8efe6','#4a6ab8','#8a9a3a'][(i + r)%4] + '" opacity=".9"/>'; }
+    s += '<rect x="0" y="1200" width="1200" height="40" fill="#d8b86a"/><rect x="0" y="1240" width="1200" height="360" fill="#5a3a20"/>';
+    s += vine(0, 1180, [[100,1080,200,1120],[300,1160,400,1100],[500,1040,600,1100],[700,1160,800,1100],[900,1040,1000,1100],[1100,1160,1200,1110]], 1, '#b98f3e', '#7e9a6a', '#d9a48c');
+    return svg('0 0 1200 1600', s); },
+  fountainArt:function(){ var s = '<rect width="1200" height="1600" fill="#e4d4ad"/><circle cx="600" cy="560" r="420" fill="#efe4c8" stroke="#b98f3e" stroke-width="8"/>';
+    s += '<g transform="translate(300 300)">' + fountainSVG({ti:0, p:.8, sugar:.3, water:6, drops:[], running:false}).replace(/id="(gl|cloud|glassClip|jar)"/g, 'id="$1X"').replace(/url\(#(gl|cloud|glassClip|jar)\)/g, 'url(#$1X)') + '</g>';
+    return svg('0 0 1200 1600', s); },
+  salon:function(){ var s = '<rect width="1200" height="1600" fill="#24321f"/><rect x="0" y="1000" width="1200" height="600" fill="#5a3a20"/>';
+    s += '<path d="M150 1000 Q150 760 350 760 H850 Q1050 760 1050 1000 V1200 H150Z" fill="#3f6a3a" stroke="#b98f3e" stroke-width="6"/>'; for (var i = 0; i < 4; i++) s += '<circle cx="' + (330 + i*180) + '" cy="880" r="14" fill="#b98f3e"/>';
+    s += '<ellipse cx="600" cy="1340" rx="220" ry="40" fill="#d8b86a"/><path d="M560 1300 L640 1300 L630 1250 L570 1250Z" fill="#7fae3a" opacity=".85"/>';
+    s += '<circle cx="600" cy="420" r="200" fill="#efe4c8" opacity=".12"/><path d="M600 0 V320" stroke="#b98f3e" stroke-width="4"/><path d="M520 320 H680 L640 420 H560Z" fill="#d8b86a"/>';
+    return svg('0 0 1200 1600', s); },
+  poster2:function(){ var s = '<rect width="1200" height="800" fill="#7e9a6a"/><circle cx="600" cy="400" r="300" fill="#efe4c8" stroke="#b98f3e" stroke-width="8"/>';
+    s += '<text x="600" y="380" text-anchor="middle" font-family="Trattatello,Optima,serif" font-size="96" fill="#3f5a3a">Belle Époque</text><text x="600" y="470" text-anchor="middle" font-family="Trattatello,Optima,serif" font-size="44" letter-spacing="8" fill="#b98f3e">SOIRÉE</text>';
+    s += vine(0, 780, [[100,700,200,740],[300,780,400,720],[500,660,600,720],[700,780,800,720],[900,660,1000,720],[1100,780,1200,730]], 1, '#24321f', '#9ab886', '#d9a48c');
+    return svg('0 0 1200 800', s); }
+};
+function fillPhotos(){ $$('.ph').forEach(function(f){ var url = SHOP.photos[f.dataset.photo]; if (url){ f.innerHTML = '<img src="' + url + '" alt="' + (f.dataset.label || '') + '" loading="lazy">'; return; } var a = ART[f.dataset.art]; if (a) f.innerHTML = a(); }); }
+
+/* ===== 共用 ===== */
+var nav = $('#nav');
+$('#burger').onclick = function(){ var o = nav.classList.toggle('open'); this.setAttribute('aria-expanded', o); this.textContent = o ? 'Fermer' : 'Carte'; };
+$$('#navList a').forEach(function(a){ a.onclick = function(){ nav.classList.remove('open'); $('#burger').textContent = 'Carte'; }; });
+var slotBtn = $('#slotBtn');
+function slots(on){ document.body.classList.toggle('slots', on); slotBtn.setAttribute('aria-pressed', on); }
+slotBtn.onclick = function(){ slots(!document.body.classList.contains('slots')); };
+if (/[?&]slots/.test(location.search)) slots(true);
+fillPhotos();
+if ('IntersectionObserver' in window){
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('vis'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -6% 0px'});
+  $$('.rv-in').forEach(function(el){ io.observe(el); });
+} else $$('.rv-in').forEach(function(el){ el.classList.add('vis'); });
 })();
 </script>
 </body>
