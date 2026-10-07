@@ -1,0 +1,1176 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ember &amp; Oak 炭橡煙燻｜德州煙燻 BBQ・台中西區</title>
+<meta name="description" content="Ember &amp; Oak 炭橡煙燻：台中的德州中部式煙燻 BBQ。橡木炭火低溫慢燻 14 小時的牛胸 brisket、牛小排、豬肋排、手撕豬與自灌香腸。即時煙燻板、秤重外帶預點、整條 brisket 派對預訂。">
+<!--
+  店家模板使用方式
+  1. 修改 <script> 開頭的 SHOP：店名、電話、地址、營業時間（hours 依星期日→六，可多時段，null = 公休）、
+     價格參數（醬汁免費數量、取餐準備時間、派對整條 brisket 單價與熟成率）與 photos 照片網址。
+  2. MEATS 是煙燻肉資料：每 100 g 單價、入爐時間 start（以「當天 0 點起算的分鐘數」，負數 = 前一晚）、
+     燻製時長 dur、每日備量 stock（公斤）與售出速度 rate。今日煙燻板、部位圖、秤重點餐都讀同一份資料。
+     CUTS 是牛肉部位圖的 8 個部位與對應品項；MENU / SIDES / SAUCES 是菜單、配菜與醬汁。
+  3. 照片：在 SHOP.photos 填入網址就會取代程式繪製的佔位插畫；網址加 ?slots 或按右下角「照片位」
+     會以虛線標出每個照片位與建議尺寸。
+  4. 「剩餘份量」是依時間模擬的示範數字；秤重預點與派對預訂只在頁面上示範，沒有真的送出，
+     正式上線請串接 POS／庫存與訂單後端（或 LINE、Google 表單）。
+-->
+<style>
+:root{--paper:#c9a77c;--paper2:#b9956a;--paperL:#d8bd96;--char:#1b1612;--char2:#2a231d;--brand:#8f2a17;--brandD:#5f1a0c;--ember:#c4512f;--smoke:#7d746a;--cream:#f3e8d2;--ink:#1b1612;
+  --disp:Impact,Haettenschweiler,"Arial Narrow Bold","Franklin Gothic Heavy","Oswald","Liberation Sans Narrow","Nimbus Sans Narrow","PingFang TC","Microsoft JhengHei","Noto Sans CJK TC",sans-serif;
+  --type:"American Typewriter","Courier New",Courier,"Nimbus Mono PS","Liberation Mono","PingFang TC","Microsoft JhengHei",monospace;
+  --zh:"PingFang TC","Microsoft JhengHei","Noto Sans CJK TC","Noto Sans TC","Heiti TC",sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1)}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background-color:var(--paper);background-image:var(--tex,none);color:var(--ink);font:400 16px/1.75 var(--zh);overflow-x:clip;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--brand);outline-offset:3px}
+.char :focus-visible,.nav :focus-visible,footer :focus-visible{outline-color:#e9a76f}
+.wrap{width:min(1200px,calc(100% - 48px));margin-inline:auto}
+.ty{font-family:var(--type)}
+.dp{font-family:var(--disp);font-weight:400;text-transform:uppercase}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.burnt{filter:url(#scorch)}
+/* 區塊底色 */
+.sec{position:relative;padding:112px 0 120px}
+.kraft2{background-color:var(--paper2);background-image:var(--tex,none)}
+.char{background:radial-gradient(ellipse at 20% 0%,rgba(143,42,23,.16),transparent 55%),radial-gradient(ellipse at 90% 100%,rgba(125,116,106,.16),transparent 50%),var(--char);color:var(--cream)}
+.tear{position:absolute;left:0;right:0;top:0;height:24px;transform:translateY(-98%);pointer-events:none;z-index:3;color:var(--paper)}
+.tear svg{display:block;width:100%;height:100%}
+.char>.tear{color:var(--char)}.kraft2>.tear{color:var(--paper2)}
+/* 標題 */
+.sh{max-width:780px;margin-bottom:52px}
+.kick{font-family:var(--type);font-size:13px;letter-spacing:.2em;text-transform:uppercase;margin:0 0 12px;color:var(--brandD);font-weight:700}
+.char .kick{color:#e09a6c}
+.h2{font-family:var(--disp);font-weight:400;font-size:clamp(56px,8.4vw,112px);line-height:.84;margin:0;text-transform:uppercase;color:var(--brand);letter-spacing:.005em}
+.char .h2{color:var(--ember)}
+.h2zh{font:900 clamp(22px,2.4vw,30px)/1.2 var(--zh);letter-spacing:.24em;margin:12px 0 0}
+.lede{margin:18px 0 0;max-width:620px;font-size:17px}
+.char .lede{color:#d9ccb6}
+/* 動效：烙印壓下、進場 */
+.js .press{opacity:0;transform:scale(1.7);filter:blur(9px)}
+.js .press.in{animation:press .75s var(--ease) forwards}
+@keyframes press{0%{opacity:0;transform:scale(1.7);filter:blur(9px)}55%{opacity:1;transform:scale(.965);filter:blur(0)}78%{transform:scale(1.015)}100%{opacity:1;transform:none;filter:none}}
+.js .rv{opacity:0;transform:translateY(26px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.js .rv.in{opacity:1;transform:none}
+/* 按鈕 */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:13px 24px 12px;font-family:var(--disp);font-size:21px;letter-spacing:.05em;text-transform:uppercase;line-height:1;background:var(--brand);color:var(--cream);border:2px solid var(--char);box-shadow:5px 5px 0 var(--char);text-decoration:none;transition:transform .15s,box-shadow .15s}
+.btn small{font:700 13px var(--zh);letter-spacing:.1em}
+.btn:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 var(--char)}
+.btn:active{transform:translate(4px,4px);box-shadow:1px 1px 0 var(--char)}
+.btn.ghost{background:transparent;color:var(--char)}
+.char .btn{border-color:var(--cream);box-shadow:5px 5px 0 #000}
+.char .btn.ghost{color:var(--cream)}
+/* 照片位 */
+.ph{position:relative;overflow:hidden;margin:0;background:var(--paperL)}
+.ph>svg,.ph>img,.ph>canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+body.slots .ph{outline:2px dashed var(--brand);outline-offset:-2px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:10px;top:10px;z-index:3;background:var(--brand);color:var(--cream);font:700 11px/1.4 var(--type);padding:3px 9px}
+.slotbtn{position:fixed;right:16px;bottom:16px;z-index:70;background:var(--char);color:var(--cream);border:2px solid var(--paper);font:700 13px var(--type);padding:8px 14px;letter-spacing:.08em}
+.slotbtn[aria-pressed=true]{background:var(--brand)}
+/* 導覽 */
+.nav{position:sticky;top:0;z-index:60;background:var(--char);color:var(--cream);border-bottom:3px solid var(--brand)}
+.navin{display:flex;align-items:center;gap:28px;height:62px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--disp);font-size:24px;letter-spacing:.04em;white-space:nowrap}
+.logo svg{width:36px;height:36px;flex:none}
+.nav ul{display:flex;gap:22px;list-style:none;margin:0 0 0 auto;padding:0;font:700 14px var(--zh);letter-spacing:.08em}
+.nav ul a{text-decoration:none;color:#d9ccb6;padding:6px 0;border-bottom:2px solid transparent}
+.nav ul a:hover{color:var(--cream);border-bottom-color:var(--ember)}
+.navcta{font-family:var(--disp);font-size:18px;letter-spacing:.05em;background:var(--brand);padding:8px 14px 7px;text-decoration:none;line-height:1;border:1px solid #c4512f}
+.burger{display:none;margin-left:auto;background:none;border:2px solid var(--cream);color:var(--cream);font:400 17px var(--disp);letter-spacing:.1em;padding:6px 12px 5px;line-height:1}
+/* Hero */
+.hero{padding:58px 0 110px;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 160px 110px at 8% 82%,rgba(92,48,16,.2),transparent 70%),radial-gradient(ellipse 90px 70px at 47% 14%,rgba(92,48,16,.16),transparent 70%),radial-gradient(ellipse 220px 140px at 96% 92%,rgba(92,48,16,.14),transparent 70%)}
+.hero-g{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,1fr);gap:56px;align-items:center;position:relative}
+.est{display:flex;flex-wrap:wrap;gap:6px 16px;font:700 13px var(--type);letter-spacing:.16em;text-transform:uppercase;color:var(--brandD)}
+.est span+span::before{content:"✶";margin-right:16px;color:var(--brand)}
+.name{font-family:var(--disp);font-weight:400;font-size:clamp(92px,13.4vw,202px);line-height:.8;margin:18px 0 0;text-transform:uppercase;color:var(--brand);letter-spacing:-.005em}
+.name span{display:block}
+.name .amp{color:var(--char);font-size:.62em;letter-spacing:.02em;margin:.08em 0 .02em}
+.zhname{font:900 clamp(30px,3.9vw,52px)/1.1 var(--zh);letter-spacing:.34em;margin:20px 0 0;color:var(--char);display:flex;align-items:center;gap:16px}
+.zhname::after{content:"";flex:1;height:4px;background:var(--char);max-width:160px}
+.tagline{margin:18px 0 26px;font-size:18px;max-width:520px}
+.tagline b{background:linear-gradient(transparent 62%,rgba(143,42,23,.28) 0)}
+.ctas{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:28px}
+.status{display:inline-grid;grid-template-columns:auto 1fr;gap:2px 12px;align-items:center;font:700 14px/1.5 var(--type);background:var(--cream);border:2px dashed var(--char);padding:10px 16px;transform:rotate(-1deg)}
+.status i{width:10px;height:10px;border-radius:50%;background:var(--smoke)}
+.status.on i{background:#3d8b3d;box-shadow:0 0 0 3px rgba(61,139,61,.25)}
+.status small{grid-column:2;font-weight:400;font-size:13px;color:var(--brandD)}
+/* 部位圖 */
+.chart{position:relative;background-color:var(--paperL);background-image:var(--tex,none);border:2px solid var(--char);box-shadow:inset 0 0 0 6px var(--paperL),inset 0 0 0 8px var(--char),12px 14px 0 rgba(27,22,18,.2);padding:24px 24px 20px}
+.chart-hd{display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-bottom:2px solid var(--char);padding:4px 6px 8px;font:700 12px var(--type);letter-spacing:.12em;text-transform:uppercase}
+.chart-hd b{font:400 24px var(--disp);letter-spacing:.04em}
+.cow{display:block;width:100%;height:auto;margin:8px 0 4px}
+.cow .cut{fill:transparent;stroke:var(--char);stroke-width:1.4;stroke-dasharray:5 4;cursor:pointer;transition:fill .25s}
+.cow .cut:hover{fill:rgba(143,42,23,.22)}
+.cow .cut.on{fill:rgba(143,42,23,.62)}
+.cow .lb circle{fill:var(--cream);stroke:var(--char);stroke-width:1.6}
+.cow .lb.on circle{fill:var(--char);stroke:var(--cream)}
+.cow .lb text{font-family:var(--disp);font-size:15px;fill:var(--char);text-anchor:middle;pointer-events:none}
+.cow .lb.on .n{fill:var(--cream)}
+.cow .lb .e{font:700 9.5px var(--type);letter-spacing:.06em}
+.cow .lb.on .e{fill:var(--cream);paint-order:stroke;stroke:var(--brandD);stroke-width:3px}
+.cow .lb{pointer-events:none}
+.legend{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0 12px}
+.legend button{display:flex;align-items:center;gap:6px;background:transparent;border:1.5px solid var(--char);padding:5px 7px;font:700 12.5px var(--zh);text-align:left;transition:background .2s,color .2s}
+.legend button span{font:400 14px var(--disp);width:18px;height:18px;border-radius:50%;background:var(--char);color:var(--cream);display:grid;place-items:center;flex:none;line-height:1}
+.legend button:hover{background:rgba(143,42,23,.14)}
+.legend button[aria-pressed=true]{background:var(--brand);color:var(--cream);border-color:var(--brand)}
+.legend button[aria-pressed=true] span{background:var(--cream);color:var(--brand)}
+.cutinfo{display:grid;grid-template-columns:1fr auto;gap:6px 16px;align-items:center;background:var(--cream);border:2px solid var(--char);padding:12px 14px;min-height:96px}
+.cutinfo h3{margin:0;font:400 24px/1 var(--disp);letter-spacing:.03em;text-transform:uppercase}
+.cutinfo h3 small{font:900 15px var(--zh);letter-spacing:.12em;margin-left:8px}
+.cutinfo p{margin:0;font-size:14px;line-height:1.55;grid-column:1}
+.cutinfo .today{font:700 13px var(--type);color:var(--brand)}
+.cutinfo .act{grid-row:1/4;grid-column:2}
+.mini{font:400 16px var(--disp);letter-spacing:.05em;text-transform:uppercase;background:var(--char);color:var(--cream);border:0;padding:9px 12px 8px;line-height:1;text-decoration:none;display:inline-block}
+.mini:hover{background:var(--brand)}
+.mini[disabled]{opacity:.35;cursor:not-allowed}
+/* 今日煙燻板 */
+.clock{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;margin:-16px 0 34px;font:700 14px var(--type);color:#d9ccb6}
+.clock label{display:flex;align-items:center;gap:12px;flex:1;min-width:260px}
+.clock input[type=range]{flex:1;accent-color:var(--ember);max-width:420px}
+.clock output{font:400 26px var(--disp);color:var(--cream);letter-spacing:.04em;min-width:132px}
+.clock button{background:none;border:1.5px solid #d9ccb6;color:#d9ccb6;font:700 13px var(--type);padding:6px 12px}
+.clock button:hover{border-color:var(--cream);color:var(--cream)}
+.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:26px}
+.tk{position:relative;overflow:hidden;background-color:var(--paper);background-image:var(--tex,none);color:var(--char);padding:20px 20px 18px;clip-path:polygon(0 6px,4% 0,9% 5px,15% 1px,22% 6px,30% 0,38% 4px,47% 1px,55% 6px,63% 0,71% 5px,80% 1px,88% 6px,95% 0,100% 5px,100% 100%,0 100%)}
+.tk-hd{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;border-bottom:2px solid var(--char);padding-bottom:10px}
+.tk-no{font:400 34px/1 var(--disp);color:var(--brand)}
+.tk h3{margin:0;font:400 30px/.95 var(--disp);letter-spacing:.02em;text-transform:uppercase}
+.tk h3+p{margin:4px 0 0;font:900 15px var(--zh);letter-spacing:.14em}
+.tk-pr{font:700 15px var(--type);text-align:right;line-height:1.2}
+.tk-pr small{display:block;font-size:11px;font-weight:400}
+.tk-meta{margin:10px 0 12px;font:13px/1.5 var(--type)}
+.tk-bar{position:relative;height:18px;border:2px solid var(--char);background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),rgba(27,22,18,.45) calc(10% - 1px) 10%),var(--cream)}
+.tk-bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#5f1a0c,#8f2a17 70%,#d06a35);transition:width .6s var(--ease)}
+.tk-bar.sell i{background:repeating-linear-gradient(-45deg,var(--char) 0 6px,#3a312a 6px 12px)}
+.tk-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:10px}
+.tk-st{font:900 15px var(--zh)}
+.tk-t{font:400 28px/1 var(--disp);letter-spacing:.03em;white-space:nowrap}
+.tk-sub{margin:6px 0 0;font:12.5px/1.5 var(--type);color:var(--brandD);min-height:2.9em}
+.soldout{position:absolute;right:14px;top:46%;font:400 46px/1 var(--disp);letter-spacing:.04em;color:var(--brand);border:5px double var(--brand);padding:6px 12px 2px;transform:rotate(-12deg) scale(1.8);opacity:0;filter:blur(8px);transition:transform .5s var(--ease),opacity .3s,filter .5s;pointer-events:none;mix-blend-mode:multiply}
+.tk.sold .soldout{opacity:.92;transform:rotate(-12deg);filter:url(#scorch)}
+.tk.sold .tk-bar,.tk.sold .tk-row{opacity:.4}
+.boardnote{margin:28px 0 0;font:13px var(--type);color:#a99d8c}
+/* 品牌故事 */
+.story{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:64px;align-items:center}
+.story .ph{aspect-ratio:5/4;border:3px solid var(--char);box-shadow:12px 12px 0 var(--brand)}
+.story p{margin:0 0 16px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:30px;border-top:3px solid var(--char);border-bottom:3px solid var(--char)}
+.stats div{padding:14px 12px;border-left:2px dashed var(--char)}
+.stats div:first-child{border-left:0}
+.stats b{display:block;font:400 clamp(36px,4vw,50px)/1 var(--disp);color:var(--brand)}
+.stats span{font:700 13px var(--type)}
+.roundel{position:absolute;right:-12px;top:-30px;width:120px;height:120px}
+/* 招牌 */
+.sig{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px}
+.sig article{background:var(--cream);border:2px solid var(--char);box-shadow:8px 8px 0 var(--char)}
+.sig .ph{aspect-ratio:4/3;border-bottom:2px solid var(--char)}
+.sig .txt{padding:18px 20px 22px;position:relative}
+.sig .no{position:absolute;right:16px;top:-34px;width:66px;height:66px;border-radius:50%;background:var(--brand);color:var(--cream);display:grid;place-items:center;font:400 30px/1 var(--disp);border:3px solid var(--cream);box-shadow:0 0 0 2px var(--brand)}
+.sig h3{margin:0;font:400 36px/.95 var(--disp);text-transform:uppercase;letter-spacing:.02em}
+.sig h3 small{display:block;font:900 16px/1.6 var(--zh);letter-spacing:.16em;color:var(--brand);margin-top:4px}
+.sig p{margin:10px 0 12px;font-size:15px}
+.sig .pr{font:700 15px var(--type);border-top:1.5px dashed var(--char);padding-top:10px}
+/* 菜單吊牌 */
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 46px}
+.tabs button{background:transparent;border:2px solid #d9ccb6;color:#d9ccb6;font:400 19px var(--disp);letter-spacing:.06em;padding:8px 16px 6px;text-transform:uppercase;line-height:1}
+.tabs button small{font:700 13px var(--zh);margin-left:6px;letter-spacing:.06em}
+.tabs button:hover{color:var(--cream);border-color:var(--cream)}
+.tabs button[aria-selected=true]{background:var(--brand);border-color:var(--brand);color:var(--cream)}
+.tags{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:236px;gap:58px 26px;padding-top:42px;background:repeating-linear-gradient(180deg,#8e8780 0 3px,#4b4540 3px 8px,#24201c 8px 10px,transparent 10px 294px)}
+.tag{position:relative;transform-origin:50% -38px;animation:swing 5.5s ease-in-out infinite;animation-delay:var(--dl,0s)}
+.tag::before{content:"";position:absolute;left:50%;top:-34px;width:2px;height:46px;margin-left:-1px;background:repeating-linear-gradient(180deg,#e2d2b2 0 3px,#a8936d 3px 5px)}
+.tag::after{content:"";position:absolute;left:50%;top:-40px;width:12px;height:12px;margin-left:-6px;border:2px solid #b6aea4;border-radius:50%;border-bottom-color:transparent}
+.tag-b{position:relative;height:100%;display:flex;flex-direction:column;align-items:center;text-align:center;padding:32px 14px 14px;background-color:var(--paperL);background-image:var(--tex,none);color:var(--char);clip-path:polygon(22px 0,calc(100% - 22px) 0,100% 22px,100% 100%,0 100%,0 22px)}
+.tag-b::before{content:"";position:absolute;top:10px;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--char);box-shadow:0 0 0 3px #a88a5c}
+.tag.alt .tag-b{background-color:var(--cream)}
+.tag.sig .tag-b{background-color:var(--brand);color:var(--cream)}
+.tag.sig .tg-d{color:#f0d9c4}
+.tag.sig .tg-pr{border-color:var(--cream)}
+.tg-no{font:700 11px var(--type);letter-spacing:.16em}
+.tg-en{font:400 25px/1 var(--disp);text-transform:uppercase;letter-spacing:.02em;margin-top:4px}
+.tg-zh{font:900 15px var(--zh);letter-spacing:.12em;margin-top:4px}
+.tg-pr{font:700 22px/1 var(--type);margin:10px 0 8px;border-top:1.5px solid var(--char);border-bottom:1.5px solid var(--char);padding:6px 10px;white-space:nowrap}
+.tg-pr small{font-size:12px}
+.tg-d{font-size:12.5px;line-height:1.5;color:#4a3d32;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.tag:hover{animation-duration:1.6s}
+@keyframes swing{0%,100%{transform:rotate(-1.8deg)}50%{transform:rotate(1.8deg)}}
+.menunote{margin:36px 0 0;font:13px var(--type);color:#a99d8c}
+/* 秤重點餐 */
+.order{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:40px;align-items:start}
+fieldset{border:0;margin:0 0 34px;padding:0;min-width:0}
+legend{font:400 30px/1 var(--disp);text-transform:uppercase;letter-spacing:.03em;padding:0;margin-bottom:14px;display:flex;align-items:baseline;gap:10px}
+legend small{font:900 15px var(--zh);letter-spacing:.12em;color:var(--brandD)}
+.meats{border-top:3px solid var(--char)}
+.mrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 18px;align-items:center;padding:12px 4px;border-bottom:1.5px dashed var(--char)}
+.mrow b{font:400 22px/1 var(--disp);text-transform:uppercase;letter-spacing:.02em}
+.mrow b small{font:900 14px var(--zh);letter-spacing:.1em;margin-left:8px}
+.mrow .pp{font:700 13px var(--type);text-align:right;white-space:nowrap}
+.mrow .ms{grid-column:1;font:12.5px var(--type);color:var(--brandD)}
+.mrow.off{opacity:.5}
+.step{display:flex;align-items:center;border:2px solid var(--char);background:var(--cream);grid-row:1/3;grid-column:3}
+.step button{width:38px;height:38px;border:0;background:transparent;font:400 22px/1 var(--disp)}
+.step button:hover{background:var(--char);color:var(--cream)}
+.step button[disabled]{opacity:.3;cursor:not-allowed;background:transparent;color:var(--char)}
+.step output{min-width:70px;text-align:center;font:700 15px var(--type);border-inline:2px solid var(--char);line-height:38px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{position:relative;display:inline-flex}
+.chip input{position:absolute;opacity:0;inset:0;margin:0;pointer-events:none}
+.chip span{display:inline-flex;flex-direction:column;align-items:center;border:2px solid var(--char);background:var(--paperL);padding:7px 13px;font:700 14px/1.3 var(--zh);cursor:pointer;transition:background .2s,color .2s;text-align:center}
+.chip span small{font:400 11.5px var(--type)}
+.chip input:checked+span{background:var(--char);color:var(--cream)}
+.chip input:focus-visible+span{outline:3px solid var(--brand);outline-offset:2px}
+.chip input:disabled+span{opacity:.35;cursor:not-allowed;text-decoration:line-through}
+.sides{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.srow{display:flex;justify-content:space-between;align-items:center;gap:10px;border:2px solid var(--char);background:var(--paperL);padding:6px 6px 6px 12px}
+.srow span{font:700 14px/1.3 var(--zh)}
+.srow span small{display:block;font:400 12px var(--type)}
+.srow .step{grid-row:auto;border-width:1.5px}
+.srow .step button{width:30px;height:30px;font-size:18px}
+.srow .step output{min-width:30px;line-height:30px;border-width:1.5px}
+.sauces button{background:var(--paperL);border:2px solid var(--char);padding:7px 13px;font:700 14px/1.3 var(--zh)}
+.sauces button small{display:block;font:400 11.5px var(--type)}
+.sauces button[aria-pressed=true]{background:var(--char);color:var(--cream)}
+.hint{margin:8px 0 0;font:12.5px var(--type);color:var(--brandD)}
+.lab{display:block;font:700 13px var(--type);letter-spacing:.1em;text-transform:uppercase;margin:16px 0 8px}
+.lab:first-child{margin-top:0}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fi{display:flex;flex-direction:column;gap:6px;font:700 14px var(--zh)}
+.fi input,.fi select,.fi textarea{border:2px solid var(--char);background:var(--cream);padding:10px 12px;font:15px var(--type);border-radius:0;width:100%}
+.fi textarea{resize:vertical;min-height:64px}
+.err{color:#8a1a08;font:700 12.5px/1.4 var(--zh);min-height:1.4em}
+.err:empty{min-height:0}
+.bad{border-color:#8a1a08!important;background:#f6dccd!important}
+.slip{position:sticky;top:86px;background:var(--cream);border:2px solid var(--char);box-shadow:10px 10px 0 rgba(27,22,18,.25);padding:20px 22px 22px}
+.slip::before{content:"";position:absolute;left:-2px;right:-2px;top:-10px;height:10px;background:radial-gradient(circle at 6px 10px,transparent 5px,var(--char) 5.5px 7px,var(--cream) 7.5px) 0 0/12px 10px repeat-x}
+.slip h3{margin:0;font:400 28px/1 var(--disp);text-transform:uppercase;letter-spacing:.04em;display:flex;justify-content:space-between;align-items:baseline}
+.slip h3 small{font:700 12px var(--type);letter-spacing:.1em}
+.scale{display:block;width:min(250px,100%);margin:12px auto 6px}
+.needle{transition:transform .9s cubic-bezier(.3,1.7,.45,1)}
+.lines{list-style:none;margin:10px 0 0;padding:0;font:13.5px/1.5 var(--type)}
+.lines li{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dotted var(--char)}
+.lines li span:first-child{min-width:0}
+.lines li span:last-child{white-space:nowrap}
+.lines .empty{justify-content:center;color:var(--smoke);border:0;padding:12px 0}
+.total{display:flex;justify-content:space-between;align-items:baseline;margin:12px 0 4px;padding-top:10px;border-top:3px double var(--char)}
+.total span{font:700 13px var(--type);letter-spacing:.1em}
+.total b{font:400 40px/1 var(--disp);color:var(--brand)}
+.slip .btn{width:100%;margin-top:14px}
+.demo{margin:10px 0 0;font:12px var(--type);color:var(--brandD);text-align:center}
+.char .demo{color:#d9a37c}
+/* 取餐單：牛皮紙包＋麻繩 */
+.parcel{position:relative;max-width:660px;margin:0 auto;padding:46px 24% 54px 6%;background:linear-gradient(135deg,transparent 49.7%,rgba(27,22,18,.13) 50%,transparent 50.5%),linear-gradient(45deg,transparent 49.7%,rgba(255,255,255,.12) 50%,transparent 50.5%),var(--tex,none),#b48c5e;border-radius:6px;box-shadow:0 22px 40px rgba(27,22,18,.35),inset 0 0 0 1px rgba(27,22,18,.3),inset 0 -18px 30px rgba(60,30,10,.2)}
+.tw-h,.tw-v{position:absolute;z-index:2;background:repeating-linear-gradient(var(--tw,90deg),#e9dbbd 0 4px,#8a7350 4px 6px);box-shadow:0 2px 2px rgba(27,22,18,.3)}
+.tw-h{left:0;right:0;top:52px;height:6px;--tw:115deg}
+.tw-v{top:0;bottom:0;right:12%;width:6px;--tw:25deg}
+.bow{position:absolute;z-index:3;right:calc(12% - 67px);top:5px;width:140px;height:130px}
+.ticket{position:relative;z-index:1;background:var(--cream);padding:18px 18px 14px;transform:rotate(-2.5deg);box-shadow:3px 4px 0 rgba(27,22,18,.25);font:13px/1.55 var(--type)}
+.ticket h4{margin:0 0 6px;font:400 26px/1 var(--disp);letter-spacing:.04em;text-transform:uppercase;border-bottom:2px solid var(--char);padding-bottom:6px}
+.ticket dl{display:grid;grid-template-columns:auto 1fr;gap:1px 10px;margin:0 0 6px}
+.ticket dt{font-weight:700}.ticket dd{margin:0}
+.ticket ul{list-style:none;margin:0;padding:6px 0;border-block:1px dashed var(--char)}
+.ticket li{display:flex;justify-content:space-between;gap:8px}
+.ticket .tt{display:flex;justify-content:space-between;font-weight:700;font-size:15px;margin-top:4px}
+.ticket .stampmark{position:absolute;right:-74px;bottom:-50px;width:96px;height:96px;transform:rotate(14deg);opacity:.85;mix-blend-mode:multiply}
+.done{display:none}
+.done.show{display:block}
+.done .acts{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:28px}
+.done .demo{font-size:13px;margin-top:20px}
+/* 派對預訂 */
+.party{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;align-items:start}
+.pin{display:flex;align-items:center;gap:0;border:2px solid var(--cream);width:max-content}
+.pin button{width:52px;height:56px;background:transparent;border:0;color:var(--cream);font:400 28px var(--disp)}
+.pin button:hover{background:var(--cream);color:var(--char)}
+.pin input{width:96px;height:56px;text-align:center;border:0;border-inline:2px solid var(--cream);background:transparent;color:var(--cream);font:400 34px var(--disp);-moz-appearance:textfield}
+.pin input::-webkit-inner-spin-button{display:none}
+.char .chip span{background:transparent;border-color:#d9ccb6;color:var(--cream)}
+.char .chip input:checked+span{background:var(--cream);color:var(--char)}
+.char .fi input,.char .fi select{background:#2a231d;color:var(--cream);border-color:#a99d8c}
+.char .err{color:#ff9d7a}
+.char .bad{background:#3d1a12!important;border-color:#ff9d7a!important}
+.calc{background-color:var(--paper);background-image:var(--tex,none);color:var(--char);padding:26px 26px 22px;position:relative;box-shadow:12px 12px 0 #000}
+.calc .big{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-bottom:3px solid var(--char);padding-bottom:12px}
+.calc .big b{font:400 clamp(70px,9vw,110px)/.85 var(--disp);color:var(--brand)}
+.calc .big span{font:900 20px var(--zh);letter-spacing:.1em}
+.slabs{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0;min-height:44px}
+.slabs svg{width:74px;height:40px}
+.slabs em{font:400 22px var(--disp);font-style:normal;align-self:center}
+.calc dl{display:grid;grid-template-columns:1fr auto;gap:6px 12px;margin:0;font:14px var(--type)}
+.calc dd{margin:0;text-align:right;font-weight:700}
+.calc .ptotal{display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;padding-top:12px;border-top:3px double var(--char)}
+.calc .ptotal b{font:400 42px/1 var(--disp);color:var(--brand)}
+.calc .rule{margin:12px 0 0;font:12.5px/1.6 var(--type);color:var(--brandD)}
+.pform{margin-top:32px}
+.preserved{display:none;background:var(--cream);color:var(--char);padding:24px;margin-top:28px;position:relative;font:14px/1.7 var(--type);border:2px solid var(--char)}
+.preserved.show{display:block}
+.preserved h4{padding-right:96px;margin:0 0 8px;font:400 30px/1 var(--disp);text-transform:uppercase;color:var(--brand)}
+.preserved .stampmark{position:absolute;right:16px;top:12px;width:92px;height:92px;transform:rotate(-10deg);mix-blend-mode:multiply}
+/* 店內 */
+.gal{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);grid-template-rows:auto auto;gap:24px}
+.gal figure{margin:0;position:relative}
+.gal .ph{border:3px solid var(--char)}
+.gal .g1{grid-row:1/3}.gal .g1 .ph{aspect-ratio:auto;height:100%;min-height:540px}
+.gal .g2 .ph,.gal .g3 .ph{aspect-ratio:16/10}
+.gal figcaption{position:absolute;left:18px;bottom:-14px;z-index:2;background:var(--cream);border:2px solid var(--char);padding:6px 12px;font:700 13px var(--type);transform:rotate(-1.5deg);max-width:calc(100% - 36px)}
+/* 評論 */
+.revs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px}
+.rev{background:var(--cream);padding:26px 24px 22px;position:relative;box-shadow:6px 8px 0 rgba(27,22,18,.2)}
+.rev:nth-child(1){rotate:-1.2deg}.rev:nth-child(2){rotate:.8deg;translate:0 16px}.rev:nth-child(3){rotate:-.5deg}
+.rev::before{content:"";position:absolute;left:50%;top:-12px;width:90px;height:24px;margin-left:-45px;background:rgba(201,167,124,.75);transform:rotate(-3deg);box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.stars{display:flex;gap:4px;margin-bottom:12px}
+.stars i{width:22px;height:22px;background:var(--brand);clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+.rev p{margin:0 0 14px;font-size:15.5px}
+.rev footer{font:700 13px var(--type);border-top:1.5px dashed var(--char);padding-top:10px;display:flex;justify-content:space-between;gap:10px}
+/* 資訊 */
+.info{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px}
+.hrs{list-style:none;margin:0;padding:0;border-top:2px solid #6b625a}
+.hrs li{display:grid;grid-template-columns:70px 1fr auto;gap:12px;padding:11px 8px;border-bottom:1.5px dashed #5a524b;font:15px var(--type);align-items:center}
+.hrs li b{font:900 15px var(--zh)}
+.hrs li.today{background:var(--brand);border-bottom-color:var(--brand)}
+.hrs li em{font:400 14px var(--disp);font-style:normal;letter-spacing:.08em;background:var(--cream);color:var(--brand);padding:3px 7px 1px;line-height:1}
+.nowline{font:400 clamp(32px,4vw,46px)/1 var(--disp);letter-spacing:.02em;margin:0 0 6px;color:var(--cream)}
+.nowline.on{color:#9fd59a}
+.nowsub{font:14px var(--type);color:#d9ccb6;margin:0 0 24px}
+.addr{font-size:18px;margin:0 0 6px}
+.addr+p{margin:0 0 22px;color:#d9ccb6;font-size:15px}
+.contact{display:flex;flex-wrap:wrap;gap:16px;margin-top:8px}
+.facts{margin:30px 0 0;padding:0;list-style:none;font:14px/1.9 var(--type);color:#d9ccb6}
+.mapcard{display:block;width:100%;max-width:540px;height:auto;margin-top:26px;border:2px solid #5a524b}
+.facts li::before{content:"— ";color:var(--ember)}
+footer.foot{background:#100d0a;color:#a99d8c;padding:54px 0 70px;font:13px/1.8 var(--type);position:relative}
+.foot .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:24px}
+.foot .fl{display:flex;align-items:center;gap:16px}
+.foot svg{width:64px;height:64px}
+.foot b{display:block;font:400 26px var(--disp);color:var(--cream);letter-spacing:.04em}
+.foot nav{display:flex;gap:18px}
+/* 煙霧 */
+.smoke{position:fixed;left:0;right:0;bottom:0;height:100vh;pointer-events:none;z-index:40;overflow:hidden}
+.smoke i{position:absolute;bottom:-46vh;left:var(--x);width:190px;height:72vh;opacity:0;filter:blur(18px);animation:rise var(--d) linear var(--dl) infinite;will-change:transform,opacity}
+.smoke svg{width:100%;height:100%;animation:sway calc(var(--d) / 2.5) ease-in-out infinite alternate}
+@keyframes rise{0%{transform:translate3d(0,0,0) scale(.7);opacity:0}22%{opacity:var(--o)}100%{transform:translate3d(var(--sx),-96vh,0) scale(1.8);opacity:0}}
+@keyframes sway{to{transform:skewX(9deg) translateX(24px)}}
+.noimp .name{font-weight:700;letter-spacing:-.035em;font-size:clamp(80px,9.6vw,146px)}
+.noimp .h2{font-weight:700;letter-spacing:-.025em;font-size:clamp(44px,7vw,96px)}
+.noimp .tk h3,.noimp .sig h3,.noimp .tg-en,.noimp .tk-t,.noimp .cutinfo h3,.noimp .slip h3,.noimp legend,.noimp .calc .big b,.noimp .total b,.noimp .nowline,.noimp .mrow b{font-weight:700;letter-spacing:-.02em}
+/* RWD */
+@media (max-width:1020px){
+  .nav ul{display:none;position:absolute;left:0;right:0;top:62px;flex-direction:column;gap:0;background:var(--char);padding:6px 24px 18px;border-bottom:3px solid var(--brand)}
+  .nav ul a{display:block;padding:12px 0;border-bottom:1px solid #3a322b;font-size:16px}
+  .nav.open ul{display:flex}
+  .burger{display:block}
+  .navcta{display:none}
+  .hero-g,.story,.order,.party,.info{grid-template-columns:minmax(0,1fr)}
+  .board,.sig,.revs{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tags{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .slip{position:relative;top:0}
+}
+@media (max-width:640px){
+  .wrap{width:calc(100% - 32px)}
+  .sec{padding:80px 0 92px}
+  .hero{padding:34px 0 84px}
+  .name{font-size:clamp(84px,27vw,130px)}
+  .noimp .name{font-size:22vw}
+  .zhname{letter-spacing:.24em}
+  .chart{padding:16px 14px 14px}
+  .chart-hd{flex-direction:column;gap:2px}
+  .cow .lb .e{display:none}
+  .legend{grid-template-columns:repeat(2,1fr)}
+  .cutinfo{grid-template-columns:1fr}
+  .cutinfo .act{grid-row:auto;grid-column:1}
+  .board,.sig,.revs,.sides,.fields{grid-template-columns:minmax(0,1fr)}
+  .tags{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:226px;gap:58px 14px}
+  .tg-en{font-size:21px}.tg-pr{font-size:18px;padding:5px 6px}
+  .tag-b{padding:30px 10px 12px}
+  .mrow{grid-template-columns:minmax(0,1fr) auto}
+  .mrow b small{display:block;margin:4px 0 0}
+  .mrow .pp{grid-column:1;text-align:left;grid-row:2}
+  .mrow .ms{grid-row:3}
+  .step{grid-row:1/4;grid-column:2}
+  .step output{min-width:58px}
+  .stats span{font-size:11.5px}
+  .roundel{width:88px;height:88px;right:-4px;top:-26px}
+  .gal{grid-template-columns:minmax(0,1fr)}
+  .gal .g1{grid-row:auto}.gal .g1 .ph{min-height:0;aspect-ratio:4/5}
+  .rev:nth-child(n){rotate:none;translate:none}
+  .party>div:last-child{order:-1}
+  .hrs li{grid-template-columns:44px 1fr auto;gap:8px;font-size:13px;padding:11px 6px}
+  .calc .ptotal b{font-size:32px;white-space:nowrap}
+  .preserved .stampmark{width:72px;height:72px;right:10px}
+  .preserved h4{padding-right:70px;font-size:26px}
+  .ticket{padding:16px 12px 12px;font-size:12px}
+  .ticket h4{font-size:21px}
+  .parcel{padding:44px 16% 64px 4%}
+  .bow{width:90px;height:84px;right:calc(12% - 42px);top:20px}
+  .ticket .stampmark{right:-26px;bottom:-62px;width:80px;height:80px}
+  .smoke i:nth-child(n+5){display:none}
+  .clock{margin-top:-20px}
+  .clock output{font-size:22px;min-width:110px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .smoke{display:none}
+  .tag{animation:none}
+  .js .press,.js .press.in,.js .rv{opacity:1;transform:none;filter:none;animation:none;transition:none}
+  .needle,.tk-bar i,.soldout{transition:none}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <filter id="scorch" x="-6%" y="-10%" width="112%" height="120%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="1" seed="3" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" xChannelSelector="R" yChannelSelector="G" result="d"/>
+    <feTurbulence type="fractalNoise" baseFrequency=".05" numOctaves="2" seed="9" result="m"/>
+    <feColorMatrix in="m" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -1.3 0 0 0 1.72" result="ma"/>
+    <feComposite in="d" in2="ma" operator="in" result="t"/>
+    <feMorphology in="d" operator="dilate" radius=".8" result="dil"/>
+    <feGaussianBlur in="dil" stdDeviation="1.6" result="glow"/>
+    <feFlood flood-color="#3b1106" flood-opacity=".38"/>
+    <feComposite in2="glow" operator="in" result="burn"/>
+    <feMerge><feMergeNode in="burn"/><feMergeNode in="t"/></feMerge>
+  </filter>
+</svg>
+
+<header class="nav" id="nav">
+  <div class="wrap navin">
+    <a class="logo" href="#top"><svg viewBox="0 0 40 40" aria-hidden="true"><rect x="3" y="3" width="34" height="34" rx="4" fill="none" stroke="#c4512f" stroke-width="2.5"/><text x="20" y="27" text-anchor="middle" font-family="Impact,Haettenschweiler,sans-serif" font-size="17" fill="#f3e8d2">E&amp;O</text></svg><span data-shop="nameEn">EMBER &amp; OAK</span></a>
+    <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="navList">Menu</button>
+    <ul id="navList">
+      <li><a href="#board">今日煙燻板</a></li><li><a href="#story">故事</a></li><li><a href="#menu">菜單</a></li><li><a href="#order">秤重預點</a></li><li><a href="#party">整條預訂</a></li><li><a href="#visit">交通時間</a></li>
+    </ul>
+    <a class="navcta" href="#order">外帶預點</a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero" aria-labelledby="heroName">
+    <div class="wrap hero-g">
+      <div>
+        <p class="est"><span>Est. 2019</span><span>Taichung</span><span>Central Texas Style</span></p>
+        <h1 class="name press" id="heroName"><span class="burnt">Ember</span><span class="amp burnt">&amp; Oak</span><span class="vh" data-shop="nameZh">炭橡煙燻</span></h1>
+        <p class="zhname" aria-hidden="true" data-shop="nameZh">炭橡煙燻</p>
+        <p class="tagline">德州中部式煙燻 BBQ。只用鹽、粗黑胡椒和白橡木炭火，<b>牛胸低溫慢燻 14 小時</b>，按重量切給你，鋪在牛皮紙上吃。</p>
+        <div class="ctas"><a class="btn" href="#order">外帶預點 <small>秤重</small></a><a class="btn ghost" href="#board">今日煙燻板</a></div>
+        <p class="status" id="status"><i></i><span>…</span><small>…</small></p>
+      </div>
+      <div class="chart rv">
+        <div class="chart-hd"><b>Beef Cuts · 牛肉部位圖</b><span>Pl. 1 — 點部位看今日供應</span></div>
+        <div id="cowBox"></div>
+        <div class="legend" id="legend" aria-label="選擇部位"></div>
+        <div class="cutinfo" id="cutInfo" aria-live="polite"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec char" id="board" aria-labelledby="bdT">
+    <div class="wrap">
+      <div class="sh">
+        <p class="kick">No.01 — Today's Smoke</p>
+        <h2 class="h2 press" id="bdT"><span class="burnt">Smoke Board</span></h2>
+        <p class="h2zh">今日煙燻板</p>
+        <p class="lede">每塊肉什麼時候進爐、還要燻多久、幾點開賣，一目了然。開賣後依時間估算剩餘份量，賣完就蓋上烙印，當天不再補。</p>
+      </div>
+      <div class="clock">
+        <label for="sim">時間快轉 <input type="range" id="sim" min="360" max="1290" step="5" value="720"></label>
+        <output id="simOut" for="sim">12:00</output>
+        <button type="button" id="simNow">回到現在</button>
+      </div>
+      <div class="board" id="boardBox"></div>
+      <p class="boardnote" id="boardNote">剩餘份量為示範估算；正式上線可串接 POS 即時扣庫存。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="story" aria-labelledby="stT">
+    <div class="wrap story">
+      <figure class="ph rv" data-photo="pit" data-art="pit" data-label="後院的偏置式煙燻爐" data-size="1500×1200"></figure>
+      <div class="rv" style="position:relative">
+        <svg class="roundel" viewBox="0 0 120 120" aria-hidden="true"><defs><path id="rp" d="M60 60m-43 0a43 43 0 1 1 86 0a43 43 0 1 1-86 0"/></defs><circle cx="60" cy="60" r="56" fill="none" stroke="#8f2a17" stroke-width="3"/><circle cx="60" cy="60" r="31" fill="none" stroke="#8f2a17" stroke-width="2"/><text font-family="Courier New,monospace" font-weight="700" font-size="11" letter-spacing="2.4" fill="#8f2a17"><textPath href="#rp">LOW &amp; SLOW · OAK FIRED · SINCE 2019 ·</textPath></text><text x="60" y="68" text-anchor="middle" font-family="Impact,sans-serif" font-size="22" fill="#8f2a17">E&amp;O</text></svg>
+        <p class="kick">No.02 — Our Story</p>
+        <h2 class="h2 press" id="stT"><span class="burnt">Low &amp; Slow</span></h2>
+        <p class="h2zh">一座爐，一整夜</p>
+        <p class="lede">老闆在奧斯汀的肉舖排隊吃過一次 brisket 後，回台中買了一座 500 加侖的偏置式煙燻爐。每天晚上十點點火，輪班守著爐溫到隔天中午。</p>
+        <p>我們不刷醬、不用電烤箱，只靠白橡木與龍眼木的炭火和時間。肉切下來的那一圈粉紅色煙燻環，就是一整夜的證明。賣完就是賣完，明天再燻。</p>
+        <div class="stats"><div><b>14h</b><span>牛胸燻製時間</span></div><div><b>118°C</b><span>爐內平均溫度</span></div><div><b>2 料</b><span>只用鹽＋黑胡椒</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec kraft2" id="signature" aria-labelledby="sgT">
+    <div class="wrap">
+      <div class="sh"><p class="kick">No.03 — House Favorites</p><h2 class="h2 press" id="sgT"><span class="burnt">The Holy Trinity</span></h2><p class="h2zh">招牌三味</p></div>
+      <div class="sig">
+        <article class="rv"><figure class="ph" data-photo="brisket" data-art="brisket" data-label="切片牛胸與煙燻環" data-size="1200×900"></figure><div class="txt"><span class="no">01</span><h3>Brisket<small>煙燻牛胸</small></h3><p>整塊美國 Choice 牛胸，前晚 22:00 入爐，燻到內溫 95°C 再用牛皮紙包著靜置。肥的一側入口即化。</p><p class="pr" data-price="brisket"></p></div></article>
+        <article class="rv"><figure class="ph" data-photo="beefrib" data-art="beefrib" data-label="帶骨牛小排" data-size="1200×900"></figure><div class="txt"><span class="no">02</span><h3>Beef Rib<small>煙燻牛小排</small></h3><p>胸腹板帶骨肋，一支超過一公斤，表面是厚厚的黑胡椒脆皮。每天只燻九公斤，晚市 17:00 開賣。</p><p class="pr" data-price="beefrib"></p></div></article>
+        <article class="rv"><figure class="ph" data-photo="ribs" data-art="ribs" data-label="上釉豬肋排" data-size="1200×900"></figure><div class="txt"><span class="no">03</span><h3>Pork Ribs<small>豬肋排</small></h3><p>St. Louis 切法，龍眼木燻六小時，最後刷一層黑糖醬汁上釉。咬下去會留下漂亮的齒痕，但不會脫骨。</p><p class="pr" data-price="porkrib"></p></div></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec char" id="menu" aria-labelledby="mnT">
+    <div class="wrap">
+      <div class="sh"><p class="kick">No.04 — Price Tags</p><h2 class="h2 press" id="mnT"><span class="burnt">Butcher's Menu</span></h2><p class="h2zh">完整菜單</p><p class="lede">煙燻肉以 100 g 為單位現切秤重；餐盤與配菜照吊牌上的價格。內用外帶同價，附醃黃瓜、洋蔥與白吐司。</p></div>
+      <div class="tabs" id="tabs" role="tablist" aria-label="菜單分類"></div>
+      <div class="tags" id="tags" role="tabpanel" aria-labelledby="tabs"></div>
+      <p class="menunote">價格含稅。牛肉來源：美國 Choice 等級；豬肉：台灣在地契作豬。</p>
+    </div>
+  </section>
+
+  <section class="sec" id="order" aria-labelledby="odT">
+    <div class="wrap">
+      <div class="sh"><p class="kick">No.05 — Order by Weight</p><h2 class="h2 press" id="odT"><span class="burnt">Weigh &amp; Wrap</span></h2><p class="h2zh">秤重外帶預點</p><p class="lede">先預點，到店不用排隊。選肉、以 100 g 為單位調重量，加配菜和醬汁，選取餐時間。我們會照單切好，用牛皮紙包起來等你。</p></div>
+      <form id="of" novalidate>
+        <div class="order" id="orderForm">
+          <div>
+            <fieldset><legend>① Meat <small>選肉（每 100 g）</small></legend><div class="meats" id="meats"></div><p class="err" id="eCart"></p></fieldset>
+            <fieldset><legend>② Sides <small>配菜</small></legend><div class="sides" id="sides"></div></fieldset>
+            <fieldset><legend>③ Sauce <small>醬汁</small></legend><div class="chips sauces" id="sauces"></div><p class="hint" id="sauceHint"></p></fieldset>
+            <fieldset><legend>④ Pick-up <small>取餐時間</small></legend>
+              <span class="lab">日期</span><div class="chips" id="dates"></div>
+              <span class="lab">時段</span><div class="chips" id="times"></div><p class="err" id="eTime"></p>
+              <div class="fields" style="margin-top:18px">
+                <label class="fi">姓名<input id="oName" autocomplete="name" placeholder="王小明"><span class="err"></span></label>
+                <label class="fi">手機<input id="oPhone" inputmode="tel" autocomplete="tel" placeholder="0912-345-678"><span class="err"></span></label>
+              </div>
+              <label class="fi" style="margin-top:12px">備註<textarea id="oNote" placeholder="例：牛胸要多一點肥的那側、幫我切薄"></textarea></label>
+            </fieldset>
+          </div>
+          <aside class="slip" aria-label="秤重單">
+            <h3>Scale Ticket <small id="slipNo">No. ——</small></h3>
+            <svg class="scale" id="scale" viewBox="0 0 250 176" role="img" aria-label="秤重刻度"></svg>
+            <ul class="lines" id="lines"></ul>
+            <div class="total"><span>合計 TOTAL</span><b id="oTotal">NT$ 0</b></div>
+            <button class="btn" type="submit">送出預點 <small>到店付款</small></button>
+            <p class="demo">示範版本：不會真的送出訂單</p>
+          </aside>
+        </div>
+      </form>
+      <div class="done" id="orderDone" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="sec char" id="party" aria-labelledby="ptT">
+    <div class="wrap">
+      <div class="sh"><p class="kick">No.06 — Whole Packer Brisket</p><h2 class="h2 press" id="ptT"><span class="burnt">Party Brisket</span></h2><p class="h2zh">整條牛胸派對預訂</p><p class="lede" id="partyLede">尾牙、生日、公司聚餐，整條 brisket 燻好切好帶走。輸入人數，我們幫你算要幾條、幾公斤。</p></div>
+      <form class="party" id="pf" novalidate>
+        <div>
+          <span class="lab">人數</span>
+          <div class="pin"><button type="button" id="pMinus" aria-label="減少人數">−</button><input id="pPeople" type="number" min="6" max="120" value="20" aria-label="人數"><button type="button" id="pPlus" aria-label="增加人數">+</button></div>
+          <span class="lab">食量</span><div class="chips" id="appetite"></div>
+          <span class="lab">加購</span><div class="chips"><label class="chip"><input type="checkbox" id="pSides"><span>配菜套組<small id="pSidesP"></small></span></label><label class="chip"><input type="checkbox" id="pSlice" checked><span>現場切片<small>免費</small></span></label></div>
+          <div class="pform">
+            <div class="fields">
+              <label class="fi">取件日期<select id="pDate"></select><span class="err"></span></label>
+              <label class="fi">取件時段<select id="pSlot"><option value="lunch">午市 11:30–13:00</option><option value="dinner">晚市 17:00–19:00</option></select><span class="err"></span></label>
+              <label class="fi">聯絡人<input id="pName" autocomplete="name" placeholder="陳小姐"><span class="err"></span></label>
+              <label class="fi">手機<input id="pPhone" inputmode="tel" autocomplete="tel" placeholder="0922-333-444"><span class="err"></span></label>
+            </div>
+            <button class="btn" type="submit" style="margin-top:18px">送出預訂</button>
+            <p class="demo" style="text-align:left">示範版本：不會真的送出預訂</p>
+          </div>
+        </div>
+        <div>
+          <div class="calc" aria-live="polite">
+            <div class="big"><b id="pCount">2</b><span>條・整條 brisket</span></div>
+            <div class="slabs" id="slabs" aria-hidden="true"></div>
+            <dl id="pDl"></dl>
+            <div class="ptotal"><span class="ty" style="font-weight:700">預估 TOTAL</span><b id="pTotal">NT$ 0</b></div>
+            <p class="rule" id="pRule"></p>
+          </div>
+          <div class="preserved" id="pDone"></div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="sec kraft2" id="inside" aria-labelledby="inT">
+    <div class="wrap">
+      <div class="sh"><p class="kick">No.07 — Inside the Smokehouse</p><h2 class="h2 press" id="inT"><span class="burnt">Pit Room</span></h2><p class="h2zh">店內與爐邊</p></div>
+      <div class="gal">
+        <figure class="g1 rv"><div class="ph" data-photo="hall" data-art="hall" data-label="長桌用餐區" data-size="1200×1500"></div><figcaption>長桌共享，排隊點肉、現切現秤</figcaption></figure>
+        <figure class="g2 rv"><div class="ph" data-photo="wood" data-art="wood" data-label="白橡木柴堆" data-size="1600×1000"></div><figcaption>白橡木＋龍眼木，至少風乾一年</figcaption></figure>
+        <figure class="g3 rv"><div class="ph" data-photo="block" data-art="block" data-label="切肉砧板" data-size="1600×1000"></div><figcaption>櫃台的楓木砧板與切肉刀</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="reviews" aria-labelledby="rvT">
+    <div class="wrap">
+      <div class="sh"><p class="kick">No.08 — Word of Mouth</p><h2 class="h2 press" id="rvT"><span class="burnt">Regulars Say</span></h2><p class="h2zh">客人怎麼說</p></div>
+      <div class="revs">
+        <article class="rev rv"><div class="stars" aria-label="5 顆星" role="img"><i></i><i></i><i></i><i></i><i></i></div><p>在台灣吃過最接近奧斯汀的 brisket。煙燻環很漂亮，肥的那側真的會化掉，記得 12 點前去排。</p><footer><span>Kevin W.</span><span>Google 評論</span></footer></article>
+        <article class="rev rv"><div class="stars" aria-label="5 顆星" role="img"><i></i><i></i><i></i><i></i><i></i></div><p>用網站預點秤重很方便，到店直接拿一包牛皮紙，回家打開還是溫的。牛小排一支就吃飽。</p><footer><span>林小姐</span><span>外帶常客</span></footer></article>
+        <article class="rev rv"><div class="stars" aria-label="5 顆星" role="img"><i></i><i></i><i></i><i></i><i></i></div><p>公司尾牙訂了三條整條 brisket，算份量很準，附的醃黃瓜跟白吐司剛好，同事都在問哪裡買的。</p><footer><span>阿哲</span><span>派對預訂</span></footer></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec char" id="visit" aria-labelledby="vsT">
+    <div class="wrap info">
+      <div>
+        <p class="kick">No.09 — Hours</p>
+        <h2 class="h2 press" id="vsT" style="font-size:clamp(50px,6vw,80px)"><span class="burnt">Come Hungry</span></h2>
+        <p class="h2zh" style="margin-bottom:28px">營業時間</p>
+        <ul class="hrs" id="hrs"></ul>
+      </div>
+      <div>
+        <p class="nowline" id="nowLine">…</p>
+        <p class="nowsub" id="nowSub">…</p>
+        <p class="addr" data-shop="address"></p>
+        <p>近勤美術館、草悟道，路邊停車格與巷口收費停車場</p>
+        <div class="contact"><a class="btn" id="telBtn" href="#">撥打 <small data-shop="phone"></small></a><a class="btn ghost" id="mapLink" href="#" target="_blank" rel="noopener">在 Google 地圖開啟</a></div>
+        <ul class="facts"><li>現場排隊點肉，熱門部位建議預點</li><li>可刷卡、LINE Pay、街口支付</li><li>寵物可坐戶外座位區</li></ul>
+        <svg class="mapcard" viewBox="0 0 520 210" role="img" aria-label="示意地圖：店在草悟道旁的巷子裡">
+          <rect width="520" height="210" fill="#2a231d"/><path d="M0 70H520M0 150H520M120 0V210M330 0V210" stroke="#4a4038" stroke-width="18"/><path d="M0 70H520M0 150H520M120 0V210M330 0V210" stroke="#7d746a" stroke-width="1.5" stroke-dasharray="8 8"/>
+          <rect x="140" y="88" width="170" height="44" fill="none" stroke="#7d746a" stroke-width="1.5" stroke-dasharray="3 4"/><text x="225" y="115" text-anchor="middle" font-family="Courier New,monospace" font-size="13" font-weight="700" fill="#a99d8c">草悟道 綠園道</text>
+          <text x="20" y="58" font-family="Courier New,monospace" font-size="12" font-weight="700" fill="#a99d8c">公益路二段</text><text x="350" y="190" font-family="Courier New,monospace" font-size="12" font-weight="700" fill="#a99d8c">勤美術館 →</text>
+          <path d="M404 112c0-18 14-30 30-30s30 12 30 30c0 22-30 48-30 48s-30-26-30-48Z" fill="#8f2a17" stroke="#f3e8d2" stroke-width="2.5"/><text x="434" y="118" text-anchor="middle" font-family="Impact,sans-serif" font-size="15" fill="#f3e8d2">E&amp;O</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="fl"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="none" stroke="#c4512f" stroke-width="3"/><circle cx="32" cy="32" r="23" fill="none" stroke="#c4512f" stroke-width="1.2" stroke-dasharray="3 3"/><text x="32" y="40" text-anchor="middle" font-family="Impact,sans-serif" font-size="22" fill="#f3e8d2">E&amp;O</text></svg><div><b data-shop="name">Ember &amp; Oak 炭橡煙燻</b>© <span id="yr"></span> · 店家官網示範模板 · 地址與電話為示範資料</div></div>
+    <nav aria-label="社群"><a href="#top">Instagram</a><a href="#top">Facebook</a><a href="#top">LINE</a></nav>
+  </div>
+</footer>
+
+<div class="smoke" id="smoke" aria-hidden="true"></div>
+<button class="slotbtn" id="slotBtn" type="button" aria-pressed="false">照片位</button>
+
+<script>
+(function(){
+'use strict';
+/* ===== 店家設定：換店時改這裡 ===== */
+var SHOP = {
+  name:'Ember & Oak 炭橡煙燻', nameEn:'EMBER & OAK', nameZh:'炭橡煙燻', type:'德州煙燻 BBQ', area:'台中西區',
+  phone:'04-2311-0228',
+  address:'台中市西區範例路 228 號（示範地址）',
+  /* 依星期：0=週日 … 6=週六；每天可多個時段；null = 公休 */
+  hours:[ [['11:00','21:00']], null, [['11:30','14:30'],['17:00','21:00']], [['11:30','14:30'],['17:00','21:00']], [['11:30','14:30'],['17:00','21:00']], [['11:30','14:30'],['17:00','21:00']], [['11:00','21:00']] ],
+  pricing:{ sauceFree:2, sauceExtra:30, leadMin:45, slotStep:15, maxGram:3000 },
+  party:{ leadDays:3, rawKg:6, yieldRate:.52, pricePerBrisket:9800, sidesPerHead:150, appetite:[['輕鬆吃',130],['標準',180],['大胃王',240]] },
+  photos:{ pit:'', brisket:'', beefrib:'', ribs:'', hall:'', wood:'', block:'' }
+};
+/* 煙燻肉：p = 每 100 g 價格；start = 入爐（當天 0 點起分鐘數，負數為前一晚）；dur = 燻製分鐘；stock = 每日備量 kg；rate = 售出速度 */
+var MEATS = [
+  {id:'brisket', en:'Brisket', zh:'煙燻牛胸', p:320, start:-120, dur:840, stock:16, rate:1.3, tgt:95, stall:1, wood:'白橡木'},
+  {id:'beefrib', en:'Beef Rib', zh:'煙燻牛小排', p:360, start:420, dur:600, stock:9, rate:1.5, tgt:96, stall:1, wood:'白橡木'},
+  {id:'porkrib', en:'Pork Ribs', zh:'豬肋排', p:220, start:330, dur:360, stock:11, rate:1.05, tgt:93, stall:0, wood:'龍眼木'},
+  {id:'pulled', en:'Pulled Pork', zh:'手撕豬肩', p:180, start:-90, dur:780, stock:12, rate:.88, tgt:95, stall:1, wood:'龍眼木'},
+  {id:'sausage', en:'Hot Link', zh:'煙燻香腸', p:160, start:540, dur:150, stock:8, rate:.82, tgt:74, stall:0, wood:'白橡木'},
+  {id:'tritip', en:'Tri-Tip', zh:'三角肉', p:280, start:840, dur:240, stock:6, rate:1.12, tgt:57, stall:0, wood:'白橡木'}
+];
+/* 部位圖：poly 為 SVG 座標；item 對應 MEATS id */
+var CUTS = [
+  {id:'chuck', n:1, en:'Chuck', zh:'肩胛', poly:'90,40 236,40 236,196 90,184', lx:186, ly:136, item:'sausage', d:'肩胛修下的碎肉與豬肩混合，自灌成德州 hot link。'},
+  {id:'rib', n:2, en:'Rib', zh:'肋脊', poly:'236,40 318,40 318,190 236,196', lx:277, ly:136, item:null, d:'週六限定煙燻肋眼 Prime Rib，請來電預留。'},
+  {id:'loin', n:3, en:'Short Loin', zh:'前腰脊', poly:'318,40 388,40 388,186 318,190', lx:353, ly:136, item:null, d:'紐約客、T 骨所在，適合大火炙烤，本店不燻。'},
+  {id:'sirloin', n:4, en:'Sirloin', zh:'後腰脊', poly:'388,40 452,40 462,198 388,186', lx:424, ly:136, item:'tritip', d:'取下方的三角肉 tri-tip，燻到五分熟再炙表面。'},
+  {id:'round', n:5, en:'Round', zh:'後腿', poly:'452,40 620,40 620,330 470,330 462,198', lx:500, ly:168, item:null, d:'切薄片做成煙燻牛肉乾，櫃台伴手禮現貨供應。'},
+  {id:'brisket', n:6, en:'Brisket', zh:'牛胸', poly:'90,184 236,196 228,330 90,330', lx:190, ly:232, item:'brisket', d:'本店招牌。肥瘦兩塊肌肉相連，最需要時間的部位。'},
+  {id:'plate', n:7, en:'Plate', zh:'胸腹板', poly:'236,196 318,190 334,330 228,330', lx:280, ly:232, item:'beefrib', d:'帶骨的胸腹板肋，就是巨大的德州牛小排。'},
+  {id:'flank', n:8, en:'Flank', zh:'腹脇', poly:'318,190 388,186 462,198 470,330 334,330', lx:398, ly:230, item:null, d:'纖維粗、適合快炒的部位，目前不供應。'}
+];
+var SIDES = [
+  {id:'corn', zh:'奶油玉米麵包', en:'Cornbread', p:60},
+  {id:'beans', zh:'德州牛肉豆子', en:'Pinto Beans', p:90},
+  {id:'potato', zh:'芥末馬鈴薯沙拉', en:'Potato Salad', p:100},
+  {id:'slaw', zh:'醋漬高麗菜', en:'Coleslaw', p:80},
+  {id:'mac', zh:'起司通心粉', en:'Mac & Cheese', p:120},
+  {id:'pudding', zh:'香蕉布丁', en:'Banana Pudding', p:110}
+];
+var SAUCES = [
+  {id:'house', zh:'招牌德州醬', en:'House Red'}, {id:'gold', zh:'芥末金醬', en:'Carolina Gold'},
+  {id:'vin', zh:'辣椒醋汁', en:'Pepper Vinegar'}, {id:'white', zh:'阿拉巴馬白醬', en:'Alabama White'}
+];
+var MENU = [
+  {k:'meat', en:'Smoked Meats', zh:'煙燻肉'},
+  {k:'plate', en:'Plates', zh:'餐盤', items:[['Two-Meat Plate','雙肉餐盤',560,'任選兩種肉共 250 g，附兩樣配菜與白吐司',1],['Three-Meat Tray','三肉拼盤',780,'三種肉共 400 g，兩人份，附三樣配菜'],['Brisket Sando','牛胸三明治',320,'切片牛胸、洋蔥、醃黃瓜，夾奶油餐包'],['Pulled Pork Bun','手撕豬漢堡',260,'手撕豬肩配醋漬高麗菜與芥末金醬'],['Frito Pie','玉米片辣肉醬',220,'德州辣肉醬淋在玉米脆片上，現刨起司'],['Kids Plate','兒童餐盤',240,'手撕豬 80 g、起司通心粉、玉米麵包']]},
+  {k:'side', en:'Sides', zh:'配菜'},
+  {k:'drink', en:'Drinks', zh:'飲品', items:[['Sweet Tea','南方甜茶',80,'大杯冰紅茶，甜度可調'],['Lemonade','手打檸檬汁',100,'現榨檸檬，微微鹹味'],['Shiner Bock','德州黑啤',180,'德州小鎮釀的琥珀拉格，355 ml'],['Root Beer Float','沙士漂浮',140,'沙士加一球香草冰淇淋']]},
+  {k:'take', en:'To Go', zh:'伴手禮', items:[['Beef Jerky','煙燻牛肉乾',260,'100 g 一包，後腿肉切片燻乾'],['House Rub','鹽胡椒抹料',280,'16 目粗黑胡椒與海鹽 1:1，200 g'],['Sauce Bottle','招牌醬汁瓶',320,'招牌德州醬 350 ml'],['Gift Card','禮物卡',1000,'面額 1,000 元，可用於整條預訂']]}
+];
+
+/* ===== 工具 ===== */
+var $ = function(s, r){ return (r || document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+var pad = function(n){ return String(n).padStart(2, '0'); };
+var money = function(n){ return 'NT$ ' + Math.round(n).toLocaleString('en-US'); };
+var mins = function(t){ var p = t.split(':'); return +p[0]*60 + +p[1]; };
+var fmt = function(m){ m = ((m % 1440) + 1440) % 1440; return pad(Math.floor(m/60)) + ':' + pad(m % 60); };
+var DAYS = ['週日','週一','週二','週三','週四','週五','週六'];
+var byId = {}; MEATS.forEach(function(m){ byId[m.id] = m; });
+var now = new Date(), nowM = now.getHours()*60 + now.getMinutes();
+var dayStart = function(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); };
+var addDays = function(d, n){ return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); };
+var segs = function(d){ var h = SHOP.hours[d.getDay()]; return h ? h.map(function(s){ return [mins(s[0]), mins(s[1])]; }) : null; };
+var sameDay = function(a, b){ return a.toDateString() === b.toDateString(); };
+var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+var hash = function(n){ var x = Math.sin(n*127.1 + 311.7)*43758.5453; return x - Math.floor(x); };
+document.documentElement.classList.add('js');
+
+/* 牛皮紙纖維＋油漬斑：開頁時畫一次到 canvas，轉成 PNG 平鋪（比即時 SVG 濾鏡省效能） */
+(function(){
+  try {
+    var S = 480, c = document.createElement('canvas'); c.width = c.height = S;
+    var g = c.getContext('2d'), R = function(i){ return hash(i*1.37 + .71); }, off = [-S, 0, S];
+    var wrap = function(fn){ off.forEach(function(ox){ off.forEach(function(oy){ fn(ox, oy); }); }); };
+    for (var i = 0; i < 8; i++){ (function(i){ var x = R(i)*S, y = R(i + 40)*S, r = 34 + R(i + 80)*96, a = .06 + R(i + 120)*.08;
+      wrap(function(ox, oy){ var gr = g.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r); gr.addColorStop(0, 'rgba(92,50,16,' + a*.55 + ')'); gr.addColorStop(.78, 'rgba(92,50,16,' + a + ')'); gr.addColorStop(1, 'rgba(92,50,16,0)'); g.fillStyle = gr; g.beginPath(); g.ellipse(x + ox, y + oy, r, r*(.6 + R(i + 160)*.4), R(i + 200)*3, 0, 7); g.fill(); }); })(i); }
+    g.lineCap = 'round';
+    for (var j = 0; j < 1700; j++){ (function(j){ var x = R(j + 300)*S, y = R(j + 2300)*S, l = 5 + R(j + 4300)*22, t = (R(j + 6300) - .5)*1.3 + (R(j + 9000) > .8 ? 1.5 : 0), dark = R(j + 8300) > .45;
+      g.strokeStyle = dark ? 'rgba(70,40,14,' + (.05 + R(j + 7000)*.1) + ')' : 'rgba(255,242,220,' + (.06 + R(j + 7100)*.12) + ')'; g.lineWidth = .5 + R(j + 7200)*.9;
+      wrap(function(ox, oy){ if (Math.abs(ox) + Math.abs(oy) && (x + ox < -30 || x + ox > S + 30 || y + oy < -30 || y + oy > S + 30)) return; g.beginPath(); g.moveTo(x + ox, y + oy); g.quadraticCurveTo(x + ox + Math.cos(t)*l*.5 + 2, y + oy + Math.sin(t)*l*.5 - 1, x + ox + Math.cos(t)*l, y + oy + Math.sin(t)*l); g.stroke(); }); })(j); }
+    for (var k = 0; k < 1100; k++){ g.fillStyle = R(k + 11000) > .5 ? 'rgba(40,24,8,' + (.12 + R(k + 12000)*.2) + ')' : 'rgba(255,245,228,.22)'; g.fillRect(R(k + 13000)*S, R(k + 14000)*S, .8 + R(k + 15000)*1.2, .8 + R(k + 16000)*1.2); }
+    document.documentElement.style.setProperty('--tex', 'url(' + c.toDataURL('image/png') + ')');
+  } catch (e) {}
+})();
+/* 系統沒有 Impact 時（例如 Linux），改用較粗、較小的備援字級 */
+try { var cx2 = document.createElement('canvas').getContext('2d'); cx2.font = '40px monospace'; var w0 = cx2.measureText('EMBER OAK').width; cx2.font = '40px Impact, Haettenschweiler, monospace'; if (Math.abs(cx2.measureText('EMBER OAK').width - w0) < 1) document.documentElement.classList.add('noimp'); } catch (e) {}
+
+/* 帶入店家資料 */
+$$('[data-shop]').forEach(function(el){ el.textContent = SHOP[el.dataset.shop]; });
+$('#yr').textContent = now.getFullYear();
+$('#telBtn').href = 'tel:' + SHOP.phone.replace(/[^\d]/g, '');
+$('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+$$('[data-price]').forEach(function(el){ var m = byId[el.dataset.price]; el.textContent = money(m.p) + ' / 100 g　·　' + fmt(m.start + m.dur) + ' 開賣'; });
+
+/* ===== 營業狀態 ===== */
+function openState(){
+  var s = segs(now), cur = s && s.filter(function(x){ return nowM >= x[0] && nowM < x[1]; })[0];
+  if (cur) return {on:true, text:'營業中，到 ' + fmt(cur[1]), sub:'最後點餐 ' + fmt(cur[1] - 15)};
+  for (var k = 0; k < 8; k++){
+    var d = addDays(now, k), ss = segs(d); if (!ss) continue;
+    for (var i = 0; i < ss.length; i++) if (k > 0 || ss[i][0] > nowM){
+      var when = k === 0 ? '今天' : k === 1 ? '明天' : DAYS[d.getDay()];
+      return {on:false, text:'休息中，' + when + ' ' + fmt(ss[i][0]) + ' 開門', sub:k === 0 && i > 0 ? '午市與晚市之間休息備料' : '可先線上預點，開門即取'};
+    }
+  }
+  return {on:false, text:'休息中', sub:''};
+}
+var st = openState();
+var stEl = $('#status'); stEl.classList.toggle('on', st.on);
+stEl.children[1].textContent = st.text;
+stEl.children[2].textContent = st.sub;
+$('#nowLine').textContent = st.text; $('#nowLine').classList.toggle('on', st.on);
+$('#nowSub').textContent = st.sub;
+(function(){
+  var order = [1,2,3,4,5,6,0];
+  $('#hrs').innerHTML = order.map(function(i){
+    var h = SHOP.hours[i], today = i === now.getDay();
+    return '<li' + (today ? ' class="today"' : '') + '><b>' + DAYS[i] + '</b><span>' + (h ? h.map(function(s){ return s[0] + '–' + s[1]; }).join('　') : '公休・爐火休息') + '</span>' + (today ? '<em>Today</em>' : '<span></span>') + '</li>';
+  }).join('');
+})();
+
+/* ===== 煙燻模擬 ===== */
+var boardDay = segs(now) ? dayStart(now) : (function(){ for (var k = 1; k < 8; k++){ var d = addDays(now, k); if (segs(d)) return d; } return dayStart(now); })();
+var boardIsToday = sameDay(boardDay, now);
+var dayN = Math.floor(boardDay.getTime()/864e5);
+function simulate(it, m, day){
+  var sg = segs(day) || [[690, 1260]], ready = it.start + it.dur, idx = MEATS.indexOf(it), r = {ready:ready};
+  if (m < it.start){ r.phase = 'wait'; r.pct = 0; r.temp = 4; return r; }
+  if (m < ready){
+    var p = (m - it.start)/it.dur; r.phase = 'smoke'; r.pct = p;
+    r.temp = it.stall ? (p < .45 ? 4 + 64*Math.pow(p/.45, .8) : p < .7 ? 68 + 4*(p - .45)/.25 : 72 + (it.tgt - 72)*(p - .7)/.3) : 4 + (it.tgt - 4)*Math.pow(p, .75);
+    r.stalling = it.stall && p >= .45 && p < .7; return r;
+  }
+  var total = 0, done = 0;
+  sg.forEach(function(s){ var a = Math.max(s[0], ready), b = s[1]; if (b > a){ total += b - a; done += Math.max(0, Math.min(m, b) - a); } });
+  var u = total ? done/total : 1, f = Math.min(1, it.rate*(.9 + .22*hash(dayN*7 + idx))*Math.pow(u, .85));
+  r.pct = 1; r.remain = Math.max(0, it.stock*(1 - f)); r.temp = it.tgt;
+  var inOpen = sg.some(function(s){ return m >= s[0] && m < s[1]; });
+  r.phase = (f >= 1 || r.remain < .2) ? 'sold' : m >= sg[sg.length - 1][1] ? 'closed' : inOpen ? 'sell' : m < sg[0][0] ? 'rest' : 'break';
+  if (r.phase === 'break') r.resume = (sg.filter(function(s){ return s[0] > m; })[0] || [0])[0];
+  if (r.phase === 'rest') r.resume = sg[0][0];
+  return r;
+}
+var startTxt = function(it){ return it.start < 0 ? '前晚 ' + fmt(it.start + 1440) : fmt(it.start); };
+var durTxt = function(it){ var h = it.dur/60; return (h % 1 ? h.toFixed(1) : h) + ' 小時'; };
+var leftTxt = function(min){ min = Math.max(0, Math.round(min)); return (min >= 60 ? Math.floor(min/60) + ' 小時 ' : '') + (min % 60) + ' 分'; };
+var real = {}; MEATS.forEach(function(it){ real[it.id] = simulate(it, nowM, dayStart(now)); });
+var todayOpen = !!segs(now);
+
+/* 今日煙燻板 */
+$('#boardBox').innerHTML = MEATS.map(function(it, i){
+  return '<article class="tk rv" id="tk-' + it.id + '"><div class="tk-hd"><span class="tk-no">' + pad(i + 1) + '</span><div><h3>' + it.en + '</h3><p>' + it.zh + '</p></div><span class="tk-pr">NT$' + it.p + '<small>/ 100 g</small></span></div>' +
+    '<p class="tk-meta">入爐 ' + startTxt(it) + ' · ' + durTxt(it) + ' · ' + it.wood + '</p><div class="tk-bar" aria-hidden="true"><i></i></div>' +
+    '<div class="tk-row"><span class="tk-st"></span><span class="tk-t"></span></div><p class="tk-sub"></p><span class="soldout" aria-hidden="true">SOLD OUT</span></article>';
+}).join('');
+function drawBoard(m){
+  MEATS.forEach(function(it){
+    var r = simulate(it, m, boardDay), el = $('#tk-' + it.id), bar = $('.tk-bar', el), st = '', t = '', sub = '';
+    bar.classList.toggle('sell', r.pct >= 1);
+    $('i', bar).style.width = (r.pct >= 1 ? (r.remain || 0)/it.stock*100 : r.pct*100).toFixed(1) + '%';
+    if (r.phase === 'wait'){ st = '等待入爐'; t = fmt(r.ready) + ' 開賣'; sub = startTxt(it) + ' 點火入爐，預計燻 ' + durTxt(it) + '。'; }
+    else if (r.phase === 'smoke'){ st = '燻製中 ' + Math.floor(r.pct*100) + '%'; t = fmt(r.ready) + ' 開賣'; sub = '內溫 ' + Math.round(r.temp) + '°C' + (r.stalling ? '・進入 stall 停滯期，肉在出汁' : '') + '・還要 ' + leftTxt(r.ready - m); }
+    else if (r.phase === 'sold'){ st = '今日售完'; t = '0.0 kg'; sub = '明天 ' + fmt(r.ready) + ' 再開賣，想吃請預點。'; }
+    else {
+      t = '剩 ' + r.remain.toFixed(1) + ' kg';
+      if (r.phase === 'sell'){ st = '開賣中'; sub = '約可再切 ' + Math.max(1, Math.floor(r.remain*1000/250)) + ' 份（每份 250 g）'; }
+      else if (r.phase === 'break'){ st = '午休保溫中'; sub = fmt(r.resume) + ' 晚市繼續賣。'; }
+      else if (r.phase === 'rest'){ st = '靜置中'; sub = fmt(r.resume) + ' 開門開賣。'; }
+      else { st = '已收爐'; sub = '剩下的做成明天的牛胸三明治。'; }
+    }
+    $('.tk-st', el).textContent = st; $('.tk-t', el).textContent = t; $('.tk-sub', el).textContent = sub;
+    el.classList.toggle('sold', r.phase === 'sold');
+  });
+}
+var sim = $('#sim'), simOut = $('#simOut');
+function setSim(m, label){ sim.value = m; simOut.textContent = (label || '模擬 ') + fmt(m); drawBoard(m); }
+function simReset(){
+  if (boardIsToday) setSim(Math.min(1290, Math.max(360, nowM)), nowM >= 360 && nowM <= 1290 ? '現在 ' : '模擬 ');
+  else setSim(600, '預告 ');
+}
+sim.addEventListener('input', function(){ setSim(+sim.value); });
+$('#simNow').addEventListener('click', simReset);
+if (!boardIsToday){ $('#boardNote').textContent = '今天' + DAYS[now.getDay()] + '公休，爐火休息。以下是' + DAYS[boardDay.getDay()] + '的煙燻排程預告，拖曳時間看一天的變化。'; $('#simNow').textContent = '回到預告'; }
+simReset();
+
+/* ===== 牛肉部位圖 ===== */
+var BODY = 'M120 92C140 82 160 86 180 90C240 80 330 84 420 88C470 90 505 92 528 104C546 124 548 168 542 206C538 236 528 252 514 262L470 266C420 272 330 276 250 272C215 270 190 268 172 266C150 262 140 240 140 214C138 192 128 176 116 168C108 150 108 118 120 92Z';
+(function(){
+  var ink = 'stroke="#1b1612" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"';
+  var s = '<svg class="cow" viewBox="30 36 540 330" role="img" aria-label="牛肉部位圖：8 個部位"><defs><clipPath id="cowClip"><path d="' + BODY + '"/></clipPath><pattern id="hat" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><path d="M0 0V6" stroke="#1b1612" stroke-width="1" opacity=".35"/></pattern></defs>';
+  s += '<ellipse cx="345" cy="354" rx="236" ry="7" fill="rgba(27,22,18,.16)"/>';
+  s += '<path d="M206 262L212 332L210 352L232 352L232 334L236 262Z" fill="#b99467" ' + ink + '/><path d="M444 262C448 290 452 312 450 334L448 352L470 352L472 330C474 304 476 284 478 262Z" fill="#b99467" ' + ink + '/>';
+  s += '<path d="M168 258L174 330L171 352L196 352L197 330L204 262Z" fill="#e4cda8" ' + ink + '/><path d="M486 250C494 282 500 300 494 330L494 352L518 352L518 326C526 296 532 270 530 236Z" fill="#e4cda8" ' + ink + '/>';
+  s += '<path d="M172 344H196M494 344H518M210 344H232M448 344H470M184 344V352M506 344V352" ' + ink + ' stroke-width="1.6" fill="none"/>';
+  s += '<path d="M528 106C552 128 558 180 552 236" fill="none" ' + ink + ' stroke-width="3"/><path d="M552 230c-9 10-9 24 0 32c9-8 9-22 0-32Z" fill="#1b1612"/>';
+  s += '<path d="M122 94C114 84 108 76 100 72C92 74 82 78 74 84C66 100 56 122 48 138C44 146 42 154 46 160C52 168 62 170 74 168C88 168 102 170 116 168C108 150 108 118 122 94Z" fill="#e4cda8" ' + ink + '/>';
+  s += '<path d="M104 80C112 70 126 66 138 70C130 80 118 86 106 88Z" fill="#d6b88c" ' + ink + ' stroke-width="2"/><path d="M96 74C92 64 94 54 103 47C102 57 104 65 109 72" fill="#f3e8d2" ' + ink + ' stroke-width="2"/>';
+  s += '<ellipse cx="82" cy="102" rx="4.5" ry="3.2" fill="#1b1612"/><path d="M52 149c4-3 9-2 10 2M48 161c9 3 17 3 25 0M76 92c4-3 9-3 12 0" fill="none" ' + ink + ' stroke-width="1.6"/>';
+  s += '<path d="' + BODY + '" fill="#e4cda8"/>';
+  s += '<g clip-path="url(#cowClip)"><path d="M140 214C200 250 330 262 520 240V300H130Z" fill="url(#hat)"/><path d="M470 120C500 140 520 180 516 240" fill="none" stroke="#1b1612" stroke-width="1.2" opacity=".45"/>';
+  s += CUTS.map(function(c){ return '<polygon class="cut" data-cut="' + c.id + '" points="' + c.poly + '"><title>' + c.n + ' ' + c.zh + ' ' + c.en + '</title></polygon>'; }).join('') + '</g>';
+  s += '<path d="' + BODY + '" fill="none" ' + ink + ' stroke-width="2.8"/>';
+  s += CUTS.map(function(c){ return '<g class="lb" data-lb="' + c.id + '"><circle cx="' + c.lx + '" cy="' + c.ly + '" r="12.5"/><text class="n" x="' + c.lx + '" y="' + (c.ly + 5.5) + '">' + c.n + '</text><text class="e" x="' + c.lx + '" y="' + (c.ly + 28) + '">' + c.en.toUpperCase() + '</text></g>'; }).join('');
+  s += '</svg>';
+  $('#cowBox').innerHTML = s;
+  $('#legend').innerHTML = CUTS.map(function(c){ return '<button type="button" data-cut="' + c.id + '" aria-pressed="false"><span>' + c.n + '</span>' + c.zh + '</button>'; }).join('');
+})();
+function todayLine(it){
+  var r = real[it.id];
+  if (!todayOpen) return '今日公休・' + DAYS[boardDay.getDay()] + ' ' + fmt(r.ready) + ' 開賣';
+  if (r.phase === 'wait') return '今日 ' + fmt(r.ready) + ' 開賣・' + startTxt(it) + ' 入爐';
+  if (r.phase === 'smoke') return '燻製中 ' + Math.floor(r.pct*100) + '%・' + fmt(r.ready) + ' 開賣';
+  if (r.phase === 'sold') return 'SOLD OUT・今日售完';
+  if (r.phase === 'closed') return '今日已收爐';
+  return '開賣中・剩約 ' + r.remain.toFixed(1) + ' kg';
+}
+function pickCut(id){
+  var c = CUTS.filter(function(x){ return x.id === id; })[0], it = c.item && byId[c.item];
+  $$('.cow .cut').forEach(function(p){ p.classList.toggle('on', p.dataset.cut === id); });
+  $$('.cow .lb').forEach(function(p){ p.classList.toggle('on', p.dataset.lb === id); });
+  $$('#legend button').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.cut === id); });
+  var soldToday = it && todayOpen && real[it.id].phase === 'sold';
+  $('#cutInfo').innerHTML = '<h3>No.' + c.n + ' ' + c.en + '<small>' + c.zh + '</small></h3><p>' + (it ? '今日供應：<b>' + it.zh + '</b>　' + money(it.p) + ' / 100 g' : c.d) + '</p><p class="today">' + (it ? todayLine(it) : '今日不供應煙燻') + '</p>' +
+    '<div class="act">' + (it ? '<button type="button" class="mini" id="cutAdd"' + (soldToday ? ' disabled' : '') + '>+200 g 預點</button>' : '<a class="mini" href="#menu">看菜單</a>') + '</div>';
+  if (it) $('#cutAdd').onclick = function(){ if (adjust(it.id, 200)){ this.textContent = '已加入 ✓'; } };
+}
+$('#cowBox').addEventListener('click', function(e){ var p = e.target.closest('.cut'); if (p) pickCut(p.dataset.cut); });
+$('#legend').addEventListener('click', function(e){ var b = e.target.closest('button'); if (b) pickCut(b.dataset.cut); });
+
+/* ===== 菜單吊牌 ===== */
+function menuItems(k){
+  if (k === 'meat') return MEATS.map(function(m){ return [m.en, m.zh, m.p, '入爐 ' + startTxt(m) + '・燻 ' + durTxt(m) + '・' + fmt(m.start + m.dur) + ' 開賣', m.id === 'brisket' || m.id === 'beefrib', '/100g']; });
+  if (k === 'side') return SIDES.map(function(s){ return [s.en, s.zh, s.p, '小份，約 180 g']; }).concat([['Sauce','加購醬汁',SHOP.pricing.sauceExtra,'每單前 ' + SHOP.pricing.sauceFree + ' 種醬汁免費']]);
+  return MENU.filter(function(x){ return x.k === k; })[0].items;
+}
+$('#tabs').innerHTML = MENU.map(function(c, i){ return '<button type="button" role="tab" id="tab-' + c.k + '" data-k="' + c.k + '" aria-selected="' + (i === 0) + '">' + c.en + '<small>' + c.zh + '</small></button>'; }).join('');
+function drawMenu(k){
+  $('#tags').innerHTML = menuItems(k).map(function(it, i){
+    var cls = it[4] ? ' sig' : (i % 3 === 1 ? ' alt' : '');
+    return '<div class="tag' + cls + '" style="--dl:' + (-(i*0.9 % 5.5)).toFixed(1) + 's"><div class="tag-b"><span class="tg-no">No.' + pad(i + 1) + (it[4] ? ' · 招牌' : '') + '</span><b class="tg-en">' + esc(it[0]) + '</b><span class="tg-zh">' + it[1] + '</span><span class="tg-pr">$' + it[2] + (it[5] ? '<small>' + it[5] + '</small>' : '') + '</span><span class="tg-d">' + it[3] + '</span></div></div>';
+  }).join('');
+}
+$('#tabs').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; $$('#tabs button').forEach(function(x){ x.setAttribute('aria-selected', x === b); }); drawMenu(b.dataset.k); });
+drawMenu('meat');
+
+/* ===== 秤重點餐 ===== */
+var cart = {}, sideQ = {}, sauceSel = {house:1};
+MEATS.forEach(function(m){ cart[m.id] = 0; }); SIDES.forEach(function(s){ sideQ[s.id] = 0; });
+$('#meats').innerHTML = MEATS.map(function(m){
+  return '<div class="mrow" data-id="' + m.id + '"><b>' + m.en + '<small>' + m.zh + '</small></b><span class="pp">' + money(m.p) + ' / 100 g</span><span class="ms"></span>' +
+    '<div class="step"><button type="button" data-d="-100" aria-label="' + m.zh + '減 100 g">−</button><output>0 g</output><button type="button" data-d="100" aria-label="' + m.zh + '加 100 g">+</button></div></div>';
+}).join('');
+$('#sides').innerHTML = SIDES.map(function(s){
+  return '<div class="srow" data-sid="' + s.id + '"><span>' + s.zh + '<small>' + esc(s.en) + ' · $' + s.p + '</small></span><div class="step"><button type="button" data-q="-1" aria-label="' + s.zh + '減一份">−</button><output>0</output><button type="button" data-q="1" aria-label="' + s.zh + '加一份">+</button></div></div>';
+}).join('');
+$('#sauces').innerHTML = SAUCES.map(function(s){ return '<button type="button" data-sc="' + s.id + '" aria-pressed="' + !!sauceSel[s.id] + '">' + s.zh + '<small>' + s.en + '</small></button>'; }).join('');
+
+/* 秤盤刻度 */
+(function(){
+  var cx = 125, cy = 98, R = 56, s = '<rect x="6" y="8" width="238" height="160" rx="18" fill="#8f2a17" stroke="#1b1612" stroke-width="3"/><rect x="18" y="150" width="214" height="10" rx="3" fill="#5f1a0c"/><circle cx="' + cx + '" cy="' + cy + '" r="' + (R + 6) + '" fill="#1b1612"/><circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="#f3e8d2"/>';
+  for (var i = 0; i <= 50; i++){
+    var a = (-120 + i*4.8)*Math.PI/180, l = i % 10 === 0 ? 11 : i % 5 === 0 ? 7 : 4, x1 = cx + Math.sin(a)*(R - 3), y1 = cy - Math.cos(a)*(R - 3), x2 = cx + Math.sin(a)*(R - 3 - l), y2 = cy - Math.cos(a)*(R - 3 - l);
+    s += '<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '" stroke="#1b1612" stroke-width="' + (i % 10 ? 1 : 2) + '"/>';
+    if (i % 10 === 0) s += '<text x="' + (cx + Math.sin(a)*(R - 22)).toFixed(1) + '" y="' + (cy - Math.cos(a)*(R - 22) + 5).toFixed(1) + '" text-anchor="middle" font-family="Impact,sans-serif" font-size="13" fill="#1b1612">' + (i/10) + '</text>';
+  }
+  s += '<text x="' + cx + '" y="' + (cy + 27) + '" text-anchor="middle" font-family="Courier New,monospace" font-weight="700" font-size="9" fill="#8f2a17">KG · E&amp;O</text>';
+  s += '<g class="needle" id="needle" style="transform-origin:' + cx + 'px ' + cy + 'px;transform:rotate(-120deg)"><path d="M' + cx + ' ' + (cy + 12) + 'L' + (cx - 2.4) + ' ' + cy + 'L' + cx + ' ' + (cy - R + 8) + 'L' + (cx + 2.4) + ' ' + cy + 'Z" fill="#8f2a17"/></g><circle cx="' + cx + '" cy="' + cy + '" r="6" fill="#1b1612"/><circle cx="' + cx + '" cy="' + cy + '" r="2" fill="#c9a77c"/>';
+  s += '<text x="125" y="26" text-anchor="middle" font-family="Impact,sans-serif" font-size="12" letter-spacing="2" fill="#f3e8d2">EMBER &amp; OAK SCALE CO.</text>';
+  $('#scale').innerHTML = s;
+})();
+
+/* 取餐日期與時段 */
+var pickDays = [];
+function slotsFor(d){
+  var sg = segs(d), out = [], today = sameDay(d, now);
+  if (!sg) return out;
+  sg.forEach(function(s){ for (var m = s[0] + 30; m <= s[1] - 15; m += SHOP.pricing.slotStep) out.push({m:m, dis:today && m < nowM + SHOP.pricing.leadMin}); });
+  return out;
+}
+for (var k = 0; pickDays.length < 7 && k < 14; k++){ var d = addDays(now, k), sl = slotsFor(d); if (sl.length && sl.some(function(x){ return !x.dis; })) pickDays.push(d); }
+$('#dates').innerHTML = pickDays.map(function(d, i){ return '<label class="chip"><input type="radio" name="pd" value="' + i + '"' + (i ? '' : ' checked') + '><span>' + (d.getMonth() + 1) + '/' + d.getDate() + '<small>' + (sameDay(d, now) ? '今天' : DAYS[d.getDay()]) + '</small></span></label>'; }).join('');
+function pickDay(){ var c = $('input[name=pd]:checked'); return c ? pickDays[+c.value] : null; }
+function drawTimes(){
+  var d = pickDay(); if (!d){ $('#times').innerHTML = ''; return; }
+  $('#times').innerHTML = slotsFor(d).map(function(s){ return '<label class="chip"><input type="radio" name="pt" value="' + s.m + '"' + (s.dis ? ' disabled' : '') + '><span>' + fmt(s.m) + '</span></label>'; }).join('');
+  drawMeats();
+}
+$('#dates').addEventListener('change', drawTimes);
+$('#times').addEventListener('change', function(){ $('#eTime').textContent = ''; });
+
+function limitFor(id){
+  var d = pickDay(), r = real[id];
+  if (d && sameDay(d, now) && todayOpen){
+    if (r.phase === 'sold') return 0;
+    if (r.remain != null) return Math.min(SHOP.pricing.maxGram, Math.floor(r.remain*10)*100);
+  }
+  return SHOP.pricing.maxGram;
+}
+function drawMeats(){
+  var d = pickDay(), today = d && sameDay(d, now);
+  MEATS.forEach(function(m){
+    var row = $('.mrow[data-id="' + m.id + '"]'), lim = limitFor(m.id), r = real[m.id];
+    if (cart[m.id] > lim) cart[m.id] = lim;
+    row.classList.toggle('off', lim === 0);
+    $('.ms', row).textContent = lim === 0 ? 'SOLD OUT・今天賣完了，請改選其他日期' : (today && todayOpen ? todayLine(m) : fmt(m.start + m.dur) + ' 開賣') + (lim < SHOP.pricing.maxGram && lim > 0 ? '・最多可預點 ' + (lim/1000).toFixed(1) + ' kg' : '');
+    $('output', row).textContent = cart[m.id] >= 1000 ? (cart[m.id]/1000).toFixed(1) + ' kg' : cart[m.id] + ' g';
+    $('[data-d="-100"]', row).disabled = cart[m.id] <= 0;
+    $('[data-d="100"]', row).disabled = cart[m.id] >= lim;
+  });
+  recalc();
+}
+function adjust(id, g){
+  var lim = limitFor(id), v = Math.max(0, Math.min(lim, cart[id] + g));
+  if (v === cart[id]) return false;
+  cart[id] = v; $('#eCart').textContent = ''; drawMeats(); return true;
+}
+$('#meats').addEventListener('click', function(e){ var b = e.target.closest('button[data-d]'); if (b) adjust(b.closest('.mrow').dataset.id, +b.dataset.d); });
+$('#sides').addEventListener('click', function(e){ var b = e.target.closest('button[data-q]'); if (!b) return; var row = b.closest('.srow'), id = row.dataset.sid; sideQ[id] = Math.max(0, Math.min(20, sideQ[id] + +b.dataset.q)); $('output', row).textContent = sideQ[id]; recalc(); });
+$('#sauces').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; var id = b.dataset.sc; if (sauceSel[id]) delete sauceSel[id]; else sauceSel[id] = 1; b.setAttribute('aria-pressed', !!sauceSel[id]); recalc(); });
+function totals(){
+  var lines = [], grams = 0, sum = 0;
+  MEATS.forEach(function(m){ var g = cart[m.id]; if (!g) return; grams += g; var c = m.p*g/100; sum += c; lines.push([m.zh + ' ' + (g/1000).toFixed(1) + ' kg', c]); });
+  SIDES.forEach(function(s){ var q = sideQ[s.id]; if (!q) return; var c = s.p*q; sum += c; lines.push([s.zh + ' × ' + q, c]); });
+  var sc = Object.keys(sauceSel), extra = Math.max(0, sc.length - SHOP.pricing.sauceFree);
+  if (sc.length) lines.push(['醬汁 ' + sc.length + ' 種' + (extra ? '（加購 ' + extra + '）' : '（免費）'), extra*SHOP.pricing.sauceExtra]);
+  sum += extra*SHOP.pricing.sauceExtra;
+  return {lines:lines, grams:grams, sum:sum};
+}
+function recalc(){
+  var t = totals();
+  $('#lines').innerHTML = t.lines.length ? t.lines.map(function(l){ return '<li><span>' + l[0] + '</span><span>' + money(l[1]) + '</span></li>'; }).join('') : '<li class="empty">秤盤上還沒有肉</li>';
+  $('#oTotal').textContent = money(t.sum);
+  var kg = t.grams/1000; $('#needle').style.transform = 'rotate(' + (-120 + Math.min(kg, 5.15)*48) + 'deg)';
+  $('#scale').setAttribute('aria-label', '秤重 ' + kg.toFixed(1) + ' 公斤');
+  var n = Object.keys(sauceSel).length;
+  $('#sauceHint').textContent = '每單前 ' + SHOP.pricing.sauceFree + ' 種免費，之後每種 +NT$ ' + SHOP.pricing.sauceExtra + '。目前選 ' + n + ' 種。';
+}
+drawTimes();
+
+var phoneOk = function(v){ return /^09\d{2}-?\d{3}-?\d{3}$/.test(v.trim()); };
+function fieldErr(input, msg){ input.classList.toggle('bad', !!msg); input.parentNode.querySelector('.err').textContent = msg || ''; return !msg; }
+$('#of').addEventListener('submit', function(e){
+  e.preventDefault();
+  var t = totals(), ok = true, name = $('#oName'), phone = $('#oPhone'), tm = $('input[name=pt]:checked'), d = pickDay();
+  if (!t.grams){ $('#eCart').textContent = '請至少選一種肉（100 g 起）'; ok = false; }
+  ok = fieldErr(name, name.value.trim() ? '' : '請填寫取餐人姓名') && ok;
+  ok = fieldErr(phone, phoneOk(phone.value) ? '' : '請輸入手機號碼，格式 09xx-xxx-xxx') && ok;
+  var et = '';
+  if (!tm) et = '請選擇取餐時段';
+  else MEATS.forEach(function(m){ if (!et && cart[m.id] && +tm.value < m.start + m.dur) et = m.zh + ' ' + fmt(m.start + m.dur) + ' 才開賣，請改選 ' + fmt(m.start + m.dur) + ' 之後的時段'; });
+  $('#eTime').textContent = et; if (et) ok = false;
+  if (!ok){ var f = $('#of .err:not(:empty)'); if (f) f.closest('fieldset').scrollIntoView({behavior:'smooth', block:'start'}); return; }
+  var no = 'EO-' + pad(d.getMonth() + 1) + pad(d.getDate()) + '-' + String(Math.floor(100 + Math.random()*900));
+  var masked = phone.value.trim().replace(/\D/g, '').replace(/^(\d{4})\d{3}(\d{3})$/, '$1-***-$2');
+  var twine = '<i class="tw-h" aria-hidden="true"></i><i class="tw-v" aria-hidden="true"></i><svg class="bow" viewBox="-70 -50 140 130" aria-hidden="true"><g fill="none" stroke-linecap="round"><path d="M0 0C-30 -40 -64 -20 -40 4C-24 18 -8 8 0 0ZM0 0C30 -40 64 -20 40 4C24 18 8 8 0 0ZM0 0C-10 30 -26 52 -34 70M0 0C8 30 20 54 30 72" stroke="#6e5a3c" stroke-width="7"/><path d="M0 0C-30 -40 -64 -20 -40 4C-24 18 -8 8 0 0ZM0 0C30 -40 64 -20 40 4C24 18 8 8 0 0ZM0 0C-10 30 -26 52 -34 70M0 0C8 30 20 54 30 72" stroke="#e9dbbd" stroke-width="3.5" stroke-dasharray="5 4"/></g><circle r="9" fill="#cdb48a" stroke="#6e5a3c" stroke-width="3"/></svg>';
+  $('#orderDone').innerHTML = '<div class="parcel">' + twine + '<div class="ticket"><h4>Take-out 取餐單</h4><dl><dt>單號</dt><dd>' + no + '</dd><dt>取餐</dt><dd>' + (d.getMonth() + 1) + '/' + d.getDate() + '（' + DAYS[d.getDay()].slice(1) + '）' + fmt(+tm.value) + '</dd><dt>姓名</dt><dd>' + esc(name.value.trim()) + '</dd><dt>手機</dt><dd>' + masked + '</dd></dl><ul>' +
+    t.lines.map(function(l){ return '<li><span>' + l[0] + '</span><span>' + money(l[1]) + '</span></li>'; }).join('') + '</ul><div class="tt"><span>到店付款</span><span>' + money(t.sum) + '</span></div>' +
+    '<svg class="stampmark" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" fill="none" stroke="#8f2a17" stroke-width="4"/><circle cx="50" cy="50" r="36" fill="none" stroke="#8f2a17" stroke-width="1.5"/><text x="50" y="47" text-anchor="middle" font-family="Impact,sans-serif" font-size="20" fill="#8f2a17">E&amp;O</text><text x="50" y="63" text-anchor="middle" font-family="Courier New,monospace" font-weight="700" font-size="9" fill="#8f2a17">WRAPPED</text></svg></div></div>' +
+    '<p class="demo">示範版本：沒有真的送出。正式上線會傳送簡訊確認，' + SHOP.name + ' 會在取餐前 15 分鐘切好包妥。</p><div class="acts"><button type="button" class="btn" id="again">再點一單</button><a class="btn ghost" href="#visit">怎麼來</a></div>';
+  $('#orderForm').style.display = 'none'; $('#orderDone').classList.add('show');
+  $('#order').scrollIntoView({behavior:'smooth'});
+  $('#again').onclick = function(){ $('#orderDone').classList.remove('show'); $('#orderForm').style.display = ''; MEATS.forEach(function(m){ cart[m.id] = 0; }); drawMeats(); };
+});
+
+/* ===== 整條 brisket 派對預訂 ===== */
+var P = SHOP.party, cookedPer = P.rawKg*P.yieldRate*1000;
+$('#appetite').innerHTML = P.appetite.map(function(a, i){ return '<label class="chip"><input type="radio" name="ap" value="' + i + '"' + (i === 1 ? ' checked' : '') + '><span>' + a[0] + '<small>每人 ' + a[1] + ' g</small></span></label>'; }).join('');
+$('#pSidesP').textContent = '每人 +$' + P.sidesPerHead;
+$('#partyLede').textContent = '尾牙、生日、公司聚餐，整條 brisket 燻好切好帶走，需 ' + P.leadDays + ' 天前預訂。輸入人數，我們幫你算要幾條、幾公斤。';
+var pDays = []; for (var j = P.leadDays; pDays.length < 21 && j < 60; j++){ var dd = addDays(now, j); if (segs(dd)) pDays.push(dd); }
+$('#pDate').innerHTML = '<option value="">請選擇日期</option>' + pDays.map(function(d, i){ return '<option value="' + i + '">' + d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate() + '（' + DAYS[d.getDay()].slice(1) + '）</option>'; }).join('');
+var slab = '<svg viewBox="0 0 74 40"><path d="M6 24C4 12 18 6 34 7C52 8 70 12 68 24C66 34 50 36 34 35C18 34 8 32 6 24Z" fill="#2a1b13" stroke="#1b1612" stroke-width="2"/><path d="M10 18C24 12 48 12 64 18" fill="none" stroke="#e8d2b0" stroke-width="3" opacity=".85"/><path d="M48 9C56 16 58 26 54 34" fill="none" stroke="#9e3b25" stroke-width="2.5"/><circle cx="22" cy="26" r="1.3" fill="#7a6a5a"/><circle cx="30" cy="22" r="1.1" fill="#7a6a5a"/><circle cx="40" cy="28" r="1.2" fill="#7a6a5a"/></svg>';
+function pCalc(){
+  var inp = $('#pPeople'), n = Math.round(+inp.value || 0), ap = P.appetite[+($('input[name=ap]:checked') || {value:1}).value];
+  var valid = n >= 6 && n <= 120, nn = Math.max(6, Math.min(120, n || 6));
+  var need = nn*ap[1], count = Math.max(1, Math.ceil(need/cookedPer)), cooked = count*cookedPer/1000;
+  var sides = $('#pSides').checked ? nn*P.sidesPerHead : 0, total = count*P.pricePerBrisket + sides;
+  $('#pCount').textContent = count;
+  $('#slabs').innerHTML = new Array(Math.min(count, 8) + 1).join(slab) + (count > 8 ? '<em>+' + (count - 8) + '</em>' : '');
+  $('#pDl').innerHTML = '<dt>需要熟肉（' + nn + ' 人 × ' + ap[1] + ' g）</dt><dd>' + (need/1000).toFixed(1) + ' kg</dd><dt>生重（每條約 ' + P.rawKg + ' kg）</dt><dd>' + (count*P.rawKg).toFixed(0) + ' kg</dd><dt>燻好熟重（熟成率 ' + Math.round(P.yieldRate*100) + '%）</dt><dd>' + cooked.toFixed(1) + ' kg</dd><dt>平均每人</dt><dd>' + Math.round(cooked*1000/nn) + ' g</dd><dt>整條 ' + money(P.pricePerBrisket) + ' × ' + count + '</dt><dd>' + money(count*P.pricePerBrisket) + '</dd>' + (sides ? '<dt>配菜套組 × ' + nn + '</dt><dd>' + money(sides) + '</dd>' : '');
+  $('#pTotal').textContent = money(total);
+  $('#pRule').textContent = valid ? '含牛皮紙包裝、醃黃瓜、洋蔥、白吐司與醬汁。需 ' + P.leadDays + ' 天前預訂，訂金 30%。' : '人數請輸入 6–120 人；超過 120 人請來電洽詢。';
+  return {n:nn, valid:valid, count:count, cooked:cooked, total:total, ap:ap};
+}
+$('#pMinus').onclick = function(){ var i = $('#pPeople'); i.value = Math.max(6, (+i.value || 6) - 2); pCalc(); };
+$('#pPlus').onclick = function(){ var i = $('#pPeople'); i.value = Math.min(120, (+i.value || 6) + 2); pCalc(); };
+['input','change'].forEach(function(ev){ $('#pf').addEventListener(ev, function(e){ if (e.target.closest('#pPeople, #appetite, #pSides, #pSlice')) pCalc(); }); });
+pCalc();
+$('#pf').addEventListener('submit', function(e){
+  e.preventDefault();
+  var r = pCalc(), ok = true, name = $('#pName'), phone = $('#pPhone'), dt = $('#pDate');
+  ok = fieldErr(dt, dt.value === '' ? '請選擇取件日期（需 ' + P.leadDays + ' 天前）' : '') && ok;
+  ok = fieldErr(name, name.value.trim() ? '' : '請填寫聯絡人姓名') && ok;
+  ok = fieldErr(phone, phoneOk(phone.value) ? '' : '請輸入手機號碼，格式 09xx-xxx-xxx') && ok;
+  if (!r.valid){ $('#pRule').textContent = '人數請輸入 6–120 人；超過 120 人請來電洽詢。'; ok = false; }
+  if (!ok) return;
+  var d = pDays[+dt.value];
+  $('#pDone').innerHTML = '<svg class="stampmark" viewBox="0 0 100 100" aria-hidden="true"><rect x="8" y="26" width="84" height="48" fill="none" stroke="#8f2a17" stroke-width="4"/><text x="50" y="57" text-anchor="middle" font-family="Impact,sans-serif" font-size="17" textLength="72" lengthAdjust="spacingAndGlyphs" fill="#8f2a17">RESERVED</text></svg><h4>Party Brisket</h4>' +
+    esc(name.value.trim()) + '，已為你保留 <b>' + r.count + ' 條整條 brisket</b>（熟重約 ' + r.cooked.toFixed(1) + ' kg，' + r.n + ' 人份）。<br>取件：' + (d.getMonth() + 1) + '/' + d.getDate() + '（' + DAYS[d.getDay()].slice(1) + '）' + $('#pSlot').selectedOptions[0].textContent + '<br>預估金額 ' + money(r.total) + '，訂金 ' + money(r.total*.3) + '。<br><b>示範版本：沒有真的送出</b>，正式上線會由店家來電確認並傳送訂金連結。';
+  $('#pDone').classList.add('show');
+});
+
+/* ===== 撕紙邊 ===== */
+$$('.sec').forEach(function(sec, si){
+  var p = 'M0 24', q = 'M0 24', x = 0, i = 0;
+  while (x < 1440){ x += 9 + hash(si*97 + i)*16; var y = 5 + hash(si*31 + i*7)*13; p += 'L' + x.toFixed(0) + ' ' + y.toFixed(1); q += 'L' + x.toFixed(0) + ' ' + Math.max(0, y - 3 - hash(i + si)*3).toFixed(1); i++; }
+  var t = document.createElement('div'); t.className = 'tear'; t.setAttribute('aria-hidden', 'true');
+  t.innerHTML = '<svg viewBox="0 0 1440 24" preserveAspectRatio="none"><path d="' + q + 'L1440 24Z" fill="#efe2c6" opacity=".55"/><path d="' + p + 'L1440 24Z" fill="currentColor"/></svg>';
+  sec.insertBefore(t, sec.firstChild);
+});
+
+/* ===== 佔位插畫 ===== */
+var uid = 0;
+function art(w, h, bg, body){
+  var id = 'a' + (++uid);
+  return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><filter id="' + id + 'n" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".012 .5" numOctaves="2" seed="' + uid + '"/><feColorMatrix values="0 0 0 0 .2  0 0 0 0 .12  0 0 0 0 .05  0 0 0 .55 -.18"/></filter><pattern id="' + id + 'h" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><path d="M0 0V7" stroke="#1b1612" stroke-width="1.5" opacity=".5"/></pattern><radialGradient id="' + id + 'g"><stop offset="0" stop-color="#ffd38a" stop-opacity=".85"/><stop offset="1" stop-color="#ffb35a" stop-opacity="0"/></radialGradient></defs><rect width="' + w + '" height="' + h + '" fill="' + bg + '"/>' +
+    body.replace(/HATCH/g, 'url(#' + id + 'h)').replace(/GLOW/g, 'url(#' + id + 'g)') + '<rect width="' + w + '" height="' + h + '" filter="url(#' + id + 'n)"/></svg>';
+}
+function dots(n, x, y, w, h, r, c, seed){ var s = ''; for (var i = 0; i < n; i++) s += '<circle cx="' + (x + hash(seed + i)*w).toFixed(0) + '" cy="' + (y + hash(seed + i*3.7)*h).toFixed(0) + '" r="' + (r*(.5 + hash(seed + i*1.3))).toFixed(1) + '" fill="' + c + '"/>'; return s; }
+var K = 'stroke="#1b1612" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"';
+var paperBits = function(w, h){ return '<path d="M0 ' + h*.3 + 'L' + w + ' ' + h*.42 + 'M' + w*.62 + ' 0L' + w*.5 + ' ' + h + '" stroke="rgba(27,22,18,.1)" stroke-width="3"/><ellipse cx="' + w*.2 + '" cy="' + h*.78 + '" rx="' + w*.12 + '" ry="' + h*.08 + '" fill="rgba(90,45,15,.16)"/><ellipse cx="' + w*.86 + '" cy="' + h*.2 + '" rx="' + w*.07 + '" ry="' + h*.05 + '" fill="rgba(90,45,15,.13)"/>'; };
+var ART = {
+  brisket:function(){
+    var s = paperBits(800, 600) + '<path d="M70 250C70 190 150 170 250 176C330 180 380 200 390 250L380 430C320 450 160 452 90 430Z" fill="#2a1b13" ' + K + '/>' + dots(70, 90, 190, 290, 240, 3, '#0e0907', 11) + dots(30, 90, 190, 290, 240, 2.4, '#6a5848', 41);
+    for (var i = 0; i < 6; i++){
+      s += '<g transform="translate(' + (370 + i*62) + ' ' + (170 + i*14) + ') rotate(' + (-14 + i*5) + ')"><rect width="74" height="250" rx="14" fill="#2a1b13" ' + K + '/><rect x="7" y="7" width="60" height="236" rx="10" fill="#9e3b25"/><rect x="14" y="14" width="46" height="222" rx="8" fill="#7b4a33"/><path d="M14 40H60M14 120H60M14 188H60" stroke="#5e3624" stroke-width="2"/><path d="M14 64C26 58 46 72 60 64V84C46 92 26 78 14 84Z" fill="#ecd8b4"/><path d="M20 150C30 146 44 154 56 150" stroke="#ecd8b4" stroke-width="5" fill="none" opacity=".8"/></g>';
+    }
+    s += '<g transform="translate(130 470)"><rect width="150" height="96" rx="10" fill="#f3ead6" ' + K + '/><rect x="16" y="-10" width="150" height="96" rx="10" fill="#f6efe0" ' + K + '/></g>';
+    s += '<g ' + K + ' stroke-width="3"><circle cx="640" cy="520" r="30" fill="#7d8a3a"/><circle cx="700" cy="540" r="28" fill="#8a9744"/><circle cx="660" cy="470" r="26" fill="#6f7c30"/></g>' + dots(14, 620, 450, 100, 110, 2.2, '#d9d6a0', 7);
+    s += '<g fill="none" stroke="#f1e8d8" stroke-width="7"><ellipse cx="560" cy="80" rx="44" ry="26"/><ellipse cx="610" cy="96" rx="36" ry="22"/></g>';
+    return art(800, 600, '#cfae84', s);
+  },
+  beefrib:function(){
+    var s = paperBits(800, 600) + '<rect x="420" y="250" width="330" height="70" rx="34" fill="#efe1c4" ' + K + '/><circle cx="752" cy="268" r="28" fill="#efe1c4" ' + K + '/><circle cx="752" cy="304" r="28" fill="#efe1c4" ' + K + '/><path d="M450 276H700" stroke="#cdb894" stroke-width="5"/>';
+    s += '<path d="M90 230C110 150 260 120 380 140C470 156 520 210 510 290C500 380 420 430 290 430C170 430 70 360 90 230Z" fill="#241710" ' + K + '/>' + dots(110, 110, 150, 390, 270, 3.2, '#0c0806', 3) + dots(40, 110, 150, 390, 270, 2.6, '#7a6656', 33);
+    s += '<ellipse cx="210" cy="330" rx="120" ry="78" fill="#241710" ' + K + '/><ellipse cx="210" cy="330" rx="104" ry="64" fill="#a9432a"/><ellipse cx="210" cy="330" rx="88" ry="52" fill="#80503a"/><path d="M140 310C180 300 230 330 280 316M150 350C190 342 230 364 270 352" stroke="#ecd8b4" stroke-width="5" fill="none"/>';
+    s += '<g transform="translate(600 420) rotate(-20)"><rect width="150" height="22" rx="4" fill="#8c8a86" ' + K + ' stroke-width="3"/><rect x="150" y="-2" width="80" height="26" rx="6" fill="#3a2618" ' + K + ' stroke-width="3"/></g>';
+    return art(800, 600, '#c9a77c', s);
+  },
+  ribs:function(){
+    var s = '<rect x="40" y="70" width="720" height="460" rx="22" fill="#6b4a2e" ' + K + '/><path d="M60 140C250 150 500 120 740 150M60 260C300 270 520 240 740 270M60 400C260 410 500 380 740 410" stroke="#553a24" stroke-width="5" fill="none"/>';
+    s += '<g transform="rotate(-6 400 300)"><path d="M130 210C130 180 160 170 200 172L640 186C680 188 700 210 696 240L686 380C684 410 660 424 620 422L190 408C150 406 128 390 130 360Z" fill="#5a1d0f" ' + K + '/>';
+    for (var i = 0; i < 9; i++){ var x = 180 + i*56; s += '<rect x="' + (x - 9) + '" y="150" width="18" height="40" rx="8" fill="#efe1c4" ' + K + ' stroke-width="3"/><path d="M' + (x + 26) + ' 196L' + (x + 22) + ' 404" stroke="#3a1006" stroke-width="3" opacity=".7"/>'; }
+    s += '<path d="M170 230C300 214 460 224 650 240" stroke="#c4582f" stroke-width="10" fill="none" opacity=".75" stroke-linecap="round"/><path d="M200 300C320 290 470 300 620 312" stroke="#a8452a" stroke-width="6" fill="none" opacity=".6" stroke-linecap="round"/></g>';
+    s += '<circle cx="650" cy="470" r="46" fill="#efe1c4" ' + K + '/><circle cx="650" cy="470" r="32" fill="#7a2412"/><ellipse cx="640" cy="460" rx="10" ry="6" fill="#b5492a"/>';
+    return art(800, 600, '#1b1612', s);
+  },
+  pit:function(){
+    var s = '<rect y="470" width="1000" height="330" fill="#b28e62"/><path d="M0 470H1000" ' + K + '/><rect x="0" y="470" width="1000" height="40" fill="HATCH"/>';
+    s += '<g fill="none" stroke="#f3ead9" stroke-linecap="round" opacity=".75"><path d="M716 150C690 110 740 80 712 40C690 10 720 -20 700 -60" stroke-width="30"/><path d="M736 150C770 100 740 70 780 30" stroke-width="18" opacity=".7"/></g>';
+    s += '<rect x="696" y="150" width="40" height="200" fill="#3a2f27" ' + K + '/><rect x="688" y="146" width="56" height="12" fill="#3a2f27" ' + K + '/>';
+    s += '<rect x="290" y="300" width="470" height="170" rx="85" fill="#2b241e" ' + K + '/><path d="M330 362H720" stroke="#6a5c50" stroke-width="5"/><path d="M380 300V470M680 300V470" stroke="#1b1612" stroke-width="3"/><rect x="480" y="380" width="90" height="12" rx="6" fill="#9a8b7c" ' + K + ' stroke-width="3"/><circle cx="420" cy="340" r="20" fill="#f3e8d2" ' + K + ' stroke-width="3"/><path d="M420 340L430 330" stroke="#8f2a17" stroke-width="3"/>';
+    s += '<rect x="150" y="340" width="150" height="130" fill="#2b241e" ' + K + '/><rect x="175" y="388" width="100" height="56" fill="#d46a2a"/><ellipse cx="225" cy="420" rx="90" ry="60" fill="GLOW"/><path d="M190 444C200 410 214 430 222 404C232 430 246 410 258 444Z" fill="#ffcc6a"/>';
+    s += '<path d="M330 470L320 530M720 470L730 530" ' + K + '/><circle cx="320" cy="540" r="26" fill="#2b241e" ' + K + '/><circle cx="730" cy="540" r="26" fill="#2b241e" ' + K + '/>';
+    for (var r = 0; r < 3; r++) for (var c = 0; c < 4 - r; c++){ var cx = 830 + c*44 + r*22, cy = 448 - r*38; s += '<circle cx="' + cx + '" cy="' + cy + '" r="20" fill="#b07a48" ' + K + ' stroke-width="3"/><circle cx="' + cx + '" cy="' + cy + '" r="9" fill="none" stroke="#7a4f2c" stroke-width="2"/>'; }
+    return art(1000, 800, '#c9a77c', s);
+  },
+  hall:function(){
+    var s = '';
+    for (var i = 0; i < 14; i++) s += '<path d="M' + (i*64) + ' 0V560" stroke="#211a14" stroke-width="3"/>';
+    s += '<rect x="170" y="250" width="460" height="130" fill="#1b1612" ' + K + ' stroke="#8f2a17"/><text x="400" y="330" text-anchor="middle" font-family="Impact,sans-serif" font-size="64" fill="#e9dcc4" letter-spacing="4">EMBER &amp; OAK</text><text x="400" y="362" text-anchor="middle" font-family="Courier New,monospace" font-weight="700" font-size="18" fill="#c4512f">BBQ · BY THE POUND</text>';
+    [140, 400, 660].forEach(function(x, i){ s += '<path d="M' + x + ' 0V' + (160 + i % 2*30) + '" stroke="#0d0a08" stroke-width="3"/><circle cx="' + x + '" cy="' + (180 + i % 2*30) + '" r="90" fill="GLOW" opacity=".7"/><circle cx="' + x + '" cy="' + (180 + i % 2*30) + '" r="16" fill="#ffe2a6"/>'; });
+    s += '<rect y="560" width="800" height="440" fill="#4a3424"/><path d="M0 600H800M0 680H800M0 800H800" stroke="#3a281b" stroke-width="4"/>';
+    s += '<path d="M120 620L680 620L760 880L40 880Z" fill="#7a5636" ' + K + '/><path d="M150 650H650M110 720H690M80 800H720" stroke="#5e412a" stroke-width="3"/><path d="M80 880V960M720 880V960" ' + K + ' stroke-width="8"/>';
+    s += '<path d="M60 610H170V900H40Z" fill="#5e412a" ' + K + ' stroke-width="3"/><path d="M630 610H740L760 900H640Z" fill="#5e412a" ' + K + ' stroke-width="3"/>';
+    [[240, 700], [420, 740], [560, 690]].forEach(function(p){ s += '<ellipse cx="' + p[0] + '" cy="' + p[1] + '" rx="66" ry="26" fill="#cfae84" ' + K + ' stroke-width="3"/><ellipse cx="' + (p[0] - 10) + '" cy="' + (p[1] - 4) + '" rx="34" ry="12" fill="#5a2a18"/>'; });
+    s += '<ellipse cx="400" cy="560" rx="380" ry="40" fill="GLOW" opacity=".25"/>';
+    return art(800, 1000, '#2a211a', s);
+  },
+  wood:function(){
+    var s = '';
+    for (var r = 0; r < 5; r++) for (var c = 0; c < 10; c++){
+      var cx = 40 + c*112 + (r % 2)*56, cy = 70 + r*104, rr = 48 + hash(r*10 + c)*10;
+      s += '<circle cx="' + cx + '" cy="' + cy + '" r="' + rr.toFixed(0) + '" fill="#b07a48" stroke="#3a2618" stroke-width="7"/><circle cx="' + cx + '" cy="' + cy + '" r="' + (rr*.66).toFixed(0) + '" fill="none" stroke="#8c5d36" stroke-width="2.5"/><circle cx="' + cx + '" cy="' + cy + '" r="' + (rr*.36).toFixed(0) + '" fill="none" stroke="#8c5d36" stroke-width="2"/><path d="M' + cx + ' ' + cy + 'l' + (rr*.7).toFixed(0) + ' ' + (-rr*.3).toFixed(0) + '" stroke="#5a3b22" stroke-width="2.5"/>';
+    }
+    return art(1100, 520, '#1b1612', s);
+  },
+  block:function(){
+    var s = paperBits(1100, 600) + '<rect x="160" y="120" width="680" height="400" rx="16" fill="#b98e5c" ' + K + '/>';
+    for (var r = 0; r < 5; r++) for (var c = 0; c < 8; c++) s += '<rect x="' + (172 + c*82) + '" y="' + (132 + r*76) + '" width="82" height="76" fill="' + ((r + c) % 2 ? '#c99d68' : '#a87c4c') + '" opacity=".75"/>';
+    s += '<rect x="160" y="120" width="680" height="400" rx="16" fill="none" ' + K + '/><rect x="160" y="500" width="680" height="34" fill="#7d5a36" ' + K + '/>';
+    s += '<g transform="translate(560 200) rotate(14)"><rect width="260" height="140" rx="8" fill="#a3a19c" ' + K + '/><circle cx="34" cy="34" r="14" fill="#b98e5c" ' + K + ' stroke-width="3"/><path d="M0 120H260" stroke="#e1dfda" stroke-width="5"/><rect x="250" y="30" width="170" height="40" rx="10" fill="#3a2618" ' + K + '/><circle cx="300" cy="50" r="5" fill="#d9c9a6"/><circle cx="360" cy="50" r="5" fill="#d9c9a6"/></g>';
+    s += '<g transform="translate(260 260) rotate(-8)"><rect width="200" height="64" rx="12" fill="#2a1b13" ' + K + '/><rect x="8" y="8" width="184" height="48" rx="8" fill="#9e3b25"/><rect x="16" y="14" width="168" height="36" rx="6" fill="#7b4a33"/><path d="M16 26C60 20 120 34 184 26" stroke="#ecd8b4" stroke-width="5" fill="none"/></g>' + dots(40, 200, 360, 300, 120, 2.6, '#1b1612', 5) + dots(26, 220, 380, 280, 100, 2.4, '#f3ead9', 9);
+    return art(1100, 600, '#c9a77c', s);
+  }
+};
+$$('.ph').forEach(function(f){
+  var url = SHOP.photos[f.dataset.photo];
+  if (url){ f.innerHTML = '<img src="' + url + '" alt="' + esc(f.dataset.label || '') + '" loading="lazy">'; return; }
+  var a = ART[f.dataset.art]; if (a) f.innerHTML = a();
+});
+
+/* ===== 煙霧 ===== */
+(function(){
+  var h = '';
+  for (var i = 0; i < 7; i++){
+    var a = hash(i*13), b = hash(i*29), c = hash(i*41);
+    var d = 'M60 600C' + (20 + a*40) + ' 520 ' + (80 + b*40) + ' 440 60 360S' + (20 + c*30) + ' 200 ' + (60 + a*30) + ' 120S' + (90 - b*40) + ' 40 70 0';
+    h += '<i style="--x:' + (4 + i*14 + a*6).toFixed(0) + '%;--d:' + (19 + b*12).toFixed(1) + 's;--dl:' + (-(c*24)).toFixed(1) + 's;--sx:' + ((a - .5)*160).toFixed(0) + 'px;--o:' + (.16 + c*.12).toFixed(2) + '"><svg viewBox="0 0 120 600" preserveAspectRatio="none"><path d="' + d + '" fill="none" stroke="#ece4d6" stroke-width="' + (34 + b*22).toFixed(0) + '" stroke-linecap="round"/></svg></i>';
+  }
+  $('#smoke').innerHTML = h;
+})();
+
+/* ===== 導覽、照片位、進場 ===== */
+var nav = $('#nav');
+$('#burger').onclick = function(){ var o = nav.classList.toggle('open'); this.setAttribute('aria-expanded', o); this.textContent = o ? 'Close' : 'Menu'; };
+$$('#navList a').forEach(function(a){ a.addEventListener('click', function(){ nav.classList.remove('open'); $('#burger').setAttribute('aria-expanded', 'false'); $('#burger').textContent = 'Menu'; }); });
+var slotBtn = $('#slotBtn');
+function slots(on){ document.body.classList.toggle('slots', on); slotBtn.setAttribute('aria-pressed', on); }
+slotBtn.onclick = function(){ slots(!document.body.classList.contains('slots')); };
+if (/[?&]slots/.test(location.search)) slots(true);
+
+pickCut('brisket');
+setTimeout(function(){ $('#heroName').classList.add('in'); }, 120);
+var targets = $$('.rv, .press').filter(function(el){ return el.id !== 'heroName'; });
+if ('IntersectionObserver' in window){
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -8% 0px'});
+  targets.forEach(function(el){ io.observe(el); });
+} else targets.forEach(function(el){ el.classList.add('in'); });
+})();
+</script>
+</body>
+</html>

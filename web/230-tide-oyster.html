@@ -1,0 +1,1312 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LOW TIDE 退潮生蠔吧｜生蠔海鮮吧・基隆</title>
+<meta name="description" content="LOW TIDE 退潮生蠔吧：基隆港邊的生蠔海鮮吧。八個產地生蠔點單現開，營業時間內每次乾潮前後一小時生蠔半價；生蠔產地圖鑑、線上組冰盤即時算價，吧台與桌位線上訂位。">
+<!--
+  店家模板使用方式
+  1. 修改 <script> 開頭的 SHOP：店名、電話、地址、營業時間（hours，0=週日，可多時段，null=公休）、
+     潮汐參數（tide.highRef 任一次滿潮時間、period 週期小時、mean/amp 平均潮位與振幅、offsetMin 偏移分鐘）、
+     退潮半價規則（happy.windowMin 乾潮前後幾分鐘、happy.discount 折扣比例）與 photos 照片網址。
+  2. ORIGINS 是生蠔產地圖鑑（鹹度 sal、奶油感 cre 皆為 0–10、單顆價格），MENU 是完整菜單，REVIEWS 是評論。
+  3. photos 填入照片網址就會取代程式繪製的佔位插畫；網址加 ?slots 或按右下角「照片位」可標出每個照片位與建議尺寸。
+  4. 潮汐曲線以半日潮正弦函數模擬，僅供示範；正式上線建議串接中央氣象署潮汐預報 API 取得基隆潮位站資料。
+  5. 訂位與冰盤預訂只在頁面上示範，沒有真的送出；正式使用請串接訂位系統或表單後端。
+-->
+<style>
+:root{--navy:#0d2238;--navy2:#091a2b;--navy3:#13304c;--yel:#f2c230;--red:#c8242b;--can:#f2efe6;--paper:#fbf9f3;--brass:#b48a4a;--fblue:#1f5aa6;
+  --muted:#a3b3c4;--line:rgba(242,239,230,.15);--lineD:rgba(13,34,56,.18);--ink2:#3a4c60;
+  --serif:Georgia,"Times New Roman",Times,"Noto Serif CJK TC","Songti TC",serif;
+  --mono:Menlo,Consolas,"DejaVu Sans Mono","Liberation Mono","Courier New",monospace;
+  --sans:"PingFang TC","Microsoft JhengHei","Noto Sans CJK TC","Heiti TC","Source Han Sans TC",system-ui,sans-serif;
+  --edge:24px;--gut:clamp(48px,5.4vw,80px)}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+html,body{margin:0}
+body{position:relative;background:var(--navy);color:var(--can);font-family:var(--sans);line-height:1.75;overflow-x:clip;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+em{font-style:normal}
+.mono{font-family:var(--mono)}
+.wrap{max-width:1280px;margin:0 auto;padding:0 var(--gut)}
+:focus-visible{outline:3px solid var(--yel);outline-offset:3px}
+.light :focus-visible{outline-color:var(--red)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* 海圖經緯度刻度 */
+.edge{position:absolute;top:0;bottom:0;width:var(--edge);z-index:35;pointer-events:none}
+.edge.l{left:0}.edge.r{right:0}
+.edge::before{content:"";position:absolute;top:0;bottom:0;width:7px;background:repeating-linear-gradient(180deg,var(--can) 0 60px,var(--navy) 60px 120px);box-shadow:0 0 0 1px var(--brass)}
+.edge.l::before{left:0}.edge.r::before{right:0}
+.edge::after{content:"";position:absolute;top:0;bottom:0;width:13px;background:repeating-linear-gradient(180deg,var(--brass) 0 1px,transparent 1px 60px) 0 0/13px 100% no-repeat,repeating-linear-gradient(180deg,rgba(180,138,74,.85) 0 1px,transparent 1px 12px) 0 0/6px 100% no-repeat}
+.edge.l::after{left:8px}.edge.r::after{right:8px;transform:scaleX(-1)}
+.edge span{position:absolute;font:9px/1 var(--mono);color:var(--brass);writing-mode:vertical-rl;letter-spacing:.06em;white-space:nowrap}
+.edge.l span{left:10px;transform:rotate(180deg)}.edge.r span{right:10px}
+/* 導覽 */
+.nav{position:sticky;top:0;z-index:50;background:rgba(9,26,43,.95);border-bottom:1px solid rgba(180,138,74,.45)}
+@supports (backdrop-filter:blur(8px)){.nav{background:rgba(9,26,43,.86);backdrop-filter:blur(8px)}}
+.navin{display:flex;align-items:center;gap:28px;height:66px}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none;flex:none}
+.logo .lf{display:flex;gap:3px}.logo .lf svg{width:22px;height:18px;display:block}
+.logo em{display:block;font:italic 700 25px/1 var(--serif)}
+.logo small{display:block;font-size:10.5px;letter-spacing:.34em;color:var(--yel);margin-top:4px;line-height:1}
+.nav ul{display:flex;gap:26px;list-style:none;margin:0 0 0 auto;padding:0;font-size:14px;letter-spacing:.08em}
+.nav ul a{text-decoration:none;color:#d4dce6;padding:6px 0;border-bottom:2px solid transparent;transition:color .2s,border-color .2s}
+.nav ul a:hover{color:var(--yel);border-color:var(--yel)}
+.burger{display:none;margin-left:auto;align-items:center;gap:8px;background:none;border:1px solid var(--line);color:var(--can);padding:8px 12px;cursor:pointer;font-size:13px;letter-spacing:.1em}
+.burger i{display:block;width:16px;height:2px;background:currentColor;box-shadow:0 -5px 0 currentColor,0 5px 0 currentColor}
+/* 按鈕 */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:13px 22px;font:600 14px/1.2 var(--sans);letter-spacing:.12em;text-decoration:none;cursor:pointer;border:2px solid currentColor;background:transparent;color:var(--can);border-radius:0;transition:background .2s,color .2s,transform .15s}
+.btn:active{transform:translateY(1px)}
+.btn.y{background:var(--yel);border-color:var(--yel);color:var(--navy)}
+.btn.y:hover{background:#ffd447;border-color:#ffd447}
+.btn.o:hover{background:var(--can);color:var(--navy)}
+.btn.n{background:var(--navy);border-color:var(--navy);color:var(--can)}
+.btn.n:hover{background:#1b3d61;border-color:#1b3d61}
+.btn.ghost{color:var(--navy)}
+.btn.ghost:hover{background:var(--navy);color:var(--can)}
+.btn.sm{padding:9px 16px;font-size:13px}
+.btns{display:flex;flex-wrap:wrap;gap:12px}
+/* 照片位 */
+.ph{position:relative;overflow:hidden;margin:0;background:var(--navy3)}
+.ph>svg,.ph>img,.ph>canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+body.slots .ph{outline:2px dashed var(--red);outline-offset:-2px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:10px;top:10px;z-index:3;background:var(--red);color:#fff;font:11px/1.5 var(--mono);padding:3px 9px;max-width:calc(100% - 20px)}
+/* Hero */
+.hero{position:relative;overflow:hidden;background:radial-gradient(ellipse 70% 60% at 85% 10%,rgba(31,90,166,.28),transparent 70%),var(--navy)}
+.halyard{position:relative;height:112px}
+.rope{position:absolute;left:0;right:0;top:26px;height:3px;background:repeating-linear-gradient(60deg,#d8c9a4 0 3px,#86734e 3px 6px);opacity:.75}
+.flags{position:relative;display:flex;justify-content:center;gap:clamp(8px,1.5vw,22px);padding-top:22px}
+.fl{display:flex;flex-direction:column;align-items:center}
+.fl::before{content:"";width:7px;height:7px;border:1.5px solid var(--brass);border-radius:50%;margin-bottom:-1px}
+.fl svg{display:block;width:clamp(32px,4.3vw,62px);height:auto;aspect-ratio:5/4;transform-origin:50% 0;animation:sway 3.8s ease-in-out infinite;animation-delay:calc(var(--i) * -.45s);filter:drop-shadow(0 6px 6px rgba(0,0,0,.35))}
+.fl b{margin-top:7px;font:700 11px/1 var(--mono);color:var(--yel);letter-spacing:.1em}
+.fl.sp{width:clamp(10px,2.4vw,34px)}.fl.sp::before{display:none}
+.sheen{animation:sheen 2.6s linear infinite}
+@keyframes sway{0%,100%{transform:skewX(0) rotate(0)}30%{transform:skewX(-5deg) rotate(1.4deg) scaleX(.97)}65%{transform:skewX(4deg) rotate(-1.1deg) scaleX(1.02)}}
+@keyframes sheen{from{transform:translateX(0)}to{transform:translateX(25px)}}
+.heroin{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);gap:clamp(30px,5vw,80px);align-items:center;padding-top:4px;padding-bottom:28px}
+.coord{font:12px/1.4 var(--mono);color:var(--brass);letter-spacing:.14em;margin:0 0 16px}
+h1{margin:0}
+h1 em{display:block;font:italic 700 clamp(62px,9.2vw,134px)/.88 var(--serif);letter-spacing:-.025em;color:var(--can)}
+h1 em b{color:var(--yel);font-weight:700}
+h1 span{display:block;font-size:clamp(19px,2.2vw,28px);letter-spacing:.42em;font-weight:600;color:var(--yel);margin-top:14px;line-height:1.3}
+.lead{max-width:560px;color:#cdd7e2;font-size:16.5px;margin:16px 0 22px}
+.status{display:inline-flex;align-items:center;gap:10px;font:13px/1.4 var(--mono);margin:18px 0 0;padding:8px 14px;border:1px solid var(--line)}
+.status i{width:9px;height:9px;border-radius:50%;background:#7c8a99;flex:none}
+.status.on i{background:#5ad48c;box-shadow:0 0 0 4px rgba(90,212,140,.2)}
+.porthole{position:relative;width:100%;max-width:370px;aspect-ratio:1;justify-self:center}
+.porthole .rose{position:absolute;inset:-24%;width:148%;height:148%;opacity:.3;animation:spin 160s linear infinite}
+.porthole .ring{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 32% 26%,#f0d39a,#b48a4a 38%,#6c4e24 74%,#9c763c);box-shadow:0 30px 60px rgba(0,0,0,.5),inset 0 0 0 2px rgba(0,0,0,.25)}
+.porthole .bolts i{position:absolute;inset:0;transform:rotate(calc(var(--i) * 45deg))}
+.porthole .bolts i::before{content:"";position:absolute;left:50%;top:2.6%;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fbe7b8,#7a5a2a 70%);box-shadow:0 1px 2px rgba(0,0,0,.5)}
+.porthole .ph{position:absolute;inset:8.5%;border-radius:50%}
+.porthole .glass{position:absolute;inset:8.5%;border-radius:50%;z-index:2;pointer-events:none;background:linear-gradient(140deg,rgba(255,255,255,.2),transparent 38%,transparent 70%,rgba(255,255,255,.06));box-shadow:inset 0 0 0 7px #5a4120,inset 0 12px 30px rgba(0,0,0,.55)}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* 潮汐 */
+.tide{position:relative;border-top:1px solid var(--line);background:linear-gradient(180deg,transparent,rgba(9,26,43,.75))}
+.tidehead{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 30px;padding-top:20px}
+.tnow{font:600 clamp(15px,1.75vw,21px)/1.5 var(--mono);margin:0}
+.tnow b{color:var(--yel);font-weight:700}
+.chip{display:inline-block;padding:1px 9px;font:700 .82em/1.6 var(--sans);letter-spacing:.08em;vertical-align:1px}
+.chip.ebb{background:var(--can);color:var(--navy)}.chip.flood{background:var(--fblue);color:#fff}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font:12px/1.4 var(--mono);color:var(--muted);margin:0}
+.legend i{display:inline-block;width:14px;height:10px;margin-right:6px;vertical-align:-1px}
+.tbox{padding:4px var(--gut) 6px}
+#tideSvg{display:block;width:100%;height:230px;overflow:visible}
+#tideSvg text{font-family:var(--mono)}
+.curve{stroke-dasharray:1;stroke-dashoffset:0}
+.drawing .curve{animation:draw 2.4s cubic-bezier(.4,.1,.2,1) both}
+.drawing .area{animation:fadein 1.6s .8s both}
+@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes fadein{from{opacity:0}}
+.glint{stroke-dasharray:70 2400;animation:glint 5s linear infinite}
+@keyframes glint{from{stroke-dashoffset:120}to{stroke-dashoffset:-2300}}
+.pulse{transform-box:fill-box;transform-origin:center;animation:pulse 2s ease-out infinite}
+@keyframes pulse{from{transform:scale(1);opacity:.8}to{transform:scale(3.2);opacity:0}}
+.hhnext{animation:hhflash 2.4s ease-in-out infinite}
+@keyframes hhflash{50%{opacity:.45}}
+.flash{animation:fl 1s ease 2}
+@keyframes fl{50%{filter:brightness(1.6)}}
+/* Happy Hour 帶 */
+.hh{background:var(--yel);color:var(--navy);border-top:4px solid var(--navy);position:relative}
+.hh::after{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;background:repeating-linear-gradient(90deg,var(--navy) 0 18px,transparent 18px 36px);opacity:.9}
+.hhin{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr) minmax(0,1fr);gap:clamp(20px,3vw,44px);align-items:center;padding-top:28px;padding-bottom:34px}
+.hhl h2{margin:0;font:italic 700 clamp(28px,3vw,42px)/1 var(--serif)}
+.hhl h2 small{display:block;font:700 15px/1.4 var(--sans);letter-spacing:.24em;margin-top:10px;font-style:normal}
+.hhl p{margin:8px 0 0;font-size:14.5px;color:#22344a}
+.hhc{border-left:2px solid var(--navy);padding-left:clamp(16px,2vw,30px)}
+.hhc span{font:700 12px/1.4 var(--mono);letter-spacing:.16em}
+.hhc strong{display:block;font:700 clamp(38px,4.6vw,62px)/1.05 var(--mono);letter-spacing:.01em;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.hh.on .hhc strong{color:var(--red)}
+.hhc small{font:13px/1.4 var(--mono)}
+.hhlist{list-style:none;margin:0;padding:0;font:13px/1.5 var(--mono)}
+.hhlist li{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid rgba(13,34,56,.3)}
+.hhlist li:first-child{border-top:1px solid rgba(13,34,56,.3)}
+.hhlist b{font-weight:700}
+.hhlist .now{background:var(--navy);color:var(--yel);padding:7px 8px;margin:0 -8px}
+.linkbtn{background:none;border:0;padding:0;margin-top:8px;font:700 13px/1.4 var(--mono);color:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+/* 區塊 */
+.sec{position:relative;overflow:hidden;padding:clamp(80px,9vw,130px) 0}
+.light{background-color:var(--can);color:var(--navy);background-image:linear-gradient(rgba(13,34,56,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(13,34,56,.055) 1px,transparent 1px);background-size:80px 80px;background-position:-1px -1px}
+.dark2{background:var(--navy2)}
+.sh{display:grid;gap:10px;margin-bottom:clamp(36px,4vw,58px);max-width:760px}
+.sh .no{font:12px/1.4 var(--mono);letter-spacing:.18em;color:var(--brass)}
+.light .sh .no{color:#8a6630}
+.sh h2{margin:0;font-size:clamp(30px,3.6vw,48px);line-height:1.15;font-weight:700;letter-spacing:.05em}
+.sh h2 em{display:block;font:italic 700 1.12em/1.05 var(--serif);letter-spacing:0;margin-bottom:6px;color:var(--yel)}
+.light .sh h2 em{color:var(--red)}
+.sh p{margin:0;color:var(--muted);max-width:640px}
+.light .sh p{color:var(--ink2)}
+.rv{opacity:0;transform:translateY(22px);transition:opacity .9s ease,transform .9s cubic-bezier(.2,.7,.2,1)}
+.rv.in{opacity:1;transform:none}
+/* 品牌故事 */
+.story{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:clamp(40px,6vw,96px);align-items:start}
+.log{list-style:none;padding:0;margin:0;border-left:2px solid var(--navy)}
+.log li{position:relative;padding:0 0 28px 30px}
+.log li:last-child{padding-bottom:4px}
+.log li::before{content:"";position:absolute;left:-8px;top:7px;width:12px;height:12px;background:var(--yel);border:2px solid var(--navy);transform:rotate(45deg)}
+.log time{display:block;font:12px/1.5 var(--mono);color:#a11d23;letter-spacing:.1em}
+.log h3{margin:2px 0 4px;font-size:19px;letter-spacing:.04em}
+.log p{margin:0;color:var(--ink2)}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:2px solid var(--navy);border-bottom:1px solid var(--navy);margin-top:36px}
+.stats div{padding:16px 12px 14px 0}
+.stats div+div{padding-left:16px;border-left:1px solid var(--lineD)}
+.stats b{display:block;font:700 clamp(24px,2.6vw,32px)/1.1 var(--mono)}
+.stats small{font-size:13px;color:var(--ink2)}
+.storyph{position:relative;padding:0 18px 18px 0}
+.storyph .rose{position:absolute;width:62%;right:-14%;top:-12%;opacity:.5;animation:spin 200s linear infinite reverse}
+.storyph .ph{aspect-ratio:4/5;border:10px solid var(--navy);box-shadow:18px 18px 0 var(--yel)}
+.storyph p{position:relative;margin:30px 0 0;font:12px/1.6 var(--mono);color:var(--ink2);letter-spacing:.06em}
+/* 招牌 */
+.sig{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(18px,2.4vw,34px)}
+.card{display:flex;flex-direction:column;background:var(--navy3);border:1px solid var(--line)}
+.card .ph{aspect-ratio:4/3}
+.cb{display:flex;flex-direction:column;gap:8px;padding:22px 24px 24px;flex:1}
+.code{display:flex;align-items:center;gap:8px;font:11px/1 var(--mono);color:var(--brass);letter-spacing:.14em}
+.code svg{width:24px;height:19px}
+.card h3{margin:0;font-size:21px;letter-spacing:.04em;line-height:1.35}
+.card h3 em{display:block;font:italic 400 15px/1.3 var(--serif);color:var(--muted);letter-spacing:0;margin-top:3px}
+.card p{margin:0;color:#b9c6d3;font-size:14.5px}
+.card .pr{margin-top:auto;padding-top:14px;border-top:1px dashed var(--line);display:flex;justify-content:space-between;align-items:baseline;font:700 18px/1.2 var(--mono);color:var(--yel)}
+.card .pr small{font:12px var(--sans);color:var(--muted);letter-spacing:.06em}
+/* 圖鑑＋冰盤 */
+.atlas{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);gap:clamp(28px,4vw,60px);align-items:start}
+.atlas>*{min-width:0}
+.plotwrap{position:relative;background:var(--paper);border:2px solid var(--navy);padding:22px 22px 52px 54px}
+.plot{position:relative;aspect-ratio:1.3;border-left:2px solid var(--navy);border-bottom:2px solid var(--navy);background-image:linear-gradient(rgba(13,34,56,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(13,34,56,.09) 1px,transparent 1px);background-size:10% 10%;background-position:0 -1px}
+.q{position:absolute;font:italic 15px/1.2 var(--serif);color:rgba(13,34,56,.42);pointer-events:none}
+.q small{display:block;font:12px var(--sans);font-style:normal;letter-spacing:.2em}
+.axx{position:absolute;left:54px;right:22px;bottom:14px;display:flex;justify-content:space-between;font:11px/1.2 var(--mono);color:var(--ink2);letter-spacing:.06em}
+.axx b,.axy b{color:var(--navy);letter-spacing:.14em}
+.axy{position:absolute;left:14px;top:22px;bottom:52px;display:flex;justify-content:space-between;align-items:center;font:11px/1.2 var(--mono);color:var(--ink2);writing-mode:vertical-rl;text-orientation:sideways;transform:rotate(180deg);letter-spacing:.06em}
+.pt{position:absolute;transform:translate(-50%,-30%);display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:0;padding:4px 6px;cursor:pointer;color:var(--navy);font:700 13px/1.1 var(--sans);white-space:nowrap;z-index:1}
+.pt svg{width:30px;height:24px;display:block;filter:drop-shadow(0 2px 0 rgba(13,34,56,.35));transition:transform .25s cubic-bezier(.3,1.6,.5,1)}
+.pt:hover svg,.pt.act svg{transform:scale(1.22) rotate(-5deg)}
+.pt.act span{background:var(--navy);color:var(--yel)}
+.pt span{padding:1px 5px}
+.pt i{position:absolute;top:0;right:0;min-width:17px;height:17px;border-radius:9px;background:var(--red);color:#fff;font:700 10px/17px var(--mono);font-style:normal;text-align:center;display:none}
+.pt i.on{display:block}
+.od{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 18px;background:var(--navy);color:var(--can);padding:20px 22px;border:2px solid var(--navy);border-top:0}
+.od svg.big{width:62px;height:50px;grid-row:span 2}
+.od h3{margin:0;font-size:20px;line-height:1.3}
+.od h3 small{font:12px/1.4 var(--mono);color:var(--yel);letter-spacing:.1em;margin-left:8px;font-weight:400}
+.od p{margin:0;color:#c3cfdb;font-size:14px}
+.bars{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:8px;font:11px/1.4 var(--mono);color:var(--muted)}
+.bars i{display:block;height:5px;background:rgba(242,239,230,.18);margin-top:5px;position:relative}
+.bars i::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--v);background:var(--yel)}
+.odf{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;padding-top:12px;border-top:1px dashed var(--line)}
+.odf b{font:700 18px var(--mono);color:var(--yel)}
+.tray{background:var(--navy);color:var(--can);padding:clamp(18px,2.4vw,28px);box-shadow:12px 12px 0 var(--yel)}
+.trayh{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.trayh h3{margin:0;font:italic 700 26px/1.1 var(--serif)}
+.trayh h3 small{display:block;font:600 13px/1.4 var(--sans);letter-spacing:.2em;color:var(--yel);margin-top:4px}
+.seg{display:inline-flex;border:1.5px solid var(--can)}
+.seg button{background:none;border:0;color:var(--can);padding:7px 14px;cursor:pointer;font:700 13px/1.2 var(--mono)}
+.seg button[aria-pressed=true]{background:var(--can);color:var(--navy)}
+#plate{display:block;width:100%;max-width:420px;margin:16px auto 6px;aspect-ratio:1}
+.popin{transform-box:fill-box;transform-origin:center;animation:popin .45s cubic-bezier(.3,1.5,.5,1)}
+@keyframes popin{from{transform:scale(0) rotate(-30deg);opacity:0}}
+.pmsg{min-height:22px;margin:0;text-align:center;font:12.5px/1.5 var(--mono);color:var(--yel)}
+.plist{list-style:none;margin:10px 0 0;padding:0;font-size:14px}
+.plist li{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.plist svg{width:20px;height:16px;display:block}
+.plist .x{background:none;border:1px solid var(--line);color:var(--can);width:28px;height:28px;cursor:pointer;font:700 15px/1 var(--mono)}
+.plist .x:hover{border-color:var(--yel);color:var(--yel)}
+.plist .m{font:13px var(--mono);color:var(--muted)}
+.plist .empty{display:block;color:var(--muted);font-size:13.5px;border:0;text-align:center;padding:12px 0}
+.sum{margin:12px 0 0;font:14px/1.5 var(--mono)}
+.sum div{display:flex;justify-content:space-between;gap:12px;padding:3px 0}
+.sum .disc{color:var(--yel)}
+.sum .hint{color:var(--muted);font-size:12.5px}
+.sum .tot{border-top:2px solid var(--can);margin-top:8px;padding-top:10px;font-size:20px;font-weight:700}
+.trayb{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.trayb .btn{flex:1 1 auto;padding:10px 12px;font-size:13px}
+/* 菜單 */
+.tabs{display:flex;flex-wrap:wrap;border-bottom:2px solid var(--yel);margin-bottom:10px}
+.tabs button{background:none;border:0;color:var(--can);padding:12px 22px;cursor:pointer;font:600 15px/1.2 var(--sans);letter-spacing:.1em}
+.tabs button small{font:11px var(--mono);color:var(--muted);margin-left:6px;letter-spacing:0}
+.tabs button[aria-selected=true]{background:var(--yel);color:var(--navy)}
+.tabs button[aria-selected=true] small{color:var(--navy)}
+.mlist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 64px}
+.mi{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 16px;align-items:baseline;padding:17px 0;border-bottom:1px dashed var(--line)}
+.mi b{font-size:17px;letter-spacing:.04em}
+.mi b em{font:italic 400 14.5px var(--serif);color:var(--brass);margin-left:8px;letter-spacing:0}
+.mi .p{font:700 16px/1.3 var(--mono);color:var(--yel);text-align:right;white-space:nowrap}
+.mi small{grid-column:1/-1;color:#a9b8c7;font-size:13.5px;line-height:1.6}
+.tag{display:inline-block;font:700 10.5px/1.6 var(--mono);background:var(--red);color:#fff;padding:0 6px;margin-left:8px;vertical-align:2px;letter-spacing:.06em}
+.mnote{margin:22px 0 0;font:12px/1.6 var(--mono);color:var(--muted)}
+/* 訂位 */
+.book{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:clamp(30px,4vw,60px);align-items:start}
+.book>*{min-width:0}
+.form{background:var(--paper);border:2px solid var(--navy);padding:clamp(20px,3vw,38px);box-shadow:12px 12px 0 var(--navy)}
+.form h3{margin:0;font:italic 700 30px/1.1 var(--serif)}
+.form h3 small{display:block;font:600 14px/1.5 var(--sans);letter-spacing:.14em;color:var(--ink2);margin-top:6px}
+.lab{display:block;font:700 11.5px/1.4 var(--mono);letter-spacing:.18em;color:#55657a;margin:22px 0 9px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips label{position:relative}
+.chips input{position:absolute;opacity:0;width:1px;height:1px}
+.chips span{display:block;min-width:58px;border:1.5px solid var(--navy);background:#fff;padding:7px 11px;text-align:center;cursor:pointer;font:600 14px/1.3 var(--mono);transition:background .15s}
+.chips span small{display:block;font:11px/1.3 var(--sans);color:#5d6c7d}
+.chips span:hover{background:#efe9da}
+.chips input:checked+span{background:var(--navy);color:var(--yel)}
+.chips input:checked+span small{color:var(--can)}
+.chips input:disabled+span{opacity:.33;cursor:not-allowed;text-decoration:line-through;background:transparent}
+.chips input:focus-visible+span{outline:3px solid var(--red);outline-offset:2px}
+.chips .hhtag{display:block;font:700 10px/1.3 var(--sans);color:var(--red);letter-spacing:.1em}
+.chips input:checked+span .hhtag{color:var(--yel)}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px}
+.step{display:inline-flex;align-items:stretch;border:1.5px solid var(--navy);background:#fff}
+.step button{width:42px;height:42px;background:none;border:0;cursor:pointer;font:700 18px var(--mono);color:var(--navy)}
+.step button:hover{background:#efe9da}
+.step output{min-width:70px;display:flex;align-items:center;justify-content:center;font:700 16px var(--mono);border-left:1.5px solid var(--navy);border-right:1.5px solid var(--navy)}
+.fi{display:block}
+.fi input,.fi textarea{display:block;width:100%;border:1.5px solid var(--navy);background:#fff;padding:11px 12px;font-size:16px;color:var(--navy);border-radius:0}
+.fi textarea{min-height:76px;resize:vertical;font-size:15px}
+.fi input:focus,.fi textarea:focus{outline:3px solid var(--yel);outline-offset:0}
+.fi.bad input{border-color:var(--red);background:#fff6f5}
+.err{display:block;min-height:20px;margin-top:4px;color:#b3141c;font-size:12.5px;line-height:1.5}
+.form .submit{width:100%;margin-top:14px;padding:15px}
+.demo{margin:10px 0 0;text-align:center;font:12px/1.5 var(--mono);color:#5d6c7d}
+.side{display:grid;gap:22px}
+.plan{background:var(--navy);color:var(--can);padding:18px 18px 12px}
+.plan svg{display:block;width:100%;height:auto}
+.plan p{margin:8px 0 0;font:12px/1.5 var(--mono);color:var(--muted)}
+.zone rect,.zone path{transition:fill .3s}
+.notes{margin:0;padding:0;list-style:none;font-size:14px;color:var(--ink2)}
+.notes li{padding:9px 0 9px 22px;border-bottom:1px solid var(--lineD);position:relative}
+.notes li::before{content:"";position:absolute;left:2px;top:17px;width:9px;height:9px;background:var(--red)}
+.ticket{text-align:center;padding:10px 0}
+.ticket .tf{display:flex;justify-content:center;gap:8px;margin:14px 0 6px}
+.ticket .tf svg{width:52px;height:42px}
+.ticket .tcode{font:700 13px var(--mono);letter-spacing:.4em}
+.ticket h3{margin:16px 0 6px}
+.ticket dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 18px;text-align:left;max-width:380px;margin:18px auto;font-size:14.5px}
+.ticket dt{font:12px/1.9 var(--mono);color:#5d6c7d;letter-spacing:.1em}
+.ticket dd{margin:0;font-weight:600}
+/* 氛圍 */
+.gal{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);grid-template-rows:auto auto;gap:22px}
+.gi{display:flex;flex-direction:column;gap:10px}
+.g1{grid-row:span 2}
+.g1 .ph{flex:1;min-height:420px}
+.g2 .ph,.g3 .ph{aspect-ratio:16/10}
+.gcap{margin:0;display:flex;justify-content:space-between;gap:14px;font:12px/1.5 var(--mono);color:var(--muted)}
+.gcap b{color:var(--can);font:600 14px var(--sans);letter-spacing:.06em}
+/* 評論 */
+.revs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(18px,2.4vw,32px)}
+.rev{position:relative;background:var(--paper);border:2px solid var(--navy);padding:50px 26px 24px;margin:0}
+.rev::before{content:"\201C";position:absolute;top:-6px;left:20px;font:italic 700 84px/1 var(--serif);color:var(--red)}
+.rev .st{font:14px var(--mono);color:#a37208;letter-spacing:.14em}
+.rev blockquote{margin:10px 0 18px;font-size:15.5px;line-height:1.85}
+.rev figcaption{font:12px/1.5 var(--mono);color:var(--ink2);border-top:1px dashed var(--lineD);padding-top:12px;display:flex;justify-content:space-between;gap:10px}
+.rsum{display:flex;align-items:baseline;gap:16px;margin:-20px 0 34px;font:13px var(--mono);color:var(--ink2)}
+.rsum b{font:italic 700 46px/1 var(--serif);color:var(--navy)}
+/* 資訊 */
+.visit{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:clamp(30px,5vw,80px);align-items:start}
+.visit>*{min-width:0}
+.htable{width:100%;border-collapse:collapse;font:14px/1.5 var(--mono)}
+.htable th{text-align:left;font:700 11px var(--mono);letter-spacing:.16em;color:var(--brass);padding:0 10px 10px;border-bottom:2px solid var(--yel)}
+.htable td{padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.htable td:first-child{white-space:nowrap}
+.htable .off{color:#7c8b9b}
+.htable tr.today td{background:rgba(242,194,48,.12)}
+.htable tr.today td:first-child{box-shadow:inset 4px 0 0 var(--yel)}
+.htable .hhcell{color:var(--yel)}
+.htable small{display:block;font-size:11px;color:var(--muted)}
+.contact h3{margin:0 0 6px;font:700 11px var(--mono);letter-spacing:.2em;color:var(--brass)}
+.contact p{margin:0 0 22px;color:#d0d9e3}
+.contact .tel{font:700 clamp(24px,2.6vw,30px) var(--mono);text-decoration:none;color:var(--yel);border-bottom:2px solid var(--yel)}
+.contact .addr{font-size:18px;color:var(--can)}
+.chart{margin-top:6px;border:1px solid var(--line)}
+.chart svg{display:block;width:100%;height:auto}
+footer{background:var(--navy2);border-top:1px solid rgba(180,138,74,.45);padding:44px 0 50px;font-size:13px;color:var(--muted)}
+.foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:20px}
+.foot .ff{display:flex;gap:4px}.foot .ff svg{width:26px;height:21px}
+.foot nav{display:flex;flex-wrap:wrap;gap:6px 22px}
+.foot nav a{text-decoration:none}
+.foot nav a:hover{color:var(--yel)}
+.foot p{margin:0;font:12px/1.6 var(--mono);width:100%}
+.slotBtn{position:fixed;right:18px;bottom:18px;z-index:60;background:var(--navy);color:var(--yel);border:1.5px solid var(--yel);padding:8px 14px;cursor:pointer;font:700 12px/1.2 var(--mono);letter-spacing:.1em;box-shadow:4px 4px 0 rgba(0,0,0,.35)}
+.slotBtn[aria-pressed=true]{background:var(--red);color:#fff;border-color:var(--red)}
+@media (max-width:1080px){
+  .nav ul{display:none;position:absolute;left:0;right:0;top:66px;flex-direction:column;gap:0;background:var(--navy2);padding:6px var(--gut) 16px;border-bottom:1px solid rgba(180,138,74,.45)}
+  .nav.open ul{display:flex}
+  .nav ul a{display:block;padding:13px 0;border-bottom:1px solid var(--line)}
+  .navin>.btn{display:none}
+  .burger{display:inline-flex}
+  .hhin{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .hhlist{grid-column:1/-1}
+  .atlas,.book,.visit,.story{grid-template-columns:minmax(0,1fr)}
+  .storyph{max-width:520px}
+  .tray{max-width:620px}
+}
+@media (max-width:760px){
+  :root{--edge:12px;--gut:26px}
+  .edge::before{width:5px}
+  .edge::after{width:6px}
+  .edge.l::after{left:6px}.edge.r::after{right:6px}
+  .edge span{display:none}
+  .halyard{height:96px}
+  .rope{top:20px}
+  .flags{padding-top:16px}
+  .heroin{grid-template-columns:minmax(0,1fr);gap:34px;padding-bottom:30px}
+  .porthole{max-width:270px}
+  .lead{font-size:15.5px}
+  .hhin{grid-template-columns:minmax(0,1fr);gap:18px}
+  .hhc{border-left:0;border-top:2px solid var(--navy);padding:16px 0 0}
+  .sig,.revs{grid-template-columns:minmax(0,1fr)}
+  .mlist{grid-template-columns:minmax(0,1fr)}
+  .tabs button{padding:10px 13px;font-size:14px}
+  .tabs button small{display:none}
+  .gal{grid-template-columns:minmax(0,1fr)}
+  .g1{grid-row:auto}.g1 .ph{min-height:0;aspect-ratio:4/5;flex:none}
+  .plotwrap{padding:14px 12px 44px 40px}
+  .axx{left:40px;right:12px;bottom:12px;font-size:10px}
+  .axy{left:8px;top:14px;bottom:44px;font-size:10px}
+  .q{font-size:12px}.q small{font-size:10.5px;letter-spacing:.1em}
+  .pt{font-size:12px;padding:2px 3px}.pt svg{width:24px;height:19px}
+  .row2{grid-template-columns:minmax(0,1fr)}
+  .form{box-shadow:7px 7px 0 var(--navy)}
+  .tray{box-shadow:7px 7px 0 var(--yel)}
+  .storyph .ph{box-shadow:10px 10px 0 var(--yel)}
+  .stats b{font-size:22px}
+  .stats div+div{padding-left:10px}
+  .htable{font-size:12.5px}.htable td,.htable th{padding-left:6px;padding-right:6px}
+  .od{padding:16px}
+  .rsum{flex-wrap:wrap;gap:6px 14px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .fl svg,.sheen,.porthole .rose,.storyph .rose,.glint,.pulse,.hhnext,.drawing .curve,.drawing .area,.popin,.flash{animation:none!important}
+  .rv{opacity:1;transform:none;transition:none}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <linearGradient id="fsheen" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="25" y2="0" spreadMethod="repeat"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".3" stop-color="#fff" stop-opacity=".2"/><stop offset=".55" stop-color="#000" stop-opacity=".14"/><stop offset=".8" stop-color="#fff" stop-opacity=".08"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs></svg>
+<div class="edge l" id="edgeL" aria-hidden="true"></div>
+<div class="edge r" id="edgeR" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <div class="wrap navin">
+    <a class="logo" href="#top" aria-label="回到頂端"><span class="lf" id="logoFlags"></span><span><em data-shop="nameEn">Low Tide</em><small data-shop="nameZh">退潮生蠔吧</small></span></a>
+    <ul id="navList">
+      <li><a href="#tide">退潮半價</a></li>
+      <li><a href="#story">航海日誌</a></li>
+      <li><a href="#atlas">組一盤</a></li>
+      <li><a href="#menu">菜單</a></li>
+      <li><a href="#book">訂位</a></li>
+      <li><a href="#visit">交通</a></li>
+    </ul>
+    <a class="btn y sm" href="#book">線上訂位</a>
+    <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="navList"><i></i>選單</button>
+  </div>
+</header>
+
+<main id="top">
+<section class="hero" aria-labelledby="h1">
+  <div class="halyard"><div class="rope"></div><div class="flags" id="heroFlags" role="img" aria-label="國際信號旗拼出 LOW TIDE"></div></div>
+  <div class="wrap heroin">
+    <div class="rv">
+      <p class="coord" id="heroCoord">25°08'12"N 121°44'31"E · 基隆港西岸</p>
+      <h1 id="h1"><em>Low <b>Tide</b></em><span data-shop="nameZh">退潮生蠔吧</span></h1>
+      <p class="lead">基隆港邊的生蠔海鮮吧。八個產地的生蠔點單才開，放在碎冰上端給你；營業時間內遇到乾潮，前後一小時所有生蠔半價。潮水退了，就是吃生蠔的時候。</p>
+      <div class="btns"><a class="btn y" href="#book">訂吧台／桌位</a><a class="btn o" href="#atlas">挑產地組一盤</a></div>
+      <p class="status" id="status" aria-live="polite"><i></i><span>…</span></p>
+    </div>
+    <div class="porthole rv" aria-hidden="false">
+      <svg class="rose" id="heroRose" viewBox="-110 -110 220 220" aria-hidden="true"></svg>
+      <div class="ring"></div>
+      <div class="bolts" aria-hidden="true"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i><i style="--i:5"></i><i style="--i:6"></i><i style="--i:7"></i></div>
+      <figure class="ph" data-photo="hero" data-art="bar" data-label="吧台與冰台" data-size="1400×1400"></figure>
+      <div class="glass"></div>
+    </div>
+  </div>
+  <div class="tide" id="tide">
+    <div class="wrap tidehead">
+      <p class="tnow" id="tideNow" aria-live="polite">潮位計算中…</p>
+      <p class="legend"><span><i style="background:rgba(242,194,48,.45)"></i>退潮半價</span><span><i style="background:rgba(242,239,230,.12)"></i>營業時間</span><span><i style="background:var(--red);height:2px"></i>現在</span><span id="tStation">基隆（模擬潮位）</span></p>
+    </div>
+    <div class="tbox"><svg id="tideSvg" role="img" aria-label="今日潮汐曲線"></svg></div>
+  </div>
+  <div class="hh" id="hh">
+    <div class="wrap hhin">
+      <div class="hhl">
+        <h2>Happy Low Tide<small>退潮生蠔半價</small></h2>
+        <p id="hhRule">營業時間內，每次乾潮前後一小時，全部產地生蠔半價。時間每天跟著潮水走，約晚 50 分鐘。</p>
+        <button class="linkbtn" id="hhShow" type="button">在潮汐圖上標出來 ↑</button>
+      </div>
+      <div class="hhc"><span id="hhLab">距離下次半價</span><strong id="hhCount">--:--:--</strong><small id="hhWin"></small></div>
+      <ul class="hhlist" id="hhList" aria-label="接下來的半價時段"></ul>
+    </div>
+  </div>
+</section>
+
+<section class="sec light" id="story">
+  <div class="wrap story">
+    <div class="rv">
+      <div class="sh"><span class="no">§ 01 — SHIP'S LOG · 航海日誌</span><h2><em>From the Bridge</em>從駕駛台到吧台</h2><p>老闆阿海跑了十二年貨櫃輪，在駕駛台上學會讀潮汐表、打信號旗。下船之後，他把這兩件事帶進一間生蠔吧。</p></div>
+      <ol class="log">
+        <li><time>2009 · 25°08'N 121°44'E</time><h3>上船</h3><p>從基隆港出發，當了十二年大副。每天值班第一件事：抄潮汐、看海圖。</p></li>
+        <li><time>2018 · 和平島</time><h3>下船，六個位子的立食攤</h3><p>冰台是自己焊的，生蠔只有三個產地，客人多半是收網回港的漁人。</p></li>
+        <li><time>2021 · 現址</time><h3>移到岸上</h3><p>二十四席吧台、窗邊航海桌和一個看得見港口燈火的甲板。</p></li>
+        <li><time>今天 · 按潮汐營業</time><h3>乾潮半價這條規矩</h3><p>漁人說退潮時候的蠔最肥。我們沿用這句話：營業時間遇上乾潮，生蠔打對折。</p></li>
+      </ol>
+      <div class="stats"><div><b>8</b><small>個生蠔產地</small></div><div><b>0–4°C</b><small>碎冰冰台</small></div><div><b>600+</b><small>每日現開</small></div></div>
+    </div>
+    <div class="storyph rv">
+      <svg class="rose" id="storyRose" viewBox="-110 -110 220 220" aria-hidden="true"></svg>
+      <figure class="ph" data-photo="story" data-art="shuck" data-label="師傅開蠔的手與刀" data-size="1200×1500"></figure>
+      <p>FIG. 1 — 每顆生蠔點單後才開，開蠔刀從殼後的韌帶下刀，保留殼裡的海水。</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="signature">
+  <div class="wrap">
+    <div class="sh rv"><span class="no">§ 02 — SIGNATURE · 招牌</span><h2><em>Flag Hoist</em>三道招牌</h2><p>每道菜都配一面信號旗。吧台師傅喊旗號，廚房就知道要出什麼。</p></div>
+    <div class="sig" id="sigList"></div>
+  </div>
+</section>
+
+<section class="sec light" id="atlas">
+  <div class="wrap">
+    <div class="sh rv"><span class="no">§ 03 — OYSTER ATLAS · 生蠔產地圖鑑</span><h2><em>Chart Your Plate</em>挑產地，組一盤</h2><p>八個產地依「鹹度 × 奶油感」標在這張圖上。點旗子把它放上冰盤，選 6 顆或 12 顆，價格即時計算；退潮半價時段會自動折扣。</p></div>
+    <div class="atlas">
+      <div class="rv">
+        <div class="plotwrap">
+          <div class="plot" id="plot">
+            <span class="q" style="left:3%;top:4%">Sweet &amp; Creamy<small>清甜奶油</small></span>
+            <span class="q" style="right:3%;top:4%;text-align:right">Rich &amp; Briny<small>鹹鮮濃郁</small></span>
+            <span class="q" style="left:3%;bottom:4%">Light &amp; Crisp<small>清爽脆口</small></span>
+            <span class="q" style="right:3%;bottom:4%;text-align:right">Mineral &amp; Sharp<small>礦物海味</small></span>
+          </div>
+          <div class="axx"><span>淡 0</span><b>鹹度 SALINITY →</b><span>10 鹹</span></div>
+          <div class="axy"><span>0</span><b>奶油感 CREAMINESS →</b><span>10</span></div>
+        </div>
+        <div class="od" id="od" aria-live="polite"></div>
+      </div>
+      <div class="tray rv">
+        <div class="trayh"><h3>On Ice<small>你的冰盤</small></h3><div class="seg" role="group" aria-label="冰盤大小"><button type="button" data-size="6" aria-pressed="false">6 顆</button><button type="button" data-size="12" aria-pressed="true">12 顆</button></div></div>
+        <svg id="plate" viewBox="0 0 400 400" aria-hidden="true"></svg>
+        <p class="pmsg" id="pmsg" aria-live="polite"></p>
+        <ul class="plist" id="plist"></ul>
+        <div class="sum" id="sum"></div>
+        <div class="trayb"><button class="btn o" type="button" id="pChef">主廚補滿</button><button class="btn o" type="button" id="pClear">清空</button><button class="btn y" type="button" id="pBook">帶這盤去訂位</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="menu">
+  <div class="wrap">
+    <div class="sh rv"><span class="no">§ 04 — MENU · 完整菜單</span><h2><em>The Board</em>完整菜單</h2><p>生蠔以顆計價，冰盤附紅蔥醋、檸檬與現磨辣根。價格含稅，另收一成服務費。</p></div>
+    <div class="rv">
+      <div class="tabs" role="tablist" id="tabs" aria-label="菜單分類"></div>
+      <div class="mlist" role="tabpanel" id="mlist" aria-live="polite"></div>
+      <p class="mnote">＊ 生食海鮮請斟酌個人體質；孕婦、免疫力較弱者建議改點熱菜。產地依每日到貨調整。</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec light" id="book">
+  <div class="wrap">
+    <div class="sh rv"><span class="no">§ 05 — RESERVATION · 訂位</span><h2><em>Book a Berth</em>吧台／桌位訂位</h2><p>座位保留 15 分鐘。標有「半價」的時段落在退潮半價時間內。吧台最多 4 位，船長室包廂 6 位起。</p></div>
+    <div class="book">
+      <form class="form rv" id="bf" novalidate>
+        <div id="bBody">
+          <h3>Reserve<small>選日期、時段、人數與座位區</small></h3>
+          <span class="lab" id="lDate">日期 DATE</span><div class="chips" id="bDates" role="radiogroup" aria-labelledby="lDate"></div>
+          <span class="lab" id="lTime">時段 TIME</span><div class="chips" id="bTimes" role="radiogroup" aria-labelledby="lTime"></div>
+          <span class="err" id="eTime"></span>
+          <span class="lab" id="lPax">人數 PARTY</span>
+          <div class="step"><button type="button" id="paxM" aria-label="減少人數">−</button><output id="pax" aria-live="polite">2 位</output><button type="button" id="paxP" aria-label="增加人數">＋</button></div>
+          <span class="lab" id="lZone">座位區 SEATING</span><div class="chips" id="bZones" role="radiogroup" aria-labelledby="lZone"></div>
+          <span class="err" id="eZone"></span>
+          <div class="row2">
+            <label class="fi"><span class="lab">姓名 NAME</span><input id="bName" autocomplete="name" placeholder="王小明"><span class="err"></span></label>
+            <label class="fi"><span class="lab">手機 MOBILE</span><input id="bPhone" inputmode="tel" autocomplete="tel" placeholder="09xx-xxx-xxx"><span class="err"></span></label>
+          </div>
+          <label class="fi"><span class="lab">備註 NOTE（選填）</span><textarea id="bNote" placeholder="過敏食材、慶生、想坐靠窗…"></textarea></label>
+          <button class="btn n submit" type="submit">確認訂位</button>
+          <p class="demo">示範版本：資料只顯示在頁面上，沒有真的送出。</p>
+        </div>
+      </form>
+      <div class="side rv">
+        <div class="plan">
+          <svg id="planSvg" viewBox="0 0 400 290" role="img" aria-label="店內座位配置圖"></svg>
+          <p id="planTxt">DECK PLAN · 座位配置</p>
+        </div>
+        <ul class="notes">
+          <li>吧台正對開蠔台，師傅會一顆一顆介紹產地。</li>
+          <li>甲板露台冬季有暖燈，強風或下雨會移到室內。</li>
+          <li>船長室包廂 6–12 位，可預訂整盤冰盤與酒款。</li>
+          <li>組好的冰盤可以帶進訂位，到店就先開。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec dark2" id="gallery">
+  <div class="wrap">
+    <div class="sh rv"><span class="no">§ 06 — ON DECK · 店內與港邊</span><h2><em>Harbour Lights</em>港邊的燈</h2><p>窗外是基隆港，船進港的時候整片玻璃都是燈。冰台在吧台正中央，產地木箱每天早上送到。</p></div>
+    <div class="gal">
+      <div class="gi g1 rv"><figure class="ph" data-photo="harbor" data-art="harbor" data-label="甲板看出去的港口夜景" data-size="1200×1500"></figure><p class="gcap"><b>甲板夜景</b><span>BRG 312° · 港區燈塔</span></p></div>
+      <div class="gi g2 rv"><figure class="ph" data-photo="ice" data-art="ice" data-label="冰台上的生蠔與旗籤" data-size="1600×1000"></figure><p class="gcap"><b>冰台</b><span>0–4°C · 每兩小時換冰</span></p></div>
+      <div class="gi g3 rv"><figure class="ph" data-photo="crate" data-art="crate" data-label="到貨的產地木箱" data-size="1600×1000"></figure><p class="gcap"><b>每日到貨</b><span>06:30 · 產地木箱</span></p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec light" id="reviews">
+  <div class="wrap">
+    <div class="sh rv"><span class="no">§ 07 — LOGBOOK · 客人留言</span><h2><em>Fair Winds</em>客人怎麼說</h2></div>
+    <div class="rsum rv"><b id="rAvg">4.8</b><span id="rCnt"></span></div>
+    <div class="revs" id="revs"></div>
+  </div>
+</section>
+
+<section class="sec" id="visit">
+  <div class="wrap">
+    <div class="sh rv"><span class="no">§ 08 — PORT OF CALL · 營業與交通</span><h2><em>Port of Call</em>營業時間與位置</h2><p id="visitStatus"></p></div>
+    <div class="visit">
+      <div class="rv">
+        <table class="htable" aria-label="一週營業時間">
+          <thead><tr><th>日期</th><th>營業時間</th><th>退潮半價</th></tr></thead>
+          <tbody id="htbody"></tbody>
+        </table>
+      </div>
+      <div class="contact rv">
+        <h3>ADDRESS · 地址</h3><p class="addr" id="addr"></p>
+        <h3>TEL · 電話</h3><p><a class="tel" id="tel" href="#"></a></p>
+        <h3>ACCESS · 交通</h3><p id="access"></p>
+        <p><a class="btn y sm" id="mapLink" href="#" target="_blank" rel="noopener">在 Google 地圖開啟</a></p>
+        <div class="chart"><svg id="chartSvg" viewBox="0 0 400 240" role="img" aria-label="店家位置示意海圖"></svg></div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span class="ff" id="footFlags" role="img" aria-label="信號旗 LOW TIDE"></span>
+    <nav aria-label="頁尾"><a href="#atlas">組一盤</a><a href="#menu">菜單</a><a href="#book">訂位</a><a href="#">Instagram</a><a href="#">Facebook</a></nav>
+    <p>© <span id="yr"></span> <span data-shop="name"></span> · <span id="fAddr"></span><br>示範模板：潮汐為半日潮模擬數值，請勿用於航行。</p>
+  </div>
+</footer>
+<button class="slotBtn" id="slotBtn" type="button" aria-pressed="false">照片位</button>
+
+<script>
+(function(){
+'use strict';
+/* ===== 店家設定 ===== */
+var SHOP = {
+  name:'LOW TIDE 退潮生蠔吧', nameEn:'Low Tide', nameZh:'退潮生蠔吧',
+  phone:'(02) 2462-0812', address:'基隆市中正區示範路 12 號（示範地址）',
+  access:'基隆火車站步行 12 分鐘；和平島方向公車「示範站」下車即達。附近有港區收費停車場。',
+  coord:{lat:"25°08'12\"N", lon:"121°44'31\"E", latMin:8.2},
+  // 0=週日 … 6=週六；每天可多個時段，null = 公休
+  hours:[
+    [['11:30','15:00'],['17:00','23:00']],
+    null,
+    [['15:00','23:00']],
+    [['15:00','23:00']],
+    [['15:00','23:00']],
+    [['15:00','24:00']],
+    [['11:30','15:00'],['17:00','24:00']]
+  ],
+  // 潮汐模擬：highRef 為任一次滿潮時間，period 半日潮週期（小時），offsetMin 可整體平移
+  tide:{highRef:'2026-10-07T09:29:00+08:00', period:12.42, mean:1.1, amp:0.85, offsetMin:0, station:'基隆（模擬潮位）'},
+  happy:{windowMin:60, discount:0.5},
+  slotMin:30, lastSeatMin:90,
+  photos:{hero:'', story:'', sig1:'', sig2:'', sig3:'', harbor:'', ice:'', crate:''}
+};
+var ORIGINS = [
+  {id:'W', zh:'王功', name:'王功蚵', place:'台灣 · 彰化王功', sp:'長牡蠣（台灣蚵）', sal:3.0, cre:6.0, size:'小', price:45, note:'潮間帶插竹養殖，個頭小、甜味直接，海水味淡，第一次吃生蠔從這裡開始。'},
+  {id:'H', zh:'廣島', name:'廣島真牡蠣', place:'日本 · 廣島灣', sp:'Crassostrea gigas', sal:5.0, cre:8.0, size:'中', price:110, note:'肉厚飽滿、奶油感明顯，尾韻帶一點甜瓜香，很好入口。'},
+  {id:'A', zh:'厚岸', name:'厚岸 Kakiemon', place:'日本 · 北海道厚岸', sp:'Crassostrea gigas', sal:6.4, cre:9.0, size:'大', price:160, note:'冷水慢長，殼深肉滿，濃郁得像海的奶油，最適合配一口 Chablis。'},
+  {id:'F', zh:'克萊爾', name:'Fine de Claire', place:'法國 · Marennes-Oléron', sp:'Crassostrea gigas', sal:8.0, cre:3.8, size:'中', price:160, note:'在舊鹽田「claire」池精養數週，鹹度鮮明，尾段有核桃與海藻香。'},
+  {id:'G', zh:'吉拉朵', name:'Gillardeau', place:'法國 · Charente-Maritime', sp:'Crassostrea gigas', sal:6.6, cre:7.0, size:'大', price:240, note:'殼上雷射刻 G 的家族品牌，脆口飽滿，鹹甜平衡，榛果尾韻。'},
+  {id:'I', zh:'高威灣', name:'Galway Bay', place:'愛爾蘭 · 高威灣', sp:'Crassostrea gigas', sal:8.8, cre:5.4, size:'中大', price:180, note:'大西洋冷流沖刷，強勁鹹度與礦物感；配一口 Guinness 是老規矩。'},
+  {id:'K', zh:'熊本', name:'Kumamoto', place:'美國 · 華盛頓州', sp:'Crassostrea sikamea', sal:2.2, cre:8.4, size:'小', price:150, note:'小巧深杯，幾乎沒有鹹味，香瓜與小黃瓜般的清甜，奶油感十足。'},
+  {id:'S', zh:'雪梨岩蠔', name:'Sydney Rock', place:'澳洲 · 新南威爾斯', sp:'Saccostrea glomerata', sal:5.6, cre:2.8, size:'中', price:170, note:'原生岩蠔，金屬與礦物感明顯，口感緊實，喜歡「海味」的人首選。'}
+];
+var SIGS = [
+  {flag:'P', photo:'sig1', art:'platter', zh:'退潮冰盤', en:'Plateau Low Tide', d:'主廚依當日到貨挑 12 顆、四個產地，附紅蔥醋、檸檬、現磨辣根與海鹽奶油麵包。', p:'NT$ 1,580', u:'12 顆 · 2–3 人'},
+  {flag:'G', photo:'sig2', art:'grill', zh:'炭烤味噌奶油生蠔', en:'Charred Miso Butter', d:'廣島蠔上炭火，白味噌奶油和青蔥在殼裡冒泡，最後撒一點柚子皮。', p:'NT$ 360', u:'3 顆'},
+  {flag:'M', photo:'sig3', art:'mussel', zh:'Guinness 燉淡菜', en:'Mussels in Stout', d:'黑啤、奶油與蒜頭燉一整鍋淡菜，湯汁用酸種麵包沾到最後一口。', p:'NT$ 480', u:'一鍋 · 附麵包'}
+];
+var MENU = {
+  oyster:{t:'生蠔', en:'Oysters', items:[]},
+  raw:{t:'冷盤', en:'Raw Bar', items:[
+    {n:'北海道馬糞海膽', e:'Uni', d:'半板，附海苔與醋飯小球。', p:680},
+    {n:'甜蝦韃靼', e:'Amaebi Tartare', d:'生食甜蝦、柚子胡椒、紫蘇油。', p:360},
+    {n:'黃鰭鮪魚 Crudo', e:'Tuna Crudo', d:'酸豆、橄欖油、檸檬皮、海鹽。', p:420},
+    {n:'煙燻鮭魚', e:'Smoked Salmon', d:'酸奶油、蒔蘿、黑麥麵包。', p:320},
+    {n:'醋漬鯖魚', e:'Cured Mackerel', d:'甜菜根、芥末籽、醃紅洋蔥。', p:280}
+  ]},
+  hot:{t:'熱菜', en:'From the Galley', items:[
+    {n:'炭烤味噌奶油生蠔', e:'3 pcs', d:'白味噌奶油、青蔥、柚子皮。', p:360},
+    {n:'焗烤菠菜生蠔', e:'Rockefeller', d:'菠菜、茴香酒、帕瑪森麵包粉，3 顆。', p:390},
+    {n:'Guinness 燉淡菜', e:'Mussels in Stout', d:'黑啤、奶油、蒜頭，附酸種麵包。', p:480},
+    {n:'白酒蒜香蛤蜊細扁麵', e:'Linguine Vongole', d:'基隆在地文蛤、辣椒、巴西里。', p:420},
+    {n:'炸生蠔堡', e:'Oyster Po\'boy', d:'酥炸生蠔、雷莫拉醬、醃黃瓜。', p:380},
+    {n:'炭烤透抽', e:'Grilled Squid', d:'青醬、烤檸檬、茴香沙拉。', p:450}
+  ]},
+  wine:{t:'酒單', en:'Wine & Beer', items:[
+    {n:'Muscadet Sèvre et Maine', e:'Loire', d:'生蠔最經典的搭檔，清脆帶鹹。杯／瓶 NT$ 1,280。', p:260},
+    {n:'Chablis', e:'Burgundy', d:'石灰岩礦物感，配厚岸、吉拉朵。', p:320},
+    {n:'Champagne Brut', e:'Champagne', d:'細緻氣泡，冰盤首選。', p:420},
+    {n:'Guinness 生啤', e:'Pint', d:'配高威灣，愛爾蘭吃法。', p:280},
+    {n:'純米吟釀', e:'Sake', d:'冷飲，配王功與廣島。', p:280},
+    {n:'生蠔馬丁尼', e:'Oyster Martini', d:'伏特加、不甜苦艾、海鹽水，杯口一顆熊本。', p:380}
+  ]},
+  soft:{t:'無酒精', en:'Soft', items:[
+    {n:'海鹽檸檬氣泡', e:'Salted Lemon Soda', d:'現擠檸檬、少許海鹽。', p:160},
+    {n:'番茄蛤蜊汁', e:'Clamato', d:'番茄汁、蛤蜊高湯、辣醬、芹菜鹽。', p:180},
+    {n:'冷泡高山烏龍', e:'Cold Brew Oolong', d:'無糖，清爽解膩。', p:140},
+    {n:'薑汁汽水', e:'Ginger Beer', d:'自釀，帶辣度。', p:160}
+  ]}
+};
+var REVIEWS = [
+  {s:5, t:'坐吧台看師傅開蠔，一顆一顆放上冰盤還會講產地。剛好碰到退潮半價，十二顆吃得很過癮，下次會先看潮汐再來。', n:'陳小姐', d:'Google 評論 · 2026.09'},
+  {s:5, t:'老闆推薦 Galway 配 Guinness，鹹味和黑啤的焦香真的很搭。牆上的信號旗每一面都有意思，問店員都講得出來。', n:'Mike L.', d:'Google 評論 · 2026.08'},
+  {s:4, t:'帶爸媽來，他們原本不敢吃生的，從王功、熊本這種淡口的開始，最後連焗烤和燉淡菜都清空。甲板座位風有點大。', n:'林先生', d:'Google 評論 · 2026.08'}
+];
+var ZONES = [
+  {id:'bar', n:'吧台', s:'看開蠔台', min:1, max:4},
+  {id:'win', n:'窗邊航海桌', s:'2–6 位', min:1, max:6},
+  {id:'deck', n:'甲板露台', s:'港景 · 暖燈', min:2, max:8},
+  {id:'cabin', n:'船長室', s:'包廂 6–12', min:6, max:12}
+];
+
+/* ===== 工具 ===== */
+var $ = function(s,r){return (r||document).querySelector(s);};
+var $$ = function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));};
+var MIN=60000, HOUR=3600000, DAY=86400000, WD='日一二三四五六';
+function pad(n){return (n<10?'0':'')+n;}
+function f1(n){return Math.round(n*10)/10;}
+function hm(t){var d=new Date(t);return pad(d.getHours())+':'+pad(d.getMinutes());}
+function md(t){var d=new Date(t);return (d.getMonth()+1)+'/'+pad(d.getDate());}
+function money(n){return 'NT$ '+Math.round(n).toLocaleString('en-US');}
+function midnight(t){var d=new Date(t);d.setHours(0,0,0,0);return d.getTime();}
+function addDays(t,n){var d=new Date(t);d.setDate(d.getDate()+n);d.setHours(0,0,0,0);return d.getTime();}
+function toMin(s){var p=s.split(':');return (+p[0])*60+(+p[1]);}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function rng(seed){var s=(Math.abs(Math.floor(seed))%2147483646)+1;return function(){s=s*16807%2147483647;return (s-1)/2147483646;};}
+function dayLabel(t,now){var d=Math.round((midnight(t)-midnight(now))/DAY);return d===0?'今天':d===1?'明天':'週'+WD[new Date(t).getDay()];}
+function sessionsOn(t){
+  var d0=midnight(t), h=SHOP.hours[new Date(d0).getDay()];
+  if(!h) return [];
+  return h.map(function(s){return {s:d0+toMin(s[0])*MIN, e:d0+toMin(s[1])*MIN, ls:s[0], le:s[1]};});
+}
+
+/* ===== 潮汐模型（半日潮正弦） ===== */
+var T = SHOP.tide, P = T.period*HOUR, REF = new Date(T.highRef).getTime()+T.offsetMin*MIN, HW = SHOP.happy.windowMin*MIN;
+function tideAt(t){return T.mean+T.amp*Math.cos(2*Math.PI*(t-REF)/P);}
+function rising(t){return Math.sin(2*Math.PI*(t-REF)/P)>0;}
+function extIn(a,b,low){var o=low?P/2:0, k=Math.ceil((a-REF-o)/P), out=[];for(var t=REF+o+k*P;t<=b;t+=P) out.push(t);return out;}
+function happyIn(a,b){
+  var out=[];
+  extIn(a-HW,b+HW,true).forEach(function(L){
+    var w0=L-HW, w1=L+HW;
+    [-1,0,1].forEach(function(k){
+      sessionsOn(addDays(L,k)).forEach(function(s){
+        var st=Math.max(w0,s.s), en=Math.min(w1,s.e);
+        if(en>st && en>a && st<b) out.push({s:st,e:en,low:L});
+      });
+    });
+  });
+  out.sort(function(x,y){return x.s-y.s;});
+  return out;
+}
+function nextHappy(now){var l=happyIn(now,now+10*DAY);for(var i=0;i<l.length;i++){if(l[i].e>now) return l[i];}return null;}
+function happyNow(now){var h=nextHappy(now);return !!(h && h.s<=now);}
+
+/* ===== 國際信號旗 ===== */
+var FC={Y:'#f2c230',R:'#c8242b',B:'#1f5aa6',W:'#f7f4ec',K:'#151c24'};
+function R_(x,y,w,h,c){return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+c+'"/>';}
+function PG(p,c){return '<polygon points="'+p+'" fill="'+c+'"/>';}
+function full(c){return R_(0,0,50,40,c);}
+var Y=FC.Y,R=FC.R,B=FC.B,W=FC.W,K=FC.K;
+var FLAGS={
+  A:function(){return PG('0,0 25,0 25,40 0,40',W)+PG('25,0 50,0 37,20 50,40 25,40',B);},
+  B:function(){return PG('0,0 50,0 37,20 50,40 0,40',R);},
+  C:function(){return R_(0,0,50,8,B)+R_(0,8,50,8,W)+R_(0,16,50,8,R)+R_(0,24,50,8,W)+R_(0,32,50,8,B);},
+  D:function(){return full(Y)+R_(0,10,50,20,B);},
+  E:function(){return R_(0,0,50,20,B)+R_(0,20,50,20,R);},
+  F:function(){return full(W)+PG('25,0 50,20 25,40 0,20',R);},
+  G:function(){var s='';for(var i=0;i<6;i++) s+=R_(i*50/6,0,50/6+.2,40,i%2?B:Y);return s;},
+  H:function(){return R_(0,0,25,40,W)+R_(25,0,25,40,R);},
+  I:function(){return full(Y)+'<circle cx="25" cy="20" r="9.5" fill="'+K+'"/>';},
+  J:function(){return full(B)+R_(0,13.33,50,13.34,W);},
+  K:function(){return R_(0,0,25,40,Y)+R_(25,0,25,40,B);},
+  L:function(){return full(Y)+R_(25,0,25,20,K)+R_(0,20,25,20,K);},
+  M:function(){return full(B)+'<path d="M0 0L50 40M50 0L0 40" stroke="'+W+'" stroke-width="8"/>';},
+  N:function(){var s='';for(var r=0;r<4;r++)for(var c=0;c<4;c++) s+=R_(c*12.5,r*10,12.5,10,(r+c)%2?W:B);return s;},
+  O:function(){return full(Y)+PG('0,0 50,0 50,40',R);},
+  P:function(){return full(B)+R_(16.5,13.5,17,13,W);},
+  Q:function(){return full(Y);},
+  R:function(){return full(R)+R_(20,0,10,40,Y)+R_(0,15,50,10,Y);},
+  S:function(){return full(W)+R_(16.5,13.5,17,13,B);},
+  T:function(){return R_(0,0,16.7,40,R)+R_(16.6,0,16.8,40,W)+R_(33.3,0,16.7,40,B);},
+  U:function(){return full(W)+R_(0,0,25,20,R)+R_(25,20,25,20,R);},
+  V:function(){return full(W)+'<path d="M0 0L50 40M50 0L0 40" stroke="'+R+'" stroke-width="8"/>';},
+  W:function(){return full(B)+R_(8,6.5,34,27,W)+R_(16.5,13.5,17,13,R);},
+  X:function(){return full(W)+R_(20,0,10,40,B)+R_(0,15,50,10,B);},
+  Y:function(){var s=full(Y);for(var k=-44;k<60;k+=14) s+='<path d="M'+k+' 40L'+(k+40)+' 0" stroke="'+R+'" stroke-width="7"/>';return s;},
+  Z:function(){return PG('0,0 50,0 25,20',Y)+PG('50,0 50,40 25,20',B)+PG('0,40 50,40 25,20',R)+PG('0,0 0,40 25,20',K);}
+};
+function flagInner(L,sheen){
+  var s=FLAGS[L](), swallow=(L==='A'||L==='B');
+  if(!swallow) s+='<rect x=".5" y=".5" width="49" height="39" fill="none" stroke="rgba(0,0,0,.28)"/>';
+  if(sheen && !swallow) s+='<rect class="sheen" x="-50" y="0" width="150" height="40" fill="url(#fsheen)"/>';
+  return s;
+}
+function flagSVG(L,cls,sheen){return '<svg'+(cls?' class="'+cls+'"':'')+' viewBox="0 0 50 40" aria-hidden="true" focusable="false" preserveAspectRatio="none">'+flagInner(L,sheen)+'</svg>';}
+function flagAt(L,x,y,w){return '<svg x="'+x+'" y="'+y+'" width="'+w+'" height="'+(w*.8)+'" viewBox="0 0 50 40" preserveAspectRatio="none">'+flagInner(L)+'</svg>';}
+
+/* ===== 羅經花 ===== */
+function rose(dark,light,line){
+  var s='<circle r="96" fill="none" stroke="'+line+'" stroke-width="1.2"/><circle r="89" fill="none" stroke="'+line+'" stroke-width=".8"/><circle r="70" fill="none" stroke="'+line+'" stroke-width=".6" stroke-dasharray="2 3"/>';
+  for(var i=0;i<72;i++){var a=i*5*Math.PI/180, l=i%2?84:i%18===0?76:80;s+='<line x1="'+f1(Math.sin(a)*89)+'" y1="'+f1(-Math.cos(a)*89)+'" x2="'+f1(Math.sin(a)*l)+'" y2="'+f1(-Math.cos(a)*l)+'" stroke="'+line+'" stroke-width=".8"/>';}
+  function pt(deg,len,w,c1,c2){var a=deg*Math.PI/180, tx=Math.sin(a)*len, ty=-Math.cos(a)*len, lx=Math.sin(a-Math.PI/2)*w, ly=-Math.cos(a-Math.PI/2)*w;
+    return PG('0,0 '+f1(tx)+','+f1(ty)+' '+f1(lx)+','+f1(ly),c1)+PG('0,0 '+f1(tx)+','+f1(ty)+' '+f1(-lx)+','+f1(-ly),c2);}
+  for(i=0;i<16;i++){if(i%2) s+=pt(i*22.5,42,5,light,dark);}
+  for(i=0;i<8;i++){if(i%2) s+=pt(i*45,60,8,dark,light);}
+  for(i=0;i<4;i++) s+=pt(i*90,86,11,dark,light);
+  s+='<circle r="6" fill="'+light+'" stroke="'+dark+'" stroke-width="1.5"/>';
+  s+='<circle cy="-99" r="10" fill="'+light+'"/><text x="0" y="-94" text-anchor="middle" font-family="Georgia,serif" font-style="italic" font-weight="700" font-size="14" fill="'+dark+'">N</text>';
+  return s;
+}
+
+/* ===== 生蠔繪製 ===== */
+function smooth(pts){var n=pts.length,d='';function m(i){var p=pts[i%n],q=pts[(i+1)%n];return [(p[0]+q[0])/2,(p[1]+q[1])/2];}
+  var s0=m(n-1);d='M'+f1(s0[0])+' '+f1(s0[1]);for(var i=0;i<n;i++){var c=pts[i],e=m(i);d+='Q'+f1(c[0])+' '+f1(c[1])+' '+f1(e[0])+' '+f1(e[1]);}return d+'Z';}
+function shellPts(len,wid,sc,dx,r,j){var pts=[],n=20;for(var i=0;i<n;i++){var a=i/n*Math.PI*2, f=.52+.48*(1+Math.cos(a))/2, k=1+(r()-.5)*j;pts.push([(Math.cos(a)*len/2*k+dx)*sc, Math.sin(a)*wid/2*f*k*sc]);}return pts;}
+function shell(cx,cy,len,rot,seed,o){
+  o=o||{};var r=rng(seed*131+7), wid=len*.72, cols=['#8f897b','#7b7466','#9c9584','#6e695d','#857c6a'], oc=cols[Math.floor(r()*cols.length)];
+  var outer=smooth(shellPts(len,wid,1,0,r,.16)), lip=smooth(shellPts(len,wid,.84,len*.02,r,.06)), meat=smooth(shellPts(len,wid,.64,len*.07,r,.1));
+  var s='<g transform="translate('+f1(cx)+' '+f1(cy)+') rotate('+f1(rot)+')">';
+  s+='<path d="'+outer+'" fill="'+oc+'" stroke="#3d3a33" stroke-width="'+f1(len/70+.6)+'"/>';
+  s+='<path d="'+smooth(shellPts(len,wid,.93,0,r,.12))+'" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="'+f1(len/50)+'"/>';
+  s+='<path d="'+lip+'" fill="#ece6d8"/>';
+  s+='<path d="'+meat+'" fill="'+(o.meat||'#d9cba7')+'" stroke="'+(o.mantle||'#6f6553')+'" stroke-width="'+f1(len/60+.5)+'" stroke-dasharray="'+f1(len/30)+' '+f1(len/60)+'"/>';
+  s+='<ellipse cx="'+f1(len*.12)+'" cy="'+f1(-wid*.08)+'" rx="'+f1(len*.13)+'" ry="'+f1(wid*.07)+'" fill="#fff" opacity="'+(o.dry?.25:.55)+'"/>';
+  if(o.top) s+=o.top(len,wid,r);
+  return s+'</g>';
+}
+function iceField(cx,cy,rad,n,seed,k){k=k||1;var r=rng(seed),s='',cols=['#ffffff','#d5e3ea','#c0d4de','#eef5f8'];
+  for(var i=0;i<n;i++){var a=r()*Math.PI*2, d=Math.sqrt(r())*rad, x=cx+Math.cos(a)*d, y=cy+Math.sin(a)*d, z=(4+r()*9)*k, q=r()*Math.PI;
+    s+='<polygon points="'+f1(x+Math.cos(q)*z)+','+f1(y+Math.sin(q)*z)+' '+f1(x+Math.cos(q+2.1)*z*.8)+','+f1(y+Math.sin(q+2.1)*z*.8)+' '+f1(x+Math.cos(q+4)*z*.9)+','+f1(y+Math.sin(q+4)*z*.9)+'" fill="'+cols[i%4]+'" opacity="'+f1(.5+r()*.5)+'"/>';}
+  return s;}
+function iceRect(w,h,n,seed){var r=rng(seed),s='',cols=['#ffffff','#d5e3ea','#c0d4de','#eef5f8'];
+  for(var i=0;i<n;i++){var x=r()*w,y=r()*h,z=6+r()*14,q=r()*6.3;s+='<polygon points="'+f1(x+Math.cos(q)*z)+','+f1(y+Math.sin(q)*z)+' '+f1(x+Math.cos(q+2.1)*z*.8)+','+f1(y+Math.sin(q+2.1)*z*.8)+' '+f1(x+Math.cos(q+4)*z)+','+f1(y+Math.sin(q+4)*z)+'" fill="'+cols[i%4]+'" opacity="'+f1(.45+r()*.5)+'"/>';}
+  return s;}
+function lemon(x,y,rad,rot){var s='<g transform="translate('+x+' '+y+') rotate('+rot+')"><path d="M'+(-rad)+' 0A'+rad+' '+rad+' 0 0 0 '+rad+' 0Z" fill="#f2c230" stroke="#c99a12" stroke-width="2"/><path d="M'+(-rad*.82)+' 2A'+(rad*.82)+' '+(rad*.82)+' 0 0 0 '+(rad*.82)+' 2Z" fill="#f8e07a"/>';
+  for(var i=1;i<5;i++){var a=Math.PI*i/5;s+='<line x1="0" y1="2" x2="'+f1(-Math.cos(a)*rad*.8)+'" y2="'+f1(2+Math.sin(a)*rad*.8)+'" stroke="#e6c240" stroke-width="1.5"/>';}
+  return s+'</g>';}
+function grid(w,h,step,c){var s='';for(var x=step;x<w;x+=step) s+='<line x1="'+x+'" y1="0" x2="'+x+'" y2="'+h+'" stroke="'+c+'"/>';for(var y=step;y<h;y+=step) s+='<line x1="0" y1="'+y+'" x2="'+w+'" y2="'+y+'" stroke="'+c+'"/>';return s;}
+
+/* ===== 佔位插畫 ===== */
+var ART = {
+  bar:function(){
+    var s='<defs><radialGradient id="aBl" cx=".5" cy="0" r="1"><stop offset="0" stop-color="#f2c230" stop-opacity=".55"/><stop offset="1" stop-color="#f2c230" stop-opacity="0"/></radialGradient><linearGradient id="aBc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e2bf7c"/><stop offset="1" stop-color="#8a6630"/></linearGradient></defs>';
+    s+='<rect width="800" height="600" fill="#0f2741"/>';
+    for(var x=0;x<800;x+=34) s+='<line x1="'+x+'" y1="0" x2="'+x+'" y2="400" stroke="rgba(255,255,255,.035)" stroke-width="2"/>';
+    s+='<path d="M60 70 Q400 110 740 70" fill="none" stroke="#c9b48a" stroke-width="2"/>';
+    var L='LOWTIDE'.split('');L.forEach(function(c,i){var t=(i+.5)/7, xx=60+t*680, yy=70+Math.sin(t*Math.PI)*28;s+=flagAt(c,xx-22,yy,44);});
+    s+='<rect x="170" y="190" width="460" height="7" fill="#b48a4a"/>';
+    var r=rng(5);for(var i=0;i<14;i++){var bx=184+i*32, bh=40+r()*30, c=['#2f5a3a','#b48a4a','#f2efe6','#5b2a2a'][i%4];s+='<rect x="'+bx+'" y="'+(190-bh)+'" width="18" height="'+bh+'" rx="3" fill="'+c+'" opacity=".8"/><rect x="'+(bx+6)+'" y="'+(190-bh-14)+'" width="6" height="16" fill="'+c+'" opacity=".8"/>';}
+    [230,400,570].forEach(function(x){s+='<line x1="'+x+'" y1="0" x2="'+x+'" y2="218" stroke="#7d6a4a" stroke-width="2"/><ellipse cx="'+x+'" cy="330" rx="150" ry="140" fill="url(#aBl)"/><polygon points="'+(x-38)+',250 '+(x+38)+',250 '+(x+18)+',214 '+(x-18)+',214" fill="url(#aBc)"/><ellipse cx="'+x+'" cy="250" rx="38" ry="5" fill="#ffe08a"/>';});
+    s+='<path d="M150 400 Q220 344 300 352 Q400 330 500 352 Q580 344 650 400Z" fill="#e3edf1"/>';
+    var sh=rng(9);[[230,378,-20],[290,360,10],[350,350,-5],[410,346,15],[470,352,-12],[530,362,8],[590,382,-25],[320,384,30],[450,380,-30],[520,388,20]].forEach(function(p,k){s+=shell(p[0],p[1],54,p[2]+sh()*20,k+3);});
+    s+=lemon(380,392,16,0)+lemon(560,396,14,10);
+    s+='<rect x="0" y="400" width="800" height="16" fill="url(#aBc)"/><rect x="0" y="416" width="800" height="184" fill="#18304a"/>';
+    for(x=20;x<800;x+=46) s+='<rect x="'+x+'" y="430" width="30" height="170" fill="#13283f"/>';
+    [180,330,480,630].forEach(function(x){s+='<rect x="'+(x-3)+'" y="490" width="6" height="110" fill="#8a6630"/><ellipse cx="'+x+'" cy="488" rx="44" ry="12" fill="#b48a4a"/><ellipse cx="'+x+'" cy="484" rx="44" ry="10" fill="#c99d5a"/>';});
+    return s;
+  },
+  shuck:function(){
+    var s='<defs><pattern id="aSt" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#f2efe6"/><rect width="12" height="12" fill="#c8242b" opacity=".85"/><rect x="12" y="12" width="12" height="12" fill="#c8242b" opacity=".85"/></pattern></defs>';
+    s+='<rect width="800" height="600" fill="#13304c"/>'+grid(800,600,50,'rgba(242,239,230,.05)');
+    s+='<rect x="90" y="70" width="620" height="460" rx="26" fill="#d6c19a"/>';
+    var r=rng(3);for(var i=0;i<16;i++){var y=90+i*28+r()*8;s+='<path d="M110 '+f1(y)+' Q400 '+f1(y+(r()-.5)*24)+' 690 '+f1(y)+'" stroke="#c2aa7e" stroke-width="2" fill="none"/>';}
+    s+='<g transform="rotate(-14 160 470)"><rect x="40" y="420" width="250" height="150" fill="url(#aSt)"/><rect x="40" y="420" width="250" height="150" fill="none" stroke="#a51d22" stroke-width="3"/></g>';
+    s+=shell(400,300,300,-18,11,{});
+    s+='<g transform="translate(600 170) rotate(28)"><path d="'+smooth(shellPts(210,150,1,0,rng(4),.2))+'" fill="#5f5a4f" stroke="#2e2b26" stroke-width="4"/><path d="'+smooth(shellPts(210,150,.75,0,rng(8),.25))+'" fill="none" stroke="#8a8476" stroke-width="5"/><path d="'+smooth(shellPts(210,150,.5,0,rng(6),.25))+'" fill="none" stroke="#8a8476" stroke-width="4"/></g>';
+    s+='<g transform="translate(560 430) rotate(-32)"><rect x="-120" y="-16" width="130" height="32" rx="14" fill="#6b4524"/><rect x="-118" y="-12" width="126" height="6" rx="3" fill="#8a5d34"/><rect x="8" y="-20" width="14" height="40" rx="3" fill="#b48a4a"/><path d="M22 -9 L110 -6 Q122 0 110 6 L22 9Z" fill="#c9ced3" stroke="#7d848b" stroke-width="2"/></g>';
+    s+='<circle cx="650" cy="520" r="56" fill="#f2c230" stroke="#c99a12" stroke-width="4"/><circle cx="650" cy="520" r="46" fill="#f8e07a"/>';
+    for(i=0;i<8;i++){var a=i*Math.PI/4;s+='<line x1="650" y1="520" x2="'+f1(650+Math.cos(a)*44)+'" y2="'+f1(520+Math.sin(a)*44)+'" stroke="#e6c240" stroke-width="3"/>';}
+    return s;
+  },
+  platter:function(){
+    var s='<defs><radialGradient id="aPt" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#e6c88f"/><stop offset=".7" stop-color="#b48a4a"/><stop offset="1" stop-color="#6c4e24"/></radialGradient></defs>';
+    s+='<rect width="800" height="600" fill="#0f2741"/>'+grid(800,600,40,'rgba(242,239,230,.05)');
+    s+='<circle cx="400" cy="300" r="266" fill="rgba(0,0,0,.35)" transform="translate(10 14)"/><circle cx="400" cy="300" r="266" fill="url(#aPt)"/><circle cx="400" cy="300" r="246" fill="#7d5c2c"/><circle cx="400" cy="300" r="240" fill="#dfe9ee"/>'+iceField(400,300,232,170,21);
+    for(var i=0;i<9;i++){var a=i/9*Math.PI*2-Math.PI/2;s+=shell(400+Math.cos(a)*158,300+Math.sin(a)*158,104,a*180/Math.PI,i+40);}
+    for(i=0;i<4;i++){a=i/4*Math.PI*2+.4;s+=shell(400+Math.cos(a)*72,300+Math.sin(a)*72,78,a*180/Math.PI,i+60);}
+    s+='<circle cx="400" cy="300" r="34" fill="#f2efe6" stroke="#b9b2a2" stroke-width="3"/><circle cx="400" cy="300" r="26" fill="#7a2a3a"/>';
+    var r=rng(2);for(i=0;i<14;i++) s+='<circle cx="'+f1(400+(r()-.5)*36)+'" cy="'+f1(300+(r()-.5)*36)+'" r="2.2" fill="#d98a9a"/>';
+    s+=lemon(560,470,30,-30)+lemon(240,130,26,150);
+    return s;
+  },
+  grill:function(){
+    var s='<defs><radialGradient id="aGg" cx=".5" cy="1" r=".9"><stop offset="0" stop-color="#e06a1e" stop-opacity=".8"/><stop offset=".5" stop-color="#c8242b" stop-opacity=".3"/><stop offset="1" stop-color="#0a1522" stop-opacity="0"/></radialGradient></defs>';
+    s+='<rect width="800" height="600" fill="#0a1522"/><rect width="800" height="600" fill="url(#aGg)"/>';
+    for(var y=40;y<600;y+=52) s+='<rect x="0" y="'+y+'" width="800" height="12" fill="#2b2118"/><rect x="0" y="'+y+'" width="800" height="3" fill="#5b4632"/>';
+    var top=function(len,wid,r){var t='';for(var i=0;i<9;i++) t+='<circle cx="'+f1((r()-.3)*len*.4)+'" cy="'+f1((r()-.5)*wid*.4)+'" r="'+f1(len*.03+r()*len*.02)+'" fill="'+(i%3?'#3f8a4a':'#fff6dc')+'" opacity=".9"/>';
+      for(i=0;i<4;i++) t+='<circle cx="'+f1((r()-.4)*len*.4)+'" cy="'+f1((r()-.5)*wid*.35)+'" r="'+f1(len*.04)+'" fill="#6b3a12" opacity=".5"/>';return t;};
+    [[220,190,-10],[420,170,12],[620,200,-4],[180,410,8],[400,420,-14],[610,420,18]].forEach(function(p,k){s+=shell(p[0],p[1],210,p[2],k+80,{meat:'#d9a441',mantle:'#8a5a1c',dry:1,top:top});});
+    var r=rng(4);for(var i=0;i<6;i++){var x=80+i*130+r()*40;s+='<path d="M'+f1(x)+' 600 Q'+f1(x+20)+' 540 '+f1(x+5)+' 500 Q'+f1(x+40)+' 550 '+f1(x+44)+' 600Z" fill="#f2c230" opacity=".5"/>';}
+    for(i=0;i<4;i++){x=150+i*170;s+='<path d="M'+x+' 140 q-30 -40 0 -80 q30 -40 0 -80" stroke="rgba(242,239,230,.12)" stroke-width="10" fill="none" stroke-linecap="round"/>';}
+    return s;
+  },
+  mussel:function(){
+    var s='<rect width="800" height="600" fill="#0f2741"/>'+grid(800,600,40,'rgba(242,239,230,.05)');
+    s+='<circle cx="370" cy="320" r="250" fill="rgba(0,0,0,.35)" transform="translate(12 14)"/><circle cx="370" cy="320" r="250" fill="#f2efe6"/><circle cx="370" cy="320" r="236" fill="#13304c"/><circle cx="370" cy="320" r="214" fill="#c08a3e"/>';
+    var r=rng(12);for(var i=0;i<26;i++){var a=r()*Math.PI*2, d=Math.sqrt(r())*168, x=370+Math.cos(a)*d, y=320+Math.sin(a)*d, rot=r()*360;
+      s+='<g transform="translate('+f1(x)+' '+f1(y)+') rotate('+f1(rot)+')"><path d="M0 0 Q-28 -50 6 -78 Q24 -40 0 0Z" fill="#1a2433" stroke="#05090f" stroke-width="2"/><path d="M0 0 Q28 -50 -6 -78 Q-24 -40 0 0Z" transform="rotate(38)" fill="#22324a" stroke="#05090f" stroke-width="2"/><ellipse cx="4" cy="-34" rx="9" ry="22" transform="rotate(18)" fill="#e5873a"/><path d="M-4 -60 Q2 -40 -6 -20" stroke="#4a6a8a" stroke-width="2" fill="none"/></g>';}
+    for(i=0;i<40;i++) s+='<circle cx="'+f1(370+(r()-.5)*380)+'" cy="'+f1(320+(r()-.5)*380)+'" r="'+f1(2+r()*3)+'" fill="#4f9a4a" opacity=".85"/>';
+    s+='<g transform="translate(690 130) rotate(18)"><rect x="-80" y="-56" width="160" height="112" rx="26" fill="#a86a2c"/><rect x="-70" y="-46" width="140" height="92" rx="20" fill="#ecd7a6"/>';
+    for(i=0;i<16;i++) s+='<circle cx="'+f1((r()-.5)*120)+'" cy="'+f1((r()-.5)*76)+'" r="'+f1(2+r()*3)+'" fill="#d1b47a"/>';
+    s+='</g><circle cx="680" cy="480" r="78" fill="#2a1a10"/><circle cx="680" cy="480" r="66" fill="#efe2c4"/><circle cx="672" cy="472" r="20" fill="#fff8e8" opacity=".6"/>';
+    return s;
+  },
+  harbor:function(){
+    var s='<defs><linearGradient id="aHs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1d31"/><stop offset=".45" stop-color="#22405f"/><stop offset=".68" stop-color="#c79a58"/></linearGradient><linearGradient id="aHw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a3654"/><stop offset="1" stop-color="#06111e"/></linearGradient></defs>';
+    s+='<rect width="800" height="600" fill="url(#aHs)"/>';
+    var r=rng(31);for(var i=0;i<40;i++) s+='<circle cx="'+f1(r()*800)+'" cy="'+f1(r()*200)+'" r="'+f1(.6+r()*1.4)+'" fill="#f2efe6" opacity="'+f1(.3+r()*.6)+'"/>';
+    s+='<circle cx="610" cy="110" r="30" fill="#f2efe6"/><circle cx="622" cy="102" r="28" fill="#1a3352" opacity=".25"/>';
+    s+='<path d="M0 330 L90 270 L170 300 L260 240 L360 290 L450 250 L560 300 L650 262 L800 310 L800 420 L0 420Z" fill="#14304c"/>';
+    s+='<path d="M0 360 L120 320 L220 345 L330 312 L470 350 L600 322 L800 352 L800 420 L0 420Z" fill="#0b1e33"/>';
+    for(i=0;i<90;i++){var x=r()*800,y=330+r()*70;s+='<rect x="'+f1(x)+'" y="'+f1(y)+'" width="3" height="3" fill="#f2c230" opacity="'+f1(.4+r()*.6)+'"/>';}
+    s+='<rect x="0" y="420" width="800" height="180" fill="url(#aHw)"/>';
+    for(i=0;i<60;i++){x=r()*800;y=430+r()*160;s+='<rect x="'+f1(x)+'" y="'+f1(y)+'" width="'+f1(10+r()*40)+'" height="2" fill="#f2c230" opacity="'+f1(.15+r()*.4)+'"/>';}
+    s+='<path d="M380 418 L720 418 L700 446 L400 446Z" fill="#06101c"/><rect x="560" y="384" width="90" height="34" fill="#06101c"/><rect x="590" y="360" width="40" height="24" fill="#06101c"/><rect x="608" y="330" width="5" height="30" fill="#06101c"/>';
+    for(i=0;i<6;i++) s+='<rect x="'+(570+i*13)+'" y="394" width="6" height="5" fill="#f2c230"/>';
+    s+='<rect x="430" y="398" width="110" height="20" fill="#c8242b"/><rect x="430" y="398" width="110" height="5" fill="#8a1a1e"/>';
+    s+='<rect x="204" y="150" width="7" height="300" fill="#b48a4a"/><rect x="170" y="190" width="76" height="5" fill="#b48a4a"/><rect x="140" y="440" width="140" height="12" fill="#06101c"/>';
+    s+='<path d="M208 156 L420 404" stroke="#c9b48a" stroke-width="1.5"/>';
+    'CODEFLAG'.split('').forEach(function(c,i){var t=(i+.5)/8;s+=flagAt(c,208+t*212-14,156+t*248-4,28);});
+    return s;
+  },
+  ice:function(){
+    var s='<rect width="800" height="600" fill="#dfe9ee"/>'+iceRect(800,600,520,77);
+    var r=rng(19),k=0;for(var y=70;y<600;y+=130){for(var x=60;x<800;x+=150){var ox=(Math.floor(y/130)%2)*70;s+=shell(x+ox+(r()-.5)*30,y+(r()-.5)*30,130,r()*360,k+100);k++;}}
+    var L=['H','A','F','K','I','S','G'];
+    for(var i=0;i<7;i++){var px=90+i*110+(r()-.5)*30, py=110+(i%3)*160+(r()-.5)*40;s+='<line x1="'+f1(px)+'" y1="'+f1(py)+'" x2="'+f1(px)+'" y2="'+f1(py+60)+'" stroke="#8a6630" stroke-width="3"/>'+flagAt(L[i],px,py-2,42);}
+    s+=lemon(700,520,34,-20)+lemon(120,540,30,30);
+    return s;
+  },
+  crate:function(){
+    var s='<rect width="800" height="600" fill="#0f2741"/>'+grid(800,600,40,'rgba(242,239,230,.05)');
+    s+='<rect x="70" y="56" width="660" height="488" fill="#9a7744"/><rect x="70" y="56" width="660" height="34" fill="#b48a4a"/><rect x="70" y="510" width="660" height="34" fill="#b48a4a"/><rect x="70" y="56" width="34" height="488" fill="#b48a4a"/><rect x="696" y="56" width="34" height="488" fill="#b48a4a"/>';
+    s+='<rect x="104" y="90" width="592" height="420" fill="#1d3a2a"/>';
+    var r=rng(41);for(var i=0;i<60;i++){var x=110+r()*580,y=96+r()*408;s+='<path d="M'+f1(x)+' '+f1(y)+' q'+f1((r()-.5)*60)+' '+f1(-20-r()*30)+' '+f1((r()-.5)*80)+' '+f1(-40-r()*30)+'" stroke="'+(i%2?'#2f6a44':'#3f7f52')+'" stroke-width="'+f1(3+r()*4)+'" fill="none" stroke-linecap="round"/>';}
+    var k=0;for(var y=150;y<500;y+=118){for(var x=170;x<680;x+=128){s+=shell(x+(r()-.5)*24,y+(r()-.5)*20,140,-30+r()*60+(k%2?180:0),k+200,{});k++;}}
+    s+='<text x="400" y="80" text-anchor="middle" font-family="Menlo,Consolas,monospace" font-weight="700" font-size="20" letter-spacing="6" fill="#3a2610" opacity=".75">GALWAY BAY · IRELAND</text>';
+    s+='<text x="400" y="535" text-anchor="middle" font-family="Menlo,Consolas,monospace" font-weight="700" font-size="17" letter-spacing="8" fill="#3a2610" opacity=".7">LIVE OYSTERS · KEEP 2–6°C</text>';
+    return s;
+  }
+};
+function fillPhotos(){
+  $$('.ph').forEach(function(f){
+    var key=f.getAttribute('data-photo'), art=f.getAttribute('data-art'), lab=f.getAttribute('data-label'), url=SHOP.photos[key];
+    if(url){f.innerHTML='<img src="'+esc(url)+'" alt="'+esc(lab)+'" loading="lazy">';}
+    else if(ART[art]){f.innerHTML='<svg viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice" role="img" aria-label="'+esc(lab)+'（佔位插畫）">'+ART[art]()+'</svg>';}
+  });
+}
+
+/* ===== 基本資料帶入 ===== */
+function fillShop(){
+  $$('[data-shop]').forEach(function(el){el.textContent=SHOP[el.getAttribute('data-shop')];});
+  $('#addr').textContent=SHOP.address; $('#fAddr').textContent=SHOP.address; $('#access').textContent=SHOP.access;
+  var tel=$('#tel');tel.textContent=SHOP.phone;tel.href='tel:'+SHOP.phone.replace(/[^\d+]/g,'');
+  $('#mapLink').href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(SHOP.address.replace(/（.*）/,''));
+  $('#heroCoord').textContent=SHOP.coord.lat+' '+SHOP.coord.lon+' · 基隆港西岸';
+  $('#tStation').textContent=SHOP.tide.station;
+  $('#yr').textContent=new Date().getFullYear();
+  $('#hhRule').textContent='營業時間內，每次乾潮前後 '+SHOP.happy.windowMin+' 分鐘，全部產地生蠔 '+(SHOP.happy.discount===.5?'半價':Math.round((1-SHOP.happy.discount)*100)/10+' 折')+'。時間每天跟著潮水走，約晚 50 分鐘。';
+  var hl=['L','O','W',null,'T','I','D','E'], s='';
+  hl.forEach(function(c,i){s+=c?'<span class="fl" style="--i:'+i+'">'+flagSVG(c,'',true)+'<b>'+c+'</b></span>':'<span class="fl sp"></span>';});
+  $('#heroFlags').innerHTML=s;
+  $('#logoFlags').innerHTML=flagSVG('L')+flagSVG('T');
+  $('#footFlags').innerHTML='LOWTIDE'.split('').map(function(c){return flagSVG(c);}).join('');
+  $('#heroRose').innerHTML=rose('#f2efe6','#b48a4a','#b48a4a');
+  $('#storyRose').innerHTML=rose('#0d2238','#c8242b','#0d2238');
+}
+
+/* ===== 營業狀態 ===== */
+function statusText(now){
+  var ss=sessionsOn(now);
+  for(var i=0;i<ss.length;i++){if(now>=ss[i].s && now<ss[i].e) return {on:true,t:'營業中，到 '+ss[i].le};}
+  for(var d=0;d<8;d++){var day=addDays(now,d), l=sessionsOn(day);for(var j=0;j<l.length;j++){if(l[j].s>now) return {on:false,t:'休息中，'+dayLabel(day,now)+' '+l[j].ls+' 開門'};}}
+  return {on:false,t:'休息中'};
+}
+function renderStatus(){
+  var st=statusText(Date.now()), el=$('#status');
+  el.classList.toggle('on',st.on); el.querySelector('span').textContent=st.t;
+  $('#visitStatus').textContent='現在 '+st.t+'。週一公休，週末分午、晚兩段。';
+}
+
+/* ===== 潮汐圖 ===== */
+var drawnOnce=false;
+function drawTide(){
+  var svg=$('#tideSvg'), Wd=Math.max(300,svg.clientWidth||svg.getBoundingClientRect().width||1000), mob=Wd<640, H=mob?200:232;
+  svg.setAttribute('viewBox','0 0 '+Wd+' '+H); svg.style.height=H+'px';
+  var pl=mob?34:48, pr=mob?6:14, pt=30, pb=26, iw=Wd-pl-pr, ih=H-pt-pb;
+  var now=Date.now(), d0=midnight(now), d1=d0+DAY, maxM=2.2;
+  function X(t){return pl+(t-d0)/DAY*iw;} function Yv(m){return pt+ih*(1-m/maxM);}
+  var s='<defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f5aa6" stop-opacity=".6"/><stop offset="1" stop-color="#1f5aa6" stop-opacity=".04"/></linearGradient></defs>';
+  sessionsOn(d0).forEach(function(se){var a=X(se.s), b=Math.min(X(se.e),pl+iw);s+='<rect x="'+f1(a)+'" y="'+pt+'" width="'+f1(b-a)+'" height="'+ih+'" fill="rgba(242,239,230,.06)"/>';});
+  var nh=nextHappy(now);
+  happyIn(d0,d1).forEach(function(w){var a=Math.max(X(w.s),pl), b=Math.min(X(w.e),pl+iw), isN=nh&&nh.s===w.s;
+    s+='<rect class="hhband'+(isN?' hhnext':'')+'" x="'+f1(a)+'" y="'+pt+'" width="'+f1(b-a)+'" height="'+ih+'" fill="rgba(242,194,48,.26)"/>';
+    s+='<rect x="'+f1(a)+'" y="'+(pt-14)+'" width="'+f1(b-a)+'" height="14" fill="#f2c230"/><text x="'+f1((a+b)/2)+'" y="'+(pt-3.5)+'" text-anchor="middle" font-size="10" font-weight="700" fill="#0d2238">'+(b-a>58?'半價 ':'')+'½</text>';});
+  [0,.5,1,1.5,2].forEach(function(m){var y=Yv(m);s+='<line x1="'+pl+'" y1="'+f1(y)+'" x2="'+(pl+iw)+'" y2="'+f1(y)+'" stroke="rgba(242,239,230,'+(m?'.1':'.35')+')" '+(m?'stroke-dasharray="2 5"':'')+'/><text x="'+(pl-7)+'" y="'+f1(y+3.5)+'" text-anchor="end" font-size="10" fill="#a3b3c4">'+m.toFixed(1)+(mob?'':' m')+'</text>';});
+  var stepH=mob?6:3;for(var h=0;h<=24;h+=stepH){var x=X(d0+h*HOUR);s+='<line x1="'+f1(x)+'" y1="'+(pt+ih)+'" x2="'+f1(x)+'" y2="'+(pt+ih+5)+'" stroke="#a3b3c4"/><text x="'+f1(x)+'" y="'+(H-6)+'" text-anchor="'+(h===0?'start':h===24?'end':'middle')+'" font-size="10" fill="#a3b3c4">'+pad(h%24===0&&h?24:h)+':00</text>';}
+  var N=Math.max(60,Math.round(iw/4)), d='', i;
+  for(i=0;i<=N;i++){var t=d0+i/N*DAY;d+=(i?'L':'M')+f1(X(t))+' '+f1(Yv(tideAt(t)));}
+  s+='<path class="area" d="'+d+'L'+(pl+iw)+' '+(pt+ih)+'L'+pl+' '+(pt+ih)+'Z" fill="url(#tg)"/>';
+  s+='<path class="curve" d="'+d+'" pathLength="1" fill="none" stroke="#f2efe6" stroke-width="2.2" stroke-linejoin="round"/>';
+  function ext(t,low){var x=X(t), y=Yv(tideAt(t)), anc=x<pl+40?'start':x>pl+iw-40?'end':'middle', ty=low?y+17:y-9;
+    return '<circle cx="'+f1(x)+'" cy="'+f1(y)+'" r="3.5" fill="'+(low?'#f2c230':'#f2efe6')+'" stroke="#0d2238" stroke-width="1.5"/><text x="'+f1(x)+'" y="'+f1(ty)+'" text-anchor="'+anc+'" font-size="10.5" font-weight="700" fill="'+(low?'#f2c230':'#f2efe6')+'">'+(low?'乾 ':'滿 ')+hm(t)+(mob?'':' · '+tideAt(t).toFixed(2)+'m')+'</text>';}
+  extIn(d0,d1,false).forEach(function(t){s+=ext(t,false);});
+  extIn(d0,d1,true).forEach(function(t){s+=ext(t,true);});
+  var nx=X(now), lv=tideAt(now), ny=Yv(lv);
+  s+='<line x1="'+pl+'" y1="'+f1(ny)+'" x2="'+(pl+iw)+'" y2="'+f1(ny)+'" stroke="rgba(242,194,48,.35)" stroke-dasharray="1 4"/>';
+  s+='<line class="glint" x1="'+pl+'" y1="'+f1(ny)+'" x2="'+(pl+iw)+'" y2="'+f1(ny)+'" stroke="#f2c230" stroke-width="2" stroke-linecap="round"/>';
+  s+='<line x1="'+f1(nx)+'" y1="'+(pt)+'" x2="'+f1(nx)+'" y2="'+(pt+ih)+'" stroke="#c8242b" stroke-width="2" stroke-dasharray="5 3"/>';
+  s+='<circle class="pulse" cx="'+f1(nx)+'" cy="'+f1(ny)+'" r="5" fill="none" stroke="#f2c230" stroke-width="2"/><circle cx="'+f1(nx)+'" cy="'+f1(ny)+'" r="5.5" fill="#c8242b" stroke="#f2efe6" stroke-width="2"/>';
+  var lbw=78, lx=Math.min(Math.max(nx-lbw/2,pl),pl+iw-lbw), ly=ny>pt+ih/2?ny-40:ny+16;
+  s+='<rect x="'+f1(lx)+'" y="'+f1(ly)+'" width="'+lbw+'" height="22" fill="#c8242b"/><text x="'+f1(lx+lbw/2)+'" y="'+f1(ly+15)+'" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">NOW '+hm(now)+'</text>';
+  svg.innerHTML=s;
+  if(!drawnOnce){drawnOnce=true;svg.classList.add('drawing');setTimeout(function(){svg.classList.remove('drawing');},3400);}
+  var nl=extIn(now,now+DAY,true)[0], nhgh=extIn(now,now+DAY,false)[0], ris=rising(now);
+  $('#tideNow').innerHTML='現在 <b>'+lv.toFixed(1)+' m</b> · <span class="chip '+(ris?'flood':'ebb')+'">'+(ris?'漲潮中':'退潮中')+'</span> · 下次乾潮 <b>'+(midnight(nl)!==d0?'明日 ':'')+hm(nl)+'</b><span style="color:#a3b3c4;font-weight:400;font-size:.8em"> · 滿潮 '+(midnight(nhgh)!==d0?'明日 ':'')+hm(nhgh)+'</span>';
+}
+
+/* ===== Happy Hour ===== */
+function hms(ms){var t=Math.max(0,Math.floor(ms/1000)), d=Math.floor(t/86400), h=Math.floor(t%86400/3600), m=Math.floor(t%3600/60), s=t%60;return (d?d+'天 ':'')+pad(h)+':'+pad(m)+':'+pad(s);}
+var lastHH=null;
+function tickHH(){
+  var now=Date.now(), h=nextHappy(now), on=!!(h&&h.s<=now);
+  $('#hh').classList.toggle('on',on);
+  if(!h){$('#hhLab').textContent='近期沒有落在營業時間的乾潮';$('#hhCount').textContent='--:--:--';$('#hhWin').textContent='';return;}
+  $('#hhLab').textContent=on?'退潮半價進行中 · 剩餘':'距離下次退潮半價';
+  $('#hhCount').textContent=hms(on?h.e-now:h.s-now);
+  $('#hhWin').textContent=dayLabel(h.s,now)+' '+hm(h.s)+'–'+hm(h.e)+' · 乾潮 '+hm(h.low)+' · '+tideAt(h.low).toFixed(2)+' m';
+  var key=h.s+'|'+on;
+  if(key!==lastHH){lastHH=key;
+    var l=happyIn(now,now+10*DAY).filter(function(w){return w.e>now;}).slice(0,3);
+    $('#hhList').innerHTML=l.map(function(w){var cur=w.s<=now;return '<li'+(cur?' class="now"':'')+'><span>'+md(w.s)+' 週'+WD[new Date(w.s).getDay()]+'</span><b>'+hm(w.s)+'–'+hm(w.e)+'</b><span>乾 '+hm(w.low)+'</span></li>';}).join('');
+    renderPlate();
+  }
+}
+
+/* ===== 招牌 ===== */
+function renderSigs(){
+  $('#sigList').innerHTML=SIGS.map(function(c,i){return '<article class="card rv"><figure class="ph" data-photo="'+c.photo+'" data-art="'+c.art+'" data-label="'+esc(c.zh)+'" data-size="1600×1200"></figure><div class="cb"><span class="code">'+flagSVG(c.flag)+'旗號 '+c.flag+' · NO.0'+(i+1)+'</span><h3>'+esc(c.zh)+'<em>'+esc(c.en)+'</em></h3><p>'+esc(c.d)+'</p><div class="pr">'+c.p+'<small>'+esc(c.u)+'</small></div></div></article>';}).join('');
+}
+
+/* ===== 圖鑑＋冰盤 ===== */
+var O={};ORIGINS.forEach(function(o){O[o.id]=o;});
+var plate={size:12,items:[],sel:'H',last:-1};
+function renderPlot(){
+  var p=$('#plot');
+  ORIGINS.forEach(function(o){
+    var b=document.createElement('button');b.type='button';b.className='pt';b.setAttribute('data-id',o.id);
+    b.style.left=(6+o.sal/10*88)+'%';b.style.top=(94-o.cre/10*88)+'%';
+    b.setAttribute('aria-label',o.name+'，'+o.place+'，鹹度 '+o.sal+'，奶油感 '+o.cre+'，每顆 '+o.price+' 元，加入冰盤');
+    b.innerHTML=flagSVG(o.id)+'<span>'+esc(o.zh)+'</span><i></i>';
+    b.addEventListener('click',function(){plate.sel=o.id;addOyster(o.id);});
+    b.addEventListener('mouseenter',function(){showOrigin(o.id);});
+    b.addEventListener('focus',function(){showOrigin(o.id);});
+    p.appendChild(b);
+  });
+}
+function showOrigin(id){
+  var o=O[id];
+  $$('.pt').forEach(function(b){b.classList.toggle('act',b.getAttribute('data-id')===id);});
+  $('#od').innerHTML=flagSVG(o.id,'big')+'<h3>'+esc(o.name)+'<small>'+esc(o.place)+'</small></h3><p>'+esc(o.note)+'</p>'+
+    '<div class="bars"><span>鹹度 '+o.sal.toFixed(1)+'<i style="--v:'+o.sal*10+'%"></i></span><span>奶油感 '+o.cre.toFixed(1)+'<i style="--v:'+o.cre*10+'%"></i></span><span>尺寸 '+o.size+' · '+esc(o.sp)+'</span></div>'+
+    '<div class="odf"><b>'+money(o.price)+' <small style="font-size:12px;color:#a3b3c4">/ 顆</small></b><button class="btn y sm" type="button" id="odAdd">加入冰盤 ＋</button></div>';
+  $('#odAdd').addEventListener('click',function(){addOyster(id);});
+}
+function msg(t){$('#pmsg').textContent=t;}
+function addOyster(id){
+  showOrigin(id);
+  if(plate.items.length>=plate.size){msg(plate.size===6?'冰盤已滿：換成 12 顆盤，或從清單移除一顆。':'冰盤已滿 12 顆：從清單移除再加。');return;}
+  plate.items.push(id);plate.last=plate.items.length-1;
+  msg('已放上 '+O[id].zh+' · 第 '+plate.items.length+' / '+plate.size+' 顆');
+  renderPlate();
+}
+function slotPos(n){var out=[],i,a;
+  if(n===6){for(i=0;i<6;i++){a=(-90+i*60)*Math.PI/180;out.push({x:200+Math.cos(a)*120,y:200+Math.sin(a)*120,a:a,len:88});}}
+  else{for(i=0;i<8;i++){a=(-90+i*45)*Math.PI/180;out.push({x:200+Math.cos(a)*138,y:200+Math.sin(a)*138,a:a,len:72});}
+       for(i=0;i<4;i++){a=(-45+i*90)*Math.PI/180;out.push({x:200+Math.cos(a)*64,y:200+Math.sin(a)*64,a:a,len:60});}}
+  return out;}
+var plateIce=iceField(200,200,172,170,7,.55);
+function renderPlate(){
+  var pos=slotPos(plate.size), s='<defs><radialGradient id="ptr" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#e6c88f"/><stop offset=".7" stop-color="#b48a4a"/><stop offset="1" stop-color="#6c4e24"/></radialGradient></defs>';
+  s+='<circle cx="204" cy="208" r="196" fill="rgba(0,0,0,.35)"/><circle cx="200" cy="200" r="196" fill="url(#ptr)"/><circle cx="200" cy="200" r="182" fill="#7d5c2c"/><circle cx="200" cy="200" r="177" fill="#dfe9ee"/>'+plateIce;
+  for(var i=0;i<12;i++){var a=i/12*Math.PI*2;s+='<circle cx="'+f1(200+Math.cos(a)*189)+'" cy="'+f1(200+Math.sin(a)*189)+'" r="2.2" fill="#f3dca8"/>';}
+  if(plate.size===6){s+='<circle cx="200" cy="200" r="34" fill="#f2efe6" stroke="#b9b2a2" stroke-width="2.5"/><circle cx="200" cy="200" r="26" fill="#7a2a3a"/>';}
+  else{s+='<circle cx="200" cy="200" r="22" fill="#f2efe6" stroke="#b9b2a2" stroke-width="2"/><circle cx="200" cy="200" r="16" fill="#7a2a3a"/>';}
+  pos.forEach(function(p,k){
+    var id=plate.items[k], deg=p.a*180/Math.PI;
+    if(!id){s+='<g transform="translate('+f1(p.x)+' '+f1(p.y)+') rotate('+f1(deg)+')"><ellipse rx="'+f1(p.len/2)+'" ry="'+f1(p.len*.33)+'" fill="rgba(13,34,56,.06)" stroke="rgba(13,34,56,.45)" stroke-width="1.5" stroke-dasharray="4 4"/></g><text x="'+f1(p.x)+'" y="'+f1(p.y+4)+'" text-anchor="middle" font-family="Menlo,Consolas,monospace" font-size="12" font-weight="700" fill="rgba(13,34,56,.55)">'+(k+1)+'</text>';}
+    else{var fx_=p.x+Math.cos(p.a)*p.len*.28, fy=p.y+Math.sin(p.a)*p.len*.28, fw=p.len*.3;
+      s+='<g'+(k===plate.last?' class="popin"':'')+'>'+shell(p.x,p.y,p.len,deg+180,k*7+id.charCodeAt(0))+'<g transform="translate('+f1(fx_)+' '+f1(fy)+')">'+flagAt(id,-fw/2,-fw*.4,fw)+'</g></g>';}
+  });
+  $('#plate').innerHTML=s;
+  plate.last=-1;
+  // 清單
+  var cnt={},order=[];plate.items.forEach(function(id){if(!cnt[id]){cnt[id]=0;order.push(id);}cnt[id]++;});
+  $('#plist').innerHTML=order.length?order.map(function(id){var o=O[id];return '<li>'+flagSVG(id)+'<span>'+esc(o.name)+' <span class="m">× '+cnt[id]+'</span></span><span class="m">'+money(o.price*cnt[id])+'</span><button class="x" type="button" data-rm="'+id+'" aria-label="移除一顆 '+esc(o.name)+'">−</button></li>';}).join(''):'<li class="empty">冰盤還是空的。點左邊圖上的旗子，或按「主廚補滿」。</li>';
+  $$('.pt i').forEach(function(el){var id=el.parentNode.getAttribute('data-id');el.textContent=cnt[id]||'';el.classList.toggle('on',!!cnt[id]);});
+  // 價格
+  var sub=0;plate.items.forEach(function(id){sub+=O[id].price;});
+  var now=Date.now(), on=happyNow(now), disc=on?Math.round(sub*SHOP.happy.discount):0, nh=nextHappy(now), h='';
+  h+='<div><span>小計 · '+plate.items.length+' / '+plate.size+' 顆</span><span>'+money(sub)+'</span></div>';
+  if(on) h+='<div class="disc"><span>退潮半價（到 '+hm(nh.e)+'）</span><span>− '+money(disc)+'</span></div>';
+  else if(nh&&sub) h+='<div class="hint"><span>下次半價 '+dayLabel(nh.s,now)+' '+hm(nh.s)+'–'+hm(nh.e)+' 來店</span><span>省 '+money(Math.round(sub*SHOP.happy.discount))+'</span></div>';
+  h+='<div class="tot"><span>合計</span><span>'+money(sub-disc)+'</span></div>';
+  $('#sum').innerHTML=h;
+}
+function bindPlate(){
+  $$('.seg button').forEach(function(b){b.addEventListener('click',function(){
+    var n=+b.getAttribute('data-size');plate.size=n;
+    $$('.seg button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});
+    if(plate.items.length>n){plate.items=plate.items.slice(0,n);msg('改成 6 顆盤，多出來的已移除。');} else msg(n+' 顆冰盤');
+    renderPlate();});});
+  $('#plist').addEventListener('click',function(e){var b=e.target.closest('[data-rm]');if(!b) return;var id=b.getAttribute('data-rm'), i=plate.items.lastIndexOf(id);if(i>-1) plate.items.splice(i,1);msg('移除一顆 '+O[id].zh);renderPlate();});
+  $('#pClear').addEventListener('click',function(){plate.items=[];msg('冰盤已清空');renderPlate();});
+  $('#pChef').addEventListener('click',function(){var ord=['H','F','K','I','A','W','S','G'], k=plate.items.length;if(k>=plate.size){msg('冰盤已經滿了');return;}
+    while(plate.items.length<plate.size){plate.items.push(ord[k%ord.length]);k++;}msg('主廚已依鹹甜平衡補滿冰盤');renderPlate();});
+  $('#pBook').addEventListener('click',function(){
+    if(!plate.items.length){msg('先放幾顆生蠔再帶去訂位');return;}
+    var cnt={};plate.items.forEach(function(id){cnt[id]=(cnt[id]||0)+1;});
+    $('#bNote').value='預訂冰盤 '+plate.items.length+' 顆：'+Object.keys(cnt).map(function(id){return O[id].zh+'×'+cnt[id];}).join('、');
+    document.getElementById('book').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+  });
+}
+
+/* ===== 菜單 ===== */
+function renderMenu(){
+  MENU.oyster.items=ORIGINS.map(function(o){return {n:o.name, e:o.place.split(' · ')[0], d:o.sp+' · 尺寸'+o.size+' · 鹹度 '+o.sal.toFixed(1)+' / 奶油感 '+o.cre.toFixed(1), p:o.price, u:'/ 顆', hh:1};});
+  MENU.oyster.items.push({n:'半打冰盤', e:'6 pcs', d:'主廚挑三個產地，附三種醬。', p:640, hh:1},{n:'退潮冰盤', e:'12 pcs', d:'四個產地、海鹽奶油麵包。', p:1580, hh:1});
+  var keys=Object.keys(MENU);
+  $('#tabs').innerHTML=keys.map(function(k,i){return '<button type="button" role="tab" id="tab-'+k+'" aria-selected="'+(i===0)+'" data-k="'+k+'">'+MENU[k].t+'<small>'+MENU[k].en+'</small></button>';}).join('');
+  function show(k){
+    $$('#tabs button').forEach(function(b){b.setAttribute('aria-selected',String(b.getAttribute('data-k')===k));});
+    $('#mlist').setAttribute('aria-labelledby','tab-'+k);
+    $('#mlist').innerHTML=MENU[k].items.map(function(m){return '<div class="mi"><b>'+esc(m.n)+'<em>'+esc(m.e)+'</em>'+(m.hh?'<span class="tag">退潮½</span>':'')+'</b><span class="p">'+money(m.p)+(m.u?' <small style="display:inline;font-size:11px;color:#a3b3c4">'+m.u+'</small>':'')+'</span><small>'+esc(m.d)+'</small></div>';}).join('');
+  }
+  $('#tabs').addEventListener('click',function(e){var b=e.target.closest('button');if(b) show(b.getAttribute('data-k'));});
+  $('#tabs').addEventListener('keydown',function(e){if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft') return;var bs=$$('#tabs button'), i=bs.indexOf(document.activeElement);if(i<0) return;var n=bs[(i+(e.key==='ArrowRight'?1:bs.length-1))%bs.length];n.focus();n.click();});
+  show(keys[0]);
+}
+
+/* ===== 訂位 ===== */
+var bk={date:null,time:null,pax:2,zone:'bar'};
+function bookDates(){
+  var now=Date.now(), out=[];
+  for(var i=0;i<30&&out.length<7;i++){var d=addDays(now,i);if(slotsFor(d).some(function(x){return !x.dis;})) out.push(d);}
+  return out;
+}
+function slotsFor(d){
+  var now=Date.now(), out=[], hl=happyIn(d,d+DAY+6*HOUR);
+  sessionsOn(d).forEach(function(se){for(var t=se.s;t<=se.e-SHOP.lastSeatMin*MIN;t+=SHOP.slotMin*MIN){
+    out.push({t:t,dis:t<now+30*MIN,hh:hl.some(function(w){return t>=w.s&&t<w.e;})});}});
+  return out;
+}
+function renderDates(){
+  var ds=bookDates(), now=Date.now();
+  if(!bk.date||ds.indexOf(bk.date)<0) bk.date=ds[0];
+  $('#bDates').innerHTML=ds.map(function(d){return '<label><input type="radio" name="bd" value="'+d+'"'+(d===bk.date?' checked':'')+'><span>'+md(d)+'<small>'+(midnight(now)===d?'今天':'週'+WD[new Date(d).getDay()])+'</small></span></label>';}).join('');
+  renderTimes();
+}
+function renderTimes(){
+  var sl=slotsFor(bk.date), ok=sl.filter(function(x){return !x.dis;});
+  if(!bk.time||!ok.some(function(x){return x.t===bk.time;})) bk.time=ok.length?ok[0].t:null;
+  $('#bTimes').innerHTML=sl.map(function(x){return '<label><input type="radio" name="bt" value="'+x.t+'"'+(x.dis?' disabled':'')+(x.t===bk.time?' checked':'')+'><span>'+hm(x.t)+(x.hh?'<em class="hhtag">半價</em>':'')+'</span></label>';}).join('');
+  $('#eTime').textContent='';
+}
+function renderZones(){
+  $('#bZones').innerHTML=ZONES.map(function(z){return '<label><input type="radio" name="bz" value="'+z.id+'"'+(z.id===bk.zone?' checked':'')+'><span>'+z.n+'<small>'+z.s+'</small></span></label>';}).join('');
+}
+function zoneCheck(){
+  var z=ZONES.filter(function(x){return x.id===bk.zone;})[0], e='';
+  if(bk.pax>z.max) e=z.n+'最多 '+z.max+' 位，請改選其他座位區。';
+  else if(bk.pax<z.min) e=z.n+'需 '+z.min+' 位以上。';
+  $('#eZone').textContent=e;return !e;
+}
+function renderPlan(){
+  var on=function(id){return bk.zone===id;}, Yc='#f2c230', base='rgba(242,239,230,.08)', ln='#f2efe6';
+  var s='<rect x="10" y="10" width="300" height="222" fill="none" stroke="'+ln+'" stroke-width="2"/>';
+  s+='<g class="zone"><path d="M70 34 H250 V74 H226 V56 H94 V74 H70Z" fill="'+(on('bar')?Yc:base)+'" stroke="'+ln+'" stroke-width="1.5"/>';
+  for(var i=0;i<7;i++) s+='<circle cx="'+(102+i*20)+'" cy="88" r="6" fill="none" stroke="'+ln+'" stroke-width="1.2"/>';
+  s+='<text x="160" y="50" text-anchor="middle" font-size="11" font-family="Menlo,Consolas,monospace" fill="'+(on('bar')?'#0d2238':ln)+'">吧台 · 開蠔台</text></g>';
+  s+='<g class="zone">';for(i=0;i<3;i++) s+='<rect x="24" y="'+(118+i*36)+'" width="40" height="24" fill="'+(on('win')?Yc:base)+'" stroke="'+ln+'" stroke-width="1.5"/>';
+  s+='<text x="44" y="110" font-size="11" font-family="Menlo,Consolas,monospace" fill="'+(on('win')?Yc:ln)+'" text-anchor="middle">窗邊</text></g>';
+  s+='<line x1="10" y1="110" x2="10" y2="226" stroke="#7fb2e6" stroke-width="5"/>';
+  for(i=0;i<3;i++) s+='<circle cx="'+(150+i*40)+'" cy="160" r="12" fill="none" stroke="rgba(242,239,230,.35)" stroke-dasharray="3 3"/>';
+  s+='<g class="zone"><rect x="320" y="10" width="70" height="222" fill="'+(on('cabin')?Yc:base)+'" stroke="'+ln+'" stroke-width="1.5"/><rect x="336" y="80" width="38" height="80" fill="none" stroke="'+(on('cabin')?'#0d2238':ln)+'" stroke-width="1.2"/><text x="355" y="60" text-anchor="middle" font-size="11" font-family="Menlo,Consolas,monospace" fill="'+(on('cabin')?'#0d2238':ln)+'">船長室</text></g>';
+  s+='<g class="zone"><rect x="10" y="244" width="380" height="38" fill="'+(on('deck')?Yc:base)+'" stroke="'+ln+'" stroke-width="1.5" stroke-dasharray="6 3"/><text x="200" y="268" text-anchor="middle" font-size="11" font-family="Menlo,Consolas,monospace" fill="'+(on('deck')?'#0d2238':ln)+'">甲板露台 · 港景</text></g>';
+  s+='<text x="160" y="214" text-anchor="middle" font-size="10" font-family="Menlo,Consolas,monospace" fill="rgba(242,239,230,.5)">↓ 入口</text>';
+  $('#planSvg').innerHTML=s;
+  var z=ZONES.filter(function(x){return x.id===bk.zone;})[0];
+  $('#planTxt').textContent='DECK PLAN · 已選：'+z.n+'（'+z.s+'）';
+}
+function setPax(n){bk.pax=Math.max(1,Math.min(12,n));$('#pax').textContent=bk.pax+' 位';zoneCheck();}
+function fieldErr(inp,t){var f=inp.closest('.fi');f.classList.toggle('bad',!!t);f.querySelector('.err').textContent=t||'';}
+function bindBook(){
+  var bf=$('#bf');
+  bf.addEventListener('change',function(e){var t=e.target;
+    if(t.name==='bd'){bk.date=+t.value;bk.time=null;renderTimes();}
+    else if(t.name==='bt'){bk.time=+t.value;$('#eTime').textContent='';}
+    else if(t.name==='bz'){bk.zone=t.value;zoneCheck();renderPlan();}});
+  bf.addEventListener('click',function(e){var b=e.target.closest('button');if(!b) return;
+    if(b.id==='paxM') setPax(bk.pax-1); else if(b.id==='paxP') setPax(bk.pax+1); else if(b.id==='again') resetForm();});
+  bf.addEventListener('focusout',function(e){var t=e.target;if(t.id!=='bPhone') return;var v=t.value.replace(/\D/g,'');if(/^09\d{8}$/.test(v)) t.value=v.slice(0,4)+'-'+v.slice(4,7)+'-'+v.slice(7);});
+  bf.addEventListener('input',function(e){var t=e.target;
+    if(t.id==='bName'&&t.value.trim()) fieldErr(t,'');
+    if(t.id==='bPhone'&&/^09\d{2}-?\d{3}-?\d{3}$/.test(t.value.trim())) fieldErr(t,'');});
+  $('#bf').addEventListener('submit',function(e){
+    e.preventDefault();
+    var n=$('#bName'), p=$('#bPhone'), ok=true, first=null;
+    if(!n.value.trim()){fieldErr(n,'請填寫訂位姓名');ok=false;first=first||n;} else fieldErr(n,'');
+    var pv=p.value.trim();
+    if(!pv){fieldErr(p,'請填寫手機號碼');ok=false;first=first||p;}
+    else if(!/^09\d{2}-?\d{3}-?\d{3}$/.test(pv)){fieldErr(p,'手機格式應為 09xx-xxx-xxx');ok=false;first=first||p;} else fieldErr(p,'');
+    if(!bk.time){$('#eTime').textContent='這天已沒有可訂的時段，請改選日期。';ok=false;}
+    if(!zoneCheck()) ok=false;
+    if(!ok){if(first) first.focus();return;}
+    var r=rng(Date.now()%100000+n.value.length*31), L='ABCDEFGHIJKLMNOPQRSTUVWXYZ', code='LT'+L[Math.floor(r()*26)]+L[Math.floor(r()*26)];
+    var z=ZONES.filter(function(x){return x.id===bk.zone;})[0], hh=happyIn(bk.time-HOUR,bk.time+3*HOUR).filter(function(w){return w.e>bk.time;})[0];
+    var pd=pv.replace(/\D/g,''), note=$('#bNote').value.trim();
+    $('#bBody').innerHTML='<div class="ticket"><span class="lab" style="margin:0">CONFIRMATION · 訂位代號</span><div class="tf" role="img" aria-label="訂位代號 '+code+' 的信號旗">'+code.split('').map(function(c){return flagSVG(c);}).join('')+'</div><div class="tcode">'+code+'</div>'+
+      '<h3 style="font:italic 700 28px/1.2 var(--serif)">See you at low tide.</h3><p style="margin:0;color:var(--ink2)">'+esc(n.value.trim())+'，已為你保留座位。</p>'+
+      '<dl><dt>日期</dt><dd>'+md(bk.date)+'（週'+WD[new Date(bk.date).getDay()]+'）'+hm(bk.time)+'</dd><dt>人數</dt><dd>'+bk.pax+' 位 · '+z.n+'</dd><dt>手機</dt><dd>'+pd.slice(0,4)+'-'+pd.slice(4,7)+'-'+pd.slice(7)+'</dd>'+
+      (hh?'<dt>半價</dt><dd>'+hm(hh.s)+'–'+hm(hh.e)+' 退潮生蠔半價</dd>':'')+(note?'<dt>備註</dt><dd>'+esc(note)+'</dd>':'')+'</dl>'+
+      '<p class="demo" style="color:#a11d23;font-weight:700">示範版本：沒有真的送出，也不會收到簡訊。</p><button class="btn ghost sm" type="button" id="again" style="margin-top:14px">再訂一筆</button></div>';
+    $('#bBody').scrollIntoView({block:'nearest'});
+  });
+}
+var formHTML='';
+function resetForm(){$('#bBody').innerHTML=formHTML;bk.time=null;renderDates();renderZones();setPax(bk.pax);renderPlan();}
+
+/* ===== 評論 ===== */
+function renderReviews(){
+  var avg=REVIEWS.reduce(function(a,r){return a+r.s;},0)/REVIEWS.length;
+  $('#rCnt').textContent='★★★★★ · 1,236 則 Google 評論（示範數字）';
+  $('#revs').innerHTML=REVIEWS.map(function(r){return '<figure class="rev rv"><div class="st" aria-label="'+r.s+' 顆星">'+'★★★★★'.slice(0,r.s)+'<span style="opacity:.3">'+'★★★★★'.slice(r.s)+'</span> '+r.s.toFixed(1)+'</div><blockquote>'+esc(r.t)+'</blockquote><figcaption><span>'+esc(r.n)+'</span><span>'+esc(r.d)+'</span></figcaption></figure>';}).join('');
+  void avg;
+}
+
+/* ===== 營業時間表 ===== */
+function renderHours(){
+  var now=Date.now(), s='';
+  for(var i=0;i<7;i++){var d=addDays(now,i), ss=sessionsOn(d), hl=happyIn(d,d+DAY+6*HOUR).filter(function(w){return midnight(w.s)===d;});
+    s+='<tr'+(i===0?' class="today"':'')+'><td>週'+WD[new Date(d).getDay()]+' '+md(d)+(i===0?'<small>今天</small>':'')+'</td>'+
+      (ss.length?'<td>'+ss.map(function(x){return x.ls+'–'+x.le;}).join('<br>')+'</td><td class="hhcell">'+(hl.length?hl.map(function(w){return hm(w.s)+'–'+hm(w.e);}).join('<br>'):'<span class="off">乾潮不在營業時間</span>')+'</td>':'<td class="off">公休</td><td class="off">—</td>')+'</tr>';}
+  $('#htbody').innerHTML=s;
+}
+
+/* ===== 位置示意海圖 ===== */
+function renderChart(){
+  var s='<rect width="400" height="240" fill="#0f2741"/>'+grid(400,240,40,'rgba(242,239,230,.06)');
+  s+='<path d="M0 0 H400 V40 Q340 60 300 52 Q270 90 236 96 L224 150 Q214 186 236 240 H0Z" fill="#e7dcc0"/>';
+  s+='<path d="M0 0 H400 V40 Q340 60 300 52 Q270 90 236 96 L224 150 Q214 186 236 240" fill="none" stroke="#b48a4a" stroke-width="2"/>';
+  s+='<path d="M260 240 Q244 190 252 150 Q262 110 300 86 Q350 74 400 70" fill="none" stroke="rgba(242,239,230,.3)" stroke-dasharray="3 4"/><path d="M300 240 Q282 190 292 150 Q310 116 400 104" fill="none" stroke="rgba(242,239,230,.22)" stroke-dasharray="3 4"/>';
+  var r=rng(50);for(var i=0;i<16;i++){var x=262+r()*120, y=110+r()*120;if(x>318&&y>150) y-=60;s+='<text x="'+f1(x)+'" y="'+f1(y)+'" font-family="Menlo,Consolas,monospace" font-style="italic" font-size="9" fill="rgba(242,239,230,.5)">'+(4+Math.floor(r()*18))+'</text>';}
+  s+='<path d="M60 40 H170 M60 80 H200 M100 120 H210 M40 160 H200 M80 200 H215" stroke="rgba(13,34,56,.18)" stroke-width="7"/>';
+  s+='<text x="70" y="30" font-family="Menlo,Consolas,monospace" font-size="10" fill="#6a5a3a">KEELUNG 基隆</text>';
+  s+='<line x1="226" y1="128" x2="270" y2="128" stroke="#f2efe6" stroke-width="3"/>';
+  s+='<circle cx="214" cy="128" r="10" fill="#c8242b" stroke="#f2efe6" stroke-width="3"/><circle cx="214" cy="128" r="18" fill="none" stroke="#c8242b" stroke-width="1.5"/>';
+  s+='<rect x="92" y="114" width="100" height="28" fill="#0d2238"/><text x="142" y="133" text-anchor="middle" font-family="Georgia,serif" font-style="italic" font-weight="700" font-size="15" fill="#f2c230">Low Tide</text>';
+  s+='<g transform="translate(352 196) scale(.36)">'+rose('#f2efe6','#b48a4a','#b48a4a')+'</g>';
+  s+='<text x="390" y="232" text-anchor="end" font-family="Menlo,Consolas,monospace" font-size="9" fill="rgba(242,239,230,.55)">'+SHOP.coord.lat+' '+SHOP.coord.lon+'</text>';
+  $('#chartSvg').innerHTML=s;
+}
+
+/* ===== 邊緣經緯度刻度 ===== */
+function renderEdges(){
+  var H=document.documentElement.scrollHeight, s='', base=SHOP.coord.latMin+0.6;
+  for(var y=120,i=0;y<H-60;y+=240,i++){var m=(base-i*.1);s+='<span style="top:'+y+'px">25°'+(m<10?'0':'')+m.toFixed(1)+'\'N</span>';}
+  $('#edgeL').innerHTML=s;$('#edgeR').innerHTML=s;
+}
+
+/* ===== 導覽、照片位、進場 ===== */
+function bindNav(){
+  var nav=$('#nav'), b=$('#burger');
+  b.addEventListener('click',function(){var o=nav.classList.toggle('open');b.setAttribute('aria-expanded',String(o));});
+  $$('#navList a').forEach(function(a){a.addEventListener('click',function(){nav.classList.remove('open');b.setAttribute('aria-expanded','false');});});
+  var sb=$('#slotBtn');
+  function setSlots(on){document.body.classList.toggle('slots',on);sb.setAttribute('aria-pressed',String(on));}
+  sb.addEventListener('click',function(){setSlots(!document.body.classList.contains('slots'));});
+  if(/[?&]slots\b/.test(location.search)) setSlots(true);
+  $('#hhShow').addEventListener('click',function(){var t=$('#tide');t.scrollIntoView({behavior:'smooth',block:'center'});$$('.hhband').forEach(function(r){r.classList.remove('flash');void r.getBoundingClientRect();r.classList.add('flash');});});
+}
+function reveal(){
+  var els=$$('.rv');
+  if(!('IntersectionObserver' in window)){els.forEach(function(e){e.classList.add('in');});return;}
+  var io=new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}});},{rootMargin:'0px 0px -8% 0px',threshold:.08});
+  els.forEach(function(e){io.observe(e);});
+}
+
+/* ===== 啟動 ===== */
+fillShop();
+renderSigs();
+fillPhotos();
+renderStatus();
+renderPlot();
+showOrigin(plate.sel);
+bindPlate();
+renderMenu();
+formHTML=$('#bBody').innerHTML;
+renderDates();renderZones();renderPlan();setPax(2);bindBook();
+renderReviews();
+renderHours();
+renderChart();
+drawTide();
+tickHH();
+renderPlate();
+bindNav();
+reveal();
+renderEdges();
+setInterval(tickHH,1000);
+setInterval(function(){drawTide();renderStatus();},60000);
+var rt;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(function(){drawTide();renderEdges();},150);});
+window.addEventListener('load',renderEdges);
+})();
+</script>
+</body>
+</html>

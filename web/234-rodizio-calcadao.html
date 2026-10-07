@@ -1,0 +1,1082 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calçadão 卡沙道｜巴西窯烤 Churrascaria・高雄</title>
+<meta name="description" content="Calçadão 卡沙道巴西窯烤：passador 持長劍桌邊現切 13 種炭烤部位，翻開綠卡就上肉；40 道沙拉吧、caipirinha。平日午餐 NT$ 980 起，兒童 6–12 歲半價，可線上訂位。">
+<meta name="theme-color" content="#111111">
+<!--
+  ===== 店家模板使用方式 =====
+  1. 修改 <script> 開頭的 SHOP：店名、中文名、電話、地址、交通、營業時間（hours：0=週日，每天可多時段，null=公休）、
+     價格（price.plans 的 full＝炭烤全餐、salad＝只吃沙拉吧；兒童 6–12 歲半價、0–5 歲免費、服務費 10%）與 photos。
+  2. MEATS 是炭烤部位（同時用於菜單、招牌與「綠紅卡」示範），MENU 是沙拉吧、飲品、甜點。改資料即可，不必動版面。
+  3. 照片：在 SHOP.photos 填入網址（hero、fire、sig1–sig4、hall、salad、room），就會換掉程式繪製的佔位插畫。
+     網址加 ?slots 或按右下角「照片位」，會用虛線標出每個照片位與建議尺寸。
+  4. 只是示範、需要串接後端的功能：線上訂位（送出後只顯示在頁面上）、評論內容（請換成真實評論或串接 Google 評論）。
+     「綠紅卡」passador 上肉是用餐體驗的互動示範，不會送出任何資料。
+  5. 全頁零外部資源：只用系統字，圖像都是 inline SVG。
+-->
+<style>
+:root{
+  --k:#111;--k2:#1d1d1b;--s:#f4f0e6;--s2:#e9e2d1;--g:#1f6b3a;--g2:#164f2b;--y:#f2c12e;--b:#1e5aa8;--b2:#174a8c;--c:#c4552d;--c2:#a63d22;--mut:#575349;
+  --f:"Century Gothic","Avant Garde","ITC Avant Garde Gothic","URW Gothic","URW Gothic L","TeX Gyre Adventor",Futura,"Avenir Next","PingFang TC","Microsoft JhengHei","Noto Sans CJK TC","Noto Sans TC",sans-serif;
+  --ease:cubic-bezier(.2,.7,.2,1);
+  --wave:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='80' viewBox='0 0 160 80'%3E%3Crect width='160' height='80' fill='%23f4f0e6'/%3E%3Cpath fill='%23111' d='M0 20C40 20 40 60 80 60C120 60 120 20 160 20V60C120 60 120 100 80 100C40 100 40 60 0 60ZM0 -60C40 -60 40 -20 80 -20C120 -20 120 -60 160 -60V-20C120 -20 120 20 80 20C40 20 40 -20 0 -20Z'/%3E%3C/svg%3E");
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{margin:0;background:var(--s);color:var(--k);font-family:var(--f);line-height:1.75;overflow-x:clip;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--b);outline-offset:3px}
+.dark :focus-visible,.blue :focus-visible,.nav :focus-visible,.sig-sec :focus-visible{outline-color:var(--y)}
+.wrap{max-width:1320px;margin:0 auto;padding:0 clamp(16px,4vw,48px)}
+.kick{display:inline-block;font-size:12px;letter-spacing:.3em;text-transform:uppercase;font-weight:700}
+.big{font-size:clamp(32px,4.4vw,62px);line-height:1.1;letter-spacing:-.01em;margin:14px 0 18px;font-weight:700}
+.lead{font-size:clamp(16px,1.3vw,18px);max-width:560px;margin:0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:14px 28px;border:2px solid var(--k);background:var(--k);color:var(--s);font-weight:700;font-size:15px;letter-spacing:.06em;text-decoration:none;cursor:pointer;border-radius:28px 28px 28px 6px;transition:transform .25s var(--ease),background .25s,color .25s}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(1px)}
+.btn.y{background:var(--y);border-color:var(--y);color:var(--k)}
+.btn.ghost{background:transparent;color:var(--k)}
+.btn.ghost:hover{background:var(--k);color:var(--s)}
+.btn.sm{padding:9px 16px;font-size:13px}
+.wavebar{height:14px;background:var(--wave) 0 0/56px 28px repeat-x}
+
+/* 導覽 */
+.nav{position:sticky;top:0;z-index:50;background:var(--k);color:var(--s)}
+.navin{display:flex;align-items:center;gap:28px;height:66px}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none;flex:none}
+.logo svg{width:38px;height:38px;flex:none}
+.logo b{font-size:22px;letter-spacing:-.01em;line-height:1}
+.logo small{display:block;font-size:11px;letter-spacing:.3em;color:#bdb6a5;margin-top:3px}
+.nav ul{display:flex;gap:24px;list-style:none;margin:0 0 0 auto;padding:0;font-size:14px;letter-spacing:.08em}
+.nav ul a{text-decoration:none;color:#ddd6c6;padding:6px 0;border-bottom:2px solid transparent;transition:border-color .2s,color .2s}
+.nav ul a:hover{color:#fff;border-color:var(--y)}
+.navcta{padding:9px 20px;font-size:14px}
+.burger{display:none;margin-left:auto;background:none;border:2px solid #555;color:var(--s);padding:7px 14px;border-radius:20px 20px 20px 4px;cursor:pointer;font-size:13px;letter-spacing:.14em}
+
+/* 照片位 */
+.ph{position:relative;overflow:hidden;margin:0;background:var(--s2)}
+.ph>svg,.ph>img,.ph>canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+body.slots .ph{outline:3px dashed var(--b);outline-offset:-3px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:12px;top:12px;z-index:3;background:var(--k);color:var(--y);font-size:11px;padding:3px 10px;letter-spacing:.04em;border-radius:10px 10px 10px 2px}
+
+/* Hero */
+.hero{position:relative;overflow:hidden;padding:clamp(24px,4.6vw,60px) 0 clamp(96px,10vw,150px);background:var(--s)}
+.waves{position:absolute;inset:0;overflow:hidden}
+.waves i{position:absolute;top:0;bottom:0;left:0;width:calc(100% + 320px);background:var(--wave) 0 0/320px 160px;animation:drift 46s linear infinite;will-change:transform}
+@keyframes drift{to{transform:translate3d(-320px,0,0)}}
+.hgrid>*{min-width:0}
+.hgrid{position:relative;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:clamp(28px,4vw,60px);align-items:center}
+.slab{position:relative;background:var(--s);padding:clamp(24px,3.8vw,54px);border-radius:22px 260px 22px 22px / 22px 200px 22px 22px;box-shadow:14px 14px 0 var(--g)}
+.status{display:inline-flex;align-items:center;gap:10px;font-size:13px;font-weight:700;letter-spacing:.06em;padding:6px 14px 6px 10px;background:var(--k);color:var(--s);border-radius:16px 16px 16px 3px}
+.status i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.status.on i{background:#5fd18a;box-shadow:0 0 0 3px rgba(95,209,138,.25)}
+.hero .kick{display:block;margin:22px 0 6px;color:var(--g)}
+.hname{margin:0;font-weight:700;line-height:.92;letter-spacing:-.025em;font-size:clamp(52px,8vw,118px);white-space:nowrap}
+.hname span{display:inline-block}
+.hsub{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:14px 0 0;font-size:clamp(20px,2vw,28px);font-weight:700;letter-spacing:.12em}
+.hsub em{font-style:normal;font-size:13px;letter-spacing:.2em;color:var(--mut);font-weight:700}
+.slab p.lead{margin:16px 0 26px;color:#2d2b27}
+.btns{display:flex;gap:12px;flex-wrap:wrap}
+.facts{display:flex;gap:0;margin:28px 0 0;padding:0;list-style:none;border-top:2px solid var(--k)}
+.facts li{flex:1;padding:12px 12px 0 0;font-size:12px;letter-spacing:.06em;color:var(--mut);line-height:1.4}
+.facts b{display:block;font-size:clamp(22px,2.2vw,30px);color:var(--k);letter-spacing:-.01em;margin-bottom:4px}
+.hfig{position:relative}
+.hfig .sol{position:absolute;width:34%;aspect-ratio:1;border-radius:50%;background:var(--y);right:-5%;top:-4%;box-shadow:0 0 0 12px var(--k)}
+.hfig .ph{aspect-ratio:4/5;clip-path:url(#nmClip);background:var(--y)}
+.hfig figcaption{position:absolute;left:4%;bottom:5%;background:var(--k);color:var(--s);font-size:12px;letter-spacing:.14em;padding:8px 14px;border-radius:14px 14px 14px 3px}
+
+/* 區塊 & 曲線切口 */
+.sec{position:relative;padding:clamp(70px,8vw,120px) 0 clamp(110px,12vw,170px);background:var(--bg,var(--s))}
+.cut{position:absolute;left:0;bottom:calc(100% - 1px);width:100%;height:clamp(44px,7vw,110px);display:block;transform-origin:50% 100%;pointer-events:none}
+.cut path{fill:var(--bg,var(--s))}
+.dark{--bg:var(--k);color:var(--s)}
+.green{--bg:var(--g);color:var(--s)}
+.sun{--bg:var(--y);color:var(--k)}
+.blue{--bg:var(--b);color:var(--s)}
+.stone{--bg:var(--s)}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;flex-wrap:wrap;margin-bottom:clamp(30px,4vw,54px)}
+.head .lead{color:inherit;opacity:.9}
+
+/* 故事 */
+.story{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(30px,6vw,96px);align-items:center}
+.story .ph{aspect-ratio:4/5;border-radius:48% 52% 22px 22px / 30% 36% 22px 22px}
+.story .kick{color:var(--g)}
+.story p{margin:0 0 14px;color:#2d2b27;max-width:560px}
+.nums{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin:30px 0 0;padding:0;list-style:none}
+.nums li{padding:16px 16px 0 0;border-top:6px solid var(--k);font-size:13px;color:var(--mut);line-height:1.45}
+.nums li:nth-child(2){border-color:var(--g)}
+.nums li:nth-child(3){border-color:var(--y)}
+.nums b{display:block;font-size:clamp(34px,3.6vw,52px);line-height:1;color:var(--k);letter-spacing:-.03em;margin-bottom:6px}
+.storyfig{position:relative}
+.storyfig .tag{position:absolute;right:-10px;bottom:28px;background:var(--y);color:var(--k);font-weight:700;font-size:13px;letter-spacing:.1em;padding:12px 18px;border-radius:24px 24px 4px 24px;box-shadow:6px 6px 0 var(--k)}
+
+/* 招牌：翻面卡 */
+.leafclip{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.sig-sec .kick{color:var(--y)}
+.leafbg{position:absolute;right:-60px;top:40px;width:min(46vw,560px);opacity:.22;pointer-events:none}
+.sigs{position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(16px,2vw,28px)}
+.sig{position:relative;perspective:1400px}
+.sig .in{position:relative;aspect-ratio:3/4.25;transform-style:preserve-3d;transition:transform .9s var(--ease)}
+.sig.flip .in{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:18px 110px 18px 18px / 18px 90px 18px 18px;overflow:hidden;background:var(--s);color:var(--k)}
+.face.front{display:flex;flex-direction:column}
+.face.front .ph{flex:1}
+.face.front .nm{padding:14px 18px 18px;border-top:3px solid var(--k)}
+.nm b{display:block;font-size:22px;letter-spacing:-.01em;line-height:1.15}
+.nm span{font-size:13px;color:var(--mut);letter-spacing:.08em}
+.face.back{transform:rotateY(180deg);padding:clamp(20px,2vw,28px);display:flex;flex-direction:column;background:var(--s)}
+.back .kick{color:var(--g);font-size:11px}
+.back h3{margin:6px 0 4px;font-size:26px;line-height:1.1}
+.back .zh{font-weight:700;letter-spacing:.1em;margin:0 0 12px}
+.back p{margin:0 0 12px;font-size:14px;line-height:1.7;color:#2d2b27}
+.back dl{margin:auto 0 0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;font-size:13px;border-top:2px solid var(--k);padding-top:12px}
+.back dt{font-weight:700;letter-spacing:.08em}
+.back dd{margin:0;color:#2d2b27}
+.flipb{position:absolute;right:14px;bottom:14px;z-index:3;width:46px;height:46px;border-radius:50%;border:0;background:var(--k);color:var(--y);font-size:20px;cursor:pointer;transition:transform .5s var(--ease)}
+.flipb:hover{transform:rotate(-120deg)}
+.sig.flip .flipb{background:var(--g);color:var(--s)}
+.swipe-hint{display:none}
+
+/* 菜單 */
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tabs button{border:2px solid var(--k);background:transparent;padding:9px 18px;font-weight:700;font-size:14px;letter-spacing:.04em;cursor:pointer;border-radius:22px 22px 22px 4px;transition:background .2s,color .2s}
+.tabs button small{font-weight:400;margin-left:6px;opacity:.75;font-size:12px}
+.tabs button[aria-pressed=true]{background:var(--k);color:var(--s)}
+.mnote{margin:0 0 24px;font-size:14px;color:var(--mut)}
+.mgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 clamp(30px,5vw,80px)}
+.mgroup{grid-column:1/-1;display:flex;align-items:center;gap:12px;margin:26px 0 4px;padding-bottom:10px;border-bottom:3px solid var(--k);font-weight:700;letter-spacing:.1em}
+.mgroup:first-child{margin-top:0}
+.mgroup i{width:16px;height:16px;border-radius:50%;background:var(--c-,var(--c))}
+.mgroup small{font-weight:400;color:var(--mut);letter-spacing:.2em;font-size:12px;text-transform:uppercase}
+.it{display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:2px 16px;align-items:start;padding:16px 0;border-bottom:1px solid rgba(17,17,17,.16);animation:itIn .5s var(--ease) both}
+.it .ico{grid-row:1/3;width:54px;height:54px;border-radius:50%;background:var(--s2);box-shadow:inset 0 0 0 3px var(--c-,var(--k))}
+.it .ico svg{width:100%;height:100%;display:block}
+.it b{font-size:17px;letter-spacing:-.005em}
+.it b span{font-weight:400;font-size:14px;color:var(--mut);margin-left:8px;letter-spacing:.04em}
+.it p{grid-column:2;margin:0;font-size:14px;color:#3a3832;line-height:1.6}
+.it .pr{grid-row:1;grid-column:3;font-weight:700;white-space:nowrap;font-size:16px}
+.it .pr.inc{font-size:12px;letter-spacing:.1em;background:var(--g);color:var(--s);padding:3px 10px;border-radius:12px 12px 12px 2px}
+@keyframes itIn{from{opacity:0;transform:translateY(10px)}}
+
+/* Rodízio 綠紅卡 */
+.rgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:clamp(30px,5vw,80px);align-items:start}
+.rgrid>*{min-width:0}
+.dark .kick{color:var(--y)}
+.steps{list-style:none;margin:26px 0 0;padding:0;display:grid;gap:18px}
+.steps li{display:grid;grid-template-columns:52px minmax(0,1fr);gap:16px;align-items:center}
+.steps .mini{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;letter-spacing:.06em;color:#fff;box-shadow:inset 0 0 0 3px rgba(255,255,255,.35)}
+.steps p{margin:0;color:#d9d3c4;font-size:15px}
+.steps b{color:#fff}
+.tryrow{display:flex;align-items:center;gap:clamp(18px,3vw,34px);margin-top:36px;flex-wrap:wrap}
+.trybtns{display:grid;gap:10px}
+.trybtns .btn{justify-content:flex-start}
+.btn.inv{background:var(--s);border-color:var(--s);color:var(--k)}
+.btn.inv-ghost{background:transparent;border-color:#6b675e;color:var(--s)}
+.btn.inv-ghost:hover{border-color:var(--s)}
+.plate{background:var(--s);color:var(--k);border-radius:26px 200px 26px 26px / 26px 150px 26px 26px;padding:clamp(22px,3vw,40px);position:relative}
+.plate h3{margin:4px 0 2px;font-size:clamp(24px,2.4vw,32px)}
+.plate .kick{color:var(--g)}
+.plate .sub{margin:0;color:var(--mut);font-size:14px;max-width:420px}
+.skew{margin:20px -8px 6px;background:var(--k);border-radius:70px 70px 70px 16px;padding:6px 0}
+.skew svg{display:block;width:100%;height:auto}
+.pstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin:18px 0;border-top:3px solid var(--k);border-bottom:1px solid rgba(17,17,17,.2)}
+.pstats div{padding:12px 8px 12px 0;font-size:12px;color:var(--mut);letter-spacing:.06em;line-height:1.3}
+.pstats b{display:block;font-size:clamp(24px,2.4vw,32px);color:var(--k);letter-spacing:-.02em;margin-bottom:2px}
+.plist{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 22px;min-height:40px}
+.plist li{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:10px;align-items:center;font-size:14px;line-height:1.35;padding:7px 0;border-bottom:1px dashed rgba(17,17,17,.2)}
+.plist li i{width:12px;height:12px;border-radius:50%;background:var(--c-)}
+.plist li small{display:block;font-size:12px;color:var(--mut)}
+.plist li em{font-style:normal;font-weight:700}
+.plist .empty{grid-column:1/-1;display:block;border:0;color:var(--mut)}
+.advice{margin:16px 0 0;padding:12px 16px;background:var(--s2);border-radius:16px 16px 16px 3px;font-size:14px}
+.pop{animation:pop .55s var(--ease) both;transform-box:fill-box;transform-origin:center}
+@keyframes pop{from{transform:translateY(-40px) scale(.4);opacity:0}}
+
+/* 綠紅卡（固定） */
+.disc{position:relative;width:96px;height:96px;border-radius:50%;border:0;padding:0;background:transparent;cursor:pointer;perspective:600px;flex:none}
+.disc .dz{position:absolute;inset:7px;transform-style:preserve-3d;transition:transform .75s var(--ease)}
+.disc.on .dz{transform:rotateY(180deg)}
+.disc .fc{position:absolute;inset:0;border-radius:50%;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;line-height:1.1;text-align:center;box-shadow:inset 0 0 0 3px rgba(255,255,255,.9),inset 0 0 0 6px rgba(0,0,0,.18),0 8px 20px rgba(0,0,0,.35)}
+.disc .red{background:var(--c2)}
+.disc .grn{background:var(--g);transform:rotateY(180deg)}
+.disc .fc svg{width:100%;height:100%;display:block;overflow:visible}
+.disc .fc text{fill:#fff;font-weight:700;font-family:var(--f)}
+.disc .fc .arc{font-size:9.5px;letter-spacing:.06em}
+.disc .fc .t1{font-size:20px;letter-spacing:.02em}
+.disc .fc .t2{font-size:12px;letter-spacing:.3em}
+.disc .ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);pointer-events:none}
+.disc .ring circle{fill:none;stroke:var(--y);stroke-width:4;stroke-dasharray:296;stroke-dashoffset:296;stroke-linecap:round}
+.disc .cnt{position:absolute;right:-4px;top:-4px;min-width:28px;height:28px;padding:0 6px;border-radius:14px;background:var(--y);color:var(--k);font-size:13px;font-weight:700;display:grid;place-items:center;box-shadow:0 0 0 3px var(--k)}
+.disc.big{width:min(220px,52vw);height:min(220px,52vw)}
+.disc.big .dz{inset:12px}
+.disc.big .cnt{display:none}
+.dock{position:fixed;right:16px;bottom:16px;z-index:70;display:flex;align-items:flex-end;gap:10px}
+.dock .hint{background:var(--k);color:var(--s);font-size:12px;line-height:1.4;padding:8px 12px;border-radius:14px 14px 3px 14px;margin-bottom:24px;transition:opacity .4s,transform .4s}
+.dock .hint.off{opacity:0;transform:translateX(10px);pointer-events:none}
+.slotBtn{position:fixed;right:16px;bottom:124px;z-index:69;border:2px solid var(--k);background:var(--s);color:var(--k);font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;border-radius:14px 14px 14px 3px;letter-spacing:.06em}
+.slotBtn[aria-pressed=true]{background:var(--b);border-color:var(--b);color:#fff}
+.offer{position:fixed;right:16px;bottom:166px;z-index:71;width:min(370px,calc(100vw - 32px));background:var(--s);color:var(--k);border-radius:22px 22px 4px 22px;box-shadow:0 0 0 3px var(--k),10px 10px 0 var(--g);display:grid;grid-template-columns:76px minmax(0,1fr);gap:4px 14px;padding:16px 16px 18px;opacity:0;transform:translateX(30px) scale(.96);visibility:hidden;transition:opacity .35s,transform .45s var(--ease),visibility 0s .45s;overflow:hidden}
+.offer.show{opacity:1;transform:none;visibility:visible;transition:opacity .35s,transform .45s var(--ease)}
+.offer .oico{grid-row:1/3;width:76px;height:76px;border-radius:50%;background:var(--y)}
+.offer .oico svg{width:100%;height:100%;display:block}
+.offer .kick{font-size:10px;color:var(--g)}
+.offer strong{display:block;font-size:20px;line-height:1.15}
+.offer .ozh{font-weight:700;font-size:14px;letter-spacing:.06em}
+.offer p{margin:4px 0 0;font-size:13px;line-height:1.55;color:#3a3832}
+.offer .oact{grid-column:1/-1;display:flex;gap:8px;margin-top:10px}
+.offer .oact .btn{flex:1}
+.offer .obar{position:absolute;left:0;right:0;bottom:0;height:5px;background:var(--s2)}
+.offer .obar b{display:block;height:100%;background:var(--g);transform-origin:0 50%}
+
+/* 價格試算 */
+.pgrid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:clamp(30px,5vw,80px);align-items:start}
+.pgrid>*{min-width:0}
+.sun .kick{color:var(--k)}
+.plans{border:0;margin:26px 0 22px;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.plans legend{padding:0;margin-bottom:10px;font-size:12px;letter-spacing:.3em;font-weight:700}
+.plan{position:relative;cursor:pointer}
+.plan input{position:absolute;opacity:0;pointer-events:none}
+.plan span{display:block;height:100%;background:var(--s);border:2px solid var(--k);padding:14px 14px 12px;border-radius:18px 18px 18px 4px;transition:background .2s,color .2s}
+.plan b{display:block;font-size:16px}
+.plan small{display:block;font-size:12px;color:var(--mut);line-height:1.4;margin:2px 0 8px}
+.plan em{font-style:normal;font-weight:700;font-size:18px}
+.plan input:checked+span{background:var(--k);color:var(--s)}
+.plan input:checked+span small{color:#c9c2b2}
+.plan input:focus-visible+span{outline:3px solid var(--b);outline-offset:3px}
+.ctr{border-top:3px solid var(--k)}
+.crow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 0;border-bottom:1px solid rgba(17,17,17,.25)}
+.crow b{display:block;font-size:16px}
+.crow small{display:block;font-size:13px;color:#3a3628;line-height:1.4}
+.step{display:flex;align-items:center;gap:4px;background:var(--s);border-radius:24px 24px 24px 4px;padding:4px}
+.step button{width:38px;height:38px;border:0;border-radius:50%;background:var(--k);color:var(--s);font-size:20px;line-height:1;cursor:pointer}
+.step button:disabled{opacity:.25;cursor:default}
+.step output{min-width:36px;text-align:center;font-weight:700;font-size:18px}
+.bill{background:var(--k);color:var(--s);padding:clamp(24px,3vw,40px);border-radius:26px 26px 26px 190px / 26px 26px 26px 150px;position:relative}
+.bill .kick{color:var(--y)}
+.bill ul{list-style:none;margin:18px 0 0;padding:0}
+.bill li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;padding:10px 0;border-bottom:1px solid #3a3a37;font-size:15px}
+.bill li small{grid-column:1;color:#aaa395;font-size:12px}
+.bill li span:last-of-type{text-align:right;font-weight:700}
+.bill li.sv{color:#d9d3c4}
+.bill .tot{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:18px 0 6px;flex-wrap:wrap}
+.bill .tot span{font-weight:700;letter-spacing:.2em}
+.bill .tot strong{font-size:clamp(40px,4.6vw,64px);letter-spacing:-.03em;line-height:1;color:var(--y)}
+.bill .pp{margin:0 0 20px;color:#c9c2b2;font-size:14px;text-align:right}
+.bill .warn{margin:0 0 18px;padding:10px 14px;border-radius:14px 14px 14px 3px;background:var(--b);font-size:13px}
+.bill .btns{justify-content:flex-end;padding-left:min(110px,18%)}
+
+/* 訂位 */
+.bgrid{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:clamp(30px,5vw,80px);align-items:start}
+.bgrid>*{min-width:0}
+.blue .kick{color:var(--y)}
+.blue .lead{color:#e8eef8}
+.rules{list-style:none;margin:26px 0;padding:0;border-top:2px solid rgba(255,255,255,.4)}
+.rules li{padding:12px 0;border-bottom:1px solid rgba(255,255,255,.25);font-size:15px;color:#e8eef8;display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px}
+.rules li span{font-weight:700;color:var(--y)}
+.grpcard{background:var(--k);color:var(--s);padding:22px 24px;border-radius:22px 120px 22px 22px / 22px 90px 22px 22px}
+.grpcard h3{margin:4px 0 6px;font-size:22px}
+.grpcard p{margin:0;font-size:14px;color:#d9d3c4}
+.form{background:var(--s);color:var(--k);padding:clamp(22px,3.4vw,44px);border-radius:26px 26px 220px 26px / 26px 26px 120px 26px;box-shadow:12px 12px 0 var(--k)}
+.form h3{margin:0 0 4px;font-size:clamp(24px,2.4vw,30px)}
+.form .sub{margin:0 0 22px;color:var(--mut);font-size:14px}
+.lab{display:block;font-size:12px;letter-spacing:.24em;font-weight:700;margin:0 0 8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.chips label{position:relative}
+.chips input{position:absolute;opacity:0;pointer-events:none}
+.chips span{display:block;border:2px solid var(--k);padding:7px 13px;font-size:15px;font-weight:700;cursor:pointer;background:transparent;text-align:center;line-height:1.25;border-radius:16px 16px 16px 3px;transition:background .2s,color .2s}
+.chips span small{display:block;font-size:11px;font-weight:400;color:var(--mut)}
+.chips input:checked+span{background:var(--k);color:var(--s)}
+.chips input:checked+span small{color:#c9c2b2}
+.chips input:disabled+span{opacity:.3;cursor:default;text-decoration:line-through}
+.chips input:focus-visible+span{outline:3px solid var(--b);outline-offset:2px}
+.chips .none{font-size:14px;color:var(--mut)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.fi{display:grid;gap:4px;font-size:12px;letter-spacing:.2em;font-weight:700;margin-bottom:14px}
+.fi input,.fi select,.fi textarea{border:0;border-bottom:2px solid var(--k);background:transparent;padding:8px 0;font-size:16px;font-weight:400;letter-spacing:0;border-radius:0;width:100%;color:var(--k)}
+.fi textarea{resize:vertical;min-height:44px}
+.fi input:focus,.fi select:focus,.fi textarea:focus{outline:none;border-bottom-color:var(--b);background:rgba(30,90,168,.05)}
+.fi .err{color:#a1281a;font-size:12px;letter-spacing:0;min-height:1.2em;font-weight:700}
+.fi.bad input{border-bottom-color:#a1281a}
+.planhint{margin:-8px 0 18px;font-size:13px;color:var(--mut)}
+.grpnote{display:none;margin:0 0 16px;padding:14px 16px;background:var(--y);border-radius:16px 16px 16px 3px;font-size:14px;line-height:1.6}
+.grpnote.show{display:block}
+.grpnote a{font-weight:700}
+.form .btn{width:100%;margin-top:6px}
+.demo{font-size:12px;color:var(--mut);text-align:center;margin:12px 0 0}
+.done{text-align:center;padding:20px 0}
+.done .ok{font-size:clamp(48px,6vw,72px);font-weight:700;letter-spacing:-.03em;line-height:1;color:var(--g)}
+.done p{margin:10px 0}
+.done .tk{display:inline-grid;gap:4px;text-align:left;margin:16px 0;padding:16px 22px;border:2px solid var(--k);border-radius:18px 18px 18px 4px}
+
+/* 空間 */
+.gal{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);grid-template-rows:auto auto;gap:clamp(16px,2vw,26px)}
+.gal figure{margin:0}
+.gal .g1{grid-row:1/3}
+.gal .g1 .ph{height:100%;min-height:520px;border-radius:280px 22px 22px 22px / 240px 22px 22px 22px}
+.gal .g2 .ph{aspect-ratio:16/10;border-radius:22px 22px 22px 150px / 22px 22px 22px 120px}
+.gal .g3 .ph{aspect-ratio:16/10;border-radius:22px 160px 22px 22px / 22px 110px 22px 22px}
+.gal figcaption{font-size:13px;letter-spacing:.06em;margin-top:10px;color:var(--mut)}
+.gal figcaption b{color:var(--k);margin-right:8px;letter-spacing:.02em}
+.gal .g1 figcaption{position:absolute;right:18px;bottom:18px;background:var(--s);padding:10px 16px;border-radius:16px 16px 3px 16px;margin:0}
+.gal .g1{position:relative}
+
+/* 評論 */
+.revhead{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-top:clamp(70px,8vw,110px)}
+.score{display:flex;align-items:center;gap:14px}
+.score b{font-size:clamp(48px,5vw,72px);letter-spacing:-.04em;line-height:1}
+.score span{font-size:13px;color:var(--mut);line-height:1.4}
+.revs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(14px,2vw,24px);margin-top:28px}
+.rev{position:relative;background:#fff;padding:52px 22px 22px;border-radius:20px 20px 20px 4px;box-shadow:0 0 0 2px var(--k)}
+.rev::before{content:"\201C";position:absolute;left:18px;top:-22px;width:56px;height:56px;border-radius:50%;background:var(--q,var(--y));color:var(--qc,var(--k));font-size:52px;line-height:84px;text-align:center;font-family:Georgia,serif;box-shadow:0 0 0 2px var(--k)}
+.rev .st{font-size:13px;letter-spacing:.2em}
+.rev p{margin:8px 0 14px;font-size:15px;line-height:1.7}
+.rev footer{font-size:13px;color:var(--mut)}
+.rev footer b{color:var(--k)}
+.revnote{font-size:12px;color:var(--mut);margin:14px 0 0}
+
+/* 資訊 */
+.vgrid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,.9fr);gap:clamp(30px,4vw,60px)}
+.vgrid h3{margin:0 0 14px;font-size:12px;letter-spacing:.3em;color:var(--y);text-transform:uppercase}
+.vstat{font-size:clamp(22px,2.2vw,28px);font-weight:700;margin:0 0 18px;line-height:1.3}
+.vstat i{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--c);margin-right:10px;vertical-align:middle}
+.vstat.on i{background:#5fd18a}
+.week{list-style:none;margin:0;padding:0}
+.week li{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;padding:9px 0;border-bottom:1px solid #333;font-size:15px;color:#d9d3c4}
+.week li b{color:var(--s)}
+.week li.today{color:var(--k);background:var(--y);border-radius:12px 12px 12px 3px;padding:9px 12px;margin:0 -12px;border-color:transparent}
+.week li.today b{color:var(--k)}
+.week li.off{color:#8d877a}
+.vgrid p{margin:0 0 10px;color:#d9d3c4}
+.vgrid .addr{font-size:20px;color:var(--s);font-weight:700;line-height:1.5}
+.vgrid .tel{font-size:clamp(26px,2.6vw,34px);font-weight:700;color:var(--y);text-decoration:none;letter-spacing:.02em}
+.vgrid .lnk{display:inline-block;margin-top:6px;color:var(--s);font-weight:700;text-decoration:none;border-bottom:2px solid var(--y);padding-bottom:2px}
+.foot{background:var(--k);color:#bdb6a5;font-size:13px}
+.foot .wrap{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;padding-top:26px;padding-bottom:26px}
+.foot nav{display:flex;gap:18px}
+.foot a{text-decoration:none;color:var(--s)}
+.footwave{height:clamp(70px,9vw,120px);background:var(--wave) 0 0/240px 120px}
+
+.rv{opacity:0;transform:translateY(26px);transition:opacity .9s ease,transform .9s var(--ease)}
+.rv.vis{opacity:1;transform:none}
+
+@media (max-width:1080px){
+  .sigs{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .revs{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .vgrid{grid-template-columns:1fr 1fr}
+  .vgrid>div:first-child{grid-column:1/-1}
+}
+@media (max-width:900px){
+  .nav ul{display:none;position:absolute;top:66px;left:0;right:0;flex-direction:column;gap:0;background:var(--k);padding:6px 20px 18px;border-bottom:4px solid var(--y)}
+  .nav.open ul{display:flex}
+  .nav ul a{display:block;padding:13px 0;border-bottom:1px solid #333}
+  .navcta{display:none}
+  .burger{display:block}
+  .hgrid,.story,.rgrid,.pgrid,.bgrid{grid-template-columns:minmax(0,1fr)}
+  .hfig{max-width:560px;width:100%;justify-self:center}
+  .storyfig{order:-1;max-width:560px}
+  .gal{grid-template-columns:1fr}
+  .gal .g1{grid-row:auto}
+  .gal .g1 .ph{min-height:0;aspect-ratio:1/1}
+}
+@media (max-width:620px){
+  .slab{border-radius:18px 130px 18px 18px / 18px 100px 18px 18px;box-shadow:8px 8px 0 var(--g)}
+  .facts li{font-size:11px}
+  .hero .kick{letter-spacing:.16em;font-size:11px}
+  .leafbg{opacity:.12}
+  .foot .wrap{padding-bottom:120px}
+  .sigs{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:14px;margin:0 -16px;padding:4px 16px 18px;scrollbar-width:none}
+  .sigs::-webkit-scrollbar{display:none}
+  .sig{flex:0 0 80%;scroll-snap-align:center}
+  .swipe-hint{display:block;font-size:12px;letter-spacing:.14em;margin:0 0 10px;opacity:.8}
+  .mgrid{grid-template-columns:1fr}
+  .plans{grid-template-columns:1fr}
+  .plan span{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:0 10px}
+  .plan small{grid-column:1;margin:0}
+  .plan em{grid-row:1/3;grid-column:2}
+  .two{grid-template-columns:1fr}
+  .plist{grid-template-columns:1fr}
+  .pstats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .revs{grid-template-columns:1fr;gap:38px}
+  .vgrid{grid-template-columns:1fr}
+  .disc{width:80px;height:80px}
+  .slotBtn{bottom:106px}
+  .offer{bottom:146px;grid-template-columns:60px minmax(0,1fr)}
+  .offer .oico{width:60px;height:60px}
+  .bill{border-radius:24px 24px 24px 110px / 24px 24px 24px 90px}
+  .bill .btns{padding-left:40px}
+  .form{border-radius:22px 22px 110px 22px / 22px 22px 70px 22px;box-shadow:8px 8px 0 var(--k)}
+  .tabs button{padding:8px 13px;font-size:13px}
+  .gal .g1 .ph{border-radius:170px 20px 20px 20px / 150px 20px 20px 20px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .waves i{animation:none}
+  .rv{opacity:1;transform:none;transition:none}
+  .sig .in,.disc .dz,.offer,.flipb{transition:none}
+  .it,.pop{animation:none}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><clipPath id="nmClip" clipPathUnits="objectBoundingBox"><path id="nmPath" d="M0 1V.34C0 .1 .14 -.01 .3 .02C.46 .05 .5 .22 .64 .2C.78 .18 .82 0 .94 .02C1 .03 1 .08 1 .14V.8C1 .93 .92 1 .78 1Z"/></clipPath></defs></svg>
+
+<header class="nav" id="nav">
+  <div class="wrap navin">
+    <a class="logo" href="#top" aria-label="回到首頁">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><defs><clipPath id="lgc"><circle cx="20" cy="20" r="18"/></clipPath></defs><g clip-path="url(#lgc)"><rect width="40" height="40" fill="#f4f0e6"/><path d="M-4 10C4 10 4 20 12 20S20 10 28 10 36 20 44 20V27C36 27 36 17 28 17S20 27 12 27 4 17-4 17Z" fill="#111"/><path d="M-4 31C4 31 4 41 12 41S20 31 28 31 36 41 44 41V48H-4Z" fill="#111"/></g><circle cx="20" cy="20" r="18" fill="none" stroke="#f2c12e" stroke-width="2.5"/></svg>
+      <span><b data-shop="name">Calçadão</b><small data-shop="nameZh">卡沙道 巴西窯烤</small></span>
+    </a>
+    <ul id="navList">
+      <li><a href="#story">故事</a></li><li><a href="#sig">招牌</a></li><li><a href="#menu">菜單</a></li><li><a href="#rodizio">綠紅卡</a></li><li><a href="#price">價格試算</a></li><li><a href="#space">空間</a></li><li><a href="#visit">交通</a></li>
+    </ul>
+    <a class="btn y navcta" href="#book">線上訂位</a>
+    <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="navList">選單</button>
+  </div>
+  <div class="wavebar" aria-hidden="true"></div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="waves" aria-hidden="true"><i></i></div>
+    <div class="wrap hgrid">
+      <div class="slab rv">
+        <span class="status" id="status"><i></i><span>…</span></span>
+        <span class="kick">Churrascaria · Rodízio · Kaohsiung</span>
+        <h1 class="hname" id="hname"><span data-shop="name">Calçadão</span></h1>
+        <p class="hsub"><span data-shop="nameZh">卡沙道 巴西窯烤</span><em>DESDE 2016</em></p>
+        <p class="lead">passador 拿著長劍在桌間走動，炭火現烤十三種部位，你翻開綠卡他就為你切一片，翻到紅卡就讓你喘口氣。另有四十道沙拉吧與現調 caipirinha。</p>
+        <div class="btns"><a class="btn" href="#book">線上訂位</a><a class="btn ghost" href="#rodizio">先試翻綠紅卡</a></div>
+        <ul class="facts">
+          <li><b>13</b>種炭烤部位</li>
+          <li><b>40+</b>道沙拉吧冷熱食</li>
+          <li><b id="fromPrice">980</b>平日午餐起（NT$／位）</li>
+        </ul>
+      </div>
+      <div class="hfig rv">
+        <span class="sol" aria-hidden="true"></span>
+        <figure class="ph" data-photo="hero" data-art="espeto" data-label="炭火上的烤肉串" data-size="1400×1750"></figure>
+        <figcaption>PICANHA · LINGUIÇA · ABACAXI</figcaption>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec stone" id="story">
+    <svg class="cut" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120V70C300-10 760 10 1040 70C1220 108 1340 90 1440 40V120Z"/></svg>
+    <div class="wrap story">
+      <div class="rv">
+        <span class="kick">Nossa história · 品牌故事</span>
+        <h2 class="big">從里約的海岸步道，<br>走到高雄的炭火旁</h2>
+        <p>主廚在巴西南部的南大河州長大。那裡的 gaúcho 牧人把整條牛肉穿上長劍，只撒一把粗海鹽，在炭火旁慢慢轉。二〇一六年他回到高雄，把這套 rodízio 帶了回來。</p>
+        <p>店名 Calçadão 是 Copacabana 海邊那條黑白波浪步道。我們把那道浪鋪在店門口、畫進每一面牆；肉則照南部老規矩：龍眼木炭、海鹽、長劍，沒有醬汁可以躲。</p>
+        <ul class="nums">
+          <li><b>13</b>種部位輪流上桌</li>
+          <li><b>100</b>分鐘用餐時間</li>
+          <li><b>3</b>位 passador 同時巡桌</li>
+        </ul>
+      </div>
+      <div class="storyfig rv">
+        <figure class="ph" data-photo="fire" data-art="fire" data-label="窯烤區與炭火" data-size="1200×1500"></figure>
+        <span class="tag">每天 10:00 起炭</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec green sig-sec" id="sig">
+    <svg class="cut" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120V20C260 30 520 120 860 92C1100 70 1300 10 1440 0V120Z"/></svg>
+    <div class="leafclip" aria-hidden="true"><svg class="leafbg" viewBox="0 0 400 400" id="leafbg"></svg></div>
+    <div class="wrap">
+      <div class="head rv">
+        <div><span class="kick">A casa recomenda · 招牌必吃</span><h2 class="big" style="margin-bottom:0">留胃給這四串</h2></div>
+        <p class="lead">點右下角的圓鈕把卡片翻過來，看部位、口感與 passador 建議的熟度。</p>
+      </div>
+      <p class="swipe-hint">← 左右滑動看四串 →</p>
+      <div class="sigs" id="sigs"></div>
+    </div>
+  </section>
+
+  <section class="sec stone" id="menu">
+    <svg class="cut" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120V100C420 100 560 0 900 0C1180 0 1300 60 1440 80V120Z"/></svg>
+    <div class="wrap">
+      <div class="head rv">
+        <div><span class="kick" style="color:var(--g)">Cardápio · 完整菜單</span><h2 class="big" style="margin-bottom:0">劍上、吧上、杯裡</h2></div>
+        <div class="tabs" id="tabs" role="group" aria-label="菜單分類"></div>
+      </div>
+      <p class="mnote" id="mnote"></p>
+      <div class="mgrid" id="mgrid" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="sec dark" id="rodizio">
+    <svg class="cut" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120V40C240 110 520 120 760 70C1000 20 1220 0 1440 60V120Z"/></svg>
+    <div class="wrap rgrid">
+      <div class="rv">
+        <span class="kick">Como funciona · 綠紅卡怎麼用</span>
+        <h2 class="big">翻一張卡，<br>肉就來到桌邊</h2>
+        <p class="lead" style="color:#d9d3c4">每張桌上都有一枚雙色圓卡。這裡可以先試：右下角那枚卡跟著你整頁走，翻成綠色後，passador 每隔幾秒會帶一串肉過來問你。</p>
+        <ol class="steps">
+          <li><span class="mini" style="background:var(--g)">SIM</span><p><b>綠面朝上：</b>passador 會停在桌邊報部位，點頭就現切一片，用小夾子夾到你盤裡。</p></li>
+          <li><span class="mini" style="background:var(--c2)">PAUSA</span><p><b>紅面朝上：</b>passador 直接經過。去沙拉吧、聊天、喝口 caipirinha，想吃再翻回來。</p></li>
+          <li><span class="mini" style="background:var(--y);color:var(--k)">TIP</span><p><b>想吃特定部位？</b>直接跟 passador 點名，他會先幫你留下一輪最好的那一刀。</p></li>
+        </ol>
+        <div class="tryrow">
+          <button class="disc big" id="disc2" type="button" aria-pressed="false" aria-label="Rodízio 卡：目前紅面暫停，點擊翻成綠面請上肉"><span class="dz"></span></button>
+          <div class="trybtns">
+            <button class="btn inv" type="button" id="callNow">叫下一位 passador</button>
+            <button class="btn inv-ghost" type="button" id="clearPlate">清空盤子</button>
+          </div>
+        </div>
+      </div>
+      <div class="plate rv" aria-live="polite">
+        <span class="kick">Seu prato · 你的盤子</span>
+        <h3>今天吃了哪些部位</h3>
+        <p class="sub">每接受一片，長劍上就多一塊。用來想像一頓 rodízio 的節奏。</p>
+        <div class="skew"><svg id="skewSvg" viewBox="0 0 640 130" aria-hidden="true"></svg></div>
+        <div class="pstats">
+          <div><b id="stN">0</b>片</div>
+          <div><b id="stG">0</b>約公克</div>
+          <div><b id="stK">0/13</b>部位</div>
+          <div><b id="stD">0</b>婉拒</div>
+        </div>
+        <ul class="plist" id="plist"></ul>
+        <p class="advice" id="advice"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec sun" id="price">
+    <svg class="cut" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120V60C200 0 420 0 620 50C860 110 1160 110 1440 30V120Z"/></svg>
+    <div class="wrap pgrid">
+      <div class="rv">
+        <span class="kick">Quanto custa · 價格試算</span>
+        <h2 class="big">一桌要多少，<br>先算給你看</h2>
+        <p class="lead">Rodízio 全餐含所有炭烤肉品與沙拉吧；兒童 0–5 歲免費、6–12 歲半價；另加 10% 服務費。</p>
+        <fieldset class="plans" id="plans"><legend>時段</legend></fieldset>
+        <div class="ctr" id="ctr"></div>
+      </div>
+      <div class="bill rv" aria-live="polite">
+        <span class="kick">A conta · 試算明細</span>
+        <ul id="billList"></ul>
+        <div class="tot"><span>合計</span><strong id="billTot">NT$ 0</strong></div>
+        <p class="pp" id="billPP"></p>
+        <p class="warn" id="billWarn" hidden></p>
+        <div class="btns"><button class="btn y" type="button" id="toBook">帶這個人數去訂位</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec blue" id="book">
+    <svg class="cut" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120V90C300 110 460 20 720 20C980 20 1140 100 1440 70V120Z"/></svg>
+    <div class="wrap bgrid">
+      <div class="rv">
+        <span class="kick">Reservas · 訂位</span>
+        <h2 class="big">留一張桌，<br>炭火先幫你熱著</h2>
+        <p class="lead">線上訂位開放未來 10 個營業日。當天名額已滿時，歡迎直接來電詢問候位。</p>
+        <ul class="rules">
+          <li><span>01</span>訂位保留 15 分鐘，逾時將釋出座位。</li>
+          <li><span>02</span>用餐時間 100 分鐘，最後點餐為打烊前 60 分鐘。</li>
+          <li><span>03</span>壽星憑證件招待巴西布丁一份，請在備註告訴我們。</li>
+        </ul>
+        <div class="grpcard">
+          <span class="kick">Sala Brasília</span>
+          <h3>10 人以上團體</h3>
+          <p>包廂可坐 8–24 位，有獨立 passador 與音響。團體訂位需預付 30% 訂金，請先送出需求或直接來電 <a id="grpTel" href="#" style="color:var(--y)"></a>。</p>
+        </div>
+      </div>
+      <form class="form rv" id="bookForm" novalidate>
+        <div id="formBody">
+          <h3>預約座位</h3>
+          <p class="sub">選日期、時段與人數，我們會用簡訊確認。</p>
+          <span class="lab">日期</span><div class="chips" id="dates"></div>
+          <span class="lab">時段</span><div class="chips" id="svc"></div>
+          <span class="lab">時間</span><div class="chips" id="times"></div>
+          <p class="planhint" id="planHint"></p>
+          <div class="two">
+            <label class="fi">人數（含兒童）<select id="pax"></select><span class="err"></span></label>
+            <label class="fi">座位偏好<select id="zone"><option value="用餐區">用餐區</option><option value="窯烤吧台旁">窯烤吧台旁（4 位以下）</option><option value="Sala Brasília 包廂">Sala Brasília 包廂（8 位以上）</option></select><span class="err"></span></label>
+          </div>
+          <p class="grpnote" id="grpNote"></p>
+          <div class="two">
+            <label class="fi">姓名<input id="fName" autocomplete="name" placeholder="王小明"><span class="err"></span></label>
+            <label class="fi">手機<input id="fPhone" inputmode="tel" autocomplete="tel" placeholder="0912-345-678"><span class="err"></span></label>
+          </div>
+          <label class="fi">備註（過敏、慶生、兒童座椅）<textarea id="fNote" rows="2"></textarea><span class="err"></span></label>
+          <button class="btn" type="submit" id="submitBtn">確認訂位</button>
+          <p class="demo">示範版本：訂位只顯示在頁面上，不會真的送出。</p>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="sec stone" id="space">
+    <svg class="cut" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120V10C320 10 420 110 760 110C1060 110 1240 40 1440 40V120Z"/></svg>
+    <div class="wrap">
+      <div class="head rv">
+        <div><span class="kick" style="color:var(--g)">O espaço · 店內空間</span><h2 class="big" style="margin-bottom:0">地上有浪，<br>天花板有曲線</h2></div>
+        <p class="lead">一樓是開放用餐區與窯烤吧台，地坪是手工拼的黑白波浪磚；二樓 Sala Brasília 包廂的天花板，向巴西利亞的混凝土曲線致意。</p>
+      </div>
+      <div class="gal">
+        <figure class="g1 rv"><div class="ph" data-photo="hall" data-art="hall" data-label="一樓用餐區" data-size="1400×1400"></div><figcaption><b>Salão</b>一樓用餐區・86 席</figcaption></figure>
+        <figure class="g2 rv"><div class="ph" data-photo="salad" data-art="salad" data-label="沙拉吧" data-size="1600×1000"></div><figcaption><b>Buffet</b>沙拉吧・每天 40 道以上</figcaption></figure>
+        <figure class="g3 rv"><div class="ph" data-photo="room" data-art="room" data-label="二樓包廂" data-size="1600×1000"></div><figcaption><b>Sala Brasília</b>二樓包廂・8–24 位</figcaption></figure>
+      </div>
+
+      <div class="revhead rv">
+        <div><span class="kick" style="color:var(--g)">Avaliações · 客人怎麼說</span><h2 class="big" style="margin:8px 0 0">吃完會想翻回綠卡</h2></div>
+        <div class="score" style="margin-left:auto"><b>4.7</b><span>Google 評分<br>1,286 則評論</span></div>
+      </div>
+      <div class="revs" id="revs"></div>
+      <p class="revnote">※ 評論為示範內容，上線時請換成真實評論或串接評論服務。</p>
+    </div>
+  </section>
+
+  <section class="sec dark" id="visit">
+    <svg class="cut" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120V70C300-10 760 10 1040 70C1220 108 1340 90 1440 40V120Z"/></svg>
+    <div class="wrap vgrid">
+      <div class="rv">
+        <h3>Horário · 營業時間</h3>
+        <p class="vstat" id="vstat"><i></i><span></span></p>
+        <ul class="week" id="week"></ul>
+      </div>
+      <div class="rv">
+        <h3>Endereço · 地址</h3>
+        <p class="addr" data-shop="address"></p>
+        <p data-shop="transit"></p>
+        <p data-shop="parking"></p>
+        <a class="lnk" id="mapLink" href="#" target="_blank" rel="noopener">在 Google 地圖開啟 →</a>
+      </div>
+      <div class="rv">
+        <h3>Contato · 電話</h3>
+        <a class="tel" id="tel" href="#"></a>
+        <p style="margin-top:12px">訂位專線 10:00 起接聽。<br>10 人以上團體、包場與外燴請來電洽詢。</p>
+        <p><a class="lnk" href="#book">線上訂位 →</a></p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="footwave" aria-hidden="true"></div>
+  <div class="foot"><div class="wrap">
+    <span>© <span id="yr"></span> <span data-shop="name">Calçadão</span> · <span data-shop="nameZh"></span>　本頁為店家官網示範模板</span>
+    <nav><a href="#">Instagram</a><a href="#">Facebook</a><a href="#">LINE</a></nav>
+  </div></div>
+</footer>
+
+<section class="offer" id="offer" aria-live="polite" aria-label="passador 上肉">
+  <div class="oico" id="oIco"></div>
+  <div><span class="kick">Passador · 第 <span id="oN">1</span> 串</span><strong id="oName"></strong><span class="ozh" id="oZh"></span><p id="oDesc"></p></div>
+  <div class="oact"><button class="btn sm" type="button" id="oYes">Sim！來一片</button><button class="btn sm ghost" type="button" id="oNo">Não，下一位</button></div>
+  <span class="obar" aria-hidden="true"><b id="oBar"></b></span>
+</section>
+<button class="slotBtn" id="slotBtn" type="button" aria-pressed="false">照片位</button>
+<div class="dock">
+  <span class="hint" id="hint">翻成綠色<br>passador 就會來</span>
+  <button class="disc" id="disc" type="button" aria-pressed="false" aria-label="Rodízio 卡：目前紅面暫停，點擊翻成綠面請上肉"><span class="dz"></span><svg class="ring" viewBox="0 0 100 100" aria-hidden="true"><circle id="ring" cx="50" cy="50" r="47"/></svg><span class="cnt" id="cnt">0</span></button>
+</div>
+
+<script>
+(function(){
+'use strict';
+/* ===== 店家設定 ===== */
+var SHOP = {
+  name:'Calçadão', nameZh:'卡沙道 巴西窯烤',
+  phone:'(07) 241-3088', address:'高雄市新興區示範路 88 號（示範地址）',
+  transit:'捷運美麗島站 8 號出口步行 5 分鐘', parking:'對面有收費停車場，用餐可折抵 2 小時',
+  // 0=週日 … 6=週六；每天可多個時段，null 表示公休
+  hours:[
+    [['11:30','15:00'],['17:00','22:00']],
+    null,
+    [['11:30','14:30'],['17:30','21:30']],
+    [['11:30','14:30'],['17:30','21:30']],
+    [['11:30','14:30'],['17:30','21:30']],
+    [['11:30','14:30'],['17:30','22:00']],
+    [['11:30','15:00'],['17:00','22:00']]
+  ],
+  price:{
+    plans:{
+      wdLunch:{label:'平日午餐', note:'週二至週五 午餐', full:980, salad:520},
+      wdDinner:{label:'平日晚餐', note:'週二至週五 晚餐', full:1280, salad:620},
+      weekend:{label:'週末・假日', note:'週六日與國定假日全天', full:1380, salad:680}
+    },
+    kidFreeMax:5, kidRate:0.5, service:0.10
+  },
+  photos:{hero:'', fire:'', sig1:'', sig2:'', sig3:'', sig4:'', hall:'', salad:'', room:''}
+};
+// 炭烤部位：[id, 葡文, 中文, 圖形, 類別, 每片約 g, 說明]
+var MEATS = [
+  ['picanha','Picanha','沙朗蓋（臀肉蓋）','cap','boi',40,'帶一層油脂折成 C 字穿上長劍，只撒粗海鹽。巴西人心中的第一名。'],
+  ['fraldinha','Fraldinha','牛腹肉','steak','boi',35,'纖維長、肉汁多，passador 會順紋薄切，越嚼越香。'],
+  ['cupim','Cupim','牛峰肉','hump','boi',35,'瘤牛背上的駝峰，包紙慢烤八小時，油脂化開像燉肉。'],
+  ['alcatra','Alcatra','牛後腰脊','steak','boi',35,'瘦而不柴的大塊後腰，表面炭香重，適合三分熟。'],
+  ['costela','Costela','十二小時牛肋','rib','boi',45,'整排牛肋低溫烤十二小時，骨頭一推就離。'],
+  ['maminha','Maminha','牛尾臀','steak','boi',35,'三角形的小部位，油脂細，口感介於菲力與沙朗之間。'],
+  ['linguica','Linguiça','巴西辣香腸','sausage','porco',50,'豬肉、大蒜與紅椒粉灌成，表皮烤到爆開。'],
+  ['lombo','Lombo com queijo','起司豬里肌','pork','porco',35,'豬里肌裹帕瑪森起司烤出脆殼。'],
+  ['coracao','Coração de frango','炭烤雞心','heart','ave',20,'巴西人最愛的下酒部位，一串二十顆，彈牙不腥。'],
+  ['frango','Frango com bacon','培根捲雞腿','wrap','ave',40,'去骨雞腿捲培根，外脆裡多汁。'],
+  ['cordeiro','Cordeiro','迷迭香羊排','lamb','cordeiro',45,'紐西蘭羊排抹迷迭香與海鹽，帶骨上桌。'],
+  ['abacaxi','Abacaxi com canela','肉桂烤鳳梨','pine','extra',50,'整顆鳳梨裹肉桂糖烤到焦糖化，吃到一半來一片最解膩。'],
+  ['queijo','Queijo coalho','炭烤起司','cheese','extra',30,'巴西東北的煎烤起司，烤到外酥、拉絲。']
+];
+var CAT = {boi:['Bovinos','牛肉','#c4552d'], porco:['Suínos','豬肉','#f2c12e'], ave:['Aves','雞肉','#f2c12e'], cordeiro:['Cordeiro','羊肉','#f2c12e'], extra:['Extras','炭烤其他','#1f6b3a']};
+var MENU = {
+  buffet:[['Feijoada','巴西黑豆燉肉','黑豆與豬肋、香腸燉三小時，配白飯與羽衣甘藍。'],['Pão de queijo','起司麵包球','樹薯粉做的 Q 彈小麵包，每二十分鐘出爐一盤。'],['Farofa','奶油樹薯粉','撒在烤肉上的酥香粉末，巴西餐桌標配。'],['Vinagrete','番茄洋蔥莎莎','番茄、洋蔥、甜椒拌酒醋，配肉解膩。'],['Palmito','棕櫚心沙拉','清脆微甜，淋上橄欖油與檸檬。'],['Mandioca frita','炸樹薯條','外脆內綿，比薯條更有嚼勁。'],['Polenta frita','炸玉米糕','金黃方塊，撒帕瑪森起司。'],['Arroz e feijão','白飯與燉豆','每天現煮，巴西人的家常主食。'],['Salada de batata','巴西馬鈴薯沙拉','加了胡蘿蔔與青豆的媽媽味。'],['Frutas da estação','當季水果','木瓜、芒果、百香果，依季節更換。']],
+  bebidas:[['Caipirinha clássica','經典 caipirinha','甘蔗酒 cachaça、青檸、蔗糖現搗。',260],['Caipirinha de maracujá','百香果 caipirinha','加入整顆百香果，酸甜更明亮。',280],['Chopp Brahma','巴西生啤酒','巴西國民啤酒，冰到杯緣結霜。',180],['Vinho tinto','南巴西紅酒（杯）','Serra Gaúcha 產區梅洛，配牛肉剛好。',280],['Guaraná Antarctica','瓜拿納汽水','巴西人從小喝到大的果味汽水。',120],['Suco de maracujá','現打百香果汁','不加水，只加一點蔗糖。',150],['Água de coco','椰子水','整顆椰子現開。',160],['Mate gelado','冰瑪黛茶','里約海灘小販的冰茶，加檸檬。',130]],
+  sobremesas:[['Pudim de leite','巴西煉乳布丁','比焦糖布丁更綿密，壽星招待這一道。',160],['Brigadeiro','巧克力球（3 顆）','煉乳與可可熬成，巴西生日派對必備。',150],['Creme de papaya','木瓜奶霜','木瓜打冰淇淋，淋一點黑醋栗香甜酒。',220],['Quindim','椰子蛋黃糕','亮黃色的小圓糕，椰香很濃。',140],['Banana caramelada','焦糖烤香蕉','佐香草冰淇淋與肉桂。',180]]
+};
+var SIGS = [
+  {m:'picanha', photo:'sig1', bg:'#f2c12e', leaf:'#1f6b3a', plate:'#f4f0e6', cook:'三分熟，帶油脂一起切', pair:'Farofa、vinagrete'},
+  {m:'cupim', photo:'sig2', bg:'#1e5aa8', leaf:'#f2c12e', plate:'#f4f0e6', cook:'全熟慢烤，入口即化', pair:'白飯、黑豆燉肉'},
+  {m:'linguica', photo:'sig3', bg:'#c4552d', leaf:'#111', plate:'#f4f0e6', cook:'表皮烤到爆開', pair:'Chopp Brahma 生啤'},
+  {m:'abacaxi', photo:'sig4', bg:'#111', leaf:'#1f6b3a', plate:'#c4552d', cook:'外層焦糖、中心多汁', pair:'吃到一半解膩'}
+];
+var REVIEWS = [
+  ['陳小姐','第一次知道翻卡這麼好玩，紅卡一翻 passador 真的就從旁邊走過去。Picanha 的油脂烤得超香，連吃四片。','#f2c12e',5],
+  ['Mariana','沙拉吧的 feijoada 和 pão de queijo 很道地，在高雄吃到家鄉味，差點哭出來。','#1f6b3a',5],
+  ['林先生','公司聚餐 16 人訂二樓包廂，除了 10% 服務費沒有其他雜費，報價很透明。','#1e5aa8',5],
+  ['黃太太','女兒 5 歲免費、兒子 8 歲半價，全家吃得很划算。烤鳳梨要記得叫兩次。','#c4552d',4]
+];
+
+var $ = function(s, r){ return (r || document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+var money = function(n){ return 'NT$ ' + Math.round(n).toLocaleString('en-US'); };
+var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+var REDUCE = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+var DAYS = ['週日','週一','週二','週三','週四','週五','週六'];
+var now = new Date();
+function mins(t){ var p = t.split(':'); return +p[0]*60 + +p[1]; }
+function hhmm(m){ return String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0'); }
+var MEAT = {}; MEATS.forEach(function(m){ MEAT[m[0]] = m; });
+
+/* ===== 店家資訊帶入 ===== */
+$$('[data-shop]').forEach(function(el){ var v = SHOP[el.dataset.shop]; if (v != null) el.textContent = v; });
+$('#tel').textContent = SHOP.phone; $('#tel').href = 'tel:' + SHOP.phone.replace(/[^\d]/g, '');
+$('#grpTel').textContent = SHOP.phone; $('#grpTel').href = $('#tel').href;
+$('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address.replace(/（.*?）/g, ''));
+$('#yr').textContent = now.getFullYear();
+$('#fromPrice').textContent = SHOP.price.plans.wdLunch.full.toLocaleString('en-US');
+
+/* ===== 營業狀態 ===== */
+(function(){
+  var d = now.getDay(), m = now.getHours()*60 + now.getMinutes(), today = SHOP.hours[d] || [], open = null, next = null;
+  today.forEach(function(r){ if (m >= mins(r[0]) && m < mins(r[1])) open = r; });
+  if (!open) for (var k = 0; k < 8 && !next; k++){ var dd = (d + k) % 7, rs = SHOP.hours[dd]; if (rs) rs.forEach(function(r){ if (!next && (k > 0 || mins(r[0]) > m)) next = (k === 0 ? '今天' : k === 1 ? '明天（' + DAYS[dd] + '）' : DAYS[dd]) + ' ' + r[0]; }); }
+  var txt = open ? '營業中，到 ' + open[1] : '休息中，' + next + ' 開門';
+  $('#status').classList.toggle('on', !!open); $('#status').lastElementChild.textContent = txt;
+  $('#vstat').classList.toggle('on', !!open); $('#vstat span').textContent = txt;
+  var order = [1,2,3,4,5,6,0];
+  $('#week').innerHTML = order.map(function(i){ var r = SHOP.hours[i]; return '<li class="' + (i === d ? 'today' : '') + (r ? '' : ' off') + '"><b>' + DAYS[i] + '</b><span>' + (r ? r.map(function(x){ return x[0] + '–' + x[1]; }).join('　') : '公休') + (i === d ? '　· 今天' : '') + '</span></li>'; }).join('');
+})();
+
+/* ===== 圖形工具 ===== */
+var uid = 0;
+var K = '#111', S = '#f4f0e6', G = '#1f6b3a', Y = '#f2c12e', B = '#1e5aa8', C = '#c4552d', DG = '#123f23';
+function waveD(w, h, oy){ var a = w/4, q1 = h/4 + oy, q3 = 3*h/4 + oy, t = h/2; return 'M0 ' + q1 + 'C' + a + ' ' + q1 + ' ' + a + ' ' + q3 + ' ' + 2*a + ' ' + q3 + 'C' + 3*a + ' ' + q3 + ' ' + 3*a + ' ' + q1 + ' ' + w + ' ' + q1 + 'V' + (q1 + t) + 'C' + 3*a + ' ' + (q1 + t) + ' ' + 3*a + ' ' + (q3 + t) + ' ' + 2*a + ' ' + (q3 + t) + 'C' + a + ' ' + (q3 + t) + ' ' + a + ' ' + (q1 + t) + ' 0 ' + (q1 + t) + 'Z'; }
+function wavePat(id, w, h, fg, bg){ return '<pattern id="' + id + '" width="' + w + '" height="' + h + '" patternUnits="userSpaceOnUse"><rect width="' + w + '" height="' + h + '" fill="' + bg + '"/><path d="' + waveD(w, h, 0) + waveD(w, h, -h) + '" fill="' + fg + '"/></pattern>'; }
+function leaf(x, y, rot, s, fill, cutc){ var slits = ''; for (var i = 1; i < 6; i++){ var px = 20 + i*32; slits += 'M' + px + ' ' + (-12 + i) + 'l' + (14 - i) + ' -' + (44 - i*4) + 'M' + (px + 6) + ' ' + (8 - i) + 'l' + (14 - i) + ' ' + (40 - i*4); }
+  return '<g transform="translate(' + x + ' ' + y + ') rotate(' + rot + ') scale(' + s + ')"><path d="M0 0C30-74 160-92 230-14C160 56 46 62 0 0Z" fill="' + fill + '"/><path d="M4 0C80-22 150-24 226-14' + slits + '" stroke="' + cutc + '" stroke-width="7" stroke-linecap="round" fill="none"/></g>'; }
+function frond(x, y, rot, s, fill){ var p = ''; for (var i = 0; i < 13; i++){ var t = i/12, px = 20 + t*300, py = -Math.sin(t*2.6)*40, l = 120 - Math.abs(t - .35)*120; p += 'M' + px.toFixed(0) + ' ' + py.toFixed(0) + 'l' + (l*.42).toFixed(0) + ' ' + (-l).toFixed(0) + 'M' + px.toFixed(0) + ' ' + py.toFixed(0) + 'l' + (l*.5).toFixed(0) + ' ' + (l*.8).toFixed(0); }
+  return '<g transform="translate(' + x + ' ' + y + ') rotate(' + rot + ') scale(' + s + ')" stroke="' + fill + '" stroke-linecap="round" fill="none"><path d="M0 0Q160-70 330-40" stroke-width="9"/><path d="' + p + '" stroke-width="16"/></g>'; }
+function chunk(type){
+  switch(type){
+    case 'cap': return '<path d="M-32 26C-36-32 36-32 32 26L16 26C18-10-18-10-16 26Z" fill="#6a2814"/><path d="M-31 24C-35-30 35-30 31 24" fill="none" stroke="#f3e4c2" stroke-width="7"/><path d="M-18-4l9-9M-4-11l10-8M10-6l9-9" stroke="#2d0f06" stroke-width="3" stroke-linecap="round"/>';
+    case 'steak': return '<rect x="-26" y="-24" width="52" height="48" rx="11" fill="#5c2210"/><path d="M-26-12V-13A11 11 0 0 1-15-24H15A11 11 0 0 1 26-13V-12Z" fill="#c0503f"/><path d="M-18 14l14-14M-4 18l18-18M10 16l10-10" stroke="#2a0d05" stroke-width="3.5" stroke-linecap="round"/>';
+    case 'hump': return '<ellipse rx="32" ry="27" fill="#5a2213"/><path d="M-22-6c8 6 16-6 24 2s12 0 16 6M-22 10c10 4 18-4 30 2" stroke="#e8cfa8" stroke-width="2.6" fill="none"/>';
+    case 'rib': return '<rect x="-7" y="-46" width="14" height="34" rx="6" fill="#efe4cc"/><circle cx="-4" cy="-44" r="7" fill="#efe4cc"/><circle cx="4" cy="-44" r="7" fill="#efe4cc"/><rect x="-25" y="-24" width="50" height="50" rx="10" fill="#5c2210"/><path d="M-16 12l12-12M0 16l14-14" stroke="#2a0d05" stroke-width="3.5" stroke-linecap="round"/>';
+    case 'sausage': return '<rect x="-15" y="-34" width="30" height="68" rx="15" fill="#8a2f17"/><path d="M-6-22v34" stroke="#d06a42" stroke-width="4" stroke-linecap="round"/><path d="M-13-12h26M-13 12h26" stroke="#4a160a" stroke-width="2.5"/>';
+    case 'heart': return '<ellipse cx="-20" cy="0" rx="10" ry="14" fill="#7a1f16"/><ellipse cx="0" cy="0" rx="10" ry="14" fill="#8e2a1c"/><ellipse cx="20" cy="0" rx="10" ry="14" fill="#6e1a12"/><path d="M-23-6v6M-3-6v6M17-6v6" stroke="#c4553a" stroke-width="2.5" stroke-linecap="round"/>';
+    case 'wrap': return '<ellipse rx="29" ry="25" fill="#c98a4a"/><path d="M-27-8c18 7 36-6 54 2M-27 9c18 7 36-6 54 2" stroke="#8e2f1c" stroke-width="8" fill="none"/>';
+    case 'lamb': return '<rect x="-5" y="-54" width="10" height="34" rx="5" fill="#efe4cc"/><path d="M-26 24V-8C-26-24-14-30 0-30S26-24 26-8V24Z" fill="#6e3218"/><path d="M-14 4c6-4 22-4 28 0" stroke="#3a6b2a" stroke-width="3" fill="none"/>';
+    case 'pine': return '<rect x="-22" y="-40" width="44" height="80" rx="9" fill="#f2c12e" stroke="#a8641c" stroke-width="5"/><path d="M-16-22l32 12M-16 0l32 12M-16 22l32 10" stroke="#7a3e10" stroke-width="3.5" stroke-linecap="round"/><circle cx="-10" cy="-30" r="2" fill="#7a3e10"/><circle cx="8" cy="30" r="2" fill="#7a3e10"/>';
+    case 'cheese': return '<rect x="-18" y="-30" width="36" height="60" rx="5" fill="#f1d98a"/><path d="M-12-16l24 10M-12 4l24 10" stroke="#a0581e" stroke-width="4" stroke-linecap="round"/>';
+    default: return '<rect x="-24" y="-24" width="48" height="48" rx="12" fill="#c07a4a"/><path d="M-24-10h48v-4c0-6-6-10-12-10h-24c-6 0-12 4-12 10Z" fill="#f2d27a"/><path d="M-14 6l10-8M2 12l12-10" stroke="#7a3e1a" stroke-width="3" stroke-linecap="round"/>';
+  }
+}
+function espeto(x, y, ang, len, items, sc){ var s = '<g transform="translate(' + x + ' ' + y + ') rotate(' + ang + ')"><rect x="-90" y="-12" width="96" height="24" rx="7" fill="#7a4a24"/><rect x="-90" y="-12" width="96" height="6" rx="3" fill="#9a6034"/><rect x="0" y="-4" width="' + len + '" height="8" rx="4" fill="#d6d1c4"/><path d="M' + len + ' -4l18 4-18 4Z" fill="#d6d1c4"/>';
+  items.forEach(function(it){ s += '<g transform="translate(' + it[1] + ' 0) scale(' + sc + ')">' + chunk(it[0]) + '</g>'; }); return s + '</g>'; }
+function svg(vb, defs, body, label){ return '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid slice" ' + (label ? 'role="img" aria-label="' + label + '"' : 'aria-hidden="true"') + '><defs>' + defs + '</defs>' + body + '</svg>'; }
+function embers(x0, x1, y0, y1, n, seed){ var s = '', r = seed; for (var i = 0; i < n; i++){ r = (r*9301 + 49297) % 233280; var a = r/233280; r = (r*9301 + 49297) % 233280; var b = r/233280; s += '<circle cx="' + (x0 + a*(x1 - x0)).toFixed(0) + '" cy="' + (y0 + b*(y1 - y0)).toFixed(0) + '" r="' + (3 + (i%4)*2) + '" fill="' + (i%3 ? C : Y) + '" opacity="' + (.5 + (i%5)/10) + '"/>'; } return s; }
+function flames(x0, w, y, n){ var s = ''; for (var i = 0; i < n; i++){ var x = x0 + i*(w/n), h = 60 + (i*37 % 50); s += '<path d="M' + x + ' ' + y + 'C' + (x - 18) + ' ' + (y - h*.5) + ' ' + (x + 10) + ' ' + (y - h*.7) + ' ' + (x + 4) + ' ' + (y - h) + 'C' + (x + 30) + ' ' + (y - h*.6) + ' ' + (x + 34) + ' ' + (y - h*.3) + ' ' + (x + 26) + ' ' + y + 'Z" fill="' + (i%2 ? Y : C) + '"/>'; } return s; }
+function passador(x, y, s){ return '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')"><rect x="-30" y="80" width="26" height="150" rx="8" fill="' + K + '"/><rect x="4" y="80" width="26" height="150" rx="8" fill="' + K + '"/><path d="M-40 -10Q0-24 40-10L46 90H-46Z" fill="' + S + '"/><path d="M-40-6L-20 90H-46ZM40-6L20 90H46Z" fill="' + K + '"/><rect x="-46" y="80" width="92" height="12" fill="#7a4a24"/><circle cx="0" cy="-44" r="26" fill="#b07a52"/><path d="M-26-50C-24-76 24-76 26-50C14-60-14-60-26-50Z" fill="' + K + '"/><path d="M-16-14L0 14 16-14Z" fill="' + C + '"/><path d="M44 10L70 -6" stroke="#b07a52" stroke-width="16" stroke-linecap="round"/>' + espeto(76, 80, -90, 240, [['cap', 60], ['cap', 120], ['cap', 180]], .9) + '</g>'; }
+
+var ART = {
+  espeto:function(){ var id = 'p' + (++uid);
+    var b = '<rect width="800" height="1000" fill="' + Y + '"/><circle cx="540" cy="360" r="250" fill="' + C + '"/>' +
+      '<path d="M-20 600C120 540 230 640 310 700S520 760 570 860S440 1020 300 1020H-20Z" fill="' + B + '"/>' +
+      frond(-40, 160, -12, 1.2, G) + frond(830, 120, 196, 1.05, DG) + leaf(560, 860, -40, 1.5, G, Y) +
+      '<rect y="880" width="800" height="120" fill="' + K + '"/>' + flames(40, 760, 900, 16) + embers(10, 790, 920, 990, 40, 7) +
+      espeto(90, 820, -36, 640, [['cap', 160], ['cap', 250], ['cap', 340], ['cap', 430]], 1.7) +
+      espeto(200, 930, -36, 640, [['sausage', 190], ['sausage', 260], ['sausage', 330], ['sausage', 400], ['sausage', 470]], 1.5) +
+      espeto(360, 1010, -36, 600, [['pine', 220], ['pine', 310], ['pine', 400]], 1.6);
+    return svg('0 0 800 1000', '', b, '炭火上的 picanha、香腸與烤鳳梨串插畫'); },
+  fire:function(){ var id = 'f' + (++uid);
+    var d = '<radialGradient id="' + id + '" cx=".5" cy=".85" r=".6"><stop offset="0" stop-color="' + Y + '"/><stop offset=".45" stop-color="' + C + '"/><stop offset="1" stop-color="#1a0d08"/></radialGradient>';
+    var b = '<rect width="800" height="1000" fill="' + K + '"/>' + frond(-60, 90, 8, 1.1, G) + frond(860, 60, 172, 1, G) +
+      '<path d="M70 1000V430C70 190 730 190 730 430V1000Z" fill="' + C + '"/>';
+    for (var r = 0; r < 9; r++) b += '<path d="M70 ' + (480 + r*60) + 'H140M660 ' + (480 + r*60) + 'H730" stroke="#8e3a1c" stroke-width="5"/>';
+    b += '<path d="M140 1000V450C140 290 660 290 660 450V1000Z" fill="url(#' + id + ')"/>' + flames(160, 480, 960, 12) +
+      '<rect x="140" y="950" width="520" height="50" fill="#1a0d08"/>' + embers(150, 650, 955, 995, 26, 3) +
+      espeto(70, 520, 0, 600, [['steak', 150], ['steak', 230], ['steak', 310], ['steak', 390], ['steak', 470]], 1.1) +
+      espeto(70, 650, 0, 600, [['cap', 150], ['cap', 235], ['cap', 320], ['cap', 405], ['cap', 490]], 1.1) +
+      espeto(70, 780, 0, 600, [['sausage', 150], ['sausage', 210], ['sausage', 270], ['sausage', 330], ['sausage', 390], ['sausage', 450]], 1.1);
+    return svg('0 0 800 1000', d, b, '磚窯炭火上橫放的三排烤肉串插畫'); },
+  sig:function(cfg){ var m = MEAT[cfg.m], n = m[3] === 'sausage' || m[3] === 'pine' ? 4 : 3, items = [];
+    for (var i = 0; i < n; i++) items.push([m[3], 110 + i*(m[3] === 'sausage' ? 78 : 96)]);
+    var b = '<rect width="600" height="700" fill="' + cfg.bg + '"/>' + leaf(-30, 120, -30, 1.4, cfg.leaf, cfg.bg) + frond(640, 600, 200, .9, cfg.leaf) +
+      '<circle cx="300" cy="380" r="210" fill="' + cfg.plate + '"/><circle cx="300" cy="380" r="210" fill="none" stroke="' + K + '" stroke-width="6"/><circle cx="300" cy="380" r="170" fill="none" stroke="' + K + '" stroke-width="2" opacity=".25"/>' +
+      espeto(300, 680, -90, 560, items, 1.9);
+    for (var j = 0; j < 14; j++) b += '<rect x="' + (130 + (j*53 % 340)) + '" y="' + (250 + (j*71 % 260)) + '" width="6" height="6" fill="' + (cfg.plate === S ? '#d8d0bc' : '#e9e2d1') + '" transform="rotate(' + j*20 + ' ' + (130 + (j*53 % 340)) + ' ' + (250 + (j*71 % 260)) + ')"/>';
+    return svg('0 0 600 700', '', b, m[1] + ' ' + m[2] + ' 烤肉串插畫'); },
+  salad:function(){ var id = 'w' + (++uid);
+    var b = '<rect width="1600" height="1000" fill="' + Y + '"/><path d="M0 760C300 640 520 820 820 740S1300 560 1600 700V1000H0Z" fill="url(#' + id + ')"/><path d="M-40 120C200 40 420 220 640 160S1000-20 1240 80 1560 60 1640 20V-40H-40Z" fill="' + G + '"/>';
+    var bowls = [[230,420,150,K,'greens'],[560,330,120,B,'tomato'],[860,440,140,K,'beans'],[1170,330,130,C,'palm'],[1420,470,110,K,'corn'],[400,700,110,B,'farofa'],[1000,700,120,C,'cheese'],[1330,760,90,B,'rice']];
+    bowls.forEach(function(w, i){ var x = w[0], y = w[1], r = w[2], s2 = '<circle cx="' + (x + 10) + '" cy="' + (y + 14) + '" r="' + r + '" fill="rgba(0,0,0,.18)"/><circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + w[3] + '"/><circle cx="' + x + '" cy="' + y + '" r="' + (r - 16) + '" fill="#efe6cf"/>', ri = r - 22, k;
+      if (w[4] === 'greens'){ for (k = 0; k < 9; k++){ var a = k*0.7; s2 += '<circle cx="' + (x + Math.cos(a)*ri*.5).toFixed(0) + '" cy="' + (y + Math.sin(a)*ri*.5).toFixed(0) + '" r="' + (ri*.42).toFixed(0) + '" fill="' + (k%2 ? G : '#3f8a4f') + '"/>'; } }
+      else if (w[4] === 'tomato'){ s2 += '<circle cx="' + x + '" cy="' + y + '" r="' + ri + '" fill="#f6efe0"/>'; for (k = 0; k < 7; k++){ var a2 = k*0.9, tx = x + Math.cos(a2)*ri*.55, ty = y + Math.sin(a2)*ri*.55; s2 += '<circle cx="' + tx.toFixed(0) + '" cy="' + ty.toFixed(0) + '" r="' + (ri*.3).toFixed(0) + '" fill="' + C + '"/><circle cx="' + tx.toFixed(0) + '" cy="' + ty.toFixed(0) + '" r="' + (ri*.12).toFixed(0) + '" fill="' + Y + '"/>'; } }
+      else if (w[4] === 'beans'){ s2 += '<circle cx="' + x + '" cy="' + y + '" r="' + ri + '" fill="#2a1712"/>'; for (k = 0; k < 26; k++) s2 += '<ellipse cx="' + (x + Math.cos(k*2.4)*ri*(k%7)/7).toFixed(0) + '" cy="' + (y + Math.sin(k*2.4)*ri*(k%7)/7).toFixed(0) + '" rx="9" ry="6" fill="#4a2a20"/>'; s2 += '<rect x="' + (x - 20) + '" y="' + (y - 30) + '" width="40" height="22" rx="8" fill="#8a2f17"/>'; }
+      else if (w[4] === 'palm'){ for (k = 0; k < 6; k++){ var px = x + Math.cos(k*1.05)*ri*.5, py = y + Math.sin(k*1.05)*ri*.5; s2 += '<circle cx="' + px.toFixed(0) + '" cy="' + py.toFixed(0) + '" r="' + (ri*.32).toFixed(0) + '" fill="#fbf7ea" stroke="#d8cdb0" stroke-width="4"/><circle cx="' + px.toFixed(0) + '" cy="' + py.toFixed(0) + '" r="' + (ri*.12).toFixed(0) + '" fill="none" stroke="#d8cdb0" stroke-width="3"/>'; } }
+      else if (w[4] === 'corn'){ s2 += '<circle cx="' + x + '" cy="' + y + '" r="' + ri + '" fill="' + Y + '"/>'; for (k = 0; k < 30; k++) s2 += '<rect x="' + (x - ri*.7 + (k%6)*ri*.28).toFixed(0) + '" y="' + (y - ri*.6 + Math.floor(k/6)*ri*.28).toFixed(0) + '" width="12" height="12" rx="4" fill="#d9a41c"/>'; }
+      else if (w[4] === 'farofa'){ s2 += '<circle cx="' + x + '" cy="' + y + '" r="' + ri + '" fill="#e2c27a"/>'; for (k = 0; k < 40; k++) s2 += '<circle cx="' + (x + Math.cos(k*2.4)*ri*.85*((k%9)/9)).toFixed(0) + '" cy="' + (y + Math.sin(k*2.4)*ri*.85*((k%9)/9)).toFixed(0) + '" r="3" fill="#a87a32"/>'; }
+      else if (w[4] === 'cheese'){ for (k = 0; k < 7; k++){ var cx2 = x + (k === 0 ? 0 : Math.cos(k*1.05)*ri*.58), cy2 = y + (k === 0 ? 0 : Math.sin(k*1.05)*ri*.58); s2 += '<circle cx="' + cx2.toFixed(0) + '" cy="' + cy2.toFixed(0) + '" r="' + (ri*.3).toFixed(0) + '" fill="#e8b85a"/><circle cx="' + (cx2 - 6).toFixed(0) + '" cy="' + (cy2 - 6).toFixed(0) + '" r="' + (ri*.1).toFixed(0) + '" fill="#f6d993"/>'; } }
+      else { s2 += '<circle cx="' + x + '" cy="' + y + '" r="' + ri + '" fill="#fbf8ef"/><path d="M' + (x - ri*.5) + ' ' + y + 'q' + ri*.5 + ' -' + ri*.4 + ' ' + ri + ' 0" stroke="#e2dac6" stroke-width="5" fill="none"/>'; }
+      b += s2; });
+    b += '<path d="M120 940l160-140" stroke="#d6d1c4" stroke-width="12" stroke-linecap="round"/><path d="M1490 200l-120 120" stroke="#d6d1c4" stroke-width="12" stroke-linecap="round"/>';
+    return svg('0 0 1600 1000', wavePat(id, 160, 80, K, S), b, '沙拉吧俯視插畫：生菜、番茄、黑豆、棕櫚心、玉米等'); },
+  room:function(){ var id = 'w' + (++uid);
+    var b = '<rect width="1600" height="1000" fill="' + B + '"/><path d="M0 0H1600V170C1200 300 420 60 0 240Z" fill="' + K + '"/>';
+    for (var i = 0; i < 6; i++){ var cx = 170 + i*252; b += '<path d="M' + (cx - 60) + ' 300H' + (cx + 60) + 'C' + (cx + 22) + ' 420 ' + (cx + 8) + ' 520 ' + cx + ' 640C' + (cx - 8) + ' 520 ' + (cx - 22) + ' 420 ' + (cx - 60) + ' 300Z" fill="' + S + '"/>'; }
+    b += '<rect y="290" width="1600" height="14" fill="' + S + '"/><path d="M0 240C420 60 1200 300 1600 170" stroke="' + Y + '" stroke-width="10" fill="none"/><rect y="640" width="1600" height="360" fill="url(#' + id + ')"/><rect y="636" width="1600" height="10" fill="' + K + '"/>';
+    for (var l = 0; l < 4; l++){ var lx = 440 + l*240; b += '<path d="M' + lx + ' 160V' + (420 + (l%2)*30) + '" stroke="' + K + '" stroke-width="3"/><circle cx="' + lx + '" cy="' + (440 + (l%2)*30) + '" r="34" fill="' + Y + '"/><path d="M' + (lx - 34) + ' ' + (440 + (l%2)*30) + 'a34 34 0 0 1 68 0Z" fill="' + K + '"/>'; }
+    for (var ch = 0; ch < 7; ch++){ b += '<rect x="' + (360 + ch*140) + '" y="650" width="80" height="120" rx="26" fill="' + S + '"/>'; }
+    b += '<rect x="300" y="720" width="1000" height="56" rx="28" fill="' + K + '"/><rect x="380" y="776" width="16" height="140" fill="' + K + '"/><rect x="1204" y="776" width="16" height="140" fill="' + K + '"/>';
+    for (var g2 = 0; g2 < 6; g2++) b += '<circle cx="' + (420 + g2*150) + '" cy="716" r="16" fill="' + S + '" stroke="' + K + '" stroke-width="3"/>';
+    b += leaf(-40, 900, -60, 1.6, G, B) + frond(1640, 860, 210, 1.2, G);
+    return svg('0 0 1600 1000', wavePat(id, 120, 60, K, S), b, '二樓包廂插畫：曲線天花板與阿爾沃拉達宮式柱子'); },
+  hall:function(){ var id = 'w' + (++uid), cp = 'c' + uid;
+    var b = '<rect width="1000" height="1000" fill="' + G + '"/><path d="M0 0H1000V120C700 220 300 40 0 180Z" fill="' + K + '"/>' +
+      '<clipPath id="' + cp + '"><circle cx="640" cy="390" r="230"/></clipPath><circle cx="640" cy="390" r="246" fill="' + K + '"/><g clip-path="url(#' + cp + ')"><rect x="400" y="150" width="480" height="480" fill="' + Y + '"/>' + leaf(380, 520, -40, 1.6, G, Y) + frond(900, 300, 160, 1.1, DG) + leaf(600, 700, -80, 1.3, DG, Y) + '</g>' +
+      '<rect y="660" width="1000" height="340" fill="url(#' + id + ')"/><rect y="652" width="1000" height="12" fill="' + Y + '"/>';
+    [[160, 760], [420, 860]].forEach(function(t){ b += '<ellipse cx="' + t[0] + '" cy="' + t[1] + '" rx="120" ry="34" fill="' + C + '"/><ellipse cx="' + t[0] + '" cy="' + (t[1] - 6) + '" rx="120" ry="30" fill="' + Y + '"/><rect x="' + (t[0] - 8) + '" y="' + t[1] + '" width="16" height="110" fill="' + K + '"/><circle cx="' + (t[0] - 40) + '" cy="' + (t[1] - 10) + '" r="14" fill="' + S + '" stroke="' + K + '" stroke-width="3"/><circle cx="' + (t[0] + 40) + '" cy="' + (t[1] - 10) + '" r="14" fill="' + S + '" stroke="' + K + '" stroke-width="3"/>'; });
+    b += passador(780, 600, 1.15) + '<path d="M60 0V300" stroke="' + K + '" stroke-width="3"/><circle cx="60" cy="320" r="28" fill="' + Y + '"/><path d="M260 0V250" stroke="' + K + '" stroke-width="3"/><circle cx="260" cy="270" r="28" fill="' + Y + '"/>';
+    return svg('0 0 1000 1000', wavePat(id, 140, 70, K, S), b, '一樓用餐區插畫：圓窗熱帶植物、波浪地坪與持劍的 passador'); }
+};
+function fillPhotos(){ $$('.ph').forEach(function(f){ var url = SHOP.photos[f.dataset.photo]; if (url){ f.innerHTML = '<img src="' + esc(url) + '" alt="' + esc(f.dataset.label || '') + '" loading="lazy">'; return; } var a = ART[f.dataset.art]; if (a) f.innerHTML = a(f._cfg); }); }
+
+/* ===== 招牌翻面卡 ===== */
+$('#sigs').innerHTML = SIGS.map(function(s, i){ var m = MEAT[s.m]; return '<div class="sig rv" style="transition-delay:' + i*.08 + 's"><div class="in"><div class="face front"><figure class="ph" data-photo="' + s.photo + '" data-art="sig" data-label="招牌 ' + m[1] + '" data-size="1200×1400"></figure><div class="nm"><b>' + m[1] + '</b><span>' + m[2] + '</span></div></div><div class="face back"><span class="kick">0' + (i + 1) + ' · ' + CAT[m[4]][0] + '</span><h3>' + m[1] + '</h3><p class="zh">' + m[2] + '</p><p>' + m[6] + '</p><dl><dt>熟度</dt><dd>' + s.cook + '</dd><dt>搭配</dt><dd>' + s.pair + '</dd><dt>每片</dt><dd>約 ' + m[5] + ' g</dd></dl></div></div><button class="flipb" type="button" aria-pressed="false" aria-label="翻面看 ' + m[1] + ' 介紹">↻</button></div>'; }).join('');
+$$('#sigs .ph').forEach(function(f, i){ f._cfg = SIGS[i]; });
+$$('#sigs .flipb').forEach(function(b){ b.addEventListener('click', function(){ var card = b.parentNode, on = card.classList.toggle('flip'); b.setAttribute('aria-pressed', on); }); });
+$('#leafbg').innerHTML = leaf(20, 240, -40, 1.4, S, G) + frond(60, 380, -60, .9, S);
+
+/* ===== 菜單 ===== */
+var TABS = [['carnes','炭烤肉品','Carnes'],['buffet','沙拉吧','Buffet'],['bebidas','飲品','Bebidas'],['sobremesas','甜點','Doces']];
+var NOTES = {carnes:'以下部位全部含在 Rodízio 全餐內，passador 依出爐順序巡桌；想吃哪一種可以直接點名。', buffet:'沙拉吧含在 Rodízio 全餐與「只吃沙拉吧」方案內，冷熱食每天 40 道以上，依季節輪替。', bebidas:'飲品另計，以下為單杯價格。未滿 18 歲請勿飲酒。', sobremesas:'甜點另計。壽星憑證件招待巴西布丁一份。'};
+var curTab = 'carnes';
+$('#tabs').innerHTML = TABS.map(function(t){ return '<button type="button" data-t="' + t[0] + '" aria-pressed="' + (t[0] === curTab) + '">' + t[1] + '<small>' + t[2] + '</small></button>'; }).join('');
+$('#tabs').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; curTab = b.dataset.t; $$('#tabs button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); }); drawMenu(); });
+function icoMeat(type, col){ return '<svg viewBox="-50 -50 100 100" aria-hidden="true"><rect x="-50" y="-3" width="100" height="6" fill="#bdb6a5"/><g transform="scale(.82)">' + chunk(type) + '</g></svg>'; }
+function icoDot(col, glyph){ return '<svg viewBox="-50 -50 100 100" aria-hidden="true">' + glyph + '</svg>'; }
+var GLYPH = {buffet:'<circle r="24" fill="#1f6b3a"/><circle cx="-8" cy="-6" r="10" fill="#3f8a4f"/><circle cx="10" cy="6" r="8" fill="#c4552d"/>', bebidas:'<path d="M-18-24h36l-6 46h-24Z" fill="#f4f0e6" stroke="#111" stroke-width="4"/><path d="M-16-6h32l-3 26h-26Z" fill="#f2c12e"/><circle cx="12" cy="-26" r="8" fill="#1f6b3a"/>', sobremesas:'<path d="M-26 16h52l-8-26h-36Z" fill="#f2c12e"/><path d="M-18-10h36c0-10-8-14-18-14s-18 4-18 14Z" fill="#a8641c"/>'};
+function drawMenu(){
+  var h = '';
+  if (curTab === 'carnes'){
+    [['boi',['boi']],['porco',['porco','ave','cordeiro']],['extra',['extra']]].forEach(function(g){ var c = CAT[g[0]], title = g[0] === 'porco' ? ['Porco · Frango · Cordeiro','豬・雞・羊','#f2c12e'] : c;
+      h += '<div class="mgroup" style="--c-:' + title[2] + '"><i></i>' + title[1] + '<small>' + title[0] + '</small></div>';
+      MEATS.filter(function(m){ return g[1].indexOf(m[4]) > -1; }).forEach(function(m, i){ h += '<div class="it" style="--c-:' + CAT[m[4]][2] + ';animation-delay:' + i*.04 + 's"><span class="ico">' + icoMeat(m[3]) + '</span><b>' + m[1] + '<span>' + m[2] + '</span></b><span class="pr inc">全餐內含</span><p>' + m[6] + '</p></div>'; });
+    });
+    h += '<div class="it" style="--c-:#111"><span class="ico">' + icoMeat('cap') + '</span><b>Picanha Wagyu<span>和牛臀肉蓋（加點）</span></b><span class="pr">' + money(480) + '</span><p>澳洲 M7 和牛，每桌限點兩份，由主廚直接送到桌邊。</p></div>';
+  } else {
+    MENU[curTab].forEach(function(it, i){ h += '<div class="it" style="--c-:' + (curTab === 'buffet' ? G : curTab === 'bebidas' ? Y : C) + ';animation-delay:' + i*.04 + 's"><span class="ico">' + icoDot(0, GLYPH[curTab]) + '</span><b>' + it[0] + '<span>' + it[1] + '</span></b>' + (it[3] ? '<span class="pr">' + money(it[3]) + '</span>' : '<span class="pr inc">全餐內含</span>') + '<p>' + it[2] + '</p></div>'; });
+  }
+  $('#mgrid').innerHTML = h; $('#mnote').textContent = NOTES[curTab];
+}
+drawMenu();
+
+/* ===== Rodízio 綠紅卡 ===== */
+var R = {on:false, plate:{}, order:[], declined:0, n:0, cur:null, last:null, tNext:0, tOff:0};
+function faces(n){ return '<span class="fc red"><svg viewBox="0 0 100 100" aria-hidden="true"><text class="t1" x="50" y="54" text-anchor="middle">PAUSA</text><text class="t2" x="52" y="71" text-anchor="middle">暫停</text></svg></span><span class="fc grn"><svg viewBox="0 0 100 100" aria-hidden="true"><path id="arc' + n + '" d="M19 54A31 31 0 0 1 81 54" fill="none"/><text class="arc"><textPath href="#arc' + n + '" startOffset="50%" text-anchor="middle">SIM, POR FAVOR</textPath></text><text class="t1" x="50" y="68" text-anchor="middle">請上肉</text></svg></span>'; }
+$$('.disc .dz').forEach(function(z, i){ z.innerHTML = faces(i); });
+setTimeout(function(){ $('#hint').classList.add('off'); }, 12000);
+var discs = [$('#disc'), $('#disc2')], offer = $('#offer'), ring = $('#ring'), bar = $('#oBar');
+function setOn(v){
+  R.on = v;
+  discs.forEach(function(d){ d.classList.toggle('on', v); d.setAttribute('aria-pressed', v); d.setAttribute('aria-label', 'Rodízio 卡：目前' + (v ? '綠面請上肉，點擊翻成紅面暫停' : '紅面暫停，點擊翻成綠面請上肉')); });
+  $('#hint').classList.add('off');
+  clearTimeout(R.tNext);
+  if (v) schedule(2200); else { ringReset(); dismiss(false); }
+  advise();
+}
+function ringReset(){ ring.style.transition = 'none'; ring.style.strokeDashoffset = 296; }
+function schedule(ms){
+  clearTimeout(R.tNext); ringReset();
+  if (!REDUCE){ void ring.getBoundingClientRect(); ring.style.transition = 'stroke-dashoffset ' + ms + 'ms linear'; ring.style.strokeDashoffset = 0; }
+  R.tNext = setTimeout(bring, ms);
+}
+function pick(){
+  var pool = MEATS.filter(function(m){ return m[0] !== R.last; }), w = pool.map(function(m){ return m[4] === 'boi' ? 3 : 2; }), sum = w.reduce(function(a, b){ return a + b; }, 0), r = Math.random()*sum;
+  for (var i = 0; i < pool.length; i++){ r -= w[i]; if (r <= 0) return pool[i]; } return pool[0];
+}
+function bring(){
+  if (!R.on || R.cur) return;
+  if (document.hidden){ schedule(3000); return; }
+  var m = pick(); R.cur = m; R.last = m[0]; R.n++;
+  ringReset();
+  $('#oN').textContent = R.n; $('#oName').textContent = m[1]; $('#oZh').textContent = m[2]; $('#oDesc').textContent = m[6];
+  $('#oIco').innerHTML = '<svg viewBox="-60 -60 120 120" aria-hidden="true">' + espeto(0, 75, -90, 150, [[m[3], 45], [m[3], 105]], .62) + '</svg>';
+  offer.classList.add('show');
+  bar.style.transition = 'none'; bar.style.transform = 'scaleX(1)'; void bar.getBoundingClientRect();
+  bar.style.transition = 'transform 9s linear'; bar.style.transform = 'scaleX(0)';
+  clearTimeout(R.tOff); R.tOff = setTimeout(function(){ answer(false); }, 9000);
+}
+function dismiss(){ clearTimeout(R.tOff); R.cur = null; offer.classList.remove('show'); }
+function answer(yes){
+  if (!R.cur) return;
+  var m = R.cur;
+  if (yes){ R.plate[m[0]] = (R.plate[m[0]] || 0) + 1; R.order.push(m[0]); } else R.declined++;
+  dismiss(); drawPlate(yes);
+  if (R.on) schedule(4200 + Math.random()*2600);
+}
+$('#oYes').addEventListener('click', function(){ answer(true); });
+$('#oNo').addEventListener('click', function(){ answer(false); });
+discs.forEach(function(d){ d.addEventListener('click', function(){ setOn(!R.on); }); });
+$('#callNow').addEventListener('click', function(){ if (!R.on) setOn(true); if (!R.cur){ clearTimeout(R.tNext); bring(); } });
+$('#clearPlate').addEventListener('click', function(){ R.plate = {}; R.order = []; R.declined = 0; drawPlate(false); });
+function drawPlate(added){
+  var show = R.order.slice(-10), extra = R.order.length - show.length, s = '<rect x="20" y="58" width="80" height="20" rx="6" fill="#7a4a24"/><rect x="96" y="63" width="510" height="8" rx="4" fill="#d6d1c4"/><path d="M606 63l20 4-20 4Z" fill="#d6d1c4"/>';
+  show.forEach(function(id, i){ var last = added && i === show.length - 1; s += '<g transform="translate(' + (585 - (show.length - 1 - i)*49) + ' 67) scale(.82)"><g' + (last && !REDUCE ? ' class="pop"' : '') + '>' + chunk(MEAT[id][3]) + '</g></g>'; });
+  if (extra > 0) s += '<text x="60" y="44" fill="#f2c12e" font-size="18" font-weight="700" text-anchor="middle" font-family="sans-serif">+' + extra + '</text>';
+  if (!show.length) s += '<text x="340" y="40" fill="#bdb6a5" font-size="16" text-anchor="middle" font-family="sans-serif" letter-spacing="2">長劍還是空的</text>';
+  $('#skewSvg').innerHTML = s;
+  var g = 0, kinds = 0; Object.keys(R.plate).forEach(function(id){ g += R.plate[id]*MEAT[id][5]; kinds++; });
+  $('#stN').textContent = R.order.length; $('#stG').textContent = g; $('#stK').textContent = kinds + '/' + MEATS.length; $('#stD').textContent = R.declined;
+  $('#cnt').textContent = R.order.length;
+  var rows = MEATS.filter(function(m){ return R.plate[m[0]]; }).sort(function(a, b){ return R.plate[b[0]] - R.plate[a[0]]; });
+  $('#plist').innerHTML = rows.length ? rows.map(function(m){ return '<li style="--c-:' + CAT[m[4]][2] + '"><i></i><span><b>' + m[1] + '</b><small>' + m[2] + '</small></span><em>×' + R.plate[m[0]] + '</em></li>'; }).join('') : '<li class="empty">盤子還是空的。把卡翻成綠色，passador 就會帶肉過來。</li>';
+  advise();
+}
+function advise(){
+  var n = R.order.length, t;
+  if (!R.on && !n) t = '目前是紅面：passador 會直接走過。點右下角或左邊的大圓卡翻成綠色開始。';
+  else if (!R.on) t = '紅卡休息中。去沙拉吧拿點 vinagrete 解膩，想吃再翻回綠色。';
+  else if (!n) t = '綠卡朝上！passador 正在往你這桌走，幾秒後會出現在右下角。';
+  else if (n < 5) t = '節奏不錯。老饕建議先吃牛，再穿插雞心與香腸，最後用烤鳳梨收尾。';
+  else if (n < 12) t = '已經 ' + n + ' 片了。吃到一半可以翻紅卡喘口氣，Picanha 會一直有。';
+  else t = n + ' 片，你是今晚的 rodízio 冠軍。記得留點胃給巴西布丁。';
+  $('#advice').textContent = t;
+}
+drawPlate(false);
+
+/* ===== 價格試算 ===== */
+var P = SHOP.price, plan = (now.getDay() === 0 || now.getDay() === 6) ? 'weekend' : (now.getHours() >= 16 ? 'wdDinner' : 'wdLunch');
+var cnt = {adult:2, salad:0, kid:0, baby:0};
+var ROWS = [['adult','成人 Rodízio 全餐','炭烤肉品＋沙拉吧'],['salad','只吃沙拉吧','不含炭烤肉品，成人與兒童同價'],['kid','兒童 6–12 歲','全餐半價'],['baby','幼兒 0–' + P.kidFreeMax + ' 歲','免費，請在訂位時告知']];
+$('#plans').insertAdjacentHTML('beforeend', Object.keys(P.plans).map(function(k){ var p = P.plans[k]; return '<label class="plan"><input type="radio" name="plan" value="' + k + '"' + (k === plan ? ' checked' : '') + '><span><b>' + p.label + '</b><small>' + p.note + '</small><em>' + money(p.full) + '</em></span></label>'; }).join(''));
+$('#ctr').innerHTML = ROWS.map(function(r){ return '<div class="crow"><div><b>' + r[1] + '</b><small>' + r[2] + '</small></div><div class="step"><button type="button" data-k="' + r[0] + '" data-d="-1" aria-label="' + r[1] + ' 減一">−</button><output id="n-' + r[0] + '">0</output><button type="button" data-k="' + r[0] + '" data-d="1" aria-label="' + r[1] + ' 加一">+</button></div></div>'; }).join('');
+$('#plans').addEventListener('change', function(e){ plan = e.target.value; calc(); });
+$('#ctr').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; var k = b.dataset.k; cnt[k] = Math.max(0, Math.min(30, cnt[k] + +b.dataset.d)); calc(); });
+function heads(){ return cnt.adult + cnt.salad + cnt.kid + cnt.baby; }
+function calc(){
+  var p = P.plans[plan], kidP = Math.round(p.full*P.kidRate), lines = [], sub = 0;
+  [['adult', '成人全餐', p.full], ['salad', '只吃沙拉吧', p.salad], ['kid', '兒童全餐（半價）', kidP], ['baby', '幼兒（免費）', 0]].forEach(function(l){ if (cnt[l[0]]){ var a = cnt[l[0]]*l[2]; sub += a; lines.push('<li><span>' + l[1] + '</span><span>' + money(a) + '</span><small>' + money(l[2]) + ' × ' + cnt[l[0]] + ' 位</small></li>'); } });
+  var sv = Math.round(sub*P.service), tot = sub + sv, h = heads();
+  if (!lines.length) lines.push('<li><span>尚未選擇人數</span><span>—</span></li>');
+  lines.push('<li class="sv"><span>小計</span><span>' + money(sub) + '</span></li><li class="sv"><span>服務費 ' + Math.round(P.service*100) + '%</span><span>' + money(sv) + '</span></li>');
+  $('#billList').innerHTML = lines.join(''); $('#billTot').textContent = money(tot);
+  $('#billPP').textContent = h ? p.label + '・' + h + ' 位，平均每位 ' + money(tot/h) : '請用左邊的＋選擇人數';
+  var w = $('#billWarn'); w.hidden = h < 10; if (h >= 10) w.textContent = '10 位以上屬團體訂位，建議預約 Sala Brasília 包廂，需預付 30% 訂金。';
+  Object.keys(cnt).forEach(function(k){ $('#n-' + k).textContent = cnt[k]; $$('#ctr button[data-k="' + k + '"][data-d="-1"]')[0].disabled = !cnt[k]; });
+  $('#toBook').textContent = h ? '帶 ' + h + ' 位去訂位' : '先選人數';
+  $('#toBook').disabled = !h;
+}
+calc();
+$('#toBook').addEventListener('click', function(){ var h = heads(); if (!h) return; if ($('#pax')){ $('#pax').value = String(Math.min(h, 30)); paxChange(); } var t = $('#book'); t.scrollIntoView({behavior:REDUCE ? 'auto' : 'smooth'}); });
+
+/* ===== 訂位 ===== */
+var days = [];
+for (var i = 0; days.length < 10 && i < 30; i++){ var dd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i); if (SHOP.hours[dd.getDay()]) days.push(dd); }
+var isToday = function(d){ return d.toDateString() === now.toDateString(); };
+$('#dates').innerHTML = days.map(function(d, i){ return '<label><input type="radio" name="d" value="' + i + '"' + (i ? '' : ' checked') + '><span>' + (d.getMonth() + 1) + '/' + d.getDate() + '<small>' + (isToday(d) ? '今天' : DAYS[d.getDay()]) + '</small></span></label>'; }).join('');
+for (var p = 1; p <= 30; p++) $('#pax').insertAdjacentHTML('beforeend', '<option value="' + p + '"' + (p === 2 ? ' selected' : '') + '>' + p + ' 位</option>');
+function curDay(){ return days[+$('input[name=d]:checked').value]; }
+function svcDraw(){
+  var d = curDay(), rs = SHOP.hours[d.getDay()], nm = now.getHours()*60 + now.getMinutes(), cur = ($('input[name=s]:checked') || {}).value;
+  $('#svc').innerHTML = rs.map(function(r, j){ var past = isToday(d) && mins(r[1]) - 90 < nm + 30; return '<label><input type="radio" name="s" value="' + j + '"' + (past ? ' disabled' : '') + '><span>' + (mins(r[0]) < 900 ? '午餐' : '晚餐') + '<small>' + r[0] + '–' + r[1] + '</small></span></label>'; }).join('');
+  var pk = $('#svc input[value="' + cur + '"]:not(:disabled)') || $('#svc input:not(:disabled)'); if (pk) pk.checked = true;
+  timeDraw();
+}
+function timeDraw(){
+  var d = curDay(), s = $('input[name=s]:checked'), nm = now.getHours()*60 + now.getMinutes();
+  if (!s){ $('#times').innerHTML = '<span class="none">這天的訂位時段都已過，請選其他日期。</span>'; $('#planHint').textContent = ''; return; }
+  var r = SHOP.hours[d.getDay()][+s.value], out = [];
+  for (var m = mins(r[0]); m <= mins(r[1]) - 90; m += 30) out.push(m);
+  $('#times').innerHTML = out.map(function(m){ var full = (d.getDate()*5 + m/30) % 9 === 0, dis = full || (isToday(d) && m < nm + 30); return '<label><input type="radio" name="t" value="' + hhmm(m) + '"' + (dis ? ' disabled' : '') + '><span>' + hhmm(m) + (full ? '<small>已滿</small>' : '') + '</span></label>'; }).join('');
+  var f = $('#times input:not(:disabled)'); if (f) f.checked = true; else $('#times').insertAdjacentHTML('beforeend', '<span class="none" style="flex-basis:100%">這個時段已無空位，請改選其他時段。</span>');
+  var wk = d.getDay() === 0 || d.getDay() === 6, pl = P.plans[wk ? 'weekend' : (mins(r[0]) < 900 ? 'wdLunch' : 'wdDinner')];
+  $('#planHint').textContent = '這天適用「' + pl.label + '」：全餐 ' + money(pl.full) + '／位，只吃沙拉吧 ' + money(pl.salad) + '／位（另加 10% 服務費）。';
+}
+function paxChange(){
+  var n = +$('#pax').value, g = $('#grpNote');
+  g.classList.toggle('show', n >= 10);
+  if (n >= 10){ g.innerHTML = '<b>' + n + ' 位屬團體訂位。</b>我們會安排 Sala Brasília 包廂與專屬 passador，需預付 30% 訂金。送出需求後，店長會在一個工作天內來電確認；急件請直撥 <a href="' + $('#tel').href + '">' + esc(SHOP.phone) + '</a>。'; $('#zone').value = 'Sala Brasília 包廂'; }
+  $('#submitBtn').textContent = n >= 10 ? '送出團體訂位需求' : '確認訂位';
+}
+$('#dates').addEventListener('change', svcDraw); $('#svc').addEventListener('change', timeDraw); $('#pax').addEventListener('change', paxChange);
+svcDraw(); paxChange();
+$('#fPhone').addEventListener('input', function(){ var d = this.value.replace(/\D/g, '').slice(0, 10), o = d.slice(0, 4); if (d.length > 4) o += '-' + d.slice(4, 7); if (d.length > 7) o += '-' + d.slice(7); this.value = o; });
+function setErr(el, msg){ var f = el.closest('.fi'); f.classList.toggle('bad', !!msg); f.querySelector('.err').textContent = msg || ''; return !msg; }
+$('#bookForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var name = $('#fName'), phone = $('#fPhone'), n = +$('#pax').value, zone = $('#zone').value, t = $('input[name=t]:checked'), ok = true;
+  ok = setErr(name, name.value.trim() ? '' : '請填寫訂位人姓名') && ok;
+  ok = setErr(phone, /^09\d{2}-\d{3}-\d{3}$/.test(phone.value.trim()) ? '' : '請輸入 09xx-xxx-xxx 格式的手機號碼') && ok;
+  ok = setErr($('#zone'), zone.indexOf('包廂') > -1 && n < 8 ? '包廂需 8 位以上，請改選其他座位' : zone.indexOf('吧台') > -1 && n > 4 ? '吧台旁座位最多 4 位' : '') && ok;
+  if (!t){ ok = false; $('#times').scrollIntoView({block:'center'}); }
+  if (!ok){ var bad = $('.fi.bad input, .fi.bad select'); if (bad) bad.focus(); return; }
+  var d = curDay(), grp = n >= 10;
+  $('#formBody').innerHTML = '<div class="done"><div class="ok">Obrigado!</div><p><b>' + esc(name.value.trim()) + '</b>，' + (grp ? '團體訂位需求已收到。' : '座位幫你留好了。') + '</p><div class="tk"><span>' + (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日（' + DAYS[d.getDay()] + '）' + t.value + '</span><span>' + n + ' 位 · ' + esc(zone) + '</span><span>確認簡訊：' + esc(phone.value.trim()) + '</span>' + ($('#fNote').value.trim() ? '<span>備註：' + esc($('#fNote').value.trim()) + '</span>' : '') + '</div><p>' + (grp ? '店長會在一個工作天內來電確認包廂與訂金。' : '到店時把桌上的卡翻成綠色就開始上肉。') + '</p><p class="demo">示範版本：沒有真的送出訂位。</p><button class="btn ghost" type="button" id="again">再訂一筆</button></div>';
+  $('#again').addEventListener('click', function(){ location.hash = ''; location.reload(); });
+});
+
+/* ===== 評論 ===== */
+$('#revs').innerHTML = REVIEWS.map(function(r, i){ return '<article class="rev rv" style="--q:' + r[2] + ';--qc:' + (r[2] === Y ? K : S) + ';transition-delay:' + i*.08 + 's"><div class="st" aria-label="' + r[3] + ' 顆星">' + '★★★★★'.slice(0, r[3]) + '<span style="opacity:.25">' + '★★★★★'.slice(r[3]) + '</span></div><p>' + r[1] + '</p><footer><b>' + r[0] + '</b> · Google 評論</footer></article>'; }).join('');
+
+/* ===== 導覽、照片位 ===== */
+var nav = $('#nav'), burger = $('#burger');
+burger.addEventListener('click', function(){ var o = nav.classList.toggle('open'); burger.setAttribute('aria-expanded', o); burger.textContent = o ? '關閉' : '選單'; });
+$$('#navList a').forEach(function(a){ a.addEventListener('click', function(){ nav.classList.remove('open'); burger.setAttribute('aria-expanded', 'false'); burger.textContent = '選單'; }); });
+var slotBtn = $('#slotBtn');
+function slots(on){ document.body.classList.toggle('slots', on); slotBtn.setAttribute('aria-pressed', on); }
+slotBtn.addEventListener('click', function(){ slots(!document.body.classList.contains('slots')); });
+if (/[?&]slots/.test(location.search)) slots(true);
+fillPhotos();
+
+/* ===== 店名撐滿石板 ===== */
+var hname = $('#hname');
+function fitName(){ var sp = hname.firstElementChild; hname.style.fontSize = '100px'; var w = sp.getBoundingClientRect().width, avail = hname.clientWidth; if (w && avail) hname.style.fontSize = Math.max(44, Math.min(150, Math.floor(100*avail/w*0.98))) + 'px'; }
+fitName(); window.addEventListener('resize', fitName);
+
+/* ===== 進場 ===== */
+if ('IntersectionObserver' in window && !REDUCE){
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('vis'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -8% 0px'});
+  $$('.rv').forEach(function(el){ io.observe(el); });
+} else $$('.rv').forEach(function(el){ el.classList.add('vis'); });
+
+/* ===== 曲線隨捲動變形 ===== */
+var nmPath = $('#nmPath'), hero = $('.hero'), cuts = $$('.cut'), ticking = false;
+function shape(t){ var L = function(a, b){ return (a + (b - a)*t).toFixed(3); };
+  return 'M0 1V' + L(.34, .5) + 'C0 ' + L(.1, .2) + ' ' + L(.14, .1) + ' ' + L(-.01, .1) + ' ' + L(.3, .3) + ' ' + L(.02, .12) + 'C' + L(.46, .5) + ' ' + L(.05, .14) + ' ' + L(.5, .54) + ' ' + L(.22, .02) + ' ' + L(.64, .7) + ' ' + L(.2, .02) + 'C' + L(.78, .86) + ' ' + L(.18, .02) + ' ' + L(.82, .9) + ' ' + L(0, .2) + ' ' + L(.94, .98) + ' ' + L(.02, .3) + 'C1 ' + L(.03, .32) + ' 1 ' + L(.08, .36) + ' 1 ' + L(.14, .4) + 'V' + L(.8, .62) + 'C1 ' + L(.93, .9) + ' ' + L(.92, .84) + ' 1 ' + L(.78, .6) + ' 1Z'; }
+function onScroll(){
+  ticking = false;
+  var vh = window.innerHeight, t = Math.max(0, Math.min(1, window.scrollY / (hero.offsetHeight*.85)));
+  if (t <= 1) nmPath.setAttribute('d', shape(t));
+  cuts.forEach(function(c){ var r = c.getBoundingClientRect(); if (r.bottom < -50 || r.top > vh + 50) return; var p = Math.max(0, Math.min(1, (vh - r.bottom)/vh)); c.style.transform = 'scaleY(' + (1.35 - p*1.05).toFixed(3) + ')'; });
+}
+if (!REDUCE){ window.addEventListener('scroll', function(){ if (!ticking){ ticking = true; requestAnimationFrame(onScroll); } }, {passive:true}); onScroll(); }
+})();
+</script>
+</body>
+</html>
