@@ -1,0 +1,1136 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seedling 苗圃蔬食｜蔬食沙拉・台北信義</title>
+<meta name="description" content="Seedling 苗圃蔬食：與八家台灣契作農場合作的蔬食沙拉店，採收後 48 小時內上桌。線上自組沙拉碗、查看本月當季蔬菜、訂閱農場蔬菜箱。">
+<meta name="theme-color" content="#24412f">
+<!--
+  店家模板使用方式
+  1. 修改 <script> 開頭的 SHOP：店名、電話、地址、營業時間（hours：0=週日…6=週六，每天可多個時段，null=公休）、
+     線上點餐提前時間、蔬菜箱價格與運費（SHOP.price）、照片網址（SHOP.photos）。
+  2. 菜單在 MENU（目錄頁）、SIG（三個招牌種子包）、BUILD（沙拉碗自組的基底／配料／蛋白質／醬汁，含價格與營養值）、
+     SEASON 與 FARMS（當季蔬菜月曆與合作農場）、BOXES（蔬菜箱箱型）。
+  3. 照片：在 SHOP.photos 對應的 key 填入圖片網址，就會取代程式繪製的石版風佔位插畫。
+     網址加 ?slots 或按右下角「照片位」按鈕，會以虛線框標出每個照片位與建議尺寸。
+  4. 「自組沙拉碗」線上點餐與「蔬菜箱訂閱」目前只在頁面上示範（不會真的送出），正式上線請串接點餐／金流／訂閱後台。
+  5. 營養值為示範用估算，正式使用請改成實際檢驗或營養師計算的數字。
+-->
+<style>
+:root{--kraft:#efe4c8;--kraft2:#e4d5b0;--paper:#f8f1de;--red:#c8432d;--red2:#a8341f;--sage:#6f8a5a;--mus:#d6a640;--ink:#24412f;--ink2:#3c5a45;--beet:#8e2a45;--soft:#55634f;
+  --bk:"Bookman Old Style","Bookman","URW Bookman","URW Bookman L","TeX Gyre Bonum",Georgia,"PingFang TC","Microsoft JhengHei","Noto Sans CJK TC","Noto Sans TC",serif;
+  --hand:"Noteworthy","Segoe Print","Bradley Hand","Comic Neue","PingFang TC","Microsoft JhengHei","Noto Sans CJK TC",cursive;
+  --zh:"PingFang TC","Microsoft JhengHei","Noto Sans CJK TC","Noto Sans TC","Heiti TC",sans-serif;
+  --ease:cubic-bezier(.2,.75,.25,1)}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+html,body{margin:0}
+body{background:var(--kraft);color:var(--ink);font-family:var(--zh);line-height:1.75;overflow-x:clip;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(circle,rgba(36,65,47,.075) 0 .9px,transparent 1.3px) 0 0/6px 6px}
+header,main,footer{position:relative;z-index:1}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2.5px solid var(--red);outline-offset:3px}
+.wrap{max-width:1200px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+.bk,.t-bk{font-family:var(--bk)}
+.hand{font-family:var(--hand)}
+.skip{position:absolute;left:-999px;top:0;background:var(--ink);color:var(--kraft);padding:8px 14px;z-index:99}
+.skip:focus{left:12px;top:12px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* 頂條＋導覽 */
+.strip{background:var(--ink);color:var(--kraft);font-family:var(--bk);font-size:12px;letter-spacing:.14em;position:relative;z-index:2}
+.strip .wrap{display:flex;justify-content:space-between;gap:16px;padding-top:6px;padding-bottom:6px}
+.strip b{color:var(--mus);font-weight:700}
+.nav{position:sticky;top:0;z-index:40;background:rgba(239,228,200,.96);backdrop-filter:blur(6px);border-bottom:3px double var(--ink)}
+.nav .wrap{display:flex;align-items:center;gap:22px;height:70px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex:none}
+.logo svg{width:38px;height:38px}
+.logo b{display:block;font-family:var(--bk);font-size:24px;line-height:1;letter-spacing:.01em}
+.logo small{display:block;font-size:12px;letter-spacing:.42em;color:var(--red2);margin-top:3px}
+#navList{display:flex;gap:4px;list-style:none;margin:0 0 0 auto;padding:0}
+#navList a{display:block;text-decoration:none;font-size:15px;padding:6px 10px;border-radius:2px;transition:background .2s,color .2s}
+#navList a:hover{background:var(--ink);color:var(--kraft)}
+.nav-cta{flex:none;text-decoration:none;font-family:var(--bk);font-weight:700;font-size:15px;background:var(--red);color:#fff8ea;padding:9px 16px;box-shadow:inset 0 0 0 2px var(--red),inset 0 0 0 3.5px #fff8ea;transition:transform .2s var(--ease)}
+.nav-cta:hover{transform:translateY(-2px)}
+.burger{display:none;margin-left:auto;background:none;border:1.5px solid var(--ink);padding:6px 12px;font-family:var(--bk);font-weight:700;font-size:14px;letter-spacing:.1em}
+/* 共用標題 */
+.sec{padding:clamp(56px,7vw,96px) 0;position:relative}
+.sh{text-align:center;max-width:760px;margin:0 auto clamp(36px,5vw,56px)}
+.dept{font-family:var(--bk);font-size:13px;letter-spacing:.32em;text-transform:uppercase;color:var(--red2);margin:0 0 10px}
+.sh h2{font-family:var(--bk);font-weight:700;font-size:clamp(32px,4.6vw,52px);line-height:1.2;margin:0;letter-spacing:.02em}
+.sh h2 i{display:block;font-size:.42em;font-weight:400;color:var(--soft);margin-top:8px;letter-spacing:.06em}
+.sh p{margin:16px auto 0;color:var(--soft);max-width:600px}
+.orn{display:block;width:220px;height:18px;margin:16px auto 0;color:var(--ink)}
+.orn svg{width:100%;height:100%;display:block}
+.btn{display:inline-flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--bk);font-weight:700;font-size:17px;padding:13px 24px;border:0;transition:transform .25s var(--ease),box-shadow .25s}
+.btn.red{background:var(--red);color:#fff8ea;box-shadow:inset 0 0 0 3px var(--red),inset 0 0 0 4.5px #fff8ea,4px 4px 0 var(--ink)}
+.btn.line{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink)}
+.btn:hover{transform:translate(-2px,-2px)}
+.btn.red:hover{box-shadow:inset 0 0 0 3px var(--red),inset 0 0 0 4.5px #fff8ea,6px 6px 0 var(--ink)}
+/* 照片位 */
+.ph{position:relative;overflow:hidden;margin:0;background:var(--paper)}
+.ph>svg,.ph>img,.ph>canvas,.art>svg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+body.slots .ph{outline:2px dashed var(--red);outline-offset:-2px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:10px;top:10px;z-index:3;background:var(--red);color:#fff8ea;font-size:11px;line-height:1.5;padding:3px 9px;font-family:var(--zh);letter-spacing:.04em;max-width:calc(100% - 20px)}
+.slotbtn{position:fixed;right:16px;bottom:16px;z-index:60;background:var(--ink);color:var(--kraft);border:0;padding:9px 14px;font-size:13px;letter-spacing:.1em;box-shadow:inset 0 0 0 1.5px var(--ink),inset 0 0 0 3px var(--mus)}
+.slotbtn[aria-pressed=true]{background:var(--red)}
+/* 石版印刷：網點與套色 */
+.litho .ht{opacity:0;transition:opacity 1s .3s}
+.litho .reg{opacity:0;transform:translate(7px,6px);transition:transform .9s var(--ease) .15s,opacity .5s .15s}
+.vis .litho .ht,.litho.vis .ht{opacity:1}
+.vis .litho .reg,.litho.vis .reg{opacity:.8;transform:translate(1.4px,1.1px)}
+.reg *{fill:none!important;stroke:#24412f!important;stroke-width:1.15px!important;vector-effect:non-scaling-stroke}
+.reg .x,.mw .x,.mb .x{display:none}
+.mw *{fill:#fff!important;stroke:#fff!important}
+.mb *{fill:#000!important;stroke:#000!important}
+.rv{opacity:0;transform:translateY(22px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.rv.vis{opacity:1;transform:none}
+.dots{position:relative}
+.dots::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle,var(--red) 0 1.6px,transparent 2.1px) 0 0/7px 7px;opacity:.55;transition:opacity 1.3s .35s;z-index:4}
+.dots.vis::after,.vis .dots::after{opacity:0}
+/* Hero */
+.hero{padding:clamp(34px,5vw,64px) 0 clamp(60px,7vw,90px);position:relative;overflow:clip}
+.hero::before{content:"";position:absolute;right:-8%;top:-12%;width:76%;height:118%;background:repeating-conic-gradient(from 0deg at 55% 55%,rgba(214,166,64,.22) 0 5deg,transparent 5deg 10deg);-webkit-mask:radial-gradient(closest-side,#000 25%,transparent 92%);mask:radial-gradient(closest-side,#000 25%,transparent 92%);pointer-events:none}
+.hero-g{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:clamp(24px,4vw,56px);align-items:center;position:relative}
+.kick{display:flex;align-items:center;gap:12px;font-family:var(--bk);font-size:13px;letter-spacing:.24em;text-transform:uppercase;margin:0 0 18px;color:var(--red2)}
+.kick span+span::before{content:"✦";margin-right:12px;color:var(--mus)}
+.hero h1{margin:0;font-family:var(--bk);font-weight:700;line-height:1.08;letter-spacing:.01em}
+.h1zh{display:block;font-size:clamp(46px,6vw,84px)}
+.h1en{display:block;font-size:clamp(18px,1.9vw,26px);font-style:italic;font-weight:400;color:var(--red2);margin-top:14px;letter-spacing:.02em}
+.lede{font-size:17px;max-width:30em;margin:22px 0 26px;color:#2f4636}
+.cta{display:flex;flex-wrap:wrap;gap:14px}
+.status{display:inline-flex;align-items:center;gap:10px;margin:26px 0 0;font-size:14.5px;padding:7px 14px 7px 12px;border:1.5px solid var(--ink);background:var(--paper)}
+.status i{width:10px;height:10px;border-radius:50%;background:var(--red);box-shadow:0 0 0 3px rgba(200,67,45,.2)}
+.status.on i{background:var(--sage);box-shadow:0 0 0 3px rgba(111,138,90,.25)}
+.status small{color:var(--soft)}
+.note-hero{position:absolute;left:calc(50% - 40px);bottom:-46px;margin:0;font-size:17px;color:var(--red2);transform:rotate(-4deg);line-height:1.35;pointer-events:none}
+.packets{position:relative;width:100%;max-width:620px;aspect-ratio:1.12;margin-left:auto}
+.pk{position:absolute;width:42%;aspect-ratio:250/360;left:var(--x);top:var(--y);perspective:1400px;container-type:inline-size;opacity:0;transform:translateY(-50px) rotate(var(--r));transition:transform 1s var(--ease) var(--d),opacity .6s var(--d),translate .35s var(--ease)}
+.loaded .pk{opacity:1;transform:rotate(var(--r))}
+.pk:hover{translate:0 -10px}
+.pk.p1{z-index:3}.pk.flip{z-index:6}
+.pk::before{content:"";position:absolute;inset:4% -3% -3% 4%;background:rgba(36,65,47,.28);filter:blur(12px);z-index:-1}
+.pk-in{position:absolute;inset:0;transform-style:preserve-3d;transition:transform 1s var(--ease)}
+.pk.flip .pk-in{transform:rotateY(180deg)}
+.pk-f,.pk-b{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.pk-f>svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.pk-f .win{position:absolute;left:10.4%;top:25.4%;width:79.2%;height:47%;border:2px solid var(--ink);box-shadow:inset 0 0 0 3px var(--paper)}
+.pk-f .no{position:absolute;left:70%;top:15.5%;width:21%;aspect-ratio:1;border-radius:50%;background:var(--mus);border:2px solid var(--ink);box-shadow:inset 0 0 0 3px var(--mus),inset 0 0 0 4px var(--ink);z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--bk);line-height:1;color:var(--ink)}
+.pk-f .no small{font-size:4cqw}
+.pk-f .no b{font-size:8.5cqw}
+.pk-b{transform:rotateY(180deg);clip-path:var(--crimp);background:var(--paper);padding:11cqw 8cqw 7cqw;display:flex;flex-direction:column;gap:2cqw;font-size:5.6cqw;line-height:1.5;box-shadow:inset 0 0 0 3.5cqw var(--paper),inset 0 0 0 calc(3.5cqw + 2px) var(--ink)}
+.pk-b h4{margin:0 0 1cqw;font-family:var(--bk);font-size:8.4cqw;line-height:1.2;text-align:center;border-bottom:3px double var(--ink);padding-bottom:2cqw}
+.pk-b h4 small{display:block;font-size:3.8cqw;letter-spacing:.25em;color:var(--red2);font-weight:400}
+.pk-b .row{display:flex;gap:3cqw;border-bottom:1px dotted rgba(36,65,47,.4)}
+.pk-b .row b{flex:none;width:12cqw;color:var(--red2);font-weight:700}
+.pk-b .row span{min-width:0}
+.pk-b .grow{margin-top:1cqw;font-size:4.6cqw}
+.pk-b .grow i{display:block;height:3.2cqw;margin-top:1cqw;background:repeating-linear-gradient(90deg,var(--ink) 0 1px,transparent 1px 10%),linear-gradient(90deg,var(--sage) var(--g),transparent var(--g));border:1px solid var(--ink)}
+.pk-b .hn{font-family:var(--hand);color:var(--red2);font-size:5.4cqw;line-height:1.35;margin-top:auto}
+.pk-b .ft{font-family:var(--bk);font-size:4cqw;letter-spacing:.06em;border-top:1px solid var(--ink);padding-top:1.6cqw;display:flex;justify-content:space-between}
+.pk-hit{position:absolute;inset:0;z-index:8;background:transparent;border:0;padding:0}
+/* 種子 */
+.seed{position:fixed;left:0;top:0;width:6px;height:9px;border-radius:50% 50% 45% 45%;pointer-events:none;z-index:70}
+/* 品牌故事 */
+.story-g{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(28px,5vw,64px);align-items:start}
+.plate{background:var(--paper);padding:12px 12px 10px;border:1.5px solid var(--ink);box-shadow:5px 5px 0 rgba(36,65,47,.85)}
+.plate .ph{aspect-ratio:16/10;border:1px solid var(--ink)}
+.plate figcaption,.plate .cap{font-family:var(--bk);font-size:13px;font-style:italic;color:var(--soft);padding-top:8px;display:flex;justify-content:space-between;gap:10px}
+.letter{font-size:16.5px}
+.letter .dear{font-family:var(--hand);font-size:22px;color:var(--red2);margin:0 0 6px}
+.letter p{margin:0 0 14px}
+.letter p.first::first-letter{float:left;font-family:var(--bk);font-weight:700;font-size:58px;line-height:.9;margin:6px 10px 0 0;color:var(--red)}
+.sign{font-family:var(--hand);font-size:21px;text-align:right;margin-top:6px!important}
+.guar{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:28px}
+.gu{text-align:center;border:1.5px solid var(--ink);padding:16px 8px 12px;background:var(--paper);position:relative}
+.gu::before{content:"";position:absolute;inset:4px;border:1px dashed rgba(36,65,47,.5);pointer-events:none}
+.gu b{display:block;font-family:var(--bk);font-size:30px;line-height:1;color:var(--red)}
+.gu span{font-size:13px;color:var(--soft)}
+/* 招牌 */
+.sig-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(18px,2.6vw,32px)}
+.sig{perspective:1600px}
+.sig-in{position:relative;transform-style:preserve-3d;transition:transform 1s var(--ease)}
+.sig.flip .sig-in{transform:rotateY(180deg)}
+.sig-f,.sig-b{backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--paper);border:2px solid var(--ink);box-shadow:inset 0 0 0 5px var(--paper),inset 0 0 0 6px var(--ink)}
+.sig-f{position:relative;padding:14px}
+.sig-b{position:absolute;inset:0;transform:rotateY(180deg);padding:22px 22px 18px;display:flex;flex-direction:column;gap:8px;font-size:14.5px;overflow:hidden}
+.sig-f .ph{aspect-ratio:4/3;border:1px solid var(--ink)}
+.sig-f .pl{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--bk);font-size:12px;letter-spacing:.2em;margin:12px 4px 2px;color:var(--red2)}
+.sig-f h3{font-family:var(--bk);font-size:22px;line-height:1.3;margin:0 4px}
+.sig-f h3 i{display:block;font-size:14px;font-weight:400;color:var(--soft);margin-top:2px}
+.sig-f p{margin:10px 4px 6px;font-size:14.5px;color:#34493b}
+.sig-b h4{margin:0;font-family:var(--bk);font-size:22px;text-align:center;border-bottom:3px double var(--ink);padding-bottom:6px}
+.sig-b h4 small{display:block;font-size:11px;letter-spacing:.3em;color:var(--red2);font-weight:400}
+.sig-b dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px}
+.sig-b dt{color:var(--red2);font-weight:700}
+.sig-b dd{margin:0;border-bottom:1px dotted rgba(36,65,47,.4)}
+.sig-b .bars{display:grid;gap:6px;margin-top:4px}
+.sig-b .hn{margin-top:auto;font-family:var(--hand);color:var(--red2);font-size:16px;line-height:1.4}
+.sig-ft{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px}
+.sig-ft b{font-family:var(--bk);font-size:22px}
+.sig-ft small{font-size:12px;color:var(--soft);display:block;font-family:var(--bk)}
+.flipbtn{background:transparent;border:1.5px solid var(--ink);padding:7px 12px;font-size:14px;transition:background .2s,color .2s}
+.flipbtn:hover,.flipbtn[aria-pressed=true]{background:var(--ink);color:var(--kraft)}
+/* 生長圖表長條 */
+.gbar{display:grid;grid-template-columns:3.6em minmax(0,1fr) auto;gap:10px;align-items:center;font-size:14px}
+.gbar .tr{height:14px;border:1.5px solid var(--ink);background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),rgba(36,65,47,.35) calc(10% - 1px) 10%),#fffaf0;position:relative;overflow:hidden}
+.gbar .tr i{position:absolute;inset:0;background:radial-gradient(circle,rgba(36,65,47,.35) 0 1px,transparent 1.4px) 0 0/4px 4px,var(--c,var(--sage));transform-origin:left;transform:scaleX(var(--v,0));transition:transform .7s var(--ease)}
+.gbar b{font-family:var(--bk);font-size:13.5px;min-width:5.6em;text-align:right;font-variant-numeric:tabular-nums}
+/* 目錄 */
+.tabs{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:0 0 -2px;position:relative;z-index:2}
+.tab{background:var(--kraft2);border:2px solid var(--ink);border-bottom:0;padding:9px 18px 8px;font-family:var(--bk);font-weight:700;font-size:15px;border-radius:10px 10px 0 0;transition:background .2s,transform .2s var(--ease);transform:translateY(4px)}
+.tab small{font-weight:400;font-size:11px;letter-spacing:.12em;margin-left:6px;color:var(--soft)}
+.tab[aria-selected=true]{background:var(--paper);transform:none}
+.tab:hover{transform:none}
+.catpage{background:var(--paper);border:2px solid var(--ink);padding:clamp(18px,3vw,36px);position:relative}
+.catpage::before{content:"";position:absolute;inset:6px;border:1px solid var(--ink);pointer-events:none}
+.cat-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-family:var(--bk);font-size:12.5px;letter-spacing:.2em;text-transform:uppercase;border-bottom:3px double var(--ink);padding-bottom:10px;margin-bottom:8px}
+.vbtn{background:transparent;border:1.5px solid var(--ink);padding:5px 12px;font-family:var(--zh);font-size:13px;letter-spacing:.04em;text-transform:none}
+.vbtn[aria-pressed=true]{background:var(--sage);color:#fff;border-color:var(--sage)}
+.cat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:44px;position:relative}
+.cat::before{content:"";position:absolute;left:50%;top:14px;bottom:14px;border-left:1px solid rgba(36,65,47,.5)}
+.ci{display:grid;grid-template-columns:104px minmax(0,1fr);gap:16px;padding:20px 0;border-bottom:1px dashed rgba(36,65,47,.35);opacity:0;transform:translateY(10px);transition:opacity .6s var(--ease) calc(var(--i)*70ms),transform .6s var(--ease) calc(var(--i)*70ms)}
+.cat.vis .ci{opacity:1;transform:none}
+.ci-art{position:relative;width:104px;height:104px;border-radius:50%;background:radial-gradient(circle,#fff8e6 0 55%,var(--kraft) 56%);border:1.5px solid var(--ink);box-shadow:inset 0 0 0 4px var(--paper),inset 0 0 0 5px var(--ink)}
+.ci-art svg{position:absolute;inset:10px;width:calc(100% - 20px);height:calc(100% - 20px)}
+.ci-no{position:absolute;left:-6px;top:-6px;background:var(--ink);color:var(--kraft);font-family:var(--bk);font-size:11px;padding:2px 6px;z-index:2}
+.ci-no b{font-size:14px;margin-left:2px}
+.ci h3{margin:0;font-family:var(--bk);font-size:19px;line-height:1.35}
+.ci h3 i{display:block;font-size:13px;font-weight:400;color:var(--soft)}
+.ci-d{margin:6px 0 4px;font-size:14px;color:#34493b;line-height:1.6}
+.ci-m{margin:0;font-size:12.5px;color:var(--soft)}
+.ci-p{display:flex;align-items:baseline;gap:8px;margin:6px 0 0}
+.ci-p .ld{flex:1;border-bottom:1.5px dotted rgba(36,65,47,.55);min-width:10px}
+.ci-p b{font-family:var(--bk);font-size:18px}
+.tg{font-size:11.5px;padding:0 6px;border:1px solid currentColor;white-space:nowrap}
+.tg.v{color:#4d6a3a}.tg.s{color:var(--red2)}
+.ci-w{margin:2px 0 0;font-family:var(--bk);font-size:11.5px;letter-spacing:.05em;color:var(--soft)}
+/* 訂購單 */
+.blank{background:var(--paper);border:2px solid var(--ink);position:relative;box-shadow:7px 7px 0 var(--ink)}
+.blank::before{content:"";position:absolute;inset:5px;border:1px solid var(--ink);pointer-events:none}
+.bl-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;padding:22px 28px 14px;border-bottom:3px double var(--ink)}
+.bl-head h3{font-family:var(--bk);font-size:clamp(22px,2.6vw,30px);letter-spacing:.08em;margin:0;line-height:1.1}
+.bl-head h3 small{display:block;font-size:13px;letter-spacing:.2em;color:var(--red2);font-weight:400;margin-top:6px}
+.bl-head p{margin:0;font-family:var(--bk);font-size:12px;letter-spacing:.12em;color:var(--soft);text-align:right}
+.line{border:0;margin:0;padding:16px 28px 18px;border-bottom:1px dashed rgba(36,65,47,.4);min-width:0}
+.line:last-child{border-bottom:0}
+.lg{float:left;display:flex;align-items:baseline;gap:10px;width:100%;padding:0;margin:0 0 8px;font-family:var(--bk);font-weight:700;font-size:17px}
+.lg+*{clear:both}
+.lg em{font-style:normal;font-size:12px;letter-spacing:.14em;color:var(--red2);font-weight:400;border:1px solid var(--red2);padding:0 6px}
+.lg .cnt{margin-left:auto;font-family:var(--hand);font-weight:400;color:var(--red2);font-size:16px}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 26px}
+.opt{display:flex;align-items:baseline;gap:9px;padding:6px 2px;cursor:pointer;position:relative;font-size:15px}
+.opt input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.opt .bx{flex:none;width:16px;height:16px;border:1.5px solid var(--ink);align-self:center;position:relative;background:#fffaf0}
+.opt input[type=radio]+.bx{border-radius:50%}
+.opt input:checked+.bx::after{content:"";position:absolute;left:4px;top:-6px;width:6px;height:14px;border:solid var(--red);border-width:0 3px 3px 0;border-radius:0 0 2px 0;transform:rotate(38deg)}
+.opt input:focus-visible+.bx{outline:2px solid var(--red);outline-offset:2px}
+.opt .nm small{color:var(--soft);font-size:12px;margin-left:4px}
+.opt .ld{flex:1;border-bottom:1.5px dotted rgba(36,65,47,.45);min-width:10px}
+.opt .pr{font-family:var(--bk);font-variant-numeric:tabular-nums;font-size:14px}
+.opt input:disabled~span{opacity:.38}
+.opt input:disabled{cursor:not-allowed}
+.flds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 22px}
+.fld{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--soft);min-width:0}
+.fld>span{font-family:var(--bk);letter-spacing:.06em}
+.fld input,.fld select{border:0;border-bottom:1.5px solid var(--ink);background:transparent;padding:6px 2px;font-size:16px;color:var(--ink);border-radius:0;min-width:0;width:100%}
+.fld select{background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2324412f'/%3E%3C/svg%3E") no-repeat right 4px center/10px 6px;-webkit-appearance:none;appearance:none;padding-right:20px}
+.fld input:focus,.fld select:focus{outline:none;border-bottom-color:var(--red);box-shadow:0 2px 0 var(--red)}
+.fld input[aria-invalid=true]{border-bottom-color:var(--red)}
+.err{font-style:normal;font-size:12.5px;color:var(--red2);min-height:1.3em;font-family:var(--zh)}
+.demo{font-size:13px;color:var(--red2);border:1px dashed var(--red2);padding:6px 10px;margin:10px 0 0;display:inline-block}
+.submit{width:100%;justify-content:center;margin-top:12px}
+.m-only{display:none!important}
+/* 自組 */
+.build-g{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.9fr);gap:clamp(22px,3.5vw,44px);align-items:start}
+.panel{position:sticky;top:90px}
+.bowlbox{background:var(--paper);border:2px solid var(--ink);padding:18px;box-shadow:inset 0 0 0 5px var(--paper),inset 0 0 0 6px var(--ink);text-align:center}
+.bowlbox .bowl{width:min(100%,360px);aspect-ratio:1;margin:0 auto;position:relative}
+.bowlbox .bowl svg{width:100%;height:100%;display:block}
+.bowlbox h4{margin:2px 0 6px;font-family:var(--bk);font-size:13px;letter-spacing:.24em;color:var(--red2);font-weight:400}
+.bowl-sum{font-size:13.5px;color:var(--soft);min-height:2.6em;margin:6px 0 0}
+.pop{transform-box:fill-box;transform-origin:center;animation:pop .5s var(--ease) both}
+@keyframes pop{from{transform:scale(0) rotate(-40deg);opacity:0}}
+.drizzle{stroke-dasharray:900;animation:draw 1.2s ease-out both}
+@keyframes draw{from{stroke-dashoffset:900}}
+.chart{margin-top:14px;background:var(--paper);border:2px solid var(--ink);padding:16px 18px 14px;position:relative;clip-path:var(--crimp2)}
+.chart h4{margin:4px 0 10px;font-family:var(--bk);font-size:16px;display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px double var(--ink);padding-bottom:6px}
+.chart h4 small{font-size:11px;letter-spacing:.14em;color:var(--soft);font-weight:400}
+.chart .gbar{margin:7px 0}
+.tot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:12px;padding-top:10px;border-top:1px solid var(--ink)}
+.tot span{font-family:var(--bk);font-size:12px;letter-spacing:.1em;color:var(--soft);line-height:1.5}
+.tot b{font-family:var(--bk);font-size:30px;line-height:1;color:var(--red)}
+.receipt{padding:26px 28px}
+.receipt h4{font-family:var(--bk);font-size:26px;margin:0 0 4px}
+.receipt ul{list-style:none;padding:0;margin:12px 0;border-top:1px dashed var(--ink)}
+.receipt li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dashed rgba(36,65,47,.4);font-size:15px}
+.stamp{display:inline-block;font-family:var(--bk);font-weight:700;color:var(--red);border:3px double var(--red);padding:4px 12px;transform:rotate(-6deg);letter-spacing:.14em;margin:6px 0 10px}
+/* 當季 */
+.season-g{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(22px,3.5vw,44px);align-items:start}
+.calbox{background:var(--paper);border:2px solid var(--ink);padding:18px 18px 14px;box-shadow:inset 0 0 0 5px var(--paper),inset 0 0 0 6px var(--ink)}
+.calbox h3{margin:2px 4px 12px;font-family:var(--bk);font-size:18px;display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.calbox h3 small{font-size:11px;letter-spacing:.18em;color:var(--soft);font-weight:400}
+.cal{display:grid;grid-template-columns:5.6em repeat(12,minmax(0,1fr));font-size:13px}
+.cal .mh{background:transparent;border:0;border-bottom:2px solid var(--ink);padding:4px 0;font-family:var(--bk);font-weight:700;font-size:13px;position:relative}
+.cal .mh:hover{color:var(--red)}
+.cal .nm{padding:3px 6px 3px 2px;white-space:nowrap;border-bottom:1px dotted rgba(36,65,47,.3);overflow:hidden;text-overflow:ellipsis}
+.cal .nm.in{font-weight:700}
+.cal .nm.in::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);margin-right:5px;vertical-align:2px}
+.cal .c{border-bottom:1px dotted rgba(36,65,47,.3);position:relative;min-height:27px}
+.cal .c.on::after{content:"";position:absolute;left:0;right:0;top:8px;bottom:8px;background:radial-gradient(circle,rgba(36,65,47,.4) 0 .8px,transparent 1.2px) 0 0/4px 4px,var(--sage)}
+.cal .c.on.s::after{left:3px;border-radius:6px 0 0 6px}
+.cal .c.on.e::after{right:3px;border-radius:0 6px 6px 0}
+.cal .sel{background:rgba(214,166,64,.28)}
+.cal .mh.sel{background:var(--mus);color:var(--ink)}
+.cal .mh.today::after{content:"今";position:absolute;left:50%;top:-16px;transform:translateX(-50%);font-family:var(--hand);font-size:12px;color:var(--red2);font-weight:400}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--soft);margin:10px 4px 0}
+.legend i{display:inline-block;width:22px;height:9px;background:var(--sage);vertical-align:0;margin-right:6px;border-radius:4px}
+.legend i.m{background:rgba(214,166,64,.5);border-radius:0}
+.now h3{font-family:var(--bk);font-size:clamp(26px,3vw,34px);margin:0;line-height:1.2}
+.now h3 i{font-size:.55em;font-weight:400;color:var(--soft);margin-left:8px}
+.now .today{font-family:var(--hand);color:var(--red2);font-size:17px;margin:4px 0 14px}
+.smveg{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}
+.sv{background:var(--paper);border:1.5px solid var(--ink);padding:8px 6px 8px;text-align:center;font-size:14px;line-height:1.35}
+.sv svg{width:62px;height:62px;display:block;margin:0 auto 2px}
+.sv small{display:block;font-size:11px;color:var(--soft)}
+.now h4{font-family:var(--bk);font-size:15px;letter-spacing:.14em;margin:22px 0 8px;border-bottom:3px double var(--ink);padding-bottom:4px}
+.farms{list-style:none;margin:0;padding:0}
+.farms li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 14px;padding:8px 0;border-bottom:1px dashed rgba(36,65,47,.4);font-size:14.5px}
+.farms li b{font-weight:700}
+.farms li span{color:var(--soft);font-size:13px;text-align:right}
+.farms li small{grid-column:1/-1;color:var(--soft);font-size:12.5px}
+/* 蔬菜箱 */
+.box-g{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.85fr)}
+.box-g>.lines{border-right:1px solid var(--ink)}
+.crates{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.crate{position:relative;cursor:pointer;display:block}
+.crate input{position:absolute;opacity:0;width:1px;height:1px}
+.crate .cbody{display:block;border:1.5px solid var(--ink);background:#fffaf0;padding:8px 10px 10px;text-align:center;transition:transform .25s var(--ease),box-shadow .25s;height:100%}
+.crate svg{width:100%;height:auto;aspect-ratio:16/10;display:block}
+.crate b{display:block;font-family:var(--bk);font-size:17px}
+.crate small{display:block;font-size:12px;color:var(--soft);line-height:1.5}
+.crate em{display:block;font-style:normal;font-family:var(--bk);font-size:15px;margin-top:4px}
+.crate input:checked+.cbody{box-shadow:inset 0 0 0 2px var(--red),4px 4px 0 var(--red);transform:translate(-2px,-2px)}
+.crate input:focus-visible+.cbody{outline:2.5px solid var(--red);outline-offset:3px}
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pill{position:relative;cursor:pointer}
+.pill input{position:absolute;opacity:0;width:1px;height:1px}
+.pill span{display:block;border:1.5px solid var(--ink);padding:7px 14px;font-size:14.5px;background:#fffaf0;transition:background .2s,color .2s}
+.pill span small{color:inherit;opacity:.75;margin-left:4px;font-size:12px}
+.pill input:checked+span{background:var(--ink);color:var(--kraft)}
+.pill input:focus-visible+span{outline:2.5px solid var(--red);outline-offset:2px}
+.remit{padding:22px 26px;display:flex;flex-direction:column}
+.remit h4{font-family:var(--bk);font-size:15px;letter-spacing:.18em;margin:0 0 10px;border-bottom:3px double var(--ink);padding-bottom:6px}
+.rl{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dotted rgba(36,65,47,.45);font-size:14.5px}
+.rl span:last-child{font-family:var(--bk);font-variant-numeric:tabular-nums;white-space:nowrap}
+.rl.minus span:last-child{color:var(--red2)}
+.rtot{display:flex;justify-content:space-between;align-items:flex-end;margin:14px 0 4px}
+.rtot span{font-family:var(--bk);font-size:12px;letter-spacing:.12em;color:var(--soft)}
+.rtot b{font-family:var(--bk);font-size:34px;color:var(--red);line-height:1}
+.avg{font-size:13px;color:var(--soft);margin:0 0 12px}
+.inbox{font-size:13.5px;margin:6px 0 0;padding:10px 12px;border:1px dashed var(--ink);background:#fffaf0}
+.inbox b{font-family:var(--bk);display:block;font-size:12.5px;letter-spacing:.12em;margin-bottom:2px}
+/* 氛圍 */
+.gal{display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:clamp(14px,2vw,24px)}
+.gal .plate .ph{aspect-ratio:auto;height:100%}
+.gal .plate{display:flex;flex-direction:column}
+.gal .plate .ph{flex:1;min-height:250px}
+.gal .g1{grid-row:span 2}
+.gal .g4{grid-column:span 2}
+.gal .g1 .ph{min-height:480px}
+/* 評論 */
+.rev-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(16px,2.4vw,28px)}
+.rev{background:var(--paper);border:1.5px solid var(--ink);padding:26px 24px 20px;position:relative;margin:0}
+.rev::before{content:"“";position:absolute;left:14px;top:-8px;font-family:var(--bk);font-size:76px;line-height:1;color:var(--red)}
+.rev .seeds{display:flex;gap:4px;margin-bottom:10px;padding-left:34px}
+.rev .seeds i{width:9px;height:13px;border-radius:50% 50% 45% 45%;background:var(--mus);border:1px solid var(--ink)}
+.rev blockquote{margin:0;font-size:15.5px}
+.rev figcaption{margin-top:14px;font-family:var(--hand);color:var(--red2);font-size:16px}
+.rev figcaption small{display:block;font-family:var(--zh);color:var(--soft);font-size:12.5px}
+/* 門市 */
+.visit-g{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(22px,3.5vw,44px);align-items:start}
+.hours{background:var(--paper);border:2px solid var(--ink);padding:20px 24px;box-shadow:inset 0 0 0 5px var(--paper),inset 0 0 0 6px var(--ink)}
+.hours h3,.label h3{font-family:var(--bk);font-size:18px;letter-spacing:.12em;margin:0 0 10px;border-bottom:3px double var(--ink);padding-bottom:6px}
+.big-status{font-family:var(--bk);font-size:clamp(22px,2.4vw,28px);margin:2px 0 12px;display:flex;align-items:center;gap:12px}
+.big-status i{width:14px;height:14px;border-radius:50%;background:var(--red);flex:none}
+.big-status.on i{background:var(--sage)}
+.htab{width:100%;border-collapse:collapse;font-size:15px}
+.htab td{padding:8px 4px;border-bottom:1px dotted rgba(36,65,47,.45)}
+.htab td:first-child{font-family:var(--bk);width:7em;white-space:nowrap}
+.htab td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.htab tr.td{background:rgba(214,166,64,.3);font-weight:700}
+.htab tr.td td:first-child::after{content:" 今天";font-family:var(--hand);font-weight:400;color:var(--red2);font-size:13px}
+.label{background:#fffaf0;border:2px solid var(--ink);padding:22px 24px;position:relative}
+.stampwrap{position:absolute;right:18px;top:18px;width:74px;transform:rotate(6deg)}
+.stampwrap svg{width:100%;height:auto;display:block}
+.label .addr{font-family:var(--bk);font-size:19px;line-height:1.5;margin:4px 96px 12px 0}
+.label p{margin:6px 0}
+.label a.tel{font-family:var(--bk);font-size:22px;text-decoration:none;border-bottom:2px solid var(--red)}
+.label .btns{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px}
+.label .btn{font-size:15px;padding:10px 18px}
+/* 頁尾 */
+.foot{background:var(--ink);color:var(--kraft);padding:56px 0 30px;margin-top:20px;position:relative}
+.foot::before{content:"";position:absolute;left:0;right:0;top:-12px;height:12px;background:linear-gradient(-45deg,var(--ink) 6px,transparent 0) 0 0/12px 12px,linear-gradient(45deg,var(--ink) 6px,transparent 0) 0 0/12px 12px}
+.foot-g{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:28px}
+.foot h5{font-family:var(--bk);font-size:13px;letter-spacing:.22em;color:var(--mus);margin:0 0 10px;font-weight:400}
+.foot .fl{font-family:var(--bk);font-size:34px;line-height:1}
+.foot p,.foot li{font-size:14px;color:#d9d0b5;margin:4px 0}
+.foot ul{list-style:none;padding:0;margin:0}
+.foot a{text-decoration:none}
+.foot a:hover{text-decoration:underline}
+.fine{border-top:1px solid rgba(239,228,200,.25);margin-top:34px;padding-top:16px;font-size:12px;color:#b9b399;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-family:var(--bk);letter-spacing:.06em}
+/* RWD */
+@media (max-width:1080px){
+  #navList a{padding:6px 7px;font-size:14px}
+}
+@media (max-width:960px){
+  .burger{display:block}
+  .nav-cta{display:none}
+  #navList{position:absolute;left:0;right:0;top:100%;flex-direction:column;gap:0;background:var(--paper);border-bottom:3px double var(--ink);padding:8px clamp(16px,4vw,40px) 14px;display:none}
+  .nav.open #navList{display:flex}
+  #navList a{font-size:16px;padding:10px 4px;border-bottom:1px dashed rgba(36,65,47,.35)}
+  .hero-g,.story-g,.build-g,.season-g,.visit-g{grid-template-columns:minmax(0,1fr)}
+  .packets{margin:10px auto 0}
+  .note-hero{left:auto;right:14px;bottom:-40px}
+  .sig-g,.rev-g{grid-template-columns:minmax(0,1fr);max-width:560px;margin:0 auto}
+  .panel{position:static;order:-1}
+  .d-only{display:none!important}
+  .m-only{display:flex!important}
+  .box-g{grid-template-columns:minmax(0,1fr)}
+  .box-g>.lines{border-right:0;border-bottom:1px solid var(--ink)}
+  .gal{grid-template-columns:1fr 1fr}
+  .gal .g1{grid-row:auto;grid-column:span 2}
+  .gal .g1 .ph{min-height:300px}
+  .foot-g{grid-template-columns:1fr 1fr}
+  .foot-g>div:first-child{grid-column:span 2}
+}
+@media (max-width:640px){
+  .tabs{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;scrollbar-width:none;padding-top:4px}
+  .tab{flex:none;padding:8px 10px 7px;font-size:14px}
+  .tabs{gap:4px}
+  .tab small{display:none}
+  #oTop{grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}
+  #oTop .ld{display:none}
+  #oTop .opt{font-size:14.5px}
+  #oTop .pr{margin-left:auto;font-size:12.5px}
+  .strip .hide-m{display:none}
+  .strip .wrap{justify-content:center}
+  .nav .wrap{height:62px}
+  .logo b{font-size:21px}
+  .packets{aspect-ratio:1.04}
+  .pk{width:53%}
+  .lede{font-size:16px}
+  .cat{grid-template-columns:minmax(0,1fr)}
+  .cat::before{display:none}
+  .ci{grid-template-columns:78px minmax(0,1fr);gap:14px}
+  .ci-art{width:78px;height:78px}
+  .ci-art svg{inset:7px;width:calc(100% - 14px);height:calc(100% - 14px)}
+  .opts,.flds{grid-template-columns:minmax(0,1fr)}
+  .line,.bl-head{padding-left:18px;padding-right:18px}
+  .bl-head p{text-align:left}
+  .crates{grid-template-columns:minmax(0,1fr);gap:10px}
+  .crate .cbody{display:grid;grid-template-columns:110px 1fr;text-align:left;gap:0 12px;align-items:center}
+  .crate svg{grid-row:span 4}
+  .guar{gap:8px}
+  .gu b{font-size:24px}
+  .gu span{font-size:12px}
+  .gal{grid-template-columns:minmax(0,1fr)}
+  .gal .g1,.gal .g4{grid-column:auto}
+  .gal .plate .ph{min-height:230px}
+  .remit{padding:20px 18px}
+  .stampwrap{width:56px}
+  .label .addr{margin-right:66px;font-size:17px}
+  .foot-g{grid-template-columns:minmax(0,1fr)}
+  .foot-g>div:first-child{grid-column:auto}
+  .cal{font-size:12px;grid-template-columns:4.6em repeat(12,minmax(0,1fr))}
+  .cal .mh{font-size:11.5px}
+  .calbox{padding:14px 10px 12px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;transition-delay:0s!important;animation-delay:0s!important}
+  .rv,.ci,.pk{opacity:1!important;transform:rotate(var(--r,0deg))!important}
+  .ci,.rv{transform:none!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">跳到主要內容</a>
+<div class="strip"><div class="wrap"><span>★ CATALOGUE <b>No. 12</b> ★</span><span class="hide-m" id="stripSeason">2026 秋季號・契作農場直送</span><span class="hide-m">Net Wt. 每碗 360–460 g</span></div></div>
+<header class="nav" id="nav"><div class="wrap">
+  <a class="logo" href="#top" aria-label="回到頁首"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18.5" fill="#24412f"/><circle cx="20" cy="20" r="15.5" fill="none" stroke="#d6a640" stroke-width="1" stroke-dasharray="2 2"/><ellipse cx="20" cy="27" rx="5" ry="6.5" fill="#d6a640"/><path d="M20 21v-6" stroke="#efe4c8" stroke-width="1.6"/><path d="M20 16c-1-4-4-6-8-6 0 4 3 7 8 6zM20 15c1-4 4-6 8-6 0 4-3 7-8 6z" fill="#8fa874"/></svg><span><b data-shop="en">Seedling</b><small data-shop="zh">苗圃蔬食</small></span></a>
+  <ul id="navList">
+    <li><a href="#story">故事</a></li><li><a href="#signature">招牌</a></li><li><a href="#catalog">目錄菜單</a></li><li><a href="#build">自組沙拉碗</a></li><li><a href="#season">本月當季</a></li><li><a href="#box">蔬菜箱</a></li><li><a href="#visit">門市資訊</a></li>
+  </ul>
+  <a class="nav-cta" href="#build">線上自組 →</a>
+  <button type="button" class="burger" id="burger" aria-expanded="false" aria-controls="navList">目錄 ☰</button>
+</div></header>
+
+<main id="main">
+<section class="hero" id="top">
+  <div class="wrap hero-g">
+    <div class="hero-txt">
+      <p class="kick"><span>Catalogue No. 12</span><span id="kickSeason">2026 秋季號</span></p>
+      <h1><span class="h1zh">從產地，<br>到你的碗。</span><span class="h1en">Seeds to Bowls — Est. 2019, Taipei.</span></h1>
+      <p class="lede"><b data-shop="name">Seedling 苗圃蔬食</b>與八家台灣契作農場合作，蔬菜採收後 48 小時內上桌。每一碗沙拉都附上產地與採收日——就像種子包背面寫的那樣。</p>
+      <div class="cta"><a class="btn red" href="#build">自組沙拉碗 →</a><a class="btn line" href="#season">看本月當季</a></div>
+      <p class="status" id="status"><i></i><span>—</span></p>
+    </div>
+    <div class="packets" id="packets" aria-label="三包招牌沙拉的種子包，點一下可翻到背面"></div>
+    <p class="hand note-hero" aria-hidden="true">點一下種子包，<br>翻到背面看產地 ↗</p>
+  </div>
+</section>
+
+<section class="sec" id="story" style="padding-top:clamp(50px,6vw,80px)">
+  <div class="wrap">
+    <header class="sh rv"><p class="dept">Dept. 01 · Our Story</p><h2>一間從田裡長出來的店<i>A Letter from the Nursery</i></h2><span class="orn"></span></header>
+    <div class="story-g">
+      <figure class="plate rv dots" style="margin:0"><figure class="ph" data-photo="farm" data-art="farm" data-label="契作農場・田間" data-size="1600×1000"></figure><figcaption><span>Plate I. — 宜蘭三星，禾穗有機農場的清晨</span><span>p. 3</span></figcaption></figure>
+      <div class="letter rv">
+        <p class="dear">親愛的顧客，您好：</p>
+        <p class="first">2019 年，我們在宜蘭三星借了一小塊田，原本只是想種給自己吃的羽衣甘藍，結果收成多到要分送鄰居。那年秋天，<span data-shop="zh">苗圃蔬食</span>在台北開了第一間店。</p>
+        <p>我們不走中央市場，而是和八家小農直接契作：先一起決定今年種什麼、什麼時候收，再依照採收量設計菜單。所以我們的菜單像一本種子目錄，每季都會換頁。</p>
+        <p>每一碗沙拉都附有「播種與收成」卡——哪一塊田、哪一天採收、誰種的。希望您吃到的，不只是新鮮，還有那片田的季節。</p>
+        <p class="sign">苗圃全體店員 敬上</p>
+      </div>
+    </div>
+    <div class="guar">
+      <div class="gu rv"><b>8</b><span>家契作農場</span></div>
+      <div class="gu rv"><b>48<small style="font-size:.5em">hr</small></b><span>採收到上桌</span></div>
+      <div class="gu rv"><b>每月</b><span>農藥殘留抽驗</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="signature" style="background:linear-gradient(transparent,rgba(111,138,90,.13) 18%,rgba(111,138,90,.13) 82%,transparent)">
+  <div class="wrap">
+    <header class="sh rv"><p class="dept">Dept. 02 · Featured Varieties</p><h2>本季主打三品種<i>Our Signature Bowls</i></h2><span class="orn"></span><p>每一碗都有自己的種子包。翻到背面，就是這道菜的產地、播種日與採收日。</p></header>
+    <div class="sig-g" id="sigs"></div>
+  </div>
+</section>
+
+<section class="sec" id="catalog">
+  <div class="wrap">
+    <header class="sh rv"><p class="dept">Dept. 03 · The Catalogue</p><h2>苗圃目錄・完整菜單<i>Seedling's Annual Catalogue of Bowls &amp; Goods</i></h2><span class="orn"></span></header>
+    <div class="tabs" role="tablist" aria-label="菜單分類" id="tabs"></div>
+    <div class="catpage">
+      <div class="cat-head"><span id="catTitle">Page 12 · Salad Bowls</span><button type="button" class="vbtn" id="veganBtn" aria-pressed="false">只看全素 V</button></div>
+      <div class="cat" id="cat" role="tabpanel"></div>
+      <p class="ci-w" style="margin-top:14px;text-align:center">價格含稅・營養值為每份估算・標示「本月當季」者使用當月採收的主角蔬菜</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="build" style="background:linear-gradient(transparent,rgba(214,166,64,.14) 14%,rgba(214,166,64,.14) 86%,transparent)">
+  <div class="wrap">
+    <header class="sh rv"><p class="dept">Dept. 04 · Mail-Order Department</p><h2>自組一碗沙拉<i>Build Your Own Bowl — Order Blank</i></h2><span class="orn"></span><p>照著訂購單勾選：一種基底、最多四樣配料、一份蛋白質、一種醬汁。右邊的碗會即時裝好，背面的生長圖表算給你看。</p></header>
+    <form id="bf" class="build-g" novalidate>
+      <div class="blank" id="bfMain">
+        <div class="bl-head"><h3>ORDER BLANK<small>沙拉碗訂購單・Form No. 7</small></h3><p>SEEDLING SEED &amp; SALAD CO.<br>請勾選，每碗限一份基底</p></div>
+        <fieldset class="line"><legend class="lg"><em>LINE 1</em>基底 Base</legend><div class="opts" id="oBase"></div></fieldset>
+        <fieldset class="line"><legend class="lg"><em>LINE 2</em>配料 Toppings <span class="cnt" id="topCnt">0／4</span></legend><div class="opts" id="oTop"></div></fieldset>
+        <fieldset class="line"><legend class="lg"><em>LINE 3</em>蛋白質 Protein</legend><div class="opts" id="oPro"></div></fieldset>
+        <fieldset class="line"><legend class="lg"><em>LINE 4</em>醬汁 Dressing</legend><div class="opts" id="oSau"></div></fieldset>
+        <fieldset class="line"><legend class="lg"><em>LINE 5</em>取餐資料 Pickup</legend>
+          <div class="flds">
+            <label class="fld"><span>姓名 Name</span><input id="bName" autocomplete="name" placeholder="王小苗"><em class="err" aria-live="polite"></em></label>
+            <label class="fld"><span>手機 Phone</span><input id="bPhone" inputmode="tel" autocomplete="tel" placeholder="0912-345-678"><em class="err" aria-live="polite"></em></label>
+            <label class="fld"><span>取餐日 Date</span><select id="bDate"></select><em class="err"></em></label>
+            <label class="fld"><span>取餐時間 Time</span><select id="bTime"></select><em class="err" aria-live="polite"></em></label>
+            <label class="fld"><span>份數 Qty</span><select id="bQty"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select><em class="err"></em></label>
+          </div>
+          <button type="submit" class="btn red submit m-only">寄出訂購單・<span class="mtot">—</span></button>
+        </fieldset>
+      </div>
+      <div class="panel">
+        <div class="bowlbox"><h4>TOP VIEW · 俯視圖</h4><div class="bowl" id="bowl"></div><p class="bowl-sum" id="bowlSum"></p></div>
+        <div class="chart" id="chart">
+          <h4>生長圖表 Growth Chart<small>每餐建議量 %</small></h4>
+          <div class="gbar" id="gK"><span>熱量</span><span class="tr"><i style="--c:var(--mus)"></i></span><b>—</b></div>
+          <div class="gbar" id="gP"><span>蛋白質</span><span class="tr"><i style="--c:var(--red)"></i></span><b>—</b></div>
+          <div class="gbar" id="gF"><span>纖維</span><span class="tr"><i></i></span><b>—</b></div>
+          <div class="tot"><span id="totMeta">Net Wt. — g<br>—</span><b id="totP">NT$ —</b></div>
+          <button type="submit" class="btn red submit d-only">寄出訂購單 Mail Order →</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section class="sec" id="season">
+  <div class="wrap">
+    <header class="sh rv"><p class="dept">Dept. 05 · Planting Calendar</p><h2>本月當季<i>What's in Season This Month</i></h2><span class="orn"></span><p>台灣平地、高山與東部的產季不同。點月份可以看其他月的收成，預設是今天的月份。</p></header>
+    <div class="season-g">
+      <div class="calbox rv"><h3>收成月曆 Harvest Chart<small>點月份切換</small></h3><div class="cal" id="cal"></div><div class="legend"><span><i></i>產季（可採收）</span><span><i class="m"></i>所選月份</span></div></div>
+      <div class="now rv"><h3 id="smTitle">十月當季</h3><p class="today" id="smToday"></p><div class="smveg" id="smVeg"></div><h4>本月合作農場 PARTNER FARMS</h4><ul class="farms" id="smFarms"></ul></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="box" style="background:linear-gradient(transparent,rgba(111,138,90,.13) 14%,rgba(111,138,90,.13) 86%,transparent)">
+  <div class="wrap">
+    <header class="sh rv"><p class="dept">Dept. 06 · Subscription</p><h2>農場蔬菜箱訂閱<i>Farm Box by Mail — Monthly Remittance</i></h2><span class="orn"></span><p>把沙拉碗裡的那些菜整箱帶回家。箱內是當週採收的當季蔬菜，附農場小卡與兩道食譜。</p></header>
+    <form id="xf" class="blank" novalidate>
+      <div class="bl-head"><h3>SUBSCRIPTION BLANK<small>蔬菜箱訂閱單・Form No. 9</small></h3><p>每月扣款・可隨時暫停<br>雙北以外地區請洽門市</p></div>
+      <div class="box-g" id="xfMain">
+        <div class="lines">
+          <fieldset class="line"><legend class="lg"><em>LINE 1</em>箱型 Box Size</legend><div class="crates" id="crates"></div></fieldset>
+          <fieldset class="line"><legend class="lg"><em>LINE 2</em>頻率 Frequency</legend><div class="pills" id="freq"></div></fieldset>
+          <fieldset class="line"><legend class="lg"><em>LINE 3</em>取貨 Delivery</legend><div class="pills" id="pick"></div></fieldset>
+          <fieldset class="line"><legend class="lg"><em>LINE 4</em>訂購人 Subscriber</legend>
+            <div class="flds">
+              <label class="fld"><span>姓名 Name</span><input id="xName" autocomplete="name" placeholder="王小苗"><em class="err" aria-live="polite"></em></label>
+              <label class="fld"><span>手機 Phone</span><input id="xPhone" inputmode="tel" autocomplete="tel" placeholder="0912-345-678"><em class="err" aria-live="polite"></em></label>
+              <label class="fld" style="grid-column:1/-1"><span>第一箱取貨日 First Box</span><select id="xDate"></select><em class="err"></em></label>
+            </div>
+          </fieldset>
+        </div>
+        <div class="remit" id="remit"></div>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section class="sec" id="gallery">
+  <div class="wrap">
+    <header class="sh rv"><p class="dept">Dept. 07 · Views of the Shop</p><h2>店內風景<i>Illustrated Plates</i></h2><span class="orn"></span></header>
+    <div class="gal">
+      <figure class="plate g1 rv dots" style="margin:0"><figure class="ph" data-photo="interior" data-art="interior" data-label="店內・櫃台" data-size="1200×1500"></figure><figcaption><span>Plate II. — 門市櫃台與種子包牆</span><span>p. 9</span></figcaption></figure>
+      <figure class="plate rv dots" style="margin:0"><figure class="ph" data-photo="kitchen" data-art="kitchen" data-label="廚房・備料" data-size="1200×1000"></figure><figcaption><span>Plate III. — 每天早上的備料台</span></figcaption></figure>
+      <figure class="plate rv dots" style="margin:0"><figure class="ph" data-photo="produce" data-art="produce" data-label="食材・到貨" data-size="1200×1000"></figure><figcaption><span>Plate IV. — 清晨到貨的菜箱</span></figcaption></figure>
+      <figure class="plate g4 rv dots" style="margin:0"><figure class="ph" data-photo="wall" data-art="wall" data-label="店內・座位區" data-size="1600×800"></figure><figcaption><span>Plate V. — 座位區的種子包陳列架</span><span>p. 11</span></figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="reviews" style="padding-top:20px">
+  <div class="wrap">
+    <header class="sh rv"><p class="dept">Dept. 08 · Testimonials</p><h2>顧客來函<i>From Our Satisfied Customers</i></h2><span class="orn"></span></header>
+    <div class="rev-g" id="revs"></div>
+  </div>
+</section>
+
+<section class="sec" id="visit">
+  <div class="wrap">
+    <header class="sh rv"><p class="dept">Dept. 09 · Visit the Nursery</p><h2>門市資訊<i>Hours &amp; Address</i></h2><span class="orn"></span></header>
+    <div class="visit-g">
+      <div class="hours rv"><h3>營業時間 HOURS</h3><p class="big-status" id="bigStatus"><i></i><span>—</span></p><table class="htab"><tbody id="htab"></tbody></table><p class="ci-w" style="margin-top:10px" id="closedNote"></p></div>
+      <div class="label rv" id="label"><h3>郵寄地址 ADDRESS</h3>
+        <p class="addr" id="addr">—</p>
+        <p>電話　<a class="tel" id="tel" href="#">—</a></p>
+        <p style="color:var(--soft);font-size:14px">捷運市政府站 2 號出口步行約 6 分鐘・附近有 YouBike 站<br>線上自組可提前 20 分鐘點、到店直接取餐</p>
+        <div class="inbox" style="margin-top:14px"><b>POSTAL NOTICE 來店須知</b>・松仁路側有路邊停車格，週末較難停<br>・10 人以上團體或公司訂餐請提前一天來電<br>・可自備餐盒，每碗折 NT$ 10</div>
+        <div class="btns"><a class="btn red" id="mapLink" href="#" target="_blank" rel="noopener">在 Google 地圖開啟 ↗</a><a class="btn line" href="#build">線上自組</a></div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-g">
+      <div><p class="fl" data-shop="en">Seedling</p><p style="letter-spacing:.4em;color:var(--mus);margin-top:6px" data-shop="zh">苗圃蔬食</p><p style="margin-top:12px">從產地到碗的蔬食沙拉。八家契作農場，採收後 48 小時內上桌。</p></div>
+      <div><h5>DEPARTMENTS</h5><ul><li><a href="#catalog">目錄菜單</a></li><li><a href="#build">自組沙拉碗</a></li><li><a href="#season">本月當季</a></li><li><a href="#box">蔬菜箱訂閱</a></li></ul></div>
+      <div><h5>CORRESPONDENCE</h5><ul><li id="fAddr">—</li><li><a id="fTel" href="#">—</a></li><li id="fHours">—</li></ul></div>
+    </div>
+    <div class="fine"><span>© <span id="yr">2026</span> <span data-shop="name">Seedling 苗圃蔬食</span> · Catalogue No. 12</span><span>本頁為店家官網示範模板・插畫皆為程式繪製</span></div>
+  </div>
+</footer>
+<button type="button" class="slotbtn" id="slotBtn" aria-pressed="false">照片位</button>
+
+<script>
+(function(){
+'use strict';
+/* ===== 店家設定 ===== */
+var SHOP = {
+  name:'Seedling 苗圃蔬食', en:'Seedling', zh:'苗圃蔬食',
+  phone:'(02) 2758-0412', address:'台北市信義區松仁路 100 號 1 樓（示範地址）',
+  // 0=週日 … 6=週六；每天可多個時段，null＝公休
+  hours:[[['10:30','15:00']], null, [['11:00','14:30'],['17:00','20:30']], [['11:00','14:30'],['17:00','20:30']], [['11:00','14:30'],['17:00','20:30']], [['11:00','14:30'],['17:00','20:30']], [['10:30','20:00']]],
+  leadMin:20,          // 線上自組最少提前幾分鐘
+  slotStep:30,         // 取餐時段間隔（分）
+  price:{
+    freq:{ w:{zh:'每週',n:4,off:.1}, b:{zh:'隔週',n:2,off:.05}, m:{zh:'每月',n:1,off:0} },
+    pick:{ store:{zh:'門市自取',fee:0}, point:{zh:'合作取貨點',fee:40}, home:{zh:'冷藏宅配（雙北）',fee:150} }
+  },
+  photos:{hero:'',farm:'',sig1:'',sig2:'',sig3:'',interior:'',kitchen:'',produce:'',wall:''}
+};
+var FARMS = { a:['禾穗有機農場','宜蘭三星'], b:['山嵐高冷菜園','台中梨山'], c:['日光小番茄園','嘉義太保'], d:['田心友善農場','雲林西螺'], e:['北海岸菇寮','新北石門'], f:['花東米倉','花蓮富里'], g:['美濃小農合作社','高雄美濃'], h:['水沙連筊白筍田','南投埔里'] };
+// [圖, 中文, 英文, 農場, 產季月份]
+var SEASON = [
+  ['tomato','番茄','Tomato','c',[12,1,2,3,4]], ['beet','甜菜根','Beetroot','b',[11,12,1,2,3]], ['kale','羽衣甘藍','Kale','a',[10,11,12,1,2,3,4]],
+  ['carrot','胡蘿蔔','Carrot','d',[12,1,2,3]], ['radish','白玉蘿蔔','Daikon','g',[11,12,1,2]], ['cabbage','高麗菜','Cabbage','b',[6,7,8,9,10,11]],
+  ['corn','玉米','Sweet Corn','d',[3,4,5,6,10,11]], ['pumpkin','南瓜','Pumpkin','d',[5,6,7,8,9,10]], ['eggplant','茄子','Eggplant','g',[4,5,6,7,8,9,10]],
+  ['cucumber','小黃瓜','Cucumber','a',[4,5,6,7,8,9]], ['bamboo','筊白筍','Water Bamboo','h',[5,6,7,8,9,10]], ['asparagus','蘆筍','Asparagus','g',[3,4,5,6,7,8,9,10]],
+  ['edamame','毛豆','Edamame','d',[4,5,10,11]], ['sweetpotato','地瓜','Sweet Potato','d',[8,9,10,11,12,1]], ['mushroom','香菇','Shiitake','e',[10,11,12,1,2,3,4]], ['djulis','紅藜','Djulis','f',[7,8,9,10]]
+];
+// 招牌三包：hero 種子包與招牌區共用
+var SIG = [
+  {no:12, art:'tomato', title:'TOMATO', band:'#c8432d', name:'日光番茄布拉塔碗', en:'Sun-Ripe Tomato & Burrata', farm:'c', grow:72, ago:1, price:320, kcal:410, pro:14, fib:6, wt:380, photo:'sig1', desc:'嘉義溫室小番茄三色混搭，配手撕布拉塔、羅勒青醬與酸種麵包丁。', note:'這批糖度 9 度，醬汁可以少放一點。'},
+  {no:14, art:'beet', title:'Seedling', band:'#24412f', name:'烤甜菜根山羊乳酪碗', en:'Roast Beet & Chèvre', farm:'b', grow:65, ago:2, price:300, kcal:430, pro:13, fib:8, wt:390, photo:'sig2', desc:'梨山甜菜根整顆慢烤，切塊拌山羊乳酪、烤核桃與蜂蜜油醋。', note:'梨山早晚溫差大，顏色特別深。'},
+  {no:21, art:'kale', title:'KALE', band:'#d6a640', name:'羽衣甘藍腰果凱薩', en:'Kale & Cashew Caesar', farm:'a', grow:55, ago:1, price:280, kcal:380, pro:16, fib:9, wt:360, photo:'sig3', desc:'按摩過的宜蘭羽衣甘藍，淋腰果凱薩醬，撒天貝碎與檸檬皮。全素。', note:'葉子先按摩三分鐘，就不會苦。'}
+];
+// [編號, 品名, 英文, 圖, 農場, 價格, 熱量, 重量, 全素, 說明]
+var MENU = [
+  {k:'bowl', zh:'沙拉碗', en:'Salad Bowls', items:[
+    [12,'日光番茄布拉塔碗','Sun-Ripe Tomato & Burrata','tomato','c',320,410,'380 g',0,'三色小番茄、布拉塔起司、羅勒青醬、酸種麵包丁'],
+    [14,'烤甜菜根山羊乳酪碗','Roast Beet & Chèvre','beet','b',300,430,'390 g',0,'慢烤甜菜根、山羊乳酪、烤核桃、蜂蜜油醋'],
+    [21,'羽衣甘藍腰果凱薩','Kale & Cashew Caesar','kale','a',280,380,'360 g',1,'按摩羽衣甘藍、腰果凱薩醬、天貝碎、檸檬皮'],
+    [23,'高冷高麗菜芝麻涼拌','Highland Cabbage Slaw','cabbage','b',260,320,'380 g',1,'梨山高麗菜絲、胡蘿蔔、白味噌芝麻醬'],
+    [27,'美濃茄子味噌碗','Miso Eggplant Bowl','eggplant','g',290,450,'400 g',1,'炙烤茄子、紫米、毛豆、白味噌'],
+    [31,'南瓜紅藜溫沙拉','Pumpkin & Djulis','pumpkin','d',300,470,'420 g',1,'烤南瓜、台灣紅藜、南瓜籽、中東芝麻醬']]},
+  {k:'grain', zh:'溫穀物碗', en:'Warm Grain Bowls', items:[
+    [35,'紫米菇菇碗','Purple Rice & Shiitake','mushroom','e',310,520,'440 g',1,'石門香菇、紫米、炒菠菜、醬燒豆腐'],
+    [37,'地瓜天貝能量碗','Sweet Potato & Tempeh','sweetpotato','d',300,560,'450 g',1,'烤地瓜、天貝、嫩葉、楓糖芥末醬'],
+    [38,'玉米鷹嘴豆碗','Corn & Chickpea','corn','d',290,510,'430 g',1,'炙烤玉米、香料鷹嘴豆、紅藜、番茄莎莎'],
+    [40,'筊白筍糙米碗','Water Bamboo & Brown Rice','bamboo','h',300,480,'430 g',0,'埔里筊白筍、糙米、溏心蛋、柚子醋']]},
+  {k:'soup', zh:'湯品', en:'Soups', items:[
+    [51,'南瓜濃湯','Pumpkin Velouté','pumpkin','d',160,220,'300 ml',0,'西螺南瓜、洋蔥、鮮奶油、烤南瓜籽'],
+    [52,'番茄蔬菜湯','Garden Tomato Soup','tomato','c',140,150,'300 ml',1,'番茄、西洋芹、胡蘿蔔、百里香'],
+    [53,'香菇味噌湯','Shiitake Miso Soup','mushroom','e',120,90,'280 ml',1,'石門香菇、昆布高湯、白味噌、蔥花']]},
+  {k:'side', zh:'小點', en:'Sides', items:[
+    [61,'胡蘿蔔鷹嘴豆泥','Carrot Hummus','carrot','d',140,260,'150 g',1,'烤胡蘿蔔、鷹嘴豆泥、皮塔餅'],
+    [62,'海鹽毛豆','Sea-Salt Edamame','edamame','d',90,180,'120 g',1,'雲林毛豆、海鹽、黑胡椒'],
+    [63,'炙烤玉米','Charred Corn','corn','d',110,160,'140 g',1,'炙烤玉米、煙燻紅椒粉、萊姆'],
+    [64,'烤蘆筍佐溏心蛋','Asparagus & Soft Egg','asparagus','g',150,210,'160 g',0,'美濃蘆筍、溏心蛋、帕瑪森']]},
+  {k:'drink', zh:'飲品', en:'Pressed & Brewed', items:[
+    [71,'甜菜根蘋果汁','Beet & Apple Press','beet','b',150,140,'350 ml',1,'冷壓甜菜根、蘋果、薑'],
+    [72,'羽衣甘藍香蕉綠拿鐵','Kale Banana Latte','kale','a',160,210,'400 ml',0,'羽衣甘藍、香蕉、鮮奶'],
+    [73,'紅藜烏龍冷泡','Djulis Oolong Cold Brew','djulis','f',110,5,'450 ml',1,'台灣紅藜焙茶、高山烏龍']]}
+];
+// 自組：[key, 中文, 英文, 加價, 熱量, 蛋白質g, 纖維g, 形狀, 主色, 副色, 全素]
+var BUILD = {
+  base:[['mix','綜合嫩葉','Spring Mix',180,25,2,2,'leaf','#6f8a5a','#3f5c3a',1],['kale','按摩羽衣甘藍','Kale',200,50,3,4,'frill','#24412f','#4f6b3f',1],['grain','紫米紅藜','Purple Rice',200,260,6,4,'grain','#4a2d4f','#c8432d',1],['half','嫩葉＋紫米各半','Half & Half',200,145,4,3,'half','#6f8a5a','#4a2d4f',1]],
+  top:[['tomato','小番茄','',35,15,1,1,'half','#c8432d','#ef8f78',1],['beet','烤甜菜根','',35,30,1,2,'cube','#8e2a45','#5e1a2e',1],['corn','炙烤玉米','',30,60,2,2,'kernel','#e3b24a','#a8802a',1],['cucumber','小黃瓜','',25,8,.5,.5,'slice','#eef0c8','#6f8a5a',1],
+       ['pumpkin','烤南瓜','',35,50,1,2,'cube','#d9792f','#a5521c',1],['mushroom','炒香菇','',35,25,2,1,'mush','#7a4a2e','#e8d6a8',1],['chickpea','香料鷹嘴豆','',30,90,5,4,'ball','#dcb36a','#a8803e',1],['carrot','胡蘿蔔絲','',25,20,.5,2,'strip','#d9792f','#a5521c',1],
+       ['onion','醃紫洋蔥','',20,12,0,1,'ring','#8e2a45','#8e2a45',1],['avocado','酪梨','',50,120,1.5,5,'crescent','#b7c27a','#24412f',1],['sweetpotato','烤地瓜','',30,70,1,2,'cube','#e8a83a','#9b3a3f',1],['edamame','毛豆','',30,60,6,3,'ball','#8fa874','#4f6b3f',1]],
+  pro:[['none','不加','',0,0,0,0,'',0,0,1],['tofu','炙烤板豆腐','',60,120,12,1,'cube','#f1e2bd','#c48a3c',1],['tempeh','天貝','',70,160,16,6,'cube','#cfa76a','#7a5a30',1],['egg','溏心蛋','',40,140,12,0,'egg','',0,0],['falafel','鷹嘴豆餅','',60,180,7,5,'ball','#9c6a35','#5e3e1e',1],['burrata','布拉塔起司','',90,200,10,0,'cheese','',0,0]],
+  sau:[['none','不加醬','',0,0,0,0,'','',0,1],['miso','白味噌芝麻','',15,90,2,1,'','#d9a94a',0,1],['basil','羅勒青醬','',20,110,1,0,'','#4f6b3f',0,0],['vin','番茄油醋','',15,70,0,0,'','#c8432d',0,1],['tahini','中東芝麻檸檬','',20,100,3,1,'','#e9cf8e',0,1],['cashew','腰果凱薩','',20,120,3,1,'','#f6ecd2',0,1]]
+};
+var BOXES = [
+  {k:'s', zh:'小農箱', en:'Petite', who:'1–2 人', items:6, wt:'約 3 kg', price:520, veg:['tomato','kale','carrot']},
+  {k:'m', zh:'家庭箱', en:'Family', who:'3–4 人', items:9, wt:'約 5 kg', price:780, veg:['cabbage','pumpkin','corn']},
+  {k:'c', zh:'主廚箱', en:'Chef’s', who:'附 2 瓶醬汁＋食譜卡', items:9, wt:'約 5.5 kg', price:980, veg:['beet','eggplant','mushroom']}
+];
+var REVIEWS = [
+  ['午休只有四十分鐘，線上自組、到店直接拿。羽衣甘藍是真的脆，不是那種泡水泡到軟掉的。','陳先生','信義區・上班族'],
+  ['蔬菜箱訂了半年，每箱都有一張農場小卡。孩子現在吃番茄會問：「這是嘉義那個阿伯種的嗎？」','林太太','大安區・家庭箱訂戶'],
+  ['甜菜根碗的山羊乳酪和烤核桃很搭，背面那張播種與收成卡我都收集起來了，像在集郵。','Mia','中山區・常客']
+];
+
+var R='#c8432d',G='#6f8a5a',M='#d6a640',D='#24412f',K='#efe4c8',P='#f8f1de',B='#8e2a45',O='#d9792f',E='#4a2d4f',L='#9fb57f',W='#7a4a2e';
+var $ = function(s, r){ return (r || document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+var money = function(n){ return 'NT$ ' + Math.round(n).toLocaleString('en-US'); };
+var now = new Date(), DOW = ['週日','週一','週二','週三','週四','週五','週六'];
+var MZH = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'], MEN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+var U = 0;
+
+/* ===== 石版插畫：蔬菜 ===== */
+function frill(len, wid){ var Lp = [], Rp = [], N = 64; for (var i = 0; i <= N; i++){ var t = i/N, w = wid*Math.pow(Math.sin(Math.PI*Math.min(t*1.04, 1)), .7)*(1 + .17*Math.sin(t*46)), y = -len*t; Lp.push([-w, y]); Rp.push([w, y]); } return 'M' + Lp.concat(Rp.reverse()).map(function(p){ return p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join('L') + 'Z'; }
+var FR1 = frill(76, 17), FR2 = frill(86, 18);
+function kaleLeaf(rot, d, c){ return '<g transform="translate(50 96) rotate(' + rot + ')"><path d="' + d + '" fill="' + c + '"/><path class="x" d="M0 0V-64" stroke="' + L + '" stroke-width="2" fill="none"/></g>'; }
+var djG = (function(){ var s = '<path d="M50 98C50 70 48 50 52 30" stroke="' + D + '" stroke-width="3" fill="none"/><path d="M50 80c-12-2-20-8-24-16 10 0 18 6 24 16zM51 70c10-4 18-10 22-18-10 2-18 8-22 18z" fill="' + G + '"/>'; var cs = [R, M, B, '#e07a4a']; for (var i = 0; i < 46; i++){ var t = i/46, a = i*2.4, rr = 4 + t*10; s += '<circle cx="' + (52 + Math.cos(a)*rr - t*10).toFixed(1) + '" cy="' + (8 + t*42 + Math.sin(a)*rr*.6).toFixed(1) + '" r="' + (3.4 - t*.8).toFixed(1) + '" fill="' + cs[i % 4] + '"/>'; } return s; })();
+var VEG = {
+  tomato:'<path d="M50 30C30 22 12 36 12 58c0 20 17 32 38 32s38-12 38-32c0-22-18-36-38-28z" fill="' + R + '"/><path class="x" d="M50 34c-4 16-4 36 0 54M34 38c-8 14-8 32 2 46M66 38c8 14 8 32-2 46" stroke="#94301e" stroke-width="1.6" fill="none" opacity=".55"/><path class="x" d="M23 54c2-9 9-15 17-17" stroke="' + K + '" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M50 32l-14-8 9 10-15 1 15 5-6 10 9-8 4 9 3-9 9 8-5-10 15-5-15-1 9-10z" fill="' + G + '"/><path d="M50 30V16" stroke="' + D + '" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
+  beet:'<path d="M47 42C38 30 22 22 18 6c16 2 28 14 31 34z" fill="' + G + '"/><path d="M53 42c3-16 14-30 30-36-1 17-14 30-30 36z" fill="' + G + '"/><path d="M50 42c-4-14-2-28 4-38 7 12 4 26-4 38z" fill="#4f6b3f"/><path class="x" d="M47 40L24 12M53 40L78 10M50 40l4-32" stroke="' + B + '" stroke-width="2" fill="none"/><path d="M50 40c-18 0-30 11-30 25 0 12 12 20 24 22 2 4 4 7 6 10 2-3 4-6 6-10 12-3 24-10 24-22 0-14-12-25-30-25z" fill="' + B + '"/><path class="x" d="M28 62c12 5 32 5 44 0M32 74c10 4 26 4 36 0" stroke="#5e1a2e" stroke-width="1.6" fill="none" opacity=".6"/><path class="x" d="M29 55c3-6 8-9 14-10" stroke="#e7a0a8" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
+  kale:kaleLeaf(-30, FR1, '#3d5e40') + kaleLeaf(28, FR1, G) + kaleLeaf(0, FR2, D),
+  carrot:'<path d="M47 36c-7-10-13-20-25-24 6 10 13 18 23 26z" fill="' + G + '"/><path d="M51 34c-1-12 3-22 10-30-1 11-3 21-6 31z" fill="' + D + '"/><path d="M54 37c6-8 16-14 28-13-8 6-17 11-24 17z" fill="' + G + '"/><path d="M40 38c8-6 20-6 24 2L54 94c-2 4-5 4-6 0L38 46c-1-3 0-6 2-8z" fill="' + O + '"/><path class="x" d="M42 52h8M57 60h-6M45 70h6M54 79h-5" stroke="#a5521c" stroke-width="2" fill="none" stroke-linecap="round"/><path class="x" d="M43 44c1 10 3 22 6 34" stroke="#f2b07a" stroke-width="3" fill="none" stroke-linecap="round"/>',
+  radish:'<path d="M48 36c-6-12-16-20-28-22 6 10 14 18 26 24zM52 36c4-14 14-24 28-26-4 12-14 22-28 26zM50 36c-2-12 0-22 6-32 4 12 2 22-6 32z" fill="' + G + '"/><path d="M37 36c7-5 19-5 26 0 4 18 2 40-7 55-3 5-9 5-12 0-9-15-11-37-7-55z" fill="#f4ecd4"/><path d="M37 36c7-5 19-5 26 0l1 13c-9-3-19-3-28 0z" fill="' + L + '"/><path class="x" d="M44 56h6M52 66h5M45 76h5" stroke="#c9b98a" stroke-width="2" fill="none"/>',
+  cabbage:'<path d="M14 58C10 34 26 14 48 12c-14 10-22 28-20 48z" fill="' + G + '"/><path d="M86 58c4-24-12-44-34-46 14 10 22 28 20 48z" fill="#4f6b3f"/><circle cx="50" cy="56" r="34" fill="#b4c38f"/><path class="x" d="M50 88V36M50 60l-18-14M50 72l20-16M50 50l12-12M50 80l-16-10" stroke="#eef0d6" stroke-width="2" fill="none"/><path class="x" d="M28 44c4-6 10-10 16-11" stroke="#eef0d6" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
+  corn:'<path d="M50 96C30 80 26 50 34 20c6 20 10 50 16 76z" fill="' + G + '"/><path d="M50 96c20-16 24-46 16-76-6 20-10 50-16 76z" fill="#4f6b3f"/><path d="M50 8c10 0 14 14 14 40s-6 42-14 42-14-16-14-42S40 8 50 8z" fill="#e3b24a"/><path class="x" d="M40 20h20M38 28h24M37 36h26M37 44h26M37 52h26M38 60h24M39 68h22M41 76h18M44 84h12M44 12v74M50 8v82M56 12v74" stroke="#a8802a" stroke-width="1.3" fill="none"/><path d="M50 96c-9-14-13-30-13-48 7 14 11 30 13 48z" fill="#8fa874"/>',
+  pumpkin:'<path d="M50 30c-6-2-14-2-20 2-14-2-24 10-24 28s10 30 24 28c6 4 14 4 20 2 6 2 14 2 20-2 14 2 24-10 24-28S84 30 70 32c-6-4-14-4-20-2z" fill="' + O + '"/><path class="x" d="M30 32c-6 12-6 40 0 56M70 32c6 12 6 40 0 56M50 30c-3 16-3 42 0 60" stroke="#a5521c" stroke-width="2" fill="none"/><path class="x" d="M16 52c2-8 6-13 12-15" stroke="#f2b07a" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M47 31c0-8 2-15 9-21l4 3c-5 5-7 11-7 18z" fill="' + D + '"/><path d="M58 18c8-6 18-4 22 4-8 2-16 0-22-4z" fill="' + G + '"/>',
+  eggplant:'<path d="M30 22c10-6 22-2 28 10 8 16 10 30 22 42 8 10 2 22-10 20-18-2-30-14-38-30C26 50 22 30 30 22z" fill="' + E + '"/><path class="x" d="M36 40c2 12 8 24 18 32" stroke="#9a7aa0" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M24 28c4-10 16-14 26-8l-4 6c4 0 8 2 10 6-6 0-10 0-14 2 0 4-2 8-6 10 0-4-1-8-3-10-4 2-8 2-11 0 4-2 6-4 7-6z" fill="' + G + '"/><path d="M28 24L19 13" stroke="' + D + '" stroke-width="4.5" fill="none" stroke-linecap="round"/>',
+  cucumber:'<path d="M12 68C22 40 48 20 78 14c6-1 9 4 6 9C68 46 46 68 20 80c-6 2-10-6-8-12z" fill="' + G + '"/><path class="x" d="M22 70C38 50 56 34 78 22" stroke="' + L + '" stroke-width="3" fill="none" opacity=".7"/><g class="x" fill="#4f6b3f"><circle cx="30" cy="62" r="1.5"/><circle cx="44" cy="46" r="1.5"/><circle cx="58" cy="34" r="1.5"/><circle cx="36" cy="70" r="1.5"/><circle cx="62" cy="44" r="1.5"/></g><circle cx="74" cy="76" r="17" fill="' + D + '"/><circle cx="74" cy="76" r="14" fill="#e6ecc4"/><g class="x" fill="#b8c28f"><ellipse cx="74" cy="70" rx="2" ry="3"/><ellipse cx="69" cy="79" rx="2" ry="3" transform="rotate(60 69 79)"/><ellipse cx="79" cy="79" rx="2" ry="3" transform="rotate(-60 79 79)"/></g>',
+  bamboo:'<path d="M44 96c-4-30-4-60 4-90 6 30 8 60 6 90z" fill="#f4ecd4"/><path d="M38 96c-2-22 0-42 7-58 4 20 4 40 2 58z" fill="' + G + '"/><path d="M60 96c2-22 0-42-7-58-4 20-4 40-2 58z" fill="#4f6b3f"/><path class="x" d="M48 12c-2 10-3 20-3 30" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/>',
+  asparagus:'<path d="M32 94l6-74c1-5 6-5 6 0l-3 74z" fill="' + G + '"/><path d="M46 94l3-82c1-5 6-5 6 0l0 82z" fill="#4f6b3f"/><path d="M60 94l1-72c1-5 6-5 6 0l-3 72z" fill="' + G + '"/><path d="M37 22l4-8 4 8-4 5zM48 14l4-9 4 9-4 5zM61 24l3-8 4 8-4 5z" fill="' + D + '"/><rect x="28" y="64" width="44" height="9" fill="' + R + '"/>',
+  edamame:'<path d="M10 70C20 50 40 34 66 26c10-3 22-2 24 4 2 6-6 12-16 16C52 56 34 70 20 82c-6 4-12-4-10-12z" fill="' + G + '"/><circle cx="32" cy="62" r="10" fill="#8fa874"/><circle cx="50" cy="48" r="10" fill="#8fa874"/><circle cx="68" cy="36" r="9" fill="#8fa874"/><path class="x" d="M14 72C30 56 52 40 86 28" stroke="#4f6b3f" stroke-width="1.5" fill="none"/>',
+  sweetpotato:'<path d="M10 62c2-16 22-28 44-26 22 1 36 12 34 26-2 13-20 22-42 20C24 80 8 76 10 62z" fill="#9b3a3f"/><path d="M88 60l8-5" stroke="#9b3a3f" stroke-width="2.5" fill="none"/><g class="x" fill="#5e1f24"><circle cx="34" cy="52" r="1.6"/><circle cx="58" cy="66" r="1.6"/><circle cx="70" cy="50" r="1.6"/><circle cx="26" cy="68" r="1.6"/></g><path class="x" d="M22 54c6-8 14-12 22-12" stroke="#d58a7e" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
+  mushroom:'<path d="M42 56c0 14-2 26-6 34 10 4 22 4 30 0-4-8-6-20-6-34z" fill="#efe2bf"/><path d="M12 50C14 28 32 16 52 16s38 12 38 34c-10 6-24 8-38 8S22 56 12 50z" fill="' + W + '"/><path d="M12 50c10 6 24 8 40 8s28-2 38-8c-6 8-22 12-38 12S18 58 12 50z" fill="#d9c08a"/><path class="x" d="M30 30l6 6M60 26l-4 8M72 36l-6 4M44 24l2 6" stroke="' + K + '" stroke-width="2" fill="none"/>',
+  djulis:djG
+};
+function patDefs(id){ return '<pattern id="' + id + 'd1" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><circle cx="2.5" cy="2.5" r="1" fill="#24412f"/></pattern><pattern id="' + id + 'd2" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><circle cx="2.5" cy="2.5" r="1.75" fill="#24412f"/></pattern><pattern id="' + id + 'd3" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(15)"><circle cx="3.5" cy="3.5" r="1.4" fill="#c8432d"/></pattern>'; }
+function Ctx(){ this.id = 'q' + (++U); this.n = 0; this.defs = patDefs(this.id); }
+// 一顆蔬菜：底色 + 兩層網點陰影（遮罩）+ 偏移的墨綠套色線
+Ctx.prototype.veg = function(key, x, y, s, rot){
+  var V = VEG[key], m = this.id + 'm' + (++this.n);
+  this.defs += '<mask id="' + m + 'a"><g class="mw">' + V + '</g><g class="mb" transform="translate(-7 -8)">' + V + '</g></mask><mask id="' + m + 'b"><g class="mw">' + V + '</g><g class="mb" transform="translate(-14 -16)">' + V + '</g></mask>';
+  return '<g transform="translate(' + x + ' ' + y + ') rotate(' + (rot || 0) + ') scale(' + s + ') translate(-50 -50)">' + V + '<g class="ht" opacity=".6"><rect x="-10" y="-10" width="120" height="120" fill="url(#' + this.id + 'd1)" mask="url(#' + m + 'a)"/><rect x="-10" y="-10" width="120" height="120" fill="url(#' + this.id + 'd2)" mask="url(#' + m + 'b)"/></g><g class="reg">' + V + '</g></g>';
+};
+Ctx.prototype.svg = function(vb, body, cls, label){ return '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid slice" class="litho ' + (cls || '') + '" ' + (label ? 'role="img" aria-label="' + label + '"' : 'aria-hidden="true"') + '><defs>' + this.defs + '</defs>' + body + '</svg>'; };
+function vegIcon(key, label){ var c = new Ctx(); return c.svg('0 0 100 100', c.veg(key, 50, 52, .92), '', label); }
+function rays(cx, cy, n, len, col, op){ var s = '<g fill="' + col + '" opacity="' + op + '">'; for (var i = 0; i < n; i++){ var a0 = i*2*Math.PI/n, a1 = a0 + Math.PI/n; s += '<path d="M' + cx + ' ' + cy + 'L' + (cx + len*Math.cos(a0)).toFixed(1) + ' ' + (cy + len*Math.sin(a0)).toFixed(1) + 'L' + (cx + len*Math.cos(a1)).toFixed(1) + ' ' + (cy + len*Math.sin(a1)).toFixed(1) + 'Z"/>'; } return s + '</g>'; }
+function rng(seed){ var h = 1779033703; for (var i = 0; i < seed.length; i++){ h = Math.imul(h ^ seed.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; } return function(){ h = Math.imul(h ^ h >>> 16, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); h ^= h >>> 16; return (h >>> 0)/4294967296; }; }
+
+/* ===== 碗（俯視） ===== */
+function shp(t, a, b, s){
+  switch (t){
+    case 'leaf': return '<path d="M' + (-s) + ' 0Q0 ' + (-s*.8) + ' ' + s + ' 0Q0 ' + (s*.8) + ' ' + (-s) + ' 0Z" fill="' + a + '"/><path d="M' + (-s*.8) + ' 0H' + (s*.8) + '" stroke="' + b + '" stroke-width="1.2"/>';
+    case 'frill': return '<circle r="' + s*.5 + '" cx="' + (-s*.35) + '" fill="' + a + '"/><circle r="' + s*.45 + '" cx="' + s*.35 + '" cy="' + (-s*.1) + '" fill="' + b + '"/><circle r="' + s*.42 + '" cy="' + s*.32 + '" fill="' + a + '" stroke="' + b + '" stroke-width="1"/>';
+    case 'grain': return '<ellipse rx="' + s + '" ry="' + s*.6 + '" fill="' + a + '"/>';
+    case 'cube': return '<rect x="' + (-s/2) + '" y="' + (-s/2) + '" width="' + s + '" height="' + s + '" rx="' + s*.18 + '" fill="' + a + '" stroke="' + b + '" stroke-width="1.6"/>';
+    case 'half': return '<circle r="' + s + '" fill="' + a + '"/><circle r="' + s*.68 + '" fill="' + b + '"/><path d="M0 ' + (-s*.6) + 'V' + s*.6 + '" stroke="' + a + '" stroke-width="' + s*.22 + '"/>';
+    case 'slice': return '<circle r="' + s + '" fill="' + b + '"/><circle r="' + s*.8 + '" fill="' + a + '"/><circle r="1.5" cx="' + s*.3 + '" fill="#b8c28f"/><circle r="1.5" cx="' + (-s*.25) + '" cy="' + s*.22 + '" fill="#b8c28f"/><circle r="1.5" cy="' + (-s*.3) + '" fill="#b8c28f"/>';
+    case 'kernel': return '<rect x="' + (-s*.45) + '" y="' + (-s*.4) + '" width="' + s*.9 + '" height="' + s*.8 + '" rx="' + s*.3 + '" fill="' + a + '" stroke="' + b + '" stroke-width="1"/>';
+    case 'ring': return '<ellipse rx="' + s + '" ry="' + s*.7 + '" fill="none" stroke="' + a + '" stroke-width="' + s*.28 + '"/>';
+    case 'strip': return '<rect x="' + (-s*1.5) + '" y="-1.7" width="' + s*3 + '" height="3.4" rx="1.7" fill="' + a + '"/>';
+    case 'crescent': return '<path d="M' + (-s*1.3) + ' 0A' + s*1.4 + ' ' + s*1.4 + ' 0 0 1 ' + s*1.3 + ' 0A' + s*1.7 + ' ' + s + ' 0 0 0 ' + (-s*1.3) + ' 0Z" fill="' + a + '" stroke="' + b + '" stroke-width="1.8"/>';
+    case 'mush': return '<rect x="' + (-s*.22) + '" y="-1" width="' + s*.44 + '" height="' + s*.75 + '" fill="' + b + '"/><path d="M' + (-s) + ' 0A' + s + ' ' + s + ' 0 0 1 ' + s + ' 0Z" fill="' + a + '"/>';
+    case 'ball': return '<circle r="' + s + '" fill="' + a + '" stroke="' + b + '" stroke-width="1.3"/><circle r="' + s*.3 + '" cx="' + (-s*.35) + '" cy="' + (-s*.35) + '" fill="#fff8e6" opacity=".7"/>';
+    case 'egg': return '<ellipse rx="' + s*1.25 + '" ry="' + s + '" fill="#fbf6e8" stroke="#d9c08a" stroke-width="1.5"/><circle r="' + s*.55 + '" fill="#e8a83a"/><circle r="' + s*.3 + '" cx="-2" cy="-2" fill="#f2c45e"/>';
+    case 'cheese': return '<circle r="' + s + '" fill="#fbf6e8" stroke="#dccb9e" stroke-width="2"/><path d="M' + (-s*.5) + ' ' + (-s*.1) + 'q' + s*.5 + ' ' + (-s*.4) + ' ' + s + ' 0" stroke="#dccb9e" stroke-width="2" fill="none"/>';
+  }
+  return '';
+}
+function at(x, y, r, inner, cls, delay){ return '<g transform="translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ') rotate(' + Math.round(r) + ')">' + (cls ? '<g class="' + cls + '" style="animation-delay:' + delay + 'ms">' + inner + '</g>' : inner) + '</g>'; }
+function find(list, k){ for (var i = 0; i < list.length; i++) if (list[i][0] === k) return list[i]; return null; }
+function layBase(k){
+  var b = find(BUILD.base, k), r = rng('base' + k), s = '';
+  function leaves(n, x0, x1){ for (var i = 0; i < n; i++){ var a = r()*Math.PI*2, d = Math.sqrt(r())*152, x = 200 + Math.cos(a)*d, y = 200 + Math.sin(a)*d; if (x < x0 || x > x1) continue; var c = [G, '#8fa874', '#4f6b3f', '#a9b96a'][i % 4]; s += at(x, y, r()*360, shp('leaf', c, '#3f5c3a', 15 + r()*7)); } }
+  function frills(n){ for (var i = 0; i < n; i++){ var a = r()*Math.PI*2, d = Math.sqrt(r())*150; s += at(200 + Math.cos(a)*d, 200 + Math.sin(a)*d, r()*360, shp('frill', i % 2 ? D : '#3d5e40', '#5d7d4c', 22 + r()*8)); } }
+  function grains(n, x0, x1){ for (var i = 0; i < n; i++){ var a = r()*Math.PI*2, d = Math.sqrt(r())*155, x = 200 + Math.cos(a)*d, y = 200 + Math.sin(a)*d; if (x < x0 || x > x1) continue; s += at(x, y, r()*180, shp('grain', i % 7 === 0 ? R : i % 5 === 0 ? M : i % 3 === 0 ? '#6b4a70' : E, 0, 3.6)); } }
+  if (k === 'grain'){ s += '<circle cx="200" cy="200" r="160" fill="#3a2440"/>'; grains(900, 0, 400); }
+  else if (k === 'kale'){ s += '<circle cx="200" cy="200" r="160" fill="#2e4a35"/>'; frills(150); }
+  else if (k === 'half'){ s += '<path d="M200 40A160 160 0 0 0 200 360Z" fill="#4f6b3f"/><path d="M200 40A160 160 0 0 1 200 360Z" fill="#3a2440"/>'; leaves(220, 0, 206); grains(700, 196, 400); }
+  else { s += '<circle cx="200" cy="200" r="160" fill="#4f6b3f"/>'; leaves(240, 0, 400); }
+  return s;
+}
+function layTops(keys, fresh){
+  var n = keys.length, s = '';
+  keys.forEach(function(k, i){
+    var t = find(BUILD.top, k), r = rng('top' + k), th = (-70 + i*360/n)*Math.PI/180, span = Math.min(2*Math.PI/n, 2.1)*.78;
+    var cnt = {kernel:26, strip:16, ring:8, crescent:6, cube:12, half:13, slice:9, mush:12, ball:16}[t[7]] || 12, size = {kernel:9, strip:11, ring:10, crescent:11, cube:14, half:10, slice:12, mush:12, ball:7.5}[t[7]] || 10;
+    s += '<g data-k="' + k + '">';
+    for (var j = 0; j < cnt; j++){ var a = th + (r() - .5)*span, d = 66 + r()*80; s += at(200 + Math.cos(a)*d, 200 + Math.sin(a)*d, r()*360, shp(t[7], t[8], t[9], size*(.85 + r()*.3)), fresh === k ? 'pop' : '', j*22); }
+    s += '</g>';
+  });
+  return s;
+}
+function layPro(k, fresh){
+  var p = find(BUILD.pro, k); if (!p || !p[7]) return '';
+  var r = rng('pro' + k), s = '', size = {cube:22, egg:17, ball:17, cheese:30}[p[7]], n = p[7] === 'cheese' ? 1 : p[7] === 'egg' ? 3 : 6;
+  for (var j = 0; j < n; j++){ var a = j*2*Math.PI/Math.max(n - 1, 1) + r()*.4, d = n === 1 ? 0 : j === 0 ? 0 : 34 + r()*6; s += at(200 + Math.cos(a)*d, 200 + Math.sin(a)*d, r()*360, shp(p[7], p[8], p[9], size), fresh ? 'pop' : '', j*40); }
+  return s;
+}
+function laySauce(k){
+  var c = find(BUILD.sau, k); if (!c || !c[8]) return '';
+  var d1 = 'M64 168C104 118 146 236 190 172S262 120 300 186 340 226 352 214', d2 = 'M84 252C124 208 168 296 212 242S284 198 326 262';
+  return '<g fill="none" stroke-linecap="round"><path class="drizzle" d="' + d1 + '" stroke="#24412f" stroke-opacity=".55" stroke-width="8"/><path class="drizzle" d="' + d1 + '" stroke="' + c[8] + '" stroke-width="5.5"/><path class="drizzle" d="' + d2 + '" stroke="#24412f" stroke-opacity=".55" stroke-width="8" style="animation-delay:.25s"/><path class="drizzle" d="' + d2 + '" stroke="' + c[8] + '" stroke-width="5.5" style="animation-delay:.25s"/></g>';
+}
+function bowlG(id, inner){
+  return '<circle cx="210" cy="214" r="186" fill="url(#' + id + 'd1)" opacity=".75"/><circle cx="200" cy="200" r="184" fill="' + P + '" stroke="' + D + '" stroke-width="3"/><circle cx="200" cy="200" r="175" fill="none" stroke="' + R + '" stroke-width="2.5"/><circle cx="200" cy="200" r="169" fill="none" stroke="' + G + '" stroke-width="5" stroke-dasharray="2.5 7.5"/><circle cx="200" cy="200" r="161" fill="#e4d6b2" stroke="' + D + '" stroke-width="1.5"/>' +
+    '<g clip-path="url(#' + id + 'c)">' + inner + '<rect x="30" y="30" width="340" height="340" fill="url(#' + id + 'd1)" mask="url(#' + id + 'im)" opacity=".55"/></g><g class="reg"><circle cx="200" cy="200" r="184"/><circle cx="200" cy="200" r="161"/></g>';
+}
+function bowlDefs(id){ return patDefs(id) + '<clipPath id="' + id + 'c"><circle cx="200" cy="200" r="160"/></clipPath><mask id="' + id + 'im"><circle cx="200" cy="200" r="160" fill="#fff"/><circle cx="212" cy="214" r="158" fill="#000"/></mask>'; }
+function bowlStatic(st){ var id = 'q' + (++U); return { id:id, defs:bowlDefs(id), body:bowlG(id, layBase(st.base) + layTops(st.tops) + layPro(st.pro) + laySauce(st.sau)) }; }
+
+/* ===== 佔位插畫 ===== */
+var ART = {
+  win:function(key){ var c = new Ctx(), s = '<rect width="200" height="180" fill="' + P + '"/>' + rays(100, 130, 30, 260, M, .32) + '<ellipse cx="100" cy="196" rx="150" ry="52" fill="' + G + '" opacity=".55"/><ellipse cx="100" cy="196" rx="150" ry="52" fill="url(#' + c.id + 'd1)" opacity=".35"/>';
+    if (key === 'tomato') s += c.veg('tomato', 44, 132, .62, -12) + c.veg('tomato', 108, 92, 1.32);
+    else if (key === 'beet') s += c.veg('radish', 156, 110, .7, 18) + c.veg('beet', 94, 90, 1.38, -6);
+    else s += c.veg('carrot', 154, 112, .66, 24) + c.veg('kale', 96, 92, 1.42);
+    return c.svg('0 0 200 180', s); },
+  farm:function(){ var c = new Ctx(), s = '<rect width="1600" height="1000" fill="' + P + '"/>' + rays(800, 560, 44, 1300, M, .3) + '<circle cx="800" cy="560" r="120" fill="' + M + '"/><circle cx="800" cy="560" r="138" fill="none" stroke="' + M + '" stroke-width="4" stroke-dasharray="6 10"/>';
+    s += '<path d="M0 560C200 470 380 500 560 540S920 470 1100 520 1400 470 1600 510V600H0Z" fill="' + G + '"/><path d="M0 560C200 470 380 500 560 540S920 470 1100 520 1400 470 1600 510V600H0Z" fill="url(#' + c.id + 'd1)" opacity=".45" transform="translate(0 14)"/>';
+    s += '<rect y="560" width="1600" height="440" fill="#4f6b3f"/>';
+    for (var i = -14; i <= 14; i++) s += '<path d="M800 560L' + (800 + i*150 - 34) + ' 1000H' + (800 + i*150 + 34) + 'Z" fill="' + (i % 2 ? D : '#6f8a5a') + '" opacity=".85"/>';
+    s += '<g transform="translate(1180 420)"><rect x="0" y="40" width="230" height="100" fill="' + R + '"/><path d="M-14 46L115 -20 244 46Z" fill="' + D + '"/><rect x="85" y="70" width="60" height="70" fill="' + P + '"/><path d="M85 70l60 70M145 70l-60 70" stroke="' + R + '" stroke-width="5"/><rect x="250" y="0" width="56" height="140" fill="' + M + '"/><path d="M250 0a28 22 0 0 1 56 0Z" fill="' + D + '"/><path d="M250 30h56M250 60h56M250 90h56" stroke="' + D + '" stroke-width="2"/></g>';
+    s += '<g fill="' + D + '"><circle cx="260" cy="500" r="46"/><circle cx="300" cy="480" r="40"/><circle cx="330" cy="515" r="36"/><rect x="286" y="520" width="12" height="44"/></g>';
+    s += '<path d="M0 760H1600" stroke="' + P + '" stroke-width="4" opacity=".6"/>';
+    for (var f = 0; f < 17; f++) s += '<rect x="' + (f*100 + 20) + '" y="730" width="8" height="50" fill="' + P + '" opacity=".75"/>';
+    s += c.veg('cabbage', 200, 880, 2.6, -8) + c.veg('kale', 420, 890, 2.4) + c.veg('pumpkin', 1210, 890, 2.3, 6) + c.veg('corn', 1430, 860, 2.6, 10);
+    return c.svg('0 0 1600 1000', s); },
+  bowl:function(st){ var c = new Ctx(), b = bowlStatic(st); c.defs += b.defs + '<pattern id="' + c.id + 'gh" width="40" height="40" patternUnits="userSpaceOnUse"><rect width="40" height="40" fill="' + P + '"/><rect width="20" height="40" fill="' + G + '" opacity=".28"/><rect width="40" height="20" fill="' + G + '" opacity=".28"/></pattern>';
+    var s = '<rect width="800" height="600" fill="url(#' + c.id + 'gh)"/><g transform="translate(130 20) scale(1.38)">' + b.body + '</g>';
+    s += '<g transform="translate(700 90) rotate(18)"><rect x="-8" y="0" width="16" height="230" rx="8" fill="#b9b39a" stroke="' + D + '" stroke-width="2"/><path d="M-18 0v-70M-6 0v-70M6 0v-70M18 0v-70M-22 -10q22 30 44 0" stroke="' + D + '" stroke-width="5" fill="none"/></g>';
+    s += c.veg(st.art, 80, 500, .95, -14) + c.veg(st.art, 90, 110, .7, 20);
+    return c.svg('0 0 800 600', s); },
+  interior:function(){ var c = new Ctx(), s = '<rect width="1200" height="1500" fill="' + P + '"/>';
+    for (var i = 0; i < 31; i++) s += '<path d="M' + (i*40) + ' 0V900" stroke="' + G + '" stroke-width="3" opacity=".22"/>';
+    [250, 520, 790].forEach(function(x){ s += '<path d="M' + x + ' 0V730" stroke="' + D + '" stroke-width="3"/><path d="M' + (x - 60) + ' 780a60 52 0 0 1 120 0Z" fill="' + M + '" stroke="' + D + '" stroke-width="3"/><ellipse cx="' + x + '" cy="800" rx="90" ry="26" fill="' + M + '" opacity=".25"/>'; });
+    s += '<path d="M330 120h540v150H330Z" fill="' + D + '"/><path d="M345 135h510v120H345Z" fill="none" stroke="' + M + '" stroke-width="3"/><text x="600" y="218" text-anchor="middle" class="t-bk" font-size="74" fill="' + K + '">Seedling</text>';
+    [380, 600].forEach(function(y, row){ s += '<rect x="90" y="' + y + '" width="1020" height="16" fill="' + W + '"/>'; for (var j = 0; j < 9; j++){ var x = 120 + j*110, col = [R, D, M, G, B][(j + row*2) % 5]; s += '<rect x="' + x + '" y="' + (y - 120) + '" width="80" height="120" fill="' + P + '" stroke="' + D + '" stroke-width="3"/><rect x="' + x + '" y="' + (y - 120) + '" width="80" height="30" fill="' + col + '"/>'; s += c.veg(SEASON[(j + row*5) % 16][0], x + 40, y - 48, .5); } });
+    s += '<rect y="900" width="1200" height="600" fill="' + G + '"/><rect x="60" y="930" width="1080" height="34" fill="#b8862a"/><rect x="80" y="964" width="1040" height="536" fill="' + D + '"/>';
+    for (var p = 0; p < 4; p++) s += '<rect x="' + (110 + p*255) + '" y="1010" width="215" height="420" fill="none" stroke="' + M + '" stroke-width="3" opacity=".7"/>';
+    s += '<ellipse cx="300" cy="926" rx="110" ry="22" fill="' + P + '" stroke="' + D + '" stroke-width="3"/><ellipse cx="300" cy="918" rx="86" ry="14" fill="#4f6b3f"/><ellipse cx="560" cy="926" rx="110" ry="22" fill="' + P + '" stroke="' + D + '" stroke-width="3"/><ellipse cx="560" cy="918" rx="86" ry="14" fill="' + B + '"/>';
+    s += '<path d="M930 930l20-90h120l20 90Z" fill="' + R + '" stroke="' + D + '" stroke-width="3"/>' + c.veg('kale', 1010, 790, 1.5);
+    return c.svg('0 0 1200 1500', s); },
+  kitchen:function(){ var c = new Ctx(), s = '<rect width="1200" height="1000" fill="#c9a15e"/>';
+    for (var i = 0; i < 12; i++) s += '<path d="M0 ' + (i*90 + 40) + 'H1200" stroke="#a8803e" stroke-width="3"/>';
+    s += '<rect x="170" y="130" width="860" height="640" rx="40" fill="#e6cd96" stroke="' + D + '" stroke-width="4"/><rect x="170" y="130" width="860" height="640" rx="40" fill="url(#' + c.id + 'd1)" opacity=".18"/><circle cx="960" cy="200" r="20" fill="#c9a15e" stroke="' + D + '" stroke-width="3"/>';
+    s += '<g transform="translate(880 770) rotate(-30)"><rect x="-14" y="0" width="28" height="140" rx="10" fill="' + D + '"/><path d="M-16 0V-260C30 -240 26 -60 16 0Z" fill="#dfe3dc" stroke="' + D + '" stroke-width="3"/></g>';
+    s += c.veg('kale', 390, 330, 2.2, -20) + c.veg('carrot', 700, 300, 2, 40) + c.veg('beet', 600, 560, 1.8, -10) + c.veg('tomato', 380, 610, 1.4) + c.veg('tomato', 500, 690, 1, 18) + c.veg('mushroom', 830, 520, 1.3, 12) + c.veg('cucumber', 110, 860, 1.6, -10);
+    return c.svg('0 0 1200 1000', s); },
+  produce:function(){ var c = new Ctx(), s = '<rect width="1200" height="1000" fill="' + D + '"/>' + rays(600, 1000, 36, 1400, M, .1);
+    function crate(x, w, vegs, label){ var o = ''; vegs.forEach(function(v, i){ o += c.veg(v[0], x + v[1], 520 + v[2], v[3], v[4] || 0); }); o += '<rect x="' + x + '" y="560" width="' + w + '" height="340" fill="#c9a15e" stroke="#2a1d10" stroke-width="4"/>'; for (var k = 1; k < 4; k++) o += '<path d="M' + x + ' ' + (560 + k*85) + 'h' + w + '" stroke="#7a5a30" stroke-width="10"/>'; o += '<text x="' + (x + w/2) + '" y="745" text-anchor="middle" class="t-bk" font-size="34" fill="' + D + '" opacity=".75">' + label + '</text>'; return o; }
+    s += crate(80, 500, [['tomato', 80, 0, 1.3], ['tomato', 200, -14, 1.4, 10], ['tomato', 320, 2, 1.25, -8], ['tomato', 430, -6, 1.2], ['tomato', 150, 40, 1.1], ['tomato', 380, 44, 1.1]], 'SEEDLING · No. 3');
+    s += crate(620, 500, [['kale', 90, -60, 2], ['carrot', 220, -40, 1.8, 20], ['beet', 330, -20, 1.6, -10], ['radish', 430, -40, 1.6, 14], ['corn', 160, 30, 1.4, -70]], 'FARM BOX · 苗圃');
+    return c.svg('0 0 1200 1000', s); },
+  wall:function(){ var c = new Ctx(), s = '<rect width="1600" height="640" fill="#e8dcbc"/>';
+    for (var i = 0; i < 41; i++) s += '<path d="M' + (i*40) + ' 0V560" stroke="' + G + '" stroke-width="3" opacity=".18"/>';
+    s += '<path d="M500 34h600v66H500Z" fill="' + D + '"/><path d="M510 44h580v46H510Z" fill="none" stroke="' + M + '" stroke-width="2"/><text x="800" y="78" text-anchor="middle" class="t-bk" font-size="26" letter-spacing="5" fill="' + K + '">SEED DEPARTMENT · 種子部</text>';
+    for (var j = 0; j < 9; j++){ var x = 70 + j*165, y = 150, col = [R, D, M, G, B][j % 5], k = SEASON[(j*5 + 2) % 16], top = 'M' + x + ' ' + (y + 8);
+      for (var t = 0; t < 14; t++) top += 'l5-7 5 7';
+      s += '<g transform="rotate(' + ((j % 3) - 1)*1.6 + ' ' + (x + 70) + ' ' + (y + 170) + ')"><path d="' + top + 'V' + (y + 360) + 'H' + x + 'Z" fill="' + P + '" stroke="' + D + '" stroke-width="3"/><rect x="' + (x + 8) + '" y="' + (y + 16) + '" width="124" height="40" fill="' + col + '"/><text x="' + (x + 70) + '" y="' + (y + 44) + '" text-anchor="middle" class="t-bk" font-size="17" font-weight="700" fill="' + (col === M ? D : K) + '">' + k[2].split(' ').pop().toUpperCase() + '</text>' + c.veg(k[0], x + 70, y + 150, 1.05) + '<text x="' + (x + 70) + '" y="' + (y + 270) + '" text-anchor="middle" class="t-bk" font-size="24" font-weight="700" fill="' + D + '">' + k[1] + '</text><path d="M' + (x + 14) + ' ' + (y + 290) + 'h112M' + (x + 14) + ' ' + (y + 294) + 'h112" stroke="' + D + '" stroke-width="1.5"/><text x="' + (x + 70) + '" y="' + (y + 322) + '" text-anchor="middle" class="t-bk" font-size="14" fill="' + R + '">No. ' + (30 + j*7) + ' · 5¢</text></g>'; }
+    s += '<path d="M30 528H1570" stroke="' + D + '" stroke-width="10"/><rect y="560" width="1600" height="80" fill="' + W + '"/><rect y="556" width="1600" height="8" fill="#5e3a22"/>';
+    return c.svg('0 0 1600 640', s); }
+};
+function crateSVG(b){ var c = new Ctx(), s = '<rect width="160" height="100" fill="none"/>';
+  b.veg.forEach(function(v, i){ s += c.veg(v, 38 + i*42, 40 - (i % 2)*6, .5, (i - 1)*12); });
+  s += '<rect x="14" y="52" width="132" height="44" fill="#c9a15e" stroke="' + D + '" stroke-width="2.5"/><path d="M14 66h132M14 81h132" stroke="#7a5a30" stroke-width="3"/><text x="80" y="78" text-anchor="middle" class="t-bk" font-size="11" fill="' + D + '">' + b.en.toUpperCase() + '</text>';
+  return c.svg('0 0 160 100', s, 'vis'); }
+function stampSVG(){ var c = new Ctx(); var s = '<path d="M0 0h74v88H0Z" fill="' + R + '"/><rect x="6" y="6" width="62" height="76" fill="' + P + '"/>' + c.veg('beet', 37, 40, .52) + '<text x="37" y="76" text-anchor="middle" font-size="9" class="t-bk" fill="' + D + '">TAIPEI 12</text>'; return c.svg('0 0 74 88', s, 'vis'); }
+
+function fillPhotos(){ $$('[data-art]').forEach(function(f){
+  var url = f.dataset.photo && SHOP.photos[f.dataset.photo];
+  if (url){ f.innerHTML = '<img src="' + esc(url) + '" alt="' + esc(f.dataset.label || '') + '" loading="lazy">'; return; }
+  var a = f.dataset.art, sig = SIG.filter(function(x){ return 'bowl-' + x.art === a; })[0];
+  if (a.indexOf('win-') === 0) f.innerHTML = ART.win(a.slice(4));
+  else if (sig) f.innerHTML = ART.bowl(sig.st);
+  else if (ART[a]) f.innerHTML = ART[a]();
+}); }
+
+/* ===== 種子包 ===== */
+function crimpPts(){ var pts = []; for (var i = 0; i <= 25; i++){ pts.push((i*4) + '% ' + (i % 2 ? '0' : '2.2%')); } return 'polygon(' + pts.join(',') + ',100% 100%,0 100%)'; }
+document.documentElement.style.setProperty('--crimp', crimpPts());
+(function(){ var pts = []; for (var i = 0; i <= 40; i++) pts.push((i*2.5) + '% ' + (i % 2 ? '0' : '8px')); document.documentElement.style.setProperty('--crimp2', 'polygon(' + pts.join(',') + ',100% 100%,0 100%)'); })();
+function packetFront(s, i){
+  var top = 'M0 8'; for (var k = 0; k < 25; k++) top += 'L' + (k*10 + 5) + ' 1L' + (k*10 + 10) + ' 8';
+  var shop = i === 1, fill = shop ? K : (s.band === M ? D : K);
+  var o = '<svg viewBox="0 0 250 360" aria-hidden="true"><path d="' + top + 'V360H0Z" fill="' + P + '"/><rect x="10" y="17" width="230" height="333" fill="none" stroke="' + D + '" stroke-width="3"/><rect x="15" y="22" width="220" height="323" fill="none" stroke="' + D + '" stroke-width="1"/>';
+  o += '<rect x="15" y="22" width="220" height="60" fill="' + s.band + '"/>';
+  o += '<text x="' + (shop ? 104 : 22) + '" y="38" ' + (shop ? 'text-anchor="middle" ' : '') + 'font-size="8.5" letter-spacing="2.2" class="t-bk" fill="' + fill + '">' + (shop ? 'FARM-TO-BOWL · TAIPEI' : 'SEEDLING SEED CO.') + '</text>';
+  o += '<text x="' + (shop ? 104 : 22) + '" y="70" ' + (shop ? 'text-anchor="middle" ' : '') + 'font-size="' + (shop ? 30 : 28) + '" font-weight="700" class="t-bk" fill="' + (shop ? M : fill) + '">' + esc(shop ? SHOP.en : s.title) + '</text>';
+  [[15, 22], [235, 22], [15, 345], [235, 345]].forEach(function(p){ o += '<path d="M' + p[0] + ' ' + (p[1] - 6) + 'l6 6-6 6-6-6z" fill="' + D + '"/>'; });
+  o += '<text x="125" y="286" text-anchor="middle" font-size="' + (shop ? 25 : 19) + '" font-weight="700" class="t-bk" fill="' + D + '" letter-spacing="' + (shop ? 6 : 1) + '">' + esc(shop ? SHOP.zh : s.name.replace(/碗$/, '')) + '</text>';
+  o += '<text x="125" y="304" text-anchor="middle" font-size="10.5" font-style="italic" class="t-bk" fill="#55634f">' + esc(shop ? 'Salads Grown by Hand — Est. 2019' : s.en) + '</text>';
+  o += '<path d="M28 315H222M28 318H222" stroke="' + D + '" stroke-width="1"/>';
+  o += '<text x="28" y="336" font-size="9.5" class="t-bk" fill="' + D + '">Net Wt. ' + s.wt + ' g</text><text x="222" y="336" text-anchor="end" font-size="11" font-weight="700" class="t-bk" fill="' + R + '">' + (shop ? 'No. 12–21' : money(s.price)) + '</text><path d="M122 331l3-5 3 5-3 5z" fill="' + R + '"/></svg>';
+  var win = shop ? '<figure class="win ph" data-photo="hero" data-art="win-beet" data-label="首頁主視覺" data-size="1200×1000"></figure>' : '<span class="win art" data-art="win-' + s.art + '"></span>';
+  return o + win + '<span class="no"><small>No.</small><b>' + s.no + '</b></span>';
+}
+function dShift(n){ var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - n); return d; }
+function ymd(d){ return d.getFullYear() + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getDate()).padStart(2, '0'); }
+function packetBack(s){
+  var h = dShift(s.ago), sw = dShift(s.ago + s.grow), f = FARMS[s.farm];
+  return '<h4>播種與收成<small>SOWING &amp; HARVEST</small></h4><span class="row"><b>產地</b><span>' + f[1] + '・' + f[0] + '</span></span><span class="row"><b>播種</b><span>' + ymd(sw) + '</span></span><span class="row"><b>採收</b><span>' + ymd(h) + '（' + (s.ago === 1 ? '昨天' : '前天') + '清晨）</span></span><span class="row"><b>上桌</b><span>今天・' + esc(s.name) + '</span></span><span class="grow">生長 ' + s.grow + ' 天<i style="--g:' + Math.round(s.grow/90*100) + '%"></i></span><span class="hn">' + esc(s.note) + '</span><span class="ft"><span>Net Wt. ' + s.wt + ' g</span><span>' + s.kcal + ' kcal</span></span>';
+}
+var POS = [['2%', '14%', '-8deg'], ['28%', '2%', '2deg'], ['54.5%', '16%', '8deg']], POSM = [['0%', '12%', '-6deg'], ['23%', '0%', '1.5deg'], ['46%', '14%', '6deg']];
+var mob = matchMedia('(max-width:640px)');
+function drawPackets(){
+  var P0 = mob.matches ? POSM : POS;
+  $('#packets').innerHTML = SIG.map(function(s, i){ var p = P0[i]; return '<div class="pk p' + i + '" style="--x:' + p[0] + ';--y:' + p[1] + ';--r:' + p[2] + ';--d:' + (i === 1 ? 260 : i*130) + 'ms"><span class="pk-in"><span class="pk-f">' + packetFront(s, i) + '</span><span class="pk-b">' + packetBack(s) + '</span></span><button type="button" class="pk-hit" aria-pressed="false" aria-label="' + esc(s.name) + '：翻到背面看播種與收成"></button></div>'; }).join('');
+}
+SIG[0].st = {art:'tomato', base:'mix', tops:['tomato', 'cucumber', 'onion'], pro:'burrata', sau:'basil'};
+SIG[1].st = {art:'beet', base:'half', tops:['beet', 'chickpea', 'avocado'], pro:'none', sau:'vin'};
+SIG[2].st = {art:'kale', base:'kale', tops:['carrot', 'corn', 'mushroom', 'edamame'], pro:'tempeh', sau:'cashew'};
+drawPackets();
+$('#packets').addEventListener('click', function(e){ var b = e.target.closest('.pk-hit'); if (!b) return; var pk = b.parentNode, on = pk.classList.toggle('flip'); b.setAttribute('aria-pressed', on); var r = pk.getBoundingClientRect(); spill(r.left + r.width*.2, r.top + 4, r.width*.6, 14, [M, '#8a5a2e', D]); });
+
+/* 種子灑落 */
+function spill(x, y, w, n, cols, fall){
+  if (reduce) return;
+  for (var i = 0; i < n; i++){ (function(i){
+    var el = document.createElement('span'); el.className = 'seed'; el.style.background = cols[i % cols.length]; document.body.appendChild(el);
+    var sx = x + Math.random()*w, dx = (Math.random() - .5)*80, dy = (fall || 160) + Math.random()*120, rot = (Math.random() - .5)*720, dur = 900 + Math.random()*700;
+    var an = el.animate([{transform:'translate(' + sx + 'px,' + y + 'px) rotate(0deg)', opacity:0}, {opacity:1, offset:.1}, {transform:'translate(' + (sx + dx) + 'px,' + (y + dy) + 'px) rotate(' + rot + 'deg)', opacity:0}], {duration:dur, delay:i*28, easing:'cubic-bezier(.35,0,.75,1)', fill:'both'});
+    an.onfinish = function(){ el.remove(); };
+  })(i); }
+}
+
+/* ===== 招牌 ===== */
+$('#sigs').innerHTML = SIG.map(function(s, i){
+  var f = FARMS[s.farm], h = dShift(s.ago), sw = dShift(s.ago + s.grow);
+  return '<article class="sig rv" style="transition-delay:' + i*120 + 'ms"><div class="sig-in"><div class="sig-f"><figure class="ph" data-photo="' + s.photo + '" data-art="bowl-' + s.art + '" data-label="招牌菜・' + esc(s.name) + '" data-size="1200×900"></figure><p class="pl"><span>PLATE ' + ['I', 'II', 'III'][i] + '</span><span>No. ' + s.no + '</span></p><h3>' + esc(s.name) + '<i>' + esc(s.en) + '</i></h3><p>' + esc(s.desc) + '</p></div>' +
+    '<div class="sig-b"><h4>播種與收成<small>SOWING &amp; HARVEST · No. ' + s.no + '</small></h4><dl><dt>產地</dt><dd>' + f[1] + '・' + f[0] + '</dd><dt>播種</dt><dd>' + ymd(sw) + '</dd><dt>採收</dt><dd>' + ymd(h) + '　生長 ' + s.grow + ' 天</dd><dt>重量</dt><dd>Net Wt. ' + s.wt + ' g</dd></dl><div class="bars"><div class="gbar"><span>熱量</span><span class="tr"><i style="--c:var(--mus);--v:' + Math.min(s.kcal/800, 1).toFixed(2) + '"></i></span><b>' + s.kcal + ' kcal</b></div><div class="gbar"><span>蛋白質</span><span class="tr"><i style="--c:var(--red);--v:' + Math.min(s.pro/35, 1).toFixed(2) + '"></i></span><b>' + s.pro + ' g</b></div><div class="gbar"><span>纖維</span><span class="tr"><i style="--v:' + Math.min(s.fib/14, 1).toFixed(2) + '"></i></span><b>' + s.fib + ' g</b></div></div><p class="hn">農夫手記：' + esc(s.note) + '</p></div></div>' +
+    '<div class="sig-ft"><div><b>' + money(s.price) + '</b><small>Net Wt. ' + s.wt + ' g · ' + s.kcal + ' kcal</small></div><button type="button" class="flipbtn" aria-pressed="false">翻面・看產地 ⟲</button></div></article>';
+}).join('');
+$('#sigs').addEventListener('click', function(e){ var b = e.target.closest('.flipbtn'); if (!b) return; var card = b.closest('.sig'), on = card.classList.toggle('flip'); b.setAttribute('aria-pressed', on); b.textContent = on ? '翻回正面 ⟲' : '翻面・看產地 ⟲'; var r = card.getBoundingClientRect(); spill(r.left + r.width*.15, r.top + 10, r.width*.7, 12, [M, '#8a5a2e', G]); });
+
+/* ===== 目錄 ===== */
+var curM = now.getMonth() + 1, catK = 'bowl', veganOnly = false;
+function inSeason(key, m){ var v = SEASON.filter(function(x){ return x[0] === key; })[0]; return v && v[4].indexOf(m) >= 0; }
+$('#tabs').innerHTML = MENU.map(function(c){ return '<button type="button" class="tab" role="tab" data-k="' + c.k + '" aria-selected="' + (c.k === catK) + '">' + c.zh + '<small>' + c.en + '</small></button>'; }).join('');
+function drawCat(){
+  var c = MENU.filter(function(x){ return x.k === catK; })[0], m = now.getMonth() + 1, list = c.items.filter(function(it){ return !veganOnly || it[8]; });
+  $('#catTitle').textContent = 'Page ' + (12 + MENU.indexOf(c)) + ' · ' + c.en + '・' + c.zh;
+  $('#cat').innerHTML = list.length ? list.map(function(it, i){ var f = FARMS[it[4]], sea = inSeason(it[3], m);
+    return '<article class="ci" style="--i:' + i + '"><div class="ci-art"><span class="ci-no">No.<b>' + it[0] + '</b></span>' + vegIcon(it[3]) + '</div><div><h3>' + esc(it[1]) + '<i>' + esc(it[2]) + '</i></h3><p class="ci-d">' + esc(it[9]) + '</p><p class="ci-m">產地：' + f[1] + '・' + f[0] + '</p><p class="ci-p">' + (it[8] ? '<span class="tg v">全素 V</span>' : '') + (sea ? '<span class="tg s">本月當季</span>' : '') + '<span class="ld"></span><b>' + money(it[5]) + '</b></p><p class="ci-w">Net Wt. ' + it[7] + ' ・ ' + it[6] + ' kcal</p></div></article>'; }).join('') : '<p style="padding:30px 0;text-align:center;color:var(--soft)">這一頁目前沒有全素品項。</p>';
+  var cat = $('#cat'); if (cat.classList.contains('vis')){ cat.classList.remove('vis'); void cat.offsetWidth; cat.classList.add('vis'); }
+}
+$('#tabs').addEventListener('click', function(e){ var b = e.target.closest('.tab'); if (!b) return; catK = b.dataset.k; $$('.tab').forEach(function(t){ t.setAttribute('aria-selected', t === b); }); drawCat(); });
+$('#veganBtn').onclick = function(){ veganOnly = !veganOnly; this.setAttribute('aria-pressed', veganOnly); drawCat(); };
+drawCat();
+
+/* ===== 營業時間 ===== */
+function mins(t){ var p = t.split(':'); return +p[0]*60 + +p[1]; }
+function hm(m){ return String(Math.floor(m/60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+function same(a, b){ return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+var nm = now.getHours()*60 + now.getMinutes();
+var status = (function(){
+  var sv = SHOP.hours[now.getDay()], open = sv && sv.filter(function(s){ return nm >= mins(s[0]) && nm < mins(s[1]); })[0], next = null;
+  if (!open) for (var k = 0; k < 8 && !next; k++){ var d = (now.getDay() + k) % 7, s = SHOP.hours[d]; if (s) s.forEach(function(x){ if (!next && (k > 0 || mins(x[0]) > nm)) next = (k === 0 ? '今天' : k === 1 ? '明天' : DOW[d]) + ' ' + x[0]; }); }
+  return open ? {on:true, t:'營業中，到 ' + open[1]} : {on:false, t:'休息中，' + next + ' 開門'};
+})();
+$('#status').classList.toggle('on', status.on); $('#status span').innerHTML = esc(status.t) + ' <small>・' + esc(SHOP.address.replace(/（.*）/, '').replace(/^台北市/, '')) + '</small>';
+$('#bigStatus').classList.toggle('on', status.on); $('#bigStatus span').textContent = status.t;
+var order = [1, 2, 3, 4, 5, 6, 0];
+$('#htab').innerHTML = order.map(function(d){ var s = SHOP.hours[d]; return '<tr' + (d === now.getDay() ? ' class="td"' : '') + '><td>' + DOW[d] + '</td><td>' + (s ? s.map(function(x){ return x[0] + '–' + x[1]; }).join('　') : '公休') + '</td></tr>'; }).join('');
+var closed = SHOP.hours.map(function(s, i){ return s ? '' : DOW[i]; }).filter(Boolean);
+$('#closedNote').textContent = (closed.length ? closed.join('、') + '公休・' : '') + '國定假日照常營業，颱風天依官網公告';
+$('#fHours').textContent = '週二至週日營業' + (closed.length ? '・' + closed.join('、') + '公休' : '');
+$('#addr').textContent = SHOP.address; $('#fAddr').textContent = SHOP.address;
+['#tel', '#fTel'].forEach(function(s){ $(s).textContent = SHOP.phone; $(s).href = 'tel:' + SHOP.phone.replace(/[^\d]/g, ''); });
+$('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address.replace(/（.*）/, ''));
+$$('[data-shop]').forEach(function(el){ el.textContent = SHOP[el.dataset.shop]; });
+$('#yr').textContent = now.getFullYear();
+(function(){ var st = document.createElement('span'); st.className = 'stampwrap'; st.innerHTML = stampSVG(); $('#label').appendChild(st); })();
+var seasonName = ['冬', '冬', '春', '春', '春', '夏', '夏', '夏', '秋', '秋', '秋', '冬'][now.getMonth()];
+$('#kickSeason').textContent = now.getFullYear() + ' ' + seasonName + '季號'; $('#stripSeason').textContent = now.getFullYear() + ' ' + seasonName + '季號・契作農場直送';
+
+/* ===== 日期／時段 ===== */
+function bizDays(from, n){ var out = []; for (var i = from; out.length < n && i < from + 40; i++){ var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i); if (SHOP.hours[d.getDay()]) out.push(d); } return out; }
+function dLabel(d){ var t = same(d, now) ? '・今天' : same(d, dShift(-1)) ? '・明天' : ''; return (d.getMonth() + 1) + '/' + d.getDate() + '（' + DOW[d.getDay()] + '）' + t; }
+function slotsFor(d){ var out = [], isT = same(d, now); (SHOP.hours[d.getDay()] || []).forEach(function(s){ for (var m = mins(s[0]); m <= mins(s[1]) - SHOP.slotStep; m += SHOP.slotStep) out.push({t:hm(m), dis:isT && m < nm + SHOP.leadMin}); }); return out; }
+var bDays = bizDays(0, 7);
+$('#bDate').innerHTML = bDays.map(function(d, i){ return '<option value="' + i + '">' + dLabel(d) + '</option>'; }).join('');
+function drawTimes(){ var d = bDays[+$('#bDate').value], sl = slotsFor(d), first = sl.filter(function(x){ return !x.dis; })[0];
+  $('#bTime').innerHTML = sl.map(function(x){ return '<option value="' + x.t + '"' + (x.dis ? ' disabled' : '') + (first && x.t === first.t ? ' selected' : '') + '>' + x.t + (x.dis ? '（已過）' : '') + '</option>'; }).join('');
+  $('#bTime').nextElementSibling.textContent = first ? '' : '今天已過取餐時段，請改選其他日期';
+}
+(function(){ var d0 = bDays[0], ok = slotsFor(d0).some(function(x){ return !x.dis; }); if (!ok && bDays.length > 1) $('#bDate').value = '1'; })();
+$('#bDate').addEventListener('change', drawTimes); drawTimes();
+var xDays = bizDays(2, 10);
+$('#xDate').innerHTML = xDays.map(function(d, i){ return '<option value="' + i + '">' + dLabel(d) + '</option>'; }).join('');
+
+/* ===== 沙拉碗自組 ===== */
+function optHTML(list, name, type, chk){ return list.map(function(o){ var on = type === 'radio' ? o[0] === chk : chk.indexOf(o[0]) >= 0; return '<label class="opt"><input type="' + type + '" name="' + name + '" value="' + o[0] + '"' + (on ? ' checked' : '') + '><span class="bx"></span><span class="nm">' + o[1] + (o[2] ? '<small>' + o[2] + '</small>' : '') + (o[10] ? '' : '<small>（蛋奶素）</small>') + '</span><span class="ld"></span><span class="pr">' + (name === 'base' ? o[3] : o[3] ? '+' + o[3] : '—') + '</span></label>'; }).join(''); }
+$('#oBase').innerHTML = optHTML(BUILD.base, 'base', 'radio', 'mix');
+$('#oTop').innerHTML = optHTML(BUILD.top, 'top', 'checkbox', ['tomato', 'corn', 'chickpea']);
+$('#oPro').innerHTML = optHTML(BUILD.pro, 'pro', 'radio', 'tofu');
+$('#oSau').innerHTML = optHTML(BUILD.sau, 'sau', 'radio', 'miso');
+var bid = 'q' + (++U);
+$('#bowl').innerHTML = '<svg viewBox="0 0 400 400" class="litho vis" role="img" aria-label="沙拉碗俯視圖"><defs>' + bowlDefs(bid) + '</defs>' + bowlG(bid, '<g id="lyBase"></g><g id="lyTops"></g><g id="lyPro"></g><g id="lySau"></g>') + '</svg>';
+function val(n){ var e = $('input[name=' + n + ']:checked'); return e ? e.value : null; }
+function tops(){ return $$('input[name=top]:checked').map(function(e){ return e.value; }); }
+var last = {};
+function updBowl(fresh){
+  var st = {base:val('base'), tops:tops(), pro:val('pro'), sau:val('sau')};
+  if (st.base !== last.base) $('#lyBase').innerHTML = layBase(st.base);
+  if (st.tops.join() !== (last.tops || []).join()) $('#lyTops').innerHTML = layTops(st.tops, fresh);
+  if (st.pro !== last.pro) $('#lyPro').innerHTML = layPro(st.pro, last.pro !== undefined);
+  if (st.sau !== last.sau) $('#lySau').innerHTML = laySauce(st.sau);
+  last = st;
+  var items = [find(BUILD.base, st.base)].concat(st.tops.map(function(k){ return find(BUILD.top, k); }), [find(BUILD.pro, st.pro), find(BUILD.sau, st.sau)]);
+  var sum = function(i){ return items.reduce(function(a, o){ return a + o[i]; }, 0); };
+  var kc = sum(4), pr = sum(5), fb = sum(6), price = sum(3), vegan = items.every(function(o){ return o[10]; }), wt = 130 + st.tops.length*35 + (st.pro !== 'none' ? 80 : 0) + (st.sau !== 'none' ? 25 : 0);
+  [['#gK', kc, 800, Math.round(kc) + ' kcal'], ['#gP', pr, 35, pr.toFixed(1).replace(/\.0$/, '') + ' g'], ['#gF', fb, 14, fb.toFixed(1).replace(/\.0$/, '') + ' g']].forEach(function(g){ var el = $(g[0]); el.querySelector('i').style.setProperty('--v', Math.min(g[1]/g[2], 1).toFixed(3)); el.querySelector('b').textContent = g[3] + '・' + Math.round(g[1]/g[2]*100) + '%'; });
+  var qty = +$('#bQty').value;
+  $('#totP').textContent = money(price*qty); $('.mtot').textContent = money(price*qty);
+  $('#totMeta').innerHTML = 'Net Wt. 約 ' + wt + ' g' + (qty > 1 ? ' × ' + qty : '') + '<br>' + (vegan ? '全素 VEGAN' : '蛋奶素 OVO-LACTO');
+  $('#topCnt').textContent = st.tops.length + '／4' + (st.tops.length >= 4 ? '・滿了！' : '');
+  $$('input[name=top]').forEach(function(e){ e.disabled = !e.checked && st.tops.length >= 4; });
+  $('#bowlSum').textContent = items.filter(function(o){ return o[0] !== 'none'; }).map(function(o){ return o[1]; }).join('・');
+  return st;
+}
+$('#bf').addEventListener('change', function(e){
+  var t = e.target;
+  if (t.name === 'top' && t.checked){ var o = find(BUILD.top, t.value), r = $('#bowl').getBoundingClientRect(); updBowl(t.value); spill(r.left + r.width*.25, r.top - 30, r.width*.5, 16, [o[8], o[9], o[8]], r.height*.5); return; }
+  if (t.id === 'bDate' || t.id === 'bTime') return;
+  updBowl();
+});
+updBowl();
+function vPhone(v){ return /^09\d{2}-?\d{3}-?\d{3}$/.test(v.trim()); }
+function check(inp, ok, msg){ inp.parentNode.querySelector('.err').textContent = ok ? '' : msg; inp.setAttribute('aria-invalid', !ok); return ok; }
+$('#bf').addEventListener('submit', function(e){
+  e.preventDefault();
+  var n = $('#bName'), p = $('#bPhone'), t = $('#bTime'), ok = check(n, n.value.trim().length > 0, '請填寫取餐人姓名');
+  ok = check(p, vPhone(p.value), '請輸入手機號碼，格式 09xx-xxx-xxx') && ok;
+  var tOpt = t.options[t.selectedIndex]; if (!tOpt || tOpt.disabled){ t.nextElementSibling.textContent = '請選擇可取餐的時段'; ok = false; }
+  if (!ok){ var bad = $('#bf [aria-invalid=true]'); if (bad) bad.focus(); return; }
+  var st = last, d = bDays[+$('#bDate').value], q = +$('#bQty').value, items = [find(BUILD.base, st.base)].concat(st.tops.map(function(k){ return find(BUILD.top, k); }), [find(BUILD.pro, st.pro), find(BUILD.sau, st.sau)]).filter(function(o){ return o[0] !== 'none'; });
+  var total = items.reduce(function(a, o){ return a + o[3]; }, 0)*q, no = String(1000 + (now.getDate()*37 + nm) % 9000);
+  $('#bfMain').innerHTML = '<div class="receipt"><span class="stamp">ORDER RECEIVED</span><h4>訂單 No. ' + no + ' 已收到</h4><p>' + esc(n.value.trim()) + '，請於 <b>' + dLabel(d) + ' ' + t.value + '</b> 到店取餐，取餐時報手機末三碼 <b>' + esc(p.value.trim().slice(-3)) + '</b>。</p><ul>' + items.map(function(o){ return '<li><span>' + o[1] + '</span><span>' + (o[3] ? o[3] : '—') + '</span></li>'; }).join('') + '<li><span>份數</span><span>× ' + q + '</span></li><li><b>合計</b><b>' + money(total) + '</b></li></ul><p class="demo">示範版本：沒有真的送出訂單，也不會扣款。</p><p><button type="button" class="btn line" id="again">再組一碗</button></p></div>';
+  $('#again').onclick = function(){ location.hash = ''; location.reload(); };
+  $('#bfMain').scrollIntoView({behavior:reduce ? 'auto' : 'smooth', block:'start'});
+});
+$('#bQty').addEventListener('change', function(){ updBowl(); });
+
+/* ===== 本月當季 ===== */
+var todayM = now.getMonth() + 1;
+function drawCal(){
+  var h = '<span></span>'; for (var m = 1; m <= 12; m++) h += '<button type="button" class="mh' + (m === curM ? ' sel' : '') + (m === todayM ? ' today' : '') + '" data-m="' + m + '" aria-pressed="' + (m === curM) + '" aria-label="' + MZH[m - 1] + '">' + m + '</button>';
+  SEASON.forEach(function(v){ var on = v[4].indexOf(curM) >= 0; h += '<span class="nm' + (on ? ' in' : '') + '">' + v[1] + '</span>'; for (var m = 1; m <= 12; m++){ var a = v[4].indexOf(m) >= 0, pv = v[4].indexOf(m === 1 ? 12 : m - 1) >= 0, nx = v[4].indexOf(m === 12 ? 1 : m + 1) >= 0; h += '<span class="c' + (a ? ' on' : '') + (a && !pv ? ' s' : '') + (a && !nx ? ' e' : '') + (m === curM ? ' sel' : '') + '"></span>'; } });
+  $('#cal').innerHTML = h;
+  var list = SEASON.filter(function(v){ return v[4].indexOf(curM) >= 0; });
+  $('#smTitle').innerHTML = MZH[curM - 1] + '當季<i>' + MEN[curM - 1] + '</i>';
+  $('#smToday').textContent = curM === todayM ? '今天是 ' + (now.getMonth() + 1) + '/' + now.getDate() + '，這些菜正在田裡等採收：' : '這是 ' + MZH[curM - 1] + '的收成（今天是 ' + todayM + ' 月）';
+  $('#smVeg').innerHTML = list.map(function(v){ return '<div class="sv">' + vegIcon(v[0]) + v[1] + '<small>' + v[2] + '</small></div>'; }).join('');
+  var fk = {}; list.forEach(function(v){ (fk[v[3]] = fk[v[3]] || []).push(v[1]); });
+  $('#smFarms').innerHTML = Object.keys(fk).map(function(k){ return '<li><b>' + FARMS[k][0] + '</b><span>' + FARMS[k][1] + '</span><small>本月供應：' + fk[k].join('、') + '</small></li>'; }).join('');
+  $$('#smVeg svg').forEach(function(s){ s.classList.add('vis'); });
+}
+$('#cal').addEventListener('click', function(e){ var b = e.target.closest('.mh'); if (!b) return; curM = +b.dataset.m; drawCal(); var nb = $('#cal .mh[data-m="' + curM + '"]'); if (nb) nb.focus(); });
+drawCal();
+
+/* ===== 蔬菜箱 ===== */
+$('#crates').innerHTML = BOXES.map(function(b, i){ return '<label class="crate"><input type="radio" name="box" value="' + b.k + '"' + (i === 1 ? ' checked' : '') + '><span class="cbody">' + crateSVG(b) + '<b>' + b.zh + '</b><small>' + b.who + '・' + b.items + ' 種' + '</small><small>' + b.wt + '</small><em>' + money(b.price) + ' / 箱</em></span></label>'; }).join('');
+var FQ = SHOP.price.freq, PK = SHOP.price.pick;
+$('#freq').innerHTML = Object.keys(FQ).map(function(k, i){ var f = FQ[k]; return '<label class="pill"><input type="radio" name="fq" value="' + k + '"' + (i === 0 ? ' checked' : '') + '><span>' + f.zh + '<small>' + f.n + ' 箱/月' + (f.off ? '・' + Math.round(f.off*100) + '% off' : '') + '</small></span></label>'; }).join('');
+$('#pick').innerHTML = Object.keys(PK).map(function(k, i){ var p = PK[k]; return '<label class="pill"><input type="radio" name="pk" value="' + k + '"' + (i === 0 ? ' checked' : '') + '><span>' + p.zh + '<small>' + (p.fee ? '+' + p.fee + '/次' : '免運') + '</small></span></label>'; }).join('');
+function boxCalc(){
+  var b = BOXES.filter(function(x){ return x.k === ($('input[name=box]:checked') || {}).value; })[0] || BOXES[1], f = FQ[val('fq') || 'w'], p = PK[val('pk') || 'store'];
+  var base = b.price*f.n, off = Math.round(base*f.off), ship = p.fee*f.n, total = base - off + ship;
+  var inS = SEASON.filter(function(v){ return v[4].indexOf(todayM) >= 0; }).slice(0, b.items).map(function(v){ return v[1]; });
+  return {b:b, f:f, p:p, base:base, off:off, ship:ship, total:total, inS:inS};
+}
+function drawRemit(){
+  var c = boxCalc();
+  $('#remit').innerHTML = '<h4>每月金額 REMITTANCE</h4><div class="rl"><span>' + c.b.zh + ' ' + money(c.b.price) + ' × ' + c.f.n + ' 箱</span><span>' + money(c.base) + '</span></div>' + (c.off ? '<div class="rl minus"><span>' + c.f.zh + '訂閱折扣 ' + Math.round(c.f.off*100) + '%</span><span>− ' + money(c.off) + '</span></div>' : '') + '<div class="rl"><span>' + c.p.zh + (c.p.fee ? ' ' + c.p.fee + ' × ' + c.f.n : '') + '</span><span>' + (c.ship ? '+ ' + money(c.ship) : '免運') + '</span></div>' +
+    '<div class="rtot"><span>每月合計<br>AMOUNT ENCLOSED</span><b>' + money(c.total) + '</b></div><p class="avg">平均每箱 ' + money(c.total/c.f.n) + '・可隨時暫停或取消</p><div class="inbox"><b>本期箱內可能有（' + MZH[todayM - 1] + '）</b>' + c.inS.join('、') + (c.b.k === 'c' ? '，另附白味噌芝麻醬、羅勒青醬各一瓶' : '') + '</div><button type="submit" class="btn red submit">寄出訂閱單 →</button><p class="ci-w" style="margin-top:12px;line-height:1.8">・每月 1 日扣款，月中加入按比例計費<br>・出貨前 3 天可跳過一期或改箱型<br>・紙箱與保冷袋請下次取貨時交回</p>';
+}
+$('#xf').addEventListener('change', function(e){ if (e.target.name === 'box' || e.target.name === 'fq' || e.target.name === 'pk') drawRemit(); });
+drawRemit();
+$('#xf').addEventListener('submit', function(e){
+  e.preventDefault();
+  var n = $('#xName'), p = $('#xPhone'), ok = check(n, n.value.trim().length > 0, '請填寫訂購人姓名');
+  ok = check(p, vPhone(p.value), '請輸入手機號碼，格式 09xx-xxx-xxx') && ok;
+  if (!ok){ $('#xf [aria-invalid=true]').focus(); return; }
+  var c = boxCalc(), d = xDays[+$('#xDate').value];
+  $('#xfMain').innerHTML = '<div class="receipt" style="grid-column:1/-1"><span class="stamp">SUBSCRIBED</span><h4>' + esc(n.value.trim()) + '，歡迎加入苗圃蔬菜箱</h4><ul><li><span>箱型</span><span>' + c.b.zh + '（' + c.b.who + '）</span></li><li><span>頻率</span><span>' + c.f.zh + '・每月 ' + c.f.n + ' 箱</span></li><li><span>取貨</span><span>' + c.p.zh + '</span></li><li><span>第一箱</span><span>' + dLabel(d) + '</span></li><li><b>每月</b><b>' + money(c.total) + '</b></li></ul><p>確認簡訊會傳到 ' + esc(p.value.trim()) + '。</p><p class="demo">示範版本：沒有真的送出訂閱，也不會扣款。</p></div>';
+  $('#xfMain').scrollIntoView({behavior:reduce ? 'auto' : 'smooth', block:'center'});
+});
+
+/* ===== 評論 ===== */
+$('#revs').innerHTML = REVIEWS.map(function(r, i){ return '<figure class="rev rv" style="transition-delay:' + i*120 + 'ms"><div class="seeds" role="img" aria-label="五顆種子評分"><i></i><i></i><i></i><i></i><i></i></div><blockquote>' + esc(r[0]) + '</blockquote><figcaption>— ' + esc(r[1]) + '<small>' + esc(r[2]) + '</small></figcaption></figure>'; }).join('');
+
+/* ===== 共用 ===== */
+var ORN = '<svg viewBox="0 0 240 20" aria-hidden="true"><path d="M0 10H92M148 10H240" stroke="currentColor" stroke-width="1.5"/><path d="M96 10l6-5 6 5-6 5zM132 10l6-5 6 5-6 5z" fill="currentColor"/><path d="M120 17V9" stroke="currentColor" stroke-width="1.5"/><path d="M120 10c-6-1-9-5-9-9 5 0 9 3 9 9zM120 10c6-1 9-5 9-9-5 0-9 3-9 9z" fill="#6f8a5a" stroke="currentColor" stroke-width="1"/></svg>';
+$$('.orn').forEach(function(o){ o.innerHTML = ORN; });
+var nav = $('#nav'), burger = $('#burger');
+burger.onclick = function(){ var o = nav.classList.toggle('open'); burger.setAttribute('aria-expanded', o); burger.textContent = o ? '收起 ✕' : '目錄 ☰'; };
+$$('#navList a').forEach(function(a){ a.addEventListener('click', function(){ nav.classList.remove('open'); burger.setAttribute('aria-expanded', 'false'); burger.textContent = '目錄 ☰'; }); });
+var slotBtn = $('#slotBtn');
+function slots(on){ document.body.classList.toggle('slots', on); slotBtn.setAttribute('aria-pressed', on); }
+slotBtn.onclick = function(){ slots(!document.body.classList.contains('slots')); };
+if (/[?&]slots/.test(location.search)) slots(true);
+fillPhotos();
+mob.addEventListener && mob.addEventListener('change', function(){ var fl = $$('.pk').map(function(p){ return p.classList.contains('flip'); }); drawPackets(); fillPhotos(); $$('.pk').forEach(function(p, i){ if (fl[i]) p.classList.add('flip'); }); $('#packets').classList.add('vis'); });
+var hero = $('.hero');
+requestAnimationFrame(function(){ requestAnimationFrame(function(){ hero.classList.add('loaded'); $('#packets').classList.add('vis');
+  setTimeout(function(){ var c = $('.pk.p1'); if (!c) return; var r = c.getBoundingClientRect(); spill(r.left + r.width*.25, r.top + 6, r.width*.5, 18, [M, '#8a5a2e', D, G], 220); }, 900); }); });
+var obs = $$('.rv,.dots,#cat');
+if ('IntersectionObserver' in window && !reduce){
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('vis'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -8% 0px'});
+  obs.forEach(function(el){ io.observe(el); });
+} else obs.forEach(function(el){ el.classList.add('vis'); });
+})();
+</script>
+</body>
+</html>
