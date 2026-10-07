@@ -1,0 +1,1243 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hearth &amp; Sack 爐與袋｜天然酵母歐式麵包坊・台南中西區</title>
+<meta name="description" content="Hearth & Sack 爐與袋：台南中西區的天然酵母歐式麵包坊。石窯每天分爐出爐，官網即時顯示出爐時刻，可線上預訂隔日取貨，也能訂閱每週的天然酵母麵包。">
+<meta name="theme-color" content="#e8dcc0">
+<!--
+  ===== 店家模板使用方式 =====
+  1. 店名、電話、地址、營業時間（依星期幾，可多時段，null = 公休）、截單時間、取貨時段、
+     滿額贈品門檻與訂閱價格，全部集中在 <script> 開頭的 SHOP 物件。
+  2. MENU 是完整麵包清單（品名、外文名、淨重、水合率、發酵時數、價格、分類）；
+     BOARD 是出爐時刻表（每種麵包一天的出爐時間）；REVIEWS 是評論。改這三個常數，頁面會自動重畫。
+  3. 照片：在 SHOP.photos 填入圖片網址即可取代程式繪製的佔位插畫（oven、campagne、croissant、
+     baguette、shop、flour、banneton）。網址加上 ?slots 或按右下角「照片位」按鈕，會用虛線標出每個照片位與建議尺寸。
+  4. 預訂取貨與麵包訂閱只是前端示範：有即時計算與欄位驗證，但不會真的送出。
+     正式上線請把 submit 串接訂單系統／金流（或 LINE 官方帳號、Google 表單）。
+  5. 模版字使用系統內建的 Stencil（macOS／Windows Office）；若系統沒有，會自動以粗體字＋程式切出的「模版橋」模擬。
+-->
+<style>
+:root{
+  --oat:#e8dcc0;--oat2:#dccdab;--oat3:#f4ecd9;--blue:#2f4c8f;--blueD:#22396d;--wheat:#c79a4b;--fire:#d46a2a;--fireD:#a6461a;
+  --brown:#3a2a1c;--brown2:#6a5641;--line:rgba(58,42,28,.24);
+  --sten:"Stencil Std","Stencil","Impact","Haettenschweiler","Arial Narrow Bold","DejaVu Sans Condensed","Liberation Sans Narrow","PingFang TC","Microsoft JhengHei","Noto Sans CJK TC","WenQuanYi Zen Hei",sans-serif;
+  --body:"Lucida Grande","Lucida Sans Unicode","Lucida Sans","DejaVu Sans","Verdana","PingFang TC","Microsoft JhengHei","Noto Sans CJK TC","WenQuanYi Zen Hei",sans-serif;
+  --ease:cubic-bezier(.2,.7,.2,1)}
+@property --r{syntax:'<percentage>';inherits:false;initial-value:-30%}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+html,body{margin:0}
+body{background-color:var(--oat);color:var(--brown);font-family:var(--body);font-size:16px;line-height:1.75;overflow-x:clip;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9 .32' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .23 0 0 0 0 .16 0 0 0 0 .1 0 0 0 .55 -.08'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+  repeating-linear-gradient(0deg,rgba(58,42,28,.05) 0 2px,transparent 2px 5px),repeating-linear-gradient(90deg,rgba(58,42,28,.045) 0 2px,rgba(255,250,236,.05) 2px 3px,transparent 3px 5px)}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--fire);outline-offset:3px}
+.wrap{max-width:1320px;margin:0 auto;padding:0 clamp(16px,3.4vw,48px)}
+.sten{font-family:var(--sten);font-weight:700;line-height:1.1;letter-spacing:.03em}
+.ttl>.sten,.copy h1 .zh{display:inline-block}
+.faux .sten{-webkit-mask-image:linear-gradient(180deg,#000 50%,transparent 50%,transparent 55.5%,#000 55.5%);mask-image:linear-gradient(180deg,#000 50%,transparent 50%,transparent 55.5%,#000 55.5%);-webkit-mask-size:100% 1.1em;mask-size:100% 1.1em;-webkit-mask-repeat:repeat-y;mask-repeat:repeat-y}
+.faux .svsten{mask:url(#gapM)}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.stripes{height:22px;background:linear-gradient(180deg,transparent 0 3px,var(--blue) 3px 11px,transparent 11px 14px,var(--blue) 14px 16px,transparent 16px 18px,var(--blue) 18px 20px,transparent 20px);opacity:.92}
+/* 導覽 */
+.topband{height:12px;background:linear-gradient(180deg,var(--blue) 0 5px,transparent 5px 7px,var(--blue) 7px 9px,transparent 9px 10px,var(--blue) 10px 12px)}
+.nav{position:sticky;top:0;z-index:50;background:rgba(232,220,192,.95);backdrop-filter:blur(6px);box-shadow:0 1px 0 var(--line)}
+.nav::after{content:"";position:absolute;left:0;right:0;bottom:5px;height:2px;background:repeating-linear-gradient(90deg,var(--brown2) 0 9px,transparent 9px 15px);opacity:.5}
+.nav .wrap{display:flex;align-items:center;gap:22px;height:68px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--blue)}
+.logo svg{width:40px;height:40px;flex:none}
+.logo b{display:block;font-size:20px;letter-spacing:.06em}
+.logo small{display:block;font-size:11px;letter-spacing:.3em;color:var(--brown2);margin-top:2px}
+.nav ul{display:flex;gap:4px;list-style:none;margin:0 0 0 auto;padding:0}
+.nav ul a{display:block;text-decoration:none;font-size:14px;padding:8px 12px;letter-spacing:.06em;border-radius:2px}
+.nav ul a:hover{background:rgba(47,76,143,.1);color:var(--blue)}
+.burger{display:none;margin-left:auto;background:none;border:2px solid var(--blue);color:var(--blue);padding:7px 10px;cursor:pointer;align-items:center;gap:8px;font-size:13px;letter-spacing:.1em}
+.burger i{display:block;width:20px;height:12px;background:linear-gradient(180deg,currentColor 0 3px,transparent 3px 5px,currentColor 5px 6px,transparent 6px 8px,currentColor 8px 9px,transparent 9px)}
+/* 按鈕 */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--sten);font-weight:700;letter-spacing:.08em;font-size:16px;padding:13px 24px;background:var(--blue);color:var(--oat3);text-decoration:none;border:0;cursor:pointer;box-shadow:inset 0 0 0 2px var(--blue),inset 0 0 0 4px var(--oat3);transition:background .25s,transform .15s}
+.btn:hover{background:var(--fireD);box-shadow:inset 0 0 0 2px var(--fireD),inset 0 0 0 4px var(--oat3)}
+.btn:active{transform:translateY(1px)}
+.btn.ghost{background:transparent;color:var(--blue);box-shadow:inset 0 0 0 2px var(--blue)}
+.btn.ghost:hover{background:var(--blue);color:var(--oat3)}
+.btn.sm{font-size:14px;padding:9px 16px}
+/* 照片位 */
+.ph{position:relative;overflow:hidden;margin:0;background:var(--oat2)}
+.ph>svg,.ph>img,.ph>canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+body.slots .ph{outline:2px dashed var(--fire);outline-offset:-2px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:10px;top:10px;z-index:3;background:var(--brown);color:var(--oat3);font-size:11px;padding:3px 9px;line-height:1.5}
+/* Hero */
+.hero{padding:26px 0 46px}
+.hero .wrap{display:grid;grid-template-columns:340px minmax(0,1fr) 350px;grid-template-areas:"board sack copy";gap:clamp(18px,2.6vw,40px);align-items:center}
+.copy{grid-area:copy}.sackBox{grid-area:sack}.board{grid-area:board}
+.status{display:inline-flex;align-items:center;gap:9px;font-size:13px;letter-spacing:.06em;padding:5px 12px 5px 10px;border:2px solid var(--brown);background:var(--oat3)}
+.status i{width:9px;height:9px;border-radius:50%;background:#8b7b68}
+.status.on{border-color:var(--blue);color:var(--blue)}
+.status.on i{background:#3c8a4a;box-shadow:0 0 0 3px rgba(60,138,74,.2)}
+.copy .ey{display:block;margin:18px 0 0;font-size:13px;letter-spacing:.24em;color:var(--brown2)}
+.copy h1{margin:6px 0 0;font-weight:400}
+.copy h1 .zh{font-size:clamp(66px,7.4vw,108px);color:var(--brown);letter-spacing:.06em}
+.copy h1 .en{display:block;font-size:clamp(22px,2.2vw,30px);color:var(--blue);margin-top:4px;letter-spacing:.1em}
+.copy p{margin:16px 0 22px;max-width:30em;color:var(--brown2)}
+.btns{display:flex;flex-wrap:wrap;gap:12px}
+.today{margin:20px 0 0;padding:12px 0 0;border-top:2px dashed var(--line);font-size:13px;color:var(--brown2);line-height:1.6}
+.today b{color:var(--blue);font-weight:700}
+.sackBox{position:relative}
+.sackBox svg{display:block;width:100%;height:auto;max-height:640px;margin:0 auto}
+.seepHole{transform-origin:260px 330px;animation:seepIn 2.4s .3s var(--ease) forwards}
+@keyframes seepIn{from{transform:scale(1)}to{transform:scale(0)}}
+.steam path{fill:none;stroke:#fffaf0;stroke-width:9px;stroke-linecap:round;opacity:0;transform-box:fill-box;transform-origin:50% 100%;animation:steam 4.2s ease-in infinite}
+.steam path:nth-child(2){animation-delay:1.4s}.steam path:nth-child(3){animation-delay:2.8s}
+@keyframes steam{0%{opacity:0;transform:translate(0,14px) scale(.7,.5)}25%{opacity:.85}70%{opacity:.35}100%{opacity:0;transform:translate(10px,-70px) scale(1.15,1.1)}}
+.glow{animation:glow 3.2s ease-in-out infinite alternate}
+@keyframes glow{from{opacity:.75}to{opacity:1}}
+/* 出爐看板 */
+.board{background:repeating-linear-gradient(90deg,#4b3524 0 7px,#3a2a1c 7px 9px,#553d29 9px 21px,#45311f 21px 24px);padding:11px;box-shadow:0 18px 30px rgba(58,42,28,.28),inset 0 0 0 1px rgba(0,0,0,.4);position:relative}
+.board::before,.board::after{content:"";position:absolute;top:4px;width:7px;height:7px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d8c9a8,#7a6b55)}
+.board::before{left:4px}.board::after{right:4px}
+.bin{background:var(--oat3);background-image:repeating-linear-gradient(0deg,rgba(58,42,28,.04) 0 2px,transparent 2px 5px),repeating-linear-gradient(90deg,rgba(58,42,28,.04) 0 2px,transparent 2px 5px);padding:14px 16px 12px}
+.bh{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.bh h2{margin:0;font-weight:400;font-size:25px;color:var(--brown)}
+.bh small{display:block;font-size:11px;letter-spacing:.2em;color:var(--brown2);margin-top:3px}
+.clock{text-align:right;font-size:11px;color:var(--brown2);letter-spacing:.08em}
+.flip{display:inline-flex;align-items:center;gap:2px;perspective:300px;font-family:var(--sten);font-weight:700;font-variant-numeric:tabular-nums}
+.fd{position:relative;display:inline-block;width:.78em;height:1.28em;line-height:1.28em;text-align:center;background:var(--brown);color:var(--oat3);border-radius:3px;overflow:hidden}
+.fd span{display:block;transform-origin:50% 0}
+.fd::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.55);box-shadow:0 1px 0 rgba(255,255,255,.08)}
+.fd.go span{animation:flip .42s var(--ease)}
+@keyframes flip{from{transform:rotateX(-88deg);opacity:.2}to{transform:none;opacity:1}}
+.flip .sep{font-style:normal;width:.34em;text-align:center}
+.clock .flip{font-size:22px;margin-top:2px}
+.next{margin:12px 0 4px;background:var(--blue);color:var(--oat3);padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.next small{display:block;font-size:11px;letter-spacing:.16em;opacity:.85}
+.next b{display:block;font-size:17px;font-weight:700;line-height:1.3}
+.next .flip{font-size:19px}
+.next .fd{background:var(--oat3);color:var(--blue)}
+.next .fd::after{background:rgba(47,76,143,.4)}
+.rows{list-style:none;margin:0;padding:0}
+.rows li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 10px;align-items:center;padding:7px 0;border-top:1px dashed rgba(58,42,28,.3)}
+.rows li:first-child{border-top:0}
+.rows .nm{font-weight:700;font-size:15px;line-height:1.3}
+.rows .nm small{display:block;font-weight:400;font-size:11px;color:var(--brown2);letter-spacing:.04em}
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;padding:3px 8px;line-height:1.4;white-space:nowrap}
+.tag.fresh{background:var(--fireD);color:#fff8ec}
+.tag.nx{color:var(--blue);box-shadow:inset 0 0 0 1.5px var(--blue)}
+.tag.done{color:var(--brown2);background:rgba(58,42,28,.08)}
+.rows .st{text-align:right}
+.rows .sub{display:block;font-size:11.5px;color:var(--brown2);margin-top:2px}
+.bt{display:flex;flex-wrap:wrap;gap:0 8px;margin-top:2px;font-size:11px;color:var(--brown2);font-variant-numeric:tabular-nums;letter-spacing:.03em}
+.bt .past{text-decoration:line-through;opacity:.55}
+.bt .now{color:var(--fireD);font-weight:700}
+.bt .up{color:var(--blue);font-weight:700;border-bottom:2px solid var(--blue)}
+.mini{width:14px;height:14px;overflow:visible}
+.mini path{fill:none;stroke:#fff8ec;stroke-width:1.6;stroke-linecap:round;animation:wisp 1.8s ease-in-out infinite}
+.mini path:nth-child(2){animation-delay:.6s}.mini path:nth-child(3){animation-delay:1.2s}
+@keyframes wisp{0%{opacity:0;transform:translateY(3px)}50%{opacity:1}100%{opacity:0;transform:translateY(-4px)}}
+.pv{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;padding-top:10px;border-top:2px solid var(--brown);font-size:11.5px;color:var(--brown2)}
+.pv button{background:none;border:1px solid rgba(58,42,28,.4);padding:3px 8px;font-size:11.5px;cursor:pointer;line-height:1.4}
+.pv button[aria-pressed=true]{background:var(--brown);color:var(--oat3);border-color:var(--brown)}
+/* 區塊 */
+.sec{padding:clamp(70px,9vw,120px) 0}
+.ey2{display:inline-flex;align-items:center;gap:10px;font-size:12.5px;letter-spacing:.24em;color:var(--blue);font-weight:700}
+.ey2 b{font-family:var(--sten);font-size:14px;color:var(--oat3);background:var(--blue);padding:2px 8px;letter-spacing:.06em}
+.sec h2.ttl{margin:12px 0 14px;font-weight:400;font-size:clamp(38px,5vw,68px);color:var(--brown);width:fit-content;max-width:100%}
+.lead{max-width:40em;color:var(--brown2);margin:0}
+.ink{-webkit-mask-image:radial-gradient(ellipse 72% 95% at 50% 50%,transparent var(--r),#000 calc(var(--r) + 24%));mask-image:radial-gradient(ellipse 72% 95% at 50% 50%,transparent var(--r),#000 calc(var(--r) + 24%))}
+.js .ink{--r:115%}
+.js .ink.vis{animation:seep 1.5s var(--ease) forwards}
+@keyframes seep{from{--r:115%;filter:blur(2px)}to{--r:-30%;filter:blur(0)}}
+.rv{opacity:0;transform:translateY(22px);transition:opacity .9s ease,transform .9s var(--ease)}
+.rv.vis{opacity:1;transform:none}
+.no-js .rv{opacity:1;transform:none}
+/* 故事 */
+.story{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(30px,5vw,80px);align-items:center}
+.story .frame{position:relative;padding:12px;background:var(--oat3);box-shadow:0 20px 40px rgba(58,42,28,.18)}
+.story .frame::before{content:"";position:absolute;inset:5px;border:2px dashed rgba(58,42,28,.45);pointer-events:none;z-index:2}
+.story .ph{aspect-ratio:4/5}
+.stamp{position:absolute;z-index:3;width:120px;height:120px;right:-26px;bottom:34px;transform:rotate(-12deg);color:var(--fireD);opacity:.9}
+.story p{color:var(--brown2);margin:0 0 14px}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:28px 0 0;border:2px solid var(--blue)}
+.facts div{padding:14px 16px;border-left:2px solid var(--blue)}
+.facts div:first-child{border-left:0}
+.facts b{display:block;font-size:clamp(28px,3vw,40px);color:var(--blue);font-weight:400}
+.facts span{display:block;font-size:13px;color:var(--brown2);margin-top:4px}
+.sign{margin-top:18px;font-size:14px;color:var(--brown)}
+/* 招牌 */
+.sig{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(18px,2.4vw,34px);margin-top:40px}
+.card{background:var(--oat3);position:relative;box-shadow:0 14px 30px rgba(58,42,28,.14);display:flex;flex-direction:column}
+.card .ph{aspect-ratio:4/3}
+.card .body{padding:18px 20px 22px;position:relative;flex:1;display:flex;flex-direction:column}
+.card .body p{flex:1}
+.card .no{position:absolute;right:16px;top:-22px;width:58px;height:58px;border-radius:50%;background:var(--fireD);color:#fff8ec;display:grid;place-items:center;font-size:12px;line-height:1.1;text-align:center;box-shadow:0 0 0 3px var(--oat3),0 0 0 4px var(--fireD);transform:rotate(-8deg)}
+.card .no b{display:block;font-size:17px}
+.card h3{margin:0;font-weight:400;font-size:28px;color:var(--brown)}
+.card .en{display:block;font-size:12px;letter-spacing:.18em;color:var(--blue);margin:4px 0 10px}
+.card p{margin:0;color:var(--brown2);font-size:14.5px}
+.card .meta{display:flex;justify-content:space-between;gap:10px;margin-top:14px;padding-top:12px;border-top:2px dashed var(--line);font-size:13px;color:var(--brown2)}
+.card .meta b{color:var(--blue)}
+/* 菜單：麵粉袋側標 */
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin:30px 0 26px}
+.filters button{background:transparent;border:2px solid var(--brown);padding:7px 16px;cursor:pointer;font-size:14px;letter-spacing:.06em}
+.filters button[aria-pressed=true]{background:var(--brown);color:var(--oat3)}
+.labs{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:20px}
+.lab{background:var(--oat3);padding:6px;box-shadow:inset 0 0 0 3px var(--blue),0 8px 18px rgba(58,42,28,.1);display:flex;flex-direction:column}
+.lab.in{animation:press .55s var(--ease) both}
+@keyframes press{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}
+.lab>div{border:1px solid var(--blue);padding:0 14px 14px;flex:1;display:flex;flex-direction:column}
+.lab header{display:flex;justify-content:space-between;margin:0 -14px;padding:5px 14px;background:var(--blue);color:var(--oat3);font-size:12px;letter-spacing:.16em}
+.lab header .sten{letter-spacing:.08em;font-size:13px}
+.lab h3{margin:12px 0 0;font-weight:400;font-size:24px;color:var(--brown);line-height:1.2}
+.lab .en{display:block;font-size:12px;letter-spacing:.12em;color:var(--blue);margin:3px 0 10px}
+.spec{margin:0;border-top:2px solid var(--brown);border-bottom:2px solid var(--brown)}
+.spec div{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:8px;padding:5px 0;border-top:1px solid rgba(58,42,28,.25);font-size:12.5px}
+.spec div:first-child{border-top:0}
+.spec dt{color:var(--brown2);letter-spacing:.04em}
+.spec dt i{font-style:normal;font-size:10.5px;letter-spacing:.14em;margin-left:4px;opacity:.85}
+.spec dd{margin:0;font-family:var(--sten);font-weight:700;font-size:17px;color:var(--brown)}
+.hyd{grid-column:1/-1;height:6px;background:repeating-linear-gradient(90deg,rgba(47,76,143,.18) 0 4px,transparent 4px 6px)}
+.hyd i{display:block;height:100%;width:var(--h);background:var(--blue)}
+.lab p{font-size:13.5px;color:var(--brown2);margin:10px 0 12px;flex:1}
+.lab footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lab .pr{font-family:var(--sten);font-weight:700;font-size:21px;color:var(--fireD)}
+.lab .bk{font-size:11.5px;color:var(--brown2);text-align:right;line-height:1.4}
+/* 預訂 */
+.order{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:clamp(22px,3vw,40px);margin-top:36px;align-items:start}
+.panel{background:var(--oat3);padding:clamp(18px,2.4vw,30px);position:relative;box-shadow:0 14px 30px rgba(58,42,28,.12)}
+.panel::before{content:"";position:absolute;inset:6px;border:2px dashed rgba(58,42,28,.35);pointer-events:none}
+.panel>*{position:relative}
+.step{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:15px;font-weight:700;color:var(--brown)}
+.step b{font-family:var(--sten);width:30px;height:30px;display:grid;place-items:center;background:var(--blue);color:var(--oat3);font-size:15px}
+.step+.hint{margin:-6px 0 12px}
+.hint{font-size:13px;color:var(--brown2);margin:0}
+.plist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 22px;margin-bottom:24px}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center;padding:9px 0;border-bottom:1px dashed rgba(58,42,28,.3)}
+.prow b{display:block;font-size:14.5px;line-height:1.3}
+.prow small{font-size:12px;color:var(--brown2)}
+.qty{display:inline-flex;align-items:center;border:2px solid var(--brown)}
+.qty button{width:32px;height:32px;border:0;background:transparent;cursor:pointer;font-size:18px;line-height:1;color:var(--brown)}
+.qty button:hover{background:var(--brown);color:var(--oat3)}
+.qty output{min-width:28px;text-align:center;font-family:var(--sten);font-weight:700;font-size:16px}
+.prow.has .qty{border-color:var(--blue);background:rgba(47,76,143,.08)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.chips label{position:relative}
+.chips input{position:absolute;opacity:0;width:1px;height:1px}
+.chips span{display:block;padding:7px 12px;border:2px solid rgba(58,42,28,.45);cursor:pointer;font-size:14px;text-align:center;line-height:1.35;background:var(--oat3)}
+.chips span small{display:block;font-size:11px;color:var(--brown2)}
+.chips input:checked+span{background:var(--blue);border-color:var(--blue);color:var(--oat3)}
+.chips input:checked+span small{color:#d6def0}
+.chips input:disabled+span{opacity:.4;cursor:not-allowed;text-decoration:line-through}
+.chips input:focus-visible+span{outline:3px solid var(--fire);outline-offset:2px}
+.cut{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0 0 12px;padding:9px 12px;background:rgba(212,106,42,.12);border-left:4px solid var(--fire);font-size:13.5px}
+.cut .flip{font-size:15px}
+.note{font-size:12.5px;color:var(--fireD);margin:4px 0 0;min-height:1em}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px}
+.fi{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700;color:var(--brown)}
+.fi input,.fi textarea,.fi select{border:2px solid rgba(58,42,28,.5);background:#fffaf0;padding:9px 11px;font-size:16px;font-weight:400;border-radius:0;width:100%}
+.fi input:focus,.fi textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(47,76,143,.2)}
+.fi.bad input{border-color:var(--fireD)}
+.err{color:var(--fireD);font-size:12.5px;font-weight:400;min-height:1.2em}
+.full{grid-column:1/-1}
+.demo{font-size:12px;color:var(--brown2);margin:10px 0 0}
+.basket{position:sticky;top:90px}
+.basket h3{margin:0 0 4px;font-weight:400;font-size:26px;color:var(--blue)}
+.basket ul{list-style:none;margin:12px 0;padding:0;min-height:60px}
+.basket li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:6px 0;border-bottom:1px dotted rgba(58,42,28,.4);font-size:14px}
+.basket li.empty{display:block;color:var(--brown2);border:0;font-size:13.5px}
+.sum{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:14px}
+.sum .tot{font-size:15px;font-weight:700;padding-top:8px;border-top:2px solid var(--brown);margin-top:6px}
+.sum .tot+.tot{font-family:var(--sten);font-size:26px;color:var(--fireD);font-weight:700}
+.gift{margin:12px 0 0;font-size:13px;padding:8px 10px;background:rgba(199,154,75,.2)}
+.gift.ok{background:rgba(47,76,143,.12);color:var(--blue);font-weight:700}
+.pick{margin-top:12px;font-size:13px;color:var(--brown2)}
+/* 結果票 */
+.ticket{background:var(--oat3);padding:26px;position:relative;box-shadow:inset 0 0 0 3px var(--blue),inset 0 0 0 6px var(--oat3),inset 0 0 0 7px var(--blue)}
+.ticket h3{margin:0;font-weight:400;font-size:30px;color:var(--blue)}
+.ticket .no{font-family:var(--sten);font-weight:700;letter-spacing:.1em;color:var(--brown2);font-size:14px}
+.ticket ul{list-style:none;padding:0;margin:14px 0}
+.ticket li{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dotted rgba(58,42,28,.4);padding:5px 0;font-size:14.5px}
+.ticket .tstamp{position:absolute;right:22px;top:18px;width:96px;height:96px;transform:rotate(14deg);color:var(--fireD);opacity:.85}
+.ticket .tstamp.on{animation:stampIn .5s var(--ease) both}
+@keyframes stampIn{from{opacity:0;transform:rotate(14deg) scale(1.6)}to{opacity:.85;transform:rotate(14deg) scale(1)}}
+/* 訂閱 */
+.subw{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(22px,3vw,40px);margin-top:36px;align-items:start}
+.plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:22px}
+.plans label{position:relative}
+.plans input{position:absolute;opacity:0;width:1px;height:1px}
+.plans span{display:block;height:100%;padding:12px;border:2px solid rgba(58,42,28,.45);cursor:pointer;background:var(--oat3)}
+.plans b{display:block;font-size:15px}
+.plans em{display:block;font-style:normal;font-family:var(--sten);font-weight:700;font-size:18px;color:var(--fireD);margin:4px 0 2px}
+.plans small{display:block;font-size:12px;color:var(--brown2);line-height:1.45}
+.plans input:checked+span{border-color:var(--blue);box-shadow:inset 0 0 0 2px var(--blue);background:#fffaf0}
+.plans input:focus-visible+span{outline:3px solid var(--fire);outline-offset:2px}
+.loaves{display:flex;align-items:center;gap:16px;margin-bottom:22px}
+.loaves .flip{font-size:40px}
+.loaves .qty button{width:42px;height:42px;font-size:22px}
+.calc{background:var(--blue);color:var(--oat3);padding:clamp(20px,2.6vw,30px);position:relative}
+.calc::before{content:"";position:absolute;inset:7px;border:1px solid rgba(244,236,217,.5);pointer-events:none}
+.calc>*{position:relative}
+.calc h3{margin:0;font-weight:400;font-size:24px;letter-spacing:.06em}
+.calc table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}
+.calc td{padding:6px 0;border-bottom:1px dashed rgba(244,236,217,.35)}
+.calc td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.fee{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.fee small{display:block;font-size:12px;letter-spacing:.16em;opacity:.85}
+.fee .flip{font-size:34px}
+.fee .fd{background:var(--oat3);color:var(--blue)}
+.week{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin:16px 0 4px}
+.week div{background:rgba(244,236,217,.1);text-align:center;padding:6px 2px 8px;font-size:12px;min-height:66px}
+.week div.on{background:var(--oat3);color:var(--blue);font-weight:700}
+.week svg{display:block;margin:4px auto 0;width:28px;height:14px}
+.save{font-size:13px;margin:8px 0 0;color:#ffd9b8}
+/* 氛圍 */
+.gal{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:36px}
+.gal .ph{box-shadow:0 12px 26px rgba(58,42,28,.16)}
+.gal .g1{grid-column:1/3;aspect-ratio:16/10}
+.gal .g2{grid-column:3}
+.gal .g3{aspect-ratio:1}
+.gal .quote{grid-column:2/4}
+.quote{background:var(--brown);color:var(--oat3);padding:clamp(22px,3vw,40px);display:flex;flex-direction:column;justify-content:center}
+.quote p{margin:0;font-size:clamp(18px,1.8vw,24px);line-height:1.6}
+.quote span{margin-top:14px;font-size:13px;letter-spacing:.14em;color:var(--wheat)}
+/* 評論 */
+.revs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin-top:36px}
+.rev{background:var(--oat2);padding:24px 22px 20px;position:relative;box-shadow:0 10px 20px rgba(58,42,28,.12)}
+.rev::before{content:"";position:absolute;inset:6px;border:2px dashed rgba(58,42,28,.45);pointer-events:none}
+.rev:nth-child(1){transform:rotate(-1deg)}.rev:nth-child(3){transform:rotate(1.2deg)}
+.rev .stars{color:var(--fireD);letter-spacing:.2em;font-size:15px}
+.rev p{margin:10px 0 14px;font-size:15px}
+.rev footer{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--brown2)}
+.rev footer b{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--blue);color:var(--oat3);font-size:15px}
+.score{display:flex;align-items:center;gap:14px;margin-top:6px}
+.score b{font-family:var(--sten);font-size:48px;color:var(--blue);line-height:1}
+.score span{font-size:13px;color:var(--brown2)}
+/* 店訪 */
+.visit{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(18px,2.4vw,34px);margin-top:36px}
+.visit .vbox:first-child{grid-row:span 2}
+.vbox{background:var(--oat3);padding:22px;box-shadow:inset 0 0 0 2px var(--brown)}
+.vbox h3{margin:0 0 12px;font-weight:400;font-size:22px;color:var(--blue)}
+.hours{list-style:none;margin:0;padding:0}
+.hours li{display:flex;justify-content:space-between;gap:10px;padding:6px 10px;font-size:14.5px;border-bottom:1px dashed rgba(58,42,28,.3)}
+.hours li.td{background:var(--blue);color:var(--oat3);font-weight:700;border-bottom-color:transparent}
+.hours li.off span:last-child{color:var(--brown2)}
+.hours li.td.off span:last-child{color:var(--oat3)}
+.bigst{font-size:17px;font-weight:700;margin:0 0 12px;color:var(--brown)}
+.bigst.on{color:#2f6b3a}
+.vbox p{margin:0 0 10px;font-size:14.5px;color:var(--brown2)}
+.vbox a.lnk{color:var(--blue);font-weight:700}
+.tel{font-family:var(--sten);font-weight:700;font-size:28px;color:var(--brown);text-decoration:none;display:block;margin-bottom:8px}
+footer.site{background:var(--brown);color:var(--oat2);padding:40px 0 70px;margin-top:20px}
+footer.site .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:20px;align-items:center}
+footer.site .logo{color:var(--oat3)}
+footer.site .logo small{color:var(--wheat)}
+footer.site p{margin:0;font-size:13px;line-height:1.8}
+footer.site nav{display:flex;gap:18px;font-size:13px}
+footer.site nav a{text-decoration:none;border-bottom:1px solid rgba(232,220,192,.4)}
+.slotBtn{position:fixed;right:14px;bottom:14px;z-index:60;background:var(--brown);color:var(--oat3);border:2px solid var(--oat3);box-shadow:0 0 0 2px var(--brown);font-size:12px;padding:7px 12px;cursor:pointer;letter-spacing:.1em}
+.slotBtn[aria-pressed=true]{background:var(--fireD)}
+@media (max-width:1180px){
+  .hero .wrap{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"copy sack" "board board"}
+  .board{max-width:640px;width:100%;justify-self:center}
+}
+@media (max-width:980px){
+  .nav ul{display:none;position:absolute;top:68px;left:0;right:0;flex-direction:column;background:var(--oat);padding:8px 16px 16px;box-shadow:0 10px 20px rgba(58,42,28,.2);border-top:1px solid var(--line)}
+  .nav.open ul{display:flex}
+  .nav ul a{padding:12px 6px;border-bottom:1px dashed var(--line)}
+  .nav .wrap>.btn{display:none}
+  .burger{display:inline-flex}
+  .story,.order,.subw{grid-template-columns:1fr}
+  .sig,.revs{grid-template-columns:1fr 1fr}
+  .basket{position:relative;top:0}
+}
+@media (max-width:760px){
+  .hero{padding-top:18px}
+  .hero .wrap{grid-template-columns:1fr;grid-template-areas:"copy" "sack" "board"}
+  .sackBox svg{max-height:440px}
+  .sig,.revs,.gal{grid-template-columns:1fr}
+  .gal .g1,.gal .g2,.gal .quote{grid-column:auto}
+  .gal .g2{aspect-ratio:4/5}
+  .visit{grid-template-columns:1fr}
+  .visit .vbox:first-child{grid-row:auto}
+  .rev:nth-child(n){transform:none}
+  .stamp{right:-6px;width:96px;height:96px}
+}
+@media (max-width:620px){
+  .plist{grid-template-columns:1fr}
+  .fields{grid-template-columns:1fr}
+  .plans{grid-template-columns:1fr}
+  .facts div{padding:12px 10px}
+  .ticket .tstamp{width:74px;height:74px;right:14px;top:12px}
+  .week{gap:4px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .rv{opacity:1;transform:none;transition:none}
+  .js .ink,.js .ink.vis{animation:none;--r:-30%;filter:none}
+  .seepHole{animation:none;transform:scale(0)}
+  .steam path,.mini path{animation:none;opacity:0}
+  .glow{animation:none}
+  .fd.go span,.lab.in,.ticket .tstamp.on{animation:none}
+}
+</style>
+</head>
+<body class="no-js">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <pattern id="weave" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 1.5h3M3 4.5h3" stroke="#3a2a1c" stroke-opacity=".17" stroke-width="2.4"/><path d="M4.5 0v3M1.5 3v3" stroke="#fffaf0" stroke-opacity=".22" stroke-width="2.4"/></pattern>
+    <filter id="ink" x="-4%" y="-4%" width="108%" height="108%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="1" seed="4" result="sp"/><feColorMatrix in="sp" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -5 3.95" result="m"/><feComposite in="SourceGraphic" in2="m" operator="in" result="e"/><feTurbulence type="fractalNoise" baseFrequency=".06" numOctaves="2" seed="9" result="w"/><feDisplacementMap in="e" in2="w" scale="3" xChannelSelector="R" yChannelSelector="G"/></filter>
+    <filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".75 .28" numOctaves="2" seed="2" result="g"/><feColorMatrix in="g" type="matrix" values="0 0 0 0 .23  0 0 0 0 .16  0 0 0 0 .1  0 0 0 1.1 -.42" result="c"/><feComposite in="c" in2="SourceGraphic" operator="in"/></filter>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3"/></filter>
+    <mask id="gapM" maskContentUnits="objectBoundingBox"><rect x="-.1" y="-.1" width="1.2" height="1.2" fill="#fff"/><rect x="-.1" y=".47" width="1.2" height=".05" fill="#000"/></mask>
+    <symbol id="wheat" viewBox="-40 -60 80 120"><g fill="currentColor"><path d="M-1.6 58 L-1.6 -40 L1.6 -40 L1.6 58Z"/><g id="ear"><ellipse cx="-7" cy="-38" rx="4.2" ry="9" transform="rotate(-28 -7 -38)"/><ellipse cx="7" cy="-38" rx="4.2" ry="9" transform="rotate(28 7 -38)"/><ellipse cx="-7" cy="-22" rx="4.2" ry="9" transform="rotate(-28 -7 -22)"/><ellipse cx="7" cy="-22" rx="4.2" ry="9" transform="rotate(28 7 -22)"/><ellipse cx="-7" cy="-6" rx="4.2" ry="9" transform="rotate(-28 -7 -6)"/><ellipse cx="7" cy="-6" rx="4.2" ry="9" transform="rotate(28 7 -6)"/><ellipse cx="0" cy="-50" rx="3.6" ry="9"/></g><g transform="rotate(-26 0 58)"><path d="M-1.4 58 L-1.4 -26 L1.4 -26 L1.4 58Z"/><use href="#ear" transform="translate(0 16) scale(.82)"/></g><g transform="rotate(26 0 58)"><path d="M-1.4 58 L-1.4 -26 L1.4 -26 L1.4 58Z"/><use href="#ear" transform="translate(0 16) scale(.82)"/></g></g></symbol>
+    <symbol id="stampFresh" viewBox="0 0 120 120"><g fill="none" stroke="currentColor"><circle cx="60" cy="60" r="56" stroke-width="4"/><circle cx="60" cy="60" r="46" stroke-width="1.5" stroke-dasharray="4 3"/></g><path id="sArc" d="M60 60 m-38 0 a38 38 0 1 1 76 0" fill="none"/><text font-size="11" letter-spacing="3" fill="currentColor" font-weight="700" font-family="Lucida Grande,DejaVu Sans,sans-serif"><textPath href="#sArc" startOffset="50%" text-anchor="middle">NATURAL · LEVAIN</textPath></text><text x="60" y="72" text-anchor="middle" font-size="22" font-weight="700" fill="currentColor" font-family="PingFang TC,Microsoft JhengHei,WenQuanYi Zen Hei,sans-serif">老麵</text><text x="60" y="94" text-anchor="middle" font-size="10" letter-spacing="2" fill="currentColor" font-family="Lucida Grande,DejaVu Sans,sans-serif">SINCE 2016</text></symbol>
+  </defs>
+</svg>
+
+<div class="topband" aria-hidden="true"></div>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="回到頁首">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="20" cy="20" r="15" fill="none" stroke="currentColor" stroke-width=".8"/><use href="#wheat" x="8" y="6" width="24" height="28" style="color:var(--fire)"/></svg>
+      <span><b class="sten" data-shop="name">Hearth &amp; Sack</b><small data-shop="nameZh">爐與袋</small></span>
+    </a>
+    <ul id="navList">
+      <li><a href="#board">出爐時刻</a></li><li><a href="#story">品牌故事</a></li><li><a href="#menu">麵包清單</a></li><li><a href="#order">預訂取貨</a></li><li><a href="#sub">酵母訂閱</a></li><li><a href="#visit">來店</a></li>
+    </ul>
+    <a class="btn sm" href="#order">預訂明天的麵包</a>
+    <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="navList"><i aria-hidden="true"></i>選單</button>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <div class="copy rv">
+        <span class="status" id="status"><i></i><span>…</span></span>
+        <span class="ey">天然酵母歐式麵包坊 · 台南中西區</span>
+        <h1><span class="sten zh" data-shop="nameZh">爐與袋</span><span class="sten en" data-shop="name">Hearth &amp; Sack</span></h1>
+        <p>一缸養了九年的老麵、一座燒到 280°C 的石窯、每天開封的整袋石磨麵粉。我們不做冷凍麵團，每一條都在你醒來前後分爐出爐。</p>
+        <div class="btns"><a class="btn" href="#order">預訂取貨</a><a class="btn ghost" href="#sub">訂閱天然酵母</a></div>
+        <p class="today" id="todayLine"></p>
+      </div>
+
+      <div class="sackBox rv" aria-hidden="true">
+        <svg viewBox="0 0 520 600" id="sackSvg">
+          <defs>
+            <radialGradient id="hGlow" cx=".5" cy="1" r=".75"><stop offset="0" stop-color="#f6b25e"/><stop offset=".35" stop-color="#d46a2a" stop-opacity=".85"/><stop offset="1" stop-color="#d46a2a" stop-opacity="0"/></radialGradient>
+            <radialGradient id="sackSh" cx=".48" cy=".42" r=".72"><stop offset="0" stop-color="#f2e7cd"/><stop offset=".6" stop-color="#e6d7b5"/><stop offset="1" stop-color="#bfa67b"/></radialGradient>
+            <radialGradient id="loafG" cx=".42" cy=".3" r=".8"><stop offset="0" stop-color="#e2a95e"/><stop offset=".55" stop-color="#b06a2e"/><stop offset="1" stop-color="#6c3816"/></radialGradient>
+            <linearGradient id="bagG" x1="0" x2="1"><stop offset="0" stop-color="#8f501f"/><stop offset=".5" stop-color="#d49a52"/><stop offset="1" stop-color="#8a4a1c"/></linearGradient>
+            <radialGradient id="holeG"><stop offset=".55" stop-color="#000"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+            <clipPath id="sackClip"><path id="sackPath" d="M138 150 Q128 128 112 112 Q140 118 160 130 Q260 146 360 130 Q380 118 408 112 Q392 128 382 150 C400 280 408 430 392 548 Q260 572 128 548 C112 430 120 280 138 150Z"/></clipPath>
+            <mask id="seep" maskUnits="userSpaceOnUse" x="0" y="0" width="520" height="600"><rect width="520" height="600" fill="#fff"/><ellipse class="seepHole" cx="260" cy="330" rx="230" ry="300" fill="url(#holeG)"/></mask>
+          </defs>
+          <!-- 石窯拱門 -->
+          <path d="M34 600 V262 A226 226 0 0 1 486 262 V600Z" fill="#3a2a1c"/>
+          <path d="M48 600 V262 A212 212 0 0 1 472 262 V600" fill="none" stroke="#5c4230" stroke-width="22" stroke-dasharray="30 3"/>
+          <path d="M70 600 V266 A190 190 0 0 1 450 266 V600Z" fill="#24190f"/>
+          <ellipse class="glow" cx="260" cy="610" rx="230" ry="220" fill="url(#hGlow)"/>
+          <rect x="34" y="584" width="452" height="16" fill="#5c4230"/>
+          <!-- 麻袋 -->
+          <ellipse cx="262" cy="556" rx="160" ry="14" fill="#000" opacity=".45" filter="url(#soft)"/>
+          <use href="#sackPath" fill="url(#sackSh)"/>
+          <g clip-path="url(#sackClip)">
+            <rect x="100" y="100" width="320" height="480" fill="url(#weave)"/>
+            <rect x="100" y="100" width="320" height="480" fill="#fff" filter="url(#grain)" opacity=".55"/>
+            <g fill="none" stroke="#2f4c8f" filter="url(#ink)" opacity=".9">
+              <path d="M152 140 C144 280 140 430 148 570" stroke-width="10"/><path d="M167 140 C160 280 156 430 163 570" stroke-width="3"/><path d="M175 140 C168 280 164 430 171 570" stroke-width="3"/>
+              <path d="M368 140 C376 280 380 430 372 570" stroke-width="10"/><path d="M353 140 C360 280 364 430 357 570" stroke-width="3"/><path d="M345 140 C352 280 356 430 349 570" stroke-width="3"/>
+            </g>
+            <g mask="url(#seep)">
+              <g filter="url(#ink)">
+                <text class="sten svsten" x="260" y="206" text-anchor="middle" font-size="30" letter-spacing="1" textLength="168" lengthAdjust="spacingAndGlyphs" fill="#2f4c8f" data-shop="name">HEARTH &amp; SACK</text>
+                <circle cx="260" cy="292" r="58" fill="none" stroke="#2f4c8f" stroke-width="3.5"/>
+                <circle cx="260" cy="292" r="50" fill="none" stroke="#2f4c8f" stroke-width="1.2"/>
+                <use href="#wheat" x="226" y="246" width="68" height="94" style="color:#d46a2a"/>
+                <text class="sten svsten" x="260" y="402" text-anchor="middle" font-size="46" letter-spacing="8" fill="#2f4c8f" data-shop="nameZh">爐與袋</text>
+                <text x="260" y="430" text-anchor="middle" font-size="11" textLength="150" lengthAdjust="spacingAndGlyphs" fill="#2f4c8f" font-family="Lucida Grande,DejaVu Sans,sans-serif" font-weight="700">NATURAL LEVAIN BAKERY</text>
+                <rect x="186" y="444" width="148" height="28" fill="#2f4c8f"/>
+                <text class="sten" x="260" y="464" text-anchor="middle" font-size="14" textLength="124" lengthAdjust="spacingAndGlyphs" fill="#efe5cc">NET WT · 25 KG</text>
+                <text x="260" y="500" text-anchor="middle" font-size="10" textLength="150" lengthAdjust="spacingAndGlyphs" fill="#3a2a1c" font-family="Lucida Grande,DejaVu Sans,sans-serif">TAINAN · EST. 2016 · T65</text>
+              </g>
+              <g transform="translate(352 520) rotate(-14)" style="color:#c2531e" opacity=".85" filter="url(#ink)"><use href="#stampFresh" x="-34" y="-34" width="68" height="68"/></g>
+            </g>
+            <g fill="none" stroke-linecap="round" filter="url(#soft)">
+              <path d="M190 540 Q206 480 196 420" stroke="#3a2a1c" stroke-opacity=".18" stroke-width="6"/>
+              <path d="M340 310 Q330 390 352 470" stroke="#3a2a1c" stroke-opacity=".15" stroke-width="6"/>
+              <path d="M226 150 Q236 220 228 268" stroke="#fff" stroke-opacity=".25" stroke-width="6"/>
+            </g>
+          </g>
+          <path d="M150 162 Q260 178 370 162" fill="none" stroke="#6a5641" stroke-width="2.4" stroke-dasharray="7 4"/>
+          <path d="M150 168 Q260 184 370 168" fill="none" stroke="#6a5641" stroke-width="1.2" stroke-dasharray="3 8" opacity=".7"/>
+          <path d="M112 112 Q118 98 104 90 M408 112 Q402 98 418 90" stroke="#a88a5c" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <!-- 法棍 -->
+          <g transform="translate(426 452) rotate(16)">
+            <rect x="-17" y="-150" width="34" height="290" rx="17" fill="url(#bagG)"/>
+            <g fill="#f0c78a" opacity=".85"><ellipse cx="2" cy="-104" rx="5" ry="22" transform="rotate(14 2 -104)"/><ellipse cx="2" cy="-50" rx="5" ry="22" transform="rotate(14 2 -50)"/><ellipse cx="2" cy="4" rx="5" ry="22" transform="rotate(14 2 4)"/><ellipse cx="2" cy="58" rx="5" ry="22" transform="rotate(14 2 58)"/></g>
+          </g>
+          <!-- 鄉村麵包 -->
+          <ellipse cx="130" cy="572" rx="84" ry="14" fill="#000" opacity=".4" filter="url(#soft)"/>
+          <ellipse cx="128" cy="540" rx="80" ry="48" fill="url(#loafG)"/>
+          <path d="M70 528 Q128 486 186 528" fill="none" stroke="#f3cf92" stroke-width="9" stroke-linecap="round"/>
+          <path d="M74 532 Q128 496 182 532" fill="none" stroke="#7a3f18" stroke-width="2"/>
+          <g fill="#fbf3e2" opacity=".7"><circle cx="100" cy="514" r="1.6"/><circle cx="118" cy="506" r="1.2"/><circle cx="146" cy="510" r="1.8"/><circle cx="160" cy="520" r="1.1"/><circle cx="88" cy="530" r="1.3"/><circle cx="132" cy="502" r="1"/></g>
+          <g class="steam" filter="url(#soft)">
+            <path d="M110 488 c-16 -24 14 -42 0 -66 c-14 -22 12 -40 0 -62" stroke-width="7"/>
+            <path d="M134 486 c14 -24 -14 -42 0 -66 c12 -22 -12 -40 2 -62" stroke-width="6"/>
+            <path d="M152 494 c-12 -22 12 -36 0 -56 c-12 -20 10 -34 0 -52" stroke-width="5"/>
+          </g>
+        </svg>
+      </div>
+
+      <aside class="board rv" id="board" aria-labelledby="boardTitle">
+        <div class="bin">
+          <div class="bh">
+            <div><h2 class="sten" id="boardTitle">出爐時刻表</h2><small>BAKE BOARD · <span id="bDate"></span></small></div>
+            <div class="clock">現在<br><span class="flip" id="clock" role="img" aria-label=""></span></div>
+          </div>
+          <div class="next" aria-live="polite"><div><small id="nxLabel">下一爐</small><b id="nxName">—</b></div><span class="flip" id="nxCount" role="img" aria-label=""></span></div>
+          <ul class="rows" id="rows"></ul>
+          <div class="pv" id="pv"><span>預覽時段</span><button type="button" data-t="" aria-pressed="true">現在</button><button type="button" data-t="07:10" aria-pressed="false">07:10</button><button type="button" data-t="12:45" aria-pressed="false">12:45</button><button type="button" data-t="17:20" aria-pressed="false">17:20</button></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <div class="stripes" aria-hidden="true"></div>
+
+  <section class="sec" id="story">
+    <div class="wrap story">
+      <div class="frame rv">
+        <figure class="ph" data-photo="oven" data-art="oven" data-label="石窯與出爐的麵包" data-size="1200×1500"></figure>
+        <svg class="stamp" aria-hidden="true"><use href="#stampFresh"/></svg>
+      </div>
+      <div class="rv">
+        <span class="ey2"><b>N°01</b>OUR STORY · 品牌故事</span>
+        <h2 class="ttl ink"><span class="sten">一袋麵粉，<br>一缸老麵，一座爐</span></h2>
+        <p>2016 年，我們在中西區的老街屋裡砌了一座燒柴石窯。店名來自兩樣最重要的東西：爐（Hearth），和每天早上拆開的那一袋麵粉（Sack）。</p>
+        <p>麵團只用麵粉、水、鹽和自家養的天然酵母，經過 18 到 48 小時低溫發酵，讓麥香和微酸慢慢長出來。麵粉來自花蓮與法國的小磨坊，袋子拆開後印著產地和批號，我們也把它當作招牌。</p>
+        <div class="facts">
+          <div><b class="sten">9 年</b><span>老麵每天餵養</span></div>
+          <div><b class="sten">48 h</b><span>最長低溫發酵</span></div>
+          <div><b class="sten">280°C</b><span>燒柴石窯</span></div>
+        </div>
+        <p class="sign">— 主廚 陳麥可，與爐邊的四位麵包師</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="signature" style="padding-top:0">
+    <div class="wrap">
+      <span class="ey2 rv"><b>N°02</b>SIGNATURE · 招牌麵包</span>
+      <h2 class="ttl ink"><span class="sten">每天最先賣完的三條</span></h2>
+      <p class="lead rv">想吃到這三款，建議前一天預訂，或看時刻表在出爐時間到店。</p>
+      <div class="sig" id="sig"></div>
+    </div>
+  </section>
+
+  <div class="stripes" aria-hidden="true"></div>
+
+  <section class="sec" id="menu">
+    <div class="wrap">
+      <span class="ey2 rv"><b>N°03</b>THE BREADS · 麵包清單</span>
+      <h2 class="ttl ink"><span class="sten">像讀麵粉袋一樣讀菜單</span></h2>
+      <p class="lead rv">每款都標出淨重、水合率（水和麵粉的比例，越高越濕潤、氣孔越大）與發酵時數。價格為單條／單個。</p>
+      <div class="filters" id="filters" role="group" aria-label="麵包分類"></div>
+      <div class="labs" id="labs"></div>
+    </div>
+  </section>
+
+  <section class="sec" id="order" style="padding-top:0">
+    <div class="wrap">
+      <span class="ey2 rv"><b>N°04</b>PRE-ORDER · 預訂取貨</span>
+      <h2 class="ttl ink"><span class="sten">前一天 18:00 前，<br>替明天留一條</span></h2>
+      <p class="lead rv">選好麵包、取貨日與時段，到店報姓名付款取貨。截單時間一過，日期會自動跳到下一個可取貨日。</p>
+      <div class="order">
+        <form class="panel rv" id="of" novalidate>
+          <div id="oBody">
+            <p class="step"><b>1</b>選麵包與數量</p>
+            <div class="plist" id="plist"></div>
+            <p class="step"><b>2</b>取貨日</p>
+            <div class="cut" id="cut"></div>
+            <div class="chips" id="dates" role="radiogroup" aria-label="取貨日"></div>
+            <p class="note" id="dateNote"></p>
+            <p class="step" style="margin-top:18px"><b>3</b>取貨時段</p>
+            <div class="chips" id="slots" role="radiogroup" aria-label="取貨時段"></div>
+            <p class="note" id="slotNote"></p>
+            <div class="fields">
+              <label class="fi">取貨人姓名<input id="oName" autocomplete="name" placeholder="例：林小麥"><span class="err"></span></label>
+              <label class="fi">手機<input id="oPhone" inputmode="tel" autocomplete="tel" placeholder="09xx-xxx-xxx"><span class="err"></span></label>
+              <label class="fi full">備註（選填）<input id="oMemo" placeholder="例：法棍切半、要紙袋"><span class="err"></span></label>
+            </div>
+            <button class="btn" type="submit" style="width:100%;margin-top:6px">送出預訂</button>
+            <p class="demo">示範版本：按下送出只會在頁面上產生取貨單，沒有真的送出。</p>
+          </div>
+        </form>
+        <aside class="panel basket rv" aria-live="polite">
+          <h3 class="sten">購物籃</h3>
+          <p class="hint" id="bCount">尚未選擇麵包</p>
+          <ul id="bList"></ul>
+          <div class="sum"><span>小計</span><span id="bSub">NT$ 0</span><span>預訂折扣</span><span id="bOff">—</span><span class="tot">總計</span><span class="tot" id="bTot">NT$ 0</span></div>
+          <p class="gift" id="bGift"></p>
+          <p class="pick" id="bPick">取貨：尚未選擇</p>
+          <p class="err" id="cartErr" style="margin:6px 0 0"></p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <div class="stripes" aria-hidden="true"></div>
+
+  <section class="sec" id="sub">
+    <div class="wrap">
+      <span class="ey2 rv"><b>N°05</b>SUBSCRIPTION · 天然酵母訂閱</span>
+      <h2 class="ttl ink"><span class="sten">每週固定一袋，<br>不用再搶出爐</span></h2>
+      <p class="lead rv">選麵包、每週幾條、哪幾天來拿。訂閱價依條數打折，月費以每月 4.33 週計算，可隨時暫停。</p>
+      <div class="subw">
+        <form class="panel rv" id="sf" novalidate>
+          <div id="sBody">
+            <p class="step"><b>1</b>選一種麵包</p>
+            <div class="plans" id="plans" role="radiogroup" aria-label="訂閱麵包"></div>
+            <p class="step"><b>2</b>每週幾條</p>
+            <div class="loaves">
+              <span class="qty"><button type="button" id="lMinus" aria-label="減少一條">−</button></span>
+              <span class="flip" id="lFlip" role="img" aria-label=""></span>
+              <span class="qty"><button type="button" id="lPlus" aria-label="增加一條">+</button></span>
+              <span class="hint" id="lHint"></span>
+            </div>
+            <p class="step"><b>3</b>哪幾天取貨</p>
+            <div class="chips" id="sDays" role="group" aria-label="取貨日（可複選）"></div>
+            <p class="note" id="sDayErr"></p>
+            <div class="fields">
+              <label class="fi">姓名<input id="sName" autocomplete="name"><span class="err"></span></label>
+              <label class="fi">手機<input id="sPhone" inputmode="tel" autocomplete="tel" placeholder="09xx-xxx-xxx"><span class="err"></span></label>
+            </div>
+            <button class="btn" type="submit" style="width:100%;margin-top:6px">開始訂閱</button>
+            <p class="demo">示範版本：不會真的扣款或送出，正式上線請串接金流。</p>
+          </div>
+        </form>
+        <div class="calc rv" aria-live="polite">
+          <h3 class="sten">MONTHLY · 月費計算</h3>
+          <table><tbody id="cRows"></tbody></table>
+          <div class="fee"><div><small>每月</small><span class="sten" style="font-size:20px">NT$</span></div><span class="flip" id="feeFlip" role="img" aria-label=""></span></div>
+          <p class="save" id="cSave"></p>
+          <div class="week" id="week"></div>
+          <p style="font-size:12px;margin:8px 0 0;opacity:.85">首月於第一次取貨時付款；之後每月 1 日自動扣款。暫停需在取貨前一天 18:00 前告知。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="gallery" style="padding-top:0">
+    <div class="wrap">
+      <span class="ey2 rv"><b>N°06</b>INSIDE · 店內</span>
+      <h2 class="ttl ink"><span class="sten">麵粉香從騎樓就聞得到</span></h2>
+      <div class="gal">
+        <figure class="ph g1 rv" data-photo="shop" data-art="shop" data-label="店內麵包架與櫃台" data-size="1600×1000"></figure>
+        <figure class="ph g2 rv" data-photo="flour" data-art="flour" data-label="麵粉袋與老麵" data-size="1200×1500"></figure>
+        <figure class="ph g3 rv" data-photo="banneton" data-art="banneton" data-label="發酵籃與麵團" data-size="1200×1200"></figure>
+        <div class="quote rv"><svg width="44" height="58" aria-hidden="true" style="color:var(--wheat);margin-bottom:14px"><use href="#wheat"/></svg><p>「麵包的好壞，有一半在麵粉袋打開之前就決定了；另一半，是時間。」</p><span>— 店內黑板上的一句話</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="stripes" aria-hidden="true"></div>
+
+  <section class="sec" id="reviews">
+    <div class="wrap">
+      <span class="ey2 rv"><b>N°07</b>REVIEWS · 客人說</span>
+      <h2 class="ttl ink"><span class="sten">排隊的人這樣說</span></h2>
+      <div class="score rv"><b>4.8</b><span>Google 評論 1,200+ 則<br>（示範數字）</span></div>
+      <div class="revs" id="revs"></div>
+    </div>
+  </section>
+
+  <section class="sec" id="visit" style="padding-top:0">
+    <div class="wrap">
+      <span class="ey2 rv"><b>N°08</b>VISIT · 來店</span>
+      <h2 class="ttl ink"><span class="sten">營業時間與交通</span></h2>
+      <div class="visit">
+        <div class="vbox rv"><h3 class="sten">營業時間</h3><p class="bigst" id="bigSt">…</p><ul class="hours" id="hours"></ul></div>
+        <div class="vbox rv"><h3 class="sten">地址</h3><p id="addr"></p><p>台南火車站搭公車約 12 分鐘；附近有民生路收費停車場。騎樓可暫停機車。</p><p><a class="lnk" id="mapLink" href="#" target="_blank" rel="noopener">在 Google 地圖開啟 →</a></p></div>
+        <div class="vbox rv"><h3 class="sten">聯絡</h3><a class="tel" id="tel" href="#"></a><p>當天現場購買不需預約。10 條以上的團購、婚禮與公司訂購，請提前三天來電。</p><p>外帶紙袋免費；自備麻布袋每次折 NT$5。</p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="回到頁首"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18.5" fill="none" stroke="currentColor" stroke-width="2"/><use href="#wheat" x="8" y="6" width="24" height="28" style="color:#d46a2a"/></svg><span><b class="sten" data-shop="name">Hearth &amp; Sack</b><small data-shop="nameZh">爐與袋</small></span></a>
+    <p id="fInfo"></p>
+    <nav aria-label="社群"><a href="#">Instagram</a><a href="#">Facebook</a><a href="#">LINE 官方帳號</a></nav>
+  </div>
+</footer>
+<button class="slotBtn" id="slotBtn" type="button" aria-pressed="false">照片位</button>
+
+<script>
+(function(){
+'use strict';
+/* ===== 店家設定：改這裡就好 ===== */
+var SHOP = {
+  name:'Hearth & Sack', nameZh:'爐與袋', type:'天然酵母歐式麵包坊', area:'台南中西區',
+  phone:'06-222-0816', address:'台南市中西區示範街 88 號', addressNote:'（示範地址）',
+  // 0=週日 … 6=週六；每天可多時段 [開, 關]，null = 公休
+  hours:[ [['07:00','17:30']], null, [['06:30','19:00']], [['06:30','19:00']], [['06:30','19:00']], [['06:30','19:00']], [['07:00','19:00']] ],
+  freshMin:40,            // 出爐後幾分鐘內標示「剛出爐」
+  cutoff:'18:00',         // 前一天截單時間
+  orderDays:6,            // 預訂日期最多列幾天
+  slots:[['07:00','09:00'],['09:00','11:00'],['11:00','13:00'],['13:00','15:00'],['15:00','17:00'],['17:00','19:00']],
+  preorderOff:{min:500, rate:.05},  // 預訂滿 500 打 95 折
+  gift:{min:800, name:'爐與袋麻布麵包袋'},
+  sub:{ weeks:4.33, max:6,
+        tiers:[{min:1,off:.08},{min:3,off:.12},{min:5,off:.15}],
+        plans:[{id:'campagne',name:'鄉村酸種',price:260,desc:'800g，每次同一款，最穩定'},{id:'seigle',name:'黑麥裸麥',price:300,desc:'900g，70% 裸麥，酸香紮實'},{id:'rotate',name:'主廚輪替',price:280,desc:'每週換一款酸種，附當週說明卡'}] },
+  photos:{oven:'',campagne:'',croissant:'',baguette:'',shop:'',flour:'',banneton:''}
+};
+/* 麵包清單：wt 淨重(g)、hyd 水合率(%)、ferm 發酵(小時)、ready 未列在時刻表的品項最早可取時間 */
+var MENU = [
+  {id:'campagne',cat:'levain',zh:'鄉村酸種',en:'Pain de Campagne',wt:800,hyd:78,ferm:36,price:260,note:'石磨 T80 加一成全麥，外皮烤到深棕，切開是不規則大氣孔。',sig:true},
+  {id:'seigle',cat:'levain',zh:'黑麥裸麥',en:'Roggenbrot 70%',wt:900,hyd:82,ferm:24,price:300,note:'七成裸麥配裸麥酸種，放兩天更好吃，適合配奶油與煙燻魚。'},
+  {id:'longan',cat:'levain',zh:'桂圓核桃鄉村',en:'Longan & Walnut',wt:650,hyd:75,ferm:30,price:280,note:'東山龍眼乾泡紅酒，配烤過的核桃。台南限定的一款。',ready:'11:00'},
+  {id:'miel',cat:'levain',zh:'全麥蜂蜜酸種吐司',en:'Pain de Mie Complet',wt:700,hyd:72,ferm:20,price:220,note:'三成全麥與龍眼蜜，切片烤過最香，是早餐常備款。',ready:'09:00'},
+  {id:'baguette',cat:'french',zh:'傳統法棍',en:'Baguette Tradition',wt:280,hyd:75,ferm:18,price:85,note:'只用 T65、水、鹽與老麵。一天四爐，出爐兩小時內最脆。',sig:true},
+  {id:'croissant',cat:'french',zh:'發酵奶油可頌',en:'Croissant au Beurre',wt:85,hyd:55,ferm:14,price:75,note:'法國 AOP 發酵奶油，27 層，咬下會掉滿桌碎屑。',sig:true},
+  {id:'painchoc',cat:'french',zh:'巧克力可頌',en:'Pain au Chocolat',wt:95,hyd:55,ferm:14,price:85,note:'兩條 64% 黑巧克力棒，和可頌同一份麵團。',ready:'10:00'},
+  {id:'brioche',cat:'french',zh:'布里歐',en:'Brioche Nanterre',wt:450,hyd:62,ferm:16,price:240,note:'奶油與雞蛋占四成，撕開像棉花，可做法式吐司。',ready:'09:00'},
+  {id:'kanel',cat:'sweet',zh:'小豆蔻肉桂捲',en:'Kardemummabulle',wt:110,hyd:62,ferm:12,price:80,note:'瑞典式打結肉桂捲，現磨小豆蔻，糖少一半。'},
+  {id:'fig',cat:'sweet',zh:'無花果裸麥',en:'Figue & Seigle',wt:400,hyd:74,ferm:24,price:180,note:'整顆土耳其無花果乾，配藍紋起司很適合。',ready:'13:00'},
+  {id:'focaccia',cat:'savory',zh:'迷迭香佛卡夏',en:'Focaccia Romarin',wt:350,hyd:85,ferm:20,price:160,note:'高水合麵團鋪滿初榨橄欖油，海鹽與自種迷迭香。'},
+  {id:'olive',cat:'savory',zh:'橄欖酸種',en:'Pain aux Olives',wt:500,hyd:76,ferm:30,price:210,note:'綠橄欖與卡拉瑪塔黑橄欖各半，帶一點檸檬皮。',ready:'13:00'},
+  {id:'fougasse',cat:'savory',zh:'康堤起司葉形麵包',en:'Fougasse au Comté',wt:220,hyd:72,ferm:18,price:120,note:'普羅旺斯葉子形狀，烤出焦香的康堤起司邊。',ready:'11:30'}
+];
+var CATS = [['all','全部'],['levain','酸種主食'],['french','法式經典'],['sweet','甜味'],['savory','鹹香']];
+/* 出爐時刻表：每種麵包一天的出爐時間（超過當天打烊時間的會自動略過） */
+var BOARD = [
+  {id:'baguette',times:['06:30','09:30','12:30','16:00']},
+  {id:'croissant',times:['07:00','10:00','14:30']},
+  {id:'campagne',times:['07:30','13:00']},
+  {id:'seigle',times:['08:00']},
+  {id:'kanel',times:['09:00','15:00']},
+  {id:'focaccia',times:['11:30','17:00']}
+];
+var REVIEWS = [
+  {n:'王',who:'王小姐 · 在地常客',s:5,t:'早上六點半排第一爐法棍，回家路上就忍不住撕了一半。外皮是真的會「啪」一聲裂開。'},
+  {n:'J',who:'Jérôme · 法國旅人',s:5,t:'Le pain de campagne est honnête et profond. 酸種的酸度剛好，像我在里昂常去的那家。'},
+  {n:'陳',who:'陳先生 · 訂閱第 8 個月',s:5,t:'每週二、五固定拿黑麥，月費算下來比單買便宜，而且不用擔心賣完。'}
+];
+/* ===== 以下為程式 ===== */
+document.body.classList.remove('no-js');
+document.documentElement.classList.add('js');
+var $ = function(s, r){ return (r || document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+var WD = '日一二三四五六';
+var pad = function(n){ return (n < 10 ? '0' : '') + n; };
+var toMin = function(s){ var a = s.split(':'); return +a[0] * 60 + +a[1]; };
+var hm = function(m){ return pad(Math.floor(m / 60)) + ':' + pad(Math.floor(m % 60)); };
+var money = function(n){ return 'NT$ ' + Math.round(n).toLocaleString('en-US'); };
+var dayStart = function(d){ var x = new Date(d); x.setHours(0,0,0,0); return x; };
+var addDays = function(d, n){ var x = new Date(d); x.setDate(x.getDate() + n); return x; };
+var md = function(d){ return (d.getMonth() + 1) + '/' + pad(d.getDate()); };
+var key = function(d){ return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+var byId = {}; MENU.forEach(function(m){ byId[m.id] = m; });
+var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function relDay(d, from){ var n = Math.round((dayStart(d) - dayStart(from)) / 864e5); return n === 0 ? '今天' : n === 1 ? '明天' : n === 2 ? '後天' : '週' + WD[d.getDay()]; }
+function durTxt(min){ min = Math.ceil(min); if (min < 60) return min + ' 分'; return Math.floor(min / 60) + ' 小時 ' + pad(min % 60) + ' 分'; }
+
+/* 模版字偵測：系統沒有 Stencil 就用遮罩模擬模版橋 */
+(function(){
+  try {
+    var c = document.createElement('canvas').getContext('2d'), t = 'HEARTH SACK 0123';
+    c.font = '40px monospace'; var w0 = c.measureText(t).width;
+    c.font = '40px "Stencil Std", monospace'; var w1 = c.measureText(t).width;
+    c.font = '40px "Stencil", monospace'; var w2 = c.measureText(t).width;
+    if (w1 === w0 && w2 === w0) document.documentElement.classList.add('faux');
+  } catch (e) { document.documentElement.classList.add('faux'); }
+})();
+
+/* 店家資訊帶入 */
+$$('[data-shop]').forEach(function(el){ var v = SHOP[el.dataset.shop]; if (v) el.textContent = el.tagName.toLowerCase() === 'text' && el.dataset.shop === 'name' ? v.toUpperCase() : v; });
+$('#addr').textContent = SHOP.address + SHOP.addressNote;
+$('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+$('#tel').textContent = SHOP.phone; $('#tel').href = 'tel:' + SHOP.phone.replace(/[^\d+]/g, '');
+$('#fInfo').innerHTML = esc(SHOP.address + SHOP.addressNote) + '<br>' + esc(SHOP.phone) + ' · 週一公休<br>© ' + new Date().getFullYear() + ' ' + esc(SHOP.name + ' ' + SHOP.nameZh) + ' · 店家官網模板示範';
+
+/* 翻牌數字 */
+function flipSet(el, str, label){
+  if (label != null) el.setAttribute('aria-label', label);
+  if (el._v === str) return;
+  var old = el._v, chars = str.split('');
+  if (old == null || old.length !== str.length){
+    el.innerHTML = chars.map(function(c){ return /\d/.test(c) ? '<b class="fd" aria-hidden="true"><span>' + c + '</span></b>' : '<i class="sep" aria-hidden="true">' + esc(c) + '</i>'; }).join('');
+    if (old != null && !reduce) $$('.fd', el).forEach(function(f){ f.classList.add('go'); });
+  } else {
+    chars.forEach(function(c, i){
+      if (c === old[i]) return;
+      var cell = el.children[i];
+      if (!cell.classList.contains('fd')){ cell.textContent = c; return; }
+      cell.firstChild.textContent = c;
+      if (reduce) return;
+      cell.classList.remove('go'); void cell.offsetWidth; cell.classList.add('go');
+    });
+  }
+  el._v = str;
+}
+
+/* 營業狀態 */
+function openStatus(now){
+  var m = now.getHours() * 60 + now.getMinutes(), h = SHOP.hours[now.getDay()], i, j, d, r;
+  if (h) for (i = 0; i < h.length; i++) if (m >= toMin(h[i][0]) && m < toMin(h[i][1])) return {open:true, text:'營業中 · 到 ' + h[i][1]};
+  for (i = 0; i < 8; i++){
+    d = addDays(now, i); r = SHOP.hours[d.getDay()]; if (!r) continue;
+    for (j = 0; j < r.length; j++) if (i > 0 || toMin(r[j][0]) > m) return {open:false, text:'休息中 · ' + relDay(d, now) + ' ' + r[j][0] + ' 開門'};
+  }
+  return {open:false, text:'休息中'};
+}
+
+/* ===== 1. 出爐時刻表 ===== */
+var pv = null, lastRows = '';
+function boardNow(){ return pv ? new Date(pv.start + (Date.now() - pv.at)) : new Date(); }
+function bakesFor(day){
+  var h = SHOP.hours[day]; if (!h) return null;
+  var close = toMin(h[h.length - 1][1]);
+  return BOARD.map(function(b){ return {id:b.id, times:b.times.filter(function(t){ return toMin(t) < close; })}; });
+}
+function nextBatch(now){
+  var base = dayStart(now);
+  for (var i = 0; i < 8; i++){
+    var d = addDays(base, i), list = bakesFor(d.getDay()), best = null;
+    if (!list) continue;
+    list.forEach(function(b){ b.times.forEach(function(t){ var at = new Date(d.getTime() + toMin(t) * 6e4); if (at > now && (!best || at < best.at)) best = {at:at, id:b.id, t:t}; }); });
+    if (best){ best.day = i; return best; }
+  }
+  return null;
+}
+function steamIcon(){ return '<svg class="mini" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 12c-2-3 2-4 0-7"/><path d="M7 12c-2-3 2-4 0-8"/><path d="M11 12c-2-3 2-4 0-7"/></svg>'; }
+function renderBoard(){
+  var bn = boardNow(), m = bn.getHours() * 60 + bn.getMinutes() + bn.getSeconds() / 60;
+  flipSet($('#clock'), pad(bn.getHours()) + ':' + pad(bn.getMinutes()), '現在時間 ' + pad(bn.getHours()) + ':' + pad(bn.getMinutes()));
+  $('#bDate').textContent = md(bn) + ' 週' + WD[bn.getDay()] + (pv ? ' · 預覽中' : '');
+  var nb = nextBatch(bn);
+  if (nb){
+    var s = Math.max(0, Math.floor((nb.at - bn) / 1000)), hh = Math.floor(s / 3600), mm = Math.floor(s % 3600 / 60), ss = s % 60;
+    $('#nxLabel').textContent = nb.day === 0 ? '下一爐 · ' + nb.t : (nb.day === 1 ? '明天第一爐 · ' : relDay(nb.at, bn) + '第一爐 · ') + nb.t;
+    $('#nxName').textContent = byId[nb.id].zh;
+    flipSet($('#nxCount'), pad(hh) + ':' + pad(mm) + ':' + pad(ss), '倒數 ' + hh + ' 小時 ' + mm + ' 分 ' + ss + ' 秒');
+  }
+  var list = bakesFor(bn.getDay()), html = '';
+  BOARD.forEach(function(b, idx){
+    var item = byId[b.id], times = list ? list[idx].times : b.times, last = null, next = null, tag, sub = '';
+    if (list) times.forEach(function(t){ var x = toMin(t); if (x <= m) last = x; else if (next === null) next = x; });
+    if (!list){ tag = '<span class="tag done">今日公休</span>'; }
+    else if (last !== null && m - last < SHOP.freshMin){
+      var ago = Math.floor(m - last);
+      tag = '<span class="tag fresh">' + steamIcon() + (ago < 1 ? '剛剛出爐' : '剛出爐 ' + ago + ' 分鐘') + '</span>';
+      sub = next !== null ? '下一爐 ' + hm(next) : '本日最後一爐';
+    } else if (next !== null){
+      tag = '<span class="tag nx">下一爐 ' + hm(next) + '</span>';
+      sub = '倒數 ' + durTxt(next - m);
+    } else {
+      tag = '<span class="tag done">今日已出完</span>';
+      var tm = addDays(bn, 1), tl = bakesFor(tm.getDay());
+      sub = tl && tl[idx].times.length ? '明天 ' + tl[idx].times[0] + ' 再出爐' : '下個營業日再見';
+    }
+    var tl2 = times.map(function(t){
+      var x = toMin(t), c = '';
+      if (list){ if (x === last && m - last < SHOP.freshMin) c = 'now'; else if (x === next) c = 'up'; else if (x <= m) c = 'past'; }
+      return '<span class="' + c + '">' + t + '</span>';
+    }).join('');
+    html += '<li><span class="nm" title="' + esc(item.en) + '">' + esc(item.zh) + '<span class="bt">' + tl2 + '</span></span><span class="st">' + tag + (sub ? '<span class="sub">' + sub + '</span>' : '') + '</span></li>';
+  });
+  if (html !== lastRows){ $('#rows').innerHTML = html; lastRows = html; }
+}
+$('#pv').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  $$('#pv button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); });
+  var t = b.dataset.t;
+  if (!t){ pv = null; } else {
+    var d = dayStart(new Date()), i = 0;
+    while (!SHOP.hours[d.getDay()] && i++ < 7) d = addDays(d, 1);
+    pv = {start:d.getTime() + toMin(t) * 6e4, at:Date.now()};
+  }
+  renderBoard();
+});
+function todayLine(){
+  var now = new Date(), list = bakesFor(now.getDay());
+  if (!list){ $('#todayLine').innerHTML = '今天公休。<b>' + esc(openStatus(now).text.replace('休息中 · ', '')) + '</b>，第一爐是法棍。'; return; }
+  var all = []; list.forEach(function(b){ b.times.forEach(function(t){ all.push({t:t, id:b.id}); }); });
+  all.sort(function(a, b){ return toMin(a.t) - toMin(b.t); });
+  $('#todayLine').innerHTML = '今天共 <b>' + all.length + ' 爐</b>：第一爐 ' + all[0].t + ' ' + esc(byId[all[0].id].zh) + '，最後一爐 ' + all[all.length - 1].t + ' ' + esc(byId[all[all.length - 1].id].zh) + '。';
+}
+
+/* ===== 招牌與菜單 ===== */
+function bakeTimes(id){ for (var i = 0; i < BOARD.length; i++) if (BOARD[i].id === id) return BOARD[i].times; return null; }
+function readyOf(id){ var t = bakeTimes(id); return toMin(t ? t[0] : (byId[id].ready || '07:30')); }
+var SIGART = {campagne:'campagne', croissant:'croissant', baguette:'baguette'};
+$('#sig').innerHTML = MENU.filter(function(m){ return m.sig; }).map(function(m, i){
+  var t = bakeTimes(m.id);
+  return '<article class="card rv"><figure class="ph" data-photo="' + m.id + '" data-art="' + SIGART[m.id] + '" data-label="招牌：' + esc(m.zh) + '" data-size="1200×900"></figure><div class="body"><span class="no">N°<b>' + pad(i + 1) + '</b></span><h3 class="sten">' + esc(m.zh) + '</h3><span class="en">' + esc(m.en.toUpperCase()) + '</span><p>' + esc(m.note) + '</p><div class="meta"><span>出爐 ' + (t ? t.join(' · ') : '') + '</span><b>' + money(m.price) + '</b></div></div></article>';
+}).join('');
+var cat = 'all';
+$('#filters').innerHTML = CATS.map(function(c){ return '<button type="button" data-c="' + c[0] + '" aria-pressed="' + (c[0] === 'all') + '">' + c[1] + '</button>'; }).join('');
+function renderLabs(anim){
+  $('#labs').innerHTML = MENU.filter(function(m){ return cat === 'all' || m.cat === cat; }).map(function(m, i){
+    var t = bakeTimes(m.id), catName = CATS.filter(function(c){ return c[0] === m.cat; })[0][1];
+    return '<article class="lab' + (anim ? ' in' : '') + '" style="animation-delay:' + (i * 50) + 'ms"><div><header><span class="sten">N°' + pad(MENU.indexOf(m) + 1) + '</span><span>' + catName + '</span></header>' +
+      '<h3 class="sten">' + esc(m.zh) + '</h3><span class="en">' + esc(m.en) + '</span>' +
+      '<dl class="spec"><div><dt>淨重<i>NET WT.</i></dt><dd>' + m.wt + ' g</dd></div><div><dt>水合率<i>HYDRATION</i></dt><dd>' + m.hyd + '%</dd><span class="hyd" aria-hidden="true"><i style="--h:' + m.hyd + '%"></i></span></div><div><dt>發酵<i>FERMENT</i></dt><dd>' + m.ferm + ' h</dd></div></dl>' +
+      '<p>' + esc(m.note) + '</p><footer><span class="pr">' + money(m.price) + '</span><span class="bk">' + (t ? '出爐 ' + t.join(' · ') : '每日 ' + (m.ready || '07:30') + ' 起') + '</span></footer></div></article>';
+  }).join('');
+}
+$('#filters').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  cat = b.dataset.c;
+  $$('#filters button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); });
+  renderLabs(true);
+});
+renderLabs(false);
+
+/* ===== 2. 預訂取貨 ===== */
+var cart = {}, selDate = null, selSlot = null, prevDateKey = null;
+$('#plist').innerHTML = MENU.map(function(m){
+  return '<div class="prow" data-id="' + m.id + '"><span><b>' + esc(m.zh) + '</b><small>' + money(m.price) + ' · ' + m.wt + 'g</small></span><span class="qty"><button type="button" data-d="-1" aria-label="減少 ' + esc(m.zh) + '">−</button><output aria-live="polite">0</output><button type="button" data-d="1" aria-label="增加 ' + esc(m.zh) + '">+</button></span></div>';
+}).join('');
+$('#plist').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  var row = b.closest('.prow'), id = row.dataset.id, q = Math.max(0, Math.min(20, (cart[id] || 0) + +b.dataset.d));
+  if (q) cart[id] = q; else delete cart[id];
+  $('output', row).textContent = q; row.classList.toggle('has', q > 0);
+  $('#cartErr').textContent = '';
+  renderBasket(); renderSlots();
+});
+function cartLines(){ return MENU.filter(function(m){ return cart[m.id]; }).map(function(m){ return {m:m, q:cart[m.id], sum:m.price * cart[m.id]}; }); }
+function totals(){
+  var lines = cartLines(), sub = lines.reduce(function(a, l){ return a + l.sum; }, 0), off = sub >= SHOP.preorderOff.min ? Math.round(sub * SHOP.preorderOff.rate) : 0;
+  return {lines:lines, sub:sub, off:off, tot:sub - off, n:lines.reduce(function(a, l){ return a + l.q; }, 0)};
+}
+function renderBasket(){
+  var t = totals();
+  $('#bCount').textContent = t.n ? '共 ' + t.n + ' 件' : '尚未選擇麵包';
+  $('#bList').innerHTML = t.lines.length ? t.lines.map(function(l){ return '<li><span>' + esc(l.m.zh) + ' × ' + l.q + '</span><span>' + money(l.sum) + '</span></li>'; }).join('') : '<li class="empty">從左邊按「+」把麵包放進來。</li>';
+  $('#bSub').textContent = money(t.sub);
+  $('#bOff').textContent = t.off ? '− ' + money(t.off) : '滿 ' + SHOP.preorderOff.min + ' 享 95 折';
+  $('#bTot').textContent = money(t.tot);
+  var g = $('#bGift');
+  if (t.tot >= SHOP.gift.min){ g.className = 'gift ok'; g.textContent = '已達 ' + money(SHOP.gift.min) + '，取貨時送' + SHOP.gift.name + '。'; }
+  else { g.className = 'gift'; g.textContent = '再買 ' + money(SHOP.gift.min - t.tot) + '，送' + SHOP.gift.name + '。'; }
+  var d = selDate && dateList.filter(function(x){ return key(x) === selDate; })[0];
+  $('#bPick').textContent = '取貨：' + (d ? md(d) + '（週' + WD[d.getDay()] + '）' : '尚未選日期') + (selSlot ? ' ' + selSlot : '');
+}
+var dateList = [];
+function pickupDates(now){
+  var first = addDays(dayStart(now), (now.getHours() * 60 + now.getMinutes() >= toMin(SHOP.cutoff)) ? 2 : 1), out = [];
+  for (var i = 0; out.length < SHOP.orderDays && i < 21; i++){ var d = addDays(first, i); if (SHOP.hours[d.getDay()]) out.push(d); }
+  return out;
+}
+function renderDates(){
+  if (!$('#dates')) return;
+  var now = new Date(), list = pickupDates(now), keys = list.map(key).join(','), first = list[0];
+  if (keys !== dateList.map(key).join(',')){
+    dateList = list;
+    if (selDate && keys.indexOf(selDate) < 0){
+      var lost = selDate; selDate = key(first); selSlot = null;
+      $('#dateNote').textContent = '原本選的 ' + lost.slice(5).replace('-', '/') + ' 已過截單時間，已自動跳到 ' + md(first) + '（週' + WD[first.getDay()] + '）。';
+    }
+    if (!selDate) selDate = key(first);
+    $('#dates').innerHTML = list.map(function(d){
+      var k = key(d), r = relDay(d, now);
+      return '<label><input type="radio" name="pd" value="' + k + '"' + (k === selDate ? ' checked' : '') + '><span>' + md(d) + ' 週' + WD[d.getDay()] + '<small>' + (/週/.test(r) ? '取貨' : r) + '</small></span></label>';
+    }).join('');
+    renderSlots();
+  }
+  var cutAt = new Date(addDays(dayStart(first), -1).getTime() + toMin(SHOP.cutoff) * 6e4), s = Math.max(0, Math.floor((cutAt - now) / 1000));
+  var cutDay = relDay(cutAt, now);
+  var el = $('#cut');
+  if (!el._init){ el.innerHTML = '<span id="cutTxt"></span><span>截單倒數</span><span class="flip" id="cutFlip" role="img"></span>'; el._init = 1; }
+  $('#cutTxt').innerHTML = '最快可取：<b>' + md(first) + '（週' + WD[first.getDay()] + '）</b>，截單 ' + cutDay + ' ' + SHOP.cutoff;
+  flipSet($('#cutFlip'), pad(Math.floor(s / 3600)) + ':' + pad(Math.floor(s % 3600 / 60)) + ':' + pad(s % 60), '距離截單還有 ' + Math.floor(s / 3600) + ' 小時 ' + Math.floor(s % 3600 / 60) + ' 分');
+}
+$('#dates').addEventListener('change', function(e){ selDate = e.target.value; $('#dateNote').textContent = ''; renderSlots(); renderBasket(); });
+function renderSlots(){
+  if (!$('#slots')) return;
+  var d = dateList.filter(function(x){ return key(x) === selDate; })[0]; if (!d) return;
+  var h = SHOP.hours[d.getDay()], open = toMin(h[0][0]), close = toMin(h[h.length - 1][1]), now = new Date(), nowM = now.getHours() * 60 + now.getMinutes(), isToday = key(d) === key(now);
+  var ready = 0, who = null;
+  Object.keys(cart).forEach(function(id){ var r = readyOf(id); if (r > ready){ ready = r; who = id; } });
+  var anyLate = false, html = '';
+  SHOP.slots.forEach(function(sl){
+    var s = Math.max(toMin(sl[0]), open), e = Math.min(toMin(sl[1]), close); if (s >= e) return;
+    var label = hm(s) + '–' + hm(e), dis = (isToday && e <= nowM) || e <= ready;
+    if (e <= ready) anyLate = true;
+    if (dis && selSlot === label) selSlot = null;
+    html += '<label><input type="radio" name="ps" value="' + label + '"' + (dis ? ' disabled' : '') + (selSlot === label ? ' checked' : '') + '><span>' + label + '</span></label>';
+  });
+  $('#slots').innerHTML = html;
+  $('#slotNote').textContent = anyLate && who ? byId[who].zh + ' 最早 ' + hm(ready) + ' 出爐，較早的時段無法一次備齊。' : '';
+}
+$('#slots').addEventListener('change', function(e){ selSlot = e.target.value; $('#slotNote').textContent = $('#slotNote').textContent.replace(/^請選.*$/, ''); renderBasket(); });
+
+var PHONE = /^09\d{2}-?\d{3}-?\d{3}$/;
+function fmtPhone(v){ var d = v.replace(/\D/g, ''); return d.length === 10 ? d.slice(0, 4) + '-' + d.slice(4, 7) + '-' + d.slice(7) : v; }
+function setErr(input, msg){ var f = input.closest('.fi'); f.classList.toggle('bad', !!msg); $('.err', f).textContent = msg || ''; input.setAttribute('aria-invalid', msg ? 'true' : 'false'); }
+function checkPerson(nameEl, phoneEl){
+  var ok = true, n = nameEl.value.trim(), p = phoneEl.value.trim();
+  if (!n){ setErr(nameEl, '請填寫姓名'); ok = false; } else setErr(nameEl, '');
+  if (!p){ setErr(phoneEl, '請填寫手機號碼'); ok = false; }
+  else if (!PHONE.test(p)){ setErr(phoneEl, '格式請用 09xx-xxx-xxx'); ok = false; }
+  else { setErr(phoneEl, ''); phoneEl.value = fmtPhone(p); }
+  return ok;
+}
+['oPhone', 'sPhone'].forEach(function(id){ $('#' + id).addEventListener('blur', function(){ this.value = fmtPhone(this.value.trim()); }); });
+$$('.fi input').forEach(function(i){ i.addEventListener('input', function(){ if (i.closest('.fi').classList.contains('bad')) setErr(i, ''); }); });
+var oBodyHTML = null;
+$('#of').addEventListener('submit', function(e){
+  e.preventDefault();
+  var t = totals(), ok = checkPerson($('#oName'), $('#oPhone')), first = null;
+  if (!t.n){ $('#cartErr').textContent = '購物籃是空的，請至少選一樣麵包。'; ok = false; first = first || $('#plist button[data-d="1"]'); }
+  if (!selSlot){ $('#slotNote').textContent = '請選擇取貨時段。'; ok = false; first = first || $('#slots input:not(:disabled)'); }
+  if (!ok){ (first || $('#of [aria-invalid=true]') || $('#oName')).focus(); return; }
+  var d = dateList.filter(function(x){ return key(x) === selDate; })[0];
+  var no = 'HS-' + pad(d.getMonth() + 1) + pad(d.getDate()) + '-' + String(Math.floor(Math.random() * 9000) + 1000);
+  oBodyHTML = $('#oBody').innerHTML;
+  var saved = {name:$('#oName').value.trim(), phone:$('#oPhone').value.trim(), memo:$('#oMemo').value.trim()};
+  $('#oBody').innerHTML = '<div class="ticket" role="status"><svg class="tstamp on" aria-hidden="true"><use href="#stampFresh"/></svg><span class="no">取貨單 ' + no + '</span><h3 class="sten">已為你留好</h3>' +
+    '<p style="margin:6px 0 0;color:var(--brown2);font-size:14px">' + esc(saved.name) + ' · ' + esc(saved.phone) + '<br>' + md(d) + '（週' + WD[d.getDay()] + '） ' + selSlot + ' 到店取貨</p>' +
+    '<ul>' + t.lines.map(function(l){ return '<li><span>' + esc(l.m.zh) + ' × ' + l.q + '</span><span>' + money(l.sum) + '</span></li>'; }).join('') + (t.off ? '<li><span>預訂 95 折</span><span>− ' + money(t.off) + '</span></li>' : '') + '<li style="font-weight:700"><span>到店付款</span><span>' + money(t.tot) + '</span></li></ul>' +
+    (saved.memo ? '<p style="font-size:13px;margin:0 0 10px">備註：' + esc(saved.memo) + '</p>' : '') +
+    '<p class="demo" style="margin:0 0 14px"><b>示範版本：沒有真的送出。</b>正式上線時，這裡會寄出簡訊／LINE 通知。</p><button class="btn ghost sm" type="button" id="again">再訂一筆</button></div>';
+  $('#again').addEventListener('click', resetOrder);
+});
+function resetOrder(){
+  cart = {}; selSlot = null;
+  $('#oBody').innerHTML = oBodyHTML;
+  $$('#plist .prow').forEach(function(r){ r.classList.remove('has'); $('output', r).textContent = '0'; });
+  $$('#oBody .fi input').forEach(function(i){ i.value = ''; setErr(i, ''); i.addEventListener('input', function(){ if (i.closest('.fi').classList.contains('bad')) setErr(i, ''); }); });
+  $('#oPhone').addEventListener('blur', function(){ this.value = fmtPhone(this.value.trim()); });
+  $('#cut')._init = 0; dateList = []; $('#dateNote').textContent = '';
+  rebindOrder(); renderDates(); renderBasket();
+}
+function rebindOrder(){
+  $('#plist').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if (!b) return;
+    var row = b.closest('.prow'), id = row.dataset.id, q = Math.max(0, Math.min(20, (cart[id] || 0) + +b.dataset.d));
+    if (q) cart[id] = q; else delete cart[id];
+    $('output', row).textContent = q; row.classList.toggle('has', q > 0);
+    $('#cartErr').textContent = ''; renderBasket(); renderSlots();
+  });
+  $('#dates').addEventListener('change', function(e){ selDate = e.target.value; $('#dateNote').textContent = ''; renderSlots(); renderBasket(); });
+  $('#slots').addEventListener('change', function(e){ selSlot = e.target.value; renderBasket(); });
+}
+
+/* ===== 3. 天然酵母訂閱 ===== */
+var sub = {plan:SHOP.sub.plans[0].id, loaves:2, days:[2, 5]};
+var DAYORDER = [1, 2, 3, 4, 5, 6, 0].filter(function(d){ return SHOP.hours[d]; });
+$('#plans').innerHTML = SHOP.sub.plans.map(function(p, i){ return '<label><input type="radio" name="plan" value="' + p.id + '"' + (i === 0 ? ' checked' : '') + '><span><b>' + esc(p.name) + '</b><em>' + money(p.price) + '</em><small>' + esc(p.desc) + '</small></span></label>'; }).join('');
+$('#sDays').innerHTML = DAYORDER.map(function(d){ return '<label><input type="checkbox" value="' + d + '"' + (sub.days.indexOf(d) >= 0 ? ' checked' : '') + '><span>週' + WD[d] + '</span></label>'; }).join('');
+$('#plans').addEventListener('change', function(e){ sub.plan = e.target.value; renderSub(); });
+$('#sDays').addEventListener('change', function(){ sub.days = $$('#sDays input:checked').map(function(i){ return +i.value; }); renderSub(); });
+$('#lMinus').addEventListener('click', function(){ sub.loaves = Math.max(1, sub.loaves - 1); renderSub(); });
+$('#lPlus').addEventListener('click', function(){ sub.loaves = Math.min(SHOP.sub.max, sub.loaves + 1); renderSub(); });
+function subCalc(){
+  var plan = SHOP.sub.plans.filter(function(p){ return p.id === sub.plan; })[0], off = 0;
+  SHOP.sub.tiers.forEach(function(t){ if (sub.loaves >= t.min) off = t.off; });
+  var raw = plan.price * sub.loaves * SHOP.sub.weeks, fee = Math.round(raw * (1 - off) / 10) * 10;
+  return {plan:plan, off:off, raw:raw, fee:fee, per:fee / (sub.loaves * SHOP.sub.weeks), save:raw - fee};
+}
+function subErr(){
+  if (!sub.days.length) return '請至少選一個取貨日。';
+  if (sub.days.length > sub.loaves) return '每週 ' + sub.loaves + ' 條，最多選 ' + sub.loaves + ' 個取貨日。';
+  return '';
+}
+function renderSub(){
+  var c = subCalc();
+  flipSet($('#lFlip'), String(sub.loaves), '每週 ' + sub.loaves + ' 條');
+  $('#lHint').textContent = '每月約 ' + Math.round(sub.loaves * SHOP.sub.weeks) + ' 條';
+  $('#cRows').innerHTML = '<tr><td>' + esc(c.plan.name) + ' 單價</td><td>' + money(c.plan.price) + '</td></tr><tr><td>每週 ' + sub.loaves + ' 條 × ' + SHOP.sub.weeks + ' 週</td><td>' + money(c.raw) + '</td></tr><tr><td>訂閱折扣（' + sub.loaves + ' 條／週）</td><td>− ' + Math.round(c.off * 100) + '%</td></tr><tr><td>平均每條</td><td>' + money(c.per) + '</td></tr>';
+  flipSet($('#feeFlip'), Math.round(c.fee).toLocaleString('en-US'), '每月 ' + money(c.fee));
+  var next = SHOP.sub.tiers.filter(function(t){ return t.min > sub.loaves; })[0];
+  $('#cSave').textContent = '比單買每月省 ' + money(c.save) + (next ? '；每週 ' + next.min + ' 條起折扣提高到 ' + Math.round(next.off * 100) + '%。' : '，已是最高折扣。');
+  var err = subErr(); $('#sDayErr').textContent = err;
+  var dist = {}, chosen = DAYORDER.filter(function(d){ return sub.days.indexOf(d) >= 0; });
+  if (!err) for (var i = 0; i < sub.loaves; i++){ var d = chosen[i % chosen.length]; dist[d] = (dist[d] || 0) + 1; }
+  var loaf = '<svg viewBox="0 0 28 14" aria-hidden="true"><ellipse cx="14" cy="8" rx="12" ry="6" fill="#c79a4b"/><path d="M6 7q8-6 16 0" stroke="#f4ecd9" stroke-width="1.5" fill="none"/></svg>';
+  $('#week').innerHTML = DAYORDER.map(function(d){ var n = dist[d] || 0; return '<div class="' + (n ? 'on' : '') + '">週' + WD[d] + (n ? new Array(n + 1).join(loaf) : '<br><span style="opacity:.5">—</span>') + '</div>'; }).join('');
+}
+var sBodyHTML = null;
+$('#sf').addEventListener('submit', function(e){
+  e.preventDefault();
+  var ok = checkPerson($('#sName'), $('#sPhone')), err = subErr();
+  if (err){ $('#sDayErr').textContent = err; ok = false; }
+  if (!ok){ ($('#sf [aria-invalid=true]') || $('#sDays input')).focus(); return; }
+  var c = subCalc(), chosen = DAYORDER.filter(function(d){ return sub.days.indexOf(d) >= 0; });
+  sBodyHTML = $('#sBody').innerHTML;
+  var nm = $('#sName').value.trim();
+  $('#sBody').innerHTML = '<div class="ticket" role="status"><svg class="tstamp on" aria-hidden="true"><use href="#stampFresh"/></svg><span class="no">訂閱卡 · LEVAIN CLUB</span><h3 class="sten">歡迎加入</h3><p style="margin:6px 0 0;color:var(--brown2);font-size:14px">' + esc(nm) + '，每週 ' + sub.loaves + ' 條' + esc(c.plan.name) + '<br>每週' + chosen.map(function(d){ return WD[d]; }).join('、') + ' 到店取</p><ul><li><span>月費</span><span>' + money(c.fee) + '</span></li><li><span>平均每條</span><span>' + money(c.per) + '</span></li></ul><p class="demo" style="margin:0 0 14px"><b>示範版本：沒有真的送出，也不會扣款。</b></p><button class="btn ghost sm" type="button" id="sAgain">重新設定</button></div>';
+  $('#sAgain').addEventListener('click', function(){
+    $('#sBody').innerHTML = sBodyHTML;
+    $$('#plans input').forEach(function(i){ i.checked = i.value === sub.plan; });
+    $$('#sDays input').forEach(function(i){ i.checked = sub.days.indexOf(+i.value) >= 0; });
+    $('#lFlip')._v = null;
+    $('#plans').addEventListener('change', function(e){ sub.plan = e.target.value; renderSub(); });
+    $('#sDays').addEventListener('change', function(){ sub.days = $$('#sDays input:checked').map(function(i){ return +i.value; }); renderSub(); });
+    $('#lMinus').addEventListener('click', function(){ sub.loaves = Math.max(1, sub.loaves - 1); renderSub(); });
+    $('#lPlus').addEventListener('click', function(){ sub.loaves = Math.min(SHOP.sub.max, sub.loaves + 1); renderSub(); });
+    $$('#sBody .fi input').forEach(function(i){ i.value = ''; setErr(i, ''); });
+    $('#sPhone').addEventListener('blur', function(){ this.value = fmtPhone(this.value.trim()); });
+    renderSub();
+  });
+});
+
+/* ===== 評論、營業時間 ===== */
+$('#revs').innerHTML = REVIEWS.map(function(r){ return '<article class="rev rv"><span class="stars" aria-label="' + r.s + ' 顆星">' + new Array(r.s + 1).join('★') + '</span><p>' + esc(r.t) + '</p><footer><b aria-hidden="true">' + esc(r.n) + '</b>' + esc(r.who) + '</footer></article>'; }).join('');
+function renderHours(){
+  var now = new Date(), st = openStatus(now), today = now.getDay();
+  var s = $('#status'); s.classList.toggle('on', st.open); $('span', s).textContent = st.text;
+  var b = $('#bigSt'); b.classList.toggle('on', st.open); b.textContent = st.text;
+  $('#hours').innerHTML = [1, 2, 3, 4, 5, 6, 0].map(function(d){
+    var h = SHOP.hours[d];
+    return '<li class="' + (d === today ? 'td ' : '') + (h ? '' : 'off') + '"><span>週' + WD[d] + (d === today ? '（今天）' : '') + '</span><span>' + (h ? h.map(function(r){ return r[0] + '–' + r[1]; }).join('、') : '公休') + '</span></li>';
+  }).join('');
+}
+
+/* ===== 佔位插畫（麻袋印刷風） ===== */
+function rng(seed){ return function(){ seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
+function wrap(vb, inner, label){ return '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid slice" role="img" aria-label="' + esc(label) + '">' + inner + '</svg>'; }
+function weaveOver(w, h, o){ return '<rect width="' + w + '" height="' + h + '" fill="url(#weave)" opacity="' + (o || 1) + '"/><rect width="' + w + '" height="' + h + '" fill="#fff" filter="url(#grain)" opacity=".35"/>'; }
+function loaf(u, cx, cy, rx, ry, rot){
+  return '<g transform="rotate(' + (rot || 0) + ' ' + cx + ' ' + cy + ')"><ellipse cx="' + cx + '" cy="' + (cy + ry * .55) + '" rx="' + rx * 1.02 + '" ry="' + ry * .35 + '" fill="#000" opacity=".3" filter="url(#soft)"/><ellipse cx="' + cx + '" cy="' + cy + '" rx="' + rx + '" ry="' + ry + '" fill="url(#' + u + 'l)"/><path d="M' + (cx - rx * .7) + ' ' + (cy - ry * .05) + ' Q' + cx + ' ' + (cy - ry * 1.05) + ' ' + (cx + rx * .7) + ' ' + (cy - ry * .05) + '" fill="none" stroke="#f3cf92" stroke-width="' + rx * .1 + '" stroke-linecap="round"/></g>';
+}
+function loafGrad(u){ return '<radialGradient id="' + u + 'l" cx=".42" cy=".3" r=".8"><stop offset="0" stop-color="#e3ab60"/><stop offset=".55" stop-color="#b06a2e"/><stop offset="1" stop-color="#6c3816"/></radialGradient>'; }
+function dust(r, n, x, y, w, h, op){ var s = ''; for (var i = 0; i < n; i++) s += '<circle cx="' + (x + r() * w).toFixed(1) + '" cy="' + (y + r() * h).toFixed(1) + '" r="' + (r() * 2.4 + .6).toFixed(1) + '"/>'; return '<g fill="#fbf5e6" opacity="' + (op || .7) + '">' + s + '</g>'; }
+function stenText(x, y, size, txt, fill, extra){ return '<text class="sten svsten" x="' + x + '" y="' + y + '" font-size="' + size + '" fill="' + fill + '" ' + (extra || '') + '>' + txt + '</text>'; }
+var uid = 0;
+var ART = {
+  oven:function(){
+    var u = 'a' + (uid++), r = rng(7);
+    var defs = '<defs>' + loafGrad(u) + '<pattern id="' + u + 'b" width="80" height="40" patternUnits="userSpaceOnUse"><rect width="80" height="40" fill="#4a3524"/><path d="M0 1H80M0 21H80M40 0V20M0 20V40M80 20V40" stroke="#2c1f14" stroke-width="3"/></pattern><radialGradient id="' + u + 'g" cx=".5" cy=".9" r=".7"><stop offset="0" stop-color="#ffcf7a"/><stop offset=".4" stop-color="#e07a32"/><stop offset="1" stop-color="#d46a2a" stop-opacity="0"/></radialGradient></defs>';
+    var s = defs + '<rect width="800" height="1000" fill="url(#' + u + 'b)"/>' +
+      '<path d="M140 760 V500 A260 260 0 0 1 660 500 V760Z" fill="#1c130c"/>' +
+      '<path d="M118 760 V500 A282 282 0 0 1 682 500 V760" fill="none" stroke="#8a5a36" stroke-width="40" stroke-dasharray="40 5"/>' +
+      '<ellipse cx="400" cy="760" rx="250" ry="230" fill="url(#' + u + 'g)" class="glow"/>' +
+      '<path d="M270 760 Q290 640 330 690 Q350 580 395 680 Q430 590 455 690 Q490 630 520 760Z" fill="#d46a2a"/><path d="M320 760 Q340 690 365 715 Q390 650 410 715 Q440 680 470 760Z" fill="#f5b75c"/>' +
+      '<rect y="760" width="800" height="240" fill="#5a4130"/><path d="M0 820H800M0 900H800M160 760V820M420 760V820M640 760V820M80 820V900M300 820V900M560 820V900" stroke="#3a2a1c" stroke-width="4"/>' +
+      '<g filter="url(#ink)"><rect x="200" y="140" width="400" height="80" fill="#2f4c8f"/>' + stenText(400, 194, 40, 'FOUR À BOIS · 280°C', '#efe5cc', 'text-anchor="middle" letter-spacing="2"') + '</g>' +
+      '<g transform="rotate(-18 560 880)"><rect x="300" y="866" width="560" height="24" rx="10" fill="#a87a48"/><ellipse cx="300" cy="878" rx="170" ry="70" fill="#c69a62"/></g>' +
+      loaf(u, 250, 860, 90, 52, -18) + loaf(u, 380, 820, 82, 48, -18) + dust(r, 40, 180, 780, 280, 140, .6) +
+      '<g fill="none" stroke="#fbf3e2" stroke-width="10" stroke-linecap="round" filter="url(#soft)" opacity=".7"><path d="M250 790 c-24 -40 22 -60 0 -110 c-20 -40 20 -60 0 -100"/><path d="M390 760 c22 -40 -22 -60 0 -110 c20 -40 -18 -60 0 -100"/></g>' + weaveOver(800, 1000, .7);
+    return wrap('0 0 800 1000', s, '佔位插畫：燒柴石窯與剛出爐的麵包');
+  },
+  campagne:function(){
+    var u = 'a' + (uid++), r = rng(11);
+    var s = '<defs>' + loafGrad(u) + '</defs><rect width="800" height="600" fill="#e8dcc0"/>' +
+      '<g transform="rotate(-7 400 300)"><rect x="-80" y="210" width="960" height="330" fill="#f2e8d2"/><g fill="#2f4c8f" filter="url(#ink)"><rect x="-80" y="236" width="960" height="16"/><rect x="-80" y="262" width="960" height="5"/><rect x="-80" y="274" width="960" height="5"/><rect x="-80" y="500" width="960" height="16"/></g></g>' +
+      loaf(u, 410, 320, 230, 150, -4) +
+      '<g fill="none" stroke-linecap="round"><path d="M270 300 Q410 170 560 300" stroke="#7a3f18" stroke-width="5"/><path d="M290 340 Q410 250 530 340" stroke="#f0c98a" stroke-width="10" opacity=".8"/></g>' + dust(r, 70, 220, 190, 380, 210, .75) +
+      '<use href="#wheat" x="560" y="360" width="160" height="230" transform="rotate(38 640 470)" style="color:#c79a4b"/>' +
+      '<g filter="url(#ink)">' + stenText(40, 80, 44, 'N°1 CAMPAGNE', '#2f4c8f', 'letter-spacing="3"') + '<text x="42" y="112" font-size="16" letter-spacing="4" fill="#3a2a1c" font-family="Lucida Grande,DejaVu Sans,sans-serif">LEVAIN · 800 G · 78%</text></g>' + weaveOver(800, 600, .9);
+    return wrap('0 0 800 600', s, '佔位插畫：鄉村酸種麵包放在藍條紋麻布上');
+  },
+  croissant:function(){
+    var u = 'a' + (uid++);
+    function cr(cx, cy, sc, rot){
+      var segs = [[-62, 18, 22, 26, -50], [-34, 2, 30, 36, -25], [0, -4, 36, 42, 0], [34, 2, 30, 36, 25], [62, 18, 22, 26, 50]], g = '';
+      segs.forEach(function(p){ g += '<ellipse cx="' + p[0] + '" cy="' + p[1] + '" rx="' + p[2] + '" ry="' + p[3] + '" transform="rotate(' + p[4] + ' ' + p[0] + ' ' + p[1] + ')" fill="url(#' + u + 'c)" stroke="#7a3f18" stroke-width="2.5"/>'; });
+      return '<g transform="translate(' + cx + ' ' + cy + ') rotate(' + rot + ') scale(' + sc + ')"><ellipse cx="0" cy="40" rx="96" ry="16" fill="#000" opacity=".28" filter="url(#soft)"/>' + g + '<path d="M-30 -20 Q0 -36 30 -20" stroke="#f6d59a" stroke-width="5" fill="none" stroke-linecap="round" opacity=".8"/></g>';
+    }
+    var s = '<defs><radialGradient id="' + u + 'c" cx=".4" cy=".3" r=".8"><stop offset="0" stop-color="#f2c072"/><stop offset=".6" stop-color="#c47a32"/><stop offset="1" stop-color="#8a4a1c"/></radialGradient></defs>' +
+      '<rect width="800" height="600" fill="#dccdab"/><g fill="#2f4c8f" opacity=".85" filter="url(#ink)"><rect x="90" width="14" height="600"/><rect x="114" width="4" height="600"/><rect x="126" width="4" height="600"/><rect x="682" width="4" height="600"/><rect x="694" width="4" height="600"/><rect x="706" width="14" height="600"/></g>' +
+      '<rect x="170" y="70" width="460" height="460" fill="#f3ead6" transform="rotate(-4 400 300)"/>' +
+      cr(300, 230, 1.25, -12) + cr(500, 260, 1.15, 16) + cr(400, 420, 1.35, -4) +
+      '<g filter="url(#ink)" transform="rotate(-4 400 300)">' + stenText(400, 112, 30, 'BEURRE AOP · 27 LAYERS', '#2f4c8f', 'text-anchor="middle" letter-spacing="2"') + '</g>' + weaveOver(800, 600, .8);
+    return wrap('0 0 800 600', s, '佔位插畫：三個發酵奶油可頌');
+  },
+  baguette:function(){
+    var u = 'a' + (uid++), r = rng(23), b = '';
+    [[150, 440, -28], [250, 450, -24], [360, 460, -30], [470, 450, -22], [580, 470, -27]].forEach(function(p, i){
+      b += '<g transform="translate(' + p[0] + ' ' + p[1] + ') rotate(' + (p[2] + 90) + ')"><rect x="-300" y="-26" width="600" height="52" rx="26" fill="url(#' + u + 'g)"/>';
+      for (var k = -3; k <= 3; k++) b += '<ellipse cx="' + (k * 76) + '" cy="-4" rx="30" ry="7" transform="rotate(-10 ' + (k * 76) + ' -4)" fill="#f0c78a" opacity=".85"/>';
+      b += '</g>';
+    });
+    var s = '<defs><linearGradient id="' + u + 'g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9a058"/><stop offset=".5" stop-color="#b56f30"/><stop offset="1" stop-color="#7a3f18"/></linearGradient></defs>' +
+      '<rect width="800" height="600" fill="#3a2a1c"/><path d="M60 600 L120 80 Q400 40 680 80 L740 600Z" fill="#e6d7b5"/><g fill="#2f4c8f" filter="url(#ink)"><path d="M100 600 L150 90 L164 90 L116 600Z"/><path d="M128 600 L174 90 L180 90 L134 600Z"/><path d="M700 600 L650 90 L636 90 L684 600Z"/></g>' +
+      '<rect x="60" y="0" width="680" height="600" fill="url(#weave)" opacity=".8"/>' + b + dust(r, 50, 120, 100, 560, 360, .55) +
+      '<g filter="url(#ink)"><rect x="250" y="500" width="300" height="56" fill="#2f4c8f"/>' + stenText(400, 540, 30, 'TRADITION · T65', '#efe5cc', 'text-anchor="middle" letter-spacing="2"') + '</g>';
+    return wrap('0 0 800 600', s, '佔位插畫：麻袋裡的一束法棍');
+  },
+  shop:function(){
+    var u = 'a' + (uid++), sh = '', i;
+    for (i = 0; i < 3; i++){
+      var y = 150 + i * 90;
+      sh += '<rect x="40" y="' + (y + 50) + '" width="420" height="12" fill="#6a4a30"/>';
+      for (var k = 0; k < 6; k++){
+        var x = 76 + k * 66;
+        sh += i === 1 ? '<rect x="' + (x - 28) + '" y="' + (y + 28) + '" width="56" height="22" rx="11" fill="url(#' + u + 'l)"/>' : '<ellipse cx="' + x + '" cy="' + (y + 34) + '" rx="28" ry="17" fill="url(#' + u + 'l)"/><path d="M' + (x - 16) + ' ' + (y + 30) + 'q16 -12 32 0" stroke="#f3cf92" stroke-width="3" fill="none"/>';
+      }
+    }
+    var lamps = '';
+    [180, 400, 620].forEach(function(x){ lamps += '<line x1="' + x + '" y1="0" x2="' + x + '" y2="70" stroke="#3a2a1c" stroke-width="2"/><path d="M' + (x - 26) + ' 96 L' + (x - 12) + ' 70 H' + (x + 12) + ' L' + (x + 26) + ' 96Z" fill="#2f4c8f"/><ellipse cx="' + x + '" cy="120" rx="80" ry="40" fill="#ffd38a" opacity=".22" filter="url(#soft)"/>'; });
+    var s = '<defs>' + loafGrad(u) + '</defs><rect width="800" height="500" fill="#e8dcc0"/><rect width="800" height="500" fill="url(#weave)"/>' +
+      '<path d="M540 380 V170 A90 90 0 0 1 720 170 V380Z" fill="#9cb0cf"/><path d="M540 380 V170 A90 90 0 0 1 720 170 V380Z M630 80 V380 M540 250 H720" fill="none" stroke="#3a2a1c" stroke-width="8"/>' +
+      '<rect x="30" y="120" width="440" height="300" fill="#5a4130" opacity=".25"/>' + sh + lamps +
+      '<rect x="0" y="390" width="800" height="110" fill="#2f4c8f"/><rect x="0" y="384" width="800" height="10" fill="#3a2a1c"/>' +
+      '<g filter="url(#ink)">' + stenText(400, 458, 40, 'HEARTH &amp; SACK', '#efe5cc', 'text-anchor="middle" letter-spacing="4"') + '</g>' +
+      '<g transform="translate(740 330)"><path d="M-40 60 Q-46 0 -36 -40 Q0 -34 36 -40 Q46 0 40 60Z" fill="#e6d7b5"/><rect x="-26" y="-36" width="5" height="96" fill="#2f4c8f"/><rect x="21" y="-36" width="5" height="96" fill="#2f4c8f"/></g>' + weaveOver(800, 500, .4);
+    return wrap('0 0 800 500', s, '佔位插畫：店內麵包架、吊燈與藍色櫃台');
+  },
+  flour:function(){
+    var u = 'a' + (uid++);
+    function sack(x, y, sc, label, rot){
+      return '<g transform="translate(' + x + ' ' + y + ') rotate(' + rot + ') scale(' + sc + ')"><path d="M-110 -150 Q-120 -175 -136 -186 Q-100 -178 -80 -168 Q0 -156 80 -168 Q100 -178 136 -186 Q120 -175 110 -150 C128 -40 132 80 118 160 Q0 182 -118 160 C-132 80 -128 -40 -110 -150Z" fill="#e9dcbc" stroke="#a88a5c" stroke-width="2"/>' +
+        '<g fill="#2f4c8f" filter="url(#ink)"><rect x="-86" y="-150" width="9" height="300"/><rect x="-72" y="-150" width="3" height="300"/><rect x="77" y="-150" width="9" height="300"/><rect x="69" y="-150" width="3" height="300"/>' + stenText(0, 10, 52, label, '#2f4c8f', 'text-anchor="middle" letter-spacing="2"') + '<text x="0" y="40" text-anchor="middle" font-size="13" letter-spacing="3" fill="#3a2a1c" font-family="Lucida Grande,DejaVu Sans,sans-serif">FARINE · 25 KG</text></g>' +
+        '<path d="M-96 -140 Q0 -126 96 -140" stroke="#6a5641" stroke-width="3" stroke-dasharray="8 5" fill="none"/></g>';
+    }
+    var s = '<rect width="600" height="800" fill="#3a2a1c"/><rect width="600" height="800" fill="url(#weave)" opacity=".5"/>' +
+      sack(170, 300, .95, 'T80', -6) + sack(430, 290, .95, 'SEIGLE', 5) + sack(300, 560, 1.1, 'T65', 0) +
+      '<g transform="translate(470 640)"><rect x="-60" y="-110" width="120" height="150" rx="18" fill="#f4ecd9" opacity=".35" stroke="#f4ecd9" stroke-width="3"/><rect x="-54" y="-60" width="108" height="94" rx="14" fill="#efe1c0"/><g fill="#c9b48c">' + [[-30, -40, 6], [0, -20, 4], [24, -44, 7], [-18, 0, 5], [20, 6, 4], [-36, 18, 3]].map(function(p){ return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + p[2] + '"/>'; }).join('') + '</g><rect x="-66" y="-124" width="132" height="20" rx="4" fill="#d46a2a"/><text x="0" y="74" text-anchor="middle" font-size="16" letter-spacing="3" fill="#e8dcc0" font-family="Lucida Grande,DejaVu Sans,sans-serif">LEVAIN · 9 YRS</text></g>' +
+      '<use href="#wheat" x="40" y="560" width="150" height="220" style="color:#c79a4b"/>';
+    return wrap('0 0 600 800', s, '佔位插畫：堆疊的麵粉麻袋與老麵罐');
+  },
+  banneton:function(){
+    var u = 'a' + (uid++), r = rng(41), s = '<rect width="600" height="600" fill="#5a4130"/><g stroke="#4a3524" stroke-width="3">' + [60, 150, 240, 330, 420, 510].map(function(y){ return '<path d="M0 ' + y + ' H600"/>'; }).join('') + '</g>';
+    [[170, 170, 120, 1], [440, 170, 110, 0], [170, 440, 110, 0], [440, 440, 120, 1]].forEach(function(p, idx){
+      var rings = '';
+      for (var k = 0; k < 7; k++) rings += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (p[2] - k * 14) + '" fill="none" stroke="' + (k % 2 ? '#a8875a' : '#c9a774') + '" stroke-width="9"/>';
+      s += '<circle cx="' + p[0] + '" cy="' + (p[1] + 8) + '" r="' + (p[2] + 6) + '" fill="#000" opacity=".3" filter="url(#soft)"/><circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + p[2] + '" fill="#8a6a40"/>' + rings;
+      if (p[3]) s += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (p[2] - 22) + '" fill="#efe3c8"/><g fill="none" stroke="#d9c69e" stroke-width="5">' + [0, 1, 2, 3].map(function(k){ return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (p[2] - 36 - k * 16) + '"/>'; }).join('') + '</g>';
+    });
+    s += dust(r, 90, 40, 40, 520, 520, .55) + '<g transform="translate(300 305) rotate(-30)"><rect x="-70" y="-24" width="140" height="48" rx="6" fill="#f4ecd9"/><rect x="-70" y="-24" width="46" height="48" rx="6" fill="#2f4c8f"/></g>' + weaveOver(600, 600, .4);
+    return wrap('0 0 600 600', s, '佔位插畫：俯視的藤編發酵籃與麵團');
+  }
+};
+function fillPhotos(){
+  $$('.ph').forEach(function(f){
+    var url = SHOP.photos[f.dataset.photo];
+    if (url){ f.innerHTML = '<img src="' + esc(url) + '" alt="' + esc(f.dataset.label || '') + '" loading="lazy">'; return; }
+    var a = ART[f.dataset.art]; if (a) f.innerHTML = a();
+  });
+}
+
+/* ===== 照片位、導覽、進場 ===== */
+var slotBtn = $('#slotBtn');
+function slots(on){ document.body.classList.toggle('slots', on); slotBtn.setAttribute('aria-pressed', on); }
+slotBtn.addEventListener('click', function(){ slots(!document.body.classList.contains('slots')); });
+if (/[?&]slots\b/.test(location.search)) slots(true);
+var nav = $('#nav'), burger = $('#burger');
+burger.addEventListener('click', function(){ var o = nav.classList.toggle('open'); burger.setAttribute('aria-expanded', o); });
+$$('#navList a').forEach(function(a){ a.addEventListener('click', function(){ nav.classList.remove('open'); burger.setAttribute('aria-expanded', 'false'); }); });
+
+fillPhotos();
+renderBoard(); todayLine(); renderHours(); renderDates(); renderBasket(); renderSub();
+setInterval(function(){ renderBoard(); renderDates(); }, 1000);
+setInterval(function(){ renderHours(); todayLine(); }, 30000);
+
+var targets = $$('.rv,.ink');
+if ('IntersectionObserver' in window && !reduce){
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('vis'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -8% 0px'});
+  targets.forEach(function(t){ io.observe(t); });
+} else targets.forEach(function(t){ t.classList.add('vis'); });
+})();
+</script>
+</body>
+</html>
