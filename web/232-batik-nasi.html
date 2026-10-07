@@ -1,0 +1,1170 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rumah Kawung 卡王之家｜印尼爪哇料理・桃園</title>
+<meta name="description" content="Rumah Kawung 卡王之家：桃園的印尼爪哇家常料理。香蕉葉上的 nasi campur 自己配、慢燉六小時的 rendang、炭烤沙嗲與 gado-gado，另有 rijsttafel 宴席與線上訂位。">
+<meta name="theme-color" content="#1d2a4a">
+<!--
+  店家模板使用方式
+  1. 修改 <script> 開頭的 SHOP：店名、電話、地址、交通、營業時間（hours 依星期幾，0=週日，可多時段，null=公休）、
+     nasi campur 折扣與 rijsttafel 每位價格、服務費。頁面上的店名／電話／地址／時間都從這裡帶入。
+  2. 菜單改 MENU；nasi campur 的飯、配菜、辣椒醬、餅乾改 RICE／SIDES／SAMBAL／KRUPUK；宴席菜色池改 RIJST。
+  3. 照片：在 SHOP.photos 填入網址（hero、story、campur、rendang、sate、gado、interior、spices、grill），
+     就會取代程式繪製的蠟染風佔位插畫。網址加 ?slots 或按右下角「照片位」可標出每個照片位與建議尺寸。
+  4. 訂位、自組飯、宴席試算都只在頁面上示範，沒有送出任何資料；正式上線請串接訂位系統或表單後端。
+-->
+<style>
+:root{--indigo:#1d2a4a;--indigo2:#131c33;--indigo3:#2a3b63;--soga:#8a5a2b;--soga2:#5e3a1a;--wax:#f1e6cf;--wax2:#e7d8b8;--paper:#f8f0dd;--kunyit:#d39a2c;--leaf:#3f6b3a;--ink:#1a2034;--muted:#5a5243;--chili:#a8321c;
+  --serif:"Athelas","Constantia","Cambria","Iowan Old Style","Palatino Linotype","Book Antiqua","Noto Serif","PingFang TC","Microsoft JhengHei","Noto Sans CJK TC",serif;
+  --sans:"Seravek","Candara","Segoe UI","Noto Sans","PingFang TC","Microsoft JhengHei","Noto Sans CJK TC",sans-serif;
+  --ease:cubic-bezier(.2,.7,.2,1);--navH:68px}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:var(--navH)}
+html,body{margin:0}
+body{background-color:var(--wax);background-image:repeating-linear-gradient(0deg,rgba(94,58,26,.035) 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,rgba(94,58,26,.03) 0 1px,transparent 1px 4px);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.75;overflow-x:clip;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px dashed var(--kunyit);outline-offset:3px}
+.wrap{max-width:1200px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.lat{font-family:var(--serif);font-style:italic;letter-spacing:.02em}
+/* 按鈕 */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;font:600 15px/1.2 var(--sans);letter-spacing:.06em;padding:14px 22px;border:1.5px solid currentColor;background:transparent;color:var(--indigo);cursor:pointer;text-decoration:none;border-radius:2px;transition:background .25s,color .25s,transform .25s var(--ease),border-color .25s}
+.btn::before{content:"";width:9px;height:9px;border-radius:0 70% 0 70%;background:currentColor;transform:rotate(45deg);flex:none}
+.btn:hover{transform:translateY(-2px)}
+.btn.pri{background:var(--kunyit);border-color:var(--kunyit);color:var(--indigo2)}
+.btn.pri:hover{background:#e0aa40}
+.btn.ind{background:var(--indigo);border-color:var(--indigo);color:var(--wax)}
+.btn.ind:hover{background:var(--indigo3)}
+.btn.lt{color:var(--wax)}
+.btn.lt:hover{background:var(--wax);color:var(--indigo)}
+/* 導覽 */
+.nav{position:sticky;top:0;z-index:50;background:var(--indigo2);color:var(--wax);border-bottom:3px solid var(--soga)}
+.nav .wrap{display:flex;align-items:center;gap:24px;height:var(--navH)}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none;min-width:0}
+.logo svg{width:38px;height:38px;flex:none}
+.logo b{display:block;font:400 22px/1 var(--serif);letter-spacing:.04em;white-space:nowrap}
+.logo small{display:block;font-size:11px;letter-spacing:.32em;color:#c9b996;margin-top:4px;white-space:nowrap}
+.nav ul{display:flex;gap:22px;list-style:none;margin:0 0 0 auto;padding:0;font-size:14px;letter-spacing:.08em}
+.nav ul a{text-decoration:none;color:#d8ccb0;padding:6px 0;border-bottom:1.5px solid transparent;transition:color .2s,border-color .2s}
+.nav ul a:hover{color:var(--wax);border-bottom-color:var(--kunyit)}
+.nav .btn{padding:10px 18px;font-size:14px}
+.burger{display:none;margin-left:auto;background:none;border:1px solid rgba(241,230,207,.35);color:var(--wax);padding:9px 12px;cursor:pointer;align-items:center;gap:8px;font-size:13px;letter-spacing:.14em}
+.burger i{display:block;width:18px;height:2px;background:currentColor;box-shadow:0 -6px 0 currentColor,0 6px 0 currentColor}
+/* 照片位 */
+.ph{position:relative;overflow:hidden;margin:0;background:var(--indigo)}
+.ph>svg,.ph>img,.ph>canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+body.slots .ph{outline:2px dashed var(--kunyit);outline-offset:-2px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:10px;top:10px;z-index:3;background:var(--indigo2);color:var(--kunyit);font-size:11px;line-height:1.5;padding:3px 9px;max-width:calc(100% - 20px)}
+body.slots .trayPh::after{left:50%;top:50%;transform:translate(-50%,-50%);text-align:center}
+/* Hero */
+.hero{position:relative;overflow:hidden;height:clamp(640px,calc(100svh - var(--navH)),900px);background:#efe3c9;--cx:62%;--cy:50%}
+.hero canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#clothDyed{clip-path:circle(0% at var(--cx) var(--cy));transition:clip-path 2.2s var(--ease)}
+#clothCrk{mix-blend-mode:multiply;opacity:0;transition:opacity 1.6s 1s}
+.hero.dyed #clothDyed{clip-path:circle(150% at var(--cx) var(--cy))}
+.hero.dyed #clothCrk{opacity:.5;animation:crk 9s 2.6s ease-in-out infinite}
+@keyframes crk{0%,100%{opacity:.5}50%{opacity:.12}}
+.trayWrap{position:absolute;left:var(--cx);top:var(--cy);width:min(60vh,560px);aspect-ratio:1;transform:translate(-50%,-50%)}
+.trayPh{width:100%;height:100%;border-radius:50%;background:#6b4420;box-shadow:0 34px 60px rgba(8,12,24,.5),0 6px 14px rgba(8,12,24,.35)}
+.ring{position:absolute;inset:-16.667%;width:133.334%;height:133.334%;overflow:visible;pointer-events:none}
+.ring .trace{fill:none;stroke:#b07a36;transition:stroke 1.6s .4s;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.ring .dots{opacity:0;transition:opacity 1.2s 1.4s}
+.hero.dyed .ring .dots{opacity:1}
+.hero.dyed .ring .trace{stroke:#f1e6cf}
+.ring #pen{transition:opacity .6s}
+.heroCard{position:absolute;left:clamp(16px,4.5vw,72px);bottom:clamp(24px,6vh,64px);width:min(450px,36vw);background:var(--paper);color:var(--ink);padding:30px 32px 30px;box-shadow:0 24px 50px rgba(8,12,24,.38);border-top:6px solid var(--soga)}
+.heroCard::before,.waxcard::before{content:"";position:absolute;inset:0;background-image:var(--crk,none);background-size:420px;opacity:.16;pointer-events:none}
+.heroCard>*{position:relative}
+.status{display:inline-flex;align-items:center;gap:8px;font-size:13px;letter-spacing:.04em;padding:5px 12px 5px 10px;border:1px solid rgba(29,42,74,.22);background:rgba(255,255,255,.4)}
+.status i{width:8px;height:8px;border-radius:50%;background:#9b8f78;flex:none}
+.status.on i{background:var(--leaf);box-shadow:0 0 0 3px rgba(63,107,58,.22)}
+.heroCard .lat{display:block;margin:18px 0 0;color:var(--soga);font-size:15px}
+.heroCard h1{margin:4px 0 0;font:400 clamp(40px,4.4vw,60px)/1 var(--serif);letter-spacing:.01em;color:var(--indigo)}
+.heroCard h1 .zhn{display:block;font:600 19px/1.4 var(--sans);letter-spacing:.42em;color:var(--soga2);margin-top:10px}
+.heroCard p{margin:16px 0 22px;color:var(--muted);font-size:15.5px}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.heroCap{position:absolute;right:clamp(16px,3vw,44px);bottom:clamp(24px,6vh,60px);margin:0;background:rgba(19,28,51,.92);border-left:3px solid var(--kunyit);padding:12px 16px;color:var(--wax);font-size:13px;line-height:1.6;letter-spacing:.04em;opacity:0;transition:opacity 1s 2s;max-width:250px}
+.heroCap .lat{display:block;font-size:16px;color:#f3d9a2;margin-bottom:2px}
+.hero.dyed .heroCap{opacity:1}
+/* 區塊 */
+.sec{padding:clamp(76px,9vw,124px) 0;position:relative}
+.dark{background-color:var(--indigo);background-image:var(--kw,none);color:var(--wax)}
+.hd{display:flex;align-items:center;gap:18px;margin-bottom:clamp(30px,4vw,48px)}
+.hd.c{justify-content:center;text-align:center}
+.hd .lat{display:block;color:var(--soga);font-size:17px}
+.dark .hd .lat{color:#e7bd6b}
+.hd h2{margin:2px 0 0;font:600 clamp(30px,4vw,48px)/1.15 var(--serif);letter-spacing:.04em}
+.hd p{margin:8px 0 0;color:var(--muted);max-width:600px}
+.dark .hd p{color:#cfc4ab}
+.kw{width:62px;height:62px;flex:none;color:var(--indigo)}
+.dark .kw{color:var(--wax)}
+.kw path{fill:rgba(138,90,43,0);stroke:currentColor;stroke-width:2.4;stroke-dasharray:1 1;stroke-dashoffset:1;transition:stroke-dashoffset 1s var(--ease),fill .8s ease}
+.kw circle{fill:var(--kunyit);opacity:0;transition:opacity .5s 1.3s}
+.vis .kw path{stroke-dashoffset:0;fill:rgba(138,90,43,.85)}
+.vis .kw path:nth-child(2){transition-delay:.25s,1.2s}.vis .kw path:nth-child(3){transition-delay:.5s,1.2s}.vis .kw path:nth-child(4){transition-delay:.75s,1.2s}
+.vis .kw path:nth-child(1){transition-delay:0s,1.2s}
+.vis .kw circle{opacity:1}
+.parang{display:block;height:40px;border-top:3px solid var(--soga2);border-bottom:3px solid var(--soga2);background:var(--indigo)}
+.parang svg{display:block;width:100%;height:100%}
+.rv{opacity:0;transform:translateY(22px);transition:opacity .9s ease,transform .9s var(--ease)}
+.rv.vis{opacity:1;transform:none}
+/* 故事 */
+.story{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:clamp(36px,6vw,84px);align-items:center}
+.story .body p{margin:0 0 16px;color:#3b3628;font-size:17px}
+.story .body p:first-of-type::first-letter{float:left;font:400 64px/.86 var(--serif);color:var(--soga);margin:6px 10px 0 0}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:30px;border-top:1.5px solid var(--indigo);border-bottom:1.5px solid var(--indigo)}
+.facts div{padding:16px 14px;border-left:1px dashed rgba(29,42,74,.35)}
+.facts div:first-child{border-left:0;padding-left:0}
+.facts b{display:block;font:400 34px/1 var(--serif);color:var(--indigo)}
+.facts span{font-size:13px;color:var(--muted)}
+.kain{padding:14px;background:var(--indigo);position:relative}
+.kain::before{content:"";position:absolute;inset:6px;border:1.5px dashed rgba(241,230,207,.5);pointer-events:none;z-index:2}
+.kain .ph{aspect-ratio:4/5}
+.kainCap{margin:12px 2px 0;font-size:13px;color:var(--muted)}
+/* 招牌 */
+.sig{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}
+.card{background:var(--paper);color:var(--ink);position:relative;display:flex;flex-direction:column}
+.card .ph{aspect-ratio:4/3}
+.card .tx{padding:20px 20px 22px;display:flex;flex-direction:column;flex:1}
+.card h3{margin:0;font:400 25px/1.15 var(--serif);color:var(--indigo)}
+.card .zh{font-size:14px;color:var(--soga);letter-spacing:.1em;margin-top:4px;font-weight:600}
+.card p{margin:10px 0 14px;font-size:14.5px;color:var(--muted);flex:1}
+.card .ft{display:flex;justify-content:space-between;align-items:center;border-top:1px dashed rgba(29,42,74,.3);padding-top:12px;font-size:14px}
+.card .ft b{font:400 20px/1 var(--serif);color:var(--indigo)}
+.card a.more{color:var(--indigo);font-weight:600;text-decoration:none;border-bottom:1.5px solid var(--kunyit)}
+.hot{display:inline-flex;gap:2px;vertical-align:middle;color:var(--chili)}
+.hot svg{width:13px;height:13px}
+.veg{display:inline-block;font-size:11px;line-height:1;padding:3px 5px;border:1px solid var(--leaf);color:var(--leaf);font-weight:700;vertical-align:middle;letter-spacing:.05em}
+/* 菜單 */
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:26px;align-items:center}
+.tabs button{background:transparent;border:1.5px solid rgba(29,42,74,.3);padding:8px 14px;cursor:pointer;font-size:14px;letter-spacing:.04em;border-radius:2px;line-height:1.3}
+.tabs button .lat{font-size:13px;color:var(--soga);margin-left:4px}
+.tabs button[aria-pressed=true]{background:var(--indigo);border-color:var(--indigo);color:var(--wax)}
+.tabs button[aria-pressed=true] .lat{color:#e7bd6b}
+.tabs .vegT{margin-left:auto;border-color:var(--leaf);color:var(--leaf)}
+.tabs .vegT[aria-pressed=true]{background:var(--leaf);border-color:var(--leaf);color:#fff}
+.mgroup{margin-bottom:34px}
+.mgroup h3{display:flex;align-items:baseline;gap:12px;margin:0 0 6px;font:600 22px/1.3 var(--serif);color:var(--indigo);padding-bottom:8px;border-bottom:1.5px solid var(--indigo)}
+.mgroup h3 .lat{font-weight:400;color:var(--soga);font-size:17px}
+.mlist{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:48px}
+.mlist li{padding:14px 0;border-bottom:1px dashed rgba(29,42,74,.22)}
+.mtop{display:flex;align-items:baseline;gap:10px}
+.mtop b{font:400 19px/1.3 var(--serif);color:var(--ink)}
+.mtop i{flex:1;border-bottom:1.5px dotted rgba(138,90,43,.55);transform:translateY(-4px);min-width:16px}
+.mtop span{font:400 18px/1 var(--serif);color:var(--indigo);white-space:nowrap}
+.mzh{font-size:14px;color:var(--soga2);font-weight:600;letter-spacing:.06em;display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:2px}
+.mlist p{margin:4px 0 0;font-size:14px;color:var(--muted)}
+.mnote{font-size:13px;color:var(--muted);margin-top:4px}
+/* 自組飯 */
+.build{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(30px,5vw,64px);align-items:start}
+.stage{position:sticky;top:calc(var(--navH) + 24px)}
+.stageIn{position:relative;width:min(100%,560px);margin:0 auto;aspect-ratio:1}
+.stageIn{border-radius:50%;box-shadow:0 30px 50px rgba(5,8,18,.55)}
+.stageIn>svg{width:100%;height:100%;display:block}
+.stage .lbl{text-align:center;margin-top:16px;color:#d9cdb2;font-size:14px;min-height:3.2em}
+.pop{animation:pop .55s var(--ease) both;transform-box:fill-box;transform-origin:center}
+@keyframes pop{from{opacity:0;transform:scale(.55) rotate(-14deg)}to{opacity:1;transform:none}}
+.waxcard{position:relative;background:var(--paper);color:var(--ink);padding:clamp(20px,3vw,32px)}
+.waxcard>*{position:relative}
+.grp{border:0;margin:0 0 20px;padding:0;min-width:0}
+.grp legend{padding:0;margin-bottom:10px;font-size:13px;letter-spacing:.16em;color:var(--soga2);font-weight:700;display:flex;justify-content:space-between;width:100%}
+.grp legend em{font-style:normal;font-weight:600;letter-spacing:.04em;color:var(--muted)}
+.opts{display:grid;gap:8px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.opts.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.opts.five{grid-template-columns:repeat(5,minmax(0,1fr))}
+.opt{position:relative;display:block;min-width:0}
+.opt input{position:absolute;opacity:0;width:1px;height:1px}
+.opt>span{display:block;height:100%;border:1.5px solid rgba(29,42,74,.28);background:#fbf6ea;padding:9px 11px;cursor:pointer;line-height:1.3;font-size:14px;transition:background .2s,border-color .2s,color .2s}
+.opt>span b{display:block;font:400 16px/1.25 var(--serif)}
+.opt>span small{display:flex;justify-content:space-between;gap:6px;font-size:12px;color:var(--muted);margin-top:3px}
+.opt>span .sw{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;vertical-align:-1px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.opt input:checked+span{background:var(--indigo);border-color:var(--indigo);color:var(--wax)}
+.opt input:checked+span small{color:#d0c5ab}
+.opt input:checked+span .hot{color:#f0a37a}
+.opt input:disabled+span{opacity:.38;cursor:not-allowed}
+.opt input:focus-visible+span{outline:2px dashed var(--kunyit);outline-offset:2px}
+.five .opt>span{text-align:center;padding:8px 4px}
+.five .opt>span small{justify-content:center}
+.sumry{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px 24px;border-top:1.5px solid var(--indigo);padding-top:18px;margin-top:4px;align-items:end}
+.bill{list-style:none;margin:0;padding:0;font-size:14px}
+.bill li{display:flex;justify-content:space-between;gap:10px;padding:2px 0;color:#3b3628}
+.bill li.d{color:var(--leaf);font-weight:600}
+.tot{text-align:right}
+.tot small{display:block;font-size:12px;letter-spacing:.2em;color:var(--muted)}
+.tot b{font:400 40px/1 var(--serif);color:var(--indigo)}
+.heat{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px}
+.meter{display:flex;gap:3px}
+.meter svg{width:22px;height:22px;color:rgba(29,42,74,.18);transition:color .3s,transform .3s var(--ease)}
+.meter svg.on{color:var(--chili);transform:rotate(-8deg) scale(1.08)}
+.heat .lv{font-weight:700;color:var(--chili)}
+.heat .tag{margin-left:auto;font-size:12px;padding:3px 8px;border:1px solid currentColor;font-weight:700}
+.heat .tag.y{color:var(--leaf)}.heat .tag.n{color:var(--soga)}
+.acts{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap}
+.toast{font-size:13px;color:var(--leaf);min-height:1.2em;margin:10px 0 0;font-weight:600}
+/* 宴席 */
+.rj{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:clamp(28px,4vw,56px);align-items:start}
+.fld{margin-bottom:18px}
+.fld>label,.fld>.lab{display:block;font-size:13px;letter-spacing:.16em;font-weight:700;color:var(--soga2);margin-bottom:8px}
+.step{display:flex;align-items:stretch;border:1.5px solid var(--indigo);width:max-content;max-width:100%}
+.step button{width:48px;background:var(--indigo);color:var(--wax);border:0;font-size:22px;line-height:1;cursor:pointer}
+.step button:hover{background:var(--indigo3)}
+.step input{width:86px;border:0;background:#fffaf0;text-align:center;font:400 26px/1 var(--serif);padding:10px 0;color:var(--indigo);-moz-appearance:textfield}
+.step input::-webkit-inner-spin-button,.step input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.err{display:block;color:#a3261a;font-size:13px;min-height:1.3em;margin-top:4px;font-weight:600}
+.rule{font-size:14px;color:var(--muted);border-left:3px solid var(--kunyit);padding:4px 0 4px 14px;margin:6px 0 20px}
+.rule b{color:var(--ink)}
+.scroll{position:relative;background:var(--paper);box-shadow:0 18px 40px rgba(29,42,74,.16)}
+.scroll .parang{height:26px}
+.scrollIn{padding:clamp(20px,3vw,34px)}
+.rjHead{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;border-bottom:1.5px solid var(--indigo);padding-bottom:14px;margin-bottom:6px}
+.rjHead h3{margin:0;font:400 30px/1.1 var(--serif);color:var(--indigo)}
+.rjHead h3 small{display:block;font:600 14px/1.5 var(--sans);letter-spacing:.14em;color:var(--soga);margin-top:4px}
+.rjCount{font:400 52px/1 var(--serif);color:var(--soga)}
+.rjCount small{font:600 14px var(--sans);color:var(--muted);margin-left:4px}
+.rjGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:34px}
+.rjG h4{margin:16px 0 4px;font-size:13px;letter-spacing:.16em;color:var(--soga2)}
+.rjG h4 .lat{letter-spacing:.02em;font-weight:400;color:var(--soga);margin-left:6px;font-size:14px}
+.rjG ul{list-style:none;margin:0;padding:0}
+.rjG li{display:flex;gap:8px;align-items:baseline;padding:4px 0;border-bottom:1px dotted rgba(29,42,74,.2);font-size:14.5px}
+.rjG li b{font:400 16px/1.3 var(--serif);color:var(--ink)}
+.rjG li .z{color:var(--muted);font-size:13px;flex:1}
+.rjTot{margin-top:20px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;background:var(--indigo);color:var(--wax);padding:16px 18px}
+.rjTot div{font-size:12px;letter-spacing:.12em;color:#cfc4ab}
+.rjTot b{display:block;font:400 22px/1.2 var(--serif);color:var(--wax);letter-spacing:0;margin-top:4px}
+.rjTot div:last-child b{color:#f3c86a}
+.rjNote{font-size:13px;color:var(--muted);margin:12px 0 0}
+/* 訂位 */
+.soga{background:var(--soga2);color:var(--wax)}
+.book{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);gap:clamp(28px,4vw,56px);align-items:start}
+.book form{margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips .opt>span{padding:8px 12px;text-align:center;min-width:64px}
+.chips .opt>span small{justify-content:center}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.inp{display:block;width:100%;border:0;border-bottom:1.5px solid var(--indigo);background:transparent;padding:9px 2px;font-size:16px;color:var(--ink);border-radius:0}
+.inp:focus{outline:none;border-bottom-color:var(--kunyit);background:rgba(211,154,44,.08)}
+textarea.inp{resize:vertical;min-height:70px;border:1.5px solid rgba(29,42,74,.35);padding:10px}
+.demo{font-size:12.5px;color:var(--muted);margin:12px 0 0}
+.done{text-align:center;padding:20px 6px}
+.done svg{width:90px;height:90px}
+.done h3{margin:10px 0 4px;font:400 38px/1.1 var(--serif);color:var(--indigo)}
+.done p{margin:6px 0;color:#3b3628}
+.done .demo{color:var(--chili);font-weight:700}
+.aside h3{margin:0 0 6px;font:400 26px/1.2 var(--serif);color:#f3d9a2}
+.aside p{color:#e3d6bb;margin:0 0 16px;font-size:15px}
+.aside ul{margin:0 0 20px;padding:0;list-style:none;font-size:15px}
+.aside li{padding:9px 0;border-bottom:1px dashed rgba(241,230,207,.25);display:flex;justify-content:space-between;gap:10px}
+.aside li b{font-weight:600;color:#f3d9a2}
+/* 照片牆 */
+.gal{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);grid-template-rows:280px 280px;gap:16px}
+.gal figure{min-height:0}
+.gal .g1{grid-row:1/3}
+.gcap{position:absolute;left:0;bottom:0;z-index:2;background:var(--paper);color:var(--ink);font-size:13px;padding:8px 14px;max-width:calc(100% - 20px)}
+.gcap .lat{color:var(--soga);margin-right:6px}
+/* 評論 */
+.revs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.rev{margin:0;position:relative;background:var(--paper);color:var(--ink);padding:26px 24px 22px;border-top:5px solid var(--kunyit)}
+.rev .st{display:flex;gap:3px;color:var(--soga)}
+.rev .st svg{width:16px;height:16px}
+.rev blockquote{margin:12px 0 16px;font-size:15.5px;color:#3b3628}
+.rev figcaption{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;border-top:1px dashed rgba(29,42,74,.25);padding-top:10px}
+.rev figcaption b{color:var(--indigo)}
+.score{display:flex;align-items:center;justify-content:center;gap:16px;margin:-8px 0 36px;color:#d9cdb2;font-size:14px}
+.score b{font:400 44px/1 var(--serif);color:var(--wax)}
+/* 資訊 */
+.visit{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr) minmax(0,.9fr);gap:clamp(24px,4vw,52px)}
+.visit h3{margin:0 0 14px;font-size:13px;letter-spacing:.2em;color:var(--soga2);display:flex;align-items:center;gap:10px}
+.visit h3::after{content:"";flex:1;height:1.5px;background:var(--indigo)}
+.hrs{width:100%;border-collapse:collapse;font-size:15px}
+.hrs th{text-align:left;font-weight:600;padding:8px 10px 8px 8px;white-space:nowrap;vertical-align:top;color:var(--indigo)}
+.hrs td{padding:8px 8px;color:#3b3628}
+.hrs tr{border-bottom:1px dashed rgba(29,42,74,.22)}
+.hrs tr.today{background:var(--indigo);color:var(--wax)}
+.hrs tr.today th,.hrs tr.today td{color:var(--wax)}
+.hrs tr.today th::after{content:"今天";font-size:11px;margin-left:8px;padding:1px 6px;background:var(--kunyit);color:var(--indigo2);font-weight:700}
+.hrs .off{color:#9b8f78}
+.visit p{margin:0 0 10px;color:#3b3628}
+.visit .big{font:400 26px/1.3 var(--serif);color:var(--indigo);text-decoration:none;display:inline-block;border-bottom:2px solid var(--kunyit)}
+.visit .status{margin-bottom:16px}
+footer{background:var(--indigo2);color:#cfc4ab;padding:44px 0 90px;font-size:13px}
+footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:flex-end}
+footer .logo{color:var(--wax)}
+footer nav{display:flex;gap:18px;flex-wrap:wrap}
+footer a{text-decoration:none;border-bottom:1px solid rgba(241,230,207,.3)}
+.slotBtn{position:fixed;right:16px;bottom:16px;z-index:60;border:1.5px solid var(--kunyit);background:var(--indigo2);color:var(--kunyit);font-size:12px;padding:8px 14px;cursor:pointer;letter-spacing:.12em}
+.slotBtn[aria-pressed=true]{background:var(--kunyit);color:var(--indigo2)}
+@media (max-width:1100px){
+  .sig{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .nav ul{gap:16px}
+}
+@media (max-width:980px){
+  :root{--navH:62px}
+  .nav ul{display:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;gap:0;background:var(--indigo2);padding:4px 20px 16px;border-bottom:3px solid var(--soga)}
+  .nav.open ul{display:flex}
+  .nav ul a{display:block;padding:12px 0;border-bottom:1px solid rgba(241,230,207,.14)}
+  .nav .wrap>.btn{display:none}
+  .burger{display:inline-flex}
+  .hero{height:auto;--cx:50%;--cy:calc(64px + min(36vw,220px));padding:64px 0 0}
+  .trayWrap{position:relative;left:auto;top:auto;transform:none;width:min(72vw,440px);margin:0 auto}
+  .heroCard{position:relative;left:auto;bottom:auto;width:auto;max-width:560px;margin:calc(12vw + 20px) 16px 32px}
+  .heroCap{display:none}
+  .story,.build,.rj,.book{grid-template-columns:minmax(0,1fr)}
+  .stage{position:relative;top:0}
+  .stageIn{width:min(100%,460px)}
+  .visit{grid-template-columns:minmax(0,1fr)}
+  .revs{grid-template-columns:minmax(0,1fr)}
+  .gal{grid-template-columns:minmax(0,1fr);grid-template-rows:none}
+  .gal .g1{grid-row:auto}
+  .gal figure{aspect-ratio:4/3}
+}
+@media (min-width:600px) and (max-width:980px){.heroCard{margin-left:auto;margin-right:auto}}
+@media (max-width:620px){
+  .sig{grid-template-columns:minmax(0,1fr)}
+  .mlist{grid-template-columns:minmax(0,1fr)}
+  .tabs .vegT{margin-left:0}
+  .opts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .opts.five{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .rjGrid{grid-template-columns:minmax(0,1fr)}
+  .rjTot{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .row2{grid-template-columns:minmax(0,1fr)}
+  .hd{gap:14px;align-items:flex-start}
+  .kw{width:48px;height:48px;margin-top:4px}
+  .facts b{font-size:28px}
+  .heroCard{padding:24px 22px}
+  .sumry{grid-template-columns:minmax(0,1fr)}
+  .tot{text-align:left}
+  .logo small{letter-spacing:.2em}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .rv{opacity:1;transform:none;transition:none}
+  #clothDyed,.hero #clothCrk,.ring .dots,.heroCap{transition:none!important;animation:none!important}
+  .pop{animation:none}
+  .kw path,.kw circle{transition:none}
+}
+</style>
+</head>
+<body>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="回到頁首"><svg viewBox="-50 -50 100 100" aria-hidden="true" id="logoMark"></svg><span><b data-shop="name">Rumah Kawung</b><small data-shop="zh">卡王之家</small></span></a>
+    <ul id="navList">
+      <li><a href="#story">故事</a></li><li><a href="#signature">招牌</a></li><li><a href="#menu">菜單</a></li><li><a href="#campur">自組飯</a></li><li><a href="#rijst">宴席</a></li><li><a href="#gallery">店內</a></li><li><a href="#visit">交通</a></li>
+    </ul>
+    <a class="btn pri" href="#booking">線上訂位</a>
+    <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="navList"><i></i><span>選單</span></button>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero" id="hero" aria-label="首頁主視覺">
+    <canvas id="clothRaw" aria-hidden="true"></canvas>
+    <canvas id="clothDyed" aria-hidden="true"></canvas>
+    <canvas id="clothCrk" aria-hidden="true"></canvas>
+    <div class="trayWrap">
+      <figure class="ph trayPh" data-photo="hero" data-art="tray" data-label="藤盤上的 nasi campur（俯拍）" data-size="1600×1600"></figure>
+      <svg class="ring" id="ring" viewBox="-400 -400 800 800" aria-hidden="true"></svg>
+    </div>
+    <div class="heroCard">
+      <span class="status" id="status"><i></i><span>…</span></span>
+      <span class="lat">Masakan Jawa · sejak 1987</span>
+      <h1><span data-shop="name">Rumah Kawung</span><span class="zhn" data-shop="zh">卡王之家</span></h1>
+      <p id="tagline">日惹外婆的爪哇家常菜。香蕉葉上的白飯、慢燉六小時的 rendang、炭火沙嗲與花生醬 gado-gado，每一盤都照著老食譜，一點一點做。</p>
+      <div class="btns"><a class="btn pri" href="#booking">線上訂位</a><a class="btn" href="#campur">自組 nasi campur</a></div>
+    </div>
+    <p class="heroCap"><span class="lat">Nasi campur di atas daun pisang</span>香蕉葉上的什錦飯，配菜每天十二樣，自己挑。</p>
+  </section>
+
+  <div class="parang" aria-hidden="true"></div>
+
+  <section class="sec" id="story">
+    <div class="wrap story">
+      <div class="rv">
+        <div class="hd"><svg class="kw" viewBox="-50 -50 100 100" aria-hidden="true"></svg><div><span class="lat">Cerita kami</span><h2>一張外婆的手抄食譜</h2></div></div>
+        <div class="body">
+          <p>外婆在 1987 年，於日惹王宮旁的小巷擺了一張木桌，賣她用石臼搗的 sambal 和一鍋從清晨燉到中午的 rendang。三十年後，我們把那本沾滿薑黃色指印的手抄本帶到桃園。</p>
+          <p>店名的 kawung 是爪哇蠟染最古老的紋樣：四片棕櫚果瓣圍著一個中心，象徵秩序與分享。就像一盤 nasi campur——白飯在中間，大家各自挑喜歡的配菜圍在旁邊。</p>
+          <p>香料每週從印尼進口，椰漿每天現刨現擠，辣椒醬只在當天搗。我們不做「改良版」，只做家裡吃的味道。</p>
+        </div>
+        <div class="facts"><div><b>1987</b><span>日惹老店創立</span></div><div><b>6 小時</b><span>rendang 小火慢燉</span></div><div><b>32 種</b><span>每週進口的香料</span></div></div>
+      </div>
+      <div class="rv">
+        <div class="kain"><figure class="ph" data-photo="story" data-art="cobek" data-label="石臼搗辣椒醬／廚房備料" data-size="1200×1500"></figure></div>
+        <p class="kainCap"><span class="lat">Cobek &amp; ulekan</span>　每天早上用火山石臼搗當日的 sambal。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec dark" id="signature">
+    <div class="wrap">
+      <div class="hd rv"><svg class="kw" viewBox="-50 -50 100 100" aria-hidden="true"></svg><div><span class="lat">Hidangan andalan</span><h2>四道招牌</h2><p>第一次來不知道點什麼，就從這四道開始。</p></div></div>
+      <div class="sig" id="sig"></div>
+    </div>
+  </section>
+
+  <div class="parang" aria-hidden="true"></div>
+
+  <section class="sec" id="menu">
+    <div class="wrap">
+      <div class="hd rv"><svg class="kw" viewBox="-50 -50 100 100" aria-hidden="true"></svg><div><span class="lat">Daftar menu</span><h2>完整菜單</h2><p>價格皆為新台幣，含稅。辣度以辣椒數標示，<span class="veg">素</span> 為可做素食。</p></div></div>
+      <div class="tabs rv" id="tabs" role="group" aria-label="菜單分類"></div>
+      <div id="menuBox" class="rv"></div>
+    </div>
+  </section>
+
+  <section class="sec dark" id="campur">
+    <div class="wrap">
+      <div class="hd rv"><svg class="kw" viewBox="-50 -50 100 100" aria-hidden="true"></svg><div><span class="lat">Racik nasi campur</span><h2>在藤盤上配一盤飯</h2><p>選一種飯、最多四樣配菜、辣椒醬和餅乾，藤盤會即時排好，價格與辣度一起算。</p></div></div>
+      <div class="build">
+        <div class="stage rv"><div class="stageIn" id="tray"></div><p class="lbl" id="trayLbl"></p></div>
+        <form class="waxcard rv" id="cf" onsubmit="return false">
+          <fieldset class="grp"><legend>一　選飯 <em>Nasi</em></legend><div class="opts" id="riceOpts"></div></fieldset>
+          <fieldset class="grp"><legend>二　配菜 <em id="sideCount">0 / 4</em></legend><div class="opts two" id="sideOpts"></div></fieldset>
+          <fieldset class="grp"><legend>三　Sambal 辣椒醬 <em id="sambalName"></em></legend><div class="opts five" id="sambalOpts"></div></fieldset>
+          <fieldset class="grp"><legend>四　Krupuk 餅乾</legend><div class="opts" id="krupukOpts"></div></fieldset>
+          <div class="sumry" aria-live="polite">
+            <ul class="bill" id="bill"></ul>
+            <div class="tot"><small>這一盤</small><b id="cTotal">—</b></div>
+            <div class="heat"><span>辣度</span><span class="meter" id="meter"></span><span class="lv" id="heatLv"></span><span class="tag" id="vegTag"></span></div>
+            <div class="acts"><button class="btn ind" type="button" id="cToBook">帶這盤去訂位</button><button class="btn" type="button" id="cReset">清空重配</button></div>
+          </div>
+          <p class="toast" id="cToast" role="status"></p>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="rijst">
+    <div class="wrap">
+      <div class="hd rv"><svg class="kw" viewBox="-50 -50 100 100" aria-hidden="true"></svg><div><span class="lat">Rijsttafel</span><h2>爪哇宴席：一桌十幾道</h2><p>荷印時期留下的「米飯桌」。告訴我們幾位、幾位吃素，系統會決定道數並排出整桌菜單。</p></div></div>
+      <div class="rj">
+        <div class="waxcard rv" style="box-shadow:0 18px 40px rgba(29,42,74,.14)">
+          <div class="fld"><label for="rjN">用餐人數</label><div class="step"><button type="button" data-step="rjN" data-d="-1" aria-label="減少人數">−</button><input id="rjN" type="number" inputmode="numeric" min="2" max="30" value="6"><button type="button" data-step="rjN" data-d="1" aria-label="增加人數">+</button></div><span class="err" id="rjNErr"></span></div>
+          <div class="fld"><label for="rjV">其中吃素</label><div class="step"><button type="button" data-step="rjV" data-d="-1" aria-label="減少吃素人數">−</button><input id="rjV" type="number" inputmode="numeric" min="0" max="30" value="1"><button type="button" data-step="rjV" data-d="1" aria-label="增加吃素人數">+</button></div><span class="err" id="rjVErr"></span></div>
+          <p class="rule" id="rjRule"></p>
+          <button class="btn pri" type="button" id="rjBook">用這個人數訂宴席</button>
+        </div>
+        <div class="scroll rv" aria-live="polite"><div class="parang" aria-hidden="true"></div><div class="scrollIn" id="rjOut"></div><div class="parang" aria-hidden="true"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec soga" id="booking">
+    <div class="wrap">
+      <div class="hd rv"><svg class="kw" viewBox="-50 -50 100 100" aria-hidden="true" style="color:var(--wax)"></svg><div><span class="lat" style="color:#f3c86a">Pesan meja</span><h2>訂位</h2><p style="color:#e3d6bb">線上只列出營業日與還能訂的時段。座位保留 15 分鐘。</p></div></div>
+      <div class="book">
+        <div class="waxcard rv">
+          <form id="bf" novalidate>
+            <div class="fld"><span class="lab">日期</span><div class="chips" id="bDates"></div></div>
+            <div class="fld"><span class="lab">時段</span><div class="chips" id="bSvc"></div></div>
+            <div class="fld"><span class="lab">時間</span><div class="chips" id="bTimes"></div><span class="err" id="bTimeErr"></span></div>
+            <div class="row2">
+              <div class="fld"><label for="bPax">人數</label><select class="inp" id="bPax"></select></div>
+              <div class="fld"><span class="lab">用餐方式</span><div class="chips" id="bType"><label class="opt"><input type="radio" name="bt" value="單點" checked><span>單點</span></label><label class="opt"><input type="radio" name="bt" value="宴席"><span>Rijsttafel 宴席</span></label></div><span class="err" id="bTypeErr"></span></div>
+            </div>
+            <div class="row2">
+              <div class="fld"><label for="bName">姓名</label><input class="inp" id="bName" autocomplete="name"><span class="err"></span></div>
+              <div class="fld"><label for="bPhone">手機</label><input class="inp" id="bPhone" inputmode="tel" autocomplete="tel" placeholder="09xx-xxx-xxx"><span class="err"></span></div>
+            </div>
+            <div class="fld"><label for="bNote">備註（預點、過敏、慶生）</label><textarea class="inp" id="bNote" rows="3"></textarea></div>
+            <button class="btn ind" type="submit" style="width:100%">確認訂位</button>
+            <p class="demo">示範版本：訂位只顯示在頁面上，不會真的送出。</p>
+          </form>
+          <div class="done" id="bDone" hidden></div>
+        </div>
+        <div class="aside rv">
+          <h3>大桌與包場</h3>
+          <p>店內最大桌可坐 12 位，二樓可包場 30 位。宴席請至少前一天預訂，我們需要時間燉 rendang。</p>
+          <ul id="bAside"></ul>
+          <a class="btn lt" id="bTel" href="#">電話訂位</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="gallery">
+    <div class="wrap">
+      <div class="hd rv"><svg class="kw" viewBox="-50 -50 100 100" aria-hidden="true"></svg><div><span class="lat">Suasana</span><h2>店裡的樣子</h2><p>牆上掛的是外婆收的老蠟染布，燈罩是峇里島的藤編。</p></div></div>
+      <div class="gal rv">
+        <figure class="ph g1" data-photo="interior" data-art="interior" data-label="用餐區全景" data-size="1600×1000"><figcaption class="gcap"><span class="lat">Ruang makan</span>一樓用餐區</figcaption></figure>
+        <figure class="ph" data-photo="spices" data-art="spices" data-label="香料與食材" data-size="1200×1200"><figcaption class="gcap"><span class="lat">Bumbu</span>每週進口的香料</figcaption></figure>
+        <figure class="ph" data-photo="grill" data-art="grill" data-label="炭烤沙嗲爐" data-size="1200×1500"><figcaption class="gcap"><span class="lat">Bakar</span>門口的沙嗲炭爐</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec dark" id="reviews">
+    <div class="wrap">
+      <div class="hd c rv"><div><span class="lat">Kata tamu</span><h2>客人說</h2></div></div>
+      <p class="score rv"><b>4.8</b><span id="scoreStars" class="hot" style="color:#e7bd6b"></span><span>Google 評論 1,286 則</span></p>
+      <div class="revs">
+        <figure class="rev rv"><div class="st"></div><blockquote>rendang 燉到用湯匙就切得開，香料一層一層出來。配菜自己挑這點太棒，我每次都選薑黃飯加 tempe orek。</blockquote><figcaption><b>林小姐</b><span>桃園・常客</span></figcaption></figure>
+        <figure class="rev rv"><div class="st"></div><blockquote>Rasanya seperti masakan ibu. 在台灣第一次吃到正宗的 sambal terasi，老闆娘還教我們怎麼吃 gado-gado。</blockquote><figcaption><b>Andi W.</b><span>中壢・日惹人</span></figcaption></figure>
+        <figure class="rev rv"><div class="st"></div><blockquote>公司聚餐訂了十人 rijsttafel，二十道菜擺滿一整桌，有三位同事吃素也照顧得很好，價格比想像中實在。</blockquote><figcaption><b>陳先生</b><span>宴席・10 位</span></figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <div class="parang" aria-hidden="true"></div>
+
+  <section class="sec" id="visit">
+    <div class="wrap visit">
+      <div class="rv"><h3>營業時間</h3><span class="status" id="status2"><i></i><span>…</span></span><table class="hrs"><tbody id="hrs"></tbody></table></div>
+      <div class="rv"><h3>地址</h3><p class="big" data-shop="address" style="font-size:22px;border:0"></p><p data-shop="transit"></p><p>附近：桃園火車站前站、府前路停車場</p><p><a class="btn" id="mapLink" href="#" target="_blank" rel="noopener">在 Google 地圖開啟</a></p></div>
+      <div class="rv"><h3>聯絡</h3><p><a class="big" data-tel href="#"><span data-shop="phone"></span></a></p><p>外帶：rendang、sambal 罐裝、krupuk</p><p>可刷卡・可開統編・兒童椅 4 張</p><p>清真備註：本店不使用豬肉與豬油。</p></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div><a class="logo" href="#top"><svg viewBox="-50 -50 100 100" aria-hidden="true" id="logoMark2"></svg><span><b data-shop="name">Rumah Kawung</b><small data-shop="zh">卡王之家</small></span></a><p style="margin:14px 0 0"><span data-shop="address"></span>　<span data-shop="phone"></span></p></div>
+    <div><nav><a href="#menu">菜單</a><a href="#booking">訂位</a><a href="#">Instagram</a><a href="#">Facebook</a></nav><p style="margin:12px 0 0">© <span id="yr"></span> <span data-shop="name"></span>・店家官網示範模板</p></div>
+  </div>
+</footer>
+<button class="slotBtn" id="slotBtn" type="button" aria-pressed="false">照片位</button>
+
+<script>
+(function(){
+'use strict';
+/* ===== 店家設定 ===== */
+const SHOP = {
+  name:'Rumah Kawung', zh:'卡王之家',
+  phone:'(03) 336-1028', address:'桃園市桃園區示範路 88 號', transit:'桃園火車站前站步行 7 分鐘',
+  // 0=週日 … 6=週六；每天可多個時段，null = 公休
+  hours:[
+    [['11:00','15:00'],['17:00','21:30']],
+    null,
+    [['11:30','14:30'],['17:30','21:30']],
+    [['11:30','14:30'],['17:30','21:30']],
+    [['11:30','14:30'],['17:30','21:30']],
+    [['11:30','14:30'],['17:30','22:00']],
+    [['11:00','15:00'],['17:00','22:00']]
+  ],
+  campur:{maxSides:4, fullDiscount:30},
+  rijst:{perPerson:880, groupPerPerson:820, groupFrom:8, service:0.1, min:2, max:30},
+  photos:{hero:'', story:'', campur:'', rendang:'', sate:'', gado:'', interior:'', spices:'', grill:''}
+};
+// [印尼名, 中文, 說明, 價格, 辣度 0–3, 可素食]
+const MENU = [
+  ['nasi','Nasi 飯',[
+    ['Nasi campur','自組什錦飯','香蕉葉上一份飯，配菜自己挑，見下方自組。','90 起',0,1],
+    ['Nasi goreng kampung','鄉村炒飯','甜醬油、蝦醬與紅蔥頭大火炒，上面一顆半熟荷包蛋。',260,1,0],
+    ['Nasi kuning komplit','薑黃飯全餐','薑黃椰漿飯配炸雞、天貝、蛋絲、花生小魚乾。',290,1,0],
+    ['Nasi uduk Betawi','雅加達椰漿飯','香茅與月桂葉蒸的椰漿飯，配甜辣天貝與蛋餅絲。',260,1,1]]],
+  ['lauk','Lauk 主菜',[
+    ['Rendang daging','巴東燉牛肉','牛腱與椰漿、十二種香料小火燉六小時，燉到收乾。',380,2,0],
+    ['Ayam bakar kecap','甜醬油烤雞腿','先用香料煮透，再刷甜醬油炭烤，附生菜與 sambal。',320,1,0],
+    ['Ayam goreng kalasan','卡拉三炸雞','椰子水滷過再炸，外脆內甜，日惹的代表菜。',300,0,0],
+    ['Gulai kambing','咖哩燉羊肉','羊肩肉與椰漿、肉桂、丁香燉煮，湯汁可拌飯。',420,2,0],
+    ['Ikan bakar sambal matah','炭烤魚佐生辣醬','整尾鱸魚炭烤，淋上香茅、紅蔥、辣椒拌的生醬。',460,3,0],
+    ['Udang balado','辣醬炒蝦','現搗紅辣椒與番茄炒成濃稠醬汁，裹住大蝦。',420,3,0]]],
+  ['sate','Sate 沙嗲',[
+    ['Sate ayam Madura','馬都拉雞肉沙嗲','十串，炭火現烤，花生醬與甜醬油兩種醬。',280,0,0],
+    ['Sate kambing','羊肉沙嗲','八串，羊腿肉烤到微焦，配番茄紅蔥甜醬油。',360,1,0],
+    ['Sate tempe','天貝沙嗲','天貝先醃後烤，刷花生醬，全素。',220,0,1],
+    ['Sate Padang','巴東牛舌沙嗲','巴東式濃稠黃咖哩醬，配米糕 lontong。',340,2,0]]],
+  ['sayur','Sayur 蔬食',[
+    ['Gado-gado','花生醬溫沙拉','燙青菜、豆芽、豆腐、天貝、米糕與雞蛋，淋現磨花生醬。',240,0,1],
+    ['Sayur lodeh','椰奶燉蔬菜','長豆、茄子、佛手瓜與豆腐，椰奶與薑黃小火燉。',200,1,1],
+    ['Tempe orek','甜辣天貝','天貝切條炸脆，再與椰糖、甜醬油、辣椒拌炒。',160,1,1],
+    ['Tahu telur','豆腐蛋煎','豆腐包蛋煎成塔，淋花生甜醬油，撒豆芽。',220,0,1],
+    ['Urap sayur','椰絲拌青菜','燙地瓜葉、豆芽與長豆，拌香料烤椰絲。',160,1,1],
+    ['Tumis kangkung','辣炒空心菜','可做素食版（不加蝦醬），大火快炒。',200,2,1]]],
+  ['minum','Minuman 飲品',[
+    ['Es teh manis','爪哇甜冰茶','茉莉茶底加椰糖，印尼人的日常。',80,0,1],
+    ['Es cendol','椰糖煎蕊冰','斑蘭米苔目、椰奶與椰糖漿。',120,0,1],
+    ['Es kelapa muda','嫩椰子冰','整顆嫩椰子，椰肉刮絲加冰。',150,0,1],
+    ['Wedang jahe','薑汁熱飲','老薑、肉桂、香茅與椰糖慢煮。',100,0,1],
+    ['Kopi tubruk','爪哇粗磨咖啡','咖啡粉直接沖熱水，等渣沉下再喝。',110,0,1]]],
+  ['manis','Manis 甜點',[
+    ['Klepon','椰糖糯米球','斑蘭糯米包融化的椰糖，滾新鮮椰絲。',120,0,1],
+    ['Pisang goreng','炸香蕉','粉蕉裹薄麵衣炸，淋椰糖漿。',140,0,1],
+    ['Es campur','綜合刨冰','波羅蜜、椰果、仙草、紅豆與煉乳。',160,0,1]]]
+];
+const RICE = [
+  {id:'putih', name:'Nasi putih', zh:'白飯', price:90, c:['#fbf7ec','#e8dfca']},
+  {id:'kuning', name:'Nasi kuning', zh:'薑黃飯', price:120, c:['#efc24a','#cf961f']},
+  {id:'uduk', name:'Nasi uduk', zh:'椰漿飯', price:120, c:['#f6eedb','#ddcfaf']}
+];
+const SIDES = [
+  {id:'rendang', name:'Rendang', zh:'巴東燉牛肉', price:120, heat:2, veg:0},
+  {id:'ayam', name:'Ayam bakar', zh:'甜醬油烤雞', price:110, heat:1, veg:0},
+  {id:'lodeh', name:'Sayur lodeh', zh:'椰奶燉蔬菜', price:60, heat:1, veg:1},
+  {id:'tempe', name:'Tempe orek', zh:'甜辣天貝', price:55, heat:1, veg:1},
+  {id:'kentang', name:'Sambal goreng', zh:'辣炒馬鈴薯', price:60, heat:2, veg:1},
+  {id:'balado', name:'Telur balado', zh:'辣醬水煮蛋', price:50, heat:2, veg:1},
+  {id:'perkedel', name:'Perkedel', zh:'馬鈴薯煎餅', price:45, heat:0, veg:1},
+  {id:'urap', name:'Urap', zh:'椰絲拌青菜', price:50, heat:1, veg:1}
+];
+const SAMBAL = [
+  {name:'Tanpa', zh:'不加', heat:0, veg:1},
+  {name:'Kecap', zh:'甜醬油', heat:1, veg:1},
+  {name:'Terasi', zh:'蝦醬', heat:2, veg:0},
+  {name:'Matah', zh:'香茅生', heat:3, veg:1},
+  {name:'Setan', zh:'惡魔', heat:4, veg:1}
+];
+const KRUPUK = [
+  {id:'none', name:'不要', zh:'', price:0, veg:1},
+  {id:'udang', name:'Krupuk udang', zh:'蝦餅', price:30, veg:0},
+  {id:'emping', name:'Emping', zh:'堅果脆片', price:35, veg:1}
+];
+// 宴席菜色池：[印尼名, 中文, 素食]
+const RIJST = {
+  nasi:['Nasi 飯',[['Nasi kuning tumpeng','薑黃飯塔',1],['Nasi uduk','椰漿飯',1]]],
+  daging:['Daging 肉類',[['Rendang daging','巴東燉牛肉',0],['Sate ayam','雞肉沙嗲',0],['Ayam goreng kalasan','卡拉三炸雞',0],['Semur daging','爪哇甜燉牛肉',0],['Sate kambing','羊肉沙嗲',0],['Opor ayam','椰奶白咖哩雞',0],['Gulai kambing','咖哩燉羊肉',0],['Empal gepuk','甜香炸牛肉',0]]],
+  laut:['Laut 海鮮',[['Udang balado','辣醬炒蝦',0],['Ikan bakar','炭烤魚',0],['Cumi hitam','墨汁小卷',0],['Pepes ikan','香蕉葉蒸魚',0]]],
+  sayur:['Sayur 蔬食',[['Gado-gado','花生醬溫沙拉',1],['Sayur lodeh','椰奶燉蔬菜',1],['Tempe orek','甜辣天貝',1],['Tahu bacem','甜滷豆腐',1],['Terong balado','辣醬茄子',1],['Perkedel','馬鈴薯煎餅',1],['Urap','椰絲拌青菜',1],['Sate tempe','天貝沙嗲',1],['Sayur asem','羅望子酸菜湯',1],['Jamur rica','辣炒野菇',1]]],
+  pel:['Pelengkap 佐料',[['Sambal trio','三色辣椒醬',1],['Acar kuning','薑黃醃菜',1],['Krupuk udang','蝦餅',0],['Emping','堅果脆片',1]]],
+  manis:['Manis 甜點',[['Es cendol','椰糖煎蕊冰',1],['Klepon','椰糖糯米球',1]]]
+};
+
+/* ===== 共用 ===== */
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const money = n => 'NT$ ' + n.toLocaleString('en-US');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const DAYS = ['週日','週一','週二','週三','週四','週五','週六'];
+const toM = t => { const p = t.split(':'); return +p[0] * 60 + +p[1]; };
+const hhmm = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+const now = new Date(), nowM = now.getHours() * 60 + now.getMinutes();
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const f1 = n => Math.round(n * 10) / 10;
+const RNG = seed => { let a = seed >>> 0 || 1; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; };
+const hash = s => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
+let uid = 0;
+const CHILI = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 6.5c-1.6 4.6-5.3 9.3-11.6 12.4-1.2.6-.7 2.2.6 2 7.7-1.2 13.2-6.6 14.4-12.6.3-1.5-2.9-3.2-3.4-1.8z" fill="currentColor"/><path d="M16.8 6.2c.2-1.6 1.2-3 2.9-3.6" stroke="#3f6b3a" stroke-width="2" fill="none" stroke-linecap="round"/></svg>';
+const hot = n => n ? '<span class="hot" aria-label="辣度 ' + n + '">' + CHILI.repeat(n) + '</span>' : '';
+const VEG = '<span class="veg">素</span>';
+
+$$('[data-shop]').forEach(el => { const v = SHOP[el.dataset.shop]; if (v) el.textContent = v; });
+const telHref = 'tel:' + SHOP.phone.replace(/[^\d]/g, '');
+$$('[data-tel]').forEach(a => a.href = telHref);
+$('#bTel').href = telHref; $('#bTel').textContent = '電話訂位 ' + SHOP.phone;
+$('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+$('#yr').textContent = now.getFullYear();
+
+/* ===== 繪圖工具 ===== */
+function blob(cx, cy, r, j, n, rnd){
+  const p = [];
+  for (let i = 0; i < n; i++){ const a = i / n * Math.PI * 2, rr = r * (1 - j + rnd() * 2 * j); p.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]); }
+  const m = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const s = m(p[n - 1], p[0]); let d = 'M' + f1(s[0]) + ' ' + f1(s[1]);
+  for (let i = 0; i < n; i++){ const q = m(p[i], p[(i + 1) % n]); d += 'Q' + f1(p[i][0]) + ' ' + f1(p[i][1]) + ' ' + f1(q[0]) + ' ' + f1(q[1]); }
+  return d + 'Z';
+}
+// 橢圓花瓣路徑（a 沿 deg 方向）
+function petal(cx, cy, a, b, deg){
+  const t = deg * Math.PI / 180, ux = Math.cos(t) * a, uy = Math.sin(t) * a;
+  const p1 = f1(cx - ux) + ' ' + f1(cy - uy), p2 = f1(cx + ux) + ' ' + f1(cy + uy), arc = 'A' + a + ' ' + b + ' ' + deg + ' 1 1 ';
+  return 'M' + p1 + arc + p2 + arc + p1;
+}
+const kawungD = (s, w) => [[1,1],[-1,1],[1,-1],[-1,-1]].map(q => petal(q[0] * s / 4, q[1] * s / 4, s * .33, s * (w || .15), q[0] * q[1] > 0 ? 45 : -45));
+function kawungPat(id, s, bg, wax, inner){
+  const h = s / 2, P = [[1,1],[-1,1],[1,-1],[-1,-1]];
+  let g = '<pattern id="' + id + '" width="' + s + '" height="' + s + '" patternUnits="userSpaceOnUse"><rect width="' + s + '" height="' + s + '" fill="' + bg + '"/>';
+  P.forEach(q => { const x = h + q[0] * s / 4, y = h + q[1] * s / 4, r = q[0] * q[1] > 0 ? 45 : -45;
+    g += '<ellipse cx="' + x + '" cy="' + y + '" rx="' + s * .33 + '" ry="' + s * .15 + '" transform="rotate(' + r + ' ' + x + ' ' + y + ')" fill="' + wax + '"/><ellipse cx="' + x + '" cy="' + y + '" rx="' + s * .2 + '" ry="' + s * .07 + '" transform="rotate(' + r + ' ' + x + ' ' + y + ')" fill="' + inner + '"/>'; });
+  g += '<circle cx="' + h + '" cy="' + h + '" r="' + s * .045 + '" fill="' + inner + '"/>';
+  [[0,h],[s,h],[h,0],[h,s]].forEach(c => { g += '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="' + s * .022 + '" fill="' + wax + '"/>'; });
+  return g + '</pattern>';
+}
+function parangPat(id, s, bg, band, wax, dot){
+  const k = s / 36;
+  return '<pattern id="' + id + '" width="' + s + '" height="' + s + '" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><g transform="scale(' + k + ')"><rect width="36" height="36" fill="' + bg + '"/><rect y="3" width="36" height="17" fill="' + band + '"/><path d="M0 3H36M0 20H36" stroke="' + wax + '" stroke-width="1.6"/><path d="M1 16C6 6 18 4 31 7C26 15 13 19 1 16Z" fill="' + wax + '"/><path d="M7 13.5C11 9.5 18 8.4 25 9" stroke="' + band + '" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M8 28l3-3 3 3-3 3zM26 28l3-3 3 3-3 3z" fill="' + dot + '"/><circle cx="20" cy="28" r="1.4" fill="' + wax + '"/><circle cx="2" cy="28" r="1.4" fill="' + wax + '"/></g></pattern>';
+}
+function wrapSVG(vb, body, label){
+  const id = 'f' + (++uid);
+  return '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid slice" role="img" aria-label="' + label + '（佔位插畫）"><defs><filter id="' + id + '"><feTurbulence type="fractalNoise" baseFrequency=".75" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .12  0 0 0 0 .1  0 0 0 0 .06  0 0 0 .14 0"/></filter></defs>' + body + '<rect width="100%" height="100%" filter="url(#' + id + ')"/></svg>';
+}
+const chili = (x, y, rot, len, col) => { const h = len * .12; return '<g transform="translate(' + x + ' ' + y + ') rotate(' + rot + ')"><path d="M0 0C' + len * .3 + ' ' + (-h * 1.3) + ' ' + len * .8 + ' ' + (-h) + ' ' + len + ' ' + h * .3 + 'C' + len * .75 + ' ' + h * .5 + ' ' + len * .3 + ' ' + h * 1.1 + ' 0 0Z" fill="' + (col || '#b8321c') + '"/><path d="M' + len * .15 + ' ' + (-h * .5) + 'Q' + len * .5 + ' ' + (-h * 1.05) + ' ' + len * .8 + ' ' + (-h * .4) + '" stroke="#fff" stroke-opacity=".35" stroke-width="' + h * .35 + '" fill="none" stroke-linecap="round"/><path d="M0 0q' + (-h * 1.6) + ' ' + (-h * .2) + ' ' + (-h * 2.4) + ' ' + (-h * 1.6) + '" stroke="#3f6b3a" stroke-width="' + h * .6 + '" fill="none" stroke-linecap="round"/></g>'; };
+const leafS = (x, y, rot, len, col) => '<g transform="translate(' + x + ' ' + y + ') rotate(' + rot + ')"><path d="M0 0Q' + len / 2 + ' ' + (-len * .32) + ' ' + len + ' 0Q' + len / 2 + ' ' + len * .32 + ' 0 0Z" fill="' + (col || '#3f6b3a') + '"/><path d="M0 0H' + len * .9 + '" stroke="#fff" stroke-opacity=".3" stroke-width="' + len * .03 + '"/></g>';
+const shallot = (x, y, r) => '<g transform="translate(' + x + ' ' + y + ')"><circle r="' + r + '" fill="#a9506a"/><circle r="' + r * .7 + '" fill="none" stroke="#e7b7c3" stroke-width="' + r * .12 + '"/><circle r="' + r * .38 + '" fill="none" stroke="#e7b7c3" stroke-width="' + r * .12 + '"/></g>';
+
+/* ===== nasi campur 配菜繪製（以 0,0 為中心，半徑約 60） ===== */
+const DRAW = {
+  rendang(r){ let s = '<path d="' + blob(0, 0, 58, .1, 10, r) + '" fill="#371808"/><path d="' + blob(-3, -3, 50, .14, 9, r) + '" fill="#4a2410"/>';
+    for (let i = 0; i < 7; i++){ const a = r() * 6.28, d = i ? 16 + r() * 22 : 0, x = Math.cos(a) * d, y = Math.sin(a) * d, z = 12 + r() * 7;
+      s += '<path d="' + blob(x, y, z, .28, 7, r) + '" fill="#5e2c12" stroke="#250e04" stroke-width="1.5"/><path d="' + blob(x - z * .25, y - z * .3, z * .42, .3, 6, r) + '" fill="#9a5426" opacity=".6"/>'; }
+    for (let i = 0; i < 22; i++){ const a = r() * 6.28, d = r() * 50; s += '<circle cx="' + f1(Math.cos(a) * d) + '" cy="' + f1(Math.sin(a) * d) + '" r="' + f1(1 + r() * 1.4) + '" fill="#c4743a"/>'; }
+    for (let i = 0; i < 4; i++){ const a = r() * 6.28, d = 20 + r() * 26; s += '<path d="M' + f1(Math.cos(a) * d) + ' ' + f1(Math.sin(a) * d) + 'l' + f1(6 + r() * 6) + ' ' + f1(r() * 6 - 3) + '" stroke="#6f9a4a" stroke-width="2.6" stroke-linecap="round"/>'; }
+    return s; },
+  ayam(r){ return '<path d="' + blob(-6, 8, 44, .07, 9, r) + '" fill="#9a4519" stroke="#4a1e08" stroke-width="2"/><path d="' + blob(-14, -2, 26, .15, 7, r) + '" fill="#c96a2c" opacity=".55"/>' +
+      [0,1,2,3,4].map(k => '<path d="M' + (-40 + k * 14) + ' ' + (-14 + k * 2) + 'l16 26" stroke="#2c1206" stroke-width="4.5" stroke-linecap="round" opacity=".7"/>').join('') +
+      '<path d="M22 -16L42 -38" stroke="#efe2c4" stroke-width="10" stroke-linecap="round"/><circle cx="43" cy="-46" r="7" fill="#efe2c4"/><circle cx="50" cy="-38" r="7" fill="#efe2c4"/><path d="' + blob(20, -12, 12, .1, 6, r) + '" fill="#9a4519"/>' +
+      '<path d="M-58 36A16 16 0 0 0 -28 46Z" fill="#8cbc4a" stroke="#3f6b3a" stroke-width="2.5"/><path d="M-53 39A10 10 0 0 0 -34 45" stroke="#dfeeb0" stroke-width="2" fill="none"/>'; },
+  lodeh(r){ let s = '<circle r="60" fill="#1d2a4a"/><circle r="56" fill="#f1e6cf"/><circle r="51" fill="none" stroke="#1d2a4a" stroke-width="3" stroke-dasharray=".5 6" stroke-linecap="round"/><circle r="45" fill="#d8a646"/><circle cx="-8" cy="-9" r="30" fill="#f0cc75" opacity=".6"/>';
+    for (let i = 0; i < 6; i++){ const a = r() * 6.28, d = 10 + r() * 24, x = Math.cos(a) * d, y = Math.sin(a) * d, t = r() * 180; s += '<path d="M' + f1(x) + ' ' + f1(y) + 'l' + f1(Math.cos(t) * 14) + ' ' + f1(Math.sin(t) * 14) + '" stroke="#4f8a3a" stroke-width="6" stroke-linecap="round"/>'; }
+    for (let i = 0; i < 3; i++){ const a = i * 2.1 + r(), d = 22; s += '<circle cx="' + f1(Math.cos(a) * d) + '" cy="' + f1(Math.sin(a) * d) + '" r="9" fill="#5a2d5e"/><circle cx="' + f1(Math.cos(a) * d) + '" cy="' + f1(Math.sin(a) * d) + '" r="6" fill="#eadfbf"/>'; }
+    for (let i = 0; i < 3; i++){ const a = i * 2.1 + 1, d = 14; s += '<rect x="' + f1(Math.cos(a) * d - 6) + '" y="' + f1(Math.sin(a) * d - 6) + '" width="12" height="12" rx="2" fill="#f4dfa6" stroke="#c99a4a"/>'; }
+    return s + '<circle cx="18" cy="-26" r="4" fill="none" stroke="#c4321c" stroke-width="2.5"/><circle cx="-26" cy="16" r="4" fill="none" stroke="#c4321c" stroke-width="2.5"/>'; },
+  tempe(r){ let s = '<path d="' + blob(0, 4, 52, .14, 9, r) + '" fill="#3c210c" opacity=".55"/>';
+    const C = ['#7a4a1c','#94602a','#5e3612','#a8702e'];
+    for (let i = 0; i < 38; i++){ const a = r() * 6.28, d = Math.sqrt(r()) * 44, x = Math.cos(a) * d, y = Math.sin(a) * d, t = r() * 6.28, l = 8 + r() * 8;
+      s += '<path d="M' + f1(x - Math.cos(t) * l) + ' ' + f1(y - Math.sin(t) * l) + 'L' + f1(x + Math.cos(t) * l) + ' ' + f1(y + Math.sin(t) * l) + '" stroke="' + C[i % 4] + '" stroke-width="5.5" stroke-linecap="round"/>'; }
+    for (let i = 0; i < 10; i++){ const a = r() * 6.28, d = r() * 40, x = Math.cos(a) * d, y = Math.sin(a) * d, t = r() * 6.28;
+      s += '<path d="M' + f1(x) + ' ' + f1(y) + 'l' + f1(Math.cos(t) * 11) + ' ' + f1(Math.sin(t) * 11) + '" stroke="#c4321c" stroke-width="2.4" stroke-linecap="round"/>'; }
+    return s; },
+  kentang(r){ let s = '<path d="' + blob(0, 0, 54, .12, 9, r) + '" fill="#9a2e14"/><path d="' + blob(-6, -6, 40, .16, 8, r) + '" fill="#b8401c" opacity=".7"/>';
+    for (let i = 0; i < 14; i++){ const a = r() * 6.28, d = Math.sqrt(r()) * 38, x = Math.cos(a) * d, y = Math.sin(a) * d, z = 11 + r() * 4;
+      s += '<rect x="' + f1(x - z / 2) + '" y="' + f1(y - z / 2) + '" width="' + f1(z) + '" height="' + f1(z) + '" rx="3" transform="rotate(' + Math.round(r() * 90) + ' ' + f1(x) + ' ' + f1(y) + ')" fill="#d9a03a" stroke="#7a2a10" stroke-width="1.6"/>'; }
+    return s; },
+  balado(r){ return '<path d="' + blob(0, 0, 56, .1, 9, r) + '" fill="#a52a14"/>' +
+      [[-18, -8, -20], [20, 10, 30]].map(e => '<g transform="translate(' + e[0] + ' ' + e[1] + ') rotate(' + e[2] + ')"><ellipse rx="26" ry="21" fill="#fbf6e8" stroke="#d9cbb0" stroke-width="1.5"/><circle r="11" fill="#e8a92a"/><circle cx="-3" cy="-3" r="4" fill="#f6cf6a"/></g>').join('') +
+      '<path d="' + blob(-30, 6, 12, .3, 7, r) + '" fill="#c4321c"/><path d="' + blob(30, -14, 11, .3, 7, r) + '" fill="#c4321c"/><path d="' + blob(0, 26, 10, .3, 7, r) + '" fill="#c4321c"/>'; },
+  perkedel(r){ return [[-22, -18], [24, -12], [0, 24]].map(p => { let s = '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="25" fill="#7a4518"/><circle cx="' + (p[0] - 2) + '" cy="' + (p[1] - 2) + '" r="21" fill="#b8742c"/><circle cx="' + (p[0] - 6) + '" cy="' + (p[1] - 6) + '" r="10" fill="#d9a050" opacity=".7"/>';
+      for (let i = 0; i < 9; i++) s += '<circle cx="' + f1(p[0] + r() * 30 - 15) + '" cy="' + f1(p[1] + r() * 30 - 15) + '" r="1.6" fill="' + (i % 2 ? '#3f6b3a' : '#5a3010') + '"/>'; return s; }).join(''); },
+  urap(r){ let s = '<path d="' + blob(0, 0, 52, .14, 9, r) + '" fill="#2f5a2a"/>'; const C = ['#5d8f3c','#7aa84a','#3f6b3a','#9cc463'];
+    for (let i = 0; i < 46; i++){ const a = r() * 6.28, d = Math.sqrt(r()) * 44, x = Math.cos(a) * d, y = Math.sin(a) * d, t = r() * 6.28, l = 6 + r() * 9;
+      s += '<path d="M' + f1(x) + ' ' + f1(y) + 'q' + f1(Math.cos(t) * l) + ' ' + f1(Math.sin(t) * l * .3) + ' ' + f1(Math.cos(t) * l * 1.6) + ' ' + f1(Math.sin(t) * l * 1.6) + '" stroke="' + C[i % 4] + '" stroke-width="3" fill="none" stroke-linecap="round"/>'; }
+    for (let i = 0; i < 60; i++){ const a = r() * 6.28, d = Math.sqrt(r()) * 46; s += '<circle cx="' + f1(Math.cos(a) * d) + '" cy="' + f1(Math.sin(a) * d) + '" r="' + f1(1.2 + r() * 1.3) + '" fill="' + (i % 4 ? '#f3ead2' : '#d8b77a') + '"/>'; }
+    return s; }
+};
+function riceSVG(id, r){
+  const R = RICE.find(x => x.id === id), c = R.c;
+  let s = '<ellipse cx="7" cy="12" rx="92" ry="90" fill="rgba(20,12,4,.32)"/><circle r="88" fill="' + c[1] + '"/><circle cx="-12" cy="-14" r="70" fill="' + c[0] + '"/>';
+  for (let i = 0; i < 170; i++){ const a = r() * 6.28, d = Math.sqrt(r()) * 84, x = Math.cos(a) * d, y = Math.sin(a) * d, lit = (x + y) < 10;
+    s += '<ellipse cx="' + f1(x) + '" cy="' + f1(y) + '" rx="5.6" ry="2.3" transform="rotate(' + Math.round(r() * 180) + ' ' + f1(x) + ' ' + f1(y) + ')" fill="' + (lit ? '#fff' : c[1]) + '" opacity="' + (lit ? .55 : .8) + '"/>'; }
+  if (id === 'kuning'){ s += leafS(-10, -40, -30, 46, '#4f8a3a') + '<circle cx="22" cy="-30" r="12" fill="#c4321c"/><circle cx="22" cy="-30" r="5" fill="#f0c04a"/>'; }
+  if (id === 'uduk'){ for (let i = 0; i < 7; i++) s += '<path d="M' + (-44 + i * 13) + ' ' + (-20 + (i % 2) * 6) + 'q10 14 4 34" stroke="#e8b84a" stroke-width="5" fill="none" stroke-linecap="round"/>'; }
+  const n = id === 'putih' ? 26 : id === 'uduk' ? 40 : 0;
+  for (let i = 0; i < n; i++){ const a = r() * 6.28, d = Math.sqrt(r()) * 50, x = Math.cos(a) * d, y = Math.sin(a) * d - 6; s += '<path d="M' + f1(x) + ' ' + f1(y) + 'a4 3 0 0 1 7 0" stroke="#8a4a1c" stroke-width="2.2" fill="none" stroke-linecap="round"/>'; }
+  return s;
+}
+function sambalSVG(lv){
+  if (!lv) return '';
+  const col = ['', '#4a2010', '#a8321c', '#c22a12', '#d81e0a'][lv];
+  let s = '<circle r="38" fill="#2b2622"/><circle r="33" fill="#3f3832"/><circle cx="-5" cy="-6" r="22" fill="#4b433c"/><path d="' + blob(0, 0, 14 + lv * 3, .2, 8, RNG(lv * 77)) + '" fill="' + col + '"/>';
+  const r = RNG(lv * 13 + 5);
+  for (let i = 0; i < lv * 5; i++){ const a = r() * 6.28, d = r() * (10 + lv * 2); s += '<circle cx="' + f1(Math.cos(a) * d) + '" cy="' + f1(Math.sin(a) * d) + '" r="1.5" fill="' + (lv === 1 ? '#c4321c' : '#f2d27a') + '"/>'; }
+  return s;
+}
+function krupukSVG(id){
+  const r = RNG(id === 'udang' ? 31 : 47);
+  if (id === 'udang') return [[-34, 6, 32], [8, -6, 36], [42, 8, 28]].map(k => { let d = ''; for (let i = 0; i <= 28; i++){ const a = i / 28 * 6.283, rr = k[2] * (1 + .07 * Math.sin(i * 3.3) + (r() - .5) * .08); d += (i ? 'L' : 'M') + f1(k[0] + Math.cos(a) * rr) + ' ' + f1(k[1] + Math.sin(a) * rr); }
+    let s = '<path d="' + d + 'Z" fill="#f4dfcf" stroke="#d9b49a" stroke-width="1.5"/>'; for (let i = 0; i < 10; i++) s += '<circle cx="' + f1(k[0] + (r() - .5) * k[2] * 1.3) + '" cy="' + f1(k[1] + (r() - .5) * k[2] * 1.3) + '" r="' + f1(1.5 + r() * 2.5) + '" fill="#fff" opacity=".7"/>'; return s; }).join('');
+  if (id === 'emping') return [-48, -24, 0, 24, 48].map((x, i) => '<circle cx="' + x + '" cy="' + (i % 2 ? -8 : 6) + '" r="17" fill="#e6cf8f" stroke="#b89a52" stroke-width="1.5"/><circle cx="' + (x - 4) + '" cy="' + (i % 2 ? -11 : 3) + '" r="3" fill="#a8843e" opacity=".6"/><circle cx="' + (x + 5) + '" cy="' + (i % 2 ? -3 : 10) + '" r="2" fill="#a8843e" opacity=".6"/>').join('');
+  return '';
+}
+const SLOT = [[-106, -106], [106, -106], [106, 106], [-106, 106]];
+function traySVG(o, fresh, label){
+  const id = 't' + (++uid); fresh = fresh || {};
+  let s = '<svg viewBox="-300 -300 600 600" role="img" aria-label="' + esc(label || '藤盤上的 nasi campur') + '"><defs><radialGradient id="' + id + 'h" cx=".36" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".2"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></radialGradient><clipPath id="' + id + 'c"><circle r="238"/></clipPath></defs>';
+  s += '<circle r="298" fill="#4f3215"/><circle r="284" fill="none" stroke="#8f6230" stroke-width="26"/><circle r="284" fill="none" stroke="#c79a5c" stroke-width="20" stroke-dasharray="15 6"/><circle r="284" fill="none" stroke="#a97a42" stroke-width="7" stroke-dasharray="6 15" stroke-dashoffset="9"/>';
+  s += '<circle r="263" fill="none" stroke="#b5874c" stroke-width="13" stroke-dasharray="7 3"/><circle r="250" fill="none" stroke="#9f713e" stroke-width="13" stroke-dasharray="7 3" stroke-dashoffset="5"/><circle r="270.5" fill="none" stroke="#5e3a1a" stroke-width="1.5"/>';
+  let v1 = '', v2 = '';
+  for (let x = -330; x <= 330; x += 9){ const t = (x / 9) & 1 ? 'v2' : 'v1', seg = 'M' + x + ' -24L' + (x + 80) + ' 320M' + x + ' -24L' + (x + 80) + ' -340'; if (t === 'v1') v1 += seg; else v2 += seg; }
+  s += '<circle cx="5" cy="9" r="240" fill="rgba(20,10,0,.35)"/><g clip-path="url(#' + id + 'c)"><g transform="rotate(-22)"><rect x="-320" y="-320" width="640" height="640" fill="#3f6b3a"/><path d="' + v1 + '" stroke="#4d7c45" stroke-width="3"/><path d="' + v2 + '" stroke="#33592f" stroke-width="2"/><path d="M-320 -24H320" stroke="#86a96c" stroke-width="7"/><path d="M-320 -18H320" stroke="#2e5129" stroke-width="2"/></g></g><circle r="236" fill="none" stroke="rgba(18,34,16,.45)" stroke-width="5"/>';
+  const rr = RNG(hash(o.rice + 'r'));
+  s += '<g' + (fresh.rice ? ' class="pop"' : '') + '>' + riceSVG(o.rice, rr) + '</g>';
+  (o.slots || []).forEach((sid, i) => { const p = SLOT[i];
+    if (!sid){ if (o.empty) s += '<g transform="translate(' + p[0] + ' ' + p[1] + ')"><circle r="54" fill="rgba(241,230,207,.07)" stroke="#f1e6cf" stroke-opacity=".6" stroke-width="2.5" stroke-dasharray="7 8"/><path d="M-11 0H11M0 -11V11" stroke="#f1e6cf" stroke-opacity=".7" stroke-width="3" stroke-linecap="round"/></g>'; return; }
+    s += '<g transform="translate(' + p[0] + ' ' + p[1] + ')"><g' + (fresh[sid] ? ' class="pop"' : '') + '>' + DRAW[sid](RNG(hash(sid))) + '</g></g>'; });
+  if (o.sambal) s += '<g transform="translate(0 194)"><g' + (fresh.sambal ? ' class="pop"' : '') + '>' + sambalSVG(o.sambal) + '</g></g>';
+  if (o.krupuk && o.krupuk !== 'none') s += '<g transform="translate(0 -196)"><g' + (fresh.krupuk ? ' class="pop"' : '') + '>' + krupukSVG(o.krupuk) + '</g></g>';
+  return s + '<circle r="298" fill="url(#' + id + 'h)" pointer-events="none"/></svg>';
+}
+const HERO_PLATE = {rice:'kuning', slots:['rendang','ayam','lodeh','tempe'], sambal:2, krupuk:'udang'};
+
+/* ===== 佔位插畫 ===== */
+const ART = {
+  tray: () => traySVG(HERO_PLATE, null, '藤盤上香蕉葉鋪底的 nasi campur（佔位插畫）'),
+  rendang(){ const id = 'a' + (++uid);
+    let s = '<defs>' + kawungPat(id, 150, '#1d2a4a', '#2c3c62', '#24345a') + '</defs><rect width="1200" height="900" fill="url(#' + id + ')"/>';
+    s += '<ellipse cx="616" cy="474" rx="340" ry="336" fill="rgba(5,8,20,.45)"/><circle cx="600" cy="450" r="330" fill="#f1e6cf"/><circle cx="600" cy="450" r="306" fill="none" stroke="#8a5a2b" stroke-width="5"/><circle cx="600" cy="450" r="292" fill="none" stroke="#1d2a4a" stroke-width="7" stroke-dasharray="1 16" stroke-linecap="round"/>';
+    s += '<g transform="translate(600 450) scale(4.3)">' + DRAW.rendang(RNG(9)) + '</g>';
+    s += chili(150, 170, 20, 170) + chili(190, 230, 40, 140, '#c4401c') + leafS(940, 680, -30, 200) + leafS(980, 740, -60, 160, '#4f8a3a') + '<rect x="940" y="120" width="190" height="26" rx="12" fill="#8a4a22" transform="rotate(24 1030 133)"/><rect x="930" y="150" width="170" height="22" rx="11" fill="#6e3818" transform="rotate(24 1015 161)"/>';
+    return wrapSVG('0 0 1200 900', s, 'rendang 燉牛肉'); },
+  sate(){ const id = 'a' + (++uid);
+    let s = '<defs>' + parangPat(id, 70, '#1d2a4a', '#5e3a1a', '#2f3e64', '#8a5a2b') + '</defs><rect width="1200" height="900" fill="url(#' + id + ')"/>';
+    s += '<g transform="rotate(-8 600 450)"><rect x="130" y="170" width="940" height="560" fill="#2d4f29" transform="translate(14 18)" opacity=".5"/><rect x="130" y="170" width="940" height="560" fill="#3f6b3a"/>';
+    for (let x = 140; x < 1070; x += 14) s += '<path d="M' + x + ' 170V730" stroke="' + ((x / 14) & 1 ? '#4d7c45' : '#36602f') + '" stroke-width="3"/>';
+    s += '<path d="M130 450H1070" stroke="#86a96c" stroke-width="10"/></g>';
+    const r = RNG(21);
+    for (let k = 0; k < 4; k++){ const y0 = 270 + k * 95, x0 = 210 + k * 18;
+      s += '<path d="M' + x0 + ' ' + y0 + 'L' + (x0 + 660) + ' ' + (y0 - 70) + '" stroke="#d9b779" stroke-width="9" stroke-linecap="round"/>';
+      for (let i = 0; i < 5; i++){ const x = x0 + 150 + i * 92, y = y0 - 16 - i * 9.8; s += '<path d="' + blob(x, y, 38, .16, 8, r) + '" fill="#7e3712" stroke="#2c1206" stroke-width="3"/><path d="' + blob(x - 8, y - 10, 18, .2, 6, r) + '" fill="#c06a2c" opacity=".55"/><path d="M' + (x - 22) + ' ' + (y + 14) + 'l30 -34M' + (x - 4) + ' ' + (y + 22) + 'l26 -30" stroke="#200b02" stroke-width="6" stroke-linecap="round" opacity=".7"/>'; } }
+    s += '<circle cx="960" cy="640" r="120" fill="#1d2a4a"/><circle cx="960" cy="640" r="108" fill="#f1e6cf"/><circle cx="960" cy="640" r="90" fill="#8a4a1c"/><path d="M900 620q40 -30 80 0t60 10" stroke="#2a1206" stroke-width="10" fill="none" stroke-linecap="round"/>';
+    for (let i = 0; i < 26; i++) s += '<path d="M' + f1(900 + r() * 120) + ' ' + f1(590 + r() * 100) + 'a5 4 0 0 1 10 0" stroke="#c78a3e" stroke-width="3" fill="none"/>';
+    [[220, 650], [300, 690], [240, 740]].forEach(p => { s += '<rect x="' + p[0] + '" y="' + p[1] + '" width="70" height="70" rx="8" fill="#eef0c8" stroke="#8fb35a" stroke-width="6"/>'; });
+    s += '<circle cx="1060" cy="250" r="44" fill="#8cbc4a"/><circle cx="1060" cy="250" r="34" fill="#dfeeb0"/><path d="M1060 216V284M1026 250H1094M1036 226L1084 274M1084 226L1036 274" stroke="#b6d47a" stroke-width="3"/>';
+    return wrapSVG('0 0 1200 900', s, '炭烤沙嗲'); },
+  gado(){ const id = 'a' + (++uid), r = RNG(33);
+    let s = '<defs>' + kawungPat(id, 130, '#5e3a1a', '#76502a', '#6a4422') + '</defs><rect width="1200" height="900" fill="url(#' + id + ')"/>';
+    s += '<ellipse cx="616" cy="474" rx="350" ry="344" fill="rgba(20,10,0,.45)"/><circle cx="600" cy="450" r="340" fill="#1d2a4a"/><circle cx="600" cy="450" r="322" fill="#f1e6cf"/><circle cx="600" cy="450" r="304" fill="none" stroke="#1d2a4a" stroke-width="3"/>';
+    const segs = [['#c9d98a', 'cab'], ['#4f8a3a', 'bean'], ['#f4f0dc', 'sprout'], ['#e3b04e', 'tofu'], ['#8a5a2b', 'tempe'], ['#eef0c8', 'lontong']];
+    segs.forEach((g, i) => { const a0 = i / 6 * 6.283 - 1.57;
+      for (let k = 0; k < 16; k++){ const a = a0 + r() * 1.0, d = 120 + r() * 150, x = 600 + Math.cos(a) * d, y = 450 + Math.sin(a) * d;
+        if (g[1] === 'bean' || g[1] === 'sprout') s += '<path d="M' + f1(x) + ' ' + f1(y) + 'l' + f1(Math.cos(a + 1.4) * 44) + ' ' + f1(Math.sin(a + 1.4) * 44) + '" stroke="' + g[0] + '" stroke-width="' + (g[1] === 'bean' ? 14 : 6) + '" stroke-linecap="round"/>';
+        else if (g[1] === 'cab') s += '<path d="' + blob(x, y, 30, .3, 7, r) + '" fill="' + g[0] + '" stroke="#a8bd62" stroke-width="3"/>';
+        else s += '<rect x="' + f1(x - 22) + '" y="' + f1(y - 22) + '" width="44" height="44" rx="6" fill="' + g[0] + '" stroke="rgba(0,0,0,.25)" stroke-width="3" transform="rotate(' + Math.round(r() * 90) + ' ' + f1(x) + ' ' + f1(y) + ')"/>'; } });
+    [[480, 330, -20], [720, 560, 30]].forEach(e => { s += '<g transform="translate(' + e[0] + ' ' + e[1] + ') rotate(' + e[2] + ')"><ellipse rx="60" ry="48" fill="#fbf6e8" stroke="#d9cbb0" stroke-width="3"/><circle r="26" fill="#e8a92a"/></g>'; });
+    s += '<path d="' + blob(600, 450, 120, .12, 11, r) + '" fill="#9a5a24"/><path d="' + blob(585, 435, 70, .2, 9, r) + '" fill="#b87436"/>';
+    for (let i = 0; i < 40; i++) s += '<path d="M' + f1(500 + r() * 200) + ' ' + f1(360 + r() * 180) + 'a6 4 0 0 1 12 0" stroke="#5e2c10" stroke-width="3.5" fill="none"/>';
+    s += '<g transform="translate(860 190) rotate(18)"><path d="M-90 0Q-80 -30 -40 -36Q0 -50 40 -34Q86 -26 92 4Q84 34 40 38Q0 50 -44 36Q-84 28 -90 0Z" fill="#f4dfcf" stroke="#d9b49a" stroke-width="4"/></g>';
+    return wrapSVG('0 0 1200 900', s, 'gado-gado 花生醬溫沙拉'); },
+  campur: () => traySVG({rice:'putih', slots:['rendang','balado','urap','perkedel'], sambal:3, krupuk:'emping'}, null, '另一盤 nasi campur（佔位插畫）'),
+  cobek(){ const r = RNG(55);
+    let s = '<rect width="1000" height="1250" fill="#6e4520"/>';
+    for (let y = 0; y < 1250; y += 156) s += '<rect y="' + y + '" width="1000" height="150" fill="' + (y / 156 % 2 ? '#7c4f26' : '#6a421d') + '"/><path d="M0 ' + (y + 40) + 'Q300 ' + (y + 20) + ' 600 ' + (y + 60) + 'T1000 ' + (y + 50) + '" stroke="#5a3616" stroke-width="3" fill="none"/>';
+    const id = 'a' + (++uid);
+    s += '<defs>' + kawungPat(id, 110, '#1d2a4a', '#f1e6cf', '#8a5a2b') + '</defs><path d="M560 0H1000V420Z" fill="url(#' + id + ')"/><path d="M560 0L1000 420" stroke="#f1e6cf" stroke-width="8"/>';
+    s += '<ellipse cx="490" cy="690" rx="330" ry="320" fill="rgba(10,5,0,.45)"/><circle cx="470" cy="660" r="320" fill="#3b3632"/><circle cx="470" cy="660" r="280" fill="#4c4640"/><circle cx="450" cy="640" r="230" fill="#58514a"/>';
+    for (let i = 0; i < 90; i++){ const a = r() * 6.28, d = r() * 300; s += '<circle cx="' + f1(470 + Math.cos(a) * d) + '" cy="' + f1(660 + Math.sin(a) * d) + '" r="' + f1(1.5 + r() * 3) + '" fill="#2a2522" opacity=".6"/>'; }
+    s += '<path d="' + blob(470, 670, 150, .14, 10, r) + '" fill="#a8261a"/><path d="' + blob(450, 650, 100, .2, 9, r) + '" fill="#c4321c"/>';
+    for (let i = 0; i < 60; i++){ const a = r() * 6.28, d = r() * 130; s += '<circle cx="' + f1(470 + Math.cos(a) * d) + '" cy="' + f1(670 + Math.sin(a) * d) + '" r="3" fill="#f2d27a"/>'; }
+    s += '<g transform="rotate(-38 560 600)"><rect x="520" y="300" width="96" height="380" rx="48" fill="#4c4640" stroke="#2a2522" stroke-width="5"/><rect x="540" y="320" width="26" height="320" rx="13" fill="#6a625a" opacity=".6"/></g>';
+    s += chili(90, 160, 30, 230) + chili(130, 230, 40, 200, '#c4401c') + chili(760, 1080, -150, 220) + chili(820, 1010, -140, 180, '#d4561c');
+    [[150, 1060, 46], [250, 1130, 40], [110, 1170, 36]].forEach(p => s += shallot(p[0], p[1], p[2]));
+    [[860, 600], [910, 680], [840, 720]].forEach(p => s += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="26" fill="#e9dcc0" stroke="#bfa880" stroke-width="3"/>');
+    s += '<path d="M780 860q30 -40 80 -20q40 -30 70 10q20 40 -20 60q-50 30 -90 0q-50 0 -40 -50z" fill="#d68a1c" stroke="#9a5a10" stroke-width="5"/>' + leafS(80, 520, 50, 150) + leafS(100, 540, 80, 130, '#4f8a3a');
+    return wrapSVG('0 0 1000 1250', s, '石臼與香料'); },
+  interior(){ const k1 = 'a' + (++uid), k2 = 'a' + (++uid), k3 = 'a' + (++uid);
+    let s = '<defs>' + kawungPat(k1, 70, '#1d2a4a', '#f1e6cf', '#8a5a2b') + parangPat(k2, 50, '#5e3a1a', '#8a5a2b', '#f1e6cf', '#d39a2c') + kawungPat(k3, 80, '#8a5a2b', '#f1e6cf', '#1d2a4a') + '<radialGradient id="' + k1 + 'g"><stop offset="0" stop-color="#f7c35a" stop-opacity=".55"/><stop offset="1" stop-color="#f7c35a" stop-opacity="0"/></radialGradient></defs>';
+    s += '<rect width="1600" height="1000" fill="#e9dcc0"/><rect width="1600" height="60" fill="#5e3a1a"/>';
+    for (let x = 0; x < 1600; x += 40) s += '<path d="M' + x + ' 60l20 26 20 -26" fill="#8a5a2b"/>';
+    [[150, k1], [650, k2], [1150, k3]].forEach(p => { s += '<rect x="' + (p[0] - 20) + '" y="118" width="340" height="14" rx="7" fill="#5e3a1a"/><rect x="' + p[0] + '" y="130" width="300" height="440" fill="url(#' + p[1] + ')"/><rect x="' + p[0] + '" y="130" width="300" height="440" fill="none" stroke="#5e3a1a" stroke-width="4"/>'; });
+    s += '<rect y="640" width="1600" height="360" fill="#7a4a26"/>';
+    for (let y = 660; y < 1000; y += 40) s += '<path d="M0 ' + y + 'H1600" stroke="#5e3a1a" stroke-width="3"/>';
+    [400, 800, 1200].forEach(x => { s += '<circle cx="' + x + '" cy="330" r="220" fill="url(#' + k1 + 'g)"/><path d="M' + x + ' 60V180" stroke="#2a1a0c" stroke-width="4"/><path d="M' + (x - 80) + ' 250Q' + x + ' 120 ' + (x + 80) + ' 250Z" fill="#b5874c"/><path d="M' + (x - 70) + ' 236Q' + x + ' 150 ' + (x + 70) + ' 236" stroke="#8a5a2b" stroke-width="5" fill="none" stroke-dasharray="10 6"/><ellipse cx="' + x + '" cy="252" rx="60" ry="10" fill="#ffe2a0"/>'; });
+    [[330, 760], [800, 800], [1270, 760]].forEach(t => { s += '<path d="M' + (t[0] - 130) + ' ' + (t[1] - 70) + 'h70v190h-16v-120h-54z" fill="#4a2a10"/><path d="M' + (t[0] + 130) + ' ' + (t[1] - 70) + 'h-70v190h16v-120h54z" fill="#4a2a10"/><rect x="' + (t[0] - 150) + '" y="' + (t[1] - 20) + '" width="300" height="70" fill="#1d2a4a"/><rect x="' + (t[0] - 150) + '" y="' + (t[1] + 30) + '" width="300" height="14" fill="url(#' + k2 + ')"/><rect x="' + (t[0] - 10) + '" y="' + (t[1] + 50) + '" width="20" height="120" fill="#3a200c"/><ellipse cx="' + t[0] + '" cy="' + (t[1] - 24) + '" rx="40" ry="10" fill="#f1e6cf"/>'; });
+    s += '<rect x="1490" y="560" width="80" height="110" fill="#8a5a2b"/>' + leafS(1530, 560, -110, 300) + leafS(1530, 560, -60, 260, '#4f8a3a') + leafS(1530, 560, -150, 240, '#4f8a3a');
+    return wrapSVG('0 0 1600 1000', s, '用餐區'); },
+  spices(){ const r = RNG(77);
+    let s = '<rect width="1200" height="1200" fill="#3f6b3a"/>';
+    for (let x = -1200; x < 1200; x += 16) s += '<path d="M' + x + ' 0L' + (x + 1200) + ' 1200" stroke="' + ((x / 16) & 1 ? '#4d7c45' : '#36602f') + '" stroke-width="4"/>';
+    const fill = [
+      (x, y) => { let t = ''; for (let i = 0; i < 7; i++) t += '<path d="' + blob(x + (r() - .5) * 140, y + (r() - .5) * 140, 26, .35, 7, r) + '" fill="#d68a1c" stroke="#9a5a10" stroke-width="3"/>'; return t; },
+      (x, y) => { let t = ''; for (let i = 0; i < 120; i++){ const a = r() * 6.28, d = Math.sqrt(r()) * 104; t += '<circle cx="' + f1(x + Math.cos(a) * d) + '" cy="' + f1(y + Math.sin(a) * d) + '" r="7" fill="' + (i % 3 ? '#b8915a' : '#9a7444') + '"/>'; } return t; },
+      (x, y) => { let t = ''; for (let i = 0; i < 9; i++) t += chili(x - 90 + r() * 60, y - 80 + i * 20, r() * 30 - 15, 150, i % 2 ? '#8a1a0c' : '#a8261a'); return t; },
+      (x, y) => { let t = ''; for (let i = 0; i < 10; i++){ const a = r() * 6.28, d = Math.sqrt(r()) * 80; t += '<circle cx="' + f1(x + Math.cos(a) * d) + '" cy="' + f1(y + Math.sin(a) * d) + '" r="24" fill="#efe2c4" stroke="#bfa880" stroke-width="3"/>'; } return t; },
+      (x, y) => { let t = ''; for (let i = 0; i < 5; i++) t += '<rect x="' + (x - 100) + '" y="' + (y - 60 + i * 26) + '" width="200" height="22" rx="11" fill="' + (i % 2 ? '#8a4a22' : '#6e3818') + '" transform="rotate(' + (i * 6 - 12) + ' ' + x + ' ' + y + ')"/>'; return t; },
+      (x, y) => { let t = ''; [[-50, -40], [50, -30], [0, 50]].forEach(p => { for (let k = 0; k < 8; k++) t += '<ellipse cx="' + (x + p[0]) + '" cy="' + (y + p[1] - 22) + '" rx="9" ry="22" fill="#6a3416" stroke="#3a1a08" stroke-width="2" transform="rotate(' + k * 45 + ' ' + (x + p[0]) + ' ' + (y + p[1]) + ')"/>'; t += '<circle cx="' + (x + p[0]) + '" cy="' + (y + p[1]) + '" r="7" fill="#c78a3e"/>'; }); return t; },
+      (x, y) => { let t = ''; for (let i = 0; i < 7; i++){ const a = r() * 6.28, d = Math.sqrt(r()) * 70, cx = x + Math.cos(a) * d, cy = y + Math.sin(a) * d; t += '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="32" fill="#efe0b8" stroke="#c8ad78" stroke-width="4"/><circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="18" fill="none" stroke="#d8c294" stroke-width="3"/>'; } return t; },
+      (x, y) => { let t = ''; for (let i = 0; i < 8; i++) t += '<rect x="' + (x - 90 + (i % 4) * 46) + '" y="' + (y - 60 + Math.floor(i / 4) * 70) + '" width="34" height="56" rx="6" fill="#c9d98a" stroke="#86a96c" stroke-width="3"/>'; return t; },
+      (x, y) => { let t = ''; [[-45, -40], [45, -40], [-45, 45], [45, 45]].forEach(p => { t += '<ellipse cx="' + (x + p[0]) + '" cy="' + (y + p[1]) + '" rx="40" ry="32" fill="#5a2c10"/><ellipse cx="' + (x + p[0]) + '" cy="' + (y + p[1] - 6) + '" rx="34" ry="22" fill="#7a3e18"/>'; }); return t; }
+    ];
+    fill.forEach((fn, i) => { const x = 220 + (i % 3) * 380, y = 220 + Math.floor(i / 3) * 380; s += '<circle cx="' + (x + 8) + '" cy="' + (y + 12) + '" r="160" fill="rgba(10,20,8,.4)"/><circle cx="' + x + '" cy="' + y + '" r="160" fill="#b58a5a"/><circle cx="' + x + '" cy="' + y + '" r="140" fill="#e6d3ad"/>' + fn(x, y); });
+    return wrapSVG('0 0 1200 1200', s, '香料'); },
+  grill(){ const id = 'a' + (++uid), r = RNG(91);
+    let s = '<defs>' + parangPat(id, 90, '#131c33', '#1d2a4a', '#2a3b63', '#3a4a70') + '<linearGradient id="' + id + 'c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd27a"/><stop offset=".5" stop-color="#e2561c"/><stop offset="1" stop-color="#5a1a08"/></linearGradient></defs><rect width="1200" height="1500" fill="url(#' + id + ')"/>';
+    for (let i = 0; i < 5; i++){ const x = 300 + i * 150; s += '<path d="M' + x + ' 760C' + (x - 80) + ' 620 ' + (x + 80) + ' 520 ' + x + ' 400S' + (x - 60) + ' 200 ' + (x + 20) + ' 60" stroke="#f1e6cf" stroke-opacity="' + (.12 + i % 2 * .08) + '" stroke-width="' + (34 - i * 3) + '" fill="none" stroke-linecap="round"/>'; }
+    s += '<rect x="120" y="860" width="960" height="70" fill="url(#' + id + 'c)"/>';
+    for (let i = 0; i < 30; i++) s += '<circle cx="' + f1(140 + r() * 920) + '" cy="' + f1(870 + r() * 50) + '" r="' + f1(8 + r() * 12) + '" fill="' + (i % 3 ? '#2a1208' : '#ff9a3a') + '" opacity=".85"/>';
+    s += '<path d="M100 920H1100L1060 1300H140Z" fill="#8a5a2b"/><path d="M100 920H1100V950H100Z" fill="#5e3a1a"/>';
+    for (let i = 0; i < 6; i++) s += '<rect x="' + (200 + i * 140) + '" y="1050" width="70" height="40" rx="20" fill="#2a1208"/><rect x="' + (210 + i * 140) + '" y="1060" width="50" height="20" rx="10" fill="#e2561c" opacity=".8"/>';
+    for (let k = 0; k < 7; k++){ const x0 = 180 + k * 125; s += '<path d="M' + x0 + ' 700L' + (x0 + 40) + ' 1000" stroke="#d9b779" stroke-width="8" stroke-linecap="round"/>';
+      for (let i = 0; i < 4; i++){ const t = .18 + i * .17, x = x0 + 40 * t, y = 700 + 300 * t; s += '<path d="' + blob(x, y, 24, .18, 7, r) + '" fill="#7e3712" stroke="#2c1206" stroke-width="3"/>'; } }
+    s += '<g transform="translate(980 640) rotate(-25)"><rect x="-8" y="60" width="16" height="190" fill="#c9a060"/><path d="M-90 -100H90V70H-90Z" fill="#d9b779"/>';
+    for (let i = -80; i < 90; i += 14) s += '<path d="M' + i + ' -100V70" stroke="#b08a4a" stroke-width="6" stroke-dasharray="14 14" stroke-dashoffset="' + ((i / 14) & 1 ? 14 : 0) + '"/>';
+    s += '<path d="M-90 -100H90V70H-90Z" fill="none" stroke="#8a5a2b" stroke-width="8"/></g>';
+    return wrapSVG('0 0 1200 1500', s, '炭烤沙嗲爐'); }
+};
+function fillPhotos(){
+  $$('.ph').forEach(f => {
+    const keep = $$('figcaption', f), url = SHOP.photos[f.dataset.photo];
+    if (url) f.innerHTML = '<img src="' + esc(url) + '" alt="' + esc(f.dataset.label || '') + '" loading="lazy">';
+    else { const a = ART[f.dataset.art]; if (a) f.innerHTML = a(); }
+    keep.forEach(c => f.appendChild(c));
+  });
+}
+
+/* ===== 招牌 ===== */
+const SIG = [
+  ['rendang','Rendang daging','巴東燉牛肉','牛腱和椰漿、香茅、南薑一起從早上燉到中午，燉到汁收乾、香料黏在肉上。', 380, 2, 0, '#menu', '看菜單'],
+  ['sate','Sate ayam Madura','馬都拉雞肉沙嗲','門口炭爐現烤，雞腿肉醃過一晚。配現磨花生醬、甜醬油和米糕。', 280, 0, 0, '#menu', '看菜單'],
+  ['gado','Gado-gado','花生醬溫沙拉','燙青菜、豆腐、天貝、米糕與雞蛋，淋上石臼現磨的花生醬，可做全素。', 240, 0, 1, '#menu', '看菜單'],
+  ['campur','Nasi campur','什錦飯','一盤白飯，配菜自己挑。第一次來的客人九成點這個。', '90 起', 1, 0, '#campur', '自己配']
+];
+$('#sig').innerHTML = SIG.map(c => '<article class="card rv"><figure class="ph" data-photo="' + c[0] + '" data-art="' + c[0] + '" data-label="' + c[2] + '" data-size="1200×900"></figure><div class="tx"><h3>' + c[1] + '</h3><div class="zh">' + c[2] + ' ' + hot(c[5]) + (c[6] ? ' ' + VEG : '') + '</div><p>' + c[3] + '</p><div class="ft"><b>' + (typeof c[4] === 'number' ? money(c[4]) : 'NT$ ' + c[4]) + '</b><a class="more" href="' + c[7] + '">' + c[8] + ' →</a></div></div></article>').join('');
+
+/* ===== 菜單 ===== */
+let mcat = 'all', mveg = false;
+$('#tabs').innerHTML = '<button type="button" data-c="all" aria-pressed="true">全部</button>' + MENU.map(g => '<button type="button" data-c="' + g[0] + '" aria-pressed="false">' + g[1].split(' ')[1] + '<span class="lat">' + g[1].split(' ')[0] + '</span></button>').join('') + '<button type="button" class="vegT" id="vegT" aria-pressed="false">只看素食</button>';
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'vegT'){ mveg = !mveg; b.setAttribute('aria-pressed', mveg); }
+  else { mcat = b.dataset.c; $$('#tabs button[data-c]').forEach(x => x.setAttribute('aria-pressed', x === b)); }
+  drawMenu(); });
+function drawMenu(){
+  $('#menuBox').innerHTML = MENU.filter(g => mcat === 'all' || g[0] === mcat).map(g => { const items = g[2].filter(i => !mveg || i[5]); if (!items.length) return '';
+    return '<div class="mgroup"><h3>' + g[1].split(' ')[1] + '<span class="lat">' + g[1].split(' ')[0] + '</span></h3><ul class="mlist">' + items.map(i => '<li><div class="mtop"><b>' + i[0] + '</b><i></i><span>' + (typeof i[3] === 'number' ? i[3] : i[3]) + '</span></div><div class="mzh">' + i[1] + hot(i[4]) + (i[5] ? VEG : '') + '</div><p>' + i[2] + '</p></li>').join('') + '</ul></div>'; }).join('') || '<p>這個分類沒有素食品項。</p>';
+}
+drawMenu();
+
+/* ===== 營業狀態與時間表 ===== */
+function openState(){
+  const d = now.getDay(), cur = (SHOP.hours[d] || []).find(s => nowM >= toM(s[0]) && nowM < toM(s[1]));
+  if (cur) return [true, '營業中，到 ' + cur[1]];
+  for (let k = 0; k < 8; k++){ const dd = (d + k) % 7, ss = SHOP.hours[dd]; if (!ss) continue;
+    for (const s of ss) if (k > 0 || toM(s[0]) > nowM) return [false, '休息中，' + (k === 0 ? '今天' : k === 1 ? '明天（' + DAYS[dd] + '）' : DAYS[dd]) + ' ' + s[0] + ' 開門']; }
+  return [false, '休息中'];
+}
+const os = openState();
+['#status', '#status2'].forEach(s => { const el = $(s); el.classList.toggle('on', os[0]); el.lastElementChild.textContent = os[1]; });
+$('#hrs').innerHTML = [1,2,3,4,5,6,0].map(d => { const h = SHOP.hours[d]; return '<tr' + (d === now.getDay() ? ' class="today"' : '') + '><th>' + DAYS[d] + '</th><td' + (h ? '' : ' class="off"') + '>' + (h ? h.map(s => s[0] + '–' + s[1]).join('<br>') : '公休') + '</td></tr>'; }).join('');
+
+/* ===== Nasi campur 自組 ===== */
+const C = {rice:'kuning', slots:['rendang', null, 'tempe', null], sambal:2, krupuk:'udang'};
+let prev = null;
+$('#riceOpts').innerHTML = RICE.map(r => '<label class="opt"><input type="radio" name="rice" value="' + r.id + '"' + (r.id === C.rice ? ' checked' : '') + '><span><b><i class="sw" style="background:' + r.c[0] + '"></i>' + r.name + '</b><small><em style="font-style:normal">' + r.zh + '</em><em style="font-style:normal">' + r.price + '</em></small></span></label>').join('');
+$('#sideOpts').innerHTML = SIDES.map(s => '<label class="opt"><input type="checkbox" name="side" value="' + s.id + '"' + (C.slots.includes(s.id) ? ' checked' : '') + '><span><b>' + s.name + '</b><small><em style="font-style:normal">' + s.zh + ' ' + hot(s.heat) + '</em><em style="font-style:normal">+' + s.price + '</em></small></span></label>').join('');
+$('#sambalOpts').innerHTML = SAMBAL.map((s, i) => '<label class="opt"><input type="radio" name="sambal" value="' + i + '"' + (i === C.sambal ? ' checked' : '') + '><span><b style="font-size:14px">' + s.name + '</b><small>' + s.zh + '</small></span></label>').join('');
+$('#krupukOpts').innerHTML = KRUPUK.map(k => '<label class="opt"><input type="radio" name="krupuk" value="' + k.id + '"' + (k.id === C.krupuk ? ' checked' : '') + '><span><b style="font-size:15px">' + k.name + '</b><small><em style="font-style:normal">' + k.zh + '</em><em style="font-style:normal">' + (k.price ? '+' + k.price : '') + '</em></small></span></label>').join('');
+$('#meter').innerHTML = CHILI.repeat(5);
+const HEATN = ['不辣', '溫和', '小辣', '中辣', '大辣', '爪哇火山'];
+function campurCalc(){
+  const rice = RICE.find(r => r.id === C.rice), sides = C.slots.filter(Boolean).map(id => SIDES.find(s => s.id === id)), sb = SAMBAL[C.sambal], kp = KRUPUK.find(k => k.id === C.krupuk);
+  const disc = sides.length === SHOP.campur.maxSides ? SHOP.campur.fullDiscount : 0;
+  const total = rice.price + sides.reduce((a, s) => a + s.price, 0) + kp.price - disc;
+  const score = sides.reduce((a, s) => a + s.heat, 0) + sb.heat * 2;
+  const lv = score === 0 ? 0 : score <= 2 ? 1 : score <= 4 ? 2 : score <= 7 ? 3 : score <= 10 ? 4 : 5;
+  const veg = sides.every(s => s.veg) && sb.veg && kp.veg;
+  return {rice, sides, sb, kp, disc, total, lv, veg};
+}
+function drawCampur(){
+  const fresh = {};
+  if (prev){ if (prev.rice !== C.rice) fresh.rice = 1; C.slots.forEach(s => { if (s && !prev.slots.includes(s)) fresh[s] = 1; }); if (prev.sambal !== C.sambal) fresh.sambal = 1; if (prev.krupuk !== C.krupuk) fresh.krupuk = 1; }
+  if (reduce) for (const k in fresh) delete fresh[k];
+  const k = campurCalc();
+  const lbl = k.rice.zh + (k.sides.length ? '＋' + k.sides.map(s => s.zh).join('、') : '') + (C.sambal ? '，sambal ' + k.sb.name.toLowerCase() : '') + (k.kp.price ? '，' + k.kp.zh : '');
+  $('#tray').innerHTML = traySVG({rice:C.rice, slots:C.slots, sambal:C.sambal, krupuk:C.krupuk, empty:1}, fresh, '藤盤預覽：' + lbl);
+  $('#trayLbl').textContent = lbl + (k.sides.length < SHOP.campur.maxSides ? '　·　還可以再加 ' + (SHOP.campur.maxSides - k.sides.length) + ' 樣' : '');
+  $('#sideCount').textContent = k.sides.length + ' / ' + SHOP.campur.maxSides + (k.sides.length === SHOP.campur.maxSides ? '　已滿' : '');
+  $('#sambalName').textContent = k.sb.zh;
+  const full = k.sides.length >= SHOP.campur.maxSides;
+  $$('#sideOpts input').forEach(i => { i.disabled = full && !i.checked; });
+  $('#bill').innerHTML = '<li><span>' + k.rice.name + ' ' + k.rice.zh + '</span><span>' + k.rice.price + '</span></li>' + k.sides.map(s => '<li><span>' + s.name + '</span><span>' + s.price + '</span></li>').join('') + (k.kp.price ? '<li><span>' + k.kp.name + '</span><span>' + k.kp.price + '</span></li>' : '') + (k.disc ? '<li class="d"><span>配滿四樣折抵</span><span>−' + k.disc + '</span></li>' : '');
+  $('#cTotal').textContent = money(k.total);
+  $$('#meter svg').forEach((s, i) => s.classList.toggle('on', i < k.lv));
+  $('#heatLv').textContent = HEATN[k.lv];
+  const t = $('#vegTag'); t.textContent = k.veg ? '這盤是素食' : '含肉／海鮮'; t.className = 'tag ' + (k.veg ? 'y' : 'n');
+  prev = {rice:C.rice, slots:C.slots.slice(), sambal:C.sambal, krupuk:C.krupuk};
+  return k;
+}
+$('#cf').addEventListener('change', e => {
+  const t = e.target;
+  if (t.name === 'rice') C.rice = t.value;
+  if (t.name === 'sambal') C.sambal = +t.value;
+  if (t.name === 'krupuk') C.krupuk = t.value;
+  if (t.name === 'side'){
+    if (t.checked){ const i = C.slots.indexOf(null); if (i < 0){ t.checked = false; return; } C.slots[i] = t.value; }
+    else { const i = C.slots.indexOf(t.value); if (i >= 0) C.slots[i] = null; }
+  }
+  $('#cToast').textContent = '';
+  drawCampur();
+});
+$('#cReset').addEventListener('click', () => { C.slots = [null, null, null, null]; $$('#sideOpts input').forEach(i => { i.checked = false; }); $('#cToast').textContent = '配菜已清空，重新挑吧。'; drawCampur(); });
+$('#cToBook').addEventListener('click', () => {
+  const k = campurCalc();
+  if (!k.sides.length){ $('#cToast').textContent = '先挑至少一樣配菜再帶去訂位。'; return; }
+  $('#bNote').value = '預點 nasi campur：' + k.rice.zh + '＋' + k.sides.map(s => s.name).join('、') + (C.sambal ? '；sambal ' + k.sb.name.toLowerCase() : '') + (k.kp.price ? '；' + k.kp.zh : '') + '（' + money(k.total) + '）';
+  $('#cToast').textContent = '已帶入訂位備註。';
+  $('#booking').scrollIntoView({behavior: reduce ? 'auto' : 'smooth'});
+});
+drawCampur();
+
+/* ===== Rijsttafel 宴席 ===== */
+const RJ = SHOP.rijst;
+function rjPlan(n, v){
+  const allVeg = v === n, N = Math.min(26, 10 + 2 * Math.ceil(n / 2));
+  const pick = (key, cnt, vegOnly) => RIJST[key][1].filter(d => !vegOnly || d[2]).slice(0, cnt);
+  const out = {nasi: pick('nasi', n >= 6 ? 2 : 1), manis: pick('manis', n >= 8 ? 2 : 1)};
+  const pel = [RIJST.pel[1][0], RIJST.pel[1][1]];
+  if (allVeg) pel.push(RIJST.pel[1][3]); else { pel.push(RIJST.pel[1][2]); if (n >= 6) pel.push(RIJST.pel[1][3]); }
+  out.pel = pel;
+  let M = N - out.nasi.length - out.manis.length - pel.length;
+  let vegM = allVeg ? M : v > 0 ? Math.max(3, Math.round(M * (.32 + .45 * v / n))) : Math.round(M * .3);
+  vegM = Math.min(vegM, RIJST.sayur[1].length, M);
+  let rest = M - vegM, sea = Math.min(4, Math.round(rest * .35)), meat = Math.min(8, rest - sea);
+  if (allVeg){ sea = 0; meat = 0; }
+  out.sayur = pick('sayur', vegM); out.daging = pick('daging', meat); out.laut = pick('laut', sea);
+  const pp = n >= RJ.groupFrom ? RJ.groupPerPerson : RJ.perPerson, sub = pp * n, svc = Math.round(sub * RJ.service);
+  const count = ['nasi','daging','laut','sayur','pel','manis'].reduce((a, k) => a + out[k].length, 0);
+  return {out, pp, sub, svc, total: sub + svc, count, allVeg, vegCount: ['nasi','daging','laut','sayur','pel','manis'].reduce((a, k) => a + out[k].filter(d => d[2]).length, 0)};
+}
+const rjN = $('#rjN'), rjV = $('#rjV');
+function drawRijst(){
+  const n = Math.round(+rjN.value), v = Math.round(+rjV.value);
+  let ok = true;
+  if (!rjN.value || isNaN(n) || n < RJ.min){ $('#rjNErr').textContent = '宴席 ' + RJ.min + ' 位起。'; ok = false; }
+  else if (n > RJ.max){ $('#rjNErr').textContent = '超過 ' + RJ.max + ' 位請來電洽詢包場。'; ok = false; }
+  else $('#rjNErr').textContent = '';
+  if (rjV.value === '' || isNaN(v) || v < 0){ $('#rjVErr').textContent = '請輸入 0 以上的人數。'; ok = false; }
+  else if (ok && v > n){ $('#rjVErr').textContent = '吃素人數不能多於總人數。'; ok = false; }
+  else $('#rjVErr').textContent = '';
+  $('#rjRule').innerHTML = '<b>怎麼算：</b>2 位 12 道，每多 2 位加 2 道，最多 26 道。每位 ' + money(RJ.perPerson) + '，' + RJ.groupFrom + ' 位以上每位 ' + money(RJ.groupPerPerson) + '，另加 ' + Math.round(RJ.service * 100) + '% 服務費。有人吃素時，蔬食比例會跟著提高。';
+  $('#rjBook').disabled = !ok;
+  if (!ok){ $('#rjOut').innerHTML = '<div class="rjHead"><h3>Rijsttafel<small>請先修正左邊的人數</small></h3></div>'; return null; }
+  const p = rjPlan(n, v);
+  const grp = k => p.out[k].length ? '<div class="rjG"><h4>' + RIJST[k][0].split(' ')[1] + '<span class="lat">' + RIJST[k][0].split(' ')[0] + '</span></h4><ul>' + p.out[k].map(d => '<li><b>' + d[0] + '</b><span class="z">' + d[1] + '</span>' + (d[2] ? VEG : '') + '</li>').join('') + '</ul></div>' : '';
+  $('#rjOut').innerHTML = '<div class="rjHead"><h3>' + n + ' 位的 Rijsttafel<small>' + (p.allVeg ? '全素宴席' : v ? '其中 ' + v + ' 位吃素・素食菜 ' + p.vegCount + ' 道' : '葷素搭配・素食菜 ' + p.vegCount + ' 道') + '</small></h3><div class="rjCount">' + p.count + '<small>道</small></div></div>' +
+    '<div class="rjGrid"><div>' + grp('nasi') + grp('daging') + grp('laut') + '</div><div>' + grp('sayur') + grp('pel') + grp('manis') + '</div></div>' +
+    '<div class="rjTot"><div>每位<b>' + money(p.pp) + '</b></div><div>小計<b>' + money(p.sub) + '</b></div><div>服務費<b>' + money(p.svc) + '</b></div><div>總計<b>' + money(p.total) + '</b></div></div>' +
+    '<p class="rjNote">建議 ' + Math.ceil(n / 6) + ' 張大桌・用餐約 2 小時・菜一次擺滿上桌' + (p.allVeg ? '・全素宴不使用蝦醬與魚露' : '') + '。宴席需前一天預訂。</p>';
+  return {n, p};
+}
+$$('[data-step]').forEach(b => b.addEventListener('click', () => { const i = $('#' + b.dataset.step), mx = b.dataset.step === 'rjV' ? Math.max(0, +rjN.value || 0) : RJ.max, mn = b.dataset.step === 'rjV' ? 0 : RJ.min; i.value = Math.min(mx, Math.max(mn, (Math.round(+i.value) || 0) + +b.dataset.d)); drawRijst(); }));
+[rjN, rjV].forEach(i => i.addEventListener('input', drawRijst));
+$('#rjBook').addEventListener('click', () => { const r = drawRijst(); if (!r) return;
+  setPax(Math.min(r.n, 30)); $('#bType input[value="宴席"]').checked = true;
+  $('#bNote').value = 'Rijsttafel ' + r.n + ' 位' + (+rjV.value ? '（其中 ' + rjV.value + ' 位吃素）' : '') + '，共 ' + r.p.count + ' 道，預估 ' + money(r.p.total) + '。';
+  $('#booking').scrollIntoView({behavior: reduce ? 'auto' : 'smooth'}); });
+drawRijst();
+
+/* ===== 訂位 ===== */
+const days = [];
+for (let i = 0; days.length < 8 && i < 30; i++){ const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i); if (SHOP.hours[d.getDay()]) days.push(d); }
+const isToday = d => d.toDateString() === now.toDateString();
+$('#bDates').innerHTML = days.map((d, i) => '<label class="opt"><input type="radio" name="bd" value="' + i + '"' + (i ? '' : ' checked') + '><span>' + (d.getMonth() + 1) + '/' + d.getDate() + '<small>' + (isToday(d) ? '今天' : DAYS[d.getDay()]) + '</small></span></label>').join('');
+for (let p = 1; p <= 30; p++) $('#bPax').insertAdjacentHTML('beforeend', '<option value="' + p + '"' + (p === 2 ? ' selected' : '') + '>' + p + ' 位</option>');
+function setPax(n){ $('#bPax').value = String(n); }
+const curDay = () => days[+$('input[name=bd]:checked').value];
+function slotTimes(d, s){ const out = []; for (let m = toM(s[0]); m <= toM(s[1]) - 60; m += 30) out.push(m); return out; }
+function drawSvc(){
+  const d = curDay(), ss = SHOP.hours[d.getDay()], prevS = ($('input[name=bs]:checked') || {}).value;
+  $('#bSvc').innerHTML = ss.map((s, j) => { const past = isToday(d) && slotTimes(d, s).every(m => m < nowM + 30); return '<label class="opt"><input type="radio" name="bs" value="' + j + '"' + (past ? ' disabled' : '') + '><span>' + (toM(s[0]) < 960 ? '午餐' : '晚餐') + '<small>' + s[0] + '–' + s[1] + '</small></span></label>'; }).join('');
+  const pk = $('#bSvc input[value="' + prevS + '"]:not(:disabled)') || $('#bSvc input:not(:disabled)'); if (pk) pk.checked = true;
+  drawTimes();
+}
+function drawTimes(){
+  const d = curDay(), s = $('input[name=bs]:checked');
+  if (!s){ $('#bTimes').innerHTML = '<span style="font-size:14px;color:var(--muted)">今天的時段都已經過了，請選其他日期。</span>'; return; }
+  const ss = SHOP.hours[d.getDay()][+s.value];
+  $('#bTimes').innerHTML = slotTimes(d, ss).map(m => { const full = (d.getDate() * 5 + m / 30) % 9 === 0, dis = full || (isToday(d) && m < nowM + 30); return '<label class="opt"><input type="radio" name="btm" value="' + hhmm(m) + '"' + (dis ? ' disabled' : '') + '><span>' + hhmm(m) + (full ? '<small>已滿</small>' : '') + '</span></label>'; }).join('');
+  const f = $('#bTimes input:not(:disabled)'); if (f) f.checked = true;
+}
+$('#bDates').addEventListener('change', drawSvc); $('#bSvc').addEventListener('change', drawTimes); drawSvc();
+$('#bAside').innerHTML = '<li><span>宴席 Rijsttafel</span><b>每位 ' + money(RJ.perPerson) + ' 起</b></li><li><span>自組 nasi campur</span><b>' + money(RICE[0].price) + ' 起</b></li><li><span>公休</span><b>' + SHOP.hours.map((h, i) => h ? '' : DAYS[i]).filter(Boolean).join('、') + '</b></li><li><span>保留時間</span><b>15 分鐘</b></li>';
+function fieldErr(el, msg){ const e = el.parentElement.querySelector('.err'); if (e) e.textContent = msg || ''; el.setAttribute('aria-invalid', msg ? 'true' : 'false'); return !msg; }
+$('#bf').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = $('#bName'), phone = $('#bPhone'), t = $('input[name=btm]:checked'), d = curDay(), type = $('input[name=bt]:checked').value, pax = +$('#bPax').value;
+  let ok = fieldErr(name, name.value.trim() ? '' : '請填寫姓名。');
+  ok = fieldErr(phone, /^09\d{2}-?\d{3}-?\d{3}$/.test(phone.value.trim()) ? '' : '請輸入 09 開頭的手機號碼，例如 0912-345-678。') && ok;
+  $('#bTimeErr').textContent = t ? '' : '請選擇用餐時間。'; if (!t) ok = false;
+  const typeMsg = type === '宴席' ? (isToday(d) ? '宴席需前一天預訂，請改選明天以後。' : pax < 2 ? '宴席 2 位起。' : '') : '';
+  $('#bTypeErr').textContent = typeMsg; if (typeMsg) ok = false;
+  if (!ok){ const bad = $('#bf [aria-invalid=true]'); if (bad) bad.focus(); return; }
+  const note = $('#bNote').value.trim();
+  $('#bf').hidden = true;
+  const done = $('#bDone'); done.hidden = false;
+  done.innerHTML = '<svg viewBox="-50 -50 100 100" aria-hidden="true">' + kawungD(80).map(p => '<path d="' + p + '" fill="#8a5a2b" stroke="#1d2a4a" stroke-width="2.5"/>').join('') + '<circle r="5" fill="#d39a2c"/></svg><h3>Terima kasih!</h3><p><b>' + (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日（' + DAYS[d.getDay()].slice(1) + '）' + t.value + '</b>・' + pax + ' 位・' + type + '</p><p>' + esc(name.value.trim()) + '，確認簡訊會傳到 ' + esc(phone.value.trim()) + '。</p>' + (note ? '<p style="font-size:14px;color:var(--muted)">備註：' + esc(note) + '</p>' : '') + '<p class="demo">示範版本：沒有真的送出，店家不會收到這筆訂位。</p><button class="btn" type="button" id="bAgain">修改或再訂一筆</button>';
+  $('#bAgain').addEventListener('click', () => { done.hidden = true; $('#bf').hidden = false; });
+});
+
+/* ===== 紋樣與動效 ===== */
+// kawung 圖示
+const kwSVG = kawungD(84).map(p => '<path pathLength="1" d="' + p + '"/>').join('') + '<circle r="5"/>';
+$$('.kw').forEach(s => s.innerHTML = kwSVG);
+['#logoMark', '#logoMark2'].forEach(s => { $(s).innerHTML = '<circle r="48" fill="#1d2a4a" stroke="#d39a2c" stroke-width="3"/>' + kawungD(76).map(p => '<path d="' + p + '" fill="#f1e6cf"/>').join('') + '<circle r="6" fill="#d39a2c"/>'; });
+$$('.rev .st').forEach(s => s.innerHTML = ('<svg viewBox="-50 -50 100 100" aria-hidden="true">' + kawungD(92, .22).map(p => '<path d="' + p + '" fill="currentColor"/>').join('') + '</svg>').repeat(5));
+$('#scoreStars').innerHTML = ('<svg viewBox="-50 -50 100 100" aria-hidden="true" style="width:18px;height:18px">' + kawungD(92, .22).map(p => '<path d="' + p + '" fill="currentColor"/>').join('') + '</svg>').repeat(5);
+$$('.parang').forEach(el => { const id = 'pb' + (++uid); el.innerHTML = '<svg aria-hidden="true"><defs>' + parangPat(id, 36, '#1d2a4a', '#8a5a2b', '#f1e6cf', '#d39a2c') + '</defs><rect width="100%" height="100%" fill="url(#' + id + ')"/></svg>'; });
+
+// 蠟裂紋（可平鋪）
+function crackle(g, w, h, n, seed, color, tile){
+  const r = RNG(seed); g.strokeStyle = color; g.lineCap = 'round'; g.lineJoin = 'round';
+  const q = [];
+  for (let i = 0; i < n; i++) q.push([r() * w, r() * h, r() * 6.283, 60 + r() * 180, .4 + r() * .9]);
+  while (q.length){
+    const c = q.pop(); let [x, y, a, len, lw] = c; const pts = [[x, y]];
+    for (let s = 0; s < len; s += 5){ a += (r() - .5) * .9; x += Math.cos(a) * 5; y += Math.sin(a) * 5; pts.push([x, y]); if (r() < .035 && len > 40 && q.length < 400) q.push([x, y, a + (r() < .5 ? 1 : -1) * (.6 + r() * .7), len * .45, lw * .7]); }
+    g.lineWidth = lw; g.globalAlpha = .35 + r() * .5;
+    const offs = tile ? [[0,0],[w,0],[-w,0],[0,h],[0,-h],[w,h],[-w,-h],[w,-h],[-w,h]] : [[0,0]];
+    offs.forEach(o => { g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0] + o[0], p[1] + o[1]) : g.moveTo(p[0] + o[0], p[1] + o[1])); g.stroke(); });
+  }
+  g.globalAlpha = 1;
+}
+try {
+  const c = document.createElement('canvas'); c.width = c.height = 420; crackle(c.getContext('2d'), 420, 420, 12, 5, '#5e3a1a', true);
+  document.documentElement.style.setProperty('--crk', 'url(' + c.toDataURL() + ')');
+  const k = document.createElement('canvas'); k.width = k.height = 120; const kg = k.getContext('2d');
+  kg.strokeStyle = 'rgba(241,230,207,.07)'; kg.lineWidth = 1.2; kg.fillStyle = 'rgba(241,230,207,.035)';
+  kawungD(120).forEach(d => { const p = new Path2D(d); kg.save(); kg.translate(60, 60); kg.fill(p); kg.stroke(p); kg.restore(); });
+  document.documentElement.style.setProperty('--kw', 'url(' + k.toDataURL() + ')');
+} catch (e) {}
+
+// Hero 蠟染布
+const hero = $('#hero');
+function drawCloth(cv, dyed){
+  const w = hero.clientWidth, h = hero.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const s = w < 700 ? 86 : Math.max(112, Math.min(150, w / 11)), r = RNG(7), a = s * .335, b = s * .15;
+  if (dyed){
+    g.fillStyle = '#1d2a4a'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 14; i++){ const x = r() * w, y = r() * h, rad = 120 + r() * 320, gr = g.createRadialGradient(x, y, 0, x, y, rad); gr.addColorStop(0, r() < .5 ? 'rgba(48,68,116,.45)' : 'rgba(10,15,30,.45)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }
+  } else { g.fillStyle = '#efe3c9'; g.fillRect(0, 0, w, h); }
+  const cx0 = (w * (w < 980 ? .5 : .62)) % s - s, cy0 = (h / 2) % s - s;
+  for (let cy = cy0; cy < h + s; cy += s) for (let cx = cx0; cx < w + s; cx += s){
+    [[1,1],[-1,1],[1,-1],[-1,-1]].forEach(q => {
+      const px = cx + q[0] * s / 4, py = cy + q[1] * s / 4, rot = q[0] * q[1] > 0 ? Math.PI / 4 : -Math.PI / 4;
+      g.beginPath(); g.ellipse(px, py, a, b, rot, 0, Math.PI * 2);
+      if (dyed){ g.fillStyle = 'rgba(233,220,192,' + (.7 + r() * .16) + ')'; g.fill();
+        g.beginPath(); g.ellipse(px, py, a * .62, b * .5, rot, 0, Math.PI * 2); g.fillStyle = '#74491f'; g.fill();
+        g.fillStyle = '#f1e6cf'; [-.32, 0, .32].forEach(t => { g.beginPath(); g.arc(px + Math.cos(rot) * a * t, py + Math.sin(rot) * a * t, s * .012, 0, 6.283); g.fill(); });
+      } else { g.strokeStyle = 'rgba(138,90,43,.32)'; g.lineWidth = .9; g.stroke(); }
+    });
+    if (dyed){
+      g.fillStyle = '#8a5a2b'; g.beginPath(); g.arc(cx, cy, s * .05, 0, 6.283); g.fill();
+      g.fillStyle = '#d39a2c'; g.beginPath(); g.arc(cx, cy, s * .022, 0, 6.283); g.fill();
+      g.fillStyle = 'rgba(241,230,207,.8)';
+      [[s / 2, 0], [0, s / 2]].forEach(o => { const x = cx + o[0], y = cy + o[1]; [[0, -1], [1, 0], [0, 1], [-1, 0]].forEach(d => { g.beginPath(); g.arc(x + d[0] * s * .035, y + d[1] * s * .035, s * .011, 0, 6.283); g.fill(); }); });
+    }
+  }
+  if (dyed){ const gx = w * (w < 980 ? .5 : .62), gy = w < 980 ? 64 + Math.min(w * .36, 220) : h / 2, gr = g.createRadialGradient(gx, gy, Math.min(w, h) * .3, gx, gy, Math.max(w, h) * .8); gr.addColorStop(0, 'rgba(8,12,26,0)'); gr.addColorStop(1, 'rgba(8,12,26,.5)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }
+}
+function drawCrk(cv){
+  const w = hero.clientWidth, h = hero.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  crackle(g, w, h, Math.round(w * h / 22000), 11, '#0b1226', false);
+}
+function paintHero(){ drawCloth($('#clothRaw'), false); drawCloth($('#clothDyed'), true); drawCrk($('#clothCrk')); }
+paintHero();
+let rzT, lastW = window.innerWidth;
+window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (Math.abs(window.innerWidth - lastW) > 40 || window.innerWidth > 980){ lastW = window.innerWidth; paintHero(); } }, 200); });
+
+// canting 描蠟圈
+(function(){
+  const ring = $('#ring');
+  let d = 'M312 0A312 312 0 1 1 -312 0A312 312 0 1 1 312 0';
+  const PN = 16; let dots = '';
+  for (let i = 0; i < PN; i++){ const t = i / PN * 360 - 90, rad = t * Math.PI / 180; d += petal(Math.cos(rad) * 348, Math.sin(rad) * 348, 30, 13, t);
+    const t2 = (i + .5) / PN * 2 * Math.PI - Math.PI / 2; dots += '<circle cx="' + f1(Math.cos(t2) * 350) + '" cy="' + f1(Math.sin(t2) * 350) + '" r="4.5" fill="#d39a2c"/>'; }
+  d += 'M388 0A388 388 0 1 1 -388 0A388 388 0 1 1 388 0';
+  ring.innerHTML = '<path class="trace" id="trace" d="' + d + '"/><g class="dots">' + dots + '</g><g id="pen"><circle r="10" fill="#fff6dc" opacity=".6"/><g transform="scale(1.4) rotate(-38)"><path d="M0 0L8 -16" stroke="#9a5a1c" stroke-width="4" stroke-linecap="round"/><ellipse cx="16" cy="-26" rx="15" ry="11" fill="#c27a2e" stroke="#5e3a1a" stroke-width="2.5"/><ellipse cx="12" cy="-29" rx="6" ry="3.5" fill="#f2c27a" opacity=".7"/><path d="M28 -32L120 -40" stroke="#5e3a1a" stroke-width="13" stroke-linecap="round"/><path d="M28 -32L120 -40" stroke="#d9b779" stroke-width="9" stroke-linecap="round"/><path d="M62 -38.5v6M96 -41.5v6" stroke="#8a5a2b" stroke-width="2.5"/></g></g>';
+  const tr = $('#trace'), pen = $('#pen'), L = tr.getTotalLength();
+  const finish = () => { tr.style.strokeDasharray = 'none'; pen.style.opacity = 0; hero.classList.add('dyed'); };
+  if (reduce){ finish(); return; }
+  tr.style.strokeDasharray = L + ' ' + L; tr.style.strokeDashoffset = L;
+  const T = 3400, t0 = performance.now() + 350;
+  function step(t){
+    const k = Math.min(1, Math.max(0, (t - t0) / T)), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2, len = L * e;
+    tr.style.strokeDashoffset = L - len;
+    const p = tr.getPointAtLength(len); pen.setAttribute('transform', 'translate(' + f1(p.x) + ' ' + f1(p.y) + ')');
+    if (k < 1) requestAnimationFrame(step); else finish();
+  }
+  requestAnimationFrame(step);
+})();
+
+/* ===== 導覽、照片位、進場 ===== */
+const nav = $('#nav'), burger = $('#burger');
+burger.addEventListener('click', () => { const o = nav.classList.toggle('open'); burger.setAttribute('aria-expanded', o); burger.lastElementChild.textContent = o ? '關閉' : '選單'; });
+$$('#navList a').forEach(a => a.addEventListener('click', () => { nav.classList.remove('open'); burger.setAttribute('aria-expanded', 'false'); burger.lastElementChild.textContent = '選單'; }));
+const slotBtn = $('#slotBtn');
+function slots(on){ document.body.classList.toggle('slots', on); slotBtn.setAttribute('aria-pressed', on); }
+slotBtn.addEventListener('click', () => slots(!document.body.classList.contains('slots')));
+if (/[?&]slots/.test(location.search)) slots(true);
+fillPhotos();
+const revealEls = $$('.rv, .hd');
+if ('IntersectionObserver' in window && !reduce){
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting){ e.target.classList.add('vis'); io.unobserve(e.target); } }), {rootMargin:'0px 0px -8% 0px'});
+  revealEls.forEach(el => io.observe(el));
+} else revealEls.forEach(el => el.classList.add('vis'));
+})();
+</script>
+</body>
+</html>
