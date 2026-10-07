@@ -1,0 +1,1067 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PIT LANE BURGERS 維修站漢堡｜手工漢堡・中山</title>
+<meta name="description" content="PIT LANE BURGERS 維修站漢堡：台北中山的賽車主題手工漢堡。現絞牛肉鐵板壓煎、七分鐘出餐，線上組裝漢堡、預約路邊 Pit Box 取餐，比賽週末大螢幕觀賽派對包場訂位。">
+<!--
+  店家模板使用方式
+  1. 修改 <script> 開頭的 SHOP：店名、電話、地址、營業時間（hours，0=週日，每天可多個時段，null=公休）、
+     取餐格數量 pitBoxes、觀賽派對價格 party、照片網址 photos。頁面上所有店名／電話／地址／時間都從這裡帶入。
+  2. MENU 是完整菜單（cat 決定分類頁籤，sig 標出頒獎台三道招牌）；BUILD 是「調校車庫」組裝漢堡的品項、
+     加價、熱量與製作秒數；RACES 是接下來的轉播場次（日期依今天自動往後排到週末）。
+  3. 照片：在 SHOP.photos 填入網址就會取代程式繪製的佔位插畫。網址加 ?slots 或按右下角「照片位」，
+     會以虛線框標出每個照片位與建議尺寸。主視覺漢堡建議用去背圖或正方形圖（會裁成圓形）。
+  4. 取餐預約、觀賽訂位目前只在頁面上示範（Pit Box 已預約狀態是依日期時段假造的），
+     正式上線請串接 POS／線上點餐與訂位後端。
+  5. 配色集中在 :root 的 CSS 變數（--teal 石油藍綠、--pap 木瓜橘、--cream 奶油、--carbon 碳黑）。
+-->
+<style>
+:root{--teal:#0f6e7a;--teal-d:#0a4b54;--pap:#ff7a1a;--pap-d:#b84a00;--cream:#f3ead8;--cream-2:#e9dcc2;--carbon:#151515;--asph:#25282b;--kerb:#d42f2a;--ink:#151515;--mute:#5a5448;--k:56px;
+  --f-head:"Bank Gothic","Eurostile","Microgramma","Trebuchet MS","DejaVu Sans",Arial,sans-serif;
+  --f-mono:"SF Mono","SFMono-Regular","Consolas","Menlo","DejaVu Sans Mono","Liberation Mono",monospace;
+  --f-zh:"PingFang TC","Microsoft JhengHei","Noto Sans CJK TC","Noto Sans TC","Heiti TC",sans-serif;
+  --f-body:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei","Noto Sans CJK TC","Noto Sans TC",sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1);--bounce:cubic-bezier(.34,1.56,.64,1)}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--cream);color:var(--ink);font:16px/1.7 var(--f-body);overflow-x:clip}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--pap);outline-offset:2px}
+.wrap{max-width:1200px;margin:0 auto;padding:0 clamp(16px,4vw,48px)}
+.en{font-family:var(--f-head);font-style:italic;font-weight:800;text-transform:uppercase;letter-spacing:.03em;line-height:.95}
+.zh{font-family:var(--f-zh);font-weight:900;font-style:italic}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.carbon{background-color:#131313;background-image:linear-gradient(27deg,#151515 5px,transparent 5px),linear-gradient(207deg,#151515 5px,transparent 5px),linear-gradient(27deg,#202020 5px,transparent 5px),linear-gradient(207deg,#202020 5px,transparent 5px),linear-gradient(90deg,#1a1a1a 10px,transparent 10px),linear-gradient(#1c1c1c 25%,#191919 25%,#191919 50%,transparent 50%,transparent 75%,#232323 75%,#232323);background-position:0 5px,10px 0,0 10px,10px 5px,0 0,0 0;background-size:20px 20px}
+.checker{background:conic-gradient(var(--carbon) 25%,#fff 0 50%,var(--carbon) 0 75%,#fff 0) 0 0/20px 20px}
+.kerb{height:14px;background:repeating-linear-gradient(-60deg,var(--kerb) 0 22px,#fff 22px 44px)}
+/* 按鈕 */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:50px;padding:0 28px;border:0;font:800 15px/1 var(--f-zh);font-style:italic;letter-spacing:.06em;text-decoration:none;clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%);transition:transform .2s var(--ease),background .2s;position:relative}
+.btn:hover{transform:translateX(4px)}
+.btn:active{transform:translateX(2px) scale(.98)}
+.btn.pap{background:var(--pap);color:var(--carbon)}
+.btn.dark{background:var(--carbon);color:var(--cream)}
+.btn.teal{background:var(--teal);color:var(--cream)}
+.btn.line{background:transparent;color:var(--carbon);box-shadow:inset 0 0 0 3px var(--carbon)}
+.btn .ar{font-family:var(--f-mono);font-style:normal}
+.btn:focus-visible{outline:none;box-shadow:inset 0 0 0 4px #fff,inset 0 0 0 7px var(--carbon)}
+/* 導覽 */
+.nav{position:sticky;top:0;z-index:50;background:var(--carbon);color:var(--cream)}
+.nav-in{display:flex;align-items:center;gap:22px;height:64px}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none;flex-shrink:0}
+.mini-rd{width:40px;height:40px;border-radius:50%;background:#fff;color:var(--carbon);display:grid;place-items:center;font:italic 900 19px/1 var(--f-head);box-shadow:0 0 0 3px var(--carbon),0 0 0 5px var(--pap)}
+.logo b{display:block;font:italic 800 19px/1 var(--f-head);letter-spacing:.05em}
+.logo small{display:block;font:700 10.5px/1.2 var(--f-mono);letter-spacing:.16em;color:#bdb4a2;margin-top:3px}
+.nav ul{display:flex;gap:4px;list-style:none;margin:0 0 0 auto;padding:0}
+.nav ul a{display:block;padding:8px 12px;text-decoration:none;font:800 14.5px/1 var(--f-zh);font-style:italic;color:#ddd4c2;transition:color .2s}
+.nav ul a:hover{color:var(--pap)}
+.nav ul a small{font:600 10px/1 var(--f-mono);color:#7e776a;margin-right:5px;font-style:normal}
+.nav .btn{min-height:40px;padding:0 20px;font-size:14px}
+#burger{display:none;margin-left:auto;background:var(--pap);color:var(--carbon);border:0;height:40px;padding:0 16px;font:800 13px/1 var(--f-mono);letter-spacing:.14em;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)}
+.nav-stripe{height:6px;background:linear-gradient(90deg,var(--teal) 0 62%,var(--cream) 62% 63%,var(--pap) 63% 86%,var(--cream) 86% 87%,var(--kerb) 87%)}
+/* Hero */
+.hero{position:relative;overflow:hidden;background:var(--cream);min-height:calc(100vh - 70px);display:flex;flex-direction:column;--lx:72%;--ly:68%}
+.livery{position:absolute;left:var(--lx);top:var(--ly);width:280vmax;transform:translate(-50%,-50%) rotate(-21deg);pointer-events:none}
+.livery .band{animation:bandIn 1.2s var(--ease) both}
+.livery i{display:block;position:relative;overflow:hidden}
+.livery .c1{height:8px;background:var(--carbon)}
+.livery .g{height:12px}
+.livery .p1{height:42px;background:var(--pap)}
+.livery .g2{height:7px}
+.livery .t1{height:clamp(110px,13vw,170px);background:var(--teal)}
+.livery .c2{height:16px;background:var(--carbon)}
+.livery .sl{position:absolute;left:0;height:2px;width:22%;background:linear-gradient(90deg,transparent,rgba(243,234,216,.75));animation:speed 2.4s linear infinite}
+.livery .p1 .sl{background:linear-gradient(90deg,transparent,rgba(21,21,21,.45))}
+@keyframes bandIn{from{transform:translateX(-45%);opacity:0}to{transform:none;opacity:1}}
+@keyframes speed{from{transform:translateX(-30%)}to{transform:translateX(480%)}}
+.flag{position:absolute;right:0;top:0;width:clamp(120px,15vw,210px);aspect-ratio:1;clip-path:polygon(0 0,100% 0,100% 100%);background:conic-gradient(var(--carbon) 25%,#fff 0 50%,var(--carbon) 0 75%,#fff 0) 0 0/26px 26px;z-index:1}
+.hero-in{position:relative;z-index:2;flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.02fr);align-items:center;gap:24px;padding-top:48px;padding-bottom:56px}
+.kick{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 18px;font:800 15px/1.2 var(--f-zh);font-style:italic}
+.kick .mono{background:var(--carbon);color:var(--pap);font:700 12px/1 var(--f-mono);letter-spacing:.16em;padding:7px 12px;font-style:normal}
+.hero h1{margin:0}
+.hero h1 .en{display:block;font-size:clamp(48px,6.3vw,100px);letter-spacing:.01em;color:var(--carbon);text-shadow:4px 4px 0 var(--pap)}
+.hero h1 .zh{display:inline-block;margin-top:14px;background:var(--teal);color:var(--cream);font-size:clamp(24px,2.8vw,40px);padding:4px 22px 6px 16px;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);letter-spacing:.08em}
+.lede{max-width:30em;font-size:17px;margin:20px 0 26px;font-weight:500}
+.cta{display:flex;flex-wrap:wrap;gap:12px}
+.timing{display:flex;flex-wrap:wrap;gap:0;margin-top:26px;width:max-content;max-width:100%;background:var(--carbon);color:var(--cream);clip-path:polygon(0 0,100% 0,calc(100% - 14px) 100%,0 100%)}
+.timing>div{padding:10px 26px 10px 16px}
+.timing small{display:block;font:700 10.5px/1.3 var(--f-mono);letter-spacing:.16em;color:#9c9484}
+.st{display:flex;align-items:center;gap:10px;border-right:1px solid #333;font:800 15px/1.2 var(--f-zh);font-style:italic}
+.st i{width:11px;height:11px;border-radius:50%;background:var(--kerb);flex-shrink:0;box-shadow:0 0 0 3px rgba(212,47,42,.25)}
+.st.on i{background:#3ccf6e;box-shadow:0 0 0 3px rgba(60,207,110,.25);animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.35}}
+.lap b{font:700 22px/1.2 var(--f-mono);color:var(--pap);font-variant-numeric:tabular-nums}
+.hero-art{position:relative;aspect-ratio:1;width:min(100%,600px);justify-self:center}
+.ph.hero-ph{position:absolute;inset:0}
+.hero-ph>img{border-radius:50%}
+.hero .ph>svg{overflow:visible}
+.ly{animation:layDrop .75s var(--bounce) both;animation-delay:calc(.2s + var(--i)*.07s)}
+@keyframes layDrop{0%{transform:translateY(-320px);opacity:0}55%{opacity:1}100%{transform:none;opacity:1}}
+.roundel{position:absolute;left:-1%;top:3%;width:clamp(96px,11vw,150px);aspect-ratio:1;border-radius:50%;background:#fff;border:6px solid var(--carbon);box-shadow:0 0 0 5px #fff,0 0 0 9px var(--pap);display:grid;place-items:center;align-content:center;z-index:3;transform:rotate(-8deg);animation:pop .6s var(--bounce) .9s both}
+.roundel small{font:800 13px/1 var(--f-mono);letter-spacing:.1em;margin-bottom:-4px}
+.roundel b{font:italic 900 clamp(48px,5.4vw,78px)/1 var(--f-head);letter-spacing:-.04em}
+@keyframes pop{from{transform:scale(.3) rotate(-30deg);opacity:0}to{transform:rotate(-8deg);opacity:1}}
+.stk{position:absolute;z-index:3;font:italic 800 12px/1 var(--f-head);letter-spacing:.08em;text-transform:uppercase;padding:7px 12px;background:#fff;color:var(--carbon);border:2px solid var(--carbon);box-shadow:3px 3px 0 rgba(21,21,21,.85);animation:pop2 .5s var(--bounce) both}
+.stk.s1{right:2%;top:30%;transform:rotate(6deg);border-radius:30px;animation-delay:1s}
+.stk.s2{left:-2%;bottom:24%;background:var(--carbon);color:var(--pap);border-color:var(--pap);transform:rotate(-4deg);clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);box-shadow:none;animation-delay:1.1s}
+.stk.s3{right:8%;bottom:9%;background:var(--pap);transform:rotate(-3deg);animation-delay:1.2s}
+.stk.s3 b{font-family:var(--f-mono);margin-right:4px}
+@keyframes pop2{from{opacity:0;scale:.4}to{opacity:1;scale:1}}
+/* 贊助條 */
+.spons{background:var(--carbon);color:var(--cream);overflow:hidden;border-top:4px solid var(--carbon)}
+.spons-tr{display:flex;width:max-content;animation:ticker 38s linear infinite}
+.spons span{display:flex;align-items:center;gap:10px;padding:16px 30px;font:italic 800 14px/1 var(--f-head);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;border-right:1px solid #2c2c2c}
+.spons span i{width:18px;height:18px;flex-shrink:0;transform:skewX(-14deg)}
+@keyframes ticker{to{transform:translateX(-50%)}}
+/* 斜切區塊 */
+.cut{position:relative;clip-path:polygon(0 var(--k),100% 0,100% calc(100% - var(--k)),0 100%);margin-top:calc(var(--k) * -1);padding:calc(var(--k) + 80px) 0}
+.cut.first{margin-top:0}
+.cut.last{clip-path:polygon(0 var(--k),100% 0,100% 100%,0 100%);padding-bottom:40px}
+section[id]{scroll-margin-top:60px}
+.sh{display:grid;gap:10px;margin-bottom:44px;max-width:780px}
+.sh .no{display:flex;align-items:center;gap:12px;font:700 12.5px/1 var(--f-mono);letter-spacing:.16em}
+.sh .no b{background:var(--pap);color:var(--carbon);padding:6px 14px 6px 12px;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)}
+.sh h2{margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 18px}
+.sh h2 .en{font-size:clamp(36px,5vw,66px)}
+.sh h2 .zh{font-size:clamp(22px,2.4vw,32px)}
+.sh p{margin:0;color:var(--mute);max-width:56ch;font-size:16.5px}
+.dark{color:var(--cream)}
+.dark .sh p,.sh.dark p{color:#cdc4b2}
+.rv{opacity:1}
+.js .rv{opacity:0;transform:translateX(-48px);transition:opacity .7s var(--ease),transform .8s var(--ease)}
+.js .sh.rv{transform:translateX(-72px) skewX(-12deg)}
+.js .rv.vis{opacity:1;transform:none}
+.js .rv.d1{transition-delay:.1s}.js .rv.d2{transition-delay:.2s}.js .rv.d3{transition-delay:.3s}
+/* 照片位 */
+.ph{position:relative;overflow:hidden;margin:0;background:var(--teal-d)}
+.ph>svg,.ph>img,.ph>canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.hero-ph{background:transparent;overflow:visible}
+body.slots .ph{outline:3px dashed var(--pap);outline-offset:-3px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:10px;top:10px;z-index:4;background:var(--carbon);color:var(--pap);font:700 11px/1.4 var(--f-mono);padding:4px 10px;max-width:calc(100% - 20px)}
+#slotBtn{position:fixed;right:14px;bottom:14px;z-index:60;background:var(--carbon);color:var(--cream);border:2px solid var(--pap);font:700 12px/1 var(--f-mono);letter-spacing:.1em;padding:10px 14px}
+#slotBtn[aria-pressed=true]{background:var(--pap);color:var(--carbon)}
+/* 故事 */
+.story{background:var(--teal);color:var(--cream)}
+.story .sh p{color:#d6ece9}
+.story-g{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:clamp(28px,5vw,72px);align-items:center}
+.story-t p{margin:0 0 16px;font-size:16.5px;color:#e6f0ee;max-width:36em}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:28px}
+.stats div{background:var(--carbon);padding:14px 14px 12px;clip-path:polygon(0 0,100% 0,calc(100% - 10px) 100%,0 100%);border-top:4px solid var(--pap)}
+.stats b{display:block;font:700 clamp(24px,2.6vw,34px)/1.1 var(--f-mono);color:var(--pap)}
+.stats span{font-size:13px;color:#cfc6b4}
+.story-ph{aspect-ratio:5/4;clip-path:polygon(9% 0,100% 0,91% 100%,0 100%);box-shadow:0 0 0 1px rgba(0,0,0,.2)}
+/* 頒獎台 */
+.podium{background:var(--cream)}
+.pod-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(14px,2vw,28px);align-items:end}
+.pod{display:flex;flex-direction:column}
+.pod .ph{aspect-ratio:4/3;clip-path:polygon(6% 0,100% 0,94% 100%,0 100%)}
+.pod-b{padding:18px 6% 0}
+.pod h3{margin:0;font-size:24px;line-height:1.25}
+.pod h3 small{display:block;font:italic 800 12.5px/1.4 var(--f-head);letter-spacing:.1em;color:var(--teal);text-transform:uppercase}
+.pod p{margin:6px 0 12px;color:var(--mute);font-size:15px}
+.pod-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.pod-row .mono{font-size:22px;font-weight:700}
+.pod .btn{min-height:42px;padding:0 18px;font-size:14px}
+.step{margin-top:18px;background:var(--carbon);color:var(--cream);display:flex;align-items:flex-start;justify-content:center;padding-top:14px;position:relative;clip-path:polygon(4% 0,96% 0,100% 100%,0 100%)}
+.step b{font:italic 900 46px/1 var(--f-head)}
+.step::before{content:"";position:absolute;inset:0 0 auto;height:8px;background:repeating-linear-gradient(90deg,var(--kerb) 0 18px,#fff 18px 36px)}
+.pod.p1 .step{height:150px;background:var(--pap);color:var(--carbon)}
+.pod.p2 .step{height:110px}
+.pod.p3 .step{height:80px;background:var(--teal)}
+/* 菜單 */
+.grid-s{color:var(--cream)}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:-12px 0 36px}
+.tabs button{border:0;background:#262626;color:#d9d0be;font:800 14.5px/1 var(--f-zh);font-style:italic;padding:12px 20px;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);transition:background .2s,color .2s}
+.tabs button small{font:600 11px/1 var(--f-mono);margin-left:6px;opacity:.7;font-style:normal}
+.tabs button[aria-selected=true]{background:var(--pap);color:var(--carbon)}
+.tabs button:focus-visible{outline:none;box-shadow:inset 0 0 0 3px var(--cream)}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px 18px;list-style:none;margin:0;padding:0}
+.card{position:relative;overflow:hidden;background:var(--cream);color:var(--carbon);padding:16px 16px 14px;display:flex;flex-direction:column;min-height:240px;clip-path:polygon(0 0,calc(100% - 26px) 0,100% 26px,100% 100%,0 100%);animation:cardIn .5s var(--ease) both;animation-delay:calc(var(--i)*.04s)}
+@media (min-width:900px){.card:nth-child(even){transform:translateY(28px)}.cards{padding-bottom:28px}}
+@keyframes cardIn{from{opacity:0;translate:-30px 0}to{opacity:1;translate:0 0}}
+.card::before{content:"";position:absolute;right:-30px;top:12px;width:130px;height:16px;background:var(--teal);transform:rotate(45deg);box-shadow:0 22px 0 -6px var(--pap)}
+.card .gridp{font:700 10.5px/1 var(--f-mono);letter-spacing:.16em;color:var(--mute)}
+.card .num{font:italic 900 46px/1 var(--f-head);letter-spacing:-.02em;margin:6px 0 10px;color:var(--carbon)}
+.card .num small{font-size:16px;margin-right:2px}
+.card h3{margin:0;font-size:18.5px;line-height:1.3}
+.card .enn{font:italic 700 11.5px/1.4 var(--f-head);letter-spacing:.08em;text-transform:uppercase;color:var(--teal)}
+.card p{margin:8px 0 12px;font-size:13.5px;color:var(--mute);flex:1;line-height:1.6}
+.card .meta{display:flex;align-items:center;gap:10px;font:600 11.5px/1 var(--f-mono);color:var(--mute);margin-bottom:12px}
+.heat{display:inline-flex;gap:2px}
+.heat i{width:9px;height:9px;background:#d3c6ab;clip-path:polygon(30% 0,100% 0,70% 100%,0 100%)}
+.heat i.on{background:var(--kerb)}
+.tagx{background:var(--carbon);color:var(--pap);padding:3px 7px;font:700 10.5px/1 var(--f-mono)}
+.card .row{display:flex;align-items:center;justify-content:space-between;border-top:2px solid var(--carbon);padding-top:10px}
+.card .pr{font:700 21px/1 var(--f-mono)}
+.card .pr small{font-size:12px;margin-right:2px}
+.add{border:0;background:var(--carbon);color:var(--cream);font:800 13px/1 var(--f-zh);font-style:italic;padding:9px 14px;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);transition:background .2s}
+.add:hover{background:var(--teal)}
+.add:focus-visible{outline:none;background:var(--pap);color:var(--carbon)}
+/* 調校車庫 */
+.build{background:var(--cream-2)}
+.bld-g{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:clamp(24px,4vw,56px);align-items:start}
+.stage-w{position:sticky;top:90px}
+.stage{position:relative;height:520px;overflow:hidden;clip-path:polygon(0 0,calc(100% - 40px) 0,100% 40px,100% 100%,0 100%)}
+.stage::before{content:"";position:absolute;left:-20%;right:-20%;top:46%;height:120px;background:linear-gradient(var(--pap) 0 30%,transparent 30% 38%,var(--teal) 38%);transform:rotate(-18deg);opacity:.9}
+.stage .tag{position:absolute;left:16px;top:14px;z-index:2;font:700 11px/1.5 var(--f-mono);letter-spacing:.14em;color:#9c9484}
+.stage .tag b{display:block;color:var(--cream);font:italic 800 18px/1.2 var(--f-head);letter-spacing:.06em}
+.plate{position:absolute;left:50%;bottom:22px;width:78%;height:40px;transform:translateX(-50%);border-radius:50%;background:#0c0c0c;box-shadow:0 0 0 6px #2a2a2a,0 0 0 9px var(--pap),0 18px 30px rgba(0,0,0,.6)}
+.stack{position:absolute;left:50%;bottom:40px;width:min(72%,330px);transform:translateX(-50%) scale(var(--sc,1));transform-origin:50% 100%;display:flex;flex-direction:column-reverse;transition:transform .35s var(--ease)}
+.lyr{width:100%;position:relative}
+.lyr svg{display:block;width:100%;height:100%;overflow:visible}
+.lyr.drop{animation:layDrop .7s var(--bounce) both}
+.lyr.out{animation:none}
+.tele{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--carbon);color:var(--cream);margin-top:10px}
+.tele div{padding:12px 12px 10px;border-right:1px solid #2d2d2d}
+.tele div:last-child{border:0}
+.tele small{display:block;font:700 10px/1.3 var(--f-mono);letter-spacing:.14em;color:#8f887a}
+.tele b{display:block;font:700 clamp(17px,1.9vw,23px)/1.2 var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tele b.bump{animation:bump .35s var(--ease)}
+@keyframes bump{0%{transform:translateY(-6px);color:var(--pap)}100%{transform:none}}
+.target{height:8px;background:#2c2c2c;position:relative}
+.target i{position:absolute;left:0;top:0;bottom:0;background:var(--teal);transition:width .4s var(--ease),background .3s}
+.target i.over{background:var(--kerb)}
+.target::after{content:"";position:absolute;left:var(--t,80%);top:-4px;bottom:-4px;width:3px;background:var(--pap)}
+.tnote{font:600 12px/1.6 var(--f-mono);color:var(--mute);margin:8px 0 0}
+.ctl fieldset{border:0;margin:0 0 20px;padding:0}
+.ctl legend{display:flex;align-items:baseline;gap:10px;padding:0;margin-bottom:10px;font:900 18px/1.2 var(--f-zh);font-style:italic}
+.ctl legend .mono{font:700 11px/1 var(--f-mono);letter-spacing:.14em;color:var(--pap-d);font-style:normal}
+.ctl legend em{font:italic 700 12px/1 var(--f-head);letter-spacing:.1em;color:var(--teal);text-transform:uppercase}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{position:relative}
+.chip input{position:absolute;opacity:0;width:1px;height:1px}
+.chip span{display:block;background:var(--cream);padding:10px 18px 9px 16px;font:800 14.5px/1.2 var(--f-zh);font-style:italic;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);cursor:pointer;transition:background .15s,color .15s;box-shadow:inset 0 0 0 2px rgba(21,21,21,.18)}
+.chip span small{font:600 11px/1 var(--f-mono);margin-left:6px;color:var(--mute);font-style:normal}
+.chip input:checked+span{background:var(--carbon);color:var(--cream)}
+.chip input:checked+span small{color:var(--pap)}
+.chip input:focus-visible+span{box-shadow:inset 0 0 0 3px var(--pap)}
+.chip input:disabled+span{opacity:.45;cursor:not-allowed;text-decoration:line-through}
+.stepper{display:flex;align-items:center;gap:0;width:max-content;background:var(--carbon);color:var(--cream)}
+.stepper button{width:48px;height:48px;border:0;background:transparent;color:var(--pap);font:700 24px/1 var(--f-mono)}
+.stepper button:disabled{color:#555;cursor:not-allowed}
+.stepper output{min-width:120px;text-align:center;font:700 16px/1 var(--f-mono)}
+.bld-act{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px}
+/* Pit Stop */
+.pit{background:var(--asph);color:var(--cream);background-image:repeating-linear-gradient(90deg,transparent 0 119px,rgba(255,255,255,.035) 119px 120px)}
+.pit-g>.panel{position:sticky;top:90px}
+.pit-g{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.2fr);gap:clamp(20px,3vw,40px);align-items:start}
+.panel{background:var(--cream);color:var(--carbon);padding:clamp(18px,2.4vw,28px);clip-path:polygon(0 0,calc(100% - 24px) 0,100% 24px,100% 100%,0 100%)}
+.panel h3{margin:0 0 4px;display:flex;align-items:baseline;gap:10px;font-size:22px}
+.panel h3 .en{font-size:13px;color:var(--teal);letter-spacing:.12em}
+.olist{list-style:none;margin:14px 0;padding:0;border-top:2px solid var(--carbon)}
+.olist li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px dashed #b9ad94;font-size:14.5px}
+.olist li .mono{font-weight:700}
+.olist li small{display:block;color:var(--mute);font-size:12px;line-height:1.4}
+.olist .rm{border:0;background:transparent;color:var(--kerb);font:700 12px/1 var(--f-mono);padding:6px;text-decoration:underline}
+.olist .empty{display:block;color:var(--mute);font-size:14px;padding:16px 0}
+.osum{display:flex;justify-content:space-between;align-items:baseline;font:700 14px/1.4 var(--f-mono)}
+.osum b{font-size:26px}
+.osum+.osum{margin-top:4px;color:var(--mute);font-size:12.5px}
+.osum+.osum b{font-size:14px;color:var(--carbon)}
+.fld{margin-bottom:16px}
+.fld>label,.fld>.lb{display:block;font:800 14px/1.2 var(--f-zh);font-style:italic;margin-bottom:8px}
+.fld>label small,.fld>.lb small{font:600 11px/1 var(--f-mono);color:var(--mute);font-style:normal;margin-left:6px;letter-spacing:.08em}
+.in{width:100%;height:48px;border:0;border-bottom:3px solid var(--carbon);background:#fffaf0;padding:0 12px;font-size:16px;border-radius:0}
+.in:focus{outline:none;border-bottom-color:var(--pap);background:#fff}
+select.in{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--carbon) 50%),linear-gradient(-45deg,transparent 50%,var(--carbon) 50%);background-position:calc(100% - 20px) 21px,calc(100% - 14px) 21px;background-size:6px 6px;background-repeat:no-repeat}
+.err{display:block;min-height:18px;color:var(--kerb);font-size:12.5px;font-weight:700;margin-top:4px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+.dates{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.dates .chip span{text-align:center;padding:8px 14px 7px;min-width:66px;font-family:var(--f-mono);font-style:normal;font-weight:700}
+.dates .chip span small{display:block;margin:2px 0 0;font-family:var(--f-zh)}
+.lane{background:var(--asph);padding:12px 12px 30px;position:relative;margin-top:4px}
+.lane::after{content:"PIT LANE · 限速 10 km/h";position:absolute;left:12px;right:12px;bottom:6px;border-top:2px dashed rgba(243,234,216,.5);padding-top:3px;font:700 10px/1.4 var(--f-mono);letter-spacing:.2em;color:#a39b8b;text-align:center}
+.boxes{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.boxes button{position:relative;height:84px;border:2px solid rgba(243,234,216,.7);border-bottom:0;background:transparent;color:var(--cream);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:background .2s}
+.boxes button b{font:italic 900 28px/1 var(--f-head)}
+.boxes button small{font:700 9.5px/1 var(--f-mono);letter-spacing:.12em;color:#b8b0a0}
+.boxes button:disabled{cursor:not-allowed;background:repeating-linear-gradient(-45deg,rgba(212,47,42,.55) 0 8px,rgba(243,234,216,.12) 8px 16px);color:#9a9282}
+.boxes button:disabled small{color:var(--cream)}
+.boxes button[aria-pressed=true]{background:var(--pap);color:var(--carbon);border-color:var(--pap)}
+.boxes button[aria-pressed=true] small{color:var(--carbon)}
+.boxes button:not(:disabled):hover{background:rgba(255,122,26,.2)}
+.demo{font:700 12px/1.6 var(--f-mono);color:var(--pap-d);margin:10px 0 0}
+.board-w{display:grid;justify-items:center;gap:0}
+.board{width:min(100%,380px);background:#0c0c0c;border:10px solid #b9bec2;box-shadow:inset 0 0 0 2px #000,0 14px 0 -4px #8d9296;padding:14px 16px;display:grid;gap:8px}
+.board .r{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font:700 clamp(24px,3vw,32px)/1.1 var(--f-mono);color:var(--cream);animation:flipIn .45s var(--ease) both;animation-delay:calc(var(--i)*.16s);transform-origin:50% 0}
+.board .r small{font-size:12px;color:#8c8578;letter-spacing:.14em}
+.board .r.hl{color:var(--pap)}
+.board .r.big{font-size:clamp(34px,4.6vw,50px)}
+@keyframes flipIn{from{transform:perspective(400px) rotateX(-90deg);opacity:0}to{transform:none;opacity:1}}
+.pole{width:14px;height:60px;background:linear-gradient(90deg,#8d9296,#d8dcdf,#8d9296)}
+.board-msg{background:var(--cream);color:var(--carbon);padding:18px 20px;margin-top:-4px;width:100%;font-size:15px}
+.board-msg p{margin:0 0 6px}
+/* 觀賽派對 */
+.party{background:var(--pap);color:var(--carbon)}
+.party .sh p{color:#3a2414}
+.party .sh .no b{background:var(--carbon);color:var(--pap)}
+.party-g{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(20px,3vw,40px);align-items:start}
+.races{display:grid;gap:12px}
+.race{position:relative}
+.race input{position:absolute;opacity:0;width:1px;height:1px}
+.race .rc{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:16px;align-items:center;background:var(--cream);padding:14px 18px 14px 14px;cursor:pointer;clip-path:polygon(0 0,100% 0,calc(100% - 14px) 100%,0 100%);transition:transform .2s var(--ease),background .2s}
+.race .rc:hover{transform:translateX(6px)}
+.race input:checked+.rc{background:var(--carbon);color:var(--cream)}
+.race input:focus-visible+.rc{box-shadow:inset 0 0 0 3px var(--teal)}
+.race input:disabled+.rc{opacity:.55;cursor:not-allowed}
+.rdate{text-align:center;border-right:2px solid currentColor;padding-right:12px}
+.rdate b{display:block;font:700 30px/1 var(--f-mono)}
+.rdate small{font:700 11px/1.4 var(--f-mono);letter-spacing:.1em}
+.rinfo h3{margin:0;font-size:18px;line-height:1.3}
+.rinfo .en{display:block;font-size:11.5px;letter-spacing:.1em;color:var(--teal)}
+.race input:checked+.rc .rinfo .en{color:var(--pap)}
+.seats{display:block;height:6px;background:rgba(21,21,21,.15);margin-top:8px;position:relative}
+.race input:checked+.rc .seats{background:#333}
+.seats i{position:absolute;left:0;top:0;bottom:0;background:var(--teal)}
+.rinfo small{display:block;font:600 11.5px/1.5 var(--f-mono);margin-top:4px;opacity:.85}
+.rlo{text-align:right;font:700 12px/1.3 var(--f-mono)}
+.rlo b{display:block;font-size:22px}
+.pf{background:var(--carbon);color:var(--cream);padding:clamp(18px,2.4vw,28px);clip-path:polygon(0 0,100% 0,100% 100%,24px 100%,0 calc(100% - 24px))}
+.pf .fld>label,.pf .fld>.lb{color:var(--cream)}
+.pf .fld>label small,.pf .fld>.lb small{color:#9c9484}
+.pf .in{background:#232323;color:var(--cream);border-bottom-color:var(--pap)}
+.pf .in:focus{background:#2c2c2c;border-bottom-color:var(--cream)}
+.pf select.in{background-color:#232323;background-image:linear-gradient(45deg,transparent 50%,var(--cream) 50%),linear-gradient(-45deg,transparent 50%,var(--cream) 50%);background-position:calc(100% - 20px) 21px,calc(100% - 14px) 21px;background-size:6px 6px;background-repeat:no-repeat}
+.pf .chip span{background:#262626;color:var(--cream);box-shadow:none}
+.pf .chip span small{color:#a39b8b}
+.pf .chip input:checked+span{background:var(--pap);color:var(--carbon)}
+.pf .chip input:checked+span small{color:var(--carbon)}
+.pf .err{color:#ff8f6b}
+.pf .demo{color:var(--pap)}
+.pf h3{margin:0 0 16px;font-size:22px}
+.calc{display:flex;justify-content:space-between;align-items:baseline;gap:10px;border-top:1px solid #333;padding:14px 0;font:600 13px/1.5 var(--f-mono);color:#bdb4a2}
+.calc b{font-size:26px;color:var(--pap)}
+.ticket{display:grid;grid-template-columns:minmax(0,1fr) 70px;background:var(--cream);color:var(--carbon);animation:flipIn .5s var(--ease) both}
+.ticket .tm{padding:20px 22px;border-right:3px dashed var(--carbon)}
+.ticket .tm .en{font-size:24px;display:block;margin-bottom:8px}
+.ticket .tm p{margin:4px 0;font-size:14.5px}
+.ticket .tm .mono{font-weight:700}
+.ticket .ts{background:conic-gradient(var(--carbon) 25%,#fff 0 50%,var(--carbon) 0 75%,#fff 0) 0 0/17.5px 17.5px}
+/* 店內 */
+.paddock{background:var(--cream)}
+.gal{display:grid;grid-template-columns:1.3fr 1fr 1fr;grid-template-rows:240px 240px;gap:12px}
+.gal figure{position:relative;margin:0}
+.gal .ph{width:100%;height:100%;clip-path:polygon(28px 0,100% 0,calc(100% - 28px) 100%,0 100%)}
+.gal .g1{grid-row:1/3}
+.gal .g4{grid-column:2/4}
+.gal figcaption{position:absolute;left:34px;bottom:12px;z-index:2;background:var(--carbon);color:var(--cream);font:800 13px/1 var(--f-zh);font-style:italic;padding:7px 12px}
+.gal figcaption small{font:700 10px/1 var(--f-mono);color:var(--pap);margin-right:6px;font-style:normal}
+/* 評論 */
+.radio-s{color:var(--cream)}
+.rad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.rad article{background:#1e1e1e;border-left:6px solid var(--pap);padding:18px 20px 20px;position:relative}
+.rad article:nth-child(2){border-color:var(--teal)}
+.rad .rh{display:flex;justify-content:space-between;align-items:center;font:700 11px/1 var(--f-mono);letter-spacing:.14em;color:#9c9484}
+.rad .rh b{color:var(--pap)}
+.wave{display:flex;align-items:center;gap:3px;height:34px;margin:14px 0}
+.wave i{flex:1;background:var(--teal);height:calc(var(--h)*1%);min-height:3px;animation:wv 1.2s ease-in-out infinite alternate;animation-delay:calc(var(--j)*-.13s);transform-origin:50% 50%}
+@keyframes wv{to{transform:scaleY(.35)}}
+.rad blockquote{margin:0;font-size:16px;line-height:1.75}
+.rad blockquote::before{content:"「";color:var(--pap);font-weight:900}
+.rad blockquote::after{content:"」";color:var(--pap);font-weight:900}
+.rad footer{margin-top:14px;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#bdb4a2}
+.rad footer .mono{color:var(--pap);letter-spacing:.12em}
+.score{display:flex;align-items:center;gap:18px;margin-top:30px;flex-wrap:wrap;font:700 13px/1.4 var(--f-mono);color:#bdb4a2}
+.score b{font:italic 900 46px/1 var(--f-head);color:var(--cream)}
+/* 營業時間 */
+.hours{background:var(--cream)}
+.hr-g{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:clamp(20px,3vw,40px);align-items:start}
+.sheet{width:100%;border-collapse:collapse;font:600 15px/1.4 var(--f-mono);background:#fffaf0}
+.sheet caption{caption-side:top;text-align:left;background:var(--carbon);color:var(--cream);padding:12px 16px;font:700 12px/1 var(--f-mono);letter-spacing:.16em}
+.sheet th,.sheet td{padding:12px 16px;border-bottom:1px solid #d9ccb1;text-align:left}
+.sheet th{font:800 15px/1.4 var(--f-zh);font-style:italic;width:30%}
+.sheet td.p{width:96px;white-space:nowrap;text-align:right;color:var(--mute);font-size:12px}
+.sheet tr.today{background:var(--pap)}
+.sheet tr.today td.p{color:var(--carbon);font-weight:700}
+.sheet tr.off td{color:#9a8f79}
+.info{background:var(--teal);color:var(--cream);padding:clamp(20px,2.6vw,32px);clip-path:polygon(0 0,calc(100% - 28px) 0,100% 28px,100% 100%,0 100%)}
+.info .st{border:0;font-size:20px;margin-bottom:20px}
+.info dl{margin:0;display:grid;gap:14px}
+.info dt{font:700 11px/1 var(--f-mono);letter-spacing:.16em;color:#a8d3cf;margin-bottom:4px}
+.info dd{margin:0;font-size:17px;font-weight:700}
+.info dd a{text-decoration:none;border-bottom:2px solid var(--pap)}
+.info .btn{margin-top:22px}
+/* 頁尾 */
+.foot{color:#bdb4a2;padding-top:calc(var(--k) + 50px)}
+.foot-in{display:flex;flex-wrap:wrap;justify-content:space-between;gap:20px;align-items:center;padding-bottom:26px}
+.foot .logo b{color:var(--cream)}
+.foot p{margin:0;font-size:13px}
+.foot .checker{height:20px}
+.toast{position:fixed;left:50%;bottom:20px;z-index:70;transform:translate(-50%,140%);background:var(--carbon);color:var(--cream);border-left:6px solid var(--pap);padding:12px 18px;font-size:14px;font-weight:700;transition:transform .35s var(--bounce);pointer-events:none;max-width:calc(100% - 32px)}
+.toast.on{transform:translate(-50%,0)}
+/* 響應式 */
+@media (max-width:1080px){
+  .nav ul a{padding:8px 8px;font-size:13.5px}.nav ul a small{display:none}
+  .cards{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:900px){
+  :root{--k:30px}
+  #burger{display:block}
+  .nav .btn{display:none}
+  .nav ul{position:absolute;left:0;right:0;top:100%;flex-direction:column;background:var(--carbon);padding:8px 16px 18px;border-bottom:6px solid var(--pap);display:none}
+  .nav.open ul{display:flex}
+  .nav ul a{padding:13px 4px;font-size:17px;border-bottom:1px solid #2a2a2a}
+  .nav ul a small{display:inline}
+  .hero{--lx:50%;--ly:73%;min-height:0}
+  .hero-in{grid-template-columns:1fr;padding-top:32px;padding-bottom:40px;gap:8px}
+  .hero-art{width:min(100%,460px);margin-top:40px}
+  .flag{width:64px}
+  .kick{padding-right:50px}
+  .pit-g>.panel{position:relative;top:0}
+  .story-g,.bld-g,.pit-g,.party-g,.hr-g{grid-template-columns:minmax(0,1fr)}
+  .hero-in{grid-template-columns:minmax(0,1fr)}
+  .stage-w{position:sticky;top:62px;z-index:5;background:var(--cream-2);padding-top:6px}
+  .stage{height:280px}
+  .stage .tag b{font-size:15px}
+  .plate{bottom:14px;height:28px}
+  .stack{bottom:26px}
+  .tnote{display:none}
+  .tele div{padding:8px 8px 6px}
+  .tele b{font-size:15px}
+  .pod-g{grid-template-columns:1fr;gap:40px}
+  .pod.p1{order:-1}
+  .step{display:none}
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rad{grid-template-columns:1fr}
+  .gal{grid-template-columns:1fr 1fr;grid-template-rows:200px 160px 160px}
+  .gal .g1{grid-column:1/3;grid-row:auto}
+  .gal .g4{grid-column:1/3}
+}
+@media (max-width:560px){
+  .hero h1 .en{font-size:clamp(44px,13.4vw,64px)}
+  .lede{font-size:16px}
+  .timing{width:100%}
+  .timing>div{padding:10px 14px}
+  .stats{grid-template-columns:1fr 1fr 1fr;gap:6px}
+  .stats div{padding:10px 8px}
+  .stats span{font-size:12px}
+  .cards{grid-template-columns:1fr}
+  .card{min-height:0}
+  .boxes{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:12px}
+  .two{grid-template-columns:1fr}
+  .race .rc{grid-template-columns:74px minmax(0,1fr);gap:12px}
+  .rlo{grid-column:2;text-align:left;display:flex;gap:8px;align-items:baseline}
+  .rlo b{display:inline;font-size:17px}
+  .rdate b{font-size:20px}
+  .rdate{padding-right:8px}
+  .gal{grid-template-rows:200px 140px 140px}
+  .stk{font-size:10.5px;padding:6px 9px}
+  .roundel{border-width:4px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;animation-delay:0s!important;transition-duration:.01ms!important}
+  .livery .sl,.spons-tr,.wave i{animation:none!important}
+  .js .rv{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+<script>document.documentElement.classList.add('js');</script>
+<header class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a class="logo" href="#top" aria-label="回到頁首"><span class="mini-rd">27</span><span><b class="shopEn">PIT LANE</b><small class="shopSub">BURGERS 維修站漢堡</small></span></a>
+    <ul id="navList">
+      <li><a href="#story"><small>01</small>故事</a></li>
+      <li><a href="#podium"><small>02</small>招牌</a></li>
+      <li><a href="#grid"><small>03</small>菜單</a></li>
+      <li><a href="#build"><small>04</small>組裝</a></li>
+      <li><a href="#pit"><small>05</small>取餐</a></li>
+      <li><a href="#party"><small>06</small>觀賽</a></li>
+      <li><a href="#hours"><small>07</small>時間</a></li>
+    </ul>
+    <a class="btn pap" href="#pit">預約取餐 <span class="ar">→</span></a>
+    <button id="burger" type="button" aria-expanded="false" aria-controls="navList">MENU</button>
+  </div>
+  <div class="nav-stripe" aria-hidden="true"></div>
+</header>
+
+<main>
+<section class="hero" id="top">
+  <div class="livery" aria-hidden="true"><div class="band">
+    <i class="c1"></i><i class="g"></i>
+    <i class="p1"><span class="sl" style="top:12px;animation-delay:-.4s"></span><span class="sl" style="top:28px;animation-delay:-1.6s;width:14%"></span></i>
+    <i class="g2"></i>
+    <i class="t1"><span class="sl" style="top:18%;animation-delay:-.2s"></span><span class="sl" style="top:42%;animation-delay:-1.1s;width:30%"></span><span class="sl" style="top:63%;animation-delay:-1.9s;width:16%"></span><span class="sl" style="top:84%;animation-delay:-.8s"></span></i>
+    <i class="g2"></i><i class="c2"></i>
+  </div></div>
+  <div class="flag" aria-hidden="true"></div>
+  <div class="wrap hero-in">
+    <div class="hero-copy">
+      <p class="kick"><span class="mono">ROUND 27 · EST. 2019</span><span id="heroArea">台北中山・手工漢堡</span></p>
+      <h1><span class="en">Pit Lane<br>Burgers</span><span class="zh">維修站漢堡</span></h1>
+      <p class="lede">每天早上現絞牛肩，鐵板壓煎出焦脆邊，點餐到出餐目標七分鐘。坐下來慢慢吃，或預約路邊 Pit Box，開到門口我們把餐送進車窗。</p>
+      <div class="cta"><a class="btn pap" href="#build">組裝你的漢堡 <span class="ar">→</span></a><a class="btn line" href="#pit">預約 Pit 取餐</a></div>
+      <div class="timing" role="group" aria-label="即時狀態">
+        <div class="st" id="status"><i aria-hidden="true"></i><span>—</span></div>
+        <div class="lap"><small>本週最快出餐</small><b id="heroLap" class="mono">00:00.000</b></div>
+      </div>
+    </div>
+    <div class="hero-art">
+      <figure class="ph hero-ph" data-photo="hero" data-art="hero" data-label="主視覺漢堡（去背或方形，會裁圓）" data-size="1200×1200"></figure>
+      <div class="roundel" aria-hidden="true"><small>No.</small><b>27</b></div>
+      <span class="stk s1" aria-hidden="true">Smash·Tec Griddle</span>
+      <span class="stk s2" aria-hidden="true">Brioche Works</span>
+      <span class="stk s3" aria-hidden="true"><b>07:00</b>Pit Crew</span>
+    </div>
+  </div>
+  <div class="kerb" aria-hidden="true"></div>
+</section>
+
+<div class="spons" aria-hidden="true"><div class="spons-tr" id="spons"></div></div>
+
+<section class="story cut first" id="story">
+  <div class="wrap story-g">
+    <div class="story-t">
+      <div class="sh rv"><span class="no"><b>01</b>STORY</span><h2><span class="en">Pit Crew</span><span class="zh">從維修站學到的事</span></h2></div>
+      <p class="rv d1">創辦人阿哲以前在業餘耐力賽當維修技師，最常聽到的一句話是：「慢一秒都是損失」。他把換胎的節奏搬進廚房——每個人只做一件事、每個動作都練到不用想。</p>
+      <p class="rv d2">於是有了這家店：麵包每天由合作烘焙坊送來、牛肩肉當天絞、醬汁自己熬。快，是為了讓你吃到肉排最多汁的那三分鐘。</p>
+      <div class="stats rv d3">
+        <div><b class="mono">07:00</b><span>點餐到出餐目標</span></div>
+        <div><b class="mono">180g</b><span>當日現絞牛肩</span></div>
+        <div><b class="mono">No.27</b><span>創辦人的賽車號碼</span></div>
+      </div>
+    </div>
+    <figure class="ph story-ph rv d1" data-photo="garage" data-art="garage" data-label="開放式廚房／煎台" data-size="1500×1200"></figure>
+  </div>
+</section>
+
+<section class="podium cut" id="podium">
+  <div class="wrap">
+    <div class="sh rv"><span class="no"><b>02</b>PODIUM</span><h2><span class="en">本季頒獎台</span><span class="zh">三道招牌</span></h2><p>依過去一季點單數排名。第一名從開店到現在沒掉出過頒獎台。</p></div>
+    <div class="pod-g" id="podG"></div>
+  </div>
+</section>
+
+<section class="grid-s carbon cut" id="grid">
+  <div class="wrap">
+    <div class="sh dark rv"><span class="no"><b>03</b>STARTING GRID</span><h2><span class="en">Line-up</span><span class="zh">出賽陣容・完整菜單</span></h2><p>每一道都有自己的車號。漢堡皆附醃黃瓜，可換生菜包（無麩質麵包另洽）。</p></div>
+    <div class="tabs" role="tablist" aria-label="菜單分類" id="tabs"></div>
+    <ul class="cards" id="cards"></ul>
+  </div>
+</section>
+
+<section class="build cut" id="build">
+  <div class="wrap">
+    <div class="sh rv"><span class="no"><b>04</b>SETUP GARAGE</span><h2><span class="en">調校車庫</span><span class="zh">組一顆你的漢堡</span></h2><p>底盤、引擎、空力套件、燃料——一層一層疊上去，右邊即時算價格、熱量和這台車的「圈速」（製作時間）。</p></div>
+    <div class="bld-g">
+      <div class="stage-w">
+        <div class="stage carbon" aria-label="漢堡組裝預覽" role="img" id="stageImg">
+          <div class="tag">SETUP SHEET<b id="buildName">CUSTOM #27</b></div>
+          <div class="plate" aria-hidden="true"></div>
+          <div class="stack" id="stack" aria-hidden="true"></div>
+        </div>
+        <div class="tele" aria-live="polite">
+          <div><small>PRICE</small><b id="tPrice">NT$ 0</b></div>
+          <div><small>KCAL</small><b id="tKcal">0</b></div>
+          <div><small>LAP 圈速</small><b id="tLap">0:00.000</b></div>
+          <div><small>LAYERS</small><b id="tLay">0</b></div>
+        </div>
+        <div class="target" id="target"><i></i></div>
+        <p class="tnote" id="tNote">橘線＝七分鐘出餐目標</p>
+      </div>
+      <form class="ctl" id="ctl" onsubmit="return false">
+        <fieldset><legend><span class="mono">01</span>麵包<em>Chassis</em></legend><div class="chips" id="cBun"></div></fieldset>
+        <fieldset><legend><span class="mono">02</span>肉排<em>Power Unit</em></legend>
+          <div class="stepper"><button type="button" id="pMinus" aria-label="減少一片肉排">−</button><output id="pOut" aria-live="polite">1 片 · 180g</output><button type="button" id="pPlus" aria-label="增加一片肉排">+</button></div>
+        </fieldset>
+        <fieldset><legend><span class="mono">03</span>起司<em>Aero · 每片肉排各一片</em></legend><div class="chips" id="cCheese"></div></fieldset>
+        <fieldset><legend><span class="mono">04</span>配料<em>Bodywork</em></legend><div class="chips" id="cTop"></div></fieldset>
+        <fieldset><legend><span class="mono">05</span>醬汁<em>Fuel</em></legend><div class="chips" id="cSauce"></div></fieldset>
+        <div class="bld-act"><button type="button" class="btn pap" id="toPit">送進維修站（加入取餐單）<span class="ar">→</span></button><button type="button" class="btn line" id="reset">重設</button></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section class="pit cut" id="pit">
+  <div class="wrap">
+    <div class="sh dark rv"><span class="no"><b>05</b>PIT STOP</span><h2><span class="en">Pit Stop</span><span class="zh">預約路邊取餐</span></h2><p>選好時段與 Pit Box，到店前打雙黃燈停進格子，餐點三十秒內送到車窗。也可以步行取餐，直接到櫃台報名字。</p></div>
+    <div class="pit-g">
+      <div class="panel rv">
+        <h3><span class="zh">取餐單</span><span class="en">Order</span></h3>
+        <ul class="olist" id="olist"></ul>
+        <div class="osum"><span>合計</span><b id="oTotal">NT$ 0</b></div>
+        <div class="osum"><span>預估製作</span><b id="oLap">—</b></div>
+      </div>
+      <div id="pitBody">
+        <form class="panel rv d1" id="pf" novalidate>
+          <div class="fld"><span class="lb">取餐日期<small>只列營業日</small></span><div class="dates" id="pDates" role="radiogroup" aria-label="取餐日期"></div></div>
+          <div class="fld"><label for="pTime">取餐時間<small>每 15 分鐘一格</small></label><select class="in" id="pTime"></select><span class="err" id="pTimeErr"></span></div>
+          <div class="fld"><span class="lb">Pit Box 路邊取餐格<small>斜紋＝已被預約</small></span><div class="lane"><div class="boxes" id="boxes" role="group" aria-label="選擇取餐格"></div></div><span class="err" id="boxErr"></span></div>
+          <div class="two">
+            <div class="fld"><label for="pName">姓名</label><input class="in" id="pName" autocomplete="name"><span class="err"></span></div>
+            <div class="fld"><label for="pPhone">手機<small>09xx-xxx-xxx</small></label><input class="in" id="pPhone" inputmode="tel" autocomplete="tel" placeholder="0912-345-678"><span class="err"></span></div>
+          </div>
+          <div class="fld"><label for="pPlate">車牌末四碼<small>選填，方便我們認車</small></label><input class="in" id="pPlate" maxlength="8"><span class="err"></span></div>
+          <span class="err" id="orderErr"></span>
+          <button class="btn dark" type="submit">確認進站 <span class="ar">→</span></button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="party cut" id="party">
+  <div class="wrap">
+    <div class="sh rv"><span class="no"><b>06</b>RACE WEEKEND</span><h2><span class="en">觀賽派對</span><span class="zh">大螢幕・環繞音響</span></h2><p>店內 150 吋投影＋環繞音響，比賽週末開放訂位或整場包場。觀賽套餐含任選漢堡、薯條與無限暢飲軟性飲料。</p></div>
+    <div class="party-g">
+      <div class="races rv" id="races" role="radiogroup" aria-label="轉播場次"></div>
+      <div id="partyBody">
+        <form class="pf rv d1" id="ptf" novalidate>
+          <h3 class="zh">訂位 / 包場</h3>
+          <div class="fld"><span class="lb">方式</span><div class="chips" id="mode"></div></div>
+          <div class="fld"><label for="pax">人數</label><select class="in" id="pax"></select><span class="err" id="paxErr"></span></div>
+          <div class="two">
+            <div class="fld"><label for="ptName">聯絡人</label><input class="in" id="ptName" autocomplete="name"><span class="err"></span></div>
+            <div class="fld"><label for="ptPhone">手機<small>09xx-xxx-xxx</small></label><input class="in" id="ptPhone" inputmode="tel" autocomplete="tel" placeholder="0912-345-678"><span class="err"></span></div>
+          </div>
+          <div class="calc"><span id="calcTxt">—</span><b id="calcTot">NT$ 0</b></div>
+          <button class="btn pap" type="submit">送出訂位 <span class="ar">→</span></button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="paddock cut" id="paddock">
+  <div class="wrap">
+    <div class="sh rv"><span class="no"><b>07</b>PADDOCK</span><h2><span class="en">店內</span><span class="zh">像走進車隊車庫</span></h2><p>32 個座位、一面賽車塗裝牆和一台退役的方程式車鼻錐。吧台座位看得到煎台。</p></div>
+    <div class="gal">
+      <figure class="g1 rv"><div class="ph" data-photo="interior" data-art="interior" data-label="店內全景" data-size="1200×1500"></div><figcaption><small>P01</small>塗裝牆座位區</figcaption></figure>
+      <figure class="g2 rv d1"><div class="ph" data-photo="grill" data-art="grill" data-label="煎台特寫" data-size="1000×800"></div><figcaption><small>P02</small>鐵板壓煎</figcaption></figure>
+      <figure class="g3 rv d2"><div class="ph" data-photo="fries" data-art="fries" data-label="配餐／薯條" data-size="1000×800"></div><figcaption><small>P03</small>粗切薯條</figcaption></figure>
+      <figure class="g4 rv d3"><div class="ph" data-photo="party" data-art="party" data-label="觀賽派對現場" data-size="1600×700"></div><figcaption><small>P04</small>比賽週末</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="radio-s carbon cut" id="radio">
+  <div class="wrap">
+    <div class="sh dark rv"><span class="no"><b>08</b>TEAM RADIO</span><h2><span class="en">車手無線電</span><span class="zh">客人怎麼說</span></h2></div>
+    <div class="rad" id="rad"></div>
+    <div class="score rv"><b>4.8</b><span>Google 評論 1,260 則<br>（示範數字，請換成實際評分）</span></div>
+  </div>
+</section>
+
+<section class="hours cut last" id="hours">
+  <div class="wrap">
+    <div class="sh rv"><span class="no"><b>09</b>SESSION TIMES</span><h2><span class="en">營業時間</span><span class="zh">與交通</span></h2></div>
+    <div class="hr-g">
+      <table class="sheet rv"><caption>TIMING SHEET · 每週營業時間</caption><tbody id="sheet"></tbody></table>
+      <div class="info rv d1">
+        <div class="st" id="status2"><i aria-hidden="true"></i><span>—</span></div>
+        <dl>
+          <div><dt>ADDRESS 地址</dt><dd id="addr"></dd></div>
+          <div><dt>PHONE 電話</dt><dd><a id="tel" href="#"></a></dd></div>
+          <div><dt>PIT BOX 路邊取餐</dt><dd id="boxInfo"></dd></div>
+          <div><dt>CLOSED 公休</dt><dd id="closed"></dd></div>
+        </dl>
+        <a class="btn pap" id="mapLink" href="#" target="_blank" rel="noopener">在 Google 地圖開啟 <span class="ar">↗</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="foot carbon">
+  <div class="wrap foot-in">
+    <a class="logo" href="#top" aria-label="回到頁首"><span class="mini-rd">27</span><span><b class="shopEn">PIT LANE</b><small class="shopSub">BURGERS 維修站漢堡</small></span></a>
+    <p id="footTxt"></p>
+  </div>
+  <div class="checker" aria-hidden="true"></div>
+</footer>
+
+<button id="slotBtn" type="button" aria-pressed="false">照片位</button>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+/* ===== 店家設定 ===== */
+var SHOP = {
+  name:'PIT LANE BURGERS', nameZh:'維修站漢堡', area:'台北中山・手工漢堡',
+  phone:'(02) 2567-2727', address:'台北市中山區示範路 27 號',
+  // 0=週日 … 6=週六；每天可多個時段 ['開','關']，null 表示公休
+  hours:[[['11:00','21:00']],null,[['11:30','14:30'],['17:00','21:30']],[['11:30','14:30'],['17:00','21:30']],[['11:30','14:30'],['17:00','21:30']],[['11:30','14:30'],['17:00','23:00']],[['11:00','23:00']]],
+  pitBoxes:6,           // 路邊取餐格數量
+  pickupLead:20,        // 今天最快幾分鐘後可取餐
+  lapTarget:420,        // 出餐目標（秒）
+  party:{seat:680, buyoutMin:24000, buyoutPax:[20,40], cap:40},
+  photos:{hero:'', garage:'', sig1:'', sig2:'', sig3:'', interior:'', grill:'', fries:'', party:''}
+};
+// cat: burger / side / drink / sweet；sig: 頒獎台名次；heat: 辣度 0–3
+var MENU = [
+  {id:'27',cat:'burger',zh:'經典 Pit Lane',en:'The 27 Classic',d:'180g 現絞牛肩、切達、番茄生菜、招牌木瓜 Pit 醬。第一次來就點這個。',p:280,kcal:780,heat:0,sig:1,tag:'招牌',art:'sig1'},
+  {id:'36',cat:'burger',zh:'雙層煙燻培根',en:'Double Smoke',d:'雙肉排、煙燻高達、厚切培根、炸洋蔥圈、自熬 BBQ 醬。',p:380,kcal:1180,heat:0,sig:2,art:'sig2'},
+  {id:'52',cat:'burger',zh:'Chipotle 火線',en:'Chipotle Hotline',d:'肉排、墨西哥辣椒、胡椒傑克起司、煙燻 Chipotle 美乃滋。',p:320,kcal:860,heat:3,sig:3,art:'sig3'},
+  {id:'08',cat:'burger',zh:'松露蘑菇',en:'Truffle Chicane',d:'肉排、奶油炒蘑菇、瑞士起司、松露美乃滋。',p:360,kcal:820,heat:0},
+  {id:'61',cat:'burger',zh:'照燒鳳梨雞腿',en:'Teriyaki Slipstream',d:'去骨雞腿排、炭烤鳳梨、照燒醬、高麗菜絲。',p:300,kcal:690,heat:0},
+  {id:'70',cat:'burger',zh:'綠旗植物肉',en:'Green Flag',d:'植物肉排、酪梨、番茄、蒔蘿酸黃瓜，可做全素。',p:320,kcal:640,heat:0,tag:'蔬食'},
+  {id:'23',cat:'burger',zh:'安全車炸魚堡',en:'Safety Car Fish',d:'酥炸鯛魚排、自製塔塔醬、醃紫洋蔥。',p:300,kcal:720,heat:0},
+  {id:'99',cat:'burger',zh:'三層滿油門',en:'Full Throttle Triple',d:'三片肉排、三片切達、培根、荷包蛋。建議空腹出賽。',p:480,kcal:1620,heat:1,tag:'大胃'},
+  {id:'S1',cat:'side',zh:'粗切帶皮薯條',en:'Rough Cut Fries',d:'台灣馬鈴薯、兩次油炸，撒海鹽。',p:90,kcal:380,heat:0},
+  {id:'S2',cat:'side',zh:'紅椒粉洋蔥圈',en:'Paprika Rings',d:'啤酒麵衣、煙燻紅椒粉。',p:110,kcal:420,heat:1},
+  {id:'S3',cat:'side',zh:'起司瀑布薯條',en:'Cheese Fall Fries',d:'粗薯淋上切達起司醬與培根碎。',p:140,kcal:560,heat:0},
+  {id:'S4',cat:'side',zh:'辣味雞翅 6 支',en:'Hot Lap Wings',d:'水牛城辣醬、附藍紋起司沾醬。',p:180,kcal:610,heat:2},
+  {id:'S5',cat:'side',zh:'涼拌高麗菜',en:'Pit Slaw',d:'清爽解膩，美乃滋減半。',p:70,kcal:160,heat:0},
+  {id:'D1',cat:'drink',zh:'香草麥芽奶昔',en:'Vanilla Malt Shake',d:'馬達加斯加香草、麥芽粉。',p:150,kcal:520,heat:0},
+  {id:'D2',cat:'drink',zh:'花生醬香蕉奶昔',en:'PB Banana Shake',d:'顆粒花生醬、熟香蕉。',p:170,kcal:610,heat:0},
+  {id:'D3',cat:'drink',zh:'木瓜檸檬氣泡',en:'Papaya Lemonade',d:'木瓜糖漿、現擠檸檬、氣泡水。',p:90,kcal:140,heat:0},
+  {id:'D4',cat:'drink',zh:'冷萃咖啡',en:'Cold Brew',d:'18 小時低溫萃取，無糖。',p:100,kcal:10,heat:0},
+  {id:'D5',cat:'drink',zh:'Grid Lager 生啤',en:'Grid Lager',d:'在地酒廠合作的清爽拉格。未成年請勿飲酒。',p:180,kcal:210,heat:0,tag:'18+'},
+  {id:'T1',cat:'sweet',zh:'方格旗鬆餅',en:'Checkered Waffle',d:'黑白雙色鬆餅、香草冰淇淋。',p:160,kcal:480,heat:0},
+  {id:'T2',cat:'sweet',zh:'焦糖烤布丁',en:'Burnt Caramel Pudding',d:'表面火烤焦糖，偏苦的大人味。',p:120,kcal:290,heat:0},
+  {id:'T3',cat:'sweet',zh:'鑄鐵鍋餅乾',en:'Skillet Cookie',d:'熱騰騰巧克力餅乾配一球冰淇淋。',p:180,kcal:560,heat:0}
+];
+var CATS = [['all','全部'],['burger','漢堡'],['side','配餐'],['drink','飲料'],['sweet','甜點']];
+// 調校車庫：p 加價、k 熱量、t 製作秒數
+var BUILD = {
+  base:220, baseT:210, patty:{p:100,k:330,t:50,max:3},
+  bun:[{k:'brioche',zh:'布里歐',p:0,kc:280},{k:'sesame',zh:'黑芝麻',p:10,kc:290},{k:'wheat',zh:'全麥',p:15,kc:240},{k:'leaf',zh:'生菜包',p:0,kc:20}],
+  cheese:[{k:'none',zh:'不加',p:0,kc:0,t:0},{k:'cheddar',zh:'切達',p:30,kc:110,t:8},{k:'gouda',zh:'煙燻高達',p:40,kc:120,t:8},{k:'jack',zh:'胡椒傑克',p:35,kc:115,t:8}],
+  tops:[{k:'lettuce',zh:'生菜',p:0,kc:5,t:4},{k:'tomato',zh:'番茄',p:0,kc:10,t:5},{k:'onion',zh:'洋蔥圈',p:20,kc:140,t:25},{k:'pickles',zh:'醃黃瓜',p:0,kc:5,t:3},{k:'jalapeno',zh:'墨西哥辣椒',p:15,kc:5,t:4},{k:'pineapple',zh:'炭烤鳳梨',p:30,kc:45,t:18},{k:'avocado',zh:'酪梨',p:50,kc:80,t:10},{k:'egg',zh:'荷包蛋',p:35,kc:90,t:40},{k:'bacon',zh:'厚切培根',p:50,kc:180,t:30}],
+  sauce:[{k:'pit',zh:'木瓜 Pit 醬',p:0,kc:90},{k:'bbq',zh:'煙燻 BBQ',p:0,kc:70},{k:'chipotle',zh:'Chipotle',p:10,kc:100},{k:'truffle',zh:'松露美乃滋',p:30,kc:110}]
+};
+// 轉播場次：week 從最近的週末往後數，day 6=週六 0=週日；booked 已訂人數；buyout 是否開放包場
+var RACES = [
+  {series:'方程式大獎賽',en:'Round 19 · Americas',week:0,day:0,lo:'21:00',booked:31,buyout:false},
+  {series:'GT 耐力賽 6 小時',en:'Endurance · Final Hours',week:1,day:6,lo:'20:00',booked:0,buyout:true},
+  {series:'方程式大獎賽',en:'Round 20 · Night Race',week:2,day:0,lo:'22:00',booked:18,buyout:false},
+  {series:'房車錦標賽 街道賽',en:'Touring · Street Circuit',week:3,day:6,lo:'19:30',booked:6,buyout:false}
+];
+var REVIEWS = [
+  ['RADIO · 03:12','點餐到拿到真的不到七分鐘，肉排邊緣焦脆、中間還在流汁。No.27 經典是我吃過台北前三的 smash burger。','陳先生','上班午休'],
+  ['RADIO · 07:45','用 Pit Box 取餐超方便，打雙黃燈停好，店員拿著餐跑出來，真的有維修站的感覺，小孩看得超興奮。','林小姐','路邊取餐'],
+  ['RADIO · 12:30','週日觀賽派對包了半場，投影大、音響好，夜賽最後十圈全場一起尖叫。套餐的薯條要再加一份。','Kevin','觀賽包場']
+];
+var SPONS = ['Smash·Tec Griddle','Brioche Works','Grid Lager','Papaya Sauce Co.','Daily Grind Beef','Paprika Racing Oil','Night Session Coffee','Checkered Flag Bakery'];
+
+/* ===== 共用 ===== */
+var $ = function(s, r){ return (r || document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+var money = function(n){ return 'NT$ ' + n.toLocaleString('en-US'); };
+var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+var DAYS = ['週日','週一','週二','週三','週四','週五','週六'];
+var now = new Date(), nowM = now.getHours()*60 + now.getMinutes();
+function mins(t){ var p = t.split(':'); return +p[0]*60 + +p[1]; }
+function hm(m){ return String(Math.floor(m/60)).padStart(2, '0') + ':' + String(m%60).padStart(2, '0'); }
+function lapFmt(s){ var m = Math.floor(s/60), r = s - m*60; return m + ':' + (r < 10 ? '0' : '') + r.toFixed(3); }
+var toastT;
+function toast(msg){ var t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove('on'); }, 2200); }
+function sameDay(a, b){ return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+function phoneOk(v){ return /^09\d{2}-?\d{3}-?\d{3}$/.test(v.trim()); }
+function check(list){ var ok = true; list.forEach(function(c){ var e = c[0].parentNode.querySelector('.err'); if (e) e.textContent = c[1] ? '' : c[2]; c[0].setAttribute('aria-invalid', !c[1]); if (!c[1]) ok = false; }); return ok; }
+
+/* ===== 店名與基本資訊 ===== */
+$('#heroArea').textContent = SHOP.area;
+$('#addr').textContent = SHOP.address; $('#tel').textContent = SHOP.phone; $('#tel').href = 'tel:' + SHOP.phone.replace(/[^\d]/g, '');
+$('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+$('#boxInfo').textContent = '店門口 ' + SHOP.pitBoxes + ' 格，限停 5 分鐘';
+$('#closed').textContent = SHOP.hours.map(function(s, i){ return s ? '' : DAYS[i]; }).filter(Boolean).join('、') + '公休（國定假日照常營業）';
+$('#footTxt').innerHTML = '© ' + now.getFullYear() + ' ' + esc(SHOP.name) + ' ' + esc(SHOP.nameZh) + ' · ' + esc(SHOP.address) + ' · <a href="tel:' + SHOP.phone.replace(/[^\d]/g, '') + '">' + esc(SHOP.phone) + '</a><br>店家官網示範模板，店名、地址、評論皆為示範內容。';
+$('#spons').innerHTML = SPONS.concat(SPONS).map(function(s, i){ return '<span><i style="background:' + ['var(--pap)','var(--teal)','#fff'][i%3] + '"></i>' + s + '</span>'; }).join('');
+
+/* ===== 營業狀態 ===== */
+(function(){
+  var sv = SHOP.hours[now.getDay()], open = sv && sv.find(function(s){ return nowM >= mins(s[0]) && nowM < mins(s[1]); }), next = null;
+  if (!open) for (var k = 0; k < 8 && !next; k++){ var d = (now.getDay() + k) % 7, s = SHOP.hours[d]; if (s) s.forEach(function(x){ if (!next && (k > 0 || mins(x[0]) > nowM)) next = (k === 0 ? '今天' : k === 1 ? '明天' : DAYS[d]) + ' ' + x[0]; }); }
+  var txt = open ? '營業中 · 到 ' + open[1] : '休息中 · ' + next + ' 開門';
+  ['#status', '#status2'].forEach(function(id){ $(id).classList.toggle('on', !!open); $(id).lastElementChild.textContent = txt; });
+  $('#sheet').innerHTML = [1,2,3,4,5,6,0].map(function(i){ var s = SHOP.hours[i], t = i === now.getDay(); return '<tr class="' + (t ? 'today' : '') + (s ? '' : ' off') + '"><th scope="row">' + DAYS[i] + '</th><td>' + (s ? s.map(function(x){ return x[0] + '–' + x[1]; }).join('<br>') : 'PIT CLOSED 公休') + '</td><td class="p">' + (t ? '◀ TODAY' : '') + '</td></tr>'; }).join('');
+})();
+
+/* ===== 計時器（Hero） ===== */
+function countTo(el, target, dur, fmt){ var t0 = null; function f(ts){ if (!t0) t0 = ts; var k = Math.min(1, (ts - t0)/dur), e = 1 - Math.pow(1 - k, 3); el.textContent = fmt(target*e); if (k < 1) requestAnimationFrame(f); } requestAnimationFrame(f); }
+var heroLap = $('#heroLap'), lapFmt2 = function(s){ var m = Math.floor(s/60), r = s - m*60; return '0' + m + ':' + (r < 10 ? '0' : '') + r.toFixed(3); };
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (reduce) heroLap.textContent = lapFmt2(408.27); else { countTo(heroLap, 408.27, 2200, lapFmt2); setInterval(function(){ countTo(heroLap, 395 + Math.random()*24, 1400, lapFmt2); }, 7000); }
+
+/* ===== 漢堡圖層 ===== */
+var STROKE = ' stroke="#151515" stroke-width="3.5" stroke-linejoin="round"';
+function wave(x0, x1, y, amp, n){ var s = '', w = (x1 - x0)/n; for (var i = 0; i < n; i++) s += ' Q' + (x0 + w*i + w/2).toFixed(1) + ' ' + (y + (i%2 ? amp : -amp)) + ' ' + (x0 + w*(i + 1)).toFixed(1) + ' ' + y; return s; }
+var BUNC = {brioche:['#e9a23e','#c4731d','#f8cf7c'], sesame:['#df9234','#b8691a','#f4c36c'], wheat:['#a96c35','#7e4d1f','#cf955a'], leaf:['#5fb239','#3d8a22','#9ad66a']};
+var LAY = {
+  bunTop:{vh:118,h:110,d:function(v){ var c = BUNC[v] || BUNC.brioche, s;
+    if (v === 'leaf') return '<path d="M16 110' + wave(16, 304, 110, 0, 1) + ' C304 40 236 6 160 6 C84 6 16 40 16 110Z" fill="' + c[0] + '"' + STROKE + '/><path d="M160 14 V100 M160 50 L110 30 M160 50 L210 30 M160 78 L90 60 M160 78 L230 60" stroke="' + c[2] + '" stroke-width="4" fill="none" stroke-linecap="round"/>';
+    s = '<path d="M16 108 C16 38 84 4 160 4 C236 4 304 38 304 108 Q304 116 296 116 H24 Q16 116 16 108Z" fill="' + c[0] + '"' + STROKE + '/><path d="M18 94 Q160 116 302 94 L302 108 Q302 114 296 114 H24 Q18 114 18 108Z" fill="' + c[1] + '"/><ellipse cx="108" cy="34" rx="48" ry="11" fill="' + c[2] + '" transform="rotate(-14 108 34)"/>';
+    if (v === 'sesame'){ var pts = [[90,52],[130,30],[170,44],[214,32],[246,58],[120,72],[196,70],[156,20],[70,78],[262,82],[150,88],[230,92]]; pts.forEach(function(p, i){ s += '<ellipse cx="' + p[0] + '" cy="' + p[1] + '" rx="5.5" ry="3" fill="#221b17" transform="rotate(' + (i*37%60 - 30) + ' ' + p[0] + ' ' + p[1] + ')"/>'; }); }
+    if (v === 'brioche') s += '<path d="M30 92 Q160 108 290 92" stroke="#fbe2a8" stroke-width="3" fill="none" opacity=".6"/>';
+    if (v === 'wheat'){ [[96,46],[150,28],[204,40],[124,70],[186,66],[240,72],[70,74]].forEach(function(p){ s += '<path d="M' + (p[0] - 6) + ' ' + p[1] + ' q6 -6 12 0 q-6 6 -12 0Z" fill="#e6c28c"/>'; }); }
+    return s; }},
+  sauce:{vh:22,h:6,d:function(v){ var col = {pit:'#ff7a1a',bbq:'#5c1f12',chipotle:'#c2381b',truffle:'#efe0b2'}[v] || '#ff7a1a';
+    return '<path d="M20 6' + wave(20, 300, 6, 4, 10) + '" stroke="' + col + '" stroke-width="9" fill="none" stroke-linecap="round"/><path d="M76 8 v8 M150 8 v12 M232 8 v7" stroke="' + col + '" stroke-width="8" stroke-linecap="round"/>'; }},
+  lettuce:{vh:30,h:16,d:function(){ return '<path d="M4 12' + wave(4, 316, 12, 6, 14) + ' L316 16' + wave(316, 4, 18, 9, 12) + 'Z" fill="#5fb239"' + STROKE + '/><path d="M24 15' + wave(24, 296, 15, 3, 10) + '" stroke="#9ad66a" stroke-width="3" fill="none"/>'; }},
+  tomato:{vh:24,h:16,d:function(){ var s = ''; [14, 112, 210].forEach(function(x){ s += '<rect x="' + x + '" y="3" width="96" height="17" rx="8.5" fill="#e0352b"' + STROKE + '/><path d="M' + (x + 14) + ' 9 H' + (x + 82) + '" stroke="#ff7b63" stroke-width="3" stroke-linecap="round"/><circle cx="' + (x + 30) + '" cy="14" r="2.5" fill="#ffd2a0"/><circle cx="' + (x + 50) + '" cy="14" r="2.5" fill="#ffd2a0"/><circle cx="' + (x + 70) + '" cy="14" r="2.5" fill="#ffd2a0"/>'; }); return s; }},
+  onion:{vh:28,h:18,d:function(){ var s = ''; [62, 128, 194, 258].forEach(function(x, i){ s += '<ellipse cx="' + x + '" cy="' + (13 + (i%2)*2) + '" rx="40" ry="9" fill="none" stroke="#151515" stroke-width="13"/><ellipse cx="' + x + '" cy="' + (13 + (i%2)*2) + '" rx="40" ry="9" fill="none" stroke="#e3a443" stroke-width="7"/>'; }); return s; }},
+  pickles:{vh:18,h:10,d:function(){ var s = ''; [44, 102, 160, 218, 276].forEach(function(x){ s += '<ellipse cx="' + x + '" cy="9" rx="27" ry="6.5" fill="#7c9d2d"' + STROKE + '/><ellipse cx="' + x + '" cy="8" rx="15" ry="2.6" fill="#c3d872"/>'; }); return s; }},
+  jalapeno:{vh:18,h:9,d:function(){ var s = ''; [36, 80, 126, 172, 218, 262, 290].forEach(function(x){ s += '<ellipse cx="' + x + '" cy="9" rx="15" ry="5.5" fill="#cfe27f" stroke="#2b7a2b" stroke-width="4"/><circle cx="' + x + '" cy="9" r="2" fill="#f5f0c8"/>'; }); return s; }},
+  pineapple:{vh:24,h:16,d:function(){ var s = ''; [16, 114, 212].forEach(function(x){ s += '<rect x="' + x + '" y="3" width="92" height="17" rx="5" fill="#ffd23f"' + STROKE + '/><path d="M' + (x + 18) + ' 5 l10 13 M' + (x + 42) + ' 5 l10 13 M' + (x + 66) + ' 5 l10 13" stroke="#8a4b1c" stroke-width="4" stroke-linecap="round"/>'; }); return s; }},
+  avocado:{vh:22,h:14,d:function(){ var s = ''; [52, 106, 160, 214, 268].forEach(function(x){ s += '<ellipse cx="' + x + '" cy="11" rx="34" ry="8" fill="#b9d86c" stroke="#335f1f" stroke-width="4"/><path d="M' + (x - 22) + ' 9 Q' + x + ' 5 ' + (x + 22) + ' 9" stroke="#e4f2a8" stroke-width="3" fill="none"/>'; }); return s; }},
+  egg:{vh:34,h:20,d:function(){ return '<path d="M8 22 C10 6 60 4 92 8 C130 0 190 2 228 8 C270 4 312 10 312 22 C312 32 270 32 230 30 C180 34 120 34 80 30 C40 32 8 32 8 22Z" fill="#fffaf0"' + STROKE + '/><ellipse cx="158" cy="17" rx="38" ry="12" fill="#ffad0a"' + STROKE + '/><ellipse cx="146" cy="13" rx="12" ry="4" fill="#ffd67a"/>'; }},
+  bacon:{vh:26,h:14,d:function(){ return '<path d="M6 8' + wave(6, 314, 8, 5, 8) + ' L314 18' + wave(314, 6, 18, 5, 8) + 'Z" fill="#b13a2a"' + STROKE + '/><path d="M14 13' + wave(14, 306, 13, 5, 8) + '" stroke="#f4c5a8" stroke-width="3.5" fill="none"/>'; }},
+  cheese:{vh:42,h:12,d:function(v){ var col = {cheddar:'#ffb01f',gouda:'#f2c552',jack:'#f6e6a4'}[v] || '#ffb01f';
+    var s = '<path d="M2 4 H318 L306 16 H292 L284 32 L274 16 H214 L204 38 L194 16 H124 L114 28 L104 16 H46 L36 34 L26 16 H14Z" fill="' + col + '"' + STROKE + '/>';
+    if (v === 'jack') s += '<circle cx="70" cy="9" r="2.5" fill="#d42f2a"/><circle cx="160" cy="11" r="2.5" fill="#2b7a2b"/><circle cx="250" cy="8" r="2.5" fill="#d42f2a"/><circle cx="120" cy="8" r="2" fill="#2b7a2b"/>';
+    if (v === 'gouda') s += '<path d="M10 6 H310" stroke="#8a4b1c" stroke-width="3"/>';
+    return s; }},
+  patty:{vh:46,h:36,d:function(){ var s = '<rect x="8" y="4" width="304" height="38" rx="19" fill="#5a2d1b"' + STROKE + '/><path d="M28 12 Q160 4 292 12" stroke="#8c4c2c" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M20 32 Q160 40 300 32" stroke="#3a1b0f" stroke-width="4" fill="none"/>';
+    for (var i = 0; i < 16; i++) s += '<circle cx="' + (30 + (i*67)%262) + '" cy="' + (18 + (i*13)%14) + '" r="' + (2 + i%2) + '" fill="#3a1b0f"/>'; return s; }},
+  bunBot:{vh:52,h:52,d:function(v){ var c = BUNC[v] || BUNC.brioche;
+    if (v === 'leaf') return '<path d="M8 8' + wave(8, 312, 8, 5, 12) + ' L298 44 Q294 50 282 50 H38 Q26 50 22 44Z" fill="' + c[0] + '"' + STROKE + '/><path d="M40 26 H280" stroke="' + c[2] + '" stroke-width="4" stroke-linecap="round"/>';
+    return '<path d="M14 6 H306 L297 40 Q294 49 282 49 H38 Q26 49 23 40Z" fill="' + c[0] + '"' + STROKE + '/><path d="M16 7 H304 L302 15 H18Z" fill="' + c[2] + '"/><path d="M30 38 Q160 46 290 38" stroke="' + c[1] + '" stroke-width="5" fill="none"/>'; }}
+};
+// 由上到下的圖層 → [{key,type,v}]
+function layersOf(cfg){
+  var L = [{type:'bunTop',v:cfg.bun}, {type:'sauce',v:cfg.sauce}];
+  ['lettuce','tomato','onion','pickles','jalapeno','pineapple','avocado','egg','bacon'].forEach(function(t){ if (cfg.tops.indexOf(t) > -1) L.push({type:t}); });
+  for (var i = 0; i < cfg.patties; i++){ if (cfg.cheese !== 'none') L.push({type:'cheese',v:cfg.cheese,n:i}); L.push({type:'patty',n:i}); }
+  L.push({type:'bunBot',v:cfg.bun});
+  L.forEach(function(l){ l.key = l.type + (l.v ? ':' + l.v : '') + (l.n != null ? '#' + l.n : ''); });
+  return L;
+}
+// 靜態合成（佔位插畫用）：回傳 <g>，寬 320×scale
+function burgerG(cfg, x, bottom, sc, anim){
+  var L = layersOf(cfg), tot = 0; L.forEach(function(l){ tot += LAY[l.type].h; });
+  var y = 0, parts = [];
+  L.forEach(function(l){ parts.push([l, y]); y += LAY[l.type].h; });
+  var top = bottom - tot*sc, out = '<g transform="translate(' + (x - 160*sc) + ' ' + top + ') scale(' + sc + ')">';
+  out += '<ellipse cx="160" cy="' + (tot + 8) + '" rx="170" ry="16" fill="#000" opacity=".22"/>';
+  for (var i = parts.length - 1, k = 0; i >= 0; i--, k++){ var l = parts[i][0]; out += '<g transform="translate(0 ' + parts[i][1] + ')"><g' + (anim ? ' class="ly" style="--i:' + k + '"' : '') + '>' + LAY[l.type].d(l.v) + '</g></g>'; }
+  if (cfg.flag) out += '<g' + (anim ? ' class="ly" style="--i:' + (k + 1) + '"' : '') + '><path d="M178 -70 V40" stroke="#c9a46a" stroke-width="5" stroke-linecap="round"/><path d="M180 -70 h64 l-8 20 l8 20 h-64Z" fill="url(#CK)" stroke="#151515" stroke-width="3"/><circle cx="212" cy="-50" r="12" fill="#fff" stroke="#151515" stroke-width="3"/><text x="212" y="-45.5" text-anchor="middle" font-family="Trebuchet MS,DejaVu Sans,sans-serif" font-style="italic" font-weight="900" font-size="13" fill="#151515">27</text></g>';
+  return out + '</g>';
+}
+
+/* ===== 佔位插畫 ===== */
+var uid = 0;
+function S(vb, body, ar){ var id = ++uid; return '<svg viewBox="' + vb + '" preserveAspectRatio="' + (ar || 'xMidYMid slice') + '" aria-hidden="true"><defs><pattern id="ck' + id + '" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#fff"/><path d="M0 0h8v8H0zM8 8h8v8H8z" fill="#151515"/></pattern><pattern id="cf' + id + '" width="14" height="14" patternUnits="userSpaceOnUse"><rect width="14" height="14" fill="#171717"/><path d="M0 0h7v7H0zM7 7h7v7H7z" fill="#222"/></pattern><pattern id="ht' + id + '" width="20" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="20" fill="#d42f2a"/><rect x="10" width="10" height="20" fill="#f3ead8"/></pattern></defs>' + body.replace(/url\(#(CK|CF|HT)\)/g, function(m, k){ return 'url(#' + k.toLowerCase() + id + ')'; }) + '</svg>'; }
+function stripes(w, h, y, ang, cols){ var s = '<g transform="rotate(' + ang + ' ' + w/2 + ' ' + y + ')">', yy = y; cols.forEach(function(c){ s += '<rect x="' + (-w) + '" y="' + yy + '" width="' + w*3 + '" height="' + c[1] + '" fill="' + c[0] + '"/>'; yy += c[1]; }); return s + '</g>'; }
+function speed(w, n, y0, y1, col){ var s = ''; for (var i = 0; i < n; i++){ var y = y0 + (y1 - y0)*((i*37)%n)/n, x = (i*173)%w; s += '<rect x="' + x + '" y="' + y + '" width="' + (60 + (i*53)%140) + '" height="3" fill="' + col + '" opacity=".5"/>'; } return s; }
+function tyre(x, y, r){ return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="#111" stroke="#2c2c2c" stroke-width="' + r*.18 + '"/><circle cx="' + x + '" cy="' + y + '" r="' + r*.52 + '" fill="#9aa0a4"/><circle cx="' + x + '" cy="' + y + '" r="' + r*.7 + '" fill="none" stroke="#ff7a1a" stroke-width="' + r*.08 + '"/><circle cx="' + x + '" cy="' + y + '" r="' + r*.14 + '" fill="#151515"/>'; }
+function sigArt(bg, band, cfg){ return S('0 0 800 600', '<rect width="800" height="600" fill="' + bg + '"/>' + stripes(800, 600, 250, -18, band) + speed(800, 14, 60, 540, '#f3ead8') + '<rect x="560" y="0" width="240" height="44" fill="url(#CK)"/>' + burgerG(cfg, 400, 540, 1.5)); }
+var ART = {
+  hero:function(){ return S('0 0 600 600', '<circle cx="300" cy="318" r="236" fill="#151515"/><circle cx="300" cy="318" r="236" fill="url(#CF)"/><circle cx="300" cy="318" r="222" fill="none" stroke="#ff7a1a" stroke-width="8"/><circle cx="300" cy="318" r="206" fill="none" stroke="#f3ead8" stroke-width="2" stroke-dasharray="4 10"/>' + burgerG({bun:'sesame',sauce:'pit',tops:['lettuce','tomato','pickles'],patties:2,cheese:'cheddar',flag:1}, 300, 476, 1.24, true), 'xMidYMid meet'); },
+  sig1:function(){ return sigArt('#0f6e7a', [['#151515',10],['#0f6e7a',10],['#ff7a1a',70],['#0f6e7a',8],['#f3ead8',14]], {bun:'sesame',sauce:'pit',tops:['lettuce','tomato','pickles'],patties:1,cheese:'cheddar'}); },
+  sig2:function(){ return sigArt('#151515', [['#ff7a1a',16],['#151515',8],['#0f6e7a',80],['#151515',8],['#ff7a1a',10]], {bun:'brioche',sauce:'bbq',tops:['onion','bacon'],patties:2,cheese:'gouda'}); },
+  sig3:function(){ return sigArt('#ff7a1a', [['#151515',22],['#ff7a1a',8],['#f3ead8',46],['#ff7a1a',8],['#0f6e7a',30]], {bun:'brioche',sauce:'chipotle',tops:['lettuce','jalapeno','avocado'],patties:1,cheese:'jack'}); },
+  garage:function(){ var s = '<rect width="1000" height="800" fill="#0a4b54"/>' + stripes(1000, 800, 120, -12, [['#ff7a1a',30],['#0a4b54',10],['#f3ead8',8]]);
+    s += '<rect x="80" y="140" width="840" height="500" fill="#151515"/><rect x="80" y="140" width="840" height="500" fill="url(#CF)"/>';
+    for (var i = 0; i < 6; i++) s += '<rect x="80" y="' + (140 + i*26) + '" width="840" height="20" fill="#2f3438"/>';
+    s += '<rect x="80" y="296" width="840" height="10" fill="#ff7a1a"/>';
+    s += '<rect x="180" y="420" width="640" height="40" fill="#3a3d40" stroke="#151515" stroke-width="5"/><rect x="200" y="460" width="600" height="180" fill="#8d9296"/><rect x="200" y="460" width="600" height="18" fill="#b9bec2"/>';
+    for (var p = 0; p < 5; p++){ var px = 250 + p*110; s += '<ellipse cx="' + px + '" cy="420" rx="44" ry="12" fill="#5a2d1b" stroke="#151515" stroke-width="4"/><path d="M' + (px - 18) + ' 400 q-10 -40 6 -70 q14 -30 0 -60" stroke="#f3ead8" stroke-width="5" fill="none" opacity=".35" stroke-linecap="round"/>'; }
+    s += '<path d="M690 330 l70 70" stroke="#d8dcdf" stroke-width="16" stroke-linecap="round"/><rect x="740" y="380" width="70" height="40" rx="4" fill="#d8dcdf" transform="rotate(45 775 400)"/>';
+    s += tyre(110, 690, 60) + tyre(110, 600, 60) + tyre(890, 690, 60) + '<rect y="740" width="1000" height="60" fill="url(#HT)"/>';
+    s += '<g font-family="Trebuchet MS,DejaVu Sans,sans-serif" font-style="italic" font-weight="900"><text x="500" y="250" text-anchor="middle" font-size="64" fill="#f3ead8" letter-spacing="6">PIT LANE</text></g>';
+    return S('0 0 1000 800', s); },
+  interior:function(){ var s = '<rect width="800" height="1000" fill="#f3ead8"/>' + stripes(800, 1000, 380, -24, [['#151515',14],['#f3ead8',14],['#ff7a1a',60],['#f3ead8',10],['#0f6e7a',190],['#f3ead8',10],['#151515',18]]);
+    s += '<rect x="0" y="0" width="800" height="60" fill="#151515"/>';
+    for (var l = 0; l < 4; l++){ var lx = 120 + l*190; s += '<path d="M' + lx + ' 60 V150" stroke="#151515" stroke-width="4"/><path d="M' + (lx - 40) + ' 190 L' + (lx - 22) + ' 150 H' + (lx + 22) + ' L' + (lx + 40) + ' 190Z" fill="#151515"/><ellipse cx="' + lx + '" cy="196" rx="34" ry="8" fill="#ffd9a0"/>'; }
+    s += '<g transform="translate(420 300) rotate(-24)"><path d="M0 40 L300 20 Q340 40 300 60 L0 50Z" fill="#151515"/><path d="M300 22 Q340 40 300 58Z" fill="#ff7a1a"/><rect x="-40" y="10" width="60" height="70" fill="#0f6e7a" stroke="#151515" stroke-width="5"/><text x="150" y="48" font-family="Trebuchet MS,sans-serif" font-style="italic" font-weight="900" font-size="22" fill="#f3ead8">27</text></g>';
+    s += '<rect x="0" y="690" width="800" height="310" fill="#24272a"/><rect x="0" y="690" width="800" height="14" fill="url(#HT)"/>';
+    for (var t = 0; t < 3; t++){ var tx = 140 + t*260; s += '<rect x="' + (tx - 90) + '" y="740" width="180" height="22" fill="#ff7a1a" stroke="#151515" stroke-width="4"/><rect x="' + (tx - 8) + '" y="762" width="16" height="150" fill="#151515"/><rect x="' + (tx - 50) + '" y="904" width="100" height="14" fill="#151515"/><circle cx="' + (tx - 40) + '" cy="728" r="16" fill="#e9a23e" stroke="#151515" stroke-width="3"/><rect x="' + (tx + 20) + '" y="704" width="22" height="36" fill="#f3ead8" stroke="#151515" stroke-width="3"/>'; }
+    return S('0 0 800 1000', s); },
+  grill:function(){ var s = '<rect width="1000" height="800" fill="#25282b"/><rect x="0" y="300" width="1000" height="500" fill="#151515"/><rect x="0" y="300" width="1000" height="500" fill="url(#CF)"/><rect x="0" y="292" width="1000" height="16" fill="#8d9296"/>';
+    for (var i = 0; i < 6; i++){ var x = 120 + (i%3)*300, y = 420 + Math.floor(i/3)*190; s += '<ellipse cx="' + x + '" cy="' + y + '" rx="110" ry="46" fill="#5a2d1b" stroke="#151515" stroke-width="5"/><path d="M' + (x - 80) + ' ' + (y - 14) + ' Q' + x + ' ' + (y - 36) + ' ' + (x + 80) + ' ' + (y - 14) + '" stroke="#8c4c2c" stroke-width="8" fill="none" stroke-linecap="round"/>' + (i%2 ? '<path d="M' + (x - 96) + ' ' + (y - 6) + ' H' + (x + 96) + ' L' + (x + 80) + ' ' + (y + 14) + ' H' + (x + 60) + ' L' + (x + 50) + ' ' + (y + 34) + ' L' + (x + 40) + ' ' + (y + 14) + ' H' + (x - 70) + ' L' + (x - 80) + ' ' + (y + 30) + ' L' + (x - 90) + ' ' + (y + 14) + 'Z" fill="#ffb01f" stroke="#151515" stroke-width="4"/>' : ''); }
+    for (var k = 0; k < 7; k++) s += '<path d="M' + (90 + k*140) + ' 300 q-24 -60 6 -120 q26 -50 -6 -110" stroke="#f3ead8" stroke-width="10" fill="none" opacity=".18" stroke-linecap="round"/>';
+    s += '<g transform="rotate(-18 700 250)"><rect x="520" y="230" width="230" height="22" fill="#151515"/><rect x="740" y="190" width="170" height="110" fill="#d8dcdf" stroke="#151515" stroke-width="5"/><rect x="520" y="230" width="60" height="22" fill="#ff7a1a"/></g>';
+    return S('0 0 1000 800', s); },
+  fries:function(){ var s = '<rect width="1000" height="800" fill="#0f6e7a"/>' + stripes(1000, 800, 520, -16, [['#151515',14],['#0f6e7a',10],['#ff7a1a',80]]) + speed(1000, 12, 60, 700, '#f3ead8');
+    for (var i = 0; i < 16; i++){ var x = 360 + (i*41)%290, h = 160 + (i*53)%120, r = (i*23)%30 - 15; s += '<rect x="' + x + '" y="' + (420 - h) + '" width="34" height="' + (h + 40) + '" fill="#ffc94a" stroke="#151515" stroke-width="4" transform="rotate(' + r + ' ' + (x + 17) + ' 440)"/>'; }
+    s += '<path d="M330 400 H670 L630 720 H370Z" fill="#f3ead8" stroke="#151515" stroke-width="6"/><path d="M342 470 H658 L652 520 H348Z" fill="url(#CK)"/><circle cx="500" cy="610" r="56" fill="#fff" stroke="#151515" stroke-width="6"/><text x="500" y="628" text-anchor="middle" font-family="Trebuchet MS,DejaVu Sans,sans-serif" font-style="italic" font-weight="900" font-size="50" fill="#151515">27</text>';
+    return S('0 0 1000 800', s); },
+  party:function(){ var s = '<rect width="1600" height="700" fill="#151515"/><rect x="300" y="60" width="1000" height="440" fill="#0f6e7a" stroke="#2c2c2c" stroke-width="14"/>' + stripes(1600, 700, 260, -6, [['#24272a',120]]);
+    s += '<rect x="307" y="330" width="986" height="14" fill="url(#HT)"/>';
+    function car(x, y, c, n){ return '<g transform="translate(' + x + ' ' + y + ')"><path d="M0 40 L60 22 H210 L260 34 L270 48 H-6Z" fill="' + c + '" stroke="#151515" stroke-width="5"/><path d="M110 22 L130 6 H160 L172 22Z" fill="#151515"/><rect x="232" y="12" width="40" height="10" fill="#151515"/><rect x="-14" y="18" width="26" height="12" fill="#151515"/>' + tyre(40, 50, 22) + tyre(220, 50, 22) + '<circle cx="150" cy="36" r="13" fill="#fff" stroke="#151515" stroke-width="3"/><text x="150" y="41" text-anchor="middle" font-family="Trebuchet MS,sans-serif" font-style="italic" font-weight="900" font-size="14" fill="#151515">' + n + '</text></g>'; }
+    s += car(420, 250, '#ff7a1a', 27) + car(840, 230, '#f3ead8', 8) + speed(1600, 10, 120, 300, '#f3ead8');
+    s += '<rect x="1100" y="80" width="170" height="40" fill="#151515"/><text x="1185" y="108" text-anchor="middle" font-family="Consolas,DejaVu Sans Mono,monospace" font-weight="700" font-size="22" fill="#ff7a1a">LAP 51/57</text>';
+    for (var i = 0; i < 14; i++){ var x = 60 + i*112 + (i%2)*20, y = 600 + (i%3)*14; s += '<circle cx="' + x + '" cy="' + (y - 40) + '" r="34" fill="#2b2f33"/><rect x="' + (x - 50) + '" y="' + (y - 10) + '" width="100" height="160" rx="40" fill="#2b2f33"/>'; if (i%3 === 1) s += '<path d="M' + (x + 30) + ' ' + (y - 20) + ' L' + (x + 60) + ' ' + (y - 110) + '" stroke="#2b2f33" stroke-width="20" stroke-linecap="round"/><rect x="' + (x + 46) + '" y="' + (y - 160) + '" width="30" height="46" fill="#ffc94a" stroke="#151515" stroke-width="3"/>'; }
+    return S('0 0 1600 700', s); }
+};
+function fillPhotos(){ $$('.ph').forEach(function(f){ var url = SHOP.photos[f.dataset.photo]; if (url){ f.innerHTML = '<img src="' + esc(url) + '" alt="' + esc(f.dataset.label || '') + '" loading="lazy">'; return; } var a = ART[f.dataset.art]; if (a) f.innerHTML = a(); }); }
+
+/* ===== 取餐單 ===== */
+var order = [];
+function addOrder(it){ var ex = order.find(function(o){ return o.key === it.key; }); if (ex) ex.qty++; else { it.qty = 1; order.push(it); } drawOrder(); toast('已加入取餐單：' + it.name); }
+function drawOrder(){
+  var ol = $('#olist');
+  if (!order.length){ ol.innerHTML = '<li><span class="empty">還沒有餐點。從菜單按「加入」，或到調校車庫組一顆。</span></li>'; $('#oTotal').textContent = money(0); $('#oLap').textContent = '—'; return; }
+  ol.innerHTML = order.map(function(o, i){ return '<li><span>' + esc(o.name) + (o.sub ? '<small>' + esc(o.sub) + '</small>' : '') + '</span><span class="mono">×' + o.qty + '　' + money(o.price*o.qty) + '</span><button type="button" class="rm" data-i="' + i + '" aria-label="移除 ' + esc(o.name) + '">移除</button></li>'; }).join('');
+  var tot = 0, lap = 0, n = 0; order.forEach(function(o){ tot += o.price*o.qty; lap = Math.max(lap, o.t || 0); n += o.qty; });
+  $('#oTotal').textContent = money(tot); $('#oLap').textContent = lapFmt(Math.max(lap, 180) + (n - 1)*12);
+}
+$('#olist').addEventListener('click', function(e){ var b = e.target.closest('.rm'); if (!b) return; order.splice(+b.dataset.i, 1); drawOrder(); });
+function menuItem(id){ var m = MENU.find(function(x){ return x.id === id; }); return {key:'m' + m.id, name:'No.' + m.id + ' ' + m.zh.replace(/^No\.\d+ /, ''), price:m.p, t:m.cat === 'burger' ? 300 + m.kcal/10 : 120}; }
+
+/* ===== 頒獎台 ===== */
+$('#podG').innerHTML = [2, 1, 3].map(function(r){ var m = MENU.find(function(x){ return x.sig === r; }); return '<article class="pod p' + r + ' rv' + (r === 1 ? '' : ' d' + (r - 1)) + '"><figure class="ph" data-photo="' + m.art + '" data-art="' + m.art + '" data-label="招牌 P' + r + '：' + m.zh + '" data-size="1200×900"></figure><div class="pod-b"><h3 class="zh"><small>P' + r + ' · No.' + m.id + ' · ' + m.en + '</small>' + m.zh + '</h3><p>' + m.d + '</p><div class="pod-row"><span class="mono">' + money(m.p) + '</span><button type="button" class="btn dark" data-add="' + m.id + '">加入取餐單</button></div></div><div class="step" aria-hidden="true"><b>' + r + '</b></div></article>'; }).join('');
+
+/* ===== 菜單 ===== */
+var cat = 'burger';
+$('#tabs').innerHTML = CATS.map(function(c){ var n = c[0] === 'all' ? MENU.length : MENU.filter(function(m){ return m.cat === c[0]; }).length; return '<button type="button" role="tab" data-c="' + c[0] + '" aria-selected="' + (c[0] === cat) + '">' + c[1] + '<small>' + n + '</small></button>'; }).join('');
+$('#tabs').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; cat = b.dataset.c; $$('#tabs button').forEach(function(x){ x.setAttribute('aria-selected', x === b); }); drawCards(); });
+function drawCards(){
+  $('#cards').innerHTML = MENU.filter(function(m){ return cat === 'all' || m.cat === cat; }).map(function(m, i){
+    var heat = ''; for (var h = 0; h < 3; h++) heat += '<i class="' + (h < m.heat ? 'on' : '') + '"></i>';
+    return '<li class="card" style="--i:' + i + '"><span class="gridp">GRID P' + (i + 1) + '</span><div class="num"><small>No.</small>' + m.id + '</div><h3 class="zh">' + m.zh + '</h3><span class="enn">' + m.en + '</span><p>' + m.d + '</p><div class="meta"><span>' + m.kcal + ' kcal</span><span class="heat" aria-label="辣度 ' + m.heat + '">' + heat + '</span>' + (m.tag ? '<span class="tagx">' + m.tag + '</span>' : '') + '</div><div class="row"><span class="pr"><small>NT$</small>' + m.p + '</span><button type="button" class="add" data-add="' + m.id + '" aria-label="加入取餐單：' + m.zh + '">加入 +</button></div></li>'; }).join('');
+}
+drawCards();
+document.addEventListener('click', function(e){ var b = e.target.closest('[data-add]'); if (b) addOrder(menuItem(b.dataset.add)); });
+
+/* ===== 調校車庫 ===== */
+var cfg = {bun:'brioche', patties:1, cheese:'cheddar', tops:['lettuce','tomato','pickles'], sauce:'pit'};
+function chips(el, name, list, type){ $(el).innerHTML = list.map(function(o){ return '<label class="chip"><input type="' + type + '" name="' + name + '" value="' + o.k + '"><span>' + o.zh + (o.p ? '<small>+' + o.p + '</small>' : '') + '</span></label>'; }).join(''); }
+chips('#cBun', 'bun', BUILD.bun, 'radio'); chips('#cCheese', 'cheese', BUILD.cheese, 'radio'); chips('#cTop', 'top', BUILD.tops, 'checkbox'); chips('#cSauce', 'sauce', BUILD.sauce, 'radio');
+function syncInputs(){ $$('#ctl input').forEach(function(i){ i.checked = i.name === 'top' ? cfg.tops.indexOf(i.value) > -1 : cfg[i.name] === i.value; }); }
+var shown = {}, last = {price:0, kcal:0, lap:0, lay:0}, buildNo = 1;
+function find(list, k){ return list.find(function(o){ return o.k === k; }); }
+function calc(){
+  var b = find(BUILD.bun, cfg.bun), ch = find(BUILD.cheese, cfg.cheese), sa = find(BUILD.sauce, cfg.sauce), P = cfg.patties;
+  var price = BUILD.base + b.p + (P - 1)*BUILD.patty.p + ch.p*P + sa.p, kcal = b.kc + P*BUILD.patty.k + ch.kc*P + sa.kc, t = BUILD.baseT + P*BUILD.patty.t + ch.t*P;
+  cfg.tops.forEach(function(k){ var o = find(BUILD.tops, k); price += o.p; kcal += o.kc; t += o.t; });
+  t += ((price*7 + kcal*3) % 1000)/1000;
+  return {price:price, kcal:kcal, t:t};
+}
+function tween(el, from, to, fmt){ if (from === to){ el.textContent = fmt(to); return; } el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); if (reduce){ el.textContent = fmt(to); return; } var t0 = null; (function f(ts){ if (!t0) t0 = ts || performance.now(); var k = Math.min(1, ((ts || t0) - t0)/420); el.textContent = fmt(from + (to - from)*(1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(f); })(); }
+function drawBuild(){
+  var L = layersOf(cfg), st = $('#stack'), next = {};
+  st.innerHTML = L.slice().reverse().map(function(l, i){ var sp = LAY[l.type], isNew = !shown[l.key]; next[l.key] = 1;
+    return '<div class="lyr' + (isNew ? ' drop' : '') + '" style="aspect-ratio:320/' + sp.vh + ';margin-bottom:' + (-(sp.vh - sp.h)/3.2).toFixed(3) + '%;animation-delay:' + (isNew ? (Object.keys(shown).length ? 0 : i*.07) : 0) + 's"><svg viewBox="0 0 320 ' + sp.vh + '">' + sp.d(l.v) + '</svg></div>'; }).join('');
+  shown = next;
+  // 疊太高時縮小
+  st.style.setProperty('--sc', 1);
+  var avail = $('.stage').clientHeight - 70, h = st.scrollHeight;
+  st.style.setProperty('--sc', h > avail ? (avail/h).toFixed(3) : 1);
+  var r = calc();
+  tween($('#tPrice'), last.price, r.price, function(v){ return money(Math.round(v)); });
+  tween($('#tKcal'), last.kcal, r.kcal, function(v){ return Math.round(v).toLocaleString('en-US'); });
+  tween($('#tLap'), last.lap, r.t, lapFmt);
+  tween($('#tLay'), last.lay, L.length, function(v){ return String(Math.round(v)); });
+  last = {price:r.price, kcal:r.kcal, lap:r.t, lay:L.length};
+  var max = SHOP.lapTarget*1.25, bar = $('#target i');
+  bar.style.width = Math.min(100, r.t/max*100) + '%'; bar.classList.toggle('over', r.t > SHOP.lapTarget);
+  $('#target').style.setProperty('--t', (SHOP.lapTarget/max*100) + '%');
+  $('#tNote').textContent = r.t > SHOP.lapTarget ? '超過七分鐘目標 ' + Math.round(r.t - SHOP.lapTarget) + ' 秒——值得等，但尖峰時段請提早預約。' : '橘線＝七分鐘出餐目標，這台車還有 ' + Math.round(SHOP.lapTarget - r.t) + ' 秒餘裕。';
+  $('#pOut').textContent = cfg.patties + ' 片 · ' + cfg.patties*180 + 'g';
+  $('#pMinus').disabled = cfg.patties <= 1; $('#pPlus').disabled = cfg.patties >= BUILD.patty.max;
+  $('#buildName').textContent = 'CUSTOM #' + String(26 + buildNo);
+  $('#stageImg').setAttribute('aria-label', '組裝預覽：' + summary());
+}
+function summary(){ var s = [find(BUILD.bun, cfg.bun).zh, cfg.patties + ' 片肉排']; if (cfg.cheese !== 'none') s.push(find(BUILD.cheese, cfg.cheese).zh); cfg.tops.forEach(function(k){ s.push(find(BUILD.tops, k).zh); }); s.push(find(BUILD.sauce, cfg.sauce).zh); return s.join('・'); }
+$('#ctl').addEventListener('change', function(e){ var i = e.target; if (i.name === 'top'){ cfg.tops = $$('#cTop input:checked').map(function(x){ return x.value; }); } else if (i.name) cfg[i.name] = i.value; drawBuild(); });
+$('#pMinus').onclick = function(){ if (cfg.patties > 1){ cfg.patties--; drawBuild(); } };
+$('#pPlus').onclick = function(){ if (cfg.patties < BUILD.patty.max){ cfg.patties++; drawBuild(); } };
+$('#reset').onclick = function(){ cfg = {bun:'brioche', patties:1, cheese:'cheddar', tops:['lettuce','tomato','pickles'], sauce:'pit'}; shown = {}; syncInputs(); drawBuild(); };
+$('#toPit').onclick = function(){ var r = calc(); addOrder({key:'c' + buildNo, name:'自組 CUSTOM #' + (26 + buildNo), sub:summary(), price:r.price, t:r.t}); buildNo++; drawBuild(); };
+syncInputs(); drawBuild();
+
+/* ===== Pit Stop 取餐 ===== */
+var pDays = []; for (var i = 0; pDays.length < 7 && i < 21; i++){ var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i); if (SHOP.hours[d.getDay()]) pDays.push(d); }
+$('#pDates').innerHTML = pDays.map(function(d, i){ return '<label class="chip"><input type="radio" name="pd" value="' + i + '"' + (i ? '' : ' checked') + '><span>' + (d.getMonth() + 1) + '/' + d.getDate() + '<small>' + (sameDay(d, now) ? '今天' : DAYS[d.getDay()]) + '</small></span></label>'; }).join('');
+var pBox = 0;
+function hash(a, b, c){ var x = (a*73856093) ^ (b*19349663) ^ (c*83492791); return Math.abs(x) % 997; }
+function curDay(){ return pDays[+($('input[name=pd]:checked') || {value:0}).value]; }
+function drawTimes(){
+  var d = curDay(), isT = sameDay(d, now), key = d.getDate() + d.getMonth()*31, html = '', any = false, keep = $('#pTime').value;
+  SHOP.hours[d.getDay()].forEach(function(r, si){
+    var opts = '';
+    for (var m = mins(r[0]) + 15; m <= mins(r[1]) - 15; m += 15){ var past = isT && m < nowM + SHOP.pickupLead, full = !past && hash(key, m, 7) % 9 === 0; if (!past && !full) any = true; opts += '<option value="' + m + '"' + (past || full ? ' disabled' : '') + '>' + hm(m) + (past ? '（已過）' : full ? '（廚房滿檔）' : '') + '</option>'; }
+    html += '<optgroup label="' + (SHOP.hours[d.getDay()].length > 1 ? ['午場','晚場'][si] || '時段' : '營業時段') + ' ' + r[0] + '–' + r[1] + '">' + opts + '</optgroup>';
+  });
+  var sel = $('#pTime'); sel.innerHTML = html;
+  var k = sel.querySelector('option[value="' + keep + '"]:not(:disabled)') || sel.querySelector('option:not(:disabled)');
+  if (k) k.selected = true;
+  $('#pTimeErr').textContent = any ? '' : '這天已經沒有可預約的時段，請選其他日期。';
+  sel.disabled = !any;
+  drawBoxes();
+}
+function drawBoxes(){
+  var d = curDay(), m = +$('#pTime').value || 0, key = d.getDate() + d.getMonth()*31, free = 0, html = '';
+  for (var b = 1; b <= SHOP.pitBoxes; b++){ var taken = hash(key, m, b) % 5 < 2; if (b === SHOP.pitBoxes && !free) taken = false; if (!taken) free++; if (taken && pBox === b) pBox = 0;
+    html += '<button type="button" data-b="' + b + '" aria-pressed="' + (pBox === b) + '"' + (taken ? ' disabled' : '') + ' aria-label="Pit Box ' + b + (taken ? ' 已被預約' : ' 可選') + '"><b>' + b + '</b><small>' + (taken ? 'RESERVED' : 'BOX') + '</small></button>'; }
+  $('#boxes').innerHTML = html;
+}
+$('#pDates').addEventListener('change', drawTimes);
+$('#pTime').addEventListener('change', drawBoxes);
+$('#boxes').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b || b.disabled) return; pBox = +b.dataset.b; $$('#boxes button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); }); $('#boxErr').textContent = ''; });
+drawTimes(); drawOrder();
+$('#pf').addEventListener('submit', function(e){
+  e.preventDefault();
+  var name = $('#pName'), phone = $('#pPhone'), ok = check([[name, name.value.trim().length > 0, '請填寫取餐人姓名'], [phone, phoneOk(phone.value), '請輸入 09 開頭的手機號碼，例如 0912-345-678']]);
+  var t = $('#pTime'); if (t.disabled || !t.value){ $('#pTimeErr').textContent = '請選擇取餐時間'; ok = false; }
+  if (!pBox){ $('#boxErr').textContent = '請選一個空的 Pit Box'; ok = false; }
+  if (!order.length){ $('#orderErr').textContent = '取餐單是空的，請先從菜單或調校車庫加入餐點。'; ok = false; } else $('#orderErr').textContent = '';
+  if (!ok) return;
+  var d = curDay(), m = +t.value, tot = 0, lap = 0, n = 0; order.forEach(function(o){ tot += o.price*o.qty; lap = Math.max(lap, o.t || 0); n += o.qty; });
+  var nm = name.value.trim(), plate = $('#pPlate').value.trim();
+  var rows = [['PIT', 'LANE', ''], ['BOX', pBox, 'big hl'], ['IN', hm(m), 'hl'], ['P', esc(nm.slice(0, 6)), ''], ['LAP', lapFmt(Math.max(lap, 180) + (n - 1)*12), ''], ['NT$', tot.toLocaleString('en-US'), 'hl']];
+  $('#pitBody').innerHTML = '<div class="board-w" tabindex="-1" id="boardW"><div class="board" role="img" aria-label="取餐看板：Box ' + pBox + '，' + hm(m) + '">' + rows.map(function(r, i){ return '<div class="r ' + r[2] + '" style="--i:' + i + '"><small>' + r[0] + '</small><span>' + r[1] + '</span></div>'; }).join('') + '</div><div class="pole" aria-hidden="true"></div><div class="board-msg"><p><b>' + (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日 ' + DAYS[d.getDay()] + ' ' + hm(m) + '</b>，請停進 <b>Pit Box ' + pBox + '</b>' + (plate ? '（車牌 ' + esc(plate) + '）' : '') + '。</p><p>到達後打雙黃燈，或回撥 ' + esc(SHOP.phone) + '，我們會把 ' + n + ' 份餐點送到車窗，付款可刷卡或行動支付。</p><p class="demo">示範版本：沒有真的送出，取餐格也沒有真的被預約。</p><button type="button" class="btn line" id="pitAgain">重新預約</button></div></div>';
+  $('#boardW').focus({preventScroll:true});
+  $('#pitAgain').onclick = function(){ location.hash = ''; location.reload(); };
+});
+
+/* ===== 觀賽派對 ===== */
+var sat = new Date(now.getFullYear(), now.getMonth(), now.getDate() + ((6 - now.getDay() + 7) % 7));
+RACES.forEach(function(r){ r.date = new Date(sat.getFullYear(), sat.getMonth(), sat.getDate() + r.week*7 + (r.day === 0 ? 1 : 0)); r.left = SHOP.party.cap - r.booked; });
+$('#races').innerHTML = RACES.map(function(r, i){ var pct = r.booked/SHOP.party.cap*100; return '<label class="race"><input type="radio" name="race" value="' + i + '"' + (i === 0 ? ' checked' : '') + '><span class="rc"><span class="rdate"><b>' + (r.date.getMonth() + 1) + '/' + r.date.getDate() + '</b><small>' + DAYS[r.date.getDay()] + '</small></span><span class="rinfo"><span class="en">' + r.en + '</span><h3 class="zh">' + r.series + '</h3><span class="seats" aria-hidden="true"><i style="width:' + pct + '%"></i></span><small>剩 ' + r.left + ' / ' + SHOP.party.cap + ' 席' + (r.buyout ? ' · 可整場包場' : '') + '</small></span><span class="rlo"><span>LIGHTS OUT</span><b>' + r.lo + '</b></span></span></label>'; }).join('');
+function race(){ return RACES[+($('input[name=race]:checked') || {value:0}).value]; }
+function drawMode(){
+  var r = race(), cur = ($('input[name=mode]:checked') || {value:'seat'}).value;
+  $('#mode').innerHTML = '<label class="chip"><input type="radio" name="mode" value="seat"><span>觀賽套餐訂位<small>' + SHOP.party.seat + '/人</small></span></label><label class="chip"><input type="radio" name="mode" value="buyout"' + (r.buyout ? '' : ' disabled') + '><span>整場包場<small>' + (r.buyout ? '低消 ' + (SHOP.party.buyoutMin/1000) + 'k' : '已有訂位') + '</small></span></label>';
+  if (cur === 'buyout' && !r.buyout) cur = 'seat';
+  $('#mode input[value=' + cur + ']').checked = true;
+  drawPax();
+}
+function drawPax(){
+  var r = race(), mode = $('input[name=mode]:checked').value, keep = +$('#pax').value || 4, lo = mode === 'seat' ? 1 : SHOP.party.buyoutPax[0], hi = mode === 'seat' ? Math.min(12, r.left) : SHOP.party.buyoutPax[1], html = '';
+  for (var p = lo; p <= hi; p++) html += '<option value="' + p + '">' + p + ' 位</option>';
+  if (hi < lo) html = '<option value="0">已額滿</option>';
+  $('#pax').innerHTML = html; $('#pax').value = String(Math.max(lo, Math.min(hi, keep)));
+  if (!$('#pax').value && $('#pax').options[0]) $('#pax').options[0].selected = true;
+  drawCalc();
+}
+function drawCalc(){
+  var mode = $('input[name=mode]:checked').value, pax = +$('#pax').value || 0, s = SHOP.party.seat, tot = mode === 'seat' ? pax*s : Math.max(SHOP.party.buyoutMin, pax*s);
+  $('#calcTxt').textContent = mode === 'seat' ? money(s) + ' × ' + pax + ' 位' : '包場低消 ' + money(SHOP.party.buyoutMin) + (pax*s > SHOP.party.buyoutMin ? '（依人數 ' + pax + ' × ' + s + '）' : '');
+  $('#calcTot').textContent = money(tot);
+  return tot;
+}
+$('#races').addEventListener('change', drawMode);
+$('#mode').addEventListener('change', drawPax);
+$('#pax').addEventListener('change', drawCalc);
+drawMode();
+$('#ptf').addEventListener('submit', function(e){
+  e.preventDefault();
+  var name = $('#ptName'), phone = $('#ptPhone'), r = race(), mode = $('input[name=mode]:checked').value, pax = +$('#pax').value || 0;
+  var ok = check([[name, name.value.trim().length > 0, '請填寫聯絡人姓名'], [phone, phoneOk(phone.value), '請輸入 09 開頭的手機號碼']]);
+  if (!pax || (mode === 'seat' && pax > r.left)){ $('#paxErr').textContent = '這場剩餘座位不足，請選其他場次'; ok = false; } else $('#paxErr').textContent = '';
+  if (!ok) return;
+  var tot = drawCalc();
+  $('#partyBody').innerHTML = '<div class="ticket" tabindex="-1" id="ticket"><div class="tm"><span class="en">Entry Confirmed</span><p class="zh" style="font-size:19px">' + r.series + '</p><p class="mono">' + (r.date.getMonth() + 1) + '/' + r.date.getDate() + ' ' + DAYS[r.date.getDay()] + ' · LIGHTS OUT ' + r.lo + '（建議提早 30 分鐘入場）</p><p>' + (mode === 'seat' ? '觀賽套餐 ' + pax + ' 位' : '整場包場 ' + pax + ' 位') + ' · 預估 <b class="mono">' + money(tot) + '</b></p><p>聯絡人 ' + esc(name.value.trim()) + '，我們會傳簡訊到 ' + esc(phone.value.trim()) + ' 確認座位' + (mode === 'buyout' ? '與包場訂金' : '') + '。</p><p class="demo">示範版本：沒有真的送出訂位。</p><button type="button" class="btn dark" id="ptAgain">再訂一場</button></div><div class="ts" aria-hidden="true"></div></div>';
+  $('#ticket').focus({preventScroll:true});
+  $('#ptAgain').onclick = function(){ location.reload(); };
+});
+
+/* ===== 評論 ===== */
+$('#rad').innerHTML = REVIEWS.map(function(r, i){ var w = ''; for (var j = 0; j < 28; j++) w += '<i style="--h:' + (20 + ((j*37 + i*11)%80)) + ';--j:' + j + '"></i>'; return '<article class="rv' + (i ? ' d' + i : '') + '"><div class="rh"><span>' + r[0] + '</span><b>★★★★★</b></div><div class="wave" aria-hidden="true">' + w + '</div><blockquote>' + r[1] + '</blockquote><footer><span>' + r[2] + '</span><span class="mono">' + r[3] + '</span></footer></article>'; }).join('');
+
+/* ===== 導覽、照片位、進場 ===== */
+var nav = $('#nav'), burger = $('#burger');
+burger.onclick = function(){ var o = nav.classList.toggle('open'); burger.setAttribute('aria-expanded', o); burger.textContent = o ? 'CLOSE' : 'MENU'; };
+$$('#navList a').forEach(function(a){ a.addEventListener('click', function(){ nav.classList.remove('open'); burger.setAttribute('aria-expanded', false); burger.textContent = 'MENU'; }); });
+var slotBtn = $('#slotBtn');
+function slots(on){ document.body.classList.toggle('slots', on); slotBtn.setAttribute('aria-pressed', on); }
+slotBtn.onclick = function(){ slots(!document.body.classList.contains('slots')); };
+if (/[?&]slots/.test(location.search)) slots(true);
+fillPhotos();
+if ('IntersectionObserver' in window){
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('vis'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -8% 0px'});
+  $$('.rv').forEach(function(el){ io.observe(el); });
+} else $$('.rv').forEach(function(el){ el.classList.add('vis'); });
+})();
+</script>
+</body>
+</html>
