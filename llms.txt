@@ -24,7 +24,7 @@
 分成 15 類：平面排版、介面風格、復古數位、生成藝術、資料科學、遊戲敘事、工具產生器、擬物器物、東方在地、品牌頁面、AI 學習、專案範例、創意藝術、餐廳與飲料。例如瑞士國際主義、包浩斯、蒸汽波、CRT 終端機、水墨山水、Sales CRM 儀表板與果凍骰子。
 
 **哪些作品比較弱？**
-自評較弱的網頁作品有 2 件：224、227；App 原型有 2 件：061、094。頁面上方的「弱點自評」逐件說明弱在哪裡，以及重做時會怎麼改。
+目前沒有自評較弱的網頁作品；App 原型有 2 件：061、094。頁面上方的「弱點自評」逐件說明弱在哪裡，以及重做時會怎麼改。
 
 ## 作品目錄
 
@@ -291,21 +291,21 @@
 - [212 Sunny Side Diner · 美式餐館官網](https://htmls-ruddy.vercel.app/web/212-sunnyside-diner.html)：70 年代美式 diner 官網模板：毛氈看板今日特餐、菜單、整顆派線上預訂。
 
 ### 飲料
-- [213 一服 · 點一碗薄茶](https://htmls-ruddy.vercel.app/web/213-matcha-chasen.html)：樂燒黑碗裡用茶筅前後疾振刷茶，泡沫會被打碎變細；泡滿後以「の」字收筅，依泡沫、湯量與湯溫評等。
-- [214 論濃縮咖啡的萃取 · 可操作的論文](https://htmls-ruddy.vercel.app/web/214-espresso-paper.html)：雙欄學術論文排版：調粉量、液重、研磨與壓力曲線，萃取控制圖即時移動，按「萃取」畫出液重與泵壓曲線並記入表 1。
-- [215 酒標雕版室 · Atelier d'Étiquettes](https://htmls-ruddy.vercel.app/web/215-guilloche-label.html)：鈔券防偽式的扭索紋與銅版排線城堡，即時貼在波爾多瓶上；五種油墨、隨機虛構酒莊、下載 SVG。
-- [216 Газировка · 三戈比汽水機](https://htmls-ruddy.vercel.app/web/216-gazirovka.html)：洗杯、投三戈比加糖漿或一戈比純氣泡水，看氣泡在多面玻璃杯裡往上冒；沒放杯子就流進排水格。
-- [217 風味格紋 · Flavour Tartan](https://htmls-ruddy.vercel.app/web/217-tartan-dram.html)：八種風味對應八種染線，強度決定條紋寬度，以 2/2 斜紋織出格紋並附織數記號與品飲筆記；可加水。
-- [218 手搖色票 · 甜度冰量扇形色卡](https://htmls-ruddy.vercel.app/web/218-shake-swatch.html)：選茶底、甜度、冰量與配料算出飲料的顏色與色號，印成色票插進扇形色卡；抽出看糖量、熱量與咖啡因估算。
-- [219 窗台上的二十一天 · 康普茶](https://htmls-ruddy.vercel.app/web/219-scoby-jar.html)：康普茶二十一天的發酵縮時：菌膜長厚、殘糖與 pH 曲線同步、甜酸指針找最好喝的一天，可裝瓶二次發酵。
-- [220 Kahve Falı · 土耳其咖啡渣占卜](https://htmls-ruddy.vercel.app/web/220-iznik-fal.html)：熱沙上煮出泡沫、喝到見渣、許願倒扣，掀開後從杯底的鳥、魚、鑰匙等符號與位置讀出預兆。
-- [221 丸氷 · 深夜吧台的冰球](https://htmls-ruddy.vercel.app/web/221-ice-ball.html)：用冰錐一刀一刀把方冰鑿圓，正面、側面、上面都要圓，最後放進古典杯倒上威士忌。
-- [222 Zapfmeister · 倒一杯完美的啤酒](https://htmls-ruddy.vercel.app/web/222-bier-pour.html)：按住龍頭、拖曳傾斜，液面永遠水平；倒到刻度線、留兩指泡、不要溢出。三種杯型。
-- [223 Citron · 剪紙檸檬水攤](https://htmls-ruddy.vercel.app/web/223-lemonade-cutout.html)：看天氣決定配方、份量與售價，剪紙小人走過攤位說太酸、太貴或不夠冰；七天結算獲利與口碑。
-- [224 La Ronda del Mate · 馬黛茶輪喝](https://htmls-ruddy.vercel.app/web/224-mate-fileteado.html)：你是倒茶的人：調水溫、倒水、遞給輪到的朋友；太燙燒苦、太冷沒味，喝到 lavado 換茶葉。
-- [225 青瓷冰裂 · 功夫茶計時](https://htmls-ruddy.vercel.app/web/225-gongfu-celadon.html)：六款茶的逐泡計時：青瓷盤上的冰裂紋隨時間裂開，時間到敲一聲磬，出湯並記下每一泡的湯色。
-- [226 水從哪裡來 · 礦泉水地質剖面](https://htmls-ruddy.vercel.app/web/226-aquifer-water.html)：山地到平原的地層剖面，追蹤五種水源的滲流路徑，比較礦物質、硬度與適合沖泡的飲料。
-- [227 La Fée Verte · 苦艾酒滴水禮](https://htmls-ruddy.vercel.app/web/227-absinthe-louche.html)：冰水一滴一滴落在方糖上，霧白從杯底往上長；滴太快會失敗，水酒比三到五最好。
+- [213 一服 · 抹茶茶寮官網](https://htmls-ruddy.vercel.app/web/213-matcha-chasen.html)：抹茶茶寮官網模板：抹茶等級與宅配、依剩餘席位預約茶席、每月主菓子，照片位填網址即可換圖。
+- [214 萃取研究室 · 烘豆所官網](https://htmls-ruddy.vercel.app/web/214-espresso-paper.html)：烘豆所官網模板：論文排版，豆單即時標在萃取控制圖上，訂閱以算式試算，杯測與課程報名。
+- [215 Maison Guilloche · 酒窖官網](https://htmls-ruddy.vercel.app/web/215-guilloche-label.html)：酒窖官網模板：精選酒單篩選，由名字生成扭索紋的客製酒標（瓶身預覽、計價、下載 SVG），品酒會與窖藏櫃。
+- [216 Газировка · 氣泡水吧官網](https://htmls-ruddy.vercel.app/web/216-gazirovka.html)：汽水吧官網模板：自調一杯即時預覽並預點取號，汽水機活動租借即時估價。
+- [217 The Tartan Dram · 威士忌酒吧官網](https://htmls-ruddy.vercel.app/web/217-tartan-dram.html)：威士忌酒吧官網模板：風味織成格紋的酒單與篩選、三杯品飲組合格紋卡、訂位與存酒。
+- [218 SWATCH TEA · 手搖飲品牌官網](https://htmls-ruddy.vercel.app/web/218-shake-swatch.html)：手搖飲品牌官網模板：點餐即時算出色號、熱量與糖量並拿取餐號碼，六家門市的營業狀態與地圖。
+- [219 窗台發酵所 · 康普茶官網](https://htmls-ruddy.vercel.app/web/219-scoby-jar.html)：康普茶官網模板：依日期自動更新的發酵看板、每週配送訂閱與口味配比、工作坊報名。
+- [220 Kahve Evi · 土耳其咖啡館官網](https://htmls-ruddy.vercel.app/web/220-iznik-fal.html)：土耳其咖啡館官網模板：花磚視覺、咖啡占卜預約（讀杯人排班）、自選軟糖禮盒。
+- [221 Bar 丸氷 · 深夜酒吧官網](https://htmls-ruddy.vercel.app/web/221-ice-ball.html)：深夜酒吧官網模板：聚光冰球大圖、標註冰型的酒單、可點選座位的吧台訂位。
+- [222 Zapfhaus · 啤酒屋官網](https://htmls-ruddy.vercel.app/web/222-bier-pour.html)：啤酒屋官網模板：生啤酒杯型與帳單試算、啤酒節倒數、拖動人數即時排桌的長桌訂位。
+- [223 Citron · 檸檬水站官網](https://htmls-ruddy.vercel.app/web/223-lemonade-cutout.html)：檸檬水品牌官網模板：剪紙視覺、派對大桶即時估價、本週快閃攤位行程。
+- [224 La Ronda · 馬黛茶館官網](https://htmls-ruddy.vercel.app/web/224-mate-fileteado.html)：馬黛茶館官網模板：整頁 fileteado 捲草與緞帶、自組茶具即時預覽與刻字、活動報名。
+- [225 青瓷茶寮 · 茶館官網](https://htmls-ruddy.vercel.app/web/225-gongfu-celadon.html)：茶館官網模板：逐泡參數茶單、冰裂紋功夫茶計時器、品茗包廂預約與低消。
+- [226 AQUIFER · 地層水吧官網](https://htmls-ruddy.vercel.app/web/226-aquifer-water.html)：礦泉水吧官網模板：地層剖面、礦物成分比較圖、依餐點推薦、辦公室配水試算。
+- [227 La Fée Verte · 苦艾酒吧官網](https://htmls-ruddy.vercel.app/web/227-absinthe-louche.html)：苦艾酒吧官網模板：綠仙子海報、可選酒款與滴速的滴水禮示範（花藤隨乳化生長）、主題夜訂位。
 
 ## Optional
 

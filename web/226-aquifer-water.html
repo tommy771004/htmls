@@ -1,219 +1,441 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>水從哪裡來 · 礦泉水地質剖面</title>
-<meta name="description" content="地質調查圖版風格的礦泉水圖解：在一張山地到平原的地層剖面上，追蹤冰河、火山岩、石灰岩、深層砂岩與氣泡泉五種水源的滲流路徑，比較礦物質、硬度與適合沖泡的飲料。">
+<title>AQUIFER 地層水吧｜礦泉水品飲與企業配水</title>
+<meta name="description" content="AQUIFER 地層水吧：台北的礦泉水專賣與品飲吧。八款水的地層來源與礦物成分比較、依餐點推薦適合的水、辦公室玻璃瓶配水方案試算，營業時間與交通。">
+<!--
+  店家模板使用方式
+  1. 修改 <script> 開頭的 SHOP（店名、電話、地址、營業時間、照片網址）、WATERS（水單：來源、岩層、礦物成分 mg/L、價格）、PAIR（搭配推薦）與 PLAN（配水價格）。
+  2. photos 填入照片網址就會取代佔位圖；網址加 ?slots 或按右下角「照片位」可標出位置與建議尺寸。
+  3. 配水方案目前只在頁面上示範，正式使用請串接訂單系統。礦物成分以各品牌標示為準。
+-->
 <style>
-:root{
-  --sheet:#f1ece0; --ink:#262421; --ink-2:#5c574e; --mute:#8f887a; --rule:#bdb4a2; --water:#2f6fb3; --water-2:#7fb2de; --red:#b4402f;
+:root{--sheet:#f1ece0;--sheet2:#e7e0cf;--ink:#262421;--ink2:#5c574e;--mute:#8f887a;--rule:#bdb4a2;--water:#2f6fb3;--water2:#7fb2de;--red:#b4402f;--grid:rgba(47,111,179,.08);
   --cond:"Avenir Next Condensed","DIN Condensed","Arial Narrow","Roboto Condensed","PingFang TC","Microsoft JhengHei",sans-serif;
-  --text:"Avenir Next","Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#ddd6c6;color:var(--ink);font-family:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
-.sheet{max-width:1320px;margin:clamp(10px,2.4vw,30px) auto;background:var(--sheet);border:1.5px solid var(--ink);padding:clamp(14px,2vw,26px);box-shadow:0 20px 40px -24px rgba(50,40,20,.5)}
-.head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:3px double var(--ink);padding-bottom:10px;flex-wrap:wrap}
-.head h1{font-family:var(--cond);font-weight:700;font-size:clamp(26px,3.4vw,42px);letter-spacing:.04em;text-transform:uppercase;line-height:1}
-.head h1 span{display:block;font-family:var(--text);font-weight:600;font-size:.5em;letter-spacing:.18em;color:var(--ink-2);margin-top:6px;text-transform:none}
-.head p{font-family:var(--cond);font-size:13px;letter-spacing:.12em;color:var(--ink-2);text-align:right;text-transform:uppercase;line-height:1.5}
-.sources{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 10px}
-.src{font:inherit;font-family:var(--cond);font-size:14px;letter-spacing:.06em;display:flex;align-items:center;gap:8px;padding:7px 12px;border:1.5px solid var(--ink);background:transparent;cursor:pointer;transition:background .2s,color .2s}
-.src i{width:12px;height:12px;border-radius:50%;border:1.5px solid currentColor}
-.src.on{background:var(--ink);color:var(--sheet)}
-.src.on i{background:var(--water-2)}
-.map{position:relative;border:1px solid var(--ink);overflow:hidden}
-.map svg{display:block;width:100%;height:auto}
-.layer{transition:opacity .3s}
-.layer:hover{opacity:.82}
-.tip{position:absolute;pointer-events:none;background:var(--sheet);border:1px solid var(--ink);font-size:12px;padding:5px 8px;font-family:var(--cond);letter-spacing:.04em;opacity:0;transition:opacity .15s;white-space:nowrap}
-.flow{fill:none;stroke:var(--water);stroke-width:3.2;stroke-linecap:round;stroke-dasharray:2 9}
-.flow.anim{animation:flow 1.2s linear infinite}
-@keyframes flow{to{stroke-dashoffset:-22}}
-.grid2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(220px,.8fr);gap:clamp(14px,2vw,26px);margin-top:16px}
-.box{border-top:2px solid var(--ink);padding-top:8px}
-.box h2{font-family:var(--cond);font-size:13px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;color:var(--ink)}
-.box h2 small{font-weight:400;color:var(--mute);letter-spacing:.1em}
-.big{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:8px}
-.big div{font-family:var(--cond);font-size:12px;letter-spacing:.12em;color:var(--ink-2);text-transform:uppercase}
-.big b{display:block;font-size:34px;font-weight:600;color:var(--ink);letter-spacing:0;line-height:1.05;font-variant-numeric:tabular-nums}
-.big b small{font-size:13px;color:var(--ink-2);margin-left:2px}
-.story{font-size:14px;line-height:1.75;color:var(--ink)}
-.story em{font-style:normal;background:rgba(127,178,222,.3);padding:0 3px}
-.bars{display:grid;gap:5px}
-.bar{display:grid;grid-template-columns:3.4em 1fr 3.6em;gap:8px;align-items:center;font-family:var(--cond);font-size:13px}
-.bar span:first-child{letter-spacing:.04em}
-.bar i{height:12px;background:repeating-linear-gradient(90deg,rgba(38,36,33,.08) 0 1px,transparent 1px 25%);position:relative}
-.bar i u{position:absolute;left:0;top:0;bottom:0;background:var(--water);transition:width .6s cubic-bezier(.2,.8,.2,1)}
-.bar i s{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--red);transition:left .6s}
-.bar em{font-style:normal;text-align:right;font-variant-numeric:tabular-nums}
-.axis{display:flex;justify-content:space-between;font-family:var(--cond);font-size:10.5px;color:var(--mute);margin:4px 3.4em 0 calc(3.4em + 8px);padding-right:calc(3.6em + 8px - 3.4em)}
-.legend{font-size:11.5px;color:var(--ink-2);margin-top:6px}
-.legend i{display:inline-block;width:10px;height:10px;background:var(--water);vertical-align:-1px;margin-right:4px}
-.legend s{display:inline-block;width:2px;height:10px;background:var(--red);vertical-align:-1px;margin:0 4px 0 10px}
-.pair{list-style:none;display:grid;gap:6px}
-.pair li{display:grid;grid-template-columns:22px 1fr;gap:8px;font-size:13.5px;line-height:1.45}
-.pair li b{font-family:var(--cond);font-size:15px;letter-spacing:.04em}
-.pair svg{width:22px;height:22px}
-.block{margin-top:16px;display:grid;grid-template-columns:repeat(4,auto);justify-content:end;border:1.5px solid var(--ink);font-family:var(--cond);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
-.block div{padding:5px 10px;border-left:1px solid var(--ink)}
-.block div:first-child{border-left:0}
-.block b{display:block;font-size:14px;letter-spacing:.02em}
+  --text:"Avenir Next","Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+html,body{margin:0}
+body{background:var(--sheet);color:var(--ink);font-family:var(--text);line-height:1.7;overflow-x:clip}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:linear-gradient(var(--grid) 1px,transparent 1px) 0 0/24px 24px,linear-gradient(90deg,var(--grid) 1px,transparent 1px) 0 0/24px 24px}
+header,main,footer{position:relative;z-index:1}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1220px;margin:0 auto;padding:0 clamp(16px,4vw,44px)}
+.cd{font-family:var(--cond);text-transform:uppercase;letter-spacing:.06em}
+.plate{font-family:var(--cond);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink2)}
+/* 導覽 */
+.nav{position:sticky;top:0;z-index:40;background:rgba(241,236,224,.94);backdrop-filter:blur(6px);border-bottom:2px solid var(--ink)}
+.nav .wrap{display:flex;align-items:center;gap:26px;height:64px}
+.logo{text-decoration:none;display:flex;align-items:center;gap:10px;font-family:var(--cond);font-weight:700;font-size:24px;letter-spacing:.14em}
+.logo svg{width:30px;height:30px}
+.logo small{font-family:var(--text);font-weight:400;font-size:12px;letter-spacing:.2em;color:var(--ink2)}
+.nav ul{display:flex;gap:24px;list-style:none;margin:0 0 0 auto;padding:0;font-family:var(--cond);font-size:15px;letter-spacing:.12em;text-transform:uppercase}
+.nav ul a{text-decoration:none;color:var(--ink2)}
+.nav ul a:hover{color:var(--water)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--cond);font-size:15px;letter-spacing:.14em;text-transform:uppercase;padding:12px 22px;background:var(--ink);color:var(--sheet);border:2px solid var(--ink);text-decoration:none;cursor:pointer;transition:background .2s}
+.btn:hover{background:var(--water);border-color:var(--water)}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.ghost:hover{background:var(--ink);color:var(--sheet)}
+.burger{display:none;margin-left:auto;background:none;border:2px solid var(--ink);font-family:var(--cond);font-size:13px;letter-spacing:.14em;padding:5px 12px;cursor:pointer}
+/* 照片位 */
+.ph{position:relative;overflow:hidden;background:var(--sheet2);margin:0;border:1.5px solid var(--ink)}
+.ph>svg,.ph>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+body.slots .ph{outline:2px dashed var(--red);outline-offset:-4px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:10px;top:10px;z-index:3;background:var(--sheet);color:var(--red);font-size:11px;padding:3px 9px;border:1px solid var(--red)}
+figcaption{font-family:var(--cond);font-size:12.5px;letter-spacing:.08em;color:var(--ink2);padding-top:8px}
+/* Hero */
+.hero{padding:clamp(30px,4vw,50px) 0 clamp(60px,8vw,100px)}
+.titleBlock{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;align-items:end;border-bottom:2px solid var(--ink);padding-bottom:16px;margin-bottom:24px}
+.hero h1{margin:0;font-family:var(--cond);font-weight:700;font-size:clamp(60px,10vw,150px);line-height:.86;letter-spacing:.02em}
+.hero h1 span{color:var(--water)}
+.legendBox{border:1.5px solid var(--ink);padding:10px 14px;font-family:var(--cond);font-size:12.5px;letter-spacing:.06em;display:grid;grid-template-columns:auto auto;gap:4px 12px;align-items:center}
+.legendBox i{width:30px;height:14px;border:1px solid var(--ink);display:block}
+.section{border:1.5px solid var(--ink);background:#f6f2e8;position:relative}
+.section svg{width:100%;height:auto;display:block}
+.flow{stroke-dasharray:6 8;animation:flow 2.4s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-56}}
+.heroGrid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:clamp(20px,3vw,40px);align-items:start;margin-top:24px}
+.heroGrid p{margin:0 0 16px;font-size:16.5px}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.status{display:inline-flex;align-items:center;gap:8px;margin-top:16px;font-family:var(--cond);font-size:14px;letter-spacing:.1em}
+.status i{width:10px;height:10px;border-radius:50%;background:var(--mute);border:1.5px solid var(--ink)}
+.status.on i{background:var(--water2)}
+/* 區塊 */
+.sec{padding:clamp(70px,9vw,120px) 0}
+.ttl{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);gap:16px 30px;align-items:end;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:30px}
+.ttl .no{font-family:var(--cond);font-size:48px;line-height:1;color:var(--water);font-weight:700}
+.ttl h2{margin:0;font-family:var(--cond);font-weight:700;font-size:clamp(32px,4vw,52px);line-height:1;letter-spacing:.04em}
+.ttl h2 small{display:block;font-family:var(--text);font-weight:400;font-size:14px;letter-spacing:.1em;color:var(--ink2);margin-top:6px}
+.ttl p{margin:0;color:var(--ink2);font-size:15px}
+/* 水單 */
+.waters{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(20px,3vw,40px);align-items:start}
+.waters>*{min-width:0}
+.wlist{border-top:2px solid var(--ink)}
+.w{display:grid;grid-template-columns:28px 46px minmax(0,1fr) auto;gap:2px 14px;align-items:center;padding:10px 6px;border-bottom:1px solid var(--rule);cursor:pointer}
+.w:hover{background:rgba(127,178,222,.12)}
+.w input{accent-color:var(--water);width:18px;height:18px}
+.w .core{width:46px;height:46px;border:1px solid var(--ink)}
+.w b{font-family:var(--cond);font-size:18px;letter-spacing:.06em;text-transform:uppercase;display:block;line-height:1.2}
+.w small{display:block;color:var(--ink2);font-size:12.5px;line-height:1.5}
+.w .pr{font-family:var(--cond);font-size:17px;text-align:right;line-height:1.3}
+.w .pr small{font-size:11px;letter-spacing:.06em}
+.w .tds{font-family:var(--cond);font-size:12px;letter-spacing:.06em;color:var(--water)}
+.chartBox{border:1.5px solid var(--ink);background:#f6f2e8;padding:14px 16px 10px;position:sticky;top:80px}
+.chartBox svg{width:100%;height:auto;display:block}
+.chartBox .note{font-size:12.5px;color:var(--ink2);margin:8px 0 0}
+.addBtn{border:1.5px solid var(--ink);background:none;font-family:var(--cond);font-size:13px;letter-spacing:.1em;padding:4px 10px;cursor:pointer;text-transform:uppercase}
+.addBtn:hover{background:var(--ink);color:var(--sheet)}
+.cartLine{font-family:var(--cond);font-size:14px;letter-spacing:.06em;margin-top:12px;min-height:1.4em;color:var(--water)}
+/* 搭配 */
+.pair{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:clamp(20px,3vw,40px);align-items:start}
+.pair>*{min-width:0}
+.foods{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.foods button{display:flex;align-items:center;gap:10px;border:1.5px solid var(--ink);background:#f6f2e8;padding:10px 12px;cursor:pointer;text-align:left;font-size:15px}
+.foods button svg{width:30px;height:30px;flex:none}
+.foods button[aria-pressed=true]{background:var(--ink);color:var(--sheet)}
+.foods button[aria-pressed=true] svg *{stroke:var(--sheet)}
+.rec{border:1.5px solid var(--ink);background:#f6f2e8;padding:clamp(18px,3vw,30px);display:grid;grid-template-columns:120px minmax(0,1fr);gap:20px;align-items:start}
+.rec svg{width:120px;height:auto}
+.rec h3{margin:0;font-family:var(--cond);font-weight:700;font-size:30px;letter-spacing:.06em;text-transform:uppercase;line-height:1.1}
+.rec .why{margin:8px 0 12px;font-size:15.5px}
+.rec dl{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin:0;border-top:1px solid var(--ink)}
+.rec dl div{padding:8px 0 0}
+.rec dt{font-family:var(--cond);font-size:11.5px;letter-spacing:.12em;color:var(--ink2)}
+.rec dd{margin:0;font-family:var(--cond);font-size:22px}
+.rec .alt{grid-column:1/-1;font-size:13.5px;color:var(--ink2);border-top:1px dashed var(--rule);padding-top:10px}
+/* 配水 */
+.planSec{background:var(--ink);color:var(--sheet)}
+.planSec .ttl{border-color:var(--sheet)}
+.planSec .ttl p,.planSec .ttl h2 small{color:#cfc8b8}
+.plan{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(20px,4vw,50px);align-items:start}
+.plan>*{min-width:0}
+.rng{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;align-items:center;margin-bottom:18px}
+.rng input{grid-column:1/3;accent-color:var(--water2);width:100%}
+.rng label{font-family:var(--cond);letter-spacing:.1em;text-transform:uppercase;font-size:14px}
+.rng output{font-family:var(--cond);font-size:26px;color:var(--water2)}
+.lab{display:block;font-family:var(--cond);letter-spacing:.1em;text-transform:uppercase;font-size:14px;margin:0 0 8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+.chips label{position:relative}
+.chips input{position:absolute;opacity:0}
+.chips span{display:block;border:1.5px solid #6a655c;padding:7px 12px;cursor:pointer;font-size:14px;line-height:1.3;text-align:center}
+.chips span small{display:block;font-size:11px;color:#a8a194}
+.chips input:checked+span{background:var(--water2);color:var(--ink);border-color:var(--water2)}
+.chips input:checked+span small{color:#2a4560}
+.chips input:focus-visible+span{outline:2px solid var(--sheet);outline-offset:2px}
+.jugs{border:1.5px solid #6a655c;padding:16px}
+.jugs svg{width:100%;height:auto;display:block}
+.quote{border-top:2px solid var(--sheet);margin-top:16px;padding-top:12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;align-items:baseline;font-size:14.5px}
+.quote b{font-family:var(--cond);font-size:44px;line-height:1;color:var(--water2);grid-row:span 3}
+.planSec .btn{background:var(--sheet);color:var(--ink);border-color:var(--sheet);margin-top:16px;width:100%}
+.planSec .btn:hover{background:var(--water2);border-color:var(--water2)}
+.demo{font-size:12px;color:#a8a194;margin:8px 0 0;text-align:center}
+/* 照片與評論 */
+.gal{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.gal .ph{aspect-ratio:4/3}
+.revs{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px}
+.rv{border:1.5px solid var(--ink);background:#f6f2e8;padding:18px}
+.rv p{margin:6px 0 10px}
+.rv small{font-family:var(--cond);font-size:12px;letter-spacing:.12em;color:var(--ink2)}
+.rv .st{color:var(--water);letter-spacing:.1em}
+/* 資訊 */
+.info{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1.5px solid var(--ink)}
+.info>div{padding:20px 22px}
+.info>div+div{border-left:1.5px solid var(--ink)}
+.info h3{margin:0 0 10px;font-family:var(--cond);font-size:16px;letter-spacing:.16em;text-transform:uppercase}
+.info p{margin:0 0 6px;color:var(--ink2)}
+.info a{text-decoration-color:var(--water)}
+.hours{display:grid;grid-template-columns:auto 1fr;gap:2px 16px;font-family:var(--cond);font-size:15px;letter-spacing:.04em}
+.hours .t{color:var(--water);font-weight:700}
+footer{padding:28px 0 60px;font-family:var(--cond);font-size:13px;letter-spacing:.14em;color:var(--ink2)}
+footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:2px solid var(--ink);padding-top:14px}
+footer nav{display:flex;gap:18px}
+footer a{text-decoration:none}
+.slotBtn{position:fixed;right:16px;bottom:16px;z-index:60;border:1.5px solid var(--ink);background:var(--sheet);font-family:var(--cond);font-size:12px;letter-spacing:.12em;padding:6px 12px;cursor:pointer}
+.slotBtn[aria-pressed=true]{background:var(--ink);color:var(--sheet)}
+.rv-in{opacity:0;transform:translateY(14px);transition:opacity .8s ease,transform .8s ease}
+.rv-in.vis{opacity:1;transform:none}
 @media (max-width:960px){
-  .grid2{grid-template-columns:minmax(0,1fr)}
-  .block{grid-template-columns:repeat(2,1fr)}
-  .block div:nth-child(3){border-left:0}
-  .block div:nth-child(n+3){border-top:1px solid var(--ink)}
-  .head p{text-align:left}
+  .nav ul{display:none;position:absolute;top:64px;left:0;right:0;flex-direction:column;gap:0;background:var(--sheet);padding:4px 20px 14px;border-bottom:2px solid var(--ink)}
+  .nav.open ul{display:flex}
+  .nav ul a{display:block;padding:10px 0;border-bottom:1px solid var(--rule)}
+  .nav .wrap>.btn{display:none}
+  .burger{display:block}
+  .heroGrid,.waters,.pair,.plan{grid-template-columns:1fr}
+  .titleBlock{grid-template-columns:1fr}
+  .ttl{grid-template-columns:auto minmax(0,1fr)}
+  .ttl p{grid-column:1/-1}
+  .chartBox{position:static}
+  .revs{grid-template-columns:1fr}
+  .info{grid-template-columns:1fr}
+  .info>div+div{border-left:0;border-top:1.5px solid var(--ink)}
 }
-@media (prefers-reduced-motion:reduce){.flow.anim{animation:none}}
+@media (max-width:560px){
+  .foods{grid-template-columns:1fr 1fr}
+  .rec{grid-template-columns:1fr}
+  .rec svg{width:90px}
+  .rec dl{grid-template-columns:repeat(2,1fr)}
+  .gal{grid-template-columns:1fr}
+  .legendBox{grid-template-columns:auto auto auto auto}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.rv-in{opacity:1;transform:none;transition:none}.flow{animation:none}}
 </style>
 </head>
 <body>
-<main class="sheet">
-  <header class="head">
-    <h1>Where Water Comes From<span>水從哪裡來 · 礦泉水的地質剖面</span></h1>
-    <p>Plate 3 · Schematic cross-section A–A′<br>垂直比例誇大約 6 倍 · 非實測</p>
-  </header>
-  <nav class="sources" id="sources" aria-label="選擇水源"></nav>
-  <div class="map" id="map"><svg id="sec" viewBox="0 0 1200 560" role="img" aria-label="山地到平原的地層剖面圖"></svg><div class="tip" id="tip"></div></div>
-  <section class="grid2">
-    <div class="box"><h2><span id="srcName">—</span><small id="srcTime"></small></h2>
-      <div class="big"><div>總溶解固體<b id="tds">0<small>mg/L</small></b></div><div>硬度<b id="hard">0<small>mg/L</small></b></div><div>pH<b id="ph">0</b></div></div>
-      <p class="story" id="story"></p></div>
-    <div class="box"><h2><span>Major ions 主要離子</span><small>mg/L · 對數刻度</small></h2>
-      <div class="bars" id="bars"></div>
-      <div class="axis"><span>1</span><span>10</span><span>100</span><span>1000</span></div>
-      <p class="legend"><i></i>這個水源<s></s>一般自來水（參考）</p></div>
-    <div class="box"><h2><span>Pairs with 適合沖泡</span></h2><ul class="pair" id="pair"></ul></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="lGranite" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#e9d9cf"/><path d="M4 6 l4 4 M14 4 l-3 5 M18 14 l4 -3 M6 18 l3 3 M12 16 l-2 4" stroke="#8a4a3a" stroke-width="1.4"/></pattern>
+    <pattern id="lLime" width="32" height="16" patternUnits="userSpaceOnUse"><rect width="32" height="16" fill="#dfe4ea"/><path d="M0 0 H32 M0 8 H32 M8 0 V8 M24 8 V16" stroke="#5a6676" stroke-width="1.1"/></pattern>
+    <pattern id="lSand" width="14" height="14" patternUnits="userSpaceOnUse"><rect width="14" height="14" fill="#f2e6c2"/><circle cx="3" cy="4" r="1" fill="#8a7440"/><circle cx="10" cy="9" r="1" fill="#8a7440"/><circle cx="6" cy="12" r=".8" fill="#8a7440"/></pattern>
+    <pattern id="lBasalt" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#d6d3d9"/><path d="M2 18 L10 4 L18 18" stroke="#3a3540" stroke-width="1.2" fill="none"/></pattern>
+    <pattern id="lClay" width="40" height="10" patternUnits="userSpaceOnUse"><rect width="40" height="10" fill="#d9c9b0"/><path d="M0 3 H18 M24 3 H40 M6 7 H34" stroke="#6a5a40" stroke-width="1"/></pattern>
+    <pattern id="lIce" width="30" height="30" patternUnits="userSpaceOnUse"><rect width="30" height="30" fill="#eef5fb"/><path d="M0 30 L15 0 L30 30" stroke="#7fb2de" stroke-width="1" fill="none"/></pattern>
+    <pattern id="lAquifer" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#cfe2f3"/><circle cx="4" cy="4" r="1.6" fill="#2f6fb3"/><circle cx="12" cy="12" r="1.6" fill="#2f6fb3"/></pattern>
+  </defs>
+</svg>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top"><svg viewBox="0 0 30 30" aria-hidden="true"><rect x="1" y="1" width="28" height="28" fill="url(#lAquifer)" stroke="#262421" stroke-width="2"/><path d="M1 10 H29" stroke="#262421" stroke-width="2"/><path d="M15 1 V29" stroke="#262421" stroke-width="2"/></svg>AQUIFER<small>地層水吧</small></a>
+    <ul id="navList"><li><a href="#waters">水單</a></li><li><a href="#pair">搭配</a></li><li><a href="#plan">企業配水</a></li><li><a href="#visit">交通</a></li></ul>
+    <a class="btn" href="#plan" style="padding:7px 14px;font-size:13px">配水試算</a>
+    <button class="burger" id="burger" type="button" aria-expanded="false">Index</button>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <div class="titleBlock rv-in">
+        <div><span class="plate">Plate I · Water Sources of the Bar · 比例尺 不按比例</span><h1>AQUI<span>FER</span></h1></div>
+        <div class="legendBox" aria-label="圖例"><i><svg width="30" height="14"><rect width="30" height="14" fill="url(#lGranite)"/></svg></i>花崗岩<i><svg width="30" height="14"><rect width="30" height="14" fill="url(#lBasalt)"/></svg></i>火山岩<i><svg width="30" height="14"><rect width="30" height="14" fill="url(#lLime)"/></svg></i>石灰岩<i><svg width="30" height="14"><rect width="30" height="14" fill="url(#lAquifer)"/></svg></i>含水層</div>
+      </div>
+      <div class="section rv-in"><svg id="xsec" viewBox="0 0 1200 420" role="img" aria-label="從冰河、山地到平原的地層剖面，標示八款水的水源位置"></svg></div>
+      <div class="heroGrid">
+        <div class="rv-in">
+          <p>每一瓶水都是一段在岩層裡走過的路。冰河融水幾乎沒有礦物質，火山岩層的水帶著矽與一點點鈉，石灰岩滲出的水鈣鎂豐富、喝起來厚實。AQUIFER 是一間水吧：我們收集八款不同地層的水，讓你一口一口比較，也替餐廳、咖啡館與辦公室配水。</p>
+          <div class="btns"><a class="btn" href="#waters">比較八款水</a><a class="btn ghost" href="#plan">辦公室配水試算</a></div>
+          <span class="status" id="status"><i></i><span>…</span></span>
+        </div>
+        <figure class="rv-in" style="margin:0"><div class="ph" data-photo="bar" data-art="bar" data-label="水吧台" data-size="1200×900" style="aspect-ratio:4/3"></div><figcaption>Fig. 1　水吧台，八款水以 12 °C 供應。</figcaption></figure>
+      </div>
+    </div>
   </section>
-  <div class="block"><div>Sheet<b>A–A′</b></div><div>Scale<b>1 : 50 000（水平）</b></div><div>Drawn<b>2026 · 10</b></div><div>Series<b>飲料 · 水</b></div></div>
+
+  <section class="sec" id="waters" style="padding-top:0">
+    <div class="wrap">
+      <div class="ttl rv-in"><span class="no">01</span><h2>Water List<small>水單與礦物成分</small></h2><p>勾選最多三款，右邊的圖會疊在一起比較。品飲組（三款各 100 ml）NT$ 180。TDS 是溶解固體總量，越高越「重」。</p></div>
+      <div class="waters">
+        <div class="wlist rv-in" id="wlist"></div>
+        <div class="chartBox rv-in"><span class="plate">Fig. 2 · 礦物成分（mg/L，對數刻度）</span><svg id="chart" viewBox="0 0 520 360" role="img" aria-label="所選水款的礦物成分比較圖"></svg><p class="note" id="chartNote"></p><div class="cartLine" id="cartLine" aria-live="polite"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="pair" style="padding-top:0">
+    <div class="wrap">
+      <div class="ttl rv-in"><span class="no">02</span><h2>Pairing<small>配什麼喝什麼</small></h2><p>軟水讓細緻的味道出得來，硬水撐得住厚重的油脂與單寧，氣泡則能清口。選你要配的東西，看推薦。</p></div>
+      <div class="pair">
+        <div class="foods rv-in" id="foods"></div>
+        <div class="rec rv-in" id="rec" aria-live="polite"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec planSec" id="plan">
+    <div class="wrap">
+      <div class="ttl rv-in"><span class="no">03</span><h2>Office Supply<small>辦公室與餐廳配水</small></h2><p>十九公升與五公升玻璃水桶，含飲水機、每月清潔與空桶回收。依人數估算每週用量。</p></div>
+      <div class="plan">
+        <form id="pf" class="rv-in" onsubmit="return false">
+          <div class="rng"><label for="ppl">人數</label><output id="pplOut"></output><input type="range" id="ppl" min="5" max="200" step="5" value="30"></div>
+          <div class="rng"><label for="lpp">每人每日（公升）</label><output id="lppOut"></output><input type="range" id="lpp" min="0.5" max="2.5" step="0.1" value="1.2"></div>
+          <span class="lab">水款</span><div class="chips" id="pWater"></div>
+          <span class="lab">每週工作日</span><div class="chips" id="pDays"></div>
+          <span class="lab">合約</span><div class="chips" id="pTerm"></div>
+        </form>
+        <div class="rv-in">
+          <div class="jugs"><svg id="jugs" viewBox="0 0 520 200" role="img" aria-label="每週需要的水桶數量"></svg></div>
+          <div class="quote" id="quote"></div>
+          <button class="btn" type="button" id="planGo">預約場勘</button>
+          <p class="demo" id="planMsg">示範版本：不會真的送出。實際報價以場勘為準。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-label="照片與評論">
+    <div class="wrap">
+      <div class="gal">
+        <figure class="rv-in" style="margin:0"><div class="ph" data-photo="g1" data-art="flight" data-label="品飲組" data-size="1200×900"></div><figcaption>Fig. 3　三款品飲組，由軟到硬。</figcaption></figure>
+        <figure class="rv-in" style="margin:0"><div class="ph" data-photo="g2" data-art="core" data-label="岩芯樣本" data-size="1200×900"></div><figcaption>Fig. 4　店內展示的岩芯樣本。</figcaption></figure>
+        <figure class="rv-in" style="margin:0"><div class="ph" data-photo="g3" data-art="jug" data-label="玻璃水桶" data-size="1200×900"></div><figcaption>Fig. 5　十九公升玻璃水桶。</figcaption></figure>
+      </div>
+      <div class="revs">
+        <div class="rv rv-in"><div class="st">★★★★★</div><p>第一次發現水的味道差這麼多。硬水真的有點像在喝礦石，冰河水像什麼都沒有。</p><small>GOOGLE 評論</small></div>
+        <div class="rv rv-in"><div class="st">★★★★★</div><p>咖啡店改用他們建議的軟水，淺焙的花香明顯多了。配水和清潔都很準時。</p><small>企業客戶</small></div>
+        <div class="rv rv-in"><div class="st">★★★★☆</div><p>店裡的地層圖和岩芯很好看，配威士忌的那款水很推。</p><small>INSTAGRAM</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="visit" style="padding-top:0">
+    <div class="wrap"><div class="info rv-in">
+      <div><h3>Hours 營業</h3><div class="hours" id="hours"></div></div>
+      <div><h3>Location 地址</h3><p id="addr"></p><p>捷運國父紀念館站 2 號出口步行 5 分鐘。</p><p><a id="mapLink" href="#" target="_blank" rel="noopener">在地圖上開啟</a></p></div>
+      <div><h3>Contact 聯絡</h3><p><a id="tel" href="#"></a></p><p>餐廳侍水師培訓、品水講座請來電。</p><p>玻璃瓶裝 6 入以上可宅配。</p></div>
+    </div></div>
+  </section>
 </main>
+<footer><div class="wrap"><span>© <span id="yr"></span> AQUIFER · 地層水吧</span><nav><a href="#">Instagram</a><a href="#">Facebook</a></nav></div></footer>
+<button class="slotBtn" id="slotBtn" type="button" aria-pressed="false">照片位</button>
+
 <script>
 (function(){
 'use strict';
-var $=function(id){ return document.getElementById(id); };
-var NS='http://www.w3.org/2000/svg', sec=$('sec');
-function el(t,a,p,txt){ var e=document.createElementNS(NS,t); for(var k in a) e.setAttribute(k,a[k]); if(txt!=null) e.textContent=txt; (p||sec).appendChild(e); return e; }
-// ---- 岩性圖例（花紋）----
-sec.innerHTML='<defs>'+
- '<pattern id="pGranite" width="22" height="22" patternUnits="userSpaceOnUse"><rect width="22" height="22" fill="#e6c9c0"/><path d="M5 3v6M2 6h6M16 13v6M13 16h6" stroke="#8a5a50" stroke-width="1.3"/></pattern>'+
- '<pattern id="pLime" width="30" height="16" patternUnits="userSpaceOnUse"><rect width="30" height="16" fill="#d6e2ec"/><path d="M0 0h30M0 8h30M0 16h30M10 0v8M25 8v8" stroke="#5f7d97" stroke-width="1"/></pattern>'+
- '<pattern id="pBasalt" width="18" height="14" patternUnits="userSpaceOnUse"><rect width="18" height="14" fill="#9aa0a6"/><path d="M3 4l3 6 3-6M12 2l2 4 2-4" stroke="#3c4248" stroke-width="1.2" fill="none"/></pattern>'+
- '<pattern id="pSand" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#ead9a8"/><circle cx="3" cy="3" r="1.1" fill="#8f7638"/><circle cx="9" cy="8" r="1.1" fill="#8f7638"/></pattern>'+
- '<pattern id="pClay" width="24" height="10" patternUnits="userSpaceOnUse"><rect width="24" height="10" fill="#c7b59a"/><path d="M2 5h9M14 5h8" stroke="#6b5a40" stroke-width="1.2"/></pattern>'+
- '<pattern id="pAllu" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#efe3c5"/><circle cx="4" cy="4" r="1.6" fill="none" stroke="#9c8656"/><circle cx="12" cy="11" r="2.2" fill="none" stroke="#9c8656"/><circle cx="12" cy="3" r=".9" fill="#9c8656"/></pattern>'+
- '<pattern id="pShale" width="20" height="8" patternUnits="userSpaceOnUse"><rect width="20" height="8" fill="#8f8a80"/><path d="M0 2h20M0 6h12" stroke="#55514a" stroke-width="1"/></pattern>'+
- '<pattern id="pIce" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#f4fbff"/><path d="M0 10h20" stroke="#9cc6e4" stroke-width="1"/></pattern>'+
- '<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1ece0"/><stop offset="1" stop-color="#f1ece0"/></linearGradient>'+
- '<marker id="arr" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2f6fb3"/></marker>'+
- '</defs>';
-var LAYERS=[
-  {id:'shale',zh:'頁岩基盤',en:'Shale basement',fill:'url(#pShale)',d:'M0 470 L470 470 L1200 500 L1200 560 L0 560Z'},
-  {id:'granite',zh:'花崗岩',en:'Granite',fill:'url(#pGranite)',d:'M0 110 L80 70 L160 40 L240 80 L320 170 L360 165 L380 300 L340 470 L0 470Z'},
-  {id:'basalt',zh:'玄武岩（火山）',en:'Basalt flows',fill:'url(#pBasalt)',d:'M320 170 L380 150 L430 90 L470 95 L520 170 L600 210 L590 300 L520 330 L470 470 L340 470 L380 300 L360 165Z'},
-  {id:'lime',zh:'石灰岩（喀斯特）',en:'Limestone (karst)',fill:'url(#pLime)',d:'M600 210 L700 205 L800 215 L860 270 L870 360 L820 380 L590 380 L590 300Z'},
-  {id:'sand',zh:'砂岩含水層',en:'Sandstone aquifer',fill:'url(#pSand)',d:'M520 330 L590 300 L590 380 L820 380 L870 360 L1200 420 L1200 500 L470 470Z'},
-  {id:'clay',zh:'黏土阻水層',en:'Clay aquitard',fill:'url(#pClay)',d:'M860 270 L950 300 L1200 330 L1200 420 L870 360Z'},
-  {id:'allu',zh:'沖積層',en:'Alluvium',fill:'url(#pAllu)',d:'M860 270 L950 300 L1050 310 L1100 318 L1120 330 L1150 312 L1200 305 L1200 330 L950 300Z'},
-  {id:'ice',zh:'冰河',en:'Glacier',fill:'url(#pIce)',d:'M40 92 L80 62 L160 30 L230 66 L262 102 L240 80 L160 40 L80 70Z'}
+/* ===== 店家設定 ===== */
+var SHOP = {
+  name:'AQUIFER', phone:'(02) 2761-0226', address:'台北市信義區示範路 26 號',
+  // 0=週日；[開, 關]，null 表示公休
+  hours:[['11:00','19:00'],null,['11:00','20:00'],['11:00','20:00'],['11:00','20:00'],['11:00','21:00'],['11:00','21:00']],
+  photos:{bar:'',g1:'',g2:'',g3:''}
+};
+// 水單 [名稱, 來源, 岩層代號, 圖例 pattern, 剖面 x 位置, 是否氣泡, 杯價, 瓶價(750 ml), {Ca, Mg, Na, K, HCO3, SO4, SiO2, TDS, pH}]
+var WATERS = [
+  ['Glacier Melt','冰河融水・挪威','ICE','lIce',90,0,90,260,{Ca:4,Mg:1,Na:2,K:.5,HCO3:12,SO4:3,SiO2:2,TDS:22,pH:6.8}],
+  ['Granite Spring','花崗岩泉・法國中央高原','GRT','lGranite',250,0,90,240,{Ca:11,Mg:7,Na:12,K:6,HCO3:70,SO4:8,SiO2:32,TDS:130,pH:7.0}],
+  ['Volcanic Basalt','玄武岩層・日本富士山麓','BAS','lBasalt',400,0,100,280,{Ca:9,Mg:6,Na:7,K:2,HCO3:50,SO4:6,SiO2:65,TDS:110,pH:7.6}],
+  ['Andesite Fizz','安山岩天然氣泡・台灣北部','AND','lBasalt',520,1,110,320,{Ca:38,Mg:18,Na:62,K:5,HCO3:320,SO4:24,SiO2:58,TDS:410,pH:6.2}],
+  ['Limestone Karst','石灰岩溶洞・義大利','LIM','lLime',680,0,100,280,{Ca:120,Mg:28,Na:5,K:1,HCO3:390,SO4:30,SiO2:9,TDS:430,pH:7.4}],
+  ['Dolomite Deep','白雲岩深層・德國','DOL','lLime',800,1,120,340,{Ca:250,Mg:110,Na:18,K:3,HCO3:640,SO4:380,SiO2:12,TDS:1450,pH:6.9}],
+  ['Sandstone Aquifer','砂岩含水層・英國','SST','lSand',950,0,90,240,{Ca:44,Mg:9,Na:10,K:2,HCO3:150,SO4:18,SiO2:14,TDS:240,pH:7.8}],
+  ['Coastal Artesian','沿海自流井・台灣東部','ART','lAquifer',1100,0,90,220,{Ca:22,Mg:12,Na:28,K:3,HCO3:120,SO4:20,SiO2:25,TDS:210,pH:8.1}]
 ];
-var gL=el('g',{});
-LAYERS.forEach(function(L){ var p=el('path',{d:L.d,fill:L.fill,stroke:'#262421','stroke-width':1.2,class:'layer','data-zh':L.zh,'data-en':L.en},gL); });
-// 喀斯特溶洞
-[[690,300,40,16],[760,330,28,12],[650,350,22,9]].forEach(function(c){ el('ellipse',{cx:c[0],cy:c[1],rx:c[2],ry:c[3],fill:'#7fb2de',stroke:'#262421','stroke-width':1}); });
-// 岩漿管道與斷層
-el('path',{d:'M450 470 Q440 380 450 300 Q455 200 448 100',fill:'none',stroke:'#b4402f','stroke-width':6,opacity:.55});
-el('path',{d:'M760 560 L790 212',fill:'none',stroke:'#262421','stroke-width':2,'stroke-dasharray':'10 5'});
-el('text',{x:742,y:548,'font-family':'Avenir Next Condensed, Arial Narrow, sans-serif','font-size':12,fill:'#262421',transform:'rotate(-85 742 548)'},null,'FAULT 斷層');
-// CO2 氣泡沿斷層上升
-var co2=el('g',{});
-for(var i=0;i<14;i++) el('circle',{cx:762+i*2.1,cy:540-i*23,r:2.4,fill:'none',stroke:'#262421','stroke-width':1,class:'co2'},co2);
-// 地表線與河流
-el('path',{d:'M0 110 L80 70 L160 40 L240 80 L320 170 L380 150 L430 90 L470 95 L520 170 L600 210 L700 205 L800 215 L860 270 L950 300 L1050 310 L1100 318 L1120 330 L1150 312 L1200 305',fill:'none',stroke:'#262421','stroke-width':2.4});
-el('path',{d:'M1100 318 L1120 330 L1150 312',fill:'#7fb2de',stroke:'none'});
-// 雨
-var rain=el('g',{stroke:'#2f6fb3','stroke-width':1.3,opacity:.5});
-for(i=0;i<40;i++){ var x=20+i*29, y=8+(i*37)%26; el('line',{x1:x,y1:y,x2:x-4,y2:y+12},rain); }
-// 地名
-[['山',160,24],['火山',448,76],['台地',700,192],['平原',1000,290],['河',1135,350]].forEach(function(t){ el('text',{x:t[1],y:t[2],'text-anchor':'middle','font-family':'PingFang TC, sans-serif','font-size':13,fill:'#5c574e','letter-spacing':4},null,t[0]); });
-// 比例尺、指北
-var sc=el('g',{transform:'translate(1040 520)'}); el('rect',{x:0,y:0,width:60,height:6,fill:'#262421'},sc); el('rect',{x:60,y:0,width:60,height:6,fill:'#f1ece0',stroke:'#262421'},sc); el('text',{x:0,y:20,'font-size':10,'font-family':'Avenir Next Condensed, Arial Narrow, sans-serif',fill:'#262421'},sc,'0　　　2 km');
-el('text',{x:12,y:20,'font-family':'Avenir Next Condensed, Arial Narrow, sans-serif','font-size':14,'font-weight':700,fill:'#262421'},null,'A');
-el('text',{x:1180,y:20,'font-family':'Avenir Next Condensed, Arial Narrow, sans-serif','font-size':14,'font-weight':700,fill:'#262421'},null,'A′');
-// 圖例小框
-var lg=el('g',{transform:'translate(14 330)'});
-el('rect',{x:0,y:0,width:150,height:LAYERS.length*17+10,fill:'#f1ece0',stroke:'#262421'},lg);
-LAYERS.slice().reverse().forEach(function(L,k){ el('rect',{x:8,y:7+k*17,width:20,height:12,fill:L.fill,stroke:'#262421','stroke-width':.8},lg); el('text',{x:34,y:17+k*17,'font-size':11,'font-family':'PingFang TC, sans-serif',fill:'#262421'},lg,L.zh); });
-var gFlow=el('g',{}), gMark=el('g',{});
+var MIN = ['Ca','Mg','Na','K','HCO3','SO4','SiO2'], MIN_L = {Ca:'鈣',Mg:'鎂',Na:'鈉',K:'鉀',HCO3:'碳酸氫根',SO4:'硫酸根',SiO2:'矽'};
+var COLORS = ['#2f6fb3','#b4402f','#3d7a3a'];
+// 搭配 [名稱, 推薦水 index, 次選, 理由, 圖示]
+var PAIR = [['淺焙咖啡',0,1,'幾乎沒有礦物質的軟水，咖啡的花果酸質不會被鈣鎂壓住。','cup'],['生魚片與壽司',2,0,'富含矽的火山水口感滑順，鈉低，不搶魚的鮮甜。','fish'],['紅肉與燉菜',5,4,'高鈣鎂的硬水帶一點礦石苦，配得上油脂與醬汁。','meat'],['紅酒',4,6,'中硬度、無氣泡，清口但不洗掉單寧的結構。','wine'],['威士忌加水',1,0,'低礦、中性的花崗岩泉，加幾滴打開香氣而不改變風味。','glass'],['油炸與披薩',3,5,'強氣泡與碳酸氫根清口，像給嘴巴洗個澡。','pizza']];
+var PLAN = { jug:19, jugPrice:180, small:5, smallPrice:70, dispenser:{12:0,24:0,1:300}, terms:[[1,0,'月約'],[12,.08,'一年 92 折'],[24,.12,'兩年 88 折']], days:[[5,'週一至五'],[6,'週一至六'],[7,'每天']], waters:[1,6,7] };
+var $ = function(s, r){ return (r || document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+var money = function(n){ return 'NT$ ' + Math.round(n).toLocaleString(); };
+var now = new Date(), DAYS = ['週日','週一','週二','週三','週四','週五','週六'];
 
-// ---- 水源資料（典型值，非特定品牌）----
-var SRC=[
-  {k:'glacier',zh:'冰河融水',time:'數週到數月',path:'M120 50 Q180 70 230 90 Q260 120 300 160',spring:[300,160],
-   ion:{Ca:6,Mg:1,Na:2,K:.5,HCO3:22,SO4:3,Cl:1,SiO2:4},ph:7.2,
-   story:'夏天融化的冰水沿著冰河底部流下，只在<em>花崗岩表面</em>停留很短的時間，幾乎帶不走礦物。結果是極軟、近乎無味的水。',
-   pair:[['綠茶','軟水讓茶胺酸的鮮甜出得來，不會澀。'],['手沖咖啡','萃取乾淨、酸質明亮，但可能偏單薄。']]},
-  {k:'volcanic',zh:'火山岩層水',time:'十五到三十年',path:'M430 110 Q440 180 470 230 Q500 270 520 300 Q540 240 540 190',spring:[540,190],
-   ion:{Ca:12,Mg:8,Na:12,K:6,HCO3:75,SO4:8,Cl:9,SiO2:55},ph:7.4,
-   story:'雨水滲進多孔的<em>玄武岩</em>，在火山岩的縫隙裡慢慢流動數十年，溶出大量<em>矽</em>與一些鈉鉀。口感滑順、微甜。',
-   pair:[['烏龍茶','適量礦物托住焙火香，矽讓口感圓潤。'],['米飯與高湯','軟中帶一點礦物，煮飯不會乾硬。']]},
-  {k:'karst',zh:'石灰岩泉',time:'五到十年',path:'M660 200 Q670 260 690 300 Q730 320 760 330 Q820 320 860 275',spring:[862,272],
-   ion:{Ca:95,Mg:20,Na:6,K:1.5,HCO3:330,SO4:25,Cl:10,SiO2:9},ph:7.4,
-   story:'帶著二氧化碳的雨水是弱酸，一路<em>溶蝕石灰岩</em>、挖出溶洞，帶走大量鈣與碳酸氫根，在台地邊緣湧出。典型的硬水。',
-   pair:[['濃縮咖啡','鈣鎂幫助萃取、撐起醇厚度，但要小心水垢。'],['紅茶加奶','硬水讓湯色較深、口感厚，適合奶茶。']]},
-  {k:'artesian',zh:'深層砂岩水',time:'數千年',path:'M560 320 Q620 400 760 430 Q900 445 1000 440 L1000 305',spring:[1000,305],
-   ion:{Ca:40,Mg:12,Na:70,K:3,HCO3:280,SO4:45,Cl:30,SiO2:15},ph:7.8,
-   story:'山區的雨水滲入傾斜的<em>砂岩層</em>，被上方的黏土層封住，在地下流了數千年。鑽井打穿黏土，水靠壓力自己往上冒——自流井。',
-   pair:[['冷泡茶','礦物穩定、偏鹼，冷泡不易混濁。'],['氣泡調酒的基底','鈉稍高，帶一點鹹，襯酸味。']]},
-  {k:'sparkling',zh:'天然氣泡泉',time:'數百年',path:'M640 470 Q700 470 755 470 Q775 340 790 215',spring:[790,212],
-   ion:{Ca:200,Mg:45,Na:300,K:30,HCO3:1600,SO4:40,Cl:60,SiO2:30},ph:6.0,
-   story:'深處的地下水沿著<em>斷層</em>上升，途中遇上地底岩漿釋出的<em>二氧化碳</em>，酸性變強、溶出極多礦物。湧出地表時自帶氣泡。',
-   pair:[['餐間解膩','強烈的礦物味與氣泡，清口。'],['不建議泡茶咖啡','礦物太多，會蓋掉所有香氣。']]}
-];
-var TAP={Ca:20,Mg:5,Na:15,K:3,HCO3:60,SO4:20,Cl:20,SiO2:12};
-var IONS=['Ca','Mg','Na','K','HCO3','SO4','Cl','SiO2'], LAB={Ca:'Ca²⁺',Mg:'Mg²⁺',Na:'Na⁺',K:'K⁺',HCO3:'HCO₃⁻',SO4:'SO₄²⁻',Cl:'Cl⁻',SiO2:'SiO₂'};
-$('sources').innerHTML=SRC.map(function(s,i){ return '<button class="src'+(i?'':' on')+'" data-i="'+i+'"><i></i>'+s.zh+'</button>'; }).join('');
-$('bars').innerHTML=IONS.map(function(k){ return '<div class="bar"><span>'+LAB[k]+'</span><i><u></u><s></s></i><em></em></div>'; }).join('');
-function logw(v){ return Math.max(0,Math.min(1,Math.log10(Math.max(1,v))/Math.log10(2000)))*100; }
-function pick(i){
-  var s=SRC[i];
-  Array.prototype.forEach.call($('sources').children,function(b,k){ b.classList.toggle('on',k===i); });
-  // 滲流路徑：先畫出來，再變成流動的虛線
-  gFlow.innerHTML=''; gMark.innerHTML='';
-  var p=el('path',{d:s.path,class:'flow','marker-end':'url(#arr)'},gFlow);
-  var L=p.getTotalLength(); p.style.strokeDasharray=L; p.style.strokeDashoffset=L; p.getBoundingClientRect();
-  p.style.transition='stroke-dashoffset 1.6s ease-out'; p.style.strokeDashoffset=0;
-  setTimeout(function(){ p.style.transition='none'; p.style.strokeDasharray=''; p.style.strokeDashoffset=''; p.classList.add('anim'); },1700);
-  var sp=s.spring;
-  el('circle',{cx:sp[0],cy:sp[1],r:9,fill:'#f1ece0',stroke:'#2f6fb3','stroke-width':3},gMark);
-  el('circle',{cx:sp[0],cy:sp[1],r:3.5,fill:'#2f6fb3'},gMark);
-  if(s.k==='artesian'){ el('rect',{x:sp[0]-4,y:sp[1]-30,width:8,height:30,fill:'#262421'},gMark); el('line',{x1:sp[0],y1:sp[1],x2:sp[0],y2:440,stroke:'#262421','stroke-width':2,'stroke-dasharray':'4 3'},gMark); }
-  var lx=Math.min(1060,sp[0]+16), ly=sp[1]-22;
-  var tb=el('g',{},gMark); el('rect',{x:lx-4,y:ly-14,width:s.zh.length*15+70,height:20,fill:'#262421'},tb); el('text',{x:lx+2,y:ly+1,'font-size':13,'font-family':'PingFang TC, sans-serif',fill:'#f1ece0'},tb,s.zh+' · '+s.time);
-  // 數值
-  var tds=0; IONS.forEach(function(k){ tds+=s.ion[k]; }); tds=Math.round(tds-s.ion.HCO3*.49); // 蒸乾時碳酸氫根約一半變成二氧化碳逸散
-  var hard=Math.round(s.ion.Ca*2.497+s.ion.Mg*4.118);
-  count($('tds'),tds,'mg/L'); count($('hard'),hard,'mg/L'); $('ph').textContent=s.ph.toFixed(1);
-  $('srcName').textContent=s.zh+(hard<60?' · 軟水':hard<120?' · 中等硬度':hard<180?' · 硬水':' · 極硬水');
-  $('srcTime').textContent='地下停留：'+s.time;
-  $('story').innerHTML=s.story;
-  Array.prototype.forEach.call($('bars').children,function(b,k){ var v=s.ion[IONS[k]]; b.querySelector('u').style.width=logw(v)+'%'; b.querySelector('s').style.left=logw(TAP[IONS[k]])+'%'; b.querySelector('em').textContent=v<10?v.toFixed(1):Math.round(v); });
-  var icons={0:'<svg viewBox="0 0 22 22"><path d="M5 6h12l-2 13H7z" fill="none" stroke="#262421" stroke-width="1.5"/><path d="M6.5 10h9" stroke="#2f6fb3" stroke-width="3"/></svg>',1:'<svg viewBox="0 0 22 22"><circle cx="11" cy="11" r="8" fill="none" stroke="#262421" stroke-width="1.5"/><path d="M7 11h8" stroke="#2f6fb3" stroke-width="2"/></svg>'};
-  $('pair').innerHTML=s.pair.map(function(p,k){ return '<li>'+icons[k]+'<span><b>'+p[0]+'</b><br>'+p[1]+'</span></li>'; }).join('');
-  drip();
+/* ===== 地層剖面 ===== */
+(function(){
+  var s = '<rect width="1200" height="420" fill="#f6f2e8"/>';
+  // 地表剖線
+  var surf = 'M0 70 L60 40 L120 60 L180 80 L260 150 L330 120 L400 70 L440 60 L480 90 L560 170 L640 200 L760 210 L880 230 L1000 250 L1100 262 L1200 268';
+  s += '<path d="' + surf + ' L1200 420 L0 420Z" fill="url(#lClay)"/>';
+  s += '<path d="M0 70 L60 40 L120 60 L180 80 L220 130 L200 420 L0 420Z" fill="url(#lIce)" opacity=".9"/>';
+  s += '<path d="M180 80 L260 150 L330 120 L340 420 L200 420 L220 130Z" fill="url(#lGranite)"/>';
+  s += '<path d="M330 120 L400 70 L440 60 L480 90 L560 170 L540 420 L340 420Z" fill="url(#lBasalt)"/>';
+  s += '<path d="M560 170 L640 200 L760 210 L880 230 L880 330 L540 340Z" fill="url(#lLime)"/><path d="M540 340 L880 330 L880 420 L540 420Z" fill="url(#lLime)" opacity=".7"/>';
+  s += '<path d="M880 230 L1000 250 L1100 262 L1200 268 L1200 310 L880 300Z" fill="url(#lSand)"/><path d="M880 300 L1200 310 L1200 350 L880 345Z" fill="url(#lAquifer)"/><path d="M880 345 L1200 350 L1200 420 L880 420Z" fill="url(#lClay)"/>';
+  s += '<path d="' + surf + '" fill="none" stroke="#262421" stroke-width="2.5"/>';
+  ['M200 420 L220 130','M340 420 L330 120','M540 420 L560 170','M880 420 L880 230','M540 340 L880 330','M880 300 L1200 310','M880 345 L1200 350'].forEach(function(d){ s += '<path d="' + d + '" stroke="#262421" stroke-width="1.5" fill="none"/>'; });
+  // 雪與雨
+  s += '<path d="M0 70 L60 40 L120 60 L90 62 L60 52 L30 64Z" fill="#fff" stroke="#262421" stroke-width="1"/>';
+  for (var r = 0; r < 14; r++) s += '<path d="M' + (300 + r*22) + ' ' + (10 + (r%3)*6) + ' l-6 16" stroke="#7fb2de" stroke-width="2"/>';
+  // 水流路徑
+  ['M70 60 Q120 180 120 300','M300 140 Q280 240 260 330','M440 70 Q470 200 450 300','M520 120 Q520 200 520 260','M600 210 Q680 280 700 320','M760 220 Q780 300 800 360','M900 250 Q1000 300 1100 325','M1000 260 Q1080 330 1150 330'].forEach(function(d){ s += '<path class="flow" d="' + d + '" stroke="#2f6fb3" stroke-width="3" fill="none" stroke-linecap="round"/>'; });
+  // 井與標號
+  WATERS.forEach(function(w, i){ var x = w[4]; s += '<g><path d="M' + x + ' 6 V30" stroke="#262421" stroke-width="1"/><circle cx="' + x + '" cy="22" r="13" fill="' + (w[5] ? '#262421' : '#f6f2e8') + '" stroke="#262421" stroke-width="1.5"/><text x="' + x + '" y="27" text-anchor="middle" font-family="Avenir Next Condensed,Arial Narrow,sans-serif" font-size="13" font-weight="700" fill="' + (w[5] ? '#f6f2e8' : '#262421') + '">' + (i + 1) + '</text></g>'; });
+  s += '<rect x="880" y="392" width="318" height="26" fill="#f6f2e8"/><text x="1190" y="410" text-anchor="end" font-family="Avenir Next Condensed,Arial Narrow,sans-serif" font-size="12" letter-spacing="2" fill="#5c574e">● 氣泡　○ 無氣泡　→ 地下水流</text>';
+  $('#xsec').innerHTML = s;
+})();
+
+/* ===== 水單與比較圖 ===== */
+var picked = [0, 4, 3];
+function core(w){ return '<svg class="core" viewBox="0 0 46 46" aria-hidden="true"><rect width="46" height="46" fill="url(#' + w[3] + ')"/><rect y="' + (46 - Math.min(40, w[8].TDS/36)) + '" width="46" height="' + Math.min(40, w[8].TDS/36) + '" fill="#2f6fb3" opacity=".35"/></svg>'; }
+$('#wlist').innerHTML = WATERS.map(function(w, i){ return '<label class="w"><input type="checkbox" value="' + i + '"' + (picked.indexOf(i) >= 0 ? ' checked' : '') + '>' + core(w) + '<span><b>' + (i + 1) + '. ' + w[0] + (w[5] ? ' ✦' : '') + '</b><small>' + w[1] + '</small><span class="tds">TDS ' + w[8].TDS + ' · pH ' + w[8].pH + ' · ' + (w[8].TDS < 60 ? '極軟' : w[8].TDS < 200 ? '軟' : w[8].TDS < 500 ? '中硬' : '硬') + '</span></span><span class="pr">' + w[6] + '<small> / 杯</small><br><button class="addBtn" type="button" data-add="' + i + '">瓶 ' + w[7] + '</button></span></label>'; }).join('');
+$('#wlist').addEventListener('change', function(e){ if (e.target.type !== 'checkbox') return; var i = +e.target.value; if (e.target.checked){ picked.push(i); if (picked.length > 3){ var drop = picked.shift(); $('#wlist input[value="' + drop + '"]').checked = false; } } else picked = picked.filter(function(x){ return x !== i; }); chart(); });
+var bag = {};
+$('#wlist').addEventListener('click', function(e){ var b = e.target.closest('[data-add]'); if (!b) return; e.preventDefault(); var i = +b.dataset.add; bag[i] = (bag[i] || 0) + 1; var sum = 0, list = Object.keys(bag).map(function(k){ sum += WATERS[k][7]*bag[k]; return WATERS[k][0] + ' ×' + bag[k]; }); $('#cartLine').textContent = '外帶：' + list.join('、') + '　' + money(sum) + '（示範：不會真的下單）'; });
+function chart(){
+  var L = 80, T = 16, W = 420, rowH = 40, s = '', max = Math.log10(1000);
+  [1, 10, 100, 1000].forEach(function(v){ var x = L + Math.log10(v)/max*W; s += '<path d="M' + x + ' ' + T + ' V' + (T + rowH*MIN.length) + '" stroke="#bdb4a2" stroke-dasharray="3 3"/><text x="' + x + '" y="' + (T + rowH*MIN.length + 16) + '" text-anchor="middle" font-family="Avenir Next Condensed,Arial Narrow,sans-serif" font-size="12" fill="#5c574e">' + v + '</text>'; });
+  MIN.forEach(function(m, r){ var y = T + r*rowH; s += '<text x="' + (L - 10) + '" y="' + (y + rowH/2 + 4) + '" text-anchor="end" font-family="Avenir Next Condensed,Arial Narrow,sans-serif" font-size="13" fill="#262421">' + MIN_L[m] + '</text><path d="M' + L + ' ' + (y + rowH) + ' H' + (L + W) + '" stroke="#e0d8c6"/>';
+    picked.forEach(function(i, k){ var v = WATERS[i][8][m], w = Math.max(2, Math.log10(Math.max(1, v))/max*W), bh = (rowH - 10)/Math.max(1, picked.length); s += '<rect x="' + L + '" y="' + (y + 5 + k*bh) + '" width="' + w.toFixed(1) + '" height="' + (bh - 2) + '" fill="' + COLORS[k] + '"' + (k === 1 ? ' fill-opacity=".75"' : '') + '/><text x="' + (L + w + 4) + '" y="' + (y + 5 + k*bh + bh/2 + 3) + '" font-family="Avenir Next Condensed,Arial Narrow,sans-serif" font-size="10.5" fill="#262421">' + v + '</text>'; }); });
+  s += '<path d="M' + L + ' ' + T + ' V' + (T + rowH*MIN.length) + '" stroke="#262421" stroke-width="1.5"/>';
+  $('#chart').innerHTML = s;
+  $('#chartNote').innerHTML = picked.length ? picked.map(function(i, k){ return '<span style="color:' + COLORS[k] + '">■</span> ' + WATERS[i][0] + '（TDS ' + WATERS[i][8].TDS + '）'; }).join('　') : '勾選左邊的水來比較。';
 }
-function count(node,to,unit){ var from=parseFloat(node.textContent)||0, t0=performance.now(); (function f(now){ var q=Math.min(1,(now-t0)/600), e=1-Math.pow(1-q,3); node.innerHTML=Math.round(from+(to-from)*e)+'<small>'+unit+'</small>'; if(q<1) requestAnimationFrame(f); })(t0); }
-$('sources').addEventListener('click',function(e){ var b=e.target.closest('.src'); if(b) pick(+b.dataset.i); });
-// 懸停地層
-var tip=$('tip'), map=$('map');
-gL.addEventListener('mousemove',function(e){ var t=e.target; if(!t.dataset||!t.dataset.zh) return; var b=map.getBoundingClientRect(); tip.textContent=t.dataset.zh+' · '+t.dataset.en; tip.style.left=(e.clientX-b.left+12)+'px'; tip.style.top=(e.clientY-b.top+12)+'px'; tip.style.opacity=1; });
-gL.addEventListener('mouseleave',function(){ tip.style.opacity=0; });
-// 氣泡沿斷層上升
-(function bub(now){ Array.prototype.forEach.call(document.querySelectorAll('.co2'),function(c,i){ var y=540-((now/40+i*23)%330); c.setAttribute('cy',y); c.setAttribute('cx',762+(540-y)*.085+Math.sin(y*.1)*1.5); }); requestAnimationFrame(bub); })(0);
-var ac=null; function drip(){ try{ if(!ac) ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return; } if(ac.state!=='running') return; var t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain(); o.frequency.setValueAtTime(1400,t); o.frequency.exponentialRampToValueAtTime(600,t+.09); g.gain.setValueAtTime(.06,t); g.gain.exponentialRampToValueAtTime(.0001,t+.14); o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t+.15); }
-document.addEventListener('pointerdown',function(){ try{ if(!ac) ac=new (window.AudioContext||window.webkitAudioContext)(); if(ac.state==='suspended') ac.resume(); }catch(e){} },{once:true});
-pick(0);
+chart();
+
+/* ===== 搭配 ===== */
+var ICON = {cup:'<path d="M5 9 H22 V18 Q22 25 13.5 25 Q5 25 5 18Z M22 12 Q27 12 27 16 Q27 20 22 20" fill="none" stroke="#262421" stroke-width="2"/>',fish:'<path d="M3 15 Q12 5 22 15 Q12 25 3 15Z M22 15 L28 9 V21Z" fill="none" stroke="#262421" stroke-width="2"/>',meat:'<path d="M5 14 Q6 6 16 6 Q27 7 26 16 Q24 25 13 24 Q4 22 5 14Z" fill="none" stroke="#262421" stroke-width="2"/><circle cx="18" cy="14" r="3" fill="none" stroke="#262421" stroke-width="2"/>',wine:'<path d="M9 4 H21 Q22 15 15 17 Q8 15 9 4Z M15 17 V26 M10 26 H20" fill="none" stroke="#262421" stroke-width="2"/>',glass:'<path d="M7 7 H23 L21 25 H9Z M8 15 H22" fill="none" stroke="#262421" stroke-width="2"/>',pizza:'<path d="M4 6 L26 10 L12 27Z" fill="none" stroke="#262421" stroke-width="2"/><circle cx="13" cy="12" r="2" fill="none" stroke="#262421" stroke-width="2"/>'};
+var pi = 0;
+$('#foods').innerHTML = PAIR.map(function(p, i){ return '<button type="button" data-p="' + i + '" aria-pressed="' + (i === pi) + '"><svg viewBox="0 0 30 30" aria-hidden="true">' + ICON[p[4]] + '</svg>' + p[0] + '</button>'; }).join('');
+$('#foods').addEventListener('click', function(e){ var b = e.target.closest('button'); if (!b) return; pi = +b.dataset.p; $$('#foods button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); }); rec(); });
+function bottle(w){ var fill = Math.min(1, .25 + w[8].TDS/1600); return '<svg viewBox="0 0 120 220" aria-hidden="true"><path d="M48 6 H72 V30 Q96 44 96 74 V206 Q96 214 88 214 H32 Q24 214 24 206 V74 Q24 44 48 30Z" fill="#f6f2e8" stroke="#262421" stroke-width="2.5"/><path d="M26 ' + (210 - 130*fill) + ' H94 V206 Q94 212 88 212 H32 Q26 212 26 206Z" fill="#7fb2de" opacity=".55"/><rect x="30" y="110" width="60" height="64" fill="url(#' + w[3] + ')" stroke="#262421" stroke-width="1.5"/><text x="60" y="194" text-anchor="middle" font-family="Avenir Next Condensed,Arial Narrow,sans-serif" font-size="12" font-weight="700" fill="#262421">TDS ' + w[8].TDS + '</text>' + (w[5] ? '<circle cx="50" cy="90" r="3" fill="#fff" stroke="#2f6fb3"/><circle cx="66" cy="80" r="2.5" fill="#fff" stroke="#2f6fb3"/><circle cx="58" cy="66" r="2" fill="#fff" stroke="#2f6fb3"/>' : '') + '</svg>'; }
+function rec(){ var p = PAIR[pi], w = WATERS[p[1]], alt = WATERS[p[2]], m = w[8];
+  $('#rec').innerHTML = bottle(w) + '<div><span class="plate">推薦 · No. ' + (p[1] + 1) + '</span><h3>' + w[0] + '</h3><p class="why">' + p[3] + '</p><dl><div><dt>TDS</dt><dd>' + m.TDS + '</dd></div><div><dt>鈣 Ca</dt><dd>' + m.Ca + '</dd></div><div><dt>鎂 Mg</dt><dd>' + m.Mg + '</dd></div><div><dt>pH</dt><dd>' + m.pH + '</dd></div></dl></div><div class="alt">次選：' + (p[2] + 1) + '. ' + alt[0] + '（' + alt[1] + '，TDS ' + alt[8].TDS + '）　|　吧台單杯 ' + money(w[6]) + '，瓶裝 ' + money(w[7]) + '</div>'; }
+rec();
+
+/* ===== 配水試算 ===== */
+function chips(id, list, name, def, fn){ $(id).innerHTML = list.map(function(o, i){ return '<label><input type="radio" name="' + name + '" value="' + i + '"' + (i === def ? ' checked' : '') + '><span>' + fn(o) + '</span></label>'; }).join(''); }
+chips('#pWater', PLAN.waters, 'pw', 0, function(i){ return WATERS[i][0] + '<small>TDS ' + WATERS[i][8].TDS + '</small>'; });
+chips('#pDays', PLAN.days, 'pd', 0, function(d){ return d[1]; });
+chips('#pTerm', PLAN.terms, 'pt', 1, function(t){ return t[2]; });
+function v(n){ return +$('input[name=' + n + ']:checked').value; }
+function plan(){
+  var ppl = +$('#ppl').value, lpp = +$('#lpp').value, days = PLAN.days[v('pd')][0], term = PLAN.terms[v('pt')], wi = PLAN.waters[v('pw')];
+  $('#pplOut').textContent = ppl + ' 人'; $('#lppOut').textContent = lpp.toFixed(1) + ' L';
+  var week = ppl*lpp*days, big = Math.floor(week/PLAN.jug), rest = week - big*PLAN.jug, small = Math.ceil(rest/PLAN.small); if (small*PLAN.small >= PLAN.jug){ big++; small = 0; }
+  var disp = Math.max(1, Math.ceil(ppl/40)), surcharge = wi === 1 ? 1.15 : 1, perWeek = (big*PLAN.jugPrice + small*PLAN.smallPrice)*surcharge, month = perWeek*4.33*(1 - term[1]);
+  // 水桶圖
+  var s = '', n = big + small, per = Math.min(n, 18), scale = n > 18 ? .7 : 1;
+  for (var i = 0; i < Math.min(n, 36); i++){ var isBig = i < big, col = i % 18, row = Math.floor(i/18), x = 10 + col*28, y = 190 - row*90, h = isBig ? 80 : 46; s += '<path d="M' + (x + 6) + ' ' + (y - h) + ' h12 v6 q6 4 6 12 V' + (y - 4) + ' q0 4 -4 4 h-16 q-4 0 -4 -4 V' + (y - h + 18) + ' q0 -8 6 -12z" fill="#7fb2de" fill-opacity=".55" stroke="#f1ece0" stroke-width="1.5"/>'; }
+  if (n > 36) s += '<text x="510" y="30" text-anchor="end" font-family="Avenir Next Condensed,sans-serif" font-size="16" fill="#f1ece0">+' + (n - 36) + '</text>';
+  for (var d = 0; d < disp; d++) s += '<rect x="' + (470 - d*30) + '" y="150" width="22" height="40" fill="none" stroke="#7fb2de" stroke-width="1.5"/>';
+  $('#jugs').innerHTML = s;
+  $('#quote').innerHTML = '<b>' + money(month) + '</b><span>每月（' + term[2] + '）</span><span>每週約 ' + Math.round(week) + ' L：19 L × ' + big + (small ? '＋5 L × ' + small : '') + '</span><span>飲水機 ' + disp + ' 台免費・每月清潔・空桶回收</span>';
+}
+$('#pf').addEventListener('input', plan); $('#pf').addEventListener('change', plan); plan();
+$('#planGo').onclick = function(){ $('#planMsg').textContent = '已模擬預約場勘：' + $('#pplOut').textContent + '、' + $('#quote b').textContent + ' / 月。業務會在一個工作天內聯繫。示範版本：沒有真的送出。'; };
+
+/* ===== 營業狀態 ===== */
+function mins(t){ var p = t.split(':'); return +p[0]*60 + +p[1]; }
+(function(){
+  var h = SHOP.hours[now.getDay()], m = now.getHours()*60 + now.getMinutes(), open = h && m >= mins(h[0]) && m < mins(h[1]), next = '';
+  if (!open) for (var k = 0; k < 8 && !next; k++){ var d = (now.getDay() + k) % 7, x = SHOP.hours[d]; if (x && (k > 0 || mins(x[0]) > m)) next = (k === 0 ? '今天' : k === 1 ? '明天' : DAYS[d]) + ' ' + x[0]; }
+  $('#status').classList.toggle('on', !!open); $('#status').lastElementChild.textContent = open ? 'OPEN · 營業至 ' + h[1] : 'CLOSED · ' + next + ' 開門';
+  $('#hours').innerHTML = [1,2,3,4,5,6,0].map(function(i){ var x = SHOP.hours[i], c = i === now.getDay() ? ' class="t"' : ''; return '<span' + c + '>' + DAYS[i] + '</span><span' + c + '>' + (x ? x[0] + '–' + x[1] : '公休') + '</span>'; }).join('');
+})();
+$('#addr').textContent = SHOP.address; $('#tel').textContent = SHOP.phone; $('#tel').href = 'tel:' + SHOP.phone.replace(/[^\d]/g, '');
+$('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+$('#yr').textContent = now.getFullYear();
+
+/* ===== 佔位圖（圖版線稿） ===== */
+function svg(vb, body){ return '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="100%" height="100%" fill="#f6f2e8"/>' + body + '</svg>'; }
+var K = 'stroke="#262421" stroke-width="3" fill="none"';
+function glass(x, y, s, fill){ return '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')"><path d="M-40 -110 H40 L32 0 H-32Z" fill="#f6f2e8" stroke="#262421" stroke-width="3"/><path d="M-37 -70 H37 L32 -2 H-32Z" fill="#7fb2de" fill-opacity="' + fill + '"/></g>'; }
+var ART = {
+  bar:function(){ var s = '<rect y="560" width="1200" height="340" fill="url(#lClay)"/><path d="M0 560 H1200" stroke="#262421" stroke-width="4"/>';
+    WATERS.forEach(function(w, i){ var x = 110 + i*140; s += '<path d="M' + (x - 20) + ' 280 h40 v40 q30 16 30 50 v180 q0 10 -10 10 h-80 q-10 0 -10 -10 v-180 q0 -34 30 -50z" fill="#f6f2e8" stroke="#262421" stroke-width="3"/><rect x="' + (x - 34) + '" y="400" width="68" height="80" fill="url(#' + w[3] + ')" stroke="#262421" stroke-width="2"/><text x="' + x + '" y="530" text-anchor="middle" font-family="Avenir Next Condensed,sans-serif" font-size="22" font-weight="700" fill="#262421">' + (i + 1) + '</text>'; });
+    s += '<path d="M0 200 H1200" stroke="#262421" stroke-width="2"/>' + glass(300, 760, 1.2, .5) + glass(600, 760, 1.2, .5) + glass(900, 760, 1.2, .5);
+    return svg('0 0 1200 900', s); },
+  flight:function(){ var s = '<rect x="100" y="560" width="1000" height="60" fill="url(#lClay)" stroke="#262421" stroke-width="3"/>' + glass(300, 560, 2, .2) + glass(600, 560, 2, .45) + glass(900, 560, 2, .8);
+    ['極軟','中硬','硬'].forEach(function(t, i){ s += '<text x="' + (300 + i*300) + '" y="700" text-anchor="middle" font-family="Avenir Next Condensed,sans-serif" font-size="40" fill="#262421">' + t + '</text>'; }); return svg('0 0 1200 900', s); },
+  core:function(){ var s = ''; ['lIce','lGranite','lBasalt','lLime','lSand','lAquifer','lClay'].forEach(function(p, i){ s += '<rect x="' + (110 + i*145) + '" y="' + (120 + (i%2)*40) + '" width="100" height="' + (560 - (i%3)*60) + '" rx="50" fill="url(#' + p + ')" stroke="#262421" stroke-width="3"/>'; }); return svg('0 0 1200 900', s); },
+  jug:function(){ var s = '<path d="M520 140 h160 v70 q200 60 200 200 v360 q0 30 -30 30 h-500 q-30 0 -30 -30 v-360 q0 -140 200 -200z" fill="#f6f2e8" stroke="#262421" stroke-width="4"/><path d="M324 420 h552 v380 q0 26 -26 26 h-500 q-26 0 -26 -26z" fill="#7fb2de" fill-opacity=".5"/><rect x="500" y="110" width="200" height="40" fill="#262421"/>'; for (var i = 0; i < 3; i++) s += '<path d="M324 ' + (500 + i*100) + ' H876" stroke="#262421" stroke-width="2" opacity=".4"/>'; return svg('0 0 1200 900', s + '<text x="600" y="660" text-anchor="middle" font-family="Avenir Next Condensed,sans-serif" font-size="80" font-weight="700" fill="#262421">19 L</text>'); }
+};
+function fillPhotos(){ $$('.ph').forEach(function(f){ var url = SHOP.photos[f.dataset.photo]; if (url){ f.innerHTML = '<img src="' + url + '" alt="' + (f.dataset.label || '') + '" loading="lazy">'; return; } var a = ART[f.dataset.art]; if (a) f.innerHTML = a(); }); }
+
+/* ===== 共用 ===== */
+var nav = $('#nav');
+$('#burger').onclick = function(){ var o = nav.classList.toggle('open'); this.setAttribute('aria-expanded', o); this.textContent = o ? 'Close' : 'Index'; };
+$$('#navList a').forEach(function(a){ a.onclick = function(){ nav.classList.remove('open'); $('#burger').textContent = 'Index'; }; });
+var slotBtn = $('#slotBtn');
+function slots(on){ document.body.classList.toggle('slots', on); slotBtn.setAttribute('aria-pressed', on); }
+slotBtn.onclick = function(){ slots(!document.body.classList.contains('slots')); };
+if (/[?&]slots/.test(location.search)) slots(true);
+fillPhotos();
+if ('IntersectionObserver' in window){
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('vis'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -6% 0px'});
+  $$('.rv-in').forEach(function(el){ io.observe(el); });
+} else $$('.rv-in').forEach(function(el){ el.classList.add('vis'); });
 })();
 </script>
 </body>

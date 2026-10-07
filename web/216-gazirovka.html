@@ -1,311 +1,454 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Газировка · 三戈比汽水機</title>
-<meta name="description" content="蘇聯街頭汽水販賣機：先把多面玻璃杯放上沖洗座，投一戈比喝純汽水、三戈比加糖漿，選龍蒿、梨子或奶油蘇打口味，看氣泡在杯裡往上冒。">
+<title>Газировка 氣泡水吧｜手工糖漿汽水</title>
+<meta name="description" content="Газировка 氣泡水吧：台北中山的手工糖漿汽水吧。六款蘇聯街頭經典糖漿、自調一杯線上預點自取、瓶裝外帶，以及復古汽水機活動租借即時估價。">
+<!--
+  店家模板使用方式
+  1. 修改 <script> 開頭的 SHOP（店名、電話、地址、營業時間、照片網址）、SYRUPS（糖漿與價格）、SIZES（杯型）與 RENTAL（活動租借計價）。
+  2. photos 填入照片網址就會取代佔位圖；網址加 ?slots 或按右下角「照片位」可標出位置與建議尺寸。
+  3. 預點與租借詢價目前只在頁面上示範，正式使用請串接訂單或表單系統。
+-->
 <style>
-:root{
-  --wall:#d6ad57; --wall-2:#c39a45; --enamel:#ece6d4; --enamel-2:#d9d1bb; --red:#c4312a; --red-2:#9e2621;
-  --steel:#8e9696; --steel-2:#5d6566; --ink:#2b2622; --paper:#f4efe2;
-  --narrow:"DIN Condensed","Arial Narrow","Roboto Condensed","PingFang TC","Microsoft JhengHei",sans-serif;
-  --body:"PT Sans","Avenir Next Condensed","Arial Narrow","PingFang TC","Microsoft JhengHei",sans-serif;
+:root{--wall:#d6ad57;--wall2:#c39a45;--enamel:#ece6d4;--enamel2:#d9d1bb;--red:#c4312a;--red2:#9e2621;--steel:#8e9696;--steel2:#5d6566;--ink:#2b2622;--paper:#f4efe2;--line:rgba(43,38,34,.18);
+  --narrow:"DIN Condensed","DIN Alternate","Arial Narrow","Roboto Condensed","PingFang TC","Microsoft JhengHei",sans-serif;
+  --body:"PT Sans","Avenir Next","Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+html,body{margin:0}
+body{background:var(--wall);color:var(--ink);font-family:var(--body);line-height:1.7;overflow-x:clip;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;mix-blend-mode:multiply;background:
+  radial-gradient(600px 380px at 12% 18%,rgba(255,240,200,.5),transparent 70%),radial-gradient(700px 460px at 88% 72%,rgba(120,80,20,.2),transparent 70%),
+  repeating-radial-gradient(circle at 30% 40%,rgba(0,0,0,.035) 0 2px,transparent 2px 9px),repeating-linear-gradient(83deg,rgba(90,60,10,.04) 0 1px,transparent 1px 13px)}
+header,main,footer{position:relative;z-index:1}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1200px;margin:0 auto;padding:0 clamp(16px,4vw,44px)}
+.nr{font-family:var(--narrow);text-transform:uppercase;letter-spacing:.04em}
+.cyr{font-family:var(--narrow);font-weight:700;text-transform:uppercase;letter-spacing:.02em}
+/* 導覽：琺瑯招牌條 */
+.nav{position:sticky;top:0;z-index:40;background:var(--red);color:var(--enamel);box-shadow:0 3px 0 var(--red2)}
+.nav .wrap{display:flex;align-items:center;gap:24px;height:64px}
+.logo{text-decoration:none;display:flex;align-items:baseline;gap:10px}
+.logo b{font-family:var(--narrow);font-weight:700;font-size:30px;letter-spacing:.02em;line-height:1}
+.logo small{font-size:12px;letter-spacing:.2em;opacity:.85}
+.nav ul{display:flex;gap:22px;list-style:none;margin:0 0 0 auto;padding:0;font-family:var(--narrow);font-size:17px;letter-spacing:.06em}
+.nav ul a{text-decoration:none}
+.nav ul a:hover{text-decoration:underline;text-underline-offset:5px}
+.coinBtn{display:inline-flex;align-items:center;gap:10px;font-family:var(--narrow);font-size:18px;letter-spacing:.06em;padding:10px 20px 8px;background:var(--enamel);color:var(--red);border:0;border-radius:6px;box-shadow:inset 0 -3px 0 var(--enamel2),0 2px 0 rgba(0,0,0,.25);text-decoration:none;cursor:pointer;transition:transform .12s}
+.coinBtn:active{transform:translateY(2px);box-shadow:inset 0 -1px 0 var(--enamel2)}
+.coinBtn i{width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f3d58a,#b88a2a);box-shadow:inset 0 0 0 2px #9a721f}
+.coinBtn.red{background:var(--red);color:var(--enamel);box-shadow:inset 0 -3px 0 var(--red2),0 2px 0 rgba(0,0,0,.25)}
+.coinBtn.ink{background:var(--ink);color:var(--enamel);box-shadow:inset 0 -3px 0 #000,0 2px 0 rgba(0,0,0,.25)}
+.burger{display:none;margin-left:auto;background:none;border:2px solid var(--enamel);border-radius:4px;color:var(--enamel);font-family:var(--narrow);font-size:16px;padding:4px 12px;cursor:pointer}
+/* 照片位 */
+.ph{position:relative;overflow:hidden;background:var(--enamel2);margin:0}
+.ph>svg,.ph>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+body.slots .ph{outline:2px dashed var(--red);outline-offset:-2px}
+body.slots .ph::after{content:"照片位 · " attr(data-label) " · 建議 " attr(data-size);position:absolute;left:10px;top:10px;z-index:3;background:var(--enamel);color:var(--red);font-size:11px;padding:3px 9px}
+/* Hero */
+.hero{padding:clamp(30px,5vw,60px) 0 clamp(70px,9vw,120px);position:relative;overflow:hidden}
+.slogan{position:absolute;left:-1vw;top:2vw;font-size:min(13vw,190px);line-height:.86;color:rgba(160,110,40,.22);white-space:nowrap;pointer-events:none}
+.hero .wrap{position:relative;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:clamp(30px,5vw,70px);align-items:center}
+.hero h1{margin:0;font-family:var(--narrow);font-weight:700;font-size:clamp(66px,10vw,150px);line-height:.86;color:var(--red);text-transform:uppercase;letter-spacing:-.01em;text-shadow:3px 3px 0 rgba(158,38,33,.25)}
+.hero h2{margin:16px 0 0;font-size:clamp(24px,2.8vw,34px);font-weight:700;letter-spacing:.1em}
+.hero p{max-width:520px;margin:14px 0 26px;font-size:17px}
+.btns{display:flex;gap:12px;flex-wrap:wrap}
+.status{display:inline-flex;align-items:center;gap:10px;margin-top:22px;font-family:var(--narrow);font-size:17px;letter-spacing:.06em;background:var(--ink);color:var(--enamel);padding:6px 14px 4px;border-radius:4px}
+.status i{width:10px;height:10px;border-radius:50%;background:#6e6a60}
+.status.on i{background:#7fd36a;box-shadow:0 0 8px #7fd36a}
+.machine{max-width:430px;width:100%;justify-self:center}
+.machine svg{width:100%;height:auto;display:block;filter:drop-shadow(16px 10px 0 rgba(60,40,10,.18))}
+/* 琺瑯面板 */
+.panel{background:var(--enamel);border-radius:14px;box-shadow:inset 0 0 0 3px rgba(255,255,255,.4),inset 0 -6px 0 var(--enamel2),0 14px 0 -6px rgba(60,40,10,.22);overflow:hidden}
+.panel>header{background:var(--red);color:var(--enamel);padding:12px 22px 10px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.panel>header b{font-family:var(--narrow);font-size:24px;letter-spacing:.04em;text-transform:uppercase}
+.panel>header span{font-size:13px;opacity:.9}
+.panel .in{padding:clamp(18px,3vw,30px)}
+.sec{padding:clamp(70px,9vw,120px) 0}
+.ttl{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:34px}
+.ttl h2{margin:0;font-family:var(--narrow);font-weight:700;font-size:clamp(48px,6.4vw,88px);line-height:.9;text-transform:uppercase;color:var(--ink)}
+.ttl h2 small{display:block;font-family:var(--body);font-size:clamp(20px,2.2vw,28px);letter-spacing:.12em;margin-top:8px;text-transform:none;color:var(--red)}
+.ttl p{max-width:420px;margin:0;font-size:15.5px}
+/* 糖漿 */
+.syrups{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.syr{background:var(--enamel);border-radius:12px;padding:20px 20px 18px;display:grid;grid-template-columns:72px minmax(0,1fr);gap:4px 16px;box-shadow:inset 0 -5px 0 var(--enamel2),0 10px 0 -5px rgba(60,40,10,.2)}
+.syr .jar{grid-row:span 3;width:72px;height:100px}
+.syr .cyr{font-size:28px;line-height:1;color:var(--red)}
+.syr h3{margin:0;font-size:17px;letter-spacing:.08em}
+.syr p{margin:4px 0 0;font-size:14px;color:#5a524a;line-height:1.6}
+.syr .pr{grid-column:1/3;display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:2px dotted var(--line);font-family:var(--narrow);font-size:20px}
+.syr .pr small{font-family:var(--body);font-size:12px;color:#7a7066}
+/* 自調一杯 */
+.mix{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:clamp(24px,4vw,50px);align-items:start}
+.mix>*{min-width:0}
+.glassBox{background:linear-gradient(#5d6566,#3f4646);border-radius:14px;padding:26px 20px 18px;position:relative;box-shadow:inset 0 0 0 4px #8e9696,inset 0 -8px 0 #2e3434}
+.glassBox svg{width:100%;height:auto;display:block;max-height:440px}
+.glassBox .lcd{margin:12px auto 0;background:#1a1d1a;color:#ffb347;font-family:"Courier New",monospace;font-size:15px;letter-spacing:.1em;text-align:center;padding:6px 10px;border-radius:4px;box-shadow:inset 0 0 0 2px #000;max-width:280px}
+.lab{display:block;font-family:var(--narrow);font-size:16px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px;color:var(--red2)}
+.keys{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:18px}
+.keys.k2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.keys.k4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.keys label{position:relative}
+.keys input{position:absolute;opacity:0}
+.keys span{display:block;background:var(--paper);border-radius:8px;padding:9px 8px 7px;text-align:center;cursor:pointer;box-shadow:inset 0 -3px 0 var(--enamel2),0 0 0 1px var(--line);line-height:1.25;font-size:14.5px}
+.keys span b{display:block;font-family:var(--narrow);font-size:19px;letter-spacing:.03em}
+.keys span small{display:block;font-size:11.5px;color:#7a7066}
+.keys input:checked+span{background:var(--red);color:var(--enamel);box-shadow:inset 0 -3px 0 var(--red2)}
+.keys input:checked+span small{color:#f3d7d2}
+.keys input:focus-visible+span{outline:3px solid var(--ink);outline-offset:2px}
+.qty{display:inline-flex;align-items:center;background:var(--paper);border-radius:8px;box-shadow:0 0 0 1px var(--line)}
+.qty button{width:40px;height:40px;border:0;background:none;cursor:pointer;font-size:20px}
+.qty output{min-width:2em;text-align:center;font-family:var(--narrow);font-size:22px}
+.orderRow{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;border-top:2px dotted var(--line);padding-top:16px;margin-top:4px}
+.orderRow .sum{font-family:var(--narrow);font-size:36px;line-height:1}
+.orderRow .sum small{display:block;font-family:var(--body);font-size:12px;color:#7a7066}
+.tray{margin-top:18px;background:var(--paper);border-radius:10px;padding:14px 18px;box-shadow:0 0 0 1px var(--line)}
+.tray h4{margin:0 0 8px;font-family:var(--narrow);font-size:18px;letter-spacing:.06em;text-transform:uppercase}
+.tray ul{list-style:none;margin:0;padding:0;font-size:14.5px}
+.tray li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dashed var(--line)}
+.tray li button{border:0;background:none;color:var(--red);cursor:pointer;font-size:13px}
+.tray .empty{color:#7a7066}
+.pick{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.fi{display:grid;gap:4px;font-size:13px;color:#5a524a}
+.fi input,.fi select{border:0;border-bottom:2px solid var(--ink);background:transparent;padding:6px 0;font-size:16px;border-radius:0;width:100%}
+.fi input:focus,.fi select:focus{outline:none;border-bottom-color:var(--red)}
+.fi .err{color:var(--red);font-size:12px;min-height:1em}
+.ticket{margin-top:14px;background:#fff8e6;border:2px dashed var(--red);padding:16px;text-align:center;font-family:var(--narrow);letter-spacing:.05em}
+.ticket b{display:block;font-size:56px;line-height:1;color:var(--red)}
+.demo{font-size:12px;color:#7a7066;margin:8px 0 0}
+/* 租借 */
+.rent{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,4vw,50px);align-items:stretch}
+.rent>*{min-width:0}
+.rent .ph{border-radius:14px;min-height:320px}
+.range{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;align-items:center;margin-bottom:16px}
+.range input{grid-column:1/3;width:100%;accent-color:var(--red)}
+.range output{font-family:var(--narrow);font-size:22px;color:var(--red)}
+.quote{background:var(--ink);color:var(--enamel);border-radius:10px;padding:18px 20px;margin-top:6px}
+.quote dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;margin:0 0 10px;font-size:14.5px}
+.quote dd{margin:0;text-align:right;font-family:var(--narrow);font-size:18px}
+.quote .tot{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid rgba(236,230,212,.25);padding-top:10px}
+.quote .tot b{font-family:var(--narrow);font-size:40px;line-height:1;color:#ffb347}
+/* 照片與評論 */
+.gal{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:16px}
+.gal .ph{border-radius:12px;aspect-ratio:1}
+.gal .ph:first-child{aspect-ratio:auto;grid-row:span 2}
+.revs{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px}
+.rv{background:var(--enamel);border-radius:12px;padding:20px;box-shadow:inset 0 -5px 0 var(--enamel2)}
+.rv .st{color:var(--red);letter-spacing:.1em}
+.rv p{margin:6px 0 10px}
+.rv small{color:#7a7066}
+/* 資訊 */
+.info{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.info .panel .in p{margin:0 0 6px}
+.hours{display:grid;grid-template-columns:auto 1fr;gap:2px 16px;font-variant-numeric:tabular-nums}
+.hours .t{font-weight:700;color:var(--red)}
+footer{padding:40px 0 60px;text-align:center;font-family:var(--narrow);letter-spacing:.1em;font-size:15px}
+footer nav{display:flex;justify-content:center;gap:22px;margin-bottom:8px}
+footer a{text-decoration:none}
+.slotBtn{position:fixed;right:16px;bottom:16px;z-index:60;border:0;border-radius:6px;background:var(--ink);color:var(--enamel);font-size:12px;padding:8px 14px;cursor:pointer}
+.slotBtn[aria-pressed=true]{background:var(--red)}
+.rv-in{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+.rv-in.vis{opacity:1;transform:none}
+@keyframes rise{from{transform:translateY(0);opacity:.9}to{transform:translateY(-260px);opacity:0}}
+.bub{animation:rise linear infinite}
+@keyframes riseS{from{transform:translateY(0);opacity:.9}to{transform:translateY(-58px);opacity:0}}
+#machine .bub{animation-name:riseS}
+@media (max-width:960px){
+  .nav ul{display:none;position:absolute;top:64px;left:0;right:0;flex-direction:column;gap:0;background:var(--red);padding:6px 20px 16px;box-shadow:0 3px 0 var(--red2)}
+  .nav.open ul{display:flex}
+  .nav ul a{display:block;padding:10px 0;border-bottom:1px solid rgba(236,230,212,.25)}
+  .nav .wrap>.coinBtn{display:none}
+  .burger{display:block}
+  .hero .wrap,.mix,.rent{grid-template-columns:1fr}
+  .syrups,.revs,.info{grid-template-columns:1fr 1fr}
+  .machine{max-width:340px}
 }
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--wall);color:var(--ink);font-family:var(--body);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
-/* 灰泥牆：斑駁的顏料與一條褪色標語 */
-.wall{position:fixed;inset:0;z-index:0;background:
-  radial-gradient(500px 300px at 15% 20%,rgba(255,240,200,.35),transparent 70%),
-  radial-gradient(600px 400px at 85% 70%,rgba(120,80,20,.18),transparent 70%),
-  linear-gradient(180deg,var(--wall) 0 76%,#8f877a 76% 77%,#a8a090 77%);}
-.wall::before{content:"ПЕЙТЕ ГАЗИРОВАННУЮ ВОДУ";position:absolute;left:-2vw;top:7vh;font-family:var(--narrow);font-weight:700;font-size:min(12vw,150px);letter-spacing:.02em;color:rgba(255,255,255,.17);white-space:nowrap;transform:rotate(-2deg)}
-.wall::after{content:"";position:absolute;inset:0;opacity:.35;mix-blend-mode:multiply;background:
-  repeating-radial-gradient(circle at 30% 40%,rgba(0,0,0,.05) 0 2px,transparent 2px 9px),
-  repeating-linear-gradient(83deg,rgba(90,60,10,.05) 0 1px,transparent 1px 13px)}
-.scene{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:clamp(16px,3vw,48px);align-items:end;min-height:100vh;padding:28px clamp(16px,3vw,40px) 0}
-.machine{width:min(430px,92vw,calc((100vh - 40px) * .56));align-self:end}
-.machine svg{display:block;width:100%;height:auto;filter:drop-shadow(18px 10px 0 rgba(60,40,10,.18))}
-.side{align-self:center;max-width:300px}
-.side.l{justify-self:end}
-.plaque{background:var(--enamel);border:3px solid var(--ink);border-radius:6px;padding:16px 18px 14px;box-shadow:inset 0 0 0 2px var(--enamel),inset 0 0 0 4px var(--red),5px 6px 0 rgba(60,40,10,.25);position:relative}
-.plaque::before,.plaque::after{content:"";position:absolute;top:8px;width:7px;height:7px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d7dcdc,#666 70%)}
-.plaque::before{left:8px}.plaque::after{right:8px}
-.plaque h1{font-family:var(--narrow);font-weight:700;font-size:34px;line-height:.95;letter-spacing:.02em;color:var(--red);text-transform:uppercase}
-.plaque h1 small{display:block;font-size:15px;letter-spacing:.3em;color:var(--ink);margin-top:6px}
-.plaque ol{list-style:none;margin-top:12px;counter-reset:s;font-size:13.5px;line-height:1.45}
-.plaque li{counter-increment:s;display:grid;grid-template-columns:22px 1fr;gap:6px;padding:5px 0;border-top:1px dashed rgba(43,38,34,.3);transition:color .3s,background .3s}
-.plaque li::before{content:counter(s);font-family:var(--narrow);font-weight:700;font-size:18px;color:var(--red);line-height:1}
-.plaque li i{display:block;font-style:normal;font-family:var(--narrow);font-size:12px;letter-spacing:.06em;color:#7a7266}
-.plaque li.now{background:rgba(196,49,42,.08)}
-.purse{margin-top:18px}
-.purse h2{font-family:var(--narrow);font-size:14px;letter-spacing:.24em;color:#5a4a22;margin-bottom:10px}
-.coins{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
-.coin{width:58px;height:58px;border-radius:50%;border:0;cursor:pointer;position:relative;font-family:var(--narrow);font-weight:700;color:#4c3a12;font-size:22px;line-height:1;
-  background:radial-gradient(circle at 34% 30%,#fff3c4,#d7b45e 42%,#9c7a2b 78%,#6e5418);box-shadow:inset 0 0 0 3px rgba(110,84,24,.55),inset 0 0 0 5px rgba(255,236,180,.4),0 4px 0 #6e5418,0 6px 10px rgba(0,0,0,.25);transition:transform .15s}
-.coin small{display:block;font-size:9px;letter-spacing:.12em}
-.coin.c1{width:46px;height:46px;font-size:17px;background:radial-gradient(circle at 34% 30%,#ffe2c8,#c98a52 42%,#8f5a2a 78%,#5e3814);color:#3c2410}
-.coin:hover{transform:translateY(-3px) rotate(-6deg)}.coin:active{transform:translateY(1px)}
-.coin[disabled]{opacity:.35;cursor:not-allowed;transform:none}
-.coin:focus-visible{outline:3px solid var(--red);outline-offset:3px}
-.tally{margin-top:14px;font-family:var(--narrow);font-size:15px;letter-spacing:.06em;color:#4f3f1c}
-.tally b{font-size:22px;color:var(--ink)}
-.syrups{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.syr{border:2px solid var(--ink);background:var(--enamel);padding:8px 10px;text-align:left;cursor:pointer;border-radius:4px;font-family:var(--narrow);font-size:15px;letter-spacing:.03em;display:flex;gap:8px;align-items:center;transition:transform .15s,box-shadow .15s;box-shadow:3px 3px 0 rgba(60,40,10,.25)}
-.syr i{width:16px;height:16px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 2px rgba(0,0,0,.2)}
-.syr span{display:block;font-family:var(--body);font-size:11px;color:#6a6255}
-.syr.on{background:var(--ink);color:var(--paper);box-shadow:none;transform:translate(2px,2px)}
-.syr.on span{color:#bdb5a5}
-.msg{margin-top:16px;min-height:3.2em;font-size:14px;line-height:1.55;background:var(--ink);color:#e9f1d8;font-family:var(--narrow);letter-spacing:.04em;padding:10px 12px;border-radius:3px;box-shadow:inset 0 0 0 2px #463f37}
-.msg::before{content:"► ";color:#9fd36b}
-svg .clk{cursor:pointer}
-svg .clk:focus{outline:none}
-@media (max-width:980px){
-  .scene{grid-template-columns:1fr;justify-items:center;align-items:start;padding-top:20px;gap:18px}
-  .side,.side.l{justify-self:center;max-width:430px;width:100%}
-  .side.l{order:1}.machine{order:2;width:min(400px,94vw)}.side.r{order:3;padding-bottom:30px}
-  .wall::before{font-size:18vw}
+@media (max-width:620px){
+  .syrups,.revs,.info{grid-template-columns:1fr}
+  .keys{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .keys.k4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pick{grid-template-columns:1fr}
+  .gal{grid-template-columns:1fr 1fr}
+  .gal .ph:first-child{grid-row:auto;grid-column:span 2;aspect-ratio:16/10}
 }
-@media (prefers-reduced-motion:reduce){*{transition-duration:.01s!important}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.rv-in{opacity:1;transform:none;transition:none}.bub{animation:none}}
 </style>
 </head>
 <body>
-<div class="wall" aria-hidden="true"></div>
-<main class="scene">
-  <aside class="side l">
-    <div class="plaque">
-      <h1>Газировка<small>三戈比汽水機</small></h1>
-      <ol id="steps">
-        <li><span>點杯子，放到右邊沖洗座洗一洗<i>ВЫМОЙТЕ СТАКАН</i></span></li>
-        <li><span>洗好的杯子會放進出水口<i>ПОСТАВЬТЕ СТАКАН</i></span></li>
-        <li><span>選糖漿，投三戈比；只要氣泡水就投一戈比<i>ОПУСТИТЕ МОНЕТУ</i></span></li>
-        <li><span>點出水口裡的杯子，一口喝完<i>ПЕЙТЕ НА ЗДОРОВЬЕ</i></span></li>
-      </ol>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top"><b>Газировка</b><small>氣泡水吧</small></a>
+    <ul id="navList"><li><a href="#syrups">糖漿</a></li><li><a href="#mix">自調一杯</a></li><li><a href="#rent">活動租借</a></li><li><a href="#gallery">店內</a></li><li><a href="#visit">交通</a></li></ul>
+    <a class="coinBtn" href="#mix"><i></i>線上預點</a>
+    <button class="burger" id="burger" type="button" aria-expanded="false">МЕНЮ</button>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="slogan cyr" aria-hidden="true">ПЕЙТЕ<br>ГАЗИРОВАННУЮ<br>ВОДУ</div>
+    <div class="wrap">
+      <div class="rv-in">
+        <h1>Газ<br>ировка</h1>
+        <h2>手工糖漿・現打氣泡水</h2>
+        <p>街角那台紅色琺瑯汽水機的味道：龍蒿、梨子、奶油蘇打、櫻桃，每天早上用真的水果和香草熬糖漿，打進四度的氣泡水，倒進多面玻璃杯。一杯 60 元起，也能預點自取、瓶裝外帶。</p>
+        <div class="btns"><a class="coinBtn red" href="#mix"><i></i>自調一杯</a><a class="coinBtn" href="#rent">活動租借汽水機</a></div>
+        <span class="status" id="status"><i></i><span>…</span></span>
+      </div>
+      <div class="machine rv-in" id="machine"></div>
     </div>
-  </aside>
-  <div class="machine"><svg id="m" viewBox="0 0 420 780" role="img" aria-label="汽水販賣機"></svg></div>
-  <aside class="side r">
-    <div class="syrups" id="syrups"></div>
-    <div class="purse"><h2>口袋裡的零錢</h2>
-      <div class="coins"><button class="coin c1" id="k1" aria-label="投一戈比">1<small>КОП</small></button><button class="coin" id="k3" aria-label="投三戈比">3<small>КОП</small></button></div>
-      <p class="tally">已喝 <b id="n">0</b> 杯 · 花了 <b id="spent">0</b> 戈比</p>
+  </section>
+
+  <section class="sec" id="syrups" style="padding-top:0">
+    <div class="wrap">
+      <div class="ttl rv-in"><h2>Сиропы<small>六款糖漿</small></h2><p>糖漿每天限量熬煮，賣完就換下一款。一杯 250 ml 多面杯，氣泡強度可選。標「季」的品項依產季供應。</p></div>
+      <div class="syrups" id="syrList"></div>
     </div>
-    <p class="msg" id="msg">杯子在左邊的架上。先洗杯子。</p>
-  </aside>
+  </section>
+
+  <section class="sec" id="mix" style="padding-top:0">
+    <div class="wrap">
+      <div class="ttl rv-in"><h2>Смешать<small>自調一杯・預點自取</small></h2><p>選糖漿、氣泡和杯型，右邊的杯子會跟著變。加入取餐單後選時間，到店報號碼直接拿，不用排隊。</p></div>
+      <div class="mix">
+        <div class="glassBox rv-in"><svg id="glass" viewBox="0 0 240 320" role="img" aria-label="依選擇即時變化的汽水杯"></svg><div class="lcd" id="lcd"></div></div>
+        <div class="panel rv-in">
+          <header><b>Ваш заказ</b><span>你的這一杯</span></header>
+          <div class="in">
+            <span class="lab">糖漿 Сироп</span><div class="keys" id="kSyr"></div>
+            <span class="lab">氣泡 Газ</span><div class="keys" id="kGas"></div>
+            <span class="lab">杯型 Объём</span><div class="keys" id="kSize"></div>
+            <span class="lab">冰塊 Лёд</span><div class="keys k4" id="kIce"></div>
+            <div class="orderRow"><span class="qty"><button type="button" id="qm" aria-label="減少">−</button><output id="qn">1</output><button type="button" id="qp" aria-label="增加">+</button></span><div class="sum" id="unit"></div><button class="coinBtn red" type="button" id="addTray"><i></i>加入取餐單</button></div>
+            <div class="tray" id="tray"><h4>取餐單</h4><ul id="trayList"><li class="empty">還沒有飲料。</li></ul>
+              <form id="pf" novalidate><div class="pick"><label class="fi">取餐時間<select id="pTime"></select></label><label class="fi">手機<input id="pPhone" inputmode="tel" placeholder="09xx-xxx-xxx"><span class="err"></span></label></div>
+              <div class="orderRow" style="border:0;margin-top:6px;padding-top:6px"><div class="sum" id="trayTot"><small>合計</small>NT$ 0</div><button class="coinBtn ink" type="submit">送出預點</button></div></form>
+              <div id="ticket"></div>
+              <p class="demo">示範版本：預點只顯示在頁面上，不會送出。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="rent" style="padding-top:0">
+    <div class="wrap">
+      <div class="ttl rv-in"><h2>Аренда<small>復古汽水機活動租借</small></h2><p>婚禮、尾牙、市集、品牌活動：我們把整台紅色琺瑯汽水機、糖漿和一位汽水師傅一起帶過去，客人投代幣自己按。</p></div>
+      <div class="rent">
+        <figure class="ph rv-in" data-photo="event" data-art="event" data-label="活動現場的汽水機" data-size="1400×1000"></figure>
+        <form class="panel rv-in" id="rf" onsubmit="return false">
+          <header><b>Расчёт</b><span>即時估價</span></header>
+          <div class="in">
+            <div class="range"><span>賓客人數</span><output id="gOut"></output><input type="range" id="guests" min="30" max="400" step="10" value="120" aria-label="賓客人數"></div>
+            <div class="range"><span>活動時數</span><output id="hOut"></output><input type="range" id="hrs" min="2" max="8" step="1" value="3" aria-label="活動時數"></div>
+            <span class="lab">糖漿款數</span><div class="keys" id="kFlav"></div>
+            <span class="lab">地點</span><div class="keys" id="kArea"></div>
+            <div class="quote" id="quote" aria-live="polite"></div>
+            <p class="demo">示範估價，實際報價以場勘為準。訂金三成，活動前七天可免費改期一次。</p>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="gallery" style="padding-top:0">
+    <div class="wrap">
+      <div class="gal rv-in">
+        <figure class="ph" data-photo="bar" data-art="bar" data-label="吧台與糖漿瓶" data-size="1200×1400"></figure>
+        <figure class="ph" data-photo="glass" data-art="glasses" data-label="多面玻璃杯" data-size="800×800"></figure>
+        <figure class="ph" data-photo="pot" data-art="pot" data-label="熬糖漿" data-size="800×800"></figure>
+        <figure class="ph" data-photo="bottles" data-art="bottles" data-label="瓶裝外帶" data-size="800×800"></figure>
+        <figure class="ph" data-photo="front" data-art="front" data-label="店門口" data-size="800×800"></figure>
+      </div>
+      <div class="revs">
+        <div class="rv rv-in"><div class="st">★★★★★</div><p>龍蒿汽水是綠色的、有一點八角的味道，第一次喝就愛上。杯子很有份量。</p><small>Google 評論</small></div>
+        <div class="rv rv-in"><div class="st">★★★★★</div><p>婚禮租了汽水機，長輩說小時候在街上喝過，排隊排得比甜點桌還長。</p><small>活動客戶</small></div>
+        <div class="rv rv-in"><div class="st">★★★★☆</div><p>預點很方便，下班經過報號碼就拿。夏天的櫻桃常常下午就賣完。</p><small>Instagram</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="visit" style="padding-top:0">
+    <div class="wrap info">
+      <div class="panel rv-in"><header><b>Часы</b><span>營業時間</span></header><div class="in"><div class="hours" id="hours"></div></div></div>
+      <div class="panel rv-in"><header><b>Адрес</b><span>地址</span></header><div class="in"><p id="addr"></p><p>捷運中山站 4 號出口步行 3 分鐘。</p><p><a id="mapLink" href="#" target="_blank" rel="noopener">在地圖上開啟</a></p></div></div>
+      <div class="panel rv-in"><header><b>Связь</b><span>聯絡</span></header><div class="in"><p><a id="tel" href="#"></a></p><p>瓶裝 6 入以上可宅配。</p><p>自備杯折 5 元。</p></div></div>
+    </div>
+  </section>
 </main>
+<footer><nav><a href="#">Instagram</a><a href="#">Facebook</a><a href="#">LINE</a></nav>© <span id="yr"></span> ГАЗИРОВКА · 氣泡水吧</footer>
+<button class="slotBtn" id="slotBtn" type="button" aria-pressed="false">照片位</button>
+
 <script>
 (function(){
 'use strict';
-var NS='http://www.w3.org/2000/svg', svg=document.getElementById('m');
-function el(t,a,p,txt){ var e=document.createElementNS(NS,t); for(var k in a) e.setAttribute(k,a[k]); if(txt!=null) e.textContent=txt; (p||svg).appendChild(e); return e; }
-var $=function(id){ return document.getElementById(id); };
-var SY=[
-  {id:'tarhun',ru:'Тархун',zh:'龍蒿',c:'#3fae4b'},
-  {id:'dyushes',ru:'Дюшес',zh:'梨子',c:'#e8c23a'},
-  {id:'cream',ru:'Крем-сода',zh:'奶油蘇打',c:'#d9a066'},
-  {id:'vishnya',ru:'Вишня',zh:'櫻桃',c:'#b3263a'}
-];
-var syr=SY[0];
-$('syrups').innerHTML=SY.map(function(s,i){ return '<button class="syr'+(i?'':' on')+'" data-i="'+i+'"><i style="background:'+s.c+'"></i><b>'+s.ru+'<span>'+s.zh+'糖漿</span></b></button>'; }).join('');
-$('syrups').addEventListener('click',function(e){ var b=e.target.closest('.syr'); if(!b||busy) return; syr=SY[+b.dataset.i]; Array.prototype.forEach.call(this.children,function(x){ x.classList.toggle('on',x===b); }); lamp(); click(); });
+/* ===== 店家設定 ===== */
+var SHOP = {
+  name:'Газировка', phone:'(02) 2521-0216', address:'台北市中山區示範街 16 號',
+  // 0=週日；[開, 關]，null 表示公休
+  hours:[['12:00','20:00'],null,['12:00','21:00'],['12:00','21:00'],['12:00','21:00'],['12:00','22:00'],['11:00','22:00']],
+  photos:{event:'',bar:'',glass:'',pot:'',bottles:'',front:''}
+};
+// [西里爾名, 中文名, 說明, 顏色, 單價(250ml), 標籤]
+var SYRUPS = [['Тархун','龍蒿','新鮮龍蒿葉熬煮，青草與淡淡八角香，翠綠色。','#4caf3a',70],['Дюшес','梨子','西洋梨與香草莢，像冰過的梨子糖。','#e9c94a',70],['Крем-сода','奶油蘇打','香草與焦糖，泡沫最綿，孩子最愛。','#f2dfb0',70],['Вишня','酸櫻桃','整顆酸櫻桃連核熬，帶杏仁香。','#9b1b2a',80,'季'],['Байкал','貝加爾','甘草、尤加利、檸檬皮與聖約翰草，深褐色的草本可樂。','#3a2414',80],['Ситро','柑橘','柳橙、檸檬、香草的老派汽水，清爽不甜膩。','#f2a62a',70]];
+var GAS = [['Слабо','微氣泡',.35],['Средне','標準',.65],['Сильно','強氣泡 +5',1]];
+// [名稱, 容量, 說明, 價格倍率/加價]
+var SIZES = [['Стакан','250 ml','多面玻璃杯',0],['Кружка','400 ml','啤酒杯',35],['Бутылка','500 ml','瓶裝外帶 +押瓶 20',55]];
+var ICE = [['無冰',0],['少冰',.35],['正常',.6],['冰沙',1]];
+// 活動租借
+var RENTAL = { base:6800, perHour:1500, perGuest:38, flav:[['3 款',0],['4 款',1200],['6 款',2800]], area:[['台北市',0],['新北市',1200],['桃園／基隆',2800],['其他縣市','另議']], minHours:2 };
+var $ = function(s, r){ return (r || document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+var money = function(n){ return 'NT$ ' + Math.round(n).toLocaleString(); };
+var now = new Date(), DAYS = ['週日','週一','週二','週三','週四','週五','週六'];
 
-// ---- 機器本體 ----
-var defs=el('defs',{});
-defs.innerHTML='<linearGradient id="body" x1="0" x2="1"><stop offset="0" stop-color="#c9c2ad"/><stop offset=".08" stop-color="#ece6d4"/><stop offset=".85" stop-color="#e4ddc8"/><stop offset="1" stop-color="#b9b29e"/></linearGradient>'+
- '<linearGradient id="red" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d33a31"/><stop offset="1" stop-color="#a5271f"/></linearGradient>'+
- '<linearGradient id="steel" x1="0" x2="1"><stop offset="0" stop-color="#6d7676"/><stop offset=".3" stop-color="#c3c9c9"/><stop offset=".55" stop-color="#8e9696"/><stop offset="1" stop-color="#5d6566"/></linearGradient>'+
- '<linearGradient id="niche" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1a18"/><stop offset="1" stop-color="#3a3632"/></linearGradient>'+
- '<radialGradient id="lampG"><stop offset="0" stop-color="#fff"/><stop offset=".4" stop-color="#fff6c9"/><stop offset="1" stop-color="#fff6c9" stop-opacity="0"/></radialGradient>'+
- '<clipPath id="glassClip"><path d="M-27 -86 L27 -86 L22 0 L-22 0 Z"/></clipPath>';
-// 機身
-el('rect',{x:30,y:14,width:360,height:760,rx:14,fill:'url(#body)',stroke:'#2b2622','stroke-width':3});
-el('rect',{x:30,y:14,width:360,height:760,rx:14,fill:'none',stroke:'rgba(255,255,255,.5)','stroke-width':1,transform:'translate(2 2)'});
-// 招牌
-el('rect',{x:46,y:30,width:328,height:92,rx:6,fill:'url(#red)',stroke:'#2b2622','stroke-width':2.5});
-el('text',{x:210,y:76,'text-anchor':'middle','font-family':'DIN Condensed, Arial Narrow, sans-serif','font-weight':700,'font-size':38,fill:'#f7efd9','letter-spacing':1},null,'ГАЗИРОВАННАЯ');
-el('text',{x:210,y:108,'text-anchor':'middle','font-family':'DIN Condensed, Arial Narrow, sans-serif','font-weight':700,'font-size':26,fill:'#f7efd9','letter-spacing':12},null,'ВОДА');
-// 價目燈箱
-var lb=el('g',{});
-el('rect',{x:58,y:134,width:304,height:70,rx:4,fill:'#f8f1d6',stroke:'#2b2622','stroke-width':2},lb);
-var glow=el('rect',{x:58,y:134,width:304,height:70,rx:4,fill:'url(#lampG)',opacity:.0},lb);
-el('line',{x1:210,y1:142,x2:210,y2:196,stroke:'#2b2622','stroke-width':1},lb);
-el('text',{x:134,y:162,'text-anchor':'middle','font-family':'DIN Condensed, Arial Narrow, sans-serif','font-size':15,fill:'#2b2622','letter-spacing':1},lb,'С СИРОПОМ');
-el('text',{x:134,y:192,'text-anchor':'middle','font-family':'DIN Condensed, Arial Narrow, sans-serif','font-weight':700,'font-size':28,fill:'#c4312a'},lb,'3 КОП.');
-el('text',{x:286,y:162,'text-anchor':'middle','font-family':'DIN Condensed, Arial Narrow, sans-serif','font-size':15,fill:'#2b2622','letter-spacing':1},lb,'БЕЗ СИРОПА');
-el('text',{x:286,y:192,'text-anchor':'middle','font-family':'DIN Condensed, Arial Narrow, sans-serif','font-weight':700,'font-size':28,fill:'#c4312a'},lb,'1 КОП.');
-// 糖漿指示燈
-var lampDot=el('circle',{cx:82,cy:236,r:9,fill:SY[0].c,stroke:'#2b2622','stroke-width':2});
-var lampTxt=el('text',{x:98,y:242,'font-family':'DIN Condensed, Arial Narrow, sans-serif','font-size':17,fill:'#2b2622'},null,'СИРОП: ТАРХУН');
-// 投幣口
-function slot(x,label){
-  el('rect',{x:x-34,y:222,width:68,height:44,rx:5,fill:'url(#steel)',stroke:'#2b2622','stroke-width':2});
-  el('rect',{x:x-14,y:232,width:28,height:5,rx:2,fill:'#1a1816'});
-  el('text',{x:x,y:258,'text-anchor':'middle','font-family':'DIN Condensed, Arial Narrow, sans-serif','font-weight':700,'font-size':14,fill:'#2b2622'},null,label);
+/* ===== Hero 汽水機 ===== */
+function machineSVG(){
+  var s = '<svg viewBox="0 0 300 560" role="img" aria-label="紅色琺瑯汽水販賣機"><defs><linearGradient id="mb" x1="0" x2="1"><stop offset="0" stop-color="#d9d1bb"/><stop offset=".2" stop-color="#f4efe2"/><stop offset=".8" stop-color="#ece6d4"/><stop offset="1" stop-color="#c9c0a8"/></linearGradient><linearGradient id="mr" x1="0" x2="1"><stop offset="0" stop-color="#9e2621"/><stop offset=".25" stop-color="#d8443a"/><stop offset="1" stop-color="#9e2621"/></linearGradient></defs>';
+  s += '<rect x="20" y="20" width="260" height="520" rx="26" fill="url(#mb)"/><rect x="20" y="20" width="260" height="96" rx="26" fill="url(#mr)"/><rect x="20" y="90" width="260" height="26" fill="url(#mr)"/>';
+  s += '<text x="150" y="80" text-anchor="middle" textLength="220" lengthAdjust="spacingAndGlyphs" font-family="DIN Condensed,Arial Narrow,sans-serif" font-weight="700" font-size="44" fill="#ece6d4">ГАЗИРОВКА</text>';
+  s += '<rect x="44" y="140" width="212" height="120" rx="8" fill="#f4efe2" stroke="#5d6566" stroke-width="3"/>';
+  ['ТАРХУН 3к','ДЮШЕС 3к','СИТРО 3к','ВОДА 1к'].forEach(function(t, i){ s += '<circle cx="64" cy="' + (162 + i*26) + '" r="8" fill="' + ['#4caf3a','#e9c94a','#f2a62a','#cfe6f2'][i] + '" stroke="#2b2622"/><text x="80" y="' + (168 + i*26) + '" font-family="DIN Condensed,Arial Narrow,sans-serif" font-size="18" fill="#2b2622">' + t + '</text>'; });
+  s += '<rect x="214" y="150" width="28" height="44" rx="4" fill="#5d6566"/><rect x="225" y="156" width="6" height="32" rx="2" fill="#1d1a17"/><text x="228" y="214" text-anchor="middle" font-family="DIN Condensed,sans-serif" font-size="12" fill="#5d6566">3 КОП</text>';
+  s += '<rect x="60" y="290" width="180" height="170" rx="12" fill="#2b2622"/><rect x="72" y="300" width="156" height="150" rx="8" fill="#3f4646"/><rect x="136" y="300" width="28" height="22" fill="#8e9696"/><rect x="146" y="322" width="8" height="10" fill="#8e9696"/>';
+  s += '<g transform="translate(150 440)"><path d="M-30 0 L-26 -86 L26 -86 L30 0Z" fill="rgba(220,240,240,.25)" stroke="rgba(255,255,255,.65)" stroke-width="2"/>';
+  for (var f = -2; f <= 2; f++) s += '<path d="M' + f*11 + ' -84 L' + f*12 + ' -2" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/>';
+  s += '<path d="M-28 -2 L-27 -60 L27 -60 L28 -2Z" fill="#4caf3a" opacity=".85"/>';
+  for (var b = 0; b < 10; b++) s += '<circle class="bub" cx="' + (-20 + (b*13)%40) + '" cy="-6" r="' + (1.4 + (b%3)*.6) + '" fill="#fff" opacity=".9" style="animation-duration:' + (1.8 + (b%4)*.5) + 's;animation-delay:-' + (b*.37).toFixed(2) + 's"/>';
+  s += '</g><path d="M164 330 V352" stroke="#4caf3a" stroke-width="4"/>';
+  s += '<rect x="60" y="476" width="180" height="16" rx="4" fill="#5d6566"/><rect x="20" y="510" width="260" height="30" rx="0" fill="#c4312a" opacity=".85"/><text x="150" y="531" text-anchor="middle" font-family="DIN Condensed,sans-serif" font-size="16" letter-spacing="2" fill="#ece6d4">ГАЗИРОВАННАЯ ВОДА</text>';
+  return s + '</svg>';
 }
-slot(250,'1 КОП'); slot(330,'3 КОП');
-// 退幣按鈕與型號牌
-el('rect',{x:58,y:280,width:304,height:4,fill:'#2b2622',opacity:.25});
-// 三格：架子、出水口、沖洗座
-el('rect',{x:48,y:300,width:84,height:230,rx:6,fill:'#d8d0b9',stroke:'#2b2622','stroke-width':2});
-el('text',{x:90,y:320,'text-anchor':'middle','font-family':'DIN Condensed, Arial Narrow, sans-serif','font-size':13,fill:'#5d554a','letter-spacing':2},null,'СТАКАН');
-el('rect',{x:52,y:500,width:76,height:10,fill:'url(#steel)',stroke:'#2b2622','stroke-width':1.5});
-// 出水口
-el('path',{d:'M144 530 V330 Q144 300 174 300 H246 Q276 300 276 330 V530 Z',fill:'url(#niche)',stroke:'#2b2622','stroke-width':3});
-el('rect',{x:198,y:300,width:24,height:26,fill:'url(#steel)',stroke:'#2b2622','stroke-width':1.5});
-el('rect',{x:204,y:326,width:12,height:12,rx:2,fill:'#8e9696',stroke:'#2b2622','stroke-width':1.5});
-var stream=el('rect',{x:207,y:338,width:6,height:0,fill:'rgba(220,240,255,.7)'});
-var grate=el('g',{});
-el('rect',{x:152,y:508,width:116,height:14,rx:2,fill:'url(#steel)',stroke:'#2b2622','stroke-width':1.5},grate);
-for(var i=0;i<10;i++) el('rect',{x:158+i*11,y:511,width:6,height:8,fill:'#2b2622',opacity:.7},grate);
-// 沖洗座
-el('rect',{x:288,y:300,width:84,height:230,rx:6,fill:'#d8d0b9',stroke:'#2b2622','stroke-width':2});
-el('text',{x:330,y:320,'text-anchor':'middle','font-family':'DIN Condensed, Arial Narrow, sans-serif','font-size':13,fill:'#5d554a','letter-spacing':2},null,'МОЙКА');
-el('ellipse',{cx:330,cy:504,rx:34,ry:9,fill:'url(#steel)',stroke:'#2b2622','stroke-width':1.5});
-for(i=0;i<7;i++) el('circle',{cx:310+i*6.7,cy:504,r:1.6,fill:'#2b2622'});
-var spray=el('g',{opacity:0});
-for(i=0;i<9;i++) el('line',{x1:330,y1:500,x2:330+(i-4)*5,y2:440,stroke:'#cfe9ff','stroke-width':1.6,'stroke-linecap':'round','stroke-dasharray':'3 6',class:'jet'},spray);
-// 下段面板
-el('rect',{x:46,y:546,width:328,height:212,rx:6,fill:'#e2dbc6',stroke:'#2b2622','stroke-width':2});
-for(i=0;i<9;i++) el('rect',{x:70,y:566+i*12,width:150,height:5,rx:2.5,fill:'#2b2622',opacity:.55});
-el('rect',{x:244,y:566,width:112,height:48,rx:3,fill:'url(#steel)',stroke:'#2b2622','stroke-width':1.5});
-el('text',{x:300,y:586,'text-anchor':'middle','font-family':'DIN Condensed, Arial Narrow, sans-serif','font-weight':700,'font-size':13,fill:'#1a1816'},null,'АВТОМАТ');
-el('text',{x:300,y:604,'text-anchor':'middle','font-family':'DIN Condensed, Arial Narrow, sans-serif','font-size':11,fill:'#1a1816','letter-spacing':1},null,'АТ-101 · 1971');
-// 退幣口
-el('rect',{x:270,y:640,width:60,height:30,rx:4,fill:'#2b2622'});
-el('text',{x:300,y:690,'text-anchor':'middle','font-family':'DIN Condensed, Arial Narrow, sans-serif','font-size':11,fill:'#2b2622','letter-spacing':1},null,'ВОЗВРАТ МОНЕТ');
-var dent=el('g',{});
-for(i=0;i<5;i++) el('circle',{cx:40+[30,90,170,240,330][i],cy:[700,740,620,735,720][i],r:[4,6,3,5,4][i],fill:'rgba(120,80,40,.25)'},dent);
-[[40,28],[380,28],[40,764],[380,764]].forEach(function(p){ el('circle',{cx:p[0],cy:p[1],r:3.5,fill:'#8e9696',stroke:'#2b2622','stroke-width':1}); });
-// 掉進來的硬幣
-var coinFly=el('circle',{cx:0,cy:0,r:0,fill:'#d7b45e',stroke:'#6e5418','stroke-width':1.5});
+$('#machine').innerHTML = machineSVG();
 
-// ---- 多面玻璃杯 ----
-var glass=el('g',{class:'clk',tabindex:0,role:'button','aria-label':'玻璃杯'});
-var gInner=el('g',{},glass);
-var liquid=el('g',{'clip-path':'url(#glassClip)'},gInner);
-var liq=el('rect',{x:-30,y:0,width:60,height:0,fill:'#cfe7f3',opacity:.85},liquid);
-var foam=el('rect',{x:-30,y:0,width:60,height:0,fill:'#fff',opacity:.6},liquid);
-var bubG=el('g',{},liquid);
-el('path',{d:'M-27 -86 L27 -86 L22 0 L-22 0 Z',fill:'rgba(220,235,240,.18)',stroke:'#2b2622','stroke-width':1.6},gInner);
-el('rect',{x:-27.5,y:-86,width:55,height:16,fill:'rgba(255,255,255,.12)',stroke:'#2b2622','stroke-width':1},gInner);
-// 稜面
-for(i=-3;i<=3;i++){ var tx=i*7.4, bx=i*6.1; el('line',{x1:tx,y1:-70,x2:bx,y2:-2,stroke:'rgba(43,38,34,.35)','stroke-width':.8},gInner); }
-el('line',{x1:-17,y1:-68,x2:-14,y2:-6,stroke:'rgba(255,255,255,.7)','stroke-width':2.2,'stroke-linecap':'round'},gInner);
-el('rect',{x:-22,y:-4,width:44,height:4,fill:'rgba(43,38,34,.2)'},gInner);
+/* ===== 糖漿列表 ===== */
+function jar(c){ return '<svg class="jar" viewBox="0 0 72 100" aria-hidden="true"><rect x="24" y="4" width="24" height="10" rx="2" fill="#5d6566"/><path d="M20 14 h32 v8 q12 6 12 20 v48 q0 6 -6 6 h-44 q-6 0 -6 -6 v-48 q0 -14 12 -20z" fill="rgba(255,255,255,.55)" stroke="#2b2622" stroke-width="2"/><path d="M10 50 h52 v40 q0 4 -4 4 h-44 q-4 0 -4 -4z" fill="' + c + '"/><rect x="16" y="56" width="40" height="22" fill="#f4efe2" stroke="#c4312a"/><path d="M14 30 v50" stroke="#fff" stroke-width="3" opacity=".6"/></svg>'; }
+$('#syrList').innerHTML = SYRUPS.map(function(y){ return '<article class="syr rv-in">' + jar(y[3]) + '<span class="cyr">' + y[0] + '</span><h3>' + y[1] + (y[5] ? '　<span style="color:var(--red);font-size:12px;border:1px solid var(--red);border-radius:3px;padding:0 4px">' + y[5] + '</span>' : '') + '</h3><p>' + y[2] + '</p><div class="pr"><span>' + y[4] + ' <small>元 / 250 ml</small></span><small>瓶裝 500 ml　' + (y[4] + 55) + ' 元</small></div></article>'; }).join('');
 
-var POS={shelf:[90,500],niche:[210,508],wash:[330,498],drink:[210,420]};
-var gs={x:POS.shelf[0],y:POS.shelf[1],rot:0,scale:1}, where='shelf', clean=false, level=0, color='#cfe7f3', bubbles=[], busy=false, drunk=0, spent=0;
-function placeGlass(){ glass.setAttribute('transform','translate('+gs.x.toFixed(1)+' '+gs.y.toFixed(1)+') rotate('+gs.rot.toFixed(1)+' 0 -43) scale('+gs.scale.toFixed(3)+')'); }
-function tween(to,ms,cb){
-  var from={x:gs.x,y:gs.y,rot:gs.rot,scale:gs.scale}, t0=performance.now();
-  (function f(now){ var t=Math.min(1,(now-t0)/ms), e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
-    for(var k in to) gs[k]=from[k]+(to[k]-from[k])*e; placeGlass();
-    if(t<1) requestAnimationFrame(f); else if(cb) cb(); })(t0);
+/* ===== 自調一杯 ===== */
+function keys(id, list, name, def, fn){ $(id).innerHTML = list.map(function(o, i){ return '<label><input type="radio" name="' + name + '" value="' + i + '"' + (i === def ? ' checked' : '') + '><span>' + fn(o) + '</span></label>'; }).join(''); }
+keys('#kSyr', SYRUPS, 'sy', 0, function(o){ return '<b>' + o[0] + '</b>' + o[1]; });
+keys('#kGas', GAS, 'gs', 1, function(o){ return '<b>' + o[0] + '</b>' + o[1]; });
+keys('#kSize', SIZES, 'sz', 0, function(o){ return '<b>' + o[0] + '</b>' + o[1] + '<small>' + o[2] + '</small>'; });
+keys('#kIce', ICE, 'ic', 2, function(o){ return o[0]; });
+function v(n){ return +$('input[name=' + n + ']:checked').value; }
+var qn = 1, tray = [], seq = 0;
+function unitPrice(){ var y = SYRUPS[v('sy')]; return y[4] + SIZES[v('sz')][3] + (v('gs') === 2 ? 5 : 0); }
+function glassSVG(){
+  var y = SYRUPS[v('sy')], gas = GAS[v('gs')][2], sz = v('sz'), ice = ICE[v('ic')][1], s = '<defs><clipPath id="gc"><path id="gp"/></clipPath></defs>';
+  var top = sz === 2 ? 40 : 70, w = sz === 1 ? 74 : 60, path;
+  if (sz === 2) path = 'M100 30 h40 v40 q34 20 34 54 v170 q0 10 -10 10 h-88 q-10 0 -10 -10 v-170 q0 -34 34 -54z';
+  else path = 'M' + (120 - w) + ' ' + top + ' L' + (120 - w*.82) + ' 300 L' + (120 + w*.82) + ' 300 L' + (120 + w) + ' ' + top + 'Z';
+  s = s.replace('<path id="gp"/>', '<path d="' + path + '"/>');
+  s += '<ellipse cx="120" cy="304" rx="70" ry="6" fill="rgba(0,0,0,.3)"/>';
+  var fillTop = sz === 2 ? 80 : top + 26, foam = 4 + gas*10;
+  s += '<g clip-path="url(#gc)"><rect x="0" y="' + fillTop + '" width="240" height="320" fill="' + y[3] + '" opacity=".88"/><rect x="0" y="' + fillTop + '" width="240" height="' + foam + '" fill="#fff" opacity=".7"/>';
+  for (var i = 0; i < Math.round(ice*6); i++){ var ix = 80 + (i*37)%80, iy = fillTop + 8 + (i*23)%60; s += '<rect x="' + ix + '" y="' + iy + '" width="26" height="24" rx="5" fill="rgba(255,255,255,.45)" stroke="rgba(255,255,255,.8)" transform="rotate(' + (i*17 - 20) + ' ' + (ix + 13) + ' ' + (iy + 12) + ')"/>'; }
+  var nb = Math.round(6 + gas*26); for (var b = 0; b < nb; b++){ var bx = 70 + (b*29)%100, dur = (1.4 + (b%5)*.45)/(0.5 + gas); s += '<circle class="bub" cx="' + bx + '" cy="298" r="' + (1.2 + (b%3)*.8) + '" fill="#fff" opacity=".85" style="animation-duration:' + dur.toFixed(2) + 's;animation-delay:-' + (b*.29).toFixed(2) + 's"/>'; }
+  s += '</g>';
+  if (sz !== 2) for (var f = -3; f <= 3; f++) s += '<path d="M' + (120 + f*w/3.6) + ' ' + (top + 2) + ' L' + (120 + f*w*.82/3.6) + ' 298" stroke="rgba(255,255,255,.35)" stroke-width="2"/>';
+  if (sz === 0) s += '<path d="M' + (120 - w + 1) + ' ' + (top + 26) + ' H' + (120 + w - 1) + '" stroke="rgba(255,255,255,.5)" stroke-width="2"/>';
+  if (sz === 1) s += '<path d="M' + (120 + w) + ' ' + (top + 40) + ' q34 0 34 50 q0 50 -40 50" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="10"/>';
+  if (sz === 2) s += '<rect x="96" y="20" width="48" height="14" rx="3" fill="#c4312a"/><rect x="86" y="160" width="68" height="70" rx="4" fill="#f4efe2"/><text x="120" y="192" text-anchor="middle" font-family="DIN Condensed,sans-serif" font-size="18" fill="#c4312a">' + y[0].toUpperCase() + '</text><text x="120" y="214" text-anchor="middle" font-size="12" fill="#2b2622">' + y[1] + '</text>';
+  s += '<path d="' + path + '" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="3"/>';
+  return s;
 }
-function arc(to,ms,cb){ // 先抬起再放下，像用手拿
-  var mid={x:(gs.x+to.x)/2,y:Math.min(gs.y,to.y)-60};
-  tween({x:mid.x,y:mid.y,rot:to.rot!=null?to.rot/2:gs.rot},ms/2,function(){ tween(to,ms/2,cb); });
+function mixDraw(){ $('#glass').innerHTML = glassSVG(); var y = SYRUPS[v('sy')]; $('#lcd').textContent = y[0].toUpperCase() + ' · ' + SIZES[v('sz')][1] + ' · ' + GAS[v('gs')][1]; $('#qn').textContent = qn; $('#unit').innerHTML = '<small>單價 × ' + qn + '</small>' + money(unitPrice()*qn); }
+$('#mix').addEventListener('change', function(e){ if (e.target.name && /^(sy|gs|sz|ic)$/.test(e.target.name)) mixDraw(); });
+$('#qm').onclick = function(){ qn = Math.max(1, qn - 1); mixDraw(); };
+$('#qp').onclick = function(){ qn = Math.min(12, qn + 1); mixDraw(); };
+mixDraw();
+function trayDraw(){
+  $('#trayList').innerHTML = tray.length ? tray.map(function(t, i){ return '<li><span>' + t.name + ' × ' + t.q + '</span><span>' + money(t.p*t.q) + ' <button type="button" data-rm="' + i + '" aria-label="移除">移除</button></span></li>'; }).join('') : '<li class="empty">還沒有飲料。</li>';
+  $('#trayTot').innerHTML = '<small>合計 ' + tray.reduce(function(s, t){ return s + t.q; }, 0) + ' 杯</small>' + money(tray.reduce(function(s, t){ return s + t.p*t.q; }, 0));
 }
-
-// ---- 聲音 ----
-var ac=null;
-function A(){ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return ac; }
-function noise(dur,f,q,vol,type){
-  var a=A(); if(!a) return; var n=a.sampleRate*dur, b=a.createBuffer(1,n,a.sampleRate), d=b.getChannelData(0);
-  for(var i=0;i<n;i++) d[i]=Math.random()*2-1;
-  var s=a.createBufferSource(); s.buffer=b; var fl=a.createBiquadFilter(); fl.type=type||'bandpass'; fl.frequency.value=f; fl.Q.value=q;
-  var g=a.createGain(), t=a.currentTime; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.05); g.gain.setValueAtTime(vol,t+dur-.15); g.gain.linearRampToValueAtTime(0,t+dur);
-  s.connect(fl); fl.connect(g); g.connect(a.destination); s.start();
-}
-function tone(f,dur,vol,type){ var a=A(); if(!a) return; var o=a.createOscillator(),g=a.createGain(),t=a.currentTime; o.type=type||'sine'; o.frequency.value=f; g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+dur+.02); }
-function clink(){ [2900,4100,5300].forEach(function(f,i){ setTimeout(function(){ tone(f,.25,.05,'triangle'); },i*90); }); }
-function click(){ tone(1400,.04,.05,'square'); }
-function hum(dur){ var a=A(); if(!a) return; var o=a.createOscillator(),g=a.createGain(),t=a.currentTime; o.type='sawtooth'; o.frequency.value=58; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.035,t+.2); g.gain.setValueAtTime(.035,t+dur-.2); g.gain.linearRampToValueAtTime(0,t+dur); var lp=a.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=300; o.connect(lp); lp.connect(g); g.connect(a.destination); o.start(t); o.stop(t+dur); }
-
-// ---- 流程 ----
-var stepsEl=$('steps').children;
-function step(n){ for(var i=0;i<4;i++) stepsEl[i].classList.toggle('now',i===n); }
-function say(t){ $('msg').textContent=t; }
-function lamp(){ lampDot.setAttribute('fill',syr.c); lampTxt.textContent='СИРОП: '+syr.ru.toUpperCase(); }
-
-glass.addEventListener('click',onGlass);
-glass.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); onGlass(); } });
-function onGlass(){
-  if(busy) return; A();
-  if(where==='shelf'){
-    busy=true; say('杯口朝下壓在沖洗座上……');
-    arc({x:POS.wash[0],y:POS.wash[1],rot:180},900,function(){
-      where='wash'; spray.setAttribute('opacity',1); noise(1.4,3000,.8,.12,'highpass');
-      setTimeout(function(){ spray.setAttribute('opacity',0); clean=true; level=0; color='#cfe7f3'; drawLiquid();
-        arc({x:POS.niche[0],y:POS.niche[1],rot:0},900,function(){ where='niche'; busy=false; step(2); say('杯子乾淨了，已放進出水口。選口味，投幣。'); });
-      },1400);
-    });
-    step(1);
-  } else if(where==='niche' && level>0){
-    busy=true; say('Пейте на здоровье！慢慢喝。');
-    tween({x:POS.drink[0],y:POS.drink[1]-60,scale:1.55},700,function(){
-      tween({rot:-58},600,function(){
-        var t0=performance.now(), L=level; noise(1.6,500,1.2,.08,'bandpass');
-        (function sip(now){ var t=Math.min(1,(now-t0)/1600); level=L*(1-t); drawLiquid(); if(t<1) requestAnimationFrame(sip); else {
-          tone(110,.35,.08,'sine'); drunk++; $('n').textContent=drunk;
-          tween({rot:0},400,function(){ clean=false; arc({x:POS.shelf[0],y:POS.shelf[1],rot:0,scale:1},1000,function(){ where='shelf'; busy=false; step(0); say('啊——好喝。杯子放回架上了，要再來一杯就再洗一次。'); }); });
-        } })(t0);
-      });
-    });
-    step(3);
-  } else if(where==='niche'){ say('杯子已經在出水口了，請投幣。'); }
-}
-function insert(k){
-  if(busy) return; A(); busy=true; spent+=k; $('spent').textContent=spent;
-  var sx=k===1?250:330; coinFly.setAttribute('r',k===1?7:9);
-  var t0=performance.now();
-  (function f(now){ var t=Math.min(1,(now-t0)/350); coinFly.setAttribute('cx',sx); coinFly.setAttribute('cy',(200+34*t).toFixed(1)); coinFly.setAttribute('opacity',1-t*.8); if(t<1) requestAnimationFrame(f); else { coinFly.setAttribute('r',0); clink(); pour(k); } })(t0);
-}
-function pour(k){
-  glow.setAttribute('opacity',.9);
-  var withSyrup=k===3, total=withSyrup?4200:3000, t0=performance.now(), hasGlass=where==='niche';
-  hum(total/1000+.3);
-  if(!hasGlass) say('……出水口裡沒有杯子。汽水直接流進排水格了。');
-  else if(!clean) say('杯子沒洗也照倒。下次記得先洗。');
-  else say(withSyrup?'先注入'+syr.zh+'糖漿，再補氣泡水。':'一戈比：純氣泡水。');
-  if(where==='niche' && level>0){ level=Math.min(level,.2); }
-  setTimeout(function(){ noise((total-500)/1000,1800,.6,.06,'bandpass'); },400);
-  var startLevel=hasGlass?level:0;
-  (function f(now){
-    var t=(now-t0)/total, syrPhase=withSyrup?.28:0;
-    var flowing=t>.08&&t<.96;
-    stream.setAttribute('height',flowing?(hasGlass?Math.max(0,508-86*level-338):170):0);
-    stream.setAttribute('fill',withSyrup&&t<syrPhase?syr.c:'rgba(215,236,250,.75)');
-    if(hasGlass && flowing){
-      level=Math.min(.92,startLevel+(t-.08)/(.88)*.92);
-      color=withSyrup? mix('#d8ecf6',syr.c,Math.min(1,.35+.65*Math.min(1,t/syrPhase))*0.62) : '#d4eaf5';
-      drawLiquid();
-      if(Math.random()<.6) for(var b=0;b<3;b++) bubbles.push({x:(Math.random()-.5)*36,y:-2,r:.6+Math.random()*1.8,v:.4+Math.random()*1.1});
-    }
-    if(t<1) requestAnimationFrame(f);
-    else { stream.setAttribute('height',0); glow.setAttribute('opacity',0); busy=false;
-      if(hasGlass){ step(3); say(withSyrup?syr.ru+'（'+syr.zh+'）汽水好了。點杯子喝掉。':'Без сиропа——純汽水好了。點杯子喝掉。'); } else { step(0); say('三戈比白花了。先把杯子洗好放進出水口。'); }
-    }
-  })(t0);
-}
-function mix(a,b,t){ var A=parseInt(a.slice(1),16),B=parseInt(b.slice(1),16); var r=((A>>16)&255)+(((B>>16)&255)-((A>>16)&255))*t, g=((A>>8)&255)+(((B>>8)&255)-((A>>8)&255))*t, bl=(A&255)+((B&255)-(A&255))*t; return 'rgb('+(r|0)+','+(g|0)+','+(bl|0)+')'; }
-function drawLiquid(){
-  var h=86*level; liq.setAttribute('y',-h); liq.setAttribute('height',h); liq.setAttribute('fill',color);
-  foam.setAttribute('y',-h-1); foam.setAttribute('height',level>0.02?3:0);
-}
-// 氣泡持續往上冒
-(function loop(){
-  var top=-86*level;
-  if(level>0.03 && Math.random()<.35) bubbles.push({x:(Math.random()-.5)*36,y:-2,r:.5+Math.random()*1.4,v:.3+Math.random()*.8});
-  bubbles.forEach(function(b){ b.y-=b.v; b.x+=Math.sin(b.y*.3)*.15; });
-  bubbles=bubbles.filter(function(b){ return b.y>top+1 && level>0.02; });
-  if(bubbles.length>120) bubbles.splice(0,bubbles.length-120);
-  bubG.innerHTML=bubbles.map(function(b){ return '<circle cx="'+b.x.toFixed(1)+'" cy="'+b.y.toFixed(1)+'" r="'+b.r.toFixed(1)+'" fill="none" stroke="rgba(255,255,255,.85)" stroke-width=".6"/>'; }).join('');
-  requestAnimationFrame(loop);
+$('#addTray').onclick = function(){ var y = SYRUPS[v('sy')]; tray.push({name:y[1] + '・' + SIZES[v('sz')][1] + '・' + GAS[v('gs')][1] + '・' + ICE[v('ic')][0], p:unitPrice(), q:qn}); qn = 1; mixDraw(); trayDraw(); $('#ticket').innerHTML = ''; };
+$('#trayList').addEventListener('click', function(e){ var b = e.target.closest('[data-rm]'); if (!b) return; tray.splice(+b.dataset.rm, 1); trayDraw(); });
+function mins(t){ var p = t.split(':'); return +p[0]*60 + +p[1]; }
+function fmt(m){ return String(Math.floor(m/60)).padStart(2, '0') + ':' + String(m%60).padStart(2, '0'); }
+(function(){ var h = SHOP.hours[now.getDay()], m = now.getHours()*60 + now.getMinutes(), out = [];
+  if (h){ var start = Math.max(mins(h[0]), Math.ceil((m + 15)/15)*15); for (var t = start; t <= mins(h[1]) - 15; t += 15) out.push('今天 ' + fmt(t)); }
+  if (!out.length){ for (var k = 1; k < 8; k++){ var d = (now.getDay() + k)%7, x = SHOP.hours[d]; if (x){ for (var t2 = mins(x[0]) + 15; t2 <= mins(x[0]) + 180; t2 += 15) out.push((k === 1 ? '明天 ' : DAYS[d] + ' ') + fmt(t2)); break; } } }
+  $('#pTime').innerHTML = out.slice(0, 24).map(function(o){ return '<option>' + o + '</option>'; }).join('');
 })();
-$('k1').onclick=function(){ insert(1); };
-$('k3').onclick=function(){ insert(3); };
-placeGlass(); step(0); lamp();
+trayDraw();
+$('#pf').addEventListener('submit', function(e){
+  e.preventDefault(); var ph = $('#pPhone'), ok = /^09\d{2}-?\d{3}-?\d{3}$/.test(ph.value.trim());
+  ph.nextElementSibling.textContent = ok ? '' : '請輸入 09 開頭的手機號碼';
+  if (!tray.length){ $('#ticket').innerHTML = '<p class="demo" style="color:var(--red)">取餐單是空的，先加入一杯。</p>'; return; }
+  if (!ok) return;
+  seq = seq || 100 + (now.getHours()*7 + now.getMinutes())%80;
+  $('#ticket').innerHTML = '<div class="ticket">取餐號碼<b>№ ' + (++seq) + '</b>' + $('#pTime').value + ' · ' + tray.reduce(function(s, t){ return s + t.q; }, 0) + ' 杯 · 到店付款</div>';
+  tray = []; trayDraw();
+});
+
+/* ===== 活動租借 ===== */
+keys('#kFlav', RENTAL.flav, 'fl', 0, function(o){ return '<b>' + o[0] + '</b>' + (o[1] ? '+' + o[1].toLocaleString() : '含'); });
+keys('#kArea', RENTAL.area, 'ar', 0, function(o){ return o[0] + '<small>' + (typeof o[1] === 'number' ? (o[1] ? '車馬 +' + o[1].toLocaleString() : '免車馬') : o[1]) + '</small>'; });
+function quote(){
+  var g = +$('#guests').value, h = +$('#hrs').value, fl = RENTAL.flav[v('fl')], ar = RENTAL.area[v('ar')];
+  $('#gOut').textContent = g + ' 人'; $('#hOut').textContent = h + ' 小時';
+  var hourCost = Math.max(0, h - RENTAL.minHours)*RENTAL.perHour, cups = g*2, drink = g*RENTAL.perGuest, travel = typeof ar[1] === 'number' ? ar[1] : null;
+  var tot = RENTAL.base + hourCost + drink + fl[1] + (travel || 0);
+  $('#quote').innerHTML = '<dl><dt>汽水機＋師傅（含 ' + RENTAL.minHours + ' 小時）</dt><dd>' + money(RENTAL.base) + '</dd>' + (hourCost ? '<dt>加時 ' + (h - RENTAL.minHours) + ' 小時</dt><dd>' + money(hourCost) + '</dd>' : '') + '<dt>糖漿與氣泡水（約 ' + cups + ' 杯）</dt><dd>' + money(drink) + '</dd>' + (fl[1] ? '<dt>口味 ' + fl[0] + '</dt><dd>' + money(fl[1]) + '</dd>' : '') + '<dt>車馬・' + ar[0] + '</dt><dd>' + (travel === null ? '另議' : money(travel)) + '</dd></dl><div class="tot"><span>預估總額' + (travel === null ? '（未含車馬）' : '') + '<br><small style="opacity:.7">每位約 ' + money(tot/g) + '・訂金 ' + money(tot*.3) + '</small></span><b>' + money(tot) + '</b></div>';
+}
+$('#rf').addEventListener('input', quote); $('#rf').addEventListener('change', quote); quote();
+
+/* ===== 營業狀態 ===== */
+(function(){
+  var h = SHOP.hours[now.getDay()], m = now.getHours()*60 + now.getMinutes(), open = h && m >= mins(h[0]) && m < mins(h[1]), next = '';
+  if (!open) for (var k = 0; k < 8 && !next; k++){ var d = (now.getDay() + k) % 7, x = SHOP.hours[d]; if (x && (k > 0 || mins(x[0]) > m)) next = (k === 0 ? '今天' : k === 1 ? '明天' : DAYS[d]) + ' ' + x[0]; }
+  $('#status').classList.toggle('on', !!open); $('#status').lastElementChild.textContent = open ? 'ОТКРЫТО · 營業至 ' + h[1] : 'ЗАКРЫТО · ' + next + ' 開門';
+  $('#hours').innerHTML = [1,2,3,4,5,6,0].map(function(i){ var x = SHOP.hours[i], t = i === now.getDay() ? ' class="t"' : ''; return '<span' + t + '>' + DAYS[i] + '</span><span' + t + '>' + (x ? x[0] + '–' + x[1] : '公休') + '</span>'; }).join('');
+})();
+$('#addr').textContent = SHOP.address; $('#tel').textContent = SHOP.phone; $('#tel').href = 'tel:' + SHOP.phone.replace(/[^\d]/g, '');
+$('#mapLink').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(SHOP.address);
+$('#yr').textContent = now.getFullYear();
+
+/* ===== 佔位圖（招貼平塗） ===== */
+function svg(vb, body){ return '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + body + '</svg>'; }
+function cup(x, y, s, c){ return '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')"><path d="M-30 0 L-26 -90 L26 -90 L30 0Z" fill="rgba(255,255,255,.35)" stroke="#fff" stroke-width="3"/><path d="M-28.5 -2 L-27 -64 L27 -64 L28.5 -2Z" fill="' + c + '"/><path d="M-11 -88 L-12 -2 M0 -88 V-2 M11 -88 L12 -2" stroke="#fff" stroke-width="1.5" opacity=".5"/></g>'; }
+var ART = {
+  event:function(){ var s = '<rect width="1400" height="1000" fill="#7a9a6a"/><rect y="640" width="1400" height="360" fill="#5f7d52"/>';
+    for (var i = 0; i < 12; i++) s += '<path d="M' + (i*130 - 40) + ' 60 q65 50 130 0" stroke="#f4efe2" stroke-width="3" fill="none"/><circle cx="' + (i*130 + 25) + '" cy="84" r="9" fill="#ffd27a"/>';
+    s += '<g transform="translate(560 220) scale(.9)"><rect x="0" y="0" width="260" height="480" rx="24" fill="#ece6d4"/><rect width="260" height="90" rx="24" fill="#c4312a"/><rect y="60" width="260" height="30" fill="#c4312a"/><text x="130" y="62" text-anchor="middle" textLength="220" lengthAdjust="spacingAndGlyphs" font-family="DIN Condensed,sans-serif" font-weight="700" font-size="40" fill="#ece6d4">ГАЗИРОВКА</text><rect x="40" y="240" width="180" height="160" rx="10" fill="#2b2622"/></g>';
+    s += '<rect x="900" y="560" width="360" height="30" fill="#f4efe2"/><rect x="920" y="590" width="20" height="160" fill="#2b2622"/><rect x="1220" y="590" width="20" height="160" fill="#2b2622"/>' + cup(980, 556, .8, '#4caf3a') + cup(1060, 556, .8, '#e9c94a') + cup(1140, 556, .8, '#9b1b2a');
+    for (var p = 0; p < 6; p++){ var x = 120 + p*80 + (p > 2 ? 160 : 0); s += '<circle cx="' + x + '" cy="560" r="30" fill="' + ['#2b2622','#9e2621','#3a2414','#5d6566','#2b2622','#9e2621'][p] + '"/><rect x="' + (x - 34) + '" y="590" width="68" height="160" rx="30" fill="' + ['#f2a62a','#ece6d4','#c4312a','#e9c94a','#4caf3a','#ece6d4'][p] + '"/>'; }
+    return svg('0 0 1400 1000', s); },
+  bar:function(){ var s = '<rect width="1200" height="1400" fill="#d6ad57"/><rect y="900" width="1200" height="500" fill="#c4312a"/><rect y="880" width="1200" height="30" fill="#ece6d4"/>';
+    for (var r = 0; r < 3; r++){ s += '<rect x="80" y="' + (200 + r*230) + '" width="1040" height="14" fill="#5d6566"/>'; for (var i = 0; i < 6; i++){ var c = ['#4caf3a','#e9c94a','#f2dfb0','#9b1b2a','#3a2414','#f2a62a'][(i + r)%6], x = 150 + i*165; s += '<rect x="' + (x - 34) + '" y="' + (70 + r*230) + '" width="68" height="130" rx="10" fill="rgba(255,255,255,.5)" stroke="#2b2622" stroke-width="3"/><rect x="' + (x - 32) + '" y="' + (120 + r*230) + '" width="64" height="78" rx="8" fill="' + c + '"/><rect x="' + (x - 14) + '" y="' + (52 + r*230) + '" width="28" height="20" fill="#5d6566"/>'; } }
+    for (var k = 0; k < 4; k++) s += cup(260 + k*230, 880, 1.2, ['#4caf3a','#f2a62a','#9b1b2a','#e9c94a'][k]);
+    return svg('0 0 1200 1400', s); },
+  glasses:function(){ var s = '<rect width="800" height="800" fill="#ece6d4"/>'; for (var i = 0; i < 9; i++) s += cup(170 + (i%3)*230, 280 + Math.floor(i/3)*230, 1.6, ['#4caf3a','#e9c94a','#9b1b2a','#f2dfb0','#3a2414','#f2a62a','#cfe6f2','#4caf3a','#9b1b2a'][i]); return svg('0 0 800 800', s); },
+  pot:function(){ var s = '<rect width="800" height="800" fill="#2b2622"/><ellipse cx="400" cy="560" rx="260" ry="60" fill="#5d6566"/><rect x="140" y="360" width="520" height="200" fill="#8e9696"/><ellipse cx="400" cy="360" rx="260" ry="60" fill="#c4c9c9"/><ellipse cx="400" cy="366" rx="230" ry="48" fill="#9b1b2a"/>';
+    for (var i = 0; i < 14; i++) s += '<circle cx="' + (220 + (i*47)%360) + '" cy="' + (350 + (i*13)%30) + '" r="' + (10 + i%3*4) + '" fill="#6a0f1c"/>';
+    s += '<path d="M560 330 L700 120" stroke="#c9a477" stroke-width="18" stroke-linecap="round"/><path d="M300 280 q-20 -60 10 -120 M400 270 q20 -70 -10 -140 M500 280 q-20 -60 10 -110" stroke="#ece6d4" stroke-width="10" fill="none" opacity=".35" stroke-linecap="round"/>';
+    return svg('0 0 800 800', s); },
+  bottles:function(){ var s = '<rect width="800" height="800" fill="#c4312a"/><rect y="600" width="800" height="200" fill="#9e2621"/>';
+    for (var i = 0; i < 5; i++){ var x = 130 + i*135, c = ['#4caf3a','#e9c94a','#9b1b2a','#3a2414','#f2a62a'][i]; s += '<path d="M' + (x - 20) + ' 200 h40 v60 q40 30 40 80 v250 q0 10 -10 10 h-100 q-10 0 -10 -10 v-250 q0 -50 40 -80z" fill="' + c + '" stroke="#2b2622" stroke-width="3"/><rect x="' + (x - 24) + '" y="184" width="48" height="20" rx="3" fill="#ece6d4"/><rect x="' + (x - 42) + '" y="400" width="84" height="90" fill="#ece6d4"/><text x="' + x + '" y="452" text-anchor="middle" textLength="70" lengthAdjust="spacingAndGlyphs" font-family="DIN Condensed,sans-serif" font-size="22" fill="#c4312a">' + SYRUPS[i][0].toUpperCase().slice(0, 7) + '</text>'; }
+    return svg('0 0 800 800', s); },
+  front:function(){ var s = '<rect width="800" height="800" fill="#8e9696"/><rect y="720" width="800" height="80" fill="#5d6566"/><rect x="100" y="160" width="600" height="640" fill="#c39a45"/><rect x="100" y="160" width="600" height="110" fill="#c4312a"/><text x="400" y="240" text-anchor="middle" textLength="500" lengthAdjust="spacingAndGlyphs" font-family="DIN Condensed,sans-serif" font-weight="700" font-size="74" fill="#ece6d4">ГАЗИРОВКА</text>';
+    s += '<rect x="160" y="320" width="220" height="480" fill="#2b2622"/><rect x="176" y="336" width="188" height="300" fill="#5d6566"/><rect x="430" y="320" width="220" height="250" fill="#ece6d4" stroke="#2b2622" stroke-width="8"/><path d="M540 320 V570 M430 445 H650" stroke="#2b2622" stroke-width="6"/>' + cup(500, 560, 1, '#4caf3a') + cup(590, 560, 1, '#9b1b2a');
+    return svg('0 0 800 800', s); }
+};
+function fillPhotos(){ $$('.ph').forEach(function(f){ var url = SHOP.photos[f.dataset.photo]; if (url){ f.innerHTML = '<img src="' + url + '" alt="' + (f.dataset.label || '') + '" loading="lazy">'; return; } var a = ART[f.dataset.art]; if (a) f.innerHTML = a(); }); }
+
+/* ===== 共用 ===== */
+var nav = $('#nav');
+$('#burger').onclick = function(){ var o = nav.classList.toggle('open'); this.setAttribute('aria-expanded', o); this.textContent = o ? 'ЗАКРЫТЬ' : 'МЕНЮ'; };
+$$('#navList a').forEach(function(a){ a.onclick = function(){ nav.classList.remove('open'); $('#burger').textContent = 'МЕНЮ'; }; });
+var slotBtn = $('#slotBtn');
+function slots(on){ document.body.classList.toggle('slots', on); slotBtn.setAttribute('aria-pressed', on); }
+slotBtn.onclick = function(){ slots(!document.body.classList.contains('slots')); };
+if (/[?&]slots/.test(location.search)) slots(true);
+fillPhotos();
+if ('IntersectionObserver' in window){
+  var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('vis'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -6% 0px'});
+  $$('.rv-in').forEach(function(el){ io.observe(el); });
+} else $$('.rv-in').forEach(function(el){ el.classList.add('vis'); });
 })();
 </script>
 </body>
